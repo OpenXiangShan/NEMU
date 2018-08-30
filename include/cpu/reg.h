@@ -32,8 +32,15 @@ typedef struct {
     };
   };
 
+  uint16_t cs;
   vaddr_t eip;
-  rtlreg_t OF, CF, SF, ZF;
+
+  rtlreg_t OF, CF, SF, ZF, IF;
+
+  struct {
+    uint32_t limit :16;
+    uint32_t base  :32;
+  } idtr;
 
 } CPU_state;
 
