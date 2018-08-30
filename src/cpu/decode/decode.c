@@ -42,7 +42,8 @@ static inline make_DopHelper(SI) {
    *
    op->simm = ???
    */
-  TODO();
+  op->simm = instr_fetch(eip, op->width);
+  if (op->width == 1) op->simm = (int8_t)op->simm;
 
   rtl_li(&op->val, op->simm);
 
@@ -238,7 +239,7 @@ make_DHelper(gp2_cl2E) {
   decode_op_rm(eip, id_dest, true, NULL, false);
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_CL;
-  rtl_lr_b(&id_src->val, R_CL);
+  rtl_lr(&id_src->val, R_CL, 1);
 #ifdef DEBUG
   sprintf(id_src->str, "%%cl");
 #endif
@@ -287,7 +288,7 @@ make_DHelper(in_I2a) {
 make_DHelper(in_dx2a) {
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_DX;
-  rtl_lr_w(&id_src->val, R_DX);
+  rtl_lr(&id_src->val, R_DX, 2);
 #ifdef DEBUG
   sprintf(id_src->str, "(%%dx)");
 #endif
@@ -306,14 +307,14 @@ make_DHelper(out_a2dx) {
 
   id_dest->type = OP_TYPE_REG;
   id_dest->reg = R_DX;
-  rtl_lr_w(&id_dest->val, R_DX);
+  rtl_lr(&id_dest->val, R_DX, 2);
 #ifdef DEBUG
   sprintf(id_dest->str, "(%%dx)");
 #endif
 }
 
 void operand_write(Operand *op, rtlreg_t* src) {
-  if (op->type == OP_TYPE_REG) { rtl_sr(op->reg, op->width, src); }
-  else if (op->type == OP_TYPE_MEM) { rtl_sm(&op->addr, op->width, src); }
+  if (op->type == OP_TYPE_REG) { rtl_sr(op->reg, src, op->width); }
+  else if (op->type == OP_TYPE_MEM) { rtl_sm(&op->addr, src, op->width); }
   else { assert(0); }
 }

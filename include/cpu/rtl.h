@@ -7,47 +7,29 @@
 #include "cpu/rtl-wrapper.h"
 
 extern rtlreg_t t0, t1, t2, t3, at;
-extern const rtlreg_t tzero;
 
 void decoding_set_jmp(bool is_jmp);
 bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2);
 
 /* RTL basic instructions */
 
-static inline void interpret_rtl_j(vaddr_t target) {
-  cpu.eip = target;
-  decoding_set_jmp(true);
-}
-
-static inline void interpret_rtl_jr(rtlreg_t *target) {
-  cpu.eip = *target;
-  decoding_set_jmp(true);
-}
-
-static inline void interpret_rtl_jrelop(uint32_t relop,
-    const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  bool is_jmp = interpret_relop(relop, *src1, *src2);
-  if (is_jmp) cpu.eip = target;
-  decoding_set_jmp(is_jmp);
-}
-
-static inline void interpret_rtl_setrelop(uint32_t relop, rtlreg_t *dest,
-    const rtlreg_t *src1, const rtlreg_t *src2) {
-  *dest = interpret_relop(relop, *src1, *src2);
-}
-
-void interpret_rtl_exit(int state);
-
 static inline void interpret_rtl_li(rtlreg_t* dest, uint32_t imm) {
   *dest = imm;
+}
+
+static inline void interpret_rtl_mv(rtlreg_t* dest, const rtlreg_t *src1) {
+  *dest = *src1;
 }
 
 #define make_rtl_arith_logic(name) \
   static inline void concat(interpret_rtl_, name) (rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
     *dest = concat(c_, name) (*src1, *src2); \
   } \
-  static inline void concat3(interpret_rtl_, name, i) (rtlreg_t* dest, const rtlreg_t* src1, int imm) { \
-    *dest = concat(c_, name) (*src1, imm); \
+  /* Actually those of imm version are pseudo rtl instructions,
+   * but we define them here in the same macro */ \
+  static inline void concat(rtl_, name ## i) (rtlreg_t* dest, const rtlreg_t* src1, int imm) { \
+    rtl_li(&at, imm); \
+    rtl_ ## name (dest, src1, &at); \
   }
 
 make_rtl_arith_logic(add)
@@ -99,128 +81,136 @@ static inline void interpret_rtl_lm(rtlreg_t *dest, const rtlreg_t* addr, int le
   *dest = vaddr_read(*addr, len);
 }
 
-static inline void interpret_rtl_sm(const rtlreg_t* addr, int len, const rtlreg_t* src1) {
-  vaddr_write(*addr, len, *src1);
+static inline void interpret_rtl_sm(const rtlreg_t* addr, const rtlreg_t* src1, int len) {
+  vaddr_write(*addr, *src1, len);
 }
 
-static inline void interpret_rtl_lr_l(rtlreg_t* dest, int r) {
-  *dest = reg_l(r);
+static inline void interpret_rtl_host_lm(rtlreg_t* dest, const void *addr, int len) {
+  switch (len) {
+    case 4: *dest = *(uint32_t *)addr; return;
+    case 1: *dest = *( uint8_t *)addr; return;
+    case 2: *dest = *(uint16_t *)addr; return;
+    default: assert(0);
+  }
 }
 
-static inline void interpret_rtl_lr_w(rtlreg_t* dest, int r) {
-  *dest = reg_w(r);
+static inline void interpret_rtl_host_sm(void *addr, const rtlreg_t *src1, int len) {
+  switch (len) {
+    case 4: *(uint32_t *)addr = *src1; return;
+    case 1: *( uint8_t *)addr = *src1; return;
+    case 2: *(uint16_t *)addr = *src1; return;
+    default: assert(0);
+  }
 }
 
-static inline void interpret_rtl_lr_b(rtlreg_t* dest, int r) {
-  *dest = reg_b(r);
+static inline void interpret_rtl_setrelop(uint32_t relop, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2) {
+  *dest = interpret_relop(relop, *src1, *src2);
 }
 
-static inline void interpret_rtl_sr_l(int r, const rtlreg_t* src1) {
-  reg_l(r) = *src1;
+static inline void interpret_rtl_j(vaddr_t target) {
+  cpu.eip = target;
+  decoding_set_jmp(true);
 }
 
-static inline void interpret_rtl_sr_w(int r, const rtlreg_t* src1) {
-  reg_w(r) = *src1;
+static inline void interpret_rtl_jr(rtlreg_t *target) {
+  cpu.eip = *target;
+  decoding_set_jmp(true);
 }
 
-static inline void interpret_rtl_sr_b(int r, const rtlreg_t* src1) {
-  reg_b(r) = *src1;
+static inline void interpret_rtl_jrelop(uint32_t relop,
+    const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
+  bool is_jmp = interpret_relop(relop, *src1, *src2);
+  if (is_jmp) cpu.eip = target;
+  decoding_set_jmp(is_jmp);
 }
 
-/* RTL psuedo instructions */
+void interpret_rtl_exit(int state);
+
+
+/* RTL pseudo instructions */
 
 static inline void rtl_lr(rtlreg_t* dest, int r, int width) {
   switch (width) {
-    case 4: rtl_lr_l(dest, r); return;
-    case 1: rtl_lr_b(dest, r); return;
-    case 2: rtl_lr_w(dest, r); return;
+    case 4: rtl_mv(dest, &reg_l(r)); return;
+    case 1: rtl_host_lm(dest, &reg_b(r), 1); return;
+    case 2: rtl_host_lm(dest, &reg_w(r), 2); return;
     default: assert(0);
   }
 }
 
-static inline void rtl_sr(int r, int width, const rtlreg_t* src1) {
+static inline void rtl_sr(int r, const rtlreg_t* src1, int width) {
   switch (width) {
-    case 4: rtl_sr_l(r, src1); return;
-    case 1: rtl_sr_b(r, src1); return;
-    case 2: rtl_sr_w(r, src1); return;
+    case 4: rtl_mv(&reg_l(r), src1); return;
+    case 1: rtl_host_sm(&reg_b(r), src1, 1); return;
+    case 2: rtl_host_sm(&reg_w(r), src1, 2); return;
     default: assert(0);
   }
 }
 
-static inline void rtl_mv(rtlreg_t* dest, const rtlreg_t *src1) {
-  // dest <- src1
-  TODO();
-}
-
-void cc_gen_ZF(rtlreg_t *);
-void cc_gen_SF(rtlreg_t *);
-void cc_gen_OF(rtlreg_t *);
-void cc_gen_CF(rtlreg_t *);
-void cc_set_op(int, int, rtlreg_t *, rtlreg_t *);
-
-#define make_rtl_setget_eflags(f) \
-  static inline void concat(rtl_set_, f) (const rtlreg_t* src) { \
-    TODO(); \
-  } \
-  static inline void concat(rtl_get_, f) (rtlreg_t* dest) { \
-    TODO(); \
-  }
-
-make_rtl_setget_eflags(CF)
-make_rtl_setget_eflags(OF)
-make_rtl_setget_eflags(ZF)
-make_rtl_setget_eflags(SF)
-
-static inline void rtl_not(rtlreg_t* dest) {
-  // dest <- ~dest
-  TODO();
+static inline void rtl_not(rtlreg_t *dest, const rtlreg_t* src1) {
+  // dest <- ~src1
+//  TODO();
+  rtl_xori(dest, src1, 0xffffffff);
 }
 
 static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- signext(src1[(width * 8 - 1) .. 0])
-  TODO();
+//  TODO();
+  if (width == 4) {
+    rtl_mv(dest, src1);
+  }
+  else {
+    assert(width == 1 || width == 2);
+    rtl_shli(dest, src1, (4 - width) * 8);
+    rtl_sari(dest, dest, (4 - width) * 8);
+  }
 }
 
 static inline void rtl_push(const rtlreg_t* src1) {
   // esp <- esp - 4
   // M[esp] <- src1
-  TODO();
+//  TODO();
+  rtl_subi(&cpu.esp, &cpu.esp, 4);
+  rtl_sm(&cpu.esp, src1, 4);
 }
 
 static inline void rtl_pop(rtlreg_t* dest) {
   // dest <- M[esp]
   // esp <- esp + 4
-  TODO();
+//  TODO();
+  rtl_lm(dest, &cpu.esp, 4);
+  rtl_addi(&cpu.esp, &cpu.esp, 4);
 }
 
-static inline void rtl_eq0(rtlreg_t* dest, const rtlreg_t* src1) {
-  // dest <- (src1 == 0 ? 1 : 0)
-  TODO();
-}
-
-static inline void rtl_eqi(rtlreg_t* dest, const rtlreg_t* src1, int imm) {
-  // dest <- (src1 == imm ? 1 : 0)
-  TODO();
-}
-
-static inline void rtl_neq0(rtlreg_t* dest, const rtlreg_t* src1) {
-  // dest <- (src1 != 0 ? 1 : 0)
-  TODO();
+static inline void rtl_setrelopi(uint32_t relop, rtlreg_t *dest,
+    const rtlreg_t *src1, int imm) {
+  rtl_li(&at, imm);
+  rtl_setrelop(relop, dest, src1, &at);
 }
 
 static inline void rtl_msb(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- src1[width * 8 - 1]
-  TODO();
+//  TODO();
+  rtl_shri(dest, src1, width * 8 - 1);
 }
 
 static inline void rtl_update_ZF(const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
-  TODO();
+//  TODO();
+  if (width != 4) {
+    rtl_andi(&cpu.ZF, result, (0xffffffffu >> (4 - width) * 8));
+    rtl_setrelopi(RELOP_EQ, &cpu.ZF, &cpu.ZF, 0);
+  }
+  else {
+    rtl_setrelopi(RELOP_EQ, &cpu.ZF, result, 0);
+  }
 }
 
 static inline void rtl_update_SF(const rtlreg_t* result, int width) {
   // eflags.SF <- is_sign(result[width * 8 - 1 .. 0])
-  TODO();
+//  TODO();
+  rtl_msb(&cpu.SF, result, width);
 }
 
 static inline void rtl_update_ZFSF(const rtlreg_t* result, int width) {

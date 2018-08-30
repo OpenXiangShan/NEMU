@@ -1,62 +1,93 @@
 #include "cpu/exec.h"
 #include "cpu/cc.h"
 
-make_EHelper(test) {
-  TODO();
+// dest <- and result
+static inline void and_internal(rtlreg_t *dest) {
+  rtl_and(dest, &id_dest->val, &id_src->val);
+  rtl_update_ZFSF(dest, id_dest->width);
+  rtl_li(&cpu.CF, 0);
+  rtl_li(&cpu.OF, 0);
+}
 
+make_EHelper(test) {
+  and_internal(&t0);
   print_asm_template2(test);
 }
 
 make_EHelper(and) {
-  TODO();
-
+  and_internal(&t0);
+  operand_write(id_dest, &t0);
   print_asm_template2(and);
 }
 
 make_EHelper(xor) {
-  TODO();
-
+  rtl_xor(&t2, &id_dest->val, &id_src->val);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_li(&cpu.CF, 0);
+  rtl_li(&cpu.OF, 0);
   print_asm_template2(xor);
 }
 
 make_EHelper(or) {
-  TODO();
-
+  rtl_or(&t2, &id_dest->val, &id_src->val);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_li(&cpu.CF, 0);
+  rtl_li(&cpu.OF, 0);
   print_asm_template2(or);
 }
 
 make_EHelper(sar) {
-  TODO();
+  rtl_sext(&t2, &id_dest->val, id_dest->width);
+  rtl_sar(&t2, &t2, &id_src->val);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-
   print_asm_template2(sar);
 }
 
 make_EHelper(shl) {
-  TODO();
+  rtl_shl(&t2, &id_dest->val, &id_src->val);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-
   print_asm_template2(shl);
 }
 
 make_EHelper(shr) {
-  TODO();
+  rtl_shr(&t2, &id_dest->val, &id_src->val);
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-
   print_asm_template2(shr);
+}
+
+make_EHelper(rol) {
+  rtl_shl(&t1, &id_dest->val, &id_src->val);
+  rtl_li(&t2, id_dest->width * 8);
+  rtl_sub(&t2, &t2, &id_src->val);
+  rtl_shr(&t2, &id_dest->val, &t2);
+  rtl_or(&t2, &t1, &t2);
+
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  // unnecessary to update CF and OF in NEMU
+  print_asm_template2(rol);
 }
 
 make_EHelper(setcc) {
   uint32_t cc = decoding.opcode & 0xf;
-  rtl_setcc(&t2, cc);
 
+  rtl_setcc(&t2, cc);
   operand_write(id_dest, &t2);
 
   print_asm("set%s %s", get_cc_name(cc), id_dest->str);
 }
 
 make_EHelper(not) {
-  TODO();
+  rtl_not(&t0, &id_dest->val);
+  operand_write(id_dest, &t0);
 
   print_asm_template1(not);
 }

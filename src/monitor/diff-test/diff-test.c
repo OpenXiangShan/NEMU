@@ -126,6 +126,14 @@ void init_qemu_reg() {
   assert(ok == 1);
 }
 
+#define check_reg(regs, r) \
+  if (regs.r != cpu.r) { \
+    Log("%s is different after executing instruction at eip = 0x%08x, right = 0x%08x, wrong = 0x%08x", \
+        str(r), eip, regs.r, cpu.r); \
+    diff = true; \
+  }
+
+
 void difftest_step(uint32_t eip) {
   union gdb_regs r;
   bool diff = false;
@@ -149,9 +157,18 @@ void difftest_step(uint32_t eip) {
 
   // TODO: Check the registers state with QEMU.
   // Set `diff` as `true` if they are not the same.
-  TODO();
+  //TODO();
+  check_reg(r, eax);
+  check_reg(r, ecx);
+  check_reg(r, edx);
+  check_reg(r, ebx);
+  check_reg(r, esp);
+  check_reg(r, ebp);
+  check_reg(r, esi);
+  check_reg(r, edi);
+  check_reg(r, eip);
 
   if (diff) {
-    nemu_state = NEMU_END;
+    nemu_state = NEMU_ABORT;
   }
 }

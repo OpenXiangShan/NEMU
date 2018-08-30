@@ -12,7 +12,7 @@ extern uint8_t pmem[];
 
 uint32_t vaddr_read(vaddr_t, int);
 uint32_t paddr_read(paddr_t, int);
-void vaddr_write(vaddr_t, int, uint32_t);
-void paddr_write(paddr_t, int, uint32_t);
+void vaddr_write(vaddr_t, uint32_t, int);
+void paddr_write(paddr_t, uint32_t, int);
 
 #endif

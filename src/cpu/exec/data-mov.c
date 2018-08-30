@@ -6,13 +6,16 @@ make_EHelper(mov) {
 }
 
 make_EHelper(push) {
-  TODO();
+//  TODO();
+  rtl_push(&id_dest->val);
 
   print_asm_template1(push);
 }
 
 make_EHelper(pop) {
-  TODO();
+//  TODO();
+  rtl_pop(&t0);
+  operand_write(id_dest, &t0);
 
   print_asm_template1(pop);
 }
@@ -30,7 +33,9 @@ make_EHelper(popa) {
 }
 
 make_EHelper(leave) {
-  TODO();
+//  TODO();
+  rtl_mv(&cpu.esp, &cpu.ebp);
+  rtl_pop(&cpu.ebp);
 
   print_asm("leave");
 }
@@ -40,7 +45,7 @@ make_EHelper(cltd) {
     TODO();
   }
   else {
-    TODO();
+    rtl_sari(&cpu.edx, &cpu.eax, 31);
   }
 
   print_asm(decoding.is_operand_size_16 ? "cwtl" : "cltd");
@@ -59,8 +64,8 @@ make_EHelper(cwtl) {
 
 make_EHelper(movsx) {
   id_dest->width = decoding.is_operand_size_16 ? 2 : 4;
-  rtl_sext(&t2, &id_src->val, id_src->width);
-  operand_write(id_dest, &t2);
+  rtl_sext(&t0, &id_src->val, id_src->width);
+  operand_write(id_dest, &t0);
   print_asm_template2(movsx);
 }
 

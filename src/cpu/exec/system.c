@@ -51,7 +51,18 @@ void pio_write_b(ioaddr_t, uint32_t);
 extern bool diff_test_fix;
 
 make_EHelper(in) {
-  TODO();
+//  TODO();
+
+  uint32_t val;
+  switch (id_dest->width) {
+    case 1: val = pio_read_b(id_src->val); break;
+    case 2: val = pio_read_w(id_src->val); break;
+    case 4: val = pio_read_l(id_src->val); break;
+    default: assert(0);
+  }
+
+  rtl_li(&t0, val);
+  operand_write(id_dest, &t0);
 
 #if defined(DIFF_TEST)
   diff_test_skip_qemu();
@@ -61,7 +72,14 @@ make_EHelper(in) {
 }
 
 make_EHelper(out) {
-  TODO();
+//  TODO();
+
+  switch (id_dest->width) {
+    case 1: pio_write_b(id_dest->val, id_src->val); break;
+    case 2: pio_write_w(id_dest->val, id_src->val); break;
+    case 4: pio_write_l(id_dest->val, id_src->val); break;
+    default: assert(0);
+  }
 
 #if defined(DIFF_TEST)
   diff_test_skip_qemu();
