@@ -7,6 +7,7 @@
 
 static uint32_t *i8042_data_port_base;
 
+// Note that this is not the standard
 #define _KEYS(_) \
   _(ESCAPE) _(F1) _(F2) _(F3) _(F4) _(F5) _(F6) _(F7) _(F8) _(F9) _(F10) _(F11) _(F12) \
 _(GRAVE) _(1) _(2) _(3) _(4) _(5) _(6) _(7) _(8) _(9) _(0) _(MINUS) _(EQUALS) _(BACKSPACE) \
