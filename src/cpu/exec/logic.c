@@ -91,3 +91,33 @@ make_EHelper(not) {
 
   print_asm_template1(not);
 }
+
+make_EHelper(shld) {
+  rtl_shl(&t2, &id_dest->val, &id_src->val);
+
+  rtl_li(&t0, 32);
+  rtl_sub(&t0, &t0, &id_src->val);
+  rtl_shr(&t0, &id_src2->val, &t0);
+
+  rtl_or(&t2, &t2, &t0);
+
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  // unnecessary to update CF and OF in NEMU
+  print_asm_template3(shld);
+}
+
+make_EHelper(shrd) {
+  rtl_shr(&t2, &id_dest->val, &id_src->val);
+
+  rtl_li(&t0, 32);
+  rtl_sub(&t0, &t0, &id_src->val);
+  rtl_shl(&t0, &id_src2->val, &t0);
+
+  rtl_or(&t2, &t2, &t0);
+
+  operand_write(id_dest, &t2);
+  rtl_update_ZFSF(&t2, id_dest->width);
+  // unnecessary to update CF and OF in NEMU
+  print_asm_template3(shrd);
+}

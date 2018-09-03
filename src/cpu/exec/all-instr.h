@@ -37,6 +37,8 @@ make_EHelper(sar);
 make_EHelper(not);
 make_EHelper(shr);
 make_EHelper(rol);
+make_EHelper(shld);
+make_EHelper(shrd);
 
 make_EHelper(call);
 make_EHelper(ret);

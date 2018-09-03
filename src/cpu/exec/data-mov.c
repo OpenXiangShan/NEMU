@@ -75,7 +75,8 @@ make_EHelper(cwtl) {
     TODO();
   }
   else {
-    TODO();
+    //TODO();
+    rtl_sext(&cpu.eax, &cpu.eax, 2);
   }
 
   print_asm(decoding.is_operand_size_16 ? "cbtw" : "cwtl");
