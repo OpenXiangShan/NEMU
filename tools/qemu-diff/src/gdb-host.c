@@ -1,7 +1,4 @@
 #include "common.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include "protocol.h"
 
 static struct gdb_conn *conn;
 

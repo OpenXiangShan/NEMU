@@ -21,11 +21,6 @@
 #include <ctype.h>
 #include <err.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include <arpa/inet.h>
 
@@ -34,9 +29,6 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
-
-
-#include "protocol.h"
 
 struct gdb_conn {
   FILE *in;
@@ -124,13 +116,13 @@ struct gdb_conn* gdb_begin_inet(const char *addr, uint16_t port) {
   int r = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (char *)&tmp, sizeof(tmp));
   if (r) {
     perror("setsockopt");
-    panic("setsockopt error");
+    assert(0);
   }
   tmp = 1;
   r = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&tmp, sizeof(tmp));
   if (r) {
     perror("setsockopt");
-    panic("setsockopt error");
+    assert(0);
   }
 
   // initialize the rest of gdb on this handle

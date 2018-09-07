@@ -33,8 +33,8 @@ typedef struct {
     };
   };
 
-  uint16_t cs;
   vaddr_t eip;
+  uint16_t cs;
 
   rtlreg_t OF, CF, SF, ZF, IF;
 

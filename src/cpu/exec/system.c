@@ -1,7 +1,7 @@
 #include "cpu/exec.h"
 
-void diff_test_skip_qemu();
-void diff_test_skip_nemu();
+void difftest_skip_ref();
+void difftest_skip_dut();
 
 make_EHelper(lidt) {
   cpu.idtr.limit = vaddr_read(id_dest->addr, 2);
@@ -24,7 +24,7 @@ make_EHelper(mov_cr2r) {
   print_asm("movl %%cr%d,%%%s", id_src->reg, reg_name(id_dest->reg, 4));
 
 #if defined(DIFF_TEST)
-  diff_test_skip_qemu();
+  difftest_skip_ref();
 #endif
 }
 
@@ -34,8 +34,8 @@ make_EHelper(int) {
 
   print_asm("int %s", id_dest->str);
 
-#if defined(DIFF_TEST)
-  diff_test_skip_nemu();
+#if defined(DIFF_TEST) && defined(DIFF_TEST_QEMU)
+  difftest_skip_dut();
 #endif
 }
 
@@ -79,7 +79,7 @@ make_EHelper(in) {
   operand_write(id_dest, &t0);
 
 #if defined(DIFF_TEST)
-  diff_test_skip_qemu();
+  difftest_skip_ref();
 #endif
 
   print_asm_template2(in);
@@ -96,7 +96,7 @@ make_EHelper(out) {
   }
 
 #if defined(DIFF_TEST)
-  diff_test_skip_qemu();
+  difftest_skip_ref();
 #endif
 
   print_asm_template2(out);

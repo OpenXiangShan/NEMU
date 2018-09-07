@@ -1,19 +1,17 @@
 #include "nemu.h"
+#include "monitor/monitor.h"
 #include <unistd.h>
 
-#define ENTRY_START 0x100000
-
-void init_difftest();
+void init_difftest(char *ref_so_file, long img_size);
 void init_regex();
 void init_wp_pool();
 void init_device();
 
 void reg_test();
-void init_qemu_reg();
-bool gdb_memcpy_to_qemu(uint32_t, void *, int);
 
 FILE *log_fp = NULL;
 static char *log_file = NULL;
+static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int is_batch_mode = false;
 
@@ -26,9 +24,6 @@ static inline void init_log() {
 }
 
 static inline void welcome() {
-  printf("Welcome to NEMU!\n");
-  Log("Build time: %s, %s", __TIME__, __DATE__);
-
 #ifdef DEBUG
   Log("Debug: \33[1;32m%s\33[0m", "ON");
   Log("If debug mode is on, A log file will be generated to record every instruction NEMU executes. "
@@ -38,15 +33,8 @@ static inline void welcome() {
   Log("Debug: \33[1;32m%s\33[0m", "OFF");
 #endif
 
-#ifdef DIFF_TEST
-  Log("Differential testing: \33[1;32m%s\33[0m", "ON");
-  Log("If differential testing mode is on, the result of every instruction will be compared with QEMU. "
-      "This will help you a lot for debugging, but also significantly reduce the performance. "
-      "If it is not necessary, you can turn it off in include/common.h.");
-#else
-  Log("Differential testing: \33[1;32m%s\33[0m", "OFF");
-#endif
-
+  Log("Build time: %s, %s", __TIME__, __DATE__);
+  printf("Welcome to NEMU!\n");
   printf("For help, type \"help\"\n");
 }
 
@@ -70,7 +58,7 @@ static inline int load_default_img() {
   return sizeof(img);
 }
 
-static inline void load_img() {
+static inline long load_img() {
   long size;
   if (img_file == NULL) {
     size = load_default_img();
@@ -92,10 +80,7 @@ static inline void load_img() {
 
     fclose(fp);
   }
-
-#ifdef DIFF_TEST
-  gdb_memcpy_to_qemu(ENTRY_START, guest_to_host(ENTRY_START), size);
-#endif
+  return size;
 }
 
 static inline void restart() {
@@ -103,18 +88,15 @@ static inline void restart() {
   cpu.eip = ENTRY_START;
   cpu.cs = 0x8;
   cpu.cr0.val = 0x60000011;
-
-#ifdef DIFF_TEST
-  init_qemu_reg();
-#endif
 }
 
 static inline void parse_args(int argc, char *argv[]) {
   int o;
-  while ( (o = getopt(argc, argv, "-bl:")) != -1) {
+  while ( (o = getopt(argc, argv, "-bl:d:")) != -1) {
     switch (o) {
       case 'b': is_batch_mode = true; break;
       case 'l': log_file = optarg; break;
+      case 'd': diff_so_file = optarg; break;
       case 1:
                 if (img_file != NULL) Log("too much argument '%s', ignored", optarg);
                 else img_file = optarg;
@@ -137,13 +119,8 @@ int init_monitor(int argc, char *argv[]) {
   /* Test the implementation of the `CPU_state' structure. */
   reg_test();
 
-#ifdef DIFF_TEST
-  /* Fork a child process to perform differential testing. */
-  init_difftest();
-#endif
-
   /* Load the image to memory. */
-  load_img();
+  long img_size = load_img();
 
   /* Initialize this virtual computer system. */
   restart();
@@ -156,6 +133,8 @@ int init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   init_device();
+
+  init_difftest(diff_so_file, img_size);
 
   /* Display welcome message. */
   welcome();
