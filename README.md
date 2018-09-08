@@ -9,7 +9,7 @@ The main features of NEMU include
   * register/memory examination
   * expression evaluation without the support of symbols
   * watch point
-  * differential testing with QEMU
+  * differential testing with reference design (e.g. QEMU)
 * CPU core with support of most common used x86 instructions in protected mode
   * real mode is not supported
   * x87 floating point instructions are not supported
