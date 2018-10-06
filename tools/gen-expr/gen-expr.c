@@ -16,12 +16,12 @@ static inline uint32_t choose(uint32_t max) {
 }
 
 static inline void gen_rand_op() {
-  char op_list[4] = {'+', '-', '*', '/'};
-  format_buf("%c", op_list[choose(4)]);
+  char op_list[] = {'+', '-', '*', '/', '+', '-', '*'};
+  format_buf("%c", op_list[choose(7)]);
 }
 
 static inline void gen_num() {
-  format_buf("%uu", choose(64));
+  format_buf("%uu", rand());
 }
 
 static inline void gen_space() {
@@ -37,8 +37,8 @@ static int nr_op = 0;
 
 static inline void gen_rand_expr() {
   gen_space();
-  switch (choose(4)) {
-    case 0:
+  switch (choose(3)) {
+    default:
       if (nr_op == 0) gen_rand_expr();
       else gen_num();
       break;
@@ -47,27 +47,20 @@ static inline void gen_rand_expr() {
       gen_rand_expr();
       format_buf(")");
       break;
-    default:
+    case 0:
       nr_op ++;
-      if (choose(2)) gen_rand_expr();
-      else gen_num();
+      if (pbuf - buf >= sizeof(buf) / 2) {
+        gen_num();
+        break;
+      }
+      gen_rand_expr();
       gen_space();
       gen_rand_op();
       gen_space();
-      if (choose(2)) gen_rand_expr();
-      else gen_num();
+      gen_rand_expr();
       break;
   }
   gen_space();
-}
-
-void remove_u(char *p) {
-  char *q = p;
-  while ((q = strchr(q, 'u')) != NULL) {
-    // reuse code_buf
-    strcpy(code_buf, q + 1);
-    strcpy(q, code_buf);
-  }
 }
 
 static char code_buf[65536];
@@ -78,6 +71,15 @@ static char *code_format =
 "  printf(\"%%u\", result); "
 "  return 0; "
 "}";
+
+void remove_u(char *p) {
+  char *q = p;
+  while ((q = strchr(q, 'u')) != NULL) {
+    // reuse code_buf
+    strcpy(code_buf, q + 1);
+    strcpy(q, code_buf);
+  }
+}
 
 int main(int argc, char *argv[]) {
   int seed = time(0);
@@ -100,15 +102,13 @@ int main(int argc, char *argv[]) {
     fputs(code_buf, fp);
     fclose(fp);
 
-    int ret = system("gcc .code.c -o .expr");
-    if (ret != 0) continue;
-
-    fp = popen("./.expr", "r");
+    fp = popen("gcc .code.c -Wall -Werror -o .expr && ./.expr", "r");
     assert(fp != NULL);
-
     int result;
     fscanf(fp, "%d", &result);
-    pclose(fp);
+    int ret = pclose(fp);
+    if (ret != 0) continue;
+
     remove_u(buf);
     printf("%u %s\n", result, buf);
   }
