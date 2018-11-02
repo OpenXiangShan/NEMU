@@ -198,6 +198,41 @@ static inline void rtl_msb(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   }
 }
 
+static inline void rtl_is_sub_overflow(rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
+  // res = src1 - src2
+  assert(dest != res && dest != src1 && dest != src2);
+
+  rtl_xor(dest, src1, src2);
+  rtl_xor(&at, src1, res);
+  rtl_and(dest, dest, &at);
+  rtl_msb(dest, dest, width);
+}
+
+static inline void rtl_is_sub_carry(rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1) {
+  // res = src1 - src2
+  assert(dest != res && dest != src1);
+
+  rtl_setrelop(RELOP_LTU, dest, src1, res);
+}
+
+static inline void rtl_is_add_overflow(rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
+  // res = src1 + src2
+  assert(dest != res && dest != src1 && dest != src2);
+
+  rtl_is_sub_overflow(dest, src1, res, src2, width);
+}
+
+static inline void rtl_is_add_carry(rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1) {
+  // res = src1 + src2
+  assert(dest != res && dest != src1);
+
+  rtl_is_sub_carry(dest, src1, res);
+}
+
 static inline void rtl_update_ZF(const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
 //  TODO();
