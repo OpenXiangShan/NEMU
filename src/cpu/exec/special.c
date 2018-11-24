@@ -38,7 +38,6 @@ make_EHelper(inv) {
 
 make_EHelper(nemu_trap) {
 #if defined(DIFF_TEST)
-  void difftest_skip_ref();
   difftest_skip_ref();
 #endif
 

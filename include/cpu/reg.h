@@ -8,6 +8,22 @@ enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };
 enum { R_AX, R_CX, R_DX, R_BX, R_SP, R_BP, R_SI, R_DI };
 enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
 
+#define EFLAGS_BIT_CF 0
+#define EFLAGS_BIT_ZF 6
+#define EFLAGS_BIT_SF 7
+#define EFLAGS_BIT_IF 9
+#define EFLAGS_BIT_OF 11
+
+#define __map_eflags(f) f(OF) f(IF) f(SF) f(ZF) f(CF)
+#define __f(X) concat(EFLAGS_MASK_, X) = 1 << concat(EFLAGS_BIT_, X),
+enum {
+  __map_eflags(__f)
+#undef __f
+#define __f(X) | concat(EFLAGS_MASK_, X)
+  EFLAGS_MASK_ALL = 0 __map_eflags(__f)
+#undef __f
+};
+
 /* TODO: Re-organize the `CPU_state' structure to match the register
  * encoding scheme in i386 instruction format. For example, if we
  * access cpu.gpr[3]._16, we will get the `bx' register; if we access
@@ -34,6 +50,7 @@ typedef struct {
   };
 
   vaddr_t eip;
+  uint32_t eflags;
   uint16_t cs;
 
   rtlreg_t OF, CF, SF, ZF, IF;

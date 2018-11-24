@@ -3,7 +3,7 @@
 #include <signal.h>
 
 typedef uint32_t paddr_t;
-#define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9) // GPRs + EIP
+#define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 10) // GPRs + EIP + EFLAGS
 
 bool gdb_connect_qemu(void);
 bool gdb_memcpy_to_qemu(uint32_t, void *, int);
@@ -113,9 +113,6 @@ void difftest_init(void) {
     assert(ok == 1);
 
     // execute enough instructions to enter protected mode
-    int i;
-    for (i = 0; i < 20; i ++) {
-      gdb_si();
-    }
+    difftest_exec(20);
   }
 }

@@ -1,8 +1,5 @@
 #include "cpu/exec.h"
 
-void difftest_skip_ref();
-void difftest_skip_dut();
-
 make_EHelper(lidt) {
   cpu.idtr.limit = vaddr_read(id_dest->addr, 2);
   cpu.idtr.base = vaddr_read(id_dest->addr + 2, 4);
@@ -51,6 +48,8 @@ make_EHelper(iret) {
   rtl_set_eflags(&t1);
 
   rtl_jr(&t0);
+
+  difftest_skip_eflags(EFLAGS_MASK_ALL);
 
   print_asm("iret");
 }

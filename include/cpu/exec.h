@@ -2,6 +2,7 @@
 #define __CPU_EXEC_H__
 
 #include "nemu.h"
+#include "monitor/diff-test.h"
 
 #define make_EHelper(name) void concat(exec_, name) (vaddr_t *eip)
 typedef void (*EHelper) (vaddr_t *);

@@ -44,6 +44,7 @@ make_EHelper(sar) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
+  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template2(sar);
 }
 
@@ -52,6 +53,7 @@ make_EHelper(shl) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
+  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template2(shl);
 }
 
@@ -60,6 +62,7 @@ make_EHelper(shr) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
+  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template2(shr);
 }
 
@@ -71,8 +74,8 @@ make_EHelper(rol) {
   rtl_or(&t2, &t1, &t2);
 
   operand_write(id_dest, &t2);
-  rtl_update_ZFSF(&t2, id_dest->width);
-  // unnecessary to update CF and OF in NEMU
+  // unnecessary to update eflags in NEMU
+  difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template2(rol);
 }
 
@@ -104,6 +107,7 @@ make_EHelper(shld) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
+  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template3(shld);
 }
 
@@ -119,5 +123,6 @@ make_EHelper(shrd) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
+  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template3(shrd);
 }
