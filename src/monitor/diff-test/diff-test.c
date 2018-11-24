@@ -12,6 +12,7 @@ static void (*ref_difftest_exec)(uint64_t n);
 static bool is_skip_ref;
 static bool is_skip_dut;
 static uint32_t eflags_skip_mask;
+static bool is_detach;
 
 void difftest_skip_ref() { is_skip_ref = true; }
 void difftest_skip_dut() { is_skip_dut = true; }
@@ -78,6 +79,8 @@ void init_difftest(char *ref_so_file, long img_size) {
 void difftest_step(uint32_t eip) {
   CPU_state ref_r;
 
+  if (is_detach) return;
+
   if (is_skip_dut) {
     is_skip_dut = false;
     return;
@@ -120,4 +123,58 @@ void difftest_step(uint32_t eip) {
   if (eflags_skip_mask) {
     eflags_skip_mask = 0;
   }
+}
+
+void difftest_detach() {
+  is_detach = true;
+}
+
+void difftest_attach() {
+#ifndef DIFF_TEST
+  return;
+#endif
+
+  is_detach = false;
+  is_skip_ref = false;
+  is_skip_dut = false;
+
+  // first copy the image
+  ref_difftest_memcpy_from_dut(ENTRY_START, guest_to_host(ENTRY_START), PMEM_SIZE - ENTRY_START);
+
+  // then set some special registers
+  uint8_t code[] = {
+    // we put this code at 0x7e00
+    0xb8, 0x00, 0x00, 0x00, 0x00,    // mov $0x0, %eax
+    0x0f, 0x22, 0xd8,                // mov %eax, %cr3
+    0xb8, 0x00, 0x00, 0x00, 0x00,    // mov $0x0, %eax
+    0x0f, 0x22, 0xc0,                // mov %eax, %cr0
+    0x0f, 0x01, 0x1d, 0x40, 0x7e, 0x00, 0x00,     // lidtl (0x7e40)
+  };
+  uint8_t idtdesc[6];
+
+  *(uint32_t *)(code + 1) = cpu.cr3.val;
+  *(uint32_t *)(code + 9) = cpu.cr0.val;
+
+  idtdesc[0] = cpu.idtr.limit & 0xff;
+  idtdesc[1] = cpu.idtr.limit >> 8;
+  *(uint32_t *)(idtdesc + 2) = cpu.idtr.base;
+
+  assert(sizeof(code) < 0x40);
+  ref_difftest_memcpy_from_dut(0x7e00, code, sizeof(code));
+  ref_difftest_memcpy_from_dut(0x7e40, idtdesc, sizeof(idtdesc));
+
+  CPU_state r = cpu;
+  r.eip = 0x7e00;
+  ref_difftest_setregs(&r);
+  ref_difftest_exec(5);
+
+  //rtl_computer_eflags(&cpu.eflags);
+  cpu.eflags =
+    (cpu.OF << EFLAGS_BIT_OF) |
+    (cpu.CF << EFLAGS_BIT_CF) |
+    (cpu.IF << EFLAGS_BIT_IF) |
+    (cpu.SF << EFLAGS_BIT_SF) |
+    (cpu.CF << EFLAGS_BIT_CF);
+
+  ref_difftest_setregs(&cpu);
 }

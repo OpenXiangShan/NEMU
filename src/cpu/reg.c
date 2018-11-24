@@ -41,3 +41,11 @@ void reg_test() {
 
   assert(eip_sample == cpu.eip);
 }
+
+void display_reg() {
+  int i;
+  for (i = 0; i < 8; i ++) {
+    printf("%s: 0x%08x\n", regsl[i], cpu.gpr[i]._32);
+  }
+  printf("eip: 0x%08x\n", cpu.eip);
+}

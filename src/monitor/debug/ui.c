@@ -32,11 +32,39 @@ static int cmd_c(char *args) {
   return 0;
 }
 
+static int cmd_si(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    /* no argument given */
+    cpu_exec(1);
+  }
+  else {
+    int n = strtol(arg, NULL, 10);
+    printf("si %d\n", n);
+    cpu_exec(n);
+  }
+  return 0;
+}
+
 static int cmd_q(char *args) {
   return -1;
 }
 
 static int cmd_help(char *args);
+
+void difftest_detach();
+void difftest_attach();
+static int cmd_detach(char *args) {
+  difftest_detach();
+  return 0;
+}
+
+static int cmd_attach(char *args) {
+  difftest_attach();
+  return 0;
+}
 
 static struct {
   char *name;
@@ -45,6 +73,9 @@ static struct {
 } cmd_table [] = {
   { "help", "Display informations about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
+  { "si", "step", cmd_si },
+  { "detach", "detach diff test", cmd_detach },
+  { "attach", "attach diff test", cmd_attach },
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
