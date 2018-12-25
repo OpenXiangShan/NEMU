@@ -66,6 +66,42 @@ static int cmd_attach(char *args) {
   return 0;
 }
 
+static int cmd_save(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    /* no argument given */
+    Log("no path");
+  }
+  else {
+    FILE *fp = fopen(arg, "w");
+    assert(fp != NULL);
+    fwrite(&cpu, sizeof(cpu), 1, fp);
+    fwrite(guest_to_host(ENTRY_START), PMEM_SIZE - ENTRY_START, 1, fp);
+    fclose(fp);
+  }
+  return 0;
+}
+
+static int cmd_load(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    /* no argument given */
+    Log("no path");
+  }
+  else {
+    FILE *fp = fopen(arg, "r");
+    assert(fp != NULL);
+    fread(&cpu, sizeof(cpu), 1, fp);
+    fread(guest_to_host(ENTRY_START), PMEM_SIZE - ENTRY_START, 1, fp);
+    fclose(fp);
+  }
+  return 0;
+}
+
 static struct {
   char *name;
   char *description;
@@ -76,6 +112,8 @@ static struct {
   { "si", "step", cmd_si },
   { "detach", "detach diff test", cmd_detach },
   { "attach", "attach diff test", cmd_attach },
+  { "save", "save snapshot", cmd_save },
+  { "load", "load snapshot", cmd_load },
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
