@@ -16,8 +16,8 @@ void rtl_compute_eflags(rtlreg_t *dest) {
 
 void rtl_set_eflags(const rtlreg_t *src) {
 #define __f(X) \
-  rtl_shri(&at, src, concat(EFLAGS_BIT_, X)); \
-  rtl_andi(&cpu.X, &at, 0x1);
+  rtl_shri(&cpu.X, src, concat(EFLAGS_BIT_, X)); \
+  rtl_andi(&cpu.X, &cpu.X, 0x1);
 
   __map_eflags(__f)
 
