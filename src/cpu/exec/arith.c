@@ -7,6 +7,9 @@ make_EHelper(add) {
 
   rtl_update_ZFSF(&t2, id_dest->width);
 
+  if (id_dest->width != 4) {
+    rtl_andi(&t2, &t2, 0xffffffffu >> ((4 - id_dest->width) * 8));
+  }
   rtl_is_add_carry(&cpu.CF, &t2, &id_dest->val);
   rtl_is_add_overflow(&cpu.OF, &t2, &id_dest->val, &id_src->val, id_dest->width);
 
@@ -19,6 +22,9 @@ static inline void cmp_internal(rtlreg_t *dest) {
 
   rtl_update_ZFSF(dest, id_dest->width);
 
+  if (id_dest->width != 4) {
+    rtl_andi(dest, dest, 0xffffffffu >> ((4 - id_dest->width) * 8));
+  }
   rtl_is_sub_carry(&cpu.CF, dest, &id_dest->val);
   rtl_is_sub_overflow(&cpu.OF, dest, &id_dest->val, &id_src->val, id_dest->width);
 }
@@ -85,6 +91,10 @@ make_EHelper(adc) {
   // t3 = t2 + CF
   rtl_add(&t3, &t2, &cpu.CF);
 
+  if (id_dest->width != 4) {
+    rtl_andi(&t3, &t3, 0xffffffffu >> ((4 - id_dest->width) * 8));
+  }
+
   // update OF
   rtl_is_add_overflow(&cpu.OF, &t3, &id_dest->val, &id_src->val, id_dest->width);
 
@@ -104,6 +114,10 @@ make_EHelper(sbb) {
   rtl_sub(&t2, &id_dest->val, &id_src->val);
   // t3 = t2 - CF
   rtl_sub(&t3, &t2, &cpu.CF);
+
+  if (id_dest->width != 4) {
+    rtl_andi(&t3, &t3, 0xffffffffu >> ((4 - id_dest->width) * 8));
+  }
 
   // update OF
   rtl_is_sub_overflow(&cpu.OF, &t3, &id_dest->val, &id_src->val, id_dest->width);

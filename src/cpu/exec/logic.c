@@ -53,7 +53,7 @@ make_EHelper(shl) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF | EFLAGS_MASK_ZF);
   print_asm_template2(shl);
 }
 

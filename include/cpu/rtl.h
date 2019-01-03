@@ -237,7 +237,7 @@ static inline void rtl_update_ZF(const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
 //  TODO();
   if (width != 4) {
-    rtl_andi(&cpu.ZF, result, (0xffffffffu >> (4 - width) * 8));
+    rtl_andi(&cpu.ZF, result, 0xffffffffu >> ((4 - width) * 8));
     rtl_setrelopi(RELOP_EQ, &cpu.ZF, &cpu.ZF, 0);
   }
   else {
