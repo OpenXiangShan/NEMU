@@ -1,4 +1,4 @@
-#include "cpu/exec.h"
+#include "cpu/rtl.h"
 #include "memory/mmu.h"
 
 void raise_intr(uint8_t NO, vaddr_t ret_addr) {
@@ -30,8 +30,4 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr) {
   rtl_andi(&t1, &t1, 0xffff0000);
   rtl_or(&t0, &t0, &t1);
   rtl_jr(&t0);
-}
-
-void dev_raise_intr() {
-  cpu.INTR = true;
 }

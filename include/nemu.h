@@ -3,6 +3,8 @@
 
 #include "common.h"
 #include "memory/memory.h"
-#include "cpu/reg.h"
+#include "arch/reg.h"
+
+extern CPU_state cpu;
 
 #endif

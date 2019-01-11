@@ -5,7 +5,7 @@
 #define RTC_PORT 0x48   // Note that this is not the standard
 
 void timer_intr() {
-  if (nemu_state == NEMU_RUNNING) {
+  if (nemu_state.state == NEMU_RUNNING) {
     extern void dev_raise_intr(void);
     dev_raise_intr();
   }

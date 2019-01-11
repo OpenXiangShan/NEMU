@@ -18,7 +18,7 @@ include Makefile.git
 # Compilation flags
 CC = gcc
 LD = gcc
-INCLUDES  = $(addprefix -I, $(INC_DIR))
+INCLUDES  = $(addprefix -I, $(INC_DIR)) -I./src/arch/x86/include
 CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -fomit-frame-pointer
 CFLAGS   += -DDIFF_TEST_QEMU
 

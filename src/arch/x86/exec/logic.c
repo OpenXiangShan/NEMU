@@ -1,5 +1,5 @@
 #include "cpu/exec.h"
-#include "cpu/cc.h"
+#include "cc.h"
 
 // dest <- and result
 static inline void and_internal(rtlreg_t *dest) {
@@ -44,7 +44,7 @@ make_EHelper(sar) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template2(sar);
 }
 
@@ -53,7 +53,7 @@ make_EHelper(shl) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF | EFLAGS_MASK_ZF);
+  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF | EFLAGS_MASK_ZF);
   print_asm_template2(shl);
 }
 
@@ -62,7 +62,7 @@ make_EHelper(shr) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template2(shr);
 }
 
@@ -75,12 +75,12 @@ make_EHelper(rol) {
 
   operand_write(id_dest, &t2);
   // unnecessary to update eflags in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template2(rol);
 }
 
 make_EHelper(setcc) {
-  uint32_t cc = decoding.opcode & 0xf;
+  uint32_t cc = decinfo.opcode & 0xf;
 
   rtl_setcc(&t2, cc);
   operand_write(id_dest, &t2);
@@ -107,7 +107,7 @@ make_EHelper(shld) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template3(shld);
 }
 
@@ -123,6 +123,6 @@ make_EHelper(shrd) {
   operand_write(id_dest, &t2);
   rtl_update_ZFSF(&t2, id_dest->width);
   // unnecessary to update CF and OF in NEMU
-  difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
   print_asm_template3(shrd);
 }

@@ -49,7 +49,7 @@ make_EHelper(iret) {
 
   rtl_jr(&t0);
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
 
   print_asm("iret");
 }

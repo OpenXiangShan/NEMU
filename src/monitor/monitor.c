@@ -7,7 +7,9 @@ void init_regex();
 void init_wp_pool();
 void init_device();
 
-void reg_test();
+void arch_reg_test();
+int arch_load_default_img();
+void arch_restart();
 
 FILE *log_fp = NULL;
 static char *log_file = NULL;
@@ -38,30 +40,11 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
-static inline int load_default_img() {
-  const uint8_t img []  = {
-    0xb8, 0x34, 0x12, 0x00, 0x00,        // 100000:  movl  $0x1234,%eax
-    0xb9, 0x27, 0x00, 0x10, 0x00,        // 100005:  movl  $0x100027,%ecx
-    0x89, 0x01,                          // 10000a:  movl  %eax,(%ecx)
-    0x66, 0xc7, 0x41, 0x04, 0x01, 0x00,  // 10000c:  movw  $0x1,0x4(%ecx)
-    0xbb, 0x02, 0x00, 0x00, 0x00,        // 100012:  movl  $0x2,%ebx
-    0x66, 0xc7, 0x84, 0x99, 0x00, 0xe0,  // 100017:  movw  $0x1,-0x2000(%ecx,%ebx,4)
-    0xff, 0xff, 0x01, 0x00,
-    0xb8, 0x00, 0x00, 0x00, 0x00,        // 100021:  movl  $0x0,%eax
-    0xd6,                                // 100026:  nemu_trap
-  };
-
-  Log("No image is given. Use the default build-in image.");
-
-  memcpy(guest_to_host(ENTRY_START), img, sizeof(img));
-
-  return sizeof(img);
-}
-
 static inline long load_img() {
   long size;
   if (img_file == NULL) {
-    size = load_default_img();
+    Log("No image is given. Use the default build-in image.");
+    size = arch_load_default_img();
   }
   else {
     int ret;
@@ -75,19 +58,12 @@ static inline long load_img() {
     size = ftell(fp);
 
     fseek(fp, 0, SEEK_SET);
-    ret = fread(guest_to_host(ENTRY_START), size, 1, fp);
+    ret = fread(guest_to_host(PC_START), size, 1, fp);
     assert(ret == 1);
 
     fclose(fp);
   }
   return size;
-}
-
-static inline void restart() {
-  /* Set the initial instruction pointer. */
-  cpu.eip = ENTRY_START;
-  cpu.cs = 0x8;
-  cpu.cr0.val = 0x60000011;
 }
 
 static inline void parse_args(int argc, char *argv[]) {
@@ -117,13 +93,13 @@ int init_monitor(int argc, char *argv[]) {
   init_log();
 
   /* Test the implementation of the `CPU_state' structure. */
-  reg_test();
+  arch_reg_test();
 
   /* Load the image to memory. */
   long img_size = load_img();
 
   /* Initialize this virtual computer system. */
-  restart();
+  arch_restart();
 
   /* Compile the regular expressions. */
   init_regex();

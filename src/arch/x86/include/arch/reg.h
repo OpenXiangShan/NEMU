@@ -4,6 +4,8 @@
 #include "common.h"
 #include "memory/mmu.h"
 
+#define PC_START 0x100000
+
 enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };
 enum { R_AX, R_CX, R_DX, R_BX, R_SP, R_BP, R_SI, R_DI };
 enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
@@ -49,7 +51,10 @@ typedef struct {
     };
   };
 
-  vaddr_t eip;
+  union {
+    vaddr_t pc;
+    vaddr_t eip;
+  };
   uint32_t eflags;
   uint16_t cs;
 
@@ -72,8 +77,6 @@ typedef struct {
 
   bool INTR;
 } CPU_state;
-
-extern CPU_state cpu;
 
 static inline int check_reg_index(int index) {
   assert(index >= 0 && index < 8);

@@ -8,7 +8,11 @@
  */
 #define MAX_INSTR_TO_PRINT 10
 
-int nemu_state = NEMU_STOP;
+NEMUState nemu_state = {.state = NEMU_STOP};
+
+void interpret_rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
+  nemu_state = (NEMUState) { .state = state, .halt_pc = halt_pc, .halt_ret = halt_ret };
+}
 
 void exec_wrapper(bool);
 
@@ -24,11 +28,11 @@ void monitor_statistic() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
-  if (nemu_state == NEMU_END || nemu_state == NEMU_ABORT) {
+  if (nemu_state.state == NEMU_END || nemu_state.state == NEMU_ABORT) {
     printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
     return;
   }
-  nemu_state = NEMU_RUNNING;
+  nemu_state.state = NEMU_RUNNING;
 
   bool print_flag = n < MAX_INSTR_TO_PRINT;
 
@@ -48,19 +52,19 @@ void cpu_exec(uint64_t n) {
     device_update();
 #endif
 
-    if (nemu_state != NEMU_RUNNING) {
-      if (nemu_state == NEMU_END) {
+    if (nemu_state.state != NEMU_RUNNING) {
+      if (nemu_state.state == NEMU_END) {
         printflog("\33[1;31mnemu: HIT %s TRAP\33[0m at eip = 0x%08x\n\n",
-            (cpu.eax == 0 ? "GOOD" : "BAD"), cpu.eip - 1);
+            (nemu_state.halt_ret == 0 ? "GOOD" : "BAD"), nemu_state.halt_pc);
         monitor_statistic();
         return;
       }
-      else if (nemu_state == NEMU_ABORT) {
-        printflog("\33[1;31mnemu: ABORT\33[0m at eip = 0x%08x\n\n", cpu.eip);
+      else if (nemu_state.state == NEMU_ABORT) {
+        printflog("\33[1;31mnemu: ABORT\33[0m at eip = 0x%08x\n\n", nemu_state.halt_pc);
         return;
       }
     }
   }
 
-  if (nemu_state == NEMU_RUNNING) { nemu_state = NEMU_STOP; }
+  if (nemu_state.state == NEMU_RUNNING) { nemu_state.state = NEMU_STOP; }
 }

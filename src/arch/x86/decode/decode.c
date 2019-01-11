@@ -1,14 +1,6 @@
 #include "cpu/exec.h"
 #include "cpu/rtl.h"
 
-/* shared by all helper functions */
-DecodeInfo decoding;
-rtlreg_t t0, t1, t2, t3, at;
-
-void decoding_set_jmp(bool is_jmp) {
-  decoding.is_jmp = is_jmp;
-}
-
 #define make_DopHelper(name) void concat(decode_op_, name) (vaddr_t *eip, Operand *op, bool load_val)
 
 /* Refer to Appendix A in i386 manual for the explanations of these abbreviations */
@@ -73,7 +65,7 @@ static inline make_DopHelper(a) {
  */
 static inline make_DopHelper(r) {
   op->type = OP_TYPE_REG;
-  op->reg = decoding.opcode & 0x7;
+  op->reg = decinfo.opcode & 0x7;
   if (load_val) {
     rtl_lr(&op->val, op->reg, op->width);
   }
@@ -283,7 +275,7 @@ make_DHelper(a2O) {
 make_DHelper(J) {
   decode_op_SI(eip, id_dest, false);
   // the target address can be computed in the decode stage
-  decoding.jmp_eip = id_dest->simm + *eip;
+  decinfo.jmp_pc = id_dest->simm + *eip;
 }
 
 make_DHelper(push_SI) {
@@ -322,10 +314,4 @@ make_DHelper(out_a2dx) {
 #ifdef DEBUG
   sprintf(id_dest->str, "(%%dx)");
 #endif
-}
-
-void operand_write(Operand *op, rtlreg_t* src) {
-  if (op->type == OP_TYPE_REG) { rtl_sr(op->reg, src, op->width); }
-  else if (op->type == OP_TYPE_MEM) { rtl_sm(&op->addr, src, op->width); }
-  else { assert(0); }
 }

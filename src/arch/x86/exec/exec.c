@@ -15,9 +15,9 @@ typedef struct {
 
 static inline void set_width(int width) {
   if (width == 0) {
-    width = decoding.is_operand_size_16 ? 2 : 4;
+    width = decinfo.arch.is_operand_size_16 ? 2 : 4;
   }
-  decoding.src.width = decoding.dest.width = decoding.src2.width = width;
+  decinfo.src.width = decinfo.dest.width = decinfo.src2.width = width;
 }
 
 /* Instruction Decode and EXecute */
@@ -36,7 +36,7 @@ static make_EHelper(2byte_esc);
     /* 0x04 */	item4, item5, item6, item7  \
   }; \
 static make_EHelper(name) { \
-  idex(eip, &concat(opcode_table_, name)[decoding.ext_opcode]); \
+  idex(eip, &concat(opcode_table_, name)[decinfo.arch.ext_opcode]); \
 }
 
 /* 0x80, 0x81, 0x83 */
@@ -207,41 +207,41 @@ make_group(gp7,
 
 static make_EHelper(2byte_esc) {
   uint32_t opcode = instr_fetch(eip, 1) | 0x100;
-  decoding.opcode = opcode;
+  decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);
   idex(eip, &opcode_table[opcode]);
 }
 
 make_EHelper(real) {
   uint32_t opcode = instr_fetch(eip, 1);
-  decoding.opcode = opcode;
+  decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);
   idex(eip, &opcode_table[opcode]);
 }
 
 static inline void update_eip(void) {
-  if (decoding.is_jmp) { decoding.is_jmp = 0; }
-  else { cpu.eip = decoding.seq_eip; }
+  if (decinfo.is_jmp) { decinfo.is_jmp = 0; }
+  else { cpu.eip = decinfo.seq_pc; }
 }
 
 void exec_wrapper(bool print_flag) {
   vaddr_t ori_eip = cpu.eip;
 
 #ifdef DEBUG
-  decoding.p = decoding.asm_buf;
-  decoding.p += sprintf(decoding.p, "%8x:   ", ori_eip);
+  decinfo.p = decinfo.asm_buf;
+  decinfo.p += sprintf(decinfo.p, "%8x:   ", ori_eip);
 #endif
 
-  decoding.seq_eip = ori_eip;
-  exec_real(&decoding.seq_eip);
+  decinfo.seq_pc = ori_eip;
+  exec_real(&decinfo.seq_pc);
 
 #ifdef DEBUG
-  int instr_len = decoding.seq_eip - ori_eip;
-  sprintf(decoding.p, "%*.s", 50 - (12 + 3 * instr_len), "");
-  strcat(decoding.asm_buf, decoding.assembly);
-  Log_write("%s\n", decoding.asm_buf);
+  int instr_len = decinfo.seq_pc - ori_eip;
+  sprintf(decinfo.p, "%*.s", 50 - (12 + 3 * instr_len), "");
+  strcat(decinfo.asm_buf, decinfo.assembly);
+  Log_write("%s\n", decinfo.asm_buf);
   if (print_flag) {
-    puts(decoding.asm_buf);
+    puts(decinfo.asm_buf);
   }
 #endif
 
@@ -256,7 +256,7 @@ void exec_wrapper(bool print_flag) {
   }
 
 #if defined(DIFF_TEST)
-  void difftest_step(uint32_t);
+  void difftest_step(vaddr_t pc);
   difftest_step(ori_eip);
 #endif
 }

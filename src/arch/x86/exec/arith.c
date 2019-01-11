@@ -154,7 +154,7 @@ make_EHelper(mul) {
     default: assert(0);
   }
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(mul);
 }
 
@@ -180,7 +180,7 @@ make_EHelper(imul1) {
     default: assert(0);
   }
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(imul);
 }
 
@@ -192,7 +192,7 @@ make_EHelper(imul2) {
   rtl_imul_lo(&t2, &t1, &t0);
   operand_write(id_dest, &t2);
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template2(imul);
 }
 
@@ -205,7 +205,7 @@ make_EHelper(imul3) {
   rtl_imul_lo(&t2, &t1, &t0);
   operand_write(id_dest, &t2);
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template3(imul);
 }
 
@@ -237,7 +237,7 @@ make_EHelper(div) {
     default: assert(0);
   }
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(div);
 }
 
@@ -269,6 +269,6 @@ make_EHelper(idiv) {
     default: assert(0);
   }
 
-  difftest_skip_eflags(EFLAGS_MASK_ALL);
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(idiv);
 }
