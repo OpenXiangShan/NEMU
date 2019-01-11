@@ -8,6 +8,7 @@
 #include <readline/history.h>
 
 void cpu_exec(uint64_t);
+void arch_reg_display();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 char* rl_gets() {
@@ -44,6 +45,95 @@ static int cmd_si(char *args) {
     int n = strtol(arg, NULL, 10);
     printf("si %d\n", n);
     cpu_exec(n);
+  }
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    /* no argument given */
+    Log("usage: info [r|w]");
+  }
+  else {
+    if (strcmp(arg, "r") == 0) {
+      arch_reg_display();
+    }
+    else if (strcmp(arg, "w") == 0) {
+      list_watchpoint();
+    }
+  }
+  return 0;
+}
+
+static int cmd_d(char *args) {
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    /* no argument given */
+    Log("usage: d n");
+  }
+  else {
+    int NO;
+    sscanf(args, "%d", &NO);
+    if (!delete_watchpoint(NO)) {
+      printf("Watchpoint #%d does not exist\n", NO);
+    }
+  }
+
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  if (args != NULL) {
+    bool success;
+    uint32_t r = expr(args, &success);
+    if(success) { printf("%d\n", r); }
+    else { printf("Bad expression\n"); }
+  }
+  return 0;
+}
+
+static int cmd_w(char *args) {
+  if (args != NULL) {
+    int NO = set_watchpoint(args);
+    if (NO != -1) { printf("Set watchpoint #%d\n", NO); }
+    else { printf("Bad expression\n"); }
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    /* no argument given */
+    Log("usage: x n addr");
+  }
+  else {
+    int n;
+    vaddr_t addr;
+    int i;
+    sscanf(arg, "%d", &n);
+
+    bool success;
+    addr = expr(arg + strlen(arg) + 1, &success);
+    if (success) {
+      for (i = 0; i < n; i ++) {
+        if (i % 4 == 0) {
+          printf("0x%08x: ", addr);
+        }
+
+        printf("0x%08x ", vaddr_read(addr, 4));
+        addr += 4;
+        if (i % 4 == 3) {
+          printf("\n");
+        }
+      }
+      printf("\n");
+    }
+    else { printf("Bad expression\n"); }
   }
   return 0;
 }
@@ -110,6 +200,11 @@ static struct {
   { "help", "Display informations about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "si", "step", cmd_si },
+  { "info", "info r - print register values; info w - show watch point state", cmd_info },
+  { "x", "Examine memory", cmd_x },
+  { "p", "Evaluate the value of expression", cmd_p },
+  { "w", "Set watchpoint", cmd_w },
+  { "d", "Delete watchpoint", cmd_d },
   { "detach", "detach diff test", cmd_detach },
   { "attach", "attach diff test", cmd_attach },
   { "save", "save snapshot", cmd_save },

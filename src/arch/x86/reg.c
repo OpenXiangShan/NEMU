@@ -47,3 +47,32 @@ void arch_reg_display() {
   }
   printf("eip: 0x%08x\n", cpu.eip);
 }
+
+uint32_t arch_reg_str2val(const char *s, bool *success) {
+  int i;
+  *success = true;
+  for(i = 0; i < 8; i ++) {
+    if(strcmp(regsl[i], s) == 0) {
+      return reg_l(i);
+    }
+  }
+
+  for(i = 0; i < 8; i ++) {
+    if(strcmp(regsw[i], s) == 0) {
+      return reg_w(i);
+    }
+  }
+
+  for(i = 0; i < 8; i ++) {
+    if(strcmp(regsb[i], s) == 0) {
+      return reg_b(i);
+    }
+  }
+
+  if(strcmp("eip", s) == 0) {
+    return cpu.eip;
+  }
+
+  *success = false;
+  return 0;
+}
