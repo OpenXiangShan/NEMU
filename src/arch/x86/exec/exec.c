@@ -224,7 +224,7 @@ static inline void update_eip(void) {
   else { cpu.eip = decinfo.seq_pc; }
 }
 
-void exec_wrapper(bool print_flag) {
+void arch_exec_wrapper(bool print_flag) {
   vaddr_t ori_eip = cpu.eip;
 
 #ifdef DEBUG

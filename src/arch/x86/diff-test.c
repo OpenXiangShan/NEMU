@@ -6,39 +6,6 @@ extern void (*ref_difftest_getregs)(void *c);
 extern void (*ref_difftest_setregs)(const void *c);
 extern void (*ref_difftest_exec)(uint64_t n);
 
-#define check_reg(regs, r) \
-  if (regs->r != cpu.r) { \
-    Log("%s is different after executing instruction at eip = 0x%08x, right = 0x%08x, wrong = 0x%08x", \
-        str(r), pc, regs->r, cpu.r); \
-  }
-
-bool arch_difftest_check_reg(CPU_state *ref_r, vaddr_t pc) {
-  // TODO: Check the registers state with QEMU.
-  if (memcmp(&cpu, ref_r, DIFFTEST_REG_SIZE)) {
-    check_reg(ref_r, eax);
-    check_reg(ref_r, ecx);
-    check_reg(ref_r, edx);
-    check_reg(ref_r, ebx);
-    check_reg(ref_r, esp);
-    check_reg(ref_r, ebp);
-    check_reg(ref_r, esi);
-    check_reg(ref_r, edi);
-    check_reg(ref_r, eip);
-
-    return false;
-  }
-
-  return true;
-//  check_flag(ref_r, CF);
-//  check_flag(ref_r, OF);
-//  check_flag(ref_r, SF);
-//  check_flag(ref_r, ZF);
-//
-//  if (eflags_skip_mask) {
-//    eflags_skip_mask = 0;
-//  }
-}
-
 void arch_difftest_arch_attach(void) {
   // first copy the image
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(PC_START), PMEM_SIZE - PC_START);

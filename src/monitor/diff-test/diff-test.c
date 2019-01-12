@@ -57,6 +57,13 @@ void init_difftest(char *ref_so_file, long img_size) {
   ref_difftest_setregs(&cpu);
 }
 
+static inline void difftest_check_reg(const char *name, vaddr_t pc, uint32_t ref, uint32_t dut) {
+  if (ref != dut) {
+    Log("%s is different after executing instruction at pc = 0x%08x, right = 0x%08x, wrong = 0x%08x",
+        name, pc, ref, dut);
+  }
+}
+
 void difftest_step(vaddr_t pc) {
   CPU_state ref_r;
 
@@ -78,7 +85,14 @@ void difftest_step(vaddr_t pc) {
   ref_difftest_exec(1);
   ref_difftest_getregs(&ref_r);
 
-  if (!arch_difftest_check_reg(&ref_r, pc)) {
+  // TODO: Check the registers state with QEMU.
+  if (memcmp(&cpu, &ref_r, DIFFTEST_REG_SIZE)) {
+    int i;
+    for (i = 0; i < DIFFTEST_REG_SIZE / sizeof(cpu.pc) - 1; i ++) {
+      difftest_check_reg(reg_name(i, 4), pc, ref_r.gpr[i]._32, cpu.gpr[i]._32);
+    }
+    difftest_check_reg("pc", pc, ref_r.pc, cpu.pc);
+
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
   }

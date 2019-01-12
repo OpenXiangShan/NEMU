@@ -1,5 +1,5 @@
 #include "cpu/rtl.h"
-#include "memory/mmu.h"
+#include "arch/mmu.h"
 
 void raise_intr(uint8_t NO, vaddr_t ret_addr) {
   /* TODO: Trigger an interrupt/exception with ``NO''.

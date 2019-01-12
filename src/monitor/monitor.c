@@ -2,14 +2,11 @@
 #include "monitor/monitor.h"
 #include <unistd.h>
 
-void init_difftest(char *ref_so_file, long img_size);
+void init_arch();
 void init_regex();
 void init_wp_pool();
 void init_device();
-
-void arch_reg_test();
-int arch_load_default_img();
-void arch_restart();
+void init_difftest(char *ref_so_file, long img_size);
 
 FILE *log_fp = NULL;
 static char *log_file = NULL;
@@ -36,7 +33,7 @@ static inline void welcome() {
 #endif
 
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to NEMU!\n");
+  printf("Welcome to NEMU for \33[1;41m\33[1;33m%s\33[0m!\n", str(__ARCH__));
   printf("For help, type \"help\"\n");
 }
 
@@ -44,7 +41,10 @@ static inline long load_img() {
   long size;
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
-    size = arch_load_default_img();
+    extern uint8_t arch_default_img[];
+    extern long arch_default_img_size;
+    size = arch_default_img_size;
+    memcpy(guest_to_host(PC_START), arch_default_img, size);
   }
   else {
     int ret;
@@ -92,14 +92,11 @@ int init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log();
 
-  /* Test the implementation of the `CPU_state' structure. */
-  arch_reg_test();
-
   /* Load the image to memory. */
   long img_size = load_img();
 
-  /* Initialize this virtual computer system. */
-  arch_restart();
+  /* Perform architecture dependent initialization. */
+  init_arch();
 
   /* Compile the regular expressions. */
   init_regex();
@@ -110,6 +107,7 @@ int init_monitor(int argc, char *argv[]) {
   /* Initialize devices. */
   init_device();
 
+  /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size);
 
   /* Display welcome message. */

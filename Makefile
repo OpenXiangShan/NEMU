@@ -1,5 +1,13 @@
+ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
+ARCH ?= x86
+ARCHS = $(shell ls src/arch/)
+ifeq ($(filter $(ARCHS), $(ARCH)), ) # ARCH must be valid
+$(error Invalid ARCH. Supported: $(ARCHS))
+endif
+endif
+
 NAME = nemu
-INC_DIR += ./include
+INC_DIR += ./include ./src/arch/$(ARCH)/include
 BUILD_DIR ?= ./build
 
 ifeq ($(SHARE), 1)
@@ -18,12 +26,13 @@ include Makefile.git
 # Compilation flags
 CC = gcc
 LD = gcc
-INCLUDES  = $(addprefix -I, $(INC_DIR)) -I./src/arch/x86/include
-CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -fomit-frame-pointer
+INCLUDES  = $(addprefix -I, $(INC_DIR))
+CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ARCH__=$(ARCH) -fomit-frame-pointer
 CFLAGS   += -DDIFF_TEST_QEMU
 
 # Files to be compiled
-SRCS = $(shell find src/ -name "*.c")
+SRCS = $(shell find src/ -name "*.c" | grep -v "arch")
+SRCS += $(shell find src/arch/$(ARCH) -name "*.c")
 OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
 
 # Compilation patterns

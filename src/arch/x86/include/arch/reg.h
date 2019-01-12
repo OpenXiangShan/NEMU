@@ -1,8 +1,8 @@
-#ifndef __REG_H__
-#define __REG_H__
+#ifndef __X86_REG_H__
+#define __X86_REG_H__
 
 #include "common.h"
-#include "memory/mmu.h"
+#include "arch/mmu.h"
 
 #define PC_START 0x100000
 
@@ -87,12 +87,12 @@ static inline int check_reg_index(int index) {
 #define reg_w(index) (cpu.gpr[check_reg_index(index)]._16)
 #define reg_b(index) (cpu.gpr[check_reg_index(index) & 0x3]._8[index >> 2])
 
-extern const char* regsl[];
-extern const char* regsw[];
-extern const char* regsb[];
-
 static inline const char* reg_name(int index, int width) {
+  extern const char* regsl[];
+  extern const char* regsw[];
+  extern const char* regsb[];
   assert(index >= 0 && index < 8);
+
   switch (width) {
     case 4: return regsl[index];
     case 1: return regsb[index];

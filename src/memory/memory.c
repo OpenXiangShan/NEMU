@@ -1,6 +1,5 @@
 #include "nemu.h"
 #include "device/mmio.h"
-#include "memory/mmu.h"
 
 #define pmem_rw(addr, type) *(type *)({\
     Assert(addr < PMEM_SIZE, "physical address(0x%08x) is out of bound", addr); \
@@ -30,49 +29,13 @@ void paddr_write(paddr_t addr, uint32_t data, int len) {
   memcpy(guest_to_host(addr), &data, len);
 }
 
-paddr_t page_translate(vaddr_t addr, bool is_write);
+uint32_t arch_vaddr_read(vaddr_t addr, int len);
+void arch_vaddr_write(vaddr_t addr, uint32_t data, int len);
 
 uint32_t vaddr_read(vaddr_t addr, int len) {
-  uint32_t data;
-  if(cpu.cr0.paging) {
-    paddr_t paddr = page_translate(addr, false);
-    uint32_t remain_byte = PAGE_SIZE - (addr & PAGE_MASK);
-    if(remain_byte < len) {
-      /* data cross the page boundary */
-      data = paddr_read(paddr, remain_byte);
-
-      paddr = page_translate(addr + remain_byte, false);
-      data |= paddr_read(paddr, len - remain_byte) << (remain_byte << 3);
-    }
-    else {
-      data = paddr_read(paddr, len);
-    }
-  }
-  else {
-    data = paddr_read(addr, len);
-  }
-
-  return data;
+  return arch_vaddr_read(addr, len);
 }
 
 void vaddr_write(vaddr_t addr, uint32_t data, int len) {
-  if(cpu.cr0.paging) {
-    paddr_t paddr = page_translate(addr, true);
-    uint32_t remain_byte = PAGE_SIZE - (addr & PAGE_MASK);
-    if(remain_byte < len) {
-      /* data cross the page boundary */
-      uint32_t cut = PAGE_SIZE - (addr & PAGE_MASK);
-      assert(cut < 4);
-      paddr_write(paddr, data, cut);
-
-      paddr = page_translate(addr + cut, true);
-      paddr_write(paddr, data >> (cut << 3), len - cut);
-    }
-    else {
-      paddr_write(paddr, data, len);
-    }
-  }
-  else {
-    paddr_write(addr, data, len);
-  }
+  arch_vaddr_write(addr, data, len);
 }
