@@ -31,6 +31,7 @@ make_DHelper(I) {
 make_DHelper(J) {
   vaddr_t jmp_target = (cpu.pc & 0xf0000000) | (decinfo.arch.instr.jmp_target << 2);
   decode_op_i(id_dest, jmp_target, true);
+  decinfo.jmp_pc = jmp_target;
 }
 
 make_DHelper(R) {

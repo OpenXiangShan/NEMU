@@ -32,7 +32,7 @@ make_EHelper(nemu_trap) {
   difftest_skip_ref();
 #endif
 
-  rtl_exit(NEMU_END, cpu.pc, cpu.gpr[4]._32); // grp[4] is $a0
+  rtl_exit(NEMU_END, cpu.pc, cpu.gpr[2]._32); // grp[2] is $v0
 
   print_asm("nemu trap");
   return;
