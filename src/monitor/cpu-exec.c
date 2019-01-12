@@ -14,7 +14,7 @@ void interpret_rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
   nemu_state = (NEMUState) { .state = state, .halt_pc = halt_pc, .halt_ret = halt_ret };
 }
 
-void arch_exec_wrapper(bool);
+void exec_wrapper(bool);
 
 static uint64_t g_nr_guest_instr = 0;
 
@@ -39,7 +39,7 @@ void cpu_exec(uint64_t n) {
   for (; n > 0; n --) {
     /* Execute one instruction, including instruction fetch,
      * instruction decode, and the actual execution. */
-    arch_exec_wrapper(print_flag);
+    exec_wrapper(print_flag);
     nr_guest_instr_add(1);
 
 #ifdef DEBUG

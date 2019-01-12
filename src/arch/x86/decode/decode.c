@@ -1,6 +1,7 @@
 #include "cpu/exec.h"
 #include "cpu/rtl.h"
 
+// decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (vaddr_t *eip, Operand *op, bool load_val)
 
 /* Refer to Appendix A in i386 manual for the explanations of these abbreviations */
@@ -12,9 +13,7 @@ static inline make_DopHelper(I) {
   op->imm = instr_fetch(eip, op->width);
   rtl_li(&op->val, op->imm);
 
-#ifdef DEBUG
-  snprintf(op->str, OP_STR_SIZE, "$0x%x", op->imm);
-#endif
+  print_Dop(op->str, OP_STR_SIZE, "$0x%x", op->imm);
 }
 
 /* I386 manual does not contain this abbreviation, but it is different from
@@ -38,9 +37,7 @@ static inline make_DopHelper(SI) {
 
   rtl_li(&op->val, op->simm);
 
-#ifdef DEBUG
-  snprintf(op->str, OP_STR_SIZE, "$0x%x", op->simm);
-#endif
+  print_Dop(op->str, OP_STR_SIZE, "$0x%x", op->simm);
 }
 
 /* I386 manual does not contain this abbreviation.
@@ -54,9 +51,7 @@ static inline make_DopHelper(a) {
     rtl_lr(&op->val, R_EAX, op->width);
   }
 
-#ifdef DEBUG
-  snprintf(op->str, OP_STR_SIZE, "%%%s", reg_name(R_EAX, op->width));
-#endif
+  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(R_EAX, op->width));
 }
 
 /* This helper function is use to decode register encoded in the opcode. */
@@ -70,9 +65,7 @@ static inline make_DopHelper(r) {
     rtl_lr(&op->val, op->reg, op->width);
   }
 
-#ifdef DEBUG
-  snprintf(op->str, OP_STR_SIZE, "%%%s", reg_name(op->reg, op->width));
-#endif
+  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(op->reg, op->width));
 }
 
 /* I386 manual does not contain this abbreviation.
@@ -97,9 +90,7 @@ static inline make_DopHelper(O) {
     rtl_lm(&op->val, &op->addr, op->width);
   }
 
-#ifdef DEBUG
-  snprintf(op->str, OP_STR_SIZE, "0x%x", op->addr);
-#endif
+  print_Dop(op->str, OP_STR_SIZE, "0x%x", op->addr);
 }
 
 /* Eb <- Gb
@@ -221,9 +212,8 @@ make_DHelper(gp2_1_E) {
   id_src->type = OP_TYPE_IMM;
   id_src->imm = 1;
   rtl_li(&id_src->val, 1);
-#ifdef DEBUG
-  sprintf(id_src->str, "$1");
-#endif
+
+  print_Dop(id_src->str, OP_STR_SIZE, "$1");
 }
 
 make_DHelper(gp2_cl2E) {
@@ -231,9 +221,8 @@ make_DHelper(gp2_cl2E) {
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_CL;
   rtl_lr(&id_src->val, R_CL, 1);
-#ifdef DEBUG
-  sprintf(id_src->str, "%%cl");
-#endif
+
+  print_Dop(id_src->str, OP_STR_SIZE, "%%cl");
 }
 
 make_DHelper(gp2_Ib2E) {
@@ -257,9 +246,8 @@ make_DHelper(cl_G2E) {
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_CL;
   rtl_lr(&id_src->val, R_CL, 1);
-#ifdef DEBUG
-  sprintf(id_src->str, "%%cl");
-#endif
+
+  print_Dop(id_src->str, OP_STR_SIZE, "%%cl");
 }
 
 make_DHelper(O2a) {
@@ -292,9 +280,8 @@ make_DHelper(in_dx2a) {
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_DX;
   rtl_lr(&id_src->val, R_DX, 2);
-#ifdef DEBUG
-  sprintf(id_src->str, "(%%dx)");
-#endif
+
+  print_Dop(id_src->str, OP_STR_SIZE, "(%%dx)");
 
   decode_op_a(eip, id_dest, false);
 }
@@ -311,7 +298,12 @@ make_DHelper(out_a2dx) {
   id_dest->type = OP_TYPE_REG;
   id_dest->reg = R_DX;
   rtl_lr(&id_dest->val, R_DX, 2);
-#ifdef DEBUG
-  sprintf(id_dest->str, "(%%dx)");
-#endif
+
+  print_Dop(id_dest->str, OP_STR_SIZE, "(%%dx)");
+}
+
+void operand_write(Operand *op, rtlreg_t* src) {
+  if (op->type == OP_TYPE_REG) { rtl_sr(op->reg, src, op->width); }
+  else if (op->type == OP_TYPE_MEM) { rtl_sm(&op->addr, src, op->width); }
+  else { assert(0); }
 }

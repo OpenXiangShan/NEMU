@@ -47,4 +47,10 @@ extern DecodeInfo decinfo;
 #define id_src2 (&decinfo.src2)
 #define id_dest (&decinfo.dest)
 
+#ifdef DEBUG
+#define print_Dop(...) snprintf(__VA_ARGS__)
+#else
+#define print_Dop(...)
+#endif
+
 #endif

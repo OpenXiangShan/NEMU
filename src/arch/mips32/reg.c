@@ -7,9 +7,6 @@ const char *regsl[] = {
   "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
 };
 
-void arch_reg_test() {
-}
-
 void arch_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {

@@ -1,18 +1,6 @@
 #include "cpu/exec.h"
 #include "all-instr.h"
 
-typedef struct {
-  DHelper decode;
-  EHelper execute;
-  int width;
-} opcode_entry;
-
-#define IDEXW(id, ex, w)   {concat(decode_, id), concat(exec_, ex), w}
-#define IDEX(id, ex)       IDEXW(id, ex, 0)
-#define EXW(ex, w)         {NULL, concat(exec_, ex), w}
-#define EX(ex)             EXW(ex, 0)
-#define EMPTY              EX(inv)
-
 static inline void set_width(int width) {
   if (width == 0) {
     width = decinfo.arch.is_operand_size_16 ? 2 : 4;
@@ -20,18 +8,10 @@ static inline void set_width(int width) {
   decinfo.src.width = decinfo.dest.width = decinfo.src2.width = width;
 }
 
-/* Instruction Decode and EXecute */
-static inline void idex(vaddr_t *eip, opcode_entry *e) {
-  /* eip is pointing to the byte next to opcode */
-  if (e->decode)
-    e->decode(eip);
-  e->execute(eip);
-}
-
 static make_EHelper(2byte_esc);
 
 #define make_group(name, item0, item1, item2, item3, item4, item5, item6, item7) \
-  static opcode_entry concat(opcode_table_, name) [8] = { \
+  static OpcodeEntry concat(opcode_table_, name) [8] = { \
     /* 0x00 */	item0, item1, item2, item3, \
     /* 0x04 */	item4, item5, item6, item7  \
   }; \
@@ -71,7 +51,7 @@ make_group(gp7,
 
   /* TODO: Add more instructions!!! */
 
-  opcode_entry opcode_table [512] = {
+static OpcodeEntry opcode_table [512] = {
     /* 0x00 */	IDEXW(G2E, add, 1), IDEX(G2E, add), IDEXW(E2G, add, 1), IDEX(E2G, add),
     /* 0x04 */	EMPTY, IDEX(I2a, add), EMPTY, EMPTY,
     /* 0x08 */	IDEXW(G2E, or, 1), IDEX(G2E, or), IDEXW(E2G, or, 1), IDEX(E2G, or),
@@ -212,51 +192,9 @@ static make_EHelper(2byte_esc) {
   idex(eip, &opcode_table[opcode]);
 }
 
-make_EHelper(real) {
+make_EHelper(arch) {
   uint32_t opcode = instr_fetch(eip, 1);
   decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);
   idex(eip, &opcode_table[opcode]);
-}
-
-static inline void update_eip(void) {
-  if (decinfo.is_jmp) { decinfo.is_jmp = 0; }
-  else { cpu.eip = decinfo.seq_pc; }
-}
-
-void arch_exec_wrapper(bool print_flag) {
-  vaddr_t ori_eip = cpu.eip;
-
-#ifdef DEBUG
-  decinfo.p = decinfo.asm_buf;
-  decinfo.p += sprintf(decinfo.p, "%8x:   ", ori_eip);
-#endif
-
-  decinfo.seq_pc = ori_eip;
-  exec_real(&decinfo.seq_pc);
-
-#ifdef DEBUG
-  int instr_len = decinfo.seq_pc - ori_eip;
-  sprintf(decinfo.p, "%*.s", 50 - (12 + 3 * instr_len), "");
-  strcat(decinfo.asm_buf, decinfo.assembly);
-  Log_write("%s\n", decinfo.asm_buf);
-  if (print_flag) {
-    puts(decinfo.asm_buf);
-  }
-#endif
-
-  update_eip();
-
-#define IRQ_TIMER 32
-  void raise_intr(uint8_t, vaddr_t);
-  if (cpu.INTR & cpu.IF) {
-    cpu.INTR = false;
-    raise_intr(IRQ_TIMER, cpu.eip);
-    update_eip();
-  }
-
-#if defined(DIFF_TEST)
-  void difftest_step(vaddr_t pc);
-  difftest_step(ori_eip);
-#endif
 }
