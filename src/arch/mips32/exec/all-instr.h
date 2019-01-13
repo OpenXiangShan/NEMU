@@ -27,6 +27,7 @@ make_EHelper(mfhi);
 make_EHelper(mflo);
 make_EHelper(mul);
 make_EHelper(mult);
+make_EHelper(multu);
 make_EHelper(div);
 make_EHelper(divu);
 
@@ -38,6 +39,8 @@ make_EHelper(bne);
 make_EHelper(beq);
 make_EHelper(blez);
 make_EHelper(bltz);
+make_EHelper(bgtz);
+make_EHelper(bgez);
 
 make_EHelper(inv);
 make_EHelper(nemu_trap);

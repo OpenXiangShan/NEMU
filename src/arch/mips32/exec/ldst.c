@@ -53,8 +53,6 @@ make_EHelper(swl) {
   // write back
   rtl_sm(&t0, &t1, 4);
 
-  Log("addr = 0x%08x, val = 0x%08x", t0, t1);
-
   print_asm_template3(swl);
 }
 
@@ -84,8 +82,6 @@ make_EHelper(swr) {
 
   // write back
   rtl_sm(&t0, &t1, 4);
-
-  Log("addr = 0x%08x, val = 0x%08x", t0, t1);
 
   print_asm_template3(swr);
 }
@@ -118,8 +114,6 @@ make_EHelper(lwl) {
   // write back
   rtl_sr(id_dest->reg, &id_dest->val, 4);
 
-  Log("val = 0x%08x", id_dest->val);
-
   print_asm_template3(lwl);
 }
 
@@ -133,7 +127,6 @@ make_EHelper(lwr) {
   // load the aligned memory word
   rtl_andi(&t0, &t0, ~0x3u);
   rtl_lm(&t1, &t0, 4);
-  Log("addr = 0x%08x, mem = 0x%08x", t0, t1);
   // prepare memory data
   rtl_shr(&t1, &t1, &t3);
 
@@ -146,15 +139,11 @@ make_EHelper(lwr) {
   // prepare register data
   rtl_and(&id_dest->val, &id_dest->val, &t2);
 
-  Log("mem = 0x%08x, reg = 0x%08x", t1, id_dest->val);
-
   // merge the word
   rtl_or(&id_dest->val, &id_dest->val, &t1);
 
   // write back
   rtl_sr(id_dest->reg, &id_dest->val, 4);
-
-  Log("val = 0x%08x", id_dest->val);
 
   print_asm_template3(lwr);
 }

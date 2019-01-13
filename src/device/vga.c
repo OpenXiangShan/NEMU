@@ -8,6 +8,7 @@
 #define VMEM 0x40000
 
 #define SCREEN_PORT 0x100 // Note that this is not the standard
+#define SCREEN_MMIO 0x4100
 #define SCREEN_H 300
 #define SCREEN_W 400
 
@@ -35,6 +36,7 @@ void init_vga() {
   screensize_port_base = (void *)new_space(4);
   *screensize_port_base = ((SCREEN_W) << 16) | (SCREEN_H);
   add_pio_map(SCREEN_PORT, (void *)screensize_port_base, 4, NULL);
+  add_mmio_map(SCREEN_MMIO, (void *)screensize_port_base, 4, NULL);
 
   vmem = (void *)new_space(0x80000);
   add_mmio_map(VMEM, (void *)vmem, 0x80000, NULL);

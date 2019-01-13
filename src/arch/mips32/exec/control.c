@@ -52,3 +52,16 @@ make_EHelper(bltz) {
 
   print_asm_template3(bltz);
 }
+
+make_EHelper(bgtz) {
+  rtl_jrelop(RELOP_GT, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+
+  print_asm_template3(blez);
+}
+
+make_EHelper(bgez) {
+  rtl_li(&t0, 0);
+  rtl_jrelop(RELOP_GE, &id_src->val, &t0, decinfo.jmp_pc);
+
+  print_asm_template3(bltz);
+}
