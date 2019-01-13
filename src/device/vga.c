@@ -2,8 +2,7 @@
 
 #ifdef HAS_IOE
 
-#include "device/mmio.h"
-#include "device/port-io.h"
+#include "device/map.h"
 #include <SDL2/SDL.h>
 
 #define VMEM 0x40000
@@ -33,8 +32,11 @@ void init_vga() {
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
       SDL_TEXTUREACCESS_STATIC, SCREEN_W, SCREEN_H);
 
-  screensize_port_base = add_pio_map(SCREEN_PORT, 4, NULL);
+  screensize_port_base = (void *)new_space(4);
   *screensize_port_base = ((SCREEN_W) << 16) | (SCREEN_H);
-  vmem = add_mmio_map(VMEM, 0x80000, NULL);
+  add_pio_map(SCREEN_PORT, (void *)screensize_port_base, 4, NULL);
+
+  vmem = (void *)new_space(0x80000);
+  add_mmio_map(VMEM, (void *)vmem, 0x80000, NULL);
 }
 #endif	/* HAS_IOE */
