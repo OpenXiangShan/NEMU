@@ -9,6 +9,12 @@ typedef union {
 //  uint32_t opcode :  6;
   };
   struct {
+    uint32_t imm    : 16;
+//  uint32_t rt     :  5;
+//  uint32_t rs     :  5;
+//  uint32_t opcode :  6;
+  };
+  struct {
     uint32_t jmp_target : 26;
     uint32_t opcode     :  6;
   };
@@ -29,6 +35,7 @@ struct CPUDecodeInfo {
 };
 
 make_DHelper(I);
+make_DHelper(IU);
 make_DHelper(J);
 make_DHelper(R);
 make_DHelper(B);

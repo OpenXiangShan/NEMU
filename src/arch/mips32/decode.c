@@ -28,6 +28,12 @@ make_DHelper(I) {
   decode_op_r(id_dest, decinfo.arch.instr.rt, false);
 }
 
+make_DHelper(IU) {
+  decode_op_r(id_src, decinfo.arch.instr.rs, true);
+  decode_op_i(id_src2, decinfo.arch.instr.imm, true);
+  decode_op_r(id_dest, decinfo.arch.instr.rt, false);
+}
+
 make_DHelper(J) {
   vaddr_t jmp_target = (cpu.pc & 0xf0000000) | (decinfo.arch.instr.jmp_target << 2);
   decode_op_i(id_dest, jmp_target, true);

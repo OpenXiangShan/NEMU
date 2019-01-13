@@ -35,6 +35,13 @@ make_EHelper(sltu) {
   print_asm_template3(sltu);
 }
 
+make_EHelper(and) {
+  rtl_and(&t0, &id_src->val, &id_src2->val);
+  rtl_sr(id_dest->reg, &t0, 4);
+
+  print_asm_template3(and);
+}
+
 make_EHelper(or) {
   rtl_or(&t0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &t0, 4);
@@ -68,6 +75,13 @@ make_EHelper(sra) {
   rtl_sr(id_dest->reg, &t0, 4);
 
   print_asm_template3(sra);
+}
+
+make_EHelper(movz) {
+  rtl_mux(&t1, &id_src2->val, &id_dest->val, &id_src->val);
+  rtl_sr(id_dest->reg, &t1, 4);
+
+  print_asm_template3(movz);
 }
 
 make_EHelper(movn) {

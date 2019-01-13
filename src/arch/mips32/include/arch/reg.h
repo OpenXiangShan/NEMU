@@ -7,14 +7,15 @@
 
 typedef struct {
   union {
-    union {
-      rtlreg_t _32;
-      uint16_t _16[2];
-      uint8_t _8[4];
-    } gpr[32];
-  };
+    rtlreg_t _32;
+    uint16_t _16[2];
+    uint8_t _8[4];
+  } gpr[32];
 
   vaddr_t pc;
+
+  rtlreg_t lo, hi;
+
   bool INTR;
 } CPU_state;
 
