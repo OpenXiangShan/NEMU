@@ -19,3 +19,15 @@ make_EHelper(jr) {
 
   print_asm_template1(jr);
 }
+
+make_EHelper(bne) {
+  rtl_jrelop(RELOP_NE, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+
+  print_asm_template3(bne);
+}
+
+make_EHelper(beq) {
+  rtl_jrelop(RELOP_EQ, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+
+  print_asm_template3(beq);
+}

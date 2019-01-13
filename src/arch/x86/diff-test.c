@@ -6,7 +6,7 @@ extern void (*ref_difftest_getregs)(void *c);
 extern void (*ref_difftest_setregs)(const void *c);
 extern void (*ref_difftest_exec)(uint64_t n);
 
-void arch_difftest_arch_attach(void) {
+void arch_difftest_attach(void) {
   // first copy the image
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(PC_START), PMEM_SIZE - PC_START);
 

@@ -31,6 +31,8 @@ struct CPUDecodeInfo {
 make_DHelper(I);
 make_DHelper(J);
 make_DHelper(R);
+make_DHelper(B);
 make_DHelper(store);
+make_DHelper(shift);
 
 #endif

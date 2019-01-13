@@ -36,7 +36,7 @@ make_DHelper(J) {
 
 make_DHelper(R) {
   decode_op_r(id_src, decinfo.arch.instr.rs, true);
-  decode_op_i(id_src2, decinfo.arch.instr.rt, true);
+  decode_op_r(id_src2, decinfo.arch.instr.rt, true);
   decode_op_r(id_dest, decinfo.arch.instr.rd, false);
 }
 
@@ -44,4 +44,19 @@ make_DHelper(store) {
   decode_op_r(id_src, decinfo.arch.instr.rs, true);
   decode_op_i(id_src2, decinfo.arch.instr.simm, true);
   decode_op_r(id_dest, decinfo.arch.instr.rt, true);
+}
+
+make_DHelper(B) {
+  int32_t offset = (decinfo.arch.instr.simm << 2);
+  decinfo.jmp_pc = cpu.pc + offset + 4;
+
+  decode_op_r(id_src, decinfo.arch.instr.rs, true);
+  decode_op_r(id_src2, decinfo.arch.instr.rt, true);
+  decode_op_i(id_dest, decinfo.jmp_pc, true);
+}
+
+make_DHelper(shift) {
+  decode_op_r(id_src, decinfo.arch.instr.rt, true);
+  decode_op_i(id_src2, decinfo.arch.instr.sa, true);
+  decode_op_r(id_dest, decinfo.arch.instr.rd, false);
 }

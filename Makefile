@@ -1,12 +1,15 @@
+NAME = nemu
+
 ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
 ARCH ?= x86
 ARCHS = $(shell ls src/arch/)
+$(info Building $(NAME) [$(ARCH)])
+
 ifeq ($(filter $(ARCHS), $(ARCH)), ) # ARCH must be valid
 $(error Invalid ARCH. Supported: $(ARCHS))
 endif
 endif
 
-NAME = nemu
 INC_DIR += ./include ./src/arch/$(ARCH)/include
 BUILD_DIR ?= ./build
 

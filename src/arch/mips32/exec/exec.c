@@ -2,7 +2,7 @@
 #include "all-instr.h"
 
 static OpcodeEntry special_table [64] = {
-  /* b000 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b000 */ IDEX(shift, sll), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b001 */ IDEX(R, jr), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b010 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b011 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
@@ -17,8 +17,8 @@ static make_EHelper(special) {
 }
 
 static OpcodeEntry opcode_table [64] = {
-  /* b000 */ EX(special), EMPTY, IDEX(J, j), IDEX(J, jal), EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b001 */ EMPTY, IDEX(I, add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, IDEX(I, lui),
+  /* b000 */ EX(special), EMPTY, IDEX(J, j), IDEX(J, jal), IDEX(B, beq), IDEX(B, bne), EMPTY, EMPTY,
+  /* b001 */ EMPTY, IDEX(I, add), EMPTY, IDEX(I, sltu), EMPTY, EMPTY, IDEX(I, xor), IDEX(I, lui),
   /* b010 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b011 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b100 */ EMPTY, EMPTY, EMPTY, IDEX(I, load), EMPTY, EMPTY, EMPTY, EMPTY,
