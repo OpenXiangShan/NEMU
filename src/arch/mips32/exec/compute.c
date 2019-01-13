@@ -14,6 +14,20 @@ make_EHelper(add) {
   print_asm_template3(add);
 }
 
+make_EHelper(sub) {
+  rtl_sub(&t0, &id_src->val, &id_src2->val);
+  rtl_sr(id_dest->reg, &t0, 4);
+
+  print_asm_template3(sub);
+}
+
+make_EHelper(slt) {
+  rtl_setrelop(RELOP_LT, &t0, &id_src->val, &id_src2->val);
+  rtl_sr(id_dest->reg, &t0, 4);
+
+  print_asm_template3(slt);
+}
+
 make_EHelper(sltu) {
   rtl_setrelop(RELOP_LTU, &t0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &t0, 4);
@@ -36,8 +50,29 @@ make_EHelper(xor) {
 }
 
 make_EHelper(sll) {
-  rtl_shl(&t0, &id_src->val, &id_src2->val);
+  rtl_shl(&t0, &id_src2->val, &id_src->val);
   rtl_sr(id_dest->reg, &t0, 4);
 
   print_asm_template3(sll);
+}
+
+make_EHelper(srl) {
+  rtl_shr(&t0, &id_src2->val, &id_src->val);
+  rtl_sr(id_dest->reg, &t0, 4);
+
+  print_asm_template3(srl);
+}
+
+make_EHelper(sra) {
+  rtl_sar(&t0, &id_src2->val, &id_src->val);
+  rtl_sr(id_dest->reg, &t0, 4);
+
+  print_asm_template3(sra);
+}
+
+make_EHelper(movn) {
+  rtl_mux(&t1, &id_src2->val, &id_src->val, &id_dest->val);
+  rtl_sr(id_dest->reg, &t1, 4);
+
+  print_asm_template3(movn);
 }

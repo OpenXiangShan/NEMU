@@ -56,7 +56,13 @@ make_DHelper(B) {
 }
 
 make_DHelper(shift) {
-  decode_op_r(id_src, decinfo.arch.instr.rt, true);
-  decode_op_i(id_src2, decinfo.arch.instr.sa, true);
+  decode_op_i(id_src, decinfo.arch.instr.sa, true);
+  decode_op_r(id_src2, decinfo.arch.instr.rt, true);
   decode_op_r(id_dest, decinfo.arch.instr.rd, false);
+}
+
+make_DHelper(cmov) {
+  decode_op_r(id_src, decinfo.arch.instr.rs, true);
+  decode_op_r(id_src2, decinfo.arch.instr.rt, true);
+  decode_op_r(id_dest, decinfo.arch.instr.rd, true);
 }

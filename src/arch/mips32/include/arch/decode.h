@@ -34,5 +34,6 @@ make_DHelper(R);
 make_DHelper(B);
 make_DHelper(store);
 make_DHelper(shift);
+make_DHelper(cmov);
 
 #endif
