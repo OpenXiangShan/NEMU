@@ -27,8 +27,15 @@ make_EHelper(mult) {
 }
 
 make_EHelper(div) {
+  rtl_idiv_q(&cpu.lo, &id_src->val, &id_src2->val);
+  rtl_idiv_r(&cpu.hi, &id_src->val, &id_src2->val);
+
+  print_asm_template3(div);
+}
+
+make_EHelper(divu) {
   rtl_div_q(&cpu.lo, &id_src->val, &id_src2->val);
   rtl_div_r(&cpu.hi, &id_src->val, &id_src2->val);
 
-  print_asm_template3(div);
+  print_asm_template3(divu);
 }

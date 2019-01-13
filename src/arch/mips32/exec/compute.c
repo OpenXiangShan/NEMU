@@ -56,6 +56,14 @@ make_EHelper(xor) {
   print_asm_template3(xor);
 }
 
+make_EHelper(nor) {
+  rtl_or(&t0, &id_src->val, &id_src2->val);
+  rtl_not(&t0, &t0);
+  rtl_sr(id_dest->reg, &t0, 4);
+
+  print_asm_template3(nor);
+}
+
 make_EHelper(sll) {
   rtl_shl(&t0, &id_src2->val, &id_src->val);
   rtl_sr(id_dest->reg, &t0, 4);

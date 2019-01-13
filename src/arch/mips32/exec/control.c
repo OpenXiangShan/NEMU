@@ -45,3 +45,10 @@ make_EHelper(blez) {
 
   print_asm_template3(blez);
 }
+
+make_EHelper(bltz) {
+  rtl_li(&t0, 0);
+  rtl_jrelop(RELOP_LT, &id_src->val, &t0, decinfo.jmp_pc);
+
+  print_asm_template3(bltz);
+}

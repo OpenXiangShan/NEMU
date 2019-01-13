@@ -26,6 +26,7 @@ typedef struct {
 
 typedef struct {
   uint32_t opcode;
+  uint32_t width;
   vaddr_t seq_pc;  // sequential pc
   bool is_jmp;
   vaddr_t jmp_pc;
