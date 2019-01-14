@@ -19,8 +19,8 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
-OBJ_DIR ?= $(BUILD_DIR)/obj$(SO)
-BINARY ?= $(BUILD_DIR)/$(NAME)$(SO)
+OBJ_DIR ?= $(BUILD_DIR)/obj-$(ARCH)$(SO)
+BINARY ?= $(BUILD_DIR)/$(NAME)-$(ARCH)$(SO)
 
 include Makefile.git
 
@@ -54,7 +54,7 @@ $(OBJ_DIR)/%.o: src/%.c
 app: $(BINARY)
 
 override ARGS ?= -l $(BUILD_DIR)/nemu-log.txt
-#override ARGS += -d $(NEMU_HOME)/$(BUILD_DIR)/nemu-so
+#override ARGS += -d $(NEMU_HOME)/$(BUILD_DIR)/$(NAME)-$(ARCH)-so
 override ARGS += -d $(NEMU_HOME)/tools/qemu-diff/build/qemu-so
 
 # Command to execute NEMU
