@@ -30,7 +30,7 @@ typedef union {
 } Instr;
 
 
-struct CPUDecodeInfo {
+struct ISADecodeInfo {
   Instr instr;
 };
 

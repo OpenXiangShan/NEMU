@@ -2,7 +2,7 @@
 #define __X86_REG_H__
 
 #include "common.h"
-#include "arch/mmu.h"
+#include "isa/mmu.h"
 
 #define PC_START 0x100000
 

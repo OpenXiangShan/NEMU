@@ -22,7 +22,7 @@ typedef struct {
   char str[OP_STR_SIZE];
 } Operand;
 
-#include "arch/decode.h"
+#include "isa/decode.h"
 
 typedef struct {
   uint32_t opcode;
@@ -31,7 +31,7 @@ typedef struct {
   bool is_jmp;
   vaddr_t jmp_pc;
   Operand src, dest, src2;
-  struct CPUDecodeInfo arch;
+  struct ISADecodeInfo isa;
 #ifdef DEBUG
   char assembly[80];
   char asm_buf[128];

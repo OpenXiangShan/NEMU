@@ -29,13 +29,13 @@ void paddr_write(paddr_t addr, uint32_t data, int len) {
   memcpy(guest_to_host(addr), &data, len);
 }
 
-uint32_t arch_vaddr_read(vaddr_t addr, int len);
-void arch_vaddr_write(vaddr_t addr, uint32_t data, int len);
+uint32_t isa_vaddr_read(vaddr_t addr, int len);
+void isa_vaddr_write(vaddr_t addr, uint32_t data, int len);
 
 uint32_t vaddr_read(vaddr_t addr, int len) {
-  return arch_vaddr_read(addr, len);
+  return isa_vaddr_read(addr, len);
 }
 
 void vaddr_write(vaddr_t addr, uint32_t data, int len) {
-  arch_vaddr_write(addr, data, len);
+  isa_vaddr_write(addr, data, len);
 }

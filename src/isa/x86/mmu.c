@@ -1,5 +1,5 @@
 #include "nemu.h"
-#include "arch/mmu.h"
+#include "isa/mmu.h"
 
 typedef union {
   struct {
@@ -44,7 +44,7 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
   return page_walk(addr, is_write) | (addr & PAGE_MASK);
 }
 
-uint32_t arch_vaddr_read(vaddr_t addr, int len) {
+uint32_t isa_vaddr_read(vaddr_t addr, int len) {
   uint32_t data;
   if (cpu.cr0.paging) {
     paddr_t paddr = page_translate(addr, false);
@@ -67,7 +67,7 @@ uint32_t arch_vaddr_read(vaddr_t addr, int len) {
   return data;
 }
 
-void arch_vaddr_write(vaddr_t addr, uint32_t data, int len) {
+void isa_vaddr_write(vaddr_t addr, uint32_t data, int len) {
   if (cpu.cr0.paging) {
     paddr_t paddr = page_translate(addr, true);
     uint32_t remain_byte = PAGE_SIZE - (addr & PAGE_MASK);

@@ -1,6 +1,6 @@
 #include "cpu/rtl.h"
 #include "cpu/exec.h"
-#include "arch/intr.h"
+#include "isa/intr.h"
 
 CPU_state cpu;
 
@@ -13,7 +13,7 @@ void decinfo_set_jmp(bool is_jmp) {
   decinfo.is_jmp = is_jmp;
 }
 
-make_EHelper(arch);
+make_EHelper(isa);
 
 void exec_wrapper(bool print_flag) {
   vaddr_t ori_pc = cpu.pc;
@@ -24,7 +24,7 @@ void exec_wrapper(bool print_flag) {
 #endif
 
   decinfo.seq_pc = ori_pc;
-  exec_arch(&decinfo.seq_pc);
+  exec_isa(&decinfo.seq_pc);
 
 #ifdef DEBUG
   int instr_len = decinfo.seq_pc - ori_pc;
@@ -40,7 +40,7 @@ void exec_wrapper(bool print_flag) {
 
 #define IRQ_TIMER 32
   void raise_intr(uint8_t, vaddr_t);
-  if (cpu.INTR && arch_istatus()) {
+  if (cpu.INTR && isa_istatus()) {
     cpu.INTR = false;
     raise_intr(IRQ_TIMER, cpu.pc);
     update_pc();

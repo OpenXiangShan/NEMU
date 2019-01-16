@@ -13,7 +13,7 @@ static OpcodeEntry special_table [64] = {
 };
 
 static make_EHelper(special) {
-  idex(eip, &special_table[decinfo.arch.instr.func]);
+  idex(eip, &special_table[decinfo.isa.instr.func]);
 }
 
 static OpcodeEntry special2_table [64] = {
@@ -28,7 +28,7 @@ static OpcodeEntry special2_table [64] = {
 };
 
 static make_EHelper(special2) {
-  idex(eip, &special2_table[decinfo.arch.instr.func]);
+  idex(eip, &special2_table[decinfo.isa.instr.func]);
 }
 
 static OpcodeEntry regimm_table [32] = {
@@ -39,7 +39,7 @@ static OpcodeEntry regimm_table [32] = {
 };
 
 static make_EHelper(regimm) {
-  idex(eip, &regimm_table[decinfo.arch.instr.rt]);
+  idex(eip, &regimm_table[decinfo.isa.instr.rt]);
 }
 
 static OpcodeEntry opcode_table [64] = {
@@ -53,8 +53,8 @@ static OpcodeEntry opcode_table [64] = {
   /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EX(nemu_trap), EMPTY, EMPTY, EMPTY,
 };
 
-make_EHelper(arch) {
-  decinfo.arch.instr.val = instr_fetch(eip, 4);
-  decinfo.width = opcode_table[decinfo.arch.instr.opcode].width;
-  idex(eip, &opcode_table[decinfo.arch.instr.opcode]);
+make_EHelper(isa) {
+  decinfo.isa.instr.val = instr_fetch(eip, 4);
+  decinfo.width = opcode_table[decinfo.isa.instr.opcode].width;
+  idex(eip, &opcode_table[decinfo.isa.instr.opcode]);
 }

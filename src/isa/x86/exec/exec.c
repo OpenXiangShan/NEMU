@@ -3,7 +3,7 @@
 
 static inline void set_width(int width) {
   if (width == 0) {
-    width = decinfo.arch.is_operand_size_16 ? 2 : 4;
+    width = decinfo.isa.is_operand_size_16 ? 2 : 4;
   }
   decinfo.src.width = decinfo.dest.width = decinfo.src2.width = width;
 }
@@ -16,7 +16,7 @@ static make_EHelper(2byte_esc);
     /* 0x04 */	item4, item5, item6, item7  \
   }; \
 static make_EHelper(name) { \
-  idex(eip, &concat(opcode_table_, name)[decinfo.arch.ext_opcode]); \
+  idex(eip, &concat(opcode_table_, name)[decinfo.isa.ext_opcode]); \
 }
 
 /* 0x80, 0x81, 0x83 */
@@ -192,7 +192,7 @@ static make_EHelper(2byte_esc) {
   idex(eip, &opcode_table[opcode]);
 }
 
-make_EHelper(arch) {
+make_EHelper(isa) {
   uint32_t opcode = instr_fetch(eip, 1);
   decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);

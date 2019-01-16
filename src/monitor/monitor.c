@@ -2,7 +2,7 @@
 #include "monitor/monitor.h"
 #include <unistd.h>
 
-void init_arch();
+void init_isa();
 void init_regex();
 void init_wp_pool();
 void init_device();
@@ -33,7 +33,7 @@ static inline void welcome() {
 #endif
 
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to NEMU for \33[1;41m\33[1;33m%s\33[0m!\n", str(__ARCH__));
+  printf("Welcome to NEMU for \33[1;41m\33[1;33m%s\33[0m!\n", str(__ISA__));
   printf("For help, type \"help\"\n");
 }
 
@@ -41,10 +41,10 @@ static inline long load_img() {
   long size;
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
-    extern uint8_t arch_default_img[];
-    extern long arch_default_img_size;
-    size = arch_default_img_size;
-    memcpy(guest_to_host(PC_START), arch_default_img, size);
+    extern uint8_t isa_default_img[];
+    extern long isa_default_img_size;
+    size = isa_default_img_size;
+    memcpy(guest_to_host(PC_START), isa_default_img, size);
   }
   else {
     int ret;
@@ -95,8 +95,8 @@ int init_monitor(int argc, char *argv[]) {
   /* Load the image to memory. */
   long img_size = load_img();
 
-  /* Perform architecture dependent initialization. */
-  init_arch();
+  /* Perform ISA dependent initialization. */
+  init_isa();
 
   /* Compile the regular expressions. */
   init_regex();

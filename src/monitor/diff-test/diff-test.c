@@ -18,8 +18,8 @@ void difftest_skip_ref() { is_skip_ref = true; }
 void difftest_skip_dut() { is_skip_dut = true; }
 //void difftest_skip_eflags(uint32_t mask) { eflags_skip_mask = mask; }
 
-bool arch_difftest_check_reg(CPU_state *ref_r, vaddr_t pc);
-void arch_difftest_attach(void);
+bool isa_difftest_check_reg(CPU_state *ref_r, vaddr_t pc);
+void isa_difftest_attach(void);
 
 void init_difftest(char *ref_so_file, long img_size) {
 #ifndef DIFF_TEST
@@ -111,5 +111,5 @@ void difftest_attach() {
   is_skip_ref = false;
   is_skip_dut = false;
 
-  arch_difftest_attach();
+  isa_difftest_attach();
 }

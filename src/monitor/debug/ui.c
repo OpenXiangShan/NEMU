@@ -8,7 +8,7 @@
 #include <readline/history.h>
 
 void cpu_exec(uint64_t);
-void arch_reg_display();
+void isa_reg_display();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 char* rl_gets() {
@@ -58,7 +58,7 @@ static int cmd_info(char *args) {
   }
   else {
     if (strcmp(arg, "r") == 0) {
-      arch_reg_display();
+      isa_reg_display();
     }
     else if (strcmp(arg, "w") == 0) {
       list_watchpoint();

@@ -173,7 +173,7 @@ static int find_dominated_op(int s, int e, bool *success) {
   return dominated_op;
 }
 
-uint32_t arch_reg_str2val(const char*, bool *);
+uint32_t isa_reg_str2val(const char*, bool *);
 
 static uint32_t eval(int s, int e, bool *success) {
   if (s > e) {
@@ -185,7 +185,7 @@ static uint32_t eval(int s, int e, bool *success) {
     // single token
     uint32_t val;
     switch (tokens[s].type) {
-      case TK_REG: val = arch_reg_str2val(tokens[s].str + 1, success); // +1 to skip '$'
+      case TK_REG: val = isa_reg_str2val(tokens[s].str + 1, success); // +1 to skip '$'
                 if (!*success) { return 0; }
                 break;
 

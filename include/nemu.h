@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "memory/memory.h"
-#include "arch/reg.h"
+#include "isa/reg.h"
 
 extern CPU_state cpu;
 

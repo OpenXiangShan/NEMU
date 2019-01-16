@@ -7,7 +7,7 @@ const char *regsl[] = {
   "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
 };
 
-void arch_reg_display() {
+void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
     printf("%s: 0x%08x ", regsl[i], cpu.gpr[i]._32);
@@ -18,7 +18,7 @@ void arch_reg_display() {
   printf("pc: 0x%08x\n", cpu.pc);
 }
 
-uint32_t arch_reg_str2val(const char *s, bool *success) {
+uint32_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   *success = true;
   for (i = 0; i < 32; i ++) {

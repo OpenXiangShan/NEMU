@@ -176,6 +176,6 @@ static inline void rtl_mux(rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t*
   rtl_or(dest, &t0, &t1);
 }
 
-#include "arch/rtl.h"
+#include "isa/rtl.h"
 
 #endif

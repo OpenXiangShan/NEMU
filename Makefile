@@ -1,16 +1,16 @@
 NAME = nemu
 
 ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
-ARCH ?= x86
-ARCHS = $(shell ls src/arch/)
-$(info Building $(NAME) [$(ARCH)])
+ISA ?= x86
+ISAS = $(shell ls src/isa/)
+$(info Building $(NAME) [$(ISA)])
 
-ifeq ($(filter $(ARCHS), $(ARCH)), ) # ARCH must be valid
-$(error Invalid ARCH. Supported: $(ARCHS))
+ifeq ($(filter $(ISAS), $(ISA)), ) # ISA must be valid
+$(error Invalid ISA. Supported: $(ISAS))
 endif
 endif
 
-INC_DIR += ./include ./src/arch/$(ARCH)/include
+INC_DIR += ./include ./src/isa/$(ISA)/include
 BUILD_DIR ?= ./build
 
 ifeq ($(SHARE), 1)
@@ -19,8 +19,8 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
-OBJ_DIR ?= $(BUILD_DIR)/obj-$(ARCH)$(SO)
-BINARY ?= $(BUILD_DIR)/$(NAME)-$(ARCH)$(SO)
+OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)$(SO)
+BINARY ?= $(BUILD_DIR)/$(NAME)-$(ISA)$(SO)
 
 include Makefile.git
 
@@ -30,12 +30,12 @@ include Makefile.git
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ARCH__=$(ARCH) -fomit-frame-pointer
+CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -fomit-frame-pointer
 CFLAGS   += -DDIFF_TEST_QEMU
 
 # Files to be compiled
-SRCS = $(shell find src/ -name "*.c" | grep -v "arch")
-SRCS += $(shell find src/arch/$(ARCH) -name "*.c")
+SRCS = $(shell find src/ -name "*.c" | grep -v "isa")
+SRCS += $(shell find src/isa/$(ISA) -name "*.c")
 OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
 
 # Compilation patterns
@@ -54,7 +54,7 @@ $(OBJ_DIR)/%.o: src/%.c
 app: $(BINARY)
 
 override ARGS ?= -l $(BUILD_DIR)/nemu-log.txt
-#override ARGS += -d $(NEMU_HOME)/$(BUILD_DIR)/$(NAME)-$(ARCH)-so
+#override ARGS += -d $(NEMU_HOME)/$(BUILD_DIR)/$(NAME)-$(ISA)-so
 override ARGS += -d $(NEMU_HOME)/tools/qemu-diff/build/qemu-so
 
 # Command to execute NEMU

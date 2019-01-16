@@ -4,7 +4,7 @@
 #include "common.h"
 #include "cpu/decode.h"
 
-struct CPUDecodeInfo {
+struct ISADecodeInfo {
   bool is_operand_size_16;
   uint8_t ext_opcode;
 };
