@@ -14,8 +14,8 @@ make_EHelper(push) {
 
 make_EHelper(pop) {
 //  TODO();
-  rtl_pop(&t0);
-  operand_write(id_dest, &t0);
+  rtl_pop(&s0);
+  operand_write(id_dest, &s0);
 
   print_asm_template1(pop);
 }
@@ -23,12 +23,12 @@ make_EHelper(pop) {
 make_EHelper(pusha) {
   //TODO();
 
-  rtl_mv(&t0, &cpu.esp);
+  rtl_mv(&s0, &cpu.esp);
   rtl_push(&cpu.eax);
   rtl_push(&cpu.ecx);
   rtl_push(&cpu.edx);
   rtl_push(&cpu.ebx);
-  rtl_push(&t0);
+  rtl_push(&s0);
   rtl_push(&cpu.ebp);
   rtl_push(&cpu.esi);
   rtl_push(&cpu.edi);
@@ -42,7 +42,7 @@ make_EHelper(popa) {
   rtl_pop(&cpu.edi);
   rtl_pop(&cpu.esi);
   rtl_pop(&cpu.ebp);
-  rtl_pop(&t0);
+  rtl_pop(&s0);
   rtl_pop(&cpu.ebx);
   rtl_pop(&cpu.edx);
   rtl_pop(&cpu.ecx);
@@ -84,8 +84,8 @@ make_EHelper(cwtl) {
 
 make_EHelper(movsx) {
   id_dest->width = decinfo.arch.is_operand_size_16 ? 2 : 4;
-  rtl_sext(&t0, &id_src->val, id_src->width);
-  operand_write(id_dest, &t0);
+  rtl_sext(&s0, &id_src->val, id_src->width);
+  operand_write(id_dest, &s0);
   print_asm_template2(movsx);
 }
 

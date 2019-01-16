@@ -15,9 +15,9 @@ make_EHelper(sra);
 make_EHelper(movn);
 make_EHelper(movz);
 
-make_EHelper(load);
-make_EHelper(loads);
-make_EHelper(store);
+make_EHelper(ld);
+make_EHelper(lds);
+make_EHelper(st);
 make_EHelper(swl);
 make_EHelper(swr);
 make_EHelper(lwl);

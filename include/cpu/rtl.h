@@ -6,7 +6,7 @@
 #include "cpu/relop.h"
 #include "cpu/rtl-wrapper.h"
 
-extern rtlreg_t t0, t1, t2, t3, at;
+extern rtlreg_t s0, s1, t0, t1, at;
 
 void decinfo_set_jmp(bool is_jmp);
 bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2);
@@ -170,10 +170,10 @@ static inline void rtl_mux(rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t*
   rtl_setrelopi(RELOP_EQ, &t0, cond, 0);
   rtl_subi(&t0, &t0, 1);
   // t0 = mask
-  rtl_and(dest, src1, &t0);
+  rtl_and(&t1, src1, &t0);
   rtl_not(&t0, &t0);
   rtl_and(&t0, src2, &t0);
-  rtl_or(dest, &t0, dest);
+  rtl_or(dest, &t0, &t1);
 }
 
 #include "arch/rtl.h"

@@ -4,8 +4,8 @@ void rtl_compute_eflags(rtlreg_t *dest) {
   rtl_li(dest, 0);
 
 #define __f(X) \
-  rtl_shli(&at, &cpu.X, concat(EFLAGS_BIT_, X)); \
-  rtl_or(dest, dest, &at);
+  rtl_shli(&t0, &cpu.X, concat(EFLAGS_BIT_, X)); \
+  rtl_or(dest, dest, &t0);
 
   __map_eflags(__f)
 

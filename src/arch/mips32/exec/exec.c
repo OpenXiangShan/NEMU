@@ -44,11 +44,11 @@ static make_EHelper(regimm) {
 
 static OpcodeEntry opcode_table [64] = {
   /* b000 */ EX(special), EX(regimm), IDEX(J, j), IDEX(J, jal), IDEX(B, beq), IDEX(B, bne), IDEX(B, blez), IDEX(B, bgtz),
-  /* b001 */ EMPTY, IDEX(I, add), IDEX(I, slt), IDEX(I, sltu), IDEX(IU, and), IDEX(IU, or), IDEX(IU, xor), IDEX(I, lui),
+  /* b001 */ EMPTY, IDEX(I, add), IDEX(I, slt), IDEX(I, sltu), IDEX(IU, and), IDEX(IU, or), IDEX(IU, xor), IDEX(IU, lui),
   /* b010 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b011 */ EMPTY, EMPTY, EMPTY, EMPTY, EX(special2), EMPTY, EMPTY, EMPTY,
-  /* b100 */ IDEXW(I, loads, 1), IDEXW(I, loads, 2), IDEX(store, lwl), IDEXW(I, load, 4), IDEXW(I, load, 1), IDEXW(I, load, 2), IDEX(store, lwr), EMPTY,
-  /* b101 */ IDEXW(store, store, 1), IDEXW(store, store, 2), IDEX(store, swl), IDEXW(store, store, 4), EMPTY, EMPTY, IDEX(store, swr), EMPTY,
+  /* b100 */ IDEXW(ld, lds, 1), IDEXW(ld, lds, 2), IDEX(st, lwl), IDEXW(ld, ld, 4), IDEXW(ld, ld, 1), IDEXW(ld, ld, 2), IDEX(st, lwr), EMPTY,
+  /* b101 */ IDEXW(st, st, 1), IDEXW(st, st, 2), IDEX(st, swl), IDEXW(st, st, 4), EMPTY, EMPTY, IDEX(st, swr), EMPTY,
   /* b110 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EX(nemu_trap), EMPTY, EMPTY, EMPTY,
 };

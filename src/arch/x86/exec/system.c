@@ -38,16 +38,16 @@ make_EHelper(int) {
 
 make_EHelper(iret) {
   //TODO();
-  rtl_pop(&t0);
+  rtl_pop(&s0);
 
-  rtl_pop(&t1);
-  cpu.cs = t1;
+  rtl_pop(&s1);
+  cpu.cs = s1;
 
   void rtl_set_eflags(const rtlreg_t *src);
-  rtl_pop(&t1);
-  rtl_set_eflags(&t1);
+  rtl_pop(&s1);
+  rtl_set_eflags(&s1);
 
-  rtl_jr(&t0);
+  rtl_jr(&s0);
 
   //difftest_skip_eflags(EFLAGS_MASK_ALL);
 
@@ -74,8 +74,8 @@ make_EHelper(in) {
     default: assert(0);
   }
 
-  rtl_li(&t0, val);
-  operand_write(id_dest, &t0);
+  rtl_li(&s0, val);
+  operand_write(id_dest, &s0);
 
 #if defined(DIFF_TEST)
   difftest_skip_ref();
