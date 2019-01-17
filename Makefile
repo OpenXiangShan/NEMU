@@ -3,7 +3,7 @@ NAME = nemu
 ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
 ISA ?= x86
 ISAS = $(shell ls src/isa/)
-$(info Building $(NAME) [$(ISA)])
+$(info Building $(ISA)-$(NAME))
 
 ifeq ($(filter $(ISAS), $(ISA)), ) # ISA must be valid
 $(error Invalid ISA. Supported: $(ISAS))
@@ -20,7 +20,7 @@ SO_LDLAGS = -shared -fPIC
 endif
 
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)$(SO)
-BINARY ?= $(BUILD_DIR)/$(NAME)-$(ISA)$(SO)
+BINARY ?= $(BUILD_DIR)/$(ISA)-$(NAME)$(SO)
 
 include Makefile.git
 
@@ -54,8 +54,8 @@ $(OBJ_DIR)/%.o: src/%.c
 app: $(BINARY)
 
 override ARGS ?= -l $(BUILD_DIR)/nemu-log.txt
-#override ARGS += -d $(NEMU_HOME)/$(BUILD_DIR)/$(NAME)-$(ISA)-so
-override ARGS += -d $(NEMU_HOME)/tools/qemu-diff/build/qemu-so
+#override ARGS += -d $(NEMU_HOME)/$(BUILD_DIR)/$(ISA)-$(NAME)-so
+override ARGS += -d $(NEMU_HOME)/tools/qemu-diff/build/$(ISA)-qemu-so
 
 # Command to execute NEMU
 NEMU_EXEC := $(BINARY) $(ARGS)

@@ -72,6 +72,7 @@ make_DHelper(st) {
 make_DHelper(B) {
   int32_t offset = (decinfo.isa.instr.simm << 2);
   decinfo.jmp_pc = cpu.pc + offset + 4;
+  decinfo.seq_pc += 4; // skip the delay slot
 
   decode_op_r(id_src, decinfo.isa.instr.rs, true);
   decode_op_r(id_src2, decinfo.isa.instr.rt, true);

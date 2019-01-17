@@ -1,10 +1,21 @@
 #include "nemu.h"
 #include "monitor/diff-test.h"
 
-extern void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n);
-extern void (*ref_difftest_getregs)(void *c);
-extern void (*ref_difftest_setregs)(const void *c);
-extern void (*ref_difftest_exec)(uint64_t n);
+void isa_difftest_syncregs() {
+  ref_difftest_setregs(&cpu);
+}
+
+bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
+  if (memcmp(&cpu, ref_r, DIFFTEST_REG_SIZE)) {
+    int i;
+    for (i = 0; i < DIFFTEST_REG_SIZE / sizeof(cpu.pc) - 1; i ++) {
+      difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._32, cpu.gpr[i]._32);
+    }
+    difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
+    return false;
+  }
+  return true;
+}
 
 void isa_difftest_attach(void) {
   // first copy the image

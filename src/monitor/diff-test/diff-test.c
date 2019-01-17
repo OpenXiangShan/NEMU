@@ -2,7 +2,6 @@
 
 #include "nemu.h"
 #include "monitor/monitor.h"
-#include "monitor/diff-test.h"
 
 void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
 void (*ref_difftest_getregs)(void *c) = NULL;
@@ -18,7 +17,8 @@ void difftest_skip_ref() { is_skip_ref = true; }
 void difftest_skip_dut() { is_skip_dut = true; }
 //void difftest_skip_eflags(uint32_t mask) { eflags_skip_mask = mask; }
 
-bool isa_difftest_check_reg(CPU_state *ref_r, vaddr_t pc);
+void isa_difftest_syncregs(void);
+bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach(void);
 
 void init_difftest(char *ref_so_file, long img_size) {
@@ -54,14 +54,7 @@ void init_difftest(char *ref_so_file, long img_size) {
 
   ref_difftest_init();
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(PC_START), img_size);
-  ref_difftest_setregs(&cpu);
-}
-
-static inline void difftest_check_reg(const char *name, vaddr_t pc, uint32_t ref, uint32_t dut) {
-  if (ref != dut) {
-    Log("%s is different after executing instruction at pc = 0x%08x, right = 0x%08x, wrong = 0x%08x",
-        name, pc, ref, dut);
-  }
+  isa_difftest_syncregs();
 }
 
 void difftest_step(vaddr_t pc) {
@@ -76,8 +69,7 @@ void difftest_step(vaddr_t pc) {
 
   if (is_skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
-    ref_difftest_getregs(&ref_r);
-    ref_difftest_setregs(&cpu);
+    isa_difftest_syncregs();
     is_skip_ref = false;
     return;
   }
@@ -86,13 +78,7 @@ void difftest_step(vaddr_t pc) {
   ref_difftest_getregs(&ref_r);
 
   // TODO: Check the registers state with QEMU.
-  if (memcmp(&cpu, &ref_r, DIFFTEST_REG_SIZE)) {
-    int i;
-    for (i = 0; i < DIFFTEST_REG_SIZE / sizeof(cpu.pc) - 1; i ++) {
-      difftest_check_reg(reg_name(i, 4), pc, ref_r.gpr[i]._32, cpu.gpr[i]._32);
-    }
-    difftest_check_reg("pc", pc, ref_r.pc, cpu.pc);
-
+  if (!isa_difftest_checkregs(&ref_r, pc)) {
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
   }

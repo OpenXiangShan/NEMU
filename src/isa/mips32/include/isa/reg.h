@@ -12,9 +12,11 @@ typedef struct {
     uint8_t _8[4];
   } gpr[32];
 
-  vaddr_t pc;
-
+  uint32_t status;
   rtlreg_t lo, hi;
+  uint32_t badvaddr;
+  uint32_t cause;
+  vaddr_t pc;
 
   bool INTR;
 } CPU_state;
