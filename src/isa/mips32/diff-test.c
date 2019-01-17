@@ -5,6 +5,8 @@ void isa_difftest_syncregs() {
   ref_difftest_setregs(&cpu);
 }
 
+#define check_reg(r) same = same && difftest_check_reg(str(r), pc, ref_r->r, cpu.r)
+
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   bool same = true;
   if (memcmp(&cpu, ref_r, sizeof(cpu.gpr))) {
@@ -14,7 +16,11 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     }
     same = false;
   }
-  same = same && difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
+  check_reg(pc);
+  check_reg(lo);
+  check_reg(hi);
+  check_reg(status);
+
   return same;
 }
 

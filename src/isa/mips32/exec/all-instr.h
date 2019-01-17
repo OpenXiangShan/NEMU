@@ -25,6 +25,8 @@ make_EHelper(lwr);
 
 make_EHelper(mfhi);
 make_EHelper(mflo);
+make_EHelper(mthi);
+make_EHelper(mtlo);
 make_EHelper(mul);
 make_EHelper(mult);
 make_EHelper(multu);
@@ -44,3 +46,8 @@ make_EHelper(bgez);
 
 make_EHelper(inv);
 make_EHelper(nemu_trap);
+
+make_EHelper(syscall);
+make_EHelper(eret);
+make_EHelper(mfc0);
+make_EHelper(mtc0);

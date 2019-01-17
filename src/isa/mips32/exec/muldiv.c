@@ -12,6 +12,18 @@ make_EHelper(mflo) {
   print_asm_template3(mflo);
 }
 
+make_EHelper(mthi) {
+  rtl_mv(&cpu.hi, &id_src->val);
+
+  print_asm_template2(mthi);
+}
+
+make_EHelper(mtlo) {
+  rtl_mv(&cpu.lo, &id_src->val);
+
+  print_asm_template2(mtlo);
+}
+
 make_EHelper(mul) {
   rtl_imul_lo(&s0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &s0, 4);

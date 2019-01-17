@@ -17,6 +17,7 @@ typedef struct {
   uint32_t badvaddr;
   uint32_t cause;
   vaddr_t pc;
+  uint32_t epc;
 
   bool INTR;
 } CPU_state;
