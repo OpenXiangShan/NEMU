@@ -1,5 +1,6 @@
 #include "memory/memory.h"
 #include "device/map.h"
+#include "monitor/diff-test.h"
 
 #define IO_SPACE_MAX (1024 * 1024)
 
@@ -17,6 +18,9 @@ uint8_t* new_space(int size) {
 
 uint32_t map_read(paddr_t addr, int len, IOMap *map) {
   assert(len >= 1 && len <= 4);
+#if defined(DIFF_TEST)
+  difftest_skip_ref();
+#endif
   uint32_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
 
@@ -26,6 +30,9 @@ uint32_t map_read(paddr_t addr, int len, IOMap *map) {
 
 void map_write(paddr_t addr, int len, uint32_t data, IOMap *map) {
   assert(len >= 1 && len <= 4);
+#if defined(DIFF_TEST)
+  difftest_skip_ref();
+#endif
   uint32_t offset = addr - map->low;
 
   uint8_t *p = map->space + offset;

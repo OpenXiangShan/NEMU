@@ -77,10 +77,6 @@ make_EHelper(in) {
   rtl_li(&s0, val);
   operand_write(id_dest, &s0);
 
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
-
   print_asm_template2(in);
 }
 
@@ -93,10 +89,6 @@ make_EHelper(out) {
     case 4: pio_write_l(id_dest->val, id_src->val); break;
     default: assert(0);
   }
-
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
 
   print_asm_template2(out);
 }
