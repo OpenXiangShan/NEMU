@@ -79,6 +79,8 @@ void difftest_step(vaddr_t pc) {
 
   // TODO: Check the registers state with QEMU.
   if (!isa_difftest_checkregs(&ref_r, pc)) {
+    extern void isa_reg_display(void);
+    isa_reg_display();
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
   }

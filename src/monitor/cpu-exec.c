@@ -1,5 +1,6 @@
 #include "nemu.h"
 #include "monitor/monitor.h"
+#include "monitor/watchpoint.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -37,6 +38,9 @@ void cpu_exec(uint64_t n) {
   bool print_flag = n < MAX_INSTR_TO_PRINT;
 
   for (; n > 0; n --) {
+#ifdef DEBUG
+    vaddr_t temp_pc = cpu.pc;
+#endif
     /* Execute one instruction, including instruction fetch,
      * instruction decode, and the actual execution. */
     exec_wrapper(print_flag);
@@ -44,6 +48,13 @@ void cpu_exec(uint64_t n) {
 
 #ifdef DEBUG
     /* TODO: check watchpoints here. */
+    WP *wp = scan_watchpoint();
+    if(wp != NULL) {
+      printf("\n\nHint watchpoint %d at address 0x%08x, expr = %s\n", wp->NO, temp_pc, wp->expr);
+      printf("old value = %#08x\nnew value = %#08x\n", wp->old_val, wp->new_val);
+      wp->old_val = wp->new_val;
+      return;
+    }
 
 #endif
 
