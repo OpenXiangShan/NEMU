@@ -16,13 +16,13 @@ enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
 #define EFLAGS_BIT_IF 9
 #define EFLAGS_BIT_OF 11
 
-#define __map_eflags(f) f(OF) f(IF) f(SF) f(ZF) f(CF)
-#define __f(X) concat(EFLAGS_MASK_, X) = 1 << concat(EFLAGS_BIT_, X),
+#define _EFLAGS(f) f(OF) f(IF) f(SF) f(ZF) f(CF)
+#define __f(flag) concat(EFLAGS_MASK_, flag) = 1 << concat(EFLAGS_BIT_, flag),
 enum {
-  __map_eflags(__f)
+  MAP(_EFLAGS, __f)
 #undef __f
-#define __f(X) | concat(EFLAGS_MASK_, X)
-  EFLAGS_MASK_ALL = 0 __map_eflags(__f)
+#define __f(flag) | concat(EFLAGS_MASK_, flag)
+  EFLAGS_MASK_ALL = 0 MAP(_EFLAGS, __f)
 #undef __f
 };
 
