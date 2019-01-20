@@ -19,7 +19,6 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   check_reg(pc);
   check_reg(lo);
   check_reg(hi);
-  check_reg(status);
 
   return same;
 }

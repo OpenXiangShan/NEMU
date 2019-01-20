@@ -2,8 +2,9 @@
 #define __MIPS32_REG_H__
 
 #include "common.h"
+#include "memory.h"
 
-#define PC_START 0x100000
+#define PC_START (0x80000000u + IMAGE_START)
 
 typedef struct {
   union {

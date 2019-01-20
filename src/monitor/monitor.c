@@ -44,7 +44,7 @@ static inline long load_img() {
     extern uint8_t isa_default_img[];
     extern long isa_default_img_size;
     size = isa_default_img_size;
-    memcpy(guest_to_host(PC_START), isa_default_img, size);
+    memcpy(guest_to_host(IMAGE_START), isa_default_img, size);
   }
   else {
     int ret;
@@ -58,7 +58,7 @@ static inline long load_img() {
     size = ftell(fp);
 
     fseek(fp, 0, SEEK_SET);
-    ret = fread(guest_to_host(PC_START), size, 1, fp);
+    ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
     assert(ret == 1);
 
     fclose(fp);

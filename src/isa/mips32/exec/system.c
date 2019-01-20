@@ -5,7 +5,7 @@ void raise_intr(uint8_t, vaddr_t);
 
 make_EHelper(syscall) {
 #if defined(DIFF_TEST)
-  difftest_skip_ref();
+  difftest_skip_dut();
 #endif
 
   raise_intr(EX_SYSCALL, cpu.pc);
@@ -14,10 +14,6 @@ make_EHelper(syscall) {
 }
 
 make_EHelper(eret) {
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
-
   rtl_li(&s0, cpu.epc);
   rtl_jr(&s0);
 
@@ -39,19 +35,13 @@ make_EHelper(mfc0) {
 
   rtl_li(&s0, val);
   rtl_sr(id_src2->reg, &s0, 4);
-
 }
 
 make_EHelper(mtc0) {
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
-
   switch (id_dest->reg) {
     case 12: cpu.status = id_src2->val; print_asm("mtc0 %s, status", id_src2->str); break;
     case 13: cpu.cause = id_src2->val; print_asm("mtc0 %s, cause", id_src2->str); break;
     case 14: cpu.epc = id_src2->val; print_asm("mtc0 %s, epc", id_src2->str); break;
     default: assert(0);
   }
-
 }

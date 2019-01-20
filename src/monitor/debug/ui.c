@@ -168,7 +168,7 @@ static int cmd_save(char *args) {
     FILE *fp = fopen(arg, "w");
     assert(fp != NULL);
     fwrite(&cpu, sizeof(cpu), 1, fp);
-    fwrite(guest_to_host(PC_START), PMEM_SIZE - PC_START, 1, fp);
+    fwrite(guest_to_host(0), PMEM_SIZE, 1, fp);
     fclose(fp);
   }
   return 0;
@@ -186,7 +186,7 @@ static int cmd_load(char *args) {
     FILE *fp = fopen(arg, "r");
     assert(fp != NULL);
     fread(&cpu, sizeof(cpu), 1, fp);
-    fread(guest_to_host(PC_START), PMEM_SIZE - PC_START, 1, fp);
+    fread(guest_to_host(0), PMEM_SIZE, 1, fp);
     fclose(fp);
   }
   return 0;

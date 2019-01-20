@@ -19,7 +19,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 
 void isa_difftest_attach(void) {
   // first copy the image
-  ref_difftest_memcpy_from_dut(PC_START, guest_to_host(PC_START), PMEM_SIZE - PC_START);
+  ref_difftest_memcpy_from_dut(0, guest_to_host(0), PMEM_SIZE);
 
   // then set some special registers
   uint8_t code[] = {

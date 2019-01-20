@@ -53,7 +53,7 @@ void init_difftest(char *ref_so_file, long img_size) {
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
   ref_difftest_init();
-  ref_difftest_memcpy_from_dut(PC_START, guest_to_host(PC_START), img_size);
+  ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
   isa_difftest_syncregs();
 }
 

@@ -1,7 +1,6 @@
 #include "cpu/rtl.h"
-//#include "isa/mmu.h"
 
-#define EX_ENTRY 0x180
+#define EX_ENTRY 0x80000180
 
 void raise_intr(uint8_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
