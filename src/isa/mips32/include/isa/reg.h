@@ -20,6 +20,17 @@ typedef struct {
   vaddr_t pc;
   uint32_t epc;
 
+  union {
+    struct {
+      uint32_t ASID: 8;
+      uint32_t pad : 5;
+      uint32_t VPN2:19;
+    };
+    uint32_t val;
+  } entryhi;
+  uint32_t entrylo0, entrylo1;
+  uint32_t index;
+
   bool INTR;
 } CPU_state;
 

@@ -1,5 +1,6 @@
 #include "cpu/exec.h"
 #include "all-instr.h"
+#include <setjmp.h>
 
 static OpcodeEntry special_table [64] = {
   /* b000 */ IDEX(shift, sll), EMPTY, IDEX(shift, srl), IDEX(shift, sra), IDEX(R, sll), EMPTY, IDEX(R, srl), IDEX(R, sra),
@@ -48,8 +49,8 @@ static OpcodeEntry cop0_table [16] = {
 };
 
 static OpcodeEntry cop0co_table [64] = {
-  /* b000 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b001 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b000 */ EMPTY, EMPTY, EX(tlbwi), EMPTY, EMPTY, EMPTY, EX(tlbwr), EMPTY,
+  /* b001 */ EX(tlbp), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b010 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b011 */ EX(eret), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b100 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
@@ -79,6 +80,15 @@ static OpcodeEntry opcode_table [64] = {
 };
 
 make_EHelper(isa) {
+  extern jmp_buf intr_buf;
+  int setjmp_ret;
+  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
+    // exception
+    int exce_code = setjmp_ret - 1;
+    void raise_intr(uint8_t, vaddr_t);
+    raise_intr(exce_code, cpu.pc);
+    return;
+  }
   decinfo.isa.instr.val = instr_fetch(eip, 4);
   decinfo.width = opcode_table[decinfo.isa.instr.opcode].width;
   idex(eip, &opcode_table[decinfo.isa.instr.opcode]);

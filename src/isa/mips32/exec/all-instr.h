@@ -51,3 +51,6 @@ make_EHelper(syscall);
 make_EHelper(eret);
 make_EHelper(mfc0);
 make_EHelper(mtc0);
+make_EHelper(tlbwr);
+make_EHelper(tlbwi);
+make_EHelper(tlbp);

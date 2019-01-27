@@ -1,4 +1,6 @@
 #include "cpu/rtl.h"
+#include "isa/intr.h"
+#include <setjmp.h>
 
 #define EX_ENTRY 0x80000180
 
@@ -8,8 +10,16 @@ void raise_intr(uint8_t NO, vaddr_t epc) {
    */
 
   //TODO();
+  vaddr_t target = (NO & TLB_REFILL) ? 0x80000000 : EX_ENTRY;
+  NO &= ~TLB_REFILL;
   cpu.cause = NO << 2;
   cpu.epc = epc;
 
-  rtl_j(EX_ENTRY);
+  rtl_j(target);
+}
+
+jmp_buf intr_buf;
+
+void longjmp_raise_intr(uint8_t NO) {
+  longjmp(intr_buf, NO + 1);
 }
