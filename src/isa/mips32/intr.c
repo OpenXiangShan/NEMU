@@ -14,12 +14,13 @@ void raise_intr(uint8_t NO, vaddr_t epc) {
   NO &= ~TLB_REFILL;
   cpu.cause = NO << 2;
   cpu.epc = epc;
+  cpu.status |= 0x2;
 
   rtl_j(target);
 }
 
 bool isa_query_intr(void) {
-  if (cpu.INTR && (cpu.status & 0x1)) {
+  if (cpu.INTR && (cpu.status & 0x1) && !(cpu.status & 0x2)) {
     cpu.INTR = false;
     raise_intr(0, cpu.pc);
     return true;

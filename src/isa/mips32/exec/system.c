@@ -16,6 +16,7 @@ make_EHelper(syscall) {
 make_EHelper(eret) {
   rtl_li(&s0, cpu.epc);
   rtl_jr(&s0);
+  cpu.status &= ~0x2;
 
   print_asm("eret");
 }
