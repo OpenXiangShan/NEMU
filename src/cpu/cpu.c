@@ -1,6 +1,5 @@
 #include "cpu/rtl.h"
 #include "cpu/exec.h"
-#include "isa/intr.h"
 
 CPU_state cpu;
 
@@ -38,13 +37,8 @@ void exec_wrapper(bool print_flag) {
 
   update_pc();
 
-#define IRQ_TIMER 32
-  void raise_intr(uint8_t, vaddr_t);
-  if (cpu.INTR && isa_istatus()) {
-    cpu.INTR = false;
-    raise_intr(IRQ_TIMER, cpu.pc);
-    update_pc();
-  }
+  bool isa_query_intr(void);
+  if (isa_query_intr()) update_pc();
 
 #if defined(DIFF_TEST)
   void difftest_step(vaddr_t pc);

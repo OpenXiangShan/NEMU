@@ -58,7 +58,7 @@ void tlbp(void) {
   int i;
   for (i = 0; i < NR_TLB; i ++) {
     if (tlb[i].hi.VPN2 == cpu.entryhi.VPN2) {
-      Log("match, i = %d", i);
+      Log("match, i = %d, cpu.pc = 0x%08x, va = 0x%08x", i, cpu.pc, cpu.entryhi.val);
       cpu.index = i;
       return;
     }

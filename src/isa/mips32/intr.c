@@ -18,6 +18,15 @@ void raise_intr(uint8_t NO, vaddr_t epc) {
   rtl_j(target);
 }
 
+bool isa_query_intr(void) {
+  if (cpu.INTR && (cpu.status & 0x1)) {
+    cpu.INTR = false;
+    raise_intr(0, cpu.pc);
+    return true;
+  }
+  return false;
+}
+
 jmp_buf intr_buf;
 
 void longjmp_raise_intr(uint8_t NO) {

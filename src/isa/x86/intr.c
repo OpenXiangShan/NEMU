@@ -33,3 +33,13 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr) {
 
   rtl_jr(&s1);
 }
+
+#define IRQ_TIMER 32
+bool isa_query_intr(void) {
+  if (cpu.INTR && cpu.IF) {
+    cpu.INTR = false;
+    raise_intr(IRQ_TIMER, cpu.pc);
+    return true;
+  }
+  return false;
+}
