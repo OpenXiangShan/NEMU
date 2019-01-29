@@ -28,7 +28,7 @@ void exec_wrapper(bool print_flag) {
 #ifdef DEBUG
   int instr_len = decinfo.seq_pc - ori_pc;
   sprintf(decinfo.p, "%*.s", 50 - (12 + 3 * instr_len), "");
-  strcat(decinfo.asm_buf, decinfo.assembly);
+  strncat(decinfo.asm_buf, decinfo.assembly, 80);
   Log_write("%s\n", decinfo.asm_buf);
   if (print_flag) {
     puts(decinfo.asm_buf);

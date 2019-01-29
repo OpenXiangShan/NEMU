@@ -19,11 +19,20 @@ static make_EHelper(store) {
   idex(eip, &store_table[decinfo.isa.instr.funct3]);
 }
 
+static OpcodeEntry op_imm_table [8] = {
+  EX(add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+};
+
+static make_EHelper(op_imm) {
+  decinfo.width = op_imm_table[decinfo.isa.instr.funct3].width;
+  idex(eip, &op_imm_table[decinfo.isa.instr.funct3]);
+}
+
 static OpcodeEntry opcode_table [32] = {
-  /* b00 */ IDEX(ld,load), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b01 */ IDEX(st,store), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EMPTY, IDEX(I, op_imm), IDEX(U, auipc), EMPTY, EMPTY,
+  /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b11 */ EMPTY, EMPTY, EX(nemu_trap), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b11 */ EMPTY, IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EMPTY, EMPTY, EMPTY, EMPTY,
 };
 
 make_EHelper(isa) {

@@ -22,6 +22,27 @@ static inline make_DopHelper(r) {
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
 }
 
+make_DHelper(I) {
+  decode_op_r(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_i(id_src2, decinfo.isa.instr.simm11_0, true);
+  decode_op_r(id_dest, decinfo.isa.instr.rd, false);
+}
+
+make_DHelper(U) {
+  decode_op_i(id_src, decinfo.isa.instr.imm31_12 << 12, true);
+  decode_op_r(id_dest, decinfo.isa.instr.rd, false);
+}
+
+make_DHelper(J) {
+  int32_t offset = (decinfo.isa.instr.imm20 << 20) | (decinfo.isa.instr.imm19_12 << 12) |
+    (decinfo.isa.instr.imm11_ << 11) | (decinfo.isa.instr.imm10_1 << 1);
+  decinfo.jmp_pc = cpu.pc + offset;
+  decode_op_i(id_src, decinfo.jmp_pc, true);
+  print_Dop(id_src->str, OP_STR_SIZE, "0x%x", decinfo.jmp_pc);
+
+  decode_op_r(id_dest, decinfo.isa.instr.rd, false);
+}
+
 make_DHelper(ld) {
   decode_op_r(id_src, decinfo.isa.instr.rs1, true);
   decode_op_i(id_src2, decinfo.isa.instr.simm11_0, true);
