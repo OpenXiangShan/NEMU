@@ -15,10 +15,27 @@ make_EHelper(sub) {
 }
 
 make_EHelper(sll) {
+  rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
   rtl_shl(&s0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(sll);
+}
+
+make_EHelper(srl) {
+  rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
+
+  if (decinfo.isa.instr.funct7 == 32) {
+    // sra
+    rtl_sar(&s0, &id_src->val, &id_src2->val);
+    print_asm_template3(sra);
+  }
+  else {
+    rtl_shl(&s0, &id_src->val, &id_src2->val);
+    print_asm_template3(sll);
+  }
+
+  rtl_sr(id_dest->reg, &s0, 4);
 }
 
 make_EHelper(slt) {
