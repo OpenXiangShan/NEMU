@@ -4,7 +4,7 @@
 #include "common.h"
 #include "memory.h"
 
-#define PC_START IMAGE_START
+#define PC_START (0x80000000u + IMAGE_START)
 
 typedef struct {
   union {
