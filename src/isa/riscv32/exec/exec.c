@@ -20,7 +20,7 @@ static make_EHelper(store) {
 }
 
 static OpcodeEntry op_imm_table [8] = {
-  EX(add), EMPTY, EMPTY, EX(sltu), EMPTY, EMPTY, EMPTY, EMPTY
+  EX(add), EX(sll), EMPTY, EX(sltu), EMPTY, EMPTY, EMPTY, EX(and)
 };
 
 static make_EHelper(op_imm) {
@@ -28,11 +28,19 @@ static make_EHelper(op_imm) {
 }
 
 static OpcodeEntry op_table [8] = {
-  EX(add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EX(add), EMPTY, EX(slt), EX(sltu), EX(xor), EMPTY, EX(or), EMPTY
+};
+
+static OpcodeEntry op2_table [8] = {
+  EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
 };
 
 static make_EHelper(op) {
-  idex(eip, &op_table[decinfo.isa.instr.funct3]);
+  switch (decinfo.isa.instr.funct7) {
+    case 0:  idex(eip, &op_table[decinfo.isa.instr.funct3]); break;
+    case 32: idex(eip, &op2_table[decinfo.isa.instr.funct3]); break;
+    default: assert(0);
+  }
 }
 
 static OpcodeEntry opcode_table [32] = {
