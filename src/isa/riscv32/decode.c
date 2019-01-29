@@ -28,19 +28,38 @@ make_DHelper(I) {
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
 }
 
-make_DHelper(U) {
-  decode_op_i(id_src, decinfo.isa.instr.imm31_12 << 12, true);
+make_DHelper(R) {
+  decode_op_r(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_r(id_src2, decinfo.isa.instr.rs2, true);
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
 }
 
+make_DHelper(U) {
+  decode_op_i(id_src, decinfo.isa.instr.imm31_12 << 12, true);
+  decode_op_r(id_dest, decinfo.isa.instr.rd, false);
+
+  print_Dop(id_src->str, OP_STR_SIZE, "0x%x", decinfo.isa.instr.imm31_12);
+}
+
 make_DHelper(J) {
-  int32_t offset = (decinfo.isa.instr.imm20 << 20) | (decinfo.isa.instr.imm19_12 << 12) |
+  int32_t offset = (decinfo.isa.instr.simm20 << 20) | (decinfo.isa.instr.imm19_12 << 12) |
     (decinfo.isa.instr.imm11_ << 11) | (decinfo.isa.instr.imm10_1 << 1);
   decinfo.jmp_pc = cpu.pc + offset;
   decode_op_i(id_src, decinfo.jmp_pc, true);
   print_Dop(id_src->str, OP_STR_SIZE, "0x%x", decinfo.jmp_pc);
 
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
+}
+
+make_DHelper(B) {
+  int32_t offset = (decinfo.isa.instr.simm12 << 12) | (decinfo.isa.instr.imm11 << 11) |
+    (decinfo.isa.instr.imm10_5 << 5) | (decinfo.isa.instr.imm4_1 << 1);
+  decinfo.jmp_pc = cpu.pc + offset;
+  decode_op_i(id_dest, decinfo.jmp_pc, true);
+  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", decinfo.jmp_pc);
+
+  decode_op_r(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_r(id_src2, decinfo.isa.instr.rs2, true);
 }
 
 make_DHelper(ld) {

@@ -18,3 +18,23 @@ make_EHelper(jalr) {
 
   print_asm_template3(jalr);
 }
+
+static const struct {
+  int relop;
+  char *name;
+} branch_map [] = {
+  [0] = { RELOP_EQ, "eq"},
+  [1] = { RELOP_NE, "ne"},
+  [4] = { RELOP_LT, "lt"},
+  [5] = { RELOP_GE, "ge"},
+  [6] = { RELOP_LTU, "ltu"},
+  [7] = { RELOP_GEU, "geu"},
+};
+
+make_EHelper(branch) {
+  int type = decinfo.isa.instr.funct3;
+  assert(type != 2 && type != 3);
+  rtl_jrelop(branch_map[type].relop, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+
+  print_asm("b%s %s,%s,%s", branch_map[type].name, id_src->str, id_src2->str, id_dest->str);
+}

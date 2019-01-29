@@ -27,7 +27,7 @@ typedef union {
     uint32_t imm4_1    : 4;
     uint32_t pad4      :13;
     uint32_t imm10_5   : 6;
-    uint32_t imm12     : 1;
+    int32_t  simm12    : 1;
   };
   struct {
     uint32_t pad5      :12;
@@ -38,7 +38,7 @@ typedef union {
     uint32_t imm19_12  : 8;
     uint32_t imm11_    : 1;
     uint32_t imm10_1   :10;
-    int32_t  imm20     : 1;
+    int32_t  simm20    : 1;
   };
   uint32_t val;
 } Instr;
@@ -49,8 +49,10 @@ struct ISADecodeInfo {
 };
 
 make_DHelper(I);
+make_DHelper(R);
 make_DHelper(U);
 make_DHelper(J);
+make_DHelper(B);
 make_DHelper(ld);
 make_DHelper(st);
 

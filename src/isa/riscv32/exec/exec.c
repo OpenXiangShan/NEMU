@@ -20,19 +20,26 @@ static make_EHelper(store) {
 }
 
 static OpcodeEntry op_imm_table [8] = {
-  EX(add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EX(add), EMPTY, EMPTY, EX(sltu), EMPTY, EMPTY, EMPTY, EMPTY
 };
 
 static make_EHelper(op_imm) {
-  decinfo.width = op_imm_table[decinfo.isa.instr.funct3].width;
   idex(eip, &op_imm_table[decinfo.isa.instr.funct3]);
+}
+
+static OpcodeEntry op_table [8] = {
+  EX(add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+};
+
+static make_EHelper(op) {
+  idex(eip, &op_table[decinfo.isa.instr.funct3]);
 }
 
 static OpcodeEntry opcode_table [32] = {
   /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EMPTY, IDEX(I, op_imm), IDEX(U, auipc), EMPTY, EMPTY,
-  /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, IDEX(R, op), IDEX(U, lui), EMPTY, EMPTY,
   /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b11 */ EMPTY, IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EMPTY, EMPTY, EMPTY, EMPTY,
 };
 
 make_EHelper(isa) {
