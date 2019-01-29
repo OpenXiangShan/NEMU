@@ -21,9 +21,23 @@ make_EHelper(div) {
   print_asm_template3(div);
 }
 
+make_EHelper(divu) {
+  rtl_div_q(&s0, &id_src->val, &id_src2->val);
+  rtl_sr(id_dest->reg, &s0, 4);
+
+  print_asm_template3(divu);
+}
+
 make_EHelper(rem) {
   rtl_idiv_r(&s0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(rem);
+}
+
+make_EHelper(remu) {
+  rtl_div_r(&s0, &id_src->val, &id_src2->val);
+  rtl_sr(id_dest->reg, &s0, 4);
+
+  print_asm_template3(remu);
 }

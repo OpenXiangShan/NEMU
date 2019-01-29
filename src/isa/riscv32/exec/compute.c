@@ -31,11 +31,15 @@ make_EHelper(srl) {
     print_asm_template3(sra);
   }
   else {
-    rtl_shl(&s0, &id_src->val, &id_src2->val);
-    print_asm_template3(sll);
+    rtl_shr(&s0, &id_src->val, &id_src2->val);
+    print_asm_template3(srl);
   }
 
   rtl_sr(id_dest->reg, &s0, 4);
+}
+
+make_EHelper(sra) {
+  exec_srl(eip);
 }
 
 make_EHelper(slt) {

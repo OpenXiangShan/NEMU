@@ -2,7 +2,7 @@
 #include "all-instr.h"
 
 static OpcodeEntry load_table [8] = {
-  EMPTY, EMPTY, EXW(ld, 4), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EMPTY, EXW(lds, 2), EXW(ld, 4), EMPTY, EXW(ld, 1), EXW(ld, 2), EMPTY, EMPTY
 };
 
 static make_EHelper(load) {
@@ -11,7 +11,7 @@ static make_EHelper(load) {
 }
 
 static OpcodeEntry store_table [8] = {
-  EMPTY, EMPTY, EXW(st, 4), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EXW(st, 1), EXW(st, 2), EXW(st, 4), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
 };
 
 static make_EHelper(store) {
@@ -20,7 +20,7 @@ static make_EHelper(store) {
 }
 
 static OpcodeEntry op_imm_table [8] = {
-  EX(add), EX(sll), EMPTY, EX(sltu), EMPTY, EX(srl), EMPTY, EX(and)
+  EX(add), EX(sll), EMPTY, EX(sltu), EX(xor), EX(srl), EMPTY, EX(and)
 };
 
 static make_EHelper(op_imm) {
@@ -28,15 +28,15 @@ static make_EHelper(op_imm) {
 }
 
 static OpcodeEntry op_table [8] = {
-  EX(add), EMPTY, EX(slt), EX(sltu), EX(xor), EMPTY, EX(or), EMPTY
+  EX(add), EX(sll), EX(slt), EX(sltu), EX(xor), EX(srl), EX(or), EX(and)
 };
 
 static OpcodeEntry op2_table [8] = {
-  EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EX(sra), EMPTY, EMPTY
 };
 
 static OpcodeEntry muldiv_table [8] = {
-  EX(mul), EX(mulh), EMPTY, EMPTY, EX(div), EMPTY, EX(rem), EMPTY
+  EX(mul), EX(mulh), EMPTY, EMPTY, EX(div), EX(divu), EX(rem), EX(remu)
 };
 
 static make_EHelper(op) {
