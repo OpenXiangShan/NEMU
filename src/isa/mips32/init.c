@@ -10,7 +10,11 @@ const uint32_t isa_default_img [] = {
 };
 const long isa_default_img_size = sizeof(isa_default_img);
 
+void init_mmu(void);
+
 void init_isa(void) {
   cpu.gpr[0]._32 = 0;
   cpu.pc = PC_START;
+
+  init_mmu();
 }
