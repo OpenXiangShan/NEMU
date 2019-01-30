@@ -2,6 +2,7 @@
 
 static inline rtlreg_t* csr_decode(uint32_t csr) {
   switch (csr) {
+    case 0x180: return &cpu.satp.val;
     case 0x300: return &cpu.status;
     case 0x305: return &cpu.tvec;
     case 0x341: return &cpu.epc;
