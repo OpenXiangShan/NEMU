@@ -42,6 +42,16 @@ make_EHelper(ret) {
   print_asm("ret");
 }
 
+make_EHelper(ret_imm) {
+//  TODO();
+  rtl_pop(&s0);
+  rtl_jr(&s0);
+
+  rtl_add(&cpu.esp, &cpu.esp, &id_dest->val);
+
+  print_asm("ret %s", id_dest->str);
+}
+
 make_EHelper(call_rm) {
 //  TODO();
   rtl_li(&s0, decinfo.seq_pc);
