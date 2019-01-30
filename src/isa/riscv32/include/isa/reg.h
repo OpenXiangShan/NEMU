@@ -14,6 +14,10 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
+  vaddr_t tvec;
+  vaddr_t cause;
+  vaddr_t epc;
+  vaddr_t status;
 
   bool INTR;
 } CPU_state;

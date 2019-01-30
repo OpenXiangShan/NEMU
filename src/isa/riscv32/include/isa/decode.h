@@ -40,6 +40,10 @@ typedef union {
     uint32_t imm10_1   :10;
     int32_t  simm20    : 1;
   };
+  struct {
+    uint32_t pad7      :20;
+    uint32_t csr       :12;
+  };
   uint32_t val;
 } Instr;
 
@@ -55,5 +59,6 @@ make_DHelper(J);
 make_DHelper(B);
 make_DHelper(ld);
 make_DHelper(st);
+make_DHelper(csr);
 
 #endif
