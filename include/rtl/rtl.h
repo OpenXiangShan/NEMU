@@ -1,10 +1,10 @@
-#ifndef __CPU_RTL_H__
-#define __CPU_RTL_H__
+#ifndef __RTL_RTL_H__
+#define __RTL_RTL_H__
 
 #include "nemu.h"
-#include "util/c_op.h"
-#include "cpu/relop.h"
-#include "cpu/rtl-wrapper.h"
+#include "rtl/c_op.h"
+#include "rtl/relop.h"
+#include "rtl/rtl-wrapper.h"
 
 extern rtlreg_t s0, s1, t0, t1, at;
 

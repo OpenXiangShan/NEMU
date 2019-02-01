@@ -1,5 +1,5 @@
-#ifndef __RELOP_H__
-#define __RELOP_H__
+#ifndef __RTL_RELOP_H__
+#define __RTL_RELOP_H__
 
 // relation operation
 enum {

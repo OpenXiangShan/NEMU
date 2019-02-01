@@ -1,4 +1,3 @@
-#include "cpu/rtl.h"
 #include "cpu/exec.h"
 
 CPU_state cpu;

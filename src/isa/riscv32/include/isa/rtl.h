@@ -1,7 +1,7 @@
 #ifndef __RISCV32_RTL_H__
 #define __RISCV32_RTL_H__
 
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 
 static inline void rtl_lr(rtlreg_t* dest, int r, int width) {
   if (r != 0) { rtl_mv(dest, &reg_l(r)); }

@@ -1,5 +1,5 @@
 #include "cpu/decode.h"
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 
 // decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (Operand *op, uint32_t val, bool load_val)

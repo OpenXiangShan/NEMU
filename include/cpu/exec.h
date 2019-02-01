@@ -3,7 +3,7 @@
 
 #include "nemu.h"
 #include "monitor/diff-test.h"
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 
 #define make_EHelper(name) void concat(exec_, name) (vaddr_t *pc)
 typedef void (*EHelper) (vaddr_t *);

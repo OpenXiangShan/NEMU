@@ -1,5 +1,4 @@
 #include "cpu/exec.h"
-#include "cpu/rtl.h"
 
 void load_addr(vaddr_t *pc, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);

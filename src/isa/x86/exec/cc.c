@@ -1,4 +1,4 @@
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 
 /* Condition Code */
 

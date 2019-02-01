@@ -1,5 +1,4 @@
 #include "cpu/exec.h"
-#include "cpu/rtl.h"
 
 // decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (vaddr_t *pc, Operand *op, bool load_val)

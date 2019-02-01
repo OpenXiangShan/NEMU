@@ -1,4 +1,4 @@
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 #include "isa/intr.h"
 #include <setjmp.h>
 

@@ -1,4 +1,4 @@
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 
 #define ENCODE(flag) \
   rtl_shli(&t0, &cpu.flag, concat(EFLAGS_BIT_, flag)); \

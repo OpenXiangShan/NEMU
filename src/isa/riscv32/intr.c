@@ -1,4 +1,4 @@
-#include "cpu/rtl.h"
+#include "rtl/rtl.h"
 
 void raise_intr(uint8_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.

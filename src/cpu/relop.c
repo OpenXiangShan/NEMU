@@ -1,5 +1,5 @@
 #include "common.h"
-#include "cpu/relop.h"
+#include "rtl/relop.h"
 
 bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2) {
   switch (relop) {

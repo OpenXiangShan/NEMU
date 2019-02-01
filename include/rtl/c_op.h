@@ -1,5 +1,5 @@
-#ifndef __C_OP_H__
-#define __C_OP_H__
+#ifndef __RTL_C_OP_H__
+#define __RTL_C_OP_H__
 
 #define c_add(a, b) ((a) + (b))
 #define c_sub(a, b) ((a) - (b))

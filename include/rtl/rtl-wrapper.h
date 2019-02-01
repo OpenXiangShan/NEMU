@@ -1,5 +1,5 @@
-#ifndef __RTL_WRAPPER_H__
-#define __RTL_WRAPPER_H__
+#ifndef __RTL_RTL_WRAPPER_H__
+#define __RTL_RTL_WRAPPER_H__
 
 #include "macro.h"
 
