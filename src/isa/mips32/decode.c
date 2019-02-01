@@ -60,12 +60,12 @@ static inline make_DHelper(addr) {
 }
 
 make_DHelper(ld) {
-  decode_addr(eip);
+  decode_addr(NULL);
   decode_op_r(id_dest, decinfo.isa.instr.rt, false);
 }
 
 make_DHelper(st) {
-  decode_addr(eip);
+  decode_addr(NULL);
   decode_op_r(id_dest, decinfo.isa.instr.rt, true);
 }
 

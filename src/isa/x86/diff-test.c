@@ -44,7 +44,7 @@ void isa_difftest_attach(void) {
   ref_difftest_memcpy_from_dut(0x7e40, idtdesc, sizeof(idtdesc));
 
   CPU_state r = cpu;
-  r.eip = 0x7e00;
+  r.pc = 0x7e00;
   ref_difftest_setregs(&r);
   ref_difftest_exec(5);
 

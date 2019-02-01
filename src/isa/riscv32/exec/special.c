@@ -6,11 +6,11 @@ make_EHelper(inv) {
 
   uint32_t instr[2];
   vaddr_t ori_pc = cpu.pc;
-  *eip = ori_pc;
-  instr[0] = instr_fetch(eip, 4);
-  instr[1] = instr_fetch(eip, 4);
+  *pc = ori_pc;
+  instr[0] = instr_fetch(pc, 4);
+  instr[1] = instr_fetch(pc, 4);
 
-  printf("invalid opcode(pc = 0x%08x): %08x %08x ...\n\n",
+  printf("invalid opcode(PC = 0x%08x): %08x %08x ...\n\n",
       cpu.pc, instr[0], instr[1]);
 
   extern char logo [];

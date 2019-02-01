@@ -17,14 +17,14 @@ static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
   PDE pde;
   pde.val	= paddr_read(pdir_base + addr->pdir_idx * 4, 4);
   if (!pde.present) {
-    panic("eip = %x, vaddr = %x, pdir_base = %x, pde = %x", cpu.eip, vaddr, pdir_base, pde.val);
+    panic("pc = %x, vaddr = %x, pdir_base = %x, pde = %x", cpu.pc, vaddr, pdir_base, pde.val);
   }
 
   paddr_t pt_base = pde.val & ~PAGE_MASK;
   PTE pte;
   pte.val = paddr_read(pt_base + addr->pt_idx * 4, 4);
   if (!pte.present) {
-    panic("eip = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.eip, vaddr, pt_base, pte.val);
+    panic("pc = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.pc, vaddr, pt_base, pte.val);
   }
 
   if (!pde.accessed) {

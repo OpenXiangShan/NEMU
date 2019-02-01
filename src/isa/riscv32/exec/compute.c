@@ -39,7 +39,7 @@ make_EHelper(srl) {
 }
 
 make_EHelper(sra) {
-  exec_srl(eip);
+  exec_srl(NULL);
 }
 
 make_EHelper(slt) {

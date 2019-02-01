@@ -52,10 +52,7 @@ typedef struct {
     };
   };
 
-  union {
-    vaddr_t pc;
-    vaddr_t eip;
-  };
+  vaddr_t pc;
   uint32_t eflags;
   uint16_t cs;
 

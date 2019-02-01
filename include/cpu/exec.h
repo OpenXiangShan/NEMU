@@ -5,7 +5,7 @@
 #include "monitor/diff-test.h"
 #include "cpu/rtl.h"
 
-#define make_EHelper(name) void concat(exec_, name) (vaddr_t *eip)
+#define make_EHelper(name) void concat(exec_, name) (vaddr_t *pc)
 typedef void (*EHelper) (vaddr_t *);
 
 #include "cpu/decode.h"

@@ -1,7 +1,7 @@
 #include "cpu/exec.h"
 #include "cpu/rtl.h"
 
-void load_addr(vaddr_t *eip, ModR_M *m, Operand *rm) {
+void load_addr(vaddr_t *pc, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 
   int32_t disp = 0;
@@ -11,7 +11,7 @@ void load_addr(vaddr_t *eip, ModR_M *m, Operand *rm) {
 
   if (m->R_M == R_ESP) {
     SIB s;
-    s.val = instr_fetch(eip, 1);
+    s.val = instr_fetch(pc, 1);
     base_reg = s.base;
     scale = s.ss;
 
@@ -30,7 +30,7 @@ void load_addr(vaddr_t *eip, ModR_M *m, Operand *rm) {
 
   if (disp_size != 0) {
     /* has disp */
-    disp = instr_fetch(eip, disp_size);
+    disp = instr_fetch(pc, disp_size);
     if (disp_size == 1) { disp = (int8_t)disp; }
 
     rtl_addi(&s0, &s0, disp);
@@ -78,9 +78,9 @@ void load_addr(vaddr_t *eip, ModR_M *m, Operand *rm) {
   rm->type = OP_TYPE_MEM;
 }
 
-void read_ModR_M(vaddr_t *eip, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+void read_ModR_M(vaddr_t *pc, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
   ModR_M m;
-  m.val = instr_fetch(eip, 1);
+  m.val = instr_fetch(pc, 1);
   decinfo.isa.ext_opcode = m.opcode;
   if (reg != NULL) {
     reg->type = OP_TYPE_REG;
@@ -106,7 +106,7 @@ void read_ModR_M(vaddr_t *eip, Operand *rm, bool load_rm_val, Operand *reg, bool
 #endif
   }
   else {
-    load_addr(eip, &m, rm);
+    load_addr(pc, &m, rm);
     if (load_rm_val) {
       rtl_lm(&rm->val, &rm->addr, rm->width);
     }

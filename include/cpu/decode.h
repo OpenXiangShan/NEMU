@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-#define make_DHelper(name) void concat(decode_, name) (vaddr_t *eip)
+#define make_DHelper(name) void concat(decode_, name) (vaddr_t *pc)
 typedef void (*DHelper) (vaddr_t *);
 
 #define OP_STR_SIZE 40

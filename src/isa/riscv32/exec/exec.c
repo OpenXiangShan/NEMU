@@ -7,7 +7,7 @@ static OpcodeEntry load_table [8] = {
 
 static make_EHelper(load) {
   decinfo.width = load_table[decinfo.isa.instr.funct3].width;
-  idex(eip, &load_table[decinfo.isa.instr.funct3]);
+  idex(pc, &load_table[decinfo.isa.instr.funct3]);
 }
 
 static OpcodeEntry store_table [8] = {
@@ -16,7 +16,7 @@ static OpcodeEntry store_table [8] = {
 
 static make_EHelper(store) {
   decinfo.width = store_table[decinfo.isa.instr.funct3].width;
-  idex(eip, &store_table[decinfo.isa.instr.funct3]);
+  idex(pc, &store_table[decinfo.isa.instr.funct3]);
 }
 
 static OpcodeEntry op_imm_table [8] = {
@@ -24,7 +24,7 @@ static OpcodeEntry op_imm_table [8] = {
 };
 
 static make_EHelper(op_imm) {
-  idex(eip, &op_imm_table[decinfo.isa.instr.funct3]);
+  idex(pc, &op_imm_table[decinfo.isa.instr.funct3]);
 }
 
 static OpcodeEntry op_table [8] = {
@@ -41,9 +41,9 @@ static OpcodeEntry muldiv_table [8] = {
 
 static make_EHelper(op) {
   switch (decinfo.isa.instr.funct7) {
-    case 0:  idex(eip, &op_table[decinfo.isa.instr.funct3]); break;
-    case 1:  idex(eip, &muldiv_table[decinfo.isa.instr.funct3]); break;
-    case 32: idex(eip, &op2_table[decinfo.isa.instr.funct3]); break;
+    case 0:  idex(pc, &op_table[decinfo.isa.instr.funct3]); break;
+    case 1:  idex(pc, &muldiv_table[decinfo.isa.instr.funct3]); break;
+    case 32: idex(pc, &op2_table[decinfo.isa.instr.funct3]); break;
     default: assert(0);
   }
 }
@@ -53,7 +53,7 @@ static OpcodeEntry system_table [8] = {
 };
 
 static make_EHelper(system) {
-  idex(eip, &system_table[decinfo.isa.instr.funct3]);
+  idex(pc, &system_table[decinfo.isa.instr.funct3]);
 }
 
 static OpcodeEntry opcode_table [32] = {
@@ -64,7 +64,7 @@ static OpcodeEntry opcode_table [32] = {
 };
 
 make_EHelper(isa) {
-  decinfo.isa.instr.val = instr_fetch(eip, 4);
+  decinfo.isa.instr.val = instr_fetch(pc, 4);
   assert(decinfo.isa.instr.opcode1_0 == 0x3);
-  idex(eip, &opcode_table[decinfo.isa.instr.opcode6_2]);
+  idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
 }

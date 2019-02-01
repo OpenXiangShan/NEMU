@@ -16,7 +16,7 @@ static make_EHelper(2byte_esc);
     /* 0x04 */	item4, item5, item6, item7  \
   }; \
 static make_EHelper(name) { \
-  idex(eip, &concat(opcode_table_, name)[decinfo.isa.ext_opcode]); \
+  idex(pc, &concat(opcode_table_, name)[decinfo.isa.ext_opcode]); \
 }
 
 /* 0x80, 0x81, 0x83 */
@@ -186,15 +186,15 @@ static OpcodeEntry opcode_table [512] = {
   };
 
 static make_EHelper(2byte_esc) {
-  uint32_t opcode = instr_fetch(eip, 1) | 0x100;
+  uint32_t opcode = instr_fetch(pc, 1) | 0x100;
   decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);
-  idex(eip, &opcode_table[opcode]);
+  idex(pc, &opcode_table[opcode]);
 }
 
 make_EHelper(isa) {
-  uint32_t opcode = instr_fetch(eip, 1);
+  uint32_t opcode = instr_fetch(pc, 1);
   decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);
-  idex(eip, &opcode_table[opcode]);
+  idex(pc, &opcode_table[opcode]);
 }

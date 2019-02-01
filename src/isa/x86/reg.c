@@ -9,8 +9,8 @@ const char *regsb[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 void reg_test() {
   srand(time(0));
   uint32_t sample[8];
-  uint32_t eip_sample = rand();
-  cpu.eip = eip_sample;
+  uint32_t pc_sample = rand();
+  cpu.pc = pc_sample;
 
   int i;
   for (i = R_EAX; i <= R_EDI; i ++) {
@@ -37,7 +37,7 @@ void reg_test() {
   assert(sample[R_ESI] == cpu.esi);
   assert(sample[R_EDI] == cpu.edi);
 
-  assert(eip_sample == cpu.eip);
+  assert(pc_sample == cpu.pc);
 }
 
 void isa_reg_display() {
@@ -45,7 +45,7 @@ void isa_reg_display() {
   for (i = 0; i < 8; i ++) {
     printf("%s: 0x%08x\n", regsl[i], cpu.gpr[i]._32);
   }
-  printf("eip: 0x%08x\n", cpu.eip);
+  printf("pc: 0x%08x\n", cpu.pc);
 }
 
 uint32_t isa_reg_str2val(const char *s, bool *success) {
@@ -69,8 +69,8 @@ uint32_t isa_reg_str2val(const char *s, bool *success) {
     }
   }
 
-  if (strcmp("eip", s) == 0 || strcmp("pc", s) == 0) {
-    return cpu.eip;
+  if (strcmp("pc", s) == 0) {
+    return cpu.pc;
   }
 
   *success = false;

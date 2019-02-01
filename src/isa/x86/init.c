@@ -15,7 +15,7 @@ const long isa_default_img_size = sizeof(isa_default_img);
 
 static void restart() {
   /* Set the initial instruction pointer. */
-  cpu.eip = PC_START;
+  cpu.pc = PC_START;
   cpu.cs = 0x8;
   cpu.cr0.val = 0x60000011;
 }
