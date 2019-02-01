@@ -47,6 +47,8 @@ static inline void update_pc(void) {
   else { cpu.pc = decinfo.seq_pc; }
 }
 
+void display_inv_msg(vaddr_t pc);
+
 #ifdef DEBUG
 #define print_asm(...) Assert(snprintf(decinfo.assembly, 80, __VA_ARGS__) < 80, "buffer overflow!")
 #else
