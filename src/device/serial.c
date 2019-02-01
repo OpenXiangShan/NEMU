@@ -24,6 +24,6 @@ static void serial_ch_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_serial() {
   serial_ch_base = new_space(1);
-  add_pio_map(SERIAL_PORT + CH_OFFSET, serial_ch_base, 1, serial_ch_io_handler);
-  add_mmio_map(SERIAL_MMIO + CH_OFFSET, serial_ch_base, 1, serial_ch_io_handler);
+  add_pio_map("serial", SERIAL_PORT + CH_OFFSET, serial_ch_base, 1, serial_ch_io_handler);
+  add_mmio_map("serial", SERIAL_MMIO + CH_OFFSET, serial_ch_base, 1, serial_ch_io_handler);
 }

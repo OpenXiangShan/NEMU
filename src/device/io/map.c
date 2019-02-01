@@ -1,6 +1,5 @@
 #include "memory/memory.h"
 #include "device/map.h"
-#include "monitor/diff-test.h"
 
 #define IO_SPACE_MAX (1024 * 1024)
 
@@ -16,11 +15,18 @@ uint8_t* new_space(int size) {
   return p;
 }
 
+static inline void check_bound(IOMap *map, paddr_t addr) {
+  Assert(addr <= map->high && addr >= map->low,
+      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x]", addr, map->name, map->low, map->high);
+}
+
+static inline void invoke_callback(io_callback_t c, uint32_t offset, int len, bool is_write) {
+  if (c != NULL) { c(offset, len, is_write); }
+}
+
 uint32_t map_read(paddr_t addr, int len, IOMap *map) {
   assert(len >= 1 && len <= 4);
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
+  check_bound(map, addr);
   uint32_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
 
@@ -28,21 +34,12 @@ uint32_t map_read(paddr_t addr, int len, IOMap *map) {
   return data;
 }
 
-void map_write(paddr_t addr, int len, uint32_t data, IOMap *map) {
+void map_write(paddr_t addr, uint32_t data, int len, IOMap *map) {
   assert(len >= 1 && len <= 4);
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
+  check_bound(map, addr);
   uint32_t offset = addr - map->low;
 
-  uint8_t *p = map->space + offset;
-  uint8_t *p_data = (uint8_t *)&data;
-  switch (len) {
-    case 4: p[3] = p_data[3];
-    case 3: p[2] = p_data[2];
-    case 2: p[1] = p_data[1];
-    case 1: p[0] = p_data[0]; break;
-  }
+  memcpy(map->space + offset, &data, len);
 
   invoke_callback(map->callback, offset, len, true);
 }

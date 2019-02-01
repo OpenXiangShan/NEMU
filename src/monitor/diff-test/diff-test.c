@@ -10,12 +10,10 @@ void (*ref_difftest_exec)(uint64_t n) = NULL;
 
 static bool is_skip_ref;
 static bool is_skip_dut;
-//static uint32_t eflags_skip_mask;
 static bool is_detach;
 
 void difftest_skip_ref() { is_skip_ref = true; }
 void difftest_skip_dut() { is_skip_dut = true; }
-//void difftest_skip_eflags(uint32_t mask) { eflags_skip_mask = mask; }
 
 void isa_difftest_syncregs(void);
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);

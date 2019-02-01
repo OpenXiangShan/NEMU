@@ -61,6 +61,6 @@ static void i8042_data_io_handler(uint32_t offset, int len, bool is_write) {
 void init_i8042() {
   i8042_data_port_base = (void *)new_space(4);
   i8042_data_port_base[0] = _KEY_NONE;
-  add_pio_map(I8042_DATA_PORT, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
-  add_mmio_map(I8042_DATA_MMIO, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_pio_map("keyboard", I8042_DATA_PORT, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_mmio_map("keyboard", I8042_DATA_MMIO, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
 }

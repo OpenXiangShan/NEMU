@@ -1,41 +1,35 @@
 #include "nemu.h"
-#include "device/io.h"
-
-#define pmem_rw(addr, type) *(type *)({\
-    Assert(addr < PMEM_SIZE, "physical address(0x%08x) is out of bound", addr); \
-    guest_to_host(addr); \
-    })
+#include "device/map.h"
 
 uint8_t pmem[PMEM_SIZE] PG_ALIGN;
+
+static IOMap pmem_map = {
+  .name = "pmem",
+  .space = pmem,
+  .callback = NULL
+};
+
+void register_pmem(paddr_t base) {
+  pmem_map.low = base;
+  pmem_map.high = base + PMEM_SIZE - 1;
+
+  Log("Add '%s' at [0x%08x, 0x%08x]", pmem_map.name, pmem_map.low, pmem_map.high);
+}
+
+IOMap* fetch_mmio_map(paddr_t addr);
 
 /* Memory accessing interfaces */
 
 uint32_t paddr_read(paddr_t addr, int len) {
-  int mmio_id = is_mmio(addr);
-  if (mmio_id != -1) {
-    return mmio_read(addr, len, mmio_id) & (~0u >> ((4 - len) << 3));
-  }
+  IOMap* map = fetch_mmio_map(addr);
+  if (map == NULL) { map = &pmem_map; }
 
-  return pmem_rw(addr, uint32_t) & (~0u >> ((4 - len) << 3));
+  return map_read(addr, len, map);
 }
 
 void paddr_write(paddr_t addr, uint32_t data, int len) {
-  int mmio_id = is_mmio(addr);
-  if (mmio_id != -1) {
-    mmio_write(addr, len, data, mmio_id);
-    return;
-  }
+  IOMap* map = fetch_mmio_map(addr);
+  if (map == NULL) { map = &pmem_map; }
 
-  memcpy(guest_to_host(addr), &data, len);
-}
-
-uint32_t isa_vaddr_read(vaddr_t addr, int len);
-void isa_vaddr_write(vaddr_t addr, uint32_t data, int len);
-
-uint32_t vaddr_read(vaddr_t addr, int len) {
-  return isa_vaddr_read(addr, len);
-}
-
-void vaddr_write(vaddr_t addr, uint32_t data, int len) {
-  isa_vaddr_write(addr, data, len);
+  map_write(addr, data, len, map);
 }

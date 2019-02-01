@@ -25,6 +25,8 @@ void init_isa(void) {
   void reg_test(void);
   reg_test();
 
+  register_pmem(0);
+
   /* Initialize this virtual computer system. */
   restart();
 }

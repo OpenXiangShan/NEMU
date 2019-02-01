@@ -27,6 +27,6 @@ void rtc_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_timer() {
   rtc_port_base = (void*)new_space(4);
-  add_pio_map(RTC_PORT, (void *)rtc_port_base, 4, rtc_io_handler);
-  add_mmio_map(RTC_MMIO, (void *)rtc_port_base, 4, rtc_io_handler);
+  add_pio_map("rtc", RTC_PORT, (void *)rtc_port_base, 4, rtc_io_handler);
+  add_mmio_map("rtc", RTC_MMIO, (void *)rtc_port_base, 4, rtc_io_handler);
 }

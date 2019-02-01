@@ -108,7 +108,7 @@ static inline paddr_t va2pa(vaddr_t addr, bool write) {
     addr = (addr & 0xfff) | (ppn << 12);
   }
 
-  return addr & ~0x80000000u;
+  return addr;
 }
 
 uint32_t isa_vaddr_read(vaddr_t addr, int len) {

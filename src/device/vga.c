@@ -35,10 +35,10 @@ void init_vga() {
 
   screensize_port_base = (void *)new_space(4);
   *screensize_port_base = ((SCREEN_W) << 16) | (SCREEN_H);
-  add_pio_map(SCREEN_PORT, (void *)screensize_port_base, 4, NULL);
-  add_mmio_map(SCREEN_MMIO, (void *)screensize_port_base, 4, NULL);
+  add_pio_map("screen", SCREEN_PORT, (void *)screensize_port_base, 4, NULL);
+  add_mmio_map("screen", SCREEN_MMIO, (void *)screensize_port_base, 4, NULL);
 
   vmem = (void *)new_space(0x80000);
-  add_mmio_map(VMEM, (void *)vmem, 0x80000, NULL);
+  add_mmio_map("vmem", VMEM, (void *)vmem, 0x80000, NULL);
 }
 #endif	/* HAS_IOE */

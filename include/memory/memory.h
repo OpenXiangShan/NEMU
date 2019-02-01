@@ -13,9 +13,15 @@ extern uint8_t pmem[];
 /* convert the host virtual address in NEMU to guest physical address in the guest program */
 #define host_to_guest(p) ((paddr_t)((void *)p - (void *)pmem))
 
-uint32_t vaddr_read(vaddr_t, int);
+void register_pmem(paddr_t base);
+
+uint32_t isa_vaddr_read(vaddr_t, int);
+void isa_vaddr_write(vaddr_t, uint32_t, int);
+
+#define vaddr_read isa_vaddr_read
+#define vaddr_write isa_vaddr_write
+
 uint32_t paddr_read(paddr_t, int);
-void vaddr_write(vaddr_t, uint32_t, int);
 void paddr_write(paddr_t, uint32_t, int);
 
 #define PAGE_SIZE         4096
