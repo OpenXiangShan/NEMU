@@ -64,14 +64,12 @@ void cpu_exec(uint64_t n) {
 #endif
 
     if (nemu_state.state != NEMU_RUNNING) {
-      if (nemu_state.state == NEMU_END) {
-        printflog("\33[1;31mnemu: HIT %s TRAP\33[0m at eip = 0x%08x\n\n",
-            (nemu_state.halt_ret == 0 ? "GOOD" : "BAD"), nemu_state.halt_pc);
+      if (nemu_state.state == NEMU_END || nemu_state.state == NEMU_ABORT) {
+        printflog("nemu: %s\33[0m at pc = 0x%08x\n\n",
+            (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
+             (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
+            nemu_state.halt_pc);
         monitor_statistic();
-        return;
-      }
-      else if (nemu_state.state == NEMU_ABORT) {
-        printflog("\33[1;31mnemu: ABORT\33[0m at eip = 0x%08x\n\n", nemu_state.halt_pc);
         return;
       }
     }
