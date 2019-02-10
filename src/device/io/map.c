@@ -1,5 +1,6 @@
 #include "memory/memory.h"
 #include "device/map.h"
+#include "nemu.h"
 
 #define IO_SPACE_MAX (1024 * 1024)
 
@@ -17,7 +18,8 @@ uint8_t* new_space(int size) {
 
 static inline void check_bound(IOMap *map, paddr_t addr) {
   Assert(addr <= map->high && addr >= map->low,
-      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x]", addr, map->name, map->low, map->high);
+      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x] at pc = 0x%08x",
+      addr, map->name, map->low, map->high, cpu.pc);
 }
 
 static inline void invoke_callback(io_callback_t c, uint32_t offset, int len, bool is_write) {
