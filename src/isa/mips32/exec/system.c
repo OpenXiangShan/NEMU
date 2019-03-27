@@ -1,13 +1,12 @@
 #include "cpu/exec.h"
 #include "isa/intr.h"
 
-void raise_intr(uint8_t, vaddr_t);
-
 make_EHelper(syscall) {
 #if defined(DIFF_TEST)
   difftest_skip_dut();
 #endif
 
+  void raise_intr(uint32_t, vaddr_t);
   raise_intr(EX_SYSCALL, cpu.pc);
 
   print_asm("syscall");

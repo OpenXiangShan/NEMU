@@ -38,7 +38,7 @@ make_EHelper(csrrs) {
 #endif
 }
 
-extern void raise_intr(uint8_t NO, vaddr_t epc);
+extern void raise_intr(uint32_t NO, vaddr_t epc);
 
 make_EHelper(priv) {
   uint32_t type = decinfo.isa.instr.csr;

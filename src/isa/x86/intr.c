@@ -1,12 +1,13 @@
 #include "rtl/rtl.h"
 #include "isa/mmu.h"
 
-void raise_intr(uint8_t NO, vaddr_t ret_addr) {
+void raise_intr(uint32_t NO, vaddr_t ret_addr) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * That is, use ``NO'' to index the IDT.
    */
 
   //TODO();
+  assert(NO < 256);
   vaddr_t base = cpu.idtr.base + (NO << 3);
   rtl_li(&s0, base);
   rtl_lm(&s1, &s0, 4);

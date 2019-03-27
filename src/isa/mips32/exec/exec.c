@@ -85,7 +85,7 @@ make_EHelper(isa) {
   if ((setjmp_ret = setjmp(intr_buf)) != 0) {
     // exception
     int exce_code = setjmp_ret - 1;
-    void raise_intr(uint8_t, vaddr_t);
+    void raise_intr(uint32_t, vaddr_t);
     raise_intr(exce_code, cpu.pc);
     return;
   }

@@ -66,7 +66,7 @@ void tlbp(void) {
   cpu.index = -1;
 }
 
-extern void longjmp_raise_intr(uint8_t NO);
+extern void longjmp_raise_intr(uint32_t NO);
 
 static inline int32_t search_ppn(vaddr_t addr, bool write) {
   union {
