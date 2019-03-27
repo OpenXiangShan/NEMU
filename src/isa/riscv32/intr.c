@@ -5,9 +5,9 @@ void raise_intr(uint8_t NO, vaddr_t epc) {
    * That is, use ``NO'' to index the IDT.
    */
 
-  cpu.cause = NO;
-  cpu.epc = epc;
-  rtl_li(&s0, cpu.tvec);
+  cpu.scause = NO;
+  cpu.sepc = epc;
+  rtl_li(&s0, cpu.stvec);
   rtl_jr(&s0);
 }
 

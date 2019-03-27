@@ -14,10 +14,10 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
-  vaddr_t tvec;
-  vaddr_t cause;
-  vaddr_t epc;
-  vaddr_t status;
+  vaddr_t stvec;
+  vaddr_t scause;
+  vaddr_t sepc;
+  vaddr_t sstatus;
   union {
     struct {
       uint32_t ppn :22;

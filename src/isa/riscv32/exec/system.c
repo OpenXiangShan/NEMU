@@ -3,10 +3,10 @@
 static inline rtlreg_t* csr_decode(uint32_t csr) {
   switch (csr) {
     case 0x180: return &cpu.satp.val;
-    case 0x300: return &cpu.status;
-    case 0x305: return &cpu.tvec;
-    case 0x341: return &cpu.epc;
-    case 0x342: return &cpu.cause;
+    case 0x100: return &cpu.sstatus;
+    case 0x105: return &cpu.stvec;
+    case 0x141: return &cpu.sepc;
+    case 0x142: return &cpu.scause;
     default: panic("unimplemented CSR 0x%x", csr);
   }
   return NULL;
@@ -44,13 +44,13 @@ make_EHelper(priv) {
   uint32_t type = decinfo.isa.instr.csr;
   switch (type) {
     case 0:
-      raise_intr(11, cpu.pc);
+      raise_intr(9, cpu.pc);
       print_asm("ecall");
       break;
-    case 0x302:
-      rtl_li(&s0, cpu.epc);
+    case 0x102:
+      rtl_li(&s0, cpu.sepc);
       rtl_jr(&s0);
-      print_asm("mret");
+      print_asm("sret");
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
