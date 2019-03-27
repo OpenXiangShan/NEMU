@@ -3,7 +3,7 @@
 static inline rtlreg_t* csr_decode(uint32_t csr) {
   switch (csr) {
     case 0x180: return &cpu.satp.val;
-    case 0x100: return &cpu.sstatus;
+    case 0x100: return &cpu.sstatus.val;
     case 0x105: return &cpu.stvec;
     case 0x141: return &cpu.sepc;
     case 0x142: return &cpu.scause;
@@ -48,6 +48,8 @@ make_EHelper(priv) {
       print_asm("ecall");
       break;
     case 0x102:
+      cpu.sstatus.sie = cpu.sstatus.spie;
+      cpu.sstatus.spie = 1;
       rtl_li(&s0, cpu.sepc);
       rtl_jr(&s0);
       print_asm("sret");

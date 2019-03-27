@@ -17,7 +17,19 @@ typedef struct {
   vaddr_t stvec;
   vaddr_t scause;
   vaddr_t sepc;
-  vaddr_t sstatus;
+  union {
+    struct {
+      uint32_t uie : 1;
+      uint32_t sie : 1;
+      uint32_t pad0: 2;
+      uint32_t upie: 1;
+      uint32_t spie: 1;
+      uint32_t pad1: 2;
+      uint32_t spp : 1;
+      uint32_t dontcare :21;
+    };
+    uint32_t val;
+  } sstatus;
   union {
     struct {
       uint32_t ppn :22;
