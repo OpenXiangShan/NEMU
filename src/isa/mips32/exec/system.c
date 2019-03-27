@@ -2,10 +2,6 @@
 #include "isa/intr.h"
 
 make_EHelper(syscall) {
-#if defined(DIFF_TEST)
-  difftest_skip_dut();
-#endif
-
   void raise_intr(uint32_t, vaddr_t);
   raise_intr(EX_SYSCALL, cpu.pc);
 
@@ -21,10 +17,6 @@ make_EHelper(eret) {
 }
 
 make_EHelper(mfc0) {
-#if defined(DIFF_TEST)
-  difftest_skip_ref();
-#endif
-
   uint32_t val;
   switch (id_dest->reg) {
     case 0: val = cpu.index; print_asm("mfc0 %s, index", id_src2->str); break;
