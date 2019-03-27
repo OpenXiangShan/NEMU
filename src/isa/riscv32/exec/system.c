@@ -19,6 +19,10 @@ make_EHelper(csrrw) {
   rtl_mv(csr, &id_src->val);
 
   print_asm_template3("csrrw");
+
+#if defined(DIFF_TEST)
+  difftest_skip_dut();
+#endif
 }
 
 make_EHelper(csrrs) {
@@ -28,6 +32,10 @@ make_EHelper(csrrs) {
   rtl_or(csr, csr, &id_src->val);
 
   print_asm_template3("csrrs");
+
+#if defined(DIFF_TEST)
+  difftest_skip_dut();
+#endif
 }
 
 extern void raise_intr(uint8_t NO, vaddr_t epc);
@@ -46,4 +54,8 @@ make_EHelper(priv) {
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
+
+#if defined(DIFF_TEST)
+  difftest_skip_dut();
+#endif
 }
