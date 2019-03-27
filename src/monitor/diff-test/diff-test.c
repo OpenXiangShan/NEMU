@@ -12,8 +12,21 @@ static bool is_skip_ref;
 static bool is_skip_dut;
 static bool is_detach;
 
-void difftest_skip_ref() { is_skip_ref = true; }
-void difftest_skip_dut() { is_skip_dut = true; }
+// this is used to let ref skip instructions which
+// can not produce consistent behavior with NEMU
+void difftest_skip_ref() {
+  is_skip_ref = true;
+}
+
+// this is used to deal with instruction packing in QEMU.
+// Sometimes letting QEMU step once will execute multiple instructions.
+// We should skip checking until NEMU's pc catches up with QEMU's pc.
+void difftest_skip_dut() {
+  if (is_skip_dut) return;
+
+  ref_difftest_exec(1);
+  is_skip_dut = true;
+}
 
 void isa_difftest_syncregs(void);
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
@@ -55,13 +68,27 @@ void init_difftest(char *ref_so_file, long img_size) {
   isa_difftest_syncregs();
 }
 
-void difftest_step(vaddr_t pc) {
+static void checkregs(CPU_state *ref, vaddr_t pc) {
+  // TODO: Check the registers state with QEMU.
+  if (!isa_difftest_checkregs(ref, pc)) {
+    extern void isa_reg_display(void);
+    isa_reg_display();
+    nemu_state.state = NEMU_ABORT;
+    nemu_state.halt_pc = pc;
+  }
+}
+
+void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
   CPU_state ref_r;
 
   if (is_detach) return;
 
   if (is_skip_dut) {
-    is_skip_dut = false;
+    ref_difftest_getregs(&ref_r);
+    if (ref_r.pc == next_pc) {
+      checkregs(&ref_r, next_pc);
+      is_skip_dut = false;
+    }
     return;
   }
 
@@ -75,13 +102,7 @@ void difftest_step(vaddr_t pc) {
   ref_difftest_exec(1);
   ref_difftest_getregs(&ref_r);
 
-  // TODO: Check the registers state with QEMU.
-  if (!isa_difftest_checkregs(&ref_r, pc)) {
-    extern void isa_reg_display(void);
-    isa_reg_display();
-    nemu_state.state = NEMU_ABORT;
-    nemu_state.halt_pc = pc;
-  }
+  checkregs(&ref_r, ori_pc);
 }
 
 void difftest_detach() {

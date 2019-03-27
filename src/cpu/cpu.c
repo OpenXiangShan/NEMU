@@ -40,7 +40,7 @@ void exec_wrapper(bool print_flag) {
   if (isa_query_intr()) update_pc();
 
 #if defined(DIFF_TEST)
-  void difftest_step(vaddr_t pc);
-  difftest_step(ori_pc);
+  void difftest_step(vaddr_t ori_pc, vaddr_t next_pc);
+  difftest_step(ori_pc, cpu.pc);
 #endif
 }
