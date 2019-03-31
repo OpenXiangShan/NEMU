@@ -18,7 +18,7 @@ BINARY ?= $(BUILD_DIR)/$(ISA)-qemu-so
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -fPIC -MMD -Wall -Werror -ggdb3 $(INCLUDES) -fomit-frame-pointer
+CFLAGS   += -O2 -fPIC -MMD -Wall -Werror -DNEMU_HOME=$(NEMU_HOME) -ggdb3 $(INCLUDES) -fomit-frame-pointer
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa")

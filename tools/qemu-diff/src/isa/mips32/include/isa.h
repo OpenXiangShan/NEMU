@@ -1,9 +1,12 @@
 #ifndef __MIPS32_H__
 #define __MIPS32_H__
 
+#define _str(x) # x
+#define str(x) _str(x)
+
 #define ISA_QEMU_BIN "qemu-system-mipsel"
 #define ISA_QEMU_ARGS "-machine", "mipssim",\
-  "-kernel", "/home/yzh/project/ics/ics-code/nexus-am/tests/cputest/build/dummy-mips32-nemu",
+  "-kernel", str(NEMU_HOME) "/tools/qemu-diff/src/isa/mips32/mips.dummy",
 
 #include "../../../../../../src/isa/mips32/include/isa/diff-test.h"
 
