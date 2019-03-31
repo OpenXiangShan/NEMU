@@ -79,7 +79,7 @@ static OpcodeEntry opcode_table [64] = {
   /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EX(nemu_trap), EMPTY, EMPTY, EMPTY,
 };
 
-make_EHelper(isa) {
+void isa_exec(vaddr_t *pc) {
   extern jmp_buf intr_buf;
   int setjmp_ret;
   if ((setjmp_ret = setjmp(intr_buf)) != 0) {

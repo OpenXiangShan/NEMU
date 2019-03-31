@@ -192,7 +192,7 @@ static make_EHelper(2byte_esc) {
   idex(pc, &opcode_table[opcode]);
 }
 
-make_EHelper(isa) {
+void isa_exec(vaddr_t *pc) {
   uint32_t opcode = instr_fetch(pc, 1);
   decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);

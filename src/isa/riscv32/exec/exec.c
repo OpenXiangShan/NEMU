@@ -63,7 +63,7 @@ static OpcodeEntry opcode_table [32] = {
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
 };
 
-make_EHelper(isa) {
+void isa_exec(vaddr_t *pc) {
   decinfo.isa.instr.val = instr_fetch(pc, 4);
   assert(decinfo.isa.instr.opcode1_0 == 0x3);
   idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);

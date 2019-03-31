@@ -11,7 +11,7 @@ void decinfo_set_jmp(bool is_jmp) {
   decinfo.is_jmp = is_jmp;
 }
 
-make_EHelper(isa);
+void isa_exec(vaddr_t *pc);
 
 void exec_wrapper(bool print_flag) {
   vaddr_t ori_pc = cpu.pc;
@@ -22,7 +22,7 @@ void exec_wrapper(bool print_flag) {
 #endif
 
   decinfo.seq_pc = ori_pc;
-  exec_isa(&decinfo.seq_pc);
+  isa_exec(&decinfo.seq_pc);
 
 #ifdef DEBUG
   int instr_len = decinfo.seq_pc - ori_pc;
