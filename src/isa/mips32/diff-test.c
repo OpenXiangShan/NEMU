@@ -1,10 +1,6 @@
 #include "nemu.h"
 #include "monitor/diff-test.h"
 
-void isa_difftest_syncregs() {
-  ref_difftest_setregs(&cpu);
-}
-
 #define check_reg(r) same = difftest_check_reg(str(r), pc, ref_r->r, cpu.r) && same
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {

@@ -1,10 +1,6 @@
 #include "nemu.h"
 #include "monitor/diff-test.h"
 
-void isa_difftest_syncregs() {
-  ref_difftest_setregs(&cpu);
-}
-
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   if (memcmp(&cpu, ref_r, DIFFTEST_REG_SIZE)) {
     int i;
