@@ -1,3 +1,4 @@
+#include "monitor/diff-test.h"
 #include "rtl/rtl.h"
 #include "isa/intr.h"
 #include <setjmp.h>
@@ -14,13 +15,17 @@ void raise_intr(uint32_t NO, vaddr_t epc) {
   NO &= ~TLB_REFILL;
   cpu.cause = NO << 2;
   cpu.epc = epc;
-  cpu.status |= 0x2;
+  cpu.status.exl = 1;
 
   rtl_j(target);
+
+#if defined(DIFF_TEST)
+  difftest_skip_dut();
+#endif
 }
 
 bool isa_query_intr(void) {
-  if (cpu.INTR && (cpu.status & 0x1) && !(cpu.status & 0x2)) {
+  if (cpu.INTR && (cpu.status.ie) && !(cpu.status.exl)) {
     cpu.INTR = false;
     raise_intr(0, cpu.pc);
     return true;

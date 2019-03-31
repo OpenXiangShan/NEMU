@@ -63,7 +63,7 @@ void tlbp(void) {
       return;
     }
   }
-  cpu.index = -1;
+  cpu.index = 0x80000000;
 }
 
 extern void longjmp_raise_intr(uint32_t NO);

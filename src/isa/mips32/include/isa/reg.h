@@ -13,7 +13,15 @@ typedef struct {
     uint8_t _8[4];
   } gpr[32];
 
-  uint32_t status;
+  union {
+    struct {
+      uint32_t ie:  1;
+      uint32_t exl: 1;
+      uint32_t dontcare: 30;
+    };
+    uint32_t val;
+  } status;
+
   rtlreg_t lo, hi;
   uint32_t badvaddr;
   uint32_t cause;
