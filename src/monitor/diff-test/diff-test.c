@@ -64,7 +64,7 @@ void init_difftest(char *ref_so_file, long img_size) {
 
   ref_difftest_init();
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
-  ref_difftest_setregs();
+  ref_difftest_setregs(&cpu);
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
@@ -93,7 +93,7 @@ void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
 
   if (is_skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
-    ref_difftest_setregs();
+    ref_difftest_setregs(&cpu);
     is_skip_ref = false;
     return;
   }
