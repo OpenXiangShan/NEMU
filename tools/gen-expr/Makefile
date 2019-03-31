@@ -1,2 +1,8 @@
-gen-expr: gen-expr.c
+APP=gen-expr
+
+$(APP): gen-expr.c
 	gcc -O2 -Wall -Werror -o $@ $<
+
+.PHONY: clean
+clean:
+	-rm $(APP) .code.c .expr 2> /dev/null
