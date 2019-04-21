@@ -97,12 +97,15 @@ int main(int argc, char *argv[]) {
 
     sprintf(code_buf, code_format, buf);
 
-    FILE *fp = fopen(".code.c", "w");
+    FILE *fp = fopen("/tmp/.code.c", "w");
     assert(fp != NULL);
     fputs(code_buf, fp);
     fclose(fp);
 
-    fp = popen("gcc .code.c -Wall -Werror -o .expr && ./.expr", "r");
+    int ret = system("gcc /tmp/.code.c -o /tmp/.expr");
+    if (ret != 0) continue;
+
+    fp = popen("/tmp/.expr", "r");
     assert(fp != NULL);
     int result;
     fscanf(fp, "%d", &result);
