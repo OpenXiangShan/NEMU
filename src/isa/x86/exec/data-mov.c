@@ -72,7 +72,9 @@ make_EHelper(cltd) {
 
 make_EHelper(cwtl) {
   if (decinfo.isa.is_operand_size_16) {
-    TODO();
+    //TODO();
+    rtl_sext(&s0, &cpu.eax, 1);
+    rtl_sr(R_AX, &s0, 2);
   }
   else {
     //TODO();
