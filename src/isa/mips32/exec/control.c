@@ -3,7 +3,7 @@
 static inline void difftest_skip_delay_slot(void) {
 #if defined(DIFF_TEST)
   if ((cpu.pc & 0xfff) == 0xffc) {
-    difftest_skip_ref();
+    difftest_skip_dut();
   }
 #endif
 }

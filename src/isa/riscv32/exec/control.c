@@ -17,7 +17,6 @@ make_EHelper(jalr) {
   rtl_jr(&s0);
 
 #if defined(DIFF_TEST)
-  extern void difftest_skip_dut(void);
   difftest_skip_dut();
 #endif
 
