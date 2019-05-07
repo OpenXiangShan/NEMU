@@ -15,12 +15,12 @@
 #define SCREEN_W 400
 #define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
 
-static SDL_Window *window;
-static SDL_Renderer *renderer;
-static SDL_Texture *texture;
+static SDL_Window *window = NULL;
+static SDL_Renderer *renderer = NULL;
+static SDL_Texture *texture = NULL;
 
-static uint32_t (*vmem) [SCREEN_W];
-static uint32_t *screensize_port_base;
+static uint32_t (*vmem) [SCREEN_W] = NULL;
+static uint32_t *screensize_port_base = NULL;
 
 void update_screen() {
   SDL_UpdateTexture(texture, NULL, vmem, SCREEN_W * sizeof(vmem[0][0]));
