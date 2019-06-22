@@ -13,6 +13,7 @@
 #define SYNC_MMIO 0x4104
 #define SCREEN_H 300
 #define SCREEN_W 400
+#define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -35,9 +36,11 @@ static void vga_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_vga() {
+  char title[128];
+  sprintf(title, "%s-NEMU", str(__ISA__));
   SDL_Init(SDL_INIT_VIDEO);
   SDL_CreateWindowAndRenderer(SCREEN_W * 2, SCREEN_H * 2, 0, &window, &renderer);
-  SDL_SetWindowTitle(window, "NEMU");
+  SDL_SetWindowTitle(window, title);
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
       SDL_TEXTUREACCESS_STATIC, SCREEN_W, SCREEN_H);
 
@@ -47,6 +50,6 @@ void init_vga() {
   add_mmio_map("screen", SCREEN_MMIO, (void *)screensize_port_base, 8, vga_io_handler);
 
   vmem = (void *)new_space(0x80000);
-  add_mmio_map("vmem", VMEM, (void *)vmem, 0x80000, NULL);
+  add_mmio_map("vmem", VMEM, (void *)vmem, SCREEN_SIZE, NULL);
 }
 #endif	/* HAS_IOE */
