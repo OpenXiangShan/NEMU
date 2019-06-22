@@ -36,7 +36,7 @@ static OpcodeEntry op2_table [8] = {
 };
 
 static OpcodeEntry muldiv_table [8] = {
-  EX(mul), EX(mulh), EMPTY, EMPTY, EX(div), EX(divu), EX(rem), EX(remu)
+  EX(mul), EX(mulh), EMPTY, EX(mulhu), EX(div), EX(divu), EX(rem), EX(remu)
 };
 
 static make_EHelper(op) {
