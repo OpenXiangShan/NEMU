@@ -193,8 +193,13 @@ static make_EHelper(2byte_esc) {
 }
 
 void isa_exec(vaddr_t *pc) {
+#ifdef USE_KVM
+  extern void kvm_exec(void);
+  kvm_exec();
+#else
   uint32_t opcode = instr_fetch(pc, 1);
   decinfo.opcode = opcode;
   set_width(opcode_table[opcode].width);
   idex(pc, &opcode_table[opcode]);
+#endif
 }
