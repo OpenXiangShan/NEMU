@@ -99,10 +99,6 @@ static inline int32_t search_ppn(vaddr_t addr, bool write) {
 }
 
 static inline paddr_t va2pa(vaddr_t addr, bool write) {
-  if ((addr & 0xa0000000u) == 0xa0000000u) {
-    return addr & ~0xa0000000u;
-  }
-
   if ((addr & 0x80000000u) == 0) {
     int32_t ppn = search_ppn(addr, write);
     addr = (addr & 0xfff) | (ppn << 12);
