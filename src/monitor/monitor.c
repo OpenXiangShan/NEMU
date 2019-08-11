@@ -9,6 +9,7 @@ void init_device();
 void init_difftest(char *ref_so_file, long img_size);
 
 FILE *log_fp = NULL;
+static char *mainargs = "";
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
@@ -68,9 +69,10 @@ static inline long load_img() {
 
 static inline void parse_args(int argc, char *argv[]) {
   int o;
-  while ( (o = getopt(argc, argv, "-bl:d:")) != -1) {
+  while ( (o = getopt(argc, argv, "-bl:d:a:")) != -1) {
     switch (o) {
       case 'b': is_batch_mode = true; break;
+      case 'a': mainargs = optarg; break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
       case 1:
@@ -81,6 +83,10 @@ static inline void parse_args(int argc, char *argv[]) {
                 panic("Usage: %s [-b] [-l log_file] [img_file]", argv[0]);
     }
   }
+}
+
+char* get_mainargs(void) {
+  return mainargs;
 }
 
 int init_monitor(int argc, char *argv[]) {
