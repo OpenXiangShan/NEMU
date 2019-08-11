@@ -20,7 +20,7 @@ void raise_intr(uint32_t NO, vaddr_t epc) {
   rtl_j(target);
 
 #if defined(DIFF_TEST)
-  difftest_skip_dut();
+  difftest_skip_dut(1, 2);
 #endif
 }
 

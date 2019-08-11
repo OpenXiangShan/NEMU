@@ -1,6 +1,10 @@
 #include "cpu/exec.h"
 
 static inline rtlreg_t* csr_decode(uint32_t csr) {
+#if defined(DIFF_TEST)
+  difftest_skip_dut(1, 3);
+#endif
+
   switch (csr) {
     case 0x180: return &cpu.satp.val;
     case 0x100: return &cpu.sstatus.val;
@@ -19,10 +23,6 @@ make_EHelper(csrrw) {
   rtl_mv(csr, &id_src->val);
 
   print_asm_template3("csrrw");
-
-#if defined(DIFF_TEST)
-  difftest_skip_dut();
-#endif
 }
 
 make_EHelper(csrrs) {
@@ -32,10 +32,6 @@ make_EHelper(csrrs) {
   rtl_or(csr, csr, &id_src->val);
 
   print_asm_template3("csrrs");
-
-#if defined(DIFF_TEST)
-  difftest_skip_dut();
-#endif
 }
 
 extern void raise_intr(uint32_t NO, vaddr_t epc);
@@ -58,6 +54,6 @@ make_EHelper(priv) {
   }
 
 #if defined(DIFF_TEST)
-  difftest_skip_dut();
+  difftest_skip_dut(1, 2);
 #endif
 }

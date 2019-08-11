@@ -2,7 +2,7 @@
 
 static inline void difftest_skip_delay_slot(void) {
 #if defined(DIFF_TEST)
-  difftest_skip_dut();
+  difftest_skip_dut(2, 1);
 #endif
 }
 
