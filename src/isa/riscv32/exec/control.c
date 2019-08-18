@@ -16,9 +16,7 @@ make_EHelper(jalr) {
   rtl_andi(&s0, &s0, ~0x1u);
   rtl_jr(&s0);
 
-#if defined(DIFF_TEST)
   difftest_skip_dut(1, 2);
-#endif
 
   print_asm_template3(jalr);
 }

@@ -1,9 +1,7 @@
 #include "cpu/exec.h"
 
 static inline rtlreg_t* csr_decode(uint32_t csr) {
-#if defined(DIFF_TEST)
   difftest_skip_dut(1, 3);
-#endif
 
   switch (csr) {
     case 0x180: return &cpu.satp.val;
@@ -53,7 +51,5 @@ make_EHelper(priv) {
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
 
-#if defined(DIFF_TEST)
   difftest_skip_dut(1, 2);
-#endif
 }
