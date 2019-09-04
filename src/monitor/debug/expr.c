@@ -175,7 +175,7 @@ static int find_dominated_op(int s, int e, bool *success) {
 
 uint32_t isa_reg_str2val(const char*, bool *);
 
-static uint32_t eval(int s, int e, bool *success) {
+static uint64_t eval(int s, int e, bool *success) {
   if (s > e) {
     // bad expression
     *success = false;
@@ -183,7 +183,7 @@ static uint32_t eval(int s, int e, bool *success) {
   }
   else if (s == e) {
     // single token
-    uint32_t val;
+    uint64_t val;
     switch (tokens[s].type) {
       case TK_REG: val = isa_reg_str2val(tokens[s].str + 1, success); // +1 to skip '$'
                 if (!*success) { return 0; }
@@ -205,7 +205,7 @@ static uint32_t eval(int s, int e, bool *success) {
 
     int op_type = tokens[dominated_op].type;
     if (op_type == '!' || op_type == TK_NEG || op_type == TK_REF) {
-      uint32_t val = eval(dominated_op + 1, e, success);
+      uint64_t val = eval(dominated_op + 1, e, success);
       if (!*success) { return 0; }
 
       switch (op_type) {
@@ -216,9 +216,9 @@ static uint32_t eval(int s, int e, bool *success) {
       }
     }
 
-    uint32_t val1 = eval(s, dominated_op - 1, success);
+    uint64_t val1 = eval(s, dominated_op - 1, success);
     if (!*success) { return 0; }
-    uint32_t val2 = eval(dominated_op + 1, e, success);
+    uint64_t val2 = eval(dominated_op + 1, e, success);
     if (!*success) { return 0; }
 
     switch (op_type) {
@@ -236,7 +236,7 @@ static uint32_t eval(int s, int e, bool *success) {
   }
 }
 
-uint32_t expr(char *e, bool *success) {
+uint64_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;

@@ -88,8 +88,8 @@ static int cmd_d(char *args) {
 static int cmd_p(char *args) {
   if (args != NULL) {
     bool success;
-    uint32_t r = expr(args, &success);
-    if(success) { printf("%d\n", r); }
+    uint64_t r = expr(args, &success);
+    if(success) { printf("0x%lx\n", r); }
     else { printf("Bad expression\n"); }
   }
   return 0;
@@ -122,7 +122,7 @@ static int cmd_x(char *args) {
     if (success) {
       for (i = 0; i < n; i ++) {
         if (i % 4 == 0) {
-          printf("0x%08x: ", addr);
+          printf("0x%16lx: ", addr);
         }
 
         printf("0x%08x ", vaddr_read(addr, 4));

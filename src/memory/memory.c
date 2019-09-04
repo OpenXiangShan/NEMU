@@ -39,3 +39,27 @@ void paddr_write(paddr_t addr, uint32_t data, int len) {
     return map_write(addr, data, len, fetch_mmio_map(addr));
   }
 }
+
+uint64_t paddr_read64(paddr_t addr, int len) {
+  if (map_inside(&pmem_map, addr)) {
+    uint64_t offset = addr - pmem_map.low;
+    return *(uint64_t *)(pmem + offset);
+  }
+  else {
+    // TODO
+    printf("TODO");
+    return 0;
+  }
+}
+
+void paddr_write64(paddr_t addr, uint64_t data, int len) {
+  if (map_inside(&pmem_map, addr)) {
+    uint64_t offset = addr - pmem_map.low;
+    memcpy(pmem + offset, &data, len);
+  }
+  else {
+    // TODO
+    printf("TODO");
+    return;
+  }
+}

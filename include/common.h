@@ -1,8 +1,10 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-//#define DEBUG
+#define DEBUG
 //#define DIFF_TEST
+
+#define ISA64
 
 #if _SHARE
 // do not enable these features while building a reference design
@@ -19,10 +21,10 @@
 
 typedef uint8_t bool;
 
-typedef uint32_t rtlreg_t;
+typedef uint64_t rtlreg_t;
 
 typedef uint32_t paddr_t;
-typedef uint32_t vaddr_t;
+typedef uint64_t vaddr_t;
 
 typedef uint16_t ioaddr_t;
 

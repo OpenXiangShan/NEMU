@@ -18,7 +18,7 @@ uint8_t* new_space(int size) {
 
 static inline void check_bound(IOMap *map, paddr_t addr) {
   Assert(map != NULL && addr <= map->high && addr >= map->low,
-      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x] at pc = 0x%08x",
+      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x] at pc = 0x%16lx",
       addr, (map ? map->name : "???"), (map ? map->low : 0), (map ? map->high : 0), cpu.pc);
 }
 

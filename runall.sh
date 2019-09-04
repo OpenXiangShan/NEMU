@@ -27,11 +27,10 @@ for file in $files; do
   printf "[%14s] " $base
   logfile=$base-log.txt
   make ISA=$ISA run ARGS="-b -l $ori_log $file" &> $logfile
-  #fdsfsdfsaf
 
   if (grep 'nemu: .*HIT GOOD TRAP' $logfile > /dev/null) then
     echo -e "\033[1;32mPASS!\033[0m"
-    rm $logfile
+    #rm $logfile
   else
     echo -e "\033[1;31mFAIL!\033[0m see $logfile for more information"
     if (test -e $ori_log) then

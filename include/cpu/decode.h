@@ -13,10 +13,10 @@ typedef struct {
   uint32_t type;
   int width;
   union {
-    uint32_t reg;
+    uint64_t reg;
     rtlreg_t addr;
-    uint32_t imm;
-    int32_t simm;
+    uint64_t imm;
+    int64_t simm;
   };
   rtlreg_t val;
   char str[OP_STR_SIZE];
