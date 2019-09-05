@@ -8,11 +8,11 @@
 
 union isa_gdb_regs {
   struct {
-    uint64_t gpr[32];
-    uint64_t pc;
+    uint32_t gpr[32];
+    uint32_t pc;
   };
   struct {
-    uint64_t array[77];
+    uint32_t array[77];
   };
 };
 

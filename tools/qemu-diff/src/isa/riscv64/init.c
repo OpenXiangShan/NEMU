@@ -35,17 +35,30 @@ static uint32_t initcode[] = {
 
 
 void init_isa(void) {
+
   // put initcode to QEMU to setup a PMP to permit access to all of memory in S mode
-  bool ok = gdb_memcpy_to_qemu(0x0000000080000000, initcode, sizeof(initcode));
+  bool ok = gdb_memcpy_to_qemu(0x80000000, initcode, sizeof(initcode));
   assert(ok == 1);
 
   union isa_gdb_regs r;
   gdb_getregs(&r);
 
-  r.pc = 0x0000000080000000;
+  r.pc = 0x80000000;
   ok = gdb_setregs(&r);
   assert(ok == 1);
 
+  gdb_getregs(&r);
+
+  /*
+  int i;
+  printf("print regs:\n");
+  for (i = 0; i < 32; i++) {
+    printf("0x%x\n", r.gpr[i]);
+  }
+  printf("0x%x\nend print\n", r.pc);
+  fflush(stdout);*/
+
   // execute enough instructions
-  difftest_exec(20);
+  difftest_exec(19);
+
 }

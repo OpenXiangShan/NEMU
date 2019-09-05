@@ -5,9 +5,7 @@ make_EHelper(ld) {
 
 #ifdef ISA64
   if (decinfo.width == 4) {  // for lw
-    rtl_li(&s1, 32);
-    rtl_shl(&s0, &s0, &s1);
-    rtl_sar64(&s0, &s0, &s1);
+    rtl_sext(&s0, &s0, 4);
   }
 #endif
 
