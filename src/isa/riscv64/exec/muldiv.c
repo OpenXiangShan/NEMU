@@ -1,7 +1,11 @@
 #include "cpu/exec.h"
 
 make_EHelper(mul) {
+#ifdef ISA64
+  rtl_mul_lo(&s0, &id_src->val, &id_src2->val);
+#else
   rtl_imul_lo(&s0, &id_src->val, &id_src2->val);
+#endif
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(mul);

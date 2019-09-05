@@ -4,12 +4,14 @@ make_EHelper(ld) {
   rtl_lm(&s0, &id_src->addr, decinfo.width);
 
 #ifdef ISA64
-  rtl_li(&s1, 32);
-  rtl_shl(&s0, &s0, &s1);
-  rtl_sar64(&s0, &s0, &s1);
+  if (decinfo.width == 4) {  // for lw
+    rtl_li(&s1, 32);
+    rtl_shl(&s0, &s0, &s1);
+    rtl_sar64(&s0, &s0, &s1);
+  }
 #endif
 
-  rtl_sr(id_dest->reg, &s0, 4);  // width is ignored here
+  rtl_sr(id_dest->reg, &s0, 4);
 
   switch (decinfo.width) {
     case 8: print_asm_template2(ld); break;

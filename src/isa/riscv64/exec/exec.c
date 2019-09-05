@@ -28,7 +28,7 @@ static make_EHelper(op_imm) {
 }
 
 static OpcodeEntry op_imm_table64 [8] = {
-  EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EX(sraw), EMPTY, EMPTY
 };
 
 static make_EHelper(op_imm64) {
@@ -57,11 +57,11 @@ static make_EHelper(op) {
 }
 
 static OpcodeEntry op_table64 [8] = {
-  EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EX(srlw), EMPTY, EMPTY
 };
 
 static OpcodeEntry op2_table64 [8] = {
-  EX(subw), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  EX(subw), EMPTY, EMPTY, EMPTY, EMPTY, EX(sraw), EMPTY, EMPTY
 };
 
 static OpcodeEntry muldiv_table64 [8] = {

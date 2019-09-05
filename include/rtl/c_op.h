@@ -8,6 +8,7 @@
 #define c_xor(a, b) ((a) ^ (b))
 #define c_shl(a, b) ((a) << (b))
 #define c_shr(a, b) ((a) >> (b))
+#define c_shr64(a, b) ((uint32_t)(a) >> (b))
 #define c_sar(a, b) ((int32_t)(a) >> (b))
 #define c_sar64(a, b)  ((int64_t)(a) >> (b))
 #define c_mul_lo(a, b) ((a) * (b))

@@ -14,6 +14,7 @@
 #define rtl_xor       concat(RTL_PREFIX, _rtl_xor     )
 #define rtl_shl       concat(RTL_PREFIX, _rtl_shl     )
 #define rtl_shr       concat(RTL_PREFIX, _rtl_shr     )
+#define rtl_shr64     concat(RTL_PREFIX, _rtl_shr64   )
 #define rtl_sar       concat(RTL_PREFIX, _rtl_sar     )
 #define rtl_sar64     concat(RTL_PREFIX, _rtl_sar64   )
 #define rtl_mul_lo    concat(RTL_PREFIX, _rtl_mul_lo  )

@@ -44,3 +44,5 @@ make_EHelper(divw);
 make_EHelper(remw);
 make_EHelper(divuw);
 make_EHelper(remuw);
+make_EHelper(sraw);
+make_EHelper(srlw);
