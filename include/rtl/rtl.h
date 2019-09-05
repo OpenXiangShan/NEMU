@@ -39,21 +39,24 @@ make_rtl_arith_logic(or)
 make_rtl_arith_logic(xor)
 make_rtl_arith_logic(shl)
 make_rtl_arith_logic(shr)
-make_rtl_arith_logic(shr64)
 make_rtl_arith_logic(sar)
-make_rtl_arith_logic(sar64)
 make_rtl_arith_logic(mul_lo)
 make_rtl_arith_logic(mul_hi)
 make_rtl_arith_logic(imul_lo)
 make_rtl_arith_logic(imul_hi)
 make_rtl_arith_logic(div_q)
-make_rtl_arith_logic(div_q64)
 make_rtl_arith_logic(div_r)
-make_rtl_arith_logic(div_r64)
 make_rtl_arith_logic(idiv_q)
-make_rtl_arith_logic(idiv_q64)
 make_rtl_arith_logic(idiv_r)
+
+#ifdef ISA64
+make_rtl_arith_logic(shr64)
+make_rtl_arith_logic(sar64)
+make_rtl_arith_logic(div_q64)
+make_rtl_arith_logic(div_r64)
+make_rtl_arith_logic(idiv_q64)
 make_rtl_arith_logic(idiv_r64)
+#endif
 
 static inline void interpret_rtl_div64_q(rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
@@ -84,16 +87,20 @@ static inline void interpret_rtl_idiv64_r(rtlreg_t* dest,
 }
 
 static inline void interpret_rtl_lm(rtlreg_t *dest, const rtlreg_t* addr, int len) {
+#ifdef ISA64
   if (len == 8) 
     *dest = vaddr_read64(*addr, len);
   else
+#endif
     *dest = vaddr_read(*addr, len);
 }
 
 static inline void interpret_rtl_sm(const rtlreg_t* addr, const rtlreg_t* src1, int len) {
+#ifdef ISA64
   if (len == 8) 
     vaddr_write64(*addr, *src1, len);
   else
+#endif
     vaddr_write(*addr, *src1, len);
 }
 

@@ -17,18 +17,24 @@ void register_pmem(paddr_t base);
 
 uint32_t isa_vaddr_read(vaddr_t, int);
 void isa_vaddr_write(vaddr_t, uint32_t, int);
+#ifdef ISA64
 uint64_t isa_vaddr_read64(vaddr_t, int);
 void isa_vaddr_write64(vaddr_t, uint64_t, int);
+#endif
 
 #define vaddr_read isa_vaddr_read
 #define vaddr_write isa_vaddr_write
+#ifdef ISA64
 #define vaddr_read64 isa_vaddr_read64
 #define vaddr_write64 isa_vaddr_write64
+#endif
 
 uint32_t paddr_read(paddr_t, int);
 void paddr_write(paddr_t, uint32_t, int);
+#ifdef ISA64
 uint64_t paddr_read64(paddr_t, int);
 void paddr_write64(paddr_t, uint64_t, int);
+#endif
 
 #define PAGE_SIZE         4096
 #define PAGE_MASK         (PAGE_SIZE - 1)

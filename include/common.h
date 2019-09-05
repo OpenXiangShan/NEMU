@@ -21,10 +21,17 @@
 
 typedef uint8_t bool;
 
+#ifdef ISA64
 typedef uint64_t rtlreg_t;
 
 typedef uint32_t paddr_t;
 typedef uint64_t vaddr_t;
+#else
+typedef uint32_t rtlreg_t;
+
+typedef uint32_t paddr_t;
+typedef uint32_t vaddr_t;
+#endif
 
 typedef uint16_t ioaddr_t;
 

@@ -95,7 +95,11 @@ void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
     }
     skip_dut_nr_instr --;
     if (skip_dut_nr_instr == 0)
+#ifdef ISA64
       panic("can not catch up with ref.pc = %lx at pc = %lx", ref_r.pc, ori_pc);
+#else
+      panic("can not catch up with ref.pc = %x at pc = %x", ref_r.pc, ori_pc);
+#endif
     return;
   }
 
