@@ -6,7 +6,8 @@ bool gdb_setregs(union isa_gdb_regs *);
 void difftest_exec(uint64_t n);
 
 static uint32_t initcode[] = {
-  0x800006b7,  // lui a3,0x8000
+  //0x800006b7,  // lui a3,0x8000
+  0x00000697,  // auipc a3, 0x0
   0x03c68693,  // addi a3,a3,0x3c # 800003c
   0x30569073,  // csrw mtvec,a3
 
@@ -49,16 +50,15 @@ void init_isa(void) {
 
   gdb_getregs(&r);
 
-  /*
-  int i;
+  
+  /*int i;
   printf("print regs:\n");
   for (i = 0; i < 32; i++) {
-    printf("0x%x\n", r.gpr[i]);
+    printf("0x%lx\n", r.gpr[i]);
   }
-  printf("0x%x\nend print\n", r.pc);
+  printf("0x%lx\nend print\n", r.pc);
   fflush(stdout);*/
 
   // execute enough instructions
-  difftest_exec(19);
-
+  difftest_exec(20);
 }
