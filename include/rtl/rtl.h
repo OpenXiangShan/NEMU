@@ -13,7 +13,7 @@ bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2);
 
 /* RTL basic instructions */
 
-static inline void interpret_rtl_li(rtlreg_t* dest, uint64_t imm) {
+static inline void interpret_rtl_li(rtlreg_t* dest, rtlreg_t imm) {
   *dest = imm;
 }
 
@@ -158,17 +158,24 @@ static inline void rtl_not(rtlreg_t *dest, const rtlreg_t* src1) {
 static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- signext(src1[(width * 8 - 1) .. 0])
 //  TODO();
+
+#ifdef ISA64
   if (width == 8) {
     rtl_mv(dest, src1);
   } else {
     assert(width == 1 || width == 2 || width == 4);
     rtl_shli(dest, src1, (8 - width) * 8);
-#ifdef ISA64
     rtl_sar64i(dest, dest, (8 - width) * 8);
-#else
-    rtl_sari(dest, dest, (8 - width) * 8);
-#endif
   }
+#else
+  if (width == 4) {
+    rtl_mv(dest, src1);
+  } else {
+    assert(width == 1 || width == 2);
+    rtl_shli(dest, src1, (4 - width) * 8);
+    rtl_sari(dest, dest, (4 - width) * 8);
+  }
+#endif
 }
 
 static inline void rtl_setrelopi(uint32_t relop, rtlreg_t *dest,

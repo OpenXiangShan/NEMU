@@ -22,7 +22,7 @@ extern void (*ref_difftest_exec)(uint64_t n);
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
 #ifdef ISA64
-    Log("%s is different after executing instruction at pc = 0x%16lx, right = 0x%16lx, wrong = 0x%16lx",
+    Log("%s is different after executing instruction at pc = 0x%016lx, right = 0x%016lx, wrong = 0x%016lx",
         name, pc, ref, dut);
 #else
     Log("%s is different after executing instruction at pc = 0x%08x, right = 0x%08x, wrong = 0x%08x",

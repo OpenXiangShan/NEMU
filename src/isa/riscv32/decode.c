@@ -1,7 +1,7 @@
 #include "cpu/decode.h"
 #include "rtl/rtl.h"
 
-// decode operand helper (i & r)
+// decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (Operand *op, uint32_t val, bool load_val)
 
 static inline make_DopHelper(i) {
@@ -16,13 +16,12 @@ static inline make_DopHelper(r) {
   op->type = OP_TYPE_REG;
   op->reg = val;
   if (load_val) {
-    rtl_lr(&op->val, op->reg, 4);   // here reg is index of reg, width is ignored
+    rtl_lr(&op->val, op->reg, 4);
   }
 
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
 }
 
-// decode helper (I, R, U, J, B, ld, st, csr)
 make_DHelper(I) {
   decode_op_r(id_src, decinfo.isa.instr.rs1, true);
   decode_op_i(id_src2, decinfo.isa.instr.simm11_0, true);

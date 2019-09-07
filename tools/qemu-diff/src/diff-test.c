@@ -68,6 +68,7 @@ void difftest_init(void) {
     printf("Connect to QEMU successfully\n");
 
     atexit(gdb_exit);
+    
     init_isa();
   }
 }

@@ -23,10 +23,10 @@ void strcatf(char *buf, const char *fmt, ...) {
 
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag) {
 #ifdef ISA64
-  snprintf(tempbuf, sizeof(tempbuf), "%16lx:   %s%*.s%s", ori_pc, log_bytebuf,
+  snprintf(tempbuf, sizeof(tempbuf), "%016lx:   %s%*.s%s", ori_pc, log_bytebuf,
       50 - (12 + 3 * instr_len), "", log_asmbuf);
 #else
-  snprintf(tempbuf, sizeof(tempbuf), "%08x:   %s%*.s%s", ori_pc, log_bytebuf,
+  snprintf(tempbuf, sizeof(tempbuf), "%8x:   %s%*.s%s", ori_pc, log_bytebuf,
       50 - (12 + 3 * instr_len), "", log_asmbuf);
 #endif
   log_write("%s\n", tempbuf);

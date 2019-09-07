@@ -9,7 +9,7 @@ make_EHelper(inv) {
   instr[0] = instr_fetch(pc, 4);
   instr[1] = instr_fetch(pc, 4);
 
-  printf("invalid opcode(PC = 0x%16lx): %08x %08x ...\n\n",
+  printf("invalid opcode(PC = 0x%016lx): %08x %08x ...\n\n",
       cpu.pc, instr[0], instr[1]);
 
   display_inv_msg(cpu.pc);

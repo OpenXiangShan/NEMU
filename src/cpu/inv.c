@@ -5,9 +5,9 @@ void display_inv_msg(vaddr_t pc) {
 
 #ifdef ISA64
   printf("There are two cases which will trigger this unexpected exception:\n"
-      "1. The instruction at PC = 0x%16lx is not implemented.\n"
+      "1. The instruction at PC = 0x%016lx is not implemented.\n"
       "2. Something is implemented incorrectly.\n", pc);
-  printf("Find this PC(0x%16lx) in the disassembling result to distinguish which case it is.\n\n", pc);
+  printf("Find this PC(0x%016lx) in the disassembling result to distinguish which case it is.\n\n", pc);
 #else
   printf("There are two cases which will trigger this unexpected exception:\n"
       "1. The instruction at PC = 0x%08x is not implemented.\n"

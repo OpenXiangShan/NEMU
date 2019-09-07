@@ -93,7 +93,7 @@ static int cmd_p(char *args) {
     if(success) { printf("0x%lx\n", r); }
 #else
     uint32_t r = expr(args, &success);
-    if(success) { printf("0x%x\n", r); }
+    if(success) { printf("%d\n", r); }
 #endif
     else { printf("Bad expression\n"); }
   }
@@ -128,7 +128,7 @@ static int cmd_x(char *args) {
       for (i = 0; i < n; i ++) {
         if (i % 4 == 0) {
 #ifdef ISA64
-          printf("0x%16lx: ", addr);
+          printf("0x%016lx: ", addr);
 #else
           printf("0x%08x: ", addr);
 #endif
