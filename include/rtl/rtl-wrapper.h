@@ -24,7 +24,7 @@
 #define rtl_div_q     concat(RTL_PREFIX, _rtl_div_q   )
 #define rtl_div_q64   concat(RTL_PREFIX, _rtl_div_q64 )
 #define rtl_div_r     concat(RTL_PREFIX, _rtl_div_r   )
-#define rtl_div_r64   concat(RTL_PREFIX, _rtl_div_r   )
+#define rtl_div_r64   concat(RTL_PREFIX, _rtl_div_r64 )
 #define rtl_idiv_q    concat(RTL_PREFIX, _rtl_idiv_q  )
 #define rtl_idiv_q64  concat(RTL_PREFIX, _rtl_idiv_q64)
 #define rtl_idiv_r    concat(RTL_PREFIX, _rtl_idiv_r  )
