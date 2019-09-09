@@ -61,11 +61,7 @@ void cpu_exec(uint64_t n) {
     /* TODO: check watchpoints here. */
     WP *wp = scan_watchpoint();
     if(wp != NULL) {
-#ifdef ISA64
-      printf("\n\nHint watchpoint %d at address 0x%016lx, expr = %s\n", wp->NO, ori_pc, wp->expr);
-#else
-      printf("\n\nHint watchpoint %d at address 0x%08x, expr = %s\n", wp->NO, ori_pc, wp->expr);
-#endif
+      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", wp->NO, ori_pc, wp->expr);
       printf("old value = %#08x\nnew value = %#08x\n", wp->old_val, wp->new_val);
       wp->old_val = wp->new_val;
       return;
@@ -87,17 +83,10 @@ void cpu_exec(uint64_t n) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
     case NEMU_END: case NEMU_ABORT:
-#ifdef ISA64
-      _Log("nemu: %s\33[0m at pc = 0x%016lx\n\n",
+      _Log("nemu: %s\33[0m at pc = " FMT_WORD "\n\n",
           (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
-#else
-      _Log("nemu: %s\33[0m at pc = 0x%08x\n\n",
-          (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
-           (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
-          nemu_state.halt_pc);
-#endif
       monitor_statistic();
   }
 }

@@ -15,11 +15,7 @@ make_EHelper(sub) {
 }
 
 make_EHelper(sll) {
-#ifdef ISA64
   rtl_andi(&id_src2->val, &id_src2->val, 0x3f);
-#else
-  rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
-#endif
   rtl_shl(&s0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -27,11 +23,7 @@ make_EHelper(sll) {
 }
 
 make_EHelper(srl) {
-#ifdef ISA64
   rtl_andi(&id_src2->val, &id_src2->val, 0x3f);
-#else
-  rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
-#endif
 
   if (decinfo.isa.instr.funct7 == 32) {
     // sra

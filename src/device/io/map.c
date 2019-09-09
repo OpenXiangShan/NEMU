@@ -17,35 +17,29 @@ uint8_t* new_space(int size) {
 }
 
 static inline void check_bound(IOMap *map, paddr_t addr) {
-#ifdef ISA64
   Assert(map != NULL && addr <= map->high && addr >= map->low,
-      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x] at pc = 0x%016lx",
+      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x] at pc = " FMT_WORD,
       addr, (map ? map->name : "???"), (map ? map->low : 0), (map ? map->high : 0), cpu.pc);
-#else
-  Assert(map != NULL && addr <= map->high && addr >= map->low,
-      "address (0x%08x) is out of bound {%s} [0x%08x, 0x%08x] at pc = 0x%08x",
-      addr, (map ? map->name : "???"), (map ? map->low : 0), (map ? map->high : 0), cpu.pc);
-#endif
 }
 
-static inline void invoke_callback(io_callback_t c, uint32_t offset, int len, bool is_write) {
+static inline void invoke_callback(io_callback_t c, paddr_t offset, int len, bool is_write) {
   if (c != NULL) { c(offset, len, is_write); }
 }
 
-uint32_t map_read(paddr_t addr, int len, IOMap *map) {
-  assert(len >= 1 && len <= 4);
+word_t map_read(paddr_t addr, int len, IOMap *map) {
+  assert(len >= 1 && len <= 8);
   check_bound(map, addr);
-  uint32_t offset = addr - map->low;
+  paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
 
-  uint32_t data = *(uint32_t *)(map->space + offset) & (~0u >> ((4 - len) << 3));
+  word_t data = *(word_t *)(map->space + offset) & (~0u >> ((8 - len) << 3));
   return data;
 }
 
-void map_write(paddr_t addr, uint32_t data, int len, IOMap *map) {
-  assert(len >= 1 && len <= 4);
+void map_write(paddr_t addr, word_t data, int len, IOMap *map) {
+  assert(len >= 1 && len <= 8);
   check_bound(map, addr);
-  uint32_t offset = addr - map->low;
+  paddr_t offset = addr - map->low;
 
   memcpy(map->space + offset, &data, len);
 

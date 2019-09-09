@@ -8,8 +8,8 @@ const char *regsb[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 
 void reg_test() {
   srand(time(0));
-  uint32_t sample[8];
-  uint32_t pc_sample = rand();
+  word_t sample[8];
+  word_t pc_sample = rand();
   cpu.pc = pc_sample;
 
   int i;
@@ -48,7 +48,7 @@ void isa_reg_display() {
   printf("pc: 0x%08x\n", cpu.pc);
 }
 
-uint32_t isa_reg_str2val(const char *s, bool *success) {
+word_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   *success = true;
   for (i = 0; i < 8; i ++) {

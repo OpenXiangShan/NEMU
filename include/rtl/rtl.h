@@ -87,21 +87,11 @@ static inline void interpret_rtl_idiv64_r(rtlreg_t* dest,
 }
 
 static inline void interpret_rtl_lm(rtlreg_t *dest, const rtlreg_t* addr, int len) {
-#ifdef ISA64
-  if (len == 8) 
-    *dest = vaddr_read64(*addr, len);
-  else
-#endif
-    *dest = vaddr_read(*addr, len);
+  *dest = vaddr_read(*addr, len);
 }
 
 static inline void interpret_rtl_sm(const rtlreg_t* addr, const rtlreg_t* src1, int len) {
-#ifdef ISA64
-  if (len == 8) 
-    vaddr_write64(*addr, *src1, len);
-  else
-#endif
-    vaddr_write(*addr, *src1, len);
+  vaddr_write(*addr, *src1, len);
 }
 
 static inline void interpret_rtl_host_lm(rtlreg_t* dest, const void *addr, int len) {

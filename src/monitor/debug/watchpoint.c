@@ -36,9 +36,8 @@ static void free_WP(WP *p) {
 }
 
 int set_watchpoint(char *e) {
-  uint32_t val;
   bool success;
-  val = expr(e, &success);
+  word_t val = expr(e, &success);
   if (!success) return -1;
 
   WP *p = new_WP();

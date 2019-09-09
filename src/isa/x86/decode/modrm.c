@@ -3,7 +3,7 @@
 void load_addr(vaddr_t *pc, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 
-  int32_t disp = 0;
+  sword_t disp = 0;
   int disp_size = 4;
   int base_reg = -1, index_reg = -1, scale = 0;
   rtl_li(&s0, 0);

@@ -18,7 +18,7 @@ void isa_reg_display() {
   printf("pc: 0x%08x\n", cpu.pc);
 }
 
-uint32_t isa_reg_str2val(const char *s, bool *success) {
+word_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   *success = true;
   for (i = 0; i < 32; i ++) {
