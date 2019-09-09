@@ -1,11 +1,7 @@
 #include "cpu/exec.h"
 
 make_EHelper(mul) {
-#ifdef ISA64
   rtl_mul_lo(&s0, &id_src->val, &id_src2->val);
-#else
-  rtl_imul_lo(&s0, &id_src->val, &id_src2->val);
-#endif
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(mul);
@@ -54,7 +50,7 @@ make_EHelper(remu) {
 }
 
 make_EHelper(mulw) {
-  rtl_imul_lo(&s0, &id_src->val, &id_src2->val);
+  rtl_mul_lo(&s0, &id_src->val, &id_src2->val);
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -62,15 +58,19 @@ make_EHelper(mulw) {
 }
 
 make_EHelper(divw) {
-  rtl_idiv_q64(&s0, &id_src->val, &id_src2->val);
+  rtl_sext(&s0, &id_src->val, 4);
+  rtl_sext(&s1, &id_src2->val, 4);
+  rtl_idiv_q(&s0, &s0, &s1);
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
-  print_asm_template3(div);
+  print_asm_template3(divw);
 }
 
 make_EHelper(remw) {
-  rtl_idiv_r64(&s0, &id_src->val, &id_src2->val);
+  rtl_sext(&s0, &id_src->val, 4);
+  rtl_sext(&s1, &id_src2->val, 4);
+  rtl_idiv_r(&s0, &s0, &s1);
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -78,7 +78,9 @@ make_EHelper(remw) {
 }
 
 make_EHelper(divuw) {
-  rtl_div_q64(&s0, &id_src->val, &id_src2->val);
+  rtl_andi(&s0, &id_src->val, 0xffffffffu);
+  rtl_andi(&s1, &id_src2->val, 0xffffffffu);
+  rtl_div_q(&s0, &s0, &s1);
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -86,7 +88,9 @@ make_EHelper(divuw) {
 }
 
 make_EHelper(remuw) {
-  rtl_idiv_r64(&s0, &id_src->val, &id_src2->val);
+  rtl_andi(&s0, &id_src->val, 0xffffffffu);
+  rtl_andi(&s1, &id_src2->val, 0xffffffffu);
+  rtl_div_r(&s0, &s0, &s1);
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 

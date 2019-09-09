@@ -49,15 +49,6 @@ make_rtl_arith_logic(div_r)
 make_rtl_arith_logic(idiv_q)
 make_rtl_arith_logic(idiv_r)
 
-#ifdef ISA64
-make_rtl_arith_logic(shr64)
-make_rtl_arith_logic(sar64)
-make_rtl_arith_logic(div_q64)
-make_rtl_arith_logic(div_r64)
-make_rtl_arith_logic(idiv_q64)
-make_rtl_arith_logic(idiv_r64)
-#endif
-
 static inline void interpret_rtl_div64_q(rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
   uint64_t dividend = ((uint64_t)(*src1_hi) << 32) | (*src1_lo);
@@ -155,7 +146,7 @@ static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   } else {
     assert(width == 1 || width == 2 || width == 4);
     rtl_shli(dest, src1, (8 - width) * 8);
-    rtl_sar64i(dest, dest, (8 - width) * 8);
+    rtl_sari(dest, dest, (8 - width) * 8);
   }
 #else
   if (width == 4) {

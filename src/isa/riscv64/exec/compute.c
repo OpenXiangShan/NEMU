@@ -117,6 +117,7 @@ make_EHelper(sllw) {
 }
 
 make_EHelper(srlw) {
+  rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
   if (decinfo.isa.instr.funct7 == 32) {
     // sraw
     rtl_sar(&s0, &id_src->val, &id_src2->val);
@@ -125,9 +126,8 @@ make_EHelper(srlw) {
   }
   else {
     // srlw
-    rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
-
-    rtl_shr64(&s0, &id_src->val, &id_src2->val);
+    rtl_andi(&id_src->val, &id_src->val, 0xffffffffu);
+    rtl_shr(&s0, &id_src->val, &id_src2->val);
     rtl_sext(&s0, &s0, 4);
     print_asm_template3(srlw);
   }
