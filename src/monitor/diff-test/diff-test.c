@@ -15,6 +15,7 @@ static bool is_detach = false;
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
 void difftest_skip_ref() {
+  if (is_detach) return;
   is_skip_ref = true;
 }
 
@@ -25,6 +26,7 @@ void difftest_skip_ref() {
 //   Let REF run `nr_ref` instructions first.
 //   We expect that DUT will catch up with REF within `nr_dut` instructions.
 void difftest_skip_dut(int nr_ref, int nr_dut) {
+  if (is_detach) return;
   skip_dut_nr_instr += nr_dut;
 
   while (nr_ref -- > 0) {

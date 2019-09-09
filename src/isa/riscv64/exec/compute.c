@@ -24,8 +24,8 @@ make_EHelper(sll) {
 
 make_EHelper(srl) {
   rtl_andi(&id_src2->val, &id_src2->val, 0x3f);
-
-  if (decinfo.isa.instr.funct7 == 32) {
+  // the LSB of funct7 may be "1" due to the shift amount can be >= 32
+  if ((decinfo.isa.instr.funct7 & ~0x1) == 32) {
     // sra
     rtl_sar(&s0, &id_src->val, &id_src2->val);
     print_asm_template3(sra);
@@ -34,7 +34,6 @@ make_EHelper(srl) {
     rtl_shr(&s0, &id_src->val, &id_src2->val);
     print_asm_template3(srl);
   }
-
   rtl_sr(id_dest->reg, &s0, 4);
 }
 
@@ -117,17 +116,19 @@ make_EHelper(sllw) {
 }
 
 make_EHelper(srlw) {
+  rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
+  assert((decinfo.isa.instr.funct7 & 0x1) == 0);
   if (decinfo.isa.instr.funct7 == 32) {
     // sraw
+    rtl_sext(&id_src->val, &id_src->val, 4);
     rtl_sar(&s0, &id_src->val, &id_src2->val);
     rtl_sext(&s0, &s0, 4);
     print_asm_template3(sraw);
   }
   else {
     // srlw
-    rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
-
-    rtl_shr64(&s0, &id_src->val, &id_src2->val);
+    rtl_andi(&id_src->val, &id_src->val, 0xffffffffu);
+    rtl_shr(&s0, &id_src->val, &id_src2->val);
     rtl_sext(&s0, &s0, 4);
     print_asm_template3(srlw);
   }

@@ -5,10 +5,10 @@ static inline rtlreg_t* csr_decode(uint32_t csr) {
 
   switch (csr) {
     case 0x180: return &cpu.satp.val;
-    case 0x100: return &cpu.sstatus.val;
-    case 0x105: return &cpu.stvec;
-    case 0x141: return &cpu.sepc;
-    case 0x142: return &cpu.scause;
+    case 0x300: return &cpu.mstatus.val;
+    case 0x305: return &cpu.mtvec;
+    case 0x341: return &cpu.mepc;
+    case 0x342: return &cpu.mcause;
     default: panic("unimplemented CSR 0x%x", csr);
   }
   return NULL;
@@ -17,7 +17,7 @@ static inline rtlreg_t* csr_decode(uint32_t csr) {
 make_EHelper(csrrw) {
   rtlreg_t *csr = csr_decode(id_src2->val);
 
-  rtl_sr(id_dest->reg, csr, 4);
+  rtl_sr(id_dest->reg, csr, 8);
   rtl_mv(csr, &id_src->val);
 
   print_asm_template3("csrrw");
@@ -26,7 +26,7 @@ make_EHelper(csrrw) {
 make_EHelper(csrrs) {
   rtlreg_t *csr = csr_decode(id_src2->val);
 
-  rtl_sr(id_dest->reg, csr, 4);
+  rtl_sr(id_dest->reg, csr, 8);
   rtl_or(csr, csr, &id_src->val);
 
   print_asm_template3("csrrs");
@@ -38,15 +38,15 @@ make_EHelper(priv) {
   uint32_t type = decinfo.isa.instr.csr;
   switch (type) {
     case 0:
-      raise_intr(9, cpu.pc);
+      raise_intr(11, cpu.pc);
       print_asm("ecall");
       break;
-    case 0x102:
-      cpu.sstatus.sie = cpu.sstatus.spie;
-      cpu.sstatus.spie = 1;
-      rtl_li(&s0, cpu.sepc);
+    case 0x302:
+      cpu.mstatus.mie = cpu.mstatus.mpie;
+      cpu.mstatus.mpie = 1;
+      rtl_li(&s0, cpu.mepc);
       rtl_jr(&s0);
-      print_asm("sret");
+      print_asm("mret");
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }

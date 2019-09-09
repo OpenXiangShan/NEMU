@@ -62,7 +62,7 @@ void cpu_exec(uint64_t n) {
     WP *wp = scan_watchpoint();
     if(wp != NULL) {
       printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", wp->NO, ori_pc, wp->expr);
-      printf("old value = %#08x\nnew value = %#08x\n", wp->old_val, wp->new_val);
+      printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", wp->old_val, wp->new_val);
       wp->old_val = wp->new_val;
       return;
     }

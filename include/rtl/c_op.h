@@ -8,20 +8,21 @@
 #define c_xor(a, b) ((a) ^ (b))
 #define c_shl(a, b) ((a) << (b))
 #define c_shr(a, b) ((a) >> (b))
-#define c_shr64(a, b) ((uint32_t)(a) >> (b))
-#define c_sar(a, b) ((int32_t)(a) >> (b))
-#define c_sar64(a, b)  ((int64_t)(a) >> (b))
+#define c_sar(a, b) ((sword_t)(a) >> (b))
+
 #define c_mul_lo(a, b) ((a) * (b))
-#define c_mul_hi(a, b) (((uint64_t)(a) * (uint64_t)(b)) >> 32)
-#define c_imul_lo(a, b) ((int32_t)(a) * (int32_t)(b))
-#define c_imul_hi(a, b) (((int64_t)(int32_t)(a) * (int64_t)(int32_t)(b)) >> 32)
+#define c_imul_lo(a, b) ((sword_t)(a) * (sword_t)(b))
+#ifdef ISA64
+# define c_mul_hi(a, b) (((__uint128_t)(a) * (__uint128_t)(b)) >> 64)
+# define c_imul_hi(a, b) (((__int128_t)(sword_t)(a) * (__int128_t)(sword_t)(b)) >> 64)
+#else
+# define c_mul_hi(a, b) (((uint64_t)(a) * (uint64_t)(b)) >> 32)
+# define c_imul_hi(a, b) (((int64_t)(sword_t)(a) * (int64_t)(sword_t)(b)) >> 32)
+#endif
+
 #define c_div_q(a, b) ((a) / (b))
-#define c_div_q64(a, b) (((a) & 0xffffffff) / ((b) & 0xffffffff))
 #define c_div_r(a, b)  ((a) % (b))
-#define c_div_r64(a, b) (((a) & 0xffffffff) % ((b) & 0xffffffff))
-#define c_idiv_q(a, b) ((int32_t)(a) / (int32_t)(b))
-#define c_idiv_q64(a, b)  ((int32_t)((uint32_t)((a) & 0xffffffff)) / (int32_t)((uint32_t)((b) & 0xffffffff)))
-#define c_idiv_r(a, b)  ((int32_t)(a) % (int32_t)(b))
-#define c_idiv_r64(a, b)  ((int32_t)((uint32_t)((a) & 0xffffffff)) % (int32_t)((uint32_t)((b) & 0xffffffff)))
+#define c_idiv_q(a, b) ((sword_t)(a) / (sword_t)(b))
+#define c_idiv_r(a, b)  ((sword_t)(a) % (sword_t)(b))
 
 #endif

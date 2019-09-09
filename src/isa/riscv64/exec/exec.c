@@ -27,12 +27,12 @@ static make_EHelper(op_imm) {
   idex(pc, &op_imm_table[decinfo.isa.instr.funct3]);
 }
 
-static OpcodeEntry op_imm_table64 [8] = {
-  EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EX(sraw), EMPTY, EMPTY
+static OpcodeEntry op_imm_table32 [8] = {
+  EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EX(srlw), EMPTY, EMPTY
 };
 
-static make_EHelper(op_imm64) {
-  idex(pc, &op_imm_table64[decinfo.isa.instr.funct3]);
+static make_EHelper(op_imm32) {
+  idex(pc, &op_imm_table32[decinfo.isa.instr.funct3]);
 }
 
 static OpcodeEntry op_table [8] = {
@@ -56,23 +56,23 @@ static make_EHelper(op) {
   }
 }
 
-static OpcodeEntry op_table64 [8] = {
+static OpcodeEntry op_table32 [8] = {
   EX(addw), EX(sllw), EMPTY, EMPTY, EMPTY, EX(srlw), EMPTY, EMPTY
 };
 
-static OpcodeEntry op2_table64 [8] = {
+static OpcodeEntry op2_table32 [8] = {
   EX(subw), EMPTY, EMPTY, EMPTY, EMPTY, EX(sraw), EMPTY, EMPTY
 };
 
-static OpcodeEntry muldiv_table64 [8] = {
+static OpcodeEntry muldiv_table32 [8] = {
   EX(mulw), EMPTY, EMPTY, EMPTY, EX(divw), EX(divuw), EX(remw), EX(remuw)
 };
 
-static make_EHelper(op64) {
+static make_EHelper(op32) {
   switch (decinfo.isa.instr.funct7) {
-    case 0:  idex(pc, &op_table64[decinfo.isa.instr.funct3]); break;
-    case 1:  idex(pc, &muldiv_table64[decinfo.isa.instr.funct3]); break;
-    case 32: idex(pc, &op2_table64[decinfo.isa.instr.funct3]); break;
+    case 0:  idex(pc, &op_table32[decinfo.isa.instr.funct3]); break;
+    case 1:  idex(pc, &muldiv_table32[decinfo.isa.instr.funct3]); break;
+    case 32: idex(pc, &op2_table32[decinfo.isa.instr.funct3]); break;
     default: printf("not implemented\n"); assert(0);
   }
 }
@@ -86,8 +86,8 @@ static make_EHelper(system) {
 }
 
 static OpcodeEntry opcode_table [32] = {
-  /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EMPTY, IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm64), EMPTY,
-  /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, IDEX(R, op), IDEX(U, lui), IDEX(R, op64), EMPTY,
+  /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EMPTY, IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
+  /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
   /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
 };
