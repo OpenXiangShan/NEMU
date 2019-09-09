@@ -13,7 +13,7 @@ const long isa_default_img_size = sizeof(isa_default_img);
 void init_isa(void) {
   cpu.gpr[0]._64 = 0;
   cpu.pc = PC_START;
-  cpu.sstatus.val = 0x000c0100;
+  cpu.mstatus.val = 0x000c0100;
 
   register_pmem(0x80000000u);
 }

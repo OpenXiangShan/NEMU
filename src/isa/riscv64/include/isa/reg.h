@@ -15,22 +15,25 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
-  vaddr_t stvec;
-  vaddr_t scause;
-  vaddr_t sepc;
+  vaddr_t mtvec;
+  vaddr_t mcause;
+  vaddr_t mepc;
   union {
     struct {
       uint64_t uie : 1;
       uint64_t sie : 1;
-      uint64_t pad0: 2;
+      uint64_t pad0: 1;
+      uint64_t mie : 1;
       uint64_t upie: 1;
       uint64_t spie: 1;
-      uint64_t pad1: 2;
+      uint64_t pad1: 1;
+      uint64_t mpie: 1;
       uint64_t spp : 1;
-      uint64_t dontcare :31;
+      uint64_t pad2: 2;
+      uint64_t mpp : 2;
     };
     uint64_t val;
-  } sstatus;
+  } mstatus;
   union {
     struct {
       uint64_t ppn :44;
