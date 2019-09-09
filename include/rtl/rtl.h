@@ -27,7 +27,7 @@ static inline void interpret_rtl_mv(rtlreg_t* dest, const rtlreg_t *src1) {
   } \
   /* Actually those of imm version are pseudo rtl instructions,
    * but we define them here in the same macro */ \
-  static inline void concat(rtl_, name ## i) (rtlreg_t* dest, const rtlreg_t* src1, int imm) { \
+  static inline void concat(rtl_, name ## i) (rtlreg_t* dest, const rtlreg_t* src1, sword_t imm) { \
     rtl_li(&ir, imm); \
     rtl_ ## name (dest, src1, &ir); \
   }
@@ -133,7 +133,7 @@ void interpret_rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
 static inline void rtl_not(rtlreg_t *dest, const rtlreg_t* src1) {
   // dest <- ~src1
 //  TODO();
-  rtl_xori(dest, src1, 0xffffffff);
+  rtl_xori(dest, src1, -1);
 }
 
 static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
