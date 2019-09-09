@@ -120,6 +120,7 @@ make_EHelper(srlw) {
   rtl_andi(&id_src2->val, &id_src2->val, 0x1f);
   if (decinfo.isa.instr.funct7 == 32) {
     // sraw
+    rtl_sext(&id_src->val, &id_src->val, 4);
     rtl_sar(&s0, &id_src->val, &id_src2->val);
     rtl_sext(&s0, &s0, 4);
     print_asm_template3(sraw);
