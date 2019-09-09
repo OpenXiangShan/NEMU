@@ -173,7 +173,7 @@ static int find_dominated_op(int s, int e, bool *success) {
   return dominated_op;
 }
 
-uint32_t isa_reg_str2val(const char*, bool *);
+word_t isa_reg_str2val(const char*, bool *);
 
 static rtlreg_t eval(int s, int e, bool *success) {
   if (s > e) {
@@ -236,7 +236,7 @@ static rtlreg_t eval(int s, int e, bool *success) {
   }
 }
 
-rtlreg_t expr(char *e, bool *success) {
+word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;

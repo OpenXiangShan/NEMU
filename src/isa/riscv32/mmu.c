@@ -57,12 +57,12 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
   return page_walk(addr, is_write) | (addr & PAGE_MASK);
 }
 
-uint32_t isa_vaddr_read(vaddr_t addr, int len) {
+word_t isa_vaddr_read(vaddr_t addr, int len) {
   paddr_t paddr = (cpu.satp.mode ? page_translate(addr, false) : addr);
   return paddr_read(paddr, len);
 }
 
-void isa_vaddr_write(vaddr_t addr, uint32_t data, int len) {
+void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
   paddr_t paddr = (cpu.satp.mode ? page_translate(addr, true) : addr);
   paddr_write(paddr, data, len);
 }

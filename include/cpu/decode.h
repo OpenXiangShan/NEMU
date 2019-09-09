@@ -12,21 +12,12 @@ enum { OP_TYPE_REG, OP_TYPE_MEM, OP_TYPE_IMM };
 typedef struct {
   uint32_t type;
   int width;
-#ifdef ISA64
-  union {
-    uint64_t reg;
-    rtlreg_t addr;
-    uint64_t imm;
-    int64_t simm;
-  };
-#else
   union {
     uint32_t reg;
     rtlreg_t addr;
-    uint32_t imm;
-    int32_t simm;
+    word_t imm;
+    sword_t simm;
   };
-#endif
   rtlreg_t val;
   char str[OP_STR_SIZE];
 } Operand;
