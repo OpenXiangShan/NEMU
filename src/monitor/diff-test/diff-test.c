@@ -17,6 +17,14 @@ static bool is_detach = false;
 void difftest_skip_ref() {
   if (is_detach) return;
   is_skip_ref = true;
+  // If such an instruction is one of the instruction packing in QEMU
+  // (see below), we end the process of catching up with QEMU's pc to
+  // keep the consistent behavior in our best.
+  // Note that this is still not perfect: if the packed instructions
+  // already write some memory, and the incoming instruction in NEMU
+  // will load that memory, we will encounter false negative. But such
+  // situation is infrequent.
+  skip_dut_nr_instr = 0;
 }
 
 // this is used to deal with instruction packing in QEMU.
@@ -70,6 +78,8 @@ void init_difftest(char *ref_so_file, long img_size) {
 
   ref_difftest_init();
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
+  char *mainargs = guest_to_host(0);
+  ref_difftest_memcpy_from_dut(PC_START - IMAGE_START, mainargs, strlen(mainargs) + 1);
   ref_difftest_setregs(&cpu);
 }
 
