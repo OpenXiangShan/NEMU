@@ -7,13 +7,14 @@ void init_isa();
 void init_regex();
 void init_wp_pool();
 void init_device();
-void init_difftest(char *ref_so_file, long img_size);
+void init_difftest(char *ref_so_file, long img_size, int port);
 
 static char *mainargs = "";
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int is_batch_mode = false;
+static int difftest_port = 1234;
 
 static inline void welcome() {
 #ifdef DEBUG
@@ -64,10 +65,11 @@ static inline long load_img() {
 
 static inline void parse_args(int argc, char *argv[]) {
   int o;
-  while ( (o = getopt(argc, argv, "-bl:d:a:")) != -1) {
+  while ( (o = getopt(argc, argv, "-bl:d:a:p:")) != -1) {
     switch (o) {
       case 'b': is_batch_mode = true; break;
       case 'a': mainargs = optarg; break;
+      case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
       case 1:
@@ -105,7 +107,7 @@ int init_monitor(int argc, char *argv[]) {
   init_device();
 
   /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size);
+  init_difftest(diff_so_file, img_size, difftest_port);
 
   /* Display welcome message. */
   welcome();
