@@ -22,18 +22,24 @@ make_EHelper(mulhu) {
 }
 
 make_EHelper(mulhsu) {
-  //rtl_msb(&s0, &id_src->val, 8);
-  //rtl_li(&s1, 0);
-  //rtl_sub(&s1, &s1, &id_src->val); // s1 = -id_src->val
-  //rtl_mux(&s1, &s0, &s1, &id_src->val); // s1 = |id_src->val|
+  // Algorithm:
+  // We want to obtain ans = mulhsu(a, b).
+  // Consider mulhu(a, b).
+  // If a >= 0, then ans = mulhu(a, b);
+  // If a = -x < 0, then a = 2^64 - x in two's complement
+  // Then
+  //   mulhu(a, b) = mulhu(2^64 -x , b) = ((2^64 - x)b) >> 64
+  //               = ((2^64b) >> 64) + ((-xb) >> 64)
+  //               = b + mulhsu(a, b) = b + ans
+  // Therefore, ans = mulhu(a, b) - b
+  //
+  // In the end, ans = (a < 0 ? mulhu(a, b) - b : mulhu(a, b))
+  //                 = mulhu(a, b) - (a < 0 ? b : 0)
 
-  //rtl_mul_hi(&id_dest->val, &s1, &id_src2->val);
-
-  //rtl_li(&s1, 0);
-  //rtl_sub(&s1, &s1, &id_dest->val); // s1 = -id_dest->val
-  //rtl_mux(&s0, &s0, &s1, &id_dest->val);
-
-  s0 = ((__int128_t)(sword_t)id_src->val * id_src2->val) >> 64;
+  rtl_sari(&s0, &id_src->val, 63);
+  rtl_and(&s0, &id_src2->val, &s0); // s0 = (id_src->val < 0 ? id_src2->val : 0)
+  rtl_mul_hi(&s1, &id_src->val, &id_src2->val);
+  rtl_sub(&s0, &s1, &s0);
 
   rtl_sr(id_dest->reg, &s0, 4);
 
