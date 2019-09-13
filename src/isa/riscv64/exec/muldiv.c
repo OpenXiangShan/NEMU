@@ -18,7 +18,7 @@ make_EHelper(mulhu) {
   rtl_mul_hi(&s0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &s0, 4);
 
-  print_asm_template3(mulh);
+  print_asm_template3(mulhu);
 }
 
 make_EHelper(mulhsu) {
