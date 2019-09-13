@@ -41,28 +41,48 @@ make_EHelper(mulhsu) {
 }
 
 make_EHelper(div) {
-  rtl_idiv_q(&s0, &id_src->val, &id_src2->val);
+  if (id_src2->val == 0) {
+    rtl_li(&s0, -1);
+  } else if (id_src->val == 0x8000000000000000LL && id_src2->val == -1) {
+    rtl_mv(&s0, &id_src->val);
+  } else {
+    rtl_idiv_q(&s0, &id_src->val, &id_src2->val);
+  }
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(div);
 }
 
 make_EHelper(divu) {
-  rtl_div_q(&s0, &id_src->val, &id_src2->val);
+  if (id_src2->val == 0) {
+    rtl_li(&s0, -1);
+  } else {
+    rtl_div_q(&s0, &id_src->val, &id_src2->val);
+  }
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(divu);
 }
 
 make_EHelper(rem) {
-  rtl_idiv_r(&s0, &id_src->val, &id_src2->val);
+  if (id_src2->val == 0) {
+    rtl_mv(&s0, &id_src->val);
+  } else if (id_src->val == 0x8000000000000000LL && id_src2->val == -1) {
+    rtl_li(&s0, 0);
+  } else {
+    rtl_idiv_r(&s0, &id_src->val, &id_src2->val);
+  }
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(rem);
 }
 
 make_EHelper(remu) {
-  rtl_div_r(&s0, &id_src->val, &id_src2->val);
+  if (id_src2->val == 0) {
+    rtl_mv(&s0, &id_src->val);
+  } else {
+    rtl_div_r(&s0, &id_src->val, &id_src2->val);
+  }
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template3(remu);
@@ -79,7 +99,13 @@ make_EHelper(mulw) {
 make_EHelper(divw) {
   rtl_sext(&s0, &id_src->val, 4);
   rtl_sext(&s1, &id_src2->val, 4);
-  rtl_idiv_q(&s0, &s0, &s1);
+  if (s1 == 0) {
+    rtl_li(&s0, -1);
+  } else if (s0 == 0x80000000 && s1 == -1) {
+    //rtl_mv(&s0, &s0);
+  } else {
+    rtl_idiv_q(&s0, &s0, &s1);
+  }
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -89,7 +115,13 @@ make_EHelper(divw) {
 make_EHelper(remw) {
   rtl_sext(&s0, &id_src->val, 4);
   rtl_sext(&s1, &id_src2->val, 4);
-  rtl_idiv_r(&s0, &s0, &s1);
+  if (s1 == 0) {
+    //rtl_mv(&s0, &s0);
+  } else if (s0 == 0x80000000 && s1 == -1) {
+    rtl_li(&s0, 0);
+  } else {
+    rtl_idiv_r(&s0, &s0, &s1);
+  }
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -99,7 +131,11 @@ make_EHelper(remw) {
 make_EHelper(divuw) {
   rtl_andi(&s0, &id_src->val, 0xffffffffu);
   rtl_andi(&s1, &id_src2->val, 0xffffffffu);
-  rtl_div_q(&s0, &s0, &s1);
+  if (s1 == 0) {
+    rtl_li(&s0, -1);
+  } else {
+    rtl_div_q(&s0, &s0, &s1);
+  }
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
@@ -109,7 +145,11 @@ make_EHelper(divuw) {
 make_EHelper(remuw) {
   rtl_andi(&s0, &id_src->val, 0xffffffffu);
   rtl_andi(&s1, &id_src2->val, 0xffffffffu);
-  rtl_div_r(&s0, &s0, &s1);
+  if (s1 == 0) {
+    //rtl_mv(&s0, &s0);
+  } else {
+    rtl_div_r(&s0, &s0, &s1);
+  }
   rtl_sext(&s0, &s0, 4);
   rtl_sr(id_dest->reg, &s0, 4);
 
