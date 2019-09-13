@@ -45,7 +45,7 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach(void);
 
-void init_difftest(char *ref_so_file, long img_size) {
+void init_difftest(char *ref_so_file, long img_size, int port) {
 #ifndef DIFF_TEST
   return;
 #endif
@@ -68,7 +68,7 @@ void init_difftest(char *ref_so_file, long img_size) {
   ref_difftest_exec = dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
 
-  void (*ref_difftest_init)(void) = dlsym(handle, "difftest_init");
+  void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
   Log("Differential testing: \33[1;32m%s\33[0m", "ON");
@@ -76,7 +76,7 @@ void init_difftest(char *ref_so_file, long img_size) {
       "This will help you a lot for debugging, but also significantly reduce the performance. "
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
-  ref_difftest_init();
+  ref_difftest_init(port);
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
   char *mainargs = guest_to_host(0);
   ref_difftest_memcpy_from_dut(PC_START - IMAGE_START, mainargs, strlen(mainargs) + 1);

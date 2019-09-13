@@ -3,7 +3,7 @@
 #include <signal.h>
 #include "isa.h"
 
-bool gdb_connect_qemu(void);
+bool gdb_connect_qemu(int);
 bool gdb_memcpy_to_qemu(uint32_t, void *, int);
 bool gdb_getregs(union isa_gdb_regs *);
 bool gdb_setregs(union isa_gdb_regs *);
@@ -34,7 +34,10 @@ void difftest_exec(uint64_t n) {
   while (n --) gdb_si();
 }
 
-void difftest_init(void) {
+void difftest_init(int port) {
+  char buf[32];
+  sprintf(buf, "tcp::%d", port);
+
   int ppid_before_fork = getpid();
   int pid = fork();
   if (pid == -1) {
@@ -57,15 +60,15 @@ void difftest_init(void) {
     }
 
     close(STDIN_FILENO);
-    execlp(ISA_QEMU_BIN, ISA_QEMU_BIN, ISA_QEMU_ARGS "-S", "-s", "-nographic", NULL);
+    execlp(ISA_QEMU_BIN, ISA_QEMU_BIN, ISA_QEMU_ARGS "-S", "-gdb", buf, "-nographic", NULL);
     perror("exec");
     assert(0);
   }
   else {
     // father
 
-    gdb_connect_qemu();
-    printf("Connect to QEMU successfully\n");
+    gdb_connect_qemu(port);
+    printf("Connect to QEMU with %s tcpsuccessfully\n", buf);
 
     atexit(gdb_exit);
 

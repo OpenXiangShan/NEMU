@@ -2,9 +2,9 @@
 
 static struct gdb_conn *conn;
 
-bool gdb_connect_qemu(void) {
+bool gdb_connect_qemu(int port) {
   // connect to gdbserver on localhost port 1234
-  while ((conn = gdb_begin_inet("127.0.0.1", 1234)) == NULL) {
+  while ((conn = gdb_begin_inet("127.0.0.1", port)) == NULL) {
     usleep(1);
   }
 
