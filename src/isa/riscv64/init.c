@@ -1,4 +1,5 @@
 #include "nemu.h"
+#include "csr.h"
 
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
@@ -13,7 +14,7 @@ const long isa_default_img_size = sizeof(isa_default_img);
 void init_isa(void) {
   cpu.gpr[0]._64 = 0;
   cpu.pc = PC_START;
-  cpu.mstatus.val = 0x000c0100;
+  mstatus->val = 0x000c0100;
 
   register_pmem(0x80000000u);
 }

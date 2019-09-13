@@ -1,5 +1,6 @@
 #include "nemu.h"
 #include "memory/memory.h"
+#include "csr.h"
 
 /* the 32bit Page Table Entry(second level page table) data structure */
 typedef union PageTableEntry {
@@ -29,7 +30,7 @@ typedef union {
 
 static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
   PageAddr *addr = (void *)&vaddr;
-  paddr_t pdir_base = cpu.satp.ppn << 12;
+  paddr_t pdir_base = satp->ppn << 12;
 
   PTE pde;
   pde.val	= paddr_read(pdir_base + addr->pdir_idx * 4, 4);
@@ -59,11 +60,11 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
 }
 
 word_t isa_vaddr_read(vaddr_t addr, int len) {
-  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, false) : addr);
+  paddr_t paddr = (satp->mode ? page_translate(addr, false) : addr);
   return paddr_read(paddr, len);
 }
 
 void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
-  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, true) : addr);
+  paddr_t paddr = (satp->mode ? page_translate(addr, true) : addr);
   paddr_write(paddr, data, len);
 }

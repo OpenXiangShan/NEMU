@@ -1,4 +1,5 @@
 #include "nemu.h"
+#include "csr.h"
 
 const char *regsl[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -33,4 +34,21 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
 
   *success = false;
   return 0;
+}
+
+static word_t csr_array[4096] = {};
+
+#define CSRS_DEF(name, val) \
+  concat(name, _t)* const name = (void *)&csr_array[val];
+MAP(CSRS, CSRS_DEF)
+
+#define CSRS_EXIST(name, val) [val] = 1,
+static bool csr_exist[4096] = {
+  MAP(CSRS, CSRS_EXIST)
+};
+
+word_t* csr_decode(uint32_t addr) {
+  assert(addr < 4096);
+  Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+  return &csr_array[addr];
 }
