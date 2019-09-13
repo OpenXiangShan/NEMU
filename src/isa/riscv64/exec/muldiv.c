@@ -21,6 +21,25 @@ make_EHelper(mulhu) {
   print_asm_template3(mulh);
 }
 
+make_EHelper(mulhsu) {
+  //rtl_msb(&s0, &id_src->val, 8);
+  //rtl_li(&s1, 0);
+  //rtl_sub(&s1, &s1, &id_src->val); // s1 = -id_src->val
+  //rtl_mux(&s1, &s0, &s1, &id_src->val); // s1 = |id_src->val|
+
+  //rtl_mul_hi(&id_dest->val, &s1, &id_src2->val);
+
+  //rtl_li(&s1, 0);
+  //rtl_sub(&s1, &s1, &id_dest->val); // s1 = -id_dest->val
+  //rtl_mux(&s0, &s0, &s1, &id_dest->val);
+
+  s0 = ((__int128_t)(sword_t)id_src->val * id_src2->val) >> 64;
+
+  rtl_sr(id_dest->reg, &s0, 4);
+
+  print_asm_template3(mulhsu);
+}
+
 make_EHelper(div) {
   rtl_idiv_q(&s0, &id_src->val, &id_src2->val);
   rtl_sr(id_dest->reg, &s0, 4);

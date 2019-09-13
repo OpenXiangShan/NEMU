@@ -30,6 +30,7 @@ make_EHelper(priv);
 
 make_EHelper(mul);
 make_EHelper(mulh);
+make_EHelper(mulhsu);
 make_EHelper(mulhu);
 make_EHelper(div);
 make_EHelper(divu);
