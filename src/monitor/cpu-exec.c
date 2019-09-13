@@ -14,6 +14,10 @@
 
 NEMUState nemu_state = {.state = NEMU_STOP};
 
+int goodtrap(void) {
+  return (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0);
+}
+
 void interpret_rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
   nemu_state = (NEMUState) { .state = state, .halt_pc = halt_pc, .halt_ret = halt_ret };
 }
