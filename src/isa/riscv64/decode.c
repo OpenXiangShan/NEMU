@@ -35,10 +35,10 @@ make_DHelper(R) {
 }
 
 make_DHelper(U) {
-  decode_op_i(id_src, decinfo.isa.instr.imm31_12 << 12, true);
+  decode_op_i(id_src, decinfo.isa.instr.simm31_12 << 12, true);
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
 
-  print_Dop(id_src->str, OP_STR_SIZE, "0x%x", decinfo.isa.instr.imm31_12);
+  print_Dop(id_src->str, OP_STR_SIZE, "0x%x", decinfo.isa.instr.simm31_12);
 }
 
 make_DHelper(J) {
