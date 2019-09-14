@@ -24,7 +24,7 @@ static inline make_DopHelper(r) {
 
 make_DHelper(I) {
   decode_op_r(id_src, decinfo.isa.instr.rs1, true);
-  decode_op_i(id_src2, (int64_t)decinfo.isa.instr.simm11_0, true);
+  decode_op_i(id_src2, (sword_t)decinfo.isa.instr.simm11_0, true);
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
 }
 
@@ -93,11 +93,43 @@ make_DHelper(csr) {
 
 // RVC
 
+#define creg2reg(creg) (creg + 8)
+
+make_DHelper(CI) {
+  decode_op_r(id_src, decinfo.isa.instr.c_rd_rs1, true);
+  sword_t simm = (decinfo.isa.instr.c_simm12 << 5) | decinfo.isa.instr.c_imm6_2;
+  assert(simm != 0);
+  decode_op_i(id_src2, simm, true);
+  decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
+}
+
+make_DHelper(C_SDSP) {
+  decode_op_r(id_src, 2, true);
+  uint32_t imm8_6 = (decinfo.isa.instr.c_imm12_7 & 0x7);
+  uint32_t imm5_3 = (decinfo.isa.instr.c_imm12_7 >> 3);
+  word_t imm = (imm8_6 << 6) | (imm5_3 << 3);
+  decode_op_i(id_src2, imm, true);
+
+  rtl_add(&id_src->addr, &id_src->val, &id_src2->val);
+
+  decode_op_r(id_dest, decinfo.isa.instr.c_rs2, true);
+
+  decinfo.width = 8;
+}
+
 make_DHelper(C_LI) {
   decode_op_r(id_src, 0, true);
   sword_t simm = (decinfo.isa.instr.c_simm12 << 5) | decinfo.isa.instr.c_imm6_2;
   decode_op_i(id_src2, simm, true);
   decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
+}
+
+make_DHelper(C_MV) {
+  decode_op_r(id_src, 0, true);
+  decode_op_r(id_src2, decinfo.isa.instr.c_rs2, true);
+  decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
+  assert(decinfo.isa.instr.c_rs2 != 0);
+  assert(decinfo.isa.instr.c_rd_rs1 != 0);
 }
 
 make_DHelper(C_10_100) {

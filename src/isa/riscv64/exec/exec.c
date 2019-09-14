@@ -75,7 +75,7 @@ static OpcodeEntry opcode_table [32] = {
 
 static make_EHelper(C_10_100) {
   static OpcodeEntry table [8] = {
-    EMPTY, EMPTY, EX(jalr), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+    EMPTY, EMPTY, EX(jalr), IDEX(C_MV, add), EMPTY, EMPTY, EMPTY, EMPTY,
   };
   int cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
   int cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
@@ -86,8 +86,8 @@ static make_EHelper(C_10_100) {
 
 static OpcodeEntry rvc_table [3][8] = {
   {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
-  {EMPTY, EMPTY, IDEX(C_LI, add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
-  {EMPTY, EMPTY, EMPTY, EMPTY, IDEX(C_10_100, C_10_100), EMPTY, EMPTY, EMPTY, },
+  {IDEX(CI, add), EMPTY, IDEX(C_LI, add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
+  {EMPTY, EMPTY, EMPTY, EMPTY, IDEX(C_10_100, C_10_100), EMPTY, EMPTY, IDEX(C_SDSP, st), },
 };
 
 void isa_exec(vaddr_t *pc) {

@@ -61,13 +61,16 @@ typedef union {
   // CSS
   struct {
     uint32_t pad10     : 7;
-    int32_t c_simm12_7 : 6;
+    uint32_t c_imm12_7 : 6;
   };
   // CIW
   struct {
     uint32_t pad11     : 2;
     uint32_t c_rd_     : 3;
-    int32_t c_simm12_5 : 8;
+    uint32_t c_imm3    : 1;
+    uint32_t c_imm2    : 1;
+    uint32_t c_imm9_6  : 4;
+    uint32_t c_imm5_4  : 2;
   };
   // CL
   struct {
@@ -89,7 +92,7 @@ typedef union {
   // CJ
   struct {
     uint32_t pad15     : 2;
-    int32_t c_target  :11;
+    int32_t c_target   :11;
   };
   uint32_t val;
 } Instr;
@@ -108,6 +111,9 @@ make_DHelper(ld);
 make_DHelper(st);
 make_DHelper(csr);
 
+make_DHelper(CI);
+make_DHelper(C_SDSP);
+make_DHelper(C_MV);
 make_DHelper(C_LI);
 make_DHelper(C_10_100);
 
