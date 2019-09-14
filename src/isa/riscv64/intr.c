@@ -17,7 +17,8 @@ void raise_intr(uint32_t NO, vaddr_t epc) {
 bool isa_query_intr(void) {
   if (cpu.INTR && mstatus->mie) {
     cpu.INTR = false;
-    raise_intr(0x80000005, cpu.pc);
+    // machine external interrupt
+    raise_intr(0x8000000b, cpu.pc);
     return true;
   }
   return false;
