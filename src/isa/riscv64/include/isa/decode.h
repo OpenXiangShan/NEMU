@@ -31,7 +31,7 @@ typedef union {
   };
   struct {
     uint32_t pad5      :12;
-    uint32_t imm31_12  :20;
+    int32_t simm31_12  :20;
   };
   struct {
     uint32_t pad6      :12;
@@ -76,8 +76,8 @@ typedef union {
   struct {
     uint32_t pad12     : 5;
     uint32_t c_imm6_5  : 2;
-    uint32_t c_rs1_    : 3;
-    int32_t c_simm12_10: 3;
+    uint32_t c_rd_rs1_ : 3;
+    uint32_t c_imm12_10: 3;
   };
   // CW can be decoded with CL and CA
   // CA
@@ -112,9 +112,14 @@ make_DHelper(st);
 make_DHelper(csr);
 
 make_DHelper(CI);
+make_DHelper(CR);
+make_DHelper(CB);
 make_DHelper(C_SDSP);
+make_DHelper(C_LDSP);
 make_DHelper(C_MV);
 make_DHelper(C_LI);
 make_DHelper(C_10_100);
+make_DHelper(C_ADDI16SP);
+make_DHelper(C_LW);
 
 #endif

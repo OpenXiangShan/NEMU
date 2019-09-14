@@ -40,3 +40,8 @@ make_EHelper(branch) {
 
   print_asm("b%s %s,%s,%s", branch_map[type].name, id_src->str, id_src2->str, id_dest->str);
 }
+
+make_EHelper(beq) {
+  rtl_jrelop(RELOP_EQ, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+  print_asm("beq %s,%s,%s", id_src->str, id_src2->str, id_dest->str);
+}

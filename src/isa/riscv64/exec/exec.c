@@ -77,17 +77,45 @@ static make_EHelper(C_10_100) {
   static OpcodeEntry table [8] = {
     EMPTY, EMPTY, EX(jalr), IDEX(C_MV, add), EMPTY, EMPTY, EMPTY, EMPTY,
   };
-  int cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
-  int cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
-  int cond_c_rs2_not0 = (decinfo.isa.instr.c_rs2 != 0);
-  int idx = (cond_c_simm12_not0 << 2) | (cond_c_rd_rs1_not0 << 1) | cond_c_rs2_not0;
+  uint32_t cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
+  uint32_t cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
+  uint32_t cond_c_rs2_not0 = (decinfo.isa.instr.c_rs2 != 0);
+  uint32_t idx = (cond_c_simm12_not0 << 2) | (cond_c_rd_rs1_not0 << 1) | cond_c_rs2_not0;
+  assert(idx < 8);
   idex(pc, &table[idx]);
 }
 
+static make_EHelper(C_01_011) {
+  static OpcodeEntry table [2] = { EMPTY, IDEX(C_ADDI16SP, add)};
+  assert(decinfo.isa.instr.c_rd_rs1 != 0);
+  int idx = (decinfo.isa.instr.c_rd_rs1 == 2);
+  idex(pc, &table[idx]);
+}
+
+static make_EHelper(C_01_100) {
+  int func = decinfo.isa.instr.c_func6 & 0x3;
+  switch (func) {
+    case 3: {
+      decode_CR(pc);
+      static OpcodeEntry table [8] = {
+        EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+      };
+
+      uint32_t idx2 = (decinfo.isa.instr.c_func6 >> 2) & 0x1;
+      uint32_t idx1_0 = decinfo.isa.instr.c_func2;
+      uint32_t idx = (idx2 << 2) | idx1_0;
+      assert(idx < 8);
+      idex(pc, &table[idx]);
+      break;
+    }
+    default: assert(0);
+  }
+}
+
 static OpcodeEntry rvc_table [3][8] = {
-  {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
-  {IDEX(CI, add), EMPTY, IDEX(C_LI, add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
-  {EMPTY, EMPTY, EMPTY, EMPTY, IDEX(C_10_100, C_10_100), EMPTY, EMPTY, IDEX(C_SDSP, st), },
+  {EMPTY, EMPTY, IDEX(C_LW, lds), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
+  {IDEX(CI, add), EMPTY, IDEX(C_LI, add), EX(C_01_011), EX(C_01_100), EMPTY, IDEX(CB, beq), EMPTY, },
+  {EMPTY, EMPTY, EMPTY, IDEX(C_LDSP, ld), IDEX(C_10_100, C_10_100), EMPTY, EMPTY, IDEX(C_SDSP, st), },
 };
 
 void isa_exec(vaddr_t *pc) {
