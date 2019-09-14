@@ -1,7 +1,7 @@
 #include "cpu/exec.h"
 
 make_EHelper(jal) {
-  rtl_addi(&s0, &cpu.pc, 4);
+  rtl_li(&s0, decinfo.seq_pc);
   rtl_sr(id_dest->reg, &s0, 4);
   rtl_j(decinfo.jmp_pc);
 
@@ -9,7 +9,7 @@ make_EHelper(jal) {
 }
 
 make_EHelper(jalr) {
-  rtl_addi(&s0, &cpu.pc, 4);
+  rtl_li(&s0, decinfo.seq_pc);
   rtl_sr(id_dest->reg, &s0, 4);
 
   rtl_add(&s0, &id_src->val, &id_src2->val);
@@ -39,4 +39,14 @@ make_EHelper(branch) {
   rtl_jrelop(branch_map[type].relop, &id_src->val, &id_src2->val, decinfo.jmp_pc);
 
   print_asm("b%s %s,%s,%s", branch_map[type].name, id_src->str, id_src2->str, id_dest->str);
+}
+
+make_EHelper(beq) {
+  rtl_jrelop(RELOP_EQ, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+  print_asm("beq %s,%s,%s", id_src->str, id_src2->str, id_dest->str);
+}
+
+make_EHelper(bne) {
+  rtl_jrelop(RELOP_NE, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+  print_asm("bne %s,%s,%s", id_src->str, id_src2->str, id_dest->str);
 }

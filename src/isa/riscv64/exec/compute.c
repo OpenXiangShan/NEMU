@@ -22,23 +22,23 @@ make_EHelper(sll) {
   print_asm_template3(sll);
 }
 
-make_EHelper(srl) {
+make_EHelper(sra) {
   rtl_andi(&id_src2->val, &id_src2->val, 0x3f);
-  // the LSB of funct7 may be "1" due to the shift amount can be >= 32
-  if ((decinfo.isa.instr.funct7 & ~0x1) == 32) {
-    // sra
-    rtl_sar(&s0, &id_src->val, &id_src2->val);
-    print_asm_template3(sra);
-  }
-  else {
-    rtl_shr(&s0, &id_src->val, &id_src2->val);
-    print_asm_template3(srl);
-  }
+  rtl_sar(&s0, &id_src->val, &id_src2->val);
+  print_asm_template3(sra);
   rtl_sr(id_dest->reg, &s0, 4);
 }
 
-make_EHelper(sra) {
-  exec_srl(NULL);
+make_EHelper(srl) {
+  // the LSB of funct7 may be "1" due to the shift amount can be >= 32
+  if ((decinfo.isa.instr.funct7 & ~0x1) == 32) {
+    exec_sra(pc);
+    return;
+  }
+  rtl_andi(&id_src2->val, &id_src2->val, 0x3f);
+  rtl_shr(&s0, &id_src->val, &id_src2->val);
+  print_asm_template3(srl);
+  rtl_sr(id_dest->reg, &s0, 4);
 }
 
 make_EHelper(slt) {
@@ -77,15 +77,16 @@ make_EHelper(and) {
 }
 
 make_EHelper(auipc) {
-  rtl_add(&s0, &id_src->val, &cpu.pc);
+  rtl_shli(&s0, &id_src2->val, 12);
+  rtl_add(&s0, &s0, &cpu.pc);
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template2(auipc);
 }
 
 make_EHelper(lui) {
-  rtl_sext(&id_src->val, &id_src->val, 4);
-  rtl_sr(id_dest->reg, &id_src->val, 4);
+  rtl_shli(&s0, &id_src2->val, 12);
+  rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template2(lui);
 }
