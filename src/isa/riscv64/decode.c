@@ -35,10 +35,11 @@ make_DHelper(R) {
 }
 
 make_DHelper(U) {
-  decode_op_i(id_src, decinfo.isa.instr.simm31_12 << 12, true);
+  // shift at execute stage
+  decode_op_i(id_src2, (sword_t)decinfo.isa.instr.simm31_12, true);
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
 
-  print_Dop(id_src->str, OP_STR_SIZE, "0x%x", decinfo.isa.instr.simm31_12);
+  print_Dop(id_src2->str, OP_STR_SIZE, "0x%x", decinfo.isa.instr.simm31_12);
 }
 
 make_DHelper(J) {
@@ -146,6 +147,20 @@ make_DHelper(C_SDSP) {
   decinfo.width = 8;
 }
 
+make_DHelper(C_SWSP) {
+  decode_op_r(id_src, 2, true);
+  uint32_t imm7_6 = (decinfo.isa.instr.c_imm12_7 & 0x3);
+  uint32_t imm5_2 = (decinfo.isa.instr.c_imm12_7 >> 2);
+  word_t imm = (imm7_6 << 6) | (imm5_2 << 2);
+  decode_op_i(id_src2, imm, true);
+
+  rtl_add(&id_src->addr, &id_src->val, &id_src2->val);
+
+  decode_op_r(id_dest, decinfo.isa.instr.c_rs2, true);
+
+  decinfo.width = 4;
+}
+
 make_DHelper(C_LDSP) {
   decode_op_r(id_src, 2, true);
   uint32_t imm8_6 = (decinfo.isa.instr.c_imm6_2 & 0x7);
@@ -160,6 +175,22 @@ make_DHelper(C_LDSP) {
   assert(decinfo.isa.instr.c_rd_rs1 != 0);
 
   decinfo.width = 8;
+}
+
+make_DHelper(C_LWSP) {
+  decode_op_r(id_src, 2, true);
+  uint32_t imm7_6 = (decinfo.isa.instr.c_imm6_2 & 0x3);
+  uint32_t imm5 = (decinfo.isa.instr.c_simm12 & 0x1);
+  uint32_t imm4_2 = (decinfo.isa.instr.c_imm6_2 >> 2);
+  word_t imm = (imm7_6 << 6) | (imm5 << 5) | (imm4_2 << 2);
+  decode_op_i(id_src2, imm, true);
+
+  rtl_add(&id_src->addr, &id_src->val, &id_src2->val);
+
+  decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, true);
+  assert(decinfo.isa.instr.c_rd_rs1 != 0);
+
+  decinfo.width = 4;
 }
 
 static void decode_C_xxx_imm_rd(bool is_rs1_zero) {

@@ -77,15 +77,16 @@ make_EHelper(and) {
 }
 
 make_EHelper(auipc) {
-  rtl_add(&s0, &id_src->val, &cpu.pc);
+  rtl_shli(&s0, &id_src2->val, 12);
+  rtl_add(&s0, &s0, &cpu.pc);
   rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template2(auipc);
 }
 
 make_EHelper(lui) {
-  rtl_sext(&id_src->val, &id_src->val, 4);
-  rtl_sr(id_dest->reg, &id_src->val, 4);
+  rtl_shli(&s0, &id_src2->val, 12);
+  rtl_sr(id_dest->reg, &s0, 4);
 
   print_asm_template2(lui);
 }

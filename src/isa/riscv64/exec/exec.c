@@ -86,7 +86,7 @@ static make_EHelper(C_10_100) {
 }
 
 static make_EHelper(C_01_011) {
-  static OpcodeEntry table [2] = { EMPTY, IDEX(C_ADDI16SP, add)};
+  static OpcodeEntry table [2] = { IDEX(C_0_imm_rd, lui), IDEX(C_ADDI16SP, add)};
   assert(decinfo.isa.instr.c_rd_rs1 != 0);
   int idx = (decinfo.isa.instr.c_rd_rs1 == 2);
   idex(pc, &table[idx]);
@@ -115,7 +115,7 @@ static make_EHelper(C_01_100) {
 static OpcodeEntry rvc_table [3][8] = {
   {EMPTY, EMPTY, IDEX(C_LW, lds), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
   {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne), },
-  {EMPTY, EMPTY, EMPTY, IDEX(C_LDSP, ld), EX(C_10_100), EMPTY, EMPTY, IDEX(C_SDSP, st), },
+  {EMPTY, EMPTY, IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), EMPTY, IDEX(C_SWSP, st), IDEX(C_SDSP, st), },
 };
 
 void isa_exec(vaddr_t *pc) {
