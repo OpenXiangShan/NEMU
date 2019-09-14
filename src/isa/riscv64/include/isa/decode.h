@@ -44,6 +44,53 @@ typedef union {
     uint32_t pad7      :20;
     uint32_t csr       :12;
   };
+  // RVC
+  // CR
+  struct {
+    uint32_t pad8      : 2;
+    uint32_t c_rs2     : 5;
+    uint32_t c_rd_rs1  : 5;
+    int32_t c_simm12   : 1;
+    uint32_t c_funct3  : 3;
+  };
+  // CI
+  struct {
+    uint32_t pad9      : 2;
+    uint32_t c_imm6_2  : 5;
+  };
+  // CSS
+  struct {
+    uint32_t pad10     : 7;
+    int32_t c_simm12_7 : 6;
+  };
+  // CIW
+  struct {
+    uint32_t pad11     : 2;
+    uint32_t c_rd_     : 3;
+    int32_t c_simm12_5 : 8;
+  };
+  // CL
+  struct {
+    uint32_t pad12     : 5;
+    uint32_t c_imm6_5  : 2;
+    uint32_t c_rs1_    : 3;
+    int32_t c_simm12_10: 3;
+  };
+  // CW can be decoded with CL and CA
+  // CA
+  struct {
+    uint32_t pad13     : 2;
+    uint32_t c_rs2_    : 3;
+    uint32_t c_func2   : 2;
+    uint32_t pad14     : 3;
+    uint32_t c_func6   : 6;
+  };
+  // CB can be decoded with CI and CL
+  // CJ
+  struct {
+    uint32_t pad15     : 2;
+    int32_t c_target  :11;
+  };
   uint32_t val;
 } Instr;
 
@@ -60,5 +107,8 @@ make_DHelper(B);
 make_DHelper(ld);
 make_DHelper(st);
 make_DHelper(csr);
+
+make_DHelper(C_LI);
+make_DHelper(C_10_100);
 
 #endif

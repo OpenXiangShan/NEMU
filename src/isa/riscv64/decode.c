@@ -90,3 +90,19 @@ make_DHelper(csr) {
   decode_op_i(id_src2, decinfo.isa.instr.csr, true);
   decode_op_r(id_dest, decinfo.isa.instr.rd, false);
 }
+
+// RVC
+
+make_DHelper(C_LI) {
+  decode_op_r(id_src, 0, true);
+  sword_t simm = (decinfo.isa.instr.c_simm12 << 5) | decinfo.isa.instr.c_imm6_2;
+  decode_op_i(id_src2, simm, true);
+  decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
+}
+
+make_DHelper(C_10_100) {
+  decode_op_r(id_src, decinfo.isa.instr.c_rd_rs1, true);
+  decode_op_r(id_src2, decinfo.isa.instr.c_rs2, true);
+  decode_op_r(id_dest, 0, false);
+  // overwrite id_dest if necessary
+}

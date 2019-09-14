@@ -92,8 +92,33 @@ static OpcodeEntry opcode_table [32] = {
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
 };
 
+// RVC
+
+static OpcodeEntry C_10_100_table [8] = {
+  EMPTY, EMPTY, EX(jalr), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+};
+
+static make_EHelper(C_10_100) {
+  int cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
+  int cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
+  int cond_c_rs2_not0 = (decinfo.isa.instr.c_rs2 != 0);
+  int idx = (cond_c_simm12_not0 << 2) | (cond_c_rd_rs1_not0 << 1) | cond_c_rs2_not0;
+  idex(pc, &C_10_100_table[idx]);
+}
+
+static OpcodeEntry rvc_table [3][8] = {
+  {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
+  {EMPTY, EMPTY, IDEX(C_LI, add), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
+  {EMPTY, EMPTY, EMPTY, EMPTY, IDEX(C_10_100, C_10_100), EMPTY, EMPTY, EMPTY, },
+};
+
 void isa_exec(vaddr_t *pc) {
   decinfo.isa.instr.val = instr_fetch(pc, 4);
-  assert(decinfo.isa.instr.opcode1_0 == 0x3);
-  idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
+  if (decinfo.isa.instr.opcode1_0 == 0x3) {
+    idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
+  } else {
+    // RVC instructions are only 2-byte
+    *pc -= 2;
+    idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
+  }
 }
