@@ -75,7 +75,7 @@ static OpcodeEntry opcode_table [32] = {
 
 static make_EHelper(C_10_100) {
   static OpcodeEntry table [8] = {
-    EMPTY, EMPTY, EX(jalr), IDEX(C_MV, add), EMPTY, EMPTY, EMPTY, EMPTY,
+    EMPTY, EMPTY, IDEX(C_rs1_rs2_0, jalr), IDEX(C_0_rs2_rd, add), EMPTY, EMPTY, EMPTY, IDEX(C_rs1_rs2_rd, add),
   };
   uint32_t cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
   uint32_t cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
@@ -98,7 +98,7 @@ static make_EHelper(C_01_100) {
     case 3: {
       decode_CR(pc);
       static OpcodeEntry table [8] = {
-        EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+        EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EX(addw), EMPTY, EMPTY,
       };
 
       uint32_t idx2 = (decinfo.isa.instr.c_func6 >> 2) & 0x1;
@@ -114,8 +114,8 @@ static make_EHelper(C_01_100) {
 
 static OpcodeEntry rvc_table [3][8] = {
   {EMPTY, EMPTY, IDEX(C_LW, lds), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
-  {IDEX(CI, add), EMPTY, IDEX(C_LI, add), EX(C_01_011), EX(C_01_100), EMPTY, IDEX(CB, beq), EMPTY, },
-  {EMPTY, EMPTY, EMPTY, IDEX(C_LDSP, ld), IDEX(C_10_100, C_10_100), EMPTY, EMPTY, IDEX(C_SDSP, st), },
+  {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne), },
+  {EMPTY, EMPTY, EMPTY, IDEX(C_LDSP, ld), EX(C_10_100), EMPTY, EMPTY, IDEX(C_SDSP, st), },
 };
 
 void isa_exec(vaddr_t *pc) {

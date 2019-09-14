@@ -95,14 +95,6 @@ make_DHelper(csr) {
 
 #define creg2reg(creg) (creg + 8)
 
-make_DHelper(CI) {
-  decode_op_r(id_src, decinfo.isa.instr.c_rd_rs1, true);
-  sword_t simm = (decinfo.isa.instr.c_simm12 << 5) | decinfo.isa.instr.c_imm6_2;
-  assert(simm != 0);
-  decode_op_i(id_src2, simm, true);
-  decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
-}
-
 make_DHelper(CR) {
   decode_op_r(id_src, creg2reg(decinfo.isa.instr.c_rd_rs1_), true);
   decode_op_r(id_src2, creg2reg(decinfo.isa.instr.c_rs2_), true);
@@ -122,6 +114,22 @@ make_DHelper(CB) {
 
   decode_op_r(id_src, creg2reg(decinfo.isa.instr.c_rd_rs1_), true);
   decode_op_r(id_src2, 0, true);
+}
+
+static make_DHelper(CJ) {
+  sword_t simm11 = decinfo.isa.instr.c_simm12;
+  uint32_t imm10  = (decinfo.isa.instr.c_target >> 6) & 0x1;
+  uint32_t imm9_8 = (decinfo.isa.instr.c_target >> 7) & 0x3;
+  uint32_t imm7   = (decinfo.isa.instr.c_target >> 4) & 0x1;
+  uint32_t imm6   = (decinfo.isa.instr.c_target >> 5) & 0x1;
+  uint32_t imm5   = (decinfo.isa.instr.c_target >> 0) & 0x1;
+  uint32_t imm4   = (decinfo.isa.instr.c_target >> 9) & 0x1;
+  uint32_t imm3_1 = (decinfo.isa.instr.c_target >> 1) & 0x7;
+
+  sword_t offset = (simm11 << 11) | (imm10 << 10) | (imm9_8 << 8) |
+    (imm7 << 7) | (imm6 << 6) | (imm5 << 5) | (imm4 << 4) | (imm3_1 << 1);
+  decinfo.jmp_pc = cpu.pc + offset;
+  decode_op_i(id_src, decinfo.jmp_pc, true);
 }
 
 make_DHelper(C_SDSP) {
@@ -154,26 +162,37 @@ make_DHelper(C_LDSP) {
   decinfo.width = 8;
 }
 
-make_DHelper(C_LI) {
-  decode_op_r(id_src, 0, true);
+static void decode_C_xxx_imm_rd(bool is_rs1_zero) {
+  decode_op_r(id_src, (is_rs1_zero ? 0 : decinfo.isa.instr.c_rd_rs1), true);
   sword_t simm = (decinfo.isa.instr.c_simm12 << 5) | decinfo.isa.instr.c_imm6_2;
   decode_op_i(id_src2, simm, true);
   decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
 }
 
-make_DHelper(C_MV) {
-  decode_op_r(id_src, 0, true);
-  decode_op_r(id_src2, decinfo.isa.instr.c_rs2, true);
-  decode_op_r(id_dest, decinfo.isa.instr.c_rd_rs1, false);
-  assert(decinfo.isa.instr.c_rs2 != 0);
-  assert(decinfo.isa.instr.c_rd_rs1 != 0);
+make_DHelper(C_0_imm_rd) {
+  decode_C_xxx_imm_rd(true);
 }
 
-make_DHelper(C_10_100) {
-  decode_op_r(id_src, decinfo.isa.instr.c_rd_rs1, true);
-  decode_op_r(id_src2, decinfo.isa.instr.c_rs2, true);
-  decode_op_r(id_dest, 0, false);
-  // overwrite id_dest if necessary
+make_DHelper(C_rs1_imm_rd) {
+  decode_C_xxx_imm_rd(false);
+}
+
+static void decode_C_xxx_xxx_xxx(bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
+  decode_op_r(id_src, (is_rs1_zero ? 0 : decinfo.isa.instr.c_rd_rs1), true);
+  decode_op_r(id_src2, (is_rs2_zero ? 0 : decinfo.isa.instr.c_rs2), true);
+  decode_op_r(id_dest, (is_rd_zero ? 0 : decinfo.isa.instr.c_rd_rs1), false);
+}
+
+make_DHelper(C_0_rs2_rd) {
+  decode_C_xxx_xxx_xxx(true, false, false);
+}
+
+make_DHelper(C_rs1_rs2_0) {
+  decode_C_xxx_xxx_xxx(false, false, true);
+}
+
+make_DHelper(C_rs1_rs2_rd) {
+  decode_C_xxx_xxx_xxx(false, false, false);
 }
 
 make_DHelper(C_ADDI16SP) {
@@ -202,4 +221,9 @@ make_DHelper(C_LW) {
   decode_op_r(id_dest, creg2reg(decinfo.isa.instr.c_rd_), false);
 
   decinfo.width = 4;
+}
+
+make_DHelper(C_J) {
+  decode_CJ(pc);
+  decode_op_r(id_dest, 0, false);
 }

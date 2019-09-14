@@ -45,3 +45,8 @@ make_EHelper(beq) {
   rtl_jrelop(RELOP_EQ, &id_src->val, &id_src2->val, decinfo.jmp_pc);
   print_asm("beq %s,%s,%s", id_src->str, id_src2->str, id_dest->str);
 }
+
+make_EHelper(bne) {
+  rtl_jrelop(RELOP_NE, &id_src->val, &id_src2->val, decinfo.jmp_pc);
+  print_asm("bne %s,%s,%s", id_src->str, id_src2->str, id_dest->str);
+}

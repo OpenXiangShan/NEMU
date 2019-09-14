@@ -111,15 +111,17 @@ make_DHelper(ld);
 make_DHelper(st);
 make_DHelper(csr);
 
-make_DHelper(CI);
 make_DHelper(CR);
 make_DHelper(CB);
 make_DHelper(C_SDSP);
 make_DHelper(C_LDSP);
-make_DHelper(C_MV);
-make_DHelper(C_LI);
-make_DHelper(C_10_100);
+make_DHelper(C_0_imm_rd);
+make_DHelper(C_rs1_imm_rd);
+make_DHelper(C_0_rs2_rd);
+make_DHelper(C_rs1_rs2_0);
+make_DHelper(C_rs1_rs2_rd);
 make_DHelper(C_ADDI16SP);
 make_DHelper(C_LW);
+make_DHelper(C_J);
 
 #endif
