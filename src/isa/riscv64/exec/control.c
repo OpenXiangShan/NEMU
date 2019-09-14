@@ -1,7 +1,7 @@
 #include "cpu/exec.h"
 
 make_EHelper(jal) {
-  rtl_addi(&s0, &cpu.pc, 4);
+  rtl_li(&s0, decinfo.seq_pc);
   rtl_sr(id_dest->reg, &s0, 4);
   rtl_j(decinfo.jmp_pc);
 
@@ -9,7 +9,7 @@ make_EHelper(jal) {
 }
 
 make_EHelper(jalr) {
-  rtl_addi(&s0, &cpu.pc, 4);
+  rtl_li(&s0, decinfo.seq_pc);
   rtl_sr(id_dest->reg, &s0, 4);
 
   rtl_add(&s0, &id_src->val, &id_src2->val);

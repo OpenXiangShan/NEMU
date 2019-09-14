@@ -75,7 +75,7 @@ static OpcodeEntry opcode_table [32] = {
 
 static make_EHelper(C_10_100) {
   static OpcodeEntry table [8] = {
-    EMPTY, EMPTY, IDEX(C_rs1_rs2_0, jalr), IDEX(C_0_rs2_rd, add), EMPTY, EMPTY, EMPTY, IDEX(C_rs1_rs2_rd, add),
+    EMPTY, EMPTY, IDEX(C_rs1_rs2_0, jalr), IDEX(C_0_rs2_rd, add), EMPTY, EMPTY, IDEX(C_JALR, jalr), IDEX(C_rs1_rs2_rd, add),
   };
   uint32_t cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
   uint32_t cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
@@ -93,29 +93,29 @@ static make_EHelper(C_01_011) {
 }
 
 static make_EHelper(C_01_100) {
-  int func = decinfo.isa.instr.c_func6 & 0x3;
-  switch (func) {
-    case 3: {
-      decode_CR(pc);
-      static OpcodeEntry table [8] = {
-        EX(sub), EMPTY, EMPTY, EMPTY, EMPTY, EX(addw), EMPTY, EMPTY,
-      };
+  uint32_t func = decinfo.isa.instr.c_func6 & 0x3;
+  if (func == 3) {
+    decode_CR(pc);
+    static OpcodeEntry table [8] = {
+      EX(sub), EMPTY, EX(or), EX(and), EX(subw), EX(addw), EMPTY, EMPTY,
+    };
 
-      uint32_t idx2 = (decinfo.isa.instr.c_func6 >> 2) & 0x1;
-      uint32_t idx1_0 = decinfo.isa.instr.c_func2;
-      uint32_t idx = (idx2 << 2) | idx1_0;
-      assert(idx < 8);
-      idex(pc, &table[idx]);
-      break;
-    }
-    default: assert(0);
+    uint32_t idx2 = (decinfo.isa.instr.c_func6 >> 2) & 0x1;
+    uint32_t idx1_0 = decinfo.isa.instr.c_func2;
+    uint32_t idx = (idx2 << 2) | idx1_0;
+    assert(idx < 8);
+    idex(pc, &table[idx]);
+  } else {
+    decode_C_rs1__imm_rd_(pc);
+    static OpcodeEntry table [3] = { EX(srl), EMPTY, EX(and) };
+    idex(pc, &table[func]);
   }
 }
 
 static OpcodeEntry rvc_table [3][8] = {
-  {EMPTY, EMPTY, IDEX(C_LW, lds), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, },
-  {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne), },
-  {EMPTY, EMPTY, IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), EMPTY, IDEX(C_SWSP, st), IDEX(C_SDSP, st), },
+  {IDEX(C_ADDI4SPN, add), EMPTY, IDEX(C_LW, lds), IDEX(C_LD, ld), EMPTY, EMPTY, IDEX(C_SW, st), IDEX(C_SD, st)},
+  {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne)},
+  {IDEX(C_rs1_imm_rd, sll), EMPTY, IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), EMPTY, IDEX(C_SWSP, st), IDEX(C_SDSP, st)}
 };
 
 void isa_exec(vaddr_t *pc) {
