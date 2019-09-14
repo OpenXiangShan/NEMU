@@ -97,7 +97,7 @@ static make_EHelper(C_01_100) {
   if (func == 3) {
     decode_CR(pc);
     static OpcodeEntry table [8] = {
-      EX(sub), EMPTY, EX(or), EX(and), EX(subw), EX(addw), EMPTY, EMPTY,
+      EX(sub), EX(xor), EX(or), EX(and), EX(subw), EX(addw), EMPTY, EMPTY,
     };
 
     uint32_t idx2 = (decinfo.isa.instr.c_func6 >> 2) & 0x1;
@@ -107,7 +107,7 @@ static make_EHelper(C_01_100) {
     idex(pc, &table[idx]);
   } else {
     decode_C_rs1__imm_rd_(pc);
-    static OpcodeEntry table [3] = { EX(srl), EMPTY, EX(and) };
+    static OpcodeEntry table [3] = { EX(srl), EX(sra), EX(and) };
     idex(pc, &table[func]);
   }
 }
