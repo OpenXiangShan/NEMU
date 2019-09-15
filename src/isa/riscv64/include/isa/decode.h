@@ -110,6 +110,7 @@ make_DHelper(B);
 make_DHelper(ld);
 make_DHelper(st);
 make_DHelper(csr);
+make_DHelper(csri);
 
 make_DHelper(CR);
 make_DHelper(CB);

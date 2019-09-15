@@ -59,7 +59,7 @@ static make_EHelper(op32) {
 
 static make_EHelper(system) {
   static OpcodeEntry table [8] = {
-    EX(priv), IDEX(csr, csrrw), IDEX(csr, csrrs), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+    EX(priv), IDEX(csr, csrrw), IDEX(csr, csrrs), EMPTY, EMPTY, EMPTY, IDEX(csri, csrrs), IDEX(csri, csrrc)
   };
   idex(pc, &table[decinfo.isa.instr.funct3]);
 }

@@ -28,6 +28,7 @@ make_EHelper(nemu_trap);
 
 make_EHelper(csrrw);
 make_EHelper(csrrs);
+make_EHelper(csrrc);
 make_EHelper(priv);
 
 make_EHelper(mul);
