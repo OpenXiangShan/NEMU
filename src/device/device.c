@@ -23,6 +23,11 @@ void send_key(uint8_t, bool);
 static void timer_sig_handler(int signum) {
   timer_intr();
 
+#ifdef __ISA_riscv64__
+  extern void clint_intr(void);
+  clint_intr();
+#endif
+
   device_update_flag = true;
 
   int ret = setitimer(ITIMER_VIRTUAL, &it, NULL);

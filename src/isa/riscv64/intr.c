@@ -1,7 +1,9 @@
 #include "rtl/rtl.h"
 #include "csr.h"
 
-void raise_intr(uint32_t NO, vaddr_t epc) {
+#define INTR_BIT (1ULL << 63)
+
+void raise_intr(word_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * That is, use ``NO'' to index the IDT.
    */
@@ -15,11 +17,18 @@ void raise_intr(uint32_t NO, vaddr_t epc) {
 }
 
 bool isa_query_intr(void) {
-  if (cpu.INTR && mstatus->mie) {
-    cpu.INTR = false;
-    // machine external interrupt
-    raise_intr(0x8000000b, cpu.pc);
-    return true;
+  extern bool clint_query_intr(void);
+  if (mstatus->mie) {
+    //if (cpu.INTR) {
+    //  cpu.INTR = false;
+    //  // machine external interrupt
+    //  raise_intr(0xb | INTR_BIT, cpu.pc);
+    //}
+    if (clint_query_intr() && mie->mtie) {
+      // machine timer interrupt
+      raise_intr(0x7 | INTR_BIT, cpu.pc);
+      return true;
+    }
   }
   return false;
 }
