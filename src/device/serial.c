@@ -16,10 +16,7 @@ static void serial_ch_io_handler(uint32_t offset, int len, bool is_write) {
 
   char c = serial_ch_base[0];
   /* We bind the serial port with the host stdout in NEMU. */
-  putc(c, stdout);
-  if (c == '\n') {
-    fflush(stdout);
-  }
+  putc(c, stderr);
 }
 
 void init_serial() {
