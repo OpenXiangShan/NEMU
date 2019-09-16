@@ -5,7 +5,7 @@
 
 #define CSRS(f) \
   f(mstatus    , 0x300) f(mtvec      , 0x305) f(mepc       , 0x341) f(mcause     , 0x342)  \
-  f(satp       , 0x180) 
+  f(mie        , 0x304) f(satp       , 0x180)
 
 #define CSR_STRUCT_START(name) \
   typedef union { \
@@ -44,6 +44,21 @@ CSR_STRUCT_END(mcause)
 
 CSR_STRUCT_START(mepc)
 CSR_STRUCT_END(mepc)
+
+CSR_STRUCT_START(mie)
+  uint64_t usie : 1;
+  uint64_t ssie : 1;
+  uint64_t hsie : 1;
+  uint64_t msie : 1;
+  uint64_t utie : 1;
+  uint64_t stie : 1;
+  uint64_t htie : 1;
+  uint64_t mtie : 1;
+  uint64_t ueie : 1;
+  uint64_t seie : 1;
+  uint64_t heie : 1;
+  uint64_t meie : 1;
+CSR_STRUCT_END(mie)
 
 #define CSRS_DECL(name, val) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)

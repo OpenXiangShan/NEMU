@@ -24,7 +24,17 @@ make_EHelper(csrrs) {
   print_asm_template3("csrrs");
 }
 
-extern void raise_intr(uint32_t NO, vaddr_t epc);
+make_EHelper(csrrc) {
+  rtlreg_t *csr = csr_decode_wrapper(id_src2->val);
+
+  rtl_sr(id_dest->reg, csr, 8);
+  rtl_not(&s0, &id_src->val);
+  rtl_and(csr, csr, &s0);
+
+  print_asm_template3("csrrc");
+}
+
+extern void raise_intr(word_t NO, vaddr_t epc);
 
 make_EHelper(priv) {
   uint32_t type = decinfo.isa.instr.csr;
