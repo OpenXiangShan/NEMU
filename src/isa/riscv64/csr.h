@@ -5,7 +5,7 @@
 
 #define CSRS(f) \
   f(mstatus    , 0x300) f(mtvec      , 0x305) f(mepc       , 0x341) f(mcause     , 0x342)  \
-  f(mie        , 0x304) f(satp       , 0x180)
+  f(mie        , 0x304) f(mhartid    , 0xf14) f(satp       , 0x180)
 
 #define CSR_STRUCT_START(name) \
   typedef union { \
@@ -44,6 +44,9 @@ CSR_STRUCT_END(mcause)
 
 CSR_STRUCT_START(mepc)
 CSR_STRUCT_END(mepc)
+
+CSR_STRUCT_START(mhartid)
+CSR_STRUCT_END(mhartid)
 
 CSR_STRUCT_START(mie)
   uint64_t usie : 1;
