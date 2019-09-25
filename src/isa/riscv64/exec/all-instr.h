@@ -25,6 +25,7 @@ make_EHelper(bne);
 
 make_EHelper(inv);
 make_EHelper(nemu_trap);
+make_EHelper(fence);
 
 make_EHelper(csrrw);
 make_EHelper(csrrs);
