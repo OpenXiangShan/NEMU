@@ -65,7 +65,7 @@ static make_EHelper(system) {
 }
 
 static OpcodeEntry opcode_table [32] = {
-  /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EMPTY, IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
+  /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EX(fence), IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
   /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
   /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
