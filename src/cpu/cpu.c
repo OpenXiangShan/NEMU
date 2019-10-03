@@ -18,7 +18,7 @@ vaddr_t exec_once(void) {
   isa_exec(&decinfo.seq_pc);
   update_pc();
 
-#if !defined(DIFF_TEST)
+#if !defined(DIFF_TEST) && !_SHARE
   bool isa_query_intr(void);
   if (isa_query_intr()) update_pc();
 #endif

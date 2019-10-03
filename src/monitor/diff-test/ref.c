@@ -1,6 +1,7 @@
 #include "nemu.h"
 #include "monitor/diff-test.h"
 #include "isa/diff-test.h"
+#include "cpu/exec.h"
 
 void cpu_exec(uint64_t);
 
@@ -18,6 +19,12 @@ void difftest_setregs(const void *r) {
 
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
+}
+
+void difftest_raise_intr(word_t NO) {
+  void raise_intr(word_t NO, vaddr_t epc);
+  raise_intr(NO, cpu.pc);
+  update_pc();
 }
 
 void difftest_init(void) {
