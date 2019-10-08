@@ -31,7 +31,8 @@ make_EHelper(sra) {
 
 make_EHelper(srl) {
   // the LSB of funct7 may be "1" due to the shift amount can be >= 32
-  if ((decinfo.isa.instr.funct7 & ~0x1) == 32) {
+  // this rule is disabled when a compressed inst comes in
+  if ((decinfo.isa.instr.funct7 & ~0x1) == 32 && decinfo.isa.instr.opcode1_0 == 0x3) {
     exec_sra(pc);
     return;
   }
