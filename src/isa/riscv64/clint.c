@@ -2,7 +2,7 @@
 #include "device/alarm.h"
 #include "device/map.h"
 
-#define CLINT_MMIO 0x2000000
+#define CLINT_MMIO 0xa2000000
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
 
