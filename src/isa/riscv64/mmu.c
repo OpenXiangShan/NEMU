@@ -19,42 +19,31 @@ typedef union PageTableEntry {
   uint64_t val;
 } PTE;
 
-typedef union {
-  struct {
-    uint64_t pf_off		:12;
-    uint64_t vpn0  		: 9;
-    uint64_t vpn1  		: 9;
-    uint64_t vpn2  		: 9;
-  };
-  uint64_t addr;
-} PageAddr;
+#define PGSHFT 12
+#define PGBASE(pn) (pn << PGSHFT)
 
 // Sv39 page walk
+#define PTW_LEVEL 3
+#define PTE_SIZE 8
+#define VPNMASK 0x1ff
+static inline uintptr_t VPNiSHFT(int i) {
+  return (PGSHFT) + 9 * i;
+}
+static inline uintptr_t VPNi(vaddr_t va, int i) {
+  return (va >> VPNiSHFT(i)) & VPNMASK;
+}
+
 static word_t page_walk(vaddr_t vaddr, bool is_write) {
-  PageAddr *addr = (void *)&vaddr;
-  word_t pdir_base = satp->ppn << 12;
-
-  PTE pte2;
-  pte2.val	= paddr_read(pdir_base + addr->vpn2 * 8, 8);
-  if (!pte2.valid) {
-    panic("pc = " FMT_WORD ", vaddr = " FMT_WORD ", pdir_base = " FMT_WORD ", pte2 = " FMT_WORD,
-        cpu.pc, vaddr, pdir_base, pte2.val);
-  }
-
-  word_t pt_base1 = pte2.ppn << 12;
-  PTE pte1;
-  pte1.val = paddr_read(pt_base1 + addr->vpn1 * 8, 8);
-  if (!pte1.valid) {
-    panic("pc = " FMT_WORD ", vaddr = " FMT_WORD ", pt_base1 = " FMT_WORD ", pte1 = " FMT_WORD,
-      cpu.pc, vaddr, pt_base1, pte1.val);
-  }
-
-  word_t pt_base0 = pte1.ppn << 12;
-  PTE pte0;
-  pte0.val = paddr_read(pt_base0 + addr->vpn0 * 8, 8);
-  if (!pte0.valid) {
-    panic("pc = " FMT_WORD ", vaddr = " FMT_WORD ", pt_base0 = " FMT_WORD ", pte0 = " FMT_WORD,
-      cpu.pc, vaddr, pt_base0, pte0.val);
+  word_t pg_base = PGBASE(satp->ppn);
+  PTE pte;
+  int level;
+  for (level = PTW_LEVEL - 1; level >= 0; level --) {
+    pte.val	= paddr_read(pg_base + VPNi(vaddr, level) * PTE_SIZE, PTE_SIZE);
+    if (!pte.valid) {
+      panic("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD ", pg_base = " FMT_WORD ", pte = " FMT_WORD,
+          level, cpu.pc, vaddr, pg_base, pte.val);
+    }
+    pg_base = PGBASE(pte.ppn);
   }
 
   //if (!pte.access || (pte.dirty == 0 && is_write)) {
@@ -63,7 +52,7 @@ static word_t page_walk(vaddr_t vaddr, bool is_write) {
   //  paddr_write(pt_base + addr->pt_idx * 4, pte.val, 4);
   //}
 
-  return pte0.ppn << 12;
+  return pg_base;
 }
 
 static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
