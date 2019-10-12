@@ -60,13 +60,13 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
 }
 
 word_t isa_vaddr_read(vaddr_t addr, int len) {
-  assert(satp->mode == 0 || satp->mode == 4);
-  paddr_t paddr = (satp->mode == 4 ? page_translate(addr, false) : addr);
+  assert(satp->mode == 0 || satp->mode == 8);
+  paddr_t paddr = (satp->mode == 8 ? page_translate(addr, false) : addr);
   return paddr_read(paddr, len);
 }
 
 void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
-  assert(satp->mode == 0 || satp->mode == 4);
-  paddr_t paddr = (satp->mode == 4 ? page_translate(addr, true) : addr);
+  assert(satp->mode == 0 || satp->mode == 8);
+  paddr_t paddr = (satp->mode == 8 ? page_translate(addr, true) : addr);
   paddr_write(paddr, data, len);
 }
