@@ -43,6 +43,16 @@ make_EHelper(priv) {
       raise_intr(11, cpu.pc);
       print_asm("ecall");
       break;
+    case 0x102:
+      sstatus->sie = sstatus->spie;
+      sstatus->spie = 1;
+      rtl_li(&s0, sepc->val);
+      rtl_jr(&s0);
+      print_asm("sret");
+      break;
+    case 0x120:
+      print_asm("sfence.vma");
+      break;
     case 0x302:
       mstatus->mie = mstatus->mpie;
       mstatus->mpie = 1;
