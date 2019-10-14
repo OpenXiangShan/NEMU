@@ -40,12 +40,14 @@ make_EHelper(priv) {
   uint32_t type = decinfo.isa.instr.csr;
   switch (type) {
     case 0:
-      raise_intr(11, cpu.pc);
+      raise_intr(8 + cpu.mode, cpu.pc);
       print_asm("ecall");
       break;
     case 0x102:
-      sstatus->sie = sstatus->spie;
-      sstatus->spie = 1;
+      mstatus->sie = mstatus->spie;
+      mstatus->spie = 1;
+      change_mode(mstatus->spp);
+      mstatus->mpp = MODE_U;
       rtl_li(&s0, sepc->val);
       rtl_jr(&s0);
       print_asm("sret");
@@ -56,6 +58,8 @@ make_EHelper(priv) {
     case 0x302:
       mstatus->mie = mstatus->mpie;
       mstatus->mpie = 1;
+      change_mode(mstatus->mpp);
+      mstatus->mpp = MODE_U;
       rtl_li(&s0, mepc->val);
       rtl_jr(&s0);
       print_asm("mret");

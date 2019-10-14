@@ -10,7 +10,7 @@
   f(mhartid    , 0xf14) \
   f(sstatus    , 0x100) \
   f(sie        , 0x104) f(stvec      , 0x105) \
-  f(sscratch   , 0x140) f(sepc       , 0x141) \
+  f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142)\
   f(satp       , 0x180)
 
 #define CSR_STRUCT_START(name) \
@@ -40,6 +40,8 @@ CSR_STRUCT_START(mtvec)
 CSR_STRUCT_END(mtvec)
 
 CSR_STRUCT_START(mcause)
+  uint64_t code:63;
+  uint64_t intr: 1;
 CSR_STRUCT_END(mcause)
 
 CSR_STRUCT_START(mepc)
@@ -104,6 +106,11 @@ CSR_STRUCT_START(satp)
   uint64_t mode: 4;
 CSR_STRUCT_END(satp)
 
+CSR_STRUCT_START(scause)
+  uint64_t code:63;
+  uint64_t intr: 1;
+CSR_STRUCT_END(scause)
+
 CSR_STRUCT_START(sepc)
 CSR_STRUCT_END(sepc)
 
@@ -114,5 +121,8 @@ CSR_STRUCT_END(sscratch)
 MAP(CSRS, CSRS_DECL)
 
 word_t* csr_decode(uint32_t addr);
+
+enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
+void change_mode(uint8_t m);
 
 #endif

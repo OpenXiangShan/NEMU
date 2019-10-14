@@ -15,6 +15,7 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
+  uint8_t mode;
 
   bool INTR;
 } CPU_state;

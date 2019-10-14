@@ -16,6 +16,7 @@ void init_clint(void);
 void init_isa(void) {
   cpu.gpr[0]._64 = 0;
   cpu.pc = PC_START;
+  cpu.mode = MODE_M;
   //mstatus->val = 0x000c0100;
 
   register_pmem(0x80000000u);

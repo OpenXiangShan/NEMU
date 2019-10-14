@@ -52,3 +52,8 @@ word_t* csr_decode(uint32_t addr) {
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
 }
+
+void change_mode(uint8_t m) {
+  assert(m < 4 && m != MODE_H);
+  cpu.mode = m;
+}
