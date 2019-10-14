@@ -2,6 +2,7 @@
 #include "monitor/monitor.h"
 #include "monitor/watchpoint.h"
 #include "monitor/diff-test.h"
+#include <stdlib.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -89,5 +90,6 @@ void cpu_exec(uint64_t n) {
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
       monitor_statistic();
+      if (nemu_state.state == NEMU_ABORT) abort();
   }
 }
