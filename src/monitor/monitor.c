@@ -2,6 +2,7 @@
 #include "monitor/monitor.h"
 #include <unistd.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 void init_log(const char *log_file);
 void init_isa();
@@ -71,10 +72,11 @@ static inline void parse_args(int argc, char *argv[]) {
     {"diff"     , required_argument, NULL, 'd'},
     {"mainargs" , required_argument, NULL, 'm'},
     {"port"     , required_argument, NULL, 'p'},
+    {"help"     , no_argument      , NULL, 'h'},
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bl:d:m:p:", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bhl:d:m:p:", table, NULL)) != -1) {
     switch (o) {
       case 'b': is_batch_mode = true; break;
       case 'm': mainargs = optarg; break;
@@ -86,7 +88,14 @@ static inline void parse_args(int argc, char *argv[]) {
         else img_file = optarg;
         break;
       default:
-                panic("Usage: %s [-b] [-l log_file] [img_file]", argv[0]);
+        printf("Usage: %s [OPTION...] IMAGE\n\n", argv[0]);
+        printf("\t-b,--batch              run with batch mode\n");
+        printf("\t-l,--log=FILE           output log to FILE\n");
+        printf("\t-m,--mainargs=ARGS      run guest with mainargs (AM only)\n");
+        printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
+        printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
+        printf("\n");
+        exit(0);
     }
   }
 }
