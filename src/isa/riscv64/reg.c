@@ -38,11 +38,11 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
 
 static word_t csr_array[4096] = {};
 
-#define CSRS_DEF(name, val) \
-  concat(name, _t)* const name = (void *)&csr_array[val];
+#define CSRS_DEF(name, addr) \
+  concat(name, _t)* const name = (void *)&csr_array[addr];
 MAP(CSRS, CSRS_DEF)
 
-#define CSRS_EXIST(name, val) [val] = 1,
+#define CSRS_EXIST(name, addr) [addr] = 1,
 static bool csr_exist[4096] = {
   MAP(CSRS, CSRS_EXIST)
 };

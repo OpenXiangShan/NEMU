@@ -117,7 +117,7 @@ CSR_STRUCT_END(sepc)
 CSR_STRUCT_START(sscratch)
 CSR_STRUCT_END(sscratch)
 
-#define CSRS_DECL(name, val) extern concat(name, _t)* const name;
+#define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
 
 word_t* csr_decode(uint32_t addr);
