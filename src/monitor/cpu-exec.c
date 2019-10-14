@@ -1,6 +1,7 @@
 #include "nemu.h"
 #include "monitor/monitor.h"
 #include "monitor/watchpoint.h"
+#include "monitor/diff-test.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -9,8 +10,10 @@
  */
 #define MAX_INSTR_TO_PRINT 10
 
-/* restrict the size of log file */
-#define LOG_MAX (1024 * 1024)
+// control when the log is printed
+#define LOG_START (0)
+// restrict the size of log file
+#define LOG_END   (1024 * 1024 * 50)
 
 NEMUState nemu_state = {.state = NEMU_STOP};
 
@@ -32,6 +35,10 @@ void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
 }
 
+bool log_enable(void) {
+  return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
+}
+
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
@@ -48,19 +55,12 @@ void cpu_exec(uint64_t n) {
      * instruction decode, and the actual execution. */
     __attribute__((unused)) vaddr_t seq_pc = exec_once();
 
-#if defined(DIFF_TEST)
-  difftest_step(ori_pc, cpu.pc);
-#endif
+    difftest_step(ori_pc, cpu.pc);
+
+    g_nr_guest_instr ++;
 
 #ifdef DEBUG
-  if (g_nr_guest_instr < LOG_MAX) {
     asm_print(ori_pc, seq_pc - ori_pc, n < MAX_INSTR_TO_PRINT);
-  }
-  else if (g_nr_guest_instr == LOG_MAX) {
-    log_write("\n[Warning] To restrict the size of log file, "
-              "we do not record more instruction trace beyond this point.\n"
-              "To capture more trace, you can modify the LOG_MAX macro in %s\n\n", __FILE__);
-  }
 
     /* TODO: check watchpoints here. */
     WP *wp = scan_watchpoint();
@@ -70,10 +70,7 @@ void cpu_exec(uint64_t n) {
       wp->old_val = wp->new_val;
       return;
     }
-
 #endif
-
-  g_nr_guest_instr ++;
 
 #ifdef HAS_IOE
     extern void device_update();
@@ -87,7 +84,7 @@ void cpu_exec(uint64_t n) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
     case NEMU_END: case NEMU_ABORT:
-      _Log("nemu: %s\33[0m at pc = " FMT_WORD "\n\n",
+      Log("nemu: %s\33[0m at pc = " FMT_WORD "\n\n",
           (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
