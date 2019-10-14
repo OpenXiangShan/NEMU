@@ -1,4 +1,5 @@
 #include "nemu.h"
+#include "monitor/diff-test.h"
 #include "csr.h"
 
 const char *regsl[] = {
@@ -47,10 +48,38 @@ static bool csr_exist[4096] = {
   MAP(CSRS, CSRS_EXIST)
 };
 
-word_t* csr_decode(uint32_t addr) {
+static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
+}
+
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (1 << 8) | (1 << 5) | (1 << 1))
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0xf << 13) | (1ull << 63) | (3ull << 32))
+#define SIE_MASK (((3 << 8) | (3 << 4) | 3) & mideleg->val)
+
+void csr_read(rtlreg_t *dest, uint32_t addr) {
+  word_t *src = csr_decode(addr);
+  difftest_skip_dut(1, 3);
+
+  if (src == (void *)sstatus) {
+    *dest = mstatus->val & SSTATUS_RMASK;
+  } else if (src == (void *)sie) {
+    *dest = mie->val & SIE_MASK;
+  } else {
+    *dest = *src;
+  }
+}
+
+void csr_write(uint32_t addr, rtlreg_t *src) {
+  word_t *dest = csr_decode(addr);
+  if (dest == (void *)sstatus) {
+    mstatus->val = (mstatus->val & ~SSTATUS_WMASK) | (*src & SSTATUS_WMASK);
+  } else if (dest == (void *)sie) {
+    mie->val = (mie->val & ~SIE_MASK) | (*src & SIE_MASK);
+  } else {
+    *dest = *src;
+  }
 }
 
 void change_mode(uint8_t m) {

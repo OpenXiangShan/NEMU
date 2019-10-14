@@ -1,35 +1,36 @@
 #include "cpu/exec.h"
 #include "../csr.h"
 
-static inline word_t* csr_decode_wrapper(uint32_t addr) {
-  difftest_skip_dut(1, 3);
-  return csr_decode(addr);
-}
-
 make_EHelper(csrrw) {
-  rtlreg_t *csr = csr_decode_wrapper(id_src2->val);
-
-  rtl_sr(id_dest->reg, csr, 8);
-  rtl_mv(csr, &id_src->val);
+  uint32_t addr = id_src2->val;
+  csr_read(&s0, addr);
+  rtl_sr(id_dest->reg, &s0, 8);
+  csr_write(addr, &id_src->val);
 
   print_asm_template3("csrrw");
 }
 
 make_EHelper(csrrs) {
-  rtlreg_t *csr = csr_decode_wrapper(id_src2->val);
-
-  rtl_sr(id_dest->reg, csr, 8);
-  rtl_or(csr, csr, &id_src->val);
+  uint32_t addr = id_src2->val;
+  csr_read(&s0, addr);
+  rtl_sr(id_dest->reg, &s0, 8);
+  if (id_src->reg != 0) {
+    rtl_or(&s0, &s0, &id_src->val);
+    csr_write(addr, &s0);
+  }
 
   print_asm_template3("csrrs");
 }
 
 make_EHelper(csrrc) {
-  rtlreg_t *csr = csr_decode_wrapper(id_src2->val);
-
-  rtl_sr(id_dest->reg, csr, 8);
-  rtl_not(&s0, &id_src->val);
-  rtl_and(csr, csr, &s0);
+  uint32_t addr = id_src2->val;
+  csr_read(&s0, addr);
+  rtl_sr(id_dest->reg, &s0, 8);
+  if (id_src->reg != 0) {
+    rtl_not(&s1, &id_src->val);
+    rtl_and(&s0, &s0, &s1);
+    csr_write(addr, &s0);
+  }
 
   print_asm_template3("csrrc");
 }

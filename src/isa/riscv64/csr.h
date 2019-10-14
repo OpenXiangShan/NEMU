@@ -120,7 +120,8 @@ CSR_STRUCT_END(sscratch)
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
 
-word_t* csr_decode(uint32_t addr);
+void csr_read(rtlreg_t *dest, uint32_t addr);
+void csr_write(uint32_t addr, rtlreg_t *src);
 
 enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
 void change_mode(uint8_t m);
