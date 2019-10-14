@@ -78,8 +78,6 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   ref_difftest_init(port);
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
-  char *mainargs = guest_to_host(0);
-  ref_difftest_memcpy_from_dut(PC_START - IMAGE_START, mainargs, strlen(mainargs) + 1);
   ref_difftest_setregs(&cpu);
 }
 

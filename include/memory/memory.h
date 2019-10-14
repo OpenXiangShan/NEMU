@@ -7,6 +7,7 @@
 extern uint8_t pmem[];
 
 #define IMAGE_START 0x0
+#define MAINARGS_START 0x1000
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 #define guest_to_host(p) ((void *)(pmem + (unsigned)p))
