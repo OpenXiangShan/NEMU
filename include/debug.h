@@ -17,6 +17,10 @@
       fprintf(stderr, "\33[1;31m"); \
       fprintf(stderr, __VA_ARGS__); \
       fprintf(stderr, "\33[0m\n"); \
+      extern void isa_reg_display(); \
+      extern void monitor_statistic(); \
+      isa_reg_display(); \
+      monitor_statistic(); \
       assert(cond); \
     } \
   } while (0)
