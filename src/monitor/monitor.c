@@ -1,6 +1,8 @@
 #include "nemu.h"
 #include "monitor/monitor.h"
 #include <unistd.h>
+#include <getopt.h>
+#include <stdlib.h>
 
 void init_log(const char *log_file);
 void init_isa();
@@ -64,20 +66,36 @@ static inline long load_img() {
 }
 
 static inline void parse_args(int argc, char *argv[]) {
+  const struct option table[] = {
+    {"batch"    , no_argument      , NULL, 'b'},
+    {"log"      , required_argument, NULL, 'l'},
+    {"diff"     , required_argument, NULL, 'd'},
+    {"mainargs" , required_argument, NULL, 'm'},
+    {"port"     , required_argument, NULL, 'p'},
+    {"help"     , no_argument      , NULL, 'h'},
+    {0          , 0                , NULL,  0 },
+  };
   int o;
-  while ( (o = getopt(argc, argv, "-bl:d:a:p:")) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bhl:d:m:p:", table, NULL)) != -1) {
     switch (o) {
       case 'b': is_batch_mode = true; break;
-      case 'a': mainargs = optarg; break;
+      case 'm': mainargs = optarg; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
       case 1:
-                if (img_file != NULL) Log("too much argument '%s', ignored", optarg);
-                else img_file = optarg;
-                break;
+        if (img_file != NULL) Log("too much argument '%s', ignored", optarg);
+        else img_file = optarg;
+        break;
       default:
-                panic("Usage: %s [-b] [-l log_file] [img_file]", argv[0]);
+        printf("Usage: %s [OPTION...] IMAGE\n\n", argv[0]);
+        printf("\t-b,--batch              run with batch mode\n");
+        printf("\t-l,--log=FILE           output log to FILE\n");
+        printf("\t-m,--mainargs=ARGS      run guest with mainargs (AM only)\n");
+        printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
+        printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
+        printf("\n");
+        exit(0);
     }
   }
 }
