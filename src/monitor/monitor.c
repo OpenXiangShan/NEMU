@@ -11,7 +11,7 @@ void init_wp_pool();
 void init_device();
 void init_difftest(char *ref_so_file, long img_size, int port);
 
-static char *mainargs = "";
+static char *mainargs = NULL;
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
@@ -60,7 +60,9 @@ static inline long load_img() {
     fclose(fp);
 
     // mainargs
-    strcpy(guest_to_host(0), mainargs);
+    if (mainargs != NULL) {
+      strcpy(guest_to_host(MAINARGS_START), mainargs);
+    }
   }
   return size;
 }
