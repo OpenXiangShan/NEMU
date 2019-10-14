@@ -36,6 +36,10 @@ static char serial_dequeue() {
   return ch;
 }
 
+static inline uint8_t serial_rx_ready_flag(void) {
+  return (f == r ? 0 : LSR_RX_READY);
+}
+
 static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   assert(len == 1);
   switch (offset) {
@@ -45,7 +49,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
       else serial_base[0] = serial_dequeue();
       break;
     case LSR_OFFSET:
-      if (!is_write) serial_base[5] = LSR_TX_READY | LSR_RX_READY;
+      if (!is_write) serial_base[5] = LSR_TX_READY | serial_rx_ready_flag();
       break;
   }
 }
