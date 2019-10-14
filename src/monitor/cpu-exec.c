@@ -17,6 +17,10 @@
 #define LOG_END   (1024 * 1024 * 50)
 
 NEMUState nemu_state = {.state = NEMU_STOP};
+static uint64_t g_nr_guest_instr = 0;
+
+vaddr_t exec_once(void);
+void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 
 int goodtrap(void) {
   return (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0);
@@ -25,12 +29,6 @@ int goodtrap(void) {
 void interpret_rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
   nemu_state = (NEMUState) { .state = state, .halt_pc = halt_pc, .halt_ret = halt_ret };
 }
-
-vaddr_t exec_once(void);
-void difftest_step(vaddr_t ori_pc, vaddr_t next_pc);
-void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
-
-static uint64_t g_nr_guest_instr = 0;
 
 void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
