@@ -30,19 +30,18 @@ void raise_intr(word_t NO, vaddr_t epc) {
   rtl_jr(&s0);
 }
 
+#define IRQ_MTIP 0x7
+
 bool isa_query_intr(void) {
   extern bool clint_query_intr(void);
-  if (mstatus->mie) {
-    //if (cpu.INTR) {
-    //  cpu.INTR = false;
-    //  // machine external interrupt
-    //  raise_intr(0xb | INTR_BIT, cpu.pc);
-    //}
-    if (clint_query_intr() && mie->mtie) {
-      // machine timer interrupt
-      raise_intr(0x7 | INTR_BIT, cpu.pc);
-      return true;
-    }
+  bool mtip = clint_query_intr();
+  bool deleg = (mideleg->val & (1 << IRQ_MTIP)) != 0;
+  bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
+                                ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
+  if (mtip && mie->mtie && global_enable) {
+    // machine timer interrupt
+    raise_intr(IRQ_MTIP | INTR_BIT, cpu.pc);
+    return true;
   }
   return false;
 }
