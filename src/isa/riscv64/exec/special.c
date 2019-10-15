@@ -28,4 +28,6 @@ make_EHelper(nemu_trap) {
   return;
 }
 
-make_EHelper(fence) { }
+make_EHelper(fence) {
+  difftest_skip_dut(1, 2);
+}
