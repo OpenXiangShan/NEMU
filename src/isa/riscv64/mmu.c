@@ -4,17 +4,17 @@
 
 typedef union PageTableEntry {
   struct {
-    uint32_t valid  : 1;
-    uint32_t read   : 1;
-    uint32_t write  : 1;
-    uint32_t exec   : 1;
-    uint32_t user   : 1;
-    uint32_t global : 1;
-    uint32_t access : 1;
-    uint32_t dirty  : 1;
-    uint32_t rsw    : 2;
-    uint64_t ppn    :44;
-    uint32_t pad    :10;
+    uint32_t v   : 1;
+    uint32_t r   : 1;
+    uint32_t w   : 1;
+    uint32_t x   : 1;
+    uint32_t u   : 1;
+    uint32_t g   : 1;
+    uint32_t a   : 1;
+    uint32_t d   : 1;
+    uint32_t rsw : 2;
+    uint64_t ppn :44;
+    uint32_t pad :10;
   };
   uint64_t val;
 } PTE;
@@ -35,22 +35,24 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
 
 static word_t page_walk(vaddr_t vaddr, bool is_write) {
   word_t pg_base = PGBASE(satp->ppn);
+  word_t p_pte; // pte pointer
   PTE pte;
   int level;
   for (level = PTW_LEVEL - 1; level >= 0; level --) {
-    pte.val	= paddr_read(pg_base + VPNi(vaddr, level) * PTE_SIZE, PTE_SIZE);
-    if (!pte.valid) {
+    p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+    pte.val	= paddr_read(p_pte, PTE_SIZE);
+    if (!pte.v) {
       panic("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD ", pg_base = " FMT_WORD ", pte = " FMT_WORD,
           level, cpu.pc, vaddr, pg_base, pte.val);
     }
     pg_base = PGBASE(pte.ppn);
   }
 
-  //if (!pte.access || (pte.dirty == 0 && is_write)) {
-  //  pte.access = 1;
-  //  pte.dirty |= is_write;
-  //  paddr_write(pt_base + addr->pt_idx * 4, pte.val, 4);
-  //}
+  if (!pte.a || (!pte.d && is_write)) {
+    pte.a = true;
+    pte.d |= is_write;
+    paddr_write(p_pte, pte.val, PTE_SIZE);
+  }
 
   return pg_base;
 }
