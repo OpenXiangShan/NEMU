@@ -147,7 +147,14 @@ void isa_exec(vaddr_t *pc) {
   }
 
   cpu.fetching = true;
-  decinfo.isa.instr.val = instr_fetch(pc, 4);
+  if ((*pc & 0xfff) == 0xffe) {
+    // 4 byte instruction accross page boundary
+    uint32_t lo = instr_fetch(pc, 2);
+    uint32_t hi = instr_fetch(pc, 2);
+    decinfo.isa.instr.val = ((hi & 0xffff) << 16) | (lo & 0xffff);
+  } else {
+    decinfo.isa.instr.val = instr_fetch(pc, 4);
+  }
   cpu.fetching = false;
   if (decinfo.isa.instr.opcode1_0 == 0x3) {
     idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
