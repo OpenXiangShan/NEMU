@@ -146,7 +146,9 @@ void isa_exec(vaddr_t *pc) {
     return;
   }
 
+  cpu.fetching = true;
   decinfo.isa.instr.val = instr_fetch(pc, 4);
+  cpu.fetching = false;
   if (decinfo.isa.instr.opcode1_0 == 0x3) {
     idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
   } else {

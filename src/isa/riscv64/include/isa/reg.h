@@ -17,6 +17,8 @@ typedef struct {
   vaddr_t pc;
   uint8_t mode;
 
+  bool fetching;
+
   bool INTR;
 } CPU_state;
 
