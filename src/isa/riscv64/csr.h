@@ -7,10 +7,12 @@
   f(mstatus    , 0x300) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
+  f(mip        , 0x344) \
   f(mhartid    , 0xf14) \
   f(sstatus    , 0x100) \
   f(sie        , 0x104) f(stvec      , 0x105) \
-  f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142)\
+  f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
+  f(sip        , 0x144) \
   f(satp       , 0x180)
 
 #define CSR_STRUCT_START(name) \
@@ -34,6 +36,11 @@ CSR_STRUCT_START(mstatus)
   uint64_t spp : 1;
   uint64_t pad2: 2;
   uint64_t mpp : 2;
+  uint64_t fs  : 2;
+  uint64_t xs  : 2;
+  uint64_t mprv: 1;
+  uint64_t sum : 1;
+  uint64_t mxr : 1;
 CSR_STRUCT_END(mstatus)
 
 CSR_STRUCT_START(mtvec)
@@ -74,6 +81,21 @@ CSR_STRUCT_START(mie)
   uint64_t meie : 1;
 CSR_STRUCT_END(mie)
 
+CSR_STRUCT_START(mip)
+  uint64_t usip : 1;
+  uint64_t ssip : 1;
+  uint64_t hsip : 1;
+  uint64_t msip : 1;
+  uint64_t utip : 1;
+  uint64_t stip : 1;
+  uint64_t htip : 1;
+  uint64_t mtip : 1;
+  uint64_t ueip : 1;
+  uint64_t seip : 1;
+  uint64_t heip : 1;
+  uint64_t meip : 1;
+CSR_STRUCT_END(mip)
+
 CSR_STRUCT_START(sstatus)
   uint64_t uie : 1;
   uint64_t sie : 1;
@@ -99,6 +121,19 @@ CSR_STRUCT_START(sie)
   uint64_t seie : 1;
   uint64_t pad2 : 2;
 CSR_STRUCT_END(sie)
+
+CSR_STRUCT_START(sip)
+  uint64_t usip : 1;
+  uint64_t ssip : 1;
+  uint64_t pad0 : 2;
+  uint64_t utip : 1;
+  uint64_t stip : 1;
+  uint64_t pad1 : 2;
+  uint64_t ueip : 1;
+  uint64_t seip : 1;
+  uint64_t pad2 : 2;
+CSR_STRUCT_END(sip)
+
 
 CSR_STRUCT_START(satp)
   uint64_t ppn :44;

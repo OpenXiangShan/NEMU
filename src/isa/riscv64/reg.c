@@ -57,6 +57,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (1 << 8) | (1 << 5) | (1 << 1))
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0xf << 13) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (((3 << 8) | (3 << 4) | 3) & mideleg->val)
+#define SIP_MASK (((1 << 8) | (0 << 4) | 3) & mideleg->val)
 
 void csr_read(rtlreg_t *dest, uint32_t addr) {
   word_t *src = csr_decode(addr);
@@ -77,6 +78,8 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     mstatus->val = (mstatus->val & ~SSTATUS_WMASK) | (*src & SSTATUS_WMASK);
   } else if (dest == (void *)sie) {
     mie->val = (mie->val & ~SIE_MASK) | (*src & SIE_MASK);
+  } else if (dest == (void *)sip) {
+    mip->val = (mip->val & ~SIP_MASK) | (*src & SIP_MASK);
   } else {
     *dest = *src;
   }

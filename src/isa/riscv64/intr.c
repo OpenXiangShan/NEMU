@@ -2,6 +2,11 @@
 #include "csr.h"
 
 #define INTR_BIT (1ULL << 63)
+enum {
+  IRQ_USIP, IRQ_SSIP, IRQ_HSIP, IRQ_MSIP,
+  IRQ_UTIP, IRQ_STIP, IRQ_HTIP, IRQ_MTIP,
+  IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
+};
 
 void raise_intr(word_t NO, vaddr_t epc) {
   // TODO: Trigger an interrupt/exception with ``NO''
@@ -30,18 +35,25 @@ void raise_intr(word_t NO, vaddr_t epc) {
   rtl_jr(&s0);
 }
 
-#define IRQ_MTIP 0x7
-
 bool isa_query_intr(void) {
-  extern bool clint_query_intr(void);
-  bool mtip = clint_query_intr();
-  bool deleg = (mideleg->val & (1 << IRQ_MTIP)) != 0;
-  bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
-                                ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
-  if (mtip && mie->mtie && global_enable) {
-    // machine timer interrupt
-    raise_intr(IRQ_MTIP | INTR_BIT, cpu.pc);
-    return true;
+  word_t intr_vec = mie->val & mip->val;
+  const int priority [] = {
+    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
+    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
+    IRQ_UEIP, IRQ_USIP, IRQ_UTIP
+  };
+  int i;
+  for (i = 0; i < 9; i ++) {
+    int irq = priority[i];
+    if (intr_vec & (1 << irq)) {
+      bool deleg = (mideleg->val & (1 << irq)) != 0;
+      bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
+          ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
+      if (global_enable) {
+        raise_intr(irq | INTR_BIT, cpu.pc);
+        return true;
+      }
+    }
   }
   return false;
 }
