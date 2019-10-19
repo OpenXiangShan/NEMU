@@ -1,5 +1,6 @@
 #include "cpu/exec.h"
 #include "all-instr.h"
+#include <setjmp.h>
 
 static make_EHelper(load) {
   static OpcodeEntry table [8] = {
@@ -64,9 +65,26 @@ static make_EHelper(system) {
   idex(pc, &table[decinfo.isa.instr.funct3]);
 }
 
+static make_EHelper(atomic) {
+  static OpcodeEntry table_lo [4] = {
+    EMPTY, EX(amoswap), EMPTY, EMPTY
+  };
+  static OpcodeEntry table_hi [8] = {
+    EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+  };
+
+  decinfo.width = 1 << decinfo.isa.instr.funct3;
+
+  uint32_t funct5 = decinfo.isa.instr.funct7 >> 2;
+  uint32_t idx_lo = funct5 & 0x3;
+  uint32_t idx_hi = funct5 >> 2;
+  if (idx_lo != 0) idex(pc, &table_lo[idx_lo]);
+  else idex(pc, &table_hi[idx_hi]);
+}
+
 static OpcodeEntry opcode_table [32] = {
   /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EX(fence), IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
-  /* b01 */ IDEX(st, store), EMPTY, EMPTY, EMPTY, IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
+  /* b01 */ IDEX(st, store), EMPTY, EMPTY, IDEX(R, atomic), IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
   /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
 };
@@ -119,7 +137,25 @@ static OpcodeEntry rvc_table [3][8] = {
 };
 
 void isa_exec(vaddr_t *pc) {
-  decinfo.isa.instr.val = instr_fetch(pc, 4);
+  extern jmp_buf intr_buf;
+  int setjmp_ret;
+  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
+    int exception = setjmp_ret - 1;
+    void raise_intr(word_t, vaddr_t);
+    raise_intr(exception, cpu.pc);
+    return;
+  }
+
+  cpu.fetching = true;
+  if ((*pc & 0xfff) == 0xffe) {
+    // 4 byte instruction accross page boundary
+    uint32_t lo = instr_fetch(pc, 2);
+    uint32_t hi = instr_fetch(pc, 2);
+    decinfo.isa.instr.val = ((hi & 0xffff) << 16) | (lo & 0xffff);
+  } else {
+    decinfo.isa.instr.val = instr_fetch(pc, 4);
+  }
+  cpu.fetching = false;
   if (decinfo.isa.instr.opcode1_0 == 0x3) {
     idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
   } else {

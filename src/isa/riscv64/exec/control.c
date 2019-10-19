@@ -13,7 +13,7 @@ make_EHelper(jalr) {
   rtl_sr(id_dest->reg, &s0, 4);
 
   rtl_add(&s0, &id_src->val, &id_src2->val);
-  rtl_andi(&s0, &s0, ~0x1u);
+  rtl_andi(&s0, &s0, ~1lu);
   rtl_jr(&s0);
 
   difftest_skip_dut(1, 2);

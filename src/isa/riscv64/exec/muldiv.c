@@ -48,7 +48,7 @@ make_EHelper(mulhsu) {
 
 make_EHelper(div) {
   if (id_src2->val == 0) {
-    rtl_li(&s0, -1);
+    rtl_li(&s0, ~0lu);
   } else if (id_src->val == 0x8000000000000000LL && id_src2->val == -1) {
     rtl_mv(&s0, &id_src->val);
   } else {
@@ -61,7 +61,7 @@ make_EHelper(div) {
 
 make_EHelper(divu) {
   if (id_src2->val == 0) {
-    rtl_li(&s0, -1);
+    rtl_li(&s0, ~0lu);
   } else {
     rtl_div_q(&s0, &id_src->val, &id_src2->val);
   }
@@ -106,7 +106,7 @@ make_EHelper(divw) {
   rtl_sext(&s0, &id_src->val, 4);
   rtl_sext(&s1, &id_src2->val, 4);
   if (s1 == 0) {
-    rtl_li(&s0, -1);
+    rtl_li(&s0, ~0lu);
   } else if (s0 == 0x80000000 && s1 == -1) {
     //rtl_mv(&s0, &s0);
   } else {
@@ -138,7 +138,7 @@ make_EHelper(divuw) {
   rtl_andi(&s0, &id_src->val, 0xffffffffu);
   rtl_andi(&s1, &id_src2->val, 0xffffffffu);
   if (s1 == 0) {
-    rtl_li(&s0, -1);
+    rtl_li(&s0, ~0lu);
   } else {
     rtl_div_q(&s0, &s0, &s1);
   }
