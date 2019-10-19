@@ -12,7 +12,7 @@
   f(sstatus    , 0x100) \
   f(sie        , 0x104) f(stvec      , 0x105) \
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
-  f(sip        , 0x144) \
+  f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180)
 
 #define CSR_STRUCT_START(name) \
@@ -148,6 +148,9 @@ CSR_STRUCT_END(scause)
 
 CSR_STRUCT_START(sepc)
 CSR_STRUCT_END(sepc)
+
+CSR_STRUCT_START(stval)
+CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(sscratch)
 CSR_STRUCT_END(sscratch)
