@@ -1,5 +1,6 @@
 #include "rtl/rtl.h"
 #include "csr.h"
+#include <setjmp.h>
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -56,4 +57,9 @@ bool isa_query_intr(void) {
     }
   }
   return false;
+}
+
+jmp_buf intr_buf;
+void longjmp_raise_intr(uint32_t NO) {
+  longjmp(intr_buf, NO + 1);
 }

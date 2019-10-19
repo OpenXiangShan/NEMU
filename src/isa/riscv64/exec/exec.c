@@ -1,5 +1,6 @@
 #include "cpu/exec.h"
 #include "all-instr.h"
+#include <setjmp.h>
 
 static make_EHelper(load) {
   static OpcodeEntry table [8] = {
@@ -136,6 +137,15 @@ static OpcodeEntry rvc_table [3][8] = {
 };
 
 void isa_exec(vaddr_t *pc) {
+  extern jmp_buf intr_buf;
+  int setjmp_ret;
+  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
+    int exception = setjmp_ret - 1;
+    void raise_intr(word_t, vaddr_t);
+    raise_intr(exception, cpu.pc);
+    return;
+  }
+
   decinfo.isa.instr.val = instr_fetch(pc, 4);
   if (decinfo.isa.instr.opcode1_0 == 0x3) {
     idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
