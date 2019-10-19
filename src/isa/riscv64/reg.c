@@ -80,6 +80,10 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     mie->val = (mie->val & ~SIE_MASK) | (*src & SIE_MASK);
   } else if (dest == (void *)sip) {
     mip->val = (mip->val & ~SIP_MASK) | (*src & SIP_MASK);
+  } else if (dest == (void *)medeleg) {
+    *dest = *src & 0xbbff;
+  } else if (dest == (void *)mideleg) {
+    *dest = *src & 0x222;
   } else {
     *dest = *src;
   }
