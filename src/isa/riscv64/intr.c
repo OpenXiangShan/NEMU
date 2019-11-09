@@ -1,6 +1,7 @@
 #include "rtl/rtl.h"
 #include "csr.h"
 #include <setjmp.h>
+#include "intr.h"
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -23,6 +24,7 @@ void raise_intr(word_t NO, vaddr_t epc) {
     mstatus->sie = 0;
     cpu.mode = MODE_S;
     rtl_li(&s0, stvec->val);
+    if (NO == EX_II) stval->val = 0;
   } else {
     mcause->val = NO;
     mepc->val = epc;
@@ -31,6 +33,7 @@ void raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mie = 0;
     cpu.mode = MODE_M;
     rtl_li(&s0, mtvec->val);
+    if (NO == EX_II) mtval->val = 0;
   }
 
   rtl_jr(&s0);

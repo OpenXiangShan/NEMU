@@ -1,6 +1,7 @@
 #include "nemu.h"
 #include "monitor/diff-test.h"
 #include "csr.h"
+#include "intr.h"
 
 const char *regsl[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -50,6 +51,10 @@ static bool csr_exist[4096] = {
 
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
+  if (addr == 0xc01) {
+    // time
+    longjmp_raise_intr(EX_II);
+  }
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
 }
