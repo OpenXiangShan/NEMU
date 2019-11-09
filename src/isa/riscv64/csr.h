@@ -8,9 +8,11 @@
   f(mie        , 0x304) f(mtvec      , 0x305) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
   f(mip        , 0x344) \
+  f(pmpcfg0    , 0x3a0) \
+  f(pmpaddr0   , 0x3b0) f(pmpaddr1   , 0x3b1) f(pmpaddr2   , 0x3b2) f(pmpaddr3   , 0x3b3) \
   f(mhartid    , 0xf14) \
   f(sstatus    , 0x100) \
-  f(sie        , 0x104) f(stvec      , 0x105) \
+  f(sie        , 0x104) f(stvec      , 0x105) f(scounteren , 0x106) \
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180)
@@ -102,6 +104,21 @@ CSR_STRUCT_START(mip)
   uint64_t meip : 1;
 CSR_STRUCT_END(mip)
 
+CSR_STRUCT_START(pmpcfg0)
+CSR_STRUCT_END(pmpcfg0)
+
+CSR_STRUCT_START(pmpaddr0)
+CSR_STRUCT_END(pmpaddr0)
+
+CSR_STRUCT_START(pmpaddr1)
+CSR_STRUCT_END(pmpaddr1)
+
+CSR_STRUCT_START(pmpaddr2)
+CSR_STRUCT_END(pmpaddr2)
+
+CSR_STRUCT_START(pmpaddr3)
+CSR_STRUCT_END(pmpaddr3)
+
 CSR_STRUCT_START(sstatus)
   uint64_t uie : 1;
   uint64_t sie : 1;
@@ -115,6 +132,9 @@ CSR_STRUCT_END(sstatus)
 
 CSR_STRUCT_START(stvec)
 CSR_STRUCT_END(stvec)
+
+CSR_STRUCT_START(scounteren)
+CSR_STRUCT_END(scounteren)
 
 CSR_STRUCT_START(sie)
   uint64_t usie : 1;
