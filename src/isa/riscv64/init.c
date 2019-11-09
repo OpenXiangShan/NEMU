@@ -20,6 +20,10 @@ void init_isa(void) {
   cpu.mode = MODE_M;
   mstatus->val = 0x00001800;
 
+#define ext(e) (1 << ((e) - 'a'))
+  misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s');
+  misa->mxl = 2; // XLEN = 64
+
   register_pmem(0x80000000u);
 
   init_clint();

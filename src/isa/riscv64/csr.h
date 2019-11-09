@@ -4,7 +4,7 @@
 #include "common.h"
 
 #define CSRS(f) \
-  f(mstatus    , 0x300) f(medeleg    , 0x302) f(mideleg    , 0x303) \
+  f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
   f(mip        , 0x344) \
@@ -42,6 +42,12 @@ CSR_STRUCT_START(mstatus)
   uint64_t sum : 1;
   uint64_t mxr : 1;
 CSR_STRUCT_END(mstatus)
+
+CSR_STRUCT_START(misa)
+  uint64_t extensions: 26;
+  uint64_t pad       : 36;
+  uint64_t mxl       :  2;
+CSR_STRUCT_END(misa)
 
 CSR_STRUCT_START(mtvec)
 CSR_STRUCT_END(mtvec)
