@@ -21,6 +21,7 @@ typedef union PageTableEntry {
 } PTE;
 
 #define PGSHFT 12
+#define PGMASK ((1ull << PGSHFT) - 1)
 #define PGBASE(pn) (pn << PGSHFT)
 
 // Sv39 page walk
@@ -34,44 +35,61 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-static word_t page_walk(vaddr_t vaddr, bool is_write) {
-  word_t pg_base = PGBASE(satp->ppn);
-  word_t p_pte; // pte pointer
-  PTE pte;
-  int level;
-  bool ok = true;
-  for (level = PTW_LEVEL - 1; level >= 0; level --) {
-    p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
-    pte.val	= paddr_read(p_pte, PTE_SIZE);
-    if (!pte.v) {
-      Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD ", pg_base = " FMT_WORD ", pte = " FMT_WORD,
-          level, cpu.pc, vaddr, pg_base, pte.val);
-      Assert(cpu.mode == MODE_U, "cpu.mode = %d", cpu.mode);
-      break;
-    }
-    pg_base = PGBASE(pte.ppn);
-  }
-
-  // check permission
-  ok = pte.v;
-  ok = ok && !(cpu.mode == MODE_U && !pte.u);
-  ok = ok && !(cpu.mode == MODE_S && pte.u && mstatus->sum);
+static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_write) {
+  ok = ok && pte->v;
+  ok = ok && !(cpu.mode == MODE_U && !pte->u);
+  ok = ok && !(cpu.mode == MODE_S && pte->u && mstatus->sum);
   if (cpu.fetching) {
-    if (!(ok && pte.x)) {
+    if (!(ok && pte->x)) {
       stval->val = vaddr;
       longjmp_raise_intr(EX_IPF);
     }
   } else if (!is_write) {
-    bool can_load = pte.r || (mstatus->mxr && pte.x);
+    bool can_load = pte->r || (mstatus->mxr && pte->x);
     if (!(ok && can_load)) {
       stval->val = vaddr;
       longjmp_raise_intr(EX_LPF);
     }
   } else {
-    if (!(ok && pte.w)) {
+    if (!(ok && pte->w)) {
       stval->val = vaddr;
       longjmp_raise_intr(EX_SPF);
     }
+  }
+}
+
+static word_t page_walk(vaddr_t vaddr, bool is_write) {
+  word_t pg_base = PGBASE(satp->ppn);
+  word_t p_pte; // pte pointer
+  PTE pte;
+  int level;
+  for (level = PTW_LEVEL - 1; level >= 0;) {
+    p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+    pte.val	= paddr_read(p_pte, PTE_SIZE);
+    pg_base = PGBASE(pte.ppn);
+    if (!pte.v) {
+      Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
+          ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
+          level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
+      break;
+    }
+    if (pte.r || pte.x) { break; }
+    else {
+      level --;
+      if (level < 0) { check_permission(&pte, false, vaddr, is_write); }
+    }
+  }
+
+  check_permission(&pte, true, vaddr, is_write);
+
+  if (level > 0) {
+    // superpage
+    word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
+    if ((pg_base & pg_mask) != 0) {
+      // missaligned superpage
+      check_permission(&pte, false, vaddr, is_write);
+    }
+    pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
 
   if (!pte.a || (!pte.d && is_write)) {
