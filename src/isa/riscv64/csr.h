@@ -5,9 +5,9 @@
 
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
-  f(mie        , 0x304) f(mtvec      , 0x305) \
+  f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
-  f(mip        , 0x344) \
+  f(mtval      , 0x343) f(mip        , 0x344) \
   f(pmpcfg0    , 0x3a0) \
   f(pmpaddr0   , 0x3b0) f(pmpaddr1   , 0x3b1) f(pmpaddr2   , 0x3b2) f(pmpaddr3   , 0x3b3) \
   f(mhartid    , 0xf14) \
@@ -54,6 +54,9 @@ CSR_STRUCT_END(misa)
 CSR_STRUCT_START(mtvec)
 CSR_STRUCT_END(mtvec)
 
+CSR_STRUCT_START(mcounteren)
+CSR_STRUCT_END(mcounteren)
+
 CSR_STRUCT_START(mcause)
   uint64_t code:63;
   uint64_t intr: 1;
@@ -73,6 +76,9 @@ CSR_STRUCT_END(mhartid)
 
 CSR_STRUCT_START(mscratch)
 CSR_STRUCT_END(mscratch)
+
+CSR_STRUCT_START(mtval)
+CSR_STRUCT_END(mtval)
 
 CSR_STRUCT_START(mie)
   uint64_t usie : 1;
