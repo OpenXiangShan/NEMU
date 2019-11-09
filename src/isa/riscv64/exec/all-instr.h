@@ -52,6 +52,8 @@ make_EHelper(remuw);
 make_EHelper(sraw);
 make_EHelper(srlw);
 
+make_EHelper(lr);
+make_EHelper(sc);
 make_EHelper(amoswap);
 make_EHelper(amoadd);
 make_EHelper(amoor);

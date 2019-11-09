@@ -67,7 +67,7 @@ static make_EHelper(system) {
 
 static make_EHelper(atomic) {
   static OpcodeEntry table_lo [4] = {
-    EMPTY, EX(amoswap), EMPTY, EMPTY
+    EMPTY, EX(amoswap), EX(lr), EX(sc)
   };
   static OpcodeEntry table_hi [8] = {
     EX(amoadd), EMPTY, EX(amoor), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY

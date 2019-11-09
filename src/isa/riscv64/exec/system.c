@@ -51,6 +51,7 @@ make_EHelper(priv) {
       mstatus->mpp = MODE_U;
       rtl_li(&s0, sepc->val);
       rtl_jr(&s0);
+      cpu.lr = false;
       print_asm("sret");
       break;
     case 0x120:
@@ -63,6 +64,7 @@ make_EHelper(priv) {
       mstatus->mpp = MODE_U;
       rtl_li(&s0, mepc->val);
       rtl_jr(&s0);
+      cpu.lr = false;
       print_asm("mret");
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
