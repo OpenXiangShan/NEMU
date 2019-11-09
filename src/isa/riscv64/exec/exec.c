@@ -60,7 +60,7 @@ static make_EHelper(op32) {
 
 static make_EHelper(system) {
   static OpcodeEntry table [8] = {
-    EX(priv), IDEX(csr, csrrw), IDEX(csr, csrrs), EMPTY, EMPTY, IDEX(csri, csrrw), IDEX(csri, csrrs), IDEX(csri, csrrc)
+    EX(priv), IDEX(csr, csrrw), IDEX(csr, csrrs), IDEX(csr, csrrc), EMPTY, IDEX(csri, csrrw), IDEX(csri, csrrs), IDEX(csri, csrrc)
   };
   idex(pc, &table[decinfo.isa.instr.funct3]);
 }
@@ -70,7 +70,7 @@ static make_EHelper(atomic) {
     EMPTY, EX(amoswap), EMPTY, EMPTY
   };
   static OpcodeEntry table_hi [8] = {
-    EMPTY, EMPTY, EX(amoor), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+    EX(amoadd), EMPTY, EX(amoor), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
   };
 
   decinfo.width = 1 << decinfo.isa.instr.funct3;
