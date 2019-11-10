@@ -2,6 +2,7 @@
 #include "csr.h"
 #include <setjmp.h>
 #include "intr.h"
+#include "monitor/diff-test.h"
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -34,6 +35,13 @@ void raise_intr(word_t NO, vaddr_t epc) {
     cpu.mode = MODE_M;
     rtl_li(&s0, mtvec->val);
     if (NO == EX_II) mtval->val = 0;
+  }
+
+  switch (NO) {
+    case EX_II:
+    case EX_IPF:
+    case EX_LPF:
+    case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 
   rtl_jr(&s0);
