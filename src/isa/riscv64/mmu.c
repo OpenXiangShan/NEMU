@@ -107,7 +107,8 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
 
 word_t isa_vaddr_read(vaddr_t addr, int len) {
   paddr_t paddr = addr;
-  if (cpu.mode < MODE_M) {
+  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
+  if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8) {
       paddr = page_translate(addr, false);
@@ -118,7 +119,8 @@ word_t isa_vaddr_read(vaddr_t addr, int len) {
 
 void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
   paddr_t paddr = addr;
-  if (cpu.mode < MODE_M) {
+  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
+  if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8) {
       paddr = page_translate(addr, true);
