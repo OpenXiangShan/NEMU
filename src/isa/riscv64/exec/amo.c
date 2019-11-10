@@ -25,37 +25,36 @@ make_EHelper(sc) {
   print_asm_template3(sc);
 }
 
-make_EHelper(amoswap) {
+static void inline amo_load() {
   rtl_lm(&s0, &id_src->val, decinfo.width);
   rtl_sext(&s0, &s0, decinfo.width);
   rtl_sr(id_dest->reg, &s0, 0);
+}
 
-  // swap
+make_EHelper(amoswap) {
+  amo_load();
+  //swap
   rtl_sm(&id_src->val, &id_src2->val, decinfo.width);
-
   print_asm_template3(amoswap);
 }
 
 make_EHelper(amoadd) {
-  rtl_lm(&s0, &id_src->val, decinfo.width);
-  rtl_sext(&s0, &s0, decinfo.width);
-  rtl_sr(id_dest->reg, &s0, 0);
-
-  // add
+  amo_load();
   rtl_add(&s0, &s0, &id_src2->val);
   rtl_sm(&id_src->val, &s0, decinfo.width);
-
   print_asm_template3(amoor);
 }
 
 make_EHelper(amoor) {
-  rtl_lm(&s0, &id_src->val, decinfo.width);
-  rtl_sext(&s0, &s0, decinfo.width);
-  rtl_sr(id_dest->reg, &s0, 0);
-
-  // or
+  amo_load();
   rtl_or(&s0, &s0, &id_src2->val);
   rtl_sm(&id_src->val, &s0, decinfo.width);
-
   print_asm_template3(amoor);
+}
+
+make_EHelper(amoand) {
+  amo_load();
+  rtl_and(&s0, &s0, &id_src2->val);
+  rtl_sm(&id_src->val, &s0, decinfo.width);
+  print_asm_template3(amoand);
 }
