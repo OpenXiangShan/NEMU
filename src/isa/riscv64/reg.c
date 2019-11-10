@@ -13,12 +13,13 @@ const char *regsl[] = {
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%s: 0x%016lx ", regsl[i], cpu.gpr[i]._64);
+    printf("%s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
     if (i % 4 == 3) {
       printf("\n");
     }
   }
-  printf("pc: 0x%016lx\n", cpu.pc);
+  printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
+      cpu.pc, mstatus->val, mcause->val, mepc->val);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {
