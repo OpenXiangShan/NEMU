@@ -93,6 +93,14 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
   } else {
     *dest = *src;
   }
+
+  if (dest == (void *)sstatus || dest == (void *)mstatus) {
+#ifdef DIFF_TEST
+    // mstatus.fs is always dirty or off in QEMU 3.1.0
+    if (mstatus->fs) { mstatus->fs = 3; }
+#endif
+    mstatus->sd = (mstatus->fs == 3);
+  }
 }
 
 void change_mode(uint8_t m) {

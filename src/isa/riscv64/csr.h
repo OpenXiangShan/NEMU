@@ -43,6 +43,16 @@ CSR_STRUCT_START(mstatus)
   uint64_t mprv: 1;
   uint64_t sum : 1;
   uint64_t mxr : 1;
+  uint64_t tvm : 1;
+  uint64_t tw  : 1;
+  uint64_t tsr : 1;
+  uint64_t pad3: 9;
+  uint64_t uxl : 2;
+  uint64_t sxl : 2;
+  uint64_t sbe : 1;
+  uint64_t mbe : 1;
+  uint64_t pad4:25;
+  uint64_t sd  : 1;
 CSR_STRUCT_END(mstatus)
 
 CSR_STRUCT_START(misa)
