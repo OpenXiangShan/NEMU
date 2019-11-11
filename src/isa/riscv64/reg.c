@@ -56,9 +56,12 @@ static bool csr_exist[4096] = {
 
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
-  if (addr == 0xc01) {
-    // time
-    longjmp_raise_intr(EX_II);
+  switch (addr) {
+    case 0xc01:  // time
+    case 0x001:  // fflags
+    case 0x002:  // frm
+    case 0x003:  // fcsr
+      longjmp_raise_intr(EX_II);
   }
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
