@@ -68,9 +68,9 @@ static word_t page_walk(vaddr_t vaddr, bool is_write) {
     pte.val	= paddr_read(p_pte, PTE_SIZE);
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
-      Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
-          ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
-          level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
+      //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
+      //    ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
+      //    level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
       break;
     }
     if (pte.r || pte.x) { break; }
