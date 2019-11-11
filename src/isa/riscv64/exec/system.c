@@ -48,7 +48,7 @@ make_EHelper(priv) {
       mstatus->sie = mstatus->spie;
       mstatus->spie = 1;
       change_mode(mstatus->spp);
-      mstatus->mpp = MODE_U;
+      mstatus->spp = MODE_U;
       rtl_li(&s0, sepc->val);
       rtl_jr(&s0);
       cpu.lr = false;
