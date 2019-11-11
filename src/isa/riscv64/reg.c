@@ -60,8 +60,8 @@ static inline word_t* csr_decode(uint32_t addr) {
   return &csr_array[addr];
 }
 
-#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (1 << 8) | (1 << 5) | (1 << 1))
-#define SSTATUS_RMASK (SSTATUS_WMASK | (0xf << 13) | (1ull << 63) | (3ull << 32))
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (((3 << 8) | (3 << 4) | 3) & mideleg->val)
 #define SIP_MASK (((1 << 8) | (0 << 4) | 3) & mideleg->val)
 
