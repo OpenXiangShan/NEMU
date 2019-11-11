@@ -62,6 +62,11 @@ make_EHelper(priv) {
     case 0x120:
       print_asm("sfence.vma");
       break;
+    case 0x105:
+      panic("Executing wfi now will exit NEMU\n"
+          "TODO: how to let NEMU execute wfi as REF in DiffTest?");
+      print_asm("wfi");
+      break;
     case 0x302:
       mstatus->mie = mstatus->mpie;
 #ifdef DIFF_TEST
