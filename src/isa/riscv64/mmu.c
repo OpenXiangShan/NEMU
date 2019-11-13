@@ -36,9 +36,10 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
 }
 
 static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_write) {
+  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
   ok = ok && pte->v;
-  ok = ok && !(cpu.mode == MODE_U && !pte->u);
-  ok = ok && !(cpu.mode == MODE_S && pte->u && !mstatus->sum);
+  ok = ok && !(mode == MODE_U && !pte->u);
+  ok = ok && !(mode == MODE_S && pte->u && !mstatus->sum);
   if (cpu.fetching) {
     if (!(ok && pte->x)) {
       assert(!cpu.amo);
