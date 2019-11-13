@@ -5,22 +5,21 @@ make_EHelper(lr) {
   rtl_sext(&s0, &s0, decinfo.width);
   rtl_sr(id_dest->reg, &s0, 0);
 
-  cpu.lr = true;
   cpu.lr_addr = id_src->val;
+  // QEMU do not record the LR bit, is it safe?
 
   print_asm_template3(lr);
 }
 
 make_EHelper(sc) {
   // should check overlapping instead of equality
-  if (cpu.lr && cpu.lr_addr == id_src->val) {
+  if (cpu.lr_addr == id_src->val) {
     rtl_sm(&id_src->val, &id_src2->val, decinfo.width);
     rtl_li(&s0, 0);
   } else {
     rtl_li(&s0, 1);
   }
   rtl_sr(id_dest->reg, &s0, 0);
-  cpu.lr = false;
 
   print_asm_template3(sc);
 }

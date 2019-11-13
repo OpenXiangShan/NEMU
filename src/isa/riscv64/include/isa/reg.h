@@ -20,7 +20,6 @@ typedef struct {
   bool fetching;
 
   // for LR/SC
-  bool lr;
   vaddr_t lr_addr;
 
   bool INTR;
