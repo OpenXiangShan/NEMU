@@ -39,7 +39,7 @@ static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_wr
   uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
-  ok = ok && !(mode == MODE_S && pte->u && !mstatus->sum);
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || cpu.fetching)));
   if (cpu.fetching) {
     if (!(ok && pte->x)) {
       assert(!cpu.amo);
