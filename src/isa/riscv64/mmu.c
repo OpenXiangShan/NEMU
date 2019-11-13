@@ -41,6 +41,7 @@ static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_wr
   ok = ok && !(cpu.mode == MODE_S && pte->u && !mstatus->sum);
   if (cpu.fetching) {
     if (!(ok && pte->x)) {
+      assert(!cpu.amo);
       stval->val = vaddr;
       longjmp_raise_intr(EX_IPF);
     }
@@ -48,11 +49,17 @@ static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_wr
     bool can_load = pte->r || (mstatus->mxr && pte->x);
     if (!(ok && can_load)) {
       stval->val = vaddr;
+      if (cpu.amo) {
+        cpu.amo = false;
+        Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
+        longjmp_raise_intr(EX_SPF);
+      }
       longjmp_raise_intr(EX_LPF);
     }
   } else {
     if (!(ok && pte->w)) {
       stval->val = vaddr;
+      if (cpu.amo) cpu.amo = false;
       longjmp_raise_intr(EX_SPF);
     }
   }

@@ -67,6 +67,7 @@ static make_EHelper(system) {
 }
 
 static make_EHelper(atomic) {
+  cpu.amo = true;
   static OpcodeEntry table_lo [4] = {
     EMPTY, EX(amoswap), EX(lr), EX(sc)
   };
@@ -79,8 +80,10 @@ static make_EHelper(atomic) {
   uint32_t funct5 = decinfo.isa.instr.funct7 >> 2;
   uint32_t idx_lo = funct5 & 0x3;
   uint32_t idx_hi = funct5 >> 2;
+  if (funct5 == 2) cpu.amo = false; // lr is not a store
   if (idx_lo != 0) idex(pc, &table_lo[idx_lo]);
   else idex(pc, &table_hi[idx_hi]);
+  cpu.amo = false;
 }
 
 static make_EHelper(fp) {
