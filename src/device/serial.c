@@ -54,8 +54,21 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   }
 }
 
+#define rt_thread_cmd "memtrace\n"
+#define busybox_cmd "ls\n" \
+  "cd /root\n" \
+  "echo hello2\n" \
+  "cd /root/benchmark\n" \
+  "./stream\n" \
+  "echo hello3\n" \
+  "cd /root/redis\n" \
+  "ls\n" \
+  "ifconfig -a\n" \
+  "ls\n" \
+  "./redis-server\n" \
+
 static void preset_input() {
-  char buf[128] = "memtrace\n";
+  char buf[] = busybox_cmd;
   int i;
   for (i = 0; i < strlen(buf); i ++) {
     serial_enqueue(buf[i]);

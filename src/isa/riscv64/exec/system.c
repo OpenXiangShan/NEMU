@@ -46,9 +46,14 @@ make_EHelper(priv) {
       break;
     case 0x102:
       mstatus->sie = mstatus->spie;
+#ifdef DIFF_TEST
+      // this is bug of QEMU
+      mstatus->spie = 0;
+#else
       mstatus->spie = 1;
+#endif
       change_mode(mstatus->spp);
-      mstatus->mpp = MODE_U;
+      mstatus->spp = MODE_U;
       rtl_li(&s0, sepc->val);
       rtl_jr(&s0);
       print_asm("sret");
@@ -56,9 +61,19 @@ make_EHelper(priv) {
     case 0x120:
       print_asm("sfence.vma");
       break;
+    case 0x105:
+      panic("Executing wfi now will exit NEMU\n"
+          "TODO: how to let NEMU execute wfi as REF in DiffTest?");
+      print_asm("wfi");
+      break;
     case 0x302:
       mstatus->mie = mstatus->mpie;
+#ifdef DIFF_TEST
+      // this is bug of QEMU
+      mstatus->mpie = 0;
+#else
       mstatus->mpie = 1;
+#endif
       change_mode(mstatus->mpp);
       mstatus->mpp = MODE_U;
       rtl_li(&s0, mepc->val);

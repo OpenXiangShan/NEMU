@@ -1,6 +1,7 @@
 #include "nemu.h"
 #include "monitor/diff-test.h"
 #include "csr.h"
+#include "intr.h"
 
 const char *regsl[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -12,12 +13,17 @@ const char *regsl[] = {
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%s: 0x%016lx ", regsl[i], cpu.gpr[i]._64);
+    printf("%s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
     if (i % 4 == 3) {
       printf("\n");
     }
   }
-  printf("pc: 0x%016lx\n", cpu.pc);
+  printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
+      cpu.pc, mstatus->val, mcause->val, mepc->val);
+  rtlreg_t temp;
+  csr_read(&temp, 0x100); // sstatus
+  printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
+      "", temp, scause->val, sepc->val);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {
@@ -50,12 +56,19 @@ static bool csr_exist[4096] = {
 
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
+  switch (addr) {
+    case 0xc01:  // time
+    case 0x001:  // fflags
+    case 0x002:  // frm
+    case 0x003:  // fcsr
+      longjmp_raise_intr(EX_II);
+  }
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
 }
 
-#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (1 << 8) | (1 << 5) | (1 << 1))
-#define SSTATUS_RMASK (SSTATUS_WMASK | (0xf << 13) | (1ull << 63) | (3ull << 32))
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 
@@ -88,6 +101,14 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     *dest = *src & 0x222;
   } else {
     *dest = *src;
+  }
+
+  if (dest == (void *)sstatus || dest == (void *)mstatus) {
+#ifdef DIFF_TEST
+    // mstatus.fs is always dirty or off in QEMU 3.1.0
+    if (mstatus->fs) { mstatus->fs = 3; }
+#endif
+    mstatus->sd = (mstatus->fs == 3);
   }
 }
 

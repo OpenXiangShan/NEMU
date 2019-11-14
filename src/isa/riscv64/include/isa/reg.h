@@ -18,6 +18,10 @@ typedef struct {
   uint8_t mode;
 
   bool fetching;
+  bool amo;
+
+  // for LR/SC
+  vaddr_t lr_addr;
 
   bool INTR;
 } CPU_state;

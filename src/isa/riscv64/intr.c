@@ -1,6 +1,8 @@
 #include "rtl/rtl.h"
 #include "csr.h"
 #include <setjmp.h>
+#include "intr.h"
+#include "monitor/diff-test.h"
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -21,6 +23,7 @@ void raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
+    if (NO != EX_IPF && NO != EX_LPF && NO != EX_SPF) stval->val = 0;
     cpu.mode = MODE_S;
     rtl_li(&s0, stvec->val);
   } else {
@@ -29,8 +32,16 @@ void raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
+    if (NO != EX_IPF && NO != EX_LPF && NO != EX_SPF) mtval->val = 0;
     cpu.mode = MODE_M;
     rtl_li(&s0, mtvec->val);
+  }
+
+  switch (NO) {
+    case EX_II:
+    case EX_IPF:
+    case EX_LPF:
+    case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 
   rtl_jr(&s0);

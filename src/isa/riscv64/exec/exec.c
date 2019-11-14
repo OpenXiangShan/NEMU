@@ -1,6 +1,7 @@
 #include "cpu/exec.h"
 #include "all-instr.h"
 #include <setjmp.h>
+#include "../intr.h"
 
 static make_EHelper(load) {
   static OpcodeEntry table [8] = {
@@ -60,17 +61,18 @@ static make_EHelper(op32) {
 
 static make_EHelper(system) {
   static OpcodeEntry table [8] = {
-    EX(priv), IDEX(csr, csrrw), IDEX(csr, csrrs), EMPTY, EMPTY, EMPTY, IDEX(csri, csrrs), IDEX(csri, csrrc)
+    EX(priv), IDEX(csr, csrrw), IDEX(csr, csrrs), IDEX(csr, csrrc), EMPTY, IDEX(csri, csrrw), IDEX(csri, csrrs), IDEX(csri, csrrc)
   };
   idex(pc, &table[decinfo.isa.instr.funct3]);
 }
 
 static make_EHelper(atomic) {
+  cpu.amo = true;
   static OpcodeEntry table_lo [4] = {
-    EMPTY, EX(amoswap), EMPTY, EMPTY
+    EMPTY, EX(amoswap), EX(lr), EX(sc)
   };
   static OpcodeEntry table_hi [8] = {
-    EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY
+    EX(amoadd), EMPTY, EX(amoor), EX(amoand), EMPTY, EMPTY, EMPTY, EMPTY
   };
 
   decinfo.width = 1 << decinfo.isa.instr.funct3;
@@ -78,14 +80,20 @@ static make_EHelper(atomic) {
   uint32_t funct5 = decinfo.isa.instr.funct7 >> 2;
   uint32_t idx_lo = funct5 & 0x3;
   uint32_t idx_hi = funct5 >> 2;
+  if (funct5 == 2) cpu.amo = false; // lr is not a store
   if (idx_lo != 0) idex(pc, &table_lo[idx_lo]);
   else idex(pc, &table_hi[idx_hi]);
+  cpu.amo = false;
+}
+
+static make_EHelper(fp) {
+  longjmp_raise_intr(EX_II);
 }
 
 static OpcodeEntry opcode_table [32] = {
-  /* b00 */ IDEX(ld, load), EMPTY, EMPTY, EX(fence), IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
-  /* b01 */ IDEX(st, store), EMPTY, EMPTY, IDEX(R, atomic), IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
-  /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  /* b00 */ IDEX(ld, load), EX(fp), EMPTY, EX(fence), IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
+  /* b01 */ IDEX(st, store), EX(fp), EMPTY, IDEX(R, atomic), IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
+  /* b10 */ EX(fp), EMPTY, EMPTY, EMPTY, EX(fp), EMPTY, EMPTY, EMPTY,
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
 };
 
@@ -131,9 +139,9 @@ static make_EHelper(C_01_100) {
 }
 
 static OpcodeEntry rvc_table [3][8] = {
-  {IDEX(C_ADDI4SPN, add), EMPTY, IDEX(C_LW, lds), IDEX(C_LD, ld), EMPTY, EMPTY, IDEX(C_SW, st), IDEX(C_SD, st)},
+  {IDEX(C_ADDI4SPN, add), EX(fp), IDEX(C_LW, lds), IDEX(C_LD, ld), EMPTY, EX(fp), IDEX(C_SW, st), IDEX(C_SD, st)},
   {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne)},
-  {IDEX(C_rs1_imm_rd, sll), EMPTY, IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), EMPTY, IDEX(C_SWSP, st), IDEX(C_SDSP, st)}
+  {IDEX(C_rs1_imm_rd, sll), EX(fp), IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), EX(fp), IDEX(C_SWSP, st), IDEX(C_SDSP, st)}
 };
 
 void isa_exec(vaddr_t *pc) {
