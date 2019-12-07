@@ -72,7 +72,7 @@ static make_EHelper(atomic) {
     EMPTY, EX(amoswap), EX(lr), EX(sc)
   };
   static OpcodeEntry table_hi [8] = {
-    EX(amoadd), EMPTY, EX(amoor), EX(amoand), EMPTY, EMPTY, EMPTY, EMPTY
+    EX(amoadd), EX(amoxor), EX(amoor), EX(amoand), EMPTY, EMPTY, EMPTY, EX(amomaxu)
   };
 
   decinfo.width = 1 << decinfo.isa.instr.funct3;

@@ -58,3 +58,5 @@ make_EHelper(amoswap);
 make_EHelper(amoadd);
 make_EHelper(amoor);
 make_EHelper(amoand);
+make_EHelper(amomaxu);
+make_EHelper(amoxor);
