@@ -62,8 +62,8 @@ make_EHelper(priv) {
       print_asm("sfence.vma");
       break;
     case 0x105:
-      panic("Executing wfi now will exit NEMU\n"
-          "TODO: how to let NEMU execute wfi as REF in DiffTest?");
+      //panic("Executing wfi now will exit NEMU\n"
+      //    "TODO: how to let NEMU execute wfi as REF in DiffTest?");
       print_asm("wfi");
       break;
     case 0x302:
