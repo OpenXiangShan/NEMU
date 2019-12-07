@@ -6,8 +6,10 @@ make_EHelper(inv) {
 
   uint32_t instr[2];
   *pc = cpu.pc;
+  cpu.fetching = true;
   instr[0] = instr_fetch(pc, 4);
   instr[1] = instr_fetch(pc, 4);
+  cpu.fetching = false;
 
   printf("invalid opcode(PC = 0x%016lx): %08x %08x ...\n\n",
       cpu.pc, instr[0], instr[1]);
