@@ -3,9 +3,19 @@
 
 #include "mmc.h"
 
+// http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf
+
+// see page 26 of the manual above
+#define MEMORY_SIZE (4ull * 1024 * 1024 * 1024)  // 4GB
+#define READ_BL_LEN 15
+#define BLOCK_LEN (1 << READ_BL_LEN)
+#define NR_BLOCK (MEMORY_SIZE / BLOCK_LEN)
+#define C_SIZE_MULT 7  // only 3 bits
+#define MULT (1 << (C_SIZE_MULT + 2))
+#define C_SIZE (NR_BLOCK / MULT - 1)
+
 #define SD_MMIO 0xa3000000
 
-// http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf
 
 // This is a simple hardware implementation of linux/drivers/mmc/host/bcm2835.c
 // No DMA and IRQ is supported, so the driver must be modified to start PIO
@@ -43,8 +53,8 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
           break;
         case MMC_SEND_CSD:
           base[SDRSP0] = 0x92404001;
-          base[SDRSP1] = 0x124b97e3;
-          base[SDRSP2] = 0x0f590200;
+          base[SDRSP1] = 0x124b97e3 | ((C_SIZE & 0x3) << 30);
+          base[SDRSP2] = 0x0f508000 | (C_SIZE >> 2) | (READ_BL_LEN << 16);
           base[SDRSP3] = 0x8c26012a;
           break;
         case MMC_SEND_EXT_CSD: break;
@@ -103,7 +113,9 @@ void init_sdcard() {
   base = (void *)new_space(0x80);
   add_mmio_map("sdhci", SD_MMIO, (void *)base, 0x80, sdcard_io_handler);
 
-  base[SDEDM] = (8 << 4);
+  base[SDEDM] = (8 << 4); // number of data in fifo
+
+  Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
   fp = fopen("/home/yzh/projectn/debian.img", "r");
   assert(fp);
