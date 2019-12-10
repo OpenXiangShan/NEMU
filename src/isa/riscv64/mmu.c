@@ -2,6 +2,7 @@
 #include "memory/memory.h"
 #include "csr.h"
 #include "intr.h"
+#include "cpu/decode.h"
 
 typedef union PageTableEntry {
   struct {
@@ -116,6 +117,18 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
 }
 
 word_t isa_vaddr_read(vaddr_t addr, int len) {
+  if (!cpu.fetching) {
+    if ((addr & (len - 1)) != 0) {
+      //Log("misalgined load addr = " FMT_WORD ", pc = " FMT_WORD", instr = %x",
+      //    addr, cpu.pc, decinfo.isa.instr.val);
+      mtval->val = addr;
+      if (cpu.amo) {
+        cpu.amo = false;
+        longjmp_raise_intr(EX_SAM);
+      }
+      longjmp_raise_intr(EX_LAM);
+    }
+  }
   paddr_t paddr = addr;
   uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
@@ -128,6 +141,13 @@ word_t isa_vaddr_read(vaddr_t addr, int len) {
 }
 
 void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
+  if ((addr & (len - 1)) != 0) {
+    //Log("misalgined store addr = " FMT_WORD ", pc = " FMT_WORD", instr = %x",
+    //    addr, cpu.pc, decinfo.isa.instr.val);
+    if (cpu.amo) cpu.amo = false;
+    mtval->val = addr;
+    longjmp_raise_intr(EX_SAM);
+  }
   paddr_t paddr = addr;
   uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {

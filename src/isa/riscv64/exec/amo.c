@@ -61,3 +61,17 @@ make_EHelper(amoand) {
   amo_update();
   print_asm_template3(amoand);
 }
+
+make_EHelper(amomaxu) {
+  amo_load();
+  s1 = (s0 > id_src2->val ? s0 : id_src2->val);
+  amo_update();
+  print_asm_template3(amomaxu);
+}
+
+make_EHelper(amoxor) {
+  amo_load();
+  rtl_xor(&s1, &s0, &id_src2->val);
+  amo_update();
+  print_asm_template3(amoxor);
+}

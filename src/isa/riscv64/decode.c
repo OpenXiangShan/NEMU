@@ -323,7 +323,7 @@ make_DHelper(C_ADDI4SPN) {
   decode_op_r(id_src, 2, true);
   word_t imm = (decinfo.isa.instr.c_imm9_6 << 6) | (decinfo.isa.instr.c_imm5_4 << 4) |
     (decinfo.isa.instr.c_imm3 << 3) | (decinfo.isa.instr.c_imm2 << 2);
-  assert(imm != 0);
+  Assert(imm != 0, "pc = " FMT_WORD, cpu.pc);
   decode_op_i(id_src2, imm, true);
   decode_op_r(id_dest, creg2reg(decinfo.isa.instr.c_rd_), false);
 }

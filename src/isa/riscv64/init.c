@@ -33,4 +33,6 @@ void init_isa(void) {
   register_pmem(0x80000000u);
 
   init_clint();
+  extern void init_sdcard();
+  init_sdcard();
 }
