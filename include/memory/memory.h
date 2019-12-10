@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-#define PMEM_SIZE (128 * 1024 * 1024)
+#define PMEM_SIZE (256 * 1024 * 1024)
 extern uint8_t pmem[];
 
 #define IMAGE_START 0x0
