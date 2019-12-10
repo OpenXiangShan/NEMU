@@ -65,6 +65,12 @@ make_EHelper(priv) {
       //panic("Executing wfi now will exit NEMU\n"
       //    "TODO: how to let NEMU execute wfi as REF in DiffTest?");
       print_asm("wfi");
+
+      // let the clock go quickly to reduce idle time in Linux
+#if !_SHARE
+      void clint_intr(void);
+      clint_intr();
+#endif
       break;
     case 0x302:
       mstatus->mie = mstatus->mpie;
