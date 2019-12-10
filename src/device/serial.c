@@ -1,5 +1,6 @@
 #include "common.h"
 #include "device/map.h"
+#include "alarm.h"
 
 /* http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming */
 // NOTE: this is compatible to 16550
@@ -29,9 +30,20 @@ static void serial_enqueue(char ch) {
 
 static char serial_dequeue() {
   char ch = 0xff;
-  if (f != r) {
-    ch = queue[f];
-    f = (f + 1) % QUEUE_SIZE;
+
+  extern uint32_t uptime();
+  static uint32_t last = 0;
+  uint32_t now = uptime();
+  if (now - last > TIMER_HZ) {
+    Log("now = %d", now);
+    last = now;
+  }
+  // 90s after starting
+  if (now > 90 * TIMER_HZ) {
+    if (f != r) {
+      ch = queue[f];
+      f = (f + 1) % QUEUE_SIZE;
+    }
   }
   return ch;
 }
@@ -67,8 +79,10 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   "ls\n" \
   "./redis-server\n" \
 
+#define debian_cmd "root\n" \
+
 static void preset_input() {
-  char buf[] = busybox_cmd;
+  char buf[] = debian_cmd;
   int i;
   for (i = 0; i < strlen(buf); i ++) {
     serial_enqueue(buf[i]);
