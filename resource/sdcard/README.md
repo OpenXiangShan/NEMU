@@ -8,6 +8,7 @@
 使用方法:
 * 将本目录下的`nemu.c`复制到`linux/drivers/mmc/host/`目录下
 * 在`linux/drivers/mmc/host/Makefile`中添加一行`obj-y += nemu.o`
+* 在menuconfig中取消`General setup -> Initial RAM filesystem and RAM disk (initramfs/initrd) support`
 * 在menuconfig中选中`Device Drivers -> MMC/SD/SDIO card support`
 * 在dts中加入以下节点
 ```
