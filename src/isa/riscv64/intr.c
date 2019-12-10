@@ -23,7 +23,12 @@ void raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
-    if (NO != EX_IPF && NO != EX_LPF && NO != EX_SPF) stval->val = 0;
+    switch (NO) {
+      case EX_IPF: case EX_LPF: case EX_SPF:
+      case EX_LAM: case EX_SAM:
+        break;
+      default: stval->val = 0;
+    }
     cpu.mode = MODE_S;
     rtl_li(&s0, stvec->val);
   } else {
@@ -32,7 +37,12 @@ void raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
-    if (NO != EX_IPF && NO != EX_LPF && NO != EX_SPF) mtval->val = 0;
+    switch (NO) {
+      case EX_IPF: case EX_LPF: case EX_SPF:
+      case EX_LAM: case EX_SAM:
+        break;
+      default: mtval->val = 0;
+    }
     cpu.mode = MODE_M;
     rtl_li(&s0, mtvec->val);
   }
