@@ -156,11 +156,23 @@ void isa_exec(vaddr_t *pc) {
 
   cpu.fetching = true;
   if ((*pc & 0xfff) == 0xffe) {
-    // 4 byte instruction accross page boundary
+    // instruction may accross page boundary
     uint32_t lo = instr_fetch(pc, 2);
+    decinfo.isa.instr.val = lo & 0xffff;
+    if (decinfo.isa.instr.opcode1_0 != 0x3) {
+      // this is an RVC instruction
+      cpu.fetching = false;
+      goto rvc;
+    }
+    // this is a 4-byte instruction, should fetch the MSB part
+    // NOTE: The fetch here may cause IPF.
+    // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
+    // Refer to `mtval` in the privileged manual for more details.
     uint32_t hi = instr_fetch(pc, 2);
-    decinfo.isa.instr.val = ((hi & 0xffff) << 16) | (lo & 0xffff);
+    decinfo.isa.instr.val |= ((hi & 0xffff) << 16);
   } else {
+    // in-page instructions, fetch 4 byte and
+    // see whether it is an RVC instruction later
     decinfo.isa.instr.val = instr_fetch(pc, 4);
   }
   cpu.fetching = false;
@@ -169,6 +181,7 @@ void isa_exec(vaddr_t *pc) {
   } else {
     // RVC instructions are only 2-byte
     *pc -= 2;
+rvc:
     idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
   }
 }
