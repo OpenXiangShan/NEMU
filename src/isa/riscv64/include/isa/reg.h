@@ -15,6 +15,9 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
+  vaddr_t mstatus, mcause, mepc;
+  vaddr_t sstatus, scause, sepc;
+
   uint8_t mode;
 
   bool fetching;

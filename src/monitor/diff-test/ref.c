@@ -10,11 +10,13 @@ void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
 }
 
 void difftest_getregs(void *r) {
+  isa_difftest_getregs_hook();
   memcpy(r, &cpu, DIFFTEST_REG_SIZE);
 }
 
 void difftest_setregs(const void *r) {
   memcpy(&cpu, r, DIFFTEST_REG_SIZE);
+  isa_difftest_setregs_hook();
 }
 
 void difftest_exec(uint64_t n) {
