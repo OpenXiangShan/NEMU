@@ -134,4 +134,7 @@ make_DHelper(C_JALR);
 
 make_DHelper(C_ADDI4SPN);
 
+make_DHelper(fp_ld);
+make_DHelper(fp_st);
+
 #endif

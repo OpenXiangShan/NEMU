@@ -60,3 +60,6 @@ make_EHelper(amoor);
 make_EHelper(amoand);
 make_EHelper(amomaxu);
 make_EHelper(amoxor);
+
+make_EHelper(fp_ld);
+make_EHelper(fp_st);

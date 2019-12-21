@@ -86,13 +86,29 @@ static make_EHelper(atomic) {
   cpu.amo = false;
 }
 
+static make_EHelper(fp_load) {
+  static OpcodeEntry table [8] = {
+    EMPTY,EMPTY,EXW(fp_ld,4),EXW(fp_ld,8),EMPTY,EMPTY,EMPTY,EMPTY
+  };
+  decinfo.width = table[decinfo.isa.instr.funct3].width;
+  idex(pc, &table[decinfo.isa.instr.funct3]);
+}
+
+static make_EHelper(fp_store) {
+  static OpcodeEntry table [8] = {
+    EMPTY, EMPTY, EXW(fp_st, 4), EXW(fp_st, 8), EMPTY, EMPTY, EMPTY, EMPTY
+  };
+  decinfo.width = table[decinfo.isa.instr.funct3].width;
+  idex(pc, &table[decinfo.isa.instr.funct3]);
+}
+
 static make_EHelper(fp) {
   longjmp_raise_intr(EX_II);
 }
 
 static OpcodeEntry opcode_table [32] = {
-  /* b00 */ IDEX(ld, load), EX(fp), EMPTY, EX(fence), IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
-  /* b01 */ IDEX(st, store), EX(fp), EMPTY, IDEX(R, atomic), IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
+  /* b00 */ IDEX(ld, load), IDEX(fp_ld, fp_load), EMPTY, EX(fence), IDEX(I, op_imm), IDEX(U, auipc), IDEX(I, op_imm32), EMPTY,
+  /* b01 */ IDEX(st, store), IDEX(fp_st, fp_store), EMPTY, IDEX(R, atomic), IDEX(R, op), IDEX(U, lui), IDEX(R, op32), EMPTY,
   /* b10 */ EX(fp), EMPTY, EMPTY, EMPTY, EX(fp), EMPTY, EMPTY, EMPTY,
   /* b11 */ IDEX(B, branch), IDEX(I, jalr), EX(nemu_trap), IDEX(J, jal), EX(system), EMPTY, EMPTY, EMPTY,
 };

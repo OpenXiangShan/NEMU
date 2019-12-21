@@ -15,6 +15,14 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
+
+  union {
+    rtlreg_t _64;
+    uint32_t _32[2];
+    uint16_t _16[4];
+    uint8_t _8[8];
+  } fpr[32];
+
   vaddr_t mstatus, mcause, mepc;
   vaddr_t sstatus, scause, sepc;
 
@@ -40,6 +48,14 @@ static inline const char* reg_name(int index, int width) {
   extern const char* regsl[];
   assert(index >= 0 && index < 32);
   return regsl[index];
+}
+
+#define fpreg_l(index) (cpu.fpr[check_reg_index(index)]._64)
+
+static inline const char* fpreg_name(int index, int width) {
+  extern const char* fpregsl[];
+  assert(index >= 0 && index < 32);
+  return fpregsl[index];
 }
 
 #endif

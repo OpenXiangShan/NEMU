@@ -327,3 +327,37 @@ make_DHelper(C_ADDI4SPN) {
   decode_op_i(id_src2, imm, true);
   decode_op_r(id_dest, creg2reg(decinfo.isa.instr.c_rd_), false);
 }
+
+// FPU
+static inline make_DopHelper(fpr){
+  op->type = OP_TYPE_REG;
+  op->reg = val;
+  if (load_val) {
+    rtl_lfpr(&op->val, op->reg, 4);
+  }
+
+  print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(op->reg, 4));
+}
+
+make_DHelper(fp_ld) {
+  decode_op_r(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_i(id_src2, decinfo.isa.instr.simm11_0, true);
+
+  print_Dop(id_src->str, OP_STR_SIZE, "%ld(%s)", id_src2->val, reg_name(id_src->reg, 4));
+
+  rtl_add(&id_src->addr, &id_src->val, &id_src2->val);
+
+  decode_op_fpr(id_dest, decinfo.isa.instr.rd, false);
+}
+
+make_DHelper(fp_st) {
+  decode_op_r(id_src, decinfo.isa.instr.rs1, true);
+  sword_t simm = (decinfo.isa.instr.simm11_5 << 5) | decinfo.isa.instr.imm4_0;
+  decode_op_i(id_src2, simm, true);
+
+  print_Dop(id_src->str, OP_STR_SIZE, "%ld(%s)", id_src2->val, reg_name(id_src->reg, 4));
+
+  rtl_add(&id_src->addr, &id_src->val, &id_src2->val);
+
+  decode_op_fpr(id_dest, decinfo.isa.instr.rs2, true);
+}
