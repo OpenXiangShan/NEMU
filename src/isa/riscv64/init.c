@@ -24,10 +24,8 @@ void init_isa(void) {
 #endif
 
 #define ext(e) (1 << ((e) - 'a'))
-  misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
-#ifdef DIFF_TEST
-  misa->extensions |= ext('d') | ext('f');
-#endif
+  misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u') | ext('d') | ext('f');
+  
   misa->mxl = 2; // XLEN = 64
 
   register_pmem(0x80000000u);

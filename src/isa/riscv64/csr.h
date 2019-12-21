@@ -199,6 +199,11 @@ CSR_STRUCT_START(sscratch)
 CSR_STRUCT_END(sscratch)
 
 CSR_STRUCT_START(fflags)
+  uint64_t nv: 1;
+  uint64_t dz: 1;
+  uint64_t of: 1;
+  uint64_t uf: 1;
+  uint64_t nx: 1;
 CSR_STRUCT_END(fflags)
 
 CSR_STRUCT_START(frm)

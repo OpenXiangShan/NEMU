@@ -81,9 +81,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
+// FPU macros
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x03
 #define FCSR_MASK 0xff
+#define MSTATUS_FS 0x00006000
+#define MSTATUS64_SD 0x8000000000000000
+#define dirty_fp_state (mstatus->val |= MSTATUS_FS | MSTATUS64_SD)
 
 void csr_read(rtlreg_t *dest, uint32_t addr) {
   word_t *src = csr_decode(addr);
@@ -119,10 +123,15 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
   } else if (dest == (void *)mideleg) {
     *dest = *src & 0x222;
   } else if (dest == (void *)fflags) {
+    dirty_fp_state;
     *dest = *src & FFLAGS_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
   } else if (dest == (void *)frm) {
+    dirty_fp_state;
     *dest = *src & FRM_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
   } else if (dest == (void *)fcsr) {
+    dirty_fp_state;
     *dest = *src & FCSR_MASK;
     fflags->val = *src & FFLAGS_MASK;
     frm->val = ((*src)>>5) & FRM_MASK;
@@ -131,10 +140,6 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
   }
 
   if (dest == (void *)sstatus || dest == (void *)mstatus) {
-#ifdef DIFF_TEST
-    // mstatus.fs is always dirty or off in QEMU 3.1.0
-    if (mstatus->fs) { mstatus->fs = 3; }
-#endif
     mstatus->sd = (mstatus->fs == 3);
   }
 }
