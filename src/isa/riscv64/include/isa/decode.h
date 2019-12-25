@@ -94,6 +94,16 @@ typedef union {
     uint32_t pad15     : 2;
     int32_t c_target   :11;
   };
+
+  // FPU insts format
+  struct 
+  {
+    uint32_t pad16     :12;
+    uint32_t rm        : 3;
+    uint32_t pad17     :10;
+    uint32_t fmt       : 2;
+    uint32_t funct5    : 5;
+  };
   uint32_t val;
 } Instr;
 
@@ -134,7 +144,10 @@ make_DHelper(C_JALR);
 
 make_DHelper(C_ADDI4SPN);
 
-make_DHelper(fp_ld);
-make_DHelper(fp_st);
+make_DHelper(F_R);
+make_DHelper(F_ld);
+make_DHelper(F_st);
+make_DHelper(F_fpr_to_gpr);
+make_DHelper(F_gpr_to_fpr);
 
 #endif

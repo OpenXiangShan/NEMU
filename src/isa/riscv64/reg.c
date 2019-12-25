@@ -2,6 +2,7 @@
 #include "monitor/diff-test.h"
 #include "csr.h"
 #include "intr.h"
+#include "isa/fpu.h"
 
 const char *regsl[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -77,17 +78,6 @@ static inline word_t* csr_decode(uint32_t addr) {
   return &csr_array[addr];
 }
 
-#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
-#define SIE_MASK (0x222 & mideleg->val)
-#define SIP_MASK (0x222 & mideleg->val)
-// FPU macros
-#define FFLAGS_MASK 0x1f
-#define FRM_MASK 0x03
-#define FCSR_MASK 0xff
-#define MSTATUS_FS 0x00006000
-#define MSTATUS64_SD 0x8000000000000000
-#define dirty_fp_state (mstatus->val |= MSTATUS_FS | MSTATUS64_SD)
 
 void csr_read(rtlreg_t *dest, uint32_t addr) {
   word_t *src = csr_decode(addr);

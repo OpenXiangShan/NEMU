@@ -215,6 +215,17 @@ CSR_STRUCT_END(fcsr)
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
 
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
+#define SIE_MASK (0x222 & mideleg->val)
+#define SIP_MASK (0x222 & mideleg->val)
+
+#define FFLAGS_MASK 0x1f
+#define FRM_MASK 0x03
+#define FCSR_MASK 0xff
+#define MSTATUS_FS 0x00006000
+#define MSTATUS64_SD 0x8000000000000000
+
 void csr_read(rtlreg_t *dest, uint32_t addr);
 void csr_write(uint32_t addr, rtlreg_t *src);
 

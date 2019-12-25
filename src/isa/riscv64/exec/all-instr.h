@@ -63,3 +63,20 @@ make_EHelper(amoxor);
 
 make_EHelper(fp_ld);
 make_EHelper(fp_st);
+make_EHelper(fadd);
+make_EHelper(fsub);
+make_EHelper(fmul);
+make_EHelper(fdiv);
+make_EHelper(fsgnj);
+make_EHelper(fmin_max);
+make_EHelper(fmv_F_to_G); // fmv.x.w, fmv.x.d fclass
+make_EHelper(fmv_G_to_F);
+make_EHelper(fcmp);
+make_EHelper(fsqrt);
+make_EHelper(fcvt_F_to_G);
+make_EHelper(fcvt_G_to_F);
+make_EHelper(fcvt_F_to_F);
+make_EHelper(fmadd);
+make_EHelper(fnmadd);
+make_EHelper(fmsub);
+make_EHelper(fnmsub);

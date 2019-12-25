@@ -7,14 +7,21 @@
 #define PC_START (0x80000000u + IMAGE_START)
 
 typedef struct {
-  union {
-    rtlreg_t _64;
-    uint32_t _32[2];
-    uint16_t _16[4];
-    uint8_t _8[8];
-  } gpr[32];
 
-  vaddr_t pc;
+  struct { // difftest regs 
+    // the regs in this struct must keep their order becasue difftest use memcpy
+    union {
+      rtlreg_t _64;
+      uint32_t _32[2];
+      uint16_t _16[4];
+      uint8_t _8[8];
+    } gpr[32];
+
+    vaddr_t pc;
+
+    vaddr_t mstatus, mcause, mepc;
+    vaddr_t sstatus, scause, sepc;
+  };
 
   union {
     rtlreg_t _64;
@@ -22,9 +29,6 @@ typedef struct {
     uint16_t _16[4];
     uint8_t _8[8];
   } fpr[32];
-
-  vaddr_t mstatus, mcause, mepc;
-  vaddr_t sstatus, scause, sepc;
 
   uint8_t mode;
 

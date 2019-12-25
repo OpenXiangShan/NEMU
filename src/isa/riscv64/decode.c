@@ -1,5 +1,6 @@
 #include "cpu/decode.h"
 #include "rtl/rtl.h"
+#include "isa/fpu.h"
 
 // decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (Operand *op, uint64_t val, bool load_val)
@@ -329,17 +330,43 @@ make_DHelper(C_ADDI4SPN) {
 }
 
 // FPU
+
+static void inline decode_fp_width(){
+  switch (decinfo.isa.instr.fmt)
+  {
+  case 0: // S
+    decinfo.width = 4;
+    break;
+  case 1: // D
+    decinfo.width = 8;
+    break;
+  case 2: // H
+  case 3: // Q
+    longjmp_raise_intr(EX_II);
+    break;
+  default:
+    assert(0);
+  }
+}
+
 static inline make_DopHelper(fpr){
   op->type = OP_TYPE_REG;
   op->reg = val;
   if (load_val) {
-    rtl_lfpr(&op->val, op->reg, 4);
+    lfpr(&op->val, op->reg);
   }
 
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(op->reg, 4));
 }
 
-make_DHelper(fp_ld) {
+make_DHelper(F_R) {
+  decode_op_fpr(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_fpr(id_src2, decinfo.isa.instr.rs2, true);
+  decode_op_fpr(id_dest, decinfo.isa.instr.rd, false);
+  decode_fp_width();
+}
+
+make_DHelper(F_ld) {
   decode_op_r(id_src, decinfo.isa.instr.rs1, true);
   decode_op_i(id_src2, decinfo.isa.instr.simm11_0, true);
 
@@ -350,7 +377,7 @@ make_DHelper(fp_ld) {
   decode_op_fpr(id_dest, decinfo.isa.instr.rd, false);
 }
 
-make_DHelper(fp_st) {
+make_DHelper(F_st) {
   decode_op_r(id_src, decinfo.isa.instr.rs1, true);
   sword_t simm = (decinfo.isa.instr.simm11_5 << 5) | decinfo.isa.instr.imm4_0;
   decode_op_i(id_src2, simm, true);
@@ -360,4 +387,20 @@ make_DHelper(fp_st) {
   rtl_add(&id_src->addr, &id_src->val, &id_src2->val);
 
   decode_op_fpr(id_dest, decinfo.isa.instr.rs2, true);
+}
+
+// srcs: fpr, dest: gpr
+make_DHelper(F_fpr_to_gpr){
+  decode_op_fpr(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_fpr(id_src2, decinfo.isa.instr.rs2, true);
+  decode_op_r(id_dest, decinfo.isa.instr.rd, false);
+  decode_fp_width();
+}
+
+// srcs: gpr, dest: fpr
+make_DHelper(F_gpr_to_fpr){
+  decode_op_r(id_src, decinfo.isa.instr.rs1, true);
+  decode_op_r(id_src2, decinfo.isa.instr.rs2, true);
+  decode_op_fpr(id_dest, decinfo.isa.instr.rd, false);
+  decode_fp_width();
 }
