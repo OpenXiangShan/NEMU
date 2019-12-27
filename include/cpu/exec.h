@@ -3,6 +3,7 @@
 
 #include <isa.h>
 #include <rtl/rtl.h>
+#include <memory/vaddr.h>
 #include <cpu/decode.h>
 
 #define make_EHelper(name) void concat(exec_, name) (DecodeExecState *s)
