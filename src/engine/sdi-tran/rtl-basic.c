@@ -1,16 +1,9 @@
 #include <rtl/rtl.h>
 #include "rv64_op.h"
+#include "rv_ins_def.h"
 
 void rv64_relop(uint32_t relop, const rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2);
 uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
-
-typedef union {
-  struct {
-    uint32_t imm_lo12	:12;
-    uint32_t imm_hi20	:20;
-  };
-  rtlreg_t val;
-} RV_IMM;
 
 /* RTL basic instructions */
 
@@ -22,8 +15,8 @@ make_rtl(li, rtlreg_t* dest, rtlreg_t imm) {
   //lui x31,rv_imm.imm_lo12
   //srli x31,x31,12
   //or idx,idx,x31
-  printf("lui x%d,0x%x\n",idx,rv_imm.imm_hi20);
-  printf("lui x31,0x%x\n",rv_imm.imm_lo12);
+  printf("lui x%d,0x%x\n",idx,rv_imm.imm_11_0);
+  printf("lui x31,0x%x\n",rv_imm.imm_31_12);
   printf ("srli x31,x31,12\n");
   printf("or x%d,x%d,x31\n",idx,idx);
 }

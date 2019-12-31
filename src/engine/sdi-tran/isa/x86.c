@@ -9,7 +9,7 @@ uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   if (dest >= gpr_start && dest < gpr_end)
     return (dest - gpr_start)|0x10;//from x16 to x23
 
-#define CASE(ptr, idx) if (dest == ptr) { Log("get " str(ptr)); return idx ; }
+#define CASE(ptr, idx) if (dest == ptr) return idx;
   CASE(s0, 1)
   CASE(s1, 2)
   CASE(t0, 3)
