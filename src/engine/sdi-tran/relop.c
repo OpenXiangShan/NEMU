@@ -11,9 +11,9 @@ void rv64_relop(DecodeExecState *s, uint32_t relop,
   idx_src2=reg_ptr2idx(s, src2);
   switch (relop) {
     case RELOP_FALSE: //xor dest,x0,x0
-      printf("add x%x,x0,x0\n",idx_dest);return;
+      printf("add x%d,x0,x0\n",idx_dest);return;
     case RELOP_TRUE: //xor dest,x0,x0
-      printf("addi x%x,x0,1\n",idx_dest);return;
+      printf("addi x%d,x0,1\n",idx_dest);return;
     case RELOP_EQ:
       //xor x31,src1,src2
       //sltu dest,x0,x31

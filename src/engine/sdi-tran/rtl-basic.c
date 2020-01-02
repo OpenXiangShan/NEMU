@@ -15,8 +15,8 @@ make_rtl(li, rtlreg_t* dest, rtlreg_t imm) {
   //lui x31,rv_imm.imm_lo12
   //srli x31,x31,12
   //or idx,idx,x31
-  printf("lui x%d,0x%x\n",idx,rv_imm.imm_11_0);
-  printf("lui x31,0x%x\n",rv_imm.imm_31_12);
+  printf("lui x%d,0x%x\n",idx,rv_imm.imm_31_12);
+  printf("lui x31,0x%x\n",rv_imm.imm_11_0);
   printf ("srli x31,x31,12\n");
   printf("or x%d,x%d,x31\n",idx,idx);
 }
@@ -83,15 +83,15 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, int len) {
   {
   case 1:
     //lb dest,addr
-    printf("lb x%d,x31\n",idx_dest);
+    printf("lb x%d,0(x31)\n",idx_dest);
     break;
   case 2:
     //lh dest,addr
-    printf("lh x%d,x31\n",idx_dest);
+    printf("lh x%d,0(x31)\n",idx_dest);
     break;
   default://4
     //lw dest,addr
-    printf("lw x%d,x31\n",idx_dest);
+    printf("lw x%d,0(x31)\n",idx_dest);
     break;
   }
 }
@@ -106,15 +106,15 @@ make_rtl(sm, const rtlreg_t* addr, const rtlreg_t* src1, int len) {
   {
   case 1:
     //sb addr,src1
-    printf("sb x31,x%d\n",idx_src1);
+    printf("sb x%d,0(x31)\n",idx_src1);
     break;
   case 2:
     //sh addr,src1
-    printf("sh x31,x%d\n",idx_src1);
+    printf("sh x%d,0(x31)\n",idx_src1);
     break;
   default://4
     //sw addr,src1
-    printf("sw x31,x%d\n",idx_src1);
+    printf("sw x%d,0(x31)\n",idx_src1);
     break;
   }
 }
