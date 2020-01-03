@@ -233,7 +233,7 @@ typedef union {
     uint32_t I_rd		   :5;
     uint32_t I_funct3	 :3;
     uint32_t I_rs1		 :5;
-    uint32_t I_imm_11_0:11;
+    uint32_t I_imm_11_0:12;
   };
   struct {
     uint32_t S_opcode   :7;
@@ -284,7 +284,9 @@ typedef union {
   uint32_t val;
 } RV64_ins;
 
-static inline uint32_t gen_rv64_R_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1,uint8_t rs2,uint8_t funct7){
+extern FILE* trans_fp;
+
+static inline void gen_rv64_R_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1,uint8_t rs2,uint8_t funct7){
     RV64_ins ins;
     ins.R_opcode=opcode;
     ins.R_rd=rd;
@@ -292,9 +294,11 @@ static inline uint32_t gen_rv64_R_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,
     ins.R_rs1=rs1;
     ins.R_rs2=rs2;
     ins.R_funct7=funct7;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
-static inline uint32_t gen_rv64_I_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1,uint32_t imm){
+static inline void gen_rv64_I_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1,uint32_t imm){
     RV64_ins ins;
     RV_IMM i;
     i.val=imm;
@@ -303,9 +307,11 @@ static inline uint32_t gen_rv64_I_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,
     ins.I_funct3=funct3;
     ins.I_rs1=rs1;
     ins.I_imm_11_0=i.imm_11_0;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
-static inline uint32_t gen_rv64_S_inst(uint8_t opcode,uint8_t funct3,uint8_t rs1,uint8_t rs2,uint32_t imm){
+static inline void gen_rv64_S_inst(uint8_t opcode,uint8_t funct3,uint8_t rs1,uint8_t rs2,uint32_t imm){
     RV64_ins ins;
     RV_IMM i;
     i.val=imm;
@@ -315,9 +321,11 @@ static inline uint32_t gen_rv64_S_inst(uint8_t opcode,uint8_t funct3,uint8_t rs1
     ins.S_rs2=rs2;
     ins.S_imm_4_0=i.imm_4_0;
     ins.S_imm_11_5=i.imm_11_5;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
-static inline uint32_t gen_rv64_B_inst(uint8_t opcode,uint8_t funct3,uint8_t rs1,uint8_t rs2,uint32_t imm){
+static inline void gen_rv64_B_inst(uint8_t opcode,uint8_t funct3,uint8_t rs1,uint8_t rs2,uint32_t imm){
     RV64_ins ins;
     RV_IMM i;
     i.val=imm;
@@ -329,19 +337,23 @@ static inline uint32_t gen_rv64_B_inst(uint8_t opcode,uint8_t funct3,uint8_t rs1
     ins.B_imm_4_1 = i.imm_4_1;
     ins.B_imm_10_5 = i.imm_10_5;
     ins.B_imm_12=i.imm_12;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
 //when using gen U, we assumed that the real imm is in the lower 20bit of imm(input)
-static inline uint32_t gen_rv64_U_inst(uint8_t opcode,uint8_t rd,uint32_t imm){
+static inline void gen_rv64_U_inst(uint8_t opcode,uint8_t rd,uint32_t imm){
     RV64_ins ins;
     RV_IMM i;
     i.val=imm;
     ins.U_opcode=opcode;
     ins.U_rd=rd;
     ins.U_imm_20_h=i.imm_20_l;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
-static inline uint32_t gen_rv64_J_inst(uint8_t opcode,uint8_t rd,uint32_t imm){
+static inline void gen_rv64_J_inst(uint8_t opcode,uint8_t rd,uint32_t imm){
     RV64_ins ins;
     RV_IMM i;
     i.val=imm;
@@ -351,9 +363,11 @@ static inline uint32_t gen_rv64_J_inst(uint8_t opcode,uint8_t rd,uint32_t imm){
     ins.J_imm_11=i.imm_11_11;
     ins.J_imm_10_1=i.imm_10_1;
     ins.J_imm_20=i.imm_20;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
-static inline uint32_t gen_rv64_R64_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1,uint8_t shamt,uint8_t funct6){
+static inline void gen_rv64_R64_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1,uint8_t shamt,uint8_t funct6){
     RV64_ins ins;
     ins.R64_opcode=opcode;
     ins.R64_rd=rd;
@@ -361,15 +375,19 @@ static inline uint32_t gen_rv64_R64_inst(uint8_t opcode,uint8_t rd,uint8_t funct
     ins.R64_rs1=rs1;
     ins.R64_shamt=shamt;
     ins.R64_funct6=funct6;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
-static inline uint32_t gen_rv64_CSR_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1_imm,uint32_t csr){
+static inline void gen_rv64_CSR_inst(uint8_t opcode,uint8_t rd,uint8_t funct3,uint8_t rs1_imm,uint32_t csr){
     RV64_ins ins;
     ins.CSR_opcode=opcode;
     ins.CSR_rd=rd;
     ins.CSR_funct3=funct3;
     ins.CSR_rs1_imm=rs1_imm;
     ins.CSR_csr=csr;
-    return ins.val;
+    fwrite(&ins.val,4,1,trans_fp);
+    fflush(trans_fp);
+    //return ins.val;
 }
 #endif
