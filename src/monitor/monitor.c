@@ -15,10 +15,10 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
-static int is_batch_mode = false;
+static int batch_mode = false;
 static int difftest_port = 1234;
-static char *trans_file = NULL;
-FILE* trans_fp = NULL;
+
+int is_batch_mode() { return batch_mode; }
 
 static inline void welcome() {
 #ifdef DEBUG
@@ -67,13 +67,12 @@ static inline void parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bhl:d:p:t:", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
     switch (o) {
-      case 'b': is_batch_mode = true; break;
+      case 'b': batch_mode = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 't': trans_file = optarg; break;
       case 1:
         if (img_file != NULL) Log("too much argument '%s', ignored", optarg);
         else img_file = optarg;
@@ -90,7 +89,7 @@ static inline void parse_args(int argc, char *argv[]) {
   }
 }
 
-int init_monitor(int argc, char *argv[]) {
+void init_monitor(int argc, char *argv[]) {
   /* Perform some global initialization. */
 
   /* Parse arguments. */
@@ -125,10 +124,4 @@ int init_monitor(int argc, char *argv[]) {
 
   /* Display welcome message. */
   welcome();
-
-  /* open translation image file*/
-  trans_fp  = fopen(trans_file, "wb");
-  Assert(trans_fp, "cannot open %s",trans_file);
-
-  return is_batch_mode;
 }
