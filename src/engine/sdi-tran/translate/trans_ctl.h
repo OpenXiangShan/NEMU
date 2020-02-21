@@ -57,7 +57,7 @@ struct code_cache_metadata
 void code_cache_init();
 void code_cache_unpin();
 void code_cache_flush_tpc(paddr_t tpc);
-void code_cache_write_block(paddr_t addr,uint8_t* data);
+void code_cache_write_block(paddr_t addr,void* data);
 uint8_t* code_cache_read_block(paddr_t addr);
 
 //jtlb

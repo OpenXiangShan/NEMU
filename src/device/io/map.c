@@ -33,7 +33,7 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
 
-  word_t data = *(word_t *)(map->space + offset) & (~0u >> ((8 - len) << 3));
+  word_t data = *(word_t *)(map->space + offset) & (~0Lu >> ((8 - len) << 3));
   return data;
 }
 

@@ -70,7 +70,7 @@ void code_cache_flush_tpc(paddr_t tpc){
     }
 }
 
-void code_cache_write_block(paddr_t addr,uint8_t* data){
+void code_cache_write_block(paddr_t addr,void* data){
     code_cache_addr new_addr;
     new_addr.addr=addr;
     uint32_t set,tag;
@@ -228,8 +228,8 @@ paddr_t find_spc_jtlb(paddr_t tpc){
 paddr_t rv64_pc;
 uint32_t trans_buffer_index;
 uint32_t trans_buffer[L1_BLOCK_SIZE/4];
-
 int tran_is_jmp = false;
+void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 
 //translation a BB from start addr
 uint32_t trans_cpu_exec(paddr_t start) {
@@ -261,36 +261,34 @@ void mainloop() {
     fake_icache_init();
     jtlb_init();
     code_cache_init();
-
+    volatile uint32_t* jmp_valid = (uint32_t*)(jmp_base+JMP_VALID);
+    volatile uint32_t* tl_a_valid = (uint32_t*)(tl_base+TL_A_VALID);
+    volatile uint32_t* tl_d_valid = (uint32_t*)(tl_base+TL_D_VALID);
     while (1)
     {
         //check jmp req
-        if(*(uint32_t*)(jmp_base+JMP_VALID)){
-            // printf("handle jmp\n");
+        if(*jmp_valid){
             paddr_t jmp_spc = *(uint32_t*)(jmp_base+JMP_SPC);
             paddr_t jmp_target = read_jtlb(jmp_spc);
             *(uint32_t*)(jmp_base+JMP_TARGET)=jmp_target;
-            *(uint32_t*)(jmp_base+JMP_VALID)=0;
+            *jmp_valid=0;
         }
         //wait l1 cache miss
-        if(*(uint32_t*)(tl_base+TL_A_VALID)){
+        if(*tl_a_valid){
             paddr_t l1_addr;
             l1_addr= *(uint32_t*)(tl_base+TL_A_ADDR);
             uint32_t l1_replace_way = *(uint32_t*)(tl_base+TL_A_WAY);
-            printf("handle cache miss, addr=%x , way=%d\n",l1_addr,l1_replace_way);
-            *(uint32_t*)(tl_base+TL_A_VALID)=0;//clear a valid
+            *tl_a_valid=0;//clear a valid
             //emulate icache
             fake_icache_emu(l1_addr,l1_replace_way);
             //read code cache, it will call translation inside if miss
             uint8_t* block_ptr = code_cache_read_block(l1_addr);
             //send tl rsp
             memcpy((void *)tl_base+TL_D_DATA,block_ptr,L1_BLOCK_SIZE);
-            *(uint32_t*)(tl_base+TL_D_VALID)=1;
-            printf("set D valid\n");
-            while (*(uint32_t*)(tl_base+TL_D_VALID)){//wait d fire
+            *tl_d_valid=1;
+            while (*tl_d_valid){//wait d fire
                 ;
             }
-            printf("D fire\n");
         }
     }
 }

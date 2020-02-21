@@ -6,7 +6,7 @@
 volatile uint8_t *tl_base = NULL;
 
 void init_tl() {
-  int shmval=shmget(114514,1024,IPC_CREAT|0666);
+  int shmval=shmget(114514,1024,0);
   assert(shmval!=-1);
   tl_base=shmat(shmval,NULL,0);
   assert(tl_base!=(void *)-1);
