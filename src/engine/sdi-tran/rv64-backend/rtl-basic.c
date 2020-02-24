@@ -188,36 +188,36 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
         //slliw x31,x31,8
         //slliw x30,src1,8
         //and x30,x30,x31
-        //xor x31,x31,x0
+        //xori x31,x31,-1
         //and r,r,x31
         //or r,r,x30
         //printf("addi x31,x0,0xff\n");
         //printf("slliw x31,x31,8\n");
         //printf("slliw x30,x%d,8\n",idx_src1);
         //printf("and x30,x30,x31\n");
-        //printf("xor x31,x31,x0\n");
+        //printf("xori x31,x31,-1\n");
         //printf("and x%d,x%d,x31\n",idx_r,idx_r);
         //printf("or x%d,x%d,x30\n",idx_r,idx_r);
         gen_rv64_I_inst(ADDI_OP,31,ADDI_FUNCT3,0,0xff);
         gen_rv64_R_inst(SLLIW_OP,31,SLLIW_FUNCT3,31,8,SLLIW_FUNCT7);
         gen_rv64_R_inst(SLLIW_OP,30,SLLIW_FUNCT3,idx_src1,8,SLLIW_FUNCT7);
         gen_rv64_R_inst(AND_OP,30,AND_FUNCT3,30,31,AND_FUNCT7);
-        gen_rv64_R_inst(XOR_OP,31,XOR_FUNCT3,31,0,XOR_FUNCT7);
+        gen_rv64_I_inst(XORI_OP,31,XOR_FUNCT3,31,-1);
         gen_rv64_R_inst(AND_OP,idx_r,AND_FUNCT3,idx_r,31,AND_FUNCT7);
         gen_rv64_R_inst(OR_OP,idx_r,OR_FUNCT3,idx_r,30,OR_FUNCT7);
       }else{//low
         //addi x31,x0,0xff
-        //xor x30,x0,x31
+        //xori x30,x0,-1
         //and x31,x31,src1
         //andi x30,x30,r
         //or dest,x30,x31
         //printf("addi x31,x0,0xff\n");
-        //printf("xor x30,x0,x31\n");
+        //printf("xori x30,x0,-1\n");
         //printf("and x31,x31,x%d\n",idx_src1);
         //printf("and x30,x30,x%d\n",idx_r);
         //printf("or x%d,x30,x31\n",idx_r);
         gen_rv64_I_inst(ADDI_OP,31,ADDI_FUNCT3,0,0xff);
-        gen_rv64_R_inst(XOR_OP,30,XOR_FUNCT3,0,31,XOR_FUNCT7);
+        gen_rv64_I_inst(XORI_OP,30,XOR_FUNCT3,31,-1);
         gen_rv64_R_inst(AND_OP,31,AND_FUNCT3,31,idx_src1,AND_FUNCT7);
         gen_rv64_R_inst(AND_OP,30,AND_FUNCT3,30,idx_r,AND_FUNCT7);
         gen_rv64_R_inst(OR_OP,idx_r,OR_FUNCT3,30,31,OR_FUNCT7);
@@ -225,17 +225,17 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
       return;
     case 2:
       //lui x31,0xffff0
-      //xor x30,x31,x0
+      //xori x30,x31,-1
       //and x31,x31,r
       //and x30,x30,src1
       //or r,x30,x31
       //printf("lui x31,0xffff0\n");
-      //printf("xor x30,x0,x31\n");
+      //printf("xori x30,x0,-1\n");
       //printf("and x31,x31,x%d\n",idx_r);
       //printf("and x30,x30,x%d\n",idx_src1);
       //printf("or x%d,x30,x31\n",idx_r);
       gen_rv64_U_inst(LUI_OP,31,0xffff0);
-      gen_rv64_R_inst(XOR_OP,30,XOR_FUNCT3,0,31,XOR_FUNCT7);
+      gen_rv64_I_inst(XORI_OP,30,XOR_FUNCT3,31,-1);
       gen_rv64_R_inst(AND_OP,31,AND_FUNCT3,31,idx_r,AND_FUNCT7);
       gen_rv64_R_inst(AND_OP,30,AND_FUNCT3,30,idx_src1,AND_FUNCT7);
       gen_rv64_R_inst(OR_OP,idx_r,OR_FUNCT3,30,31,OR_FUNCT7);
