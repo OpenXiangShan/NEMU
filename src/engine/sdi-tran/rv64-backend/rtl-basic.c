@@ -291,7 +291,7 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
   gen_rv64_I_inst(ADDIW_OP,31,ADDIW_FUNCT3,reg_ptr2idx(s, src1),-1);
   // x31 = mask
   gen_rv64_R_inst(AND_OP,30,AND_FUNCT3,4,31,AND_FUNCT7);//and x30,t0,x31
-  gen_rv64_R_inst(XOR_OP,31,XOR_FUNCT3,31,0,XOR_FUNCT7);//xor x31,x31,0
+  gen_rv64_I_inst(XORI_OP,31,XOR_FUNCT3,31,-1);//xori x31,x31,-1
   gen_rv64_R_inst(AND_OP,31,AND_FUNCT3,5,31,AND_FUNCT7);//and x31,t1,x31
   gen_rv64_R_inst(OR_OP,4,OR_FUNCT3,30,31,OR_FUNCT7);//or t0,x30,x31
 
