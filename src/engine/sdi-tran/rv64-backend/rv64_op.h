@@ -93,7 +93,12 @@
             uint8_t c_idx = reg_ptr2idx(s, c); \
             /*mulw c_idx,a_idx,b_idx*/ \
             /*printf("mulw x%d,x%d,x%d\n",c_idx,a_idx,b_idx);*/ \
-            gen_rv64_R_inst(MULW_OP,c_idx,MULW_FUNCT3,a_idx,b_idx,MULW_FUNCT7); \
+            gen_rv64_R64_inst(SLLI_OP,30,SLLI_FUNCT3,a_idx,32,SLLI_FUNCT6); \
+            gen_rv64_R64_inst(SRLI_OP,30,SRLI_FUNCT3,30,32,SRLI_FUNCT6); \
+            gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,b_idx,32,SLLI_FUNCT6); \
+            gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6); \
+            gen_rv64_R_inst(MUL_OP,c_idx,MUL_FUNCT3,30,31,MUL_FUNCT7); \
+            gen_rv64_R64_inst(SRAI_OP,c_idx,SRAI_FUNCT3,c_idx,32,SRAI_FUNCT6); \
             }while(0)
 # define rv64_imul_hi(c, a, b) do{ \
             uint8_t a_idx = reg_ptr2idx(s, a); \

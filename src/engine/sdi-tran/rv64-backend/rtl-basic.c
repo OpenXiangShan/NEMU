@@ -62,22 +62,62 @@ make_rtl_arith_logic(idiv_r)
 
 make_rtl(div64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  TODO();
+  uint8_t idx_dest,idx_src1_hi,idx_src1_lo,idx_src2;
+  idx_dest=reg_ptr2idx(s, dest);
+  idx_src1_hi=reg_ptr2idx(s, src1_hi);
+  idx_src1_lo=reg_ptr2idx(s, src1_lo);
+  idx_src2=reg_ptr2idx(s, src2);
+  gen_rv64_R64_inst(SLLI_OP,30,SLLI_FUNCT3,idx_src1_hi,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,idx_src1_lo,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6);
+  gen_rv64_R_inst(OR_OP,30,OR_FUNCT3,30,31,OR_FUNCT7);
+  gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,idx_src2,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6);
+  gen_rv64_R_inst(DIVU_OP,idx_dest,DIVU_FUNCT3,30,31,DIVU_FUNCT7);
 }
 
 make_rtl(div64_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  TODO();
+  uint8_t idx_dest,idx_src1_hi,idx_src1_lo,idx_src2;
+  idx_dest=reg_ptr2idx(s, dest);
+  idx_src1_hi=reg_ptr2idx(s, src1_hi);
+  idx_src1_lo=reg_ptr2idx(s, src1_lo);
+  idx_src2=reg_ptr2idx(s, src2);
+  gen_rv64_R64_inst(SLLI_OP,30,SLLI_FUNCT3,idx_src1_hi,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,idx_src1_lo,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6);
+  gen_rv64_R_inst(OR_OP,30,OR_FUNCT3,30,31,OR_FUNCT7);
+  gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,idx_src2,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6);
+  gen_rv64_R_inst(REMU_OP,idx_dest,REMU_FUNCT3,30,31,REMU_FUNCT7);
 }
 
 make_rtl(idiv64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  TODO();
+  uint8_t idx_dest,idx_src1_hi,idx_src1_lo,idx_src2;
+  idx_dest=reg_ptr2idx(s, dest);
+  idx_src1_hi=reg_ptr2idx(s, src1_hi);
+  idx_src1_lo=reg_ptr2idx(s, src1_lo);
+  idx_src2=reg_ptr2idx(s, src2);
+  gen_rv64_R64_inst(SLLI_OP,30,SLLI_FUNCT3,idx_src1_hi,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,idx_src1_lo,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6);
+  gen_rv64_R_inst(OR_OP,30,OR_FUNCT3,30,31,OR_FUNCT7);
+  gen_rv64_R_inst(DIV_OP,idx_dest,DIV_FUNCT3,30,idx_src2,DIV_FUNCT7);
 }
 
 make_rtl(idiv64_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  TODO();
+  uint8_t idx_dest,idx_src1_hi,idx_src1_lo,idx_src2;
+  idx_dest=reg_ptr2idx(s, dest);
+  idx_src1_hi=reg_ptr2idx(s, src1_hi);
+  idx_src1_lo=reg_ptr2idx(s, src1_lo);
+  idx_src2=reg_ptr2idx(s, src2);
+  gen_rv64_R64_inst(SLLI_OP,30,SLLI_FUNCT3,idx_src1_hi,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SLLI_OP,31,SLLI_FUNCT3,idx_src1_lo,32,SLLI_FUNCT6);
+  gen_rv64_R64_inst(SRLI_OP,31,SRLI_FUNCT3,31,32,SRLI_FUNCT6);
+  gen_rv64_R_inst(OR_OP,30,OR_FUNCT3,30,31,OR_FUNCT7);
+  gen_rv64_R_inst(REM_OP,idx_dest,REM_FUNCT3,30,idx_src2,REM_FUNCT7);
 }
 //memory access
 //lm sm need to suppose addr is unsigned
@@ -94,12 +134,12 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, int len) {
   case 1:
     //lb dest,addr
     //printf("lb x%d,0(x31)\n",idx_dest);
-    gen_rv64_I_inst(LB_OP,idx_dest,LB_FUNCT3,31,0);
+    gen_rv64_I_inst(LBU_OP,idx_dest,LBU_FUNCT3,31,0);
     break;
   case 2:
     //lh dest,addr
     //printf("lh x%d,0(x31)\n",idx_dest);
-    gen_rv64_I_inst(LH_OP,idx_dest,LH_FUNCT3,31,0);
+    gen_rv64_I_inst(LHU_OP,idx_dest,LHU_FUNCT3,31,0);
     break;
   default://4
     //lw dest,addr
