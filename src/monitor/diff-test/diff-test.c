@@ -15,7 +15,16 @@ static bool is_detach = false;
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
 void difftest_skip_ref() {
+  if (is_detach) return;
   is_skip_ref = true;
+  // If such an instruction is one of the instruction packing in QEMU
+  // (see below), we end the process of catching up with QEMU's pc to
+  // keep the consistent behavior in our best.
+  // Note that this is still not perfect: if the packed instructions
+  // already write some memory, and the incoming instruction in NEMU
+  // will load that memory, we will encounter false negative. But such
+  // situation is infrequent.
+  skip_dut_nr_instr = 0;
 }
 
 // this is used to deal with instruction packing in QEMU.
@@ -25,6 +34,7 @@ void difftest_skip_ref() {
 //   Let REF run `nr_ref` instructions first.
 //   We expect that DUT will catch up with REF within `nr_dut` instructions.
 void difftest_skip_dut(int nr_ref, int nr_dut) {
+  if (is_detach) return;
   skip_dut_nr_instr += nr_dut;
 
   while (nr_ref -- > 0) {
@@ -35,7 +45,7 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach(void);
 
-void init_difftest(char *ref_so_file, long img_size) {
+void init_difftest(char *ref_so_file, long img_size, int port) {
 #ifndef DIFF_TEST
   return;
 #endif
@@ -58,7 +68,7 @@ void init_difftest(char *ref_so_file, long img_size) {
   ref_difftest_exec = dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
 
-  void (*ref_difftest_init)(void) = dlsym(handle, "difftest_init");
+  void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
   Log("Differential testing: \33[1;32m%s\33[0m", "ON");
@@ -66,7 +76,7 @@ void init_difftest(char *ref_so_file, long img_size) {
       "This will help you a lot for debugging, but also significantly reduce the performance. "
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
-  ref_difftest_init();
+  ref_difftest_init(port);
   ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
   ref_difftest_setregs(&cpu);
 }
@@ -95,7 +105,7 @@ void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
     }
     skip_dut_nr_instr --;
     if (skip_dut_nr_instr == 0)
-      panic("can not catch up with ref.pc = %x at pc = %x", ref_r.pc, ori_pc);
+      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, ori_pc);
     return;
   }
 

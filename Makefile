@@ -30,7 +30,7 @@ include Makefile.git
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -fomit-frame-pointer
+CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -fomit-frame-pointer
 
 QEMU_DIFF_PATH = $(NEMU_HOME)/tools/qemu-diff
 QEMU_SO = $(QEMU_DIFF_PATH)/build/$(ISA)-qemu-so
@@ -58,8 +58,8 @@ $(OBJ_DIR)/%.o: src/%.c
 .PHONY: app run gdb clean run-env $(QEMU_SO)
 app: $(BINARY)
 
-override ARGS ?= -l $(BUILD_DIR)/nemu-log.txt
-override ARGS += -d $(QEMU_SO)
+override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
+override ARGS += --diff=$(QEMU_SO)
 
 # Command to execute NEMU
 IMG :=

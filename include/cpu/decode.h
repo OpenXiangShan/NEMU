@@ -15,8 +15,8 @@ typedef struct {
   union {
     uint32_t reg;
     rtlreg_t addr;
-    uint32_t imm;
-    int32_t simm;
+    word_t imm;
+    sword_t simm;
   };
   rtlreg_t val;
   char str[OP_STR_SIZE];

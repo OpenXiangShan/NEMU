@@ -10,8 +10,8 @@ typedef struct watchpoint {
   /* TODO: Add more members if necessary */
 
   char *expr;
-  uint32_t new_val;
-  uint32_t old_val;
+  word_t new_val;
+  word_t old_val;
 } WP;
 
 int set_watchpoint(char *e);

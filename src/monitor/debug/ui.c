@@ -88,8 +88,8 @@ static int cmd_d(char *args) {
 static int cmd_p(char *args) {
   if (args != NULL) {
     bool success;
-    uint32_t r = expr(args, &success);
-    if(success) { printf("%d\n", r); }
+    word_t r = expr(args, &success);
+    if(success) { printf(FMT_WORD "\n", r); }
     else { printf("Bad expression\n"); }
   }
   return 0;
@@ -122,10 +122,10 @@ static int cmd_x(char *args) {
     if (success) {
       for (i = 0; i < n; i ++) {
         if (i % 4 == 0) {
-          printf("0x%08x: ", addr);
+          printf(FMT_WORD ": ", addr);
         }
 
-        printf("0x%08x ", vaddr_read(addr, 4));
+        printf("0x%08x ", (uint32_t)vaddr_read(addr, 4));
         addr += 4;
         if (i % 4 == 3) {
           printf("\n");

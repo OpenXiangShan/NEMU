@@ -36,9 +36,8 @@ static void free_WP(WP *p) {
 }
 
 int set_watchpoint(char *e) {
-  uint32_t val;
   bool success;
-  val = expr(e, &success);
+  word_t val = expr(e, &success);
   if (!success) return -1;
 
   WP *p = new_WP();
@@ -74,7 +73,7 @@ void list_watchpoint() {
   printf("%8s\t%8s\t%8s\n", "NO", "Address", "Enable");
   WP *p;
   for (p = head; p != NULL; p = p->next) {
-    printf("%8d\t%s\t%#08x\n", p->NO, p->expr, p->old_val);
+    printf("%8d\t%s\t" FMT_WORD "\n", p->NO, p->expr, p->old_val);
   }
 }
 
