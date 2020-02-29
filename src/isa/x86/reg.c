@@ -52,26 +52,12 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   *success = true;
   for (i = 0; i < 8; i ++) {
-    if (strcmp(regsl[i], s) == 0) {
-      return reg_l(i);
-    }
+    if (strcmp(regsl[i], s) == 0) return reg_l(i);
+    if (strcmp(regsw[i], s) == 0) return reg_w(i);
+    if(strcmp(regsb[i], s) == 0) return reg_b(i);
   }
 
-  for (i = 0; i < 8; i ++) {
-    if (strcmp(regsw[i], s) == 0) {
-      return reg_w(i);
-    }
-  }
-
-  for (i = 0; i < 8; i ++) {
-    if(strcmp(regsb[i], s) == 0) {
-      return reg_b(i);
-    }
-  }
-
-  if (strcmp("pc", s) == 0) {
-    return cpu.pc;
-  }
+  if (strcmp("pc", s) == 0) return cpu.pc;
 
   *success = false;
   return 0;
