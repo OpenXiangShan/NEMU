@@ -1,5 +1,4 @@
-#include "nemu.h"
-#include "isa/mmu.h"
+#include <isa.h>
 
 typedef union {
   struct {

@@ -1,14 +1,13 @@
 #ifndef __CPU_EXEC_H__
 #define __CPU_EXEC_H__
 
-#include "nemu.h"
-#include "monitor/diff-test.h"
-#include "rtl/rtl.h"
+#include <isa.h>
+#include <rtl/rtl.h>
 
 #define make_EHelper(name) void concat(exec_, name) (vaddr_t *pc)
 typedef void (*EHelper) (vaddr_t *);
 
-#include "cpu/decode.h"
+#include <cpu/decode.h>
 
 typedef struct {
   DHelper decode;

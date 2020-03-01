@@ -1,8 +1,10 @@
-#include "nemu.h"
-#include "monitor/monitor.h"
+#include <memory/memory.h>
+#include <monitor/monitor.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
+
+#define MAINARGS_START (IMAGE_START + 0x1000)
 
 void init_log(const char *log_file);
 void init_isa();
@@ -37,9 +39,8 @@ static inline long load_img() {
   long size;
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
-    extern uint8_t isa_default_img[];
-    extern long isa_default_img_size;
     size = isa_default_img_size;
+    // use sizeof()?
     memcpy(guest_to_host(IMAGE_START), isa_default_img, size);
   }
   else {

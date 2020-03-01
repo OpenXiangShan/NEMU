@@ -1,8 +1,6 @@
-#include "common.h"
+#include <isa.h>
 
 void display_inv_msg(vaddr_t pc) {
-  extern char isa_logo[];
-
   printf("There are two cases which will trigger this unexpected exception:\n"
       "1. The instruction at PC = " FMT_WORD " is not implemented.\n"
       "2. Something is implemented incorrectly.\n", pc);

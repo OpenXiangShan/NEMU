@@ -1,10 +1,9 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#include "common.h"
 #include <stdio.h>
 #include <assert.h>
-#include "monitor/log.h"
+#include <monitor/log.h>
 
 #define Log(format, ...) \
     _Log("\33[1;34m[%s,%d,%s] " format "\33[0m\n", \

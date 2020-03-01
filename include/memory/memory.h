@@ -1,23 +1,16 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
-#include "common.h"
+#include <isa.h>
 
 #define PMEM_SIZE (256 * 1024 * 1024)
-extern uint8_t pmem[];
-
-#define IMAGE_START 0x0
-#define MAINARGS_START 0x1000
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
-#define guest_to_host(p) ((void *)(pmem + (unsigned)p))
+void* guest_to_host(paddr_t addr);
 /* convert the host virtual address in NEMU to guest physical address in the guest program */
-#define host_to_guest(p) ((paddr_t)((void *)p - (void *)pmem))
+paddr_t host_to_guest(void *addr);
 
 void register_pmem(paddr_t base);
-
-word_t isa_vaddr_read(vaddr_t, int);
-void isa_vaddr_write(vaddr_t, word_t, int);
 
 #define vaddr_read isa_vaddr_read
 #define vaddr_write isa_vaddr_write

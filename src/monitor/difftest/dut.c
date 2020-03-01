@@ -1,7 +1,7 @@
 #include <dlfcn.h>
 
-#include "nemu.h"
-#include "monitor/monitor.h"
+#include <isa.h>
+#include <monitor/monitor.h>
 
 void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
 void (*ref_difftest_getregs)(void *c) = NULL;
@@ -42,9 +42,6 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   }
 }
 
-bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
-void isa_difftest_attach(void);
-
 void init_difftest(char *ref_so_file, long img_size, int port) {
 #ifndef DIFF_TEST
   return;
@@ -77,14 +74,13 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
   ref_difftest_init(port);
-  ref_difftest_memcpy_from_dut(PC_START, guest_to_host(IMAGE_START), img_size);
+  ref_difftest_memcpy_from_dut(IMAGE_START, guest_to_host(IMAGE_START), img_size);
   ref_difftest_setregs(&cpu);
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
   // TODO: Check the registers state with QEMU.
   if (!isa_difftest_checkregs(ref, pc)) {
-    extern void isa_reg_display(void);
     isa_reg_display();
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;

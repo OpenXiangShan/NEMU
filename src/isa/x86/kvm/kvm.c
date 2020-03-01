@@ -1,6 +1,5 @@
-#include "nemu.h"
-#include "cpu/exec.h"
-#include "monitor/monitor.h"
+#include <cpu/exec.h>
+#include <monitor/monitor.h>
 
 #include <fcntl.h>
 #include <errno.h>
@@ -193,7 +192,7 @@ int run_protected_mode(struct vm *vm, struct vcpu *vcpu) {
     assert(0);
   }
 
-  memcpy(vm->mem, pmem, PMEM_SIZE);
+  memcpy(vm->mem, guest_to_host(0), PMEM_SIZE);
   return run_vm(vm, vcpu, 4);
 }
 

@@ -1,4 +1,5 @@
 #include "cpu/exec.h"
+#include <monitor/difftest.h>
 
 make_EHelper(lidt) {
   cpu.idtr.limit = vaddr_read(id_dest->addr, 2);

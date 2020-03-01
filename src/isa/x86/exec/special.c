@@ -1,5 +1,6 @@
 #include "cpu/exec.h"
 #include "monitor/monitor.h"
+#include <monitor/difftest.h>
 
 make_EHelper(nop) {
   print_asm("nop");

@@ -4,13 +4,6 @@
 #include "common.h"
 #include "cpu/decode.h"
 
-struct ISADecodeInfo {
-  bool is_operand_size_16;
-  uint8_t ext_opcode;
-};
-
-#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
-
 typedef union {
   struct {
     uint8_t R_M		:3;

@@ -1,4 +1,4 @@
-#include "nemu.h"
+#include <isa.h>
 
 const uint8_t isa_default_img []  = {
   0xb8, 0x34, 0x12, 0x00, 0x00,        // 100000:  movl  $0x1234,%eax
@@ -15,7 +15,7 @@ const long isa_default_img_size = sizeof(isa_default_img);
 
 static void restart() {
   /* Set the initial instruction pointer. */
-  cpu.pc = PC_START;
+  cpu.pc = IMAGE_START;
   cpu.cs = 0x8;
   cpu.cr0.val = 0x60000011;
 }

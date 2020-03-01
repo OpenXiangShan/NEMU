@@ -1,8 +1,7 @@
-#ifndef __DIFF_TEST_H__
-#define __DIFF_TEST_H__
+#ifndef __MONITOR_DIFFTEST_H__
+#define __MONITOR_DIFFTEST_H__
 
-#include "common.h"
-#include "isa/diff-test.h"
+#include <common.h>
 
 #ifdef DIFF_TEST
 void difftest_skip_ref(void);

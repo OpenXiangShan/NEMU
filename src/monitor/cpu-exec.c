@@ -1,7 +1,7 @@
-#include "nemu.h"
-#include "monitor/monitor.h"
-#include "monitor/watchpoint.h"
-#include "monitor/diff-test.h"
+#include <isa.h>
+#include <monitor/monitor.h>
+#include <monitor/difftest.h>
+#include "debug/watchpoint.h"
 #include <stdlib.h>
 
 /* The assembly code of instructions executed is only output to the screen

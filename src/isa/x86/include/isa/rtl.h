@@ -1,7 +1,8 @@
 #ifndef __X86_RTL_H__
 #define __X86_RTL_H__
 
-#include "rtl/rtl.h"
+#include <rtl/rtl.h>
+#include <isa/reg.h>
 
 /* RTL pseudo instructions */
 

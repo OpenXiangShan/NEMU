@@ -1,4 +1,4 @@
-#include "nemu.h"
+#include <isa.h>
 
 void dev_raise_intr() {
   cpu.INTR = true;

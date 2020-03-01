@@ -1,7 +1,7 @@
 #ifndef __MONITOR_H__
 #define __MONITOR_H__
 
-#include "common.h"
+#include <common.h>
 
 enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT };
 

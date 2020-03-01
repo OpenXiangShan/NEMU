@@ -1,8 +1,8 @@
 #ifndef __MAP_H__
 #define __MAP_H__
 
-#include "common.h"
-#include "monitor/diff-test.h"
+#include <common.h>
+#include <monitor/difftest.h>
 
 typedef void(*io_callback_t)(uint32_t, int, bool);
 uint8_t* new_space(int size);

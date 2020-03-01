@@ -1,4 +1,5 @@
-#include "nemu.h"
+#include <isa.h>
+#include <isa/reg.h>
 #include <stdlib.h>
 #include <time.h>
 
