@@ -10,23 +10,23 @@ static make_EHelper(lidt) {
 
 static make_EHelper(mov_r2cr) {
   //TODO();
-  rtl_lr(&cpu.cr[id_dest->reg], id_src->reg, 4);
+  rtl_lr(s, &cpu.cr[id_dest->reg], id_src1->reg, 4);
 
-  print_asm("movl %%%s,%%cr%d", reg_name(id_src->reg, 4), id_dest->reg);
+  print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
 }
 
 static make_EHelper(mov_cr2r) {
   //TODO();
-  rtl_sr(id_dest->reg, &cpu.cr[id_src->reg], 4);
+  rtl_sr(s, id_dest->reg, &cpu.cr[id_src1->reg], 4);
 
-  print_asm("movl %%cr%d,%%%s", id_src->reg, reg_name(id_dest->reg, 4));
+  print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
 
   difftest_skip_ref();
 }
 
 static make_EHelper(int) {
-  void raise_intr(uint32_t, vaddr_t);
-  raise_intr(id_dest->val, *pc);
+  void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
+  raise_intr(s, *ddest, s->seq_pc);
 
   print_asm("int %s", id_dest->str);
 
@@ -35,18 +35,16 @@ static make_EHelper(int) {
 
 static make_EHelper(iret) {
   //TODO();
-  rtl_pop(&s0);
+  rtl_pop(s, s0);
 
-  rtl_pop(&s1);
-  cpu.cs = s1;
+  rtl_pop(s, s1);
+  cpu.cs = *s1;
 
-  void rtl_set_eflags(const rtlreg_t *src);
-  rtl_pop(&s1);
-  rtl_set_eflags(&s1);
+  void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
+  rtl_pop(s, s1);
+  rtl_set_eflags(s, s1);
 
-  rtl_jr(&s0);
-
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
+  rtl_jr(s, s0);
 
   print_asm("iret");
 }
@@ -63,14 +61,14 @@ static make_EHelper(in) {
 
   uint32_t val;
   switch (id_dest->width) {
-    case 1: val = pio_read_b(id_src->val); break;
-    case 2: val = pio_read_w(id_src->val); break;
-    case 4: val = pio_read_l(id_src->val); break;
+    case 1: val = pio_read_b(*dsrc1); break;
+    case 2: val = pio_read_w(*dsrc1); break;
+    case 4: val = pio_read_l(*dsrc1); break;
     default: assert(0);
   }
 
-  rtl_li(&s0, val);
-  operand_write(id_dest, &s0);
+  rtl_li(s, s0, val);
+  operand_write(s, id_dest, s0);
 
   print_asm_template2(in);
 }
@@ -79,9 +77,9 @@ static make_EHelper(out) {
 //  TODO();
 
   switch (id_dest->width) {
-    case 1: pio_write_b(id_dest->val, id_src->val); break;
-    case 2: pio_write_w(id_dest->val, id_src->val); break;
-    case 4: pio_write_l(id_dest->val, id_src->val); break;
+    case 1: pio_write_b(*ddest, *dsrc1); break;
+    case 2: pio_write_w(*ddest, *dsrc1); break;
+    case 4: pio_write_l(*ddest, *dsrc1); break;
     default: assert(0);
   }
 

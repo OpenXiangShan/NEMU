@@ -25,9 +25,13 @@ void difftest_exec(uint64_t n) {
 }
 
 void difftest_raise_intr(word_t NO) {
-  void raise_intr(word_t NO, vaddr_t epc);
-  raise_intr(NO, cpu.pc);
-  update_pc();
+  DecodeExecState s;
+  s.is_jmp = 0;
+  s.isa = (struct ISADecodeInfo) { 0 };
+
+  void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc);
+  raise_intr(&s, NO, cpu.pc);
+  update_pc(&s);
 }
 
 void difftest_init(void) {

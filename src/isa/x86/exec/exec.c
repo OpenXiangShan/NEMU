@@ -2,20 +2,14 @@
 #include "../decode/decode.h"
 #include "all-instr.h"
 
-static inline void set_width(int width) {
+static inline void set_width(DecodeExecState *s, int width) {
   if (width == 0) {
-    width = decinfo.isa.is_operand_size_16 ? 2 : 4;
+    width = s->isa.is_operand_size_16 ? 2 : 4;
   }
-  decinfo.src.width = decinfo.dest.width = decinfo.src2.width = width;
+  s->src1.width = s->dest.width = s->src2.width = width;
 }
 
-#undef IDEXW
-#undef IDEX
-#undef EXW
-#undef EX
-#undef EMPTY
-
-#define decode_empty(pc)
+#define decode_empty(s)
 
 #define IDEXW(idx, id, ex, w) CASE_ENTRY(idx, concat(decode_, id), concat(exec_, ex), w)
 #define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
@@ -23,11 +17,11 @@ static inline void set_width(int width) {
 #define EX(idx, ex)           EXW(idx, ex, 0)
 #define EMPTY(idx)            //EX(idx, inv)
 
-#define CASE_ENTRY(idx, id, ex, w) case idx: id(pc); ex(pc); break;
+#define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
 /* 0x80, 0x81, 0x83 */
 static make_EHelper(gp1) {
-  switch (decinfo.isa.ext_opcode) {
+  switch (s->isa.ext_opcode) {
     EX(0x00, add) EX(0x01, or)  EX(0x02, adc) EX(0x03, sbb)
     EX(0x04, and) EX(0x05, sub) EX(0x06, xor) EX(0x07, cmp)
   }
@@ -35,7 +29,7 @@ static make_EHelper(gp1) {
 
 /* 0xc0, 0xc1, 0xd0, 0xd1, 0xd2, 0xd3 */
 static make_EHelper(gp2) {
-  switch (decinfo.isa.ext_opcode) {
+  switch (s->isa.ext_opcode) {
     EX(0x00, rol) EMPTY(0x01)      EMPTY(0x02) EMPTY(0x03)
     EX(0x04, shl) EX   (0x05, shr) EMPTY(0x06) EX   (0x07, sar)
   }
@@ -43,7 +37,7 @@ static make_EHelper(gp2) {
 
 /* 0xf6, 0xf7 */
 static make_EHelper(gp3) {
-  switch (decinfo.isa.ext_opcode) {
+  switch (s->isa.ext_opcode) {
     IDEX(0x00, test_I, test) EMPTY(0x01)        EX(0x02, not) EX(0x03, neg)
     EX  (0x04, mul)          EX   (0x05, imul1) EX(0x06, div) EX(0x07, idiv)
   }
@@ -51,7 +45,7 @@ static make_EHelper(gp3) {
 
 /* 0xfe */
 static make_EHelper(gp4) {
-  switch (decinfo.isa.ext_opcode) {
+  switch (s->isa.ext_opcode) {
     EX   (0x00, inc) EX   (0x01, dec) EMPTY(0x02) EMPTY(0x03)
     EMPTY(0x04)      EMPTY(0x05)      EMPTY(0x06) EMPTY(0x07)
   }
@@ -59,7 +53,7 @@ static make_EHelper(gp4) {
 
 /* 0xff */
 static make_EHelper(gp5) {
-  switch (decinfo.isa.ext_opcode) {
+  switch (s->isa.ext_opcode) {
     EX(0x00, inc)    EX   (0x01, dec) EX(0x02, call_rm) EMPTY(0x03)
     EX(0x04, jmp_rm) EMPTY(0x05)      EX(0x06, push)    EMPTY(0x07)
   }
@@ -67,18 +61,18 @@ static make_EHelper(gp5) {
 
 /* 0x0f 0x01*/
 static make_EHelper(gp7) {
-  switch (decinfo.isa.ext_opcode) {
+  switch (s->isa.ext_opcode) {
     EMPTY(0x00) EMPTY(0x01) EMPTY(0x02) EX   (0x03, lidt)
     EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
   }
 }
 
 #undef CASE_ENTRY
-#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(w); id(pc); ex(pc); break;
+#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
 
 static make_EHelper(2byte_esc) {
-  uint8_t opcode = instr_fetch(pc, 1);
-  decinfo.opcode = opcode;
+  uint8_t opcode = instr_fetch(&s->seq_pc, 1);
+  s->opcode = opcode;
   switch (opcode) {
   /* TODO: Add more instructions!!! */
     IDEX (0x01, gp7_E, gp7)
@@ -100,17 +94,19 @@ static make_EHelper(2byte_esc) {
     IDEXW(0xb7, mov_E2G, movzx, 2)
     IDEXW(0xbe, mov_E2G, movsx, 1)
     IDEXW(0xbf, mov_E2G, movsx, 2)
-    default: exec_inv(pc);
+    default: exec_inv(s);
   }
 }
 
-void isa_exec(vaddr_t *pc) {
+static inline void exec(DecodeExecState *s) {
 #ifdef USE_KVM
   extern void kvm_exec(void);
   kvm_exec();
 #else
-  uint8_t opcode = instr_fetch(pc, 1);
-  decinfo.opcode = opcode;
+  uint8_t opcode;
+again:
+  opcode = instr_fetch(&s->seq_pc, 1);
+  s->opcode = opcode;
   switch (opcode) {
 //       1         2         3         4         5         6         7         8         9
 //34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
@@ -139,7 +135,7 @@ IDEX (0x54, r, push)        IDEX (0x55, r, push)        IDEX (0x56, r, push)    
 IDEX (0x58, r, pop)         IDEX (0x59, r, pop)         IDEX (0x5a, r, pop)         IDEX (0x5b, r, pop)
 IDEX (0x5c, r, pop)         IDEX (0x5d, r, pop)         IDEX (0x5e, r, pop)         IDEX (0x5f, r, pop)
 EX   (0x60, pusha)          EX   (0x61, popa)
-                                                        EX   (0x66, operand_size)
+                                                        //EX   (0x66, operand_size)
 IDEX (0x68, I, push)        IDEX (0x69, I_E2G, imul3)   IDEXW(0x6a, push_SI, push, 1)IDEX (0x6b, SI_E2G, imul3)
 
 IDEXW(0x70, J, jcc, 1)      IDEXW(0x71, J, jcc, 1)      IDEXW(0x72, J, jcc, 1)      IDEXW(0x73, J, jcc, 1)
@@ -178,7 +174,25 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
                                                         IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
 
                                                         IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
-  default: exec_inv(pc);
+
+  case 0x66: s->isa.is_operand_size_16 = true; goto again;
+  default: exec_inv(s);
   }
 #endif
+}
+
+vaddr_t isa_exec_once() {
+  DecodeExecState s;
+  s.is_jmp = 0;
+  s.isa = (struct ISADecodeInfo) { 0 };
+  s.seq_pc = cpu.pc;
+
+  exec(&s);
+  update_pc(&s);
+
+#if !defined(DIFF_TEST) && !_SHARE
+  bool isa_query_intr(void);
+  if (isa_query_intr()) update_pc(&s);
+#endif
+  return s.seq_pc;
 }

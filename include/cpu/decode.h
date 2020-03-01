@@ -4,9 +4,6 @@
 #include "common.h"
 #include <isa.h>
 
-#define make_DHelper(name) void concat(decode_, name) (vaddr_t *pc)
-typedef void (*DHelper) (vaddr_t *);
-
 #define OP_STR_SIZE 40
 enum { OP_TYPE_REG, OP_TYPE_MEM, OP_TYPE_IMM };
 
@@ -28,16 +25,12 @@ typedef struct {
   vaddr_t seq_pc;  // sequential pc
   bool is_jmp;
   vaddr_t jmp_pc;
-  Operand src, dest, src2;
+  Operand src1, dest, src2;
+  rtlreg_t tmp_reg[5];
   struct ISADecodeInfo isa;
-} DecodeInfo;
+} DecodeExecState;
 
-/* shared by all helper functions */
-extern DecodeInfo decinfo;
-
-#define id_src (&decinfo.src)
-#define id_src2 (&decinfo.src2)
-#define id_dest (&decinfo.dest)
+#define make_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
 
 #ifdef DEBUG
 #define print_Dop(...) snprintf(__VA_ARGS__)

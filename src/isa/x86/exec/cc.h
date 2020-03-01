@@ -13,7 +13,7 @@ static inline const char* get_cc_name(int subcode) {
   return cc_name[subcode];
 }
 
-static inline void rtl_setcc(rtlreg_t* dest, uint8_t subcode) {
+static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint8_t subcode) {
   bool invert = subcode & 0x1;
   enum {
     CC_O, CC_NO, CC_B,  CC_NB,
@@ -25,14 +25,14 @@ static inline void rtl_setcc(rtlreg_t* dest, uint8_t subcode) {
   // TODO: Query EFLAGS to determine whether the condition code is satisfied.
   // dest <- ( cc is satisfied ? 1 : 0)
   switch (subcode & 0xe) {
-    case CC_O: rtl_mv(dest, &cpu.OF); break;
-    case CC_B: rtl_mv(dest, &cpu.CF); break;
-    case CC_E: rtl_mv(dest, &cpu.ZF); break;
-    case CC_BE: rtl_or(dest, &cpu.CF, &cpu.ZF); break;
-    case CC_S: rtl_mv(dest, &cpu.SF); break;
-    case CC_L: rtl_xor(dest, &cpu.SF, &cpu.OF); break;
-    case CC_LE: rtl_xor(dest, &cpu.SF, &cpu.OF);
-                rtl_or(dest, dest, &cpu.ZF);
+    case CC_O: rtl_mv(s, dest, &cpu.OF); break;
+    case CC_B: rtl_mv(s, dest, &cpu.CF); break;
+    case CC_E: rtl_mv(s, dest, &cpu.ZF); break;
+    case CC_BE: rtl_or(s, dest, &cpu.CF, &cpu.ZF); break;
+    case CC_S: rtl_mv(s, dest, &cpu.SF); break;
+    case CC_L: rtl_xor(s, dest, &cpu.SF, &cpu.OF); break;
+    case CC_LE: rtl_xor(s, dest, &cpu.SF, &cpu.OF);
+                rtl_or(s, dest, dest, &cpu.ZF);
                 break;
                 //TODO();
     default: panic("should not reach here");
@@ -40,7 +40,7 @@ static inline void rtl_setcc(rtlreg_t* dest, uint8_t subcode) {
   }
 
   if (invert) {
-    rtl_xori(dest, dest, 0x1);
+    rtl_xori(s, dest, dest, 0x1);
   }
   assert(*dest == 0 || *dest == 1);
 }

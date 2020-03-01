@@ -2,23 +2,7 @@
 
 CPU_state cpu;
 
-rtlreg_t s0, s1, t0, t1, ir;
-
-/* shared by all helper functions */
-DecodeInfo decinfo;
-
-void decinfo_set_jmp(bool is_jmp) {
-  decinfo.is_jmp = is_jmp;
-}
-
-vaddr_t exec_once(void) {
-  decinfo.seq_pc = cpu.pc;
-  isa_exec(&decinfo.seq_pc);
-  update_pc();
-
-#if !defined(DIFF_TEST) && !_SHARE
-  bool isa_query_intr(void);
-  if (isa_query_intr()) update_pc();
-#endif
-  return decinfo.seq_pc;
+void update_pc(DecodeExecState *s) {
+  if (s->is_jmp) { s->is_jmp = 0; }
+  else { cpu.pc = s->seq_pc; }
 }

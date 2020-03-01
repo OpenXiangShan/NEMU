@@ -3,23 +3,23 @@
 
 static make_EHelper(jmp) {
   // the target address is calculated at the decode stage
-  rtl_j(decinfo.jmp_pc);
+  rtl_j(s, s->jmp_pc);
 
-  print_asm("jmp %x", decinfo.jmp_pc);
+  print_asm("jmp %x", s->jmp_pc);
 }
 
 static make_EHelper(jcc) {
   // the target address is calculated at the decode stage
-  uint32_t cc = decinfo.opcode & 0xf;
-  rtl_setcc(&s0, cc);
-  rtl_li(&s1, 0);
-  rtl_jrelop(RELOP_NE, &s0, &s1, decinfo.jmp_pc);
+  uint32_t cc = s->opcode & 0xf;
+  rtl_setcc(s, s0, cc);
+  rtl_li(s, s1, 0);
+  rtl_jrelop(s, RELOP_NE, s0, s1, s->jmp_pc);
 
-  print_asm("j%s %x", get_cc_name(cc), decinfo.jmp_pc);
+  print_asm("j%s %x", get_cc_name(cc), s->jmp_pc);
 }
 
 static make_EHelper(jmp_rm) {
-  rtl_jr(&id_dest->val);
+  rtl_jr(s, ddest);
 
   print_asm("jmp *%s", id_dest->str);
 }
@@ -27,36 +27,36 @@ static make_EHelper(jmp_rm) {
 static make_EHelper(call) {
   // the target address is calculated at the decode stage
 //  TODO();
-  rtl_li(&s0, decinfo.seq_pc);
-  rtl_push(&s0);
-  rtl_j(decinfo.jmp_pc);
+  rtl_li(s, s0, s->seq_pc);
+  rtl_push(s, s0);
+  rtl_j(s, s->jmp_pc);
 
-  print_asm("call %x", decinfo.jmp_pc);
+  print_asm("call %x", s->jmp_pc);
 }
 
 static make_EHelper(ret) {
 //  TODO();
-  rtl_pop(&s0);
-  rtl_jr(&s0);
+  rtl_pop(s, s0);
+  rtl_jr(s, s0);
 
   print_asm("ret");
 }
 
 static make_EHelper(ret_imm) {
 //  TODO();
-  rtl_pop(&s0);
-  rtl_jr(&s0);
+  rtl_pop(s, s0);
+  rtl_jr(s, s0);
 
-  rtl_add(&cpu.esp, &cpu.esp, &id_dest->val);
+  rtl_add(s, &cpu.esp, &cpu.esp, ddest);
 
   print_asm("ret %s", id_dest->str);
 }
 
 static make_EHelper(call_rm) {
 //  TODO();
-  rtl_li(&s0, decinfo.seq_pc);
-  rtl_push(&s0);
-  rtl_jr(&id_dest->val);
+  rtl_li(s, s0, s->seq_pc);
+  rtl_push(s, s0);
+  rtl_jr(s, ddest);
 
   print_asm("call *%s", id_dest->str);
 }

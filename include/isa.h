@@ -3,6 +3,7 @@
 
 #include <common.h>
 #include _ISA_H_
+#include <cpu/decode.h>
 
 // monitor
 extern const uint8_t isa_default_img[];
@@ -15,7 +16,7 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
-void isa_exec(vaddr_t *pc);
+vaddr_t isa_exec_once();
 
 // memory
 word_t isa_vaddr_read(vaddr_t addr, int len);
