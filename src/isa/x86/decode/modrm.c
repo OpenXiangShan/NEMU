@@ -1,5 +1,27 @@
 #include "cpu/exec.h"
 
+typedef union {
+  struct {
+    uint8_t R_M		:3;
+    uint8_t reg		:3;
+    uint8_t mod		:2;
+  };
+  struct {
+    uint8_t dont_care	:3;
+    uint8_t opcode		:3;
+  };
+  uint8_t val;
+} ModR_M;
+
+typedef union {
+  struct {
+    uint8_t base	:3;
+    uint8_t index	:3;
+    uint8_t ss		:2;
+  };
+  uint8_t val;
+} SIB;
+
 void load_addr(vaddr_t *pc, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 

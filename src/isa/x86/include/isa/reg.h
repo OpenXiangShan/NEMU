@@ -2,10 +2,6 @@
 #define __X86_REG_H__
 
 #include <isa/x86.h>
-//#include "common.h"
-//#include "memory/memory.h"
-
-//#define PC_START IMAGE_START
 
 enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };
 enum { R_AX, R_CX, R_DX, R_BX, R_SP, R_BP, R_SI, R_DI };

@@ -9,18 +9,18 @@ static inline void and_internal() {
   rtl_li(&cpu.OF, 0);
 }
 
-make_EHelper(test) {
+static make_EHelper(test) {
   and_internal();
   print_asm_template2(test);
 }
 
-make_EHelper(and) {
+static make_EHelper(and) {
   and_internal();
   operand_write(id_dest, &s0);
   print_asm_template2(and);
 }
 
-make_EHelper(xor) {
+static make_EHelper(xor) {
   rtl_xor(&s0, &id_dest->val, &id_src->val);
   operand_write(id_dest, &s0);
   rtl_update_ZFSF(&s0, id_dest->width);
@@ -29,7 +29,7 @@ make_EHelper(xor) {
   print_asm_template2(xor);
 }
 
-make_EHelper(or) {
+static make_EHelper(or) {
   rtl_or(&s0, &id_dest->val, &id_src->val);
   operand_write(id_dest, &s0);
   rtl_update_ZFSF(&s0, id_dest->width);
@@ -38,7 +38,7 @@ make_EHelper(or) {
   print_asm_template2(or);
 }
 
-make_EHelper(sar) {
+static make_EHelper(sar) {
   rtl_sext(&s0, &id_dest->val, id_dest->width);
   rtl_sar(&s0, &s0, &id_src->val);
   operand_write(id_dest, &s0);
@@ -48,7 +48,7 @@ make_EHelper(sar) {
   print_asm_template2(sar);
 }
 
-make_EHelper(shl) {
+static make_EHelper(shl) {
   rtl_shl(&s0, &id_dest->val, &id_src->val);
   operand_write(id_dest, &s0);
   rtl_update_ZFSF(&s0, id_dest->width);
@@ -57,7 +57,7 @@ make_EHelper(shl) {
   print_asm_template2(shl);
 }
 
-make_EHelper(shr) {
+static make_EHelper(shr) {
   rtl_shr(&s0, &id_dest->val, &id_src->val);
   operand_write(id_dest, &s0);
   rtl_update_ZFSF(&s0, id_dest->width);
@@ -66,7 +66,7 @@ make_EHelper(shr) {
   print_asm_template2(shr);
 }
 
-make_EHelper(rol) {
+static make_EHelper(rol) {
   rtl_shl(&s0, &id_dest->val, &id_src->val);
   rtl_li(&s1, id_dest->width * 8);
   rtl_sub(&s1, &s1, &id_src->val);
@@ -79,7 +79,7 @@ make_EHelper(rol) {
   print_asm_template2(rol);
 }
 
-make_EHelper(setcc) {
+static make_EHelper(setcc) {
   uint32_t cc = decinfo.opcode & 0xf;
 
   rtl_setcc(&s0, cc);
@@ -88,14 +88,14 @@ make_EHelper(setcc) {
   print_asm("set%s %s", get_cc_name(cc), id_dest->str);
 }
 
-make_EHelper(not) {
+static make_EHelper(not) {
   rtl_not(&s0, &id_dest->val);
   operand_write(id_dest, &s0);
 
   print_asm_template1(not);
 }
 
-make_EHelper(shld) {
+static make_EHelper(shld) {
   rtl_shl(&s0, &id_dest->val, &id_src->val);
 
   rtl_li(&s1, 32);
@@ -111,7 +111,7 @@ make_EHelper(shld) {
   print_asm_template3(shld);
 }
 
-make_EHelper(shrd) {
+static make_EHelper(shrd) {
   rtl_shr(&s0, &id_dest->val, &id_src->val);
 
   rtl_li(&s1, 32);

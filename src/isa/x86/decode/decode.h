@@ -1,5 +1,7 @@
 #include "cpu/exec.h"
 
+void read_ModR_M(vaddr_t *, Operand *, bool, Operand *, bool);
+
 // decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (vaddr_t *pc, Operand *op, bool load_val)
 
@@ -95,33 +97,33 @@ static inline make_DopHelper(O) {
 /* Eb <- Gb
  * Ev <- Gv
  */
-make_DHelper(G2E) {
+static inline make_DHelper(G2E) {
   decode_op_rm(pc, id_dest, true, id_src, true);
 }
 
-make_DHelper(mov_G2E) {
+static inline make_DHelper(mov_G2E) {
   decode_op_rm(pc, id_dest, false, id_src, true);
 }
 
 /* Gb <- Eb
  * Gv <- Ev
  */
-make_DHelper(E2G) {
+static inline make_DHelper(E2G) {
   decode_op_rm(pc, id_src, true, id_dest, true);
 }
 
-make_DHelper(mov_E2G) {
+static inline make_DHelper(mov_E2G) {
   decode_op_rm(pc, id_src, true, id_dest, false);
 }
 
-make_DHelper(lea_M2G) {
+static inline make_DHelper(lea_M2G) {
   decode_op_rm(pc, id_src, false, id_dest, false);
 }
 
 /* AL <- Ib
  * eAX <- Iv
  */
-make_DHelper(I2a) {
+static inline make_DHelper(I2a) {
   decode_op_a(pc, id_dest, true);
   decode_op_I(pc, id_src, true);
 }
@@ -129,7 +131,7 @@ make_DHelper(I2a) {
 /* Gv <- EvIb
  * Gv <- EvIv
  * use for imul */
-make_DHelper(I_E2G) {
+static inline make_DHelper(I_E2G) {
   decode_op_rm(pc, id_src2, true, id_dest, false);
   decode_op_I(pc, id_src, true);
 }
@@ -137,12 +139,12 @@ make_DHelper(I_E2G) {
 /* Eb <- Ib
  * Ev <- Iv
  */
-make_DHelper(I2E) {
+static inline make_DHelper(I2E) {
   decode_op_rm(pc, id_dest, true, NULL, false);
   decode_op_I(pc, id_src, true);
 }
 
-make_DHelper(mov_I2E) {
+static inline make_DHelper(mov_I2E) {
   decode_op_rm(pc, id_dest, false, NULL, false);
   decode_op_I(pc, id_src, true);
 }
@@ -150,43 +152,43 @@ make_DHelper(mov_I2E) {
 /* XX <- Ib
  * eXX <- Iv
  */
-make_DHelper(I2r) {
+static inline make_DHelper(I2r) {
   decode_op_r(pc, id_dest, true);
   decode_op_I(pc, id_src, true);
 }
 
-make_DHelper(mov_I2r) {
+static inline make_DHelper(mov_I2r) {
   decode_op_r(pc, id_dest, false);
   decode_op_I(pc, id_src, true);
 }
 
 /* used by unary operations */
-make_DHelper(I) {
+static inline make_DHelper(I) {
   decode_op_I(pc, id_dest, true);
 }
 
-make_DHelper(r) {
+static inline make_DHelper(r) {
   decode_op_r(pc, id_dest, true);
 }
 
-make_DHelper(E) {
+static inline make_DHelper(E) {
   decode_op_rm(pc, id_dest, true, NULL, false);
 }
 
-make_DHelper(setcc_E) {
+static inline make_DHelper(setcc_E) {
   decode_op_rm(pc, id_dest, false, NULL, false);
 }
 
-make_DHelper(gp7_E) {
+static inline make_DHelper(gp7_E) {
   decode_op_rm(pc, id_dest, false, NULL, false);
 }
 
 /* used by test in group3 */
-make_DHelper(test_I) {
+static inline make_DHelper(test_I) {
   decode_op_I(pc, id_src, true);
 }
 
-make_DHelper(SI2E) {
+static inline make_DHelper(SI2E) {
   assert(id_dest->width == 2 || id_dest->width == 4);
   decode_op_rm(pc, id_dest, true, NULL, false);
   id_src->width = 1;
@@ -196,7 +198,7 @@ make_DHelper(SI2E) {
   }
 }
 
-make_DHelper(SI_E2G) {
+static inline make_DHelper(SI_E2G) {
   assert(id_dest->width == 2 || id_dest->width == 4);
   decode_op_rm(pc, id_src2, true, id_dest, false);
   id_src->width = 1;
@@ -206,7 +208,7 @@ make_DHelper(SI_E2G) {
   }
 }
 
-make_DHelper(gp2_1_E) {
+static inline make_DHelper(gp2_1_E) {
   decode_op_rm(pc, id_dest, true, NULL, false);
   id_src->type = OP_TYPE_IMM;
   id_src->imm = 1;
@@ -215,7 +217,7 @@ make_DHelper(gp2_1_E) {
   print_Dop(id_src->str, OP_STR_SIZE, "$1");
 }
 
-make_DHelper(gp2_cl2E) {
+static inline make_DHelper(gp2_cl2E) {
   decode_op_rm(pc, id_dest, true, NULL, false);
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_CL;
@@ -224,7 +226,7 @@ make_DHelper(gp2_cl2E) {
   print_Dop(id_src->str, OP_STR_SIZE, "%%cl");
 }
 
-make_DHelper(gp2_Ib2E) {
+static inline make_DHelper(gp2_Ib2E) {
   decode_op_rm(pc, id_dest, true, NULL, false);
   id_src->width = 1;
   decode_op_I(pc, id_src, true);
@@ -232,7 +234,7 @@ make_DHelper(gp2_Ib2E) {
 
 /* Ev <- GvIb
  * use for shld/shrd */
-make_DHelper(Ib_G2E) {
+static inline make_DHelper(Ib_G2E) {
   decode_op_rm(pc, id_dest, true, id_src2, true);
   id_src->width = 1;
   decode_op_I(pc, id_src, true);
@@ -240,7 +242,7 @@ make_DHelper(Ib_G2E) {
 
 /* Ev <- GvCL
  * use for shld/shrd */
-make_DHelper(cl_G2E) {
+static inline make_DHelper(cl_G2E) {
   decode_op_rm(pc, id_dest, true, id_src2, true);
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_CL;
@@ -249,33 +251,33 @@ make_DHelper(cl_G2E) {
   print_Dop(id_src->str, OP_STR_SIZE, "%%cl");
 }
 
-make_DHelper(O2a) {
+static inline make_DHelper(O2a) {
   decode_op_O(pc, id_src, true);
   decode_op_a(pc, id_dest, false);
 }
 
-make_DHelper(a2O) {
+static inline make_DHelper(a2O) {
   decode_op_a(pc, id_src, true);
   decode_op_O(pc, id_dest, false);
 }
 
-make_DHelper(J) {
+static inline make_DHelper(J) {
   decode_op_SI(pc, id_dest, false);
   // the target address can be computed in the decode stage
   decinfo.jmp_pc = id_dest->simm + *pc;
 }
 
-make_DHelper(push_SI) {
+static inline make_DHelper(push_SI) {
   decode_op_SI(pc, id_dest, true);
 }
 
-make_DHelper(in_I2a) {
+static inline make_DHelper(in_I2a) {
   id_src->width = 1;
   decode_op_I(pc, id_src, true);
   decode_op_a(pc, id_dest, false);
 }
 
-make_DHelper(in_dx2a) {
+static inline make_DHelper(in_dx2a) {
   id_src->type = OP_TYPE_REG;
   id_src->reg = R_DX;
   rtl_lr(&id_src->val, R_DX, 2);
@@ -285,13 +287,13 @@ make_DHelper(in_dx2a) {
   decode_op_a(pc, id_dest, false);
 }
 
-make_DHelper(out_a2I) {
+static inline make_DHelper(out_a2I) {
   decode_op_a(pc, id_src, true);
   id_dest->width = 1;
   decode_op_I(pc, id_dest, true);
 }
 
-make_DHelper(out_a2dx) {
+static inline make_DHelper(out_a2dx) {
   decode_op_a(pc, id_src, true);
 
   id_dest->type = OP_TYPE_REG;
@@ -301,7 +303,7 @@ make_DHelper(out_a2dx) {
   print_Dop(id_dest->str, OP_STR_SIZE, "(%%dx)");
 }
 
-void operand_write(Operand *op, rtlreg_t* src) {
+static inline void operand_write(Operand *op, rtlreg_t* src) {
   if (op->type == OP_TYPE_REG) { rtl_sr(op->reg, src, op->width); }
   else if (op->type == OP_TYPE_MEM) { rtl_sm(&op->addr, src, op->width); }
   else { assert(0); }

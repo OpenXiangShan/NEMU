@@ -1,18 +1,18 @@
 #include "cpu/exec.h"
 
-make_EHelper(mov) {
+static make_EHelper(mov) {
   operand_write(id_dest, &id_src->val);
   print_asm_template2(mov);
 }
 
-make_EHelper(push) {
+static make_EHelper(push) {
 //  TODO();
   rtl_push(&id_dest->val);
 
   print_asm_template1(push);
 }
 
-make_EHelper(pop) {
+static make_EHelper(pop) {
 //  TODO();
   rtl_pop(&s0);
   operand_write(id_dest, &s0);
@@ -20,7 +20,7 @@ make_EHelper(pop) {
   print_asm_template1(pop);
 }
 
-make_EHelper(pusha) {
+static make_EHelper(pusha) {
   //TODO();
 
   rtl_mv(&s0, &cpu.esp);
@@ -36,7 +36,7 @@ make_EHelper(pusha) {
   print_asm("pusha");
 }
 
-make_EHelper(popa) {
+static make_EHelper(popa) {
   //TODO();
 
   rtl_pop(&cpu.edi);
@@ -51,7 +51,7 @@ make_EHelper(popa) {
   print_asm("popa");
 }
 
-make_EHelper(leave) {
+static make_EHelper(leave) {
 //  TODO();
   rtl_mv(&cpu.esp, &cpu.ebp);
   rtl_pop(&cpu.ebp);
@@ -59,7 +59,7 @@ make_EHelper(leave) {
   print_asm("leave");
 }
 
-make_EHelper(cltd) {
+static make_EHelper(cltd) {
   if (decinfo.isa.is_operand_size_16) {
     TODO();
   }
@@ -70,7 +70,7 @@ make_EHelper(cltd) {
   print_asm(decinfo.isa.is_operand_size_16 ? "cwtl" : "cltd");
 }
 
-make_EHelper(cwtl) {
+static make_EHelper(cwtl) {
   if (decinfo.isa.is_operand_size_16) {
     //TODO();
     rtl_sext(&s0, &cpu.eax, 1);
@@ -84,20 +84,20 @@ make_EHelper(cwtl) {
   print_asm(decinfo.isa.is_operand_size_16 ? "cbtw" : "cwtl");
 }
 
-make_EHelper(movsx) {
+static make_EHelper(movsx) {
   id_dest->width = decinfo.isa.is_operand_size_16 ? 2 : 4;
   rtl_sext(&s0, &id_src->val, id_src->width);
   operand_write(id_dest, &s0);
   print_asm_template2(movsx);
 }
 
-make_EHelper(movzx) {
+static make_EHelper(movzx) {
   id_dest->width = decinfo.isa.is_operand_size_16 ? 2 : 4;
   operand_write(id_dest, &id_src->val);
   print_asm_template2(movzx);
 }
 
-make_EHelper(lea) {
+static make_EHelper(lea) {
   operand_write(id_dest, &id_src->addr);
   print_asm_template2(lea);
 }

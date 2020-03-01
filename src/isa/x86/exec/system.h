@@ -1,21 +1,21 @@
 #include "cpu/exec.h"
 #include <monitor/difftest.h>
 
-make_EHelper(lidt) {
+static make_EHelper(lidt) {
   cpu.idtr.limit = vaddr_read(id_dest->addr, 2);
   cpu.idtr.base = vaddr_read(id_dest->addr + 2, 4);
 
   print_asm_template1(lidt);
 }
 
-make_EHelper(mov_r2cr) {
+static make_EHelper(mov_r2cr) {
   //TODO();
   rtl_lr(&cpu.cr[id_dest->reg], id_src->reg, 4);
 
   print_asm("movl %%%s,%%cr%d", reg_name(id_src->reg, 4), id_dest->reg);
 }
 
-make_EHelper(mov_cr2r) {
+static make_EHelper(mov_cr2r) {
   //TODO();
   rtl_sr(id_dest->reg, &cpu.cr[id_src->reg], 4);
 
@@ -24,7 +24,7 @@ make_EHelper(mov_cr2r) {
   difftest_skip_ref();
 }
 
-make_EHelper(int) {
+static make_EHelper(int) {
   void raise_intr(uint32_t, vaddr_t);
   raise_intr(id_dest->val, *pc);
 
@@ -33,7 +33,7 @@ make_EHelper(int) {
   difftest_skip_dut(1, 2);
 }
 
-make_EHelper(iret) {
+static make_EHelper(iret) {
   //TODO();
   rtl_pop(&s0);
 
@@ -58,9 +58,7 @@ void pio_write_l(ioaddr_t, uint32_t);
 void pio_write_w(ioaddr_t, uint32_t);
 void pio_write_b(ioaddr_t, uint32_t);
 
-extern bool diff_test_fix;
-
-make_EHelper(in) {
+static make_EHelper(in) {
 //  TODO();
 
   uint32_t val;
@@ -77,7 +75,7 @@ make_EHelper(in) {
   print_asm_template2(in);
 }
 
-make_EHelper(out) {
+static make_EHelper(out) {
 //  TODO();
 
   switch (id_dest->width) {

@@ -1,6 +1,6 @@
 #include "cpu/exec.h"
 
-make_EHelper(movs) {
+static make_EHelper(movs) {
   rtl_lm(&s0, &cpu.esi, id_dest->width);
   rtl_sm(&cpu.edi, &s0, id_dest->width);
 

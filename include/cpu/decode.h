@@ -2,6 +2,7 @@
 #define __CPU_DECODE_H__
 
 #include "common.h"
+#include <isa.h>
 
 #define make_DHelper(name) void concat(decode_, name) (vaddr_t *pc)
 typedef void (*DHelper) (vaddr_t *);
@@ -22,19 +23,14 @@ typedef struct {
   char str[OP_STR_SIZE];
 } Operand;
 
-#include "isa/decode.h"
-
 typedef struct {
   uint32_t opcode;
-  uint32_t width;
   vaddr_t seq_pc;  // sequential pc
   bool is_jmp;
   vaddr_t jmp_pc;
   Operand src, dest, src2;
   struct ISADecodeInfo isa;
 } DecodeInfo;
-
-void operand_write(Operand *, rtlreg_t *);
 
 /* shared by all helper functions */
 extern DecodeInfo decinfo;
