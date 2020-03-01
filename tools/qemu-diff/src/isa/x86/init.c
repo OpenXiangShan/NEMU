@@ -1,5 +1,4 @@
 #include "common.h"
-#include "isa.h"
 
 bool gdb_memcpy_to_qemu(uint32_t, void *, int);
 bool gdb_getregs(union isa_gdb_regs *);
