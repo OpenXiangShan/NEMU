@@ -13,4 +13,6 @@ typedef struct {
 
 extern NEMUState nemu_state;
 
+void display_inv_msg(vaddr_t pc);
+
 #endif

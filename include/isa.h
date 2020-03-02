@@ -29,7 +29,6 @@ void isa_vaddr_write64(vaddr_t addr, uint64_t data);
 // difftest
 void isa_difftest_getregs(void *r);
 void isa_difftest_setregs(const void *r);
-
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach();
 
