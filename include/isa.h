@@ -5,9 +5,8 @@
 #include _ISA_H_
 
 // monitor
-extern const uint8_t isa_default_img[];
-extern const long isa_default_img_size;
 extern char isa_logo[];
+void init_isa();
 
 // reg
 extern CPU_state cpu;

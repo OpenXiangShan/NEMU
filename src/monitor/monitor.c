@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 void init_log(const char *log_file);
-void init_isa();
 void init_regex();
 void init_wp_pool();
 void init_device();
@@ -33,30 +32,24 @@ static inline void welcome() {
 }
 
 static inline long load_img() {
-  long size;
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
-    size = isa_default_img_size;
-    // use sizeof()?
-    memcpy(guest_to_host(IMAGE_START), isa_default_img, size);
+    return 4096; // built-in image size
   }
-  else {
-    int ret;
 
-    FILE *fp = fopen(img_file, "rb");
-    Assert(fp, "Can not open '%s'", img_file);
+  FILE *fp = fopen(img_file, "rb");
+  Assert(fp, "Can not open '%s'", img_file);
 
-    Log("The image is %s", img_file);
+  Log("The image is %s", img_file);
 
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
+  fseek(fp, 0, SEEK_END);
+  long size = ftell(fp);
 
-    fseek(fp, 0, SEEK_SET);
-    ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
-    assert(ret == 1);
+  fseek(fp, 0, SEEK_SET);
+  int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
+  assert(ret == 1);
 
-    fclose(fp);
-  }
+  fclose(fp);
   return size;
 }
 
@@ -101,11 +94,11 @@ int init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log(log_file);
 
-  /* Load the image to memory. */
-  long img_size = load_img();
-
   /* Perform ISA dependent initialization. */
   init_isa();
+
+  /* Load the image to memory. This will overwrite the built-in image. */
+  long img_size = load_img();
 
   /* Compile the regular expressions. */
   init_regex();
