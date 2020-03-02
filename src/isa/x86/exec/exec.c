@@ -191,8 +191,8 @@ vaddr_t isa_exec_once() {
   update_pc(&s);
 
 #if !defined(DIFF_TEST) && !_SHARE
-  bool isa_query_intr(void);
-  if (isa_query_intr()) update_pc(&s);
+  void query_intr(DecodeExecState *s);
+  query_intr(&s);
 #endif
   return s.seq_pc;
 }

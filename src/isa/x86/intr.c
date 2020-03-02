@@ -1,5 +1,5 @@
+#include "cpu/exec.h"
 #include "rtl/rtl.h"
-#include "isa/mmu.h"
 
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
@@ -36,11 +36,10 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 }
 
 #define IRQ_TIMER 32
-bool isa_query_intr(DecodeExecState *s) {
+void query_intr(DecodeExecState *s) {
   if (cpu.INTR && cpu.IF) {
     cpu.INTR = false;
     raise_intr(s, IRQ_TIMER, cpu.pc);
-    return true;
+    update_pc(s);
   }
-  return false;
 }
