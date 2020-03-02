@@ -3,7 +3,6 @@
 
 #include <common.h>
 #include _ISA_H_
-#include <cpu/decode.h>
 
 // monitor
 extern const uint8_t isa_default_img[];
@@ -19,8 +18,14 @@ word_t isa_reg_str2val(const char *name, bool *success);
 vaddr_t isa_exec_once();
 
 // memory
-word_t isa_vaddr_read(vaddr_t addr, int len);
-void isa_vaddr_write(vaddr_t addr, word_t data, int len);
+uint8_t  isa_vaddr_read8 (vaddr_t addr);
+uint16_t isa_vaddr_read16(vaddr_t addr);
+uint32_t isa_vaddr_read32(vaddr_t addr);
+uint64_t isa_vaddr_read64(vaddr_t addr);
+void isa_vaddr_write8 (vaddr_t addr, uint8_t  data);
+void isa_vaddr_write16(vaddr_t addr, uint16_t data);
+void isa_vaddr_write32(vaddr_t addr, uint32_t data);
+void isa_vaddr_write64(vaddr_t addr, uint64_t data);
 
 // difftest
 void isa_difftest_getregs(void *r);

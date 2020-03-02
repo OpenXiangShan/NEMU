@@ -18,22 +18,21 @@ IOMap* fetch_mmio_map(paddr_t addr);
 
 /* Memory accessing interfaces */
 
-word_t paddr_read(paddr_t addr, int len) {
-  if (map_inside(&pmem_map, addr)) {
-    paddr_t offset = addr - pmem_map.low;
-    return *(uint64_t *)(pmem + offset) & (~0LLu >> ((8 - len) << 3));
-  }
-  else {
-    return map_read(addr, len, fetch_mmio_map(addr));
-  }
+#define make_paddr_access_template(bits) \
+uint_type(bits) concat(paddr_read, bits)(paddr_t addr) { \
+  if (map_inside(&pmem_map, addr)) { \
+    paddr_t offset = addr - pmem_map.low; \
+    return *(uint_type(bits) *)(pmem + offset); \
+  } else return map_read(addr, bits / 8, fetch_mmio_map(addr)); \
+} \
+void concat(paddr_write, bits) (paddr_t addr, uint_type(bits) data) { \
+  if (map_inside(&pmem_map, addr)) { \
+    paddr_t offset = addr - pmem_map.low; \
+    *(uint_type(bits) *)(pmem + offset) = data; \
+  } else return map_write(addr, data, bits / 8, fetch_mmio_map(addr)); \
 }
 
-void paddr_write(paddr_t addr, word_t data, int len) {
-  if (map_inside(&pmem_map, addr)) {
-    paddr_t offset = addr - pmem_map.low;
-    memcpy(pmem + offset, &data, len);
-  }
-  else {
-    return map_write(addr, data, len, fetch_mmio_map(addr));
-  }
-}
+make_paddr_access_template(8)
+make_paddr_access_template(16)
+make_paddr_access_template(32)
+make_paddr_access_template(64)

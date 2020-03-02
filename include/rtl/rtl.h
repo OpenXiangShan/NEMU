@@ -3,6 +3,7 @@
 
 #include <isa.h>
 #include <cpu/decode.h>
+#include <memory/memory.h>
 #include <rtl/c_op.h>
 #include <rtl/relop.h>
 

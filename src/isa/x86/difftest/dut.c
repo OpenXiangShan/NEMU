@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <isa/reg.h>
+#include <memory/memory.h>
 #include <monitor/difftest.h>
 #include "difftest.h"
 

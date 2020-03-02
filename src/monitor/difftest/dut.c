@@ -1,6 +1,7 @@
 #include <dlfcn.h>
 
 #include <isa.h>
+#include <memory/memory.h>
 #include <monitor/monitor.h>
 
 void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
