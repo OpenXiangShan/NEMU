@@ -20,7 +20,7 @@ static inline void set_width(DecodeExecState *s, int width) {
 #define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
 /* 0x80, 0x81, 0x83 */
-static make_EHelper(gp1) {
+static inline make_EHelper(gp1) {
   switch (s->isa.ext_opcode) {
     EX(0x00, add) EX(0x01, or)  EX(0x02, adc) EX(0x03, sbb)
     EX(0x04, and) EX(0x05, sub) EX(0x06, xor) EX(0x07, cmp)
@@ -28,7 +28,7 @@ static make_EHelper(gp1) {
 }
 
 /* 0xc0, 0xc1, 0xd0, 0xd1, 0xd2, 0xd3 */
-static make_EHelper(gp2) {
+static inline make_EHelper(gp2) {
   switch (s->isa.ext_opcode) {
     EX(0x00, rol) EMPTY(0x01)      EMPTY(0x02) EMPTY(0x03)
     EX(0x04, shl) EX   (0x05, shr) EMPTY(0x06) EX   (0x07, sar)
@@ -36,7 +36,7 @@ static make_EHelper(gp2) {
 }
 
 /* 0xf6, 0xf7 */
-static make_EHelper(gp3) {
+static inline make_EHelper(gp3) {
   switch (s->isa.ext_opcode) {
     IDEX(0x00, test_I, test) EMPTY(0x01)        EX(0x02, not) EX(0x03, neg)
     EX  (0x04, mul)          EX   (0x05, imul1) EX(0x06, div) EX(0x07, idiv)
@@ -44,7 +44,7 @@ static make_EHelper(gp3) {
 }
 
 /* 0xfe */
-static make_EHelper(gp4) {
+static inline make_EHelper(gp4) {
   switch (s->isa.ext_opcode) {
     EX   (0x00, inc) EX   (0x01, dec) EMPTY(0x02) EMPTY(0x03)
     EMPTY(0x04)      EMPTY(0x05)      EMPTY(0x06) EMPTY(0x07)
@@ -52,7 +52,7 @@ static make_EHelper(gp4) {
 }
 
 /* 0xff */
-static make_EHelper(gp5) {
+static inline make_EHelper(gp5) {
   switch (s->isa.ext_opcode) {
     EX(0x00, inc)    EX   (0x01, dec) EX(0x02, call_rm) EMPTY(0x03)
     EX(0x04, jmp_rm) EMPTY(0x05)      EX(0x06, push)    EMPTY(0x07)
@@ -60,7 +60,7 @@ static make_EHelper(gp5) {
 }
 
 /* 0x0f 0x01*/
-static make_EHelper(gp7) {
+static inline make_EHelper(gp7) {
   switch (s->isa.ext_opcode) {
     EMPTY(0x00) EMPTY(0x01) EMPTY(0x02) EX   (0x03, lidt)
     EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
@@ -70,7 +70,7 @@ static make_EHelper(gp7) {
 #undef CASE_ENTRY
 #define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
 
-static make_EHelper(2byte_esc) {
+static inline make_EHelper(2byte_esc) {
   uint8_t opcode = instr_fetch(&s->seq_pc, 1);
   s->opcode = opcode;
   switch (opcode) {

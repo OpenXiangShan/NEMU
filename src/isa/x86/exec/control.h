@@ -1,14 +1,14 @@
 #include "cpu/exec.h"
 #include "cc.h"
 
-static make_EHelper(jmp) {
+static inline make_EHelper(jmp) {
   // the target address is calculated at the decode stage
   rtl_j(s, s->jmp_pc);
 
   print_asm("jmp %x", s->jmp_pc);
 }
 
-static make_EHelper(jcc) {
+static inline make_EHelper(jcc) {
   // the target address is calculated at the decode stage
   uint32_t cc = s->opcode & 0xf;
   rtl_setcc(s, s0, cc);
@@ -18,13 +18,13 @@ static make_EHelper(jcc) {
   print_asm("j%s %x", get_cc_name(cc), s->jmp_pc);
 }
 
-static make_EHelper(jmp_rm) {
+static inline make_EHelper(jmp_rm) {
   rtl_jr(s, ddest);
 
   print_asm("jmp *%s", id_dest->str);
 }
 
-static make_EHelper(call) {
+static inline make_EHelper(call) {
   // the target address is calculated at the decode stage
 //  TODO();
   rtl_li(s, s0, s->seq_pc);
@@ -34,7 +34,7 @@ static make_EHelper(call) {
   print_asm("call %x", s->jmp_pc);
 }
 
-static make_EHelper(ret) {
+static inline make_EHelper(ret) {
 //  TODO();
   rtl_pop(s, s0);
   rtl_jr(s, s0);
@@ -42,7 +42,7 @@ static make_EHelper(ret) {
   print_asm("ret");
 }
 
-static make_EHelper(ret_imm) {
+static inline make_EHelper(ret_imm) {
 //  TODO();
   rtl_pop(s, s0);
   rtl_jr(s, s0);
@@ -52,7 +52,7 @@ static make_EHelper(ret_imm) {
   print_asm("ret %s", id_dest->str);
 }
 
-static make_EHelper(call_rm) {
+static inline make_EHelper(call_rm) {
 //  TODO();
   rtl_li(s, s0, s->seq_pc);
   rtl_push(s, s0);

@@ -1,4 +1,4 @@
-static make_EHelper(add) {
+static inline make_EHelper(add) {
 //  TODO();
   rtl_add(s, s0, ddest, dsrc1);
   operand_write(s, id_dest, s0);
@@ -32,7 +32,7 @@ static inline void cmp_internal(DecodeExecState *s) {
 }
  
 
-static make_EHelper(sub) {
+static inline make_EHelper(sub) {
 //  TODO();
   cmp_internal(s);
 
@@ -41,14 +41,14 @@ static make_EHelper(sub) {
   print_asm_template2(sub);
 }
 
-static make_EHelper(cmp) {
+static inline make_EHelper(cmp) {
 //  TODO();
   cmp_internal(s);
 
   print_asm_template2(cmp);
 }
 
-static make_EHelper(inc) {
+static inline make_EHelper(inc) {
 //  TODO();
   rtl_addi(s, s0, ddest, 1);
   operand_write(s, id_dest, s0);
@@ -61,7 +61,7 @@ static make_EHelper(inc) {
   print_asm_template1(inc);
 }
 
-static make_EHelper(dec) {
+static inline make_EHelper(dec) {
 //  TODO();
   rtl_subi(s, s0, ddest, 1);
   operand_write(s, id_dest, s0);
@@ -74,7 +74,7 @@ static make_EHelper(dec) {
   print_asm_template1(dec);
 }
 
-static make_EHelper(neg) {
+static inline make_EHelper(neg) {
 //  TODO();
   rtl_li(s, s0, 0);
   rtl_sub(s, s0, s0, ddest);
@@ -91,7 +91,7 @@ static make_EHelper(neg) {
   print_asm_template1(neg);
 }
 
-static make_EHelper(adc) {
+static inline make_EHelper(adc) {
   // s0 = dest + src
   rtl_add(s, s0, ddest, dsrc1);
   // s1 = s0 + CF
@@ -119,7 +119,7 @@ static make_EHelper(adc) {
   print_asm_template2(adc);
 }
 
-static make_EHelper(sbb) {
+static inline make_EHelper(sbb) {
   // s0 = dest - src
   rtl_sub(s, s0, ddest, dsrc1);
   // s1 = s0 - CF
@@ -147,7 +147,7 @@ static make_EHelper(sbb) {
   print_asm_template2(sbb);
 }
 
-static make_EHelper(mul) {
+static inline make_EHelper(mul) {
   rtl_lr(s, s0, R_EAX, id_dest->width);
   rtl_mul_lo(s, s1, ddest, s0);
 
@@ -173,7 +173,7 @@ static make_EHelper(mul) {
 }
 
 // imul with one operand
-static make_EHelper(imul1) {
+static inline make_EHelper(imul1) {
   rtl_lr(s, s0, R_EAX, id_dest->width);
   rtl_imul_lo(s, s1, ddest, s0);
 
@@ -199,7 +199,7 @@ static make_EHelper(imul1) {
 }
 
 // imul with two operands
-static make_EHelper(imul2) {
+static inline make_EHelper(imul2) {
   rtl_sext(s, s0, dsrc1, id_src1->width);
   rtl_sext(s, s1, ddest, id_dest->width);
 
@@ -211,7 +211,7 @@ static make_EHelper(imul2) {
 }
 
 // imul with three operands
-static make_EHelper(imul3) {
+static inline make_EHelper(imul3) {
   rtl_sext(s, s0, dsrc1, id_src1->width);
   rtl_sext(s, s1, dsrc2, id_src1->width);
 
@@ -222,7 +222,7 @@ static make_EHelper(imul3) {
   print_asm_template3(imul);
 }
 
-static make_EHelper(div) {
+static inline make_EHelper(div) {
   switch (id_dest->width) {
     case 1:
       rtl_lr(s, s0, R_AX, 2);
@@ -254,7 +254,7 @@ static make_EHelper(div) {
   print_asm_template1(div);
 }
 
-static make_EHelper(idiv) {
+static inline make_EHelper(idiv) {
   switch (id_dest->width) {
     case 1:
       rtl_lr(s, s0, R_AX, 2);

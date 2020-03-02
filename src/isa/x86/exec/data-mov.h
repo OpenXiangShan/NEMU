@@ -1,18 +1,18 @@
 #include "cpu/exec.h"
 
-static make_EHelper(mov) {
+static inline make_EHelper(mov) {
   operand_write(s, id_dest, dsrc1);
   print_asm_template2(mov);
 }
 
-static make_EHelper(push) {
+static inline make_EHelper(push) {
 //  TODO();
   rtl_push(s, ddest);
 
   print_asm_template1(push);
 }
 
-static make_EHelper(pop) {
+static inline make_EHelper(pop) {
 //  TODO();
   rtl_pop(s, s0);
   operand_write(s, id_dest, s0);
@@ -20,7 +20,7 @@ static make_EHelper(pop) {
   print_asm_template1(pop);
 }
 
-static make_EHelper(pusha) {
+static inline make_EHelper(pusha) {
   //TODO();
 
   rtl_mv(s, s0, &cpu.esp);
@@ -36,7 +36,7 @@ static make_EHelper(pusha) {
   print_asm("pusha");
 }
 
-static make_EHelper(popa) {
+static inline make_EHelper(popa) {
   //TODO();
 
   rtl_pop(s, &cpu.edi);
@@ -51,7 +51,7 @@ static make_EHelper(popa) {
   print_asm("popa");
 }
 
-static make_EHelper(leave) {
+static inline make_EHelper(leave) {
 //  TODO();
   rtl_mv(s, &cpu.esp, &cpu.ebp);
   rtl_pop(s, &cpu.ebp);
@@ -59,7 +59,7 @@ static make_EHelper(leave) {
   print_asm("leave");
 }
 
-static make_EHelper(cltd) {
+static inline make_EHelper(cltd) {
   if (s->isa.is_operand_size_16) {
     TODO();
   }
@@ -70,7 +70,7 @@ static make_EHelper(cltd) {
   print_asm(s->isa.is_operand_size_16 ? "cwtl" : "cltd");
 }
 
-static make_EHelper(cwtl) {
+static inline make_EHelper(cwtl) {
   if (s->isa.is_operand_size_16) {
     //TODO();
     rtl_sext(s, s0, &cpu.eax, 1);
@@ -84,20 +84,20 @@ static make_EHelper(cwtl) {
   print_asm(s->isa.is_operand_size_16 ? "cbtw" : "cwtl");
 }
 
-static make_EHelper(movsx) {
+static inline make_EHelper(movsx) {
   id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
   rtl_sext(s, s0, dsrc1, id_src1->width);
   operand_write(s, id_dest, s0);
   print_asm_template2(movsx);
 }
 
-static make_EHelper(movzx) {
+static inline make_EHelper(movzx) {
   id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
   operand_write(s, id_dest, dsrc1);
   print_asm_template2(movzx);
 }
 
-static make_EHelper(lea) {
+static inline make_EHelper(lea) {
   operand_write(s, id_dest, &id_src1->addr);
   print_asm_template2(lea);
 }
