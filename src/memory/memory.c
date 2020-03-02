@@ -9,15 +9,10 @@ paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
 static IOMap pmem_map = {
   .name = "pmem",
   .space = pmem,
+  .low = PMEM_BASE,
+  .high = PMEM_BASE + PMEM_SIZE - 1,
   .callback = NULL
 };
-
-void register_pmem(paddr_t base) {
-  pmem_map.low = base;
-  pmem_map.high = base + PMEM_SIZE - 1;
-
-  Log("Add '%s' at [0x%08x, 0x%08x]", pmem_map.name, pmem_map.low, pmem_map.high);
-}
 
 IOMap* fetch_mmio_map(paddr_t addr);
 

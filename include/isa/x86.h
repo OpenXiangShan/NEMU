@@ -6,6 +6,7 @@
 
 // memory
 #define IMAGE_START 0x100000
+#define PMEM_BASE 0x0
 
 // reg
 
