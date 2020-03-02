@@ -22,8 +22,7 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
 }
 
 static inline void update_pc(DecodeExecState *s) {
-  if (s->is_jmp) s->is_jmp = 0;
-  else cpu.pc = s->seq_pc;
+  cpu.pc = (s->is_jmp ? (s->is_jmp = 0, s->jmp_pc) : s->seq_pc);
 }
 
 #ifdef DEBUG

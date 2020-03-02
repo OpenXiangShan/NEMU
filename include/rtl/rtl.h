@@ -123,20 +123,19 @@ static inline make_rtl(setrelop, uint32_t relop, rtlreg_t *dest,
 }
 
 static inline make_rtl(j, vaddr_t target) {
-  cpu.pc = target;
+  s->jmp_pc = target;
   s->is_jmp = true;
 }
 
 static inline make_rtl(jr, rtlreg_t *target) {
-  cpu.pc = *target;
+  s->jmp_pc = *target;
   s->is_jmp = true;
 }
 
 static inline make_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
-  if (is_jmp) cpu.pc = target;
-  s->is_jmp = is_jmp;
+  if (is_jmp) rtl_j(s, target);
 }
 
 void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
