@@ -20,7 +20,7 @@ make_EHelper(inv) {
 
   display_inv_msg(cpu.pc);
 
-  rtl_exit(s, NEMU_ABORT, cpu.pc, -1);
+  rtl_exit(NEMU_ABORT, cpu.pc, -1);
 
   print_asm("invalid opcode");
 }
@@ -28,7 +28,7 @@ make_EHelper(inv) {
 make_EHelper(nemu_trap) {
   difftest_skip_ref();
 
-  rtl_exit(s, NEMU_END, cpu.pc, cpu.eax);
+  rtl_exit(NEMU_END, cpu.pc, cpu.eax);
 
   print_asm("nemu trap");
   return;

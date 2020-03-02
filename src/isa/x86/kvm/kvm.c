@@ -117,7 +117,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           assert(0);
         }
 
-        rtl_exit(NULL, NEMU_END, regs.rip, regs.rax);
+        rtl_exit(NEMU_END, regs.rip, regs.rax);
         return 0;
 
       case KVM_EXIT_IO: {

@@ -139,7 +139,7 @@ static inline make_rtl(jrelop, uint32_t relop,
   s->is_jmp = is_jmp;
 }
 
-make_rtl(exit, int state, vaddr_t halt_pc, uint32_t halt_ret);
+void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
 
 
 /* RTL pseudo instructions */
