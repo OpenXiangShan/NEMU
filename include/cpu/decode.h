@@ -25,6 +25,7 @@ typedef struct {
   bool is_jmp;
   vaddr_t jmp_pc;
   Operand src1, dest, src2;
+  int width;
   rtlreg_t tmp_reg[5];
   struct ISADecodeInfo isa;
 } DecodeExecState;
