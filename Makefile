@@ -10,7 +10,7 @@ $(error Invalid ISA. Supported: $(ISAS))
 endif
 endif
 
-INC_DIR += ./include ./src/isa/$(ISA)/include
+INC_DIR += ./include
 BUILD_DIR ?= ./build
 
 ifdef SHARE

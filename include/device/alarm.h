@@ -1,5 +1,5 @@
-#ifndef __ALARM_H__
-#define __ALARM_H__
+#ifndef __DEVICE_ALARM_H__
+#define __DEVICE_ALARM_H__
 
 void add_alarm_handle(void *h);
 

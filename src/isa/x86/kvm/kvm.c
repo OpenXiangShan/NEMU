@@ -1,5 +1,5 @@
-#include <rtl/rtl.h>
 #include <monitor/monitor.h>
+#include <memory/memory.h>
 
 #include <fcntl.h>
 #include <errno.h>
@@ -117,6 +117,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           assert(0);
         }
 
+        void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
         rtl_exit(NEMU_END, regs.rip, regs.rax);
         return 0;
 

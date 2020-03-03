@@ -1,4 +1,3 @@
-#include "cpu/exec.h"
 #include "cc.h"
 
 // dest <- and result

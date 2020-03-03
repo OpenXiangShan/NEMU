@@ -1,5 +1,5 @@
-#include "device/map.h"
-#include "monitor/monitor.h"
+#include <device/map.h>
+#include <monitor/monitor.h>
 #include <SDL2/SDL.h>
 
 #define I8042_DATA_PORT 0x60

@@ -1,7 +1,6 @@
 #ifndef __ISA_H__
 #define __ISA_H__
 
-#include <common.h>
 #include _ISA_H_
 
 // monitor
@@ -26,10 +25,34 @@ void isa_vaddr_write16(vaddr_t addr, uint16_t data);
 void isa_vaddr_write32(vaddr_t addr, uint32_t data);
 void isa_vaddr_write64(vaddr_t addr, uint64_t data);
 
+static inline uint64_t vaddr_read(vaddr_t addr, int len) {
+  switch (len) {
+    case 1: return isa_vaddr_read8 (addr);
+    case 2: return isa_vaddr_read16(addr);
+    case 4: return isa_vaddr_read32(addr);
+    case 8: return isa_vaddr_read64(addr);
+    default: assert(0);
+  }
+}
+
+static inline void vaddr_write(vaddr_t addr, uint64_t data, int len) {
+  switch (len) {
+    case 1: isa_vaddr_write8 (addr, data); break;
+    case 2: isa_vaddr_write16(addr, data); break;
+    case 4: isa_vaddr_write32(addr, data); break;
+    case 8: isa_vaddr_write64(addr, data); break;
+    default: assert(0);
+  }
+}
+
 // difftest
-void isa_difftest_getregs(void *r);
-void isa_difftest_setregs(const void *r);
+  // for dut
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach();
+
+  // for ref
+void isa_difftest_getregs(void *r);
+void isa_difftest_setregs(const void *r);
+void isa_difftest_raise_intr(word_t NO);
 
 #endif

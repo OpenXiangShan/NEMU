@@ -1,4 +1,3 @@
-#include "cpu/exec.h"
 #include "cc.h"
 
 static inline make_EHelper(jmp) {

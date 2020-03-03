@@ -1,5 +1,4 @@
-#include "common.h"
-#include "device/map.h"
+#include <device/map.h>
 
 #define PORT_IO_SPACE_MAX 65535
 

@@ -1,10 +1,10 @@
-#include "common.h"
+#include <common.h>
 
 #ifdef HAS_IOE
 
 //#define SHOW_SCREEN
 
-#include "device/map.h"
+#include <device/map.h>
 #include <SDL2/SDL.h>
 
 #define VMEM 0xa0000000

@@ -1,5 +1,5 @@
-#include "cpu/exec.h"
-#include "monitor/monitor.h"
+#include <cpu/exec.h>
+#include <monitor/monitor.h>
 #include <monitor/difftest.h>
 
 make_EHelper(nop) {

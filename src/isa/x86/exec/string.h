@@ -1,5 +1,3 @@
-#include "cpu/exec.h"
-
 static make_EHelper(movs) {
   rtl_lm(s, s0, &cpu.esi, id_dest->width);
   rtl_sm(s, &cpu.edi, s0, id_dest->width);

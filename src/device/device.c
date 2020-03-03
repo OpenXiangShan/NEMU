@@ -1,8 +1,8 @@
-#include "common.h"
+#include <common.h>
 
 #ifdef HAS_IOE
 
-#include "device/alarm.h"
+#include <device/alarm.h>
 #include <SDL2/SDL.h>
 
 void init_alarm();

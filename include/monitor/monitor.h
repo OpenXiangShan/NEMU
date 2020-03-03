@@ -1,5 +1,5 @@
-#ifndef __MONITOR_H__
-#define __MONITOR_H__
+#ifndef __MONITOR_MONITOR_H__
+#define __MONITOR_MONITOR_H__
 
 #include <common.h>
 

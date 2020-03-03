@@ -1,9 +1,7 @@
 #ifndef __RTL_RTL_H__
 #define __RTL_RTL_H__
 
-#include <isa.h>
 #include <cpu/decode.h>
-#include <memory/memory.h>
 #include <rtl/c_op.h>
 #include <rtl/relop.h>
 
@@ -22,7 +20,6 @@
 
 #define make_rtl(name, ...) void concat(rtl_, name)(DecodeExecState *s, __VA_ARGS__)
 
-void decinfo_set_jmp(bool is_jmp);
 bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2);
 
 /* RTL basic instructions */
@@ -198,7 +195,5 @@ static inline make_rtl(mux, rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t
   rtl_and(s, t0, src2, t0);
   rtl_or(s, dest, t0, t1);
 }
-
-#include <isa/rtl.h>
 
 #endif

@@ -1,4 +1,21 @@
-#include "rtl/rtl.h"
+#include "../local-include/rtl.h"
+#include "../local-include/reg.h"
+
+#define EFLAGS_BIT_CF 0
+#define EFLAGS_BIT_ZF 6
+#define EFLAGS_BIT_SF 7
+#define EFLAGS_BIT_IF 9
+#define EFLAGS_BIT_OF 11
+
+#define _EFLAGS(f) f(OF) f(IF) f(SF) f(ZF) f(CF)
+#define __f(flag) concat(EFLAGS_MASK_, flag) = 1 << concat(EFLAGS_BIT_, flag),
+enum {
+  MAP(_EFLAGS, __f)
+#undef __f
+#define __f(flag) | concat(EFLAGS_MASK_, flag)
+  EFLAGS_MASK_ALL = 0 MAP(_EFLAGS, __f)
+#undef __f
+};
 
 #define ENCODE(flag) \
   rtl_shli(s, t0, &cpu.flag, concat(EFLAGS_BIT_, flag)); \

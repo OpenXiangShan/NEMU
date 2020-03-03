@@ -1,3 +1,4 @@
+#include <isa.h>
 #include <memory/memory.h>
 #include <device/map.h>
 

@@ -2,13 +2,32 @@
 #define __ISA_X86_H__
 
 #include <common.h>
-#include <isa/mmu.h>
 
 // memory
 #define IMAGE_START 0x100000
 #define PMEM_BASE 0x0
 
 // reg
+
+/* the Control Register 0 */
+typedef union CR0 {
+  struct {
+    uint32_t protect_enable      : 1;
+    uint32_t dont_care           : 30;
+    uint32_t paging              : 1;
+  };
+  uint32_t val;
+} CR0;
+
+/* the Control Register 3 (physical address of page directory) */
+typedef union CR3 {
+  struct {
+    uint32_t pad0                : 12;
+    uint32_t page_directory_base : 20;
+  };
+  uint32_t val;
+} CR3;
+
 
 /* TODO: Re-organize the `CPU_state' structure to match the register
  * encoding scheme in i386 instruction format. For example, if we

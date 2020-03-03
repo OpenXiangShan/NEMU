@@ -1,4 +1,6 @@
-#include "cpu/exec.h"
+#include <cpu/exec.h>
+#include "local-include/rtl.h"
+#include "local-include/reg.h"
 
 typedef union {
   struct {

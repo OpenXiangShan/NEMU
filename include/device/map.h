@@ -1,7 +1,6 @@
-#ifndef __MAP_H__
-#define __MAP_H__
+#ifndef __DEVICE_MAP_H__
+#define __DEVICE_MAP_H__
 
-#include <common.h>
 #include <monitor/difftest.h>
 
 typedef void(*io_callback_t)(uint32_t, int, bool);

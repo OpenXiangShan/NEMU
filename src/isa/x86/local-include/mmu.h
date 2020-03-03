@@ -1,35 +1,12 @@
-#ifndef __MMU_H__
-#define __MMU_H__
+#ifndef __X86_MMU_H__
+#define __X86_MMU_H__
 
-#include <stdint.h>
+#include <common.h>
 
 /* 32bit x86 uses 4KB page size */
 #define NR_PDE						1024
 #define NR_PTE						1024
 #define PT_SIZE						((NR_PTE) * (PAGE_SIZE))
-
-/* the Control Register 0 */
-typedef union CR0 {
-  struct {
-    uint32_t protect_enable      : 1;
-    uint32_t dont_care           : 30;
-    uint32_t paging              : 1;
-  };
-  uint32_t val;
-} CR0;
-
-/* the Control Register 3 (physical address of page directory) */
-typedef union CR3 {
-  struct {
-    uint32_t pad0                : 3;
-    uint32_t page_write_through  : 1;
-    uint32_t page_cache_disable  : 1;
-    uint32_t pad1                : 7;
-    uint32_t page_directory_base : 20;
-  };
-  uint32_t val;
-} CR3;
-
 
 /* the 32bit Page Directory(first level page table) data structure */
 typedef union PageDirectoryEntry {

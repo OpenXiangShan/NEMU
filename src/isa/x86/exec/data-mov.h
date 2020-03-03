@@ -1,5 +1,3 @@
-#include "cpu/exec.h"
-
 static inline make_EHelper(mov) {
   operand_write(s, id_dest, dsrc1);
   print_asm_template2(mov);

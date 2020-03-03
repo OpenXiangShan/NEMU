@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <memory/memory.h>
+#include "local-include/mmu.h"
 
 typedef union {
   struct {

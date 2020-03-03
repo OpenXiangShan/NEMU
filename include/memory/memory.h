@@ -1,7 +1,7 @@
-#ifndef __MEMORY_H__
-#define __MEMORY_H__
+#ifndef __MEMORY_MEMORY_H__
+#define __MEMORY_MEMORY_H__
 
-#include <isa.h>
+#include <common.h>
 
 #define PMEM_SIZE (256 * 1024 * 1024)
 
@@ -18,26 +18,6 @@ void paddr_write8 (paddr_t addr, uint8_t  data);
 void paddr_write16(paddr_t addr, uint16_t data);
 void paddr_write32(paddr_t addr, uint32_t data);
 void paddr_write64(paddr_t addr, uint64_t data);
-
-static inline uint64_t vaddr_read(vaddr_t addr, int len) {
-  switch (len) {
-    case 1: return isa_vaddr_read8 (addr);
-    case 2: return isa_vaddr_read16(addr);
-    case 4: return isa_vaddr_read32(addr);
-    case 8: return isa_vaddr_read64(addr);
-    default: assert(0);
-  }
-}
-
-static inline void vaddr_write(vaddr_t addr, uint64_t data, int len) {
-  switch (len) {
-    case 1: isa_vaddr_write8 (addr, data); break;
-    case 2: isa_vaddr_write16(addr, data); break;
-    case 4: isa_vaddr_write32(addr, data); break;
-    case 8: isa_vaddr_write64(addr, data); break;
-    default: assert(0);
-  }
-}
 
 static inline uint64_t paddr_read(paddr_t addr, int len) {
   switch (len) {

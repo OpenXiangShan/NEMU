@@ -1,4 +1,3 @@
-#include "cpu/exec.h"
 #include <monitor/difftest.h>
 
 static make_EHelper(lidt) {

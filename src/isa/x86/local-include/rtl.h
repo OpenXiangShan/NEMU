@@ -2,7 +2,7 @@
 #define __X86_RTL_H__
 
 #include <rtl/rtl.h>
-#include <isa/reg.h>
+#include "reg.h"
 
 /* RTL pseudo instructions */
 

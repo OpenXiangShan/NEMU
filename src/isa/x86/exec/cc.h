@@ -1,6 +1,8 @@
 #ifndef __CC_H__
 #define __CC_H__
 
+#include "../local-include/rtl.h"
+
 /* Condition Code */
 
 static inline const char* get_cc_name(int subcode) {

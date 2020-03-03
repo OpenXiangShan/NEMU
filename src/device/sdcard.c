@@ -1,6 +1,4 @@
-#include "common.h"
-#include "device/map.h"
-
+#include <device/map.h>
 #include "mmc.h"
 
 // http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf

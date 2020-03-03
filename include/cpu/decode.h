@@ -1,7 +1,6 @@
 #ifndef __CPU_DECODE_H__
 #define __CPU_DECODE_H__
 
-#include "common.h"
 #include <isa.h>
 
 #define OP_STR_SIZE 40
