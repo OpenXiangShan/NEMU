@@ -1,5 +1,7 @@
-#include "nemu.h"
-#include "monitor/diff-test.h"
+#include <isa.h>
+#include <monitor/difftest.h>
+#include "../local-include/reg.h"
+#include "difftest.h"
 
 #define check_reg(r) same = difftest_check_reg(str(r), pc, ref_r->r, cpu.r) && same
 

@@ -1,13 +1,14 @@
-#include "cpu/exec.h"
-#include "monitor/monitor.h"
+#include <cpu/exec.h>
+#include <monitor/monitor.h>
+#include <monitor/difftest.h>
 
 make_EHelper(inv) {
   /* invalid opcode */
 
   uint32_t instr[2];
-  *pc = cpu.pc;
-  instr[0] = instr_fetch(pc, 4);
-  instr[1] = instr_fetch(pc, 4);
+  s->seq_pc = cpu.pc;
+  instr[0] = instr_fetch(&s->seq_pc, 4);
+  instr[1] = instr_fetch(&s->seq_pc, 4);
 
   printf("invalid opcode(PC = 0x%08x): %08x %08x ...\n\n",
       cpu.pc, instr[0], instr[1]);

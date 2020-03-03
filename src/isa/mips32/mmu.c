@@ -1,6 +1,6 @@
-#include "nemu.h"
-#include "memory/memory.h"
-#include "isa/intr.h"
+#include <isa.h>
+#include <memory/memory.h>
+#include "local-include/intr.h"
 #include <stdlib.h>
 #include <time.h>
 
@@ -40,21 +40,21 @@ void init_mmu(void) {
   srand(time(0));
 }
 
-void update_tlb(int idx) {
+static inline void update_tlb(int idx) {
   tlb[idx].hi.val = cpu.entryhi.val;
   tlb[idx].lo[0].val = cpu.entrylo0;
   tlb[idx].lo[1].val = cpu.entrylo1;
 }
 
-void tlbwr(void) {
+void tlbwr() {
   update_tlb(rand() % NR_TLB);
 }
 
-void tlbwi(void) {
+void tlbwi() {
   update_tlb(cpu.index % NR_TLB);
 }
 
-void tlbp(void) {
+void tlbp() {
   int i;
   for (i = 0; i < NR_TLB; i ++) {
     if (tlb[i].hi.VPN2 == cpu.entryhi.VPN2) {
@@ -107,10 +107,14 @@ static inline paddr_t va2pa(vaddr_t addr, bool write) {
   return addr;
 }
 
-word_t isa_vaddr_read(vaddr_t addr, int len) {
-  return paddr_read(va2pa(addr, false), len);
+#define make_isa_vaddr_template(bits) \
+uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
+  return concat(paddr_read, bits)(va2pa(addr, false)); \
+} \
+void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
+  concat(paddr_write, bits)(va2pa(addr, true), data); \
 }
 
-void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
-  paddr_write(va2pa(addr, true), data, len);
-}
+make_isa_vaddr_template(8)
+make_isa_vaddr_template(16)
+make_isa_vaddr_template(32)

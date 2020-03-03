@@ -8,7 +8,7 @@
 #define ISA_QEMU_ARGS "-machine", "mipssim",\
   "-kernel", str(NEMU_HOME) "/tools/qemu-diff/src/isa/mips32/mips.dummy",
 
-#include "../../../../../../src/isa/mips32/include/isa/diff-test.h"
+#include "../../../../src/isa/mips32/difftest/difftest.h"
 
 union isa_gdb_regs {
   struct {

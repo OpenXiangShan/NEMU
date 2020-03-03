@@ -1,22 +1,20 @@
-#include "cpu/exec.h"
-#include "isa/intr.h"
+#include "../local-include/intr.h"
 
-make_EHelper(syscall) {
-  void raise_intr(uint32_t, vaddr_t);
-  raise_intr(EX_SYSCALL, cpu.pc);
+static inline make_EHelper(syscall) {
+  raise_intr(s, EX_SYSCALL, cpu.pc);
 
   print_asm("syscall");
 }
 
-make_EHelper(eret) {
-  rtl_li(&s0, cpu.epc);
-  rtl_jr(&s0);
+static inline make_EHelper(eret) {
+  rtl_li(s, s0, cpu.epc);
+  rtl_jr(s, s0);
   cpu.status.exl = 0;
 
   print_asm("eret");
 }
 
-make_EHelper(mfc0) {
+static inline make_EHelper(mfc0) {
   uint32_t val;
   switch (id_dest->reg) {
     case 0: val = cpu.index; print_asm("mfc0 %s, index", id_src2->str); break;
@@ -32,11 +30,11 @@ make_EHelper(mfc0) {
     default: assert(0);
   }
 
-  rtl_li(&s0, val);
-  rtl_sr(id_src2->reg, &s0, 4);
+  rtl_li(s, s0, val);
+  rtl_sr(s, id_src2->reg, s0, 4);
 }
 
-make_EHelper(mtc0) {
+static inline make_EHelper(mtc0) {
   switch (id_dest->reg) {
     case 0: cpu.index = id_src2->val; print_asm("mtc0 %s, index", id_src2->str); break;
     case 2: cpu.entrylo0 = id_src2->val; print_asm("mtc0 %s, entrylo0", id_src2->str); break;
@@ -49,17 +47,17 @@ make_EHelper(mtc0) {
   }
 }
 
-make_EHelper(tlbwr) {
+static inline make_EHelper(tlbwr) {
   extern void tlbwr(void);
   tlbwr();
 }
 
-make_EHelper(tlbwi) {
+static inline make_EHelper(tlbwi) {
   extern void tlbwi(void);
   tlbwi();
 }
 
-make_EHelper(tlbp) {
+static inline make_EHelper(tlbp) {
   extern void tlbp(void);
   tlbp();
 }
