@@ -89,4 +89,3 @@ void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
 make_isa_vaddr_template(8)
 make_isa_vaddr_template(16)
 make_isa_vaddr_template(32)
-make_isa_vaddr_template(64)

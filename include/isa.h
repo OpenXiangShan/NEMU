@@ -30,7 +30,9 @@ static inline uint64_t vaddr_read(vaddr_t addr, int len) {
     case 1: return isa_vaddr_read8 (addr);
     case 2: return isa_vaddr_read16(addr);
     case 4: return isa_vaddr_read32(addr);
+#ifdef ISA64
     case 8: return isa_vaddr_read64(addr);
+#endif
     default: assert(0);
   }
 }
@@ -40,7 +42,9 @@ static inline void vaddr_write(vaddr_t addr, uint64_t data, int len) {
     case 1: isa_vaddr_write8 (addr, data); break;
     case 2: isa_vaddr_write16(addr, data); break;
     case 4: isa_vaddr_write32(addr, data); break;
+#ifdef ISA64
     case 8: isa_vaddr_write64(addr, data); break;
+#endif
     default: assert(0);
   }
 }

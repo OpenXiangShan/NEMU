@@ -36,4 +36,6 @@ void concat(paddr_write, bits) (paddr_t addr, uint_type(bits) data) { \
 make_paddr_access_template(8)
 make_paddr_access_template(16)
 make_paddr_access_template(32)
+#ifdef ISA64
 make_paddr_access_template(64)
+#endif

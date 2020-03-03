@@ -24,7 +24,9 @@ static inline uint64_t paddr_read(paddr_t addr, int len) {
     case 1: return paddr_read8 (addr);
     case 2: return paddr_read16(addr);
     case 4: return paddr_read32(addr);
+#ifdef ISA64
     case 8: return paddr_read64(addr);
+#endif
     default: assert(0);
   }
 }
@@ -34,7 +36,9 @@ static inline void paddr_write(paddr_t addr, uint64_t data, int len) {
     case 1: paddr_write8 (addr, data); break;
     case 2: paddr_write16(addr, data); break;
     case 4: paddr_write32(addr, data); break;
+#ifdef ISA64
     case 8: paddr_write64(addr, data); break;
+#endif
     default: assert(0);
   }
 }
