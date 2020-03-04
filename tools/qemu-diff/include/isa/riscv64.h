@@ -4,7 +4,7 @@
 #define ISA_QEMU_BIN "qemu-system-riscv64"
 #define ISA_QEMU_ARGS 
 
-#include "../../../../../../src/isa/riscv64/include/isa/diff-test.h"
+#include "../../../../src/isa/riscv64/difftest/difftest.h"
 
 union isa_gdb_regs {
   struct {

@@ -1,8 +1,9 @@
-#include "rtl/rtl.h"
-#include "csr.h"
+#include <cpu/exec.h>
+#include <monitor/difftest.h>
+#include "local-include/csr.h"
+#include "local-include/rtl.h"
+#include "local-include/intr.h"
 #include <setjmp.h>
-#include "intr.h"
-#include "monitor/diff-test.h"
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -11,7 +12,7 @@ enum {
   IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
 };
 
-void raise_intr(word_t NO, vaddr_t epc) {
+void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc) {
   // TODO: Trigger an interrupt/exception with ``NO''
 
   word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
@@ -30,7 +31,7 @@ void raise_intr(word_t NO, vaddr_t epc) {
       default: stval->val = 0;
     }
     cpu.mode = MODE_S;
-    rtl_li(&s0, stvec->val);
+    rtl_li(s, s0, stvec->val);
   } else {
     mcause->val = NO;
     mepc->val = epc;
@@ -44,7 +45,7 @@ void raise_intr(word_t NO, vaddr_t epc) {
       default: mtval->val = 0;
     }
     cpu.mode = MODE_M;
-    rtl_li(&s0, mtvec->val);
+    rtl_li(s, s0, mtvec->val);
   }
 
   switch (NO) {
@@ -54,11 +55,13 @@ void raise_intr(word_t NO, vaddr_t epc) {
     case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 
-  rtl_jr(&s0);
+  rtl_jr(s, s0);
 }
 
-bool isa_query_intr(void) {
+void query_intr(DecodeExecState *s) {
   word_t intr_vec = mie->val & mip->val;
+  if (!intr_vec) return;
+
   const int priority [] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
     IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
@@ -72,12 +75,11 @@ bool isa_query_intr(void) {
       bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
       if (global_enable) {
-        raise_intr(irq | INTR_BIT, cpu.pc);
-        return true;
+        raise_intr(s, irq | INTR_BIT, cpu.pc);
+        update_pc(s);
       }
     }
   }
-  return false;
 }
 
 jmp_buf intr_buf;

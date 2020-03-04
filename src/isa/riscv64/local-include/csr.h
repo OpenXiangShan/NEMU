@@ -1,7 +1,7 @@
 #ifndef __CSR_H__
 #define __CSR_H__
 
-#include "common.h"
+#include <common.h>
 
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \

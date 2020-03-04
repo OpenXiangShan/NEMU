@@ -1,35 +1,35 @@
-#include "cpu/exec.h"
-#include "../csr.h"
+#include <monitor/difftest.h>
+#include "../local-include/csr.h"
 
-make_EHelper(csrrw) {
-  uint32_t addr = id_src2->val;
-  csr_read(&s0, addr);
-  rtl_sr(id_dest->reg, &s0, 8);
-  csr_write(addr, &id_src->val);
+static inline make_EHelper(csrrw) {
+  uint32_t addr = *dsrc2;
+  csr_read(s0, addr);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  csr_write(addr, dsrc1);
 
   print_asm_template3("csrrw");
 }
 
-make_EHelper(csrrs) {
-  uint32_t addr = id_src2->val;
-  csr_read(&s0, addr);
-  rtl_sr(id_dest->reg, &s0, 8);
-  if (id_src->reg != 0) {
-    rtl_or(&s0, &s0, &id_src->val);
-    csr_write(addr, &s0);
+static inline make_EHelper(csrrs) {
+  uint32_t addr = *dsrc2;
+  csr_read(s0, addr);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  if (id_src1->reg != 0) {
+    rtl_or(s, s0, s0, dsrc1);
+    csr_write(addr, s0);
   }
 
   print_asm_template3("csrrs");
 }
 
-make_EHelper(csrrc) {
+static inline make_EHelper(csrrc) {
   uint32_t addr = id_src2->val;
-  csr_read(&s0, addr);
-  rtl_sr(id_dest->reg, &s0, 8);
-  if (id_src->reg != 0) {
-    rtl_not(&s1, &id_src->val);
-    rtl_and(&s0, &s0, &s1);
-    csr_write(addr, &s0);
+  csr_read(s0, addr);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  if (id_src1->reg != 0) {
+    rtl_not(s, s1, dsrc1);
+    rtl_and(s, s0, s0, s1);
+    csr_write(addr, s0);
   }
 
   print_asm_template3("csrrc");
@@ -37,8 +37,8 @@ make_EHelper(csrrc) {
 
 extern void raise_intr(word_t NO, vaddr_t epc);
 
-make_EHelper(priv) {
-  uint32_t type = decinfo.isa.instr.csr;
+static inline make_EHelper(priv) {
+  uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
       raise_intr(8 + cpu.mode, cpu.pc);
@@ -54,8 +54,8 @@ make_EHelper(priv) {
 #endif
       change_mode(mstatus->spp);
       mstatus->spp = MODE_U;
-      rtl_li(&s0, sepc->val);
-      rtl_jr(&s0);
+      rtl_li(s, s0, sepc->val);
+      rtl_jr(s, s0);
       print_asm("sret");
       break;
     case 0x120:
@@ -82,12 +82,16 @@ make_EHelper(priv) {
 #endif
       change_mode(mstatus->mpp);
       mstatus->mpp = MODE_U;
-      rtl_li(&s0, mepc->val);
-      rtl_jr(&s0);
+      rtl_li(s, s0, mepc->val);
+      rtl_jr(s, s0);
       print_asm("mret");
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
 
+  difftest_skip_dut(1, 2);
+}
+
+static inline make_EHelper(fence) {
   difftest_skip_dut(1, 2);
 }
