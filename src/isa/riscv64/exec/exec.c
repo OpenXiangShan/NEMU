@@ -39,7 +39,7 @@ static inline make_EHelper(op_imm) {
   }
 }
 
-static make_EHelper(op_imm32) {
+static inline make_EHelper(op_imm32) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addw) EX(1, sllw) EX(5, srlw)
     default: exec_inv(s);
@@ -63,7 +63,7 @@ static inline make_EHelper(op) {
 }
 
 
-static make_EHelper(op32) {
+static inline make_EHelper(op32) {
   uint32_t idx = s->isa.instr.r.funct7;
   if (idx == 32) idx = 2;
   assert(idx <= 2);
@@ -108,23 +108,114 @@ static inline make_EHelper(atomic) {
   cpu.amo = false;
 }
 
-static make_EHelper(fp) {
+static inline make_EHelper(fp) {
   longjmp_raise_intr(EX_II);
 }
 
-static inline void exec(DecodeExecState *s) {
-  s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
-  assert(s->isa.instr.r.opcode1_0 == 0x3);
-  switch (s->isa.instr.r.opcode6_2) {
-    IDEX (0b00000, ld, load)  EX   (0b00001, fp)                                  EX   (0b00011, fence)
-    IDEX (0b00100, I, op_imm) IDEX (0b00101, U, auipc)  IDEX (0b00110, I, op_imm32)
-    IDEX (0b01000, st, store) EX   (0b01001, fp)                                  IDEX (0b01011, R, atomic)
-    IDEX (0b01100, R, op)     IDEX (0b01101, U, lui)    IDEX (0b01110, R, op32)
-    EX   (0b10000, fp)
-    EX   (0b10100, fp)
-    IDEX (0b11000, B, branch) IDEX (0b11001, I, jalr)   EX   (0b11010, nemu_trap) IDEX (0b11011, J, jal)
-    EX   (0b11100, system)
+// RVC
+
+static inline make_EHelper(misc) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t bits12not0 = (BITS(instr, 12, 12) != 0);
+  uint32_t bits11_7not0 = (BITS(instr, 11, 7) != 0);
+  uint32_t bits6_2not0 = (BITS(instr, 6, 2) != 0);
+  uint32_t op = (bits12not0 << 2) | (bits11_7not0 << 1) | bits6_2not0;
+  switch (op) {
+    IDEX (0b010, C_JR, jalr)
+    IDEX (0b011, C_MOV, add)
+    IDEX (0b110, C_JALR, jalr)
+    IDEX (0b111, C_ADD, add)
     default: exec_inv(s);
+  }
+}
+
+static inline make_EHelper(lui_addi16sp) {
+  uint32_t rd = BITS(s->isa.instr.val, 11, 7);
+  assert(rd != 0);
+  switch (rd) {
+    IDEX (2, C_ADDI16SP, add)
+    default: // and other cases
+    IDEX (1, CI_simm, lui)
+  }
+}
+
+static inline make_EHelper(misc_alu) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t op = BITS(instr, 11, 10);
+  if (op == 3) {
+    uint32_t op2 = (BITS(instr, 12, 12) << 2) | BITS(instr, 6, 5);
+    switch (op2) {
+      IDEX (0, CS, sub) IDEX (1, CS, xor) IDEX (2, CS, or)  IDEX (3, CS, and)
+      IDEX (4, CS, subw)IDEX (5, CS, addw)EMPTY(6)          EMPTY(7)
+    }
+  } else {
+    switch (op) {
+      IDEX (0, CB_shift, srl)
+      IDEX (1, CB_shift, sra)
+      IDEX (2, CB_andi, and)
+    }
+  }
+}
+
+static inline void exec(DecodeExecState *s) {
+  extern jmp_buf intr_buf;
+  int setjmp_ret;
+  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
+    int exception = setjmp_ret - 1;
+    raise_intr(s, exception, cpu.pc);
+    return;
+  }
+
+  cpu.fetching = true;
+  if ((s->seq_pc & 0xfff) == 0xffe) {
+    // instruction may accross page boundary
+    uint32_t lo = instr_fetch(&s->seq_pc, 2);
+    s->isa.instr.val = lo & 0xffff;
+    if (s->isa.instr.r.opcode1_0 != 0x3) {
+      // this is an RVC instruction
+      cpu.fetching = false;
+      goto rvc;
+    }
+    // this is a 4-byte instruction, should fetch the MSB part
+    // NOTE: The fetch here may cause IPF.
+    // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
+    // Refer to `mtval` in the privileged manual for more details.
+    uint32_t hi = instr_fetch(&s->seq_pc, 2);
+    s->isa.instr.val |= ((hi & 0xffff) << 16);
+  } else {
+    // in-page instructions, fetch 4 byte and
+    // see whether it is an RVC instruction later
+    s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+  }
+  cpu.fetching = false;
+
+  if (s->isa.instr.r.opcode1_0 == 0x3) {
+    switch (s->isa.instr.r.opcode6_2) {
+      IDEX (000, ld, load)  EX   (001, fp)                                  EX   (003, fence)
+      IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
+      IDEX (010, st, store) EX   (011, fp)                                  IDEX (013, R, atomic)
+      IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
+      EX   (020, fp)
+      EX   (024, fp)
+      IDEX (030, B, branch) IDEX (031, I, jalr)   EX   (032, nemu_trap)     IDEX (033, J, jal)
+      EX   (034, system)
+      default: exec_inv(s);
+    }
+  } else {
+    // RVC instructions are only 2-byte
+    s->seq_pc -= 2;
+rvc: ;
+    //idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
+    uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
+    switch (rvc_opcode) {
+      IDEX (000, C_ADDI4SPN, add) EX   (001, fp)  IDEXW(002, C_LW, lds, 4)  IDEXW(003, C_LD, ld, 8)
+                            EX   (005, fp)        IDEXW(006, C_SW, st, 4)   IDEXW(007, C_SD, st, 8)
+      IDEX (010, CI_simm, add) IDEX (011, CI_simm, addw) IDEX (012, C_LI, add) EX   (013, lui_addi16sp)
+      EX   (014, misc_alu)  IDEX (015, C_J, jal)  IDEX (016, CB, beq)       IDEX (017, CB, bne)
+      IDEX (020, CI_uimm, sll) EX   (021, fp)     IDEXW(022, C_LWSP, lds, 4)IDEXW(023, C_LDSP, ld, 8)
+      EX   (024, misc)      EX   (025, fp)        IDEXW(026, C_SWSP, st, 4) IDEXW(027, C_SDSP, st, 8)
+      default: exec_inv(s);
+    }
   }
 }
 
@@ -142,94 +233,3 @@ vaddr_t isa_exec_once() {
 #endif
   return s.seq_pc;
 }
-
-// RVC
-
-#if 0
-static make_EHelper(C_10_100) {
-  static OpcodeEntry table [8] = {
-    EMPTY, EMPTY, IDEX(C_rs1_rs2_0, jalr), IDEX(C_0_rs2_rd, add), EMPTY, EMPTY, IDEX(C_JALR, jalr), IDEX(C_rs1_rs2_rd, add),
-  };
-  uint32_t cond_c_simm12_not0 = (decinfo.isa.instr.c_simm12 != 0);
-  uint32_t cond_c_rd_rs1_not0 = (decinfo.isa.instr.c_rd_rs1 != 0);
-  uint32_t cond_c_rs2_not0 = (decinfo.isa.instr.c_rs2 != 0);
-  uint32_t idx = (cond_c_simm12_not0 << 2) | (cond_c_rd_rs1_not0 << 1) | cond_c_rs2_not0;
-  assert(idx < 8);
-  idex(pc, &table[idx]);
-}
-
-static make_EHelper(C_01_011) {
-  static OpcodeEntry table [2] = { IDEX(C_0_imm_rd, lui), IDEX(C_ADDI16SP, add)};
-  assert(decinfo.isa.instr.c_rd_rs1 != 0);
-  int idx = (decinfo.isa.instr.c_rd_rs1 == 2);
-  idex(pc, &table[idx]);
-}
-
-static make_EHelper(C_01_100) {
-  uint32_t func = decinfo.isa.instr.c_func6 & 0x3;
-  if (func == 3) {
-    decode_CR(pc);
-    static OpcodeEntry table [8] = {
-      EX(sub), EX(xor), EX(or), EX(and), EX(subw), EX(addw), EMPTY, EMPTY,
-    };
-
-    uint32_t idx2 = (decinfo.isa.instr.c_func6 >> 2) & 0x1;
-    uint32_t idx1_0 = decinfo.isa.instr.c_func2;
-    uint32_t idx = (idx2 << 2) | idx1_0;
-    assert(idx < 8);
-    idex(pc, &table[idx]);
-  } else {
-    decode_C_rs1__imm_rd_(pc);
-    static OpcodeEntry table [3] = { EX(srl), EX(sra), EX(and) };
-    idex(pc, &table[func]);
-  }
-}
-
-static OpcodeEntry rvc_table [3][8] = {
-  {IDEX(C_ADDI4SPN, add), EX(fp), IDEXW(C_LW, lds, 4), IDEXW(C_LD, ld, 8), EMPTY, EX(fp), IDEXW(C_SW, st, 4), IDEXW(C_SD, st, 8)},
-  {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne)},
-  {IDEX(C_rs1_imm_rd, sll), EX(fp), IDEXW(C_LWSP, lds, 4), IDEXW(C_LDSP, ld, 8), EX(C_10_100), EX(fp), IDEXW(C_SWSP, st, 4), IDEXW(C_SDSP, st, 8)}
-};
-
-void isa_exec(vaddr_t *pc) {
-  extern jmp_buf intr_buf;
-  int setjmp_ret;
-  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
-    int exception = setjmp_ret - 1;
-    void raise_intr(word_t, vaddr_t);
-    raise_intr(exception, cpu.pc);
-    return;
-  }
-
-  cpu.fetching = true;
-  if ((*pc & 0xfff) == 0xffe) {
-    // instruction may accross page boundary
-    uint32_t lo = instr_fetch(pc, 2);
-    decinfo.isa.instr.val = lo & 0xffff;
-    if (decinfo.isa.instr.opcode1_0 != 0x3) {
-      // this is an RVC instruction
-      cpu.fetching = false;
-      goto rvc;
-    }
-    // this is a 4-byte instruction, should fetch the MSB part
-    // NOTE: The fetch here may cause IPF.
-    // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
-    // Refer to `mtval` in the privileged manual for more details.
-    uint32_t hi = instr_fetch(pc, 2);
-    decinfo.isa.instr.val |= ((hi & 0xffff) << 16);
-  } else {
-    // in-page instructions, fetch 4 byte and
-    // see whether it is an RVC instruction later
-    decinfo.isa.instr.val = instr_fetch(pc, 4);
-  }
-  cpu.fetching = false;
-  if (decinfo.isa.instr.opcode1_0 == 0x3) {
-    idex(pc, &opcode_table[decinfo.isa.instr.opcode6_2]);
-  } else {
-    // RVC instructions are only 2-byte
-    *pc -= 2;
-rvc:
-    idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
-  }
-}
-#endif

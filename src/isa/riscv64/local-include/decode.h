@@ -106,10 +106,10 @@ static inline make_DHelper(csri) {
 // rotate without shift, e.g. ror(0bxxxxyy, 6, 2) = 0byyxxxx00
 static inline uint32_t ror_imm(uint32_t imm, int len, int r) {
   if (r == 0) return imm;
-  const uint32_t mask = BITMASK(len);
-  uint32_t lo = imm & (mask << r); // now it is at the right place
-  uint32_t hi = (imm << (len - r)) & mask;
-  return (hi | lo);
+  uint32_t copy = imm | (imm << len);
+  uint32_t mask = BITMASK(len) << r;
+  uint32_t res = copy & mask;
+  return res;
 }
 
 static inline void decode_op_C_imm6(DecodeExecState *s, uint32_t imm6, bool sign, int shift, int rotate) {
@@ -142,23 +142,19 @@ static inline make_DHelper(CR) {
 
 // ---------- CI ---------- 
 
-static inline make_DHelper(C_CI_simm) {
+static inline make_DHelper(CI_simm) {
   decode_op_rd_rs1_imm6(s, true, 0, 0, false);
 }
 
 // for shift
-static inline make_DHelper(C_CI_uimm) {
+static inline make_DHelper(CI_uimm) {
   decode_op_rd_rs1_imm6(s, false, 0, 0, false);
 }
 
-
-#if 0
-static inline make_DHelper(C_LUI) {
-  decode_op_rd_rs1_imm6(s, true, 0, 0, false);
-  assert(id_src2->imm != 0);
-  assert(id_dest->reg != 2);
+static inline make_DHelper(C_LI) {
+  decode_CI_simm(s);
+  decode_op_r(s, id_src1, 0, true);
 }
-#endif
 
 static inline make_DHelper(C_ADDI16SP) {
   decode_op_r(s, id_src1, 2, true);
@@ -227,7 +223,7 @@ static inline make_DHelper(C_ADDI4SPN) {
 static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_store) {
   uint32_t instr = s->isa.instr.val;
   decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
-  uint32_t imm5 = (BITS(instr, 12, 10) << 3) | BITS(instr, 6, 5);
+  uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, true);
   rtl_add(s, &id_src1->addr, dsrc1, dsrc2);
@@ -253,9 +249,7 @@ static inline make_DHelper(C_SD) {
 }
 
 static inline make_DHelper(CS) {
-  uint32_t rd_rs1 = creg2reg(BITS(s->isa.instr.val, 9, 7));
-  decode_op_r(s, id_src1, rd_rs1, true);
-  decode_op_r(s, id_dest, rd_rs1, false);
+  decode_op_C_rd_rs1(s, true);
   uint32_t rs2 = creg2reg(BITS(s->isa.instr.val, 4, 2));
   decode_op_r(s, id_src2, rs2, true);
 }
@@ -310,45 +304,23 @@ static inline make_DHelper(C_J) {
   decode_op_r(s, id_dest, 0, false);
 }
 
-#if 0
-static void decode_C_xxx_imm_rd(bool is_rs1_zero, bool is_reg_compress) {
-  int reg = (is_reg_compress ? creg2reg(s->isa.instr.c_rd_rs1_) : s->isa.instr.c_rd_rs1);
-  decode_op_r(id_src1, (is_rs1_zero ? 0 : reg), true);
-  sword_t simm = (s->isa.instr.c_simm12 << 5) | s->isa.instr.c_imm6_2;
-  decode_op_i(id_src2, simm, true);
-  decode_op_r(id_dest, reg, false);
+static inline void decode_C_rs1_rs2_rd(DecodeExecState *s, bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
+  decode_op_r(s, id_src1, (is_rs1_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), true);
+  decode_op_r(s, id_src2, (is_rs2_zero ? 0 : BITS(s->isa.instr.val, 6, 2)), true);
+  decode_op_r(s, id_dest, (is_rd_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), false);
 }
 
-make_DHelper(C_0_imm_rd) {
-  decode_C_xxx_imm_rd(true, false);
+static inline make_DHelper(C_JR) {
+  decode_C_rs1_rs2_rd(s, false, false, true);
 }
 
-make_DHelper(C_rs1_imm_rd) {
-  decode_C_xxx_imm_rd(false, false);
+static inline make_DHelper(C_MOV) {
+  decode_C_rs1_rs2_rd(s, true, false, false);
 }
 
-make_DHelper(C_rs1__imm_rd_) {
-  decode_C_xxx_imm_rd(false, true);
+static inline make_DHelper(C_ADD) {
+  decode_C_rs1_rs2_rd(s, false, false, false);
 }
-
-static void decode_C_xxx_xxx_xxx(bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
-  decode_op_r(id_src1, (is_rs1_zero ? 0 : s->isa.instr.c_rd_rs1), true);
-  decode_op_r(id_src2, (is_rs2_zero ? 0 : s->isa.instr.c_rs2), true);
-  decode_op_r(id_dest, (is_rd_zero ? 0 : s->isa.instr.c_rd_rs1), false);
-}
-
-make_DHelper(C_0_rs2_rd) {
-  decode_C_xxx_xxx_xxx(true, false, false);
-}
-
-make_DHelper(C_rs1_rs2_0) {
-  decode_C_xxx_xxx_xxx(false, false, true);
-}
-
-make_DHelper(C_rs1_rs2_rd) {
-  decode_C_xxx_xxx_xxx(false, false, false);
-}
-#endif
 
 static inline make_DHelper(C_JALR) {
   decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);

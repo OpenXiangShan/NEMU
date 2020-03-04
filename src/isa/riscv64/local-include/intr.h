@@ -1,6 +1,8 @@
 #ifndef __INTR_H__
 #define __INTR_H__
 
+#include <cpu/decode.h>
+
 enum {
   EX_IAM, // instruction address misaligned
   EX_IAF, // instruction address fault
@@ -20,6 +22,7 @@ enum {
   EX_SPF, // store/amo page fault
 };
 
+void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc);
 void longjmp_raise_intr(uint32_t);
 
 #endif

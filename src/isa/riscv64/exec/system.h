@@ -35,13 +35,11 @@ static inline make_EHelper(csrrc) {
   print_asm_template3("csrrc");
 }
 
-extern void raise_intr(word_t NO, vaddr_t epc);
-
 static inline make_EHelper(priv) {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
-      raise_intr(8 + cpu.mode, cpu.pc);
+      raise_intr(s, 8 + cpu.mode, cpu.pc);
       print_asm("ecall");
       break;
     case 0x102:
