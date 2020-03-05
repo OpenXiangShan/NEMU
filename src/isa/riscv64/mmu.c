@@ -35,7 +35,7 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_write) {
+static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_write) {
   uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
@@ -44,31 +44,31 @@ static inline void check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_wr
     if (!(ok && pte->x)) {
       assert(!cpu.amo);
       stval->val = vaddr;
-      longjmp_raise_intr(EX_IPF);
+      cpu.mem_exception = EX_IPF;
+      return false;
     }
   } else if (!is_write) {
     bool can_load = pte->r || (mstatus->mxr && pte->x);
     if (!(ok && can_load)) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      if (cpu.amo) {
-        cpu.amo = false;
-        Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
-        longjmp_raise_intr(EX_SPF);
-      }
-      longjmp_raise_intr(EX_LPF);
+      if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
+      cpu.mem_exception = (cpu.amo ? EX_SPF : EX_LPF);
+      return false;
     }
   } else {
     if (!(ok && pte->w)) {
       if (cpu.amo) cpu.amo = false;
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      longjmp_raise_intr(EX_SPF);
+      cpu.mem_exception = EX_SPF;
+      return false;
     }
   }
+  return true;
 }
 
-static word_t page_walk(vaddr_t vaddr, bool is_write) {
+static bool page_walk(vaddr_t vaddr, paddr_t *paddr, bool is_write) {
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -86,18 +86,18 @@ static word_t page_walk(vaddr_t vaddr, bool is_write) {
     if (pte.r || pte.x) { break; }
     else {
       level --;
-      if (level < 0) { check_permission(&pte, false, vaddr, is_write); }
+      if (level < 0) { if (!check_permission(&pte, false, vaddr, is_write)) return false; }
     }
   }
 
-  check_permission(&pte, true, vaddr, is_write);
+  if (!check_permission(&pte, true, vaddr, is_write)) return false;
 
   if (level > 0) {
     // superpage
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
-      check_permission(&pte, false, vaddr, is_write);
+      if (!check_permission(&pte, false, vaddr, is_write)) return false;
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
@@ -108,18 +108,22 @@ static word_t page_walk(vaddr_t vaddr, bool is_write) {
     paddr_write(p_pte, pte.val, PTE_SIZE);
   }
 
-  return pg_base;
+  *paddr = pg_base;
+  return true;
 }
 
-static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
+static inline bool page_translate(vaddr_t vaddr, paddr_t *paddr, bool is_write) {
   uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8) {
-      return page_walk(addr, is_write) | (addr & PAGE_MASK);
+      if (!page_walk(vaddr, paddr, is_write)) return false;
+      *paddr |= (vaddr & PAGE_MASK);
+      return true;
     }
   }
-  return addr;
+  *paddr = vaddr;
+  return true;
 }
 
 /*
@@ -173,23 +177,22 @@ uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
   if (!cpu.fetching) { \
     if ((addr & (bits / 8 - 1)) != 0) { \
       mtval->val = addr; \
-      if (cpu.amo) { \
-        cpu.amo = false; \
-        longjmp_raise_intr(EX_SAM); \
-      } \
-      longjmp_raise_intr(EX_LAM); \
+      cpu.mem_exception = (cpu.amo ? EX_SAM : EX_LAM); \
+      return 0; \
     } \
   } \
-  paddr_t paddr = page_translate(addr, false); \
+  paddr_t paddr; \
+  if (!page_translate(addr, &paddr, false)) return 0; \
   return concat(paddr_read, bits)(paddr); \
 } \
 void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
   if ((addr & (bits / 8 - 1)) != 0) { \
-    if (cpu.amo) cpu.amo = false; \
     mtval->val = addr; \
-    longjmp_raise_intr(EX_SAM); \
+    cpu.mem_exception = EX_SAM; \
+    return; \
   } \
-  paddr_t paddr = page_translate(addr, true); \
+  paddr_t paddr; \
+  if (!page_translate(addr, &paddr, true)) return; \
   concat(paddr_write, bits)(paddr, data); \
 }
  

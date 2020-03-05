@@ -22,7 +22,12 @@ enum {
   EX_SPF, // store/amo page fault
 };
 
+// now NEMU does not support EX_IAM,
+// so it may ok to use EX_IAM to indicate a successful memory access
+#define MEM_OK 0
+
 void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc);
-void longjmp_raise_intr(uint32_t);
+#define check_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
+
 
 #endif

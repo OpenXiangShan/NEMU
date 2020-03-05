@@ -1,8 +1,21 @@
 #include <monitor/difftest.h>
 #include "../local-include/csr.h"
 
+static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
+  switch (addr) {
+    case 0xc01:  // time
+    case 0x001:  // fflags
+    case 0x002:  // frm
+    case 0x003:  // fcsr
+      raise_intr(s, EX_II, cpu.pc);
+      return false;
+  }
+  return true;
+}
+
 static inline make_EHelper(csrrw) {
   uint32_t addr = *dsrc2;
+  if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_sr(s, id_dest->reg, s0, 8);
   csr_write(addr, dsrc1);
@@ -12,6 +25,7 @@ static inline make_EHelper(csrrw) {
 
 static inline make_EHelper(csrrs) {
   uint32_t addr = *dsrc2;
+  if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_sr(s, id_dest->reg, s0, 8);
   if (id_src1->reg != 0) {
@@ -24,6 +38,7 @@ static inline make_EHelper(csrrs) {
 
 static inline make_EHelper(csrrc) {
   uint32_t addr = id_src2->val;
+  if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_sr(s, id_dest->reg, s0, 8);
   if (id_src1->reg != 0) {
