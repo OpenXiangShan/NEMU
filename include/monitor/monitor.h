@@ -1,7 +1,7 @@
-#ifndef __MONITOR_H__
-#define __MONITOR_H__
+#ifndef __MONITOR_MONITOR_H__
+#define __MONITOR_MONITOR_H__
 
-#include "common.h"
+#include <common.h>
 
 enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT };
 
@@ -12,5 +12,7 @@ typedef struct {
 } NEMUState;
 
 extern NEMUState nemu_state;
+
+void display_inv_msg(vaddr_t pc);
 
 #endif

@@ -1,11 +1,12 @@
-#include "monitor/diff-test.h"
-#include "rtl/rtl.h"
-#include "isa/intr.h"
+#include <cpu/exec.h>
+#include <monitor/difftest.h>
+#include "local-include/rtl.h"
+#include "local-include/intr.h"
 #include <setjmp.h>
 
 #define EX_ENTRY 0x80000180
 
-void raise_intr(uint32_t NO, vaddr_t epc) {
+void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * That is, use ``NO'' to index the IDT.
    */
@@ -17,18 +18,17 @@ void raise_intr(uint32_t NO, vaddr_t epc) {
   cpu.epc = epc;
   cpu.status.exl = 1;
 
-  rtl_j(target);
+  rtl_j(s, target);
 
   difftest_skip_dut(1, 2);
 }
 
-bool isa_query_intr(void) {
+void query_intr(DecodeExecState *s) {
   if (cpu.INTR && (cpu.status.ie) && !(cpu.status.exl)) {
     cpu.INTR = false;
-    raise_intr(0, cpu.pc);
-    return true;
+    raise_intr(s, 0, cpu.pc);
+    update_pc(s);
   }
-  return false;
 }
 
 jmp_buf intr_buf;

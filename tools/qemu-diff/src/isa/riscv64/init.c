@@ -36,8 +36,6 @@ static uint32_t initcode[] = {
 
 
 void init_isa(void) {
-  return;
-
   // put initcode to QEMU to setup a PMP to permit access to all of memory in S mode
   bool ok = gdb_memcpy_to_qemu(0x80000000, initcode, sizeof(initcode));
   assert(ok == 1);

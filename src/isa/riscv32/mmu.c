@@ -1,5 +1,5 @@
-#include "nemu.h"
-#include "memory/memory.h"
+#include <isa.h>
+#include <memory/memory.h>
 
 /* the 32bit Page Table Entry(second level page table) data structure */
 typedef union PageTableEntry {
@@ -57,12 +57,16 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
   return page_walk(addr, is_write) | (addr & PAGE_MASK);
 }
 
-word_t isa_vaddr_read(vaddr_t addr, int len) {
-  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, false) : addr);
-  return paddr_read(paddr, len);
+#define make_isa_vaddr_template(bits) \
+uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
+  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, false) : addr); \
+  return concat(paddr_read, bits)(paddr); \
+} \
+void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
+  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, true) : addr); \
+  concat(paddr_write, bits)(paddr, data); \
 }
 
-void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
-  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, true) : addr);
-  paddr_write(paddr, data, len);
-}
+make_isa_vaddr_template(8)
+make_isa_vaddr_template(16)
+make_isa_vaddr_template(32)

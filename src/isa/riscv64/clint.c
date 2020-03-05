@@ -1,7 +1,7 @@
-#include "monitor/monitor.h"
-#include "device/alarm.h"
-#include "device/map.h"
-#include "csr.h"
+#include <monitor/monitor.h>
+#include <device/alarm.h>
+#include <device/map.h>
+#include "local-include/csr.h"
 
 #define CLINT_MMIO 0xa2000000
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))

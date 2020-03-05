@@ -1,95 +1,115 @@
-#include "cpu/exec.h"
+#include <cpu/exec.h>
+#include "../local-include/decode.h"
 #include "all-instr.h"
+#include "../local-include/intr.h"
 #include <setjmp.h>
 
-static OpcodeEntry special_table [64] = {
-  /* b000 */ IDEX(shift, sll), EMPTY, IDEX(shift, srl), IDEX(shift, sra), IDEX(R, sll), EMPTY, IDEX(R, srl), IDEX(R, sra),
-  /* b001 */ IDEX(R, jr), IDEX(R, jalr), IDEX(cmov, movz), IDEX(cmov, movn), EX(syscall), EMPTY, EMPTY, EMPTY,
-  /* b010 */ IDEX(R, mfhi), IDEX(R, mthi), IDEX(R, mflo), IDEX(R, mtlo), EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b011 */ IDEX(R, mult), IDEX(R, multu), IDEX(R, div), IDEX(R, divu), EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b100 */ EMPTY, IDEX(R, add), EMPTY, IDEX(R, sub), IDEX(R, and), IDEX(R, or), IDEX(R, xor), IDEX(R, nor),
-  /* b101 */ EMPTY, EMPTY, IDEX(R, slt), IDEX(R, sltu), EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b110 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-};
+#define decode_empty(s)
 
-static make_EHelper(special) {
-  idex(pc, &special_table[decinfo.isa.instr.func]);
+static inline void set_width(DecodeExecState *s, int width) {
+  if (width != 0) s->width = width;
 }
 
-static OpcodeEntry special2_table [64] = {
-  /* b000 */ EMPTY, EMPTY, IDEX(R, mul), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b001 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b010 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b011 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b100 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b101 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b110 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-};
+#define IDEXW(idx, id, ex, w) CASE_ENTRY(idx, concat(decode_, id), concat(exec_, ex), w)
+#define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
+#define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)
+#define EX(idx, ex)           EXW(idx, ex, 0)
+#define EMPTY(idx)            //EX(idx, inv)
 
-static make_EHelper(special2) {
-  idex(pc, &special2_table[decinfo.isa.instr.func]);
-}
+#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
 
-static OpcodeEntry regimm_table [32] = {
-  /* b00 */ IDEX(B, bltz), IDEX(B, bgez), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b01 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b10 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b11 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-};
+static inline make_EHelper(special) {
+  switch (s->isa.instr.r.func) {
+    IDEX (000, shift, sll)                        IDEX (002, shift, srl) IDEX (003, shift, sra)
+    IDEX (004, R, sll)                            IDEX (006, R, srl)     IDEX (007, R, sra)
+    IDEX (010, R, jr)      IDEX (011, R, jalr)    IDEX (012, cmov, movz) IDEX (013, cmov, movn)
+    EX   (014, syscall)
+    IDEX (020, R, mfhi)    IDEX (021, R, mthi)    IDEX (022, R, mflo)    IDEX (023, R, mtlo)
 
-static make_EHelper(regimm) {
-  idex(pc, &regimm_table[decinfo.isa.instr.rt]);
-}
+    IDEX (030, R, mult)    IDEX (031, R, multu)   IDEX (032, R, div)     IDEX (033, R, divu)
 
-static OpcodeEntry cop0_table [16] = {
-  /* b00 */ IDEX(R, mfc0), EMPTY, EMPTY, EMPTY, IDEX(R, mtc0), EMPTY, EMPTY, EMPTY,
-  /* b01 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-};
-
-static OpcodeEntry cop0co_table [64] = {
-  /* b000 */ EMPTY, EMPTY, EX(tlbwi), EMPTY, EMPTY, EMPTY, EX(tlbwr), EMPTY,
-  /* b001 */ EX(tlbp), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b010 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b011 */ EX(eret), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b100 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b101 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b110 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-};
-
-static make_EHelper(cop0) {
-  if (decinfo.isa.instr.rs & 0x10) {
-    idex(pc, &cop0co_table[decinfo.isa.instr.func]);
-  }
-  else {
-    idex(pc, &cop0_table[decinfo.isa.instr.rs]);
+                           IDEX (041, R, add)                            IDEX (043, R, sub)
+    IDEX (044, R, and)     IDEX (045, R, or)      IDEX (046, R, xor)     IDEX (047, R, nor)
+                                                  IDEX (052, R, slt)     IDEX (053, R, sltu)
+    default: exec_inv(s);
   }
 }
 
-static OpcodeEntry opcode_table [64] = {
-  /* b000 */ EX(special), EX(regimm), IDEX(J, j), IDEX(J, jal), IDEX(B, beq), IDEX(B, bne), IDEX(B, blez), IDEX(B, bgtz),
-  /* b001 */ EMPTY, IDEX(I, add), IDEX(I, slt), IDEX(I, sltu), IDEX(IU, and), IDEX(IU, or), IDEX(IU, xor), IDEX(IU, lui),
-  /* b010 */ EX(cop0), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b011 */ EMPTY, EMPTY, EMPTY, EMPTY, EX(special2), EMPTY, EMPTY, EMPTY,
-  /* b100 */ IDEXW(ld, lds, 1), IDEXW(ld, lds, 2), IDEX(st, lwl), IDEXW(ld, ld, 4), IDEXW(ld, ld, 1), IDEXW(ld, ld, 2), IDEX(st, lwr), EMPTY,
-  /* b101 */ IDEXW(st, st, 1), IDEXW(st, st, 2), IDEX(st, swl), IDEXW(st, st, 4), EMPTY, EMPTY, IDEX(st, swr), EMPTY,
-  /* b110 */ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-  /* b111 */ EMPTY, EMPTY, EMPTY, EMPTY, EX(nemu_trap), EMPTY, EMPTY, EMPTY,
-};
+static inline make_EHelper(special2) {
+  switch (s->isa.instr.r.func) {
+    IDEX (2, R, mul)
+    default: exec_inv(s);
+  }
+}
 
-void isa_exec(vaddr_t *pc) {
+static inline make_EHelper(regimm) {
+  switch (s->isa.instr.r.rt) {
+    IDEX (0, B, bltz)
+    IDEX (1, B, bgez)
+    default: exec_inv(s);
+  }
+}
+
+static inline make_EHelper(cop0) {
+#define pair(x, y) (((x) << 1) | (y))
+  bool cop0co = (s->isa.instr.r.rs & 0x10) != 0;
+  uint32_t op = pair((cop0co ? s->isa.instr.r.func : s->isa.instr.r.rs), cop0co);
+  switch (op) {
+    EX   (pair(002, 1), tlbwi)
+    EX   (pair(006, 1), tlbwr)
+    EX   (pair(010, 1), tlbp)
+    EX   (pair(030, 1), eret)
+    IDEX (pair(000, 0), R, mfc0)
+    IDEX (pair(004, 0), R, mtc0)
+    default: exec_inv(s);
+  }
+#undef pair
+}
+
+static inline void exec(DecodeExecState *s) {
+  s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+  switch (s->isa.instr.r.opcode) {
+    EX   (000, special)    EX   (001, regimm)     IDEX (002, J, j)       IDEX (003, J, jal)
+    IDEX (004, B, beq)     IDEX (005, B, bne)     IDEX (006, B, blez)    IDEX (007, B, bgtz)
+                           IDEX (011, I, add)     IDEX (012, I, slt)     IDEX (013, I, sltu)
+    IDEX (014, IU, and)    IDEX (015, IU, or)     IDEX (016, IU, xor)    IDEX (017, IU, lui)
+    EX   (020, cop0)
+
+
+    EX   (034, special2)
+    IDEXW(040, ld, lds, 1) IDEXW(041, ld, lds, 2) IDEX (042, st, lwl)    IDEXW(043, ld, ld, 4)
+    IDEXW(044, ld, ld, 1)  IDEXW(045, ld, ld, 2)  IDEX (046, st, lwr)
+    IDEXW(050, st, st, 1)  IDEXW(051, st, st, 2)  IDEX (052, st, swl)    IDEXW(053, st, st, 4)
+                                                  IDEX (056, st, swr)
+
+
+
+    EX   (074, nemu_trap)
+    default: exec_inv(s);
+  }
+}
+
+vaddr_t isa_exec_once() {
+  DecodeExecState s;
+  s.is_jmp = 0;
+  s.seq_pc = cpu.pc;
+
   extern jmp_buf intr_buf;
   int setjmp_ret;
   if ((setjmp_ret = setjmp(intr_buf)) != 0) {
     // exception
     int exce_code = setjmp_ret - 1;
-    void raise_intr(uint32_t, vaddr_t);
-    raise_intr(exce_code, cpu.pc);
-    return;
+    raise_intr(&s, exce_code, cpu.pc);
+    update_pc(&s);
+    return s.seq_pc;
   }
-  decinfo.isa.instr.val = instr_fetch(pc, 4);
-  decinfo.width = opcode_table[decinfo.isa.instr.opcode].width;
-  idex(pc, &opcode_table[decinfo.isa.instr.opcode]);
+
+  exec(&s);
+  update_pc(&s);
+
+#if !defined(DIFF_TEST) && !_SHARE
+  void query_intr(DecodeExecState *s);
+  query_intr(&s);
+#endif
+  return s.seq_pc;
 }

@@ -9,5 +9,5 @@ int main(int argc, char *argv[]) {
   /* Receive commands from user. */
   ui_mainloop(is_batch_mode);
 
-  return !goodtrap();
+  return (is_batch_mode ? !goodtrap() : 0);
 }

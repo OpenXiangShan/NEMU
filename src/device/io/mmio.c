@@ -1,5 +1,4 @@
-#include "common.h"
-#include "device/map.h"
+#include <device/map.h>
 
 #define NR_MAP 8
 

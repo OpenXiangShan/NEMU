@@ -1,6 +1,4 @@
-#include "common.h"
-#include "device/map.h"
-
+#include <device/map.h>
 #include "mmc.h"
 
 // http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf
@@ -66,14 +64,14 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
         case MMC_READ_MULTIPLE_BLOCK:
           // TODO
           addr = base[SDARG];
-          fseek(fp, addr, SEEK_SET);
+          if (fp) fseek(fp, addr, SEEK_SET);
           //Log("reading from addr = 0x%x", base[SDARG]);
           write_cmd = false;
           break;
         case MMC_WRITE_MULTIPLE_BLOCK:
           // TODO
           addr = base[SDARG];
-          fseek(fp, addr, SEEK_SET);
+          if (fp) fseek(fp, addr, SEEK_SET);
           //Log("writing to addr = 0x%x", base[SDARG]);
           write_cmd = true;
           break;
@@ -96,7 +94,7 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
     case SDHBLC: break; //Log("@@@@@@@@@@ block count = %d", base[SDHBLC]); break;// only for debug
     case SDDATA:
        // TODO
-       if (!write_cmd) {
+       if (!write_cmd && fp) {
          fread(&base[SDDATA], 4, 1, fp);
        }
        addr += 4;
@@ -117,6 +115,7 @@ void init_sdcard() {
 
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
-  fp = fopen("/home/yzh/projectn/debian.img", "r");
-  assert(fp);
+  const char *sdimg = "/home/yzh/projectn/debian.img";
+  fp = fopen(sdimg, "r");
+  if (fp == NULL) Log("Can not find sdcard image: %s", sdimg);
 }

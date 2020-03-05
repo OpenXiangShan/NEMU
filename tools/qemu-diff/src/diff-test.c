@@ -1,7 +1,7 @@
 #include "common.h"
 #include <sys/prctl.h>
 #include <signal.h>
-#include "isa.h"
+#include _ISA_H_
 
 bool gdb_connect_qemu(int);
 bool gdb_memcpy_to_qemu(uint32_t, void *, int);

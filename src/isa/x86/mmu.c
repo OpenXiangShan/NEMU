@@ -1,5 +1,6 @@
-#include "nemu.h"
-#include "isa/mmu.h"
+#include <isa.h>
+#include <memory/memory.h>
+#include "local-include/mmu.h"
 
 typedef union {
   struct {
@@ -44,47 +45,47 @@ static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
   return page_walk(addr, is_write) | (addr & PAGE_MASK);
 }
 
-word_t isa_vaddr_read(vaddr_t addr, int len) {
-  word_t data;
-  if (cpu.cr0.paging) {
-    paddr_t paddr = page_translate(addr, false);
-    uint32_t remain_byte = PAGE_SIZE - (addr & PAGE_MASK);
-    if (remain_byte < len) {
-      /* data cross the page boundary */
-      data = paddr_read(paddr, remain_byte);
-
-      paddr = page_translate(addr + remain_byte, false);
-      data |= paddr_read(paddr, len - remain_byte) << (remain_byte << 3);
-    }
-    else {
-      data = paddr_read(paddr, len);
-    }
-  }
-  else {
-    data = paddr_read(addr, len);
-  }
-
-  return data;
+#define make_isa_vaddr_template(bits) \
+uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
+  paddr_t paddr = addr; \
+  if (cpu.cr0.paging) { \
+    paddr = page_translate(addr, false); \
+    bool is_cross_page = ((addr & PAGE_MASK) + bits / 8) > PAGE_SIZE; \
+    if (is_cross_page) { \
+      uint_type(bits) data = 0; \
+      int i = 0; \
+      while (true) { \
+        data |= paddr_read8(paddr) << (i << 3); \
+        i ++; \
+        if (i == bits / 8) break; \
+        addr ++; \
+        paddr = page_translate(addr, false); \
+      } \
+      return data; \
+    } \
+  } \
+  return concat(paddr_read, bits)(paddr); \
+} \
+void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
+  paddr_t paddr = addr; \
+  if (cpu.cr0.paging) { \
+    paddr = page_translate(addr, false); \
+    bool is_cross_page = ((addr & PAGE_MASK) + bits / 8) > PAGE_SIZE; \
+    if (is_cross_page) { \
+      int i = 0; \
+      while (true) { \
+        paddr_write8(paddr, data & 0xff); \
+        i ++; \
+        if (i == bits / 8) break; \
+        addr ++; \
+        paddr = page_translate(addr, false); \
+      } \
+      return; \
+    } \
+  } \
+  concat(paddr_write, bits)(paddr, data); \
 }
 
-void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
-  if (cpu.cr0.paging) {
-    paddr_t paddr = page_translate(addr, true);
-    uint32_t remain_byte = PAGE_SIZE - (addr & PAGE_MASK);
-    if (remain_byte < len) {
-      /* data cross the page boundary */
-      uint32_t cut = PAGE_SIZE - (addr & PAGE_MASK);
-      assert(cut < 4);
-      paddr_write(paddr, data, cut);
-
-      paddr = page_translate(addr + cut, true);
-      paddr_write(paddr, data >> (cut << 3), len - cut);
-    }
-    else {
-      paddr_write(paddr, data, len);
-    }
-  }
-  else {
-    paddr_write(addr, data, len);
-  }
-}
+make_isa_vaddr_template(8)
+make_isa_vaddr_template(16)
+make_isa_vaddr_template(32)

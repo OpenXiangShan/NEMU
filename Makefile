@@ -10,7 +10,7 @@ $(error Invalid ISA. Supported: $(ISAS))
 endif
 endif
 
-INC_DIR += ./include ./src/isa/$(ISA)/include
+INC_DIR += ./include
 BUILD_DIR ?= ./build
 
 ifdef SHARE
@@ -30,7 +30,8 @@ include Makefile.git
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -fomit-frame-pointer
+CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) \
+            -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
 
 QEMU_DIFF_PATH = $(NEMU_HOME)/tools/qemu-diff
 QEMU_SO = $(QEMU_DIFF_PATH)/build/$(ISA)-qemu-so

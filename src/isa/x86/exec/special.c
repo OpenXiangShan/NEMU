@@ -1,5 +1,6 @@
-#include "cpu/exec.h"
-#include "monitor/monitor.h"
+#include <cpu/exec.h>
+#include <monitor/monitor.h>
+#include <monitor/difftest.h>
 
 make_EHelper(nop) {
   print_asm("nop");
@@ -9,9 +10,9 @@ make_EHelper(inv) {
   /* invalid opcode */
 
   uint32_t temp[2];
-  *pc = cpu.pc;
-  temp[0] = instr_fetch(pc, 4);
-  temp[1] = instr_fetch(pc, 4);
+  s->seq_pc = cpu.pc;
+  temp[0] = instr_fetch(&s->seq_pc, 4);
+  temp[1] = instr_fetch(&s->seq_pc, 4);
 
   uint8_t *p = (void *)temp;
   printf("invalid opcode(PC = 0x%08x): %02x %02x %02x %02x %02x %02x %02x %02x ...\n\n",

@@ -1,6 +1,8 @@
 #ifndef __RTL_C_OP_H__
 #define __RTL_C_OP_H__
 
+#include <common.h>
+
 #define c_add(a, b) ((a) + (b))
 #define c_sub(a, b) ((a) - (b))
 #define c_and(a, b) ((a) & (b))

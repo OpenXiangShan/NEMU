@@ -1,6 +1,7 @@
-#include "nemu.h"
+#include <isa.h>
+#include <memory/memory.h>
 
-const uint8_t isa_default_img []  = {
+static const uint8_t img []  = {
   0xb8, 0x34, 0x12, 0x00, 0x00,        // 100000:  movl  $0x1234,%eax
   0xb9, 0x27, 0x00, 0x10, 0x00,        // 100005:  movl  $0x100027,%ecx
   0x89, 0x01,                          // 10000a:  movl  %eax,(%ecx)
@@ -11,11 +12,10 @@ const uint8_t isa_default_img []  = {
   0xb8, 0x00, 0x00, 0x00, 0x00,        // 100021:  movl  $0x0,%eax
   0xd6,                                // 100026:  nemu_trap
 };
-const long isa_default_img_size = sizeof(isa_default_img);
 
 static void restart() {
   /* Set the initial instruction pointer. */
-  cpu.pc = PC_START;
+  cpu.pc = IMAGE_START;
   cpu.cs = 0x8;
   cpu.cr0.val = 0x60000011;
 }
@@ -25,7 +25,8 @@ void init_isa(void) {
   void reg_test(void);
   reg_test();
 
-  register_pmem(0);
+  /* Load built-in image. */
+  memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
 
   /* Initialize this virtual computer system. */
   restart();

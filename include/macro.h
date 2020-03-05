@@ -12,4 +12,9 @@
 
 #define MAP(c, f) c(f)
 
+#define uint_type(bits) concat3(uint, bits, _t)
+#define BITMASK(bits) ((1 << (bits)) - 1)
+#define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
+#define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (int64_t)__x.n; })
+
 #endif

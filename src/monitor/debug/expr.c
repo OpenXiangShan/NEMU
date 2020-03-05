@@ -1,9 +1,8 @@
-#include "nemu.h"
+#include <isa.h>
 
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
-#include <sys/types.h>
 #include <regex.h>
 #include <stdlib.h>
 
@@ -172,8 +171,6 @@ static int find_dominated_op(int s, int e, bool *success) {
   *success = (dominated_op != -1);
   return dominated_op;
 }
-
-word_t isa_reg_str2val(const char*, bool *);
 
 static rtlreg_t eval(int s, int e, bool *success) {
   if (s > e) {

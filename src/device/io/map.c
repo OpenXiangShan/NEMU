@@ -1,6 +1,6 @@
-#include "memory/memory.h"
-#include "device/map.h"
-#include "nemu.h"
+#include <isa.h>
+#include <memory/memory.h>
+#include <device/map.h>
 
 #define IO_SPACE_MAX (1024 * 1024)
 

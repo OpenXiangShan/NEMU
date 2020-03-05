@@ -1,7 +1,7 @@
-#include "nemu.h"
-#include "monitor/monitor.h"
-#include "monitor/watchpoint.h"
-#include "monitor/diff-test.h"
+#include <isa.h>
+#include <monitor/monitor.h>
+#include <monitor/difftest.h>
+#include "debug/watchpoint.h"
 #include <stdlib.h>
 
 /* The assembly code of instructions executed is only output to the screen
@@ -16,17 +16,17 @@
 // restrict the size of log file
 #define LOG_END   (1024 * 1024 * 50)
 
+CPU_state cpu;
 NEMUState nemu_state = {.state = NEMU_STOP};
 static uint64_t g_nr_guest_instr = 0;
 
-vaddr_t exec_once(void);
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 
 int goodtrap(void) {
   return (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0);
 }
 
-void interpret_rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
+void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
   nemu_state = (NEMUState) { .state = state, .halt_pc = halt_pc, .halt_ret = halt_ret };
 }
 
@@ -36,6 +36,16 @@ void monitor_statistic(void) {
 
 bool log_enable(void) {
   return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
+}
+
+void display_inv_msg(vaddr_t pc) {
+  printf("There are two cases which will trigger this unexpected exception:\n"
+      "1. The instruction at PC = " FMT_WORD " is not implemented.\n"
+      "2. Something is implemented incorrectly.\n", pc);
+  printf("Find this PC(" FMT_WORD ") in the disassembling result to distinguish which case it is.\n\n", pc);
+  printf("\33[1;31mIf it is the first case, see\n%s\nfor more details.\n\nIf it is the second case, remember:\n"
+      "* The machine is always right!\n"
+      "* Every line of untested code is always wrong!\33[0m\n\n", isa_logo);
 }
 
 /* Simulate how the CPU works. */
@@ -52,7 +62,7 @@ void cpu_exec(uint64_t n) {
 
     /* Execute one instruction, including instruction fetch,
      * instruction decode, and the actual execution. */
-    __attribute__((unused)) vaddr_t seq_pc = exec_once();
+    __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
 
     difftest_step(ori_pc, cpu.pc);
 
