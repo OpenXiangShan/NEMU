@@ -126,52 +126,6 @@ static inline bool page_translate(vaddr_t vaddr, paddr_t *paddr, bool is_write) 
   return true;
 }
 
-/*
-word_t isa_vaddr_read(vaddr_t addr, int len) {
-  if (!cpu.fetching) {
-    if ((addr & (len - 1)) != 0) {
-      //Log("misalgined load addr = " FMT_WORD ", pc = " FMT_WORD", instr = %x",
-      //    addr, cpu.pc, decinfo.isa.instr.val);
-      mtval->val = addr;
-      if (cpu.amo) {
-        cpu.amo = false;
-        longjmp_raise_intr(EX_SAM);
-      }
-      longjmp_raise_intr(EX_LAM);
-    }
-  }
-  paddr_t paddr = addr;
-  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
-  if (mode < MODE_M) {
-    assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) {
-      paddr = page_translate(addr, false);
-    }
-  }
-  return paddr_read(paddr, len);
-}
-
-
-void isa_vaddr_write(vaddr_t addr, word_t data, int len) {
-  if ((addr & (len - 1)) != 0) {
-    //Log("misalgined store addr = " FMT_WORD ", pc = " FMT_WORD", instr = %x",
-    //    addr, cpu.pc, decinfo.isa.instr.val);
-    if (cpu.amo) cpu.amo = false;
-    mtval->val = addr;
-    longjmp_raise_intr(EX_SAM);
-  }
-  paddr_t paddr = addr;
-  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
-  if (mode < MODE_M) {
-    assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) {
-      paddr = page_translate(addr, true);
-    }
-  }
-  paddr_write(paddr, data, len);
-}
-*/
-
 #define make_isa_vaddr_template(bits) \
 uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
   if (!cpu.fetching) { \
