@@ -18,6 +18,7 @@ typedef struct {
   vaddr_t stvec;
   vaddr_t scause;
   vaddr_t sepc;
+  vaddr_t sscratch;
   union {
     struct {
       uint32_t uie : 1;

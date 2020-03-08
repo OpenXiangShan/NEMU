@@ -5,6 +5,7 @@ static inline rtlreg_t* csr_decode(uint32_t csr) {
     case 0x180: return &cpu.satp.val;
     case 0x100: return &cpu.sstatus.val;
     case 0x105: return &cpu.stvec;
+    case 0x140: return &cpu.sscratch;
     case 0x141: return &cpu.sepc;
     case 0x142: return &cpu.scause;
     default: panic("unimplemented CSR 0x%x", csr);
