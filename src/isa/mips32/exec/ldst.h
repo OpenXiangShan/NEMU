@@ -1,5 +1,8 @@
+#include "../local-include/intr.h"
+
 static inline make_EHelper(ld) {
   rtl_lm(s, s0, &id_src1->addr, s->width);
+  check_mem_ex();
   rtl_sr(s, id_dest->reg, s0, 4);
 
   switch (s->width) {
@@ -13,6 +16,7 @@ static inline make_EHelper(ld) {
 // load sign value
 static inline make_EHelper(lds) {
   rtl_lm(s, s0, &id_src1->addr, s->width);
+  check_mem_ex();
   rtl_sext(s, s0, s0, s->width);
   rtl_sr(s, id_dest->reg, s0, 4);
 
@@ -25,6 +29,7 @@ static inline make_EHelper(lds) {
 
 static inline make_EHelper(st) {
   rtl_sm(s, &id_src1->addr, ddest, s->width);
+  check_mem_ex();
 
   switch (s->width) {
     case 4: print_asm_template2(sw); break;
@@ -51,6 +56,7 @@ static inline make_EHelper(swl) {
   // load the aligned memory word
   rtl_andi(s, &id_src1->addr, &id_src1->addr, ~0x3u);
   rtl_lm(s, s0, &id_src1->addr, 4);
+  check_mem_ex();
   // prepare memory data
   rtl_and(s, s0, s0, s1);
 
@@ -59,6 +65,7 @@ static inline make_EHelper(swl) {
 
   // write back
   rtl_sm(s, &id_src1->addr, s0, 4);
+  check_mem_ex();
 
   print_asm_template2(swl);
 }
@@ -79,6 +86,7 @@ static inline make_EHelper(swr) {
   // load the aligned memory word
   rtl_andi(s, &id_src1->addr, &id_src1->addr, ~0x3u);
   rtl_lm(s, s0, &id_src1->addr, 4);
+  check_mem_ex();
   // prepare memory data
   rtl_and(s, s0, s0, s1);
 
@@ -87,6 +95,7 @@ static inline make_EHelper(swr) {
 
   // write back
   rtl_sm(s, &id_src1->addr, s0, 4);
+  check_mem_ex();
 
   print_asm_template2(swr);
 }
@@ -109,6 +118,7 @@ static inline make_EHelper(lwl) {
   // load the aligned memory word
   rtl_andi(s, &id_src1->addr, &id_src1->addr, ~0x3u);
   rtl_lm(s, s1, &id_src1->addr, 4);
+  check_mem_ex();
   // prepare memory data
   rtl_shl(s, s1, s1, s0);
 
@@ -138,6 +148,7 @@ static inline make_EHelper(lwr) {
   // load the aligned memory word
   rtl_andi(s, &id_src1->addr, &id_src1->addr, ~0x3u);
   rtl_lm(s, s1, &id_src1->addr, 4);
+  check_mem_ex();
   // prepare memory data
   rtl_shr(s, s1, s1, s0);
 

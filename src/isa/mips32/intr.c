@@ -30,9 +30,3 @@ void query_intr(DecodeExecState *s) {
     update_pc(s);
   }
 }
-
-jmp_buf intr_buf;
-
-void longjmp_raise_intr(uint32_t NO) {
-  longjmp(intr_buf, NO + 1);
-}
