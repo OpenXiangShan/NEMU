@@ -34,17 +34,18 @@ static make_EHelper(int) {
 
 static make_EHelper(iret) {
   //TODO();
-  rtl_pop(s, s0);
-
-  rtl_pop(s, s1);
+  rtl_pop(s, s0);  // esp3, customized
+  rtl_pop(s, s1);  // eip
+  rtl_jr(s, s1);
+  rtl_pop(s, s1);  // cs
   cpu.cs = *s1;
-
   void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
-  rtl_pop(s, s1);
+  rtl_pop(s, s1);  // eflags
   rtl_set_eflags(s, s1);
+  // customized: switch to user stack
+  if (*s0 != 0) rtl_mv(s, &cpu.esp, s0);
 
-  rtl_jr(s, s0);
-
+  difftest_skip_ref();
   print_asm("iret");
 }
 
