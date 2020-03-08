@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 void init_log(const char *log_file);
+void init_mem();
 void init_regex();
 void init_wp_pool();
 void init_device();
@@ -93,6 +94,9 @@ int init_monitor(int argc, char *argv[]) {
 
   /* Open the log file. */
   init_log(log_file);
+
+  /* Fill the memory with garbage content. */
+  init_mem();
 
   /* Perform ISA dependent initialization. */
   init_isa();

@@ -1,6 +1,8 @@
 #include <isa.h>
 #include <memory/memory.h>
 #include <device/map.h>
+#include <stdlib.h>
+#include <time.h>
 
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
 
@@ -16,6 +18,15 @@ static IOMap pmem_map = {
 };
 
 IOMap* fetch_mmio_map(paddr_t addr);
+
+void init_mem() {
+  srand(time(0));
+  uint32_t *p = (uint32_t *)pmem;
+  int i;
+  for (i = 0; i < PMEM_SIZE / sizeof(p[0]); i ++) {
+    p[i] = rand();
+  }
+}
 
 /* Memory accessing interfaces */
 
