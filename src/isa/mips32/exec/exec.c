@@ -68,6 +68,7 @@ static inline make_EHelper(cop0) {
 
 static inline void exec(DecodeExecState *s) {
   s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+  check_mem_ex();
   switch (s->isa.instr.r.opcode) {
     EX   (000, special)    EX   (001, regimm)     IDEX (002, J, j)       IDEX (003, J, jal)
     IDEX (004, B, beq)     IDEX (005, B, bne)     IDEX (006, B, blez)    IDEX (007, B, bgtz)
@@ -94,17 +95,11 @@ vaddr_t isa_exec_once() {
   s.is_jmp = 0;
   s.seq_pc = cpu.pc;
 
-  extern jmp_buf intr_buf;
-  int setjmp_ret;
-  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
-    // exception
-    int exce_code = setjmp_ret - 1;
-    raise_intr(&s, exce_code, cpu.pc);
-    update_pc(&s);
-    return s.seq_pc;
-  }
-
   exec(&s);
+  if (cpu.mem_exception != MEM_OK) {
+    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.mem_exception = MEM_OK;
+  }
   update_pc(&s);
 
 #if !defined(DIFF_TEST) && !_SHARE

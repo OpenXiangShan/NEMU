@@ -3,7 +3,6 @@
 #include "local-include/csr.h"
 #include "local-include/rtl.h"
 #include "local-include/intr.h"
-#include <setjmp.h>
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -80,9 +79,4 @@ void query_intr(DecodeExecState *s) {
       }
     }
   }
-}
-
-jmp_buf intr_buf;
-void longjmp_raise_intr(uint32_t NO) {
-  longjmp(intr_buf, NO + 1);
 }

@@ -2,7 +2,6 @@
 #include "../local-include/decode.h"
 #include "../local-include/intr.h"
 #include "all-instr.h"
-#include <setjmp.h>
 
 #define decode_empty(s)
 
@@ -109,7 +108,7 @@ static inline make_EHelper(atomic) {
 }
 
 static inline make_EHelper(fp) {
-  longjmp_raise_intr(EX_II);
+  raise_intr(s, EX_II, cpu.pc);
 }
 
 // RVC
@@ -158,18 +157,14 @@ static inline make_EHelper(misc_alu) {
 }
 
 static inline void exec(DecodeExecState *s) {
-  extern jmp_buf intr_buf;
-  int setjmp_ret;
-  if ((setjmp_ret = setjmp(intr_buf)) != 0) {
-    int exception = setjmp_ret - 1;
-    raise_intr(s, exception, cpu.pc);
-    return;
-  }
-
   cpu.fetching = true;
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
+    if (cpu.mem_exception != MEM_OK) {
+      cpu.fetching = false;
+      return;
+    }
     s->isa.instr.val = lo & 0xffff;
     if (s->isa.instr.r.opcode1_0 != 0x3) {
       // this is an RVC instruction
@@ -188,6 +183,8 @@ static inline void exec(DecodeExecState *s) {
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
   }
   cpu.fetching = false;
+
+  check_mem_ex();
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     switch (s->isa.instr.r.opcode6_2) {
@@ -225,6 +222,10 @@ vaddr_t isa_exec_once() {
   s.seq_pc = cpu.pc;
 
   exec(&s);
+  if (cpu.mem_exception != MEM_OK) {
+    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.mem_exception = MEM_OK;
+  }
   update_pc(&s);
 
 #if !defined(DIFF_TEST) && !_SHARE

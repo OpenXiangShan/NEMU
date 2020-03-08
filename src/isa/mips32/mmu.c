@@ -84,7 +84,7 @@ static inline int32_t search_ppn(vaddr_t addr, bool write) {
       if (!tlb[i].lo[a.lo_idx].V) {
         cpu.entryhi.VPN2 = a.vpn;
 //        Log("tlb[%d] invalid at cpu.pc = 0x%08x, badaddr = 0x%08x", i, cpu.pc, addr);
-        longjmp_raise_intr(write ? EX_TLB_ST : EX_TLB_LD);
+        cpu.mem_exception = (write ? EX_TLB_ST : EX_TLB_LD);
         return -1;
       }
       //Assert(tlb[i].lo[a.lo_idx].V, "cpu.pc = 0x%08x, addr = 0x%08x, lo0 = 0x%08x, lo1 = 0x%08x",
@@ -94,25 +94,32 @@ static inline int32_t search_ppn(vaddr_t addr, bool write) {
   }
   cpu.entryhi.VPN2 = a.vpn;
 //  Log("tlb refill at cpu.pc = 0x%08x, badaddr = 0x%08x", cpu.pc, addr);
-  longjmp_raise_intr(TLB_REFILL | (write ? EX_TLB_ST : EX_TLB_LD));
+  cpu.mem_exception = TLB_REFILL | (write ? EX_TLB_ST : EX_TLB_LD);
   return -1;
 }
 
-static inline paddr_t va2pa(vaddr_t addr, bool write) {
-  if ((addr & 0x80000000u) == 0) {
-    int32_t ppn = search_ppn(addr, write);
-    addr = (addr & 0xfff) | (ppn << 12);
+static inline bool va2pa(vaddr_t vaddr, paddr_t *paddr, bool write) {
+  if ((vaddr & 0x80000000u) == 0) {
+    int32_t ppn = search_ppn(vaddr, write);
+    if (ppn == -1) return false;
+    *paddr = (vaddr & 0xfff) | (ppn << 12);
+  } else {
+    *paddr = vaddr;
   }
 
-  return addr;
+  return true;
 }
 
 #define make_isa_vaddr_template(bits) \
 uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
-  return concat(paddr_read, bits)(va2pa(addr, false)); \
+  paddr_t paddr; \
+  if (!va2pa(addr, &paddr, false)) return 0; \
+  return concat(paddr_read, bits)(paddr); \
 } \
 void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
-  concat(paddr_write, bits)(va2pa(addr, true), data); \
+  paddr_t paddr; \
+  if (!va2pa(addr, &paddr, true)) return; \
+  concat(paddr_write, bits)(paddr, data); \
 }
 
 make_isa_vaddr_template(8)

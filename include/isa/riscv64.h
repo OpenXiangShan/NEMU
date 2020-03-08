@@ -22,6 +22,7 @@ typedef struct {
 
   bool fetching;
   bool amo;
+  int mem_exception;
 
   // for LR/SC
   vaddr_t lr_addr;
