@@ -99,3 +99,9 @@ static inline make_EHelper(lea) {
   operand_write(s, id_dest, &id_src1->addr);
   print_asm_template2(lea);
 }
+
+static inline make_EHelper(xchg) {
+  operand_write(s, id_dest, dsrc1);
+  operand_write(s, id_src1, ddest);
+  print_asm_template2(xchg);
+}
