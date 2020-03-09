@@ -1,5 +1,5 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
 #include <cpu/exec.h>
 
 void cpu_exec(uint64_t);

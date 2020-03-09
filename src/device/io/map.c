@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
 #include <device/map.h>
 
 #define IO_SPACE_MAX (1024 * 1024)

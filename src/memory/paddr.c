@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
 #include <device/map.h>
 #include <stdlib.h>
 #include <time.h>

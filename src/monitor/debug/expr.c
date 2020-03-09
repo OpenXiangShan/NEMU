@@ -1,3 +1,4 @@
+#include <memory/vaddr.h>
 #include <isa.h>
 
 /* We use the POSIX regex functions to process regular expressions.

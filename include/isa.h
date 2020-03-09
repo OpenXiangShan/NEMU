@@ -16,38 +16,9 @@ word_t isa_reg_str2val(const char *name, bool *success);
 vaddr_t isa_exec_once();
 
 // memory
-uint8_t  isa_vaddr_read8 (vaddr_t addr);
-uint16_t isa_vaddr_read16(vaddr_t addr);
-uint32_t isa_vaddr_read32(vaddr_t addr);
-uint64_t isa_vaddr_read64(vaddr_t addr);
-void isa_vaddr_write8 (vaddr_t addr, uint8_t  data);
-void isa_vaddr_write16(vaddr_t addr, uint16_t data);
-void isa_vaddr_write32(vaddr_t addr, uint32_t data);
-void isa_vaddr_write64(vaddr_t addr, uint64_t data);
-
-static inline uint64_t vaddr_read(vaddr_t addr, int len) {
-  switch (len) {
-    case 1: return isa_vaddr_read8 (addr);
-    case 2: return isa_vaddr_read16(addr);
-    case 4: return isa_vaddr_read32(addr);
-#ifdef ISA64
-    case 8: return isa_vaddr_read64(addr);
-#endif
-    default: assert(0);
-  }
-}
-
-static inline void vaddr_write(vaddr_t addr, uint64_t data, int len) {
-  switch (len) {
-    case 1: isa_vaddr_write8 (addr, data); break;
-    case 2: isa_vaddr_write16(addr, data); break;
-    case 4: isa_vaddr_write32(addr, data); break;
-#ifdef ISA64
-    case 8: isa_vaddr_write64(addr, data); break;
-#endif
-    default: assert(0);
-  }
-}
+enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
+enum { MEM_RET_OK, MEM_RET_FAIL, MEM_RET_NEED_TRANSLATE, MEM_RET_CROSS_PAGE };
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len);
 
 // difftest
   // for dut

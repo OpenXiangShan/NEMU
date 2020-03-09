@@ -1,5 +1,5 @@
-#ifndef __MEMORY_MEMORY_H__
-#define __MEMORY_MEMORY_H__
+#ifndef __MEMORY_PADDR_H__
+#define __MEMORY_PADDR_H__
 
 #include <common.h>
 
@@ -42,9 +42,5 @@ static inline void paddr_write(paddr_t addr, uint64_t data, int len) {
     default: assert(0);
   }
 }
-
-#define PAGE_SIZE         4096
-#define PAGE_MASK         (PAGE_SIZE - 1)
-#define PG_ALIGN __attribute((aligned(PAGE_SIZE)))
 
 #endif
