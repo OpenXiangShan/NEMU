@@ -1,5 +1,5 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
 #include <monitor/difftest.h>
 #include "../local-include/reg.h"
 #include "difftest.h"

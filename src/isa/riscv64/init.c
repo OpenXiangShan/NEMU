@@ -1,5 +1,5 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
 #include "local-include/csr.h"
 
 static const uint32_t img [] = {
