@@ -80,14 +80,14 @@ static inline make_EHelper(auipc) {
   rtl_add(s, s0, s0, &cpu.pc);
   rtl_sr(s, id_dest->reg, s0, 4);
 
-  print_asm_template2(auipc);
+  print_asm("auipc " FMT_WORD ",%s", *s0, id_dest->str);
 }
 
 static inline make_EHelper(lui) {
   rtl_shli(s, s0, dsrc2, 12);
   rtl_sr(s, id_dest->reg, s0, 4);
 
-  print_asm_template2(lui);
+  print_asm("lui " FMT_WORD ",%s", *s0, id_dest->str);
 }
 
 static inline make_EHelper(addw) {

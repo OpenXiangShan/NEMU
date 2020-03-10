@@ -38,5 +38,5 @@ static inline make_EHelper(branch) {
   assert(type != 2 && type != 3);
   rtl_jrelop(s, branch_map[type].relop, dsrc1, dsrc2, s->jmp_pc);
 
-  print_asm("b%s %s,%s,%s", branch_map[type].name, id_src->str, id_src2->str, id_dest->str);
+  print_asm("b%s %s,%s,%s", branch_map[type].name, id_src1->str, id_src2->str, id_dest->str);
 }
