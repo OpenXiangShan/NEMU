@@ -107,4 +107,6 @@ struct ISADecodeInfo {
   } instr;
 };
 
+#define isa_vaddr_check(vaddr, type, len) (cpu.satp.mode ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+
 #endif

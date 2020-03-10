@@ -75,4 +75,6 @@ struct ISADecodeInfo {
   } instr;
 };
 
+#define isa_vaddr_check(vaddr, type, len) ((vaddr & 0x80000000u) == 0 ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+
 #endif

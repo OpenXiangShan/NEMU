@@ -21,12 +21,14 @@ static IOMap pmem_map = {
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
+#ifndef DIFF_TEST
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
   for (i = 0; i < PMEM_SIZE / sizeof(p[0]); i ++) {
     p[i] = rand();
   }
+#endif
 }
 
 /* Memory accessing interfaces */

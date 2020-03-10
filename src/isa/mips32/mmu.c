@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
 #include "local-include/intr.h"
 #include <stdlib.h>
 #include <time.h>
@@ -66,9 +67,7 @@ void tlbp() {
   cpu.index = 0x80000000;
 }
 
-extern void longjmp_raise_intr(uint32_t NO);
-
-static inline int32_t search_ppn(vaddr_t addr, bool write) {
+static inline int32_t search_ppn(vaddr_t addr, int type) {
   union {
     struct {
       uint32_t offset :12;
@@ -84,7 +83,7 @@ static inline int32_t search_ppn(vaddr_t addr, bool write) {
       if (!tlb[i].lo[a.lo_idx].V) {
         cpu.entryhi.VPN2 = a.vpn;
 //        Log("tlb[%d] invalid at cpu.pc = 0x%08x, badaddr = 0x%08x", i, cpu.pc, addr);
-        cpu.mem_exception = (write ? EX_TLB_ST : EX_TLB_LD);
+        cpu.mem_exception = (type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD);
         return -1;
       }
       //Assert(tlb[i].lo[a.lo_idx].V, "cpu.pc = 0x%08x, addr = 0x%08x, lo0 = 0x%08x, lo1 = 0x%08x",
@@ -94,34 +93,12 @@ static inline int32_t search_ppn(vaddr_t addr, bool write) {
   }
   cpu.entryhi.VPN2 = a.vpn;
 //  Log("tlb refill at cpu.pc = 0x%08x, badaddr = 0x%08x", cpu.pc, addr);
-  cpu.mem_exception = TLB_REFILL | (write ? EX_TLB_ST : EX_TLB_LD);
+  cpu.mem_exception = TLB_REFILL | (type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD);
   return -1;
 }
 
-static inline bool va2pa(vaddr_t vaddr, paddr_t *paddr, bool write) {
-  if ((vaddr & 0x80000000u) == 0) {
-    int32_t ppn = search_ppn(vaddr, write);
-    if (ppn == -1) return false;
-    *paddr = (vaddr & 0xfff) | (ppn << 12);
-  } else {
-    *paddr = vaddr;
-  }
-
-  return true;
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+  int32_t ppn = search_ppn(vaddr, type);
+  if (ppn == -1) return MEM_RET_FAIL;
+  return ((uint32_t)ppn << 12) | MEM_RET_OK;
 }
-
-#define make_isa_vaddr_template(bits) \
-uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
-  paddr_t paddr; \
-  if (!va2pa(addr, &paddr, false)) return 0; \
-  return concat(paddr_read, bits)(paddr); \
-} \
-void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
-  paddr_t paddr; \
-  if (!va2pa(addr, &paddr, true)) return; \
-  concat(paddr_write, bits)(paddr, data); \
-}
-
-make_isa_vaddr_template(8)
-make_isa_vaddr_template(16)
-make_isa_vaddr_template(32)

@@ -46,6 +46,5 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
-  paddr_t paddr = ptw(vaddr, type); // | (vaddr & PAGE_MASK);
-  return paddr | MEM_RET_OK;
+  return ptw(vaddr, type) | MEM_RET_OK;
 }
