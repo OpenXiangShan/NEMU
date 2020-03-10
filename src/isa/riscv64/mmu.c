@@ -37,11 +37,12 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
 }
 
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
-  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
-  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || cpu.fetching)));
-  if (cpu.fetching) {
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
+  if (ifetch) {
     if (!(ok && pte->x)) {
       assert(!cpu.amo);
       stval->val = vaddr;
@@ -113,12 +114,13 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 }
 
 int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
-  if ((!cpu.fetching) && (vaddr & (len - 1)) != 0) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  if ((!ifetch) && (vaddr & (len - 1)) != 0) {
     mtval->val = vaddr;
     cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
     return MEM_RET_FAIL;
   }
-  uint32_t mode = (mstatus->mprv && (!cpu.fetching) ? mstatus->mpp : cpu.mode);
+  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8) return MEM_RET_NEED_TRANSLATE;

@@ -20,7 +20,6 @@ typedef struct {
 
   uint8_t mode;
 
-  bool fetching;
   bool amo;
   int mem_exception;
 
