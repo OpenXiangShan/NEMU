@@ -3,20 +3,11 @@
 
 #include <common.h>
 
-uint8_t  vaddr_ifetch8 (vaddr_t addr);
-uint16_t vaddr_ifetch16(vaddr_t addr);
-uint32_t vaddr_ifetch32(vaddr_t addr);
-uint64_t vaddr_ifetch64(vaddr_t addr);
-uint8_t  vaddr_read8 (vaddr_t addr);
-uint16_t vaddr_read16(vaddr_t addr);
-uint32_t vaddr_read32(vaddr_t addr);
-uint64_t vaddr_read64(vaddr_t addr);
-void vaddr_write8 (vaddr_t addr, uint8_t  data);
-void vaddr_write16(vaddr_t addr, uint16_t data);
-void vaddr_write32(vaddr_t addr, uint32_t data);
-void vaddr_write64(vaddr_t addr, uint64_t data);
-
 static inline uint64_t vaddr_ifetch(vaddr_t addr, int len) {
+  uint8_t  vaddr_ifetch8 (vaddr_t addr);
+  uint16_t vaddr_ifetch16(vaddr_t addr);
+  uint32_t vaddr_ifetch32(vaddr_t addr);
+  uint64_t vaddr_ifetch64(vaddr_t addr);
   switch (len) {
     case 1: return vaddr_ifetch8 (addr);
     case 2: return vaddr_ifetch16(addr);
@@ -29,6 +20,10 @@ static inline uint64_t vaddr_ifetch(vaddr_t addr, int len) {
 }
 
 static inline uint64_t vaddr_read(vaddr_t addr, int len) {
+  uint8_t  vaddr_read8 (vaddr_t addr);
+  uint16_t vaddr_read16(vaddr_t addr);
+  uint32_t vaddr_read32(vaddr_t addr);
+  uint64_t vaddr_read64(vaddr_t addr);
   switch (len) {
     case 1: return vaddr_read8 (addr);
     case 2: return vaddr_read16(addr);
@@ -41,6 +36,10 @@ static inline uint64_t vaddr_read(vaddr_t addr, int len) {
 }
 
 static inline void vaddr_write(vaddr_t addr, uint64_t data, int len) {
+  void vaddr_write8 (vaddr_t addr, uint8_t  data);
+  void vaddr_write16(vaddr_t addr, uint16_t data);
+  void vaddr_write32(vaddr_t addr, uint32_t data);
+  void vaddr_write64(vaddr_t addr, uint64_t data);
   switch (len) {
     case 1: vaddr_write8 (addr, data); break;
     case 2: vaddr_write16(addr, data); break;

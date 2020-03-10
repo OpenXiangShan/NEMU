@@ -9,6 +9,7 @@ void init_mem();
 void init_regex();
 void init_wp_pool();
 void init_device();
+void init_engine();
 void init_difftest(char *ref_so_file, long img_size, int port);
 
 static char *log_file = NULL;
@@ -112,6 +113,9 @@ int init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   init_device();
+
+  /* Initialize engine. */
+  init_engine();
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);

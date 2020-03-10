@@ -45,6 +45,9 @@ void concat(paddr_write, bits) (paddr_t addr, uint_type(bits) data) { \
     paddr_t offset = addr - pmem_map.low; \
     *(uint_type(bits) *)(pmem + offset) = data; \
   } else return map_write(addr, data, bits / 8, fetch_mmio_map(addr)); \
+} \
+uint_type(bits) concat(paddr_ifetch, bits)(paddr_t addr) { \
+  return paddr_read(addr, bits / 8); \
 }
 
 make_paddr_access_template(8)
