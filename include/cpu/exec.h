@@ -8,7 +8,7 @@
 #define make_EHelper(name) void concat(exec_, name) (DecodeExecState *s)
 
 static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
-  uint32_t instr = vaddr_read(*pc, len);
+  uint32_t instr = vaddr_ifetch(*pc, len);
 #ifdef DEBUG
   uint8_t *p_instr = (void *)&instr;
   int i;

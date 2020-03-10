@@ -1,5 +1,6 @@
 #include <monitor/monitor.h>
-#include <memory/memory.h>
+#include <memory/vaddr.h>
+#include <memory/paddr.h>
 
 #include <fcntl.h>
 #include <errno.h>

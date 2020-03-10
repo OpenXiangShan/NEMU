@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
 #include <device/map.h>
 #include <stdlib.h>
 #include <time.h>
@@ -20,12 +21,14 @@ static IOMap pmem_map = {
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
+#ifndef DIFF_TEST
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
   for (i = 0; i < PMEM_SIZE / sizeof(p[0]); i ++) {
     p[i] = rand();
   }
+#endif
 }
 
 /* Memory accessing interfaces */
@@ -42,6 +45,9 @@ void concat(paddr_write, bits) (paddr_t addr, uint_type(bits) data) { \
     paddr_t offset = addr - pmem_map.low; \
     *(uint_type(bits) *)(pmem + offset) = data; \
   } else return map_write(addr, data, bits / 8, fetch_mmio_map(addr)); \
+} \
+uint_type(bits) concat(paddr_ifetch, bits)(paddr_t addr) { \
+  return paddr_read(addr, bits / 8); \
 }
 
 make_paddr_access_template(8)

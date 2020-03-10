@@ -1,6 +1,6 @@
 #include <device/map.h>
 
-#define NR_MAP 8
+#define NR_MAP 16
 
 static IOMap maps[NR_MAP] = {};
 static int nr_map = 0;

@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
 
 /* the 32bit Page Table Entry(second level page table) data structure */
 typedef union PageTableEntry {
@@ -27,7 +28,7 @@ typedef union {
   uint32_t addr;
 } PageAddr;
 
-static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
+static paddr_t ptw(vaddr_t vaddr, int type) {
   PageAddr *addr = (void *)&vaddr;
   paddr_t pdir_base = cpu.satp.ppn << 12;
 
@@ -44,6 +45,7 @@ static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
     panic("pc = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.pc, vaddr, pt_base, pte.val);
   }
 
+  bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.access || (pte.dirty == 0 && is_write)) {
     pte.access = 1;
     pte.dirty |= is_write;
@@ -53,20 +55,6 @@ static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
   return pte.ppn << 12;
 }
 
-static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
-  return page_walk(addr, is_write) | (addr & PAGE_MASK);
+paddr_t isa_mmu_translate(vaddr_t addr, int type, int len) {
+  return ptw(addr, type) | MEM_RET_OK;
 }
-
-#define make_isa_vaddr_template(bits) \
-uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
-  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, false) : addr); \
-  return concat(paddr_read, bits)(paddr); \
-} \
-void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
-  paddr_t paddr = (cpu.satp.mode ? page_translate(addr, true) : addr); \
-  concat(paddr_write, bits)(paddr, data); \
-}
-
-make_isa_vaddr_template(8)
-make_isa_vaddr_template(16)
-make_isa_vaddr_template(32)

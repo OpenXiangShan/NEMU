@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/vaddr.h>
+#include <memory/paddr.h>
 #include "local-include/mmu.h"
 
 typedef union {
@@ -11,7 +12,7 @@ typedef union {
   uint32_t addr;
 } PageAddr;
 
-static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
+static inline paddr_t ptw(vaddr_t vaddr, int type) {
   PageAddr *addr = (void *)&vaddr;
   paddr_t pdir_base = cpu.cr3.val & ~PAGE_MASK;
 
@@ -32,6 +33,7 @@ static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
     pde.accessed = 1;
     paddr_write(pdir_base + addr->pdir_idx * 4,  pde.val, 4);
   }
+  bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.accessed || (pte.dirty == 0 && is_write)) {
     pte.accessed = 1;
     pte.dirty |= is_write;
@@ -41,51 +43,8 @@ static paddr_t page_walk(vaddr_t vaddr, bool is_write) {
   return pte.val & ~PAGE_MASK;
 }
 
-static inline paddr_t page_translate(vaddr_t addr, bool is_write) {
-  return page_walk(addr, is_write) | (addr & PAGE_MASK);
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+  bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
+  if (is_cross_page) return MEM_RET_CROSS_PAGE;
+  return ptw(vaddr, type) | MEM_RET_OK;
 }
-
-#define make_isa_vaddr_template(bits) \
-uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
-  paddr_t paddr = addr; \
-  if (cpu.cr0.paging) { \
-    paddr = page_translate(addr, false); \
-    bool is_cross_page = ((addr & PAGE_MASK) + bits / 8) > PAGE_SIZE; \
-    if (is_cross_page) { \
-      uint_type(bits) data = 0; \
-      int i = 0; \
-      while (true) { \
-        data |= paddr_read8(paddr) << (i << 3); \
-        i ++; \
-        if (i == bits / 8) break; \
-        addr ++; \
-        paddr = page_translate(addr, false); \
-      } \
-      return data; \
-    } \
-  } \
-  return concat(paddr_read, bits)(paddr); \
-} \
-void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
-  paddr_t paddr = addr; \
-  if (cpu.cr0.paging) { \
-    paddr = page_translate(addr, false); \
-    bool is_cross_page = ((addr & PAGE_MASK) + bits / 8) > PAGE_SIZE; \
-    if (is_cross_page) { \
-      int i = 0; \
-      while (true) { \
-        paddr_write8(paddr, data & 0xff); \
-        i ++; \
-        if (i == bits / 8) break; \
-        addr ++; \
-        paddr = page_translate(addr, false); \
-      } \
-      return; \
-    } \
-  } \
-  concat(paddr_write, bits)(paddr, data); \
-}
-
-make_isa_vaddr_template(8)
-make_isa_vaddr_template(16)
-make_isa_vaddr_template(32)

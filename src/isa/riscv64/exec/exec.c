@@ -157,18 +157,13 @@ static inline make_EHelper(misc_alu) {
 }
 
 static inline void exec(DecodeExecState *s) {
-  cpu.fetching = true;
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
-    if (cpu.mem_exception != MEM_OK) {
-      cpu.fetching = false;
-      return;
-    }
+    check_mem_ex();
     s->isa.instr.val = lo & 0xffff;
     if (s->isa.instr.r.opcode1_0 != 0x3) {
       // this is an RVC instruction
-      cpu.fetching = false;
       goto rvc;
     }
     // this is a 4-byte instruction, should fetch the MSB part
@@ -182,7 +177,6 @@ static inline void exec(DecodeExecState *s) {
     // see whether it is an RVC instruction later
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
   }
-  cpu.fetching = false;
 
   check_mem_ex();
 

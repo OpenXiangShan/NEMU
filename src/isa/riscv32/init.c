@@ -1,5 +1,5 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/paddr.h>
 
 static const uint32_t img [] = {
   0x800002b7,  // lui t0,0x80000

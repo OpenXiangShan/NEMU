@@ -1,5 +1,6 @@
 #include <isa.h>
-#include <memory/memory.h>
+#include <memory/vaddr.h>
+#include <memory/paddr.h>
 #include "local-include/csr.h"
 #include "local-include/intr.h"
 
@@ -35,19 +36,20 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_write) {
-  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
+static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
-  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || cpu.fetching)));
-  if (cpu.fetching) {
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
+  if (ifetch) {
     if (!(ok && pte->x)) {
       assert(!cpu.amo);
       stval->val = vaddr;
       cpu.mem_exception = EX_IPF;
       return false;
     }
-  } else if (!is_write) {
+  } else if (type == MEM_TYPE_READ) {
     bool can_load = pte->r || (mstatus->mxr && pte->x);
     if (!(ok && can_load)) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
@@ -58,7 +60,6 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_wr
     }
   } else {
     if (!(ok && pte->w)) {
-      if (cpu.amo) cpu.amo = false;
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_SPF;
@@ -68,7 +69,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, bool is_wr
   return true;
 }
 
-static bool page_walk(vaddr_t vaddr, paddr_t *paddr, bool is_write) {
+static paddr_t ptw(vaddr_t vaddr, int type) {
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -86,71 +87,47 @@ static bool page_walk(vaddr_t vaddr, paddr_t *paddr, bool is_write) {
     if (pte.r || pte.x) { break; }
     else {
       level --;
-      if (level < 0) { if (!check_permission(&pte, false, vaddr, is_write)) return false; }
+      if (level < 0) { if (!check_permission(&pte, false, vaddr, type)) return MEM_RET_FAIL; }
     }
   }
 
-  if (!check_permission(&pte, true, vaddr, is_write)) return false;
+  if (!check_permission(&pte, true, vaddr, type)) return MEM_RET_FAIL;
 
   if (level > 0) {
     // superpage
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
-      if (!check_permission(&pte, false, vaddr, is_write)) return false;
+      if (!check_permission(&pte, false, vaddr, type)) return MEM_RET_FAIL;
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
 
+  bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
     paddr_write(p_pte, pte.val, PTE_SIZE);
   }
 
-  *paddr = pg_base;
-  return true;
+  return pg_base | MEM_RET_OK;
 }
 
-static inline bool page_translate(vaddr_t vaddr, paddr_t *paddr, bool is_write) {
-  uint32_t mode = (mstatus->mprv && !cpu.fetching ? mstatus->mpp : cpu.mode);
+int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  if ((!ifetch) && (vaddr & (len - 1)) != 0) {
+    mtval->val = vaddr;
+    cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+    return MEM_RET_FAIL;
+  }
+  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) {
-      if (!page_walk(vaddr, paddr, is_write)) return false;
-      *paddr |= (vaddr & PAGE_MASK);
-      return true;
-    }
+    if (satp->mode == 8) return MEM_RET_NEED_TRANSLATE;
   }
-  *paddr = vaddr;
-  return true;
+  return MEM_RET_OK;
 }
 
-#define make_isa_vaddr_template(bits) \
-uint_type(bits) concat(isa_vaddr_read, bits) (vaddr_t addr) { \
-  if (!cpu.fetching) { \
-    if ((addr & (bits / 8 - 1)) != 0) { \
-      mtval->val = addr; \
-      cpu.mem_exception = (cpu.amo ? EX_SAM : EX_LAM); \
-      return 0; \
-    } \
-  } \
-  paddr_t paddr; \
-  if (!page_translate(addr, &paddr, false)) return 0; \
-  return concat(paddr_read, bits)(paddr); \
-} \
-void concat(isa_vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
-  if ((addr & (bits / 8 - 1)) != 0) { \
-    mtval->val = addr; \
-    cpu.mem_exception = EX_SAM; \
-    return; \
-  } \
-  paddr_t paddr; \
-  if (!page_translate(addr, &paddr, true)) return; \
-  concat(paddr_write, bits)(paddr, data); \
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+  return ptw(vaddr, type);
 }
- 
-make_isa_vaddr_template(8)
-make_isa_vaddr_template(16)
-make_isa_vaddr_template(32)
-make_isa_vaddr_template(64)

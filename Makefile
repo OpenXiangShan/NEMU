@@ -3,14 +3,21 @@ NAME = nemu
 ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
 ISA ?= x86
 ISAS = $(shell ls src/isa/)
-$(info Building $(ISA)-$(NAME))
-
 ifeq ($(filter $(ISAS), $(ISA)), ) # ISA must be valid
 $(error Invalid ISA. Supported: $(ISAS))
 endif
+
+ENGINE ?= interpreter
+ENGINES = $(shell ls src/engine/)
+ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
+$(error Invalid ENGINE. Supported: $(ENGINES))
 endif
 
-INC_DIR += ./include
+$(info Building $(ISA)-$(NAME)-$(ENGINE))
+
+endif
+
+INC_DIR += ./include ./src/engine/$(ENGINE)
 BUILD_DIR ?= ./build
 
 ifdef SHARE
@@ -19,8 +26,8 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
-OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)$(SO)
-BINARY ?= $(BUILD_DIR)/$(ISA)-$(NAME)$(SO)
+OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)-$(ENGINE)$(SO)
+BINARY ?= $(BUILD_DIR)/$(ISA)-$(NAME)-$(ENGINE)$(SO)
 
 include Makefile.git
 
@@ -40,8 +47,9 @@ $(QEMU_SO):
 	$(MAKE) -C $(QEMU_DIFF_PATH)
 
 # Files to be compiled
-SRCS = $(shell find src/ -name "*.c" | grep -v "isa")
+SRCS = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
 SRCS += $(shell find src/isa/$(ISA) -name "*.c")
+SRCS += $(shell find src/engine/$(ENGINE) -name "*.c")
 OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
 
 # Compilation patterns
