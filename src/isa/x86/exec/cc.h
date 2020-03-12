@@ -44,7 +44,8 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint8_t subcode
   if (invert) {
     rtl_xori(s, dest, dest, 0x1);
   }
-  assert(*dest == 0 || *dest == 1);
+  // we can not do runtime checking in JIT for SDI
+  //assert(*dest == 0 || *dest == 1);
 }
 
 #endif
