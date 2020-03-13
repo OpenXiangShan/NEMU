@@ -29,8 +29,28 @@ vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr) {
     // if it is the case, we may trigger exception during the execution above
     rv64_exec(1);
     rv64_getregs(&r);
-    assert(r.pc != 0x28c);
   }
 
   return r.gpr[30]._64;
+}
+
+void rv64_guest_getregs(void *cpu) {
+  CPU_state r;
+  rv64_getregs(&r);
+  uint32_t *x86 = cpu;
+  int i;
+  for (i = 0; i < 8; i ++) {
+    x86[i] = r.gpr[i + 0x10]._64;
+  }
+}
+
+void rv64_guest_setregs(void *cpu) {
+  CPU_state r;
+  rv64_getregs(&r);
+  uint32_t *x86 = cpu;
+  int i;
+  for (i = 0; i < 8; i ++) {
+    r.gpr[i + 0x10]._64 = x86[i];
+  }
+  rv64_setregs(&r);
 }
