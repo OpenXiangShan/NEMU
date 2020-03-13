@@ -11,10 +11,10 @@
 
 typedef struct {
   union {
-    rtlreg_t _64;
+    uint64_t _64;
   } gpr[32];
 
-  vaddr_t pc;
+  uint64_t pc;
   vaddr_t mstatus, mcause, mepc;
   vaddr_t sstatus, scause, sepc;
 
