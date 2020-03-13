@@ -3,14 +3,20 @@
 
 #include <common.h>
 
+#ifdef ISA64
+#define c_shift_mask 0x3f
+#else
+#define c_shift_mask 0x1f
+#endif
+
 #define c_add(a, b) ((a) + (b))
 #define c_sub(a, b) ((a) - (b))
 #define c_and(a, b) ((a) & (b))
 #define c_or(a, b)  ((a) | (b))
 #define c_xor(a, b) ((a) ^ (b))
-#define c_shl(a, b) ((a) << (b))
-#define c_shr(a, b) ((a) >> (b))
-#define c_sar(a, b) ((sword_t)(a) >> (b))
+#define c_shl(a, b) ((a) << (b & c_shift_mask))
+#define c_shr(a, b) ((a) >> (b & c_shift_mask))
+#define c_sar(a, b) ((sword_t)(a) >> (b & c_shift_mask))
 
 #define c_mul_lo(a, b) ((a) * (b))
 #define c_imul_lo(a, b) ((sword_t)(a) * (sword_t)(b))
