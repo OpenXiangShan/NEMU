@@ -6,6 +6,11 @@ void rv64_relop(DecodeExecState *s, uint32_t relop,
 uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
 extern int tran_is_jmp;
 
+static inline void rv64_zextw(uint8_t rd, uint8_t rs) {
+  // x24 is set during initialization
+  rv64_and(rd, rs, x24);
+}
+
 /* RTL basic instructions */
 
 make_rtl(li, rtlreg_t* dest, rtlreg_t imm) {
@@ -71,10 +76,8 @@ make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint8_t idx_dest = reg_ptr2idx(s, dest);
   uint8_t idx_src1 = reg_ptr2idx(s, src1);
   uint8_t idx_src2 = reg_ptr2idx(s, src2);
-  rv64_slli(x30, idx_src1, 32);
-  rv64_srli(x30, x30, 32);
-  rv64_slli(x31, idx_src2, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x30, idx_src1);
+  rv64_zextw(x31, idx_src2);
   rv64_mul(idx_dest, x30, x31);
   rv64_srai(idx_dest, idx_dest, 32);
 }
@@ -96,11 +99,9 @@ make_rtl(div64_q, rtlreg_t* dest,
   uint8_t idx_src2 = reg_ptr2idx(s, src2);
 
   rv64_slli(x30, idx_src1_hi, 32);
-  rv64_slli(x31, idx_src1_lo, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_src1_lo);
   rv64_or(x30, x30, x31);
-  rv64_slli(x31, idx_src2, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_src2);
   rv64_divu(idx_dest, x30, x31);
 }
 
@@ -112,11 +113,9 @@ make_rtl(div64_r, rtlreg_t* dest,
   uint8_t idx_src2 = reg_ptr2idx(s, src2);
 
   rv64_slli(x30, idx_src1_hi, 32);
-  rv64_slli(x31, idx_src1_lo, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_src1_lo);
   rv64_or(x30, x30, x31);
-  rv64_slli(x31, idx_src2, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_src2);
   rv64_remu(idx_dest, x30, x31);
 }
 
@@ -128,8 +127,7 @@ make_rtl(idiv64_q, rtlreg_t* dest,
   uint8_t idx_src2 = reg_ptr2idx(s, src2);
 
   rv64_slli(x30, idx_src1_hi, 32);
-  rv64_slli(x31, idx_src1_lo, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_src1_lo);
   rv64_or(x30, x30, x31);
   rv64_div(idx_dest, x30, idx_src2);
 }
@@ -142,8 +140,7 @@ make_rtl(idiv64_r, rtlreg_t* dest,
   uint8_t idx_src2 = reg_ptr2idx(s, src2);
 
   rv64_slli(x30, idx_src1_hi, 32);
-  rv64_slli(x31, idx_src1_lo, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_src1_lo);
   rv64_or(x30, x30, x31);
   rv64_rem(idx_dest, x30, idx_src2);
 }
@@ -151,8 +148,7 @@ make_rtl(idiv64_r, rtlreg_t* dest,
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, int len) {
   uint8_t idx_dest = reg_ptr2idx(s, dest);
   uint8_t idx_addr = reg_ptr2idx(s, addr);
-  rv64_slli(x31, idx_addr, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_addr);
   switch (len) {
     case 1: rv64_lbu(idx_dest, x31, 0); break;
     case 2: rv64_lhu(idx_dest, x31, 0); break;
@@ -165,8 +161,7 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, int len) {
 make_rtl(sm, const rtlreg_t* addr, const rtlreg_t* src1, int len) {
   uint8_t idx_addr = reg_ptr2idx(s, addr);
   uint8_t idx_src1 = reg_ptr2idx(s, src1);
-  rv64_slli(x31, idx_addr, 32);
-  rv64_srli(x31, x31, 32);
+  rv64_zextw(x31, idx_addr);
   switch (len) {
     case 1: rv64_sb(x31, idx_src1, 0); break;
     case 2: rv64_sh(x31, idx_src1, 0); break;
@@ -185,12 +180,15 @@ make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   switch (len) {
     case 1: ;
       int is_high = (uintptr_t)addr & 1;
-      rv64_slli(idx_dest, idx_r, (is_high ? 48 : 56));
-      rv64_srli(idx_dest, idx_dest, 56);
+      if (is_high) {
+        rv64_srli(idx_dest, idx_r, 8);
+        rv64_andi(idx_dest, idx_dest, 0xff);
+      } else {
+        rv64_andi(idx_dest, idx_r, 0xff);
+      }
       return;
     case 2:
-      rv64_slli(idx_dest, idx_r, 48);
-      rv64_srli(idx_dest, idx_dest, 48);
+      rv64_and(idx_dest, idx_r, x25); // x25 is set during initialization
       return;
     default: assert(0);
   }

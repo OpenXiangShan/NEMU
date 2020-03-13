@@ -54,3 +54,11 @@ void rv64_guest_setregs(void *cpu) {
   }
   rv64_setregs(&r);
 }
+
+void init_rv64_reg() {
+  CPU_state r;
+  rv64_getregs(&r);
+  r.gpr[24]._64 = 0x00000000fffffffful;
+  r.gpr[25]._64 = 0x000000000000fffful;
+  rv64_setregs(&r);
+}

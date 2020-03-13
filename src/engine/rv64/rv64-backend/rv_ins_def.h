@@ -165,7 +165,7 @@ static inline void gen_rv64_CSR_inst(uint8_t opcode, uint8_t rd,
   write_ins(ins.val);
 }
 
-enum { x0 = 0, x29 = 29, x30, x31 };
+enum { x0 = 0, x24 = 24, x25, x26, x27, x28, x29, x30, x31 };
 
 // RV64I
 #define rv64_lui(rd, imm)            gen_rv64_U_inst(0b0110111, rd, imm)
