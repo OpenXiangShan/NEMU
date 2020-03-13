@@ -96,36 +96,32 @@ static inline make_EHelper(not) {
 
 static inline make_EHelper(shld) {
   rtl_andi(s, dsrc1, dsrc1, 31);
-  if (*dsrc1 != 0) {
-    rtl_shl(s, s0, ddest, dsrc1);
+  rtl_shl(s, s0, ddest, dsrc1);
 
-    rtl_li(s, s1, 32);
-    rtl_sub(s, s1, s1, dsrc1);
-    rtl_shr(s, s1, dsrc2, s1);
+  rtl_li(s, s1, 32);
+  rtl_sub(s, s1, s1, dsrc1);
+  rtl_shr(s, s1, dsrc2, s1);
 
-    rtl_or(s, s0, s0, s1);
+  rtl_or(s, s0, s0, s1);
 
-    operand_write(s, id_dest, s0);
-    rtl_update_ZFSF(s, s0, id_dest->width);
-    // unnecessary to update CF and OF in NEMU
-  }
+  operand_write(s, id_dest, s0);
+  rtl_update_ZFSF(s, s0, id_dest->width);
+  // unnecessary to update CF and OF in NEMU
   print_asm_template3(shld);
 }
 
 static inline make_EHelper(shrd) {
   rtl_andi(s, dsrc1, dsrc1, 31);
-  if (*dsrc1 != 0) {
-    rtl_shr(s, s0, ddest, dsrc1);
+  rtl_shr(s, s0, ddest, dsrc1);
 
-    rtl_li(s, s1, 32);
-    rtl_sub(s, s1, s1, dsrc1);
-    rtl_shl(s, s1, dsrc2, s1);
+  rtl_li(s, s1, 32);
+  rtl_sub(s, s1, s1, dsrc1);
+  rtl_shl(s, s1, dsrc2, s1);
 
-    rtl_or(s, s0, s0, s1);
+  rtl_or(s, s0, s0, s1);
 
-    operand_write(s, id_dest, s0);
-    rtl_update_ZFSF(s, s0, id_dest->width);
-    // unnecessary to update CF and OF in NEMU
-  }
+  operand_write(s, id_dest, s0);
+  rtl_update_ZFSF(s, s0, id_dest->width);
+  // unnecessary to update CF and OF in NEMU
   print_asm_template3(shrd);
 }
