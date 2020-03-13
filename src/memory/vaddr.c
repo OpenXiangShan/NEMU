@@ -50,7 +50,7 @@ uint_type(bits) concat3(vaddr_, name, bits) (vaddr_t addr) { \
   make_vaddr_read_template(bits, ifetch, MEM_TYPE_IFETCH) \
   make_vaddr_read_template(bits, read, MEM_TYPE_READ) \
 void concat(vaddr_write, bits) (vaddr_t addr, uint_type(bits) data) { \
-  int ret = isa_vaddr_check(addr, MEM_TYPE_READ, bits / 8); \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_WRITE, bits / 8); \
   if (ret == MEM_RET_OK) { \
     paddr_write(addr, data, bits / 8); \
   } else if (ret == MEM_RET_NEED_TRANSLATE) { \
