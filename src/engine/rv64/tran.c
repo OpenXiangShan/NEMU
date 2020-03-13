@@ -11,7 +11,7 @@ int tran_is_jmp = false;
 
 static void clear_trans_buffer() { trans_buffer_index = 0; }
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
-vaddr_t rv64_exec_code(void *code, int nr_instr);
+vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr);
 
 void write_ins(uint32_t ins) {
   assert(trans_buffer_index < BUF_SIZE);
@@ -30,7 +30,7 @@ void mainloop() {
 
     if (nemu_state.state != NEMU_RUNNING) break;
     if (tran_is_jmp) {
-      vaddr_t next_pc = rv64_exec_code(trans_buffer, trans_buffer_index);
+      vaddr_t next_pc = rv64_exec_trans_buffer(trans_buffer, trans_buffer_index);
       cpu.pc = next_pc;
       //Log("new basic block pc = %x", cpu.pc);
       clear_trans_buffer();
