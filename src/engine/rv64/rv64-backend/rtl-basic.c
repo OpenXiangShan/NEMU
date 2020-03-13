@@ -10,18 +10,20 @@ extern int tran_is_jmp;
 
 make_rtl(li, rtlreg_t* dest, rtlreg_t imm) {
   uint8_t idx = reg_ptr2idx(s, dest);
-  RV_IMM rv_imm;
-  rv_imm.val = imm;
-  rv64_lui(idx, rv_imm.imm_31_12);
-  rv64_lui(x31, rv_imm.imm_11_0);
-  rv64_srliw(x31, x31, 12);
-  rv64_or(idx, idx, x31);
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  if (lui_imm == 0) {
+    rv64_addiw(idx, x0, rv_imm.imm_11_0);
+  } else {
+    rv64_lui(idx, lui_imm);
+    rv64_addiw(idx, idx, rv_imm.imm_11_0);
+  }
 }
 
 make_rtl(mv, rtlreg_t* dest, const rtlreg_t *src1) {
   uint8_t idx_dest = reg_ptr2idx(s, dest);
   uint8_t idx_src1 = reg_ptr2idx(s, src1);
-  rv64_addiw(idx_dest, idx_src1, 0);
+  if (dest != src1) rv64_addiw(idx_dest, idx_src1, 0);
 }
 
 #define rv64_shlw rv64_sllw
