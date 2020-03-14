@@ -11,6 +11,7 @@ void (*rv64_setregs)(const void *c) = NULL;
 void (*rv64_exec)(uint64_t n) = NULL;
 void rv64_exec_code(uint64_t pc, int nr_instr);
 void rv64_guest_setregs(void *cpu);
+void init_rv64_reg();
 
 static void init_rv64_interpreter() {
   char so_file[256];
@@ -75,4 +76,5 @@ void init_engine() {
   // execute enough instructions to set mtvec in bbl
   rv64_exec_code(0, 100);
   rv64_guest_setregs(&cpu);
+  init_rv64_reg();
 }
