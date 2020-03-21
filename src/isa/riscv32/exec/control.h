@@ -1,7 +1,7 @@
 #include <monitor/difftest.h>
 
 static inline make_EHelper(jal) {
-  rtl_addi(s, s0, &cpu.pc, 4);
+  rtl_li(s, s0, s->seq_pc);
   rtl_sr(s, id_dest->reg, s0, 4);
   rtl_j(s, s->jmp_pc);
 
@@ -9,7 +9,7 @@ static inline make_EHelper(jal) {
 }
 
 static inline make_EHelper(jalr) {
-  rtl_addi(s, s0, &cpu.pc, 4);
+  rtl_li(s, s0, s->seq_pc);
   rtl_sr(s, id_dest->reg, s0, 4);
 
   rtl_addi(s, s0, dsrc1, id_src2->imm);
