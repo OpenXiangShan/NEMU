@@ -14,7 +14,7 @@ static inline rtlreg_t* csr_decode(uint32_t csr) {
 }
 
 static inline make_EHelper(csrrw) {
-  rtlreg_t *csr = csr_decode(id_src2->val);
+  rtlreg_t *csr = csr_decode(id_src2->imm);
 
   rtl_sr(s, id_dest->reg, csr, 4);
   rtl_mv(s, csr, dsrc1);
@@ -23,7 +23,7 @@ static inline make_EHelper(csrrw) {
 }
 
 static inline make_EHelper(csrrs) {
-  rtlreg_t *csr = csr_decode(id_src2->val);
+  rtlreg_t *csr = csr_decode(id_src2->imm);
 
   rtl_sr(s, id_dest->reg, csr, 4);
   rtl_or(s, csr, csr, dsrc1);
