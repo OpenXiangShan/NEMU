@@ -22,6 +22,7 @@ void write_ins(uint32_t ins) {
 
 void mainloop() {
   nemu_state.state = NEMU_RUNNING;
+  uint64_t total_instr = 0;
   while (1) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
     __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
@@ -34,6 +35,7 @@ void mainloop() {
     if (tran_is_jmp) {
 #endif
       vaddr_t next_pc = rv64_exec_trans_buffer(trans_buffer, trans_buffer_index);
+      total_instr += trans_buffer_index;
       if (tran_is_jmp) cpu.pc = next_pc;
     //  Log("new basic block pc = %x", cpu.pc);
       clear_trans_buffer();
@@ -61,4 +63,6 @@ void mainloop() {
           nemu_state.halt_pc);
       if (nemu_state.state == NEMU_ABORT) abort();
   }
+
+  Log("#(rv64 instr) = %ld\n", total_instr);
 }
