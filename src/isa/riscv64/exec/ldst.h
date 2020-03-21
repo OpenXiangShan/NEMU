@@ -1,7 +1,7 @@
 #include "../local-include/intr.h"
 
 static inline make_EHelper(ld) {
-  rtl_lm(s, s0, &id_src1->addr, s->width);
+  rtl_lm(s, s0, &id_src1->addr, 0, s->width);
   check_mem_ex();
   rtl_sr(s, id_dest->reg, s0, 0);
 
@@ -16,7 +16,7 @@ static inline make_EHelper(ld) {
 
 // load sign value
 static inline make_EHelper(lds) {
-  rtl_lm(s, s0, &id_src1->addr, s->width);
+  rtl_lm(s, s0, &id_src1->addr, 0, s->width);
   check_mem_ex();
   rtl_sext(s, s0, s0, s->width);
   rtl_sr(s, id_dest->reg, s0, 0);
@@ -30,7 +30,7 @@ static inline make_EHelper(lds) {
 }
 
 static inline make_EHelper(st) {
-  rtl_sm(s, &id_src1->addr, ddest, s->width);
+  rtl_sm(s, &id_src1->addr, 0, ddest, s->width);
   check_mem_ex();
 
   switch (s->width) {

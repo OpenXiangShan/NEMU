@@ -89,7 +89,7 @@ static inline make_DopHelper(O) {
   op->type = OP_TYPE_MEM;
   rtl_li(s, &op->addr, instr_fetch(&s->seq_pc, 4));
   if (load_val) {
-    rtl_lm(s, &op->val, &op->addr, op->width);
+    rtl_lm(s, &op->val, &op->addr, 0, op->width);
   }
 
   print_Dop(op->str, OP_STR_SIZE, "0x%x", op->addr);
@@ -306,6 +306,6 @@ static inline make_DHelper(out_a2dx) {
 
 static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src) {
   if (op->type == OP_TYPE_REG) { rtl_sr(s, op->reg, src, op->width); }
-  else if (op->type == OP_TYPE_MEM) { rtl_sm(s, &op->addr, src, op->width); }
+  else if (op->type == OP_TYPE_MEM) { rtl_sm(s, &op->addr, 0, src, op->width); }
   else { assert(0); }
 }
