@@ -193,7 +193,7 @@ enum { x0 = 0, x24 = 24, x25, x26, x27, x28, x29, x30, x31 };
 #define rv64_slti(rd, rs1, imm)      gen_rv64_I_inst(0b0010011, rd, 0b010, rs1, imm)
 #define rv64_sltiu(rd, rs1, imm)     gen_rv64_I_inst(0b0010011, rd, 0b011, rs1, imm)
 #define rv64_xori(rd, rs1, imm)      gen_rv64_I_inst(0b0010011, rd, 0b100, rs1, imm)
-#define rv64_xoi(rd, rs1, imm)       gen_rv64_I_inst(0b0010011, rd, 0b110, rs1, imm)
+#define rv64_ori(rd, rs1, imm)       gen_rv64_I_inst(0b0010011, rd, 0b110, rs1, imm)
 #define rv64_andi(rd, rs1, imm)      gen_rv64_I_inst(0b0010011, rd, 0b111, rs1, imm)
 #define rv64_slli(rd, rs1, shamt)    gen_rv64_R64_inst(0b0010011, rd, 0b001, rs1, shamt, 0b000000)
 #define rv64_srli(rd, rs1, shamt)    gen_rv64_R64_inst(0b0010011, rd, 0b101, rs1, shamt, 0b000000)
