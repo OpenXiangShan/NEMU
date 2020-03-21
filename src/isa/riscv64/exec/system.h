@@ -50,6 +50,43 @@ static inline make_EHelper(csrrc) {
   print_asm_template3("csrrc");
 }
 
+static inline make_EHelper(csrrwi) {
+  uint32_t addr = id_src2->imm;
+  if (!csr_check(s, addr)) return;
+  csr_read(s0, addr);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  rtl_li(s, s1, id_src1->imm);
+  csr_write(addr, s1);
+
+  print_asm_template3("csrrwi");
+}
+
+static inline make_EHelper(csrrsi) {
+  uint32_t addr = id_src2->imm;
+  if (!csr_check(s, addr)) return;
+  csr_read(s0, addr);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  if (id_src1->reg != 0) {
+    rtl_ori(s, s0, s0, id_src1->imm);
+    csr_write(addr, s0);
+  }
+
+  print_asm_template3("csrrsi");
+}
+
+static inline make_EHelper(csrrci) {
+  uint32_t addr = id_src2->imm;
+  if (!csr_check(s, addr)) return;
+  csr_read(s0, addr);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  if (id_src1->reg != 0) {
+    rtl_andi(s, s0, s0, ~id_src1->imm);
+    csr_write(addr, s0);
+  }
+
+  print_asm_template3("csrrci");
+}
+
 static inline make_EHelper(priv) {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {

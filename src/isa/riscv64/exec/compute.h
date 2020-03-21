@@ -87,17 +87,22 @@ static inline make_EHelper(slli) {
   print_asm_template3(slli);
 }
 
+static inline make_EHelper(srai) {
+  rtl_sari(s, s0, dsrc1, id_src2->imm);
+  rtl_sr(s, id_dest->reg, s0, 4);
+  print_asm_template3(srai);
+}
+
 static inline make_EHelper(srli) {
   // the LSB of funct7 may be "1" due to the shift amount can be >= 32
   // this rule is disabled when a compressed inst comes in
   if ((s->isa.instr.r.funct7 & ~0x1) == 32 && s->isa.instr.r.opcode1_0 == 0x3) {
-    rtl_sari(s, s0, dsrc1, id_src2->imm);
-    print_asm_template3(srai);
+    exec_srai(s);
   } else {
     rtl_shri(s, s0, dsrc1, id_src2->imm);
+    rtl_sr(s, id_dest->reg, s0, 4);
     print_asm_template3(srli);
   }
-  rtl_sr(s, id_dest->reg, s0, 4);
 }
 
 static inline make_EHelper(slti) {

@@ -126,6 +126,11 @@ static inline make_DHelper(CI_simm) {
   decode_op_rd_rs1_imm6(s, true, 0, 0, false);
 }
 
+static inline make_DHelper(CI_simm_lui) {
+  decode_CI_simm(s);
+  id_src2->imm <<= 12;
+}
+
 // for shift
 static inline make_DHelper(CI_uimm) {
   decode_op_rd_rs1_imm6(s, false, 0, 0, false);
@@ -150,7 +155,6 @@ static inline make_DHelper(C_ADDI16SP) {
 static inline void decode_C_xxSP(DecodeExecState *s, uint32_t imm6, int rotate) {
   decode_op_r(s, id_src1, 2, true);
   decode_op_C_imm6(s, imm6, false, 0, rotate);
-  rtl_add(s, &id_src1->addr, dsrc1, dsrc2);
 }
 
 static inline void decode_C_LxSP(DecodeExecState *s, int rotate) {
@@ -206,7 +210,6 @@ static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, true);
-  rtl_add(s, &id_src1->addr, dsrc1, dsrc2);
   decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
 }
 
@@ -291,7 +294,9 @@ static inline void decode_C_rs1_rs2_rd(DecodeExecState *s, bool is_rs1_zero, boo
 }
 
 static inline make_DHelper(C_JR) {
-  decode_C_rs1_rs2_rd(s, false, false, true);
+  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
+  decode_op_i(s, id_src2, 0, true);
+  decode_op_r(s, id_dest, 0, false);
 }
 
 static inline make_DHelper(C_MOV) {
@@ -304,6 +309,6 @@ static inline make_DHelper(C_ADD) {
 
 static inline make_DHelper(C_JALR) {
   decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
-  decode_op_r(s, id_src2, 0, true);
+  decode_op_i(s, id_src2, 0, true);
   decode_op_r(s, id_dest, 1, false);
 }
