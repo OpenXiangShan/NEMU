@@ -14,7 +14,7 @@ static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
 }
 
 static inline make_EHelper(csrrw) {
-  uint32_t addr = *dsrc2;
+  uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_sr(s, id_dest->reg, s0, 8);
@@ -24,7 +24,7 @@ static inline make_EHelper(csrrw) {
 }
 
 static inline make_EHelper(csrrs) {
-  uint32_t addr = *dsrc2;
+  uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_sr(s, id_dest->reg, s0, 8);
@@ -37,7 +37,7 @@ static inline make_EHelper(csrrs) {
 }
 
 static inline make_EHelper(csrrc) {
-  uint32_t addr = id_src2->val;
+  uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_sr(s, id_dest->reg, s0, 8);

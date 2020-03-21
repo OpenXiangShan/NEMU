@@ -33,14 +33,14 @@ static inline make_EHelper(store) {
 
 static inline make_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
-    EX(0, add)  EX(1, sll)  EX(2, slt) EX(3, sltu)
-    EX(4, xor)  EX(5, srl)  EX(6, or)  EX(7, and)
+    EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
+    EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, andi)
   }
 }
 
 static inline make_EHelper(op_imm32) {
   switch (s->isa.instr.i.funct3) {
-    EX(0, addw) EX(1, sllw) EX(5, srlw)
+    EX(0, addiw) EX(1, slliw) EX(5, srliw)
     default: exec_inv(s);
   }
 }
@@ -182,9 +182,9 @@ static inline void exec(DecodeExecState *s) {
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     switch (s->isa.instr.r.opcode6_2) {
-      IDEX (000, ld, load)  EX   (001, fp)                                  EX   (003, fence)
+      IDEX (000, I, load)   EX   (001, fp)                                  EX   (003, fence)
       IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
-      IDEX (010, st, store) EX   (011, fp)                                  IDEX (013, R, atomic)
+      IDEX (010, S, store)  EX   (011, fp)                                  IDEX (013, R, atomic)
       IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
       EX   (020, fp)
       EX   (024, fp)

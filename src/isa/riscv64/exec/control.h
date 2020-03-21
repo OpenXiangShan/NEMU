@@ -12,7 +12,7 @@ static inline make_EHelper(jalr) {
   rtl_li(s, s0, s->seq_pc);
   rtl_sr(s, id_dest->reg, s0, 4);
 
-  rtl_add(s, s0, dsrc1, dsrc2);
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x1lu);
   rtl_jr(s, s0);
 

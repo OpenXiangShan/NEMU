@@ -1,10 +1,11 @@
 #include "../local-include/intr.h"
 
 static inline make_EHelper(ld) {
-  rtl_lm(s, s0, &id_src1->addr, 0, s->width);
+  rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
   check_mem_ex();
   rtl_sr(s, id_dest->reg, s0, 0);
 
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
   switch (s->width) {
     case 8: print_asm_template2(ld); break;
     case 4: print_asm_template2(lwu); break;
@@ -16,11 +17,12 @@ static inline make_EHelper(ld) {
 
 // load sign value
 static inline make_EHelper(lds) {
-  rtl_lm(s, s0, &id_src1->addr, 0, s->width);
+  rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
   check_mem_ex();
   rtl_sext(s, s0, s0, s->width);
   rtl_sr(s, id_dest->reg, s0, 0);
 
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
   switch (s->width) {
     case 4: print_asm_template2(lw); break;
     case 2: print_asm_template2(lh); break;
@@ -30,9 +32,10 @@ static inline make_EHelper(lds) {
 }
 
 static inline make_EHelper(st) {
-  rtl_sm(s, &id_src1->addr, 0, ddest, s->width);
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, s->width);
   check_mem_ex();
 
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
   switch (s->width) {
     case 8: print_asm_template2(sd); break;
     case 4: print_asm_template2(sw); break;
