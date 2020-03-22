@@ -3,10 +3,8 @@
 static inline make_EHelper(lr) {
   rtl_lm(s, s0, dsrc1, 0, s->width);
   check_mem_ex();
-  rtl_sext(s, s0, s0, s->width);
-  rtl_sr(s, id_dest->reg, s0, 0);
-
   cpu.lr_addr = *dsrc1;
+  rtl_sext(s, ddest, s0, s->width);
 
   print_asm_template3(lr);
 }

@@ -1,21 +1,15 @@
 static inline make_EHelper(mul) {
-  rtl_mul_lo(s, s0, dsrc1, dsrc2);
-  rtl_sr(s, id_dest->reg, s0, 4);
-
+  rtl_mul_lo(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mul);
 }
 
 static inline make_EHelper(mulh) {
-  rtl_imul_hi(s, s0, dsrc1, dsrc2);
-  rtl_sr(s, id_dest->reg, s0, 4);
-
+  rtl_imul_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulh);
 }
 
 static inline make_EHelper(mulhu) {
-  rtl_mul_hi(s, s0, dsrc1, dsrc2);
-  rtl_sr(s, id_dest->reg, s0, 4);
-
+  rtl_mul_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulhu);
 }
 
@@ -37,66 +31,58 @@ static inline make_EHelper(mulhsu) {
   rtl_sari(s, s0, dsrc1, 63);
   rtl_and(s, s0, dsrc2, s0); // s0 = (id_src1->val < 0 ? id_src2->val : 0)
   rtl_mul_hi(s, s1, dsrc1, dsrc2);
-  rtl_sub(s, s0, s1, s0);
-
-  rtl_sr(s, id_dest->reg, s0, 4);
+  rtl_sub(s, ddest, s1, s0);
 
   print_asm_template3(mulhsu);
 }
 
 static inline make_EHelper(div) {
   if (*dsrc2 == 0) {
-    rtl_li(s, s0, ~0lu);
+    rtl_li(s, ddest, ~0lu);
   } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
-    rtl_mv(s, s0, dsrc1);
+    rtl_mv(s, ddest, dsrc1);
   } else {
-    rtl_idiv_q(s, s0, dsrc1, dsrc2);
+    rtl_idiv_q(s, ddest, dsrc1, dsrc2);
   }
-  rtl_sr(s, id_dest->reg, s0, 4);
 
   print_asm_template3(div);
 }
 
 static inline make_EHelper(divu) {
   if (*dsrc2 == 0) {
-    rtl_li(s, s0, ~0lu);
+    rtl_li(s, ddest, ~0lu);
   } else {
-    rtl_div_q(s, s0, dsrc1, dsrc2);
+    rtl_div_q(s, ddest, dsrc1, dsrc2);
   }
-  rtl_sr(s, id_dest->reg, s0, 4);
 
   print_asm_template3(divu);
 }
 
 static inline make_EHelper(rem) {
   if (*dsrc2 == 0) {
-    rtl_mv(s, s0, dsrc1);
+    rtl_mv(s, ddest, dsrc1);
   } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
-    rtl_li(s, s0, 0);
+    rtl_li(s, ddest, 0);
   } else {
-    rtl_idiv_r(s, s0, dsrc1, dsrc2);
+    rtl_idiv_r(s, ddest, dsrc1, dsrc2);
   }
-  rtl_sr(s, id_dest->reg, s0, 4);
 
   print_asm_template3(rem);
 }
 
 static inline make_EHelper(remu) {
   if (*dsrc2 == 0) {
-    rtl_mv(s, s0, dsrc1);
+    rtl_mv(s, ddest, dsrc1);
   } else {
-    rtl_div_r(s, s0, dsrc1, dsrc2);
+    rtl_div_r(s, ddest, dsrc1, dsrc2);
   }
-  rtl_sr(s, id_dest->reg, s0, 4);
 
   print_asm_template3(remu);
 }
 
 static inline make_EHelper(mulw) {
   rtl_mul_lo(s, s0, dsrc1, dsrc2);
-  rtl_sext(s, s0, s0, 4);
-  rtl_sr(s, id_dest->reg, s0, 4);
-
+  rtl_sext(s, ddest, s0, 4);
   print_asm_template3(mulw);
 }
 
@@ -110,8 +96,7 @@ static inline make_EHelper(divw) {
   } else {
     rtl_idiv_q(s, s0, s0, s1);
   }
-  rtl_sext(s, s0, s0, 4);
-  rtl_sr(s, id_dest->reg, s0, 4);
+  rtl_sext(s, ddest, s0, 4);
 
   print_asm_template3(divw);
 }
@@ -126,8 +111,7 @@ static inline make_EHelper(remw) {
   } else {
     rtl_idiv_r(s, s0, s0, s1);
   }
-  rtl_sext(s, s0, s0, 4);
-  rtl_sr(s, id_dest->reg, s0, 4);
+  rtl_sext(s, ddest, s0, 4);
 
   print_asm_template3(remw);
 }
@@ -140,8 +124,7 @@ static inline make_EHelper(divuw) {
   } else {
     rtl_div_q(s, s0, s0, s1);
   }
-  rtl_sext(s, s0, s0, 4);
-  rtl_sr(s, id_dest->reg, s0, 4);
+  rtl_sext(s, ddest, s0, 4);
 
   print_asm_template3(divuw);
 }
@@ -154,8 +137,7 @@ static inline make_EHelper(remuw) {
   } else {
     rtl_div_r(s, s0, s0, s1);
   }
-  rtl_sext(s, s0, s0, 4);
-  rtl_sr(s, id_dest->reg, s0, 4);
+  rtl_sext(s, ddest, s0, 4);
 
   print_asm_template3(remuw);
 }

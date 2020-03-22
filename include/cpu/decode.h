@@ -11,7 +11,7 @@ typedef struct {
   int width;
   union {
     uint32_t reg;
-    rtlreg_t addr;
+    rtlreg_t *preg;
     word_t imm;
     sword_t simm;
   };

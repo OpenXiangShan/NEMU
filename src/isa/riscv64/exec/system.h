@@ -17,8 +17,8 @@ static inline make_EHelper(csrrw) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
-  rtl_sr(s, id_dest->reg, s0, 8);
   csr_write(addr, dsrc1);
+  rtl_mv(s, ddest, s0);
 
   print_asm_template3("csrrw");
 }
@@ -27,11 +27,11 @@ static inline make_EHelper(csrrs) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
-  rtl_sr(s, id_dest->reg, s0, 8);
   if (id_src1->reg != 0) {
-    rtl_or(s, s0, s0, dsrc1);
-    csr_write(addr, s0);
+    rtl_or(s, s1, s0, dsrc1);
+    csr_write(addr, s1);
   }
+  rtl_mv(s, ddest, s0);
 
   print_asm_template3("csrrs");
 }
@@ -40,12 +40,12 @@ static inline make_EHelper(csrrc) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
-  rtl_sr(s, id_dest->reg, s0, 8);
   if (id_src1->reg != 0) {
     rtl_not(s, s1, dsrc1);
-    rtl_and(s, s0, s0, s1);
-    csr_write(addr, s0);
+    rtl_and(s, s1, s0, s1);
+    csr_write(addr, s1);
   }
+  rtl_mv(s, ddest, s0);
 
   print_asm_template3("csrrc");
 }
@@ -54,9 +54,9 @@ static inline make_EHelper(csrrwi) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
-  rtl_sr(s, id_dest->reg, s0, 8);
   rtl_li(s, s1, id_src1->imm);
   csr_write(addr, s1);
+  rtl_mv(s, ddest, s0);
 
   print_asm_template3("csrrwi");
 }
@@ -65,11 +65,11 @@ static inline make_EHelper(csrrsi) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
-  rtl_sr(s, id_dest->reg, s0, 8);
   if (id_src1->reg != 0) {
-    rtl_ori(s, s0, s0, id_src1->imm);
-    csr_write(addr, s0);
+    rtl_ori(s, s1, s0, id_src1->imm);
+    csr_write(addr, s1);
   }
+  rtl_mv(s, ddest, s0);
 
   print_asm_template3("csrrsi");
 }
@@ -78,11 +78,11 @@ static inline make_EHelper(csrrci) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
-  rtl_sr(s, id_dest->reg, s0, 8);
   if (id_src1->reg != 0) {
-    rtl_andi(s, s0, s0, ~id_src1->imm);
-    csr_write(addr, s0);
+    rtl_andi(s, s1, s0, ~id_src1->imm);
+    csr_write(addr, s1);
   }
+  rtl_mv(s, ddest, s0);
 
   print_asm_template3("csrrci");
 }

@@ -7,9 +7,9 @@
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
 
-#define dsrc1 (&id_src1->val)
-#define dsrc2 (&id_src2->val)
-#define ddest (&id_dest->val)
+#define dsrc1 (id_src1->preg)
+#define dsrc2 (id_src2->preg)
+#define ddest (id_dest->preg)
 #define ir    (&s->tmp_reg[0])
 #define s0    (&s->tmp_reg[1])
 #define s1    (&s->tmp_reg[2])
