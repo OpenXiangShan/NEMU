@@ -192,13 +192,21 @@ make_rtl(idiv64_r, rtlreg_t* dest,
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   uint8_t idx_dest = reg_ptr2idx(s, dest);
   uint8_t idx_addr = reg_ptr2idx(s, addr);
-  rv64_zextw(x31, idx_addr);
-  assert(imm == 0);
+
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  if (lui_imm != 0) {
+    rv64_lui(x31, lui_imm);
+    rv64_add(x31, x31, idx_addr);
+    rv64_zextw(x31, x31);
+  } else {
+    rv64_zextw(x31, idx_addr);
+  }
   switch (len) {
-    case 1: rv64_lbu(idx_dest, x31, 0); break;
-    case 2: rv64_lhu(idx_dest, x31, 0); break;
-    case 4: rv64_lwu(idx_dest, x31, 0); break;
-    case 8: rv64_ld (idx_dest, x31, 0); break;
+    case 1: rv64_lbu(idx_dest, x31, imm & 0xfff); break;
+    case 2: rv64_lhu(idx_dest, x31, imm & 0xfff); break;
+    case 4: rv64_lwu(idx_dest, x31, imm & 0xfff); break;
+    case 8: rv64_ld (idx_dest, x31, imm & 0xfff); break;
     default: assert(0);
   }
 }
@@ -206,13 +214,21 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
 make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int len) {
   uint8_t idx_addr = reg_ptr2idx(s, addr);
   uint8_t idx_src1 = reg_ptr2idx(s, src1);
-  rv64_zextw(x31, idx_addr);
-  assert(imm == 0);
+
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  if (lui_imm != 0) {
+    rv64_lui(x31, lui_imm);
+    rv64_add(x31, x31, idx_addr);
+    rv64_zextw(x31, x31);
+  } else {
+    rv64_zextw(x31, idx_addr);
+  }
   switch (len) {
-    case 1: rv64_sb(x31, idx_src1, 0); break;
-    case 2: rv64_sh(x31, idx_src1, 0); break;
-    case 4: rv64_sw(x31, idx_src1, 0); break;
-    case 8: rv64_sd(x31, idx_src1, 0); break;
+    case 1: rv64_sb(x31, idx_src1, imm & 0xfff); break;
+    case 2: rv64_sh(x31, idx_src1, imm & 0xfff); break;
+    case 4: rv64_sw(x31, idx_src1, imm & 0xfff); break;
+    case 8: rv64_sd(x31, idx_src1, imm & 0xfff); break;
     default: assert(0);
   }
 }
@@ -288,10 +304,10 @@ make_rtl(jr, rtlreg_t *target) {
 }
 
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  rtl_setrelop(s, relop, ddest, src1, src2);
-  rtl_li(s, dsrc1, target);
-  rtl_li(s, dsrc2, s->seq_pc);
-  rtl_mux(s, ddest, ddest, dsrc1, dsrc2);
-  rv64_addi(x30, reg_ptr2idx(s, ddest), 0);
+  rtl_setrelop(s, relop, &id_dest->val, src1, src2);
+  rtl_li(s, &id_src1->val, target);
+  rtl_li(s, &id_src2->val, s->seq_pc);
+  rtl_mux(s, &id_dest->val, &id_dest->val, &id_src1->val, &id_src2->val);
+  rv64_addi(x30, reg_ptr2idx(s, &id_dest->val), 0);
   tran_is_jmp = true;
 }
