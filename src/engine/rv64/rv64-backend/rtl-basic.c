@@ -293,8 +293,8 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 
 // we use x30 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
-  rtl_li(s, ir, target);
-  rv64_addi(x30, reg_ptr2idx(s, ir), 0);
+  if (load_imm(target)) rv64_addiw(x31, x31, target & 0xfff);
+  rv64_addi(x30, x31, 0);
   tran_is_jmp = true;
 }
 

@@ -10,11 +10,10 @@
 #define dsrc1 (id_src1->preg)
 #define dsrc2 (id_src2->preg)
 #define ddest (id_dest->preg)
-#define ir    (&s->tmp_reg[0])
-#define s0    (&s->tmp_reg[1])
-#define s1    (&s->tmp_reg[2])
-#define t0    (&s->tmp_reg[3])
-#define t1    (&s->tmp_reg[4])
+#define s0    (&s->tmp_reg[0])
+#define s1    (&s->tmp_reg[1])
+#define t0    (&s->tmp_reg[2])
+#define t1    (&s->tmp_reg[3])
 
 extern const rtlreg_t rzero;
 #define rz (&rzero)
