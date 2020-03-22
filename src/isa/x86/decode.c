@@ -1,6 +1,7 @@
 #include <cpu/exec.h>
 #include "local-include/rtl.h"
 #include "local-include/reg.h"
+#include "local-include/decode.h"
 
 typedef union {
   struct {
@@ -30,7 +31,6 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
   sword_t disp = 0;
   int disp_size = 4;
   int base_reg = -1, index_reg = -1, scale = 0;
-  rtl_li(s, s0, 0);
 
   if (m->R_M == R_ESP) {
     SIB sib;
@@ -55,19 +55,15 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
     /* has disp */
     disp = instr_fetch(&s->seq_pc, disp_size);
     if (disp_size == 1) { disp = (int8_t)disp; }
-
-    rtl_addi(s, s0, s0, disp);
   }
 
-  if (base_reg != -1) {
-    rtl_add(s, s0, s0, &reg_l(base_reg));
-  }
-
+  s->isa.mbase = (base_reg != -1 ? &reg_l(base_reg) : rz);
   if (index_reg != -1) {
     rtl_shli(s, s1, &reg_l(index_reg), scale);
-    rtl_add(s, s0, s0, s1);
+    rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
+    s->isa.mbase = &s->isa.mbr;
   }
-  rtl_mv(s, &rm->addr, s0);
+  s->isa.moff = disp;
 
 #ifdef DEBUG
   char disp_buf[16];
@@ -105,33 +101,13 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
   ModR_M m;
   m.val = instr_fetch(&s->seq_pc, 1);
   s->isa.ext_opcode = m.opcode;
-  if (reg != NULL) {
-    reg->type = OP_TYPE_REG;
-    reg->reg = m.reg;
-    if (load_reg_val) {
-      rtl_lr(s, &reg->val, reg->reg, reg->width);
-    }
-
-#ifdef DEBUG
-    snprintf(reg->str, OP_STR_SIZE, "%%%s", reg_name(reg->reg, reg->width));
-#endif
-  }
-
-  if (m.mod == 3) {
-    rm->type = OP_TYPE_REG;
-    rm->reg = m.R_M;
-    if (load_rm_val) {
-      rtl_lr(s, &rm->val, m.R_M, rm->width);
-    }
-
-#ifdef DEBUG
-    sprintf(rm->str, "%%%s", reg_name(m.R_M, rm->width));
-#endif
-  }
+  if (reg != NULL) operand_reg(s, reg, load_reg_val, m.reg, reg->width);
+  if (m.mod == 3) operand_reg(s, rm, load_rm_val, m.R_M, rm->width);
   else {
     load_addr(s, &m, rm);
     if (load_rm_val) {
-      rtl_lm(s, &rm->val, &rm->addr, rm->width);
+      rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, rm->width);
+      rm->preg = &rm->val;
     }
   }
 }

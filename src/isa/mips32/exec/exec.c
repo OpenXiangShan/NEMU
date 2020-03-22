@@ -20,7 +20,7 @@ static inline void set_width(DecodeExecState *s, int width) {
 
 static inline make_EHelper(special) {
   switch (s->isa.instr.r.func) {
-    IDEX (000, shift, sll)                        IDEX (002, shift, srl) IDEX (003, shift, sra)
+    IDEX (000, shift, slli)                       IDEX (002, shift, srli)IDEX (003, shift, srai)
     IDEX (004, R, sll)                            IDEX (006, R, srl)     IDEX (007, R, sra)
     IDEX (010, R, jr)      IDEX (011, R, jalr)    IDEX (012, cmov, movz) IDEX (013, cmov, movn)
     EX   (014, syscall)
@@ -72,8 +72,8 @@ static inline void exec(DecodeExecState *s) {
   switch (s->isa.instr.r.opcode) {
     EX   (000, special)    EX   (001, regimm)     IDEX (002, J, j)       IDEX (003, J, jal)
     IDEX (004, B, beq)     IDEX (005, B, bne)     IDEX (006, B, blez)    IDEX (007, B, bgtz)
-                           IDEX (011, I, add)     IDEX (012, I, slt)     IDEX (013, I, sltu)
-    IDEX (014, IU, and)    IDEX (015, IU, or)     IDEX (016, IU, xor)    IDEX (017, IU, lui)
+                           IDEX (011, I, addi)    IDEX (012, I, slti)    IDEX (013, I, sltui)
+    IDEX (014, IU, andi)   IDEX (015, IU, ori)    IDEX (016, IU, xori)   IDEX (017, IU, lui)
     EX   (020, cop0)
 
 

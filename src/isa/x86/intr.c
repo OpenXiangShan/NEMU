@@ -8,11 +8,9 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 
   //TODO();
   assert(NO < 256);
-  vaddr_t base = cpu.idtr.base + (NO << 3);
-  rtl_li(s, s0, base);
-  rtl_lm(s, s1, s0, 4);
-  rtl_addi(s, s0, s0, 4);
-  rtl_lm(s, s0, s0, 4);
+  rtl_li(s, s0, cpu.idtr.base);
+  rtl_lm(s, s1, s0, NO << 3, 4);
+  rtl_lm(s, s0, s0, (NO << 3) + 4, 4);
 
   // check the present bit
   assert((*s0 >> 15) & 0x1);

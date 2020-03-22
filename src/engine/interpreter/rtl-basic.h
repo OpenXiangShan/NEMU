@@ -6,27 +6,43 @@
 
 /* RTL basic instructions */
 
-static inline make_rtl(li, rtlreg_t* dest, rtlreg_t imm) {
-  *dest = imm;
-}
-
-static inline make_rtl(mv, rtlreg_t* dest, const rtlreg_t *src1) {
-  *dest = *src1;
-}
-
 #define make_rtl_compute_reg(name) \
   static inline make_rtl(name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
     *dest = concat(c_, name) (*src1, *src2); \
   }
 
-make_rtl_compute_reg(add)
-make_rtl_compute_reg(sub)
-make_rtl_compute_reg(and)
-make_rtl_compute_reg(or)
-make_rtl_compute_reg(xor)
-make_rtl_compute_reg(shl)
-make_rtl_compute_reg(shr)
-make_rtl_compute_reg(sar)
+#define make_rtl_compute_imm(name) \
+  static inline make_rtl(name ## i, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+    *dest = concat(c_, name) (*src1, imm); \
+  }
+
+#define make_rtl_compute_reg_imm(name) \
+  make_rtl_compute_reg(name) \
+  make_rtl_compute_imm(name) \
+
+// compute
+
+make_rtl_compute_reg_imm(add)
+make_rtl_compute_reg_imm(sub)
+make_rtl_compute_reg_imm(and)
+make_rtl_compute_reg_imm(or)
+make_rtl_compute_reg_imm(xor)
+make_rtl_compute_reg_imm(shl)
+make_rtl_compute_reg_imm(shr)
+make_rtl_compute_reg_imm(sar)
+
+static inline make_rtl(setrelop, uint32_t relop, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2) {
+  *dest = interpret_relop(relop, *src1, *src2);
+}
+
+static inline make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest,
+    const rtlreg_t *src1, sword_t imm) {
+  *dest = interpret_relop(relop, *src1, imm);
+}
+
+// mul/div
+
 make_rtl_compute_reg(mul_lo)
 make_rtl_compute_reg(mul_hi)
 make_rtl_compute_reg(imul_lo)
@@ -64,12 +80,14 @@ static inline make_rtl(idiv64_r, rtlreg_t* dest,
   *dest = dividend % divisor;
 }
 
-static inline make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, int len) {
-  *dest = vaddr_read(*addr, len);
+// memory
+
+static inline make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
+  *dest = vaddr_read(*addr + offset, len);
 }
 
-static inline make_rtl(sm, const rtlreg_t* addr, const rtlreg_t* src1, int len) {
-  vaddr_write(*addr, *src1, len);
+static inline make_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* src1, int len) {
+  vaddr_write(*addr + offset, *src1, len);
 }
 
 static inline make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
@@ -90,10 +108,7 @@ static inline make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   }
 }
 
-static inline make_rtl(setrelop, uint32_t relop, rtlreg_t *dest,
-    const rtlreg_t *src1, const rtlreg_t *src2) {
-  *dest = interpret_relop(relop, *src1, *src2);
-}
+// control
 
 static inline make_rtl(j, vaddr_t target) {
   s->jmp_pc = target;

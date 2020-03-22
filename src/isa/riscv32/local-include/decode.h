@@ -8,7 +8,6 @@
 static inline make_DopHelper(i) {
   op->type = OP_TYPE_IMM;
   op->imm = val;
-  rtl_li(s, &op->val, op->imm);
 
   print_Dop(op->str, OP_STR_SIZE, "%d", op->imm);
 }
@@ -16,9 +15,8 @@ static inline make_DopHelper(i) {
 static inline make_DopHelper(r) {
   op->type = OP_TYPE_REG;
   op->reg = val;
-  if (load_val) {
-    rtl_lr(s, &op->val, op->reg, 4);
-  }
+  op->preg = &reg_l(val);
+  reg_l(0) = 0;
 
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
 }
@@ -46,7 +44,6 @@ static inline make_DHelper(J) {
   sword_t offset = (s->isa.instr.j.simm20 << 20) | (s->isa.instr.j.imm19_12 << 12) |
     (s->isa.instr.j.imm11 << 11) | (s->isa.instr.j.imm10_1 << 1);
   s->jmp_pc = cpu.pc + offset;
-  decode_op_i(s, id_src1, s->jmp_pc, true);
   print_Dop(id_src1->str, OP_STR_SIZE, "0x%x", s->jmp_pc);
 
   decode_op_r(s, id_dest, s->isa.instr.j.rd, false);
@@ -56,27 +53,16 @@ static inline make_DHelper(B) {
   sword_t offset = (s->isa.instr.b.simm12 << 12) | (s->isa.instr.b.imm11 << 11) |
     (s->isa.instr.b.imm10_5 << 5) | (s->isa.instr.b.imm4_1 << 1);
   s->jmp_pc = cpu.pc + offset;
-  decode_op_i(s, id_dest, s->jmp_pc, true);
-  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", s->jmp_pc);
 
   decode_op_r(s, id_src1, s->isa.instr.b.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.b.rs2, true);
 }
 
-static inline make_DHelper(ld) {
-  decode_I(s);
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
-  rtl_add(s, &id_src1->addr, dsrc1, dsrc2);
-}
-
-static inline make_DHelper(st) {
+static inline make_DHelper(S) {
   decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
   sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
   decode_op_i(s, id_src2, simm, true);
   decode_op_r(s, id_dest, s->isa.instr.s.rs2, true);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
-  rtl_add(s, &id_src1->addr, dsrc1, dsrc2);
 }
 
 static inline make_DHelper(csr) {

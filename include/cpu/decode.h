@@ -11,10 +11,10 @@ typedef struct {
   int width;
   union {
     uint32_t reg;
-    rtlreg_t addr;
     word_t imm;
     sword_t simm;
   };
+  rtlreg_t *preg;
   rtlreg_t val;
   char str[OP_STR_SIZE];
 } Operand;
@@ -26,7 +26,7 @@ typedef struct {
   vaddr_t jmp_pc;
   Operand src1, dest, src2;
   int width;
-  rtlreg_t tmp_reg[5];
+  rtlreg_t tmp_reg[4];
   struct ISADecodeInfo isa;
 } DecodeExecState;
 

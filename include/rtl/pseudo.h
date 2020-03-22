@@ -7,28 +7,13 @@
 
 /* RTL pseudo instructions */
 
-#define make_rtl_compute_imm(name) \
-  static inline make_rtl(name ## i, rtlreg_t* dest, const rtlreg_t* src1, sword_t imm) { \
-    rtl_li(s, ir, imm); \
-    rtl_ ## name (s, dest, src1, ir); \
-  }
+static inline make_rtl(li, rtlreg_t* dest, const rtlreg_t imm) {
+  rtl_addi(s, dest, rz, imm);
+}
 
-make_rtl_compute_imm(add)
-make_rtl_compute_imm(sub)
-make_rtl_compute_imm(and)
-make_rtl_compute_imm(or)
-make_rtl_compute_imm(xor)
-make_rtl_compute_imm(shl)
-make_rtl_compute_imm(shr)
-make_rtl_compute_imm(sar)
-make_rtl_compute_imm(mul_lo)
-make_rtl_compute_imm(mul_hi)
-make_rtl_compute_imm(imul_lo)
-make_rtl_compute_imm(imul_hi)
-make_rtl_compute_imm(div_q)
-make_rtl_compute_imm(div_r)
-make_rtl_compute_imm(idiv_q)
-make_rtl_compute_imm(idiv_r)
+static inline make_rtl(mv, rtlreg_t* dest, const rtlreg_t *src1) {
+  if (dest != src1) rtl_add(s, dest, src1, rz);
+}
 
 static inline make_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
   // dest <- ~src1
@@ -48,12 +33,6 @@ static inline make_rtl(sext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
     rtl_shli(s, dest, src1, (word_size - width) * 8);
     rtl_sari(s, dest, dest, (word_size - width) * 8);
   }
-}
-
-static inline make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest,
-    const rtlreg_t *src1, int imm) {
-  rtl_li(s, ir, imm);
-  rtl_setrelop(s, relop, dest, src1, ir);
 }
 
 static inline make_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {

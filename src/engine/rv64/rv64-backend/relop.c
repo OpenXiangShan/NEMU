@@ -1,14 +1,7 @@
-#include <common.h>
 #include <rtl/rtl.h>
 #include "rv_ins_def.h"
 
-uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
-
-void rv64_relop(DecodeExecState *s, uint32_t relop, 
-    const rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1 = reg_ptr2idx(s, src1);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
+void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2) {
   switch (relop) {
     case RELOP_FALSE: rv64_addi(idx_dest, x0, 0); return;
     case RELOP_TRUE:  rv64_addi(idx_dest, x0, 1); return;

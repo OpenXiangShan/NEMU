@@ -14,19 +14,31 @@ static inline rtlreg_t* csr_decode(uint32_t csr) {
 }
 
 static inline make_EHelper(csrrw) {
-  rtlreg_t *csr = csr_decode(id_src2->val);
+  rtlreg_t *csr = csr_decode(id_src2->imm);
 
-  rtl_sr(s, id_dest->reg, csr, 4);
-  rtl_mv(s, csr, dsrc1);
+  if (ddest == dsrc1) {
+    rtl_mv(s, s0, csr);
+    rtl_mv(s, csr, dsrc1);
+    rtl_mv(s, dsrc1, s0);
+  } else {
+    rtl_mv(s, ddest, csr);
+    rtl_mv(s, csr, dsrc1);
+  }
 
   print_asm_template3("csrrw");
 }
 
 static inline make_EHelper(csrrs) {
-  rtlreg_t *csr = csr_decode(id_src2->val);
+  rtlreg_t *csr = csr_decode(id_src2->imm);
 
-  rtl_sr(s, id_dest->reg, csr, 4);
-  rtl_or(s, csr, csr, dsrc1);
+  if (ddest == dsrc1) {
+    rtl_mv(s, s0, csr);
+    rtl_or(s, csr, csr, dsrc1);
+    rtl_mv(s, dsrc1, s0);
+  } else {
+    rtl_mv(s, ddest, csr);
+    rtl_or(s, csr, csr, dsrc1);
+  }
 
   print_asm_template3("csrrs");
 }
@@ -42,8 +54,7 @@ static inline make_EHelper(priv) {
     case 0x102:
       cpu.sstatus.sie = cpu.sstatus.spie;
       cpu.sstatus.spie = 1;
-      rtl_li(s, s0, cpu.sepc);
-      rtl_jr(s, s0);
+      rtl_j(s, cpu.sepc);
       print_asm("sret");
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
