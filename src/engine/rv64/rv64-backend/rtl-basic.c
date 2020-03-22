@@ -1,9 +1,9 @@
 #include <rtl/rtl.h>
 #include "rv_ins_def.h"
+#include "../tran.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
 uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
-extern int tran_is_jmp;
 
 static inline void rv64_zextw(uint8_t rd, uint8_t rs) {
   // x24 is set during initialization
@@ -21,6 +21,13 @@ static inline bool load_imm(uint32_t r, const sword_t imm) {
     if (rv_imm.imm_11_0 != 0) rv64_addiw(r, r, rv_imm.imm_11_0);
     return false;
   }
+}
+
+static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  rv64_lui(r, lui_imm);
+  rv64_addiw(r, r, rv_imm.imm_11_0);
 }
 
 /* RTL basic instructions */
@@ -294,19 +301,47 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // we use x30 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
   if (load_imm(x30, target)) rv64_addiw(x30, x30, target & 0xfff);
-  tran_is_jmp = true;
+  tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jr, rtlreg_t *target) {
   rv64_addi(x30, reg_ptr2idx(s, target), 0);
-  tran_is_jmp = true;
+  tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  rtl_setrelop(s, relop, &id_dest->val, src1, src2);
-  rtl_li(s, &id_src1->val, target);
-  rtl_li(s, &id_src2->val, s->seq_pc);
-  rtl_mux(s, &id_dest->val, &id_dest->val, &id_src1->val, &id_src2->val);
-  rv64_addi(x30, reg_ptr2idx(s, &id_dest->val), 0);
-  tran_is_jmp = true;
+  uint32_t rs1 = reg_ptr2idx(s, src1);
+  uint32_t rs2 = reg_ptr2idx(s, src2);
+  uint32_t offset = 12; // branch two instructions
+  extern int trans_buffer_index;
+  int old_idx = trans_buffer_index;
+
+  // generate the branch instruciton
+  switch (relop) {
+    case RELOP_FALSE:
+    case RELOP_TRUE: assert(0);
+    case RELOP_EQ:  rv64_beq(rs1, rs2, offset); break;
+    case RELOP_NE:  rv64_bne(rs1, rs2, offset); break;
+    case RELOP_LT:  rv64_blt(rs1, rs2, offset); break;
+    case RELOP_GE:  rv64_bge(rs1, rs2, offset); break;
+    case RELOP_LTU: rv64_bltu(rs1, rs2, offset); return;
+    case RELOP_GEU: rv64_bgeu(rs1, rs2, offset); return;
+
+    case RELOP_LE:  rv64_bge(rs2, rs1, offset); break;
+    case RELOP_GT:  rv64_blt(rs2, rs1, offset); break;
+    case RELOP_LEU: rv64_bgeu(rs2, rs1, offset); break;
+    case RELOP_GTU: rv64_bltu(rs2, rs1, offset); break;
+    default: panic("unsupport relop = %d", relop);
+  }
+
+  // generate instrutions to load the not-taken target
+  load_imm_no_opt(x30, s->seq_pc);  // only two instructions
+  // generate instrutions to load the taken target
+  load_imm_no_opt(x30, target);     // only two instructions
+
+  tran_next_pc = NEXT_PC_BRANCH;
+
+  int new_idx = trans_buffer_index;
+  Assert(new_idx - old_idx == 5, "if this condition is broken, "
+      "you should also modify rv64_exec_trans_buffer() in exec.c");
 }

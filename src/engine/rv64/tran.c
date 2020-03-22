@@ -3,12 +3,13 @@
 #include <stdlib.h>
 #include <isa.h>
 #include <monitor/difftest.h>
+#include "tran.h"
 
 #define BUF_SIZE 13000 //8192
 
 uint32_t trans_buffer[BUF_SIZE] = {};
 int trans_buffer_index = 0;
-int tran_is_jmp = false;
+int tran_next_pc = NEXT_PC_SEQ;
 
 static void clear_trans_buffer() { trans_buffer_index = 0; }
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
@@ -32,14 +33,14 @@ void mainloop() {
 #endif
 
 #ifndef DIFF_TEST
-    if (tran_is_jmp) {
+    if (tran_next_pc != NEXT_PC_SEQ) {
 #endif
       vaddr_t next_pc = rv64_exec_trans_buffer(trans_buffer, trans_buffer_index);
       total_instr += trans_buffer_index;
-      if (tran_is_jmp) cpu.pc = next_pc;
+      if (tran_next_pc != NEXT_PC_SEQ) cpu.pc = next_pc;
     //  Log("new basic block pc = %x", cpu.pc);
       clear_trans_buffer();
-      tran_is_jmp = false;
+      tran_next_pc = NEXT_PC_SEQ;
 #ifndef DIFF_TEST
     }
 #endif
