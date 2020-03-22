@@ -11,10 +11,10 @@ typedef struct {
   int width;
   union {
     uint32_t reg;
-    rtlreg_t *preg;
     word_t imm;
     sword_t simm;
   };
+  rtlreg_t *preg;
   rtlreg_t val;
   char str[OP_STR_SIZE];
 } Operand;

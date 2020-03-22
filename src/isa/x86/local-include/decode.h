@@ -6,15 +6,25 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
 static inline void operand_reg(DecodeExecState *s, Operand *op, bool load_val, int r, int width) {
   op->type = OP_TYPE_REG;
   op->reg = r;
-  if (load_val) rtl_lr(s, &op->val, r, width);
+
+  if (width == 4) {
+    op->preg = &reg_l(r);
+  } else {
+    assert(width == 1 || width == 2);
+    op->preg = &op->val;
+    if (load_val) rtl_lr(s, &op->val, r, width);
+  }
+
   print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
 static inline void operand_imm(DecodeExecState *s, Operand *op, bool load_val, word_t imm, int width) {
   op->type = OP_TYPE_IMM;
+  op->imm = imm;
   if (load_val) {
     rtl_li(s, &op->val, imm);
-  } else op->imm = imm;
+    op->preg = &op->val;
+  }
   print_Dop(op->str, OP_STR_SIZE, "$0x%x", imm);
 }
 
@@ -82,12 +92,14 @@ static inline void operand_rm(DecodeExecState *s, Operand *rm, bool load_rm_val,
 /* Ob, Ov */
 static inline make_DopHelper(O) {
   op->type = OP_TYPE_MEM;
-  rtl_li(s, &op->addr, instr_fetch(&s->seq_pc, 4));
+  s->isa.moff = instr_fetch(&s->seq_pc, 4);
+  s->isa.mbase = rz;
   if (load_val) {
-    rtl_lm(s, &op->val, &op->addr, 0, op->width);
+    rtl_lm(s, &op->val, s->isa.mbase, s->isa.moff, op->width);
+    op->preg = &op->val;
   }
 
-  print_Dop(op->str, OP_STR_SIZE, "0x%x", op->addr);
+  print_Dop(op->str, OP_STR_SIZE, "0x%x", s->isa.moff);
 }
 
 /* Eb <- Gb
@@ -279,6 +291,6 @@ static inline make_DHelper(out_a2dx) {
 
 static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src) {
   if (op->type == OP_TYPE_REG) { rtl_sr(s, op->reg, src, op->width); }
-  else if (op->type == OP_TYPE_MEM) { rtl_sm(s, &op->addr, 0, src, op->width); }
+  else if (op->type == OP_TYPE_MEM) { rtl_sm(s, s->isa.mbase, s->isa.moff, src, op->width); }
   else { assert(0); }
 }

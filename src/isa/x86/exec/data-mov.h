@@ -96,7 +96,8 @@ static inline make_EHelper(movzx) {
 }
 
 static inline make_EHelper(lea) {
-  operand_write(s, id_dest, &id_src1->addr);
+  rtl_addi(s, s0, s->isa.mbase, s->isa.moff);
+  operand_write(s, id_dest, s0);
   print_asm_template2(lea);
 }
 

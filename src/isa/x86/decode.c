@@ -31,7 +31,6 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
   sword_t disp = 0;
   int disp_size = 4;
   int base_reg = -1, index_reg = -1, scale = 0;
-  rtl_li(s, s0, 0);
 
   if (m->R_M == R_ESP) {
     SIB sib;
@@ -56,19 +55,15 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
     /* has disp */
     disp = instr_fetch(&s->seq_pc, disp_size);
     if (disp_size == 1) { disp = (int8_t)disp; }
-
-    rtl_addi(s, s0, s0, disp);
   }
 
-  if (base_reg != -1) {
-    rtl_add(s, s0, s0, &reg_l(base_reg));
-  }
-
+  s->isa.mbase = (base_reg != -1 ? &reg_l(base_reg) : rz);
   if (index_reg != -1) {
     rtl_shli(s, s1, &reg_l(index_reg), scale);
-    rtl_add(s, s0, s0, s1);
+    rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
+    s->isa.mbase = &s->isa.mbr;
   }
-  rtl_mv(s, &rm->addr, s0);
+  s->isa.moff = disp;
 
 #ifdef DEBUG
   char disp_buf[16];
@@ -111,7 +106,8 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
   else {
     load_addr(s, &m, rm);
     if (load_rm_val) {
-      rtl_lm(s, &rm->val, &rm->addr, 0, rm->width);
+      rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, rm->width);
+      rm->preg = &rm->val;
     }
   }
 }

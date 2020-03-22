@@ -82,6 +82,9 @@ typedef struct {
 struct ISADecodeInfo {
   bool is_operand_size_16;
   uint8_t ext_opcode;
+  const rtlreg_t *mbase;
+  rtlreg_t mbr;
+  word_t moff;
 };
 
 #define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))

@@ -1,8 +1,9 @@
 #include <monitor/difftest.h>
 
 static make_EHelper(lidt) {
-  cpu.idtr.limit = vaddr_read(id_dest->addr, 2);
-  cpu.idtr.base = vaddr_read(id_dest->addr + 2, 4);
+  word_t addr = *s->isa.mbase + s->isa.moff;
+  cpu.idtr.limit = vaddr_read(addr, 2);
+  cpu.idtr.base = vaddr_read(addr + 2, 4);
 
   print_asm_template1(lidt);
 }
