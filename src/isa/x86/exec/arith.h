@@ -76,8 +76,7 @@ static inline make_EHelper(dec) {
 
 static inline make_EHelper(neg) {
 //  TODO();
-  rtl_li(s, s0, 0);
-  rtl_sub(s, s0, s0, ddest);
+  rtl_sub(s, s0, rz, ddest);
 
   rtl_update_ZFSF(s, s0, id_dest->width);
 

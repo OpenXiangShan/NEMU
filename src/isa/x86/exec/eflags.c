@@ -26,7 +26,7 @@ enum {
   rtl_andi(s, &cpu.flag, &cpu.flag, 0x1);
 
 void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest) {
-  rtl_li(s, dest, 0);
+  rtl_mv(s, dest, rz);
   MAP(_EFLAGS, ENCODE)
   rtl_ori(s, dest, dest, 0x2);
 }
