@@ -3,6 +3,21 @@
 
 void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val);
 
+static inline void operand_reg(DecodeExecState *s, Operand *op, bool load_val, int r, int width) {
+  op->type = OP_TYPE_REG;
+  op->reg = r;
+  if (load_val) rtl_lr(s, &op->val, r, width);
+  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
+}
+
+static inline void operand_imm(DecodeExecState *s, Operand *op, bool load_val, word_t imm, int width) {
+  op->type = OP_TYPE_IMM;
+  if (load_val) {
+    rtl_li(s, &op->val, imm);
+  } else op->imm = imm;
+  print_Dop(op->str, OP_STR_SIZE, "$0x%x", imm);
+}
+
 // decode operand helper
 #define make_DopHelper(name) void concat(decode_op_, name) (DecodeExecState *s, Operand *op, bool load_val)
 
@@ -11,11 +26,8 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
 /* Ib, Iv */
 static inline make_DopHelper(I) {
   /* pc here is pointing to the immediate */
-  op->type = OP_TYPE_IMM;
-  op->imm = instr_fetch(&s->seq_pc, op->width);
-  rtl_li(s, &op->val, op->imm);
-
-  print_Dop(op->str, OP_STR_SIZE, "$0x%x", op->imm);
+  word_t imm = instr_fetch(&s->seq_pc, op->width);
+  operand_imm(s, op, load_val, imm, op->width);
 }
 
 /* I386 manual does not contain this abbreviation, but it is different from
@@ -26,20 +38,15 @@ static inline make_DopHelper(I) {
 static inline make_DopHelper(SI) {
   assert(op->width == 1 || op->width == 4);
 
-  op->type = OP_TYPE_IMM;
-
   /* TODO: Use instr_fetch() to read `op->width' bytes of memory
    * pointed by 'pc'. Interpret the result as a signed immediate,
    * and assign it to op->simm.
    *
    op->simm = ???
    */
-  op->simm = instr_fetch(&s->seq_pc, op->width);
-  if (op->width == 1) op->simm = (int8_t)op->simm;
-
-  rtl_li(s, &op->val, op->simm);
-
-  print_Dop(op->str, OP_STR_SIZE, "$0x%x", op->simm);
+  word_t imm = instr_fetch(&s->seq_pc, op->width);
+  if (op->width == 1) imm = (int8_t)imm;
+  operand_imm(s, op, load_val, imm, op->width);
 }
 
 /* I386 manual does not contain this abbreviation.
@@ -47,13 +54,7 @@ static inline make_DopHelper(SI) {
  */
 /* AL/eAX */
 static inline make_DopHelper(a) {
-  op->type = OP_TYPE_REG;
-  op->reg = R_EAX;
-  if (load_val) {
-    rtl_lr(s, &op->val, R_EAX, op->width);
-  }
-
-  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(R_EAX, op->width));
+  operand_reg(s, op, load_val, R_EAX, op->width);
 }
 
 /* This helper function is use to decode register encoded in the opcode. */
@@ -61,17 +62,11 @@ static inline make_DopHelper(a) {
  * eXX: eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI
  */
 static inline make_DopHelper(r) {
-  op->type = OP_TYPE_REG;
-  op->reg = s->opcode & 0x7;
-  if (load_val) {
-    rtl_lr(s, &op->val, op->reg, op->width);
-  }
-
-  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(op->reg, op->width));
+  operand_reg(s, op, load_val, s->opcode & 0x7, op->width);
 }
 
 /* I386 manual does not contain this abbreviation.
- * We decode everything of modR/M byte by one time.
+ * We decode everything of modR/M byte in one time.
  */
 /* Eb, Ew, Ev
  * Gb, Gv
@@ -80,7 +75,7 @@ static inline make_DopHelper(r) {
  * Rd
  * Sw
  */
-static inline void decode_op_rm(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+static inline void operand_rm(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
   read_ModR_M(s, rm, load_rm_val, reg, load_reg_val);
 }
 
@@ -99,26 +94,26 @@ static inline make_DopHelper(O) {
  * Ev <- Gv
  */
 static inline make_DHelper(G2E) {
-  decode_op_rm(s, id_dest, true, id_src1, true);
+  operand_rm(s, id_dest, true, id_src1, true);
 }
 
 static inline make_DHelper(mov_G2E) {
-  decode_op_rm(s, id_dest, false, id_src1, true);
+  operand_rm(s, id_dest, false, id_src1, true);
 }
 
 /* Gb <- Eb
  * Gv <- Ev
  */
 static inline make_DHelper(E2G) {
-  decode_op_rm(s, id_src1, true, id_dest, true);
+  operand_rm(s, id_src1, true, id_dest, true);
 }
 
 static inline make_DHelper(mov_E2G) {
-  decode_op_rm(s, id_src1, true, id_dest, false);
+  operand_rm(s, id_src1, true, id_dest, false);
 }
 
 static inline make_DHelper(lea_M2G) {
-  decode_op_rm(s, id_src1, false, id_dest, false);
+  operand_rm(s, id_src1, false, id_dest, false);
 }
 
 /* AL <- Ib
@@ -133,7 +128,7 @@ static inline make_DHelper(I2a) {
  * Gv <- EvIv
  * use for imul */
 static inline make_DHelper(I_E2G) {
-  decode_op_rm(s, id_src2, true, id_dest, false);
+  operand_rm(s, id_src2, true, id_dest, false);
   decode_op_I(s, id_src1, true);
 }
 
@@ -141,12 +136,12 @@ static inline make_DHelper(I_E2G) {
  * Ev <- Iv
  */
 static inline make_DHelper(I2E) {
-  decode_op_rm(s, id_dest, true, NULL, false);
+  operand_rm(s, id_dest, true, NULL, false);
   decode_op_I(s, id_src1, true);
 }
 
 static inline make_DHelper(mov_I2E) {
-  decode_op_rm(s, id_dest, false, NULL, false);
+  operand_rm(s, id_dest, false, NULL, false);
   decode_op_I(s, id_src1, true);
 }
 
@@ -173,15 +168,15 @@ static inline make_DHelper(r) {
 }
 
 static inline make_DHelper(E) {
-  decode_op_rm(s, id_dest, true, NULL, false);
+  operand_rm(s, id_dest, true, NULL, false);
 }
 
 static inline make_DHelper(setcc_E) {
-  decode_op_rm(s, id_dest, false, NULL, false);
+  operand_rm(s, id_dest, false, NULL, false);
 }
 
 static inline make_DHelper(gp7_E) {
-  decode_op_rm(s, id_dest, false, NULL, false);
+  operand_rm(s, id_dest, false, NULL, false);
 }
 
 /* used by test in group3 */
@@ -191,7 +186,7 @@ static inline make_DHelper(test_I) {
 
 static inline make_DHelper(SI2E) {
   assert(id_dest->width == 2 || id_dest->width == 4);
-  decode_op_rm(s, id_dest, true, NULL, false);
+  operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
   if (id_dest->width == 2) {
@@ -201,7 +196,7 @@ static inline make_DHelper(SI2E) {
 
 static inline make_DHelper(SI_E2G) {
   assert(id_dest->width == 2 || id_dest->width == 4);
-  decode_op_rm(s, id_src2, true, id_dest, false);
+  operand_rm(s, id_src2, true, id_dest, false);
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
   if (id_dest->width == 2) {
@@ -210,25 +205,17 @@ static inline make_DHelper(SI_E2G) {
 }
 
 static inline make_DHelper(gp2_1_E) {
-  decode_op_rm(s, id_dest, true, NULL, false);
-  id_src1->type = OP_TYPE_IMM;
-  id_src1->imm = 1;
-  rtl_li(s, dsrc1, 1);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "$1");
+  operand_rm(s, id_dest, true, NULL, false);
+  operand_imm(s, id_src1, true, 1, 1);
 }
 
 static inline make_DHelper(gp2_cl2E) {
-  decode_op_rm(s, id_dest, true, NULL, false);
-  id_src1->type = OP_TYPE_REG;
-  id_src1->reg = R_CL;
-  rtl_lr(s, dsrc1, R_CL, 1);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "%%cl");
+  operand_rm(s, id_dest, true, NULL, false);
+  operand_reg(s, id_src1, true, R_CL, 1);
 }
 
 static inline make_DHelper(gp2_Ib2E) {
-  decode_op_rm(s, id_dest, true, NULL, false);
+  operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
 }
@@ -236,7 +223,7 @@ static inline make_DHelper(gp2_Ib2E) {
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline make_DHelper(Ib_G2E) {
-  decode_op_rm(s, id_dest, true, id_src2, true);
+  operand_rm(s, id_dest, true, id_src2, true);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
 }
@@ -244,12 +231,8 @@ static inline make_DHelper(Ib_G2E) {
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline make_DHelper(cl_G2E) {
-  decode_op_rm(s, id_dest, true, id_src2, true);
-  id_src1->type = OP_TYPE_REG;
-  id_src1->reg = R_CL;
-  rtl_lr(s, dsrc1, R_CL, 1);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "%%cl");
+  operand_rm(s, id_dest, true, id_src2, true);
+  operand_reg(s, id_src1, true, R_CL, 1);
 }
 
 static inline make_DHelper(O2a) {
@@ -279,12 +262,7 @@ static inline make_DHelper(in_I2a) {
 }
 
 static inline make_DHelper(in_dx2a) {
-  id_src1->type = OP_TYPE_REG;
-  id_src1->reg = R_DX;
-  rtl_lr(s, dsrc1, R_DX, 2);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "(%%dx)");
-
+  operand_reg(s, id_src1, true, R_DX, 2);
   decode_op_a(s, id_dest, false);
 }
 
@@ -296,12 +274,7 @@ static inline make_DHelper(out_a2I) {
 
 static inline make_DHelper(out_a2dx) {
   decode_op_a(s, id_src1, true);
-
-  id_dest->type = OP_TYPE_REG;
-  id_dest->reg = R_DX;
-  rtl_lr(s, ddest, R_DX, 2);
-
-  print_Dop(id_dest->str, OP_STR_SIZE, "(%%dx)");
+  operand_reg(s, id_dest, true, R_DX, 2);
 }
 
 static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src) {
