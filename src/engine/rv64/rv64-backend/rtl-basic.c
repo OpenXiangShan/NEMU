@@ -105,7 +105,7 @@ make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const 
       // fall through for default cases
     }
   }
-  rv64_addiw(x31, x0, imm);
+  if (small_imm) rv64_addiw(x31, x0, imm);
   rv64_relop(relop, idx_dest, idx_src1, x31);
 }
 
