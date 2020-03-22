@@ -18,7 +18,7 @@ static inline bool load_imm(const sword_t imm) {
   if (lui_imm == 0) return true;
   else {
     rv64_lui(x31, lui_imm);
-    rv64_addiw(x31, x31, rv_imm.imm_11_0);
+    if (rv_imm.imm_11_0 != 0) rv64_addiw(x31, x31, rv_imm.imm_11_0);
     return false;
   }
 }
