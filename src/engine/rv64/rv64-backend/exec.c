@@ -40,7 +40,7 @@ vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr) {
     rv64_getregs(&r);
   }
 
-  return r.gpr[30]._64;
+  return r.gpr[tmp0]._64;
 }
 
 void rv64_guest_getregs(void *cpu) {
@@ -67,7 +67,7 @@ void rv64_guest_setregs(void *cpu) {
 void init_rv64_reg() {
   CPU_state r;
   rv64_getregs(&r);
-  r.gpr[24]._64 = 0x00000000fffffffful;
-  r.gpr[25]._64 = 0x000000000000fffful;
+  r.gpr[mask32]._64 = 0x00000000fffffffful;
+  r.gpr[mask16]._64 = 0x000000000000fffful;
   rv64_setregs(&r);
 }

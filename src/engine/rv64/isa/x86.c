@@ -1,8 +1,10 @@
+#ifdef __ISA_x86__
+
 #include <cpu/decode.h>
 #include <rtl/rtl.h>
 #include <isa.h>
 
-uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
+uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
   rtlreg_t* gpr_end = (void *)gpr_start + sizeof(cpu.gpr);
 
@@ -25,3 +27,5 @@ uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   CASE(&cpu.SF, 1)
   panic("bad ptr = %p", dest);
 }
+
+#endif

@@ -3,11 +3,11 @@
 #include "../tran.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
-uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
+uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
 
-static inline void rv64_zextw(uint8_t rd, uint8_t rs) {
-  // x24 is set during initialization
-  rv64_and(rd, rs, x24);
+static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
+  // mask32 is set during initialization
+  rv64_and(rd, rs, mask32);
 }
 
 // return false if `imm` can be represented within 12 bits
@@ -65,7 +65,7 @@ make_rtl_compute_reg(xor, xor)
 
 make_rtl(addi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
-  else if (load_imm_big(x31, imm)) rv64_addw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else if (load_imm_big(tmp0, imm)) rv64_addw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), tmp0);
   else rv64_addiw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
@@ -75,19 +75,19 @@ make_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
 
 make_rtl(andi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   if (src1 == rz) load_imm(reg_ptr2idx(s, dest), 0);
-  else if (load_imm_big(x31, imm)) rv64_and(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else if (load_imm_big(tmp0, imm)) rv64_and(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), tmp0);
   else rv64_andi(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(xori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
-  else if (load_imm_big(x31, imm)) rv64_xor(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else if (load_imm_big(tmp0, imm)) rv64_xor(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), tmp0);
   else rv64_xori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(ori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
-  else if (load_imm_big(x31, imm)) rv64_or(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else if (load_imm_big(tmp0, imm)) rv64_or(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), tmp0);
   else rv64_ori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
@@ -116,7 +116,7 @@ make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const r
 }
 
 make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
-  int big_imm = load_imm_big(x31, imm);
+  int big_imm = load_imm_big(tmp0, imm);
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   if (!big_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
@@ -126,8 +126,8 @@ make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const 
       // fall through for default cases
     }
   }
-  if (!big_imm) rv64_addiw(x31, x0, imm);
-  rv64_relop(relop, idx_dest, idx_src1, x31);
+  if (!big_imm) rv64_addiw(tmp0, x0, imm);
+  rv64_relop(relop, idx_dest, idx_src1, tmp0);
 }
 
 
@@ -145,19 +145,19 @@ make_rtl_compute_reg(idiv_r, remw)
 # define rv64_imul_hi(c, a, b) TODO()
 #else
 make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1 = reg_ptr2idx(s, src1);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
-  rv64_zextw(x30, idx_src1);
-  rv64_zextw(x31, idx_src2);
-  rv64_mul(idx_dest, x30, x31);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1 = reg_ptr2idx(s, src1);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
+  rv64_zextw(tmp1, idx_src1);
+  rv64_zextw(tmp0, idx_src2);
+  rv64_mul(idx_dest, tmp1, tmp0);
   rv64_srai(idx_dest, idx_dest, 32);
 }
 
 make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1 = reg_ptr2idx(s, src1);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1 = reg_ptr2idx(s, src1);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
   rv64_mul(idx_dest, idx_src1, idx_src2);
   rv64_srai(idx_dest, idx_dest, 32);
 }
@@ -165,109 +165,113 @@ make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
 
 make_rtl(div64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
-  uint8_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
+  uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(x30, idx_src1_hi, 32);
-  rv64_zextw(x31, idx_src1_lo);
-  rv64_or(x30, x30, x31);
-  rv64_zextw(x31, idx_src2);
-  rv64_divu(idx_dest, x30, x31);
+  rv64_slli(tmp1, idx_src1_hi, 32);
+  rv64_zextw(tmp0, idx_src1_lo);
+  rv64_or(tmp1, tmp1, tmp0);
+  rv64_zextw(tmp0, idx_src2);
+  rv64_divu(idx_dest, tmp1, tmp0);
 }
 
 make_rtl(div64_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
-  uint8_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
+  uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(x30, idx_src1_hi, 32);
-  rv64_zextw(x31, idx_src1_lo);
-  rv64_or(x30, x30, x31);
-  rv64_zextw(x31, idx_src2);
-  rv64_remu(idx_dest, x30, x31);
+  rv64_slli(tmp1, idx_src1_hi, 32);
+  rv64_zextw(tmp0, idx_src1_lo);
+  rv64_or(tmp1, tmp1, tmp0);
+  rv64_zextw(tmp0, idx_src2);
+  rv64_remu(idx_dest, tmp1, tmp0);
 }
 
 make_rtl(idiv64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
-  uint8_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
+  uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(x30, idx_src1_hi, 32);
-  rv64_zextw(x31, idx_src1_lo);
-  rv64_or(x30, x30, x31);
-  rv64_div(idx_dest, x30, idx_src2);
+  rv64_slli(tmp1, idx_src1_hi, 32);
+  rv64_zextw(tmp0, idx_src1_lo);
+  rv64_or(tmp1, tmp1, tmp0);
+  rv64_div(idx_dest, tmp1, idx_src2);
 }
 
 make_rtl(idiv64_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
-  uint8_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
-  uint8_t idx_src2 = reg_ptr2idx(s, src2);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
+  uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(x30, idx_src1_hi, 32);
-  rv64_zextw(x31, idx_src1_lo);
-  rv64_or(x30, x30, x31);
-  rv64_rem(idx_dest, x30, idx_src2);
+  rv64_slli(tmp1, idx_src1_hi, 32);
+  rv64_zextw(tmp0, idx_src1_lo);
+  rv64_or(tmp1, tmp1, tmp0);
+  rv64_rem(idx_dest, tmp1, idx_src2);
 }
 
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
-  uint8_t idx_addr = reg_ptr2idx(s, addr);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_addr = reg_ptr2idx(s, addr);
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (addr == rz) rv64_lui(x31, lui_imm);
-  else if (lui_imm == 0) rv64_zextw(x31, idx_addr);
+  if (addr == rz) rv64_lui(tmp0, lui_imm);
+  else if (lui_imm == 0) rv64_zextw(tmp0, idx_addr);
   else {
-    rv64_lui(x31, lui_imm);
-    rv64_add(x31, x31, idx_addr);
-    rv64_zextw(x31, x31);
+    rv64_lui(tmp0, lui_imm);
+    rv64_add(tmp0, tmp0, idx_addr);
+    rv64_zextw(tmp0, tmp0);
   }
 
   switch (len) {
-    case 1: rv64_lbu(idx_dest, x31, imm & 0xfff); break;
-    case 2: rv64_lhu(idx_dest, x31, imm & 0xfff); break;
-    case 4: rv64_lwu(idx_dest, x31, imm & 0xfff); break;
-    case 8: rv64_ld (idx_dest, x31, imm & 0xfff); break;
+    case 1: rv64_lbu(idx_dest, tmp0, imm & 0xfff); break;
+    case 2: rv64_lhu(idx_dest, tmp0, imm & 0xfff); break;
+    case 4: rv64_lwu(idx_dest, tmp0, imm & 0xfff); break;
+    case 8: rv64_ld (idx_dest, tmp0, imm & 0xfff); break;
     default: assert(0);
   }
 }
 
 make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int len) {
-  uint8_t idx_addr = reg_ptr2idx(s, addr);
-  uint8_t idx_src1 = reg_ptr2idx(s, src1);
+  uint32_t idx_addr = reg_ptr2idx(s, addr);
+  uint32_t idx_src1 = reg_ptr2idx(s, src1);
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (addr == rz) rv64_lui(x31, lui_imm);
-  else if (lui_imm == 0) rv64_zextw(x31, idx_addr);
+  if (addr == rz) rv64_lui(tmp0, lui_imm);
+  else if (lui_imm == 0) rv64_zextw(tmp0, idx_addr);
   else {
-    rv64_lui(x31, lui_imm);
-    rv64_add(x31, x31, idx_addr);
-    rv64_zextw(x31, x31);
+    rv64_lui(tmp0, lui_imm);
+    rv64_add(tmp0, tmp0, idx_addr);
+    rv64_zextw(tmp0, tmp0);
   }
   switch (len) {
-    case 1: rv64_sb(idx_src1, x31, imm & 0xfff); break;
-    case 2: rv64_sh(idx_src1, x31, imm & 0xfff); break;
-    case 4: rv64_sw(idx_src1, x31, imm & 0xfff); break;
-    case 8: rv64_sd(idx_src1, x31, imm & 0xfff); break;
+    case 1: rv64_sb(idx_src1, tmp0, imm & 0xfff); break;
+    case 2: rv64_sh(idx_src1, tmp0, imm & 0xfff); break;
+    case 4: rv64_sw(idx_src1, tmp0, imm & 0xfff); break;
+    case 8: rv64_sd(idx_src1, tmp0, imm & 0xfff); break;
     default: assert(0);
   }
 }
 
 make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
-  uint8_t idx_dest = reg_ptr2idx(s, dest);
+#ifndef __ISA_x86__
+  panic("should not reach here");
+#endif
+
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
 
   // we assume that `addr` is only from cpu.gpr in x86
   uintptr_t addr_align = (uintptr_t)addr & ~(sizeof(rtlreg_t) - 1);
-  uint8_t idx_r = reg_ptr2idx(s, (void *)addr_align);
+  uint32_t idx_r = reg_ptr2idx(s, (void *)addr_align);
   switch (len) {
     case 1: ;
       int is_high = (uintptr_t)addr & 1;
@@ -279,18 +283,22 @@ make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
       }
       return;
     case 2:
-      rv64_and(idx_dest, idx_r, x25); // x25 is set during initialization
+      rv64_and(idx_dest, idx_r, mask16); // mask16 is set during initialization
       return;
     default: assert(0);
   }
 }
 
 make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
-  uint8_t idx_src1 = reg_ptr2idx(s, src1);
+#ifndef __ISA_x86__
+  panic("should not reach here");
+#endif
+
+  uint32_t idx_src1 = reg_ptr2idx(s, src1);
 
   // we assume that `addr` is only from cpu.gpr in x86
   uintptr_t addr_align = (uintptr_t)addr & ~(sizeof(rtlreg_t) - 1);
-  uint8_t idx_r = reg_ptr2idx(s, (void *)addr_align);
+  uint32_t idx_r = reg_ptr2idx(s, (void *)addr_align);
 
   spm(sw, idx_r, SPM_X86_REG);
   if (len == 1) spm(sb, idx_src1, SPM_X86_REG + ((uintptr_t)addr & 1));
@@ -299,14 +307,14 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   spm(lwu, idx_r, SPM_X86_REG);
 }
 
-// we use x30 to store x86.pc of the next basic block
+// we use tmp0 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
-  if (!load_imm_big(x30, target)) rv64_addiw(x30, x30, target & 0xfff);
+  if (!load_imm_big(tmp0, target)) rv64_addiw(tmp0, tmp0, target & 0xfff);
   tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jr, rtlreg_t *target) {
-  rv64_addi(x30, reg_ptr2idx(s, target), 0);
+  rv64_addi(tmp0, reg_ptr2idx(s, target), 0);
   tran_next_pc = NEXT_PC_JMP;
 }
 
@@ -336,9 +344,9 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
   }
 
   // generate instrutions to load the not-taken target
-  load_imm_no_opt(x30, s->seq_pc);  // only two instructions
+  load_imm_no_opt(tmp0, s->seq_pc);  // only two instructions
   // generate instrutions to load the taken target
-  load_imm_no_opt(x30, target);     // only two instructions
+  load_imm_no_opt(tmp0, target);     // only two instructions
 
   tran_next_pc = NEXT_PC_BRANCH;
 

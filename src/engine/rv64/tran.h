@@ -13,4 +13,10 @@ enum { NEXT_PC_SEQ, NEXT_PC_JMP, NEXT_PC_BRANCH };
 #define spm(op, reg, offset) concat(rv64_, op)(reg, x0, offset)
 #define SPM_X86_REG 0    // x86 byte/word register write
 
+enum { x0 = 0 };
+
+#ifdef __ISA_x86__
+enum { tmp0 = 30, tmp1 = 31, mask32 = 24, mask16 = 25 };
+#endif
+
 #endif
