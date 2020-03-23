@@ -254,10 +254,10 @@ make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int 
     rv64_zextw(x31, x31);
   }
   switch (len) {
-    case 1: rv64_sb(x31, idx_src1, imm & 0xfff); break;
-    case 2: rv64_sh(x31, idx_src1, imm & 0xfff); break;
-    case 4: rv64_sw(x31, idx_src1, imm & 0xfff); break;
-    case 8: rv64_sd(x31, idx_src1, imm & 0xfff); break;
+    case 1: rv64_sb(idx_src1, x31, imm & 0xfff); break;
+    case 2: rv64_sh(idx_src1, x31, imm & 0xfff); break;
+    case 4: rv64_sw(idx_src1, x31, imm & 0xfff); break;
+    case 8: rv64_sd(idx_src1, x31, imm & 0xfff); break;
     default: assert(0);
   }
 }
@@ -291,33 +291,12 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   // we assume that `addr` is only from cpu.gpr in x86
   uintptr_t addr_align = (uintptr_t)addr & ~(sizeof(rtlreg_t) - 1);
   uint8_t idx_r = reg_ptr2idx(s, (void *)addr_align);
-  switch (len) {
-    case 1:
-      if((uintptr_t)addr & 1){//high
-        rv64_addi(x31, x0, 0xff);
-        rv64_slliw(x31, x31, 8);
-        rv64_slliw(x30, idx_src1, 8);
-        rv64_and(x30, x30, x31);
-        rv64_xori(x31, x31, -1);
-        rv64_and(idx_r, idx_r, x31);
-        rv64_or(idx_r, idx_r, x30);
-      }else{//low
-        rv64_addi(x31, x0, 0xff);
-        rv64_xori(x30, x31, -1);
-        rv64_and(x31, x31, idx_src1);
-        rv64_and(x30, x30, idx_r);
-        rv64_or(idx_r, x30, x31);
-      }
-      return;
-    case 2:
-      rv64_lui(x31, 0xffff0);
-      rv64_xori(x30, x31, -1);
-      rv64_and(x31, x31, idx_r);
-      rv64_and(x30, x30, idx_src1);
-      rv64_or(idx_r, x30, x31);
-      return;
-    default: assert(0);
-  }
+
+  spm(sw, idx_r, SPM_X86_REG);
+  if (len == 1) spm(sb, idx_src1, SPM_X86_REG + ((uintptr_t)addr & 1));
+  else if (len == 2) spm(sh, idx_src1, SPM_X86_REG);
+  else assert(0);
+  spm(lwu, idx_r, SPM_X86_REG);
 }
 
 // we use x30 to store x86.pc of the next basic block
