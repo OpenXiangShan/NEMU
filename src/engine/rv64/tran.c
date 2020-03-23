@@ -28,6 +28,8 @@ void mainloop() {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
     __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
 
+    if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
+
 #ifdef DEBUG
     asm_print(ori_pc, seq_pc - ori_pc, true);
 #endif
@@ -37,6 +39,15 @@ void mainloop() {
 #endif
       vaddr_t next_pc = rv64_exec_trans_buffer(trans_buffer, trans_buffer_index);
       total_instr += trans_buffer_index;
+
+      if (tran_next_pc == NEXT_PC_END) {
+        // get cpu.eax and interpret `nemu_trap` again
+        rv64_guest_getregs(&cpu);
+        cpu.pc = ori_pc;
+        isa_exec_once();
+        break;
+      }
+
       if (tran_next_pc != NEXT_PC_SEQ) cpu.pc = next_pc;
     //  Log("new basic block pc = %x", cpu.pc);
       clear_trans_buffer();
@@ -49,11 +60,8 @@ void mainloop() {
     rv64_guest_getregs(&cpu);
     difftest_step(ori_pc, cpu.pc);
 #endif
-    if (nemu_state.state != NEMU_RUNNING) break;
   }
 
-  // get cpu.eax to determine whether we hit good trap
-  rv64_guest_getregs(&cpu);
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
