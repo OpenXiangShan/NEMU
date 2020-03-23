@@ -4,8 +4,8 @@
 static inline void and_internal(DecodeExecState *s) {
   rtl_and(s, s0, ddest, dsrc1);
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_li(s, &cpu.CF, 0);
-  rtl_li(s, &cpu.OF, 0);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
 }
 
 static inline make_EHelper(test) {
@@ -23,8 +23,8 @@ static inline make_EHelper(xor) {
   rtl_xor(s, s0, ddest, dsrc1);
   operand_write(s, id_dest, s0);
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_li(s, &cpu.CF, 0);
-  rtl_li(s, &cpu.OF, 0);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
   print_asm_template2(xor);
 }
 
@@ -32,8 +32,8 @@ static inline make_EHelper(or) {
   rtl_or(s, s0, ddest, dsrc1);
   operand_write(s, id_dest, s0);
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_li(s, &cpu.CF, 0);
-  rtl_li(s, &cpu.OF, 0);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
   print_asm_template2(or);
 }
 

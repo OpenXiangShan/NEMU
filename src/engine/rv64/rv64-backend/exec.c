@@ -1,4 +1,5 @@
 #include <isa/riscv64.h>
+#include "../tran.h"
 
 extern void (*rv64_memcpy_from_frontend)(paddr_t dest, void *src, size_t n);
 extern void (*rv64_getregs)(void *c);
@@ -20,14 +21,24 @@ vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr) {
   // copy code to rv64 interpreter to execute it
   rv64_memcpy_from_frontend(RV64_EXEC_PC, buf, sizeof(uint32_t) * nr_instr);
 
-  rv64_exec_code(RV64_EXEC_PC, nr_instr);
+  // if the basic block is end with a branch instruction,
+  // execute until the branch instruction
+  // see rtl_jrelop() at rtl-basic.c
+  int nr_exec = (tran_next_pc == NEXT_PC_BRANCH ? nr_instr - 5 : nr_instr);
+  rv64_exec_code(RV64_EXEC_PC, nr_exec);
 
   CPU_state r;
   rv64_getregs(&r);
-  uint64_t pc_end = RV64_EXEC_PC + sizeof(uint32_t) * nr_instr;
+  uint64_t pc_end = RV64_EXEC_PC + sizeof(uint32_t) * nr_exec;
   while (r.pc != pc_end) {
     // if it is the case, we may trigger exception during the execution above
     rv64_exec(1);
+    rv64_getregs(&r);
+  }
+
+  if (tran_next_pc == NEXT_PC_BRANCH) {
+    // execute the branch instruction and load x86.pc to x30
+    rv64_exec(3);
     rv64_getregs(&r);
   }
 

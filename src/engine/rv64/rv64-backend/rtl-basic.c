@@ -1,26 +1,50 @@
 #include <rtl/rtl.h>
 #include "rv_ins_def.h"
+#include "../tran.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
 uint8_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
-extern int tran_is_jmp;
 
 static inline void rv64_zextw(uint8_t rd, uint8_t rs) {
   // x24 is set during initialization
   rv64_and(rd, rs, x24);
 }
 
-// return true if `imm` can be represented within 12 bits
-// else load it to x31, and reture false
-static inline bool load_imm(const sword_t imm) {
+// return false if `imm` can be represented within 12 bits
+// else load it to `r`, and reture true
+static inline bool load_imm_big(uint32_t r, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (lui_imm == 0) return true;
+  if (lui_imm == 0) return false;
   else {
-    rv64_lui(x31, lui_imm);
-    if (rv_imm.imm_11_0 != 0) rv64_addiw(x31, x31, rv_imm.imm_11_0);
-    return false;
+    rv64_lui(r, lui_imm);
+    if (rv_imm.imm_11_0 != 0) rv64_addiw(r, r, rv_imm.imm_11_0);
+    return true;
   }
+}
+
+static inline void load_imm(uint32_t r, const sword_t imm) {
+  if (imm == 0) {
+    rv64_addi(r, x0, 0);
+    return;
+  }
+
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+
+  uint32_t hi = x0;
+  if (lui_imm != 0) {
+    rv64_lui(r, lui_imm);
+    hi = r;
+  }
+  if (rv_imm.imm_11_0 != 0) rv64_addiw(r, hi, rv_imm.imm_11_0);
+}
+
+static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  rv64_lui(r, lui_imm);
+  rv64_addiw(r, r, rv_imm.imm_11_0);
 }
 
 /* RTL basic instructions */
@@ -40,8 +64,9 @@ make_rtl_compute_reg(or, or)
 make_rtl_compute_reg(xor, xor)
 
 make_rtl(addi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm(imm)) rv64_addiw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
-  else rv64_addw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
+  else if (load_imm_big(x31, imm)) rv64_addw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else rv64_addiw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
@@ -49,18 +74,21 @@ make_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
 }
 
 make_rtl(andi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm(imm)) rv64_andi(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
-  else rv64_and(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), 0);
+  else if (load_imm_big(x31, imm)) rv64_and(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else rv64_andi(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(xori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm(imm)) rv64_xori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
-  else rv64_xor(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
+  else if (load_imm_big(x31, imm)) rv64_xor(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else rv64_xori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(ori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm(imm)) rv64_ori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
-  else rv64_or(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
+  else if (load_imm_big(x31, imm)) rv64_or(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  else rv64_ori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 #ifdef ISA64
@@ -88,17 +116,17 @@ make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const r
 }
 
 make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
-  int small_imm = load_imm(imm);
+  int big_imm = load_imm_big(x31, imm);
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
-  if (small_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
+  if (!big_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
     switch (relop) {
       case RELOP_LT: rv64_slt(idx_dest, idx_src1, imm); return;
       case RELOP_LTU: rv64_sltu(idx_dest, idx_src1, imm); return;
       // fall through for default cases
     }
   }
-  rv64_addiw(x31, x0, imm);
+  if (!big_imm) rv64_addiw(x31, x0, imm);
   rv64_relop(relop, idx_dest, idx_src1, x31);
 }
 
@@ -195,13 +223,14 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (lui_imm != 0) {
+  if (addr == rz) rv64_lui(x31, lui_imm);
+  else if (lui_imm == 0) rv64_zextw(x31, idx_addr);
+  else {
     rv64_lui(x31, lui_imm);
     rv64_add(x31, x31, idx_addr);
     rv64_zextw(x31, x31);
-  } else {
-    rv64_zextw(x31, idx_addr);
   }
+
   switch (len) {
     case 1: rv64_lbu(idx_dest, x31, imm & 0xfff); break;
     case 2: rv64_lhu(idx_dest, x31, imm & 0xfff); break;
@@ -217,12 +246,12 @@ make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int 
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (lui_imm != 0) {
+  if (addr == rz) rv64_lui(x31, lui_imm);
+  else if (lui_imm == 0) rv64_zextw(x31, idx_addr);
+  else {
     rv64_lui(x31, lui_imm);
     rv64_add(x31, x31, idx_addr);
     rv64_zextw(x31, x31);
-  } else {
-    rv64_zextw(x31, idx_addr);
   }
   switch (len) {
     case 1: rv64_sb(x31, idx_src1, imm & 0xfff); break;
@@ -293,21 +322,48 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 
 // we use x30 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
-  if (load_imm(target)) rv64_addiw(x31, x31, target & 0xfff);
-  rv64_addi(x30, x31, 0);
-  tran_is_jmp = true;
+  if (!load_imm_big(x30, target)) rv64_addiw(x30, x30, target & 0xfff);
+  tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jr, rtlreg_t *target) {
   rv64_addi(x30, reg_ptr2idx(s, target), 0);
-  tran_is_jmp = true;
+  tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  rtl_setrelop(s, relop, &id_dest->val, src1, src2);
-  rtl_li(s, &id_src1->val, target);
-  rtl_li(s, &id_src2->val, s->seq_pc);
-  rtl_mux(s, &id_dest->val, &id_dest->val, &id_src1->val, &id_src2->val);
-  rv64_addi(x30, reg_ptr2idx(s, &id_dest->val), 0);
-  tran_is_jmp = true;
+  uint32_t rs1 = reg_ptr2idx(s, src1);
+  uint32_t rs2 = reg_ptr2idx(s, src2);
+  uint32_t offset = 12; // branch two instructions
+  extern int trans_buffer_index;
+  int old_idx = trans_buffer_index;
+
+  // generate the branch instruciton
+  switch (relop) {
+    case RELOP_FALSE:
+    case RELOP_TRUE: assert(0);
+    case RELOP_EQ:  rv64_beq(rs1, rs2, offset); break;
+    case RELOP_NE:  rv64_bne(rs1, rs2, offset); break;
+    case RELOP_LT:  rv64_blt(rs1, rs2, offset); break;
+    case RELOP_GE:  rv64_bge(rs1, rs2, offset); break;
+    case RELOP_LTU: rv64_bltu(rs1, rs2, offset); return;
+    case RELOP_GEU: rv64_bgeu(rs1, rs2, offset); return;
+
+    case RELOP_LE:  rv64_bge(rs2, rs1, offset); break;
+    case RELOP_GT:  rv64_blt(rs2, rs1, offset); break;
+    case RELOP_LEU: rv64_bgeu(rs2, rs1, offset); break;
+    case RELOP_GTU: rv64_bltu(rs2, rs1, offset); break;
+    default: panic("unsupport relop = %d", relop);
+  }
+
+  // generate instrutions to load the not-taken target
+  load_imm_no_opt(x30, s->seq_pc);  // only two instructions
+  // generate instrutions to load the taken target
+  load_imm_no_opt(x30, target);     // only two instructions
+
+  tran_next_pc = NEXT_PC_BRANCH;
+
+  int new_idx = trans_buffer_index;
+  Assert(new_idx - old_idx == 5, "if this condition is broken, "
+      "you should also modify rv64_exec_trans_buffer() in exec.c");
 }

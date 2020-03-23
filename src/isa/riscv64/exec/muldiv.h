@@ -62,7 +62,7 @@ static inline make_EHelper(rem) {
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
   } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
-    rtl_li(s, ddest, 0);
+    rtl_mv(s, ddest, rz);
   } else {
     rtl_idiv_r(s, ddest, dsrc1, dsrc2);
   }
@@ -107,7 +107,7 @@ static inline make_EHelper(remw) {
   if (*s1 == 0) {
     //rtl_mv(s, s0, s0);
   } else if (*s0 == 0x80000000 && *s1 == -1) {
-    rtl_li(s, s0, 0);
+    rtl_mv(s, s0, rz);
   } else {
     rtl_idiv_r(s, s0, s0, s1);
   }

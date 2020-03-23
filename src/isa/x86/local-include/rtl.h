@@ -28,8 +28,8 @@ static inline make_rtl(push, const rtlreg_t* src1) {
   // esp <- esp - 4
   // M[esp] <- src1
 //  TODO();
+  rtl_sm(s, &cpu.esp, -4, src1, 4);
   rtl_subi(s, &cpu.esp, &cpu.esp, 4);
-  rtl_sm(s, &cpu.esp, 0, src1, 4);
 }
 
 static inline make_rtl(pop, rtlreg_t* dest) {
