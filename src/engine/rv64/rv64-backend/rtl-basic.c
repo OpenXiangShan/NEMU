@@ -23,6 +23,23 @@ static inline bool load_imm_big(uint32_t r, const sword_t imm) {
   }
 }
 
+static inline void load_imm(uint32_t r, const sword_t imm) {
+  if (imm == 0) {
+    rv64_addi(r, x0, 0);
+    return;
+  }
+
+  RV_IMM rv_imm = { .val = imm };
+  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+
+  uint32_t hi = x0;
+  if (lui_imm != 0) {
+    rv64_lui(r, lui_imm);
+    hi = r;
+  }
+  if (rv_imm.imm_11_0 != 0) rv64_addiw(r, hi, rv_imm.imm_11_0);
+}
+
 static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
@@ -47,7 +64,8 @@ make_rtl_compute_reg(or, or)
 make_rtl_compute_reg(xor, xor)
 
 make_rtl(addi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm_big(x31, imm)) rv64_addw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
+  else if (load_imm_big(x31, imm)) rv64_addw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
   else rv64_addiw(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
@@ -56,17 +74,20 @@ make_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
 }
 
 make_rtl(andi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm_big(x31, imm)) rv64_and(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), 0);
+  else if (load_imm_big(x31, imm)) rv64_and(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
   else rv64_andi(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(xori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm_big(x31, imm)) rv64_xor(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
+  else if (load_imm_big(x31, imm)) rv64_xor(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
   else rv64_xori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
 make_rtl(ori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (load_imm_big(x31, imm)) rv64_or(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
+  if (src1 == rz) load_imm(reg_ptr2idx(s, dest), imm);
+  else if (load_imm_big(x31, imm)) rv64_or(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), x31);
   else rv64_ori(reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), imm);
 }
 
@@ -202,13 +223,14 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (lui_imm != 0) {
+  if (addr == rz) rv64_lui(x31, lui_imm);
+  else if (lui_imm == 0) rv64_zextw(x31, idx_addr);
+  else {
     rv64_lui(x31, lui_imm);
     rv64_add(x31, x31, idx_addr);
     rv64_zextw(x31, x31);
-  } else {
-    rv64_zextw(x31, idx_addr);
   }
+
   switch (len) {
     case 1: rv64_lbu(idx_dest, x31, imm & 0xfff); break;
     case 2: rv64_lhu(idx_dest, x31, imm & 0xfff); break;
@@ -224,12 +246,12 @@ make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int 
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  if (lui_imm != 0) {
+  if (addr == rz) rv64_lui(x31, lui_imm);
+  else if (lui_imm == 0) rv64_zextw(x31, idx_addr);
+  else {
     rv64_lui(x31, lui_imm);
     rv64_add(x31, x31, idx_addr);
     rv64_zextw(x31, x31);
-  } else {
-    rv64_zextw(x31, idx_addr);
   }
   switch (len) {
     case 1: rv64_sb(x31, idx_src1, imm & 0xfff); break;
