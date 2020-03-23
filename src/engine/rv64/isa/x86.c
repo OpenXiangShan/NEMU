@@ -16,7 +16,6 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   CASE(s0, 2)
   CASE(s1, 3)
   CASE(t0, 4)
-  CASE(t1, 5)
   CASE(&id_src1->val, 7)
   CASE(&id_src2->val, 8)
   CASE(&id_dest->val, 9)

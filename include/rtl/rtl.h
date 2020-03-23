@@ -13,7 +13,6 @@
 #define s0    (&s->tmp_reg[0])
 #define s1    (&s->tmp_reg[1])
 #define t0    (&s->tmp_reg[2])
-#define t1    (&s->tmp_reg[3])
 
 extern const rtlreg_t rzero;
 #define rz (&rzero)
