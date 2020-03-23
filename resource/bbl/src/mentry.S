@@ -34,7 +34,75 @@ trap_table:
   .section .text.init,"ax",@progbits
   .globl reset_vector
 reset_vector:
-  j do_reset
+  li x1, 0
+  li x2, 0
+  li x3, 0
+  li x4, 0
+  li x5, 0
+  li x6, 0
+  li x7, 0
+  li x8, 0
+  li x9, 0
+// save a0 and a1; arguments from previous boot loader stage:
+//  li x10, 0
+//  li x11, 0
+  li x12, 0
+  li x13, 0
+  li x14, 0
+  li x15, 0
+  li x16, 0
+  li x17, 0
+  li x18, 0
+  li x19, 0
+  li x20, 0
+  li x21, 0
+  li x22, 0
+  li x23, 0
+  li x24, 0
+  li x25, 0
+  li x26, 0
+  li x27, 0
+  li x28, 0
+  li x29, 0
+  li x30, 0
+  li x31, 0
+
+  la t0, stacks + RISCV_PGSIZE - MENTRY_FRAME_SIZE
+  csrw mscratch, t0
+
+  # write mtvec and make sure it sticks
+  la t0, trap_vector
+  csrw mtvec, t0
+  csrr t1, mtvec
+1:bne t0, t1, 1b
+
+here:
+  j here
+
+.LmultiHart:
+#if MAX_HARTS > 1
+  # wait for an IPI to signal that it's safe to boot
+  wfi
+
+  # masked harts never start
+  la a4, disabled_hart_mask
+  LOAD a4, 0(a4)
+  srl a4, a4, a3
+  andi a4, a4, 1
+  bnez a4, .LmultiHart
+
+  # only start if mip is set
+  csrr a2, mip
+  andi a2, a2, MIP_MSIP
+  beqz a2, .LmultiHart
+
+  # make sure our hart id is within a valid range
+  fence
+  li a2, MAX_HARTS
+  bltu a3, a2, init_other_hart
+#endif
+  wfi
+  j .LmultiHart
 
 trap_vector:
   csrrw sp, mscratch, sp
@@ -102,7 +170,6 @@ trap_vector:
   j 1b
 1:
   j .Lmret
-
 
 .Lhandle_trap_in_machine_mode:
   # Preserve the registers.  Compute the address of the trap handler.
@@ -219,77 +286,6 @@ __redirect_trap:
 __trap_from_machine_mode:
   jal trap_from_machine_mode
   j restore_regs
-
-do_reset:
-  li x1, 0
-  li x2, 0
-  li x3, 0
-  li x4, 0
-  li x5, 0
-  li x6, 0
-  li x7, 0
-  li x8, 0
-  li x9, 0
-// save a0 and a1; arguments from previous boot loader stage:
-//  li x10, 0
-//  li x11, 0
-  li x12, 0
-  li x13, 0
-  li x14, 0
-  li x15, 0
-  li x16, 0
-  li x17, 0
-  li x18, 0
-  li x19, 0
-  li x20, 0
-  li x21, 0
-  li x22, 0
-  li x23, 0
-  li x24, 0
-  li x25, 0
-  li x26, 0
-  li x27, 0
-  li x28, 0
-  li x29, 0
-  li x30, 0
-  li x31, 0
-
-  la t0, stacks + RISCV_PGSIZE - MENTRY_FRAME_SIZE
-  csrw mscratch, t0
-
-  # write mtvec and make sure it sticks
-  la t0, trap_vector
-  csrw mtvec, t0
-  csrr t1, mtvec
-1:bne t0, t1, 1b
-
-here:
-  j here
-
-.LmultiHart:
-#if MAX_HARTS > 1
-  # wait for an IPI to signal that it's safe to boot
-  wfi
-
-  # masked harts never start
-  la a4, disabled_hart_mask
-  LOAD a4, 0(a4)
-  srl a4, a4, a3
-  andi a4, a4, 1
-  bnez a4, .LmultiHart
-
-  # only start if mip is set
-  csrr a2, mip
-  andi a2, a2, MIP_MSIP
-  beqz a2, .LmultiHart
-
-  # make sure our hart id is within a valid range
-  fence
-  li a2, MAX_HARTS
-  bltu a3, a2, init_other_hart
-#endif
-  wfi
-  j .LmultiHart
 
   .bss
 stacks:
