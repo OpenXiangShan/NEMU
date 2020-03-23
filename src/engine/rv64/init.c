@@ -2,8 +2,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <stdlib.h>
-
-#define BBL_MAX_SIZE (16 * 1024)
+#include "tran.h"
 
 void (*rv64_memcpy_from_frontend)(paddr_t dest, void *src, size_t n) = NULL;
 void (*rv64_getregs)(void *c) = NULL;
@@ -44,7 +43,7 @@ static void init_rv64_interpreter() {
   rv64_memcpy_from_frontend(0, guest_to_host(0), PMEM_SIZE);
 }
 
-// this is to handle exceptions such as misalignd memory accessing
+// this is to handle exceptions such as misaligned memory accessing
 void load_bbl() {
   char bbl_file[256];
   sprintf(bbl_file, "%s/resource/bbl/build/bbl.bin", getenv("NEMU_HOME"));

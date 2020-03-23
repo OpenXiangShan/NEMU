@@ -6,8 +6,6 @@ extern void (*rv64_getregs)(void *c);
 extern void (*rv64_setregs)(const void *c);
 extern void (*rv64_exec)(uint64_t n);
 
-#define RV64_EXEC_PC (16 * 1024) // skip bbl
-
 // set rv64.pc and execute
 void rv64_exec_code(uint64_t pc, int nr_instr) {
   CPU_state r;
