@@ -16,7 +16,7 @@ enum { NEXT_PC_SEQ, NEXT_PC_JMP, NEXT_PC_BRANCH };
 enum { x0 = 0 };
 
 #ifdef __ISA_x86__
-enum { tmp0 = 30, tmp1 = 31, mask32 = 24, mask16 = 25 };
+enum { tmp0 = 30, mask32 = 24, mask16 = 25 };
 #endif
 
 #endif

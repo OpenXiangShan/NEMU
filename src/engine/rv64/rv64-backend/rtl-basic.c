@@ -10,6 +10,10 @@ static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
   rv64_and(rd, rs, mask32);
 }
 
+static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
+  rv64_addw(rd, rs, x0);
+}
+
 // return false if `imm` can be represented within 12 bits
 // else load it to `r`, and reture true
 static inline bool load_imm_big(uint32_t r, const sword_t imm) {
@@ -148,9 +152,9 @@ make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
-  rv64_zextw(tmp1, idx_src1);
-  rv64_zextw(tmp0, idx_src2);
-  rv64_mul(idx_dest, tmp1, tmp0);
+  rv64_zextw(idx_src1, idx_src1);
+  rv64_zextw(idx_src2, idx_src2);
+  rv64_mul(idx_dest, idx_src1, idx_src2);
   rv64_srai(idx_dest, idx_dest, 32);
 }
 
@@ -158,6 +162,8 @@ make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
+  rv64_sextw(idx_src1, idx_src1);
+  rv64_sextw(idx_src2, idx_src2);
   rv64_mul(idx_dest, idx_src1, idx_src2);
   rv64_srai(idx_dest, idx_dest, 32);
 }
@@ -170,11 +176,11 @@ make_rtl(div64_q, rtlreg_t* dest,
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(tmp1, idx_src1_hi, 32);
-  rv64_zextw(tmp0, idx_src1_lo);
-  rv64_or(tmp1, tmp1, tmp0);
-  rv64_zextw(tmp0, idx_src2);
-  rv64_divu(idx_dest, tmp1, tmp0);
+  rv64_slli(tmp0, idx_src1_hi, 32);
+  rv64_zextw(idx_src1_lo, idx_src1_lo);
+  rv64_or(tmp0, tmp0, idx_src1_lo);
+  rv64_zextw(idx_src2, idx_src2);
+  rv64_divu(idx_dest, tmp0, idx_src2);
 }
 
 make_rtl(div64_r, rtlreg_t* dest,
@@ -184,11 +190,11 @@ make_rtl(div64_r, rtlreg_t* dest,
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(tmp1, idx_src1_hi, 32);
-  rv64_zextw(tmp0, idx_src1_lo);
-  rv64_or(tmp1, tmp1, tmp0);
-  rv64_zextw(tmp0, idx_src2);
-  rv64_remu(idx_dest, tmp1, tmp0);
+  rv64_slli(tmp0, idx_src1_hi, 32);
+  rv64_zextw(idx_src1_lo, idx_src1_lo);
+  rv64_or(tmp0, tmp0, idx_src1_lo);
+  rv64_zextw(idx_src2, idx_src2);
+  rv64_remu(idx_dest, tmp0, idx_src2);
 }
 
 make_rtl(idiv64_q, rtlreg_t* dest,
@@ -198,10 +204,11 @@ make_rtl(idiv64_q, rtlreg_t* dest,
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(tmp1, idx_src1_hi, 32);
-  rv64_zextw(tmp0, idx_src1_lo);
-  rv64_or(tmp1, tmp1, tmp0);
-  rv64_div(idx_dest, tmp1, idx_src2);
+  rv64_slli(tmp0, idx_src1_hi, 32);
+  rv64_zextw(idx_src1_lo, idx_src1_lo);
+  rv64_or(tmp0, tmp0, idx_src1_lo);
+  rv64_sextw(idx_src2, idx_src2);
+  rv64_div(idx_dest, tmp0, idx_src2);
 }
 
 make_rtl(idiv64_r, rtlreg_t* dest,
@@ -211,10 +218,11 @@ make_rtl(idiv64_r, rtlreg_t* dest,
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
 
-  rv64_slli(tmp1, idx_src1_hi, 32);
-  rv64_zextw(tmp0, idx_src1_lo);
-  rv64_or(tmp1, tmp1, tmp0);
-  rv64_rem(idx_dest, tmp1, idx_src2);
+  rv64_slli(tmp0, idx_src1_hi, 32);
+  rv64_zextw(idx_src1_lo, idx_src1_lo);
+  rv64_or(tmp0, tmp0, idx_src1_lo);
+  rv64_sextw(idx_src2, idx_src2);
+  rv64_rem(idx_dest, tmp0, idx_src2);
 }
 
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
