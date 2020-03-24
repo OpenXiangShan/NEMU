@@ -125,8 +125,8 @@ make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const 
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   if (!big_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
     switch (relop) {
-      case RELOP_LT: rv64_slt(idx_dest, idx_src1, imm); return;
-      case RELOP_LTU: rv64_sltu(idx_dest, idx_src1, imm); return;
+      case RELOP_LT: rv64_slti(idx_dest, idx_src1, imm); return;
+      case RELOP_LTU: rv64_sltiu(idx_dest, idx_src1, imm); return;
       // fall through for default cases
     }
   }
