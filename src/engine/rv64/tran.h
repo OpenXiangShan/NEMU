@@ -20,8 +20,10 @@ extern void (*backend_exec)(uint64_t n);
 
 enum { x0 = 0 };
 
-#ifdef __ISA_x86__
+#if defined(__ISA_x86__)
 enum { tmp0 = 30, mask32 = 24, mask16 = 25 };
+#elif defined(__ISA_mips32__)
+enum { tmp0 = 1, mask32 = 28, mask16 = 0 };
 #endif
 
 #endif
