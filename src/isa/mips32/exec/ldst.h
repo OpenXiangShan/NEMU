@@ -49,8 +49,6 @@ static inline make_EHelper(swl) {
   rtl_not(s, s0, t0);
   rtl_andi(s, s0, s0, 0x3);
   rtl_shli(s, s0, s0, 3);
-  // prepare register data
-  rtl_shr(s, ddest, ddest, s0);
 
   // int mem_mask [] = {0xffffff00, 0xffff00, 0xff000000, 0x0};
   // (0x80000000 >> reg_right_shift_amount[n]) << 1
@@ -59,16 +57,21 @@ static inline make_EHelper(swl) {
   rtl_shli(s, s1, s1, 1);
   // load the aligned memory word
   rtl_andi(s, t0, t0, ~0x3u);
-  rtl_lm(s, s0, t0, 0, 4);
+  rtl_lm(s, t0, t0, 0, 4);
   check_mem_ex();
   // prepare memory data
-  rtl_and(s, s0, s0, s1);
+  rtl_and(s, t0, t0, s1);
+
+  // prepare register data
+  rtl_shr(s, s1, ddest, s0);
 
   // merge the word
-  rtl_or(s, s0, s0, ddest);
+  rtl_or(s, s0, t0, s1);
 
-  // write back
-  rtl_sm(s, t0, 0, s0, 4);
+  // write back, should recompute the aligned address
+  rtl_addi(s, s1, dsrc1, id_src2->imm); // t0 = addr
+  rtl_andi(s, s1, s1, ~0x3u);
+  rtl_sm(s, s1, 0, s0, 4);
   check_mem_ex();
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -81,8 +84,6 @@ static inline make_EHelper(swr) {
   rtl_addi(s, t0, dsrc1, id_src2->imm); // t0 = addr
   rtl_andi(s, s0, t0, 0x3);
   rtl_shli(s, s0, s0, 3);
-  // prepare register data
-  rtl_shl(s, ddest, ddest, s0);
 
   // int mem_mask [] = {0x0, 0xff, 0xffff, 0xffffff};
   // ~(0xffffffff << reg_left_shift_amount[n])
@@ -91,16 +92,21 @@ static inline make_EHelper(swr) {
   rtl_not(s, s1, s1);
   // load the aligned memory word
   rtl_andi(s, t0, t0, ~0x3u);
-  rtl_lm(s, s0, t0, 0, 4);
+  rtl_lm(s, t0, t0, 0, 4);
   check_mem_ex();
   // prepare memory data
-  rtl_and(s, s0, s0, s1);
+  rtl_and(s, t0, t0, s1);
+
+  // prepare register data
+  rtl_shl(s, s1, ddest, s0);
 
   // merge the word
-  rtl_or(s, s0, s0, ddest);
+  rtl_or(s, s0, t0, s1);
 
-  // write back
-  rtl_sm(s, t0, 0, s0, 4);
+  // write back, should recompute the aligned address
+  rtl_addi(s, s1, dsrc1, id_src2->imm);
+  rtl_andi(s, s1, s1, ~0x3u);
+  rtl_sm(s, s1, 0, s0, 4);
   check_mem_ex();
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
