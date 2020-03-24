@@ -59,6 +59,7 @@ void mainloop() {
 #ifdef DIFF_TEST
     guest_getregs(&cpu);
     difftest_step(ori_pc, cpu.pc);
+    if (nemu_state.state == NEMU_ABORT) break;
 #endif
   }
 
