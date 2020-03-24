@@ -13,7 +13,7 @@ void isa_difftest_setregs(const void *r) {
 void isa_difftest_raise_intr(word_t NO) {
   DecodeExecState s;
   s.is_jmp = 0;
-  s.isa = (struct ISADecodeInfo) { 0 };
+  s.isa = (ISADecodeInfo) { 0 };
 
   void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc);
   raise_intr(&s, NO, cpu.pc);

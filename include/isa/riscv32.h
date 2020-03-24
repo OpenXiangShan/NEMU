@@ -4,8 +4,8 @@
 #include <common.h>
 
 // memory
-#define IMAGE_START 0x100000
-#define PMEM_BASE 0x80000000
+#define riscv32_IMAGE_START 0x100000
+#define riscv32_PMEM_BASE 0x80000000
 
 // reg
 
@@ -42,10 +42,10 @@ typedef struct {
   } satp;
 
   bool INTR;
-} CPU_state;
+} riscv32_CPU_state;
 
 // decode
-struct ISADecodeInfo {
+typedef struct {
   union {
     struct {
       uint32_t opcode1_0 : 2;
@@ -105,7 +105,7 @@ struct ISADecodeInfo {
     } csr;
     uint32_t val;
   } instr;
-};
+} riscv32_ISADecodeInfo;
 
 #define isa_vaddr_check(vaddr, type, len) (cpu.satp.mode ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
 

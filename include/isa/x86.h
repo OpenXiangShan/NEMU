@@ -4,8 +4,8 @@
 #include <common.h>
 
 // memory
-#define IMAGE_START 0x100000
-#define PMEM_BASE 0x0
+#define x86_IMAGE_START 0x100000
+#define x86_PMEM_BASE 0x0
 
 // reg
 
@@ -76,16 +76,16 @@ typedef struct {
   };
 
   bool INTR;
-} CPU_state;
+} x86_CPU_state;
 
 // decode
-struct ISADecodeInfo {
+typedef struct {
   bool is_operand_size_16;
   uint8_t ext_opcode;
   const rtlreg_t *mbase;
   rtlreg_t mbr;
   word_t moff;
-};
+} x86_ISADecodeInfo;
 
 #define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
 #define isa_vaddr_check(vaddr, type, len) (cpu.cr0.paging ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)

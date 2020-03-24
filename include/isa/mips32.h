@@ -4,8 +4,8 @@
 #include <common.h>
 
 // memory
-#define IMAGE_START 0x100000
-#define PMEM_BASE 0x80000000
+#define mips32_IMAGE_START 0x100000
+#define mips32_PMEM_BASE 0x80000000
 
 // reg
 typedef struct {
@@ -42,10 +42,10 @@ typedef struct {
   int mem_exception;
 
   bool INTR;
-} CPU_state;
+} mips32_CPU_state;
 
 // decode
-struct ISADecodeInfo {
+typedef struct {
   union {
     struct {
       int32_t  simm   : 16;
@@ -73,7 +73,7 @@ struct ISADecodeInfo {
     } r;
     uint32_t val;
   } instr;
-};
+} mips32_ISADecodeInfo;
 
 #define isa_vaddr_check(vaddr, type, len) ((vaddr & 0x80000000u) == 0 ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
 

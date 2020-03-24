@@ -4,8 +4,8 @@
 #include <common.h>
 
 // memory
-#define IMAGE_START 0x0
-#define PMEM_BASE 0x80000000
+#define riscv64_IMAGE_START 0x0
+#define riscv64_PMEM_BASE 0x80000000
 
 // reg
 
@@ -27,10 +27,10 @@ typedef struct {
   uint64_t lr_addr;
 
   bool INTR;
-} CPU_state;
+} riscv64_CPU_state;
 
 // decode
-struct ISADecodeInfo {
+typedef struct {
   union {
     struct {
       uint32_t opcode1_0 : 2;
@@ -90,6 +90,6 @@ struct ISADecodeInfo {
     } csr;
     uint32_t val;
   } instr;
-};
+} riscv64_ISADecodeInfo;
 
 #endif

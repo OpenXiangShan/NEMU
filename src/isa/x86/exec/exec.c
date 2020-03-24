@@ -184,7 +184,7 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
 vaddr_t isa_exec_once() {
   DecodeExecState s;
   s.is_jmp = 0;
-  s.isa = (struct ISADecodeInfo) { 0 };
+  s.isa = (ISADecodeInfo) { 0 };
   s.seq_pc = cpu.pc;
 
   exec(&s);
