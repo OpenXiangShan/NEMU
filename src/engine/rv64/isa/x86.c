@@ -3,6 +3,8 @@
 #include <cpu/decode.h>
 #include <rtl/rtl.h>
 #include <isa.h>
+#include <isa/riscv64.h>
+#include "../tran.h"
 
 uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
@@ -25,6 +27,25 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   CASE(&cpu.ZF, 15)
   CASE(&cpu.SF, 1)
   panic("bad ptr = %p", dest);
+}
+
+void guest_getregs(CPU_state *x86) {
+  riscv64_CPU_state r;
+  backend_getregs(&r);
+  int i;
+  for (i = 0; i < 8; i ++) {
+    x86->gpr[i]._32 = r.gpr[i + 0x10]._64;
+  }
+}
+
+void guest_setregs(const CPU_state *x86) {
+  riscv64_CPU_state r;
+  backend_getregs(&r);
+  int i;
+  for (i = 0; i < 8; i ++) {
+    r.gpr[i + 0x10]._64 = x86->gpr[i]._32;
+  }
+  backend_setregs(&r);
 }
 
 #endif

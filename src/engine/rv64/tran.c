@@ -14,7 +14,7 @@ int tran_next_pc = NEXT_PC_SEQ;
 static void clear_trans_buffer() { trans_buffer_index = 0; }
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr);
-void rv64_guest_getregs(void *cpu);
+void guest_getregs(CPU_state *cpu);
 
 void write_ins(uint32_t ins) {
   assert(trans_buffer_index < BUF_SIZE);
@@ -42,7 +42,7 @@ void mainloop() {
 
       if (tran_next_pc == NEXT_PC_END) {
         // get cpu.eax and interpret `nemu_trap` again
-        rv64_guest_getregs(&cpu);
+        guest_getregs(&cpu);
         cpu.pc = ori_pc;
         isa_exec_once();
         break;
@@ -57,7 +57,7 @@ void mainloop() {
 #endif
 
 #ifdef DIFF_TEST
-    rv64_guest_getregs(&cpu);
+    guest_getregs(&cpu);
     difftest_step(ori_pc, cpu.pc);
 #endif
   }
