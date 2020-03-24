@@ -12,7 +12,6 @@ extern void (*backend_setregs)(const void *c);
 extern void (*backend_exec)(uint64_t n);
 
 #define BBL_MAX_SIZE (16 * 1024)
-#define RV64_EXEC_PC BBL_MAX_SIZE // skip bbl
 
 // scratch pad memory, whose address space is [0, 64)
 #define spm(op, reg, offset) concat(rv64_, op)(reg, x0, offset)

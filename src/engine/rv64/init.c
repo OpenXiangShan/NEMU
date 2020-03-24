@@ -82,7 +82,7 @@ void init_engine() {
   init_rv64_interpreter();
   load_bbl();
   // execute enough instructions to set mtvec in bbl
-  backend_exec_code(0, 100);
+  backend_exec_code(riscv64_PMEM_BASE, 100);
   guest_setregs(&cpu);
   init_rv64_reg();
 }
