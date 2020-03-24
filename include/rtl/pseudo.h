@@ -21,6 +21,12 @@ static inline make_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
   rtl_xori(s, dest, src1, -1);
 }
 
+static inline make_rtl(neg, rtlreg_t *dest, const rtlreg_t* src1) {
+  // dest <- -src1
+//  TODO();
+  rtl_sub(s, dest, rz, src1);
+}
+
 static inline make_rtl(sext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- signext(src1[(width * 8 - 1) .. 0])
 //  TODO();
