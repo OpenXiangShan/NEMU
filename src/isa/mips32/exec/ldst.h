@@ -41,37 +41,38 @@ static inline make_EHelper(st) {
   }
 }
 
-// we do not use pseudo-rtl here, so we can use t0/t1 safely
 static inline make_EHelper(swl) {
-  // int reg_right_shift_amount [] = {24, 16, 8, 0};
-  // (3 - n) << 3
-  rtl_addi(s, t0, dsrc1, id_src2->imm); // t0 = addr
-  rtl_not(s, s0, t0);
-  rtl_andi(s, s0, s0, 0x3);
-  rtl_shli(s, s0, s0, 3);
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
 
-  // int mem_mask [] = {0xffffff00, 0xffff00, 0xff000000, 0x0};
-  // (0x80000000 >> reg_right_shift_amount[n]) << 1
-  rtl_li(s, s1, 0x80000000u);
-  rtl_sar(s, s1, s1, s0);
-  rtl_shli(s, s1, s1, 1);
+  // mem.shamt2
+  rtl_andi(s, s1, s0, 0x3);
+  rtl_shli(s, s1, s1, 3);
+
   // load the aligned memory word
-  rtl_andi(s, t0, t0, ~0x3u);
-  rtl_lm(s, t0, t0, 0, 4);
+  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_lm(s, s0, s0, 0, 4);
   check_mem_ex();
+
   // prepare memory data
-  rtl_and(s, t0, t0, s1);
+  rtl_shri(s, s0, s0, 8);   // shift 8 bit
+  rtl_shr(s, s0, s0, s1);   // second shift
+  rtl_shl(s, s0, s0, s1);   // shift back
+  rtl_shli(s, s0, s0, 8);   // shift 8 bit
+
+  // reg.shmat = 24 - mem.shmat2
+  rtl_subi(s, s1, s1, 24);
+  rtl_neg(s, s1, s1);
 
   // prepare register data
-  rtl_shr(s, s1, ddest, s0);
+  rtl_shr(s, s1, ddest, s1);
 
   // merge the word
-  rtl_or(s, s0, t0, s1);
+  rtl_or(s, s1, s0, s1);
 
-  // write back, should recompute the aligned address
-  rtl_addi(s, s1, dsrc1, id_src2->imm); // t0 = addr
-  rtl_andi(s, s1, s1, ~0x3u);
-  rtl_sm(s, s1, 0, s0, 4);
+  // write back
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
+  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_sm(s, s0, 0, s1, 4);
   check_mem_ex();
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -79,34 +80,39 @@ static inline make_EHelper(swl) {
 }
 
 static inline make_EHelper(swr) {
-  // int reg_left_shift_amount [] = {0, 8, 16, 24};
-  // n << 3
-  rtl_addi(s, t0, dsrc1, id_src2->imm); // t0 = addr
-  rtl_andi(s, s0, t0, 0x3);
-  rtl_shli(s, s0, s0, 3);
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
 
-  // int mem_mask [] = {0x0, 0xff, 0xffff, 0xffffff};
-  // ~(0xffffffff << reg_left_shift_amount[n])
-  rtl_li(s, s1, 0xffffffffu);
-  rtl_shl(s, s1, s1, s0);
-  rtl_not(s, s1, s1);
+  // mem.shmat2
+  rtl_andi(s, s1, s0, 0x3);
+  rtl_shli(s, s1, s1, 3);
+  rtl_subi(s, s1, s1, 24);
+  rtl_neg(s, s1, s1);
+
   // load the aligned memory word
-  rtl_andi(s, t0, t0, ~0x3u);
-  rtl_lm(s, t0, t0, 0, 4);
+  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_lm(s, s0, s0, 0, 4);
   check_mem_ex();
+
   // prepare memory data
-  rtl_and(s, t0, t0, s1);
+  rtl_shli(s, s0, s0, 8);   // shift 8 bit
+  rtl_shl(s, s0, s0, s1);   // second shift
+  rtl_shr(s, s0, s0, s1);   // shift back
+  rtl_shri(s, s0, s0, 8);   // shift 8 bit
+
+  // reg.shmat = 24 - mem.shmat2
+  rtl_subi(s, s1, s1, 24);
+  rtl_neg(s, s1, s1);
 
   // prepare register data
-  rtl_shl(s, s1, ddest, s0);
+  rtl_shl(s, s1, ddest, s1);
 
   // merge the word
-  rtl_or(s, s0, t0, s1);
+  rtl_or(s, s1, s0, s1);
 
-  // write back, should recompute the aligned address
-  rtl_addi(s, s1, dsrc1, id_src2->imm);
-  rtl_andi(s, s1, s1, ~0x3u);
-  rtl_sm(s, s1, 0, s0, 4);
+  // write back
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
+  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_sm(s, s0, 0, s1, 4);
   check_mem_ex();
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -114,65 +120,66 @@ static inline make_EHelper(swr) {
 }
 
 static inline make_EHelper(lwl) {
-  // int mem_left_shift_amount [] = {24, 16, 8, 0};
-  // (3 - n) << 3
-  rtl_addi(s, t0, dsrc1, id_src2->imm); // t0 = addr
-  rtl_not(s, s0, t0);
-  rtl_andi(s, s0, s0, 0x3);
-  rtl_shli(s, s0, s0, 3);
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
 
-  // int reg_mask [] = {0xffffff, 0xffff, 0xff, 0x0};
-  // ~(0xffffffff << mem_left_shift_amount[n])
-  rtl_li(s, s1, 0xffffffffu);
-  rtl_shl(s, s1, s1, s0);
-  rtl_not(s, s1, s1);
-  // prepare register data
-  rtl_and(s, ddest, ddest, s1);
+  // mem.shmat2
+  rtl_andi(s, s1, s0, 0x3);
+  rtl_shli(s, s1, s1, 3);
+  rtl_subi(s, s1, s1, 24);
+  rtl_neg(s, s1, s1);
 
   // load the aligned memory word
-  rtl_andi(s, t0, t0, ~0x3u);
-  rtl_lm(s, s1, t0, 0, 4);
+  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_lm(s, s0, s0, 0, 4);
   check_mem_ex();
+
   // prepare memory data
-  rtl_shl(s, s1, s1, s0);
+  rtl_shl(s, s0, s0, s1);
+
+  // reg.shmat = 24 - mem.shmat2
+  rtl_subi(s, s1, s1, 24);
+  rtl_neg(s, s1, s1);
+
+  // prepare register data
+  rtl_shli(s, ddest, ddest, 8);   // shift 8 bit
+  rtl_shl(s, ddest, ddest, s1);   // second shift
+  rtl_shr(s, ddest, ddest, s1);   // shift back
+  rtl_shri(s, ddest, ddest, 8);   // shift 8 bit
 
   // merge the word
-  rtl_or(s, ddest, ddest, s1);
-
-  // write back
-  rtl_sr(s, id_dest->reg, ddest, 4);
+  rtl_or(s, ddest, s0, ddest);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   print_asm_template2(lwl);
 }
 
 static inline make_EHelper(lwr) {
-  // int mem_right_shift_amount [] = {0, 8, 16, 24};
-  // n << 3
-  rtl_addi(s, t0, dsrc1, id_src2->imm); // t0 = addr
-  rtl_andi(s, s0, t0, 0x3);
-  rtl_shli(s, s0, s0, 3);
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
 
-  // int reg_mask [] = {0x0, 0xff000000, 0xffff0000, 0xffffff00};
-  // ~(0xffffffff >> mem_right_shift_amount[n])
-  rtl_li(s, s1, 0xffffffffu);
-  rtl_shr(s, s1, s1, s0);
-  rtl_not(s, s1, s1);
-  // prepare register data
-  rtl_and(s, ddest, ddest, s1);
+  // mem.shmat2
+  rtl_andi(s, s1, s0, 0x3);
+  rtl_shli(s, s1, s1, 3);
 
   // load the aligned memory word
-  rtl_andi(s, t0, t0, ~0x3u);
-  rtl_lm(s, s1, t0, 0, 4);
+  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_lm(s, s0, s0, 0, 4);
   check_mem_ex();
+
   // prepare memory data
-  rtl_shr(s, s1, s1, s0);
+  rtl_shr(s, s0, s0, s1);
+
+  // reg.shmat = 24 - mem.shmat2
+  rtl_subi(s, s1, s1, 24);
+  rtl_neg(s, s1, s1);
+
+  // prepare register data
+  rtl_shri(s, ddest, ddest, 8);   // shift 8 bit
+  rtl_shr(s, ddest, ddest, s1);   // second shift
+  rtl_shl(s, ddest, ddest, s1);   // shift back
+  rtl_shli(s, ddest, ddest, 8);   // shift 8 bit
 
   // merge the word
-  rtl_or(s, ddest, ddest, s1);
-
-  // write back
-  rtl_sr(s, id_dest->reg, ddest, 4);
+  rtl_or(s, ddest, s0, ddest);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   print_asm_template2(lwr);
