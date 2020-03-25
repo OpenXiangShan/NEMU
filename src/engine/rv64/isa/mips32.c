@@ -15,15 +15,15 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
     switch (idx) { // idx
       case 28: assert(0); break; // gp
       case 1: case 26: case 27: break; // at, k0, k1
-      case 25: break; // t9
+      case 25: assert(0); break; // t9
       default: return idx;
     }
   }
 
 #define CASE(ptr, idx) if (dest == ptr) return idx;
   CASE(rz, 0)
-  //CASE(&cpu.lo, 26)
-  //CASE(&cpu.hi, 27)
+  CASE(&cpu.lo, 25)
+  CASE(&cpu.hi, 27)
   CASE(s0, 26)
   //CASE(s1, 27)
   panic("bad ptr = %p", dest);
@@ -39,6 +39,8 @@ void guest_getregs(CPU_state *mips32) {
     }
     mips32->gpr[i]._32 = r.gpr[i]._64;
   }
+  mips32->lo = r.gpr[25]._64;
+  mips32->hi = r.gpr[27]._64;
 }
 
 void guest_setregs(const CPU_state *mips32) {
@@ -51,6 +53,8 @@ void guest_setregs(const CPU_state *mips32) {
     }
     r.gpr[i]._64 = mips32->gpr[i]._32;
   }
+  r.gpr[25]._64 = mips32->lo;
+  r.gpr[27]._64 = mips32->hi;
   backend_setregs(&r);
 }
 
