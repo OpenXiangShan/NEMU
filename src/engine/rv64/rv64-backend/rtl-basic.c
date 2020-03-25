@@ -242,7 +242,11 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   switch (len) {
     case 1: rv64_lbu(idx_dest, tmp0, imm & 0xfff); break;
     case 2: rv64_lhu(idx_dest, tmp0, imm & 0xfff); break;
+#ifdef ISA64
     case 4: rv64_lwu(idx_dest, tmp0, imm & 0xfff); break;
+#else
+    case 4: rv64_lw (idx_dest, tmp0, imm & 0xfff); break;
+#endif
     case 8: rv64_ld (idx_dest, tmp0, imm & 0xfff); break;
     default: assert(0);
   }
