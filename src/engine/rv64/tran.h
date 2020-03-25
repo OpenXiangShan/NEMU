@@ -24,6 +24,8 @@ enum { x0 = 0 };
 enum { tmp0 = 30, mask32 = 24, mask16 = 25 };
 #elif defined(__ISA_mips32__)
 enum { tmp0 = 1, mask32 = 28, mask16 = 0 };
+#elif defined(__ISA_riscv32__)
+enum { tmp0 = 3, mask32 = 4, mask16 = 0 };
 #endif
 
 #endif
