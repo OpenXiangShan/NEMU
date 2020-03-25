@@ -3,6 +3,11 @@
 
 #include _ISA_H_
 
+#define IMAGE_START concat(__ISA__, _IMAGE_START)
+#define PMEM_BASE concat(__ISA__, _PMEM_BASE)
+typedef concat(__ISA__, _CPU_state) CPU_state;
+typedef concat(__ISA__, _ISADecodeInfo) ISADecodeInfo;
+
 // monitor
 extern char isa_logo[];
 void init_isa();

@@ -165,8 +165,6 @@ static inline void gen_rv64_CSR_inst(uint8_t opcode, uint8_t rd,
   write_ins(ins.val);
 }
 
-enum { x0 = 0, x24 = 24, x25, x26, x27, x28, x29, x30, x31 };
-
 // RV64I
 #define rv64_lui(rd, imm)            gen_rv64_U_inst(0b0110111, rd, imm)
 #define rv64_auipc(rd, imm)          gen_rv64_U_inst(0b0010111, rd, imm)
@@ -185,10 +183,10 @@ enum { x0 = 0, x24 = 24, x25, x26, x27, x28, x29, x30, x31 };
 #define rv64_lbu(rd, rs1, imm)       gen_rv64_I_inst(0b0000011, rd, 0b100, rs1, imm)
 #define rv64_lhu(rd, rs1, imm)       gen_rv64_I_inst(0b0000011, rd, 0b101, rs1, imm)
 #define rv64_lwu(rd, rs1, imm)       gen_rv64_I_inst(0b0000011, rd, 0b110, rs1, imm)
-#define rv64_sb(rs1, rs2, imm)       gen_rv64_S_inst(0b0100011, 0b000, rs1, rs2, imm)
-#define rv64_sh(rs1, rs2, imm)       gen_rv64_S_inst(0b0100011, 0b001, rs1, rs2, imm)
-#define rv64_sw(rs1, rs2, imm)       gen_rv64_S_inst(0b0100011, 0b010, rs1, rs2, imm)
-#define rv64_sd(rs1, rs2, imm)       gen_rv64_S_inst(0b0100011, 0b011, rs1, rs2, imm)
+#define rv64_sb(rs2, rs1, imm)       gen_rv64_S_inst(0b0100011, 0b000, rs1, rs2, imm)
+#define rv64_sh(rs2, rs1, imm)       gen_rv64_S_inst(0b0100011, 0b001, rs1, rs2, imm)
+#define rv64_sw(rs2, rs1, imm)       gen_rv64_S_inst(0b0100011, 0b010, rs1, rs2, imm)
+#define rv64_sd(rs2, rs1, imm)       gen_rv64_S_inst(0b0100011, 0b011, rs1, rs2, imm)
 #define rv64_addi(rd, rs1, imm)      gen_rv64_I_inst(0b0010011, rd, 0b000, rs1, imm)
 #define rv64_slti(rd, rs1, imm)      gen_rv64_I_inst(0b0010011, rd, 0b010, rs1, imm)
 #define rv64_sltiu(rd, rs1, imm)     gen_rv64_I_inst(0b0010011, rd, 0b011, rs1, imm)

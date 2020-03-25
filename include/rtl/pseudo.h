@@ -21,6 +21,12 @@ static inline make_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
   rtl_xori(s, dest, src1, -1);
 }
 
+static inline make_rtl(neg, rtlreg_t *dest, const rtlreg_t* src1) {
+  // dest <- -src1
+//  TODO();
+  rtl_sub(s, dest, rz, src1);
+}
+
 static inline make_rtl(sext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- signext(src1[(width * 8 - 1) .. 0])
 //  TODO();
@@ -42,18 +48,6 @@ static inline make_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   if (width != 4) {
     rtl_andi(s, dest, dest, 0x1);
   }
-}
-
-static inline make_rtl(mux, rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t* src1, const rtlreg_t* src2) {
-  // dest <- (cond ? src1 : src2)
-//  TODO();
-  rtl_setrelopi(s, RELOP_EQ, t0, cond, 0);
-  rtl_subi(s, t0, t0, 1);
-  // t0 = mask
-  rtl_and(s, t1, src1, t0);
-  rtl_not(s, t0, t0);
-  rtl_and(s, t0, src2, t0);
-  rtl_or(s, dest, t0, t1);
 }
 
 #endif

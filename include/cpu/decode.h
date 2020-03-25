@@ -26,8 +26,8 @@ typedef struct {
   vaddr_t jmp_pc;
   Operand src1, dest, src2;
   int width;
-  rtlreg_t tmp_reg[4];
-  struct ISADecodeInfo isa;
+  rtlreg_t tmp_reg[3];
+  ISADecodeInfo isa;
 } DecodeExecState;
 
 #define make_DHelper(name) void concat(decode_, name) (DecodeExecState *s)

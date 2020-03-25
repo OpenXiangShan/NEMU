@@ -1,17 +1,17 @@
 #include <dlfcn.h>
 #include <isa.h>
+#include <isa/riscv64.h>
 #include <memory/paddr.h>
 #include <stdlib.h>
+#include "tran.h"
 
-#define BBL_MAX_SIZE (16 * 1024)
+void (*backend_memcpy_from_frontend)(paddr_t dest, void *src, size_t n) = NULL;
+void (*backend_getregs)(void *c) = NULL;
+void (*backend_setregs)(const void *c) = NULL;
+void (*backend_exec)(uint64_t n) = NULL;
 
-void (*rv64_memcpy_from_frontend)(paddr_t dest, void *src, size_t n) = NULL;
-void (*rv64_getregs)(void *c) = NULL;
-void (*rv64_setregs)(const void *c) = NULL;
-void (*rv64_exec)(uint64_t n) = NULL;
-void rv64_exec_code(uint64_t pc, int nr_instr);
-void rv64_guest_setregs(void *cpu);
-void init_rv64_reg();
+void backend_exec_code(uint64_t pc, int nr_instr);
+void guest_setregs(const CPU_state *cpu);
 
 static void init_rv64_interpreter() {
   char so_file[256];
@@ -21,31 +21,31 @@ static void init_rv64_interpreter() {
   handle = dlopen(so_file, RTLD_LAZY | RTLD_DEEPBIND);
   assert(handle);
 
-  rv64_memcpy_from_frontend = dlsym(handle, "difftest_memcpy_from_dut");
-  assert(rv64_memcpy_from_frontend);
+  backend_memcpy_from_frontend = dlsym(handle, "difftest_memcpy_from_dut");
+  assert(backend_memcpy_from_frontend);
 
-  rv64_getregs = dlsym(handle, "difftest_getregs");
-  assert(rv64_getregs);
+  backend_getregs = dlsym(handle, "difftest_getregs");
+  assert(backend_getregs);
 
-  rv64_setregs = dlsym(handle, "difftest_setregs");
-  assert(rv64_setregs);
+  backend_setregs = dlsym(handle, "difftest_setregs");
+  assert(backend_setregs);
 
-  rv64_exec = dlsym(handle, "difftest_exec");
-  assert(rv64_exec);
+  backend_exec = dlsym(handle, "difftest_exec");
+  assert(backend_exec);
 
-  void (*rv64_init)(int port) = dlsym(handle, "difftest_init");
-  assert(rv64_init);
+  void (*backend_init)(int port) = dlsym(handle, "difftest_init");
+  assert(backend_init);
 
-  void (*rv64_init_device)() = dlsym(handle, "init_device");
-  assert(rv64_init_device);
+  void (*backend_init_device)() = dlsym(handle, "init_device");
+  assert(backend_init_device);
 
-  rv64_init(0);
-  rv64_init_device();
-  rv64_memcpy_from_frontend(0, guest_to_host(0), PMEM_SIZE);
+  backend_init(0);
+  backend_init_device();
+  backend_memcpy_from_frontend(0, guest_to_host(0), PMEM_SIZE);
 }
 
-// this is to handle exceptions such as misalignd memory accessing
-void load_bbl() {
+// this is to handle exceptions such as misaligned memory accessing
+static void load_bbl() {
   char bbl_file[256];
   sprintf(bbl_file, "%s/resource/bbl/build/bbl.bin", getenv("NEMU_HOME"));
 
@@ -66,15 +66,23 @@ void load_bbl() {
 
   fclose(fp);
 
-  rv64_memcpy_from_frontend(0, buf, size);
+  backend_memcpy_from_frontend(0, buf, size);
   free(buf);
+}
+
+static void init_rv64_reg() {
+  riscv64_CPU_state r;
+  backend_getregs(&r);
+  r.gpr[mask32]._64 = 0x00000000fffffffful;
+  r.gpr[mask16]._64 = 0x000000000000fffful;
+  backend_setregs(&r);
 }
 
 void init_engine() {
   init_rv64_interpreter();
   load_bbl();
   // execute enough instructions to set mtvec in bbl
-  rv64_exec_code(0, 100);
-  rv64_guest_setregs(&cpu);
+  backend_exec_code(riscv64_PMEM_BASE, 100);
+  guest_setregs(&cpu);
   init_rv64_reg();
 }

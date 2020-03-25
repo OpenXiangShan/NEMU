@@ -39,8 +39,8 @@ static inline make_EHelper(xor) {
 }
 
 static inline make_EHelper(nor) {
-  rtl_or(s, s0, dsrc1, dsrc2);
-  rtl_not(s, ddest, s0);
+  rtl_or(s, ddest, dsrc1, dsrc2);
+  rtl_not(s, ddest, ddest);
   print_asm_template3(nor);
 }
 
@@ -104,12 +104,24 @@ static inline make_EHelper(srai) {
   print_asm_template3(srai);
 }
 
+static inline void mux(DecodeExecState *s, rtlreg_t* dest, const rtlreg_t* cond,
+    const rtlreg_t* src1, const rtlreg_t* src2) {
+  // dest <- (cond ? src1 : src2)
+  rtl_setrelopi(s, RELOP_EQ, s0, cond, 0);
+  rtl_subi(s, s0, s0, 1);
+  // s0 = mask
+  rtl_and(s, s1, src1, s0);
+  rtl_not(s, s0, s0);
+  rtl_and(s, dest, src2, s0);
+  rtl_or(s, dest, dest, s1);
+}
+
 static inline make_EHelper(movz) {
-  rtl_mux(s, ddest, dsrc2, ddest, dsrc1);
+  mux(s, ddest, dsrc2, ddest, dsrc1);
   print_asm_template3(movz);
 }
 
 static inline make_EHelper(movn) {
-  rtl_mux(s, ddest, dsrc2, dsrc1, ddest);
+  mux(s, ddest, dsrc2, dsrc1, ddest);
   print_asm_template3(movn);
 }
