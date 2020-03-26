@@ -23,17 +23,17 @@ static inline bool load_imm_big(uint32_t r, const uint32_t imm) {
 void tmp_regs_init() {
     if (TMP_REG_NUM == 2) {
         tmp_regs[0].idx = 26;
-        tmp_regs[0].map_ptr = 8;
+        tmp_regs[0].map_ptr = 3;
         tmp_regs[0].dirty = 0;
         tmp_regs[1].idx = 27;
-        tmp_regs[1].map_ptr = 9;
+        tmp_regs[1].map_ptr = 4;
         tmp_regs[1].dirty = 0;
     } else {
         panic("Other TMP_REG_NUM!\n");
     }
     tmp_regs_ptr = 0;
     spill_tmp_reg.idx = 25;
-    spill_tmp_reg.map_ptr = 5;
+    spill_tmp_reg.map_ptr = 2;
 }
 
 uint32_t check_tmp_reg(uint32_t tmp_idx) {
