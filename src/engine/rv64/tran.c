@@ -4,6 +4,7 @@
 #include <isa.h>
 #include <monitor/difftest.h>
 #include "tran.h"
+#include "spill.h"
 
 #define BUF_SIZE 13000 //8192
 
@@ -22,11 +23,15 @@ void write_ins(uint32_t ins) {
 }
 
 void mainloop() {
+  tmp_regs_init();
   nemu_state.state = NEMU_RUNNING;
   uint64_t total_instr = 0;
   while (1) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
     __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
+    for (int i = 0; i < TMP_REG_NUM; i++) {
+      tmp_regs[i].dirty = 0;
+    }
 
     if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 

@@ -5,28 +5,43 @@
 #include <isa.h>
 #include <isa/riscv64.h>
 #include "../tran.h"
+#include "../spill.h"
 
 uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
   rtlreg_t* gpr_end = (void *)gpr_start + sizeof(cpu.gpr);
+  uint32_t tmp_idx = 0;  // index for sratchpad
 
   if (dest >= gpr_start && dest < gpr_end) {
     int idx = dest - gpr_start;
-    switch (idx) { // idx
-      case 28: assert(0); break; // gp
-      case 1: case 26: case 27: break; // at, k0, k1
-      case 25: assert(0); break; // t9
+    switch (idx) {
+      case 1:  tmp_idx = 1; break;   // fixed to tmp0
+      case 25: tmp_idx = 2; break;   // used to store sratchpad addr
+      case 26: tmp_idx = 3; break;   // tmp_reg 1
+      case 27: tmp_idx = 4; break;   // tmp_reg 2
+      case 28: tmp_idx = 5; break;   // fixed to mask32
       default: return idx;
     }
   }
+  if (dest == rz) return 0;
 
-#define CASE(ptr, idx) if (dest == ptr) return idx;
-  CASE(rz, 0)
-  CASE(&cpu.lo, 25)
-  CASE(&cpu.hi, 27)
-  CASE(s0, 26)
-  //CASE(s1, 27)
-  panic("bad ptr = %p", dest);
+  // other temps
+  if (dest == &cpu.lo) tmp_idx = 6;
+  if (dest == &cpu.hi) tmp_idx = 7;
+  if (dest == s0)      tmp_idx = 8;
+  if (dest == s1)      tmp_idx = 9;
+  
+  // unknown dest
+  if (tmp_idx == 0) panic("bad ptr = %p", dest);
+
+  // if tmp_reg has already mapped to dest, just return tmp_reg
+  uint32_t idx;
+  idx = check_tmp_reg(tmp_idx);
+  if (idx) return idx;
+
+  // if not mapped, spill out one tmp_reg and remap
+  idx = spill_out_and_remap(s, tmp_idx);
+  return idx;
 }
 
 void guest_getregs(CPU_state *mips32) {
@@ -35,7 +50,7 @@ void guest_getregs(CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case 28: case 1: case 26: case 27: case 25: continue;
+      case 28: case 1: case 25: case 26: case 27: continue;
     }
     mips32->gpr[i]._32 = r.gpr[i]._64;
   }
@@ -49,7 +64,7 @@ void guest_setregs(const CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case 28: case 1: case 26: case 27: case 25: continue;
+      case 28: case 1: case 25: case 26: case 27: continue;
     }
     r.gpr[i]._64 = mips32->gpr[i]._32;
   }
