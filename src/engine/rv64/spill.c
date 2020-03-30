@@ -24,10 +24,10 @@ void tmp_regs_init() {
     if (TMP_REG_NUM == 2) {
         tmp_regs[0].idx = 26;
         tmp_regs[0].map_ptr = 3;
-        tmp_regs[0].dirty = 0;
+        tmp_regs[0].used = 0;
         tmp_regs[1].idx = 27;
         tmp_regs[1].map_ptr = 4;
-        tmp_regs[1].dirty = 0;
+        tmp_regs[1].used = 0;
     } else {
         panic("Other TMP_REG_NUM!\n");
     }
@@ -39,7 +39,7 @@ void tmp_regs_init() {
 uint32_t check_tmp_reg(uint32_t tmp_idx) {
     for (int i = 0; i < TMP_REG_NUM; i++) {
         if (tmp_regs[i].map_ptr == tmp_idx) {
-            tmp_regs[i].dirty = 1;
+            tmp_regs[i].used = 1;
             return tmp_regs[i].idx;
         }
     }
@@ -51,7 +51,7 @@ uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
 
     tmp_regs_ptr = 666;
     for (int i = 0; i < TMP_REG_NUM; i++) {
-        if (tmp_regs[i].dirty == 0) {
+        if (tmp_regs[i].used == 0) {
             tmp_regs_ptr = i;
             break;
         }
@@ -69,7 +69,17 @@ uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
     rv64_lw(tmp_regs[tmp_regs_ptr].idx, spill_tmp_reg.idx, 0);
 
     tmp_regs[tmp_regs_ptr].map_ptr = tmp_idx;
-    tmp_regs[tmp_regs_ptr].dirty = 1;
+    tmp_regs[tmp_regs_ptr].used = 1;
 
     return tmp_regs[tmp_regs_ptr].idx;
+}
+
+void spill_clean(uint32_t idx) {
+    for (int i = 0; i < TMP_REG_NUM; i++) {
+        if (tmp_regs[i].idx == idx) {
+            tmp_regs[i].used = 0;
+            return;
+        }
+    }
+    // no need to clean if goes here
 }

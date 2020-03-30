@@ -46,4 +46,7 @@ make_rtl(j, vaddr_t target);
 make_rtl(jr, rtlreg_t *target);
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target);
 
+/* Pseudo instructions */
+make_rtl(kill, const rtlreg_t *src1);
+
 #endif

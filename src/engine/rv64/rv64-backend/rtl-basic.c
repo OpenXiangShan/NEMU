@@ -1,6 +1,7 @@
 #include <rtl/rtl.h>
 #include "rv_ins_def.h"
 #include "../tran.h"
+#include "../spill.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
 uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
@@ -365,4 +366,9 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
   int new_idx = trans_buffer_index;
   Assert(new_idx - old_idx == 5, "if this condition is broken, "
       "you should also modify rv64_exec_trans_buffer() in exec.c");
+}
+
+make_rtl(kill, const rtlreg_t* src1) {
+  uint32_t rs1 = reg_ptr2idx(s, src1);
+  spill_clean(rs1);
 }
