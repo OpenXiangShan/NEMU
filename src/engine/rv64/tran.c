@@ -36,6 +36,48 @@ static TB* find_tb(vaddr_t pc) {
   return NULL;
 }
 
+static int find_top10_min(TB **top, int n) {
+  int i;
+  int min = 0;
+  for (i = 1; i < n; i ++) {
+    if (top[i]->hit_time < top[min]->hit_time) min = i;
+  }
+  return min;
+}
+
+static TB** find_top10_tb() {
+  static TB *top[10];
+  TB *p = head.next;;
+  int i;
+  for (i = 0; i < 10; i ++) {
+    assert(p != NULL);
+    top[i] = p;
+    p = p->next;
+  }
+  int min = find_top10_min(top, 10);
+  for (; p != NULL; p = p->next) {
+    if (p->hit_time > top[min]->hit_time) {
+      top[min] = p;
+      min = find_top10_min(top, 10);
+    }
+  }
+
+  for (i = 0; i < 10; i ++) {
+    int max = i;
+    int j;
+    for (j = i + 1; j < 10; j ++) {
+      if (top[max]->hit_time < top[j]->hit_time) max = j;
+    }
+    if (max != i) {
+      TB *tmp = top[i];
+      top[i] = top[max];
+      top[max] = tmp;
+    }
+  }
+
+  return top;
+}
+
 void write_ins(uint32_t ins) {
   assert(trans_buffer_index < BUF_SIZE);
   trans_buffer[trans_buffer_index++]=ins;
@@ -104,6 +146,13 @@ void mainloop() {
     difftest_step(tb_start, cpu.pc);
     if (nemu_state.state == NEMU_ABORT) break;
 #endif
+  }
+
+  // display the top-10 hot basic block
+  TB **top = find_top10_tb();
+  int i;
+  for (i = 0; i < 10; i ++) {
+    printf("%d: pc = " FMT_WORD ", hit time = %d\n", i + 1, top[i]->pc, top[i]->hit_time);
   }
 
   switch (nemu_state.state) {
