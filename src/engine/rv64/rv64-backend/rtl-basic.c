@@ -345,8 +345,8 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
     case RELOP_NE:  rv64_bne(rs1, rs2, offset); break;
     case RELOP_LT:  rv64_blt(rs1, rs2, offset); break;
     case RELOP_GE:  rv64_bge(rs1, rs2, offset); break;
-    case RELOP_LTU: rv64_bltu(rs1, rs2, offset); return;
-    case RELOP_GEU: rv64_bgeu(rs1, rs2, offset); return;
+    case RELOP_LTU: rv64_bltu(rs1, rs2, offset); break;
+    case RELOP_GEU: rv64_bgeu(rs1, rs2, offset); break;
 
     case RELOP_LE:  rv64_bge(rs2, rs1, offset); break;
     case RELOP_GT:  rv64_blt(rs2, rs1, offset); break;
