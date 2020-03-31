@@ -92,57 +92,37 @@ static inline make_EHelper(neg) {
 }
 
 static inline make_EHelper(adc) {
-  // s0 = dest + src
-  rtl_add(s, s0, ddest, dsrc1);
-  // s1 = s0 + CF
   rtl_get_CF(s, s1);
-  rtl_add(s, s1, s0, s1);
-
-  operand_write(s, id_dest, s1);
+  rtl_add(s, s0, dsrc1, s0);
+  rtl_add(s, s1, ddest, s0);
 
   if (id_dest->width != 4) {
     rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
   }
-
   rtl_update_ZFSF(s, s1, id_dest->width);
-
-  // update CF
-  rtl_is_add_carry(s, s1, s1, s0);
-  rtl_is_add_carry(s, s0, s0, ddest);
-  rtl_or(s, s0, s0, s1);
-  rtl_set_CF(s, s0);
-
-  // update OF
-  rtl_is_add_overflow(s, s0, s1, ddest, dsrc1, id_dest->width);
+  rtl_is_add_overflow(s, s0, s1, ddest, s0, id_dest->width);
   rtl_set_OF(s, s0);
+  rtl_is_add_carry(s, s0, s1, ddest);
+  rtl_set_CF(s, s0);
+  operand_write(s, id_dest, s1);
 
   print_asm_template2(adc);
 }
 
 static inline make_EHelper(sbb) {
-  // s0 = dest - src
-  rtl_sub(s, s0, ddest, dsrc1);
-  // s1 = s0 - CF
-  rtl_get_CF(s, s1);
-  rtl_sub(s, s1, s0, s1);
-
-  operand_write(s, id_dest, s1);
+  rtl_get_CF(s, s0);
+  rtl_add(s, s0, dsrc1, s0);
+  rtl_sub(s, s1, ddest, s0);
 
   if (id_dest->width != 4) {
     rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
   }
-
   rtl_update_ZFSF(s, s1, id_dest->width);
-
-  // update CF
-  rtl_is_sub_carry(s, s1, s1, s0);
-  rtl_is_sub_carry(s, s0, s0, ddest);
-  rtl_or(s, s0, s0, s1);
-  rtl_set_CF(s, s0);
-
-  // update OF
-  rtl_is_sub_overflow(s, s0, s1, ddest, dsrc1, id_dest->width);
+  rtl_is_sub_overflow(s, s0, s1, ddest, s0, id_dest->width);
   rtl_set_OF(s, s0);
+  rtl_is_sub_carry(s, s0, s1, ddest);
+  rtl_set_CF(s, s0);
+  operand_write(s, id_dest, s1);
 
   print_asm_template2(sbb);
 }
