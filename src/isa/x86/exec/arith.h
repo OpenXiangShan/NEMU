@@ -131,7 +131,7 @@ static inline make_EHelper(sbb) {
   rtl_sub(s, s1, ddest, s0);
 
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s1, s0, ddest, LAZYCC_SBB, id_dest->width);
+  rtl_set_lazycc(s, s1, ddest, s0, LAZYCC_SBB, id_dest->width);
 #else
   if (id_dest->width != 4) {
     rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
