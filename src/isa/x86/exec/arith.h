@@ -1,8 +1,6 @@
 static inline make_EHelper(add) {
 //  TODO();
   rtl_add(s, s0, ddest, dsrc1);
-  operand_write(s, id_dest, s0);
-
   rtl_update_ZFSF(s, s0, id_dest->width);
 
   if (id_dest->width != 4) {
@@ -12,6 +10,8 @@ static inline make_EHelper(add) {
   rtl_set_CF(s, s1);
   rtl_is_add_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
   rtl_set_OF(s, s1);
+
+  operand_write(s, id_dest, s0);
 
   print_asm_template2(add);
 }
@@ -51,12 +51,12 @@ static inline make_EHelper(cmp) {
 static inline make_EHelper(inc) {
 //  TODO();
   rtl_addi(s, s0, ddest, 1);
-  operand_write(s, id_dest, s0);
-
   rtl_update_ZFSF(s, s0, id_dest->width);
 
   rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x80000000);
   rtl_set_OF(s, s1);
+
+  operand_write(s, id_dest, s0);
 
   print_asm_template1(inc);
 }
@@ -64,12 +64,13 @@ static inline make_EHelper(inc) {
 static inline make_EHelper(dec) {
 //  TODO();
   rtl_subi(s, s0, ddest, 1);
-  operand_write(s, id_dest, s0);
 
   rtl_update_ZFSF(s, s0, id_dest->width);
 
   rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x7fffffff);
   rtl_set_OF(s, s1);
+
+  operand_write(s, id_dest, s0);
 
   print_asm_template1(dec);
 }
