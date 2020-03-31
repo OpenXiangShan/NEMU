@@ -1,6 +1,8 @@
 #ifndef __ISA_X86_H__
 #define __ISA_X86_H__
 
+#define LAZY_CC
+
 #include <common.h>
 
 // memory
@@ -59,6 +61,12 @@ typedef struct {
   uint16_t cs;
 
   rtlreg_t OF, CF, SF, ZF, IF;
+
+#ifdef LAZY_CC
+  rtlreg_t cc_dest, cc_src1, cc_src2;
+  uint32_t cc_width;
+  uint32_t cc_op;
+#endif
 
   struct {
     uint32_t limit :16;
