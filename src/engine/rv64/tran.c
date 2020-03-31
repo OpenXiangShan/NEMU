@@ -22,6 +22,7 @@ typedef struct TB {
   vaddr_t npc;
   void *code;
   uint32_t nr_instr;
+  uint32_t guest_nr_instr;
   uint32_t hit_time;
   struct TB *next;
 } TB;
@@ -92,9 +93,11 @@ void mainloop() {
     if (tb == NULL) {
       clear_trans_buffer();
       tran_next_pc = NEXT_PC_SEQ;
+      int guest_nr_instr = 0;
       while (1) {
         __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
         __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
+        guest_nr_instr ++;
 
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
@@ -110,6 +113,7 @@ void mainloop() {
           tb = malloc(sizeof(TB));
           tb->pc = tb_start;
           tb->nr_instr = trans_buffer_index;
+          tb->guest_nr_instr = guest_nr_instr;
           tb->code = malloc(tb->nr_instr * 4);
           memcpy(tb->code, trans_buffer, tb->nr_instr * 4);
           tb->npc_type = tran_next_pc;
@@ -152,7 +156,8 @@ void mainloop() {
   TB **top = find_top10_tb();
   int i;
   for (i = 0; i < 10; i ++) {
-    printf("%d: pc = " FMT_WORD ", hit time = %d\n", i + 1, top[i]->pc, top[i]->hit_time);
+    printf("%2d: pc = " FMT_WORD "(instr: %d -> %d), \thit time = %d\n",
+        i + 1, top[i]->pc, top[i]->guest_nr_instr, top[i]->nr_instr, top[i]->hit_time);
   }
 
   switch (nemu_state.state) {
