@@ -111,9 +111,11 @@ static inline make_EHelper(shld) {
   rtl_andi(s, dsrc1, dsrc1, 31);
   rtl_shl(s, s0, ddest, dsrc1);
 
-  rtl_li(s, s1, 32);
+  rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc1);
+  // shift twice to deal with dsrc1 = 0
   rtl_shr(s, s1, dsrc2, s1);
+  rtl_shri(s, s1, s1, 1);
 
   rtl_or(s, s0, s0, s1);
 
@@ -127,9 +129,11 @@ static inline make_EHelper(shrd) {
   rtl_andi(s, dsrc1, dsrc1, 31);
   rtl_shr(s, s0, ddest, dsrc1);
 
-  rtl_li(s, s1, 32);
+  rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc1);
+  // shift twice to deal with dsrc1 = 0
   rtl_shl(s, s1, dsrc2, s1);
+  rtl_shli(s, s1, s1, 1);
 
   rtl_or(s, s0, s0, s1);
 
