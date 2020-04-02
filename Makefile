@@ -46,6 +46,14 @@ QEMU_SO = $(QEMU_DIFF_PATH)/build/$(ISA)-qemu-so
 $(QEMU_SO):
 	$(MAKE) -C $(QEMU_DIFF_PATH)
 
+KVM_DIFF_PATH = $(NEMU_HOME)/tools/kvm-diff
+KVM_SO = $(KVM_DIFF_PATH)/build/$(ISA)-kvm-so
+
+$(KVM_SO):
+	$(MAKE) -C $(KVM_DIFF_PATH)
+
+DIFF_REF_SO = $(KVM_SO)
+
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
 SRCS += $(shell find src/isa/$(ISA) -name "*.c")
@@ -64,11 +72,11 @@ $(OBJ_DIR)/%.o: src/%.c
 
 # Some convenient rules
 
-.PHONY: app run gdb clean run-env $(QEMU_SO)
+.PHONY: app run gdb clean run-env $(DIFF_REF_SO)
 app: $(BINARY)
 
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
-override ARGS += --diff=$(QEMU_SO)
+override ARGS += --diff=$(DIFF_REF_SO)
 
 # Command to execute NEMU
 IMG :=
@@ -79,7 +87,7 @@ $(BINARY): $(OBJS)
 	@echo + LD $@
 	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl
 
-run-env: $(BINARY) $(QEMU_SO)
+run-env: $(BINARY) $(DIFF_REF_SO)
 
 run: run-env
 	$(call git_commit, "run")
