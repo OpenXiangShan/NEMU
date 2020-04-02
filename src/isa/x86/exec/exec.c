@@ -99,10 +99,6 @@ static inline make_EHelper(2byte_esc) {
 }
 
 static inline void exec(DecodeExecState *s) {
-#ifdef USE_KVM
-  extern void kvm_exec(void);
-  kvm_exec();
-#else
   uint8_t opcode;
 again:
   opcode = instr_fetch(&s->seq_pc, 1);
@@ -178,10 +174,15 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
   case 0x66: s->isa.is_operand_size_16 = true; goto again;
   default: exec_inv(s);
   }
-#endif
 }
 
+//#define USE_KVM
 vaddr_t isa_exec_once() {
+#ifdef USE_KVM
+  extern void kvm_exec(void);
+  kvm_exec();
+  return 0;
+#endif
   DecodeExecState s;
   s.is_jmp = 0;
   s.isa = (ISADecodeInfo) { 0 };
