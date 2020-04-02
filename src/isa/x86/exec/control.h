@@ -10,8 +10,12 @@ static inline make_EHelper(jmp) {
 static inline make_EHelper(jcc) {
   // the target address is calculated at the decode stage
   uint32_t cc = s->opcode & 0xf;
+#ifdef LAZY_CC
+  rtl_lazy_jcc(s, cc);
+#else
   rtl_setcc(s, s0, cc);
   rtl_jrelop(s, RELOP_NE, s0, rz, s->jmp_pc);
+#endif
 
   print_asm("j%s %x", get_cc_name(cc), s->jmp_pc);
 }

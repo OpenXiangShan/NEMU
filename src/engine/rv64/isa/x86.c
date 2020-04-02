@@ -22,10 +22,16 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   CASE(&id_src2->val, 8)
   CASE(&id_dest->val, 9)
   CASE(&s->isa.mbr, 10)
+#ifdef LAZY_CC
+  CASE(&cpu.cc_dest, 13)
+  CASE(&cpu.cc_src1, 14)
+  CASE(&cpu.cc_src2, 15)
+#else
   CASE(&cpu.CF, 13)
   CASE(&cpu.OF, 14)
   CASE(&cpu.ZF, 15)
   CASE(&cpu.SF, 1)
+#endif
   panic("bad ptr = %p", dest);
 }
 
