@@ -4,7 +4,7 @@
 static inline void and_internal(DecodeExecState *s) {
   rtl_and(s, s0, ddest, dsrc1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, dsrc1, ddest, LAZYCC_LOGIC, id_dest->width);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_mv(s, &cpu.CF, rz);
@@ -26,7 +26,7 @@ static inline make_EHelper(and) {
 static inline make_EHelper(xor) {
   rtl_xor(s, s0, ddest, dsrc1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, dsrc1, ddest, LAZYCC_LOGIC, id_dest->width);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_mv(s, &cpu.CF, rz);
@@ -39,7 +39,7 @@ static inline make_EHelper(xor) {
 static inline make_EHelper(or) {
   rtl_or(s, s0, ddest, dsrc1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, dsrc1, ddest, LAZYCC_LOGIC, id_dest->width);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_mv(s, &cpu.CF, rz);

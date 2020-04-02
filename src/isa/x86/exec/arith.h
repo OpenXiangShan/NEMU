@@ -4,7 +4,7 @@ static inline make_EHelper(add) {
 //  TODO();
   rtl_add(s, s0, ddest, dsrc1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, dsrc1, ddest, LAZYCC_ADD, id_dest->width);
+  rtl_set_lazycc(s, s0, ddest, NULL, LAZYCC_ADD, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   if (id_dest->width != 4) {
@@ -24,7 +24,7 @@ static inline void cmp_internal(DecodeExecState *s) {
   rtl_sub(s, s0, ddest, dsrc1);
 
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, ddest, dsrc1, LAZYCC_SUB, id_dest->width);
+  rtl_set_lazycc(s, s0, ddest, NULL, LAZYCC_SUB, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
 
@@ -56,7 +56,7 @@ static inline make_EHelper(inc) {
 //  TODO();
   rtl_addi(s, s0, ddest, 1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, ddest, NULL, LAZYCC_INC, id_dest->width);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_INC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x80000000);
@@ -70,7 +70,7 @@ static inline make_EHelper(dec) {
 //  TODO();
   rtl_subi(s, s0, ddest, 1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, ddest, NULL, LAZYCC_DEC, id_dest->width);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_DEC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x7fffffff);
@@ -84,7 +84,7 @@ static inline make_EHelper(neg) {
 //  TODO();
   rtl_sub(s, s0, rz, ddest);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, NULL, ddest, LAZYCC_NEG, id_dest->width);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_NEG, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_setrelopi(s, RELOP_NE, s1, ddest, 0);

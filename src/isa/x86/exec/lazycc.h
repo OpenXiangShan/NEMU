@@ -33,13 +33,17 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
 
   switch (cpu.cc_op) {
     case LAZYCC_DEC:
-      rtl_li(s, &cpu.cc_src2, 1);
-      // fall through
+      if (cc2relop[cc] != -1) {
+        rtl_jrelop(s, cc2relop[cc], &cpu.cc_dest, rz, s->jmp_pc);
+        return;
+      }
+      break;
     case LAZYCC_SBB: // FIXME: should consider CF
     case LAZYCC_SUB:
       if (cc2relop[cc] != -1) {
         //Log("cc = %d, src1 = 0x%x, src2 = 0x%x", cc, cpu.cc_src1, cpu.cc_src2);
-        rtl_jrelop(s, cc2relop[cc], &cpu.cc_src1, &cpu.cc_src2, s->jmp_pc);
+        rtl_sub(s, t0, &cpu.cc_src1, &cpu.cc_dest);
+        rtl_jrelop(s, cc2relop[cc], &cpu.cc_src1, t0, s->jmp_pc);
         return;
       }
       break;
@@ -59,7 +63,8 @@ static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
   switch (cpu.cc_op) {
     case LAZYCC_SUB:
       if (cc2relop[cc] != -1) {
-        rtl_setrelop(s, cc2relop[cc], dest, &cpu.cc_src1, &cpu.cc_src2);
+        rtl_sub(s, t0, &cpu.cc_src1, &cpu.cc_dest);
+        rtl_setrelop(s, cc2relop[cc], dest, &cpu.cc_src1, t0);
         return;
       }
       break;
