@@ -15,7 +15,7 @@ static inline void set_width(DecodeExecState *s, int width) {
 #define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
 #define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)
 #define EX(idx, ex)           EXW(idx, ex, 0)
-#define EMPTY(idx)            //EX(idx, inv)
+#define EMPTY(idx)            EX(idx, inv)
 
 #define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
@@ -30,8 +30,8 @@ static inline make_EHelper(gp1) {
 /* 0xc0, 0xc1, 0xd0, 0xd1, 0xd2, 0xd3 */
 static inline make_EHelper(gp2) {
   switch (s->isa.ext_opcode) {
-    EX(0x00, rol) EMPTY(0x01)      EMPTY(0x02) EMPTY(0x03)
-    EX(0x04, shl) EX   (0x05, shr) EMPTY(0x06) EX   (0x07, sar)
+    EX(0x00, rol) EX(0x01, ror) EMPTY(0x02) EMPTY(0x03)
+    EX(0x04, shl) EX(0x05, shr) EMPTY(0x06) EX   (0x07, sar)
   }
 }
 

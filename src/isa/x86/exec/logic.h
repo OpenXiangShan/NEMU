@@ -78,6 +78,19 @@ static inline make_EHelper(rol) {
   print_asm_template2(rol);
 }
 
+static inline make_EHelper(ror) {
+  rtl_shr(s, s0, ddest, dsrc1);
+  rtl_li(s, s1, id_dest->width * 8);
+  rtl_sub(s, s1, s1, dsrc1);
+  rtl_shl(s, s1, ddest, s1);
+  rtl_or(s, s1, s0, s1);
+
+  operand_write(s, id_dest, s1);
+  // unnecessary to update eflags in NEMU
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
+  print_asm_template2(ror);
+}
+
 static inline make_EHelper(setcc) {
   uint32_t cc = s->opcode & 0xf;
 
