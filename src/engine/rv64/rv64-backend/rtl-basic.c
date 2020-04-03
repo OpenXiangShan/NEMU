@@ -5,6 +5,9 @@
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
 uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest);
+#ifdef REG_SPILLING
+uint32_t reg_ptr2tmpidx(DecodeExecState *s, const rtlreg_t* dest);
+#endif
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
   // mask32 is set during initialization
@@ -370,7 +373,7 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
 
 make_rtl(kill, const rtlreg_t* src1) {
 #ifdef REG_SPILLING
-  uint32_t rs1 = reg_ptr2idx(s, src1);
-  spill_clean(rs1);
+  uint32_t tmpidx = reg_ptr2tmpidx(s, src1);
+  spill_clean(tmpidx);
 #endif
 }

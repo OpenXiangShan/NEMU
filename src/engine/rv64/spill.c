@@ -7,7 +7,6 @@
 
 Tmp_reg tmp_regs[TMP_REG_NUM];
 Tmp_reg spill_tmp_reg;
-uint32_t tmp_regs_ptr;
 
 static inline bool load_imm_big(uint32_t r, const uint32_t imm) {
   RV_IMM rv_imm = { .val = imm };
@@ -31,7 +30,6 @@ void tmp_regs_init() {
     } else {
         panic("Other TMP_REG_NUM!\n");
     }
-    tmp_regs_ptr = 0;
     spill_tmp_reg.idx = 25;
     spill_tmp_reg.map_ptr = 2;
 }
@@ -49,37 +47,36 @@ uint32_t check_tmp_reg(uint32_t tmp_idx) {
 uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
     uint32_t addr;
 
-    tmp_regs_ptr = 666;
+    uint32_t ptr = TMP_REG_MAX;
     for (int i = 0; i < TMP_REG_NUM; i++) {
         if (tmp_regs[i].used == 0) {
-            tmp_regs_ptr = i;
+            ptr = i;
             break;
         }
     }
-    if (tmp_regs_ptr == 666) {
+    if (ptr == TMP_REG_MAX) {
         panic("no clean tmp_regs!\n");
     }
 
-    addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[tmp_regs_ptr].map_ptr);
+    addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[ptr].map_ptr);
     load_imm_big(spill_tmp_reg.idx, addr);
-    rv64_sw(tmp_regs[tmp_regs_ptr].idx, spill_tmp_reg.idx, 0);
+    rv64_sw(tmp_regs[ptr].idx, spill_tmp_reg.idx, 0);
     
     addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_idx);
     load_imm_big(spill_tmp_reg.idx, addr);
-    rv64_lw(tmp_regs[tmp_regs_ptr].idx, spill_tmp_reg.idx, 0);
+    rv64_lw(tmp_regs[ptr].idx, spill_tmp_reg.idx, 0);
 
-    tmp_regs[tmp_regs_ptr].map_ptr = tmp_idx;
-    tmp_regs[tmp_regs_ptr].used = 1;
+    tmp_regs[ptr].map_ptr = tmp_idx;
+    tmp_regs[ptr].used = 1;
 
-    return tmp_regs[tmp_regs_ptr].idx;
+    return tmp_regs[ptr].idx;
 }
 
-void spill_clean(uint32_t idx) {
+void spill_clean(uint32_t tmp_idx) {
     for (int i = 0; i < TMP_REG_NUM; i++) {
-        if (tmp_regs[i].idx == idx) {
+        if (tmp_regs[i].map_ptr == tmp_idx) {
             tmp_regs[i].used = 0;
             return;
         }
     }
-    // no need to clean if goes here
 }

@@ -7,6 +7,33 @@
 #include "../tran.h"
 #include "../spill.h"
 
+uint32_t reg_ptr2tmpidx(DecodeExecState *s, const rtlreg_t* dest) {
+  rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
+  rtlreg_t* gpr_end = (void *)gpr_start + sizeof(cpu.gpr);
+
+  if (dest >= gpr_start && dest < gpr_end) {
+    int idx = dest - gpr_start;
+    switch (idx) {
+      case 1:  return 1; break;   // fixed to tmp0
+      case 25: return 2; break;   // used to store sratchpad addr
+      case 26: return 3; break;   // tmp_reg 1
+      case 27: return 4; break;   // tmp_reg 2
+      case 28: return 5; break;   // fixed to mask32
+      default: return 0;
+    }
+  }
+  if (dest == rz) return 0;
+
+  // other temps
+  if (dest == &cpu.lo) return 6;
+  if (dest == &cpu.hi) return 7;
+  if (dest == s0)      return 8;
+  if (dest == s1)      return 9;
+
+  panic("bad ptr = %p", dest);
+  return 0;
+}
+
 uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
   rtlreg_t* gpr_end = (void *)gpr_start + sizeof(cpu.gpr);
