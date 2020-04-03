@@ -50,6 +50,20 @@ static void kvm_setregs(const struct kvm_regs *r) {
   kvm_set_step_mode();
 }
 
+static void kvm_getsregs(struct kvm_sregs *r) {
+  if (ioctl(vcpu.fd, KVM_GET_SREGS, r) < 0) {
+    perror("KVM_GET_SREGS");
+    assert(0);
+  }
+}
+
+static void kvm_setsregs(const struct kvm_sregs *r) {
+  if (ioctl(vcpu.fd, KVM_SET_SREGS, r) < 0) {
+    perror("KVM_SET_SREGS");
+    assert(0);
+  }
+}
+
 static void vm_init(size_t mem_size) {
   int api_ver;
   struct kvm_userspace_memory_region memreg;
@@ -126,6 +140,23 @@ static void vcpu_init() {
   }
 }
 
+static uint8_t mbr[] = {
+  // start32:
+  0x0f, 0x01, 0x15, 0x28, 0x7c, 0x00, 0x00,  // lgdtl 0x7c28
+  0xea, 0x0e, 0x7c, 0x00, 0x00, 0x08, 0x00,  // ljmp $0x8, 0x7c0e
+
+  // here:
+  0xeb, 0xfe,  // jmp here
+
+  // GDT
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xff, 0xff, 0x00, 0x00, 0x00, 0x9a, 0xcf, 0x00,
+  0xff, 0xff, 0x00, 0x00, 0x00, 0x92, 0xcf, 0x00,
+
+  // GDT descriptor
+  0x17, 0x00, 0x10, 0x7c, 0x00, 0x00
+};
+
 static void setup_protected_mode(struct kvm_sregs *sregs) {
   struct kvm_segment seg = {
     .base = 0,
@@ -149,28 +180,6 @@ static void setup_protected_mode(struct kvm_sregs *sregs) {
   sregs->ds = sregs->es = sregs->fs = sregs->gs = sregs->ss = seg;
 }
 
-static void run_protected_mode() {
-  struct kvm_sregs sregs;
-
-  if (ioctl(vcpu.fd, KVM_GET_SREGS, &sregs) < 0) {
-    perror("KVM_GET_SREGS");
-    assert(0);
-  }
-
-  setup_protected_mode(&sregs);
-
-  if (ioctl(vcpu.fd, KVM_SET_SREGS, &sregs) < 0) {
-    perror("KVM_SET_SREGS");
-    assert(0);
-  }
-
-  struct kvm_regs regs;
-  memset(&regs, 0, sizeof(regs));
-  regs.rflags = 2;
-  regs.rip = x86_IMAGE_START;
-  kvm_setregs(&regs);
-}
-
 static void kvm_exec(uint64_t n) {
   struct kvm_regs regs;
 
@@ -192,6 +201,25 @@ static void kvm_exec(uint64_t n) {
       assert(0);
     }
   }
+}
+
+static void run_protected_mode() {
+  struct kvm_sregs sregs;
+  kvm_getsregs(&sregs);
+  setup_protected_mode(&sregs);
+  kvm_setsregs(&sregs);
+
+  memcpy(vm.mem + 0x7c00, mbr, sizeof(mbr));
+
+  struct kvm_regs regs;
+  memset(&regs, 0, sizeof(regs));
+  regs.rflags = 2;
+  regs.rip = 0x7c00;
+  // this will also set KVM_GUESTDBG_ENABLE
+  kvm_setregs(&regs);
+
+  // run enough instructions to load GDT
+  kvm_exec(10);
 }
 
 void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
