@@ -23,15 +23,19 @@ void write_ins(uint32_t ins) {
 }
 
 void mainloop() {
+#ifdef REG_SPILLING
   tmp_regs_init();
+#endif
   nemu_state.state = NEMU_RUNNING;
   uint64_t total_instr = 0;
   while (1) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
     __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
+#ifdef REG_SPILLING
     for (int i = 0; i < TMP_REG_NUM; i++) {
       tmp_regs[i].used = 0;
     }
+#endif
 
     if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 

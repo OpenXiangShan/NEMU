@@ -369,6 +369,8 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
 }
 
 make_rtl(kill, const rtlreg_t* src1) {
+#ifdef REG_SPILLING
   uint32_t rs1 = reg_ptr2idx(s, src1);
   spill_clean(rs1);
+#endif
 }
