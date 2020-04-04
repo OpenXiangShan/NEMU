@@ -10,6 +10,7 @@
 
 /* CR0 bits */
 #define CR0_PE 1u
+#define CR0_PG (1u << 31)
 
 struct vm {
   int sys_fd;
@@ -149,7 +150,7 @@ static void vcpu_init() {
     assert(0);
   }
 
-  vcpu.kvm_run->kvm_valid_regs = KVM_SYNC_X86_REGS;
+  vcpu.kvm_run->kvm_valid_regs = KVM_SYNC_X86_REGS | KVM_SYNC_X86_SREGS;
   vcpu.int_wp_state = STATE_IDLE;
 }
 
@@ -212,11 +213,17 @@ static void kvm_exec(uint64_t n) {
     } else {
       switch (vcpu.int_wp_state) {
         case STATE_IDLE:
-          if (vm.mem[vcpu.kvm_run->debug.arch.pc] == 0xcd) {
-            struct kvm_sregs sregs;
-            kvm_getsregs(&sregs);
-            uint8_t nr = vm.mem[vcpu.kvm_run->debug.arch.pc + 1];
-            uint32_t pgate = sregs.idt.base + nr * 8;
+          ; uint32_t pc;
+          if (vcpu.kvm_run->s.regs.sregs.cr0 & CR0_PG) {
+            struct kvm_translation t = { .linear_address = vcpu.kvm_run->debug.arch.pc };
+            int ret = ioctl(vcpu.fd, KVM_TRANSLATE, &t);
+            assert(ret == 0);
+            assert(t.valid);
+            pc = t.physical_address;
+          } else pc = vcpu.kvm_run->debug.arch.pc;
+          if (vm.mem[pc] == 0xcd) {
+            uint8_t nr = vm.mem[pc + 1];
+            uint32_t pgate = vcpu.kvm_run->s.regs.sregs.idt.base + nr * 8;
             // assume code.base = 0
             uint32_t entry = vm.mem[pgate] | (vm.mem[pgate + 1] << 8) |
               (vm.mem[pgate + 6] << 16) | (vm.mem[pgate + 7] << 24);
