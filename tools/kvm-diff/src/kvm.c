@@ -14,12 +14,19 @@
 struct vm {
   int sys_fd;
   int fd;
-  char *mem;
+  uint8_t *mem;
 };
 
 struct vcpu {
   int fd;
   struct kvm_run *kvm_run;
+  int int_wp_state;
+  uint32_t entry;
+};
+
+enum {
+  STATE_IDLE,      // if encounter an int instruction, then set watchpoint
+  STATE_INT_INSTR, // if hit the watchpoint, then delete the watchpoint
 };
 
 static struct vm vm;
@@ -27,8 +34,11 @@ static struct vcpu vcpu;
 
 // This should be called everytime after KVM_SET_REGS.
 // It seems that KVM_SET_REGS will clean the state of single step.
-static void kvm_set_step_mode() {
-  struct kvm_guest_debug debug = { .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP };
+static void kvm_set_step_mode(bool watch, uint32_t watch_addr) {
+  struct kvm_guest_debug debug = {};
+  debug.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP | KVM_GUESTDBG_USE_HW_BP;
+  debug.arch.debugreg[0] = watch_addr;
+  debug.arch.debugreg[7] = (watch ? 0x1 : 0x0); // watch instruction fetch at `watch_addr`
   if (ioctl(vcpu.fd, KVM_SET_GUEST_DEBUG, &debug) < 0) {
     perror("KVM_SET_GUEST_DEBUG");
     assert(0);
@@ -47,7 +57,7 @@ static void kvm_setregs(const struct kvm_regs *r) {
     perror("KVM_SET_REGS");
     assert(0);
   }
-  kvm_set_step_mode();
+  kvm_set_step_mode(false, 0);
 }
 
 static void kvm_getsregs(struct kvm_sregs *r) {
@@ -138,9 +148,11 @@ static void vcpu_init() {
     perror("mmap kvm_run");
     assert(0);
   }
+
+  vcpu.int_wp_state = STATE_IDLE;
 }
 
-static uint8_t mbr[] = {
+static const uint8_t mbr[] = {
   // start32:
   0x0f, 0x01, 0x15, 0x28, 0x7c, 0x00, 0x00,  // lgdtl 0x7c28
   0xea, 0x0e, 0x7c, 0x00, 0x00, 0x08, 0x00,  // ljmp $0x8, 0x7c0e
@@ -181,8 +193,6 @@ static void setup_protected_mode(struct kvm_sregs *sregs) {
 }
 
 static void kvm_exec(uint64_t n) {
-  struct kvm_regs regs;
-
   for (; n > 0; n --) {
     if (ioctl(vcpu.fd, KVM_RUN, 0) < 0) {
       if (errno == EINTR) {
@@ -194,11 +204,36 @@ static void kvm_exec(uint64_t n) {
     }
 
     if (vcpu.kvm_run->exit_reason != KVM_EXIT_DEBUG) {
+      struct kvm_regs regs;
       kvm_getregs(&regs);
       fprintf(stderr,	"Got exit_reason %d at pc = 0x%llx,"
           " expected KVM_EXIT_HLT (%d)\n",
           vcpu.kvm_run->exit_reason, regs.rip, KVM_EXIT_HLT);
       assert(0);
+    } else {
+      switch (vcpu.int_wp_state) {
+        case STATE_IDLE:
+          if (vm.mem[vcpu.kvm_run->debug.arch.pc] == 0xcd) {
+            struct kvm_sregs sregs;
+            kvm_getsregs(&sregs);
+            uint8_t nr = vm.mem[vcpu.kvm_run->debug.arch.pc + 1];
+            uint32_t pgate = sregs.idt.base + nr * 8;
+            // assume code.base = 0
+            uint32_t entry = vm.mem[pgate] | (vm.mem[pgate + 1] << 8) |
+              (vm.mem[pgate + 6] << 16) | (vm.mem[pgate + 7] << 24);
+            kvm_set_step_mode(true, entry);
+            vcpu.int_wp_state = STATE_INT_INSTR;
+            vcpu.entry = entry;
+          }
+          break;
+        case STATE_INT_INSTR:
+          Assert(vcpu.entry == vcpu.kvm_run->debug.arch.pc, "entry not match");
+          kvm_set_step_mode(false, 0);
+          vcpu.int_wp_state = STATE_IDLE;
+          break;
+      }
+      //Log("exception = %d, pc = %llx, dr6 = %llx, dr7 = %llx", vcpu.kvm_run->debug.arch.exception,
+      //    vcpu.kvm_run->debug.arch.pc, vcpu.kvm_run->debug.arch.dr6, vcpu.kvm_run->debug.arch.dr7);
     }
   }
 }
@@ -209,8 +244,6 @@ static void run_protected_mode() {
   setup_protected_mode(&sregs);
   kvm_setsregs(&sregs);
 
-  memcpy(vm.mem + 0x7c00, mbr, sizeof(mbr));
-
   struct kvm_regs regs;
   memset(&regs, 0, sizeof(regs));
   regs.rflags = 2;
@@ -218,6 +251,7 @@ static void run_protected_mode() {
   // this will also set KVM_GUESTDBG_ENABLE
   kvm_setregs(&regs);
 
+  memcpy(vm.mem + 0x7c00, mbr, sizeof(mbr));
   // run enough instructions to load GDT
   kvm_exec(10);
 }
