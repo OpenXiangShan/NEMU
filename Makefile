@@ -26,6 +26,20 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
+DIFF ?= qemu
+ifeq ($(DIFF),qemu)
+DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-diff
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
+else ifeq ($(DIFF),kvm)
+ifneq ($(ISA),x86)
+$(error KVM is only supported with ISA=x86)
+endif
+DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
+else
+$(error invalid DIFF. Supported: qemu kvm)
+endif
+
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)-$(ENGINE)$(SO)
 BINARY ?= $(BUILD_DIR)/$(ISA)-$(NAME)-$(ENGINE)$(SO)
 
@@ -39,20 +53,6 @@ LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
-
-QEMU_DIFF_PATH = $(NEMU_HOME)/tools/qemu-diff
-QEMU_SO = $(QEMU_DIFF_PATH)/build/$(ISA)-qemu-so
-
-$(QEMU_SO):
-	$(MAKE) -C $(QEMU_DIFF_PATH)
-
-KVM_DIFF_PATH = $(NEMU_HOME)/tools/kvm-diff
-KVM_SO = $(KVM_DIFF_PATH)/build/$(ISA)-kvm-so
-
-$(KVM_SO):
-	$(MAKE) -C $(KVM_DIFF_PATH)
-
-DIFF_REF_SO = $(KVM_SO)
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
@@ -96,6 +96,9 @@ run: run-env
 gdb: run-env
 	$(call git_commit, "gdb")
 	gdb -s $(BINARY) --args $(NEMU_EXEC)
+
+$(DIFF_REF_SO):
+	$(MAKE) -C $(DIFF_REF_PATH)
 
 clean:
 	-rm -rf $(BUILD_DIR)
