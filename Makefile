@@ -26,6 +26,22 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
+DIFF ?= qemu
+ifeq ($(DIFF),qemu)
+DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-diff
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
+CFLAGS += -D__DIFF_REF_QEMU__
+else ifeq ($(DIFF),kvm)
+ifneq ($(ISA),x86)
+$(error KVM is only supported with ISA=x86)
+endif
+DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
+CFLAGS += -D__DIFF_REF_KVM__
+else
+$(error invalid DIFF. Supported: qemu kvm)
+endif
+
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)-$(ENGINE)$(SO)
 BINARY ?= $(BUILD_DIR)/$(ISA)-$(NAME)-$(ENGINE)$(SO)
 
@@ -39,12 +55,6 @@ LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
-
-QEMU_DIFF_PATH = $(NEMU_HOME)/tools/qemu-diff
-QEMU_SO = $(QEMU_DIFF_PATH)/build/$(ISA)-qemu-so
-
-$(QEMU_SO):
-	$(MAKE) -C $(QEMU_DIFF_PATH)
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
@@ -64,11 +74,11 @@ $(OBJ_DIR)/%.o: src/%.c
 
 # Some convenient rules
 
-.PHONY: app run gdb clean run-env $(QEMU_SO)
+.PHONY: app run gdb clean run-env $(DIFF_REF_SO)
 app: $(BINARY)
 
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
-override ARGS += --diff=$(QEMU_SO)
+override ARGS += --diff=$(DIFF_REF_SO)
 
 # Command to execute NEMU
 IMG :=
@@ -79,7 +89,7 @@ $(BINARY): $(OBJS)
 	@echo + LD $@
 	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl
 
-run-env: $(BINARY) $(QEMU_SO)
+run-env: $(BINARY) $(DIFF_REF_SO)
 
 run: run-env
 	$(call git_commit, "run")
@@ -88,6 +98,9 @@ run: run-env
 gdb: run-env
 	$(call git_commit, "gdb")
 	gdb -s $(BINARY) --args $(NEMU_EXEC)
+
+$(DIFF_REF_SO):
+	$(MAKE) -C $(DIFF_REF_PATH)
 
 clean:
 	-rm -rf $(BUILD_DIR)

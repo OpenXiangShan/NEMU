@@ -1,6 +1,7 @@
 #include <monitor/monitor.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#include <isa.h>
 
 #include <fcntl.h>
 #include <errno.h>
@@ -137,9 +138,13 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
 
         /* fall through */
       default:
-        fprintf(stderr,	"Got exit_reason %d,"
+        if (ioctl(vcpu->fd, KVM_GET_REGS, &regs) < 0) {
+          perror("KVM_GET_REGS");
+          assert(0);
+        }
+        fprintf(stderr,	"Got exit_reason %d at pc = 0x%llx,"
             " expected KVM_EXIT_HLT (%d)\n",
-            vcpu->kvm_run->exit_reason, KVM_EXIT_HLT);
+            vcpu->kvm_run->exit_reason, regs.rip, KVM_EXIT_HLT);
         assert(0);
     }
   }
@@ -187,7 +192,7 @@ int run_protected_mode(struct vm *vm, struct vcpu *vcpu) {
   memset(&regs, 0, sizeof(regs));
   /* Clear all FLAGS bits, except bit 1 which is always set. */
   regs.rflags = 2;
-  regs.rip = 0;
+  regs.rip = IMAGE_START;
 
   if (ioctl(vcpu->fd, KVM_SET_REGS, &regs) < 0) {
     perror("KVM_SET_REGS");
