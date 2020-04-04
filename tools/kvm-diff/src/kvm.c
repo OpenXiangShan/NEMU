@@ -45,7 +45,7 @@ static void kvm_set_step_mode(bool watch, uint32_t watch_addr) {
   }
 }
 
-static void kvm_getregs(struct kvm_regs *r) {
+static inline void kvm_getregs(struct kvm_regs *r) {
   if (ioctl(vcpu.fd, KVM_GET_REGS, r) < 0) {
     perror("KVM_GET_REGS");
     assert(0);
@@ -149,6 +149,7 @@ static void vcpu_init() {
     assert(0);
   }
 
+  vcpu.kvm_run->kvm_valid_regs = KVM_SYNC_X86_REGS;
   vcpu.int_wp_state = STATE_IDLE;
 }
 
@@ -204,11 +205,9 @@ static void kvm_exec(uint64_t n) {
     }
 
     if (vcpu.kvm_run->exit_reason != KVM_EXIT_DEBUG) {
-      struct kvm_regs regs;
-      kvm_getregs(&regs);
       fprintf(stderr,	"Got exit_reason %d at pc = 0x%llx,"
           " expected KVM_EXIT_HLT (%d)\n",
-          vcpu.kvm_run->exit_reason, regs.rip, KVM_EXIT_HLT);
+          vcpu.kvm_run->exit_reason, vcpu.kvm_run->s.regs.regs.rip, KVM_EXIT_HLT);
       assert(0);
     } else {
       switch (vcpu.int_wp_state) {
@@ -261,37 +260,34 @@ void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
 }
 
 void difftest_getregs(void *r) {
-  struct kvm_regs regs;
-  kvm_getregs(&regs);
-
+  struct kvm_regs *ref = &(vcpu.kvm_run->s.regs.regs);
   x86_CPU_state *x86 = r;
-  x86->eax = regs.rax;
-  x86->ebx = regs.rbx;
-  x86->ecx = regs.rcx;
-  x86->edx = regs.rdx;
-  x86->esp = regs.rsp;
-  x86->ebp = regs.rbp;
-  x86->esi = regs.rsi;
-  x86->edi = regs.rdi;
-  x86->pc  = regs.rip;
+  x86->eax = ref->rax;
+  x86->ebx = ref->rbx;
+  x86->ecx = ref->rcx;
+  x86->edx = ref->rdx;
+  x86->esp = ref->rsp;
+  x86->ebp = ref->rbp;
+  x86->esi = ref->rsi;
+  x86->edi = ref->rdi;
+  x86->pc  = ref->rip;
 }
 
 void difftest_setregs(const void *r) {
-  struct kvm_regs regs;
-  kvm_getregs(&regs);
-
+  struct kvm_regs *ref = &(vcpu.kvm_run->s.regs.regs);
   const x86_CPU_state *x86 = r;
-  regs.rax = x86->eax;
-  regs.rbx = x86->ebx;
-  regs.rcx = x86->ecx;
-  regs.rdx = x86->edx;
-  regs.rsp = x86->esp;
-  regs.rbp = x86->ebp;
-  regs.rsi = x86->esi;
-  regs.rdi = x86->edi;
-  regs.rip = x86->pc;
+  ref->rax = x86->eax;
+  ref->rbx = x86->ebx;
+  ref->rcx = x86->ecx;
+  ref->rdx = x86->edx;
+  ref->rsp = x86->esp;
+  ref->rbp = x86->ebp;
+  ref->rsi = x86->esi;
+  ref->rdi = x86->edi;
+  ref->rip = x86->pc;
+  ref->rflags |= (1 << 8);
 
-  kvm_setregs(&regs);
+  vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
 }
 
 void difftest_exec(uint64_t n) {
