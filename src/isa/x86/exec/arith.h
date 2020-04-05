@@ -59,7 +59,7 @@ static inline make_EHelper(inc) {
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_INC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x80000000);
+  rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x1u << (id_dest->width * 8 - 1));
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, s0);
@@ -73,7 +73,7 @@ static inline make_EHelper(dec) {
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_DEC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x7fffffff);
+  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, s0);
@@ -89,7 +89,7 @@ static inline make_EHelper(neg) {
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_setrelopi(s, RELOP_NE, s1, ddest, 0);
   rtl_set_CF(s, s1);
-  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x80000000);
+  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, s0);
