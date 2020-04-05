@@ -98,9 +98,9 @@ static inline make_EHelper(neg) {
 
 static inline make_EHelper(adc) {
 #ifdef LAZY_CC
-  rtl_lazy_setcc(s, s1, CC_B); // reading CC_B is to read CF
+  rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
 #else
-  rtl_get_CF(s, s1);
+  rtl_get_CF(s, s0);
 #endif
   rtl_add(s, s0, dsrc1, s0);
   rtl_add(s, s1, ddest, s0);
