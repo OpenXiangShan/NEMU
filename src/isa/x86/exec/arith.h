@@ -112,10 +112,15 @@ static inline make_EHelper(adc) {
     rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
   }
   rtl_update_ZFSF(s, s1, id_dest->width);
-  rtl_is_add_overflow(s, s0, s1, ddest, s0, id_dest->width);
-  rtl_set_OF(s, s0);
-  rtl_is_add_carry(s, s0, s1, ddest);
+  // s1 = ddest + (dsrc1 + CF)
+  // new_CF = (CF ? s1 <= dsrc1 : s1 < dsrc1);
+  //        = (CF ? s1 < dsrc1 + 1 : s1 < dsrc1);
+  //        = s1 < dsrc1 + CF;
+  //        = s1 < s0;
+  rtl_setrelop(s, RELOP_LTU, s0, s1, s0);
   rtl_set_CF(s, s0);
+  rtl_is_add_overflow(s, s0, s1, ddest, dsrc1, id_dest->width);
+  rtl_set_OF(s, s0);
 #endif
   operand_write(s, id_dest, s1);
   print_asm_template2(adc);
@@ -137,10 +142,15 @@ static inline make_EHelper(sbb) {
     rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
   }
   rtl_update_ZFSF(s, s1, id_dest->width);
-  rtl_is_sub_overflow(s, s0, s1, ddest, s0, id_dest->width);
-  rtl_set_OF(s, s0);
-  rtl_is_sub_carry(s, s0, s1, ddest);
+  // s1 = ddest - (dsrc1 + CF)
+  // new_CF = (CF ? ddest <= dsrc1 : ddest < dsrc1);
+  //        = (CF ? ddest < dsrc1 + 1 : ddest < dsrc1);
+  //        = ddest < dsrc1 + CF;
+  //        = ddest < s0;
+  rtl_setrelop(s, RELOP_LTU, s0, ddest, s0);
   rtl_set_CF(s, s0);
+  rtl_is_sub_overflow(s, s0, s1, ddest, dsrc1, id_dest->width);
+  rtl_set_OF(s, s0);
 #endif
   operand_write(s, id_dest, s1);
   print_asm_template2(sbb);
