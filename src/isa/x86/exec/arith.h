@@ -101,7 +101,7 @@ static inline make_EHelper(adc) {
   rtl_add(s, s1, ddest, s0);
 
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s1, dsrc1, ddest, LAZYCC_ADC, id_dest->width);
+  rtl_set_lazycc(s, s1, s0, dsrc1, LAZYCC_ADC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s1, id_dest->width);
   rtl_is_add_overflow(s, s2, s1, ddest, dsrc1, id_dest->width);
@@ -128,7 +128,7 @@ static inline make_EHelper(sbb) {
   rtl_sub(s, s1, ddest, s0);
 
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s1, ddest, s0, LAZYCC_SBB, id_dest->width);
+  rtl_set_lazycc(s, s1, ddest, dsrc1, LAZYCC_SBB, id_dest->width);
 #else
   rtl_update_ZFSF(s, s1, id_dest->width);
   rtl_is_sub_overflow(s, s2, s1, ddest, dsrc1, id_dest->width);
