@@ -110,9 +110,9 @@ IDEXW(0x00, G2E, add, 1)    IDEX (0x01, G2E, add)       IDEXW(0x02, E2G, add, 1)
 EMPTY(0x04)                 IDEX (0x05, I2a, add)
 IDEXW(0x08, G2E, or, 1)     IDEX (0x09, G2E, or)        IDEXW(0x0a, E2G, or, 1)     IDEX (0x0b, E2G, or)
 IDEXW(0x0c, I2a, or, 1)     IDEX (0x0d, I2a, or)        EMPTY(0x0e)                 EX   (0x0f, 2byte_esc)
-IDEXW(0x10, G2E, adc, 1)    IDEX (0x11, G2E, adc)       EMPTY(0x12)                 IDEX (0x13, E2G, adc)
+IDEXW(0x10, G2E, adc, 1)    IDEX (0x11, G2E, adc)       IDEXW(0x12, E2G, adc, 1)    IDEX (0x13, E2G, adc)
 
-IDEXW(0x18, G2E, sbb, 1)    IDEX (0x19, G2E, sbb)       EMPTY(0x1a)                 IDEX (0x1b, E2G, sbb)
+IDEXW(0x18, G2E, sbb, 1)    IDEX (0x19, G2E, sbb)       IDEXW(0x1a, E2G, sbb, 1)    IDEX (0x1b, E2G, sbb)
 
 IDEXW(0x20, G2E, and, 1)    IDEX (0x21, G2E, and)       IDEXW(0x22, E2G, and, 1)    IDEX (0x23, E2G, and)
 IDEXW(0x24, I2a, and, 1)    IDEX (0x25, I2a, and)
