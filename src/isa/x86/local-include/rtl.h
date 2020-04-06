@@ -50,9 +50,9 @@ static inline make_rtl(is_sub_overflow, rtlreg_t* dest,
 }
 
 static inline make_rtl(is_sub_carry, rtlreg_t* dest,
-    const rtlreg_t* res, const rtlreg_t* src1) {
+    const rtlreg_t* src1, const rtlreg_t* src2) {
   // res = src1 - src2
-  rtl_setrelop(s, RELOP_LTU, dest, src1, res);
+  rtl_setrelop(s, RELOP_LTU, dest, src1, src2);
 }
 
 static inline make_rtl(is_add_overflow, rtlreg_t* dest,
@@ -64,7 +64,7 @@ static inline make_rtl(is_add_overflow, rtlreg_t* dest,
 static inline make_rtl(is_add_carry, rtlreg_t* dest,
     const rtlreg_t* res, const rtlreg_t* src1) {
   // res = src1 + src2
-  rtl_is_sub_carry(s, dest, src1, res);
+  rtl_is_sub_carry(s, dest, res, src1);
 }
 
 #define make_rtl_setget_eflags(f) \
