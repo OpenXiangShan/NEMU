@@ -27,8 +27,9 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
   if (cc2relop[cc] & UNARY) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
     rtlreg_t *p = &cpu.cc_dest;
-    if (cpu.cc_width != 4) {
-      rtl_shli(s, s2, &cpu.cc_dest, 32 - cpu.cc_width * 8);
+    int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
+    if (cpu.cc_width != 4 && !exception) {
+      rtl_shli(s, s2, p, 32 - cpu.cc_width * 8);
       p = s2;
     }
     rtl_jrelop(s, relop, p, rz, s->jmp_pc);
@@ -76,8 +77,9 @@ static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
   if (cc2relop[cc] & UNARY) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
     rtlreg_t *p = &cpu.cc_dest;
-    if (cpu.cc_width != 4) {
-      rtl_shli(s, dest, &cpu.cc_dest, 32 - cpu.cc_width * 8);
+    int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
+    if (cpu.cc_width != 4 && !exception) {
+      rtl_shli(s, dest, p, 32 - cpu.cc_width * 8);
       p = dest;
     }
     rtl_setrelop(s, relop, dest, p, rz);
