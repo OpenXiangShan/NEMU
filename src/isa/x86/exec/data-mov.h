@@ -12,8 +12,8 @@ static inline make_EHelper(push) {
 
 static inline make_EHelper(pop) {
 //  TODO();
-  rtl_pop(s, s0);
-  operand_write(s, id_dest, s0);
+  rtl_pop(s, ddest);
+  operand_write(s, id_dest, ddest);
 
   print_asm_template1(pop);
 }
@@ -84,8 +84,8 @@ static inline make_EHelper(cwtl) {
 
 static inline make_EHelper(movsx) {
   id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
-  rtl_sext(s, s0, dsrc1, id_src1->width);
-  operand_write(s, id_dest, s0);
+  rtl_sext(s, ddest, dsrc1, id_src1->width);
+  operand_write(s, id_dest, ddest);
   print_asm_template2(movsx);
 }
 
@@ -96,13 +96,16 @@ static inline make_EHelper(movzx) {
 }
 
 static inline make_EHelper(lea) {
-  rtl_addi(s, s0, s->isa.mbase, s->isa.moff);
-  operand_write(s, id_dest, s0);
+  rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
+  operand_write(s, id_dest, ddest);
   print_asm_template2(lea);
 }
 
 static inline make_EHelper(xchg) {
-  operand_write(s, id_dest, dsrc1);
-  operand_write(s, id_src1, ddest);
+  if (ddest != dsrc1) {
+    TODO(); // FIXME: should use temporal variable here
+    operand_write(s, id_dest, dsrc1);
+    operand_write(s, id_src1, ddest);
+  }
   print_asm_template2(xchg);
 }
