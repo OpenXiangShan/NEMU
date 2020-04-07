@@ -26,15 +26,19 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
-DIFF ?= qemu
+DIFF ?= kvm
+ifneq ($(ISA),x86)
+ifneq ($(DIFF),qemu)
+DIFF = qemu
+$(info KVM is only supported with ISA=x86, use QEMU instead)
+endif
+endif
+
 ifeq ($(DIFF),qemu)
 DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
 CFLAGS += -D__DIFF_REF_QEMU__
 else ifeq ($(DIFF),kvm)
-ifneq ($(ISA),x86)
-$(error KVM is only supported with ISA=x86)
-endif
 DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
 CFLAGS += -D__DIFF_REF_KVM__
