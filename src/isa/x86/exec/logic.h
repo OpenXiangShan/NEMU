@@ -50,8 +50,11 @@ static inline make_EHelper(or) {
 }
 
 static inline make_EHelper(sar) {
-  rtl_sext(s, s0, ddest, id_dest->width);
-  rtl_sar(s, ddest, s0, dsrc1);
+  // if ddest == dsrc1, rtl_sar() still only use the
+  // lower 5 bits of dsrc1, which do not change after
+  // rtl_sext(), and it is  still sematically correct
+  rtl_sext(s, ddest, ddest, id_dest->width);
+  rtl_sar(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 #ifndef LAZY_CC
   rtl_update_ZFSF(s, ddest, id_dest->width);
