@@ -103,9 +103,9 @@ static inline make_EHelper(lea) {
 
 static inline make_EHelper(xchg) {
   if (ddest != dsrc1) {
-    TODO(); // FIXME: should use temporal variable here
-    operand_write(s, id_dest, dsrc1);
+    rtl_mv(s, s0, dsrc1);
     operand_write(s, id_src1, ddest);
+    operand_write(s, id_dest, s0);
   }
   print_asm_template2(xchg);
 }
