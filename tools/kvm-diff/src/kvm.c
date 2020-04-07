@@ -16,6 +16,7 @@ struct vm {
   int sys_fd;
   int fd;
   uint8_t *mem;
+  uint8_t *mmio;
 };
 
 struct vcpu {
@@ -75,9 +76,31 @@ static void kvm_setsregs(const struct kvm_sregs *r) {
   }
 }
 
+static void* create_mem(int slot, uintptr_t base, size_t mem_size) {
+  void *mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
+      MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+  if (mem == MAP_FAILED) {
+    perror("mmap mem");
+    assert(0);
+  }
+
+  madvise(mem, mem_size, MADV_MERGEABLE);
+
+  struct kvm_userspace_memory_region memreg;
+  memreg.slot = slot;
+  memreg.flags = 0;
+  memreg.guest_phys_addr = base;
+  memreg.memory_size = mem_size;
+  memreg.userspace_addr = (unsigned long)mem;
+  if (ioctl(vm.fd, KVM_SET_USER_MEMORY_REGION, &memreg) < 0) {
+    perror("KVM_SET_USER_MEMORY_REGION");
+    assert(0);
+  }
+  return mem;
+}
+
 static void vm_init(size_t mem_size) {
   int api_ver;
-  struct kvm_userspace_memory_region memreg;
 
   vm.sys_fd = open("/dev/kvm", O_RDWR);
   if (vm.sys_fd < 0) {
@@ -108,24 +131,8 @@ static void vm_init(size_t mem_size) {
     assert(0);
   }
 
-  vm.mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
-      MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
-  if (vm.mem == MAP_FAILED) {
-    perror("mmap mem");
-    assert(0);
-  }
-
-  madvise(vm.mem, mem_size, MADV_MERGEABLE);
-
-  memreg.slot = 0;
-  memreg.flags = 0;
-  memreg.guest_phys_addr = 0;
-  memreg.memory_size = mem_size;
-  memreg.userspace_addr = (unsigned long)vm.mem;
-  if (ioctl(vm.fd, KVM_SET_USER_MEMORY_REGION, &memreg) < 0) {
-    perror("KVM_SET_USER_MEMORY_REGION");
-    assert(0);
-  }
+  vm.mem = create_mem(0, 0, mem_size);
+  vm.mmio = create_mem(1, 0xa1000000, 0x1000);
 }
 
 static void vcpu_init() {
