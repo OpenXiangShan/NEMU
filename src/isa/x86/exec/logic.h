@@ -140,12 +140,15 @@ static inline make_EHelper(not) {
 }
 
 static inline make_EHelper(shld) {
-  rtl_andi(s, dsrc1, dsrc1, 31);
+  assert(id_dest->width == 4);
   rtl_shl(s, s0, ddest, dsrc1);
 
   rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc1);
   // shift twice to deal with dsrc1 = 0
+  // the first shift is still right even if we do not
+  // mask out the high part of `dsrc1`, since we have
+  //   (31 - (dsrc1 & 0x1f)) = (31 - dsrc1 % 32) = (31 - dsrc1) mod 32
   rtl_shr(s, s1, dsrc2, s1);
   rtl_shri(s, s1, s1, 1);
 
@@ -160,12 +163,15 @@ static inline make_EHelper(shld) {
 }
 
 static inline make_EHelper(shrd) {
-  rtl_andi(s, dsrc1, dsrc1, 31);
+  assert(id_dest->width == 4);
   rtl_shr(s, s0, ddest, dsrc1);
 
   rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc1);
   // shift twice to deal with dsrc1 = 0
+  // the first shift is still right even if we do not
+  // mask out the high part of `dsrc1`, since we have
+  //   (31 - (dsrc1 & 0x1f)) = (31 - dsrc1 % 32) = (31 - dsrc1) mod 32
   rtl_shl(s, s1, dsrc2, s1);
   rtl_shli(s, s1, s1, 1);
 
