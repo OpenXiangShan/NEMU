@@ -24,9 +24,15 @@ static const int cc2relop [] = {
 };
 
 static inline make_rtl(lazy_jcc, uint32_t cc) {
-  if (cc2relop[cc] & UNARY) {
+  int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
+  if ((cc2relop[cc] & UNARY) && !exception) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
     rtlreg_t *p = &cpu.cc_dest;
+    if (cpu.cc_op == LAZYCC_SUB) {
+      // sub && (CC_S || CC_NS)
+      rtl_sub(s, s2, &cpu.cc_dest, &cpu.cc_src1);
+      p = s2;
+    }
     int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
     if (cpu.cc_width != 4 && !exception) {
       rtl_shli(s, s2, p, 32 - cpu.cc_width * 8);
@@ -55,9 +61,7 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
       break;
     case LAZYCC_SUB:
       if (cc2relop[cc] != 0) {
-        //Log("cc = %d, src1 = 0x%x, src2 = 0x%x", cc, cpu.cc_src1, cpu.cc_src2);
-        rtl_sub(s, t0, &cpu.cc_src1, &cpu.cc_dest);
-        rtl_jrelop(s, cc2relop[cc], &cpu.cc_src1, t0, s->jmp_pc);
+        rtl_jrelop(s, cc2relop[cc] & ~UNARY, &cpu.cc_dest, &cpu.cc_src1, s->jmp_pc);
         return;
       }
       break;
@@ -74,9 +78,15 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
 }
 
 static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
-  if (cc2relop[cc] & UNARY) {
+  int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
+  if ((cc2relop[cc] & UNARY) && !exception) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
     rtlreg_t *p = &cpu.cc_dest;
+    if (cpu.cc_op == LAZYCC_SUB) {
+      // sub && (CC_S || CC_NS)
+      rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
+      p = dest;
+    }
     int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
     if (cpu.cc_width != 4 && !exception) {
       rtl_shli(s, dest, p, 32 - cpu.cc_width * 8);
@@ -105,13 +115,12 @@ static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
       break;
     case LAZYCC_SUB:
       if (cc2relop[cc] != 0) {
-        rtl_sub(s, dest, &cpu.cc_src1, &cpu.cc_dest);
-        rtl_setrelop(s, cc2relop[cc], dest, &cpu.cc_src1, dest);
+        rtl_setrelop(s, cc2relop[cc] & ~UNARY, dest, &cpu.cc_dest, &cpu.cc_src1);
         return;
       }
       if (cc == CC_O) {
-        rtl_sub(s, dest, &cpu.cc_src1, &cpu.cc_dest);
-        rtl_is_sub_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
+        rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
+        rtl_is_sub_overflow(s, dest, dest, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
         return;
       }
       break;

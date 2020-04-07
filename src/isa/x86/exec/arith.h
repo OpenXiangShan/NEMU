@@ -23,7 +23,7 @@ static inline make_EHelper(add) {
 static inline void cmp_internal(DecodeExecState *s) {
   rtl_sub(s, s0, ddest, dsrc1);
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, ddest, NULL, LAZYCC_SUB, id_dest->width);
+  rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_is_sub_carry(s, s1, ddest, dsrc1);
