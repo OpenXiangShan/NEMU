@@ -6,6 +6,7 @@
 #include "tran.h"
 
 #define TOP_N 10
+//#define DUMP_RV64
 #define BUF_SIZE 13000 //8192
 
 uint32_t trans_buffer[BUF_SIZE] = {};
@@ -159,6 +160,12 @@ void mainloop() {
   for (i = 0; i < TOP_N; i ++) {
     printf("%3d: pc = " FMT_WORD "(instr: %d -> %d), \thit time = %d\n",
         i + 1, top[i]->pc, top[i]->guest_nr_instr, top[i]->nr_instr, top[i]->hit_time);
+#ifdef DUMP_RV64
+    int j;
+    for (j = 0; j < top[i]->nr_instr; j ++) {
+      printf("\t.word 0x%08x\n", ((uint32_t *)top[i]->code)[j]);
+    }
+#endif
   }
 
   switch (nemu_state.state) {
