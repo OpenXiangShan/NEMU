@@ -2,24 +2,31 @@
 
 // dest <- and result
 static inline void and_internal(DecodeExecState *s) {
-  rtl_and(s, ddest, ddest, dsrc1);
-#ifdef LAZY_CC
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
-#else
-  rtl_update_ZFSF(s, ddest, id_dest->width);
+  rtl_and(s, s0, ddest, dsrc1);
+  rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_mv(s, &cpu.CF, rz);
   rtl_mv(s, &cpu.OF, rz);
-#endif
 }
 
 static inline make_EHelper(test) {
+#ifdef LAZY_CC
+  rtl_and(s, s0, ddest, dsrc1);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
+#else
   and_internal(s);
+#endif
   print_asm_template2(test);
 }
 
 static inline make_EHelper(and) {
-  and_internal(s);
+#ifdef LAZY_CC
+  rtl_and(s, ddest, ddest, dsrc1);
+  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
   operand_write(s, id_dest, ddest);
+#else
+  and_internal(s);
+  operand_write(s, id_dest, s0);
+#endif
   print_asm_template2(and);
 }
 
