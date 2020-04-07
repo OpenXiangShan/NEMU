@@ -5,6 +5,7 @@
 #include <monitor/difftest.h>
 #include "tran.h"
 
+#define TOP_N 10
 #define BUF_SIZE 13000 //8192
 
 uint32_t trans_buffer[BUF_SIZE] = {};
@@ -37,36 +38,36 @@ static TB* find_tb(vaddr_t pc) {
   return NULL;
 }
 
-static int find_top10_min(TB **top, int n) {
+static int find_topn_min(TB **top) {
   int i;
   int min = 0;
-  for (i = 1; i < n; i ++) {
+  for (i = 1; i < TOP_N; i ++) {
     if (top[i]->hit_time < top[min]->hit_time) min = i;
   }
   return min;
 }
 
-static TB** find_top10_tb() {
-  static TB *top[10];
+static TB** find_topn_tb() {
+  static TB *top[TOP_N];
   TB *p = head.next;;
   int i;
-  for (i = 0; i < 10; i ++) {
-    assert(p != NULL);
+  for (i = 0; i < TOP_N; i ++) {
+    Assert(p != NULL, "i = %d", i);
     top[i] = p;
     p = p->next;
   }
-  int min = find_top10_min(top, 10);
+  int min = find_topn_min(top);
   for (; p != NULL; p = p->next) {
     if (p->hit_time > top[min]->hit_time) {
       top[min] = p;
-      min = find_top10_min(top, 10);
+      min = find_topn_min(top);
     }
   }
 
-  for (i = 0; i < 10; i ++) {
+  for (i = 0; i < TOP_N; i ++) {
     int max = i;
     int j;
-    for (j = i + 1; j < 10; j ++) {
+    for (j = i + 1; j < TOP_N; j ++) {
       if (top[max]->hit_time < top[j]->hit_time) max = j;
     }
     if (max != i) {
@@ -152,11 +153,11 @@ void mainloop() {
 #endif
   }
 
-  // display the top-10 hot basic block
-  TB **top = find_top10_tb();
+  // display the top-n hot basic block
+  TB **top = find_topn_tb();
   int i;
-  for (i = 0; i < 10; i ++) {
-    printf("%2d: pc = " FMT_WORD "(instr: %d -> %d), \thit time = %d\n",
+  for (i = 0; i < TOP_N; i ++) {
+    printf("%3d: pc = " FMT_WORD "(instr: %d -> %d), \thit time = %d\n",
         i + 1, top[i]->pc, top[i]->guest_nr_instr, top[i]->nr_instr, top[i]->hit_time);
   }
 
