@@ -22,16 +22,11 @@ static inline make_EHelper(add) {
 // dest <- sub result
 static inline void cmp_internal(DecodeExecState *s) {
   rtl_sub(s, s0, ddest, dsrc1);
-
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s0, ddest, NULL, LAZYCC_SUB, id_dest->width);
+  rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
-
-  if (id_dest->width != 4) {
-    rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - id_dest->width) * 8));
-  }
-  rtl_is_sub_carry(s, s1, s0, ddest);
+  rtl_is_sub_carry(s, s1, ddest, dsrc1);
   rtl_set_CF(s, s1);
   rtl_is_sub_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
   rtl_set_OF(s, s1);
@@ -59,7 +54,7 @@ static inline make_EHelper(inc) {
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_INC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x80000000);
+  rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x1u << (id_dest->width * 8 - 1));
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, s0);
@@ -73,7 +68,7 @@ static inline make_EHelper(dec) {
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_DEC, id_dest->width);
 #else
   rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_setrelopi(s, RELOP_EQ, s1, s0, 0x7fffffff);
+  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, s0);
@@ -89,7 +84,7 @@ static inline make_EHelper(neg) {
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_setrelopi(s, RELOP_NE, s1, ddest, 0);
   rtl_set_CF(s, s1);
-  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x80000000);
+  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, s0);
@@ -98,23 +93,25 @@ static inline make_EHelper(neg) {
 
 static inline make_EHelper(adc) {
 #ifdef LAZY_CC
-  rtl_lazy_setcc(s, s1, CC_B); // reading CC_B is to read CF
+  rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
 #else
-  rtl_get_CF(s, s1);
+  rtl_get_CF(s, s0);
 #endif
   rtl_add(s, s0, dsrc1, s0);
   rtl_add(s, s1, ddest, s0);
 
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s1, dsrc1, ddest, LAZYCC_ADC, id_dest->width);
+  rtl_set_lazycc(s, s1, s0, dsrc1, LAZYCC_ADC, id_dest->width);
 #else
+  rtl_update_ZFSF(s, s1, id_dest->width);
+  rtl_is_add_overflow(s, s2, s1, ddest, dsrc1, id_dest->width);
+  rtl_set_OF(s, s2);
   if (id_dest->width != 4) {
     rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
   }
-  rtl_update_ZFSF(s, s1, id_dest->width);
-  rtl_is_add_overflow(s, s0, s1, ddest, s0, id_dest->width);
-  rtl_set_OF(s, s0);
-  rtl_is_add_carry(s, s0, s1, ddest);
+  rtl_is_add_carry(s, s2, s1, s0);
+  rtl_is_add_carry(s, s0, s0, dsrc1);
+  rtl_or(s, s0, s0, s2);
   rtl_set_CF(s, s0);
 #endif
   operand_write(s, id_dest, s1);
@@ -131,15 +128,14 @@ static inline make_EHelper(sbb) {
   rtl_sub(s, s1, ddest, s0);
 
 #ifdef LAZY_CC
-  rtl_set_lazycc(s, s1, ddest, s0, LAZYCC_SBB, id_dest->width);
+  rtl_set_lazycc(s, s1, ddest, dsrc1, LAZYCC_SBB, id_dest->width);
 #else
-  if (id_dest->width != 4) {
-    rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
-  }
   rtl_update_ZFSF(s, s1, id_dest->width);
-  rtl_is_sub_overflow(s, s0, s1, ddest, s0, id_dest->width);
-  rtl_set_OF(s, s0);
-  rtl_is_sub_carry(s, s0, s1, ddest);
+  rtl_is_sub_overflow(s, s2, s1, ddest, dsrc1, id_dest->width);
+  rtl_set_OF(s, s2);
+  rtl_is_add_carry(s, s2, s0, dsrc1);
+  rtl_is_sub_carry(s, s0, ddest, s0);
+  rtl_or(s, s0, s0, s2);
   rtl_set_CF(s, s0);
 #endif
   operand_write(s, id_dest, s1);
