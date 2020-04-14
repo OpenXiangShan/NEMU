@@ -68,6 +68,10 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
 
   // if not mapped, spill out one tmp_reg and remap
   idx = spill_out_and_remap(s, tmp_idx);
+
+  // for (int i = 0; i < TMP_REG_NUM; i++) {
+  //   printf("[%d] %d %d\n", i, tmp_regs[i].map_ptr, tmp_regs[i].used);
+  // }
   return idx;
 }
 

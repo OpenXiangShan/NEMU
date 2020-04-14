@@ -358,16 +358,19 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 
 // we use tmp0 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
+  spill_out_all();
   if (!load_imm_big(tmp0, target)) rv64_addiw(tmp0, tmp0, target & 0xfff);
   tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jr, rtlreg_t *target) {
+  spill_out_all();
   rv64_addi(tmp0, reg_ptr2idx(s, target), 0);
   tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
+  spill_out_all();
   uint32_t rs1 = reg_ptr2idx(s, src1);
   uint32_t rs2 = reg_ptr2idx(s, src2);
   uint32_t offset = 12; // branch two instructions

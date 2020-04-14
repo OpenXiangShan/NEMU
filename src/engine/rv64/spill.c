@@ -76,8 +76,17 @@ void spill_out_all() {
     uint32_t addr;
     for (int i = 0; i < TMP_REG_NUM; i++) {
         addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[i].map_ptr);
+        //printf("used: %d, %x\n", tmp_regs[i].used, addr);
         load_imm_big(spill_tmp_reg.idx, addr);
         rv64_sw(tmp_regs[i].idx, spill_tmp_reg.idx, 0);
+        
+        tmp_regs[i].map_ptr = 3+i;
+
+        addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[i].map_ptr);
+        load_imm_big(spill_tmp_reg.idx, addr);
+        rv64_lw(tmp_regs[i].idx, spill_tmp_reg.idx, 0);
+
+        tmp_regs[i].used = 0;
     }
 }
 

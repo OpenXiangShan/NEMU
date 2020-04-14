@@ -19,6 +19,7 @@ void guest_getregs(CPU_state *cpu);
 
 void write_ins(uint32_t ins) {
   assert(trans_buffer_index < BUF_SIZE);
+  //printf("instr: %x\n", ins);
   trans_buffer[trans_buffer_index++]=ins;
 }
 
@@ -36,6 +37,7 @@ void mainloop() {
       tmp_regs[i].used = 0;
     }
 #endif
+    //printf("PC: %x\n", seq_pc);
 
     if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
@@ -45,6 +47,9 @@ void mainloop() {
 
 #ifndef DIFF_TEST
     if (tran_next_pc != NEXT_PC_SEQ) {
+#endif
+#ifdef REG_SPILLING
+      tmp_regs_init();
 #endif
       vaddr_t next_pc = rv64_exec_trans_buffer(trans_buffer, trans_buffer_index);
       total_instr += trans_buffer_index;
@@ -59,9 +64,6 @@ void mainloop() {
 
       if (tran_next_pc != NEXT_PC_SEQ) cpu.pc = next_pc;
     //  Log("new basic block pc = %x", cpu.pc);
-#ifdef REG_SPILLING
-      spill_out_all();
-#endif
       clear_trans_buffer();
       tran_next_pc = NEXT_PC_SEQ;
 #ifndef DIFF_TEST
