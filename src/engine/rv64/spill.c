@@ -21,16 +21,16 @@ static inline bool load_imm_big(uint32_t r, const uint32_t imm) {
 
 void tmp_regs_init() {
     if (TMP_REG_NUM == 2) {
-        tmp_regs[0].idx = 26;
+        tmp_regs[0].idx = TMP_REG_1;
         tmp_regs[0].map_ptr = 3;
         tmp_regs[0].used = 0;
-        tmp_regs[1].idx = 27;
+        tmp_regs[1].idx = TMP_REG_2;
         tmp_regs[1].map_ptr = 4;
         tmp_regs[1].used = 0;
     } else {
         panic("Other TMP_REG_NUM!\n");
     }
-    spill_tmp_reg.idx = 25;
+    spill_tmp_reg.idx = TMP_REG_ADDR;
     spill_tmp_reg.map_ptr = 2;
 }
 
@@ -55,7 +55,7 @@ uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
         }
     }
     if (ptr == TMP_REG_MAX) {
-        panic("no clean tmp_regs!\n");
+        panic("no clean tmp_regs!\nalready used:%u %u, req: %u\n", tmp_regs[0].map_ptr, tmp_regs[1].map_ptr, tmp_idx);
     }
 
     addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[ptr].map_ptr);

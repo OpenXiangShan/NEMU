@@ -95,7 +95,8 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
     case SDDATA:
        // TODO
        if (!write_cmd && fp) {
-         fread(&base[SDDATA], 4, 1, fp);
+         __attribute__((unused)) int ret;
+         ret = fread(&base[SDDATA], 4, 1, fp);
        }
        addr += 4;
        break;

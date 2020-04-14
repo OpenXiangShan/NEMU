@@ -4,6 +4,12 @@
 #include <common.h>
 #include <cpu/decode.h>
 
+// Temp GPR Registers Setting (can set any registers but $0, $1, $28)
+// default is $25, $26, $27, which has low perf loss
+#define TMP_REG_ADDR  25
+#define TMP_REG_1     26
+#define TMP_REG_2     27
+
 #define TMP_REG_NUM 2
 #define TMPIDX_CNT 9
 #define TMP_REG_MAX 233

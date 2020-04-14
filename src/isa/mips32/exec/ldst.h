@@ -72,8 +72,6 @@ static inline make_EHelper(swl) {
   // prepare register data
   rtl_shr(s, s1, ddest, s1);
 
-  rtl_kill(s, ddest);
-
   // merge the word
   rtl_or(s, s1, s0, s1);
 
@@ -120,8 +118,6 @@ static inline make_EHelper(swr) {
 
   // prepare register data
   rtl_shl(s, s1, ddest, s1);
-
-  rtl_kill(s, ddest);
 
   // merge the word
   rtl_or(s, s1, s0, s1);

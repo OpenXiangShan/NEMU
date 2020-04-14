@@ -14,11 +14,11 @@ uint32_t reg_ptr2tmpidx(DecodeExecState *s, const rtlreg_t* dest) {
   if (dest >= gpr_start && dest < gpr_end) {
     int idx = dest - gpr_start;
     switch (idx) {
-      case 1:  return 1; break;   // fixed to tmp0
-      case 25: return 2; break;   // used to store sratchpad addr
-      case 26: return 3; break;   // tmp_reg 1
-      case 27: return 4; break;   // tmp_reg 2
-      case 28: return 5; break;   // fixed to mask32
+      case 1:            return 1; break;   // fixed to tmp0
+      case TMP_REG_ADDR: return 2; break;   // used to store sratchpad addr
+      case TMP_REG_1:    return 3; break;   // tmp_reg 1
+      case TMP_REG_2:    return 4; break;   // tmp_reg 2
+      case 28:           return 5; break;   // fixed to mask32
       default: return 0;
     }
   }
@@ -42,11 +42,11 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
   if (dest >= gpr_start && dest < gpr_end) {
     int idx = dest - gpr_start;
     switch (idx) {
-      case 1:  tmp_idx = 1; break;   // fixed to tmp0
-      case 25: tmp_idx = 2; break;   // used to store sratchpad addr
-      case 26: tmp_idx = 3; break;   // tmp_reg 1
-      case 27: tmp_idx = 4; break;   // tmp_reg 2
-      case 28: tmp_idx = 5; break;   // fixed to mask32
+      case 1:            tmp_idx = 1; break;   // fixed to tmp0
+      case TMP_REG_ADDR: tmp_idx = 2; break;   // used to store sratchpad addr
+      case TMP_REG_1:    tmp_idx = 3; break;   // tmp_reg 1
+      case TMP_REG_2:    tmp_idx = 4; break;   // tmp_reg 2
+      case 28:           tmp_idx = 5; break;   // fixed to mask32
       default: return idx;
     }
   }

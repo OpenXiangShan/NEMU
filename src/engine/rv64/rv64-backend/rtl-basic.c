@@ -57,10 +57,19 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
 
 /* RTL basic instructions */
 
+#ifdef REG_SPILLING
+#define make_rtl_compute_reg(rtl_name, rv64_name) \
+  make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
+    concat(rv64_, rv64_name) (tmp0, reg_ptr2idx(s, src1), reg_ptr2idx(s, src2)); \
+    rtl_kill(s, src1); \
+    rv64_addi(reg_ptr2idx(s, dest), tmp0, 0); \
+  }
+#else
 #define make_rtl_compute_reg(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
     concat(rv64_, rv64_name) (reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), reg_ptr2idx(s, src2)); \
   }
+#endif
 
 #define make_rtl_compute_imm(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
@@ -119,9 +128,17 @@ make_rtl_compute_imm(shri, srliw)
 make_rtl_compute_imm(sari, sraiw)
 #endif
 
+#ifdef REG_SPILLING
+make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+  rv64_relop(relop, tmp0, reg_ptr2idx(s, src1), reg_ptr2idx(s, src2));
+  rtl_kill(s, src1);
+  rv64_addi(reg_ptr2idx(s, dest), tmp0, 0);
+}
+#else
 make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   rv64_relop(relop, reg_ptr2idx(s, dest), reg_ptr2idx(s, src1), reg_ptr2idx(s, src2));
 }
+#endif
 
 make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
   int big_imm = load_imm_big(tmp0, imm);
@@ -153,28 +170,35 @@ make_rtl_compute_reg(idiv_r, remw)
 # define rv64_imul_hi(c, a, b) TODO()
 #else
 make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
   rv64_zextw(idx_src1, idx_src1);
   rv64_zextw(idx_src2, idx_src2);
-  rv64_mul(idx_dest, idx_src1, idx_src2);
+  rv64_mul(tmp0, idx_src1, idx_src2);
+  rtl_kill(s, src1);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  rv64_addi(idx_dest, tmp0, 0);
   rv64_srai(idx_dest, idx_dest, 32);
 }
 
 make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
   rv64_sextw(idx_src1, idx_src1);
   rv64_sextw(idx_src2, idx_src2);
-  rv64_mul(idx_dest, idx_src1, idx_src2);
+  rv64_mul(tmp0, idx_src1, idx_src2);
+  rtl_kill(s, src1);
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  rv64_addi(idx_dest, tmp0, 0);
   rv64_srai(idx_dest, idx_dest, 32);
 }
 #endif
 
 make_rtl(div64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
+#ifdef REG_SPILLING
+  panic("If reg-spilling enabled, you should not use div64 rtl!\n");
+#endif
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
@@ -189,6 +213,9 @@ make_rtl(div64_q, rtlreg_t* dest,
 
 make_rtl(div64_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
+#ifdef REG_SPILLING
+  panic("If reg-spilling enabled, you should not use div64 rtl!\n");
+#endif
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
@@ -203,6 +230,9 @@ make_rtl(div64_r, rtlreg_t* dest,
 
 make_rtl(idiv64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
+#ifdef REG_SPILLING
+  panic("If reg-spilling enabled, you should not use div64 rtl!\n");
+#endif
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);
@@ -217,6 +247,9 @@ make_rtl(idiv64_q, rtlreg_t* dest,
 
 make_rtl(idiv64_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
+#ifdef REG_SPILLING
+  panic("If reg-spilling enabled, you should not use div64 rtl!\n");
+#endif
   uint32_t idx_dest = reg_ptr2idx(s, dest);
   uint32_t idx_src1_hi = reg_ptr2idx(s, src1_hi);
   uint32_t idx_src1_lo = reg_ptr2idx(s, src1_lo);

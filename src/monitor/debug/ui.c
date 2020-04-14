@@ -186,8 +186,9 @@ static int cmd_load(char *args) {
   else {
     FILE *fp = fopen(arg, "r");
     assert(fp != NULL);
-    fread(&cpu, sizeof(cpu), 1, fp);
-    fread(guest_to_host(0), PMEM_SIZE, 1, fp);
+    __attribute__((unused)) int ret;
+    ret = fread(&cpu, sizeof(cpu), 1, fp);
+    ret = fread(guest_to_host(0), PMEM_SIZE, 1, fp);
     fclose(fp);
   }
   return 0;
