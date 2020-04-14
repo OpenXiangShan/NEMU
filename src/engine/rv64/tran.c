@@ -59,6 +59,9 @@ void mainloop() {
 
       if (tran_next_pc != NEXT_PC_SEQ) cpu.pc = next_pc;
     //  Log("new basic block pc = %x", cpu.pc);
+#ifdef REG_SPILLING
+      spill_out_all();
+#endif
       clear_trans_buffer();
       tran_next_pc = NEXT_PC_SEQ;
 #ifndef DIFF_TEST

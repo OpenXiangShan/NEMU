@@ -72,6 +72,15 @@ uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
     return tmp_regs[ptr].idx;
 }
 
+void spill_out_all() {
+    uint32_t addr;
+    for (int i = 0; i < TMP_REG_NUM; i++) {
+        addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[i].map_ptr);
+        load_imm_big(spill_tmp_reg.idx, addr);
+        rv64_sw(tmp_regs[i].idx, spill_tmp_reg.idx, 0);
+    }
+}
+
 void spill_clean(uint32_t tmp_idx) {
     for (int i = 0; i < TMP_REG_NUM; i++) {
         if (tmp_regs[i].map_ptr == tmp_idx) {

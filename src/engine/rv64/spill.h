@@ -28,5 +28,6 @@ void tmp_regs_init();
 uint32_t check_tmp_reg(uint32_t);
 uint32_t spill_out_and_remap(DecodeExecState*, uint32_t);
 void spill_clean(uint32_t);
+void spill_out_all();
 
 #endif
