@@ -169,6 +169,8 @@ make_rtl_compute_reg(idiv_r, remw)
 # define rv64_mul_hi(c, a, b) TODO()
 # define rv64_imul_hi(c, a, b) TODO()
 #else
+
+#ifdef REG_SPILLING
 make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t idx_src1 = reg_ptr2idx(s, src1);
   uint32_t idx_src2 = reg_ptr2idx(s, src2);
@@ -192,6 +194,27 @@ make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   rv64_addi(idx_dest, tmp0, 0);
   rv64_srai(idx_dest, idx_dest, 32);
 }
+#else
+make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1 = reg_ptr2idx(s, src1);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
+  rv64_zextw(idx_src1, idx_src1);
+  rv64_zextw(idx_src2, idx_src2);
+  rv64_mul(idx_dest, idx_src1, idx_src2);
+  rv64_srai(idx_dest, idx_dest, 32);
+}
+
+make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+  uint32_t idx_dest = reg_ptr2idx(s, dest);
+  uint32_t idx_src1 = reg_ptr2idx(s, src1);
+  uint32_t idx_src2 = reg_ptr2idx(s, src2);
+  rv64_sextw(idx_src1, idx_src1);
+  rv64_sextw(idx_src2, idx_src2);
+  rv64_mul(idx_dest, idx_src1, idx_src2);
+  rv64_srai(idx_dest, idx_dest, 32);
+}
+#endif
 #endif
 
 make_rtl(div64_q, rtlreg_t* dest,
