@@ -15,7 +15,7 @@ static inline void set_width(DecodeExecState *s, int width) {
 #define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
 #define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)
 #define EX(idx, ex)           EXW(idx, ex, 0)
-#define EMPTY(idx)            //EX(idx, inv)
+#define EMPTY(idx)            EX(idx, inv)
 
 #define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
@@ -30,8 +30,8 @@ static inline make_EHelper(gp1) {
 /* 0xc0, 0xc1, 0xd0, 0xd1, 0xd2, 0xd3 */
 static inline make_EHelper(gp2) {
   switch (s->isa.ext_opcode) {
-    EX(0x00, rol) EMPTY(0x01)      EMPTY(0x02) EMPTY(0x03)
-    EX(0x04, shl) EX   (0x05, shr) EMPTY(0x06) EX   (0x07, sar)
+    EX(0x00, rol) EX(0x01, ror) EMPTY(0x02) EMPTY(0x03)
+    EX(0x04, shl) EX(0x05, shr) EMPTY(0x06) EX   (0x07, sar)
   }
 }
 
@@ -99,10 +99,6 @@ static inline make_EHelper(2byte_esc) {
 }
 
 static inline void exec(DecodeExecState *s) {
-#ifdef USE_KVM
-  extern void kvm_exec(void);
-  kvm_exec();
-#else
   uint8_t opcode;
 again:
   opcode = instr_fetch(&s->seq_pc, 1);
@@ -114,13 +110,13 @@ IDEXW(0x00, G2E, add, 1)    IDEX (0x01, G2E, add)       IDEXW(0x02, E2G, add, 1)
 EMPTY(0x04)                 IDEX (0x05, I2a, add)
 IDEXW(0x08, G2E, or, 1)     IDEX (0x09, G2E, or)        IDEXW(0x0a, E2G, or, 1)     IDEX (0x0b, E2G, or)
 IDEXW(0x0c, I2a, or, 1)     IDEX (0x0d, I2a, or)        EMPTY(0x0e)                 EX   (0x0f, 2byte_esc)
-EMPTY(0x10)                 IDEX (0x11, G2E, adc)       EMPTY(0x12)                 IDEX (0x13, E2G, adc)
+IDEXW(0x10, G2E, adc, 1)    IDEX (0x11, G2E, adc)       IDEXW(0x12, E2G, adc, 1)    IDEX (0x13, E2G, adc)
 
-EMPTY(0x18)                 IDEX (0x19, G2E, sbb)       EMPTY(0x1a)                 IDEX (0x1b, E2G, sbb)
+IDEXW(0x18, G2E, sbb, 1)    IDEX (0x19, G2E, sbb)       IDEXW(0x1a, E2G, sbb, 1)    IDEX (0x1b, E2G, sbb)
 
 IDEXW(0x20, G2E, and, 1)    IDEX (0x21, G2E, and)       IDEXW(0x22, E2G, and, 1)    IDEX (0x23, E2G, and)
 IDEXW(0x24, I2a, and, 1)    IDEX (0x25, I2a, and)
-EMPTY(0x28)                 IDEX (0x29, G2E, sub)       EMPTY(0x2a)                 IDEX (0x2b, E2G, sub)
+IDEXW(0x28, G2E, sub, 1)    IDEX (0x29, G2E, sub)       EMPTY(0x2a)                 IDEX (0x2b, E2G, sub)
 EMPTY(0x2c)                 IDEX (0x2d, I2a, sub)
 IDEXW(0x30, G2E, xor, 1)    IDEX (0x31, G2E, xor)       IDEXW(0x32, E2G, xor, 1)    IDEX (0x33, E2G, xor)
 EMPTY(0x34)                 IDEX (0x35, I2a, xor)
@@ -178,10 +174,15 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
   case 0x66: s->isa.is_operand_size_16 = true; goto again;
   default: exec_inv(s);
   }
-#endif
 }
 
+//#define USE_KVM
 vaddr_t isa_exec_once() {
+#ifdef USE_KVM
+  extern void kvm_exec(void);
+  kvm_exec();
+  return 0;
+#endif
   DecodeExecState s;
   s.is_jmp = 0;
   s.isa = (ISADecodeInfo) { 0 };

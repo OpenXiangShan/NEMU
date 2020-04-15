@@ -3,6 +3,26 @@
 
 #include "../local-include/rtl.h"
 
+enum {
+  CC_O, CC_NO, CC_B,  CC_NB,
+  CC_E, CC_NE, CC_BE, CC_NBE,
+  CC_S, CC_NS, CC_P,  CC_NP,
+  CC_L, CC_NL, CC_LE, CC_NLE
+};
+
+enum {
+  LAZYCC_ADD,
+  LAZYCC_SUB,
+  LAZYCC_INC,
+  LAZYCC_DEC,
+  LAZYCC_NEG,
+  LAZYCC_ADC,
+  LAZYCC_SBB,
+  LAZYCC_LOGIC,
+};
+
+#include "lazycc.h"
+
 /* Condition Code */
 
 static inline const char* get_cc_name(int subcode) {
@@ -15,14 +35,8 @@ static inline const char* get_cc_name(int subcode) {
   return cc_name[subcode];
 }
 
-static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint8_t subcode) {
-  bool invert = subcode & 0x1;
-  enum {
-    CC_O, CC_NO, CC_B,  CC_NB,
-    CC_E, CC_NE, CC_BE, CC_NBE,
-    CC_S, CC_NS, CC_P,  CC_NP,
-    CC_L, CC_NL, CC_LE, CC_NLE
-  };
+static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcode) {
+  uint32_t invert = subcode & 0x1;
 
   // TODO: Query EFLAGS to determine whether the condition code is satisfied.
   // dest <- ( cc is satisfied ? 1 : 0)

@@ -30,7 +30,9 @@ static make_EHelper(int) {
 
   print_asm("int %s", id_dest->str);
 
+#ifdef __DIFF_REF_QEMU__
   difftest_skip_dut(1, 2);
+#endif
 }
 
 static make_EHelper(iret) {
