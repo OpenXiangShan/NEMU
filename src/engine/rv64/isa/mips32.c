@@ -68,10 +68,6 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
 
   // if not mapped, spill out one tmp_reg and remap
   idx = spill_out_and_remap(s, tmp_idx);
-
-  // for (int i = 0; i < TMP_REG_NUM; i++) {
-  //   printf("[%d] %d %d\n", i, tmp_regs[i].map_ptr, tmp_regs[i].used);
-  // }
   return idx;
 }
 
@@ -81,7 +77,7 @@ void guest_getregs(CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case 28: case 1: case 25: case 26: case 27: continue;
+      case 28: case 1: case TMP_REG_ADDR: case TMP_REG_1: case TMP_REG_2: continue;
     }
     mips32->gpr[i]._32 = r.gpr[i]._64;
   }
@@ -95,7 +91,7 @@ void guest_setregs(const CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case 28: case 1: case 25: case 26: case 27: continue;
+      case 28: case 1: case TMP_REG_ADDR: case TMP_REG_1: case TMP_REG_2: continue;
     }
     r.gpr[i]._64 = mips32->gpr[i]._32;
   }

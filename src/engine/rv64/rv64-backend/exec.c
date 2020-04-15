@@ -1,5 +1,6 @@
 #include <isa/riscv64.h>
 #include "../tran.h"
+#include "../spill.h"
 
 #define RV64_EXEC_PC (riscv64_PMEM_BASE + BBL_MAX_SIZE) // skip bbl
 
@@ -19,7 +20,7 @@ vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr) {
   // if the basic block is end with a branch instruction,
   // execute until the branch instruction
   // see rtl_jrelop() at rtl-basic.c
-  int nr_exec = (tran_next_pc == NEXT_PC_BRANCH ? nr_instr - 5 : nr_instr);
+  int nr_exec = (tran_next_pc == NEXT_PC_BRANCH ? nr_instr - (5+2*suffix_inst) : nr_instr);
   backend_exec_code(RV64_EXEC_PC, nr_exec);
 
   riscv64_CPU_state r;
@@ -33,9 +34,13 @@ vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr) {
 
   if (tran_next_pc == NEXT_PC_BRANCH) {
     // execute the branch instruction and load x86.pc to x30
-    backend_exec(3);
+    backend_exec(suffix_inst+3);
     backend_getregs(&r);
   }
+
+#ifdef REG_SPILLING
+  tmp_regs_reset();
+#endif
 
   return r.gpr[tmp0]._64;
 }

@@ -23,11 +23,15 @@ typedef struct {
 
 extern Tmp_reg tmp_regs[TMP_REG_NUM];
 extern Tmp_reg spill_tmp_reg;
+extern uint32_t suffix_inst;
 
 void tmp_regs_init();
+void tmp_regs_reset();
 uint32_t check_tmp_reg(uint32_t);
 uint32_t spill_out_and_remap(DecodeExecState*, uint32_t);
 void spill_clean(uint32_t);
+void spill_cleanall();
+void cal_suffix_inst();
 void spill_out_all();
 
 #endif

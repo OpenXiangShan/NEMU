@@ -358,22 +358,28 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 
 // we use tmp0 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
+#ifdef REG_SPILLING
   spill_out_all();
+#endif
   if (!load_imm_big(tmp0, target)) rv64_addiw(tmp0, tmp0, target & 0xfff);
   tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jr, rtlreg_t *target) {
-  spill_out_all();
   rv64_addi(tmp0, reg_ptr2idx(s, target), 0);
+#ifdef REG_SPILLING
+  spill_out_all();
+#endif
   tran_next_pc = NEXT_PC_JMP;
 }
 
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  spill_out_all();
   uint32_t rs1 = reg_ptr2idx(s, src1);
   uint32_t rs2 = reg_ptr2idx(s, src2);
-  uint32_t offset = 12; // branch two instructions
+#ifdef REG_SPILLING
+  cal_suffix_inst();
+#endif
+  uint32_t offset = 12 + 4*suffix_inst; // branch two instructions
   extern int trans_buffer_index;
   int old_idx = trans_buffer_index;
 
@@ -397,13 +403,19 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
 
   // generate instrutions to load the not-taken target
   load_imm_no_opt(tmp0, s->seq_pc);  // only two instructions
+#ifdef REG_SPILLING
+  spill_out_all();
+#endif
   // generate instrutions to load the taken target
   load_imm_no_opt(tmp0, target);     // only two instructions
+#ifdef REG_SPILLING
+  spill_out_all();
+#endif
 
   tran_next_pc = NEXT_PC_BRANCH;
 
   int new_idx = trans_buffer_index;
-  Assert(new_idx - old_idx == 5, "if this condition is broken, "
+  Assert(new_idx - old_idx == suffix_inst*2+5, "if this condition is broken, "
       "you should also modify rv64_exec_trans_buffer() in exec.c");
 }
 

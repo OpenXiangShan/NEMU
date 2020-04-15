@@ -176,7 +176,6 @@ static inline void exec(DecodeExecState *s) {
     // in-page instructions, fetch 4 byte and
     // see whether it is an RVC instruction later
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
-    //printf("[instr]%x\n", s->isa.instr.val);
   }
 
   check_mem_ex();
