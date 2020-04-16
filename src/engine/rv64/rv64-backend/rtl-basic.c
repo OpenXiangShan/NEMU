@@ -382,7 +382,7 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // we use tmp0 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
 #ifdef REG_SPILLING
-  spill_out_all();
+  spill_writeback_all();
 #endif
   if (!load_imm_big(tmp0, target)) rv64_addiw(tmp0, tmp0, target & 0xfff);
   tran_next_pc = NEXT_PC_JMP;
@@ -391,7 +391,7 @@ make_rtl(j, vaddr_t target) {
 make_rtl(jr, rtlreg_t *target) {
   rv64_addi(tmp0, reg_ptr2idx(s, target), 0);
 #ifdef REG_SPILLING
-  spill_out_all();
+  spill_writeback_all();
 #endif
   tran_next_pc = NEXT_PC_JMP;
 }
@@ -427,12 +427,12 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
   // generate instrutions to load the not-taken target
   load_imm_no_opt(tmp0, s->seq_pc);  // only two instructions
 #ifdef REG_SPILLING
-  spill_out_all();
+  spill_writeback_all();
 #endif
   // generate instrutions to load the taken target
   load_imm_no_opt(tmp0, target);     // only two instructions
 #ifdef REG_SPILLING
-  spill_out_all();
+  spill_writeback_all();
 #endif
 
   tran_next_pc = NEXT_PC_BRANCH;
@@ -445,6 +445,6 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
 make_rtl(kill, const rtlreg_t* src1) {
 #ifdef REG_SPILLING
   uint32_t tmpidx = reg_ptr2tmpidx(s, src1);
-  spill_clean(tmpidx);
+  spill_flush(tmpidx);
 #endif
 }

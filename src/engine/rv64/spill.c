@@ -90,18 +90,21 @@ void cal_suffix_inst() {
     }
 }
 
-void spill_out_all() {  // can be 0/3/6 inst
-    uint32_t addr;
-    for (int i = 0; i < TMP_REG_NUM; i++) {
-        if (tmp_regs[i].map_ptr != 0) {
-            addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[i].map_ptr);
-            load_imm_no_opt(spill_tmp_reg.idx, addr);
-            rv64_sw(tmp_regs[i].idx, spill_tmp_reg.idx, 0);
-        }
-    }
+void spill_writeback(uint32_t i) {
+  if (tmp_regs[i].map_ptr != 0) {
+    uint32_t addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[i].map_ptr);
+    load_imm_no_opt(spill_tmp_reg.idx, addr);
+    rv64_sw(tmp_regs[i].idx, spill_tmp_reg.idx, 0);
+  }
 }
 
-void spill_clean(uint32_t tmp_idx) {
+void spill_writeback_all() {  // can be 0/3/6 inst
+  for (int i = 0; i < TMP_REG_NUM; i++) {
+    spill_writeback(i);
+  }
+}
+
+void spill_flush(uint32_t tmp_idx) {
     for (int i = 0; i < TMP_REG_NUM; i++) {
         if (tmp_regs[i].map_ptr == tmp_idx) {
             tmp_regs[i].used = 0;
@@ -110,7 +113,7 @@ void spill_clean(uint32_t tmp_idx) {
     }
 }
 
-void spill_cleanall() {
+void spill_flush_all() {
     for (int i = 0; i < TMP_REG_NUM; i++) {
       tmp_regs[i].used = 0;
     }

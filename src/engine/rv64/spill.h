@@ -29,9 +29,9 @@ void tmp_regs_init();
 void tmp_regs_reset();
 uint32_t check_tmp_reg(uint32_t);
 uint32_t spill_out_and_remap(DecodeExecState*, uint32_t);
-void spill_clean(uint32_t);
-void spill_cleanall();
+void spill_flush(uint32_t);
+void spill_flush_all();
 void cal_suffix_inst();
-void spill_out_all();
+void spill_writeback_all();
 
 #endif

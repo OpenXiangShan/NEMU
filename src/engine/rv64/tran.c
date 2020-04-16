@@ -106,7 +106,7 @@ void mainloop() {
         __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
         guest_nr_instr ++;
 #ifdef REG_SPILLING
-        spill_cleanall();
+        spill_flush_all();
 #endif
 
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
