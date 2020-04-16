@@ -16,7 +16,7 @@ int tran_next_pc = NEXT_PC_SEQ;
 
 static void clear_trans_buffer() { trans_buffer_index = 0; }
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
-vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type, int nr_suffix);
+vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 
 typedef struct TB {
@@ -27,7 +27,6 @@ typedef struct TB {
   uint32_t nr_instr;
   uint32_t guest_nr_instr;
   uint32_t hit_time;
-  uint32_t nr_suffix;
   struct TB *next;
 } TB;
 
@@ -123,7 +122,6 @@ void mainloop() {
           tb = malloc(sizeof(TB));
           tb->pc = tb_start;
           tb->nr_instr = trans_buffer_index;
-          tb->nr_suffix = suffix_inst;
           tb->guest_nr_instr = guest_nr_instr;
           tb->code = malloc(tb->nr_instr * 4);
           memcpy(tb->code, trans_buffer, tb->nr_instr * 4);
@@ -138,7 +136,7 @@ void mainloop() {
     }
 
     //Log("enter tb with pc = %x, nr_instr = %d", tb->pc, tb->nr_instr);
-    vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type, tb->nr_suffix);
+    vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
     total_instr += tb->nr_instr;
     tb->hit_time ++;
 

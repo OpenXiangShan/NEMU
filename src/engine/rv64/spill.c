@@ -10,11 +10,8 @@ typedef struct {
 } Tmp_reg;
 static Tmp_reg tmp_regs[TMP_REG_NUM];
 
-uint32_t suffix_inst = 0;
-
 void tmp_regs_init() {
   assert(TMP_REG_NUM == 2);
-  suffix_inst = 0;
   tmp_regs[0].rvidx = TMP_REG_1;
   tmp_regs[1].rvidx = TMP_REG_2;
 }
@@ -34,15 +31,6 @@ uint32_t spmidx2rvidx(uint32_t spmidx) {
     }
   }
   return 0;
-}
-
-void cal_suffix_inst() {
-  suffix_inst = 0;
-  for (int i = 0; i < TMP_REG_NUM; i++) {
-    if (tmp_regs[i].spmidx != 0) {
-      suffix_inst += 1;
-    }
-  }
 }
 
 void spill_writeback(uint32_t i) {

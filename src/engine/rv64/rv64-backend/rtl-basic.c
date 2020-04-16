@@ -400,9 +400,9 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
   uint32_t rs1 = rtlreg2rvidx(s, src1);
   uint32_t rs2 = rtlreg2rvidx(s, src2);
 #ifdef REG_SPILLING
-  cal_suffix_inst();
+  spill_writeback_all();
 #endif
-  uint32_t offset = 12 + 4*suffix_inst; // branch two instructions
+  uint32_t offset = 12; // branch two instructions
   extern int trans_buffer_index;
   int old_idx = trans_buffer_index;
 
@@ -426,19 +426,13 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
 
   // generate instrutions to load the not-taken target
   load_imm_no_opt(tmp0, s->seq_pc);  // only two instructions
-#ifdef REG_SPILLING
-  spill_writeback_all();
-#endif
   // generate instrutions to load the taken target
   load_imm_no_opt(tmp0, target);     // only two instructions
-#ifdef REG_SPILLING
-  spill_writeback_all();
-#endif
 
   tran_next_pc = NEXT_PC_BRANCH;
 
   int new_idx = trans_buffer_index;
-  Assert(new_idx - old_idx == suffix_inst*2+5, "if this condition is broken, "
+  Assert(new_idx - old_idx == 5, "if this condition is broken, "
       "you should also modify rv64_exec_trans_buffer() in exec.c");
 }
 

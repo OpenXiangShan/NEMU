@@ -13,8 +13,6 @@
 #define TMPIDX_CNT 9
 #define TMP_REG_MAX 233
 
-extern uint32_t suffix_inst;
-
 void tmp_regs_init();
 void tmp_regs_reset();
 uint32_t spmidx2rvidx(uint32_t);
