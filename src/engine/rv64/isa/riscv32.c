@@ -6,15 +6,15 @@
 #include <isa/riscv64.h>
 #include "../tran.h"
 
-uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
+uint32_t rtlreg2rvidx(DecodeExecState *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
   rtlreg_t* gpr_end = (void *)gpr_start + sizeof(cpu.gpr);
 
   if (dest >= gpr_start && dest < gpr_end) {
-    int idx = dest - gpr_start;
-    switch (idx) { // idx
+    int rvidx = dest - gpr_start;
+    switch (rvidx) { // idx
       case 3: case 4: case 31: assert(0); break; // gp, tp, t6
-      default: return idx;
+      default: return rvidx;
     }
   }
 

@@ -13,6 +13,16 @@ extern void (*backend_exec)(uint64_t n);
 
 #define BBL_MAX_SIZE (16 * 1024)
 
+// There are 4 types of indices.
+// * rvidx -  the index of rv64 register, can be zero.
+//            used to construct rv instructions
+// * spmidx - the index of variable in SPM, which is non-zero.
+//            used to allocate rtl registers which can not be mapped to rv64 registers
+// * varidx - (mapped_to_spm ? (smpidx | SPM_IDX_MASK) : rvidx)
+// * tmpidx - the index of record of temporal registers in spill.c
+
+#define SPMIDX_MASK 0x20
+
 // scratch pad memory, whose address space is [riscv64_PMEM_BASE, riscv64_PMEM_BASE + 64)
 #define spm(op, reg, offset) concat(rv64_, op)(reg, spm_base, offset)
 #define SPM_X86_REG 0    // x86 byte/word register write
