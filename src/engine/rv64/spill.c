@@ -5,16 +5,8 @@
 
 #include <string.h>
 
-Tmp_reg tmp_regs[TMP_REG_NUM];
-Tmp_reg spill_tmp_reg;
+static Tmp_reg tmp_regs[TMP_REG_NUM];
 uint32_t suffix_inst = 0;
-
-static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
-  RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
-  rv64_lui(r, lui_imm);
-  rv64_addiw(r, r, rv_imm.imm_11_0);
-}
 
 void tmp_regs_init() {
     suffix_inst = 0;
@@ -28,8 +20,6 @@ void tmp_regs_init() {
     } else {
         panic("Other TMP_REG_NUM!\n");
     }
-    spill_tmp_reg.idx = TMP_REG_ADDR;
-    spill_tmp_reg.map_ptr = 2;
 }
 
 void tmp_regs_reset() {
@@ -54,8 +44,6 @@ uint32_t check_tmp_reg(uint32_t tmp_idx) {
 }
 
 uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
-    uint32_t addr;
-
     uint32_t ptr = TMP_REG_MAX;
     for (int i = 0; i < TMP_REG_NUM; i++) {
         if (tmp_regs[i].used == 0) {
@@ -67,13 +55,8 @@ uint32_t spill_out_and_remap(DecodeExecState *s, uint32_t tmp_idx) {
         panic("no clean tmp_regs!\nalready used:%u %u, req: %u\n", tmp_regs[0].map_ptr, tmp_regs[1].map_ptr, tmp_idx);
     }
 
-    addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[ptr].map_ptr);
-    load_imm_no_opt(spill_tmp_reg.idx, addr);
-    rv64_sw(tmp_regs[ptr].idx, spill_tmp_reg.idx, 0);
-
-    addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_idx);
-    load_imm_no_opt(spill_tmp_reg.idx, addr);
-    rv64_lw(tmp_regs[ptr].idx, spill_tmp_reg.idx, 0);
+    spm(sw, tmp_regs[ptr].idx, 4 * tmp_regs[ptr].map_ptr);
+    spm(lw, tmp_regs[ptr].idx, 4 * tmp_idx);
 
     tmp_regs[ptr].map_ptr = tmp_idx;
     tmp_regs[ptr].used = 1;
@@ -85,20 +68,18 @@ void cal_suffix_inst() {
     suffix_inst = 0;
     for (int i = 0; i < TMP_REG_NUM; i++) {
         if (tmp_regs[i].map_ptr != 0) {
-            suffix_inst += 3;
+            suffix_inst += 1;
         }
     }
 }
 
 void spill_writeback(uint32_t i) {
   if (tmp_regs[i].map_ptr != 0) {
-    uint32_t addr = SCRATCHPAD_BASE_ADDR + 4 * (tmp_regs[i].map_ptr);
-    load_imm_no_opt(spill_tmp_reg.idx, addr);
-    rv64_sw(tmp_regs[i].idx, spill_tmp_reg.idx, 0);
+    spm(sw, tmp_regs[i].idx, 4 * tmp_regs[i].map_ptr);
   }
 }
 
-void spill_writeback_all() {  // can be 0/3/6 inst
+void spill_writeback_all() {  // can be 0/1/2 inst
   for (int i = 0; i < TMP_REG_NUM; i++) {
     spill_writeback(i);
   }

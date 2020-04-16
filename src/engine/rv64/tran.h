@@ -13,20 +13,20 @@ extern void (*backend_exec)(uint64_t n);
 
 #define BBL_MAX_SIZE (16 * 1024)
 
-// scratch pad memory, whose address space is [0, 64)
-#define spm(op, reg, offset) concat(rv64_, op)(reg, x0, offset)
+// scratch pad memory, whose address space is [riscv64_PMEM_BASE, riscv64_PMEM_BASE + 64)
+#define spm(op, reg, offset) concat(rv64_, op)(reg, spm_base, offset)
 #define SPM_X86_REG 0    // x86 byte/word register write
 
 enum { x0 = 0 };
 
 // static register allocation
 #if defined(__ISA_x86__)
-enum { tmp0 = 30, mask32 = 24, mask16 = 25 };
+enum { tmp0 = 30, mask32 = 24, mask16 = 25, spm_base = 0 };
 #elif defined(__ISA_mips32__)
-enum { tmp0 = 1, mask32 = 28, mask16 = 0 };
+enum { tmp0 = 1, mask32 = 28, mask16 = 0, spm_base = 25 };
 #define REG_SPILLING
 #elif defined(__ISA_riscv32__)
-enum { tmp0 = 3, mask32 = 4, mask16 = 0 };
+enum { tmp0 = 3, mask32 = 4, mask16 = 0, spm_base = 0 };
 //#define REG_SPILLING
 #endif
 

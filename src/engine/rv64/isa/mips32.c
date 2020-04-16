@@ -15,7 +15,7 @@ uint32_t reg_ptr2tmpidx(DecodeExecState *s, const rtlreg_t* dest) {
     int idx = dest - gpr_start;
     switch (idx) {
       case 1:            return 1; break;   // fixed to tmp0
-      case TMP_REG_ADDR: return 2; break;   // used to store sratchpad addr
+      case spm_base:     return 2; break;   // used to store sratchpad addr
       case TMP_REG_1:    return 3; break;   // tmp_reg 1
       case TMP_REG_2:    return 4; break;   // tmp_reg 2
       case 28:           return 5; break;   // fixed to mask32
@@ -43,7 +43,7 @@ uint32_t reg_ptr2idx(DecodeExecState *s, const rtlreg_t* dest) {
     int idx = dest - gpr_start;
     switch (idx) {
       case 1:            tmp_idx = 1; break;   // fixed to tmp0
-      case TMP_REG_ADDR: tmp_idx = 2; break;   // used to store sratchpad addr
+      case spm_base :    tmp_idx = 2; break;   // used to store sratchpad addr
       case TMP_REG_1:    tmp_idx = 3; break;   // tmp_reg 1
       case TMP_REG_2:    tmp_idx = 4; break;   // tmp_reg 2
       case 28:           tmp_idx = 5; break;   // fixed to mask32
@@ -77,7 +77,7 @@ void guest_getregs(CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case 28: case 1: case TMP_REG_ADDR: case TMP_REG_1: case TMP_REG_2: continue;
+      case 28: case 1: case spm_base: case TMP_REG_1: case TMP_REG_2: continue;
     }
     mips32->gpr[i]._32 = r.gpr[i]._64;
   }
@@ -91,7 +91,7 @@ void guest_setregs(const CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case 28: case 1: case TMP_REG_ADDR: case TMP_REG_1: case TMP_REG_2: continue;
+      case 28: case 1: case spm_base: case TMP_REG_1: case TMP_REG_2: continue;
     }
     r.gpr[i]._64 = mips32->gpr[i]._32;
   }

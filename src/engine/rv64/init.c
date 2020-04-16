@@ -75,6 +75,7 @@ static void init_rv64_reg() {
   backend_getregs(&r);
   r.gpr[mask32]._64 = 0x00000000fffffffful;
   r.gpr[mask16]._64 = 0x000000000000fffful;
+  if (spm_base != 0) r.gpr[spm_base]._64 = riscv64_PMEM_BASE;
   backend_setregs(&r);
 }
 
