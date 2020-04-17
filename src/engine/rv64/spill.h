@@ -21,5 +21,11 @@ void spill_flush(uint32_t);
 void spill_flush_all();
 void cal_suffix_inst();
 void spill_writeback_all();
+void spill_set_spmidx(uint32_t tmpidx, uint32_t new_spmidx);
+int rvidx2tmpidx(uint32_t rvidx);
+void spill_set_dirty_rvidx(uint32_t rvidx);
+uint32_t varidx2rvidx(uint32_t varidx);
+void spill_set_dirty(uint32_t tmpidx);
+void spill_writeback(uint32_t i);
 
 #endif
