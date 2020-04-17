@@ -16,9 +16,9 @@ extern void (*backend_exec)(uint64_t n);
 // There are 4 types of indices.
 // * rvidx -  the index of rv64 register, can be zero.
 //            used to construct rv instructions
-// * spmidx - the index of variable in SPM, which is non-zero.
+// * spmidx - the index of variable in SPM masked with SPM_IDX_MASK, which is non-zero.
 //            used to allocate rtl registers which can not be mapped to rv64 registers
-// * varidx - (mapped_to_spm ? (smpidx | SPM_IDX_MASK) : rvidx)
+// * varidx - (mapped_to_spm ? smpidx : rvidx)
 // * tmpidx - the index of record of temporal registers in spill.c
 
 #define SPMIDX_MASK 0x20
