@@ -82,36 +82,26 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
     concat(rv64_, rv64_name) (rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), imm); \
   }
 
+#define make_rtl_compute_imm_opt(rtl_name, rv64_name, rv64_imm_name) \
+  make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+    uint32_t dest_rvidx = rtlreg2rvidx(s, dest); \
+    uint32_t src1_rvidx = rtlreg2rvidx(s, src1); \
+    if (src1 == rz) load_imm(dest_rvidx, imm); \
+    else if (load_imm_big(tmp0, imm)) concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, tmp0); \
+    else concat(rv64_, rv64_imm_name) (dest_rvidx, src1_rvidx, imm); \
+  }
+
 make_rtl_compute_reg(and, and)
 make_rtl_compute_reg(or, or)
 make_rtl_compute_reg(xor, xor)
 
-make_rtl(addi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (src1 == rz) load_imm(rtlreg2rvidx(s, dest), imm);
-  else if (load_imm_big(tmp0, imm)) rv64_addw(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), tmp0);
-  else rv64_addiw(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), imm);
-}
+make_rtl_compute_imm_opt(addi, addw, addiw)
+make_rtl_compute_imm_opt(andi, and, andi)
+make_rtl_compute_imm_opt(xori, xor, xori)
+make_rtl_compute_imm_opt(ori, or, ori)
 
 make_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   rtl_addi(s, dest, src1, -imm);
-}
-
-make_rtl(andi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (src1 == rz) load_imm(rtlreg2rvidx(s, dest), 0);
-  else if (load_imm_big(tmp0, imm)) rv64_and(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), tmp0);
-  else rv64_andi(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), imm);
-}
-
-make_rtl(xori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (src1 == rz) load_imm(rtlreg2rvidx(s, dest), imm);
-  else if (load_imm_big(tmp0, imm)) rv64_xor(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), tmp0);
-  else rv64_xori(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), imm);
-}
-
-make_rtl(ori, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
-  if (src1 == rz) load_imm(rtlreg2rvidx(s, dest), imm);
-  else if (load_imm_big(tmp0, imm)) rv64_or(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), tmp0);
-  else rv64_ori(rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), imm);
 }
 
 #ifdef ISA64
