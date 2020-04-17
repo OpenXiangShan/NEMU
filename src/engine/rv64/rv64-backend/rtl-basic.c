@@ -66,20 +66,26 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
     if (dest_varidx & SPMIDX_MASK) { \
       concat(rv64_, rv64_name) (tmp0, src1_rvidx, src2_rvidx); \
       rtl_kill(s, src1); \
-      rv64_addi(rtlreg2rvidx(s, dest), tmp0, 0); \
+      uint32_t dest_rvidx = rtlreg2rvidx(s, dest); \
+      rv64_addi(dest_rvidx, tmp0, 0); \
     } \
     else concat(rv64_, rv64_name) (dest_varidx, src1_rvidx, src2_rvidx); \
   }
 #else
 #define make_rtl_compute_reg(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
-    concat(rv64_, rv64_name) (rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), rtlreg2rvidx(s, src2)); \
+    uint32_t dest_rvidx = rtlreg2rvidx(s, dest); \
+    uint32_t src1_rvidx = rtlreg2rvidx(s, src1); \
+    uint32_t src2_rvidx = rtlreg2rvidx(s, src2); \
+    concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, src2_rvidx); \
   }
 #endif
 
 #define make_rtl_compute_imm(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
-    concat(rv64_, rv64_name) (rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), imm); \
+    uint32_t dest_rvidx = rtlreg2rvidx(s, dest); \
+    uint32_t src1_rvidx = rtlreg2rvidx(s, src1); \
+    concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, imm); \
   }
 
 #define make_rtl_compute_imm_opt(rtl_name, rv64_name, rv64_imm_name) \
@@ -132,13 +138,17 @@ make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const r
   if (dest_varidx & SPMIDX_MASK) {
     rv64_relop(relop, tmp0, src1_rvidx, src2_rvidx);
     rtl_kill(s, src1);
-    rv64_addi(rtlreg2rvidx(s, dest), tmp0, 0);
+    uint32_t dest_rvidx = rtlreg2rvidx(s, dest);
+    rv64_addi(dest_rvidx, tmp0, 0);
   }
   else rv64_relop(relop, dest_varidx, src1_rvidx, src2_rvidx);
 }
 #else
 make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
-  rv64_relop(relop, rtlreg2rvidx(s, dest), rtlreg2rvidx(s, src1), rtlreg2rvidx(s, src2));
+  uint32_t dest_rvidx = rtlreg2rvidx(s, dest);
+  uint32_t src1_rvidx = rtlreg2rvidx(s, src1);
+  uint32_t src2_rvidx = rtlreg2rvidx(s, src2);
+  rv64_relop(relop, dest_rvidx, src1_rvidx, src2_rvidx);
 }
 #endif
 
@@ -391,7 +401,8 @@ make_rtl(j, vaddr_t target) {
 }
 
 make_rtl(jr, rtlreg_t *target) {
-  rv64_addi(tmp0, rtlreg2rvidx(s, target), 0);
+  uint32_t rvidx = rtlreg2rvidx(s, target);
+  rv64_addi(tmp0, rvidx, 0);
 #ifdef REG_SPILLING
   spill_writeback_all();
 #endif
