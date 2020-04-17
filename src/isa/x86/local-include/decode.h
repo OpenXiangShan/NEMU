@@ -223,7 +223,9 @@ static inline make_DHelper(gp2_1_E) {
 
 static inline make_DHelper(gp2_cl2E) {
   operand_rm(s, id_dest, true, NULL, false);
-  operand_reg(s, id_src1, true, R_CL, 1);
+  // shift instructions will eventually use the lower
+  // 5 bits of %cl, therefore it is OK to load %ecx
+  operand_reg(s, id_src1, true, R_ECX, 4);
 }
 
 static inline make_DHelper(gp2_Ib2E) {
@@ -244,7 +246,9 @@ static inline make_DHelper(Ib_G2E) {
  * use for shld/shrd */
 static inline make_DHelper(cl_G2E) {
   operand_rm(s, id_dest, true, id_src2, true);
-  operand_reg(s, id_src1, true, R_CL, 1);
+  // shift instructions will eventually use the lower
+  // 5 bits of %cl, therefore it is OK to load %ecx
+  operand_reg(s, id_src1, true, R_ECX, 4);
 }
 
 static inline make_DHelper(O2a) {

@@ -22,7 +22,7 @@ static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
 // else load it to `r`, and reture true
 static inline bool load_imm_big(uint32_t r, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   if (lui_imm == 0) return false;
   else {
     rv64_lui(r, lui_imm);
@@ -38,7 +38,7 @@ static inline void load_imm(uint32_t r, const sword_t imm) {
   }
 
   RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
 
   uint32_t hi = x0;
   if (lui_imm != 0) {
@@ -50,7 +50,7 @@ static inline void load_imm(uint32_t r, const sword_t imm) {
 
 static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   rv64_lui(r, lui_imm);
   rv64_addiw(r, r, rv_imm.imm_11_0);
 }
@@ -302,7 +302,7 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   uint32_t idx_addr = rtlreg2rvidx(s, addr);
 
   RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   if (addr == rz) rv64_lui(tmp0, lui_imm);
   else if (lui_imm == 0) rv64_zextw(tmp0, idx_addr);
   else {
@@ -329,7 +329,7 @@ make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int 
   uint32_t idx_src1 = rtlreg2rvidx(s, src1);
 
   RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11);
+  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   if (addr == rz) rv64_lui(tmp0, lui_imm);
   else if (lui_imm == 0) rv64_zextw(tmp0, idx_addr);
   else {
