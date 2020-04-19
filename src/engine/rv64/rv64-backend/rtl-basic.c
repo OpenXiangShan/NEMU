@@ -60,7 +60,7 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
 #ifdef REG_SPILLING
 #define make_rtl_compute_reg(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
-    uint32_t ret = rtlreg2rvidx_pair(s, src1, src2); \
+    uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true); \
     uint32_t src1_rvidx = ret >> 16; \
     uint32_t src2_rvidx = ret & 0xffff; \
     uint32_t dest_varidx = rtlreg2varidx(s, dest); \
@@ -85,7 +85,7 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
 
 #define make_rtl_compute_imm(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
-    uint32_t ret = rtlreg2rvidx_pair(s, dest, src1); \
+    uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true); \
     uint32_t dest_rvidx = ret >> 16; \
     uint32_t src1_rvidx = ret & 0xffff; \
     concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, imm); \
@@ -94,7 +94,7 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
 
 #define make_rtl_compute_imm_opt(rtl_name, rv64_name, rv64_imm_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
-    uint32_t ret = rtlreg2rvidx_pair(s, dest, src1); \
+    uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true); \
     uint32_t dest_rvidx = ret >> 16; \
     uint32_t src1_rvidx = ret & 0xffff; \
     if (src1 == rz) load_imm(dest_rvidx, imm); \
@@ -138,7 +138,7 @@ make_rtl_compute_imm(sari, sraiw)
 
 #ifdef REG_SPILLING
 make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
-  uint32_t ret = rtlreg2rvidx_pair(s, src1, src2);
+  uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
   uint32_t dest_varidx = rtlreg2varidx(s, dest);
@@ -162,7 +162,7 @@ make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const r
 
 make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
   int big_imm = load_imm_big(tmp0, imm);
-  uint32_t ret = rtlreg2rvidx_pair(s, dest, src1);
+  uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
   if (!big_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
@@ -195,7 +195,7 @@ make_rtl_compute_reg(idiv_r, remw)
 
 #ifdef REG_SPILLING
 make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint32_t ret = rtlreg2rvidx_pair(s, src1, src2);
+  uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
   rv64_zextw(src1_rvidx, src1_rvidx);
@@ -209,7 +209,7 @@ make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
 }
 
 make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
-  uint32_t ret = rtlreg2rvidx_pair(s, src1, src2);
+  uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
   rv64_sextw(src1_rvidx, src1_rvidx);
@@ -313,7 +313,7 @@ make_rtl(idiv64_r, rtlreg_t* dest,
 }
 
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
-  uint32_t ret = rtlreg2rvidx_pair(s, dest, addr);
+  uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t addr_rvidx = ret & 0xffff;
 
@@ -342,7 +342,7 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
 }
 
 make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int len) {
-  uint32_t ret = rtlreg2rvidx_pair(s, addr, src1);
+  uint32_t ret = rtlreg2rvidx_pair(s, addr, true, src1, true);
   uint32_t addr_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
 
@@ -428,7 +428,7 @@ make_rtl(jr, rtlreg_t *target) {
 }
 
 make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  uint32_t ret = rtlreg2rvidx_pair(s, src1, src2);
+  uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t rs1 = ret >> 16;
   uint32_t rs2 = ret & 0xffff;
 #ifdef REG_SPILLING

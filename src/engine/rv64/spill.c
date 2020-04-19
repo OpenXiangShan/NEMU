@@ -82,9 +82,9 @@ void spill_flush_all() {
 }
 
 // replace tmp_regs[tmpidx] with spmidx
-void spill_replace(uint32_t tmpidx, uint32_t spmidx) {
+void spill_replace(uint32_t tmpidx, uint32_t spmidx, int load_val) {
   spill_writeback(tmpidx);
-  spm(lw, tmp_regs[tmpidx].rvidx, 4 * (spmidx & ~SPMIDX_MASK));
+  if (load_val) spm(lw, tmp_regs[tmpidx].rvidx, 4 * (spmidx & ~SPMIDX_MASK));
 
   tmp_regs[tmpidx].spmidx = spmidx;
   tmp_regs[tmpidx].used = 1;
@@ -92,14 +92,15 @@ void spill_replace(uint32_t tmpidx, uint32_t spmidx) {
 }
 
 // find a clean tmpreg and map it to spmidx
-uint32_t spill_alloc(uint32_t spmidx) {
+uint32_t spill_alloc(uint32_t spmidx, int load_val) {
   uint32_t tmpidx = (tmp_regs[1].dirty ? 0 : 1);
-  spill_replace(tmpidx, spmidx);
+  spill_replace(tmpidx, spmidx, load_val);
   return tmpidx;
 }
 
 uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest);
-uint32_t rtlreg2rvidx_pair(DecodeExecState *s, const rtlreg_t *src1, const rtlreg_t *src2) {
+uint32_t rtlreg2rvidx_pair(DecodeExecState *s,
+    const rtlreg_t *src1, int load_src1, const rtlreg_t *src2, int load_src2) {
   uint32_t src1_varidx = rtlreg2varidx(s, src1);
   uint32_t src2_varidx = rtlreg2varidx(s, src2);
 
@@ -110,26 +111,26 @@ uint32_t rtlreg2rvidx_pair(DecodeExecState *s, const rtlreg_t *src1, const rtlre
 
     if (src1_tmpidx == -1 && src2_tmpidx != -1) {
       src1_tmpidx = !src2_tmpidx;
-      spill_replace(src1_tmpidx, src1_varidx);
+      spill_replace(src1_tmpidx, src1_varidx, load_src1);
     } else if (src1_tmpidx != -1 && src2_tmpidx == -1) {
       src2_tmpidx = !src1_tmpidx;
-      spill_replace(src2_tmpidx, src2_varidx);
+      spill_replace(src2_tmpidx, src2_varidx, load_src2);
     } else if (src1_tmpidx == -1 && src2_tmpidx == -1) {
       src1_tmpidx = 0;
       src2_tmpidx = 1;
-      spill_replace(src1_tmpidx, src1_varidx);
-      spill_replace(src2_tmpidx, src2_varidx);
+      spill_replace(src1_tmpidx, src1_varidx, load_src1);
+      spill_replace(src2_tmpidx, src2_varidx, load_src2);
     }
 
     src1_varidx = tmp_regs[src1_tmpidx].rvidx;
     src2_varidx = tmp_regs[src2_tmpidx].rvidx;
   } else if (src1_varidx & SPMIDX_MASK) {
     uint32_t src1_tmpidx = spmidx2tmpidx(src1_varidx);
-    if (src1_tmpidx == -1) src1_tmpidx = spill_alloc(src1_varidx);
+    if (src1_tmpidx == -1) src1_tmpidx = spill_alloc(src1_varidx, load_src1);
     src1_varidx = tmp_regs[src1_tmpidx].rvidx;
   } else if (src2_varidx & SPMIDX_MASK) {
     uint32_t src2_tmpidx = spmidx2tmpidx(src2_varidx);
-    if (src2_tmpidx == -1) src2_tmpidx = spill_alloc(src2_varidx);
+    if (src2_tmpidx == -1) src2_tmpidx = spill_alloc(src2_varidx, load_src2);
     src2_varidx = tmp_regs[src2_tmpidx].rvidx;
   }
 
