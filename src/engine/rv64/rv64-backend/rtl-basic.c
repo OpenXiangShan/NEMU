@@ -31,20 +31,7 @@ static inline bool load_imm_big(uint32_t r, const sword_t imm) {
 }
 
 static inline void load_imm(uint32_t r, const sword_t imm) {
-  if (imm == 0) {
-    rv64_addi(r, x0, 0);
-    return;
-  }
-
-  RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
-
-  uint32_t hi = x0;
-  if (lui_imm != 0) {
-    rv64_lui(r, lui_imm);
-    hi = r;
-  }
-  if (rv_imm.imm_11_0 != 0) rv64_addiw(r, hi, rv_imm.imm_11_0);
+  if (!load_imm_big(r, imm)) rv64_addiw(r, x0, imm & 0xfff);
 }
 
 static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
