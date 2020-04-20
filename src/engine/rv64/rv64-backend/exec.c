@@ -1,6 +1,5 @@
 #include <isa/riscv64.h>
 #include "../tran.h"
-#include "../spill.h"
 
 #define RV64_EXEC_PC (riscv64_PMEM_BASE + BBL_MAX_SIZE) // skip bbl
 
@@ -37,10 +36,6 @@ vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type) {
     backend_exec(3);
     backend_getregs(&r);
   }
-
-#ifdef REG_SPILLING
-  tmp_regs_reset();
-#endif
 
   return r.gpr[tmp0]._64;
 }

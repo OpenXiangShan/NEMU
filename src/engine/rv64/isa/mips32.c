@@ -41,14 +41,7 @@ int rtlreg_is_spm(DecodeExecState *s, const rtlreg_t* dest) {
 uint32_t rtlreg2rvidx(DecodeExecState *s, const rtlreg_t* dest) {
   uint32_t varidx = rtlreg2varidx(s, dest);
   if (!(varidx & SPMIDX_MASK)) return varidx;
-
-  uint32_t spmidx = varidx;
-  uint32_t rvidx = spmidx2rvidx(spmidx);
-  // if `dest` is already mapped, just return the corresponding rvidx
-  if (rvidx) return rvidx;
-
-  // if `dest` is not mapped, spill out one tmp_reg and remap
-  return spill_out_and_remap(s, spmidx);
+  assert(0);
 }
 
 void guest_getregs(CPU_state *mips32) {

@@ -4,7 +4,6 @@
 #include <isa.h>
 #include <monitor/difftest.h>
 #include "tran.h"
-#include "spill.h"
 
 #define TOP_N 10
 //#define DUMP_RV64
@@ -18,6 +17,7 @@ static void clear_trans_buffer() { trans_buffer_index = 0; }
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
+void spill_reset();
 
 typedef struct TB {
   vaddr_t pc;
@@ -88,9 +88,6 @@ void write_ins(uint32_t ins) {
 }
 
 void mainloop() {
-#ifdef REG_SPILLING
-  tmp_regs_init();
-#endif
   nemu_state.state = NEMU_RUNNING;
   uint64_t total_instr = 0;
   while (1) {
@@ -98,15 +95,13 @@ void mainloop() {
     TB *tb = find_tb(tb_start);
     if (tb == NULL) {
       clear_trans_buffer();
+      spill_reset();
       tran_next_pc = NEXT_PC_SEQ;
       int guest_nr_instr = 0;
       while (1) {
         __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
         __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
         guest_nr_instr ++;
-#ifdef REG_SPILLING
-        spill_flush_all();
-#endif
 
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
