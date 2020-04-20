@@ -12,7 +12,6 @@
 
 uint32_t spmidx2rvidx(uint32_t);
 uint32_t spill_out_and_remap(DecodeExecState*, uint32_t);
-void spill_flush(uint32_t);
 void spill_flush_all();
 void cal_suffix_inst();
 void spill_writeback_all();

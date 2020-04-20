@@ -16,11 +16,14 @@ void spill_init() {
   tmp_regs[1].rvidx = TMP_REG_2;
 }
 
+void spill_flush(int tmpidx) {
+  tmp_regs[tmpidx].spmidx = 0;
+  tmp_regs[tmpidx].dirty = 0;
+}
+
 void spill_reset() {
-  tmp_regs[0].spmidx = 0;
-  tmp_regs[0].dirty = 0;
-  tmp_regs[1].spmidx = 0;
-  tmp_regs[1].dirty = 0;
+  spill_flush(0);
+  spill_flush(1);
 }
 
 int spmidx2tmpidx(uint32_t spmidx) {
@@ -145,4 +148,20 @@ void spill_set_dirty(uint32_t tmpidx) {
 void spill_set_dirty_rvidx(uint32_t rvidx) {
   int tmpidx = rvidx2tmpidx(rvidx);
   if (tmpidx != -1) spill_set_dirty(tmpidx);
+}
+
+// this will be called after every translation of an instruction
+// to flush RTL tmp registers, since their life-cycle is only
+// valid during the translation of a single instruction
+static void spill_flush_local_internal(DecodeExecState *s, const rtlreg_t *dest) {
+  uint32_t varidx = rtlreg2varidx(s, dest);
+  for (int i = 0; i < TMP_REG_NUM; i++) {
+    if (tmp_regs[i].spmidx == varidx && tmp_regs[i].dirty) spill_flush(i);
+  }
+}
+void spill_flush_local() {
+  DecodeExecState state; // only used in rtlreg2varidx()
+  DecodeExecState *s = &state;
+  spill_flush_local_internal(s, s0);
+  spill_flush_local_internal(s, s1);
 }

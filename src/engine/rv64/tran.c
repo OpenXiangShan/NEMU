@@ -18,6 +18,7 @@ void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 void spill_reset();
+void spill_flush_local();
 
 typedef struct TB {
   vaddr_t pc;
@@ -102,6 +103,8 @@ void mainloop() {
         __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
         __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
         guest_nr_instr ++;
+
+        spill_flush_local();
 
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
