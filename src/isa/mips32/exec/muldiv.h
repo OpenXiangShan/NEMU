@@ -25,28 +25,24 @@ static inline make_EHelper(mul) {
 
 static inline make_EHelper(mult) {
   rtl_imul_lo(s, &cpu.lo, dsrc1, dsrc2);
-  rtl_kill(s, &cpu.lo);
   rtl_imul_hi(s, &cpu.hi, dsrc1, dsrc2);
   print_asm_template3(mult);
 }
 
 static inline make_EHelper(multu) {
   rtl_mul_lo(s, &cpu.lo, dsrc1, dsrc2);
-  rtl_kill(s, &cpu.lo);
   rtl_mul_hi(s, &cpu.hi, dsrc1, dsrc2);
   print_asm_template3(multu);
 }
 
 static inline make_EHelper(div) {
   rtl_idiv_q(s, &cpu.lo, dsrc1, dsrc2);
-  rtl_kill(s, &cpu.lo);
   rtl_idiv_r(s, &cpu.hi, dsrc1, dsrc2);
   print_asm_template3(div);
 }
 
 static inline make_EHelper(divu) {
   rtl_div_q(s, &cpu.lo, dsrc1, dsrc2);
-  rtl_kill(s, &cpu.lo);
   rtl_div_r(s, &cpu.hi, dsrc1, dsrc2);
   print_asm_template3(divu);
 }

@@ -449,10 +449,3 @@ make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vad
   Assert(new_idx - old_idx == 5, "if this condition is broken, "
       "you should also modify rv64_exec_trans_buffer() in exec.c");
 }
-
-make_rtl(kill, const rtlreg_t* src1) {
-#ifdef REG_SPILLING
-  uint32_t varidx = rtlreg2varidx(s, src1);
-  spill_flush(varidx);
-#endif
-}

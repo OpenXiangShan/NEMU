@@ -3,7 +3,6 @@
 static inline make_EHelper(ld) {
   rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
   check_mem_ex();
-  rtl_kill(s, dsrc1);
   rtl_sr(s, id_dest->reg, s0, 4);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -19,7 +18,6 @@ static inline make_EHelper(ld) {
 static inline make_EHelper(lds) {
   rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
   check_mem_ex();
-  rtl_kill(s, dsrc1);
   rtl_sext(s, ddest, s0, s->width);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -46,8 +44,6 @@ static inline make_EHelper(st) {
 static inline make_EHelper(swl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
-  rtl_kill(s, dsrc1);
-
   // mem.shamt2
   rtl_andi(s, s1, s0, 0x3);
   rtl_shli(s, s1, s1, 3);
@@ -67,20 +63,15 @@ static inline make_EHelper(swl) {
   rtl_subi(s, s1, s1, 24);
   rtl_neg(s, s1, s1);
 
-  rtl_kill(s, s0);
-
   // prepare register data
   rtl_shr(s, s1, ddest, s1);
 
   // merge the word
   rtl_or(s, s1, s0, s1);
 
-  rtl_kill(s, s1);
-
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_kill(s, dsrc1);
   rtl_sm(s, s0, 0, s1, 4);
   check_mem_ex();
 
@@ -90,8 +81,6 @@ static inline make_EHelper(swl) {
 
 static inline make_EHelper(swr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-
-  rtl_kill(s, dsrc1);
 
   // mem.shmat2
   rtl_andi(s, s1, s0, 0x3);
@@ -114,20 +103,15 @@ static inline make_EHelper(swr) {
   rtl_subi(s, s1, s1, 24);
   rtl_neg(s, s1, s1);
 
-  rtl_kill(s, s0);
-
   // prepare register data
   rtl_shl(s, s1, ddest, s1);
 
   // merge the word
   rtl_or(s, s1, s0, s1);
 
-  rtl_kill(s, s1);
-
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_kill(s, dsrc1);
   rtl_sm(s, s0, 0, s1, 4);
   check_mem_ex();
 
@@ -137,8 +121,6 @@ static inline make_EHelper(swr) {
 
 static inline make_EHelper(lwl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-
-  rtl_kill(s, dsrc1);
 
   // mem.shmat2
   rtl_andi(s, s1, s0, 0x3);
@@ -158,15 +140,11 @@ static inline make_EHelper(lwl) {
   rtl_subi(s, s1, s1, 24);
   rtl_neg(s, s1, s1);
 
-  rtl_kill(s, s0);
-
   // prepare register data
   rtl_shli(s, ddest, ddest, 8);   // shift 8 bit
   rtl_shl(s, ddest, ddest, s1);   // second shift
   rtl_shr(s, ddest, ddest, s1);   // shift back
   rtl_shri(s, ddest, ddest, 8);   // shift 8 bit
-
-  rtl_kill(s, s1);
 
   // merge the word
   rtl_or(s, ddest, s0, ddest);
@@ -177,8 +155,6 @@ static inline make_EHelper(lwl) {
 
 static inline make_EHelper(lwr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-
-  rtl_kill(s, dsrc1);
 
   // mem.shmat2
   rtl_andi(s, s1, s0, 0x3);
@@ -195,15 +171,12 @@ static inline make_EHelper(lwr) {
   // reg.shmat = 24 - mem.shmat2
   rtl_subi(s, s1, s1, 24);
   rtl_neg(s, s1, s1);
-  rtl_kill(s, s0);
 
   // prepare register data
   rtl_shri(s, ddest, ddest, 8);   // shift 8 bit
   rtl_shr(s, ddest, ddest, s1);   // second shift
   rtl_shl(s, ddest, ddest, s1);   // shift back
   rtl_shli(s, ddest, ddest, 8);   // shift 8 bit
-
-  rtl_kill(s, s1);
 
   // merge the word
   rtl_or(s, ddest, s0, ddest);
