@@ -125,5 +125,4 @@ static inline make_rtl(jrelop, uint32_t relop,
   bool is_jmp = interpret_relop(relop, *src1, *src2);
   if (is_jmp) rtl_j(s, target);
 }
-
 #endif

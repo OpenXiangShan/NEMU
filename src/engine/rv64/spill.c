@@ -29,16 +29,14 @@ void spill_reset() {
 }
 
 int spmidx2tmpidx(uint32_t spmidx) {
-  for (int i = 0; i < TMP_REG_NUM; i++) {
-    if (tmp_regs[i].spmidx == spmidx) return i;
-  }
+  if (tmp_regs[0].spmidx == spmidx) return 0;
+  if (tmp_regs[1].spmidx == spmidx) return 1;
   return -1;
 }
 
 int rvidx2tmpidx(uint32_t rvidx) {
-  for (int i = 0; i < TMP_REG_NUM; i++) {
-    if (tmp_regs[i].rvidx == rvidx) return i;
-  }
+  if (tmp_regs[0].rvidx == rvidx) return 0;
+  if (tmp_regs[1].rvidx == rvidx) return 1;
   return -1;
 }
 
@@ -62,10 +60,9 @@ void spill_writeback(uint32_t i) {
   }
 }
 
-void spill_writeback_all() {  // can be 0/1/2 inst
-  for (int i = 0; i < TMP_REG_NUM; i++) {
-    spill_writeback(i);
-  }
+void spill_writeback_all() {
+  spill_writeback(0);
+  spill_writeback(1);
 }
 
 // replace tmp_regs[tmpidx] with spmidx
@@ -157,9 +154,8 @@ void spill_set_dirty_rvidx(uint32_t rvidx) {
 // valid during the translation of a single instruction
 static void spill_flush_local_internal(DecodeExecState *s, const rtlreg_t *dest) {
   uint32_t varidx = rtlreg2varidx(s, dest);
-  for (int i = 0; i < TMP_REG_NUM; i++) {
-    if (tmp_regs[i].spmidx == varidx && tmp_regs[i].dirty) spill_flush(i);
-  }
+  if (tmp_regs[0].spmidx == varidx && tmp_regs[0].dirty) spill_flush(0);
+  if (tmp_regs[1].spmidx == varidx && tmp_regs[1].dirty) spill_flush(1);
 }
 void spill_flush_local() {
   DecodeExecState state; // only used in rtlreg2varidx()
