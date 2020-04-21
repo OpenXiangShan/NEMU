@@ -13,11 +13,11 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   if (dest >= gpr_start && dest < gpr_end) {
     int rvidx = dest - gpr_start;
     switch (rvidx) {
-      case tmp0:         return 1 | SPMIDX_MASK; break;   // fixed to tmp0
-      case spm_base:     return 2 | SPMIDX_MASK; break;   // used to store sratchpad addr
-      case tmp_reg1:     return 3 | SPMIDX_MASK; break;   // tmp_reg 1
-      case tmp_reg2:     return 4 | SPMIDX_MASK; break;   // tmp_reg 2
-      case mask32:       return 5 | SPMIDX_MASK; break;   // fixed to mask32
+      case tmp0:     return 1 | SPMIDX_MASK;   // fixed to tmp0
+      case spm_base: return 2 | SPMIDX_MASK;   // used to store sratchpad addr
+      case tmp_reg1: return 3 | SPMIDX_MASK;   // tmp_reg 1
+      case tmp_reg2: return 4 | SPMIDX_MASK;   // tmp_reg 2
+      case mask32:   return 5 | SPMIDX_MASK;   // fixed to mask32
       default: return rvidx;
     }
   }
