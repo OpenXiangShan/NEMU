@@ -4,12 +4,6 @@
 #include <common.h>
 #include <cpu/decode.h>
 
-// Temp GPR Registers Setting (can set any registers but $0, $1, $28)
-// default is $26, $27, which has low perf loss
-#define TMP_REG_1     26
-#define TMP_REG_2     27
-#define TMP_REG_NUM 2
-
 uint32_t spmidx2rvidx(uint32_t);
 uint32_t spill_out_and_remap(DecodeExecState*, uint32_t);
 void spill_flush_all();

@@ -3,6 +3,8 @@
 #include "rv64-backend/rv_ins_def.h"
 #include "rtl/rtl.h"
 
+#define TMP_REG_NUM 2
+
 typedef struct {
   uint32_t rvidx;
   uint32_t spmidx;
@@ -12,8 +14,8 @@ static Tmp_reg tmp_regs[TMP_REG_NUM];
 
 void spill_init() {
   assert(TMP_REG_NUM == 2);
-  tmp_regs[0].rvidx = TMP_REG_1;
-  tmp_regs[1].rvidx = TMP_REG_2;
+  tmp_regs[0].rvidx = tmp_reg1;
+  tmp_regs[1].rvidx = tmp_reg2;
 }
 
 void spill_flush(int tmpidx) {

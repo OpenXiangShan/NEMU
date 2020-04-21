@@ -5,7 +5,6 @@
 #include <isa.h>
 #include <isa/riscv64.h>
 #include "../tran.h"
-#include "../spill.h"
 
 uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
@@ -16,8 +15,8 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
     switch (rvidx) {
       case tmp0:         return 1 | SPMIDX_MASK; break;   // fixed to tmp0
       case spm_base:     return 2 | SPMIDX_MASK; break;   // used to store sratchpad addr
-      case TMP_REG_1:    return 3 | SPMIDX_MASK; break;   // tmp_reg 1
-      case TMP_REG_2:    return 4 | SPMIDX_MASK; break;   // tmp_reg 2
+      case tmp_reg1:     return 3 | SPMIDX_MASK; break;   // tmp_reg 1
+      case tmp_reg2:     return 4 | SPMIDX_MASK; break;   // tmp_reg 2
       case mask32:       return 5 | SPMIDX_MASK; break;   // fixed to mask32
       default: return rvidx;
     }
@@ -40,7 +39,7 @@ void guest_getregs(CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case tmp0: case mask32: case spm_base: case TMP_REG_1: case TMP_REG_2: continue;
+      case tmp0: case mask32: case spm_base: case tmp_reg1: case tmp_reg2: continue;
     }
     mips32->gpr[i]._32 = r.gpr[i]._64;
   }
@@ -55,7 +54,7 @@ void guest_setregs(const CPU_state *mips32) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case tmp0: case mask32: case spm_base: case TMP_REG_1: case TMP_REG_2: continue;
+      case tmp0: case mask32: case spm_base: case tmp_reg1: case tmp_reg2: continue;
     }
     r.gpr[i]._64 = mips32->gpr[i]._32;
   }
