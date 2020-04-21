@@ -4,7 +4,6 @@
 #include "../spill.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
-uint32_t rtlreg2rvidx(DecodeExecState *s, const rtlreg_t* dest);
 uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t* dest);
 uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t* src);
 
@@ -174,10 +173,10 @@ make_rtl(div64_q, rtlreg_t* dest,
 #ifndef __ISA_x86__
   panic("only used in x86\n");
 #endif
-  uint32_t idx_dest = rtlreg2rvidx(s, dest);
-  uint32_t idx_src1_hi = rtlreg2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = rtlreg2rvidx(s, src1_lo);
-  uint32_t idx_src2 = rtlreg2rvidx(s, src2);
+  uint32_t idx_dest = dest2rvidx(s, dest);
+  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
+  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
+  uint32_t idx_src2 = src2rvidx(s, src2);
 
   rv64_slli(tmp0, idx_src1_hi, 32);
   rv64_zextw(idx_src1_lo, idx_src1_lo);
@@ -191,10 +190,10 @@ make_rtl(div64_r, rtlreg_t* dest,
 #ifndef __ISA_x86__
   panic("only used in x86\n");
 #endif
-  uint32_t idx_dest = rtlreg2rvidx(s, dest);
-  uint32_t idx_src1_hi = rtlreg2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = rtlreg2rvidx(s, src1_lo);
-  uint32_t idx_src2 = rtlreg2rvidx(s, src2);
+  uint32_t idx_dest = dest2rvidx(s, dest);
+  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
+  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
+  uint32_t idx_src2 = src2rvidx(s, src2);
 
   rv64_slli(tmp0, idx_src1_hi, 32);
   rv64_zextw(idx_src1_lo, idx_src1_lo);
@@ -208,10 +207,10 @@ make_rtl(idiv64_q, rtlreg_t* dest,
 #ifndef __ISA_x86__
   panic("only used in x86\n");
 #endif
-  uint32_t idx_dest = rtlreg2rvidx(s, dest);
-  uint32_t idx_src1_hi = rtlreg2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = rtlreg2rvidx(s, src1_lo);
-  uint32_t idx_src2 = rtlreg2rvidx(s, src2);
+  uint32_t idx_dest = dest2rvidx(s, dest);
+  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
+  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
+  uint32_t idx_src2 = src2rvidx(s, src2);
 
   rv64_slli(tmp0, idx_src1_hi, 32);
   rv64_zextw(idx_src1_lo, idx_src1_lo);
@@ -225,10 +224,10 @@ make_rtl(idiv64_r, rtlreg_t* dest,
 #ifndef __ISA_x86__
   panic("only used in x86\n");
 #endif
-  uint32_t idx_dest = rtlreg2rvidx(s, dest);
-  uint32_t idx_src1_hi = rtlreg2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = rtlreg2rvidx(s, src1_lo);
-  uint32_t idx_src2 = rtlreg2rvidx(s, src2);
+  uint32_t idx_dest = dest2rvidx(s, dest);
+  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
+  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
+  uint32_t idx_src2 = src2rvidx(s, src2);
 
   rv64_slli(tmp0, idx_src1_hi, 32);
   rv64_zextw(idx_src1_lo, idx_src1_lo);
@@ -294,11 +293,11 @@ make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   panic("only used in x86\n");
 #endif
 
-  uint32_t idx_dest = rtlreg2rvidx(s, dest);
+  uint32_t idx_dest = dest2rvidx(s, dest);
 
   // we assume that `addr` is only from cpu.gpr in x86
   uintptr_t addr_align = (uintptr_t)addr & ~(sizeof(rtlreg_t) - 1);
-  uint32_t idx_r = rtlreg2rvidx(s, (void *)addr_align);
+  uint32_t idx_r = src2rvidx(s, (void *)addr_align);
   switch (len) {
     case 1: ;
       int is_high = (uintptr_t)addr & 1;
@@ -321,11 +320,11 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   panic("only used in x86\n");
 #endif
 
-  uint32_t idx_src1 = rtlreg2rvidx(s, src1);
+  uint32_t idx_src1 = dest2rvidx(s, src1);
 
   // we assume that `addr` is only from cpu.gpr in x86
   uintptr_t addr_align = (uintptr_t)addr & ~(sizeof(rtlreg_t) - 1);
-  uint32_t idx_r = rtlreg2rvidx(s, (void *)addr_align);
+  uint32_t idx_r = src2rvidx(s, (void *)addr_align);
 
   spm(sw, idx_r, SPM_X86_REG);
   if (len == 1) spm(sb, idx_src1, SPM_X86_REG + ((uintptr_t)addr & 1));

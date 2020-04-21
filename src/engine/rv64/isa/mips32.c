@@ -34,16 +34,6 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   return 0;
 }
 
-int rtlreg_is_spm(DecodeExecState *s, const rtlreg_t* dest) {
-  return (rtlreg2varidx(s, dest) & SPMIDX_MASK) != 0;
-}
-
-uint32_t rtlreg2rvidx(DecodeExecState *s, const rtlreg_t* dest) {
-  uint32_t varidx = rtlreg2varidx(s, dest);
-  if (!(varidx & SPMIDX_MASK)) return varidx;
-  assert(0);
-}
-
 void guest_getregs(CPU_state *mips32) {
   riscv64_CPU_state r;
   backend_getregs(&r);
