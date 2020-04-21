@@ -168,73 +168,32 @@ make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
 }
 #endif
 
-make_rtl(div64_q, rtlreg_t* dest,
-    const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-#ifndef __ISA_x86__
-  panic("only used in x86\n");
-#endif
-  uint32_t idx_dest = dest2rvidx(s, dest);
-  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
-  uint32_t idx_src2 = src2rvidx(s, src2);
-
-  rv64_slli(tmp0, idx_src1_hi, 32);
-  rv64_zextw(idx_src1_lo, idx_src1_lo);
-  rv64_or(tmp0, tmp0, idx_src1_lo);
-  rv64_zextw(idx_src2, idx_src2);
-  rv64_divu(idx_dest, tmp0, idx_src2);
+#ifdef __ISA_x86__
+#define make_x86_div64(rtl_name, ext_type, rv64_name) \
+make_rtl(rtl_name, rtlreg_t* dest, \
+    const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) { \
+  uint32_t idx_dest = dest2rvidx(s, dest); \
+  uint32_t idx_src1_hi = src2rvidx(s, src1_hi); \
+  uint32_t idx_src1_lo = src2rvidx(s, src1_lo); \
+  uint32_t idx_src2 = src2rvidx(s, src2); \
+  rv64_slli(tmp0, idx_src1_hi, 32); \
+  rv64_zextw(idx_src1_lo, idx_src1_lo); \
+  rv64_or(tmp0, tmp0, idx_src1_lo); \
+  ext_type(idx_src2, idx_src2); \
+  concat(rv64_, rv64_name) (idx_dest, tmp0, idx_src2); \
 }
-
-make_rtl(div64_r, rtlreg_t* dest,
-    const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-#ifndef __ISA_x86__
-  panic("only used in x86\n");
-#endif
-  uint32_t idx_dest = dest2rvidx(s, dest);
-  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
-  uint32_t idx_src2 = src2rvidx(s, src2);
-
-  rv64_slli(tmp0, idx_src1_hi, 32);
-  rv64_zextw(idx_src1_lo, idx_src1_lo);
-  rv64_or(tmp0, tmp0, idx_src1_lo);
-  rv64_zextw(idx_src2, idx_src2);
-  rv64_remu(idx_dest, tmp0, idx_src2);
+#else
+#define make_x86_div64(rtl_name, ext_type, rv64_name) \
+make_rtl(rtl_name, rtlreg_t* dest, \
+    const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) { \
+  panic("only support in x86"); \
 }
-
-make_rtl(idiv64_q, rtlreg_t* dest,
-    const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-#ifndef __ISA_x86__
-  panic("only used in x86\n");
 #endif
-  uint32_t idx_dest = dest2rvidx(s, dest);
-  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
-  uint32_t idx_src2 = src2rvidx(s, src2);
 
-  rv64_slli(tmp0, idx_src1_hi, 32);
-  rv64_zextw(idx_src1_lo, idx_src1_lo);
-  rv64_or(tmp0, tmp0, idx_src1_lo);
-  rv64_sextw(idx_src2, idx_src2);
-  rv64_div(idx_dest, tmp0, idx_src2);
-}
-
-make_rtl(idiv64_r, rtlreg_t* dest,
-    const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
-#ifndef __ISA_x86__
-  panic("only used in x86\n");
-#endif
-  uint32_t idx_dest = dest2rvidx(s, dest);
-  uint32_t idx_src1_hi = src2rvidx(s, src1_hi);
-  uint32_t idx_src1_lo = src2rvidx(s, src1_lo);
-  uint32_t idx_src2 = src2rvidx(s, src2);
-
-  rv64_slli(tmp0, idx_src1_hi, 32);
-  rv64_zextw(idx_src1_lo, idx_src1_lo);
-  rv64_or(tmp0, tmp0, idx_src1_lo);
-  rv64_sextw(idx_src2, idx_src2);
-  rv64_rem(idx_dest, tmp0, idx_src2);
-}
+make_x86_div64(div64_q, rv64_zextw, divu)
+make_x86_div64(div64_r, rv64_zextw, remu)
+make_x86_div64(idiv64_q, rv64_sextw, div)
+make_x86_div64(idiv64_r, rv64_sextw, rem)
 
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
