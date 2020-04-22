@@ -4,7 +4,11 @@
 #include <common.h>
 
 // memory
+#ifdef __ENGINE_rv64__
+#define riscv64_IMAGE_START 0x100000
+#else
 #define riscv64_IMAGE_START 0x0
+#endif
 #define riscv64_PMEM_BASE 0x80000000
 
 // reg

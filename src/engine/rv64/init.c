@@ -12,6 +12,7 @@ void (*backend_exec)(uint64_t n) = NULL;
 
 void backend_exec_code(uint64_t pc, int nr_instr);
 void guest_setregs(const CPU_state *cpu);
+void spill_init();
 
 static void init_rv64_interpreter() {
   char so_file[256];
@@ -75,6 +76,7 @@ static void init_rv64_reg() {
   backend_getregs(&r);
   r.gpr[mask32]._64 = 0x00000000fffffffful;
   r.gpr[mask16]._64 = 0x000000000000fffful;
+  if (spm_base != 0) r.gpr[spm_base]._64 = riscv64_PMEM_BASE;
   backend_setregs(&r);
 }
 
@@ -85,4 +87,5 @@ void init_engine() {
   backend_exec_code(riscv64_PMEM_BASE, 100);
   guest_setregs(&cpu);
   init_rv64_reg();
+  spill_init();
 }

@@ -145,7 +145,7 @@ static inline make_EHelper(srlw) {
   }
   else {
     // srlw
-    rtl_andi(s, s1, dsrc1, 0xffffffffu);
+    rtl_zext(s, s1, dsrc1, 4);
     rtl_shr(s, s0, s1, s0);
     print_asm_template3(srlw);
   }
@@ -178,7 +178,7 @@ static inline make_EHelper(srliw) {
   }
   else {
     // srlw
-    rtl_andi(s, s0, dsrc1, 0xffffffffu);
+    rtl_zext(s, s0, dsrc1, 4);
     rtl_shri(s, s0, s0, id_src2->imm & 0x1f);
     print_asm_template3(srliw);
   }
