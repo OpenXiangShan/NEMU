@@ -53,9 +53,10 @@ static int find_topn_min(TB **top) {
 static TB** find_topn_tb() {
   static TB *top[TOP_N];
   TB *p = head.next;;
+  TB empty = { .pc = -1, .hit_time = 0, .guest_nr_instr = 0 };
   int i;
   for (i = 0; i < TOP_N; i ++) {
-    Assert(p != NULL, "i = %d", i);
+    if (p == NULL) p = &empty;
     top[i] = p;
     p = p->next;
   }
