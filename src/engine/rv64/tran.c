@@ -134,7 +134,7 @@ void mainloop() {
       }
     }
 
-    //Log("enter tb with pc = %x, nr_instr = %d", tb->pc, tb->nr_instr);
+    //Log("enter tb with pc = " FMT_WORD " , nr_instr = %d", tb->pc, tb->nr_instr);
     vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
     total_instr += tb->nr_instr;
     tb->hit_time ++;
