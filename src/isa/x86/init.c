@@ -15,7 +15,7 @@ static const uint8_t img []  = {
 
 static void restart() {
   /* Set the initial instruction pointer. */
-  cpu.pc = IMAGE_START;
+  cpu.pc = PMEM_BASE + IMAGE_START;
   cpu.cs = 0x8;
   cpu.cr0.val = 0x60000011;
 }
