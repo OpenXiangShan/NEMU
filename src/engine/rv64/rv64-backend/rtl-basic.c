@@ -8,12 +8,16 @@ uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t* dest);
 uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t* src);
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
+#ifndef ISA64
   // mask32 is set during initialization
   rv64_and(rd, rs, mask32);
+#endif
 }
 
 static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
+#ifndef ISA64
   rv64_addw(rd, rs, x0);
+#endif
 }
 
 // return false if `imm` can be represented within 12 bits
@@ -24,20 +28,20 @@ static inline bool load_imm_big(uint32_t r, const sword_t imm) {
   if (lui_imm == 0) return false;
   else {
     rv64_lui(r, lui_imm);
-    if (rv_imm.imm_11_0 != 0) rv64_addiw(r, r, rv_imm.imm_11_0);
+    if (rv_imm.imm_11_0 != 0) rv64_addi(r, r, rv_imm.imm_11_0);
     return true;
   }
 }
 
 static inline void load_imm(uint32_t r, const sword_t imm) {
-  if (!load_imm_big(r, imm)) rv64_addiw(r, x0, imm & 0xfff);
+  if (!load_imm_big(r, imm)) rv64_addi(r, x0, imm & 0xfff);
 }
 
 static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   rv64_lui(r, lui_imm);
-  rv64_addiw(r, r, rv_imm.imm_11_0);
+  rv64_addi(r, r, rv_imm.imm_11_0);
 }
 
 /* RTL basic instructions */
@@ -75,7 +79,7 @@ make_rtl_compute_reg(and, and)
 make_rtl_compute_reg(or, or)
 make_rtl_compute_reg(xor, xor)
 
-make_rtl_compute_imm_opt(addi, addw, addiw)
+make_rtl_compute_imm_opt(addi, add, addi)
 make_rtl_compute_imm_opt(andi, and, andi)
 make_rtl_compute_imm_opt(xori, xor, xori)
 make_rtl_compute_imm_opt(ori, or, ori)
@@ -124,26 +128,29 @@ make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const 
       // fall through for default cases
     }
   }
-  if (!big_imm) rv64_addiw(tmp0, x0, imm);
+  if (!big_imm) rv64_addi(tmp0, x0, imm);
   rv64_relop(relop, dest_rvidx, src1_rvidx, tmp0);
 finish:
   spill_set_dirty_rvidx(dest_rvidx);
 }
 
 
-//make_rtl_arith_logic(mul_hi)
-//make_rtl_arith_logic(imul_hi)
+#ifdef ISA64
+make_rtl_compute_reg(mul_lo, mul)
+make_rtl_compute_reg(mul_hi, mulhu)
+make_rtl_compute_reg(imul_lo, mul)
+make_rtl_compute_reg(imul_hi, mulh)
+make_rtl_compute_reg(div_q, divu)
+make_rtl_compute_reg(div_r, remu)
+make_rtl_compute_reg(idiv_q, div)
+make_rtl_compute_reg(idiv_r, rem)
+#else
 make_rtl_compute_reg(mul_lo, mulw)
 make_rtl_compute_reg(imul_lo, mulw)
 make_rtl_compute_reg(div_q, divuw)
 make_rtl_compute_reg(div_r, remuw)
 make_rtl_compute_reg(idiv_q, divw)
 make_rtl_compute_reg(idiv_r, remw)
-
-#ifdef ISA64
-# define rv64_mul_hi(c, a, b) TODO()
-# define rv64_imul_hi(c, a, b) TODO()
-#else
 
 make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
@@ -199,26 +206,33 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t addr_rvidx = ret & 0xffff;
+  uint32_t addr_rvidx_final = dest_rvidx;
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
-  if (addr == rz) rv64_lui(tmp0, lui_imm);
-  else if (lui_imm == 0) rv64_zextw(tmp0, addr_rvidx);
+  if (addr == rz) rv64_lui(dest_rvidx, lui_imm);
+  else if (lui_imm == 0) {
+#ifdef ISA64
+    addr_rvidx_final = addr_rvidx;
+#else
+    rv64_zextw(dest_rvidx, addr_rvidx);
+#endif
+  }
   else {
     rv64_lui(tmp0, lui_imm);
-    rv64_add(tmp0, tmp0, addr_rvidx);
-    rv64_zextw(tmp0, tmp0);
+    rv64_add(dest_rvidx, tmp0, addr_rvidx);
+    rv64_zextw(dest_rvidx, dest_rvidx);
   }
 
   switch (len) {
-    case 1: rv64_lbu(dest_rvidx, tmp0, imm & 0xfff); break;
-    case 2: rv64_lhu(dest_rvidx, tmp0, imm & 0xfff); break;
+    case 1: rv64_lbu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    case 2: rv64_lhu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
 #ifdef ISA64
-    case 4: rv64_lwu(dest_rvidx, tmp0, imm & 0xfff); break;
+    case 4: rv64_lwu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
 #else
-    case 4: rv64_lw (dest_rvidx, tmp0, imm & 0xfff); break;
+    case 4: rv64_lw (dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
 #endif
-    case 8: rv64_ld (dest_rvidx, tmp0, imm & 0xfff); break;
+    case 8: rv64_ld (dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
     default: assert(0);
   }
   spill_set_dirty_rvidx(dest_rvidx);
@@ -228,30 +242,34 @@ make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int 
   uint32_t ret = rtlreg2rvidx_pair(s, addr, true, src1, true);
   uint32_t addr_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
+  uint32_t addr_rvidx_final = tmp0;
 
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   if (addr == rz) rv64_lui(tmp0, lui_imm);
-  else if (lui_imm == 0) rv64_zextw(tmp0, addr_rvidx);
+  else if (lui_imm == 0) {
+#ifdef ISA64
+    addr_rvidx_final = addr_rvidx;
+#else
+    rv64_zextw(tmp0, addr_rvidx);
+#endif
+  }
   else {
     rv64_lui(tmp0, lui_imm);
     rv64_add(tmp0, tmp0, addr_rvidx);
     rv64_zextw(tmp0, tmp0);
   }
   switch (len) {
-    case 1: rv64_sb(src1_rvidx, tmp0, imm & 0xfff); break;
-    case 2: rv64_sh(src1_rvidx, tmp0, imm & 0xfff); break;
-    case 4: rv64_sw(src1_rvidx, tmp0, imm & 0xfff); break;
-    case 8: rv64_sd(src1_rvidx, tmp0, imm & 0xfff); break;
+    case 1: rv64_sb(src1_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    case 2: rv64_sh(src1_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    case 4: rv64_sw(src1_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    case 8: rv64_sd(src1_rvidx, addr_rvidx_final, imm & 0xfff); break;
     default: assert(0);
   }
 }
 
+#ifdef __ISA_x86__
 make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
-#ifndef __ISA_x86__
-  panic("only used in x86\n");
-#endif
-
   uint32_t idx_dest = dest2rvidx(s, dest);
 
   // we assume that `addr` is only from cpu.gpr in x86
@@ -275,10 +293,6 @@ make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
 }
 
 make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
-#ifndef __ISA_x86__
-  panic("only used in x86\n");
-#endif
-
   uint32_t idx_src1 = dest2rvidx(s, src1);
 
   // we assume that `addr` is only from cpu.gpr in x86
@@ -291,13 +305,23 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   else assert(0);
   spm(lwu, idx_r, SPM_X86_REG);
 }
+#else
+make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
+  panic("only used in x86\n");
+}
+
+make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
+  panic("only used in x86\n");
+}
+#endif
+
 
 // we use tmp0 to store x86.pc of the next basic block
 make_rtl(j, vaddr_t target) {
 #ifdef REG_SPILLING
   spill_writeback_all();
 #endif
-  if (!load_imm_big(tmp0, target)) rv64_addiw(tmp0, tmp0, target & 0xfff);
+  load_imm(tmp0, target);
   tran_next_pc = NEXT_PC_JMP;
 }
 

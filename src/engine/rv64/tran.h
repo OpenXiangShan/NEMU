@@ -38,6 +38,9 @@ enum { tmp0 = 1, mask32 = 28, mask16 = 0, spm_base = 25, tmp_reg1 = 26, tmp_reg2
 #elif defined(__ISA_riscv32__)
 enum { tmp0 = 31, mask32 = 27, mask16 = 0, spm_base = 26, tmp_reg1 = 3, tmp_reg2 = 4 };
 #define REG_SPILLING
+#elif defined(__ISA_riscv64__)
+enum { tmp0 = 31, mask32 = 0, mask16 = 0, spm_base = 27, tmp_reg1 = 3, tmp_reg2 = 4 };
+#define REG_SPILLING
 #endif
 
 #endif
