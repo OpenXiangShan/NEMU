@@ -117,8 +117,8 @@ static inline make_EHelper(remw) {
 }
 
 static inline make_EHelper(divuw) {
-  rtl_andi(s, s0, dsrc1, 0xffffffffu);
-  rtl_andi(s, s1, dsrc2, 0xffffffffu);
+  rtl_zext(s, s0, dsrc1, 4);
+  rtl_zext(s, s1, dsrc2, 4);
   if (*s1 == 0) {
     rtl_li(s, s0, ~0lu);
   } else {
@@ -130,8 +130,8 @@ static inline make_EHelper(divuw) {
 }
 
 static inline make_EHelper(remuw) {
-  rtl_andi(s, s0, dsrc1, 0xffffffffu);
-  rtl_andi(s, s1, dsrc2, 0xffffffffu);
+  rtl_zext(s, s0, dsrc1, 4);
+  rtl_zext(s, s1, dsrc2, 4);
   if (*s1 == 0) {
     //rtl_mv(s, s0, s0);
   } else {

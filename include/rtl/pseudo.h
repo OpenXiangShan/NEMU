@@ -41,6 +41,20 @@ static inline make_rtl(sext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   }
 }
 
+static inline make_rtl(zext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
+  // dest <- zeroext(src1[(width * 8 - 1) .. 0])
+//  TODO();
+
+  const int word_size = sizeof(word_t);
+  if (width == word_size) {
+    rtl_mv(s, dest, src1);
+  } else {
+    assert(width == 1 || width == 2 || width == 4);
+    rtl_shli(s, dest, src1, (word_size - width) * 8);
+    rtl_shri(s, dest, dest, (word_size - width) * 8);
+  }
+}
+
 static inline make_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- src1[width * 8 - 1]
 //  TODO();
