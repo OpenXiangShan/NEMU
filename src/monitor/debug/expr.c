@@ -27,7 +27,7 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
   {"==", TK_EQ},        // equal
-  {"0x[0-9a-fA-F]{1,8}", TK_NUM},  // hex
+  {"0x[0-9a-fA-F]{1,16}", TK_NUM},  // hex
   {"[0-9]{1,10}", TK_NUM},         // dec
   {"\\$[a-z0-9]{1,31}", TK_REG},   // register names
   {"\\+", '+'},
@@ -187,7 +187,7 @@ static rtlreg_t eval(int s, int e, bool *success) {
                 if (!*success) { return 0; }
                 break;
 
-      case TK_NUM: val = strtol(tokens[s].str, NULL, 0); break;
+      case TK_NUM: val = strtoul(tokens[s].str, NULL, 0); break;
       default: assert(0);
     }
 

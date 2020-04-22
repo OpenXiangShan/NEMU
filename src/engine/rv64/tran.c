@@ -53,9 +53,10 @@ static int find_topn_min(TB **top) {
 static TB** find_topn_tb() {
   static TB *top[TOP_N];
   TB *p = head.next;;
+  TB empty = { .pc = -1, .hit_time = 0, .guest_nr_instr = 0 };
   int i;
   for (i = 0; i < TOP_N; i ++) {
-    Assert(p != NULL, "i = %d", i);
+    if (p == NULL) p = &empty;
     top[i] = p;
     p = p->next;
   }
@@ -133,7 +134,7 @@ void mainloop() {
       }
     }
 
-    //Log("enter tb with pc = %x, nr_instr = %d", tb->pc, tb->nr_instr);
+    //Log("enter tb with pc = " FMT_WORD " , nr_instr = %d", tb->pc, tb->nr_instr);
     vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
     total_instr += tb->nr_instr;
     tb->hit_time ++;
