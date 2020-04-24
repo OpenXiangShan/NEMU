@@ -10,6 +10,7 @@ void init_serial();
 void init_timer();
 void init_vga();
 void init_i8042();
+void init_audio();
 
 void send_key(uint8_t, bool);
 
@@ -57,6 +58,7 @@ void init_device() {
   init_timer();
   init_vga();
   init_i8042();
+  init_audio();
 
   add_alarm_handle(set_device_update_flag);
   init_alarm();

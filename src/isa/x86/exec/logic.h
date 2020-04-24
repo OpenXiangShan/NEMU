@@ -184,3 +184,17 @@ static inline make_EHelper(shrd) {
 #endif
   print_asm_template3(shrd);
 }
+
+static inline make_EHelper(bsr) {
+#ifndef __ENGINE_interpreter__
+  panic("not support in engines other than interpreter");
+#endif
+
+  int bit = 31;
+  if (*dsrc1 != 0) {
+    while ((*dsrc1 & (1u << bit)) == 0) bit--;
+    *ddest = bit;
+    operand_write(s, id_dest, ddest);
+  }
+  print_asm_template2(bsr);
+}
