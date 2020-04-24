@@ -49,7 +49,7 @@ static inline make_EHelper(op) {
     switch (pair(s->isa.instr.r.funct7, s->isa.instr.r.funct3)) {
       EX(pair(0, 0), add)  EX(pair(0, 1), sll)  EX(pair(0, 2), slt)  EX(pair(0, 3), sltu)
       EX(pair(0, 4), xor)  EX(pair(0, 5), srl)  EX(pair(0, 6), or)   EX(pair(0, 7), and)
-      EX(pair(1, 0), mul)  EX(pair(1, 1), mulh)                      EX(pair(1, 3), mulhu)
+      EX(pair(1, 0), mul)  EX(pair(1, 1), mulh) EX(pair(1,2), mulhsu)EX(pair(1, 3), mulhu)
       EX(pair(1, 4), div)  EX(pair(1, 5), divu) EX(pair(1, 6), rem)  EX(pair(1, 7), remu)
       default: exec_inv(s);
     }

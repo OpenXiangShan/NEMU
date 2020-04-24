@@ -92,6 +92,7 @@ static inline make_EHelper(2byte_esc) {
     IDEX (0xaf, E2G, imul2)
     IDEXW(0xb6, mov_E2G, movzx, 1)
     IDEXW(0xb7, mov_E2G, movzx, 2)
+    IDEX (0xbd, mov_E2G, bsr)
     IDEXW(0xbe, mov_E2G, movsx, 1)
     IDEXW(0xbf, mov_E2G, movsx, 2)
     default: exec_inv(s);
