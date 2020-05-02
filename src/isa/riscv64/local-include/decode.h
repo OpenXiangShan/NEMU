@@ -16,7 +16,6 @@ static inline make_DopHelper(r) {
   op->type = OP_TYPE_REG;
   op->reg = val;
   op->preg = &reg_l(val);
-  reg_l(0) = 0;
 
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
 }
