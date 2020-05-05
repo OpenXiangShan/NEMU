@@ -9,7 +9,9 @@ static inline make_EHelper(jal) {
 
 static inline make_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
+#ifdef __ENGINE_interpreter__
   rtl_andi(s, s0, s0, ~0x1lu);
+#endif
   rtl_jr(s, s0);
 
   rtl_li(s, ddest, s->seq_pc);

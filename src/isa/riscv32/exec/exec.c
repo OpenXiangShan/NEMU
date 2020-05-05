@@ -90,5 +90,9 @@ vaddr_t isa_exec_once() {
   void query_intr(DecodeExecState *s);
   query_intr(&s);
 #endif
+
+  // reset gpr[0]
+  reg_l(0) = 0;
+
   return s.seq_pc;
 }
