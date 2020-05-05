@@ -3,53 +3,42 @@
 
 #include <common.h>
 
-static inline uint64_t vaddr_ifetch(vaddr_t addr, int len) {
-  uint8_t  vaddr_ifetch8 (vaddr_t addr);
-  uint16_t vaddr_ifetch16(vaddr_t addr);
-  uint32_t vaddr_ifetch32(vaddr_t addr);
-  uint64_t vaddr_ifetch64(vaddr_t addr);
+static inline word_t vaddr_read(vaddr_t addr, int len) {
+  word_t vaddr_read1(vaddr_t addr);
+  word_t vaddr_read2(vaddr_t addr);
+  word_t vaddr_read4(vaddr_t addr);
+  word_t vaddr_read8(vaddr_t addr);
   switch (len) {
-    case 1: return vaddr_ifetch8 (addr);
-    case 2: return vaddr_ifetch16(addr);
-    case 4: return vaddr_ifetch32(addr);
+    case 1: return vaddr_read1(addr);
+    case 2: return vaddr_read2(addr);
+    case 4: return vaddr_read4(addr);
 #ifdef ISA64
-    case 8: return vaddr_ifetch64(addr);
+    case 8: return vaddr_read8(addr);
 #endif
     default: assert(0);
   }
 }
 
-static inline uint64_t vaddr_read(vaddr_t addr, int len) {
-  uint8_t  vaddr_read8 (vaddr_t addr);
-  uint16_t vaddr_read16(vaddr_t addr);
-  uint32_t vaddr_read32(vaddr_t addr);
-  uint64_t vaddr_read64(vaddr_t addr);
+static inline void vaddr_write(vaddr_t addr, word_t data, int len) {
+  void vaddr_write1(vaddr_t addr, word_t data);
+  void vaddr_write2(vaddr_t addr, word_t data);
+  void vaddr_write4(vaddr_t addr, word_t data);
+  void vaddr_write8(vaddr_t addr, word_t data);
   switch (len) {
-    case 1: return vaddr_read8 (addr);
-    case 2: return vaddr_read16(addr);
-    case 4: return vaddr_read32(addr);
+    case 1: vaddr_write1(addr, data); break;
+    case 2: vaddr_write2(addr, data); break;
+    case 4: vaddr_write4(addr, data); break;
 #ifdef ISA64
-    case 8: return vaddr_read64(addr);
+    case 8: vaddr_write8(addr, data); break;
 #endif
     default: assert(0);
   }
 }
 
-static inline void vaddr_write(vaddr_t addr, uint64_t data, int len) {
-  void vaddr_write8 (vaddr_t addr, uint8_t  data);
-  void vaddr_write16(vaddr_t addr, uint16_t data);
-  void vaddr_write32(vaddr_t addr, uint32_t data);
-  void vaddr_write64(vaddr_t addr, uint64_t data);
-  switch (len) {
-    case 1: vaddr_write8 (addr, data); break;
-    case 2: vaddr_write16(addr, data); break;
-    case 4: vaddr_write32(addr, data); break;
-#ifdef ISA64
-    case 8: vaddr_write64(addr, data); break;
-#endif
-    default: assert(0);
-  }
+static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
+  return vaddr_read(addr, len);
 }
+
 
 #define PAGE_SIZE         4096
 #define PAGE_MASK         (PAGE_SIZE - 1)

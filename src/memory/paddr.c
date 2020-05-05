@@ -10,14 +10,6 @@ static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
 paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
 
-static IOMap pmem_map = {
-  .name = "pmem",
-  .space = pmem,
-  .low = PMEM_BASE,
-  .high = PMEM_BASE + PMEM_SIZE - 1,
-  .callback = NULL
-};
-
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
@@ -31,28 +23,67 @@ void init_mem() {
 #endif
 }
 
-/* Memory accessing interfaces */
-
-#define make_paddr_access_template(bits) \
-uint_type(bits) concat(paddr_read, bits)(paddr_t addr) { \
-  if (map_inside(&pmem_map, addr)) { \
-    paddr_t offset = addr - pmem_map.low; \
-    return *(uint_type(bits) *)(pmem + offset); \
-  } else return map_read(addr, bits / 8, fetch_mmio_map(addr)); \
-} \
-void concat(paddr_write, bits) (paddr_t addr, uint_type(bits) data) { \
-  if (map_inside(&pmem_map, addr)) { \
-    paddr_t offset = addr - pmem_map.low; \
-    *(uint_type(bits) *)(pmem + offset) = data; \
-  } else return map_write(addr, data, bits / 8, fetch_mmio_map(addr)); \
-} \
-uint_type(bits) concat(paddr_ifetch, bits)(paddr_t addr) { \
-  return paddr_read(addr, bits / 8); \
+static inline bool in_pmem(paddr_t addr) {
+  return (PMEM_BASE <= addr) && (addr <= PMEM_BASE + PMEM_SIZE - 1);
 }
 
-make_paddr_access_template(8)
-make_paddr_access_template(16)
-make_paddr_access_template(32)
+static inline word_t pmem_read(paddr_t addr, int len) {
+  void *p = &pmem[addr - PMEM_BASE];
+  switch (len) {
+    case 1: return *(uint8_t  *)p;
+    case 2: return *(uint16_t *)p;
+    case 4: return *(uint32_t *)p;
 #ifdef ISA64
-make_paddr_access_template(64)
+    case 8: return *(uint64_t *)p;
+#endif
+    default: assert(0);
+  }
+}
+
+static inline void pmem_write(paddr_t addr, word_t data, int len) {
+  void *p = &pmem[addr - PMEM_BASE];
+  switch (len) {
+    case 1: *(uint8_t  *)p = data; return;
+    case 2: *(uint16_t *)p = data; return;
+    case 4: *(uint32_t *)p = data; return;
+#ifdef ISA64
+    case 8: *(uint64_t *)p = data; return;
+#endif
+    default: assert(0);
+  }
+}
+
+/* Memory accessing interfaces */
+
+inline word_t paddr_read(paddr_t addr, int len) {
+  if (in_pmem(addr)) return pmem_read(addr, len);
+  else return map_read(addr, len, fetch_mmio_map(addr));
+}
+
+inline void paddr_write(paddr_t addr, word_t data, int len) {
+  if (in_pmem(addr)) pmem_write(addr, data, len);
+  else map_write(addr, data, len, fetch_mmio_map(addr));
+}
+
+word_t vaddr_mmu_read(vaddr_t addr, int len, int type);
+void vaddr_mmu_write(vaddr_t addr, word_t data, int len);
+
+#define def_vaddr_template(bytes) \
+word_t concat(vaddr_read, bytes) (vaddr_t addr) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_READ, bytes); \
+  if (ret == MEM_RET_OK) return paddr_read(addr, bytes); \
+  else if (ret == MEM_RET_NEED_TRANSLATE) return vaddr_mmu_read(addr, bytes, MEM_TYPE_READ); \
+  return 0; \
+} \
+void concat(vaddr_write, bytes) (vaddr_t addr, word_t data) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_WRITE, bytes); \
+  if (ret == MEM_RET_OK) paddr_write(addr, data, bytes); \
+  else if (ret == MEM_RET_NEED_TRANSLATE) vaddr_mmu_write(addr, data, bytes); \
+}
+
+def_vaddr_template(1)
+def_vaddr_template(2)
+def_vaddr_template(4)
+#ifdef ISA64
+def_vaddr_template(8)
 #endif
