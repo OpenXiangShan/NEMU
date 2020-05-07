@@ -36,7 +36,19 @@ static inline void vaddr_write(vaddr_t addr, word_t data, int len) {
 }
 
 static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read(addr, len);
+  word_t vaddr_ifetch1(vaddr_t addr);
+  word_t vaddr_ifetch2(vaddr_t addr);
+  word_t vaddr_ifetch4(vaddr_t addr);
+  word_t vaddr_ifetch8(vaddr_t addr);
+  switch (len) {
+    case 1: return vaddr_ifetch1(addr);
+    case 2: return vaddr_ifetch2(addr);
+    case 4: return vaddr_ifetch4(addr);
+#ifdef ISA64
+    case 8: return vaddr_ifetch8(addr);
+#endif
+    default: assert(0);
+  }
 }
 
 
