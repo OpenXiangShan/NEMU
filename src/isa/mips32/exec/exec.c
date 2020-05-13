@@ -68,7 +68,7 @@ static inline make_EHelper(cop0) {
 
 static inline void exec(DecodeExecState *s) {
   s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
-  check_mem_ex();
+  return_on_mem_ex();
   switch (s->isa.instr.r.opcode) {
     EX   (000, special)    EX   (001, regimm)     IDEX (002, J, j)       IDEX (003, J, jal)
     IDEX (004, B, beq)     IDEX (005, B, bne)     IDEX (006, B, blez)    IDEX (007, B, bgtz)

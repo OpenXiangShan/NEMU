@@ -96,4 +96,6 @@ typedef struct {
   } instr;
 } riscv64_ISADecodeInfo;
 
+#define riscv64_has_mem_exception() (cpu.mem_exception != 0)
+
 #endif
