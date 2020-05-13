@@ -91,6 +91,18 @@ static inline make_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* 
   vaddr_write(*addr + offset, *src1, len);
 }
 
+static inline make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
+  word_t val = vaddr_read(*addr + offset, len);
+  if (!isa_has_mem_exception()) {
+    switch (len) {
+      case 4: *dest = (sword_t)(int32_t)val; return;
+      case 1: *dest = (sword_t)( int8_t)val; return;
+      case 2: *dest = (sword_t)(int16_t)val; return;
+      default: assert(0);
+    }
+  }
+}
+
 static inline make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   switch (len) {
     case 4: *dest = *(uint32_t *)addr; return;

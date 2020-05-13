@@ -209,30 +209,33 @@ make_x86_div64(div64_r, rv64_zextw, remu)
 make_x86_div64(idiv64_q, rv64_sextw, div)
 make_x86_div64(idiv64_r, rv64_sextw, rem)
 
-make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
-  uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
-  uint32_t dest_rvidx = ret >> 16;
-  uint32_t addr_rvidx = ret & 0xffff;
-  uint32_t addr_rvidx_final = dest_rvidx;
-
-  if (dest_rvidx == 0) return;
-
+static inline int prepare_addr(int addr_rvidx_final, int addr_rvidx, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
-  if (addr == rz) rv64_lui(dest_rvidx, lui_imm);
+  if (addr_rvidx == 0) rv64_lui(addr_rvidx_final, lui_imm);
   else if (lui_imm == 0) {
 #ifdef ISA64
     addr_rvidx_final = addr_rvidx;
 #else
-    rv64_zextw(dest_rvidx, addr_rvidx);
+    rv64_zextw(addr_rvidx_final, addr_rvidx);
 #endif
   }
   else {
     rv64_lui(tmp0, lui_imm);
-    rv64_add(dest_rvidx, tmp0, addr_rvidx);
-    rv64_zextw(dest_rvidx, dest_rvidx);
+    rv64_add(addr_rvidx_final, tmp0, addr_rvidx);
+    rv64_zextw(addr_rvidx_final, addr_rvidx_final);
   }
 
+  return addr_rvidx_final;
+}
+
+make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+  uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
+  uint32_t dest_rvidx = ret >> 16;
+  uint32_t addr_rvidx = ret & 0xffff;
+  if (dest_rvidx == 0) return;
+
+  uint32_t addr_rvidx_final = prepare_addr(dest_rvidx, addr_rvidx, imm);
   switch (len) {
     case 1: rv64_lbu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
     case 2: rv64_lhu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
@@ -247,27 +250,28 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   spill_set_dirty_rvidx(dest_rvidx);
 }
 
+make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+  uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
+  uint32_t dest_rvidx = ret >> 16;
+  uint32_t addr_rvidx = ret & 0xffff;
+  if (dest_rvidx == 0) return;
+
+  uint32_t addr_rvidx_final = prepare_addr(dest_rvidx, addr_rvidx, imm);
+  switch (len) {
+    case 1: rv64_lb(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    case 2: rv64_lh(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    case 4: rv64_lw(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
+    default: assert(0);
+  }
+  spill_set_dirty_rvidx(dest_rvidx);
+}
+
 make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int len) {
   uint32_t ret = rtlreg2rvidx_pair(s, addr, true, src1, true);
   uint32_t addr_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
-  uint32_t addr_rvidx_final = tmp0;
 
-  RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
-  if (addr == rz) rv64_lui(tmp0, lui_imm);
-  else if (lui_imm == 0) {
-#ifdef ISA64
-    addr_rvidx_final = addr_rvidx;
-#else
-    rv64_zextw(tmp0, addr_rvidx);
-#endif
-  }
-  else {
-    rv64_lui(tmp0, lui_imm);
-    rv64_add(tmp0, tmp0, addr_rvidx);
-    rv64_zextw(tmp0, tmp0);
-  }
+  uint32_t addr_rvidx_final = prepare_addr(tmp0, addr_rvidx, imm);
   switch (len) {
     case 1: rv64_sb(src1_rvidx, addr_rvidx_final, imm & 0xfff); break;
     case 2: rv64_sh(src1_rvidx, addr_rvidx_final, imm & 0xfff); break;

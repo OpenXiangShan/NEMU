@@ -39,6 +39,7 @@ make_rtl(idiv64_r, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1
 
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t offset, int len);
 make_rtl(sm, const rtlreg_t* addr, const sword_t offset, const rtlreg_t* src1, int len);
+make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, const sword_t offset, int len);
 make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len);
 make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len);
 

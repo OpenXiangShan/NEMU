@@ -12,8 +12,7 @@ static inline make_EHelper(ld) {
 
 // load sign value
 static inline make_EHelper(lds) {
-  rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
-  rtl_sext(s, ddest, s0, s->width);
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
   switch (s->width) {
