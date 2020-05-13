@@ -13,6 +13,7 @@ void (*backend_exec)(uint64_t n) = NULL;
 void backend_exec_code(uint64_t pc, int nr_instr);
 void guest_setregs(const CPU_state *cpu);
 void spill_init();
+void tran_mainloop();
 
 static void init_rv64_interpreter() {
   char so_file[256];
@@ -80,7 +81,7 @@ static void init_rv64_reg() {
   backend_setregs(&r);
 }
 
-void init_engine() {
+void engine_start() {
   init_rv64_interpreter();
   load_bbl();
   // execute enough instructions to set mtvec in bbl
@@ -88,4 +89,6 @@ void init_engine() {
   guest_setregs(&cpu);
   init_rv64_reg();
   spill_init();
+
+  tran_mainloop();
 }
