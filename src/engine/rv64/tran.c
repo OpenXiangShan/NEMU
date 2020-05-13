@@ -89,7 +89,7 @@ void write_ins(uint32_t ins) {
   trans_buffer[trans_buffer_index++]=ins;
 }
 
-void mainloop() {
+void tran_mainloop() {
   nemu_state.state = NEMU_RUNNING;
   uint64_t total_instr = 0;
   while (1) {

@@ -1,8 +1,6 @@
 void ui_mainloop();
 
-void init_engine() {
-}
-
-void mainloop() {
+void engine_start() {
+  /* Receive commands from user. */
   ui_mainloop();
 }
