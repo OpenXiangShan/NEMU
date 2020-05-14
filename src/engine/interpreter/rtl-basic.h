@@ -31,6 +31,18 @@ make_rtl_compute_reg_imm(shl)
 make_rtl_compute_reg_imm(shr)
 make_rtl_compute_reg_imm(sar)
 
+#ifdef ISA64
+make_rtl_compute_reg_imm(addw)
+make_rtl_compute_reg_imm(subw)
+make_rtl_compute_reg_imm(shlw)
+make_rtl_compute_reg_imm(shrw)
+make_rtl_compute_reg_imm(sarw)
+#define rtl_addiw rtl_addwi
+#define rtl_shliw rtl_shlwi
+#define rtl_shriw rtl_shrwi
+#define rtl_sariw rtl_sarwi
+#endif
+
 static inline make_rtl(setrelop, uint32_t relop, rtlreg_t *dest,
     const rtlreg_t *src1, const rtlreg_t *src2) {
   *dest = interpret_relop(relop, *src1, *src2);

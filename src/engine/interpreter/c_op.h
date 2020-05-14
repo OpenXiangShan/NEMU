@@ -14,9 +14,18 @@
 #define c_and(a, b) ((a) & (b))
 #define c_or(a, b)  ((a) | (b))
 #define c_xor(a, b) ((a) ^ (b))
-#define c_shl(a, b) ((a) << (b & c_shift_mask))
-#define c_shr(a, b) ((a) >> (b & c_shift_mask))
-#define c_sar(a, b) ((sword_t)(a) >> (b & c_shift_mask))
+#define c_shl(a, b) ((a) << ((b) & c_shift_mask))
+#define c_shr(a, b) ((a) >> ((b) & c_shift_mask))
+#define c_sar(a, b) ((sword_t)(a) >> ((b) & c_shift_mask))
+
+#ifdef ISA64
+#define c_sext32to64(a) ((int64_t)(int32_t)(a))
+#define c_addw(a, b) c_sext32to64((a) + (b))
+#define c_subw(a, b) c_sext32to64((a) - (b))
+#define c_shlw(a, b) c_sext32to64((uint32_t)(a) << ((b) & 0x1f))
+#define c_shrw(a, b) c_sext32to64((uint32_t)(a) >> ((b) & 0x1f))
+#define c_sarw(a, b) c_sext32to64(( int32_t)(a) >> ((b) & 0x1f))
+#endif
 
 #define c_mul_lo(a, b) ((a) * (b))
 #define c_imul_lo(a, b) ((sword_t)(a) * (sword_t)(b))

@@ -24,6 +24,18 @@ make_rtl(sari, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
 make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
 make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm);
 
+#ifdef ISA64
+make_rtl(addw, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+make_rtl(subw, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+make_rtl(shlw, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+make_rtl(shrw, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+make_rtl(sarw, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+make_rtl(addiw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
+make_rtl(shliw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
+make_rtl(shriw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
+make_rtl(sariw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
+#endif
+
 make_rtl(mul_lo, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
 make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
 make_rtl(imul_lo, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);

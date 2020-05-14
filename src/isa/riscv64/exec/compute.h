@@ -116,40 +116,30 @@ static inline make_EHelper(lui) {
 }
 
 static inline make_EHelper(addw) {
-  rtl_add(s, s0, dsrc1, dsrc2);
-  rtl_sext(s, ddest, s0, 4);
+  rtl_addw(s, ddest, dsrc1, dsrc2);
   print_asm_template3(addw);
 }
 
 static inline make_EHelper(subw) {
-  rtl_sub(s, s0, dsrc1, dsrc2);
-  rtl_sext(s, ddest, s0, 4);
+  rtl_subw(s, ddest, dsrc1, dsrc2);
   print_asm_template3(subw);
 }
 
 static inline make_EHelper(sllw) {
-  rtl_andi(s, s0, dsrc2, 0x1f);
-  rtl_shl(s, s0, dsrc1, s0);
-  rtl_sext(s, ddest, s0, 4);
+  rtl_shlw(s, ddest, dsrc1, dsrc2);
   print_asm_template3(sllw);
 }
 
 static inline make_EHelper(srlw) {
-  rtl_andi(s, s0, dsrc2, 0x1f);
   assert((s->isa.instr.r.funct7 & 0x1) == 0);
   if (s->isa.instr.r.funct7 == 32) {
-    // sraw
-    rtl_sext(s, s1, dsrc1, 4);
-    rtl_sar(s, s0, s1, s0);
+    rtl_sarw(s, ddest, dsrc1, dsrc2);
     print_asm_template3(sraw);
   }
   else {
-    // srlw
-    rtl_zext(s, s1, dsrc1, 4);
-    rtl_shr(s, s0, s1, s0);
+    rtl_shrw(s, ddest, dsrc1, dsrc2);
     print_asm_template3(srlw);
   }
-  rtl_sext(s, ddest, s0, 4);
 }
 
 static inline make_EHelper(sraw) {
@@ -157,31 +147,23 @@ static inline make_EHelper(sraw) {
 }
 
 static inline make_EHelper(addiw) {
-  rtl_addi(s, s0, dsrc1, id_src2->imm);
-  rtl_sext(s, ddest, s0, 4);
+  rtl_addiw(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(addiw);
 }
 
 static inline make_EHelper(slliw) {
-  rtl_shli(s, s0, dsrc1, id_src2->imm & 0x1f);
-  rtl_sext(s, ddest, s0, 4);
+  rtl_shliw(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(slliw);
 }
 
 static inline make_EHelper(srliw) {
   assert((s->isa.instr.r.funct7 & 0x1) == 0);
   if (s->isa.instr.r.funct7 == 32) {
-    // sraw
-    rtl_sext(s, s0, dsrc1, 4);
-    rtl_sari(s, s0, s0, id_src2->imm & 0x1f);
+    rtl_sariw(s, ddest, dsrc1, id_src2->imm);
     print_asm_template3(sraiw);
   }
   else {
-    // srlw
-    rtl_zext(s, s0, dsrc1, 4);
-    rtl_shri(s, s0, s0, id_src2->imm & 0x1f);
+    rtl_shriw(s, ddest, dsrc1, id_src2->imm);
     print_asm_template3(srliw);
   }
-
-  rtl_sext(s, ddest, s0, 4);
 }
