@@ -108,5 +108,6 @@ typedef struct {
 } riscv32_ISADecodeInfo;
 
 #define isa_vaddr_check(vaddr, type, len) (cpu.satp.mode ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+#define riscv32_has_mem_exception() (false)
 
 #endif

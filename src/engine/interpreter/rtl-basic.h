@@ -31,6 +31,18 @@ make_rtl_compute_reg_imm(shl)
 make_rtl_compute_reg_imm(shr)
 make_rtl_compute_reg_imm(sar)
 
+#ifdef ISA64
+make_rtl_compute_reg_imm(addw)
+make_rtl_compute_reg_imm(subw)
+make_rtl_compute_reg_imm(shlw)
+make_rtl_compute_reg_imm(shrw)
+make_rtl_compute_reg_imm(sarw)
+#define rtl_addiw rtl_addwi
+#define rtl_shliw rtl_shlwi
+#define rtl_shriw rtl_shrwi
+#define rtl_sariw rtl_sarwi
+#endif
+
 static inline make_rtl(setrelop, uint32_t relop, rtlreg_t *dest,
     const rtlreg_t *src1, const rtlreg_t *src2) {
   *dest = interpret_relop(relop, *src1, *src2);
@@ -51,6 +63,14 @@ make_rtl_compute_reg(div_q)
 make_rtl_compute_reg(div_r)
 make_rtl_compute_reg(idiv_q)
 make_rtl_compute_reg(idiv_r)
+
+#ifdef ISA64
+make_rtl_compute_reg(mulw)
+make_rtl_compute_reg(divw)
+make_rtl_compute_reg(divuw)
+make_rtl_compute_reg(remw)
+make_rtl_compute_reg(remuw)
+#endif
 
 static inline make_rtl(div64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
@@ -83,11 +103,24 @@ static inline make_rtl(idiv64_r, rtlreg_t* dest,
 // memory
 
 static inline make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
-  *dest = vaddr_read(*addr + offset, len);
+  word_t val = vaddr_read(*addr + offset, len);
+  if (!isa_has_mem_exception()) *dest = val;
 }
 
 static inline make_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* src1, int len) {
   vaddr_write(*addr + offset, *src1, len);
+}
+
+static inline make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
+  word_t val = vaddr_read(*addr + offset, len);
+  if (!isa_has_mem_exception()) {
+    switch (len) {
+      case 4: *dest = (sword_t)(int32_t)val; return;
+      case 1: *dest = (sword_t)( int8_t)val; return;
+      case 2: *dest = (sword_t)(int16_t)val; return;
+      default: assert(0);
+    }
+  }
 }
 
 static inline make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {

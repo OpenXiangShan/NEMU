@@ -27,6 +27,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len);
 #ifndef isa_vaddr_check
 int isa_vaddr_check(vaddr_t vaddr, int type, int len);
 #endif
+#define isa_has_mem_exception concat(__ISA__, _has_mem_exception)
 
 // difftest
   // for dut

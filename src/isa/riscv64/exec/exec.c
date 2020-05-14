@@ -160,7 +160,7 @@ static inline void exec(DecodeExecState *s) {
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
-    check_mem_ex();
+    return_on_mem_ex();
     s->isa.instr.val = lo & 0xffff;
     if (s->isa.instr.r.opcode1_0 != 0x3) {
       // this is an RVC instruction
@@ -178,7 +178,7 @@ static inline void exec(DecodeExecState *s) {
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
   }
 
-  check_mem_ex();
+  return_on_mem_ex();
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     switch (s->isa.instr.r.opcode6_2) {

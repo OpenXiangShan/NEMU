@@ -1,9 +1,7 @@
 #include "../local-include/intr.h"
 
 static inline make_EHelper(ld) {
-  rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
-  check_mem_ex();
-  rtl_mv(s, ddest, s0);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, s->width);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   switch (s->width) {
@@ -17,9 +15,7 @@ static inline make_EHelper(ld) {
 
 // load sign value
 static inline make_EHelper(lds) {
-  rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
-  check_mem_ex();
-  rtl_sext(s, ddest, s0, s->width);
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   switch (s->width) {
@@ -32,7 +28,6 @@ static inline make_EHelper(lds) {
 
 static inline make_EHelper(st) {
   rtl_sm(s, dsrc1, id_src2->imm, ddest, s->width);
-  check_mem_ex();
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   switch (s->width) {
