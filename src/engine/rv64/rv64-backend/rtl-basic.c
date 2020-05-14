@@ -161,6 +161,12 @@ make_rtl_compute_reg(div_q, divu)
 make_rtl_compute_reg(div_r, remu)
 make_rtl_compute_reg(idiv_q, div)
 make_rtl_compute_reg(idiv_r, rem)
+
+make_rtl_compute_reg(mulw, mulw)
+make_rtl_compute_reg(divw, divw)
+make_rtl_compute_reg(divuw, divuw)
+make_rtl_compute_reg(remw, remw)
+make_rtl_compute_reg(remuw, remuw)
 #else
 make_rtl_compute_reg(mul_lo, mulw)
 make_rtl_compute_reg(imul_lo, mulw)

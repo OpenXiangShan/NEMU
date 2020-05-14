@@ -64,6 +64,14 @@ make_rtl_compute_reg(div_r)
 make_rtl_compute_reg(idiv_q)
 make_rtl_compute_reg(idiv_r)
 
+#ifdef ISA64
+make_rtl_compute_reg(mulw)
+make_rtl_compute_reg(divw)
+make_rtl_compute_reg(divuw)
+make_rtl_compute_reg(remw)
+make_rtl_compute_reg(remuw)
+#endif
+
 static inline make_rtl(div64_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
   uint64_t dividend = ((uint64_t)(*src1_hi) << 32) | (*src1_lo);
