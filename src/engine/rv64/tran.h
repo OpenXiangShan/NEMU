@@ -23,6 +23,11 @@ extern void (*backend_exec)(uint64_t n);
 
 #define SPMIDX_MASK 0x20
 
+#include "../../isa/riscv64/rocc/sdi.h"
+
+#define spm_read(rd, idx) rv64_rocc3(SDI_ROCC_SPM_READ, idx, rd, 0, 0)
+#define spm_write(rs, idx) rv64_rocc3(SDI_ROCC_SPM_WRITE, idx, 0, rs, 0)
+
 // scratch pad memory, whose address space is [riscv64_PMEM_BASE, riscv64_PMEM_BASE + 64)
 #define spm(op, reg, offset) concat(rv64_, op)(reg, spm_base, offset)
 #define SPM_X86_REG 0    // x86 byte/word register write

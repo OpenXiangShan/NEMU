@@ -55,7 +55,7 @@ uint32_t varidx2rvidx(uint32_t varidx) {
 
 void spill_writeback(uint32_t i) {
   if (tmp_regs[i].spmidx != 0 && tmp_regs[i].dirty) {
-    spm(sw, tmp_regs[i].rvidx, 4 * (tmp_regs[i].spmidx & ~SPMIDX_MASK));
+    spm_write(tmp_regs[i].rvidx, tmp_regs[i].spmidx & ~SPMIDX_MASK);
     tmp_regs[i].dirty = false;
   }
 }
@@ -68,7 +68,7 @@ void spill_writeback_all() {
 // replace tmp_regs[tmpidx] with spmidx
 void spill_replace(uint32_t tmpidx, uint32_t spmidx, int load_val) {
   spill_writeback(tmpidx);
-  if (load_val) spm(lw, tmp_regs[tmpidx].rvidx, 4 * (spmidx & ~SPMIDX_MASK));
+  if (load_val) spm_read(tmp_regs[tmpidx].rvidx, spmidx & ~SPMIDX_MASK);
 
   tmp_regs[tmpidx].spmidx = spmidx;
   tmp_regs[tmpidx].dirty = false;
