@@ -119,10 +119,16 @@ uint32_t rtlreg2rvidx_pair(DecodeExecState *s,
       src2_tmpidx = !src1_tmpidx;
       spill_replace(src2_tmpidx, src2_varidx, load_src2);
     } else if (src1_tmpidx == -1 && src2_tmpidx == -1) {
-      src1_tmpidx = 0;
-      src2_tmpidx = 1;
-      spill_replace(src1_tmpidx, src1_varidx, load_src1);
-      spill_replace(src2_tmpidx, src2_varidx, load_src2);
+      if (src1_varidx == src2_varidx) {
+        assert(load_src1 || load_src2);
+        src1_tmpidx = src2_tmpidx = 0;
+        spill_replace(src1_tmpidx, src1_varidx, true);
+      } else {
+        src1_tmpidx = 0;
+        src1_tmpidx = 1;
+        spill_replace(src1_tmpidx, src1_varidx, load_src1);
+        spill_replace(src2_tmpidx, src2_varidx, load_src2);
+      }
     }
 
     src1_varidx = tmp_regs[src1_tmpidx].rvidx;
