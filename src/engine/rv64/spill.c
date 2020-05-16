@@ -83,23 +83,23 @@ uint32_t spill_alloc(uint32_t spmidx, int load_val) {
 
 uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest);
 
-static uint32_t rtlreg2rvidx_internal(DecodeExecState *s, const rtlreg_t *r, int is_dest) {
+static uint32_t rtlreg2rvidx_internal(DecodeExecState *s, const rtlreg_t *r, int load_val) {
   uint32_t varidx = rtlreg2varidx(s, r);
   if (varidx & SPMIDX_MASK) {
     uint32_t tmpidx = spmidx2tmpidx(varidx);
-    if (tmpidx == -1) tmpidx = spill_alloc(varidx, !is_dest);
+    if (tmpidx == -1) tmpidx = spill_alloc(varidx, load_val);
     varidx = tmp_regs[tmpidx].rvidx;
-    tmp_regs[tmpidx].dirty = is_dest;
+    tmp_regs[tmpidx].dirty = !load_val;
   }
   return varidx;
 }
 
 uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t *src) {
-  return rtlreg2rvidx_internal(s, src, false);
+  return rtlreg2rvidx_internal(s, src, true);
 }
 
 uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t *dest) {
-  return rtlreg2rvidx_internal(s, dest, true);
+  return rtlreg2rvidx_internal(s, dest, false);
 }
 
 uint32_t rtlreg2rvidx_pair(DecodeExecState *s,
