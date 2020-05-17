@@ -6,6 +6,7 @@
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
 uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t* dest);
 uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t* src);
+int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t *r);
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
 #ifndef ISA64
@@ -56,31 +57,31 @@ static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
 
 #define make_rtl_compute_reg(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
+    if (rtlreg_is_zero(s, dest)) return; \
     uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true); \
     uint32_t src1_rvidx = ret >> 16; \
     uint32_t src2_rvidx = ret & 0xffff; \
     uint32_t dest_rvidx = dest2rvidx(s, dest); \
-    if (dest_rvidx == 0) return; \
     concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, src2_rvidx); \
     spill_set_dirty_rvidx(dest_rvidx); \
   }
 
 #define make_rtl_compute_imm_small(rtl_name, rv64_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+    if (rtlreg_is_zero(s, dest)) return; \
     uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true); \
     uint32_t dest_rvidx = ret >> 16; \
     uint32_t src1_rvidx = ret & 0xffff; \
-    if (dest_rvidx == 0) return; \
     concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, imm); \
     spill_set_dirty_rvidx(dest_rvidx); \
   }
 
 #define make_rtl_compute_imm_opt(rtl_name, rv64_name, rv64_imm_name) \
   make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+    if (rtlreg_is_zero(s, dest)) return; \
     uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true); \
     uint32_t dest_rvidx = ret >> 16; \
     uint32_t src1_rvidx = ret & 0xffff; \
-    if (dest_rvidx == 0) return; \
     if (src1 == rz) load_imm(dest_rvidx, imm); \
     else if (is_imm_big(imm)) { \
       load_imm(tmp0, imm); \
@@ -134,19 +135,19 @@ make_rtl_compute_imm_small(sari, sraiw)
 #endif
 
 make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
   uint32_t dest_rvidx = dest2rvidx(s, dest);
-  if (dest_rvidx == 0) return;
   rv64_relop(relop, dest_rvidx, src1_rvidx, src2_rvidx);
 }
 
 make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
-  if (dest_rvidx == 0) return;
   int big_imm = is_imm_big(imm);
   if (!big_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
     switch (relop) {
@@ -256,10 +257,10 @@ static inline int prepare_addr(int addr_rvidx_final, int addr_rvidx, const sword
 }
 
 make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t addr_rvidx = ret & 0xffff;
-  if (dest_rvidx == 0) return;
 
   uint32_t addr_rvidx_final = prepare_addr(dest_rvidx, addr_rvidx, imm);
   switch (len) {
@@ -277,10 +278,10 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
 }
 
 make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t addr_rvidx = ret & 0xffff;
-  if (dest_rvidx == 0) return;
 
   uint32_t addr_rvidx_final = prepare_addr(dest_rvidx, addr_rvidx, imm);
   switch (len) {

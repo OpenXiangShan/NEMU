@@ -32,6 +32,10 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   return 0;
 }
 
+int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t* r) {
+  return (r == rz) || (r == &cpu.gpr[0]._32);
+}
+
 void guest_getregs(CPU_state *mips32) {
   riscv64_CPU_state r;
   backend_getregs(&r);
