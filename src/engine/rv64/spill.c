@@ -125,7 +125,7 @@ uint32_t rtlreg2rvidx_pair(DecodeExecState *s,
         spill_replace(src1_tmpidx, src1_varidx, true);
       } else {
         src1_tmpidx = 0;
-        src1_tmpidx = 1;
+        src2_tmpidx = 1;
         spill_replace(src1_tmpidx, src1_varidx, load_src1);
         spill_replace(src2_tmpidx, src2_varidx, load_src2);
       }
