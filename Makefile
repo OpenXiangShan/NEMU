@@ -28,7 +28,7 @@ endif
 
 DIFF ?= kvm
 ifneq ($(ISA),x86)
-ifneq ($(DIFF),qemu)
+ifeq ($(DIFF),kvm)
 DIFF = qemu
 $(info KVM is only supported with ISA=x86, use QEMU instead)
 endif
@@ -42,8 +42,13 @@ else ifeq ($(DIFF),kvm)
 DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
 CFLAGS += -D__DIFF_REF_KVM__
+else ifeq ($(DIFF),nemu)
+DIFF_REF_PATH = $(NEMU_HOME)
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-nemu-interpreter-so
+CFLAGS += -D__DIFF_REF_NEMU__
+MKFLAGS = ISA=$(ISA) SHARE=1
 else
-$(error invalid DIFF. Supported: qemu kvm)
+$(error invalid DIFF. Supported: qemu kvm nemu)
 endif
 
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)-$(ENGINE)$(SO)
@@ -105,7 +110,7 @@ gdb: run-env
 	gdb -s $(BINARY) --args $(NEMU_EXEC)
 
 $(DIFF_REF_SO):
-	$(MAKE) -C $(DIFF_REF_PATH)
+	$(MAKE) -C $(DIFF_REF_PATH) $(MKFLAGS)
 
 clean:
 	-rm -rf $(BUILD_DIR)
