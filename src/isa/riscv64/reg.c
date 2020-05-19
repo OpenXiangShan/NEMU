@@ -62,7 +62,9 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 void csr_read(rtlreg_t *dest, uint32_t addr) {
   word_t *src = csr_decode(addr);
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
+#endif
 
   if (src == (void *)sstatus) {
     *dest = mstatus->val & SSTATUS_RMASK;
@@ -92,7 +94,7 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
   }
 
   if (dest == (void *)sstatus || dest == (void *)mstatus) {
-#ifdef DIFF_TEST
+#ifdef __DIFF_REF_QEMU__
     // mstatus.fs is always dirty or off in QEMU 3.1.0
     if (mstatus->fs) { mstatus->fs = 3; }
 #endif

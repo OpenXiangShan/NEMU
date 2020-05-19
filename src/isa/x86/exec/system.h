@@ -21,7 +21,9 @@ static make_EHelper(mov_cr2r) {
 
   print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
 
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_ref();
+#endif
 }
 
 static make_EHelper(int) {
@@ -30,7 +32,7 @@ static make_EHelper(int) {
 
   print_asm("int %s", id_dest->str);
 
-#ifdef __DIFF_REF_QEMU__
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
 #endif
 }
@@ -48,7 +50,9 @@ static make_EHelper(iret) {
   // customized: switch to user stack
   if (*s0 != 0) rtl_mv(s, &cpu.esp, s0);
 
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_ref();
+#endif
   print_asm("iret");
 }
 

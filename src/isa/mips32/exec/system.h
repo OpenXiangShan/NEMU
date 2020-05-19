@@ -18,7 +18,7 @@ static inline make_EHelper(mfc0) {
     case 10: val = cpu.entryhi.val; print_asm("mfc0 %s, entryhi", id_src2->str); break;
     case 12: val = cpu.status.val; print_asm("mfc0 %s, status", id_src2->str); break;
     case 13: val = cpu.cause; print_asm("mfc0 %s, cause", id_src2->str);
-#if defined(DIFF_TEST)
+#ifndef __DIFF_REF_NEMU__
              // qemu may set cause.IP[7]
              difftest_skip_ref();
 #endif

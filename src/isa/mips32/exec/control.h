@@ -1,7 +1,9 @@
 #include <monitor/difftest.h>
 
 static inline void difftest_skip_delay_slot(void) {
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(2, 1);
+#endif
 }
 
 static inline make_EHelper(j) {

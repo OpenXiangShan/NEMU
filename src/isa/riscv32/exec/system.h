@@ -1,5 +1,7 @@
 static inline rtlreg_t* csr_decode(uint32_t csr) {
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
+#endif
 
   switch (csr) {
     case 0x180: return &cpu.satp.val;
@@ -60,5 +62,7 @@ static inline make_EHelper(priv) {
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
 
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
+#endif
 }

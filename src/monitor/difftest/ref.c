@@ -5,7 +5,7 @@
 void cpu_exec(uint64_t);
 
 void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
-  memcpy(guest_to_host(dest), src, n);
+  memcpy(guest_to_host(dest - PMEM_BASE), src, n);
 }
 
 void difftest_getregs(void *r) {
