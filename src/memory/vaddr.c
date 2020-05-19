@@ -37,7 +37,7 @@ word_t vaddr_mmu_read(vaddr_t addr, int len, int type) {
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     return vaddr_read_cross_page(addr, type, len);
   }
-  assert(0);
+  return 0;
 }
 
 void vaddr_mmu_write(vaddr_t addr, word_t data, int len) {
@@ -49,5 +49,4 @@ void vaddr_mmu_write(vaddr_t addr, word_t data, int len) {
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     vaddr_write_cross_page(addr, data, len);
   }
-  assert(0);
 }
