@@ -46,7 +46,7 @@ else ifeq ($(DIFF),nemu)
 DIFF_REF_PATH = $(NEMU_HOME)
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-nemu-interpreter-so
 CFLAGS += -D__DIFF_REF_NEMU__
-MKFLAGS = ISA=$(ISA) SHARE=1
+MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
 else
 $(error invalid DIFF. Supported: qemu kvm nemu)
 endif
