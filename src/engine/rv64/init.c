@@ -41,8 +41,9 @@ static void init_rv64_interpreter() {
   void (*backend_init_device)() = dlsym(handle, "init_device");
   assert(backend_init_device);
 
-  backend_init(0);
+  // initialize serial before the dummy serial in difftest_init()
   backend_init_device();
+  backend_init(0);
   backend_memcpy_from_frontend(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
 }
 
