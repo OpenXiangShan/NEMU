@@ -43,7 +43,7 @@ static void init_rv64_interpreter() {
 
   backend_init(0);
   backend_init_device();
-  backend_memcpy_from_frontend(0, guest_to_host(0), PMEM_SIZE);
+  backend_memcpy_from_frontend(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
 }
 
 // this is to handle exceptions such as misaligned memory accessing
@@ -68,7 +68,7 @@ static void load_bbl() {
 
   fclose(fp);
 
-  backend_memcpy_from_frontend(0, buf, size);
+  backend_memcpy_from_frontend(PMEM_BASE, buf, size);
   free(buf);
 }
 
