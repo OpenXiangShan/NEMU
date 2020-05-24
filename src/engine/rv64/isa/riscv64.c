@@ -46,7 +46,6 @@ void guest_init() {
   load_spill_reg(&cpu.gpr[tmp0]._64);
   load_spill_reg(&cpu.gpr[tmp_reg1]._64);
   load_spill_reg(&cpu.gpr[tmp_reg2]._64);
-  load_spill_reg(&cpu.gpr[spm_base]._64);
   assert(trans_buffer_index < 16);
   nr_instr = trans_buffer_index;
   memcpy(codebuf_read_spilled_reg, trans_buffer, nr_instr * sizeof(codebuf_read_spilled_reg[0]));
@@ -68,7 +67,6 @@ void guest_getregs(CPU_state *riscv64) {
   backend_getregs(&r2);
 
   riscv64->gpr[tmp0]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp0]._64) & ~SPMIDX_MASK]._64;
-  riscv64->gpr[spm_base]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[spm_base]._64) & ~SPMIDX_MASK]._64;
   riscv64->gpr[tmp_reg1]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg1]._64) & ~SPMIDX_MASK]._64;
   riscv64->gpr[tmp_reg2]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg2]._64) & ~SPMIDX_MASK]._64;
 

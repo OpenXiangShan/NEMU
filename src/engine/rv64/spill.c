@@ -174,5 +174,5 @@ void load_spill_reg(const rtlreg_t* dest) {
   uint32_t spmidx = rtlreg2varidx(NULL, dest);
   assert(spmidx & SPMIDX_MASK);
   uint32_t rvidx = spmidx & ~SPMIDX_MASK;
-  spm(lw, rvidx, 4 * (spmidx & ~SPMIDX_MASK));
+  spm_read(rvidx, spmidx & ~SPMIDX_MASK);
 }

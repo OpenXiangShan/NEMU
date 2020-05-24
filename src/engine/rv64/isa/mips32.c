@@ -50,7 +50,6 @@ void guest_init() {
   load_spill_reg(&cpu.gpr[tmp_reg1]._32);
   load_spill_reg(&cpu.gpr[tmp_reg2]._32);
   load_spill_reg(&cpu.gpr[mask32]._32);
-  load_spill_reg(&cpu.gpr[spm_base]._32);
   load_spill_reg(&cpu.lo);
   load_spill_reg(&cpu.hi);
   assert(trans_buffer_index < 16);
@@ -74,7 +73,6 @@ void guest_getregs(CPU_state *mips32) {
   backend_getregs(&r2);
 
   mips32->gpr[tmp0]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp0]._32) & ~SPMIDX_MASK]._64;
-  mips32->gpr[spm_base]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[spm_base]._32) & ~SPMIDX_MASK]._64;
   mips32->gpr[tmp_reg1]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg1]._32) & ~SPMIDX_MASK]._64;
   mips32->gpr[tmp_reg2]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg2]._32) & ~SPMIDX_MASK]._64;
   mips32->gpr[mask32]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[mask32]._32) & ~SPMIDX_MASK]._64;
