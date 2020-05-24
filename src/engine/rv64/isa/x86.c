@@ -36,6 +36,9 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   panic("bad ptr = %p", dest);
 }
 
+void guest_init() {
+}
+
 void guest_getregs(CPU_state *x86) {
   riscv64_CPU_state r;
   backend_getregs(&r);
