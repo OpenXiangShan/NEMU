@@ -13,12 +13,13 @@ uint32_t trans_buffer[BUF_SIZE] = {};
 int trans_buffer_index = 0;
 int tran_next_pc = NEXT_PC_SEQ;
 
-static void clear_trans_buffer() { trans_buffer_index = 0; }
+void clear_trans_buffer() { trans_buffer_index = 0; }
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 void spill_reset();
 void spill_flush_local();
+void spill_writeback_all();
 
 typedef struct TB {
   vaddr_t pc;
@@ -113,6 +114,7 @@ void tran_mainloop() {
         asm_print(ori_pc, seq_pc - ori_pc, true);
 #endif
 #ifdef DIFF_TEST
+        if (tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
         if (true)
 #else
         if (tran_next_pc != NEXT_PC_SEQ)
