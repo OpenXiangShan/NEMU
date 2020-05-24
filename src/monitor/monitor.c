@@ -113,9 +113,6 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize the watchpoint pool. */
   init_wp_pool();
 
-  /* Initialize devices. */
-  init_device();
-
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
 

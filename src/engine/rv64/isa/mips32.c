@@ -33,6 +33,28 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   return 0;
 }
 
+static uint32_t codebuf_read_spilled_reg[16] = {};
+static int nr_instr = 0;
+void load_spill_reg(const rtlreg_t* dest);
+void clear_trans_buffer();
+vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
+extern int trans_buffer_index;
+extern uint32_t trans_buffer[];
+
+void guest_init() {
+  clear_trans_buffer();
+  load_spill_reg(&cpu.gpr[tmp0]._32);
+  load_spill_reg(&cpu.gpr[tmp_reg1]._32);
+  load_spill_reg(&cpu.gpr[tmp_reg2]._32);
+  load_spill_reg(&cpu.gpr[mask32]._32);
+  load_spill_reg(&cpu.gpr[spm_base]._32);
+  load_spill_reg(&cpu.lo);
+  load_spill_reg(&cpu.hi);
+  assert(trans_buffer_index < 16);
+  nr_instr = trans_buffer_index;
+  memcpy(codebuf_read_spilled_reg, trans_buffer, nr_instr * sizeof(codebuf_read_spilled_reg[0]));
+}
+
 void guest_getregs(CPU_state *mips32) {
   riscv64_CPU_state r;
   backend_getregs(&r);
@@ -43,12 +65,24 @@ void guest_getregs(CPU_state *mips32) {
     }
     mips32->gpr[i]._32 = r.gpr[i]._64;
   }
-  // FIXME: these are wrong
-  mips32->lo = r.gpr[25]._64;
-  mips32->hi = r.gpr[27]._64;
+
+  rv64_exec_trans_buffer(codebuf_read_spilled_reg, nr_instr, NEXT_PC_SEQ);
+  riscv64_CPU_state r2;
+  backend_getregs(&r2);
+
+  mips32->gpr[tmp0]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp0]._32) & ~SPMIDX_MASK]._64;
+  mips32->gpr[spm_base]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[spm_base]._32) & ~SPMIDX_MASK]._64;
+  mips32->gpr[tmp_reg1]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg1]._32) & ~SPMIDX_MASK]._64;
+  mips32->gpr[tmp_reg2]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg2]._32) & ~SPMIDX_MASK]._64;
+  mips32->gpr[mask32]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[mask32]._32) & ~SPMIDX_MASK]._64;
+  mips32->lo = r2.gpr[rtlreg2varidx(NULL, &cpu.lo) & ~SPMIDX_MASK]._64;
+  mips32->hi = r2.gpr[rtlreg2varidx(NULL, &cpu.hi) & ~SPMIDX_MASK]._64;
+
+  backend_setregs(&r);
 }
 
 void guest_setregs(const CPU_state *mips32) {
+  panic("not used now");
   riscv64_CPU_state r;
   backend_getregs(&r);
   int i;

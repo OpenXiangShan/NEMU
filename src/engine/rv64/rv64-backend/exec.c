@@ -14,7 +14,7 @@ void backend_exec_code(uint64_t pc, int nr_instr) {
 
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type) {
   // copy code to rv64 interpreter to execute it
-  backend_memcpy_from_frontend(RV64_EXEC_PC - riscv64_PMEM_BASE, buf, sizeof(uint32_t) * nr_instr);
+  backend_memcpy_from_frontend(RV64_EXEC_PC, buf, sizeof(uint32_t) * nr_instr);
 
   // if the basic block is end with a branch instruction,
   // execute until the branch instruction

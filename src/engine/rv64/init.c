@@ -4,6 +4,7 @@
 #include <memory/paddr.h>
 #include <stdlib.h>
 #include "tran.h"
+#include <monitor/difftest.h>
 
 void (*backend_memcpy_from_frontend)(paddr_t dest, void *src, size_t n) = NULL;
 void (*backend_getregs)(void *c) = NULL;
@@ -11,8 +12,9 @@ void (*backend_setregs)(const void *c) = NULL;
 void (*backend_exec)(uint64_t n) = NULL;
 
 void backend_exec_code(uint64_t pc, int nr_instr);
-void guest_setregs(const CPU_state *cpu);
+void guest_getregs(CPU_state *cpu);
 void spill_init();
+void guest_init();
 void tran_mainloop();
 
 static void init_rv64_interpreter() {
@@ -41,9 +43,10 @@ static void init_rv64_interpreter() {
   void (*backend_init_device)() = dlsym(handle, "init_device");
   assert(backend_init_device);
 
-  backend_init(0);
+  // initialize serial before the dummy serial in difftest_init()
   backend_init_device();
-  backend_memcpy_from_frontend(0, guest_to_host(0), PMEM_SIZE);
+  backend_init(0);
+  backend_memcpy_from_frontend(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
 }
 
 // this is to handle exceptions such as misaligned memory accessing
@@ -68,7 +71,7 @@ static void load_bbl() {
 
   fclose(fp);
 
-  backend_memcpy_from_frontend(0, buf, size);
+  backend_memcpy_from_frontend(PMEM_BASE, buf, size);
   free(buf);
 }
 
@@ -78,6 +81,7 @@ static void init_rv64_reg() {
   r.gpr[mask32]._64 = 0x00000000fffffffful;
   r.gpr[mask16]._64 = 0x000000000000fffful;
   if (spm_base != 0) r.gpr[spm_base]._64 = riscv64_PMEM_BASE;
+  r.gpr[0]._64 = 0x0;
   backend_setregs(&r);
 }
 
@@ -86,9 +90,13 @@ void engine_start() {
   load_bbl();
   // execute enough instructions to set mtvec in bbl
   backend_exec_code(riscv64_PMEM_BASE, 100);
-  guest_setregs(&cpu);
+  guest_init();
   init_rv64_reg();
   spill_init();
+  guest_getregs(&cpu);
+#ifdef DIFF_TEST
+  ref_difftest_setregs(&cpu);
+#endif
 
   tran_mainloop();
 }
