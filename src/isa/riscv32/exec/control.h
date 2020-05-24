@@ -16,7 +16,9 @@ static inline make_EHelper(jalr) {
 
   rtl_li(s, ddest, s->seq_pc);
 
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
+#endif
 
   print_asm_template3(jalr);
 }

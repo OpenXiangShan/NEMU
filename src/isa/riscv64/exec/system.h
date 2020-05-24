@@ -96,7 +96,7 @@ static inline make_EHelper(priv) {
       break;
     case 0x102:
       mstatus->sie = mstatus->spie;
-#ifdef DIFF_TEST
+#ifdef __DIFF_REF_QEMU__
       // this is bug of QEMU
       mstatus->spie = 0;
 #else
@@ -124,7 +124,7 @@ static inline make_EHelper(priv) {
       break;
     case 0x302:
       mstatus->mie = mstatus->mpie;
-#ifdef DIFF_TEST
+#ifdef __DIFF_REF_QEMU__
       // this is bug of QEMU
       mstatus->mpie = 0;
 #else
@@ -139,9 +139,13 @@ static inline make_EHelper(priv) {
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
 
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
+#endif
 }
 
 static inline make_EHelper(fence) {
+#ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
+#endif
 }

@@ -169,3 +169,10 @@ void spill_flush_local() {
   spill_flush_local_internal(s, s0);
   spill_flush_local_internal(s, s1);
 }
+
+void load_spill_reg(const rtlreg_t* dest) {
+  uint32_t spmidx = rtlreg2varidx(NULL, dest);
+  assert(spmidx & SPMIDX_MASK);
+  uint32_t rvidx = spmidx & ~SPMIDX_MASK;
+  spm(lw, rvidx, 4 * (spmidx & ~SPMIDX_MASK));
+}

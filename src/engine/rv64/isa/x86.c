@@ -40,6 +40,9 @@ int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t* r) {
   return (r == rz);
 }
 
+void guest_init() {
+}
+
 void guest_getregs(CPU_state *x86) {
   riscv64_CPU_state r;
   backend_getregs(&r);
