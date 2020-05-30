@@ -58,7 +58,10 @@ make_EHelper(amoswap);
 make_EHelper(amoadd);
 make_EHelper(amoor);
 make_EHelper(amoand);
+make_EHelper(amomax);
 make_EHelper(amomaxu);
+make_EHelper(amomin);
+make_EHelper(amominu);
 make_EHelper(amoxor);
 
 make_EHelper(fp_ld);

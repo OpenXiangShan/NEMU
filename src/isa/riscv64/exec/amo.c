@@ -62,11 +62,32 @@ make_EHelper(amoand) {
   print_asm_template3(amoand);
 }
 
+make_EHelper(amomax){
+  amo_load();
+  s1 = ((sword_t)s0 > (sword_t)id_src2->val ? s0 : id_src2->val);
+  amo_update();
+  print_asm_template3(amomax);
+}
+
 make_EHelper(amomaxu) {
   amo_load();
   s1 = (s0 > id_src2->val ? s0 : id_src2->val);
   amo_update();
   print_asm_template3(amomaxu);
+}
+
+make_EHelper(amomin){
+  amo_load();
+  s1 = ((sword_t)s0 < (sword_t)id_src2->val ? s0 : id_src2->val);
+  amo_update();
+  print_asm_template3(amomin);
+}
+
+make_EHelper(amominu) {
+  amo_load();
+  s1 = (s0 < id_src2->val ? s0 : id_src2->val);
+  amo_update();
+  print_asm_template3(amominu);
 }
 
 make_EHelper(amoxor) {
