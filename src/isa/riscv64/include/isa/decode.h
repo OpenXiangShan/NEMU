@@ -141,6 +141,14 @@ make_DHelper(C_LD);
 make_DHelper(C_SD);
 make_DHelper(C_J);
 make_DHelper(C_JALR);
+make_DHelper(C_FLW);
+make_DHelper(C_FLD);
+make_DHelper(C_FLWSP);
+make_DHelper(C_FLDSP);
+make_DHelper(C_FSW);
+make_DHelper(C_FSD);
+make_DHelper(C_FSWSP);
+make_DHelper(C_FSDSP);
 
 make_DHelper(C_ADDI4SPN);
 

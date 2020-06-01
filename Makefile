@@ -30,7 +30,7 @@ include Makefile.git
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -fomit-frame-pointer
+CFLAGS   += -Wno-unused-result -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -fomit-frame-pointer
 CFLAGS_SOFTFLOAT = $(CFLAGS) -w -I ./include/softfloat
 
 QEMU_DIFF_PATH = $(NEMU_HOME)/tools/qemu-diff

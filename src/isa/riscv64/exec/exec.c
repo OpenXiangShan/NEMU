@@ -121,11 +121,6 @@ static OpcodeEntry opcode_table [32] = {
 
 // RVC
 
-static make_EHelper(rvc_fp){
-  // TODO: implement RVC floating point instructions
-  longjmp_raise_intr(EX_II);
-}
-
 static make_EHelper(C_10_100) {
   static OpcodeEntry table [8] = {
     EMPTY, EMPTY, IDEX(C_rs1_rs2_0, jalr), IDEX(C_0_rs2_rd, add), EMPTY, EMPTY, IDEX(C_JALR, jalr), IDEX(C_rs1_rs2_rd, add),
@@ -166,9 +161,9 @@ static make_EHelper(C_01_100) {
 }
 
 static OpcodeEntry rvc_table [3][8] = {
-  {IDEX(C_ADDI4SPN, add), EX(rvc_fp), IDEX(C_LW, lds), IDEX(C_LD, ld), EMPTY, EX(rvc_fp), IDEX(C_SW, st), IDEX(C_SD, st)},
+  {IDEX(C_ADDI4SPN, add), IDEX(C_FLD, fp_ld), IDEX(C_LW, lds), IDEX(C_LD, ld), EMPTY, IDEX(C_FSD, fp_st), IDEX(C_SW, st), IDEX(C_SD, st)},
   {IDEX(C_rs1_imm_rd, add), IDEX(C_rs1_imm_rd, addw), IDEX(C_0_imm_rd, add), EX(C_01_011), EX(C_01_100), IDEX(C_J, jal), IDEX(CB, beq), IDEX(CB, bne)},
-  {IDEX(C_rs1_imm_rd, sll), EX(rvc_fp), IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), EX(rvc_fp), IDEX(C_SWSP, st), IDEX(C_SDSP, st)}
+  {IDEX(C_rs1_imm_rd, sll), IDEX(C_FLDSP, fp_ld), IDEX(C_LWSP, lds), IDEX(C_LDSP, ld), EX(C_10_100), IDEX(C_FSDSP, fp_st), IDEX(C_SWSP, st), IDEX(C_SDSP, st)}
 };
 
 void isa_exec(vaddr_t *pc) {
