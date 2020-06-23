@@ -31,7 +31,8 @@ CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -Wno-unused-result -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -fomit-frame-pointer
-CFLAGS_SOFTFLOAT = $(CFLAGS) -w -I ./include/softfloat
+
+LIB_SOFTFLOAT = ./tools/softfloat.a
 
 QEMU_DIFF_PATH = $(NEMU_HOME)/tools/qemu-diff
 QEMU_SO = $(QEMU_DIFF_PATH)/build/$(ISA)-qemu-so
@@ -45,11 +46,6 @@ SRCS += $(shell find src/isa/$(ISA) -name "*.c")
 OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
 
 # Compilation patterns
-$(OBJ_DIR)/softfloat/%.o: src/softfloat/%.c
-	@echo + CC $<
-	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS_SOFTFLOAT) $(SO_CFLAGS) -c -o $@ $<
-
 $(OBJ_DIR)/%.o: src/%.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
@@ -71,7 +67,7 @@ override ARGS += --diff=$(QEMU_SO)
 IMG :=
 NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
 
-$(BINARY): $(OBJS)
+$(BINARY): $(OBJS) $(LIB_SOFTFLOAT)
 	$(call git_commit, "compile")
 	@echo + LD $@
 	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl

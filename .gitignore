@@ -6,3 +6,4 @@
 !.gitignore
 !README.md
 !runall.sh
+!tools/softfloat.a
