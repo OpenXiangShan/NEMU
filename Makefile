@@ -26,6 +26,7 @@ SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
 endif
 
+ifndef SHARE
 DIFF ?= kvm
 ifneq ($(ISA),x86)
 ifeq ($(DIFF),kvm)
@@ -49,6 +50,7 @@ CFLAGS += -D__DIFF_REF_NEMU__
 MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
 else
 $(error invalid DIFF. Supported: qemu kvm nemu)
+endif
 endif
 
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)-$(ENGINE)$(SO)
