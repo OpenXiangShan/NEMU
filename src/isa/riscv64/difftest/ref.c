@@ -4,7 +4,7 @@
 #include "difftest.h"
 
 static void csr_prepare() {
-  return;
+  // return;
   cpu.mstatus = mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
@@ -17,7 +17,7 @@ static void csr_prepare() {
 }
 
 static void csr_writeback() {
-  return;
+  // return;
   mstatus->val = cpu.mstatus;
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;
