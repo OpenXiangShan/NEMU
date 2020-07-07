@@ -79,6 +79,33 @@ static inline make_EHelper(amomaxu) {
   print_asm_template3(amomaxu);
 }
 
+static inline make_EHelper(amomax) {
+  amo_load(s);
+  return_on_mem_ex();
+  *s1 = (((sword_t)*s0) > ((sword_t)*dsrc2) ? *s0 : *dsrc2);
+  amo_update(s);
+  return_on_mem_ex();
+  print_asm_template3(amomax);
+}
+
+static inline make_EHelper(amominu) {
+  amo_load(s);
+  return_on_mem_ex();
+  *s1 = (*s0 < *dsrc2 ? *s0 : *dsrc2);
+  amo_update(s);
+  return_on_mem_ex();
+  print_asm_template3(amominu);
+}
+
+static inline make_EHelper(amomin) {
+  amo_load(s);
+  return_on_mem_ex();
+  *s1 = (((sword_t)*s0) < ((sword_t)*dsrc2) ? *s0 : *dsrc2);
+  amo_update(s);
+  return_on_mem_ex();
+  print_asm_template3(amomin);
+}
+
 static inline make_EHelper(amoxor) {
   amo_load(s);
   return_on_mem_ex();
