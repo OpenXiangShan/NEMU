@@ -88,12 +88,28 @@ static inline make_DHelper(csri) {
 
 // RVF RVD
 
+static inline void decode_fp_width(DecodeExecState *s) {
+  switch (s->isa.instr.fp.fmt)
+  {
+  case 0: // RVF
+    s->width = 4;
+    break;
+  case 1: // RVD
+    s->width = 8;
+    break;
+  default:
+    assert(0);
+    break;
+  }
+}
+
 // --------- fpr to fpr ---------
 
 static inline make_DHelper(F_R) {
   decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
   decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_fp_width(s);
 }
 
 // --------- FLD/FLW --------- 
@@ -120,6 +136,7 @@ static inline make_DHelper(F_fpr_to_gpr){
   decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
   decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_r(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_fp_width(s);
 }
 
 // --------- gpr to fpr ---------
@@ -128,6 +145,7 @@ static inline make_DHelper(F_gpr_to_fpr){
   decode_op_r(s, id_src1, s->isa.instr.fp.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_fp_width(s);
 }
 
 

@@ -53,6 +53,10 @@ $(error invalid DIFF. Supported: qemu kvm nemu)
 endif
 endif
 
+ifeq ($(ISA),riscv64)
+SOFTFLOAT_SO=tools/softfloat/softfloat.so
+endif
+
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)-$(ENGINE)$(SO)
 BINARY ?= $(BUILD_DIR)/$(ISA)-$(NAME)-$(ENGINE)$(SO)
 
@@ -99,7 +103,7 @@ NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
 $(BINARY): $(OBJS)
 	$(call git_commit, "compile")
 	@echo + LD $@
-	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl
+	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ $(SOFTFLOAT_SO) -lSDL2 -lreadline -ldl
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 

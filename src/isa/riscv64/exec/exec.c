@@ -45,6 +45,18 @@ static inline make_EHelper(fp_store) {
   }
 }
 
+static inline make_EHelper(op_fp){
+  switch (s->isa.instr.fp.funct5) {
+    EX(0, fadd) EX(1, fsub) EX(2, fmul) EX(3, fdiv)
+    EX(4, fsgnj) EX(5, fmin_fmax)
+    EX(8, fcvt_F_to_F) EX(11, fsqrt) 
+    IDEX(20, F_fpr_to_gpr, fcmp) 
+    IDEX(24, F_fpr_to_gpr, fcvt_F_to_G) IDEX(26, F_gpr_to_fpr, fcvt_G_to_F)
+    IDEX(28, F_fpr_to_gpr, fmv_F_to_G) IDEX(30, F_gpr_to_fpr, fmv_G_to_F)
+    default: exec_inv(s);
+  }
+}
+
 static inline make_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
@@ -203,8 +215,11 @@ static inline void exec(DecodeExecState *s) {
       IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
       IDEX (010, S, store)  IDEX (011, F_S, fp_store)                     IDEX (013, R, atomic)
       IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
-      EX   (020, fp)
-      EX   (024, fp)
+      IDEX (020, F_R, fmadd)
+      IDEX (021, F_R, fmsub)
+      IDEX (022, F_R, fnmsub)
+      IDEX (023, F_R, fnmadd)
+      IDEX (024, F_R, op_fp)
       IDEX (030, B, branch) IDEX (031, I, jalr)   EX   (032, nemu_trap)     IDEX (033, J, jal)
       EX   (034, system)
       default: exec_inv(s);
