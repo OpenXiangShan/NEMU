@@ -231,12 +231,12 @@ rvc: ;
     //idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
     uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
     switch (rvc_opcode) {
-      IDEX (000, C_ADDI4SPN, addi)EX   (001, fp)  IDEXW(002, C_LW, lds, 4)  IDEXW(003, C_LD, ld, 8)
-                            EX   (005, fp)        IDEXW(006, C_SW, st, 4)   IDEXW(007, C_SD, st, 8)
-      IDEX (010, CI_simm, addi)IDEX (011, CI_simm, addiw)IDEX (012, C_LI, addi)EX   (013, lui_addi16sp)
-      EX   (014, misc_alu)  IDEX (015, C_J, jal)  IDEX (016, CB, beq)       IDEX (017, CB, bne)
-      IDEX (020, CI_uimm, slli)EX   (021, fp)     IDEXW(022, C_LWSP, lds, 4)IDEXW(023, C_LDSP, ld, 8)
-      EX   (024, misc)      EX   (025, fp)        IDEXW(026, C_SWSP, st, 4) IDEXW(027, C_SDSP, st, 8)
+      IDEX (000, C_ADDI4SPN, addi) IDEXW(001, C_FLD, fp_ld, 8)   IDEXW(002, C_LW, lds, 4)   IDEXW(003, C_LD, ld, 8)
+                                   IDEXW(005, C_FSD, fp_st, 8)   IDEXW(006, C_SW, st, 4)    IDEXW(007, C_SD, st, 8)
+      IDEX (010, CI_simm, addi)    IDEX (011, CI_simm, addiw)    IDEX (012, C_LI, addi)     EX   (013, lui_addi16sp)
+      EX   (014, misc_alu)         IDEX (015, C_J, jal)          IDEX (016, CB, beq)        IDEX (017, CB, bne)
+      IDEX (020, CI_uimm, slli)    IDEXW(021, C_FLDSP, fp_ld, 8) IDEXW(022, C_LWSP, lds, 4) IDEXW(023, C_LDSP, ld, 8)
+      EX   (024, misc)             IDEXW(025, C_FSDSP, fp_st, 8) IDEXW(026, C_SWSP, st, 4)  IDEXW(027, C_SDSP, st, 8)
       default: exec_inv(s);
     }
   }

@@ -227,36 +227,58 @@ static inline void decode_C_xxSP(DecodeExecState *s, uint32_t imm6, int rotate) 
   decode_op_C_imm6(s, imm6, false, 0, rotate);
 }
 
-static inline void decode_C_LxSP(DecodeExecState *s, int rotate) {
+static inline void decode_C_LxSP(DecodeExecState *s, int rotate, bool is_fp) {
   uint32_t imm6 = (BITS(s->isa.instr.val, 12, 12) << 5) | BITS(s->isa.instr.val, 6, 2);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
-  decode_op_r(s, id_dest, rd, false);
+  if(is_fp)
+    decode_op_fpr(s, id_dest, rd, false);
+  else 
+    decode_op_r(s, id_dest, rd, false);
 }
 
 static inline make_DHelper(C_LWSP) {
-  decode_C_LxSP(s, 2);
+  decode_C_LxSP(s, 2, false);
 }
 
 static inline make_DHelper(C_LDSP) {
-  decode_C_LxSP(s, 3);
+  decode_C_LxSP(s, 3, false);
+}
+
+static inline make_DHelper(C_FLWSP) {
+  decode_C_LxSP(s, 2, true);
+}
+
+static inline make_DHelper(C_FLDSP) {
+  decode_C_LxSP(s, 3, true);
 }
 
 // ---------- CSS ---------- 
 
-static inline void decode_C_SxSP(DecodeExecState *s, int rotate) {
+static inline void decode_C_SxSP(DecodeExecState *s, int rotate, bool is_fp) {
   uint32_t imm6 = BITS(s->isa.instr.val, 12, 7);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
-  decode_op_r(s, id_dest, rs2, true);
+  if(is_fp)
+    decode_op_fpr(s, id_dest, rs2, true);
+  else 
+    decode_op_r(s, id_dest, rs2, true);
 }
 
 static inline make_DHelper(C_SWSP) {
-  decode_C_SxSP(s, 2);
+  decode_C_SxSP(s, 2, false);
 }
 
 static inline make_DHelper(C_SDSP) {
-  decode_C_SxSP(s, 3);
+  decode_C_SxSP(s, 3, false);
+}
+
+static inline make_DHelper(C_FSWSP) {
+  decode_C_SxSP(s, 2, true);
+}
+
+static inline make_DHelper(C_FSDSP) {
+  decode_C_SxSP(s, 3, true);
 }
 
 // ---------- CIW ---------- 
@@ -274,31 +296,42 @@ static inline make_DHelper(C_ADDI4SPN) {
 // ---------- CL ---------- 
 
 // load/store
-static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_store) {
+static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_store, bool is_fp) {
   uint32_t instr = s->isa.instr.val;
   decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, true);
-  decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  if(is_fp)
+    decode_op_fpr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  else 
+    decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
 }
 
 static inline make_DHelper(C_LW) {
-  decode_C_ldst_common(s, 1, false);
+  decode_C_ldst_common(s, 1, false, false);
 }
 
 static inline make_DHelper(C_LD) {
-  decode_C_ldst_common(s, 2, false);
+  decode_C_ldst_common(s, 2, false, false);
+}
+
+static inline make_DHelper(C_FLD) {
+  decode_C_ldst_common(s, 2, false, true);
 }
 
 // ---------- CS ---------- 
 
 static inline make_DHelper(C_SW) {
-  decode_C_ldst_common(s, 1, true);
+  decode_C_ldst_common(s, 1, true, false);
 }
 
 static inline make_DHelper(C_SD) {
-  decode_C_ldst_common(s, 2, true);
+  decode_C_ldst_common(s, 2, true, false);
+}
+
+static inline make_DHelper(C_FSD) {
+  decode_C_ldst_common(s, 2, true, true);
 }
 
 static inline make_DHelper(CS) {
