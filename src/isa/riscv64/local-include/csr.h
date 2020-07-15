@@ -15,7 +15,8 @@
   f(sie        , 0x104) f(stvec      , 0x105) f(scounteren , 0x106) \
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
-  f(satp       , 0x180)
+  f(satp       , 0x180) \
+  f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
 
 #define CSR_STRUCT_START(name) \
   typedef union { \
@@ -196,6 +197,20 @@ CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(sscratch)
 CSR_STRUCT_END(sscratch)
+
+CSR_STRUCT_START(fflags)
+  uint64_t nv: 1;
+  uint64_t dz: 1;
+  uint64_t of: 1;
+  uint64_t uf: 1;
+  uint64_t nx: 1;
+CSR_STRUCT_END(fflags)
+
+CSR_STRUCT_START(frm)
+CSR_STRUCT_END(frm)
+
+CSR_STRUCT_START(fcsr)
+CSR_STRUCT_END(fcsr)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)

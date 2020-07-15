@@ -11,11 +11,26 @@ const char *regsl[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+const char *fpregsl[] = {
+  "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7",
+  "fs0", "fs1", "fa0", "fa1", "fa2", "fa3", "fa4", "fa5",
+  "fa6", "fa7", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
+  "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11"
+};
+
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
-    if (i % 4 == 3) printf("\n");
+    printf("%4s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
+    if (i % 4 == 3) {
+      printf("\n");
+    }
+  }
+  for (i = 0; i < 32; i ++) {
+    printf("%4s: " FMT_WORD " ", fpregsl[i], cpu.fpr[i]._64);
+    if (i % 4 == 3) {
+      printf("\n");
+    }
   }
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
@@ -60,6 +75,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 
+#define FFLAGS_MASK 0x1f
+#define FRM_MASK 0x03
+#define FCSR_MASK 0xff
+
 void csr_read(rtlreg_t *dest, uint32_t addr) {
   word_t *src = csr_decode(addr);
 #ifndef __DIFF_REF_NEMU__
@@ -72,6 +91,12 @@ void csr_read(rtlreg_t *dest, uint32_t addr) {
     *dest = mie->val & SIE_MASK;
   } else if (src == (void *)sip) {
     *dest = mip->val & SIP_MASK;
+  } else if (src == (void *)fflags) {
+    *dest = fflags->val & FFLAGS_MASK;
+  } else if (src == (void *)frm) {
+    *dest = frm->val & FRM_MASK;
+  } else if (src == (void *)fcsr) {
+    *dest = fcsr->val & FCSR_MASK;
   } else {
     *dest = *src;
   }
@@ -89,6 +114,22 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     *dest = *src & 0xbbff;
   } else if (dest == (void *)mideleg) {
     *dest = *src & 0x222;
+  } else if (dest == (void *)fflags) {
+    mstatus->fs = 3;
+    mstatus->sd = 1;
+    *dest = *src & FFLAGS_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+  } else if (dest == (void *)frm) {
+    mstatus->fs = 3;
+    mstatus->sd = 1;
+    *dest = *src & FRM_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+  } else if (dest == (void *)fcsr) {
+    mstatus->fs = 3;
+    mstatus->sd = 1;
+    *dest = *src & FCSR_MASK;
+    fflags->val = *src & FFLAGS_MASK;
+    frm->val = ((*src)>>5) & FRM_MASK;
   } else {
     *dest = *src;
   }

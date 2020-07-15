@@ -25,9 +25,23 @@ static inline make_EHelper(load) {
   }
 }
 
+static inline make_EHelper(fp_load) {
+  switch (s->isa.instr.i.funct3) {
+    EXW(2, fp_ld, 4) EXW(3, fp_ld, 8)
+    default: exec_inv(s);
+  }
+}
+
 static inline make_EHelper(store) {
   switch (s->isa.instr.s.funct3) {
     EXW(0, st, 1) EXW(1, st, 2) EXW(2, st, 4) EXW(3, st, 8)
+  }
+}
+
+static inline make_EHelper(fp_store) {
+  switch (s->isa.instr.s.funct3) {
+    EXW(2, fp_st, 4) EXW(3, fp_st, 8)
+    default: exec_inv(s);
   }
 }
 
@@ -185,9 +199,9 @@ static inline void exec(DecodeExecState *s) {
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     switch (s->isa.instr.r.opcode6_2) {
-      IDEX (000, I, load)   EX   (001, fp)                                  EX   (003, fence)
+      IDEX (000, I, load)   IDEX (001, F_I, fp_load)                      EX   (003, fence)
       IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
-      IDEX (010, S, store)  EX   (011, fp)                                  IDEX (013, R, atomic)
+      IDEX (010, S, store)  IDEX (011, F_S, fp_store)                     IDEX (013, R, atomic)
       IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
       EX   (020, fp)
       EX   (024, fp)

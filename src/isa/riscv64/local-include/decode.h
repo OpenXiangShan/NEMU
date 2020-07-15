@@ -20,6 +20,14 @@ static inline make_DopHelper(r) {
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
 }
 
+static inline make_DopHelper(fpr){
+  op->type = OP_TYPE_REG;
+  op->reg = val;
+  op->preg = &fpreg_l(val);
+
+  print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(op->reg, 4));
+}
+
 static inline make_DHelper(I) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
   decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, true);
@@ -76,6 +84,52 @@ static inline make_DHelper(csri) {
   decode_op_i(s, id_src2, s->isa.instr.csr.csr, true);
   decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
 }
+
+
+// RVF RVD
+
+// --------- fpr to fpr ---------
+
+static inline make_DHelper(F_R) {
+  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+}
+
+// --------- FLD/FLW --------- 
+
+static inline make_DHelper(F_I) {
+  decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
+  decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.i.rd, false);
+}
+
+
+// --------- FSD/FSW ---------
+
+static inline make_DHelper(F_S) {
+  decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
+  sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
+  decode_op_i(s, id_src2, simm, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.s.rs2, true);
+}
+
+// --------- fpr to gpr ---------
+
+static inline make_DHelper(F_fpr_to_gpr){
+  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
+  decode_op_r(s, id_dest, s->isa.instr.fp.rd, false);
+}
+
+// --------- gpr to fpr ---------
+
+static inline make_DHelper(F_gpr_to_fpr){
+  decode_op_r(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_r(s, id_src2, s->isa.instr.fp.rs2, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+}
+
 
 // RVC
 

@@ -4,9 +4,6 @@
 static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
   switch (addr) {
     case 0xc01:  // time
-    case 0x001:  // fflags
-    case 0x002:  // frm
-    case 0x003:  // fcsr
       raise_intr(s, EX_II, cpu.pc);
       return false;
   }

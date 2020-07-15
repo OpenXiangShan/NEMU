@@ -6,6 +6,7 @@
 #include "ldst.h"
 #include "muldiv.h"
 #include "system.h"
+#include "fp.h"
 
 make_EHelper(inv);
 make_EHelper(nemu_trap);
