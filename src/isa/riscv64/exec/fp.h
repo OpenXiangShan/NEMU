@@ -1,6 +1,6 @@
-#include "../local-include/softfloat/softfloat.h"
-#include "../local-include/softfloat/specialize.h"
-#include "../local-include/softfloat/internals.h"
+#include "../softfloat/softfloat.h"
+#include "../softfloat/specialize.h"
+#include "../softfloat/internals.h"
 
 #include "../local-include/intr.h"
 
