@@ -30,7 +30,7 @@ sudo chroot /mnt /bin/bash
 * 安装所需工具(根据实际情况选择)
 ```
 apt-get update
-apt-get install gcc build-essentail
+apt-get install gcc build-essential
 apt-get install tmux libreadline-dev
 agt-get install net-tools openssh-server
 # fix long delay of openssh server
@@ -50,14 +50,12 @@ chmod +w,+x /root
 
 * 在/root/目录下提前写入所需的测试文件, 如hello.c等. 将来以只读方式挂载时, 无法写入文件.
 
-* 挂载ramdisk到/tmp/目录, 若根文件系统通过只读方式挂载, 可在/tmp/目录中进行文件写操作.
-在`/etc/fstab`中添加如下内容
-```
-ramdisk /tmp tmpfs defaults,size=10MB 0 0
-```
+* 若要创建文件, 可在/run/目录下创建, 它是个tmpfs
 
 * 在/root/.bashrc中添加如下内容, 可以实现登录后自动运行命令(根据实际情况修改测试的命令):
 ```
+TMP_DIR=/run/mytest
+
 cmd=(
 # show system information
   "uname -a"
@@ -70,29 +68,33 @@ cmd=(
   "date"
   "uptime"
 
+# create and switch to tmp directory
+  "mkdir $TMP_DIR"
+  "cd $TMP_DIR"
+
 # compile and run hello
   "ls /root"
   "ls /root/hello"
   "cat /root/hello/hello.c"
-  "gcc -time /root/hello/hello.c -o /tmp/hello"
-  "ls -lh /tmp"
-  "/tmp/hello"
+  "gcc -time /root/hello/hello.c -o $TMP_DIR/hello"
+  "ls -lh $TMP_DIR"
+  "$TMP_DIR/hello"
 
 # compile and run x86-nemu
   "ls /root/nemu"
-  "cp -r /root/nemu /tmp"
-  "export NEMU_HOME=/tmp/nemu"
-  "make -C /tmp/nemu ISA=x86"
+  "cp -r /root/nemu $TMP_DIR"
+  "export NEMU_HOME=$TMP_DIR/nemu"
+  "make -C $TMP_DIR/nemu ISA=x86"
   "ls -lh /root/nemu-prog"
   "file /root/nemu-prog/amtest-x86-nemu.elf"
-  "/tmp/nemu/build/x86-nemu --batch --mainargs=h /root/nemu-prog/amtest-x86-nemu.bin"
+  "$TMP_DIR/nemu/build/x86-nemu --batch --mainargs=h /root/nemu-prog/amtest-x86-nemu.bin"
   "file /root/nemu-prog/microbench-x86-nemu.elf"
-  "/tmp/nemu/build/x86-nemu --batch --mainargs=test /root/nemu-prog/microbench-x86-nemu.bin"
+  "$TMP_DIR/nemu/build/x86-nemu --batch --mainargs=test /root/nemu-prog/microbench-x86-nemu.bin"
 
 # compile and run riscv64-nemu
-  "make -C /tmp/nemu clean"
-  "make -C /tmp/nemu ISA=riscv64"
-  "/tmp/nemu/build/riscv64-nemu --batch /root/nemu-prog/linux-hello-riscv64-nemu.bin"
+  "make -C $TMP_DIR/nemu clean"
+  "make -C $TMP_DIR/nemu ISA=riscv64"
+  "$TMP_DIR/nemu/build/riscv64-nemu --batch /root/nemu-prog/linux-hello-riscv64-nemu.bin"
 )
 
 prompt="`whoami`@`hostname`:`pwd`#"
@@ -109,6 +111,17 @@ done
 echo -e "\n============ End of preset commands =============\n"
 
 /root/nemutrap/good-trap
+```
+
+* 若在不方便输入的环境(如NEMU, verilator仿真等)中测试, 可采用如下方式避免登录时输入
+```
+cd /lib/systemd/system
+# 通过紧急模式登录, 不启动非必须的服务, 节省将近一半的登录时间
+ln -sf emergency.target default.target
+# 跳过登录提示符, 直接运行bash
+vim emergency.service
+  -ExecStart=-/lib/systemd/systemd-sulogin-shell emergency
+  +ExecStart=-/bin/bash
 ```
 
 * 退出并卸载镜像
