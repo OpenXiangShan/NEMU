@@ -38,7 +38,7 @@ enum { x0 = 0 };
 #if defined(__ISA_x86__)
 enum { tmp0 = 30, mask32 = 24, mask16 = 25, spm_base = 26, tmp_reg1 = 0, tmp_reg2 = 0 };
 #elif defined(__ISA_mips32__)
-enum { tmp0 = 1, mask32 = 28, mask16 = 0, spm_base = 0, tmp_reg1 = 26, tmp_reg2 = 27 };
+enum { tmp0 = 2, mask32 = 28, mask16 = 0, spm_base = 0, tmp_reg1 = 26, tmp_reg2 = 27 };
 #define REG_SPILLING
 #elif defined(__ISA_riscv32__)
 enum { tmp0 = 26, mask32 = 27, mask16 = 0, spm_base = 0, tmp_reg1 = 3, tmp_reg2 = 4 };
