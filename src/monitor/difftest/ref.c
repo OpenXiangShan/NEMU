@@ -9,6 +9,10 @@ void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
   memcpy(guest_to_host(dest - PMEM_BASE), src, n);
 }
 
+void difftest_memcpy_from_ref(void *dest, paddr_t src, size_t n) {
+  memcpy(dest, guest_to_host(src - PMEM_BASE), n);
+}
+
 void difftest_getregs(void *r) {
   isa_difftest_getregs(r);
 }
