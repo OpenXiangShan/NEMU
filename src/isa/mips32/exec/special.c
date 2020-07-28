@@ -23,7 +23,8 @@ make_EHelper(inv) {
 make_EHelper(nemu_trap) {
   difftest_skip_ref();
 
-  rtl_exit(NEMU_END, cpu.pc, cpu.gpr[2]._32); // grp[2] is $v0
+  rtl_addi(s, s0, &cpu.gpr[2]._32, 0); // grp[2] is $v0
+  rtl_exit(NEMU_END, cpu.pc, *s0); 
 
   print_asm("nemu trap");
   return;
