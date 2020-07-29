@@ -8,6 +8,7 @@ void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t i
     case RELOP_TRUE:  rv64_addi(idx_dest, x0, 1); return;
     case RELOP_EQ:
       rv64_xor(idx_dest, idx_src1, idx_src2);
+      rv64_and(idx_dest, idx_dest, mask32);
       rv64_sltu(idx_dest, x0, idx_dest);
       rv64_xori(idx_dest, idx_dest, 1);
       return;
