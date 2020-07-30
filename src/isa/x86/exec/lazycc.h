@@ -25,14 +25,14 @@ static inline make_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, c
 
 #define UNARY 0x100  // compare with cpu.cc_dest and rz
 static const int cc2relop [] = {
-  [CC_O]  = 0,         [CC_NO]  = 0,
-  [CC_B]  = RELOP_LTU, [CC_NB]  = RELOP_GEU,
+  [CC_O]  = 0,                 [CC_NO]  = 0,
+  [CC_B]  = RELOP_LTU,         [CC_NB]  = RELOP_GEU,
   [CC_E]  = UNARY | RELOP_EQ,  [CC_NE]  = UNARY | RELOP_NE,
-  [CC_BE] = RELOP_LEU, [CC_NBE] = RELOP_GTU,
+  [CC_BE] = RELOP_LEU,         [CC_NBE] = RELOP_GTU,
   [CC_S]  = UNARY | RELOP_LT,  [CC_NS]  = UNARY | RELOP_GE,
-  [CC_P]  = 0,         [CC_NP]  = 0,
-  [CC_L]  = RELOP_LT,  [CC_NL]  = RELOP_GE,
-  [CC_LE] = RELOP_LE,  [CC_NLE] = RELOP_GT,
+  [CC_P]  = 0,                 [CC_NP]  = 0,
+  [CC_L]  = RELOP_LT,          [CC_NL]  = RELOP_GE,
+  [CC_LE] = RELOP_LE,          [CC_NLE] = RELOP_GT,
 };
 
 static inline make_rtl(lazy_jcc, uint32_t cc) {

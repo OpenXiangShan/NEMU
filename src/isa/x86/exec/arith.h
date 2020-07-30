@@ -3,7 +3,7 @@
 static inline make_EHelper(add) {
 //  TODO();
 #ifdef LAZY_CC
-  rtl_set_lazycc_src1(s, dsrc1);
+  rtl_set_lazycc_src1(s, dsrc1);  // set src firstly cuz maybe $dest = $src
   rtl_add(s, ddest, ddest, dsrc1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_ADD, id_dest->width);
   operand_write(s, id_dest, ddest);
