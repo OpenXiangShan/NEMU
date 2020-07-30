@@ -70,6 +70,14 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
         rtl_jrelop(s, RELOP_NE, s0, rz, s->jmp_pc);
         return;
       }
+      if (cc == CC_NB) {
+        rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
+        rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
+        rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
+        rtl_or(s, s0, s0, s1);
+        rtl_jrelop(s, RELOP_EQ, s0, rz, s->jmp_pc);
+        return;
+      }
       break;
     case LAZYCC_SUB:
       if (cc2relop[cc] != 0) {
@@ -78,7 +86,7 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
       }
       break;
     case LAZYCC_LOGIC:
-      if (cc == CC_LE) {
+      if (cc == CC_LE || CC_NLE) {
         rtl_jrelop(s, cc2relop[cc], &cpu.cc_dest, rz, s->jmp_pc);
         return;
       }
