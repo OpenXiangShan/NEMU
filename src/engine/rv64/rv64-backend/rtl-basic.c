@@ -84,7 +84,11 @@ make_rtl_compute_reg(and, and)
 make_rtl_compute_reg(or, or)
 make_rtl_compute_reg(xor, xor)
 
+#ifdef ISA64
 make_rtl_compute_imm_opt(addi, add, addi)
+#else
+make_rtl_compute_imm_opt(addi, add, addiw)
+#endif
 make_rtl_compute_imm_opt(andi, and, andi)
 make_rtl_compute_imm_opt(xori, xor, xori)
 make_rtl_compute_imm_opt(ori, or, ori)
