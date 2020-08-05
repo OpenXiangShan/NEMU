@@ -3,6 +3,7 @@
 #include <monitor/difftest.h>
 #include "debug/watchpoint.h"
 #include <stdlib.h>
+#include <sys/time.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -19,12 +20,13 @@
 CPU_state cpu;
 NEMUState nemu_state = {.state = NEMU_STOP};
 static uint64_t g_nr_guest_instr = 0;
+static uint64_t g_timer = 0; // unit: ms
 const rtlreg_t rzero = 0;
 
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 
 int goodtrap(void) {
-  return (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0);
+  return (nemu_state.state == NEMU_QUIT) || (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0);
 }
 
 void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
@@ -33,6 +35,8 @@ void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
 
 void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
+  Log("host time spent = %ld ms", g_timer);
+  Log("simulation frequency = %ld instr/s", g_nr_guest_instr * 1000 / g_timer);
 }
 
 bool log_enable(void) {
@@ -49,6 +53,14 @@ void display_inv_msg(vaddr_t pc) {
       "* Every line of untested code is always wrong!\33[0m\n\n", isa_logo);
 }
 
+static uint64_t uptime() {
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  uint32_t seconds = now.tv_sec;
+  uint32_t useconds = now.tv_usec;
+  return seconds * 1000 + (useconds + 500) / 1000;
+}
+
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
@@ -57,6 +69,8 @@ void cpu_exec(uint64_t n) {
       return;
     default: nemu_state.state = NEMU_RUNNING;
   }
+
+  uint64_t timer_start = uptime();
 
   for (; n > 0; n --) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
@@ -90,6 +104,9 @@ void cpu_exec(uint64_t n) {
     if (nemu_state.state != NEMU_RUNNING) break;
   }
 
+  uint64_t timer_end = uptime();
+  g_timer += timer_end - timer_start;
+
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
@@ -98,6 +115,8 @@ void cpu_exec(uint64_t n) {
           (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
+      // fall through
+    case NEMU_QUIT:
       monitor_statistic();
       if (nemu_state.state == NEMU_ABORT) abort();
   }
