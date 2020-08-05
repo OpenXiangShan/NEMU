@@ -38,90 +38,6 @@ static const int cc2relop [] = {
   [CC_LE] = 0,                 [CC_NLE] = 0,
 };
 
-static inline make_rtl(lazy_jcc, uint32_t cc) {
-  int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
-  if ((cc2relop[cc] & UNARY) && !exception) {
-    uint32_t relop = cc2relop[cc] ^ UNARY;
-    rtlreg_t *p = &cpu.cc_dest;
-    if (cpu.cc_op == LAZYCC_SUB) {
-      // sub && (CC_S || CC_NS)
-      rtl_sub(s, s2, &cpu.cc_dest, &cpu.cc_src1);
-      p = s2;
-    }
-    int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
-    if (cpu.cc_width != 4 && !exception) {
-      rtl_shli(s, s2, p, 32 - cpu.cc_width * 8);
-      p = s2;
-    }
-    rtl_jrelop(s, relop, p, rz, s->jmp_pc);
-    return;
-  }
-
-  switch (cpu.cc_op) {
-    case LAZYCC_DEC:
-      if (cc2relop[cc] != 0) {
-        rtl_jrelop(s, cc2relop[cc], &cpu.cc_dest, rz, s->jmp_pc);
-        return;
-      }
-      break;
-    case LAZYCC_SBB: // FIXME: should consider CF
-      if (cc == CC_B || cc == CC_NB) {
-        rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
-        rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
-        rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
-        rtl_or(s, s0, s0, s1);
-        rtl_jrelop(s, NEGCCRELOP(cc+1), s0, rz, s->jmp_pc);
-        return;
-      }
-      break;
-    case LAZYCC_SUB:
-      if (cc == CC_L || cc == CC_NL) {
-        rtl_sub(s, s2, &cpu.cc_dest, &cpu.cc_src1);
-        rtl_is_sub_overflow(s, s0, s2, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
-        rtl_msb(s, s1, s2, cpu.cc_width);
-        rtl_xor(s, s2, s0, s1);
-        rtl_jrelop(s, NEGCCRELOP(cc+1), s2, rz, s->jmp_pc);
-        return;
-      }
-      if (cc == CC_LE || cc == CC_NLE) {
-        rtl_sub(s, s2, &cpu.cc_dest, &cpu.cc_src1);
-        rtl_is_sub_overflow(s, s0, s2, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
-        rtl_msb(s, s1, s2, cpu.cc_width);
-        rtl_xor(s, s0, s0, s1);
-        rtl_setrelopi(s, RELOP_EQ, s1, s2, 0);
-        rtl_or(s, s2, s0, s1);
-        rtl_jrelop(s, NEGCCRELOP(cc+1), s2, rz, s->jmp_pc);
-        return;
-      }
-      if (cc == CC_BE || cc == CC_NBE) {
-        rtl_is_sub_carry(s, s0, &cpu.cc_dest, &cpu.cc_src1);
-        rtl_sub(s, s1, &cpu.cc_dest, &cpu.cc_src1);
-        rtl_setrelopi(s, RELOP_EQ, s1, s1, 0);
-        rtl_or(s, s2, s0, s1);
-        rtl_jrelop(s, NEGCCRELOP(cc+1), s2, rz, s->jmp_pc);
-        return;
-      }
-      if (cc2relop[cc] != 0) {
-        rtl_jrelop(s, cc2relop[cc] & ~UNARY, &cpu.cc_dest, &cpu.cc_src1, s->jmp_pc);
-        return;
-      }
-      break;
-    case LAZYCC_LOGIC:
-      if (cc == CC_LE) {
-        rtl_jrelop(s, RELOP_LE, &cpu.cc_dest, rz, s->jmp_pc);
-        return;
-      }
-      if (CC_NLE) {
-        rtl_jrelop(s, RELOP_GT, &cpu.cc_dest, rz, s->jmp_pc);
-        return;
-      }
-      break;
-    default: panic("unhandle cc_op = %d", cpu.cc_op);
-  }
-
-  panic("unhandle cc_op = %d, cc = %d", cpu.cc_op, cc);
-}
-
 static inline make_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
   if ((cc2relop[cc] & UNARY) && !exception) {
@@ -409,10 +325,13 @@ static inline make_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
       break;
     case LAZYCC_LOGIC:
       switch (cc) {
-        case CC_E: case CC_NE: case CC_LE:
-          rtl_setrelop(s, cc2relop[cc], dest, &cpu.cc_dest, rz);
+        case CC_LE:
+          rtl_setrelop(s, RELOP_LE, dest, &cpu.cc_dest, rz);
           return;
-        }
+        case CC_NLE:
+          rtl_setrelop(s, RELOP_GT, dest, &cpu.cc_dest, rz);
+          return;
+      }
       break;
     default: panic("unhandle cc_op = %d", cpu.cc_op);
   }
@@ -420,6 +339,11 @@ static inline make_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
 negcc_reverse:
     if NEGCC(cc) rtl_xori(s, dest, dest, 1);
     return;
+}
+
+static inline make_rtl(lazy_jcc, uint32_t cc) {
+  rtl_lazy_setcc_internal(s, (rtlreg_t *)s2, cc);
+  rtl_jrelop(s, RELOP_NE, s2, rz, s->jmp_pc);
 }
 
 static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
