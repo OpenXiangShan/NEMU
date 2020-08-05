@@ -29,7 +29,7 @@ static const int cc2relop [] = {
   [CC_O]  = 0,                 [CC_NO]  = 0,
   [CC_B]  = RELOP_LTU,         [CC_NB]  = RELOP_GEU,
   [CC_E]  = UNARY | RELOP_EQ,  [CC_NE]  = UNARY | RELOP_NE,
-  [CC_BE] = 0,                 [CC_NBE] = RELOP_GTU,
+  [CC_BE] = 0,                 [CC_NBE] = 0,
   [CC_S]  = UNARY | RELOP_LT,  [CC_NS]  = UNARY | RELOP_GE,
   [CC_P]  = 0,                 [CC_NP]  = 0,
   [CC_L]  = 0,                 [CC_NL]  = 0,
@@ -87,6 +87,14 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
         rtl_msb(s, s1, s2, cpu.cc_width);
         rtl_xor(s, s0, s0, s1);
         rtl_setrelopi(s, RELOP_EQ, s1, s2, 0);
+        rtl_or(s, s2, s0, s1);
+        rtl_jrelop(s, NEGCC(cc+1), s2, rz, s->jmp_pc);
+        return;
+      }
+      if (cc == CC_BE || cc == CC_NBE) {
+        rtl_is_sub_carry(s, s0, &cpu.cc_dest, &cpu.cc_src1);
+        rtl_sub(s, s1, &cpu.cc_dest, &cpu.cc_src1);
+        rtl_setrelopi(s, RELOP_EQ, s1, s1, 0);
         rtl_or(s, s2, s0, s1);
         rtl_jrelop(s, NEGCC(cc+1), s2, rz, s->jmp_pc);
         return;
