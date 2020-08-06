@@ -41,6 +41,18 @@ static const int cc2relop [] = {
   [CC_LE] = 0,                 [CC_NLE] = 0,
 };
 
+static const int cc2relop_logic [] = {
+  [CC_O]  = RELOP_FALSE,       [CC_NO]  = RELOP_TRUE,
+  [CC_B]  = RELOP_LTU,         [CC_NB]  = RELOP_GEU,
+  [CC_E]  = RELOP_EQ,          [CC_NE]  = RELOP_NE,
+  [CC_BE] = RELOP_LEU,         [CC_NBE] = RELOP_GTU,
+  [CC_S]  = RELOP_LT,          [CC_NS]  = RELOP_GE,
+  [CC_P]  = 0,                 [CC_NP]  = 0,
+  [CC_L]  = RELOP_LT,          [CC_NL]  = RELOP_GE,
+  [CC_LE] = RELOP_LE,          [CC_NLE] = RELOP_GT,
+};
+
+
 static inline make_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
   rtlreg_t *p;
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
@@ -295,11 +307,15 @@ static inline make_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
       break;
     case LAZYCC_LOGIC:
       switch (cc) {
-        case CC_LE:
-          rtl_setrelop(s, RELOP_LE, dest, &cpu.cc_dest, rz);
-          return;
-        case CC_NLE:
-          rtl_setrelop(s, RELOP_GT, dest, &cpu.cc_dest, rz);
+        case CC_LE: case CC_NLE: case CC_L: case CC_NL:
+          p = &cpu.cc_dest;
+          if (cpu.cc_width != 4) {
+            rtl_shli(s, dest, p, 32 - cpu.cc_width * 8);
+            p = dest;
+          }
+        default:
+          if (p != dest) p = &cpu.cc_dest;
+          rtl_setrelop(s, cc2relop_logic[cc], dest, p, rz);
           return;
       }
       break;
