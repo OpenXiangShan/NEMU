@@ -121,3 +121,19 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
     rm->preg = &rm->val;
   }
 }
+
+void read_F_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+  ModR_M m;
+  m.val = s->isa.ext_opcode;
+  if (reg != NULL) {
+    //load st(0)
+    operand_freg(s, reg, load_reg_val, 0);
+  }
+  if (m.mod == 3) operand_freg(s, rm, load_rm_val, m.R_M);
+  else {
+    load_addr(s, &m, rm);
+    if (load_rm_val)rtl_lmf(s, &rm->fval, s->isa.mbase, s->isa.moff);
+    rm->pfreg = &rm->fval;
+    rm->type = OP_TYPE_MEM;
+  }
+}

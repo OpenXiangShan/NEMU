@@ -88,6 +88,15 @@ typedef struct {
     };
   };
 
+  uint64_t fpr[8];
+  rtlreg_t ftop;
+  union {
+    rtlreg_t fc[4];
+    struct {
+      rtlreg_t fCF,fc1,fPF,fZF;
+    };
+  };
+  
   vaddr_t pc;
   uint32_t eflags;
 
@@ -146,6 +155,7 @@ typedef struct {
 #define PREFIX_REP   1
 #define PREFIX_REPNZ 2
   int rep_flags;
+  uint8_t fpu_MF;
   uint8_t ext_opcode;
   const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;

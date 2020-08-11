@@ -398,3 +398,63 @@ static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src)
   else if (op->type == OP_TYPE_MEM) { rtl_sm(s, s->isa.mbase, s->isa.moff, src, op->width); }
   else { assert(0); }
 }
+
+//temporarily use ext_opcode to store 2nd op
+static inline make_DHelper(fp_ext) {
+  s->isa.ext_opcode = instr_fetch(&s->seq_pc, 1);
+}
+void read_F_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val);
+
+static inline void operand_freg(DecodeExecState *s, Operand *op, bool load_val, int sti) {
+  op->type = OP_TYPE_REG;
+  op->reg = sti;
+  rtl_pfr(s,op,sti);
+  if(load_val){
+    rtl_lfr(s,&op->fval,op->pfreg);
+  }
+  print_Dop(op->str, OP_STR_SIZE, "%%st(%d)", sti);
+}
+
+static inline make_DHelper(ld_Mst_St0_32r) {
+  s->isa.fpu_MF=0;
+  read_F_ModR_M(s,id_src1,true,id_src2,false);
+}
+static inline make_DHelper(ld_Mst_St0_32i) {
+  s->isa.fpu_MF=1;
+  read_F_ModR_M(s,id_src1,true,id_src2,false);
+}
+static inline make_DHelper(ld_Mst_St0_64r) {
+  s->isa.fpu_MF=2;
+  read_F_ModR_M(s,id_src1,true,id_src2,false);
+}
+static inline make_DHelper(ld_Mst_St0_16i) {
+  s->isa.fpu_MF=3;
+  read_F_ModR_M(s,id_src1,true,id_src2,false);
+}
+static inline make_DHelper(ld_Mst_St0_64i) {
+  s->isa.fpu_MF=4;
+  read_F_ModR_M(s,id_src1,true,id_src2,false);
+}
+
+static inline make_DHelper(MstEst_St0_32r) {
+  s->isa.fpu_MF=0;
+  read_F_ModR_M(s,id_src1,true,id_dest,true);
+}
+static inline make_DHelper(MstEst_St0_32i) {
+  s->isa.fpu_MF=1;
+  read_F_ModR_M(s,id_src1,true,id_dest,true);
+}
+static inline make_DHelper(MstEst_St0_64r) {
+  s->isa.fpu_MF=2;
+  read_F_ModR_M(s,id_src1,true,id_dest,true);
+}
+static inline make_DHelper(MstEst_St0_16i) {
+  s->isa.fpu_MF=3;
+  read_F_ModR_M(s,id_src1,true,id_dest,true);
+}
+
+static inline void operand_fwrite(DecodeExecState *s, Operand *op, uint64_t* src) {
+  if (op->type == OP_TYPE_REG) { rtl_sfr(s, op->pfreg , src); }
+  else if (op->type == OP_TYPE_MEM) { rtl_smf(s, s->isa.mbase, s->isa.moff, src); }
+  else { assert(0); }
+}

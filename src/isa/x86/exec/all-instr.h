@@ -10,6 +10,7 @@
 #include "bit.h"
 #include "misc.h"
 #include "vector.h"
+#include "fp.h"
 
 def_EHelper(nop);
 def_EHelper(inv);

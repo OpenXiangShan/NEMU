@@ -16,6 +16,8 @@ typedef struct {
   };
   rtlreg_t *preg;
   rtlreg_t val;
+  uint64_t *pfreg;
+  uint64_t fval;
   char str[OP_STR_SIZE];
 } Operand;
 

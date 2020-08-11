@@ -94,7 +94,20 @@ static inline def_EHelper(gp8) {
     EXW  (4, bt, -1) EXW  (5, bts, -1) EXW  (6, btr, -1) EMPTY(7)
   }
 }
+
+static inline make_EHelper(fp) {
+  uint8_t fp_opcode = BITS(s->opcode,3,0)<<4 | BITS(s->isa.ext_opcode,5,3);
+  switch (fp_opcode)
+  {
+  IDEX(0xd0, MstEst_St0_32r , fadd) 
+  
+  default:
+    exec_inv(s);
+    break;
+  }
+}
 #endif
+
 
 /* 0x0f 0x01*/
 static inline def_EHelper(gp7) {
@@ -273,8 +286,8 @@ IDEXW(0xc0, gp2_Ib2E, gp2, 1)IDEX (0xc1, gp2_Ib2E, gp2) IDEXW(0xc2, I, ret_imm, 
                             IDEXW(0xcd, I, int, 1)                                  EX   (0xcf, iret)
 IDEXW(0xd0, gp2_1_E, gp2, 1)IDEX (0xd1, gp2_1_E, gp2)   IDEXW(0xd2, gp2_cl2E, gp2, 1)IDEX (0xd3, gp2_cl2E, gp2)
                                                         EX   (0xd6, nemu_trap)
-EX   (0xd8, fpu)            EX   (0xd9, fpu)            EX   (0xda, fpu)            EX   (0xdb, fpu)
-EX   (0xdc, fpu)            EX   (0xdd, fpu)            EX   (0xde, fpu)            EX   (0xdf, fpu)
+IDEX(0xd8, fp_ext, fp)      IDEX(0xd9, fp_ext, fp)      IDEX(0xda, fp_ext, fp)      IDEX(0xdb, fp_ext, fp)
+IDEX(0xdc, fp_ext, fp)      IDEX(0xdd, fp_ext, fp)      IDEX(0xde, fp_ext, fp)      IDEX(0xdf, fp_ext, fp)
                                                                                     IDEXW(0xe3, J, jecxz, 1)
 IDEXW(0xe4, in_I2a, in, 1)                              IDEXW(0xe6, out_a2I, out, 1)
 IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      IDEXW(0xea, LJ, ljmp, 4)    IDEXW(0xeb, J, jmp, 1)
