@@ -29,6 +29,10 @@ typedef struct TB {
   uint32_t nr_instr;
   uint32_t guest_nr_instr;
   uint32_t hit_time;
+#ifdef LAZY_CC
+  uint32_t cc_dynamic;
+  uint32_t cc_op;
+#endif
   struct TB *next;
 } TB;
 
@@ -109,9 +113,12 @@ void tran_mainloop() {
   while (1) {
     vaddr_t tb_start = cpu.pc;
     TB *tb = find_tb(tb_start);
-    if (tb == NULL) {
+    if (tb == NULL || (tb->cc_dynamic && (tb->cc_dynamic & 0xff) != cpu.cc_op)) {
       clear_trans_buffer();
       spill_reset();
+#ifdef LAZY_CC
+      if (tb && tb->cc_dynamic) printf("repair dynamic! ori: %d, after: %d\n", tb->cc_dynamic & 0xff, cpu.cc_op);
+#endif
       tran_next_pc = NEXT_PC_SEQ;
       int guest_nr_instr = 0;
       while (1) {
@@ -144,6 +151,11 @@ void tran_mainloop() {
           tb->hit_time = 0;
           tb->next = head.next;
           head.next = tb;
+#ifdef LAZY_CC
+          tb->cc_dynamic = cpu.cc_dynamic;
+          tb->cc_op = cpu.cc_op;
+          if (cpu.cc_dynamic) cpu.cc_dynamic = 0;
+#endif
           break;
         }
       }
@@ -151,6 +163,9 @@ void tran_mainloop() {
 
     //Log("enter tb with pc = " FMT_WORD " , nr_instr = %d", tb->pc, tb->nr_instr);
     vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
+#ifdef LAZY_CC
+    cpu.cc_op = tb->cc_op;
+#endif
     total_instr += tb->nr_instr;
     tb->hit_time ++;
 

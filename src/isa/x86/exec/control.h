@@ -3,7 +3,9 @@
 static inline make_EHelper(jmp) {
   // the target address is calculated at the decode stage
   rtl_j(s, s->jmp_pc);
-
+#ifdef LAZY_CC
+  rtl_clean_lazycc(s);
+#endif
   print_asm("jmp %x", s->jmp_pc);
 }
 
@@ -12,6 +14,7 @@ static inline make_EHelper(jcc) {
   uint32_t cc = s->opcode & 0xf;
 #ifdef LAZY_CC
   rtl_lazy_jcc(s, cc);
+  rtl_clean_lazycc(s);
 #else
   rtl_setcc(s, s0, cc);
   rtl_jrelop(s, RELOP_NE, s0, rz, s->jmp_pc);
@@ -22,7 +25,9 @@ static inline make_EHelper(jcc) {
 
 static inline make_EHelper(jmp_rm) {
   rtl_jr(s, ddest);
-
+#ifdef LAZY_CC
+  rtl_clean_lazycc(s);
+#endif
   print_asm("jmp *%s", id_dest->str);
 }
 
@@ -32,7 +37,9 @@ static inline make_EHelper(call) {
   rtl_li(s, s0, s->seq_pc);
   rtl_push(s, s0);
   rtl_j(s, s->jmp_pc);
-
+#ifdef LAZY_CC
+  rtl_clean_lazycc(s);
+#endif
   print_asm("call %x", s->jmp_pc);
 }
 
@@ -40,7 +47,9 @@ static inline make_EHelper(ret) {
 //  TODO();
   rtl_pop(s, s0);
   rtl_jr(s, s0);
-
+#ifdef LAZY_CC
+  rtl_clean_lazycc(s);
+#endif
   print_asm("ret");
 }
 
@@ -48,7 +57,9 @@ static inline make_EHelper(ret_imm) {
 //  TODO();
   rtl_pop(s, s0);
   rtl_jr(s, s0);
-
+#ifdef LAZY_CC
+  rtl_clean_lazycc(s);
+#endif
   rtl_add(s, &cpu.esp, &cpu.esp, ddest);
 
   print_asm("ret %s", id_dest->str);
@@ -59,6 +70,8 @@ static inline make_EHelper(call_rm) {
   rtl_li(s, s0, s->seq_pc);
   rtl_push(s, s0);
   rtl_jr(s, ddest);
-
+#ifdef LAZY_CC
+  rtl_clean_lazycc(s);
+#endif
   print_asm("call *%s", id_dest->str);
 }

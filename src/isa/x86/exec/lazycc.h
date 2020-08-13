@@ -21,6 +21,11 @@ static inline make_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, c
   if (src2 != NULL) rtl_set_lazycc_src2(s, src2);
   cpu.cc_op = cc_op;
   cpu.cc_width = width;
+  cpu.cc_dirty = true;
+}
+
+static inline make_rtl(clean_lazycc, ...) {
+  cpu.cc_dirty = false;
 }
 
 #define NEGCC(cc) ((cc)%2 == 1)
@@ -328,11 +333,19 @@ negcc_reverse:
 }
 
 static inline make_rtl(lazy_jcc, uint32_t cc) {
+  if (cpu.cc_dirty == false) { 
+    cpu.cc_dynamic = cpu.cc_op | 0x100; 
+    // printf("dynamic hit\n");
+  }
   rtl_lazy_setcc_internal(s, (rtlreg_t *)s2, cc);
   rtl_jrelop(s, RELOP_NE, s2, rz, s->jmp_pc);
 }
 
 static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
+  if (cpu.cc_dirty == false) { 
+    cpu.cc_dynamic = cpu.cc_op | 0x100; 
+    // printf("dynamic hit\n");
+  }
   rtl_lazy_setcc_internal(s, dest, cc);
 }
 #endif
