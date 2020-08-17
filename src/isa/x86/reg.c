@@ -49,6 +49,10 @@ void isa_reg_display() {
   for (i = 0; i < 8; i ++) {
     printf("%s: 0x%08x\n", regsl[i], cpu.gpr[i]._32);
   }
+  printf("fpu st top: %d\n", cpu.ftop);
+  for (i = 0; i< 8; i ++) {
+    printf("fpr[%d]: 0x%016lx\n", i, cpu.fpr[i]);
+  }
   printf("pc: 0x%08x\n", cpu.pc);
 }
 

@@ -415,42 +415,144 @@ static inline void operand_freg(DecodeExecState *s, Operand *op, bool load_val, 
   print_Dop(op->str, OP_STR_SIZE, "%%st(%d)", sti);
 }
 
-static inline make_DHelper(ld_Mst_St0_32r) {
+//add push ftop here to calculate target addr
+static inline make_DHelper(ld_St0_M_32r) {
+  rtl_pushftop();
   s->isa.fpu_MF=0;
-  read_F_ModR_M(s,id_src1,true,id_src2,false);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_Mst_St0_32i) {
+static inline make_DHelper(ld_St0_M_32i) {
+  rtl_pushftop();
   s->isa.fpu_MF=1;
-  read_F_ModR_M(s,id_src1,true,id_src2,false);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_Mst_St0_64r) {
+static inline make_DHelper(ld_St0_M_64r) {
+  rtl_pushftop();
   s->isa.fpu_MF=2;
-  read_F_ModR_M(s,id_src1,true,id_src2,false);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_Mst_St0_16i) {
+static inline make_DHelper(ld_St0_M_16i) {
+  rtl_pushftop();
   s->isa.fpu_MF=3;
-  read_F_ModR_M(s,id_src1,true,id_src2,false);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_Mst_St0_64i) {
+static inline make_DHelper(ld_St0_M_64i) {
+  rtl_pushftop();
   s->isa.fpu_MF=4;
-  read_F_ModR_M(s,id_src1,true,id_src2,false);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 
-static inline make_DHelper(MstEst_St0_32r) {
+
+static inline make_DHelper(st_M_St0_32r) {
+  s->isa.fpu_MF=0;
+  read_F_ModR_M(s,id_dest,false,id_src1,true);
+}
+static inline make_DHelper(st_M_St0_32i) {
+  s->isa.fpu_MF=1;
+  read_F_ModR_M(s,id_dest,false,id_src1,true);
+}
+static inline make_DHelper(st_M_St0_64r) {
+  s->isa.fpu_MF=2;
+  read_F_ModR_M(s,id_dest,false,id_src1,true);
+}
+static inline make_DHelper(st_M_St0_16i) {
+  s->isa.fpu_MF=3;
+  read_F_ModR_M(s,id_dest,false,id_src1,true);
+}
+static inline make_DHelper(st_M_St0_64i) {
+  s->isa.fpu_MF=4;
+  read_F_ModR_M(s,id_dest,false,id_src1,true);
+}
+
+static inline make_DHelper(St0_M_32r) {
   s->isa.fpu_MF=0;
   read_F_ModR_M(s,id_src1,true,id_dest,true);
 }
-static inline make_DHelper(MstEst_St0_32i) {
+static inline make_DHelper(St0_M_32i) {
   s->isa.fpu_MF=1;
   read_F_ModR_M(s,id_src1,true,id_dest,true);
 }
-static inline make_DHelper(MstEst_St0_64r) {
+static inline make_DHelper(St0_M_64r) {
   s->isa.fpu_MF=2;
   read_F_ModR_M(s,id_src1,true,id_dest,true);
 }
-static inline make_DHelper(MstEst_St0_16i) {
+static inline make_DHelper(St0_M_16i) {
   s->isa.fpu_MF=3;
   read_F_ModR_M(s,id_src1,true,id_dest,true);
+}
+
+static inline make_DHelper(St0_Est) {
+  s->isa.fpu_MF=0;
+  read_F_ModR_M(s,id_src1,true,id_dest,true);
+}
+
+static inline make_DHelper(Est_St0) {
+  read_F_ModR_M(s,id_dest,true,id_src1,true);
+}
+
+static inline make_DHelper(st_Est_St0) {
+  read_F_ModR_M(s,id_dest,false,id_src1,true);
+}
+
+static inline make_DHelper(St0){
+  operand_freg(s,id_dest,true,0);
+}
+
+static inline make_DHelper(ld_St0){
+  rtl_pushftop();
+  operand_freg(s,id_dest,false,0);
+}
+
+static inline make_DHelper(St0_St1){
+  operand_freg(s,id_dest,true,0);
+  operand_freg(s,id_src1,true,1);
+}
+
+static inline make_DopHelper(fsw){
+  //prepare status word here
+  op->type = OP_TYPE_REG;
+  op->preg = s2;
+  rtlreg_t* sw = op->preg;
+  if(load_val){
+    rtl_shli(s,sw,&cpu.fCF,8);
+    rtl_shli(s,t0,&cpu.fPF,10);
+    rtl_or(s,sw,sw,t0);
+    rtl_shli(s,t0,&cpu.ftop,11);
+    rtl_or(s,sw,sw,t0);
+    rtl_shli(s,t0,&cpu.fZF,14);
+    rtl_or(s,sw,sw,t0);
+  }
+  print_Dop(op->str, OP_STR_SIZE, "fsw");
+}
+static inline make_DopHelper(fcw){
+  op->type = OP_TYPE_REG;
+  op->preg = s2;
+  if(load_val){
+    TODO();
+  }
+  print_Dop(op->str, OP_STR_SIZE, "fcw");
+}
+
+static inline make_DHelper(fsw2a){
+  decode_op_a(s,id_dest,true);
+  decode_op_fsw(s,id_src1,true);
+}
+
+static inline make_DHelper(fsw){
+  operand_rm(s, id_dest, false, NULL, false);
+  decode_op_fsw(s,id_src1,true);
+}
+
+static inline make_DHelper(fcw){
+  TODO();
+  operand_rm(s, id_dest, false, NULL, false);
+  decode_op_fcw(s,id_src1,true);
+}
+
+static inline make_DHelper(ld_fcw){
+  TODO();
+  operand_rm(s, id_dest, true, NULL, false);
+  decode_op_fcw(s,id_src1,false);
 }
 
 static inline void operand_fwrite(DecodeExecState *s, Operand *op, uint64_t* src) {
