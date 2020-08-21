@@ -31,6 +31,10 @@ static inline void rtl_popftop(void){
   cpu.ftop++;
   cpu.ftop &= 0x7;
 }
+static inline void rtl_pop2ftop(void){
+  cpu.ftop+=2;
+  cpu.ftop &= 0x7;
+}
 static inline void rtl_pushftop(void){
   cpu.ftop--;
   cpu.ftop &= 0x7;
@@ -51,7 +55,9 @@ static inline make_rtl(fld_const, uint64_t *fdest, int type){
   case fconst_1:
     *fdest = 0x3ff0000000000000;
     break;
-  
+  case fconst_z:
+    *fdest = 0x0;
+    break;
   default:
     break;
   }

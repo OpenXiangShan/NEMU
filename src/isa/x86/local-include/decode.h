@@ -445,57 +445,57 @@ static inline make_DHelper(ld_St0_M_64i) {
 
 static inline make_DHelper(st_M_St0_32r) {
   s->isa.fpu_MF=0;
-  read_F_ModR_M(s,id_dest,false,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 static inline make_DHelper(st_M_St0_32i) {
   s->isa.fpu_MF=1;
-  read_F_ModR_M(s,id_dest,false,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 static inline make_DHelper(st_M_St0_64r) {
   s->isa.fpu_MF=2;
-  read_F_ModR_M(s,id_dest,false,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 static inline make_DHelper(st_M_St0_16i) {
   s->isa.fpu_MF=3;
-  read_F_ModR_M(s,id_dest,false,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 static inline make_DHelper(st_M_St0_64i) {
   s->isa.fpu_MF=4;
-  read_F_ModR_M(s,id_dest,false,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
 static inline make_DHelper(St0_M_32r) {
   s->isa.fpu_MF=0;
-  read_F_ModR_M(s,id_src1,true,id_dest,true);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 static inline make_DHelper(St0_M_32i) {
   s->isa.fpu_MF=1;
-  read_F_ModR_M(s,id_src1,true,id_dest,true);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 static inline make_DHelper(St0_M_64r) {
   s->isa.fpu_MF=2;
-  read_F_ModR_M(s,id_src1,true,id_dest,true);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 static inline make_DHelper(St0_M_16i) {
   s->isa.fpu_MF=3;
-  read_F_ModR_M(s,id_src1,true,id_dest,true);
+  read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 
 static inline make_DHelper(St0_Est) {
   s->isa.fpu_MF=0;
-  read_F_ModR_M(s,id_src1,true,id_dest,true);
+  read_F_ModR_M(s,id_src1,false,id_dest,false);
 }
 
 static inline make_DHelper(Est_St0) {
-  read_F_ModR_M(s,id_dest,true,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
 static inline make_DHelper(st_Est_St0) {
-  read_F_ModR_M(s,id_dest,false,id_src1,true);
+  read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
 static inline make_DHelper(St0){
-  operand_freg(s,id_dest,true,0);
+  operand_freg(s,id_dest,false,0);
 }
 
 static inline make_DHelper(ld_St0){
@@ -504,8 +504,8 @@ static inline make_DHelper(ld_St0){
 }
 
 static inline make_DHelper(St0_St1){
-  operand_freg(s,id_dest,true,0);
-  operand_freg(s,id_src1,true,1);
+  operand_freg(s,id_dest,false,0);
+  operand_freg(s,id_src1,false,1);
 }
 
 static inline make_DopHelper(fsw){

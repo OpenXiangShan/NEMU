@@ -1,7 +1,7 @@
 #include "cc.h"
-#define dfdest (&id_dest->fval)
-#define dfsrc1 (&id_src1->fval)
-#define dfsrc2 (&id_src2->fval)
+#define dfdest (id_dest->pfreg)
+#define dfsrc1 (id_src1->pfreg)
+#define dfsrc2 (id_src2->pfreg)
 
 // ------------- dasm -------------
 
@@ -23,21 +23,18 @@ static inline const char* get_387_fomat(int subcode) {
 #define BUILD_EXEC_F(x) \
 static inline make_EHelper(concat(f, x)) { \
     concat(rtl_f64_, x)(s, dfdest, dfdest, dfsrc1); \
-    operand_fwrite(s, id_dest, dfdest); \
     print_asm_fpu_template2(concat(f, x)); \
 }
 
 #define BUILD_EXEC_F_R(x) \
 static inline make_EHelper(concat3(f, x, r)) { \
     concat(rtl_f64_, x)(s, dfdest, dfsrc1, dfdest); \
-    operand_fwrite(s, id_dest, dfdest); \
     print_asm_fpu_template2(concat3(f, x, r)); \
 }
 
 #define BUILD_EXEC_F_P(x) \
 static inline make_EHelper(concat3(f, x, p)) { \
     concat(rtl_f64_, x)(s, dfdest, dfdest, dfsrc1); \
-    operand_fwrite(s, id_dest, dfdest); \
     rtl_popftop(); \
     print_asm_fpu_template2(concat3(f, x, p)); \
 }
@@ -45,7 +42,6 @@ static inline make_EHelper(concat3(f, x, p)) { \
 #define BUILD_EXEC_F_RP(x) \
 static inline make_EHelper(concat3(f, x, rp)) { \
     concat(rtl_f64_, x)(s, dfdest, dfsrc1, dfdest); \
-    operand_fwrite(s, id_dest, dfdest); \
     rtl_popftop(); \
     print_asm_fpu_template2(concat3(f, x, rp)); \
 }
@@ -83,8 +79,7 @@ static inline make_EHelper(fcompp){
   rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
   rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
   rtl_mv(s, &cpu.fPF, rz);
-  rtl_popftop();
-  rtl_popftop();
+  rtl_pop2ftop();
   print_asm_fpu_template2(fcompp);
 }
 static inline make_EHelper(fucom){
@@ -104,8 +99,7 @@ static inline make_EHelper(fucompp){
   rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
   rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
   rtl_mv(s, &cpu.fPF, rz);
-  rtl_popftop();
-  rtl_popftop();
+  rtl_pop2ftop();
   print_asm_fpu_template2(fucompp);
 }
 
@@ -115,7 +109,6 @@ static inline make_EHelper(fld){
 }
 static inline make_EHelper(fld1){
   rtl_fld_const(s, dfdest, fconst_1);
-  operand_fwrite(s, id_dest, dfdest);
   print_asm_fpu_template(fld1);
 }
 static inline make_EHelper(fldl2t){
@@ -134,7 +127,8 @@ static inline make_EHelper(fldln2){
   TODO();
 }
 static inline make_EHelper(fldz){ 
-  TODO();
+  rtl_fld_const(s, dfdest, fconst_z);
+  print_asm_fpu_template(fldz);
 }
 
 static inline make_EHelper(fst){
@@ -155,12 +149,10 @@ static inline make_EHelper(fxch){
 
 static inline make_EHelper(fchs){
   rtl_f64_chs(s, dfdest);
-  operand_fwrite(s, id_dest, dfdest);
   print_asm_fpu_template(concat(f, chs));
 }
 static inline make_EHelper(fabs){
   rtl_f64_abs(s, dfdest);
-  operand_fwrite(s, id_dest, dfdest);
   print_asm_fpu_template(concat(f, abs));
 }
 static inline make_EHelper(ftst){
