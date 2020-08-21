@@ -32,6 +32,7 @@ typedef struct TB {
 #ifdef LAZY_CC
   uint32_t cc_dynamic;
   uint32_t cc_op;
+  uint32_t last_block;
 #endif
   struct TB *next;
 } TB;
@@ -110,14 +111,15 @@ void write_ins(uint32_t ins) {
 void tran_mainloop() {
   nemu_state.state = NEMU_RUNNING;
   uint64_t total_instr = 0;
+  uint32_t tb_last = 0x0;
   while (1) {
     vaddr_t tb_start = cpu.pc;
     TB *tb = find_tb(tb_start);
-    if (tb == NULL || (tb->cc_dynamic && (tb->cc_dynamic & 0xff) != cpu.cc_op)) {
+    if (tb == NULL || (tb->cc_dynamic && tb->last_block != tb_last)) {
       clear_trans_buffer();
       spill_reset();
 #ifdef LAZY_CC
-      if (tb && tb->cc_dynamic) printf("repair dynamic! ori: %d, after: %d\n", tb->cc_dynamic & 0xff, cpu.cc_op);
+      if (tb && tb->cc_dynamic) printf("dynamic_cc required! 1st op: %d, 2nd op: %d\n", tb->cc_dynamic & 0xff, cpu.cc_op);
 #endif
       tran_next_pc = NEXT_PC_SEQ;
       int guest_nr_instr = 0;
@@ -155,6 +157,7 @@ void tran_mainloop() {
           tb->cc_dynamic = cpu.cc_dynamic;
           tb->cc_op = cpu.cc_op;
           if (cpu.cc_dynamic) cpu.cc_dynamic = 0;
+          tb->last_block = tb_last;
 #endif
           break;
         }
@@ -165,6 +168,7 @@ void tran_mainloop() {
     vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
 #ifdef LAZY_CC
     cpu.cc_op = tb->cc_op;
+    tb_last = tb_start;
 #endif
     total_instr += tb->nr_instr;
     tb->hit_time ++;
