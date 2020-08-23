@@ -39,6 +39,7 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
+  assert(mode == MODE_U || mode == MODE_S);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
