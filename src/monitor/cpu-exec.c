@@ -38,7 +38,8 @@ void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
 void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
   Log("host time spent = %ld ms", g_timer);
-  Log("simulation frequency = %ld instr/s", g_nr_guest_instr * 1000 / g_timer);
+  if (g_timer > 0) Log("simulation frequency = %ld instr/s", g_nr_guest_instr * 1000 / g_timer);
+  else Log("Finish running in less than 1 ms and can not calculate the simulation frequency");
 }
 
 bool log_enable(void) {
