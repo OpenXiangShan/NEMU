@@ -137,3 +137,12 @@ void read_F_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *r
     rm->type = OP_TYPE_MEM;
   }
 }
+
+//ext_opcode has been set in fp inst
+void read_F_env_M(DecodeExecState *s, Operand *rm, bool load_rm_val) {
+  ModR_M m;
+  m.val = s->isa.ext_opcode;
+  load_addr(s, &m, rm);
+  if (load_rm_val) rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, rm->width);
+  rm->preg = &rm->val;
+}

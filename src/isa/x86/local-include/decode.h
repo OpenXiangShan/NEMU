@@ -481,29 +481,42 @@ static inline make_DHelper(St0_M_16i) {
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 
+//MF == 5 stands for operation between st registers
 static inline make_DHelper(St0_Est) {
-  s->isa.fpu_MF=0;
+  s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_src1,false,id_dest,false);
 }
 
 static inline make_DHelper(Est_St0) {
+  s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
+static inline make_DHelper(ld_Est_St0){
+  s->isa.fpu_MF=5;
+  read_F_ModR_M(s,id_src1,true,NULL,false);
+  rtl_pushftop();
+  operand_freg(s,id_dest,false,0);
+}
+
 static inline make_DHelper(st_Est_St0) {
+  s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
 static inline make_DHelper(St0){
+  s->isa.fpu_MF=5;
   operand_freg(s,id_dest,false,0);
 }
 
 static inline make_DHelper(ld_St0){
+  s->isa.fpu_MF=5;
   rtl_pushftop();
   operand_freg(s,id_dest,false,0);
 }
 
 static inline make_DHelper(St0_St1){
+  s->isa.fpu_MF=5;
   operand_freg(s,id_dest,false,0);
   operand_freg(s,id_src1,false,1);
 }
@@ -511,24 +524,22 @@ static inline make_DHelper(St0_St1){
 static inline make_DopHelper(fsw){
   //prepare status word here
   op->type = OP_TYPE_REG;
-  op->preg = s2;
-  rtlreg_t* sw = op->preg;
+  op->preg = &op->val;
   if(load_val){
-    rtl_shli(s,sw,&cpu.fCF,8);
-    rtl_shli(s,t0,&cpu.fPF,10);
-    rtl_or(s,sw,sw,t0);
+    rtl_lr_fsw(s,op->preg);
+    rtl_li(s,t0,0x3800);
+    rtl_or(s,op->preg,op->preg,t0);
+    rtl_xor(s,op->preg,op->preg,t0);
     rtl_shli(s,t0,&cpu.ftop,11);
-    rtl_or(s,sw,sw,t0);
-    rtl_shli(s,t0,&cpu.fZF,14);
-    rtl_or(s,sw,sw,t0);
+    rtl_or(s,op->preg,op->preg,t0);
   }
   print_Dop(op->str, OP_STR_SIZE, "fsw");
 }
 static inline make_DopHelper(fcw){
   op->type = OP_TYPE_REG;
-  op->preg = s2;
+  op->preg = &op->val;
   if(load_val){
-    TODO();
+    rtl_lr_fcw(s, op->preg);
   }
   print_Dop(op->str, OP_STR_SIZE, "fcw");
 }
@@ -538,21 +549,21 @@ static inline make_DHelper(fsw2a){
   decode_op_fsw(s,id_src1,true);
 }
 
-static inline make_DHelper(fsw){
-  operand_rm(s, id_dest, false, NULL, false);
+void read_F_env_M(DecodeExecState *s, Operand *rm, bool load_rm_val);
+
+static inline make_DHelper(fsw2M){
+  read_F_env_M(s, id_dest, false);
   decode_op_fsw(s,id_src1,true);
 }
 
-static inline make_DHelper(fcw){
-  TODO();
-  operand_rm(s, id_dest, false, NULL, false);
+static inline make_DHelper(fcw2M){
+  read_F_env_M(s, id_dest, false);
   decode_op_fcw(s,id_src1,true);
 }
 
-static inline make_DHelper(ld_fcw){
-  TODO();
-  operand_rm(s, id_dest, true, NULL, false);
-  decode_op_fcw(s,id_src1,false);
+static inline make_DHelper(M2fcw){
+  read_F_env_M(s, id_src1, true);
+  decode_op_fcw(s,id_dest,false);
 }
 
 static inline void operand_fwrite(DecodeExecState *s, Operand *op, uint64_t* src) {

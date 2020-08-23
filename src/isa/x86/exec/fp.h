@@ -7,7 +7,7 @@
 
 static inline const char* get_387_fomat(int subcode) {
   static const char *fomat[] = {
-    "s", "i", "d", "wi", "li"
+    "s", "i", "d", "wi", "li", " "
   };
   return fomat[subcode];
 }
@@ -62,43 +62,45 @@ BUILD_EXEC_F_P(div);
 BUILD_EXEC_F_RP(sub);
 BUILD_EXEC_F_RP(div);
 
+//compare dest & src, save flag in fsw  (use t0, s0)
+static inline void fucom_helper(DecodeExecState *s, uint64_t* fp_dest, uint64_t* fp_src){
+  rtl_li(s, t0, 0x4500);
+  rtl_lr_fsw(s,s0);
+  rtl_or(s, s0, s0, t0);
+  rtl_xor(s, s0, s0, t0);
+  rtl_f64_lt(s, t0, fp_dest, fp_src);
+  rtl_shli(s, t0, t0, 8);
+  rtl_or(s, s0, s0, t0);
+  rtl_f64_eq(s, t0, fp_dest, fp_src);
+  rtl_shli(s, t0, t0, 14);
+  rtl_or(s, s0, s0, t0);
+  rtl_sr_fsw(s,s0);
+}
 static inline make_EHelper(fcom){
-  rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
-  rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
-  rtl_mv(s, &cpu.fPF, rz);
+  fucom_helper(s,dfdest,dfsrc1);
   print_asm_fpu_template2(fcom);
 }
 static inline make_EHelper(fcomp){
-  rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
-  rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
-  rtl_mv(s, &cpu.fPF, rz);
+  fucom_helper(s,dfdest,dfsrc1);
   rtl_popftop();
   print_asm_fpu_template2(fcomp);
 }
 static inline make_EHelper(fcompp){
-  rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
-  rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
-  rtl_mv(s, &cpu.fPF, rz);
+  fucom_helper(s,dfdest,dfsrc1);
   rtl_pop2ftop();
   print_asm_fpu_template2(fcompp);
 }
 static inline make_EHelper(fucom){
-  rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
-  rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
-  rtl_mv(s, &cpu.fPF, rz);
+  fucom_helper(s,dfdest,dfsrc1);
   print_asm_fpu_template2(fucom);
 }
 static inline make_EHelper(fucomp){
-  rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
-  rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
-  rtl_mv(s, &cpu.fPF, rz);
+  fucom_helper(s,dfdest,dfsrc1);
   rtl_popftop();
   print_asm_fpu_template2(fucomp);
 }
 static inline make_EHelper(fucompp){
-  rtl_f64_lt(s, &cpu.fCF, dfdest, dfsrc1);
-  rtl_f64_eq(s, &cpu.fZF, dfdest, dfsrc1);
-  rtl_mv(s, &cpu.fPF, rz);
+  fucom_helper(s,dfdest,dfsrc1);
   rtl_pop2ftop();
   print_asm_fpu_template2(fucompp);
 }
@@ -141,33 +143,66 @@ static inline make_EHelper(fstp){
   print_asm_fpu_template2(fstp);
 }
 static inline make_EHelper(fxch){
-  rtl_sfr(s, dfsrc2, id_dest->pfreg);
-  rtl_sfr(s, id_dest->pfreg, dfsrc1);
-  rtl_sfr(s, id_src1->pfreg, dfsrc2);
+  rtl_sfr(s, &id_src2->fval, dfdest);
+  rtl_sfr(s, dfdest, dfsrc1);
+  rtl_sfr(s, dfsrc1, &id_src2->fval);
   print_asm_fpu_template2(fxch);
 }
 
 static inline make_EHelper(fchs){
   rtl_f64_chs(s, dfdest);
-  print_asm_fpu_template(concat(f, chs));
+  print_asm_fpu_template(fchs);
 }
 static inline make_EHelper(fabs){
   rtl_f64_abs(s, dfdest);
-  print_asm_fpu_template(concat(f, abs));
+  print_asm_fpu_template(fabs);
 }
 static inline make_EHelper(ftst){
-  TODO();
+  rtl_fld_const(s, &id_src1->fval, fconst_z);
+  fucom_helper(s,dfdest,&id_src1->fval);
+  print_asm_fpu_template(ftst);
 }
 static inline make_EHelper(fxam){
-  TODO();
+  //produce number in table as 80387 demand
+  rtl_class387(s, s2, dfdest);
+  rtl_li(s, t0, 0x4700);
+  rtl_lr_fsw(s, s0);
+  rtl_or(s, s0, s0, t0);
+  rtl_xor(s, s0, s0, t0);
+  rtl_or(s, s0, s0, s2);
+  rtl_sr_fsw(s, s0);
+  print_asm_fpu_template(fxam);
 }
 
 
 static inline make_EHelper(finit){
   rtl_mv(s,&cpu.ftop, rz);
-  for(int i=0; i<4; i++)
-    rtl_mv(s,&cpu.fc[i], rz);
+  rtl_mv(s,&cpu.fsw,rz);
+  rtl_mv(s,&cpu.fcw,rz);
 }
+static inline make_EHelper(fstsw){
+  operand_write(s, id_dest, dsrc1);
+  print_asm_template2(fnstsw);
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_ref();
+#endif
+}
+
+static inline make_EHelper(fldcw){
+  rtl_sr_fcw(s, dsrc1);
+  print_asm_template2(fldcw);
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_ref();
+#endif
+}
+static inline make_EHelper(fstcw){
+  operand_write(s, id_dest, dsrc1);
+  print_asm_template2(fnstcw);
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_ref();
+#endif
+}
+
 static inline make_EHelper(fldenv){
   TODO();
 }

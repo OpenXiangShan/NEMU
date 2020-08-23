@@ -151,7 +151,7 @@ static inline make_EHelper(fp_gp5) {
 static inline make_EHelper(fp_gp6) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
-    IDEXW(0x00, fsw2a, mov, 2) EMPTY(0x01) EMPTY(0x02) EMPTY(0x03)
+    IDEXW(0x00, fsw2a, fstsw, 2) EMPTY(0x01) EMPTY(0x02) EMPTY(0x03)
     EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
   }
 }
@@ -165,7 +165,7 @@ static inline make_EHelper(fp) {
       IDEX(0x00, St0_M_32r, fadd)     IDEX(0x01, St0_M_32r, fmul)     IDEX(0x02, St0_M_32r, fcom)     IDEX(0x03, St0_M_32r, fcomp)
       IDEX(0x04, St0_M_32r, fsub)     IDEX(0x05, St0_M_32r, fsubr)    IDEX(0x06, St0_M_32r, fdiv)     IDEX(0x07, St0_M_32r, fdivr)
       IDEX(0x10, ld_St0_M_32r, fld)   EMPTY(0x11)                     IDEX(0x12, st_M_St0_32r, fst)   IDEX(0x13, st_M_St0_32r, fstp)
-      IDEX(0x14, gp7_E, fldenv)       IDEXW(0x15, ld_fcw, mov, 2)     IDEX(0x16, gp7_E, fstenv)       IDEXW(0x17, fcw, mov, 2)
+      IDEX(0x14, gp7_E, fldenv)       IDEXW(0x15, M2fcw, fldcw, 2)    IDEX(0x16, gp7_E, fstenv)       IDEXW(0x17, fcw2M, fstcw, 2)
       IDEX(0x20, St0_M_32i, fadd)     IDEX(0x21, St0_M_32i, fmul)     IDEX(0x22, St0_M_32i, fcom)     IDEX(0x23, St0_M_32i, fcomp)
       IDEX(0x24, St0_M_32i, fsub)     IDEX(0x25, St0_M_32i, fsubr)    IDEX(0x26, St0_M_32i, fdiv)     IDEX(0x27, St0_M_32i, fdivr)
       IDEX(0x30, ld_St0_M_32i, fld)   EMPTY(0x31)                     IDEX(0x32, st_M_St0_32i, fst)   IDEX(0x33, st_M_St0_32i, fstp)
@@ -173,7 +173,7 @@ static inline make_EHelper(fp) {
       IDEX(0x40, St0_M_64r, fadd)     IDEX(0x41, St0_M_64r, fmul)     IDEX(0x42, St0_M_64r, fcom)     IDEX(0x43, St0_M_64r, fcomp)
       IDEX(0x44, St0_M_64r, fsub)     IDEX(0x45, St0_M_64r, fsubr)    IDEX(0x46, St0_M_64r, fdiv)     IDEX(0x47, St0_M_64r, fdivr)
       IDEX(0x50, ld_St0_M_64r, fld)   EMPTY(0x51)                     IDEX(0x52, st_M_St0_64r, fst)   IDEX(0x53, st_M_St0_64r, fstp)
-      EMPTY(0x54)                     EMPTY(0x55)                     EMPTY(0x56)                     IDEXW(0x57, fsw, mov, 2)
+      EMPTY(0x54)                     EMPTY(0x55)                     EMPTY(0x56)                     IDEXW(0x57, fsw2M, fstsw, 2)
       IDEX(0x60, St0_M_16i, fadd)     IDEX(0x61, St0_M_16i, fmul)     IDEX(0x62, St0_M_16i, fcom)     IDEX(0x63, St0_M_16i, fcomp)
       IDEX(0x64, St0_M_16i, fsub)     IDEX(0x65, St0_M_16i, fsubr)    IDEX(0x66, St0_M_16i, fdiv)     IDEX(0x67, St0_M_16i, fdivr)
       IDEX(0x70, ld_St0_M_16i, fld)   EMPTY(0x71)                     IDEX(0x72, st_M_St0_16i, fst)   IDEX(0x73, st_M_St0_16i, fstp)
@@ -189,7 +189,7 @@ static inline make_EHelper(fp) {
     {
       IDEX(0x00, St0_Est, fadd)       IDEX(0x01, St0_Est, fmul)       IDEX(0x02, St0_Est, fcom)       IDEX(0x03, St0_Est, fcomp)
       IDEX(0x04, St0_Est, fsub)       IDEX(0x05, St0_Est, fsubr)      IDEX(0x06, St0_Est, fdiv)       IDEX(0x07, St0_Est, fdivr)
-      IDEX(0x10, ld_St0_M_64r, fld)   IDEX(0x11, St0_Est, fxch)       EX  (0x12, nop)                 EMPTY(0x13)
+      IDEX(0x10, ld_Est_St0, fld)     IDEX(0x11, St0_Est, fxch)       EX  (0x12, nop)                 EMPTY(0x13)
       IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      EMPTY(0x16)                     EMPTY(0x17)
       EMPTY(0x20)                     EMPTY(0x21)                     EMPTY(0x22)                     EMPTY(0x23)
       EMPTY(0x24)                     EX  (0x25, fp_gp3)              EMPTY(0x26)                     EMPTY(0x27)

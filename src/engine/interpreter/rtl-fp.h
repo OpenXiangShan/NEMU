@@ -20,8 +20,8 @@
 
 // ------------- rtl code -------------
 
+#ifdef __ISA_x86__
 //set pfreg, it's a pointer to cpu.fpr in interpreter
-//it will be a pointer to addr GPR in sdi
 static inline make_rtl(pfr,Operand* op,int i){
   uint8_t sti =  (cpu.ftop+i)&0x7;
   op->pfreg = &cpu.fpr[sti];
@@ -39,6 +39,88 @@ static inline void rtl_pushftop(void){
   cpu.ftop--;
   cpu.ftop &= 0x7;
 }
+
+static inline make_rtl(lr_fsw, rtlreg_t* dest){
+  *dest = cpu.fsw;
+}
+static inline make_rtl(sr_fsw, rtlreg_t* src){
+  cpu.fsw = *src;
+}
+static inline make_rtl(lr_fcw, rtlreg_t* dest){
+  *dest = cpu.fcw;
+}
+static inline make_rtl(sr_fcw, rtlreg_t* src){
+  cpu.fcw = *src;
+  rtlreg_t rm = BITS(cpu.fcw,11,10);
+  switch (rm)
+  {
+  case 0:
+    softfloat_roundingMode = softfloat_round_near_even;
+    break;
+  case 1:
+    softfloat_roundingMode = softfloat_round_min;
+    break;
+  case 2:
+    softfloat_roundingMode = softfloat_round_max;
+    break;
+  case 3:
+    softfloat_roundingMode = softfloat_round_minMag;
+    break;
+  default:
+    assert(0);
+    break;
+  }
+}
+
+static inline make_rtl(class387, rtlreg_t *dest, uint64_t *src){
+  float64_t f;
+  f.v = *src;
+  uint32_t res = f64_classify(f);
+  switch (res)
+  {
+  case 0x1://-inf
+    *dest = 0x700;
+    break;
+  case 0x2://-normal
+    *dest = 0x600;
+    break;
+  case 0x4://-subnormal
+    *dest = 0x4600;
+    break;
+  case 0x8://-0
+    *dest = 0x4200;
+    break;
+  case 0x10://+0
+    *dest = 0x4000;
+    break;
+  case 0x20://+subnormal
+    *dest = 0x4400;
+    break;
+  case 0x40://+normal
+    *dest = 0x400;
+    break;
+  case 0x80://+inf
+    *dest = 0x500;
+    break;
+  case 0x100://sNaN
+  case 0x200://qNaN
+    if(((bool) (*src>>63 ))){
+      *dest = 0x300;
+    }
+    else{
+      *dest = 0x100;
+    }
+    break;
+  default:
+    if(((bool) (*src>>63 ))){
+      *dest = 0x200;
+    }
+    break;
+  }
+}
+
+#endif
+
 //load fpr from fpr pointer
 static inline make_rtl(lfr, uint64_t* target_ptr, uint64_t* fptr){
   *target_ptr = *fptr;
