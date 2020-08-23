@@ -1,7 +1,6 @@
 void init_monitor(int, char *[]);
 void engine_start();
-int goodtrap(void);
-int is_batch_mode();
+int is_exit_status_bad(void);
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. */
@@ -10,5 +9,5 @@ int main(int argc, char *argv[]) {
   /* Start engine. */
   engine_start();
 
-  return (is_batch_mode() ? !goodtrap() : 0);
+  return is_exit_status_bad();
 }

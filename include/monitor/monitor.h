@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT };
+enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT, NEMU_QUIT };
 
 typedef struct {
   int state;

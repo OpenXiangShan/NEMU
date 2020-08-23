@@ -4,6 +4,7 @@
 
 #include <device/alarm.h>
 #include <SDL2/SDL.h>
+#include <monitor/monitor.h>
 
 void init_alarm();
 void init_serial();
@@ -29,13 +30,10 @@ void device_update() {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
-      case SDL_QUIT: {
-        void monitor_statistic();
-        monitor_statistic();
-        exit(0);
-      }
-
-                     // If a key was pressed
+      case SDL_QUIT:
+        nemu_state.state = NEMU_QUIT;
+        break;
+      // If a key was pressed
       case SDL_KEYDOWN:
       case SDL_KEYUP: {
         uint8_t k = event.key.keysym.scancode;
