@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <dlfcn.h>
 #include <isa.h>
 #include <isa/riscv64.h>
@@ -22,7 +23,7 @@ static void init_rv64_interpreter() {
   sprintf(so_file, "%s/build/riscv64-nemu-interpreter-so", getenv("NEMU_HOME"));
 
   void *handle;
-  handle = dlopen(so_file, RTLD_LAZY | RTLD_DEEPBIND);
+  handle = dlmopen(LM_ID_NEWLM, so_file, RTLD_LAZY | RTLD_DEEPBIND);
   assert(handle);
 
   backend_memcpy_from_frontend = dlsym(handle, "difftest_memcpy_from_dut");

@@ -85,6 +85,19 @@ static TB** find_topn_tb() {
   return top;
 }
 
+void dump_code(uint32_t *code, int nr_instr) {
+#define TMP_FILE "/tmp/.sdi-code.bin"
+  FILE *fp = fopen(TMP_FILE, "w");
+  assert(fp != NULL);
+  int ret = fwrite(code, sizeof(code[0]), nr_instr, fp);
+  assert(ret == nr_instr);
+  fclose(fp);
+
+  printf("@@@@@@@@@@ code start @@@@@@@@@@\n");
+  system("riscv64-linux-gnu-objdump -D -b binary -mriscv:rv64 " TMP_FILE);
+  printf("########## code end ##########\n");
+}
+
 void write_ins(uint32_t ins) {
   assert(trans_buffer_index < BUF_SIZE);
   trans_buffer[trans_buffer_index++]=ins;
@@ -169,10 +182,7 @@ void tran_mainloop() {
     printf("%3d: pc = " FMT_WORD "(instr: %d -> %d), \thit time = %d\n",
         i + 1, top[i]->pc, top[i]->guest_nr_instr, top[i]->nr_instr, top[i]->hit_time);
 #ifdef DUMP_RV64
-    int j;
-    for (j = 0; j < top[i]->nr_instr; j ++) {
-      printf("\t.word 0x%08x\n", ((uint32_t *)top[i]->code)[j]);
-    }
+    dump_code(top[i]->code, top[i]->nr_instr);
 #endif
   }
 

@@ -189,7 +189,7 @@ static inline void exec(DecodeExecState *s) {
       EX   (020, fp)
       EX   (024, fp)
       IDEX (030, B, branch) IDEX (031, I, jalr)   EX   (032, nemu_trap)     IDEX (033, J, jal)
-      EX   (034, system)
+      EX   (034, system)                          IDEX (036, R, rocc3)
       default: exec_inv(s);
     }
   } else {

@@ -14,7 +14,6 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
     int rvidx = dest - gpr_start;
     switch (rvidx) {
       case tmp0:     return 1 | SPMIDX_MASK;   // fixed to tmp0
-      case spm_base: return 2 | SPMIDX_MASK;   // used to store sratchpad addr
       case tmp_reg1: return 3 | SPMIDX_MASK;   // tmp_reg 1
       case tmp_reg2: return 4 | SPMIDX_MASK;   // tmp_reg 2
       default: return rvidx;
@@ -30,6 +29,10 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   return 0;
 }
 
+int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t* r) {
+  return (r == rz) || (r == &cpu.gpr[0]._64);
+}
+
 static uint32_t codebuf_read_spilled_reg[16] = {};
 static int nr_instr = 0;
 void load_spill_reg(const rtlreg_t* dest);
@@ -43,7 +46,6 @@ void guest_init() {
   load_spill_reg(&cpu.gpr[tmp0]._64);
   load_spill_reg(&cpu.gpr[tmp_reg1]._64);
   load_spill_reg(&cpu.gpr[tmp_reg2]._64);
-  load_spill_reg(&cpu.gpr[spm_base]._64);
   assert(trans_buffer_index < 16);
   nr_instr = trans_buffer_index;
   memcpy(codebuf_read_spilled_reg, trans_buffer, nr_instr * sizeof(codebuf_read_spilled_reg[0]));
@@ -55,7 +57,7 @@ void guest_getregs(CPU_state *riscv64) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case tmp0: case spm_base: case tmp_reg1: case tmp_reg2: continue;
+      case tmp0: case tmp_reg1: case tmp_reg2: continue;
     }
     riscv64->gpr[i]._64 = r.gpr[i]._64;
   }
@@ -65,7 +67,6 @@ void guest_getregs(CPU_state *riscv64) {
   backend_getregs(&r2);
 
   riscv64->gpr[tmp0]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp0]._64) & ~SPMIDX_MASK]._64;
-  riscv64->gpr[spm_base]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[spm_base]._64) & ~SPMIDX_MASK]._64;
   riscv64->gpr[tmp_reg1]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg1]._64) & ~SPMIDX_MASK]._64;
   riscv64->gpr[tmp_reg2]._64 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg2]._64) & ~SPMIDX_MASK]._64;
 
@@ -79,7 +80,7 @@ void guest_setregs(const CPU_state *riscv64) {
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
-      case tmp0: case spm_base: case tmp_reg1: case tmp_reg2: continue;
+      case tmp0: case tmp_reg1: case tmp_reg2: continue;
     }
     r.gpr[i]._64 = riscv64->gpr[i]._64;
   }
