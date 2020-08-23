@@ -220,7 +220,7 @@ static inline make_rtl(smf, const rtlreg_t* addr, word_t offset, const uint64_t 
     {
       float64_t f64;
       f64.v = *fsrc;
-      word_t val = (uint32_t)f64_to_i32(f64, softfloat_round_near_even, false);
+      word_t val = (uint32_t)f64_to_i32(f64, softfloat_roundingMode, false);
       vaddr_write(*addr + offset, val, 4);
       break;
     }
@@ -236,7 +236,7 @@ static inline make_rtl(smf, const rtlreg_t* addr, word_t offset, const uint64_t 
     {
       float64_t f64;
       f64.v = *fsrc;
-      word_t val = (uint32_t)f64_to_i32(f64, softfloat_round_near_even, false);
+      word_t val = (uint32_t)f64_to_i32(f64, softfloat_roundingMode, false);
       assert(val <= 0xffff || val >= 0xffff0000);
       vaddr_write(*addr + offset, val, 2);
       break;
@@ -246,7 +246,7 @@ static inline make_rtl(smf, const rtlreg_t* addr, word_t offset, const uint64_t 
       word_t val;
       float64_t f64;
       f64.v = *fsrc;
-      uint64_t ival = (uint64_t)f64_to_i64(f64, softfloat_round_near_even, false);
+      uint64_t ival = (uint64_t)f64_to_i64(f64, softfloat_roundingMode, false);
       val = ival & 0xFFFFFFFF;
       vaddr_write(*addr + offset, val, 4);
       val = ival >> 32;

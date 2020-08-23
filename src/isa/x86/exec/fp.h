@@ -178,7 +178,8 @@ static inline make_EHelper(fxam){
 static inline make_EHelper(finit){
   rtl_mv(s,&cpu.ftop, rz);
   rtl_mv(s,&cpu.fsw,rz);
-  rtl_mv(s,&cpu.fcw,rz);
+  rtl_li(s,&cpu.fcw,0x37f);
+  print_asm("finit");
 }
 static inline make_EHelper(fstsw){
   operand_write(s, id_dest, dsrc1);
@@ -191,16 +192,10 @@ static inline make_EHelper(fstsw){
 static inline make_EHelper(fldcw){
   rtl_sr_fcw(s, dsrc1);
   print_asm_template2(fldcw);
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_ref();
-#endif
 }
 static inline make_EHelper(fstcw){
   operand_write(s, id_dest, dsrc1);
   print_asm_template2(fnstcw);
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_ref();
-#endif
 }
 
 static inline make_EHelper(fldenv){
