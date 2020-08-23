@@ -78,16 +78,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
     pg_base = PGBASE(pte.ppn);
-    if (!pte.v) {
-      //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
-      //    ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
-      //    level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
-      break;
-    }
+    if (!pte.v || (!pte.r && pte.w)) goto bad;
     if (pte.r || pte.x) { break; }
     else {
       level --;
-      if (level < 0) { if (!check_permission(&pte, false, vaddr, type)) return MEM_RET_FAIL; }
+      if (level < 0) { goto bad; }
     }
   }
 
@@ -98,7 +93,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
-      if (!check_permission(&pte, false, vaddr, type)) return MEM_RET_FAIL;
+      goto bad;
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
@@ -111,6 +106,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
   return pg_base | MEM_RET_OK;
+
+bad:
+  check_permission(&pte, false, vaddr, type);
+  return MEM_RET_FAIL;
 }
 
 int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
