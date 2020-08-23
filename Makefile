@@ -24,6 +24,8 @@ ifdef SHARE
 SO = -so
 SO_CFLAGS = -fPIC -D_SHARE=1
 SO_LDLAGS = -shared -fPIC
+else
+LD_LIBS = -lSDL2 -lreadline -ldl
 endif
 
 ifndef SHARE
@@ -99,7 +101,7 @@ NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
 $(BINARY): $(OBJS)
 	$(call git_commit, "compile")
 	@echo + LD $@
-	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl
+	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ $(LD_LIBS)
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 
