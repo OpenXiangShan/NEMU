@@ -39,6 +39,7 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
+  assert(mode == MODE_U || mode == MODE_S);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
@@ -74,20 +75,18 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   word_t p_pte; // pte pointer
   PTE pte;
   int level;
+  int64_t vaddr39 = vaddr << (64 - 39);
+  vaddr39 >>= (64 - 39);
+  if (vaddr39 != vaddr) goto bad;
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
     pg_base = PGBASE(pte.ppn);
-    if (!pte.v) {
-      //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
-      //    ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
-      //    level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
-      break;
-    }
+    if (!pte.v || (!pte.r && pte.w)) goto bad;
     if (pte.r || pte.x) { break; }
     else {
       level --;
-      if (level < 0) { if (!check_permission(&pte, false, vaddr, type)) return MEM_RET_FAIL; }
+      if (level < 0) { goto bad; }
     }
   }
 
@@ -98,7 +97,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
-      if (!check_permission(&pte, false, vaddr, type)) return MEM_RET_FAIL;
+      goto bad;
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
@@ -111,6 +110,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
   return pg_base | MEM_RET_OK;
+
+bad:
+  check_permission(&pte, false, vaddr, type);
+  return MEM_RET_FAIL;
 }
 
 int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
