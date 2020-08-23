@@ -74,6 +74,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   word_t p_pte; // pte pointer
   PTE pte;
   int level;
+  int64_t vaddr39 = vaddr << (64 - 39);
+  vaddr39 >>= (64 - 39);
+  if (vaddr39 != vaddr) goto bad;
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
