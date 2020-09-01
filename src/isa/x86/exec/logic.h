@@ -1,5 +1,6 @@
 #include "cc.h"
 
+#ifndef __ICS_EXPORT
 // dest <- and result
 static inline void and_internal(DecodeExecState *s) {
   rtl_and(s, s0, ddest, dsrc1);
@@ -7,18 +8,26 @@ static inline void and_internal(DecodeExecState *s) {
   rtl_mv(s, &cpu.CF, rz);
   rtl_mv(s, &cpu.OF, rz);
 }
+#endif
 
-static inline make_EHelper(test) {
+static inline def_EHelper(test) {
+#ifdef __ICS_EXPORT
+  TODO();
+#else
 #ifdef LAZY_CC
   rtl_and(s, s0, ddest, dsrc1);
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
 #else
   and_internal(s);
 #endif
+#endif
   print_asm_template2(test);
 }
 
-static inline make_EHelper(and) {
+static inline def_EHelper(and) {
+#ifdef __ICS_EXPORT
+  TODO();
+#else
 #ifdef LAZY_CC
   rtl_and(s, ddest, ddest, dsrc1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
@@ -27,10 +36,14 @@ static inline make_EHelper(and) {
   and_internal(s);
   operand_write(s, id_dest, s0);
 #endif
+#endif
   print_asm_template2(and);
 }
 
-static inline make_EHelper(xor) {
+static inline def_EHelper(xor) {
+#ifdef __ICS_EXPORT
+  TODO();
+#else
   rtl_xor(s, ddest, ddest, dsrc1);
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
@@ -40,10 +53,15 @@ static inline make_EHelper(xor) {
   rtl_mv(s, &cpu.OF, rz);
 #endif
   operand_write(s, id_dest, ddest);
+#endif
+
   print_asm_template2(xor);
 }
 
-static inline make_EHelper(or) {
+static inline def_EHelper(or) {
+#ifdef __ICS_EXPORT
+  TODO();
+#else
   rtl_or(s, ddest, ddest, dsrc1);
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
@@ -53,10 +71,16 @@ static inline make_EHelper(or) {
   rtl_mv(s, &cpu.OF, rz);
 #endif
   operand_write(s, id_dest, ddest);
+#endif
+
   print_asm_template2(or);
 }
 
-static inline make_EHelper(sar) {
+static inline def_EHelper(sar) {
+#ifdef __ICS_EXPORT
+  TODO();
+  // unnecessary to update CF and OF in NEMU
+#else
   // if ddest == dsrc1, rtl_sar() still only use the
   // lower 5 bits of dsrc1, which do not change after
   // rtl_sext(), and it is  still sematically correct
@@ -65,35 +89,44 @@ static inline make_EHelper(sar) {
   operand_write(s, id_dest, ddest);
 #ifndef LAZY_CC
   rtl_update_ZFSF(s, ddest, id_dest->width);
-  // unnecessary to update CF and OF in NEMU
 #endif
-  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+#endif
+
   print_asm_template2(sar);
 }
 
-static inline make_EHelper(shl) {
+static inline def_EHelper(shl) {
+#ifdef __ICS_EXPORT
+  TODO();
+  // unnecessary to update CF and OF in NEMU
+#else
   rtl_shl(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 #ifndef LAZY_CC
   rtl_update_ZFSF(s, ddest, id_dest->width);
-  // unnecessary to update CF and OF in NEMU
 #endif
-  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF | EFLAGS_MASK_ZF);
+#endif
+
   print_asm_template2(shl);
 }
 
-static inline make_EHelper(shr) {
+static inline def_EHelper(shr) {
+#ifdef __ICS_EXPORT
+  TODO();
+  // unnecessary to update CF and OF in NEMU
+#else
   rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 #ifndef LAZY_CC
   rtl_update_ZFSF(s, ddest, id_dest->width);
-  // unnecessary to update CF and OF in NEMU
 #endif
-  //difftest_skip_eflags(EFLAGS_MASK_CF | EFLAGS_MASK_OF);
+#endif
+
   print_asm_template2(shr);
 }
 
-static inline make_EHelper(rol) {
+#ifndef __ICS_EXPORT
+static inline def_EHelper(rol) {
   rtl_shl(s, s0, ddest, dsrc1);
   rtl_li(s, s1, id_dest->width * 8);
   rtl_sub(s, s1, s1, dsrc1);
@@ -106,7 +139,7 @@ static inline make_EHelper(rol) {
   print_asm_template2(rol);
 }
 
-static inline make_EHelper(ror) {
+static inline def_EHelper(ror) {
   rtl_shr(s, s0, ddest, dsrc1);
   rtl_li(s, s1, id_dest->width * 8);
   rtl_sub(s, s1, s1, dsrc1);
@@ -118,10 +151,10 @@ static inline make_EHelper(ror) {
   //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template2(ror);
 }
+#endif
 
-static inline make_EHelper(setcc) {
+static inline def_EHelper(setcc) {
   uint32_t cc = s->opcode & 0xf;
-
 #ifdef LAZY_CC
   rtl_lazy_setcc(s, ddest, cc);
 #else
@@ -132,14 +165,19 @@ static inline make_EHelper(setcc) {
   print_asm("set%s %s", get_cc_name(cc), id_dest->str);
 }
 
-static inline make_EHelper(not) {
+static inline def_EHelper(not) {
+#ifdef __ICS_EXPORT
+  TODO();
+#else
   rtl_not(s, ddest, ddest);
   operand_write(s, id_dest, ddest);
+#endif
 
   print_asm_template1(not);
 }
 
-static inline make_EHelper(shld) {
+#ifndef __ICS_EXPORT
+static inline def_EHelper(shld) {
   assert(id_dest->width == 4);
   rtl_shl(s, s0, ddest, dsrc1);
 
@@ -162,7 +200,7 @@ static inline make_EHelper(shld) {
   print_asm_template3(shld);
 }
 
-static inline make_EHelper(shrd) {
+static inline def_EHelper(shrd) {
   assert(id_dest->width == 4);
   rtl_shr(s, s0, ddest, dsrc1);
 
@@ -185,7 +223,7 @@ static inline make_EHelper(shrd) {
   print_asm_template3(shrd);
 }
 
-static inline make_EHelper(bsr) {
+static inline def_EHelper(bsr) {
 #ifndef __ENGINE_interpreter__
   panic("not support in engines other than interpreter");
 #endif
@@ -198,3 +236,4 @@ static inline make_EHelper(bsr) {
   }
   print_asm_template2(bsr);
 }
+#endif

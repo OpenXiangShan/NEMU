@@ -41,6 +41,7 @@ void reg_test() {
   assert(pc_sample == cpu.pc);
 }
 
+#ifndef __ICS_EXPORT
 void isa_reg_display() {
   int i;
   for (i = 0; i < 8; i ++) {
@@ -63,3 +64,11 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   *success = false;
   return 0;
 }
+#else
+void isa_reg_display() {
+}
+
+word_t isa_reg_str2val(const char *s, bool *success) {
+  return 0;
+}
+#endif

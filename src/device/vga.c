@@ -2,8 +2,12 @@
 
 #ifdef HAS_IOE
 
-//#define SHOW_SCREEN
+#define SHOW_SCREEN
+#ifdef __ICS_EXPORT
+//#define MODE_800x600
+#else
 #define MODE_800x600
+#endif
 
 #ifdef MODE_800x600
 # define SCREEN_W 800
@@ -38,11 +42,16 @@ static inline void update_screen() {
 }
 
 static void vga_io_handler(uint32_t offset, int len, bool is_write) {
+#ifdef __ICS_EXPORT
+  // TODO: call `update_screen()` when writing to the sync register
+  TODO();
+#else
   if (offset == 4 && len == 4 && is_write) {
 #ifdef SHOW_SCREEN
     update_screen();
 #endif
   }
+#endif
 }
 
 void init_vga() {

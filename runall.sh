@@ -1,7 +1,11 @@
 #!/bin/bash
 
 ISA=${1#*ISA=}
-nemu=build/$ISA-nemu
+#ifdef __ICS_EXPORT
+CPUTEST_PATH=$NEMU_HOME/../am-kernels/tests/cpu-tests
+#else
+CPUTEST_PATH=$AM_HOME/tests/cputest
+#endif
 
 echo "compiling NEMU..."
 if make ISA=$ISA; then
@@ -12,14 +16,14 @@ else
 fi
 
 echo "compiling testcases..."
-if make -C $AM_HOME/tests/cputest ARCH=$ISA-nemu &> /dev/null; then
+if make -C $CPUTEST_PATH ARCH=$ISA-nemu &> /dev/null; then
   echo "testcases compile OK"
 else
   echo "testcases compile error... exit..."
   exit
 fi
 
-files=`ls $AM_HOME/tests/cputest/build/*-$ISA-nemu.bin`
+files=`ls $CPUTEST_PATH/build/*-$ISA-nemu.bin`
 ori_log="build/nemu-log.txt"
 
 for file in $files; do

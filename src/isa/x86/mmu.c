@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#ifndef __ICS_EXPORT
 #include "local-include/mmu.h"
 
 typedef union {
@@ -12,7 +13,27 @@ typedef union {
   uint32_t addr;
 } PageAddr;
 
+typedef struct {
+  uint32_t vpn;
+  uint32_t ppage;
+} TLBEntry;
+
+static TLBEntry TLB[4096] = {};
+static bool TLBValid[4096] = {};
+
+static inline int TLB_hash(uint32_t vpn) {
+  return vpn % (sizeof(TLB) / sizeof(TLB[0]));
+}
+
+
 static inline paddr_t ptw(vaddr_t vaddr, int type) {
+  uint32_t vpn = vaddr >> 12;
+  int idx = TLB_hash(vpn);
+  TLBEntry *e = &TLB[idx];
+  //if (e->vpn == vpn && TLBValid[idx]) {
+  //  return e->ppage;
+  //}
+
   PageAddr *addr = (void *)&vaddr;
   paddr_t pdir_base = cpu.cr3.val & ~PAGE_MASK;
 
@@ -29,16 +50,20 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     panic("pc = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.pc, vaddr, pt_base, pte.val);
   }
 
-  if (!pde.accessed) {
-    pde.accessed = 1;
-    paddr_write(pdir_base + addr->pdir_idx * 4,  pde.val, 4);
-  }
-  bool is_write = (type == MEM_TYPE_WRITE);
-  if (!pte.accessed || (pte.dirty == 0 && is_write)) {
-    pte.accessed = 1;
-    pte.dirty |= is_write;
-    paddr_write(pt_base + addr->pt_idx * 4, pte.val, 4);
-  }
+  //if (!pde.accessed) {
+  //  pde.accessed = 1;
+  //  paddr_write(pdir_base + addr->pdir_idx * 4,  pde.val, 4);
+  //}
+  //bool is_write = (type == MEM_TYPE_WRITE);
+  //if (!pte.accessed || (pte.dirty == 0 && is_write)) {
+  //  pte.accessed = 1;
+  //  pte.dirty |= is_write;
+  //  paddr_write(pt_base + addr->pt_idx * 4, pte.val, 4);
+  //}
+
+  // update TLB
+  *e = (TLBEntry) { .vpn = vpn, .ppage = pte.val & ~PAGE_MASK };
+  TLBValid[idx] = true;
 
   return pte.val & ~PAGE_MASK;
 }
@@ -48,3 +73,8 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
   return ptw(vaddr, type) | MEM_RET_OK;
 }
+#else
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+  return MEM_RET_FAIL;
+}
+#endif

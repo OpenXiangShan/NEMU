@@ -30,7 +30,7 @@ typedef struct {
   ISADecodeInfo isa;
 } DecodeExecState;
 
-#define make_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
+#define def_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
 
 #ifdef DEBUG
 #define print_Dop(...) snprintf(__VA_ARGS__)

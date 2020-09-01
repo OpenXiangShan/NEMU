@@ -4,13 +4,13 @@
 #include <common.h>
 
 #ifdef DIFF_TEST
-void difftest_skip_ref(void);
+void difftest_skip_ref();
 void difftest_skip_dut(int nr_ref, int nr_dut);
-void difftest_step(vaddr_t ori_pc, vaddr_t next_pc);
+void difftest_step(vaddr_t this_pc, vaddr_t next_pc);
 #else
 #define difftest_skip_ref()
 #define difftest_skip_dut(nr_ref, nr_dut)
-#define difftest_step(ori_pc, next_pc)
+static inline void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {}
 #endif
 
 extern void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n);

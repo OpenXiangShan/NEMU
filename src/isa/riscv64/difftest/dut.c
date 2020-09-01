@@ -17,7 +17,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   return true;
 }
 
-void isa_difftest_attach(void) {
+void isa_difftest_attach() {
   ref_difftest_memcpy_from_dut(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
   ref_difftest_setregs(&cpu);
 }

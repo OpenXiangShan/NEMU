@@ -1,17 +1,18 @@
+#ifndef __ICS_EXPORT
 #include "../local-include/intr.h"
 
-static inline make_EHelper(syscall) {
+static inline def_EHelper(syscall) {
   raise_intr(s, EX_SYSCALL, cpu.pc);
   print_asm("syscall");
 }
 
-static inline make_EHelper(eret) {
+static inline def_EHelper(eret) {
   rtl_j(s, cpu.epc);
   cpu.status.exl = 0;
   print_asm("eret");
 }
 
-static inline make_EHelper(mfc0) {
+static inline def_EHelper(mfc0) {
   uint32_t val;
   switch (id_dest->reg) {
     case 0: val = cpu.index; print_asm("mfc0 %s, index", id_src2->str); break;
@@ -30,7 +31,7 @@ static inline make_EHelper(mfc0) {
   rtl_li(s, dsrc2, val);
 }
 
-static inline make_EHelper(mtc0) {
+static inline def_EHelper(mtc0) {
   switch (id_dest->reg) {
     case 0: cpu.index = *dsrc2; print_asm("mtc0 %s, index", id_src2->str); break;
     case 2: cpu.entrylo0 = *dsrc2; print_asm("mtc0 %s, entrylo0", id_src2->str); break;
@@ -43,17 +44,18 @@ static inline make_EHelper(mtc0) {
   }
 }
 
-static inline make_EHelper(tlbwr) {
-  extern void tlbwr(void);
+static inline def_EHelper(tlbwr) {
+  extern void tlbwr();
   tlbwr();
 }
 
-static inline make_EHelper(tlbwi) {
-  extern void tlbwi(void);
+static inline def_EHelper(tlbwi) {
+  extern void tlbwi();
   tlbwi();
 }
 
-static inline make_EHelper(tlbp) {
-  extern void tlbp(void);
+static inline def_EHelper(tlbp) {
+  extern void tlbp();
   tlbp();
 }
+#endif

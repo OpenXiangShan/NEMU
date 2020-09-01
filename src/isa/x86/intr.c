@@ -1,12 +1,8 @@
 #include <cpu/exec.h>
 #include "local-include/rtl.h"
 
+#ifndef __ICS_EXPORT
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
-  /* TODO: Trigger an interrupt/exception with ``NO''.
-   * That is, use ``NO'' to index the IDT.
-   */
-
-  //TODO();
   assert(NO < 256);
   rtl_li(s, s0, cpu.idtr.base);
   rtl_lm(s, s1, s0, NO << 3, 4);
@@ -34,6 +30,7 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 }
 
 #define IRQ_TIMER 32
+
 void query_intr(DecodeExecState *s) {
   if (cpu.INTR && cpu.IF) {
     cpu.INTR = false;
@@ -41,3 +38,16 @@ void query_intr(DecodeExecState *s) {
     update_pc(s);
   }
 }
+#else
+void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
+  /* TODO: Trigger an interrupt/exception with ``NO''.
+   * That is, use ``NO'' to index the IDT.
+   */
+
+  TODO();
+}
+
+void query_intr(DecodeExecState *s) {
+  TODO();
+}
+#endif

@@ -4,8 +4,10 @@
 //#define DEBUG
 //#define DIFF_TEST
 
+#ifndef __ICS_EXPORT
 #ifdef __ISA_riscv64__
 # define ISA64
+#endif
 #endif
 
 #if _SHARE
@@ -15,7 +17,11 @@
 #endif
 
 /* You will define this macro in PA2 */
+#ifdef __ICS_EXPORT
+//#define HAS_IOE
+#else
 #define HAS_IOE
+#endif
 
 #include <stdint.h>
 #include <assert.h>

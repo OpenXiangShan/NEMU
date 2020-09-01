@@ -3,19 +3,9 @@
 #include "../local-include/intr.h"
 #include "all-instr.h"
 
-#define decode_empty(s)
-
 static inline void set_width(DecodeExecState *s, int width) {
   if (width != 0) s->width = width;
 }
-
-#define IDEXW(idx, id, ex, w) CASE_ENTRY(idx, concat(decode_, id), concat(exec_, ex), w)
-#define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
-#define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)
-#define EX(idx, ex)           EXW(idx, ex, 0)
-#define EMPTY(idx)            //EX(idx, inv)
-
-#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
 
 static inline make_EHelper(load) {
   switch (s->isa.instr.i.funct3) {

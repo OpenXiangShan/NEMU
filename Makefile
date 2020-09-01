@@ -1,6 +1,5 @@
 NAME = nemu
 
-ifneq ($(MAKECMDGOALS),clean) # ignore check for make clean
 ISA ?= x86
 ISAS = $(shell ls src/isa/)
 ifeq ($(filter $(ISAS), $(ISA)), ) # ISA must be valid
@@ -14,8 +13,6 @@ $(error Invalid ENGINE. Supported: $(ENGINES))
 endif
 
 $(info Building $(ISA)-$(NAME)-$(ENGINE))
-
-endif
 
 INC_DIR += ./include ./src/engine/$(ENGINE)
 BUILD_DIR ?= ./build

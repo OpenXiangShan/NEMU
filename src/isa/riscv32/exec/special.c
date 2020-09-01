@@ -2,7 +2,7 @@
 #include <monitor/monitor.h>
 #include <monitor/difftest.h>
 
-make_EHelper(inv) {
+def_EHelper(inv) {
   /* invalid opcode */
 
   uint32_t instr[2];
@@ -20,7 +20,7 @@ make_EHelper(inv) {
   print_asm("invalid opcode");
 }
 
-make_EHelper(nemu_trap) {
+def_EHelper(nemu_trap) {
   difftest_skip_ref();
 
   rtl_exit(NEMU_END, cpu.pc, cpu.gpr[10]._32); // gpr[10] is $a0

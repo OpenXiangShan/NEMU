@@ -118,7 +118,7 @@ static inline make_EHelper(priv) {
 
       // let the clock go quickly to reduce idle time in Linux
 #if !_SHARE
-      void clint_intr(void);
+      void clint_intr();
       clint_intr();
 #endif
       break;

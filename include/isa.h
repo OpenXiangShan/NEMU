@@ -1,8 +1,12 @@
 #ifndef __ISA_H__
 #define __ISA_H__
 
+// The macro `_ISA_H_` is defined in $(CFLAGS).
+// It will be expanded as "isa/x86.h" or "isa/mips32.h" ...
 #include _ISA_H_
 
+// The macro `__ISA__` is defined in $(CFLAGS).
+// It will be expanded as "x86" or "mips32" ...
 #define IMAGE_START concat(__ISA__, _IMAGE_START)
 #define PMEM_BASE concat(__ISA__, _PMEM_BASE)
 typedef concat(__ISA__, _CPU_state) CPU_state;

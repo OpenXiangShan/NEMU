@@ -9,15 +9,18 @@ const char *regsl[] = {
 };
 
 void isa_reg_display() {
+#ifndef __ICS_EXPORT
   int i;
   for (i = 0; i < 32; i ++) {
     printf("%s: 0x%08x ", regsl[i], cpu.gpr[i]._32);
     if (i % 4 == 3) printf("\n");
   }
   printf("pc: 0x%08x\n", cpu.pc);
+#endif
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+#ifndef __ICS_EXPORT
   int i;
   *success = true;
   for (i = 0; i < 32; i ++) {
@@ -27,5 +30,6 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   if (strcmp("pc", s) == 0) return cpu.pc;
 
   *success = false;
+#endif
   return 0;
 }

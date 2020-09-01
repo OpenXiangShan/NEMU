@@ -1,9 +1,11 @@
 #ifndef __ISA_X86_H__
 #define __ISA_X86_H__
 
-#define LAZY_CC
-
 #include <common.h>
+
+#ifndef __ICS_EXPORT
+//#define LAZY_CC
+#endif
 
 // memory
 #define x86_IMAGE_START 0x100000
@@ -14,7 +16,7 @@
 #endif
 
 // reg
-
+#ifndef __ICS_EXPORT
 /* the Control Register 0 */
 typedef union CR0 {
   struct {
@@ -33,7 +35,7 @@ typedef union CR3 {
   };
   uint32_t val;
 } CR3;
-
+#endif
 
 /* TODO: Re-organize the `CPU_state' structure to match the register
  * encoding scheme in i386 instruction format. For example, if we
@@ -43,6 +45,22 @@ typedef union CR3 {
  */
 
 typedef struct {
+#ifdef __ICS_EXPORT
+  struct {
+    uint32_t _32;
+    uint16_t _16;
+    uint8_t _8[2];
+  } gpr[8];
+
+  /* Do NOT change the order of the GPRs' definitions. */
+
+  /* In NEMU, rtlreg_t is exactly uint32_t. This makes RTL instructions
+   * in PA2 able to directly access these registers.
+   */
+  rtlreg_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
+
+  vaddr_t pc;
+#else
   union {
     union {
       uint32_t _32;
@@ -88,6 +106,7 @@ typedef struct {
   };
 
   bool INTR;
+#endif
 } x86_CPU_state;
 
 // decode
@@ -100,7 +119,11 @@ typedef struct {
 } x86_ISADecodeInfo;
 
 #define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
+#ifdef __ICS_EXPORT
+#define isa_vaddr_check(vaddr, type, len) (MEM_RET_OK)
+#else
 #define isa_vaddr_check(vaddr, type, len) (cpu.cr0.paging ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+#endif
 #define x86_has_mem_exception() (false)
 
 #endif

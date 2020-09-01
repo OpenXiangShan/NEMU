@@ -7,10 +7,10 @@ bool gdb_connect_qemu(int);
 bool gdb_memcpy_to_qemu(uint32_t, void *, int);
 bool gdb_getregs(union isa_gdb_regs *);
 bool gdb_setregs(union isa_gdb_regs *);
-bool gdb_si(void);
-void gdb_exit(void);
+bool gdb_si();
+void gdb_exit();
 
-void init_isa(void);
+void init_isa();
 
 void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
   bool ok = gdb_memcpy_to_qemu(dest, src, n);

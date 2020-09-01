@@ -7,6 +7,6 @@
 #include "string.h"
 #include "system.h"
 
-make_EHelper(nop);
-make_EHelper(inv);
-make_EHelper(nemu_trap);
+def_EHelper(nop);
+def_EHelper(inv);
+def_EHelper(nemu_trap);

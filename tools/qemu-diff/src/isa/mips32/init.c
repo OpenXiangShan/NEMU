@@ -1,2 +1,2 @@
-void init_isa(void) {
+void init_isa() {
 }

@@ -9,9 +9,9 @@ static const uint32_t img [] = {
   0x0000006b,  // nemu_trap
 };
 
-void init_clint(void);
+void init_clint();
 
-void init_isa(void) {
+void init_isa() {
   cpu.gpr[0]._64 = 0;
   cpu.pc = PMEM_BASE + IMAGE_START;
 

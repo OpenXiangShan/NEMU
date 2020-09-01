@@ -2,7 +2,7 @@
 #include <monitor/monitor.h>
 #include <monitor/difftest.h>
 
-make_EHelper(inv) {
+def_EHelper(inv) {
   /* invalid opcode */
 
   uint32_t instr[2];
@@ -20,11 +20,16 @@ make_EHelper(inv) {
   print_asm("invalid opcode");
 }
 
-make_EHelper(nemu_trap) {
+def_EHelper(nemu_trap) {
   difftest_skip_ref();
 
+#ifdef __ICS_EXPORT
+  rtl_exit(NEMU_END, cpu.pc, cpu.gpr[2]._32); // grp[2] is $v0
+#else
+  // get the latest value for SDI
   rtl_addi(s, s0, &cpu.gpr[2]._32, 0); // grp[2] is $v0
   rtl_exit(NEMU_END, cpu.pc, *s0); 
+#endif
 
   print_asm("nemu trap");
   return;
