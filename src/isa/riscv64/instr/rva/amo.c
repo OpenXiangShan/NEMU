@@ -12,7 +12,10 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   } else if (funct5 == 0b00011) { // sc
     // should check overlapping instead of equality
     int success = cpu.lr_addr == *src1;
-    if (success) rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
+    if (success) {
+      rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
+      cpu.lr_addr = -1;
+    }
     rtl_li(s, dest, !success);
     return;
   }
