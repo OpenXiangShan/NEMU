@@ -15,6 +15,7 @@ static inline make_EHelper(sc) {
     rtl_sm(s, dsrc1, 0, dsrc2, s->width);
     return_on_mem_ex();
     rtl_li(s, s0, 0);
+    cpu.lr_addr = -1;
   } else {
     rtl_li(s, s0, 1);
   }
