@@ -8,5 +8,5 @@
 #include "system.h"
 #include "rocc.h"
 
-make_EHelper(inv);
-make_EHelper(nemu_trap);
+def_EHelper(inv);
+def_EHelper(nemu_trap);

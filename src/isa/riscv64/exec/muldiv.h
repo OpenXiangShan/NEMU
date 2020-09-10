@@ -1,19 +1,19 @@
-static inline make_EHelper(mul) {
+static inline def_EHelper(mul) {
   rtl_mul_lo(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mul);
 }
 
-static inline make_EHelper(mulh) {
+static inline def_EHelper(mulh) {
   rtl_imul_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulh);
 }
 
-static inline make_EHelper(mulhu) {
+static inline def_EHelper(mulhu) {
   rtl_mul_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulhu);
 }
 
-static inline make_EHelper(mulhsu) {
+static inline def_EHelper(mulhsu) {
   // Algorithm:
   // We want to obtain ans = mulhsu(a, b).
   // Consider mulhu(a, b).
@@ -36,7 +36,7 @@ static inline make_EHelper(mulhsu) {
   print_asm_template3(mulhsu);
 }
 
-static inline make_EHelper(div) {
+static inline def_EHelper(div) {
 #ifdef __ENGINE_interpreter__
   if (*dsrc2 == 0) {
     rtl_li(s, ddest, ~0lu);
@@ -49,7 +49,7 @@ static inline make_EHelper(div) {
   print_asm_template3(div);
 }
 
-static inline make_EHelper(divu) {
+static inline def_EHelper(divu) {
 #ifdef __ENGINE_interpreter__
   if (*dsrc2 == 0) {
     rtl_li(s, ddest, ~0lu);
@@ -60,7 +60,7 @@ static inline make_EHelper(divu) {
   print_asm_template3(divu);
 }
 
-static inline make_EHelper(rem) {
+static inline def_EHelper(rem) {
 #ifdef __ENGINE_interpreter__
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
@@ -73,7 +73,7 @@ static inline make_EHelper(rem) {
   print_asm_template3(rem);
 }
 
-static inline make_EHelper(remu) {
+static inline def_EHelper(remu) {
 #ifdef __ENGINE_interpreter__
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
@@ -84,12 +84,12 @@ static inline make_EHelper(remu) {
   print_asm_template3(remu);
 }
 
-static inline make_EHelper(mulw) {
+static inline def_EHelper(mulw) {
   rtl_mulw(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulw);
 }
 
-static inline make_EHelper(divw) {
+static inline def_EHelper(divw) {
 #ifdef __ENGINE_interpreter__
   rtl_sext(s, s0, dsrc1, 4);
   rtl_sext(s, s1, dsrc2, 4);
@@ -107,7 +107,7 @@ static inline make_EHelper(divw) {
   print_asm_template3(divw);
 }
 
-static inline make_EHelper(remw) {
+static inline def_EHelper(remw) {
 #ifdef __ENGINE_interpreter__
   rtl_sext(s, s0, dsrc1, 4);
   rtl_sext(s, s1, dsrc2, 4);
@@ -125,7 +125,7 @@ static inline make_EHelper(remw) {
   print_asm_template3(remw);
 }
 
-static inline make_EHelper(divuw) {
+static inline def_EHelper(divuw) {
 #ifdef __ENGINE_interpreter__
   rtl_zext(s, s0, dsrc1, 4);
   rtl_zext(s, s1, dsrc2, 4);
@@ -141,7 +141,7 @@ static inline make_EHelper(divuw) {
   print_asm_template3(divuw);
 }
 
-static inline make_EHelper(remuw) {
+static inline def_EHelper(remuw) {
 #ifdef __ENGINE_interpreter__
   rtl_zext(s, s0, dsrc1, 4);
   rtl_zext(s, s1, dsrc2, 4);

@@ -2,7 +2,7 @@
 
 #ifdef HAS_IOE
 
-#define SHOW_SCREEN
+//#define SHOW_SCREEN
 #ifdef __ICS_EXPORT
 //#define MODE_800x600
 #else

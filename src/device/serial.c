@@ -121,8 +121,9 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
       if (!is_write)
         serial_base[5] = LSR_TX_READY | serial_rx_ready_flag();
       break;
-#endif
+#else
     default: panic("do not support offset = %d", offset);
+#endif
   }
 }
 

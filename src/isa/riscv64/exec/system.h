@@ -13,7 +13,7 @@ static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
   return true;
 }
 
-static inline make_EHelper(csrrw) {
+static inline def_EHelper(csrrw) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
@@ -23,7 +23,7 @@ static inline make_EHelper(csrrw) {
   print_asm_template3("csrrw");
 }
 
-static inline make_EHelper(csrrs) {
+static inline def_EHelper(csrrs) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
@@ -36,7 +36,7 @@ static inline make_EHelper(csrrs) {
   print_asm_template3("csrrs");
 }
 
-static inline make_EHelper(csrrc) {
+static inline def_EHelper(csrrc) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
@@ -50,7 +50,7 @@ static inline make_EHelper(csrrc) {
   print_asm_template3("csrrc");
 }
 
-static inline make_EHelper(csrrwi) {
+static inline def_EHelper(csrrwi) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
@@ -61,7 +61,7 @@ static inline make_EHelper(csrrwi) {
   print_asm_template3("csrrwi");
 }
 
-static inline make_EHelper(csrrsi) {
+static inline def_EHelper(csrrsi) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
@@ -74,7 +74,7 @@ static inline make_EHelper(csrrsi) {
   print_asm_template3("csrrsi");
 }
 
-static inline make_EHelper(csrrci) {
+static inline def_EHelper(csrrci) {
   uint32_t addr = id_src2->imm;
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
@@ -87,7 +87,7 @@ static inline make_EHelper(csrrci) {
   print_asm_template3("csrrci");
 }
 
-static inline make_EHelper(priv) {
+static inline def_EHelper(priv) {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
@@ -144,7 +144,7 @@ static inline make_EHelper(priv) {
 #endif
 }
 
-static inline make_EHelper(fence) {
+static inline def_EHelper(fence) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
 #endif
