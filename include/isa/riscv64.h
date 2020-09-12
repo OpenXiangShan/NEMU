@@ -25,6 +25,8 @@ typedef struct {
   uint64_t pc;
   uint64_t mstatus, mcause, mepc;
   uint64_t sstatus, scause, sepc;
+  
+  uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
 
   uint8_t mode;
 
