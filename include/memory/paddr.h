@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#ifndef __ICS_EXPORT
+#ifdef __ICS_EXPORT
 #define PMEM_SIZE (128 * 1024 * 1024)
 #else
 #define PMEM_SIZE (256 * 1024 * 1024)
