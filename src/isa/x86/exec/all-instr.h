@@ -6,6 +6,7 @@
 #include "logic.h"
 #include "string.h"
 #include "system.h"
+#include "eflags.h"
 
 def_EHelper(nop);
 def_EHelper(inv);

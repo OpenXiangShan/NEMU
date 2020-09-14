@@ -5,9 +5,10 @@
 #define EFLAGS_BIT_ZF 6
 #define EFLAGS_BIT_SF 7
 #define EFLAGS_BIT_IF 9
+#define EFLAGS_BIT_DF 10
 #define EFLAGS_BIT_OF 11
 
-#define _EFLAGS(f) f(OF) f(IF) f(SF) f(ZF) f(CF)
+#define _EFLAGS(f) f(OF) f(IF) f(SF) f(ZF) f(CF) f(DF)
 #define __f(flag) concat(EFLAGS_MASK_, flag) = 1 << concat(EFLAGS_BIT_, flag),
 enum {
   MAP(_EFLAGS, __f)

@@ -82,7 +82,7 @@ typedef struct {
   uint32_t eflags;
   uint16_t cs;
 
-  rtlreg_t OF, CF, SF, ZF, IF;
+  rtlreg_t OF, CF, SF, ZF, IF, DF;
 
 #ifdef LAZY_CC
   rtlreg_t cc_dest, cc_src1, cc_src2;

@@ -233,7 +233,7 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
 
                                                         IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
 
-                                                        IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
+EX   (0xfc, cld)                                        IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
 #endif
   case 0x66: s->isa.is_operand_size_16 = true; goto again;
   default: exec_inv(s);
