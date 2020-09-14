@@ -2,7 +2,6 @@
 
 #ifndef __ICS_EXPORT
 static inline def_EHelper(add) {
-  TODO();
 #ifdef LAZY_CC
   rtl_set_lazycc_src1(s, dsrc1);
   rtl_add(s, ddest, ddest, dsrc1);
@@ -34,7 +33,6 @@ static inline void cmp_internal(DecodeExecState *s) {
 }
 
 static inline def_EHelper(sub) {
-  TODO();
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
   rtl_sub(s, ddest, ddest, dsrc1);
@@ -47,7 +45,6 @@ static inline def_EHelper(sub) {
 }
 
 static inline def_EHelper(cmp) {
-  TODO();
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
 #else
@@ -57,7 +54,6 @@ static inline def_EHelper(cmp) {
 }
 
 static inline def_EHelper(inc) {
-  TODO();
   rtl_addi(s, ddest, ddest, 1);
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, id_dest->width);
@@ -71,7 +67,6 @@ static inline def_EHelper(inc) {
 }
 
 static inline def_EHelper(dec) {
-  TODO();
 #ifdef LAZY_CC
   rtl_subi(s, ddest, ddest, 1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, id_dest->width);
@@ -87,7 +82,6 @@ static inline def_EHelper(dec) {
 }
 
 static inline def_EHelper(neg) {
-  TODO();
 #ifdef LAZY_CC
   rtl_sub(s, ddest, rz, ddest);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, id_dest->width);

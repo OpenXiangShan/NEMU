@@ -49,7 +49,9 @@ static inline def_EHelper(ret_imm) {
 }
 
 static inline def_EHelper(call_rm) {
-  TODO();
+  rtl_li(s, s0, s->seq_pc);
+  rtl_push(s, s0);
+  rtl_jr(s, ddest);
   print_asm("call *%s", id_dest->str);
 }
 #else
