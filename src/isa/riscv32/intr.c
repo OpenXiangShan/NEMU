@@ -1,11 +1,8 @@
 #include <cpu/exec.h>
 #include "local-include/rtl.h"
 
+#ifndef __ICS_EXPORT
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t epc) {
-  /* TODO: Trigger an interrupt/exception with ``NO''.
-   * That is, use ``NO'' to index the IDT.
-   */
-
   cpu.scause = NO;
   cpu.sepc = epc;
   cpu.sstatus.spie = cpu.sstatus.sie;
@@ -21,3 +18,15 @@ void query_intr(DecodeExecState *s) {
     update_pc(s);
   }
 }
+#else
+void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t epc) {
+  /* TODO: Trigger an interrupt/exception with ``NO''.
+   * That is, use ``NO'' to index the IDT.
+   */
+
+  TODO();
+}
+
+void query_intr(DecodeExecState *s) {
+}
+#endif

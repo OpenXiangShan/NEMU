@@ -3,9 +3,9 @@
 #include "../local-include/reg.h"
 #include "difftest.h"
 
-#define check_reg(r) same = difftest_check_reg(str(r), pc, ref_r->r, cpu.r) && same
-
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
+#ifndef __ICS_EXPORT
+#define check_reg(r) same = difftest_check_reg(str(r), pc, ref_r->r, cpu.r) && same
   bool same = true;
   if (memcmp(&cpu, ref_r, sizeof(cpu.gpr))) {
     int i;
@@ -19,7 +19,10 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   check_reg(hi);
 
   return same;
+#else
+  return false;
+#endif
 }
 
-void isa_difftest_attach(void) {
+void isa_difftest_attach() {
 }

@@ -11,17 +11,21 @@ static const uint32_t img [] = {
 };
 
 static void restart() {
-  cpu.gpr[0]._32 = 0;
+  /* Set the initial program counter. */
   cpu.pc = PMEM_BASE + IMAGE_START;
+
+  /* The zero register is always 0. */
+  cpu.gpr[0]._32 = 0;
 }
 
-void init_isa(void) {
+void init_isa() {
   /* Load built-in image. */
   memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
 
   /* Initialize this virtual computer system. */
   restart();
-
-  void init_mmu(void);
+#ifndef __ICS_EXPORT
+  void init_mmu();
   init_mmu();
+#endif
 }

@@ -3,6 +3,20 @@
 #ifdef HAS_IOE
 
 //#define SHOW_SCREEN
+#ifdef __ICS_EXPORT
+//#define MODE_800x600
+#else
+#define MODE_800x600
+#endif
+
+#ifdef MODE_800x600
+# define SCREEN_W 800
+# define SCREEN_H 600
+#else
+# define SCREEN_W 400
+# define SCREEN_H 300
+#endif
+#define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
 
 #include <device/map.h>
 #include <SDL2/SDL.h>
@@ -13,9 +27,6 @@
 #define SCREEN_MMIO 0xa1000100
 #define SYNC_PORT 0x104 // Note that this is not the standard
 #define SYNC_MMIO 0xa1000104
-#define SCREEN_H 300
-#define SCREEN_W 400
-#define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
 
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
@@ -31,11 +42,16 @@ static inline void update_screen() {
 }
 
 static void vga_io_handler(uint32_t offset, int len, bool is_write) {
+#ifdef __ICS_EXPORT
+  // TODO: call `update_screen()` when writing to the sync register
+  TODO();
+#else
   if (offset == 4 && len == 4 && is_write) {
 #ifdef SHOW_SCREEN
     update_screen();
 #endif
   }
+#endif
 }
 
 void init_vga() {
@@ -44,7 +60,11 @@ void init_vga() {
   char title[128];
   sprintf(title, "%s-NEMU", str(__ISA__));
   SDL_Init(SDL_INIT_VIDEO);
+#ifdef MODE_800x600
+  SDL_CreateWindowAndRenderer(SCREEN_W, SCREEN_H, 0, &window, &renderer);
+#else
   SDL_CreateWindowAndRenderer(SCREEN_W * 2, SCREEN_H * 2, 0, &window, &renderer);
+#endif
   SDL_SetWindowTitle(window, title);
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
       SDL_TEXTUREACCESS_STATIC, SCREEN_W, SCREEN_H);
@@ -55,7 +75,7 @@ void init_vga() {
   add_pio_map("screen", SCREEN_PORT, (void *)screensize_port_base, 8, vga_io_handler);
   add_mmio_map("screen", SCREEN_MMIO, (void *)screensize_port_base, 8, vga_io_handler);
 
-  vmem = (void *)new_space(0x80000);
+  vmem = (void *)new_space(SCREEN_SIZE);
   add_mmio_map("vmem", VMEM, (void *)vmem, SCREEN_SIZE, NULL);
 }
 #endif	/* HAS_IOE */

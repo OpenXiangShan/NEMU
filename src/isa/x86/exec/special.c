@@ -2,11 +2,11 @@
 #include <monitor/monitor.h>
 #include <monitor/difftest.h>
 
-make_EHelper(nop) {
+def_EHelper(nop) {
   print_asm("nop");
 }
 
-make_EHelper(inv) {
+def_EHelper(inv) {
   /* invalid opcode */
 
   uint32_t temp[2];
@@ -25,7 +25,7 @@ make_EHelper(inv) {
   print_asm("invalid opcode");
 }
 
-make_EHelper(nemu_trap) {
+def_EHelper(nemu_trap) {
   difftest_skip_ref();
 
   rtl_exit(NEMU_END, cpu.pc, cpu.eax);

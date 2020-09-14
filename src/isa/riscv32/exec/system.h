@@ -1,3 +1,4 @@
+#ifndef __ICS_EXPORT
 static inline rtlreg_t* csr_decode(uint32_t csr) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
@@ -15,7 +16,7 @@ static inline rtlreg_t* csr_decode(uint32_t csr) {
   return NULL;
 }
 
-static inline make_EHelper(csrrw) {
+static inline def_EHelper(csrrw) {
   rtlreg_t *csr = csr_decode(id_src2->imm);
 
   if (ddest == dsrc1) {
@@ -30,7 +31,7 @@ static inline make_EHelper(csrrw) {
   print_asm_template3("csrrw");
 }
 
-static inline make_EHelper(csrrs) {
+static inline def_EHelper(csrrs) {
   rtlreg_t *csr = csr_decode(id_src2->imm);
 
   if (ddest == dsrc1) {
@@ -46,7 +47,7 @@ static inline make_EHelper(csrrs) {
 }
 
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t epc);
-static inline make_EHelper(priv) {
+static inline def_EHelper(priv) {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
@@ -66,3 +67,4 @@ static inline make_EHelper(priv) {
   difftest_skip_dut(1, 2);
 #endif
 }
+#endif

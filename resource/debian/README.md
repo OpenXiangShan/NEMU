@@ -32,7 +32,7 @@ sudo chroot /mnt /bin/bash
 apt-get update
 apt-get install gcc build-essential
 apt-get install tmux libreadline-dev
-agt-get install net-tools openssh-server
+apt-get install net-tools openssh-server
 # fix long delay of openssh server
 apt-get install haveged
 agt-get install sbt

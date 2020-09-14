@@ -89,7 +89,7 @@ bool gdb_setregs(union isa_gdb_regs *r) {
   return ok;
 }
 
-bool gdb_si(void) {
+bool gdb_si() {
   char buf[] = "vCont;s:1";
   gdb_send(conn, (const uint8_t *)buf, strlen(buf));
   size_t size;
@@ -98,6 +98,6 @@ bool gdb_si(void) {
   return true;
 }
 
-void gdb_exit(void) {
+void gdb_exit() {
   gdb_end(conn);
 }

@@ -1,7 +1,8 @@
 #include "cc.h"
 
-static inline make_EHelper(add) {
-//  TODO();
+#ifndef __ICS_EXPORT
+static inline def_EHelper(add) {
+  TODO();
 #ifdef LAZY_CC
   rtl_set_lazycc_src1(s, dsrc1);
   rtl_add(s, ddest, ddest, dsrc1);
@@ -31,10 +32,9 @@ static inline void cmp_internal(DecodeExecState *s) {
   rtl_is_sub_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
   rtl_set_OF(s, s1);
 }
- 
 
-static inline make_EHelper(sub) {
-//  TODO();
+static inline def_EHelper(sub) {
+  TODO();
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
   rtl_sub(s, ddest, ddest, dsrc1);
@@ -46,8 +46,8 @@ static inline make_EHelper(sub) {
   print_asm_template2(sub);
 }
 
-static inline make_EHelper(cmp) {
-//  TODO();
+static inline def_EHelper(cmp) {
+  TODO();
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
 #else
@@ -56,8 +56,8 @@ static inline make_EHelper(cmp) {
   print_asm_template2(cmp);
 }
 
-static inline make_EHelper(inc) {
-//  TODO();
+static inline def_EHelper(inc) {
+  TODO();
   rtl_addi(s, ddest, ddest, 1);
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, id_dest->width);
@@ -70,8 +70,8 @@ static inline make_EHelper(inc) {
   print_asm_template1(inc);
 }
 
-static inline make_EHelper(dec) {
-//  TODO();
+static inline def_EHelper(dec) {
+  TODO();
 #ifdef LAZY_CC
   rtl_subi(s, ddest, ddest, 1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, id_dest->width);
@@ -86,8 +86,8 @@ static inline make_EHelper(dec) {
   print_asm_template1(dec);
 }
 
-static inline make_EHelper(neg) {
-//  TODO();
+static inline def_EHelper(neg) {
+  TODO();
 #ifdef LAZY_CC
   rtl_sub(s, ddest, rz, ddest);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, id_dest->width);
@@ -103,8 +103,39 @@ static inline make_EHelper(neg) {
 #endif
   print_asm_template1(neg);
 }
+#else
+static inline def_EHelper(add) {
+  TODO();
+  print_asm_template2(add);
+}
 
-static inline make_EHelper(adc) {
+static inline def_EHelper(sub) {
+  TODO();
+  print_asm_template2(sub);
+}
+
+static inline def_EHelper(cmp) {
+  TODO();
+  print_asm_template2(cmp);
+}
+
+static inline def_EHelper(inc) {
+  TODO();
+  print_asm_template1(inc);
+}
+
+static inline def_EHelper(dec) {
+  TODO();
+  print_asm_template1(dec);
+}
+
+static inline def_EHelper(neg) {
+  TODO();
+  print_asm_template1(neg);
+}
+#endif
+
+static inline def_EHelper(adc) {
 #ifdef LAZY_CC
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
@@ -131,7 +162,7 @@ static inline make_EHelper(adc) {
   print_asm_template2(adc);
 }
 
-static inline make_EHelper(sbb) {
+static inline def_EHelper(sbb) {
 #ifdef LAZY_CC
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
@@ -156,7 +187,7 @@ static inline make_EHelper(sbb) {
   print_asm_template2(sbb);
 }
 
-static inline make_EHelper(mul) {
+static inline def_EHelper(mul) {
   rtl_lr(s, s0, R_EAX, id_dest->width);
   rtl_mul_lo(s, s1, ddest, s0);
 
@@ -177,12 +208,11 @@ static inline make_EHelper(mul) {
     default: assert(0);
   }
 
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(mul);
 }
 
 // imul with one operand
-static inline make_EHelper(imul1) {
+static inline def_EHelper(imul1) {
   switch (id_dest->width) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
@@ -208,35 +238,32 @@ static inline make_EHelper(imul1) {
     default: assert(0);
   }
 
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(imul);
 }
 
 // imul with two operands
-static inline make_EHelper(imul2) {
+static inline def_EHelper(imul2) {
   rtl_sext(s, dsrc1, dsrc1, id_src1->width);
   rtl_sext(s, ddest, ddest, id_dest->width);
 
   rtl_imul_lo(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template2(imul);
 }
 
 // imul with three operands
-static inline make_EHelper(imul3) {
+static inline def_EHelper(imul3) {
   rtl_sext(s, dsrc1, dsrc1, id_src1->width);
   rtl_sext(s, dsrc2, dsrc2, id_src1->width);
 
   rtl_imul_lo(s, ddest, dsrc2, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template3(imul);
 }
 
-static inline make_EHelper(div) {
+static inline def_EHelper(div) {
   switch (id_dest->width) {
     case 1:
       rtl_lr(s, s0, R_AX, 2);
@@ -265,11 +292,10 @@ static inline make_EHelper(div) {
     default: assert(0);
   }
 
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(div);
 }
 
-static inline make_EHelper(idiv) {
+static inline def_EHelper(idiv) {
   switch (id_dest->width) {
     case 1:
       rtl_lr(s, s0, R_AX, 2);
@@ -298,6 +324,5 @@ static inline make_EHelper(idiv) {
     default: assert(0);
   }
 
-  //difftest_skip_eflags(EFLAGS_MASK_ALL);
   print_asm_template1(idiv);
 }

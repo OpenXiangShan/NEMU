@@ -16,13 +16,15 @@ static const uint8_t img []  = {
 static void restart() {
   /* Set the initial instruction pointer. */
   cpu.pc = PMEM_BASE + IMAGE_START;
+#ifndef __ICS_EXPORT
   cpu.cs = 0x8;
   cpu.cr0.val = 0x60000011;
+#endif
 }
 
-void init_isa(void) {
+void init_isa() {
   /* Test the implementation of the `CPU_state' structure. */
-  void reg_test(void);
+  void reg_test();
   reg_test();
 
   /* Load built-in image. */

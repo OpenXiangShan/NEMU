@@ -11,12 +11,16 @@ void (*ref_difftest_exec)(uint64_t n) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
+#ifndef __ICS_EXPORT
 static bool is_detach = false;
+#endif
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
 void difftest_skip_ref() {
+#ifndef __ICS_EXPORT
   if (is_detach) return;
+#endif
   is_skip_ref = true;
   // If such an instruction is one of the instruction packing in QEMU
   // (see below), we end the process of catching up with QEMU's pc to
@@ -35,7 +39,9 @@ void difftest_skip_ref() {
 //   Let REF run `nr_ref` instructions first.
 //   We expect that DUT will catch up with REF within `nr_dut` instructions.
 void difftest_skip_dut(int nr_ref, int nr_dut) {
+#ifndef __ICS_EXPORT
   if (is_detach) return;
+#endif
   skip_dut_nr_instr += nr_dut;
 
   while (nr_ref -- > 0) {
@@ -80,7 +86,6 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
-  // TODO: Check the registers state with QEMU.
   if (!isa_difftest_checkregs(ref, pc)) {
     isa_reg_display();
     nemu_state.state = NEMU_ABORT;
@@ -88,11 +93,13 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
   }
 }
 
-void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
+void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
   CPU_state ref_r;
 
+#ifndef __ICS_EXPORT
   if (is_detach) return;
 
+#endif
   if (skip_dut_nr_instr > 0) {
     ref_difftest_getregs(&ref_r);
     if (ref_r.pc == next_pc) {
@@ -102,7 +109,7 @@ void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
     }
     skip_dut_nr_instr --;
     if (skip_dut_nr_instr == 0)
-      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, ori_pc);
+      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, this_pc);
     return;
   }
 
@@ -116,9 +123,10 @@ void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
   ref_difftest_exec(1);
   ref_difftest_getregs(&ref_r);
 
-  checkregs(&ref_r, ori_pc);
+  checkregs(&ref_r, this_pc);
 }
 
+#ifndef __ICS_EXPORT
 void difftest_detach() {
   is_detach = true;
 }
@@ -134,3 +142,4 @@ void difftest_attach() {
 
   isa_difftest_attach();
 }
+#endif

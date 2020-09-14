@@ -3,21 +3,11 @@
 #include "../local-include/intr.h"
 #include "all-instr.h"
 
-#define decode_empty(s)
-
 static inline void set_width(DecodeExecState *s, int width) {
   if (width != 0) s->width = width;
 }
 
-#define IDEXW(idx, id, ex, w) CASE_ENTRY(idx, concat(decode_, id), concat(exec_, ex), w)
-#define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
-#define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)
-#define EX(idx, ex)           EXW(idx, ex, 0)
-#define EMPTY(idx)            //EX(idx, inv)
-
-#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
-
-static inline make_EHelper(load) {
+static inline def_EHelper(load) {
   switch (s->isa.instr.i.funct3) {
     EXW(0, lds, 1) EXW(1, lds, 2) EXW(2, lds, 4) EXW(3, ld, 8)
     EXW(4, ld, 1)  EXW(5, ld, 2)  EXW(6, ld, 4)
@@ -25,27 +15,27 @@ static inline make_EHelper(load) {
   }
 }
 
-static inline make_EHelper(store) {
+static inline def_EHelper(store) {
   switch (s->isa.instr.s.funct3) {
     EXW(0, st, 1) EXW(1, st, 2) EXW(2, st, 4) EXW(3, st, 8)
   }
 }
 
-static inline make_EHelper(op_imm) {
+static inline def_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
     EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, andi)
   }
 }
 
-static inline make_EHelper(op_imm32) {
+static inline def_EHelper(op_imm32) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addiw) EX(1, slliw) EX(5, srliw)
     default: exec_inv(s);
   }
 }
 
-static inline make_EHelper(op) {
+static inline def_EHelper(op) {
   uint32_t idx = s->isa.instr.r.funct7;
   if (idx == 32) idx = 2;
   assert(idx <= 2);
@@ -62,7 +52,7 @@ static inline make_EHelper(op) {
 }
 
 
-static inline make_EHelper(op32) {
+static inline def_EHelper(op32) {
   uint32_t idx = s->isa.instr.r.funct7;
   if (idx == 32) idx = 2;
   assert(idx <= 2);
@@ -78,21 +68,21 @@ static inline make_EHelper(op32) {
 #undef pair
 }
 
-static inline make_EHelper(branch) {
+static inline def_EHelper(branch) {
   switch (s->isa.instr.i.funct3) {
     EX(0, beq)  EX(1, bne)  EMPTY(2)   EMPTY(3)
     EX(4, blt)  EX(5, bge)  EX(6, bltu)EX(7, bgeu)
   }
 }
 
-static inline make_EHelper(system) {
+static inline def_EHelper(system) {
   switch (s->isa.instr.i.funct3) {
     EX(0, priv)  IDEX(1, csr, csrrw)  IDEX(2, csr, csrrs)  IDEX(3, csr, csrrc)
     EMPTY(4)     IDEX(5, csri, csrrwi)IDEX(6, csri, csrrsi)IDEX(7, csri, csrrci)
   }
 }
 
-static inline make_EHelper(atomic) {
+static inline def_EHelper(atomic) {
   cpu.amo = true;
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
   if (funct5 == 2) cpu.amo = false; // lr is not a store
@@ -107,13 +97,13 @@ static inline make_EHelper(atomic) {
   cpu.amo = false;
 }
 
-static inline make_EHelper(fp) {
+static inline def_EHelper(fp) {
   raise_intr(s, EX_II, cpu.pc);
 }
 
 // RVC
 
-static inline make_EHelper(misc) {
+static inline def_EHelper(misc) {
   uint32_t instr = s->isa.instr.val;
   uint32_t bits12not0 = (BITS(instr, 12, 12) != 0);
   uint32_t bits11_7not0 = (BITS(instr, 11, 7) != 0);
@@ -128,7 +118,7 @@ static inline make_EHelper(misc) {
   }
 }
 
-static inline make_EHelper(lui_addi16sp) {
+static inline def_EHelper(lui_addi16sp) {
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
   assert(rd != 0);
   switch (rd) {
@@ -138,7 +128,7 @@ static inline make_EHelper(lui_addi16sp) {
   }
 }
 
-static inline make_EHelper(misc_alu) {
+static inline def_EHelper(misc_alu) {
   uint32_t instr = s->isa.instr.val;
   uint32_t op = BITS(instr, 11, 10);
   if (op == 3) {

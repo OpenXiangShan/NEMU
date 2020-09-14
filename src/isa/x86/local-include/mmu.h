@@ -41,8 +41,6 @@ typedef union PageTableEntry {
   uint32_t val;
 } PTE;
 
-typedef PTE (*PT) [NR_PTE];
-
 typedef union GateDescriptor {
   struct {
     uint32_t offset_15_0      : 16;

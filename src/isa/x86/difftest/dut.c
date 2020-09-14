@@ -1,10 +1,15 @@
 #include <isa.h>
-#include <memory/paddr.h>
 #include <monitor/difftest.h>
 #include "../local-include/reg.h"
 #include "difftest.h"
+#ifndef __ICS_EXPORT
+#include <memory/paddr.h>
+#endif
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
+#ifdef __ICS_EXPORT
+  return false;
+#else
   if (memcmp(&cpu, ref_r, DIFFTEST_REG_SIZE)) {
     int i;
     for (i = 0; i < sizeof(cpu.gpr) / sizeof(cpu.gpr[0]); i ++) {
@@ -14,9 +19,11 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     return false;
   }
   return true;
+#endif
 }
 
-void isa_difftest_attach(void) {
+void isa_difftest_attach() {
+#ifndef __ICS_EXPORT
   // first copy the image
   ref_difftest_memcpy_from_dut(0, guest_to_host(0), PMEM_SIZE);
 
@@ -48,4 +55,5 @@ void isa_difftest_attach(void) {
   ref_difftest_exec(5);
 
   ref_difftest_setregs(&cpu);
+#endif
 }

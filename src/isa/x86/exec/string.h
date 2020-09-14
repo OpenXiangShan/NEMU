@@ -1,4 +1,4 @@
-static make_EHelper(movs) {
+static def_EHelper(movs) {
   rtl_lm(s, s0, &cpu.esi, 0, id_dest->width);
   rtl_sm(s, &cpu.edi, 0, s0, id_dest->width);
 

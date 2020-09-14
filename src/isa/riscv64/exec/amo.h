@@ -1,6 +1,6 @@
 #include "../local-include/intr.h"
 
-static inline make_EHelper(lr) {
+static inline def_EHelper(lr) {
   rtl_lm(s, s0, dsrc1, 0, s->width);
   return_on_mem_ex();
   cpu.lr_addr = *dsrc1;
@@ -9,7 +9,7 @@ static inline make_EHelper(lr) {
   print_asm_template3(lr);
 }
 
-static inline make_EHelper(sc) {
+static inline def_EHelper(sc) {
   // should check overlapping instead of equality
   if (cpu.lr_addr == *dsrc1) {
     rtl_sm(s, dsrc1, 0, dsrc2, s->width);
@@ -34,7 +34,7 @@ static void inline amo_update(DecodeExecState *s) {
   rtl_sr(s, id_dest->reg, s0, 0);
 }
 
-static inline make_EHelper(amoswap) {
+static inline def_EHelper(amoswap) {
   amo_load(s);
   return_on_mem_ex();
   rtl_mv(s, s1, dsrc2); // swap
@@ -43,7 +43,7 @@ static inline make_EHelper(amoswap) {
   print_asm_template3(amoswap);
 }
 
-static inline make_EHelper(amoadd) {
+static inline def_EHelper(amoadd) {
   amo_load(s);
   return_on_mem_ex();
   rtl_add(s, s1, s0, dsrc2);
@@ -52,7 +52,7 @@ static inline make_EHelper(amoadd) {
   print_asm_template3(amoor);
 }
 
-static inline make_EHelper(amoor) {
+static inline def_EHelper(amoor) {
   amo_load(s);
   return_on_mem_ex();
   rtl_or(s, s1, s0, dsrc2);
@@ -61,7 +61,7 @@ static inline make_EHelper(amoor) {
   print_asm_template3(amoor);
 }
 
-static inline make_EHelper(amoand) {
+static inline def_EHelper(amoand) {
   amo_load(s);
   return_on_mem_ex();
   rtl_and(s, s1, s0, dsrc2);
@@ -70,7 +70,7 @@ static inline make_EHelper(amoand) {
   print_asm_template3(amoand);
 }
 
-static inline make_EHelper(amomaxu) {
+static inline def_EHelper(amomaxu) {
   amo_load(s);
   return_on_mem_ex();
   *s1 = (*s0 > *dsrc2 ? *s0 : *dsrc2);
@@ -79,7 +79,7 @@ static inline make_EHelper(amomaxu) {
   print_asm_template3(amomaxu);
 }
 
-static inline make_EHelper(amoxor) {
+static inline def_EHelper(amoxor) {
   amo_load(s);
   return_on_mem_ex();
   rtl_xor(s, s1, s0, dsrc2);

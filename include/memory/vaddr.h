@@ -7,7 +7,9 @@ static inline word_t vaddr_read(vaddr_t addr, int len) {
   word_t vaddr_read1(vaddr_t addr);
   word_t vaddr_read2(vaddr_t addr);
   word_t vaddr_read4(vaddr_t addr);
+#ifdef ISA64
   word_t vaddr_read8(vaddr_t addr);
+#endif
   switch (len) {
     case 1: return vaddr_read1(addr);
     case 2: return vaddr_read2(addr);
@@ -23,7 +25,9 @@ static inline void vaddr_write(vaddr_t addr, word_t data, int len) {
   void vaddr_write1(vaddr_t addr, word_t data);
   void vaddr_write2(vaddr_t addr, word_t data);
   void vaddr_write4(vaddr_t addr, word_t data);
+#ifdef ISA64
   void vaddr_write8(vaddr_t addr, word_t data);
+#endif
   switch (len) {
     case 1: vaddr_write1(addr, data); break;
     case 2: vaddr_write2(addr, data); break;
@@ -39,7 +43,9 @@ static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
   word_t vaddr_ifetch1(vaddr_t addr);
   word_t vaddr_ifetch2(vaddr_t addr);
   word_t vaddr_ifetch4(vaddr_t addr);
+#ifdef ISA64
   word_t vaddr_ifetch8(vaddr_t addr);
+#endif
   switch (len) {
     case 1: return vaddr_ifetch1(addr);
     case 2: return vaddr_ifetch2(addr);

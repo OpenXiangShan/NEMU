@@ -1,6 +1,7 @@
+#ifndef __ICS_EXPORT
 #include "../local-include/intr.h"
-
-static inline make_EHelper(ld) {
+#endif
+static inline def_EHelper(ld) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, s->width);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -12,19 +13,7 @@ static inline make_EHelper(ld) {
   }
 }
 
-// load sign value
-static inline make_EHelper(lds) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 2: print_asm_template2(lh); break;
-    case 1: print_asm_template2(lb); break;
-    default: assert(0);
-  }
-}
-
-static inline make_EHelper(st) {
+static inline def_EHelper(st) {
   rtl_sm(s, dsrc1, id_src2->imm, ddest, s->width);
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
@@ -35,8 +24,21 @@ static inline make_EHelper(st) {
     default: assert(0);
   }
 }
+#ifndef __ICS_EXPORT
 
-static inline make_EHelper(swl) {
+// load sign value
+static inline def_EHelper(lds) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
+
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  switch (s->width) {
+    case 2: print_asm_template2(lh); break;
+    case 1: print_asm_template2(lb); break;
+    default: assert(0);
+  }
+}
+
+static inline def_EHelper(swl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shamt2
@@ -74,7 +76,7 @@ static inline make_EHelper(swl) {
   print_asm_template2(swl);
 }
 
-static inline make_EHelper(swr) {
+static inline def_EHelper(swr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -114,7 +116,7 @@ static inline make_EHelper(swr) {
   print_asm_template2(swr);
 }
 
-static inline make_EHelper(lwl) {
+static inline def_EHelper(lwl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -148,7 +150,7 @@ static inline make_EHelper(lwl) {
   print_asm_template2(lwl);
 }
 
-static inline make_EHelper(lwr) {
+static inline def_EHelper(lwr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -179,3 +181,4 @@ static inline make_EHelper(lwr) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   print_asm_template2(lwr);
 }
+#endif

@@ -1,9 +1,4 @@
 #include <device/map.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <errno.h>
 
 /* http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming */
 // NOTE: this is compatible to 16550
@@ -12,17 +7,27 @@
 #define SERIAL_MMIO 0xa10003F8
 
 #define CH_OFFSET 0
+#ifndef __ICS_EXPORT
 #define LSR_OFFSET 5
 #define LSR_TX_READY 0x20
 #define LSR_RX_READY 0x01
+#endif
+
+static uint8_t *serial_base = NULL;
+
+#ifndef __ICS_EXPORT
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define QUEUE_SIZE 1024
 static char queue[QUEUE_SIZE] = {};
 static int f = 0, r = 0;
 #define FIFO_PATH "/tmp/nemu-serial"
 static int fifo_fd = 0;
-
-static uint8_t *serial_base = NULL;
 
 static void serial_enqueue(char ch) {
   int next = (r + 1) % QUEUE_SIZE;
@@ -42,7 +47,7 @@ static char serial_dequeue() {
   return ch;
 }
 
-static inline uint8_t serial_rx_ready_flag(void) {
+static inline uint8_t serial_rx_ready_flag() {
   extern uint32_t uptime();
   static uint32_t last = 0;
   uint32_t now = uptime();
@@ -65,20 +70,6 @@ static inline uint8_t serial_rx_ready_flag(void) {
     }
   }
   return (f == r ? 0 : LSR_RX_READY);
-}
-
-static void serial_io_handler(uint32_t offset, int len, bool is_write) {
-  assert(len == 1);
-  switch (offset) {
-    /* We bind the serial port with the host stdout in NEMU. */
-    case CH_OFFSET:
-      if (is_write) putc(serial_base[0], stderr);
-      else serial_base[0] = serial_dequeue();
-      break;
-    case LSR_OFFSET:
-      if (!is_write) serial_base[5] = LSR_TX_READY | serial_rx_ready_flag();
-      break;
-  }
 }
 
 #define rt_thread_cmd "memtrace\n"
@@ -111,11 +102,39 @@ static void init_fifo() {
   assert(fifo_fd != -1);
 }
 
+#endif
+
+static void serial_io_handler(uint32_t offset, int len, bool is_write) {
+  assert(len == 1);
+  switch (offset) {
+    /* We bind the serial port with the host stderr in NEMU. */
+    case CH_OFFSET:
+      if (is_write) putc(serial_base[0], stderr);
+#ifndef __ICS_EXPORT
+      else serial_base[0] = serial_dequeue();
+#else
+      else panic("do not support read");
+#endif
+      break;
+#ifndef __ICS_EXPORT
+    case LSR_OFFSET:
+      if (!is_write)
+        serial_base[5] = LSR_TX_READY | serial_rx_ready_flag();
+      break;
+#else
+    default: panic("do not support offset = %d", offset);
+#endif
+  }
+}
+
+
 void init_serial() {
   serial_base = new_space(8);
   add_pio_map("serial", SERIAL_PORT, serial_base, 8, serial_io_handler);
   add_mmio_map("serial", SERIAL_MMIO, serial_base, 8, serial_io_handler);
 
+#ifndef __ICS_EXPORT
   init_fifo();
   preset_input();
+#endif
 }

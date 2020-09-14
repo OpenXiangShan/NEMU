@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
+#ifndef __ICS_EXPORT
 #include "local-include/intr.h"
 #include <stdlib.h>
 #include <time.h>
@@ -33,7 +34,7 @@ struct {
   EntryLo lo[2];
 } tlb [NR_TLB];
 
-void init_mmu(void) {
+void init_mmu() {
   int i;
   for (i = 0; i < NR_TLB; i ++) {
     tlb[i].lo[0].V = tlb[i].lo[1].V = 0;
@@ -96,9 +97,14 @@ static inline int32_t search_ppn(vaddr_t addr, int type) {
   cpu.mem_exception = TLB_REFILL | (type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD);
   return -1;
 }
+#endif
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+#ifdef __ICS_EXPORT
+  return MEM_RET_FAIL;
+#else
   int32_t ppn = search_ppn(vaddr, type);
   if (ppn == -1) return MEM_RET_FAIL;
   return ((uint32_t)ppn << 12) | MEM_RET_OK;
+#endif
 }
