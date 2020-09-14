@@ -24,80 +24,87 @@ static inline def_rtl(sr, int r, const rtlreg_t* src1, int width) {
   }
 }
 
+#ifndef __ICS_EXPORT
 static inline def_rtl(push, const rtlreg_t* src1) {
   // esp <- esp - 4
   // M[esp] <- src1
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_sm(s, &cpu.esp, -4, src1, 4);
   rtl_subi(s, &cpu.esp, &cpu.esp, 4);
-#endif
 }
 
 static inline def_rtl(pop, rtlreg_t* dest) {
   // dest <- M[esp]
   // esp <- esp + 4
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_lm(s, dest, &cpu.esp, 0, 4);
   rtl_addi(s, &cpu.esp, &cpu.esp, 4);
-#endif
 }
 
 static inline def_rtl(is_sub_overflow, rtlreg_t* dest,
     const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
   // dest <- is_overflow(src1 - src2)
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_xor(s, t0, src1, src2);
   rtl_xor(s, dest, src1, res);
   rtl_and(s, dest, t0, dest);
   rtl_msb(s, dest, dest, width);
-#endif
 }
 
 static inline def_rtl(is_sub_carry, rtlreg_t* dest,
     const rtlreg_t* src1, const rtlreg_t* src2) {
   // dest <- is_carry(src1 - src2)
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_setrelop(s, RELOP_LTU, dest, src1, src2);
-#endif
 }
 
 static inline def_rtl(is_add_overflow, rtlreg_t* dest,
     const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
   // dest <- is_overflow(src1 + src2)
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_is_sub_overflow(s, dest, src1, res, src2, width);
-#endif
 }
 
 static inline def_rtl(is_add_carry, rtlreg_t* dest,
     const rtlreg_t* res, const rtlreg_t* src1) {
   // dest <- is_carry(src1 + src2)
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_is_sub_carry(s, dest, res, src1);
-#endif
 }
 
-#ifdef __ICS_EXPORT
-#define def_rtl_setget_eflags(f) \
-  static inline def_rtl(concat(set_, f), const rtlreg_t* src) { \
-    TODO(); \
-  } \
-  static inline def_rtl(concat(get_, f), rtlreg_t* dest) { \
-    TODO(); \
-  }
 #else
+static inline def_rtl(push, const rtlreg_t* src1) {
+  // esp <- esp - 4
+  // M[esp] <- src1
+  TODO();
+}
+
+static inline def_rtl(pop, rtlreg_t* dest) {
+  // dest <- M[esp]
+  // esp <- esp + 4
+  TODO();
+}
+
+static inline def_rtl(is_sub_overflow, rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
+  // dest <- is_overflow(src1 - src2)
+  TODO();
+}
+
+static inline def_rtl(is_sub_carry, rtlreg_t* dest,
+    const rtlreg_t* src1, const rtlreg_t* src2) {
+  // dest <- is_carry(src1 - src2)
+  TODO();
+}
+
+static inline def_rtl(is_add_overflow, rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
+  // dest <- is_overflow(src1 + src2)
+  TODO();
+}
+
+static inline def_rtl(is_add_carry, rtlreg_t* dest,
+    const rtlreg_t* res, const rtlreg_t* src1) {
+  // dest <- is_carry(src1 + src2)
+  TODO();
+}
+#endif
+
+#ifndef __ICS_EXPORT
 #define def_rtl_setget_eflags(f) \
   static inline def_rtl(concat(set_, f), const rtlreg_t* src) { \
     rtl_mv(s, &cpu.f, src); \
@@ -105,7 +112,6 @@ static inline def_rtl(is_add_carry, rtlreg_t* dest,
   static inline def_rtl(concat(get_, f), rtlreg_t* dest) { \
     rtl_mv(s, dest, &cpu.f); \
   }
-#endif
 
 def_rtl_setget_eflags(CF)
 def_rtl_setget_eflags(OF)
@@ -114,9 +120,6 @@ def_rtl_setget_eflags(SF)
 
 static inline def_rtl(update_ZF, const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   if (width != 4) {
     rtl_andi(s, t0, result, 0xffffffffu >> ((4 - width) * 8));
     rtl_setrelopi(s, RELOP_EQ, t0, t0, 0);
@@ -125,18 +128,37 @@ static inline def_rtl(update_ZF, const rtlreg_t* result, int width) {
     rtl_setrelopi(s, RELOP_EQ, t0, result, 0);
   }
   rtl_set_ZF(s, t0);
-#endif
 }
 
 static inline def_rtl(update_SF, const rtlreg_t* result, int width) {
   // eflags.SF <- is_sign(result[width * 8 - 1 .. 0])
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_msb(s, t0, result, width);
   rtl_set_SF(s, t0);
-#endif
 }
+#else
+#define def_rtl_setget_eflags(f) \
+  static inline def_rtl(concat(set_, f), const rtlreg_t* src) { \
+    TODO(); \
+  } \
+  static inline def_rtl(concat(get_, f), rtlreg_t* dest) { \
+    TODO(); \
+  }
+
+def_rtl_setget_eflags(CF)
+def_rtl_setget_eflags(OF)
+def_rtl_setget_eflags(ZF)
+def_rtl_setget_eflags(SF)
+
+static inline def_rtl(update_ZF, const rtlreg_t* result, int width) {
+  // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
+  TODO();
+}
+
+static inline def_rtl(update_SF, const rtlreg_t* result, int width) {
+  // eflags.SF <- is_sign(result[width * 8 - 1 .. 0])
+  TODO();
+}
+#endif
 
 static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
   rtl_update_ZF(s, result, width);

@@ -26,50 +26,51 @@ static inline def_EHelper(jmp_rm) {
   print_asm("jmp *%s", id_dest->str);
 }
 
+#ifndef __ICS_EXPORT
 static inline def_EHelper(call) {
   // the target address is calculated at the decode stage
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_li(s, s0, s->seq_pc);
   rtl_push(s, s0);
   rtl_j(s, s->jmp_pc);
-#endif
-
   print_asm("call %x", s->jmp_pc);
 }
 
 static inline def_EHelper(ret) {
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_pop(s, s0);
   rtl_jr(s, s0);
-#endif
-
   print_asm("ret");
 }
 
 static inline def_EHelper(ret_imm) {
-#ifdef __ICS_EXPORT
-  TODO();
-#else
   rtl_pop(s, s0);
   rtl_jr(s, s0);
   rtl_add(s, &cpu.esp, &cpu.esp, ddest);
-#endif
-
   print_asm("ret %s", id_dest->str);
 }
 
 static inline def_EHelper(call_rm) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
-  rtl_li(s, s0, s->seq_pc);
-  rtl_push(s, s0);
-  rtl_jr(s, ddest);
-#endif
-
   print_asm("call *%s", id_dest->str);
 }
+#else
+static inline def_EHelper(call) {
+  // the target address is calculated at the decode stage
+  TODO();
+  print_asm("call %x", s->jmp_pc);
+}
+
+static inline def_EHelper(ret) {
+  TODO();
+  print_asm("ret");
+}
+
+static inline def_EHelper(ret_imm) {
+  TODO();
+  print_asm("ret %s", id_dest->str);
+}
+
+static inline def_EHelper(call_rm) {
+  TODO();
+  print_asm("call *%s", id_dest->str);
+}
+#endif

@@ -1,9 +1,8 @@
 #include "cc.h"
 
+#ifndef __ICS_EXPORT
 static inline def_EHelper(add) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
 #ifdef LAZY_CC
   rtl_set_lazycc_src1(s, dsrc1);
   rtl_add(s, ddest, ddest, dsrc1);
@@ -21,7 +20,6 @@ static inline def_EHelper(add) {
   rtl_set_OF(s, s1);
   operand_write(s, id_dest, s0);
 #endif
-#endif
   print_asm_template2(add);
 }
 
@@ -34,12 +32,9 @@ static inline void cmp_internal(DecodeExecState *s) {
   rtl_is_sub_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
   rtl_set_OF(s, s1);
 }
- 
 
 static inline def_EHelper(sub) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
   rtl_sub(s, ddest, ddest, dsrc1);
@@ -49,26 +44,20 @@ static inline def_EHelper(sub) {
   operand_write(s, id_dest, s0);
 #endif
   print_asm_template2(sub);
-#endif
 }
 
 static inline def_EHelper(cmp) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
 #else
   cmp_internal(s);
 #endif
   print_asm_template2(cmp);
-#endif
 }
 
 static inline def_EHelper(inc) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
   rtl_addi(s, ddest, ddest, 1);
 #ifdef LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, id_dest->width);
@@ -78,14 +67,11 @@ static inline def_EHelper(inc) {
   rtl_set_OF(s, s1);
 #endif
   operand_write(s, id_dest, ddest);
-#endif
   print_asm_template1(inc);
 }
 
 static inline def_EHelper(dec) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
 #ifdef LAZY_CC
   rtl_subi(s, ddest, ddest, 1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, id_dest->width);
@@ -97,14 +83,11 @@ static inline def_EHelper(dec) {
   rtl_set_OF(s, s1);
   operand_write(s, id_dest, s0);
 #endif
-#endif
   print_asm_template1(dec);
 }
 
 static inline def_EHelper(neg) {
-#ifdef __ICS_EXPORT
   TODO();
-#else
 #ifdef LAZY_CC
   rtl_sub(s, ddest, rz, ddest);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, id_dest->width);
@@ -118,9 +101,39 @@ static inline def_EHelper(neg) {
   rtl_set_OF(s, s1);
   operand_write(s, id_dest, s0);
 #endif
-#endif
   print_asm_template1(neg);
 }
+#else
+static inline def_EHelper(add) {
+  TODO();
+  print_asm_template2(add);
+}
+
+static inline def_EHelper(sub) {
+  TODO();
+  print_asm_template2(sub);
+}
+
+static inline def_EHelper(cmp) {
+  TODO();
+  print_asm_template2(cmp);
+}
+
+static inline def_EHelper(inc) {
+  TODO();
+  print_asm_template1(inc);
+}
+
+static inline def_EHelper(dec) {
+  TODO();
+  print_asm_template1(dec);
+}
+
+static inline def_EHelper(neg) {
+  TODO();
+  print_asm_template1(neg);
+}
+#endif
 
 static inline def_EHelper(adc) {
 #ifdef LAZY_CC
