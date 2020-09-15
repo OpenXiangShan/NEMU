@@ -28,7 +28,7 @@ typedef struct {
   
   uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
 
-  uint8_t mode;
+  uint64_t mode;
 
   bool amo;
   int mem_exception;
