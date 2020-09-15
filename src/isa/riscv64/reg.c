@@ -36,6 +36,11 @@ void isa_reg_display() {
       cpu.pc, mstatus->val, mcause->val, mepc->val);
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
       "", csrid_read(0x100), scause->val, sepc->val);
+  printf("satp: " FMT_WORD "\n", satp->val);
+  printf("mip: " FMT_WORD " mie: " FMT_WORD " mscratch: " FMT_WORD " sscratch: " FMT_WORD "\n", 
+      mip->val, mie->val, mscratch->val, sscratch->val);
+  printf("mideleg: " FMT_WORD " medeleg: " FMT_WORD "\n", 
+      mideleg->val, medeleg->val);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {
