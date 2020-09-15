@@ -212,7 +212,7 @@ static inline def_EHelper(btr) {
   rtl_not(s, s0, s0);
   rtl_and(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
-  print_asm_template2(bts);
+  print_asm_template2(btr);
 }
 #else
 static inline def_EHelper(test) {
