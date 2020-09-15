@@ -112,6 +112,9 @@ typedef struct {
 // decode
 typedef struct {
   bool is_operand_size_16;
+#define PREFIX_REP   1
+#define PREFIX_REPNZ 2
+  int rep_flags;
   uint8_t ext_opcode;
   const rtlreg_t *mbase;
   rtlreg_t mbr;

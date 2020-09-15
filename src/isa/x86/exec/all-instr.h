@@ -9,5 +9,6 @@
 #include "eflags.h"
 
 def_EHelper(nop);
+def_EHelper(fpu);
 def_EHelper(inv);
 def_EHelper(nemu_trap);

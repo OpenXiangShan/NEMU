@@ -118,6 +118,7 @@ def_rtl_setget_eflags(OF)
 def_rtl_setget_eflags(ZF)
 def_rtl_setget_eflags(SF)
 def_rtl_setget_eflags(DF)
+def_rtl_setget_eflags(IF)
 
 static inline def_rtl(update_ZF, const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])

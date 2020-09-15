@@ -15,6 +15,14 @@ static inline def_EHelper(lidt) {
   print_asm_template1(lidt);
 }
 
+static inline def_EHelper(lgdt) {
+  print_asm_template1(lgdt);
+}
+
+static inline def_EHelper(lldt) {
+  print_asm_template1(lldt);
+}
+
 static inline def_EHelper(mov_r2cr) {
   rtl_lr(s, &cpu.cr[id_dest->reg], id_src1->reg, 4);
   print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
@@ -27,6 +35,10 @@ static inline def_EHelper(mov_cr2r) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_ref();
 #endif
+}
+
+static inline def_EHelper(mov_rm2sreg) {
+//  print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
 }
 
 static inline def_EHelper(int) {

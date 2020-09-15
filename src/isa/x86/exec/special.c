@@ -6,6 +6,12 @@ def_EHelper(nop) {
   print_asm("nop");
 }
 
+def_EHelper(fpu) {
+  uint8_t byte = instr_fetch(&s->seq_pc, 1);
+  Log("unimplemented FP instruction: code = 0x%x", byte);
+  print_asm("fpu");
+}
+
 def_EHelper(inv) {
   /* invalid opcode */
 

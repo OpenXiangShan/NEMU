@@ -191,6 +191,10 @@ static inline def_DHelper(setcc_E) {
   operand_rm(s, id_dest, false, NULL, false);
 }
 
+static inline def_DHelper(gp6_E) {
+  operand_rm(s, id_dest, false, NULL, false);
+}
+
 static inline def_DHelper(gp7_E) {
   operand_rm(s, id_dest, false, NULL, false);
 }
@@ -265,11 +269,32 @@ static inline def_DHelper(a2O) {
   decode_op_O(s, id_dest, false);
 }
 
+// for scas and stos
+static inline def_DHelper(aSrc) {
+  decode_op_a(s, id_src1, true);
+}
+
+// for lods
+static inline def_DHelper(aDest) {
+  decode_op_a(s, id_dest, false);
+}
+
 static inline def_DHelper(J) {
   decode_op_SI(s, id_dest, false);
   // the target address can be computed in the decode stage
   s->jmp_pc = id_dest->simm + s->seq_pc;
 }
+#ifndef __ICS_EXPORT
+
+// for long jump
+static inline def_DHelper(LJ) {
+  decode_op_I(s, id_dest, false); // offset
+  id_src1->width = 2;
+  decode_op_I(s, id_src1, false); // CS
+  // the target address can be computed in the decode stage
+  s->jmp_pc = id_dest->imm;
+}
+#endif
 
 static inline def_DHelper(push_SI) {
   decode_op_SI(s, id_dest, true);

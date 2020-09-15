@@ -75,6 +75,16 @@ static inline def_EHelper(gp5) {
   }
 }
 
+#ifndef __ICS_EXPORT
+/* 0x0f 0x00*/
+static inline def_EHelper(gp6) {
+  switch (s->isa.ext_opcode) {
+    EMPTY(0) EMPTY(1) EXW  (2, lldt, -1) EMPTY(3)
+    EMPTY(4) EMPTY(5) EMPTY(6)           EMPTY(7)
+  }
+}
+#endif
+
 /* 0x0f 0x01*/
 static inline def_EHelper(gp7) {
   switch (s->isa.ext_opcode) {
@@ -82,8 +92,8 @@ static inline def_EHelper(gp7) {
     EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
     EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
 #else
-    EMPTY(0) EMPTY(1) EMPTY(2) EXW  (3, lidt, -1)
-    EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
+    EMPTY(0) EMPTY(1) EXW  (2, lgdt, -1) EXW  (3, lidt, -1)
+    EMPTY(4) EMPTY(5) EMPTY(6)           EMPTY(7)
 #endif
   }
 }
@@ -95,6 +105,7 @@ static inline def_EHelper(2byte_esc) {
   /* TODO: Add more instructions!!! */
     IDEX (0x01, gp7_E, gp7)
 #ifndef __ICS_EXPORT
+    IDEXW(0x00, gp6_E, gp6, 2)
     IDEX (0x20, mov_G2E, mov_cr2r)
     IDEX (0x22, mov_E2G, mov_r2cr)
     IDEXW(0x80, J, jcc, 4) IDEXW(0x81, J, jcc, 4) IDEXW(0x82, J, jcc, 4) IDEXW(0x83, J, jcc, 4)
@@ -105,12 +116,18 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0x94, setcc_E, setcc, 1) IDEXW(0x95, setcc_E, setcc, 1) IDEXW(0x96, setcc_E, setcc, 1) IDEXW(0x97, setcc_E, setcc, 1)
     IDEXW(0x98, setcc_E, setcc, 1) IDEXW(0x99, setcc_E, setcc, 1) IDEXW(0x9a, setcc_E, setcc, 1) IDEXW(0x9b, setcc_E, setcc, 1)
     IDEXW(0x9c, setcc_E, setcc, 1) IDEXW(0x9d, setcc_E, setcc, 1) IDEXW(0x9e, setcc_E, setcc, 1) IDEXW(0x9f, setcc_E, setcc, 1)
+    // earlyprintk=serial,ttyS0 console=ttyS0
+    IDEX (0xa3, G2E, bt)
     IDEX (0xa4, Ib_G2E, shld)
     IDEX (0xa5, cl_G2E, shld)
+    IDEX (0xab, G2E, bts)
     IDEX (0xac, Ib_G2E, shrd)
+    IDEX (0xad, cl_G2E, shrd)
     IDEX (0xaf, E2G, imul2)
+    IDEX (0xb3, G2E, btr)
     IDEXW(0xb6, mov_E2G, movzx, 1)
     IDEXW(0xb7, mov_E2G, movzx, 2)
+    IDEX (0xba, gp2_Ib2E, bt)
     IDEX (0xbd, mov_E2G, bsr)
     IDEXW(0xbe, mov_E2G, movsx, 1)
     IDEXW(0xbf, mov_E2G, movsx, 2)
@@ -205,15 +222,15 @@ IDEXW(0x7c, J, jcc, 1)      IDEXW(0x7d, J, jcc, 1)      IDEXW(0x7e, J, jcc, 1)  
 IDEXW(0x80, I2E, gp1, 1)    IDEX (0x81, I2E, gp1)       EMPTY(0x82)                 IDEX (0x83, SI2E, gp1)
 IDEXW(0x84, G2E, test, 1)   IDEX (0x85, G2E, test)      IDEXW(0x86, G2E, xchg, 1)   IDEX (0x87, G2E, xchg)
 IDEXW(0x88, mov_G2E, mov, 1)IDEX (0x89, mov_G2E, mov)   IDEXW(0x8a, mov_E2G, mov, 1)IDEX (0x8b, mov_E2G, mov)
-EMPTY(0x8c)                 IDEX (0x8d, lea_M2G, lea)
+EMPTY(0x8c)                 IDEX (0x8d, lea_M2G, lea)   IDEXW(0x8e, mov_E2G, mov_rm2sreg, 2) IDEX (0x8f, E, pop)
 EX   (0x90, nop)
 
 EX   (0x98, cwtl)           EX   (0x99, cltd)
-
+EX   (0x9c, pushf)          EX   (0x9d, popf)
 IDEXW(0xa0, O2a, mov, 1)    IDEX (0xa1, O2a, mov)       IDEXW(0xa2, a2O, mov, 1)    IDEX (0xa3, a2O, mov)
-EXW  (0xa4, movs, 1)        EX   (0xa5, movs)
-IDEXW(0xa8, I2a, test, 1)   IDEX (0xa9, I2a, test)
-
+EXW  (0xa4, movs, 1)        EX   (0xa5, movs)           EXW  (0xa6, cmps, 1)
+IDEXW(0xa8, I2a, test, 1)   IDEX (0xa9, I2a, test)                                  IDEX (0xab, aSrc, stos)
+IDEXW(0xac, aDest, lods, 1)                             IDEXW(0xae, aSrc, scas, 1)
 IDEXW(0xb0, mov_I2r, mov, 1)IDEXW(0xb1, mov_I2r, mov, 1)IDEXW(0xb2, mov_I2r, mov, 1)IDEXW(0xb3, mov_I2r, mov, 1)
 IDEXW(0xb4, mov_I2r, mov, 1)IDEXW(0xb5, mov_I2r, mov, 1)IDEXW(0xb6, mov_I2r, mov, 1)IDEXW(0xb7, mov_I2r, mov, 1)
 IDEX (0xb8, mov_I2r, mov)   IDEX (0xb9, mov_I2r, mov)   IDEX (0xba, mov_I2r, mov)   IDEX (0xbb, mov_I2r, mov)
@@ -224,16 +241,18 @@ IDEXW(0xc0, gp2_Ib2E, gp2, 1)IDEX (0xc1, gp2_Ib2E, gp2) IDEXW(0xc2, I, ret_imm, 
                             IDEXW(0xcd, I, int, 1)                                  EX   (0xcf, iret)
 IDEXW(0xd0, gp2_1_E, gp2, 1)IDEX (0xd1, gp2_1_E, gp2)   IDEXW(0xd2, gp2_cl2E, gp2, 1)IDEX (0xd3, gp2_cl2E, gp2)
                                                         EX   (0xd6, nemu_trap)
+                                                                                    EX   (0xdb, fpu)
 
 
 
-
-IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      EMPTY(0xea)                 IDEXW(0xeb, J, jmp, 1)
+IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      IDEXW(0xea, LJ, ljmp, 4)    IDEXW(0xeb, J, jmp, 1)
 IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, out, 1)IDEX (0xef, out_a2dx, out)
 
                                                         IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
-
+                                                        EX   (0xfa, cli)
 EX   (0xfc, cld)                                        IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
+  case 0xf2: s->isa.rep_flags = PREFIX_REPNZ; goto again;
+  case 0xf3: s->isa.rep_flags = PREFIX_REP; goto again;
 #endif
   case 0x66: s->isa.is_operand_size_16 = true; goto again;
   default: exec_inv(s);

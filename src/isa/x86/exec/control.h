@@ -54,6 +54,11 @@ static inline def_EHelper(call_rm) {
   rtl_jr(s, ddest);
   print_asm("call *%s", id_dest->str);
 }
+
+static inline def_EHelper(ljmp) {
+  rtl_j(s, s->jmp_pc);
+  print_asm("ljmp %s,%s", id_src1->str, id_dest->str);
+}
 #else
 static inline def_EHelper(call) {
   // the target address is calculated at the decode stage
