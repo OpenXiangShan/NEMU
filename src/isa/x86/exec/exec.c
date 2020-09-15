@@ -224,7 +224,7 @@ IDEXW(0x84, G2E, test, 1)   IDEX (0x85, G2E, test)      IDEXW(0x86, G2E, xchg, 1
 IDEXW(0x88, mov_G2E, mov, 1)IDEX (0x89, mov_G2E, mov)   IDEXW(0x8a, mov_E2G, mov, 1)IDEX (0x8b, mov_E2G, mov)
 EMPTY(0x8c)                 IDEX (0x8d, lea_M2G, lea)   IDEXW(0x8e, mov_E2G, mov_rm2sreg, 2) IDEX (0x8f, E, pop)
 EX   (0x90, nop)
-
+                                                        IDEX (0x96, a2r, xchg)
 EX   (0x98, cwtl)           EX   (0x99, cltd)
 EX   (0x9c, pushf)          EX   (0x9d, popf)
 IDEXW(0xa0, O2a, mov, 1)    IDEX (0xa1, O2a, mov)       IDEXW(0xa2, a2O, mov, 1)    IDEX (0xa3, a2O, mov)

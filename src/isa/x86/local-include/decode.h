@@ -293,6 +293,12 @@ static inline def_DHelper(aDest) {
   decode_op_a(s, id_dest, false);
 }
 
+// for xchg
+static inline def_DHelper(a2r) {
+  decode_op_a(s, id_src1, true);
+  decode_op_r(s, id_dest, true);
+}
+
 static inline def_DHelper(J) {
   decode_op_SI(s, id_dest, false);
   // the target address can be computed in the decode stage
