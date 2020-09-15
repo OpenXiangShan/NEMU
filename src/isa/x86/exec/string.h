@@ -48,7 +48,7 @@ static inline def_EHelper(scas) {
   int is_repnz = (s->isa.rep_flags == PREFIX_REPNZ);
   while (count --) {
     rtl_lm(s, s0, &cpu.edi, 0, id_dest->width);
-    rtl_setrelop(s, RELOP_NE, s0, s0, dsrc1);
+    rtl_setrelop(s, RELOP_EQ, s0, s0, dsrc1);
     rtl_set_ZF(s, s0);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
     if (s->isa.rep_flags) cpu.ecx --;
@@ -68,7 +68,7 @@ static inline def_EHelper(cmps) {
   while (count --) {
     rtl_lm(s, s0, &cpu.edi, 0, id_dest->width);
     rtl_lm(s, s1, &cpu.esi, 0, id_dest->width);
-    rtl_setrelop(s, RELOP_NE, s0, s0, s1);
+    rtl_setrelop(s, RELOP_EQ, s0, s0, s1);
     rtl_set_ZF(s, s0);
     rtl_addi(s, &cpu.esi, &cpu.esi, id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
