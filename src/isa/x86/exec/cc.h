@@ -73,8 +73,10 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcod
 #ifdef __ICS_EXPORT
   assert(*dest == 0 || *dest == 1);
 #else
+#ifdef __ENGINE_interpreter__
   // we can not do runtime checking in JIT for SDI
-  //assert(*dest == 0 || *dest == 1);
+  assert(*dest == 0 || *dest == 1);
+#endif
 #endif
 }
 
