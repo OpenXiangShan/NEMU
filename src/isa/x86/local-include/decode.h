@@ -117,6 +117,20 @@ static inline def_DHelper(mov_G2E) {
   operand_rm(s, id_dest, false, id_src1, true);
 }
 
+// for bts and btr
+static inline def_DHelper(bit_G2E) {
+  operand_rm(s, id_dest, false, id_src1, true);
+  if (s->isa.mbase) {
+    rtl_shri(s, s0, dsrc1, 5);
+    rtl_shli(s, s0, s0, 2);
+    rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
+    s->isa.mbase = &s->isa.mbr;
+    rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
+  }
+  rtl_andi(s, &id_src1->val, dsrc1, 0x1f);
+  id_src1->preg = &id_src1->val;
+}
+
 /* Gb <- Eb
  * Gv <- Ev
  */
