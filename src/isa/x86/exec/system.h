@@ -38,6 +38,11 @@ static inline def_EHelper(mov_cr2r) {
 }
 
 static inline def_EHelper(mov_rm2sreg) {
+  if (id_dest->reg == 2) { // SS
+#ifndef __DIFF_REF_NEMU__
+    difftest_skip_dut(1, 2);
+#endif
+  }
 //  print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
 }
 
