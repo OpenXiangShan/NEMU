@@ -76,6 +76,22 @@ static inline def_EHelper(xchg) {
   }
   print_asm_template2(xchg);
 }
+
+static inline def_EHelper(cmpxchg) {
+#ifndef __ENGINE_interpreter__
+  panic("not support in engines other than interpreter");
+#endif
+
+  rtl_setrelop(s, RELOP_EQ, s0, dsrc1, ddest);
+  rtl_set_ZF(s, s0);
+  if (cpu.ZF) {
+    operand_write(s, id_dest, dsrc2);
+  } else {
+    operand_write(s, id_src1, ddest);
+  }
+
+  print_asm_template2(cmpxchg);
+}
 #else
 static inline def_EHelper(push) {
   TODO();

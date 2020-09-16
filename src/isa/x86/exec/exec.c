@@ -124,6 +124,7 @@ static inline def_EHelper(2byte_esc) {
     IDEX (0xac, Ib_G2E, shrd)
     IDEX (0xad, cl_G2E, shrd)
     IDEX (0xaf, E2G, imul2)
+    IDEX (0xb1, a_G2E, cmpxchg)
     IDEX (0xb3, bit_G2E, btr)
     IDEXW(0xb6, mov_E2G, movzx, 1)
     IDEXW(0xb7, mov_E2G, movzx, 2)

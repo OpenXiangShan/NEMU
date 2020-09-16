@@ -273,6 +273,13 @@ static inline def_DHelper(cl_G2E) {
   operand_reg(s, id_src1, true, R_ECX, 4);
 }
 
+// for cmpxchg
+static inline def_DHelper(a_G2E) {
+  operand_rm(s, id_dest, true, id_src2, true);
+  operand_reg(s, id_src1, true, R_EAX, 4);
+}
+
+
 static inline def_DHelper(O2a) {
   decode_op_O(s, id_src1, true);
   decode_op_a(s, id_dest, false);
