@@ -1,4 +1,5 @@
 #include <cpu/exec.h>
+#include "monitor/difftest.h"
 #include "local-include/rtl.h"
 
 #ifndef __ICS_EXPORT
@@ -33,6 +34,10 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   rtl_mv(s, &cpu.IF, rz);
 
   rtl_jr(s, s1);
+
+#ifdef DIFF_TEST
+  if (ref_difftest_raise_intr) ref_difftest_raise_intr(NO);
+#endif
 }
 
 #define IRQ_TIMER 32

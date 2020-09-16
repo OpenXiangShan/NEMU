@@ -221,37 +221,23 @@ static inline uint64_t va2pa(uint64_t va) {
 static void kvm_exec(uint64_t n) {
   for (; n > 0; n --) {
     // patching for special instructions
-    switch (vcpu.int_wp_state) {
-      case STATE_IDLE:
-        ; uint32_t pc = va2pa(vcpu.kvm_run->s.regs.regs.rip);
-        if (vm.mem[pc] == 0xcd) { // int
-          uint8_t nr = vm.mem[pc + 1];
-          uint32_t pgate = vcpu.kvm_run->s.regs.sregs.idt.base + nr * 8;
-          // assume code.base = 0
-          uint32_t entry = vm.mem[pgate] | (vm.mem[pgate + 1] << 8) |
-            (vm.mem[pgate + 6] << 16) | (vm.mem[pgate + 7] << 24);
-          kvm_set_step_mode(true, entry);
-          vcpu.int_wp_state = STATE_INT_INSTR;
-          vcpu.entry = entry;
-        }
-        else if (vm.mem[pc] == 0x9c) {  // pushf
-          vcpu.kvm_run->s.regs.regs.rsp -= 4;
-          uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
-          *(uint32_t *)(vm.mem + esp) = vcpu.kvm_run->s.regs.regs.rflags & ~RFLAGS_FIX_MASK;
-          vcpu.kvm_run->s.regs.regs.rflags |= RFLAGS_TF;
-          vcpu.kvm_run->s.regs.regs.rip ++;
-          vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
-          continue;
-        }
-        else if (vm.mem[pc] == 0x9d) {  // popf
-          uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
-          vcpu.kvm_run->s.regs.regs.rflags = *(uint32_t *)(vm.mem + esp) | RFLAGS_TF | 2;
-          vcpu.kvm_run->s.regs.regs.rsp += 4;
-          vcpu.kvm_run->s.regs.regs.rip ++;
-          vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
-          continue;
-        }
-        break;
+    uint32_t pc = va2pa(vcpu.kvm_run->s.regs.regs.rip);
+    if (vm.mem[pc] == 0x9c) {  // pushf
+      vcpu.kvm_run->s.regs.regs.rsp -= 4;
+      uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+      *(uint32_t *)(vm.mem + esp) = vcpu.kvm_run->s.regs.regs.rflags & ~RFLAGS_FIX_MASK;
+      vcpu.kvm_run->s.regs.regs.rflags |= RFLAGS_TF;
+      vcpu.kvm_run->s.regs.regs.rip ++;
+      vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
+      continue;
+    }
+    else if (vm.mem[pc] == 0x9d) {  // popf
+      uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+      vcpu.kvm_run->s.regs.regs.rflags = *(uint32_t *)(vm.mem + esp) | RFLAGS_TF | 2;
+      vcpu.kvm_run->s.regs.regs.rsp += 4;
+      vcpu.kvm_run->s.regs.regs.rip ++;
+      vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
+      continue;
     }
 
     if (ioctl(vcpu.fd, KVM_RUN, 0) < 0) {
@@ -335,6 +321,17 @@ void difftest_setregs(const void *r) {
 
 void difftest_exec(uint64_t n) {
   kvm_exec(n);
+}
+
+void difftest_raise_intr(word_t NO) {
+  uint32_t pgate_vaddr = vcpu.kvm_run->s.regs.sregs.idt.base + NO * 8;
+  uint32_t pgate = va2pa(pgate_vaddr);
+  // assume code.base = 0
+  uint32_t entry = vm.mem[pgate] | (vm.mem[pgate + 1] << 8) |
+    (vm.mem[pgate + 6] << 16) | (vm.mem[pgate + 7] << 24);
+  kvm_set_step_mode(true, entry);
+  vcpu.int_wp_state = STATE_INT_INSTR;
+  vcpu.entry = entry;
 }
 
 void difftest_init(int port) {

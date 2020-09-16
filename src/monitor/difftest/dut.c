@@ -8,6 +8,7 @@ void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
 void (*ref_difftest_getregs)(void *c) = NULL;
 void (*ref_difftest_setregs)(const void *c) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
+void (*ref_difftest_raise_intr)(word_t NO) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
@@ -71,6 +72,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   ref_difftest_exec = dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
+
+  ref_difftest_raise_intr = dlsym(handle, "difftest_raise_intr");
+  assert(ref_difftest_raise_intr);
 
   void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
