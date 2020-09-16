@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <memory/paddr.h>
+#include "local-include/reg.h"
 
 static const uint8_t img []  = {
   0xb8, 0x34, 0x12, 0x00, 0x00,        // 100000:  movl  $0x1234,%eax
@@ -17,7 +18,7 @@ static void restart() {
   /* Set the initial instruction pointer. */
   cpu.pc = PMEM_BASE + IMAGE_START;
 #ifndef __ICS_EXPORT
-  cpu.cs = 0x8;
+  cpu.sreg[SR_CS].val = 0x8;
   cpu.cr0.val = 0x60000011;
 #endif
 }

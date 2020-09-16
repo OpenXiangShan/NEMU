@@ -80,7 +80,6 @@ typedef struct {
 
   vaddr_t pc;
   uint32_t eflags;
-  uint16_t cs;
 
   rtlreg_t OF, CF, SF, ZF, IF, DF;
 
@@ -89,6 +88,15 @@ typedef struct {
   uint32_t cc_width;
   uint32_t cc_op;
 #endif
+
+  union {
+    struct {
+      uint32_t rpl : 2;
+      uint32_t ti  : 1;
+      uint32_t idx :13;
+    };
+    uint16_t val;
+  } sreg[6];
 
   struct {
     uint32_t limit :16;

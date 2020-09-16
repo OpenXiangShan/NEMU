@@ -117,6 +117,8 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0x94, setcc_E, setcc, 1) IDEXW(0x95, setcc_E, setcc, 1) IDEXW(0x96, setcc_E, setcc, 1) IDEXW(0x97, setcc_E, setcc, 1)
     IDEXW(0x98, setcc_E, setcc, 1) IDEXW(0x99, setcc_E, setcc, 1) IDEXW(0x9a, setcc_E, setcc, 1) IDEXW(0x9b, setcc_E, setcc, 1)
     IDEXW(0x9c, setcc_E, setcc, 1) IDEXW(0x9d, setcc_E, setcc, 1) IDEXW(0x9e, setcc_E, setcc, 1) IDEXW(0x9f, setcc_E, setcc, 1)
+    EX   (0xa0, push_fs)
+    EX   (0xa1, pop_fs)
     IDEX (0xa3, bit_G2E, bt)
     IDEX (0xa4, Ib_G2E, shld)
     IDEX (0xa5, cl_G2E, shld)
@@ -190,13 +192,13 @@ again:
 //       1         2         3         4         5         6         7         8         9
 //34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 IDEXW(0x00, G2E, add, 1)    IDEX (0x01, G2E, add)       IDEXW(0x02, E2G, add, 1)    IDEX (0x03, E2G, add)
-EMPTY(0x04)                 IDEX (0x05, I2a, add)
+EMPTY(0x04)                 IDEX (0x05, I2a, add)       EX   (0x06, push_es)        EX   (0x07, pop_es)
 IDEXW(0x08, G2E, or, 1)     IDEX (0x09, G2E, or)        IDEXW(0x0a, E2G, or, 1)     IDEX (0x0b, E2G, or)
 IDEXW(0x0c, I2a, or, 1)     IDEX (0x0d, I2a, or)        EMPTY(0x0e)                 EX   (0x0f, 2byte_esc)
 IDEXW(0x10, G2E, adc, 1)    IDEX (0x11, G2E, adc)       IDEXW(0x12, E2G, adc, 1)    IDEX (0x13, E2G, adc)
 
 IDEXW(0x18, G2E, sbb, 1)    IDEX (0x19, G2E, sbb)       IDEXW(0x1a, E2G, sbb, 1)    IDEX (0x1b, E2G, sbb)
-
+                                                        EX   (0x1e, push_ds)        EX   (0x1f, pop_ds)
 IDEXW(0x20, G2E, and, 1)    IDEX (0x21, G2E, and)       IDEXW(0x22, E2G, and, 1)    IDEX (0x23, E2G, and)
 IDEXW(0x24, I2a, and, 1)    IDEX (0x25, I2a, and)
 IDEXW(0x28, G2E, sub, 1)    IDEX (0x29, G2E, sub)       EMPTY(0x2a)                 IDEX (0x2b, E2G, sub)

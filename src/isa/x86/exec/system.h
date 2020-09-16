@@ -38,12 +38,55 @@ static inline def_EHelper(mov_cr2r) {
 }
 
 static inline def_EHelper(mov_rm2sreg) {
+  cpu.sreg[id_dest->reg].val = *dsrc1;
   if (id_dest->reg == 2) { // SS
 #ifndef __DIFF_REF_NEMU__
     difftest_skip_dut(1, 2);
 #endif
   }
-//  print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
+  print_asm("movw %s,%%%s", id_src1->str, sreg_name(id_dest->reg));
+}
+
+static inline def_EHelper(push_sreg_internal) {
+  rtl_li(s, s0, cpu.sreg[id_dest->reg].val);
+  rtl_push(s, s0);
+  print_asm("push %%%s", sreg_name(id_dest->reg));
+}
+
+static inline def_EHelper(pop_sreg_internal) {
+  rtl_pop(s, s0);
+  cpu.sreg[id_dest->reg].val = *s0;
+  print_asm("pop %%%s", sreg_name(id_dest->reg));
+}
+
+static inline def_EHelper(push_fs) {
+  id_dest->reg = SR_FS;
+  exec_push_sreg_internal(s);
+}
+
+static inline def_EHelper(push_es) {
+  id_dest->reg = SR_ES;
+  exec_push_sreg_internal(s);
+}
+
+static inline def_EHelper(push_ds) {
+  id_dest->reg = SR_DS;
+  exec_push_sreg_internal(s);
+}
+
+static inline def_EHelper(pop_ds) {
+  id_dest->reg = SR_DS;
+  exec_pop_sreg_internal(s);
+}
+
+static inline def_EHelper(pop_es) {
+  id_dest->reg = SR_ES;
+  exec_pop_sreg_internal(s);
+}
+
+static inline def_EHelper(pop_fs) {
+  id_dest->reg = SR_FS;
+  exec_pop_sreg_internal(s);
 }
 
 static inline def_EHelper(int) {
@@ -57,16 +100,20 @@ static inline def_EHelper(int) {
 }
 
 static inline def_EHelper(iret) {
+#ifdef CUSTOM_IRET
   rtl_pop(s, s0);  // esp3, customized
+#endif
   rtl_pop(s, s1);  // eip
   rtl_jr(s, s1);
   rtl_pop(s, s1);  // cs
-  cpu.cs = *s1;
+  cpu.sreg[SR_CS].val = *s1;
   void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
   rtl_pop(s, s1);  // eflags
   rtl_set_eflags(s, s1);
+#ifdef CUSTOM_IRET
   // customized: switch to user stack
   if (*s0 != 0) rtl_mv(s, &cpu.esp, s0);
+#endif
 
   print_asm("iret");
 

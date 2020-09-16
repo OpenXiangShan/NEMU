@@ -57,6 +57,7 @@ static inline def_EHelper(call_rm) {
 
 static inline def_EHelper(ljmp) {
   rtl_j(s, s->jmp_pc);
+  cpu.sreg[SR_CS].val = id_src1->imm;
   print_asm("ljmp %s,%s", id_src1->str, id_dest->str);
 }
 #else
