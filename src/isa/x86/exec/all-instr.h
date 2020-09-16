@@ -7,6 +7,7 @@
 #include "string.h"
 #include "system.h"
 #include "eflags.h"
+#include "bit.h"
 
 def_EHelper(nop);
 def_EHelper(fpu);
