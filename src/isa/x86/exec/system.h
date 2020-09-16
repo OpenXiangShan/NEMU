@@ -100,6 +100,17 @@ static inline def_EHelper(out) {
 
   print_asm_template2(out);
 }
+
+static inline def_EHelper(invlpg) {
+}
+
+static inline def_EHelper(ltr) {
+}
+
+static inline def_EHelper(mov_r2dr) {
+}
+
+
 #else
 static inline def_EHelper(lidt) {
   TODO();

@@ -79,7 +79,7 @@ static inline def_EHelper(gp5) {
 /* 0x0f 0x00*/
 static inline def_EHelper(gp6) {
   switch (s->isa.ext_opcode) {
-    EMPTY(0) EMPTY(1) EXW  (2, lldt, -1) EMPTY(3)
+    EMPTY(0) EMPTY(1) EXW  (2, lldt, -1) EXW  (3, ltr, -1)
     EMPTY(4) EMPTY(5) EMPTY(6)           EMPTY(7)
   }
 }
@@ -93,7 +93,7 @@ static inline def_EHelper(gp7) {
     EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
 #else
     EMPTY(0) EMPTY(1) EXW  (2, lgdt, -1) EXW  (3, lidt, -1)
-    EMPTY(4) EMPTY(5) EMPTY(6)           EMPTY(7)
+    EMPTY(4) EMPTY(5) EMPTY(6)           EXW  (7, invlpg, -1)
 #endif
   }
 }
@@ -108,6 +108,7 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0x00, gp6_E, gp6, 2)
     IDEX (0x20, mov_G2E, mov_cr2r)
     IDEX (0x22, mov_E2G, mov_r2cr)
+    IDEX (0x23, mov_E2G, mov_r2dr)
     IDEXW(0x80, J, jcc, 4) IDEXW(0x81, J, jcc, 4) IDEXW(0x82, J, jcc, 4) IDEXW(0x83, J, jcc, 4)
     IDEXW(0x84, J, jcc, 4) IDEXW(0x85, J, jcc, 4) IDEXW(0x86, J, jcc, 4) IDEXW(0x87, J, jcc, 4)
     IDEXW(0x88, J, jcc, 4) IDEXW(0x89, J, jcc, 4) IDEXW(0x8a, J, jcc, 4) IDEXW(0x8b, J, jcc, 4)
@@ -229,7 +230,7 @@ EX   (0x98, cwtl)           EX   (0x99, cltd)
 EX   (0x9c, pushf)          EX   (0x9d, popf)
 IDEXW(0xa0, O2a, mov, 1)    IDEX (0xa1, O2a, mov)       IDEXW(0xa2, a2O, mov, 1)    IDEX (0xa3, a2O, mov)
 EXW  (0xa4, movs, 1)        EX   (0xa5, movs)           EXW  (0xa6, cmps, 1)
-IDEXW(0xa8, I2a, test, 1)   IDEX (0xa9, I2a, test)                                  IDEX (0xab, aSrc, stos)
+IDEXW(0xa8, I2a, test, 1)   IDEX (0xa9, I2a, test)      IDEXW(0xaa, aSrc, stos, 1)  IDEX (0xab, aSrc, stos)
 IDEXW(0xac, aDest, lods, 1)                             IDEXW(0xae, aSrc, scas, 1)
 IDEXW(0xb0, mov_I2r, mov, 1)IDEXW(0xb1, mov_I2r, mov, 1)IDEXW(0xb2, mov_I2r, mov, 1)IDEXW(0xb3, mov_I2r, mov, 1)
 IDEXW(0xb4, mov_I2r, mov, 1)IDEXW(0xb5, mov_I2r, mov, 1)IDEXW(0xb6, mov_I2r, mov, 1)IDEXW(0xb7, mov_I2r, mov, 1)
