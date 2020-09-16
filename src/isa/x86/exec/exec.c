@@ -116,7 +116,6 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0x94, setcc_E, setcc, 1) IDEXW(0x95, setcc_E, setcc, 1) IDEXW(0x96, setcc_E, setcc, 1) IDEXW(0x97, setcc_E, setcc, 1)
     IDEXW(0x98, setcc_E, setcc, 1) IDEXW(0x99, setcc_E, setcc, 1) IDEXW(0x9a, setcc_E, setcc, 1) IDEXW(0x9b, setcc_E, setcc, 1)
     IDEXW(0x9c, setcc_E, setcc, 1) IDEXW(0x9d, setcc_E, setcc, 1) IDEXW(0x9e, setcc_E, setcc, 1) IDEXW(0x9f, setcc_E, setcc, 1)
-    // earlyprintk=serial,ttyS0 console=ttyS0
     IDEX (0xa3, bit_G2E, bt)
     IDEX (0xa4, Ib_G2E, shld)
     IDEX (0xa5, cl_G2E, shld)
@@ -128,6 +127,7 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0xb6, mov_E2G, movzx, 1)
     IDEXW(0xb7, mov_E2G, movzx, 2)
     IDEX (0xba, gp2_Ib2E, bt)
+    IDEX (0xbc, mov_E2G, bsf)
     IDEX (0xbd, mov_E2G, bsr)
     IDEXW(0xbe, mov_E2G, movsx, 1)
     IDEXW(0xbf, mov_E2G, movsx, 2)

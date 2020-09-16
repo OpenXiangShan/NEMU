@@ -169,6 +169,20 @@ static inline def_EHelper(shrd) {
   print_asm_template3(shrd);
 }
 
+static inline def_EHelper(bsf) {
+#ifndef __ENGINE_interpreter__
+  panic("not support in engines other than interpreter");
+#endif
+
+  int bit = 0;
+  if (*dsrc1 != 0) {
+    while ((*dsrc1 & (1u << bit)) == 0) bit++;
+    *ddest = bit;
+    operand_write(s, id_dest, ddest);
+  }
+  print_asm_template2(bsf);
+}
+
 static inline def_EHelper(bsr) {
 #ifndef __ENGINE_interpreter__
   panic("not support in engines other than interpreter");
