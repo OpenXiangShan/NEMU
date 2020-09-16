@@ -174,6 +174,9 @@ static inline def_EHelper(bsf) {
   panic("not support in engines other than interpreter");
 #endif
 
+  rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
+  rtl_set_ZF(s, s0);
+
   int bit = 0;
   if (*dsrc1 != 0) {
     while ((*dsrc1 & (1u << bit)) == 0) bit++;
@@ -187,6 +190,9 @@ static inline def_EHelper(bsr) {
 #ifndef __ENGINE_interpreter__
   panic("not support in engines other than interpreter");
 #endif
+
+  rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
+  rtl_set_ZF(s, s0);
 
   int bit = 31;
   if (*dsrc1 != 0) {
