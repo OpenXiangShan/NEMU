@@ -30,8 +30,8 @@ typedef union CR0 {
 /* the Control Register 3 (physical address of page directory) */
 typedef union CR3 {
   struct {
-    uint32_t pad0                : 12;
-    uint32_t page_directory_base : 20;
+    uint32_t pad : 12;
+    uint32_t ppn : 20;
   };
   uint32_t val;
 } CR3;
@@ -104,6 +104,10 @@ typedef struct {
       CR3 cr3;
     };
   };
+
+  uint8_t mode;
+  int mem_exception;
+  word_t error_code;
 
   bool INTR;
 #endif

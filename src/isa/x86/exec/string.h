@@ -1,3 +1,5 @@
+#include "../local-include/mmu.h"
+
 static inline def_EHelper(movs) {
 #ifndef __ENGINE_interpreter__
   panic("not support in engines other than interpreter");
@@ -6,7 +8,9 @@ static inline def_EHelper(movs) {
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_lm(s, s0, &cpu.esi, 0, id_dest->width);
+    return_on_mem_ex();
     rtl_sm(s, &cpu.edi, 0, s0, id_dest->width);
+    return_on_mem_ex();
 
     rtl_addi(s, &cpu.esi, &cpu.esi, id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);

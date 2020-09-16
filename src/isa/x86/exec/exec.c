@@ -276,6 +276,11 @@ vaddr_t isa_exec_once() {
   s.seq_pc = cpu.pc;
 
   fetch_decode_exec(&s);
+  if (cpu.mem_exception != 0) {
+    void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
+    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.mem_exception = 0;
+  }
   update_pc(&s);
 
 #ifndef __ICS_EXPORT
