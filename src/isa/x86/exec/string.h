@@ -11,7 +11,7 @@ static inline def_EHelper(movs) {
     rtl_addi(s, &cpu.esi, &cpu.esi, id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
   }
-  if (s->isa.rep_flags) {
+  if (s->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if (count - 1 != 0) rtl_j(s, cpu.pc);
   }
@@ -37,7 +37,7 @@ static inline def_EHelper(stos) {
     rtl_sm(s, &cpu.edi, 0, dsrc1, id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
   }
-  if (s->isa.rep_flags) {
+  if (s->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if (count - 1 != 0) rtl_j(s, cpu.pc);
   }
@@ -58,7 +58,7 @@ static inline def_EHelper(scas) {
     rtl_set_ZF(s, s0);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
   }
-  if (s->isa.rep_flags) {
+  if (s->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if ((count - 1 != 0) && (is_repnz ^ cpu.ZF)) rtl_j(s, cpu.pc);
   }
@@ -81,7 +81,7 @@ static inline def_EHelper(cmps) {
     rtl_addi(s, &cpu.esi, &cpu.esi, id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
   }
-  if (s->isa.rep_flags) {
+  if (s->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if ((count - 1 != 0) && (is_repnz ^ cpu.ZF)) rtl_j(s, cpu.pc);
   }
