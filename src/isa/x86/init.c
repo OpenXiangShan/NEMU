@@ -33,4 +33,13 @@ void init_isa() {
 
   /* Initialize this virtual computer system. */
   restart();
+
+  void init_i8259a();
+  void init_mc146818rtc();
+  void init_i8253();
+  void init_ioport80();
+  init_i8259a();
+  init_mc146818rtc();
+  init_i8253();
+  init_ioport80();
 }
