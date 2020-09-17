@@ -6,11 +6,9 @@
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   assert(NO < 256);
   int old_cs = cpu.sreg[SR_CS].val;
-  if (NO < 32) {
-    // internal exception does not check priviledge
-    // fetch the gate descriptor with ring 0
-    cpu.sreg[SR_CS].rpl = 0;
-  }
+  // fetch the gate descriptor with ring 0
+  cpu.sreg[SR_CS].rpl = 0;
+
   rtl_li(s, s0, cpu.idtr.base);
   rtl_lm(s, s1, s0, NO << 3, 4);
   rtl_lm(s, s0, s0, (NO << 3) + 4, 4);
