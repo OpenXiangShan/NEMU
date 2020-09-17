@@ -47,6 +47,12 @@ static inline def_EHelper(mov_rm2sreg) {
   print_asm("movw %s,%%%s", id_src1->str, sreg_name(id_dest->reg));
 }
 
+static inline def_EHelper(mov_sreg2rm) {
+  rtl_li(s, s0, cpu.sreg[id_src1->reg].val);
+  operand_write(s, id_dest, s0);
+  print_asm("movw %%%s,%s", sreg_name(id_src1->reg), id_dest->str);
+}
+
 static inline def_EHelper(push_sreg_internal) {
   rtl_li(s, s0, cpu.sreg[id_dest->reg].val);
   rtl_push(s, s0);
