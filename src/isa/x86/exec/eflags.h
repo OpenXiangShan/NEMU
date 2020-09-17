@@ -8,6 +8,12 @@ static inline def_EHelper(cli) {
   print_asm("cli");
 }
 
+static inline def_EHelper(sti) {
+  rtl_li(s, s0, 1);
+  rtl_set_IF(s, s0);
+  print_asm("sti");
+}
+
 static inline def_EHelper(pushf) {
   void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
   rtl_compute_eflags(s, s0);
