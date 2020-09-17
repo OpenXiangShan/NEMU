@@ -7,8 +7,7 @@ def_EHelper(nop) {
 }
 
 def_EHelper(fpu) {
-  uint8_t byte = instr_fetch(&s->seq_pc, 1);
-  Log("unimplemented FP instruction: code = 0x%x", byte);
+  Log("unimplemented FP instruction: cpu.pc = 0x%x", cpu.pc);
   print_asm("fpu");
 }
 
