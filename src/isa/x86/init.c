@@ -38,8 +38,10 @@ void init_isa() {
   void init_mc146818rtc();
   void init_i8253();
   void init_ioport80();
+  void init_i8237a();
   init_i8259a();
   init_mc146818rtc();
   init_i8253();
   init_ioport80();
+  init_i8237a();
 }
