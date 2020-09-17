@@ -63,3 +63,26 @@ static inline def_EHelper(btr) {
   operand_write(s, id_dest, ddest);
   print_asm_template2(btr);
 }
+
+static inline def_EHelper(bswap) {
+  // src[7:0]
+  rtl_shli(s, s1, ddest, 24);
+
+  // src[31:24]
+  rtl_shri(s, s0, ddest, 24);
+  rtl_or(s, s1, s1, s0);
+
+  // src[15:8]
+  rtl_shli(s, s0, ddest, 8);
+  rtl_andi(s, s0, s0, 0xff0000);
+  rtl_or(s, s1, s1, s0);
+
+  // src[23:16]
+  rtl_shri(s, s0, ddest, 8);
+  rtl_andi(s, s0, s0, 0xff00);
+  rtl_or(s, ddest, s1, s0);
+
+  operand_write(s, id_dest, ddest);
+
+  print_asm_template1(bswap);
+}

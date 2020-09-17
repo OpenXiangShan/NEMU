@@ -97,6 +97,26 @@ static inline def_EHelper(neg) {
 #endif
   print_asm_template1(neg);
 }
+
+static inline def_EHelper(xadd) {
+  rtl_add(s, s0, ddest, dsrc1);
+#ifdef LAZY_CC
+  rtl_set_lazycc_src1(s, dsrc1);
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_ADD, id_dest->width);
+#else
+  rtl_update_ZFSF(s, s0, id_dest->width);
+  if (id_dest->width != 4) {
+    rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - id_dest->width) * 8));
+  }
+  rtl_is_add_carry(s, s1, s0, ddest);
+  rtl_set_CF(s, s1);
+  rtl_is_add_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
+  rtl_set_OF(s, s1);
+#endif
+  operand_write(s, id_src1, ddest);
+  operand_write(s, id_dest, s0);
+  print_asm_template2(xadd);
+}
 #else
 static inline def_EHelper(add) {
   TODO();
