@@ -155,6 +155,7 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
   uint8_t opcode;
 again:
   opcode = instr_fetch(&s->seq_pc, 1);
+  return_on_mem_ex();
   s->opcode = opcode;
   switch (opcode) {
 #ifdef __ICS_EXPORT
