@@ -272,6 +272,9 @@ static inline def_EHelper(imul3) {
   rtl_sext(s, dsrc2, dsrc2, id_src1->width);
 
   rtl_imul_lo(s, ddest, dsrc2, dsrc1);
+#ifndef __DIFF_REF_NEMU__
+  rtl_set_ZF(s, rz);
+#endif
   operand_write(s, id_dest, ddest);
 
   print_asm_template3(imul);
