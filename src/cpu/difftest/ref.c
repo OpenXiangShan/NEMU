@@ -20,6 +20,10 @@ void difftest_raise_intr(word_t NO) {
   isa_difftest_raise_intr(NO);
 }
 
+void difftest_sync(uint64_t *sync) {
+  isa_difftest_sync(sync);
+}
+
 void difftest_init() {
   /* Perform ISA dependent initialization. */
   init_isa();

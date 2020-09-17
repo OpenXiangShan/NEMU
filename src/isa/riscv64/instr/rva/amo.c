@@ -8,13 +8,14 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   if (funct5 == 0b00010) { // lr
     rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     cpu.lr_addr = *src1;
+    cpu.lr_valid = 1;
     return;
   } else if (funct5 == 0b00011) { // sc
     // should check overlapping instead of equality
-    int success = cpu.lr_addr == *src1;
+    int success = cpu.lr_addr == *src1 && cpu.lr_valid;
     if (success) {
       rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
-      cpu.lr_addr = -1;
+      cpu.lr_valid = 0;
     }
     rtl_li(s, dest, !success);
     return;

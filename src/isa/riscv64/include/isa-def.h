@@ -25,6 +25,7 @@ typedef struct {
 
   // for LR/SC
   uint64_t lr_addr;
+  uint64_t lr_valid;
 
   bool INTR;
 } riscv64_CPU_state;

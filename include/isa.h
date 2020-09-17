@@ -49,5 +49,6 @@ void isa_difftest_attach();
   // for ref
 void isa_difftest_regcpy(void *dut, bool direction);
 void isa_difftest_raise_intr(word_t NO);
+void isa_difftest_sync(uint64_t *sync);
 
 #endif

@@ -50,6 +50,20 @@ void isa_difftest_regcpy(void *dut, bool direction) {
   }
 }
 
+void isa_difftest_sync(uint64_t *sync) {
+  // sync[0] lrscValid
+  uint64_t lrscValid = sync[0];
+  // sync[1] lrscAddr
+  uint64_t lrscAddr = sync[1];
+  if(!lrscValid && cpu.lr_valid){
+    cpu.lr_valid = 0;
+    printf("NEMU skipped a timeout sc");
+    if(lrscAddr != cpu.lr_addr){
+      printf("[Warning] NEMU skipped a timeout sc, but lr_addr does not match\n");
+    }
+  }
+}
+
 void isa_difftest_raise_intr(word_t NO) {
   cpu.pc = raise_intr(NO, cpu.pc);
 }
