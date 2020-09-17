@@ -213,33 +213,38 @@ static inline uint64_t va2pa(uint64_t va) {
     struct kvm_translation t = { .linear_address = va };
     int ret = ioctl(vcpu.fd, KVM_TRANSLATE, &t);
     assert(ret == 0);
-    assert(t.valid);
-    return t.physical_address;
+    return t.valid ? t.physical_address : -1ull;
   }
   return va;
 }
 
+static inline int patching() {
+  // patching for special instructions
+  uint32_t pc = va2pa(vcpu.kvm_run->s.regs.regs.rip);
+  if (pc == 0xffffffff) return 0;
+  if (vm.mem[pc] == 0x9c) {  // pushf
+    vcpu.kvm_run->s.regs.regs.rsp -= 4;
+    uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+    *(uint32_t *)(vm.mem + esp) = vcpu.kvm_run->s.regs.regs.rflags & ~RFLAGS_FIX_MASK;
+    vcpu.kvm_run->s.regs.regs.rflags |= RFLAGS_TF;
+    vcpu.kvm_run->s.regs.regs.rip ++;
+    vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
+    return 1;
+  }
+  else if (vm.mem[pc] == 0x9d) {  // popf
+    uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+    vcpu.kvm_run->s.regs.regs.rflags = *(uint32_t *)(vm.mem + esp) | RFLAGS_TF | 2;
+    vcpu.kvm_run->s.regs.regs.rsp += 4;
+    vcpu.kvm_run->s.regs.regs.rip ++;
+    vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
+    return 1;
+  }
+  return 0;
+}
+
 static void kvm_exec(uint64_t n) {
   for (; n > 0; n --) {
-    // patching for special instructions
-    uint32_t pc = va2pa(vcpu.kvm_run->s.regs.regs.rip);
-    if (vm.mem[pc] == 0x9c) {  // pushf
-      vcpu.kvm_run->s.regs.regs.rsp -= 4;
-      uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
-      *(uint32_t *)(vm.mem + esp) = vcpu.kvm_run->s.regs.regs.rflags & ~RFLAGS_FIX_MASK;
-      vcpu.kvm_run->s.regs.regs.rflags |= RFLAGS_TF;
-      vcpu.kvm_run->s.regs.regs.rip ++;
-      vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
-      continue;
-    }
-    else if (vm.mem[pc] == 0x9d) {  // popf
-      uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
-      vcpu.kvm_run->s.regs.regs.rflags = *(uint32_t *)(vm.mem + esp) | RFLAGS_TF | 2;
-      vcpu.kvm_run->s.regs.regs.rsp += 4;
-      vcpu.kvm_run->s.regs.regs.rip ++;
-      vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
-      continue;
-    }
+    if (patching()) continue;
 
     if (ioctl(vcpu.fd, KVM_RUN, 0) < 0) {
       if (errno == EINTR) {
