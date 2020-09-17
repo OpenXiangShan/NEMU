@@ -108,24 +108,32 @@ static inline def_EHelper(int) {
 static inline def_EHelper(iret) {
 #ifdef CUSTOM_IRET
   rtl_pop(s, s0);  // esp3, customized
+#else
+  int old_cpl = cpu.sreg[SR_CS].rpl;
 #endif
   rtl_pop(s, s1);  // eip
   rtl_jr(s, s1);
   rtl_pop(s, s1);  // cs
-  cpu.sreg[SR_CS].val = *s1;
+  uint16_t new_cs = *s1;
   void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
   rtl_pop(s, s1);  // eflags
   rtl_set_eflags(s, s1);
 #ifdef CUSTOM_IRET
   // customized: switch to user stack
   if (*s0 != 0) rtl_mv(s, &cpu.esp, s0);
+#else
+  int new_cpl = new_cs & 0x3;
+  if (new_cpl > old_cpl) {
+    // return to user
+    rtl_pop(s, s0);  // esp3
+    rtl_pop(s, s1);  // ss
+    rtl_mv(s, &cpu.esp, s0);
+    cpu.sreg[SR_SS].val = *s1;
+  }
 #endif
+  cpu.sreg[SR_CS].val = new_cs;
 
   print_asm("iret");
-
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_ref();
-#endif
 }
 
 static inline def_EHelper(in) {
