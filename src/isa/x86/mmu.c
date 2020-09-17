@@ -3,6 +3,7 @@
 #include <memory/paddr.h>
 #ifndef __ICS_EXPORT
 #include "local-include/mmu.h"
+#include "local-include/reg.h"
 
 typedef union PageTableEntry {
   struct {
@@ -38,7 +39,7 @@ static inline word_t VPNi(vaddr_t va, int i) {
 }
 
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
-  int is_user = cpu.mode == MODE_R3;
+  int is_user = cpu.sreg[SR_CS].rpl == MODE_R3;
   int is_write = type == MEM_TYPE_WRITE;
   ok = ok && pte->p;
   ok = ok && !(is_user && !pte->u);

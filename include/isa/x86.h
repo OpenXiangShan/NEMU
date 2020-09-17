@@ -113,7 +113,6 @@ typedef struct {
     };
   };
 
-  uint8_t mode;
   int mem_exception;
   word_t error_code;
 
