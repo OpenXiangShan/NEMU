@@ -21,6 +21,10 @@ void difftest_setregs(const void *r) {
   isa_difftest_setregs(r);
 }
 
+void difftest_sync(uint64_t *sync) {
+  isa_difftest_sync(sync);
+}
+
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }

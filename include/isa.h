@@ -38,5 +38,6 @@ void isa_difftest_attach();
 void isa_difftest_getregs(void *r);
 void isa_difftest_setregs(const void *r);
 void isa_difftest_raise_intr(word_t NO);
+void isa_difftest_sync(uint64_t *sync);
 
 #endif

@@ -4,6 +4,7 @@ static inline make_EHelper(lr) {
   rtl_lm(s, s0, dsrc1, 0, s->width);
   return_on_mem_ex();
   cpu.lr_addr = *dsrc1;
+  cpu.lr_valid = 1;
   rtl_sext(s, ddest, s0, s->width);
 
   print_asm_template3(lr);
@@ -11,11 +12,12 @@ static inline make_EHelper(lr) {
 
 static inline make_EHelper(sc) {
   // should check overlapping instead of equality
-  if (cpu.lr_addr == *dsrc1) {
+  if (cpu.lr_addr == *dsrc1 && cpu.lr_valid) {
     rtl_sm(s, dsrc1, 0, dsrc2, s->width);
     return_on_mem_ex();
     rtl_li(s, s0, 0);
-    cpu.lr_addr = -1;
+    // cpu.lr_addr = -1;
+    cpu.lr_valid = 0;
   } else {
     rtl_li(s, s0, 1);
   }
