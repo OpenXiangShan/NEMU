@@ -96,12 +96,12 @@ typedef struct {
       uint32_t idx :13;
     };
     uint16_t val;
-  } sreg[6];
+  } sreg[8];
 
   struct {
     uint32_t limit :16;
     uint32_t base  :32;
-  } idtr;
+  } idtr, gdtr;
 
   union {
     rtlreg_t cr[4];

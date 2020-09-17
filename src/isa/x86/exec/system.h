@@ -16,10 +16,14 @@ static inline def_EHelper(lidt) {
 }
 
 static inline def_EHelper(lgdt) {
+  word_t addr = *s->isa.mbase + s->isa.moff;
+  cpu.gdtr.limit = vaddr_read(addr, 2);
+  cpu.gdtr.base = vaddr_read(addr + 2, 4);
   print_asm_template1(lgdt);
 }
 
 static inline def_EHelper(lldt) {
+  cpu.sreg[SR_LDTR].val = *ddest;
   print_asm_template1(lldt);
 }
 
@@ -166,6 +170,8 @@ static inline def_EHelper(invlpg) {
 }
 
 static inline def_EHelper(ltr) {
+  cpu.sreg[SR_TR].val = *ddest;
+  print_asm_template1(ltr);
 }
 
 static inline def_EHelper(mov_r2dr) {
