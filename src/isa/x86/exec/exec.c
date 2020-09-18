@@ -267,6 +267,7 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
                                                         IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
                                                         EX   (0xfa, cli)            EX   (0xfb, sti)
 EX   (0xfc, cld)                                        IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
+  case 0xf0: goto again; // LOCK prefix
   case 0xf2: s->isa.rep_flags = PREFIX_REPNZ; goto again;
   case 0xf3: s->isa.rep_flags = PREFIX_REP; goto again;
 #endif
