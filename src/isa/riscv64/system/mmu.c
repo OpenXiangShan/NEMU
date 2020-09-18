@@ -144,7 +144,31 @@ int update_mmu_state() {
 }
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
-  if (type == MEM_TYPE_IFETCH) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
+  bool is_ifetch = type == MEM_TYPE_IFETCH;
+  // riscv-privileged 4.4.1: Addressing and Memory Protection: 
+  // Instruction fetch addresses and load and store effective addresses, 
+  // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
+  bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && satp->mode == 8;
+  word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
+  word_t va_msbs = vaddr >> 38;
+  bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
+  if(!va_msbs_ok){
+    if(is_ifetch){
+      stval->val = vaddr;
+      cpu.mem_exception = EX_IPF;
+    } else if(type == MEM_TYPE_READ){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = (cpu.amo ? EX_SPF : EX_LPF);
+    } else {
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = EX_SPF;
+    }
+    return MEM_RET_FAIL;
+  }
+
+  if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     assert(0);
     mtval->val = vaddr;
