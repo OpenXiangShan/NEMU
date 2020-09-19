@@ -25,14 +25,17 @@ typedef struct {
   uint64_t pc;
   uint64_t mstatus, mcause, mepc;
   uint64_t sstatus, scause, sepc;
+  
+  uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
 
-  uint8_t mode;
+  uint64_t mode;
 
   bool amo;
   int mem_exception;
 
   // for LR/SC
   uint64_t lr_addr;
+  uint64_t lr_valid;
 
   bool INTR;
 } riscv64_CPU_state;
