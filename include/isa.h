@@ -40,5 +40,6 @@ void isa_difftest_getregs(void *r);
 void isa_difftest_setregs(const void *r);
 void isa_difftest_raise_intr(word_t NO);
 void isa_difftest_sync(uint64_t *sync);
+bool isa_difftest_microarchitectural_pf_check(vaddr_t addr);
 
 #endif
