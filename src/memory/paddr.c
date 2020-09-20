@@ -6,6 +6,7 @@
 #include <time.h>
 
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
+bool pmem_dirty[PMEM_SIZE] PG_ALIGN = {0};
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
 paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
@@ -41,16 +42,36 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 }
 
 static inline void pmem_write(paddr_t addr, word_t data, int len) {
+  // write to pmem, mark pmem addr as dirty
   void *p = &pmem[addr - PMEM_BASE];
   switch (len) {
-    case 1: *(uint8_t  *)p = data; return;
-    case 2: *(uint16_t *)p = data; return;
-    case 4: *(uint32_t *)p = data; return;
+    case 1: 
+      *(uint8_t  *)p = data;
+      pmem_dirty[addr - PMEM_BASE] = true;
+      return;
+    case 2: 
+      *(uint16_t *)p = data;
+      for(int i = 0; i < 2; i++)
+        pmem_dirty[addr - PMEM_BASE + i] = true;
+      return;
+    case 4: 
+      *(uint32_t *)p = data;
+      for(int i = 0; i < 4; i++)
+        pmem_dirty[addr - PMEM_BASE + i] = true;
+      return;
 #ifdef ISA64
-    case 8: *(uint64_t *)p = data; return;
+    case 8: 
+      *(uint64_t *)p = data;
+      for(int i = 0; i < 8; i++)
+        pmem_dirty[addr - PMEM_BASE + i] = true;
+      return;
 #endif
     default: assert(0);
   }
+}
+
+inline void rtl_sfence() {
+  memset(pmem_dirty, 0, PMEM_SIZE / sizeof(char));
 }
 
 /* Memory accessing interfaces */
@@ -63,6 +84,33 @@ inline word_t paddr_read(paddr_t addr, int len) {
 inline void paddr_write(paddr_t addr, word_t data, int len) {
   if (in_pmem(addr)) pmem_write(addr, data, len);
   else map_write(addr, data, len, fetch_mmio_map(addr));
+}
+
+bool is_sfence_safe(paddr_t addr, int len) {
+  if (in_pmem(addr)){
+    bool dirty = false;
+    switch (len) {
+      case 1: return !pmem_dirty[addr - PMEM_BASE];
+      case 2: 
+        for(int i =0; i < 2; i++){
+          dirty |= pmem_dirty[addr - PMEM_BASE + i];
+        }
+        return !dirty;
+      case 4:
+        for(int i =0; i < 4; i++){
+          dirty |= pmem_dirty[addr - PMEM_BASE + i];
+        }
+        return !dirty;
+  #ifdef ISA64
+      case 8:
+        for(int i =0; i < 8; i++){
+          dirty |= pmem_dirty[addr - PMEM_BASE + i];
+        }
+        return !dirty;
+  #endif
+      default: assert(0);
+    }
+  } else return true;
 }
 
 word_t vaddr_mmu_read(vaddr_t addr, int len, int type);

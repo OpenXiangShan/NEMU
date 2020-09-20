@@ -153,6 +153,47 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   return MEM_RET_OK;
 }
 
+// Check if pte has been sfenced
+//
+// In several cases, there are mutliple legal control flows.
+// e.g. pte may be still in sbuffer before it is used if sfence is not execuated
+bool ptw_is_safe(vaddr_t vaddr) {
+#ifdef ISA64
+  int rsize = 8;
+#else
+  int rsize = 4;
+#endif
+  word_t pg_base = PGBASE(satp->ppn);
+  word_t p_pte; // pte pointer
+  PTE pte;
+  int level;
+  for (level = PTW_LEVEL - 1; level >= 0;) {
+    p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+    pte.val	= paddr_read(p_pte, PTE_SIZE);
+    if(!is_sfence_safe(p_pte, rsize))
+      return false;
+    pg_base = PGBASE(pte.ppn);
+    if (!pte.v) {
+      //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
+      //    ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
+      //    level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
+      break;
+    }
+    if (pte.r || pte.x) { break; }
+    else {
+      level --;
+      if (level < 0)
+        return true;
+    }
+  }
+
+  return true;
+}
+
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   return ptw(vaddr, type);
+}
+
+bool isa_mmu_safe(vaddr_t vaddr) {
+  return ptw_is_safe(vaddr);
 }
