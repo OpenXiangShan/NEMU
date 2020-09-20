@@ -70,7 +70,7 @@ static inline void pmem_write(paddr_t addr, word_t data, int len) {
   }
 }
 
-inline void rtl_sfence() {
+void rtl_sfence() {
   memset(pmem_dirty, 0, PMEM_SIZE / sizeof(char));
 }
 
