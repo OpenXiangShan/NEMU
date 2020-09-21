@@ -89,13 +89,17 @@ typedef struct {
   uint32_t cc_op;
 #endif
 
-  union {
-    struct {
-      uint32_t rpl : 2;
-      uint32_t ti  : 1;
-      uint32_t idx :13;
+  struct {
+    union {
+      struct {
+        uint32_t rpl : 2;
+        uint32_t ti  : 1;
+        uint32_t idx :13;
+      };
+      uint16_t val;
     };
-    uint16_t val;
+    // hidden part
+    rtlreg_t base;
   } sreg[8];
 
   struct {
@@ -127,6 +131,7 @@ typedef struct {
 #define PREFIX_REPNZ 2
   int rep_flags;
   uint8_t ext_opcode;
+  const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
   rtlreg_t mbr;
   word_t moff;

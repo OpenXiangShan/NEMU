@@ -8,6 +8,8 @@ void pio_write_w(ioaddr_t, uint32_t);
 void pio_write_b(ioaddr_t, uint32_t);
 
 #ifndef __ICS_EXPORT
+void load_sreg(int idx, uint16_t val);
+
 static inline def_EHelper(lidt) {
   word_t addr = *s->isa.mbase + s->isa.moff;
   cpu.idtr.limit = vaddr_read(addr, 2);
@@ -23,7 +25,7 @@ static inline def_EHelper(lgdt) {
 }
 
 static inline def_EHelper(lldt) {
-  cpu.sreg[SR_LDTR].val = *ddest;
+  load_sreg(SR_LDTR, *ddest);
   print_asm_template1(lldt);
 }
 
@@ -42,7 +44,7 @@ static inline def_EHelper(mov_cr2r) {
 }
 
 static inline def_EHelper(mov_rm2sreg) {
-  cpu.sreg[id_dest->reg].val = *dsrc1;
+  load_sreg(id_dest->reg, *dsrc1);
   if (id_dest->reg == 2) { // SS
 #ifndef __DIFF_REF_NEMU__
     difftest_skip_dut(1, 2);
@@ -65,7 +67,7 @@ static inline def_EHelper(push_sreg_internal) {
 
 static inline def_EHelper(pop_sreg_internal) {
   rtl_pop(s, s0);
-  cpu.sreg[id_dest->reg].val = *s0;
+  load_sreg(id_dest->reg, *s0);
   print_asm("pop %%%s", sreg_name(id_dest->reg));
 }
 
@@ -170,7 +172,7 @@ static inline def_EHelper(invlpg) {
 }
 
 static inline def_EHelper(ltr) {
-  cpu.sreg[SR_TR].val = *ddest;
+  load_sreg(SR_TR, *ddest);
   print_asm_template1(ltr);
 }
 

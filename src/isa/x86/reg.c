@@ -42,6 +42,8 @@ void reg_test() {
 }
 
 #ifndef __ICS_EXPORT
+#include <memory/vaddr.h>
+
 void isa_reg_display() {
   int i;
   for (i = 0; i < 8; i ++) {
@@ -63,6 +65,24 @@ word_t isa_reg_str2val(const char *s, bool *success) {
 
   *success = false;
   return 0;
+}
+
+void load_sreg(int idx, uint16_t val) {
+  cpu.sreg[idx].val = val;
+
+  if (val == 0) return;
+  uint16_t old_cpl = cpu.sreg[SR_CS].val;
+  cpu.sreg[SR_CS].rpl = 0; // use ring 0 to index GDT
+
+  assert(cpu.sreg[idx].ti == 0); // check the table bit
+  uint32_t desc_base = cpu.gdtr.base + (cpu.sreg[idx].idx << 3);
+  uint32_t desc_lo = vaddr_read(desc_base + 0, 4);
+  uint32_t desc_hi = vaddr_read(desc_base + 4, 4);
+  assert((desc_hi >> 15) & 0x1); // check the present bit
+  uint32_t base = (desc_hi & 0xff000000) | ((desc_hi & 0xff) << 16) | (desc_lo >> 16);
+  cpu.sreg[idx].base = base;
+
+  cpu.sreg[SR_CS].rpl = old_cpl;
 }
 #else
 void isa_reg_display() {

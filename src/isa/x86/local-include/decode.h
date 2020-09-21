@@ -97,7 +97,7 @@ static inline void operand_rm(DecodeExecState *s, Operand *rm, bool load_rm_val,
 static inline def_DopHelper(O) {
   op->type = OP_TYPE_MEM;
   s->isa.moff = instr_fetch(&s->seq_pc, 4);
-  s->isa.mbase = rz;
+  s->isa.mbase = s->isa.sreg_base ? s->isa.sreg_base : rz;
   if (load_val) {
     rtl_lm(s, &op->val, s->isa.mbase, s->isa.moff, op->width);
     op->preg = &op->val;
