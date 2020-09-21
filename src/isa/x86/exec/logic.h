@@ -88,11 +88,20 @@ static inline def_EHelper(shl) {
 }
 
 static inline def_EHelper(shr) {
+  int count = *dsrc1 & 0x1f;
+  if (count == 1) {
+    rtl_msb(s, s0, ddest, id_src1->width);
+    rtl_set_OF(s, s0);
+  }
+  if (count != 0) {
+    rtl_andi(s, s1, ddest, 1);
+    rtl_set_CF(s, s1);
+  }
   rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
-#ifndef LAZY_CC
-  // unnecessary to update CF and OF in NEMU
   rtl_update_ZFSF(s, ddest, id_dest->width);
+#ifdef LAZY_CC
+  panic("TODO: implement CF and OF with lazy cc");
 #endif
   print_asm_template2(shr);
 }
