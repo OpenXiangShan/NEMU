@@ -8,6 +8,7 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   int old_cs = cpu.sreg[SR_CS].val;
   // fetch the gate descriptor with ring 0
   cpu.sreg[SR_CS].rpl = 0;
+  cpu.mem_exception = 0;
 
   rtl_li(s, s0, cpu.idtr.base);
   rtl_lm(s, s1, s0, NO << 3, 4);
