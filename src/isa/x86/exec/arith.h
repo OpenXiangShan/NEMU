@@ -274,6 +274,7 @@ static inline def_EHelper(imul3) {
   rtl_imul_lo(s, ddest, dsrc2, dsrc1);
 #ifndef __DIFF_REF_NEMU__
   rtl_set_ZF(s, rz);
+  rtl_set_PF(s, rz);
 #endif
   operand_write(s, id_dest, ddest);
 

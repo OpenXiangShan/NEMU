@@ -16,8 +16,7 @@
 #define RFLAGS_AC  (1u << 18)
 #define RFLAGS_TF  (1u << 8)
 #define RFLAGS_AF  (1u << 4)
-#define RFLAGS_PF  (1u << 2)
-#define RFLAGS_FIX_MASK (RFLAGS_ID | RFLAGS_AC | RFLAGS_TF | RFLAGS_AF | RFLAGS_PF)
+#define RFLAGS_FIX_MASK (RFLAGS_ID | RFLAGS_AC | RFLAGS_TF | RFLAGS_AF)
 
 struct vm {
   int sys_fd;

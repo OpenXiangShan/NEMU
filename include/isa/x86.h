@@ -81,7 +81,7 @@ typedef struct {
   vaddr_t pc;
   uint32_t eflags;
 
-  rtlreg_t OF, CF, SF, ZF, IF, DF;
+  rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 
 #ifdef LAZY_CC
   rtlreg_t cc_dest, cc_src1, cc_src2;
