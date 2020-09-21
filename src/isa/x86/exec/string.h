@@ -39,6 +39,7 @@ static inline def_EHelper(stos) {
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_sm(s, &cpu.edi, 0, dsrc1, id_dest->width);
+    return_on_mem_ex();
     rtl_addi(s, &cpu.edi, &cpu.edi, id_dest->width);
   }
   if (s->isa.rep_flags && count != 0) {

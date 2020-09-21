@@ -2,6 +2,9 @@
 #include "../local-include/decode.h"
 #include "all-instr.h"
 
+#undef CASE_ENTRY
+#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); return_on_mem_ex(); ex(s); break;
+
 static inline void set_width(DecodeExecState *s, int width) {
   if (width == -1) return;
   if (width == 0) {

@@ -3,6 +3,7 @@
 
 #include <rtl/rtl.h>
 #include "reg.h"
+#include "mmu.h"
 
 /* RTL pseudo instructions */
 
@@ -29,6 +30,7 @@ static inline def_rtl(push, const rtlreg_t* src1) {
   // esp <- esp - 4
   // M[esp] <- src1
   rtl_sm(s, &cpu.esp, -4, src1, 4);
+  return_on_mem_ex();
   rtl_subi(s, &cpu.esp, &cpu.esp, 4);
 }
 
@@ -36,6 +38,7 @@ static inline def_rtl(pop, rtlreg_t* dest) {
   // dest <- M[esp]
   // esp <- esp + 4
   rtl_lm(s, dest, &cpu.esp, 0, 4);
+  return_on_mem_ex();
   rtl_addi(s, &cpu.esp, &cpu.esp, 4);
 }
 
