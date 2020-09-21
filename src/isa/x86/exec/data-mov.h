@@ -92,6 +92,28 @@ static inline def_EHelper(cmpxchg) {
 
   print_asm_template2(cmpxchg);
 }
+
+static inline def_EHelper(cmovcc) {
+  uint32_t cc = s->opcode & 0xf;
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, cc);
+#else
+  rtl_setcc(s, s0, cc);
+#endif
+
+  // ddest <- (s0 ? dsrc1 : ddest)
+  rtl_setrelopi(s, RELOP_EQ, s0, s0, 0);
+  rtl_subi(s, s0, s0, 1);
+  // s0 = mask
+  rtl_and(s, s1, dsrc1, s0);
+  rtl_not(s, s0, s0);
+  rtl_and(s, ddest, ddest, s0);
+  rtl_or(s, ddest, ddest, s1);
+
+  operand_write(s, id_dest, ddest);
+
+  print_asm("cmov%s %s,%s", get_cc_name(cc), id_src1->str, id_dest->str);
+}
 #else
 static inline def_EHelper(push) {
   TODO();
