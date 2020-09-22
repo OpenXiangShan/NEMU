@@ -106,6 +106,7 @@ static inline make_EHelper(priv) {
       print_asm("sret");
       break;
     case 0x120:
+      rtl_sfence();
       print_asm("sfence.vma");
       break;
     case 0x105:

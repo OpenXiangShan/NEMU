@@ -25,6 +25,10 @@ void difftest_sync(uint64_t *sync) {
   isa_difftest_sync(sync);
 }
 
+void difftest_microarchitectural_pf_check(vaddr_t addr){
+  isa_difftest_microarchitectural_pf_check(addr);
+}
+
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }

@@ -220,5 +220,6 @@ void csr_write(uint32_t addr, rtlreg_t *src);
 
 enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
 void change_mode(uint8_t m);
+bool ptw_is_safe(vaddr_t vaddr);
 
 #endif

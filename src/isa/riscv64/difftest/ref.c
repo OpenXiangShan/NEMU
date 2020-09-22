@@ -68,6 +68,13 @@ void isa_difftest_sync(uint64_t *sync) {
   // }
 }
 
+// Legal pagefault might be caused by microarchitural implements.
+// For instance, write pte and not sfence it will lead to pagefault.
+// (it may be still in sbuffer)
+bool isa_difftest_microarchitectural_pf_check(vaddr_t addr) {
+  return !ptw_is_safe(addr);
+}
+
 void isa_difftest_raise_intr(word_t NO) {
   DecodeExecState s;
   s.is_jmp = 0;

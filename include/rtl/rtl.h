@@ -21,6 +21,7 @@ extern const rtlreg_t rzero;
 #define make_rtl(name, ...) void concat(rtl_, name)(DecodeExecState *s, __VA_ARGS__)
 
 void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
+void rtl_sfence();
 
 // relation operation
 enum {

@@ -24,6 +24,7 @@ vaddr_t isa_exec_once();
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
 enum { MEM_RET_OK, MEM_RET_NEED_TRANSLATE, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len);
+bool isa_mmu_safe(vaddr_t vaddr);
 #ifndef isa_vaddr_check
 int isa_vaddr_check(vaddr_t vaddr, int type, int len);
 #endif
@@ -39,5 +40,6 @@ void isa_difftest_getregs(void *r);
 void isa_difftest_setregs(const void *r);
 void isa_difftest_raise_intr(word_t NO);
 void isa_difftest_sync(uint64_t *sync);
+bool isa_difftest_microarchitectural_pf_check(vaddr_t addr);
 
 #endif
