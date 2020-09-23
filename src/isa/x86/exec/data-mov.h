@@ -93,6 +93,28 @@ static inline def_EHelper(cmpxchg) {
   print_asm_template2(cmpxchg);
 }
 
+static inline def_EHelper(cmpxchg8b) {
+#ifndef __ENGINE_interpreter__
+  panic("not support in engines other than interpreter");
+#endif
+
+  // first 4 bytes of the memory operand is already loaded by the decode helper
+  rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 4, 4);
+  rtl_setrelop(s, RELOP_EQ, &id_src1->val, &cpu.eax, ddest);
+  rtl_setrelop(s, RELOP_EQ, &id_src2->val, &cpu.edx, s0);
+  rtl_and(s, &id_src1->val, &id_src1->val, &id_src2->val);
+  rtl_set_ZF(s, &id_src1->val);
+  if (cpu.ZF) {
+    rtl_sm(s, s->isa.mbase, s->isa.moff + 0, &cpu.ebx, 4);
+    rtl_sm(s, s->isa.mbase, s->isa.moff + 4, &cpu.ecx, 4);
+  } else {
+    rtl_mv(s, &cpu.eax, ddest);
+    rtl_mv(s, &cpu.edx, s0);
+  }
+
+  print_asm_template2(cmpxchg8b);
+}
+
 static inline def_EHelper(cmovcc) {
   uint32_t cc = s->opcode & 0xf;
 #ifdef LAZY_CC
