@@ -14,9 +14,10 @@
 
 #define RFLAGS_ID  (1u << 21)
 #define RFLAGS_AC  (1u << 18)
+#define RFLAGS_RF  (1u << 16)
 #define RFLAGS_TF  (1u << 8)
 #define RFLAGS_AF  (1u << 4)
-#define RFLAGS_FIX_MASK (RFLAGS_ID | RFLAGS_AC | RFLAGS_TF | RFLAGS_AF)
+#define RFLAGS_FIX_MASK (RFLAGS_ID | RFLAGS_AC | RFLAGS_RF | RFLAGS_TF | RFLAGS_AF)
 
 struct vm {
   int sys_fd;
@@ -29,6 +30,7 @@ struct vcpu {
   int fd;
   struct kvm_run *kvm_run;
   int int_wp_state;
+  int has_error_code;
   uint32_t entry;
 };
 
@@ -238,6 +240,11 @@ static inline int patching() {
     vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
     return 1;
   }
+  else if (vm.mem[pc] == 0xcf) {
+    uint32_t eflag_addr = va2pa(vcpu.kvm_run->s.regs.regs.rsp + 8);
+    *(uint32_t *)(vm.mem + eflag_addr) |= RFLAGS_RF | RFLAGS_TF;
+    return 0;
+  }
   return 0;
 }
 
@@ -261,6 +268,10 @@ static void kvm_exec(uint64_t n) {
       assert(0);
     } else {
       if (vcpu.int_wp_state == STATE_INT_INSTR) {
+        uint32_t eflag_offset = 8 + (vcpu.has_error_code ? 4 : 0);
+        uint32_t eflag_addr = va2pa(vcpu.kvm_run->s.regs.regs.rsp + eflag_offset);
+        *(uint32_t *)(vm.mem + eflag_addr) &= ~RFLAGS_FIX_MASK;
+
         Assert(vcpu.entry == vcpu.kvm_run->debug.arch.pc, "entry not match");
         kvm_set_step_mode(false, 0);
         vcpu.int_wp_state = STATE_IDLE;
@@ -336,6 +347,7 @@ void difftest_raise_intr(word_t NO) {
     (vm.mem[pgate + 6] << 16) | (vm.mem[pgate + 7] << 24);
   kvm_set_step_mode(true, entry);
   vcpu.int_wp_state = STATE_INT_INSTR;
+  vcpu.has_error_code = (NO == 14);
   vcpu.entry = entry;
 }
 
