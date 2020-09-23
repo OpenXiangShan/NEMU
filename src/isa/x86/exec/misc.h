@@ -24,3 +24,12 @@ static inline def_EHelper(cpuid) {
 
   print_asm("cpuid");
 }
+
+static inline def_EHelper(fwait) {
+  print_asm("fwait");
+}
+
+static inline def_EHelper(fpu) {
+  void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
+  raise_intr(s, 7, cpu.pc);
+}

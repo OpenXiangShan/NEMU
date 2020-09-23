@@ -6,11 +6,6 @@ def_EHelper(nop) {
   print_asm("nop");
 }
 
-def_EHelper(fpu) {
-  Log("unimplemented FP instruction: cpu.pc = 0x%x", cpu.pc);
-  print_asm("fpu");
-}
-
 def_EHelper(inv) {
   /* invalid opcode */
 
