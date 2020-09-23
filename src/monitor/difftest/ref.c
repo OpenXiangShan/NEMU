@@ -21,12 +21,16 @@ void difftest_setregs(const void *r) {
   isa_difftest_setregs(r);
 }
 
-void difftest_sync(uint64_t *sync) {
-  isa_difftest_sync(sync);
+void difftest_get_mastatus(uint64_t *s){
+  isa_difftest_get_mastatus(s);
 }
 
-void difftest_microarchitectural_pf_check(vaddr_t addr){
-  isa_difftest_microarchitectural_pf_check(addr);
+void difftest_set_mastatus(uint64_t *s){
+  isa_difftest_set_mastatus(s);
+}
+
+vaddr_t disambiguate_exec(uint64_t *disambiguate_para){
+  return isa_disambiguate_exec(disambiguate_para);
 }
 
 void difftest_exec(uint64_t n) {

@@ -52,27 +52,15 @@ void isa_difftest_setregs(const void *r) {
   csr_writeback();
 }
 
-void isa_difftest_sync(uint64_t *sync) {
-  // sync[0] lrscValid
-  uint64_t lrscValid = sync[0];
-  // sync[1] lrscAddr
-  // uint64_t lrscAddr = sync[1];
-  cpu.lr_valid = lrscValid;
-  // printf("sync valid %lx addr %lx  current valid %lx addr %lx\n", lrscValid, lrscAddr, cpu.lr_valid, cpu.lr_addr);
-  // if(!lrscValid && cpu.lr_valid && isSC){
-  //   cpu.lr_valid = 0;
-  //   // printf("NEMU skipped a timeout sc\n");
-  //   if(lrscAddr != cpu.lr_addr){
-  //     // printf("[Warning] NEMU skipped a timeout sc, but lr_addr 0x%lx-0x%lx does not match\n", lrscAddr, cpu.lr_addr);
-  //   }
-  // }
+void isa_difftest_get_mastatus(uint64_t *s) {
+  struct SyncState ms;
+  ms.lrscValid = cpu.lr_valid;
+  memcpy(s, &ms, sizeof(struct SyncState));
 }
 
-// Legal pagefault might be caused by microarchitural implements.
-// For instance, write pte and not sfence it will lead to pagefault.
-// (it may be still in sbuffer)
-bool isa_difftest_microarchitectural_pf_check(vaddr_t addr) {
-  return !ptw_is_safe(addr);
+void isa_difftest_set_mastatus(uint64_t *s) {
+  struct SyncState* ms = (struct SyncState*)s;
+  cpu.lr_valid = ms->lrscValid;
 }
 
 void isa_difftest_raise_intr(word_t NO) {
