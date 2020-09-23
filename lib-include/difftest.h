@@ -6,6 +6,7 @@
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 
 #define RV64_FULL_DIFF
+#define RV64_UARCH_SYNC
 
 #if defined(__ISA_x86__)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9) // GPRs + PC
@@ -22,6 +23,12 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #endif
 #else
 # error Unsupport ISA
+#endif
+
+#ifdef RV64_UARCH_SYNC
+struct SyncState {
+  uint64_t lrscValid;
+};
 #endif
 
 #endif
