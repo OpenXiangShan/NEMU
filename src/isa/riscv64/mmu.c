@@ -170,8 +170,10 @@ bool ptw_is_safe(vaddr_t vaddr) {
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
-    if(!is_sfence_safe(p_pte, rsize))
+    if(!is_sfence_safe(p_pte, rsize)){
+      printf("[Warning] pte at %lx is not sfence safe, accessed by pc %lx\n", p_pte, cpu.pc);
       return false;
+    }
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
       //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
@@ -194,6 +196,10 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   return ptw(vaddr, type);
 }
 
-bool isa_mmu_safe(vaddr_t vaddr) {
-  return ptw_is_safe(vaddr);
+bool isa_mmu_safe(vaddr_t vaddr, int type) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
+  if(mode < MODE_M && satp->mode == 8)
+    return ptw_is_safe(vaddr);
+  return true;
 }
