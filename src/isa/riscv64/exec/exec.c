@@ -236,6 +236,6 @@ vaddr_t isa_exec_once() {
   return s.seq_pc;
 }
 
-vaddr_t isa_disambiguate_exec(uint64_t *disambiguate_para) {
+vaddr_t isa_disambiguate_exec(void *disambiguate_para) {
   return isa_exec_once();  //TODO
 }

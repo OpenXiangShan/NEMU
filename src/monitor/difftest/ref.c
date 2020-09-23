@@ -21,15 +21,15 @@ void difftest_setregs(const void *r) {
   isa_difftest_setregs(r);
 }
 
-void difftest_get_mastatus(uint64_t *s){
+void difftest_get_mastatus(void *s){
   isa_difftest_get_mastatus(s);
 }
 
-void difftest_set_mastatus(uint64_t *s){
+void difftest_set_mastatus(const void *s){
   isa_difftest_set_mastatus(s);
 }
 
-vaddr_t disambiguate_exec(uint64_t *disambiguate_para){
+vaddr_t disambiguate_exec(void *disambiguate_para){
   return isa_disambiguate_exec(disambiguate_para);
 }
 

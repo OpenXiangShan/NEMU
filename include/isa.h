@@ -39,9 +39,9 @@ void isa_difftest_attach();
 void isa_difftest_getregs(void *r);
 void isa_difftest_setregs(const void *r);
 void isa_difftest_raise_intr(word_t NO);
-void isa_difftest_get_mastatus(uint64_t *s);
-void isa_difftest_set_mastatus(uint64_t *s);
-vaddr_t isa_disambiguate_exec(uint64_t *disambiguate_para);
+void isa_difftest_get_mastatus(void *s);
+void isa_difftest_set_mastatus(const void *s);
+vaddr_t isa_disambiguate_exec(void *disambiguate_para);
 bool isa_difftest_microarchitectural_pf_check(vaddr_t addr);
 
 #endif

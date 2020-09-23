@@ -52,13 +52,13 @@ void isa_difftest_setregs(const void *r) {
   csr_writeback();
 }
 
-void isa_difftest_get_mastatus(uint64_t *s) {
+void isa_difftest_get_mastatus(void *s) {
   struct SyncState ms;
   ms.lrscValid = cpu.lr_valid;
   memcpy(s, &ms, sizeof(struct SyncState));
 }
 
-void isa_difftest_set_mastatus(uint64_t *s) {
+void isa_difftest_set_mastatus(const void *s) {
   struct SyncState* ms = (struct SyncState*)s;
   cpu.lr_valid = ms->lrscValid;
 }
