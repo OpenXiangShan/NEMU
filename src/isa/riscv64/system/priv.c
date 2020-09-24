@@ -60,7 +60,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
-  else if (is_write(medeleg)) { *dest = src & 0xbbff; }
+  else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
   else if (is_write(fflags)) { fcsr->fflags.val = src; }
   else if (is_write(frm)) { fcsr->frm = src; }
