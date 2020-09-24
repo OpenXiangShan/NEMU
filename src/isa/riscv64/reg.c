@@ -91,7 +91,7 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
   } else if (dest == (void *)sip) {
     mip->val = (mip->val & ~SIP_MASK) | (*src & SIP_MASK);
   } else if (dest == (void *)medeleg) {
-    *dest = *src & 0xbbff;
+    *dest = *src & 0xf3ff;
   } else if (dest == (void *)mideleg) {
     *dest = *src & 0x222;
   } else {
