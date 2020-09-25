@@ -3,6 +3,10 @@
 
 #include <common.h>
 
+struct DisambiguationState {
+  uint64_t exceptionNo;
+};
+
 typedef struct {
   union {
     uint64_t _64;
@@ -28,6 +32,10 @@ typedef struct {
   uint64_t lr_valid;
 
   bool INTR;
+
+  // Disambiguation
+  bool need_disambiguate;
+  struct DisambiguationState disambiguation_state;
 } riscv64_CPU_state;
 
 // decode
