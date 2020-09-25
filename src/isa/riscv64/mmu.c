@@ -123,6 +123,32 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   word_t va_mask = ((((word_t)1) << (63 - 39 + 1)) - 1);
   word_t va_msbs = vaddr >> 39;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+
+#ifdef ENABLE_DISAMBIGUATE
+  if(cpu.need_disambiguate){
+    if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IAF){
+      stval->val = vaddr;
+      cpu.mem_exception = EX_IAF;
+      return MEM_RET_FAIL;
+    } else if(!cpu.amo && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LAF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = EX_LAF;
+      return MEM_RET_FAIL;
+    } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SAF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = EX_SAF;
+      return MEM_RET_FAIL;
+    } else if(cpu.amo && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LAF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = EX_SAF;
+      return MEM_RET_FAIL;
+    }
+  }
+#endif
+
   if(!va_msbs_ok){
     if(ifetch){
       stval->val = vaddr;

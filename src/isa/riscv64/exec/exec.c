@@ -214,6 +214,7 @@ rvc: ;
 }
 
 vaddr_t isa_exec_once() {
+  cpu.need_disambiguate = false;
   DecodeExecState s;
   s.is_jmp = 0;
   s.seq_pc = cpu.pc;
@@ -237,5 +238,30 @@ vaddr_t isa_exec_once() {
 }
 
 vaddr_t isa_disambiguate_exec(void *disambiguate_para) {
-  return isa_exec_once();  //TODO
+  DecodeExecState s;
+  s.is_jmp = 0;
+  s.seq_pc = cpu.pc;
+  // need_disambiguate
+  cpu.need_disambiguate = true;
+  struct DisambiguationState* ds = (struct DisambiguationState*) disambiguate_para;
+  cpu.disambiguation_state.exceptionNo = ds->exceptionNo;
+
+  exec(&s);
+  if (cpu.mem_exception != MEM_OK) {
+    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.mem_exception = MEM_OK;
+  }
+  update_pc(&s);
+
+#if !defined(DIFF_TEST) && !_SHARE
+  void query_intr(DecodeExecState *s);
+  query_intr(&s);
+#endif
+
+  // reset gpr[0]
+  reg_l(0) = 0;
+
+  cpu.need_disambiguate = false;
+  return s.seq_pc;
+  // return isa_exec_once();  //TODO
 }

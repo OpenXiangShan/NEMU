@@ -11,7 +11,12 @@
 #endif
 #define riscv64_PMEM_BASE 0x80000000
 
+// #define ENABLE_DISAMBIGUATE
+
 // reg
+struct DisambiguationState {
+  uint64_t exceptionNo;
+};
 
 typedef struct {
   union {
@@ -38,6 +43,10 @@ typedef struct {
   uint64_t lr_valid;
 
   bool INTR;
+
+  // Disambiguation
+  bool need_disambiguate;
+  struct DisambiguationState disambiguation_state;
 } riscv64_CPU_state;
 
 // decode

@@ -71,7 +71,9 @@ static inline void pmem_write(paddr_t addr, word_t data, int len) {
 }
 
 void rtl_sfence() {
+#ifdef ENABLE_DISAMBIGUATE
   memset(pmem_dirty, 0, sizeof(pmem_dirty));
+#endif
 }
 
 /* Memory accessing interfaces */
