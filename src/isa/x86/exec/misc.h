@@ -5,11 +5,15 @@ static inline def_EHelper(rdtsc) {
   panic("not support in engines other than interpreter");
 #endif
 
+#if 0
   struct timeval now;
   gettimeofday(&now, NULL);
   uint64_t tsc = now.tv_sec * 1000000ull + now.tv_usec;
   cpu.edx = tsc >> 32;
   cpu.eax = tsc & 0xffffffff;
+#endif
+  cpu.edx = 0;
+  cpu.eax = 0;
 
   difftest_skip_ref();
 
