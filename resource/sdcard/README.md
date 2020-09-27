@@ -21,7 +21,7 @@
   };
 
   chosen {
-    bootargs = "root=/dev/mmcblk0 rootfstype=ext4 ro rootwait earlycon";
+    bootargs = "root=/dev/mmcblk0p1 rootfstype=ext4 ro rootwait earlycon";
   };
 };
 ```
