@@ -46,5 +46,5 @@ void init_isa() {
   init_i8253();
   init_ioport80();
   init_i8237a();
-  init_sdcard("/home/yzh/sdi/debian.img");
+  init_sdcard("/home/yzh/sdi/debian-16G.img");
 }

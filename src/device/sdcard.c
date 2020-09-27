@@ -4,7 +4,7 @@
 // http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf
 
 // see page 26 of the manual above
-#define MEMORY_SIZE (4ull * 1024 * 1024 * 1024)  // 4GB
+#define MEMORY_SIZE (16ull * 1024 * 1024 * 1024)  // 16GB
 #define READ_BL_LEN 15
 #define BLOCK_LEN (1 << READ_BL_LEN)
 #define NR_BLOCK (MEMORY_SIZE / BLOCK_LEN)
@@ -31,8 +31,10 @@ enum {
 static FILE *fp = NULL;
 static uint32_t *base = NULL;
 static uint32_t blkcnt = 0;
+static long blk_addr = 0;
 static uint32_t addr = 0;
 static bool write_cmd = 0;
+static bool read_ext_csd = false;
 
 static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
   int idx = offset / 4;
@@ -53,9 +55,9 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
           base[SDRSP0] = 0x92404001;
           base[SDRSP1] = 0x124b97e3 | ((C_SIZE & 0x3) << 30);
           base[SDRSP2] = 0x0f508000 | (C_SIZE >> 2) | (READ_BL_LEN << 16);
-          base[SDRSP3] = 0x8c26012a;
+          base[SDRSP3] = 0x9026012a;
           break;
-        case MMC_SEND_EXT_CSD: break;
+        case MMC_SEND_EXT_CSD: read_ext_csd = true; addr = 0; break;
         case MMC_SLEEP_AWAKE: break;
         case MMC_APP_CMD: break;
         case MMC_SET_RELATIVE_ADDR: break;
@@ -63,9 +65,10 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
         case MMC_SET_BLOCK_COUNT: blkcnt = base[SDARG] & 0xffff; break;
         case MMC_READ_MULTIPLE_BLOCK:
           // TODO
-          addr = base[SDARG];
-          if (fp) fseek(fp, addr, SEEK_SET);
-          //Log("reading from addr = 0x%x", base[SDARG]);
+          blk_addr = base[SDARG];
+          addr = 0;
+          if (fp) fseek(fp, blk_addr << 9, SEEK_SET);
+          //Log("reading from addr = 0x%lx", blk_addr << 9);
           write_cmd = false;
           break;
         case MMC_WRITE_MULTIPLE_BLOCK:
@@ -94,9 +97,19 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
     case SDHBLC: break; //Log("@@@@@@@@@@ block count = %d", base[SDHBLC]); break;// only for debug
     case SDDATA:
        // TODO
-       if (!write_cmd && fp) {
+       if (read_ext_csd) {
+         // See section 8.1 JEDEC Standard JED84-A441
+         uint32_t data;
+         switch (addr) {
+           case 192: data = 2; break; // EXT_CSD_REV
+           case 212: data = MEMORY_SIZE / 512; break;
+           default: data = 0;
+         }
+         base[SDDATA] = data;
+         if (addr == 512 - 4) read_ext_csd = false;
+       } else if (fp) {
          __attribute__((unused)) int ret;
-         ret = fread(&base[SDDATA], 4, 1, fp);
+         if (!write_cmd) { ret = fread(&base[SDDATA], 4, 1, fp); }
        }
        addr += 4;
        break;
