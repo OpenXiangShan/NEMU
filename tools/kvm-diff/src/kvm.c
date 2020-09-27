@@ -283,9 +283,8 @@ static void kvm_exec(uint64_t n) {
 
     if (vcpu.kvm_run->exit_reason != KVM_EXIT_DEBUG) {
       if (vcpu.kvm_run->exit_reason == KVM_EXIT_HLT) return;
-      fprintf(stderr,	"Got exit_reason %d at pc = 0x%llx,"
-          " expected KVM_EXIT_HLT (%d)\n",
-          vcpu.kvm_run->exit_reason, vcpu.kvm_run->s.regs.regs.rip, KVM_EXIT_HLT);
+      fprintf(stderr,	"Got exit_reason %d at pc = 0x%llx, expected KVM_EXIT_DEBUG (%d)\n",
+          vcpu.kvm_run->exit_reason, vcpu.kvm_run->s.regs.regs.rip, KVM_EXIT_DEBUG);
       assert(0);
     } else {
       patching_after(pc);
