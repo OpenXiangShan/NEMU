@@ -22,6 +22,7 @@ typedef struct {
   
   uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
 
+  uint64_t mtval, stval;
   uint64_t mode;
 
   bool amo;
