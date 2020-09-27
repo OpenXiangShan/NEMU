@@ -10,8 +10,10 @@ static inline def_EHelper(bsf) {
   if (*dsrc1 != 0) {
     while ((*dsrc1 & (1u << bit)) == 0) bit++;
     *ddest = bit;
-    operand_write(s, id_dest, ddest);
+  } else if (s->isa.rep_flags) {
+    *ddest = 32;
   }
+  operand_write(s, id_dest, ddest);
   print_asm_template2(bsf);
 }
 
