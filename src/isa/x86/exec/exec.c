@@ -33,8 +33,8 @@ static inline def_EHelper(gp2) {
     EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
     EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
 #else
-    EXW(0, rol, -1) EXW(1, ror, -1) EMPTY(2) EMPTY(3)
-    EXW(4, shl, -1) EXW(5, shr, -1) EMPTY(6) EXW  (7, sar, -1)
+    EXW(0, rol, -1) EXW(1, ror, -1) EXW  (2, rcl, -1) EXW  (3, rcr, -1)
+    EXW(4, shl, -1) EXW(5, shr, -1) EMPTY(6)          EXW  (7, sar, -1)
 #endif
   }
 }
