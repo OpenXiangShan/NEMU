@@ -37,3 +37,7 @@ static inline def_EHelper(fpu) {
   void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
   raise_intr(s, 7, cpu.pc);
 }
+
+static inline def_EHelper(hlt) {
+  print_asm("hlt");
+}

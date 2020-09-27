@@ -275,7 +275,7 @@ IDEXW(0xe4, in_I2a, in, 1)                              IDEXW(0xe6, out_a2I, out
 IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      IDEXW(0xea, LJ, ljmp, 4)    IDEXW(0xeb, J, jmp, 1)
 IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, out, 1)IDEX (0xef, out_a2dx, out)
 
-                                                        IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
+EX   (0xf4, hlt)                                        IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
                             EX   (0xf9, stc)            EX   (0xfa, cli)            EX   (0xfb, sti)
 EX   (0xfc, cld)            EX   (0xfd, std)            IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
   case 0x64: s->isa.sreg_base = &cpu.sreg[SR_FS].base; goto again;
