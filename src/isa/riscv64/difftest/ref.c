@@ -22,6 +22,8 @@ static void csr_prepare() {
   cpu.sscratch = sscratch->val;
   cpu.mideleg  = mideleg->val;
   cpu.medeleg  = medeleg->val;
+  cpu.mtval    = mtval->val;
+  cpu.stval    = stval->val;
 }
 
 static void csr_writeback() {
@@ -40,6 +42,8 @@ static void csr_writeback() {
   sscratch->val = cpu.sscratch;
   mideleg->val  = cpu.mideleg;
   medeleg->val  = cpu.medeleg;
+  mtval->val    = cpu.mtval;
+  stval->val    = cpu.stval;
 }
 
 void isa_difftest_getregs(void *r) {
