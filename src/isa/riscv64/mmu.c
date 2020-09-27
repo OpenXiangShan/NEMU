@@ -113,18 +113,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pg_base | MEM_RET_OK;
 }
 
-int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
-
+int force_raise_pf(vaddr_t vaddr, int type){
   bool ifetch = (type == MEM_TYPE_IFETCH);
 
-  // riscv-privileged 4.4.1: Addressing and Memory Protection: 
-  // Instruction fetch addresses and load and store effective addresses, 
-  // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
-  word_t va_mask = ((((word_t)1) << (63 - 39 + 1)) - 1);
-  word_t va_msbs = vaddr >> 39;
-  bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
-
-#ifdef ENABLE_DISAMBIGUATE
   if(cpu.need_disambiguate){
     if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IAF){
       stval->val = vaddr;
@@ -147,6 +138,24 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
       return MEM_RET_FAIL;
     }
   }
+  return MEM_RET_OK;
+}
+
+int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
+
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+
+  // riscv-privileged 4.4.1: Addressing and Memory Protection: 
+  // Instruction fetch addresses and load and store effective addresses, 
+  // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
+  word_t va_mask = ((((word_t)1) << (63 - 39 + 1)) - 1);
+  word_t va_msbs = vaddr >> 39;
+  bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+
+#ifdef FORCE_RAISE_PF
+  int forced_result = force_raise_pf(vaddr, type);
+  if(forced_result != MEM_RET_OK)
+    return forced_result;
 #endif
 
   if(!va_msbs_ok){
@@ -174,7 +183,16 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) return MEM_RET_NEED_TRANSLATE;
+    if (satp->mode == 8){
+#ifdef ENABLE_DISAMBIGUATE
+      if(!ptw_is_safe(vaddr)){
+        int forced_result = force_raise_pf(vaddr, type);
+        if(forced_result != MEM_RET_OK)
+          return forced_result;
+      }
+#endif
+      return MEM_RET_NEED_TRANSLATE;
+    } 
   }
   return MEM_RET_OK;
 }

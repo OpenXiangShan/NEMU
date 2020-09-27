@@ -12,6 +12,7 @@
 #define riscv64_PMEM_BASE 0x80000000
 
 // #define ENABLE_DISAMBIGUATE
+// #define FORCE_RAISE_PF
 
 // reg
 struct DisambiguationState {
