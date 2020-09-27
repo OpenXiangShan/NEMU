@@ -111,7 +111,7 @@ static inline def_EHelper(gp7) {
 
 static inline def_EHelper(2byte_esc) {
   uint8_t opcode = instr_fetch(&s->seq_pc, 1);
-  s->opcode = opcode;
+  s->opcode = opcode | 0x100;
   switch (opcode) {
   /* TODO: Add more instructions!!! */
     IDEX (0x01, gp7_E, gp7)
@@ -308,6 +308,7 @@ vaddr_t isa_exec_once() {
     raise_intr(&s, cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;
   }
+  cpu.hack_kvm_pf_write = 0;
   update_pc(&s);
 
 #ifndef __ICS_EXPORT
