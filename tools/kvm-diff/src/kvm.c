@@ -248,10 +248,30 @@ static inline int patching() {
   return 0;
 }
 
+static inline void patching_after(uint64_t last_pc) {
+  uint32_t pc = va2pa(last_pc);
+  if (pc == 0xffffffff) return;
+  uint8_t opcode = vm.mem[pc];
+  if (opcode == 0x1e || opcode == 0x06) {  // push %ds/%es
+    uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+    *(uint32_t *)(vm.mem + esp) &= 0x0000ffff;
+    assert(vcpu.kvm_run->s.regs.regs.rip == last_pc + 1);
+  }
+  else if (opcode == 0x0f) {  // push %es
+    uint8_t opcode2 = vm.mem[pc + 1];
+    if (opcode2 == 0xa0) { // push %fs
+      uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+      *(uint32_t *)(vm.mem + esp) &= 0x0000ffff;
+      assert(vcpu.kvm_run->s.regs.regs.rip == last_pc + 2);
+    }
+  }
+}
+
 static void kvm_exec(uint64_t n) {
   for (; n > 0; n --) {
     if (patching()) continue;
 
+    uint64_t pc = vcpu.kvm_run->s.regs.regs.rip;
     if (ioctl(vcpu.fd, KVM_RUN, 0) < 0) {
       if (errno == EINTR) {
         n ++;
@@ -267,6 +287,7 @@ static void kvm_exec(uint64_t n) {
           vcpu.kvm_run->exit_reason, vcpu.kvm_run->s.regs.regs.rip, KVM_EXIT_HLT);
       assert(0);
     } else {
+      patching_after(pc);
       if (vcpu.int_wp_state == STATE_INT_INSTR) {
         uint32_t eflag_offset = 8 + (vcpu.has_error_code ? 4 : 0);
         uint32_t eflag_addr = va2pa(vcpu.kvm_run->s.regs.regs.rsp + eflag_offset);
