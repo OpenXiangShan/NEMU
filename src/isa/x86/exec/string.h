@@ -59,6 +59,7 @@ static inline def_EHelper(scas) {
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_lm(s, s0, &cpu.edi, 0, id_dest->width);
+    return_on_mem_ex();
     rtl_setrelop(s, RELOP_EQ, s1, s0, dsrc1);
     rtl_set_ZF(s, s1);
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * id_dest->width);
@@ -88,7 +89,9 @@ static inline def_EHelper(cmps) {
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_lm(s, s0, &cpu.edi, 0, id_dest->width);
+    return_on_mem_ex();
     rtl_lm(s, s1, &cpu.esi, 0, id_dest->width);
+    return_on_mem_ex();
     rtl_setrelop(s, RELOP_EQ, s2, s0, s1);
     rtl_set_ZF(s, s2);
     rtl_addi(s, &cpu.esi, &cpu.esi, (cpu.DF ? -1 : 1) * id_dest->width);
