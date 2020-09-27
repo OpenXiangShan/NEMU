@@ -293,7 +293,8 @@ static void kvm_exec(uint64_t n) {
         uint32_t eflag_addr = va2pa(vcpu.kvm_run->s.regs.regs.rsp + eflag_offset);
         *(uint32_t *)(vm.mem + eflag_addr) &= ~RFLAGS_FIX_MASK;
 
-        Assert(vcpu.entry == vcpu.kvm_run->debug.arch.pc, "entry not match");
+        Assert(vcpu.entry == vcpu.kvm_run->debug.arch.pc,
+            "entry not match, right = 0x%llx, wrong = 0x%x", vcpu.kvm_run->debug.arch.pc, vcpu.entry);
         kvm_set_step_mode(false, 0);
         vcpu.int_wp_state = STATE_IDLE;
       //Log("exception = %d, pc = %llx, dr6 = %llx, dr7 = %llx", vcpu.kvm_run->debug.arch.exception,
