@@ -4,6 +4,7 @@
 #ifndef __ICS_EXPORT
 #include "local-include/mmu.h"
 #include "local-include/reg.h"
+#include <monitor/difftest.h>
 
 typedef union PageTableEntry {
   struct {
@@ -73,12 +74,18 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte[1].a) {
     pte[1].a = 1;
     paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
+#ifdef DIFF_TEST
+    ref_difftest_memcpy_from_dut(p_pte[1], &pte[1].val, PTE_SIZE);
+#endif
   }
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte[0].a || (!pte[0].d && is_write)) {
     pte[0].a = 1;
     pte[0].d |= is_write;
     paddr_write(p_pte[0], pte[0].val, PTE_SIZE);
+#ifdef DIFF_TEST
+    ref_difftest_memcpy_from_dut(p_pte[0], &pte[0].val, PTE_SIZE);
+#endif
   }
 
   return pg_base | MEM_RET_OK;
