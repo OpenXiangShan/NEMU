@@ -10,6 +10,7 @@ static const uint32_t img [] = {
 };
 
 void init_clint();
+void init_sdcard(const char *img);
 
 void init_isa() {
   cpu.gpr[0]._64 = 0;
@@ -31,6 +32,5 @@ void init_isa() {
   memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
 
   init_clint();
-  extern void init_sdcard();
-  init_sdcard();
+  init_sdcard("/home/yzh/projectn/debian.img");
 }

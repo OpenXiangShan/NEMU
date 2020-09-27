@@ -108,7 +108,7 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
   //Log("offset = 0x%x(idx = %d), is_write = %d, data = 0x%x", offset, idx, is_write, base[idx]);
 }
 
-void init_sdcard() {
+void init_sdcard(const char *img) {
   base = (void *)new_space(0x80);
   add_mmio_map("sdhci", SD_MMIO, (void *)base, 0x80, sdcard_io_handler);
 
@@ -116,7 +116,6 @@ void init_sdcard() {
 
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
-  const char *sdimg = "/home/yzh/projectn/debian.img";
-  fp = fopen(sdimg, "r");
-  if (fp == NULL) Log("Can not find sdcard image: %s", sdimg);
+  fp = fopen(img, "r");
+  if (fp == NULL) Log("Can not find sdcard image: %s", img);
 }
