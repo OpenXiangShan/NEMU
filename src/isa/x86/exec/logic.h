@@ -90,7 +90,7 @@ static inline def_EHelper(shl) {
 static inline def_EHelper(shr) {
   int count = *dsrc1 & 0x1f;
   if (count == 1) {
-    rtl_msb(s, s0, ddest, id_src1->width);
+    rtl_msb(s, s0, ddest, id_dest->width);
     rtl_set_OF(s, s0);
   }
   if (count != 0) {
