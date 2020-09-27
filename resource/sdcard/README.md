@@ -2,8 +2,6 @@
 # NEMU sdhost驱动
 
 本驱动裁剪自`linux/drivers/mmc/host/bcm2835.c`, 去除了DMA和中断, 改成直接轮询, 处理器无需支持DMA和中断即可运行.
-不支持写操作, 可以以只读方式启动debian.
-若需要测试文件系统的写操作, 可在启动debian后挂载ramdisk, 在ramdisk上进行写入.
 
 ## 使用方法
 

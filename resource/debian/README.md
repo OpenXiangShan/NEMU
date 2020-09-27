@@ -50,11 +50,6 @@ apt-get install haveged
 agt-get install sbt
 ```
 
-* 删除登录密码, 登录时输入`root`后可直接登录
-```
-passwd -d root
-```
-
 * 在`/etc/fstab`中添加swap分区
 ```
 /dev/mmcblk0p2 none swap sw 0 0
@@ -65,9 +60,7 @@ passwd -d root
 chmod +w,+x /root
 ```
 
-* 在/root/目录下提前写入所需的测试文件, 如hello.c等. 将来以只读方式挂载时, 无法写入文件.
-
-* 若要创建文件, 可在/run/目录下创建, 它是个tmpfs
+* 在/root/目录下提前写入所需的测试文件, 如hello.c等.
 
 * 在/root/.bashrc中添加如下内容, 可以实现登录后自动运行命令(根据实际情况修改测试的命令):
 ```
@@ -153,3 +146,5 @@ sudo losetup -d /dev/loop0  # 删除loop设备
 
 * 修改`nemu/src/device/sdcard.c`中`init_sdcard()`中打开的镜像文件路径, 即可使用制作的镜像.
 在i9-9900k上测试, 约90s后看到debian的登录提示符.
+
+* 当以可写方式启动镜像是, NEMU遇到错误或通过Ctrl+C直接退出NEMU时, 可能会损坏镜像的崩溃一致性, 此时可以通过fsck命令修复分区.

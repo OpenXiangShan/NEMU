@@ -36,6 +36,13 @@ static uint32_t addr = 0;
 static bool write_cmd = 0;
 static bool read_ext_csd = false;
 
+static inline void prepare_rw(int is_write) {
+  blk_addr = base[SDARG];
+  addr = 0;
+  if (fp) fseek(fp, blk_addr << 9, SEEK_SET);
+  write_cmd = is_write;
+}
+
 static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
   int idx = offset / 4;
   switch (idx) {
@@ -63,21 +70,8 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
         case MMC_SET_RELATIVE_ADDR: break;
         case MMC_SELECT_CARD: break;
         case MMC_SET_BLOCK_COUNT: blkcnt = base[SDARG] & 0xffff; break;
-        case MMC_READ_MULTIPLE_BLOCK:
-          // TODO
-          blk_addr = base[SDARG];
-          addr = 0;
-          if (fp) fseek(fp, blk_addr << 9, SEEK_SET);
-          //Log("reading from addr = 0x%lx", blk_addr << 9);
-          write_cmd = false;
-          break;
-        case MMC_WRITE_MULTIPLE_BLOCK:
-          // TODO
-          addr = base[SDARG];
-          if (fp) fseek(fp, addr, SEEK_SET);
-          //Log("writing to addr = 0x%x", base[SDARG]);
-          write_cmd = true;
-          break;
+        case MMC_READ_MULTIPLE_BLOCK: prepare_rw(false); break;
+        case MMC_WRITE_MULTIPLE_BLOCK: prepare_rw(true); break;
         case MMC_SEND_STATUS: base[SDRSP0] = base[SDRSP1] = base[SDRSP2] = base[SDRSP3] = 0; break;
         case MMC_STOP_TRANSMISSION: break;
         default:
@@ -96,7 +90,6 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
       break;
     case SDHBLC: break; //Log("@@@@@@@@@@ block count = %d", base[SDHBLC]); break;// only for debug
     case SDDATA:
-       // TODO
        if (read_ext_csd) {
          // See section 8.1 JEDEC Standard JED84-A441
          uint32_t data;
@@ -110,6 +103,7 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
        } else if (fp) {
          __attribute__((unused)) int ret;
          if (!write_cmd) { ret = fread(&base[SDDATA], 4, 1, fp); }
+         else { ret = fwrite(&base[SDDATA], 4, 1, fp); }
        }
        addr += 4;
        break;
@@ -129,6 +123,6 @@ void init_sdcard(const char *img) {
 
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
-  fp = fopen(img, "r");
+  fp = fopen(img, "r+");
   if (fp == NULL) Log("Can not find sdcard image: %s", img);
 }

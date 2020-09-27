@@ -463,7 +463,7 @@ bool nemu_send_command(struct nemu_host *host, struct mmc_command *cmd)
 			sdcmd |= SDCMD_LONG_RESPONSE;
 		if (cmd->flags & MMC_RSP_BUSY) {
 			sdcmd |= SDCMD_BUSYWAIT;
-			host->use_busy = true;
+			//host->use_busy = true;
 		}
 	}
 
