@@ -9,6 +9,12 @@ static inline def_EHelper(std) {
   print_asm("std");
 }
 
+static inline def_EHelper(stc) {
+  rtl_li(s, s0, 1);
+  rtl_set_CF(s, s0);
+  print_asm("stc");
+}
+
 static inline def_EHelper(cli) {
   rtl_set_IF(s, rz);
   print_asm("cli");

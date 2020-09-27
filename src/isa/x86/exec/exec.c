@@ -148,14 +148,15 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0xb6, mov_E2G, movzx, 1)
     IDEXW(0xb7, mov_E2G, movzx, 2)
     IDEX (0xba, gp2_Ib2E, gp8)
+    IDEX (0xbb, bit_G2E, btc)
     IDEX (0xbc, mov_E2G, bsf)
     IDEX (0xbd, mov_E2G, bsr)
     IDEXW(0xbe, mov_E2G, movsx, 1)
     IDEXW(0xbf, mov_E2G, movsx, 2)
     IDEX (0xc1, G2E, xadd)
     IDEXW(0xc7, E, cmpxchg8b, 4)
-    IDEXW(0xca, r, bswap, 4)
-    IDEXW(0xcb, r, bswap, 4)
+    IDEXW(0xc8, r, bswap, 4) IDEXW(0xc9, r, bswap, 4) IDEXW(0xca, r, bswap, 4) IDEXW(0xcb, r, bswap, 4)
+    IDEXW(0xcc, r, bswap, 4) IDEXW(0xcd, r, bswap, 4) IDEXW(0xce, r, bswap, 4) IDEXW(0xcf, r, bswap, 4)
 #endif
     default: exec_inv(s);
   }
@@ -275,7 +276,7 @@ IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      IDEXW(0xea, LJ, ljmp, 4)
 IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, out, 1)IDEX (0xef, out_a2dx, out)
 
                                                         IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
-                                                        EX   (0xfa, cli)            EX   (0xfb, sti)
+                            EX   (0xf9, stc)            EX   (0xfa, cli)            EX   (0xfb, sti)
 EX   (0xfc, cld)            EX   (0xfd, std)            IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
   case 0x64: s->isa.sreg_base = &cpu.sreg[SR_FS].base; goto again;
   case 0x65: s->isa.sreg_base = &cpu.sreg[SR_GS].base; goto again;

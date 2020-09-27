@@ -41,6 +41,17 @@ static inline def_EHelper(bt) {
   print_asm_template2(bt);
 }
 
+static inline def_EHelper(btc) {
+  rtl_li(s, s0, 1);
+  rtl_shl(s, s0, s0, dsrc1);
+  rtl_and(s, s1, s0, ddest);
+  rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
+  rtl_set_CF(s, s1);
+  rtl_xor(s, ddest, ddest, s0);
+  operand_write(s, id_dest, ddest);
+  print_asm_template2(btc);
+}
+
 static inline def_EHelper(bts) {
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);
