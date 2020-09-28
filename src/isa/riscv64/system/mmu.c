@@ -75,6 +75,11 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
+
+#ifdef FORCE_RAISE_PF
+  if (force_raise_pf(vaddr, type) != MEM_RET_OK) return MEM_RET_FAIL; 
+#endif
+
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -152,6 +157,13 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
   word_t va_msbs = vaddr >> 38;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
+
+// #ifdef FORCE_RAISE_PF
+//   int forced_result = force_raise_pf(vaddr, type);
+//   if(forced_result != MEM_RET_OK)
+//     return forced_result;
+// #endif
+
   if(!va_msbs_ok){
     if(is_ifetch){
       stval->val = vaddr;
@@ -184,22 +196,26 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 
 
 int force_raise_pf(vaddr_t vaddr, int type){
-  bool is_ifetch = (type == MEM_TYPE_IFETCH);
+  bool ifetch = (type == MEM_TYPE_IFETCH);
 
   if(cpu.need_disambiguate){
-    if(is_ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+    if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
       stval->val = vaddr;
       cpu.mem_exception = EX_IPF;
+  printf("force IPF\n");
       return MEM_RET_FAIL;
-    } else if(!is_ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
+    } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_LPF;
+  printf("force LPF\n");
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_SPF;
+  printf("force SPF\n");
       return MEM_RET_FAIL;
     }
   }

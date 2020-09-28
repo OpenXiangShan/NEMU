@@ -14,4 +14,6 @@ word_t vaddr_read_safe(vaddr_t addr, int len);
 #define PAGE_SIZE         (1ul << PAGE_SHIFT)
 #define PAGE_MASK         (PAGE_SIZE - 1)
 
+int force_raise_pf(vaddr_t vaddr, int type);
+
 #endif
