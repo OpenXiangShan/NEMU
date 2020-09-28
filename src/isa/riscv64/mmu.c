@@ -70,6 +70,11 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
+
+#ifdef FORCE_RAISE_PF
+  if (force_raise_pf(vaddr, type) != MEM_RET_OK) return MEM_RET_FAIL; 
+#endif
+
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -118,18 +123,22 @@ int force_raise_pf(vaddr_t vaddr, int type){
 
   if(cpu.need_disambiguate){
     if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
       stval->val = vaddr;
       cpu.mem_exception = EX_IPF;
+  printf("force IPF\n");
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_LPF;
+  printf("force LPF\n");
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_SPF;
+  printf("force SPF\n");
       return MEM_RET_FAIL;
     }
   }
@@ -147,11 +156,11 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   word_t va_msbs = vaddr >> 39;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
 
-#ifdef FORCE_RAISE_PF
-  int forced_result = force_raise_pf(vaddr, type);
-  if(forced_result != MEM_RET_OK)
-    return forced_result;
-#endif
+// #ifdef FORCE_RAISE_PF
+//   int forced_result = force_raise_pf(vaddr, type);
+//   if(forced_result != MEM_RET_OK)
+//     return forced_result;
+// #endif
 
   if(!va_msbs_ok){
     if(ifetch){
