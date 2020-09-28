@@ -117,24 +117,19 @@ int force_raise_pf(vaddr_t vaddr, int type){
   bool ifetch = (type == MEM_TYPE_IFETCH);
 
   if(cpu.need_disambiguate){
-    if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IAF){
+    if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
       stval->val = vaddr;
-      cpu.mem_exception = EX_IAF;
+      cpu.mem_exception = EX_IPF;
       return MEM_RET_FAIL;
-    } else if(!cpu.amo && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LAF){
+    } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_LAF;
+      cpu.mem_exception = EX_LPF;
       return MEM_RET_FAIL;
-    } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SAF){
+    } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_SAF;
-      return MEM_RET_FAIL;
-    } else if(cpu.amo && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LAF){
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
-      cpu.mem_exception = EX_SAF;
+      cpu.mem_exception = EX_SPF;
       return MEM_RET_FAIL;
     }
   }
