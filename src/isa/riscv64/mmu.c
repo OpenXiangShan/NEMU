@@ -210,7 +210,7 @@ bool ptw_is_safe(vaddr_t vaddr) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
     if(!is_sfence_safe(p_pte, rsize)){
-      printf("[Warning] pte at %lx is not sfence safe, accessed by pc %lx\n", p_pte, cpu.pc);
+      // printf("[Warning] pte at %lx is not sfence safe, accessed by pc %lx\n", p_pte, cpu.pc);
       return false;
     }
     pg_base = PGBASE(pte.ppn);
