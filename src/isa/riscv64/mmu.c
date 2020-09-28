@@ -180,7 +180,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8){
 #ifdef ENABLE_DISAMBIGUATE
-      if(!ptw_is_safe(vaddr)){
+      if(!isa_mmu_safe(vaddr)){
         int forced_result = force_raise_pf(vaddr, type);
         if(forced_result != MEM_RET_OK)
           return forced_result;
