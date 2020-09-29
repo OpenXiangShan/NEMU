@@ -76,10 +76,6 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
 
-#ifdef FORCE_RAISE_PF
-  if (force_raise_pf(vaddr, type) != MEM_RET_OK) return MEM_RET_FAIL; 
-#endif
-
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -191,7 +187,12 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
-  return ptw(vaddr, type);
+  paddr_t ptw_result = ptw(vaddr, type);
+#ifdef FORCE_RAISE_PF
+  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
+    return MEM_RET_FAIL;
+#endif
+  return ptw_result;
 }
 
 
@@ -203,19 +204,19 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       stval->val = vaddr;
       cpu.mem_exception = EX_IPF;
-  printf("force IPF\n");
+  printf("force raise IPF\n");
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_LPF;
-  printf("force LPF\n");
+  printf("force raise LPF\n");
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_SPF;
-  printf("force SPF\n");
+  printf("force raise SPF\n");
       return MEM_RET_FAIL;
     }
   }
