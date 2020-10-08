@@ -26,17 +26,17 @@ static uint32_t *audio_base = NULL;
 static int tail = 0;
 #endif
 
-static void audio_play(void *userdata, uint8_t *stream, int len) {
+static inline void audio_play(void *userdata, uint8_t *stream, int len) {
 #ifndef __ICS_EXPORT
   int nread = len;
   int count = audio_base[reg_count];
   if (count < len) nread = count;
 
-  if (nread + tail < audio_base[reg_sbuf_size]) {
+  if (nread + tail < STREAM_BUF_MAX_SIZE) {
     memcpy(stream, sbuf + tail, nread);
     tail += nread;
   } else {
-    int first_cpy_len = audio_base[reg_sbuf_size] - tail;
+    int first_cpy_len = STREAM_BUF_MAX_SIZE - tail;
     memcpy(stream, sbuf + tail, first_cpy_len);
     memcpy(stream + first_cpy_len, sbuf, nread - first_cpy_len);
     tail = nread - first_cpy_len;
@@ -56,7 +56,6 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
     s.samples = audio_base[reg_samples];
     s.callback = audio_play;
     s.userdata = NULL;
-    assert(audio_base[reg_sbuf_size] <= STREAM_BUF_MAX_SIZE);
 
     tail = 0;
     audio_base[reg_count] = 0;
@@ -72,6 +71,9 @@ void init_audio() {
   audio_base = (void *)new_space(space_size);
   add_pio_map("audio", AUDIO_PORT, (void *)audio_base, space_size, audio_io_handler);
   add_mmio_map("audio", AUDIO_MMIO, (void *)audio_base, space_size, audio_io_handler);
+#ifndef __ICS_EXPORT
+  audio_base[reg_sbuf_size] = STREAM_BUF_MAX_SIZE;
+#endif
 
   sbuf = (void *)new_space(STREAM_BUF_MAX_SIZE);
   add_mmio_map("audio-sbuf", STREAM_BUF, (void *)sbuf, STREAM_BUF_MAX_SIZE, NULL);
