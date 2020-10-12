@@ -29,6 +29,14 @@ void difftest_set_mastatus(const void *s){
   isa_difftest_set_mastatus(s);
 }
 
+void difftest_get_csr(void *c){
+  isa_difftest_get_csr(c);
+}
+
+void difftest_set_csr(const void *c){
+  isa_difftest_set_csr(c);
+}
+
 vaddr_t disambiguate_exec(void *disambiguate_para){
   return isa_disambiguate_exec(disambiguate_para);
 }

@@ -71,6 +71,14 @@ void isa_difftest_set_mastatus(const void *s) {
   cpu.lr_valid = ms->lrscValid;
 }
 
+void isa_difftest_set_csr(const void *c) {
+  memcpy(csr_array, c, 4096 * sizeof(rtlreg_t));
+}
+
+void isa_difftest_get_csr(void *c) {
+  memcpy(c, csr_array, 4096 * sizeof(rtlreg_t));
+}
+
 void isa_difftest_raise_intr(word_t NO) {
   DecodeExecState s;
   s.is_jmp = 0;
