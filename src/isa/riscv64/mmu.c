@@ -104,12 +104,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
 
+#if !_SHARE
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
     paddr_write(p_pte, pte.val, PTE_SIZE);
   }
+#endif
 
   return pg_base | MEM_RET_OK;
 }
