@@ -8,7 +8,7 @@ uint64_t clint_uptime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 
-static word_t csr_array[4096] = {};
+rtlreg_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];

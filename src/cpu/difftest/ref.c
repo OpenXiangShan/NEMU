@@ -12,6 +12,16 @@ void difftest_regcpy(void *dut, bool direction) {
   isa_difftest_regcpy(dut, direction);
 }
 
+#ifdef RV64_FULL_DIFF
+void difftest_csrcpy(void *dut, bool direction) {
+  isa_difftest_csrcpy(dut, direction);
+}
+
+void difftest_uarchstatus_cpy(void *dut, bool direction) {
+  isa_difftest_uarchstatus_cpy(dut, direction);
+}
+#endif
+
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }

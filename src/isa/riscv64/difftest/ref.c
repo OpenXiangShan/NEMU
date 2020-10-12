@@ -58,6 +58,21 @@ void isa_difftest_regcpy(void *dut, bool direction) {
   }
 }
 
+void isa_difftest_csrcpy(void *dut, bool direction) {
+  if (direction == DIFFTEST_TO_REF) {
+    memcpy(csr_array, dut, 4096 * sizeof(rtlreg_t));
+  } else {
+    memcpy(dut, csr_array, 4096 * sizeof(rtlreg_t));
+  }
+}
+
+void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
+  // TODO
+  if (direction == DIFFTEST_TO_REF) {
+  } else {
+  }
+}
+
 void isa_difftest_raise_intr(word_t NO) {
   cpu.pc = raise_intr(NO, cpu.pc);
 }

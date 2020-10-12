@@ -15,6 +15,7 @@ void init_isa();
 
 // reg
 extern CPU_state cpu;
+extern rtlreg_t csr_array[4096];
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
@@ -49,5 +50,7 @@ void isa_difftest_attach();
   // for ref
 void isa_difftest_regcpy(void *dut, bool direction);
 void isa_difftest_raise_intr(word_t NO);
+void isa_difftest_uarchstatus_cpy(void *dut, bool direction);
+void isa_difftest_csrcpy(void *dut, bool direction);
 
 #endif
