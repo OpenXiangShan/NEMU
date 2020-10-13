@@ -243,6 +243,7 @@ rvc: ;
 }
 
 vaddr_t isa_exec_once() {
+  cpu.need_disambiguate = false;
   DecodeExecState s;
   s.is_jmp = 0;
   s.seq_pc = cpu.pc;
@@ -263,4 +264,34 @@ vaddr_t isa_exec_once() {
   reg_l(0) = 0;
 
   return s.seq_pc;
+}
+
+vaddr_t isa_disambiguate_exec(void *disambiguate_para) {
+  DecodeExecState s;
+  s.is_jmp = 0;
+  s.seq_pc = cpu.pc;
+  // need_disambiguate
+  cpu.need_disambiguate = true;
+  struct DisambiguationState* ds = (struct DisambiguationState*) disambiguate_para;
+  cpu.disambiguation_state.exceptionNo = ds->exceptionNo;
+  printf("isa_disambiguate_exec %ld at pc %lx\n", ds->exceptionNo, cpu.pc);
+
+  exec(&s);
+  if (cpu.mem_exception != MEM_OK) {
+    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.mem_exception = MEM_OK;
+  }
+  update_pc(&s);
+
+#if !defined(DIFF_TEST) && !_SHARE
+  void query_intr(DecodeExecState *s);
+  query_intr(&s);
+#endif
+
+  // reset gpr[0]
+  reg_l(0) = 0;
+
+  cpu.need_disambiguate = false;
+  return s.seq_pc;
+  // return isa_exec_once();  //TODO
 }

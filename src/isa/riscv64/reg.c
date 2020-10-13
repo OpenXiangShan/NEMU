@@ -43,6 +43,8 @@ void isa_reg_display() {
       mip->val, mie->val, mscratch->val, sscratch->val);
   printf("mideleg: " FMT_WORD " medeleg: " FMT_WORD "\n", 
       mideleg->val, medeleg->val);
+  printf("mtval: " FMT_WORD " stval: " FMT_WORD "mtvec: " FMT_WORD " stvec: " FMT_WORD "\n", 
+      mtval->val, stval->val, mtvec->val, stvec->val);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {
@@ -116,7 +118,7 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
   } else if (dest == (void *)sip) {
     mip->val = (mip->val & ~SIP_MASK) | (*src & SIP_MASK);
   } else if (dest == (void *)medeleg) {
-    *dest = *src & 0xbbff;
+    *dest = *src & 0xf3ff;
   } else if (dest == (void *)mideleg) {
     *dest = *src & 0x222;
   } else if (dest == (void *)fflags) {

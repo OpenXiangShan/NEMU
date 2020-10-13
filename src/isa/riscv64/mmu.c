@@ -70,6 +70,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
+
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -113,6 +114,33 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pg_base | MEM_RET_OK;
 }
 
+int force_raise_pf(vaddr_t vaddr, int type){
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+
+  if(cpu.need_disambiguate){
+    if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      stval->val = vaddr;
+      cpu.mem_exception = EX_IPF;
+      printf("force raise IPF\n");
+      return MEM_RET_FAIL;
+    } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = EX_LPF;
+      printf("force raise LPF\n");
+      return MEM_RET_FAIL;
+    } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
+      if (cpu.mode == MODE_M) mtval->val = vaddr;
+      else stval->val = vaddr;
+      cpu.mem_exception = EX_SPF;
+      printf("force raise SPF\n");
+      return MEM_RET_FAIL;
+    }
+  }
+  return MEM_RET_OK;
+}
+
 int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
 
   bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -123,6 +151,13 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   word_t va_mask = ((((word_t)1) << (63 - 39 + 1)) - 1);
   word_t va_msbs = vaddr >> 39;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+
+// #ifdef FORCE_RAISE_PF
+//   int forced_result = force_raise_pf(vaddr, type);
+//   if(forced_result != MEM_RET_OK)
+//     return forced_result;
+// #endif
+
   if(!va_msbs_ok){
     if(ifetch){
       stval->val = vaddr;
@@ -148,7 +183,16 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) return MEM_RET_NEED_TRANSLATE;
+    if (satp->mode == 8){
+#ifdef ENABLE_DISAMBIGUATE
+      if(!isa_mmu_safe(vaddr)){
+        int forced_result = force_raise_pf(vaddr, type);
+        if(forced_result != MEM_RET_OK)
+          return forced_result;
+      }
+#endif
+      return MEM_RET_NEED_TRANSLATE;
+    } 
   }
   return MEM_RET_OK;
 }
@@ -170,8 +214,10 @@ bool ptw_is_safe(vaddr_t vaddr) {
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
-    if(!is_sfence_safe(p_pte, rsize))
+    if(!is_sfence_safe(p_pte, rsize)){
+      // printf("[Warning] pte at %lx is not sfence safe, accessed by pc %lx\n", p_pte, cpu.pc);
       return false;
+    }
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
       //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
@@ -191,9 +237,18 @@ bool ptw_is_safe(vaddr_t vaddr) {
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
-  return ptw(vaddr, type);
+  paddr_t ptw_result = ptw(vaddr, type);
+#ifdef FORCE_RAISE_PF
+  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
+    return MEM_RET_FAIL;
+#endif
+  return ptw_result;
 }
 
-bool isa_mmu_safe(vaddr_t vaddr) {
-  return ptw_is_safe(vaddr);
+bool isa_mmu_safe(vaddr_t vaddr, int type) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
+  if(mode < MODE_M && satp->mode == 8)
+    return ptw_is_safe(vaddr);
+  return true;
 }
