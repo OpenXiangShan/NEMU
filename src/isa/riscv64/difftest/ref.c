@@ -67,9 +67,15 @@ void isa_difftest_csrcpy(void *dut, bool direction) {
 }
 
 void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
-  // TODO
   if (direction == DIFFTEST_TO_REF) {
+    struct SyncState* ms = (struct SyncState*)dut;
+    cpu.lr_valid = ms->lrscValid;
+    cpu.lr_addr = ms->lrscAddr;
   } else {
+    struct SyncState ms;
+    ms.lrscValid = cpu.lr_valid;
+    ms.lrscAddr = cpu.lr_addr;
+    memcpy(dut, &ms, sizeof(struct SyncState));
   }
 }
 

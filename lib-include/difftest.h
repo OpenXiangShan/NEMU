@@ -28,6 +28,7 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #ifdef RV64_UARCH_SYNC
 struct SyncState {
   uint64_t lrscValid;
+  uint64_t lrscAddr;
 };
 #endif
 
