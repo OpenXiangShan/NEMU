@@ -289,6 +289,18 @@ EX   (0xfc, cld)            EX   (0xfd, std)            IDEXW(0xfe, E, gp4, 1)  
   }
 }
 
+#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
+static uint8_t instr_buf[20];
+static uint8_t instr_len;
+
+void add_instr(uint8_t *instr, int len) {
+  int i;
+  for (i = 0; i < len; i ++) {
+    instr_buf[instr_len ++] = instr[i];
+  }
+}
+#endif
+
 vaddr_t isa_exec_once() {
 #ifndef __ICS_EXPORT
 //#define USE_KVM
@@ -303,7 +315,17 @@ vaddr_t isa_exec_once() {
   s.isa = (ISADecodeInfo) { 0 };
   s.seq_pc = cpu.pc;
 
+#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
+  instr_len = 0;
+#endif
+
   fetch_decode_exec(&s);
+
+#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
+  void commit_instr(vaddr_t thispc, uint8_t *instr_buf, uint8_t instr_len);
+  commit_instr(cpu.pc, instr_buf, instr_len);
+#endif
+
   if (cpu.mem_exception != 0) {
     void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
     raise_intr(&s, cpu.mem_exception, cpu.pc);
