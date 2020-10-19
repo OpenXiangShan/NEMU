@@ -6,6 +6,7 @@
 #ifndef __ICS_EXPORT
 //#define LAZY_CC
 #define ENABLE_DIFFTEST_INSTR_QUEUE
+#define DETERMINISTIC
 #endif
 
 // memory

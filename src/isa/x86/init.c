@@ -33,7 +33,9 @@ void init_sdcard(const char *img);
 void init_isa() {
   /* Test the implementation of the `CPU_state' structure. */
   void reg_test();
+#ifndef DETERMINISTIC
   reg_test();
+#endif
 
   /* Load built-in image. */
   memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
