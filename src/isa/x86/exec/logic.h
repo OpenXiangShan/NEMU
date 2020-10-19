@@ -64,15 +64,23 @@ static inline def_EHelper(not) {
 }
 
 static inline def_EHelper(sar) {
+  int count = *dsrc1 & 0x1f;
+  if (count == 1) {
+    rtl_set_OF(s, rz);
+  }
+  if (count != 0) {
+    rtl_andi(s, s1, ddest, 1);
+    rtl_set_CF(s, s1);
+  }
   // if ddest == dsrc1, rtl_sar() still only use the
   // lower 5 bits of dsrc1, which do not change after
   // rtl_sext(), and it is  still sematically correct
   rtl_sext(s, ddest, ddest, id_dest->width);
   rtl_sar(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
-#ifndef LAZY_CC
-  // unnecessary to update CF and OF in NEMU
   rtl_update_ZFSF(s, ddest, id_dest->width);
+#ifdef LAZY_CC
+  panic("TODO: implement CF and OF with lazy cc");
 #endif
   print_asm_template2(sar);
 }
