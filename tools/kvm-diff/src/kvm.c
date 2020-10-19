@@ -385,6 +385,13 @@ void difftest_raise_intr(word_t NO) {
   vcpu.int_wp_state = STATE_INT_INSTR;
   vcpu.has_error_code = (NO == 14);
   vcpu.entry = entry;
+
+  if (NO == 48) {
+    // inject timer interrupt
+    struct kvm_interrupt intr = { .irq = NO };
+    int ret = ioctl(vcpu.fd, KVM_INTERRUPT, &intr);
+    assert(ret == 0);
+  }
 }
 
 void difftest_init(int port) {
