@@ -248,20 +248,23 @@ static inline int patching() {
   return 0;
 }
 
+static inline void fix_push_sreg() {
+  uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
+  *(uint32_t *)(vm.mem + esp) &= 0x0000ffff;
+}
+
 static inline void patching_after(uint64_t last_pc) {
   uint32_t pc = va2pa(last_pc);
   if (pc == 0xffffffff) return;
   uint8_t opcode = vm.mem[pc];
   if (opcode == 0x1e || opcode == 0x06) {  // push %ds/%es
-    uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
-    *(uint32_t *)(vm.mem + esp) &= 0x0000ffff;
+    fix_push_sreg();
     assert(vcpu.kvm_run->s.regs.regs.rip == last_pc + 1);
   }
-  else if (opcode == 0x0f) {  // push %es
+  else if (opcode == 0x0f) {
     uint8_t opcode2 = vm.mem[pc + 1];
     if (opcode2 == 0xa0) { // push %fs
-      uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
-      *(uint32_t *)(vm.mem + esp) &= 0x0000ffff;
+      fix_push_sreg();
       assert(vcpu.kvm_run->s.regs.regs.rip == last_pc + 2);
     }
   }
