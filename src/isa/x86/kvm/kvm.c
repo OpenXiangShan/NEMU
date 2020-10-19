@@ -134,7 +134,19 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
             *(uint32_t *)p_data = pio_read_common(p->io.port, p->io.size);
           }
           continue;
-                        }
+        }
+
+      case KVM_EXIT_MMIO: {
+          struct kvm_run *p = vcpu->kvm_run;
+          if (p->mmio.is_write) {
+            uint64_t data = *(uint64_t *)p->mmio.data;
+            paddr_write(p->mmio.phys_addr, data, p->mmio.len);
+          } else {
+            uint64_t data = paddr_read(p->mmio.phys_addr, p->mmio.len);
+            memcpy(p->mmio.data, &data, p->mmio.len);
+          }
+          continue;
+        }
 
         /* fall through */
       default:
