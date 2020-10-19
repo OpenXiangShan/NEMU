@@ -114,14 +114,10 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
 
     switch (vcpu->kvm_run->exit_reason) {
       case KVM_EXIT_HLT:
-        if (ioctl(vcpu->fd, KVM_GET_REGS, &regs) < 0) {
-          perror("KVM_GET_REGS");
-          assert(0);
-        }
-
-        void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
-        rtl_exit(NEMU_END, regs.rip, regs.rax);
-        return 0;
+        struct kvm_interrupt intr = { .irq = 48 };
+        int ret = ioctl(vcpu->fd, KVM_INTERRUPT, &intr);
+        assert(ret == 0);
+        continue;
 
       case KVM_EXIT_IO: {
           struct kvm_run *p = vcpu->kvm_run;
