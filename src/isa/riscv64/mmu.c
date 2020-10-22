@@ -121,8 +121,23 @@ int force_raise_pf(vaddr_t vaddr, int type){
 
   if(cpu.need_disambiguate){
     if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      stval->val = vaddr;
+      if (cpu.mode == MODE_M) {
+        mtval->val = cpu.disambiguation_state.mtval;
+        if(vaddr != cpu.disambiguation_state.mtval){
+          printf("[WRANING] nemu mtval %lx does not match core mtval %lx\n",
+            vaddr,
+            cpu.disambiguation_state.mtval
+          );
+        }
+      } else {
+        stval->val = cpu.disambiguation_state.stval;
+        if(vaddr != cpu.disambiguation_state.stval){
+          printf("[WRANING] nemu stval %lx does not match core stval %lx\n",
+            vaddr,
+            cpu.disambiguation_state.stval
+          );
+        }
+      }
       cpu.mem_exception = EX_IPF;
       printf("force raise IPF\n");
       return MEM_RET_FAIL;
