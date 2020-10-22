@@ -7,6 +7,8 @@
 
 struct DisambiguationState {
   uint64_t exceptionNo;
+  uint64_t mtval;
+  uint64_t stval;
 };
 
 typedef struct {
