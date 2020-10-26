@@ -2,7 +2,6 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #ifndef __ICS_EXPORT
-#include "local-include/mmu.h"
 #include "local-include/reg.h"
 #include <monitor/difftest.h>
 
@@ -39,6 +38,12 @@ static inline word_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
+#ifdef __PA__
+static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
+  Assert(pte->p, "vaddr = %x, cpu.pc = %x", vaddr, cpu.pc);
+  return true;
+}
+#else
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   int is_user = cpu.sreg[SR_CS].rpl == MODE_R3;
   int is_write = (type == MEM_TYPE_WRITE) || (type == MEM_TYPE_READ && cpu.hack_kvm_pf_write);
@@ -53,6 +58,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   }
   return ok;
 }
+#endif
 
 static inline paddr_t ptw(vaddr_t vaddr, int type) {
   word_t pg_base = PGBASE(cpu.cr3.ppn);
@@ -71,6 +77,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   assert(level == 0);
   if (!check_permission(&pte[0], true, vaddr, type)) return MEM_RET_FAIL;
 
+#if defined(__PA__) || defined(DIFF_TEST)
   if (!pte[1].a) {
     pte[1].a = 1;
     paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
@@ -87,6 +94,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     ref_difftest_memcpy_from_dut(p_pte[0], &pte[0].val, PTE_SIZE);
 #endif
   }
+#endif
 
   return pg_base | MEM_RET_OK;
 

@@ -64,6 +64,7 @@ static inline def_EHelper(not) {
 }
 
 static inline def_EHelper(sar) {
+#ifndef __PA__
   int count = *dsrc1 & 0x1f;
   if (count == 1) {
     rtl_set_OF(s, rz);
@@ -72,6 +73,7 @@ static inline def_EHelper(sar) {
     rtl_andi(s, s1, ddest, 1);
     rtl_set_CF(s, s1);
   }
+#endif
   // if ddest == dsrc1, rtl_sar() still only use the
   // lower 5 bits of dsrc1, which do not change after
   // rtl_sext(), and it is  still sematically correct
@@ -86,6 +88,7 @@ static inline def_EHelper(sar) {
 }
 
 static inline def_EHelper(shl) {
+#ifndef __PA__
   int count = *dsrc1 & 0x1f;
   if (count == 1) {
     rtl_msb(s, s0, ddest, id_dest->width);
@@ -103,6 +106,11 @@ static inline def_EHelper(shl) {
   if (count != 0) {
     rtl_update_ZFSF(s, ddest, id_dest->width);
   }
+#else
+  rtl_shl(s, ddest, ddest, dsrc1);
+  operand_write(s, id_dest, ddest);
+  rtl_update_ZFSF(s, ddest, id_dest->width);
+#endif
 #ifdef LAZY_CC
   panic("TODO: implement CF and OF with lazy cc");
 #endif
@@ -110,6 +118,7 @@ static inline def_EHelper(shl) {
 }
 
 static inline def_EHelper(shr) {
+#ifndef __PA__
   int count = *dsrc1 & 0x1f;
   if (count == 1) {
     rtl_msb(s, s0, ddest, id_dest->width);
@@ -119,6 +128,7 @@ static inline def_EHelper(shr) {
     rtl_andi(s, s1, ddest, 1);
     rtl_set_CF(s, s1);
   }
+#endif
   rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
   rtl_update_ZFSF(s, ddest, id_dest->width);

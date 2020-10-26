@@ -4,8 +4,10 @@
 #include <common.h>
 
 #ifndef __ICS_EXPORT
+//#define __PA__
+
 //#define LAZY_CC
-#define ENABLE_DIFFTEST_INSTR_QUEUE
+//#define ENABLE_DIFFTEST_INSTR_QUEUE
 #define DETERMINISTIC
 #endif
 

@@ -326,12 +326,15 @@ vaddr_t isa_exec_once() {
   commit_instr(cpu.pc, instr_buf, instr_len);
 #endif
 
+#ifndef __PA__
   if (cpu.mem_exception != 0) {
     void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
     raise_intr(&s, cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;
   }
   cpu.hack_kvm_pf_write = 0;
+#endif
+
   update_pc(&s);
 
 #ifndef __ICS_EXPORT

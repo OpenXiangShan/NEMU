@@ -1,5 +1,3 @@
-#include "../local-include/mmu.h"
-
 static inline def_EHelper(movs) {
 #ifndef __ENGINE_interpreter__
   panic("not support in engines other than interpreter");

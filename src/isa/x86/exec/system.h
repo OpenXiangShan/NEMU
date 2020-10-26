@@ -37,10 +37,6 @@ static inline def_EHelper(mov_r2cr) {
 static inline def_EHelper(mov_cr2r) {
   rtl_sr(s, id_dest->reg, &cpu.cr[id_src1->reg], 4);
   print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
-
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_ref();
-#endif
 }
 
 static inline def_EHelper(mov_rm2sreg) {
@@ -112,7 +108,7 @@ static inline def_EHelper(int) {
 }
 
 static inline def_EHelper(iret) {
-#ifdef CUSTOM_IRET
+#ifdef __PA__
   rtl_pop(s, s0);  // esp3, customized
 #else
   int old_cpl = cpu.sreg[SR_CS].rpl;
@@ -124,9 +120,10 @@ static inline def_EHelper(iret) {
   void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
   rtl_pop(s, s1);  // eflags
   rtl_set_eflags(s, s1);
-#ifdef CUSTOM_IRET
+#ifdef __PA__
   // customized: switch to user stack
   if (*s0 != 0) rtl_mv(s, &cpu.esp, s0);
+  difftest_skip_ref();
 #else
   int new_cpl = new_cs & 0x3;
   if (new_cpl > old_cpl) {
