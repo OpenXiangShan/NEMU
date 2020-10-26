@@ -2,7 +2,7 @@
 
 #define PORT_IO_SPACE_MAX 65535
 
-#define NR_MAP 8
+#define NR_MAP 16
 static IOMap maps[NR_MAP] = {};
 static int nr_map = 0;
 
@@ -20,14 +20,22 @@ void add_pio_map(char *name, ioaddr_t addr, uint8_t *space, int len, io_callback
 uint32_t pio_read_common(ioaddr_t addr, int len) {
   assert(addr + len - 1 < PORT_IO_SPACE_MAX);
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
+#ifdef __PA__
   assert(mapid != -1);
+#else
+  if (mapid == -1) return 0xffffffff;
+#endif
   return map_read(addr, len, &maps[mapid]);
 }
 
 void pio_write_common(ioaddr_t addr, uint32_t data, int len) {
   assert(addr + len - 1 < PORT_IO_SPACE_MAX);
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
+#ifdef __PA__
   assert(mapid != -1);
+#else
+  if (mapid == -1) return;
+#endif
   map_write(addr, data, len, &maps[mapid]);
 }
 

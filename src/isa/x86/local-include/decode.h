@@ -97,7 +97,7 @@ static inline void operand_rm(DecodeExecState *s, Operand *rm, bool load_rm_val,
 static inline def_DopHelper(O) {
   op->type = OP_TYPE_MEM;
   s->isa.moff = instr_fetch(&s->seq_pc, 4);
-  s->isa.mbase = rz;
+  s->isa.mbase = s->isa.sreg_base ? s->isa.sreg_base : rz;
   if (load_val) {
     rtl_lm(s, &op->val, s->isa.mbase, s->isa.moff, op->width);
     op->preg = &op->val;
@@ -110,11 +110,34 @@ static inline def_DopHelper(O) {
  * Ev <- Gv
  */
 static inline def_DHelper(G2E) {
+#ifndef __PA__
+  if (s->opcode != 0x38 && s->opcode != 0x39 && // cmp
+      s->opcode != 0x84 && s->opcode != 0x85) { // test
+    cpu.hack_kvm_pf_write = 1;
+  }
+#endif
   operand_rm(s, id_dest, true, id_src1, true);
 }
 
 static inline def_DHelper(mov_G2E) {
   operand_rm(s, id_dest, false, id_src1, true);
+}
+
+// for bts and btr
+static inline def_DHelper(bit_G2E) {
+  operand_rm(s, id_dest, false, id_src1, true);
+  if (s->isa.mbase) {
+    rtl_shri(s, s0, dsrc1, 5);
+    rtl_shli(s, s0, s0, 2);
+    rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
+    s->isa.mbase = &s->isa.mbr;
+    if (s->opcode != 0x1a3) { // bt
+      cpu.hack_kvm_pf_write = 1;
+    }
+    rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
+  }
+  rtl_andi(s, &id_src1->val, dsrc1, 0x1f);
+  id_src1->preg = &id_src1->val;
 }
 
 /* Gb <- Eb
@@ -152,6 +175,9 @@ static inline def_DHelper(I_E2G) {
  * Ev <- Iv
  */
 static inline def_DHelper(I2E) {
+#ifndef __PA__
+  cpu.hack_kvm_pf_write = 1;
+#endif
   operand_rm(s, id_dest, true, NULL, false);
   decode_op_I(s, id_src1, true);
 }
@@ -191,6 +217,10 @@ static inline def_DHelper(setcc_E) {
   operand_rm(s, id_dest, false, NULL, false);
 }
 
+static inline def_DHelper(gp6_E) {
+  operand_rm(s, id_dest, true, NULL, false);
+}
+
 static inline def_DHelper(gp7_E) {
   operand_rm(s, id_dest, false, NULL, false);
 }
@@ -202,6 +232,9 @@ static inline def_DHelper(test_I) {
 
 static inline def_DHelper(SI2E) {
   assert(id_dest->width == 2 || id_dest->width == 4);
+#ifndef __PA__
+  cpu.hack_kvm_pf_write = 1;
+#endif
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
@@ -226,6 +259,9 @@ static inline def_DHelper(gp2_1_E) {
 }
 
 static inline def_DHelper(gp2_cl2E) {
+#ifndef __PA__
+  cpu.hack_kvm_pf_write = 1;
+#endif
   operand_rm(s, id_dest, true, NULL, false);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -233,6 +269,9 @@ static inline def_DHelper(gp2_cl2E) {
 }
 
 static inline def_DHelper(gp2_Ib2E) {
+#ifndef __PA__
+  cpu.hack_kvm_pf_write = 1;
+#endif
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -241,6 +280,9 @@ static inline def_DHelper(gp2_Ib2E) {
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
+#ifndef __PA__
+  cpu.hack_kvm_pf_write = 1;
+#endif
   operand_rm(s, id_dest, true, id_src2, true);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -249,11 +291,22 @@ static inline def_DHelper(Ib_G2E) {
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline def_DHelper(cl_G2E) {
+#ifndef __PA__
+  cpu.hack_kvm_pf_write = 1;
+#endif
   operand_rm(s, id_dest, true, id_src2, true);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
   operand_reg(s, id_src1, true, R_ECX, 4);
 }
+
+// for cmpxchg
+static inline def_DHelper(a_G2E) {
+  cpu.hack_kvm_pf_write = 1;
+  operand_rm(s, id_dest, true, id_src2, true);
+  operand_reg(s, id_src1, true, R_EAX, 4);
+}
+
 
 static inline def_DHelper(O2a) {
   decode_op_O(s, id_src1, true);
@@ -265,11 +318,38 @@ static inline def_DHelper(a2O) {
   decode_op_O(s, id_dest, false);
 }
 
+// for scas and stos
+static inline def_DHelper(aSrc) {
+  decode_op_a(s, id_src1, true);
+}
+
+// for lods
+static inline def_DHelper(aDest) {
+  decode_op_a(s, id_dest, false);
+}
+
+// for xchg
+static inline def_DHelper(a2r) {
+  decode_op_a(s, id_src1, true);
+  decode_op_r(s, id_dest, true);
+}
+
 static inline def_DHelper(J) {
   decode_op_SI(s, id_dest, false);
   // the target address can be computed in the decode stage
   s->jmp_pc = id_dest->simm + s->seq_pc;
 }
+#ifndef __ICS_EXPORT
+
+// for long jump
+static inline def_DHelper(LJ) {
+  decode_op_I(s, id_dest, false); // offset
+  id_src1->width = 2;
+  decode_op_I(s, id_src1, false); // CS
+  // the target address can be computed in the decode stage
+  s->jmp_pc = id_dest->imm;
+}
+#endif
 
 static inline def_DHelper(push_SI) {
   decode_op_SI(s, id_dest, true);

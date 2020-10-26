@@ -29,6 +29,7 @@ static inline def_rtl(push, const rtlreg_t* src1) {
   // esp <- esp - 4
   // M[esp] <- src1
   rtl_sm(s, &cpu.esp, -4, src1, 4);
+  return_on_mem_ex();
   rtl_subi(s, &cpu.esp, &cpu.esp, 4);
 }
 
@@ -36,6 +37,7 @@ static inline def_rtl(pop, rtlreg_t* dest) {
   // dest <- M[esp]
   // esp <- esp + 4
   rtl_lm(s, dest, &cpu.esp, 0, 4);
+  return_on_mem_ex();
   rtl_addi(s, &cpu.esp, &cpu.esp, 4);
 }
 
@@ -117,6 +119,9 @@ def_rtl_setget_eflags(CF)
 def_rtl_setget_eflags(OF)
 def_rtl_setget_eflags(ZF)
 def_rtl_setget_eflags(SF)
+def_rtl_setget_eflags(DF)
+def_rtl_setget_eflags(IF)
+def_rtl_setget_eflags(PF)
 
 static inline def_rtl(update_ZF, const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
@@ -134,6 +139,22 @@ static inline def_rtl(update_SF, const rtlreg_t* result, int width) {
   // eflags.SF <- is_sign(result[width * 8 - 1 .. 0])
   rtl_msb(s, t0, result, width);
   rtl_set_SF(s, t0);
+}
+
+static inline def_rtl(update_PF, const rtlreg_t* result, int width) {
+  // eflags.PF <- is_parity(result[7 .. 0])
+  // the PF bit vector for 0xf~0x0: 1001011001101001 -> 0x9669
+  int pf = ~(((0x9669 >> (*result & 0xf)) ^ (0x9669 >> ((*result & 0xf0) >> 4)))) & 0x1;
+  rtl_li(s, t0, pf);
+  rtl_set_PF(s, t0);
+}
+
+static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
+  rtl_update_ZF(s, result, width);
+  rtl_update_SF(s, result, width);
+#ifndef __PA__
+  rtl_update_PF(s, result, width);
+#endif
 }
 #else
 #define def_rtl_setget_eflags(f) \
@@ -158,11 +179,10 @@ static inline def_rtl(update_SF, const rtlreg_t* result, int width) {
   // eflags.SF <- is_sign(result[width * 8 - 1 .. 0])
   TODO();
 }
-#endif
 
 static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
   rtl_update_ZF(s, result, width);
   rtl_update_SF(s, result, width);
 }
-
+#endif
 #endif

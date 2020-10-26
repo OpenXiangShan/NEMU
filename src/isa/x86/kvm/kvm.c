@@ -113,15 +113,12 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
     }
 
     switch (vcpu->kvm_run->exit_reason) {
-      case KVM_EXIT_HLT:
-        if (ioctl(vcpu->fd, KVM_GET_REGS, &regs) < 0) {
-          perror("KVM_GET_REGS");
-          assert(0);
-        }
-
-        void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
-        rtl_exit(NEMU_END, regs.rip, regs.rax);
-        return 0;
+      case KVM_EXIT_HLT: {
+        struct kvm_interrupt intr = { .irq = 48 };
+        int ret = ioctl(vcpu->fd, KVM_INTERRUPT, &intr);
+        assert(ret == 0);
+        continue;
+      }
 
       case KVM_EXIT_IO: {
           struct kvm_run *p = vcpu->kvm_run;
@@ -134,7 +131,19 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
             *(uint32_t *)p_data = pio_read_common(p->io.port, p->io.size);
           }
           continue;
-                        }
+        }
+
+      case KVM_EXIT_MMIO: {
+          struct kvm_run *p = vcpu->kvm_run;
+          if (p->mmio.is_write) {
+            uint64_t data = *(uint64_t *)p->mmio.data;
+            paddr_write(p->mmio.phys_addr, data, p->mmio.len);
+          } else {
+            uint64_t data = paddr_read(p->mmio.phys_addr, p->mmio.len);
+            memcpy(p->mmio.data, &data, p->mmio.len);
+          }
+          continue;
+        }
 
         /* fall through */
       default:

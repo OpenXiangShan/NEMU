@@ -6,7 +6,7 @@
 #ifdef __ICS_EXPORT
 //#define MODE_800x600
 #else
-#define MODE_800x600
+//#define MODE_800x600
 #endif
 
 #ifdef MODE_800x600

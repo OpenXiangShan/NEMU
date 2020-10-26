@@ -4,7 +4,11 @@
 #include <common.h>
 
 #ifndef __ICS_EXPORT
+//#define __PA__
+
 //#define LAZY_CC
+//#define ENABLE_DIFFTEST_INSTR_QUEUE
+#define DETERMINISTIC
 #endif
 
 // memory
@@ -30,8 +34,8 @@ typedef union CR0 {
 /* the Control Register 3 (physical address of page directory) */
 typedef union CR3 {
   struct {
-    uint32_t pad0                : 12;
-    uint32_t page_directory_base : 20;
+    uint32_t pad : 12;
+    uint32_t ppn : 20;
   };
   uint32_t val;
 } CR3;
@@ -80,9 +84,8 @@ typedef struct {
 
   vaddr_t pc;
   uint32_t eflags;
-  uint16_t cs;
 
-  rtlreg_t OF, CF, SF, ZF, IF;
+  rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 
 #ifdef LAZY_CC
   rtlreg_t cc_dest, cc_src1, cc_src2;
@@ -91,9 +94,22 @@ typedef struct {
 #endif
 
   struct {
+    union {
+      struct {
+        uint32_t rpl : 2;
+        uint32_t ti  : 1;
+        uint32_t idx :13;
+      };
+      uint16_t val;
+    };
+    // hidden part
+    rtlreg_t base;
+  } sreg[8];
+
+  struct {
     uint32_t limit :16;
     uint32_t base  :32;
-  } idtr;
+  } idtr, gdtr;
 
   union {
     rtlreg_t cr[4];
@@ -105,6 +121,10 @@ typedef struct {
     };
   };
 
+  int mem_exception;
+  int hack_kvm_pf_write;
+  word_t error_code;
+
   bool INTR;
 #endif
 } x86_CPU_state;
@@ -112,7 +132,11 @@ typedef struct {
 // decode
 typedef struct {
   bool is_operand_size_16;
+#define PREFIX_REP   1
+#define PREFIX_REPNZ 2
+  int rep_flags;
   uint8_t ext_opcode;
+  const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
   rtlreg_t mbr;
   word_t moff;

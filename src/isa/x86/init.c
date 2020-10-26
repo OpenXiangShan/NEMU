@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <memory/paddr.h>
+#include "local-include/reg.h"
 
 static const uint8_t img []  = {
   0xb8, 0x34, 0x12, 0x00, 0x00,        // 100000:  movl  $0x1234,%eax
@@ -17,19 +18,35 @@ static void restart() {
   /* Set the initial instruction pointer. */
   cpu.pc = PMEM_BASE + IMAGE_START;
 #ifndef __ICS_EXPORT
-  cpu.cs = 0x8;
+  cpu.sreg[SR_CS].val = 0x8;
   cpu.cr0.val = 0x60000011;
 #endif
 }
 
+void init_i8259a();
+void init_mc146818rtc();
+void init_i8253();
+void init_ioport80();
+void init_i8237a();
+void init_sdcard(const char *img);
+
 void init_isa() {
   /* Test the implementation of the `CPU_state' structure. */
   void reg_test();
+#ifndef DETERMINISTIC
   reg_test();
+#endif
 
   /* Load built-in image. */
   memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
 
   /* Initialize this virtual computer system. */
   restart();
+
+  init_i8259a();
+  init_mc146818rtc();
+  init_i8253();
+  init_ioport80();
+  init_i8237a();
+  init_sdcard("/home/yzh/sdi/debian-16G.img");
 }

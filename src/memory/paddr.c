@@ -14,6 +14,9 @@ IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
 #ifndef DIFF_TEST
+#ifdef DETERMINISTIC
+  return;
+#endif
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;

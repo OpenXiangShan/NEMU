@@ -3,15 +3,23 @@
 
 制作需要`qemu-riscv64-static`, 建议在debian 10或ubuntu 19.04的系统(可尝试使用docker)中进行操作.
 
-* 创建ext4空镜像
+* 创建空镜像和分区
 ```
-dd if=/dev/zero of=debian.img bs=1G count=4  # 此处镜像大小为4GB
-sudo mkfs.ext4 debian.img
+dd if=/dev/zero of=debian.img bs=1G count=16  # 此处镜像大小为16GB
+sudo cfdisk debian.img # 可创建两个分区, 第一个分区12GB作为rootfs, 第二个分区4GB作为swap
+sudo losetup --partscan --show --find debian.img # 将debian.img作为loop设备
+ls /dev/loop0* # 此时应该能看到/dev/loop0p1和/dev/loop0p2两个分区
 ```
 
-* 挂载空镜像
+* 创建ext4和swap文件系统
 ```
-sudo mount debian.img /mnt -o loop
+sudo mkfs.ext4 /dev/loop0p1
+sudo mkswap /dev/loop0p2
+```
+
+* 挂载ext4分区
+```
+sudo mount /dev/loop0p1 /mnt
 ```
 
 * 安装debian base system.
@@ -19,6 +27,10 @@ sudo mount debian.img /mnt -o loop
 ```
 sudo apt-get install debootstrap qemu-user-static binfmt-support debian-ports-archive-keyring
 sudo debootstrap --arch=riscv64 --keyring /usr/share/keyrings/debian-ports-archive-keyring.gpg --include=debian-ports-archive-keyring unstable /mnt http://deb.debian.org/debian-ports
+```
+若要安装x86系统, 则输入
+```
+sudo debootstrap --arch=i386 --keyring /usr/share/keyrings/debian-archive-keyring.gpg --include=debian-archive-keyring stable /mnt http://deb.debian.org/debian
 ```
 
 * 进入镜像
@@ -38,9 +50,9 @@ apt-get install haveged
 agt-get install sbt
 ```
 
-* 删除登录密码, 登录时输入`root`后可直接登录
+* 在`/etc/fstab`中添加swap分区
 ```
-passwd -d root
+/dev/mmcblk0p2 none swap sw 0 0
 ```
 
 * 添加/root/目录的写和执行权限, 使得host上的普通用户可以访问
@@ -48,15 +60,16 @@ passwd -d root
 chmod +w,+x /root
 ```
 
-* 在/root/目录下提前写入所需的测试文件, 如hello.c等. 将来以只读方式挂载时, 无法写入文件.
-
-* 若要创建文件, 可在/run/目录下创建, 它是个tmpfs
+* 在/root/目录下提前写入所需的测试文件, 如hello.c等.
 
 * 在/root/.bashrc中添加如下内容, 可以实现登录后自动运行命令(根据实际情况修改测试的命令):
 ```
 TMP_DIR=/run/mytest
 
 cmd=(
+# enbale swap
+  "swapon -a"
+
 # show system information
   "uname -a"
   "cat /etc/issue"
@@ -128,11 +141,10 @@ vim emergency.service
 ```
 exit  # 之前通过`chroot`方式进入
 sudo umount /mnt  # 记得卸载! 在未卸载镜像的情况下通过可写方式再次打开`debian.img`(如作为qemu的文件系统), 镜像将会损坏!
+sudo losetup -d /dev/loop0  # 删除loop设备
 ```
 
 * 修改`nemu/src/device/sdcard.c`中`init_sdcard()`中打开的镜像文件路径, 即可使用制作的镜像.
 在i9-9900k上测试, 约90s后看到debian的登录提示符.
 
-* 根据实际情况修改`nemu/src/device/serial.c`中允许串口输入的等待时间,
-使得出现登录提示符后自动从串口读入"root\n"进行登录, 然后运行`.bashrc`中预设的命令,
-实现一键运行自动测试.
+* 当以可写方式启动镜像是, NEMU遇到错误或通过Ctrl+C直接退出NEMU时, 可能会损坏镜像的崩溃一致性, 此时可以通过fsck命令修复分区.

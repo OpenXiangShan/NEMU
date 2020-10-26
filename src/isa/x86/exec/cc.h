@@ -52,6 +52,7 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcod
     case CC_L:
     case CC_LE:
        TODO();
+    case CC_P: panic("PF is not supported");
 #else
     case CC_O: rtl_mv(s, dest, &cpu.OF); break;
     case CC_B: rtl_mv(s, dest, &cpu.CF); break;
@@ -62,9 +63,9 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcod
     case CC_LE: rtl_xor(s, dest, &cpu.SF, &cpu.OF);
                 rtl_or(s, dest, dest, &cpu.ZF);
                 break;
+    case CC_P: rtl_mv(s, dest, &cpu.PF); break;
 #endif
     default: panic("should not reach here");
-    case CC_P: panic("PF is not supported");
   }
 
   if (invert) {
@@ -73,8 +74,10 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcod
 #ifdef __ICS_EXPORT
   assert(*dest == 0 || *dest == 1);
 #else
+#ifdef __ENGINE_interpreter__
   // we can not do runtime checking in JIT for SDI
-  //assert(*dest == 0 || *dest == 1);
+  assert(*dest == 0 || *dest == 1);
+#endif
 #endif
 }
 

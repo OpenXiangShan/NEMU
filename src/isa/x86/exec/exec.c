@@ -2,6 +2,9 @@
 #include "../local-include/decode.h"
 #include "all-instr.h"
 
+#undef CASE_ENTRY
+#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); return_on_mem_ex(); ex(s); break;
+
 static inline void set_width(DecodeExecState *s, int width) {
   if (width == -1) return;
   if (width == 0) {
@@ -30,8 +33,8 @@ static inline def_EHelper(gp2) {
     EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
     EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
 #else
-    EXW(0, rol, -1) EXW(1, ror, -1) EMPTY(2) EMPTY(3)
-    EXW(4, shl, -1) EXW(5, shr, -1) EMPTY(6) EXW  (7, sar, -1)
+    EXW(0, rol, -1) EXW(1, ror, -1) EXW  (2, rcl, -1) EXW  (3, rcr, -1)
+    EXW(4, shl, -1) EXW(5, shr, -1) EMPTY(6)          EXW  (7, sar, -1)
 #endif
   }
 }
@@ -75,6 +78,24 @@ static inline def_EHelper(gp5) {
   }
 }
 
+#ifndef __ICS_EXPORT
+/* 0x0f 0x00*/
+static inline def_EHelper(gp6) {
+  switch (s->isa.ext_opcode) {
+    EMPTY(0) EMPTY(1) EXW  (2, lldt, -1) EXW  (3, ltr, -1)
+    EMPTY(4) EMPTY(5) EMPTY(6)           EMPTY(7)
+  }
+}
+
+/* 0x0f 0xba*/
+static inline def_EHelper(gp8) {
+  switch (s->isa.ext_opcode) {
+    EMPTY(0)         EMPTY(1)          EMPTY(2)          EMPTY(3)
+    EXW  (4, bt, -1) EXW  (5, bts, -1) EXW  (6, btr, -1) EMPTY(7)
+  }
+}
+#endif
+
 /* 0x0f 0x01*/
 static inline def_EHelper(gp7) {
   switch (s->isa.ext_opcode) {
@@ -82,38 +103,60 @@ static inline def_EHelper(gp7) {
     EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
     EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
 #else
-    EMPTY(0) EMPTY(1) EMPTY(2) EXW  (3, lidt, -1)
-    EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
+    EMPTY(0) EMPTY(1) EXW  (2, lgdt, -1) EXW  (3, lidt, -1)
+    EMPTY(4) EMPTY(5) EMPTY(6)           EXW  (7, invlpg, -1)
 #endif
   }
 }
 
 static inline def_EHelper(2byte_esc) {
   uint8_t opcode = instr_fetch(&s->seq_pc, 1);
-  s->opcode = opcode;
+  s->opcode = opcode | 0x100;
   switch (opcode) {
   /* TODO: Add more instructions!!! */
     IDEX (0x01, gp7_E, gp7)
 #ifndef __ICS_EXPORT
+    IDEXW(0x00, gp6_E, gp6, 2)
     IDEX (0x20, mov_G2E, mov_cr2r)
     IDEX (0x22, mov_E2G, mov_r2cr)
+    IDEX (0x23, mov_E2G, mov_r2dr)
+    EX   (0x31, rdtsc)
     IDEXW(0x80, J, jcc, 4) IDEXW(0x81, J, jcc, 4) IDEXW(0x82, J, jcc, 4) IDEXW(0x83, J, jcc, 4)
     IDEXW(0x84, J, jcc, 4) IDEXW(0x85, J, jcc, 4) IDEXW(0x86, J, jcc, 4) IDEXW(0x87, J, jcc, 4)
     IDEXW(0x88, J, jcc, 4) IDEXW(0x89, J, jcc, 4) IDEXW(0x8a, J, jcc, 4) IDEXW(0x8b, J, jcc, 4)
     IDEXW(0x8c, J, jcc, 4) IDEXW(0x8d, J, jcc, 4) IDEXW(0x8e, J, jcc, 4) IDEXW(0x8f, J, jcc, 4)
+    IDEX (0x40, E2G, cmovcc) IDEX (0x41, E2G, cmovcc) IDEX (0x42, E2G, cmovcc) IDEX (0x43, E2G, cmovcc)
+    IDEX (0x44, E2G, cmovcc) IDEX (0x45, E2G, cmovcc) IDEX (0x46, E2G, cmovcc) IDEX (0x47, E2G, cmovcc)
+    IDEX (0x48, E2G, cmovcc) IDEX (0x49, E2G, cmovcc) IDEX (0x4a, E2G, cmovcc) IDEX (0x4b, E2G, cmovcc)
+    IDEX (0x4c, E2G, cmovcc) IDEX (0x4d, E2G, cmovcc) IDEX (0x4e, E2G, cmovcc) IDEX (0x4f, E2G, cmovcc)
     IDEXW(0x90, setcc_E, setcc, 1) IDEXW(0x91, setcc_E, setcc, 1) IDEXW(0x92, setcc_E, setcc, 1) IDEXW(0x93, setcc_E, setcc, 1)
     IDEXW(0x94, setcc_E, setcc, 1) IDEXW(0x95, setcc_E, setcc, 1) IDEXW(0x96, setcc_E, setcc, 1) IDEXW(0x97, setcc_E, setcc, 1)
     IDEXW(0x98, setcc_E, setcc, 1) IDEXW(0x99, setcc_E, setcc, 1) IDEXW(0x9a, setcc_E, setcc, 1) IDEXW(0x9b, setcc_E, setcc, 1)
     IDEXW(0x9c, setcc_E, setcc, 1) IDEXW(0x9d, setcc_E, setcc, 1) IDEXW(0x9e, setcc_E, setcc, 1) IDEXW(0x9f, setcc_E, setcc, 1)
+    EX   (0xa0, push_fs)
+    EX   (0xa1, pop_fs)
+    EX   (0xa2, cpuid)
+    IDEX (0xa3, bit_G2E, bt)
     IDEX (0xa4, Ib_G2E, shld)
     IDEX (0xa5, cl_G2E, shld)
+    IDEX (0xab, bit_G2E, bts)
     IDEX (0xac, Ib_G2E, shrd)
+    IDEX (0xad, cl_G2E, shrd)
     IDEX (0xaf, E2G, imul2)
+    IDEX (0xb1, a_G2E, cmpxchg)
+    IDEX (0xb3, bit_G2E, btr)
     IDEXW(0xb6, mov_E2G, movzx, 1)
     IDEXW(0xb7, mov_E2G, movzx, 2)
+    IDEX (0xba, gp2_Ib2E, gp8)
+    IDEX (0xbb, bit_G2E, btc)
+    IDEX (0xbc, mov_E2G, bsf)
     IDEX (0xbd, mov_E2G, bsr)
     IDEXW(0xbe, mov_E2G, movsx, 1)
     IDEXW(0xbf, mov_E2G, movsx, 2)
+    IDEX (0xc1, G2E, xadd)
+    IDEXW(0xc7, E, cmpxchg8b, 4)
+    IDEXW(0xc8, r, bswap, 4) IDEXW(0xc9, r, bswap, 4) IDEXW(0xca, r, bswap, 4) IDEXW(0xcb, r, bswap, 4)
+    IDEXW(0xcc, r, bswap, 4) IDEXW(0xcd, r, bswap, 4) IDEXW(0xce, r, bswap, 4) IDEXW(0xcf, r, bswap, 4)
 #endif
     default: exec_inv(s);
   }
@@ -123,6 +166,7 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
   uint8_t opcode;
 again:
   opcode = instr_fetch(&s->seq_pc, 1);
+  return_on_mem_ex();
   s->opcode = opcode;
   switch (opcode) {
 #ifdef __ICS_EXPORT
@@ -171,19 +215,19 @@ again:
 //       1         2         3         4         5         6         7         8         9
 //34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 IDEXW(0x00, G2E, add, 1)    IDEX (0x01, G2E, add)       IDEXW(0x02, E2G, add, 1)    IDEX (0x03, E2G, add)
-EMPTY(0x04)                 IDEX (0x05, I2a, add)
+IDEXW(0x04, I2a, add, 1)    IDEX (0x05, I2a, add)       EX   (0x06, push_es)        EX   (0x07, pop_es)
 IDEXW(0x08, G2E, or, 1)     IDEX (0x09, G2E, or)        IDEXW(0x0a, E2G, or, 1)     IDEX (0x0b, E2G, or)
 IDEXW(0x0c, I2a, or, 1)     IDEX (0x0d, I2a, or)        EMPTY(0x0e)                 EX   (0x0f, 2byte_esc)
 IDEXW(0x10, G2E, adc, 1)    IDEX (0x11, G2E, adc)       IDEXW(0x12, E2G, adc, 1)    IDEX (0x13, E2G, adc)
-
+IDEXW(0x14, I2a, adc, 1)    IDEX (0x15, I2a, adc)
 IDEXW(0x18, G2E, sbb, 1)    IDEX (0x19, G2E, sbb)       IDEXW(0x1a, E2G, sbb, 1)    IDEX (0x1b, E2G, sbb)
-
+IDEXW(0x1c, I2a, sbb, 1)                                EX   (0x1e, push_ds)        EX   (0x1f, pop_ds)
 IDEXW(0x20, G2E, and, 1)    IDEX (0x21, G2E, and)       IDEXW(0x22, E2G, and, 1)    IDEX (0x23, E2G, and)
 IDEXW(0x24, I2a, and, 1)    IDEX (0x25, I2a, and)
-IDEXW(0x28, G2E, sub, 1)    IDEX (0x29, G2E, sub)       EMPTY(0x2a)                 IDEX (0x2b, E2G, sub)
-EMPTY(0x2c)                 IDEX (0x2d, I2a, sub)
+IDEXW(0x28, G2E, sub, 1)    IDEX (0x29, G2E, sub)       IDEXW(0x2a, E2G, sub, 1)    IDEX (0x2b, E2G, sub)
+IDEXW(0x2c, I2a, sub, 1)    IDEX (0x2d, I2a, sub)
 IDEXW(0x30, G2E, xor, 1)    IDEX (0x31, G2E, xor)       IDEXW(0x32, E2G, xor, 1)    IDEX (0x33, E2G, xor)
-EMPTY(0x34)                 IDEX (0x35, I2a, xor)
+IDEXW(0x34, I2a, xor, 1)    IDEX (0x35, I2a, xor)
 IDEXW(0x38, G2E, cmp, 1)    IDEX (0x39, G2E, cmp)       IDEXW(0x3a, E2G, cmp, 1)    IDEX (0x3b, E2G, cmp)
 IDEXW(0x3c, I2a, cmp, 1)    IDEX (0x3d, I2a, cmp)
 IDEX (0x40, r, inc)         IDEX (0x41, r, inc)         IDEX (0x42, r, inc)         IDEX (0x43, r, inc)
@@ -205,15 +249,15 @@ IDEXW(0x7c, J, jcc, 1)      IDEXW(0x7d, J, jcc, 1)      IDEXW(0x7e, J, jcc, 1)  
 IDEXW(0x80, I2E, gp1, 1)    IDEX (0x81, I2E, gp1)       EMPTY(0x82)                 IDEX (0x83, SI2E, gp1)
 IDEXW(0x84, G2E, test, 1)   IDEX (0x85, G2E, test)      IDEXW(0x86, G2E, xchg, 1)   IDEX (0x87, G2E, xchg)
 IDEXW(0x88, mov_G2E, mov, 1)IDEX (0x89, mov_G2E, mov)   IDEXW(0x8a, mov_E2G, mov, 1)IDEX (0x8b, mov_E2G, mov)
-EMPTY(0x8c)                 IDEX (0x8d, lea_M2G, lea)
-EX   (0x90, nop)
-
-EX   (0x98, cwtl)           EX   (0x99, cltd)
-
+IDEX (0x8c, mov_G2E, mov_sreg2rm) IDEX (0x8d, lea_M2G, lea)   IDEX (0x8e, mov_E2G, mov_rm2sreg) IDEX (0x8f, E, pop)
+EX   (0x90, nop)            IDEX (0x91, a2r, xchg)      IDEX (0x92, a2r, xchg)      IDEX (0x93, a2r, xchg)
+IDEX (0x94, a2r, xchg)      IDEX (0x95, a2r, xchg)      IDEX (0x96, a2r, xchg)      IDEX (0x97, a2r, xchg)
+EX   (0x98, cwtl)           EX   (0x99, cltd)                                       EX   (0x9b, fwait)
+EX   (0x9c, pushf)          EX   (0x9d, popf)           EX   (0x9e, sahf)
 IDEXW(0xa0, O2a, mov, 1)    IDEX (0xa1, O2a, mov)       IDEXW(0xa2, a2O, mov, 1)    IDEX (0xa3, a2O, mov)
-EXW  (0xa4, movs, 1)        EX   (0xa5, movs)
-IDEXW(0xa8, I2a, test, 1)   IDEX (0xa9, I2a, test)
-
+EXW  (0xa4, movs, 1)        EX   (0xa5, movs)           EXW  (0xa6, cmps, 1)
+IDEXW(0xa8, I2a, test, 1)   IDEX (0xa9, I2a, test)      IDEXW(0xaa, aSrc, stos, 1)  IDEX (0xab, aSrc, stos)
+IDEXW(0xac, aDest, lods, 1)                             IDEXW(0xae, aSrc, scas, 1)
 IDEXW(0xb0, mov_I2r, mov, 1)IDEXW(0xb1, mov_I2r, mov, 1)IDEXW(0xb2, mov_I2r, mov, 1)IDEXW(0xb3, mov_I2r, mov, 1)
 IDEXW(0xb4, mov_I2r, mov, 1)IDEXW(0xb5, mov_I2r, mov, 1)IDEXW(0xb6, mov_I2r, mov, 1)IDEXW(0xb7, mov_I2r, mov, 1)
 IDEX (0xb8, mov_I2r, mov)   IDEX (0xb9, mov_I2r, mov)   IDEX (0xba, mov_I2r, mov)   IDEX (0xbb, mov_I2r, mov)
@@ -224,21 +268,38 @@ IDEXW(0xc0, gp2_Ib2E, gp2, 1)IDEX (0xc1, gp2_Ib2E, gp2) IDEXW(0xc2, I, ret_imm, 
                             IDEXW(0xcd, I, int, 1)                                  EX   (0xcf, iret)
 IDEXW(0xd0, gp2_1_E, gp2, 1)IDEX (0xd1, gp2_1_E, gp2)   IDEXW(0xd2, gp2_cl2E, gp2, 1)IDEX (0xd3, gp2_cl2E, gp2)
                                                         EX   (0xd6, nemu_trap)
-
-
-
-
-IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      EMPTY(0xea)                 IDEXW(0xeb, J, jmp, 1)
+EX   (0xd8, fpu)            EX   (0xd9, fpu)            EX   (0xda, fpu)            EX   (0xdb, fpu)
+EX   (0xdc, fpu)            EX   (0xdd, fpu)            EX   (0xde, fpu)            EX   (0xdf, fpu)
+                                                                                    IDEXW(0xe3, J, jecxz, 1)
+IDEXW(0xe4, in_I2a, in, 1)                              IDEXW(0xe6, out_a2I, out, 1)
+IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      IDEXW(0xea, LJ, ljmp, 4)    IDEXW(0xeb, J, jmp, 1)
 IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, out, 1)IDEX (0xef, out_a2dx, out)
 
-                                                        IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
-
-                                                        IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
+EX   (0xf4, hlt)                                        IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
+EX   (0xf8, clc)            EX   (0xf9, stc)            EX   (0xfa, cli)            EX   (0xfb, sti)
+EX   (0xfc, cld)            EX   (0xfd, std)            IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
+  case 0x64: s->isa.sreg_base = &cpu.sreg[SR_FS].base; goto again;
+  case 0x65: s->isa.sreg_base = &cpu.sreg[SR_GS].base; goto again;
+  case 0xf0: goto again; // LOCK prefix
+  case 0xf2: s->isa.rep_flags = PREFIX_REPNZ; goto again;
+  case 0xf3: s->isa.rep_flags = PREFIX_REP; goto again;
 #endif
   case 0x66: s->isa.is_operand_size_16 = true; goto again;
   default: exec_inv(s);
   }
 }
+
+#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
+static uint8_t instr_buf[20];
+static uint8_t instr_len;
+
+void add_instr(uint8_t *instr, int len) {
+  int i;
+  for (i = 0; i < len; i ++) {
+    instr_buf[instr_len ++] = instr[i];
+  }
+}
+#endif
 
 vaddr_t isa_exec_once() {
 #ifndef __ICS_EXPORT
@@ -254,7 +315,26 @@ vaddr_t isa_exec_once() {
   s.isa = (ISADecodeInfo) { 0 };
   s.seq_pc = cpu.pc;
 
+#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
+  instr_len = 0;
+#endif
+
   fetch_decode_exec(&s);
+
+#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
+  void commit_instr(vaddr_t thispc, uint8_t *instr_buf, uint8_t instr_len);
+  commit_instr(cpu.pc, instr_buf, instr_len);
+#endif
+
+#ifndef __PA__
+  if (cpu.mem_exception != 0) {
+    void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
+    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.mem_exception = 0;
+  }
+  cpu.hack_kvm_pf_write = 0;
+#endif
+
   update_pc(&s);
 
 #ifndef __ICS_EXPORT

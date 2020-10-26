@@ -76,6 +76,66 @@ static inline def_EHelper(xchg) {
   }
   print_asm_template2(xchg);
 }
+
+static inline def_EHelper(cmpxchg) {
+#ifndef __ENGINE_interpreter__
+  panic("not support in engines other than interpreter");
+#endif
+
+  rtl_setrelop(s, RELOP_EQ, s0, dsrc1, ddest);
+  rtl_set_ZF(s, s0);
+  if (cpu.ZF) {
+    operand_write(s, id_dest, dsrc2);
+  } else {
+    operand_write(s, id_src1, ddest);
+  }
+
+  print_asm_template2(cmpxchg);
+}
+
+static inline def_EHelper(cmpxchg8b) {
+#ifndef __ENGINE_interpreter__
+  panic("not support in engines other than interpreter");
+#endif
+
+  // first 4 bytes of the memory operand is already loaded by the decode helper
+  rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 4, 4);
+  rtl_setrelop(s, RELOP_EQ, &id_src1->val, &cpu.eax, ddest);
+  rtl_setrelop(s, RELOP_EQ, &id_src2->val, &cpu.edx, s0);
+  rtl_and(s, &id_src1->val, &id_src1->val, &id_src2->val);
+  rtl_set_ZF(s, &id_src1->val);
+  if (cpu.ZF) {
+    rtl_sm(s, s->isa.mbase, s->isa.moff + 0, &cpu.ebx, 4);
+    rtl_sm(s, s->isa.mbase, s->isa.moff + 4, &cpu.ecx, 4);
+  } else {
+    rtl_mv(s, &cpu.eax, ddest);
+    rtl_mv(s, &cpu.edx, s0);
+  }
+
+  print_asm_template2(cmpxchg8b);
+}
+
+static inline def_EHelper(cmovcc) {
+  uint32_t cc = s->opcode & 0xf;
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, cc);
+#else
+  rtl_setcc(s, s0, cc);
+#endif
+
+  // ddest <- (s0 ? dsrc1 : ddest)
+  rtl_setrelopi(s, RELOP_EQ, s0, s0, 0);
+  rtl_subi(s, s0, s0, 1);
+  // s0 = mask
+  rtl_and(s, s1, dsrc1, s0);
+  rtl_not(s, s0, s0);
+  rtl_and(s, ddest, ddest, s0);
+  rtl_or(s, ddest, ddest, s1);
+
+  operand_write(s, id_dest, ddest);
+
+  print_asm("cmov%s %s,%s", get_cc_name(cc), id_src1->str, id_dest->str);
+}
 #else
 static inline def_EHelper(push) {
   TODO();
