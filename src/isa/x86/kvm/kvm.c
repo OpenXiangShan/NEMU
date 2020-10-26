@@ -113,11 +113,12 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
     }
 
     switch (vcpu->kvm_run->exit_reason) {
-      case KVM_EXIT_HLT:
+      case KVM_EXIT_HLT: {
         struct kvm_interrupt intr = { .irq = 48 };
         int ret = ioctl(vcpu->fd, KVM_INTERRUPT, &intr);
         assert(ret == 0);
         continue;
+      }
 
       case KVM_EXIT_IO: {
           struct kvm_run *p = vcpu->kvm_run;
