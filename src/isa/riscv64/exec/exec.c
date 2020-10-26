@@ -189,7 +189,7 @@ static inline void exec(DecodeExecState *s) {
       IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
       IDEX (010, S, store)  EX   (011, fp)                                  IDEX (013, R, atomic)
       IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
-      EX   (020, fp)
+      EX   (020, fp)        EX   (021, fp)        EX   (022, fp)
       EX   (024, fp)
       IDEX (030, B, branch) IDEX (031, I, jalr)   EX   (032, nemu_trap)     IDEX (033, J, jal)
       EX   (034, system)
