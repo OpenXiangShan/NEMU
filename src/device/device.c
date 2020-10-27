@@ -12,8 +12,10 @@ void init_timer();
 void init_vga();
 void init_i8042();
 void init_audio();
+void init_disk();
 
 void send_key(uint8_t, bool);
+void vga_update_screen();
 
 static int device_update_flag = false;
 
@@ -26,6 +28,7 @@ void device_update() {
     return;
   }
   device_update_flag = false;
+  vga_update_screen();
 
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -57,6 +60,7 @@ void init_device() {
   init_vga();
   init_i8042();
   init_audio();
+  init_disk();
 
   add_alarm_handle(set_device_update_flag);
   init_alarm();
