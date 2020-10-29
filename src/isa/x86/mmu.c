@@ -77,7 +77,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   assert(level == 0);
   if (!check_permission(&pte[0], true, vaddr, type)) return MEM_RET_FAIL;
 
-#if defined(__PA__) || defined(DIFF_TEST)
+#if !defined(__PA__) || defined(DIFF_TEST)
   if (!pte[1].a) {
     pte[1].a = 1;
     paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
