@@ -6,8 +6,12 @@
 
 #define ALIGN_UP(a, sz) ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 
+static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int len, int is_write) = NULL;
+static void *qemu_cpu = NULL;
+
 void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
-  assert(0);
+  int ret = qemu_cpu_memory_rw_debug(qemu_cpu, dest, src, n, true);
+  assert(ret == 0);
 }
 
 void difftest_getregs(void *r) {
@@ -26,12 +30,18 @@ void difftest_init(int port) {
   assert(0);
 }
 
+typedef struct {
+  // the first two members from the source code of QEMU
+  void *c_cpu;
+  void *g_cpu;
+} GDBState;
+
 static uint8_t code_save[12];
 static int (*qemu_main)(int, char **, char **) = NULL;
 
 static void* qemu_thread(void *arg) {
   char *myargv[] = {
-    "qemy-system-i386", "-nographic", "-S"
+    "qemy-system-i386", "-nographic", "-S", "-s"
   };
   int myargc = sizeof(myargv) / sizeof(myargv[0]);
   qemu_main(myargc, myargv, arg);
@@ -158,23 +168,23 @@ static char* get_debug_elf_path(char *filename) {
   return path;
 }
 
-static uintptr_t get_sym_addr(char *sym) {
+static uintptr_t get_sym_addr(char *sym, int type) {
   int i;
   for (i = 0; i < symtab_nr_entry; i ++) {
     if ((strcmp(strtab + symtab[i].st_name, sym) == 0) &&
-        ELF64_ST_TYPE(symtab[i].st_info) == STT_FUNC) {
+        ELF64_ST_TYPE(symtab[i].st_info) == type) {
       return symtab[i].st_value;
     }
   }
   assert(0);
 }
 
-static uintptr_t get_loaded_addr(char *sym) {
+static uintptr_t get_loaded_addr(char *sym, int type) {
   static uintptr_t main_addr = 0;
   if (main_addr == 0) {
-    main_addr = get_sym_addr("main");
+    main_addr = get_sym_addr("main", STT_FUNC);
   }
-  return get_sym_addr(sym) + ((uintptr_t)qemu_main - main_addr);
+  return get_sym_addr(sym, type) + ((uintptr_t)qemu_main - main_addr);
 }
 
 static int mymain(int argc, char *argv[], char *envp[]) {
@@ -202,12 +212,16 @@ static int mymain(int argc, char *argv[], char *envp[]) {
   ELF_parse(debug_elf_path);
   free(debug_elf_path);
 
-  bool (*runstate_check)(int) = (void *)get_loaded_addr("runstate_check");
-  int RUN_STATE_PRELAUNCH = 6;
-  while (!runstate_check(RUN_STATE_PRELAUNCH)) {
-    usleep(1);
-  }
+  volatile GDBState **qemu_gdbserver_state = (void *)get_loaded_addr("gdbserver_state", STT_OBJECT);
+  qemu_cpu_memory_rw_debug = (void *)get_loaded_addr("cpu_memory_rw_debug", STT_FUNC);
+
+  while (*qemu_gdbserver_state == NULL) usleep(1);
+  while ((*qemu_gdbserver_state)->g_cpu == NULL) usleep(1);
+  qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
   printf("ok\n");
+
+  uint8_t buf[] = "abcedfg";
+  difftest_memcpy_from_dut(0x100000, buf, sizeof(buf));
 
   while (1);
 }
