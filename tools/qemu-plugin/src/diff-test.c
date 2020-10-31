@@ -7,6 +7,7 @@
 #define ALIGN_UP(a, sz) ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 
 static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int len, int is_write) = NULL;
+static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static void *qemu_cpu = NULL;
 
 void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
@@ -179,12 +180,12 @@ static uintptr_t get_sym_addr(char *sym, int type) {
   assert(0);
 }
 
-static uintptr_t get_loaded_addr(char *sym, int type) {
+static void* get_loaded_addr(char *sym, int type) {
   static uintptr_t main_addr = 0;
   if (main_addr == 0) {
     main_addr = get_sym_addr("main", STT_FUNC);
   }
-  return get_sym_addr(sym, type) + ((uintptr_t)qemu_main - main_addr);
+  return (void *)get_sym_addr(sym, type) + ((uintptr_t)qemu_main - main_addr);
 }
 
 static int mymain(int argc, char *argv[], char *envp[]) {
@@ -212,16 +213,23 @@ static int mymain(int argc, char *argv[], char *envp[]) {
   ELF_parse(debug_elf_path);
   free(debug_elf_path);
 
-  volatile GDBState **qemu_gdbserver_state = (void *)get_loaded_addr("gdbserver_state", STT_OBJECT);
-  qemu_cpu_memory_rw_debug = (void *)get_loaded_addr("cpu_memory_rw_debug", STT_FUNC);
+  GDBState **qemu_gdbserver_state = get_loaded_addr("gdbserver_state", STT_OBJECT);
+  volatile int *qemu_roms_loaded = get_loaded_addr("roms_loaded", STT_OBJECT);
+  qemu_cpu_memory_rw_debug = get_loaded_addr("cpu_memory_rw_debug", STT_FUNC);
+  qemu_gdb_write_register = get_loaded_addr("gdb_write_register", STT_FUNC);
 
-  while (*qemu_gdbserver_state == NULL) usleep(1);
-  while ((*qemu_gdbserver_state)->g_cpu == NULL) usleep(1);
+  while (*qemu_roms_loaded == 0) usleep(1);
+  assert(*qemu_gdbserver_state);
   qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
+  assert(qemu_cpu);
   printf("ok\n");
 
   uint8_t buf[] = "abcedfg";
   difftest_memcpy_from_dut(0x100000, buf, sizeof(buf));
+
+  uint32_t val = 0xdeadbeef;
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 0);
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 1);
 
   while (1);
 }
