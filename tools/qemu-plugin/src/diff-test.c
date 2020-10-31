@@ -41,7 +41,33 @@ static int strtab_size = 0;
 static Elf64_Sym *symtab = NULL;
 static int symtab_nr_entry = 0;
 
-static void parseELF(char *filename) {
+typedef void (*ELF_sh_handler)(FILE *fp, Elf64_Shdr *);
+typedef struct {
+  char *name;
+  ELF_sh_handler h;
+} ELF_sh_callback;
+
+static void build_symtab(FILE *fp, Elf64_Shdr *sh) {
+  assert(sh->sh_size > 0);
+  symtab = malloc(sh->sh_size);
+  assert(symtab);
+  fseek(fp, sh->sh_offset, SEEK_SET);
+  int ret = fread(symtab, sh->sh_size, 1, fp);
+  assert(ret == 1);
+  symtab_nr_entry = sh->sh_size / sizeof(Elf64_Sym);
+}
+
+static void build_strtab(FILE *fp, Elf64_Shdr *sh) {
+  assert(sh->sh_size > 0);
+  strtab = malloc(sh->sh_size);
+  assert(strtab);
+  fseek(fp, sh->sh_offset, SEEK_SET);
+  int ret = fread(strtab, sh->sh_size, 1, fp);
+  assert(ret == 1);
+  strtab_size = sh->sh_size;
+}
+
+static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
   FILE *fp = fopen(filename, "r");
   assert(fp != NULL);
 
@@ -70,29 +96,26 @@ static void parseELF(char *filename) {
 
   int i;
   for (i = 0; i < elf.e_shnum; i ++) {
-    if (sh[i].sh_type == SHT_DYNSYM && strcmp(shstrtab + sh[i].sh_name, ".dynsym") == 0) {
-      assert(sh[i].sh_size > 0);
-      symtab = malloc(sh[i].sh_size);
-      assert(symtab);
-      fseek(fp, sh[i].sh_offset, SEEK_SET);
-      ret = fread(symtab, sh[i].sh_size, 1, fp);
-      assert(ret == 1);
-      symtab_nr_entry = sh[i].sh_size / sizeof(Elf64_Sym);
-    }
-    if (sh[i].sh_type == SHT_STRTAB && strcmp(shstrtab + sh[i].sh_name, ".dynstr") == 0) {
-      assert(sh[i].sh_size > 0);
-      strtab = malloc(sh[i].sh_size);
-      assert(strtab);
-      fseek(fp, sh[i].sh_offset, SEEK_SET);
-      ret = fread(strtab, sh[i].sh_size, 1, fp);
-      assert(ret == 1);
-      strtab_size = sh[i].sh_size;
+    ELF_sh_callback *cb;
+    for (cb = cb_list; cb->name != NULL; cb ++) {
+      if (strcmp(shstrtab + sh[i].sh_name, cb->name) == 0) {
+        cb->h(fp, &sh[i]);
+      }
     }
   }
-  assert(symtab != NULL && strtab != NULL);
   free(shstrtab);
   free(sh);
   fclose(fp);
+}
+
+static void parseELF(char *filename) {
+  ELF_sh_callback cb_list[3] = {
+    { .name = ".dynsym", .h = build_symtab },
+    { .name = ".dynstr", .h = build_strtab },
+    { .name = NULL},
+  };
+  ELF_sh_foreach(filename, cb_list);
+  assert(symtab != NULL && strtab != NULL);
 }
 
 static uintptr_t get_sym_addr(char *sym) {
