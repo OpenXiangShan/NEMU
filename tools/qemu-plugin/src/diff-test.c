@@ -4,6 +4,8 @@
 #include <sys/auxv.h>
 #include <elf.h>
 
+#define ALIGN_UP(a, sz) ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
+
 void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
   assert(0);
 }
@@ -41,30 +43,23 @@ static int strtab_size = 0;
 static Elf64_Sym *symtab = NULL;
 static int symtab_nr_entry = 0;
 
-typedef void (*ELF_sh_handler)(FILE *fp, Elf64_Shdr *);
+typedef void (*ELF_sh_handler)(void *buf, int size, void **);
 typedef struct {
   char *name;
   ELF_sh_handler h;
+  void *retval;
 } ELF_sh_callback;
 
-static void build_symtab(FILE *fp, Elf64_Shdr *sh) {
-  assert(sh->sh_size > 0);
-  symtab = malloc(sh->sh_size);
-  assert(symtab);
-  fseek(fp, sh->sh_offset, SEEK_SET);
-  int ret = fread(symtab, sh->sh_size, 1, fp);
-  assert(ret == 1);
-  symtab_nr_entry = sh->sh_size / sizeof(Elf64_Sym);
+static void build_symtab(void *buf, int size, void **retval) {
+  assert(size > 0);
+  symtab = buf;
+  symtab_nr_entry = size / sizeof(Elf64_Sym);
 }
 
-static void build_strtab(FILE *fp, Elf64_Shdr *sh) {
-  assert(sh->sh_size > 0);
-  strtab = malloc(sh->sh_size);
-  assert(strtab);
-  fseek(fp, sh->sh_offset, SEEK_SET);
-  int ret = fread(strtab, sh->sh_size, 1, fp);
-  assert(ret == 1);
-  strtab_size = sh->sh_size;
+static void build_strtab(void *buf, int size, void **retval) {
+  assert(size > 0);
+  strtab = buf;
+  strtab_size = size;
 }
 
 static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
@@ -99,7 +94,12 @@ static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
     ELF_sh_callback *cb;
     for (cb = cb_list; cb->name != NULL; cb ++) {
       if (strcmp(shstrtab + sh[i].sh_name, cb->name) == 0) {
-        cb->h(fp, &sh[i]);
+        void *buf = malloc(sh[i].sh_size);
+        assert(buf);
+        fseek(fp, sh[i].sh_offset, SEEK_SET);
+        int ret = fread(buf, sh[i].sh_size, 1, fp);
+        assert(ret == 1);
+        cb->h(buf, sh[i].sh_size, &cb->retval);
       }
     }
   }
@@ -108,14 +108,54 @@ static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
   fclose(fp);
 }
 
-static void parseELF(char *filename) {
+static void ELF_parse(char *filename) {
   ELF_sh_callback cb_list[3] = {
-    { .name = ".dynsym", .h = build_symtab },
-    { .name = ".dynstr", .h = build_strtab },
+    { .name = ".symtab", .h = build_symtab },
+    { .name = ".strtab", .h = build_strtab },
     { .name = NULL},
   };
   ELF_sh_foreach(filename, cb_list);
   assert(symtab != NULL && strtab != NULL);
+}
+
+static void get_build_id(void *buf, int size, void **retval) {
+  assert(size > 0);
+  void *name, *desc;
+  Elf64_Nhdr *note = buf;
+  name = note->n_namesz == 0 ? NULL : buf + sizeof(*note);
+  assert(strcmp(name, ELF_NOTE_GNU) == 0);
+  assert(note->n_descsz == 160 / 8); // SHA1 is of 160-bit length
+  desc = note->n_descsz == 0 ? NULL :
+    buf + sizeof(*note) + ALIGN_UP(note->n_namesz, 4);
+  char *id = malloc(note->n_descsz + 1); // +1 for '\0'
+  memcpy(id, desc, note->n_descsz);
+  id[note->n_descsz] = '\0';
+  free(buf);
+  *retval = id;
+}
+
+static char* get_debug_elf_path(char *filename) {
+  const char *prefix = "/usr/bin/";
+  if (strncmp(filename, prefix, strlen(prefix)) != 0) {
+    return strdup(filename);
+  }
+
+  ELF_sh_callback cb_list[2] = {
+    { .name = ".note.gnu.build-id", .h = get_build_id },
+    { .name = NULL }
+  };
+  ELF_sh_foreach(filename, cb_list);
+
+  uint8_t *id = cb_list[0].retval;
+  char *path = malloc(512);
+  int len = sprintf(path, "/usr/lib/debug/.build-id/%02x/", id[0]);
+  int i;
+  for (i = 1; i < 20; i ++) {
+    len += sprintf(path + len, "%02x", id[i]);
+  }
+  strcat(path, ".debug");
+  free(id);
+  return path;
 }
 
 static uintptr_t get_sym_addr(char *sym) {
@@ -150,8 +190,17 @@ static int mymain(int argc, char *argv[], char *envp[]) {
 
   char *filename = (char *)getauxval(AT_EXECFN);
   assert(filename != NULL);
+  char *debug_elf_path = get_debug_elf_path(filename);
 
-  parseELF(filename);
+  if (access(debug_elf_path, R_OK) != 0) {
+    printf("File '%s' does not exist!\n", debug_elf_path);
+    printf("Make sure you are using QEMU installed by apt-get, "
+           "and you have already installed the debug symbol package for qemu\n");
+    assert(0);
+  }
+
+  ELF_parse(debug_elf_path);
+  free(debug_elf_path);
 
   bool (*runstate_check)(int) = (void *)get_loaded_addr("runstate_check");
   int RUN_STATE_PRELAUNCH = 6;
