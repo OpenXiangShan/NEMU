@@ -10,10 +10,6 @@ static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int l
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_gdb_read_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_cpu_single_step)(void *cpu, int enabled) = NULL;
-bool (*qemu_runstate_is_running)() = NULL;
-bool (*qemu_cpu_can_run)(void *cpu) = NULL;
-static int (*qemu_vm_start)() = NULL;
-static int (*qemu_vm_stop)(int) = NULL;
 static void *qemu_cpu = NULL;
 static int qemu_sstep_flags = 0;
 
@@ -43,18 +39,6 @@ typedef struct {
   void *c_cpu;
   void *g_cpu;
 } GDBState;
-
-static uint8_t code_save[12];
-static int (*qemu_main)(int, char **, char **) = NULL;
-
-static void* qemu_thread(void *arg) {
-  char *myargv[] = {
-    "qemy-system-i386", "-nographic", "-S", "-s"
-  };
-  int myargc = sizeof(myargv) / sizeof(myargv[0]);
-  qemu_main(myargc, myargv, arg);
-  assert(0);
-}
 
 static char *strtab = NULL;
 static int strtab_size = 0;
@@ -188,24 +172,81 @@ static uintptr_t get_sym_addr(char *sym, int type) {
 }
 
 static void* get_loaded_addr(char *sym, int type) {
-  static uintptr_t main_addr = 0;
-  if (main_addr == 0) {
-    main_addr = get_sym_addr("main", STT_FUNC);
+  static uintptr_t offset = 0;
+  if (offset == 0) {
+    extern int main(int, char **, char **);
+    offset = (uintptr_t)main - get_sym_addr("main", STT_FUNC);
   }
-  return (void *)get_sym_addr(sym, type) + ((uintptr_t)qemu_main - main_addr);
+  return (void *)get_sym_addr(sym, type) + offset;
 }
 
-static int mymain(int argc, char *argv[], char *envp[]) {
-  memcpy(qemu_main, code_save, sizeof(code_save));
-
-  uintptr_t pmain = (uintptr_t)qemu_main;
-  pmain &= ~0xfffl;
-  int ret = mprotect((void *)pmain, 4096, PROT_READ | PROT_EXEC);
+static void hack_entry() {
+  void (*qemu_main_loop_wait)(int) = get_loaded_addr("main_loop_wait", STT_FUNC);
+  uintptr_t p = (uintptr_t)qemu_main_loop_wait;
+  p &= ~0xfffl;
+  int ret = mprotect((void *)p, 4096, PROT_READ | PROT_EXEC);
   assert(ret == 0);
 
-  pthread_t thread;
-  pthread_create(&thread, NULL, qemu_thread, envp);
+  GDBState **qemu_gdbserver_state = get_loaded_addr("gdbserver_state", STT_OBJECT);
+  qemu_cpu_memory_rw_debug = get_loaded_addr("cpu_memory_rw_debug", STT_FUNC);
+  qemu_gdb_write_register = get_loaded_addr("gdb_write_register", STT_FUNC);
+  qemu_gdb_read_register = get_loaded_addr("gdb_read_register", STT_FUNC);
+  qemu_cpu_single_step = get_loaded_addr("cpu_single_step", STT_FUNC);
+  void (*qemu_cpu_resume)(void *) = get_loaded_addr("cpu_resume", STT_FUNC);
+  void (*qemu_mutex_unlock_iothread)() = get_loaded_addr("qemu_mutex_unlock_iothread", STT_FUNC);
+  void (*qemu_mutex_lock_iothread)(const char *, int) = get_loaded_addr("qemu_mutex_lock_iothread_impl", STT_FUNC);
+  int (*qemu_vm_prepare_start)() = get_loaded_addr("vm_prepare_start", STT_FUNC);
+  int *flags = get_loaded_addr("sstep_flags", STT_OBJECT);
+  qemu_sstep_flags = *flags;
 
+  assert(*qemu_gdbserver_state);
+  qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
+  assert(qemu_cpu);
+  printf("ok\n");
+  volatile bool* cpu_stop = qemu_cpu + 155;
+
+  qemu_vm_prepare_start();
+
+  int len = 0x20000;
+  uint8_t *buf = malloc(len);
+  memset(buf, 0x90, len);
+  difftest_memcpy_from_dut(0x4000, buf, len);
+
+  uint32_t val = 0x00004000;
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 0);
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
+  val = 0x00000000;
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 10); // cs
+  qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
+
+  int iii = 0;
+  while (1) {
+  uint32_t val = 0x00004000;
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
+  int i;
+  for (i = 0; i < len; i ++) {
+    qemu_mutex_unlock_iothread();
+    //printf("vm_start: i = %d\n", i);
+    qemu_cpu_resume(qemu_cpu);
+    //printf("waiting... i = %d\n", i);
+    while (!(*cpu_stop));
+    //printf("waiting ok i = %d\n", i);
+    qemu_mutex_lock_iothread(__FILE__, __LINE__);
+    qemu_gdb_read_register(qemu_cpu, (void *)&val, 8); // eip
+    //printf("eip = 0x%x\n", val);
+    assert(val == 0x4000 + i + 1);
+  }
+
+  //sleep(1);
+  iii ++;
+  if (iii == 5) break;
+  }
+
+  printf("finish\n");
+  while (1);
+}
+
+__attribute__((constructor)) static void myinit() {
   char *filename = (char *)getauxval(AT_EXECFN);
   assert(filename != NULL);
   char *debug_elf_path = get_debug_elf_path(filename);
@@ -220,87 +261,21 @@ static int mymain(int argc, char *argv[], char *envp[]) {
   ELF_parse(debug_elf_path);
   free(debug_elf_path);
 
-  GDBState **qemu_gdbserver_state = get_loaded_addr("gdbserver_state", STT_OBJECT);
-  volatile int *qemu_roms_loaded = get_loaded_addr("roms_loaded", STT_OBJECT);
-  qemu_cpu_memory_rw_debug = get_loaded_addr("cpu_memory_rw_debug", STT_FUNC);
-  qemu_gdb_write_register = get_loaded_addr("gdb_write_register", STT_FUNC);
-  qemu_gdb_read_register = get_loaded_addr("gdb_read_register", STT_FUNC);
-  qemu_cpu_single_step = get_loaded_addr("cpu_single_step", STT_FUNC);
-  qemu_runstate_is_running = get_loaded_addr("runstate_is_running", STT_FUNC);
-  qemu_cpu_can_run = get_loaded_addr("cpu_can_run.isra.12.part.13", STT_FUNC);
-  qemu_vm_start = get_loaded_addr("vm_start", STT_FUNC);
-  qemu_vm_stop = get_loaded_addr("vm_stop", STT_FUNC);
-  int *flags = get_loaded_addr("sstep_flags", STT_OBJECT);
-  qemu_sstep_flags = *flags;
-
-  while (*qemu_roms_loaded == 0) usleep(1);
-  assert(*qemu_gdbserver_state);
-  qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
-  assert(qemu_cpu);
-  printf("ok\n");
-
-  int len = 0x2000;
-  uint8_t *buf = malloc(len);
-  memset(buf, 0x90, len);
-  difftest_memcpy_from_dut(0x4000, buf, len);
-
-  uint32_t val = 0x00004000;
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 0);
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
-  val = 0x00000000;
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 10); // cs
-
-  int iii = 0;
-  volatile int *singlestep_enabled = qemu_cpu + 168;
-  while (1) {
-  uint32_t val = 0x00004000;
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
-  printf("eip = 0x%x\n", val);
-  int i;
-  for (i = 0; i < len; i ++) {
-    if (qemu_runstate_is_running()) qemu_vm_stop(4); // cpus.c:1733
-    printf("waiting singlestep... i = %d\n", i);
-    while (*singlestep_enabled != 0) usleep(1);
-    printf("waiting singlestep ok i = %d\n", i);
-    qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
-    printf("vm_start: i = %d\n", i);
-    qemu_vm_start();
-    printf("waiting... i = %d\n", i);
-    while (qemu_runstate_is_running()) usleep(1);
-//    while (qemu_cpu_can_run(qemu_cpu)) usleep(1);
-    printf("waiting ok i = %d\n", i);
-//  qemu_gdb_read_register(qemu_cpu, (void *)&val, 8); // eip
-//  printf("eip = 0x%x\n", val);
-  }
-
-  printf("finish");
-  sleep(1);
-  iii ++;
-  if (iii == 5) break;
-  }
-
-  while (1);
-}
-
-__attribute__((constructor)) static void myinit() {
   struct {
     uint16_t opcode_movabs;
     int64_t imm;
     uint16_t instr_jmp;
   } __attribute__((packed)) code;
   assert(sizeof(code) == 12);
-  assert(sizeof(code) == sizeof(code_save));
   code.opcode_movabs = 0xb848; // movabs $imm, %rax
-  code.imm = (uintptr_t)mymain;
+  code.imm = (uintptr_t)hack_entry;
   code.instr_jmp = 0xe0ff; // jmp *%rax
 
-  extern int main(int, char **, char **);
-  qemu_main = main;
-  uintptr_t pmain = (uintptr_t)qemu_main;
-  pmain &= ~0xfffl;
-  int ret = mprotect((void *)pmain, 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
+  void (*qemu_main_loop_wait)(int) = get_loaded_addr("main_loop_wait", STT_FUNC);
+  uintptr_t p = (uintptr_t)qemu_main_loop_wait;
+  p &= ~0xfffl;
+  int ret = mprotect((void *)p, 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
   assert(ret == 0);
-  memcpy(code_save, qemu_main, sizeof(code_save));
-  memcpy(qemu_main, &code, sizeof(code));
-  printf("main = %p, mymain = %p, offset = 0x%lx\n", qemu_main, mymain, code.imm);
+//  memcpy(code_save, qemu_main_loop_wait, sizeof(code_save));
+  memcpy(qemu_main_loop_wait, &code, sizeof(code));
 }

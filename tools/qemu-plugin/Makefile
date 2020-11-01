@@ -36,7 +36,7 @@ $(BINARY): $(OBJS)
 
 QEMU = /home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386
 run: app
-	LD_PRELOAD=$(BINARY) $(QEMU)
+	LD_PRELOAD=$(BINARY) $(QEMU) -nographic -S -s
 
 gdb: app
 	gdb --args env LD_PRELOAD=$(BINARY) $(QEMU)
