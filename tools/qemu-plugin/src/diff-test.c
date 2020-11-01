@@ -10,8 +10,10 @@ static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int l
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_gdb_read_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_cpu_single_step)(void *cpu, int enabled) = NULL;
-static bool (*qemu_runstate_is_running)() = NULL;
+bool (*qemu_runstate_is_running)() = NULL;
+bool (*qemu_cpu_can_run)(void *cpu) = NULL;
 static int (*qemu_vm_start)() = NULL;
+static int (*qemu_vm_stop)(int) = NULL;
 static void *qemu_cpu = NULL;
 static int qemu_sstep_flags = 0;
 
@@ -225,7 +227,9 @@ static int mymain(int argc, char *argv[], char *envp[]) {
   qemu_gdb_read_register = get_loaded_addr("gdb_read_register", STT_FUNC);
   qemu_cpu_single_step = get_loaded_addr("cpu_single_step", STT_FUNC);
   qemu_runstate_is_running = get_loaded_addr("runstate_is_running", STT_FUNC);
+  qemu_cpu_can_run = get_loaded_addr("cpu_can_run.isra.12.part.13", STT_FUNC);
   qemu_vm_start = get_loaded_addr("vm_start", STT_FUNC);
+  qemu_vm_stop = get_loaded_addr("vm_stop", STT_FUNC);
   int *flags = get_loaded_addr("sstep_flags", STT_OBJECT);
   qemu_sstep_flags = *flags;
 
@@ -235,22 +239,46 @@ static int mymain(int argc, char *argv[], char *envp[]) {
   assert(qemu_cpu);
   printf("ok\n");
 
-  uint8_t buf[] = "abcedfg";
-  difftest_memcpy_from_dut(0x100000, buf, sizeof(buf));
+  int len = 0x2000;
+  uint8_t *buf = malloc(len);
+  memset(buf, 0x90, len);
+  difftest_memcpy_from_dut(0x4000, buf, len);
 
-  uint32_t val = 0xdeadbeef;
+  uint32_t val = 0x00004000;
   qemu_gdb_write_register(qemu_cpu, (void *)&val, 0);
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 1);
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
+  val = 0x00000000;
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 10); // cs
 
-  qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
-  qemu_vm_start();
-  while (qemu_runstate_is_running()) usleep(1);
-  qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
-  qemu_vm_start();
-  while (qemu_runstate_is_running()) usleep(1);
-
-  qemu_gdb_read_register(qemu_cpu, (void *)&val, 8); // eip
+  int iii = 0;
+  volatile int *singlestep_enabled = qemu_cpu + 168;
+  while (1) {
+  uint32_t val = 0x00004000;
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
   printf("eip = 0x%x\n", val);
+  int i;
+  for (i = 0; i < len; i ++) {
+    if (qemu_runstate_is_running()) qemu_vm_stop(4); // cpus.c:1733
+    printf("waiting singlestep... i = %d\n", i);
+    while (*singlestep_enabled != 0) usleep(1);
+    printf("waiting singlestep ok i = %d\n", i);
+    qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
+    printf("vm_start: i = %d\n", i);
+    qemu_vm_start();
+    printf("waiting... i = %d\n", i);
+    while (qemu_runstate_is_running()) usleep(1);
+//    while (qemu_cpu_can_run(qemu_cpu)) usleep(1);
+    printf("waiting ok i = %d\n", i);
+//  qemu_gdb_read_register(qemu_cpu, (void *)&val, 8); // eip
+//  printf("eip = 0x%x\n", val);
+  }
+
+  printf("finish");
+  sleep(1);
+  iii ++;
+  if (iii == 5) break;
+  }
+
   while (1);
 }
 
