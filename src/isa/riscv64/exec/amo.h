@@ -13,6 +13,17 @@ static inline make_EHelper(lr) {
 static inline make_EHelper(sc) {
   // should check overlapping instead of equality
   // printf("sc: cpu.lr_addr %lx (%lx) addr %lx\n", cpu.lr_addr, cpu.lr_valid, *dsrc1);
+
+  // Even if scInvalid, SPF (if raised) also needs to be reported
+  {
+    int ret = isa_vaddr_check(*dsrc1, MEM_TYPE_WRITE, s->width);
+    if (ret == MEM_RET_OK);
+      // pass
+    else if (ret == MEM_RET_NEED_TRANSLATE)
+      if(isa_mmu_translate(*dsrc1, MEM_TYPE_WRITE, s->width) == MEM_RET_FAIL)
+        return_on_mem_ex();
+  }
+
   if (cpu.lr_addr == *dsrc1 && cpu.lr_valid) {
     rtl_sm(s, dsrc1, 0, dsrc2, s->width);
     return_on_mem_ex();

@@ -63,12 +63,22 @@ void isa_difftest_setregs(const void *r) {
 void isa_difftest_get_mastatus(void *s) {
   struct SyncState ms;
   ms.lrscValid = cpu.lr_valid;
+  ms.lrscAddr = cpu.lr_addr;
   memcpy(s, &ms, sizeof(struct SyncState));
 }
 
 void isa_difftest_set_mastatus(const void *s) {
   struct SyncState* ms = (struct SyncState*)s;
   cpu.lr_valid = ms->lrscValid;
+  cpu.lr_addr = ms->lrscAddr;
+}
+
+void isa_difftest_set_csr(const void *c) {
+  memcpy(csr_array, c, 4096 * sizeof(rtlreg_t));
+}
+
+void isa_difftest_get_csr(void *c) {
+  memcpy(c, csr_array, 4096 * sizeof(rtlreg_t));
 }
 
 void isa_difftest_raise_intr(word_t NO) {

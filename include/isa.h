@@ -14,6 +14,7 @@ void init_isa();
 
 // reg
 extern CPU_state cpu;
+extern rtlreg_t csr_array[4096];
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
@@ -41,6 +42,8 @@ void isa_difftest_setregs(const void *r);
 void isa_difftest_raise_intr(word_t NO);
 void isa_difftest_get_mastatus(void *s);
 void isa_difftest_set_mastatus(const void *s);
+void isa_difftest_get_csr(void *c);
+void isa_difftest_set_csr(const void *c);
 vaddr_t isa_disambiguate_exec(void *disambiguate_para);
 bool isa_difftest_microarchitectural_pf_check(vaddr_t addr);
 

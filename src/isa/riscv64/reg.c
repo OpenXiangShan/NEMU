@@ -60,7 +60,7 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
   return 0;
 }
 
-static word_t csr_array[4096] = {};
+rtlreg_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (void *)&csr_array[addr];

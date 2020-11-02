@@ -9,6 +9,7 @@ void isa_difftest_setregs_hook(void);
 
 struct SyncState {
   uint64_t lrscValid;
+  uint64_t lrscAddr;
 };
 
 #endif
