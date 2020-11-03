@@ -34,12 +34,14 @@ $(BINARY): $(OBJS)
 	@echo + LD $@
 	@$(LD) -O2 -rdynamic -shared -fPIC -o $@ $^
 
-QEMU = /home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386
+#QEMU = /home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386
+QEMU = qemu-system-i386
+QFLAGS = -nographic -S -s #-kernel ~/projectn/nemu/tools/qemu-diff/src/isa/mips32/mips.dummy
 run: app
-	LD_PRELOAD=$(BINARY) $(QEMU) -nographic -S -s
+	LD_PRELOAD=$(BINARY) $(QEMU) $(QFLAGS)
 
 gdb: app
-	gdb --args env LD_PRELOAD=$(BINARY) $(QEMU)
+	gdb --args env LD_PRELOAD=$(BINARY) $(QEMU) $(QFLAGS)
 
 clean: 
 	-rm -rf $(BUILD_DIR)

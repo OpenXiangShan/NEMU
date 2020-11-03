@@ -202,6 +202,7 @@ static void hack_entry() {
   assert(qemu_cpu);
   printf("ok\n");
 
+#if 1
   int len = 0x10000;
   uint8_t *buf = malloc(len);
   memset(buf, 0x40, len);
@@ -211,6 +212,18 @@ static void hack_entry() {
   qemu_gdb_write_register(qemu_cpu, (void *)&val, 10); // cs
   uint32_t pc = 0x00004000;
   int pc_idx = 8;
+#else
+  int len = 0x10000;
+  uint32_t *buf = malloc(len * 4);
+  int jjj = 0;
+  for (; jjj < len; jjj ++) {
+    buf[jjj] = 0x24840001; // addi a0,a0,$1
+  }
+  difftest_memcpy_from_dut(0x80000000, buf, len * 4);
+
+  uint32_t pc = 0x80000000;
+  int32_t pc_idx = 37;
+#endif
   free(buf);
 
   qemu_gdb_write_register(qemu_cpu, (void *)&pc, pc_idx); // pc
