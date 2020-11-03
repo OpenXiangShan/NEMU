@@ -192,10 +192,8 @@ static void hack_entry() {
   qemu_gdb_write_register = get_loaded_addr("gdb_write_register", STT_FUNC);
   qemu_gdb_read_register = get_loaded_addr("gdb_read_register", STT_FUNC);
   qemu_cpu_single_step = get_loaded_addr("cpu_single_step", STT_FUNC);
-  void (*qemu_cpu_resume)(void *) = get_loaded_addr("cpu_resume", STT_FUNC);
   void (*qemu_mutex_unlock_iothread)() = get_loaded_addr("qemu_mutex_unlock_iothread", STT_FUNC);
-  void (*qemu_mutex_lock_iothread)(const char *, int) = get_loaded_addr("qemu_mutex_lock_iothread_impl", STT_FUNC);
-  int (*qemu_vm_prepare_start)() = get_loaded_addr("vm_prepare_start", STT_FUNC);
+  int (*qemu_tcg_cpu_exec)(void *) = get_loaded_addr("cpu_exec", STT_FUNC);
   int *flags = get_loaded_addr("sstep_flags", STT_OBJECT);
   qemu_sstep_flags = *flags;
 
@@ -203,46 +201,43 @@ static void hack_entry() {
   qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
   assert(qemu_cpu);
   printf("ok\n");
-  volatile bool* cpu_stop = qemu_cpu + 155;
 
-  qemu_vm_prepare_start();
-
-  int len = 0x20000;
+  int len = 0x10000;
   uint8_t *buf = malloc(len);
-  memset(buf, 0x90, len);
+  memset(buf, 0x40, len);
   difftest_memcpy_from_dut(0x4000, buf, len);
 
-  uint32_t val = 0x00004000;
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 0);
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
-  val = 0x00000000;
+  uint32_t val = 0x00000000;
   qemu_gdb_write_register(qemu_cpu, (void *)&val, 10); // cs
-  qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
+  uint32_t pc = 0x00004000;
+  int pc_idx = 8;
+  free(buf);
 
+  qemu_gdb_write_register(qemu_cpu, (void *)&pc, pc_idx); // pc
+  qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
+  qemu_mutex_unlock_iothread();
+
+
+  clock_t t0 = clock();
   int iii = 0;
   while (1) {
-  uint32_t val = 0x00004000;
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // eip
+  qemu_gdb_write_register(qemu_cpu, (void *)&pc, pc_idx);
   int i;
   for (i = 0; i < len; i ++) {
-    qemu_mutex_unlock_iothread();
-    //printf("vm_start: i = %d\n", i);
-    qemu_cpu_resume(qemu_cpu);
-    //printf("waiting... i = %d\n", i);
-    while (!(*cpu_stop));
-    //printf("waiting ok i = %d\n", i);
-    qemu_mutex_lock_iothread(__FILE__, __LINE__);
-    qemu_gdb_read_register(qemu_cpu, (void *)&val, 8); // eip
-    //printf("eip = 0x%x\n", val);
-    assert(val == 0x4000 + i + 1);
+    qemu_tcg_cpu_exec(qemu_cpu);
+//    uint32_t val = 0;
+//    qemu_gdb_read_register(qemu_cpu, (void *)&val, pc_idx);
+//    printf("eip = 0x%x\n", val);
+//    assert(val == 0x4000 + i);
   }
 
-  //sleep(1);
   iii ++;
-  if (iii == 5) break;
+  if (iii == 100) break;
   }
+  clock_t t1 = clock();
 
-  printf("finish\n");
+  uint64_t total = iii * len;
+  printf("finish, freq = %lld instr/s\n", total * 1000000ull / (t1 - t0));
   while (1);
 }
 
