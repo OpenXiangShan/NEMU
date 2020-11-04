@@ -88,6 +88,9 @@ void dl_load(char *argv[]) {
   loadELF(ld_path, &ld_elf);
   loadELF(argv[0], &bin_elf);
 
+  void hack_prepare(char *filename, uintptr_t base);
+  hack_prepare(argv[0], bin_elf.base);
+
   extern char **environ;
   char **p = environ;
   while (*p != NULL) p ++;
