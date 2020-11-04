@@ -1,6 +1,8 @@
+#define _GNU_SOURCE
 #include <common.h>
 #include <sys/mman.h>
 #include <elf.h>
+#include <link.h>
 
 #define ALIGN_UP(a, sz) ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 
@@ -152,7 +154,21 @@ static void hack_entry() {
   difftest_init_late();
 }
 
-void hack_prepare(char *filename, uintptr_t base) {
+typedef struct {
+  char *name;
+  uintptr_t base;
+} Info;
+
+static int callback(struct dl_phdr_info *info, size_t size, void *data) {
+  Info *arg = data;
+  if (strcmp(info->dlpi_name, arg->name) == 0) {
+    arg->base = info->dlpi_addr;
+    return 1;
+  }
+  return 0;
+}
+
+static void hack_prepare(char *filename, uintptr_t base) {
   char *debug_elf_path = get_debug_elf_path(filename);
   if (access(debug_elf_path, R_OK) != 0) {
     printf("File '%s' does not exist!\n", debug_elf_path);
@@ -182,4 +198,23 @@ void hack_prepare(char *filename, uintptr_t base) {
   int ret = mprotect((void *)p, 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
   assert(ret == 0);
   memcpy(qemu_main_loop_wait, &code, sizeof(code));
+}
+
+void dl_load(char *argv[]) {
+  void *qemu = dlopen(argv[0], RTLD_LAZY);
+  assert(qemu);
+  int (*qemu_main)(int, char **, char **) = dlsym(qemu, "main");
+  assert(qemu_main);
+
+  Info info = { .name = argv[0] };
+  dl_iterate_phdr(callback, &info);
+
+  hack_prepare(argv[0], info.base);
+
+  char **p = argv;
+  while (*p != NULL) p ++;
+  int argc = p - argv;
+  extern char **environ;
+  qemu_main(argc, argv, environ);
+  assert(0);
 }
