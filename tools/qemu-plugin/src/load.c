@@ -53,13 +53,10 @@ static void loadELF(const char *filename, ELFinfo *info) {
       int prot = PROT_READ;
       if (ph[i].p_flags & PF_W) prot |= PROT_WRITE;
       if (ph[i].p_flags & PF_X) prot |= PROT_EXEC;
-      printf("mapping [%p,%p) with prot = R%c%c\n", p + va, p + va + filesz,
-          (prot & PROT_WRITE ? 'W' : '-'), (prot & PROT_EXEC ? 'X' : '-'));
       void *ret = mmap(p + va, filesz, prot, MAP_PRIVATE | MAP_FIXED, fileno(fp), offset);
       assert(ret != (void *)-1);
       if (memsz != filesz) {
         pad = ((filesz + 0xfff) & ~0xfff) - filesz;
-        printf("pad = %ld\n", pad);
         if (pad > 0) memset(p + va + filesz, 0, pad);
       }
     }
@@ -86,22 +83,13 @@ typedef struct {
 } auxv_t;
 
 void dl_load(char *argv[]) {
-  char **p = argv;
-  while (*p != NULL) p ++;
-  int argc = p - argv;
-
-  argc ++; // add ld.so
-  int argv_size = argc * sizeof(argv[0]);
-  char **ld_argv = malloc(argv_size);
-  ld_argv[0] = "/lib64/ld-linux-x86-64.so.2";
-  memcpy(&ld_argv[1], argv, argv_size);
-
   ELFinfo ld_elf, bin_elf;
-  loadELF(ld_argv[0], &ld_elf);
-  loadELF(ld_argv[1], &bin_elf);
+  char *ld_path = "/lib64/ld-linux-x86-64.so.2";
+  loadELF(ld_path, &ld_elf);
+  loadELF(argv[0], &bin_elf);
 
   extern char **environ;
-  p = environ;
+  char **p = environ;
   while (*p != NULL) p ++;
   p ++; // count the NULL
   int env_size = (void *)p - (void *)environ;
@@ -112,11 +100,16 @@ void dl_load(char *argv[]) {
   aux ++; //count the NULL
   int aux_size = (void *)aux - (void *)p;
 
+  p = argv;
+  while (*p != NULL) p ++;
+  int argc = p - argv;
+
+  int argv_size = argc * sizeof(argv[0]);
   int size = sizeof(uintptr_t) + argv_size + env_size + aux_size;
   uintptr_t *rsp = alloca(size);
   rsp[0] = argc;
   p = (void *)(rsp + 1);
-  memcpy(p, ld_argv, argv_size);
+  memcpy(p, argv, argv_size);
   p += argc;
   *p ++ = NULL;
   memcpy(p, environ, env_size);
@@ -130,11 +123,9 @@ void dl_load(char *argv[]) {
       case AT_PHNUM: aux->a_un.a_val = bin_elf.phnum; break;
       case AT_BASE: aux->a_un.a_val = bin_elf.base; break;
       case AT_ENTRY: aux->a_un.a_val = bin_elf.entry; break;
-      case AT_EXECFN: aux->a_un.a_ptr = (void *)ld_argv[1]; break;
+      case AT_EXECFN: aux->a_un.a_ptr = (void *)argv[0]; break;
     }
   }
-
-  printf("entry = 0x%lx\n", bin_elf.entry);
 
   asm volatile ("mov %0, %%rsp; jmp *%1": : "r"(rsp), "r"(ld_elf.entry));
   assert(0);
