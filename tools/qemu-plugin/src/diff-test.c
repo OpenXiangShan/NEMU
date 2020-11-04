@@ -4,6 +4,8 @@
 #include <sys/auxv.h>
 #include <elf.h>
 
+void dl_load(char *argv[]);
+
 #define ALIGN_UP(a, sz) ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 
 static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int len, int is_write) = NULL;
@@ -31,6 +33,12 @@ void difftest_exec(uint64_t n) {
 }
 
 void difftest_init(int port) {
+  char *argv[] = {
+    "/bin/echo",
+    "abc",
+    NULL
+  };
+  dl_load(argv);
   assert(0);
 }
 
@@ -255,6 +263,7 @@ static void hack_entry() {
 }
 
 __attribute__((constructor)) static void myinit() {
+  return;
   char *filename = (char *)getauxval(AT_EXECFN);
   assert(filename != NULL);
   char *debug_elf_path = get_debug_elf_path(filename);
