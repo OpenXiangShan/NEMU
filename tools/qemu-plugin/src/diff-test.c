@@ -30,8 +30,19 @@ void difftest_setregs(const void *r) {
   }
 }
 
+#define EXCP_INTERRUPT 0x10000
+#define EXCP_DEBUG     0x10002
+#define EXCP_ATOMIC    0x10005
 void difftest_exec(uint64_t n) {
-  for (; n > 0; n --) qemu_cpu_exec(qemu_cpu);
+  for (; n > 0; n --) {
+    int ret = qemu_cpu_exec(qemu_cpu);
+    switch (ret) {
+      case EXCP_ATOMIC:
+      case EXCP_INTERRUPT: n ++; // fall through
+      case EXCP_DEBUG: break;
+      default: assert(0);
+    }
+  }
 }
 
 static jmp_buf jbuf = {};
