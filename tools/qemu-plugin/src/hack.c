@@ -142,14 +142,15 @@ void* get_loaded_addr(char *sym, int type) {
   return (void *)get_sym_addr(sym, type) + elf_base;
 }
 
-static void hack_entry() {
-  printf("%s,%d\n", __func__, __LINE__);
-  void (*qemu_main_loop_wait)(int) = get_loaded_addr("main_loop_wait", STT_FUNC);
-  uintptr_t p = (uintptr_t)qemu_main_loop_wait;
-  p &= ~0xfffl;
-  int ret = mprotect((void *)p, 4096, PROT_READ | PROT_EXEC);
+static void mprotect_page(uintptr_t addr, int prot) {
+  addr &= ~0xfffl;
+  int ret = mprotect((void *)addr, 4096, prot);
   assert(ret == 0);
+}
 
+static void hack_entry() {
+  void *addr = get_loaded_addr("main_loop_wait", STT_FUNC);
+  mprotect_page((uintptr_t)addr, PROT_READ | PROT_EXEC);
   extern void difftest_init_late();
   difftest_init_late();
 }
@@ -166,6 +167,11 @@ static int callback(struct dl_phdr_info *info, size_t size, void *data) {
     return 1;
   }
   return 0;
+}
+
+static void fix_tls_var_offset(uintptr_t ptr, uintptr_t right_offset) {
+  mprotect_page(ptr, PROT_READ|PROT_WRITE);
+  *(uintptr_t *)ptr = right_offset;
 }
 
 static void hack_prepare(char *filename, uintptr_t base) {
@@ -193,11 +199,11 @@ static void hack_prepare(char *filename, uintptr_t base) {
   code.instr_jmp = 0xe0ff; // jmp *%rax
 
   void (*qemu_main_loop_wait)(int) = get_loaded_addr("main_loop_wait", STT_FUNC);
-  uintptr_t p = (uintptr_t)qemu_main_loop_wait;
-  p &= ~0xfffl;
-  int ret = mprotect((void *)p, 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
-  assert(ret == 0);
+  mprotect_page((uintptr_t)qemu_main_loop_wait, PROT_READ | PROT_WRITE | PROT_EXEC);
   memcpy(qemu_main_loop_wait, &code, sizeof(code));
+
+  fix_tls_var_offset(base + 0xbf2fb0, 0xfffffffffffffe08ul); // tcg_ctx
+  fix_tls_var_offset(base + 0xbf2f70, 0xfffffffffffffdc0ul); // current_cpu
 }
 
 void dl_load(char *argv[]) {

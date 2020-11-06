@@ -52,8 +52,8 @@ void difftest_init(int port) {
   if (setjmp(jbuf) == 0) {
     // first path
     char *argv[] = {
-//      "/usr/bin/qemu-system-i386",
-      "/home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386",
+      "/usr/bin/qemu-system-i386",
+//      "/home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386",
       "-nographic", "-S", "-s", "-serial", "none", "-monitor", "none",
       NULL
     };
@@ -80,11 +80,9 @@ void difftest_init_late() {
   int qemu_sstep_flags = *(int *)get_loaded_addr("sstep_flags", STT_OBJECT);
   GDBState **qemu_gdbserver_state = get_loaded_addr("gdbserver_state", STT_OBJECT);
 
-  printf("qemu_gdbserver_state = %p\n", qemu_gdbserver_state);
   assert(*qemu_gdbserver_state);
   qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
   assert(qemu_cpu);
-  printf("ok\n");
 
   qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
   qemu_mutex_unlock_iothread();
@@ -126,7 +124,7 @@ void difftest_init_late() {
   uint32_t val = 0;
   qemu_gdb_write_register(qemu_cpu, (void *)&val, 10); // cs
   val = 0x7c00;
-  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // cs
+  qemu_gdb_write_register(qemu_cpu, (void *)&val, 8); // pc
 
   // execute enough instructions to enter protected mode
   difftest_exec(20);
