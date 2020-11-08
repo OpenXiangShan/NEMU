@@ -12,23 +12,25 @@ static Elf64_Sym *symtab = NULL;
 static int symtab_nr_entry = 0;
 static uintptr_t elf_base = 0;
 
-typedef void (*ELF_sh_handler)(void *buf, int size, void **);
+typedef int (*ELF_sh_handler)(void *buf, int size, void **);
 typedef struct {
   char *name;
   ELF_sh_handler h;
-  void *retval;
+  void *userdata;
 } ELF_sh_callback;
 
-static void build_symtab(void *buf, int size, void **retval) {
+static int build_symtab(void *buf, int size, void **userdata) {
   assert(size > 0);
   symtab = buf;
   symtab_nr_entry = size / sizeof(Elf64_Sym);
+  return 0;
 }
 
-static void build_strtab(void *buf, int size, void **retval) {
+static int build_strtab(void *buf, int size, void **userdata) {
   assert(size > 0);
   strtab = buf;
   strtab_size = size;
+  return 0;
 }
 
 static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
@@ -68,7 +70,8 @@ static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
         fseek(fp, sh[i].sh_offset, SEEK_SET);
         int ret = fread(buf, sh[i].sh_size, 1, fp);
         assert(ret == 1);
-        cb->h(buf, sh[i].sh_size, &cb->retval);
+        int needfree = cb->h(buf, sh[i].sh_size, &cb->userdata);
+        if (needfree) free(buf);
       }
     }
   }
@@ -87,7 +90,7 @@ static void ELF_parse(char *filename) {
   assert(symtab != NULL && strtab != NULL);
 }
 
-static void get_build_id(void *buf, int size, void **retval) {
+static int get_build_id(void *buf, int size, void **userdata) {
   assert(size > 0);
   void *name, *desc;
   Elf64_Nhdr *note = buf;
@@ -99,8 +102,8 @@ static void get_build_id(void *buf, int size, void **retval) {
   char *id = malloc(note->n_descsz + 1); // +1 for '\0'
   memcpy(id, desc, note->n_descsz);
   id[note->n_descsz] = '\0';
-  free(buf);
-  *retval = id;
+  *userdata = id;
+  return 1;
 }
 
 static char* get_debug_elf_path(char *filename) {
