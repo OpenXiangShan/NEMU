@@ -12,6 +12,20 @@ static Elf64_Sym *symtab = NULL;
 static int symtab_nr_entry = 0;
 static uintptr_t elf_base = 0;
 
+static void mprotect_page(uintptr_t addr, int prot) {
+  addr &= ~0xfffl;
+  int ret = mprotect((void *)addr, 4096, prot);
+  assert(ret == 0);
+}
+
+typedef struct {
+  char *name;
+  uintptr_t base;
+  uintptr_t tls_offset_diff;
+  int next_tls_modid;
+  char *debug_elf_path;
+} Info;
+
 typedef int (*ELF_sh_handler)(void *buf, int size, void **);
 typedef struct {
   char *name;
@@ -90,6 +104,33 @@ static void parse_debug_elf(char *filename) {
   assert(symtab != NULL && strtab != NULL);
 }
 
+static int fix_tls_offset(void *buf, int size, void **userdata) {
+  Info *info = *userdata;
+  Elf64_Rela *rela_dyn = NULL;
+  int nr_rela_dyn = 0;
+
+  Elf64_Dyn *dyn = buf;
+  int nr_dyn = size / sizeof(dyn[0]);
+  int i;
+  for (i = 0; i < nr_dyn; i ++ ) {
+    switch (dyn[i].d_tag) {
+      case DT_RELA:    rela_dyn = (void *)info->base + dyn[i].d_un.d_ptr; break;
+      case DT_RELASZ:  nr_rela_dyn = dyn[i].d_un.d_val / sizeof(rela_dyn[0]); break;
+      case DT_RELAENT: assert(dyn[i].d_un.d_val == sizeof(rela_dyn[0])); break;
+    }
+  }
+
+  for (i = 0; i < nr_rela_dyn; i ++) {
+    if (ELF64_R_TYPE(rela_dyn[i].r_info) == R_X86_64_TPOFF64) {
+      uintptr_t ptr = info->base + rela_dyn[i].r_offset;
+      mprotect_page(ptr, PROT_READ|PROT_WRITE);
+      *(uintptr_t *)ptr += info->tls_offset_diff;
+      mprotect_page(ptr, PROT_READ);
+    }
+  }
+  return 1;
+}
+
 static int get_build_id(void *buf, int size, void **userdata) {
   assert(size > 0);
   void *name, *desc;
@@ -106,19 +147,29 @@ static int get_build_id(void *buf, int size, void **userdata) {
   return 1;
 }
 
-static char* get_debug_elf_path(char *filename) {
-  const char *prefix = "/usr/bin/";
-  if (strncmp(filename, prefix, strlen(prefix)) != 0) {
-    return strdup(filename);
-  }
-
-  ELF_sh_callback cb_list[2] = {
+static void parse_origin_elf(Info *info) {
+  ELF_sh_callback cb_list[3] = {
+    { .name = ".dynamic", fix_tls_offset },
     { .name = ".note.gnu.build-id", .h = get_build_id },
     { .name = NULL }
   };
-  ELF_sh_foreach(filename, cb_list);
 
-  uint8_t *id = cb_list[0].retval;
+  const char *prefix = "/usr/bin/";
+  bool need_dbgsym = (strncmp(info->name, prefix, strlen(prefix)) == 0);
+  if (!need_dbgsym) {
+    cb_list[1].name = NULL;
+  }
+
+  cb_list[0].userdata = info;
+
+  ELF_sh_foreach(info->name, cb_list);
+
+  if (!need_dbgsym) {
+    info->debug_elf_path = strdup(info->name);
+    return;
+  }
+
+  uint8_t *id = cb_list[1].userdata;
   char *path = malloc(512);
   int len = sprintf(path, "/usr/lib/debug/.build-id/%02x/", id[0]);
   int i;
@@ -127,7 +178,7 @@ static char* get_debug_elf_path(char *filename) {
   }
   strcat(path, ".debug");
   free(id);
-  return path;
+  info->debug_elf_path = path;
 }
 
 static uintptr_t get_sym_addr(char *sym, int type) {
@@ -145,25 +196,12 @@ void* get_loaded_addr(char *sym, int type) {
   return (void *)get_sym_addr(sym, type) + elf_base;
 }
 
-static void mprotect_page(uintptr_t addr, int prot) {
-  addr &= ~0xfffl;
-  int ret = mprotect((void *)addr, 4096, prot);
-  assert(ret == 0);
-}
-
 static void hack_entry() {
   void *addr = get_loaded_addr("main_loop_wait", STT_FUNC);
   mprotect_page((uintptr_t)addr, PROT_READ | PROT_EXEC);
   extern void difftest_init_late();
   difftest_init_late();
 }
-
-typedef struct {
-  char *name;
-  uintptr_t base;
-  uintptr_t tls_offset_diff;
-  int next_tls_modid;
-} Info;
 
 static int callback(struct dl_phdr_info *info, size_t size, void *data) {
   Info *arg = data;
@@ -184,22 +222,17 @@ static int callback(struct dl_phdr_info *info, size_t size, void *data) {
   return 0;
 }
 
-static void fix_tls_var_offset(uintptr_t ptr, uintptr_t right_offset) {
-  mprotect_page(ptr, PROT_READ|PROT_WRITE);
-  *(uintptr_t *)ptr = right_offset;
-}
-
 static void hack_prepare(Info *info) {
-  char *debug_elf_path = get_debug_elf_path(info->name);
-  if (access(debug_elf_path, R_OK) != 0) {
-    printf("File '%s' does not exist!\n", debug_elf_path);
+  parse_origin_elf(info);
+  if (access(info->debug_elf_path, R_OK) != 0) {
+    printf("File '%s' does not exist!\n", info->debug_elf_path);
     printf("Make sure you are using QEMU installed by apt-get, "
            "and you have already installed the debug symbol package for qemu\n");
     assert(0);
   }
 
-  parse_debug_elf(debug_elf_path);
-  free(debug_elf_path);
+  parse_debug_elf(info->debug_elf_path);
+  free(info->debug_elf_path);
 
   elf_base = info->base;
 
@@ -216,9 +249,6 @@ static void hack_prepare(Info *info) {
   void (*qemu_main_loop_wait)(int) = get_loaded_addr("main_loop_wait", STT_FUNC);
   mprotect_page((uintptr_t)qemu_main_loop_wait, PROT_READ | PROT_WRITE | PROT_EXEC);
   memcpy(qemu_main_loop_wait, &code, sizeof(code));
-
-  fix_tls_var_offset(base + 0xbf2fb0, 0xfffffffffffffe08ul); // tcg_ctx
-  fix_tls_var_offset(base + 0xbf2f70, 0xfffffffffffffdc0ul); // current_cpu
 }
 
 void dl_load(char *argv[]) {
