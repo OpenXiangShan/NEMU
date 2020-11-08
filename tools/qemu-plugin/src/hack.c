@@ -80,7 +80,7 @@ static void ELF_sh_foreach(char *filename, ELF_sh_callback *cb_list) {
   fclose(fp);
 }
 
-static void ELF_parse(char *filename) {
+static void parse_debug_elf(char *filename) {
   ELF_sh_callback cb_list[3] = {
     { .name = ".symtab", .h = build_symtab },
     { .name = ".strtab", .h = build_strtab },
@@ -177,8 +177,8 @@ static void fix_tls_var_offset(uintptr_t ptr, uintptr_t right_offset) {
   *(uintptr_t *)ptr = right_offset;
 }
 
-static void hack_prepare(char *filename, uintptr_t base) {
-  char *debug_elf_path = get_debug_elf_path(filename);
+static void hack_prepare(Info *info) {
+  char *debug_elf_path = get_debug_elf_path(info->name);
   if (access(debug_elf_path, R_OK) != 0) {
     printf("File '%s' does not exist!\n", debug_elf_path);
     printf("Make sure you are using QEMU installed by apt-get, "
@@ -186,10 +186,10 @@ static void hack_prepare(char *filename, uintptr_t base) {
     assert(0);
   }
 
-  ELF_parse(debug_elf_path);
+  parse_debug_elf(debug_elf_path);
   free(debug_elf_path);
 
-  elf_base = base;
+  elf_base = info->base;
 
   struct {
     uint16_t opcode_movabs;
@@ -218,7 +218,7 @@ void dl_load(char *argv[]) {
   Info info = { .name = argv[0] };
   dl_iterate_phdr(callback, &info);
 
-  hack_prepare(argv[0], info.base);
+  hack_prepare(&info);
 
   char **p = argv;
   while (*p != NULL) p ++;
