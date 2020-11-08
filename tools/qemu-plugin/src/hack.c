@@ -161,6 +161,8 @@ static void hack_entry() {
 typedef struct {
   char *name;
   uintptr_t base;
+  uintptr_t tls_offset_diff;
+  int next_tls_modid;
 } Info;
 
 static int callback(struct dl_phdr_info *info, size_t size, void *data) {
@@ -168,6 +170,16 @@ static int callback(struct dl_phdr_info *info, size_t size, void *data) {
   if (strcmp(info->dlpi_name, arg->name) == 0) {
     arg->base = info->dlpi_addr;
     return 1;
+  }
+
+  int i;
+  for (i = 0; i < info->dlpi_phnum; i ++) {
+    if (info->dlpi_phdr[i].p_type == PT_TLS) {
+      assert(info->dlpi_tls_modid == arg->next_tls_modid);
+      arg->tls_offset_diff += ALIGN_UP(info->dlpi_phdr[i].p_memsz, info->dlpi_phdr[i].p_align);
+      arg->next_tls_modid ++;
+      break;
+    }
   }
   return 0;
 }
@@ -215,7 +227,7 @@ void dl_load(char *argv[]) {
   int (*qemu_main)(int, char **, char **) = dlsym(qemu, "main");
   assert(qemu_main);
 
-  Info info = { .name = argv[0] };
+  Info info = { .name = argv[0], .next_tls_modid = 1, .tls_offset_diff = 0 };
   dl_iterate_phdr(callback, &info);
 
   hack_prepare(&info);
