@@ -23,9 +23,7 @@ void init_isa(void) {
 
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
-#ifdef __DIFF_REF_QEMU__
   misa->extensions |= ext('d') | ext('f');
-#endif
   misa->mxl = 2; // XLEN = 64
 
   memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
