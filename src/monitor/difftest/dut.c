@@ -4,6 +4,10 @@
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 
+#ifdef __DIFF_REF_QEMU_PLUGIN__
+__thread uint8_t resereve_for_qemu_tls[4096];
+#endif
+
 void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
 void (*ref_difftest_getregs)(void *c) = NULL;
 void (*ref_difftest_setregs)(const void *c) = NULL;

@@ -1,7 +1,6 @@
 #include <common.h>
 #include <elf.h>
 #include <setjmp.h>
-#include <time.h>
 
 static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int len, int is_write) = NULL;
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;

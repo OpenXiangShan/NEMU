@@ -38,6 +38,10 @@ ifeq ($(DIFF),qemu)
 DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
 CFLAGS += -D__DIFF_REF_QEMU__
+else ifeq ($(DIFF),qemu-plugin)
+DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-plugin
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/qemu-so
+CFLAGS += -D__DIFF_REF_QEMU_PLUGIN__
 else ifeq ($(DIFF),kvm)
 DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
