@@ -24,7 +24,6 @@ void init_isa() {
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
   misa->extensions |= ext('d') | ext('f');
-
   misa->mxl = 2; // XLEN = 64
 
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
