@@ -53,18 +53,12 @@ void difftest_init(int port) {
     char *argv[] = {
       "/usr/bin/qemu-system-i386",
 //      "/home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386",
-      "-nographic", "-S", "-s", "-serial", "none", "-monitor", "none",
+      "-nographic", "-S", "-serial", "none", "-monitor", "none",
       NULL
     };
     dl_load(argv);
   }
 }
-
-typedef struct {
-  // the first two members from the source code of QEMU
-  void *c_cpu;
-  void *g_cpu;
-} GDBState;
 
 void* get_loaded_addr(char *sym, int type);
 
@@ -76,13 +70,11 @@ void difftest_init_late() {
 
   int (*qemu_cpu_single_step)(void *cpu, int enabled) = get_loaded_addr("cpu_single_step", STT_FUNC);
   void (*qemu_mutex_unlock_iothread)() = get_loaded_addr("qemu_mutex_unlock_iothread", STT_FUNC);
+  void* (*qemu_get_cpu)(int) = get_loaded_addr("qemu_get_cpu", STT_FUNC);
   int qemu_sstep_flags = *(int *)get_loaded_addr("sstep_flags", STT_OBJECT);
-  GDBState **qemu_gdbserver_state = get_loaded_addr("gdbserver_state", STT_OBJECT);
 
-  assert(*qemu_gdbserver_state);
-  qemu_cpu = (*qemu_gdbserver_state)->g_cpu;
+  qemu_cpu = qemu_get_cpu(0);
   assert(qemu_cpu);
-
   qemu_cpu_single_step(qemu_cpu, qemu_sstep_flags);
   qemu_mutex_unlock_iothread();
 
