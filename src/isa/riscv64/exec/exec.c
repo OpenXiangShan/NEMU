@@ -273,8 +273,8 @@ vaddr_t isa_disambiguate_exec(void *disambiguate_para) {
   // need_disambiguate
   cpu.need_disambiguate = true;
   struct DisambiguationState* ds = (struct DisambiguationState*) disambiguate_para;
-  cpu.disambiguation_state.exceptionNo = ds->exceptionNo;
-  printf("isa_disambiguate_exec %ld at pc %lx\n", ds->exceptionNo, cpu.pc);
+  memcpy(&cpu.disambiguation_state, ds, sizeof(struct DisambiguationState));
+  // printf("isa_disambiguate_exec %ld at pc %lx\n", ds->exceptionNo, cpu.pc);
 
   exec(&s);
   if (cpu.mem_exception != MEM_OK) {
