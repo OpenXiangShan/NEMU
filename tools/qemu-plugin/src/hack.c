@@ -181,7 +181,7 @@ static void parse_origin_elf(Info *info) {
   info->debug_elf_path = path;
 }
 
-static uintptr_t get_sym_addr(char *sym, int type) {
+static uintptr_t get_sym_addr(const char *sym, int type) {
   int i;
   for (i = 0; i < symtab_nr_entry; i ++) {
     if ((strcmp(strtab + symtab[i].st_name, sym) == 0) &&
@@ -192,15 +192,8 @@ static uintptr_t get_sym_addr(char *sym, int type) {
   assert(0);
 }
 
-void* get_loaded_addr(char *sym, int type) {
+void* get_loaded_addr(const char *sym, int type) {
   return (void *)get_sym_addr(sym, type) + elf_base;
-}
-
-static void hack_entry() {
-  void *addr = get_loaded_addr("main_loop_wait", STT_FUNC);
-  mprotect_page((uintptr_t)addr, PROT_READ | PROT_EXEC);
-  extern void difftest_init_late();
-  difftest_init_late();
 }
 
 static int callback(struct dl_phdr_info *info, size_t size, void *data) {
@@ -222,6 +215,40 @@ static int callback(struct dl_phdr_info *info, size_t size, void *data) {
   return 0;
 }
 
+static inline void hack_fun_entry(const char *funname, const void *code, int len, bool protect) {
+  void *fun = get_loaded_addr(funname, STT_FUNC);
+  if (len) {
+    mprotect_page((uintptr_t)fun, PROT_READ | PROT_WRITE | PROT_EXEC);
+    memcpy(fun, code, len);
+  }
+  if (protect) mprotect_page((uintptr_t)fun, PROT_READ | PROT_EXEC);
+}
+
+static void hack_entry() {
+  hack_fun_entry("main_loop_wait", NULL, 0, true);
+  extern void difftest_init_late();
+  difftest_init_late();
+}
+
+static inline void hack_main_loop_wait() {
+  uint8_t code[] = {
+    0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // movabs $imm, %rax
+    0xff, 0xe0, // jmp *%rax
+  };
+  *(uintptr_t *)(code + 2) = (uintptr_t)hack_entry;
+  assert(sizeof(code) == 12);
+  hack_fun_entry("main_loop_wait", code, sizeof(code), false);
+}
+
+static inline void hack_fun_return_1(char *funname) {
+  const uint8_t code[] = {
+    0xb8, 0x01, 0x00, 0x00, 0x00, // mov $0x1, %eax
+    0xc3, // ret
+  };
+  assert(sizeof(code) == 6);
+  hack_fun_entry(funname, code, sizeof(code), true);
+}
+
 static void hack_prepare(Info *info) {
   parse_origin_elf(info);
   if (access(info->debug_elf_path, R_OK) != 0) {
@@ -234,21 +261,8 @@ static void hack_prepare(Info *info) {
   parse_debug_elf(info->debug_elf_path);
   free(info->debug_elf_path);
 
-  elf_base = info->base;
-
-  struct {
-    uint16_t opcode_movabs;
-    int64_t imm;
-    uint16_t instr_jmp;
-  } __attribute__((packed)) code;
-  assert(sizeof(code) == 12);
-  code.opcode_movabs = 0xb848; // movabs $imm, %rax
-  code.imm = (uintptr_t)hack_entry;
-  code.instr_jmp = 0xe0ff; // jmp *%rax
-
-  void (*qemu_main_loop_wait)(int) = get_loaded_addr("main_loop_wait", STT_FUNC);
-  mprotect_page((uintptr_t)qemu_main_loop_wait, PROT_READ | PROT_WRITE | PROT_EXEC);
-  memcpy(qemu_main_loop_wait, &code, sizeof(code));
+  hack_main_loop_wait();
+  hack_fun_return_1("qemu_cpu_is_self");
 }
 
 void dl_load(char *argv[]) {
@@ -259,6 +273,7 @@ void dl_load(char *argv[]) {
 
   Info info = { .name = argv[0], .next_tls_modid = 1, .tls_offset_diff = 0 };
   dl_iterate_phdr(callback, &info);
+  elf_base = info.base;
 
   hack_prepare(&info);
 
