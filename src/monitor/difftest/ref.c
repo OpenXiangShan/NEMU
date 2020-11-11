@@ -5,16 +5,13 @@
 
 void cpu_exec(uint64_t);
 
-void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
-  memcpy(guest_to_host(dest - PMEM_BASE), src, n);
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
+  if (to_ref) memcpy(guest_to_host(addr - PMEM_BASE), buf, n);
+  else memcpy(buf, guest_to_host(addr - PMEM_BASE), n);
 }
 
-void difftest_getregs(void *r) {
-  isa_difftest_getregs(r);
-}
-
-void difftest_setregs(const void *r) {
-  isa_difftest_setregs(r);
+void difftest_regcpy(void *dut, bool to_ref) {
+  isa_difftest_regcpy(dut, to_ref);
 }
 
 void difftest_exec(uint64_t n) {

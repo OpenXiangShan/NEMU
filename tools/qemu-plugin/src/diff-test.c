@@ -8,25 +8,16 @@ static int (*qemu_gdb_read_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_cpu_exec)(void *) = NULL;
 static void *qemu_cpu = NULL;
 
-void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
-  int ret = qemu_cpu_memory_rw_debug(qemu_cpu, dest, src, n, true);
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
+  int ret = qemu_cpu_memory_rw_debug(qemu_cpu, addr, buf, n, to_ref);
   assert(ret == 0);
 }
 
-void difftest_getregs(void *r) {
-  uint32_t *regs = r;
-  int i;
-  for (i = 0; i < 9; i ++) {
-    qemu_gdb_read_register(qemu_cpu, (void *)&regs[i], i);
-  }
-}
-
-void difftest_setregs(const void *r) {
-  uint32_t *regs = (void *)r;
-  int i;
-  for (i = 0; i < 9; i ++) {
-    qemu_gdb_write_register(qemu_cpu, (void *)&regs[i], i);
-  }
+void difftest_regcpy(void *dut, bool to_ref) {
+  uint32_t *regs = dut;
+  int (*fn)(void *cpu, uint8_t *buf, int reg) =
+    (to_ref ? qemu_gdb_write_register : qemu_gdb_read_register);
+  for (int i = 0; i < 9; i ++) { fn(qemu_cpu, (void *)&regs[i], i); }
 }
 
 #define EXCP_INTERRUPT 0x10000
@@ -109,7 +100,7 @@ void difftest_init_late() {
   };
 
   // put the MBR code to QEMU to enable protected mode
-  difftest_memcpy_from_dut(0x7c00, mbr, sizeof(mbr));
+  difftest_memcpy(0x7c00, mbr, sizeof(mbr), true);
 
   // set cs:eip to 0000:7c00
   uint32_t val = 0;

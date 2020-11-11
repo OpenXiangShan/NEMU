@@ -13,9 +13,8 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc);
 static inline void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {}
 #endif
 
-extern void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n);
-extern void (*ref_difftest_getregs)(void *c);
-extern void (*ref_difftest_setregs)(const void *c);
+extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool to_ref);
+extern void (*ref_difftest_regcpy)(void *c, bool to_ref);
 extern void (*ref_difftest_exec)(uint64_t n);
 extern void (*ref_difftest_raise_intr)(word_t NO);
 
