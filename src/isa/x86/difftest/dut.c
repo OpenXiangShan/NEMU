@@ -7,7 +7,7 @@
 #include <memory/paddr.h>
 
 #ifdef ENABLE_DIFFTEST_INSTR_QUEUE
-#define INSTR_QUEUE_SIZE (1 << 15)
+#define INSTR_QUEUE_SIZE (1 << 7)
 static uint32_t q_idx = 0;
 struct {
   vaddr_t pc;
