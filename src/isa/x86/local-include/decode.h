@@ -110,10 +110,10 @@ static inline def_DopHelper(O) {
  * Ev <- Gv
  */
 static inline def_DHelper(G2E) {
-#ifndef __PA__
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
   if (s->opcode != 0x38 && s->opcode != 0x39 && // cmp
       s->opcode != 0x84 && s->opcode != 0x85) { // test
-    cpu.hack_kvm_pf_write = 1;
+    cpu.lock = 1;
   }
 #endif
   operand_rm(s, id_dest, true, id_src1, true);
@@ -132,7 +132,7 @@ static inline def_DHelper(bit_G2E) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
     s->isa.mbase = &s->isa.mbr;
     if (s->opcode != 0x1a3) { // bt
-      cpu.hack_kvm_pf_write = 1;
+      cpu.lock = 1;
     }
     rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
   }
@@ -175,8 +175,8 @@ static inline def_DHelper(I_E2G) {
  * Ev <- Iv
  */
 static inline def_DHelper(I2E) {
-#ifndef __PA__
-  cpu.hack_kvm_pf_write = 1;
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
+  cpu.lock = 1;
 #endif
   operand_rm(s, id_dest, true, NULL, false);
   decode_op_I(s, id_src1, true);
@@ -232,8 +232,8 @@ static inline def_DHelper(test_I) {
 
 static inline def_DHelper(SI2E) {
   assert(id_dest->width == 2 || id_dest->width == 4);
-#ifndef __PA__
-  cpu.hack_kvm_pf_write = 1;
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
+  cpu.lock = 1;
 #endif
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
@@ -259,8 +259,8 @@ static inline def_DHelper(gp2_1_E) {
 }
 
 static inline def_DHelper(gp2_cl2E) {
-#ifndef __PA__
-  cpu.hack_kvm_pf_write = 1;
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
+  cpu.lock = 1;
 #endif
   operand_rm(s, id_dest, true, NULL, false);
   // shift instructions will eventually use the lower
@@ -269,8 +269,8 @@ static inline def_DHelper(gp2_cl2E) {
 }
 
 static inline def_DHelper(gp2_Ib2E) {
-#ifndef __PA__
-  cpu.hack_kvm_pf_write = 1;
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
+  cpu.lock = 1;
 #endif
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
@@ -280,8 +280,8 @@ static inline def_DHelper(gp2_Ib2E) {
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
-#ifndef __PA__
-  cpu.hack_kvm_pf_write = 1;
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
+  cpu.lock = 1;
 #endif
   operand_rm(s, id_dest, true, id_src2, true);
   id_src1->width = 1;
@@ -291,8 +291,8 @@ static inline def_DHelper(Ib_G2E) {
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline def_DHelper(cl_G2E) {
-#ifndef __PA__
-  cpu.hack_kvm_pf_write = 1;
+#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM)
+  cpu.lock = 1;
 #endif
   operand_rm(s, id_dest, true, id_src2, true);
   // shift instructions will eventually use the lower
@@ -302,7 +302,7 @@ static inline def_DHelper(cl_G2E) {
 
 // for cmpxchg
 static inline def_DHelper(a_G2E) {
-  cpu.hack_kvm_pf_write = 1;
+  cpu.lock = 1;
   operand_rm(s, id_dest, true, id_src2, true);
   operand_reg(s, id_src1, true, R_EAX, 4);
 }

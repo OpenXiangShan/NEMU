@@ -280,7 +280,7 @@ EX   (0xf8, clc)            EX   (0xf9, stc)            EX   (0xfa, cli)        
 EX   (0xfc, cld)            EX   (0xfd, std)            IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
   case 0x64: s->isa.sreg_base = &cpu.sreg[SR_FS].base; goto again;
   case 0x65: s->isa.sreg_base = &cpu.sreg[SR_GS].base; goto again;
-  case 0xf0: goto again; // LOCK prefix
+  case 0xf0: cpu.lock = 1; goto again; // LOCK prefix
   case 0xf2: s->isa.rep_flags = PREFIX_REPNZ; goto again;
   case 0xf3: s->isa.rep_flags = PREFIX_REP; goto again;
 #endif
@@ -332,7 +332,7 @@ vaddr_t isa_exec_once() {
     raise_intr(&s, cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;
   }
-  cpu.hack_kvm_pf_write = 0;
+  cpu.lock = 0;
 #endif
 
   update_pc(&s);
