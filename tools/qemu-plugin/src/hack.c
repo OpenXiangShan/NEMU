@@ -11,6 +11,7 @@ static int strtab_size = 0;
 static Elf64_Sym *symtab = NULL;
 static int symtab_nr_entry = 0;
 static uintptr_t elf_base = 0;
+static uintptr_t qemu_tls_size = 0;
 
 static void mprotect_page(uintptr_t addr, int prot) {
   addr &= ~0xfffl;
@@ -198,21 +199,27 @@ void* get_loaded_addr(const char *sym, int type) {
 
 static int callback(struct dl_phdr_info *info, size_t size, void *data) {
   Info *arg = data;
+  int found = 0;
   if (strcmp(info->dlpi_name, arg->name) == 0) {
     arg->base = info->dlpi_addr;
-    return 1;
+    found = 1;
   }
 
   int i;
   for (i = 0; i < info->dlpi_phnum; i ++) {
     if (info->dlpi_phdr[i].p_type == PT_TLS) {
       assert(info->dlpi_tls_modid == arg->next_tls_modid);
-      arg->tls_offset_diff += ALIGN_UP(info->dlpi_phdr[i].p_memsz, info->dlpi_phdr[i].p_align);
-      arg->next_tls_modid ++;
+      uintptr_t size = ALIGN_UP(info->dlpi_phdr[i].p_memsz, info->dlpi_phdr[i].p_align);
+      if (!found) {
+        arg->tls_offset_diff += size;
+        arg->next_tls_modid ++;
+      } else {
+        qemu_tls_size = size;
+      }
       break;
     }
   }
-  return 0;
+  return found;
 }
 
 static inline void hack_fun_entry(const char *funname, const void *code, int len, bool protect) {
@@ -226,6 +233,16 @@ static inline void hack_fun_entry(const char *funname, const void *code, int len
 
 static void hack_entry() {
   hack_fun_entry("main_loop_wait", NULL, 0, true);
+
+  void *volatile **tcg_ctxs = (void *)get_loaded_addr("tcg_ctxs", STT_OBJECT);
+  uintptr_t tcg_ctx = get_sym_addr("tcg_ctx", STT_TLS);
+  void *tp;
+  asm volatile ("mov %%fs:0, %0" : "=r"(tp));
+  void **this_tcg_ctx = tp - qemu_tls_size + tcg_ctx;
+
+  while ((*tcg_ctxs)[0] == NULL) usleep(1);
+  *this_tcg_ctx = (*tcg_ctxs)[0];
+
   extern void difftest_init_late();
   difftest_init_late();
 }
