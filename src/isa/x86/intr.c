@@ -2,17 +2,6 @@
 #include "monitor/difftest.h"
 #include "local-include/rtl.h"
 
-typedef union GateDescriptor {
-  struct {
-    uint32_t offset_15_0      : 16;
-    uint32_t dont_care0       : 16;
-    uint32_t dont_care1       : 15;
-    uint32_t present          : 1;
-    uint32_t offset_31_16     : 16;
-  };
-  uint32_t val;
-} GateDesc;
-
 #ifndef __ICS_EXPORT
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   assert(NO < 256);
@@ -57,6 +46,7 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
   rtl_compute_eflags(s, s0);
   rtl_push(s, s0);
+  word_t eflags_esp = cpu.esp;
   rtl_li(s, s0, old_cs);
   rtl_push(s, s0);   // cs
   rtl_li(s, s0, ret_addr);
@@ -75,8 +65,10 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 
   rtl_jr(s, s1);
 
-#ifdef DIFF_TEST
-  if (ref_difftest_raise_intr) ref_difftest_raise_intr(NO);
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_dut(1, 2);
+  void difftest_fix_eflags(void *arg);
+  difftest_set_patch(difftest_fix_eflags, (void *)(uintptr_t)eflags_esp);
 #endif
 }
 

@@ -101,10 +101,6 @@ static inline def_EHelper(int) {
   void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
   raise_intr(s, *ddest, s->seq_pc);
   print_asm("int %s", id_dest->str);
-
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 2);
-#endif
 }
 
 static inline def_EHelper(iret) {
