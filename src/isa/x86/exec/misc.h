@@ -41,5 +41,8 @@ static inline def_EHelper(fpu) {
 }
 
 static inline def_EHelper(hlt) {
+  extern void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr);
+  raise_intr(s, 48, s->seq_pc);
+  if (ref_difftest_raise_intr) ref_difftest_raise_intr(48);
   print_asm("hlt");
 }

@@ -18,7 +18,7 @@ static inline void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {}
 extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool to_ref);
 extern void (*ref_difftest_regcpy)(void *c, bool to_ref);
 extern void (*ref_difftest_exec)(uint64_t n);
-extern void (*ref_difftest_raise_intr)(word_t NO);
+extern void (*ref_difftest_raise_intr)(uint64_t NO);
 
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {

@@ -6,6 +6,8 @@ static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int l
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_gdb_read_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_cpu_exec)(void *) = NULL;
+static void (*qemu_do_interrupt_all)(void *cpu, int intno,
+    int is_int, int error_code, uint32_t next_eip, int is_hw) = NULL;
 static void *qemu_cpu = NULL;
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
@@ -20,7 +22,12 @@ void difftest_regcpy(void *dut, bool to_ref) {
   for (int i = 0; i < 9; i ++) { fn(qemu_cpu, (void *)&regs[i], i); }
 }
 
+void difftest_raise_intr(uint64_t NO) {
+  qemu_do_interrupt_all(qemu_cpu, NO, 0, 0, 0, 1);
+}
+
 #define EXCP_INTERRUPT 0x10000
+#define EXCP_HLT       0x10001
 #define EXCP_DEBUG     0x10002
 #define EXCP_ATOMIC    0x10005
 void difftest_exec(uint64_t n) {
@@ -29,6 +36,7 @@ void difftest_exec(uint64_t n) {
     switch (ret) {
       case EXCP_ATOMIC:
       case EXCP_INTERRUPT: n ++; // fall through
+      case EXCP_HLT:
       case EXCP_DEBUG: break;
       default: assert(0);
     }
@@ -59,6 +67,7 @@ void difftest_init_late() {
   qemu_gdb_write_register = get_loaded_addr("gdb_write_register", STT_FUNC);
   qemu_gdb_read_register = get_loaded_addr("gdb_read_register", STT_FUNC);
   qemu_cpu_exec = get_loaded_addr("cpu_exec", STT_FUNC);
+  qemu_do_interrupt_all = get_loaded_addr("do_interrupt_all", STT_FUNC);
 
   int (*qemu_cpu_single_step)(void *cpu, int enabled) = get_loaded_addr("cpu_single_step", STT_FUNC);
   void (*qemu_mutex_unlock_iothread)() = get_loaded_addr("qemu_mutex_unlock_iothread", STT_FUNC);

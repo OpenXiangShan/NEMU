@@ -287,6 +287,7 @@ static void hack_prepare(Info *info) {
   hack_main_loop_wait();
   hack_fun_return_1("qemu_cpu_is_self");
   hack_fun_return_void("os_setup_signal_handling");
+  hack_fun_return_1("x86_cpu_has_work");
 }
 
 void dl_load(char *argv[]) {
