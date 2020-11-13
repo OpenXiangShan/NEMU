@@ -45,6 +45,7 @@ void difftest_init(int port) {
       "/usr/bin/qemu-system-i386",
 //      "/home/yzh/software/qemu-v3.1.0/i386-softmmu/qemu-system-i386",
       "-nographic", "-S", "-serial", "none", "-monitor", "none",
+      "-cpu", "Broadwell",
       NULL
     };
     dl_load(argv);
