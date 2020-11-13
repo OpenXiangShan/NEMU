@@ -27,6 +27,7 @@ static inline def_EHelper(cpuid) {
   rtl_mv(s, &cpu.ecx, rz);
   rtl_mv(s, &cpu.edx, rz);
 
+  difftest_skip_ref();
   print_asm("cpuid");
 }
 
