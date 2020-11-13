@@ -15,6 +15,8 @@ void (*ref_difftest_raise_intr)(word_t NO) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
+void (*patch_fn)(void *arg) = NULL;
+static void* patch_arg = NULL;
 #ifndef __ICS_EXPORT
 static bool is_detach = false;
 #endif
@@ -51,6 +53,11 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   while (nr_ref -- > 0) {
     ref_difftest_exec(1);
   }
+}
+
+void difftest_set_patch(void (*fn)(void *arg), void *arg) {
+  patch_fn = fn;
+  patch_arg = arg;
 }
 
 void init_difftest(char *ref_so_file, long img_size, int port) {
@@ -125,6 +132,12 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
   }
 
   ref_difftest_exec(1);
+
+  if (patch_fn) {
+    patch_fn(patch_arg);
+    patch_fn = NULL;
+  }
+
   ref_difftest_regcpy(&ref_r, false);
 
   checkregs(&ref_r, this_pc);

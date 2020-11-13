@@ -35,7 +35,10 @@ static inline def_EHelper(pushf) {
   void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
   rtl_compute_eflags(s, s0);
   rtl_push(s, s0);
-  print_asm("popf");
+  print_asm("pushf");
+
+  extern void difftest_fix_eflags(void *arg);
+  difftest_set_patch(difftest_fix_eflags, (void *)(uintptr_t)cpu.esp);
 }
 
 static inline def_EHelper(popf) {
