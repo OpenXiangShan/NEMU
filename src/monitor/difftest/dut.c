@@ -4,7 +4,7 @@
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 
-#ifdef __DIFF_REF_QEMU_PLUGIN__
+#ifdef __DIFF_REF_QEMU_DL__
 __thread uint8_t resereve_for_qemu_tls[4096];
 #endif
 
