@@ -90,19 +90,28 @@ static inline def_EHelper(sar) {
 static inline def_EHelper(shl) {
 #ifndef __PA__
   int count = *dsrc1 & 0x1f;
-  if (count == 1) {
-    rtl_msb(s, s0, ddest, id_dest->width);
-    rtl_shli(s, s1, ddest, 1);
-    rtl_msb(s, s1, s1, id_dest->width);
-    rtl_xor(s, s0, s0, s1);
-    rtl_set_OF(s, s0);
-  }
   if (count != 0) {
     rtl_msb(s, s1, ddest, id_dest->width);
     rtl_set_CF(s, s1);
   }
+#ifdef __DIFF_REF_KVM__
+  int update_of = (count == 1);
+#else
+  int update_of = 1;
+#endif
+  if (update_of) {
+    rtl_mv(s, s0, ddest);
+  }
+
   rtl_shl(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
+
+  if (update_of) {
+    rtl_xor(s, s0, s0, ddest);
+    rtl_msb(s, s0, s0, id_dest->width);
+    rtl_set_OF(s, s0);
+  }
+
   if (count != 0) {
     rtl_update_ZFSF(s, ddest, id_dest->width);
   }

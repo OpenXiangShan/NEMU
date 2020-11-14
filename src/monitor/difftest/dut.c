@@ -4,14 +4,19 @@
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 
-void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
-void (*ref_difftest_getregs)(void *c) = NULL;
-void (*ref_difftest_setregs)(const void *c) = NULL;
+#ifdef __DIFF_REF_QEMU_DL__
+__thread uint8_t resereve_for_qemu_tls[4096];
+#endif
+
+void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool to_ref) = NULL;
+void (*ref_difftest_regcpy)(void *dut, bool to_ref) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
-void (*ref_difftest_raise_intr)(word_t NO) = NULL;
+void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
+void (*patch_fn)(void *arg) = NULL;
+static void* patch_arg = NULL;
 #ifndef __ICS_EXPORT
 static bool is_detach = false;
 #endif
@@ -50,6 +55,11 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   }
 }
 
+void difftest_set_patch(void (*fn)(void *arg), void *arg) {
+  patch_fn = fn;
+  patch_arg = arg;
+}
+
 void init_difftest(char *ref_so_file, long img_size, int port) {
 #ifndef DIFF_TEST
   return;
@@ -61,14 +71,11 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   handle = dlopen(ref_so_file, RTLD_LAZY | RTLD_DEEPBIND);
   assert(handle);
 
-  ref_difftest_memcpy_from_dut = dlsym(handle, "difftest_memcpy_from_dut");
-  assert(ref_difftest_memcpy_from_dut);
+  ref_difftest_memcpy = dlsym(handle, "difftest_memcpy");
+  assert(ref_difftest_memcpy);
 
-  ref_difftest_getregs = dlsym(handle, "difftest_getregs");
-  assert(ref_difftest_getregs);
-
-  ref_difftest_setregs = dlsym(handle, "difftest_setregs");
-  assert(ref_difftest_setregs);
+  ref_difftest_regcpy = dlsym(handle, "difftest_regcpy");
+  assert(ref_difftest_regcpy);
 
   ref_difftest_exec = dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
@@ -85,8 +92,8 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
   ref_difftest_init(port);
-  ref_difftest_memcpy_from_dut(IMAGE_START + PMEM_BASE, guest_to_host(IMAGE_START), img_size);
-  ref_difftest_setregs(&cpu);
+  ref_difftest_memcpy(IMAGE_START + PMEM_BASE, guest_to_host(IMAGE_START), img_size, true);
+  ref_difftest_regcpy(&cpu, true);
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
@@ -105,7 +112,7 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
 
 #endif
   if (skip_dut_nr_instr > 0) {
-    ref_difftest_getregs(&ref_r);
+    ref_difftest_regcpy(&ref_r, false);
     if (ref_r.pc == next_pc) {
       checkregs(&ref_r, next_pc);
       skip_dut_nr_instr = 0;
@@ -119,13 +126,19 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
 
   if (is_skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
-    ref_difftest_setregs(&cpu);
+    ref_difftest_regcpy(&cpu, true);
     is_skip_ref = false;
     return;
   }
 
   ref_difftest_exec(1);
-  ref_difftest_getregs(&ref_r);
+
+  if (patch_fn) {
+    patch_fn(patch_arg);
+    patch_fn = NULL;
+  }
+
+  ref_difftest_regcpy(&ref_r, false);
 
   checkregs(&ref_r, this_pc);
 }

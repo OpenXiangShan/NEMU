@@ -1,5 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
+#include <monitor/difftest.h>
 
 #define EFLAGS_BIT_CF 0
 #define EFLAGS_BIT_PF 2
@@ -35,4 +36,16 @@ void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest) {
 
 void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src) {
   MAP(_EFLAGS, DECODE)
+}
+
+void difftest_fix_eflags(void *arg) {
+#define EFLAGS_MASK_ID (1 << 21)
+#define EFLAGS_MASK_AC (1 << 18)
+#define EFLAGS_MASK_AF (1 << 4)
+#define EFLAGS_FIX_MASK (EFLAGS_MASK_ID | EFLAGS_MASK_AC | EFLAGS_MASK_AF)
+  uint32_t esp = (uintptr_t)arg;
+  uint32_t flags;
+  ref_difftest_memcpy(esp, &flags, 4, false);
+  flags &= ~EFLAGS_FIX_MASK;
+  ref_difftest_memcpy(esp, &flags, 4, true);
 }

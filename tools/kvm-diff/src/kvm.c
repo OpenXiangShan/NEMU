@@ -336,39 +336,37 @@ static void run_protected_mode() {
   kvm_exec(10);
 }
 
-void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
-  memcpy(vm.mem + dest, src, n);
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
+  if (to_ref) memcpy(vm.mem + addr, buf, n);
+  else memcpy(buf, vm.mem + addr, n);
 }
 
-void difftest_getregs(void *r) {
+void difftest_regcpy(void *r, bool to_ref) {
   struct kvm_regs *ref = &(vcpu.kvm_run->s.regs.regs);
   x86_CPU_state *x86 = r;
-  x86->eax = ref->rax;
-  x86->ebx = ref->rbx;
-  x86->ecx = ref->rcx;
-  x86->edx = ref->rdx;
-  x86->esp = ref->rsp;
-  x86->ebp = ref->rbp;
-  x86->esi = ref->rsi;
-  x86->edi = ref->rdi;
-  x86->pc  = ref->rip;
-}
-
-void difftest_setregs(const void *r) {
-  struct kvm_regs *ref = &(vcpu.kvm_run->s.regs.regs);
-  const x86_CPU_state *x86 = r;
-  ref->rax = x86->eax;
-  ref->rbx = x86->ebx;
-  ref->rcx = x86->ecx;
-  ref->rdx = x86->edx;
-  ref->rsp = x86->esp;
-  ref->rbp = x86->ebp;
-  ref->rsi = x86->esi;
-  ref->rdi = x86->edi;
-  ref->rip = x86->pc;
-  ref->rflags |= RFLAGS_TF;
-
-  vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
+  if (to_ref) {
+    ref->rax = x86->eax;
+    ref->rbx = x86->ebx;
+    ref->rcx = x86->ecx;
+    ref->rdx = x86->edx;
+    ref->rsp = x86->esp;
+    ref->rbp = x86->ebp;
+    ref->rsi = x86->esi;
+    ref->rdi = x86->edi;
+    ref->rip = x86->pc;
+    ref->rflags |= RFLAGS_TF;
+    vcpu.kvm_run->kvm_dirty_regs = KVM_SYNC_X86_REGS;
+  } else {
+    x86->eax = ref->rax;
+    x86->ebx = ref->rbx;
+    x86->ecx = ref->rcx;
+    x86->edx = ref->rdx;
+    x86->esp = ref->rsp;
+    x86->ebp = ref->rbp;
+    x86->esi = ref->rsi;
+    x86->edi = ref->rdi;
+    x86->pc  = ref->rip;
+  }
 }
 
 void difftest_exec(uint64_t n) {

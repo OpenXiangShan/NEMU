@@ -2,12 +2,9 @@
 #include <cpu/exec.h>
 #include "difftest.h"
 
-void isa_difftest_getregs(void *r) {
-  memcpy(r, &cpu, DIFFTEST_REG_SIZE);
-}
-
-void isa_difftest_setregs(const void *r) {
-  memcpy(&cpu, r, DIFFTEST_REG_SIZE);
+void isa_difftest_regcpy(void *dut, bool to_ref) {
+  if (to_ref) memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
+  else memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
 }
 
 void isa_difftest_raise_intr(word_t NO) {

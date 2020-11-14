@@ -12,22 +12,23 @@ void gdb_exit();
 
 void init_isa();
 
-void difftest_memcpy_from_dut(paddr_t dest, void *src, size_t n) {
-  bool ok = gdb_memcpy_to_qemu(dest, src, n);
-  assert(ok == 1);
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
+  assert(to_ref);
+  if (to_ref) {
+    bool ok = gdb_memcpy_to_qemu(addr, buf, n);
+    assert(ok == 1);
+  }
 }
 
-void difftest_getregs(void *r) {
+void difftest_regcpy(void *dut, bool to_ref) {
   union isa_gdb_regs qemu_r;
   gdb_getregs(&qemu_r);
-  memcpy(r, &qemu_r, DIFFTEST_REG_SIZE);
-}
-
-void difftest_setregs(const void *r) {
-  union isa_gdb_regs qemu_r;
-  gdb_getregs(&qemu_r);
-  memcpy(&qemu_r, r, DIFFTEST_REG_SIZE);
-  gdb_setregs(&qemu_r);
+  if (to_ref) {
+    memcpy(&qemu_r, dut, DIFFTEST_REG_SIZE);
+    gdb_setregs(&qemu_r);
+  } else {
+    memcpy(dut, &qemu_r, DIFFTEST_REG_SIZE);
+  }
 }
 
 void difftest_exec(uint64_t n) {

@@ -26,18 +26,22 @@ LD_LIBS = -lSDL2 -lreadline -ldl
 endif
 
 ifndef SHARE
-DIFF ?= kvm
+DIFF ?= qemu-dl
 ifneq ($(ISA),x86)
 ifeq ($(DIFF),kvm)
-DIFF = qemu
+DIFF = qemu-dl
 $(info KVM is only supported with ISA=x86, use QEMU instead)
 endif
 endif
 
-ifeq ($(DIFF),qemu)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-diff
+ifeq ($(DIFF),qemu-socket)
+DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-socket-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
-CFLAGS += -D__DIFF_REF_QEMU__
+CFLAGS += -D__DIFF_REF_QEMU_SOCKET__ -D__DIFF_REF_QEMU__
+else ifeq ($(DIFF),qemu-dl)
+DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-dl-diff
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/qemu-so
+CFLAGS += -D__DIFF_REF_QEMU_DL__ -D__DIFF_REF_QEMU__
 else ifeq ($(DIFF),kvm)
 DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
@@ -48,7 +52,7 @@ DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-nemu-interpreter-so
 CFLAGS += -D__DIFF_REF_NEMU__
 MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
 else
-$(error invalid DIFF. Supported: qemu kvm nemu)
+$(error invalid DIFF. Supported: qemu-dl kvm qemu-socket nemu)
 endif
 endif
 

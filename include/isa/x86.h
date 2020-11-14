@@ -122,7 +122,7 @@ typedef struct {
   };
 
   int mem_exception;
-  int hack_kvm_pf_write;
+  int lock;
   word_t error_code;
 
   bool INTR;
