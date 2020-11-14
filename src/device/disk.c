@@ -35,9 +35,14 @@ void init_disk() {
   add_pio_map ("disk", AUDIO_PORT, (void *)disk_base, space_size, disk_io_handler);
   add_mmio_map("disk", AUDIO_MMIO, (void *)disk_base, space_size, disk_io_handler);
 
-  fp = fopen("/home/yzh/projectn/nanos-lite/build/ramdisk.img", "r");
-  assert(fp);
-  fseek(fp, 0, SEEK_END);
-  disk_base[SIZE] = ftell(fp) / 512 + 1;
-  fseek(fp, 0, SEEK_SET);
+  const char *path ="/home/yzh/projectn/nanos-lite/build/ramdisk.img";
+  fp = fopen(path, "r");
+  if (fp) {
+    fseek(fp, 0, SEEK_END);
+    disk_base[SIZE] = ftell(fp) / 512 + 1;
+    fseek(fp, 0, SEEK_SET);
+  } else {
+    Log("Can not open %s. Disable disk...", path);
+    disk_base[SIZE] = 0;
+  }
 }
