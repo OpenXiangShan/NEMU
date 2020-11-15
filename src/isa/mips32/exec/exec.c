@@ -52,7 +52,7 @@ static inline make_EHelper(regimm) {
 
 static inline make_EHelper(cop0) {
 #define pair(x, y) (((x) << 1) | (y))
-  bool cop0co = (s->isa.instr.r.rs & 0x10) != 0;
+  nemu_bool cop0co = (s->isa.instr.r.rs & 0x10) != 0;
   uint32_t op = pair((cop0co ? s->isa.instr.r.func : s->isa.instr.r.rs), cop0co);
   switch (op) {
     EX   (pair(002, 1), tlbwi)

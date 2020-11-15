@@ -8,7 +8,7 @@
 typedef struct {
   uint32_t rvidx;
   uint32_t spmidx;
-  bool dirty;
+  nemu_bool dirty;
 } Tmp_reg;
 static Tmp_reg tmp_regs[TMP_REG_NUM];
 

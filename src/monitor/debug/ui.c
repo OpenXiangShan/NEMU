@@ -88,7 +88,7 @@ static int cmd_d(char *args) {
 
 static int cmd_p(char *args) {
   if (args != NULL) {
-    bool success;
+    nemu_bool success;
     word_t r = expr(args, &success);
     if(success) { printf(FMT_WORD "\n", r); }
     else { printf("Bad expression\n"); }
@@ -118,7 +118,7 @@ static int cmd_x(char *args) {
     int i;
     sscanf(arg, "%d", &n);
 
-    bool success;
+    nemu_bool success;
     addr = expr(arg + strlen(arg) + 1, &success);
     if (success) {
       for (i = 0; i < n; i ++) {

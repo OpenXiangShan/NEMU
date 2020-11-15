@@ -1,8 +1,8 @@
 #include "common.h"
 
-bool gdb_memcpy_to_qemu(uint32_t, void *, int);
-bool gdb_getregs(union isa_gdb_regs *);
-bool gdb_setregs(union isa_gdb_regs *);
+nemu_bool gdb_memcpy_to_qemu(uint32_t, void *, int);
+nemu_bool gdb_getregs(union isa_gdb_regs *);
+nemu_bool gdb_setregs(union isa_gdb_regs *);
 void difftest_exec(uint64_t n);
 
 static uint32_t initcode[] = {
@@ -36,7 +36,7 @@ static uint32_t initcode[] = {
 
 void init_isa(void) {
   // put initcode to QEMU to setup a PMP to permit access to all of memory in S mode
-  bool ok = gdb_memcpy_to_qemu(0x80000000, initcode, sizeof(initcode));
+  nemu_bool ok = gdb_memcpy_to_qemu(0x80000000, initcode, sizeof(initcode));
   assert(ok == 1);
 
   union isa_gdb_regs r;

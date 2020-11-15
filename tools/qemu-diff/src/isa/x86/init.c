@@ -1,8 +1,8 @@
 #include "common.h"
 
-bool gdb_memcpy_to_qemu(uint32_t, void *, int);
-bool gdb_getregs(union isa_gdb_regs *);
-bool gdb_setregs(union isa_gdb_regs *);
+nemu_bool gdb_memcpy_to_qemu(uint32_t, void *, int);
+nemu_bool gdb_getregs(union isa_gdb_regs *);
+nemu_bool gdb_setregs(union isa_gdb_regs *);
 void difftest_exec(uint64_t n);
 
 static uint8_t mbr[] = {
@@ -37,7 +37,7 @@ static uint8_t mbr[] = {
 
 void init_isa(void) {
   // put the MBR code to QEMU to enable protected mode
-  bool ok = gdb_memcpy_to_qemu(0x7c00, mbr, sizeof(mbr));
+  nemu_bool ok = gdb_memcpy_to_qemu(0x7c00, mbr, sizeof(mbr));
   assert(ok == 1);
 
   union isa_gdb_regs r;

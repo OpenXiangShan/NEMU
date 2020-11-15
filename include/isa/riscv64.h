@@ -39,17 +39,17 @@ typedef struct {
   uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
 
-  bool amo;
+  nemu_bool amo;
   int mem_exception;
 
   // for LR/SC
   uint64_t lr_addr;
   uint64_t lr_valid;
 
-  bool INTR;
+  nemu_bool INTR;
 
   // Disambiguation
-  bool need_disambiguate;
+  nemu_bool need_disambiguate;
   struct DisambiguationState disambiguation_state;
 } riscv64_CPU_state;
 

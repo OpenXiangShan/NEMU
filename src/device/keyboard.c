@@ -36,7 +36,7 @@ static int key_f = 0, key_r = 0;
 
 #define KEYDOWN_MASK 0x8000
 
-void send_key(uint8_t scancode, bool is_keydown) {
+void send_key(uint8_t scancode, nemu_bool is_keydown) {
   if (nemu_state.state == NEMU_RUNNING &&
       keymap[scancode] != _KEY_NONE) {
     uint32_t am_scancode = keymap[scancode] | (is_keydown ? KEYDOWN_MASK : 0);
@@ -46,7 +46,7 @@ void send_key(uint8_t scancode, bool is_keydown) {
   }
 }
 
-static void i8042_data_io_handler(uint32_t offset, int len, bool is_write) {
+static void i8042_data_io_handler(uint32_t offset, int len, nemu_bool is_write) {
   assert(!is_write);
   assert(offset == 0);
   if (key_f != key_r) {
@@ -59,8 +59,8 @@ static void i8042_data_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_i8042() {
-  i8042_data_port_base = (void *)new_space(4);
+  i8042_data_port_base = (uint32_t *)new_space(4);
   i8042_data_port_base[0] = _KEY_NONE;
-  add_pio_map("keyboard", I8042_DATA_PORT, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
-  add_mmio_map("keyboard", I8042_DATA_MMIO, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_pio_map("keyboard", I8042_DATA_PORT, (uint8_t *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_mmio_map("keyboard", I8042_DATA_MMIO, (uint8_t *)i8042_data_port_base, 4, i8042_data_io_handler);
 }

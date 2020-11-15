@@ -14,7 +14,7 @@ int trans_buffer_index = 0;
 int tran_next_pc = NEXT_PC_SEQ;
 
 void clear_trans_buffer() { trans_buffer_index = 0; }
-void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
+void asm_print(vaddr_t ori_pc, int instr_len, nemu_bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 void spill_reset();

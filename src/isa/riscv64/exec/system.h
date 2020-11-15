@@ -1,7 +1,7 @@
 #include <monitor/difftest.h>
 #include "../local-include/csr.h"
 
-static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
+static inline nemu_bool csr_check(DecodeExecState *s, uint32_t addr) {
   switch (addr) {
     case 0xc01:  // time
       raise_intr(s, EX_II, cpu.pc);

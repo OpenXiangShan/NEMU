@@ -9,9 +9,9 @@ void (*ref_difftest_getregs)(void *c) = NULL;
 void (*ref_difftest_setregs)(const void *c) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 
-static bool is_skip_ref = false;
+static nemu_bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
-static bool is_detach = false;
+static nemu_bool is_detach = false;
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
@@ -54,19 +54,19 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   handle = dlopen(ref_so_file, RTLD_LAZY | RTLD_DEEPBIND);
   assert(handle);
 
-  ref_difftest_memcpy_from_dut = dlsym(handle, "difftest_memcpy_from_dut");
+  ref_difftest_memcpy_from_dut = (void (*)(paddr_t,  void *, size_t)) dlsym(handle, "difftest_memcpy_from_dut");
   assert(ref_difftest_memcpy_from_dut);
 
-  ref_difftest_getregs = dlsym(handle, "difftest_getregs");
+  ref_difftest_getregs = (void (*)(void *)) dlsym(handle, "difftest_getregs");
   assert(ref_difftest_getregs);
 
-  ref_difftest_setregs = dlsym(handle, "difftest_setregs");
+  ref_difftest_setregs = (void (*)(const void *)) dlsym(handle, "difftest_setregs");
   assert(ref_difftest_setregs);
 
-  ref_difftest_exec = dlsym(handle, "difftest_exec");
+  ref_difftest_exec = (void (*)(uint64_t)) dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
 
-  void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
+  void (*ref_difftest_init)(int) = (void (*)(int)) dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
   Log("Differential testing: \33[1;32m%s\33[0m", "ON");

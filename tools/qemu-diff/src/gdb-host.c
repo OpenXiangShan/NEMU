@@ -2,7 +2,7 @@
 
 static struct gdb_conn *conn;
 
-bool gdb_connect_qemu(int port) {
+nemu_bool gdb_connect_qemu(int port) {
   // connect to gdbserver on localhost port 1234
   while ((conn = gdb_begin_inet("127.0.0.1", port)) == NULL) {
     usleep(1);
@@ -11,7 +11,7 @@ bool gdb_connect_qemu(int port) {
   return true;
 }
 
-static bool gdb_memcpy_to_qemu_small(uint32_t dest, void *src, int len) {
+static nemu_bool gdb_memcpy_to_qemu_small(uint32_t dest, void *src, int len) {
   char *buf = malloc(len * 2 + 128);
   assert(buf != NULL);
   int p = sprintf(buf, "M0x%x,%x:", dest, len);
@@ -25,15 +25,15 @@ static bool gdb_memcpy_to_qemu_small(uint32_t dest, void *src, int len) {
 
   size_t size;
   uint8_t *reply = gdb_recv(conn, &size);
-  bool ok = !strcmp((const char*)reply, "OK");
+  nemu_bool ok = !strcmp((const char*)reply, "OK");
   free(reply);
 
   return ok;
 }
 
-bool gdb_memcpy_to_qemu(uint32_t dest, void *src, int len) {
+nemu_bool gdb_memcpy_to_qemu(uint32_t dest, void *src, int len) {
   const int mtu = 1500;
-  bool ok = true;
+  nemu_bool ok = true;
   while (len > mtu) {
     ok &= gdb_memcpy_to_qemu_small(dest, src, mtu);
     dest += mtu;
@@ -44,7 +44,7 @@ bool gdb_memcpy_to_qemu(uint32_t dest, void *src, int len) {
   return ok;
 }
 
-bool gdb_getregs(union isa_gdb_regs *r) {
+nemu_bool gdb_getregs(union isa_gdb_regs *r) {
   gdb_send(conn, (const uint8_t *)"g", 1);
   size_t size;
   uint8_t *reply = gdb_recv(conn, &size);
@@ -65,7 +65,7 @@ bool gdb_getregs(union isa_gdb_regs *r) {
   return true;
 }
 
-bool gdb_setregs(union isa_gdb_regs *r) {
+nemu_bool gdb_setregs(union isa_gdb_regs *r) {
   int len = sizeof(union isa_gdb_regs);
   char *buf = malloc(len * 2 + 128);
   assert(buf != NULL);
@@ -83,13 +83,13 @@ bool gdb_setregs(union isa_gdb_regs *r) {
 
   size_t size;
   uint8_t *reply = gdb_recv(conn, &size);
-  bool ok = !strcmp((const char*)reply, "OK");
+  nemu_bool ok = !strcmp((const char*)reply, "OK");
   free(reply);
 
   return ok;
 }
 
-bool gdb_si(void) {
+nemu_bool gdb_si(void) {
   char buf[] = "vCont;s:1";
   gdb_send(conn, (const uint8_t *)buf, strlen(buf));
   size_t size;

@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-typedef uint8_t bool;
+typedef uint8_t nemu_bool;
 #define true 1
 #define false 0
 

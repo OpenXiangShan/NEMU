@@ -3,7 +3,7 @@
 
 #include <monitor/difftest.h>
 
-typedef void(*io_callback_t)(uint32_t, int, bool);
+typedef void(*io_callback_t)(uint32_t, int, nemu_bool);
 uint8_t* new_space(int size);
 
 typedef struct {
@@ -15,7 +15,7 @@ typedef struct {
   io_callback_t callback;
 } IOMap;
 
-static inline bool map_inside(IOMap *map, paddr_t addr) {
+static inline nemu_bool map_inside(IOMap *map, paddr_t addr) {
   return (addr >= map->low && addr <= map->high);
 }
 

@@ -3,7 +3,7 @@
 
 // decode operand helper
 #define make_DopHelper(name) \
-  void concat(decode_op_, name) (DecodeExecState *s, Operand *op, uint32_t val, bool load_val)
+  void concat(decode_op_, name) (DecodeExecState *s, Operand *op, uint32_t val, nemu_bool load_val)
 
 static inline make_DopHelper(i) {
   op->type = OP_TYPE_IMM;

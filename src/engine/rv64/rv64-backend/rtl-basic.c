@@ -22,7 +22,7 @@ static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
 
 // return false if `imm` can be represented within 12 bits
 // else load it to `r`, and reture true
-static inline bool load_imm_big(uint32_t r, const sword_t imm) {
+static inline nemu_bool load_imm_big(uint32_t r, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
   uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   if (lui_imm == 0) return false;

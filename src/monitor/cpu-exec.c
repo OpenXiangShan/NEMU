@@ -21,7 +21,7 @@ NEMUState nemu_state = {.state = NEMU_STOP};
 static uint64_t g_nr_guest_instr = 0;
 const rtlreg_t rzero = 0;
 
-void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
+void asm_print(vaddr_t ori_pc, int instr_len, nemu_bool print_flag);
 
 int goodtrap(void) {
   return (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0);
@@ -35,7 +35,7 @@ void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
 }
 
-bool log_enable(void) {
+nemu_bool log_enable(void) {
   return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
 }
 

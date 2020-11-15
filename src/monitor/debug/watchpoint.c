@@ -36,7 +36,7 @@ static void free_WP(WP *p) {
 }
 
 int set_watchpoint(char *e) {
-  bool success;
+  nemu_bool success;
   word_t val = expr(e, &success);
   if (!success) return -1;
 
@@ -50,7 +50,7 @@ int set_watchpoint(char *e) {
   return p->NO;
 }
 
-bool delete_watchpoint(int NO) {
+nemu_bool delete_watchpoint(int NO) {
   WP *p, *prev = NULL;
   for (p = head; p != NULL; prev = p, p = p->next) {
     if (p->NO == NO) { break; }
@@ -80,7 +80,7 @@ void list_watchpoint() {
 WP* scan_watchpoint() {
   WP *p;
   for (p = head; p != NULL; p = p->next) {
-    bool success;
+    nemu_bool success;
     p->new_val = expr(p->expr, &success);
     if (p->old_val != p->new_val) {
       return p;

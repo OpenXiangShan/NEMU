@@ -87,12 +87,12 @@ typedef struct {
     };
   };
 
-  bool INTR;
+  nemu_bool INTR;
 } x86_CPU_state;
 
 // decode
 typedef struct {
-  bool is_operand_size_16;
+  nemu_bool is_operand_size_16;
   uint8_t ext_opcode;
   const rtlreg_t *mbase;
   rtlreg_t mbr;

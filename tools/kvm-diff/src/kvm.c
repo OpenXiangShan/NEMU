@@ -36,7 +36,7 @@ static struct vcpu vcpu;
 
 // This should be called everytime after KVM_SET_REGS.
 // It seems that KVM_SET_REGS will clean the state of single step.
-static void kvm_set_step_mode(bool watch, uint32_t watch_addr) {
+static void kvm_set_step_mode(nemu_bool watch, uint32_t watch_addr) {
   struct kvm_guest_debug debug = {};
   debug.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP | KVM_GUESTDBG_USE_HW_BP;
   debug.arch.debugreg[0] = watch_addr;

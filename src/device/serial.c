@@ -50,7 +50,7 @@ static inline uint8_t serial_rx_ready_flag(void) {
   return (f == r ? 0 : LSR_RX_READY);
 }
 
-static void serial_io_handler(uint32_t offset, int len, bool is_write) {
+static void serial_io_handler(uint32_t offset, int len, nemu_bool is_write) {
   assert(len == 1);
   switch (offset) {
     /* We bind the serial port with the host stdout in NEMU. */

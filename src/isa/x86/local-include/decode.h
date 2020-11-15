@@ -1,9 +1,9 @@
 #include <cpu/exec.h>
 #include "rtl.h"
 
-void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val);
+void read_ModR_M(DecodeExecState *s, Operand *rm, nemu_bool load_rm_val, Operand *reg, nemu_bool load_reg_val);
 
-static inline void operand_reg(DecodeExecState *s, Operand *op, bool load_val, int r, int width) {
+static inline void operand_reg(DecodeExecState *s, Operand *op, nemu_bool load_val, int r, int width) {
   op->type = OP_TYPE_REG;
   op->reg = r;
 
@@ -18,7 +18,7 @@ static inline void operand_reg(DecodeExecState *s, Operand *op, bool load_val, i
   print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
-static inline void operand_imm(DecodeExecState *s, Operand *op, bool load_val, word_t imm, int width) {
+static inline void operand_imm(DecodeExecState *s, Operand *op, nemu_bool load_val, word_t imm, int width) {
   op->type = OP_TYPE_IMM;
   op->imm = imm;
   if (load_val) {
@@ -29,7 +29,7 @@ static inline void operand_imm(DecodeExecState *s, Operand *op, bool load_val, w
 }
 
 // decode operand helper
-#define make_DopHelper(name) void concat(decode_op_, name) (DecodeExecState *s, Operand *op, bool load_val)
+#define make_DopHelper(name) void concat(decode_op_, name) (DecodeExecState *s, Operand *op, nemu_bool load_val)
 
 /* Refer to Appendix A in i386 manual for the explanations of these abbreviations */
 
@@ -85,7 +85,7 @@ static inline make_DopHelper(r) {
  * Rd
  * Sw
  */
-static inline void operand_rm(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+static inline void operand_rm(DecodeExecState *s, Operand *rm, nemu_bool load_rm_val, Operand *reg, nemu_bool load_reg_val) {
   read_ModR_M(s, rm, load_rm_val, reg, load_reg_val);
 }
 

@@ -45,7 +45,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     panic("pc = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.pc, vaddr, pt_base, pte.val);
   }
 
-  bool is_write = (type == MEM_TYPE_WRITE);
+  nemu_bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.access || (pte.dirty == 0 && is_write)) {
     pte.access = 1;
     pte.dirty |= is_write;

@@ -12,7 +12,7 @@ static uint32_t jiffy = 0;
 
 void add_alarm_handle(void *h) {
   assert(idx < MAX_HANDLER);
-  handler[idx ++] = h;
+  handler[idx ++] = (void (*)(void))h;
 }
 
 uint32_t uptime() { return jiffy / TIMER_HZ; }

@@ -36,8 +36,8 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
-  bool ifetch = (type == MEM_TYPE_IFETCH);
+static inline nemu_bool check_permission(PTE *pte, nemu_bool ok, vaddr_t vaddr, int type) {
+  nemu_bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
@@ -50,7 +50,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else if (type == MEM_TYPE_READ) {
-    bool can_load = pte->r || (mstatus->mxr && pte->x);
+    nemu_bool can_load = pte->r || (mstatus->mxr && pte->x);
     if (!(ok && can_load)) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
@@ -105,7 +105,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
 #if !_SHARE
-  bool is_write = (type == MEM_TYPE_WRITE);
+  nemu_bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
@@ -117,7 +117,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 }
 
 int force_raise_pf(vaddr_t vaddr, int type){
-  bool ifetch = (type == MEM_TYPE_IFETCH);
+  nemu_bool ifetch = (type == MEM_TYPE_IFETCH);
 
   if(cpu.need_disambiguate){
     if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
@@ -160,14 +160,14 @@ int force_raise_pf(vaddr_t vaddr, int type){
 
 int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
 
-  bool ifetch = (type == MEM_TYPE_IFETCH);
+  nemu_bool ifetch = (type == MEM_TYPE_IFETCH);
 
   // riscv-privileged 4.4.1: Addressing and Memory Protection: 
   // Instruction fetch addresses and load and store effective addresses, 
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
   word_t va_mask = ((((word_t)1) << (63 - 39 + 1)) - 1);
   word_t va_msbs = vaddr >> 39;
-  bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+  nemu_bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
 
 // #ifdef FORCE_RAISE_PF
 //   int forced_result = force_raise_pf(vaddr, type);
@@ -218,7 +218,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
 //
 // In several cases, there are mutliple legal control flows.
 // e.g. pte may be still in sbuffer before it is used if sfence is not execuated
-bool ptw_is_safe(vaddr_t vaddr) {
+nemu_bool ptw_is_safe(vaddr_t vaddr) {
 #ifdef ISA64
   int rsize = 8;
 #else
@@ -262,8 +262,8 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   return ptw_result;
 }
 
-bool isa_mmu_safe(vaddr_t vaddr, int type) {
-  bool ifetch = (type == MEM_TYPE_IFETCH);
+nemu_bool isa_mmu_safe(vaddr_t vaddr, int type) {
+  nemu_bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if(mode < MODE_M && satp->mode == 8)
     return ptw_is_safe(vaddr);

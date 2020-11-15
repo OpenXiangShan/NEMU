@@ -12,7 +12,7 @@ void init_vga();
 void init_i8042();
 void init_audio();
 
-void send_key(uint8_t, bool);
+void send_key(uint8_t, nemu_bool);
 
 static int device_update_flag = false;
 
@@ -39,7 +39,7 @@ void device_update() {
       case SDL_KEYDOWN:
       case SDL_KEYUP: {
         uint8_t k = event.key.keysym.scancode;
-        bool is_keydown = (event.key.type == SDL_KEYDOWN);
+        nemu_bool is_keydown = (event.key.type == SDL_KEYDOWN);
         send_key(k, is_keydown);
         break;
       }

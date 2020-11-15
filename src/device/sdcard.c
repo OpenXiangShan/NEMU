@@ -32,9 +32,9 @@ static FILE *fp = NULL;
 static uint32_t *base = NULL;
 static uint32_t blkcnt = 0;
 static uint32_t addr = 0;
-static bool write_cmd = 0;
+static nemu_bool write_cmd = 0;
 
-static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
+static void sdcard_io_handler(uint32_t offset, int len, nemu_bool is_write) {
   int idx = offset / 4;
   switch (idx) {
     case SDCMD:
@@ -109,8 +109,8 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_sdcard() {
-  base = (void *)new_space(0x80);
-  add_mmio_map("sdhci", SD_MMIO, (void *)base, 0x80, sdcard_io_handler);
+  base = (uint32_t *)new_space(0x80);
+  add_mmio_map("sdhci", SD_MMIO, (uint8_t *)base, 0x80, sdcard_io_handler);
 
   base[SDEDM] = (8 << 4); // number of data in fifo
 

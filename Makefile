@@ -64,8 +64,10 @@ include Makefile.git
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -MMD -Wno-format -Wall -Werror -ggdb3 $(INCLUDES) \
+CFLAGS   += -O2 -MMD -Wno-format -Wall \
+			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
+			-Wc++-compat \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
 
 # Files to be compiled

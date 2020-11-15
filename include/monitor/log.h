@@ -7,7 +7,7 @@
 extern FILE* log_fp;
 #	define log_write(...) \
   do { \
-    extern bool log_enable(); \
+    extern nemu_bool log_enable(); \
     if (log_fp != NULL && log_enable()) { \
       fprintf(log_fp, __VA_ARGS__); \
       fflush(log_fp); \

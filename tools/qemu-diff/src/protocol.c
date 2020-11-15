@@ -33,7 +33,7 @@
 struct gdb_conn {
   FILE *in;
   FILE *out;
-  bool ack;
+  nemu_bool ack;
 };
 
 
@@ -159,7 +159,7 @@ static void send_packet(FILE *out, const uint8_t *command, size_t size) {
 }
 
 void gdb_send(struct gdb_conn *conn, const uint8_t *command, size_t size) {
-  bool acked = false;
+  nemu_bool acked = false;
   do {
     send_packet(conn->out, command, size);
 
@@ -171,7 +171,7 @@ void gdb_send(struct gdb_conn *conn, const uint8_t *command, size_t size) {
   } while (!acked);
 }
 
-static uint8_t* recv_packet(FILE *in, size_t *ret_size, bool* ret_sum_ok) {
+static uint8_t* recv_packet(FILE *in, size_t *ret_size, nemu_bool* ret_sum_ok) {
   size_t i = 0;
   size_t size = 4096;
   uint8_t *reply = malloc(size);
@@ -180,7 +180,7 @@ static uint8_t* recv_packet(FILE *in, size_t *ret_size, bool* ret_sum_ok) {
 
   int c;
   uint8_t sum = 0;
-  bool escape = false;
+  nemu_bool escape = false;
 
   // fast-forward to the first start of packet
   while ((c = fgetc(in)) != EOF && c != '$');
@@ -276,7 +276,7 @@ static uint8_t* recv_packet(FILE *in, size_t *ret_size, bool* ret_sum_ok) {
 
 uint8_t* gdb_recv(struct gdb_conn *conn, size_t *size) {
   uint8_t *reply;
-  bool acked = false;
+  nemu_bool acked = false;
   do {
     reply = recv_packet(conn->in, size, &acked);
 
@@ -297,7 +297,7 @@ const char* gdb_start_noack(struct gdb_conn *conn) {
 
   size_t size;
   uint8_t *reply = gdb_recv(conn, &size);
-  bool ok = size == 2 && !strcmp((const char*)reply, "OK");
+  nemu_bool ok = size == 2 && !strcmp((const char*)reply, "OK");
   free(reply);
 
   if (ok)

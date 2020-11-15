@@ -15,7 +15,7 @@ void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc) {
   // TODO: Trigger an interrupt/exception with ``NO''
 
   word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);
+  nemu_bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);
 
   if (delegS) {
     scause->val = NO;
@@ -70,8 +70,8 @@ void query_intr(DecodeExecState *s) {
   for (i = 0; i < 9; i ++) {
     int irq = priority[i];
     if (intr_vec & (1 << irq)) {
-      bool deleg = (mideleg->val & (1 << irq)) != 0;
-      bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
+      nemu_bool deleg = (mideleg->val & (1 << irq)) != 0;
+      nemu_bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
       if (global_enable) {
         raise_intr(s, irq | INTR_BIT, cpu.pc);

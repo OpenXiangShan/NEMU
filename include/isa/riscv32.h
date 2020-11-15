@@ -41,7 +41,7 @@ typedef struct {
     uint32_t val;
   } satp;
 
-  bool INTR;
+  nemu_bool INTR;
 } riscv32_CPU_state;
 
 // decode

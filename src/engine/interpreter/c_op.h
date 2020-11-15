@@ -47,7 +47,7 @@
 #define c_idiv_q(a, b) ((sword_t)(a) / (sword_t)(b))
 #define c_idiv_r(a, b)  ((sword_t)(a) % (sword_t)(b))
 
-static inline bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2) {
+static inline nemu_bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2) {
   switch (relop) {
     case RELOP_FALSE: return false;
     case RELOP_TRUE: return true;

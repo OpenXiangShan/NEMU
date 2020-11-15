@@ -5,8 +5,8 @@
 
 #define check_reg(r) same = difftest_check_reg(str(r), pc, ref_r->r, cpu.r) && same
 
-bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  bool same = true;
+nemu_bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
+  nemu_bool same = true;
   if (memcmp(&cpu, ref_r, sizeof(cpu.gpr))) {
     int i;
     for (i = 0; i < sizeof(cpu.gpr) / sizeof(cpu.gpr[0]); i ++) {

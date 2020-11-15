@@ -73,7 +73,7 @@ typedef struct token {
 static Token tokens[32] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
-static bool make_token(char *e) {
+static nemu_bool make_token(char *e) {
   int position = 0;
   int i;
   regmatch_t pmatch;
@@ -135,7 +135,7 @@ static inline int op_prec_cmp(int t1, int t2) {
   return op_prec(t1) - op_prec(t2);
 }
 
-static int find_dominated_op(int s, int e, bool *success) {
+static int find_dominated_op(int s, int e, nemu_bool *success) {
   int i;
   int bracket_level = 0;
   int dominated_op = -1;
@@ -173,7 +173,7 @@ static int find_dominated_op(int s, int e, bool *success) {
   return dominated_op;
 }
 
-static rtlreg_t eval(int s, int e, bool *success) {
+static rtlreg_t eval(int s, int e, nemu_bool *success) {
   if (s > e) {
     // bad expression
     *success = false;
@@ -234,7 +234,7 @@ static rtlreg_t eval(int s, int e, bool *success) {
   }
 }
 
-word_t expr(char *e, bool *success) {
+word_t expr(char *e, nemu_bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;

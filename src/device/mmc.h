@@ -91,7 +91,7 @@
 #define MMC_EXECUTE_WRITE_TASK   47   /* adtc [20:16] task id    R1  */
 #define MMC_CMDQ_TASK_MGMT       48   /* ac   [20:16] task id    R1b */
 
-//static inline bool mmc_op_multi(u32 opcode)
+//static inline nemu_bool mmc_op_multi(u32 opcode)
 //{
 //	return opcode == MMC_WRITE_MULTIPLE_BLOCK ||
 //	       opcode == MMC_READ_MULTIPLE_BLOCK;

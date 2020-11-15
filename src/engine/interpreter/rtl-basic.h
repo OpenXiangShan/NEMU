@@ -24,9 +24,9 @@
 
 make_rtl_compute_reg_imm(add)
 make_rtl_compute_reg_imm(sub)
-make_rtl_compute_reg_imm(and)
-make_rtl_compute_reg_imm(or)
-make_rtl_compute_reg_imm(xor)
+make_rtl_compute_reg_imm(nemuand)
+make_rtl_compute_reg_imm(nemuor)
+make_rtl_compute_reg_imm(nemuxor)
 make_rtl_compute_reg_imm(shl)
 make_rtl_compute_reg_imm(shr)
 make_rtl_compute_reg_imm(sar)
@@ -155,7 +155,7 @@ static inline make_rtl(jr, rtlreg_t *target) {
 
 static inline make_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
-  bool is_jmp = interpret_relop(relop, *src1, *src2);
+  nemu_bool is_jmp = interpret_relop(relop, *src1, *src2);
   if (is_jmp) rtl_j(s, target);
 }
 #endif

@@ -41,7 +41,7 @@ typedef struct {
 
   int mem_exception;
 
-  bool INTR;
+  nemu_bool INTR;
 } mips32_CPU_state;
 
 // decode

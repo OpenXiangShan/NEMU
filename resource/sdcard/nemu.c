@@ -159,14 +159,14 @@ struct nemu_host {
 	struct mmc_request	*mrq;		/* Current request */
 	struct mmc_command	*cmd;		/* Current command */
 	struct mmc_data		*data;		/* Current data request */
-	bool			data_complete:1;/* Data finished before cmd */
-	bool			use_busy:1;	/* Wait for busy interrupt */
-	bool			use_sbc:1;	/* Send CMD23 */
+	nemu_bool			data_complete:1;/* Data finished before cmd */
+	nemu_bool			use_busy:1;	/* Wait for busy interrupt */
+	nemu_bool			use_sbc:1;	/* Send CMD23 */
 
 	/* for threaded irq handler */
-	bool			irq_block;
-	bool			irq_busy;
-	bool			irq_data;
+	nemu_bool			irq_block;
+	nemu_bool			irq_busy;
+	nemu_bool			irq_data;
 
 	/* DMA part */
 	struct dma_chan		*dma_chan_rxtx;
@@ -178,7 +178,7 @@ struct nemu_host {
 	u32			drain_words;
 	struct page		*drain_page;
 	u32			drain_offset;
-	bool			use_dma;
+	nemu_bool			use_dma;
 };
 
 static void nemu_reset_internal(struct nemu_host *host)
@@ -197,7 +197,7 @@ static void nemu_reset(struct mmc_host *mmc)
 static void nemu_finish_command(struct nemu_host *host);
 static void nemu_data_irq(struct nemu_host *host, u32 intmask);
 
-static void nemu_transfer_block_pio(struct nemu_host *host, bool is_read)
+static void nemu_transfer_block_pio(struct nemu_host *host, nemu_bool is_read)
 {
 	unsigned long flags;
 	size_t blksize;
@@ -305,7 +305,7 @@ static void nemu_transfer_pio(struct nemu_host *host)
 {
 	struct device *dev = &host->pdev->dev;
 	u32 sdhsts;
-	bool is_read;
+	nemu_bool is_read;
 
 	is_read = (host->data->flags & MMC_DATA_READ) != 0;
 	nemu_transfer_block_pio(host, is_read);
@@ -408,7 +408,7 @@ static void nemu_finish_request(struct nemu_host *host)
 }
 
 static
-bool nemu_send_command(struct nemu_host *host, struct mmc_command *cmd)
+nemu_bool nemu_send_command(struct nemu_host *host, struct mmc_command *cmd)
 {
 	//struct device *dev = &host->pdev->dev;
 	u32 sdcmd; //, sdhsts;

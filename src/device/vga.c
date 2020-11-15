@@ -30,7 +30,7 @@ static inline void update_screen() {
   SDL_RenderPresent(renderer);
 }
 
-static void vga_io_handler(uint32_t offset, int len, bool is_write) {
+static void vga_io_handler(uint32_t offset, int len, nemu_bool is_write) {
   if (offset == 4 && len == 4 && is_write) {
 #ifdef SHOW_SCREEN
     update_screen();
@@ -50,12 +50,12 @@ void init_vga() {
       SDL_TEXTUREACCESS_STATIC, SCREEN_W, SCREEN_H);
 #endif
 
-  screensize_port_base = (void *)new_space(8);
+  screensize_port_base = (uint32_t *)new_space(8);
   screensize_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
-  add_pio_map("screen", SCREEN_PORT, (void *)screensize_port_base, 8, vga_io_handler);
-  add_mmio_map("screen", SCREEN_MMIO, (void *)screensize_port_base, 8, vga_io_handler);
+  add_pio_map("screen", SCREEN_PORT, (uint8_t *)screensize_port_base, 8, vga_io_handler);
+  add_mmio_map("screen", SCREEN_MMIO, (uint8_t *)screensize_port_base, 8, vga_io_handler);
 
-  vmem = (void *)new_space(0x80000);
-  add_mmio_map("vmem", VMEM, (void *)vmem, SCREEN_SIZE, NULL);
+  vmem = (uint32_t (*)[400])new_space(0x80000);
+  add_mmio_map("vmem", VMEM, (uint8_t *)vmem, SCREEN_SIZE, NULL);
 }
 #endif	/* HAS_IOE */

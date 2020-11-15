@@ -41,7 +41,7 @@ static void audio_play(void *userdata, uint8_t *stream, int len) {
   if (len > nread) memset(stream + nread, 0, len - nread);
 }
 
-static void audio_io_handler(uint32_t offset, int len, bool is_write) {
+static void audio_io_handler(uint32_t offset, int len, nemu_bool is_write) {
   if (offset == reg_init * sizeof(uint32_t) && len == 4 && is_write) {
     SDL_AudioSpec s = {};
     s.freq = audio_base[reg_freq];
@@ -62,11 +62,11 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_audio() {
   uint32_t space_size = sizeof(uint32_t) * nr_reg;
-  audio_base = (void *)new_space(space_size);
-  add_pio_map("audio", AUDIO_PORT, (void *)audio_base, space_size, audio_io_handler);
-  add_mmio_map("audio", AUDIO_MMIO, (void *)audio_base, space_size, audio_io_handler);
+  audio_base = (uint32_t *)new_space(space_size);
+  add_pio_map("audio", AUDIO_PORT, (uint8_t *)audio_base, space_size, audio_io_handler);
+  add_mmio_map("audio", AUDIO_MMIO, (uint8_t *)audio_base, space_size, audio_io_handler);
 
-  sbuf = (void *)new_space(STREAM_BUF_MAX_SIZE);
-  add_mmio_map("audio-sbuf", STREAM_BUF, (void *)sbuf, STREAM_BUF_MAX_SIZE, NULL);
+  sbuf = (uint8_t *)new_space(STREAM_BUF_MAX_SIZE);
+  add_mmio_map("audio-sbuf", STREAM_BUF, (uint8_t *)sbuf, STREAM_BUF_MAX_SIZE, NULL);
 }
 #endif	/* HAS_IOE */

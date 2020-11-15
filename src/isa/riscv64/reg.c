@@ -47,7 +47,7 @@ void isa_reg_display() {
       mtval->val, stval->val, mtvec->val, stvec->val);
 }
 
-rtlreg_t isa_reg_str2val(const char *s, bool *success) {
+rtlreg_t isa_reg_str2val(const char *s, nemu_bool *success) {
   int i;
   *success = true;
   for (i = 0; i < 32; i ++) {
@@ -67,7 +67,7 @@ rtlreg_t csr_array[4096] = {};
 MAP(CSRS, CSRS_DEF)
 
 #define CSRS_EXIST(name, addr) [addr] = 1,
-static bool csr_exist[4096] = {
+static nemu_bool csr_exist[4096] = {
   MAP(CSRS, CSRS_EXIST)
 };
 

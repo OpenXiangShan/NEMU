@@ -6,7 +6,7 @@
 #include <time.h>
 
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
-bool pmem_dirty[PMEM_SIZE] PG_ALIGN = {0};
+nemu_bool pmem_dirty[PMEM_SIZE] PG_ALIGN = {0};
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
 paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
@@ -24,7 +24,7 @@ void init_mem() {
 #endif
 }
 
-static inline bool in_pmem(paddr_t addr) {
+static inline nemu_bool in_pmem(paddr_t addr) {
   return (PMEM_BASE <= addr) && (addr <= PMEM_BASE + PMEM_SIZE - 1);
 }
 
@@ -88,9 +88,9 @@ inline void paddr_write(paddr_t addr, word_t data, int len) {
   else map_write(addr, data, len, fetch_mmio_map(addr));
 }
 
-bool is_sfence_safe(paddr_t addr, int len) {
+nemu_bool is_sfence_safe(paddr_t addr, int len) {
   if (in_pmem(addr)){
-    bool dirty = false;
+    nemu_bool dirty = false;
     switch (len) {
       case 1: return !pmem_dirty[addr - PMEM_BASE];
       case 2: 

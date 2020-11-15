@@ -33,7 +33,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     pde.accessed = 1;
     paddr_write(pdir_base + addr->pdir_idx * 4,  pde.val, 4);
   }
-  bool is_write = (type == MEM_TYPE_WRITE);
+  nemu_bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.accessed || (pte.dirty == 0 && is_write)) {
     pte.accessed = 1;
     pte.dirty |= is_write;
@@ -44,7 +44,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
-  bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
+  nemu_bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
   return ptw(vaddr, type) | MEM_RET_OK;
 }
