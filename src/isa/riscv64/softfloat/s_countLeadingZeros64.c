@@ -42,6 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define softfloat_countLeadingZeros64 softfloat_countLeadingZeros64
 #include "primitives.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint_fast8_t softfloat_countLeadingZeros64( uint64_t a )
 {
     uint_fast8_t count;
@@ -68,6 +72,10 @@ uint_fast8_t softfloat_countLeadingZeros64( uint64_t a )
     return count;
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

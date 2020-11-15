@@ -1,6 +1,7 @@
 #ifndef __RTL_RTL_H__
 #define __RTL_RTL_H__
 
+#include <common.h>
 #include <cpu/decode.h>
 
 #define id_src1 (&s->src1)

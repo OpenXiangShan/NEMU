@@ -40,6 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef softfloat_add256M
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
  softfloat_add256M(
      const uint64_t *aPtr, const uint64_t *bPtr, uint64_t *zPtr )
@@ -60,6 +64,10 @@ void
     }
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

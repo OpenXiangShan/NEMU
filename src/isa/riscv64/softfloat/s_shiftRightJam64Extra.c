@@ -40,6 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef softfloat_shiftRightJam64Extra
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct uint64_extra
  softfloat_shiftRightJam64Extra(
      uint64_t a, uint64_t extra, uint_fast32_t dist )
@@ -57,6 +61,10 @@ struct uint64_extra
     return z;
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

@@ -40,6 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef softfloat_add128
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct uint128
  softfloat_add128( uint64_t a64, uint64_t a0, uint64_t b64, uint64_t b0 )
 {
@@ -50,6 +54,10 @@ struct uint128
     return z;
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

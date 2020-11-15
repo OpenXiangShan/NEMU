@@ -39,6 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef softfloat_shiftRightJam32
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint32_t softfloat_shiftRightJam32( uint32_t a, uint_fast16_t dist )
 {
 
@@ -46,6 +50,10 @@ uint32_t softfloat_shiftRightJam32( uint32_t a, uint_fast16_t dist )
         (dist < 31) ? a>>dist | ((uint32_t) (a<<(-dist & 31)) != 0) : (a != 0);
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

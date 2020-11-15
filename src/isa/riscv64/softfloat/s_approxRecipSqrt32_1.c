@@ -42,6 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern const uint16_t softfloat_approxRecipSqrt_1k0s[];
 extern const uint16_t softfloat_approxRecipSqrt_1k1s[];
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint32_t softfloat_approxRecipSqrt32_1( unsigned int oddExpA, uint32_t a )
 {
     int index;
@@ -68,6 +72,10 @@ uint32_t softfloat_approxRecipSqrt32_1( unsigned int oddExpA, uint32_t a )
     return r;
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

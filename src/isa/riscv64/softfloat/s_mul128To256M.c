@@ -42,6 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define softfloat_mul128To256M softfloat_mul128To256M
 #include "primitives.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
  softfloat_mul128To256M(
      uint64_t a64, uint64_t a0, uint64_t b64, uint64_t b0, uint64_t *zPtr )
@@ -66,6 +70,10 @@ void
     zPtr[indexWord( 4, 3 )] = z192 + (z128 < p64.v64);
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

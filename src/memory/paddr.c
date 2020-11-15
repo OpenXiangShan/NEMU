@@ -9,7 +9,7 @@ static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
 nemu_bool pmem_dirty[PMEM_SIZE] PG_ALIGN = {0};
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
-paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
+paddr_t host_to_guest(void *addr) { return (uint8_t *)pmem - (uint8_t *)addr; }
 
 IOMap* fetch_mmio_map(paddr_t addr);
 
@@ -78,12 +78,12 @@ void rtl_sfence() {
 
 /* Memory accessing interfaces */
 
-inline word_t paddr_read(paddr_t addr, int len) {
+word_t paddr_read(paddr_t addr, int len) {
   if (in_pmem(addr)) return pmem_read(addr, len);
   else return map_read(addr, len, fetch_mmio_map(addr));
 }
 
-inline void paddr_write(paddr_t addr, word_t data, int len) {
+void paddr_write(paddr_t addr, word_t data, int len) {
   if (in_pmem(addr)) pmem_write(addr, data, len);
   else map_write(addr, data, len, fetch_mmio_map(addr));
 }

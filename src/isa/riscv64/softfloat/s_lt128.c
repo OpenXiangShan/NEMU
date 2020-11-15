@@ -40,12 +40,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef softfloat_lt128
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool softfloat_lt128( uint64_t a64, uint64_t a0, uint64_t b64, uint64_t b0 )
 {
 
     return (a64 < b64) || ((a64 == b64) && (a0 < b0));
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

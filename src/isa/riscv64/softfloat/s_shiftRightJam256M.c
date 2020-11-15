@@ -40,6 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef softfloat_shiftRightJam256M
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static
  void
   softfloat_shortShiftRightJamM(
@@ -121,6 +125,10 @@ void
     if ( wordJam ) zPtr[indexWordLo( 4 )] |= 1;
 
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

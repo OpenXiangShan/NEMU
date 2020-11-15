@@ -63,13 +63,15 @@ rtlreg_t isa_reg_str2val(const char *s, nemu_bool *success) {
 rtlreg_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
-  concat(name, _t)* const name = (void *)&csr_array[addr];
+  concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 MAP(CSRS, CSRS_DEF)
 
-#define CSRS_EXIST(name, addr) [addr] = 1,
-static nemu_bool csr_exist[4096] = {
+static nemu_bool csr_exist[4096];
+#define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
+
+void init_csr_exist() {
   MAP(CSRS, CSRS_EXIST)
-};
+}
 
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);

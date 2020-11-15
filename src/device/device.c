@@ -60,7 +60,7 @@ void init_device() {
   init_i8042();
   init_audio();
 
-  add_alarm_handle(set_device_update_flag);
+  add_alarm_handle((void *)set_device_update_flag);
   init_alarm();
 }
 #else

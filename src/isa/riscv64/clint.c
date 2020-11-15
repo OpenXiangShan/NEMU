@@ -27,5 +27,5 @@ static void clint_io_handler(uint32_t offset, int len, nemu_bool is_write) {
 void init_clint(void) {
   clint_base = (uint64_t *)new_space(0x10000);
   add_mmio_map("clint", CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
-  add_alarm_handle(clint_intr);
+  add_alarm_handle((void *) clint_intr);
 }

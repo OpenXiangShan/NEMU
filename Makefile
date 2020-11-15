@@ -17,7 +17,7 @@ $(info Building $(ISA)-$(NAME)-$(ENGINE))
 
 endif
 
-INC_DIR += ./include ./src/engine/$(ENGINE)
+INC_DIR += ./include ./src/engine/$(ENGINE) ./src/isa/riscv64/softfloat
 BUILD_DIR ?= ./build
 
 ifdef SHARE
@@ -61,14 +61,14 @@ include Makefile.git
 .DEFAULT_GOAL = app
 
 # Compilation flags
-CC = gcc
-LD = gcc
+CC = g++
+LD = g++
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wno-format -Wall \
 			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
-			-Wc++-compat \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
+			# -Wc++-compat \
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
@@ -80,7 +80,7 @@ OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
 
 $(OBJ_DIR)/isa/riscv64/softfloat/%.o: src/isa/riscv64/softfloat/%.c
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -w -fPIC -c -o $@ $<
+	@$(CC) $(CFLAGS) -D__cplusplus -w -fPIC -c -o $@ $<
 
 $(OBJ_DIR)/%.o: src/%.c
 	@echo + CC $<
@@ -106,6 +106,7 @@ NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
 $(BINARY): $(OBJS)
 	$(call git_commit, "compile")
 	@echo + LD $@
+	@echo + LD inputs $^
 	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl
 
 run-env: $(BINARY) $(DIFF_REF_SO)

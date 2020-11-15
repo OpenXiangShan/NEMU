@@ -32,5 +32,5 @@ void init_timer() {
   rtc_port_base = (uint32_t *)new_space(16);
   add_pio_map("rtc", RTC_PORT, (uint8_t *)rtc_port_base, 16, rtc_io_handler);
   add_mmio_map("rtc", RTC_MMIO, (uint8_t *)rtc_port_base, 16, rtc_io_handler);
-  add_alarm_handle(timer_intr);
+  add_alarm_handle((void *)timer_intr);
 }
