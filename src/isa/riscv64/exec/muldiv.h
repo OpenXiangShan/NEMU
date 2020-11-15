@@ -29,7 +29,7 @@ static inline make_EHelper(mulhsu) {
   //                 = mulhu(a, b) - (a < 0 ? b : 0)
 
   rtl_sari(s, s0, dsrc1, 63);
-  rtl_and(s, s0, dsrc2, s0); // s0 = (id_src1->val < 0 ? id_src2->val : 0)
+  rtl_nemuand(s, s0, dsrc2, s0); // s0 = (id_src1->val < 0 ? id_src2->val : 0)
   rtl_mul_hi(s, s1, dsrc1, dsrc2);
   rtl_sub(s, ddest, s1, s0);
 

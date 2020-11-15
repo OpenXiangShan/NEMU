@@ -15,10 +15,10 @@ static inline make_rtl(mv, rtlreg_t* dest, const rtlreg_t *src1) {
   if (dest != src1) rtl_add(s, dest, src1, rz);
 }
 
-static inline make_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
+static inline make_rtl(nemunot, rtlreg_t *dest, const rtlreg_t* src1) {
   // dest <- ~src1
 //  TODO();
-  rtl_xori(s, dest, src1, -1);
+  rtl_nemuxori(s, dest, src1, -1);
 }
 
 static inline make_rtl(neg, rtlreg_t *dest, const rtlreg_t* src1) {
@@ -60,7 +60,7 @@ static inline make_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
 //  TODO();
   rtl_shri(s, dest, src1, width * 8 - 1);
   if (width != 4) {
-    rtl_andi(s, dest, dest, 0x1);
+    rtl_nemuandi(s, dest, dest, 0x1);
   }
 }
 

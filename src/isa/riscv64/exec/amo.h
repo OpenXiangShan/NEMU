@@ -70,7 +70,7 @@ static inline make_EHelper(amoadd) {
 static inline make_EHelper(amoor) {
   amo_load(s);
   return_on_mem_ex();
-  rtl_or(s, s1, s0, dsrc2);
+  rtl_nemuor(s, s1, s0, dsrc2);
   amo_update(s);
   return_on_mem_ex();
   print_asm_template3(amoor);
@@ -79,7 +79,7 @@ static inline make_EHelper(amoor) {
 static inline make_EHelper(amoand) {
   amo_load(s);
   return_on_mem_ex();
-  rtl_and(s, s1, s0, dsrc2);
+  rtl_nemuand(s, s1, s0, dsrc2);
   amo_update(s);
   return_on_mem_ex();
   print_asm_template3(amoand);
@@ -124,7 +124,7 @@ static inline make_EHelper(amomin) {
 static inline make_EHelper(amoxor) {
   amo_load(s);
   return_on_mem_ex();
-  rtl_xor(s, s1, s0, dsrc2);
+  rtl_nemuxor(s, s1, s0, dsrc2);
   amo_update(s);
   return_on_mem_ex();
   print_asm_template3(amoxor);

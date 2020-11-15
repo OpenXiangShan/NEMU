@@ -60,7 +60,7 @@ static inline make_EHelper(op_fp){
 static inline make_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
-    EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, andi)
+    EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, nemuandi)
   }
 }
 
@@ -78,7 +78,7 @@ static inline make_EHelper(op) {
 #define pair(x, y) (((x) << 3) | (y))
   switch (pair(idx, s->isa.instr.r.funct3)) {
     EX(pair(0, 0), add)  EX(pair(0, 1), sll)  EX(pair(0, 2), slt)  EX(pair(0, 3), sltu)
-    EX(pair(0, 4), xor)  EX(pair(0, 5), srl)  EX(pair(0, 6), or)   EX(pair(0, 7), and)
+    EX(pair(0, 4), nemuxor)  EX(pair(0, 5), srl)  EX(pair(0, 6), nemuor)   EX(pair(0, 7), nemuand)
     EX(pair(1, 0), mul)  EX(pair(1, 1), mulh) EX(pair(1,2), mulhsu)EX(pair(1, 3), mulhu)
     EX(pair(1, 4), div)  EX(pair(1, 5), divu) EX(pair(1, 6), rem)  EX(pair(1, 7), remu)
     EX(pair(2, 0), sub)  EX(pair(2, 5), sra)
@@ -173,14 +173,14 @@ static inline make_EHelper(misc_alu) {
   if (op == 3) {
     uint32_t op2 = (BITS(instr, 12, 12) << 2) | BITS(instr, 6, 5);
     switch (op2) {
-      IDEX (0, CS, sub) IDEX (1, CS, xor) IDEX (2, CS, or)  IDEX (3, CS, and)
+      IDEX (0, CS, sub) IDEX (1, CS, nemuxor) IDEX (2, CS, nemuor)  IDEX (3, CS, nemuand)
       IDEX (4, CS, subw)IDEX (5, CS, addw)EMPTY(6)          EMPTY(7)
     }
   } else {
     switch (op) {
       IDEX (0, CB_shift, srli)
       IDEX (1, CB_shift, srai)
-      IDEX (2, CB_andi, andi)
+      IDEX (2, CB_andi, nemuandi)
     }
   }
 }

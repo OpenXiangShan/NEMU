@@ -11,9 +11,9 @@
 
 #define c_add(a, b) ((a) + (b))
 #define c_sub(a, b) ((a) - (b))
-#define c_and(a, b) ((a) & (b))
-#define c_or(a, b)  ((a) | (b))
-#define c_xor(a, b) ((a) ^ (b))
+#define c_nemuand(a, b) ((a) & (b))
+#define c_nemuor(a, b)  ((a) | (b))
+#define c_nemuxor(a, b) ((a) ^ (b))
 #define c_shl(a, b) ((a) << ((b) & c_shift_mask))
 #define c_shr(a, b) ((a) >> ((b) & c_shift_mask))
 #define c_sar(a, b) ((sword_t)(a) >> ((b) & c_shift_mask))

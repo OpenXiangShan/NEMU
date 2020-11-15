@@ -25,7 +25,7 @@ static inline make_EHelper(csrrs) {
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
-    rtl_or(s, s1, s0, dsrc1);
+    rtl_nemuor(s, s1, s0, dsrc1);
     csr_write(addr, s1);
   }
   rtl_mv(s, ddest, s0);
@@ -38,8 +38,8 @@ static inline make_EHelper(csrrc) {
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
-    rtl_not(s, s1, dsrc1);
-    rtl_and(s, s1, s0, s1);
+    rtl_nemunot(s, s1, dsrc1);
+    rtl_nemuand(s, s1, s0, s1);
     csr_write(addr, s1);
   }
   rtl_mv(s, ddest, s0);
@@ -63,7 +63,7 @@ static inline make_EHelper(csrrsi) {
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
-    rtl_ori(s, s1, s0, id_src1->imm);
+    rtl_nemuori(s, s1, s0, id_src1->imm);
     csr_write(addr, s1);
   }
   rtl_mv(s, ddest, s0);
@@ -76,7 +76,7 @@ static inline make_EHelper(csrrci) {
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
-    rtl_andi(s, s1, s0, ~id_src1->imm);
+    rtl_nemuandi(s, s1, s0, ~id_src1->imm);
     csr_write(addr, s1);
   }
   rtl_mv(s, ddest, s0);

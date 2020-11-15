@@ -39,24 +39,24 @@ static inline make_EHelper(sltu) {
   print_asm_template3(sltu);
 }
 
-static inline make_EHelper(xor) {
-  rtl_xor(s, ddest, dsrc1, dsrc2);
+static inline make_EHelper(nemuxor) {
+  rtl_nemuxor(s, ddest, dsrc1, dsrc2);
   print_asm_template3(xor);
 }
 
-static inline make_EHelper(or) {
-  rtl_or(s, ddest, dsrc1, dsrc2);
+static inline make_EHelper(nemuor) {
+  rtl_nemuor(s, ddest, dsrc1, dsrc2);
   print_asm_template3(or);
 }
 
-static inline make_EHelper(and) {
-  rtl_and(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(and);
+static inline make_EHelper(nemuand) {
+  rtl_nemuand(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(nemuand);
 }
 
 static inline make_EHelper(addi) {
   rtl_addi(s, ddest, dsrc1, id_src2->imm);
-  print_asm_template3(addi);
+  print_asm_template3(nemuaddi);
 }
 
 static inline make_EHelper(slli) {
@@ -91,17 +91,17 @@ static inline make_EHelper(sltui) {
 }
 
 static inline make_EHelper(xori) {
-  rtl_xori(s, ddest, dsrc1, id_src2->imm);
+  rtl_nemuxori(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(xori);
 }
 
 static inline make_EHelper(ori) {
-  rtl_ori(s, ddest, dsrc1, id_src2->imm);
+  rtl_nemuori(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(ori);
 }
 
-static inline make_EHelper(andi) {
-  rtl_andi(s, ddest, dsrc1, id_src2->imm);
+static inline make_EHelper(nemuandi) {
+  rtl_nemuandi(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(andi);
 }
 
