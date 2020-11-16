@@ -93,7 +93,8 @@ class SimPoint
 
   private:
     /** SimPoint profiling interval size in instructions */
-    static constexpr uint64_t intervalSize = 200 * 1000 * 1000;
+    static constexpr uint64_t intervalSize = 200;
+    // static constexpr uint64_t intervalSize = 200 * 1000 * 1000;
 
     /** Inst count in current basic block */
     uint64_t intervalCount;
@@ -122,5 +123,7 @@ class SimPoint
 };
 
 }
+
+extern SimPointNS::SimPoint simPoint;
 
 #endif // __CPU_SIMPLE_PROBES_SIMPOINT_HH__

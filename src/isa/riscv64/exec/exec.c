@@ -1,4 +1,5 @@
 #include <cpu/exec.h>
+#include <checkpoint/simpoint.h>
 #include "../local-include/decode.h"
 #include "../local-include/intr.h"
 #include "all-instr.h"
@@ -246,6 +247,7 @@ vaddr_t isa_exec_once() {
   cpu.need_disambiguate = false;
   DecodeExecState s;
   s.is_jmp = 0;
+  s.is_control = 0;
   s.seq_pc = cpu.pc;
 
   exec(&s);
@@ -254,6 +256,10 @@ vaddr_t isa_exec_once() {
     cpu.mem_exception = MEM_OK;
   }
   update_pc(&s);
+
+  if (s.is_control) {
+    simPoint.profile(s.seq_pc, s.is_control, true);
+  }
 
 #if !defined(DIFF_TEST) && !_SHARE
   void query_intr(DecodeExecState *s);

@@ -23,6 +23,7 @@ typedef struct {
   uint32_t opcode;
   vaddr_t seq_pc;  // sequential pc
   uint32_t is_jmp;
+  uint32_t is_control;
   vaddr_t jmp_pc;
   Operand src1, dest, src2;
   int width;

@@ -131,3 +131,5 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
 }
 
 }
+
+SimPointNS::SimPoint simPoint;

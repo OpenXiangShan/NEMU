@@ -144,17 +144,20 @@ static inline make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline make_rtl(j, vaddr_t target) {
+  s->is_control = true;
   s->jmp_pc = target;
   s->is_jmp = true;
 }
 
 static inline make_rtl(jr, rtlreg_t *target) {
+  s->is_control = true;
   s->jmp_pc = *target;
   s->is_jmp = true;
 }
 
 static inline make_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
+  s->is_control = true;
   nemu_bool is_jmp = interpret_relop(relop, *src1, *src2);
   if (is_jmp) rtl_j(s, target);
 }
