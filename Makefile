@@ -67,14 +67,18 @@ INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wno-format -Wall \
 			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
+            -D__SIMPOINT \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
 			# -Wc++-compat \
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
+CPP_SRCS += $(shell find src/ -name "*.cpp" | grep -v "isa\|engine")
 SRCS += $(shell find src/isa/$(ISA) -name "*.c")
 SRCS += $(shell find src/engine/$(ENGINE) -name "*.c")
 OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
+CPP_OBJS += $(CPP_SRCS:src/%.cpp=$(OBJ_DIR)/%.o)
+OBJS += $(CPP_OBJS)
 
 # Compilation patterns
 
@@ -83,6 +87,11 @@ $(OBJ_DIR)/isa/riscv64/softfloat/%.o: src/isa/riscv64/softfloat/%.c
 	@$(CC) $(CFLAGS) -D__cplusplus -w -fPIC -c -o $@ $<
 
 $(OBJ_DIR)/%.o: src/%.c
+	@echo + CC $<
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
+
+$(OBJ_DIR)/%.o: src/%.cpp
 	@echo + CC $<
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
@@ -107,7 +116,7 @@ $(BINARY): $(OBJS)
 	$(call git_commit, "compile")
 	@echo + LD $@
 	@echo + LD inputs $^
-	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl
+	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl -lz
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 

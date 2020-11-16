@@ -14,4 +14,6 @@ word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, word_t data, int len);
 nemu_bool is_sfence_safe(paddr_t addr, int len);
 
+uint8_t *getPmem();
+
 #endif

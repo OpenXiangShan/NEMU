@@ -15,5 +15,6 @@ int main(int argc, char *argv[]) {
   /* Start engine. */
   engine_start();
 
+
   return (is_batch_mode() ? !goodtrap() : 0);
 }

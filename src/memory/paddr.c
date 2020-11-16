@@ -14,7 +14,7 @@ paddr_t host_to_guest(void *addr) { return (uint8_t *)pmem - (uint8_t *)addr; }
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
-#ifndef DIFF_TEST
+#if !defined(DIFF_TEST) && !defined(__SIMPOINT)
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
@@ -22,6 +22,10 @@ void init_mem() {
     p[i] = rand();
   }
 #endif
+}
+
+uint8_t *getPmem() {
+  return pmem;
 }
 
 static inline nemu_bool in_pmem(paddr_t addr) {

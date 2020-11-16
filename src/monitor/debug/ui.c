@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
+#include <checkpoint/serializer.h>
 #include "expr.h"
 #include "watchpoint.h"
 
@@ -140,6 +141,7 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_q(char *args) {
+  serializer.serializePMem();
   return -1;
 }
 
