@@ -3,6 +3,7 @@
 !*/
 !Makefile*
 !*.[cSh]
+!*.cpp
 !.gitignore
 !README.md
 !runall.sh
