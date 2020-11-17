@@ -82,7 +82,7 @@ static void serial_io_handler(uint32_t offset, int len, nemu_bool is_write) {
 static void preset_input() {
   char buf[] = debian_cmd;
   int i;
-  for (i = 0; i < strlen(buf); i ++) {
+  for (i = 0; i < (int) strlen(buf); i ++) {
     serial_enqueue(buf[i]);
   }
 }

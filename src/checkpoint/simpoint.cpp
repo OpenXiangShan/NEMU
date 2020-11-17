@@ -54,7 +54,7 @@ SimPoint::SimPoint()
       currentBBV(0, 0),
       currentBBVInstCount(0) {
 
-  simpointStream = simout.create("simpoint_bbv", false);
+  simpointStream = simout.create(outputPath + taskName + ".simpoint_bbv.gz", false);
   if (!simpointStream)
     xpanic("unable to open SimPoint profile_file");
 }

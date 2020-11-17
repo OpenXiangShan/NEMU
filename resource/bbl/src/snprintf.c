@@ -7,9 +7,9 @@
 
 int vsnprintf(char* out, size_t n, const char* s, va_list vl)
 {
-  nemu_bool format = false;
-  nemu_bool longarg = false;
-  nemu_bool longlongarg = false;
+  bool format = false;
+  bool longarg = false;
+  bool longlongarg = false;
   size_t pos = 0;
   for( ; *s; s++)
   {

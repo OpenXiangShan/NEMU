@@ -65,6 +65,7 @@ CC = g++
 LD = g++
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wno-format -Wall \
+			-Werror \
 			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
             -D__SIMPOINT \
@@ -115,8 +116,8 @@ NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
 $(BINARY): $(OBJS)
 	$(call git_commit, "compile")
 	@echo + LD $@
-	@echo + LD inputs $^
 	@$(LD) -O2 -rdynamic $(SO_LDLAGS) -o $@ $^ -lSDL2 -lreadline -ldl -lz
+# @echo + LD inputs $^
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 

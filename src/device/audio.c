@@ -28,7 +28,7 @@ static void audio_play(void *userdata, uint8_t *stream, int len) {
   int count = audio_base[reg_count];
   if (count < len) nread = count;
 
-  if (nread + tail < audio_base[reg_sbuf_size]) {
+  if (nread + tail < (int) audio_base[reg_sbuf_size]) {
     memcpy(stream, sbuf + tail, nread);
     tail += nread;
   } else {

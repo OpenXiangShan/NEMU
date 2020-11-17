@@ -15,7 +15,7 @@ using namespace std;
 
 void Serializer::serializePMem() {
   uint8_t *pmem = getPmem();
-  string filename = taskName + "." + phaseName + "." + weightIndicator + ".gz";
+  string filename = taskName + "." + phaseName + "_" + weightIndicator + "_.gz";
   string filepath = outputPath + "/" +filename;
 
   gzFile compressed_mem = gzopen(filepath.c_str(), "wb");

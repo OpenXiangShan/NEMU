@@ -120,6 +120,10 @@ class SimPoint
     BasicBlockRange currentBBV;
     /** inst count in current basic block */
     uint64_t currentBBVInstCount;
+
+  private:
+    std::string outputPath{"/tmp/"};
+    std::string taskName{"helloworld"};
 };
 
 }

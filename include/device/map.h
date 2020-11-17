@@ -30,8 +30,8 @@ static inline int find_mapid_by_addr(IOMap *maps, int size, paddr_t addr) {
   return -1;
 }
 
-void add_pio_map(char *name, ioaddr_t addr, uint8_t *space, int len, io_callback_t callback);
-void add_mmio_map(char *name, paddr_t addr, uint8_t* space, int len, io_callback_t callback);
+void add_pio_map(const char *name, ioaddr_t addr, uint8_t *space, int len, io_callback_t callback);
+void add_mmio_map(const char *name, paddr_t addr, uint8_t* space, int len, io_callback_t callback);
 
 word_t map_read(paddr_t addr, int len, IOMap *map);
 void map_write(paddr_t addr, word_t data, int len, IOMap *map);

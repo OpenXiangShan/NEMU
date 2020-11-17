@@ -16,7 +16,7 @@ class Serializer
 
   private:
     std::string outputPath{"/tmp/"};
-    std::string taskName{"helloWorld"};
+    std::string taskName{"helloworld_cpt"};
     std::string phaseName{"Simpoint1"};
     std::string weightIndicator{"0.23"};
 

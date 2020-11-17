@@ -40,7 +40,7 @@ static inline make_EHelper(div) {
 #ifdef __ENGINE_interpreter__
   if (*dsrc2 == 0) {
     rtl_li(s, ddest, ~0lu);
-  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
+  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == std::numeric_limits<rtlreg_t>::max()) {
     rtl_mv(s, ddest, dsrc1);
   } else
 #endif
@@ -64,7 +64,7 @@ static inline make_EHelper(rem) {
 #ifdef __ENGINE_interpreter__
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
-  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
+  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == std::numeric_limits<rtlreg_t>::max()) {
     rtl_mv(s, ddest, rz);
   } else
 #endif
@@ -95,7 +95,7 @@ static inline make_EHelper(divw) {
   rtl_sext(s, s1, dsrc2, 4);
   if (*s1 == 0) {
     rtl_li(s, s0, ~0lu);
-  } else if (*s0 == 0x80000000 && *s1 == -1) {
+  } else if (*s0 == 0x80000000 && *s1 == std::numeric_limits<rtlreg_t>::max()) {
     //rtl_mv(s, s0, s0);
   } else {
     rtl_idiv_q(s, s0, s0, s1);
@@ -113,7 +113,7 @@ static inline make_EHelper(remw) {
   rtl_sext(s, s1, dsrc2, 4);
   if (*s1 == 0) {
     //rtl_mv(s, s0, s0);
-  } else if (*s0 == 0x80000000 && *s1 == -1) {
+  } else if (*s0 == 0x80000000 && *s1 == std::numeric_limits<rtlreg_t>::max()) {
     rtl_mv(s, s0, rz);
   } else {
     rtl_idiv_r(s, s0, s0, s1);

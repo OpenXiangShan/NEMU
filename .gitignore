@@ -7,3 +7,4 @@
 !.gitignore
 !README.md
 !runall.sh
+cmake-build-debug

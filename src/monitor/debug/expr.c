@@ -16,7 +16,7 @@ enum {
 };
 
 static struct rule {
-  char *regex;
+  const char *regex;
   int token_type;
 } rules[] = {
 
@@ -44,7 +44,7 @@ static struct rule {
   {"\\)", ')'}
 };
 
-#define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
+#define NR_REGEX (static_cast<int>((sizeof(rules) / sizeof(rules[0]) )))
 
 static regex_t re[NR_REGEX] = {};
 
