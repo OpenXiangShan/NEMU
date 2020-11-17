@@ -14,11 +14,21 @@ class Serializer
   public:
     void serializePMem();
 
+    void serializeRegs();
+
+    explicit Serializer();
+
   private:
     std::string outputPath{"/tmp/"};
     std::string taskName{"helloworld_cpt"};
     std::string phaseName{"Simpoint1"};
     std::string weightIndicator{"0.23"};
+
+    const uint32_t IntRegStartAddr;
+    const uint32_t FloatRegStartAddr;
+    const uint32_t CSRStartAddr;
+
+    bool regDumped{false};
 
 };
 

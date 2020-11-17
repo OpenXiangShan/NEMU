@@ -28,7 +28,7 @@ static void csr_prepare() {
   cpu.stvec    = stvec->val;
 }
 
-static void csr_writeback() {
+void csr_writeback() {
   // return;
   mstatus->val = cpu.mstatus;
   mcause ->val = cpu.mcause ;

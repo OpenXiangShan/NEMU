@@ -141,6 +141,7 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_q(char *args) {
+  serializer.serializeRegs();
   serializer.serializePMem();
   return -1;
 }
