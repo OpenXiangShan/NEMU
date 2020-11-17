@@ -64,23 +64,41 @@ static inline def_EHelper(not) {
 }
 
 static inline def_EHelper(sar) {
-#ifndef __PA__
-  int count = *dsrc1 & 0x1f;
-  if (count == 1) {
-    rtl_set_OF(s, rz);
-  }
-  if (count != 0) {
-    rtl_andi(s, s1, ddest, 1);
-    rtl_set_CF(s, s1);
-  }
-#endif
   // if ddest == dsrc1, rtl_sar() still only use the
   // lower 5 bits of dsrc1, which do not change after
   // rtl_sext(), and it is  still sematically correct
   rtl_sext(s, ddest, ddest, id_dest->width);
+#ifndef __PA__
+  int count = *dsrc1 & 0x1f;
+  if (count == 0) {
+    operand_write(s, id_dest, ddest);
+    print_asm_template2(sar);
+    return;
+  }
+
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_sar(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_andi(s, s0, s1, 0x1);
+  rtl_set_CF(s, s0);
+  rtl_sari(s, ddest, s1, 1); // shift the remaining "1"
+  operand_write(s, id_dest, ddest);
+
+  int update_of = 1;
+#ifdef __DIFF_REF_KVM__
+  update_of = (count == 1);
+#endif
+  if (update_of) {
+    rtl_xor(s, s0, s1, ddest);
+    rtl_msb(s, s0, s0, id_dest->width);
+    rtl_set_OF(s, s0);
+  }
+
+  rtl_update_ZFSF(s, ddest, id_dest->width);
+#else
   rtl_sar(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
   rtl_update_ZFSF(s, ddest, id_dest->width);
+#endif
 #ifdef LAZY_CC
   panic("TODO: implement CF and OF with lazy cc");
 #endif
@@ -90,31 +108,30 @@ static inline def_EHelper(sar) {
 static inline def_EHelper(shl) {
 #ifndef __PA__
   int count = *dsrc1 & 0x1f;
-  if (count != 0) {
-    rtl_msb(s, s1, ddest, id_dest->width);
-    rtl_set_CF(s, s1);
-  }
-#ifdef __DIFF_REF_KVM__
-  int update_of = (count == 1);
-#else
-  int update_of = 1;
-#endif
-  if (update_of) {
-    rtl_mv(s, s0, ddest);
+  if (count == 0) {
+    operand_write(s, id_dest, ddest);
+    print_asm_template2(shl);
+    return;
   }
 
-  rtl_shl(s, ddest, ddest, dsrc1);
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_shl(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_msb(s, s0, s1, id_dest->width);
+  rtl_set_CF(s, s0);
+  rtl_shli(s, ddest, s1, 1); // shift the remaining "1"
   operand_write(s, id_dest, ddest);
 
+  int update_of = 1;
+#ifdef __DIFF_REF_KVM__
+  update_of = (count == 1);
+#endif
   if (update_of) {
-    rtl_xor(s, s0, s0, ddest);
+    rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
   }
 
-  if (count != 0) {
-    rtl_update_ZFSF(s, ddest, id_dest->width);
-  }
+  rtl_update_ZFSF(s, ddest, id_dest->width);
 #else
   rtl_shl(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
@@ -129,18 +146,35 @@ static inline def_EHelper(shl) {
 static inline def_EHelper(shr) {
 #ifndef __PA__
   int count = *dsrc1 & 0x1f;
-  if (count == 1) {
-    rtl_msb(s, s0, ddest, id_dest->width);
+  if (count == 0) {
+    operand_write(s, id_dest, ddest);
+    print_asm_template2(shr);
+    return;
+  }
+
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_andi(s, s0, s1, 0x1);
+  rtl_set_CF(s, s0);
+  rtl_shri(s, ddest, s1, 1); // shift the remaining "1"
+  operand_write(s, id_dest, ddest);
+
+  int update_of = 1;
+#ifdef __DIFF_REF_KVM__
+  update_of = (count == 1);
+#endif
+  if (update_of) {
+    rtl_xor(s, s0, s1, ddest);
+    rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
   }
-  if (count != 0) {
-    rtl_andi(s, s1, ddest, 1);
-    rtl_set_CF(s, s1);
-  }
-#endif
+
+  rtl_update_ZFSF(s, ddest, id_dest->width);
+#else
   rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
   rtl_update_ZFSF(s, ddest, id_dest->width);
+#endif
 #ifdef LAZY_CC
   panic("TODO: implement CF and OF with lazy cc");
 #endif
