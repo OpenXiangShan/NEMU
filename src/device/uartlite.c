@@ -87,5 +87,5 @@ void init_uartlite() {
   add_pio_map("uartlite", SERIAL_PORT, serial_base, 0xd, serial_io_handler);
   add_mmio_map("uartlite", SERIAL_MMIO, serial_base, 0xd, serial_io_handler);
 
-  preset_input();
+  // preset_input();
 }
