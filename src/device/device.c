@@ -9,6 +9,7 @@
 
 void init_alarm();
 void init_serial();
+void init_uartlite();
 void init_timer();
 void init_vga();
 void init_i8042();
@@ -56,9 +57,12 @@ void sdl_clear_event_queue() {
 }
 
 void init_device() {
-  init_serial();
+#ifdef XIANGSHAN
   init_vga();
-#ifndef XIANGSHAN
+  init_uartlite();
+#else
+  init_vga();
+  init_serial();
   init_timer();
   init_i8042();
   init_audio();
