@@ -8,6 +8,9 @@ static int nr_map = 0;
 
 /* device interface */
 void add_pio_map(const char *name, ioaddr_t addr, uint8_t *space, int len, io_callback_t callback) {
+#ifdef __ISA_riscv64__
+  return;
+#endif
   assert(nr_map < NR_MAP);
   assert(addr + len <= PORT_IO_SPACE_MAX);
   maps[nr_map] = (IOMap){ .name = (char *) name, .low = addr, .high = addr + (unsigned) len - 1,

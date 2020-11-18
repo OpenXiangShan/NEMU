@@ -5,6 +5,8 @@
 #include <device/alarm.h>
 #include <SDL2/SDL.h>
 
+#define XIANGSHAN
+
 void init_alarm();
 void init_serial();
 void init_timer();
@@ -55,10 +57,12 @@ void sdl_clear_event_queue() {
 
 void init_device() {
   init_serial();
-  init_timer();
   init_vga();
+#ifndef XIANGSHAN
+  init_timer();
   init_i8042();
   init_audio();
+#endif
 
   add_alarm_handle((void *)set_device_update_flag);
   init_alarm();

@@ -12,9 +12,6 @@
 #define MULT (1 << (C_SIZE_MULT + 2))
 #define C_SIZE (NR_BLOCK / MULT - 1)
 
-#define SD_MMIO 0xa3000000
-
-
 // This is a simple hardware implementation of linux/drivers/mmc/host/bcm2835.c
 // No DMA and IRQ is supported, so the driver must be modified to start PIO
 // right after sending the actual read/write commands.

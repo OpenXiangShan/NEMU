@@ -3,9 +3,6 @@
 /* http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming */
 // NOTE: this is compatible to 16550
 
-#define SERIAL_PORT 0x3F8
-#define SERIAL_MMIO 0xa10003F8
-
 #define CH_OFFSET 0
 #define LSR_OFFSET 5
 #define LSR_TX_READY 0x20
