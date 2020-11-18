@@ -15,6 +15,10 @@ menuconfig HAS_SERIAL
   bool "Enable serial"
   default y
 
+menuconfig HAS_UARTLITE
+  bool "Enable uartlite"
+  default n
+
 if HAS_SERIAL
 config SERIAL_PORT
   depends on HAS_PORT_IO
@@ -29,6 +33,21 @@ config SERIAL_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
 endif # HAS_SERIAL
+
+if HAS_UARTLITE
+config UARTLITE_PORT
+  depends on HAS_PORT_IO
+  hex "Port address of uartlite controller"
+  default 0x3f8
+
+config UARTLITE_MMIO
+  hex "MMIO address of uartlite controller"
+  default 0xa10003f8
+
+config UARTLITE_INPUT_FIFO
+  bool "Enable input FIFO with /tmp/nemu.serial"
+  default n
+endif # HAS_UARTLITE
 
 menuconfig HAS_TIMER
   bool "Enable timer"
