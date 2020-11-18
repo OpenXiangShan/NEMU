@@ -26,10 +26,6 @@ typedef struct {
     uint64_t _64;
   } gpr[32];
 
-  union {
-    uint64_t _64;
-  } fpr[32];
-
   uint64_t pc;
   uint64_t mstatus, mcause, mepc;
   uint64_t sstatus, scause, sepc;
@@ -41,6 +37,10 @@ typedef struct {
 
   nemu_bool amo;
   int mem_exception;
+
+  union {
+    uint64_t _64;
+  } fpr[32];
 
   // for LR/SC
   uint64_t lr_addr;
