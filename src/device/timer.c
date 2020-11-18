@@ -3,9 +3,6 @@
 #include <monitor/monitor.h>
 #include <sys/time.h>
 
-#define RTC_PORT 0x48   // Note that this is not the standard
-#define RTC_MMIO 0xa1000048
-
 static uint32_t *rtc_port_base = NULL;
 
 static void rtc_io_handler(uint32_t offset, int len, nemu_bool is_write) {

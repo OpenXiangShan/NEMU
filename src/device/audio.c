@@ -5,9 +5,6 @@
 #include <device/map.h>
 #include <SDL2/SDL.h>
 
-#define AUDIO_PORT 0x200 // Note that this is not the standard
-#define AUDIO_MMIO 0xa1000200
-#define STREAM_BUF 0xa0800000
 #define STREAM_BUF_MAX_SIZE 65536
 
 static uint8_t *sbuf = NULL;
