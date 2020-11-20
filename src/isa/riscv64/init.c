@@ -31,7 +31,10 @@ void init_isa(void) {
   misa->extensions |= ext('d') | ext('f');
   misa->mxl = 2; // XLEN = 64
 
-  memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
+  extern char *cpt_file;
+  if (!cpt_file) {
+    memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
+  }
 
   init_clint();
   extern void init_sdcard();

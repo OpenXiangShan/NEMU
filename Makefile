@@ -17,7 +17,7 @@ $(info Building $(ISA)-$(NAME)-$(ENGINE))
 
 endif
 
-INC_DIR += ./include ./src/engine/$(ENGINE) ./src/isa/riscv64/softfloat
+INC_DIR += ./include ./src/engine/$(ENGINE) ./src/isa/riscv64/softfloat ./resource
 BUILD_DIR ?= ./build
 
 ifdef SHARE

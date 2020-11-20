@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <checkpoint/serializer.h>
 #include <monitor/monitor.h>
 #include <monitor/difftest.h>
 #include "debug/watchpoint.h"
@@ -68,6 +69,10 @@ void cpu_exec(uint64_t n) {
     difftest_step(ori_pc, cpu.pc);
 
     g_nr_guest_instr ++;
+
+    if (g_nr_guest_instr == 968170521) {
+      serializer.serialize();
+    }
 
 #ifdef DEBUG
     asm_print(ori_pc, seq_pc - ori_pc, n < MAX_INSTR_TO_PRINT);

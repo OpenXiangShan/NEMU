@@ -12,11 +12,15 @@ class Serializer
 {
 
   public:
+    void serialize();
+
     void serializePMem();
 
     void serializeRegs();
 
     explicit Serializer();
+
+    void deserialize(const char *file);
 
   private:
     std::string outputPath{"/tmp/"};
@@ -27,6 +31,8 @@ class Serializer
     const uint32_t IntRegStartAddr;
     const uint32_t FloatRegStartAddr;
     const uint32_t CSRStartAddr;
+    const uint32_t PCAddr;
+    const uint32_t CptFlagAddr;
 
     bool regDumped{false};
 

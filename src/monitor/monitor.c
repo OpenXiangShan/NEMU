@@ -15,6 +15,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
+char *cpt_file= nullptr;
 static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
@@ -85,16 +86,18 @@ static inline void parse_args(int argc, char *argv[]) {
     {"log"      , required_argument, NULL, 'l'},
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
+    {"cpt"      , required_argument, nullptr, 'c'},
     {"help"     , no_argument      , NULL, 'h'},
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bhl:d:p:c:", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
+      case 'c': cpt_file = optarg; break;
       case 1:
         if (img_file != NULL) Log("too much argument '%s', ignored", optarg);
         else img_file = optarg;
@@ -120,25 +123,34 @@ void init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log(log_file);
 
-  /* Fill the memory with garbage content. */
-  init_mem();
+  long img_size = 0;
+  if (!cpt_file) {
+    /* Fill the memory with garbage content. */
+    init_mem();
+  }
 
-  /* Perform ISA dependent initialization. */
-  init_isa();
+    /* Perform ISA dependent initialization. */
+    init_isa();
 
-  /* Load the image to memory. This will overwrite the built-in image. */
-  long img_size = load_img();
+  if (!cpt_file) {
+    /* Load the image to memory. This will overwrite the built-in image. */
+    img_size = load_img();
+
 #ifdef __GCPT_COMPATIBLE__
-  load_gcpt_restorer();
+    load_gcpt_restorer();
 #endif
+
+  }
   /* Compile the regular expressions. */
   init_regex();
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
 
-  /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
+  if (!cpt_file) {
+    /* Initialize differential testing. */
+    init_difftest(diff_so_file, img_size, difftest_port);
+  }
 
   /* Display welcome message. */
   welcome();

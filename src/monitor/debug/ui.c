@@ -141,8 +141,7 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_q(char *args) {
-  serializer.serializeRegs();
-  serializer.serializePMem();
+  serializer.serialize();
   return -1;
 }
 
@@ -245,10 +244,16 @@ static int cmd_help(char *args) {
   return 0;
 }
 
+extern char *cpt_file;
+
 void ui_mainloop() {
   if (is_batch_mode()) {
     cmd_c(NULL);
     return;
+  }
+
+  if (cpt_file) {
+    serializer.deserialize(cpt_file);
   }
 
   for (char *str; (str = rl_gets()) != NULL; ) {
