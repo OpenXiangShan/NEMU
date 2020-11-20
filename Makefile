@@ -69,6 +69,7 @@ CFLAGS   += -O2 -MMD -Wno-format -Wall \
 			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
             -D__SIMPOINT \
+            -D__GCPT_COMPATIBLE__ \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
 			# -Wc++-compat \
 

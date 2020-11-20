@@ -113,7 +113,7 @@ restore_int_vector:
 
   .align 3
   .section ".restore.flag","a",@progbits
-  .word 0xbeef
+  .word 0xdead
 
   .align 3
   .section ".restore.data","a",@progbits

@@ -6,9 +6,12 @@
 // memory
 #ifdef __ENGINE_rv64__
 #define riscv64_IMAGE_START 0x100000
+#elif defined(__GCPT_COMPATIBLE__)
+#define riscv64_IMAGE_START 0xa000
 #else
 #define riscv64_IMAGE_START 0x0
 #endif
+
 #define riscv64_PMEM_BASE 0x80000000
 
 // #define ENABLE_DISAMBIGUATE

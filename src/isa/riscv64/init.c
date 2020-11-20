@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <checkpoint/serializer.h>
 #include <memory/paddr.h>
 #include "local-include/csr.h"
 
@@ -13,7 +14,11 @@ void init_clint(void);
 
 void init_isa(void) {
   cpu.gpr[0]._64 = 0;
+#ifdef __GCPT_COMPATIBLE__
+  cpu.pc = PMEM_BASE + RESTORER_START;
+#else
   cpu.pc = PMEM_BASE + IMAGE_START;
+#endif
 
   cpu.mode = MODE_M;
 #ifndef __DIFF_REF_QEMU__

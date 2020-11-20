@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <checkpoint/serializer.h>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 #include <getopt.h>
@@ -35,6 +36,26 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
+static void load_gcpt_restorer() {
+  char restorer_file[256];
+  sprintf(restorer_file, "%s/resource/gcpt_restore/build/gcpt.bin", getenv("NEMU_HOME"));
+
+  FILE *fp = fopen(restorer_file, "rb");
+  if (fp == NULL) Log("If gcpt restorer is not built, run `make` under $(NEMU_HOME)/resource/gcpt_restore");
+  Assert(fp, "Can not open '%s'", restorer_file);
+  Log("Opening restorer file: %s", restorer_file);
+  fseek(fp, 0, SEEK_END);
+  long size = ftell(fp);
+  Assert(size < MAX_RESTORER_SIZE, "Restorer size = %ld is too large", size);
+
+  fseek(fp, 0, SEEK_SET);
+  int ret = fread(guest_to_host(RESTORER_START), size, 1, fp);
+  assert(ret == 1);
+
+  fclose(fp);
+
+}
+
 static inline long load_img() {
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
@@ -51,6 +72,7 @@ static inline long load_img() {
 
   fseek(fp, 0, SEEK_SET);
   int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
+  Log("Loading image to 0x%x\n", IMAGE_START);
   assert(ret == 1);
 
   fclose(fp);
@@ -106,7 +128,9 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Load the image to memory. This will overwrite the built-in image. */
   long img_size = load_img();
-
+#ifdef __GCPT_COMPATIBLE__
+  load_gcpt_restorer();
+#endif
   /* Compile the regular expressions. */
   init_regex();
 
