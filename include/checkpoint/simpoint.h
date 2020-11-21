@@ -93,7 +93,7 @@ class SimPoint
 
   private:
     /** SimPoint profiling interval size in instructions */
-    static constexpr uint64_t intervalSize = 200;
+    static constexpr uint64_t intervalSize = 10 * 1000 * 1000;
     // static constexpr uint64_t intervalSize = 200 * 1000 * 1000;
 
     /** Inst count in current basic block */
@@ -121,9 +121,6 @@ class SimPoint
     /** inst count in current basic block */
     uint64_t currentBBVInstCount;
 
-  private:
-    std::string outputPath{"/tmp/"};
-    std::string taskName{"helloworld"};
 };
 
 }

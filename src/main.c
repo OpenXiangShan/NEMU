@@ -7,6 +7,7 @@ int is_batch_mode();
 
 void init_path_manger();
 void init_simpoint();
+void init_serializer();
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. */
@@ -14,6 +15,7 @@ int main(int argc, char *argv[]) {
 
   init_path_manger();
   init_simpoint();
+  init_serializer();
 
   init_csr_exist();
   init_keymap();

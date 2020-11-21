@@ -12,6 +12,7 @@
 
 #include <isa.h>
 
+#include <fstream>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 #include <gcpt_restore/src/restore_rom_addr.h>
@@ -34,7 +35,7 @@ void Serializer::serializePMem() {
   assert(regDumped);
 
   uint8_t *pmem = getPmem();
-  string filepath = pathManager.getOutputPath() + "/_" + weightIndicator + "_.gz";
+  string filepath = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->second) + "_.gz";
 
   gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
   if (compressed_mem == nullptr) {
@@ -98,6 +99,8 @@ void Serializer::serializeRegs() {
 void Serializer::serialize() {
   serializeRegs();
   serializePMem();
+  pathManager.incCptID();
+  simpoint2Weights.erase(simpoint2Weights.begin());
 }
 
 void Serializer::deserialize(const char *file) {
@@ -119,4 +122,48 @@ void Serializer::deserialize(const char *file) {
   assert(ret == 1);
 }
 
+void Serializer::init() {
+  if  (simpoint_state == SimpointCheckpointing) {
+    Log("Taking simpoint checkpionts with interval %lu", intervalSize);
+
+    auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0");
+    auto weights_file = fstream(pathManager.getSimpointPath() + "weights0");
+    assert(!simpoints_file.bad());
+    assert(!weights_file.bad());
+
+    uint64_t simpoint_location, simpoint_id, weight_id;
+    double weight;
+
+    while (simpoints_file >> simpoint_location >> simpoint_id) {
+      assert(weights_file >> weight >> weight_id);
+      assert(weight_id == simpoint_id);
+      simpoint2Weights[simpoint_location] = weight;
+
+      Log("Simpoint %i: @ %lu, weight: %f", simpoint_id, simpoint_location, weight);
+    }
+  }
+}
+
+bool Serializer::shouldTakeCpt(uint64_t num_insts) {
+  if (simpoint_state != SimpointCheckpointing) {
+    return false;
+  }
+  if (num_insts == simpoint2Weights.begin()->first * intervalSize + 1) {
+    Log("Should take cpt now: %lu", num_insts);
+    return true;
+  } else if (num_insts % intervalSize == 0) {
+    Log("First cpt @ %lu, now: %lu",
+        simpoint2Weights.begin()->first * intervalSize + 1, num_insts);
+  }
+  return false;
+}
+
+void Serializer::notify_taken(uint64_t i) {
+
+}
+
 Serializer serializer;
+
+void init_serializer() {
+  serializer.init();
+}

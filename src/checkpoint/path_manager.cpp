@@ -23,18 +23,26 @@ void PathManager::init() {
   if (cpt_id != -1) {
     cptID = cpt_id;
   }
+
   if (simpoint_state == SimpointCheckpointing) {
     cptID = 0;
   }
+
+  Log("Cpt id: %i", cptID);
   workloadPath = statsBaseDir + "/" + configName + "/" + workloadName + "/";
+
+  if (simpoint_state == SimpointCheckpointing) {
+    assert(simpoints_dir);
+    simpointPath = fs::path(string(simpoints_dir) + "/" + workloadName +"/");
+  }
 
   setOutputDir();
 }
 
 void PathManager::setOutputDir() {
   std::string output_path = workloadPath;
-  if (cpt_id != -1) {
-    output_path += to_string(cpt_id) + "/";
+  if (cptID != -1) {
+    output_path += to_string(cptID) + "/";
   }
 
   outputPath = fs::path(output_path);
@@ -42,6 +50,7 @@ void PathManager::setOutputDir() {
   if (!fs::exists(outputPath)) {
     fs::create_directories(outputPath);
   }
+  Log("Created %s\n", output_path.c_str());
 }
 
 void PathManager::incCptID() {
@@ -52,6 +61,13 @@ void PathManager::incCptID() {
 std::string PathManager::getOutputPath() const {
   assert(fs::exists(outputPath));
   return outputPath.string();
+}
+
+std::string PathManager::getSimpointPath() const {
+  // cerr << simpointPath.string() << endl;
+  // std::fflush(stderr);
+  assert(fs::exists(simpointPath));
+  return simpointPath.string();
 }
 
 PathManager pathManager;

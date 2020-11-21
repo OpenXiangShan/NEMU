@@ -6,6 +6,7 @@
 #define NEMU_SERIALIZER_H
 
 #include <string>
+#include <map>
 
 
 class Serializer
@@ -22,7 +23,15 @@ class Serializer
 
     void deserialize(const char *file);
 
+    void init();
+
+    bool shouldTakeCpt(uint64_t num_insts);
+
+    void notify_taken(uint64_t i);
+
   private:
+
+    static constexpr uint64_t intervalSize = 10 * 1000 * 1000;
 
     int cptID;
     std::string weightIndicator;
@@ -34,6 +43,8 @@ class Serializer
     const uint32_t CptFlagAddr;
 
     bool regDumped{false};
+
+    std::map<uint64_t, double> simpoint2Weights;
 
 };
 

@@ -21,6 +21,7 @@ class PathManager
 
     std::string workloadPath;
     fs::path outputPath;
+    fs::path simpointPath;
 
     void setOutputDir();
 
@@ -30,6 +31,8 @@ class PathManager
     void incCptID();
 
     std::string getOutputPath() const;
+
+    std::string getSimpointPath() const;
 };
 
 extern PathManager pathManager;

@@ -60,12 +60,15 @@ SimPoint::SimPoint()
 }
 
 SimPoint::~SimPoint() {
-  simout.close(simpointStream);
+  if (simpoint_state == SimpointProfiling) {
+    simout.close(simpointStream);
+  }
 }
 
 void
 SimPoint::init() {
   if (simpoint_state == SimpointProfiling) {
+    Log("Doing simpoint profiling with interval %lu", intervalSize);
     auto path = pathManager.getOutputPath() + "/simpoint_bbv.gz";
     simpointStream = simout.create(path, false);
     if (!simpointStream)

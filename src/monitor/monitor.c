@@ -25,7 +25,7 @@ char *cpt_file = nullptr;
 char *stats_base_dir = nullptr;
 char *config_name = nullptr;
 char *workload_name = nullptr;
-char *simpoints_file = nullptr;
+char *simpoints_dir = nullptr;
 int simpoint_state = NoSimpoint;
 int cpt_id = -1;
 
@@ -98,7 +98,7 @@ static inline void parse_args(int argc, char *argv[]) {
     {"stats-base-dir"     , required_argument, NULL, 'D'},
     {"config-name"        , required_argument, NULL, 'C'},
     {"workload-name"      , required_argument, NULL, 'w'},
-    {"simpoint-file"      , required_argument, NULL, 'S'},
+    {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"cpt"                , required_argument, NULL, 'c'},
     {"help"               , no_argument      , NULL, 'h'},
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -135,7 +135,7 @@ static inline void parse_args(int argc, char *argv[]) {
 
       case 'S':
         assert(simpoint_state == NoSimpoint);
-        simpoints_file = optarg;
+        simpoints_dir = optarg;
         simpoint_state = SimpointCheckpointing;
         break;
 
@@ -153,7 +153,7 @@ static inline void parse_args(int argc, char *argv[]) {
         printf("\t-c,--cpt=CPT_FILE       restore from CPT FILE\n");
         printf("\t-D,--statdir=STAT_DIR   store simpoint bbv, cpts, and stats in STAT_DIR\n");
         printf("\t-w,--workload=WORKLOAD  the name of sub_dir of this run in STAT_DIR\n");
-        printf("\t-S,--simpointfile=SIMPOINT_FILE   simpoint file\n");
+        printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-C,--config=CONFIG      running configuration\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--cpt-id                checkpoint id\n");

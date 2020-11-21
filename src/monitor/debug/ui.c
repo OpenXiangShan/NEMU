@@ -142,7 +142,6 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_q(char *args) {
-  serializer.serialize();
   return -1;
 }
 
