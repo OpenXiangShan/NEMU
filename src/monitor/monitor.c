@@ -1,5 +1,6 @@
-#include <isa.h>
 #include <checkpoint/serializer.h>
+
+#include <isa.h>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 #include <getopt.h>
@@ -15,10 +16,18 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
-char *cpt_file= nullptr;
+
 static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
+
+char *cpt_file = nullptr;
+char *stats_base_dir = nullptr;
+char *config_name = nullptr;
+char *workload_name = nullptr;
+char *simpoints_file = nullptr;
+int simpoint_state = NoSimpoint;
+int cpt_id = -1;
 
 int is_batch_mode() { return batch_mode; }
 
@@ -82,32 +91,72 @@ static inline long load_img() {
 
 static inline void parse_args(int argc, char *argv[]) {
   const struct option table[] = {
-    {"batch"    , no_argument      , NULL, 'b'},
-    {"log"      , required_argument, NULL, 'l'},
-    {"diff"     , required_argument, NULL, 'd'},
-    {"port"     , required_argument, NULL, 'p'},
-    {"cpt"      , required_argument, nullptr, 'c'},
-    {"help"     , no_argument      , NULL, 'h'},
-    {0          , 0                , NULL,  0 },
+    {"batch"              , no_argument      , NULL, 'b'},
+    {"log"                , required_argument, NULL, 'l'},
+    {"diff"               , required_argument, NULL, 'd'},
+    {"port"               , required_argument, NULL, 'p'},
+    {"stats-base-dir"     , required_argument, NULL, 'D'},
+    {"config-name"        , required_argument, NULL, 'C'},
+    {"workload-name"      , required_argument, NULL, 'w'},
+    {"simpoint-file"      , required_argument, NULL, 'S'},
+    {"cpt"                , required_argument, NULL, 'c'},
+    {"help"               , no_argument      , NULL, 'h'},
+    {"simpoint-profile"   , no_argument      , NULL, 3},
+    {"cpt-id"             , required_argument, NULL, 4},
+    {0                    , no_argument      , NULL, 0},
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bhl:d:p:c:", table, NULL)) != -1) {
+  int long_index = 0;
+  while ( (o = getopt_long(argc, argv, "-bhl:d:p:c:S:D:C:w:", table, &long_index)) != -1) {
     switch (o) {
+      case 3:
+        assert(simpoint_state == NoSimpoint);
+        simpoint_state = SimpointProfiling;
+        break;
+
+      case 4:
+        sscanf(optarg, "%d", &cpt_id);
+        break;
+
       case 'b': batch_mode = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 'c': cpt_file = optarg; break;
+
+      case 'D': stats_base_dir = optarg; break;
+      case 'w': workload_name = optarg; break;
+      case 'C': config_name = optarg; break;
+
+      case 'c':
+        assert(simpoint_state == NoSimpoint);
+        cpt_file = optarg;
+        simpoint_state = CheckpointRestoring;
+        break;
+
+      case 'S':
+        assert(simpoint_state == NoSimpoint);
+        simpoints_file = optarg;
+        simpoint_state = SimpointCheckpointing;
+        break;
+
       case 1:
         if (img_file != NULL) Log("too much argument '%s', ignored", optarg);
         else img_file = optarg;
         break;
+
       default:
         printf("Usage: %s [OPTION...] IMAGE\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
         printf("\t-l,--log=FILE           output log to FILE\n");
         printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
         printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
+        printf("\t-c,--cpt=CPT_FILE       restore from CPT FILE\n");
+        printf("\t-D,--statdir=STAT_DIR   store simpoint bbv, cpts, and stats in STAT_DIR\n");
+        printf("\t-w,--workload=WORKLOAD  the name of sub_dir of this run in STAT_DIR\n");
+        printf("\t-S,--simpointfile=SIMPOINT_FILE   simpoint file\n");
+        printf("\t-C,--config=CONFIG      running configuration\n");
+        printf("\t--simpoint-profile      simpoint profiling\n");
+        printf("\t--cpt-id                checkpoint id\n");
         printf("\n");
         exit(0);
     }

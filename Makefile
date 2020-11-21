@@ -65,6 +65,7 @@ CC = g++
 LD = g++
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wno-format -Wall \
+			-std=c++17 \
 			-Werror \
 			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \

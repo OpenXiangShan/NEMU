@@ -1,7 +1,8 @@
+#include <checkpoint/serializer.h>
+
 #include <isa.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
-#include <checkpoint/serializer.h>
 #include "expr.h"
 #include "watchpoint.h"
 

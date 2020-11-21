@@ -38,11 +38,15 @@
  *          Curtis Dunham
  */
 
-#include <debug.h>
+#include <checkpoint/path_manager.h>
+
 #include <vector>
 #include <algorithm>
 #include <iostream>
-#include "checkpoint/simpoint.h"
+
+#include <checkpoint/simpoint.h>
+#include <debug.h>
+#include <monitor/monitor.h>
 
 namespace SimPointNS
 {
@@ -53,10 +57,6 @@ SimPoint::SimPoint()
       simpointStream(nullptr),
       currentBBV(0, 0),
       currentBBVInstCount(0) {
-
-  simpointStream = simout.create(outputPath + taskName + ".simpoint_bbv.gz", false);
-  if (!simpointStream)
-    xpanic("unable to open SimPoint profile_file");
 }
 
 SimPoint::~SimPoint() {
@@ -64,10 +64,21 @@ SimPoint::~SimPoint() {
 }
 
 void
-SimPoint::init() {}
+SimPoint::init() {
+  if (simpoint_state == SimpointProfiling) {
+    auto path = pathManager.getOutputPath() + "/simpoint_bbv.gz";
+    simpointStream = simout.create(path, false);
+    if (!simpointStream)
+      xpanic("unable to open SimPoint profile_file %s\n", path.c_str());
+  }
+}
 
 void
 SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
+
+  if (simpoint_state != SimpointProfiling) {
+    return;
+  }
 
   if (!is_last_uop)
     return;
@@ -133,3 +144,8 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
 }
 
 SimPointNS::SimPoint simPoint;
+
+void init_simpoint()
+{
+  simPoint.init();
+}

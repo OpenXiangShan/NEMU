@@ -2,6 +2,7 @@
 // Created by zyy on 2020/11/16.
 //
 
+#include "checkpoint/path_manager.h"
 #include "checkpoint/serializer.h"
 
 #include <cinttypes>
@@ -12,6 +13,7 @@
 #include <isa.h>
 
 #include <memory/paddr.h>
+#include <monitor/monitor.h>
 #include <gcpt_restore/src/restore_rom_addr.h>
 
 using namespace std;
@@ -32,8 +34,7 @@ void Serializer::serializePMem() {
   assert(regDumped);
 
   uint8_t *pmem = getPmem();
-  string filename = taskName + "." + phaseName + "_" + weightIndicator + "_.gz";
-  string filepath = outputPath + "/" +filename;
+  string filepath = pathManager.getOutputPath() + "/_" + weightIndicator + "_.gz";
 
   gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
   if (compressed_mem == nullptr) {
@@ -52,6 +53,7 @@ void Serializer::serializePMem() {
     if (gzwrite(compressed_mem, pmem + written, (uint32_t) pass_size) != (int) pass_size) {
       panic("Write failed on physical memory checkpoint file\n");
     }
+    Log("Written 0x%x bytes\n", pass_size);
   }
 
   if (gzclose(compressed_mem)){

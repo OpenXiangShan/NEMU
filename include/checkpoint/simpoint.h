@@ -80,9 +80,9 @@ class SimPoint
   public:
     SimPoint();
 
-    virtual ~SimPoint();
+    ~SimPoint();
 
-    virtual void init();
+    void init();
 
     /**
      * Profile basic blocks for SimPoints.
