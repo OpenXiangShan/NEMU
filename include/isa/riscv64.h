@@ -7,7 +7,7 @@
 #ifdef __ENGINE_rv64__
 #define riscv64_IMAGE_START 0x100000
 #elif defined(__GCPT_COMPATIBLE__)
-#define riscv64_IMAGE_START 0xa000
+#define riscv64_IMAGE_START 0xa0000
 #else
 #define riscv64_IMAGE_START 0x0
 #endif

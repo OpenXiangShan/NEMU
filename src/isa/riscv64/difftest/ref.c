@@ -30,6 +30,7 @@ static void csr_prepare() {
 
 void csr_writeback() {
   // return;
+  Log("mstatus: 0x%lx", cpu.mstatus);
   mstatus->val = cpu.mstatus;
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;

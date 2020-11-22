@@ -8,6 +8,6 @@
 #define FLOAT_REG_CPT_ADDR  0x80001100
 #define PC_CPT_ADDR         0x80001200
 #define CSR_CPT_ADDR        0x80001300
-#define RESET_VECTOR        0x8000a000
+#define RESET_VECTOR        0x800a0000
 
 #endif //__RESTORE_ROM_ADDR__

@@ -4,6 +4,7 @@
 
 #include "checkpoint/path_manager.h"
 #include "checkpoint/serializer.h"
+#include "../isa/riscv64/local-include/csr.h"
 
 #include <cinttypes>
 #include <iostream>
@@ -61,46 +62,73 @@ void Serializer::serializePMem() {
     panic("Close failed on physical memory checkpoint file\n");
   }
   Log("Checkpoint done!\n");
+  regDumped = false;
 }
 
 extern void csr_writeback();
 
 void Serializer::serializeRegs() {
-  Log("Writing integer registers to checkpoint memory\n");
   auto *intRegCpt = (uint64_t *) (getPmem() + IntRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(intRegCpt + i) = cpu.gpr[i]._64;
   }
+  Log("Writing int registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+      INT_REG_CPT_ADDR, INT_REG_CPT_ADDR + 32 * 8,
+      IntRegStartAddr, IntRegStartAddr + 32 * 8
+      );
 
-  Log("Writing float registers to checkpoint memory\n");
+
   auto *floatRegCpt = (uint64_t *) (getPmem() + FloatRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
   }
+  Log("Writing float registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+      FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
+      FloatRegStartAddr, FloatRegStartAddr + 32 * 8
+      );
 
-  Log("Writing CSRs to checkpoint memory\n");
-  csr_writeback();
-  auto *csrCpt = (uint64_t *) (getPmem() + CSRStartAddr);
-  for (unsigned i = 0; i < 4096; i++) {
-    *(csrCpt + i) = csr_array[i];
-  }
 
-  Log("Writing 0x%lx at addr 0x%x\n", cpu.pc, PC_CPT_ADDR);
   auto *pc = (uint64_t *) (getPmem() + PCAddr);
   *pc = cpu.pc;
+  Log("Writing PC: 0x%lx at addr 0x%x", cpu.pc, PC_CPT_ADDR);
 
-  Log("Touching 0x%x at addr 0x%x\n", CPT_MAGIC_BUMBER, BOOT_FLAGS);
+
+//  csr_writeback();
+  auto *csrCpt = (uint64_t *) (getPmem() + CSRStartAddr);
+//  Log("csrCpt: %p\n",csrCpt);
+//  Log("Mstatus: 0x%x", mstatus->val);
+//  Log("CSR array mstatus: 0x%x", csr_array[0x300]);
+  for (unsigned i = 0; i < 4096; i++) {
+    *(csrCpt + i) = csr_array[i];
+//    Log("csrCpt + %i: %p\n", i, csrCpt + i);
+//    if (csr_array[i] != 0) {
+//      Log("CSR 0x%x: 0x%x", i, csr_array[i]);
+//    }
+  }
+  Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+      CSR_CPT_ADDR, CSR_CPT_ADDR + 4096 * 8,
+      CSRStartAddr, CSRStartAddr + 4096 * 8
+      );
+
+
   auto *flag = (uint64_t *) (getPmem() + CptFlagAddr);
   *flag = CPT_MAGIC_BUMBER;
+  Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAGS);
 
   regDumped = true;
 }
 
 void Serializer::serialize() {
+//  isa_reg_display();
   serializeRegs();
   serializePMem();
-  pathManager.incCptID();
+
   simpoint2Weights.erase(simpoint2Weights.begin());
+
+  if (!simpoint2Weights.empty()) {
+    pathManager.incCptID();
+  }
+//  isa_reg_display();
 }
 
 void Serializer::deserialize(const char *file) {
@@ -145,15 +173,17 @@ void Serializer::init() {
 }
 
 bool Serializer::shouldTakeCpt(uint64_t num_insts) {
-  if (simpoint_state != SimpointCheckpointing) {
+  if (simpoint_state != SimpointCheckpointing ||
+      simpoint2Weights.empty()) {
     return false;
   }
-  if (num_insts == simpoint2Weights.begin()->first * intervalSize + 1) {
+  uint64_t next_point = simpoint2Weights.begin()->first * intervalSize + 100000;
+  if (num_insts == next_point) {
     Log("Should take cpt now: %lu", num_insts);
     return true;
   } else if (num_insts % intervalSize == 0) {
     Log("First cpt @ %lu, now: %lu",
-        simpoint2Weights.begin()->first * intervalSize + 1, num_insts);
+        next_point, num_insts);
   }
   return false;
 }

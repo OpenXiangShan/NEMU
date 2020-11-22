@@ -173,15 +173,15 @@ void init_monitor(int argc, char *argv[]) {
   init_log(log_file);
 
   long img_size = 0;
-  if (!cpt_file) {
+  if (simpoint_state != CheckpointRestoring) {
     /* Fill the memory with garbage content. */
     init_mem();
   }
 
-    /* Perform ISA dependent initialization. */
-    init_isa();
+  /* Perform ISA dependent initialization. */
+  init_isa();
 
-  if (!cpt_file) {
+  if (simpoint_state != CheckpointRestoring) {
     /* Load the image to memory. This will overwrite the built-in image. */
     img_size = load_img();
 
@@ -196,7 +196,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize the watchpoint pool. */
   init_wp_pool();
 
-  if (!cpt_file) {
+  if (simpoint_state != CheckpointRestoring) {
     /* Initialize differential testing. */
     init_difftest(diff_so_file, img_size, difftest_port);
   }
