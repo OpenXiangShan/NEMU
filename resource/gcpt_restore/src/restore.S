@@ -20,6 +20,10 @@ restore_csr_vector:
   li t0, CSR_CPT_ADDR
   CSRS(CSRS_RESTORE)
 
+#ifndef __INT_ONLY__
+  FCSRS(CSRS_RESTORE)
+#endif
+
   # set MPIE to the value of MIE
   csrr t0, CSR_MSTATUS
   li t1, MSTATUS_MIE
@@ -33,7 +37,10 @@ restore_csr_vector:
   # set MPP to U mode
   li t0, MSTATUS_MPP
   csrc CSR_MSTATUS, t0
-  
+
+#ifdef __INT_ONLY__
+  j restore_pc_vector
+#endif
 
 restore_float_vector:
   li sp, FLOAT_REG_CPT_ADDR # load float section addr

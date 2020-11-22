@@ -3,6 +3,8 @@
 
 //no mhartid here
 
+ #define __INT_ONLY__
+
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
@@ -14,8 +16,11 @@
   f(sie        , 0x104) f(stvec      , 0x105) f(scounteren , 0x106) \
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
-  f(satp       , 0x180) \
+  f(satp       , 0x180)
+
+#define FCSRS(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
+
 
 
 #define CSRS_RESTORE(name, addr) \
