@@ -73,11 +73,12 @@ struct hash<BasicBlockRange>
 };
 }
 
-namespace SimPointNS {
-
 class SimPoint
 {
   public:
+    using BasicBlockRange = SimPointNS::BasicBlockRange;
+    using Addr = SimPointNS::Addr;
+
     SimPoint();
 
     ~SimPoint();
@@ -123,8 +124,7 @@ class SimPoint
 
 };
 
-}
 
-extern SimPointNS::SimPoint simPoint;
+extern SimPoint simPoint;
 
 #endif // __CPU_SIMPLE_PROBES_SIMPOINT_HH__

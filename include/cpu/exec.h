@@ -11,7 +11,7 @@
 static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   uint32_t instr = vaddr_ifetch(*pc, len);
 #ifdef DEBUG
-  uint8_t *p_instr = (void *)&instr;
+  uint8_t *p_instr = (uint8_t *)&instr;
   int i;
   for (i = 0; i < len; i ++) {
     extern char log_bytebuf[];

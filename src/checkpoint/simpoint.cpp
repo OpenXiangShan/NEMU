@@ -48,9 +48,6 @@
 #include <debug.h>
 #include <monitor/monitor.h>
 
-namespace SimPointNS
-{
-
 SimPoint::SimPoint()
     : intervalCount(0),
       intervalDrift(0),
@@ -144,9 +141,7 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
   }
 }
 
-}
-
-SimPointNS::SimPoint simPoint;
+SimPoint simPoint;
 
 void init_simpoint()
 {
