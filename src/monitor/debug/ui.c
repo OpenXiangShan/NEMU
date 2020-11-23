@@ -253,7 +253,7 @@ void ui_mainloop() {
   }
 
   if (cpt_file) {
-    serializer.deserialize(cpt_file);
+    serializer.unserialize(cpt_file);
   }
 
   for (char *str; (str = rl_gets()) != NULL; ) {

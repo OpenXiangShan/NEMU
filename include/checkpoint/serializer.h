@@ -21,7 +21,7 @@ class Serializer
 
     explicit Serializer();
 
-    void deserialize(const char *file);
+    void unserialize(const char *file);
 
     void init();
 

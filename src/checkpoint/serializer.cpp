@@ -10,9 +10,9 @@
 #include <iostream>
 #include <zlib.h>
 #include <limits>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <isa.h>
-
 #include <fstream>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
@@ -131,23 +131,60 @@ void Serializer::serialize() {
 //  isa_reg_display();
 }
 
-void Serializer::deserialize(const char *file) {
+void Serializer::unserialize(const char *file) {
 
-  FILE *fp = fopen(file, "rb");
-  if (fp == NULL) Log("Checkpoint not found\n");
-  Assert(fp, "Can not open '%s'", file);
+  if (!boost::algorithm::ends_with(file, ".gz")) {
+    // process raw binary
+    FILE *fp = fopen(file, "rb");
+    if (fp == NULL) Log("Checkpoint not found\n");
+    Assert(fp, "Can not open '%s'", file);
 
-  Log("Opening restorer file: %s", file);
-  fseek(fp, 0, SEEK_END);
-  long size = ftell(fp);
-  if (size < PMEM_SIZE) {
-    Log("Cpt size = %ld is too large, only load 0xlu", size, PMEM_SIZE);
-    size = PMEM_SIZE;
+    Log("Opening restorer file: %s", file);
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    if (size < PMEM_SIZE) {
+      Log("Cpt size = %ld is too large, only load 0xlu", size, PMEM_SIZE);
+      size = PMEM_SIZE;
+    }
+
+    fseek(fp, 0, SEEK_SET);
+    int ret = fread(guest_to_host(RESTORER_START), size, 1, fp);
+    assert(ret == 1);
+
+  } else {
+
+    gzFile compressed_mem = gzopen(file, "rb");
+    if (compressed_mem == nullptr) {
+      panic("Can't open physical memory checkpoint file '%s'", file);
+    }
+
+    uint64_t curr_size = 0;
+    const uint32_t chunk_size = 16384;
+    long *temp_page = new long[chunk_size];
+    long *pmem_current;
+
+    while (curr_size < PMEM_SIZE) {
+      uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
+      if (bytes_read == 0) {
+        break;
+      }
+      assert(bytes_read % sizeof(long) == 0);
+      for (uint32_t x = 0; x < bytes_read / sizeof(long); x++) {
+        if (*(temp_page + x) != 0) {
+          pmem_current = (long*)(getPmem() + curr_size + x * sizeof(long));
+          *pmem_current = *(temp_page + x);
+        }
+      }
+      curr_size += bytes_read;
+    }
+    Log("Read %lu bytes from gz stream in total", curr_size);
+
+    delete [] temp_page;
+
+    if (gzclose(compressed_mem)) {
+      panic("Error closing '%s'\n", file);
+    }
   }
-
-  fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(RESTORER_START), size, 1, fp);
-  assert(ret == 1);
 }
 
 void Serializer::init() {
