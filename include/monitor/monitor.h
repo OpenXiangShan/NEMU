@@ -29,5 +29,6 @@ extern char *config_name;
 extern char *simpoints_dir;
 extern int simpoint_state;
 extern int cpt_id;
+extern unsigned simpoint_interval;
 
 #endif

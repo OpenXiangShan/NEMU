@@ -28,6 +28,7 @@ char *workload_name = nullptr;
 char *simpoints_dir = nullptr;
 int simpoint_state = NoSimpoint;
 int cpt_id = -1;
+unsigned simpoint_interval = 0;
 
 int is_batch_mode() { return batch_mode; }
 
@@ -100,6 +101,7 @@ static inline void parse_args(int argc, char *argv[]) {
     {"workload-name"      , required_argument, NULL, 'w'},
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"cpt"                , required_argument, NULL, 'c'},
+    {"interval"           , required_argument, NULL, 5},
     {"help"               , no_argument      , NULL, 'h'},
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"cpt-id"             , required_argument, NULL, 4},
@@ -112,11 +114,17 @@ static inline void parse_args(int argc, char *argv[]) {
       case 3:
         assert(simpoint_state == NoSimpoint);
         simpoint_state = SimpointProfiling;
+        Log("Doing SimpointProfiling");
         break;
 
       case 4:
         sscanf(optarg, "%d", &cpt_id);
         break;
+
+      case 5:
+        sscanf(optarg, "%u", &simpoint_interval);
+        break;
+
 
       case 'b': batch_mode = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
@@ -131,12 +139,14 @@ static inline void parse_args(int argc, char *argv[]) {
         assert(simpoint_state == NoSimpoint);
         cpt_file = optarg;
         simpoint_state = CheckpointRestoring;
+        Log("Doing CheckpointRestoring");
         break;
 
       case 'S':
         assert(simpoint_state == NoSimpoint);
         simpoints_dir = optarg;
         simpoint_state = SimpointCheckpointing;
+        Log("Doing SimpointCheckpointing");
         break;
 
       case 1:
@@ -157,6 +167,7 @@ static inline void parse_args(int argc, char *argv[]) {
         printf("\t-C,--config=CONFIG      running configuration\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--cpt-id                checkpoint id\n");
+        printf("\t--interval              simpoint interval\n");
         printf("\n");
         exit(0);
     }

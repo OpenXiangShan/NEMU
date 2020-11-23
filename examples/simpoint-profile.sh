@@ -1,1 +1,1 @@
-./build/riscv64-nemu-interpreter $AM_HOME/apps/microbench/build/microbench-riscv64-noop.bin --simpoint-profile -D outputs -C simpoint_profile -w microbench
+./build/riscv64-nemu-interpreter $AM_HOME/apps/microbench/build/microbench-riscv64-noop.bin -D outputs -w microbench -C simpoint_profile --simpoint-profile --interval=1000000

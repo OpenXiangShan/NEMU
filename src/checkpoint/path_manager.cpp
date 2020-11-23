@@ -20,6 +20,8 @@ void PathManager::init() {
   assert(workload_name);
   workloadName = workload_name;
 
+  cptID = -1;
+
   if (cpt_id != -1) {
     cptID = cpt_id;
   }

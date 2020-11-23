@@ -152,6 +152,8 @@ void Serializer::deserialize(const char *file) {
 
 void Serializer::init() {
   if  (simpoint_state == SimpointCheckpointing) {
+    assert(simpoint_interval);
+    intervalSize = simpoint_interval;
     Log("Taking simpoint checkpionts with interval %lu", intervalSize);
 
     auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0");
