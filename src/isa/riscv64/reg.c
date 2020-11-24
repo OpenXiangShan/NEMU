@@ -158,5 +158,6 @@ void change_mode(uint8_t m) {
 }
 
 bool able_to_take_cpt() {
-  return cpu.mode == MODE_M;
+//  return true;
+  return cpu.mode != MODE_M;
 }
