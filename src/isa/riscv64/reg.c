@@ -156,3 +156,7 @@ void change_mode(uint8_t m) {
   assert(m < 4 && m != MODE_H);
   cpu.mode = m;
 }
+
+bool able_to_take_cpt() {
+  return cpu.mode == MODE_M;
+}

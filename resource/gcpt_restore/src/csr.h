@@ -3,7 +3,7 @@
 
 //no mhartid here
 
- #define __INT_ONLY__
+#define __INT_ONLY__
 
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \

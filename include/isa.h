@@ -18,6 +18,8 @@ extern rtlreg_t csr_array[4096];
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, nemu_bool *success);
 
+bool able_to_take_cpt();
+
 // exec
 vaddr_t isa_exec_once();
 

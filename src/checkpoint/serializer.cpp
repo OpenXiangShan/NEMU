@@ -99,11 +99,22 @@ void Serializer::serializeRegs() {
 //  Log("Mstatus: 0x%x", mstatus->val);
 //  Log("CSR array mstatus: 0x%x", csr_array[0x300]);
   for (unsigned i = 0; i < 4096; i++) {
-    *(csrCpt + i) = csr_array[i];
-//    Log("csrCpt + %i: %p\n", i, csrCpt + i);
-//    if (csr_array[i] != 0) {
-//      Log("CSR 0x%x: 0x%x", i, csr_array[i]);
-//    }
+    rtlreg_t val = csr_array[i];
+
+    if ((void *)mip == (void *)&csr_array[i]) {
+      mip_t mip_tmp = *mip;
+      if (mip_tmp.mtip) {
+        mip_tmp.mtip = 0;
+      }
+//      Log("Saving mip: 0x%x", mip_tmp.val);
+      val = mip_tmp.val;
+    }
+
+    *(csrCpt + i) = val;
+
+    if (csr_array[i] != 0) {
+      Log("CSR 0x%x: 0x%lx", i, *(csrCpt + i));
+    }
   }
   Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
       CSR_CPT_ADDR, CSR_CPT_ADDR + 4096 * 8,
@@ -123,11 +134,6 @@ void Serializer::serialize() {
   serializeRegs();
   serializePMem();
 
-  simpoint2Weights.erase(simpoint2Weights.begin());
-
-  if (!simpoint2Weights.empty()) {
-    pathManager.incCptID();
-  }
 //  isa_reg_display();
 }
 
@@ -228,7 +234,12 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
 }
 
 void Serializer::notify_taken(uint64_t i) {
+  Log("Taking checkpoint @ instruction count %lu", i);
+  simpoint2Weights.erase(simpoint2Weights.begin());
 
+  if (!simpoint2Weights.empty()) {
+    pathManager.incCptID();
+  }
 }
 
 Serializer serializer;

@@ -222,4 +222,6 @@ enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
 void change_mode(uint8_t m);
 nemu_bool ptw_is_safe(vaddr_t vaddr);
 
+bool able_to_take_cpt();
+
 #endif

@@ -70,8 +70,8 @@ void cpu_exec(uint64_t n) {
 
     g_nr_guest_instr ++;
 
-    // if (serializer.shouldTakeCpt(g_nr_guest_instr) && able_to_take_cpt()) {
-    if (serializer.shouldTakeCpt(g_nr_guest_instr)) {
+    if (serializer.shouldTakeCpt(g_nr_guest_instr) && able_to_take_cpt()) {
+//    if (serializer.shouldTakeCpt(g_nr_guest_instr)) {
       serializer.serialize();
       serializer.notify_taken(g_nr_guest_instr); // tell them the drift
     }
