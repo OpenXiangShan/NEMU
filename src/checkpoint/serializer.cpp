@@ -126,6 +126,10 @@ void Serializer::serializeRegs() {
   *flag = CPT_MAGIC_BUMBER;
   Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAGS);
 
+  auto *mode_flag = (uint64_t *) (getPmem() + CptFlagAddr + 8);
+  *mode_flag = cpu.mode;
+  Log("Record mode flag: 0x%x at addr 0x%x", cpu.mode, BOOT_FLAGS+8);
+
   regDumped = true;
 }
 

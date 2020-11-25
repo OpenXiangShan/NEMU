@@ -8,6 +8,7 @@
 
 boot_decide_vector:
   li t1, BOOT_FLAGS
+  ld s2, 8(t1) #load mode flag into s2
   ld t1, (t1)
   li t2, CPT_MAGIC_BUMBER
   beq t1, t2,1f
@@ -20,10 +21,6 @@ restore_csr_vector:
   li t0, CSR_CPT_ADDR
   CSRS(CSRS_RESTORE)
 
-#ifndef __INT_ONLY__
-  FCSRS(CSRS_RESTORE)
-#endif
-
   # set MPIE to the value of MIE
   csrr t0, CSR_MSTATUS
   li t1, MSTATUS_MIE
@@ -34,13 +31,17 @@ restore_csr_vector:
   # clear MIE
   csrc CSR_MSTATUS, t1
 
-  # set MPP to U mode
-  li t0, MSTATUS_MPP
+  li t0, MSTATUS_MPP # MPP is M
+  slli t1, s2, 11 # mode flag shift to MPP
+2:
+  beq t0, t1, 2b #stuck if mode flag is M
+  # set MPP to mode flag (U or S), clear and set
   csrc CSR_MSTATUS, t0
+  csrs CSR_MSTATUS, t1
 
-#ifdef __INT_ONLY__
-  j restore_pc_vector
-#endif
+  csrr s0, CSR_MSTATUS
+  srli t0, s0, 63
+  beqz t0, restore_pc_vector
 
 restore_float_vector:
   li sp, FLOAT_REG_CPT_ADDR # load float section addr
