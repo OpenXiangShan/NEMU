@@ -5,6 +5,7 @@
 #include "checkpoint/path_manager.h"
 #include "checkpoint/serializer.h"
 #include "../isa/riscv64/local-include/csr.h"
+#include <device/map.h>
 
 #include <cinttypes>
 #include <iostream>
@@ -129,6 +130,14 @@ void Serializer::serializeRegs() {
   auto *mode_flag = (uint64_t *) (getPmem() + CptFlagAddr + 8);
   *mode_flag = cpu.mode;
   Log("Record mode flag: 0x%x at addr 0x%x", cpu.mode, BOOT_FLAGS+8);
+
+  auto *mtime = (uint64_t *) (getPmem() + CptFlagAddr + 16);
+  *mtime = paddr_read(CLINT_MMIO+0xBFF8,8);
+  Log("Record time: 0x%x at addr 0x%x", cpu.mode, BOOT_FLAGS+16);
+
+  auto *mtime_cmp = (uint64_t *) (getPmem() + CptFlagAddr + 24);
+  *mtime_cmp = paddr_read(CLINT_MMIO+0x4000,8);
+  Log("Record time: 0x%x at addr 0x%x", cpu.mode, BOOT_FLAGS+24);
 
   regDumped = true;
 }

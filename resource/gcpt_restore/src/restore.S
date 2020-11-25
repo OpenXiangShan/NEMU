@@ -7,9 +7,8 @@
   .globl boot_decide_vector
 
 boot_decide_vector:
-  li t1, BOOT_FLAGS
-  ld s2, 8(t1) #load mode flag into s2
-  ld t1, (t1)
+  li s0, BOOT_FLAGS  
+  ld t1, (s0) #load boot flag
   li t2, CPT_MAGIC_BUMBER
   beq t1, t2,1f
   j RESET_VECTOR
@@ -32,6 +31,7 @@ restore_csr_vector:
   csrc CSR_MSTATUS, t1
 
   li t0, MSTATUS_MPP # MPP is M
+  ld s2, 8(s0) #load mode flag into s2
   slli t1, s2, 11 # mode flag shift to MPP
 2:
   beq t0, t1, 2b #stuck if mode flag is M
@@ -39,8 +39,17 @@ restore_csr_vector:
   csrc CSR_MSTATUS, t0
   csrs CSR_MSTATUS, t1
 
-  csrr s0, CSR_MSTATUS
-  srli t0, s0, 63
+  # set mtime (inaccurate) and mtimecmp
+  li t0, CLINT_MMIO+CLINT_MTIMECMP
+  ld t1, 24(s0)
+  sd t1, (t0)
+  
+  li t0, CLINT_MMIO+CLINT_MTIME
+  ld t1, 16(s0)
+  sd t1, (t0)
+
+  csrr t1, CSR_MSTATUS
+  srli t0, t1, 63
   beqz t0, restore_pc_vector
 
 restore_float_vector:

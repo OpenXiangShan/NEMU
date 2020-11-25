@@ -10,4 +10,8 @@
 #define CSR_CPT_ADDR        0x80001300
 #define RESET_VECTOR        0x800a0000
 
+#define CLINT_MMIO 0x38000000
+#define CLINT_MTIMECMP 0x4000
+#define CLINT_MTIME 0xBFF8
+
 #endif //__RESTORE_ROM_ADDR__
