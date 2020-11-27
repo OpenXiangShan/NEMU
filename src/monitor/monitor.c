@@ -8,6 +8,7 @@
 
 void init_log(const char *log_file);
 void init_mem();
+void allocate_mem();
 void init_regex();
 void init_wp_pool();
 void init_device();
@@ -183,7 +184,8 @@ void init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log(log_file);
 
-  long img_size = 0;
+  allocate_mem();
+
   if (simpoint_state != CheckpointRestoring) {
     /* Fill the memory with garbage content. */
     init_mem();
@@ -192,6 +194,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
+  long img_size = 0;
   if (simpoint_state != CheckpointRestoring) {
     /* Load the image to memory. This will overwrite the built-in image. */
     img_size = load_img();

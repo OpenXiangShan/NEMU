@@ -12,7 +12,7 @@
 #define riscv64_IMAGE_START 0x0
 #endif
 
-#define riscv64_PMEM_BASE 0x80000000
+#define riscv64_PMEM_BASE ((uint64_t)0x80000000)
 
 // #define ENABLE_DISAMBIGUATE
 #define FORCE_RAISE_PF

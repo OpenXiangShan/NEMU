@@ -4,14 +4,30 @@
 #include <device/map.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/mman.h>
 
-static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
-nemu_bool pmem_dirty[PMEM_SIZE] PG_ALIGN = {0};
+uint8_t *pmem;
+nemu_bool *pmem_dirty;
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
 paddr_t host_to_guest(void *addr) { return (uint8_t *)pmem - (uint8_t *)addr; }
 
 IOMap* fetch_mmio_map(paddr_t addr);
+
+
+void allocate_mem() {
+  int map_flags = MAP_ANON | MAP_PRIVATE | MAP_NORESERVE;
+  pmem = (uint8_t*) mmap(NULL, PMEM_SIZE, PROT_READ | PROT_WRITE, map_flags, -1, 0);
+  if (pmem == (uint8_t *)MAP_FAILED) {
+      panic("Failed to Allocate %lu Bytes space for NEMU\n");
+  }
+  Log("Main memory is at [0x%lx, 0x%lx]", PMEM_BASE, PMEM_BASE + PMEM_SIZE);
+
+  pmem_dirty = (uint8_t*) mmap(NULL, PMEM_SIZE, PROT_READ | PROT_WRITE, map_flags, -1, 0);
+  if (pmem_dirty == (uint8_t *)MAP_FAILED) {
+    panic("Failed to Allocate %lu Bytes space for NEMU\n");
+  }
+}
 
 void init_mem() {
 #if !defined(DIFF_TEST) && !defined(__SIMPOINT)
