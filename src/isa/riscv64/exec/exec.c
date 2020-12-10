@@ -257,9 +257,7 @@ vaddr_t isa_exec_once() {
   }
   update_pc(&s);
 
-  if (s.is_control) {
-    simPoint.profile(s.seq_pc, s.is_control, true);
-  }
+  simPoint.profile(s.seq_pc, s.is_control, true);
 
 #if !defined(DIFF_TEST) && !_SHARE
   void query_intr(DecodeExecState *s);
