@@ -42,5 +42,6 @@ void init_isa(void) {
 
   init_clint();
   extern void init_sdcard(const char *img);
-  init_sdcard("/home/zyy/projects/NEMU/rv-debian-spec-6G.img");
+  extern char *sdcard_img;
+  init_sdcard(sdcard_img);
 }

@@ -27,6 +27,7 @@ char *stats_base_dir = nullptr;
 char *config_name = nullptr;
 char *workload_name = nullptr;
 char *simpoints_dir = nullptr;
+char *sdcard_img = nullptr;
 int simpoint_state = NoSimpoint;
 int cpt_id = -1;
 unsigned simpoint_interval = 0;
@@ -106,6 +107,7 @@ static inline void parse_args(int argc, char *argv[]) {
     {"help"               , no_argument      , NULL, 'h'},
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"cpt-id"             , required_argument, NULL, 4},
+    {"sdcard-img"         , required_argument, NULL, 6},
     {0                    , no_argument      , NULL, 0},
   };
   int o;
@@ -118,14 +120,9 @@ static inline void parse_args(int argc, char *argv[]) {
         Log("Doing SimpointProfiling");
         break;
 
-      case 4:
-        sscanf(optarg, "%d", &cpt_id);
-        break;
-
-      case 5:
-        sscanf(optarg, "%u", &simpoint_interval);
-        break;
-
+      case 4: sscanf(optarg, "%d", &cpt_id); break;
+      case 5: sscanf(optarg, "%u", &simpoint_interval); break;
+      case 6: sdcard_img = optarg; break;
 
       case 'b': batch_mode = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
@@ -169,6 +166,7 @@ static inline void parse_args(int argc, char *argv[]) {
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--cpt-id                checkpoint id\n");
         printf("\t--interval              simpoint interval\n");
+        printf("\t--sdcard-img            sdcard image file\n");
         printf("\n");
         exit(0);
     }
