@@ -1,5 +1,3 @@
-*.*
-*
 !*/
 !Makefile*
 !*.[cSh]
@@ -8,3 +6,12 @@
 !README.md
 !runall.sh
 cmake-build-debug
+*.txt
+*log*
+*.img
+.ycm_extra_conf.py
+.idea
+outputs*
+/build/
+/resource/gcpt_restore/build/
+/bbl_kernel_gen/
