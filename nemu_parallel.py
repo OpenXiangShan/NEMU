@@ -12,26 +12,67 @@ from multiprocessing import Pool
 # -D outputs -w xz_cpu2006 -C simpoint_profile --simpoint-profile --interval 100000000 -b
 
 class BatchTask:
-    def __init__(self, ver):
+    def __init__(self, ver, taskname):
         self.ver = ver
         self.top_out_dir = 'outputs3'
-        self.task_name = f'simpoint_profile_{self.ver}'
+        self.task = taskname
+        self.task_name = taskname + f'_{self.ver}'
+
+        self.simpoint_profile_dir = None
+        if taskname == 'take_simpoint_checkpoint':
+            self.simpoint_profile_dir = f'{self.top_out_dir}/simpoint_profile_{self.ver}'
+
+        self.task_options = {
+        'simpoint_profile': [
+            '--interval', '50000000',
+            '-D', self.top_out_dir,
+            '--simpoint-profile',
+            ],
+
+        'take_simpoint_checkpoint': [
+            '--interval', '50000000',
+            '-D', self.top_out_dir,
+            '-S', self.simpoint_profile_dir,
+            ],
+        }
+        self.extra_options = self.task_options[taskname]
+
+    def check_prereq(self, w):
+        if self.task == 'simpoint_profile':
+            return True
+
+        if self.task == 'take_simpoint_checkpoint':
+            flag = True
+            if not osp.isfile(pjoin(self.simpoint_profile_dir, w, 'weights0')):
+                print(pjoin(self.simpoint_profile_dir, w, 'weights0'), 'not found')
+                flag = False
+            if not osp.isfile(pjoin(self.simpoint_profile_dir, w, 'simpoints0')):
+                flag = False
+            return flag
+
+        return False
 
 
     def run(self, t):
         workload, bbl_file, output_dir = t
+
+        if not self.check_prereq(workload):
+            print(f'{workload}`s prerequisite is not satisfied')
+            return
+
         if not osp.isdir(output_dir):
             os.makedirs(output_dir)
         nemu = sh.Command('build/riscv64-nemu-interpreter')
         options = [
                 bbl_file,
-                '-D', self.top_out_dir,
                 '-C', self.task_name,
                 '-w', workload,
-                '--simpoint-profile',
-                '--interval', '50000000',
+
+                # common options
+                '--sdcard-img', './rv-debian-spec-6G-fix-sphinx.img',
                 '-b'
                 ]
+        options += self.extra_options
         print(options)
 
         sh.rm(['-f', pjoin(output_dir, 'aborted')])
@@ -51,10 +92,11 @@ class BatchTask:
             sh.rm(pjoin(output_dir, 'running'))
             sh.touch(pjoin(output_dir, 'aborted'))
 
-            sys.exit(0)
+            return
 
         sh.rm(pjoin(output_dir, 'running'))
         sh.touch(pjoin(output_dir, 'completed'))
+        return
 
 def main():
     parser = argparse.ArgumentParser()
@@ -62,10 +104,16 @@ def main():
             type=str, action='store', required=True)
     parser.add_argument('-w', '--workload', help='a specific workload',
             type=str, action='store', required=False)
+    parser.add_argument('-t', '--task', help='task name',
+            type=str, action='store', required=True,
+            choices=[
+                'simpoint_profile', 'take_simpoint_checkpoint']
+            )
+
     args = parser.parse_args()
 
     ver = args.spec_version
-    bt = BatchTask(ver)
+    bt = BatchTask(ver, args.task)
 
     bbl_dir = f'bbl_kernel_gen/spec{ver}_bbl'
     tuples = []
