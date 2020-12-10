@@ -28,9 +28,7 @@
 
 #define xpanic(...) \
   do { \
-      printf("\33[1;31m"); \
       printf(__VA_ARGS__); \
-      printf("\33[0m\n"); \
       assert(0); \
   } while (0)
 

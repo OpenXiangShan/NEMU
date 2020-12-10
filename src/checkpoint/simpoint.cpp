@@ -57,9 +57,6 @@ SimPoint::SimPoint()
 }
 
 SimPoint::~SimPoint() {
-  if (simpoint_state == SimpointProfiling) {
-    simout.close(simpointStream);
-  }
 }
 
 void

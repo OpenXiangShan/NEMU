@@ -15,3 +15,7 @@ outputs*
 /build/
 /resource/gcpt_restore/build/
 /bbl_kernel_gen/
+/src/iostream3/README
+/src/iostream3/SConscript
+/src/iostream3/TODO
+/src/iostream3/test.cc
