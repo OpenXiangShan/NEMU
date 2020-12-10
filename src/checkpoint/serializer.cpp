@@ -37,7 +37,9 @@ void Serializer::serializePMem() {
   assert(regDumped);
 
   uint8_t *pmem = getPmem();
-  string filepath = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->second) + "_.gz";
+  string filepath = pathManager.getOutputPath() + "_" + \
+                    to_string(simpoint2Weights.begin()->first) + "_" + \
+                    to_string(simpoint2Weights.begin()->second) + "_.gz";
 
   gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
   if (compressed_mem == nullptr) {

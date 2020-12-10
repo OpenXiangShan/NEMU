@@ -30,6 +30,8 @@ class PathManager
 
     void incCptID();
 
+    int getCptID() const {return cptID;}
+
     std::string getOutputPath() const;
 
     std::string getSimpointPath() const;
