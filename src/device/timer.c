@@ -12,9 +12,11 @@ static uint32_t *rtc_port_base = NULL;
 static void rtc_io_handler(uint32_t offset, int len, bool is_write) {
   assert(offset == 0 || offset == 4);
   if (!is_write && offset == 4) {
-    clock_t c = clock();
-    rtc_port_base[0] = (uint32_t)c;
-    rtc_port_base[1] = c >> 32;
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+    uint64_t us = now.tv_sec * 1000000 + now.tv_nsec / 1000;
+    rtc_port_base[0] = (uint32_t)us;
+    rtc_port_base[1] = us >> 32;
   }
 }
 
