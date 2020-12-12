@@ -91,10 +91,8 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
    * That is, use ``NO'' to index the IDT.
    */
 
-  TODO();
 }
 
 void query_intr(DecodeExecState *s) {
-  TODO();
 }
 #endif

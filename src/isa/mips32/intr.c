@@ -10,9 +10,7 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t epc) {
    * That is, use ``NO'' to index the IDT.
    */
 
-#ifdef __ICS_EXPORT
-  TODO();
-#else
+#ifndef __ICS_EXPORT
 #define EX_ENTRY 0x80000180
   vaddr_t target = (NO & TLB_REFILL) ? 0x80000000 : EX_ENTRY;
   NO &= ~TLB_REFILL;

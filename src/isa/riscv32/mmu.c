@@ -80,11 +80,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pte.ppn << 12;
 }
 
-paddr_t isa_mmu_translate(vaddr_t addr, int type, int len) {
-  return ptw(addr, type) | MEM_RET_OK;
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+  return ptw(vaddr, type) | MEM_RET_OK;
 }
 #else
-paddr_t isa_mmu_translate(vaddr_t addr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   return MEM_RET_FAIL;
 }
 #endif

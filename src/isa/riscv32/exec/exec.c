@@ -67,7 +67,10 @@ static inline def_EHelper(system) {
 
 static inline void fetch_decode_exec(DecodeExecState *s) {
   s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
-  assert(s->isa.instr.i.opcode1_0 == 0x3);
+  if (s->isa.instr.i.opcode1_0 != 0x3) {
+    exec_inv(s);
+    return;
+  }
   switch (s->isa.instr.i.opcode6_2) {
 #ifdef __ICS_EXPORT
     IDEX (0b00000, I, load)
