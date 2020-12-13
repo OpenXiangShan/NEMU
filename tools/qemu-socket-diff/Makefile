@@ -45,6 +45,5 @@ $(BINARY): $(OBJS)
 	@echo + LD $@
 	@$(LD) -O2 -rdynamic -shared -fPIC -o $@ $^
 
-
 clean: 
 	-rm -rf $(BUILD_DIR)
