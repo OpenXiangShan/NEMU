@@ -3,7 +3,7 @@
 #include <setjmp.h>
 #include _ISA_DIFF_TEST_H_
 
-static int (*qemu_cpu_physical_memory_rw)(long addr, uint8_t *buf, int len, int is_write) = NULL;
+static void (*qemu_cpu_physical_memory_rw)(long addr, uint8_t *buf, int len, int is_write) = NULL;
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_gdb_read_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_cpu_exec)(void *) = NULL;
@@ -15,8 +15,13 @@ void init_isa();
 void dl_load(char *argv[]);
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
-  int ret = qemu_cpu_physical_memory_rw(addr, buf, n, to_ref);
-  assert(ret == 0);
+#ifdef __ISA_mips32__
+  // It seems that qemu-system-mips treat 0x80000000 as a virtual address.
+  // We should do the subtraction to get the address
+  // which qemu-system-mips considers physical.
+  addr -= 0x80000000;
+#endif
+  qemu_cpu_physical_memory_rw(addr, buf, n, to_ref);
 }
 
 void difftest_regcpy(void *dut, bool to_ref) {

@@ -18,7 +18,8 @@ BINARY ?= $(BUILD_DIR)/$(ISA)-qemu-so
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -fPIC -MMD -Wall -Werror -DNEMU_HOME=$(NEMU_HOME) $(INCLUDES) \
+CFLAGS   += -O2 -fPIC -MMD -Wall -Werror \
+            -D__ISA_$(ISA)__ -DNEMU_HOME=$(NEMU_HOME) $(INCLUDES) \
             -D_ISA_DIFF_TEST_H_=\"$(NEMU_HOME)/src/isa/$(ISA)/difftest/difftest.h\"
 
 # Files to be compiled
