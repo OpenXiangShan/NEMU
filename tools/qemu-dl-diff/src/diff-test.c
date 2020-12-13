@@ -2,7 +2,7 @@
 #include <elf.h>
 #include <setjmp.h>
 
-static int (*qemu_cpu_memory_rw_debug)(void *cpu, long addr, uint8_t *buf, int len, int is_write) = NULL;
+static int (*qemu_cpu_physical_memory_rw)(long addr, uint8_t *buf, int len, int is_write) = NULL;
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_gdb_read_register)(void *cpu, uint8_t *buf, int reg) = NULL;
 static int (*qemu_cpu_exec)(void *) = NULL;
@@ -11,7 +11,7 @@ static void (*qemu_do_interrupt_all)(void *cpu, int intno,
 static void *qemu_cpu = NULL;
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
-  int ret = qemu_cpu_memory_rw_debug(qemu_cpu, addr, buf, n, to_ref);
+  int ret = qemu_cpu_physical_memory_rw(addr, buf, n, to_ref);
   assert(ret == 0);
 }
 
@@ -63,7 +63,7 @@ void difftest_init(int port) {
 void* get_loaded_addr(char *sym, int type);
 
 void difftest_init_late() {
-  qemu_cpu_memory_rw_debug = get_loaded_addr("cpu_memory_rw_debug", STT_FUNC);
+  qemu_cpu_physical_memory_rw = get_loaded_addr("cpu_physical_memory_rw", STT_FUNC);
   qemu_gdb_write_register = get_loaded_addr("gdb_write_register", STT_FUNC);
   qemu_gdb_read_register = get_loaded_addr("gdb_read_register", STT_FUNC);
   qemu_cpu_exec = get_loaded_addr("cpu_exec", STT_FUNC);
