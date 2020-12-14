@@ -65,7 +65,7 @@ void tlbp() {
       return;
     }
   }
-  cpu.index = 0x80000000;
+  cpu.index |= 0x80000000;
 }
 
 static inline int32_t search_ppn(vaddr_t addr, int type) {
