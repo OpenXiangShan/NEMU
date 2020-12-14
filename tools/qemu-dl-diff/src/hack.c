@@ -190,6 +190,7 @@ static uintptr_t get_sym_addr(const char *sym, int type) {
       return symtab[i].st_value;
     }
   }
+  printf("symbol not found: sym = %s\n", sym);
   assert(0);
 }
 
@@ -263,7 +264,7 @@ static inline void hack_fun_return_void(char *funname) {
   hack_fun_entry(funname, code, sizeof(code), true);
 }
 
-static inline void hack_fun_return_1(char *funname) {
+void hack_fun_return_1(char *funname) {
   const uint8_t code[] = {
     0xb8, 0x01, 0x00, 0x00, 0x00, // mov $0x1, %eax
     0xc3, // ret
@@ -287,7 +288,6 @@ static void hack_prepare(Info *info) {
   hack_main_loop_wait();
   hack_fun_return_1("qemu_cpu_is_self");
   hack_fun_return_void("os_setup_signal_handling");
-  hack_fun_return_1("x86_cpu_has_work");
 }
 
 void dl_load(char *argv[]) {

@@ -6,7 +6,7 @@
 
 #define ISA_QEMU_BIN "qemu-system-mipsel"
 #define ISA_QEMU_ARGS "-machine", "mipssim",\
-  "-kernel", str(NEMU_HOME) "/tools/qemu-diff/src/isa/mips32/mips.dummy",
+  "-kernel", str(NEMU_HOME) "/resource/mips-elf/mips.dummy",
 
 #include "../../../../src/isa/mips32/difftest/difftest.h"
 
