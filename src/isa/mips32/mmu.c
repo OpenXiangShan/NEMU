@@ -105,6 +105,6 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
 #else
   int32_t ppn = search_ppn(vaddr, type);
   if (ppn == -1) return MEM_RET_FAIL;
-  return ((uint32_t)ppn << 12) | MEM_RET_OK;
+  return ((uint32_t)(ppn << 12) + 0x80000000) | MEM_RET_OK;
 #endif
 }
