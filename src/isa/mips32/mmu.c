@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define NR_TLB 128
+#define NR_TLB 16
 
 typedef union {
   struct {
