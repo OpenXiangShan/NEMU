@@ -24,7 +24,6 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   rtl_andi(s, s0, s0, 0xffff0000);
   rtl_or(s, s1, s1, s0);
 
-#ifndef __PA__
   if ((new_cs & 0x3) < (old_cs & 0x3)) {
     // stack switch
     assert(cpu.sreg[SR_TR].ti == 0); // check the table bit
@@ -41,7 +40,6 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
     rtl_li(s, s0, esp3);
     rtl_push(s, s0);
   }
-#endif
 
   void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
   rtl_compute_eflags(s, s0);
