@@ -104,11 +104,7 @@ static inline def_EHelper(int) {
 }
 
 static inline def_EHelper(iret) {
-#ifdef __PA__
-  rtl_pop(s, s0);  // esp3, customized
-#else
   int old_cpl = cpu.sreg[SR_CS].rpl;
-#endif
   rtl_pop(s, s1);  // eip
   rtl_jr(s, s1);
   rtl_pop(s, s1);  // cs
@@ -116,11 +112,6 @@ static inline def_EHelper(iret) {
   void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
   rtl_pop(s, s1);  // eflags
   rtl_set_eflags(s, s1);
-#ifdef __PA__
-  // customized: switch to user stack
-  if (*s0 != 0) rtl_mv(s, &cpu.esp, s0);
-  difftest_skip_ref();
-#else
   int new_cpl = new_cs & 0x3;
   if (new_cpl > old_cpl) {
     // return to user
@@ -129,7 +120,6 @@ static inline def_EHelper(iret) {
     rtl_mv(s, &cpu.esp, s0);
     cpu.sreg[SR_SS].val = *s1;
   }
-#endif
   cpu.sreg[SR_CS].val = new_cs;
 
   print_asm("iret");
