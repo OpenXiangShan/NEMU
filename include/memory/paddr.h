@@ -5,6 +5,8 @@
 
 #define PMEM_SIZE (8 * 1024 * 1024 * 1024UL)
 
+void init_mem();
+
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 void* guest_to_host(paddr_t addr);
 /* convert the host virtual address in NEMU to guest physical address in the guest program */
