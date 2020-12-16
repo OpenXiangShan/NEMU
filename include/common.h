@@ -35,7 +35,7 @@ typedef int32_t sword_t;
 
 typedef word_t rtlreg_t;
 typedef word_t vaddr_t;
-typedef uint32_t paddr_t;
+typedef uint64_t paddr_t;
 typedef uint16_t ioaddr_t;
 
 #define false 0
