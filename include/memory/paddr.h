@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#define PMEM_SIZE (256 * 1024 * 1024)
+#define PMEM_SIZE (8 * 1024 * 1024 * 1024UL)
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 void* guest_to_host(paddr_t addr);

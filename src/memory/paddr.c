@@ -3,10 +3,11 @@
 #include <memory/vaddr.h>
 #include <device/map.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <time.h>
 
-static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
-bool pmem_dirty[PMEM_SIZE] PG_ALIGN = {0};
+static uint8_t *pmem;//[PMEM_SIZE] PG_ALIGN = {};
+static bool    *pmem_dirty;//[PMEM_SIZE] PG_ALIGN = {0};
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
 paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
@@ -14,10 +15,20 @@ paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
+  pmem = (uint8_t *)mmap(NULL, PMEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+  if (pmem == (uint8_t *)MAP_FAILED) {
+    printf("ERROR allocating physical memory. \n");
+  }
+
+  pmem_dirty = (bool *)mmap(NULL, PMEM_SIZE * sizeof(bool), PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+  if (pmem_dirty == (bool *)MAP_FAILED) {
+    printf("ERROR allcoating pmem_dirty bitmap. \n");
+  }
+
 #ifndef DIFF_TEST
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
-  int i;
+  uint64_t i;
   for (i = 0; i < PMEM_SIZE / sizeof(p[0]); i ++) {
     p[i] = rand();
   }
