@@ -14,13 +14,14 @@ from multiprocessing import Pool
 class BatchTask:
     def __init__(self, ver, taskname):
         self.ver = ver
-        self.top_out_dir = 'outputs3'
+        self.source_data_dir = 'outputs3'
+        self.top_out_dir = '/home51/zyy/expri_results'
         self.task = taskname
         self.task_name = taskname + f'_{self.ver}'
 
         self.simpoint_profile_dir = None
         if taskname == 'take_simpoint_checkpoint':
-            self.simpoint_profile_dir = f'{self.top_out_dir}/simpoint_profile_{self.ver}'
+            self.simpoint_profile_dir = f'{self.source_data_dir}/simpoint_profile_{self.ver}'
 
         self.task_options = {
         'simpoint_profile': [
