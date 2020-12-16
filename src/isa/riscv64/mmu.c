@@ -202,7 +202,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8){
 #ifdef ENABLE_DISAMBIGUATE
-      if(!isa_mmu_safe(vaddr)){
+      if(!isa_mmu_safe(vaddr, type)){
         int forced_result = force_raise_pf(vaddr, type);
         if(forced_result != MEM_RET_OK)
           return forced_result;
@@ -214,6 +214,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   return MEM_RET_OK;
 }
 
+#ifdef ENABLE_DISAMBIGUATE
 // Check if pte has been sfenced
 //
 // In several cases, there are mutliple legal control flows.
@@ -252,6 +253,7 @@ bool ptw_is_safe(vaddr_t vaddr) {
 
   return true;
 }
+#endif
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   paddr_t ptw_result = ptw(vaddr, type);
@@ -262,6 +264,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   return ptw_result;
 }
 
+#ifdef ENABLE_DISAMBIGUATE
 bool isa_mmu_safe(vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
@@ -269,3 +272,5 @@ bool isa_mmu_safe(vaddr_t vaddr, int type) {
     return ptw_is_safe(vaddr);
   return true;
 }
+#endif
+

@@ -7,7 +7,9 @@
 #include <time.h>
 
 static uint8_t *pmem;//[PMEM_SIZE] PG_ALIGN = {};
+#ifdef ENABLE_DISAMBIGUATE
 static bool    *pmem_dirty;//[PMEM_SIZE] PG_ALIGN = {0};
+#endif
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
 paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
@@ -20,10 +22,12 @@ void init_mem() {
     printf("ERROR allocating physical memory. \n");
   }
 
+#ifdef ENABLE_DISAMBIGUATE
   pmem_dirty = (bool *)mmap(NULL, PMEM_SIZE * sizeof(bool), PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
   if (pmem_dirty == (bool *)MAP_FAILED) {
     printf("ERROR allcoating pmem_dirty bitmap. \n");
   }
+#endif
 
 #ifndef DIFF_TEST
   srand(time(0));
@@ -58,23 +62,31 @@ static inline void pmem_write(paddr_t addr, word_t data, int len) {
   switch (len) {
     case 1: 
       *(uint8_t  *)p = data;
+#ifdef ENABLE_DISAMBIGUATE
       pmem_dirty[addr - PMEM_BASE] = true;
+#endif
       return;
     case 2: 
       *(uint16_t *)p = data;
+#ifdef ENABLE_DISAMBIGUATE
       for(int i = 0; i < 2; i++)
         pmem_dirty[addr - PMEM_BASE + i] = true;
+#endif
       return;
     case 4: 
       *(uint32_t *)p = data;
+#ifdef ENABLE_DISAMBIGUATE
       for(int i = 0; i < 4; i++)
         pmem_dirty[addr - PMEM_BASE + i] = true;
+#endif
       return;
 #ifdef ISA64
     case 8: 
       *(uint64_t *)p = data;
+#ifdef ENABLE_DISAMBIGUATE
       for(int i = 0; i < 8; i++)
         pmem_dirty[addr - PMEM_BASE + i] = true;
+#endif
       return;
 #endif
     default: assert(0);
@@ -83,7 +95,7 @@ static inline void pmem_write(paddr_t addr, word_t data, int len) {
 
 void rtl_sfence() {
 #ifdef ENABLE_DISAMBIGUATE
-  memset(pmem_dirty, 0, sizeof(pmem_dirty));
+  memset(pmem_dirty, 0, sizeof(sizeof(bool) * PMEM_SIZE));
 #endif
 }
 
@@ -99,6 +111,7 @@ inline void paddr_write(paddr_t addr, word_t data, int len) {
   else map_write(addr, data, len, fetch_mmio_map(addr));
 }
 
+#ifdef ENABLE_DISAMBIGUATE
 bool is_sfence_safe(paddr_t addr, int len) {
   if (in_pmem(addr)){
     bool dirty = false;
@@ -125,6 +138,7 @@ bool is_sfence_safe(paddr_t addr, int len) {
     }
   } else return true;
 }
+#endif
 
 word_t vaddr_mmu_read(vaddr_t addr, int len, int type);
 void vaddr_mmu_write(vaddr_t addr, word_t data, int len);
