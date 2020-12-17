@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 void init_log(const char *log_file);
-void init_mem();
 void init_regex();
 void init_wp_pool();
 void init_device();
