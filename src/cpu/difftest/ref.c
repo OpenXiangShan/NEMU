@@ -3,9 +3,37 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 
+static void nemu_large_memcpy(void *dest, void *src, size_t n) {
+  uint64_t *_dest = (uint64_t *)dest;
+  uint64_t *_src  = (uint64_t *)src;
+  while (n >= sizeof(uint64_t)) {
+    if (*_src != 0) {
+      *_dest = *_src;
+    }
+    _dest++;
+    _src++;
+    n -= sizeof(uint64_t);
+  }
+  if (n > 0) {
+    uint8_t *dest8 = (uint8_t *)_dest;
+    uint8_t *src8  = (uint8_t *)_src;
+    while (n > 0) {
+      *dest8 = *src8;
+      dest8++;
+      src8++;
+      n--;
+    }
+  }
+}
+
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
+#ifdef CONFIG_LARGE_COPY
+  if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(addr), buf, n);
+  else nemu_large_memcpy(buf, guest_to_host(addr), n);
+#else
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(addr), buf, n);
   else memcpy(buf, guest_to_host(addr), n);
+#endif
 }
 
 void difftest_regcpy(void *dut, bool direction) {

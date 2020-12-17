@@ -231,6 +231,10 @@ config RT_CHECK
   bool "Enable runtime checking"
   default y
 
+config LARGE_COPY
+  bool "Enable difftest large memory copy optimization"
+  default n
+
 config PERF_OPT
   bool "Performance optimization"
   default y
