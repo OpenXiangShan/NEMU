@@ -16,4 +16,21 @@ word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, word_t data, int len);
 bool is_sfence_safe(paddr_t addr, int len);
 
+#define DIFFTEST_STORE_COMMIT
+#ifdef DIFFTEST_STORE_COMMIT
+
+#define STORE_QUEUE_SIZE 48
+typedef struct {
+    uint64_t addr;
+    uint64_t data;
+    uint8_t  mask;
+    uint8_t  valid;
+} store_commit_t;
+extern store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
+
+void store_commit_queue_push(uint64_t addr, uint64_t data, int len);
+store_commit_t *store_commit_queue_pop();
+int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
+#endif
+
 #endif

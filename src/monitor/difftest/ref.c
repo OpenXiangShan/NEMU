@@ -64,6 +64,14 @@ vaddr_t disambiguate_exec(void *disambiguate_para){
   return isa_disambiguate_exec(disambiguate_para);
 }
 
+int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
+#ifdef DIFFTEST_STORE_COMMIT
+  return check_store_commit(saddr, sdata, smask);
+#else
+  return 0;
+#endif
+}
+
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
