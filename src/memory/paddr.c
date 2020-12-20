@@ -155,6 +155,9 @@ store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
+  if (cpu.amo) {
+    return;
+  }
   store_commit_t *commit = store_commit_queue + tail;
   assert(!commit->valid);
   uint64_t offset = addr % 8ULL;
