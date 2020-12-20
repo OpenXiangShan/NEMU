@@ -48,6 +48,18 @@ void difftest_csrcpy(void *dut, bool direction) {
 void difftest_uarchstatus_cpy(void *dut, bool direction) {
   isa_difftest_uarchstatus_cpy(dut, direction);
 }
+
+int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
+#ifdef DIFFTEST_STORE_COMMIT
+  return check_store_commit(saddr, sdata, smask);
+#else
+  return 0;
+#endif
+}
+
+// vaddr_t disambiguate_exec(void *disambiguate_para){
+//   return isa_disambiguate_exec(disambiguate_para);
+// }
 #endif
 
 void difftest_exec(uint64_t n) {

@@ -32,6 +32,13 @@ void init_mem() {
     assert(0);
   }
 #endif
+
+#ifdef DIFFTEST_STORE_COMMIT
+  for (int i = 0; i < STORE_QUEUE_SIZE; i++) {
+    store_commit_queue[i].valid = 0;
+  }
+#endif
+
 #ifdef CONFIG_MEM_RANDOM
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
@@ -53,3 +60,66 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr))) pmem_write(addr, len, data);
   else mmio_write(addr, len, data);
 }
+
+
+#ifdef DIFFTEST_STORE_COMMIT
+store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
+static uint64_t head = 0, tail = 0;
+
+void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
+  store_commit_t *commit = store_commit_queue + tail;
+  assert(!commit->valid);
+  uint64_t offset = addr % 8ULL;
+  commit->addr = addr - offset;
+  commit->valid = 1;
+  switch (len) {
+    case 1:
+      commit->data = (data & 0xffULL) << (offset << 3);
+      commit->mask = 0x1 << offset;
+      break;
+    case 2:
+      commit->data = (data & 0xffffULL) << (offset << 3);
+      commit->mask = 0x3 << offset;
+      break;
+    case 4:
+      commit->data = (data & 0xffffffffULL) << (offset << 3);
+      commit->mask = 0xf << offset;
+      break;
+    case 8:
+      commit->data = data;
+      commit->mask = 0xff;
+      break;
+    default:
+      assert(0);
+  }
+  tail = (tail + 1) % STORE_QUEUE_SIZE;
+}
+
+store_commit_t *store_commit_queue_pop() {
+  store_commit_t *result = store_commit_queue + head;
+  if (!result->valid) {
+    return NULL;
+  }
+  result->valid = 0;
+  head = (head + 1) % STORE_QUEUE_SIZE;
+  return result;
+}
+
+int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
+  *addr = *addr - (*addr % 0x8ULL);
+  store_commit_t *commit = store_commit_queue_pop();
+  int result = 0;
+  if (!commit) {
+    printf("NEMU does not commit any store instruction.\n");
+    result = 1;
+  }
+  else if (*addr != commit->addr || *data != commit->data || *mask != commit->mask) {
+    *addr = commit->addr;
+    *data = commit->data;
+    *mask = commit->mask;
+    result = 1;
+  }
+  return result;
+}
+
+#endif
