@@ -61,9 +61,9 @@ SimPoint::~SimPoint() {
 
 void
 SimPoint::init() {
-  if (simpoint_state == SimpointProfiling) {
-    assert(simpoint_interval);
-    intervalSize = simpoint_interval;
+  if (profiling_state == SimpointProfiling) {
+    assert(profiling_interval);
+    intervalSize = profiling_interval;
     Log("Doing simpoint profiling with interval %lu", intervalSize);
     auto path = pathManager.getOutputPath() + "/simpoint_bbv.gz";
     simpointStream = simout.create(path, false);
@@ -75,7 +75,7 @@ SimPoint::init() {
 void
 SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
 
-  if (simpoint_state != SimpointProfiling) {
+  if (profiling_state != SimpointProfiling) {
     return;
   }
 

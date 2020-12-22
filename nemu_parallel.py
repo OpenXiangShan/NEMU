@@ -30,6 +30,12 @@ class BatchTask:
             '--simpoint-profile',
             ],
 
+        'betapoint_profile': [
+            '--interval', '10000',
+            '-D', self.top_out_dir,
+            '--betapoint-profile',
+            ],
+
         'take_simpoint_checkpoint': [
             '--interval', '50000000',
             '-D', self.top_out_dir,
@@ -40,6 +46,9 @@ class BatchTask:
 
     def check_prereq(self, w):
         if self.task == 'simpoint_profile':
+            return True
+
+        if self.task == 'betapoint_profile':
             return True
 
         if self.task == 'take_simpoint_checkpoint':
@@ -108,8 +117,10 @@ def main():
     parser.add_argument('-t', '--task', help='task name',
             type=str, action='store', required=True,
             choices=[
-                'simpoint_profile', 'take_simpoint_checkpoint']
-            )
+                'simpoint_profile',
+                'betapoint_profile',
+                'take_simpoint_checkpoint',
+                ])
 
     args = parser.parse_args()
 

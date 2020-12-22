@@ -28,9 +28,11 @@ char *config_name = nullptr;
 char *workload_name = nullptr;
 char *simpoints_dir = nullptr;
 char *sdcard_img = nullptr;
-int simpoint_state = NoSimpoint;
+int profiling_state = NoSimpoint;
+bool checkpointRestoring = false;
 int cpt_id = -1;
-unsigned simpoint_interval = 0;
+unsigned profiling_interval = 0;
+uint64_t max_insts = 0;
 
 int is_batch_mode() { return batch_mode; }
 
@@ -104,24 +106,31 @@ static inline void parse_args(int argc, char *argv[]) {
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"cpt"                , required_argument, NULL, 'c'},
     {"interval"           , required_argument, NULL, 5},
+    {"max-insts"          , required_argument, NULL, 'm'},
     {"help"               , no_argument      , NULL, 'h'},
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"cpt-id"             , required_argument, NULL, 4},
     {"sdcard-img"         , required_argument, NULL, 6},
+    {"betapoint-profile"  , no_argument      , NULL, 7},
     {0                    , no_argument      , NULL, 0},
   };
   int o;
   int long_index = 0;
-  while ( (o = getopt_long(argc, argv, "-bhl:d:p:c:S:D:C:w:", table, &long_index)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bhl:d:p:c:S:D:C:w:m:", table, &long_index)) != -1) {
     switch (o) {
       case 3:
-        assert(simpoint_state == NoSimpoint);
-        simpoint_state = SimpointProfiling;
-        Log("Doing SimpointProfiling");
+        assert(profiling_state == NoSimpoint);
+            profiling_state = SimpointProfiling;
+        Log("Doing Simpoint Profiling");
+        break;
+      case 7:
+        assert(profiling_state == NoSimpoint);
+        profiling_state = BetapointProfiling;
+        Log("Doing Betapoint Profiling");
         break;
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
-      case 5: sscanf(optarg, "%u", &simpoint_interval); break;
+      case 5: sscanf(optarg, "%u", &profiling_interval); break;
       case 6: sdcard_img = optarg; break;
 
       case 'b': batch_mode = true; break;
@@ -133,17 +142,21 @@ static inline void parse_args(int argc, char *argv[]) {
       case 'w': workload_name = optarg; break;
       case 'C': config_name = optarg; break;
 
+      case 'm':
+        sscanf(optarg, "%lu", &max_insts);
+        Log("Setting max_insts to %lu", max_insts);
+        break;
+
       case 'c':
-        assert(simpoint_state == NoSimpoint);
         cpt_file = optarg;
-        simpoint_state = CheckpointRestoring;
+        checkpointRestoring = true;
         Log("Doing CheckpointRestoring");
         break;
 
       case 'S':
-        assert(simpoint_state == NoSimpoint);
+        assert(profiling_state == NoSimpoint);
         simpoints_dir = optarg;
-        simpoint_state = SimpointCheckpointing;
+            profiling_state = SimpointCheckpointing;
         Log("Doing SimpointCheckpointing");
         break;
 
@@ -184,7 +197,7 @@ void init_monitor(int argc, char *argv[]) {
 
   allocate_mem();
 
-  if (simpoint_state != CheckpointRestoring) {
+  if (!checkpointRestoring) {
     /* Fill the memory with garbage content. */
     init_mem();
   }
@@ -193,7 +206,7 @@ void init_monitor(int argc, char *argv[]) {
   init_isa();
 
   long img_size = 0;
-  if (simpoint_state != CheckpointRestoring) {
+  if (!checkpointRestoring) {
     /* Load the image to memory. This will overwrite the built-in image. */
     img_size = load_img();
 
@@ -208,7 +221,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize the watchpoint pool. */
   init_wp_pool();
 
-  if (simpoint_state != CheckpointRestoring) {
+  if (!checkpointRestoring) {
     /* Initialize differential testing. */
     init_difftest(diff_so_file, img_size, difftest_port);
   }

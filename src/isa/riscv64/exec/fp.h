@@ -229,6 +229,7 @@ static inline make_EHelper(fmin_fmax){
     if(!get_rm(s, &rm)) return; \
     softfloat_roundingMode = rm; \
     *s1 = fpreg_l(s->isa.instr.fp.funct5); \
+    s->is_fma = true; \
     switch (s->width) \
     { \
     case 8: \

@@ -76,6 +76,11 @@ void cpu_exec(uint64_t n) {
       serializer.notify_taken(g_nr_guest_instr); // tell them the drift
     }
 
+    if (max_insts && g_nr_guest_instr == max_insts) {
+        nemu_state.halt_ret = NEMU_REACH;
+        break;
+    }
+
 #ifdef DEBUG
     asm_print(ori_pc, seq_pc - ori_pc, n < MAX_INSTR_TO_PRINT);
 
@@ -100,11 +105,12 @@ void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
-    case NEMU_END: case NEMU_ABORT:
+    case NEMU_END: case NEMU_ABORT: case NEMU_REACH:
       Log("nemu: %s\33[0m at pc = " FMT_WORD "\n\n",
-          (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
-           (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
-          nemu_state.halt_pc);
+              nemu_state.state == NEMU_REACH ? "\33[1;31mREACH MAX INST" :
+              (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
+               (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
+              nemu_state.halt_pc);
       monitor_statistic();
       if (nemu_state.state == NEMU_ABORT) abort();
   }

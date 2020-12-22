@@ -209,9 +209,9 @@ void Serializer::unserialize(const char *file) {
 }
 
 void Serializer::init() {
-  if  (simpoint_state == SimpointCheckpointing) {
-    assert(simpoint_interval);
-    intervalSize = simpoint_interval;
+  if  (profiling_state == SimpointCheckpointing) {
+    assert(profiling_interval);
+    intervalSize = profiling_interval;
     Log("Taking simpoint checkpionts with interval %lu", intervalSize);
 
     auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0");
@@ -233,7 +233,7 @@ void Serializer::init() {
 }
 
 bool Serializer::shouldTakeCpt(uint64_t num_insts) {
-  if (simpoint_state != SimpointCheckpointing ||
+  if (profiling_state != SimpointCheckpointing ||
       simpoint2Weights.empty()) {
     return false;
   }

@@ -26,14 +26,14 @@ void PathManager::init() {
     cptID = cpt_id;
   }
 
-  if (simpoint_state == SimpointCheckpointing) {
+  if (profiling_state == SimpointCheckpointing) {
     cptID = 0;
   }
 
   Log("Cpt id: %i", cptID);
   workloadPath = statsBaseDir + "/" + configName + "/" + workloadName + "/";
 
-  if (simpoint_state == SimpointCheckpointing) {
+  if (profiling_state == SimpointCheckpointing) {
     assert(simpoints_dir);
     simpointPath = fs::path(string(simpoints_dir) + "/" + workloadName +"/");
   }
