@@ -5,6 +5,7 @@ static inline def_EHelper(bsf) {
 
   rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
   rtl_set_ZF(s, s0);
+  rtl_set_CF(s, rz);
 
   int bit = 0;
   if (*dsrc1 != 0) {

@@ -46,8 +46,6 @@ static inline def_DopHelper(I) {
  */
 /* sign immediate */
 static inline def_DopHelper(SI) {
-  assert(op->width == 1 || op->width == 4);
-
 #ifdef __ICS_EXPORT
   /* TODO: Use instr_fetch() to read `op->width' bytes of memory
    * pointed by 's->seq_pc'. Interpret the result as a signed immediate,
@@ -59,6 +57,7 @@ static inline def_DopHelper(SI) {
 #else
   word_t imm = instr_fetch(&s->seq_pc, op->width);
   if (op->width == 1) imm = (int8_t)imm;
+  else if (op->width == 2) imm = (int16_t)imm;
   operand_imm(s, op, load_val, imm, op->width);
 #endif
 }
@@ -170,7 +169,7 @@ static inline def_DHelper(I2a) {
  * use for imul */
 static inline def_DHelper(I_E2G) {
   operand_rm(s, id_src2, true, id_dest, false);
-  decode_op_I(s, id_src1, true);
+  decode_op_SI(s, id_src1, true); // imul takes the imm as signed
 }
 
 /* Eb <- Ib
@@ -250,9 +249,6 @@ static inline def_DHelper(SI_E2G) {
   operand_rm(s, id_src2, true, id_dest, false);
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
-  if (id_dest->width == 2) {
-    *dsrc1 &= 0xffff;
-  }
 }
 
 static inline def_DHelper(gp2_1_E) {
