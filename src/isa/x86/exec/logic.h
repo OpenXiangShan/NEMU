@@ -232,7 +232,18 @@ static inline def_EHelper(shld) {
 
 static inline def_EHelper(shrd) {
   assert(id_dest->width == 4);
-  rtl_shr(s, s0, ddest, dsrc1);
+
+  int count = *dsrc1 & 0x1f;
+  if (count == 0) {
+    operand_write(s, id_dest, ddest);
+    print_asm_template3(shrd);
+    return;
+  }
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_andi(s, s0, s1, 0x1);
+  rtl_set_CF(s, s0);
+  rtl_shri(s, s0, s1, 1); // shift the remaining "1"
 
   rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc1);
