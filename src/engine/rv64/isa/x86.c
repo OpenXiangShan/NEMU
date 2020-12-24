@@ -28,6 +28,7 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   CASE(&cpu.cc_src1, 14)
   CASE(&cpu.cc_src2, 15)
 #else
+  CASE(&cpu.PF, 12)
   CASE(&cpu.CF, 13)
   CASE(&cpu.OF, 14)
   CASE(&cpu.ZF, 15)
