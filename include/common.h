@@ -10,17 +10,18 @@
 #endif
 #endif
 
-#if _SHARE
-// do not enable these features while building a reference design
-#undef DIFF_TEST
-#undef DEBUG
-#endif
-
 /* You will define this macro in PA2 */
 #ifdef __ICS_EXPORT
 //#define HAS_IOE
 #else
 #define HAS_IOE
+#endif
+
+#if _SHARE
+// do not enable these features while building a reference design
+#undef DIFF_TEST
+#undef DEBUG
+#undef HAS_IOE
 #endif
 
 #include <stdint.h>
