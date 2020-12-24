@@ -26,14 +26,14 @@ static void csr_writeback() {
   sepc   ->val = cpu.sepc   ;
 }
 
-void isa_difftest_getregs(void *r) {
-  csr_prepare();
-  memcpy(r, &cpu, DIFFTEST_REG_SIZE);
-}
-
-void isa_difftest_setregs(const void *r) {
-  memcpy(&cpu, r, DIFFTEST_REG_SIZE);
-  csr_writeback();
+void isa_difftest_regcpy(void *dut, bool to_ref) {
+  if (to_ref) {
+    memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
+    csr_writeback();
+  } else {
+    csr_prepare();
+    memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
+  }
 }
 
 void isa_difftest_raise_intr(word_t NO) {

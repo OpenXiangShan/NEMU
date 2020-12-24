@@ -6,9 +6,8 @@
 extern int tran_next_pc;
 enum { NEXT_PC_SEQ, NEXT_PC_JMP, NEXT_PC_BRANCH, NEXT_PC_END };
 
-extern void (*backend_memcpy_from_frontend)(paddr_t dest, void *src, size_t n);
-extern void (*backend_getregs)(void *c);
-extern void (*backend_setregs)(const void *c);
+extern void (*backend_memcpy)(paddr_t dest, void *src, size_t n, bool to_backend);
+extern void (*backend_regcpy)(void *c, bool to_backend);
 extern void (*backend_exec)(uint64_t n);
 
 #define BBL_MAX_SIZE (16 * 1024)

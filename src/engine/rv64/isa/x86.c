@@ -45,7 +45,7 @@ void guest_init() {
 
 void guest_getregs(CPU_state *x86) {
   riscv64_CPU_state r;
-  backend_getregs(&r);
+  backend_regcpy(&r, false);
   int i;
   for (i = 0; i < 8; i ++) {
     x86->gpr[i]._32 = r.gpr[i + 0x10]._64;
@@ -54,12 +54,12 @@ void guest_getregs(CPU_state *x86) {
 
 void guest_setregs(const CPU_state *x86) {
   riscv64_CPU_state r;
-  backend_getregs(&r);
+  backend_regcpy(&r, false);
   int i;
   for (i = 0; i < 8; i ++) {
     r.gpr[i + 0x10]._64 = x86->gpr[i]._32;
   }
-  backend_setregs(&r);
+  backend_regcpy(&r, true);
 }
 
 #endif
