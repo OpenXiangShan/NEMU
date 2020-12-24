@@ -46,7 +46,7 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
   rtl_compute_eflags(s, s0);
   rtl_push(s, s0);
-  word_t eflags_esp = cpu.esp;
+  __attribute__((unused)) word_t eflags_esp = cpu.esp;
   rtl_li(s, s0, old_cs);
   rtl_push(s, s0);   // cs
   rtl_li(s, s0, ret_addr);
@@ -65,7 +65,9 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 
   rtl_jr(s, s1);
 
-#ifndef __DIFF_REF_NEMU__
+#if defined(__DIFF_REF_KVM__)
+  if (ref_difftest_raise_intr) ref_difftest_raise_intr(NO);
+#elif !defined(__DIFF_REF_NEMU__)
   difftest_skip_dut(1, 2);
   void difftest_fix_eflags(void *arg);
   difftest_set_patch(difftest_fix_eflags, (void *)(uintptr_t)eflags_esp);

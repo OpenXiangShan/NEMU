@@ -39,6 +39,7 @@ void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src) {
 }
 
 void difftest_fix_eflags(void *arg) {
+#ifndef __DIFF_REF_KVM__
 #define EFLAGS_MASK_ID (1 << 21)
 #define EFLAGS_MASK_AC (1 << 18)
 #define EFLAGS_MASK_AF (1 << 4)
@@ -48,4 +49,5 @@ void difftest_fix_eflags(void *arg) {
   ref_difftest_memcpy(esp, &flags, 4, false);
   flags &= ~EFLAGS_FIX_MASK;
   ref_difftest_memcpy(esp, &flags, 4, true);
+#endif
 }
