@@ -69,18 +69,20 @@ static inline def_EHelper(sar) {
   // rtl_sext(), and it is  still sematically correct
   rtl_sext(s, ddest, ddest, id_dest->width);
 #ifndef __PA__
+#ifdef __ENGINE_interpreter__
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
     print_asm_template2(sar);
     return;
   }
+#endif
 
   rtl_subi(s, s0, dsrc1, 1);
   rtl_sar(s, s1, ddest, s0); // shift (cnt - 1)
   rtl_andi(s, s0, s1, 0x1);
   rtl_set_CF(s, s0);
-  rtl_sari(s, ddest, s1, 1); // shift the remaining "1"
+  rtl_sar(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
   int update_of = 1;
@@ -107,18 +109,20 @@ static inline def_EHelper(sar) {
 
 static inline def_EHelper(shl) {
 #ifndef __PA__
+#ifdef __ENGINE_interpreter__
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
     print_asm_template2(shl);
     return;
   }
+#endif
 
   rtl_subi(s, s0, dsrc1, 1);
   rtl_shl(s, s1, ddest, s0); // shift (cnt - 1)
   rtl_msb(s, s0, s1, id_dest->width);
   rtl_set_CF(s, s0);
-  rtl_shli(s, ddest, s1, 1); // shift the remaining "1"
+  rtl_shl(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
   int update_of = 1;
@@ -145,18 +149,20 @@ static inline def_EHelper(shl) {
 
 static inline def_EHelper(shr) {
 #ifndef __PA__
+#ifdef __ENGINE_interpreter__
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
     print_asm_template2(shr);
     return;
   }
+#endif
 
   rtl_subi(s, s0, dsrc1, 1);
   rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
   rtl_andi(s, s0, s1, 0x1);
   rtl_set_CF(s, s0);
-  rtl_shri(s, ddest, s1, 1); // shift the remaining "1"
+  rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
   int update_of = 1;
@@ -233,17 +239,19 @@ static inline def_EHelper(shld) {
 static inline def_EHelper(shrd) {
   assert(id_dest->width == 4);
 
+#ifdef __ENGINE_interpreter__
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
     print_asm_template3(shrd);
     return;
   }
+#endif
   rtl_subi(s, s0, dsrc1, 1);
   rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
   rtl_andi(s, s0, s1, 0x1);
   rtl_set_CF(s, s0);
-  rtl_shri(s, s0, s1, 1); // shift the remaining "1"
+  rtl_shr(s, s0, ddest, dsrc1);
 
   rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc1);
