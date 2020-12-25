@@ -141,11 +141,17 @@ static inline def_rtl(update_SF, const rtlreg_t* result, int width) {
   rtl_set_SF(s, t0);
 }
 
-static inline def_rtl(update_PF, const rtlreg_t* result, int width) {
+static inline def_rtl(update_PF, const rtlreg_t* result) {
   // eflags.PF <- is_parity(result[7 .. 0])
-  // the PF bit vector for 0xf~0x0: 1001011001101001 -> 0x9669
-  int pf = ~(((0x9669 >> (*result & 0xf)) ^ (0x9669 >> ((*result & 0xf0) >> 4)))) & 0x1;
-  rtl_li(s, t0, pf);
+  // HACK: `s2` is rarely used, so we use it here
+  rtl_shri(s, t0, result, 4);
+  rtl_xor(s, t0, t0, result);
+  rtl_shri(s, s2, t0, 2);
+  rtl_xor(s, t0, t0, s2);
+  rtl_shri(s, s2, t0, 1);
+  rtl_xor(s, t0, t0, s2);
+  rtl_not(s, t0, t0);
+  rtl_andi(s, t0, t0, 1);
   rtl_set_PF(s, t0);
 }
 
@@ -153,7 +159,7 @@ static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
   rtl_update_ZF(s, result, width);
   rtl_update_SF(s, result, width);
 #ifndef __PA__
-  rtl_update_PF(s, result, width);
+  rtl_update_PF(s, result);
 #endif
 }
 #else
