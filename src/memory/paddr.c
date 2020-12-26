@@ -1,3 +1,4 @@
+#include <isa.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <device/mmio.h>
