@@ -116,11 +116,25 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pg_base | MEM_RET_OK;
 }
 
+int force_raise_pf_record(vaddr_t vaddr, int type) {
+  static vaddr_t last_addr[3] = {0x0};
+  static int force_count[3] = {0};
+  if (vaddr != last_addr[type]) {
+    last_addr[type] = vaddr;
+    force_count[type] = 0;
+  }
+  force_count[type]++;
+  return force_count[type] == 5;
+}
+
 int force_raise_pf(vaddr_t vaddr, int type){
   bool ifetch = (type == MEM_TYPE_IFETCH);
 
   if(cpu.need_disambiguate){
     if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+      if (force_raise_pf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
       if (cpu.mode == MODE_M) {
         mtval->val = cpu.disambiguation_state.mtval;
         if(vaddr != cpu.disambiguation_state.mtval){
@@ -142,12 +156,18 @@ int force_raise_pf(vaddr_t vaddr, int type){
       printf("force raise IPF\n");
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
+      if (force_raise_pf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_LPF;
       printf("force raise LPF\n");
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
+      if (force_raise_pf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_SPF;
