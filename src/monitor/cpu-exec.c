@@ -2,7 +2,8 @@
 #include <monitor/monitor.h>
 #include <monitor/difftest.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <time.h>
+#include <locale.h>
 #ifndef __ICS_EXPORT
 #include "debug/watchpoint.h"
 #endif
@@ -22,7 +23,7 @@
 CPU_state cpu = {};
 NEMUState nemu_state = { .state = NEMU_STOP };
 static uint64_t g_nr_guest_instr = 0;
-static uint64_t g_timer = 0; // unit: ms
+static uint64_t g_timer = 0; // unit: us
 const rtlreg_t rzero = 0;
 
 void asm_print(vaddr_t this_pc, int instr_len, bool print_flag);
@@ -38,10 +39,11 @@ void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
 }
 
 void monitor_statistic() {
-  Log("total guest instructions = %ld", g_nr_guest_instr);
-  Log("host time spent = %ld ms", g_timer);
-  if (g_timer > 0) Log("simulation frequency = %ld instr/s", g_nr_guest_instr * 1000 / g_timer);
-  else Log("Finish running in less than 1 ms and can not calculate the simulation frequency");
+  setlocale(LC_NUMERIC, "");
+  Log("total guest instructions = %'ld", g_nr_guest_instr);
+  Log("host time spent = %'ld us", g_timer);
+  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
 bool log_enable() {
@@ -58,12 +60,11 @@ void display_inv_msg(vaddr_t pc) {
       "* Every line of untested code is always wrong!\33[0m\n\n", isa_logo);
 }
 
-static uint64_t get_time() {
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  uint32_t seconds = now.tv_sec;
-  uint32_t useconds = now.tv_usec;
-  return seconds * 1000 + (useconds + 500) / 1000;
+uint64_t get_time() {
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+  uint64_t us = now.tv_sec * 1000000 + now.tv_nsec / 1000;
+  return us;
 }
 
 /* Simulate how the CPU works. */
