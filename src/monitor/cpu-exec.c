@@ -3,6 +3,7 @@
 #include <monitor/difftest.h>
 #include <stdlib.h>
 #include <time.h>
+#include <locale.h>
 #ifndef __ICS_EXPORT
 #include "debug/watchpoint.h"
 #endif
@@ -38,9 +39,10 @@ void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
 }
 
 void monitor_statistic() {
-  Log("total guest instructions = %ld", g_nr_guest_instr);
-  Log("host time spent = %ld us", g_timer);
-  if (g_timer > 0) Log("simulation frequency = %ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  setlocale(LC_NUMERIC, "");
+  Log("total guest instructions = %'ld", g_nr_guest_instr);
+  Log("host time spent = %'ld us", g_timer);
+  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
