@@ -375,7 +375,10 @@ SiameseProfiler::ControlflowInfo::push(
 
 SiameseProfiler profiler;
 
+bool xpoint_profiling_started;
+
 void init_profiler()
 {
   profiler.init();
+  xpoint_profiling_started = false;
 }

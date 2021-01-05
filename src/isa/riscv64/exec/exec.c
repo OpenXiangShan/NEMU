@@ -265,14 +265,16 @@ vaddr_t isa_exec_once() {
   }
   update_pc(&s);
 
-  if (profiling_state == BetapointProfiling) {
+  extern bool xpoint_profiling_started;
+  if (profiling_state == BetapointProfiling && xpoint_profiling_started) {
     profiler.profile(s);
-  } else if (profiling_state == SimpointProfiling) {
+  } else if (profiling_state == SimpointProfiling && xpoint_profiling_started) {
     simPoint.profile(s.seq_pc, s.is_control, true);
   }
 
 
 #if !defined(DIFF_TEST) && !_SHARE
+  // enough?
   void query_intr(DecodeExecState *s);
   query_intr(&s);
 #endif
