@@ -34,6 +34,7 @@ class BatchTask:
             '--interval', '10000',
             '-D', self.top_out_dir,
             '--betapoint-profile',
+            '--checkpoint-interval', 8 * 10**9, # Billion
             ],
 
         'take_simpoint_checkpoint': [

@@ -30,9 +30,11 @@ make_EHelper(nemu_trap) {
 
   } else if (cpu.gpr[10]._64 == 0x101) { // notify simpoint/betapoint profiler
       extern bool xpoint_profiling_started;
-      extern uint64_t g_nr_guest_instr;
       xpoint_profiling_started = true;
+
+      extern uint64_t g_nr_guest_instr;
       g_nr_guest_instr = 1;
+
       Log("Start profiling, resetting inst count\n");
 
   } else {

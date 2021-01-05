@@ -13,9 +13,9 @@ class Serializer
 {
 
   public:
-    void serialize();
+    void serialize(uint64_t inst_count);
 
-    void serializePMem();
+    void serializePMem(uint64_t inst_count);
 
     void serializeRegs();
 
@@ -46,6 +46,7 @@ class Serializer
 
     std::map<uint64_t, double> simpoint2Weights;
 
+    uint64_t nextNormalPoint;
 };
 
 extern Serializer serializer;

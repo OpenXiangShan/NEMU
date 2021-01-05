@@ -119,18 +119,18 @@ void SiameseProfiler::smallWindowDumpDataflowInfo()
 
 void SiameseProfiler::init()
 {
-  memAccInfo.table.resize(memAccInfo.DiversTableSize);
   if (profiling_state == BetapointProfiling) {
+    memAccInfo.table.resize(memAccInfo.DiversTableSize);
     assert(profiling_interval);
     intervalSize = profiling_interval;
     Log("Doing betapoint profiling with interval %lu", intervalSize);
-    auto path = pathManager.getOutputPath() + "/betapoint.csv.gz";
+    auto path = pathManager.getWorkloadPath() + "/betapoint.csv.gz";
     outStream = simout.create(path, false);
     if (!outStream)
       xpanic("unable to open Betapoint profile_file %s\n", path.c_str());
+    controlflowInfo.ranker.set_size(controlflowInfo.TopN);
+    dumpHeader();
   }
-  controlflowInfo.ranker.set_size(controlflowInfo.TopN);
-  dumpHeader();
 }
 
 SiameseProfiler::SiameseProfiler()

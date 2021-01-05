@@ -30,8 +30,10 @@ char *simpoints_dir = nullptr;
 char *sdcard_img = nullptr;
 int profiling_state = NoSimpoint;
 bool checkpointRestoring = false;
+bool checkpointTaking = false;
 int cpt_id = -1;
 unsigned profiling_interval = 0;
+uint64_t checkpoint_interval = 0;
 uint64_t max_insts = 0;
 
 int is_batch_mode() { return batch_mode; }
@@ -106,6 +108,7 @@ static inline void parse_args(int argc, char *argv[]) {
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"cpt"                , required_argument, NULL, 'c'},
     {"interval"           , required_argument, NULL, 5},
+    {"checkpoint-interval", required_argument, NULL, 9},
     {"max-insts"          , required_argument, NULL, 'm'},
     {"help"               , no_argument      , NULL, 'h'},
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -131,6 +134,10 @@ static inline void parse_args(int argc, char *argv[]) {
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
       case 5: sscanf(optarg, "%u", &profiling_interval); break;
+      case 9:
+              sscanf(optarg, "%lu", &checkpoint_interval);
+              checkpointTaking = true;
+              break;
       case 6: sdcard_img = optarg; break;
 
       case 'b': batch_mode = true; break;

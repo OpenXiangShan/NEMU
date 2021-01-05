@@ -26,7 +26,7 @@ void PathManager::init() {
     cptID = cpt_id;
   }
 
-  if (profiling_state == SimpointCheckpointing) {
+  if (profiling_state == SimpointCheckpointing || checkpointTaking) {
     cptID = 0;
   }
 
@@ -57,7 +57,6 @@ void PathManager::setOutputDir() {
 
 void PathManager::incCptID() {
   cptID++;
-  setOutputDir();
 }
 
 std::string PathManager::getOutputPath() const {
