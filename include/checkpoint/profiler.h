@@ -27,7 +27,7 @@ class SiameseProfiler
 
     void initPhase();
 
-    void profile(DecodeExecState &s);
+    void profile(DecodeExecState &s, uint64_t inst_count);
 
   private:
     uint64_t intervalSize;

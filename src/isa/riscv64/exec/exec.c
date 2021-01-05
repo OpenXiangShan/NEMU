@@ -267,7 +267,8 @@ vaddr_t isa_exec_once() {
 
   extern bool xpoint_profiling_started;
   if (profiling_state == BetapointProfiling && xpoint_profiling_started) {
-    profiler.profile(s);
+    extern uint64_t g_nr_guest_instr;
+    profiler.profile(s, g_nr_guest_instr);
   } else if (profiling_state == SimpointProfiling && xpoint_profiling_started) {
     simPoint.profile(s.seq_pc, s.is_control, true);
   }

@@ -14,7 +14,7 @@
 
 void
 SiameseProfiler::profile(
-    DecodeExecState &s)
+    DecodeExecState &s, uint64_t inst_count)
 {
   if (s.is_load || s.is_store) {
     memAccInfo.add(s.src1.val + s.src2.imm);
@@ -36,6 +36,7 @@ SiameseProfiler::profile(
   }
   intervalCount++;
   if (intervalCount + intervalDrift >= intervalSize) {
+    *outStream->stream() << inst_count;
     dumpMemAccInfo();
     dumpDataflowInfo();
     dumpControlflowInfo();
@@ -50,7 +51,8 @@ void SiameseProfiler::dumpHeader()
 {
 
   *outStream->stream()
-      << "divers.topNProportion"
+      << "inst.count"
+      << "," << "divers.topNProportion"
       << "," << "divers.nonZeroProportion"
       << "," << "footprint"
 
@@ -70,9 +72,9 @@ void SiameseProfiler::dumpMemAccInfo()
 {
   auto divers = memAccInfo.computeDistanceDiversity();
   *outStream->stream()
-      << divers.topNProportion << ","
-      << divers.nonZeroProportion << ","
-      << memAccInfo.count();
+      << "," << divers.topNProportion
+      << "," << divers.nonZeroProportion
+      << "," << memAccInfo.count();
   memAccInfo.periodClear();
 }
 
