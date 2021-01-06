@@ -7,6 +7,7 @@ int is_batch_mode();
 
 void init_path_manger();
 void init_simpoint();
+void init_profiler();
 void init_serializer();
 
 int main(int argc, char *argv[]) {
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]) {
 
   init_path_manger();
   init_simpoint();
+  init_profiler();
   init_serializer();
 
   init_csr_exist();

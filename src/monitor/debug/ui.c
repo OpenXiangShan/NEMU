@@ -247,13 +247,13 @@ static int cmd_help(char *args) {
 extern char *cpt_file;
 
 void ui_mainloop() {
+  if (cpt_file) {
+    serializer.unserialize(cpt_file);
+  }
+
   if (is_batch_mode()) {
     cmd_c(NULL);
     return;
-  }
-
-  if (cpt_file) {
-    serializer.unserialize(cpt_file);
   }
 
   for (char *str; (str = rl_gets()) != NULL; ) {

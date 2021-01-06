@@ -1,5 +1,7 @@
 #include <cpu/exec.h>
+#include <checkpoint/profiler.h>
 #include <checkpoint/simpoint.h>
+#include <monitor/monitor.h>
 #include "../local-include/decode.h"
 #include "../local-include/intr.h"
 #include "all-instr.h"
@@ -249,6 +251,12 @@ vaddr_t isa_exec_once() {
   s.is_jmp = 0;
   s.is_control = 0;
   s.seq_pc = cpu.pc;
+  s.is_fma = false;
+  s.is_load = false;
+  s.is_store = false;
+  s.dest.type = OP_INVALID;
+  s.src1.type = OP_INVALID;
+  s.src2.type = OP_INVALID;
 
   exec(&s);
   if (cpu.mem_exception != MEM_OK) {
@@ -257,9 +265,17 @@ vaddr_t isa_exec_once() {
   }
   update_pc(&s);
 
-  simPoint.profile(s.seq_pc, s.is_control, true);
+  extern bool xpoint_profiling_started;
+  if (profiling_state == BetapointProfiling && xpoint_profiling_started) {
+    extern uint64_t g_nr_guest_instr;
+    profiler.profile(s, g_nr_guest_instr);
+  } else if (profiling_state == SimpointProfiling && xpoint_profiling_started) {
+    simPoint.profile(s.seq_pc, s.is_control, true);
+  }
+
 
 #if !defined(DIFF_TEST) && !_SHARE
+  // enough?
   void query_intr(DecodeExecState *s);
   query_intr(&s);
 #endif

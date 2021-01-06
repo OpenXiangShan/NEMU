@@ -12,12 +12,15 @@ from multiprocessing import Pool
 # -D outputs -w xz_cpu2006 -C simpoint_profile --simpoint-profile --interval 100000000 -b
 
 class BatchTask:
-    def __init__(self, ver, taskname):
+    def __init__(self, ver, taskname, codename):
         self.ver = ver
         self.source_data_dir = 'outputs3'
         self.top_out_dir = '/home51/zyy/expri_results'
         self.task = taskname
-        self.task_name = taskname + f'_{self.ver}'
+        if len(codename):
+            self.task_name = taskname + f'_{self.ver}_{codename}'
+        else:
+            self.task_name = taskname + f'_{self.ver}'
 
         self.simpoint_profile_dir = None
         if taskname == 'take_simpoint_checkpoint':
@@ -30,6 +33,18 @@ class BatchTask:
             '--simpoint-profile',
             ],
 
+        'betapoint_profile': [
+            '--interval', '10000',
+            '-D', self.top_out_dir,
+            '--betapoint-profile',
+            '--checkpoint-interval', 8 * 10**9, # Billion
+            ],
+
+        'normal_checkpoint': [
+            '-D', self.top_out_dir,
+            '--checkpoint-interval', 500 * 10**6, # Million
+            ],
+
         'take_simpoint_checkpoint': [
             '--interval', '50000000',
             '-D', self.top_out_dir,
@@ -40,6 +55,12 @@ class BatchTask:
 
     def check_prereq(self, w):
         if self.task == 'simpoint_profile':
+            return True
+
+        if self.task == 'betapoint_profile':
+            return True
+
+        if self.task == 'normal_checkpoint':
             return True
 
         if self.task == 'take_simpoint_checkpoint':
@@ -101,6 +122,8 @@ class BatchTask:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--codename', help='codename',
+            type=str, action='store', required=False, default='')
     parser.add_argument('-v', '--spec-version', help='`06` or `17`',
             type=str, action='store', required=True)
     parser.add_argument('-w', '--workload', help='a specific workload',
@@ -108,13 +131,16 @@ def main():
     parser.add_argument('-t', '--task', help='task name',
             type=str, action='store', required=True,
             choices=[
-                'simpoint_profile', 'take_simpoint_checkpoint']
-            )
+                'simpoint_profile',
+                'betapoint_profile',
+                'normal_checkpoint',
+                'take_simpoint_checkpoint',
+                ])
 
     args = parser.parse_args()
 
     ver = args.spec_version
-    bt = BatchTask(ver, args.task)
+    bt = BatchTask(ver, args.task, args.codename)
 
     bbl_dir = f'bbl_kernel_gen/spec{ver}_bbl'
     tuples = []

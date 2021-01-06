@@ -22,7 +22,7 @@ void init_isa(void) {
 #endif
 
   cpu.mode = MODE_M;
-  if (simpoint_state != CheckpointRestoring) {
+  if (!checkpointRestoring) {
 #if  !defined(__DIFF_REF_QEMU__) || defined(__SIMPOINT)
     // QEMU seems to initialize mstatus with 0
     mstatus->val = 0x00001800;

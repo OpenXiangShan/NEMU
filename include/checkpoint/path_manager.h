@@ -23,8 +23,6 @@ class PathManager
     fs::path outputPath;
     fs::path simpointPath;
 
-    void setOutputDir();
-
   public:
     void init();
 
@@ -34,7 +32,11 @@ class PathManager
 
     std::string getOutputPath() const;
 
+    std::string getWorkloadPath() const {return workloadPath;};
+
     std::string getSimpointPath() const;
+
+    void setOutputDir();
 };
 
 extern PathManager pathManager;

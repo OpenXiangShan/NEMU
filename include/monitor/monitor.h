@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT };
+enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT, NEMU_REACH };
 
 typedef struct {
   int state;
@@ -19,7 +19,8 @@ enum {
     NoSimpoint = 0,
     SimpointProfiling,
     SimpointCheckpointing,
-    CheckpointRestoring
+    CheckpointRestoring,
+    BetapointProfiling,
 };
 
 extern char *cpt_file;
@@ -27,8 +28,12 @@ extern char *stats_base_dir;
 extern char *workload_name;
 extern char *config_name;
 extern char *simpoints_dir;
-extern int simpoint_state;
+extern int profiling_state;
+extern bool checkpointRestoring;
+extern bool checkpointTaking;
 extern int cpt_id;
-extern unsigned simpoint_interval;
+extern unsigned profiling_interval;
+extern uint64_t checkpoint_interval;
+extern uint64_t max_insts;
 
 #endif
