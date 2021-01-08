@@ -63,9 +63,11 @@ include Makefile.git
 
 .DEFAULT_GOAL = app
 
+CCACHE := $(if $(shell which ccache),ccache,)
+
 # Compilation flags
-CC = gcc
-LD = gcc
+CC = $(CCACHE) gcc
+LD = $(CCACHE) gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -MMD -Wall -Werror -ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
