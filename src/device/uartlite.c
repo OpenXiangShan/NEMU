@@ -45,7 +45,7 @@ static uint8_t *serial_base = NULL;
 //   return ch;
 // }
 
-static void serial_io_handler(uint32_t offset, int len, nemu_bool is_write) {
+static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   assert(len == 1);
   switch (offset) {
     /* We bind the serial port with the host stdout in NEMU. */
@@ -58,21 +58,6 @@ static void serial_io_handler(uint32_t offset, int len, nemu_bool is_write) {
       break;
   }
 }
-
-// #define rt_thread_cmd "memtrace\n"
-// #define busybox_cmd "ls\n" \
-//   "cd /root\n" \
-//   "echo hello2\n" \
-//   "cd /root/benchmark\n" \
-//   "./stream\n" \
-//   "echo hello3\n" \
-//   "cd /root/redis\n" \
-//   "ls\n" \
-//   "ifconfig -a\n" \
-//   "ls\n" \
-//   "./redis-server\n" \
-
-// #define debian_cmd "root\n" \
 
 // static void preset_input() {
 //   char buf[] = debian_cmd;
@@ -87,5 +72,5 @@ void init_uartlite() {
   add_pio_map("uartlite", SERIAL_PORT, serial_base, 0xd, serial_io_handler);
   add_mmio_map("uartlite", SERIAL_MMIO, serial_base, 0xd, serial_io_handler);
 
-  preset_input();
+  // preset_input();
 }
