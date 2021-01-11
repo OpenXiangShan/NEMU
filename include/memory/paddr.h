@@ -16,7 +16,10 @@ word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, word_t data, int len);
 bool is_sfence_safe(paddr_t addr, int len);
 
+#if _SHARE
 #define DIFFTEST_STORE_COMMIT
+#endif
+
 #ifdef DIFFTEST_STORE_COMMIT
 
 #define STORE_QUEUE_SIZE 48
