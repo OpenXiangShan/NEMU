@@ -3,7 +3,11 @@
 
 #include <common.h>
 
-#define PMEM_SIZE (8 * 1024 * 1024 * 1024UL)
+#ifdef _SHARE
+    #define PMEM_SIZE (8 * 1024 * 1024 * 1024UL)
+#else
+    #define PMEM_SIZE (256 * 1024 * 1024UL) 
+#endif
 
 void init_mem();
 

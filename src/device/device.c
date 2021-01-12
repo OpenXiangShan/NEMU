@@ -5,8 +5,6 @@
 #include <device/alarm.h>
 #include <SDL2/SDL.h>
 
-#define XIANGSHAN
-
 void init_alarm();
 void init_serial();
 void init_uartlite();
