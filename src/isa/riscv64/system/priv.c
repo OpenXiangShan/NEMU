@@ -21,6 +21,8 @@ void init_csr() {
   MAP(CSRS, CSRS_EXIST)
 };
 
+rtlreg_t csr_perf;
+
 static inline int csr_is_legal(uint32_t addr) {
   assert(addr < 4096);
   if(!csr_exist[addr]) {
@@ -34,6 +36,12 @@ static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
   // Now we check if CSR is implemented / legal to access in csr_is_legal()
   // Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+
+  // Skip CSR for perfcnt
+  // TODO: dirty implementation
+  if ((addr >= 0xb00 && addr <= 0xb1f) || (addr >= 0x320 && addr <= 0x33f)) {
+    return &csr_perf;
+  }
   return &csr_array[addr];
 }
 
