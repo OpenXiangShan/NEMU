@@ -71,8 +71,15 @@ static bool csr_exist[4096] = {
   MAP(CSRS, CSRS_EXIST)
 };
 
+rtlreg_t csr_perf;
+
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
+  // Skip CSR for perfcnt
+  // TODO: dirty implementation
+  if ((addr >= 0xb00 && addr <= 0xb1f) || (addr >= 0x320 && addr <= 0x33f)) {
+    return &csr_perf;
+  }
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
 }
