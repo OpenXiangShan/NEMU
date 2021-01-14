@@ -68,6 +68,7 @@ void cpu_exec(uint64_t n) {
     difftest_step(ori_pc, cpu.pc);
 
     g_nr_guest_instr ++;
+    cpu.inst_cnt ++;
 
 #ifdef DEBUG
     asm_print(ori_pc, seq_pc - ori_pc, n < MAX_INSTR_TO_PRINT);

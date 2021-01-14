@@ -51,6 +51,10 @@ typedef struct {
   // Disambiguation
   bool need_disambiguate;
   struct DisambiguationState disambiguation_state;
+
+  uint64_t auipc_cnt;
+  uint64_t j;
+  uint64_t inst_cnt;
 } riscv64_CPU_state;
 
 // decode

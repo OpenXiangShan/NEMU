@@ -108,6 +108,11 @@ static inline make_EHelper(andi) {
 static inline make_EHelper(auipc) {
   rtl_li(s, ddest, id_src2->imm + cpu.pc);
   print_asm("auipc " FMT_WORD ",%s", *s0, id_dest->str);
+  cpu.auipc_cnt ++;
+  static uint64_t last_inst_cnt = 0;
+  printf("auipc: id %d, jump interval %d, inst interval %d, pc %x\n", cpu.auipc_cnt, cpu.j, cpu.inst_cnt - last_inst_cnt, cpu.pc);
+  cpu.j = 0;
+  last_inst_cnt = cpu.inst_cnt;
 }
 
 static inline make_EHelper(lui) {

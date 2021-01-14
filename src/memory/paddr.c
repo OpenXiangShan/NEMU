@@ -155,6 +155,7 @@ store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
+  return;
   if (cpu.amo) {
     return;
   }

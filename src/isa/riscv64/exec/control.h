@@ -5,6 +5,7 @@ static inline make_EHelper(jal) {
   rtl_j(s, s->jmp_pc);
 
   print_asm_template2(jal);
+  cpu.j++;
 }
 
 static inline make_EHelper(jalr) {
@@ -21,34 +22,41 @@ static inline make_EHelper(jalr) {
 #endif
 
   print_asm_template3(jalr);
+  cpu.j++;
 }
 
 static inline make_EHelper(beq) {
   rtl_jrelop(s, RELOP_EQ, dsrc1, dsrc2, s->jmp_pc);
   print_asm_template3(beq);
+  cpu.j++;
 }
 
 static inline make_EHelper(bne) {
   rtl_jrelop(s, RELOP_NE, dsrc1, dsrc2, s->jmp_pc);
   print_asm_template3(bne);
+  cpu.j++;
 }
 
 static inline make_EHelper(blt) {
   rtl_jrelop(s, RELOP_LT, dsrc1, dsrc2, s->jmp_pc);
   print_asm_template3(blt);
+  cpu.j++;
 }
 
 static inline make_EHelper(bge) {
   rtl_jrelop(s, RELOP_GE, dsrc1, dsrc2, s->jmp_pc);
   print_asm_template3(bge);
+  cpu.j++;
 }
 
 static inline make_EHelper(bltu) {
   rtl_jrelop(s, RELOP_LTU, dsrc1, dsrc2, s->jmp_pc);
   print_asm_template3(bltu);
+  cpu.j++;
 }
 
 static inline make_EHelper(bgeu) {
   rtl_jrelop(s, RELOP_GEU, dsrc1, dsrc2, s->jmp_pc);
   print_asm_template3(bgeu);
+  cpu.j++;
 }
