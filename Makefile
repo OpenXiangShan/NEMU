@@ -60,6 +60,10 @@ include Makefile.git
 
 .DEFAULT_GOAL = app
 
+ifdef XIANGSHAN
+	CFLAGS += -DXIANGSHAN=1
+endif
+
 # Compilation flags
 CC = gcc
 LD = gcc
