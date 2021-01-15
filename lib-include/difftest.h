@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
+
 #if defined(__ISA_x86__)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9) // GPRs + PC
 #elif defined(__ISA_mips32__)

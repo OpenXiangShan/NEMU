@@ -1,6 +1,6 @@
 #include <common.h>
 
-void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref);
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction);
 void difftest_exec(uint64_t n);
 void qemu_write_reg(void *val, int idx);
 

@@ -14,19 +14,20 @@ void isa_raise_intr(uint64_t NO);
 void init_isa();
 void dl_load(char *argv[]);
 
-void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
 #ifdef __ISA_mips32__
   // It seems that qemu-system-mips treat 0x80000000 as a virtual address.
   // We should do the subtraction to get the address
   // which qemu-system-mips considers physical.
   addr -= 0x80000000;
 #endif
-  qemu_cpu_physical_memory_rw(addr, buf, n, to_ref);
+  int is_write = direction == DIFFTEST_TO_REF ? true : false;
+  qemu_cpu_physical_memory_rw(addr, buf, n, is_write);
 }
 
-void difftest_regcpy(void *dut, bool to_ref) {
+void difftest_regcpy(void *dut, bool direction) {
   int (*fn)(void *cpu, uint8_t *buf, int reg) =
-    (to_ref ? qemu_gdb_write_register : qemu_gdb_read_register);
+    (direction == DIFFTEST_TO_REF ? qemu_gdb_write_register : qemu_gdb_read_register);
   int total_size = DIFFTEST_REG_SIZE;
   int i = 0;
   while (total_size > 0) {

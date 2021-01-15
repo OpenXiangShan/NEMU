@@ -2,6 +2,8 @@
 #include <memory/paddr.h>
 #include <isa/x86.h>
 
+#include <difftest.h>
+
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/ioctl.h>
@@ -336,15 +338,15 @@ static void run_protected_mode() {
   kvm_exec(10);
 }
 
-void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
-  if (to_ref) memcpy(vm.mem + addr, buf, n);
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
+  if (direction == DIFFTEST_TO_REF) memcpy(vm.mem + addr, buf, n);
   else memcpy(buf, vm.mem + addr, n);
 }
 
-void difftest_regcpy(void *r, bool to_ref) {
+void difftest_regcpy(void *r, bool direction) {
   struct kvm_regs *ref = &(vcpu.kvm_run->s.regs.regs);
   x86_CPU_state *x86 = r;
-  if (to_ref) {
+  if (direction == DIFFTEST_TO_REF) {
     ref->rax = x86->eax;
     ref->rbx = x86->ebx;
     ref->rcx = x86->ecx;

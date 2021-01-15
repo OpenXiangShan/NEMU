@@ -46,8 +46,8 @@ void difftest_fix_eflags(void *arg) {
 #define EFLAGS_FIX_MASK (EFLAGS_MASK_ID | EFLAGS_MASK_AC | EFLAGS_MASK_AF)
   uint32_t esp = (uintptr_t)arg;
   uint32_t flags;
-  ref_difftest_memcpy(esp, &flags, 4, false);
+  ref_difftest_memcpy(esp, &flags, 4, DIFFTEST_TO_DUT);
   flags &= ~EFLAGS_FIX_MASK;
-  ref_difftest_memcpy(esp, &flags, 4, true);
+  ref_difftest_memcpy(esp, &flags, 4, DIFFTEST_TO_REF);
 #endif
 }

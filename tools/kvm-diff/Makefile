@@ -6,7 +6,7 @@ $(error Only support x86)
 endif
 endif
 
-INC_DIR += ./include $(NEMU_HOME)/include
+INC_DIR += ./include $(NEMU_HOME)/include $(NEMU_HOME)/lib-include
 BUILD_DIR ?= ./build
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)
 BINARY ?= $(BUILD_DIR)/$(ISA)-kvm-so
@@ -17,7 +17,7 @@ BINARY ?= $(BUILD_DIR)/$(ISA)-kvm-so
 CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -O2 -fPIC -MMD -Wall -Werror -DNEMU_HOME=$(NEMU_HOME) $(INCLUDES)
+CFLAGS   += -O2 -fPIC -MMD -Wall -Werror $(INCLUDES) -D__ISA_$(ISA)__
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c")

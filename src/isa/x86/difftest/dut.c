@@ -56,7 +56,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 
 void isa_difftest_attach() {
   // first copy the image
-  ref_difftest_memcpy(0, guest_to_host(0), PMEM_SIZE, true);
+  ref_difftest_memcpy(0, guest_to_host(0), PMEM_SIZE, DIFFTEST_TO_REF);
 
   // then set some special registers
   uint8_t code[] = {
@@ -77,15 +77,15 @@ void isa_difftest_attach() {
   *(uint32_t *)(idtdesc + 2) = cpu.idtr.base;
 
   assert(sizeof(code) < 0x40);
-  ref_difftest_memcpy(0x7e00, code, sizeof(code), true);
-  ref_difftest_memcpy(0x7e40, idtdesc, sizeof(idtdesc), true);
+  ref_difftest_memcpy(0x7e00, code, sizeof(code), DIFFTEST_TO_REF);
+  ref_difftest_memcpy(0x7e40, idtdesc, sizeof(idtdesc), DIFFTEST_TO_REF);
 
   CPU_state r = cpu;
   r.pc = 0x7e00;
-  ref_difftest_regcpy(&r, true);
+  ref_difftest_regcpy(&r, DIFFTEST_TO_REF);
   ref_difftest_exec(5);
 
-  ref_difftest_regcpy(&cpu, true);
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 #else
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
