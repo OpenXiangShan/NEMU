@@ -38,7 +38,6 @@ def_rtl(sariw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
 
 def_rtl(mul_lo, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
 def_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(imul_lo, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
 def_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
 def_rtl(div_q, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
 def_rtl(div_r, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);

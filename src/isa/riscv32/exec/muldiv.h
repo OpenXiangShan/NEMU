@@ -1,6 +1,6 @@
 #ifndef __ICS_EXPORT
 static inline def_EHelper(mul) {
-  rtl_imul_lo(s, ddest, dsrc1, dsrc2);
+  rtl_mul_lo(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mul);
 }
 

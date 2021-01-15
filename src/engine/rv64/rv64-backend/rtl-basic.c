@@ -166,7 +166,6 @@ finish:
 #ifdef ISA64
 def_rtl_compute_reg(mul_lo, mul)
 def_rtl_compute_reg(mul_hi, mulhu)
-def_rtl_compute_reg(imul_lo, mul)
 def_rtl_compute_reg(imul_hi, mulh)
 def_rtl_compute_reg(div_q, divu)
 def_rtl_compute_reg(div_r, remu)
@@ -180,7 +179,6 @@ def_rtl_compute_reg(remw, remw)
 def_rtl_compute_reg(remuw, remuw)
 #else
 def_rtl_compute_reg(mul_lo, mulw)
-def_rtl_compute_reg(imul_lo, mulw)
 def_rtl_compute_reg(div_q, divuw)
 def_rtl_compute_reg(div_r, remuw)
 def_rtl_compute_reg(idiv_q, divw)

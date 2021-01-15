@@ -28,7 +28,6 @@
 #endif
 
 #define c_mul_lo(a, b) ((a) * (b))
-#define c_imul_lo(a, b) ((sword_t)(a) * (sword_t)(b))
 #ifdef ISA64
 # define c_mul_hi(a, b) (((__uint128_t)(a) * (__uint128_t)(b)) >> 64)
 # define c_imul_hi(a, b) (((__int128_t)(sword_t)(a) * (__int128_t)(sword_t)(b)) >> 64)

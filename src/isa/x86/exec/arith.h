@@ -257,7 +257,7 @@ static inline def_EHelper(imul1) {
       rtl_lr(s, s0, R_EAX, 1);
       rtl_sext(s, s0, s0, 1);
       rtl_sext(s, ddest, ddest, 1);
-      rtl_imul_lo(s, s1, ddest, s0);
+      rtl_mul_lo(s, s1, ddest, s0);
 #ifndef __PA__
       rtl_update_ZFSF(s, s1, 1);
       rtl_sext(s, s0, s1, 1);
@@ -269,7 +269,7 @@ static inline def_EHelper(imul1) {
       rtl_lr(s, s0, R_EAX, 2);
       rtl_sext(s, s0, s0, 2);
       rtl_sext(s, ddest, ddest, 2);
-      rtl_imul_lo(s, s1, ddest, s0);
+      rtl_mul_lo(s, s1, ddest, s0);
 #ifndef __PA__
       rtl_update_ZFSF(s, s1, 2);
       rtl_sext(s, s0, s1, 2);
@@ -286,7 +286,7 @@ static inline def_EHelper(imul1) {
         pdest = s0;
       }
       rtl_imul_hi(s, &cpu.edx, pdest, &cpu.eax);
-      rtl_imul_lo(s, &cpu.eax, pdest, &cpu.eax);
+      rtl_mul_lo(s, &cpu.eax, pdest, &cpu.eax);
 #ifndef __PA__
       rtl_update_ZFSF(s, &cpu.eax, 4);
       rtl_msb(s, s0, &cpu.eax, 4);
@@ -313,7 +313,7 @@ static inline def_EHelper(imul2) {
   }
 #endif
 
-  rtl_imul_lo(s, ddest, ddest, dsrc1);
+  rtl_mul_lo(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
 #ifndef __PA__
@@ -345,7 +345,7 @@ static inline def_EHelper(imul3) {
   }
 #endif
 
-  rtl_imul_lo(s, ddest, dsrc2, dsrc1);
+  rtl_mul_lo(s, ddest, dsrc2, dsrc1);
 
 #if !defined(__PA__) && defined(DIFF_TEST)
   if (id_dest->width == 2) {

@@ -20,12 +20,12 @@ static inline def_EHelper(mtlo) {
 }
 
 static inline def_EHelper(mul) {
-  rtl_imul_lo(s, ddest, dsrc1, dsrc2);
+  rtl_mul_lo(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mul);
 }
 
 static inline def_EHelper(mult) {
-  rtl_imul_lo(s, &cpu.lo, dsrc1, dsrc2);
+  rtl_mul_lo(s, &cpu.lo, dsrc1, dsrc2);
   rtl_imul_hi(s, &cpu.hi, dsrc1, dsrc2);
   print_asm_template3(mult);
 }
