@@ -1,11 +1,15 @@
 #include <monitor/difftest.h>
 
-uint32_t pio_read_l(ioaddr_t);
-uint32_t pio_read_w(ioaddr_t);
-uint32_t pio_read_b(ioaddr_t);
-void pio_write_l(ioaddr_t, uint32_t);
-void pio_write_w(ioaddr_t, uint32_t);
-void pio_write_b(ioaddr_t, uint32_t);
+static inline def_EHelper(in) {
+  rtl_hostcall(s, HOSTCALL_PIO, s0, dsrc1, NULL, 1);
+  operand_write(s, id_dest, s0);
+  print_asm_template2(in);
+}
+
+static inline def_EHelper(out) {
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, 0);
+  print_asm_template2(out);
+}
 
 #ifndef __ICS_EXPORT
 void load_sreg(int idx, uint16_t val);
@@ -125,32 +129,6 @@ static inline def_EHelper(iret) {
   print_asm("iret");
 }
 
-static inline def_EHelper(in) {
-  uint32_t val;
-  switch (id_dest->width) {
-    case 1: val = pio_read_b(*dsrc1); break;
-    case 2: val = pio_read_w(*dsrc1); break;
-    case 4: val = pio_read_l(*dsrc1); break;
-    default: assert(0);
-  }
-
-  rtl_li(s, s0, val);
-  operand_write(s, id_dest, s0);
-
-  print_asm_template2(in);
-}
-
-static inline def_EHelper(out) {
-  switch (id_dest->width) {
-    case 1: pio_write_b(*ddest, *dsrc1); break;
-    case 2: pio_write_w(*ddest, *dsrc1); break;
-    case 4: pio_write_l(*ddest, *dsrc1); break;
-    default: assert(0);
-  }
-
-  print_asm_template2(out);
-}
-
 static inline def_EHelper(invlpg) {
 }
 
@@ -199,15 +177,5 @@ static inline def_EHelper(iret) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_ref();
 #endif
-}
-
-static inline def_EHelper(in) {
-  TODO();
-  print_asm_template2(in);
-}
-
-static inline def_EHelper(out) {
-  TODO();
-  print_asm_template2(out);
 }
 #endif

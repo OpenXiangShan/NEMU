@@ -3,6 +3,9 @@
 #include <monitor/monitor.h>
 #include <monitor/difftest.h>
 
+uint32_t pio_read(ioaddr_t addr, int len);
+void pio_write(ioaddr_t addr, uint32_t data, int len);
+
 static inline void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
   nemu_state.state = state;
   nemu_state.halt_pc = pc;
@@ -40,5 +43,10 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest,
       set_nemu_state(NEMU_END, cpu.pc, *src1);
       break;
     case HOSTCALL_INV: invalid_instr(); break;
+    case HOSTCALL_PIO: {
+      if (imm) *dest = pio_read(*src1, id_dest->width);
+      else pio_write(*dest, *src1, id_dest->width);
+      break;
+    }
   }
 }

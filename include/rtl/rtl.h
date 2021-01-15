@@ -46,7 +46,7 @@ enum {
 #include <rtl-basic.h>
 #include <rtl/pseudo.h>
 
-enum { HOSTCALL_EXIT, HOSTCALL_INV };
+enum { HOSTCALL_EXIT, HOSTCALL_INV, HOSTCALL_PIO };
 
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest,
     const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm);

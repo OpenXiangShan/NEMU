@@ -17,7 +17,8 @@ void add_pio_map(char *name, ioaddr_t addr, uint8_t *space, int len, io_callback
   nr_map ++;
 }
 
-uint32_t pio_read_common(ioaddr_t addr, int len) {
+/* CPU interface */
+uint32_t pio_read(ioaddr_t addr, int len) {
   assert(addr + len - 1 < PORT_IO_SPACE_MAX);
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
 #ifdef __PA__
@@ -28,7 +29,7 @@ uint32_t pio_read_common(ioaddr_t addr, int len) {
   return map_read(addr, len, &maps[mapid]);
 }
 
-void pio_write_common(ioaddr_t addr, uint32_t data, int len) {
+void pio_write(ioaddr_t addr, uint32_t data, int len) {
   assert(addr + len - 1 < PORT_IO_SPACE_MAX);
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
 #ifdef __PA__
@@ -38,11 +39,3 @@ void pio_write_common(ioaddr_t addr, uint32_t data, int len) {
 #endif
   map_write(addr, data, len, &maps[mapid]);
 }
-
-/* CPU interface */
-uint32_t pio_read_l(ioaddr_t addr) { return pio_read_common(addr, 4); }
-uint32_t pio_read_w(ioaddr_t addr) { return pio_read_common(addr, 2); }
-uint32_t pio_read_b(ioaddr_t addr) { return pio_read_common(addr, 1); }
-void pio_write_l(ioaddr_t addr, uint32_t data) { pio_write_common(addr, data, 4); }
-void pio_write_w(ioaddr_t addr, uint32_t data) { pio_write_common(addr, data, 2); }
-void pio_write_b(ioaddr_t addr, uint32_t data) { pio_write_common(addr, data, 1); }
