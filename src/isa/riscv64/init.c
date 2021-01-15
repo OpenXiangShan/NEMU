@@ -25,6 +25,9 @@ void init_isa(void) {
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
   misa->extensions |= ext('d') | ext('f');
   misa->mxl = 2; // XLEN = 64
+#ifdef _SHARE 
+  mhartid->val = 1;
+#endif
 
   memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
 
