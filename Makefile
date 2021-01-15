@@ -1,7 +1,7 @@
 ENGINE ?= interpreter
 ENGINES = $(shell ls $(NEMU_HOME)/src/engine/)
 ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
-$(error Invalid ENGINE. Supported: $(ENGINES))
+$(error Invalid ENGINE=$(ENGINE). Supported: $(ENGINES))
 endif
 
 NAME  = nemu-$(ENGINE)
