@@ -122,5 +122,5 @@ $(DIFF_REF_SO):
 clean:
 	-rm -rf $(BUILD_DIR)
 	$(MAKE) -C tools/gen-expr clean
-	$(MAKE) -C tools/qemu-diff clean
+	$(MAKE) -C $(DIFF_REF_PATH) clean
 	$(MAKE) -C tools/kvm-diff clean
