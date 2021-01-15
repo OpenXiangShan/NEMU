@@ -20,8 +20,6 @@ extern const rtlreg_t rzero;
 
 #define def_rtl(name, ...) void concat(rtl_, name)(DecodeExecState *s, __VA_ARGS__)
 
-void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret);
-
 // relation operation
 enum {
   //            +-- unsign
@@ -47,5 +45,10 @@ enum {
 
 #include <rtl-basic.h>
 #include <rtl/pseudo.h>
+
+enum { HOSTCALL_EXIT, HOSTCALL_INV };
+
+def_rtl(hostcall, uint32_t id, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm);
 
 #endif
