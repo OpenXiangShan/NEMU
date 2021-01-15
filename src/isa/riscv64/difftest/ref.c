@@ -1,7 +1,7 @@
 #include <isa.h>
 #include <cpu/exec.h>
 #include "../local-include/csr.h"
-#include "difftest.h"
+#include <difftest.h>
 
 static void csr_prepare() {
   return;

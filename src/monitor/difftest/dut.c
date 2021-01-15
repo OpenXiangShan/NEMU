@@ -3,13 +3,14 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
+#include <difftest.h>
 
 #ifdef __DIFF_REF_QEMU_DL__
 __thread uint8_t resereve_for_qemu_tls[4096];
 #endif
 
-void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool to_ref) = NULL;
-void (*ref_difftest_regcpy)(void *dut, bool to_ref) = NULL;
+void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
+void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
@@ -92,8 +93,8 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
   ref_difftest_init(port);
-  ref_difftest_memcpy(IMAGE_START + PMEM_BASE, guest_to_host(IMAGE_START), img_size, true);
-  ref_difftest_regcpy(&cpu, true);
+  ref_difftest_memcpy(IMAGE_START + PMEM_BASE, guest_to_host(IMAGE_START), img_size, DIFFTEST_TO_REF);
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
@@ -112,7 +113,7 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
 
 #endif
   if (skip_dut_nr_instr > 0) {
-    ref_difftest_regcpy(&ref_r, false);
+    ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == next_pc) {
       checkregs(&ref_r, next_pc);
       skip_dut_nr_instr = 0;
@@ -126,7 +127,7 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
 
   if (is_skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
-    ref_difftest_regcpy(&cpu, true);
+    ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
     return;
   }
@@ -138,7 +139,7 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
     patch_fn = NULL;
   }
 
-  ref_difftest_regcpy(&ref_r, false);
+  ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 
   checkregs(&ref_r, this_pc);
 }

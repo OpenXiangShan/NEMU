@@ -82,7 +82,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     pte[1].a = 1;
     paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
 #ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, true);
+    ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF);
 #endif
   }
   bool is_write = (type == MEM_TYPE_WRITE);
@@ -91,7 +91,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     pte[0].d |= is_write;
     paddr_write(p_pte[0], pte[0].val, PTE_SIZE);
 #ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, true);
+    ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF);
 #endif
   }
 #endif

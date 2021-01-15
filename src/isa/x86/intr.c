@@ -1,5 +1,5 @@
 #include <cpu/exec.h>
-#include "monitor/difftest.h"
+#include <monitor/difftest.h>
 #include "local-include/rtl.h"
 
 #ifndef __ICS_EXPORT
