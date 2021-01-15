@@ -36,17 +36,17 @@ def_rtl(shriw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
 def_rtl(sariw, rtlreg_t* dest, const rtlreg_t *src1, const sword_t imm);
 #endif
 
-def_rtl(mul_lo, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(div_q, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(div_r, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(idiv_q, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(idiv_r, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
-def_rtl(div64_q, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
-def_rtl(div64_r, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
-def_rtl(idiv64_q, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
-def_rtl(idiv64_r, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
+def_rtl(mulu_lo, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(mulu_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(muls_hi, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(divu_q, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(divu_r, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(divs_q, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(divs_r, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(div64u_q, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
+def_rtl(div64u_r, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
+def_rtl(div64s_q, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
+def_rtl(div64s_r, rtlreg_t* dest, const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2);
 
 #ifdef ISA64
 def_rtl(mulw, rtlreg_t* dest, const rtlreg_t *src1, const rtlreg_t *src2);

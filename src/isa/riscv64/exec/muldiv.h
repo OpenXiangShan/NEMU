@@ -1,15 +1,15 @@
 static inline def_EHelper(mul) {
-  rtl_mul_lo(s, ddest, dsrc1, dsrc2);
+  rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mul);
 }
 
 static inline def_EHelper(mulh) {
-  rtl_imul_hi(s, ddest, dsrc1, dsrc2);
+  rtl_muls_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulh);
 }
 
 static inline def_EHelper(mulhu) {
-  rtl_mul_hi(s, ddest, dsrc1, dsrc2);
+  rtl_mulu_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulhu);
 }
 
@@ -30,7 +30,7 @@ static inline def_EHelper(mulhsu) {
 
   rtl_sari(s, s0, dsrc1, 63);
   rtl_and(s, s0, dsrc2, s0); // s0 = (id_src1->val < 0 ? id_src2->val : 0)
-  rtl_mul_hi(s, s1, dsrc1, dsrc2);
+  rtl_mulu_hi(s, s1, dsrc1, dsrc2);
   rtl_sub(s, ddest, s1, s0);
 
   print_asm_template3(mulhsu);
@@ -44,7 +44,7 @@ static inline def_EHelper(div) {
     rtl_mv(s, ddest, dsrc1);
   } else
 #endif
-    rtl_idiv_q(s, ddest, dsrc1, dsrc2);
+    rtl_divs_q(s, ddest, dsrc1, dsrc2);
 
   print_asm_template3(div);
 }
@@ -55,7 +55,7 @@ static inline def_EHelper(divu) {
     rtl_li(s, ddest, ~0lu);
   } else
 #endif
-    rtl_div_q(s, ddest, dsrc1, dsrc2);
+    rtl_divu_q(s, ddest, dsrc1, dsrc2);
 
   print_asm_template3(divu);
 }
@@ -68,7 +68,7 @@ static inline def_EHelper(rem) {
     rtl_mv(s, ddest, rz);
   } else
 #endif
-    rtl_idiv_r(s, ddest, dsrc1, dsrc2);
+    rtl_divs_r(s, ddest, dsrc1, dsrc2);
 
   print_asm_template3(rem);
 }
@@ -79,7 +79,7 @@ static inline def_EHelper(remu) {
     rtl_mv(s, ddest, dsrc1);
   } else
 #endif
-    rtl_div_r(s, ddest, dsrc1, dsrc2);
+    rtl_divu_r(s, ddest, dsrc1, dsrc2);
 
   print_asm_template3(remu);
 }
@@ -98,7 +98,7 @@ static inline def_EHelper(divw) {
   } else if (*s0 == 0x80000000 && *s1 == -1) {
     //rtl_mv(s, s0, s0);
   } else {
-    rtl_idiv_q(s, s0, s0, s1);
+    rtl_divs_q(s, s0, s0, s1);
   }
   rtl_sext(s, ddest, s0, 4);
 #else
@@ -116,7 +116,7 @@ static inline def_EHelper(remw) {
   } else if (*s0 == 0x80000000 && *s1 == -1) {
     rtl_mv(s, s0, rz);
   } else {
-    rtl_idiv_r(s, s0, s0, s1);
+    rtl_divs_r(s, s0, s0, s1);
   }
   rtl_sext(s, ddest, s0, 4);
 #else
@@ -132,7 +132,7 @@ static inline def_EHelper(divuw) {
   if (*s1 == 0) {
     rtl_li(s, s0, ~0lu);
   } else {
-    rtl_div_q(s, s0, s0, s1);
+    rtl_divu_q(s, s0, s0, s1);
   }
   rtl_sext(s, ddest, s0, 4);
 #else
@@ -148,7 +148,7 @@ static inline def_EHelper(remuw) {
   if (*s1 == 0) {
     //rtl_mv(s, s0, s0);
   } else {
-    rtl_div_r(s, s0, s0, s1);
+    rtl_divu_r(s, s0, s0, s1);
   }
   rtl_sext(s, ddest, s0, 4);
 #else
