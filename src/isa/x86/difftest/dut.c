@@ -1,7 +1,7 @@
 #include <isa.h>
 #include <monitor/difftest.h>
 #include "../local-include/reg.h"
-#include "difftest.h"
+#include <difftest.h>
 
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>

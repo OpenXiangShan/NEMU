@@ -7,7 +7,7 @@ $(error Invalid ISA. Supported: $(ISAS))
 endif
 endif
 
-INC_DIR += ./include
+INC_DIR += ./include $(NEMU_HOME)/lib-include
 BUILD_DIR ?= ./build
 OBJ_DIR ?= $(BUILD_DIR)/obj-$(ISA)
 BINARY ?= $(BUILD_DIR)/$(ISA)-qemu-so
@@ -19,7 +19,7 @@ CC = gcc
 LD = gcc
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -O2 -fPIC -MMD -Wall -Werror -DNEMU_HOME=$(NEMU_HOME) $(INCLUDES) \
-            -D_ISA_H_=\"isa/$(ISA).h\"
+            -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
 
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.c" | grep -v "isa")

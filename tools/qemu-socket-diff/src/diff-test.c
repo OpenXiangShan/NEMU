@@ -1,6 +1,7 @@
 #include "common.h"
 #include <sys/prctl.h>
 #include <signal.h>
+#include <difftest.h>
 #include _ISA_H_
 
 bool gdb_connect_qemu(int);

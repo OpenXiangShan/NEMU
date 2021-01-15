@@ -14,7 +14,7 @@ endif
 
 $(info Building $(ISA)-$(NAME)-$(ENGINE))
 
-INC_DIR += ./include ./src/engine/$(ENGINE)
+INC_DIR += ./include ./lib-include ./src/engine/$(ENGINE)
 BUILD_DIR ?= ./build
 
 ifdef SHARE
