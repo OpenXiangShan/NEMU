@@ -1,5 +1,4 @@
 #include <sys/time.h>
-#include "../local-include/intr.h"
 
 static inline def_EHelper(rdtsc) {
 #ifndef __ENGINE_interpreter__

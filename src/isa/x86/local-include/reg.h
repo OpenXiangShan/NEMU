@@ -50,10 +50,4 @@ static inline const char* sreg_name(int index) {
 
 enum { MODE_R0, MODE_R1, MODE_R2, MODE_R3 };
 
-#ifndef __PA__
-#define return_on_mem_ex() do { if (cpu.mem_exception != 0) return; } while (0)
-#else
-#define return_on_mem_ex()
-#endif
-
 #endif

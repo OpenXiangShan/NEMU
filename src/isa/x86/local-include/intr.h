@@ -10,5 +10,10 @@
 #endif
 
 word_t raise_intr(word_t NO, vaddr_t ret_addr);
+#ifndef __PA__
+#define return_on_mem_ex() do { if (cpu.mem_exception != 0) return; } while (0)
+#else
+#define return_on_mem_ex()
+#endif
 
 #endif
