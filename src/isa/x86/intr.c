@@ -5,9 +5,9 @@
 #ifndef __ICS_EXPORT
 void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
   assert(NO < 256);
-  int old_cs = cpu.sreg[SR_CS].val;
+  int old_cs = cpu.sreg[CSR_CS].val;
   // fetch the gate descriptor with ring 0
-  cpu.sreg[SR_CS].rpl = 0;
+  cpu.sreg[CSR_CS].rpl = 0;
   cpu.mem_exception = 0;
 
   rtl_li(s, s0, cpu.idtr.base);
@@ -26,14 +26,14 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 
   if ((new_cs & 0x3) < (old_cs & 0x3)) {
     // stack switch
-    assert(cpu.sreg[SR_TR].ti == 0); // check the table bit
+    assert(cpu.sreg[CSR_TR].ti == 0); // check the table bit
     assert((old_cs & 0x3) == 3); // only support switching from ring 3
     assert((new_cs & 0x3) == 0); // only support switching to ring 0
 
     uint32_t esp3 = cpu.esp;
-    uint32_t ss3  = cpu.sreg[SR_SS].val;
-    cpu.esp = vaddr_read(cpu.sreg[SR_TR].base + 4, 4);
-    cpu.sreg[SR_SS].val = vaddr_read(cpu.sreg[SR_TR].base + 8, 2);
+    uint32_t ss3  = cpu.sreg[CSR_SS].val;
+    cpu.esp = vaddr_read(cpu.sreg[CSR_TR].base + 4, 4);
+    cpu.sreg[CSR_SS].val = vaddr_read(cpu.sreg[CSR_TR].base + 8, 2);
 
     rtl_li(s, s0, ss3);
     rtl_push(s, s0);
@@ -59,7 +59,7 @@ void raise_intr(DecodeExecState *s, uint32_t NO, vaddr_t ret_addr) {
 #endif
 
   rtl_mv(s, &cpu.IF, rz);
-  cpu.sreg[SR_CS].val = new_cs;
+  cpu.sreg[CSR_CS].val = new_cs;
 
   rtl_jr(s, s1);
 

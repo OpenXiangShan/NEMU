@@ -18,7 +18,7 @@ static void restart() {
   /* Set the initial instruction pointer. */
   cpu.pc = PMEM_BASE + IMAGE_START;
 #ifndef __ICS_EXPORT
-  cpu.sreg[SR_CS].val = 0x8;
+  cpu.sreg[CSR_CS].val = 0x8;
   cpu.cr0.val = 0x60000011;
 #endif
 }

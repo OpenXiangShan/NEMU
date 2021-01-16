@@ -48,5 +48,6 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest,
       else pio_write(*dest, *src1, id_dest->width);
       break;
     }
+    case HOSTCALL_CSR: isa_csrrw(dest, src1, imm); break;
   }
 }

@@ -15,89 +15,85 @@ static inline def_EHelper(out) {
 void load_sreg(int idx, uint16_t val);
 
 static inline def_EHelper(lidt) {
-  word_t addr = *s->isa.mbase + s->isa.moff;
-  cpu.idtr.limit = vaddr_read(addr, 2);
-  cpu.idtr.base = vaddr_read(addr + 2, 4);
+  rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_IDTR);
   print_asm_template1(lidt);
 }
 
 static inline def_EHelper(lgdt) {
-  word_t addr = *s->isa.mbase + s->isa.moff;
-  cpu.gdtr.limit = vaddr_read(addr, 2);
-  cpu.gdtr.base = vaddr_read(addr + 2, 4);
+  rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_GDTR);
   print_asm_template1(lgdt);
 }
 
 static inline def_EHelper(lldt) {
-  load_sreg(SR_LDTR, *ddest);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_LDTR);
   print_asm_template1(lldt);
 }
 
 static inline def_EHelper(mov_r2cr) {
-  rtl_lr(s, &cpu.cr[id_dest->reg], id_src1->reg, 4);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, NULL, CSR_CR0 + id_dest->reg);
   print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
 }
 
 static inline def_EHelper(mov_cr2r) {
-  rtl_sr(s, id_dest->reg, &cpu.cr[id_src1->reg], 4);
+  rtl_hostcall(s, HOSTCALL_CSR, ddest, NULL, NULL, CSR_CR0 + id_src1->reg);
   print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
 }
 
 static inline def_EHelper(mov_rm2sreg) {
-  load_sreg(id_dest->reg, *dsrc1);
-  if (id_dest->reg == 2) { // SS
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, NULL, id_dest->reg);
 #ifndef __DIFF_REF_NEMU__
-    difftest_skip_dut(1, 2);
+  if (id_dest->reg == 2) { difftest_skip_dut(1, 2); } // SS
 #endif
-  }
   print_asm("movw %s,%%%s", id_src1->str, sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(mov_sreg2rm) {
-  rtl_li(s, s0, cpu.sreg[id_src1->reg].val);
+  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, NULL, id_src1->reg);
   operand_write(s, id_dest, s0);
   print_asm("movw %%%s,%s", sreg_name(id_src1->reg), id_dest->str);
 }
 
 static inline def_EHelper(push_sreg_internal) {
-  rtl_li(s, s0, cpu.sreg[id_dest->reg].val);
+  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, NULL, id_dest->reg);
   rtl_push(s, s0);
   print_asm("push %%%s", sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(pop_sreg_internal) {
   rtl_pop(s, s0);
-  load_sreg(id_dest->reg, *s0);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, NULL, id_dest->reg);
   print_asm("pop %%%s", sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(push_fs) {
-  id_dest->reg = SR_FS;
+  id_dest->reg = CSR_FS;
   exec_push_sreg_internal(s);
 }
 
 static inline def_EHelper(push_es) {
-  id_dest->reg = SR_ES;
+  id_dest->reg = CSR_ES;
   exec_push_sreg_internal(s);
 }
 
 static inline def_EHelper(push_ds) {
-  id_dest->reg = SR_DS;
+  id_dest->reg = CSR_DS;
   exec_push_sreg_internal(s);
 }
 
 static inline def_EHelper(pop_ds) {
-  id_dest->reg = SR_DS;
+  id_dest->reg = CSR_DS;
   exec_pop_sreg_internal(s);
 }
 
 static inline def_EHelper(pop_es) {
-  id_dest->reg = SR_ES;
+  id_dest->reg = CSR_ES;
   exec_pop_sreg_internal(s);
 }
 
 static inline def_EHelper(pop_fs) {
-  id_dest->reg = SR_FS;
+  id_dest->reg = CSR_FS;
   exec_pop_sreg_internal(s);
 }
 
@@ -108,7 +104,7 @@ static inline def_EHelper(int) {
 }
 
 static inline def_EHelper(iret) {
-  int old_cpl = cpu.sreg[SR_CS].rpl;
+  int old_cpl = cpu.sreg[CSR_CS].rpl;
   rtl_pop(s, s1);  // eip
   rtl_jr(s, s1);
   rtl_pop(s, s1);  // cs
@@ -122,9 +118,9 @@ static inline def_EHelper(iret) {
     rtl_pop(s, s0);  // esp3
     rtl_pop(s, s1);  // ss
     rtl_mv(s, &cpu.esp, s0);
-    cpu.sreg[SR_SS].val = *s1;
+    cpu.sreg[CSR_SS].val = *s1;
   }
-  cpu.sreg[SR_CS].val = new_cs;
+  cpu.sreg[CSR_CS].val = new_cs;
 
   print_asm("iret");
 }
@@ -133,7 +129,7 @@ static inline def_EHelper(invlpg) {
 }
 
 static inline def_EHelper(ltr) {
-  load_sreg(SR_TR, *ddest);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_TR);
   print_asm_template1(ltr);
 }
 

@@ -57,13 +57,13 @@ static inline def_EHelper(call_rm) {
 
 static inline def_EHelper(ljmp) {
   rtl_j(s, s->jmp_pc);
-  cpu.sreg[SR_CS].val = id_src1->imm;
+  rtl_li(s, s0, id_src1->imm);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, NULL, CSR_CS);
   print_asm("ljmp %s,%s", id_src1->str, id_dest->str);
 }
 
 static inline def_EHelper(jecxz) {
   rtl_jrelop(s, RELOP_EQ, &cpu.ecx, rz, s->jmp_pc);
-
   print_asm("jecxz %x", s->jmp_pc);
 }
 #else
