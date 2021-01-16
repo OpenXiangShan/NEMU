@@ -58,7 +58,7 @@ static inline def_EHelper(call_rm) {
 static inline def_EHelper(ljmp) {
   rtl_j(s, s->jmp_pc);
   rtl_li(s, s0, id_src1->imm);
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, NULL, CSR_CS);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, CSR_CS);
   print_asm("ljmp %s,%s", id_src1->str, id_dest->str);
 }
 

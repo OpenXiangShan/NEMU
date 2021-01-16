@@ -1,13 +1,13 @@
 #include <monitor/difftest.h>
 
 static inline def_EHelper(in) {
-  rtl_hostcall(s, HOSTCALL_PIO, s0, dsrc1, NULL, 1);
+  rtl_hostcall(s, HOSTCALL_PIO, s0, dsrc1, 1);
   operand_write(s, id_dest, s0);
   print_asm_template2(in);
 }
 
 static inline def_EHelper(out) {
-  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, 0);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, 0);
   print_asm_template2(out);
 }
 
@@ -16,33 +16,33 @@ void load_sreg(int idx, uint16_t val);
 
 static inline def_EHelper(lidt) {
   rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_IDTR);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, CSR_IDTR);
   print_asm_template1(lidt);
 }
 
 static inline def_EHelper(lgdt) {
   rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_GDTR);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, CSR_GDTR);
   print_asm_template1(lgdt);
 }
 
 static inline def_EHelper(lldt) {
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_LDTR);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, CSR_LDTR);
   print_asm_template1(lldt);
 }
 
 static inline def_EHelper(mov_r2cr) {
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, NULL, CSR_CR0 + id_dest->reg);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, CSR_CR0 + id_dest->reg);
   print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
 }
 
 static inline def_EHelper(mov_cr2r) {
-  rtl_hostcall(s, HOSTCALL_CSR, ddest, NULL, NULL, CSR_CR0 + id_src1->reg);
+  rtl_hostcall(s, HOSTCALL_CSR, ddest, NULL, CSR_CR0 + id_src1->reg);
   print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
 }
 
 static inline def_EHelper(mov_rm2sreg) {
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, NULL, id_dest->reg);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, id_dest->reg);
 #ifndef __DIFF_REF_NEMU__
   if (id_dest->reg == 2) { difftest_skip_dut(1, 2); } // SS
 #endif
@@ -50,20 +50,20 @@ static inline def_EHelper(mov_rm2sreg) {
 }
 
 static inline def_EHelper(mov_sreg2rm) {
-  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, NULL, id_src1->reg);
+  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, id_src1->reg);
   operand_write(s, id_dest, s0);
   print_asm("movw %%%s,%s", sreg_name(id_src1->reg), id_dest->str);
 }
 
 static inline def_EHelper(push_sreg_internal) {
-  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, NULL, id_dest->reg);
+  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, id_dest->reg);
   rtl_push(s, s0);
   print_asm("push %%%s", sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(pop_sreg_internal) {
   rtl_pop(s, s0);
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, NULL, id_dest->reg);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, id_dest->reg);
   print_asm("pop %%%s", sreg_name(id_dest->reg));
 }
 
@@ -99,13 +99,13 @@ static inline def_EHelper(pop_fs) {
 
 static inline def_EHelper(int) {
   rtl_li(s, s0, s->seq_pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, NULL, id_dest->imm);
+  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, id_dest->imm);
   rtl_jr(s, s0);
   print_asm("int %s", id_dest->str);
 }
 
 static inline def_EHelper(iret) {
-  rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, NULL, PRIV_IRET);
+  rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, PRIV_IRET);
   rtl_jr(s, s0);
   print_asm("iret");
 }
@@ -114,7 +114,7 @@ static inline def_EHelper(invlpg) {
 }
 
 static inline def_EHelper(ltr) {
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_TR);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, CSR_TR);
   print_asm_template1(ltr);
 }
 

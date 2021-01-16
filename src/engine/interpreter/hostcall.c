@@ -35,19 +35,18 @@ static inline void invalid_instr() {
   set_nemu_state(NEMU_ABORT, cpu.pc, -1);
 }
 
-def_rtl(hostcall, uint32_t id, rtlreg_t *dest,
-    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm) {
+def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
   switch (id) {
     case HOSTCALL_EXIT:
       difftest_skip_ref();
-      set_nemu_state(NEMU_END, cpu.pc, *src1);
+      set_nemu_state(NEMU_END, cpu.pc, *src);
       break;
     case HOSTCALL_INV: invalid_instr(); break;
     case HOSTCALL_PIO: {
-      if (imm) *dest = pio_read(*src1, id_dest->width);
-      else pio_write(*dest, *src1, id_dest->width);
+      if (imm) *dest = pio_read(*src, id_dest->width);
+      else pio_write(*dest, *src, id_dest->width);
       break;
     }
-    default: isa_hostcall(id, dest, src1, src2, imm); break;
+    default: isa_hostcall(id, dest, src, imm); break;
   }
 }
