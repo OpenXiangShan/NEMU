@@ -1,5 +1,4 @@
 #include <isa.h>
-#include <cpu/exec.h>
 #include <difftest.h>
 #include "../local-include/intr.h"
 

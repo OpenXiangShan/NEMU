@@ -1,9 +1,9 @@
-#include <cpu/exec.h>
-#include <monitor/difftest.h>
-#include "local-include/reg.h"
+#include "local-include/rtl.h"
 #include "local-include/intr.h"
 
 #ifndef __ICS_EXPORT
+#include <monitor/difftest.h>
+
 typedef union GateDescriptor {
   struct {
     uint32_t offset_15_0      : 16;
