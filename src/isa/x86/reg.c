@@ -66,50 +66,6 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   *success = false;
   return 0;
 }
-
-static void load_sreg(int idx, uint16_t val) {
-  cpu.sreg[idx].val = val;
-
-  if (val == 0) return;
-  uint16_t old_cpl = cpu.sreg[CSR_CS].val;
-  cpu.sreg[CSR_CS].rpl = 0; // use ring 0 to index GDT
-
-  assert(cpu.sreg[idx].ti == 0); // check the table bit
-  uint32_t desc_base = cpu.gdtr.base + (cpu.sreg[idx].idx << 3);
-  uint32_t desc_lo = vaddr_read(desc_base + 0, 4);
-  uint32_t desc_hi = vaddr_read(desc_base + 4, 4);
-  assert((desc_hi >> 15) & 0x1); // check the present bit
-  uint32_t base = (desc_hi & 0xff000000) | ((desc_hi & 0xff) << 16) | (desc_lo >> 16);
-  cpu.sreg[idx].base = base;
-
-  cpu.sreg[CSR_CS].rpl = old_cpl;
-}
-
-void isa_csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
-  if (dest != NULL) {
-    switch (csrid) {
-      case 0 ... CSR_LDTR: *dest = cpu.sreg[csrid].val; break;
-      case CSR_CR0 ... CSR_CR4: *dest = cpu.cr[csrid - CSR_CR0]; break;
-      default: panic("Reading from CSR = %d is not supported", csrid);
-    }
-  }
-  if (src != NULL) {
-    switch (csrid) {
-      case CSR_IDTR:
-        cpu.idtr.limit = vaddr_read(*src, 2);
-        cpu.idtr.base  = vaddr_read(*src + 2, 4);
-        break;
-      case CSR_GDTR:
-        cpu.gdtr.limit = vaddr_read(*src, 2);
-        cpu.gdtr.base  = vaddr_read(*src + 2, 4);
-        break;
-      case 0 ... CSR_LDTR: load_sreg(csrid, *src); break;
-      case CSR_CR0 ... CSR_CR4: cpu.cr[csrid - CSR_CR0] = *src; break;
-      default: panic("Writing to CSR = %d is not supported", csrid);
-    }
-  }
-}
-
 #else
 void isa_reg_display() {
 }

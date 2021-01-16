@@ -98,30 +98,15 @@ static inline def_EHelper(pop_fs) {
 }
 
 static inline def_EHelper(int) {
-  void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
-  raise_intr(s, *ddest, s->seq_pc);
+  rtl_li(s, s0, s->seq_pc);
+  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, NULL, id_dest->imm);
+  rtl_jr(s, s0);
   print_asm("int %s", id_dest->str);
 }
 
 static inline def_EHelper(iret) {
-  int old_cpl = cpu.sreg[CSR_CS].rpl;
-  rtl_pop(s, s1);  // eip
-  rtl_jr(s, s1);
-  rtl_pop(s, s1);  // cs
-  uint16_t new_cs = *s1;
-  void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
-  rtl_pop(s, s1);  // eflags
-  rtl_set_eflags(s, s1);
-  int new_cpl = new_cs & 0x3;
-  if (new_cpl > old_cpl) {
-    // return to user
-    rtl_pop(s, s0);  // esp3
-    rtl_pop(s, s1);  // ss
-    rtl_mv(s, &cpu.esp, s0);
-    cpu.sreg[CSR_SS].val = *s1;
-  }
-  cpu.sreg[CSR_CS].val = new_cs;
-
+  rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, NULL, PRIV_IRET);
+  rtl_jr(s, s0);
   print_asm("iret");
 }
 

@@ -17,6 +17,8 @@ enum {
   CSR_CR0, CSR_CR1, CSR_CR2, CSR_CR3, CSR_CR4
 };
 
+enum { PRIV_IRET };
+
 static inline int check_reg_index(int index) {
   assert(index >= 0 && index < 8);
   return index;

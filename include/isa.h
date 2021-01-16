@@ -20,10 +20,11 @@ void init_isa();
 extern CPU_state cpu;
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
-void isa_csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid);
 
 // exec
 vaddr_t isa_exec_once();
+void isa_hostcall(uint32_t id, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm);
 
 // memory
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
