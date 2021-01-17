@@ -18,6 +18,6 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 }
 
 void isa_difftest_attach() {
-  ref_difftest_memcpy_from_dut(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
-  ref_difftest_setregs(&cpu);
+  ref_difftest_memcpy(PMEM_BASE, guest_to_host(0), PMEM_SIZE, DIFFTEST_TO_REF);
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
