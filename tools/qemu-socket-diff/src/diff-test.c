@@ -77,3 +77,8 @@ void difftest_init(int port) {
     init_isa();
   }
 }
+
+void difftest_raise_intr(uint64_t NO) {
+  printf("raise_intr is not supported in QEMU-socket\n");
+  assert(0);
+}
