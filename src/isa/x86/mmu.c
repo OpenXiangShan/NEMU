@@ -45,7 +45,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 #else
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
-  int is_user = cpu.sreg[SR_CS].rpl == MODE_R3;
+  int is_user = cpu.sreg[CSR_CS].rpl == MODE_R3;
   int is_write = (type == MEM_TYPE_WRITE) || (type == MEM_TYPE_READ && cpu.lock);
   ok = ok && pte->p;
   ok = ok && !(is_user && !pte->u);

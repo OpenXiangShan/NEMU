@@ -3,6 +3,7 @@
 
 #include <rtl/rtl.h>
 #include "reg.h"
+#include "intr.h"
 
 /* RTL pseudo instructions */
 

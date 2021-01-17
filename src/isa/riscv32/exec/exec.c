@@ -103,8 +103,8 @@ vaddr_t isa_exec_once() {
 #ifndef __ICS_EXPORT
 
 #if !defined(DIFF_TEST) && !_SHARE
-  void query_intr(DecodeExecState *s);
-  query_intr(&s);
+  void query_intr();
+  query_intr();
 #endif
 #endif
 

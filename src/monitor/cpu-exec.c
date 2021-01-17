@@ -34,10 +34,6 @@ int is_exit_status_bad() {
   return !good;
 }
 
-void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
-  nemu_state = (NEMUState) { .state = state, .halt_pc = halt_pc, .halt_ret = halt_ret };
-}
-
 void monitor_statistic() {
   setlocale(LC_NUMERIC, "");
   Log("total guest instructions = %'ld", g_nr_guest_instr);
@@ -48,16 +44,6 @@ void monitor_statistic() {
 
 bool log_enable() {
   return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
-}
-
-void display_inv_msg(vaddr_t pc) {
-  printf("There are two cases which will trigger this unexpected exception:\n"
-      "1. The instruction at PC = " FMT_WORD " is not implemented.\n"
-      "2. Something is implemented incorrectly.\n", pc);
-  printf("Find this PC(" FMT_WORD ") in the disassembling result to distinguish which case it is.\n\n", pc);
-  printf("\33[1;31mIf it is the first case, see\n%s\nfor more details.\n\nIf it is the second case, remember:\n"
-      "* The machine is always right!\n"
-      "* Every line of untested code is always wrong!\33[0m\n\n", isa_logo);
 }
 
 uint64_t get_time() {

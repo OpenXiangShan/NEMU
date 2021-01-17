@@ -112,11 +112,11 @@ typedef struct {
   } idtr, gdtr;
 
   union {
-    rtlreg_t cr[4];
+    uint32_t cr[4];
     struct {
       CR0 cr0;
-      rtlreg_t cr1;
-      rtlreg_t cr2;
+      uint32_t cr1;
+      uint32_t cr2;
       CR3 cr3;
     };
   };
