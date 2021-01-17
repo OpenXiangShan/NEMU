@@ -57,6 +57,11 @@ void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc) {
   rtl_jr(s, s0);
 }
 
+void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
+  word_t ret = 0;
+  if (dest) *dest = ret;
+}
+
 void query_intr(DecodeExecState *s) {
   word_t intr_vec = mie->val & mip->val;
   if (!intr_vec) return;
