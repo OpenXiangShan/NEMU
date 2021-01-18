@@ -25,9 +25,9 @@ static inline word_t* csr_decode(uint32_t csr) {
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   word_t *csr = csr_decode(csrid);
-  word_t tmp = *csr;
-  if (src != NULL) { *csr = *src; }
-  if (dest != NULL) { *dest = tmp; }
+  word_t tmp = (src != NULL ? *src : 0);
+  if (dest != NULL) { *dest = *csr; }
+  if (src != NULL) { *csr = tmp; }
 }
 
 static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
