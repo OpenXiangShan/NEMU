@@ -7,6 +7,11 @@ static void load_sreg(int idx, uint16_t val) {
   cpu.sreg[idx].val = val;
 
   if (val == 0) return;
+
+#ifdef USER_MODE
+  extern uint32_t GDT[];
+  cpu.sreg[idx].base = GDT[idx];
+#else
   uint16_t old_cpl = cpu.sreg[CSR_CS].val;
   cpu.sreg[CSR_CS].rpl = 0; // use ring 0 to index GDT
 
@@ -15,22 +20,27 @@ static void load_sreg(int idx, uint16_t val) {
   uint32_t desc_lo = vaddr_read(desc_base + 0, 4);
   uint32_t desc_hi = vaddr_read(desc_base + 4, 4);
   assert((desc_hi >> 15) & 0x1); // check the present bit
+
+  cpu.sreg[CSR_CS].rpl = old_cpl; // restore CPL
+
   uint32_t base = (desc_hi & 0xff000000) | ((desc_hi & 0xff) << 16) | (desc_lo >> 16);
   cpu.sreg[idx].base = base;
-
-  cpu.sreg[CSR_CS].rpl = old_cpl;
+#endif
 }
 
 static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (dest != NULL) {
     switch (csrid) {
+#ifndef USER_MODE
       case 0 ... CSR_LDTR: *dest = cpu.sreg[csrid].val; break;
       case CSR_CR0 ... CSR_CR4: *dest = cpu.cr[csrid - CSR_CR0]; break;
+#endif
       default: panic("Reading from CSR = %d is not supported", csrid);
     }
   }
   if (src != NULL) {
     switch (csrid) {
+#ifndef USER_MODE
       case CSR_IDTR:
         cpu.idtr.limit = vaddr_read(*src, 2);
         cpu.idtr.base  = vaddr_read(*src + 2, 4);
@@ -39,8 +49,9 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
         cpu.gdtr.limit = vaddr_read(*src, 2);
         cpu.gdtr.base  = vaddr_read(*src + 2, 4);
         break;
-      case 0 ... CSR_LDTR: load_sreg(csrid, *src); break;
       case CSR_CR0 ... CSR_CR4: cpu.cr[csrid - CSR_CR0] = *src; break;
+#endif
+      case 0 ... CSR_LDTR: load_sreg(csrid, *src); break;
       default: panic("Writing to CSR = %d is not supported", csrid);
     }
   }
@@ -76,6 +87,7 @@ static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
   word_t ret = 0;
   switch (id) {
+    case HOSTCALL_CSR: csrrw(dest, src, imm); return;
 #ifdef USER_MODE
     case HOSTCALL_TRAP:
       assert(imm == 0x80);
@@ -84,7 +96,6 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
       ret = *src;
       break;
 #else
-    case HOSTCALL_CSR: csrrw(dest, src, imm); return;
     case HOSTCALL_TRAP: ret = raise_intr(imm, *src); break;
     case HOSTCALL_PRIV: ret = priv_instr(imm, src); break;
 #endif

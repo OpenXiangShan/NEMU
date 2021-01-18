@@ -22,12 +22,41 @@ static inline word_t user_sys_brk(word_t new_brk) {
   panic("new brk = 0x%x is more than PMEM_SIZE / 2", new_brk);
 }
 
+static inline word_t user_set_thread_area(word_t u_info) {
+  struct user_desc {
+    uint32_t entry_number;
+    vaddr_t base_addr;
+    uint32_t limit;
+    uint32_t seg_32bit:1;
+    uint32_t contents:2;
+    uint32_t read_exec_only:1;
+    uint32_t limit_in_pages:1;
+    uint32_t seg_not_present:1;
+    uint32_t useable:1;
+  } *info = user_to_host(u_info);
+  assert(info->entry_number == -1);
+  assert(info->seg_32bit);
+  assert(!info->contents);
+  assert(!info->read_exec_only);
+  assert(info->limit_in_pages);
+  assert(!info->seg_not_present);
+  assert(info->useable);
+  extern uint32_t GDT[];
+  static int flag = 0;
+  Assert(flag == 0, "call more than once!");
+  flag ++;
+  GDT[2] = info->base_addr;
+  info->entry_number = 2;
+  return 0;
+}
+
 word_t host_syscall(word_t id, word_t arg1, word_t arg2, word_t arg3) {
   int ret = 0;
   switch (id) {
     case 1: user_sys_exit(arg1); break;
     case 4: ret = user_sys_write(arg1, arg2, arg3); break;
     case 45: ret = user_sys_brk(arg1); break;
+    case 243: ret = user_set_thread_area(arg1); break;
     default: panic("Unsupported syscall ID = %d", id);
   }
   return ret;
