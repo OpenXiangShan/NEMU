@@ -21,7 +21,7 @@ static void load_sreg(int idx, uint16_t val) {
   cpu.sreg[CSR_CS].rpl = old_cpl;
 }
 
-static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (dest != NULL) {
     switch (csrid) {
       case 0 ... CSR_LDTR: *dest = cpu.sreg[csrid].val; break;
@@ -66,7 +66,7 @@ static inline word_t iret() {
   return new_pc;
 }
 
-static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
+static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case PRIV_IRET: return iret();
     default: panic("Unsupported privilige operation = %d", op);
@@ -76,9 +76,18 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
   word_t ret = 0;
   switch (id) {
+#ifdef USER_MODE
+    case HOSTCALL_TRAP:
+      assert(imm == 0x80);
+      void host_syscall();
+      host_syscall();
+      ret = *src;
+      break;
+#else
     case HOSTCALL_CSR: csrrw(dest, src, imm); return;
     case HOSTCALL_TRAP: ret = raise_intr(imm, *src); break;
     case HOSTCALL_PRIV: ret = priv_instr(imm, src); break;
+#endif
     default: panic("Unsupported hostcall ID = %d", id);
   }
   if (dest) *dest = ret;
