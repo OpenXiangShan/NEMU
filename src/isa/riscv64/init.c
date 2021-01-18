@@ -32,3 +32,13 @@ void init_isa(void) {
   extern void init_sdcard();
   init_sdcard();
 }
+
+void init_csr(void) {
+  cpu.mode = MODE_M;
+  mstatus->uxl = 2;
+  mstatus->sxl = 2;
+  mstatus->fs = 1;
+  misa->val = 0x14112D;
+  misa->mxl = 2;
+  Log("Mstatus: %#lx\n", mstatus->val);
+}

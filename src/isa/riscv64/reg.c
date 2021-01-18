@@ -139,6 +139,11 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     frm->val = ((*src)>>5) & FRM_MASK;
   } else {
     *dest = *src;
+
+    if (dest == (void *)mstatus) {
+        mstatus->sxl = 2;
+        mstatus->uxl = 2;
+    }
   }
 
   if (dest == (void *)sstatus || dest == (void *)mstatus) {
