@@ -2,6 +2,7 @@
 #include <memory/paddr.h>
 #include <stdio.h>
 #include <elf.h>
+#include <sys/auxv.h>
 
 #ifdef __ISA64__
 # define Elf_Ehdr Elf64_Ehdr
@@ -62,8 +63,20 @@ static long load_elf(char *elfpath) {
 static inline word_t init_stack() {
   word_t *sp = guest_to_host(PMEM_SIZE);
 #define push(data) (*(-- sp) = data)
+#define push_auxv(type, data) { push(data); push(type); }
 
-  push(0); push(0); // Null auxiliary vector entry
+  push_auxv(AT_NULL, 0);
+  //push_auxv(AT_HWCAP, 0xbfebfbff);
+  push_auxv(AT_PAGESZ, 0x1000);
+  push_auxv(AT_CLKTCK, getauxval(AT_CLKTCK));
+  push_auxv(AT_BASE, 0);
+  push_auxv(AT_FLAGS, 0);
+  push_auxv(AT_UID, getauxval(AT_UID));
+  push_auxv(AT_EUID, getauxval(AT_EUID));
+  push_auxv(AT_GID, getauxval(AT_GID));
+  push_auxv(AT_EGID, getauxval(AT_EGID));
+  push_auxv(AT_SECURE, getauxval(AT_SECURE));
+  //push_auxv(AT_HWCAP2, 0);
   push(0); // delimiter
   // no envp
   push(0); // delimiter
