@@ -50,3 +50,10 @@ void init_isa() {
   init_i8237a();
   init_sdcard("/home/yzh/sdi/debian-16G.img");
 }
+
+#ifdef USER_MODE
+void isa_init_user(word_t sp) {
+  cpu.esp = sp;
+  cpu.edx = 0; // no handler for atexit()
+}
+#endif

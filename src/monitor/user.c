@@ -59,6 +59,22 @@ static long load_elf(char *elfpath) {
   return brk;
 }
 
+static inline word_t init_stack() {
+  word_t *sp = guest_to_host(PMEM_SIZE);
+#define push(data) (*(-- sp) = data)
+
+  push(0); push(0); // Null auxiliary vector entry
+  push(0); // delimiter
+  // no envp
+  push(0); // delimiter
+  // no argv
+  push(0); // argc
+
+  return PMEM_BASE + host_to_guest(sp);
+}
+
 long init_user(char *elfpath) {
+  word_t sp = init_stack();
+  isa_init_user(sp);
   return load_elf(elfpath);
 }
