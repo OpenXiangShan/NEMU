@@ -36,15 +36,11 @@ static inline def_EHelper(fwait) {
 }
 
 static inline def_EHelper(fpu) {
-  rtl_li(s, s0, cpu.pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, 7);
-  rtl_jr(s, s0);
+  rtl_trap(s, cpu.pc, 7);
 }
 
 static inline def_EHelper(hlt) {
-  rtl_li(s, s0, s->seq_pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, IRQ_TIMER);
-  rtl_jr(s, s0);
+  rtl_trap(s, s->seq_pc, IRQ_TIMER);
   if (ref_difftest_raise_intr) ref_difftest_raise_intr(IRQ_TIMER);
   print_asm("hlt");
 }

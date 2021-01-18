@@ -13,9 +13,7 @@ static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
     case 0x001:  // fflags
     case 0x002:  // frm
     case 0x003:  // fcsr
-      rtl_li(s, s0, cpu.pc);
-      rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, EX_II);
-      rtl_jr(s, s0);
+      rtl_trap(s, cpu.pc, EX_II);
       return false;
   }
   return true;
@@ -95,9 +93,7 @@ static inline def_EHelper(priv) {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
-      rtl_li(s, s0, cpu.pc);
-      rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, 8 + cpu.mode);
-      rtl_jr(s, s0);
+      rtl_trap(s, cpu.pc, 8 + cpu.mode);
       print_asm("ecall");
       break;
     case 0x120:

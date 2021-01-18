@@ -2,9 +2,7 @@
 #include "../local-include/intr.h"
 
 static inline def_EHelper(syscall) {
-  rtl_li(s, s0, cpu.pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, EX_SYSCALL);
-  rtl_jr(s, s0);
+  rtl_trap(s, cpu.pc, EX_SYSCALL);
   print_asm("syscall");
 }
 
