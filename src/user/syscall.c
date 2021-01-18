@@ -1,7 +1,5 @@
 #include <isa.h>
-#include <memory/paddr.h>
 #include <unistd.h>
-#include <rtl/rtl.h>
 #include <monitor/monitor.h>
 #include "user.h"
 
@@ -12,7 +10,7 @@ static inline void user_sys_exit(int status) {
 }
 
 static inline word_t user_sys_write(int fd, word_t buf, word_t len) {
-  return write(fd, guest_to_host(buf - PMEM_BASE), len);
+  return write(fd, user_to_host(buf), len);
 }
 
 static inline word_t user_sys_brk(word_t new_brk) {

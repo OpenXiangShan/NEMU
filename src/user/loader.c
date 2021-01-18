@@ -1,5 +1,4 @@
 #include <isa.h>
-#include <memory/paddr.h>
 #include <stdio.h>
 #include <elf.h>
 #include <sys/auxv.h>
@@ -48,7 +47,7 @@ static long load_elf(char *elfpath) {
   vaddr_t brk = 0;
   for (; ph < eph; ph ++) {
     if (ph->p_type == PT_LOAD) {
-      void *host_addr = guest_to_host(ph->p_vaddr - PMEM_BASE);
+      void *host_addr = user_to_host(ph->p_vaddr);
       Log("loading to memory region [0x%x, 0x%x)", ph->p_vaddr, ph->p_vaddr + ph->p_memsz);
       fseek(fp, ph->p_offset, SEEK_SET);
       ret = fread(host_addr, ph->p_filesz, 1, fp);
