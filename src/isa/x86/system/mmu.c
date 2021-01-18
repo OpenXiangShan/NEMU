@@ -2,7 +2,7 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #ifndef __ICS_EXPORT
-#include "local-include/reg.h"
+#include "../local-include/reg.h"
 #include <monitor/difftest.h>
 
 typedef union PageTableEntry {

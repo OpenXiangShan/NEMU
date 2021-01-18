@@ -1,63 +1,6 @@
-#include <monitor/difftest.h>
-#include "local-include/csr.h"
-#include "local-include/rtl.h"
-#include "local-include/intr.h"
-
-#define INTR_BIT (1ULL << 63)
-enum {
-  IRQ_USIP, IRQ_SSIP, IRQ_HSIP, IRQ_MSIP,
-  IRQ_UTIP, IRQ_STIP, IRQ_HTIP, IRQ_MTIP,
-  IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
-};
-
-static inline void change_mode(uint8_t m) {
-  assert(m < 4 && m != MODE_H);
-  cpu.mode = m;
-}
-
-word_t raise_intr(word_t NO, vaddr_t epc) {
-  // TODO: Trigger an interrupt/exception with ``NO''
-
-  switch (NO) {
-    case EX_II:
-    case EX_IPF:
-    case EX_LPF:
-    case EX_SPF: difftest_skip_dut(1, 2); break;
-  }
-
-  word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);
-
-  if (delegS) {
-    scause->val = NO;
-    sepc->val = epc;
-    mstatus->spp = cpu.mode;
-    mstatus->spie = mstatus->sie;
-    mstatus->sie = 0;
-    switch (NO) {
-      case EX_IPF: case EX_LPF: case EX_SPF:
-      case EX_LAM: case EX_SAM:
-        break;
-      default: stval->val = 0;
-    }
-    cpu.mode = MODE_S;
-    return stvec->val;
-  } else {
-    mcause->val = NO;
-    mepc->val = epc;
-    mstatus->mpp = cpu.mode;
-    mstatus->mpie = mstatus->mie;
-    mstatus->mie = 0;
-    switch (NO) {
-      case EX_IPF: case EX_LPF: case EX_SPF:
-      case EX_LAM: case EX_SAM:
-        break;
-      default: mtval->val = 0;
-    }
-    cpu.mode = MODE_M;
-    return mtvec->val;
-  }
-}
+#include "../local-include/csr.h"
+#include "../local-include/rtl.h"
+#include "../local-include/intr.h"
 
 static word_t csr_array[4096] = {};
 
@@ -137,7 +80,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #else
       mstatus->spie = 1;
 #endif
-      change_mode(mstatus->spp);
+      cpu.mode = mstatus->spp;
       mstatus->spp = MODE_U;
       return sepc->val;
     case 0x302: // mret
@@ -148,7 +91,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #else
       mstatus->mpie = 1;
 #endif
-      change_mode(mstatus->mpp);
+      cpu.mode = mstatus->mpp;
       mstatus->mpp = MODE_U;
       return mepc->val;
       break;
@@ -166,27 +109,4 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
     default: panic("Unsupported hostcall ID = %d", id);
   }
   if (dest) *dest = ret;
-}
-
-void query_intr() {
-  word_t intr_vec = mie->val & mip->val;
-  if (!intr_vec) return;
-
-  const int priority [] = {
-    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
-    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
-    IRQ_UEIP, IRQ_USIP, IRQ_UTIP
-  };
-  int i;
-  for (i = 0; i < 9; i ++) {
-    int irq = priority[i];
-    if (intr_vec & (1 << irq)) {
-      bool deleg = (mideleg->val & (1 << irq)) != 0;
-      bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
-          ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
-      if (global_enable) {
-        cpu.pc = raise_intr(irq | INTR_BIT, cpu.pc);
-      }
-    }
-  }
 }
