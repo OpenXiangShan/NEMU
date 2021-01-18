@@ -54,11 +54,16 @@ static long load_elf(char *elfpath) {
       assert(ret == 1);
       memset(host_addr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
       if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
+
+      if (ph->p_offset == 0) { user_state.phdr = ph->p_vaddr + elf->e_phoff; }
     }
   }
   fclose(fp);
   user_state.brk = brk;
   user_state.program_brk = brk;
+  user_state.entry = elf->e_entry;
+  user_state.phent = elf->e_phentsize;
+  user_state.phnum = elf->e_phnum;
   cpu.pc = elf->e_entry;
   return brk - PMEM_BASE;
 }
@@ -68,17 +73,26 @@ static inline word_t init_stack() {
 #define push(data) (*(-- sp) = data)
 #define push_auxv(type, data) { push(data); push(type); }
 
+  // AT_RANDOM
+  push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef);
+  word_t random_ptr = host_to_guest(sp) + PMEM_BASE;
+
   push_auxv(AT_NULL, 0);
   //push_auxv(AT_HWCAP, 0xbfebfbff);
   push_auxv(AT_PAGESZ, 0x1000);
   push_auxv(AT_CLKTCK, getauxval(AT_CLKTCK));
+  push_auxv(AT_PHDR, user_state.phdr);
+  push_auxv(AT_PHENT, user_state.phent);
+  push_auxv(AT_PHNUM, user_state.phnum);
   push_auxv(AT_BASE, 0);
   push_auxv(AT_FLAGS, 0);
+  push_auxv(AT_ENTRY, user_state.entry);
   push_auxv(AT_UID, getauxval(AT_UID));
   push_auxv(AT_EUID, getauxval(AT_EUID));
   push_auxv(AT_GID, getauxval(AT_GID));
   push_auxv(AT_EGID, getauxval(AT_EGID));
   push_auxv(AT_SECURE, getauxval(AT_SECURE));
+  push_auxv(AT_RANDOM, random_ptr);
   //push_auxv(AT_HWCAP2, 0);
   push(0); // delimiter
   // no envp

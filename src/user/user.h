@@ -4,8 +4,12 @@
 #include <memory/paddr.h>
 
 typedef struct {
+  word_t entry;
   word_t brk;
   word_t program_brk;
+  word_t phdr;
+  int phent;
+  int phnum;
 } user_state_t;
 
 extern user_state_t user_state;
