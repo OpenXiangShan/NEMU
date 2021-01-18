@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <elf.h>
 #include <sys/auxv.h>
+#include "user.h"
 
 #ifdef __ISA64__
 # define Elf_Ehdr Elf64_Ehdr
@@ -23,6 +24,8 @@
 #endif
 
 void isa_init_user(word_t sp);
+
+user_state_t user_state = {};
 
 static long load_elf(char *elfpath) {
   Assert(elfpath != NULL, "User program is not given");
@@ -55,9 +58,10 @@ static long load_elf(char *elfpath) {
     }
   }
   fclose(fp);
-  brk -= PMEM_BASE;
+  user_state.brk = brk;
+  user_state.program_brk = brk;
   cpu.pc = elf->e_entry;
-  return brk;
+  return brk - PMEM_BASE;
 }
 
 static inline word_t init_stack() {
