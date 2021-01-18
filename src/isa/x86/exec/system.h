@@ -98,9 +98,7 @@ static inline def_EHelper(pop_fs) {
 }
 
 static inline def_EHelper(int) {
-  rtl_li(s, s0, s->seq_pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, s0, s0, id_dest->imm);
-  rtl_jr(s, s0);
+  rtl_trap(s, s->seq_pc, id_dest->imm);
   print_asm("int %s", id_dest->str);
 }
 

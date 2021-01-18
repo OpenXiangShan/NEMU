@@ -98,7 +98,7 @@ static inline def_EHelper(atomic) {
 }
 
 static inline def_EHelper(fp) {
-  raise_intr(s, EX_II, cpu.pc);
+  rtl_trap(s, cpu.pc, EX_II);
 }
 
 // RVC
@@ -146,7 +146,7 @@ static inline def_EHelper(misc_alu) {
   }
 }
 
-static inline void exec(DecodeExecState *s) {
+static inline void fetch_decode_exec(DecodeExecState *s) {
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
@@ -205,16 +205,17 @@ vaddr_t isa_exec_once() {
   s.is_jmp = 0;
   s.seq_pc = cpu.pc;
 
-  exec(&s);
+  fetch_decode_exec(&s);
   if (cpu.mem_exception != MEM_OK) {
-    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.pc  = raise_intr(cpu.mem_exception, cpu.pc);
     cpu.mem_exception = MEM_OK;
+  } else {
+    update_pc(&s);
   }
-  update_pc(&s);
 
 #if !defined(DIFF_TEST) && !_SHARE
-  void query_intr(DecodeExecState *s);
-  query_intr(&s);
+  void query_intr();
+  query_intr();
 #endif
 
   // reset gpr[0]

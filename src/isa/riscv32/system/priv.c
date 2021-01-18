@@ -1,14 +1,5 @@
-#include "local-include/rtl.h"
-#include "local-include/intr.h"
-
-#ifndef __ICS_EXPORT
-word_t raise_intr(uint32_t NO, vaddr_t epc) {
-  cpu.scause = NO;
-  cpu.sepc = epc;
-  cpu.sstatus.spie = cpu.sstatus.sie;
-  cpu.sstatus.sie = 0;
-  return cpu.stvec;
-}
+#include "../local-include/rtl.h"
+#include "../local-include/intr.h"
 
 static inline word_t* csr_decode(uint32_t csr) {
   switch (csr) {
@@ -25,9 +16,9 @@ static inline word_t* csr_decode(uint32_t csr) {
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   word_t *csr = csr_decode(csrid);
-  word_t tmp = *csr;
-  if (src != NULL) { *csr = *src; }
-  if (dest != NULL) { *dest = tmp; }
+  word_t tmp = (src != NULL ? *src : 0);
+  if (dest != NULL) { *dest = *csr; }
+  if (src != NULL) { *csr = tmp; }
 }
 
 static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
@@ -51,22 +42,3 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
   }
   if (dest) *dest = ret;
 }
-
-void query_intr() {
-  if (cpu.INTR && cpu.sstatus.sie) {
-    cpu.INTR = false;
-    cpu.pc = raise_intr(0x80000005, cpu.pc);
-  }
-}
-#else
-word_t raise_intr(uint32_t NO, vaddr_t epc) {
-  /* TODO: Trigger an interrupt/exception with ``NO''.
-   * That is, use ``NO'' to index the IDT.
-   */
-
-  return 0;
-}
-
-void query_intr() {
-}
-#endif

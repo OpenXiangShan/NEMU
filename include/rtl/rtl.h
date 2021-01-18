@@ -43,9 +43,6 @@ enum {
   RELOP_GEU   = 8 | 0 | 0 | 1,
 };
 
-#include <rtl-basic.h>
-#include <rtl/pseudo.h>
-
 enum {
   HOSTCALL_EXIT,  // handling nemu_trap
   HOSTCALL_INV,   // invalid opcode
@@ -56,5 +53,8 @@ enum {
 };
 
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
+
+#include <rtl-basic.h>
+#include <rtl/pseudo.h>
 
 #endif
