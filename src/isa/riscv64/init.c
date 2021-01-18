@@ -17,10 +17,7 @@ void init_isa() {
   cpu.pc = PMEM_BASE + IMAGE_START;
 
   cpu.mode = MODE_M;
-#ifndef __DIFF_REF_QEMU__
-  // QEMU seems to initialize mstatus with 0
-  mstatus->val = 0x00001800;
-#endif
+  mstatus->val = 0;
 
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
