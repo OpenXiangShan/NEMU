@@ -79,8 +79,8 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
 #ifdef USER_MODE
     case HOSTCALL_TRAP:
       assert(imm == 0x80);
-      void host_syscall();
-      host_syscall();
+      word_t host_syscall(word_t id, word_t arg1, word_t arg2, word_t arg3);
+      cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx);
       ret = *src;
       break;
 #else
