@@ -12,11 +12,16 @@
 #endif
 
 // memory
+#ifdef USER_MODE
+#define x86_IMAGE_START 0x0
+#define x86_PMEM_BASE 0x08048000
+#else
 #define x86_IMAGE_START 0x100000
 #ifdef __ENGINE_rv64__
 #define x86_PMEM_BASE 0x80000000
 #else
 #define x86_PMEM_BASE 0x0
+#endif
 #endif
 
 // reg
