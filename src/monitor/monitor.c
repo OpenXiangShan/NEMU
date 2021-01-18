@@ -3,7 +3,6 @@
 #include <monitor/monitor.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include <elf.h>
 
 void init_log(const char *log_file);
 void init_mem();
@@ -45,66 +44,12 @@ static inline long load_img() {
 
   Log("The image is %s", img_file);
 
-  long size = 0;
-
-#ifdef USER_MODE
-
-#ifdef __ISA64__
-# define Elf_Ehdr Elf64_Ehdr
-# define Elf_Phdr Elf64_Phdr
-#else
-# define Elf_Ehdr Elf32_Ehdr
-# define Elf_Phdr Elf32_Phdr
-#endif
-
-#if defined(__ISA_x86__)
-# define ELF_TYPE EM_386
-#elif defined(__ISA_mipS32__)
-# define ELF_TYPE EM_MIPS
-#elif defined(__ISA_riscv32__) || defined(__ISA_riscv64__)
-# define ELF_TYPE EM_RISCV
-#else
-# error Unsupported ISA
-#endif
-
-  Elf_Ehdr *elf;
-  Elf_Phdr *ph, *eph;
-
-  uint8_t buf[512];
-  int ret = fread(buf, 512, 1, fp);
-  assert(ret == 1);
-  elf = (void*)buf;
-  assert(buf[0] == 0x7f && buf[1] == 'E' && buf[2] == 'L' && buf[3] == 'F');
-  assert(elf->e_machine == ELF_TYPE);
-
-  /* Load each program segment */
-  ph = (void *)elf + elf->e_phoff;
-  eph = ph + elf->e_phnum;
-  vaddr_t brk = 0;
-  for (; ph < eph; ph ++) {
-    if (ph->p_type == PT_LOAD) {
-      void *host_addr = guest_to_host(ph->p_vaddr - PMEM_BASE);
-      Log("loading to memory region [0x%x, 0x%x)", ph->p_vaddr, ph->p_vaddr + ph->p_memsz);
-      fseek(fp, ph->p_offset, SEEK_SET);
-      ret = fread(host_addr, ph->p_filesz, 1, fp);
-      assert(ret == 1);
-      memset(host_addr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
-      if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
-    }
-  }
-  brk -= PMEM_BASE;
-  size = brk;
-
-  cpu.pc = elf->e_entry;
-  Log("cpu.pc = 0x%x", cpu.pc);
-#else
   fseek(fp, 0, SEEK_END);
-  size = ftell(fp);
+  long size = ftell(fp);
 
   fseek(fp, 0, SEEK_SET);
   int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
   assert(ret == 1);
-#endif
 
   fclose(fp);
   return size;
@@ -158,7 +103,12 @@ void init_monitor(int argc, char *argv[]) {
   init_isa();
 
   /* Load the image to memory. This will overwrite the built-in image. */
+#ifdef USER_MODE
+  long init_user(char *elfpath);
+  long img_size = init_user(img_file);
+#else
   long img_size = load_img();
+#endif
 
   /* Compile the regular expressions. */
   init_regex();
