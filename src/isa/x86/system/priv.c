@@ -9,8 +9,9 @@ static void load_sreg(int idx, uint16_t val) {
   if (val == 0) return;
 
 #ifdef USER_MODE
+  assert(cpu.sreg[idx].ti == 0); // check the table bit
   extern uint32_t GDT[];
-  cpu.sreg[idx].base = GDT[idx];
+  cpu.sreg[idx].base = GDT[cpu.sreg[idx].idx];
 #else
   uint16_t old_cpl = cpu.sreg[CSR_CS].val;
   cpu.sreg[CSR_CS].rpl = 0; // use ring 0 to index GDT
