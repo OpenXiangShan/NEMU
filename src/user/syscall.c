@@ -134,6 +134,7 @@ static inline word_t user_sys_set_thread_area(word_t u_info) {
 word_t host_syscall(word_t id, word_t arg1, word_t arg2, word_t arg3) {
   int ret = 0;
   switch (id) {
+    case 252: // exit_group() is treated as exit()
     case 1: user_sys_exit(arg1); break;
     case 4: ret = user_sys_write(arg1, arg2, arg3); break;
     case 33: ret = user_sys_access(arg1, arg2); break;
