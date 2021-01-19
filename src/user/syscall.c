@@ -23,15 +23,15 @@ static inline word_t user_sys_brk(word_t new_brk) {
   panic("new brk = 0x%x is more than PMEM_SIZE / 2", new_brk);
 }
 
-static inline word_t user_readlink(word_t pathname, word_t buf, size_t bufsiz) {
+static inline word_t user_sys_readlink(word_t pathname, word_t buf, size_t bufsiz) {
   return readlink(user_to_host(pathname), user_to_host(buf), bufsiz);
 }
 
-static inline word_t user_uname(word_t buf) {
+static inline word_t user_sys_uname(word_t buf) {
   return uname(user_to_host(buf));
 }
 
-static inline word_t user_set_thread_area(word_t u_info) {
+static inline word_t user_sys_set_thread_area(word_t u_info) {
   struct user_desc {
     uint32_t entry_number;
     vaddr_t base_addr;
@@ -65,9 +65,9 @@ word_t host_syscall(word_t id, word_t arg1, word_t arg2, word_t arg3) {
     case 1: user_sys_exit(arg1); break;
     case 4: ret = user_sys_write(arg1, arg2, arg3); break;
     case 45: ret = user_sys_brk(arg1); break;
-    case 85: ret = user_readlink(arg1, arg2, arg3); break;
-    case 122: ret = user_uname(arg1); break;
-    case 243: ret = user_set_thread_area(arg1); break;
+    case 85: ret = user_sys_readlink(arg1, arg2, arg3); break;
+    case 122: ret = user_sys_uname(arg1); break;
+    case 243: ret = user_sys_set_thread_area(arg1); break;
     default: panic("Unsupported syscall ID = %d", id);
   }
   return ret;
