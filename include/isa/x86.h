@@ -98,7 +98,11 @@ typedef struct {
   uint32_t cc_op;
 #endif
 
-  uint32_t xmm[8][4];
+  union {
+    __uint128_t _128;
+    uint64_t _64[2];
+    uint32_t _32[4];
+  } xmm[8];
 
   struct {
     union {

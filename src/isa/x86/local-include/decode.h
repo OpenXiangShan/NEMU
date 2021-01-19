@@ -378,12 +378,18 @@ static inline def_DHelper(out_a2dx) {
 }
 
 #ifndef __ICS_EXPORT
-static inline def_DHelper(mov_E2xmm) {
+static inline def_DHelper(E2xmm) {
   operand_rm(s, id_src1, false, id_dest, false);
 }
 
-static inline def_DHelper(mov_xmm2E) {
+static inline def_DHelper(xmm2E) {
   operand_rm(s, id_dest, false, id_src1, false);
+}
+
+static inline def_DHelper(Ib2xmm) {
+  operand_rm(s, id_dest, false, NULL, false);
+  id_src1->width = 1;
+  decode_op_I(s, id_src1, true);
 }
 #endif
 
