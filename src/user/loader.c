@@ -104,7 +104,8 @@ static inline word_t init_stack() {
 }
 
 long init_user(char *elfpath) {
+  long size = load_elf(elfpath);
   word_t sp = init_stack();
   isa_init_user(sp);
-  return load_elf(elfpath);
+  return size;
 }
