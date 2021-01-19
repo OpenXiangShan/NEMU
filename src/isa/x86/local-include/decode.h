@@ -377,6 +377,16 @@ static inline def_DHelper(out_a2dx) {
   operand_reg(s, id_dest, true, R_DX, 2);
 }
 
+#ifndef __ICS_EXPORT
+static inline def_DHelper(mov_E2xmm) {
+  operand_rm(s, id_src1, false, id_dest, false);
+}
+
+static inline def_DHelper(mov_xmm2E) {
+  operand_rm(s, id_dest, false, id_src1, false);
+}
+#endif
+
 static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src) {
   if (op->type == OP_TYPE_REG) { rtl_sr(s, op->reg, src, op->width); }
   else if (op->type == OP_TYPE_MEM) { rtl_sm(s, s->isa.mbase, s->isa.moff, src, op->width); }
