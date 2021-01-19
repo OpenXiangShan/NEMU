@@ -3,6 +3,8 @@
 #include <monitor/monitor.h>
 #include "user.h"
 #include <sys/utsname.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
 
 void set_nemu_state(int state, vaddr_t pc, int halt_ret);
 
@@ -14,6 +16,10 @@ static inline word_t user_sys_write(int fd, word_t buf, word_t len) {
   return write(fd, user_to_host(buf), len);
 }
 
+static inline word_t user_sys_access(word_t pathname, int mode) {
+  return access(user_to_host(pathname), mode);
+}
+
 static inline word_t user_sys_brk(word_t new_brk) {
   if (new_brk == 0) return user_state.brk;
   if (new_brk < PMEM_BASE + PMEM_SIZE / 2) {
@@ -23,12 +29,78 @@ static inline word_t user_sys_brk(word_t new_brk) {
   panic("new brk = 0x%x is more than PMEM_SIZE / 2", new_brk);
 }
 
+static inline word_t user_sys_ioctl(word_t arg1, word_t arg2, word_t arg3) {
+  switch (arg2) {
+    case TCGETS: return ioctl(arg1, arg2, user_to_host(arg3));
+    default: panic("Unsupport ioctl request = 0x%x", arg2);
+  }
+  return -1;
+}
+
 static inline word_t user_sys_readlink(word_t pathname, word_t buf, size_t bufsiz) {
   return readlink(user_to_host(pathname), user_to_host(buf), bufsiz);
 }
 
 static inline word_t user_sys_uname(word_t buf) {
   return uname(user_to_host(buf));
+}
+
+static inline word_t user_sys_fstat64(int fd, word_t statbuf) {
+  struct stat buf;
+  int ret = fstat(fd, &buf);
+  if (ret != 0) return ret;
+
+  struct target_stat64 {
+    unsigned short st_dev;
+    unsigned char __pad0[10];
+
+    uint32_t __st_ino;
+
+    unsigned int st_mode;
+    unsigned int st_nlink;
+
+    uint32_t st_uid;
+    uint32_t st_gid;
+
+    unsigned short st_rdev;
+    unsigned char __pad3[10];
+
+    long long st_size;
+    uint32_t st_blksize;
+
+    uint32_t st_blocks; /* Number 512-byte blocks allocated. */
+    uint32_t __pad4;  /* future possible st_blocks high bits */
+
+    uint32_t target_st_atime;
+    uint32_t target_st_atime_nsec;
+
+    uint32_t target_st_mtime;
+    uint32_t target_st_mtime_nsec;
+
+    uint32_t target_st_ctime;
+    uint32_t target_st_ctime_nsec;
+
+    unsigned long long st_ino;
+  } __attribute__((packed)) *userbuf = user_to_host(statbuf);
+
+  userbuf->st_dev = buf.st_dev;
+  userbuf->__st_ino = buf.st_ino;
+  userbuf->st_mode = buf.st_mode;
+  userbuf->st_nlink = buf.st_nlink;
+  userbuf->st_uid = buf.st_uid;
+  userbuf->st_gid = buf.st_gid;
+  userbuf->st_rdev = buf.st_rdev;
+  userbuf->st_size = buf.st_size;
+  userbuf->st_blksize = buf.st_blksize;
+  userbuf->st_blocks = buf.st_blocks;
+  userbuf->target_st_atime = buf.st_atime;
+  userbuf->target_st_atime_nsec = buf.st_atim.tv_nsec;
+  userbuf->target_st_mtime = buf.st_mtime;
+  userbuf->target_st_mtime_nsec = buf.st_mtim.tv_nsec;
+  userbuf->target_st_ctime = buf.st_ctime;
+  userbuf->target_st_ctime_nsec = buf.st_ctim.tv_nsec;
+  userbuf->st_ino = buf.st_ino;
+  return ret;
 }
 
 static inline word_t user_sys_set_thread_area(word_t u_info) {
@@ -64,9 +136,12 @@ word_t host_syscall(word_t id, word_t arg1, word_t arg2, word_t arg3) {
   switch (id) {
     case 1: user_sys_exit(arg1); break;
     case 4: ret = user_sys_write(arg1, arg2, arg3); break;
+    case 33: ret = user_sys_access(arg1, arg2); break;
     case 45: ret = user_sys_brk(arg1); break;
+    case 54: ret = user_sys_ioctl(arg1, arg2, arg3); break;
     case 85: ret = user_sys_readlink(arg1, arg2, arg3); break;
     case 122: ret = user_sys_uname(arg1); break;
+    case 197: ret = user_sys_fstat64(arg1, arg2); break;
     case 243: ret = user_sys_set_thread_area(arg1); break;
     default: panic("Unsupported syscall ID = %d", id);
   }
