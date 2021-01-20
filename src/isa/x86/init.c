@@ -43,12 +43,14 @@ void init_isa() {
   /* Initialize this virtual computer system. */
   restart();
 
+#ifndef USER_MODE
   init_i8259a();
   init_mc146818rtc();
   init_i8253();
   init_ioport80();
   init_i8237a();
   init_sdcard("/home/yzh/sdi/debian-16G.img");
+#endif
 }
 
 #ifdef USER_MODE
