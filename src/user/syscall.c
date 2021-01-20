@@ -22,11 +22,15 @@ static inline word_t user_sys_access(word_t pathname, int mode) {
 
 static inline word_t user_sys_brk(word_t new_brk) {
   if (new_brk == 0) return user_state.brk;
-  if (new_brk < PMEM_BASE + PMEM_SIZE / 2) {
-    user_state.brk = new_brk;
-    return new_brk;
+  if (new_brk >= user_state.brk_page) {
+    uint32_t size = ROUNDUP(new_brk - user_state.brk_page + 1, PAGE_SIZE);
+    void *ret = mmap(user_to_host(user_state.brk_page), size, PROT_READ | PROT_WRITE,
+      MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+    assert(ret == user_to_host(user_state.brk_page));
+    user_state.brk_page += size;
   }
-  panic("new brk = 0x%x is more than PMEM_SIZE / 2", new_brk);
+  user_state.brk = new_brk;
+  return new_brk;
 }
 
 static inline word_t user_sys_ioctl(word_t arg1, word_t arg2, word_t arg3) {

@@ -47,19 +47,32 @@ static long load_elf(char *elfpath) {
   vaddr_t brk = 0;
   for (; ph < eph; ph ++) {
     if (ph->p_type == PT_LOAD) {
-      void *host_addr = user_to_host(ph->p_vaddr);
-      Log("loading to memory region [0x%x, 0x%x)", ph->p_vaddr, ph->p_vaddr + ph->p_memsz);
-      fseek(fp, ph->p_offset, SEEK_SET);
-      ret = fread(host_addr, ph->p_filesz, 1, fp);
-      assert(ret == 1);
-      memset(host_addr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
-      if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
+      uint32_t pad_byte = ph->p_vaddr % PAGE_SIZE;
+      ph->p_vaddr -= pad_byte;
+      ph->p_offset -= pad_byte;
+      ph->p_filesz += pad_byte;
+      ph->p_memsz += pad_byte;
 
+      void *addr = mmap(user_to_host(ph->p_vaddr), ph->p_filesz, PROT_READ | PROT_WRITE,
+          MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
+      assert(addr == user_to_host(ph->p_vaddr));
+      if (ph->p_flags & PF_W) {
+        // bss
+        memset(addr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
+        void *bss_page = user_to_host(ph->p_vaddr) + ROUNDUP(ph->p_filesz, PAGE_SIZE);
+        uint32_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
+        addr = mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
+          MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+        assert(addr == bss_page);
+      }
+
+      if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
       if (ph->p_offset == 0) { user_state.phdr = ph->p_vaddr + elf->e_phoff; }
     }
   }
   fclose(fp);
   user_state.brk = brk;
+  user_state.brk_page = ROUNDUP(brk, PAGE_SIZE);
   user_state.program_brk = brk;
   user_state.entry = elf->e_entry;
   user_state.phent = elf->e_phentsize;
@@ -69,7 +82,12 @@ static long load_elf(char *elfpath) {
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {
-  void *sp = guest_to_host(PMEM_SIZE);
+  void *sp = user_to_host(0xc0000000);
+  uint32_t stack_size = 8 * 1024 * 1024;
+  void *ret = mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
+      MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+  assert(ret == sp - stack_size);
+
   word_t strs[128] = {};
   int i = 0;
   char *envp[] = { NULL };
