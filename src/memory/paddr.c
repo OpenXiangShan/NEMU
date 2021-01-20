@@ -35,7 +35,6 @@ void allocate_mem() {
 }
 
 void init_mem() {
-    Log("1");
 
 #ifdef ENABLE_DISAMBIGUATE
   pmem_dirty = (bool *)mmap(NULL, PMEM_SIZE * sizeof(bool), PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -43,14 +42,12 @@ void init_mem() {
     printf("ERROR allcoating pmem_dirty bitmap. \n");
   }
 #endif
-    Log("2");
 
 #ifdef DIFFTEST_STORE_COMMIT
   for (int i = 0; i < STORE_QUEUE_SIZE; i++) {
     store_commit_queue[i].valid = 0;
   }
 #endif
-    Log("3");
 
 #if !defined(DIFF_TEST) && !_SHARE && !defined(__SIMPOINT)
   srand(time(0));
@@ -60,7 +57,6 @@ void init_mem() {
     p[i] = rand();
   }
 #endif
-    Log("4");
 }
 
 uint8_t *getPmem() {
