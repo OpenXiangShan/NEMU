@@ -60,7 +60,6 @@ include Makefile.git
 
 .DEFAULT_GOAL = app
 
-XIANGSHAN=1
 ifdef XIANGSHAN
 	CFLAGS += -DXIANGSHAN=1
 endif
