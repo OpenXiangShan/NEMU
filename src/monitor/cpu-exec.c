@@ -75,8 +75,10 @@ void cpu_exec(uint64_t n) {
       serializer.notify_taken(g_nr_guest_instr); // tell them the drift
     }
 
-    if (max_insts && g_nr_guest_instr == max_insts) {
-        nemu_state.halt_ret = NEMU_REACH;
+    extern bool xpoint_profiling_started;
+    if (max_insts && xpoint_profiling_started && g_nr_guest_instr == max_insts) {
+        nemu_state.halt_ret = 0;
+        nemu_state.state = NEMU_REACH;
         break;
     }
 
@@ -110,6 +112,9 @@ void cpu_exec(uint64_t n) {
               (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
                (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
               nemu_state.halt_pc);
+      if (nemu_state.state == NEMU_REACH) {
+          nemu_state.state = NEMU_END;
+      }
       monitor_statistic();
       if (nemu_state.state == NEMU_ABORT) abort();
   }

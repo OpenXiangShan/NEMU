@@ -207,6 +207,9 @@ void Serializer::unserialize(const char *file) {
     }
     Log("Read %lu bytes from gz stream in total", curr_size);
 
+    extern bool xpoint_profiling_started;
+    xpoint_profiling_started = true;
+
     delete [] temp_page;
 
     if (gzclose(compressed_mem)) {
