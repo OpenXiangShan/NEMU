@@ -92,8 +92,9 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
 #ifdef USER_MODE
     case HOSTCALL_TRAP:
       Assert(imm == 0x80, "Unsupport exception = %d", imm);
-      uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3);
-      cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx);
+      uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
+          uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
+      cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx, cpu.esi, cpu.edi, cpu.ebp);
       ret = *src;
       break;
 #else

@@ -16,6 +16,10 @@ typedef struct {
 
 extern user_state_t user_state;
 
+void *user_mmap(void *addr, size_t length, int prot,
+    int flags, int fd, off_t offset);
+int user_munmap(void *addr, size_t length);
+
 static inline void* user_to_host(word_t uaddr) {
   return (void *)(uintptr_t)uaddr;
 }

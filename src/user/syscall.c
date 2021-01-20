@@ -16,9 +16,8 @@ static inline word_t user_sys_brk(word_t new_brk) {
   if (new_brk == 0) return user_state.brk;
   if (new_brk >= user_state.brk_page) {
     uint32_t size = ROUNDUP(new_brk - user_state.brk_page + 1, PAGE_SIZE);
-    void *ret = mmap(user_to_host(user_state.brk_page), size, PROT_READ | PROT_WRITE,
+    user_mmap(user_to_host(user_state.brk_page), size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
-    assert(ret == user_to_host(user_state.brk_page));
     user_state.brk_page += size;
   }
   user_state.brk = new_brk;
@@ -111,8 +110,9 @@ static inline word_t user_sys_set_thread_area(word_t u_info) {
   return 0;
 }
 
-uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3) {
-  int ret = 0;
+uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
+    uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
+  uintptr_t ret = 0;
   switch (id) {
     case 252: // exit_group() is treated as exit()
     case 1: user_sys_exit(arg1); break;
@@ -122,6 +122,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 54: ret = ioctl(arg1, arg2, arg3); break;
     case 85: ret = readlink((void *)arg1, (void *)arg2, arg3); break;
     case 122: ret = uname((void *)arg1); break;
+    case 192: ret = (uintptr_t)user_mmap((void *)arg1, arg2, arg3, arg4, arg5, arg6 << 12); break;
     case 197: ret = user_sys_fstat64(arg1, arg2); break;
     case 243: ret = user_sys_set_thread_area(arg1); break;
     default: panic("Unsupported syscall ID = %ld", id);

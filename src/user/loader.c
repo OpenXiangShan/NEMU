@@ -53,17 +53,16 @@ static long load_elf(char *elfpath) {
       ph->p_filesz += pad_byte;
       ph->p_memsz += pad_byte;
 
-      void *addr = mmap(user_to_host(ph->p_vaddr), ph->p_filesz, PROT_READ | PROT_WRITE,
+      void *haddr = user_to_host(ph->p_vaddr);
+      user_mmap(haddr, ph->p_filesz, PROT_READ | PROT_WRITE,
           MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
-      assert(addr == user_to_host(ph->p_vaddr));
       if (ph->p_flags & PF_W) {
         // bss
-        memset(addr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
-        void *bss_page = user_to_host(ph->p_vaddr) + ROUNDUP(ph->p_filesz, PAGE_SIZE);
+        memset(haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
+        void *bss_page = haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
         uint32_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        addr = mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
+        user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
           MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
-        assert(addr == bss_page);
       }
 
       if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
@@ -84,9 +83,8 @@ static long load_elf(char *elfpath) {
 static inline word_t init_stack(int argc, char *argv[]) {
   void *sp = user_to_host(0xc0000000);
   uint32_t stack_size = 8 * 1024 * 1024;
-  void *ret = mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
+  user_mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
-  assert(ret == sp - stack_size);
 
   word_t strs[128] = {};
   int i = 0;
