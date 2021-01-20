@@ -189,6 +189,7 @@ static inline make_EHelper(misc_alu) {
 }
 
 static inline void exec(DecodeExecState *s) {
+  cpu.rvc = 0;
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
@@ -196,6 +197,7 @@ static inline void exec(DecodeExecState *s) {
     s->isa.instr.val = lo & 0xffff;
     if (s->isa.instr.r.opcode1_0 != 0x3) {
       // this is an RVC instruction
+      cpu.inst_payload = s->isa.instr.val;
       goto rvc;
     }
     // this is a 4-byte instruction, should fetch the MSB part
@@ -204,10 +206,12 @@ static inline void exec(DecodeExecState *s) {
     // Refer to `mtval` in the privileged manual for more details.
     uint32_t hi = instr_fetch(&s->seq_pc, 2);
     s->isa.instr.val |= ((hi & 0xffff) << 16);
+    cpu.inst_payload = s->isa.instr.val;
   } else {
     // in-page instructions, fetch 4 byte and
     // see whether it is an RVC instruction later
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+    cpu.inst_payload = s->isa.instr.val;
   }
 
   return_on_mem_ex();
@@ -231,6 +235,8 @@ static inline void exec(DecodeExecState *s) {
     // RVC instructions are only 2-byte
     s->seq_pc -= 2;
 rvc: ;
+    cpu.rvc = 1;
+
     //idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
     uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
     switch (rvc_opcode) {

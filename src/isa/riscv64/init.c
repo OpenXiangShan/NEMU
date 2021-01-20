@@ -13,6 +13,19 @@ static const uint32_t img [] = {
 
 void init_clint(void);
 
+void init_csr(void) {
+  extern void init_csr_exist();
+  init_csr_exist();
+
+  cpu.mode = MODE_M;
+  mstatus->uxl = 2;
+  mstatus->sxl = 2;
+  mstatus->fs = 1;
+  misa->val = 0x14112D;
+  misa->mxl = 2;
+  Log("Mstatus: %#lx\n", mstatus->val);
+}
+
 void init_isa(void) {
     cpu.gpr[0]._64 = 0;
 #ifdef __GCPT_COMPATIBLE__
@@ -44,4 +57,7 @@ void init_isa(void) {
   extern void init_sdcard(const char *img);
   extern char *sdcard_img;
   init_sdcard(sdcard_img);
+  init_csr();
 }
+
+

@@ -3,7 +3,7 @@
 
 #include <monitor/difftest.h>
 
-#define XIANGSHAN
+typedef void(*io_callback_t)(uint32_t, int, nemu_bool);
 
 #ifdef XIANGSHAN
   
@@ -61,7 +61,6 @@
 
 #endif
 
-typedef void(*io_callback_t)(uint32_t, int, nemu_bool);
 uint8_t* new_space(int size);
 
 typedef struct {

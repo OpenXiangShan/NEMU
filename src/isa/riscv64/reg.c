@@ -18,6 +18,10 @@ const char *fpregsl[] = {
   "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11"
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
@@ -46,6 +50,10 @@ void isa_reg_display() {
   printf("mtval: " FMT_WORD " stval: " FMT_WORD "mtvec: " FMT_WORD " stvec: " FMT_WORD "\n", 
       mtval->val, stval->val, mtvec->val, stvec->val);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 rtlreg_t isa_reg_str2val(const char *s, nemu_bool *success) {
   int i;
@@ -141,6 +149,11 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     frm->val = ((*src)>>5) & FRM_MASK;
   } else {
     *dest = *src;
+
+    if (dest == (void *)mstatus) {
+        mstatus->sxl = 2;
+        mstatus->uxl = 2;
+    }
   }
 
   if (dest == (void *)sstatus || dest == (void *)mstatus) {

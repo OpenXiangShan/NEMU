@@ -116,11 +116,25 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pg_base | MEM_RET_OK;
 }
 
+int force_raise_pf_record(vaddr_t vaddr, int type) {
+  static vaddr_t last_addr[3] = {0x0};
+  static int force_count[3] = {0};
+  if (vaddr != last_addr[type]) {
+    last_addr[type] = vaddr;
+    force_count[type] = 0;
+  }
+  force_count[type]++;
+  return force_count[type] == 5;
+}
+
 int force_raise_pf(vaddr_t vaddr, int type){
   nemu_bool ifetch = (type == MEM_TYPE_IFETCH);
 
   if(cpu.need_disambiguate){
     if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+      if (force_raise_pf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
       if (cpu.mode == MODE_M) {
         mtval->val = cpu.disambiguation_state.mtval;
         if(vaddr != cpu.disambiguation_state.mtval){
@@ -142,12 +156,18 @@ int force_raise_pf(vaddr_t vaddr, int type){
       printf("force raise IPF\n");
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
+      if (force_raise_pf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_LPF;
       printf("force raise LPF\n");
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
+      if (force_raise_pf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.mem_exception = EX_SPF;
@@ -202,7 +222,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
     assert(satp->mode == 0 || satp->mode == 8);
     if (satp->mode == 8){
 #ifdef ENABLE_DISAMBIGUATE
-      if(!isa_mmu_safe(vaddr)){
+      if(!isa_mmu_safe(vaddr, type)){
         int forced_result = force_raise_pf(vaddr, type);
         if(forced_result != MEM_RET_OK)
           return forced_result;
@@ -214,6 +234,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   return MEM_RET_OK;
 }
 
+#ifdef ENABLE_DISAMBIGUATE
 // Check if pte has been sfenced
 //
 // In several cases, there are mutliple legal control flows.
@@ -252,6 +273,7 @@ nemu_bool ptw_is_safe(vaddr_t vaddr) {
 
   return true;
 }
+#endif
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   paddr_t ptw_result = ptw(vaddr, type);
@@ -262,6 +284,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   return ptw_result;
 }
 
+#ifdef ENABLE_DISAMBIGUATE
 nemu_bool isa_mmu_safe(vaddr_t vaddr, int type) {
   nemu_bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
@@ -269,3 +292,5 @@ nemu_bool isa_mmu_safe(vaddr_t vaddr, int type) {
     return ptw_is_safe(vaddr);
   return true;
 }
+#endif
+

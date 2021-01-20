@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <monitor/log.h>
+extern "C" void isa_reg_display();
 
 #define Log(format, ...) \
     _Log("\33[1;34m[%s,%d,%s] " format "\33[0m\n", \
@@ -16,7 +17,6 @@
       fprintf(stderr, "\33[1;31m"); \
       fprintf(stderr, __VA_ARGS__); \
       fprintf(stderr, "\33[0m\n"); \
-      extern void isa_reg_display(); \
       extern void monitor_statistic(); \
       isa_reg_display(); \
       monitor_statistic(); \

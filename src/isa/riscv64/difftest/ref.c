@@ -58,7 +58,10 @@ void isa_difftest_getregs(void *r) {
 
 void isa_difftest_setregs(const void *r) {
   memcpy(&cpu, r, DIFFTEST_REG_SIZE);
-  csr_writeback();
+  // csr_writeback();
+
+  extern void init_csr();
+  init_csr();
 }
 
 void isa_difftest_get_mastatus(void *s) {

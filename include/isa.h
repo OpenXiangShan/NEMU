@@ -15,7 +15,15 @@ void init_isa();
 // reg
 extern CPU_state cpu;
 extern rtlreg_t csr_array[4096];
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 void isa_reg_display();
+#ifdef __cplusplus
+}
+#endif
+
 word_t isa_reg_str2val(const char *name, nemu_bool *success);
 
 bool able_to_take_cpt();
