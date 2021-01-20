@@ -5,6 +5,7 @@
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
 
 void set_nemu_state(int state, vaddr_t pc, int halt_ret);
 
@@ -116,15 +117,19 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
   switch (id) {
     case 252: // exit_group() is treated as exit()
     case 1: user_sys_exit(arg1); break;
+    case 3: ret = read(arg1, (void *)arg2, arg3); break;
     case 4: ret = write(arg1, (void *)arg2, arg3); break;
+    case 6: ret = close(arg1); break;
     case 33: ret = access((void *)arg1, arg2); break;
     case 45: ret = user_sys_brk(arg1); break;
     case 54: ret = ioctl(arg1, arg2, arg3); break;
     case 85: ret = readlink((void *)arg1, (void *)arg2, arg3); break;
+    case 91: ret = user_munmap((void *)arg1, arg2); break;
     case 122: ret = uname((void *)arg1); break;
     case 192: ret = (uintptr_t)user_mmap((void *)arg1, arg2, arg3, arg4, arg5, arg6 << 12); break;
     case 197: ret = user_sys_fstat64(arg1, arg2); break;
     case 243: ret = user_sys_set_thread_area(arg1); break;
+    case 295: ret = openat(arg1, (void *)arg2, arg3, arg4); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }
   return ret;
