@@ -38,6 +38,8 @@ typedef struct {
 
   uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
+  uint64_t inst_payload;
+  int64_t rvc;
 
   bool amo;
   int mem_exception;
