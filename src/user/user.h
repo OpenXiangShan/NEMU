@@ -18,4 +18,8 @@ static inline void* user_to_host(word_t uaddr) {
   return guest_to_host(uaddr - PMEM_BASE);
 }
 
+static inline word_t host_to_user(void *haddr) {
+  return host_to_guest(haddr) + PMEM_BASE;
+}
+
 #endif

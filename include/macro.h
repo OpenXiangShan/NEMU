@@ -16,4 +16,6 @@
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (int64_t)__x.n; })
 
+#define ROUNDDOWN(a, sz) ((((uintptr_t)a)) & ~((sz) - 1))
+
 #endif

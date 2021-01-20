@@ -68,14 +68,37 @@ static long load_elf(char *elfpath) {
   return brk - PMEM_BASE;
 }
 
-static inline word_t init_stack() {
-  word_t *sp = guest_to_host(PMEM_SIZE);
-#define push(data) (*(-- sp) = data)
+static inline word_t init_stack(int argc, char *argv[]) {
+  void *sp = guest_to_host(PMEM_SIZE);
+  word_t strs[128] = {};
+  int i = 0;
+  char *envp[] = { NULL };
+#define push(data) { sp -= sizeof(word_t); *(word_t *)sp = (data); }
 #define push_auxv(type, data) { push(data); push(type); }
+#define push_mem(src, size) { \
+  sp -= (size); \
+  memcpy(sp, (src), (size)); \
+}
+#define push_str(s) push_mem(s, strlen(s) + 1)
+#define push_str_array(arr) { \
+  char **p = arr; \
+  for (; *p != NULL; p ++) { \
+    push_str(*p); \
+    assert(i < sizeof(strs) / sizeof(strs[0])); \
+    strs[i ++] = host_to_user(sp); \
+  } \
+  strs[i ++] = 0; \
+}
+
+  push_str_array(argv);
+  push_str_array(envp);
+
+  // aligning
+  sp = (void *)ROUNDDOWN(sp, sizeof(word_t));
 
   // AT_RANDOM
   push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef);
-  word_t random_ptr = host_to_guest(sp) + PMEM_BASE;
+  word_t random_ptr = host_to_user(sp);
 
   push_auxv(AT_NULL, 0);
   //push_auxv(AT_HWCAP, 0xbfebfbff);
@@ -94,18 +117,16 @@ static inline word_t init_stack() {
   push_auxv(AT_SECURE, getauxval(AT_SECURE));
   push_auxv(AT_RANDOM, random_ptr);
   //push_auxv(AT_HWCAP2, 0);
-  push(0); // delimiter
-  // no envp
-  push(0); // delimiter
-  // no argv
-  push(0); // argc
 
-  return PMEM_BASE + host_to_guest(sp);
+  push_mem(strs, sizeof(strs[0]) * i);
+  push(argc);
+
+  return host_to_user(sp);
 }
 
-long init_user(char *elfpath) {
+long init_user(char *elfpath, int argc, char *argv[]) {
   long size = load_elf(elfpath);
-  word_t sp = init_stack();
+  word_t sp = init_stack(argc, argv);
   isa_init_user(sp);
   return size;
 }
