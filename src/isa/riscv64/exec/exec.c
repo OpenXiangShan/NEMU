@@ -272,6 +272,7 @@ vaddr_t isa_exec_once() {
   if (cpu.mem_exception != MEM_OK) {
     raise_intr(&s, cpu.mem_exception, cpu.pc);
     cpu.mem_exception = MEM_OK;
+    cpu.has_mem_exception = 1;
   }
   update_pc(&s);
 
