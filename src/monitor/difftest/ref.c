@@ -60,6 +60,10 @@ void difftest_set_csr(const void *c){
   isa_difftest_set_csr(c);
 }
 
+void difftest_set_mhartid(int n) {
+  isa_difftest_set_mhartid(n);
+}
+
 vaddr_t disambiguate_exec(void *disambiguate_para){
   return isa_disambiguate_exec(disambiguate_para);
 }

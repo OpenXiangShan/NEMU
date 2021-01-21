@@ -81,6 +81,10 @@ void isa_difftest_get_csr(void *c) {
   memcpy(c, csr_array, 4096 * sizeof(rtlreg_t));
 }
 
+void isa_difftest_set_mhartid(int n) {
+  mhartid->val = n;
+}
+
 void isa_difftest_raise_intr(word_t NO) {
   DecodeExecState s;
   s.is_jmp = 0;

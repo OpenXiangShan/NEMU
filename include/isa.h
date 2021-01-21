@@ -44,6 +44,7 @@ void isa_difftest_get_mastatus(void *s);
 void isa_difftest_set_mastatus(const void *s);
 void isa_difftest_get_csr(void *c);
 void isa_difftest_set_csr(const void *c);
+void isa_difftest_set_mhartid(int n);
 vaddr_t isa_disambiguate_exec(void *disambiguate_para);
 bool isa_difftest_microarchitectural_pf_check(vaddr_t addr);
 
