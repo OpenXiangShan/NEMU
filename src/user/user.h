@@ -12,6 +12,7 @@ typedef struct {
   word_t phdr;
   int phent;
   int phnum;
+  int std_fd[3];
 } user_state_t;
 
 extern user_state_t user_state;

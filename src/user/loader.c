@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <elf.h>
 #include <sys/auxv.h>
+#include <unistd.h>
 #include "user.h"
 
 #ifdef __ISA64__
@@ -140,7 +141,18 @@ static inline word_t init_stack(int argc, char *argv[]) {
   return host_to_user(sp);
 }
 
+static void redirction_std() {
+  user_state.std_fd[0] = dup(0);
+  user_state.std_fd[1] = dup(1);
+  user_state.std_fd[2] = dup(2);
+  FILE *fp;
+  fp = freopen("/dev/tty", "r", stdin);  assert(fp);
+  fp = freopen("/dev/tty", "w", stdout); assert(fp);
+  fp = freopen("/dev/tty", "w", stdout); assert(fp);
+}
+
 long init_user(char *elfpath, int argc, char *argv[]) {
+  redirction_std();
   long size = load_elf(elfpath);
   word_t sp = init_stack(argc, argv);
   isa_init_user(sp);
