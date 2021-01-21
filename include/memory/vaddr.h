@@ -3,6 +3,40 @@
 
 #include <common.h>
 
+#ifdef USER_MODE
+#define vaddr2uint8(addr)  (uint8_t  *)(void *)(uintptr_t)(addr)
+#define vaddr2uint16(addr) (uint16_t *)(void *)(uintptr_t)(addr)
+#define vaddr2uint32(addr) (uint32_t *)(void *)(uintptr_t)(addr)
+#define vaddr2uint64(addr) (uint64_t *)(void *)(uintptr_t)(addr)
+
+static inline word_t vaddr_read(vaddr_t addr, int len) {
+  switch (len) {
+    case 1: return *vaddr2uint8 (addr);
+    case 2: return *vaddr2uint16(addr);
+    case 4: return *vaddr2uint32(addr);
+#ifdef ISA64
+    case 8: return *vaddr2uint64(addr);
+#endif
+    default: assert(0);
+  }
+}
+
+static inline void vaddr_write(vaddr_t addr, word_t data, int len) {
+  switch (len) {
+    case 1: *vaddr2uint8 (addr) = data; break;
+    case 2: *vaddr2uint16(addr) = data; break;
+    case 4: *vaddr2uint32(addr) = data; break;
+#ifdef ISA64
+    case 8: *vaddr2uint64(addr) = data; break;
+#endif
+    default: assert(0);
+  }
+}
+
+static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
+  return vaddr_read(addr, len);
+}
+#else
 static inline word_t vaddr_read(vaddr_t addr, int len) {
   word_t vaddr_read1(vaddr_t addr);
   word_t vaddr_read2(vaddr_t addr);
@@ -56,7 +90,7 @@ static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
     default: assert(0);
   }
 }
-
+#endif
 
 #define PAGE_SIZE         4096
 #define PAGE_MASK         (PAGE_SIZE - 1)

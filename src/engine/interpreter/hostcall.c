@@ -6,7 +6,7 @@
 uint32_t pio_read(ioaddr_t addr, int len);
 void pio_write(ioaddr_t addr, uint32_t data, int len);
 
-static inline void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
+void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
   nemu_state.state = state;
   nemu_state.halt_pc = pc;
   nemu_state.halt_ret = halt_ret;

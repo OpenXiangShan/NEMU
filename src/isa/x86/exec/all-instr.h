@@ -9,6 +9,7 @@
 #include "eflags.h"
 #include "bit.h"
 #include "misc.h"
+#include "vector.h"
 
 def_EHelper(nop);
 def_EHelper(inv);
