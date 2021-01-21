@@ -253,6 +253,10 @@ rvc: ;
 
 vaddr_t isa_exec_once() {
   cpu.need_disambiguate = false;
+  cpu.store_addr = 0;
+  cpu.store_value = 0;
+  cpu.has_mem_exception = 0;
+
   DecodeExecState s;
   s.is_jmp = 0;
   s.is_control = 0;
@@ -270,6 +274,12 @@ vaddr_t isa_exec_once() {
     cpu.mem_exception = MEM_OK;
   }
   update_pc(&s);
+
+  if (s.is_store) {
+      cpu.store_addr = *s.src1.preg + s.src2.imm;
+      cpu.store_value = *s.dest.preg;
+      // Log("Store addr = %#lx, value = %#lx\n", cpu.store_addr, cpu.store_value);
+  }
 
   extern bool xpoint_profiling_started;
   if (profiling_state == BetapointProfiling && xpoint_profiling_started) {

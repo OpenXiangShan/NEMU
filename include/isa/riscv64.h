@@ -43,6 +43,9 @@ typedef struct {
   uint64_t mode;
   uint64_t inst_payload;
   int64_t rvc;
+  uint64_t store_addr;
+  uint64_t store_value;
+  int64_t has_mem_exception;
 
   nemu_bool amo;
   int mem_exception;

@@ -22,10 +22,10 @@ SiameseProfiler::profile(
 
   if (s.is_store) {
 //      Log("is store");
-    dataflowInfo.addStore(s.src1.val + s.src2.imm, &s.src1, &s.dest);
+    dataflowInfo.addStore(*s.src1.preg + s.src2.imm, &s.src1, &s.dest);
   } else if (s.is_load) {
 //      Log("is load");
-    dataflowInfo.addLoad(s.src1.val + s.src2.imm, &s.src1, &s.dest);
+    dataflowInfo.addLoad(*s.src1.preg + s.src2.imm, &s.src1, &s.dest);
   } else {
 //      Log("is reg");
     dataflowInfo.addReg(&s.dest, &s.src1, &s.src2, s.isa.instr.fp.funct5, s.is_fma);
