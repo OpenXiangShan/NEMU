@@ -6,10 +6,15 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <errno.h>
 
 static inline int user_fd(int fd) {
   if (fd >= 0 && fd <= 2) return user_state.std_fd[fd];
   return fd;
+}
+
+static inline sword_t get_syscall_ret(intptr_t ret) {
+  return (ret == -1) ? -errno : ret;
 }
 
 static inline void translate_stat(struct stat *hostbuf, word_t user) {
@@ -83,19 +88,15 @@ static inline word_t user_sys_brk(word_t new_brk) {
 
 static inline word_t user_sys_stat64(const char *pathname, word_t statbuf) {
   struct stat buf;
-  int ret = stat(pathname, &buf);
-  if (ret == 0) {
-    translate_stat(&buf, statbuf);
-  }
+  int ret = get_syscall_ret(stat(pathname, &buf));
+  if (ret == 0) translate_stat(&buf, statbuf);
   return ret;
 }
 
 static inline word_t user_sys_fstat64(int fd, word_t statbuf) {
   struct stat buf;
-  int ret = fstat(fd, &buf);
-  if (ret == 0) {
-    translate_stat(&buf, statbuf);
-  }
+  int ret = get_syscall_ret(fstat(fd, &buf));
+  if (ret == 0) translate_stat(&buf, statbuf);
   return ret;
 }
 
@@ -142,14 +143,15 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 85: ret = readlink((void *)arg1, (void *)arg2, arg3); break;
     case 91: ret = user_munmap((void *)arg1, arg2); break;
     case 122: ret = uname((void *)arg1); break;
-    case 174: ret = 0; break; // sigaction
+    case 174: return 0; // sigaction
     case 192: ret = (uintptr_t)user_mmap((void *)arg1, arg2,
                   arg3, arg4, user_fd(arg5), arg6 << 12); break;
-    case 195: ret = user_sys_stat64((void *)arg1, arg2); break;
-    case 197: ret = user_sys_fstat64(user_fd(arg1), arg2); break;
+    case 195: return user_sys_stat64((void *)arg1, arg2);
+    case 197: return user_sys_fstat64(user_fd(arg1), arg2);
     case 243: ret = user_sys_set_thread_area(arg1); break;
     case 295: ret = openat(user_fd(arg1), (void *)arg2, arg3, arg4); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }
+  ret = get_syscall_ret(ret);
   return ret;
 }
