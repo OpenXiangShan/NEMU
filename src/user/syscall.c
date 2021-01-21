@@ -1,7 +1,7 @@
 #include <isa.h>
-#include <unistd.h>
 #include <monitor/monitor.h>
 #include "user.h"
+#include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -134,22 +134,22 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
   switch (id) {
     case 252: // exit_group() is treated as exit()
     case 1: user_sys_exit(arg1); break;
-    case 3: ret = read(user_fd(arg1), (void *)arg2, arg3); break;
-    case 4: ret = write(user_fd(arg1), (void *)arg2, arg3); break;
+    case 3: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case 4: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
     case 6: ret = close(user_fd(arg1)); break;
-    case 33: ret = access((void *)arg1, arg2); break;
+    case 33: ret = access(user_to_host(arg1), arg2); break;
     case 45: ret = user_sys_brk(arg1); break;
     case 54: ret = ioctl(user_fd(arg1), arg2, arg3); break;
-    case 85: ret = readlink((void *)arg1, (void *)arg2, arg3); break;
-    case 91: ret = user_munmap((void *)arg1, arg2); break;
-    case 122: ret = uname((void *)arg1); break;
+    case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
+    case 91: ret = user_munmap(user_to_host(arg1), arg2); break;
+    case 122: ret = uname(user_to_host(arg1)); break;
     case 174: return 0; // sigaction
-    case 192: ret = (uintptr_t)user_mmap((void *)arg1, arg2,
+    case 192: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
                   arg3, arg4, user_fd(arg5), arg6 << 12); break;
-    case 195: return user_sys_stat64((void *)arg1, arg2);
+    case 195: return user_sys_stat64(user_to_host(arg1), arg2);
     case 197: return user_sys_fstat64(user_fd(arg1), arg2);
     case 243: ret = user_sys_set_thread_area(arg1); break;
-    case 295: ret = openat(user_fd(arg1), (void *)arg2, arg3, arg4); break;
+    case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }
   ret = get_syscall_ret(ret);
