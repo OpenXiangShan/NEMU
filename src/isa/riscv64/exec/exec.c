@@ -92,6 +92,9 @@ static inline def_EHelper(atomic) {
     EX(0x04, amoxor)
     EX(0x0c, amoand)
     EX(0x08, amoor)
+    EX(0x10, amomin)
+    EX(0x14, amomax)
+    EX(0x18, amominu)
     EX(0x1c, amomaxu)
   }
   cpu.amo = false;

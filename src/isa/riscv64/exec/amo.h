@@ -23,67 +23,67 @@ static inline def_EHelper(sc) {
   print_asm_template3(sc);
 }
 
-static void inline amo_load(DecodeExecState *s) {
-  rtl_lm(s, s0, dsrc1, 0, s->width);
-  rtl_sext(s, s0, s0, s->width);
-}
-
-static void inline amo_update(DecodeExecState *s) {
-  rtl_sm(s, dsrc1, 0, s1, s->width);
-  return_on_mem_ex();
-  rtl_sr(s, id_dest->reg, s0, 0);
+#define amo_body(name, body) { \
+  rtl_lm(s, s0, dsrc1, 0, s->width); \
+  return_on_mem_ex(); \
+  rtl_sext(s, s0, s0, s->width); \
+  body; \
+  rtl_sm(s, dsrc1, 0, s1, s->width); \
+  return_on_mem_ex(); \
+  rtl_sr(s, id_dest->reg, s0, 0); \
+  print_asm_template3(concat(amo, name)); \
 }
 
 static inline def_EHelper(amoswap) {
-  amo_load(s);
-  return_on_mem_ex();
-  rtl_mv(s, s1, dsrc2); // swap
-  amo_update(s);
-  return_on_mem_ex();
-  print_asm_template3(amoswap);
+  amo_body(swap, {
+      rtl_mv(s, s1, dsrc2); // swap
+  });
 }
 
 static inline def_EHelper(amoadd) {
-  amo_load(s);
-  return_on_mem_ex();
-  rtl_add(s, s1, s0, dsrc2);
-  amo_update(s);
-  return_on_mem_ex();
-  print_asm_template3(amoor);
+  amo_body(add, {
+      rtl_add(s, s1, s0, dsrc2);
+  });
 }
 
 static inline def_EHelper(amoor) {
-  amo_load(s);
-  return_on_mem_ex();
-  rtl_or(s, s1, s0, dsrc2);
-  amo_update(s);
-  return_on_mem_ex();
-  print_asm_template3(amoor);
+  amo_body(or, {
+      rtl_or(s, s1, s0, dsrc2);
+  });
 }
 
 static inline def_EHelper(amoand) {
-  amo_load(s);
-  return_on_mem_ex();
-  rtl_and(s, s1, s0, dsrc2);
-  amo_update(s);
-  return_on_mem_ex();
-  print_asm_template3(amoand);
+  amo_body(and, {
+      rtl_and(s, s1, s0, dsrc2);
+  });
 }
 
 static inline def_EHelper(amomaxu) {
-  amo_load(s);
-  return_on_mem_ex();
-  *s1 = (*s0 > *dsrc2 ? *s0 : *dsrc2);
-  amo_update(s);
-  return_on_mem_ex();
-  print_asm_template3(amomaxu);
+  amo_body(maxu, {
+      *s1 = (*s0 > *dsrc2 ? *s0 : *dsrc2);
+  });
+}
+
+static inline def_EHelper(amomax) {
+  amo_body(max, {
+      *s1 = (((sword_t)*s0) > ((sword_t)*dsrc2) ? *s0 : *dsrc2);
+  });
+}
+
+static inline def_EHelper(amominu) {
+  amo_body(minu, {
+      *s1 = (*s0 < *dsrc2 ? *s0 : *dsrc2);
+  });
+}
+
+static inline def_EHelper(amomin) {
+  amo_body(min, {
+      *s1 = (((sword_t)*s0) < ((sword_t)*dsrc2) ? *s0 : *dsrc2);
+  });
 }
 
 static inline def_EHelper(amoxor) {
-  amo_load(s);
-  return_on_mem_ex();
-  rtl_xor(s, s1, s0, dsrc2);
-  amo_update(s);
-  return_on_mem_ex();
-  print_asm_template3(amoxor);
+  amo_body(xor, {
+      rtl_xor(s, s1, s0, dsrc2);
+  });
 }
