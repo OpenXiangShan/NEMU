@@ -3,7 +3,6 @@
 
 //#define DEBUG
 //#define DIFF_TEST
-#define USER_MODE
 
 #ifndef __ICS_EXPORT
 #ifdef __ISA_riscv64__

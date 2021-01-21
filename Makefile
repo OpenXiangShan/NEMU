@@ -5,7 +5,7 @@ $(error Invalid ENGINE=$(ENGINE). Supported: $(ENGINES))
 endif
 
 NAME  = nemu-$(ENGINE)
-SRCS  = $(shell find src/ -name "*.c" | grep -v "isa\|engine")
+SRCS  = $(shell find src/ -name "*.c" | grep -v "src/\(isa\|engine\|user\)")
 SRCS += $(shell find src/isa/$(ISA) -name "*.c")
 SRCS += $(shell find src/engine/$(ENGINE) -name "*.c")
 
@@ -14,6 +14,11 @@ CFLAGS  += -ggdb3 -D__ENGINE_$(ENGINE)__ \
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
 ifndef SHARE
 LDFLAGS += -lSDL2 -lreadline -ldl
+endif
+
+ifdef USER_MODE
+SRCS   += $(shell find src/user -name "*.c")
+CFLAGS += -DUSER_MODE
 endif
 
 include $(NEMU_HOME)/scripts/Makefile
