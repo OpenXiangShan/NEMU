@@ -291,7 +291,7 @@ vaddr_t isa_exec_once() {
   }
 
 
-#if !defined(DIFF_TEST) && !_SHARE
+#if !defined(DIFF_TEST)
   // enough?
   void query_intr(DecodeExecState *s);
   query_intr(&s);
@@ -320,7 +320,7 @@ vaddr_t isa_disambiguate_exec(void *disambiguate_para) {
   }
   update_pc(&s);
 
-#if !defined(DIFF_TEST) && !_SHARE
+#if !defined(DIFF_TEST)
   void query_intr(DecodeExecState *s);
   query_intr(&s);
 #endif
