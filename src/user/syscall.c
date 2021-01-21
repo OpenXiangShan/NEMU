@@ -14,8 +14,8 @@ static inline int user_fd(int fd) {
 
 static inline void translate_stat(struct stat *hostbuf, word_t user) {
   struct target_stat64 {
-    unsigned short st_dev;
-    unsigned char __pad0[10];
+    uint64_t st_dev;
+    unsigned char __pad0[4];
 
     uint32_t __st_ino;
 
@@ -25,14 +25,13 @@ static inline void translate_stat(struct stat *hostbuf, word_t user) {
     uint32_t st_uid;
     uint32_t st_gid;
 
-    unsigned short st_rdev;
-    unsigned char __pad3[10];
+    uint64_t st_rdev;
+    unsigned char __pad3[4];
 
     long long st_size;
     uint32_t st_blksize;
 
-    uint32_t st_blocks; /* Number 512-byte blocks allocated. */
-    uint32_t __pad4;  /* future possible st_blocks high bits */
+    uint64_t st_blocks; /* Number 512-byte blocks allocated. */
 
     uint32_t target_st_atime;
     uint32_t target_st_atime_nsec;
