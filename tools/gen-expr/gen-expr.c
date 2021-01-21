@@ -6,7 +6,21 @@
 #include <string.h>
 
 // this should be enough
-static char buf[65536];
+static char buf[65536] = {};
+static char code_buf[65536 + 128] = {}; // a little larger than `buf`
+static char *code_format =
+"#include <stdio.h>\n"
+"int main() { "
+"  unsigned result = %s; "
+"  printf(\"%%u\", result); "
+"  return 0; "
+"}";
+
+#ifdef __ICS_EXPORT
+static inline void gen_rand_expr() {
+  buf[0] = '\0';
+}
+#else
 static char *pbuf;
 
 #define format_buf(fmt, ...) pbuf += sprintf(pbuf, fmt, ##__VA_ARGS__)
@@ -63,15 +77,6 @@ static inline void gen_rand_expr() {
   gen_space();
 }
 
-static char code_buf[65536];
-static char *code_format =
-"#include <stdio.h>\n"
-"int main() { "
-"  unsigned result = %s; "
-"  printf(\"%%u\", result); "
-"  return 0; "
-"}";
-
 void remove_u(char *p) {
   char *q = p;
   while ((q = strchr(q, 'u')) != NULL) {
@@ -80,6 +85,7 @@ void remove_u(char *p) {
     strcpy(q, code_buf);
   }
 }
+#endif
 
 int main(int argc, char *argv[]) {
   int seed = time(0);
@@ -90,9 +96,10 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
+#ifndef __ICS_EXPORT
     nr_op = 0;
     pbuf = buf;
-
+#endif
     gen_rand_expr();
 
     sprintf(code_buf, code_format, buf);
@@ -107,12 +114,18 @@ int main(int argc, char *argv[]) {
 
     fp = popen("/tmp/.expr", "r");
     assert(fp != NULL);
+
     int result;
     fscanf(fp, "%d", &result);
+#ifndef __ICS_EXPORT
     int ret = pclose(fp);
     if (ret != 0) continue;
 
     remove_u(buf);
+#else
+    pclose(fp);
+#endif
+
     printf("%u %s\n", result, buf);
   }
   return 0;

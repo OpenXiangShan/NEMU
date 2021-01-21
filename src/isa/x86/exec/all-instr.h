@@ -6,7 +6,11 @@
 #include "logic.h"
 #include "string.h"
 #include "system.h"
+#include "eflags.h"
+#include "bit.h"
+#include "misc.h"
+#include "vector.h"
 
-make_EHelper(nop);
-make_EHelper(inv);
-make_EHelper(nemu_trap);
+def_EHelper(nop);
+def_EHelper(inv);
+def_EHelper(nemu_trap);

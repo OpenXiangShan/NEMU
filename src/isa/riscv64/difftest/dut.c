@@ -2,7 +2,7 @@
 #include <memory/paddr.h>
 #include <monitor/difftest.h>
 #include "../local-include/reg.h"
-#include "difftest.h"
+#include <difftest.h>
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
@@ -17,7 +17,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   return true;
 }
 
-void isa_difftest_attach(void) {
-  ref_difftest_memcpy_from_dut(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
-  ref_difftest_setregs(&cpu);
+void isa_difftest_attach() {
+  ref_difftest_memcpy(PMEM_BASE, guest_to_host(0), PMEM_SIZE, DIFFTEST_TO_REF);
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }

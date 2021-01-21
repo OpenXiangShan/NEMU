@@ -36,6 +36,10 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   panic("bad ptr = %p", dest);
 }
 
+int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t* r) {
+  return (r == rz);
+}
+
 void guest_init() {
 }
 

@@ -3,20 +3,31 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
+#include <difftest.h>
 
-void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
-void (*ref_difftest_getregs)(void *c) = NULL;
-void (*ref_difftest_setregs)(const void *c) = NULL;
+#ifdef __DIFF_REF_QEMU_DL__
+__thread uint8_t resereve_for_qemu_tls[4096];
+#endif
+
+void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
+void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
+void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
+void (*patch_fn)(void *arg) = NULL;
+static void* patch_arg = NULL;
+#ifndef __ICS_EXPORT
 static bool is_detach = false;
+#endif
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
 void difftest_skip_ref() {
+#ifndef __ICS_EXPORT
   if (is_detach) return;
+#endif
   is_skip_ref = true;
   // If such an instruction is one of the instruction packing in QEMU
   // (see below), we end the process of catching up with QEMU's pc to
@@ -35,12 +46,19 @@ void difftest_skip_ref() {
 //   Let REF run `nr_ref` instructions first.
 //   We expect that DUT will catch up with REF within `nr_dut` instructions.
 void difftest_skip_dut(int nr_ref, int nr_dut) {
+#ifndef __ICS_EXPORT
   if (is_detach) return;
+#endif
   skip_dut_nr_instr += nr_dut;
 
   while (nr_ref -- > 0) {
     ref_difftest_exec(1);
   }
+}
+
+void difftest_set_patch(void (*fn)(void *arg), void *arg) {
+  patch_fn = fn;
+  patch_arg = arg;
 }
 
 void init_difftest(char *ref_so_file, long img_size, int port) {
@@ -54,17 +72,17 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   handle = dlopen(ref_so_file, RTLD_LAZY | RTLD_DEEPBIND);
   assert(handle);
 
-  ref_difftest_memcpy_from_dut = dlsym(handle, "difftest_memcpy_from_dut");
-  assert(ref_difftest_memcpy_from_dut);
+  ref_difftest_memcpy = dlsym(handle, "difftest_memcpy");
+  assert(ref_difftest_memcpy);
 
-  ref_difftest_getregs = dlsym(handle, "difftest_getregs");
-  assert(ref_difftest_getregs);
-
-  ref_difftest_setregs = dlsym(handle, "difftest_setregs");
-  assert(ref_difftest_setregs);
+  ref_difftest_regcpy = dlsym(handle, "difftest_regcpy");
+  assert(ref_difftest_regcpy);
 
   ref_difftest_exec = dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
+
+  ref_difftest_raise_intr = dlsym(handle, "difftest_raise_intr");
+  assert(ref_difftest_raise_intr);
 
   void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
@@ -75,12 +93,11 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
       "If it is not necessary, you can turn it off in include/common.h.", ref_so_file);
 
   ref_difftest_init(port);
-  ref_difftest_memcpy_from_dut(IMAGE_START + PMEM_BASE, guest_to_host(IMAGE_START), img_size);
-  ref_difftest_setregs(&cpu);
+  ref_difftest_memcpy(IMAGE_START + PMEM_BASE, guest_to_host(IMAGE_START), img_size, DIFFTEST_TO_REF);
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
-  // TODO: Check the registers state with QEMU.
   if (!isa_difftest_checkregs(ref, pc)) {
     isa_reg_display();
     nemu_state.state = NEMU_ABORT;
@@ -88,13 +105,15 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
   }
 }
 
-void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
+void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
   CPU_state ref_r;
 
+#ifndef __ICS_EXPORT
   if (is_detach) return;
 
+#endif
   if (skip_dut_nr_instr > 0) {
-    ref_difftest_getregs(&ref_r);
+    ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == next_pc) {
       checkregs(&ref_r, next_pc);
       skip_dut_nr_instr = 0;
@@ -102,23 +121,30 @@ void difftest_step(vaddr_t ori_pc, vaddr_t next_pc) {
     }
     skip_dut_nr_instr --;
     if (skip_dut_nr_instr == 0)
-      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, ori_pc);
+      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, this_pc);
     return;
   }
 
   if (is_skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
-    ref_difftest_setregs(&cpu);
+    ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
     return;
   }
 
   ref_difftest_exec(1);
-  ref_difftest_getregs(&ref_r);
 
-  checkregs(&ref_r, ori_pc);
+  if (patch_fn) {
+    patch_fn(patch_arg);
+    patch_fn = NULL;
+  }
+
+  ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
+
+  checkregs(&ref_r, this_pc);
 }
 
+#ifndef __ICS_EXPORT
 void difftest_detach() {
   is_detach = true;
 }
@@ -134,3 +160,4 @@ void difftest_attach() {
 
   isa_difftest_attach();
 }
+#endif

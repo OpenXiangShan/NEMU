@@ -1,9 +1,10 @@
 #include <isa.h>
 #include <monitor/difftest.h>
 #include "../local-include/reg.h"
-#include "difftest.h"
+#include <difftest.h>
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
+#ifndef __ICS_EXPORT
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
     int i;
     // do not check $0
@@ -14,7 +15,10 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     return false;
   }
   return true;
+#else
+  return false;
+#endif
 }
 
-void isa_difftest_attach(void) {
+void isa_difftest_attach() {
 }

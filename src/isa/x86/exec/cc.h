@@ -10,6 +10,7 @@ enum {
   CC_L, CC_NL, CC_LE, CC_NLE
 };
 
+#ifndef __ICS_EXPORT
 enum {
   LAZYCC_ADD,
   LAZYCC_SUB,
@@ -22,6 +23,7 @@ enum {
 };
 
 #include "lazycc.h"
+#endif
 
 /* Condition Code */
 
@@ -41,6 +43,17 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcod
   // TODO: Query EFLAGS to determine whether the condition code is satisfied.
   // dest <- ( cc is satisfied ? 1 : 0)
   switch (subcode & 0xe) {
+#ifdef __ICS_EXPORT
+    case CC_O:
+    case CC_B:
+    case CC_E:
+    case CC_BE:
+    case CC_S:
+    case CC_L:
+    case CC_LE:
+       TODO();
+    case CC_P: panic("PF is not supported");
+#else
     case CC_O: rtl_mv(s, dest, &cpu.OF); break;
     case CC_B: rtl_mv(s, dest, &cpu.CF); break;
     case CC_E: rtl_mv(s, dest, &cpu.ZF); break;
@@ -50,16 +63,22 @@ static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcod
     case CC_LE: rtl_xor(s, dest, &cpu.SF, &cpu.OF);
                 rtl_or(s, dest, dest, &cpu.ZF);
                 break;
-                //TODO();
+    case CC_P: rtl_mv(s, dest, &cpu.PF); break;
+#endif
     default: panic("should not reach here");
-    case CC_P: panic("n86 does not have PF");
   }
 
   if (invert) {
     rtl_xori(s, dest, dest, 0x1);
   }
+#ifdef __ICS_EXPORT
+  assert(*dest == 0 || *dest == 1);
+#else
+#ifdef __ENGINE_interpreter__
   // we can not do runtime checking in JIT for SDI
-  //assert(*dest == 0 || *dest == 1);
+  assert(*dest == 0 || *dest == 1);
+#endif
+#endif
 }
 
 #endif

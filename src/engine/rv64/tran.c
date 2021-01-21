@@ -14,7 +14,7 @@ int trans_buffer_index = 0;
 int tran_next_pc = NEXT_PC_SEQ;
 
 void clear_trans_buffer() { trans_buffer_index = 0; }
-void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
+void asm_print(vaddr_t this_pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 void spill_reset();
@@ -85,6 +85,19 @@ static TB** find_topn_tb() {
   return top;
 }
 
+void dump_code(uint32_t *code, int nr_instr) {
+#define TMP_FILE "/tmp/.sdi-code.bin"
+  FILE *fp = fopen(TMP_FILE, "w");
+  assert(fp != NULL);
+  int ret = fwrite(code, sizeof(code[0]), nr_instr, fp);
+  assert(ret == nr_instr);
+  fclose(fp);
+
+  printf("@@@@@@@@@@ code start @@@@@@@@@@\n");
+  system("riscv64-linux-gnu-objdump -D -b binary -mriscv:rv64 " TMP_FILE);
+  printf("########## code end ##########\n");
+}
+
 void write_ins(uint32_t ins) {
   assert(trans_buffer_index < BUF_SIZE);
   trans_buffer[trans_buffer_index++]=ins;
@@ -102,7 +115,7 @@ void tran_mainloop() {
       tran_next_pc = NEXT_PC_SEQ;
       int guest_nr_instr = 0;
       while (1) {
-        __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
+        __attribute__((unused)) vaddr_t this_pc = cpu.pc;
         __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
         guest_nr_instr ++;
 
@@ -111,7 +124,7 @@ void tran_mainloop() {
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
 #ifdef DEBUG
-        asm_print(ori_pc, seq_pc - ori_pc, true);
+        asm_print(this_pc, seq_pc - this_pc, true);
 #endif
 #ifdef DIFF_TEST
         if (tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
@@ -169,10 +182,7 @@ void tran_mainloop() {
     printf("%3d: pc = " FMT_WORD "(instr: %d -> %d), \thit time = %d\n",
         i + 1, top[i]->pc, top[i]->guest_nr_instr, top[i]->nr_instr, top[i]->hit_time);
 #ifdef DUMP_RV64
-    int j;
-    for (j = 0; j < top[i]->nr_instr; j ++) {
-      printf("\t.word 0x%08x\n", ((uint32_t *)top[i]->code)[j]);
-    }
+    dump_code(top[i]->code, top[i]->nr_instr);
 #endif
   }
 
