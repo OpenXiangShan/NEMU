@@ -23,7 +23,7 @@
 
 static inline bool assert_ex_ii(DecodeExecState *s, bool cond){
     if(!cond){
-        raise_intr(s, EX_II, cpu.pc);
+        rtl_trap(s, EX_II, cpu.pc);
         return false;
     }
     return true;
@@ -120,7 +120,7 @@ static inline void writeFflags(DecodeExecState *s) {
         mstatus->sd = 1;
         mstatus->fs = 3;
         *s1 = fflags->val | softfloat_exceptionFlags;
-        csr_write(1, s1);
+        rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, 1);
         softfloat_exceptionFlags = 0;
     }
 }
@@ -128,7 +128,7 @@ static inline void writeFflags(DecodeExecState *s) {
 
 // ------------- EHelpers -------------
 
-static inline make_EHelper(fp_ld) {
+static inline def_EHelper(fp_ld) {
     if(!check_fs(s)) return;
     if(s->width == 8) rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
     else if(s->width == 4) rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
@@ -142,7 +142,7 @@ static inline make_EHelper(fp_ld) {
     }
 }
 
-static inline make_EHelper(fp_st) {
+static inline def_EHelper(fp_st) {
     *s0 = s->width == 4 ? box(*ddest) : *ddest;
     rtl_sm(s, dsrc1, id_src2->imm, s0, s->width);
 
@@ -158,7 +158,7 @@ static inline make_EHelper(fp_st) {
 
 // a macro to build exec_fadd/fsub/fmul/fmdiv/fmin/fmax
 #define BUILD_EXEC_F(x) \
-  static inline make_EHelper(concat(f, x)) { \
+  static inline def_EHelper(concat(f, x)) { \
     if(!check_fs(s)) return; \
     int rm; \
     if(!get_rm(s, &rm)) return; \
@@ -187,7 +187,7 @@ BUILD_EXEC_F(div);
 BUILD_EXEC_F(min);
 BUILD_EXEC_F(max);
 
-static inline make_EHelper(fmin_fmax){
+static inline def_EHelper(fmin_fmax){
     if(s->isa.instr.fp.rm == 0)
         exec_fmin(s);
     else 
@@ -223,7 +223,7 @@ static inline make_EHelper(fmin_fmax){
   ).v
 
 #define BUILD_EXEC_FM(func) \
-  static inline make_EHelper(func){ \
+  static inline def_EHelper(func){ \
     if(!check_fs(s)) return; \
     int rm; \
     if(!get_rm(s, &rm)) return; \
@@ -251,7 +251,7 @@ BUILD_EXEC_FM(fmsub);
 BUILD_EXEC_FM(fnmsub);
 BUILD_EXEC_FM(fnmadd);
 
-static inline make_EHelper(fsgnj) {
+static inline def_EHelper(fsgnj) {
     if(!check_fs(s)) return;
     int rm = s->isa.instr.fp.rm;
     bool is_neg = rm == 1;
@@ -282,7 +282,7 @@ static inline make_EHelper(fsgnj) {
 }
 
 // fmv.x.d/fmv.x.w and fclass 
-static inline make_EHelper(fmv_F_to_G) {
+static inline def_EHelper(fmv_F_to_G) {
     if(!check_fs(s)) return;
     int rm = s->isa.instr.fp.rm;
     if(!assert_ex_ii(s, rm==0 || rm==1)) return;
@@ -305,7 +305,7 @@ static inline make_EHelper(fmv_F_to_G) {
     rtl_sr(s, s->dest.reg, s0, 8);
 }
 
-static inline make_EHelper(fmv_G_to_F){
+static inline def_EHelper(fmv_G_to_F){
     if(!check_fs(s)) return;
     sfpr(ddest, dsrc1, s->width);
 
@@ -320,7 +320,7 @@ static inline make_EHelper(fmv_G_to_F){
     }
 }
 
-static inline make_EHelper(fcmp){
+static inline def_EHelper(fcmp){
     if(!check_fs(s)) return;
     int rm = s->isa.instr.fp.rm;
     if(!assert_ex_ii(s, rm==0 || rm==1 || rm==2)) return;
@@ -370,7 +370,7 @@ static inline make_EHelper(fcmp){
     }
 }
 
-static inline make_EHelper(fsqrt) {
+static inline def_EHelper(fsqrt) {
     if(!check_fs(s)) return;
     int rm;
     if(!get_rm(s, &rm)) return;
@@ -397,7 +397,7 @@ static inline make_EHelper(fsqrt) {
     }
 }
 
-static inline make_EHelper(fcvt_F_to_G){
+static inline def_EHelper(fcvt_F_to_G){
     if(!check_fs(s)) return;
     int rm;
     if(!get_rm(s, &rm)) return;
@@ -448,7 +448,7 @@ static inline make_EHelper(fcvt_F_to_G){
     writeFflags(s);
 }
 
-static inline make_EHelper(fcvt_G_to_F){
+static inline def_EHelper(fcvt_G_to_F){
     if(!check_fs(s)) return;
     int rm;
     if(!get_rm(s, &rm)) return;
@@ -497,7 +497,7 @@ static inline make_EHelper(fcvt_G_to_F){
     writeFflags(s);
 }
 
-static inline make_EHelper(fcvt_F_to_F) {
+static inline def_EHelper(fcvt_F_to_F) {
     if(!check_fs(s)) return;
     int rm;
     if(!get_rm(s, &rm)) return;
