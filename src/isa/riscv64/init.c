@@ -38,7 +38,7 @@ void init_isa(void) {
   if (!checkpointRestoring) {
 #if  !defined(__DIFF_REF_QEMU__) || defined(__SIMPOINT)
     // QEMU seems to initialize mstatus with 0
-    mstatus->val = 0x00001800;
+    mstatus->val = 0x0;
 #endif
 //  Log("Mstatus: 0x%x", mstatus->val);
 
