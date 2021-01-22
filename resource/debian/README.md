@@ -3,15 +3,23 @@
 
 制作需要`qemu-riscv64-static`, 建议在debian 10或ubuntu 19.04的系统(可尝试使用docker)中进行操作.
 
-* 创建ext4空镜像
+* 创建空镜像和分区
 ```
-dd if=/dev/zero of=debian.img bs=1G count=4  # 此处镜像大小为4GB
-sudo mkfs.ext4 debian.img
+dd if=/dev/zero of=debian.img bs=1G count=16  # 此处镜像大小为16GB
+sudo cfdisk debian.img # 可创建两个分区, 第一个分区12GB作为rootfs, 第二个分区4GB作为swap
+sudo losetup --partscan --show --find debian.img # 将debian.img作为loop设备
+ls /dev/loop0* # 此时应该能看到/dev/loop0p1和/dev/loop0p2两个分区
 ```
 
-* 挂载空镜像
+* 创建ext4和swap文件系统
 ```
-sudo mount debian.img /mnt -o loop
+sudo mkfs.ext4 /dev/loop0p1
+sudo mkswap /dev/loop0p2
+```
+
+* 挂载ext4分区
+```
+sudo mount /dev/loop0p1 /mnt
 ```
 
 * 安装debian base system.
@@ -19,6 +27,10 @@ sudo mount debian.img /mnt -o loop
 ```
 sudo apt-get install debootstrap qemu-user-static binfmt-support debian-ports-archive-keyring
 sudo debootstrap --arch=riscv64 --keyring /usr/share/keyrings/debian-ports-archive-keyring.gpg --include=debian-ports-archive-keyring unstable /mnt http://deb.debian.org/debian-ports
+```
+若要安装x86系统, 则输入
+```
+sudo debootstrap --arch=i386 --keyring /usr/share/keyrings/debian-archive-keyring.gpg --include=debian-archive-keyring stable /mnt http://deb.debian.org/debian
 ```
 
 * 进入镜像
@@ -30,17 +42,17 @@ sudo chroot /mnt /bin/bash
 * 安装所需工具(根据实际情况选择)
 ```
 apt-get update
-apt-get install gcc build-essentail
+apt-get install gcc build-essential
 apt-get install tmux libreadline-dev
-agt-get install net-tools openssh-server
+apt-get install net-tools openssh-server
 # fix long delay of openssh server
 apt-get install haveged
 agt-get install sbt
 ```
 
-* 删除登录密码, 登录时输入`root`后可直接登录
+* 在`/etc/fstab`中添加swap分区
 ```
-passwd -d root
+/dev/mmcblk0p2 none swap sw 0 0
 ```
 
 * 添加/root/目录的写和执行权限, 使得host上的普通用户可以访问
@@ -48,17 +60,16 @@ passwd -d root
 chmod +w,+x /root
 ```
 
-* 在/root/目录下提前写入所需的测试文件, 如hello.c等. 将来以只读方式挂载时, 无法写入文件.
-
-* 挂载ramdisk到/tmp/目录, 若根文件系统通过只读方式挂载, 可在/tmp/目录中进行文件写操作.
-在`/etc/fstab`中添加如下内容
-```
-ramdisk /tmp tmpfs defaults,size=10MB 0 0
-```
+* 在/root/目录下提前写入所需的测试文件, 如hello.c等.
 
 * 在/root/.bashrc中添加如下内容, 可以实现登录后自动运行命令(根据实际情况修改测试的命令):
 ```
+TMP_DIR=/run/mytest
+
 cmd=(
+# enbale swap
+  "swapon -a"
+
 # show system information
   "uname -a"
   "cat /etc/issue"
@@ -70,29 +81,33 @@ cmd=(
   "date"
   "uptime"
 
+# create and switch to tmp directory
+  "mkdir $TMP_DIR"
+  "cd $TMP_DIR"
+
 # compile and run hello
   "ls /root"
   "ls /root/hello"
   "cat /root/hello/hello.c"
-  "gcc -time /root/hello/hello.c -o /tmp/hello"
-  "ls -lh /tmp"
-  "/tmp/hello"
+  "gcc -time /root/hello/hello.c -o $TMP_DIR/hello"
+  "ls -lh $TMP_DIR"
+  "$TMP_DIR/hello"
 
 # compile and run x86-nemu
   "ls /root/nemu"
-  "cp -r /root/nemu /tmp"
-  "export NEMU_HOME=/tmp/nemu"
-  "make -C /tmp/nemu ISA=x86"
+  "cp -r /root/nemu $TMP_DIR"
+  "export NEMU_HOME=$TMP_DIR/nemu"
+  "make -C $TMP_DIR/nemu ISA=x86"
   "ls -lh /root/nemu-prog"
   "file /root/nemu-prog/amtest-x86-nemu.elf"
-  "/tmp/nemu/build/x86-nemu --batch --mainargs=h /root/nemu-prog/amtest-x86-nemu.bin"
+  "$TMP_DIR/nemu/build/x86-nemu --batch --mainargs=h /root/nemu-prog/amtest-x86-nemu.bin"
   "file /root/nemu-prog/microbench-x86-nemu.elf"
-  "/tmp/nemu/build/x86-nemu --batch --mainargs=test /root/nemu-prog/microbench-x86-nemu.bin"
+  "$TMP_DIR/nemu/build/x86-nemu --batch --mainargs=test /root/nemu-prog/microbench-x86-nemu.bin"
 
 # compile and run riscv64-nemu
-  "make -C /tmp/nemu clean"
-  "make -C /tmp/nemu ISA=riscv64"
-  "/tmp/nemu/build/riscv64-nemu --batch /root/nemu-prog/linux-hello-riscv64-nemu.bin"
+  "make -C $TMP_DIR/nemu clean"
+  "make -C $TMP_DIR/nemu ISA=riscv64"
+  "$TMP_DIR/nemu/build/riscv64-nemu --batch /root/nemu-prog/linux-hello-riscv64-nemu.bin"
 )
 
 prompt="`whoami`@`hostname`:`pwd`#"
@@ -111,15 +126,25 @@ echo -e "\n============ End of preset commands =============\n"
 /root/nemutrap/good-trap
 ```
 
+* 若在不方便输入的环境(如NEMU, verilator仿真等)中测试, 可采用如下方式避免登录时输入
+```
+cd /lib/systemd/system
+# 通过紧急模式登录, 不启动非必须的服务, 节省将近一半的登录时间
+ln -sf emergency.target default.target
+# 跳过登录提示符, 直接运行bash
+vim emergency.service
+  -ExecStart=-/lib/systemd/systemd-sulogin-shell emergency
+  +ExecStart=-/bin/bash
+```
+
 * 退出并卸载镜像
 ```
 exit  # 之前通过`chroot`方式进入
 sudo umount /mnt  # 记得卸载! 在未卸载镜像的情况下通过可写方式再次打开`debian.img`(如作为qemu的文件系统), 镜像将会损坏!
+sudo losetup -d /dev/loop0  # 删除loop设备
 ```
 
 * 修改`nemu/src/device/sdcard.c`中`init_sdcard()`中打开的镜像文件路径, 即可使用制作的镜像.
 在i9-9900k上测试, 约90s后看到debian的登录提示符.
 
-* 根据实际情况修改`nemu/src/device/serial.c`中允许串口输入的等待时间,
-使得出现登录提示符后自动从串口读入"root\n"进行登录, 然后运行`.bashrc`中预设的命令,
-实现一键运行自动测试.
+* 当以可写方式启动镜像是, NEMU遇到错误或通过Ctrl+C直接退出NEMU时, 可能会损坏镜像的崩溃一致性, 此时可以通过fsck命令修复分区.

@@ -1,8 +1,8 @@
 #include <isa.h>
-#include <monitor/difftest.h>
+//#include <monitor/difftest.h>
 #include "local-include/reg.h"
 #include "local-include/csr.h"
-#include "local-include/intr.h"
+//#include "local-include/intr.h"
 
 const char *regsl[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -34,10 +34,8 @@ void isa_reg_display() {
   }
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
-  rtlreg_t temp;
-  csr_read(&temp, 0x100); // sstatus
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
-      "", temp, scause->val, sepc->val);
+      "", csrid_read(0x100), scause->val, sepc->val);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {
@@ -51,99 +49,4 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
 
   *success = false;
   return 0;
-}
-
-static word_t csr_array[4096] = {};
-
-#define CSRS_DEF(name, addr) \
-  concat(name, _t)* const name = (void *)&csr_array[addr];
-MAP(CSRS, CSRS_DEF)
-
-#define CSRS_EXIST(name, addr) [addr] = 1,
-static bool csr_exist[4096] = {
-  MAP(CSRS, CSRS_EXIST)
-};
-
-static inline word_t* csr_decode(uint32_t addr) {
-  assert(addr < 4096);
-  Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
-  return &csr_array[addr];
-}
-
-#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
-#define SIE_MASK (0x222 & mideleg->val)
-#define SIP_MASK (0x222 & mideleg->val)
-
-#define FFLAGS_MASK 0x1f
-#define FRM_MASK 0x03
-#define FCSR_MASK 0xff
-
-void csr_read(rtlreg_t *dest, uint32_t addr) {
-  word_t *src = csr_decode(addr);
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 3);
-#endif
-
-  if (src == (void *)sstatus) {
-    *dest = mstatus->val & SSTATUS_RMASK;
-  } else if (src == (void *)sie) {
-    *dest = mie->val & SIE_MASK;
-  } else if (src == (void *)sip) {
-    *dest = mip->val & SIP_MASK;
-  } else if (src == (void *)fflags) {
-    *dest = fflags->val & FFLAGS_MASK;
-  } else if (src == (void *)frm) {
-    *dest = frm->val & FRM_MASK;
-  } else if (src == (void *)fcsr) {
-    *dest = fcsr->val & FCSR_MASK;
-  } else {
-    *dest = *src;
-  }
-}
-
-void csr_write(uint32_t addr, rtlreg_t *src) {
-  word_t *dest = csr_decode(addr);
-  if (dest == (void *)sstatus) {
-    mstatus->val = (mstatus->val & ~SSTATUS_WMASK) | (*src & SSTATUS_WMASK);
-  } else if (dest == (void *)sie) {
-    mie->val = (mie->val & ~SIE_MASK) | (*src & SIE_MASK);
-  } else if (dest == (void *)sip) {
-    mip->val = (mip->val & ~SIP_MASK) | (*src & SIP_MASK);
-  } else if (dest == (void *)medeleg) {
-    *dest = *src & 0xbbff;
-  } else if (dest == (void *)mideleg) {
-    *dest = *src & 0x222;
-  } else if (dest == (void *)fflags) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = *src & FFLAGS_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (dest == (void *)frm) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = *src & FRM_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (dest == (void *)fcsr) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = *src & FCSR_MASK;
-    fflags->val = *src & FFLAGS_MASK;
-    frm->val = ((*src)>>5) & FRM_MASK;
-  } else {
-    *dest = *src;
-  }
-
-  if (dest == (void *)sstatus || dest == (void *)mstatus) {
-#ifdef __DIFF_REF_QEMU__
-    // mstatus.fs is always dirty or off in QEMU 3.1.0
-    if (mstatus->fs) { mstatus->fs = 3; }
-#endif
-    mstatus->sd = (mstatus->fs == 3);
-  }
-}
-
-void change_mode(uint8_t m) {
-  assert(m < 4 && m != MODE_H);
-  cpu.mode = m;
 }

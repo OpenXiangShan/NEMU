@@ -6,6 +6,7 @@
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
 uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t* dest);
 uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t* src);
+int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t *r);
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
 #ifndef ISA64
@@ -20,124 +21,134 @@ static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
 #endif
 }
 
-// return false if `imm` can be represented within 12 bits
-// else load it to `r`, and reture true
-static inline bool load_imm_big(uint32_t r, const sword_t imm) {
+static inline sword_t get_imm_hi(const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
-  if (lui_imm == 0) return false;
-  else {
-    if (r == 0) return true;
-    rv64_lui(r, lui_imm);
-    if (rv_imm.imm_11_0 != 0) rv64_addi(r, r, rv_imm.imm_11_0);
-    return true;
-  }
+  uint32_t imm_hi = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
+  return imm_hi;
+}
+
+static inline sword_t get_imm_lo(const sword_t imm) {
+  return imm & 0xfffu;
+}
+
+static inline bool is_imm_big(const sword_t imm) {
+  return get_imm_hi(imm) != 0;
 }
 
 static inline void load_imm(uint32_t r, const sword_t imm) {
   if (r == 0) return;
-  if (!load_imm_big(r, imm)) rv64_addi(r, x0, imm & 0xfff);
+  if (!is_imm_big(imm)) rv64_addi(r, x0, imm & 0xfff);
+  else {
+    sword_t hi = get_imm_hi(imm);
+    sword_t lo = get_imm_lo(imm);
+    rv64_lui(r, hi);
+    if (lo != 0) rv64_addi(r, r, lo);
+  }
 }
 
 static inline void load_imm_no_opt(uint32_t r, const sword_t imm) {
-  RV_IMM rv_imm = { .val = imm };
-  uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
-  rv64_lui(r, lui_imm);
-  rv64_addi(r, r, rv_imm.imm_11_0);
+  sword_t hi = get_imm_hi(imm);
+  sword_t lo = get_imm_lo(imm);
+  rv64_lui(r, hi);
+  rv64_addi(r, r, lo);
 }
 
 /* RTL basic instructions */
 
-#define make_rtl_compute_reg(rtl_name, rv64_name) \
-  make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
+#define def_rtl_compute_reg(rtl_name, rv64_name) \
+  def_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
+    if (rtlreg_is_zero(s, dest)) return; \
     uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true); \
     uint32_t src1_rvidx = ret >> 16; \
     uint32_t src2_rvidx = ret & 0xffff; \
     uint32_t dest_rvidx = dest2rvidx(s, dest); \
-    if (dest_rvidx == 0) return; \
     concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, src2_rvidx); \
+    spill_set_dirty_rvidx(dest_rvidx); \
   }
 
-#define make_rtl_compute_imm(rtl_name, rv64_name) \
-  make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+#define def_rtl_compute_imm_small(rtl_name, rv64_name) \
+  def_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+    if (rtlreg_is_zero(s, dest)) return; \
     uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true); \
     uint32_t dest_rvidx = ret >> 16; \
     uint32_t src1_rvidx = ret & 0xffff; \
-    if (dest_rvidx == 0) return; \
     concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, imm); \
     spill_set_dirty_rvidx(dest_rvidx); \
   }
 
-#define make_rtl_compute_imm_opt(rtl_name, rv64_name, rv64_imm_name) \
-  make_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+#define def_rtl_compute_imm_opt(rtl_name, rv64_name, rv64_imm_name) \
+  def_rtl(rtl_name, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
+    if (rtlreg_is_zero(s, dest)) return; \
     uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true); \
     uint32_t dest_rvidx = ret >> 16; \
     uint32_t src1_rvidx = ret & 0xffff; \
-    if (dest_rvidx == 0) return; \
     if (src1 == rz) load_imm(dest_rvidx, imm); \
-    else if (load_imm_big(tmp0, imm)) concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, tmp0); \
+    else if (is_imm_big(imm)) { \
+      load_imm(tmp0, imm); \
+      concat(rv64_, rv64_name) (dest_rvidx, src1_rvidx, tmp0); \
+    } \
     else concat(rv64_, rv64_imm_name) (dest_rvidx, src1_rvidx, imm); \
     spill_set_dirty_rvidx(dest_rvidx); \
   }
 
-make_rtl_compute_reg(and, and)
-make_rtl_compute_reg(or, or)
-make_rtl_compute_reg(xor, xor)
+def_rtl_compute_reg(and, and)
+def_rtl_compute_reg(or, or)
+def_rtl_compute_reg(xor, xor)
 
-make_rtl_compute_imm_opt(addi, add, addi)
-make_rtl_compute_imm_opt(andi, and, andi)
-make_rtl_compute_imm_opt(xori, xor, xori)
-make_rtl_compute_imm_opt(ori, or, ori)
+def_rtl_compute_imm_opt(addi, add, addi)
+def_rtl_compute_imm_opt(andi, and, andi)
+def_rtl_compute_imm_opt(xori, xor, xori)
+def_rtl_compute_imm_opt(ori, or, ori)
 
-make_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
+def_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   rtl_addi(s, dest, src1, -imm);
 }
 
 #ifdef ISA64
-make_rtl_compute_reg(add, add)
-make_rtl_compute_reg(sub, sub)
-make_rtl_compute_reg(shl, sll)
-make_rtl_compute_reg(shr, srl)
-make_rtl_compute_reg(sar, sra)
-make_rtl_compute_imm(shli, slli)
-make_rtl_compute_imm(shri, srli)
-make_rtl_compute_imm(sari, srai)
+def_rtl_compute_reg(add, add)
+def_rtl_compute_reg(sub, sub)
+def_rtl_compute_reg(shl, sll)
+def_rtl_compute_reg(shr, srl)
+def_rtl_compute_reg(sar, sra)
+def_rtl_compute_imm_small(shli, slli)
+def_rtl_compute_imm_small(shri, srli)
+def_rtl_compute_imm_small(sari, srai)
 
-make_rtl_compute_reg(addw, addw)
-make_rtl_compute_reg(subw, subw)
-make_rtl_compute_reg(shlw, sllw)
-make_rtl_compute_reg(shrw, srlw)
-make_rtl_compute_reg(sarw, sraw)
-make_rtl_compute_imm_opt(addiw, addw, addiw)
-make_rtl_compute_imm(shliw, slliw)
-make_rtl_compute_imm(shriw, srliw)
-make_rtl_compute_imm(sariw, sraiw)
+def_rtl_compute_reg(addw, addw)
+def_rtl_compute_reg(subw, subw)
+def_rtl_compute_reg(shlw, sllw)
+def_rtl_compute_reg(shrw, srlw)
+def_rtl_compute_reg(sarw, sraw)
+def_rtl_compute_imm_opt(addiw, addw, addiw)
+def_rtl_compute_imm_small(shliw, slliw)
+def_rtl_compute_imm_small(shriw, srliw)
+def_rtl_compute_imm_small(sariw, sraiw)
 #else
-make_rtl_compute_reg(add, addw)
-make_rtl_compute_reg(sub, subw)
-make_rtl_compute_reg(shl, sllw)
-make_rtl_compute_reg(shr, srlw)
-make_rtl_compute_reg(sar, sraw)
-make_rtl_compute_imm(shli, slliw)
-make_rtl_compute_imm(shri, srliw)
-make_rtl_compute_imm(sari, sraiw)
+def_rtl_compute_reg(add, addw)
+def_rtl_compute_reg(sub, subw)
+def_rtl_compute_reg(shl, sllw)
+def_rtl_compute_reg(shr, srlw)
+def_rtl_compute_reg(sar, sraw)
+def_rtl_compute_imm_small(shli, slliw)
+def_rtl_compute_imm_small(shri, srliw)
+def_rtl_compute_imm_small(sari, sraiw)
 #endif
 
-make_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+def_rtl(setrelop, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
   uint32_t dest_rvidx = dest2rvidx(s, dest);
-  if (dest_rvidx == 0) return;
   rv64_relop(relop, dest_rvidx, src1_rvidx, src2_rvidx);
 }
 
-make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
-  int big_imm = load_imm_big(tmp0, imm);
+def_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const sword_t imm) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, src1, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
-  if (dest_rvidx == 0) return;
+  int big_imm = is_imm_big(imm);
   if (!big_imm && (relop == RELOP_LT || relop == RELOP_LTU)) {
     switch (relop) {
       case RELOP_LT: rv64_slti(dest_rvidx, src1_rvidx, imm); goto finish;
@@ -145,7 +156,7 @@ make_rtl(setrelopi, uint32_t relop, rtlreg_t *dest, const rtlreg_t *src1, const 
       // fall through for default cases
     }
   }
-  if (!big_imm) rv64_addi(tmp0, x0, imm);
+  load_imm(tmp0, imm);
   rv64_relop(relop, dest_rvidx, src1_rvidx, tmp0);
 finish:
   spill_set_dirty_rvidx(dest_rvidx);
@@ -153,29 +164,27 @@ finish:
 
 
 #ifdef ISA64
-make_rtl_compute_reg(mul_lo, mul)
-make_rtl_compute_reg(mul_hi, mulhu)
-make_rtl_compute_reg(imul_lo, mul)
-make_rtl_compute_reg(imul_hi, mulh)
-make_rtl_compute_reg(div_q, divu)
-make_rtl_compute_reg(div_r, remu)
-make_rtl_compute_reg(idiv_q, div)
-make_rtl_compute_reg(idiv_r, rem)
+def_rtl_compute_reg(mulu_lo, mul)
+def_rtl_compute_reg(mulu_hi, mulhu)
+def_rtl_compute_reg(muls_hi, mulh)
+def_rtl_compute_reg(divu_q, divu)
+def_rtl_compute_reg(divu_r, remu)
+def_rtl_compute_reg(divs_q, div)
+def_rtl_compute_reg(divs_r, rem)
 
-make_rtl_compute_reg(mulw, mulw)
-make_rtl_compute_reg(divw, divw)
-make_rtl_compute_reg(divuw, divuw)
-make_rtl_compute_reg(remw, remw)
-make_rtl_compute_reg(remuw, remuw)
+def_rtl_compute_reg(mulw, mulw)
+def_rtl_compute_reg(divw, divw)
+def_rtl_compute_reg(divuw, divuw)
+def_rtl_compute_reg(remw, remw)
+def_rtl_compute_reg(remuw, remuw)
 #else
-make_rtl_compute_reg(mul_lo, mulw)
-make_rtl_compute_reg(imul_lo, mulw)
-make_rtl_compute_reg(div_q, divuw)
-make_rtl_compute_reg(div_r, remuw)
-make_rtl_compute_reg(idiv_q, divw)
-make_rtl_compute_reg(idiv_r, remw)
+def_rtl_compute_reg(mulu_lo, mulw)
+def_rtl_compute_reg(divu_q, divuw)
+def_rtl_compute_reg(divu_r, remuw)
+def_rtl_compute_reg(divs_q, divw)
+def_rtl_compute_reg(divs_r, remw)
 
-make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+def_rtl(mulu_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
@@ -186,7 +195,7 @@ make_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   rv64_srai(dest_rvidx, dest_rvidx, 32);
 }
 
-make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+def_rtl(muls_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
@@ -200,7 +209,7 @@ make_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
 
 #ifdef __ISA_x86__
 #define make_x86_div64(rtl_name, ext_type, rv64_name) \
-make_rtl(rtl_name, rtlreg_t* dest, \
+def_rtl(rtl_name, rtlreg_t* dest, \
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) { \
   uint32_t idx_dest = dest2rvidx(s, dest); \
   uint32_t idx_src1_hi = src2rvidx(s, src1_hi); \
@@ -214,16 +223,16 @@ make_rtl(rtl_name, rtlreg_t* dest, \
 }
 #else
 #define make_x86_div64(rtl_name, ext_type, rv64_name) \
-make_rtl(rtl_name, rtlreg_t* dest, \
+def_rtl(rtl_name, rtlreg_t* dest, \
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) { \
   panic("only support in x86"); \
 }
 #endif
 
-make_x86_div64(div64_q, rv64_zextw, divu)
-make_x86_div64(div64_r, rv64_zextw, remu)
-make_x86_div64(idiv64_q, rv64_sextw, div)
-make_x86_div64(idiv64_r, rv64_sextw, rem)
+make_x86_div64(div64u_q, rv64_zextw, divu)
+make_x86_div64(div64u_r, rv64_zextw, remu)
+make_x86_div64(div64s_q, rv64_sextw, div)
+make_x86_div64(div64s_r, rv64_sextw, rem)
 
 static inline int prepare_addr(int addr_rvidx_final, int addr_rvidx, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };
@@ -245,11 +254,11 @@ static inline int prepare_addr(int addr_rvidx_final, int addr_rvidx, const sword
   return addr_rvidx_final;
 }
 
-make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t addr_rvidx = ret & 0xffff;
-  if (dest_rvidx == 0) return;
 
   uint32_t addr_rvidx_final = prepare_addr(dest_rvidx, addr_rvidx, imm);
   switch (len) {
@@ -266,11 +275,11 @@ make_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   spill_set_dirty_rvidx(dest_rvidx);
 }
 
-make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
+  if (rtlreg_is_zero(s, dest)) return;
   uint32_t ret = rtlreg2rvidx_pair(s, dest, false, addr, true);
   uint32_t dest_rvidx = ret >> 16;
   uint32_t addr_rvidx = ret & 0xffff;
-  if (dest_rvidx == 0) return;
 
   uint32_t addr_rvidx_final = prepare_addr(dest_rvidx, addr_rvidx, imm);
   switch (len) {
@@ -282,7 +291,7 @@ make_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) 
   spill_set_dirty_rvidx(dest_rvidx);
 }
 
-make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int len) {
+def_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int len) {
   uint32_t ret = rtlreg2rvidx_pair(s, addr, true, src1, true);
   uint32_t addr_rvidx = ret >> 16;
   uint32_t src1_rvidx = ret & 0xffff;
@@ -298,7 +307,7 @@ make_rtl(sm, const rtlreg_t* addr, const sword_t imm, const rtlreg_t* src1, int 
 }
 
 #ifdef __ISA_x86__
-make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
+def_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   uint32_t idx_dest = dest2rvidx(s, dest);
 
   // we assume that `addr` is only from cpu.gpr in x86
@@ -321,7 +330,7 @@ make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   }
 }
 
-make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
+def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   uint32_t idx_src1 = dest2rvidx(s, src1);
 
   // we assume that `addr` is only from cpu.gpr in x86
@@ -335,18 +344,18 @@ make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   spm(lwu, idx_r, SPM_X86_REG);
 }
 #else
-make_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
+def_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   panic("only used in x86\n");
 }
 
-make_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
+def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
   panic("only used in x86\n");
 }
 #endif
 
 
 // we use tmp0 to store x86.pc of the next basic block
-make_rtl(j, vaddr_t target) {
+def_rtl(j, vaddr_t target) {
 #ifdef REG_SPILLING
   spill_writeback_all();
 #endif
@@ -354,7 +363,7 @@ make_rtl(j, vaddr_t target) {
   tran_next_pc = NEXT_PC_JMP;
 }
 
-make_rtl(jr, rtlreg_t *target) {
+def_rtl(jr, rtlreg_t *target) {
   uint32_t rvidx = src2rvidx(s, target);
   rv64_addi(tmp0, rvidx, 0);
 #ifdef REG_SPILLING
@@ -363,7 +372,7 @@ make_rtl(jr, rtlreg_t *target) {
   tran_next_pc = NEXT_PC_JMP;
 }
 
-make_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
+def_rtl(jrelop, uint32_t relop, const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t rs1 = ret >> 16;
   uint32_t rs2 = ret & 0xffff;
