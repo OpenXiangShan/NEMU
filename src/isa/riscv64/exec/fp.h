@@ -1,6 +1,6 @@
-#include "../local-include/softfloat/softfloat.h"
-#include "../local-include/softfloat/specialize.h"
-#include "../local-include/softfloat/internals.h"
+#include <softfloat.h>
+#include <specialize.h>
+#include <internals.h>
 
 #include "../local-include/intr.h"
 
@@ -74,30 +74,29 @@ inline rtlreg_t neg32(rtlreg_t a){
   return ((uint64_t)-1 << 32) | (a ^ F32_SIGN);
 }
 
-float32_t f32_min(float32_t a, float32_t b){
+static inline float32_t f32_min(float32_t a, float32_t b){
   bool less = f32_lt_quiet(a, b) || (f32_eq(a, b) && (a.v & F32_SIGN));
   if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
   else return(less || isNaNF32UI(b.v) ? a : b);
 }
 
-float64_t f64_min(float64_t a, float64_t b){
+static inline float64_t f64_min(float64_t a, float64_t b){
   bool less = f64_lt_quiet(a, b) || (f64_eq(a, b) && (a.v & F64_SIGN));
   if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
   else return(less || isNaNF64UI(b.v) ? a : b);
 }
 
-float32_t f32_max(float32_t a, float32_t b){
+static inline float32_t f32_max(float32_t a, float32_t b){
   bool greater = f32_lt_quiet(b, a) || (f32_eq(b, a) && (b.v & F32_SIGN));
   if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
   else return(greater || isNaNF32UI(b.v) ? a : b);
 }
 
-float64_t f64_max(float64_t a, float64_t b){
+static inline float64_t f64_max(float64_t a, float64_t b){
   bool greater = f64_lt_quiet(b, a) || (f64_eq(b, a) && (b.v & F64_SIGN));
   if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
   else return(greater || isNaNF64UI(b.v) ? a : b);
 }
-
 
 static inline rtlreg_t fsgnj32(rtlreg_t a, rtlreg_t b, bool n, bool x){
     return (unbox(a) & ~F32_SIGN) | ((( x ? unbox(a) : n ? F32_SIGN : 0) ^ unbox(b)) & F32_SIGN);
@@ -123,6 +122,62 @@ static inline void writeFflags(DecodeExecState *s) {
         rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, 1);
         softfloat_exceptionFlags = 0;
     }
+}
+
+static uint_fast16_t f32_classify( float32_t a )
+{
+    union ui32_f32 uA;
+    uint_fast32_t uiA;
+
+    uA.f = a;
+    uiA = uA.ui;
+
+    uint_fast16_t infOrNaN = expF32UI( uiA ) == 0xFF;
+    uint_fast16_t subnormalOrZero = expF32UI( uiA ) == 0;
+    bool sign = signF32UI( uiA );
+    bool fracZero = fracF32UI( uiA ) == 0;
+    bool isNaN = isNaNF32UI( uiA );
+    bool isSNaN = softfloat_isSigNaNF32UI( uiA );
+
+    return
+        (  sign && infOrNaN && fracZero )          << 0 |
+        (  sign && !infOrNaN && !subnormalOrZero ) << 1 |
+        (  sign && subnormalOrZero && !fracZero )  << 2 |
+        (  sign && subnormalOrZero && fracZero )   << 3 |
+        ( !sign && infOrNaN && fracZero )          << 7 |
+        ( !sign && !infOrNaN && !subnormalOrZero ) << 6 |
+        ( !sign && subnormalOrZero && !fracZero )  << 5 |
+        ( !sign && subnormalOrZero && fracZero )   << 4 |
+        ( isNaN &&  isSNaN )                       << 8 |
+        ( isNaN && !isSNaN )                       << 9;
+}
+
+static uint_fast16_t f64_classify( float64_t a )
+{
+    union ui64_f64 uA;
+    uint_fast64_t uiA;
+
+    uA.f = a;
+    uiA = uA.ui;
+
+    uint_fast16_t infOrNaN = expF64UI( uiA ) == 0x7FF;
+    uint_fast16_t subnormalOrZero = expF64UI( uiA ) == 0;
+    bool sign = signF64UI( uiA );
+    bool fracZero = fracF64UI( uiA ) == 0;
+    bool isNaN = isNaNF64UI( uiA );
+    bool isSNaN = softfloat_isSigNaNF64UI( uiA );
+
+    return
+        (  sign && infOrNaN && fracZero )          << 0 |
+        (  sign && !infOrNaN && !subnormalOrZero ) << 1 |
+        (  sign && subnormalOrZero && !fracZero )  << 2 |
+        (  sign && subnormalOrZero && fracZero )   << 3 |
+        ( !sign && infOrNaN && fracZero )          << 7 |
+        ( !sign && !infOrNaN && !subnormalOrZero ) << 6 |
+        ( !sign && subnormalOrZero && !fracZero )  << 5 |
+        ( !sign && subnormalOrZero && fracZero )   << 4 |
+        ( isNaN &&  isSNaN )                       << 8 |
+        ( isNaN && !isSNaN )                       << 9;
 }
 
 
