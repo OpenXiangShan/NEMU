@@ -24,7 +24,7 @@ static inline def_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, co
   cpu.cc_dirty = true;
 }
 
-static inline make_rtl(clean_lazycc, ...) {
+static inline void clean_lazycc() {
   cpu.cc_dirty = false;
 }
 
@@ -332,7 +332,7 @@ negcc_reverse:
     return;
 }
 
-static inline make_rtl(lazy_jcc, uint32_t cc) {
+static inline def_rtl(lazy_jcc, uint32_t cc) {
   if (cpu.cc_dirty == false) { 
     cpu.cc_dynamic = cpu.cc_op | 0x100; 
     // printf("dynamic hit\n");
@@ -341,7 +341,7 @@ static inline make_rtl(lazy_jcc, uint32_t cc) {
   rtl_jrelop(s, RELOP_NE, s2, rz, s->jmp_pc);
 }
 
-static inline make_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
+static inline def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
   if (cpu.cc_dirty == false) { 
     cpu.cc_dynamic = cpu.cc_op | 0x100; 
     // printf("dynamic hit\n");
