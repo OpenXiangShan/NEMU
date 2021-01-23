@@ -23,6 +23,7 @@ word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
 vaddr_t isa_exec_once();
+void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
 
 // memory
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
@@ -39,7 +40,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach();
 
   // for ref
-void isa_difftest_regcpy(void *dut, bool to_ref);
+void isa_difftest_regcpy(void *dut, bool direction);
 void isa_difftest_raise_intr(word_t NO);
 
 #endif

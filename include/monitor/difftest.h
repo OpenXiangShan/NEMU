@@ -2,6 +2,7 @@
 #define __MONITOR_DIFFTEST_H__
 
 #include <common.h>
+#include <difftest.h>
 
 #ifdef DIFF_TEST
 void difftest_skip_ref();
@@ -15,8 +16,8 @@ static inline void difftest_set_patch(void (*fn)(void *arg), void *arg) {}
 static inline void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {}
 #endif
 
-extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool to_ref);
-extern void (*ref_difftest_regcpy)(void *c, bool to_ref);
+extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool direction);
+extern void (*ref_difftest_regcpy)(void *c, bool direction);
 extern void (*ref_difftest_exec)(uint64_t n);
 extern void (*ref_difftest_raise_intr)(uint64_t NO);
 

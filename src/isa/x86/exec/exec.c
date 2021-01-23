@@ -121,6 +121,9 @@ static inline def_EHelper(2byte_esc) {
     IDEX (0x22, mov_E2G, mov_r2cr)
     IDEX (0x23, mov_E2G, mov_r2dr)
     EX   (0x31, rdtsc)
+    IDEXW(0x6f, E2xmm, movdqa_E2xmm, 4)
+    IDEXW(0x73, Ib2xmm, psrlq, 4)
+    IDEXW(0x7e, E2xmm, movq_E2xmm, 4)
     IDEXW(0x80, J, jcc, 4) IDEXW(0x81, J, jcc, 4) IDEXW(0x82, J, jcc, 4) IDEXW(0x83, J, jcc, 4)
     IDEXW(0x84, J, jcc, 4) IDEXW(0x85, J, jcc, 4) IDEXW(0x86, J, jcc, 4) IDEXW(0x87, J, jcc, 4)
     IDEXW(0x88, J, jcc, 4) IDEXW(0x89, J, jcc, 4) IDEXW(0x8a, J, jcc, 4) IDEXW(0x8b, J, jcc, 4)
@@ -157,6 +160,8 @@ static inline def_EHelper(2byte_esc) {
     IDEXW(0xc7, E, cmpxchg8b, 4)
     IDEXW(0xc8, r, bswap, 4) IDEXW(0xc9, r, bswap, 4) IDEXW(0xca, r, bswap, 4) IDEXW(0xcb, r, bswap, 4)
     IDEXW(0xcc, r, bswap, 4) IDEXW(0xcd, r, bswap, 4) IDEXW(0xce, r, bswap, 4) IDEXW(0xcf, r, bswap, 4)
+    IDEXW(0xd6, xmm2E, movq_xmm2E, 4)
+    IDEXW(0xef, E2xmm, pxor, 4)
 #endif
     default: exec_inv(s);
   }
@@ -278,8 +283,8 @@ IDEXW(0xec, in_dx2a, in, 1) IDEX (0xed, in_dx2a, in)    IDEXW(0xee, out_a2dx, ou
 EX   (0xf4, hlt)                                        IDEXW(0xf6, E, gp3, 1)      IDEX (0xf7, E, gp3)
 EX   (0xf8, clc)            EX   (0xf9, stc)            EX   (0xfa, cli)            EX   (0xfb, sti)
 EX   (0xfc, cld)            EX   (0xfd, std)            IDEXW(0xfe, E, gp4, 1)      IDEX (0xff, E, gp5)
-  case 0x64: s->isa.sreg_base = &cpu.sreg[SR_FS].base; goto again;
-  case 0x65: s->isa.sreg_base = &cpu.sreg[SR_GS].base; goto again;
+  case 0x64: s->isa.sreg_base = &cpu.sreg[CSR_FS].base; goto again;
+  case 0x65: s->isa.sreg_base = &cpu.sreg[CSR_GS].base; goto again;
   case 0xf0: cpu.lock = 1; goto again; // LOCK prefix
   case 0xf2: s->isa.rep_flags = PREFIX_REPNZ; goto again;
   case 0xf3: s->isa.rep_flags = PREFIX_REP; goto again;
@@ -328,19 +333,20 @@ vaddr_t isa_exec_once() {
 
 #ifndef __PA__
   if (cpu.mem_exception != 0) {
-    void raise_intr(DecodeExecState *s, uint32_t, vaddr_t);
-    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.pc = raise_intr(cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;
+  } else {
+    update_pc(&s);
   }
   cpu.lock = 0;
-#endif
-
+#else
   update_pc(&s);
+#endif
 
 #ifndef __ICS_EXPORT
 #if !defined(DIFF_TEST) && !_SHARE
-  void query_intr(DecodeExecState *s);
-  query_intr(&s);
+  void query_intr();
+  query_intr();
 #endif
 #endif
   return s.seq_pc;

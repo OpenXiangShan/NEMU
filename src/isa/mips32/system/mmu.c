@@ -2,7 +2,7 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #ifndef __ICS_EXPORT
-#include "local-include/intr.h"
+#include "../local-include/intr.h"
 #include <stdlib.h>
 #include <time.h>
 

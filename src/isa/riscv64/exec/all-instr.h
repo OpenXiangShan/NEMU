@@ -6,6 +6,7 @@
 #include "ldst.h"
 #include "muldiv.h"
 #include "system.h"
+#include "fp.h"
 #include "rocc.h"
 
 def_EHelper(inv);

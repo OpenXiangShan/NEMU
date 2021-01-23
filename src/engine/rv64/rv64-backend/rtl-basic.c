@@ -164,14 +164,13 @@ finish:
 
 
 #ifdef ISA64
-def_rtl_compute_reg(mul_lo, mul)
-def_rtl_compute_reg(mul_hi, mulhu)
-def_rtl_compute_reg(imul_lo, mul)
-def_rtl_compute_reg(imul_hi, mulh)
-def_rtl_compute_reg(div_q, divu)
-def_rtl_compute_reg(div_r, remu)
-def_rtl_compute_reg(idiv_q, div)
-def_rtl_compute_reg(idiv_r, rem)
+def_rtl_compute_reg(mulu_lo, mul)
+def_rtl_compute_reg(mulu_hi, mulhu)
+def_rtl_compute_reg(muls_hi, mulh)
+def_rtl_compute_reg(divu_q, divu)
+def_rtl_compute_reg(divu_r, remu)
+def_rtl_compute_reg(divs_q, div)
+def_rtl_compute_reg(divs_r, rem)
 
 def_rtl_compute_reg(mulw, mulw)
 def_rtl_compute_reg(divw, divw)
@@ -179,14 +178,13 @@ def_rtl_compute_reg(divuw, divuw)
 def_rtl_compute_reg(remw, remw)
 def_rtl_compute_reg(remuw, remuw)
 #else
-def_rtl_compute_reg(mul_lo, mulw)
-def_rtl_compute_reg(imul_lo, mulw)
-def_rtl_compute_reg(div_q, divuw)
-def_rtl_compute_reg(div_r, remuw)
-def_rtl_compute_reg(idiv_q, divw)
-def_rtl_compute_reg(idiv_r, remw)
+def_rtl_compute_reg(mulu_lo, mulw)
+def_rtl_compute_reg(divu_q, divuw)
+def_rtl_compute_reg(divu_r, remuw)
+def_rtl_compute_reg(divs_q, divw)
+def_rtl_compute_reg(divs_r, remw)
 
-def_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+def_rtl(mulu_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
@@ -197,7 +195,7 @@ def_rtl(mul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   rv64_srai(dest_rvidx, dest_rvidx, 32);
 }
 
-def_rtl(imul_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+def_rtl(muls_hi, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
   uint32_t ret = rtlreg2rvidx_pair(s, src1, true, src2, true);
   uint32_t src1_rvidx = ret >> 16;
   uint32_t src2_rvidx = ret & 0xffff;
@@ -231,10 +229,10 @@ def_rtl(rtl_name, rtlreg_t* dest, \
 }
 #endif
 
-make_x86_div64(div64_q, rv64_zextw, divu)
-make_x86_div64(div64_r, rv64_zextw, remu)
-make_x86_div64(idiv64_q, rv64_sextw, div)
-make_x86_div64(idiv64_r, rv64_sextw, rem)
+make_x86_div64(div64u_q, rv64_zextw, divu)
+make_x86_div64(div64u_r, rv64_zextw, remu)
+make_x86_div64(div64s_q, rv64_sextw, div)
+make_x86_div64(div64s_r, rv64_sextw, rem)
 
 static inline int prepare_addr(int addr_rvidx_final, int addr_rvidx, const sword_t imm) {
   RV_IMM rv_imm = { .val = imm };

@@ -1,8 +1,8 @@
 #include <isa.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
-#include "local-include/csr.h"
-#include "local-include/intr.h"
+#include "../local-include/csr.h"
+#include "../local-include/intr.h"
 
 typedef union PageTableEntry {
   struct {

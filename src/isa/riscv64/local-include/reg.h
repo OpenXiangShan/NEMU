@@ -16,4 +16,13 @@ static inline const char* reg_name(int index, int width) {
   return regsl[index];
 }
 
+// Floating Point Regs
+#define fpreg_l(index) (cpu.fpr[check_reg_index(index)]._64)
+
+static inline const char* fpreg_name(int index, int width){
+  extern const char* fpregsl[];
+  assert(index >=0 && index < 32);
+  return fpregsl[index];
+}
+
 #endif

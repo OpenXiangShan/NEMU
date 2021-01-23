@@ -20,6 +20,14 @@ static inline def_DopHelper(r) {
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
 }
 
+static inline def_DopHelper(fpr){
+  op->type = OP_TYPE_REG;
+  op->reg = val;
+  op->preg = &fpreg_l(val);
+
+  print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(op->reg, 4));
+}
+
 static inline def_DHelper(I) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
   decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, true);
@@ -52,7 +60,7 @@ static inline def_DHelper(B) {
   sword_t offset = (s->isa.instr.b.simm12 << 12) | (s->isa.instr.b.imm11 << 11) |
     (s->isa.instr.b.imm10_5 << 5) | (s->isa.instr.b.imm4_1 << 1);
   s->jmp_pc = cpu.pc + offset;
-  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", s->jmp_pc);
+  print_Dop(id_dest->str, OP_STR_SIZE, "0x%lx", s->jmp_pc);
 
   decode_op_r(s, id_src1, s->isa.instr.b.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.b.rs2, true);
@@ -76,6 +84,70 @@ static inline def_DHelper(csri) {
   decode_op_i(s, id_src2, s->isa.instr.csr.csr, true);
   decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
 }
+
+
+// RVF RVD
+
+static inline void decode_fp_width(DecodeExecState *s) {
+  switch (s->isa.instr.fp.fmt)
+  {
+  case 0: // RVF
+    s->width = 4;
+    break;
+  case 1: // RVD
+    s->width = 8;
+    break;
+  default:
+    assert(0);
+    break;
+  }
+}
+
+// --------- fpr to fpr ---------
+
+static inline def_DHelper(F_R) {
+  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_fp_width(s);
+}
+
+// --------- FLD/FLW --------- 
+
+static inline def_DHelper(F_I) {
+  decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
+  decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.i.rd, false);
+}
+
+
+// --------- FSD/FSW ---------
+
+static inline def_DHelper(F_S) {
+  decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
+  sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
+  decode_op_i(s, id_src2, simm, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.s.rs2, true);
+}
+
+// --------- fpr to gpr ---------
+
+static inline def_DHelper(F_fpr_to_gpr){
+  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
+  decode_op_r(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_fp_width(s);
+}
+
+// --------- gpr to fpr ---------
+
+static inline def_DHelper(F_gpr_to_fpr){
+  decode_op_r(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_r(s, id_src2, s->isa.instr.fp.rs2, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_fp_width(s);
+}
+
 
 // RVC
 
@@ -155,36 +227,58 @@ static inline void decode_C_xxSP(DecodeExecState *s, uint32_t imm6, int rotate) 
   decode_op_C_imm6(s, imm6, false, 0, rotate);
 }
 
-static inline void decode_C_LxSP(DecodeExecState *s, int rotate) {
+static inline void decode_C_LxSP(DecodeExecState *s, int rotate, bool is_fp) {
   uint32_t imm6 = (BITS(s->isa.instr.val, 12, 12) << 5) | BITS(s->isa.instr.val, 6, 2);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
-  decode_op_r(s, id_dest, rd, false);
+  if(is_fp)
+    decode_op_fpr(s, id_dest, rd, false);
+  else 
+    decode_op_r(s, id_dest, rd, false);
 }
 
 static inline def_DHelper(C_LWSP) {
-  decode_C_LxSP(s, 2);
+  decode_C_LxSP(s, 2, false);
 }
 
 static inline def_DHelper(C_LDSP) {
-  decode_C_LxSP(s, 3);
+  decode_C_LxSP(s, 3, false);
+}
+
+static inline def_DHelper(C_FLWSP) {
+  decode_C_LxSP(s, 2, true);
+}
+
+static inline def_DHelper(C_FLDSP) {
+  decode_C_LxSP(s, 3, true);
 }
 
 // ---------- CSS ---------- 
 
-static inline void decode_C_SxSP(DecodeExecState *s, int rotate) {
+static inline void decode_C_SxSP(DecodeExecState *s, int rotate, bool is_fp) {
   uint32_t imm6 = BITS(s->isa.instr.val, 12, 7);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
-  decode_op_r(s, id_dest, rs2, true);
+  if(is_fp)
+    decode_op_fpr(s, id_dest, rs2, true);
+  else 
+    decode_op_r(s, id_dest, rs2, true);
 }
 
 static inline def_DHelper(C_SWSP) {
-  decode_C_SxSP(s, 2);
+  decode_C_SxSP(s, 2, false);
 }
 
 static inline def_DHelper(C_SDSP) {
-  decode_C_SxSP(s, 3);
+  decode_C_SxSP(s, 3, false);
+}
+
+static inline def_DHelper(C_FSWSP) {
+  decode_C_SxSP(s, 2, true);
+}
+
+static inline def_DHelper(C_FSDSP) {
+  decode_C_SxSP(s, 3, true);
 }
 
 // ---------- CIW ---------- 
@@ -202,31 +296,42 @@ static inline def_DHelper(C_ADDI4SPN) {
 // ---------- CL ---------- 
 
 // load/store
-static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_store) {
+static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_store, bool is_fp) {
   uint32_t instr = s->isa.instr.val;
   decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, true);
-  decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  if(is_fp)
+    decode_op_fpr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  else 
+    decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
 }
 
 static inline def_DHelper(C_LW) {
-  decode_C_ldst_common(s, 1, false);
+  decode_C_ldst_common(s, 1, false, false);
 }
 
 static inline def_DHelper(C_LD) {
-  decode_C_ldst_common(s, 2, false);
+  decode_C_ldst_common(s, 2, false, false);
+}
+
+static inline def_DHelper(C_FLD) {
+  decode_C_ldst_common(s, 2, false, true);
 }
 
 // ---------- CS ---------- 
 
 static inline def_DHelper(C_SW) {
-  decode_C_ldst_common(s, 1, true);
+  decode_C_ldst_common(s, 1, true, false);
 }
 
 static inline def_DHelper(C_SD) {
-  decode_C_ldst_common(s, 2, true);
+  decode_C_ldst_common(s, 2, true, false);
+}
+
+static inline def_DHelper(C_FSD) {
+  decode_C_ldst_common(s, 2, true, true);
 }
 
 static inline def_DHelper(CS) {

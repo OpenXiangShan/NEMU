@@ -2,7 +2,7 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #ifndef __ICS_EXPORT
-#include "local-include/reg.h"
+#include "../local-include/reg.h"
 #include <monitor/difftest.h>
 
 typedef union PageTableEntry {
@@ -45,7 +45,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 #else
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
-  int is_user = cpu.sreg[SR_CS].rpl == MODE_R3;
+  int is_user = cpu.sreg[CSR_CS].rpl == MODE_R3;
   int is_write = (type == MEM_TYPE_WRITE) || (type == MEM_TYPE_READ && cpu.lock);
   ok = ok && pte->p;
   ok = ok && !(is_user && !pte->u);
@@ -82,7 +82,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     pte[1].a = 1;
     paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
 #ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, true);
+    ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF);
 #endif
   }
   bool is_write = (type == MEM_TYPE_WRITE);
@@ -91,7 +91,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
     pte[0].d |= is_write;
     paddr_write(p_pte[0], pte[0].val, PTE_SIZE);
 #ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, true);
+    ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF);
 #endif
   }
 #endif

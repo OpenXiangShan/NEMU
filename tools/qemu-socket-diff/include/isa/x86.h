@@ -4,8 +4,6 @@
 #define ISA_QEMU_BIN "qemu-system-i386"
 #define ISA_QEMU_ARGS
 
-#include "../../../../src/isa/x86/difftest/difftest.h"
-
 union isa_gdb_regs {
   struct {
     uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;

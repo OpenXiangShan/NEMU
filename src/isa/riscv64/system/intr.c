@@ -1,8 +1,6 @@
-#include <cpu/exec.h>
 #include <monitor/difftest.h>
-#include "local-include/csr.h"
-#include "local-include/rtl.h"
-#include "local-include/intr.h"
+#include "../local-include/csr.h"
+#include "../local-include/intr.h"
 
 #define INTR_BIT (1ULL << 63)
 enum {
@@ -11,8 +9,13 @@ enum {
   IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
 };
 
-void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc) {
-  // TODO: Trigger an interrupt/exception with ``NO''
+word_t raise_intr(word_t NO, vaddr_t epc) {
+  switch (NO) {
+    case EX_II:
+    case EX_IPF:
+    case EX_LPF:
+    case EX_SPF: difftest_skip_dut(1, 2); break;
+  }
 
   word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
   bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);
@@ -30,7 +33,7 @@ void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc) {
       default: stval->val = 0;
     }
     cpu.mode = MODE_S;
-    rtl_li(s, s0, stvec->val);
+    return stvec->val;
   } else {
     mcause->val = NO;
     mepc->val = epc;
@@ -44,20 +47,11 @@ void raise_intr(DecodeExecState *s, word_t NO, vaddr_t epc) {
       default: mtval->val = 0;
     }
     cpu.mode = MODE_M;
-    rtl_li(s, s0, mtvec->val);
+    return mtvec->val;
   }
-
-  switch (NO) {
-    case EX_II:
-    case EX_IPF:
-    case EX_LPF:
-    case EX_SPF: difftest_skip_dut(1, 2); break;
-  }
-
-  rtl_jr(s, s0);
 }
 
-void query_intr(DecodeExecState *s) {
+void query_intr() {
   word_t intr_vec = mie->val & mip->val;
   if (!intr_vec) return;
 
@@ -74,8 +68,7 @@ void query_intr(DecodeExecState *s) {
       bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
       if (global_enable) {
-        raise_intr(s, irq | INTR_BIT, cpu.pc);
-        update_pc(s);
+        cpu.pc = raise_intr(irq | INTR_BIT, cpu.pc);
       }
     }
   }

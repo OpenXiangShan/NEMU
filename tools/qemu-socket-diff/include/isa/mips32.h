@@ -8,8 +8,6 @@
 #define ISA_QEMU_ARGS "-machine", "mipssim",\
   "-kernel", str(NEMU_HOME) "/resource/mips-elf/mips.dummy",
 
-#include "../../../../src/isa/mips32/difftest/difftest.h"
-
 union isa_gdb_regs {
   struct {
     uint32_t gpr[32];

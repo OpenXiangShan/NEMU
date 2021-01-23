@@ -9,8 +9,8 @@
 #include <sys/mman.h>
 #include <linux/kvm.h>
 
-extern uint32_t pio_read_common(ioaddr_t addr, int len);
-extern void pio_write_common(ioaddr_t addr, uint32_t data, int len);
+uint32_t pio_read(ioaddr_t addr, int len);
+void pio_write(ioaddr_t addr, uint32_t data, int len);
 
 /* CR0 bits */
 #define CR0_PE 1u
@@ -124,11 +124,11 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           struct kvm_run *p = vcpu->kvm_run;
           uint8_t *p_data = (uint8_t *)p + p->io.data_offset;
           if (p->io.direction == KVM_EXIT_IO_OUT) {
-            pio_write_common(p->io.port, *(uint32_t *)p_data, p->io.size);
+            pio_write(p->io.port, *(uint32_t *)p_data, p->io.size);
           }
           else {
             // FIXME
-            *(uint32_t *)p_data = pio_read_common(p->io.port, p->io.size);
+            *(uint32_t *)p_data = pio_read(p->io.port, p->io.size);
           }
           continue;
         }

@@ -1,6 +1,7 @@
 #include "common.h"
 #include <sys/prctl.h>
 #include <signal.h>
+#include <difftest.h>
 #include _ISA_H_
 
 bool gdb_connect_qemu(int);
@@ -12,18 +13,18 @@ void gdb_exit();
 
 void init_isa();
 
-void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool to_ref) {
-  assert(to_ref);
-  if (to_ref) {
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
+  assert(direction == DIFFTEST_TO_REF);
+  if (direction == DIFFTEST_TO_REF) {
     bool ok = gdb_memcpy_to_qemu(addr, buf, n);
     assert(ok == 1);
   }
 }
 
-void difftest_regcpy(void *dut, bool to_ref) {
+void difftest_regcpy(void *dut, bool direction) {
   union isa_gdb_regs qemu_r;
   gdb_getregs(&qemu_r);
-  if (to_ref) {
+  if (direction == DIFFTEST_TO_REF) {
     memcpy(&qemu_r, dut, DIFFTEST_REG_SIZE);
     gdb_setregs(&qemu_r);
   } else {
@@ -75,4 +76,9 @@ void difftest_init(int port) {
 
     init_isa();
   }
+}
+
+void difftest_raise_intr(uint64_t NO) {
+  printf("raise_intr is not supported in QEMU-socket\n");
+  assert(0);
 }

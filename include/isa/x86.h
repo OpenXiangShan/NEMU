@@ -12,11 +12,16 @@
 #endif
 
 // memory
+#ifdef USER_MODE
+#define x86_IMAGE_START 0x0
+#define x86_PMEM_BASE 0x08048000
+#else
 #define x86_IMAGE_START 0x100000
 #ifdef __ENGINE_rv64__
 #define x86_PMEM_BASE 0x80000000
 #else
 #define x86_PMEM_BASE 0x0
+#endif
 #endif
 
 // reg
@@ -93,6 +98,12 @@ typedef struct {
   uint32_t cc_op;
 #endif
 
+  union {
+    __uint128_t _128;
+    uint64_t _64[2];
+    uint32_t _32[4];
+  } xmm[8];
+
   struct {
     union {
       struct {
@@ -112,11 +123,11 @@ typedef struct {
   } idtr, gdtr;
 
   union {
-    rtlreg_t cr[4];
+    uint32_t cr[4];
     struct {
       CR0 cr0;
-      rtlreg_t cr1;
-      rtlreg_t cr2;
+      uint32_t cr1;
+      uint32_t cr2;
       CR3 cr3;
     };
   };

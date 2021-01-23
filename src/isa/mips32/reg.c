@@ -8,19 +8,28 @@ const char *regsl[] = {
   "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
 };
 
-void isa_reg_display() {
 #ifndef __ICS_EXPORT
+const char *cp0[] = {
+  "index", "???", "entrylo0", "entrylo1",
+  "???", "???", "???", "???",
+  "???", "entryhi", "???", "status",
+  "cause", "epc", "???", "???",
+  "???", "???", "???", "???",
+  "???", "???", "???", "???",
+  "???", "???", "???", "???",
+  "???", "???", "???", "???"
+};
+
+void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
     printf("%s: 0x%08x ", regsl[i], cpu.gpr[i]._32);
     if (i % 4 == 3) printf("\n");
   }
   printf("pc: 0x%08x\n", cpu.pc);
-#endif
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
-#ifndef __ICS_EXPORT
   int i;
   *success = true;
   for (i = 0; i < 32; i ++) {
@@ -30,6 +39,13 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   if (strcmp("pc", s) == 0) return cpu.pc;
 
   *success = false;
-#endif
   return 0;
 }
+#else
+void isa_reg_display() {
+}
+
+word_t isa_reg_str2val(const char *s, bool *success) {
+  return 0;
+}
+#endif

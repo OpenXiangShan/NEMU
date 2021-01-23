@@ -55,14 +55,13 @@ static inline def_rtl(setrelopi, uint32_t relop, rtlreg_t *dest,
 
 // mul/div
 
-def_rtl_compute_reg(mul_lo)
-def_rtl_compute_reg(mul_hi)
-def_rtl_compute_reg(imul_lo)
-def_rtl_compute_reg(imul_hi)
-def_rtl_compute_reg(div_q)
-def_rtl_compute_reg(div_r)
-def_rtl_compute_reg(idiv_q)
-def_rtl_compute_reg(idiv_r)
+def_rtl_compute_reg(mulu_lo)
+def_rtl_compute_reg(mulu_hi)
+def_rtl_compute_reg(muls_hi)
+def_rtl_compute_reg(divu_q)
+def_rtl_compute_reg(divu_r)
+def_rtl_compute_reg(divs_q)
+def_rtl_compute_reg(divs_r)
 
 #ifdef ISA64
 def_rtl_compute_reg(mulw)
@@ -72,28 +71,28 @@ def_rtl_compute_reg(remw)
 def_rtl_compute_reg(remuw)
 #endif
 
-static inline def_rtl(div64_q, rtlreg_t* dest,
+static inline def_rtl(div64u_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
   uint64_t dividend = ((uint64_t)(*src1_hi) << 32) | (*src1_lo);
   uint32_t divisor = (*src2);
   *dest = dividend / divisor;
 }
 
-static inline def_rtl(div64_r, rtlreg_t* dest,
+static inline def_rtl(div64u_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
   uint64_t dividend = ((uint64_t)(*src1_hi) << 32) | (*src1_lo);
   uint32_t divisor = (*src2);
   *dest = dividend % divisor;
 }
 
-static inline def_rtl(idiv64_q, rtlreg_t* dest,
+static inline def_rtl(div64s_q, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
   int64_t dividend = ((uint64_t)(*src1_hi) << 32) | (*src1_lo);
   int32_t divisor = (*src2);
   *dest = dividend / divisor;
 }
 
-static inline def_rtl(idiv64_r, rtlreg_t* dest,
+static inline def_rtl(div64s_r, rtlreg_t* dest,
     const rtlreg_t* src1_hi, const rtlreg_t* src1_lo, const rtlreg_t* src2) {
   int64_t dividend = ((uint64_t)(*src1_hi) << 32) | (*src1_lo);
   int32_t divisor = (*src2);
