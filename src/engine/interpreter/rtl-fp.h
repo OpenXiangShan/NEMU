@@ -10,6 +10,7 @@
 #include <softfloat.h>
 #include <specialize.h>
 #include <internals.h>
+#include <fclass.h>
 
 
 #define F32_SIGN ((uint32_t)1 << 31)
@@ -73,11 +74,9 @@ static inline def_rtl(sr_fcw, rtlreg_t* src){
 }
 
 static inline def_rtl(class387, rtlreg_t *dest, uint64_t *src){
-  //float64_t f;
-  //f.v = *src;
-  //uint32_t res = f64_classify(f);
-  uint32_t res = 0;
-  assert(0);
+  float64_t f;
+  f.v = *src;
+  uint32_t res = f64_classify(f);
   switch (res)
   {
   case 0x1://-inf
@@ -120,8 +119,6 @@ static inline def_rtl(class387, rtlreg_t *dest, uint64_t *src){
     break;
   }
 }
-
-#endif
 
 //load fpr from fpr pointer
 static inline def_rtl(lfr, uint64_t* target_ptr, uint64_t* fptr){
@@ -293,5 +290,7 @@ static inline def_rtl(f64_chs, uint64_t* dest){
 static inline def_rtl(f64_abs, uint64_t* dest){
   *dest = *dest & ~F64_SIGN;
 }
+
+#endif
 
 #endif

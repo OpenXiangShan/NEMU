@@ -25,6 +25,7 @@ ifeq ($(ENGINE),interpreter)
 SOFTFLOAT = resource/softfloat/build/softfloat.a
 INC_DIR += resource/softfloat/repo/source/include
 INC_DIR += resource/softfloat/repo/source/RISCV
+INC_DIR += resource/softfloat/include
 LDFLAGS += $(SOFTFLOAT)
 $(BINARY): $(SOFTFLOAT)
 $(SOFTFLOAT):
