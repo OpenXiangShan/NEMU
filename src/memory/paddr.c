@@ -8,12 +8,15 @@
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
-paddr_t host_to_guest(void *addr) { return (void *)pmem - addr; }
+paddr_t host_to_guest(void *addr) { return addr - (void *)pmem; }
 
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
 #ifndef DIFF_TEST
+#ifdef DETERMINISTIC
+  return;
+#endif
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
@@ -68,6 +71,26 @@ inline void paddr_write(paddr_t addr, word_t data, int len) {
 word_t vaddr_mmu_read(vaddr_t addr, int len, int type);
 void vaddr_mmu_write(vaddr_t addr, word_t data, int len);
 
+#ifdef __ICS_EXPORT
+
+#define def_vaddr_template(bytes) \
+word_t concat(vaddr_ifetch, bytes) (vaddr_t addr) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_IFETCH, bytes); \
+  if (ret == MEM_RET_OK) return paddr_read(addr, bytes); \
+  return 0; \
+} \
+word_t concat(vaddr_read, bytes) (vaddr_t addr) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_READ, bytes); \
+  if (ret == MEM_RET_OK) return paddr_read(addr, bytes); \
+  return 0; \
+} \
+void concat(vaddr_write, bytes) (vaddr_t addr, word_t data) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_WRITE, bytes); \
+  if (ret == MEM_RET_OK) paddr_write(addr, data, bytes); \
+}
+
+#else
+
 #define def_vaddr_template(bytes) \
 word_t concat(vaddr_ifetch, bytes) (vaddr_t addr) { \
   int ret = isa_vaddr_check(addr, MEM_TYPE_IFETCH, bytes); \
@@ -86,6 +109,8 @@ void concat(vaddr_write, bytes) (vaddr_t addr, word_t data) { \
   if (ret == MEM_RET_OK) paddr_write(addr, data, bytes); \
   else if (ret == MEM_RET_NEED_TRANSLATE) vaddr_mmu_write(addr, data, bytes); \
 }
+
+#endif
 
 def_vaddr_template(1)
 def_vaddr_template(2)

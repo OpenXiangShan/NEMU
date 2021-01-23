@@ -2,19 +2,19 @@
 #include "cc.h"
 
 #ifdef LAZY_CC
-static inline make_rtl(set_lazycc_dest, const rtlreg_t *dest) {
+static inline def_rtl(set_lazycc_dest, const rtlreg_t *dest) {
   rtl_mv(s, &cpu.cc_dest, dest);
 }
 
-static inline make_rtl(set_lazycc_src1, const rtlreg_t *src1) {
+static inline def_rtl(set_lazycc_src1, const rtlreg_t *src1) {
   rtl_mv(s, &cpu.cc_src1, src1);
 }
 
-static inline make_rtl(set_lazycc_src2, const rtlreg_t *src2) {
+static inline def_rtl(set_lazycc_src2, const rtlreg_t *src2) {
   rtl_mv(s, &cpu.cc_src2, src2);
 }
 
-static inline make_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2,
+static inline def_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2,
     uint32_t cc_op, uint32_t width) {
   rtl_set_lazycc_dest(s, dest);
   if (src1 != NULL) rtl_set_lazycc_src1(s, src1);
@@ -58,7 +58,7 @@ static const int cc2relop_logic [] = {
 };
 
 
-static inline make_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
+static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
   rtlreg_t *p;
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
   if ((cc2relop[cc] & UNARY) && !exception) {

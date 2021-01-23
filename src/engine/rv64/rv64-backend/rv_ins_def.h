@@ -231,4 +231,7 @@ static inline void gen_rv64_CSR_inst(uint8_t opcode, uint8_t rd,
 #define rv64_remw(rd, rs1, rs2)      gen_rv64_R_inst(0b0111011, rd, 0b110, rs1, rs2, 0b0000001)
 #define rv64_remuw(rd, rs1, rs2)     gen_rv64_R_inst(0b0111011, rd, 0b111, rs1, rs2, 0b0000001)
 
+// ROCC
+#define rv64_rocc3(fun7, fun3, rd, rs1, rs2)  gen_rv64_R_inst(0b1111011, rd, fun3, rs1, rs2, fun7)
+
 #endif

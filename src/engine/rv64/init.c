@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <dlfcn.h>
 #include <isa.h>
 #include <isa/riscv64.h>
@@ -6,9 +7,8 @@
 #include "tran.h"
 #include <monitor/difftest.h>
 
-void (*backend_memcpy_from_frontend)(paddr_t dest, void *src, size_t n) = NULL;
-void (*backend_getregs)(void *c) = NULL;
-void (*backend_setregs)(const void *c) = NULL;
+void (*backend_memcpy)(paddr_t dest, void *src, size_t n, bool to_backend) = NULL;
+void (*backend_regcpy)(void *c, bool to_backend) = NULL;
 void (*backend_exec)(uint64_t n) = NULL;
 
 void backend_exec_code(uint64_t pc, int nr_instr);
@@ -22,17 +22,14 @@ static void init_rv64_interpreter() {
   sprintf(so_file, "%s/build/riscv64-nemu-interpreter-so", getenv("NEMU_HOME"));
 
   void *handle;
-  handle = dlopen(so_file, RTLD_LAZY | RTLD_DEEPBIND);
+  handle = dlmopen(LM_ID_NEWLM, so_file, RTLD_LAZY | RTLD_DEEPBIND);
   assert(handle);
 
-  backend_memcpy_from_frontend = dlsym(handle, "difftest_memcpy_from_dut");
-  assert(backend_memcpy_from_frontend);
+  backend_memcpy = dlsym(handle, "difftest_memcpy");
+  assert(backend_memcpy);
 
-  backend_getregs = dlsym(handle, "difftest_getregs");
-  assert(backend_getregs);
-
-  backend_setregs = dlsym(handle, "difftest_setregs");
-  assert(backend_setregs);
+  backend_regcpy = dlsym(handle, "difftest_regcpy");
+  assert(backend_regcpy);
 
   backend_exec = dlsym(handle, "difftest_exec");
   assert(backend_exec);
@@ -46,7 +43,7 @@ static void init_rv64_interpreter() {
   // initialize serial before the dummy serial in difftest_init()
   backend_init_device();
   backend_init(0);
-  backend_memcpy_from_frontend(PMEM_BASE, guest_to_host(0), PMEM_SIZE);
+  backend_memcpy(PMEM_BASE, guest_to_host(0), PMEM_SIZE, true);
 }
 
 // this is to handle exceptions such as misaligned memory accessing
@@ -71,18 +68,18 @@ static void load_bbl() {
 
   fclose(fp);
 
-  backend_memcpy_from_frontend(PMEM_BASE, buf, size);
+  backend_memcpy(PMEM_BASE, buf, size, true);
   free(buf);
 }
 
 static void init_rv64_reg() {
   riscv64_CPU_state r;
-  backend_getregs(&r);
+  backend_regcpy(&r, false);
   r.gpr[mask32]._64 = 0x00000000fffffffful;
   r.gpr[mask16]._64 = 0x000000000000fffful;
   if (spm_base != 0) r.gpr[spm_base]._64 = riscv64_PMEM_BASE;
   r.gpr[0]._64 = 0x0;
-  backend_setregs(&r);
+  backend_regcpy(&r, true);
 }
 
 void engine_start() {
@@ -95,7 +92,7 @@ void engine_start() {
   spill_init();
   guest_getregs(&cpu);
 #ifdef DIFF_TEST
-  ref_difftest_setregs(&cpu);
+  ref_difftest_regcpy(&cpu, true);
 #endif
 
   tran_mainloop();

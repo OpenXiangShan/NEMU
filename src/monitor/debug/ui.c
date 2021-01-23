@@ -1,8 +1,10 @@
 #include <isa.h>
-#include <memory/paddr.h>
-#include <memory/vaddr.h>
 #include "expr.h"
 #include "watchpoint.h"
+#ifndef __ICS_EXPORT
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
+#endif
 
 #include <stdlib.h>
 #include <readline/readline.h>
@@ -34,6 +36,7 @@ static int cmd_c(char *args) {
   return 0;
 }
 
+#ifndef __ICS_EXPORT
 static int cmd_si(char *args) {
   /* extract the first argument */
   char *arg = strtok(NULL, " ");
@@ -139,12 +142,6 @@ static int cmd_x(char *args) {
   return 0;
 }
 
-static int cmd_q(char *args) {
-  return -1;
-}
-
-static int cmd_help(char *args);
-
 void difftest_detach();
 void difftest_attach();
 static int cmd_detach(char *args) {
@@ -194,6 +191,14 @@ static int cmd_load(char *args) {
   return 0;
 }
 
+#endif
+
+static int cmd_q(char *args) {
+  return -1;
+}
+
+static int cmd_help(char *args);
+
 static struct {
   char *name;
   char *description;
@@ -201,6 +206,7 @@ static struct {
 } cmd_table [] = {
   { "help", "Display informations about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
+#ifndef __ICS_EXPORT
   { "si", "step", cmd_si },
   { "info", "info r - print register values; info w - show watch point state", cmd_info },
   { "x", "Examine memory", cmd_x },
@@ -211,6 +217,7 @@ static struct {
   { "attach", "attach diff test", cmd_attach },
   { "save", "save snapshot", cmd_save },
   { "load", "load snapshot", cmd_load },
+#endif
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
@@ -264,7 +271,7 @@ void ui_mainloop() {
     }
 
 #ifdef HAS_IOE
-    extern void sdl_clear_event_queue(void);
+    extern void sdl_clear_event_queue();
     sdl_clear_event_queue();
 #endif
 

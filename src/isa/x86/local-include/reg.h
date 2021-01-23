@@ -7,6 +7,18 @@ enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };
 enum { R_AX, R_CX, R_DX, R_BX, R_SP, R_BP, R_SI, R_DI };
 enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
 
+enum {
+  // selectors
+  CSR_ES, CSR_CS, CSR_SS, CSR_DS,
+  CSR_FS, CSR_GS, CSR_TR, CSR_LDTR,
+  // table registers
+  CSR_IDTR, CSR_GDTR,
+  // control registers
+  CSR_CR0, CSR_CR1, CSR_CR2, CSR_CR3, CSR_CR4
+};
+
+enum { PRIV_IRET };
+
 static inline int check_reg_index(int index) {
   assert(index >= 0 && index < 8);
   return index;
@@ -29,5 +41,13 @@ static inline const char* reg_name(int index, int width) {
     default: assert(0);
   }
 }
+
+static inline const char* sreg_name(int index) {
+  const char *name[] = { "es", "cs", "ss", "ds", "fs", "gs" };
+  assert(index >= 0 && index < sizeof(name) / sizeof(name[0]));
+  return name[index];
+}
+
+enum { MODE_R0, MODE_R1, MODE_R2, MODE_R3 };
 
 #endif

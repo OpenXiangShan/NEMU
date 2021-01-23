@@ -2,10 +2,10 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#define TIMER_HZ 100
+#define TIMER_HZ 60
 #define MAX_HANDLER 8
 
-typedef void (*alarm_handler_t) (void);
+typedef void (*alarm_handler_t) ();
 static alarm_handler_t handler[MAX_HANDLER] = {};
 static int idx = 0;
 static uint32_t jiffy = 0;
@@ -26,7 +26,7 @@ static void alarm_sig_handler(int signum) {
   jiffy ++;
 }
 
-void init_alarm(void) {
+void init_alarm() {
   struct sigaction s;
   memset(&s, 0, sizeof(s));
   s.sa_handler = alarm_sig_handler;

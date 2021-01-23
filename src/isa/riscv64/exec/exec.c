@@ -3,21 +3,11 @@
 #include "../local-include/intr.h"
 #include "all-instr.h"
 
-#define decode_empty(s)
-
 static inline void set_width(DecodeExecState *s, int width) {
   if (width != 0) s->width = width;
 }
 
-#define IDEXW(idx, id, ex, w) CASE_ENTRY(idx, concat(decode_, id), concat(exec_, ex), w)
-#define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
-#define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)
-#define EX(idx, ex)           EXW(idx, ex, 0)
-#define EMPTY(idx)            //EX(idx, inv)
-
-#define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
-
-static inline make_EHelper(load) {
+static inline def_EHelper(load) {
   switch (s->isa.instr.i.funct3) {
     EXW(0, lds, 1) EXW(1, lds, 2) EXW(2, lds, 4) EXW(3, ld, 8)
     EXW(4, ld, 1)  EXW(5, ld, 2)  EXW(6, ld, 4)
@@ -25,27 +15,53 @@ static inline make_EHelper(load) {
   }
 }
 
-static inline make_EHelper(store) {
+static inline def_EHelper(fp_load) {
+  switch (s->isa.instr.i.funct3) {
+    EXW(2, fp_ld, 4) EXW(3, fp_ld, 8)
+    default: exec_inv(s);
+  }
+}
+
+static inline def_EHelper(store) {
   switch (s->isa.instr.s.funct3) {
     EXW(0, st, 1) EXW(1, st, 2) EXW(2, st, 4) EXW(3, st, 8)
   }
 }
 
-static inline make_EHelper(op_imm) {
+static inline def_EHelper(fp_store) {
+  switch (s->isa.instr.s.funct3) {
+    EXW(2, fp_st, 4) EXW(3, fp_st, 8)
+    default: exec_inv(s);
+  }
+}
+
+static inline def_EHelper(op_fp){
+  switch (s->isa.instr.fp.funct5) {
+    EX(0, fadd) EX(1, fsub) EX(2, fmul) EX(3, fdiv)
+    EX(4, fsgnj) EX(5, fmin_fmax)
+    EX(8, fcvt_F_to_F) EX(11, fsqrt) 
+    IDEX(20, F_fpr_to_gpr, fcmp) 
+    IDEX(24, F_fpr_to_gpr, fcvt_F_to_G) IDEX(26, F_gpr_to_fpr, fcvt_G_to_F)
+    IDEX(28, F_fpr_to_gpr, fmv_F_to_G) IDEX(30, F_gpr_to_fpr, fmv_G_to_F)
+    default: exec_inv(s);
+  }
+}
+
+static inline def_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
     EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, andi)
   }
 }
 
-static inline make_EHelper(op_imm32) {
+static inline def_EHelper(op_imm32) {
   switch (s->isa.instr.i.funct3) {
     EX(0, addiw) EX(1, slliw) EX(5, srliw)
     default: exec_inv(s);
   }
 }
 
-static inline make_EHelper(op) {
+static inline def_EHelper(op) {
   uint32_t idx = s->isa.instr.r.funct7;
   if (idx == 32) idx = 2;
   assert(idx <= 2);
@@ -62,7 +78,7 @@ static inline make_EHelper(op) {
 }
 
 
-static inline make_EHelper(op32) {
+static inline def_EHelper(op32) {
   uint32_t idx = s->isa.instr.r.funct7;
   if (idx == 32) idx = 2;
   assert(idx <= 2);
@@ -78,21 +94,21 @@ static inline make_EHelper(op32) {
 #undef pair
 }
 
-static inline make_EHelper(branch) {
+static inline def_EHelper(branch) {
   switch (s->isa.instr.i.funct3) {
     EX(0, beq)  EX(1, bne)  EMPTY(2)   EMPTY(3)
     EX(4, blt)  EX(5, bge)  EX(6, bltu)EX(7, bgeu)
   }
 }
 
-static inline make_EHelper(system) {
+static inline def_EHelper(system) {
   switch (s->isa.instr.i.funct3) {
     EX(0, priv)  IDEX(1, csr, csrrw)  IDEX(2, csr, csrrs)  IDEX(3, csr, csrrc)
     EMPTY(4)     IDEX(5, csri, csrrwi)IDEX(6, csri, csrrsi)IDEX(7, csri, csrrci)
   }
 }
 
-static inline make_EHelper(atomic) {
+static inline def_EHelper(atomic) {
   cpu.amo = true;
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
   if (funct5 == 2) cpu.amo = false; // lr is not a store
@@ -102,18 +118,21 @@ static inline make_EHelper(atomic) {
     EX(0x04, amoxor)
     EX(0x0c, amoand)
     EX(0x08, amoor)
+    EX(0x10, amomin)
+    EX(0x14, amomax)
+    EX(0x18, amominu)
     EX(0x1c, amomaxu)
   }
   cpu.amo = false;
 }
 
-static inline make_EHelper(fp) {
-  raise_intr(s, EX_II, cpu.pc);
+static inline def_EHelper(fp) {
+  rtl_trap(s, cpu.pc, EX_II);
 }
 
 // RVC
 
-static inline make_EHelper(misc) {
+static inline def_EHelper(misc) {
   uint32_t instr = s->isa.instr.val;
   uint32_t bits12not0 = (BITS(instr, 12, 12) != 0);
   uint32_t bits11_7not0 = (BITS(instr, 11, 7) != 0);
@@ -128,7 +147,7 @@ static inline make_EHelper(misc) {
   }
 }
 
-static inline make_EHelper(lui_addi16sp) {
+static inline def_EHelper(lui_addi16sp) {
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
   assert(rd != 0);
   switch (rd) {
@@ -138,7 +157,7 @@ static inline make_EHelper(lui_addi16sp) {
   }
 }
 
-static inline make_EHelper(misc_alu) {
+static inline def_EHelper(misc_alu) {
   uint32_t instr = s->isa.instr.val;
   uint32_t op = BITS(instr, 11, 10);
   if (op == 3) {
@@ -156,7 +175,7 @@ static inline make_EHelper(misc_alu) {
   }
 }
 
-static inline void exec(DecodeExecState *s) {
+static inline void fetch_decode_exec(DecodeExecState *s) {
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
@@ -182,14 +201,17 @@ static inline void exec(DecodeExecState *s) {
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     switch (s->isa.instr.r.opcode6_2) {
-      IDEX (000, I, load)   EX   (001, fp)                                  EX   (003, fence)
+      IDEX (000, I, load)   IDEX (001, F_I, fp_load)                      EX   (003, fence)
       IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
-      IDEX (010, S, store)  EX   (011, fp)                                  IDEX (013, R, atomic)
+      IDEX (010, S, store)  IDEX (011, F_S, fp_store)                     IDEX (013, R, atomic)
       IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
-      EX   (020, fp)
-      EX   (024, fp)
+      IDEX (020, F_R, fmadd)
+      IDEX (021, F_R, fmsub)
+      IDEX (022, F_R, fnmsub)
+      IDEX (023, F_R, fnmadd)
+      IDEX (024, F_R, op_fp)
       IDEX (030, B, branch) IDEX (031, I, jalr)   EX   (032, nemu_trap)     IDEX (033, J, jal)
-      EX   (034, system)
+      EX   (034, system)                          IDEX (036, R, rocc3)
       default: exec_inv(s);
     }
   } else {
@@ -199,12 +221,12 @@ rvc: ;
     //idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
     uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
     switch (rvc_opcode) {
-      IDEX (000, C_ADDI4SPN, addi)EX   (001, fp)  IDEXW(002, C_LW, lds, 4)  IDEXW(003, C_LD, ld, 8)
-                            EX   (005, fp)        IDEXW(006, C_SW, st, 4)   IDEXW(007, C_SD, st, 8)
-      IDEX (010, CI_simm, addi)IDEX (011, CI_simm, addiw)IDEX (012, C_LI, addi)EX   (013, lui_addi16sp)
-      EX   (014, misc_alu)  IDEX (015, C_J, jal)  IDEX (016, CB, beq)       IDEX (017, CB, bne)
-      IDEX (020, CI_uimm, slli)EX   (021, fp)     IDEXW(022, C_LWSP, lds, 4)IDEXW(023, C_LDSP, ld, 8)
-      EX   (024, misc)      EX   (025, fp)        IDEXW(026, C_SWSP, st, 4) IDEXW(027, C_SDSP, st, 8)
+      IDEX (000, C_ADDI4SPN, addi) IDEXW(001, C_FLD, fp_ld, 8)   IDEXW(002, C_LW, lds, 4)   IDEXW(003, C_LD, ld, 8)
+                                   IDEXW(005, C_FSD, fp_st, 8)   IDEXW(006, C_SW, st, 4)    IDEXW(007, C_SD, st, 8)
+      IDEX (010, CI_simm, addi)    IDEX (011, CI_simm, addiw)    IDEX (012, C_LI, addi)     EX   (013, lui_addi16sp)
+      EX   (014, misc_alu)         IDEX (015, C_J, jal)          IDEX (016, CB, beq)        IDEX (017, CB, bne)
+      IDEX (020, CI_uimm, slli)    IDEXW(021, C_FLDSP, fp_ld, 8) IDEXW(022, C_LWSP, lds, 4) IDEXW(023, C_LDSP, ld, 8)
+      EX   (024, misc)             IDEXW(025, C_FSDSP, fp_st, 8) IDEXW(026, C_SWSP, st, 4)  IDEXW(027, C_SDSP, st, 8)
       default: exec_inv(s);
     }
   }
@@ -215,16 +237,17 @@ vaddr_t isa_exec_once() {
   s.is_jmp = 0;
   s.seq_pc = cpu.pc;
 
-  exec(&s);
+  fetch_decode_exec(&s);
   if (cpu.mem_exception != MEM_OK) {
-    raise_intr(&s, cpu.mem_exception, cpu.pc);
+    cpu.pc  = raise_intr(cpu.mem_exception, cpu.pc);
     cpu.mem_exception = MEM_OK;
+  } else {
+    update_pc(&s);
   }
-  update_pc(&s);
 
 #if !defined(DIFF_TEST) && !_SHARE
-  void query_intr(DecodeExecState *s);
-  query_intr(&s);
+  void query_intr();
+  query_intr();
 #endif
 
   // reset gpr[0]

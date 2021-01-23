@@ -1,18 +1,22 @@
-#include <memory/vaddr.h>
 #include <isa.h>
+#ifndef __ICS_EXPORT
+#include <memory/vaddr.h>
+#include <stdlib.h>
+#endif
 
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
-#include <stdlib.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ
+  TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
 
-  , TK_NEQ, TK_OR, TK_AND, TK_NUM, TK_REG, TK_REF, TK_NEG
+#ifndef __ICS_EXPORT
+  TK_NEQ, TK_OR, TK_AND, TK_NUM, TK_REG, TK_REF, TK_NEG
+#endif
 };
 
 static struct rule {
@@ -27,6 +31,7 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
   {"==", TK_EQ},        // equal
+#ifndef __ICS_EXPORT
   {"0x[0-9a-fA-F]{1,16}", TK_NUM},  // hex
   {"[0-9]{1,10}", TK_NUM},         // dec
   {"\\$[a-z0-9]{1,31}", TK_REG},   // register names
@@ -42,6 +47,7 @@ static struct rule {
   {"!", '!'},
   {"\\(", '('},
   {"\\)", ')'}
+#endif
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
@@ -87,8 +93,13 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
+#ifdef __ICS_EXPORT
+        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+            i, rules[i].regex, position, substr_len, substr_len, substr_start);
+#else
         //Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
         //    i, rules[i].regex, position, substr_len, substr_len, substr_start);
+#endif
 
         position += substr_len;
 
@@ -98,12 +109,15 @@ static bool make_token(char *e) {
          */
 
         switch (rules[i].token_type) {
-          //default: TODO();
+#ifdef __ICS_EXPORT
+          default: TODO();
+#else
           case TK_NOTYPE: break;
           case TK_NUM:
           case TK_REG: sprintf(tokens[nr_token].str, "%.*s", substr_len, substr_start);
           default: tokens[nr_token].type = rules[i].token_type;
                    nr_token ++;
+#endif
         }
 
         break;
@@ -119,6 +133,7 @@ static bool make_token(char *e) {
   return true;
 }
 
+#ifndef __ICS_EXPORT
 static int op_prec(int t) {
   switch (t) {
     case '!': case TK_NEG: case TK_REF: return 0;
@@ -233,6 +248,7 @@ static rtlreg_t eval(int s, int e, bool *success) {
     }
   }
 }
+#endif
 
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
@@ -241,7 +257,11 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  //TODO();
+#ifdef __ICS_EXPORT
+  TODO();
+
+  return 0;
+#else
 
   /* Detect TK_REF and TK_NEG tokens */
   int i;
@@ -274,6 +294,6 @@ word_t expr(char *e, bool *success) {
     }
   }
 
-  //return 0;
   return eval(0, nr_token - 1, success);
+#endif
 }

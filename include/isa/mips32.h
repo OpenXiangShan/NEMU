@@ -9,10 +9,15 @@
 
 // reg
 typedef struct {
-  union {
+  struct {
     rtlreg_t _32;
   } gpr[32];
 
+#ifdef __ICS_EXPORT
+  rtlreg_t pad[5];
+
+  vaddr_t pc;
+#else
   union {
     struct {
       uint32_t ie:  1;
@@ -42,6 +47,7 @@ typedef struct {
   int mem_exception;
 
   bool INTR;
+#endif
 } mips32_CPU_state;
 
 // decode
@@ -59,10 +65,12 @@ typedef struct {
       uint32_t rs     :  5;
       uint32_t opcode :  6;
     } iu;
+#ifndef __ICS_EXPORT
     struct {
       uint32_t target : 26;
       uint32_t opcode :  6;
     } j;
+#endif
     struct {
       uint32_t func   : 6;
       uint32_t sa     : 5;
@@ -75,7 +83,12 @@ typedef struct {
   } instr;
 } mips32_ISADecodeInfo;
 
+#ifdef __ICS_EXPORT
+#define isa_vaddr_check(vaddr, type, len) (MEM_RET_OK)
+#define mips32_has_mem_exception() (false)
+#else
 #define isa_vaddr_check(vaddr, type, len) ((vaddr & 0x80000000u) == 0 ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
 #define mips32_has_mem_exception() (cpu.mem_exception != 0)
+#endif
 
 #endif

@@ -4,7 +4,6 @@
 
 #define I8042_DATA_PORT 0x60
 #define I8042_DATA_MMIO 0xa1000060
-#define KEYBOARD_IRQ 1
 
 static uint32_t *i8042_data_port_base = NULL;
 
