@@ -15,9 +15,35 @@ static inline def_EHelper(load) {
   }
 }
 
+static inline def_EHelper(fp_load) {
+  switch (s->isa.instr.i.funct3) {
+    EXW(2, fp_ld, 4) EXW(3, fp_ld, 8)
+    default: exec_inv(s);
+  }
+}
+
 static inline def_EHelper(store) {
   switch (s->isa.instr.s.funct3) {
     EXW(0, st, 1) EXW(1, st, 2) EXW(2, st, 4) EXW(3, st, 8)
+  }
+}
+
+static inline def_EHelper(fp_store) {
+  switch (s->isa.instr.s.funct3) {
+    EXW(2, fp_st, 4) EXW(3, fp_st, 8)
+    default: exec_inv(s);
+  }
+}
+
+static inline def_EHelper(op_fp){
+  switch (s->isa.instr.fp.funct5) {
+    EX(0, fadd) EX(1, fsub) EX(2, fmul) EX(3, fdiv)
+    EX(4, fsgnj) EX(5, fmin_fmax)
+    EX(8, fcvt_F_to_F) EX(11, fsqrt) 
+    IDEX(20, F_fpr_to_gpr, fcmp) 
+    IDEX(24, F_fpr_to_gpr, fcvt_F_to_G) IDEX(26, F_gpr_to_fpr, fcvt_G_to_F)
+    IDEX(28, F_fpr_to_gpr, fmv_F_to_G) IDEX(30, F_gpr_to_fpr, fmv_G_to_F)
+    default: exec_inv(s);
   }
 }
 
@@ -175,12 +201,15 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     switch (s->isa.instr.r.opcode6_2) {
-      IDEX (000, I, load)   EX   (001, fp)                                  EX   (003, fence)
+      IDEX (000, I, load)   IDEX (001, F_I, fp_load)                      EX   (003, fence)
       IDEX (004, I, op_imm) IDEX (005, U, auipc)  IDEX (006, I, op_imm32)
-      IDEX (010, S, store)  EX   (011, fp)                                  IDEX (013, R, atomic)
+      IDEX (010, S, store)  IDEX (011, F_S, fp_store)                     IDEX (013, R, atomic)
       IDEX (014, R, op)     IDEX (015, U, lui)    IDEX (016, R, op32)
-      EX   (020, fp)
-      EX   (024, fp)
+      IDEX (020, F_R, fmadd)
+      IDEX (021, F_R, fmsub)
+      IDEX (022, F_R, fnmsub)
+      IDEX (023, F_R, fnmadd)
+      IDEX (024, F_R, op_fp)
       IDEX (030, B, branch) IDEX (031, I, jalr)   EX   (032, nemu_trap)     IDEX (033, J, jal)
       EX   (034, system)                          IDEX (036, R, rocc3)
       default: exec_inv(s);
@@ -192,12 +221,12 @@ rvc: ;
     //idex(pc, &rvc_table[decinfo.isa.instr.opcode1_0][decinfo.isa.instr.c_funct3]);
     uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
     switch (rvc_opcode) {
-      IDEX (000, C_ADDI4SPN, addi)EX   (001, fp)  IDEXW(002, C_LW, lds, 4)  IDEXW(003, C_LD, ld, 8)
-                            EX   (005, fp)        IDEXW(006, C_SW, st, 4)   IDEXW(007, C_SD, st, 8)
-      IDEX (010, CI_simm, addi)IDEX (011, CI_simm, addiw)IDEX (012, C_LI, addi)EX   (013, lui_addi16sp)
-      EX   (014, misc_alu)  IDEX (015, C_J, jal)  IDEX (016, CB, beq)       IDEX (017, CB, bne)
-      IDEX (020, CI_uimm, slli)EX   (021, fp)     IDEXW(022, C_LWSP, lds, 4)IDEXW(023, C_LDSP, ld, 8)
-      EX   (024, misc)      EX   (025, fp)        IDEXW(026, C_SWSP, st, 4) IDEXW(027, C_SDSP, st, 8)
+      IDEX (000, C_ADDI4SPN, addi) IDEXW(001, C_FLD, fp_ld, 8)   IDEXW(002, C_LW, lds, 4)   IDEXW(003, C_LD, ld, 8)
+                                   IDEXW(005, C_FSD, fp_st, 8)   IDEXW(006, C_SW, st, 4)    IDEXW(007, C_SD, st, 8)
+      IDEX (010, CI_simm, addi)    IDEX (011, CI_simm, addiw)    IDEX (012, C_LI, addi)     EX   (013, lui_addi16sp)
+      EX   (014, misc_alu)         IDEX (015, C_J, jal)          IDEX (016, CB, beq)        IDEX (017, CB, bne)
+      IDEX (020, CI_uimm, slli)    IDEXW(021, C_FLDSP, fp_ld, 8) IDEXW(022, C_LWSP, lds, 4) IDEXW(023, C_LDSP, ld, 8)
+      EX   (024, misc)             IDEXW(025, C_FSDSP, fp_st, 8) IDEXW(026, C_SWSP, st, 4)  IDEXW(027, C_SDSP, st, 8)
       default: exec_inv(s);
     }
   }

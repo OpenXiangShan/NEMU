@@ -24,6 +24,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 
+#define FFLAGS_MASK 0x1f
+#define FRM_MASK 0x03
+#define FCSR_MASK 0xff
+
 static inline word_t csr_read(word_t *src) {
   if (src == (void *)sstatus) {
     return mstatus->val & SSTATUS_RMASK;
@@ -31,6 +35,12 @@ static inline word_t csr_read(word_t *src) {
     return mie->val & SIE_MASK;
   } else if (src == (void *)sip) {
     return mip->val & SIP_MASK;
+  } else if (src == (void *)fflags) {
+    return fflags->val & FFLAGS_MASK;
+  } else if (src == (void *)frm) {
+    return frm->val & FRM_MASK;
+  } else if (src == (void *)fcsr) {
+    return fcsr->val & FCSR_MASK;
   }
   return *src;
 }
@@ -46,6 +56,22 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = src & 0xbbff;
   } else if (dest == (void *)mideleg) {
     *dest = src & 0x222;
+  } else if (dest == (void *)fflags) {
+    mstatus->fs = 3;
+    mstatus->sd = 1;
+    *dest = src & FFLAGS_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+  } else if (dest == (void *)frm) {
+    mstatus->fs = 3;
+    mstatus->sd = 1;
+    *dest = src & FRM_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+  } else if (dest == (void *)fcsr) {
+    mstatus->fs = 3;
+    mstatus->sd = 1;
+    *dest = src & FCSR_MASK;
+    fflags->val = src & FFLAGS_MASK;
+    frm->val = ((src)>>5) & FRM_MASK;
   } else {
     *dest = src;
   }

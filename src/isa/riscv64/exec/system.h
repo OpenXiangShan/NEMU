@@ -10,9 +10,6 @@ static inline void csr_difftest() {
 static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
   switch (addr) {
     case 0xc01:  // time
-    case 0x001:  // fflags
-    case 0x002:  // frm
-    case 0x003:  // fcsr
       rtl_trap(s, cpu.pc, EX_II);
       return false;
   }

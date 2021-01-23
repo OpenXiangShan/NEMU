@@ -11,11 +11,26 @@ const char *regsl[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+const char *fpregsl[] = {
+  "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7",
+  "fs0", "fs1", "fa0", "fa1", "fa2", "fa3", "fa4", "fa5",
+  "fa6", "fa7", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
+  "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11"
+};
+
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
-    if (i % 4 == 3) printf("\n");
+    printf("%4s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
+    if (i % 4 == 3) {
+      printf("\n");
+    }
+  }
+  for (i = 0; i < 32; i ++) {
+    printf("%4s: " FMT_WORD " ", fpregsl[i], cpu.fpr[i]._64);
+    if (i % 4 == 3) {
+      printf("\n");
+    }
   }
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
