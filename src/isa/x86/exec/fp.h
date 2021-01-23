@@ -21,26 +21,26 @@ static inline const char* get_387_fomat(int subcode) {
 
 // a macro to build exec_fadd/fsub/fmul/fmdiv/fmin/fmax
 #define BUILD_EXEC_F(x) \
-static inline make_EHelper(concat(f, x)) { \
+static inline def_EHelper(concat(f, x)) { \
     concat(rtl_f64_, x)(s, dfdest, dfdest, dfsrc1); \
     print_asm_fpu_template2(concat(f, x)); \
 }
 
 #define BUILD_EXEC_F_R(x) \
-static inline make_EHelper(concat3(f, x, r)) { \
+static inline def_EHelper(concat3(f, x, r)) { \
     concat(rtl_f64_, x)(s, dfdest, dfsrc1, dfdest); \
     print_asm_fpu_template2(concat3(f, x, r)); \
 }
 
 #define BUILD_EXEC_F_P(x) \
-static inline make_EHelper(concat3(f, x, p)) { \
+static inline def_EHelper(concat3(f, x, p)) { \
     concat(rtl_f64_, x)(s, dfdest, dfdest, dfsrc1); \
     rtl_popftop(); \
     print_asm_fpu_template2(concat3(f, x, p)); \
 }
 
 #define BUILD_EXEC_F_RP(x) \
-static inline make_EHelper(concat3(f, x, rp)) { \
+static inline def_EHelper(concat3(f, x, rp)) { \
     concat(rtl_f64_, x)(s, dfdest, dfsrc1, dfdest); \
     rtl_popftop(); \
     print_asm_fpu_template2(concat3(f, x, rp)); \
@@ -76,93 +76,93 @@ static inline void fucom_helper(DecodeExecState *s, uint64_t* fp_dest, uint64_t*
   rtl_or(s, s0, s0, t0);
   rtl_sr_fsw(s,s0);
 }
-static inline make_EHelper(fcom){
+static inline def_EHelper(fcom){
   fucom_helper(s,dfdest,dfsrc1);
   print_asm_fpu_template2(fcom);
 }
-static inline make_EHelper(fcomp){
+static inline def_EHelper(fcomp){
   fucom_helper(s,dfdest,dfsrc1);
   rtl_popftop();
   print_asm_fpu_template2(fcomp);
 }
-static inline make_EHelper(fcompp){
+static inline def_EHelper(fcompp){
   fucom_helper(s,dfdest,dfsrc1);
   rtl_pop2ftop();
   print_asm_fpu_template2(fcompp);
 }
-static inline make_EHelper(fucom){
+static inline def_EHelper(fucom){
   fucom_helper(s,dfdest,dfsrc1);
   print_asm_fpu_template2(fucom);
 }
-static inline make_EHelper(fucomp){
+static inline def_EHelper(fucomp){
   fucom_helper(s,dfdest,dfsrc1);
   rtl_popftop();
   print_asm_fpu_template2(fucomp);
 }
-static inline make_EHelper(fucompp){
+static inline def_EHelper(fucompp){
   fucom_helper(s,dfdest,dfsrc1);
   rtl_pop2ftop();
   print_asm_fpu_template2(fucompp);
 }
 
-static inline make_EHelper(fld){
+static inline def_EHelper(fld){
   operand_fwrite(s, id_dest, dfsrc1);
   print_asm_fpu_template2(fld);
 }
-static inline make_EHelper(fld1){
+static inline def_EHelper(fld1){
   rtl_fld_const(s, dfdest, fconst_1);
   print_asm_fpu_template(fld1);
 }
-static inline make_EHelper(fldl2t){
+static inline def_EHelper(fldl2t){
   TODO();
 }
-static inline make_EHelper(fldl2e){
+static inline def_EHelper(fldl2e){
   TODO();
 }
-static inline make_EHelper(fldpi){
+static inline def_EHelper(fldpi){
   TODO();
 }
-static inline make_EHelper(fldlg2){
+static inline def_EHelper(fldlg2){
   TODO();
 }
-static inline make_EHelper(fldln2){
+static inline def_EHelper(fldln2){
   TODO();
 }
-static inline make_EHelper(fldz){ 
+static inline def_EHelper(fldz){ 
   rtl_fld_const(s, dfdest, fconst_z);
   print_asm_fpu_template(fldz);
 }
 
-static inline make_EHelper(fst){
+static inline def_EHelper(fst){
   operand_fwrite(s, id_dest, dfsrc1);
   print_asm_fpu_template2(fst);
 }
-static inline make_EHelper(fstp){
+static inline def_EHelper(fstp){
   operand_fwrite(s, id_dest, dfsrc1);
   rtl_popftop();
   print_asm_fpu_template2(fstp);
 }
-static inline make_EHelper(fxch){
+static inline def_EHelper(fxch){
   rtl_sfr(s, &id_src2->fval, dfdest);
   rtl_sfr(s, dfdest, dfsrc1);
   rtl_sfr(s, dfsrc1, &id_src2->fval);
   print_asm_fpu_template2(fxch);
 }
 
-static inline make_EHelper(fchs){
+static inline def_EHelper(fchs){
   rtl_f64_chs(s, dfdest);
   print_asm_fpu_template(fchs);
 }
-static inline make_EHelper(fabs){
+static inline def_EHelper(fabs){
   rtl_f64_abs(s, dfdest);
   print_asm_fpu_template(fabs);
 }
-static inline make_EHelper(ftst){
+static inline def_EHelper(ftst){
   rtl_fld_const(s, &id_src1->fval, fconst_z);
   fucom_helper(s,dfdest,&id_src1->fval);
   print_asm_fpu_template(ftst);
 }
-static inline make_EHelper(fxam){
+static inline def_EHelper(fxam){
   //produce number in table as 80387 demand
   rtl_class387(s, s2, dfdest);
   rtl_li(s, t0, 0x4700);
@@ -175,13 +175,13 @@ static inline make_EHelper(fxam){
 }
 
 
-static inline make_EHelper(finit){
+static inline def_EHelper(finit){
   rtl_mv(s,&cpu.ftop, rz);
   rtl_mv(s,&cpu.fsw,rz);
   rtl_li(s,&cpu.fcw,0x37f);
   print_asm("finit");
 }
-static inline make_EHelper(fstsw){
+static inline def_EHelper(fstsw){
   operand_write(s, id_dest, dsrc1);
   print_asm_template2(fnstsw);
 #ifndef __DIFF_REF_NEMU__
@@ -189,18 +189,18 @@ static inline make_EHelper(fstsw){
 #endif
 }
 
-static inline make_EHelper(fldcw){
+static inline def_EHelper(fldcw){
   rtl_sr_fcw(s, dsrc1);
   print_asm_template2(fldcw);
 }
-static inline make_EHelper(fstcw){
+static inline def_EHelper(fstcw){
   operand_write(s, id_dest, dsrc1);
   print_asm_template2(fnstcw);
 }
 
-static inline make_EHelper(fldenv){
+static inline def_EHelper(fldenv){
   TODO();
 }
-static inline make_EHelper(fstenv){
+static inline def_EHelper(fstenv){
   TODO();
 }

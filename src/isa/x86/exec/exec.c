@@ -108,7 +108,7 @@ static inline def_EHelper(gp8) {
   }
 }
 
-static inline make_EHelper(fp_gp1) {
+static inline def_EHelper(fp_gp1) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
     EX(0x00, fchs) EX(0x01, fabs) EMPTY(0x02) EMPTY(0x03)
@@ -116,7 +116,7 @@ static inline make_EHelper(fp_gp1) {
   }
 }
 
-static inline make_EHelper(fp_gp2) {
+static inline def_EHelper(fp_gp2) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
     EX(0x00, fld1)   EX(0x01, fldl2t) EX(0x02, fldl2e) EX(0x03, fldpi)
@@ -124,7 +124,7 @@ static inline make_EHelper(fp_gp2) {
   }
 }
 
-static inline make_EHelper(fp_gp3) {
+static inline def_EHelper(fp_gp3) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
     EMPTY(0x00) IDEX(0x01,St0_St1,fucompp) EMPTY(0x02) EMPTY(0x03)
@@ -132,7 +132,7 @@ static inline make_EHelper(fp_gp3) {
   }
 }
 
-static inline make_EHelper(fp_gp4) {
+static inline def_EHelper(fp_gp4) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
     EMPTY(0x00) EMPTY(0x01) EMPTY(0x02) EX   (0X03, finit)
@@ -140,7 +140,7 @@ static inline make_EHelper(fp_gp4) {
   }
 }
 
-static inline make_EHelper(fp_gp5) {
+static inline def_EHelper(fp_gp5) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
     EMPTY(0x00) IDEX(0x01,St0_St1,fcompp) EMPTY(0x02) EMPTY(0x03)
@@ -148,7 +148,7 @@ static inline make_EHelper(fp_gp5) {
   }
 }
 
-static inline make_EHelper(fp_gp6) {
+static inline def_EHelper(fp_gp6) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
     IDEXW(0x00, fsw2a, fstsw, 2) EMPTY(0x01) EMPTY(0x02) EMPTY(0x03)
@@ -156,7 +156,7 @@ static inline make_EHelper(fp_gp6) {
   }
 }
 
-static inline make_EHelper(fp) {
+static inline def_EHelper(fp) {
   uint8_t fp_opcode = BITS(s->opcode,2,0)<<4 | BITS(s->isa.ext_opcode,5,3);
   uint8_t fp_mod = BITS(s->isa.ext_opcode,7,6);
   if(fp_mod != 3){

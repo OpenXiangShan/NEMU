@@ -7,9 +7,9 @@
 
 #include "c_op.h"
 #include <memory/vaddr.h>
-#include "softfloat/softfloat.h"
-#include "softfloat/specialize.h"
-#include "softfloat/internals.h"
+#include <softfloat.h>
+#include <specialize.h>
+#include <internals.h>
 
 
 #define F32_SIGN ((uint32_t)1 << 31)
@@ -22,7 +22,7 @@
 
 #ifdef __ISA_x86__
 //set pfreg, it's a pointer to cpu.fpr in interpreter
-static inline make_rtl(pfr,Operand* op,int i){
+static inline def_rtl(pfr,Operand* op,int i){
   uint8_t sti =  (cpu.ftop+i)&0x7;
   op->pfreg = &cpu.fpr[sti];
 }
@@ -40,16 +40,16 @@ static inline void rtl_pushftop(void){
   cpu.ftop &= 0x7;
 }
 
-static inline make_rtl(lr_fsw, rtlreg_t* dest){
+static inline def_rtl(lr_fsw, rtlreg_t* dest){
   *dest = cpu.fsw;
 }
-static inline make_rtl(sr_fsw, rtlreg_t* src){
+static inline def_rtl(sr_fsw, rtlreg_t* src){
   cpu.fsw = *src;
 }
-static inline make_rtl(lr_fcw, rtlreg_t* dest){
+static inline def_rtl(lr_fcw, rtlreg_t* dest){
   *dest = cpu.fcw;
 }
-static inline make_rtl(sr_fcw, rtlreg_t* src){
+static inline def_rtl(sr_fcw, rtlreg_t* src){
   cpu.fcw = *src;
   rtlreg_t rm = BITS(cpu.fcw,11,10);
   switch (rm)
@@ -72,10 +72,12 @@ static inline make_rtl(sr_fcw, rtlreg_t* src){
   }
 }
 
-static inline make_rtl(class387, rtlreg_t *dest, uint64_t *src){
-  float64_t f;
-  f.v = *src;
-  uint32_t res = f64_classify(f);
+static inline def_rtl(class387, rtlreg_t *dest, uint64_t *src){
+  //float64_t f;
+  //f.v = *src;
+  //uint32_t res = f64_classify(f);
+  uint32_t res = 0;
+  assert(0);
   switch (res)
   {
   case 0x1://-inf
@@ -122,16 +124,16 @@ static inline make_rtl(class387, rtlreg_t *dest, uint64_t *src){
 #endif
 
 //load fpr from fpr pointer
-static inline make_rtl(lfr, uint64_t* target_ptr, uint64_t* fptr){
+static inline def_rtl(lfr, uint64_t* target_ptr, uint64_t* fptr){
   *target_ptr = *fptr;
 }
 //store fpr from fpr pointer
-static inline make_rtl(sfr, uint64_t* fptr, uint64_t* fsrc){
+static inline def_rtl(sfr, uint64_t* fptr, uint64_t* fsrc){
   *fptr = *fsrc;
 }
 
 enum{fconst_1=0,fconst_l2t, fconst_l2e, fconst_pi,fconst_lg2, fconst_ln2, fconst_z};
-static inline make_rtl(fld_const, uint64_t *fdest, int type){
+static inline def_rtl(fld_const, uint64_t *fdest, int type){
   switch (type)
   {
   case fconst_1:
@@ -146,7 +148,7 @@ static inline make_rtl(fld_const, uint64_t *fdest, int type){
 }
 
 //load memory, convert to double-precision and store to fpr
-static inline make_rtl(lmf, uint64_t *fdest, const rtlreg_t* addr, word_t offset) {
+static inline def_rtl(lmf, uint64_t *fdest, const rtlreg_t* addr, word_t offset) {
   switch (s->isa.fpu_MF)
   {
     case 0://32bit real
@@ -204,7 +206,7 @@ static inline make_rtl(lmf, uint64_t *fdest, const rtlreg_t* addr, word_t offset
 }
 
 //load memory, convert to double-precision and store to fpr
-static inline make_rtl(smf, const rtlreg_t* addr, word_t offset, const uint64_t *fsrc) {
+static inline def_rtl(smf, const rtlreg_t* addr, word_t offset, const uint64_t *fsrc) {
   switch (s->isa.fpu_MF)
   {
     case 0://32bit real
@@ -266,7 +268,7 @@ static inline float64_t fprToF64(uint64_t r){
 }
 
 #define BUILD_RTL_F(x) \
-static inline make_rtl(concat(f64_, x), uint64_t* dest, uint64_t* src1, uint64_t* src2) { \
+static inline def_rtl(concat(f64_, x), uint64_t* dest, uint64_t* src1, uint64_t* src2) { \
     *dest = concat(f64_, x)(fprToF64(*src1), fprToF64(*src2)).v; \
 }
 
@@ -276,7 +278,7 @@ BUILD_RTL_F(mul);
 BUILD_RTL_F(div);
 
 #define BUILD_RTL_FCMP(x) \
-static inline make_rtl(concat(f64_, x), rtlreg_t* res, uint64_t* src1, uint64_t* src2) { \
+static inline def_rtl(concat(f64_, x), rtlreg_t* res, uint64_t* src1, uint64_t* src2) { \
   *res = concat(f64_, x)(fprToF64(*src1),fprToF64(*src2)); \
 }
 
@@ -285,10 +287,10 @@ BUILD_RTL_FCMP(eq);
 BUILD_RTL_FCMP(lt);
 
 #define F64_SIGN ((uint64_t)1 << 63)
-static inline make_rtl(f64_chs, uint64_t* dest){
+static inline def_rtl(f64_chs, uint64_t* dest){
   *dest = *dest ^ F64_SIGN;
 }
-static inline make_rtl(f64_abs, uint64_t* dest){
+static inline def_rtl(f64_abs, uint64_t* dest){
   *dest = *dest & ~F64_SIGN;
 }
 

@@ -400,7 +400,7 @@ static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src)
 }
 
 //temporarily use ext_opcode to store 2nd op
-static inline make_DHelper(fp_ext) {
+static inline def_DHelper(fp_ext) {
   s->isa.ext_opcode = instr_fetch(&s->seq_pc, 1);
 }
 void read_F_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val);
@@ -416,112 +416,112 @@ static inline void operand_freg(DecodeExecState *s, Operand *op, bool load_val, 
 }
 
 //add push ftop here to calculate target addr
-static inline make_DHelper(ld_St0_M_32r) {
+static inline def_DHelper(ld_St0_M_32r) {
   rtl_pushftop();
   s->isa.fpu_MF=0;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_St0_M_32i) {
+static inline def_DHelper(ld_St0_M_32i) {
   rtl_pushftop();
   s->isa.fpu_MF=1;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_St0_M_64r) {
+static inline def_DHelper(ld_St0_M_64r) {
   rtl_pushftop();
   s->isa.fpu_MF=2;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_St0_M_16i) {
+static inline def_DHelper(ld_St0_M_16i) {
   rtl_pushftop();
   s->isa.fpu_MF=3;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(ld_St0_M_64i) {
+static inline def_DHelper(ld_St0_M_64i) {
   rtl_pushftop();
   s->isa.fpu_MF=4;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 
 
-static inline make_DHelper(st_M_St0_32r) {
+static inline def_DHelper(st_M_St0_32r) {
   s->isa.fpu_MF=0;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
-static inline make_DHelper(st_M_St0_32i) {
+static inline def_DHelper(st_M_St0_32i) {
   s->isa.fpu_MF=1;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
-static inline make_DHelper(st_M_St0_64r) {
+static inline def_DHelper(st_M_St0_64r) {
   s->isa.fpu_MF=2;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
-static inline make_DHelper(st_M_St0_16i) {
+static inline def_DHelper(st_M_St0_16i) {
   s->isa.fpu_MF=3;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
-static inline make_DHelper(st_M_St0_64i) {
+static inline def_DHelper(st_M_St0_64i) {
   s->isa.fpu_MF=4;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
-static inline make_DHelper(St0_M_32r) {
+static inline def_DHelper(St0_M_32r) {
   s->isa.fpu_MF=0;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(St0_M_32i) {
+static inline def_DHelper(St0_M_32i) {
   s->isa.fpu_MF=1;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(St0_M_64r) {
+static inline def_DHelper(St0_M_64r) {
   s->isa.fpu_MF=2;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
-static inline make_DHelper(St0_M_16i) {
+static inline def_DHelper(St0_M_16i) {
   s->isa.fpu_MF=3;
   read_F_ModR_M(s,id_src1,true,id_dest,false);
 }
 
 //MF == 5 stands for operation between st registers
-static inline make_DHelper(St0_Est) {
+static inline def_DHelper(St0_Est) {
   s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_src1,false,id_dest,false);
 }
 
-static inline make_DHelper(Est_St0) {
+static inline def_DHelper(Est_St0) {
   s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
-static inline make_DHelper(ld_Est_St0){
+static inline def_DHelper(ld_Est_St0){
   s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_src1,true,NULL,false);
   rtl_pushftop();
   operand_freg(s,id_dest,false,0);
 }
 
-static inline make_DHelper(st_Est_St0) {
+static inline def_DHelper(st_Est_St0) {
   s->isa.fpu_MF=5;
   read_F_ModR_M(s,id_dest,false,id_src1,false);
 }
 
-static inline make_DHelper(St0){
+static inline def_DHelper(St0){
   s->isa.fpu_MF=5;
   operand_freg(s,id_dest,false,0);
 }
 
-static inline make_DHelper(ld_St0){
+static inline def_DHelper(ld_St0){
   s->isa.fpu_MF=5;
   rtl_pushftop();
   operand_freg(s,id_dest,false,0);
 }
 
-static inline make_DHelper(St0_St1){
+static inline def_DHelper(St0_St1){
   s->isa.fpu_MF=5;
   operand_freg(s,id_dest,false,0);
   operand_freg(s,id_src1,false,1);
 }
 
-static inline make_DopHelper(fsw){
+static inline def_DopHelper(fsw){
   //prepare status word here
   op->type = OP_TYPE_REG;
   op->preg = &op->val;
@@ -535,7 +535,7 @@ static inline make_DopHelper(fsw){
   }
   print_Dop(op->str, OP_STR_SIZE, "fsw");
 }
-static inline make_DopHelper(fcw){
+static inline def_DopHelper(fcw){
   op->type = OP_TYPE_REG;
   op->preg = &op->val;
   if(load_val){
@@ -544,24 +544,24 @@ static inline make_DopHelper(fcw){
   print_Dop(op->str, OP_STR_SIZE, "fcw");
 }
 
-static inline make_DHelper(fsw2a){
+static inline def_DHelper(fsw2a){
   decode_op_a(s,id_dest,true);
   decode_op_fsw(s,id_src1,true);
 }
 
 void read_F_env_M(DecodeExecState *s, Operand *rm, bool load_rm_val);
 
-static inline make_DHelper(fsw2M){
+static inline def_DHelper(fsw2M){
   read_F_env_M(s, id_dest, false);
   decode_op_fsw(s,id_src1,true);
 }
 
-static inline make_DHelper(fcw2M){
+static inline def_DHelper(fcw2M){
   read_F_env_M(s, id_dest, false);
   decode_op_fcw(s,id_src1,true);
 }
 
-static inline make_DHelper(M2fcw){
+static inline def_DHelper(M2fcw){
   read_F_env_M(s, id_src1, true);
   decode_op_fcw(s,id_dest,false);
 }
