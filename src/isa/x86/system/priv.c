@@ -1,6 +1,8 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
+#if defined(__ENGINE_interpreter__)
+
 void set_eflags(uint32_t val);
 
 static void load_sreg(int idx, uint16_t val) {
@@ -105,3 +107,5 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
   }
   if (dest) *dest = ret;
 }
+
+#endif

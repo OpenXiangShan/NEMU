@@ -1,6 +1,6 @@
 static inline def_EHelper(movs) {
 #ifndef __ENGINE_interpreter__
-  panic("not support in engines other than interpreter");
+  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
@@ -31,7 +31,7 @@ static inline def_EHelper(lods) {
 
 static inline def_EHelper(stos) {
 #ifndef __ENGINE_interpreter__
-  panic("not support in engines other than interpreter");
+  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
@@ -50,7 +50,7 @@ static inline def_EHelper(stos) {
 
 static inline def_EHelper(scas) {
 #ifndef __ENGINE_interpreter__
-  panic("not support in engines other than interpreter");
+  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
   int is_repnz = (s->isa.rep_flags == PREFIX_REPNZ);
@@ -80,18 +80,18 @@ static inline def_EHelper(scas) {
 
 static inline def_EHelper(cmps) {
 #ifndef __ENGINE_interpreter__
-  panic("not support in engines other than interpreter");
+  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
   int is_repnz = (s->isa.rep_flags == PREFIX_REPNZ);
   word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
-    rtl_lm(s, s0, &cpu.edi, 0, id_dest->width);
+    rtl_lm(s, &id_dest->val, &cpu.edi, 0, id_dest->width);
     return_on_mem_ex();
-    rtl_lm(s, s1, &cpu.esi, 0, id_dest->width);
+    rtl_lm(s, &id_src1->val, &cpu.esi, 0, id_dest->width);
     return_on_mem_ex();
-    rtl_setrelop(s, RELOP_EQ, s2, s0, s1);
-    rtl_set_ZF(s, s2);
+    rtl_setrelop(s, RELOP_EQ, s0, &id_dest->val, &id_src1->val);
+    rtl_set_ZF(s, s0);
     rtl_addi(s, &cpu.esi, &cpu.esi, (cpu.DF ? -1 : 1) * id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * id_dest->width);
   }
@@ -99,13 +99,12 @@ static inline def_EHelper(cmps) {
     cpu.ecx --;
     if ((count - 1 != 0) && (is_repnz ^ cpu.ZF)) rtl_j(s, cpu.pc);
     else {
-      rtl_sub(s, s2, s1, s0);
-      rtl_update_ZFSF(s, s2, id_dest->width);
-      rtl_is_sub_carry(s, s2, s1, s0);
-      rtl_set_CF(s, s2);
-      rtl_sub(s, s2, s1, s0);
-      rtl_is_sub_overflow(s, s2, s2, s1, s0, id_dest->width);
-      rtl_set_OF(s, s2);
+      rtl_sub(s, s0, &id_src1->val, &id_dest->val);
+      rtl_update_ZFSF(s, s0, id_dest->width);
+      rtl_is_sub_carry(s, s1, &id_src1->val, &id_dest->val);
+      rtl_set_CF(s, s1);
+      rtl_is_sub_overflow(s, s0, s0, &id_src1->val, &id_dest->val, id_dest->width);
+      rtl_set_OF(s, s0);
     }
   }
 

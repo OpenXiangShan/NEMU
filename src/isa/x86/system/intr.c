@@ -1,7 +1,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
-#ifndef __ICS_EXPORT
+#if !defined(__ICS_EXPORT) && defined(__ENGINE_interpreter__)
 #include <monitor/difftest.h>
 
 typedef union GateDescriptor {
@@ -88,9 +88,15 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
    * That is, use ``NO'' to index the IDT.
    */
 
+#if !defined(__ENGINE_interpreter__)
+  panic("not support in non-interpreter mode");
+#endif
   return 0;
 }
 
 void query_intr() {
+#if !defined(__ENGINE_interpreter__)
+  panic("not support in non-interpreter mode");
+#endif
 }
 #endif

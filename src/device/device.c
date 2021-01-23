@@ -1,5 +1,8 @@
 #include <common.h>
 
+void init_serial();
+void init_timer();
+
 #ifdef HAS_IOE
 
 #include <device/alarm.h>
@@ -7,8 +10,6 @@
 #include <monitor/monitor.h>
 
 void init_alarm();
-void init_serial();
-void init_timer();
 void init_vga();
 void init_i8042();
 void init_audio();
@@ -68,6 +69,8 @@ void init_device() {
 #else
 
 void init_device() {
+  init_serial();
+  init_timer();
 }
 
 #endif	/* HAS_IOE */
