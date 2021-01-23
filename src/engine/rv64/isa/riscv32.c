@@ -55,7 +55,7 @@ void guest_init() {
 
 void guest_getregs(CPU_state *riscv32) {
   riscv64_CPU_state r;
-  backend_getregs(&r);
+  backend_regcpy(&r, false);
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
@@ -66,20 +66,20 @@ void guest_getregs(CPU_state *riscv32) {
 
   rv64_exec_trans_buffer(codebuf_read_spilled_reg, nr_instr, NEXT_PC_SEQ);
   riscv64_CPU_state r2;
-  backend_getregs(&r2);
+  backend_regcpy(&r2, false);
 
   riscv32->gpr[tmp0]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp0]._32) & ~SPMIDX_MASK]._64;
   riscv32->gpr[tmp_reg1]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg1]._32) & ~SPMIDX_MASK]._64;
   riscv32->gpr[tmp_reg2]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[tmp_reg2]._32) & ~SPMIDX_MASK]._64;
   riscv32->gpr[mask32]._32 = r2.gpr[rtlreg2varidx(NULL, &cpu.gpr[mask32]._32) & ~SPMIDX_MASK]._64;
 
-  backend_setregs(&r);
+  backend_regcpy(&r, true);
 }
 
 void guest_setregs(const CPU_state *riscv32) {
   panic("not used now");
   riscv64_CPU_state r;
-  backend_getregs(&r);
+  backend_regcpy(&r, false);
   int i;
   for (i = 0; i < 32; i ++) {
     switch (i) {
@@ -87,7 +87,7 @@ void guest_setregs(const CPU_state *riscv32) {
     }
     r.gpr[i]._64 = riscv32->gpr[i]._32;
   }
-  backend_setregs(&r);
+  backend_regcpy(&r, true);
 }
 
 #endif
