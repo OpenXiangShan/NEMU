@@ -95,7 +95,11 @@ def_rtl_compute_reg(and, and)
 def_rtl_compute_reg(or, or)
 def_rtl_compute_reg(xor, xor)
 
+#ifdef ISA64
 def_rtl_compute_imm_opt(addi, add, addi)
+#else
+def_rtl_compute_imm_opt(addi, add, addiw)
+#endif
 def_rtl_compute_imm_opt(andi, and, andi)
 def_rtl_compute_imm_opt(xori, xor, xori)
 def_rtl_compute_imm_opt(ori, or, ori)

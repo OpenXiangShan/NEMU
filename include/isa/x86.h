@@ -19,8 +19,9 @@
 #define x86_IMAGE_START 0x100000
 #ifdef __ENGINE_rv64__
 #define x86_PMEM_BASE 0x80000000
+#define LAZY_CC
 #else
-#define x86_PMEM_BASE 0x0
+#define x86_PMEM_BASE 0x80000000
 #endif
 #endif
 
@@ -94,8 +95,7 @@ typedef struct {
 
 #ifdef LAZY_CC
   rtlreg_t cc_dest, cc_src1, cc_src2;
-  uint32_t cc_width;
-  uint32_t cc_op;
+  uint32_t cc_width, cc_op, cc_dirty, cc_dynamic;
 #endif
 
   union {
