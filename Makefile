@@ -21,6 +21,14 @@ SRCS   += $(shell find src/user -name "*.c")
 CFLAGS += -DUSER_MODE
 endif
 
+ifeq ($(ENGINE),interpreter)
+SOFTFLOAT = resource/softfloat/build/softfloat.a
+LDFLAGS += $(SOFTFLOAT)
+$(BINARY): $(SOFTFLOAT)
+$(SOFTFLOAT):
+	$(MAKE) -C resource/softfloat/
+endif
+
 include $(NEMU_HOME)/scripts/Makefile
 
 ifndef SHARE
