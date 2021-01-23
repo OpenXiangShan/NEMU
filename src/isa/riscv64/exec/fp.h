@@ -189,7 +189,7 @@ static inline def_EHelper(fp_ld) {
     else if(s->width == 4) rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
     sfpr(ddest, s0, s->width);
 
-    print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+    print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
     switch (s->width) {
         case 8: print_asm_template2(fld); break;
         case 4: print_asm_template2(flw); break;
@@ -201,7 +201,7 @@ static inline def_EHelper(fp_st) {
     *s0 = s->width == 4 ? box(*ddest) : *ddest;
     rtl_sm(s, dsrc1, id_src2->imm, s0, s->width);
 
-    print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+    print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
     switch (s->width) {
         case 8: print_asm_template2(fsd); break;
         case 4: print_asm_template2(fsw); break;
