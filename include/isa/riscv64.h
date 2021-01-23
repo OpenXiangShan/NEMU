@@ -18,13 +18,14 @@ typedef struct {
     uint64_t _64;
   } gpr[32];
 
+  uint64_t pc;
+  uint64_t mstatus, mcause, mepc;
+  uint64_t sstatus, scause, sepc;
+
   union {
     uint64_t _64;
   } fpr[32];
 
-  uint64_t pc;
-  uint64_t mstatus, mcause, mepc;
-  uint64_t sstatus, scause, sepc;
 
   uint8_t mode;
 
