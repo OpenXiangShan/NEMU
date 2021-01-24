@@ -46,40 +46,48 @@ static const void *opcode_main_table[32] = {
 };
 
 def_start() {
-  goto *opcode_main_table[s->isa.instr.i.opcode6_2];
+  if (s->isa.instr.i.opcode1_0 != 0x3) goto inv;
+  last_helper = opcode_main_table[s->isa.instr.i.opcode6_2];
+  goto *last_helper;
 }
 
 def_EHelper(load, {
   call_DHelper(I);
-  goto *load_table[s->isa.instr.i.funct3];
+  last_helper = load_table[s->isa.instr.i.funct3];
+  goto *last_helper;
 })
 
 def_EHelper(store, {
   call_DHelper(S);
-  goto *store_table[s->isa.instr.s.funct3];
+  last_helper = store_table[s->isa.instr.s.funct3];
+  goto *last_helper;
 })
 
 def_EHelper(op_imm, {
   call_DHelper(I);
-  goto *op_imm_table[s->isa.instr.i.funct3];
+  last_helper = op_imm_table[s->isa.instr.i.funct3];
+  goto *last_helper;
 })
 
 #define pair(x, y) (((x) << 3) | (y))
 def_EHelper(op, {
   call_DHelper(R);
   int idx = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
-  goto *op_table[idx];
+  last_helper = op_table[idx];
+  goto *last_helper;
 })
 #undef pair
 
 def_EHelper(branch, {
   call_DHelper(B);
-  goto *branch_table[s->isa.instr.b.funct3];
+  last_helper = branch_table[s->isa.instr.b.funct3];
+  goto *last_helper;
 })
 
 def_EHelper(system, {
   call_DHelper(csr);
-  goto *system_table[s->isa.instr.i.funct3];
+  last_helper = system_table[s->isa.instr.i.funct3];
+  goto *last_helper;
 })
 
 #include "compute.h"
