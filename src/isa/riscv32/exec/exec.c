@@ -71,24 +71,12 @@ exec_finish:
 #endif
 #endif
 
-#ifdef HAS_IOE
-    //    extern void device_update();
-    //    device_update();
-#endif
-
-#ifndef __ICS_EXPORT
-
-#if !defined(DIFF_TEST) && !_SHARE
-    //  void query_intr();
-    //  query_intr();
-#endif
-#endif
-
     difftest_step(this_pc, cpu.pc);
+
+    if (nemu_state.state != NEMU_RUNNING) break;
 
     extern uint64_t g_nr_guest_instr;
     g_nr_guest_instr ++;
-
-    if (nemu_state.state != NEMU_RUNNING) break;
+    if (g_nr_guest_instr % 65536 == 0) break; // serve device
   }
 }
