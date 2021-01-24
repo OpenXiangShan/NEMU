@@ -1,14 +1,15 @@
 #ifndef __ICS_EXPORT
-#include <monitor/difftest.h>
 
-static inline def_EHelper(jal) {
+def_EHelper(jal, {
+  call_DHelper(J);
   rtl_li(s, ddest, s->seq_pc);
   rtl_j(s, s->jmp_pc);
 
   print_asm_template2(jal);
-}
+})
 
-static inline def_EHelper(jalr) {
+def_EHelper(jalr, {
+  call_DHelper(I);
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 #ifdef __ENGINE_interpreter__
   rtl_andi(s, s0, s0, ~0x1u);
@@ -22,25 +23,35 @@ static inline def_EHelper(jalr) {
 #endif
 
   print_asm_template3(jalr);
-}
+})
 
-static const struct {
-  int relop;
-  char *name;
-} branch_map [] = {
-  [0] = { RELOP_EQ, "eq"},
-  [1] = { RELOP_NE, "ne"},
-  [4] = { RELOP_LT, "lt"},
-  [5] = { RELOP_GE, "ge"},
-  [6] = { RELOP_LTU, "ltu"},
-  [7] = { RELOP_GEU, "geu"},
-};
+def_EHelper(beq, {
+  rtl_jrelop(s, RELOP_EQ, dsrc1, dsrc2, s->jmp_pc);
+  print_asm_template3(beq);
+})
 
-static inline def_EHelper(branch) {
-  int type = s->isa.instr.b.funct3;
-  assert(type != 2 && type != 3);
-  rtl_jrelop(s, branch_map[type].relop, dsrc1, dsrc2, s->jmp_pc);
+def_EHelper(bne, {
+  rtl_jrelop(s, RELOP_NE, dsrc1, dsrc2, s->jmp_pc);
+  print_asm_template3(bne);
+})
 
-  print_asm("b%s %s,%s,0x%x", branch_map[type].name, id_src1->str, id_src2->str, s->jmp_pc);
-}
+def_EHelper(blt, {
+  rtl_jrelop(s, RELOP_LT, dsrc1, dsrc2, s->jmp_pc);
+  print_asm_template3(blt);
+})
+
+def_EHelper(bge, {
+  rtl_jrelop(s, RELOP_GE, dsrc1, dsrc2, s->jmp_pc);
+  print_asm_template3(bge);
+})
+
+def_EHelper(bltu, {
+  rtl_jrelop(s, RELOP_LTU, dsrc1, dsrc2, s->jmp_pc);
+  print_asm_template3(bltu);
+})
+
+def_EHelper(bgeu, {
+  rtl_jrelop(s, RELOP_GEU, dsrc1, dsrc2, s->jmp_pc);
+  print_asm_template3(bgeu);
+})
 #endif

@@ -1,13 +1,13 @@
 #ifndef __ICS_EXPORT
-static inline def_EHelper(csrrw) {
+def_EHelper(csrrw, {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
 #endif
   rtl_hostcall(s, HOSTCALL_CSR, ddest, dsrc1, id_src2->imm);
   print_asm_template3("csrrw");
-}
+})
 
-static inline def_EHelper(csrrs) {
+def_EHelper(csrrs, {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
 #endif
@@ -16,9 +16,9 @@ static inline def_EHelper(csrrs) {
   rtl_mv(s, ddest, s0);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
   print_asm_template3("csrrs");
-}
+})
 
-static inline def_EHelper(priv) {
+def_EHelper(priv, {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
@@ -36,5 +36,5 @@ static inline def_EHelper(priv) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
 #endif
-}
+})
 #endif
