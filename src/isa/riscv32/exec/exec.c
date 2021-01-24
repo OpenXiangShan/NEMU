@@ -40,14 +40,15 @@ void execute(uint64_t n) {
     vaddr_t this_pc = cpu.pc;
     int idx = get_idx(this_pc);
     DecodeExecState *s = &dcache[idx].s;
-    s->is_jmp = 0;
     if (dcache[idx].tag == this_pc) {
+      s->npc = s->spc;
       goto *dcache[idx].EHelper;
     }
 
     dcache[idx].tag = this_pc;
-    s->seq_pc = this_pc;
-    s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+    s->spc = this_pc;
+    s->isa.instr.val = instr_fetch(&s->spc, 4);
+    s->npc = s->spc;
 
 #include "all-instr.h"
 
@@ -57,7 +58,7 @@ exec_finish:
     reset_zero();
 
 #ifdef DEBUG
-    int len = s->seq_pc - this_pc;
+    int len = s->spc - this_pc;
     void debug_hook(vaddr_t this_pc, int len);
     debug_hook(this_pc, len);
 #endif
