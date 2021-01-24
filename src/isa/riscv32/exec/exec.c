@@ -10,6 +10,10 @@ static inline void reset_zero() {
   reg_l(0) = 0;
 }
 
+#undef decode_empty
+static inline def_DHelper(empty) {
+}
+
 #define DCACHE_SIZE 4096
 static struct {
   vaddr_t tag;

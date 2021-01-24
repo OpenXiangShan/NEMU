@@ -1,7 +1,6 @@
 #ifndef __ICS_EXPORT
 
 def_EHelper(jal, {
-  call_DHelper(J);
   rtl_li(s, ddest, s->seq_pc);
   rtl_j(s, s->jmp_pc);
 
@@ -9,7 +8,6 @@ def_EHelper(jal, {
 })
 
 def_EHelper(jalr, {
-  call_DHelper(I);
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 #ifdef __ENGINE_interpreter__
   rtl_andi(s, s0, s0, ~0x1u);

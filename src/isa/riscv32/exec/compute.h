@@ -1,5 +1,4 @@
 def_EHelper(lui, {
-  call_DHelper(U);
   rtl_li(s, ddest, id_src1->imm);
   print_asm_template2(lui);
 })
@@ -106,7 +105,6 @@ def_EHelper(andi, {
 })
 
 def_EHelper(auipc, {
-  call_DHelper(U);
   rtl_li(s, ddest, id_src1->imm + cpu.pc);
   print_asm_template2(auipc);
 })
