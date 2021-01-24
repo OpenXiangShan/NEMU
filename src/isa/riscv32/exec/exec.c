@@ -2,17 +2,16 @@
 #include "../local-include/decode.h"
 #include "all-instr.h"
 
-static inline void set_width(DecodeExecState *s, int width) {
-  if (width != 0) s->width = width;
-}
+#undef CASE_ENTRY
+#define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
 static inline def_EHelper(load) {
   switch (s->isa.instr.i.funct3) {
 #ifdef __ICS_EXPORT
-    EXW  (2, ld, 4)
+    EX(2, lw)
 #else
-    EXW  (0, lds, 1) EXW  (1, lds, 2) EXW  (2, ld, 4)
-    EXW  (4, ld, 1)  EXW  (5, ld, 2)
+    EX(0, lb)  EX(1, lh)  EX(2, lw)
+    EX(4, lbu) EX(5, lhu)
 #endif
     default: exec_inv(s);
   }
@@ -21,9 +20,9 @@ static inline def_EHelper(load) {
 static inline def_EHelper(store) {
   switch (s->isa.instr.s.funct3) {
 #ifdef __ICS_EXPORT
-    EXW  (2, st, 4)
+    EX(2, sw)
 #else
-    EXW(0, st, 1) EXW(1, st, 2) EXW(2, st, 4)
+    EX(0, sb) EX(1, sh) EX(2, sw)
 #endif
     default: exec_inv(s);
   }

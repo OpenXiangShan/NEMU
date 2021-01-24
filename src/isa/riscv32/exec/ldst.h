@@ -1,36 +1,49 @@
-static inline def_EHelper(ld) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, s->width);
-
+static inline def_EHelper(lw) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 4: print_asm_template2(lw); break;
-    case 2: print_asm_template2(lhu); break;
-    case 1: print_asm_template2(lbu); break;
-    default: assert(0);
-  }
+  print_asm_template2(lw);
 }
 
-static inline def_EHelper(st) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, s->width);
-
+static inline def_EHelper(sw) {
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 4);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 4: print_asm_template2(sw); break;
-    case 2: print_asm_template2(sh); break;
-    case 1: print_asm_template2(sb); break;
-    default: assert(0);
-  }
+  print_asm_template2(sw);
 }
+
 #ifndef __ICS_EXPORT
-// load sign value
-static inline def_EHelper(lds) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
+static inline def_EHelper(lh) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lh);
+}
 
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 2: print_asm_template2(lh); break;
-    case 1: print_asm_template2(lb); break;
-    default: assert(0);
-  }
+static inline def_EHelper(lb) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lb);
+}
+
+static inline def_EHelper(lhu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lhu);
+}
+
+static inline def_EHelper(lbu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lbu);
+}
+
+static inline def_EHelper(sh) {
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(sh);
+}
+
+static inline def_EHelper(sb) {
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(sb);
 }
 #endif
