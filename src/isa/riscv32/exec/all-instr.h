@@ -84,8 +84,8 @@ def_EHelper(op_imm, {
 
 #define pair(x, y) (((x) << 3) | (y))
 def_EHelper(op, {
-  int idx = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
-  record_and_jmp(op_table[idx]);
+  int index = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
+  record_and_jmp(op_table[index]);
 })
 #undef pair
 
