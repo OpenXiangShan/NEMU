@@ -57,18 +57,9 @@ exec_finish:
     reset_zero();
 
 #ifdef DEBUG
-    asm_print(this_pc, s->seq_pc - this_pc, n < MAX_INSTR_TO_PRINT);
-
-    /* TODO: check watchpoints here. */
-#ifndef __ICS_EXPORT
-    WP *wp = scan_watchpoint();
-    if(wp != NULL) {
-      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", wp->NO, this_pc, wp->expr);
-      printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", wp->old_val, wp->new_val);
-      wp->old_val = wp->new_val;
-      return;
-    }
-#endif
+    int len = s->seq_pc - this_pc;
+    void debug_hook(vaddr_t this_pc, int len);
+    debug_hook(this_pc, len);
 #endif
 
     difftest_step(this_pc, cpu.pc);

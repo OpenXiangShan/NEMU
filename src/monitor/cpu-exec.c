@@ -24,6 +24,7 @@ CPU_state cpu = {};
 NEMUState nemu_state = { .state = NEMU_STOP };
 uint64_t g_nr_guest_instr = 0;
 static uint64_t g_timer = 0; // unit: us
+static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 
 void asm_print(vaddr_t this_pc, int instr_len, bool print_flag);
@@ -53,10 +54,26 @@ uint64_t get_time() {
   return us;
 }
 
+void debug_hook(vaddr_t this_pc, int len) {
+  asm_print(this_pc, len, g_print_step);
+
+  /* TODO: check watchpoints here. */
+#ifndef __ICS_EXPORT
+  WP *wp = scan_watchpoint();
+  if(wp != NULL) {
+    printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", wp->NO, this_pc, wp->expr);
+    printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", wp->old_val, wp->new_val);
+    wp->old_val = wp->new_val;
+    nemu_state.state = NEMU_STOP;
+  }
+#endif
+}
+
 void execute(uint64_t n);
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+  g_print_step = (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
