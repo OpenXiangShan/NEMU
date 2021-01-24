@@ -15,7 +15,7 @@ static inline void reset_zero() {
 static inline def_DHelper(empty) {
 }
 
-#define DCACHE_SIZE 4096
+#define DCACHE_SIZE 256
 static struct {
   vaddr_t tag;
   const void *EHelper;
