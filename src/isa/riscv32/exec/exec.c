@@ -2,6 +2,7 @@
 #include "../local-include/decode.h"
 #include "../local-include/rtl.h"
 #include <monitor/difftest.h>
+#include <monitor/monitor.h>
 
 #undef CASE_ENTRY
 #define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
@@ -32,31 +33,62 @@ void dcache_flush() {
   }
 }
 
-vaddr_t isa_exec_once() {
-  int idx = get_idx(cpu.pc);
-  DecodeExecState *s = &dcache[idx].s;
-  s->is_jmp = 0;
-  if (dcache[idx].tag == cpu.pc) {
-    goto *dcache[idx].EHelper;
-  }
+void execute(uint64_t n) {
+  for (; n > 0; n --) {
+    /* Execute one instruction, including instruction fetch,
+     * instruction decode, and the actual execution. */
+    vaddr_t this_pc = cpu.pc;
+    int idx = get_idx(this_pc);
+    DecodeExecState *s = &dcache[idx].s;
+    s->is_jmp = 0;
+    if (dcache[idx].tag == this_pc) {
+      goto *dcache[idx].EHelper;
+    }
 
-  dcache[idx].tag = cpu.pc;
-  s->seq_pc = cpu.pc;
-  s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+    dcache[idx].tag = this_pc;
+    s->seq_pc = this_pc;
+    s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
 
 #include "all-instr.h"
 
 exec_finish:
-  update_pc(s);
+    update_pc(s);
+
+    reset_zero();
+
+#ifdef DEBUG
+    asm_print(this_pc, s->seq_pc - this_pc, n < MAX_INSTR_TO_PRINT);
+
+    /* TODO: check watchpoints here. */
+#ifndef __ICS_EXPORT
+    WP *wp = scan_watchpoint();
+    if(wp != NULL) {
+      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", wp->NO, this_pc, wp->expr);
+      printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", wp->old_val, wp->new_val);
+      wp->old_val = wp->new_val;
+      return;
+    }
+#endif
+#endif
+
+#ifdef HAS_IOE
+    //    extern void device_update();
+    //    device_update();
+#endif
+
 #ifndef __ICS_EXPORT
 
 #if !defined(DIFF_TEST) && !_SHARE
-//  void query_intr();
-//  query_intr();
+    //  void query_intr();
+    //  query_intr();
 #endif
 #endif
 
-  reset_zero();
+    difftest_step(this_pc, cpu.pc);
 
-  return s->seq_pc;
+    extern uint64_t g_nr_guest_instr;
+    g_nr_guest_instr ++;
+
+    if (nemu_state.state != NEMU_RUNNING) break;
+  }
 }

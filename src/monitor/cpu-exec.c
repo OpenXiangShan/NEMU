@@ -22,7 +22,7 @@
 
 CPU_state cpu = {};
 NEMUState nemu_state = { .state = NEMU_STOP };
-static uint64_t g_nr_guest_instr = 0;
+uint64_t g_nr_guest_instr = 0;
 static uint64_t g_timer = 0; // unit: us
 const rtlreg_t rzero = 0;
 
@@ -53,6 +53,8 @@ uint64_t get_time() {
   return us;
 }
 
+void execute(uint64_t n);
+
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
@@ -64,39 +66,7 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_start = get_time();
 
-  for (; n > 0; n --) {
-    vaddr_t this_pc = cpu.pc;
-
-    /* Execute one instruction, including instruction fetch,
-     * instruction decode, and the actual execution. */
-    __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
-
-    difftest_step(this_pc, cpu.pc);
-
-    g_nr_guest_instr ++;
-
-#ifdef DEBUG
-    asm_print(this_pc, seq_pc - this_pc, n < MAX_INSTR_TO_PRINT);
-
-    /* TODO: check watchpoints here. */
-#ifndef __ICS_EXPORT
-    WP *wp = scan_watchpoint();
-    if(wp != NULL) {
-      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", wp->NO, this_pc, wp->expr);
-      printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", wp->old_val, wp->new_val);
-      wp->old_val = wp->new_val;
-      return;
-    }
-#endif
-#endif
-
-#ifdef HAS_IOE
-    extern void device_update();
-    device_update();
-#endif
-
-    if (nemu_state.state != NEMU_RUNNING) break;
-  }
+  execute(n);
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
