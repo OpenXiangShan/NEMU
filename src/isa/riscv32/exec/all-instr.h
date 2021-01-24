@@ -57,45 +57,44 @@ static MainEntry opcode_main_table[32] = {
   IDEX(csr, system),  EMPTY2,     EMPTY2,    EMPTY2,
 };
 
+#define record_and_jmp(ehelper) { \
+  const void *h = (ehelper); \
+  dcache[idx].EHelper = h; \
+  goto *h; \
+}
+
 def_start() {
   if (s->isa.instr.i.opcode1_0 != 0x3) goto inv;
   MainEntry *e = &opcode_main_table[s->isa.instr.i.opcode6_2];
   e->DHelper(s);
-  last_helper = e->EHelper;
-  goto *last_helper;
+  record_and_jmp(e->EHelper);
 }
 
 def_EHelper(load, {
-  last_helper = load_table[s->isa.instr.i.funct3];
-  goto *last_helper;
+  record_and_jmp(load_table[s->isa.instr.i.funct3]);
 })
 
 def_EHelper(store, {
-  last_helper = store_table[s->isa.instr.s.funct3];
-  goto *last_helper;
+  record_and_jmp(store_table[s->isa.instr.s.funct3]);
 })
 
 def_EHelper(op_imm, {
-  last_helper = op_imm_table[s->isa.instr.i.funct3];
-  goto *last_helper;
+  record_and_jmp(op_imm_table[s->isa.instr.i.funct3]);
 })
 
 #define pair(x, y) (((x) << 3) | (y))
 def_EHelper(op, {
   int idx = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
-  last_helper = op_table[idx];
-  goto *last_helper;
+  record_and_jmp(op_table[idx]);
 })
 #undef pair
 
 def_EHelper(branch, {
-  last_helper = branch_table[s->isa.instr.b.funct3];
-  goto *last_helper;
+  record_and_jmp(branch_table[s->isa.instr.b.funct3]);
 })
 
 def_EHelper(system, {
-  last_helper = system_table[s->isa.instr.i.funct3];
-  goto *last_helper;
+  record_and_jmp(system_table[s->isa.instr.i.funct3]);
 })
 
 #include "compute.h"

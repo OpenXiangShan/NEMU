@@ -32,39 +32,21 @@ void dcache_flush() {
   }
 }
 
-static inline void dcache_add(vaddr_t pc, const void *EHelper, DecodeExecState *s) {
-  int idx = get_idx(pc);
-  dcache[idx].tag = pc;
-  dcache[idx].EHelper = EHelper;
-  dcache[idx].s = *s;
-}
-
 vaddr_t isa_exec_once() {
-  DecodeExecState state;
-  DecodeExecState *s;
   int idx = get_idx(cpu.pc);
-  int hit = dcache[idx].tag == cpu.pc;
-  if (hit) {
-    s = &dcache[idx].s;
-    s->is_jmp = 0;
+  DecodeExecState *s = &dcache[idx].s;
+  s->is_jmp = 0;
+  if (dcache[idx].tag == cpu.pc) {
     goto *dcache[idx].EHelper;
   }
 
-  s = &state;
-  s->is_jmp = 0;
+  dcache[idx].tag = cpu.pc;
   s->seq_pc = cpu.pc;
-
   s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
-  const void *last_helper = NULL;
 
 #include "all-instr.h"
 
 exec_finish:
-  if (!hit) {
-    assert(last_helper != NULL);
-    dcache_add(cpu.pc, last_helper, s);
-  }
-
   update_pc(s);
 #ifndef __ICS_EXPORT
 
