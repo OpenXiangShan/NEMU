@@ -16,7 +16,9 @@ typedef struct {
   };
   rtlreg_t *preg;
   rtlreg_t val;
+#ifdef DEBUG
   char str[OP_STR_SIZE];
+#endif
 } Operand;
 
 typedef struct {
