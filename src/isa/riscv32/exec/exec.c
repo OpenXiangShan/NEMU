@@ -13,18 +13,18 @@ static inline void reset_zero() { reg_l(0) = 0; }
 
 void isa_execute(uint64_t n) {
   for (; n > 0; n --) {
-    /* Execute one instruction, including instruction fetch,
-     * instruction decode, and the actual execution. */
-    vaddr_t this_pc = cpu.pc;
-    int idx = dccache_idx(this_pc);
+    vaddr_t pc = cpu.pc;
+    int idx = dccache_idx(pc);
     DecodeExecState *s = &dccache[idx].s;
-    if (dccache[idx].tag == this_pc) {
-      s->npc = s->spc;
+    if (dccache[idx].tag == pc) {
+      s->npc = s->snpc;
       goto_EHelper(dccache[idx].EHelper);
     }
 
-    dccache[idx].tag = this_pc;
+    dccache[idx].tag = pc;
 
+    /* Execute one instruction, including instruction fetch,
+     * instruction decode, and the actual execution. */
 #include "all-instr.h"
 
 exec_finish:
@@ -32,6 +32,6 @@ exec_finish:
 
     reset_zero();
 
-    cpu_exec_2nd_part(this_pc, s->spc, cpu.pc);
+    cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }
 }

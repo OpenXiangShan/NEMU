@@ -31,8 +31,8 @@ void strcatf(char *buf, const char *fmt, ...) {
   strcat(buf, tempbuf);
 }
 
-void asm_print(vaddr_t this_pc, int instr_len, bool print_flag) {
-  snprintf(tempbuf, sizeof(tempbuf), FMT_WORD ":   %s%*.s%s", this_pc, log_bytebuf,
+void asm_print(vaddr_t pc, int instr_len, bool print_flag) {
+  snprintf(tempbuf, sizeof(tempbuf), FMT_WORD ":   %s%*.s%s", pc, log_bytebuf,
       50 - (12 + 3 * instr_len), "", log_asmbuf);
   log_write("%s\n", tempbuf);
   if (print_flag) {

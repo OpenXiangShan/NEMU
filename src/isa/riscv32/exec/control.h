@@ -1,7 +1,7 @@
 #ifndef __ICS_EXPORT
 
 def_EHelper(jal) {
-  rtl_li(s, ddest, s->spc);
+  rtl_li(s, ddest, s->snpc);
   rtl_j(s, id_src1->imm);
 
   print_asm_template2(jal);
@@ -14,7 +14,7 @@ def_EHelper(jalr) {
 #endif
   rtl_jr(s, s0);
 
-  rtl_li(s, ddest, s->spc);
+  rtl_li(s, ddest, s->snpc);
 
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);

@@ -13,12 +13,12 @@ static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 
 #ifdef DEBUG
-void debug_hook(vaddr_t this_pc, int len) {
-  void asm_print(vaddr_t this_pc, int instr_len, bool print_flag);
-  asm_print(this_pc, len, g_print_step);
+void debug_hook(vaddr_t pc, int len) {
+  void asm_print(vaddr_t pc, int instr_len, bool print_flag);
+  asm_print(pc, len, g_print_step);
 
-  void scan_watchpoint(vaddr_t this_pc);
-  scan_watchpoint(this_pc);
+  void scan_watchpoint(vaddr_t pc);
+  scan_watchpoint(pc);
 
 }
 #endif

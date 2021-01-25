@@ -91,13 +91,13 @@ void list_watchpoint() {
   }
 }
 
-void scan_watchpoint(vaddr_t this_pc) {
+void scan_watchpoint(vaddr_t pc) {
   WP *p;
   for (p = head; p != NULL; p = p->next) {
     bool success;
     word_t new_val = expr(p->expr, &success);
     if (p->old_val != new_val) {
-      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", p->NO, this_pc, p->expr);
+      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", p->NO, pc, p->expr);
       printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", p->old_val, new_val);
       p->old_val = new_val;
       nemu_state.state = NEMU_STOP;

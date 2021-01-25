@@ -14,7 +14,7 @@ int trans_buffer_index = 0;
 int tran_next_pc = NEXT_PC_SEQ;
 
 void clear_trans_buffer() { trans_buffer_index = 0; }
-void asm_print(vaddr_t this_pc, int instr_len, bool print_flag);
+void asm_print(vaddr_t pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 void spill_reset();
@@ -124,8 +124,8 @@ void tran_mainloop() {
       tran_next_pc = NEXT_PC_SEQ;
       int guest_nr_instr = 0;
       while (1) {
-        __attribute__((unused)) vaddr_t this_pc = cpu.pc;
-        __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
+        __attribute__((unused)) vaddr_t pc = cpu.pc;
+        __attribute__((unused)) vaddr_t snpc = isa_exec_once();
         guest_nr_instr ++;
 
         spill_flush_local();
@@ -133,7 +133,7 @@ void tran_mainloop() {
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
 #ifdef DEBUG
-        asm_print(this_pc, seq_pc - this_pc, true);
+        asm_print(pc, snpc - pc, true);
 #endif
 #ifdef DIFF_TEST
         if (tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();

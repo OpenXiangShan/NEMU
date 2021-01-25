@@ -22,7 +22,7 @@ typedef struct {
 } Operand;
 
 typedef struct {
-  vaddr_t spc;  // sequential pc
+  vaddr_t snpc; // sequential next pc
   vaddr_t npc;  // real next pc
   uint32_t opcode;
   Operand src1, dest, src2;
