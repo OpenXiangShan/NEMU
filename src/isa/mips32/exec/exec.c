@@ -6,9 +6,8 @@
 #include "../local-include/intr.h"
 #endif
 
-static inline void set_width(DecodeExecState *s, int width) {
-  if (width != 0) s->width = width;
-}
+#undef CASE_ENTRY
+#define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
 static inline def_EHelper(special) {
   switch (s->isa.instr.r.func) {
@@ -72,8 +71,8 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
 #ifdef __ICS_EXPORT
     EX   (000, special)
     IDEX (017, IU, lui)
-    IDEXW(043, ld, ld, 4)
-    IDEXW(053, st, st, 4)
+    IDEX (043, ld, lw)
+    IDEX (053, st, sw)
     EX   (074, nemu_trap)
 #else
     EX   (000, special)    EX   (001, regimm)     IDEX (002, J, j)       IDEX (003, J, jal)
@@ -84,9 +83,9 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
 
 
     EX   (034, special2)
-    IDEXW(040, ld, lds, 1) IDEXW(041, ld, lds, 2) IDEX (042, st, lwl)    IDEXW(043, ld, ld, 4)
-    IDEXW(044, ld, ld, 1)  IDEXW(045, ld, ld, 2)  IDEX (046, st, lwr)
-    IDEXW(050, st, st, 1)  IDEXW(051, st, st, 2)  IDEX (052, st, swl)    IDEXW(053, st, st, 4)
+    IDEX (040, ld, lb)     IDEX (041, ld, lh)     IDEX (042, st, lwl)    IDEX (043, ld, lw)
+    IDEX (044, ld, lbu)    IDEX (045, ld, lhu)    IDEX (046, st, lwr)
+    IDEX (050, st, sb)     IDEX (051, st, sh)     IDEX (052, st, swl)    IDEX (053, st, sw)
                                                   IDEX (056, st, swr)
 
 
