@@ -1,6 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 void tlbwr();
 void tlbwi();

@@ -1,5 +1,6 @@
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
+#include <cpu/cpu-exec.h>
 #include "all-instr.h"
 #ifndef __ICS_EXPORT
 #include "../local-include/intr.h"
@@ -62,7 +63,8 @@ static inline def_EHelper(cop0) {
 #endif
 
 static inline void fetch_decode_exec(DecodeExecState *s) {
-  s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+  s->isa.instr.val = instr_fetch(&s->snpc, 4);
+  s->npc = s->snpc;
 #ifndef __ICS_EXPORT
   return_on_mem_ex();
 #endif
@@ -99,28 +101,25 @@ static inline void reset_zero() {
   reg_l(0) = 0;
 }
 
-vaddr_t isa_exec_once() {
-  DecodeExecState s;
-  s.is_jmp = 0;
-  s.seq_pc = cpu.pc;
+void isa_execute(uint64_t n) {
+  for (; n > 0; n --) {
+    DecodeExecState s;
+    vaddr_t pc = cpu.pc;
+    s.snpc = pc;
 
-  fetch_decode_exec(&s);
+    fetch_decode_exec(&s);
 #ifndef __ICS_EXPORT
-  if (cpu.mem_exception != MEM_OK) {
-    cpu.pc = raise_intr(cpu.mem_exception, cpu.pc);
-    cpu.mem_exception = MEM_OK;
-  } else {
-    update_pc(&s);
+    if (cpu.mem_exception != MEM_OK) {
+      cpu.pc = raise_intr(cpu.mem_exception, pc);
+      cpu.mem_exception = MEM_OK;
+    } else
+#endif
+    {
+      update_pc(&s);
+    }
+
+    reset_zero();
+
+    cpu_exec_2nd_part(pc, s.snpc, s.npc);
   }
-#if !defined(DIFF_TEST) && !_SHARE
-  void query_intr();
-  query_intr();
-#endif
-#else
-  update_pc(&s);
-#endif
-
-  reset_zero();
-
-  return s.seq_pc;
 }
