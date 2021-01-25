@@ -1,5 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include <cpu/dccache.h>
 
 static inline word_t* csr_decode(uint32_t csr) {
   switch (csr) {
@@ -28,8 +29,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       cpu.sstatus.spie = 1;
       return cpu.sepc;
     case 0x120:; // sfence.vma
-      extern void dcache_flush();
-      dcache_flush();
+      dccache_flush();
       return 0;
     default: panic("Unsupported privilige operation = %d", op);
   }

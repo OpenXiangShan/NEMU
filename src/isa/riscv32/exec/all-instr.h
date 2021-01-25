@@ -64,7 +64,7 @@ static MainEntry opcode_main_table[32] = {
 
 #define record_and_jmp(ehelper) { \
   const void *h = (ehelper); \
-  dcache[idx].EHelper = h; \
+  dccache[idx].EHelper = h; \
   goto_EHelper(h); \
 }
 

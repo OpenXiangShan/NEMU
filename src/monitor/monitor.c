@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <memory/paddr.h>
+#include <cpu/dccache.h>
 #include <getopt.h>
 #include <stdlib.h>
 
@@ -121,6 +122,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
+
+  dccache_flush();
 
   /* Display welcome message. */
   welcome();
