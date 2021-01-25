@@ -1,5 +1,3 @@
-#include <cpu/exec.h>
-
 def_EHelper(inv) {
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, 0);
   print_asm("invalid opcode");

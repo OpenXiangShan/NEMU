@@ -1,11 +1,34 @@
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
-#include <cpu/cpu-exec.h>
-#include "all-instr.h"
-#ifndef __ICS_EXPORT
+#include "../local-include/rtl.h"
 #include "../local-include/intr.h"
-#endif
+#include <cpu/difftest.h>
+#include <cpu/cpu-exec.h>
 
+#define goto_EHelper(addr) goto *(addr)
+#undef decode_empty
+static inline def_DHelper(empty) { }
+
+static inline void difftest_skip_delay_slot() {
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_dut(2, 1);
+#endif
+}
+
+static inline void mux(DecodeExecState *s, rtlreg_t* dest, const rtlreg_t* cond,
+    const rtlreg_t* src1, const rtlreg_t* src2) {
+  // dest <- (cond ? src1 : src2)
+  rtl_setrelopi(s, RELOP_EQ, s0, cond, 0);
+  rtl_subi(s, s0, s0, 1);
+  // s0 = mask
+  rtl_and(s, s1, src1, s0);
+  rtl_not(s, s0, s0);
+  rtl_and(s, dest, src2, s0);
+  rtl_or(s, dest, dest, s1);
+}
+
+
+#if 0
 #undef CASE_ENTRY
 #define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
@@ -95,6 +118,7 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
     default: exec_inv(s);
   }
 }
+#endif
 
 static inline void reset_zero() {
   reg_l(0) = 0;
@@ -102,23 +126,19 @@ static inline void reset_zero() {
 
 void isa_execute(uint64_t n) {
   for (; n > 0; n --) {
-    DecodeExecState s;
+    DecodeExecState state;
+    DecodeExecState *s = &state;
     vaddr_t pc = cpu.pc;
-    s.snpc = pc;
+    s->snpc = pc;
 
-    fetch_decode_exec(&s);
-#ifndef __ICS_EXPORT
-    if (cpu.mem_exception != MEM_OK) {
-      cpu.pc = raise_intr(cpu.mem_exception, pc);
-      cpu.mem_exception = MEM_OK;
-    } else
-#endif
-    {
-      update_pc(&s);
-    }
+#include "all-instr.h"
+
+//    fetch_decode_exec(&s);
+exec_finish:
+    update_pc(s);
 
     reset_zero();
 
-    cpu_exec_2nd_part(pc, s.snpc, s.npc);
+    cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }
 }
