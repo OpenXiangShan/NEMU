@@ -4,16 +4,11 @@
 #include <monitor/difftest.h>
 #include <monitor/monitor.h>
 
-#undef CASE_ENTRY
-#define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
-
-static inline void reset_zero() {
-  reg_l(0) = 0;
-}
-
+#define goto_EHelper(addr) goto *(addr)
 #undef decode_empty
-static inline def_DHelper(empty) {
-}
+static inline def_DHelper(empty) { }
+
+static inline void reset_zero() { reg_l(0) = 0; }
 
 #define DCACHE_SIZE 256
 static struct {
@@ -42,7 +37,7 @@ void execute(uint64_t n) {
     DecodeExecState *s = &dcache[idx].s;
     if (dcache[idx].tag == this_pc) {
       s->npc = s->spc;
-      goto *dcache[idx].EHelper;
+      goto_EHelper(dcache[idx].EHelper);
     }
 
     dcache[idx].tag = this_pc;
