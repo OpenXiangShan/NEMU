@@ -1,6 +1,11 @@
 #undef def_EHelper
-#define def_EHelper(name, body) name: body; goto exec_finish;
+#define finish_label exec_finish
+#define def_label(l) l:
+#define def_EHelper(name) \
+  goto finish_label; /* this is for the previous def_EHelper() */ \
+  def_label(name)
 #define def_start()
+#define def_finish() def_label(finish_label)
 
 #undef EMPTY
 #define EMPTY &&inv
@@ -70,32 +75,32 @@ def_start() {
   record_and_jmp(e->EHelper);
 }
 
-def_EHelper(load, {
+def_EHelper(load) {
   record_and_jmp(load_table[s->isa.instr.i.funct3]);
-})
+}
 
-def_EHelper(store, {
+def_EHelper(store) {
   record_and_jmp(store_table[s->isa.instr.s.funct3]);
-})
+}
 
-def_EHelper(op_imm, {
+def_EHelper(op_imm) {
   record_and_jmp(op_imm_table[s->isa.instr.i.funct3]);
-})
+}
 
 #define pair(x, y) (((x) << 3) | (y))
-def_EHelper(op, {
+def_EHelper(op) {
   int index = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
   record_and_jmp(op_table[index]);
-})
+}
 #undef pair
 
-def_EHelper(branch, {
+def_EHelper(branch) {
   record_and_jmp(branch_table[s->isa.instr.b.funct3]);
-})
+}
 
-def_EHelper(system, {
+def_EHelper(system) {
   record_and_jmp(system_table[s->isa.instr.i.funct3]);
-})
+}
 
 #include "compute.h"
 #include "control.h"
