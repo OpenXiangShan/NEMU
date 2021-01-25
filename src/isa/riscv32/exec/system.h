@@ -26,9 +26,13 @@ def_EHelper(priv) {
       print_asm("ecall");
       break;
     case 0x102:
-      rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, 0x102);
+      rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, type);
       rtl_jr(s, s0);
       print_asm("sret");
+      break;
+    case 0x120:
+      rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, type);
+      print_asm("sfence.vma");
       break;
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }

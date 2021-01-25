@@ -27,6 +27,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       cpu.sstatus.sie = cpu.sstatus.spie;
       cpu.sstatus.spie = 1;
       return cpu.sepc;
+    case 0x120:; // sfence.vma
+      extern void dcache_flush();
+      dcache_flush();
+      return 0;
     default: panic("Unsupported privilige operation = %d", op);
   }
   return 0;
