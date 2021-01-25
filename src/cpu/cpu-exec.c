@@ -38,15 +38,14 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 
   while (nemu_state.state == NEMU_RUNNING) {
-    execute(n);
+    isa_execute(n);
 #ifdef HAS_IOE
     extern void device_update();
     device_update();
 #endif
 
 #if !defined(DIFF_TEST) && !_SHARE
-    void query_intr();
-    query_intr();
+    isa_query_intr();
 #endif
   }
 

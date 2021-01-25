@@ -11,7 +11,7 @@ static inline def_DHelper(empty) { }
 
 static inline void reset_zero() { reg_l(0) = 0; }
 
-void execute(uint64_t n) {
+void isa_execute(uint64_t n) {
   for (; n > 0; n --) {
     /* Execute one instruction, including instruction fetch,
      * instruction decode, and the actual execution. */
