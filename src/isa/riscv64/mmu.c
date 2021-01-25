@@ -278,8 +278,10 @@ nemu_bool ptw_is_safe(vaddr_t vaddr) {
 paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
-  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
+  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK) {
+    // Log("Return forced Page fault\n");
     return MEM_RET_FAIL;
+  }
 #endif
   return ptw_result;
 }

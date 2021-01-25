@@ -161,7 +161,7 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     // mstatus.fs is always dirty or off in QEMU 3.1.0
     if (mstatus->fs) { mstatus->fs = 3; }
 #endif
-    // mstatus->sd = (mstatus->fs == 3);
+    mstatus->sd = mstatus->fs == 3 || mstatus->xs == 3;
   }
 }
 

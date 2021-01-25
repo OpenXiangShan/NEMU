@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <memory/paddr.h>
+#include <device/dev.h>
 #include <cpu/exec.h>
 #include <device/map.h>
 
@@ -94,6 +95,7 @@ void difftest_init(void) {
 
   /* create dummy address space for serial */
   // add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
+  init_uartlite();
 }
 
 #ifdef __cplusplus
