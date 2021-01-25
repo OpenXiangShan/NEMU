@@ -54,6 +54,7 @@ uint64_t get_time() {
   return us;
 }
 
+#ifdef DEBUG
 void debug_hook(vaddr_t this_pc, int len) {
   asm_print(this_pc, len, g_print_step);
 
@@ -68,6 +69,7 @@ void debug_hook(vaddr_t this_pc, int len) {
   }
 #endif
 }
+#endif
 
 void execute(uint64_t n);
 

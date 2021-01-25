@@ -2,7 +2,7 @@
 #include "../local-include/decode.h"
 #include "../local-include/rtl.h"
 #include <monitor/difftest.h>
-#include <monitor/monitor.h>
+#include <monitor/cpu-exec.h>
 
 #define goto_EHelper(addr) goto *(addr)
 #undef decode_empty
@@ -49,18 +49,6 @@ exec_finish:
 
     reset_zero();
 
-#ifdef DEBUG
-    int len = s->spc - this_pc;
-    void debug_hook(vaddr_t this_pc, int len);
-    debug_hook(this_pc, len);
-#endif
-
-    difftest_step(this_pc, cpu.pc);
-
-    if (nemu_state.state != NEMU_RUNNING) break;
-
-    extern uint64_t g_nr_guest_instr;
-    g_nr_guest_instr ++;
-    if (g_nr_guest_instr % 65536 == 0) break; // serve device
+    cpu_exec_2nd_part(this_pc, s->spc, cpu.pc);
   }
 }
