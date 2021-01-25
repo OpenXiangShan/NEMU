@@ -69,6 +69,9 @@ static MainEntry opcode_main_table[32] = {
 }
 
 def_start() {
+  s->spc = this_pc;
+  s->isa.instr.val = instr_fetch(&s->spc, 4);
+  s->npc = s->spc;
   if (s->isa.instr.i.opcode1_0 != 0x3) goto inv;
   MainEntry *e = &opcode_main_table[s->isa.instr.i.opcode6_2];
   e->DHelper(s);

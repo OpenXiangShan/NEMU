@@ -41,9 +41,6 @@ void execute(uint64_t n) {
     }
 
     dcache[idx].tag = this_pc;
-    s->spc = this_pc;
-    s->isa.instr.val = instr_fetch(&s->spc, 4);
-    s->npc = s->spc;
 
 #include "all-instr.h"
 
