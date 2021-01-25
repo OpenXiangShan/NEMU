@@ -25,10 +25,11 @@ ifeq ($(ENGINE),interpreter)
 SOFTFLOAT = resource/softfloat/build/softfloat.a
 INC_DIR += resource/softfloat/repo/source/include
 INC_DIR += resource/softfloat/repo/source/RISCV
-LDFLAGS += $(SOFTFLOAT)
-$(BINARY): $(SOFTFLOAT)
+LIBS += $(SOFTFLOAT)
 $(SOFTFLOAT):
 	$(MAKE) -C resource/softfloat/
+
+.PHONY: $(SOFTFLOAT)
 endif
 
 include $(NEMU_HOME)/scripts/Makefile

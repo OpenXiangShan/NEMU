@@ -50,9 +50,9 @@ $(OBJ_DIR)/%.o: src/%.c
 
 app: $(BINARY)
 
-$(BINARY): $(OBJS)
+$(BINARY): $(OBJS) $(LIBS)
 	@echo + LD $@
-	@$(LD) -o $@ $(OBJS) $(LDFLAGS)
+	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 clean:
 	-rm -rf $(BUILD_DIR)
