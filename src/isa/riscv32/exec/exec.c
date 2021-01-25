@@ -14,14 +14,13 @@ static inline void reset_zero() { reg_l(0) = 0; }
 void isa_execute(uint64_t n) {
   for (; n > 0; n --) {
     vaddr_t pc = cpu.pc;
-    int idx = dccache_idx(pc);
-    DecodeExecState *s = &dccache[idx].s;
-    if (dccache[idx].tag == pc) {
+    DecodeExecState *s = dccache_fetch(pc);
+    if (s->pc == pc) {
       s->npc = s->snpc;
-      goto_EHelper(dccache[idx].EHelper);
+      goto_EHelper(s->EHelper);
     }
 
-    dccache[idx].tag = pc;
+    s->pc = pc;
 
     /* Execute one instruction, including instruction fetch,
      * instruction decode, and the actual execution. */

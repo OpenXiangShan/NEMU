@@ -22,11 +22,11 @@ typedef struct {
 } Operand;
 
 typedef struct {
+  const void *EHelper;
+  vaddr_t pc;
   vaddr_t snpc; // sequential next pc
   vaddr_t npc;  // real next pc
-  uint32_t opcode;
   Operand src1, dest, src2;
-  int width;
   rtlreg_t tmp_reg[4];
   ISADecodeInfo isa;
 } DecodeExecState;
