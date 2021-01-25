@@ -1,8 +1,8 @@
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
 #include "../local-include/rtl.h"
-#include <monitor/difftest.h>
-#include <monitor/cpu-exec.h>
+#include <cpu/difftest.h>
+#include <cpu/cpu-exec.h>
 
 #define goto_EHelper(addr) goto *(addr)
 #undef decode_empty

@@ -1,8 +1,8 @@
-#ifndef __MONITOR_CPU_EXEC_H__
-#define __MONITOR_CPU_EXEC_H__
+#ifndef __CPU_CPU_EXEC_H__
+#define __CPU_CPU_EXEC_H__
 
-#include <monitor/monitor.h>
-#include <monitor/difftest.h>
+#include <utils.h>
+#include <cpu/difftest.h>
 
 #ifdef DEBUG
 void debug_hook(vaddr_t this_pc, int len);

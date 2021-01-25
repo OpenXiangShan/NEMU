@@ -5,9 +5,9 @@ void init_timer();
 
 #ifdef HAS_IOE
 
+#include <utils.h>
 #include <device/alarm.h>
 #include <SDL2/SDL.h>
-#include <monitor/monitor.h>
 
 void init_alarm();
 void init_vga();

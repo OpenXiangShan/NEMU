@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include <monitor/log.h>
+#include <utils.h>
 
 #define Log(format, ...) \
     _Log("\33[1;34m[%s,%d,%s] " format "\33[0m\n", \

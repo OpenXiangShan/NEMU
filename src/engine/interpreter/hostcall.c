@@ -1,7 +1,7 @@
 #include <isa.h>
+#include <utils.h>
 #include <cpu/exec.h>
-#include <monitor/monitor.h>
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 uint32_t pio_read(ioaddr_t addr, int len);
 void pio_write(ioaddr_t addr, uint32_t data, int len);

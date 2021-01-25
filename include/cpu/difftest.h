@@ -1,5 +1,5 @@
-#ifndef __MONITOR_DIFFTEST_H__
-#define __MONITOR_DIFFTEST_H__
+#ifndef __CPU_DIFFTEST_H__
+#define __CPU_DIFFTEST_H__
 
 #include <common.h>
 #include <difftest.h>

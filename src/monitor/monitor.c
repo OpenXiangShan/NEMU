@@ -1,6 +1,5 @@
 #include <isa.h>
 #include <memory/paddr.h>
-#include <monitor/monitor.h>
 #include <getopt.h>
 #include <stdlib.h>
 

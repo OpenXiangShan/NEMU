@@ -2,7 +2,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
-#include <monitor/monitor.h>
+#include <utils.h>
 #include <difftest.h>
 
 #ifdef __DIFF_REF_QEMU_DL__

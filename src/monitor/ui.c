@@ -1,6 +1,5 @@
 #include <isa.h>
-#include "expr.h"
-#include "watchpoint.h"
+#include <utils.h>
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
@@ -12,6 +11,9 @@
 
 void cpu_exec(uint64_t);
 int is_batch_mode();
+int set_watchpoint(char *e);
+bool delete_watchpoint(int NO);
+void list_watchpoint();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
