@@ -27,7 +27,6 @@ typedef struct {
   vaddr_t snpc; // sequential next pc
   vaddr_t npc;  // real next pc
   Operand src1, dest, src2;
-  rtlreg_t tmp_reg[4];
   ISADecodeInfo isa;
 } DecodeExecState;
 

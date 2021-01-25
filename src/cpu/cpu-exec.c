@@ -11,6 +11,7 @@
 CPU_state cpu = {};
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
+rtlreg_t tmp_reg[4];
 
 #ifdef DEBUG
 void debug_hook(vaddr_t pc, int len) {
