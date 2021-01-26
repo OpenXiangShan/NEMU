@@ -22,7 +22,7 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
-void isa_execute(uint64_t n);
+uint32_t isa_execute(uint32_t n);
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
 
 // memory

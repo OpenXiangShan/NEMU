@@ -15,9 +15,6 @@ static inline void debug_hook(vaddr_t pc, int len) {}
 #define cpu_exec_2nd_part(pc, snpc, npc) { \
   debug_hook(pc, snpc - pc); \
   difftest_step(pc, npc); \
-  extern uint64_t g_nr_guest_instr; \
-  g_nr_guest_instr ++; \
-  if (g_nr_guest_instr % 65536 == 0) break; /* serve device */ \
   if (nemu_state.state != NEMU_RUNNING) break; \
 }
 

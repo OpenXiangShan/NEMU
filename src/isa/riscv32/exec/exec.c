@@ -11,7 +11,7 @@ static inline def_DHelper(empty) { }
 
 static inline void reset_zero() { reg_l(0) = 0; }
 
-void isa_execute(uint64_t n) {
+uint32_t isa_execute(uint32_t n) {
   for (; n > 0; n --) {
     vaddr_t pc = cpu.pc;
     DecodeExecState *s = dccache_fetch(pc);
@@ -33,4 +33,5 @@ exec_finish:
 
     cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }
+  return n;
 }

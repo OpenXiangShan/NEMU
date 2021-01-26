@@ -7,6 +7,7 @@
  * You can modify this value as you want.
  */
 #define MAX_INSTR_TO_PRINT 10
+#define BATCH_SIZE 65536
 
 CPU_state cpu = {};
 static bool g_print_step = false;
@@ -15,6 +16,8 @@ rtlreg_t tmp_reg[4];
 
 #ifdef DEBUG
 void debug_hook(vaddr_t pc, int len) {
+  g_nr_guest_instr ++;
+
   void asm_print(vaddr_t pc, int instr_len, bool print_flag);
   asm_print(pc, len, g_print_step);
 
@@ -39,7 +42,14 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 
   while (nemu_state.state == NEMU_RUNNING) {
-    isa_execute(n);
+    uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
+    uint32_t n_remain = isa_execute(n_batch);
+    uint32_t n_executed = n_batch - n_remain;
+    n -= n_executed;
+#ifndef DEBUG
+    g_nr_guest_instr += n_executed;
+#endif
+
 #ifdef HAS_IOE
     extern void device_update();
     device_update();
@@ -57,7 +67,7 @@ void cpu_exec(uint64_t n) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
     case NEMU_END: case NEMU_ABORT:
-      Log("nemu: %s\33[0m at pc = " FMT_WORD "\n\n",
+      Log("nemu: %s\33[0m at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
