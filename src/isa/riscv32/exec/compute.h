@@ -1,5 +1,5 @@
 def_EHelper(lui) {
-  rtl_li(s, ddest, id_src1->imm);
+  rtl_li(s, ddest, rs1);
   print_asm_template2(lui);
 }
 #ifndef __ICS_EXPORT
@@ -58,54 +58,54 @@ def_EHelper(and) {
 }
 
 def_EHelper(addi) {
-  rtl_addi(s, ddest, dsrc1, id_src2->imm);
+  rtl_addi(s, ddest, dsrc1, rs2);
   print_asm_template3(addi);
 }
 
 def_EHelper(slli) {
-  rtl_shli(s, ddest, dsrc1, id_src2->imm);
+  rtl_shli(s, ddest, dsrc1, rs2);
   print_asm_template3(slli);
 }
 
 def_EHelper(srli) {
   if (s->isa.instr.r.funct7 == 32) {
     // sra
-    rtl_sari(s, ddest, dsrc1, id_src2->imm);
+    rtl_sari(s, ddest, dsrc1, rs2);
     print_asm_template3(srai);
   }
   else {
-    rtl_shri(s, ddest, dsrc1, id_src2->imm);
+    rtl_shri(s, ddest, dsrc1, rs2);
     print_asm_template3(srli);
   }
 }
 
 def_EHelper(slti) {
-  rtl_setrelopi(s, RELOP_LT, ddest, dsrc1, id_src2->imm);
+  rtl_setrelopi(s, RELOP_LT, ddest, dsrc1, rs2);
   print_asm_template3(slti);
 }
 
 def_EHelper(sltui) {
-  rtl_setrelopi(s, RELOP_LTU, ddest, dsrc1, id_src2->imm);
+  rtl_setrelopi(s, RELOP_LTU, ddest, dsrc1, rs2);
   print_asm_template3(sltui);
 }
 
 def_EHelper(xori) {
-  rtl_xori(s, ddest, dsrc1, id_src2->imm);
+  rtl_xori(s, ddest, dsrc1, rs2);
   print_asm_template3(xori);
 }
 
 def_EHelper(ori) {
-  rtl_ori(s, ddest, dsrc1, id_src2->imm);
+  rtl_ori(s, ddest, dsrc1, rs2);
   print_asm_template3(ori);
 }
 
 def_EHelper(andi) {
-  rtl_andi(s, ddest, dsrc1, id_src2->imm);
+  rtl_andi(s, ddest, dsrc1, rs2);
   print_asm_template3(andi);
 }
 
 def_EHelper(auipc) {
-  rtl_li(s, ddest, id_src1->imm + cpu.pc);
+  rtl_li(s, ddest, rs1 + cpu.pc);
   print_asm_template2(auipc);
 }
 #endif

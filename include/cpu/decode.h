@@ -13,6 +13,7 @@ typedef struct {
     uint32_t reg;
     word_t imm;
     sword_t simm;
+    rtlreg_t val2;
   };
   rtlreg_t *preg;
   rtlreg_t val;

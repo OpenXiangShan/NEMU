@@ -3,7 +3,7 @@ def_EHelper(csrrw) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
 #endif
-  rtl_hostcall(s, HOSTCALL_CSR, ddest, dsrc1, id_src2->imm);
+  rtl_hostcall(s, HOSTCALL_CSR, ddest, dsrc1, rs2);
   print_asm_template3("csrrw");
 }
 
@@ -11,10 +11,10 @@ def_EHelper(csrrs) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 3);
 #endif
-  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, id_src2->imm);
+  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, rs2);
   rtl_or(s, s1, s0, dsrc1);
   rtl_mv(s, ddest, s0);
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, rs2);
   print_asm_template3("csrrs");
 }
 

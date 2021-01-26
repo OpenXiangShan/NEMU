@@ -38,10 +38,16 @@ uint32_t isa_execute(uint32_t n) {
     DecodeExecState *s = dccache_fetch(pc);
     s->npc = s->snpc;
     const void *e = s->EHelper;
+    word_t rd  = id_dest->val2;
+    word_t rs1 = id_src1->val2;
+    word_t rs2 = id_src2->val2;
     if (s->pc != pc) {
       /* Execute one instruction, including instruction fetch,
        * instruction decode, and the actual execution. */
       e = fetch_decode(s, jmp_table);
+      rd  = id_dest->val2;
+      rs1 = id_src1->val2;
+      rs2 = id_src2->val2;
     }
 
     goto *e;
