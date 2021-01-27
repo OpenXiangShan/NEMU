@@ -31,11 +31,22 @@ uint32_t isa_execute(uint32_t n) {
     MAP(INSTR_LIST, FILL_JMP_TABLE)
   };
 
+  // initialize the pointer to the sentinel element
+  DecodeExecState *s = &dccache[DCACHE_SIZE];
+  vaddr_t pc = 0; // this is safe, since the snpc of the sential element is invalid
+  vaddr_t last_snpc = s->snpc;
   while (n > 0) {
     n --;
-    vaddr_t pc = cpu.pc;
-    DecodeExecState *s = dccache_fetch(pc);
+    s ++;
+    if (pc != last_snpc) {
+      // the last instruction may be a branch,
+      // re-fetch the correct decode information
+      s = dccache_fetch(pc);
+    }
+
+    pc = cpu.pc;
     cpu.pc = s->snpc;
+    last_snpc = s->snpc;
     const void *e = s->EHelper;
     word_t rd  = id_dest->val2;
     word_t rs1 = id_src1->val2;
