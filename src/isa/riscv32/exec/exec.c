@@ -55,7 +55,7 @@ uint32_t isa_execute(uint32_t n) {
 #include "all-instr.h"
     def_finish();
 
-    cpu_exec_2nd_part(pc, s->snpc, s->npc);
+    cpu_exec_2nd_part(pc, s->snpc, cpu.pc);
   }
   return n;
 }

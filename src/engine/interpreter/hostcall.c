@@ -42,11 +42,11 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
       set_nemu_state(NEMU_END, cpu.pc, *src);
       break;
     case HOSTCALL_INV: invalid_instr(); break;
-    case HOSTCALL_PIO: {
-      if (imm) *dest = pio_read(*src, id_dest->width);
-      else pio_write(*dest, *src, id_dest->width);
-      break;
-    }
+    //case HOSTCALL_PIO: {
+    //  if (imm) *dest = pio_read(*src, id_dest->width);
+    //  else pio_write(*dest, *src, id_dest->width);
+    //  break;
+    //}
     default: isa_hostcall(id, dest, src, imm); break;
   }
 }
