@@ -12,7 +12,7 @@ static inline def_rtl(li, rtlreg_t* dest, const rtlreg_t imm) {
 }
 
 static inline def_rtl(mv, rtlreg_t* dest, const rtlreg_t *src1) {
-  if (dest != src1) rtl_add(s, dest, src1, rz);
+  rtl_addi(s, dest, src1, 0);
 }
 
 static inline def_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
