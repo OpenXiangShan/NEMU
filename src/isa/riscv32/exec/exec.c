@@ -26,8 +26,6 @@ MAP(INSTR_LIST, def_EXEC_ID)
 #include "../local-include/decode.h"
 #include "table.h"
 
-static inline void reset_zero() { reg_l(0) = 0; }
-
 uint32_t isa_execute(uint32_t n) {
   static const void* jmp_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_JMP_TABLE)
@@ -56,8 +54,6 @@ uint32_t isa_execute(uint32_t n) {
 
 #include "all-instr.h"
     def_finish();
-
-    reset_zero();
 
     cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }

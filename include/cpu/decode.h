@@ -10,7 +10,7 @@ typedef struct {
   uint32_t type;
   int width;
   union {
-    uint32_t reg;
+    int reg;
     word_t imm;
     sword_t simm;
     rtlreg_t val2;
