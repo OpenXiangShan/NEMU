@@ -30,9 +30,9 @@ uint32_t isa_execute(uint32_t n) {
   static const void* jmp_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_JMP_TABLE)
   };
-  uint32_t remain_instr = 0;
 
-  for (; n > 0; n --) {
+  while (n > 0) {
+    n --;
     vaddr_t pc = cpu.pc;
     DecodeExecState *s = dccache_fetch(pc);
     cpu.pc = s->snpc;
@@ -57,5 +57,5 @@ uint32_t isa_execute(uint32_t n) {
 
     cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }
-  return remain_instr;
+  return n;
 }
