@@ -1,7 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
-#include <device/dev.h>
 #include <cpu/exec.h>
+#include <device/dev.h>
 #include <device/map.h>
 
 void cpu_exec(uint64_t);
