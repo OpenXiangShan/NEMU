@@ -105,7 +105,7 @@ def_EHelper(andi) {
 }
 
 def_EHelper(auipc) {
-  rtl_li(s, ddest, rs1 + cpu.pc);
+  rtl_li(s, ddest, rs1 + s->pc);
   print_asm_template2(auipc);
 }
 #endif

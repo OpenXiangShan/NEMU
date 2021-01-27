@@ -22,7 +22,7 @@ def_EHelper(priv) {
   uint32_t type = s->isa.instr.csr.csr;
   switch (type) {
     case 0:
-      rtl_trap(s, cpu.pc, 9);
+      rtl_trap(s, s->pc, 9);
       print_asm("ecall");
       break;
     case 0x102:

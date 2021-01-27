@@ -36,7 +36,7 @@ uint32_t isa_execute(uint32_t n) {
   for (; n > 0; n --) {
     vaddr_t pc = cpu.pc;
     DecodeExecState *s = dccache_fetch(pc);
-    s->npc = s->snpc;
+    cpu.pc = s->snpc;
     const void *e = s->EHelper;
     word_t rd  = id_dest->val2;
     word_t rs1 = id_src1->val2;
@@ -44,6 +44,7 @@ uint32_t isa_execute(uint32_t n) {
     if (s->pc != pc) {
       /* Execute one instruction, including instruction fetch,
        * instruction decode, and the actual execution. */
+      s->pc = pc;
       e = fetch_decode(s, jmp_table);
       rd  = id_dest->val2;
       rs1 = id_src1->val2;
@@ -54,8 +55,6 @@ uint32_t isa_execute(uint32_t n) {
 
 #include "all-instr.h"
     def_finish();
-
-    update_pc(s);
 
     reset_zero();
 
