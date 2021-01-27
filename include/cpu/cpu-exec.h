@@ -15,7 +15,6 @@ static inline void debug_hook(vaddr_t pc, int len) {}
 #define cpu_exec_2nd_part(pc, snpc, npc) { \
   debug_hook(pc, snpc - pc); \
   difftest_step(pc, npc); \
-  if (nemu_state.state != NEMU_RUNNING) break; \
 }
 
 #endif

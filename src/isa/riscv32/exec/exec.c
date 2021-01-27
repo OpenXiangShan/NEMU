@@ -32,6 +32,7 @@ uint32_t isa_execute(uint32_t n) {
   static const void* jmp_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_JMP_TABLE)
   };
+  uint32_t remain_instr = 0;
 
   for (; n > 0; n --) {
     vaddr_t pc = cpu.pc;
@@ -60,5 +61,5 @@ uint32_t isa_execute(uint32_t n) {
 
     cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }
-  return n;
+  return remain_instr;
 }
