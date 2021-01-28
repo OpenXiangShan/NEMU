@@ -3,7 +3,7 @@
 
 #include <cpu/decode.h>
 
-#define DCACHE_SIZE 1024
+#define DCACHE_SIZE (1024 * 4)
 extern DecodeExecState dccache[];
 
 void dccache_flush();
