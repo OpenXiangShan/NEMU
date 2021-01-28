@@ -32,15 +32,15 @@ uint32_t isa_execute(uint32_t n) {
   };
 
   // initialize the pointer to the sentinel element
-  DecodeExecState *s = &dccache[DCACHE_SIZE];
+  DecodeExecState *s = &dccache[DCACHE_SIZE] - 1;
   while (n > 0) {
     n --;
     vaddr_t pc = cpu.pc;
-    if (pc == s->snpc) {
-      s ++;
-    } else {
-      // the last instruction may be a branch,
-      // re-fetch the correct decode information
+    s ++;
+    if (unlikely(s->pc != pc)) {
+      // The last instruction may be a branch,
+      // or s is pointing to the sentinel.
+      // Re-fetch the correct decode information.
       s = dccache_fetch(pc);
     }
 
@@ -50,7 +50,6 @@ uint32_t isa_execute(uint32_t n) {
     word_t rs1 = id_src1->val2;
     word_t rs2 = id_src2->val2;
     if (unlikely(s->pc != pc)) {
-      s = dccache_fetch(pc);
       /* Execute one instruction, including instruction fetch,
        * instruction decode, and the actual execution. */
       s->pc = pc;
