@@ -51,7 +51,7 @@ uint32_t isa_execute(uint32_t n) {
     word_t rd  = id_dest->val2;
     word_t rs1 = id_src1->val2;
     word_t rs2 = id_src2->val2;
-    if (s->pc != pc) {
+    if (unlikely(s->pc != pc)) {
       /* Execute one instruction, including instruction fetch,
        * instruction decode, and the actual execution. */
       s->pc = pc;
