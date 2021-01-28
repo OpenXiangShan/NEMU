@@ -22,13 +22,13 @@ typedef struct {
 #endif
 } Operand;
 
-typedef struct {
+typedef struct DecodeExecState {
   const void *EHelper;
   vaddr_t pc;
   vaddr_t snpc; // sequential next pc
-  //vaddr_t npc;  // real next pc
   Operand src1, dest, src2;
   ISADecodeInfo isa;
+  struct DecodeExecState *next;
 } DecodeExecState;
 
 #define def_DHelper(name) void concat(decode_, name) (DecodeExecState *s)

@@ -78,6 +78,20 @@ const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
   if (s->isa.instr.i.opcode1_0 == 0x3) {
     idx = table_main(s);
   }
+
+  // branch prediction
+  vaddr_t pnpc = s->snpc;
+  switch (idx) {
+    case EXEC_ID_jal: pnpc = id_src1->imm; break;
+    case EXEC_ID_beq:
+    case EXEC_ID_bne:
+    case EXEC_ID_blt:
+    case EXEC_ID_bge:
+    case EXEC_ID_bltu:
+    case EXEC_ID_bgeu: if ((int)s->isa.instr.val < 0) pnpc = id_dest->imm; break;
+  }
+  s->next = dccache_fetch(pnpc);
+
   const void *e = jmp_table[idx];
   s->EHelper = e;
   cpu.pc = s->snpc;
