@@ -88,7 +88,7 @@ const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
     case EXEC_ID_blt:
     case EXEC_ID_bge:
     case EXEC_ID_bltu:
-    case EXEC_ID_bgeu: if ((int)s->isa.instr.val < 0) pnpc = id_dest->imm; break;
+    case EXEC_ID_bgeu: pnpc = id_dest->imm; break;
   }
   s->next = dccache_fetch(pnpc);
 
