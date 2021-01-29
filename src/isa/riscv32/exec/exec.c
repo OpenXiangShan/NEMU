@@ -43,8 +43,10 @@ uint32_t isa_execute(uint32_t n) {
       // then try the prediction result
       s = tmp->next;
       if (unlikely(s->pc != pc)) {
-        // if the prediction is wrong, re-fetch the correct decode information.
+        // if the prediction is wrong, re-fetch the correct decode information,
+        // and update the prediction
         s = dccache_fetch(pc);
+        tmp->next = s;
       }
     }
 
