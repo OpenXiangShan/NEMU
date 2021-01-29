@@ -33,8 +33,7 @@ uint32_t isa_execute(uint32_t n) {
 
   // initialize the pointer to the sentinel element
   DecodeExecState *s = &dccache[DCACHE_SIZE] - 1;
-  while (n > 0) {
-    n --;
+  for (;n > 0; n --) {
     vaddr_t pc = cpu.pc;
     DecodeExecState *tmp = s;
     s ++; // first try sequential fetch with lowest cost
