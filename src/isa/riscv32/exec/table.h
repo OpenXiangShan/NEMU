@@ -71,7 +71,6 @@ def_THelper(main) {
 };
 
 const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
-  cpu.pc = s->pc;
   s->snpc = s->pc;
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = EXEC_ID_inv;
@@ -96,6 +95,5 @@ const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
 
   const void *e = jmp_table[idx];
   s->EHelper = e;
-  cpu.pc = s->snpc;
   return e;
 }

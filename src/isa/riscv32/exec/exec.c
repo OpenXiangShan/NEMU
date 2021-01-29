@@ -53,7 +53,6 @@ uint32_t isa_execute(uint32_t n) {
       }
     }
 
-    cpu.pc = s->snpc;
     word_t rd  = id_dest->val2;
     word_t rs1 = id_src1->val2;
     word_t rs2 = id_src2->val2;
