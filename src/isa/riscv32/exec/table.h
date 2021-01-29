@@ -24,6 +24,9 @@ def_THelper(store) {
 }
 
 def_THelper(op_imm) {
+  if (s->isa.instr.r.funct7 == 32) {
+    switch (s->isa.instr.r.funct3) { TAB(5, srai) }
+  }
   switch (s->isa.instr.i.funct3) {
     TAB(0, addi)  TAB(1, slli)  TAB(2, slti) TAB(3, sltui)
     TAB(4, xori)  TAB(5, srli)  TAB(6, ori)  TAB(7, andi)
@@ -32,6 +35,12 @@ def_THelper(op_imm) {
 };
 
 def_THelper(op) {
+  if (s->isa.instr.r.funct7 == 32) {
+    switch (s->isa.instr.r.funct3) {
+      TAB(0, sub) TAB(5, sra)
+    }
+    return EXEC_ID_inv;
+  }
 #define pair(x, y) (((x) << 3) | (y))
   int index = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
   switch (index) {
@@ -47,6 +56,13 @@ def_THelper(branch) {
   switch (s->isa.instr.i.funct3) {
     TAB(0, beq)   TAB(1, bne)
     TAB(4, blt)   TAB(5, bge)   TAB(6, bltu)   TAB(7, bgeu)
+  }
+  return EXEC_ID_inv;
+};
+
+def_THelper(priv) {
+  switch (s->isa.instr.csr.csr) {
+    TAB(0, ecall)  TAB (0x102, sret)  TAB (0x120, sfence_vma)
   }
   return EXEC_ID_inv;
 };
@@ -72,6 +88,7 @@ def_THelper(main) {
 
 void fetch_decode(DecodeExecState *s, const void **jmp_table) {
   s->snpc = s->pc;
+  cpu.pc = s->pc;
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = EXEC_ID_inv;
   if (s->isa.instr.i.opcode1_0 == 0x3) {

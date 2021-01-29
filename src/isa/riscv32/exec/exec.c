@@ -5,12 +5,12 @@
 #include <cpu/dccache.h>
 
 #define INSTR_LIST(f) \
-  f(lui) f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) \
-  f(and) f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) \
+  f(lui) f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) \
+  f(and) f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) \
   f(andi) f(auipc) f(jal) f(jalr) f(beq) f(bne) f(blt) f(bge) \
   f(bltu) f(bgeu) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) \
   f(sh) f(sb) f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) \
-  f(rem) f(remu) f(inv) f(nemu_trap) f(csrrw) f(csrrs) f(priv)
+  f(rem) f(remu) f(inv) f(nemu_trap) f(csrrw) f(csrrs) f(ecall) f(sret) f(sfence_vma)
 
 #define def_EXEC_ID(name) \
   enum { concat(EXEC_ID_, name) = __COUNTER__ }; \

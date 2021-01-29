@@ -5,14 +5,13 @@ def_EHelper(lui) {
 #ifndef __ICS_EXPORT
 
 def_EHelper(add) {
-  if (s->isa.instr.r.funct7 == 32) {
-    // sub
-    rtl_sub(s, ddest, dsrc1, dsrc2);
-    print_asm_template3(sub);
-  } else {
-    rtl_add(s, ddest, dsrc1, dsrc2);
-    print_asm_template3(add);
-  }
+  rtl_add(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(add);
+}
+
+def_EHelper(sub) {
+  rtl_sub(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(sub);
 }
 
 def_EHelper(sll) {
@@ -21,15 +20,13 @@ def_EHelper(sll) {
 }
 
 def_EHelper(srl) {
-  if (s->isa.instr.r.funct7 == 32) {
-    // sra
-    rtl_sar(s, ddest, dsrc1, dsrc2);
-    print_asm_template3(sra);
-  }
-  else {
-    rtl_shr(s, ddest, dsrc1, dsrc2);
-    print_asm_template3(srl);
-  }
+  rtl_shr(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(srl);
+}
+
+def_EHelper(sra) {
+  rtl_sar(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(sra);
 }
 
 def_EHelper(slt) {
@@ -68,16 +65,15 @@ def_EHelper(slli) {
 }
 
 def_EHelper(srli) {
-  if (s->isa.instr.r.funct7 == 32) {
-    // sra
-    rtl_sari(s, ddest, dsrc1, rs2);
-    print_asm_template3(srai);
-  }
-  else {
-    rtl_shri(s, ddest, dsrc1, rs2);
-    print_asm_template3(srli);
-  }
+  rtl_shri(s, ddest, dsrc1, rs2);
+  print_asm_template3(srli);
 }
+
+def_EHelper(srai) {
+  rtl_sari(s, ddest, dsrc1, rs2);
+  print_asm_template3(srai);
+}
+
 
 def_EHelper(slti) {
   rtl_setrelopi(s, RELOP_LT, ddest, dsrc1, rs2);

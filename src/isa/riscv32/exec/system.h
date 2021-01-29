@@ -18,27 +18,28 @@ def_EHelper(csrrs) {
   print_asm_template3("csrrs");
 }
 
-def_EHelper(priv) {
-  uint32_t type = s->isa.instr.csr.csr;
-  switch (type) {
-    case 0:
-      rtl_trap(s, s->pc, 9);
-      print_asm("ecall");
-      break;
-    case 0x102:
-      rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, type);
-      rtl_jr(s, s0);
-      print_asm("sret");
-      break;
-    case 0x120:
-      rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, type);
-      print_asm("sfence.vma");
-      break;
-    default: panic("unimplemented priv instruction type = 0x%x", type);
-  }
-
+def_EHelper(ecall) {
 #ifndef __DIFF_REF_NEMU__
   difftest_skip_dut(1, 2);
 #endif
+  rtl_trap(s, thispc, 9);
+  print_asm("ecall");
+}
+
+def_EHelper(sret) {
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_dut(1, 2);
+#endif
+  rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, 0x102);
+  rtl_jr(s, s0);
+  print_asm("sret");
+}
+
+def_EHelper(sfence_vma) {
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_dut(1, 2);
+#endif
+  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, 0x120);
+  print_asm("sfence.vma");
 }
 #endif
