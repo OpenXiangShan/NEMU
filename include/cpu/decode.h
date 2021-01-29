@@ -9,15 +9,14 @@ enum { OP_TYPE_REG, OP_TYPE_MEM, OP_TYPE_IMM };
 typedef struct {
 //  uint32_t type;
 //  int width;
-//  rtlreg_t *preg;
   union {
-    int reg;
+    rtlreg_t *preg;
     word_t imm;
     sword_t simm;
-    rtlreg_t val2;
   };
 //  rtlreg_t val;
 #ifdef DEBUG
+  int reg;
   char str[OP_STR_SIZE];
 #endif
 } Operand;

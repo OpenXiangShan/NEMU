@@ -16,12 +16,12 @@
 #define def_start()
 #define def_finish() def_label(finish_label)
 
-#undef ddest
-#undef dsrc1
-#undef dsrc2
-#define ddest (&cpu.gpr[rd]._32)
-#define dsrc1 (&cpu.gpr[rs1]._32)
-#define dsrc2 (&cpu.gpr[rs2]._32)
+#undef id_dest
+#undef id_src1
+#undef id_src2
+#define id_dest (&ldest)
+#define id_src1 (&lsrc1)
+#define id_src2 (&lsrc2)
 
 #include "special.h"
 #include "compute.h"

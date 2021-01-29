@@ -5,24 +5,22 @@
 #define def_DopHelper(name) \
   void concat(decode_op_, name) (DecodeExecState *s, Operand *op, uint32_t val, bool load_val)
 
-#ifndef DEBUG
-word_t zero_null = 0;
-#endif
-
 static inline def_DopHelper(i) {
   op->imm = val;
   print_Dop(op->str, OP_STR_SIZE, "%d", op->imm);
 }
 
 static inline def_DopHelper(r) {
+  static word_t zero_null = 0;
+  op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
+//#define PTR_DIFF ((intptr_t)&zero_null - (intptr_t)&cpu.gpr[0]._32)
+//  Assert(PTR_DIFF % sizeof(word_t) == 0, "pointers are not aligned");
+//  op->reg = (!load_val && val == 0) ? PTR_DIFF / sizeof(word_t) : val;
+//#undef PTR_DIFF
+#ifdef DEBUG
   op->reg = val;
-#ifndef DEBUG
-#define PTR_DIFF ((intptr_t)&zero_null - (intptr_t)&cpu.gpr[0]._32)
-  Assert(PTR_DIFF % sizeof(word_t) == 0, "pointers are not aligned");
-  if (!load_val && val == 0) op->reg = PTR_DIFF / sizeof(word_t);
-#undef PTR_DIFF
 #endif
-  print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
+  print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
 static inline def_DHelper(I) {
