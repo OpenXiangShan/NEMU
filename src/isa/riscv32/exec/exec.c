@@ -18,8 +18,8 @@
 
 MAP(INSTR_LIST, def_EXEC_ID)
 
-#define INSTR_ONE(name) + 1
-#define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_ONE))
+#define INSTR_CNT(name) + 1
+#define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
 
 #define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
@@ -31,21 +31,20 @@ uint32_t isa_execute(uint32_t n) {
     MAP(INSTR_LIST, FILL_JMP_TABLE)
   };
 
-  // initialize the pointer to the sentinel element
-  DecodeExecState *s = &dccache[DCACHE_SIZE] - 1;
+  DecodeExecState *s = &dccache[0];
   for (;n > 0; n --) {
     vaddr_t pc = cpu.pc;
-    DecodeExecState *tmp = s;
-    s ++; // first try sequential fetch with lowest cost
+    DecodeExecState *prev = s;
+    s ++; // first try sequential fetch with the lowest cost
     if (unlikely(s->pc != pc)) {
       // if the last instruction is a branch, or `s` is pointing to the sentinel,
       // then try the prediction result
-      s = tmp->next;
+      s = prev->next;
       if (unlikely(s->pc != pc)) {
         // if the prediction is wrong, re-fetch the correct decode information,
         // and update the prediction
         s = dccache_fetch(pc);
-        tmp->next = s;
+        prev->next = s;
         if (unlikely(s->pc != pc)) {
           // if it is a miss in decode cache, fetch and decode the correct instruction
           s->pc = pc;

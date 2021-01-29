@@ -89,7 +89,8 @@ const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
     case EXEC_ID_bge:
     case EXEC_ID_bltu:
     case EXEC_ID_bgeu: pnpc = id_dest->imm; break;
-    case EXEC_ID_jalr: pnpc = cpu.gpr[id_src1->reg]._32 + id_src2->simm; break;
+    case EXEC_ID_jalr: // static prediction for jalr
+      pnpc = cpu.gpr[id_src1->reg]._32 + id_src2->simm; break;
   }
   s->next = dccache_fetch(pnpc);
 
