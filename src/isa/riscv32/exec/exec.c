@@ -26,10 +26,17 @@ MAP(INSTR_LIST, def_EXEC_ID)
 #include "../local-include/decode.h"
 #include "table.h"
 
+//#define PERF
+
 uint32_t isa_execute(uint32_t n) {
   static const void* jmp_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_JMP_TABLE)
   };
+#ifdef PERF
+  static uint64_t instr = 0;
+  static uint64_t bp_miss = 0;
+  static uint64_t dc_miss = 0;
+#endif
 
   DecodeExecState *s = &dccache[0];
   vaddr_t lpc = cpu.pc; // local pc
@@ -45,13 +52,25 @@ uint32_t isa_execute(uint32_t n) {
         // and update the prediction
         s = dccache_fetch(lpc);
         prev->next = s;
+#ifdef PERF
+    bp_miss ++;
+#endif
         if (unlikely(s->pc != lpc)) {
           // if it is a miss in decode cache, fetch and decode the correct instruction
           s->pc = lpc;
           fetch_decode(s, jmp_table);
+#ifdef PERF
+    dc_miss ++;
+#endif
         }
       }
     }
+
+#ifdef PERF
+    instr ++;
+    if (instr % (65536 * 1024) == 0)
+      Log("instr = %ld, bp_miss = %ld, dc_miss = %ld", instr, bp_miss, dc_miss);
+#endif
 
     word_t thispc = lpc;
     lpc = s->snpc;
