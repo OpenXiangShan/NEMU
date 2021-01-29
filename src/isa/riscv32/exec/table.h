@@ -70,7 +70,7 @@ def_THelper(main) {
   return EXEC_ID_inv;
 };
 
-const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
+void fetch_decode(DecodeExecState *s, const void **jmp_table) {
   s->snpc = s->pc;
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = EXEC_ID_inv;
@@ -93,7 +93,5 @@ const void* fetch_decode(DecodeExecState *s, const void **jmp_table) {
   }
   s->next = dccache_fetch(pnpc);
 
-  const void *e = jmp_table[idx];
-  s->EHelper = e;
-  return e;
+  s->EHelper = jmp_table[idx];
 }

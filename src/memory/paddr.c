@@ -26,12 +26,12 @@ void init_mem() {
 #endif
 }
 
-static inline bool in_pmem(paddr_t addr) {
-  return (PMEM_BASE <= addr) && (addr <= PMEM_BASE + PMEM_SIZE - 1);
+static inline bool in_pmem(uint32_t idx) {
+  return (idx < PMEM_SIZE);
 }
 
-static inline word_t pmem_read(paddr_t addr, int len) {
-  void *p = &pmem[addr - PMEM_BASE];
+static inline word_t pmem_read(uint32_t idx, int len) {
+  void *p = &pmem[idx];
   switch (len) {
     case 1: return *(uint8_t  *)p;
     case 2: return *(uint16_t *)p;
@@ -43,8 +43,8 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   }
 }
 
-static inline void pmem_write(paddr_t addr, word_t data, int len) {
-  void *p = &pmem[addr - PMEM_BASE];
+static inline void pmem_write(uint32_t idx, word_t data, int len) {
+  void *p = &pmem[idx];
   switch (len) {
     case 1: *(uint8_t  *)p = data; return;
     case 2: *(uint16_t *)p = data; return;
@@ -59,12 +59,14 @@ static inline void pmem_write(paddr_t addr, word_t data, int len) {
 /* Memory accessing interfaces */
 
 inline word_t paddr_read(paddr_t addr, int len) {
-  if (in_pmem(addr)) return pmem_read(addr, len);
+  uint32_t idx = addr - PMEM_BASE;
+  if (in_pmem(idx)) return pmem_read(idx, len);
   else return map_read(addr, len, fetch_mmio_map(addr));
 }
 
 inline void paddr_write(paddr_t addr, word_t data, int len) {
-  if (in_pmem(addr)) pmem_write(addr, data, len);
+  uint32_t idx = addr - PMEM_BASE;
+  if (in_pmem(idx)) pmem_write(idx, data, len);
   else map_write(addr, data, len, fetch_mmio_map(addr));
 }
 
