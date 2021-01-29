@@ -21,13 +21,16 @@ typedef struct {
 #endif
 } Operand;
 
-typedef struct DecodeExecState {
-  const void *EHelper;
-  vaddr_t pc;
-  vaddr_t snpc; // sequential next pc
-  Operand src1, dest, src2;
-  ISADecodeInfo isa;
-  struct DecodeExecState *next;
+typedef union DecodeExecState {
+  struct {
+    union DecodeExecState *next;
+    vaddr_t pc;
+    vaddr_t snpc; // sequential next pc
+    const void *EHelper;
+    Operand dest, src1, src2;
+    ISADecodeInfo isa;
+  };
+  uint8_t pad[64];
 } DecodeExecState;
 
 #define def_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
