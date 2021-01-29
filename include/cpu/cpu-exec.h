@@ -1,7 +1,6 @@
 #ifndef __CPU_CPU_EXEC_H__
 #define __CPU_CPU_EXEC_H__
 
-#include <utils.h>
 #include <cpu/difftest.h>
 
 #ifdef DEBUG

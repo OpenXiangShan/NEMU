@@ -1,8 +1,16 @@
+#define update_gpc(npc) (cpu.pc = (npc)) // global pc
+#define update_lpc(npc) (lpc = (npc)) // local pc
+
+#define rtl_j(s, target) update_lpc(target)
+#define rtl_jr(s, target) update_lpc(*(target))
+#define rtl_jrelop(s, relop, src1, src2, target) \
+  rtl_j(s, interpret_relop(relop, *src1, *src2) ? target : s->snpc)
+
 #undef def_EHelper
 #define finish_label exec_finish
 #define def_label(l) l:
 #define def_EHelper(name) \
-  cpu.pc = s->snpc; \
+  rtl_j(s, s->snpc); \
   goto finish_label; /* this is for the previous def_EHelper() */ \
   def_label(name)
 

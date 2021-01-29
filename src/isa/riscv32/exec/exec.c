@@ -32,22 +32,22 @@ uint32_t isa_execute(uint32_t n) {
   };
 
   DecodeExecState *s = &dccache[0];
+  vaddr_t lpc = cpu.pc; // local pc
   for (;n > 0; n --) {
-    vaddr_t pc = cpu.pc;
     DecodeExecState *prev = s;
     s ++; // first try sequential fetch with the lowest cost
-    if (unlikely(s->pc != pc)) {
+    if (unlikely(s->pc != lpc)) {
       // if the last instruction is a branch, or `s` is pointing to the sentinel,
       // then try the prediction result
       s = prev->next;
-      if (unlikely(s->pc != pc)) {
+      if (unlikely(s->pc != lpc)) {
         // if the prediction is wrong, re-fetch the correct decode information,
         // and update the prediction
-        s = dccache_fetch(pc);
+        s = dccache_fetch(lpc);
         prev->next = s;
-        if (unlikely(s->pc != pc)) {
+        if (unlikely(s->pc != lpc)) {
           // if it is a miss in decode cache, fetch and decode the correct instruction
-          s->pc = pc;
+          s->pc = lpc;
           fetch_decode(s, jmp_table);
         }
       }
@@ -62,7 +62,8 @@ uint32_t isa_execute(uint32_t n) {
 #include "all-instr.h"
     def_finish();
 
-    cpu_exec_2nd_part(pc, s->snpc, cpu.pc);
+    cpu_exec_2nd_part(s->pc, s->snpc, lpc);
   }
+  cpu.pc = lpc;
   return n;
 }

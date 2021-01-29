@@ -1,6 +1,6 @@
-#include <isa.h>
 #include <utils.h>
 #include <cpu/exec.h>
+#include <rtl/rtl.h>
 #include <cpu/difftest.h>
 
 uint32_t pio_read(ioaddr_t addr, int len);

@@ -1,10 +1,8 @@
 #ifndef __CPU_EXEC_H__
 #define __CPU_EXEC_H__
 
-#include <isa.h>
-#include <rtl/rtl.h>
-#include <memory/vaddr.h>
 #include <cpu/decode.h>
+#include <memory/vaddr.h>
 
 #define def_EHelper(name) void concat(exec_, name) (DecodeExecState *s)
 
