@@ -83,7 +83,7 @@ def_THelper(main) {
     IDTAB(030, B, branch) IDTAB(031, I, jalr)  TAB  (032, nemu_trap)  IDTAB(033, J, jal)
     TAB  (034, system)
   }
-  return EXEC_ID_inv;
+  return table_inv(s);
 };
 
 void fetch_decode(DecodeExecState *s, const void **jmp_table) {
