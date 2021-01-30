@@ -4,6 +4,10 @@ ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
 $(error Invalid ENGINE=$(ENGINE). Supported: $(ENGINES))
 endif
 
+GCC = clang
+CFLAGS += -O3 -flto
+LDFLAGS += -O3 -flto
+
 NAME  = nemu-$(ENGINE)
 SRCS  = $(shell find src/ -name "*.c" | grep -v "src/\(isa\|engine\|user\)")
 SRCS += $(shell find src/isa/$(ISA) -name "*.c")

@@ -26,12 +26,14 @@ BINARY   = $(BUILD_DIR)/$(ISA)-$(NAME)$(SO)
 
 CCACHE := $(if $(shell which ccache),ccache,)
 
+GCC ?= gcc
+
 # Compilation flags
-CC = $(CCACHE) gcc
-LD = $(CCACHE) gcc
+CC = $(CCACHE) $(GCC)
+LD = $(CCACHE) $(GCC)
 INCLUDES = $(addprefix -I, $(INC_DIR))
-CFLAGS  += -O2 -MMD -Wall -Werror $(INCLUDES) -D__ISA_$(ISA)__
-LDFLAGS += -O2
+CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) -D__ISA_$(ISA)__ $(CFLAGS)
+LDFLAGS := -O2 $(LDFLAGS)
 
 OBJS = $(SRCS:src/%.c=$(OBJ_DIR)/%.o)
 
