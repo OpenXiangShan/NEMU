@@ -40,7 +40,7 @@ uint32_t isa_execute(uint32_t n) {
 
   DecodeExecState *s = &dccache[0];
   vaddr_t lpc = cpu.pc; // local pc
-  for (;n > 0; n --) {
+  while (true) {
     DecodeExecState *prev = s;
     s ++; // first try sequential fetch with the lowest cost
     if (unlikely(s->pc != lpc)) {
@@ -71,6 +71,8 @@ uint32_t isa_execute(uint32_t n) {
     if (instr % (65536 * 1024) == 0)
       Log("instr = %ld, bp_miss = %ld, dc_miss = %ld", instr, bp_miss, dc_miss);
 #endif
+
+    if (--n == 0) break;
 
     word_t thispc = lpc;
     lpc += 4;
