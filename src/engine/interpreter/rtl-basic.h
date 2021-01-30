@@ -148,18 +148,18 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline def_rtl(j, vaddr_t target) {
-  s->jmp_pc = target;
-  s->is_jmp = true;
+//  s->npc = target;
+  cpu.pc = target;
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
-  s->jmp_pc = *target;
-  s->is_jmp = true;
+//  s->npc = *target;
+  cpu.pc = *target;
 }
 
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
-  if (is_jmp) rtl_j(s, target);
+  rtl_j(s, (is_jmp ? target : s->snpc));
 }
 #endif

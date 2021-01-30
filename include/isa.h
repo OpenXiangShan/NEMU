@@ -22,7 +22,7 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
-vaddr_t isa_exec_once();
+uint32_t isa_execute(uint32_t n);
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
 
 // memory
@@ -32,7 +32,10 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len);
 #ifndef isa_vaddr_check
 int isa_vaddr_check(vaddr_t vaddr, int type, int len);
 #endif
+
+// exception and interrupt
 #define isa_has_mem_exception concat(__ISA__, _has_mem_exception)
+void isa_query_intr();
 
 // difftest
   // for dut

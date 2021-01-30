@@ -1,5 +1,5 @@
-#ifndef __MONITOR_DIFFTEST_H__
-#define __MONITOR_DIFFTEST_H__
+#ifndef __CPU_DIFFTEST_H__
+#define __CPU_DIFFTEST_H__
 
 #include <common.h>
 #include <difftest.h>
@@ -8,12 +8,12 @@
 void difftest_skip_ref();
 void difftest_skip_dut(int nr_ref, int nr_dut);
 void difftest_set_patch(void (*fn)(void *arg), void *arg);
-void difftest_step(vaddr_t this_pc, vaddr_t next_pc);
+void difftest_step(vaddr_t pc, vaddr_t npc);
 #else
 #define difftest_skip_ref()
 #define difftest_skip_dut(nr_ref, nr_dut)
 static inline void difftest_set_patch(void (*fn)(void *arg), void *arg) {}
-static inline void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {}
+static inline void difftest_step(vaddr_t pc, vaddr_t npc) {}
 #endif
 
 extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool direction);

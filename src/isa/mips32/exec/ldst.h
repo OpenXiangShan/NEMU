@@ -1,44 +1,53 @@
-#ifndef __ICS_EXPORT
-#include "../local-include/intr.h"
-#endif
-static inline def_EHelper(ld) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, s->width);
-
+def_EHelper(lw) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 4: print_asm_template2(lw); break;
-    case 2: print_asm_template2(lhu); break;
-    case 1: print_asm_template2(lbu); break;
-    default: assert(0);
-  }
+  print_asm_template2(lw);
 }
 
-static inline def_EHelper(st) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, s->width);
-
+def_EHelper(sw) {
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 4);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 4: print_asm_template2(sw); break;
-    case 2: print_asm_template2(sh); break;
-    case 1: print_asm_template2(sb); break;
-    default: assert(0);
-  }
+  print_asm_template2(sw);
 }
 #ifndef __ICS_EXPORT
 
-// load sign value
-static inline def_EHelper(lds) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
-
+def_EHelper(lh) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 2);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 2: print_asm_template2(lh); break;
-    case 1: print_asm_template2(lb); break;
-    default: assert(0);
-  }
+  print_asm_template2(lh);
 }
 
-static inline def_EHelper(swl) {
+def_EHelper(lb) {
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lb);
+}
+
+def_EHelper(lhu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lhu);
+}
+
+def_EHelper(lbu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lbu);
+}
+
+def_EHelper(sh) {
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(sh);
+}
+
+def_EHelper(sb) {
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(sb);
+}
+
+def_EHelper(swl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shamt2
@@ -47,8 +56,7 @@ static inline def_EHelper(swl) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
-  return_on_mem_ex();
+  try { rtl_lm(s, s0, s0, 0, 4); } catch;
 
   // prepare memory data
   rtl_shri(s, s0, s0, 8);   // shift 8 bit
@@ -69,14 +77,13 @@ static inline def_EHelper(swl) {
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_sm(s, s0, 0, s1, 4);
-  return_on_mem_ex();
+  try { rtl_sm(s, s0, 0, s1, 4); } catch;
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   print_asm_template2(swl);
 }
 
-static inline def_EHelper(swr) {
+def_EHelper(swr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -87,8 +94,7 @@ static inline def_EHelper(swr) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
-  return_on_mem_ex();
+  try { rtl_lm(s, s0, s0, 0, 4); } catch;
 
   // prepare memory data
   rtl_shli(s, s0, s0, 8);   // shift 8 bit
@@ -109,14 +115,13 @@ static inline def_EHelper(swr) {
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_sm(s, s0, 0, s1, 4);
-  return_on_mem_ex();
+  try { rtl_sm(s, s0, 0, s1, 4); } catch;
 
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
   print_asm_template2(swr);
 }
 
-static inline def_EHelper(lwl) {
+def_EHelper(lwl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -127,8 +132,7 @@ static inline def_EHelper(lwl) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
-  return_on_mem_ex();
+  try { rtl_lm(s, s0, s0, 0, 4); } catch;
 
   // prepare memory data
   rtl_shl(s, s0, s0, s1);
@@ -150,7 +154,7 @@ static inline def_EHelper(lwl) {
   print_asm_template2(lwl);
 }
 
-static inline def_EHelper(lwr) {
+def_EHelper(lwr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -159,8 +163,7 @@ static inline def_EHelper(lwr) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
-  return_on_mem_ex();
+  try { rtl_lm(s, s0, s0, 0, 4); } catch;
 
   // prepare memory data
   rtl_shr(s, s0, s0, s1);

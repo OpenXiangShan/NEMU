@@ -2,7 +2,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
-#include <monitor/monitor.h>
+#include <utils.h>
 #include <difftest.h>
 
 #ifdef __DIFF_REF_QEMU_DL__
@@ -105,7 +105,7 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
   }
 }
 
-void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
+void difftest_step(vaddr_t pc, vaddr_t npc) {
   CPU_state ref_r;
 
 #ifndef __ICS_EXPORT
@@ -114,14 +114,14 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
 #endif
   if (skip_dut_nr_instr > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
-    if (ref_r.pc == next_pc) {
-      checkregs(&ref_r, next_pc);
+    if (ref_r.pc == npc) {
+      checkregs(&ref_r, npc);
       skip_dut_nr_instr = 0;
       return;
     }
     skip_dut_nr_instr --;
     if (skip_dut_nr_instr == 0)
-      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, this_pc);
+      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, pc);
     return;
   }
 
@@ -141,7 +141,7 @@ void difftest_step(vaddr_t this_pc, vaddr_t next_pc) {
 
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 
-  checkregs(&ref_r, this_pc);
+  checkregs(&ref_r, pc);
 }
 
 #ifndef __ICS_EXPORT

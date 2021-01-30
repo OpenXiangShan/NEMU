@@ -7,15 +7,16 @@
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
 
+extern const rtlreg_t rzero;
+extern rtlreg_t tmp_reg[4];
+
 #define dsrc1 (id_src1->preg)
 #define dsrc2 (id_src2->preg)
 #define ddest (id_dest->preg)
-#define s0    (&s->tmp_reg[0])
-#define s1    (&s->tmp_reg[1])
-#define s2    (&s->tmp_reg[2])
-#define t0    (&s->tmp_reg[3])
-
-extern const rtlreg_t rzero;
+#define s0    (&tmp_reg[0])
+#define s1    (&tmp_reg[1])
+#define s2    (&tmp_reg[2])
+#define t0    (&tmp_reg[3])
 #define rz (&rzero)
 
 #define def_rtl(name, ...) void concat(rtl_, name)(DecodeExecState *s, __VA_ARGS__)

@@ -6,18 +6,17 @@
   void concat(decode_op_, name) (DecodeExecState *s, Operand *op, uint32_t val, bool load_val)
 
 static inline def_DopHelper(i) {
-  op->type = OP_TYPE_IMM;
   op->imm = val;
-
   print_Dop(op->str, OP_STR_SIZE, "%d", op->imm);
 }
 
 static inline def_DopHelper(r) {
-  op->type = OP_TYPE_REG;
+  static word_t zero_null = 0;
+  op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
+#ifdef DEBUG
   op->reg = val;
-  op->preg = &reg_l(val);
-
-  print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(op->reg, 4));
+#endif
+  print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
 static inline def_DHelper(I) {
@@ -50,8 +49,8 @@ static inline def_DHelper(R) {
 static inline def_DHelper(J) {
   sword_t offset = (s->isa.instr.j.simm20 << 20) | (s->isa.instr.j.imm19_12 << 12) |
     (s->isa.instr.j.imm11 << 11) | (s->isa.instr.j.imm10_1 << 1);
-  s->jmp_pc = cpu.pc + offset;
-  print_Dop(id_src1->str, OP_STR_SIZE, "0x%x", s->jmp_pc);
+  id_src1->imm = s->pc + offset;
+  print_Dop(id_src1->str, OP_STR_SIZE, "0x%x", id_src1->imm);
 
   decode_op_r(s, id_dest, s->isa.instr.j.rd, false);
 }
@@ -59,7 +58,7 @@ static inline def_DHelper(J) {
 static inline def_DHelper(B) {
   sword_t offset = (s->isa.instr.b.simm12 << 12) | (s->isa.instr.b.imm11 << 11) |
     (s->isa.instr.b.imm10_5 << 5) | (s->isa.instr.b.imm4_1 << 1);
-  s->jmp_pc = cpu.pc + offset;
+  id_dest->imm = s->pc + offset;
 
   decode_op_r(s, id_src1, s->isa.instr.b.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.b.rs2, true);

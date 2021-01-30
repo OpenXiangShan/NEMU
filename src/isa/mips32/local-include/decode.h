@@ -49,8 +49,8 @@ static inline def_DHelper(I) {
 
 static inline def_DHelper(J) {
   vaddr_t target = (cpu.pc & 0xf0000000) | (s->isa.instr.j.target << 2);
-  s->jmp_pc = target;
-  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", s->jmp_pc);
+  id_dest->imm = target;
+  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", id_dest->imm);
 }
 
 static inline def_DHelper(R) {
@@ -61,13 +61,13 @@ static inline def_DHelper(R) {
 
 static inline def_DHelper(B) {
   sword_t offset = (s->isa.instr.i.simm << 2);
-  s->jmp_pc = cpu.pc + offset + 4;
-  s->seq_pc += 4; // skip the delay slot
+  id_dest->imm = cpu.pc + offset + 4;
+  s->snpc += 4; // skip the delay slot
 
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_r(s, id_src2, s->isa.instr.i.rt, true);
 
-  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", s->jmp_pc);
+  print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", id_dest->imm);
 }
 
 static inline def_DHelper(shift) {

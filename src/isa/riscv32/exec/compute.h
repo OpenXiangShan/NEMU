@@ -1,118 +1,107 @@
-static inline def_EHelper(lui) {
+def_EHelper(lui) {
   rtl_li(s, ddest, id_src1->imm);
   print_asm_template2(lui);
 }
 #ifndef __ICS_EXPORT
 
-static inline def_EHelper(add) {
+def_EHelper(add) {
   rtl_add(s, ddest, dsrc1, dsrc2);
   print_asm_template3(add);
 }
 
-static inline def_EHelper(sub) {
+def_EHelper(sub) {
   rtl_sub(s, ddest, dsrc1, dsrc2);
   print_asm_template3(sub);
 }
 
-static inline def_EHelper(sll) {
+def_EHelper(sll) {
   rtl_shl(s, ddest, dsrc1, dsrc2);
   print_asm_template3(sll);
 }
 
-static inline def_EHelper(srl) {
-  if (s->isa.instr.r.funct7 == 32) {
-    // sra
-    rtl_sar(s, ddest, dsrc1, dsrc2);
-    print_asm_template3(sra);
-  }
-  else {
-    rtl_shr(s, ddest, dsrc1, dsrc2);
-    print_asm_template3(srl);
-  }
+def_EHelper(srl) {
+  rtl_shr(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(srl);
 }
 
-static inline def_EHelper(sra) {
-  exec_srl(s);
+def_EHelper(sra) {
+  rtl_sar(s, ddest, dsrc1, dsrc2);
+  print_asm_template3(sra);
 }
 
-static inline def_EHelper(slt) {
+def_EHelper(slt) {
   rtl_setrelop(s, RELOP_LT, ddest, dsrc1, dsrc2);
   print_asm_template3(slt);
 }
 
-static inline def_EHelper(sltu) {
+def_EHelper(sltu) {
   rtl_setrelop(s, RELOP_LTU, ddest, dsrc1, dsrc2);
   print_asm_template3(sltu);
 }
 
-static inline def_EHelper(xor) {
+def_EHelper(xor) {
   rtl_xor(s, ddest, dsrc1, dsrc2);
   print_asm_template3(xor);
 }
 
-static inline def_EHelper(or) {
+def_EHelper(or) {
   rtl_or(s, ddest, dsrc1, dsrc2);
   print_asm_template3(or);
 }
 
-static inline def_EHelper(and) {
+def_EHelper(and) {
   rtl_and(s, ddest, dsrc1, dsrc2);
   print_asm_template3(and);
 }
 
-static inline def_EHelper(addi) {
+def_EHelper(addi) {
   rtl_addi(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(addi);
 }
 
-static inline def_EHelper(slli) {
+def_EHelper(slli) {
   rtl_shli(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(slli);
 }
 
-static inline def_EHelper(srli) {
-  if (s->isa.instr.r.funct7 == 32) {
-    // sra
-    rtl_sari(s, ddest, dsrc1, id_src2->imm);
-    print_asm_template3(srai);
-  }
-  else {
-    rtl_shri(s, ddest, dsrc1, id_src2->imm);
-    print_asm_template3(srli);
-  }
+def_EHelper(srli) {
+  rtl_shri(s, ddest, dsrc1, id_src2->imm);
+  print_asm_template3(srli);
 }
 
-static inline def_EHelper(srai) {
-  exec_srli(s);
+def_EHelper(srai) {
+  rtl_sari(s, ddest, dsrc1, id_src2->imm);
+  print_asm_template3(srai);
 }
 
-static inline def_EHelper(slti) {
+
+def_EHelper(slti) {
   rtl_setrelopi(s, RELOP_LT, ddest, dsrc1, id_src2->imm);
   print_asm_template3(slti);
 }
 
-static inline def_EHelper(sltui) {
+def_EHelper(sltui) {
   rtl_setrelopi(s, RELOP_LTU, ddest, dsrc1, id_src2->imm);
   print_asm_template3(sltui);
 }
 
-static inline def_EHelper(xori) {
+def_EHelper(xori) {
   rtl_xori(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(xori);
 }
 
-static inline def_EHelper(ori) {
+def_EHelper(ori) {
   rtl_ori(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(ori);
 }
 
-static inline def_EHelper(andi) {
+def_EHelper(andi) {
   rtl_andi(s, ddest, dsrc1, id_src2->imm);
   print_asm_template3(andi);
 }
 
-static inline def_EHelper(auipc) {
-  rtl_li(s, ddest, id_src1->imm + cpu.pc);
+def_EHelper(auipc) {
+  rtl_li(s, ddest, id_src1->imm + s->pc);
   print_asm_template2(auipc);
 }
 #endif

@@ -1,10 +1,21 @@
-#include "watchpoint.h"
-#include "expr.h"
+#include <common.h>
 #ifndef __ICS_EXPORT
 #include <stdlib.h>
 #endif
 
 #define NR_WP 32
+
+typedef struct watchpoint {
+  int NO;
+  struct watchpoint *next;
+
+  /* TODO: Add more members if necessary */
+
+#ifndef __ICS_EXPORT
+  char *expr;
+  word_t old_val;
+#endif
+} WP;
 
 static WP wp_pool[NR_WP] = {};
 static WP *head = NULL, *free_ = NULL;
@@ -80,16 +91,18 @@ void list_watchpoint() {
   }
 }
 
-WP* scan_watchpoint() {
+void scan_watchpoint(vaddr_t pc) {
   WP *p;
   for (p = head; p != NULL; p = p->next) {
     bool success;
-    p->new_val = expr(p->expr, &success);
-    if (p->old_val != p->new_val) {
-      return p;
+    word_t new_val = expr(p->expr, &success);
+    if (p->old_val != new_val) {
+      printf("\n\nHint watchpoint %d at address " FMT_WORD ", expr = %s\n", p->NO, pc, p->expr);
+      printf("old value = " FMT_WORD "\nnew value = " FMT_WORD "\n", p->old_val, new_val);
+      p->old_val = new_val;
+      nemu_state.state = NEMU_STOP;
+      return;
     }
   }
-
-  return NULL;
 }
 #endif

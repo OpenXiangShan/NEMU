@@ -1,13 +1,36 @@
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
-#include "all-instr.h"
-#ifndef __ICS_EXPORT
+#include "../local-include/rtl.h"
 #include "../local-include/intr.h"
-#endif
+#include <cpu/difftest.h>
+#include <cpu/cpu-exec.h>
 
-static inline void set_width(DecodeExecState *s, int width) {
-  if (width != 0) s->width = width;
+#define goto_EHelper(addr) goto *(addr)
+#undef decode_empty
+static inline def_DHelper(empty) { }
+
+static inline void difftest_skip_delay_slot() {
+#ifndef __DIFF_REF_NEMU__
+  difftest_skip_dut(2, 1);
+#endif
 }
+
+static inline void mux(DecodeExecState *s, rtlreg_t* dest, const rtlreg_t* cond,
+    const rtlreg_t* src1, const rtlreg_t* src2) {
+  // dest <- (cond ? src1 : src2)
+  rtl_setrelopi(s, RELOP_EQ, s0, cond, 0);
+  rtl_subi(s, s0, s0, 1);
+  // s0 = mask
+  rtl_and(s, s1, src1, s0);
+  rtl_not(s, s0, s0);
+  rtl_and(s, dest, src2, s0);
+  rtl_or(s, dest, dest, s1);
+}
+
+
+#if 0
+#undef CASE_ENTRY
+#define CASE_ENTRY(idx, id, ex, w) case idx: id(s); ex(s); break;
 
 static inline def_EHelper(special) {
   switch (s->isa.instr.r.func) {
@@ -62,7 +85,8 @@ static inline def_EHelper(cop0) {
 #endif
 
 static inline void fetch_decode_exec(DecodeExecState *s) {
-  s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
+  s->isa.instr.val = instr_fetch(&s->snpc, 4);
+  s->npc = s->snpc;
 #ifndef __ICS_EXPORT
   return_on_mem_ex();
 #endif
@@ -70,8 +94,8 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
 #ifdef __ICS_EXPORT
     EX   (000, special)
     IDEX (017, IU, lui)
-    IDEXW(043, ld, ld, 4)
-    IDEXW(053, st, st, 4)
+    IDEX (043, ld, lw)
+    IDEX (053, st, sw)
     EX   (074, nemu_trap)
 #else
     EX   (000, special)    EX   (001, regimm)     IDEX (002, J, j)       IDEX (003, J, jal)
@@ -82,9 +106,9 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
 
 
     EX   (034, special2)
-    IDEXW(040, ld, lds, 1) IDEXW(041, ld, lds, 2) IDEX (042, st, lwl)    IDEXW(043, ld, ld, 4)
-    IDEXW(044, ld, ld, 1)  IDEXW(045, ld, ld, 2)  IDEX (046, st, lwr)
-    IDEXW(050, st, st, 1)  IDEXW(051, st, st, 2)  IDEX (052, st, swl)    IDEXW(053, st, st, 4)
+    IDEX (040, ld, lb)     IDEX (041, ld, lh)     IDEX (042, st, lwl)    IDEX (043, ld, lw)
+    IDEX (044, ld, lbu)    IDEX (045, ld, lhu)    IDEX (046, st, lwr)
+    IDEX (050, st, sb)     IDEX (051, st, sh)     IDEX (052, st, swl)    IDEX (053, st, sw)
                                                   IDEX (056, st, swr)
 
 
@@ -94,33 +118,27 @@ static inline void fetch_decode_exec(DecodeExecState *s) {
     default: exec_inv(s);
   }
 }
+#endif
 
 static inline void reset_zero() {
   reg_l(0) = 0;
 }
 
-vaddr_t isa_exec_once() {
-  DecodeExecState s;
-  s.is_jmp = 0;
-  s.seq_pc = cpu.pc;
+void isa_execute(uint64_t n) {
+  for (; n > 0; n --) {
+    DecodeExecState state;
+    DecodeExecState *s = &state;
+    vaddr_t pc = cpu.pc;
+    s->snpc = pc;
 
-  fetch_decode_exec(&s);
-#ifndef __ICS_EXPORT
-  if (cpu.mem_exception != MEM_OK) {
-    cpu.pc = raise_intr(cpu.mem_exception, cpu.pc);
-    cpu.mem_exception = MEM_OK;
-  } else {
-    update_pc(&s);
+#include "all-instr.h"
+
+//    fetch_decode_exec(&s);
+exec_finish:
+    update_pc(s);
+
+    reset_zero();
+
+    cpu_exec_2nd_part(pc, s->snpc, s->npc);
   }
-#if !defined(DIFF_TEST) && !_SHARE
-  void query_intr();
-  query_intr();
-#endif
-#else
-  update_pc(&s);
-#endif
-
-  reset_zero();
-
-  return s.seq_pc;
 }

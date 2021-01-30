@@ -10,7 +10,7 @@ word_t raise_intr(uint32_t NO, vaddr_t epc) {
   return cpu.stvec;
 }
 
-void query_intr() {
+void isa_query_intr() {
   if (cpu.INTR && cpu.sstatus.sie) {
     cpu.INTR = false;
     cpu.pc = raise_intr(0x80000005, cpu.pc);
@@ -26,6 +26,6 @@ word_t raise_intr(uint32_t NO, vaddr_t epc) {
   return 0;
 }
 
-void query_intr() {
+void isa_query_intr() {
 }
 #endif

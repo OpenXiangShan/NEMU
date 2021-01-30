@@ -1,114 +1,97 @@
 #include <cpu/exec.h>
+#include "../local-include/rtl.h"
+#include <cpu/difftest.h>
+#include <cpu/cpu-exec.h>
+#include <cpu/dccache.h>
+
+#define INSTR_LIST(f) \
+  f(lui) f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) \
+  f(and) f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) \
+  f(andi) f(auipc) f(jal) f(jalr) f(beq) f(bne) f(blt) f(bge) \
+  f(bltu) f(bgeu) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) \
+  f(sh) f(sb) f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) \
+  f(rem) f(remu) f(inv) f(nemu_trap) f(csrrw) f(csrrs) f(ecall) f(sret) f(sfence_vma)
+
+#define def_EXEC_ID(name) \
+  enum { concat(EXEC_ID_, name) = __COUNTER__ }; \
+  static inline int concat(table_, name) (DecodeExecState *s) { return concat(EXEC_ID_, name); }
+
+MAP(INSTR_LIST, def_EXEC_ID)
+
+#define INSTR_CNT(name) + 1
+#define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
+
+#define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
+
 #include "../local-include/decode.h"
+#include "table.h"
+
+//#define PERF
+
+uint32_t isa_execute(uint32_t n) {
+  static const void* jmp_table[TOTAL_INSTR] = {
+    MAP(INSTR_LIST, FILL_JMP_TABLE)
+  };
+#ifdef PERF
+  static uint64_t instr = 0;
+  static uint64_t bp_miss = 0;
+  static uint64_t dc_miss = 0;
+#endif
+
+  DecodeExecState *s = &dccache[0];
+  vaddr_t lpc = cpu.pc; // local pc
+  while (true) {
+    DecodeExecState *prev = s;
+    s ++; // first try sequential fetch with the lowest cost
+    if (unlikely(s->pc != lpc)) {
+      // if the last instruction is a branch, or `s` is pointing to the sentinel,
+      // then try the prediction result
+      s = prev->next;
+      if (unlikely(s->pc != lpc)) {
+        // if the prediction is wrong, re-fetch the correct decode information,
+        // and update the prediction
+        s = dccache_fetch(lpc);
+        prev->next = s;
+#ifdef PERF
+    bp_miss ++;
+#endif
+        if (unlikely(s->pc != lpc)) {
+          // if it is a miss in decode cache, fetch and decode the correct instruction
+          s->pc = lpc;
+          fetch_decode(s, jmp_table);
+#ifdef PERF
+    dc_miss ++;
+#endif
+        }
+      }
+    }
+
+#ifdef PERF
+    instr ++;
+    if (instr % (65536 * 1024) == 0)
+      Log("instr = %ld, bp_miss = %ld, dc_miss = %ld", instr, bp_miss, dc_miss);
+#endif
+
+    if (--n == 0) break;
+
+    word_t thispc = lpc;
+    lpc += 4;
+#ifndef DEBUG
+    Operand ldest = { .preg = id_dest->preg };
+    Operand lsrc1 = { .preg = id_src1->preg };
+    Operand lsrc2 = { .preg = id_src2->preg };
+#endif
+
+    goto *(s->EHelper);
+
 #include "all-instr.h"
+    def_finish();
 
-static inline void set_width(DecodeExecState *s, int width) {
-  if (width != 0) s->width = width;
-}
-
-static inline def_EHelper(load) {
-  switch (s->isa.instr.i.funct3) {
-#ifdef __ICS_EXPORT
-    EXW  (2, ld, 4)
-#else
-    EXW  (0, lds, 1) EXW  (1, lds, 2) EXW  (2, ld, 4)
-    EXW  (4, ld, 1)  EXW  (5, ld, 2)
+#ifdef DIFF_TEST
+    update_gpc(lpc);
 #endif
-    default: exec_inv(s);
+    cpu_exec_2nd_part(s->pc, s->snpc, lpc);
   }
-}
-
-static inline def_EHelper(store) {
-  switch (s->isa.instr.s.funct3) {
-#ifdef __ICS_EXPORT
-    EXW  (2, st, 4)
-#else
-    EXW(0, st, 1) EXW(1, st, 2) EXW(2, st, 4)
-#endif
-    default: exec_inv(s);
-  }
-}
-
-#ifndef __ICS_EXPORT
-static inline def_EHelper(op_imm) {
-  switch (s->isa.instr.i.funct3) {
-    EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
-    EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, andi)
-    default: exec_inv(s);
-  }
-}
-
-static inline def_EHelper(op) {
-  if (s->isa.instr.r.funct7 == 32) {
-    switch (s->isa.instr.r.funct3) {
-      EX(0, sub) EX(5, sra)
-      default: exec_inv(s);
-    }
-  } else {
-#define pair(x, y) (((x) << 3) | (y))
-    switch (pair(s->isa.instr.r.funct7, s->isa.instr.r.funct3)) {
-      EX(pair(0, 0), add)  EX(pair(0, 1), sll)  EX(pair(0, 2), slt)  EX(pair(0, 3), sltu)
-      EX(pair(0, 4), xor)  EX(pair(0, 5), srl)  EX(pair(0, 6), or)   EX(pair(0, 7), and)
-      EX(pair(1, 0), mul)  EX(pair(1, 1), mulh) EX(pair(1,2), mulhsu)EX(pair(1, 3), mulhu)
-      EX(pair(1, 4), div)  EX(pair(1, 5), divu) EX(pair(1, 6), rem)  EX(pair(1, 7), remu)
-      default: exec_inv(s);
-    }
-#undef pair
-  }
-}
-
-static inline def_EHelper(system) {
-  switch (s->isa.instr.i.funct3) {
-    EX(0, priv)  IDEX (1, csr, csrrw)  IDEX (2, csr, csrrs)
-    default: exec_inv(s);
-  }
-}
-#endif
-
-static inline void fetch_decode_exec(DecodeExecState *s) {
-  s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
-  if (s->isa.instr.i.opcode1_0 != 0x3) {
-    exec_inv(s);
-    return;
-  }
-  switch (s->isa.instr.i.opcode6_2) {
-#ifdef __ICS_EXPORT
-    IDEX (0b00000, I, load)
-    IDEX (0b01000, S, store)
-    IDEX (0b01101, U, lui)
-    EX   (0b11010, nemu_trap)
-#else
-    IDEX (0b00000, I, load)
-    IDEX (0b00100, I, op_imm)
-    IDEX (0b00101, U, auipc)
-    IDEX (0b01000, S, store)  IDEX (0b01100, R, op)
-    IDEX (0b01101, U, lui)    IDEX (0b11000, B, branch)  IDEX (0b11001, I, jalr)  EX   (0b11010, nemu_trap)
-    IDEX (0b11011, J, jal)    EX   (0b11100, system)
-#endif
-    default: exec_inv(s);
-  }
-}
-
-static inline void reset_zero() {
-  reg_l(0) = 0;
-}
-
-vaddr_t isa_exec_once() {
-  DecodeExecState s;
-  s.is_jmp = 0;
-  s.seq_pc = cpu.pc;
-
-  fetch_decode_exec(&s);
-  update_pc(&s);
-#ifndef __ICS_EXPORT
-
-#if !defined(DIFF_TEST) && !_SHARE
-  void query_intr();
-  query_intr();
-#endif
-#endif
-
-  reset_zero();
-
-  return s.seq_pc;
+  cpu.pc = lpc;
+  return n;
 }

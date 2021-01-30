@@ -1,36 +1,57 @@
-static inline def_EHelper(ld) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, s->width);
-
+def_EHelper(lw) {
+  update_gpc(thispc);
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 4: print_asm_template2(lw); break;
-    case 2: print_asm_template2(lhu); break;
-    case 1: print_asm_template2(lbu); break;
-    default: assert(0);
-  }
+  print_asm_template2(lw);
 }
 
-static inline def_EHelper(st) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, s->width);
-
+def_EHelper(sw) {
+  update_gpc(thispc);
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 4);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 4: print_asm_template2(sw); break;
-    case 2: print_asm_template2(sh); break;
-    case 1: print_asm_template2(sb); break;
-    default: assert(0);
-  }
+  print_asm_template2(sw);
 }
+
 #ifndef __ICS_EXPORT
-// load sign value
-static inline def_EHelper(lds) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, s->width);
+def_EHelper(lh) {
+  update_gpc(thispc);
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lh);
+}
 
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->val, reg_name(id_src1->reg, 4));
-  switch (s->width) {
-    case 2: print_asm_template2(lh); break;
-    case 1: print_asm_template2(lb); break;
-    default: assert(0);
-  }
+def_EHelper(lb) {
+  update_gpc(thispc);
+  rtl_lms(s, ddest, dsrc1, id_src2->imm, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lb);
+}
+
+def_EHelper(lhu) {
+  update_gpc(thispc);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lhu);
+}
+
+def_EHelper(lbu) {
+  update_gpc(thispc);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(lbu);
+}
+
+def_EHelper(sh) {
+  update_gpc(thispc);
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 2);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(sh);
+}
+
+def_EHelper(sb) {
+  update_gpc(thispc);
+  rtl_sm(s, dsrc1, id_src2->imm, ddest, 1);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_asm_template2(sb);
 }
 #endif

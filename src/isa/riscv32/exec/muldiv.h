@@ -1,20 +1,20 @@
 #ifndef __ICS_EXPORT
-static inline def_EHelper(mul) {
+def_EHelper(mul) {
   rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mul);
 }
 
-static inline def_EHelper(mulh) {
+def_EHelper(mulh) {
   rtl_muls_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulh);
 }
 
-static inline def_EHelper(mulhu) {
+def_EHelper(mulhu) {
   rtl_mulu_hi(s, ddest, dsrc1, dsrc2);
   print_asm_template3(mulh);
 }
 
-static inline def_EHelper(mulhsu) {
+def_EHelper(mulhsu) {
   // Algorithm:
   // We want to obtain ans = mulhsu(a, b).
   // Consider mulhu(a, b).
@@ -37,22 +37,22 @@ static inline def_EHelper(mulhsu) {
   print_asm_template3(mulhsu);
 }
 
-static inline def_EHelper(div) {
+def_EHelper(div) {
   rtl_divs_q(s, ddest, dsrc1, dsrc2);
   print_asm_template3(div);
 }
 
-static inline def_EHelper(divu) {
+def_EHelper(divu) {
   rtl_divu_q(s, ddest, dsrc1, dsrc2);
   print_asm_template3(divu);
 }
 
-static inline def_EHelper(rem) {
+def_EHelper(rem) {
   rtl_divs_r(s, ddest, dsrc1, dsrc2);
   print_asm_template3(rem);
 }
 
-static inline def_EHelper(remu) {
+def_EHelper(remu) {
   rtl_divu_r(s, ddest, dsrc1, dsrc2);
   print_asm_template3(remu);
 }

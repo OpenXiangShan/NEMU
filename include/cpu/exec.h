@@ -1,10 +1,8 @@
 #ifndef __CPU_EXEC_H__
 #define __CPU_EXEC_H__
 
-#include <isa.h>
-#include <rtl/rtl.h>
-#include <memory/vaddr.h>
 #include <cpu/decode.h>
+#include <memory/vaddr.h>
 
 #define def_EHelper(name) void concat(exec_, name) (DecodeExecState *s)
 
@@ -39,7 +37,7 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
 }
 
 static inline void update_pc(DecodeExecState *s) {
-  cpu.pc = (s->is_jmp ? s->jmp_pc : s->seq_pc);
+  //cpu.pc = s->npc;
 }
 
 #ifdef DEBUG
