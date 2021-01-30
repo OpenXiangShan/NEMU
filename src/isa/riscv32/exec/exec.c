@@ -76,15 +76,20 @@ uint32_t isa_execute(uint32_t n) {
 
     word_t thispc = lpc;
     lpc += 4;
+#ifndef DEBUG
     Operand ldest = { .preg = id_dest->preg };
     Operand lsrc1 = { .preg = id_src1->preg };
     Operand lsrc2 = { .preg = id_src2->preg };
+#endif
 
     goto *(s->EHelper);
 
 #include "all-instr.h"
     def_finish();
 
+#ifdef DIFF_TEST
+    update_gpc(lpc);
+#endif
     cpu_exec_2nd_part(s->pc, s->snpc, lpc);
   }
   cpu.pc = lpc;

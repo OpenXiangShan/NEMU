@@ -13,10 +13,6 @@ static inline def_DopHelper(i) {
 static inline def_DopHelper(r) {
   static word_t zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
-//#define PTR_DIFF ((intptr_t)&zero_null - (intptr_t)&cpu.gpr[0]._32)
-//  Assert(PTR_DIFF % sizeof(word_t) == 0, "pointers are not aligned");
-//  op->reg = (!load_val && val == 0) ? PTR_DIFF / sizeof(word_t) : val;
-//#undef PTR_DIFF
 #ifdef DEBUG
   op->reg = val;
 #endif
@@ -54,7 +50,7 @@ static inline def_DHelper(J) {
   sword_t offset = (s->isa.instr.j.simm20 << 20) | (s->isa.instr.j.imm19_12 << 12) |
     (s->isa.instr.j.imm11 << 11) | (s->isa.instr.j.imm10_1 << 1);
   id_src1->imm = s->pc + offset;
-  print_Dop(id_src1->str, OP_STR_SIZE, "0x%x", s->npc);
+  print_Dop(id_src1->str, OP_STR_SIZE, "0x%x", id_src1->imm);
 
   decode_op_r(s, id_dest, s->isa.instr.j.rd, false);
 }
