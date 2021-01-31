@@ -3,6 +3,7 @@
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
+#include <cpu/difftest.h>
 #endif
 
 #include <stdlib.h>
@@ -144,8 +145,6 @@ static int cmd_x(char *args) {
   return 0;
 }
 
-void difftest_detach();
-void difftest_attach();
 static int cmd_detach(char *args) {
   difftest_detach();
   return 0;

@@ -3,7 +3,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <utils.h>
-#include <difftest.h>
+#include <cpu/difftest.h>
 
 #ifdef __DIFF_REF_QEMU_DL__
 __thread uint8_t resereve_for_qemu_tls[4096];
@@ -13,6 +13,8 @@ void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) =
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
+
+#ifdef DIFF_TEST
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
@@ -62,10 +64,6 @@ void difftest_set_patch(void (*fn)(void *arg), void *arg) {
 }
 
 void init_difftest(char *ref_so_file, long img_size, int port) {
-#ifndef DIFF_TEST
-  return;
-#endif
-
   assert(ref_so_file != NULL);
 
   void *handle;
@@ -143,21 +141,20 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
 
   checkregs(&ref_r, pc);
 }
-
 #ifndef __ICS_EXPORT
 void difftest_detach() {
   is_detach = true;
 }
 
 void difftest_attach() {
-#ifndef DIFF_TEST
-  return;
-#endif
-
   is_detach = false;
   is_skip_ref = false;
   skip_dut_nr_instr = 0;
 
   isa_difftest_attach();
 }
+#endif
+
+#else
+void init_difftest(char *ref_so_file, long img_size, int port) { }
 #endif
