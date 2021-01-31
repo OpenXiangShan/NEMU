@@ -3,10 +3,6 @@
 
 #include <generated/autoconf.h>
 
-#ifdef CONFIG_DIFF_TEST
-#define DIFF_TEST
-#endif
-
 // #define DEBUG
 
 #ifndef __ICS_EXPORT
