@@ -15,10 +15,8 @@ typedef struct {
     sword_t simm;
   };
 //  rtlreg_t val;
-#ifdef DEBUG
-  int reg;
-  char str[OP_STR_SIZE];
-#endif
+  ONDEF(CONFIG_DEBUG, int reg);
+  ONDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 
 typedef union DecodeExecState {
@@ -34,11 +32,6 @@ typedef union DecodeExecState {
 } DecodeExecState;
 
 #define def_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
-
-#ifdef DEBUG
-#define print_Dop(...) snprintf(__VA_ARGS__)
-#else
-#define print_Dop(...)
-#endif
+#define print_Dop(...) ONDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
 
 #endif

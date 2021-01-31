@@ -3,8 +3,6 @@
 
 #include <generated/autoconf.h>
 
-// #define DEBUG
-
 #ifndef __ICS_EXPORT
 #ifdef __ISA_riscv64__
 # define ISA64
@@ -20,8 +18,8 @@
 
 #if _SHARE
 // do not enable these features while building a reference design
-#undef DIFF_TEST
-#undef DEBUG
+#undef CONFIG_DIFFTEST
+#undef CONFIG_DEBUG
 #undef HAS_IOE
 #endif
 

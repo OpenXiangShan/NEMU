@@ -7,6 +7,12 @@ config DIFFTEST
 		Enable Differential Testing with a reference design.
 		Note that this will significantly reduce the performance of NEMU.
 
+config DEBUG
+	bool "Enable Debug Features"
+	default n
+	help
+		Enable debug features, which include instruction tracing and watchpoint.
+
 
 menu "Hidden 1"
 	visible if SHOW_MORE

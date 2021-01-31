@@ -63,15 +63,13 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
     s->isa.mbase = &s->isa.mbr;
   }
-#ifndef __PA__
-  if (s->isa.sreg_base != NULL) {
+  if (ISUNDEF(__PA__) && s->isa.sreg_base != NULL) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s->isa.sreg_base);
     s->isa.mbase = &s->isa.mbr;
   }
-#endif
   s->isa.moff = disp;
 
-#ifdef DEBUG
+#ifdef CONFIG_DEBUG
   char disp_buf[16];
   char base_buf[8];
   char index_buf[8];
