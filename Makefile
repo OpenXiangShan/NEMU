@@ -36,6 +36,8 @@ $(SOFTFLOAT):
 .PHONY: $(SOFTFLOAT)
 endif
 
+-include $(NEMU_HOME)/include/config/auto.conf
+-include $(NEMU_HOME)/include/config/auto.conf.cmd
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk

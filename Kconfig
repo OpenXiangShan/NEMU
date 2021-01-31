@@ -1,34 +1,11 @@
-mainmenu "Main Menu"
+mainmenu "NEMU Configuaration Menu"
 
-comment "This is a comment to help to structure menu"
-
-choice
-	prompt "Generic Choice"
-	default GEN_CHOICE1
+config DIFF_TEST
+	bool "Enable Differential Testing"
+	default n
 	help
-		This is a help text that can expand over multiple lines and give some information about
-		the configuration parameter.
-
-	config GEN_CHOICE1
-		bool "Choice 1"
-
-	config GEN_CHOICE2
-		bool "Choice 2"
-		select SHOW_MORE
-
-	config GEN_CHOICE3
-		bool "Choice 3"
-		select SHOW_MORE
-		select SHOW_EVEN_MORE
-		help
-			Even subitem can contain help text.
-endchoice
-
-config SHOW_MORE
-	bool
-
-config SHOW_EVEN_MORE
-	bool
+		Enable Differential Testing with a reference design.
+		Note that this will significantly reduce the performance of NEMU.
 
 
 menu "Hidden 1"

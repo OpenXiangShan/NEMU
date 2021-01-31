@@ -1,8 +1,13 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <generated/autoconf.h>
+
+#ifdef CONFIG_DIFF_TEST
+#define DIFF_TEST
+#endif
+
 // #define DEBUG
-// #define DIFF_TEST
 
 #ifndef __ICS_EXPORT
 #ifdef __ISA_riscv64__
