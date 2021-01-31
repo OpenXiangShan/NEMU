@@ -14,7 +14,7 @@ else
 $(error bad target=$(NAME))
 endif
 
-include $(NEMU_HOME)/scripts/Makefile
+include $(NEMU_HOME)/scripts/build.mk
 
 $(obj)/lexer.lex.o: $(obj)/parser.tab.h
 $(obj)/lexer.lex.c: lexer.l $(obj)/parser.tab.h

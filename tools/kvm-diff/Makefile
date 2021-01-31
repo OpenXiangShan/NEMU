@@ -6,4 +6,4 @@ INC_DIR += $(NEMU_HOME)/include
 ISA = x86
 
 include $(NEMU_HOME)/scripts/isa.mk
-include $(NEMU_HOME)/scripts/Makefile
+include $(NEMU_HOME)/scripts/build.mk
