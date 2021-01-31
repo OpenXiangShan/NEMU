@@ -3,7 +3,7 @@
 void init_serial();
 void init_timer();
 
-#ifdef HAS_IOE
+#ifdef CONFIG_DEVICE
 
 #include <utils.h>
 #include <device/alarm.h>
@@ -73,4 +73,4 @@ void init_device() {
   init_timer();
 }
 
-#endif	/* HAS_IOE */
+#endif	/* CONFIG_DEVICE */

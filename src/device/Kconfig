@@ -1,0 +1,41 @@
+menuconfig DEVICE
+  bool "Devices"
+  default y
+  help
+    Provide device support for NEMU.
+
+if DEVICE
+
+config HAS_SERIAL
+  bool "Enable serial"
+  default y
+
+config HAS_TIMER
+  bool "Enable timer"
+  default y
+
+config HAS_KEYBOARD
+  bool "Enable keyboard"
+  default y
+
+config HAS_VGA
+  bool "Enable VGA"
+  default y
+
+if HAS_VGA
+config VGA_SHOW_SCREEN
+  bool "Enable SDL SCREEN"
+  default y
+
+choice
+  prompt "Screen Size"
+  default VGA_SIZE_400x300
+config VGA_SIZE_400x300
+  bool "400 x 300"
+config VGA_SIZE_800x600
+  bool "800 x 600"
+endchoice
+
+endif # HAS_VGA
+
+endif # DEVICE

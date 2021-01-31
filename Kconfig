@@ -1,17 +1,19 @@
 mainmenu "NEMU Configuration Menu"
 
 config DIFFTEST
-	bool "Enable Differential Testing"
-	default n
-	help
-		Enable Differential Testing with a reference design.
-		Note that this will significantly reduce the performance of NEMU.
+  bool "Enable Differential Testing"
+  default n
+  help
+    Enable Differential Testing with a reference design.
+    Note that this will significantly reduce the performance of NEMU.
 
 config DEBUG
-	bool "Enable Debug Features"
-	default n
-	help
-		Enable debug features, which include instruction tracing and watchpoint.
+  bool "Enable Debug Features"
+  default n
+  help
+    Enable debug features, which include instruction tracing and watchpoint.
+
+source "src/device/Kconfig"
 
 
 menu "Hidden 1"
