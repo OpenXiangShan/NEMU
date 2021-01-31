@@ -76,6 +76,7 @@ endif
 $(DIFF_REF_SO):
 	$(MAKE) -s -C $(DIFF_REF_PATH) $(MKFLAGS)
 
+.PHONY: $(DIFF_REF_SO)
 endif
 
 compile_git:
@@ -83,8 +84,6 @@ compile_git:
 $(BINARY): compile_git
 
 # Some convenient rules
-
-.PHONY: run gdb run-env $(DIFF_REF_SO)
 
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
 override ARGS += --diff=$(DIFF_REF_SO)
@@ -103,7 +102,10 @@ gdb: run-env
 	$(call git_commit, "gdb")
 	gdb -s $(BINARY) --args $(NEMU_EXEC)
 
-clean: clean-tools
-clean-tools:
-	$(MAKE) -s -C tools/gen-expr clean
-	$(MAKE) -s -C $(DIFF_REF_PATH) clean
+clean-tools = $(dir $(shell find ./tools -name "Makefile"))
+$(clean-tools):
+	-@$(MAKE) -s -C $@ clean
+clean-tools: $(clean-tools)
+clean-all: clean distclean clean-tools
+
+.PHONY: run gdb run-env clean-tools clean-all $(clean-tools)

@@ -4,7 +4,7 @@ Q            := @
 KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
 Kconfig      := $(NEMU_HOME)/Kconfig
-rm-distclean += include/generated include/config .config
+rm-distclean += include/generated include/config .config .config.old
 silent := -s
 
 CONF   := $(KCONFIG_PATH)/build/conf
@@ -30,13 +30,14 @@ savedefconfig: $(CONF)
 %defconfig: $(CONF)
 	$(Q)$< $(silent) --defconfig=configs/$@ $(Kconfig)
 
+.PHONY: menuconfig savedefconfig defconfig
+
 # Help text used by make help
 help:
 	@echo  '  menuconfig	  - Update current config utilising a menu based program'
 	@echo  '  savedefconfig   - Save current config as ./defconfig (minimal config)'
 
-distclean:
-	rm -rf $(rm-distclean)
+distclean: clean
+	-@rm -rf $(rm-distclean)
 
-PHONY += savedefconfig defconfig
-.PHONY: $(PHONY)
+.PHONY: help distclean
