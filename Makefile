@@ -38,6 +38,7 @@ endif
 
 include $(NEMU_HOME)/scripts/isa.mk
 include $(NEMU_HOME)/scripts/git.mk
+include $(NEMU_HOME)/scripts/config.mk
 
 ifndef SHARE
 DIFF ?= qemu-dl
