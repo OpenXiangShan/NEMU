@@ -91,9 +91,7 @@ void engine_start() {
   init_rv64_reg();
   spill_init();
   guest_getregs(&cpu);
-#ifdef DIFF_TEST
-  ref_difftest_regcpy(&cpu, true);
-#endif
+  ONDEF(CONFIG_DIFFTEST, ref_difftest_regcpy(&cpu, true));
 
   tran_mainloop();
 }

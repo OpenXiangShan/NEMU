@@ -1,6 +1,6 @@
-mainmenu "NEMU Configuaration Menu"
+mainmenu "NEMU Configuration Menu"
 
-config DIFF_TEST
+config DIFFTEST
 	bool "Enable Differential Testing"
 	default n
 	help

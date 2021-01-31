@@ -110,7 +110,7 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
   if (reg != NULL) operand_reg(s, reg, load_reg_val, m.reg, reg->width);
   if (m.mod == 3) operand_reg(s, rm, load_rm_val, m.R_M, rm->width);
   else {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
+#if !defined(__PA__) && defined(CONFIG_DIFFTEST) && defined(__DIFF_REF_KVM__)
     if (((s->opcode == 0x80 || s->opcode == 0x81 || s->opcode == 0x83) && s->isa.ext_opcode == 7) ||
         (s->opcode == 0x1ba && s->isa.ext_opcode == 4)) {
       cpu.lock = 0; // fix with cmp and bt, since they do not write memory

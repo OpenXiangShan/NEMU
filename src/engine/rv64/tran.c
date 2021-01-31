@@ -135,9 +135,8 @@ void tran_mainloop() {
 #ifdef DEBUG
         asm_print(pc, snpc - pc, true);
 #endif
-#ifdef DIFF_TEST
+#ifdef CONFIG_DIFFTEST
         if (tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
-        if (true)
 #else
         if (tran_next_pc != NEXT_PC_SEQ)
 #endif
@@ -187,7 +186,7 @@ void tran_mainloop() {
     if (tb->npc_type != NEXT_PC_SEQ) cpu.pc = next_pc;
     else cpu.pc = tb->npc;
 
-#ifdef DIFF_TEST
+#ifdef CONFIG_DIFFTEST
     guest_getregs(&cpu);
     difftest_step(tb_start, cpu.pc);
     if (nemu_state.state == NEMU_ABORT) break;

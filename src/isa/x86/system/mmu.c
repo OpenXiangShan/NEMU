@@ -77,22 +77,20 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   assert(level == 0);
   if (!check_permission(&pte[0], true, vaddr, type)) return MEM_RET_FAIL;
 
-#if !defined(__PA__) || defined(DIFF_TEST)
+#if !defined(__PA__) || defined(CONFIG_DIFFTEST)
   if (!pte[1].a) {
     pte[1].a = 1;
     paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
-#ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF);
-#endif
+    ONDEF(CONFIG_DIFFTEST,
+        ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte[0].a || (!pte[0].d && is_write)) {
     pte[0].a = 1;
     pte[0].d |= is_write;
     paddr_write(p_pte[0], pte[0].val, PTE_SIZE);
-#ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF);
-#endif
+    ONDEF(CONFIG_DIFFTEST,
+        ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
 #endif
 

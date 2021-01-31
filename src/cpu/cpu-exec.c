@@ -55,7 +55,7 @@ void cpu_exec(uint64_t n) {
     device_update();
 #endif
 
-#if !defined(DIFF_TEST) && !_SHARE
+#if !defined(CONFIG_DIFFTEST) && !_SHARE
     isa_query_intr();
 #endif
   }

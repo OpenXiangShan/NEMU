@@ -4,11 +4,7 @@
 #include <common.h>
 #include <difftest.h>
 
-#ifdef CONFIG_DIFF_TEST
-#define DIFF_TEST
-#endif
-
-#ifdef DIFF_TEST
+#ifdef CONFIG_DIFFTEST
 void difftest_skip_ref();
 void difftest_skip_dut(int nr_ref, int nr_dut);
 void difftest_set_patch(void (*fn)(void *arg), void *arg);

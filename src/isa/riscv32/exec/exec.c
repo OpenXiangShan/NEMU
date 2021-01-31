@@ -86,10 +86,7 @@ uint32_t isa_execute(uint32_t n) {
 
 #include "all-instr.h"
     def_finish();
-
-#ifdef DIFF_TEST
-    update_gpc(lpc);
-#endif
+    ONDEF(CONFIG_DIFFTEST, update_gpc(lpc));
     cpu_exec_2nd_part(s->pc, s->snpc, lpc);
   }
   cpu.pc = lpc;

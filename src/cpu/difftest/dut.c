@@ -3,7 +3,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <utils.h>
-#include <cpu/difftest.h>
+#include <difftest.h>
 
 #ifdef __DIFF_REF_QEMU_DL__
 __thread uint8_t resereve_for_qemu_tls[4096];
@@ -14,7 +14,7 @@ void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
-#ifdef DIFF_TEST
+#ifdef CONFIG_DIFFTEST
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
