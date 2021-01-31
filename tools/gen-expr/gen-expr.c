@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     int result;
     fscanf(fp, "%d", &result);
 #ifndef __ICS_EXPORT
-    int ret = pclose(fp);
+    ret = pclose(fp);
     if (ret != 0) continue;
 
     remove_u(buf);
