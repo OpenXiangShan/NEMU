@@ -31,7 +31,7 @@ INC_DIR += resource/softfloat/repo/source/include
 INC_DIR += resource/softfloat/repo/source/RISCV
 LIBS += $(SOFTFLOAT)
 $(SOFTFLOAT):
-	$(MAKE) -C resource/softfloat/
+	$(MAKE) -s -C resource/softfloat/
 
 .PHONY: $(SOFTFLOAT)
 endif
@@ -70,7 +70,7 @@ $(error invalid DIFF. Supported: qemu-dl kvm qemu-socket nemu)
 endif
 
 $(DIFF_REF_SO):
-	$(MAKE) -C $(DIFF_REF_PATH) $(MKFLAGS)
+	$(MAKE) -s -C $(DIFF_REF_PATH) $(MKFLAGS)
 
 endif
 
@@ -102,5 +102,5 @@ gdb: run-env
 
 clean: clean-tools
 clean-tools:
-	$(MAKE) -C tools/gen-expr clean
-	$(MAKE) -C $(DIFF_REF_PATH) clean
+	$(MAKE) -s -C tools/gen-expr clean
+	$(MAKE) -s -C $(DIFF_REF_PATH) clean
