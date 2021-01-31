@@ -4,6 +4,10 @@ ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
 $(error Invalid ENGINE=$(ENGINE). Supported: $(ENGINES))
 endif
 
+ifeq ($(wildcard .config),)
+$(warning === Warning: .config does not exists! You may first run 'make menuconfig'. ===)
+endif
+
 GCC = clang
 CFLAGS += -O3 -flto
 LDFLAGS += -O3 -flto
