@@ -36,6 +36,7 @@ $(SOFTFLOAT):
 .PHONY: $(SOFTFLOAT)
 endif
 
+include $(NEMU_HOME)/scripts/isa.mk
 include $(NEMU_HOME)/scripts/Makefile
 
 ifndef SHARE
