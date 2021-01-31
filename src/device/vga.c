@@ -9,10 +9,6 @@
 #include <device/map.h>
 #include <SDL2/SDL.h>
 
-#define VMEM 0xa0000000
-#define VGACTL_PORT 0x100 // Note that this is not the standard
-#define VGACTL_MMIO 0xa1000100
-
 static uint32_t (*vmem) [SCREEN_W] = NULL;
 static uint32_t *vgactl_port_base = NULL;
 
@@ -59,10 +55,10 @@ void init_vga() {
 
   vgactl_port_base = (void *)new_space(8);
   vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
-  add_pio_map("screen", VGACTL_PORT, (void *)vgactl_port_base, 8, NULL);
-  add_mmio_map("screen", VGACTL_MMIO, (void *)vgactl_port_base, 8, NULL);
+  add_pio_map("screen", CONFIG_VGA_CTL_PORT, (void *)vgactl_port_base, 8, NULL);
+  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, (void *)vgactl_port_base, 8, NULL);
 
   vmem = (void *)new_space(SCREEN_SIZE);
-  add_mmio_map("vmem", VMEM, (void *)vmem, SCREEN_SIZE, NULL);
+  add_mmio_map("vmem", CONFIG_FB_ADDR, (void *)vmem, SCREEN_SIZE, NULL);
 }
 #endif	/* CONFIG_HAS_VGA */

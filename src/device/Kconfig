@@ -6,23 +6,73 @@ menuconfig DEVICE
 
 if DEVICE
 
-config HAS_SERIAL
+config HAS_PORT_IO
+  bool
+  default y
+
+menuconfig HAS_SERIAL
   bool "Enable serial"
   default y
 
-config HAS_TIMER
+if HAS_SERIAL
+config SERIAL_PORT
+  depends on HAS_PORT_IO
+  hex "Port address of the serial controller"
+  default 0x3f8
+
+config SERIAL_MMIO
+  hex "MMIO address of the serial controller"
+  default 0xa10003f8
+endif # HAS_TIMER
+
+menuconfig HAS_TIMER
   bool "Enable timer"
   default y
 
-config HAS_KEYBOARD
+if HAS_TIMER
+config RTC_PORT
+  depends on HAS_PORT_IO
+  hex "Port address of the timer"
+  default 0x48
+
+config RTC_MMIO
+  hex "MMIO address of the timer"
+  default 0xa1000048
+endif # HAS_TIMER
+
+menuconfig HAS_KEYBOARD
   bool "Enable keyboard"
   default y
 
-config HAS_VGA
+if HAS_KEYBOARD
+config I8042_DATA_PORT
+  depends on HAS_PORT_IO
+  hex "Port address of the keyboard controller"
+  default 0x60
+
+config I8042_DATA_MMIO
+  hex "MMIO address of the keyboard controller"
+  default 0xa1000060
+endif # HAS_KEYBOARD
+
+menuconfig HAS_VGA
   bool "Enable VGA"
   default y
 
 if HAS_VGA
+config FB_ADDR
+  hex "Physical address of the VGA frame buffer"
+  default 0xa0000000
+
+config VGA_CTL_PORT
+  depends on HAS_PORT_IO
+  hex "Port address of the VGA controller"
+  default 0x100
+
+config VGA_CTL_MMIO
+  hex "MMIO address of the VGA controller"
+  default 0xa1000100
+
 config VGA_SHOW_SCREEN
   bool "Enable SDL SCREEN"
   default y
@@ -35,7 +85,6 @@ config VGA_SIZE_400x300
 config VGA_SIZE_800x600
   bool "800 x 600"
 endchoice
-
 endif # HAS_VGA
 
 endif # DEVICE

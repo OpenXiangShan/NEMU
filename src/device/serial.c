@@ -3,9 +3,6 @@
 /* http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming */
 // NOTE: this is compatible to 16550
 
-#define SERIAL_PORT 0x3F8
-#define SERIAL_MMIO 0xa10003F8
-
 #define CH_OFFSET 0
 #ifndef __ICS_EXPORT
 #define LSR_OFFSET 5
@@ -130,8 +127,8 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_serial() {
   serial_base = new_space(8);
-  add_pio_map("serial", SERIAL_PORT, serial_base, 8, serial_io_handler);
-  add_mmio_map("serial", SERIAL_MMIO, serial_base, 8, serial_io_handler);
+  add_pio_map("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
+  add_mmio_map("serial", CONFIG_SERIAL_MMIO, serial_base, 8, serial_io_handler);
 
 #ifndef __ICS_EXPORT
   init_fifo();
