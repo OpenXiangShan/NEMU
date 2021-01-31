@@ -74,7 +74,6 @@ $(DIFF_REF_SO):
 
 endif
 
-include $(NEMU_HOME)/scripts/Makefile.git
 compile_git:
 	$(call git_commit, "compile")
 $(BINARY): compile_git
