@@ -13,8 +13,7 @@ paddr_t host_to_guest(void *addr) { return CONFIG_MBASE + (addr - (void *)pmem);
 IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
-#ifndef CONFIG_DIFFTEST
-  ONDEF(DETERMINISTIC, return);
+#ifdef CONFIG_MEM_RANDOM
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
