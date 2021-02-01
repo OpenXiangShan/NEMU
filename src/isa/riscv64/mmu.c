@@ -96,6 +96,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     
     // pte.val	= paddr_read(p_pte, PTE_SIZE);
+    assert(goldenMem != NULL);
     inter_read_goldenmem(p_pte, &pte.val, PTE_SIZE);
 
     pg_base = PGBASE(pte.ppn);

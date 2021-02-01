@@ -3,7 +3,7 @@
 #include <cpu/exec.h>
 #include <device/map.h>
 
-uint8_t *goldenMem;
+uint8_t *goldenMem = NULL;
 
 void cpu_exec(uint64_t);
 
