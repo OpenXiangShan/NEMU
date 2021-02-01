@@ -13,6 +13,8 @@ config DEBUG
   help
     Enable debug features, which include instruction tracing and watchpoint.
 
+source "src/memory/Kconfig"
+
 source "src/device/Kconfig"
 
 

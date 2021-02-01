@@ -44,7 +44,7 @@ static inline long load_img() {
   long size = ftell(fp);
 
   fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
+  int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
   assert(ret == 1);
 
   fclose(fp);

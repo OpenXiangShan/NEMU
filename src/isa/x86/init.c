@@ -16,7 +16,7 @@ static const uint8_t img []  = {
 
 static void restart() {
   /* Set the initial instruction pointer. */
-  cpu.pc = PMEM_BASE + IMAGE_START;
+  cpu.pc = RESET_VECTOR;
 #ifndef __ICS_EXPORT
   cpu.sreg[CSR_CS].val = 0x8;
   cpu.cr0.val = 0x60000011;
@@ -38,7 +38,7 @@ void init_isa() {
 #endif
 
   /* Load built-in image. */
-  memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
+  memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
   /* Initialize this virtual computer system. */
   restart();

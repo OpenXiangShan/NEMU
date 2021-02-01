@@ -167,7 +167,7 @@ static int cmd_save(char *args) {
     FILE *fp = fopen(arg, "w");
     assert(fp != NULL);
     fwrite(&cpu, sizeof(cpu), 1, fp);
-    fwrite(guest_to_host(0), PMEM_SIZE, 1, fp);
+    fwrite(guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, 1, fp);
     fclose(fp);
   }
   return 0;
@@ -186,7 +186,7 @@ static int cmd_load(char *args) {
     assert(fp != NULL);
     __attribute__((unused)) int ret;
     ret = fread(&cpu, sizeof(cpu), 1, fp);
-    ret = fread(guest_to_host(0), PMEM_SIZE, 1, fp);
+    ret = fread(guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, 1, fp);
     fclose(fp);
   }
   return 0;

@@ -78,7 +78,7 @@ static long load_elf(char *elfpath) {
   user_state.phent = elf->e_phentsize;
   user_state.phnum = elf->e_phnum;
   cpu.pc = elf->e_entry;
-  return brk - PMEM_BASE;
+  return brk - CONFIG_MBASE;
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {

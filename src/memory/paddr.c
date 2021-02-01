@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
+static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 
-void* guest_to_host(paddr_t addr) { return &pmem[addr]; }
-paddr_t host_to_guest(void *addr) { return addr - (void *)pmem; }
+void* guest_to_host(paddr_t addr) { return &pmem[addr - CONFIG_MBASE]; }
+paddr_t host_to_guest(void *addr) { return CONFIG_MBASE + (addr - (void *)pmem); }
 
 IOMap* fetch_mmio_map(paddr_t addr);
 
@@ -18,14 +18,14 @@ void init_mem() {
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
-  for (i = 0; i < PMEM_SIZE / sizeof(p[0]); i ++) {
+  for (i = 0; i < CONFIG_MSIZE / sizeof(p[0]); i ++) {
     p[i] = rand();
   }
 #endif
 }
 
 static inline bool in_pmem(uint32_t idx) {
-  return (idx < PMEM_SIZE);
+  return (idx < CONFIG_MSIZE);
 }
 
 static inline word_t pmem_read(uint32_t idx, int len) {
@@ -57,13 +57,13 @@ static inline void pmem_write(uint32_t idx, word_t data, int len) {
 /* Memory accessing interfaces */
 
 inline word_t paddr_read(paddr_t addr, int len) {
-  uint32_t idx = addr - PMEM_BASE;
+  uint32_t idx = addr - CONFIG_MBASE;
   if (in_pmem(idx)) return pmem_read(idx, len);
   else return map_read(addr, len, fetch_mmio_map(addr));
 }
 
 inline void paddr_write(paddr_t addr, word_t data, int len) {
-  uint32_t idx = addr - PMEM_BASE;
+  uint32_t idx = addr - CONFIG_MBASE;
   if (in_pmem(idx)) pmem_write(idx, data, len);
   else map_write(addr, data, len, fetch_mmio_map(addr));
 }

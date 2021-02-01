@@ -43,7 +43,7 @@ static void init_rv64_interpreter() {
   // initialize serial before the dummy serial in difftest_init()
   backend_init_device();
   backend_init(0);
-  backend_memcpy(PMEM_BASE, guest_to_host(0), PMEM_SIZE, true);
+  backend_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, true);
 }
 
 // this is to handle exceptions such as misaligned memory accessing
@@ -68,7 +68,7 @@ static void load_bbl() {
 
   fclose(fp);
 
-  backend_memcpy(PMEM_BASE, buf, size, true);
+  backend_memcpy(CONFIG_MBASE, buf, size, true);
   free(buf);
 }
 
