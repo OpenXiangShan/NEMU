@@ -1,3 +1,7 @@
+ifeq ($(wildcard $(NEMU_HOME)/configs/pa_defconfig),)
+  $(error NEMU_HOME=$(NEMU_HOME) is not a NEMU repo)
+endif
+
 -include $(NEMU_HOME)/include/config/auto.conf
 -include $(NEMU_HOME)/include/config/auto.conf.cmd
 

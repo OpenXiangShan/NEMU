@@ -35,7 +35,7 @@ savedefconfig: $(CONF)
 # Help text used by make help
 help:
 	@echo  '  menuconfig	  - Update current config utilising a menu based program'
-	@echo  '  savedefconfig   - Save current config as ./defconfig (minimal config)'
+	@echo  '  savedefconfig   - Save current config as configs/defconfig (minimal config)'
 
 distclean: clean
 	-@rm -rf $(rm-distclean)
