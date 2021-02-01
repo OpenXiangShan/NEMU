@@ -69,6 +69,23 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   return true;
 }
 
+extern uint8_t* goldenMem;
+
+static inline word_t inter_pmem_read(paddr_t addr, int len) {
+  void *p = &goldenMem[addr - 0x80000000];
+  switch (len) {
+    case 1: return *(uint8_t  *)p;
+    case 2: return *(uint16_t *)p;
+    case 4: return *(uint32_t *)p;
+    case 8: return *(uint64_t *)p;
+    default: assert(0);
+  }
+}
+
+void inter_read_goldenmem(paddr_t addr, void *data, uint64_t len) {
+  *(uint64_t*)data = inter_pmem_read(addr, len);
+}
+
 static paddr_t ptw(vaddr_t vaddr, int type) {
 
   word_t pg_base = PGBASE(satp->ppn);
@@ -77,7 +94,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   int level;
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
-    pte.val	= paddr_read(p_pte, PTE_SIZE);
+    
+    // pte.val	= paddr_read(p_pte, PTE_SIZE);
+    inter_read_goldenmem(p_pte, &pte.val, PTE_SIZE);
+
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
       //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
