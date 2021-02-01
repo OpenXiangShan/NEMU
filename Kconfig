@@ -13,6 +13,21 @@ config DEBUG
   help
     Enable debug features, which include instruction tracing and watchpoint.
 
+choice
+  prompt "Running mode"
+  default MODE_SYSTEM
+
+config MODE_SYSTEM
+  bool "System mode"
+  help
+    Support full-system functionality, including privileged instructions, MMU and devices.
+
+config MODE_USER
+  bool "User mode"
+  help
+    Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
+endchoice
+
 source "src/memory/Kconfig"
 
 source "src/device/Kconfig"

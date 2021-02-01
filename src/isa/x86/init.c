@@ -43,7 +43,7 @@ void init_isa() {
   /* Initialize this virtual computer system. */
   restart();
 
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
   init_i8259a();
   init_mc146818rtc();
   init_i8253();
@@ -53,7 +53,7 @@ void init_isa() {
 #endif
 }
 
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
 
 // we only maintain base of the segment here
 uint32_t GDT[4] = {0};

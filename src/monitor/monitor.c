@@ -85,7 +85,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform some global initialization. */
 
   /* Parse arguments. */
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
   int user_argidx = parse_args(argc, argv);
 #else
   parse_args(argc, argv);
@@ -101,7 +101,7 @@ void init_monitor(int argc, char *argv[]) {
   init_isa();
 
   /* Load the image to memory. This will overwrite the built-in image. */
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
   int user_argc = argc - user_argidx;
   char **user_argv = argv + user_argidx;
   long init_user(char *elfpath, int argc, char *argv[]);

@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
 #define vaddr2uint8(addr)  (uint8_t  *)(void *)(uintptr_t)(addr)
 #define vaddr2uint16(addr) (uint16_t *)(void *)(uintptr_t)(addr)
 #define vaddr2uint32(addr) (uint32_t *)(void *)(uintptr_t)(addr)

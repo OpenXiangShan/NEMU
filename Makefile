@@ -1,3 +1,6 @@
+-include $(NEMU_HOME)/include/config/auto.conf
+-include $(NEMU_HOME)/include/config/auto.conf.cmd
+
 ENGINE ?= interpreter
 ENGINES = $(shell ls $(NEMU_HOME)/src/engine/)
 ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
@@ -24,10 +27,8 @@ ifndef SHARE
 LDFLAGS += -lSDL2 -lreadline -ldl
 endif
 
-ifdef USER_MODE
-SRCS   += $(shell find src/user -name "*.c")
-CFLAGS += -DUSER_MODE
-endif
+SRCS-$(CONFIG_MODE_USER) += $(shell find src/user -name "*.c")
+SRCS += $(SRCS-y)
 
 ifeq ($(ENGINE),interpreter)
 SOFTFLOAT = resource/softfloat/build/softfloat.a
@@ -40,8 +41,6 @@ $(SOFTFLOAT):
 .PHONY: $(SOFTFLOAT)
 endif
 
--include $(NEMU_HOME)/include/config/auto.conf
--include $(NEMU_HOME)/include/config/auto.conf.cmd
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk

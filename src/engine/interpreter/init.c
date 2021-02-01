@@ -4,7 +4,7 @@ void ui_mainloop();
 void init_device();
 
 void engine_start() {
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
   /* Initialize devices. */
   init_device();
 #endif
