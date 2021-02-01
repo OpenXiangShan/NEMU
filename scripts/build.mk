@@ -1,9 +1,5 @@
 .DEFAULT_GOAL = app
 
-ifneq ($(MAKECMDGOALS),clean)
-$(info Building $(NAME))
-endif
-
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC -D_SHARE=1
