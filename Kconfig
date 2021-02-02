@@ -65,6 +65,54 @@ config MODE_USER
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
 endchoice
 
+menu "Build Options"
+
+choice
+  prompt "Compiler"
+  default CC_GCC
+config CC_GCC
+  bool "gcc"
+config CC_CLANG
+  bool "clang"
+endchoice
+
+config CC
+  string
+  default "gcc" if CC_GCC
+  default "clang" if CC_CLANG
+  default "none"
+
+choice
+  prompt "Optimization Level"
+  default CC_O2
+config CC_O0
+  bool "O0"
+config CC_O1
+  bool "O1"
+config CC_O2
+  bool "O2"
+config CC_O3
+  bool "O3"
+endchoice
+
+config CC_OPT
+  string
+  default "-O0" if CC_O0
+  default "-O1" if CC_O1
+  default "-O2" if CC_O2
+  default "-O3" if CC_O3
+  default "none"
+
+config CC_LTO
+  bool "Enable link-time optimization"
+  default y
+
+config CC_DEBUG
+  bool "Enable debug information"
+  default n
+
+endmenu
+
 source "src/memory/Kconfig"
 
 source "src/device/Kconfig"

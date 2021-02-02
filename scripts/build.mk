@@ -16,26 +16,14 @@ BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
 CCACHE := $(if $(shell which ccache),ccache,)
 
-GCC ?= gcc
-
 # Compilation flags
-CC = $(CCACHE) $(GCC)
-LD = $(CCACHE) $(GCC)
+CC := $(CCACHE) $(CC)
+LD := $(CCACHE) $(CC)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
 
 OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
-
-ifdef USE_KCONFIG
-define call_fixdep
-	@$(FIXDEP) $(1) $(2) unused > $(1).tmp
-	@mv $(1).tmp $(1)
-endef
-
-else
-call_fixdep =
-endif
 
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c

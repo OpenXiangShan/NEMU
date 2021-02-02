@@ -1,4 +1,3 @@
-USE_KCONFIG := 1
 
 Q            := @
 KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
@@ -41,3 +40,8 @@ distclean: clean
 	-@rm -rf $(rm-distclean)
 
 .PHONY: help distclean
+
+define call_fixdep
+	@$(FIXDEP) $(1) $(2) unused > $(1).tmp
+	@mv $(1).tmp $(1)
+endef

@@ -22,9 +22,12 @@ ifeq ($(wildcard .config),)
 $(warning === Warning: .config does not exists! You may first run 'make menuconfig'. ===)
 endif
 
-GCC = clang
-CFLAGS += -ggdb3 -O3 -flto
-LDFLAGS += -O3 -flto
+CC ?= $(call remove_quote,$(CONFIG_CC))
+CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
+CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
+CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
+CFLAGS  += $(CFLAGS_BUILD)
+LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
