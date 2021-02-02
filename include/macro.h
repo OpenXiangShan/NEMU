@@ -41,7 +41,7 @@
 #define __KEEP(...) __VA_ARGS__
 // keep the code if a boolean macro is defined
 #define ONDEF(macro, ...) MUX_MACRO_PROPERTY(__ARG_IS_DEF_, macro, __KEEP, __IGNORE)(__VA_ARGS__)
-// keep the code if a boolean macro is defined
+// keep the code if a boolean macro is undefined
 #define ONUNDEF(macro, ...) MUX_MACRO_PROPERTY(__ARG_IS_DEF_, macro, __IGNORE, __KEEP)(__VA_ARGS__)
 // keep the code if a boolean macro is defined to 1
 #define ONONE(macro, ...) MUX_MACRO_PROPERTY(__ARG_IS_ONE_, macro, __KEEP, __IGNORE)(__VA_ARGS__)

@@ -10,9 +10,7 @@
 static inline def_DHelper(empty) { }
 
 static inline void difftest_skip_delay_slot() {
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(2, 1);
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(2, 1));
 }
 
 static inline void mux(DecodeExecState *s, rtlreg_t* dest, const rtlreg_t* cond,

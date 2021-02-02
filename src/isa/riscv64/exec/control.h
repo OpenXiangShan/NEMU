@@ -16,10 +16,7 @@ static inline def_EHelper(jalr) {
 
   rtl_li(s, ddest, s->seq_pc);
 
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 2);
-#endif
-
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   print_asm_template3(jalr);
 }
 

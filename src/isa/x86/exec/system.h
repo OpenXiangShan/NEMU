@@ -43,9 +43,7 @@ static inline def_EHelper(mov_cr2r) {
 
 static inline def_EHelper(mov_rm2sreg) {
   rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, id_dest->reg);
-#ifndef __DIFF_REF_NEMU__
-  if (id_dest->reg == 2) { difftest_skip_dut(1, 2); } // SS
-#endif
+  if (ISUNDEF(CONFIG_DIFFTEST_REF_NEMU) && id_dest->reg == 2) { difftest_skip_dut(1, 2); } // SS
   print_asm("movw %s,%%%s", id_src1->str, sreg_name(id_dest->reg));
 }
 
@@ -134,27 +132,18 @@ static inline def_EHelper(mov_r2cr) {
 static inline def_EHelper(mov_cr2r) {
   TODO();
   print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
-
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_ref();
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
 }
 
 static inline def_EHelper(int) {
   TODO();
   print_asm("int %s", id_dest->str);
-
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 2);
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }
 
 static inline def_EHelper(iret) {
   TODO();
   print_asm("iret");
-
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_ref();
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
 }
 #endif

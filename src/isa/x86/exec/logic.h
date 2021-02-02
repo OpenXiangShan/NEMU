@@ -85,11 +85,7 @@ static inline def_EHelper(sar) {
   rtl_sar(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  int update_of = 1;
-#ifdef __DIFF_REF_KVM__
-  update_of = (count == 1);
-#endif
-  if (update_of) {
+  if (ISDEF(CONFIG_DIFFTEST_REF_KVM) ? count == 1 : 1) {
     rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
@@ -125,11 +121,7 @@ static inline def_EHelper(shl) {
   rtl_shl(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  int update_of = 1;
-#ifdef __DIFF_REF_KVM__
-  update_of = (count == 1);
-#endif
-  if (update_of) {
+  if (ISDEF(CONFIG_DIFFTEST_REF_KVM) ? count == 1 : 1) {
     rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
@@ -165,11 +157,7 @@ static inline def_EHelper(shr) {
   rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  int update_of = 1;
-#ifdef __DIFF_REF_KVM__
-  update_of = (count == 1);
-#endif
-  if (update_of) {
+  if (ISDEF(CONFIG_DIFFTEST_REF_KVM) ? count == 1 : 1) {
     rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);

@@ -2,9 +2,7 @@
 #include "../local-include/csr.h"
 
 static inline void csr_difftest() {
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 3);
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
 }
 
 static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
@@ -120,13 +118,9 @@ static inline def_EHelper(priv) {
     default: panic("unimplemented priv instruction type = 0x%x", type);
   }
 
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 2);
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }
 
 static inline def_EHelper(fence) {
-#ifndef __DIFF_REF_NEMU__
-  difftest_skip_dut(1, 2);
-#endif
+  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }

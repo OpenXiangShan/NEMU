@@ -124,8 +124,8 @@ typedef struct {
   };
 
   int mem_exception;
-  int lock;
   word_t error_code;
+  ONUNDEF(__PA__, int lock);
 
   bool INTR;
 #endif

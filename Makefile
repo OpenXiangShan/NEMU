@@ -50,35 +50,10 @@ include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk
 include $(NEMU_HOME)/scripts/build.mk
 
-ifndef SHARE
-DIFF ?= qemu-dl
-ifneq ($(ISA),x86)
-ifeq ($(DIFF),kvm)
-DIFF = qemu-dl
-$(info KVM is only supported with ISA=x86, use QEMU instead)
-endif
-endif
-
-ifeq ($(DIFF),qemu-socket)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-socket-diff
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
-CFLAGS += -D__DIFF_REF_QEMU_SOCKET__ -D__DIFF_REF_QEMU__
-else ifeq ($(DIFF),qemu-dl)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-dl-diff
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
-CFLAGS += -D__DIFF_REF_QEMU_DL__ -D__DIFF_REF_QEMU__
-else ifeq ($(DIFF),kvm)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
-CFLAGS += -D__DIFF_REF_KVM__
-else ifeq ($(DIFF),nemu)
-DIFF_REF_PATH = $(NEMU_HOME)
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-nemu-interpreter-so
-CFLAGS += -D__DIFF_REF_NEMU__
+ifdef CONFIG_DIFFTEST
+DIFF_REF_PATH = $(NEMU_HOME)/$(call remove_quote,$(CONFIG_DIFFTEST_REF_PATH))
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-$(call remove_quote,$(CONFIG_DIFFTEST_REF_NAME))-so
 MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
-else
-$(error invalid DIFF. Supported: qemu-dl kvm qemu-socket nemu)
-endif
 
 $(DIFF_REF_SO):
 	$(MAKE) -s -C $(DIFF_REF_PATH) $(MKFLAGS)

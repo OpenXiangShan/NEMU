@@ -1,22 +1,8 @@
 mainmenu "NEMU Configuration Menu"
 
-config DIFFTEST
-  bool "Enable differential testing"
-  default n
-  help
-    Enable Differential Testing with a reference design.
-    Note that this will significantly reduce the performance of NEMU.
-
-config DEBUG
-  bool "Enable debug features"
-  default n
-  help
-    Enable debug features, which include instruction tracing and watchpoint.
-
 choice
   prompt "Base ISA"
   default ISA_riscv32
-
 config ISA_x86
   bool "x86"
 config ISA_mips32
@@ -66,7 +52,6 @@ config MODE_USER
 endchoice
 
 menu "Build Options"
-
 choice
   prompt "Compiler"
   default CC_GCC
@@ -110,65 +95,57 @@ config CC_LTO
 config CC_DEBUG
   bool "Enable debug information"
   default n
+endmenu
 
+menu "Testing and Debugging"
+config DEBUG
+  bool "Enable debug features"
+  default n
+  help
+    Enable debug features, which include instruction tracing and watchpoint.
+
+config DIFFTEST
+  bool "Enable differential testing"
+  default n
+  help
+    Enable differential testing with a reference design.
+    Note that this will significantly reduce the performance of NEMU.
+
+choice
+  prompt "Reference design"
+  default DIFFTEST_REF_QEMU_DL
+  depends on DIFFTEST
+config DIFFTEST_REF_QEMU_DL
+  bool "QEMU, communicate with dynamic linking"
+config DIFFTEST_REF_QEMU_SOCKET
+  bool "QEMU, communicate with socket"
+config DIFFTEST_REF_KVM
+  bool "KVM"
+config DIFFTEST_REF_NEMU
+  bool "NEMU"
+endchoice
+
+config DIFFTEST_REF_QEMU
+  depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
+  bool
+  default y
+
+config DIFFTEST_REF_PATH
+  string
+  default "tools/qemu-dl-diff" if DIFFTEST_REF_QEMU_DL
+  default "tools/qemu-socket-diff" if DIFFTEST_REF_QEMU_SOCKET
+  default "tools/kvm" if DIFFTEST_REF_KVM
+  default "." if DIFFTEST_REF_NEMU
+  default "none"
+
+config DIFFTEST_REF_NAME
+  string
+  default "qemu" if DIFFTEST_REF_QEMU_DL
+  default "qemu" if DIFFTEST_REF_QEMU_SOCKET
+  default "kvm" if DIFFTEST_REF_KVM
+  default "nemu-interpreter" if DIFFTEST_REF_NEMU
+  default "none"
 endmenu
 
 source "src/memory/Kconfig"
-
 source "src/device/Kconfig"
-
-
-menu "Hidden 1"
-	visible if SHOW_MORE
-	menu "Nested 1"
-		menu "Nested 2"
-			comment "we can nest as deep as we want"
-		endmenu
-	endmenu
-endmenu
-
-
-
-
-config LEDON
-	bool "Led's states"
-	default y
-
-comment "This item is visible only if the third option is selected"
-
-menu "Hidden 2"
-	visible if SHOW_EVEN_MORE
-	depends on MENUDEPENDENCY
-
-	config ITEM1
-		bool "Item 1 - enables additional options"
-		default n
-
-	config ITEM2
-		depends on ITEM1
-		bool "Item 2 - depends on item 1"
-		default n
-
-	config ITEM3
-		bool "Item 3 - is set automatically"
-		default n
-
-	config ITEM4
-		bool "Item 4 - reverse dependancy"
-		select ITEM3
-		default n
-endmenu
-
-comment "Some different config types"
-config STRING_PARAM
-	string "String Parameter"
-
-config NUM_PARAM
-	int "Integer parameter between 0 an 100"
-	range 0 100
-
-config NUM_PARAM2
-	int "HEX parameter"
-
-config TRISTATE_PARAM
-	tristate "Three states"

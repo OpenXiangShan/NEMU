@@ -5,16 +5,14 @@
 #include <utils.h>
 #include <difftest.h>
 
-#ifdef __DIFF_REF_QEMU_DL__
-__thread uint8_t resereve_for_qemu_tls[4096];
-#endif
-
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 #ifdef CONFIG_DIFFTEST
+
+ONDEF(CONFIG_DIFFTEST_REF_QEMU_DL, __thread uint8_t resereve_for_qemu_tls[4096]);
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
