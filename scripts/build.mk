@@ -13,6 +13,7 @@ INC_DIR += $(WORK_DIR)/include $(NEMU_HOME)/lib-include
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
+CC ?= gcc
 
 CCACHE := $(if $(shell which ccache),ccache,)
 

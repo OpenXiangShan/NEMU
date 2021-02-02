@@ -18,7 +18,7 @@ CFLAGS += -D__ENGINE_$(ENGINE)__
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
 SRCS-y += $(shell find src/engine/$(ENGINE) -name "*.c")
 
-CC ?= $(call remove_quote,$(CONFIG_CC))
+CC = $(call remove_quote,$(CONFIG_CC))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
