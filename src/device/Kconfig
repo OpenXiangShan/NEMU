@@ -1,4 +1,5 @@
 menuconfig DEVICE
+  depends on !SHARE
   bool "Devices"
   default y
   help

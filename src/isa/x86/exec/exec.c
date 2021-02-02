@@ -344,7 +344,7 @@ vaddr_t isa_exec_once() {
 #endif
 
 #ifndef __ICS_EXPORT
-#if !defined(CONFIG_DIFFTEST) && !_SHARE
+#if !defined(CONFIG_DIFFTEST) && !defined(CONFIG_SHARE)
   void query_intr();
   query_intr();
 #endif

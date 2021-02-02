@@ -95,16 +95,22 @@ config CC_LTO
 config CC_DEBUG
   bool "Enable debug information"
   default n
+
+config SHARE
+  bool "Build shared library"
+  default n
 endmenu
 
 menu "Testing and Debugging"
 config DEBUG
+  depends on !SHARE
   bool "Enable debug features"
   default n
   help
     Enable debug features, which include instruction tracing and watchpoint.
 
 config DIFFTEST
+  depends on !SHARE
   bool "Enable differential testing"
   default n
   help

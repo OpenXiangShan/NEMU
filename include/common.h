@@ -16,13 +16,6 @@
 #define HAS_IOE
 #endif
 
-#if _SHARE
-// do not enable these features while building a reference design
-#undef CONFIG_DIFFTEST
-#undef CONFIG_DEBUG
-#undef HAS_IOE
-#endif
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>

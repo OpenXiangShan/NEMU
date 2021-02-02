@@ -245,7 +245,7 @@ vaddr_t isa_exec_once() {
     update_pc(&s);
   }
 
-#if !defined(CONFIG_DIFFTEST) && !_SHARE
+#if !defined(CONFIG_DIFFTEST) && !defined(CONFIG_SHARE)
   void query_intr();
   query_intr();
 #endif

@@ -27,8 +27,10 @@ LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
-ifndef SHARE
+ifndef CONFIG_SHARE
 LDFLAGS += -lSDL2 -lreadline -ldl
+else
+SHARE = 1
 endif
 
 SRCS-$(CONFIG_MODE_USER) += $(shell find src/user -name "*.c")

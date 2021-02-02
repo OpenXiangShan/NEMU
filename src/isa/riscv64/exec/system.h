@@ -100,7 +100,7 @@ static inline def_EHelper(priv) {
       print_asm("wfi");
 
       // let the clock go quickly to reduce idle time in Linux
-#if !_SHARE
+#if !defined(CONFIG_SHARE)
       void clint_intr();
       clint_intr();
 #endif
