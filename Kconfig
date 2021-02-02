@@ -1,17 +1,54 @@
 mainmenu "NEMU Configuration Menu"
 
 config DIFFTEST
-  bool "Enable Differential Testing"
+  bool "Enable differential testing"
   default n
   help
     Enable Differential Testing with a reference design.
     Note that this will significantly reduce the performance of NEMU.
 
 config DEBUG
-  bool "Enable Debug Features"
+  bool "Enable debug features"
   default n
   help
     Enable debug features, which include instruction tracing and watchpoint.
+
+choice
+  prompt "Base ISA"
+  default ISA_riscv32
+
+config ISA_x86
+  bool "x86"
+config ISA_mips32
+  bool "mips32"
+config ISA_riscv32
+  bool "riscv32"
+config ISA_riscv64
+  bool "riscv64"
+endchoice
+
+config ISA
+  string
+  default "x86" if ISA_x86
+  default "mips32" if ISA_mips32
+  default "riscv32" if ISA_riscv32
+  default "riscv64" if ISA_riscv64
+  default "none"
+
+choice
+  prompt "NEMU execution engine"
+  default ENGINE_INTERPRETER
+
+config ENGINE_INTERPRETER
+  bool "Interpreter"
+  help
+    Interpreter guest instructions one by one.
+endchoice
+
+config ENGINE
+  string
+  default "interpreter" if ENGINE_INTERPRETER
+  default "none"
 
 choice
   prompt "Running mode"

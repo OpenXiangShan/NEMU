@@ -5,28 +5,29 @@ endif
 -include $(NEMU_HOME)/include/config/auto.conf
 -include $(NEMU_HOME)/include/config/auto.conf.cmd
 
-ENGINE ?= interpreter
-ENGINES = $(shell ls $(NEMU_HOME)/src/engine/)
-ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
-$(error Invalid ENGINE=$(ENGINE). Supported: $(ENGINES))
-endif
+SRCS-y = $(shell find src/ -name "*.c" | grep -v "src/\(isa\|engine\|user\)")
+
+remove_quote = $(patsubst "%",%,$(1))
+
+ISA    ?= $(call remove_quote,$(CONFIG_ISA))
+CFLAGS += -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
+SRCS-y += $(shell find src/isa/$(ISA) -name "*.c")
+
+ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
+CFLAGS += -D__ENGINE_$(ENGINE)__
+INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
+SRCS-y += $(shell find src/engine/$(ENGINE) -name "*.c")
 
 ifeq ($(wildcard .config),)
 $(warning === Warning: .config does not exists! You may first run 'make menuconfig'. ===)
 endif
 
 GCC = clang
-CFLAGS += -O3 -flto
+CFLAGS += -ggdb3 -O3 -flto
 LDFLAGS += -O3 -flto
 
 NAME  = nemu-$(ENGINE)
-SRCS  = $(shell find src/ -name "*.c" | grep -v "src/\(isa\|engine\|user\)")
-SRCS += $(shell find src/isa/$(ISA) -name "*.c")
-SRCS += $(shell find src/engine/$(ENGINE) -name "*.c")
 
-CFLAGS  += -ggdb3 -D__ENGINE_$(ENGINE)__ \
-					 -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
-INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
 ifndef SHARE
 LDFLAGS += -lSDL2 -lreadline -ldl
 endif
