@@ -19,7 +19,7 @@ static int difftest_port = 1234;
 int is_batch_mode() { return batch_mode; }
 
 static inline void welcome() {
-  Log("Debug: \33[1;32m%s\33[0m", ISDEF(CONFIG_DEBUG) ? "ON" : "OFF");
+  Log("Debug: \33[1;32m%s\33[0m", MUXDEF(CONFIG_DEBUG, "ON","OFF"));
   ONDEF(CONFIG_DEBUG, Log("If debug mode is on, a log file will be generated "
       "to record every instruction NEMU executes. This may lead to a large log file. "
       "If it is not necessary, you can turn it off in include/common.h.")

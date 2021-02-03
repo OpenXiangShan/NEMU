@@ -2,8 +2,8 @@
 
 #ifdef CONFIG_HAS_VGA
 
-#define SCREEN_W (ISDEF(CONFIG_VGA_SIZE_800x600) ? 800 : 400)
-#define SCREEN_H (ISDEF(CONFIG_VGA_SIZE_800x600) ? 600 : 300)
+#define SCREEN_W (MUXDEF(CONFIG_VGA_SIZE_800x600, 800, 400))
+#define SCREEN_H (MUXDEF(CONFIG_VGA_SIZE_800x600, 600, 300))
 #define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
 
 #include <device/map.h>
@@ -22,8 +22,8 @@ static inline void init_screen() {
   sprintf(title, "%s-NEMU", str(__ISA__));
   SDL_Init(SDL_INIT_VIDEO);
   SDL_CreateWindowAndRenderer(
-      SCREEN_W * (ISDEF(CONFIG_VGA_SIZE_400x300) ? 2 : 1),
-      SCREEN_H * (ISDEF(CONFIG_VGA_SIZE_400x300) ? 2 : 1),
+      SCREEN_W * (MUXDEF(CONFIG_VGA_SIZE_400x300, 2, 1)),
+      SCREEN_H * (MUXDEF(CONFIG_VGA_SIZE_400x300, 2, 1)),
       0, &window, &renderer);
   SDL_SetWindowTitle(window, title);
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
