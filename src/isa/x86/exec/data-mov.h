@@ -78,7 +78,7 @@ static inline def_EHelper(xchg) {
 }
 
 static inline def_EHelper(cmpxchg) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 
@@ -94,7 +94,7 @@ static inline def_EHelper(cmpxchg) {
 }
 
 static inline def_EHelper(cmpxchg8b) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 

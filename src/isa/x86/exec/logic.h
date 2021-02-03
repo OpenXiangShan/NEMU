@@ -69,7 +69,7 @@ static inline def_EHelper(sar) {
   // rtl_sext(), and it is  still sematically correct
   rtl_sext(s, ddest, ddest, id_dest->width);
 #ifndef __PA__
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
@@ -105,7 +105,7 @@ static inline def_EHelper(sar) {
 
 static inline def_EHelper(shl) {
 #ifndef __PA__
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
@@ -141,7 +141,7 @@ static inline def_EHelper(shl) {
 
 static inline def_EHelper(shr) {
 #ifndef __PA__
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
@@ -227,7 +227,7 @@ static inline def_EHelper(shld) {
 static inline def_EHelper(shrd) {
   assert(id_dest->width == 4);
 
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);

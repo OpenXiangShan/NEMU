@@ -1,7 +1,7 @@
 #include <sys/time.h>
 
 static inline def_EHelper(rdtsc) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 

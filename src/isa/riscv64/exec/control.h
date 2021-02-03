@@ -9,9 +9,7 @@ static inline def_EHelper(jal) {
 
 static inline def_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-#ifdef __ENGINE_interpreter__
-  rtl_andi(s, s0, s0, ~0x1lu);
-#endif
+  ONDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
   rtl_jr(s, s0);
 
   rtl_li(s, ddest, s->seq_pc);

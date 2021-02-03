@@ -1,7 +1,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
-#if defined(__ENGINE_interpreter__)
+#if defined(CONFIG_ENGINE_INTERPRETER)
 
 void set_eflags(uint32_t val);
 

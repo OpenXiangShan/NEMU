@@ -50,7 +50,7 @@ void set_eflags(uint32_t val) {
 }
 
 void difftest_fix_eflags(void *arg) {
-#if defined(__ENGINE_interpreter__) && !defined(CONFIG_DIFFTEST_REF_KVM)
+#if defined(CONFIG_ENGINE_INTERPRETER) && !defined(CONFIG_DIFFTEST_REF_KVM)
 #define EFLAGS_MASK_ID (1 << 21)
 #define EFLAGS_MASK_AC (1 << 18)
 #define EFLAGS_MASK_AF (1 << 4)

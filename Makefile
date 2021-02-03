@@ -14,7 +14,6 @@ CFLAGS += -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
 SRCS-y += $(shell find src/isa/$(ISA) -name "*.c")
 
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
-CFLAGS += -D__ENGINE_$(ENGINE)__
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
 SRCS-y += $(shell find src/engine/$(ENGINE) -name "*.c")
 
