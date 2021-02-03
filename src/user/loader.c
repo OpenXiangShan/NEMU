@@ -5,13 +5,8 @@
 #include <unistd.h>
 #include "user.h"
 
-#ifdef __ISA64__
-# define Elf_Ehdr Elf64_Ehdr
-# define Elf_Phdr Elf64_Phdr
-#else
-# define Elf_Ehdr Elf32_Ehdr
-# define Elf_Phdr Elf32_Phdr
-#endif
+# define Elf_Ehdr MUXDEF(CONFIG_ISA64, Elf64_Ehdr, Elf32_Ehdr)
+# define Elf_Phdr MUXDEF(CONFIG_ISA64, Elf64_Phdr, Elf32_Ehdr)
 
 #if defined(__ISA_x86__)
 # define ELF_TYPE EM_386

@@ -21,6 +21,11 @@ config ISA
   default "riscv64" if ISA_riscv64
   default "none"
 
+config ISA64
+  depends on ISA_riscv64
+  bool
+  default y
+
 choice
   prompt "NEMU execution engine"
   default ENGINE_INTERPRETER
