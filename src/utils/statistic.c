@@ -1,20 +1,17 @@
 #include <common.h>
 #include <locale.h>
+#include MUXDEF(CONFIG_TIMER_GETTIMEOFDAY, <sys/time.h>, <time.h>)
 
-#define USE_GETTIMEOFDAY
-#ifdef USE_GETTIMEOFDAY
-#include <sys/time.h>
-#else
-#include <time.h>
-static_assert(CLOCKS_PER_SEC == 1000000, "CLOCKS_PER_SEC != 1000000");
-static_assert(sizeof(clock_t) == 8, "sizeof(clock_t) != 8");
-#endif
+ONDEF(CONFIG_TIMER_CLOCK_GETTIME,
+    static_assert(CLOCKS_PER_SEC == 1000000, "CLOCKS_PER_SEC != 1000000"));
+ONDEF(CONFIG_TIMER_CLOCK_GETTIME,
+    static_assert(sizeof(clock_t) == 8, "sizeof(clock_t) != 8"));
 
 uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_instr = 0;
 
 uint64_t get_time() {
-#ifdef USE_GETTIMEOFDAY
+#ifdef CONFIG_TIMER_GETTIMEOFDAY
   struct timeval now;
   gettimeofday(&now, NULL);
   uint64_t us = now.tv_sec * 1000000 + now.tv_usec;

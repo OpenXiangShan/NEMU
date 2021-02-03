@@ -160,3 +160,14 @@ endmenu
 
 source "src/memory/Kconfig"
 source "src/device/Kconfig"
+
+menu "Miscellaneous"
+choice
+  prompt "Host timer"
+  default TIMER_GETTIMEOFDAY
+config TIMER_GETTIMEOFDAY
+  bool "gettimeofday"
+config TIMER_CLOCK_GETTIME
+  bool "clock_gettime"
+endchoice
+endmenu
