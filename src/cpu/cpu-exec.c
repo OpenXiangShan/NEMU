@@ -48,7 +48,7 @@ void cpu_exec(uint64_t n) {
     n -= n_executed;
     ONUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
 
-#ifdef HAS_IOE
+#ifdef CONFIG_DEVICE
     extern void device_update();
     device_update();
 #endif

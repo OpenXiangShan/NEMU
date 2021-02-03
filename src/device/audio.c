@@ -1,14 +1,9 @@
 #include <common.h>
 
-#ifdef HAS_IOE
+#ifdef CONFIG_HAS_AUDIO
 
 #include <device/map.h>
 #include <SDL2/SDL.h>
-
-#define AUDIO_PORT 0x200 // Note that this is not the standard
-#define AUDIO_MMIO 0xa1000200
-#define STREAM_BUF 0xa0800000
-#define STREAM_BUF_MAX_SIZE 65536
 
 enum {
   reg_freq,
@@ -32,11 +27,11 @@ static inline void audio_play(void *userdata, uint8_t *stream, int len) {
   int count = audio_base[reg_count];
   if (count < len) nread = count;
 
-  if (nread + tail < STREAM_BUF_MAX_SIZE) {
+  if (nread + tail < CONFIG_SB_SIZE) {
     memcpy(stream, sbuf + tail, nread);
     tail += nread;
   } else {
-    int first_cpy_len = STREAM_BUF_MAX_SIZE - tail;
+    int first_cpy_len = CONFIG_SB_SIZE - tail;
     memcpy(stream, sbuf + tail, first_cpy_len);
     memcpy(stream + first_cpy_len, sbuf, nread - first_cpy_len);
     tail = nread - first_cpy_len;
@@ -69,13 +64,13 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
 void init_audio() {
   uint32_t space_size = sizeof(uint32_t) * nr_reg;
   audio_base = (void *)new_space(space_size);
-  add_pio_map("audio", AUDIO_PORT, (void *)audio_base, space_size, audio_io_handler);
-  add_mmio_map("audio", AUDIO_MMIO, (void *)audio_base, space_size, audio_io_handler);
+  add_pio_map("audio", CONFIG_AUDIO_CTL_PORT, (void *)audio_base, space_size, audio_io_handler);
+  add_mmio_map("audio", CONFIG_AUDIO_CTL_MMIO, (void *)audio_base, space_size, audio_io_handler);
 #ifndef __ICS_EXPORT
-  audio_base[reg_sbuf_size] = STREAM_BUF_MAX_SIZE;
+  audio_base[reg_sbuf_size] = CONFIG_SB_SIZE;
 #endif
 
-  sbuf = (void *)new_space(STREAM_BUF_MAX_SIZE);
-  add_mmio_map("audio-sbuf", STREAM_BUF, (void *)sbuf, STREAM_BUF_MAX_SIZE, NULL);
+  sbuf = (void *)new_space(CONFIG_SB_SIZE);
+  add_mmio_map("audio-sbuf", CONFIG_SB_ADDR, (void *)sbuf, CONFIG_SB_SIZE, NULL);
 }
-#endif	/* HAS_IOE */
+#endif	/* CONFIG_HAS_AUDIO */

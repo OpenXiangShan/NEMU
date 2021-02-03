@@ -1,20 +1,12 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include <generated/autoconf.h>
-
-/* You will define this macro in PA2 */
-#ifdef __ICS_EXPORT
-//#define HAS_IOE
-#else
-#define HAS_IOE
-#endif
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
 
+#include <generated/autoconf.h>
 #include <macro.h>
 
 typedef MUXDEF(CONFIG_ISA64, uint64_t, uint32_t) word_t;

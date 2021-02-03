@@ -12,9 +12,6 @@
 #define MULT (1 << (C_SIZE_MULT + 2))
 #define C_SIZE (NR_BLOCK / MULT - 1)
 
-#define SD_MMIO 0xa3000000
-
-
 // This is a simple hardware implementation of linux/drivers/mmc/host/bcm2835.c
 // No DMA and IRQ is supported, so the driver must be modified to start PIO
 // right after sending the actual read/write commands.
@@ -110,14 +107,15 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
   }
 }
 
-void init_sdcard(const char *img) {
+void init_sdcard() {
   base = (void *)new_space(0x80);
-  add_mmio_map("sdhci", SD_MMIO, (void *)base, 0x80, sdcard_io_handler);
+  add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, (void *)base, 0x80, sdcard_io_handler);
 
   //base[SDEDM] = (8 << 4); // number of data in fifo
 
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
+  const char *img = CONFIG_SDCARD_IMG_PATH;
   fp = fopen(img, "r+");
   if (fp == NULL) Log("Can not find sdcard image: %s", img);
 }
