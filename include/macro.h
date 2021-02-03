@@ -25,10 +25,10 @@
 #define __P_ONE_1  X,
 #define __P_ZERO_0 X,
 // define some selection functions based on the properties of BOOLEAN macro
-#define MUXDEF(macro, X, Y)   MUX_MACRO_PROPERTY(__P_IS_DEF_, macro, X, Y)
-#define MUXUNDEF(macro, X, Y) MUX_MACRO_PROPERTY(__P_IS_DEF_, macro, Y, X)
-#define MUXONE(macro, X, Y)   MUX_MACRO_PROPERTY(__P_IS_ONE_, macro, X, Y)
-#define MUXZERO(macro, X, Y)  MUX_MACRO_PROPERTY(__P_IS_ZERO_,macro, X, Y)
+#define MUXDEF(macro, X, Y)   MUX_MACRO_PROPERTY(__P_DEF_, macro, X, Y)
+#define MUXUNDEF(macro, X, Y) MUX_MACRO_PROPERTY(__P_DEF_, macro, Y, X)
+#define MUXONE(macro, X, Y)   MUX_MACRO_PROPERTY(__P_ONE_, macro, X, Y)
+#define MUXZERO(macro, X, Y)  MUX_MACRO_PROPERTY(__P_ZERO_,macro, X, Y)
 
 // test if a boolean macro is defined
 #define ISDEF(macro) MUXDEF(macro, 1, 0)
