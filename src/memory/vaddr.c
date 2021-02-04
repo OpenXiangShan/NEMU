@@ -55,7 +55,7 @@ void vaddr_mmu_write(vaddr_t addr, word_t data, int len) {
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef XIANGSHAN_DEBUG
-    printf("[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len = %d, data = 0x%lx",
+    printf("[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len = %d, data = 0x%lx\n",
       vaddr, addr, len, data);
 #endif
     paddr_write(addr, data, len);
