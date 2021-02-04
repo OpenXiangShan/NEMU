@@ -42,6 +42,9 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] mmu_read: vaddr 0x%lx, paddr 0x%lx\n", vaddr, addr);
+#endif
     return paddr_read(addr, len);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     return vaddr_read_cross_page(addr, len, type);
@@ -55,6 +58,10 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len = %d, data = 0x%lx",
+      vaddr, addr, len, data);
+#endif
     paddr_write(addr, len, data);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     vaddr_write_cross_page(addr, len, data);

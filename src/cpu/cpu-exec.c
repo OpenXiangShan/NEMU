@@ -181,6 +181,9 @@ static int execute(int n) {
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s);
+#ifdef XIANGSHAN_DEBUG
+  printf("[NEMU] exec pc = 0x%lx\n", s->pc);
+#endif
   continue;
 }
 
@@ -215,6 +218,9 @@ static int execute(int n) {
   for (;n > 0; n --) {
     fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] exec pc = 0x%lx\n", s.pc);
+#endif
     s.EHelper(&s);
     g_nr_guest_instr ++;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
