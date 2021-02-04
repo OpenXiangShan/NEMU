@@ -29,10 +29,16 @@ static void vaddr_write_cross_page(vaddr_t addr, word_t data, int len) {
 }
 
 word_t vaddr_mmu_read(vaddr_t addr, int len, int type) {
+#ifdef XIANGSHAN_DEBUG
+  vaddr_t vaddr = addr;
+#endif
   paddr_t pg_base = isa_mmu_translate(addr, type, len);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] mmu_read: vaddr 0x%lx, paddr 0x%lx\n", vaddr, addr);
+#endif
     return paddr_read(addr, len);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     return vaddr_read_cross_page(addr, type, len);
@@ -41,10 +47,17 @@ word_t vaddr_mmu_read(vaddr_t addr, int len, int type) {
 }
 
 void vaddr_mmu_write(vaddr_t addr, word_t data, int len) {
+#ifdef XIANGSHAN_DEBUG
+  vaddr_t vaddr = addr;
+#endif
   paddr_t pg_base = isa_mmu_translate(addr, MEM_TYPE_WRITE, len);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len = %d, data = 0x%lx",
+      vaddr, addr, len, data);
+#endif
     paddr_write(addr, data, len);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     vaddr_write_cross_page(addr, data, len);

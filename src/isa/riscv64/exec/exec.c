@@ -207,6 +207,9 @@ static inline void exec(DecodeExecState *s) {
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
   }
 
+#ifdef XIANGSHAN_DEBUG
+  printf("[NEMU] exec pc = 0x%lx, instr = 0x%0x\n", s->seq_pc, s->isa.instr.val);
+#endif
   return_on_mem_ex();
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
