@@ -69,7 +69,7 @@ static inline def_EHelper(sar) {
   // rtl_sext(), and it is  still sematically correct
   rtl_sext(s, ddest, ddest, id_dest->width);
 #ifndef __PA__
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
@@ -85,11 +85,7 @@ static inline def_EHelper(sar) {
   rtl_sar(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  int update_of = 1;
-#ifdef __DIFF_REF_KVM__
-  update_of = (count == 1);
-#endif
-  if (update_of) {
+  if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
     rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
@@ -109,7 +105,7 @@ static inline def_EHelper(sar) {
 
 static inline def_EHelper(shl) {
 #ifndef __PA__
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
@@ -125,11 +121,7 @@ static inline def_EHelper(shl) {
   rtl_shl(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  int update_of = 1;
-#ifdef __DIFF_REF_KVM__
-  update_of = (count == 1);
-#endif
-  if (update_of) {
+  if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
     rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
@@ -149,7 +141,7 @@ static inline def_EHelper(shl) {
 
 static inline def_EHelper(shr) {
 #ifndef __PA__
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);
@@ -165,11 +157,7 @@ static inline def_EHelper(shr) {
   rtl_shr(s, ddest, ddest, dsrc1);
   operand_write(s, id_dest, ddest);
 
-  int update_of = 1;
-#ifdef __DIFF_REF_KVM__
-  update_of = (count == 1);
-#endif
-  if (update_of) {
+  if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
     rtl_xor(s, s0, s1, ddest);
     rtl_msb(s, s0, s0, id_dest->width);
     rtl_set_OF(s, s0);
@@ -239,7 +227,7 @@ static inline def_EHelper(shld) {
 static inline def_EHelper(shrd) {
   assert(id_dest->width == 4);
 
-#ifdef __ENGINE_interpreter__
+#ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) {
     operand_write(s, id_dest, ddest);

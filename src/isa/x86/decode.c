@@ -63,15 +63,13 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
     s->isa.mbase = &s->isa.mbr;
   }
-#ifndef __PA__
-  if (s->isa.sreg_base != NULL) {
+  if (ISUNDEF(__PA__) && s->isa.sreg_base != NULL) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s->isa.sreg_base);
     s->isa.mbase = &s->isa.mbr;
   }
-#endif
   s->isa.moff = disp;
 
-#ifdef DEBUG
+#ifdef CONFIG_DEBUG
   char disp_buf[16];
   char base_buf[8];
   char index_buf[8];
@@ -110,12 +108,11 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
   if (reg != NULL) operand_reg(s, reg, load_reg_val, m.reg, reg->width);
   if (m.mod == 3) operand_reg(s, rm, load_rm_val, m.R_M, rm->width);
   else {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
     if (((s->opcode == 0x80 || s->opcode == 0x81 || s->opcode == 0x83) && s->isa.ext_opcode == 7) ||
         (s->opcode == 0x1ba && s->isa.ext_opcode == 4)) {
-      cpu.lock = 0; // fix with cmp and bt, since they do not write memory
+      // fix with cmp and bt, since they do not write memory
+      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 0));
     }
-#endif
     load_addr(s, &m, rm);
     if (load_rm_val) rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, rm->width);
     rm->preg = &rm->val;

@@ -201,21 +201,21 @@ int run_protected_mode(struct vm *vm, struct vcpu *vcpu) {
   memset(&regs, 0, sizeof(regs));
   /* Clear all FLAGS bits, except bit 1 which is always set. */
   regs.rflags = 2;
-  regs.rip = IMAGE_START;
+  regs.rip = RESET_VECTOR;
 
   if (ioctl(vcpu->fd, KVM_SET_REGS, &regs) < 0) {
     perror("KVM_SET_REGS");
     assert(0);
   }
 
-  memcpy(vm->mem, guest_to_host(0), PMEM_SIZE);
+  memcpy(vm->mem, guest_to_host(CONFIG_MBASE), CONFIG_MSIZE);
   return run_vm(vm, vcpu, 4);
 }
 
 void kvm_exec() {
   struct vm vm;
   struct vcpu vcpu;
-  vm_init(&vm, PMEM_SIZE);
+  vm_init(&vm, CONFIG_MSIZE);
   vcpu_init(&vm, &vcpu);
 
   run_protected_mode(&vm, &vcpu);

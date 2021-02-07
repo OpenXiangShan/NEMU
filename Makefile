@@ -1,28 +1,54 @@
-ENGINE ?= interpreter
-ENGINES = $(shell ls $(NEMU_HOME)/src/engine/)
-ifeq ($(filter $(ENGINES), $(ENGINE)), ) # ENGINE must be valid
-$(error Invalid ENGINE=$(ENGINE). Supported: $(ENGINES))
+ifeq ($(wildcard $(NEMU_HOME)/configs/pa_defconfig),)
+  $(error NEMU_HOME=$(NEMU_HOME) is not a NEMU repo)
 endif
 
-GCC = clang
-CFLAGS += -O3 -flto
-LDFLAGS += -O3 -flto
+-include $(NEMU_HOME)/include/config/auto.conf
+-include $(NEMU_HOME)/include/config/auto.conf.cmd
+
+DIRS-y = src/cpu src/memory src/monitor src/utils
+
+remove_quote = $(patsubst "%",%,$(1))
+
+ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
+CFLAGS += -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
+DIRS-y += src/isa/$(ISA)
+
+ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
+INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
+DIRS-y += src/engine/$(ENGINE)
+
+DIRS-$(CONFIG_MODE_USER) += src/user
+
+SRCS-y += src/main.c
+SRCS-$(CONFIG_DEVICE) += src/device/io/port-io.c src/device/io/map.c src/device/io/mmio.c
+SRCS-$(CONFIG_DEVICE) += src/device/device.c src/device/alarm.c src/device/intr.c
+SRCS-$(CONFIG_HAS_SERIAL) += src/device/serial.c
+SRCS-$(CONFIG_HAS_TIMER) += src/device/timer.c
+SRCS-$(CONFIG_HAS_KEYBOARD) += src/device/keyboard.c
+SRCS-$(CONFIG_HAS_VGA) += src/device/vga.c
+SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
+SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
+SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
+
+SRCS-y += $(shell find $(DIRS-y) -name "*.c")
+
+SRCS = $(SRCS-y)
+
+$(info $(SRCS))
+
+CC = $(call remove_quote,$(CONFIG_CC))
+CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
+CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
+CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
+CFLAGS  += $(CFLAGS_BUILD)
+LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
-SRCS  = $(shell find src/ -name "*.c" | grep -v "src/\(isa\|engine\|user\)")
-SRCS += $(shell find src/isa/$(ISA) -name "*.c")
-SRCS += $(shell find src/engine/$(ENGINE) -name "*.c")
 
-CFLAGS  += -ggdb3 -D__ENGINE_$(ENGINE)__ \
-					 -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
-INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
-ifndef SHARE
+ifndef CONFIG_SHARE
 LDFLAGS += -lSDL2 -lreadline -ldl
-endif
-
-ifdef USER_MODE
-SRCS   += $(shell find src/user -name "*.c")
-CFLAGS += -DUSER_MODE
+else
+SHARE = 1
 endif
 
 ifeq ($(ENGINE),interpreter)
@@ -31,56 +57,32 @@ INC_DIR += resource/softfloat/repo/source/include
 INC_DIR += resource/softfloat/repo/source/RISCV
 LIBS += $(SOFTFLOAT)
 $(SOFTFLOAT):
-	$(MAKE) -C resource/softfloat/
+	$(MAKE) -s -C resource/softfloat/
 
 .PHONY: $(SOFTFLOAT)
 endif
 
-include $(NEMU_HOME)/scripts/Makefile
+include $(NEMU_HOME)/scripts/git.mk
+include $(NEMU_HOME)/scripts/config.mk
+include $(NEMU_HOME)/scripts/isa.mk
+include $(NEMU_HOME)/scripts/build.mk
 
-ifndef SHARE
-DIFF ?= qemu-dl
-ifneq ($(ISA),x86)
-ifeq ($(DIFF),kvm)
-DIFF = qemu-dl
-$(info KVM is only supported with ISA=x86, use QEMU instead)
-endif
-endif
-
-ifeq ($(DIFF),qemu-socket)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-socket-diff
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
-CFLAGS += -D__DIFF_REF_QEMU_SOCKET__ -D__DIFF_REF_QEMU__
-else ifeq ($(DIFF),qemu-dl)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/qemu-dl-diff
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-qemu-so
-CFLAGS += -D__DIFF_REF_QEMU_DL__ -D__DIFF_REF_QEMU__
-else ifeq ($(DIFF),kvm)
-DIFF_REF_PATH = $(NEMU_HOME)/tools/kvm-diff
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-kvm-so
-CFLAGS += -D__DIFF_REF_KVM__
-else ifeq ($(DIFF),nemu)
-DIFF_REF_PATH = $(NEMU_HOME)
-DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-nemu-interpreter-so
-CFLAGS += -D__DIFF_REF_NEMU__
+ifdef CONFIG_DIFFTEST
+DIFF_REF_PATH = $(NEMU_HOME)/$(call remove_quote,$(CONFIG_DIFFTEST_REF_PATH))
+DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-$(call remove_quote,$(CONFIG_DIFFTEST_REF_NAME))-so
 MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
-else
-$(error invalid DIFF. Supported: qemu-dl kvm qemu-socket nemu)
-endif
 
 $(DIFF_REF_SO):
-	$(MAKE) -C $(DIFF_REF_PATH) $(MKFLAGS)
+	$(MAKE) -s -C $(DIFF_REF_PATH) $(MKFLAGS)
 
+.PHONY: $(DIFF_REF_SO)
 endif
 
-include $(NEMU_HOME)/scripts/Makefile.git
 compile_git:
 	$(call git_commit, "compile")
 $(BINARY): compile_git
 
 # Some convenient rules
-
-.PHONY: run gdb run-env $(DIFF_REF_SO)
 
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
 override ARGS += --diff=$(DIFF_REF_SO)
@@ -99,7 +101,10 @@ gdb: run-env
 	$(call git_commit, "gdb")
 	gdb -s $(BINARY) --args $(NEMU_EXEC)
 
-clean: clean-tools
-clean-tools:
-	$(MAKE) -C tools/gen-expr clean
-	$(MAKE) -C $(DIFF_REF_PATH) clean
+clean-tools = $(dir $(shell find ./tools -name "Makefile"))
+$(clean-tools):
+	-@$(MAKE) -s -C $@ clean
+clean-tools: $(clean-tools)
+clean-all: clean distclean clean-tools
+
+.PHONY: run gdb run-env clean-tools clean-all $(clean-tools)

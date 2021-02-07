@@ -339,7 +339,7 @@ static inline def_EHelper(imul2) {
 static inline def_EHelper(imul3) {
   rtl_sext(s, dsrc2, dsrc2, id_dest->width);
 
-#if !defined(__PA__) && defined(DIFF_TEST)
+#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
   if (id_dest->width == 4) {
     rtl_muls_hi(s, s1, dsrc2, dsrc1);
   }
@@ -347,7 +347,7 @@ static inline def_EHelper(imul3) {
 
   rtl_mulu_lo(s, ddest, dsrc2, dsrc1);
 
-#if !defined(__PA__) && defined(DIFF_TEST)
+#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
   if (id_dest->width == 2) {
     rtl_sext(s, s0, ddest, id_dest->width);
     rtl_setrelop(s, RELOP_NE, s0, s0, ddest);

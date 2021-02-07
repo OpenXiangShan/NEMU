@@ -1,0 +1,173 @@
+mainmenu "NEMU Configuration Menu"
+
+choice
+  prompt "Base ISA"
+  default ISA_riscv32
+config ISA_x86
+  bool "x86"
+config ISA_mips32
+  bool "mips32"
+config ISA_riscv32
+  bool "riscv32"
+config ISA_riscv64
+  bool "riscv64"
+endchoice
+
+config ISA
+  string
+  default "x86" if ISA_x86
+  default "mips32" if ISA_mips32
+  default "riscv32" if ISA_riscv32
+  default "riscv64" if ISA_riscv64
+  default "none"
+
+config ISA64
+  depends on ISA_riscv64
+  bool
+  default y
+
+choice
+  prompt "NEMU execution engine"
+  default ENGINE_INTERPRETER
+
+config ENGINE_INTERPRETER
+  bool "Interpreter"
+  help
+    Interpreter guest instructions one by one.
+endchoice
+
+config ENGINE
+  string
+  default "interpreter" if ENGINE_INTERPRETER
+  default "none"
+
+choice
+  prompt "Running mode"
+  default MODE_SYSTEM
+
+config MODE_SYSTEM
+  bool "System mode"
+  help
+    Support full-system functionality, including privileged instructions, MMU and devices.
+
+config MODE_USER
+  bool "User mode"
+  help
+    Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
+endchoice
+
+menu "Build Options"
+choice
+  prompt "Compiler"
+  default CC_GCC
+config CC_GCC
+  bool "gcc"
+config CC_CLANG
+  bool "clang"
+endchoice
+
+config CC
+  string
+  default "gcc" if CC_GCC
+  default "clang" if CC_CLANG
+  default "none"
+
+choice
+  prompt "Optimization Level"
+  default CC_O2
+config CC_O0
+  bool "O0"
+config CC_O1
+  bool "O1"
+config CC_O2
+  bool "O2"
+config CC_O3
+  bool "O3"
+endchoice
+
+config CC_OPT
+  string
+  default "-O0" if CC_O0
+  default "-O1" if CC_O1
+  default "-O2" if CC_O2
+  default "-O3" if CC_O3
+  default "none"
+
+config CC_LTO
+  bool "Enable link-time optimization"
+  default y
+
+config CC_DEBUG
+  bool "Enable debug information"
+  default n
+
+config SHARE
+  bool "Build shared library"
+  default n
+endmenu
+
+menu "Testing and Debugging"
+config DEBUG
+  depends on !SHARE
+  bool "Enable debug features"
+  default n
+  help
+    Enable debug features, which include instruction tracing and watchpoint.
+
+config DIFFTEST
+  depends on !SHARE
+  bool "Enable differential testing"
+  default n
+  help
+    Enable differential testing with a reference design.
+    Note that this will significantly reduce the performance of NEMU.
+
+choice
+  prompt "Reference design"
+  default DIFFTEST_REF_QEMU_DL
+  depends on DIFFTEST
+config DIFFTEST_REF_QEMU_DL
+  bool "QEMU, communicate with dynamic linking"
+config DIFFTEST_REF_QEMU_SOCKET
+  bool "QEMU, communicate with socket"
+config DIFFTEST_REF_KVM
+  bool "KVM"
+config DIFFTEST_REF_NEMU
+  bool "NEMU"
+endchoice
+
+config DIFFTEST_REF_QEMU
+  depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
+  bool
+  default y
+
+config DIFFTEST_REF_PATH
+  string
+  default "tools/qemu-dl-diff" if DIFFTEST_REF_QEMU_DL
+  default "tools/qemu-socket-diff" if DIFFTEST_REF_QEMU_SOCKET
+  default "tools/kvm" if DIFFTEST_REF_KVM
+  default "." if DIFFTEST_REF_NEMU
+  default "none"
+
+config DIFFTEST_REF_NAME
+  string
+  default "qemu" if DIFFTEST_REF_QEMU_DL
+  default "qemu" if DIFFTEST_REF_QEMU_SOCKET
+  default "kvm" if DIFFTEST_REF_KVM
+  default "nemu-interpreter" if DIFFTEST_REF_NEMU
+  default "none"
+endmenu
+
+source "src/memory/Kconfig"
+source "src/device/Kconfig"
+
+menu "Miscellaneous"
+choice
+  prompt "Host timer"
+  default TIMER_GETTIMEOFDAY
+config TIMER_GETTIMEOFDAY
+  bool "gettimeofday"
+config TIMER_CLOCK_GETTIME
+  bool "clock_gettime"
+endchoice
+endmenu

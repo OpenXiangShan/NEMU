@@ -1,14 +1,10 @@
 #include <common.h>
-
-void init_serial();
-void init_timer();
-
-#ifdef HAS_IOE
-
 #include <utils.h>
 #include <device/alarm.h>
 #include <SDL2/SDL.h>
 
+void init_serial();
+void init_timer();
 void init_alarm();
 void init_vga();
 void init_i8042();
@@ -29,7 +25,7 @@ void device_update() {
     return;
   }
   device_update_flag = false;
-  vga_update_screen();
+  IFDEF(CONFIG_HAS_VGA, vga_update_screen());
 
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -37,6 +33,7 @@ void device_update() {
       case SDL_QUIT:
         nemu_state.state = NEMU_QUIT;
         break;
+#ifdef CONFIG_HAS_KEYBOARD
       // If a key was pressed
       case SDL_KEYDOWN:
       case SDL_KEYUP: {
@@ -45,6 +42,7 @@ void device_update() {
         send_key(k, is_keydown);
         break;
       }
+#endif
       default: break;
     }
   }
@@ -56,21 +54,13 @@ void sdl_clear_event_queue() {
 }
 
 void init_device() {
-  init_serial();
-  init_timer();
-  init_vga();
-  init_i8042();
-  init_audio();
-  init_disk();
+  IFDEF(CONFIG_HAS_SERIAL, init_serial());
+  IFDEF(CONFIG_HAS_TIMER, init_timer());
+  IFDEF(CONFIG_HAS_VGA, init_vga());
+  IFDEF(CONFIG_HAS_KEYBOARD, init_i8042());
+  IFDEF(CONFIG_HAS_AUDIO, init_audio());
+  IFDEF(CONFIG_HAS_DISK, init_disk());
 
   add_alarm_handle(set_device_update_flag);
   init_alarm();
 }
-#else
-
-void init_device() {
-  init_serial();
-  init_timer();
-}
-
-#endif	/* HAS_IOE */

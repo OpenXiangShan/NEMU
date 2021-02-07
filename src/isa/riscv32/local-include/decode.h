@@ -13,9 +13,7 @@ static inline def_DopHelper(i) {
 static inline def_DopHelper(r) {
   static word_t zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
-#ifdef DEBUG
-  op->reg = val;
-#endif
+  IFDEF(CONFIG_DEBUG, op->reg = val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 

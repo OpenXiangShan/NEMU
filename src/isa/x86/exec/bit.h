@@ -1,5 +1,5 @@
 static inline def_EHelper(bsf) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 
@@ -19,7 +19,7 @@ static inline def_EHelper(bsf) {
 }
 
 static inline def_EHelper(bsr) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 

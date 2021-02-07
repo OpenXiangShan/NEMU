@@ -1,7 +1,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
-#if defined(__ENGINE_interpreter__)
+#if defined(CONFIG_ENGINE_INTERPRETER)
 
 void set_eflags(uint32_t val);
 
@@ -10,7 +10,7 @@ static void load_sreg(int idx, uint16_t val) {
 
   if (val == 0) return;
 
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
   assert(cpu.sreg[idx].ti == 0); // check the table bit
   extern uint32_t GDT[];
   cpu.sreg[idx].base = GDT[cpu.sreg[idx].idx];
@@ -34,7 +34,7 @@ static void load_sreg(int idx, uint16_t val) {
 static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (dest != NULL) {
     switch (csrid) {
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
       case 0 ... CSR_LDTR: *dest = cpu.sreg[csrid].val; break;
       case CSR_CR0 ... CSR_CR4: *dest = cpu.cr[csrid - CSR_CR0]; break;
 #endif
@@ -43,7 +43,7 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   }
   if (src != NULL) {
     switch (csrid) {
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
       case CSR_IDTR:
         cpu.idtr.limit = vaddr_read(*src, 2);
         cpu.idtr.base  = vaddr_read(*src + 2, 4);
@@ -91,7 +91,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
   word_t ret = 0;
   switch (id) {
     case HOSTCALL_CSR: csrrw(dest, src, imm); return;
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
       Assert(imm == 0x80, "Unsupport exception = %d", imm);
       uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,

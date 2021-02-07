@@ -1,5 +1,5 @@
 static inline def_EHelper(movs) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
@@ -30,7 +30,7 @@ static inline def_EHelper(lods) {
 }
 
 static inline def_EHelper(stos) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
@@ -49,7 +49,7 @@ static inline def_EHelper(stos) {
 }
 
 static inline def_EHelper(scas) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
@@ -79,7 +79,7 @@ static inline def_EHelper(scas) {
 }
 
 static inline def_EHelper(cmps) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 

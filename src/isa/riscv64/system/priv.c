@@ -77,10 +77,8 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (dest == (void *)sstatus || dest == (void *)mstatus) {
-#ifdef __DIFF_REF_QEMU__
     // mstatus.fs is always dirty or off in QEMU 3.1.0
-    if (mstatus->fs) { mstatus->fs = 3; }
-#endif
+    if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
     mstatus->sd = (mstatus->fs == 3);
   }
 }
@@ -100,23 +98,15 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case 0x102: // sret
       mstatus->sie = mstatus->spie;
-#ifdef __DIFF_REF_QEMU__
-      // this is bug of QEMU
-      mstatus->spie = 0;
-#else
-      mstatus->spie = 1;
-#endif
+      mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
+          : 1);
       cpu.mode = mstatus->spp;
       mstatus->spp = MODE_U;
       return sepc->val;
     case 0x302: // mret
       mstatus->mie = mstatus->mpie;
-#ifdef __DIFF_REF_QEMU__
-      // this is bug of QEMU
-      mstatus->mpie = 0;
-#else
-      mstatus->mpie = 1;
-#endif
+      mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
+          : 1);
       cpu.mode = mstatus->mpp;
       mstatus->mpp = MODE_U;
       return mepc->val;

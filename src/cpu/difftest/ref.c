@@ -7,8 +7,8 @@
 void cpu_exec(uint64_t);
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(addr - PMEM_BASE), buf, n);
-  else memcpy(buf, guest_to_host(addr - PMEM_BASE), n);
+  if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(addr), buf, n);
+  else memcpy(buf, guest_to_host(addr), n);
 }
 
 void difftest_regcpy(void *dut, bool direction) {

@@ -16,7 +16,7 @@
 #define def_start()
 #define def_finish() def_label(finish_label)
 
-#ifndef DEBUG
+#ifndef CONFIG_DEBUG
 #undef id_dest
 #undef id_src1
 #undef id_src2

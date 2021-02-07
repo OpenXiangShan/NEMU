@@ -24,7 +24,7 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   extern void add_instr(uint8_t *instr, int len);
   add_instr((void *)&instr, len);
 #endif
-#ifdef DEBUG
+#ifdef CONFIG_DEBUG
   uint8_t *p_instr = (void *)&instr;
   int i;
   for (i = 0; i < len; i ++) {
@@ -40,15 +40,12 @@ static inline void update_pc(DecodeExecState *s) {
   //cpu.pc = s->npc;
 }
 
-#ifdef DEBUG
 #define print_asm(...) \
-  do { \
+  IFDEF(CONFIG_DEBUG, do { \
     extern char log_asmbuf[]; \
     strcatf(log_asmbuf, __VA_ARGS__); \
-  } while (0)
-#else
-#define print_asm(...)
-#endif
+  } while (0) \
+)
 
 #ifndef suffix_char
 #define suffix_char(width) ' '

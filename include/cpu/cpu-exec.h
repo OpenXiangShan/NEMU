@@ -3,7 +3,7 @@
 
 #include <cpu/difftest.h>
 
-#ifdef DEBUG
+#ifdef CONFIG_DEBUG
 void debug_hook(vaddr_t pc, int len);
 #else
 static inline void debug_hook(vaddr_t pc, int len) {}

@@ -109,12 +109,10 @@ static inline def_DopHelper(O) {
  * Ev <- Gv
  */
 static inline def_DHelper(G2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
   if (s->opcode != 0x38 && s->opcode != 0x39 && // cmp
       s->opcode != 0x84 && s->opcode != 0x85) { // test
-    cpu.lock = 1;
+    IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   }
-#endif
   operand_rm(s, id_dest, true, id_src1, true);
 }
 
@@ -130,11 +128,9 @@ static inline def_DHelper(bit_G2E) {
     rtl_shli(s, s0, s0, 2);
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
     s->isa.mbase = &s->isa.mbr;
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
     if (s->opcode != 0x1a3) { // bt
-      cpu.lock = 1;
+      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
     }
-#endif
     rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
   }
   rtl_andi(s, &id_src1->val, dsrc1, 0x1f);
@@ -176,9 +172,7 @@ static inline def_DHelper(I_E2G) {
  * Ev <- Iv
  */
 static inline def_DHelper(I2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   decode_op_I(s, id_src1, true);
 }
@@ -233,9 +227,7 @@ static inline def_DHelper(test_I) {
 
 static inline def_DHelper(SI2E) {
   assert(id_dest->width == 2 || id_dest->width == 4);
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
@@ -257,9 +249,7 @@ static inline def_DHelper(gp2_1_E) {
 }
 
 static inline def_DHelper(gp2_cl2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -267,9 +257,7 @@ static inline def_DHelper(gp2_cl2E) {
 }
 
 static inline def_DHelper(gp2_Ib2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -278,9 +266,7 @@ static inline def_DHelper(gp2_Ib2E) {
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -289,9 +275,7 @@ static inline def_DHelper(Ib_G2E) {
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline def_DHelper(cl_G2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -300,9 +284,7 @@ static inline def_DHelper(cl_G2E) {
 
 // for cmpxchg
 static inline def_DHelper(a_G2E) {
-#if !defined(__PA__) && defined(DIFF_TEST) && defined(__DIFF_REF_KVM__)
-  cpu.lock = 1;
-#endif
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   operand_reg(s, id_src1, true, R_EAX, 4);
 }

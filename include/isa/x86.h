@@ -12,17 +12,8 @@
 #endif
 
 // memory
-#ifdef USER_MODE
-#define x86_IMAGE_START 0x0
-#define x86_PMEM_BASE 0x08048000
-#else
-#define x86_IMAGE_START 0x100000
 #ifdef __ENGINE_rv64__
-#define x86_PMEM_BASE 0x80000000
 #define LAZY_CC
-#else
-#define x86_PMEM_BASE 0x80000000
-#endif
 #endif
 
 // reg
@@ -133,8 +124,8 @@ typedef struct {
   };
 
   int mem_exception;
-  int lock;
   word_t error_code;
+  IFUNDEF(__PA__, int lock);
 
   bool INTR;
 #endif

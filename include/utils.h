@@ -25,19 +25,16 @@ void monitor_statistic();
 
 // ----------- log -----------
 
-#ifdef DEBUG
-extern FILE* log_fp;
-#	define log_write(...) \
+#define log_write(...) IFDEF(CONFIG_DEBUG, \
   do { \
+    extern FILE* log_fp; \
     extern bool log_enable(); \
     if (log_fp != NULL && log_enable()) { \
       fprintf(log_fp, __VA_ARGS__); \
       fflush(log_fp); \
     } \
-  } while (0)
-#else
-#	define log_write(...)
-#endif
+  } while (0) \
+)
 
 #define _Log(...) \
   do { \

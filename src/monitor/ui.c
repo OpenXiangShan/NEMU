@@ -3,6 +3,7 @@
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
+#include <cpu/difftest.h>
 #endif
 
 #include <stdlib.h>
@@ -144,8 +145,6 @@ static int cmd_x(char *args) {
   return 0;
 }
 
-void difftest_detach();
-void difftest_attach();
 static int cmd_detach(char *args) {
   difftest_detach();
   return 0;
@@ -168,7 +167,7 @@ static int cmd_save(char *args) {
     FILE *fp = fopen(arg, "w");
     assert(fp != NULL);
     fwrite(&cpu, sizeof(cpu), 1, fp);
-    fwrite(guest_to_host(0), PMEM_SIZE, 1, fp);
+    fwrite(guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, 1, fp);
     fclose(fp);
   }
   return 0;
@@ -187,7 +186,7 @@ static int cmd_load(char *args) {
     assert(fp != NULL);
     __attribute__((unused)) int ret;
     ret = fread(&cpu, sizeof(cpu), 1, fp);
-    ret = fread(guest_to_host(0), PMEM_SIZE, 1, fp);
+    ret = fread(guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, 1, fp);
     fclose(fp);
   }
   return 0;
@@ -272,7 +271,7 @@ void ui_mainloop() {
       args = NULL;
     }
 
-#ifdef HAS_IOE
+#ifdef CONFIG_DEVICE
     extern void sdl_clear_event_queue();
     sdl_clear_event_queue();
 #endif

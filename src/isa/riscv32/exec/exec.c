@@ -76,7 +76,7 @@ uint32_t isa_execute(uint32_t n) {
 
     word_t thispc = lpc;
     lpc += 4;
-#ifndef DEBUG
+#ifndef CONFIG_DEBUG
     Operand ldest = { .preg = id_dest->preg };
     Operand lsrc1 = { .preg = id_src1->preg };
     Operand lsrc2 = { .preg = id_src2->preg };
@@ -86,10 +86,7 @@ uint32_t isa_execute(uint32_t n) {
 
 #include "all-instr.h"
     def_finish();
-
-#ifdef DIFF_TEST
-    update_gpc(lpc);
-#endif
+    IFDEF(CONFIG_DIFFTEST, update_gpc(lpc));
     cpu_exec_2nd_part(s->pc, s->snpc, lpc);
   }
   cpu.pc = lpc;

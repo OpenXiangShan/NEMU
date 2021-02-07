@@ -14,7 +14,7 @@ static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
-#ifdef DEBUG
+#ifdef CONFIG_DEBUG
 void debug_hook(vaddr_t pc, int len) {
   g_nr_guest_instr ++;
 
@@ -46,16 +46,14 @@ void cpu_exec(uint64_t n) {
     uint32_t n_remain = isa_execute(n_batch);
     uint32_t n_executed = n_batch - n_remain;
     n -= n_executed;
-#ifndef DEBUG
-    g_nr_guest_instr += n_executed;
-#endif
+    IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
 
-#ifdef HAS_IOE
+#ifdef CONFIG_DEVICE
     extern void device_update();
     device_update();
 #endif
 
-#if !defined(DIFF_TEST) && !_SHARE
+#if !defined(CONFIG_DIFFTEST) && !_SHARE
     isa_query_intr();
 #endif
   }

@@ -31,7 +31,7 @@ def_rtl_compute_reg_imm(shl)
 def_rtl_compute_reg_imm(shr)
 def_rtl_compute_reg_imm(sar)
 
-#ifdef ISA64
+#ifdef CONFIG_ISA64
 def_rtl_compute_reg_imm(addw)
 def_rtl_compute_reg_imm(subw)
 def_rtl_compute_reg_imm(shlw)
@@ -63,7 +63,7 @@ def_rtl_compute_reg(divu_r)
 def_rtl_compute_reg(divs_q)
 def_rtl_compute_reg(divs_r)
 
-#ifdef ISA64
+#ifdef CONFIG_ISA64
 def_rtl_compute_reg(mulw)
 def_rtl_compute_reg(divw)
 def_rtl_compute_reg(divuw)
