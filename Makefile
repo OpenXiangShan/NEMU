@@ -5,17 +5,36 @@ endif
 -include $(NEMU_HOME)/include/config/auto.conf
 -include $(NEMU_HOME)/include/config/auto.conf.cmd
 
-SRCS-y = $(shell find src/ -name "*.c" | grep -v "src/\(isa\|engine\|user\)")
+DIRS-y = src/cpu src/memory src/monitor src/utils
 
 remove_quote = $(patsubst "%",%,$(1))
 
 ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
 CFLAGS += -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
-SRCS-y += $(shell find src/isa/$(ISA) -name "*.c")
+DIRS-y += src/isa/$(ISA)
 
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
-SRCS-y += $(shell find src/engine/$(ENGINE) -name "*.c")
+DIRS-y += src/engine/$(ENGINE)
+
+DIRS-$(CONFIG_MODE_USER) += src/user
+
+SRCS-y += src/main.c
+SRCS-$(CONFIG_DEVICE) += src/device/io/port-io.c src/device/io/map.c src/device/io/mmio.c
+SRCS-$(CONFIG_DEVICE) += src/device/device.c src/device/alarm.c src/device/intr.c
+SRCS-$(CONFIG_HAS_SERIAL) += src/device/serial.c
+SRCS-$(CONFIG_HAS_TIMER) += src/device/timer.c
+SRCS-$(CONFIG_HAS_KEYBOARD) += src/device/keyboard.c
+SRCS-$(CONFIG_HAS_VGA) += src/device/vga.c
+SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
+SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
+SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
+
+SRCS-y += $(shell find $(DIRS-y) -name "*.c")
+
+SRCS = $(SRCS-y)
+
+$(info $(SRCS))
 
 CC = $(call remove_quote,$(CONFIG_CC))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
@@ -31,9 +50,6 @@ LDFLAGS += -lSDL2 -lreadline -ldl
 else
 SHARE = 1
 endif
-
-SRCS-$(CONFIG_MODE_USER) += $(shell find src/user -name "*.c")
-SRCS += $(SRCS-y)
 
 ifeq ($(ENGINE),interpreter)
 SOFTFLOAT = resource/softfloat/build/softfloat.a

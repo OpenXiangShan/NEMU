@@ -1,7 +1,4 @@
 #include <common.h>
-
-#ifdef CONFIG_HAS_AUDIO
-
 #include <device/map.h>
 #include <SDL2/SDL.h>
 
@@ -73,4 +70,3 @@ void init_audio() {
   sbuf = (void *)new_space(CONFIG_SB_SIZE);
   add_mmio_map("audio-sbuf", CONFIG_SB_ADDR, (void *)sbuf, CONFIG_SB_SIZE, NULL);
 }
-#endif	/* CONFIG_HAS_AUDIO */

@@ -1,13 +1,10 @@
 #include <common.h>
-
-#ifdef CONFIG_HAS_VGA
+#include <device/map.h>
+#include <SDL2/SDL.h>
 
 #define SCREEN_W (MUXDEF(CONFIG_VGA_SIZE_800x600, 800, 400))
 #define SCREEN_H (MUXDEF(CONFIG_VGA_SIZE_800x600, 600, 300))
 #define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
-
-#include <device/map.h>
-#include <SDL2/SDL.h>
 
 static uint32_t (*vmem) [SCREEN_W] = NULL;
 static uint32_t *vgactl_port_base = NULL;
@@ -61,4 +58,3 @@ void init_vga() {
   vmem = (void *)new_space(SCREEN_SIZE);
   add_mmio_map("vmem", CONFIG_FB_ADDR, (void *)vmem, SCREEN_SIZE, NULL);
 }
-#endif	/* CONFIG_HAS_VGA */
