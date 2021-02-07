@@ -132,7 +132,7 @@ void tran_mainloop() {
 
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
-        ONDEF(CONFIG_DEBUG, asm_print(pc, snpc - pc, true));
+        IFDEF(CONFIG_DEBUG, asm_print(pc, snpc - pc, true));
         if (ISDEF(CONFIG_DIFFTEST) && tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
         if (ISUNDEF(CONFIG_DIFFTEST) && tran_next_pc != NEXT_PC_SEQ) {
           tb = malloc(sizeof(TB));

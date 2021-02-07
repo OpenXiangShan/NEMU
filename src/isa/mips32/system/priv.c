@@ -14,7 +14,7 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
       case 12: *dest = cpu.status.val; break;
       case 13: *dest = cpu.cause;
                // qemu may set cause.IP[7]
-               ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
+               IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
                break;
       case 14: *dest = cpu.epc; break;
       default: panic("Reading from CSR = %d is not supported", csrid);

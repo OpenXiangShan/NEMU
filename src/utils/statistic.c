@@ -2,9 +2,9 @@
 #include <locale.h>
 #include MUXDEF(CONFIG_TIMER_GETTIMEOFDAY, <sys/time.h>, <time.h>)
 
-ONDEF(CONFIG_TIMER_CLOCK_GETTIME,
+IFDEF(CONFIG_TIMER_CLOCK_GETTIME,
     static_assert(CLOCKS_PER_SEC == 1000000, "CLOCKS_PER_SEC != 1000000"));
-ONDEF(CONFIG_TIMER_CLOCK_GETTIME,
+IFDEF(CONFIG_TIMER_CLOCK_GETTIME,
     static_assert(sizeof(clock_t) == 8, "sizeof(clock_t) != 8"));
 
 uint64_t g_timer = 0; // unit: us

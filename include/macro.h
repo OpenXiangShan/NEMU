@@ -47,13 +47,13 @@
 #define __IGNORE(...)
 #define __KEEP(...) __VA_ARGS__
 // keep the code if a boolean macro is defined
-#define ONDEF(macro, ...) MUXDEF(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+#define IFDEF(macro, ...) MUXDEF(macro, __KEEP, __IGNORE)(__VA_ARGS__)
 // keep the code if a boolean macro is undefined
-#define ONUNDEF(macro, ...) MUXUNDEF(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+#define IFUNDEF(macro, ...) MUXUNDEF(macro, __KEEP, __IGNORE)(__VA_ARGS__)
 // keep the code if a boolean macro is defined to 1
-#define ONONE(macro, ...) MUXONE(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+#define IFONE(macro, ...) MUXONE(macro, __KEEP, __IGNORE)(__VA_ARGS__)
 // keep the code if a boolean macro is defined to 0
-#define ONZERO(macro, ...) MUXZERO(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+#define IFZERO(macro, ...) MUXZERO(macro, __KEEP, __IGNORE)(__VA_ARGS__)
 
 // functional-programming-like macro (X-macro)
 // apply the function `f` to each element in the contain `c`

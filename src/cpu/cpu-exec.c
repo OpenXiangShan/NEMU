@@ -46,7 +46,7 @@ void cpu_exec(uint64_t n) {
     uint32_t n_remain = isa_execute(n_batch);
     uint32_t n_executed = n_batch - n_remain;
     n -= n_executed;
-    ONUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+    IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
 
 #ifdef CONFIG_DEVICE
     extern void device_update();

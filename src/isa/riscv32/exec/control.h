@@ -8,10 +8,10 @@ def_EHelper(jal) {
 
 def_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-  ONDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   rtl_jr(s, s0);
   rtl_li(s, ddest, s->snpc);
-  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU ,difftest_skip_dut(1, 2));
+  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU ,difftest_skip_dut(1, 2));
   print_asm_template3(jalr);
 }
 

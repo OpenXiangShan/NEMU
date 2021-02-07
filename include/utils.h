@@ -25,7 +25,7 @@ void monitor_statistic();
 
 // ----------- log -----------
 
-#define log_write(...) ONDEF(CONFIG_DEBUG, \
+#define log_write(...) IFDEF(CONFIG_DEBUG, \
   do { \
     extern FILE* log_fp; \
     extern bool log_enable(); \

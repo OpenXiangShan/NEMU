@@ -33,7 +33,7 @@ static inline word_t pmem_read(uint32_t idx, int len) {
     case 1: return *(uint8_t  *)p;
     case 2: return *(uint16_t *)p;
     case 4: return *(uint32_t *)p;
-    ONDEF(CONFIG_ISA64, case 8: return *(uint64_t *)p);
+    IFDEF(CONFIG_ISA64, case 8: return *(uint64_t *)p);
     default: assert(0);
   }
 }
@@ -44,7 +44,7 @@ static inline void pmem_write(uint32_t idx, word_t data, int len) {
     case 1: *(uint8_t  *)p = data; return;
     case 2: *(uint16_t *)p = data; return;
     case 4: *(uint32_t *)p = data; return;
-    ONDEF(CONFIG_ISA64, case 8: *(uint64_t *)p = data; return);
+    IFDEF(CONFIG_ISA64, case 8: *(uint64_t *)p = data; return);
     default: assert(0);
   }
 }
@@ -110,4 +110,4 @@ void concat(vaddr_write, bytes) (vaddr_t addr, word_t data) { \
 def_vaddr_template(1)
 def_vaddr_template(2)
 def_vaddr_template(4)
-ONDEF(CONFIG_ISA64, def_vaddr_template(8))
+IFDEF(CONFIG_ISA64, def_vaddr_template(8))

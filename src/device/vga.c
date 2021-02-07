@@ -41,14 +41,14 @@ void vga_update_screen() {
   // then zero out the sync register
 #else
   if (vgactl_port_base[1]) {
-    ONDEF(CONFIG_VGA_SHOW_SCREEN, update_screen());
+    IFDEF(CONFIG_VGA_SHOW_SCREEN, update_screen());
     vgactl_port_base[1] = 0;
   }
 #endif
 }
 
 void init_vga() {
-  ONDEF(CONFIG_VGA_SHOW_SCREEN, init_screen());
+  IFDEF(CONFIG_VGA_SHOW_SCREEN, init_screen());
 
   vgactl_port_base = (void *)new_space(8);
   vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);

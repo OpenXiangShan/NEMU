@@ -132,18 +132,18 @@ static inline def_EHelper(mov_r2cr) {
 static inline def_EHelper(mov_cr2r) {
   TODO();
   print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
-  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
+  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
 }
 
 static inline def_EHelper(int) {
   TODO();
   print_asm("int %s", id_dest->str);
-  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }
 
 static inline def_EHelper(iret) {
   TODO();
   print_asm("iret");
-  ONUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
+  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
 }
 #endif

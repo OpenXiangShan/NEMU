@@ -21,7 +21,7 @@ int is_batch_mode() { return batch_mode; }
 
 static inline void welcome() {
   Log("Debug: \33[1;32m%s\33[0m", MUXDEF(CONFIG_DEBUG, "ON","OFF"));
-  ONDEF(CONFIG_DEBUG, Log("If debug mode is on, a log file will be generated "
+  IFDEF(CONFIG_DEBUG, Log("If debug mode is on, a log file will be generated "
       "to record every instruction NEMU executes. This may lead to a large log file. "
       "If it is not necessary, you can turn it off in include/common.h.")
   );
@@ -121,7 +121,7 @@ void init_monitor(int argc, char *argv[]) {
   init_difftest(diff_so_file, img_size, difftest_port);
 
   /* Initialize devices. */
-  ONDEF(CONFIG_DEVICE, init_device());
+  IFDEF(CONFIG_DEVICE, init_device());
 
   dccache_flush();
 
