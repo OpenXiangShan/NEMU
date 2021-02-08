@@ -1,7 +1,7 @@
 #include <cpu/exec.h>
 #include "../local-include/rtl.h"
+#include <cpu/cpu.h>
 #include <cpu/difftest.h>
-#include <cpu/cpu-exec.h>
 #include <cpu/dccache.h>
 
 #define INSTR_LIST(f) \
@@ -86,8 +86,9 @@ uint32_t isa_execute(uint32_t n) {
 
 #include "all-instr.h"
     def_finish();
+    IFDEF(CONFIG_DEBUG, debug_hook(s->pc, s->snpc - s->pc));
     IFDEF(CONFIG_DIFFTEST, update_gpc(lpc));
-    cpu_exec_2nd_part(s->pc, s->snpc, lpc);
+    IFDEF(CONFIG_DIFFTEST, difftest_step(s->pc, lpc));
   }
   cpu.pc = lpc;
   return n;

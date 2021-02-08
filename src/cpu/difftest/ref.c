@@ -1,10 +1,8 @@
 #include <isa.h>
 #include <memory/paddr.h>
-#include <cpu/exec.h>
+#include <cpu/cpu.h>
 #include <device/map.h>
 #include <difftest.h>
-
-void cpu_exec(uint64_t);
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(addr), buf, n);
