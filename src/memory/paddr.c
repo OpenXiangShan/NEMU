@@ -218,6 +218,26 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
 word_t vaddr_mmu_read(vaddr_t addr, int len, int type);
 void vaddr_mmu_write(vaddr_t addr, word_t data, int len);
 
+#if _SHARE
+#define def_vaddr_template(bytes) \
+word_t concat(vaddr_ifetch, bytes) (vaddr_t addr) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_IFETCH, bytes); \
+  if (ret == MEM_RET_OK) { extern word_t read_goldenmem(paddr_t addr, uint64_t len); return read_goldenmem(addr, bytes); } \
+  else if (ret == MEM_RET_NEED_TRANSLATE) return vaddr_mmu_read(addr, bytes, MEM_TYPE_IFETCH); \
+  return 0; \
+} \
+word_t concat(vaddr_read, bytes) (vaddr_t addr) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_READ, bytes); \
+  if (ret == MEM_RET_OK) return paddr_read(addr, bytes); \
+  else if (ret == MEM_RET_NEED_TRANSLATE) return vaddr_mmu_read(addr, bytes, MEM_TYPE_READ); \
+  return 0; \
+} \
+void concat(vaddr_write, bytes) (vaddr_t addr, word_t data) { \
+  int ret = isa_vaddr_check(addr, MEM_TYPE_WRITE, bytes); \
+  if (ret == MEM_RET_OK) paddr_write(addr, data, bytes); \
+  else if (ret == MEM_RET_NEED_TRANSLATE) vaddr_mmu_write(addr, data, bytes); \
+}
+#else
 #define def_vaddr_template(bytes) \
 word_t concat(vaddr_ifetch, bytes) (vaddr_t addr) { \
   int ret = isa_vaddr_check(addr, MEM_TYPE_IFETCH, bytes); \
@@ -236,6 +256,7 @@ void concat(vaddr_write, bytes) (vaddr_t addr, word_t data) { \
   if (ret == MEM_RET_OK) paddr_write(addr, data, bytes); \
   else if (ret == MEM_RET_NEED_TRANSLATE) vaddr_mmu_write(addr, data, bytes); \
 }
+#endif
 
 def_vaddr_template(1)
 def_vaddr_template(2)

@@ -86,6 +86,10 @@ void inter_read_goldenmem(paddr_t addr, void *data, uint64_t len) {
   *(uint64_t*)data = inter_pmem_read(addr, len);
 }
 
+word_t read_goldenmem(paddr_t addr, uint64_t len) {
+  return inter_pmem_read(addr, len);
+}
+
 static paddr_t ptw(vaddr_t vaddr, int type) {
 
   word_t pg_base = PGBASE(satp->ppn);
@@ -95,9 +99,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     
-    // pte.val	= paddr_read(p_pte, PTE_SIZE);
-    assert(goldenMem != NULL);
+#if _SHARE
     inter_read_goldenmem(p_pte, &pte.val, PTE_SIZE);
+#else
+    pte.val = paddr_read(p_pte, PTE_SIZE);
+#endif
 
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
@@ -272,7 +278,11 @@ bool ptw_is_safe(vaddr_t vaddr) {
   int level;
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+#if _SHARE
+    inter_read_goldenmem(p_pte, &pte.val, PTE_SIZE);
+#else
     pte.val	= paddr_read(p_pte, PTE_SIZE);
+#endif
     if(!is_sfence_safe(p_pte, rsize)){
       // printf("[Warning] pte at %lx is not sfence safe, accessed by pc %lx\n", p_pte, cpu.pc);
       return false;
