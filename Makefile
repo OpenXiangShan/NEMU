@@ -34,8 +34,6 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
-$(info $(SRCS))
-
 CC = $(call remove_quote,$(CONFIG_CC))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
