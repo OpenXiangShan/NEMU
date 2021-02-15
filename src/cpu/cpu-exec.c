@@ -42,12 +42,19 @@ void save_globals(vaddr_t pc, uint32_t n) {
 }
 #endif
 
-void longjmp_exec(int val) {
-  longjmp(jbuf_exec, val);
+void longjmp_exec(int cause) {
+  longjmp(jbuf_exec, cause);
 }
 
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
+
+#define update_lpc(npc) (lpc = (npc)) // local pc
+
+#define rtl_j(s, target) update_lpc(target)
+#define rtl_jr(s, target) update_lpc(*(target))
+#define rtl_jrelop(s, relop, src1, src2, target) \
+  do { if (interpret_relop(relop, *src1, *src2)) lpc = target; } while (0)
 
 static uint32_t execute(uint32_t n) {
   static const void* exec_table[TOTAL_INSTR] = {
@@ -109,6 +116,13 @@ static uint32_t execute(uint32_t n) {
     Operand lsrc2 = { .preg = id_src2->preg };
 
     goto *(s->EHelper);
+
+#undef id_dest
+#undef id_src1
+#undef id_src2
+#define id_dest (&ldest)
+#define id_src1 (&lsrc1)
+#define id_src2 (&lsrc2)
 
 #include "isa-exec.h"
     def_finish();
