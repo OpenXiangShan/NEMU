@@ -4,10 +4,18 @@
 #include <cpu/decode.h>
 #include <memory/vaddr.h>
 
+#ifdef CONFIG_PERF_OPT
+#define finish_label exec_finish
+#define def_label(l) l:
+#define def_EHelper(name) \
+  goto finish_label; /* this is for the previous def_EHelper() */ \
+  def_label(name)
+#define def_finish() def_label(finish_label)
+#else
 #define def_EHelper(name) void concat(exec_, name) (DecodeExecState *s)
+#endif
 
 #if 0
-
 #define IDEXW(idx, id, ex, w) CASE_ENTRY(idx, concat(decode_, id), concat(exec_, ex), w)
 #define IDEX(idx, id, ex)     IDEXW(idx, id, ex, 0)
 #define EXW(idx, ex, w)       IDEXW(idx, empty, ex, w)

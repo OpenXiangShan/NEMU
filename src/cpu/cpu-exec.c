@@ -1,5 +1,9 @@
-#include <isa.h>
-#include <utils.h>
+#include <cpu/exec.h>
+#include <cpu/difftest.h>
+#include <cpu/dccache.h>
+#include <isa-all-instr.h>
+
+//#define PERF
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -15,7 +19,7 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
-void debug_hook(vaddr_t pc, const char *asmbuf) {
+static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
   g_nr_guest_instr ++;
 
   log_write("%s\n", asmbuf);
@@ -26,7 +30,68 @@ void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
-void execute(uint64_t n);
+static uint32_t execute(uint32_t n) {
+  def_jmp_table();
+#ifdef PERF
+  static uint64_t instr = 0;
+  static uint64_t bp_miss = 0;
+  static uint64_t dc_miss = 0;
+#endif
+
+  DecodeExecState *s = &dccache[0];
+  vaddr_t lpc = cpu.pc; // local pc
+  while (true) {
+    DecodeExecState *prev = s;
+    s ++; // first try sequential fetch with the lowest cost
+    if (unlikely(s->pc != lpc)) {
+      // if the last instruction is a branch, or `s` is pointing to the sentinel,
+      // then try the prediction result
+      s = prev->next;
+      if (unlikely(s->pc != lpc)) {
+        // if the prediction is wrong, re-fetch the correct decode information,
+        // and update the prediction
+        s = dccache_fetch(lpc);
+        prev->next = s;
+#ifdef PERF
+        bp_miss ++;
+#endif
+        if (unlikely(s->pc != lpc)) {
+          // if it is a miss in decode cache, fetch and decode the correct instruction
+          s->pc = lpc;
+          int idx = isa_fetch_decode(s);
+          s->EHelper = jmp_table[idx];
+#ifdef PERF
+          dc_miss ++;
+#endif
+        }
+      }
+    }
+
+#ifdef PERF
+    instr ++;
+    if (instr % (65536 * 1024) == 0)
+      Log("instr = %ld, bp_miss = %ld, dc_miss = %ld", instr, bp_miss, dc_miss);
+#endif
+
+    if (--n == 0) break;
+
+    word_t thispc = lpc;
+    lpc += 4;
+    Operand ldest = { .preg = id_dest->preg };
+    Operand lsrc1 = { .preg = id_src1->preg };
+    Operand lsrc2 = { .preg = id_src2->preg };
+
+    goto *(s->EHelper);
+
+#include "isa-exec.h"
+    def_finish();
+    IFDEF(CONFIG_DEBUG, debug_hook(s->pc, s->logbuf));
+    IFDEF(CONFIG_DIFFTEST, update_gpc(lpc));
+    IFDEF(CONFIG_DIFFTEST, difftest_step(s->pc, lpc));
+  }
+  cpu.pc = lpc;
+  return n;
+}
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
@@ -42,7 +107,7 @@ void cpu_exec(uint64_t n) {
 
   while (nemu_state.state == NEMU_RUNNING) {
     uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
-    uint32_t n_remain = isa_execute(n_batch);
+    uint32_t n_remain = execute(n_batch);
     uint32_t n_executed = n_batch - n_remain;
     n -= n_executed;
     IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);

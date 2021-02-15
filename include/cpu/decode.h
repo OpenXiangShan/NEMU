@@ -32,6 +32,11 @@ typedef union DecodeExecState {
   uint8_t pad[64];
 } DecodeExecState;
 
+#define id_src1 (&s->src1)
+#define id_src2 (&s->src2)
+#define id_dest (&s->dest)
+
+
 #define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
 
 #define def_EXEC_ID(name) \
@@ -40,6 +45,11 @@ typedef union DecodeExecState {
 
 #define INSTR_CNT(name) + 1
 #define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
+
+#define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
+#define def_jmp_table() \
+    static const void* jmp_table[TOTAL_INSTR] = { MAP(INSTR_LIST, FILL_JMP_TABLE) };
+
 
 #define def_THelper(name) \
   static inline int concat(table_, name) (DecodeExecState *s)
@@ -56,9 +66,6 @@ typedef union DecodeExecState {
   MAP(INSTR_BINARY,  def_THelper_binary ) \
   MAP(INSTR_TERNARY, def_THelper_ternary)
 
-#define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
-#define def_jmp_table() \
-    static const void* jmp_table[TOTAL_INSTR] = { MAP(INSTR_LIST, FILL_JMP_TABLE) };
 
 #define def_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
 // empty decode helper

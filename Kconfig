@@ -170,4 +170,8 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+
+config PERF_OPT
+  bool "Performance optimization"
+  default y
 endmenu

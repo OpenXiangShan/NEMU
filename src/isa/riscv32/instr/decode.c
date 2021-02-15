@@ -1,7 +1,7 @@
-#include "all-instr.h"
 #include "../local-include/rtl.h"
 #include <cpu/exec.h>
 #include <cpu/dccache.h>
+#include <isa-all-instr.h>
 
 def_all_THelper();
 
@@ -153,7 +153,7 @@ def_THelper(main) {
   return table_inv(s);
 };
 
-int fetch_decode(DecodeExecState *s) {
+int isa_fetch_decode(DecodeExecState *s) {
   s->snpc = s->pc;
   cpu.pc = s->pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');

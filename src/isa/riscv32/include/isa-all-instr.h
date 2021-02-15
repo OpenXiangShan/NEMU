@@ -1,4 +1,5 @@
 #include <cpu/decode.h>
+#include <rtl/rtl.h>
 
 #define INSTR_NULLARY(f) \
   f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma)

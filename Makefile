@@ -10,7 +10,8 @@ DIRS-y = src/cpu src/memory src/monitor src/utils
 remove_quote = $(patsubst "%",%,$(1))
 
 ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
-CFLAGS += -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
+CFLAGS += -D__ISA__=$(ISA)
+INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
 
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))

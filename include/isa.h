@@ -1,9 +1,8 @@
 #ifndef __ISA_H__
 #define __ISA_H__
 
-// The macro `_ISA_H_` is defined in $(CFLAGS).
-// It will be expanded as "isa/x86.h" or "isa/mips32.h" ...
-#include _ISA_H_
+// Located at src/isa/$(ISA)/include/isa-def.h
+#include <isa-def.h>
 
 // The macro `__ISA__` is defined in $(CFLAGS).
 // It will be expanded as "x86" or "mips32" ...
@@ -20,7 +19,8 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
-uint32_t isa_execute(uint32_t n);
+union DecodeExecState;
+int isa_fetch_decode(union DecodeExecState *s);
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
 
 // memory

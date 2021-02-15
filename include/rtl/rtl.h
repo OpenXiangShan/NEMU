@@ -3,10 +3,6 @@
 
 #include <cpu/decode.h>
 
-#define id_src1 (&s->src1)
-#define id_src2 (&s->src2)
-#define id_dest (&s->dest)
-
 extern const rtlreg_t rzero;
 extern rtlreg_t tmp_reg[4];
 
