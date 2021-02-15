@@ -4,6 +4,8 @@
 #include <cpu/difftest.h>
 #include <cpu/dccache.h>
 
+//#define PERF
+
 #define INSTR_LIST(f) \
   f(lui) f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) \
   f(and) f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) \
@@ -12,26 +14,12 @@
   f(sh) f(sb) f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) \
   f(rem) f(remu) f(inv) f(nemu_trap) f(csrrw) f(csrrs) f(ecall) f(sret) f(sfence_vma)
 
-#define def_EXEC_ID(name) \
-  enum { concat(EXEC_ID_, name) = __COUNTER__ }; \
-  static inline int concat(table_, name) (DecodeExecState *s) { return concat(EXEC_ID_, name); }
+def_all_EXEC_ID();
 
-MAP(INSTR_LIST, def_EXEC_ID)
-
-#define INSTR_CNT(name) + 1
-#define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
-
-#define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
-
-#include "../local-include/decode.h"
-#include "table.h"
-
-//#define PERF
+#include "decode.h"
 
 uint32_t isa_execute(uint32_t n) {
-  static const void* jmp_table[TOTAL_INSTR] = {
-    MAP(INSTR_LIST, FILL_JMP_TABLE)
-  };
+  def_jmp_table();
 #ifdef PERF
   static uint64_t instr = 0;
   static uint64_t bp_miss = 0;

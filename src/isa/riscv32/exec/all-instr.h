@@ -13,7 +13,6 @@
   goto finish_label; /* this is for the previous def_EHelper() */ \
   def_label(name)
 
-#define def_start()
 #define def_finish() def_label(finish_label)
 
 #ifndef CONFIG_DEBUG
