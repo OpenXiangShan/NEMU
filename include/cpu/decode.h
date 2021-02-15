@@ -46,10 +46,6 @@ typedef union DecodeExecState {
 #define INSTR_CNT(name) + 1
 #define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
 
-#define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
-#define def_jmp_table() \
-    static const void* jmp_table[TOTAL_INSTR] = { MAP(INSTR_LIST, FILL_JMP_TABLE) };
-
 
 #define def_THelper(name) \
   static inline int concat(table_, name) (DecodeExecState *s)

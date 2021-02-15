@@ -12,7 +12,7 @@
   def_label(name)
 #define def_finish() def_label(finish_label)
 #else
-#define def_EHelper(name) void concat(exec_, name) (DecodeExecState *s)
+#define def_EHelper(name) static inline void concat(exec_, name) (DecodeExecState *s)
 #endif
 
 #if 0
@@ -42,9 +42,5 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
 #endif
   (*pc) += len;
   return instr;
-}
-
-static inline void update_pc(DecodeExecState *s) {
-  //cpu.pc = s->npc;
 }
 #endif

@@ -30,8 +30,13 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
+#ifdef CONFIG_PERF_OPT
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
+
 static uint32_t execute(uint32_t n) {
-  def_jmp_table();
+  static const void* exec_table[TOTAL_INSTR] = {
+    MAP(INSTR_LIST, FILL_EXEC_TABLE)
+  };
 #ifdef PERF
   static uint64_t instr = 0;
   static uint64_t bp_miss = 0;
@@ -65,7 +70,7 @@ static uint32_t execute(uint32_t n) {
           // if it is a miss in decode cache, fetch and decode the correct instruction
           s->pc = lpc;
           int idx = isa_fetch_decode(s);
-          s->EHelper = jmp_table[idx];
+          s->EHelper = exec_table[idx];
 #ifdef PERF
           dc_miss ++;
 #endif
@@ -98,6 +103,28 @@ static uint32_t execute(uint32_t n) {
   cpu.pc = lpc;
   return n;
 }
+#else
+#include "isa-exec.h"
+
+typedef void (*EHelper_t)(DecodeExecState *s);
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
+
+static uint32_t execute(uint32_t n) {
+  static const EHelper_t exec_table[TOTAL_INSTR] = {
+    MAP(INSTR_LIST, FILL_EXEC_TABLE)
+  };
+  DecodeExecState s;
+  for (;n > 0; n --) {
+    s.pc = cpu.pc;
+    int idx = isa_fetch_decode(&s);
+    cpu.pc = s.snpc;
+    exec_table[idx](&s);
+    IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+  }
+  return n;
+}
+#endif
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
