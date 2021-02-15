@@ -13,9 +13,8 @@ def_EHelper(csrrs) {
 }
 
 def_EHelper(ecall) {
-  update_gpc(thispc);
   IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  rtl_trap(s, cpu.pc, 9);
+  rtl_trap(s, s->pc, 9);
 }
 
 def_EHelper(sret) {

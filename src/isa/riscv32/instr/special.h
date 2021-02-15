@@ -1,9 +1,11 @@
 def_EHelper(inv) {
+  save_globals(thispc, n);
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, 0);
-  IFDEF(CONFIG_PERF_OPT, break);
+  longjmp_exec(NEMU_ABORT);
 }
 
 def_EHelper(nemu_trap) {
+  save_globals(thispc, n);
   rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[10]._32, 0); // gpr[10] is $a0
-  IFDEF(CONFIG_PERF_OPT, break);
+  longjmp_exec(NEMU_END);
 }

@@ -1,4 +1,3 @@
-#define update_gpc(npc) IFDEF(CONFIG_PERF_OPT, cpu.pc = (npc)) // global pc
 #ifdef CONFIG_PERF_OPT
 #define update_lpc(npc) (lpc = (npc)) // local pc
 

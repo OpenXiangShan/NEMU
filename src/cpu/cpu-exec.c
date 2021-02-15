@@ -1,7 +1,9 @@
+#include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
 #include <cpu/dccache.h>
 #include <isa-all-instr.h>
+#include <setjmp.h>
 
 //#define PERF
 
@@ -30,6 +32,20 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
+static jmp_buf jbuf_exec = {};
+static uint32_t n_remain;
+
+#ifdef CONFIG_PERF_OPT
+void save_globals(vaddr_t pc, uint32_t n) {
+  cpu.pc = pc;
+  n_remain = n;
+}
+#endif
+
+void longjmp_exec(int val) {
+  longjmp(jbuf_exec, val);
+}
+
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
@@ -45,7 +61,7 @@ static uint32_t execute(uint32_t n) {
 
   static int align_flag = 0;
   if (align_flag == 0) {
-    asm volatile (".fill 8,1,0x90");
+    asm volatile (".fill 0,1,0x90");
     align_flag = 1;
   }
 
@@ -97,7 +113,7 @@ static uint32_t execute(uint32_t n) {
 #include "isa-exec.h"
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(s->pc, s->logbuf));
-    IFDEF(CONFIG_DIFFTEST, update_gpc(lpc));
+    IFDEF(CONFIG_DIFFTEST, cpu.pc = lpc);
     IFDEF(CONFIG_DIFFTEST, difftest_step(s->pc, lpc));
   }
   cpu.pc = lpc;
@@ -118,6 +134,7 @@ static uint32_t execute(uint32_t n) {
     s.pc = cpu.pc;
     int idx = isa_fetch_decode(&s);
     cpu.pc = s.snpc;
+    n_remain = n;
     exec_table[idx](&s);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
@@ -127,8 +144,8 @@ static uint32_t execute(uint32_t n) {
 #endif
 
 /* Simulate how the CPU works. */
-void cpu_exec(uint64_t n) {
-  g_print_step = (n < MAX_INSTR_TO_PRINT);
+void cpu_exec(uint64_t nn) {
+  g_print_step = (nn < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
@@ -138,9 +155,18 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_start = get_time();
 
-  while (nemu_state.state == NEMU_RUNNING) {
+  static uint64_t n; n = nn; // deal with setjmp()
+  int ret;
+  if ((ret = setjmp(jbuf_exec))) {
     uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
-    uint32_t n_remain = execute(n_batch);
+    uint32_t n_executed = n_batch - n_remain;
+    n -= n_executed;
+    IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+  }
+
+  while (nemu_state.state == NEMU_RUNNING && n > 0) {
+    uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
+    n_remain = execute(n_batch);
     uint32_t n_executed = n_batch - n_remain;
     n -= n_executed;
     IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
