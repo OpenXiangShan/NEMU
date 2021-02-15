@@ -21,7 +21,7 @@ DIRS-y += src/engine/$(ENGINE)
 DIRS-$(CONFIG_MODE_USER) += src/user
 
 SRCS-y += src/main.c
-SRCS-$(CONFIG_DEVICE) += src/device/io/port-io.c src/device/io/map.c src/device/io/mmio.c
+DIRS-$(CONFIG_DEVICE) += src/device/io
 SRCS-$(CONFIG_DEVICE) += src/device/device.c src/device/alarm.c src/device/intr.c
 SRCS-$(CONFIG_HAS_SERIAL) += src/device/serial.c
 SRCS-$(CONFIG_HAS_TIMER) += src/device/timer.c

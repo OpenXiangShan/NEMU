@@ -61,7 +61,7 @@ static uint32_t execute(uint32_t n) {
 
   static int align_flag = 0;
   if (align_flag == 0) {
-    asm volatile (".fill 0,1,0x90");
+    asm volatile (".fill 40,1,0x90");
     align_flag = 1;
   }
 
