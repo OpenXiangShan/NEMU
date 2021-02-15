@@ -1,17 +1,14 @@
 #ifndef __ICS_EXPORT
 def_EHelper(mul) {
   rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(mul);
 }
 
 def_EHelper(mulh) {
   rtl_muls_hi(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(mulh);
 }
 
 def_EHelper(mulhu) {
   rtl_mulu_hi(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(mulh);
 }
 
 def_EHelper(mulhsu) {
@@ -33,27 +30,21 @@ def_EHelper(mulhsu) {
   rtl_and(s, s0, dsrc2, s0); // s0 = (id_src1->val < 0 ? id_src2->val : 0)
   rtl_mulu_hi(s, s1, dsrc1, dsrc2);
   rtl_sub(s, ddest, s1, s0);
-
-  print_asm_template3(mulhsu);
 }
 
 def_EHelper(div) {
   rtl_divs_q(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(div);
 }
 
 def_EHelper(divu) {
   rtl_divu_q(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(divu);
 }
 
 def_EHelper(rem) {
   rtl_divs_r(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(rem);
 }
 
 def_EHelper(remu) {
   rtl_divu_r(s, ddest, dsrc1, dsrc2);
-  print_asm_template3(remu);
 }
 #endif

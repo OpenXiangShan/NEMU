@@ -42,7 +42,8 @@ void monitor_statistic();
     log_write(__VA_ARGS__); \
   } while (0)
 
-void strcatf(char *buf, const char *fmt, ...);
+extern char log_bytebuf[80];
+extern char log_asmbuf[80];
 
 // ----------- expr -----------
 

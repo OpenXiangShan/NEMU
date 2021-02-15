@@ -28,8 +28,8 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   uint8_t *p_instr = (void *)&instr;
   int i;
   for (i = 0; i < len; i ++) {
-    extern char log_bytebuf[];
-    strcatf(log_bytebuf, "%02x ", p_instr[i]);
+    int l = strlen(log_bytebuf);
+    snprintf(log_bytebuf + l, sizeof(log_bytebuf) - l, "%02x ", p_instr[i]);
   }
 #endif
   (*pc) += len;
@@ -39,25 +39,4 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
 static inline void update_pc(DecodeExecState *s) {
   //cpu.pc = s->npc;
 }
-
-#define print_asm(...) \
-  IFDEF(CONFIG_DEBUG, do { \
-    extern char log_asmbuf[]; \
-    strcatf(log_asmbuf, __VA_ARGS__); \
-  } while (0) \
-)
-
-#ifndef suffix_char
-#define suffix_char(width) ' '
-#endif
-
-#define print_asm_template1(instr) \
-  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
-
-#define print_asm_template2(instr) \
-  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
-
-#define print_asm_template3(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
-
 #endif

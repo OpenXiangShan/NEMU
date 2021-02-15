@@ -15,15 +15,14 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
-void debug_hook(vaddr_t pc, int len) {
+void debug_hook(vaddr_t pc, const char *asmbuf) {
   g_nr_guest_instr ++;
 
-  void asm_print(vaddr_t pc, int instr_len, bool print_flag);
-  asm_print(pc, len, g_print_step);
+  log_write("%s\n", asmbuf);
+  if (g_print_step) { puts(asmbuf); }
 
   void scan_watchpoint(vaddr_t pc);
   scan_watchpoint(pc);
-
 }
 #endif
 

@@ -27,20 +27,34 @@ typedef union DecodeExecState {
     const void *EHelper;
     Operand dest, src1, src2;
     ISADecodeInfo isa;
+    IFDEF(CONFIG_DEBUG, char logbuf[80]);
   };
   uint8_t pad[64];
 } DecodeExecState;
 
-#define def_THelper(name) \
-  static inline int concat(table_, name) (DecodeExecState *s)
+#define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
 
 #define def_EXEC_ID(name) \
-  enum { concat(EXEC_ID_, name) = __COUNTER__ }; \
-  def_THelper(name) { return concat(EXEC_ID_, name); }
+  enum { concat(EXEC_ID_, name) = __COUNTER__ };
 #define def_all_EXEC_ID() MAP(INSTR_LIST, def_EXEC_ID)
 
 #define INSTR_CNT(name) + 1
 #define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
+
+#define def_THelper(name) \
+  static inline int concat(table_, name) (DecodeExecState *s)
+#define def_THelper_arity(name, arity) \
+  def_THelper(name) { concat(print_asm_template, arity)(name); return concat(EXEC_ID_, name); }
+#define def_THelper_nullary(name) def_THelper_arity(name, 0)
+#define def_THelper_unary(name)   def_THelper_arity(name, 1)
+#define def_THelper_binary(name)  def_THelper_arity(name, 2)
+#define def_THelper_ternary(name) def_THelper_arity(name, 3)
+
+#define def_all_THelper() \
+  MAP(INSTR_NULLARY, def_THelper_nullary) \
+  MAP(INSTR_UNARY,   def_THelper_unary  ) \
+  MAP(INSTR_BINARY,  def_THelper_binary ) \
+  MAP(INSTR_TERNARY, def_THelper_ternary)
 
 #define FILL_JMP_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 #define def_jmp_table() \
@@ -55,6 +69,24 @@ static inline def_DHelper(empty) {}
 #define TAB(idx, tab) IDTAB(idx, empty, tab)
 #define EMPTY(idx) TAB(idx, inv)
 
+
 #define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
+#define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
+
+#ifndef suffix_char
+#define suffix_char(width) ' '
+#endif
+
+#define print_asm_template0(instr) \
+  print_asm(str(instr) "%c", suffix_char(id_dest->width))
+
+#define print_asm_template1(instr) \
+  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
+
+#define print_asm_template2(instr) \
+  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
+
+#define print_asm_template3(instr) \
+  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
 
 #endif
