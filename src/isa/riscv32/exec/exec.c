@@ -3,10 +3,11 @@
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <cpu/dccache.h>
+#include "all-instr.h"
 
 //#define PERF
 
-#include "decode.h"
+int fetch_decode(DecodeExecState *s);
 
 uint32_t isa_execute(uint32_t n) {
   def_jmp_table();
@@ -36,7 +37,8 @@ uint32_t isa_execute(uint32_t n) {
         if (unlikely(s->pc != lpc)) {
           // if it is a miss in decode cache, fetch and decode the correct instruction
           s->pc = lpc;
-          fetch_decode(s, jmp_table);
+          int idx = fetch_decode(s);
+          s->EHelper = jmp_table[idx];
 #ifdef PERF
     dc_miss ++;
 #endif
@@ -60,7 +62,7 @@ uint32_t isa_execute(uint32_t n) {
 
     goto *(s->EHelper);
 
-#include "all-instr.h"
+#include "exec.h"
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(s->pc, s->logbuf));
     IFDEF(CONFIG_DIFFTEST, update_gpc(lpc));

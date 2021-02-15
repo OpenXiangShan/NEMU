@@ -1,18 +1,8 @@
-#include <cpu/decode.h>
+#include "all-instr.h"
+#include "../local-include/rtl.h"
+#include <cpu/exec.h>
+#include <cpu/dccache.h>
 
-#define INSTR_NULLARY(f) \
-  f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma)
-#define INSTR_UNARY(f)
-#define INSTR_BINARY(f) \
-  f(lui) f(auipc) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) f(jal)
-#define INSTR_TERNARY(f) \
-  f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
-  f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
-  f(jalr) f(beq) f(bne) f(blt) f(bge) f(bltu) f(bgeu) \
-  f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) f(rem) f(remu) \
-  f(csrrw) f(csrrs)
-
-def_all_EXEC_ID();
 def_all_THelper();
 
 // decode operand helper
@@ -158,12 +148,12 @@ def_THelper(main) {
     IDTAB(010, S, store)
     IDTAB(014, R, op)     IDTAB(015, U, lui)
     IDTAB(030, B, branch) IDTAB(031, I, jalr)  TAB  (032, nemu_trap)  IDTAB(033, J, jal)
-    TAB  (034, system)
+    IDTAB(034, csr, system)
   }
   return table_inv(s);
 };
 
-void fetch_decode(DecodeExecState *s, const void **jmp_table) {
+int fetch_decode(DecodeExecState *s) {
   s->snpc = s->pc;
   cpu.pc = s->pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
@@ -172,9 +162,6 @@ void fetch_decode(DecodeExecState *s, const void **jmp_table) {
   if (s->isa.instr.i.opcode1_0 == 0x3) {
     idx = table_main(s);
   }
-
-  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
-        s->pc, log_bytebuf, 50 - (12 + 3 * (s->snpc - s->pc)), "", log_asmbuf));
 
   // branch prediction
   vaddr_t pnpc = s->snpc;
@@ -191,5 +178,8 @@ void fetch_decode(DecodeExecState *s, const void **jmp_table) {
   }
   s->next = dccache_fetch(pnpc);
 
-  s->EHelper = jmp_table[idx];
+  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
+        s->pc, log_bytebuf, 50 - (12 + 3 * (s->snpc - s->pc)), "", log_asmbuf));
+
+  return idx;
 }
