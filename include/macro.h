@@ -68,7 +68,7 @@
 // NOTE2: each element in the contain can be a tuple
 #define MAP(c, f) c(f)
 
-#define BITMASK(bits) ((1 << (bits)) - 1)
+#define BITMASK(bits) ((1ull << (bits)) - 1)
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (int64_t)__x.n; })
 
