@@ -73,7 +73,7 @@ static uint32_t execute(uint32_t n) {
   IFDEF(PERF, static uint64_t instr, sentinel_miss, dc_miss);
   static int align_flag = 0;
   if (align_flag == 0) {
-    asm volatile (".fill 48,1,0x90");
+    asm volatile (".fill 52,1,0x90");
     align_flag = 1;
   }
 

@@ -147,13 +147,23 @@ def_THelper(system) {
   return EXEC_ID_inv;
 };
 
+def_THelper(jal_dispatch) {
+  if (s->isa.instr.j.rd != 0) return table_jal(s);
+  return table_j(s);
+}
+
+def_THelper(jalr_dispatch) {
+  if (s->isa.instr.i.rd != 0) return table_jalr(s);
+  return table_jr(s);
+}
+
 def_THelper(main) {
   switch (s->isa.instr.i.opcode6_2) {
     IDTAB(000, I, load)
     IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)
     IDTAB(010, S, store)
     IDTAB(014, R, op)     IDTAB(015, U, lui)
-    IDTAB(030, B, branch) IDTAB(031, I, jalr)  TAB  (032, nemu_trap)  IDTAB(033, J, jal)
+    IDTAB(030, B, branch) IDTAB(031, I, jalr_dispatch)  TAB  (032, nemu_trap)  IDTAB(033, J, jal_dispatch)
     IDTAB(034, csr, system)
   }
   return table_inv(s);
@@ -169,6 +179,7 @@ int isa_fetch_decode(DecodeExecState *s) {
   // record next decode cache entry for static target
   vaddr_t pnpc = s->snpc;
   switch (idx) {
+    case EXEC_ID_j:
     case EXEC_ID_jal: pnpc = id_src1->imm; break;
     case EXEC_ID_beq:
     case EXEC_ID_bne:
