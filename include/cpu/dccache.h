@@ -4,7 +4,6 @@
 #include <cpu/decode.h>
 
 #define DCACHE_SIZE (1024 * 4)
-extern DecodeExecState dccache[];
 
 void dccache_flush();
 
@@ -13,6 +12,7 @@ static inline int dccache_idx(vaddr_t pc) {
 }
 
 static inline DecodeExecState* dccache_fetch(vaddr_t pc) {
+  extern DecodeExecState dccache[];
   return &dccache[dccache_idx(pc)];
 }
 

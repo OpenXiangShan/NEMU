@@ -5,7 +5,7 @@
 #include <isa-all-instr.h>
 #include <setjmp.h>
 
-//#define PERF
+//#define PERF 1
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -51,66 +51,49 @@ void longjmp_exec(int cause) {
 
 #define update_lpc(npc) (lpc = (npc)) // local pc
 
-#define rtl_j(s, target) update_lpc(target)
-#define rtl_jr(s, target) update_lpc(*(target))
+#define rtl_j(s, target) do { update_lpc(target); s = s->next; goto finish_label; } while (0)
+#define rtl_jr(s, target) do { update_lpc(*(target)); s = dccache_fetch(*(target)); goto finish_label; } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) \
-  do { if (interpret_relop(relop, *src1, *src2)) lpc = target; } while (0)
+  do { if (interpret_relop(relop, *src1, *src2)) rtl_j(s, target); } while (0)
 
 static uint32_t execute(uint32_t n) {
   static const void* exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
-#ifdef PERF
-  static uint64_t instr = 0;
-  static uint64_t bp_miss = 0;
-  static uint64_t dc_miss = 0;
-#endif
-
+  IFDEF(PERF, static uint64_t instr, sentinel_miss, dc_miss);
   static int align_flag = 0;
   if (align_flag == 0) {
-    asm volatile (".fill 40,1,0x90");
+    asm volatile (".fill 48,1,0x90");
     align_flag = 1;
   }
 
-  DecodeExecState *s = &dccache[0];
   vaddr_t lpc = cpu.pc; // local pc
+  DecodeExecState *s = dccache_fetch(lpc);
   while (true) {
-    DecodeExecState *prev = s;
-    s ++; // first try sequential fetch with the lowest cost
     if (unlikely(s->pc != lpc)) {
-      // if the last instruction is a branch, or `s` is pointing to the sentinel,
-      // then try the prediction result
-      s = prev->next;
+      // if `s` is pointing to the sentinel,
+      s = dccache_fetch(0);
       if (unlikely(s->pc != lpc)) {
-        // if the prediction is wrong, re-fetch the correct decode information,
-        // and update the prediction
+        // if it is a miss in decode cache, fetch and decode the correct instruction
         s = dccache_fetch(lpc);
-        prev->next = s;
-#ifdef PERF
-        bp_miss ++;
-#endif
-        if (unlikely(s->pc != lpc)) {
-          // if it is a miss in decode cache, fetch and decode the correct instruction
-          s->pc = lpc;
-          int idx = isa_fetch_decode(s);
-          s->EHelper = exec_table[idx];
-#ifdef PERF
-          dc_miss ++;
-#endif
-        }
+        s->pc = lpc;
+        int idx = isa_fetch_decode(s);
+        s->EHelper = exec_table[idx];
+        IFDEF(PERF, dc_miss ++);
+      } else {
+        IFDEF(PERF, sentinel_miss ++);
       }
     }
 
 #ifdef PERF
     instr ++;
     if (instr % (65536 * 1024) == 0)
-      Log("instr = %ld, bp_miss = %ld, dc_miss = %ld", instr, bp_miss, dc_miss);
+      Log("instr = %ld, sentinel_miss = %ld, dc_miss = %ld", instr, sentinel_miss, dc_miss);
 #endif
 
     if (--n == 0) break;
 
-    word_t thispc = lpc;
-    lpc += 4;
+    IFDEF(CONFIG_DEBUG, DecodeExecState *this_s = s);
     Operand ldest = { .preg = id_dest->preg };
     Operand lsrc1 = { .preg = id_src1->preg };
     Operand lsrc2 = { .preg = id_src2->preg };
@@ -126,9 +109,9 @@ static uint32_t execute(uint32_t n) {
 
 #include "isa-exec.h"
     def_finish();
-    IFDEF(CONFIG_DEBUG, debug_hook(s->pc, s->logbuf));
+    IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
     IFDEF(CONFIG_DIFFTEST, cpu.pc = lpc);
-    IFDEF(CONFIG_DIFFTEST, difftest_step(s->pc, lpc));
+    IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, lpc));
   }
   cpu.pc = lpc;
   return n;

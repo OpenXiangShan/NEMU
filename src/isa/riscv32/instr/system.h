@@ -14,7 +14,7 @@ def_EHelper(csrrs) {
 
 def_EHelper(ecall) {
   IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  rtl_trap(s, s->pc, 9);
+  rtl_trap(s, lpc, 9);
 }
 
 def_EHelper(sret) {

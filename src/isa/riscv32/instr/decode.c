@@ -163,7 +163,7 @@ int isa_fetch_decode(DecodeExecState *s) {
     idx = table_main(s);
   }
 
-  // branch prediction
+  // record next decode cache entry for static target
   vaddr_t pnpc = s->snpc;
   switch (idx) {
     case EXEC_ID_jal: pnpc = id_src1->imm; break;
@@ -173,8 +173,6 @@ int isa_fetch_decode(DecodeExecState *s) {
     case EXEC_ID_bge:
     case EXEC_ID_bltu:
     case EXEC_ID_bgeu: pnpc = id_dest->imm; break;
-    case EXEC_ID_jalr: // static prediction for jalr
-      pnpc = *dsrc1 + id_src2->simm; break;
   }
   s->next = dccache_fetch(pnpc);
 

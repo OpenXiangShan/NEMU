@@ -1,16 +1,16 @@
 #ifndef __ICS_EXPORT
 
 def_EHelper(jal) {
-  rtl_li(s, ddest, s->snpc);
+  rtl_li(s, ddest, lpc + 4);
   rtl_j(s, id_src1->imm);
 }
 
 def_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  rtl_jr(s, s0);
-  rtl_li(s, ddest, s->snpc);
+  rtl_li(s, ddest, lpc + 4);
   IFUNDEF(CONFIG_DIFFTEST_REF_NEMU ,difftest_skip_dut(1, 2));
+  rtl_jr(s, s0);
 }
 
 def_EHelper(beq) {
