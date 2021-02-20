@@ -1,7 +1,7 @@
 #ifndef __ICS_EXPORT
 
 def_EHelper(jal) {
-  rtl_li(s, ddest, lpc + 4);
+  rtl_li(s, ddest, id_src2->imm);
   rtl_j(s, id_src1->imm);
 }
 

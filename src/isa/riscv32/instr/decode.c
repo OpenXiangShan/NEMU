@@ -53,6 +53,7 @@ static inline def_DHelper(J) {
     (s->isa.instr.j.imm11 << 11) | (s->isa.instr.j.imm10_1 << 1);
   id_src1->imm = s->pc + offset;
   print_Dop(id_src1->str, OP_STR_SIZE, "0x%x", id_src1->imm);
+  id_src2->imm = s->snpc;
 
   decode_op_r(s, id_dest, s->isa.instr.j.rd, false);
 }
@@ -64,6 +65,11 @@ static inline def_DHelper(B) {
 
   decode_op_r(s, id_src1, s->isa.instr.b.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.b.rs2, true);
+}
+
+static inline def_DHelper(auipc) {
+  decode_U(s);
+  id_src1->imm += s->pc;
 }
 
 static inline def_DHelper(csr) {
@@ -144,7 +150,7 @@ def_THelper(system) {
 def_THelper(main) {
   switch (s->isa.instr.i.opcode6_2) {
     IDTAB(000, I, load)
-    IDTAB(004, I, op_imm) IDTAB(005, U, auipc)
+    IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)
     IDTAB(010, S, store)
     IDTAB(014, R, op)     IDTAB(015, U, lui)
     IDTAB(030, B, branch) IDTAB(031, I, jalr)  TAB  (032, nemu_trap)  IDTAB(033, J, jal)
