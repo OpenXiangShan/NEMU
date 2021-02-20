@@ -154,9 +154,6 @@ def_THelper(main) {
 };
 
 int isa_fetch_decode(DecodeExecState *s) {
-  s->snpc = s->pc;
-  cpu.pc = s->pc;
-  IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = EXEC_ID_inv;
   if (s->isa.instr.i.opcode1_0 == 0x3) {
@@ -175,9 +172,6 @@ int isa_fetch_decode(DecodeExecState *s) {
     case EXEC_ID_bgeu: pnpc = id_dest->imm; break;
   }
   s->next = dccache_fetch(pnpc);
-
-  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
-        s->pc, log_bytebuf, 50 - (12 + 3 * (s->snpc - s->pc)), "", log_asmbuf));
 
   return idx;
 }

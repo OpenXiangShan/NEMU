@@ -46,6 +46,16 @@ void longjmp_exec(int cause) {
   longjmp(jbuf_exec, cause);
 }
 
+static int __attribute((noinline)) fetch_decode(DecodeExecState *s, vaddr_t pc) {
+  s->pc = pc;
+  s->snpc = pc;
+  IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
+  int idx = isa_fetch_decode(s);
+  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
+        s->pc, log_bytebuf, 50 - (12 + 3 * (s->snpc - s->pc)), "", log_asmbuf));
+  return idx;
+}
+
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
@@ -71,13 +81,13 @@ static uint32_t execute(uint32_t n) {
   DecodeExecState *s = dccache_fetch(lpc);
   while (true) {
     if (unlikely(s->pc != lpc)) {
-      // if `s` is pointing to the sentinel,
+      // if `s` is pointing to the sentinel, fetch the correct decode cache entry
       s = dccache_fetch(0);
       if (unlikely(s->pc != lpc)) {
         // if it is a miss in decode cache, fetch and decode the correct instruction
         s = dccache_fetch(lpc);
-        s->pc = lpc;
-        int idx = isa_fetch_decode(s);
+        cpu.pc = lpc;
+        int idx = fetch_decode(s, lpc);
         s->EHelper = exec_table[idx];
         IFDEF(PERF, dc_miss ++);
       } else {
@@ -128,8 +138,7 @@ static uint32_t execute(uint32_t n) {
   };
   DecodeExecState s;
   for (;n > 0; n --) {
-    s.pc = cpu.pc;
-    int idx = isa_fetch_decode(&s);
+    int idx = fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
     n_remain = n;
     exec_table[idx](&s);
