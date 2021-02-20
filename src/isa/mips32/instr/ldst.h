@@ -1,37 +1,46 @@
 def_EHelper(lw) {
+  save_globals(lpc, n);
   rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
 }
 
 def_EHelper(sw) {
+  save_globals(lpc, n);
   rtl_sm(s, dsrc1, id_src2->imm, ddest, 4);
 }
 #ifndef __ICS_EXPORT
 
 def_EHelper(lh) {
+  save_globals(lpc, n);
   rtl_lms(s, ddest, dsrc1, id_src2->imm, 2);
 }
 
 def_EHelper(lb) {
+  save_globals(lpc, n);
   rtl_lms(s, ddest, dsrc1, id_src2->imm, 1);
 }
 
 def_EHelper(lhu) {
+  save_globals(lpc, n);
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 2);
 }
 
 def_EHelper(lbu) {
+  save_globals(lpc, n);
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 1);
 }
 
 def_EHelper(sh) {
+  save_globals(lpc, n);
   rtl_sm(s, dsrc1, id_src2->imm, ddest, 2);
 }
 
 def_EHelper(sb) {
+  save_globals(lpc, n);
   rtl_sm(s, dsrc1, id_src2->imm, ddest, 1);
 }
 
 def_EHelper(swl) {
+  save_globals(lpc, n);
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shamt2
@@ -65,6 +74,7 @@ def_EHelper(swl) {
 }
 
 def_EHelper(swr) {
+  save_globals(lpc, n);
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -100,6 +110,7 @@ def_EHelper(swr) {
 }
 
 def_EHelper(lwl) {
+  save_globals(lpc, n);
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
@@ -130,6 +141,7 @@ def_EHelper(lwl) {
 }
 
 def_EHelper(lwr) {
+  save_globals(lpc, n);
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2

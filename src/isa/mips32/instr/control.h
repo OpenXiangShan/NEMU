@@ -8,9 +8,8 @@ def_EHelper(j) {
 
 def_EHelper(jal) {
   difftest_skip_delay_slot();
-  word_t ra = s->pc + 8;
+  rtl_li(s, &reg_l(31), id_src2->imm);
   rtl_j(s, id_dest->imm);
-  rtl_li(s, &reg_l(31), ra);
 }
 
 def_EHelper(jr) {
@@ -20,9 +19,8 @@ def_EHelper(jr) {
 
 def_EHelper(jalr) {
   difftest_skip_delay_slot();
-  word_t ra = s->pc + 8;
+  rtl_li(s, ddest, id_src2->imm);
   rtl_jr(s, dsrc1);
-  rtl_li(s, ddest, ra);
 }
 
 def_EHelper(bne) {

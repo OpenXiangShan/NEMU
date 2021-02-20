@@ -12,6 +12,6 @@
   f(addi) f(slti) f(sltui) f(andi) f(ori) f(xori) f(slli) f(srli) f(srai) f(movz) f(movn) \
   f(beq) f(bne) f(blez) f(bltz) f(bgtz) f(bgez) \
   f(mul) f(mult) f(multu) f(div) f(divu) \
-  f(mfc0) f(mtc0) 
+  f(mfc0) f(mtc0)
 
 def_all_EXEC_ID();

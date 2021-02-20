@@ -1,7 +1,7 @@
 #include "../local-include/intr.h"
 
 def_EHelper(syscall) {
-  rtl_trap(s, cpu.pc, EX_SYSCALL);
+  rtl_trap(s, s->pc, EX_SYSCALL);
 }
 
 def_EHelper(eret) {

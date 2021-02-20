@@ -54,7 +54,7 @@ static inline def_DHelper(I) {
 }
 
 static inline def_DHelper(J) {
-  vaddr_t target = (cpu.pc & 0xf0000000) | (s->isa.instr.j.target << 2);
+  vaddr_t target = (s->pc & 0xf0000000) | (s->isa.instr.j.target << 2);
   id_dest->imm = target;
   print_Dop(id_dest->str, OP_STR_SIZE, "0x%x", id_dest->imm);
 }
@@ -67,8 +67,8 @@ static inline def_DHelper(R) {
 
 static inline def_DHelper(B) {
   sword_t offset = (s->isa.instr.i.simm << 2);
-  id_dest->imm = cpu.pc + offset + 4;
-  s->snpc += 4; // skip the delay slot
+  id_dest->imm = s->pc + offset + 4;
+//  s->snpc += 4; // skip the delay slot
 
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_r(s, id_src2, s->isa.instr.i.rt, true);
@@ -88,6 +88,17 @@ static inline def_DHelper(cmov) {
   decode_op_r(s, id_dest, s->isa.instr.r.rd, true);
 }
 
+static inline def_DHelper(jal) {
+  decode_J(s);
+  id_src2->imm = s->pc + 8;
+}
+
+static inline def_DHelper(jalr) {
+  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
+  decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
+  id_src2->imm = s->pc + 8;
+}
+
 static inline def_DHelper(cp0) {
 //  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
@@ -101,7 +112,7 @@ def_THelper(special) {
 #ifndef __ICS_EXPORT
     IDTAB(000, shift, slli)                       IDTAB(002, shift, srli)IDTAB(003, shift, srai)
     IDTAB(004, R, sll)                            IDTAB(006, R, srl)     IDTAB(007, R, sra)
-    IDTAB(010, R, jr)      IDTAB(011, R, jalr)    IDTAB(012, cmov, movz) IDTAB(013, cmov, movn)
+    IDTAB(010, R, jr)      IDTAB(011, jalr, jalr) IDTAB(012, cmov, movz) IDTAB(013, cmov, movn)
     TAB  (014, syscall)
     IDTAB(020, R, mfhi)    IDTAB(021, R, mthi)    IDTAB(022, R, mflo)    IDTAB(023, R, mtlo)
 
@@ -157,7 +168,7 @@ def_THelper(main) {
     IDTAB(053, st, sw)
     TAB  (074, nemu_trap)
 #else
-    TAB  (000, special)    TAB  (001, regimm)     IDTAB(002, J, j)       IDTAB(003, J, jal)
+    TAB  (000, special)    TAB  (001, regimm)     IDTAB(002, J, j)       IDTAB(003, jal, jal)
     IDTAB(004, B, beq)     IDTAB(005, B, bne)     IDTAB(006, B, blez)    IDTAB(007, B, bgtz)
                            IDTAB(011, I, addi)    IDTAB(012, I, slti)    IDTAB(013, I, sltui)
     IDTAB(014, IU, andi)   IDTAB(015, IU, ori)    IDTAB(016, IU, xori)   IDTAB(017, IU, lui)
@@ -185,21 +196,18 @@ int isa_fetch_decode(DecodeExecState *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = table_main(s);
 
-  // branch prediction
+  // record next decode cache entry for static target
   vaddr_t pnpc = s->snpc;
-#if 0
   switch (idx) {
-    case EXEC_ID_jal: pnpc = id_src1->imm; break;
+    case EXEC_ID_j:
+    case EXEC_ID_jal: pnpc = id_dest->imm; break;
     case EXEC_ID_beq:
     case EXEC_ID_bne:
-    case EXEC_ID_blt:
-    case EXEC_ID_bge:
-    case EXEC_ID_bltu:
-    case EXEC_ID_bgeu: pnpc = id_dest->imm; break;
-    case EXEC_ID_jalr: // static prediction for jalr
-      pnpc = *dsrc1 + id_src2->simm; break;
+    case EXEC_ID_blez:
+    case EXEC_ID_bltz:
+    case EXEC_ID_bgez:
+    case EXEC_ID_bgtz: pnpc = id_dest->imm; break;
   }
-#endif
   s->next = dccache_fetch(pnpc);
 
   IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
