@@ -1,16 +1,16 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
-#include <device/map.h>
 #include <stdlib.h>
 #include <time.h>
+
+word_t mmio_read(paddr_t addr, int len);
+void mmio_write(paddr_t addr, word_t data, int len);
 
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 
 void* guest_to_host(paddr_t addr) { return &pmem[addr - CONFIG_MBASE]; }
 paddr_t host_to_guest(void *addr) { return CONFIG_MBASE + (addr - (void *)pmem); }
-
-IOMap* fetch_mmio_map(paddr_t addr);
 
 void init_mem() {
 #ifdef CONFIG_MEM_RANDOM
@@ -53,14 +53,14 @@ static inline void pmem_write(uint32_t idx, word_t data, int len) {
 
 inline word_t paddr_read(paddr_t addr, int len) {
   uint32_t idx = addr - CONFIG_MBASE;
-  if (in_pmem(idx)) return pmem_read(idx, len);
-  else return map_read(addr, len, fetch_mmio_map(addr));
+  if (likely(in_pmem(idx))) return pmem_read(idx, len);
+  else return mmio_read(addr, len);
 }
 
 inline void paddr_write(paddr_t addr, word_t data, int len) {
   uint32_t idx = addr - CONFIG_MBASE;
-  if (in_pmem(idx)) pmem_write(idx, data, len);
-  else map_write(addr, data, len, fetch_mmio_map(addr));
+  if (likely(in_pmem(idx))) pmem_write(idx, data, len);
+  else mmio_write(addr, data, len);
 }
 
 word_t vaddr_mmu_read(vaddr_t addr, int len, int type);
