@@ -107,6 +107,7 @@ static uint32_t execute(uint32_t n) {
     Operand ldest = { .preg = id_dest->preg };
     Operand lsrc1 = { .preg = id_src1->preg };
     Operand lsrc2 = { .preg = id_src2->preg };
+    __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
     goto *(s->EHelper);
 
@@ -116,6 +117,12 @@ static uint32_t execute(uint32_t n) {
 #define id_dest (&ldest)
 #define id_src1 (&lsrc1)
 #define id_src2 (&lsrc2)
+#undef s0
+#undef s1
+#undef s2
+#define s0 &ls0
+#define s1 &ls1
+#define s2 &ls2
 
 #include "isa-exec.h"
     def_finish();
