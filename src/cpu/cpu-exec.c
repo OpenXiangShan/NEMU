@@ -38,6 +38,12 @@ static uint32_t execute(uint32_t n) {
   static uint64_t dc_miss = 0;
 #endif
 
+  static int align_flag = 0;
+  if (align_flag == 0) {
+    asm volatile (".fill 8,1,0x90");
+    align_flag = 1;
+  }
+
   DecodeExecState *s = &dccache[0];
   vaddr_t lpc = cpu.pc; // local pc
   while (true) {
