@@ -15,13 +15,9 @@ typedef struct {
 
 extern NEMUState nemu_state;
 
-// ----------- statistic -----------
-
-extern uint64_t g_timer;
-extern uint64_t g_nr_guest_instr;
+// ----------- timer -----------
 
 uint64_t get_time();
-void monitor_statistic();
 
 // ----------- log -----------
 

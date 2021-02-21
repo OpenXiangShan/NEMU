@@ -3,6 +3,7 @@
 #include <cpu/difftest.h>
 #include <cpu/dccache.h>
 #include <isa-all-instr.h>
+#include <locale.h>
 #include <setjmp.h>
 
 //#define PERF 1
@@ -16,6 +17,8 @@
 #define BATCH_SIZE 65536
 
 CPU_state cpu = {};
+uint64_t g_nr_guest_instr = 0;
+static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
@@ -36,11 +39,20 @@ static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
 static uint32_t n_remain;
 
-void update_instr_cnt() {
+static void update_instr_cnt() {
   uint32_t n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
   IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+}
+
+void monitor_statistic() {
+  update_instr_cnt();
+  setlocale(LC_NUMERIC, "");
+  Log("total guest instructions = %'ld", g_nr_guest_instr);
+  Log("host time spent = %'ld us", g_timer);
+  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
 #ifdef CONFIG_PERF_OPT
@@ -86,7 +98,7 @@ static uint32_t execute(uint32_t n) {
   DecodeExecState *s = dccache_fetch(lpc);
 
   if (align_flag == 0) {
-    asm volatile (".fill 0,1,0x90");
+    asm volatile (".fill 16,1,0x90");
     align_flag = 1;
   }
 
@@ -97,7 +109,7 @@ static uint32_t execute(uint32_t n) {
       if (unlikely(s->pc != lpc)) {
         // if it is a miss in decode cache, fetch and decode the correct instruction
         s = dccache_fetch(lpc);
-        cpu.pc = lpc;
+        save_globals(lpc, n);
         int idx = fetch_decode(s, lpc);
         s->EHelper = exec_table[idx];
         IFDEF(PERF, dc_miss ++);

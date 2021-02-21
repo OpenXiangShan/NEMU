@@ -1,5 +1,4 @@
-#include <common.h>
-#include <stdarg.h>
+#include <utils.h>
 
 // control when the log is printed, unit: number of instructions
 #define LOG_START (0)
