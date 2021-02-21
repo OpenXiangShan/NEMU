@@ -7,6 +7,8 @@ IFDEF(CONFIG_TIMER_CLOCK_GETTIME,
 IFDEF(CONFIG_TIMER_CLOCK_GETTIME,
     static_assert(sizeof(clock_t) == 8, "sizeof(clock_t) != 8"));
 
+void update_instr_cnt();
+
 uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_instr = 0;
 
@@ -24,6 +26,7 @@ uint64_t get_time() {
 }
 
 void monitor_statistic() {
+  update_instr_cnt();
   setlocale(LC_NUMERIC, "");
   Log("total guest instructions = %'ld", g_nr_guest_instr);
   Log("host time spent = %'ld us", g_timer);

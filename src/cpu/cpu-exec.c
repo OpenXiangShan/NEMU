@@ -33,7 +33,15 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 #endif
 
 static jmp_buf jbuf_exec = {};
+static uint64_t n_remain_total;
 static uint32_t n_remain;
+
+void update_instr_cnt() {
+  uint32_t n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+  uint32_t n_executed = n_batch - n_remain;
+  n_remain_total -= n_executed;
+  IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+}
 
 #ifdef CONFIG_PERF_OPT
 void save_globals(vaddr_t pc, uint32_t n) {
@@ -72,13 +80,16 @@ static uint32_t execute(uint32_t n) {
   };
   IFDEF(PERF, static uint64_t instr, sentinel_miss, dc_miss);
   static int align_flag = 0;
+
+  n ++; // fix here, since we will exit the loop when n == 1
+  vaddr_t lpc = cpu.pc; // local pc
+  DecodeExecState *s = dccache_fetch(lpc);
+
   if (align_flag == 0) {
-    asm volatile (".fill 52,1,0x90");
+    asm volatile (".fill 0,1,0x90");
     align_flag = 1;
   }
 
-  vaddr_t lpc = cpu.pc; // local pc
-  DecodeExecState *s = dccache_fetch(lpc);
   while (true) {
     if (unlikely(s->pc != lpc)) {
       // if `s` is pointing to the sentinel, fetch the correct decode cache entry
@@ -157,8 +168,8 @@ static uint32_t execute(uint32_t n) {
 #endif
 
 /* Simulate how the CPU works. */
-void cpu_exec(uint64_t nn) {
-  g_print_step = (nn < MAX_INSTR_TO_PRINT);
+void cpu_exec(uint64_t n) {
+  g_print_step = (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
@@ -168,21 +179,16 @@ void cpu_exec(uint64_t nn) {
 
   uint64_t timer_start = get_time();
 
-  static uint64_t n; n = nn; // deal with setjmp()
+  n_remain_total = n; // deal with setjmp()
   int ret;
   if ((ret = setjmp(jbuf_exec))) {
-    uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
-    uint32_t n_executed = n_batch - n_remain;
-    n -= n_executed;
-    IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+    update_instr_cnt();
   }
 
-  while (nemu_state.state == NEMU_RUNNING && n > 0) {
+  while (nemu_state.state == NEMU_RUNNING && n_remain_total > 0) {
     uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
     n_remain = execute(n_batch);
-    uint32_t n_executed = n_batch - n_remain;
-    n -= n_executed;
-    IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+    update_instr_cnt();
 
 #ifdef CONFIG_DEVICE
     extern void device_update();
