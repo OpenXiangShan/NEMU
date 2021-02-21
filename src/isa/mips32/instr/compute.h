@@ -1,5 +1,5 @@
 def_EHelper(lui) {
-  rtl_li(s, ddest, id_src2->imm << 16);
+  rtl_li(s, ddest, id_src2->imm);
 }
 
 def_EHelper(add) {

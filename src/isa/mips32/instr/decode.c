@@ -46,6 +46,13 @@ static inline def_DHelper(st) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
 }
 
+static inline def_DHelper(lui) {
+  decode_op_i(s, id_src2, s->isa.instr.iu.imm << 16, true);
+  decode_op_r(s, id_dest, s->isa.instr.iu.rt, false);
+
+  print_Dop(id_src2->str, OP_STR_SIZE, "0x%x", s->isa.instr.iu.imm);
+}
+
 #ifndef __ICS_EXPORT
 static inline def_DHelper(I) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
@@ -171,7 +178,7 @@ def_THelper(main) {
     TAB  (000, special)    TAB  (001, regimm)     IDTAB(002, J, j)       IDTAB(003, jal, jal)
     IDTAB(004, B, beq)     IDTAB(005, B, bne)     IDTAB(006, B, blez)    IDTAB(007, B, bgtz)
                            IDTAB(011, I, addi)    IDTAB(012, I, slti)    IDTAB(013, I, sltui)
-    IDTAB(014, IU, andi)   IDTAB(015, IU, ori)    IDTAB(016, IU, xori)   IDTAB(017, IU, lui)
+    IDTAB(014, IU, andi)   IDTAB(015, IU, ori)    IDTAB(016, IU, xori)   IDTAB(017, lui, lui)
     TAB  (020, cop0)
 
 
