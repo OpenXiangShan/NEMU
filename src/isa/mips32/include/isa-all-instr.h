@@ -6,7 +6,8 @@
 #define INSTR_UNARY(f) \
   f(j) f(jal) f(mfhi) f(mflo) f(mthi) f(mtlo)
 #define INSTR_BINARY(f) \
-  f(jr) f(jalr) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) f(swl) f(swr) f(lwl) f(lwr)
+  f(jr) f(jalr) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) f(swl) f(swr) f(lwl) f(lwr) \
+  f(clz)
 #define INSTR_TERNARY(f) \
   f(lui) f(add) f(sub) f(slt) f(sltu) f(and) f(or) f(xor) f(nor) f(sll) f(srl) f(sra) \
   f(addi) f(slti) f(sltui) f(andi) f(ori) f(xori) f(slli) f(srli) f(srai) f(movz) f(movn) \

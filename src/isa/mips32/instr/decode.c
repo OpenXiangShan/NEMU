@@ -137,6 +137,7 @@ def_THelper(special) {
 def_THelper(special2) {
   switch (s->isa.instr.r.func) {
     IDTAB(2, R, mul)
+    IDTAB(040, R, clz)
   }
   return EXEC_ID_inv;
 }

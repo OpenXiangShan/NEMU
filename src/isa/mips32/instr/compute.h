@@ -90,3 +90,19 @@ def_EHelper(movz) {
 def_EHelper(movn) {
   rtl_mux(s, ddest, dsrc2, dsrc1, ddest);
 }
+
+def_EHelper(clz) {
+#ifndef CONFIG_ENGINE_INTERPRETER
+  panic("not support in engines other than interpreter");
+#endif
+
+  int bit = 32;
+  int i;
+  for (i = 31; i >= 0; i ++) {
+    if (*dsrc1 & (1u << i)) {
+      bit = 31 - i;
+      break;
+    }
+  }
+  *ddest = bit;
+}
