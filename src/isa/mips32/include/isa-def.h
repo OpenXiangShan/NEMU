@@ -3,10 +3,6 @@
 
 #include <common.h>
 
-// memory
-#define mips32_IMAGE_START 0x100000
-#define mips32_PMEM_BASE 0x80000000
-
 // reg
 typedef struct {
   struct {
@@ -85,10 +81,8 @@ typedef struct {
 
 #ifdef __ICS_EXPORT
 #define isa_vaddr_check(vaddr, type, len) (MEM_RET_OK)
-#define mips32_has_mem_exception() (false)
 #else
 #define isa_vaddr_check(vaddr, type, len) ((vaddr & 0x80000000u) == 0 ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
-#define mips32_has_mem_exception() (cpu.mem_exception != 0)
 #endif
 
 #endif

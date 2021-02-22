@@ -3,12 +3,6 @@
 
 #include <common.h>
 
-// memory
-#define riscv32_IMAGE_START 0x100000
-#define riscv32_PMEM_BASE 0x80000000
-
-// reg
-
 typedef struct {
   struct {
     rtlreg_t _32;
@@ -116,6 +110,5 @@ typedef struct {
 #else
 #define isa_vaddr_check(vaddr, type, len) (cpu.satp.mode ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
 #endif
-#define riscv32_has_mem_exception() (false)
 
 #endif

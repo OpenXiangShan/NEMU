@@ -31,8 +31,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len);
 int isa_vaddr_check(vaddr_t vaddr, int type, int len);
 #endif
 
-// exception and interrupt
-#define isa_has_mem_exception concat(__ISA__, _has_mem_exception)
+// interrupt
 void isa_query_intr();
 
 // difftest

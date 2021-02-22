@@ -102,12 +102,7 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 // memory
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
-#ifdef __ICS_EXPORT
   *dest = vaddr_read(*addr + offset, len);
-#else
-  word_t val = vaddr_read(*addr + offset, len);
-  if (!isa_has_mem_exception()) *dest = val;
-#endif
 }
 
 static inline def_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* src1, int len) {
@@ -116,9 +111,6 @@ static inline def_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* s
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
   word_t val = vaddr_read(*addr + offset, len);
-#ifndef __ICS_EXPORT
-  if (isa_has_mem_exception()) return;
-#endif
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
