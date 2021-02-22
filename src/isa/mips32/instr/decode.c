@@ -43,7 +43,7 @@ static inline def_DHelper(st) {
 }
 
 static inline def_DHelper(lui) {
-  decode_op_i(s, id_src2, s->isa.instr.iu.imm << 16, true);
+  decode_op_i(s, id_src1, s->isa.instr.iu.imm << 16, true);
   decode_op_r(s, id_dest, s->isa.instr.iu.rt, false);
 }
 
