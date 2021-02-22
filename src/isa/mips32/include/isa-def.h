@@ -40,8 +40,6 @@ typedef struct {
   uint32_t entrylo0, entrylo1;
   uint32_t index;
 
-  int mem_exception;
-
   bool INTR;
 #endif
 } mips32_CPU_state;
