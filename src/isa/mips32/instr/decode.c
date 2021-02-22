@@ -19,7 +19,6 @@ static inline def_DopHelper(r) {
   bool load_val = flag;
   static word_t zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
-  IFDEF(CONFIG_DEBUG, op->reg = val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
@@ -33,16 +32,14 @@ static inline def_DHelper(ld) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
 static inline def_DHelper(st) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, true);
-
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
 static inline def_DHelper(lui) {

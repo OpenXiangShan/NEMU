@@ -18,7 +18,6 @@ static inline def_DopHelper(r) {
   bool load_val = flag;
   static word_t zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
-  IFDEF(CONFIG_DEBUG, op->reg = val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
@@ -76,7 +75,7 @@ static inline def_DHelper(csr) {
 #endif
 
 def_THelper(load) {
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   switch (s->isa.instr.i.funct3) {
     TAB(0, lb)  TAB(1, lh)  TAB(2, lw)
     TAB(4, lbu) TAB(5, lhu)
@@ -85,7 +84,7 @@ def_THelper(load) {
 }
 
 def_THelper(store) {
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   switch (s->isa.instr.i.funct3) {
     TAB(0, sb)  TAB(1, sh)  TAB(2, sw)
   }
