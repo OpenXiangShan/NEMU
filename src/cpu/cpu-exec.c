@@ -98,7 +98,7 @@ static uint32_t execute(uint32_t n) {
   DecodeExecState *s = dccache_fetch(lpc);
 
   if (align_flag == 0) {
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 16,1,0x90"));
+    IFDEF(__ISA_riscv32__, asm volatile (".fill 0,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
     align_flag = 1;
   }

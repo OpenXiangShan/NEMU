@@ -149,7 +149,8 @@ def_THelper(jal_dispatch) {
 
 def_THelper(jalr_dispatch) {
   if (s->isa.instr.i.rd != 0) return table_jalr(s);
-  return table_jr(s);
+  else if (id_src2->imm == 0) return table_jr(s);
+  return table_jr_imm(s);
 }
 
 def_THelper(main) {
