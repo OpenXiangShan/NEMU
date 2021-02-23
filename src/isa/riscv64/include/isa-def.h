@@ -3,16 +3,6 @@
 
 #include <common.h>
 
-// memory
-#ifdef __ENGINE_rv64__
-#define riscv64_IMAGE_START 0x100000
-#else
-#define riscv64_IMAGE_START 0x100000
-#endif
-#define riscv64_PMEM_BASE 0x80000000
-
-// reg
-
 typedef struct {
   union {
     uint64_t _64;
@@ -110,7 +100,5 @@ typedef struct {
     uint32_t val;
   } instr;
 } riscv64_ISADecodeInfo;
-
-#define riscv64_has_mem_exception() (cpu.mem_exception != 0)
 
 #endif
