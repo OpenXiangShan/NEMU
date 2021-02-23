@@ -72,7 +72,7 @@ static int __attribute((noinline)) fetch_decode(DecodeExecState *s, vaddr_t pc) 
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
   IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
-        s->pc, log_bytebuf, 50 - (12 + 3 * (s->snpc - s->pc)), "", log_asmbuf));
+        s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf));
   return idx;
 }
 
@@ -128,6 +128,7 @@ static uint32_t execute(uint32_t n) {
     if (--n == 0) break;
 
     IFDEF(CONFIG_DEBUG, DecodeExecState *this_s = s);
+    IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, DecodeExecState *this_s = s));
     Operand ldest = { .preg = id_dest->preg };
     Operand lsrc1 = { .preg = id_src1->preg };
     Operand lsrc2 = { .preg = id_src2->preg };
@@ -151,7 +152,7 @@ static uint32_t execute(uint32_t n) {
 #include "isa-exec.h"
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
-    IFDEF(CONFIG_DIFFTEST, cpu.pc = lpc);
+    IFDEF(CONFIG_DIFFTEST, save_globals(lpc, n));
     IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, lpc));
   }
   cpu.pc = lpc;
