@@ -43,6 +43,7 @@ void isa_reg_display() {
       mideleg->val, medeleg->val);
   printf("mtval: " FMT_WORD " stval: " FMT_WORD "mtvec: " FMT_WORD " stvec: " FMT_WORD "\n", 
       mtval->val, stval->val, mtvec->val, stvec->val);
+  fflush(stdout);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {
