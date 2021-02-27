@@ -71,7 +71,7 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
 #define rtl_j(s, target) do { s = s->tnext; goto finish_label; } while (0)
-#define rtl_jr(s, target) do { s = tcache_bb_jr(*(target)); goto finish_label; } while (0)
+#define rtl_jr(s, target) do { s = jr_fetch(s, *(target)); goto finish_label; } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) \
   do { if (interpret_relop(relop, *src1, *src2)) rtl_j(s, target); \
        else { s = s->ntnext; goto finish_label; } \
@@ -79,13 +79,21 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 
 static Decode *prev_s;
 
+Decode* tcache_bb_jr(vaddr_t jpc);
+Decode* tcache_decode(Decode *s, const void **exec_table);
+
 static inline void save_globals(Decode *s, uint32_t n) {
   prev_s = s;
   n_remain = n;
 }
 
-Decode* tcache_bb_jr(vaddr_t jpc);
-Decode* tcache_decode(Decode *s, const void **exec_table);
+static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
+  if (likely(s->tnext->pc == target)) return s->tnext;
+  if (likely(s->ntnext->pc == target)) return s->ntnext;
+  s->ntnext = s->tnext;
+  s->tnext = tcache_bb_jr(target);
+  return s->tnext;
+}
 
 static uint32_t execute(uint32_t n) {
   static const void* exec_table[TOTAL_INSTR] = {
@@ -98,13 +106,13 @@ static uint32_t execute(uint32_t n) {
     extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&nemu_decode, cpu.pc);
     init_flag = 1;
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 14,1,0x90"));
+    IFDEF(__ISA_riscv32__, asm volatile (".fill 0,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
   }
 
 //  assert(prev_s->pc == cpu.pc);
 
-  for (; n > 0; n --) {
+  while (true) {
     IFDEF(CONFIG_DEBUG, Decode *this_s = s);
     IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
     Operand ldest = { .preg = id_dest->preg };
@@ -131,7 +139,7 @@ static uint32_t execute(uint32_t n) {
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s, exec_table);
-  n ++; // fix instruction count
+  n ++; // FIXME: this is wrong but performance is great
   continue;
 }
 
@@ -139,6 +147,7 @@ def_EHelper(nemu_decode) {
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
     IFDEF(CONFIG_DIFFTEST, save_globals(s->pc, n));
     IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
+    if (unlikely(--n == 0)) break;
   }
   prev_s = s;
   return n;

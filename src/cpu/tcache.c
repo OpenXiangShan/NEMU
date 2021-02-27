@@ -118,6 +118,8 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     } else if (s->type == INSTR_TYPE_B) {
       tcache_bb_fetch(&s->ntnext, s->snpc);
       tcache_bb_fetch(&s->tnext, s->jnpc);
+    } else if (s->type == INSTR_TYPE_I) {
+      s->tnext = s->ntnext = s; // update dynamically
     }
     tcache_state = TCACHE_RUNNING;
   }
