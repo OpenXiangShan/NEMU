@@ -1,12 +1,10 @@
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
-#include <cpu/dccache.h>
+#include <cpu/decode.h>
 #include <isa-all-instr.h>
 #include <locale.h>
 #include <setjmp.h>
-
-//#define PERF 1
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -55,18 +53,11 @@ void monitor_statistic() {
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
-#ifdef CONFIG_PERF_OPT
-void save_globals(vaddr_t pc, uint32_t n) {
-  cpu.pc = pc;
-  n_remain = n;
-}
-#endif
-
 void longjmp_exec(int cause) {
   longjmp(jbuf_exec, cause);
 }
 
-static int __attribute((noinline)) fetch_decode(DecodeExecState *s, vaddr_t pc) {
+int fetch_decode(DecodeExecState *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
@@ -79,54 +70,40 @@ static int __attribute((noinline)) fetch_decode(DecodeExecState *s, vaddr_t pc) 
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
-#define update_lpc(npc) (lpc = (npc)) // local pc
-
-#define rtl_j(s, target) do { update_lpc(target); s = s->next; goto finish_label; } while (0)
-#define rtl_jr(s, target) do { update_lpc(*(target)); s = dccache_fetch(*(target)); goto finish_label; } while (0)
+#define rtl_j(s, target) do { s = s->tnext; goto finish_label; } while (0)
+#define rtl_jr(s, target) do { s = tcache_bb_jr(*(target)); goto finish_label; } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) \
-  do { if (interpret_relop(relop, *src1, *src2)) rtl_j(s, target); } while (0)
+  do { if (interpret_relop(relop, *src1, *src2)) rtl_j(s, target); \
+       else { s = s->ntnext; goto finish_label; } \
+  } while (0)
+
+void save_globals(vaddr_t pc, uint32_t n) {
+  cpu.pc = pc;
+  n_remain = n;
+}
+
+DecodeExecState* tcache_bb_jr(vaddr_t jpc);
+DecodeExecState* tcache_decode(DecodeExecState *s, const void **exec_table);
 
 static uint32_t execute(uint32_t n) {
   static const void* exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
-  IFDEF(PERF, static uint64_t instr, sentinel_miss, dc_miss);
-  static int align_flag = 0;
+  static int init_flag = 0;
+  static DecodeExecState *prev_s;
+  DecodeExecState *s = prev_s;
 
-  n ++; // fix here, since we will exit the loop when n == 1
-  vaddr_t lpc = cpu.pc; // local pc
-  DecodeExecState *s = dccache_fetch(lpc);
-
-  if (align_flag == 0) {
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 0,1,0x90"));
+  if (likely(init_flag == 0)) {
+    extern DecodeExecState* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
+    s = tcache_init(&&nemu_decode, cpu.pc);
+    init_flag = 1;
+    IFDEF(__ISA_riscv32__, asm volatile (".fill 1,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
-    align_flag = 1;
   }
 
-  while (true) {
-    if (unlikely(s->pc != lpc)) {
-      // if `s` is pointing to the sentinel, fetch the correct decode cache entry
-      s = dccache_fetch(0);
-      if (unlikely(s->pc != lpc)) {
-        // if it is a miss in decode cache, fetch and decode the correct instruction
-        s = dccache_fetch(lpc);
-        save_globals(lpc, n);
-        int idx = fetch_decode(s, lpc);
-        s->EHelper = exec_table[idx];
-        IFDEF(PERF, dc_miss ++);
-      } else {
-        IFDEF(PERF, sentinel_miss ++);
-      }
-    }
+//  assert(prev_s->pc == cpu.pc);
 
-#ifdef PERF
-    instr ++;
-    if (instr % (65536 * 1024) == 0)
-      Log("instr = %ld, sentinel_miss = %ld, dc_miss = %ld", instr, sentinel_miss, dc_miss);
-#endif
-
-    if (--n == 0) break;
-
+  for (; n > 0; n --) {
     IFDEF(CONFIG_DEBUG, DecodeExecState *this_s = s);
     IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, DecodeExecState *this_s = s));
     Operand ldest = { .preg = id_dest->preg };
@@ -150,12 +127,20 @@ static uint32_t execute(uint32_t n) {
 #define s2 &ls2
 
 #include "isa-exec.h"
+
+def_EHelper(nemu_decode) {
+  s = tcache_decode(s, exec_table);
+  n ++; // fix instruction count
+  continue;
+}
+
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
-    IFDEF(CONFIG_DIFFTEST, save_globals(lpc, n));
-    IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, lpc));
+    IFDEF(CONFIG_DIFFTEST, save_globals(s->pc, n));
+    IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
   }
-  cpu.pc = lpc;
+  prev_s = s;
+  cpu.pc = s->pc;
   return n;
 }
 #else

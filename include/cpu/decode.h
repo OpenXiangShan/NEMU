@@ -19,17 +19,26 @@ typedef struct {
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 
+enum {
+  INSTR_TYPE_N, // normal
+  INSTR_TYPE_J, // jump
+  INSTR_TYPE_B, // branch
+  INSTR_TYPE_I, // indirect
+};
+
 typedef union DecodeExecState {
   struct {
-    union DecodeExecState *next;
+    union DecodeExecState *tnext;  // next pointer for taken branch and jump
+    union DecodeExecState *ntnext; // next pointer for non-taken branch
     vaddr_t pc;
     vaddr_t snpc; // sequential next pc
     const void *EHelper;
     Operand dest, src1, src2;
+    vaddr_t jnpc;
+    uint8_t type;
     ISADecodeInfo isa;
     IFDEF(CONFIG_DEBUG, char logbuf[80]);
   };
-  uint8_t pad[64];
 } DecodeExecState;
 
 #define id_src1 (&s->src1)

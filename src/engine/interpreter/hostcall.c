@@ -1,5 +1,5 @@
 #include <utils.h>
-#include <cpu/exec.h>
+#include <cpu/ifetch.h>
 #include <rtl/rtl.h>
 #include <cpu/difftest.h>
 

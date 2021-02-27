@@ -2,13 +2,12 @@
 #define __CPU_EXEC_H__
 
 #include <cpu/decode.h>
-#include <memory/vaddr.h>
 
 #ifdef CONFIG_PERF_OPT
 #define finish_label exec_finish
 #define def_label(l) l:
 #define def_EHelper(name) \
-  lpc += 4; s ++; \
+  s ++; \
   goto finish_label; /* this is for the previous def_EHelper() */ \
   def_label(name)
 #define def_finish() def_label(finish_label)
@@ -27,21 +26,4 @@
 #define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); ex(s); break;
 #endif
 
-static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
-  uint32_t instr = vaddr_ifetch(*pc, len);
-#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
-  extern void add_instr(uint8_t *instr, int len);
-  add_instr((void *)&instr, len);
-#endif
-#ifdef CONFIG_DEBUG
-  uint8_t *p_instr = (void *)&instr;
-  int i;
-  for (i = 0; i < len; i ++) {
-    int l = strlen(log_bytebuf);
-    snprintf(log_bytebuf + l, sizeof(log_bytebuf) - l, "%02x ", p_instr[i]);
-  }
-#endif
-  (*pc) += len;
-  return instr;
-}
 #endif

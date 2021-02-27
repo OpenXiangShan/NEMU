@@ -1,6 +1,6 @@
 #include "../local-include/rtl.h"
-#include <cpu/exec.h>
-#include <cpu/dccache.h>
+#include <cpu/ifetch.h>
+#include <cpu/decode.h>
 #include <isa-all-instr.h>
 
 def_all_THelper();
@@ -172,19 +172,20 @@ int isa_fetch_decode(DecodeExecState *s) {
     idx = table_main(s);
   }
 
-  // record next decode cache entry for static target
-  vaddr_t pnpc = s->snpc;
+  s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_j:
-    case EXEC_ID_jal: pnpc = id_src1->imm; break;
+    case EXEC_ID_jal: s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
     case EXEC_ID_beq:
     case EXEC_ID_bne:
     case EXEC_ID_blt:
     case EXEC_ID_bge:
     case EXEC_ID_bltu:
-    case EXEC_ID_bgeu: pnpc = id_dest->imm; break;
+    case EXEC_ID_bgeu: s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+    case EXEC_ID_jr:
+    case EXEC_ID_jr_imm:
+    case EXEC_ID_jalr: s->type = INSTR_TYPE_I;
   }
-  s->next = dccache_fetch(pnpc);
 
   return idx;
 }
