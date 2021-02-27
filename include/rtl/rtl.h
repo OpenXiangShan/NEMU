@@ -15,7 +15,7 @@ extern rtlreg_t tmp_reg[4];
 #define t0    (&tmp_reg[3])
 #define rz (&rzero)
 
-#define def_rtl(name, ...) void concat(rtl_, name)(DecodeExecState *s, __VA_ARGS__)
+#define def_rtl(name, ...) void concat(rtl_, name)(Decode *s, __VA_ARGS__)
 
 // relation operation
 enum {

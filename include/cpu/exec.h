@@ -12,7 +12,7 @@
   def_label(name)
 #define def_finish() def_label(finish_label)
 #else
-#define def_EHelper(name) static inline void concat(exec_, name) (DecodeExecState *s)
+#define def_EHelper(name) static inline void concat(exec_, name) (Decode *s)
 #endif
 
 #if 0

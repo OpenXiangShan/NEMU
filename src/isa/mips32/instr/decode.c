@@ -8,7 +8,7 @@ def_all_THelper();
 
 // decode operand helper
 #define def_DopHelper(name) \
-  void concat(decode_op_, name) (DecodeExecState *s, Operand *op, uint32_t val, bool flag)
+  void concat(decode_op_, name) (Decode *s, Operand *op, uint32_t val, bool flag)
 
 static inline def_DopHelper(i) {
   op->imm = val;
@@ -187,7 +187,7 @@ def_THelper(main) {
   return table_inv(s);
 }
 
-int isa_fetch_decode(DecodeExecState *s) {
+int isa_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = table_main(s);
 

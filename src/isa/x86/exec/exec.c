@@ -5,7 +5,7 @@
 #undef CASE_ENTRY
 #define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); return_on_mem_ex(); ex(s); break;
 
-static inline void set_width(DecodeExecState *s, int width) {
+static inline void set_width(Decode *s, int width) {
   if (width == -1) return;
   if (width == 0) {
     width = s->isa.is_operand_size_16 ? 2 : 4;
@@ -167,7 +167,7 @@ static inline def_EHelper(2byte_esc) {
   }
 }
 
-static inline void fetch_decode_exec(DecodeExecState *s) {
+static inline void fetch_decode_exec(Decode *s) {
   uint8_t opcode;
 again:
   opcode = instr_fetch(&s->seq_pc, 1);
@@ -315,7 +315,7 @@ vaddr_t isa_exec_once() {
   return 0;
 #endif
 #endif
-  DecodeExecState s;
+  Decode s;
   s.is_jmp = 0;
   s.isa = (ISADecodeInfo) { 0 };
   s.seq_pc = cpu.pc;

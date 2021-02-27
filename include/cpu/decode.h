@@ -26,20 +26,18 @@ enum {
   INSTR_TYPE_I, // indirect
 };
 
-typedef union DecodeExecState {
-  struct {
-    union DecodeExecState *tnext;  // next pointer for taken branch and jump
-    union DecodeExecState *ntnext; // next pointer for non-taken branch
-    vaddr_t pc;
-    vaddr_t snpc; // sequential next pc
-    const void *EHelper;
-    Operand dest, src1, src2;
-    vaddr_t jnpc;
-    uint8_t type;
-    ISADecodeInfo isa;
-    IFDEF(CONFIG_DEBUG, char logbuf[80]);
-  };
-} DecodeExecState;
+typedef struct Decode {
+  struct Decode *tnext;  // next pointer for taken branch and jump
+  struct Decode *ntnext; // next pointer for non-taken branch
+  vaddr_t pc;
+  vaddr_t snpc; // sequential next pc
+  const void *EHelper;
+  Operand dest, src1, src2;
+  vaddr_t jnpc;
+  uint8_t type;
+  ISADecodeInfo isa;
+  IFDEF(CONFIG_DEBUG, char logbuf[80]);
+} Decode;
 
 #define id_src1 (&s->src1)
 #define id_src2 (&s->src2)
@@ -57,7 +55,7 @@ typedef union DecodeExecState {
 
 
 #define def_THelper(name) \
-  static inline int concat(table_, name) (DecodeExecState *s)
+  static inline int concat(table_, name) (Decode *s)
 #define def_THelper_arity(name, arity) \
   def_THelper(name) { concat(print_asm_template, arity)(name); return concat(EXEC_ID_, name); }
 #define def_THelper_nullary(name) def_THelper_arity(name, 0)
@@ -72,7 +70,7 @@ typedef union DecodeExecState {
   MAP(INSTR_TERNARY, def_THelper_ternary)
 
 
-#define def_DHelper(name) void concat(decode_, name) (DecodeExecState *s)
+#define def_DHelper(name) void concat(decode_, name) (Decode *s)
 // empty decode helper
 static inline def_DHelper(empty) {}
 

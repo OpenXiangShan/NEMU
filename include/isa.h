@@ -19,8 +19,8 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
-union DecodeExecState;
-int isa_fetch_decode(union DecodeExecState *s);
+struct Decode;
+int isa_fetch_decode(struct Decode *s);
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
 
 // memory

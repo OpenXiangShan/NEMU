@@ -23,7 +23,7 @@ static inline def_EHelper(add) {
 }
 
 // dest <- sub result
-static inline void cmp_internal(DecodeExecState *s) {
+static inline void cmp_internal(Decode *s) {
   rtl_sub(s, s0, ddest, dsrc1);
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_is_sub_carry(s, s1, ddest, dsrc1);

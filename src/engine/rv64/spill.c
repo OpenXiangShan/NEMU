@@ -81,9 +81,9 @@ uint32_t spill_alloc(uint32_t spmidx, int load_val) {
   return tmpidx;
 }
 
-uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest);
+uint32_t rtlreg2varidx(Decode *s, const rtlreg_t* dest);
 
-static uint32_t rtlreg2rvidx_internal(DecodeExecState *s, const rtlreg_t *r, int load_val) {
+static uint32_t rtlreg2rvidx_internal(Decode *s, const rtlreg_t *r, int load_val) {
   uint32_t varidx = rtlreg2varidx(s, r);
   if (varidx & SPMIDX_MASK) {
     uint32_t tmpidx = spmidx2tmpidx(varidx);
@@ -94,15 +94,15 @@ static uint32_t rtlreg2rvidx_internal(DecodeExecState *s, const rtlreg_t *r, int
   return varidx;
 }
 
-uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t *src) {
+uint32_t src2rvidx(Decode *s, const rtlreg_t *src) {
   return rtlreg2rvidx_internal(s, src, true);
 }
 
-uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t *dest) {
+uint32_t dest2rvidx(Decode *s, const rtlreg_t *dest) {
   return rtlreg2rvidx_internal(s, dest, false);
 }
 
-uint32_t rtlreg2rvidx_pair(DecodeExecState *s,
+uint32_t rtlreg2rvidx_pair(Decode *s,
     const rtlreg_t *src1, int load_src1, const rtlreg_t *src2, int load_src2) {
   uint32_t src1_varidx = rtlreg2varidx(s, src1);
   uint32_t src2_varidx = rtlreg2varidx(s, src2);
@@ -158,14 +158,14 @@ void spill_set_dirty_rvidx(uint32_t rvidx) {
 // this will be called after every translation of an instruction
 // to flush RTL tmp registers, since their life-cycle is only
 // valid during the translation of a single instruction
-static void spill_flush_local_internal(DecodeExecState *s, const rtlreg_t *dest) {
+static void spill_flush_local_internal(Decode *s, const rtlreg_t *dest) {
   uint32_t varidx = rtlreg2varidx(s, dest);
   if (tmp_regs[0].spmidx == varidx && tmp_regs[0].dirty) spill_flush(0);
   if (tmp_regs[1].spmidx == varidx && tmp_regs[1].dirty) spill_flush(1);
 }
 void spill_flush_local() {
-  DecodeExecState state; // only used in rtlreg2varidx()
-  DecodeExecState *s = &state;
+  Decode state; // only used in rtlreg2varidx()
+  Decode *s = &state;
   spill_flush_local_internal(s, s0);
   spill_flush_local_internal(s, s1);
 }

@@ -7,7 +7,7 @@ def_all_THelper();
 
 // decode operand helper
 #define def_DopHelper(name) \
-  void concat(decode_op_, name) (DecodeExecState *s, Operand *op, uint64_t val, bool flag)
+  void concat(decode_op_, name) (Decode *s, Operand *op, uint64_t val, bool flag)
 
 static inline def_DopHelper(i) {
   op->imm = val;
@@ -92,7 +92,7 @@ static inline def_DHelper(csri) {
 #if 0
 // RVF RVD
 
-static inline void decode_fp_width(DecodeExecState *s) {
+static inline void decode_fp_width(Decode *s) {
   switch (s->isa.instr.fp.fmt)
   {
   case 0: // RVF
@@ -167,12 +167,12 @@ static inline uint32_t ror_imm(uint32_t imm, int len, int r) {
   return res;
 }
 
-static inline void decode_op_C_imm6(DecodeExecState *s, uint32_t imm6, bool sign, int shift, int rotate) {
+static inline void decode_op_C_imm6(Decode *s, uint32_t imm6, bool sign, int shift, int rotate) {
   uint64_t imm = (sign ? SEXT(imm6, 6) << shift : ror_imm(imm6, 6, rotate));
   decode_op_i(s, id_src2, imm, false);
 }
 
-static inline void decode_op_C_rd_rs1(DecodeExecState *s, bool creg) {
+static inline void decode_op_C_rd_rs1(Decode *s, bool creg) {
   uint32_t instr = s->isa.instr.val;
   uint32_t rd_rs1 = (creg ? creg2reg(BITS(instr, 9, 7)) : BITS(instr, 11, 7));
   decode_op_r(s, id_src1, rd_rs1, true);
@@ -180,7 +180,7 @@ static inline void decode_op_C_rd_rs1(DecodeExecState *s, bool creg) {
 }
 
 // creg = false for CI, true for CB_shift and CB_andi
-static inline void decode_op_rd_rs1_imm6(DecodeExecState *s, bool sign, int shift, int rotate, bool creg) {
+static inline void decode_op_rd_rs1_imm6(Decode *s, bool sign, int shift, int rotate, bool creg) {
   uint32_t instr = s->isa.instr.val;
   uint32_t imm6 = (BITS(instr, 12, 12) << 5) | BITS(instr, 6, 2);
   decode_op_C_imm6(s, imm6, sign, shift, rotate);
@@ -229,12 +229,12 @@ static inline def_DHelper(C_ADDI16SP) {
 }
 
 // SP-relative load/store
-static inline void decode_C_xxSP(DecodeExecState *s, uint32_t imm6, int rotate) {
+static inline void decode_C_xxSP(Decode *s, uint32_t imm6, int rotate) {
   decode_op_r(s, id_src1, 2, true);
   decode_op_C_imm6(s, imm6, false, 0, rotate);
 }
 
-static inline void decode_C_LxSP(DecodeExecState *s, int rotate, bool is_fp) {
+static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = (BITS(s->isa.instr.val, 12, 12) << 5) | BITS(s->isa.instr.val, 6, 2);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
@@ -266,7 +266,7 @@ static inline def_DHelper(C_FLDSP) {
 
 // ---------- CSS ---------- 
 
-static inline void decode_C_SxSP(DecodeExecState *s, int rotate, bool is_fp) {
+static inline void decode_C_SxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = BITS(s->isa.instr.val, 12, 7);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
@@ -311,7 +311,7 @@ static inline def_DHelper(C_ADDI4SPN) {
 // ---------- CL ---------- 
 
 // load/store
-static inline void decode_C_ldst_common(DecodeExecState *s, int rotate, bool is_store, bool is_fp) {
+static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bool is_fp) {
   uint32_t instr = s->isa.instr.val;
   decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
@@ -407,7 +407,7 @@ static inline def_DHelper(C_J) {
   decode_op_r(s, id_dest, 0, false);
 }
 
-static inline void decode_C_rs1_rs2_rd(DecodeExecState *s, bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
+static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
   decode_op_r(s, id_src1, (is_rs1_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), true);
   decode_op_r(s, id_src2, (is_rs2_zero ? 0 : BITS(s->isa.instr.val, 6, 2)), true);
   decode_op_r(s, id_dest, (is_rd_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), false);
@@ -665,7 +665,7 @@ def_THelper(rvc) {
   return table_inv(s);
 };
 
-int isa_fetch_decode(DecodeExecState *s) {
+int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
   if ((s->pc & 0xfff) == 0xffe) {

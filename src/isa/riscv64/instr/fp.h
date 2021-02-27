@@ -21,7 +21,7 @@
 
 // ------------- helper functions -------------
 
-static inline bool assert_ex_ii(DecodeExecState *s, bool cond){
+static inline bool assert_ex_ii(Decode *s, bool cond){
     if(!cond){
         rtl_trap(s, EX_II, cpu.pc);
         return false;
@@ -29,11 +29,11 @@ static inline bool assert_ex_ii(DecodeExecState *s, bool cond){
     return true;
 }
 
-static inline bool check_fs(DecodeExecState *s) {
+static inline bool check_fs(Decode *s) {
     return assert_ex_ii(s, mstatus->fs != 0);
 }
 
-static inline bool get_rm(DecodeExecState *s, int *rm) {
+static inline bool get_rm(Decode *s, int *rm) {
     if(s->isa.instr.fp.rm == 7){
         *rm = frm->val;
         return true;
@@ -114,7 +114,7 @@ static inline void sfpr(rtlreg_t *pdst, rtlreg_t *psrc, int width) {
     return;
 }
 
-static inline void writeFflags(DecodeExecState *s) {
+static inline void writeFflags(Decode *s) {
     if(softfloat_exceptionFlags){
         mstatus->sd = 1;
         mstatus->fs = 3;

@@ -57,7 +57,7 @@ void longjmp_exec(int cause) {
   longjmp(jbuf_exec, cause);
 }
 
-int fetch_decode(DecodeExecState *s, vaddr_t pc) {
+int fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
@@ -77,25 +77,25 @@ int fetch_decode(DecodeExecState *s, vaddr_t pc) {
        else { s = s->ntnext; goto finish_label; } \
   } while (0)
 
-static DecodeExecState *prev_s;
+static Decode *prev_s;
 
-static inline void save_globals(DecodeExecState *s, uint32_t n) {
+static inline void save_globals(Decode *s, uint32_t n) {
   prev_s = s;
   n_remain = n;
 }
 
-DecodeExecState* tcache_bb_jr(vaddr_t jpc);
-DecodeExecState* tcache_decode(DecodeExecState *s, const void **exec_table);
+Decode* tcache_bb_jr(vaddr_t jpc);
+Decode* tcache_decode(Decode *s, const void **exec_table);
 
 static uint32_t execute(uint32_t n) {
   static const void* exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
   static int init_flag = 0;
-  DecodeExecState *s = prev_s;
+  Decode *s = prev_s;
 
   if (likely(init_flag == 0)) {
-    extern DecodeExecState* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
+    extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&nemu_decode, cpu.pc);
     init_flag = 1;
     IFDEF(__ISA_riscv32__, asm volatile (".fill 14,1,0x90"));
@@ -105,8 +105,8 @@ static uint32_t execute(uint32_t n) {
 //  assert(prev_s->pc == cpu.pc);
 
   for (; n > 0; n --) {
-    IFDEF(CONFIG_DEBUG, DecodeExecState *this_s = s);
-    IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, DecodeExecState *this_s = s));
+    IFDEF(CONFIG_DEBUG, Decode *this_s = s);
+    IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
     Operand ldest = { .preg = id_dest->preg };
     Operand lsrc1 = { .preg = id_src1->preg };
     Operand lsrc2 = { .preg = id_src2->preg };
@@ -146,14 +146,14 @@ def_EHelper(nemu_decode) {
 #else
 #include "isa-exec.h"
 
-typedef void (*EHelper_t)(DecodeExecState *s);
+typedef void (*EHelper_t)(Decode *s);
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 
 static uint32_t execute(uint32_t n) {
   static const EHelper_t exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
-  DecodeExecState s;
+  Decode s;
   for (;n > 0; n --) {
     int idx = fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;

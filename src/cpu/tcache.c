@@ -2,15 +2,15 @@
 
 #define TCACHE_SIZE (1024 * 8)
 
-static DecodeExecState tcache_pool[TCACHE_SIZE] = {};
+static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static const void *nemu_decode_helper;
 
-static DecodeExecState* tcache_next() {
+static Decode* tcache_next() {
   return &tcache_pool[tc_idx];
 }
 
-static DecodeExecState* tcache_new(vaddr_t pc) {
+static Decode* tcache_new(vaddr_t pc) {
   assert(tc_idx < TCACHE_SIZE);
   tcache_pool[tc_idx].pc = pc;
   tcache_pool[tc_idx].EHelper = nemu_decode_helper;
@@ -20,8 +20,8 @@ static DecodeExecState* tcache_new(vaddr_t pc) {
 #define BB_INFO_SIZE 1024
 #define BB_INFO_BACKPATCH_SIZE 7
 static struct bbInfo {
-  DecodeExecState *s;
-  DecodeExecState **backpatch_list[BB_INFO_BACKPATCH_SIZE];
+  Decode *s;
+  Decode **backpatch_list[BB_INFO_BACKPATCH_SIZE];
   vaddr_t pc;
 } bb_info[BB_INFO_SIZE];
 
@@ -53,7 +53,7 @@ static struct bbInfo* tcache_bb_find(vaddr_t pc, bool is_fill) {
 
 // fetch the decode entry index by jpc, and fill it to
 // the last instruction decode entry in a basic block
-static DecodeExecState* tcache_bb_fetch(DecodeExecState **fill_addr, vaddr_t jpc) {
+static Decode* tcache_bb_fetch(Decode **fill_addr, vaddr_t jpc) {
   struct bbInfo* bb = tcache_bb_find(jpc, true);
   if (fill_addr) {
     if (bb->s->EHelper == nemu_decode_helper) {
@@ -71,7 +71,7 @@ static DecodeExecState* tcache_bb_fetch(DecodeExecState **fill_addr, vaddr_t jpc
   return bb->s;
 }
 
-static void tcache_bb_backpatch(DecodeExecState *s, vaddr_t bb_pc) {
+static void tcache_bb_backpatch(Decode *s, vaddr_t bb_pc) {
   struct bbInfo* bb = tcache_bb_find(bb_pc, false);
   Assert(bb != NULL, "bb_info is not allocated with basic block pc = " FMT_WORD, bb_pc);
   Assert(bb->s == NULL || bb->s->EHelper == nemu_decode_helper, "bb_info is already backpatched");
@@ -87,15 +87,15 @@ static void tcache_bb_backpatch(DecodeExecState *s, vaddr_t bb_pc) {
 
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
 static int tcache_state = TCACHE_BB_BUILDING;
-int fetch_decode(DecodeExecState *s, vaddr_t pc);
+int fetch_decode(Decode *s, vaddr_t pc);
 
-DecodeExecState* tcache_bb_jr(vaddr_t jpc) {
+Decode* tcache_bb_jr(vaddr_t jpc) {
   struct bbInfo* bb = tcache_bb_find(jpc, true);
   return bb->s;
 }
 
 __attribute__((noinline))
-DecodeExecState* tcache_decode(DecodeExecState *s, const void **exec_table) {
+Decode* tcache_decode(Decode *s, const void **exec_table) {
   if (tcache_state == TCACHE_RUNNING) {
     if (s + 1 != tcache_next()) {
       // Allocate a new tcache entry to keep the tcache
@@ -110,7 +110,7 @@ DecodeExecState* tcache_decode(DecodeExecState *s, const void **exec_table) {
   int idx = fetch_decode(s, s->pc);
   s->EHelper = exec_table[idx];
   if (s->type == INSTR_TYPE_N) {
-    DecodeExecState *next = tcache_new(s->snpc);
+    Decode *next = tcache_new(s->snpc);
     assert(next == s + 1);
   } else {
     if (s->type == INSTR_TYPE_J) {
@@ -129,7 +129,7 @@ void tcache_flush() {
   memset(bb_info, 0, sizeof(bb_info));
 }
 
-DecodeExecState* tcache_init(const void *nemu_decode, vaddr_t reset_vector) {
+Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector) {
   nemu_decode_helper = nemu_decode;
   return tcache_new(reset_vector);
 }

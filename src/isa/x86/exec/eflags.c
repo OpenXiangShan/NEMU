@@ -31,13 +31,13 @@ enum {
 #define ENCODE(flag) | (cpu.flag << (concat(EFLAGS_BIT_, flag)))
 #define DECODE(flag) cpu.flag = (val >> (concat(EFLAGS_BIT_, flag))) & 1;
 
-void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest) {
+void rtl_compute_eflags(Decode *s, rtlreg_t *dest) {
   rtl_mv(s, dest, rz);
   MAP(_EFLAGS, RTL_ENCODE)
   rtl_ori(s, dest, dest, 0x2);
 }
 
-void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src) {
+void rtl_set_eflags(Decode *s, const rtlreg_t *src) {
   MAP(_EFLAGS, RTL_DECODE)
 }
 

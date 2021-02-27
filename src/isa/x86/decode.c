@@ -25,7 +25,7 @@ typedef union {
   uint8_t val;
 } SIB;
 
-static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
+static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 
   sword_t disp = 0;
@@ -101,7 +101,7 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
   rm->type = OP_TYPE_MEM;
 }
 
-void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+void read_ModR_M(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
   ModR_M m;
   m.val = instr_fetch(&s->seq_pc, 1);
   s->isa.ext_opcode = m.opcode;
