@@ -77,8 +77,10 @@ int fetch_decode(DecodeExecState *s, vaddr_t pc) {
        else { s = s->ntnext; goto finish_label; } \
   } while (0)
 
-void save_globals(vaddr_t pc, uint32_t n) {
-  cpu.pc = pc;
+static DecodeExecState *prev_s;
+
+static inline void save_globals(DecodeExecState *s, uint32_t n) {
+  prev_s = s;
   n_remain = n;
 }
 
@@ -90,14 +92,13 @@ static uint32_t execute(uint32_t n) {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
   static int init_flag = 0;
-  static DecodeExecState *prev_s;
   DecodeExecState *s = prev_s;
 
   if (likely(init_flag == 0)) {
     extern DecodeExecState* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&nemu_decode, cpu.pc);
     init_flag = 1;
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 1,1,0x90"));
+    IFDEF(__ISA_riscv32__, asm volatile (".fill 14,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
   }
 
@@ -140,7 +141,6 @@ def_EHelper(nemu_decode) {
     IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
   }
   prev_s = s;
-  cpu.pc = s->pc;
   return n;
 }
 #else
@@ -166,6 +166,11 @@ static uint32_t execute(uint32_t n) {
 }
 #endif
 
+static void update_global() {
+  update_instr_cnt();
+  cpu.pc = prev_s->pc;
+}
+
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
   g_print_step = (n < MAX_INSTR_TO_PRINT);
@@ -181,13 +186,13 @@ void cpu_exec(uint64_t n) {
   n_remain_total = n; // deal with setjmp()
   int ret;
   if ((ret = setjmp(jbuf_exec))) {
-    update_instr_cnt();
+    update_global();
   }
 
   while (nemu_state.state == NEMU_RUNNING && n_remain_total > 0) {
     uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
     n_remain = execute(n_batch);
-    update_instr_cnt();
+    update_global();
 
 #ifdef CONFIG_DEVICE
     extern void device_update();
