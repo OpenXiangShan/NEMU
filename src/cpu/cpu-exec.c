@@ -106,7 +106,7 @@ static uint32_t execute(uint32_t n) {
     extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&nemu_decode, cpu.pc);
     init_flag = 1;
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 0,1,0x90"));
+    IFDEF(__ISA_riscv32__, asm volatile (".fill 18,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
   }
 

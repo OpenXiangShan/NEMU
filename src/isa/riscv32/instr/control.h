@@ -4,6 +4,12 @@ def_EHelper(j) {
   rtl_j(s, id_src1->imm);
 }
 
+def_EHelper(ret) {
+//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  rtl_jr(s, &cpu.gpr[1]._32);
+}
+
 def_EHelper(jr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));

@@ -149,7 +149,10 @@ def_THelper(jal_dispatch) {
 
 def_THelper(jalr_dispatch) {
   if (s->isa.instr.i.rd != 0) return table_jalr(s);
-  else if (id_src2->imm == 0) return table_jr(s);
+  else if (id_src2->imm == 0) {
+    if (s->isa.instr.i.rs1 == 1) return table_ret(s);
+    else return table_jr(s);
+  }
   return table_jr_imm(s);
 }
 
@@ -182,6 +185,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_bge:
     case EXEC_ID_bltu:
     case EXEC_ID_bgeu: s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+    case EXEC_ID_ret:
     case EXEC_ID_jr:
     case EXEC_ID_jr_imm:
     case EXEC_ID_jalr: s->type = INSTR_TYPE_I;

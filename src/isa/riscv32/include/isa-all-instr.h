@@ -2,7 +2,7 @@
 #include <rtl/rtl.h>
 
 #define INSTR_NULLARY(f) \
-  f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma)
+  f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma) f(ret)
 #define INSTR_UNARY(f)
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) f(jal) f(j) f(jr)
