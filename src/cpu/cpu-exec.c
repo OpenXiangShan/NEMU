@@ -90,9 +90,13 @@ static inline void save_globals(Decode *s, uint32_t n) {
 static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
-  s->ntnext = s->tnext;
-  s->tnext = tcache_bb_jr(target);
-  return s->tnext;
+  Decode *ret = tcache_bb_jr(target);
+  if (ret->snpc != 0) {
+    // only cache the entry when it is decoded
+    s->ntnext = s->tnext;
+    s->tnext = ret;
+  }
+  return ret;
 }
 
 static uint32_t execute(uint32_t n) {
