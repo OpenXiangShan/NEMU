@@ -13,6 +13,7 @@ static Decode* tcache_next() {
 static Decode* tcache_new(vaddr_t pc) {
   assert(tc_idx < TCACHE_SIZE);
   tcache_pool[tc_idx].pc = pc;
+  tcache_pool[tc_idx].snpc = 0;
   tcache_pool[tc_idx].EHelper = nemu_decode_helper;
   return &tcache_pool[tc_idx ++];
 }
@@ -56,7 +57,7 @@ static struct bbInfo* tcache_bb_find(vaddr_t pc, bool is_fill) {
 static Decode* tcache_bb_fetch(Decode **fill_addr, vaddr_t jpc) {
   struct bbInfo* bb = tcache_bb_find(jpc, true);
   if (fill_addr) {
-    if (bb->s->EHelper == nemu_decode_helper) {
+    if (bb->s->snpc == 0) {
       // still not decoded, record fill_addr to the backpatch list
       int i;
       for (i = 0; i < BB_INFO_BACKPATCH_SIZE; i ++) {
@@ -74,7 +75,8 @@ static Decode* tcache_bb_fetch(Decode **fill_addr, vaddr_t jpc) {
 static void tcache_bb_backpatch(Decode *s, vaddr_t bb_pc) {
   struct bbInfo* bb = tcache_bb_find(bb_pc, false);
   Assert(bb != NULL, "bb_info is not allocated with basic block pc = " FMT_WORD, bb_pc);
-  Assert(bb->s == NULL || bb->s->EHelper == nemu_decode_helper, "bb_info is already backpatched");
+  Assert(bb->s == NULL || bb->s->snpc == 0,
+      "bb_info is already backpatched: bb pc = " FMT_WORD ", src pc = " FMT_WORD, bb_pc, s->pc);
   bb->s = s;
   int i;
   for (i = 0; i < BB_INFO_BACKPATCH_SIZE; i ++) {
@@ -106,7 +108,7 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     tcache_bb_backpatch(s, s->pc);
     tcache_state = TCACHE_BB_BUILDING;
   }
-  assert(s->EHelper == nemu_decode_helper);
+  assert(s->snpc == 0);
   int idx = fetch_decode(s, s->pc);
   s->EHelper = exec_table[idx];
   if (s->type == INSTR_TYPE_N) {
