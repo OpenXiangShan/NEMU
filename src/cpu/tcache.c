@@ -26,7 +26,6 @@ static struct bbInfo {
   vaddr_t pc;
 } bb_info[BB_INFO_SIZE];
 
-__attribute__((noinline))
 static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, bool is_fill) {
   int idx = pc % BB_INFO_SIZE;
   int i;
@@ -91,9 +90,16 @@ enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
 static int tcache_state = TCACHE_BB_BUILDING;
 int fetch_decode(Decode *s, vaddr_t pc);
 
-Decode* tcache_bb_jr(vaddr_t jpc) {
+__attribute__((noinline))
+Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
   struct bbInfo* bb = tcache_bb_find(jpc, true);
-  return bb->s;
+  Decode *ret = bb->s;
+  if (ret->snpc != 0) {
+    // only cache the entry when it is decoded
+    s->ntnext = s->tnext;
+    s->tnext = ret;
+  }
+  return ret;
 }
 
 __attribute__((noinline))

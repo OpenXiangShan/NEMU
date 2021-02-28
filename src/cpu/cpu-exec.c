@@ -79,7 +79,7 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 
 static Decode *prev_s;
 
-Decode* tcache_bb_jr(vaddr_t jpc);
+Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 
 static inline void save_globals(Decode *s, uint32_t n) {
@@ -90,13 +90,7 @@ static inline void save_globals(Decode *s, uint32_t n) {
 static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
-  Decode *ret = tcache_bb_jr(target);
-  if (ret->snpc != 0) {
-    // only cache the entry when it is decoded
-    s->ntnext = s->tnext;
-    s->tnext = ret;
-  }
-  return ret;
+  return tcache_jr_fetch(s, target);
 }
 
 static uint32_t execute(uint32_t n) {
@@ -110,7 +104,7 @@ static uint32_t execute(uint32_t n) {
     extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&nemu_decode, cpu.pc);
     init_flag = 1;
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 18,1,0x90"));
+    IFDEF(__ISA_riscv32__, asm volatile (".fill 20,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
   }
 
@@ -143,13 +137,13 @@ static uint32_t execute(uint32_t n) {
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s, exec_table);
-  n ++; // FIXME: this is wrong but performance is great
   continue;
 }
 
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
-    IFDEF(CONFIG_DIFFTEST, save_globals(s->pc, n));
+    IFDEF(CONFIG_DIFFTEST, save_globals(s, n));
+    IFDEF(CONFIG_DIFFTEST, cpu.pc = s->pc);
     IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
     if (unlikely(--n == 0)) break;
   }
