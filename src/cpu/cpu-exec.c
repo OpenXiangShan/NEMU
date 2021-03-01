@@ -71,26 +71,26 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
 #define rtl_j(s, target) do { s = s->tnext; goto finish_label; } while (0)
-#define rtl_jr(s, target) do { s = jr_fetch(s, *(target)); goto finish_label; } while (0)
+#define rtl_jr(s, target) do { s = jr_fetch(s, *(target), n); goto finish_label; } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) \
   do { if (interpret_relop(relop, *src1, *src2)) rtl_j(s, target); \
        else { s = s->ntnext; goto finish_label; } \
   } while (0)
 
-static Decode *prev_s;
+Decode *prev_s;
 
-Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
+Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc, uint32_t n);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 
-static inline void save_globals(Decode *s, uint32_t n) {
+void save_globals(Decode *s, uint32_t n) {
   prev_s = s;
   n_remain = n;
 }
 
-static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
+static inline Decode* jr_fetch(Decode *s, vaddr_t target, uint32_t n) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
-  return tcache_jr_fetch(s, target);
+  return tcache_jr_fetch(s, target, n);
 }
 
 static uint32_t execute(uint32_t n) {
@@ -136,6 +136,7 @@ static uint32_t execute(uint32_t n) {
 #include "isa-exec.h"
 
 def_EHelper(nemu_decode) {
+  save_globals(s, n);
   s = tcache_decode(s, exec_table);
   continue;
 }

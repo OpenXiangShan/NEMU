@@ -1,16 +1,19 @@
 #include <cpu/decode.h>
+#include <cpu/cpu.h>
 
 #define TCACHE_SIZE (1024 * 8)
 
 static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static const void *nemu_decode_helper;
+static void tcache_full();
 
 static Decode* tcache_next() {
   return &tcache_pool[tc_idx];
 }
 
 static Decode* tcache_new(vaddr_t pc) {
+  if (tc_idx == TCACHE_SIZE) tcache_full();
   assert(tc_idx < TCACHE_SIZE);
   tcache_pool[tc_idx].pc = pc;
   tcache_pool[tc_idx].snpc = 0;
@@ -41,7 +44,7 @@ static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, bool is_fill) {
     if (bb_info[idx].pc == pc) return &bb_info[idx];
     idx = (idx + 1) % BB_INFO_SIZE;
   }
-  panic("bb_info is full");
+  tcache_full();
   return NULL;
 }
 
@@ -73,15 +76,16 @@ static Decode* tcache_bb_fetch(Decode **fill_addr, vaddr_t jpc) {
 
 static void tcache_bb_backpatch(Decode *s, vaddr_t bb_pc) {
   struct bbInfo* bb = tcache_bb_find(bb_pc, false);
-  Assert(bb != NULL, "bb_info is not allocated with basic block pc = " FMT_WORD, bb_pc);
-  Assert(bb->s == NULL || bb->s->snpc == 0,
-      "bb_info is already backpatched: bb pc = " FMT_WORD ", src pc = " FMT_WORD, bb_pc, s->pc);
-  bb->s = s;
-  int i;
-  for (i = 0; i < BB_INFO_BACKPATCH_SIZE; i ++) {
-    if (bb->backpatch_list[i] != NULL) {
-      *(bb->backpatch_list[i]) = s;
-      bb->backpatch_list[i] = NULL;
+  if (bb != NULL) {
+    Assert(bb->s->snpc == 0,
+        "bb_info is already backpatched: bb pc = " FMT_WORD ", src pc = " FMT_WORD, bb_pc, s->pc);
+    bb->s = s;
+    int i;
+    for (i = 0; i < BB_INFO_BACKPATCH_SIZE; i ++) {
+      if (bb->backpatch_list[i] != NULL) {
+        *(bb->backpatch_list[i]) = s;
+        bb->backpatch_list[i] = NULL;
+      }
     }
   }
 }
@@ -89,10 +93,19 @@ static void tcache_bb_backpatch(Decode *s, vaddr_t bb_pc) {
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
 static int tcache_state = TCACHE_BB_BUILDING;
 int fetch_decode(Decode *s, vaddr_t pc);
+void save_globals(Decode *s, uint32_t n);
 
 __attribute__((noinline))
-Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
-  struct bbInfo* bb = tcache_bb_find(jpc, true);
+Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc, uint32_t n) {
+  struct bbInfo* bb = NULL;
+  int idx = jpc % BB_INFO_SIZE;
+  if (likely(bb_info[idx].pc == jpc)) bb = &bb_info[idx];
+  else {
+    // FIXME: try to restore to jpc is tcache is full, since rtl_jr()
+    // may be used in an instruction with side effect (e.g indirect call in x86)
+    save_globals(s, n);
+    bb = tcache_bb_find_slow_path(jpc, true);
+  }
   Decode *ret = bb->s;
   if (ret->snpc != 0) {
     // only cache the entry when it is decoded
@@ -142,4 +155,12 @@ void tcache_flush() {
 Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector) {
   nemu_decode_helper = nemu_decode;
   return tcache_new(reset_vector);
+}
+
+static void tcache_full() {
+  extern Decode *prev_s;
+  vaddr_t thispc = prev_s->pc;
+  tcache_flush();
+  prev_s = tcache_new(thispc);
+  longjmp_exec(123); // TCACHE_FULL
 }
