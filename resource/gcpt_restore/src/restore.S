@@ -15,8 +15,6 @@ boot_decide_vector:
 
 1:
 restore_csr_vector:
-  # li t0, MSTATUS_FS
-  # csrs  CSR_MSTATUS, t0
   li t0, CSR_CPT_ADDR
   CSRS(CSRS_RESTORE)
 
@@ -39,6 +37,10 @@ restore_csr_vector:
   csrc CSR_MSTATUS, t0
   csrs CSR_MSTATUS, t1
 
+  # set fs
+  li t0, MSTATUS_FS
+  csrs  CSR_MSTATUS, t0
+
   # set mtime (inaccurate) and mtimecmp
   li t0, CLINT_MMIO+CLINT_MTIMECMP
   ld t1, 24(s0)
@@ -48,9 +50,9 @@ restore_csr_vector:
   ld t1, 16(s0)
   sd t1, (t0)
 
-  csrr t1, CSR_MSTATUS
-  srli t0, t1, 63
-  beqz t0, restore_pc_vector
+  # csrr t1, CSR_MSTATUS
+  # srli t0, t1, 63
+  # beqz t0, restore_pc_vector
 
 restore_float_vector:
   li sp, FLOAT_REG_CPT_ADDR # load float section addr
