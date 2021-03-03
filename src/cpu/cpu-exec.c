@@ -35,10 +35,10 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 
 static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
-static uint32_t n_remain;
+static int n_remain;
 
 static void update_instr_cnt() {
-  uint32_t n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+  int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
   IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
@@ -70,19 +70,21 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
-#define rtl_j(s, target) do { s = s->tnext; goto finish_label; } while (0)
-#define rtl_jr(s, target) do { s = jr_fetch(s, *(target)); goto finish_label; } while (0)
-#define rtl_jrelop(s, relop, src1, src2, target) \
-  do { if (interpret_relop(relop, *src1, *src2)) rtl_j(s, target); \
-       else { s = s->ntnext; goto finish_label; } \
-  } while (0)
+#define rtl_j(s, target) do { n -= s->idx_in_bb; s = s->tnext; goto end_of_bb; } while (0)
+#define rtl_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_bb; } while (0)
+#define rtl_jrelop(s, relop, src1, src2, target) do { \
+  n -= s->idx_in_bb; \
+  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
+  else s = s->ntnext; \
+  goto end_of_bb; \
+} while (0)
 
 Decode *prev_s;
 
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 
-static inline void save_globals(Decode *s, uint32_t n) {
+static inline void save_globals(Decode *s, int n) {
   prev_s = s;
   n_remain = n;
 }
@@ -93,7 +95,7 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-static uint32_t execute(uint32_t n) {
+static int execute(int n) {
   static const void* exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
@@ -141,12 +143,13 @@ def_EHelper(nemu_decode) {
   continue;
 }
 
+end_of_bb: if (unlikely(n <= 0)) break;
+
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
     IFDEF(CONFIG_DIFFTEST, save_globals(s, n));
     IFDEF(CONFIG_DIFFTEST, cpu.pc = s->pc);
     IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
-    if (unlikely(--n == 0)) break;
   }
   prev_s = s;
   return n;
@@ -157,7 +160,7 @@ def_EHelper(nemu_decode) {
 typedef void (*EHelper_t)(Decode *s);
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 
-static uint32_t execute(uint32_t n) {
+static int execute(int n) {
   static const EHelper_t exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
@@ -198,7 +201,7 @@ void cpu_exec(uint64_t n) {
   }
 
   while (nemu_state.state == NEMU_RUNNING && n_remain_total > 0) {
-    uint32_t n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
+    int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
     n_remain = execute(n_batch);
     update_global();
 

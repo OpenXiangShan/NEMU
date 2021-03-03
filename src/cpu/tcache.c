@@ -87,6 +87,7 @@ Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
 
 __attribute__((noinline))
 Decode* tcache_decode(Decode *s, const void **exec_table) {
+  static int idx_in_bb = 0;
   if (tcache_state == TCACHE_RUNNING) {
     Decode *old = s;
     // first check whether this basic block is already decoded
@@ -101,9 +102,11 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     free(old);
     if (already_decode) return s;
     tcache_state = TCACHE_BB_BUILDING;
+    idx_in_bb = 1;
   }
   int idx = fetch_decode(s, s->pc);
   s->EHelper = exec_table[idx];
+  s->idx_in_bb = idx_in_bb ++;
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
     assert(next == s + 1);

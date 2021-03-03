@@ -35,6 +35,7 @@ typedef struct Decode {
   Operand dest, src1, src2;
   vaddr_t jnpc;
   uint8_t type;
+  uint8_t idx_in_bb; // the number of instruction in the basic block, start from 1
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80]);
 } Decode;
