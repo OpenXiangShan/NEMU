@@ -106,7 +106,7 @@ static int execute(int n) {
     extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&nemu_decode, cpu.pc);
     init_flag = 1;
-    IFDEF(__ISA_riscv32__, asm volatile (".fill 20,1,0x90"));
+//    IFDEF(__ISA_riscv32__, asm volatile (".fill 20,1,0x90"));
     IFDEF(__ISA_mips32__,  asm volatile (".fill 46,1,0x90"));
   }
 
@@ -115,19 +115,10 @@ static int execute(int n) {
   while (true) {
     IFDEF(CONFIG_DEBUG, Decode *this_s = s);
     IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
-    Operand ldest = { .preg = id_dest->preg };
-    Operand lsrc1 = { .preg = id_src1->preg };
-    Operand lsrc2 = { .preg = id_src2->preg };
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
     goto *(s->EHelper);
 
-#undef id_dest
-#undef id_src1
-#undef id_src2
-#define id_dest (&ldest)
-#define id_src1 (&lsrc1)
-#define id_src2 (&lsrc2)
 #undef s0
 #undef s1
 #undef s2
