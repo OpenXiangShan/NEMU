@@ -27,6 +27,6 @@ word_t mmio_read(paddr_t addr, int len) {
 }
 
 __attribute__((noinline))
-void mmio_write(paddr_t addr, word_t data, int len) {
-  map_write(addr, data, len, fetch_mmio_map(addr));
+void mmio_write(paddr_t addr, int len, word_t data) {
+  map_write(addr, len, data, fetch_mmio_map(addr));
 }

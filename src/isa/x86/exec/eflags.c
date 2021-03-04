@@ -57,7 +57,7 @@ void difftest_fix_eflags(void *arg) {
 #define EFLAGS_FIX_MASK (EFLAGS_MASK_ID | EFLAGS_MASK_AC | EFLAGS_MASK_AF)
   uint32_t esp = (uintptr_t)arg;
   if (cpu.cr0.paging) {
-    paddr_t pg_base = isa_mmu_translate(esp, MEM_TYPE_WRITE, 4);
+    paddr_t pg_base = isa_mmu_translate(esp, 4, MEM_TYPE_WRITE);
     assert((pg_base & PAGE_MASK) == MEM_RET_OK);
     esp = pg_base | (esp & PAGE_MASK);
   }

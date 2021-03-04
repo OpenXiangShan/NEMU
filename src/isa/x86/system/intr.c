@@ -43,20 +43,20 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
     cpu.esp = vaddr_read(cpu.sreg[CSR_TR].base + 4, 4);
     cpu.sreg[CSR_SS].val = vaddr_read(cpu.sreg[CSR_TR].base + 8, 2);
 
-    vaddr_write(cpu.esp - 4, ss3, 4);
-    vaddr_write(cpu.esp - 8, esp3, 4);
+    vaddr_write(cpu.esp - 4, 4, ss3);
+    vaddr_write(cpu.esp - 8, 4, esp3);
     cpu.esp -= 8;
   }
 
-  vaddr_write(cpu.esp - 4, compute_eflags(), 4);
+  vaddr_write(cpu.esp - 4, 4, compute_eflags());
   __attribute__((unused)) word_t eflags_esp = cpu.esp - 4;
-  vaddr_write(cpu.esp - 8, old_cs, 4);
-  vaddr_write(cpu.esp - 12, ret_addr, 4);
+  vaddr_write(cpu.esp -  8, 4, old_cs);
+  vaddr_write(cpu.esp - 12, 4, ret_addr);
   cpu.esp -= 12;
 
   if (IFUNDEF(__PA__) && NO == 14) {
     // page fault has error code
-    vaddr_write(cpu.esp - 4, cpu.error_code, 4);
+    vaddr_write(cpu.esp - 4, 4, cpu.error_code);
     cpu.esp -= 4;
   }
 

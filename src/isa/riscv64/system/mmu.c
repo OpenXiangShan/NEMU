@@ -106,7 +106,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
-    paddr_write(p_pte, pte.val, PTE_SIZE);
+    paddr_write(p_pte, PTE_SIZE, pte.val);
   }
 
   return pg_base | MEM_RET_OK;
@@ -116,7 +116,7 @@ bad:
   return MEM_RET_FAIL;
 }
 
-int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
+int isa_vaddr_check(vaddr_t vaddr, int len, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   if ((!ifetch) && (vaddr & (len - 1)) != 0) {
     mtval->val = vaddr;
@@ -131,6 +131,6 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   return MEM_RET_OK;
 }
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return ptw(vaddr, type);
 }

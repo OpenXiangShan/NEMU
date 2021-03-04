@@ -5,7 +5,7 @@
 #include <time.h>
 
 word_t mmio_read(paddr_t addr, int len);
-void mmio_write(paddr_t addr, word_t data, int len);
+void mmio_write(paddr_t addr, int len, word_t data);
 
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 
@@ -38,7 +38,7 @@ static inline word_t pmem_read(uint32_t idx, int len) {
   }
 }
 
-static inline void pmem_write(uint32_t idx, word_t data, int len) {
+static inline void pmem_write(uint32_t idx, int len, word_t data) {
   void *p = &pmem[idx];
   switch (len) {
     case 1: *(uint8_t  *)p = data; return;
@@ -57,8 +57,8 @@ word_t paddr_read(paddr_t addr, int len) {
   else return mmio_read(addr, len);
 }
 
-void paddr_write(paddr_t addr, word_t data, int len) {
+void paddr_write(paddr_t addr, int len, word_t data) {
   uint32_t idx = addr - CONFIG_MBASE;
-  if (likely(in_pmem(idx))) pmem_write(idx, data, len);
-  else mmio_write(addr, data, len);
+  if (likely(in_pmem(idx))) pmem_write(idx, len, data);
+  else mmio_write(addr, len, data);
 }

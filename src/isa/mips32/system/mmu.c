@@ -99,7 +99,7 @@ static inline int32_t search_ppn(vaddr_t addr, int type) {
 }
 #endif
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 #ifdef __ICS_EXPORT
   return MEM_RET_FAIL;
 #else
