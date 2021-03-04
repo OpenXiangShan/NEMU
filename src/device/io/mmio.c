@@ -21,10 +21,12 @@ void add_mmio_map(char *name, paddr_t addr, uint8_t* space, int len, io_callback
 }
 
 /* bus interface */
+__attribute__((noinline))
 word_t mmio_read(paddr_t addr, int len) {
   return map_read(addr, len, fetch_mmio_map(addr));
 }
 
+__attribute__((noinline))
 void mmio_write(paddr_t addr, word_t data, int len) {
   map_write(addr, data, len, fetch_mmio_map(addr));
 }
