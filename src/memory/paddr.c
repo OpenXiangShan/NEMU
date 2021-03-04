@@ -1,16 +1,30 @@
-#include <isa.h>
-#include <memory/paddr.h>
-#include <memory/vaddr.h>
+#include <memory/host.h>
+#include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
+
+static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+
+#define PMEM_MASK (CONFIG_MSIZE - 1)
+#define HOST_PMEM_OFFSET (void *)(pmem - CONFIG_MBASE)
 
 word_t mmio_read(paddr_t addr, int len);
 void mmio_write(paddr_t addr, int len, word_t data);
 
-static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+void* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
+paddr_t host_to_guest(void *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
-void* guest_to_host(paddr_t addr) { return &pmem[addr - CONFIG_MBASE]; }
-paddr_t host_to_guest(void *addr) { return CONFIG_MBASE + (addr - (void *)pmem); }
+static inline bool in_pmem(paddr_t addr) {
+  return (addr & ~PMEM_MASK) == CONFIG_MBASE;
+}
+
+static inline word_t pmem_read(paddr_t addr, int len) {
+  return host_read(guest_to_host(addr), len);
+}
+
+static inline void pmem_write(paddr_t addr, int len, word_t data) {
+  host_write(guest_to_host(addr), len, data);
+}
 
 void init_mem() {
 #ifdef CONFIG_MEM_RANDOM
@@ -23,42 +37,14 @@ void init_mem() {
 #endif
 }
 
-static inline bool in_pmem(uint32_t idx) {
-  return (idx < CONFIG_MSIZE);
-}
-
-static inline word_t pmem_read(uint32_t idx, int len) {
-  void *p = &pmem[idx];
-  switch (len) {
-    case 1: return *(uint8_t  *)p;
-    case 2: return *(uint16_t *)p;
-    case 4: return *(uint32_t *)p;
-    IFDEF(CONFIG_ISA64, case 8: return *(uint64_t *)p);
-    default: assert(0);
-  }
-}
-
-static inline void pmem_write(uint32_t idx, int len, word_t data) {
-  void *p = &pmem[idx];
-  switch (len) {
-    case 1: *(uint8_t  *)p = data; return;
-    case 2: *(uint16_t *)p = data; return;
-    case 4: *(uint32_t *)p = data; return;
-    IFDEF(CONFIG_ISA64, case 8: *(uint64_t *)p = data; return);
-    default: assert(0);
-  }
-}
-
 /* Memory accessing interfaces */
 
 word_t paddr_read(paddr_t addr, int len) {
-  uint32_t idx = addr - CONFIG_MBASE;
-  if (likely(in_pmem(idx))) return pmem_read(idx, len);
+  if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else return mmio_read(addr, len);
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
-  uint32_t idx = addr - CONFIG_MBASE;
-  if (likely(in_pmem(idx))) pmem_write(idx, len, data);
+  if (likely(in_pmem(addr))) pmem_write(addr, len, data);
   else mmio_write(addr, len, data);
 }
