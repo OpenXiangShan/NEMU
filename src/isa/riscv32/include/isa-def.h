@@ -106,9 +106,9 @@ typedef struct {
 } riscv32_ISADecodeInfo;
 
 #ifdef __ICS_EXPORT
-#define isa_vaddr_check(vaddr, type, len) (MEM_RET_OK)
+#define isa_vaddr_check(vaddr, len, type) (MEM_RET_OK)
 #else
-#define isa_vaddr_check(vaddr, type, len) (cpu.satp.mode ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+#define isa_vaddr_check(vaddr, len, type) (cpu.satp.mode ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
 #endif
 
 #endif

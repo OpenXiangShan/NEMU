@@ -146,9 +146,9 @@ typedef struct {
 
 #define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
 #ifdef __ICS_EXPORT
-#define isa_vaddr_check(vaddr, type, len) (MEM_RET_OK)
+#define isa_vaddr_check(vaddr, len, type) (MEM_RET_OK)
 #else
-#define isa_vaddr_check(vaddr, type, len) (cpu.cr0.paging ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+#define isa_vaddr_check(vaddr, len, type) (cpu.cr0.paging ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
 #endif
 #define x86_has_mem_exception() (false)
 
