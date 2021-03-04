@@ -101,6 +101,10 @@ config CC_DEBUG
   bool "Enable debug information"
   default n
 
+config CC_ASAN
+  bool "Enable address sanitizer"
+  default n
+
 config SHARE
   bool "Build shared library"
   default n
