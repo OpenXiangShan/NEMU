@@ -104,9 +104,8 @@ Decode *prev_s;
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 
-static inline void save_globals(Decode *s, int n) {
+static inline void save_globals(Decode *s) {
   prev_s = s;
-  n_remain = n;
 }
 
 static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
@@ -150,16 +149,18 @@ static int execute(int n) {
 #include "isa-exec.h"
 
 def_EHelper(nemu_decode) {
-  save_globals(s, n);
+  save_globals(s);
   s = tcache_decode(s, exec_table);
   continue;
 }
 
-end_of_bb: if (unlikely(n <= 0)) break;
+end_of_bb:
+    n_remain = n;
+    if (unlikely(n <= 0)) break;
 
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
-    IFDEF(CONFIG_DIFFTEST, save_globals(s, n));
+    IFDEF(CONFIG_DIFFTEST, save_globals(s));
     IFDEF(CONFIG_DIFFTEST, cpu.pc = s->pc);
     IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
   }
