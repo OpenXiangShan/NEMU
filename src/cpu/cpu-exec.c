@@ -79,6 +79,26 @@ int fetch_decode(Decode *s, vaddr_t pc) {
   goto end_of_bb; \
 } while (0)
 
+word_t vaddr_read_with_mmu_state(vaddr_t addr, int len, int mmu_state);
+void vaddr_write_with_mmu_state(vaddr_t addr, int len, word_t data, int mmu_state);
+
+#define rtl_lm(s, dest, addr, offset, len) \
+  (*(dest) = vaddr_read_with_mmu_state(*(addr) + (offset), (len), mmu_state))
+
+#define rtl_sm(s, addr, offset, src1, len) \
+  vaddr_write_with_mmu_state(*(addr) + (offset), (len), *(src1), mmu_state);
+
+#define rtl_lms(s, dest, addr, offset, len) do { \
+  word_t val = vaddr_read_with_mmu_state(*(addr) + (offset), (len), mmu_state); \
+  switch (len) { \
+    case 4: *dest = (sword_t)(int32_t)val; break; \
+    case 1: *dest = (sword_t)( int8_t)val; break; \
+    case 2: *dest = (sword_t)(int16_t)val; break; \
+    IFDEF(CONFIG_ISA64, case 8: *dest = (sword_t)(int64_t)val; break); \
+    default: assert(0); \
+  } \
+} while (0)
+
 Decode *prev_s;
 
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
@@ -101,6 +121,7 @@ static int execute(int n) {
   };
   static int init_flag = 0;
   Decode *s = prev_s;
+  int mmu_state = cpu.satp.mode ? 1 : 0;
 
   if (likely(init_flag == 0)) {
     extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
