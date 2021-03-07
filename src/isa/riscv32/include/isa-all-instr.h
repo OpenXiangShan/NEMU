@@ -5,7 +5,8 @@
   f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma) f(ret)
 #define INSTR_UNARY(f)
 #define INSTR_BINARY(f) \
-  f(lui) f(auipc) f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) f(jal) f(j) f(jr)
+  f(lui) f(auipc) f(jal) f(j) f(jr) \
+  f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb)
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
   f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
