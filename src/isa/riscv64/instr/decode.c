@@ -205,7 +205,8 @@ static inline def_DHelper(CI_simm) {
 
 static inline def_DHelper(CI_simm_lui) {
   decode_CI_simm(s);
-  id_src2->imm <<= 12;
+  // the immediate of LUI is placed at id_src1->imm
+  id_src1->imm = id_src2->imm << 12;
 }
 
 // for shift
@@ -659,7 +660,7 @@ def_THelper(misc_alu) {
 def_THelper(rvc) {
   uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
   switch (rvc_opcode) {
-    IDTAB(000, C_ADDI4SPN, addi) /*IDTABW(001, C_FLD, fp_ld, 8)*/ IDTAB(002, C_LW, ld)    IDTAB(003, C_LD, ld)
+    IDTAB(000, C_ADDI4SPN, addi) /*IDTABW(001, C_FLD, fp_ld, 8)*/ IDTAB(002, C_LW, lw)    IDTAB(003, C_LD, ld)
                                  /*IDTABW(005, C_FSD, fp_st, 8)*/ IDTAB(006, C_SW, sw)    IDTAB(007, C_SD, sd)
     IDTAB(010, CI_simm, addi)    IDTAB(011, CI_simm, addiw)    IDTAB(012, C_LI, addi)     TAB  (013, lui_addi16sp)
     TAB  (014, misc_alu)         IDTAB(015, C_J, jal)          IDTAB(016, CB, beq)        IDTAB(017, CB, bne)
