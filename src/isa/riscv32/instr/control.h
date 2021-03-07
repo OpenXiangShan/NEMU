@@ -6,20 +6,20 @@ def_EHelper(j) {
 
 def_EHelper(ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, &cpu.gpr[1]._32);
 }
 
 def_EHelper(jr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
 }
 
 def_EHelper(jr_imm) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, s0);
 }
 
@@ -32,7 +32,7 @@ def_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   rtl_li(s, ddest, s->snpc);
-  IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, s0);
 }
 

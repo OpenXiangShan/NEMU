@@ -41,7 +41,7 @@ static void update_instr_cnt() {
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
-  IFUNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+  IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
 }
 
 void monitor_statistic() {
@@ -132,7 +132,7 @@ static int execute(int n) {
 
   while (true) {
     IFDEF(CONFIG_DEBUG, Decode *this_s = s);
-    IFUNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
+    IFNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
     goto *(s->EHelper);

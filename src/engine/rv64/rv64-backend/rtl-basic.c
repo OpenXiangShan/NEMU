@@ -10,11 +10,11 @@ int rtlreg_is_zero(Decode *s, const rtlreg_t *r);
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
   // mask32 is set during initialization
-  IFUNDEF(CONFIG_ISA64, rv64_and(rd, rs, mask32));
+  IFNDEF(CONFIG_ISA64, rv64_and(rd, rs, mask32));
 }
 
 static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
-  IFUNDEF(CONFIG_ISA64, rv64_addw(rd, rs, x0));
+  IFNDEF(CONFIG_ISA64, rv64_addw(rd, rs, x0));
 }
 
 static inline sword_t get_imm_hi(const sword_t imm) {

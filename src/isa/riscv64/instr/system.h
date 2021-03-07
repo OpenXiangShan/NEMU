@@ -1,5 +1,5 @@
-#define csr_difftest() IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3))
-#define priv_difftest() IFUNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2))
+#define csr_difftest() IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3))
+#define priv_difftest() IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2))
 #if 0
 #define csr_check(s, addr) {( \
  bool ret = true; \
