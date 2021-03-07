@@ -24,12 +24,16 @@ int isa_fetch_decode(struct Decode *s);
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm);
 
 // memory
+enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
 enum { MEM_RET_OK, MEM_RET_NEED_TRANSLATE, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
-paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
-#ifndef isa_vaddr_check
-int isa_vaddr_check(vaddr_t vaddr, int len, int type);
+#ifndef isa_mmu_state
+int isa_mmu_state();
 #endif
+#ifndef isa_mmu_check
+int isa_mmu_check(vaddr_t vaddr, int len, int type);
+#endif
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 
 // interrupt
 void isa_query_intr();

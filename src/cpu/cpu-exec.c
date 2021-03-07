@@ -120,7 +120,7 @@ static int execute(int n) {
   };
   static int init_flag = 0;
   Decode *s = prev_s;
-  int mmu_state = cpu.satp.mode ? 1 : 0;
+  int mmu_state = isa_mmu_state();
 
   if (likely(init_flag == 0)) {
     extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);

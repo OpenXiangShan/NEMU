@@ -87,22 +87,11 @@ static void vaddr_mmu_write(vaddr_t addr, int len, word_t data) {
 }
 #endif
 
-enum { MMU_DISABLE, MMU_ENABLE, MMU_DYNAMIC };
-
-static int check_mmu(vaddr_t addr, int len, int type, int mmu_state) {
-  switch (mmu_state) {
-    case MMU_DISABLE: return MEM_RET_OK;
-    case MMU_ENABLE: return MEM_RET_NEED_TRANSLATE;
-    case MMU_DYNAMIC: return isa_vaddr_check(addr, len, type);
-    default: assert(0);
-  }
-}
-
 static word_t vaddr_read_internal_with_mmu_state(vaddr_t addr, int len, int type, int mmu_state) {
-  int ret = check_mmu(addr, len, type, mmu_state);
-  if (ret == MEM_RET_OK) return paddr_read(addr, len);
+  if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, type);
+  if (mmu_state == MMU_DIRECT) return paddr_read(addr, len);
 #ifndef __ICS_EXPORT
-  else if (ret == MEM_RET_NEED_TRANSLATE) return vaddr_mmu_read(addr, len, type);
+  else if (mmu_state == MMU_TRANSLATE) return vaddr_mmu_read(addr, len, type);
 #endif
   return 0;
 }
@@ -112,23 +101,23 @@ word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state) 
 }
 
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state) {
-  int ret = check_mmu(addr, len, MEM_TYPE_WRITE, mmu_state);
-  if (ret == MEM_RET_OK) paddr_write(addr, len, data);
+  if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, type);
+  if (mmu_state == MMU_DIRECT) paddr_write(addr, len, data);
 #ifndef __ICS_EXPORT
-  else if (ret == MEM_RET_NEED_TRANSLATE) vaddr_mmu_write(addr, len, data);
+  else if (mmu_state == MMU_TRANSLATE) vaddr_mmu_write(addr, len, data);
 #endif
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
+  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_IFETCH, isa_mmu_state());
 }
 
 word_t vaddr_read(vaddr_t addr, int len) {
-  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_READ, MMU_DYNAMIC);
+  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_READ, isa_mmu_state());
 }
 
 void vaddr_write(vaddr_t addr, int len, word_t data) {
-  vaddr_write_with_mmu_state(NULL, addr, len, data, MMU_DYNAMIC);
+  vaddr_write_with_mmu_state(NULL, addr, len, data, isa_mmu_state());
 }
 
 #endif
