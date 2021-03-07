@@ -115,7 +115,7 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
       tcache_bb_fetch(s, true, s->jnpc);
     } else if (s->type == INSTR_TYPE_B) {
       tcache_bb_fetch(s, true, s->jnpc);
-      tcache_bb_fetch(s, false, s->snpc);
+      tcache_bb_fetch(s, false, s->snpc + MUXDEF(__ISA_mips32__, 4, 0));
     } else if (s->type == INSTR_TYPE_I) {
       s->tnext = s->ntnext = s; // update dynamically
     }
