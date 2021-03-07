@@ -101,7 +101,7 @@ word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state) 
 }
 
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state) {
-  if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, type);
+  if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_state == MMU_DIRECT) paddr_write(addr, len, data);
 #ifndef __ICS_EXPORT
   else if (mmu_state == MMU_TRANSLATE) vaddr_mmu_write(addr, len, data);

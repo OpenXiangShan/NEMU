@@ -116,7 +116,7 @@ bad:
   return MEM_RET_FAIL;
 }
 
-int isa_vaddr_check(vaddr_t vaddr, int len, int type) {
+int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   if ((!ifetch) && (vaddr & (len - 1)) != 0) {
     mtval->val = vaddr;
@@ -126,9 +126,9 @@ int isa_vaddr_check(vaddr_t vaddr, int len, int type) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) return MEM_RET_NEED_TRANSLATE;
+    if (satp->mode == 8) return MMU_TRANSLATE;
   }
-  return MEM_RET_OK;
+  return MMU_DIRECT;
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {

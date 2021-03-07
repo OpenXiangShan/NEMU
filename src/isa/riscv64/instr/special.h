@@ -1,11 +1,11 @@
 def_EHelper(inv) {
-  save_globals(lpc, n);
+  save_globals(s);
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, 0);
   longjmp_exec(NEMU_ABORT);
 }
 
 def_EHelper(nemu_trap) {
-  save_globals(lpc, n);
+  save_globals(s);
   rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[10]._64, 0); // gpr[10] is $a0
   longjmp_exec(NEMU_END);
 }
