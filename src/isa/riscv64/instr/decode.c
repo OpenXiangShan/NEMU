@@ -403,11 +403,6 @@ static inline def_DHelper(CJ) {
   decode_op_i(s, id_src1, s->pc + offset, true);
 }
 
-static inline def_DHelper(C_J) {
-  decode_CJ(s);
-  decode_op_r(s, id_dest, 0, false);
-}
-
 static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
   decode_op_r(s, id_src1, (is_rs1_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), true);
   decode_op_r(s, id_src2, (is_rs2_zero ? 0 : BITS(s->isa.instr.val, 6, 2)), true);
@@ -416,8 +411,6 @@ static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_
 
 static inline def_DHelper(C_JR) {
   decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
-  decode_op_i(s, id_src2, 0, true);
-  decode_op_r(s, id_dest, 0, false);
 }
 
 static inline def_DHelper(C_MOV) {
@@ -619,7 +612,7 @@ def_THelper(misc) {
   uint32_t bits6_2not0 = (BITS(instr, 6, 2) != 0);
   uint32_t op = (bits12not0 << 2) | (bits11_7not0 << 1) | bits6_2not0;
   switch (op) {
-    IDTAB(0b010, C_JR, jalr)
+    IDTAB(0b010, C_JR, jr)
     IDTAB(0b011, C_MOV, add)
     IDTAB(0b110, C_JALR, jalr)
     IDTAB(0b111, C_ADD, add)
@@ -663,7 +656,7 @@ def_THelper(rvc) {
     IDTAB(000, C_ADDI4SPN, addi) /*IDTABW(001, C_FLD, fp_ld, 8)*/ IDTAB(002, C_LW, lw)    IDTAB(003, C_LD, ld)
                                  /*IDTABW(005, C_FSD, fp_st, 8)*/ IDTAB(006, C_SW, sw)    IDTAB(007, C_SD, sd)
     IDTAB(010, CI_simm, addi)    IDTAB(011, CI_simm, addiw)    IDTAB(012, C_LI, addi)     TAB  (013, lui_addi16sp)
-    TAB  (014, misc_alu)         IDTAB(015, C_J, jal)          IDTAB(016, CB, beq)        IDTAB(017, CB, bne)
+    TAB  (014, misc_alu)         IDTAB(015, CJ, j)             IDTAB(016, CB, beq)        IDTAB(017, CB, bne)
     IDTAB(020, CI_uimm, slli)    /*IDTABW(021, C_FLDSP, fp_ld, 8)*/ IDTAB(022, C_LWSP, lw)IDTAB(023, C_LDSP, ld)
     TAB  (024, misc)             /*IDTABW(025, C_FSDSP, fp_st, 8)*/ IDTAB(026, C_SWSP, sw)IDTAB(027, C_SDSP, sd)
   }
