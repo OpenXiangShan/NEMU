@@ -154,7 +154,13 @@ def_EHelper(nemu_decode) {
 
 end_of_bb:
     n_remain = n;
-    if (unlikely(n <= 0)) break;
+    if (unlikely(n <= 0)) {
+      IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
+      IFDEF(CONFIG_DIFFTEST, save_globals(s));
+      IFDEF(CONFIG_DIFFTEST, cpu.pc = s->pc);
+      IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
+      break;
+    }
 
     def_finish();
     IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
