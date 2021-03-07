@@ -101,6 +101,11 @@ static inline def_DHelper(cp0) {
   decode_op_i(s, id_dest, s->isa.instr.r.rd, false);
   print_Dop(id_dest->str, OP_STR_SIZE, "%s", cp0_name(id_dest->imm));
 }
+
+def_THelper(jr_dispatch) {
+  if (s->isa.instr.r.rs == 31) return table_ret(s);
+  return table_jr(s);
+}
 #endif
 
 def_THelper(special) {
@@ -108,7 +113,7 @@ def_THelper(special) {
 #ifndef __ICS_EXPORT
     IDTAB(000, shift, slli)                       IDTAB(002, shift, srli)IDTAB(003, shift, srai)
     IDTAB(004, R, sll)                            IDTAB(006, R, srl)     IDTAB(007, R, sra)
-    IDTAB(010, R, jr)      IDTAB(011, jalr, jalr) IDTAB(012, cmov, movz) IDTAB(013, cmov, movn)
+    IDTAB(010, R, jr_dispatch)IDTAB(011, jalr, jalr) IDTAB(012, cmov, movz) IDTAB(013, cmov, movn)
     TAB  (014, syscall)
     IDTAB(020, R, mfhi)    IDTAB(021, R, mthi)    IDTAB(022, R, mflo)    IDTAB(023, R, mtlo)
 
@@ -200,6 +205,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_bltz:
     case EXEC_ID_bgez:
     case EXEC_ID_bgtz: s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+    case EXEC_ID_ret:
     case EXEC_ID_jr:
     case EXEC_ID_jalr: s->type = INSTR_TYPE_I;
   }

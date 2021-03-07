@@ -12,6 +12,11 @@ def_EHelper(jal) {
   rtl_j(s, id_dest->imm);
 }
 
+def_EHelper(ret) {
+  difftest_skip_delay_slot();
+  rtl_jr(s, &reg_l(31));
+}
+
 def_EHelper(jr) {
   difftest_skip_delay_slot();
   rtl_jr(s, dsrc1);
