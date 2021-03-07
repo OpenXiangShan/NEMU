@@ -23,7 +23,7 @@
 
 static inline bool assert_ex_ii(Decode *s, bool cond){
     if(!cond){
-        rtl_trap(s, EX_II, cpu.pc);
+        rtl_trap(s, EX_II, s->pc);
         return false;
     }
     return true;

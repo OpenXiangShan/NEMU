@@ -5,7 +5,7 @@
  bool ret = true; \
  switch (addr) { \
    case 0xc01:  /* time */ \
-     rtl_trap(s, cpu.pc, EX_II); \
+     rtl_trap(s, s->pc, EX_II); \
      ret = false; \
  } \
  ret )}

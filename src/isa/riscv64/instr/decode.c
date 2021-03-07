@@ -303,7 +303,7 @@ static inline def_DHelper(C_ADDI4SPN) {
   uint32_t instr = s->isa.instr.val;
   uint32_t imm9_6 = ror_imm(BITS(instr, 12, 7), 6, 4); // already at the right place
   uint32_t imm = imm9_6 | BITS(instr, 5, 5) << 3 | BITS(instr, 6, 6) << 2;
-  Assert(imm != 0, "pc = " FMT_WORD, cpu.pc);
+  Assert(imm != 0, "pc = " FMT_WORD, s->pc);
   decode_op_i(s, id_src2, imm, false);
   decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), false);
 }
@@ -591,7 +591,7 @@ static inline def_EHelper(atomic) {
 }
 
 static inline def_EHelper(fp) {
-  rtl_trap(s, cpu.pc, EX_II);
+  rtl_trap(s, s->pc, EX_II);
 }
 #endif
 
