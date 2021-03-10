@@ -101,7 +101,7 @@ typedef struct {
   } instr;
 } riscv64_ISADecodeInfo;
 
-// the rule is too complicated, so use MMU_DYNAMIC to check
-#define isa_mmu_state() (MMU_DYNAMIC)
+int get_data_mmu_state();
+#define isa_mmu_state() get_data_mmu_state()
 
 #endif

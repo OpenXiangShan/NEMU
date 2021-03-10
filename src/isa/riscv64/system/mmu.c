@@ -119,6 +119,10 @@ bad:
 static int ifetch_mmu_state = MMU_DIRECT;
 static int data_mmu_state = MMU_DIRECT;
 
+int get_data_mmu_state() {
+  return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
+}
+
 static inline int update_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
