@@ -2,6 +2,7 @@
 #include "../instr/compute.h"
 #include "../instr/control.h"
 #include "../instr/ldst.h"
+#include "../instr/compress.h"
 #include "../instr/muldiv.h"
 //#include "../instr/amo.h"
 //#include "../instr/fp.h"
