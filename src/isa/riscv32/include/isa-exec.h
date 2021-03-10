@@ -1,4 +1,5 @@
 #include "../instr/pseudo.h"
+#include "../instr/compress.h"
 #include "../instr/compute.h"
 #include "../instr/control.h"
 #include "../instr/ldst.h"

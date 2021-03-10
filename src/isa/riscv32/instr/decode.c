@@ -94,15 +94,27 @@ def_THelper(store) {
 def_THelper(addi_dispatch) {
   if (s->isa.instr.i.rs1 == 0) {
     switch (id_src2->imm) {
-      TAB(0, li_0) TAB(1, li_1)
-      default: TAB(2, li);
+      TAB(0, p_li_0) TAB(1, p_li_1)
+      default: TAB(2, c_li);
     }
   }
-  if (id_src2->imm == 0) return table_mv(s);
+  if (id_src2->imm == 0) return table_c_mv(s);
   return table_addi(s);
 }
 
+def_THelper(op_imm_c) {
+  if (s->isa.instr.r.funct7 == 32) {
+    switch (s->isa.instr.r.funct3) { TAB(5, c_srai) }
+  }
+  switch (s->isa.instr.i.funct3) {
+    TAB(0, c_addi)  TAB(1, c_slli)  TAB(2, slti) TAB(3, sltui)
+    TAB(4, xori)  TAB(5, c_srli)  TAB(6, ori)  TAB(7, c_andi)
+  }
+  return EXEC_ID_inv;
+}
+
 def_THelper(op_imm) {
+  if (s->isa.instr.i.rd == s->isa.instr.i.rs1) return table_op_imm_c(s);
   if (s->isa.instr.r.funct7 == 32) {
     switch (s->isa.instr.r.funct3) { TAB(5, srai) }
   }
@@ -115,6 +127,11 @@ def_THelper(op_imm) {
 
 def_THelper(op) {
   if (s->isa.instr.r.funct7 == 32) {
+    if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
+      switch (s->isa.instr.r.funct3) {
+        TAB(0, c_sub)
+      }
+    }
     switch (s->isa.instr.r.funct3) {
       TAB(0, sub) TAB(5, sra)
     }
@@ -122,6 +139,15 @@ def_THelper(op) {
   }
 #define pair(x, y) (((x) << 3) | (y))
   int index = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
+  if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
+    switch (index) {
+      TAB(pair(0, 0), c_add)
+      TAB(pair(0, 4), c_xor)
+      TAB(pair(0, 6), c_or)
+      TAB(pair(0, 7), c_and)
+    }
+  }
+
   switch (index) {
     TAB(pair(0, 0), add)  TAB(pair(0, 1), sll)  TAB(pair(0, 2), slt)  TAB(pair(0, 3), sltu)
     TAB(pair(0, 4), xor)  TAB(pair(0, 5), srl)  TAB(pair(0, 6), or)   TAB(pair(0, 7), and)
@@ -134,13 +160,13 @@ def_THelper(op) {
 def_THelper(branch) {
   if (s->isa.instr.r.rs2 == 0) {
     switch (s->isa.instr.i.funct3) {
-      TAB(0, beqz)  TAB(1, bnez)
-      TAB(4, bltz)  TAB(5, bgez)
+      TAB(0, c_beqz)  TAB(1, c_bnez)
+      TAB(4, p_bltz)  TAB(5, p_bgez)
     }
   }
   if (s->isa.instr.r.rs1 == 0) {
     switch (s->isa.instr.i.funct3) {
-      TAB(4, bgtz)  TAB(5, blez)
+      TAB(4, p_bgtz)  TAB(5, p_blez)
     }
   }
   switch (s->isa.instr.i.funct3) {
@@ -166,7 +192,7 @@ def_THelper(system) {
 
 def_THelper(jal_dispatch) {
   switch (s->isa.instr.j.rd) {
-    TAB(0, j) TAB(1, jal_ra)
+    TAB(0, c_j) TAB(1, c_jal)
     default: TAB(2, jal)
   }
 }
@@ -174,10 +200,10 @@ def_THelper(jal_dispatch) {
 def_THelper(jalr_dispatch) {
   if (s->isa.instr.i.rd != 0) return table_jalr(s);
   else if (id_src2->imm == 0) {
-    if (s->isa.instr.i.rs1 == 1) return table_ret(s);
-    else return table_jr(s);
+    if (s->isa.instr.i.rs1 == 1) return table_p_ret(s);
+    else return table_c_jr(s);
   }
-  return table_jr_imm(s);
+  return table_p_jr_imm(s);
 }
 
 def_THelper(main) {
@@ -201,16 +227,16 @@ int isa_fetch_decode(Decode *s) {
 
   s->type = INSTR_TYPE_N;
   switch (idx) {
-    case EXEC_ID_j: case EXEC_ID_jal_ra: case EXEC_ID_jal:
+    case EXEC_ID_c_j: case EXEC_ID_c_jal: case EXEC_ID_jal:
       s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
-    case EXEC_ID_beqz: case EXEC_ID_bnez: case EXEC_ID_bltz: case EXEC_ID_bgez:
-    case EXEC_ID_blez: case EXEC_ID_bgtz:
+    case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
+    case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
-    case EXEC_ID_ret: case EXEC_ID_jr: case EXEC_ID_jr_imm: case EXEC_ID_jalr:
+    case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_p_jr_imm: case EXEC_ID_jalr:
       s->type = INSTR_TYPE_I;
   }
 

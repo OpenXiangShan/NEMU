@@ -1,65 +1,64 @@
-def_EHelper(li_0) {
-  rtl_li(s, ddest, 0);
-}
+// standard pseudo instructions
+// See Chapter 25 "RISC-V Assembly Programmer's Handbook" in the RISC-V ISA manual
+//
+// The following pseudo instructions are excluded
+// (1) not present in RV32
+//       negw   sext.w
+// (2) seem not frequently present during execution
+//       nop    not    neg
+//       seqz   snez   sltz   sgtz
+//       jalr(rs)
+//       [[all CSR instructions]]
+// (3) only expansion without optimization
+//       la
+//       l{b|h|w|d} symbol
+//       s{b|h|w|d} symbol
+//       bgt    ble    bgtu   bleu
+//       call   tail
+//       fence
+// (4) still not considered
+//       fmv.s  fabs.s fneg.s
+//       fmv.d  fabs.d fneg.d
+//       fl{w|d} symbol
+//       fs{w|d} symbol
+// (5) already provided in RVC
+//       j      jal(ra)
+//       beqz   bnez
+//       li     mv
 
-def_EHelper(li_1) {
-  rtl_li(s, ddest, 1);
-}
-
-def_EHelper(li) {
-  rtl_li(s, ddest, id_src2->imm);
-}
-
-def_EHelper(mv) {
-  rtl_mv(s, ddest, dsrc1);
-}
-
-def_EHelper(beqz) {
-  rtl_jrelop(s, RELOP_EQ, dsrc1, rz, id_dest->imm);
-}
-
-def_EHelper(bnez) {
-  rtl_jrelop(s, RELOP_NE, dsrc1, rz, id_dest->imm);
-}
-
-def_EHelper(blez) {
+def_EHelper(p_blez) {
   rtl_jrelop(s, RELOP_GE, rz, dsrc2, id_dest->imm);
 }
 
-def_EHelper(bgtz) {
+def_EHelper(p_bgtz) {
   rtl_jrelop(s, RELOP_LT, rz, dsrc2, id_dest->imm);
 }
 
-def_EHelper(bltz) {
+def_EHelper(p_bltz) {
   rtl_jrelop(s, RELOP_LT, dsrc1, rz, id_dest->imm);
 }
 
-def_EHelper(bgez) {
+def_EHelper(p_bgez) {
   rtl_jrelop(s, RELOP_GE, dsrc1, rz, id_dest->imm);
 }
 
-def_EHelper(j) {
-  rtl_j(s, id_src1->imm);
-}
-
-def_EHelper(jal_ra) {
-  rtl_li(s, &cpu.gpr[1]._32, id_src2->imm);
-  rtl_j(s, id_src1->imm);
-}
-
-def_EHelper(ret) {
+def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, &cpu.gpr[1]._32);
 }
 
-def_EHelper(jr) {
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  rtl_jr(s, dsrc1);
+// non-standard pseudo instructions
+
+def_EHelper(p_li_0) {
+  rtl_li(s, ddest, 0);
 }
 
-def_EHelper(jr_imm) {
+def_EHelper(p_li_1) {
+  rtl_li(s, ddest, 1);
+}
+
+def_EHelper(p_jr_imm) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
