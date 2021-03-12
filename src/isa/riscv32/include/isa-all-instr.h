@@ -4,7 +4,8 @@
 #define INSTR_NULLARY(f) \
   f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma) f(p_ret)
 #define INSTR_UNARY(f) \
-  f(p_li_0) f(p_li_1)
+  f(p_li_0) f(p_li_1) \
+  f(p_inc) f(p_dec)
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
   f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) \

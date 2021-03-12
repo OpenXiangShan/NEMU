@@ -57,3 +57,11 @@ def_EHelper(p_li_0) {
 def_EHelper(p_li_1) {
   rtl_li(s, ddest, 1);
 }
+
+def_EHelper(p_inc) {
+  rtl_addi(s, ddest, ddest, 1);
+}
+
+def_EHelper(p_dec) {
+  rtl_subi(s, ddest, ddest, 1);
+}

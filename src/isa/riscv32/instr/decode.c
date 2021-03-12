@@ -91,15 +91,24 @@ def_THelper(store) {
   return EXEC_ID_inv;
 }
 
+def_THelper(c_addi_dispatch) {
+  if (id_src2->imm == 1) return table_p_inc(s);
+  if (id_src2->imm == -1u) return table_p_dec(s);
+  return table_c_addi(s);
+}
+
 def_THelper(addi_dispatch) {
   if (s->isa.instr.i.rs1 == 0) {
     switch (id_src2->imm) {
       TAB(0, p_li_0) TAB(1, p_li_1)
       default: TAB(2, c_li);
     }
+  } else {
+    switch (id_src2->imm) {
+      TAB(0, c_mv)
+      default: TAB(2, addi);
+    }
   }
-  if (id_src2->imm == 0) return table_c_mv(s);
-  return table_addi(s);
 }
 
 def_THelper(op_imm_c) {
@@ -107,7 +116,7 @@ def_THelper(op_imm_c) {
     switch (s->isa.instr.r.funct3) { TAB(5, c_srai) }
   }
   switch (s->isa.instr.i.funct3) {
-    TAB(0, c_addi)  TAB(1, c_slli)  TAB(2, slti) TAB(3, sltui)
+    TAB(0, c_addi_dispatch)  TAB(1, c_slli)  TAB(2, slti) TAB(3, sltui)
     TAB(4, xori)  TAB(5, c_srli)  TAB(6, ori)  TAB(7, c_andi)
   }
   return EXEC_ID_inv;
