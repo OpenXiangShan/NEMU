@@ -57,10 +57,3 @@ def_EHelper(p_li_0) {
 def_EHelper(p_li_1) {
   rtl_li(s, ddest, 1);
 }
-
-def_EHelper(p_jr_imm) {
-  rtl_addi(s, s0, dsrc1, id_src2->imm);
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  rtl_jr(s, s0);
-}
