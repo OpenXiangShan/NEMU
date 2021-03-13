@@ -1,4 +1,4 @@
-ifeq ($(wildcard $(NEMU_HOME)/configs/pa_defconfig),)
+ifeq ($(wildcard $(NEMU_HOME)/src/nemu-main.c),)
   $(error NEMU_HOME=$(NEMU_HOME) is not a NEMU repo)
 endif
 
