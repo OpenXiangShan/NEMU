@@ -97,7 +97,7 @@ def_THelper(li_dispatch) {
 }
 
 def_THelper(addi_dispatch) {
-  if (s->isa.instr.i.rs1 == 0) return table_c_li(s);
+  if (s->isa.instr.i.rs1 == 0) return table_li_dispatch(s);
   if (id_src2->imm == 0) return table_c_mv(s);
   return table_addi(s);
 }
@@ -460,7 +460,25 @@ def_THelper(store) {
   return EXEC_ID_inv;
 }
 
+def_THelper(c_addi_dispatch) {
+  if (id_src2->imm == 1) return table_p_inc(s);
+  if (id_src2->imm == -1ul) return table_p_dec(s);
+  return table_c_addi(s);
+}
+
+def_THelper(op_imm_c) {
+  if ((s->isa.instr.r.funct7 & ~0x1) == 32) {
+    switch (s->isa.instr.r.funct3) { TAB(5, c_srai) }
+  }
+  switch (s->isa.instr.i.funct3) {
+    TAB(0, c_addi_dispatch)  TAB(1, c_slli)  TAB(2, slti) TAB(3, sltui)
+    TAB(4, xori)  TAB(5, c_srli)  TAB(6, ori)  TAB(7, c_andi)
+  }
+  return EXEC_ID_inv;
+};
+
 def_THelper(op_imm) {
+  if (s->isa.instr.i.rd == s->isa.instr.i.rs1) return table_op_imm_c(s);
   if ((s->isa.instr.r.funct7 & ~0x1) == 32) {
     switch (s->isa.instr.r.funct3) { TAB(5, srai) }
   }
@@ -471,21 +489,43 @@ def_THelper(op_imm) {
   return EXEC_ID_inv;
 };
 
-def_THelper(op_imm32) {
+def_THelper(addiw_dispatch) {
+  if (id_src2->imm == 0) return table_p_sext_w(s);
+  return table_addiw(s);
+}
+
+def_THelper(c_addiw_dispatch) {
+  return table_c_addiw(s);
+}
+
+def_THelper(op_imm32_c) {
   if (s->isa.instr.r.funct7 == 32) {
     switch (s->isa.instr.r.funct3) { TAB(5, sraiw) }
   }
-  if (s->isa.instr.i.funct3 == 0 && id_src2->imm == 0) {
-    return table_p_sext_w(s);
+  switch (s->isa.instr.i.funct3) {
+    TAB(0, c_addiw_dispatch) TAB(1, slliw) TAB(5, srliw)
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(op_imm32) {
+  if (s->isa.instr.i.rd == s->isa.instr.i.rs1) return table_op_imm32_c(s);
+  if (s->isa.instr.r.funct7 == 32) {
+    switch (s->isa.instr.r.funct3) { TAB(5, sraiw) }
   }
   switch (s->isa.instr.i.funct3) {
-    TAB(0, addiw) TAB(1, slliw) TAB(5, srliw)
+    TAB(0, addiw_dispatch) TAB(1, slliw) TAB(5, srliw)
   }
   return EXEC_ID_inv;
 }
 
 def_THelper(op) {
   if (s->isa.instr.r.funct7 == 32) {
+    if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
+      switch (s->isa.instr.r.funct3) {
+        TAB(0, c_sub)
+      }
+    }
     switch (s->isa.instr.r.funct3) {
       TAB(0, sub) TAB(5, sra)
     }
@@ -493,6 +533,14 @@ def_THelper(op) {
   }
 #define pair(x, y) (((x) << 3) | (y))
   int index = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
+  if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
+    switch (index) {
+      TAB(pair(0, 0), c_add)
+      TAB(pair(0, 4), c_xor)
+      TAB(pair(0, 6), c_or)
+      TAB(pair(0, 7), c_and)
+    }
+  }
   switch (index) {
     TAB(pair(0, 0), add)  TAB(pair(0, 1), sll)  TAB(pair(0, 2), slt)  TAB(pair(0, 3), sltu)
     TAB(pair(0, 4), xor)  TAB(pair(0, 5), srl)  TAB(pair(0, 6), or)   TAB(pair(0, 7), and)
@@ -504,12 +552,22 @@ def_THelper(op) {
 
 def_THelper(op32) {
   if (s->isa.instr.r.funct7 == 32) {
+    if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
+      switch (s->isa.instr.r.funct3) {
+        TAB(0, c_subw)
+      }
+    }
     switch (s->isa.instr.r.funct3) {
       TAB(0, subw) TAB(5, sraw)
     }
     return EXEC_ID_inv;
   }
   int index = pair(s->isa.instr.r.funct7 & 1, s->isa.instr.r.funct3);
+  if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
+    switch (index) {
+      TAB(pair(0, 0), c_addw)
+    }
+  }
   switch (index) {
     TAB(pair(0, 0), addw) TAB(pair(0, 1), sllw)
                           TAB(pair(0, 5), srlw)
@@ -563,12 +621,11 @@ def_THelper(jal_dispatch) {
 }
 
 def_THelper(jalr_dispatch) {
-  if (s->isa.instr.i.rd != 0) return table_jalr(s);
-  else if (id_src2->imm == 0) {
+  if (s->isa.instr.i.rd == 0  && id_src2->imm == 0) {
     if (s->isa.instr.i.rs1 == 1) return table_p_ret(s);
     else return table_c_jr(s);
   }
-  return table_p_jr_imm(s);
+  return table_jalr(s);
 }
 
 #if 0
@@ -687,7 +744,7 @@ def_THelper(rvc) {
   switch (rvc_opcode) {
     IDTAB(000, C_ADDI4SPN, addi) /*IDTABW(001, C_FLD, fp_ld, 8)*/ IDTAB(002, C_LW, lw)    IDTAB(003, C_LD, ld)
                                  /*IDTABW(005, C_FSD, fp_st, 8)*/ IDTAB(006, C_SW, sw)    IDTAB(007, C_SD, sd)
-    IDTAB(010, CI_simm, c_addi)  IDTAB(011, CI_simm, c_addiw)  IDTAB(012, C_LI, li_dispatch)     TAB  (013, lui_addi16sp)
+    IDTAB(010, CI_simm, c_addi_dispatch)  IDTAB(011, CI_simm, c_addiw_dispatch)  IDTAB(012, C_LI, li_dispatch)     TAB  (013, lui_addi16sp)
     TAB  (014, misc_alu)         IDTAB(015, CJ, c_j)           IDTAB(016, CB, c_beqz)     IDTAB(017, CB, c_bnez)
     IDTAB(020, CI_uimm, c_slli)  /*IDTABW(021, C_FLDSP, fp_ld, 8)*/ IDTAB(022, C_LWSP, lw)IDTAB(023, C_LDSP, ld)
     TAB  (024, misc)             /*IDTABW(025, C_FSDSP, fp_st, 8)*/ IDTAB(026, C_SWSP, sw)IDTAB(027, C_SDSP, sd)
@@ -740,7 +797,7 @@ rvc: idx = table_rvc(s);
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
-    case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_p_jr_imm: case EXEC_ID_jalr:
+    case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
       s->type = INSTR_TYPE_I;
   }
 

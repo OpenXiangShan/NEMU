@@ -21,6 +21,7 @@
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
   f(c_li) f(c_addi) f(c_slli) f(c_srli) f(c_srai) f(c_andi) f(c_addiw) \
   f(c_add) f(c_and) f(c_or) f(c_xor) f(c_sub) f(c_addw) f(c_subw) \
-  f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) f(p_jr_imm)
+  f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
+  f(p_inc) f(p_dec)
 
 def_all_EXEC_ID();
