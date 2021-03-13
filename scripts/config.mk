@@ -35,6 +35,7 @@ savedefconfig: $(CONF)
 
 %defconfig: $(CONF)
 	$(Q)$< $(silent) --defconfig=configs/$@ $(Kconfig)
+	$(Q)$< $(silent) --syncconfig $(Kconfig)
 
 .PHONY: menuconfig savedefconfig defconfig
 
