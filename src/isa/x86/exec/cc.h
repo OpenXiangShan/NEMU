@@ -37,7 +37,7 @@ static inline const char* get_cc_name(int subcode) {
   return cc_name[subcode];
 }
 
-static inline void rtl_setcc(DecodeExecState *s, rtlreg_t* dest, uint32_t subcode) {
+static inline void rtl_setcc(Decode *s, rtlreg_t* dest, uint32_t subcode) {
   uint32_t invert = subcode & 0x1;
 
   // TODO: Query EFLAGS to determine whether the condition code is satisfied.

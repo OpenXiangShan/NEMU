@@ -74,17 +74,17 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   //if (!pte.access || (pte.dirty == 0 && is_write)) {
   //  pte.access = 1;
   //  pte.dirty |= is_write;
-  //  paddr_write(pt_base + addr->pt_idx * 4, pte.val, 4);
+  //  paddr_write(pt_base + addr->pt_idx * 4, 4, pte.val);
   //}
 
   return pte.ppn << 12;
 }
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return ptw(vaddr, type) | MEM_RET_OK;
 }
 #else
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return MEM_RET_FAIL;
 }
 #endif

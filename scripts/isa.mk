@@ -4,4 +4,4 @@ ifeq ($(filter $(ISAS), $(ISA)), ) # ISA must be valid
 $(error Invalid ISA=$(ISA). Supported: $(ISAS))
 endif
 NAME := $(ISA)-$(NAME)
-CFLAGS += -D__ISA_$(ISA)__
+CFLAGS += -D__ISA_$(ISA)__=1

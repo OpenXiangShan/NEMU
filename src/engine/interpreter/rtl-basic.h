@@ -102,27 +102,20 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 // memory
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
-#ifdef __ICS_EXPORT
   *dest = vaddr_read(*addr + offset, len);
-#else
-  word_t val = vaddr_read(*addr + offset, len);
-  if (!isa_has_mem_exception()) *dest = val;
-#endif
 }
 
 static inline def_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* src1, int len) {
-  vaddr_write(*addr + offset, *src1, len);
+  vaddr_write(*addr + offset, len, *src1);
 }
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
   word_t val = vaddr_read(*addr + offset, len);
-#ifndef __ICS_EXPORT
-  if (isa_has_mem_exception()) return;
-#endif
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
     case 2: *dest = (sword_t)(int16_t)val; return;
+    IFDEF(CONFIG_ISA64, case 8: *dest = (sword_t)(int64_t)val; return);
     default: assert(0);
   }
 }
@@ -132,6 +125,7 @@ static inline def_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
     case 4: *dest = *(uint32_t *)addr; return;
     case 1: *dest = *( uint8_t *)addr; return;
     case 2: *dest = *(uint16_t *)addr; return;
+    IFDEF(CONFIG_ISA64, case 8: *dest = *(uint64_t *)addr; return);
     default: assert(0);
   }
 }
@@ -141,6 +135,7 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
     case 4: *(uint32_t *)addr = *src1; return;
     case 1: *( uint8_t *)addr = *src1; return;
     case 2: *(uint16_t *)addr = *src1; return;
+    IFDEF(CONFIG_ISA64, case 8: *(uint64_t *)addr = *src1; return);
     default: assert(0);
   }
 }
@@ -148,12 +143,10 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline def_rtl(j, vaddr_t target) {
-//  s->npc = target;
   cpu.pc = target;
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
-//  s->npc = *target;
   cpu.pc = *target;
 }
 

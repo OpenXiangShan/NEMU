@@ -3,10 +3,6 @@
 
 #include <cpu/decode.h>
 
-#define id_src1 (&s->src1)
-#define id_src2 (&s->src2)
-#define id_dest (&s->dest)
-
 extern const rtlreg_t rzero;
 extern rtlreg_t tmp_reg[4];
 
@@ -19,7 +15,7 @@ extern rtlreg_t tmp_reg[4];
 #define t0    (&tmp_reg[3])
 #define rz (&rzero)
 
-#define def_rtl(name, ...) void concat(rtl_, name)(DecodeExecState *s, __VA_ARGS__)
+#define def_rtl(name, ...) void concat(rtl_, name)(Decode *s, __VA_ARGS__)
 
 // relation operation
 enum {

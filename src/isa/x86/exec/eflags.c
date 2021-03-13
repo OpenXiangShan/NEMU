@@ -31,13 +31,13 @@ enum {
 #define ENCODE(flag) | (cpu.flag << (concat(EFLAGS_BIT_, flag)))
 #define DECODE(flag) cpu.flag = (val >> (concat(EFLAGS_BIT_, flag))) & 1;
 
-void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest) {
+void rtl_compute_eflags(Decode *s, rtlreg_t *dest) {
   rtl_mv(s, dest, rz);
   MAP(_EFLAGS, RTL_ENCODE)
   rtl_ori(s, dest, dest, 0x2);
 }
 
-void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src) {
+void rtl_set_eflags(Decode *s, const rtlreg_t *src) {
   MAP(_EFLAGS, RTL_DECODE)
 }
 
@@ -57,7 +57,7 @@ void difftest_fix_eflags(void *arg) {
 #define EFLAGS_FIX_MASK (EFLAGS_MASK_ID | EFLAGS_MASK_AC | EFLAGS_MASK_AF)
   uint32_t esp = (uintptr_t)arg;
   if (cpu.cr0.paging) {
-    paddr_t pg_base = isa_mmu_translate(esp, MEM_TYPE_WRITE, 4);
+    paddr_t pg_base = isa_mmu_translate(esp, 4, MEM_TYPE_WRITE);
     assert((pg_base & PAGE_MASK) == MEM_RET_OK);
     esp = pg_base | (esp & PAGE_MASK);
   }

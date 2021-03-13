@@ -1,9 +1,9 @@
 #include <cpu/exec.h>
 #include "rtl.h"
 
-void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val);
+void read_ModR_M(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val);
 
-static inline void operand_reg(DecodeExecState *s, Operand *op, bool load_val, int r, int width) {
+static inline void operand_reg(Decode *s, Operand *op, bool load_val, int r, int width) {
   op->type = OP_TYPE_REG;
   op->reg = r;
 
@@ -18,7 +18,7 @@ static inline void operand_reg(DecodeExecState *s, Operand *op, bool load_val, i
   print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
-static inline void operand_imm(DecodeExecState *s, Operand *op, bool load_val, word_t imm, int width) {
+static inline void operand_imm(Decode *s, Operand *op, bool load_val, word_t imm, int width) {
   op->type = OP_TYPE_IMM;
   op->imm = imm;
   if (load_val) {
@@ -29,7 +29,7 @@ static inline void operand_imm(DecodeExecState *s, Operand *op, bool load_val, w
 }
 
 // decode operand helper
-#define def_DopHelper(name) void concat(decode_op_, name) (DecodeExecState *s, Operand *op, bool load_val)
+#define def_DopHelper(name) void concat(decode_op_, name) (Decode *s, Operand *op, bool load_val)
 
 /* Refer to Appendix A in i386 manual for the explanations of these abbreviations */
 
@@ -88,7 +88,7 @@ static inline def_DopHelper(r) {
  * Rd
  * Sw
  */
-static inline void operand_rm(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+static inline void operand_rm(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
   read_ModR_M(s, rm, load_rm_val, reg, load_reg_val);
 }
 
@@ -111,7 +111,7 @@ static inline def_DopHelper(O) {
 static inline def_DHelper(G2E) {
   if (s->opcode != 0x38 && s->opcode != 0x39 && // cmp
       s->opcode != 0x84 && s->opcode != 0x85) { // test
-    IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+    IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   }
   operand_rm(s, id_dest, true, id_src1, true);
 }
@@ -129,7 +129,7 @@ static inline def_DHelper(bit_G2E) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
     s->isa.mbase = &s->isa.mbr;
     if (s->opcode != 0x1a3) { // bt
-      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
     }
     rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
   }
@@ -172,7 +172,7 @@ static inline def_DHelper(I_E2G) {
  * Ev <- Iv
  */
 static inline def_DHelper(I2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   decode_op_I(s, id_src1, true);
 }
@@ -227,7 +227,7 @@ static inline def_DHelper(test_I) {
 
 static inline def_DHelper(SI2E) {
   assert(id_dest->width == 2 || id_dest->width == 4);
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
@@ -249,7 +249,7 @@ static inline def_DHelper(gp2_1_E) {
 }
 
 static inline def_DHelper(gp2_cl2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -257,7 +257,7 @@ static inline def_DHelper(gp2_cl2E) {
 }
 
 static inline def_DHelper(gp2_Ib2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, NULL, false);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -266,7 +266,7 @@ static inline def_DHelper(gp2_Ib2E) {
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -275,7 +275,7 @@ static inline def_DHelper(Ib_G2E) {
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline def_DHelper(cl_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -284,7 +284,7 @@ static inline def_DHelper(cl_G2E) {
 
 // for cmpxchg
 static inline def_DHelper(a_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   operand_reg(s, id_src1, true, R_EAX, 4);
 }
@@ -375,7 +375,7 @@ static inline def_DHelper(Ib2xmm) {
 }
 #endif
 
-static inline void operand_write(DecodeExecState *s, Operand *op, rtlreg_t* src) {
+static inline void operand_write(Decode *s, Operand *op, rtlreg_t* src) {
   if (op->type == OP_TYPE_REG) { rtl_sr(s, op->reg, src, op->width); }
   else if (op->type == OP_TYPE_MEM) { rtl_sm(s, s->isa.mbase, s->isa.moff, src, op->width); }
   else { assert(0); }

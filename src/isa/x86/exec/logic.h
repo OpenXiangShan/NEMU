@@ -2,7 +2,7 @@
 
 #ifndef __ICS_EXPORT
 // dest <- and result
-static inline void and_internal(DecodeExecState *s) {
+static inline void and_internal(Decode *s) {
   rtl_and(s, s0, ddest, dsrc1);
   rtl_update_ZFSF(s, s0, id_dest->width);
   rtl_mv(s, &cpu.CF, rz);

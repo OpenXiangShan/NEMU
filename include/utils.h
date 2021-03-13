@@ -5,7 +5,7 @@
 
 // ----------- state -----------
 
-enum { NEMU_STOP, NEMU_RUNNING, NEMU_END, NEMU_ABORT, NEMU_QUIT };
+enum { NEMU_RUNNING, NEMU_STOP, NEMU_END, NEMU_ABORT, NEMU_QUIT };
 
 typedef struct {
   int state;
@@ -15,13 +15,9 @@ typedef struct {
 
 extern NEMUState nemu_state;
 
-// ----------- statistic -----------
-
-extern uint64_t g_timer;
-extern uint64_t g_nr_guest_instr;
+// ----------- timer -----------
 
 uint64_t get_time();
-void monitor_statistic();
 
 // ----------- log -----------
 
@@ -42,7 +38,8 @@ void monitor_statistic();
     log_write(__VA_ARGS__); \
   } while (0)
 
-void strcatf(char *buf, const char *fmt, ...);
+extern char log_bytebuf[80];
+extern char log_asmbuf[80];
 
 // ----------- expr -----------
 

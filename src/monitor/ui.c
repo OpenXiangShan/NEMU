@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <utils.h>
+#include <cpu/cpu.h>
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
@@ -10,7 +11,6 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-void cpu_exec(uint64_t);
 int is_batch_mode();
 int set_watchpoint(char *e);
 bool delete_watchpoint(int NO);

@@ -6,7 +6,7 @@
 #include <isa/riscv64.h>
 #include "../tran.h"
 
-uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
+uint32_t rtlreg2varidx(Decode *s, const rtlreg_t* dest) {
   rtlreg_t* gpr_start = (rtlreg_t *)cpu.gpr;
   rtlreg_t* gpr_end = (void *)gpr_start + sizeof(cpu.gpr);
 
@@ -39,7 +39,7 @@ uint32_t rtlreg2varidx(DecodeExecState *s, const rtlreg_t* dest) {
   panic("bad ptr = %p", dest);
 }
 
-int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t* r) {
+int rtlreg_is_zero(Decode *s, const rtlreg_t* r) {
   return (r == rz);
 }
 

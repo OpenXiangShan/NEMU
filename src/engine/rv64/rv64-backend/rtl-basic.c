@@ -4,17 +4,17 @@
 #include "../spill.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
-uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t* dest);
-uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t* src);
-int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t *r);
+uint32_t dest2rvidx(Decode *s, const rtlreg_t* dest);
+uint32_t src2rvidx(Decode *s, const rtlreg_t* src);
+int rtlreg_is_zero(Decode *s, const rtlreg_t *r);
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
   // mask32 is set during initialization
-  IFUNDEF(CONFIG_ISA64, rv64_and(rd, rs, mask32));
+  IFNDEF(CONFIG_ISA64, rv64_and(rd, rs, mask32));
 }
 
 static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
-  IFUNDEF(CONFIG_ISA64, rv64_addw(rd, rs, x0));
+  IFNDEF(CONFIG_ISA64, rv64_addw(rd, rs, x0));
 }
 
 static inline sword_t get_imm_hi(const sword_t imm) {

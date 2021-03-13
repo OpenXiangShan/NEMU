@@ -1,4 +1,4 @@
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
@@ -51,7 +51,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 }
 
-void query_intr() {
+void isa_query_intr() {
   word_t intr_vec = mie->val & mip->val;
   if (!intr_vec) return;
 

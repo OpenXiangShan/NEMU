@@ -10,7 +10,8 @@ DIRS-y = src/cpu src/memory src/monitor src/utils
 remove_quote = $(patsubst "%",%,$(1))
 
 ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
-CFLAGS += -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
+CFLAGS += -D__ISA__=$(ISA)
+INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
 
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
@@ -20,7 +21,7 @@ DIRS-y += src/engine/$(ENGINE)
 DIRS-$(CONFIG_MODE_USER) += src/user
 
 SRCS-y += src/main.c
-SRCS-$(CONFIG_DEVICE) += src/device/io/port-io.c src/device/io/map.c src/device/io/mmio.c
+DIRS-$(CONFIG_DEVICE) += src/device/io
 SRCS-$(CONFIG_DEVICE) += src/device/device.c src/device/alarm.c src/device/intr.c
 SRCS-$(CONFIG_HAS_SERIAL) += src/device/serial.c
 SRCS-$(CONFIG_HAS_TIMER) += src/device/timer.c
@@ -38,13 +39,14 @@ CC = $(call remove_quote,$(CONFIG_CC))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
+CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
-LDFLAGS += -lSDL2 -lreadline -ldl
+LDFLAGS += -lSDL2 -lreadline -ldl -pie
 else
 SHARE = 1
 endif

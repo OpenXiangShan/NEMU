@@ -10,7 +10,7 @@
 #include <linux/kvm.h>
 
 uint32_t pio_read(ioaddr_t addr, int len);
-void pio_write(ioaddr_t addr, uint32_t data, int len);
+void pio_write(ioaddr_t addr, int len, uint32_t data);
 
 /* CR0 bits */
 #define CR0_PE 1u
@@ -124,7 +124,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           struct kvm_run *p = vcpu->kvm_run;
           uint8_t *p_data = (uint8_t *)p + p->io.data_offset;
           if (p->io.direction == KVM_EXIT_IO_OUT) {
-            pio_write(p->io.port, *(uint32_t *)p_data, p->io.size);
+            pio_write(p->io.port, p->io.size, *(uint32_t *)p_data);
           }
           else {
             // FIXME
@@ -137,7 +137,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           struct kvm_run *p = vcpu->kvm_run;
           if (p->mmio.is_write) {
             uint64_t data = *(uint64_t *)p->mmio.data;
-            paddr_write(p->mmio.phys_addr, data, p->mmio.len);
+            paddr_write(p->mmio.phys_addr, p->mmio.len, data);
           } else {
             uint64_t data = paddr_read(p->mmio.phys_addr, p->mmio.len);
             memcpy(p->mmio.data, &data, p->mmio.len);

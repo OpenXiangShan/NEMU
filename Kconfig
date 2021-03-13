@@ -101,6 +101,10 @@ config CC_DEBUG
   bool "Enable debug information"
   default n
 
+config CC_ASAN
+  bool "Enable address sanitizer"
+  default n
+
 config SHARE
   bool "Build shared library"
   default n
@@ -170,4 +174,8 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+
+config PERF_OPT
+  bool "Performance optimization"
+  default y
 endmenu

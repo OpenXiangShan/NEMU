@@ -2,6 +2,8 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
+void update_mmu_state();
+
 static word_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
@@ -81,6 +83,10 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
     mstatus->sd = (mstatus->fs == 3);
   }
+
+  if (dest == (void *)mstatus || dest == (void *)satp) {
+    update_mmu_state();
+  }
 }
 
 word_t csrid_read(uint32_t csrid) {
@@ -109,6 +115,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           : 1);
       cpu.mode = mstatus->mpp;
       mstatus->mpp = MODE_U;
+      update_mmu_state();
       return mepc->val;
       break;
     default: panic("Unsupported privilige operation = %d", op);

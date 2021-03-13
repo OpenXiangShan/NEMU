@@ -25,7 +25,7 @@ typedef union {
   uint8_t val;
 } SIB;
 
-static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
+static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 
   sword_t disp = 0;
@@ -63,7 +63,7 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
     s->isa.mbase = &s->isa.mbr;
   }
-  if (ISUNDEF(__PA__) && s->isa.sreg_base != NULL) {
+  if (ISNDEF(__PA__) && s->isa.sreg_base != NULL) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s->isa.sreg_base);
     s->isa.mbase = &s->isa.mbr;
   }
@@ -101,7 +101,7 @@ static inline void load_addr(DecodeExecState *s, ModR_M *m, Operand *rm) {
   rm->type = OP_TYPE_MEM;
 }
 
-void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
+void read_ModR_M(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
   ModR_M m;
   m.val = instr_fetch(&s->seq_pc, 1);
   s->isa.ext_opcode = m.opcode;
@@ -111,7 +111,7 @@ void read_ModR_M(DecodeExecState *s, Operand *rm, bool load_rm_val, Operand *reg
     if (((s->opcode == 0x80 || s->opcode == 0x81 || s->opcode == 0x83) && s->isa.ext_opcode == 7) ||
         (s->opcode == 0x1ba && s->isa.ext_opcode == 4)) {
       // fix with cmp and bt, since they do not write memory
-      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFUNDEF(__PA__, cpu.lock = 0));
+      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 0));
     }
     load_addr(s, &m, rm);
     if (load_rm_val) rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, rm->width);

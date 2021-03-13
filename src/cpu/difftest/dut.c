@@ -1,6 +1,7 @@
 #include <dlfcn.h>
 
 #include <isa.h>
+#include <cpu/cpu.h>
 #include <memory/paddr.h>
 #include <utils.h>
 #include <difftest.h>
@@ -98,6 +99,7 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     isa_reg_display();
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
+    longjmp_exec(NEMU_ABORT);
   }
 }
 
@@ -111,8 +113,8 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   if (skip_dut_nr_instr > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == npc) {
-      checkregs(&ref_r, npc);
       skip_dut_nr_instr = 0;
+      checkregs(&ref_r, npc);
       return;
     }
     skip_dut_nr_instr --;

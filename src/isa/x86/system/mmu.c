@@ -80,7 +80,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
 #if !defined(__PA__) || defined(CONFIG_DIFFTEST)
   if (!pte[1].a) {
     pte[1].a = 1;
-    paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
+    paddr_write(p_pte[1], PTE_SIZE, pte[1].val);
     IFDEF(CONFIG_DIFFTEST,
         ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
@@ -88,7 +88,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte[0].a || (!pte[0].d && is_write)) {
     pte[0].a = 1;
     pte[0].d |= is_write;
-    paddr_write(p_pte[0], pte[0].val, PTE_SIZE);
+    paddr_write(p_pte[0], PTE_SIZE, pte[0].val);
     IFDEF(CONFIG_DIFFTEST,
         ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
@@ -101,14 +101,14 @@ bad:
   return MEM_RET_FAIL;
 }
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
   return ptw(vaddr, type);
 }
 #else
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return MEM_RET_FAIL;
 }
 #endif

@@ -134,7 +134,7 @@ void tran_mainloop() {
 
         IFDEF(CONFIG_DEBUG, asm_print(pc, snpc - pc, true));
         if (ISDEF(CONFIG_DIFFTEST) && tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
-        if (ISUNDEF(CONFIG_DIFFTEST) && tran_next_pc != NEXT_PC_SEQ) {
+        if (ISNDEF(CONFIG_DIFFTEST) && tran_next_pc != NEXT_PC_SEQ) {
           tb = malloc(sizeof(TB));
           tb->pc = tb_start;
           tb->nr_instr = trans_buffer_index;
