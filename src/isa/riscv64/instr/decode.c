@@ -798,6 +798,7 @@ rvc: idx = table_rvc(s);
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
+    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:
       s->type = INSTR_TYPE_I;
   }
 
