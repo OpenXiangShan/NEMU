@@ -9,7 +9,8 @@
   f(lui) f(auipc) f(jal) \
   f(ld) f(lw) f(lh) f(lb) f(lwu) f(lhu) f(lbu) f(sd) f(sw) f(sh) f(sb) \
   f(c_j) f(p_jal) f(c_jr) \
-  f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w)
+  f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
+  f(lr_w) f(lr_d)
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
   f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
@@ -22,6 +23,11 @@
   f(c_li) f(c_addi) f(c_slli) f(c_srli) f(c_srai) f(c_andi) f(c_addiw) \
   f(c_add) f(c_and) f(c_or) f(c_xor) f(c_sub) f(c_addw) f(c_subw) \
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
-  f(p_inc) f(p_dec)
+  f(p_inc) f(p_dec) \
+  f(sc_w) f(sc_d) \
+  f(amoadd_w) f(amoswap_w) f(amoxor_w) f(amoor_w) f(amoand_w) \
+  f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
+  f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
+  f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
 
 def_all_EXEC_ID();

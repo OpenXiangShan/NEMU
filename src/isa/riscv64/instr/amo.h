@@ -1,89 +1,73 @@
-#include "../local-include/intr.h"
-
-static inline def_EHelper(lr) {
-  rtl_lm(s, s0, dsrc1, 0, s->width);
-  return_on_mem_ex();
+def_EHelper(lr_w) {
+  rtl_lms(s, ddest, dsrc1, 0, 4);
   cpu.lr_addr = *dsrc1;
-  rtl_sext(s, ddest, s0, s->width);
-
-  print_asm_template3(lr);
 }
 
-static inline def_EHelper(sc) {
+def_EHelper(lr_d) {
+  rtl_lms(s, ddest, dsrc1, 0, 8);
+  cpu.lr_addr = *dsrc1;
+}
+
+def_EHelper(sc_w) {
   // should check overlapping instead of equality
   if (cpu.lr_addr == *dsrc1) {
-    rtl_sm(s, dsrc1, 0, dsrc2, s->width);
-    return_on_mem_ex();
-    rtl_li(s, s0, 0);
+    rtl_sm(s, dsrc1, 0, dsrc2, 4);
+    rtl_li(s, ddest, 0);
   } else {
-    rtl_li(s, s0, 1);
+    rtl_li(s, ddest, 1);
   }
-  rtl_sr(s, id_dest->reg, s0, 0);
-
-  print_asm_template3(sc);
 }
 
-#define amo_body(name, body) { \
-  rtl_lm(s, s0, dsrc1, 0, s->width); \
-  return_on_mem_ex(); \
-  rtl_sext(s, s0, s0, s->width); \
-  body; \
-  rtl_sm(s, dsrc1, 0, s1, s->width); \
-  return_on_mem_ex(); \
-  rtl_sr(s, id_dest->reg, s0, 0); \
-  print_asm_template3(concat(amo, name)); \
+def_EHelper(sc_d) {
+  // should check overlapping instead of equality
+  if (cpu.lr_addr == *dsrc1) {
+    rtl_sm(s, dsrc1, 0, dsrc2, 8);
+    rtl_li(s, ddest, 0);
+  } else {
+    rtl_li(s, ddest, 1);
+  }
 }
 
-static inline def_EHelper(amoswap) {
-  amo_body(swap, {
-      rtl_mv(s, s1, dsrc2); // swap
-  });
-}
+#define def_AMO_EHelper(name, width, body) \
+  def_EHelper(name) { \
+    cpu.amo = true; \
+    rtl_lms(s, s0, dsrc1, 0, width); \
+    body(s, s1, s0, dsrc2); \
+    rtl_sm(s, dsrc1, 0, s1, width); \
+    rtl_mv(s, ddest, s0); \
+    cpu.amo = false; \
+  }
 
-static inline def_EHelper(amoadd) {
-  amo_body(add, {
-      rtl_add(s, s1, s0, dsrc2);
-  });
-}
+#define AMObody_swap(s, res, mdata, rdata) rtl_mv (s, res, rdata)
+#define AMObody_add(s, res, mdata, rdata)  rtl_add(s, res, mdata, rdata)
+#define AMObody_or(s, res, mdata, rdata)   rtl_or (s, res, mdata, rdata)
+#define AMObody_and(s, res, mdata, rdata)  rtl_and(s, res, mdata, rdata)
+#define AMObody_xor(s, res, mdata, rdata)  rtl_xor(s, res, mdata, rdata)
+#define AMObody_maxu(s, res, mdata, rdata) \
+  (*(res) = (*(mdata) > *(rdata) ? *(mdata) : *(rdata)))
+#define AMObody_max(s, res, mdata, rdata) \
+  (*(res) = ((sword_t)*(mdata) > (sword_t)*(rdata) ? *(mdata) : *(rdata)))
+#define AMObody_minu(s, res, mdata, rdata) \
+  (*(res) = (*(mdata) < *(rdata) ? *(mdata) : *(rdata)))
+#define AMObody_min(s, res, mdata, rdata) \
+  (*(res) = ((sword_t)*(mdata) < (sword_t)*(rdata) ? *(mdata) : *(rdata)))
 
-static inline def_EHelper(amoor) {
-  amo_body(or, {
-      rtl_or(s, s1, s0, dsrc2);
-  });
-}
+def_AMO_EHelper(amoswap_w, 4, AMObody_swap)
+def_AMO_EHelper(amoadd_w , 4, AMObody_add)
+def_AMO_EHelper(amoor_w  , 4, AMObody_or)
+def_AMO_EHelper(amoand_w , 4, AMObody_and)
+def_AMO_EHelper(amoxor_w , 4, AMObody_xor)
+def_AMO_EHelper(amomaxu_w, 4, AMObody_maxu)
+def_AMO_EHelper(amomax_w , 4, AMObody_max)
+def_AMO_EHelper(amominu_w, 4, AMObody_minu)
+def_AMO_EHelper(amomin_w , 4, AMObody_min)
 
-static inline def_EHelper(amoand) {
-  amo_body(and, {
-      rtl_and(s, s1, s0, dsrc2);
-  });
-}
-
-static inline def_EHelper(amomaxu) {
-  amo_body(maxu, {
-      *s1 = (*s0 > *dsrc2 ? *s0 : *dsrc2);
-  });
-}
-
-static inline def_EHelper(amomax) {
-  amo_body(max, {
-      *s1 = (((sword_t)*s0) > ((sword_t)*dsrc2) ? *s0 : *dsrc2);
-  });
-}
-
-static inline def_EHelper(amominu) {
-  amo_body(minu, {
-      *s1 = (*s0 < *dsrc2 ? *s0 : *dsrc2);
-  });
-}
-
-static inline def_EHelper(amomin) {
-  amo_body(min, {
-      *s1 = (((sword_t)*s0) < ((sword_t)*dsrc2) ? *s0 : *dsrc2);
-  });
-}
-
-static inline def_EHelper(amoxor) {
-  amo_body(xor, {
-      rtl_xor(s, s1, s0, dsrc2);
-  });
-}
+def_AMO_EHelper(amoswap_d, 8, AMObody_swap)
+def_AMO_EHelper(amoadd_d , 8, AMObody_add)
+def_AMO_EHelper(amoor_d  , 8, AMObody_or)
+def_AMO_EHelper(amoand_d , 8, AMObody_and)
+def_AMO_EHelper(amoxor_d , 8, AMObody_xor)
+def_AMO_EHelper(amomaxu_d, 8, AMObody_maxu)
+def_AMO_EHelper(amomax_d , 8, AMObody_max)
+def_AMO_EHelper(amominu_d, 8, AMObody_minu)
+def_AMO_EHelper(amomin_d , 8, AMObody_min)
