@@ -6,6 +6,7 @@
 #define CLINT_MMIO 0xa2000000
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
+#define TIMEBASE 10000000
 
 static uint64_t *clint_base = NULL;
 
@@ -15,7 +16,8 @@ static inline void update_mtip() {
 
 void clint_intr() {
   if (nemu_state.state == NEMU_RUNNING) {
-    clint_base[CLINT_MTIME] += 0x800;
+    uint64_t interval = TIMEBASE / TIMER_HZ;
+    clint_base[CLINT_MTIME] += interval;
     update_mtip();
   }
 }
