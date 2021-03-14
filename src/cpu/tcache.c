@@ -1,4 +1,5 @@
 #include <cpu/decode.h>
+#include <cpu/tcache.h>
 #include <cpu/cpu.h>
 #include <stdlib.h>
 
@@ -7,7 +8,6 @@
 static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static const void **g_special_exec_table = NULL;
-//static void tcache_full();
 
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   memset(s, 0, sizeof(*s));
@@ -17,7 +17,7 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
 }
 
 static inline Decode* tcache_new(vaddr_t pc) {
-  //if (tc_idx == TCACHE_SIZE) tcache_full();
+  if (tc_idx == TCACHE_SIZE) return NULL;
   assert(tc_idx < TCACHE_SIZE);
   tcache_entry_init(&tcache_pool[tc_idx], pc);
   return &tcache_pool[tc_idx ++];
@@ -51,7 +51,6 @@ static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, Decode *fill) {
     }
     idx = (idx + 1) % BB_INFO_SIZE;
   }
-  panic("tcacbe bb full");
   return NULL;
 }
 
@@ -61,8 +60,6 @@ static struct bbInfo* tcache_bb_find(vaddr_t pc) {
   return tcache_bb_find_slow_path(pc, NULL);
 }
 
-// fetch the decode entry index by jpc, and fill it to
-// the last instruction decode entry in a basic block
 static void tcache_bb_fetch(Decode *this, int is_taken, vaddr_t jpc) {
   struct bbInfo* bb = tcache_bb_find(jpc);
   if (bb != NULL) {
@@ -96,7 +93,13 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     bool already_decode = (bb != NULL);
     if (!already_decode) {
       s = tcache_new(old->pc);
-      tcache_bb_find_slow_path(old->pc, s);
+      if (s == NULL) goto full;
+      struct bbInfo *ret = tcache_bb_find_slow_path(old->pc, s);
+      if (ret == NULL) { // basic block list is full
+full:   save_globals(old);
+        tcache_flush();
+        longjmp_exec(NEMU_EXEC_AGAIN);
+      }
     } else { s = bb->s; }
     if (old->tnext)  { old->tnext->tnext = s; }
     if (old->ntnext) { old->ntnext->ntnext = s; }
@@ -110,6 +113,12 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
   s->idx_in_bb = idx_in_bb ++;
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
+    if (next == NULL) {
+      tcache_flush();
+      Decode *again = tcache_new(s->pc);
+      save_globals(again); // decode this instruction again
+      longjmp_exec(NEMU_EXEC_AGAIN);
+    }
     assert(next == s + 1);
   } else {
     switch (s->type) {
@@ -147,13 +156,3 @@ Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
   ex->EHelper = special_exec_table[1];
   return tcache_new_malloc(reset_vector);
 }
-
-#if 0
-static void tcache_full() {
-  extern Decode *prev_s;
-  vaddr_t thispc = prev_s->pc;
-  tcache_flush();
-  prev_s = tcache_new_malloc(thispc);
-  longjmp_exec(123); // TCACHE_FULL
-}
-#endif
