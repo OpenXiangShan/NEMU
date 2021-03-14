@@ -117,7 +117,7 @@ void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read_internal_with_mmu_state(NULL, addr, len, MEM_TYPE_IFETCH, isa_mmu_state());
+  return vaddr_read_internal_with_mmu_state(NULL, addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
 }
 
 word_t vaddr_read(vaddr_t addr, int len) {
