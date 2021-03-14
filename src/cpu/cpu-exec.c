@@ -53,8 +53,15 @@ void monitor_statistic() {
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
+static word_t ex_cause = 0;
+
 void longjmp_exec(int cause) {
   longjmp(jbuf_exec, cause);
+}
+
+void longjmp_exception(int cause) {
+  ex_cause = cause;
+  longjmp(jbuf_exec, NEMU_EXCEPTION);
 }
 
 int fetch_decode(Decode *s, vaddr_t pc) {
@@ -103,8 +110,9 @@ Decode *prev_s;
 
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
+void tcache_handle_exception(vaddr_t jpc);
 
-static inline void save_globals(Decode *s) {
+void save_globals(Decode *s) {
   prev_s = s;
 }
 
@@ -115,7 +123,7 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
 }
 
 static int execute(int n) {
-  static const void* exec_table[TOTAL_INSTR] = {
+  static const void* exec_table[TOTAL_INSTR + 2] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
   static int init_flag = 0;
@@ -123,8 +131,10 @@ static int execute(int n) {
   int mmu_state = isa_mmu_state();
 
   if (likely(init_flag == 0)) {
-    extern Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector);
-    s = tcache_init(&&nemu_decode, cpu.pc);
+    exec_table[TOTAL_INSTR] = &&nemu_decode;
+    exec_table[TOTAL_INSTR + 1] = &&nemu_exception;
+    extern Decode* tcache_init(const void **speical_exec_table, vaddr_t reset_vector);
+    s = tcache_init(exec_table + TOTAL_INSTR, cpu.pc);
     init_flag = 1;
   }
 
@@ -150,6 +160,10 @@ def_EHelper(nemu_decode) {
   save_globals(s);
   s = tcache_decode(s, exec_table);
   continue;
+}
+
+def_EHelper(nemu_exception) {
+  rtl_j(s, s->jnpc);
 }
 
 end_of_bb:
@@ -215,6 +229,10 @@ void cpu_exec(uint64_t n) {
   int ret;
   if ((ret = setjmp(jbuf_exec))) {
     update_global();
+    if (ret == NEMU_EXCEPTION) {
+      vaddr_t target = raise_intr(ex_cause, prev_s->pc);
+      tcache_handle_exception(target);
+    }
   }
 
   while (nemu_state.state == NEMU_RUNNING && n_remain_total > 0) {

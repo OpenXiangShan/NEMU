@@ -1,17 +1,18 @@
 #include <cpu/decode.h>
+#include <cpu/cpu.h>
 #include <stdlib.h>
 
 #define TCACHE_SIZE (1024 * 8)
 
 static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
-static const void *nemu_decode_helper;
+static const void **g_special_exec_table = NULL;
 //static void tcache_full();
 
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   memset(s, 0, sizeof(*s));
   s->pc = pc;
-  s->EHelper = nemu_decode_helper;
+  s->EHelper = g_special_exec_table[0];
   return s;
 }
 
@@ -131,8 +132,19 @@ void tcache_flush() {
   memset(bb_info, 0, sizeof(bb_info));
 }
 
-Decode* tcache_init(const void *nemu_decode, vaddr_t reset_vector) {
-  nemu_decode_helper = nemu_decode;
+static Decode *ex = NULL;
+
+void tcache_handle_exception(vaddr_t jpc) {
+  ex->jnpc = jpc;
+  tcache_bb_fetch(ex, true, jpc);
+  save_globals(ex);
+  tcache_state = TCACHE_RUNNING;
+}
+
+Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
+  g_special_exec_table = special_exec_table;
+  ex = tcache_new_malloc(0);
+  ex->EHelper = special_exec_table[1];
   return tcache_new_malloc(reset_vector);
 }
 

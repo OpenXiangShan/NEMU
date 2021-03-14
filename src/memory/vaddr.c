@@ -87,33 +87,41 @@ static void vaddr_mmu_write(vaddr_t addr, int len, word_t data) {
 }
 #endif
 
-static word_t vaddr_read_internal_with_mmu_state(vaddr_t addr, int len, int type, int mmu_state) {
+void save_globals(void *s);
+
+static word_t vaddr_read_internal_with_mmu_state(void *s, vaddr_t addr, int len, int type, int mmu_state) {
   if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, type);
   if (mmu_state == MMU_DIRECT) return paddr_read(addr, len);
 #ifndef __ICS_EXPORT
-  else if (mmu_state == MMU_TRANSLATE) return vaddr_mmu_read(addr, len, type);
+  else if (mmu_state == MMU_TRANSLATE) {
+    if (type != MEM_TYPE_IFETCH) save_globals(s);
+    return vaddr_mmu_read(addr, len, type);
+  }
 #endif
   return 0;
 }
 
 word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state) {
-  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_READ, mmu_state);
+  return vaddr_read_internal_with_mmu_state(s, addr, len, MEM_TYPE_READ, mmu_state);
 }
 
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state) {
   if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_state == MMU_DIRECT) paddr_write(addr, len, data);
 #ifndef __ICS_EXPORT
-  else if (mmu_state == MMU_TRANSLATE) vaddr_mmu_write(addr, len, data);
+  else if (mmu_state == MMU_TRANSLATE) {
+    save_globals(s);
+    vaddr_mmu_write(addr, len, data);
+  }
 #endif
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_IFETCH, isa_mmu_state());
+  return vaddr_read_internal_with_mmu_state(NULL, addr, len, MEM_TYPE_IFETCH, isa_mmu_state());
 }
 
 word_t vaddr_read(vaddr_t addr, int len) {
-  return vaddr_read_internal_with_mmu_state(addr, len, MEM_TYPE_READ, isa_mmu_state());
+  return vaddr_read_internal_with_mmu_state(NULL, addr, len, MEM_TYPE_READ, isa_mmu_state());
 }
 
 void vaddr_write(vaddr_t addr, int len, word_t data) {
