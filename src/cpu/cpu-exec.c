@@ -269,6 +269,7 @@ void cpu_exec(uint64_t n) {
 
 #if !defined(CONFIG_DIFFTEST) && !_SHARE
     isa_query_intr();
+    tcache_handle_exception(cpu.pc);
 #endif
   }
 
