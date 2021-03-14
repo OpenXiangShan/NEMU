@@ -654,11 +654,11 @@ static inline def_EHelper(op_fp){
     default: exec_inv(s);
   }
 }
-
-static inline def_EHelper(fp) {
-  rtl_trap(s, s->pc, EX_II);
-}
 #endif
+
+def_THelper(fp) {
+  return table_rt_inv(s);
+}
 
 def_THelper(atomic) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
@@ -688,6 +688,8 @@ def_THelper(atomic) {
 
 def_THelper(main) {
   switch (s->isa.instr.i.opcode6_2) {
+    TAB(001, fp) TAB(011, fp)
+
     IDTAB(000, I, load)   /*IDTAB(001, F_I, fp_load)*/                         TAB  (003, fence)
     IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)      IDTAB(006, I, op_imm32)
     IDTAB(010, S, store)  /*IDTAB(011, F_S, fp_store)*/                        IDTAB(013, R, atomic)
@@ -750,6 +752,8 @@ def_THelper(misc_alu) {
 def_THelper(rvc) {
   uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
   switch (rvc_opcode) {
+    TAB(001, fp) TAB(005, fp) TAB(021, fp) TAB(025, fp)
+
     IDTAB(000, C_ADDI4SPN, addi) /*IDTABW(001, C_FLD, fp_ld, 8)*/ IDTAB(002, C_LW, lw)    IDTAB(003, C_LD, ld)
                                  /*IDTABW(005, C_FSD, fp_st, 8)*/ IDTAB(006, C_SW, sw)    IDTAB(007, C_SD, sd)
     IDTAB(010, CI_simm, c_addi_dispatch)  IDTAB(011, CI_simm, c_addiw_dispatch)  IDTAB(012, C_LI, li_dispatch)     TAB  (013, lui_addi16sp)

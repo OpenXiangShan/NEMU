@@ -1,7 +1,14 @@
+#include "../local-include/intr.h"
+
 def_EHelper(inv) {
   save_globals(s);
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, 0);
   longjmp_exec(NEMU_EXEC_END);
+}
+
+def_EHelper(rt_inv) {
+  save_globals(s);
+  longjmp_exception(EX_II);
 }
 
 def_EHelper(nemu_trap) {
