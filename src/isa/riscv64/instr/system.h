@@ -1,15 +1,8 @@
-#define csr_difftest() IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3))
+#define csr_difftest() do { \
+  save_globals(s); \
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3)); \
+} while (0)
 #define priv_difftest() IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2))
-#if 0
-#define csr_check(s, addr) {( \
- bool ret = true; \
- switch (addr) { \
-   case 0xc01:  /* time */ \
-     rtl_trap(s, s->pc, EX_II); \
-     ret = false; \
- } \
- ret )}
-#endif
 
 def_EHelper(csrrw) {
   csr_difftest();

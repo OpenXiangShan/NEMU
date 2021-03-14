@@ -2,6 +2,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 #include <cpu/tcache.h>
+#include <cpu/cpu.h>
 
 void update_mmu_state();
 
@@ -95,6 +96,7 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+  if (csrid == 0xc01) { longjmp_exception(EX_II); } // time
   word_t *csr = csr_decode(csrid);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
