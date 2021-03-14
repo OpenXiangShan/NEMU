@@ -7,6 +7,7 @@
 def_EHelper(csrrw) {
   csr_difftest();
   rtl_hostcall(s, HOSTCALL_CSR, ddest, dsrc1, id_src2->imm);
+  rtl_priv_next(s);
 }
 
 def_EHelper(csrrs) {
@@ -15,6 +16,7 @@ def_EHelper(csrrs) {
   rtl_or(s, s1, s0, dsrc1);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
   rtl_mv(s, ddest, s0);
+  rtl_priv_next(s);
 }
 
 def_EHelper(csrrc) {
@@ -24,12 +26,14 @@ def_EHelper(csrrc) {
   rtl_and(s, s1, s0, s1);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
   rtl_mv(s, ddest, s0);
+  rtl_priv_next(s);
 }
 
 def_EHelper(csrrwi) {
   csr_difftest();
   rtl_li(s, s0, id_src1->imm);
   rtl_hostcall(s, HOSTCALL_CSR, ddest, s0, id_src2->imm);
+  rtl_priv_next(s);
 }
 
 def_EHelper(csrrsi) {
@@ -38,6 +42,7 @@ def_EHelper(csrrsi) {
   rtl_ori(s, s1, s0, id_src1->imm);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
   rtl_mv(s, ddest, s0);
+  rtl_priv_next(s);
 }
 
 def_EHelper(csrrci) {
@@ -46,6 +51,7 @@ def_EHelper(csrrci) {
   rtl_andi(s, s1, s0, ~id_src1->imm);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
   rtl_mv(s, ddest, s0);
+  rtl_priv_next(s);
 }
 
 def_EHelper(ecall) {

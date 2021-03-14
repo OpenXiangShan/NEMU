@@ -136,9 +136,11 @@ static inline int update_mmu_state_internal(bool ifetch) {
   return MMU_DIRECT;
 }
 
-void update_mmu_state() {
+int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
-  data_mmu_state   = update_mmu_state_internal(false);
+  int data_mmu_state_old = data_mmu_state;
+  data_mmu_state = update_mmu_state_internal(false);
+  return (data_mmu_state ^ data_mmu_state_old) ? true : false;
 }
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {

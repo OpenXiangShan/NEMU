@@ -54,6 +54,11 @@ void monitor_statistic() {
 }
 
 static word_t ex_cause = 0;
+static bool system_state_need_update = false;
+
+void set_system_state_update_flag() {
+  system_state_need_update = true;
+}
 
 void longjmp_exec(int cause) {
   longjmp(jbuf_exec, cause);
@@ -79,13 +84,15 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 
 #define rtl_j(s, target) do { n -= s->idx_in_bb; s = s->tnext; goto end_of_bb; } while (0)
 #define rtl_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_bb; } while (0)
-#define rtl_priv_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_priv; } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   n -= s->idx_in_bb; \
   if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
   else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
+
+#define rtl_priv_next(s) goto check_priv
+#define rtl_priv_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_priv; } while (0)
 
 word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state);
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state);
@@ -163,6 +170,15 @@ static int execute(int n) {
 #define s2 &ls2
 
 #include "isa-exec.h"
+
+def_EHelper(check_priv) {
+  if (system_state_need_update) {
+    system_state_need_update = false;
+    s ++;
+    debug_difftest(this_s, s);
+    break;
+  }
+}
 
 def_EHelper(nemu_decode) {
   save_globals(s);

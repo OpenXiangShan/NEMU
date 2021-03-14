@@ -4,7 +4,7 @@
 #include <cpu/tcache.h>
 #include <cpu/cpu.h>
 
-void update_mmu_state();
+int update_mmu_state();
 
 static word_t csr_array[4096] = {};
 
@@ -87,7 +87,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (dest == (void *)mstatus || dest == (void *)satp) {
-    update_mmu_state();
+    if (update_mmu_state()) set_system_state_update_flag();
   }
 }
 
