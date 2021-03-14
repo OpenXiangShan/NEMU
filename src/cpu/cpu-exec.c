@@ -130,12 +130,12 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-static inline void debug_difftest(Decode *this, Decode *next) {
-  IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf));
-  IFDEF(CONFIG_DIFFTEST, save_globals(next));
-  IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
-  IFDEF(CONFIG_DIFFTEST, difftest_step(this->pc, next->pc));
-}
+#define debug_difftest(this, next) do { \
+  IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf)); \
+  IFDEF(CONFIG_DIFFTEST, save_globals(next)); \
+  IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc); \
+  IFDEF(CONFIG_DIFFTEST, difftest_step(this->pc, next->pc)); \
+} while (0)
 
 static int execute(int n) {
   static const void* exec_table[TOTAL_INSTR + 2] = {
