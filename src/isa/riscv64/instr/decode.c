@@ -766,7 +766,6 @@ int isa_fetch_decode(Decode *s) {
   if ((s->pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->snpc, 2);
-    //return_on_mem_ex();
     s->isa.instr.val = lo & 0xffff;
     if (s->isa.instr.r.opcode1_0 != 0x3) {
       // this is an RVC instruction
@@ -783,8 +782,6 @@ int isa_fetch_decode(Decode *s) {
     // see whether it is an RVC instruction later
     s->isa.instr.val = instr_fetch(&s->snpc, 4);
   }
-
-  //return_on_mem_ex();
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {
     idx = table_main(s);
@@ -807,7 +804,9 @@ rvc: idx = table_rvc(s);
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
     case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:
-      s->type = INSTR_TYPE_I;
+      s->type = INSTR_TYPE_I; break;
+    case EXEC_ID_sfence_vma:
+      s->type = INSTR_TYPE_S; break;
   }
 
   return idx;

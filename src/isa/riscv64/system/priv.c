@@ -1,6 +1,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include <cpu/tcache.h>
 
 void update_mmu_state();
 
@@ -117,6 +118,9 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       mstatus->mpp = MODE_U;
       update_mmu_state();
       return mepc->val;
+      break;
+    case 0x120: // sfence.vma
+      tcache_flush();
       break;
     default: panic("Unsupported privilige operation = %d", op);
   }
