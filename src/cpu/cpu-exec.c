@@ -79,6 +79,7 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 
 #define rtl_j(s, target) do { n -= s->idx_in_bb; s = s->tnext; goto end_of_bb; } while (0)
 #define rtl_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_bb; } while (0)
+#define rtl_priv_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_priv; } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   n -= s->idx_in_bb; \
   if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
@@ -120,6 +121,13 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
   return tcache_jr_fetch(s, target);
+}
+
+static inline void debug_difftest(Decode *this, Decode *next) {
+  IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf));
+  IFDEF(CONFIG_DIFFTEST, save_globals(next));
+  IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
+  IFDEF(CONFIG_DIFFTEST, difftest_step(this->pc, next->pc));
 }
 
 static int execute(int n) {
@@ -166,21 +174,20 @@ def_EHelper(nemu_exception) {
   rtl_j(s, s->jnpc);
 }
 
+end_of_priv:
+    n_remain = n;
+    debug_difftest(this_s, s);
+    break;
+
 end_of_bb:
     n_remain = n;
     if (unlikely(n <= 0)) {
-      IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
-      IFDEF(CONFIG_DIFFTEST, save_globals(s));
-      IFDEF(CONFIG_DIFFTEST, cpu.pc = s->pc);
-      IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
+      debug_difftest(this_s, s);
       break;
     }
 
     def_finish();
-    IFDEF(CONFIG_DEBUG, debug_hook(this_s->pc, this_s->logbuf));
-    IFDEF(CONFIG_DIFFTEST, save_globals(s));
-    IFDEF(CONFIG_DIFFTEST, cpu.pc = s->pc);
-    IFDEF(CONFIG_DIFFTEST, difftest_step(this_s->pc, s->pc));
+    debug_difftest(this_s, s);
   }
   prev_s = s;
   return n;

@@ -58,24 +58,26 @@ def_EHelper(csrrci) {
 def_EHelper(ecall) {
   priv_difftest();
   rtl_trap(s, s->pc, 8 + cpu.mode);
+  rtl_priv_jr(s, t0);
 }
 
 def_EHelper(mret) {
   priv_difftest();
   rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, 0x302);
-  rtl_jr(s, s0);
+  rtl_priv_jr(s, s0);
 }
 
 def_EHelper(sret) {
   priv_difftest();
   rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, 0x102);
-  rtl_jr(s, s0);
+  rtl_priv_jr(s, s0);
 }
 
 def_EHelper(sfence_vma) {
   priv_difftest();
   rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, 0x120);
-  rtl_j(s, s->snpc);
+  rtl_li(s, s0, s->snpc);
+  rtl_priv_jr(s, s0);
 }
 
 def_EHelper(wfi) {

@@ -2,6 +2,8 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
+void update_mmu_state();
+
 #define INTR_BIT (1ULL << 63)
 enum {
   IRQ_USIP, IRQ_SSIP, IRQ_HSIP, IRQ_MSIP,
@@ -33,6 +35,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       default: stval->val = 0;
     }
     cpu.mode = MODE_S;
+    update_mmu_state();
     return stvec->val;
   } else {
     mcause->val = NO;
@@ -47,6 +50,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       default: mtval->val = 0;
     }
     cpu.mode = MODE_M;
+    update_mmu_state();
     return mtvec->val;
   }
 }
