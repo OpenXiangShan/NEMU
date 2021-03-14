@@ -11,8 +11,8 @@ enum {
 };
 
 void cpu_exec(uint64_t n);
-void longjmp_exec(int cause);
-void longjmp_exception(int ex_cause);
+__attribute__((noreturn)) void longjmp_exec(int cause);
+__attribute__((noreturn)) void longjmp_exception(int ex_cause);
 void set_system_state_update_flag();
 
 #ifndef CONFIG_PERF_OPT
