@@ -181,7 +181,6 @@ def_EHelper(check_priv) {
 }
 
 def_EHelper(nemu_decode) {
-  save_globals(s);
   s = tcache_decode(s, exec_table);
   continue;
 }

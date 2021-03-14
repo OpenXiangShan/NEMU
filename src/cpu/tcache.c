@@ -108,6 +108,7 @@ full:   save_globals(old);
     tcache_state = TCACHE_BB_BUILDING;
     idx_in_bb = 1;
   }
+  save_globals(s);
   int idx = fetch_decode(s, s->pc);
   s->EHelper = exec_table[idx];
   s->idx_in_bb = idx_in_bb ++;
