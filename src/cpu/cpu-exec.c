@@ -53,7 +53,7 @@ void monitor_statistic() {
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
-static word_t ex_cause = 0;
+static word_t g_ex_cause = 0;
 static bool system_state_need_update = false;
 
 void set_system_state_update_flag() {
@@ -64,9 +64,9 @@ void longjmp_exec(int cause) {
   longjmp(jbuf_exec, cause);
 }
 
-void longjmp_exception(int cause) {
-  ex_cause = cause;
-  longjmp(jbuf_exec, NEMU_EXCEPTION);
+void longjmp_exception(int ex_cause) {
+  g_ex_cause = ex_cause;
+  longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
 
 int fetch_decode(Decode *s, vaddr_t pc) {
@@ -249,11 +249,11 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 
   n_remain_total = n; // deal with setjmp()
-  int ret;
-  if ((ret = setjmp(jbuf_exec))) {
+  int cause;
+  if ((cause = setjmp(jbuf_exec))) {
     update_global();
-    if (ret == NEMU_EXCEPTION) {
-      vaddr_t target = raise_intr(ex_cause, prev_s->pc);
+    if (cause == NEMU_EXEC_EXCEPTION) {
+      vaddr_t target = raise_intr(g_ex_cause, prev_s->pc);
       tcache_handle_exception(target);
     }
   }
