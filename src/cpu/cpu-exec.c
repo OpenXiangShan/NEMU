@@ -54,10 +54,10 @@ void monitor_statistic() {
 }
 
 static word_t g_ex_cause = 0;
-static bool system_state_need_update = false;
+static int g_mmu_state_flag = 0;
 
-void set_system_state_update_flag() {
-  system_state_need_update = true;
+void set_mmu_state_flag(int flag) {
+  g_mmu_state_flag |= flag;
 }
 
 void longjmp_exec(int cause) {
@@ -119,6 +119,7 @@ Decode *prev_s;
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 void tcache_handle_exception(vaddr_t jpc);
+Decode* tcache_handle_flush(vaddr_t snpc);
 
 void save_globals(Decode *s) {
   prev_s = s;
@@ -153,8 +154,6 @@ static int execute(int n) {
     init_flag = 1;
   }
 
-//  assert(prev_s->pc == cpu.pc);
-
   while (true) {
     IFDEF(CONFIG_DEBUG, Decode *this_s = s);
     IFNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
@@ -172,10 +171,16 @@ static int execute(int n) {
 #include "isa-exec.h"
 
 def_EHelper(check_priv) {
-  if (system_state_need_update) {
-    system_state_need_update = false;
-    s ++;
-    debug_difftest(this_s, s);
+  if (g_mmu_state_flag) {
+    int mmu_state_flag = g_mmu_state_flag;
+    g_mmu_state_flag = 0;
+
+    if (mmu_state_flag & MMU_STATE_FLUSH_TCACHE) {
+      s = tcache_handle_flush(s->snpc);
+    } else {
+      s ++;
+      debug_difftest(this_s, s);
+    }
     break;
   }
 }

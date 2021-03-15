@@ -1,7 +1,6 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
-#include <cpu/tcache.h>
 #include <cpu/cpu.h>
 
 int update_mmu_state();
@@ -87,7 +86,11 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (dest == (void *)mstatus || dest == (void *)satp) {
-    if (update_mmu_state()) set_system_state_update_flag();
+    if (update_mmu_state()) set_mmu_state_flag(MMU_STATE_UPDATE);
+    if (dest == (void *)satp) {
+      set_mmu_state_flag(MMU_STATE_FLUSH_TLB);
+      if (cpu.mode == MODE_S) set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
+    }
   }
 }
 
@@ -122,7 +125,8 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       return mepc->val;
       break;
     case 0x120: // sfence.vma
-      tcache_flush();
+      set_mmu_state_flag(MMU_STATE_FLUSH_TLB);
+      if (cpu.mode == MODE_S) set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
       break;
     default: panic("Unsupported privilige operation = %d", op);
   }

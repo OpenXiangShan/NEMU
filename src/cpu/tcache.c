@@ -1,5 +1,4 @@
 #include <cpu/decode.h>
-#include <cpu/tcache.h>
 #include <cpu/cpu.h>
 #include <stdlib.h>
 
@@ -72,6 +71,11 @@ static void tcache_bb_fetch(Decode *this, int is_taken, vaddr_t jpc) {
   }
 }
 
+static void tcache_flush() {
+  tc_idx = 0;
+  memset(bb_info, 0, sizeof(bb_info));
+}
+
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
 static int tcache_state = TCACHE_RUNNING;
 int fetch_decode(Decode *s, vaddr_t pc);
@@ -129,17 +133,11 @@ full:   save_globals(old);
         tcache_bb_fetch(s, false, s->snpc + MUXDEF(__ISA_mips32__, 4, 0));
         break;
       case INSTR_TYPE_I: s->tnext = s->ntnext = s; break; // update dynamically
-      case INSTR_TYPE_S: tcache_bb_fetch(s, true, s->snpc); break;
       default: assert(0);
     }
     tcache_state = TCACHE_RUNNING;
   }
   return s;
-}
-
-void tcache_flush() {
-  tc_idx = 0;
-  memset(bb_info, 0, sizeof(bb_info));
 }
 
 static Decode *ex = NULL;
@@ -149,6 +147,13 @@ void tcache_handle_exception(vaddr_t jpc) {
   tcache_bb_fetch(ex, true, jpc);
   save_globals(ex);
   tcache_state = TCACHE_RUNNING;
+}
+
+Decode* tcache_handle_flush(vaddr_t snpc) {
+  tcache_flush();
+  tcache_handle_exception(snpc);
+  ex->pc = snpc;
+  return ex;
 }
 
 Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
