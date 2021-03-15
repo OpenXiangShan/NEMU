@@ -2,6 +2,8 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 
+//#define ENABLE_HOSTTLB 1
+
 #ifdef CONFIG_MODE_USER
 #define vaddr2uint8(addr)  (uint8_t  *)(void *)(uintptr_t)(addr)
 #define vaddr2uint16(addr) (uint16_t *)(void *)(uintptr_t)(addr)
@@ -35,6 +37,7 @@ static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
 #else
 
 #ifndef __ICS_EXPORT
+#ifndef ENABLE_HOSTTLB
 static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
   word_t data = 0;
   int i;
@@ -86,16 +89,20 @@ static void vaddr_mmu_write(vaddr_t addr, int len, word_t data) {
   }
 }
 #endif
+#endif
+
 
 void save_globals(void *s);
+word_t hosttlb_read(vaddr_t vaddr, int len, int type);
+void hosttlb_write(vaddr_t vaddr, int len, word_t data);
 
 static word_t vaddr_read_internal_with_mmu_state(void *s, vaddr_t addr, int len, int type, int mmu_state) {
-  if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, type);
+  if (unlikely(mmu_state == MMU_DYNAMIC)) mmu_state = isa_mmu_check(addr, len, type);
   if (mmu_state == MMU_DIRECT) return paddr_read(addr, len);
 #ifndef __ICS_EXPORT
-  else if (mmu_state == MMU_TRANSLATE) {
+  else {
     if (type != MEM_TYPE_IFETCH) save_globals(s);
-    return vaddr_mmu_read(addr, len, type);
+    return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) (addr, len, type);
   }
 #endif
   return 0;
@@ -106,12 +113,12 @@ word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state) 
 }
 
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state) {
-  if (mmu_state == MMU_DYNAMIC) mmu_state = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+  if (unlikely(mmu_state == MMU_DYNAMIC)) mmu_state = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_state == MMU_DIRECT) paddr_write(addr, len, data);
 #ifndef __ICS_EXPORT
-  else if (mmu_state == MMU_TRANSLATE) {
+  else {
     save_globals(s);
-    vaddr_mmu_write(addr, len, data);
+    MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (addr, len, data);
   }
 #endif
 }

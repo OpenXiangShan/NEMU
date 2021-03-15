@@ -169,6 +169,8 @@ static int execute(int n) {
     exec_table[TOTAL_INSTR + 1] = &&nemu_exception;
     extern Decode* tcache_init(const void **speical_exec_table, vaddr_t reset_vector);
     s = tcache_init(exec_table + TOTAL_INSTR, cpu.pc);
+    extern void hosttlb_init();
+    hosttlb_init();
     init_flag = 1;
   }
 
@@ -193,6 +195,10 @@ def_EHelper(check_priv) {
     int mmu_state_flag = g_mmu_state_flag;
     g_mmu_state_flag = 0;
 
+    if (mmu_state_flag & MMU_STATE_FLUSH_TLB) {
+      extern void hosttlb_flush();
+      hosttlb_flush();
+    }
     if (mmu_state_flag & MMU_STATE_FLUSH_TCACHE) {
       s = tcache_handle_flush(s->snpc);
     } else {
