@@ -178,4 +178,16 @@ endchoice
 config PERF_OPT
   bool "Performance optimization"
   default y
+
+if PERF_OPT && !DEBUG
+config DISABLE_INSTR_CNT
+  bool "Disable instruction counting (single step is also disabled)"
+  default y
+endif
+
+config ENABLE_INSTR_CNT
+  bool
+  default n if DISABLE_INSTR_CNT
+  default y
+
 endmenu

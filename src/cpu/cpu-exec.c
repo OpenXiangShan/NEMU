@@ -38,19 +38,25 @@ static uint64_t n_remain_total;
 static int n_remain;
 
 static void update_instr_cnt() {
+#ifdef CONFIG_ENABLE_INSTR_CNT
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+#endif
 }
 
 void monitor_statistic() {
   update_instr_cnt();
   setlocale(LC_NUMERIC, "");
-  Log("total guest instructions = %'ld", g_nr_guest_instr);
   Log("host time spent = %'ld us", g_timer);
+#ifdef CONFIG_ENABLE_INSTR_CNT
+  Log("total guest instructions = %'ld", g_nr_guest_instr);
   if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+#else
+  Log("CONFIG_ENABLE_INSTR_CNT is not defined");
+#endif
 }
 
 static word_t g_ex_cause = 0;
@@ -82,17 +88,29 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
 
-#define rtl_j(s, target) do { n -= s->idx_in_bb; s = s->tnext; goto end_of_bb; } while (0)
-#define rtl_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_bb; } while (0)
+#define rtl_j(s, target) do { \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  s = s->tnext; \
+  goto end_of_bb; \
+} while (0)
+#define rtl_jr(s, target) do { \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  s = jr_fetch(s, *(target)); \
+  goto end_of_bb; \
+} while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
-  n -= s->idx_in_bb; \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
   else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
 
 #define rtl_priv_next(s) goto check_priv
-#define rtl_priv_jr(s, target) do { n -= s->idx_in_bb; s = jr_fetch(s, *(target)); goto end_of_priv; } while (0)
+#define rtl_priv_jr(s, target) do { \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  s = jr_fetch(s, *(target)); \
+  goto end_of_priv; \
+} while (0)
 
 word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state);
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state);
@@ -195,16 +213,18 @@ def_EHelper(nemu_exception) {
 }
 
 end_of_priv:
-    n_remain = n;
+    IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
     debug_difftest(this_s, s);
     break;
 
 end_of_bb:
+#ifdef CONFIG_ENABLE_INSTR_CNT
     n_remain = n;
     if (unlikely(n <= 0)) {
       debug_difftest(this_s, s);
       break;
     }
+#endif
 
     def_finish();
     debug_difftest(this_s, s);
@@ -262,7 +282,8 @@ void cpu_exec(uint64_t n) {
     }
   }
 
-  while (nemu_state.state == NEMU_RUNNING && n_remain_total > 0) {
+  while (nemu_state.state == NEMU_RUNNING &&
+      MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
     int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
     n_remain = execute(n_batch);
     update_global();
