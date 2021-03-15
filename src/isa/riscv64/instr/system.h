@@ -82,11 +82,6 @@ def_EHelper(wfi) {
   priv_difftest();
   //panic("Executing wfi now will exit NEMU\n"
   //    "TODO: how to let NEMU execute wfi as REF in DiffTest?");
-#if !defined(CONFIG_SHARE)
-  // let the clock go quickly to reduce idle time in Linux
-  void clint_intr();
-  clint_intr();
-#endif
 }
 
 def_EHelper(fence) {
