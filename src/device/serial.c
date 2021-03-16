@@ -1,3 +1,4 @@
+#include <utils.h>
 #include <device/map.h>
 
 /* http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming */
@@ -45,9 +46,8 @@ static char serial_dequeue() {
 }
 
 static inline uint8_t serial_rx_ready_flag() {
-  extern uint32_t uptime();
-  static uint32_t last = 0;
-  uint32_t now = uptime();
+  static uint32_t last = 0; // unit: s
+  uint32_t now = get_time() / 1000000;
   if (now > last) {
     Log("now = %d", now);
     last = now;

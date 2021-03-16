@@ -8,22 +8,17 @@
 typedef void (*alarm_handler_t) ();
 static alarm_handler_t handler[MAX_HANDLER] = {};
 static int idx = 0;
-static uint32_t jiffy = 0;
 
 void add_alarm_handle(void *h) {
   assert(idx < MAX_HANDLER);
   handler[idx ++] = h;
 }
 
-uint32_t uptime() { return jiffy / TIMER_HZ; }
-
 static void alarm_sig_handler(int signum) {
   int i;
   for (i = 0; i < idx; i ++) {
     handler[i]();
   }
-
-  jiffy ++;
 }
 
 void init_alarm() {
