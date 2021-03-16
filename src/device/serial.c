@@ -5,16 +5,13 @@
 // NOTE: this is compatible to 16550
 
 #define CH_OFFSET 0
-#ifndef __ICS_EXPORT
 #define LSR_OFFSET 5
 #define LSR_TX_READY 0x20
 #define LSR_RX_READY 0x01
-#endif
 
 static uint8_t *serial_base = NULL;
 
-#ifndef __ICS_EXPORT
-
+#ifdef CONFIG_SERIAL_INPUT_FIFO
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -107,30 +104,21 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
     /* We bind the serial port with the host stderr in NEMU. */
     case CH_OFFSET:
       if (is_write) putc(serial_base[0], stderr);
-#ifndef __ICS_EXPORT
-      else serial_base[0] = serial_dequeue();
-#else
-      else panic("do not support read");
-#endif
+      else serial_base[0] = MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_dequeue(), 0xff);
       break;
-#ifndef __ICS_EXPORT
     case LSR_OFFSET:
       if (!is_write)
-        serial_base[5] = LSR_TX_READY | serial_rx_ready_flag();
+        serial_base[5] = LSR_TX_READY | MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_rx_ready_flag(), 0);
       break;
-#else
-    default: panic("do not support offset = %d", offset);
-#endif
   }
 }
-
 
 void init_serial() {
   serial_base = new_space(8);
   add_pio_map("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
   add_mmio_map("serial", CONFIG_SERIAL_MMIO, serial_base, 8, serial_io_handler);
 
-#ifndef __ICS_EXPORT
+#ifdef CONFIG_SERIAL_INPUT_FIFO
   init_fifo();
   preset_input();
 #endif
