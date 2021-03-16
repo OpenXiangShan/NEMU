@@ -8,6 +8,10 @@ static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static const void **g_special_exec_table = NULL;
 
+static inline bool in_tcache_pool(Decode *s) {
+  return (s >= tcache_pool && s < &tcache_pool[TCACHE_SIZE]);
+}
+
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   memset(s, 0, sizeof(*s));
   s->pc = pc;
@@ -107,7 +111,7 @@ full:   save_globals(old);
     } else { s = bb->s; }
     if (old->tnext)  { old->tnext->tnext = s; }
     if (old->ntnext) { old->ntnext->ntnext = s; }
-    free(old);
+    if (!in_tcache_pool(old)) free(old);
     if (already_decode) return s;
     tcache_state = TCACHE_BB_BUILDING;
     idx_in_bb = 1;
