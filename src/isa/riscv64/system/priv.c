@@ -128,6 +128,9 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       set_mmu_state_flag(MMU_STATE_FLUSH_TLB);
       if (cpu.mode == MODE_S) set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
       break;
+    case -1: // fence.i
+      set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
+      break;
     default: panic("Unsupported privilige operation = %d", op);
   }
   return 0;

@@ -685,12 +685,18 @@ def_THelper(atomic) {
   return EXEC_ID_inv;
 }
 
+def_THelper(mem_fence) {
+  switch (s->isa.instr.i.funct3) {
+    TAB(0, fence)  TAB(1, fence_i)
+  }
+  return EXEC_ID_inv;
+}
 
 def_THelper(main) {
   switch (s->isa.instr.i.opcode6_2) {
     TAB(001, fp) TAB(011, fp)
 
-    IDTAB(000, I, load)   /*IDTAB(001, F_I, fp_load)*/                         TAB  (003, fence)
+    IDTAB(000, I, load)   /*IDTAB(001, F_I, fp_load)*/                         IDTAB(003, I, mem_fence)
     IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)      IDTAB(006, I, op_imm32)
     IDTAB(010, S, store)  /*IDTAB(011, F_S, fp_store)*/                        IDTAB(013, R, atomic)
     IDTAB(014, R, op)     IDTAB(015, U, lui)            IDTAB(016, R, op32)

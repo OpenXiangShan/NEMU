@@ -84,6 +84,13 @@ def_EHelper(wfi) {
   //    "TODO: how to let NEMU execute wfi as REF in DiffTest?");
 }
 
+def_EHelper(fence_i) {
+  // in fact, fence.i is not a privileged instruction
+  priv_difftest();
+  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, -1);
+  rtl_priv_next(s);
+}
+
 def_EHelper(fence) {
   priv_difftest();
 }
