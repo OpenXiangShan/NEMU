@@ -2,6 +2,7 @@
 #include <memory/host.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#include <device/mmio.h>
 
 #define HOSTTLB_SIZE_SHIFT 10
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -31,12 +32,20 @@ static inline HostTLBEntry* hosttlb_fetch(vaddr) {
   return &hosttlb[idx];
 }
 
-void hosttlb_flush() {
-  memset(hosttlb, -1, sizeof(hosttlb));
+void hosttlb_flush(vaddr_t vaddr) {
+  if (vaddr == 0) {
+    memset(hosttlb, -1, sizeof(hosttlb));
+  } else {
+    vaddr_t gvpn = hosttlb_vpn(vaddr);
+    HostTLBEntry *e = hosttlb_fetch(vaddr);
+    if (e->gvpn == gvpn) {
+      e->gvpn = (sword_t)-1;
+    }
+  }
 }
 
 void hosttlb_init() {
-  hosttlb_flush();
+  hosttlb_flush(0);
 }
 
 static paddr_t va2pa(vaddr_t vaddr, int len, int type) {
@@ -51,9 +60,6 @@ static paddr_t va2pa(vaddr_t vaddr, int len, int type) {
   }
   return paddr;
 }
-
-word_t mmio_read(paddr_t addr, int len);
-void mmio_write(paddr_t addr, int len, word_t data);
 
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(vaddr_t vaddr, int len, int type) {

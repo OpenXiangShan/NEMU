@@ -74,7 +74,7 @@ def_EHelper(sret) {
 
 def_EHelper(sfence_vma) {
   priv_difftest();
-  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, 0x120);
+  rtl_hostcall(s, HOSTCALL_PRIV, NULL, dsrc1, 0x120);
   rtl_priv_next(s);
 }
 

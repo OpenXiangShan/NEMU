@@ -121,7 +121,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       return mepc->val;
       break;
     case 0x120: // sfence.vma
-      set_mmu_state_flag(MMU_STATE_FLUSH_TLB);
+      mmu_tlb_flush(*src);
       break;
     case -1: // fence.i
       set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);

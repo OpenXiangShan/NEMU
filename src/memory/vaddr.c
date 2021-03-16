@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
+#include <memory/host-tlb.h>
 
 //#define ENABLE_HOSTTLB 1
 
@@ -93,8 +94,6 @@ static void vaddr_mmu_write(vaddr_t addr, int len, word_t data) {
 
 
 void save_globals(void *s);
-word_t hosttlb_read(vaddr_t vaddr, int len, int type);
-void hosttlb_write(vaddr_t vaddr, int len, word_t data);
 
 static word_t vaddr_read_internal_with_mmu_state(void *s, vaddr_t addr, int len, int type, int mmu_state) {
   if (unlikely(mmu_state == MMU_DYNAMIC)) mmu_state = isa_mmu_check(addr, len, type);

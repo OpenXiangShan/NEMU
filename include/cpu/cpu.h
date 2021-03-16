@@ -20,6 +20,7 @@ enum {
   MMU_STATE_FLUSH_TCACHE = 4,
 };
 void set_mmu_state_flag(int flag);
+void mmu_tlb_flush(vaddr_t vaddr);
 
 #ifndef CONFIG_PERF_OPT
 #define save_globals(s, n)
