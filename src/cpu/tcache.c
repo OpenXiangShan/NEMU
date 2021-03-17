@@ -63,7 +63,7 @@ static inline bb_t* bb_hash(vaddr_t pc) {
 static struct bb_t* bb_insert(vaddr_t pc, Decode *fill) {
   bb_t *head = bb_hash(pc);
   if (head->next == (void *)-1ul) {
-    if (head->pc == -1ul) {
+    if (head->pc == (vaddr_t)-1ul) {
       // first time
       head->s = fill;
       head->pc = pc;
