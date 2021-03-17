@@ -21,6 +21,14 @@ config ISA
   default "riscv64" if ISA_riscv64
   default "none"
 
+config ILEN_MIN
+  int
+  default 1 if ISA_x86
+  default 4 if ISA_mips32
+  default 4 if ISA_riscv32
+  default 2 if ISA_riscv64
+  default 1
+
 config ISA64
   depends on ISA_riscv64
   bool
