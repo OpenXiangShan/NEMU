@@ -36,10 +36,14 @@ static struct bbInfo {
   vaddr_t pc;
 } bb_info[BB_INFO_SIZE];
 
-static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, Decode *fill) {
-  int idx = pc % BB_INFO_SIZE;
+static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, int start_idx, Decode *fill) {
+  int idx = (start_idx == -1 ? pc : start_idx) % BB_INFO_SIZE;
   int i;
   for (i = 0; i < BB_INFO_SIZE; i ++) {
+    if (bb_info[idx].pc == pc) {
+      assert(fill == NULL);
+      return &bb_info[idx];
+    }
     if (bb_info[idx].pc == 0) {
       if (!fill) return NULL;
       else {
@@ -47,10 +51,6 @@ static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, Decode *fill) {
         bb_info[idx].s = fill;
         return &bb_info[idx];
       }
-    }
-    if (bb_info[idx].pc == pc) {
-      assert(fill == NULL);
-      return &bb_info[idx];
     }
     idx = (idx + 1) % BB_INFO_SIZE;
   }
@@ -60,7 +60,7 @@ static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, Decode *fill) {
 static struct bbInfo* tcache_bb_find(vaddr_t pc) {
   int idx = pc % BB_INFO_SIZE;
   if (likely(bb_info[idx].pc == pc)) return &bb_info[idx];
-  return tcache_bb_find_slow_path(pc, NULL);
+  return tcache_bb_find_slow_path(pc, idx + 1, NULL);
 }
 
 static void tcache_bb_fetch(Decode *this, int is_taken, vaddr_t jpc) {
@@ -102,7 +102,7 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     if (!already_decode) {
       s = tcache_new(old->pc);
       if (s == NULL) goto full;
-      struct bbInfo *ret = tcache_bb_find_slow_path(old->pc, s);
+      struct bbInfo *ret = tcache_bb_find_slow_path(old->pc, -1, s);
       if (ret == NULL) { // basic block list is full
 full:   save_globals(old);
         tcache_flush();
