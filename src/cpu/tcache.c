@@ -30,41 +30,67 @@ static inline Decode* tcache_new_malloc(vaddr_t pc) {
   return tcache_entry_init(malloc(sizeof(Decode)), pc);
 }
 
-#define BB_INFO_SIZE 1024
-static struct bbInfo {
-  Decode *s;
-  vaddr_t pc;
-} bb_info[BB_INFO_SIZE];
 
-static struct bbInfo* tcache_bb_find_slow_path(vaddr_t pc, int start_idx, Decode *fill) {
-  int idx = (start_idx == -1 ? pc : start_idx) % BB_INFO_SIZE;
-  int i;
-  for (i = 0; i < BB_INFO_SIZE; i ++) {
-    if (bb_info[idx].pc == pc) {
-      assert(fill == NULL);
-      return &bb_info[idx];
-    }
-    if (bb_info[idx].pc == 0) {
-      if (!fill) return NULL;
-      else {
-        bb_info[idx].pc = pc;
-        bb_info[idx].s = fill;
-        return &bb_info[idx];
-      }
-    }
-    idx = (idx + 1) % BB_INFO_SIZE;
-  }
-  return NULL;
+#define BB_POOL_SIZE 512
+
+typedef struct bb_t {
+  Decode *s;
+  struct bb_t *next;
+  vaddr_t pc;
+} bb_t;
+
+static bb_t bb_pool[BB_POOL_SIZE] = {};
+static int bb_idx = 0;
+
+static inline bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
+  if (bb_idx == BB_POOL_SIZE) return NULL;
+  assert(bb_idx < BB_POOL_SIZE);
+  bb_t *bb = &bb_pool[bb_idx ++];
+  bb->s = s;
+  bb->pc = pc;
+  bb->next = next;
+  return bb;
 }
 
-static struct bbInfo* tcache_bb_find(vaddr_t pc) {
-  int idx = pc % BB_INFO_SIZE;
-  if (likely(bb_info[idx].pc == pc)) return &bb_info[idx];
-  return tcache_bb_find_slow_path(pc, idx + 1, NULL);
+#define BB_LIST_SIZE 512
+static bb_t bb_list [BB_LIST_SIZE] = {};
+
+static inline bb_t* bb_hash(vaddr_t pc) {
+  int idx = pc % BB_LIST_SIZE;
+  return &bb_list[idx];
+}
+
+static struct bb_t* bb_insert(vaddr_t pc, Decode *fill) {
+  bb_t *head = bb_hash(pc);
+  if (head->next == (void *)-1ul) {
+    if (head->pc == -1ul) {
+      // first time
+      head->s = fill;
+      head->pc = pc;
+      return head;
+    }
+  }
+  // second time
+  bb_t *bb = bb_new(head->s, head->pc, head->next);
+  if (bb == NULL) return NULL;
+  head->s = fill;
+  head->pc = pc;
+  head->next = bb;
+  return head;
+}
+
+static bb_t* bb_find(vaddr_t pc) {
+  bb_t *bb = bb_hash(pc);
+  if (likely(bb->pc == pc)) return bb;
+  do {
+    bb = bb->next;
+    if (bb == (void *)-1ul) return NULL;
+    if (bb->pc == pc) return bb;
+  } while (1);
 }
 
 static void tcache_bb_fetch(Decode *this, int is_taken, vaddr_t jpc) {
-  struct bbInfo* bb = tcache_bb_find(jpc);
+  bb_t* bb = bb_find(jpc);
   if (bb != NULL) {
     if (is_taken) { this->tnext = bb->s; }
     else { this->ntnext = bb->s; }
@@ -77,7 +103,8 @@ static void tcache_bb_fetch(Decode *this, int is_taken, vaddr_t jpc) {
 
 static void tcache_flush() {
   tc_idx = 0;
-  memset(bb_info, 0, sizeof(bb_info));
+  bb_idx = 0;
+  memset(bb_list, -1, sizeof(bb_list));
 }
 
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
@@ -97,12 +124,12 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
   if (tcache_state == TCACHE_RUNNING) {
     Decode *old = s;
     // first check whether this basic block is already decoded
-    struct bbInfo *bb = tcache_bb_find(old->pc);
+    bb_t *bb = bb_find(old->pc);
     bool already_decode = (bb != NULL);
     if (!already_decode) {
       s = tcache_new(old->pc);
       if (s == NULL) goto full;
-      struct bbInfo *ret = tcache_bb_find_slow_path(old->pc, -1, s);
+      bb_t *ret = bb_insert(old->pc, s);
       if (ret == NULL) { // basic block list is full
 full:   save_globals(old);
         tcache_flush();
@@ -161,6 +188,7 @@ Decode* tcache_handle_flush(vaddr_t snpc) {
 }
 
 Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
+  tcache_flush();
   g_special_exec_table = special_exec_table;
   ex = tcache_new_malloc(0);
   ex->EHelper = special_exec_table[1];
