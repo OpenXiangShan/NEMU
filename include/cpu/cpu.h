@@ -16,17 +16,12 @@ __attribute__((noreturn)) void longjmp_exception(int ex_cause);
 
 enum {
   MMU_STATE_UPDATE = 1,
-  MMU_STATE_FLUSH_TLB = 2,
-  MMU_STATE_FLUSH_TCACHE = 4,
+  MMU_STATE_FLUSH_TCACHE = 2,
 };
 void set_mmu_state_flag(int flag);
 void mmu_tlb_flush(vaddr_t vaddr);
 
-#ifndef CONFIG_PERF_OPT
-#define save_globals(s, n)
-#else
 struct Decode;
 void save_globals(struct Decode *s);
-#endif
 
 #endif

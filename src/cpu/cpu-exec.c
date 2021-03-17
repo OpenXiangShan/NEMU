@@ -37,6 +37,11 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
 static int n_remain;
+static Decode *prev_s;
+
+void save_globals(Decode *s) {
+  IFDEF(CONFIG_PERF_OPT, prev_s = s);
+}
 
 static void update_instr_cnt() {
 #ifdef CONFIG_ENABLE_INSTR_CNT
@@ -137,16 +142,10 @@ void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int
   } \
 } while (0)
 
-Decode *prev_s;
-
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
-
-void save_globals(Decode *s) {
-  prev_s = s;
-}
 
 static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
@@ -239,16 +238,20 @@ end_of_bb:
   return n;
 }
 #else
-#include "isa-exec.h"
-
 typedef void (*EHelper_t)(Decode *s);
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
+
+#define rtl_priv_next(s)
+#define rtl_priv_jr(s, target) rtl_jr(s, target)
+
+#include "isa-exec.h"
 
 static int execute(int n) {
   static const EHelper_t exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
-  Decode s;
+  static Decode s;
+  prev_s = &s;
   for (;n > 0; n --) {
     int idx = fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
@@ -263,7 +266,7 @@ static int execute(int n) {
 
 static void update_global() {
   update_instr_cnt();
-  cpu.pc = prev_s->pc;
+  IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->pc);
 }
 
 /* Simulate how the CPU works. */
@@ -283,8 +286,12 @@ void cpu_exec(uint64_t n) {
   if ((cause = setjmp(jbuf_exec))) {
     update_global();
     if (cause == NEMU_EXEC_EXCEPTION) {
+#ifdef CONFIG_PERF_OPT
       vaddr_t target = raise_intr(g_ex_cause, prev_s->pc);
       tcache_handle_exception(target);
+#else
+      cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
+#endif
     }
   }
 

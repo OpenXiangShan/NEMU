@@ -3,7 +3,9 @@
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
 
-//#define ENABLE_HOSTTLB 1
+#ifdef CONFIG_PERF_OPT
+#define ENABLE_HOSTTLB 1
+#endif
 
 #ifdef CONFIG_MODE_USER
 #define vaddr2uint8(addr)  (uint8_t  *)(void *)(uintptr_t)(addr)
