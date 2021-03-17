@@ -68,7 +68,7 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
 }
 
 __attribute__((noinline))
-static word_t vaddr_mmu_read(vaddr_t addr, int len, int type) {
+static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) {
   paddr_t pg_base = isa_mmu_translate(addr, len, type);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
@@ -81,7 +81,7 @@ static word_t vaddr_mmu_read(vaddr_t addr, int len, int type) {
 }
 
 __attribute__((noinline))
-static void vaddr_mmu_write(vaddr_t addr, int len, word_t data) {
+static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data) {
   paddr_t pg_base = isa_mmu_translate(addr, len, MEM_TYPE_WRITE);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
@@ -94,17 +94,11 @@ static void vaddr_mmu_write(vaddr_t addr, int len, word_t data) {
 #endif
 #endif
 
-
-void save_globals(void *s);
-
 static word_t vaddr_read_internal_with_mmu_state(void *s, vaddr_t addr, int len, int type, int mmu_state) {
   if (unlikely(mmu_state == MMU_DYNAMIC)) mmu_state = isa_mmu_check(addr, len, type);
   if (mmu_state == MMU_DIRECT) return paddr_read(addr, len);
 #ifndef __ICS_EXPORT
-  else {
-    if (type != MEM_TYPE_IFETCH) save_globals(s);
-    return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) (addr, len, type);
-  }
+  return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) (s, addr, len, type);
 #endif
   return 0;
 }
@@ -115,12 +109,9 @@ word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state) 
 
 void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state) {
   if (unlikely(mmu_state == MMU_DYNAMIC)) mmu_state = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
-  if (mmu_state == MMU_DIRECT) paddr_write(addr, len, data);
+  if (mmu_state == MMU_DIRECT) { paddr_write(addr, len, data); return; }
 #ifndef __ICS_EXPORT
-  else {
-    save_globals(s);
-    MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (addr, len, data);
-  }
+  MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 #endif
 }
 

@@ -3,6 +3,7 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <device/mmio.h>
+#include <cpu/cpu.h>
 
 #define HOSTTLB_SIZE_SHIFT 10
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -48,7 +49,8 @@ void hosttlb_init() {
   hosttlb_flush(0);
 }
 
-static paddr_t va2pa(vaddr_t vaddr, int len, int type) {
+static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
+  if (type != MEM_TYPE_IFETCH) save_globals(s);
   int ret = isa_mmu_check(vaddr, len, type);
   assert(ret != MEM_RET_FAIL);
   paddr_t paddr = vaddr;
@@ -62,9 +64,9 @@ static paddr_t va2pa(vaddr_t vaddr, int len, int type) {
 }
 
 __attribute__((noinline))
-static word_t hosttlb_read_slowpath(vaddr_t vaddr, int len, int type) {
+static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
   HostTLBEntry *e = hosttlb_fetch(vaddr);
-  paddr_t paddr = va2pa(vaddr, len, type);
+  paddr_t paddr = va2pa(s, vaddr, len, type);
   if (paddr >= CONFIG_MBASE && paddr < CONFIG_MBASE + CONFIG_MSIZE) {
     void *haddr = guest_to_host(paddr);
     e->offset = haddr - vaddr;
@@ -75,9 +77,9 @@ static word_t hosttlb_read_slowpath(vaddr_t vaddr, int len, int type) {
 }
 
 __attribute__((noinline))
-static void hosttlb_write_slowpath(vaddr_t vaddr, int len, word_t data) {
+static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   HostTLBEntry *e = hosttlb_fetch(vaddr);
-  paddr_t paddr = va2pa(vaddr, len, MEM_TYPE_WRITE);
+  paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
   if (paddr >= CONFIG_MBASE && paddr < CONFIG_MBASE + CONFIG_MSIZE) {
     void *haddr = guest_to_host(paddr);
     e->offset = haddr - vaddr;
@@ -89,19 +91,19 @@ static void hosttlb_write_slowpath(vaddr_t vaddr, int len, word_t data) {
 }
 
 //__attribute__((noinline))
-word_t hosttlb_read(vaddr_t vaddr, int len, int type) {
+word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = hosttlb_fetch(vaddr);
-  if (unlikely(e->gvpn != gvpn)) return hosttlb_read_slowpath(vaddr, len, type);
+  if (unlikely(e->gvpn != gvpn)) return hosttlb_read_slowpath(s, vaddr, len, type);
   return host_read(e->offset + vaddr, len);
 }
 
 //__attribute__((noinline))
-void hosttlb_write(vaddr_t vaddr, int len, word_t data) {
+void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = hosttlb_fetch(vaddr);
   if (unlikely(!(e->gvpn == gvpn && e->w))) {
-    hosttlb_write_slowpath(vaddr, len, data);
+    hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
   host_write(e->offset + vaddr, len, data);
