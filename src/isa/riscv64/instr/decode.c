@@ -83,12 +83,6 @@ static inline def_DHelper(csr) {
   decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
 }
 
-static inline def_DHelper(csri) {
-  decode_op_i(s, id_src1, s->isa.instr.i.rs1, false);
-  decode_op_i(s, id_src2, s->isa.instr.csr.csr, true);
-  decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
-}
-
 def_THelper(li_dispatch) {
   switch (id_src2->imm) {
     TAB(0, p_li_0) TAB(1, p_li_1)
@@ -597,22 +591,6 @@ def_THelper(branch) {
   return EXEC_ID_inv;
 };
 
-def_THelper(priv) {
-  switch (s->isa.instr.csr.csr) {
-    TAB(0, ecall)  TAB (0x102, sret)  TAB (0x105, wfi) TAB (0x120, sfence_vma)
-    TAB(0x302, mret)
-  }
-  return EXEC_ID_inv;
-};
-
-def_THelper(system) {
-  switch (s->isa.instr.i.funct3) {
-    IDTAB(0, csr, priv)  IDTAB(1, csr, csrrw)  IDTAB(2, csr, csrrs)  IDTAB(3, csr, csrrc)
-                         IDTAB(5, csri, csrrwi)IDTAB(6, csri, csrrsi)IDTAB(7, csri, csrrci)
-  }
-  return EXEC_ID_inv;
-};
-
 def_THelper(jal_dispatch) {
   switch (s->isa.instr.j.rd) {
     TAB(0, c_j) TAB(1, p_jal)
@@ -660,6 +638,23 @@ def_THelper(fp) {
   return table_rt_inv(s);
 }
 
+#ifdef CONFIG_DEBUG
+def_THelper(priv) {
+  switch (s->isa.instr.csr.csr) {
+    TAB(0, ecall)  TAB (0x102, sret)  TAB (0x105, wfi) TAB (0x120, sfence_vma)
+    TAB(0x302, mret)
+  }
+  return EXEC_ID_inv;
+};
+
+def_THelper(system) {
+  switch (s->isa.instr.i.funct3) {
+    TAB(0, priv)  TAB(1, csrrw)  TAB(2, csrrs)  TAB(3, csrrc)
+                  TAB(5, csrrwi) TAB(6, csrrsi) TAB(7, csrrci)
+  }
+  return EXEC_ID_inv;
+};
+
 def_THelper(atomic) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
   int funct3 = s->isa.instr.r.funct3;
@@ -684,6 +679,7 @@ def_THelper(atomic) {
 #undef pair
   return EXEC_ID_inv;
 }
+#endif
 
 def_THelper(mem_fence) {
   switch (s->isa.instr.i.funct3) {
@@ -703,7 +699,7 @@ def_THelper(main) {
     /*IDTAB(020, F_R, fmadd)IDTAB(021, F_R, fmsub)        IDTAB(022, F_R, fnmsub)IDTAB(023, F_R, fnmadd)
     IDTAB(024, F_R, op_fp)*/
     IDTAB(030, B, branch) IDTAB(031, I, jalr_dispatch)  TAB  (032, nemu_trap)  IDTAB(033, J, jal_dispatch)
-    TAB  (034, system)                                  /*IDTAB(036, R, rocc3)*/
+    IDTAB(034, csr, system)                             /*IDTAB(036, R, rocc3)*/
   }
   return table_inv(s);
 };
@@ -813,8 +809,21 @@ rvc: idx = table_rvc(s);
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
-    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:
+    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
       s->type = INSTR_TYPE_I; break;
+
+#ifndef CONFIG_DEBUG
+    case EXEC_ID_system:
+      if (s->isa.instr.i.funct3 == 0) {
+        switch (s->isa.instr.csr.csr) {
+          case 0:     // ecall
+          case 0x102: // sret
+          case 0x302: // mret
+            s->type = INSTR_TYPE_I;
+        }
+      }
+      break;
+#endif
   }
 
   return idx;

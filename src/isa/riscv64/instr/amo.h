@@ -1,4 +1,11 @@
-#define AMO_INSTR_LIST(f, s) \
+#define def_AMO_EHelper(name) \
+def_EHelper(name) { \
+  extern void rtl_amo_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2); \
+  rtl_amo_slow_path(s, ddest, dsrc1, dsrc2); \
+}
+
+#ifdef CONFIG_DEBUG
+#define AMO_LIST(f, s) \
   f(concat3(lr     , _, s)) \
   f(concat3(sc     , _, s)) \
   f(concat3(amoswap, _, s)) \
@@ -11,11 +18,8 @@
   f(concat3(amominu, _, s)) \
   f(concat3(amomin , _, s))
 
-#define def_AMO_EHelper(name) \
-def_EHelper(name) { \
-  extern void rtl_amo_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2); \
-  rtl_amo_slow_path(s, ddest, dsrc1, dsrc2); \
-}
-
-AMO_INSTR_LIST(def_AMO_EHelper, d)
-AMO_INSTR_LIST(def_AMO_EHelper, w)
+AMO_LIST(def_AMO_EHelper, d)
+AMO_LIST(def_AMO_EHelper, w)
+#else
+def_AMO_EHelper(atomic)
+#endif
