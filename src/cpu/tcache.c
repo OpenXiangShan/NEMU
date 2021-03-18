@@ -82,10 +82,16 @@ static struct bb_t* bb_insert(vaddr_t pc, Decode *fill) {
 static bb_t* bb_find(vaddr_t pc) {
   bb_t *bb = bb_hash(pc);
   if (likely(bb->pc == pc)) return bb;
+  bb_t *head = bb;
   do {
     bb = bb->next;
     if (bb == (void *)-1ul) return NULL;
-    if (bb->pc == pc) return bb;
+    if (bb->pc == pc) {
+      Decode *tmp_s = bb->s; vaddr_t tmp_pc = bb->pc;
+      bb->s = head->s; bb->pc = head->pc;
+      head->s = tmp_s; head->pc = tmp_pc;
+      return head;
+    }
   } while (1);
 }
 
