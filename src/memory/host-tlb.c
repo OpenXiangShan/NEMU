@@ -4,7 +4,7 @@
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
 
-#define HOSTTLB_SIZE_SHIFT 10
+#define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
 
 typedef struct {
