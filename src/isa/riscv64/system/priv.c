@@ -123,6 +123,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     case 0x120: // sfence.vma
       mmu_tlb_flush(*src);
       break;
+    case 0x105: break; // wfi
     case -1: // fence.i
       set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
       break;
