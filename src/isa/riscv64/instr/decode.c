@@ -5,6 +5,8 @@
 
 def_all_THelper();
 
+bool fp_enable();
+
 // decode operand helper
 #define def_DopHelper(name) \
   void concat(decode_op_, name) (Decode *s, Operand *op, uint64_t val, bool flag)
@@ -22,15 +24,11 @@ static inline def_DopHelper(r) {
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
-#if 0
 static inline def_DopHelper(fpr){
-  op->type = OP_TYPE_REG;
-  op->reg = val;
   op->preg = &fpreg_l(val);
-
-  print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(op->reg, 4));
+  IFDEF(CONFIG_DEBUG, op->reg = val);
+  print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
 }
-#endif
 
 static inline def_DHelper(I) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
@@ -122,6 +120,7 @@ static inline def_DHelper(F_R) {
   decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
   decode_fp_width(s);
 }
+#endif
 
 // --------- FLD/FLW --------- 
 
@@ -138,9 +137,10 @@ static inline def_DHelper(F_S) {
   decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
   sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
   decode_op_i(s, id_src2, simm, false);
-  decode_op_fpr(s, id_dest, s->isa.instr.s.rs2, true);
+  decode_op_fpr(s, id_dest, s->isa.instr.s.rs2, false);
 }
 
+#if 0
 // --------- fpr to gpr ---------
 
 static inline def_DHelper(F_fpr_to_gpr){
@@ -246,12 +246,8 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = (BITS(s->isa.instr.val, 12, 12) << 5) | BITS(s->isa.instr.val, 6, 2);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
-#if 0
-  if(is_fp)
-    decode_op_fpr(s, id_dest, rd, false);
-  else 
-#endif
-    decode_op_r(s, id_dest, rd, false);
+  if (is_fp) decode_op_fpr(s, id_dest, rd, false);
+  else decode_op_r(s, id_dest, rd, false);
 }
 
 static inline def_DHelper(C_LWSP) {
@@ -262,15 +258,9 @@ static inline def_DHelper(C_LDSP) {
   decode_C_LxSP(s, 3, false);
 }
 
-#if 0
-static inline def_DHelper(C_FLWSP) {
-  decode_C_LxSP(s, 2, true);
-}
-
 static inline def_DHelper(C_FLDSP) {
   decode_C_LxSP(s, 3, true);
 }
-#endif
 
 // ---------- CSS ---------- 
 
@@ -278,12 +268,8 @@ static inline void decode_C_SxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = BITS(s->isa.instr.val, 12, 7);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
-#if 0
-  if(is_fp)
-    decode_op_fpr(s, id_dest, rs2, true);
-  else 
-#endif
-    decode_op_r(s, id_dest, rs2, true);
+  if (is_fp) decode_op_fpr(s, id_dest, rs2, true);
+  else decode_op_r(s, id_dest, rs2, true);
 }
 
 static inline def_DHelper(C_SWSP) {
@@ -294,15 +280,9 @@ static inline def_DHelper(C_SDSP) {
   decode_C_SxSP(s, 3, false);
 }
 
-#if 0
-static inline def_DHelper(C_FSWSP) {
-  decode_C_SxSP(s, 2, true);
-}
-
 static inline def_DHelper(C_FSDSP) {
   decode_C_SxSP(s, 3, true);
 }
-#endif
 
 // ---------- CIW ---------- 
 
@@ -325,12 +305,8 @@ static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bo
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, false);
-#if 0
-  if(is_fp)
-    decode_op_fpr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
-  else 
-#endif
-    decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  if (is_fp) decode_op_fpr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  else decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
 }
 
 static inline def_DHelper(C_LW) {
@@ -341,11 +317,9 @@ static inline def_DHelper(C_LD) {
   decode_C_ldst_common(s, 2, false, false);
 }
 
-#if 0
 static inline def_DHelper(C_FLD) {
   decode_C_ldst_common(s, 2, false, true);
 }
-#endif
 
 // ---------- CS ---------- 
 
@@ -357,11 +331,9 @@ static inline def_DHelper(C_SD) {
   decode_C_ldst_common(s, 2, true, false);
 }
 
-#if 0
 static inline def_DHelper(C_FSD) {
   decode_C_ldst_common(s, 2, true, true);
 }
-#endif
 
 static inline def_DHelper(CS) {
   decode_op_C_rd_rs1(s, true);
@@ -625,21 +597,25 @@ def_THelper(jalr_dispatch) {
   return table_jalr(s);
 }
 
-#if 0
-static inline def_EHelper(fp_load) {
+def_THelper(fload) {
+  if (!fp_enable()) return EXEC_ID_rt_inv;
+  print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   switch (s->isa.instr.i.funct3) {
-    EXW(2, fp_ld, 4) EXW(3, fp_ld, 8)
-    default: exec_inv(s);
+    TAB(2, flw) TAB(3, fld)
   }
+  return EXEC_ID_inv;
 }
 
-static inline def_EHelper(fp_store) {
+def_THelper(fstore) {
+  if (!fp_enable()) return EXEC_ID_rt_inv;
+  print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   switch (s->isa.instr.s.funct3) {
-    EXW(2, fp_st, 4) EXW(3, fp_st, 8)
-    default: exec_inv(s);
+    TAB(2, fsw) TAB(3, fsd)
   }
+  return EXEC_ID_inv;
 }
 
+#if 0
 static inline def_EHelper(op_fp){
   switch (s->isa.instr.fp.funct5) {
     EX(0, fadd) EX(1, fsub) EX(2, fmul) EX(3, fdiv)
@@ -652,10 +628,6 @@ static inline def_EHelper(op_fp){
   }
 }
 #endif
-
-def_THelper(fp) {
-  return table_rt_inv(s);
-}
 
 #ifdef CONFIG_DEBUG
 def_THelper(priv) {
@@ -709,14 +681,13 @@ def_THelper(mem_fence) {
 
 def_THelper(main) {
   switch (s->isa.instr.i.opcode6_2) {
-    TAB(001, fp) TAB(011, fp)
-
-    IDTAB(000, I, load)   /*IDTAB(001, F_I, fp_load)*/                         IDTAB(003, I, mem_fence)
+    IDTAB(000, I, load)   IDTAB(001, F_I, fload)                           IDTAB(003, I, mem_fence)
     IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)      IDTAB(006, I, op_imm32)
-    IDTAB(010, S, store)  /*IDTAB(011, F_S, fp_store)*/                        IDTAB(013, R, atomic)
+    IDTAB(010, S, store)  IDTAB(011, F_S, fstore)                          IDTAB(013, R, atomic)
     IDTAB(014, R, op)     IDTAB(015, U, lui)            IDTAB(016, R, op32)
-    /*IDTAB(020, F_R, fmadd)IDTAB(021, F_R, fmsub)        IDTAB(022, F_R, fnmsub)IDTAB(023, F_R, fnmadd)
-    IDTAB(024, F_R, op_fp)*/
+    /*IDTAB(020, F_R, fmadd)IDTAB(021, F_R, fmsub)        IDTAB(022, F_R, fnmsub)IDTAB(023, F_R, fnmadd)*/
+    /*IDTAB(024, F_R, op_fp)*/
+    TAB(024, rt_inv)
     IDTAB(030, B, branch) IDTAB(031, I, jalr_dispatch)  TAB  (032, nemu_trap)  IDTAB(033, J, jal_dispatch)
     IDTAB(034, csr, system)                             /*IDTAB(036, R, rocc3)*/
   }
@@ -772,48 +743,46 @@ def_THelper(misc_alu) {
 
 def_THelper(ld_dispatch) {
   int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return EXEC_ID_ld;
-  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_ld_mmu;
+  if (mmu_mode == MMU_DIRECT) return table_ld(s);
+  else if (mmu_mode == MMU_TRANSLATE) return table_ld_mmu(s);
   else assert(0);
 }
 
 def_THelper(lw_dispatch) {
   int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return EXEC_ID_lw;
-  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_lw_mmu;
+  if (mmu_mode == MMU_DIRECT) return table_lw(s);
+  else if (mmu_mode == MMU_TRANSLATE) return table_lw_mmu(s);
   else assert(0);
 }
 
 def_THelper(sd_dispatch) {
   int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return EXEC_ID_sd;
-  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_sd_mmu;
+  if (mmu_mode == MMU_DIRECT) return table_sd(s);
+  else if (mmu_mode == MMU_TRANSLATE) return table_sd_mmu(s);
   else assert(0);
 }
 
 def_THelper(sw_dispatch) {
   int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return EXEC_ID_sw;
-  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_sw_mmu;
+  if (mmu_mode == MMU_DIRECT) return table_sw(s);
+  else if (mmu_mode == MMU_TRANSLATE) return table_sw_mmu(s);
   else assert(0);
 }
 
 def_THelper(rvc) {
   uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
   switch (rvc_opcode) {
-    TAB(001, fp) TAB(005, fp) TAB(021, fp) TAB(025, fp)
-
-    IDTAB(000, C_ADDI4SPN, addi)          /*IDTABW(001, C_FLD, fp_ld, 8)*/
+    IDTAB(000, C_ADDI4SPN, addi)          IDTAB(001, C_FLD, fld)
     IDTAB(002, C_LW, lw_dispatch)         IDTAB(003, C_LD, ld_dispatch)
-                                          /*IDTABW(005, C_FSD, fp_st, 8)*/
+                                          IDTAB(005, C_FSD, fsd)
     IDTAB(006, C_SW, sw_dispatch)         IDTAB(007, C_SD, sd_dispatch)
     IDTAB(010, CI_simm, c_addi_dispatch)  IDTAB(011, CI_simm, c_addiw_dispatch)
     IDTAB(012, C_LI, li_dispatch)         TAB  (013, lui_addi16sp)
     TAB  (014, misc_alu)                  IDTAB(015, CJ, c_j)
     IDTAB(016, CB, c_beqz)                IDTAB(017, CB, c_bnez)
-    IDTAB(020, CI_uimm, c_slli)           /*IDTABW(021, C_FLDSP, fp_ld, 8)*/
+    IDTAB(020, CI_uimm, c_slli)           IDTAB(021, C_FLDSP, fld)
     IDTAB(022, C_LWSP, lw_dispatch)       IDTAB(023, C_LDSP, ld_dispatch)
-    TAB  (024, misc)                      /*IDTABW(025, C_FSDSP, fp_st, 8)*/
+    TAB  (024, misc)                      IDTAB(025, C_FSDSP, fsd)
     IDTAB(026, C_SWSP, sw_dispatch)       IDTAB(027, C_SDSP, sd_dispatch)
   }
   return table_inv(s);

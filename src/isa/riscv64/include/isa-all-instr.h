@@ -1,5 +1,5 @@
 #include <cpu/decode.h>
-#include <rtl/rtl.h>
+#include "../local-include/rtl.h"
 
 #ifdef CONFIG_DEBUG
 #define AMO_INSTR_BINARY(f) \
@@ -37,7 +37,8 @@
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
   AMO_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
-  f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu)
+  f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
+  f(fld) f(flw) f(fsd) f(fsw)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \

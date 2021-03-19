@@ -2,8 +2,9 @@
 #include <specialize.h>
 #include <internals.h>
 
-#include "../local-include/intr.h"
+//#include "../local-include/intr.h"
 
+#if 0
 
 #define BOX_MASK 0xFFFFFFFF00000000
 #define F32_SIGN ((uint32_t)1 << 31)
@@ -179,37 +180,31 @@ static uint_fast16_t f64_classify( float64_t a )
         ( isNaN &&  isSNaN )                       << 8 |
         ( isNaN && !isSNaN )                       << 9;
 }
+#endif
 
 
 // ------------- EHelpers -------------
 
-static inline def_EHelper(fp_ld) {
-    if(!check_fs(s)) return;
-    if(s->width == 8) rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
-    else if(s->width == 4) rtl_lm(s, s0, dsrc1, id_src2->imm, s->width);
-    sfpr(ddest, s0, s->width);
-
-    print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-    switch (s->width) {
-        case 8: print_asm_template2(fld); break;
-        case 4: print_asm_template2(flw); break;
-        default: assert(0);
-    }
+def_EHelper(fld) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
+  rtl_fsr(s, ddest, ddest, 8);
 }
 
-static inline def_EHelper(fp_st) {
-    *s0 = s->width == 4 ? box(*ddest) : *ddest;
-    rtl_sm(s, dsrc1, id_src2->imm, s0, s->width);
-
-    print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
-    switch (s->width) {
-        case 8: print_asm_template2(fsd); break;
-        case 4: print_asm_template2(fsw); break;
-        default: assert(0);
-    }
+def_EHelper(flw) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
+  rtl_fsr(s, ddest, ddest, 4);
 }
 
+def_EHelper(fsd) {
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
+}
 
+def_EHelper(fsw) {
+  rtl_fbox(s, s0, ddest);
+  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
+}
+
+#if 0
 
 // a macro to build exec_fadd/fsub/fmul/fmdiv/fmin/fmax
 #define BUILD_EXEC_F(x) \
@@ -575,3 +570,4 @@ static inline def_EHelper(fcvt_F_to_F) {
     sfpr(ddest, s0, s->width);
     writeFflags(s);
 }
+#endif
