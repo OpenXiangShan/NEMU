@@ -8,6 +8,10 @@ static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static const void **g_special_exec_table = NULL;
 
+static const void* get_nemu_decode() {
+  return g_special_exec_table[0];
+}
+
 static inline bool in_tcache_pool(Decode *s) {
   return (s >= tcache_pool && s < &tcache_pool[TCACHE_SIZE]);
 }
@@ -15,7 +19,7 @@ static inline bool in_tcache_pool(Decode *s) {
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   memset(s, 0, sizeof(*s));
   s->pc = pc;
-  s->EHelper = g_special_exec_table[0];
+  s->EHelper = get_nemu_decode();
   return s;
 }
 
@@ -127,32 +131,41 @@ Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
 __attribute__((noinline))
 Decode* tcache_decode(Decode *s, const void **exec_table) {
   static int idx_in_bb = 0;
-  if (tcache_state == TCACHE_RUNNING) {
-    Decode *old = s;
+  int bb_start = (tcache_state == TCACHE_RUNNING);
+  Decode *old = s;
+
+  if (bb_start) {
     // first check whether this basic block is already decoded
     bb_t *bb = bb_find(old->pc);
-    bool already_decode = (bb != NULL);
-    if (!already_decode) {
-      s = tcache_new(old->pc);
-      if (s == NULL) goto full;
-      bb_t *ret = bb_insert(old->pc, s);
-      if (ret == NULL) { // basic block list is full
-full:   save_globals(old);
-        tcache_flush();
-        longjmp_exec(NEMU_EXEC_AGAIN);
-      }
-    } else { s = bb->s; }
-    if (old->tnext)  { old->tnext->tnext = s; }
-    if (old->ntnext) { old->ntnext->ntnext = s; }
-    if (!in_tcache_pool(old)) free(old);
-    if (already_decode) return s;
-    tcache_state = TCACHE_BB_BUILDING;
-    idx_in_bb = 1;
+    if (bb != NULL) { // already decoded
+      s = bb->s;
+      goto bb_start_already_decode;
+    }
   }
+
   save_globals(s);
-  int idx = fetch_decode(s, s->pc);
+  int idx = fetch_decode(s, s->pc); // note that exception may happen!
   s->EHelper = exec_table[idx];
+
+  if (bb_start) {
+    s = tcache_new(old->pc);
+    if (s == NULL) goto full;
+    bb_t *ret = bb_insert(old->pc, s);
+    if (ret == NULL) { // basic block list is full
+full: old->EHelper = get_nemu_decode(); // decode again
+      save_globals(old);
+      tcache_flush();
+      longjmp_exec(NEMU_EXEC_AGAIN);
+    }
+
+    // now is safe to update states
+    *s = *old;
+    idx_in_bb = 1;
+    tcache_state = TCACHE_BB_BUILDING;
+  }
+
   s->idx_in_bb = idx_in_bb ++;
+
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
     if (next == NULL) {
@@ -173,6 +186,13 @@ full:   save_globals(old);
       default: assert(0);
     }
     tcache_state = TCACHE_RUNNING;
+  }
+
+  if (bb_start) {
+bb_start_already_decode:
+    if (old->tnext)  { old->tnext->tnext = s; }
+    if (old->ntnext) { old->ntnext->ntnext = s; }
+    if (!in_tcache_pool(old)) free(old);
   }
   return s;
 }
