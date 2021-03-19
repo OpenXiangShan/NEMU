@@ -12,10 +12,6 @@ static const void* get_nemu_decode() {
   return g_special_exec_table[0];
 }
 
-static inline bool in_tcache_pool(Decode *s) {
-  return (s >= tcache_pool && s < &tcache_pool[TCACHE_SIZE]);
-}
-
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   memset(s, 0, sizeof(*s));
   s->pc = pc;
@@ -192,7 +188,7 @@ full: old->EHelper = get_nemu_decode(); // decode again
 bb_start_already_decode:
     if (old->tnext)  { old->tnext->tnext = s; }
     if (old->ntnext) { old->ntnext->ntnext = s; }
-    if (!in_tcache_pool(old)) free(old);
+    free(old);
   }
   return s;
 }
