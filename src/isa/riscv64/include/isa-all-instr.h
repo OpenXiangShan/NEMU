@@ -33,7 +33,7 @@
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
   f(ld) f(lw) f(lh) f(lb) f(lwu) f(lhu) f(lbu) f(sd) f(sw) f(sh) f(sb) \
-  f(c_j) f(p_jal) f(c_jr) \
+  f(c_j) f(p_jal) f(c_jr) f(c_jalr) \
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
   AMO_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \

@@ -696,6 +696,16 @@ def_THelper(main) {
 
 // RVC
 
+def_THelper(c_jr_dispatch) {
+  if (BITS(s->isa.instr.val, 11, 7) == 1) return table_p_ret(s);
+  return table_c_jr(s);
+}
+
+def_THelper(c_jalr_dispatch) {
+  if (BITS(s->isa.instr.val, 11, 7) != 1) return table_c_jalr(s);
+  return table_jalr(s); // c_jalr can not handle correctly when rs1 == ra
+}
+
 def_THelper(misc) {
   uint32_t instr = s->isa.instr.val;
   uint32_t bits12not0 = (BITS(instr, 12, 12) != 0);
@@ -703,9 +713,9 @@ def_THelper(misc) {
   uint32_t bits6_2not0 = (BITS(instr, 6, 2) != 0);
   uint32_t op = (bits12not0 << 2) | (bits11_7not0 << 1) | bits6_2not0;
   switch (op) {
-    IDTAB(0b010, C_JR, c_jr)
+    IDTAB(0b010, C_JR, c_jr_dispatch)
     IDTAB(0b011, C_MOV, c_mv)
-    IDTAB(0b110, C_JALR, jalr)
+    IDTAB(0b110, C_JALR, c_jalr_dispatch)
     IDTAB(0b111, C_ADD, c_add)
   }
   return EXEC_ID_inv;
@@ -830,7 +840,7 @@ rvc: idx = table_rvc(s);
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
-    case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
+    case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
       s->type = INSTR_TYPE_I; break;
 
