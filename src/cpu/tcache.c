@@ -200,6 +200,12 @@ bb_start_already_decode:
 static Decode *ex = NULL;
 
 void tcache_handle_exception(vaddr_t jpc) {
+  if (tcache_state == TCACHE_BB_BUILDING) {
+    // When exception happens in the middle of the basic block,
+    // the property `next == s + 1` may not hold when the exception returns.
+    // This is hard to fix, therefore we just flush the tcache.
+    tcache_flush();
+  }
   ex->jnpc = jpc;
   tcache_bb_fetch(ex, true, jpc);
   save_globals(ex);
