@@ -12,7 +12,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   } else if (funct5 == 0b00011) { // sc
     // should check overlapping instead of equality
     int success = cpu.lr_addr == *src1;
-    if (success) rtl_sm(s, src1, 0, src2, width, MMU_DYNAMIC);
+    if (success) rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
     rtl_li(s, dest, !success);
     return;
   }
@@ -31,7 +31,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     case 0b10000: *s1 = ((sword_t)*s0 < (sword_t)*src2 ? *s0 : *src2); break;
     default: assert(0);
   }
-  rtl_sm(s, src1, 0, s1, width, MMU_DYNAMIC);
+  rtl_sm(s, s1, src1, 0, width, MMU_DYNAMIC);
   rtl_mv(s, dest, s0);
   cpu.amo = false;
 }

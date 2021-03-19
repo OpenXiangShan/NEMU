@@ -125,7 +125,7 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 #define rtl_lm(s, dest, addr, offset, len, mmu) \
   (*(dest) = vaddr_read(s, *(addr) + (offset), (len), mmu_state))
 
-#define rtl_sm(s, addr, offset, src1, len, mmu) \
+#define rtl_sm(s, src1, addr, offset, len, mmu) \
   vaddr_write(s, *(addr) + (offset), (len), *(src1), mmu_state);
 
 #define rtl_lms(s, dest, addr, offset, len, mmu) do { \
