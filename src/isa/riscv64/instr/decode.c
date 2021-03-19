@@ -439,17 +439,36 @@ static inline def_DHelper(C_JALR) {
 
 def_THelper(load) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
-  switch (s->isa.instr.i.funct3) {
-    TAB(0, lb)  TAB(1, lh)  TAB(2, lw)  TAB(3, ld)
-    TAB(4, lbu) TAB(5, lhu) TAB(6, lwu)
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, lb)  TAB(1, lh)  TAB(2, lw)  TAB(3, ld)
+      TAB(4, lbu) TAB(5, lhu) TAB(6, lwu)
+    }
+  } else if (mmu_mode == MMU_TRANSLATE) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, lb_mmu)  TAB(1, lh_mmu)  TAB(2, lw_mmu)  TAB(3, ld_mmu)
+      TAB(4, lbu_mmu) TAB(5, lhu_mmu) TAB(6, lwu_mmu)
+    }
+  } else {
+    assert(0);
   }
   return EXEC_ID_inv;
 }
 
 def_THelper(store) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
-  switch (s->isa.instr.i.funct3) {
-    TAB(0, sb)  TAB(1, sh)  TAB(2, sw)  TAB(3, sd)
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, sb)  TAB(1, sh)  TAB(2, sw)  TAB(3, sd)
+    }
+  } else if (mmu_mode == MMU_TRANSLATE) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, sb_mmu)  TAB(1, sh_mmu)  TAB(2, sw_mmu)  TAB(3, sd_mmu)
+    }
+  } else {
+    assert(0);
   }
   return EXEC_ID_inv;
 }
@@ -751,17 +770,51 @@ def_THelper(misc_alu) {
   return EXEC_ID_inv;
 }
 
+def_THelper(ld_dispatch) {
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) return EXEC_ID_ld;
+  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_ld_mmu;
+  else assert(0);
+}
+
+def_THelper(lw_dispatch) {
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) return EXEC_ID_lw;
+  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_lw_mmu;
+  else assert(0);
+}
+
+def_THelper(sd_dispatch) {
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) return EXEC_ID_sd;
+  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_sd_mmu;
+  else assert(0);
+}
+
+def_THelper(sw_dispatch) {
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) return EXEC_ID_sw;
+  else if (mmu_mode == MMU_TRANSLATE) return EXEC_ID_sw_mmu;
+  else assert(0);
+}
+
 def_THelper(rvc) {
   uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
   switch (rvc_opcode) {
     TAB(001, fp) TAB(005, fp) TAB(021, fp) TAB(025, fp)
 
-    IDTAB(000, C_ADDI4SPN, addi) /*IDTABW(001, C_FLD, fp_ld, 8)*/ IDTAB(002, C_LW, lw)    IDTAB(003, C_LD, ld)
-                                 /*IDTABW(005, C_FSD, fp_st, 8)*/ IDTAB(006, C_SW, sw)    IDTAB(007, C_SD, sd)
-    IDTAB(010, CI_simm, c_addi_dispatch)  IDTAB(011, CI_simm, c_addiw_dispatch)  IDTAB(012, C_LI, li_dispatch)     TAB  (013, lui_addi16sp)
-    TAB  (014, misc_alu)         IDTAB(015, CJ, c_j)           IDTAB(016, CB, c_beqz)     IDTAB(017, CB, c_bnez)
-    IDTAB(020, CI_uimm, c_slli)  /*IDTABW(021, C_FLDSP, fp_ld, 8)*/ IDTAB(022, C_LWSP, lw)IDTAB(023, C_LDSP, ld)
-    TAB  (024, misc)             /*IDTABW(025, C_FSDSP, fp_st, 8)*/ IDTAB(026, C_SWSP, sw)IDTAB(027, C_SDSP, sd)
+    IDTAB(000, C_ADDI4SPN, addi)          /*IDTABW(001, C_FLD, fp_ld, 8)*/
+    IDTAB(002, C_LW, lw_dispatch)         IDTAB(003, C_LD, ld_dispatch)
+                                          /*IDTABW(005, C_FSD, fp_st, 8)*/
+    IDTAB(006, C_SW, sw_dispatch)         IDTAB(007, C_SD, sd_dispatch)
+    IDTAB(010, CI_simm, c_addi_dispatch)  IDTAB(011, CI_simm, c_addiw_dispatch)
+    IDTAB(012, C_LI, li_dispatch)         TAB  (013, lui_addi16sp)
+    TAB  (014, misc_alu)                  IDTAB(015, CJ, c_j)
+    IDTAB(016, CB, c_beqz)                IDTAB(017, CB, c_bnez)
+    IDTAB(020, CI_uimm, c_slli)           /*IDTABW(021, C_FLDSP, fp_ld, 8)*/
+    IDTAB(022, C_LWSP, lw_dispatch)       IDTAB(023, C_LDSP, ld_dispatch)
+    TAB  (024, misc)                      /*IDTABW(025, C_FSDSP, fp_st, 8)*/
+    IDTAB(026, C_SWSP, sw_dispatch)       IDTAB(027, C_SDSP, sd_dispatch)
   }
   return table_inv(s);
 };

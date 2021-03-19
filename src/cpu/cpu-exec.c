@@ -122,23 +122,6 @@ int fetch_decode(Decode *s, vaddr_t pc) {
   goto end_of_priv; \
 } while (0)
 
-#define rtl_lm(s, dest, addr, offset, len, mmu) \
-  (*(dest) = vaddr_read(s, *(addr) + (offset), (len), mmu_state))
-
-#define rtl_sm(s, src1, addr, offset, len, mmu) \
-  vaddr_write(s, *(addr) + (offset), (len), *(src1), mmu_state);
-
-#define rtl_lms(s, dest, addr, offset, len, mmu) do { \
-  word_t val = vaddr_read(s, *(addr) + (offset), (len), mmu_state); \
-  switch (len) { \
-    case 4: *dest = (sword_t)(int32_t)val; break; \
-    case 1: *dest = (sword_t)( int8_t)val; break; \
-    case 2: *dest = (sword_t)(int16_t)val; break; \
-    IFDEF(CONFIG_ISA64, case 8: *dest = (sword_t)(int64_t)val; break); \
-    default: assert(0); \
-  } \
-} while (0)
-
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode* tcache_decode(Decode *s, const void **exec_table);
 void tcache_handle_exception(vaddr_t jpc);
@@ -163,7 +146,6 @@ static int execute(int n) {
   };
   static int init_flag = 0;
   Decode *s = prev_s;
-  int mmu_state = isa_mmu_state();
 
   if (likely(init_flag == 0)) {
     exec_table[TOTAL_INSTR] = &&nemu_decode;

@@ -26,14 +26,19 @@
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f) \
   f(p_ret)
+
 #define INSTR_UNARY(f) \
   f(p_li_0) f(p_li_1)
+
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
   f(ld) f(lw) f(lh) f(lb) f(lwu) f(lhu) f(lbu) f(sd) f(sw) f(sh) f(sb) \
   f(c_j) f(p_jal) f(c_jr) \
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
-  AMO_INSTR_BINARY(f)
+  AMO_INSTR_BINARY(f) \
+  f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
+  f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu)
+
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
   f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
