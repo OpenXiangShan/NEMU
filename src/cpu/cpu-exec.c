@@ -122,17 +122,14 @@ int fetch_decode(Decode *s, vaddr_t pc) {
   goto end_of_priv; \
 } while (0)
 
-word_t vaddr_read_with_mmu_state(void *s, vaddr_t addr, int len, int mmu_state);
-void vaddr_write_with_mmu_state(void *s, vaddr_t addr, int len, word_t data, int mmu_state);
+#define rtl_lm(s, dest, addr, offset, len, mmu) \
+  (*(dest) = vaddr_read(s, *(addr) + (offset), (len), mmu_state))
 
-#define rtl_lm(s, dest, addr, offset, len) \
-  (*(dest) = vaddr_read_with_mmu_state(s, *(addr) + (offset), (len), mmu_state))
+#define rtl_sm(s, addr, offset, src1, len, mmu) \
+  vaddr_write(s, *(addr) + (offset), (len), *(src1), mmu_state);
 
-#define rtl_sm(s, addr, offset, src1, len) \
-  vaddr_write_with_mmu_state(s, *(addr) + (offset), (len), *(src1), mmu_state);
-
-#define rtl_lms(s, dest, addr, offset, len) do { \
-  word_t val = vaddr_read_with_mmu_state(s, *(addr) + (offset), (len), mmu_state); \
+#define rtl_lms(s, dest, addr, offset, len, mmu) do { \
+  word_t val = vaddr_read(s, *(addr) + (offset), (len), mmu_state); \
   switch (len) { \
     case 4: *dest = (sword_t)(int32_t)val; break; \
     case 1: *dest = (sword_t)( int8_t)val; break; \

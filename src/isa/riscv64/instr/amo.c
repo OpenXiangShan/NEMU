@@ -6,19 +6,19 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
 
   if (funct5 == 0b00010) { // lr
-    rtl_lms(s, dest, src1, 0, width);
+    rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     cpu.lr_addr = *src1;
     return;
   } else if (funct5 == 0b00011) { // sc
     // should check overlapping instead of equality
     int success = cpu.lr_addr == *src1;
-    if (success) rtl_sm(s, src1, 0, src2, width);
+    if (success) rtl_sm(s, src1, 0, src2, width, MMU_DYNAMIC);
     rtl_li(s, dest, !success);
     return;
   }
 
   cpu.amo = true;
-  rtl_lms(s, s0, src1, 0, width);
+  rtl_lms(s, s0, src1, 0, width, MMU_DYNAMIC);
   switch (funct5) {
     case 0b00001: rtl_mv (s, s1, src2); break;
     case 0b00000: rtl_add(s, s1, s0, src2); break;
@@ -31,7 +31,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     case 0b10000: *s1 = ((sword_t)*s0 < (sword_t)*src2 ? *s0 : *src2); break;
     default: assert(0);
   }
-  rtl_sm(s, src1, 0, s1, width);
+  rtl_sm(s, src1, 0, s1, width, MMU_DYNAMIC);
   rtl_mv(s, dest, s0);
   cpu.amo = false;
 }
