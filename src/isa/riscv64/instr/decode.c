@@ -94,35 +94,14 @@ def_THelper(addi_dispatch) {
   return table_addi(s);
 }
 
-#if 0
+
 // RVF RVD
 
-static inline void decode_fp_width(Decode *s) {
-  switch (s->isa.instr.fp.fmt)
-  {
-  case 0: // RVF
-    s->width = 4;
-    break;
-  case 1: // RVD
-    s->width = 8;
-    break;
-  default:
-    assert(0);
-    break;
-  }
+static inline def_DHelper(fr) {
+  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, false);
+  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, false);
+  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd,  false);
 }
-
-// --------- fpr to fpr ---------
-
-static inline def_DHelper(F_R) {
-  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
-  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
-  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
-  decode_fp_width(s);
-}
-#endif
-
-// --------- FLD/FLW --------- 
 
 static inline def_DHelper(fload) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
@@ -138,22 +117,16 @@ static inline def_DHelper(fstore) {
 }
 
 #if 0
-// --------- fpr to gpr ---------
-
 static inline def_DHelper(F_fpr_to_gpr){
   decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
   decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_r(s, id_dest, s->isa.instr.fp.rd, false);
-  decode_fp_width(s);
 }
-
-// --------- gpr to fpr ---------
 
 static inline def_DHelper(F_gpr_to_fpr){
   decode_op_r(s, id_src1, s->isa.instr.fp.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
-  decode_fp_width(s);
 }
 #endif
 
@@ -612,19 +585,47 @@ def_THelper(fstore) {
   return EXEC_ID_inv;
 }
 
-#if 0
-static inline def_EHelper(op_fp){
-  switch (s->isa.instr.fp.funct5) {
-    EX(0, fadd) EX(1, fsub) EX(2, fmul) EX(3, fdiv)
-    EX(4, fsgnj) EX(5, fmin_fmax)
-    EX(8, fcvt_F_to_F) EX(11, fsqrt) 
-    IDEX(20, F_fpr_to_gpr, fcmp) 
-    IDEX(24, F_fpr_to_gpr, fcvt_F_to_G) IDEX(26, F_gpr_to_fpr, fcvt_G_to_F)
-    IDEX(28, F_fpr_to_gpr, fmv_F_to_G) IDEX(30, F_gpr_to_fpr, fmv_G_to_F)
-    default: exec_inv(s);
+def_THelper(fop) {
+  int funct4 = s->isa.instr.fp.funct5 & 0b01111;
+  int width = s->isa.instr.fp.fmt;
+  switch (width) {
+    case 0b00: width = 0; break;
+    case 0b01: width = 1; break;
+    default: return EXEC_ID_inv;
   }
+
+#define pair(x, y) (((y) << 1) | (x))
+  switch (pair(width, funct4)) {
+    TAB(pair(0, 0b0000), fadds)   TAB(pair(0, 0b0001), fsubs)
+    TAB(pair(0, 0b0010), fmuls)   TAB(pair(0, 0b0011), fdivs)
+//    TAB(pair(0, 0b0100), fsgnjs)  TAB(pair(0, 0b0101), fmin_fmax)
+//    TAB(pair(0, 0b1000), fcvt_F_to_F)   TAB(0b01011, fsqrt)
+
+    TAB(pair(1, 0b0000), faddd)   TAB(pair(1, 0b0001), fsubd)
+    TAB(pair(1, 0b0010), fmuld)   TAB(pair(1, 0b0011), fdivd)
+  }
+#undef pair
+  return EXEC_ID_inv;
 }
-#endif
+
+def_THelper(fop_gpr) {
+  int funct4 = s->isa.instr.fp.funct5 & 0b01111;
+  switch (funct4) {
+//    IDTAB(0b0100, F_fpr_to_gpr, fcmp)
+//    IDTAB(0b1000, F_fpr_to_gpr, fcvt_F_to_G) IDTAB(0b1010, F_gpr_to_fpr, fcvt_G_to_F)
+//    IDTAB(0b1100, F_fpr_to_gpr, fmv_F_to_G)  IDTAB(0b1110, F_gpr_to_fpr, fmv_G_to_F)
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(op_fp) {
+  if (!fp_enable()) return EXEC_ID_rt_inv;
+  int need_gpr = (s->isa.instr.fp.funct5 & 0b10000) != 0;
+  switch (need_gpr) {
+    IDTAB(0, fr, fop) TAB(1, fop_gpr)
+  }
+  return EXEC_ID_inv;
+}
 
 #ifdef CONFIG_DEBUG
 def_THelper(priv) {
@@ -683,10 +684,11 @@ def_THelper(main) {
     IDTAB(010, S, store)  IDTAB(011, fstore, fstore)                       IDTAB(013, R, atomic)
     IDTAB(014, R, op)     IDTAB(015, U, lui)            IDTAB(016, R, op32)
     /*IDTAB(020, F_R, fmadd)IDTAB(021, F_R, fmsub)        IDTAB(022, F_R, fnmsub)IDTAB(023, F_R, fnmadd)*/
-    /*IDTAB(024, F_R, op_fp)*/
-    TAB(024, rt_inv)
+    TAB  (024, op_fp)
     IDTAB(030, B, branch) IDTAB(031, I, jalr_dispatch)  TAB  (032, nemu_trap)  IDTAB(033, J, jal_dispatch)
-    IDTAB(034, csr, system)                             /*IDTAB(036, R, rocc3)*/
+    IDTAB(034, csr, system)
+    //IDTAB(036, R, rocc3)
+    IDTAB(036, R, rt_inv)
   }
   return table_inv(s);
 };

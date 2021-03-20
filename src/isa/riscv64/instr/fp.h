@@ -204,8 +204,23 @@ def_EHelper(fsw) {
   rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
 }
 
-#if 0
+#define def_fop_template(name, op, w) \
+  def_EHelper(name) { \
+    rtl_mv(s, s0, dsrc1); \
+    rtl_hostcall(s, HOSTCALL_FP, s0, dsrc2, FPCALL_CMD(op, w)); \
+    rtl_fsr(s, ddest, s0, w); \
+  }
 
+def_fop_template(fadds, FPCALL_ADD, FPCALL_W32)
+def_fop_template(fsubs, FPCALL_SUB, FPCALL_W32)
+def_fop_template(fmuls, FPCALL_MUL, FPCALL_W32)
+def_fop_template(fdivs, FPCALL_DIV, FPCALL_W32)
+def_fop_template(faddd, FPCALL_ADD, FPCALL_W64)
+def_fop_template(fsubd, FPCALL_SUB, FPCALL_W64)
+def_fop_template(fmuld, FPCALL_MUL, FPCALL_W64)
+def_fop_template(fdivd, FPCALL_DIV, FPCALL_W64)
+
+#if 0
 // a macro to build exec_fadd/fsub/fmul/fmdiv/fmin/fmax
 #define BUILD_EXEC_F(x) \
   static inline def_EHelper(concat(f, x)) { \

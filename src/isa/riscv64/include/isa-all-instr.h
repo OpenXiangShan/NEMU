@@ -21,6 +21,9 @@
 #define SYS_INSTR_TERNARY(f) f(system)
 #endif
 
+#define FLOAT_INSTR_TERNARY(f) \
+  f(fadds) f(fsubs) f(fmuls) f(fdivs) f(faddd) f(fsubd) f(fmuld) f(fdivd)
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
@@ -53,6 +56,7 @@
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
   f(p_inc) f(p_dec) \
   AMO_INSTR_TERNARY(f) \
-  SYS_INSTR_TERNARY(f)
+  SYS_INSTR_TERNARY(f) \
+  FLOAT_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
