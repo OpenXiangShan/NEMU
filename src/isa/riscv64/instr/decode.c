@@ -124,16 +124,13 @@ static inline def_DHelper(F_R) {
 
 // --------- FLD/FLW --------- 
 
-static inline def_DHelper(F_I) {
+static inline def_DHelper(fload) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
   decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, false);
   decode_op_fpr(s, id_dest, s->isa.instr.i.rd, false);
 }
 
-
-// --------- FSD/FSW ---------
-
-static inline def_DHelper(F_S) {
+static inline def_DHelper(fstore) {
   decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
   sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
   decode_op_i(s, id_src2, simm, false);
@@ -681,9 +678,9 @@ def_THelper(mem_fence) {
 
 def_THelper(main) {
   switch (s->isa.instr.i.opcode6_2) {
-    IDTAB(000, I, load)   IDTAB(001, F_I, fload)                           IDTAB(003, I, mem_fence)
+    IDTAB(000, I, load)   IDTAB(001, fload, fload)                         IDTAB(003, I, mem_fence)
     IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)      IDTAB(006, I, op_imm32)
-    IDTAB(010, S, store)  IDTAB(011, F_S, fstore)                          IDTAB(013, R, atomic)
+    IDTAB(010, S, store)  IDTAB(011, fstore, fstore)                       IDTAB(013, R, atomic)
     IDTAB(014, R, op)     IDTAB(015, U, lui)            IDTAB(016, R, op32)
     /*IDTAB(020, F_R, fmadd)IDTAB(021, F_R, fmsub)        IDTAB(022, F_R, fnmsub)IDTAB(023, F_R, fnmadd)*/
     /*IDTAB(024, F_R, op_fp)*/
