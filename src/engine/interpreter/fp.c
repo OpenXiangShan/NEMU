@@ -20,22 +20,6 @@ static inline float64_t rtlToF64(rtlreg_t r) {
   return f;
 }
 
-typedef float32_t (*f32_binfun_t)(float32_t, float32_t);
-static const f32_binfun_t f32_binfun[] = {
-  [FPCALL_ADD] = f32_add,
-  [FPCALL_SUB] = f32_sub,
-  [FPCALL_MUL] = f32_mul,
-  [FPCALL_DIV] = f32_div,
-};
-
-typedef float64_t (*f64_binfun_t)(float64_t, float64_t);
-static const f64_binfun_t f64_binfun[] = {
-  [FPCALL_ADD] = f64_add,
-  [FPCALL_SUB] = f64_sub,
-  [FPCALL_MUL] = f64_mul,
-  [FPCALL_DIV] = f64_div,
-};
-
 uint32_t isa_fp_get_rm(Decode *s);
 void isa_fp_update_ex_flags(Decode *s, uint32_t ex_flags);
 
@@ -47,13 +31,25 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src, uint32_t cmd) {
   if (w == FPCALL_W32) {
     float32_t fsrc1 = rtlToF32(*dest);
     float32_t fsrc2 = rtlToF32(*src);
-    assert(op < sizeof(f32_binfun) / sizeof(f32_binfun[0]));
-    *dest = f32_binfun[op](fsrc1, fsrc2).v;
+    switch (op) {
+      case FPCALL_ADD: *dest = f32_add(fsrc1, fsrc2).v; break;
+      case FPCALL_SUB: *dest = f32_sub(fsrc1, fsrc2).v; break;
+      case FPCALL_MUL: *dest = f32_mul(fsrc1, fsrc2).v; break;
+      case FPCALL_DIV: *dest = f32_div(fsrc1, fsrc2).v; break;
+
+      case FPCALL_I32ToF: *dest = i32_to_f32(*src).v; break;
+      default: panic("op = %d not supported", op);
+    }
   } else if (w == FPCALL_W64) {
     float64_t fsrc1 = rtlToF64(*dest);
     float64_t fsrc2 = rtlToF64(*src);
-    assert(op < sizeof(f64_binfun) / sizeof(f64_binfun[0]));
-    *dest = f64_binfun[op](fsrc1, fsrc2).v;
+    switch (op) {
+      case FPCALL_ADD: *dest = f64_add(fsrc1, fsrc2).v; break;
+      case FPCALL_SUB: *dest = f64_sub(fsrc1, fsrc2).v; break;
+      case FPCALL_MUL: *dest = f64_mul(fsrc1, fsrc2).v; break;
+      case FPCALL_DIV: *dest = f64_div(fsrc1, fsrc2).v; break;
+      default: panic("op = %d not supported", op);
+    }
   }
 
   if (softfloat_exceptionFlags) {

@@ -13,6 +13,7 @@ enum {
   FPCALL_SUB,
   FPCALL_MUL,
   FPCALL_DIV,
+  FPCALL_I32ToF,
 };
 
 #define FPCALL_CMD(op, w) (((op) << 16) | (w))

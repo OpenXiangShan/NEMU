@@ -2,45 +2,42 @@ bool fp_enable();
 static int table_fop_d(Decode *s);
 static int table_fop_gpr_d(Decode *s);
 
-static inline def_DopHelper(fpr){
+static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
   IFDEF(CONFIG_DEBUG, op->reg = val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
 }
 
 static inline def_DHelper(fr) {
-  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, false);
-  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, false);
-  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd,  false);
+  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, false);
+  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, false);
+  decode_op_fr(s, id_dest, s->isa.instr.fp.rd,  false);
 }
 
 static inline def_DHelper(fload) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
   decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, false);
-  decode_op_fpr(s, id_dest, s->isa.instr.i.rd, false);
+  decode_op_fr(s, id_dest, s->isa.instr.i.rd, false);
 }
 
 static inline def_DHelper(fstore) {
   decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
   sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
   decode_op_i(s, id_src2, simm, false);
-  decode_op_fpr(s, id_dest, s->isa.instr.s.rs2, false);
+  decode_op_fr(s, id_dest, s->isa.instr.s.rs2, false);
 }
 
-#if 0
-static inline def_DHelper(F_fpr_to_gpr){
-  decode_op_fpr(s, id_src1, s->isa.instr.fp.rs1, true);
-  decode_op_fpr(s, id_src2, s->isa.instr.fp.rs2, true);
+static inline def_DHelper(fr2r){
+  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_r(s, id_dest, s->isa.instr.fp.rd, false);
 }
 
-static inline def_DHelper(F_gpr_to_fpr){
+static inline def_DHelper(r2fr){
   decode_op_r(s, id_src1, s->isa.instr.fp.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.fp.rs2, true);
-  decode_op_fpr(s, id_dest, s->isa.instr.fp.rd, false);
+  decode_op_fr(s, id_dest, s->isa.instr.fp.rd, false);
 }
-#endif
-
 
 def_THelper(fload) {
   if (!fp_enable()) return EXEC_ID_rt_inv;
@@ -72,13 +69,37 @@ def_THelper(fop) {
   return EXEC_ID_inv;
 }
 
+def_THelper(fcmp_dispatch) {
+  return EXEC_ID_inv;
+}
+
+def_THelper(fmv_dispatch) {
+  int funct4 = s->isa.instr.fp.funct5 & 0b01111;
+  int rm = s->isa.instr.fp.rm;
+#define pair(x, y) (((y) << 3) | (x))
+  switch (pair(rm, funct4)) {
+    TAB(pair(0b000, 0b1100), fmv_x_w)
+//    TAB(pair(0b001, 0b1100), fclass)
+  }
+#undef pair
+  return EXEC_ID_inv;
+}
+
 def_THelper(fop_gpr) {
   int funct4 = s->isa.instr.fp.funct5 & 0b01111;
   switch (funct4) {
-//    IDTAB(0b0100, F_fpr_to_gpr, fcmp)
-//    IDTAB(0b1000, F_fpr_to_gpr, fcvt_F_to_G) IDTAB(0b1010, F_gpr_to_fpr, fcvt_G_to_F)
-//    IDTAB(0b1100, F_fpr_to_gpr, fmv_F_to_G)  IDTAB(0b1110, F_gpr_to_fpr, fmv_G_to_F)
+    IDTAB(0b0100, fr2r, fcmp_dispatch)
   }
+  assert((s->isa.instr.fp.rs2 & 0x1c) == 0);
+  int sign = s->isa.instr.fp.rs2 & 0x3;
+#define pair(x, y) (((y) << 2) | (x))
+  switch (pair(sign, funct4)) {
+    IDTAB(pair(0b00, 0b1010), r2fr, fcvt_s_w)
+    IDTAB(pair(0b00, 0b1100), fr2r, fmv_dispatch)
+//    IDTAB(0b1000, fr2r, fcvt_F_to_G) IDTAB(0b1010, r2fr, fcvt_G_to_F)
+//    IDTAB(0b1100, fr2r, fmv_F_to_G)  IDTAB(0b1110, r2fr, fmv_G_to_F)
+  }
+#undef pair
   return EXEC_ID_inv;
 }
 

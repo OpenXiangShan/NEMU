@@ -19,3 +19,12 @@ def_fop_template(fadds, FPCALL_ADD, FPCALL_W32)
 def_fop_template(fsubs, FPCALL_SUB, FPCALL_W32)
 def_fop_template(fmuls, FPCALL_MUL, FPCALL_W32)
 def_fop_template(fdivs, FPCALL_DIV, FPCALL_W32)
+
+def_EHelper(fcvt_s_w) {
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, FPCALL_CMD(FPCALL_I32ToF, FPCALL_W32));
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
+}
+
+def_EHelper(fmv_x_w) {
+  rtl_sext(s, ddest, dsrc1, 4);
+}
