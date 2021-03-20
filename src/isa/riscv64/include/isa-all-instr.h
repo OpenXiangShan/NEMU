@@ -42,7 +42,7 @@
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
   f(fld) f(flw) f(fsd) f(fsw) \
-  f(fcvt_s_w) f(fmv_x_w)
+  f(fcvt_s_w) f(fmv_x_w) f(fmv_w_x)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \

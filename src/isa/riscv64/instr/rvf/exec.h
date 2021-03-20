@@ -28,3 +28,7 @@ def_EHelper(fcvt_s_w) {
 def_EHelper(fmv_x_w) {
   rtl_sext(s, ddest, dsrc1, 4);
 }
+
+def_EHelper(fmv_w_x) {
+  rtl_fsr(s, ddest, dsrc1, FPCALL_W32);
+}

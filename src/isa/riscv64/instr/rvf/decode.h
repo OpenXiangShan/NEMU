@@ -79,6 +79,7 @@ def_THelper(fmv_dispatch) {
 #define pair(x, y) (((y) << 3) | (x))
   switch (pair(rm, funct4)) {
     TAB(pair(0b000, 0b1100), fmv_x_w)
+    TAB(pair(0b000, 0b1110), fmv_w_x)
 //    TAB(pair(0b001, 0b1100), fclass)
   }
 #undef pair
@@ -96,6 +97,7 @@ def_THelper(fop_gpr) {
   switch (pair(sign, funct4)) {
     IDTAB(pair(0b00, 0b1010), r2fr, fcvt_s_w)
     IDTAB(pair(0b00, 0b1100), fr2r, fmv_dispatch)
+    IDTAB(pair(0b00, 0b1110), r2fr, fmv_dispatch)
 //    IDTAB(0b1000, fr2r, fcvt_F_to_G) IDTAB(0b1010, r2fr, fcvt_G_to_F)
 //    IDTAB(0b1100, fr2r, fmv_F_to_G)  IDTAB(0b1110, r2fr, fmv_G_to_F)
   }
