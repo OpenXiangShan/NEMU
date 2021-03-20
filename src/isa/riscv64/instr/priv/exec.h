@@ -15,14 +15,3 @@ MAP(SYS_INSTR_LIST, def_SYS_EHelper)
 #else
 def_SYS_EHelper(system)
 #endif
-
-def_EHelper(fence_i) {
-  // in fact, fence.i is not a privileged instruction
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, -1);
-  rtl_priv_next(s);
-}
-
-def_EHelper(fence) {
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-}
