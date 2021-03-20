@@ -35,6 +35,8 @@ static inline void invalid_instr(vaddr_t thispc) {
   set_nemu_state(NEMU_ABORT, thispc, -1);
 }
 
+def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src, uint32_t cmd);
+
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
   switch (id) {
     case HOSTCALL_EXIT:
@@ -42,6 +44,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
       set_nemu_state(NEMU_END, s->pc, *src);
       break;
     case HOSTCALL_INV: invalid_instr(s->pc); break;
+    case HOSTCALL_FP:  rtl_fpcall(s, dest, src, imm); break;
     //case HOSTCALL_PIO: {
     //  if (imm) *dest = pio_read(*src, id_dest->width);
     //  else pio_write(*dest, id_dest->width, *src);
