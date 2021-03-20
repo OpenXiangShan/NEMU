@@ -187,12 +187,12 @@ static uint_fast16_t f64_classify( float64_t a )
 
 def_EHelper(fld) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
-  rtl_fsr(s, ddest, ddest, 8);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(flw) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
-  rtl_fsr(s, ddest, ddest, 4);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 def_EHelper(fsd) {

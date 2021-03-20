@@ -17,8 +17,8 @@ static inline def_rtl(funbox, rtlreg_t *dest, rtlreg_t *src) {
 }
 
 static inline def_rtl(fsr, rtlreg_t *fdest, rtlreg_t *src, int width) {
-  if (width == 4) rtl_fbox(s, fdest, src);
-  else if (width == 8) rtl_mv(s, fdest, src);
+  if (width == FPCALL_W32) rtl_fbox(s, fdest, src);
+  else if (width == FPCALL_W64) rtl_mv(s, fdest, src);
   else assert(0);
   void fp_set_dirty();
   fp_set_dirty();
