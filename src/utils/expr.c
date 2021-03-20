@@ -224,7 +224,7 @@ static rtlreg_t eval(int s, int e, bool *success) {
       switch (op_type) {
         case '!': return !val;
         case TK_NEG: return -val;
-        case TK_REF: return vaddr_read(val, 4);
+        case TK_REF: return vaddr_read_safe(val, 4);
         default: assert(0);
       }
     }

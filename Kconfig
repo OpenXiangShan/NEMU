@@ -21,6 +21,14 @@ config ISA
   default "riscv64" if ISA_riscv64
   default "none"
 
+config ILEN_MIN
+  int
+  default 1 if ISA_x86
+  default 4 if ISA_mips32
+  default 4 if ISA_riscv32
+  default 2 if ISA_riscv64
+  default 1
+
 config ISA64
   depends on ISA_riscv64
   bool
@@ -178,4 +186,16 @@ endchoice
 config PERF_OPT
   bool "Performance optimization"
   default y
+
+if PERF_OPT && !DEBUG
+config DISABLE_INSTR_CNT
+  bool "Disable instruction counting (single step is also disabled)"
+  default y
+endif
+
+config ENABLE_INSTR_CNT
+  bool
+  default n if DISABLE_INSTR_CNT
+  default y
+
 endmenu

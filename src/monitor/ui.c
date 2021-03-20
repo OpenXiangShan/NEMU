@@ -132,7 +132,7 @@ static int cmd_x(char *args) {
           printf(FMT_WORD ": ", addr);
         }
 
-        printf("0x%08x ", (uint32_t)vaddr_read(addr, 4));
+        printf("0x%08x ", (uint32_t)vaddr_read_safe(addr, 4));
         addr += 4;
         if (i % 4 == 3) {
           printf("\n");

@@ -26,7 +26,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm
 // memory
 enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
-enum { MEM_RET_OK, MEM_RET_NEED_TRANSLATE, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
+enum { MEM_RET_OK, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
 #ifndef isa_mmu_state
 int isa_mmu_state();
 #endif
@@ -36,6 +36,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type);
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 
 // interrupt
+vaddr_t raise_intr(word_t NO, vaddr_t epc);
 void isa_query_intr();
 
 // difftest

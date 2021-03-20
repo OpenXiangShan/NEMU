@@ -3,14 +3,18 @@
 
 #define INSTR_NULLARY(f) \
   f(inv) f(nemu_trap) f(ecall) f(sret) f(sfence_vma) f(p_ret)
+
 #define INSTR_UNARY(f) \
   f(p_li_0) f(p_li_1) \
   f(p_inc) f(p_dec)
+
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
   f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) \
   f(c_j) f(c_jal) f(c_jr) \
-  f(c_beqz) f(c_bnez) f(c_mv)
+  f(c_beqz) f(c_bnez) f(c_mv) \
+  f(lw_mmu) f(sw_mmu) f(lh_mmu) f(lb_mmu) f(lhu_mmu) f(lbu_mmu) f(sh_mmu) f(sb_mmu)
+
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
   f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \

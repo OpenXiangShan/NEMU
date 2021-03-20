@@ -1,6 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
-#include <cpu/tcache.h>
+#include <cpu/cpu.h>
 
 static inline word_t* csr_decode(uint32_t csr) {
   switch (csr) {
@@ -29,7 +29,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       cpu.sstatus.spie = 1;
       return cpu.sepc;
     case 0x120:; // sfence.vma
-      tcache_flush();
+      mmu_tlb_flush(*src);
       return 0;
     default: panic("Unsupported privilige operation = %d", op);
   }

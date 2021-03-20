@@ -1,8 +1,9 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include <cpu/cpu.h>
 
-void update_mmu_state();
+int update_mmu_state();
 
 static word_t csr_array[4096] = {};
 
@@ -85,7 +86,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (dest == (void *)mstatus || dest == (void *)satp) {
-    update_mmu_state();
+    if (update_mmu_state()) set_mmu_state_flag(MMU_STATE_UPDATE);
   }
 }
 
@@ -94,6 +95,7 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+  if (csrid == 0xc01) { longjmp_exception(EX_II); } // time
   word_t *csr = csr_decode(csrid);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
@@ -117,6 +119,13 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       mstatus->mpp = MODE_U;
       update_mmu_state();
       return mepc->val;
+      break;
+    case 0x120: // sfence.vma
+      mmu_tlb_flush(*src);
+      break;
+    case 0x105: break; // wfi
+    case -1: // fence.i
+      set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
       break;
     default: panic("Unsupported privilige operation = %d", op);
   }

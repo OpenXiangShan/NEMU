@@ -76,17 +76,36 @@ static inline def_DHelper(csr) {
 
 def_THelper(load) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
-  switch (s->isa.instr.i.funct3) {
-    TAB(0, lb)  TAB(1, lh)  TAB(2, lw)
-    TAB(4, lbu) TAB(5, lhu)
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, lb)  TAB(1, lh)  TAB(2, lw)
+      TAB(4, lbu) TAB(5, lhu)
+    }
+  } else if (mmu_mode == MMU_TRANSLATE) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, lb_mmu)  TAB(1, lh_mmu)  TAB(2, lw_mmu)
+      TAB(4, lbu_mmu) TAB(5, lhu_mmu)
+    }
+  } else {
+    assert(0);
   }
   return EXEC_ID_inv;
 }
 
 def_THelper(store) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
-  switch (s->isa.instr.i.funct3) {
-    TAB(0, sb)  TAB(1, sh)  TAB(2, sw)
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, sb)  TAB(1, sh)  TAB(2, sw)
+    }
+  } else if (mmu_mode == MMU_TRANSLATE) {
+    switch (s->isa.instr.i.funct3) {
+      TAB(0, sb_mmu)  TAB(1, sh_mmu)  TAB(2, sw_mmu)
+    }
+  } else {
+    assert(0);
   }
   return EXEC_ID_inv;
 }

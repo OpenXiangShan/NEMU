@@ -1,43 +1,20 @@
-def_EHelper(ld) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 8);
-}
+#define def_ldst_template(name, rtl_instr, width, mmu_mode) \
+  def_EHelper(name) { \
+    concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); \
+  }
 
-def_EHelper(lw) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
-}
+#define def_all_ldst(suffix, mmu_mode) \
+  def_ldst_template(concat(ld , suffix), lms, 8, mmu_mode) \
+  def_ldst_template(concat(lw , suffix), lms, 4, mmu_mode) \
+  def_ldst_template(concat(lh , suffix), lms, 2, mmu_mode) \
+  def_ldst_template(concat(lb , suffix), lms, 1, mmu_mode) \
+  def_ldst_template(concat(lwu, suffix), lm , 4, mmu_mode) \
+  def_ldst_template(concat(lhu, suffix), lm , 2, mmu_mode) \
+  def_ldst_template(concat(lbu, suffix), lm , 1, mmu_mode) \
+  def_ldst_template(concat(sd , suffix), sm , 8, mmu_mode) \
+  def_ldst_template(concat(sw , suffix), sm , 4, mmu_mode) \
+  def_ldst_template(concat(sh , suffix), sm , 2, mmu_mode) \
+  def_ldst_template(concat(sb , suffix), sm , 1, mmu_mode)
 
-def_EHelper(lh) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 2);
-}
-
-def_EHelper(lb) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 1);
-}
-
-def_EHelper(lwu) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4);
-}
-
-def_EHelper(lhu) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 2);
-}
-
-def_EHelper(lbu) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 1);
-}
-
-def_EHelper(sd) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 8);
-}
-
-def_EHelper(sw) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 4);
-}
-
-def_EHelper(sh) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 2);
-}
-
-def_EHelper(sb) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 1);
-}
+def_all_ldst(, MMU_DIRECT)
+def_all_ldst(_mmu, MMU_TRANSLATE)

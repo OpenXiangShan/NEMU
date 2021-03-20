@@ -5,7 +5,6 @@
 // (1) seem not frequently present during execution
 //       nop    not    neg    negw
 //       seqz   snez   sltz   sgtz
-//       jalr(rs)
 //       [[all CSR instructions]]
 // (2) only expansion without optimization
 //       la
@@ -20,7 +19,7 @@
 //       fl{w|d} symbol
 //       fs{w|d} symbol
 // (4) already provided in RVC
-//       j      jal(ra)
+//       j      jal(ra)   jalr(rs)
 //       beqz   bnez
 //       li     mv
 
