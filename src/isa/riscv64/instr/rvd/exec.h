@@ -80,6 +80,21 @@ def_EHelper(fcvt_s_d) {
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
+#define F64_SIGN ((uint64_t)1 << 63)
+
+def_EHelper(fsgnjd) {
+  rtl_andi(s, s0, dsrc1, ~F64_SIGN);
+  rtl_andi(s, ddest, dsrc2, F64_SIGN);
+  rtl_or(s, ddest, s0, ddest);
+}
+
+def_EHelper(fsgnjxd) {
+  rtl_andi(s, s0, dsrc1, ~F64_SIGN);
+  rtl_xor(s, ddest, dsrc1, dsrc2);
+  rtl_andi(s, ddest, ddest, F64_SIGN);
+  rtl_or(s, ddest, s0, ddest);
+}
+
 def_EHelper(fmv_x_d) {
   rtl_sext(s, ddest, dsrc1, 8);
 }

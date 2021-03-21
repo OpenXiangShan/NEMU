@@ -1,3 +1,10 @@
+def_THelper(fsgnj_d_dispatch) {
+  switch (s->isa.instr.fp.rm) {
+    TAB(0b000, fsgnjd)  TAB(0b010, fsgnjxd)
+  }
+  return EXEC_ID_inv;
+}
+
 def_THelper(fop_d) {
   int funct4 = s->isa.instr.fp.funct5 & 0b01111;
   if (funct4 == 0b1000) {
@@ -9,8 +16,8 @@ def_THelper(fop_d) {
   switch (funct4) {
     TAB(0b0000, faddd)   TAB(0b0001, fsubd)
     TAB(0b0010, fmuld)   TAB(0b0011, fdivd)
+    TAB(0b0100, fsgnj_d_dispatch)
 //    TAB(0b0100, fsgnjs)  TAB(0b0101, fmin_fmax)
-//    TAB(0b1000, fcvt_F_to_F)   TAB(0b1011, fsqrt)
     TAB(0b1011, fsqrtd)
   }
   return EXEC_ID_inv;

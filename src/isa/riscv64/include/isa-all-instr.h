@@ -48,6 +48,7 @@
   f(fld) f(fsd) f(fsqrtd) f(fled) f(fltd) f(feqd) \
   f(fcvt_d_w) f(fcvt_d_wu) f(fcvt_d_l) f(fcvt_d_lu) \
   f(fcvt_w_d) f(fcvt_wu_d) f(fcvt_l_d) f(fcvt_lu_d) \
+  f(fsgnjd) f(fsgnjxd) \
   f(fmv_x_d) f(fmv_d_x) \
   f(fcvt_d_s) f(fcvt_s_d)
 
