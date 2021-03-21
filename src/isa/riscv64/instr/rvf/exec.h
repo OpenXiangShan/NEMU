@@ -1,6 +1,6 @@
 def_EHelper(flw) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
-  rtl_fsr(s, ddest, ddest, FPCALL_W64);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fsw) {
