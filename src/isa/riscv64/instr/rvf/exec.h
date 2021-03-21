@@ -4,7 +4,7 @@ def_EHelper(flw) {
 }
 
 def_EHelper(fsw) {
-  rtl_fbox(s, s0, ddest);
+  rtl_funbox(s, s0, ddest);
   rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
 }
 
