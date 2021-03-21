@@ -17,9 +17,19 @@ def_EHelper(fsqrtd) {
   rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
+def_EHelper(fled) {
+  rtl_mv(s, ddest, dsrc1);
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc2, FPCALL_CMD(FPCALL_LE, FPCALL_W64));
+}
+
 def_EHelper(fltd) {
   rtl_mv(s, ddest, dsrc1);
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc2, FPCALL_CMD(FPCALL_LT, FPCALL_W64));
+}
+
+def_EHelper(feqd) {
+  rtl_mv(s, ddest, dsrc1);
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc2, FPCALL_CMD(FPCALL_EQ, FPCALL_W64));
 }
 
 def_EHelper(fcvt_d_w) {

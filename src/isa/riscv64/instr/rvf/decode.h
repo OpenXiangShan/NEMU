@@ -72,7 +72,7 @@ def_THelper(fop) {
 
 def_THelper(fcmp_dispatch) {
   switch (s->isa.instr.fp.rm) {
-    TAB(0b001, flts)
+    TAB(0b000, fles)  TAB(0b001, flts)  TAB(0b010, feqs)
   }
   return EXEC_ID_inv;
 }

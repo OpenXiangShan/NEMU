@@ -39,7 +39,9 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src, uint32_t cmd) {
 
       case FPCALL_SQRT: *dest = f32_sqrt(fsrc1).v; break;
 
+      case FPCALL_LE: *dest = f32_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f32_lt(fsrc1, fsrc2); break;
+      case FPCALL_EQ: *dest = f32_eq(fsrc1, fsrc2); break;
 
       case FPCALL_I32ToF: *dest = i32_to_f32 (*src).v; break;
       case FPCALL_U32ToF: *dest = ui32_to_f32(*src).v; break;
@@ -63,7 +65,9 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src, uint32_t cmd) {
 
       case FPCALL_SQRT: *dest = f64_sqrt(fsrc1).v; break;
 
+      case FPCALL_LE: *dest = f64_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f64_lt(fsrc1, fsrc2); break;
+      case FPCALL_EQ: *dest = f64_eq(fsrc1, fsrc2); break;
 
       case FPCALL_I32ToF: *dest = i32_to_f64 (*src).v; break;
       case FPCALL_U32ToF: *dest = ui32_to_f64(*src).v; break;
