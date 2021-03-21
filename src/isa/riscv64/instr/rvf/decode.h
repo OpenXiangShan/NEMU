@@ -65,11 +65,15 @@ def_THelper(fop) {
     TAB(0b0010, fmuls)   TAB(0b0011, fdivs)
 //    TAB(0b0100, fsgnjs)  TAB(0b0101, fmin_fmax)
 //    TAB(0b1000, fcvt_F_to_F)   TAB(0b1011, fsqrt)
+    TAB(0b1011, fsqrts)
   }
   return EXEC_ID_inv;
 }
 
 def_THelper(fcmp_dispatch) {
+  switch (s->isa.instr.fp.rm) {
+    TAB(0b001, flts)
+  }
   return EXEC_ID_inv;
 }
 
@@ -96,6 +100,15 @@ def_THelper(fop_gpr) {
 #define pair(x, y) (((y) << 2) | (x))
   switch (pair(sign, funct4)) {
     IDTAB(pair(0b00, 0b1010), r2fr, fcvt_s_w)
+    IDTAB(pair(0b01, 0b1010), r2fr, fcvt_s_wu)
+    IDTAB(pair(0b10, 0b1010), r2fr, fcvt_s_l)
+    IDTAB(pair(0b11, 0b1010), r2fr, fcvt_s_lu)
+
+    IDTAB(pair(0b00, 0b1000), fr2r, fcvt_w_s)
+    IDTAB(pair(0b01, 0b1000), fr2r, fcvt_wu_s)
+    IDTAB(pair(0b10, 0b1000), fr2r, fcvt_l_s)
+    IDTAB(pair(0b11, 0b1000), fr2r, fcvt_lu_s)
+
     IDTAB(pair(0b00, 0b1100), fr2r, fmv_dispatch)
     IDTAB(pair(0b00, 0b1110), r2fr, fmv_dispatch)
 //    IDTAB(0b1000, fr2r, fcvt_F_to_G) IDTAB(0b1010, r2fr, fcvt_G_to_F)

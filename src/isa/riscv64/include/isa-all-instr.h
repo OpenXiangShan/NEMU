@@ -41,8 +41,15 @@
   AMO_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
-  f(fld) f(flw) f(fsd) f(fsw) \
-  f(fcvt_s_w) f(fmv_x_w) f(fmv_w_x)
+  f(flw) f(fsw) f(fsqrts) f(flts) \
+  f(fcvt_s_w) f(fcvt_s_wu) f(fcvt_s_l) f(fcvt_s_lu) \
+  f(fcvt_w_s) f(fcvt_wu_s) f(fcvt_l_s) f(fcvt_lu_s) \
+  f(fmv_x_w) f(fmv_w_x) \
+  f(fld) f(fsd) f(fsqrtd) f(fltd) \
+  f(fcvt_d_w) f(fcvt_d_wu) f(fcvt_d_l) f(fcvt_d_lu) \
+  f(fcvt_w_d) f(fcvt_wu_d) f(fcvt_l_d) f(fcvt_lu_d) \
+  f(fmv_x_d) f(fmv_d_x) \
+  f(fcvt_d_s) f(fcvt_s_d)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
