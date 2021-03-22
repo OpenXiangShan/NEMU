@@ -150,6 +150,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 6: ret = close(user_fd(arg1)); break;
     case 10: ret = unlink(user_to_host(arg1)); break;
     case 13: ret = time(user_to_host(arg1)); break;
+    case 20: return getpid();
     case 33: ret = access(user_to_host(arg1), arg2); break;
     case 45: ret = user_sys_brk(arg1); break;
     case 54: ret = ioctl(user_fd(arg1), arg2, arg3); break;
@@ -167,6 +168,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 200: return getgid();
     case 201: return geteuid();
     case 202: return getegid();
+    case 221: ret = fcntl(user_fd(arg1), arg2, arg3); break;
     case 243: ret = user_sys_set_thread_area(arg1); break;
     case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     default: panic("Unsupported syscall ID = %ld", id);
