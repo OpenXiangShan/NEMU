@@ -185,27 +185,7 @@ static uint_fast16_t f64_classify( float64_t a )
 
 // ------------- EHelpers -------------
 
-def_EHelper(fld) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
-  rtl_fsr(s, ddest, ddest, 8);
-}
-
-def_EHelper(flw) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
-  rtl_fsr(s, ddest, ddest, 4);
-}
-
-def_EHelper(fsd) {
-  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
-}
-
-def_EHelper(fsw) {
-  rtl_fbox(s, s0, ddest);
-  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
-}
-
 #if 0
-
 // a macro to build exec_fadd/fsub/fmul/fmdiv/fmin/fmax
 #define BUILD_EXEC_F(x) \
   static inline def_EHelper(concat(f, x)) { \

@@ -53,11 +53,17 @@ endif
 
 ifeq ($(ENGINE),interpreter)
 SOFTFLOAT = resource/softfloat/build/softfloat.a
+ifeq ($(ISA),riscv64)
+SPECIALIZE_TYPE = RISCV
+else
+SPECIALIZE_TYPE = 8086-SSE
+endif
+
 INC_DIR += resource/softfloat/repo/source/include
-INC_DIR += resource/softfloat/repo/source/RISCV
+INC_DIR += resource/softfloat/repo/source/$(SPECIALIZE_TYPE)
 LIBS += $(SOFTFLOAT)
 $(SOFTFLOAT):
-	$(MAKE) -s -C resource/softfloat/
+	SPECIALIZE_TYPE=$(SPECIALIZE_TYPE) $(MAKE) -s -C resource/softfloat/
 
 .PHONY: $(SOFTFLOAT)
 endif

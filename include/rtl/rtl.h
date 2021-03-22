@@ -40,10 +40,13 @@ enum {
   RELOP_GEU   = 8 | 0 | 0 | 1,
 };
 
+#include <rtl/fp.h>
+
 enum {
   HOSTCALL_EXIT,  // handling nemu_trap
   HOSTCALL_INV,   // invalid opcode
   HOSTCALL_PIO,   // port I/O
+  HOSTCALL_FP,    // floating point operation
   HOSTCALL_CSR,   // system registers / control status registers
   HOSTCALL_TRAP,  // trap by interrupts/exceptions
   HOSTCALL_PRIV,  // privilige instructions
