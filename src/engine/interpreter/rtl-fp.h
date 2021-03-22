@@ -74,9 +74,11 @@ static inline def_rtl(sr_fcw, rtlreg_t* src){
 }
 
 static inline def_rtl(class387, rtlreg_t *dest, uint64_t *src){
-  float64_t f;
-  f.v = *src;
-  uint32_t res = f64_classify(f);
+  //float64_t f;
+  //f.v = *src;
+  //uint32_t res = f64_classify(f);
+  uint32_t res = 0;
+  assert(0);
   switch (res)
   {
   case 0x1://-inf
@@ -131,16 +133,15 @@ static inline def_rtl(sfr, uint64_t* fptr, uint64_t* fsrc){
 
 enum{fconst_1=0,fconst_l2t, fconst_l2e, fconst_pi,fconst_lg2, fconst_ln2, fconst_z};
 static inline def_rtl(fld_const, uint64_t *fdest, int type){
-  switch (type)
-  {
-  case fconst_1:
-    *fdest = 0x3ff0000000000000;
-    break;
-  case fconst_z:
-    *fdest = 0x0;
-    break;
-  default:
-    break;
+  switch (type) {
+  case fconst_1: *fdest = 0x3ff0000000000000ull; break;
+  case fconst_z: *fdest = 0x0; break;
+  case fconst_l2t: *fdest = 0x400A934F0979A372ull; break;
+  case fconst_l2e: *fdest = 0x3FF71547652B82FEull; break;
+  case fconst_pi:  *fdest = 0x400921FB54442D18ull; break;
+  case fconst_lg2: *fdest = 0x3FD34413509F79FEull; break;
+  case fconst_ln2: *fdest = 0x3FE62E42FEFA39EFull; break;
+  default: assert(0);
   }
 }
 
