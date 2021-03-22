@@ -3,6 +3,7 @@
 #include "user.h"
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -128,6 +129,16 @@ static inline word_t user_sys_set_thread_area(word_t u_info) {
   return 0;
 }
 
+static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
+    uint32_t offset_low, uint64_t *result, uint32_t whence) {
+  off_t ret = lseek(fd, ((off_t)offset_high << 32) | offset_low, whence);
+  if (ret != (off_t)-1) {
+    *result = ret;
+    return 0;
+  }
+  return -1;
+}
+
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
@@ -137,17 +148,25 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 3: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
     case 4: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
     case 6: ret = close(user_fd(arg1)); break;
+    case 10: ret = unlink(user_to_host(arg1)); break;
+    case 13: ret = time(user_to_host(arg1)); break;
     case 33: ret = access(user_to_host(arg1), arg2); break;
     case 45: ret = user_sys_brk(arg1); break;
     case 54: ret = ioctl(user_fd(arg1), arg2, arg3); break;
     case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case 91: ret = user_munmap(user_to_host(arg1), arg2); break;
     case 122: ret = uname(user_to_host(arg1)); break;
+    case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 174: return 0; // sigaction
+    case 183: ret = (uintptr_t)getcwd(user_to_host(arg1), arg2); break;
     case 192: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
                   arg3, arg4, user_fd(arg5), arg6 << 12); break;
     case 195: return user_sys_stat64(user_to_host(arg1), arg2);
     case 197: return user_sys_fstat64(user_fd(arg1), arg2);
+    case 199: return getuid();
+    case 200: return getgid();
+    case 201: return geteuid();
+    case 202: return getegid();
     case 243: ret = user_sys_set_thread_area(arg1); break;
     case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     default: panic("Unsupported syscall ID = %ld", id);
