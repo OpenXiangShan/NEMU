@@ -1,3 +1,4 @@
+#include <math.h>
 #include "cc.h"
 #define dfdest (id_dest->pfreg)
 #define dfsrc1 (id_src1->pfreg)
@@ -105,6 +106,37 @@ static inline def_EHelper(fucompp){
   print_asm_fpu_template2(fucompp);
 }
 
+//compare dest & src, save flag in eflags
+static inline void fcom_helper(DecodeExecState *s, uint64_t* fp_dest, uint64_t* fp_src){
+  rtl_f64_lt(s, t0, fp_dest, fp_src);
+  rtl_set_CF(s, t0);
+  rtl_f64_eq(s, t0, fp_dest, fp_src);
+  rtl_set_ZF(s, t0);
+  rtl_set_PF(s, rz);
+}
+
+static inline def_EHelper(fcomip){
+  fcom_helper(s, dfdest, dfsrc1);
+  rtl_popftop();
+  print_asm_fpu_template2(fcomip);
+}
+
+static inline def_EHelper(fcomi){
+  fcom_helper(s, dfdest, dfsrc1);
+  print_asm_fpu_template2(fcomi);
+}
+
+static inline def_EHelper(fucomi){
+  fcom_helper(s, dfdest, dfsrc1);
+  print_asm_fpu_template2(fucomi);
+}
+
+static inline def_EHelper(fucomip){
+  fcom_helper(s, dfdest, dfsrc1);
+  rtl_popftop();
+  print_asm_fpu_template2(fucomi);
+}
+
 static inline def_EHelper(fld){
   operand_fwrite(s, id_dest, dfsrc1);
   print_asm_fpu_template2(fld);
@@ -114,19 +146,24 @@ static inline def_EHelper(fld1){
   print_asm_fpu_template(fld1);
 }
 static inline def_EHelper(fldl2t){
-  TODO();
+  rtl_fld_const(s, dfdest, fconst_l2t);
+  print_asm_fpu_template(fldl2t);
 }
 static inline def_EHelper(fldl2e){
-  TODO();
+  rtl_fld_const(s, dfdest, fconst_l2e);
+  print_asm_fpu_template(fldl2e);
 }
 static inline def_EHelper(fldpi){
-  TODO();
+  rtl_fld_const(s, dfdest, fconst_pi);
+  print_asm_fpu_template(fldpi);
 }
 static inline def_EHelper(fldlg2){
-  TODO();
+  rtl_fld_const(s, dfdest, fconst_lg2);
+  print_asm_fpu_template(fldlg2);
 }
 static inline def_EHelper(fldln2){
-  TODO();
+  rtl_fld_const(s, dfdest, fconst_ln2);
+  print_asm_fpu_template(fldln2);
 }
 static inline def_EHelper(fldz){ 
   rtl_fld_const(s, dfdest, fconst_z);
@@ -203,4 +240,44 @@ static inline def_EHelper(fldenv){
 }
 static inline def_EHelper(fstenv){
   TODO();
+}
+
+static inline def_EHelper(fcmovbe){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_BE);
+#else
+  rtl_setcc(s, s0, CC_BE);
+#endif
+  if (*s0) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmovbe);
+}
+
+static inline def_EHelper(fcmovnbe){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_BE);
+#else
+  rtl_setcc(s, s0, CC_BE);
+#endif
+  if (!*s0) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmovnbe);
+}
+
+static inline def_EHelper(fsqrt) {
+  *dfdest = f64_sqrt(fprToF64(*dfdest)).v;
+  print_asm_fpu_template(fsqrt);
+}
+
+static inline def_EHelper(fyl2x) {
+  union {
+    double f;
+    uint64_t i;
+  } a;
+  a.i = *dsrc1;
+  a.f = log2(a.f);
+  *dfsrc1 = f64_mul(fprToF64(*dfdest), fprToF64(a.i)).v;
+  print_asm_fpu_template(fyl2x);
 }

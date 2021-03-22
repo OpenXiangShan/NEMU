@@ -13,7 +13,7 @@ CFLAGS  += -ggdb3 -D__ENGINE_$(ENGINE)__ \
 					 -D__ISA__=$(ISA) -D_ISA_H_=\"isa/$(ISA).h\"
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
 ifndef SHARE
-LDFLAGS += -lSDL2 -lreadline -ldl
+LDFLAGS += -lSDL2 -lreadline -ldl -lm
 endif
 
 ifdef USER_MODE

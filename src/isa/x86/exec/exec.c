@@ -190,11 +190,11 @@ static inline def_EHelper(fp) {
       IDEX(0x00, St0_Est, fadd)       IDEX(0x01, St0_Est, fmul)       IDEX(0x02, St0_Est, fcom)       IDEX(0x03, St0_Est, fcomp)
       IDEX(0x04, St0_Est, fsub)       IDEX(0x05, St0_Est, fsubr)      IDEX(0x06, St0_Est, fdiv)       IDEX(0x07, St0_Est, fdivr)
       IDEX(0x10, ld_Est_St0, fld)     IDEX(0x11, St0_Est, fxch)       EX  (0x12, nop)                 EMPTY(0x13)
-      IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      EMPTY(0x16)                     EMPTY(0x17)
-      EMPTY(0x20)                     EMPTY(0x21)                     EMPTY(0x22)                     EMPTY(0x23)
+      IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      IDEX(0x16, St0_Est, fyl2x)                     IDEX(0x17, St0, fsqrt)
+      EMPTY(0x20)                     EMPTY(0x21)                     IDEX(0x22, St0_Est, fcmovbe)    EMPTY(0x23)
       EMPTY(0x24)                     EX  (0x25, fp_gp3)              EMPTY(0x26)                     EMPTY(0x27)
-      EMPTY(0x30)                     EMPTY(0x31)                     EMPTY(0x32)                     EMPTY(0x33)
-      EX  (0x34, fp_gp4)              EMPTY(0x35)                     EMPTY(0x36)                     EMPTY(0x37)
+      EMPTY(0x30)                     EMPTY(0x31)                     IDEX(0x32, St0_Est, fcmovnbe)   EMPTY(0x33)
+      EX  (0x34, fp_gp4)              IDEX(0x35, St0_Est, fucomi)     IDEX(0x36, St0_Est, fcomi)      EMPTY(0x37)
       IDEX(0x40, Est_St0, fadd)       IDEX(0x41, Est_St0, fmul)       EMPTY(0x42)                     EMPTY(0x43)
       IDEX(0x44, Est_St0, fsubr)      IDEX(0x45, Est_St0, fsub)       IDEX(0x46, Est_St0, fdivr)      IDEX(0x47, Est_St0, fdiv)
       EMPTY(0x50)                     EMPTY(0x51)                     IDEX(0x52, st_Est_St0, fst)     IDEX(0x53, st_Est_St0, fstp)
@@ -202,7 +202,7 @@ static inline def_EHelper(fp) {
       IDEX(0x60, Est_St0, faddp)      IDEX(0x61, Est_St0, fmulp)      EMPTY(0x62)                     EX  (0x63, fp_gp5)
       IDEX(0x64, Est_St0, fsubrp)     IDEX(0x65, Est_St0, fsubp)      IDEX(0x66, Est_St0, fdivrp)     IDEX(0x67, Est_St0, fdivp)
       EMPTY(0x70)                     EMPTY(0x71)                     EMPTY(0x72)                     EMPTY(0x73)
-      EX  (0x74, fp_gp6)              EMPTY(0x75)                     EMPTY(0x76)                     EMPTY(0x77)
+      EX  (0x74, fp_gp6)              IDEX(0x75, St0_Est, fucomip)    IDEX (0x76, St0_Est, fcomip)    EMPTY(0x77)
       default:
         exec_inv(s);
         break;
