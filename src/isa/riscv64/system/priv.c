@@ -1,5 +1,6 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
+#include "../local-include/intr.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 
@@ -20,9 +21,19 @@ void init_csr() {
   MAP(CSRS, CSRS_EXIST)
 };
 
+static inline int csr_is_legal(uint32_t addr) {
+  assert(addr < 4096);
+  if(!csr_exist[addr]) {
+    printf("[NEMU] unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+    return 0;
+  }
+  return 1;
+}
+
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
-  Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+  // Now we check if CSR is implemented / legal to access in csr_is_legal()
+  // Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
 }
 
@@ -90,6 +101,10 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+  if (!csr_is_legal(csrid)) {
+    longjmp_exception(EX_II);
+    return;
+  }
   word_t *csr = csr_decode(csrid);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
