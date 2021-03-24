@@ -258,22 +258,18 @@ void cpu_exec(uint64_t n) {
     device_update();
 #endif
 
-    if (cause != NEMU_EXEC_EXCEPTION) {
-#if 0 //!_SHARE
-      word_t intr = isa_query_intr();
-      if (intr != INTR_EMPTY) {
-        g_ex_cause = intr;
-        cause = NEMU_EXEC_EXCEPTION;
-        IFDEF(CONFIG_PERF_OPT, difftest_skip_dut(1, 2));
-        IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
-      }
-#endif
-    }
     if (cause == NEMU_EXEC_EXCEPTION) {
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->pc, cpu.pc));
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+    } else {
+      word_t intr = MUXONE(_SHARE, INTR_EMPTY, isa_query_intr());
+      if (intr != INTR_EMPTY) {
+        cpu.pc = raise_intr(intr, prev_s->pc);
+        IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
+        IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+      }
     }
 
     int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
