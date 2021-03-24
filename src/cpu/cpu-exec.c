@@ -141,7 +141,7 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
 } while (0)
 
 static int execute(int n) {
-  static const void* exec_table[TOTAL_INSTR + 2] = {
+  static const void* exec_table[TOTAL_INSTR + 1] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
   static int init_flag = 0;
@@ -149,7 +149,6 @@ static int execute(int n) {
 
   if (likely(init_flag == 0)) {
     exec_table[TOTAL_INSTR] = &&nemu_decode;
-    exec_table[TOTAL_INSTR + 1] = &&nemu_exception;
     extern Decode* tcache_init(const void **speical_exec_table, vaddr_t reset_vector);
     s = tcache_init(exec_table + TOTAL_INSTR, cpu.pc);
     hosttlb_init();
@@ -181,8 +180,8 @@ def_EHelper(check_priv) {
       s = tcache_handle_flush(s->snpc);
     } else {
       s ++;
-      debug_difftest(this_s, s);
     }
+    debug_difftest(this_s, s);
     break;
   }
 }
@@ -190,10 +189,6 @@ def_EHelper(check_priv) {
 def_EHelper(nemu_decode) {
   s = tcache_decode(s, exec_table);
   continue;
-}
-
-def_EHelper(nemu_exception) {
-  rtl_j(s, s->jnpc);
 }
 
 end_of_priv:
@@ -264,31 +259,36 @@ void cpu_exec(uint64_t n) {
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
     update_global();
-    if (cause == NEMU_EXEC_EXCEPTION) {
-#ifdef CONFIG_PERF_OPT
-      vaddr_t target = raise_intr(g_ex_cause, prev_s->pc);
-      tcache_handle_exception(target);
-#else
-      cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
-#endif
-    }
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
       MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
-    int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
-    n_remain = execute(n_batch);
-    update_global();
-
 #ifdef CONFIG_DEVICE
     extern void device_update();
     device_update();
 #endif
 
-#if !defined(CONFIG_DIFFTEST) && !_SHARE
-    isa_query_intr();
-    tcache_handle_exception(cpu.pc);
+    if (cause != NEMU_EXEC_EXCEPTION) {
+#if 0 //!_SHARE
+      word_t intr = isa_query_intr();
+      if (intr != INTR_EMPTY) {
+        g_ex_cause = intr;
+        cause = NEMU_EXEC_EXCEPTION;
+        IFDEF(CONFIG_PERF_OPT, difftest_skip_dut(1, 2));
+        IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
+      }
 #endif
+    }
+    if (cause == NEMU_EXEC_EXCEPTION) {
+      cause = 0;
+      cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
+      IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->pc, cpu.pc));
+      IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+    }
+
+    int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
+    n_remain = execute(n_batch);
+    update_global();
   }
 
   uint64_t timer_end = get_time();
