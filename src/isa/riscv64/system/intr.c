@@ -55,9 +55,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 }
 
-void isa_query_intr() {
+word_t isa_query_intr() {
   word_t intr_vec = mie->val & mip->val;
-  if (!intr_vec) return;
+  if (!intr_vec) return INTR_EMPTY;
 
   const int priority [] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
@@ -71,9 +71,8 @@ void isa_query_intr() {
       bool deleg = (mideleg->val & (1 << irq)) != 0;
       bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
-      if (global_enable) {
-        cpu.pc = raise_intr(irq | INTR_BIT, cpu.pc);
-      }
+      if (global_enable) return irq | INTR_BIT;
     }
   }
+  return INTR_EMPTY;
 }
