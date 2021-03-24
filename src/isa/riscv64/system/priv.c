@@ -86,7 +86,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (dest == (void *)mstatus || dest == (void *)satp) {
-    if (update_mmu_state()) set_mmu_state_flag(MMU_STATE_UPDATE);
+    if (update_mmu_state()) set_sys_state_flag(SYS_STATE_UPDATE);
   }
 }
 
@@ -125,7 +125,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       break;
     case 0x105: break; // wfi
     case -1: // fence.i
-      set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     default: panic("Unsupported privilige operation = %d", op);
   }

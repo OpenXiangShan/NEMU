@@ -66,10 +66,10 @@ void monitor_statistic() {
 }
 
 static word_t g_ex_cause = 0;
-static int g_mmu_state_flag = 0;
+static int g_sys_state_flag = 0;
 
-void set_mmu_state_flag(int flag) {
-  g_mmu_state_flag |= flag;
+void set_sys_state_flag(int flag) {
+  g_sys_state_flag |= flag;
 }
 
 void mmu_tlb_flush(vaddr_t vaddr) {
@@ -115,11 +115,19 @@ int fetch_decode(Decode *s, vaddr_t pc) {
   goto end_of_bb; \
 } while (0)
 
-#define rtl_priv_next(s) goto check_priv
+#define rtl_priv_next(s) do { \
+  if (g_sys_state_flag) { \
+    s = (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) ? \
+      tcache_handle_flush(s->snpc) : s + 1; \
+    g_sys_state_flag = 0; \
+    goto end_of_loop; \
+  } \
+} while (0)
+
 #define rtl_priv_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
-  goto end_of_priv; \
+  goto end_of_loop; \
 } while (0)
 
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
@@ -133,12 +141,12 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-#define debug_difftest(this, next) do { \
-  IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf)); \
-  IFDEF(CONFIG_DIFFTEST, save_globals(next)); \
-  IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc); \
-  IFDEF(CONFIG_DIFFTEST, difftest_step(this->pc, next->pc)); \
-} while (0)
+static inline void debug_difftest(Decode *this, Decode *next) {
+  IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf));
+  IFDEF(CONFIG_DIFFTEST, save_globals(next));
+  IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
+  IFDEF(CONFIG_DIFFTEST, difftest_step(this->pc, next->pc));
+}
 
 static int execute(int n) {
   static const void* exec_table[TOTAL_INSTR + 1] = {
@@ -155,9 +163,11 @@ static int execute(int n) {
     init_flag = 1;
   }
 
+  __attribute__((unused)) Decode *this_s = NULL;
   while (true) {
-    IFDEF(CONFIG_DEBUG, Decode *this_s = s);
-    IFNDEF(CONFIG_DEBUG, IFDEF(CONFIG_DIFFTEST, Decode *this_s = s));
+#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST)
+    this_s = s;
+#endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
     goto *(s->EHelper);
@@ -171,43 +181,23 @@ static int execute(int n) {
 
 #include "isa-exec.h"
 
-def_EHelper(check_priv) {
-  if (g_mmu_state_flag) {
-    int mmu_state_flag = g_mmu_state_flag;
-    g_mmu_state_flag = 0;
-
-    if (mmu_state_flag & MMU_STATE_FLUSH_TCACHE) {
-      s = tcache_handle_flush(s->snpc);
-    } else {
-      s ++;
-    }
-    debug_difftest(this_s, s);
-    break;
-  }
-}
-
 def_EHelper(nemu_decode) {
   s = tcache_decode(s, exec_table);
   continue;
 }
 
-end_of_priv:
-    IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
-    debug_difftest(this_s, s);
-    break;
-
 end_of_bb:
 #ifdef CONFIG_ENABLE_INSTR_CNT
     n_remain = n;
-    if (unlikely(n <= 0)) {
-      debug_difftest(this_s, s);
-      break;
-    }
+    if (unlikely(n <= 0)) break;
 #endif
 
     def_finish();
     debug_difftest(this_s, s);
   }
+
+end_of_loop:
+  debug_difftest(this_s, s);
   prev_s = s;
   return n;
 }
