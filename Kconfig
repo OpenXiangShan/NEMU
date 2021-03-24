@@ -168,6 +168,10 @@ config DIFFTEST_REF_NAME
   default "kvm" if DIFFTEST_REF_KVM
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
   default "none"
+
+config DETERMINISTIC
+  bool "Make the behavior of NEMU deterministic"
+  default n
 endmenu
 
 source "src/memory/Kconfig"
