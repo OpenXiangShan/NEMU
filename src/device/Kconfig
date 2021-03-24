@@ -28,7 +28,7 @@ config SERIAL_MMIO
 config SERIAL_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
-endif # HAS_TIMER
+endif # HAS_SERIAL
 
 menuconfig HAS_TIMER
   bool "Enable timer"
