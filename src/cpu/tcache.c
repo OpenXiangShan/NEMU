@@ -135,7 +135,10 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     bb_t *bb = bb_find(old->pc);
     if (bb != NULL) { // already decoded
       s = bb->s;
-      goto bb_start_already_decode;
+      if (old->tnext)  { old->tnext->tnext = s; }
+      if (old->ntnext) { old->ntnext->ntnext = s; }
+      free(old);
+      return s;
     }
   }
 
@@ -158,6 +161,9 @@ full: old->EHelper = get_nemu_decode(); // decode again
     *s = *old;
     idx_in_bb = 1;
     tcache_state = TCACHE_BB_BUILDING;
+    if (old->tnext)  { old->tnext->tnext = s; }
+    if (old->ntnext) { old->ntnext->ntnext = s; }
+    free(old);
   }
 
   s->idx_in_bb = idx_in_bb ++;
@@ -184,12 +190,6 @@ full: old->EHelper = get_nemu_decode(); // decode again
     tcache_state = TCACHE_RUNNING;
   }
 
-  if (bb_start) {
-bb_start_already_decode:
-    if (old->tnext)  { old->tnext->tnext = s; }
-    if (old->ntnext) { old->ntnext->ntnext = s; }
-    free(old);
-  }
   return s;
 }
 
