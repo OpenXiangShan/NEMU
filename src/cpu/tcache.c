@@ -171,9 +171,13 @@ full: old->EHelper = get_nemu_decode(); // decode again
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
     if (next == NULL) {
+      vaddr_t thispc = s->pc;
       tcache_flush();
-      Decode *again = tcache_new(s->pc);
-      save_globals(again); // decode this instruction again
+      idx_in_bb = 1;
+      // decode this instruction again
+      Decode *again = tcache_new_malloc(thispc);
+      save_globals(again);
+      tcache_state = TCACHE_RUNNING;
       longjmp_exec(NEMU_EXEC_AGAIN);
     }
     assert(next == s + 1);
