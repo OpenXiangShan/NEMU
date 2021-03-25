@@ -74,6 +74,7 @@ void set_sys_state_flag(int flag) {
 
 void mmu_tlb_flush(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
+  if (vaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
 void longjmp_exec(int cause) {
