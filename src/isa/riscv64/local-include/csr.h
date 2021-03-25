@@ -199,17 +199,25 @@ CSR_STRUCT_START(sscratch)
 CSR_STRUCT_END(sscratch)
 
 CSR_STRUCT_START(fflags)
-  uint64_t nv: 1;
-  uint64_t dz: 1;
-  uint64_t of: 1;
-  uint64_t uf: 1;
-  uint64_t nx: 1;
 CSR_STRUCT_END(fflags)
 
 CSR_STRUCT_START(frm)
 CSR_STRUCT_END(frm)
 
 CSR_STRUCT_START(fcsr)
+  union {
+    struct {
+      uint64_t nv: 1;
+      uint64_t dz: 1;
+      uint64_t of: 1;
+      uint64_t uf: 1;
+      uint64_t nx: 1;
+      uint64_t frm : 3;
+    };
+    struct {
+      uint64_t val: 5;
+    } fflags;
+  };
 CSR_STRUCT_END(fcsr)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
