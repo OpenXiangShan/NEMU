@@ -142,6 +142,7 @@ static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
 }
 
 static inline void debug_difftest(Decode *this, Decode *next) {
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(this->pc, (void *)&this->isa.instr.val, this->snpc - this->pc));
   IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf));
   IFDEF(CONFIG_DIFFTEST, save_globals(next));
   IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
@@ -165,7 +166,7 @@ static int execute(int n) {
 
   __attribute__((unused)) Decode *this_s = NULL;
   while (true) {
-#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST)
+#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;

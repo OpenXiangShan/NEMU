@@ -97,6 +97,7 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 static void checkregs(CPU_state *ref, vaddr_t pc) {
   if (!isa_difftest_checkregs(ref, pc)) {
     isa_reg_display();
+    IFDEF(CONFIG_IQUEUE, iqueue_dump());
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
     longjmp_exec(NEMU_EXEC_END);

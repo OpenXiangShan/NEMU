@@ -172,6 +172,10 @@ config DIFFTEST_REF_NAME
 config DETERMINISTIC
   bool "Make the behavior of NEMU deterministic"
   default n
+
+config IQUEUE
+  bool "Record the last instrucitons executed"
+  default n
 endmenu
 
 source "src/memory/Kconfig"
