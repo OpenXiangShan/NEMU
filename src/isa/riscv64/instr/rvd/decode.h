@@ -70,3 +70,11 @@ def_THelper(fop_gpr_d) {
 #undef pair
   return EXEC_ID_inv;
 }
+
+def_THelper(fmadd_d_dispatch) {
+  int op = BITS(s->isa.instr.fp.opcode6_2, 1, 0);
+  switch (op) {
+    TAB(0b00, fmaddd) //TAB(0b01, fmsubd) TAB(0b10, fnmsubd) TAB(0b11, fnmaddd)
+  }
+  return EXEC_ID_inv;
+}

@@ -65,6 +65,8 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
 
       case FPCALL_SQRT: *dest = f64_sqrt(fsrc1).v; break;
 
+      case FPCALL_MADD: *dest = f64_mulAdd(fsrc1, fsrc2, rtlToF64(*dest)).v; break;
+
       case FPCALL_LE: *dest = f64_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f64_lt(fsrc1, fsrc2); break;
       case FPCALL_EQ: *dest = f64_eq(fsrc1, fsrc2); break;

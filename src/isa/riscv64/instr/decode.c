@@ -23,7 +23,8 @@ def_THelper(main) {
     IDTAB(004, I, op_imm) IDTAB(005, auipc, auipc)      IDTAB(006, I, op_imm32)
     IDTAB(010, S, store)  IDTAB(011, fstore, fstore)                       IDTAB(013, R, atomic)
     IDTAB(014, R, op)     IDTAB(015, U, lui)            IDTAB(016, R, op32)
-    /*IDTAB(020, F_R, fmadd)IDTAB(021, F_R, fmsub)        IDTAB(022, F_R, fnmsub)IDTAB(023, F_R, fnmadd)*/
+    IDTAB(020, R4, fmadd_dispatch) IDTAB(021, R4, fmadd_dispatch)
+    IDTAB(022, R4, fmadd_dispatch) IDTAB(023, R4, fmadd_dispatch)
     TAB  (024, op_fp)
     IDTAB(030, B, branch) IDTAB(031, I, jalr_dispatch)  TAB  (032, nemu_trap)  IDTAB(033, J, jal_dispatch)
     IDTAB(034, csr, system)

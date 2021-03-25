@@ -15,6 +15,8 @@ enum {
   FPCALL_DIV,
   FPCALL_SQRT,
 
+  FPCALL_MADD,
+
   FPCALL_LE,
   FPCALL_EQ,
   FPCALL_LT,

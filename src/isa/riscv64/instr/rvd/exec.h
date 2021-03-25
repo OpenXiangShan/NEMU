@@ -17,6 +17,12 @@ def_EHelper(fsqrtd) {
   rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
+def_EHelper(fmaddd) {
+  rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
+  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W64));
+  rtl_fsr(s, ddest, s0, FPCALL_W64);
+}
+
 def_EHelper(fled) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LE, FPCALL_W64));
 }
