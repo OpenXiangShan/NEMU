@@ -10,6 +10,7 @@ void init_vga();
 void init_i8042();
 void init_audio();
 void init_disk();
+void init_sdcard();
 
 void send_key(uint8_t, bool);
 void vga_update_screen();
@@ -60,6 +61,7 @@ void init_device() {
   IFDEF(CONFIG_HAS_KEYBOARD, init_i8042());
   IFDEF(CONFIG_HAS_AUDIO, init_audio());
   IFDEF(CONFIG_HAS_DISK, init_disk());
+  IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
 
   add_alarm_handle(set_device_update_flag);
   init_alarm();

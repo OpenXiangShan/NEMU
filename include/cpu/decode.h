@@ -24,7 +24,6 @@ enum {
   INSTR_TYPE_J, // jump
   INSTR_TYPE_B, // branch
   INSTR_TYPE_I, // indirect
-  INSTR_TYPE_S, // system instructions
 };
 
 typedef struct Decode {

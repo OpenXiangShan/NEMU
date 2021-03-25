@@ -1,7 +1,6 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
-#include <device/map.h>
 #include <difftest.h>
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
@@ -25,5 +24,5 @@ void difftest_init() {
   /* Perform ISA dependent initialization. */
   init_isa();
   /* create dummy address space for serial */
-  add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
+  //add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
 }

@@ -135,7 +135,10 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     bb_t *bb = bb_find(old->pc);
     if (bb != NULL) { // already decoded
       s = bb->s;
-      goto bb_start_already_decode;
+      if (old->tnext)  { old->tnext->tnext = s; }
+      if (old->ntnext) { old->ntnext->ntnext = s; }
+      free(old);
+      return s;
     }
   }
 
@@ -158,6 +161,9 @@ full: old->EHelper = get_nemu_decode(); // decode again
     *s = *old;
     idx_in_bb = 1;
     tcache_state = TCACHE_BB_BUILDING;
+    if (old->tnext)  { old->tnext->tnext = s; }
+    if (old->ntnext) { old->ntnext->ntnext = s; }
+    free(old);
   }
 
   s->idx_in_bb = idx_in_bb ++;
@@ -184,16 +190,10 @@ full: old->EHelper = get_nemu_decode(); // decode again
     tcache_state = TCACHE_RUNNING;
   }
 
-  if (bb_start) {
-bb_start_already_decode:
-    if (old->tnext)  { old->tnext->tnext = s; }
-    if (old->ntnext) { old->ntnext->ntnext = s; }
-    free(old);
-  }
   return s;
 }
 
-static Decode *ex = NULL;
+static Decode ex = {};
 
 void tcache_handle_exception(vaddr_t jpc) {
   if (tcache_state == TCACHE_BB_BUILDING) {
@@ -202,23 +202,19 @@ void tcache_handle_exception(vaddr_t jpc) {
     // This is hard to fix, therefore we just flush the tcache.
     tcache_flush();
   }
-  ex->jnpc = jpc;
-  tcache_bb_fetch(ex, true, jpc);
-  save_globals(ex);
+  tcache_bb_fetch(&ex, true, jpc);
+  save_globals(ex.tnext);
   tcache_state = TCACHE_RUNNING;
 }
 
 Decode* tcache_handle_flush(vaddr_t snpc) {
   tcache_flush();
   tcache_handle_exception(snpc);
-  ex->pc = snpc;
-  return ex;
+  return ex.tnext;
 }
 
 Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
   tcache_flush();
   g_special_exec_table = special_exec_table;
-  ex = tcache_new_malloc(0);
-  ex->EHelper = special_exec_table[1];
   return tcache_new_malloc(reset_vector);
 }

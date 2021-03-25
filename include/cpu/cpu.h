@@ -15,10 +15,10 @@ __attribute__((noreturn)) void longjmp_exec(int cause);
 __attribute__((noreturn)) void longjmp_exception(int ex_cause);
 
 enum {
-  MMU_STATE_UPDATE = 1,
-  MMU_STATE_FLUSH_TCACHE = 2,
+  SYS_STATE_UPDATE = 1,
+  SYS_STATE_FLUSH_TCACHE = 2,
 };
-void set_mmu_state_flag(int flag);
+void set_sys_state_flag(int flag);
 void mmu_tlb_flush(vaddr_t vaddr);
 
 struct Decode;

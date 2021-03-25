@@ -78,8 +78,10 @@ DIFF_REF_PATH = $(NEMU_HOME)/$(call remove_quote,$(CONFIG_DIFFTEST_REF_PATH))
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-$(call remove_quote,$(CONFIG_DIFFTEST_REF_NAME))-so
 MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
 
+ifndef CONFIG_DIFFTEST_REF_NEMU
 $(DIFF_REF_SO):
 	$(MAKE) -s -C $(DIFF_REF_PATH) $(MKFLAGS)
+endif
 
 .PHONY: $(DIFF_REF_SO)
 endif

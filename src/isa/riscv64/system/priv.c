@@ -31,45 +31,37 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define FRM_MASK 0x03
 #define FCSR_MASK 0xff
 
+#define is_read(csr) (src == (void *)(csr))
+#define is_write(csr) (dest == (void *)(csr))
+#define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
+
 static inline word_t csr_read(word_t *src) {
-  if (src == (void *)sstatus) {
-    return mstatus->val & SSTATUS_RMASK;
-  } else if (src == (void *)sie) {
-    return mie->val & SIE_MASK;
-  } else if (src == (void *)sip) {
-    return mip->val & SIP_MASK;
-  } else if (src == (void *)fflags) {
-    return fflags->val & FFLAGS_MASK;
-  } else if (src == (void *)frm) {
-    return frm->val & FRM_MASK;
-  } else if (src == (void *)fcsr) {
-    return fcsr->val & FCSR_MASK;
-  }
+  if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
+  else if (is_read(sie))    { return mie->val & SIE_MASK; }
+  else if (is_read(sip))    { return mip->val & SIP_MASK; }
+  else if (is_read(fflags)) { return fflags->val & FFLAGS_MASK; }
+  else if (is_read(frm))    { return frm->val & FRM_MASK; }
+  else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   return *src;
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
-  if (dest == (void *)sstatus) {
-    mstatus->val = (mstatus->val & ~SSTATUS_WMASK) | (src & SSTATUS_WMASK);
-  } else if (dest == (void *)sie) {
-    mie->val = (mie->val & ~SIE_MASK) | (src & SIE_MASK);
-  } else if (dest == (void *)sip) {
-    mip->val = (mip->val & ~SIP_MASK) | (src & SIP_MASK);
-  } else if (dest == (void *)medeleg) {
-    *dest = src & 0xbbff;
-  } else if (dest == (void *)mideleg) {
-    *dest = src & 0x222;
-  } else if (dest == (void *)fflags) {
+  if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
+  else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
+  else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
+  else if (is_write(medeleg)) { *dest = src & 0xbbff; }
+  else if (is_write(mideleg)) { *dest = src & 0x222; }
+  else if (is_write(fflags)) {
     mstatus->fs = 3;
     mstatus->sd = 1;
     *dest = src & FFLAGS_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (dest == (void *)frm) {
+  } else if (is_write(frm)) {
     mstatus->fs = 3;
     mstatus->sd = 1;
     *dest = src & FRM_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (dest == (void *)fcsr) {
+  } else if (is_write(fcsr)) {
     mstatus->fs = 3;
     mstatus->sd = 1;
     *dest = src & FCSR_MASK;
@@ -79,14 +71,16 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = src;
   }
 
-  if (dest == (void *)sstatus || dest == (void *)mstatus) {
+  if (is_write(sstatus) || is_write(mstatus)) {
     // mstatus.fs is always dirty or off in QEMU 3.1.0
     if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
     mstatus->sd = (mstatus->fs == 3);
   }
 
-  if (dest == (void *)mstatus || dest == (void *)satp) {
-    if (update_mmu_state()) set_mmu_state_flag(MMU_STATE_UPDATE);
+  if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
+      is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
+    set_sys_state_flag(SYS_STATE_UPDATE);
   }
 }
 
@@ -125,7 +119,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       break;
     case 0x105: break; // wfi
     case -1: // fence.i
-      set_mmu_state_flag(MMU_STATE_FLUSH_TCACHE);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     default: panic("Unsupported privilige operation = %d", op);
   }

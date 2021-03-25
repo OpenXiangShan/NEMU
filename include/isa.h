@@ -37,7 +37,8 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 
 // interrupt
 vaddr_t raise_intr(word_t NO, vaddr_t epc);
-void isa_query_intr();
+#define INTR_EMPTY ((word_t)-1)
+word_t isa_query_intr();
 
 // difftest
   // for dut

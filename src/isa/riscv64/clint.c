@@ -12,8 +12,12 @@ static uint64_t *clint_base = NULL;
 static uint64_t boot_time = 0;
 
 void update_clint() {
+#ifdef CONFIG_DETERMINISTIC
+  clint_base[CLINT_MTIME] += TIMEBASE / 10000;
+#else
   uint64_t now = get_time() - boot_time;
   clint_base[CLINT_MTIME] = TIMEBASE * now / 1000000;
+#endif
   mip->mtip = (clint_base[CLINT_MTIME] >= clint_base[CLINT_MTIMECMP]);
 }
 
@@ -24,6 +28,6 @@ static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 void init_clint() {
   clint_base = (void *)new_space(0x10000);
   add_mmio_map("clint", CLINT_MMIO, (void *)clint_base, 0x10000, clint_io_handler);
-  add_alarm_handle(update_clint);
+  IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
   boot_time = get_time();
 }
