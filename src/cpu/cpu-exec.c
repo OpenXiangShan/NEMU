@@ -268,7 +268,7 @@ void cpu_exec(uint64_t n) {
     } else {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
-        cpu.pc = raise_intr(intr, prev_s->pc);
+        cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }
