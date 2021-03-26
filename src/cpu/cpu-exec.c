@@ -219,9 +219,9 @@ static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
+    n_remain = n;
     int idx = fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
-    n_remain = n;
     exec_table[idx](&s);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
