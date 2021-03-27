@@ -2,7 +2,6 @@
 #include "../instr/rvi/exec.h"
 #include "../instr/rvc/exec.h"
 #include "../instr/rvm/exec.h"
-#include "../instr/fp.h"
 #include "../instr/rvf/exec.h"
 #include "../instr/rvd/exec.h"
 #include "../instr/rva/exec.h"

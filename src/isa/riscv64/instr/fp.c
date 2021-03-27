@@ -1,6 +1,5 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
-#include <rtl/rtl.h>
 #include <cpu/cpu.h>
 
 bool fp_enable() {
