@@ -22,8 +22,9 @@
 #endif
 
 #define FLOAT_INSTR_TERNARY(f) \
-  f(fadds) f(fsubs) f(fmuls) f(fdivs) f(faddd) f(fsubd) f(fmuld) f(fdivd) \
-  f(fmadds) f(fmsubs) f(fnmsubs) f(fmaddd) f(fmsubd) f(fnmsubd)
+  f(fadds) f(fsubs) f(fmuls) f(fdivs) f(fmins) f(fmaxs) \
+  f(faddd) f(fsubd) f(fmuld) f(fdivd) f(fmind) f(fmaxd) \
+  f(fmadds) f(fmsubs) f(fnmsubs) f(fnmadds) f(fmaddd) f(fmsubd) f(fnmsubd) f(fnmaddd)
 
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \

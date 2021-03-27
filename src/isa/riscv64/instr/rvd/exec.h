@@ -13,6 +13,8 @@ def_fop_template(faddd, FPCALL_ADD, FPCALL_W64)
 def_fop_template(fsubd, FPCALL_SUB, FPCALL_W64)
 def_fop_template(fmuld, FPCALL_MUL, FPCALL_W64)
 def_fop_template(fdivd, FPCALL_DIV, FPCALL_W64)
+def_fop_template(fmaxd, FPCALL_MAX, FPCALL_W64)
+def_fop_template(fmind, FPCALL_MIN, FPCALL_W64)
 
 def_EHelper(fsqrtd) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_SQRT, FPCALL_W64));
@@ -36,6 +38,13 @@ def_EHelper(fnmsubd) {
   rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
   rtl_xori(s, s1, dsrc1, F64_SIGN);
   rtl_hostcall(s, HOSTCALL_FP, s0, s1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W64));
+  rtl_fsr(s, ddest, s0, FPCALL_W64);
+}
+
+def_EHelper(fnmaddd) {
+  rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
+  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W64));
+  rtl_xori(s, s0, s0, F64_SIGN);
   rtl_fsr(s, ddest, s0, FPCALL_W64);
 }
 

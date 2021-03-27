@@ -4,6 +4,8 @@
 #include <internals.h>
 
 #define BOX_MASK 0xFFFFFFFF00000000
+#define F32_SIGN ((uint64_t)1ul << 31)
+#define F64_SIGN ((uint64_t)1ul << 63)
 
 static inline rtlreg_t unbox(rtlreg_t r) {
   if ((r & BOX_MASK) == BOX_MASK) return r & ~BOX_MASK;
@@ -18,6 +20,30 @@ static inline float32_t rtlToF32(rtlreg_t r) {
 static inline float64_t rtlToF64(rtlreg_t r) {
   float64_t f = { .v = r };
   return f;
+}
+
+static inline float32_t f32_min(float32_t a, float32_t b){
+  bool less = f32_lt_quiet(a, b) || (f32_eq(a, b) && (a.v & F32_SIGN));
+  if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
+  else return(less || isNaNF32UI(b.v) ? a : b);
+}
+
+static inline float32_t f32_max(float32_t a, float32_t b){
+  bool greater = f32_lt_quiet(b, a) || (f32_eq(b, a) && (b.v & F32_SIGN));
+  if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
+  else return(greater || isNaNF32UI(b.v) ? a : b);
+}
+
+static inline float64_t f64_min(float64_t a, float64_t b){
+  bool less = f64_lt_quiet(a, b) || (f64_eq(a, b) && (a.v & F64_SIGN));
+  if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
+  else return(less || isNaNF64UI(b.v) ? a : b);
+}
+
+static inline float64_t f64_max(float64_t a, float64_t b){
+  bool greater = f64_lt_quiet(b, a) || (f64_eq(b, a) && (b.v & F64_SIGN));
+  if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
+  else return(greater || isNaNF64UI(b.v) ? a : b);
 }
 
 uint32_t isa_fp_get_rm(Decode *s);
@@ -36,6 +62,8 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_SUB: *dest = f32_sub(fsrc1, fsrc2).v; break;
       case FPCALL_MUL: *dest = f32_mul(fsrc1, fsrc2).v; break;
       case FPCALL_DIV: *dest = f32_div(fsrc1, fsrc2).v; break;
+      case FPCALL_MIN: *dest = f32_min(fsrc1, fsrc2).v; break;
+      case FPCALL_MAX: *dest = f32_max(fsrc1, fsrc2).v; break;
 
       case FPCALL_SQRT: *dest = f32_sqrt(fsrc1).v; break;
 
@@ -64,6 +92,8 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_SUB: *dest = f64_sub(fsrc1, fsrc2).v; break;
       case FPCALL_MUL: *dest = f64_mul(fsrc1, fsrc2).v; break;
       case FPCALL_DIV: *dest = f64_div(fsrc1, fsrc2).v; break;
+      case FPCALL_MAX: *dest = f64_max(fsrc1, fsrc2).v; break;
+      case FPCALL_MIN: *dest = f64_min(fsrc1, fsrc2).v; break;
 
       case FPCALL_SQRT: *dest = f64_sqrt(fsrc1).v; break;
 
