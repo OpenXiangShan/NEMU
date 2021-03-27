@@ -1,6 +1,6 @@
 def_THelper(fsgnj_d_dispatch) {
   switch (s->isa.instr.fp.rm) {
-    TAB(0b000, fsgnjd)  TAB(0b010, fsgnjxd)
+    TAB(0b000, fsgnjd)  TAB(0b001, fsgnjnd) TAB(0b010, fsgnjxd)
   }
   return EXEC_ID_inv;
 }
@@ -17,7 +17,7 @@ def_THelper(fop_d) {
     TAB(0b0000, faddd)   TAB(0b0001, fsubd)
     TAB(0b0010, fmuld)   TAB(0b0011, fdivd)
     TAB(0b0100, fsgnj_d_dispatch)
-//    TAB(0b0100, fsgnjs)  TAB(0b0101, fmin_fmax)
+//  TAB(0b0101, fmin_fmax)
     TAB(0b1011, fsqrtd)
   }
   return EXEC_ID_inv;
@@ -74,7 +74,7 @@ def_THelper(fop_gpr_d) {
 def_THelper(fmadd_d_dispatch) {
   int op = BITS(s->isa.instr.fp.opcode6_2, 1, 0);
   switch (op) {
-    TAB(0b00, fmaddd) //TAB(0b01, fmsubd) TAB(0b10, fnmsubd) TAB(0b11, fnmaddd)
+    TAB(0b00, fmaddd)  TAB(0b01, fmsubd) TAB(0b10, fnmsubd) //TAB(0b11, fnmaddd)
   }
   return EXEC_ID_inv;
 }

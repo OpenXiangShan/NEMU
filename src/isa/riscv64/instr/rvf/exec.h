@@ -1,3 +1,5 @@
+#define F32_SIGN ((uint64_t)1 << 31)
+
 def_EHelper(flw) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
@@ -22,6 +24,26 @@ def_fop_template(fdivs, FPCALL_DIV, FPCALL_W32)
 def_EHelper(fsqrts) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_SQRT, FPCALL_W32));
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
+}
+
+def_EHelper(fmadds) {
+  rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
+  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fsr(s, ddest, s0, FPCALL_W32);
+}
+
+def_EHelper(fmsubs) {
+  rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
+  rtl_xori(s, s0, s0, F32_SIGN);
+  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fsr(s, ddest, s0, FPCALL_W32);
+}
+
+def_EHelper(fnmsubs) {
+  rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
+  rtl_xori(s, s1, dsrc1, F32_SIGN);
+  rtl_hostcall(s, HOSTCALL_FP, s0, s1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fsr(s, ddest, s0, FPCALL_W32);
 }
 
 def_EHelper(fles) {
@@ -74,6 +96,26 @@ def_EHelper(fcvt_l_s) {
 
 def_EHelper(fcvt_lu_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU64, FPCALL_W32));
+}
+
+def_EHelper(fsgnjs) {
+  rtl_andi(s, s0, dsrc1, ~F32_SIGN);
+  rtl_andi(s, ddest, dsrc2, F32_SIGN);
+  rtl_or(s, ddest, s0, ddest);
+}
+
+def_EHelper(fsgnjns) {
+  rtl_andi(s, s0, dsrc1, ~F32_SIGN);
+  rtl_xori(s, ddest, dsrc2, F32_SIGN);
+  rtl_andi(s, ddest, ddest, F32_SIGN);
+  rtl_or(s, ddest, s0, ddest);
+}
+
+def_EHelper(fsgnjxs) {
+  rtl_andi(s, s0, dsrc1, ~F32_SIGN);
+  rtl_xor(s, ddest, dsrc1, dsrc2);
+  rtl_andi(s, ddest, ddest, F32_SIGN);
+  rtl_or(s, ddest, s0, ddest);
 }
 
 def_EHelper(fmv_x_w) {

@@ -23,7 +23,7 @@
 
 #define FLOAT_INSTR_TERNARY(f) \
   f(fadds) f(fsubs) f(fmuls) f(fdivs) f(faddd) f(fsubd) f(fmuld) f(fdivd) \
-  f(fmaddd)
+  f(fmadds) f(fmsubs) f(fnmsubs) f(fmaddd) f(fmsubd) f(fnmsubd)
 
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
@@ -45,11 +45,12 @@
   f(flw) f(fsw) f(fsqrts) f(fles) f(flts) f(feqs) \
   f(fcvt_s_w) f(fcvt_s_wu) f(fcvt_s_l) f(fcvt_s_lu) \
   f(fcvt_w_s) f(fcvt_wu_s) f(fcvt_l_s) f(fcvt_lu_s) \
+  f(fsgnjs) f(fsgnjns) f(fsgnjxs) \
   f(fmv_x_w) f(fmv_w_x) \
   f(fld) f(fsd) f(fsqrtd) f(fled) f(fltd) f(feqd) \
   f(fcvt_d_w) f(fcvt_d_wu) f(fcvt_d_l) f(fcvt_d_lu) \
   f(fcvt_w_d) f(fcvt_wu_d) f(fcvt_l_d) f(fcvt_lu_d) \
-  f(fsgnjd) f(fsgnjxd) \
+  f(fsgnjd) f(fsgnjnd) f(fsgnjxd) \
   f(fmv_x_d) f(fmv_d_x) \
   f(fcvt_d_s) f(fcvt_s_d)
 
