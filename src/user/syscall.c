@@ -94,6 +94,13 @@ static inline word_t user_sys_stat64(const char *pathname, word_t statbuf) {
   return ret;
 }
 
+static inline word_t user_sys_lstat64(const char *pathname, word_t statbuf) {
+  struct stat buf;
+  int ret = get_syscall_ret(lstat(pathname, &buf));
+  if (ret == 0) translate_stat(&buf, statbuf);
+  return ret;
+}
+
 static inline word_t user_sys_fstat64(int fd, word_t statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
@@ -159,10 +166,14 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 122: ret = uname(user_to_host(arg1)); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 174: return 0; // sigaction
-    case 183: ret = (uintptr_t)getcwd(user_to_host(arg1), arg2); break;
+    case 183: ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
+              assert(ret != 0); // should success
+              ret = strlen(user_to_host(arg1)) + 1;
+              break;
     case 192: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
                   arg3, arg4, user_fd(arg5), arg6 << 12); break;
     case 195: return user_sys_stat64(user_to_host(arg1), arg2);
+    case 196: return user_sys_lstat64(user_to_host(arg1), arg2);
     case 197: return user_sys_fstat64(user_fd(arg1), arg2);
     case 199: return getuid();
     case 200: return getgid();

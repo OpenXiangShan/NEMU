@@ -73,12 +73,11 @@ static inline def_rtl(sr_fcw, rtlreg_t* src){
   }
 }
 
+
 static inline def_rtl(class387, rtlreg_t *dest, uint64_t *src){
-  //float64_t f;
-  //f.v = *src;
-  //uint32_t res = f64_classify(f);
-  uint32_t res = 0;
-  assert(0);
+  float64_t f;
+  f.v = *src;
+  uint32_t res = f64_classify(f);
   switch (res)
   {
   case 0x1://-inf

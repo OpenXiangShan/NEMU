@@ -156,10 +156,27 @@ static inline def_EHelper(fp_gp6) {
   }
 }
 
+static inline def_EHelper(fp_gp7) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EMPTY(0x00) EX(0x01, fyl2xp1) EX(0x02, fsqrt) EMPTY(0x03)
+    EX(0x04, frndint) EX(0x05, fscale) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp8) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EX(0x00, f2xm1) EX(0x01, fyl2x) EMPTY(0x02) EMPTY(0x03)
+    EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
 static inline def_EHelper(fp) {
   uint8_t fp_opcode = BITS(s->opcode,2,0)<<4 | BITS(s->isa.ext_opcode,5,3);
   uint8_t fp_mod = BITS(s->isa.ext_opcode,7,6);
   if(fp_mod != 3){
+    //if (cpu.pc == 0x82a46c9) Log("fp_opcode = 0x%x", fp_opcode);
     switch (fp_opcode)
     {
       IDEX(0x00, St0_M_32r, fadd)     IDEX(0x01, St0_M_32r, fmul)     IDEX(0x02, St0_M_32r, fcom)     IDEX(0x03, St0_M_32r, fcomp)
@@ -185,13 +202,14 @@ static inline def_EHelper(fp) {
   }
   else
   {
+    //if (cpu.pc == 0x82a46c9) Log("fp_opcode = 0x%x", fp_opcode);
     switch (fp_opcode)
     {
       IDEX(0x00, St0_Est, fadd)       IDEX(0x01, St0_Est, fmul)       IDEX(0x02, St0_Est, fcom)       IDEX(0x03, St0_Est, fcomp)
       IDEX(0x04, St0_Est, fsub)       IDEX(0x05, St0_Est, fsubr)      IDEX(0x06, St0_Est, fdiv)       IDEX(0x07, St0_Est, fdivr)
       IDEX(0x10, ld_Est_St0, fld)     IDEX(0x11, St0_Est, fxch)       EX  (0x12, nop)                 EMPTY(0x13)
-      IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      IDEX(0x16, St0_Est, fyl2x)                     IDEX(0x17, St0, fsqrt)
-      EMPTY(0x20)                     EMPTY(0x21)                     IDEX(0x22, St0_Est, fcmovbe)    EMPTY(0x23)
+      IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      IDEX(0x16, St0_Est, fp_gp8)     IDEX(0x17, St0, fp_gp7)
+      IDEX(0x20, St0_Est, fcmovb)     EMPTY(0x21)                     IDEX(0x22, St0_Est, fcmovbe)    EMPTY(0x23)
       EMPTY(0x24)                     EX  (0x25, fp_gp3)              EMPTY(0x26)                     EMPTY(0x27)
       EMPTY(0x30)                     EMPTY(0x31)                     IDEX(0x32, St0_Est, fcmovnbe)   EMPTY(0x33)
       EX  (0x34, fp_gp4)              IDEX(0x35, St0_Est, fucomi)     IDEX(0x36, St0_Est, fcomi)      EMPTY(0x37)

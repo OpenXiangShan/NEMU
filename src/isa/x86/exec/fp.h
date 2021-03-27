@@ -266,6 +266,18 @@ static inline def_EHelper(fcmovnbe){
   print_asm_fpu_template2(fcmovnbe);
 }
 
+static inline def_EHelper(fcmovb){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_B);
+#else
+  rtl_setcc(s, s0, CC_B);
+#endif
+  if (*s0) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmovb);
+}
+
 static inline def_EHelper(fsqrt) {
   *dfdest = f64_sqrt(fprToF64(*dfdest)).v;
   print_asm_fpu_template(fsqrt);
@@ -276,8 +288,48 @@ static inline def_EHelper(fyl2x) {
     double f;
     uint64_t i;
   } a;
-  a.i = *dsrc1;
+  a.i = *dfdest;
   a.f = log2(a.f);
-  *dfsrc1 = f64_mul(fprToF64(*dfdest), fprToF64(a.i)).v;
+  *dfsrc1 = f64_mul(fprToF64(*dfsrc1), fprToF64(a.i)).v;
+  rtl_popftop();
   print_asm_fpu_template(fyl2x);
+}
+
+static inline def_EHelper(frndint) {
+  *dfdest = f64_roundToInt(fprToF64(*dfdest), softfloat_roundingMode, false).v;
+  print_asm_fpu_template(frndint);
+}
+
+static inline def_EHelper(fyl2xp1) {
+  union {
+    double f;
+    uint64_t i;
+  } a;
+  a.i = *dfdest;
+  a.f = log2(a.f + 1.0);
+  *dfsrc1 = f64_mul(fprToF64(*dfsrc1), fprToF64(a.i)).v;
+  rtl_popftop();
+  print_asm_fpu_template(fyl2xp1);
+}
+
+static inline def_EHelper(f2xm1) {
+  union {
+    double f;
+    uint64_t i;
+  } a;
+  a.i = *dfdest;
+  a.f = pow(2.0, a.f) - 1.0;
+  *dfsrc1 = a.i;
+  print_asm_fpu_template(f2xm1);
+}
+
+static inline def_EHelper(fscale) {
+  union {
+    double f;
+    uint64_t i;
+  } a;
+  a.i = f64_roundToInt(fprToF64(*dfsrc1), softfloat_round_minMag, false).v;
+  a.f = pow(2.0, a.f);
+  *dfdest = f64_mul(fprToF64(*dfdest), fprToF64(a.i)).v;
+  print_asm_fpu_template(fscale);
 }
