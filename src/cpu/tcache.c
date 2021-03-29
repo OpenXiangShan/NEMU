@@ -35,8 +35,9 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
 static inline Decode* tcache_new(vaddr_t pc) {
   if (tc_idx == TCACHE_SIZE) return NULL;
   assert(tc_idx < TCACHE_SIZE);
-  tcache_entry_init(&tcache_pool[tc_idx], pc);
-  return &tcache_pool[tc_idx ++];
+  Decode *s = &tcache_pool[tc_idx];
+  tc_idx ++;
+  return tcache_entry_init(s, pc);
 }
 
 #ifdef DEBUG
