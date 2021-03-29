@@ -1,6 +1,5 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
-#include <rtl/rtl.h>
 #include <cpu/cpu.h>
 
 bool fp_enable() {
@@ -14,7 +13,7 @@ void fp_set_dirty() {
 
 uint32_t isa_fp_get_rm(Decode *s) {
   int rm = s->isa.instr.fp.rm;
-  if (rm == 7) { rm = frm->val; }
+  if (rm == 7) { rm = fcsr->frm; }
   if (rm <= 4) { return rm; }
   else {
     save_globals(s);
@@ -23,6 +22,6 @@ uint32_t isa_fp_get_rm(Decode *s) {
 }
 
 void isa_fp_update_ex_flags(Decode *s, uint32_t ex_flags) {
-  rtlreg_t tmp = fflags->val | ex_flags;
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, &tmp, 1);
+  fcsr->fflags.val |= ex_flags;
+  fp_set_dirty();
 }

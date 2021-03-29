@@ -1,6 +1,7 @@
 bool fp_enable();
 static int table_fop_d(Decode *s);
 static int table_fop_gpr_d(Decode *s);
+static int table_fmadd_d_dispatch(Decode *s);
 
 static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
@@ -12,6 +13,13 @@ static inline def_DHelper(fr) {
   decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, false);
   decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, false);
   decode_op_fr(s, id_dest, s->isa.instr.fp.rd,  false);
+}
+
+static inline def_DHelper(R4) {
+  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, false);
+  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, false);
+  decode_op_fr(s, id_dest, s->isa.instr.fp.rd,  false);
+  // rs3 is decoded at exec.h
 }
 
 static inline def_DHelper(fload) {
@@ -57,13 +65,28 @@ def_THelper(fstore) {
   return EXEC_ID_inv;
 }
 
+def_THelper(fsgnj_s_dispatch) {
+  switch (s->isa.instr.fp.rm) {
+    TAB(0b000, fsgnjs)  TAB(0b001, fsgnjns) TAB(0b010, fsgnjxs)
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(fminmax_s_dispatch) {
+  switch (s->isa.instr.fp.rm) {
+    TAB(0b000, fmins) TAB(0b001, fmaxs)
+  }
+  return EXEC_ID_inv;
+}
+
 def_THelper(fop) {
   int funct4 = s->isa.instr.fp.funct5 & 0b01111;
 
   switch (funct4) {
     TAB(0b0000, fadds)   TAB(0b0001, fsubs)
     TAB(0b0010, fmuls)   TAB(0b0011, fdivs)
-//    TAB(0b0100, fsgnjs)  TAB(0b0101, fmin_fmax)
+    TAB(0b0100, fsgnj_s_dispatch)
+    TAB(0b0101, fminmax_s_dispatch)
 //    TAB(0b1000, fcvt_F_to_F)   TAB(0b1011, fsqrt)
     TAB(0b1011, fsqrts)
   }
@@ -111,8 +134,6 @@ def_THelper(fop_gpr) {
 
     IDTAB(pair(0b00, 0b1100), fr2r, fmv_dispatch)
     IDTAB(pair(0b00, 0b1110), r2fr, fmv_dispatch)
-//    IDTAB(0b1000, fr2r, fcvt_F_to_G) IDTAB(0b1010, r2fr, fcvt_G_to_F)
-//    IDTAB(0b1100, fr2r, fmv_F_to_G)  IDTAB(0b1110, r2fr, fmv_G_to_F)
   }
 #undef pair
   return EXEC_ID_inv;
@@ -136,5 +157,22 @@ def_THelper(op_fp) {
     IDTAB(pair(1, 0), fr, fop_d) TAB(pair(1, 1), fop_gpr_d)
   }
 #undef pair
+  return EXEC_ID_inv;
+}
+
+def_THelper(fmadd_dispatch) {
+  if (!fp_enable()) return EXEC_ID_rt_inv;
+
+  int rvd = s->isa.instr.fp.fmt;
+  switch (s->isa.instr.fp.fmt) {
+    case 0b00: rvd = false; break;
+    case 0b01: rvd = true; break;
+    default: return EXEC_ID_inv;
+  }
+  if (rvd) return table_fmadd_d_dispatch(s);
+  int op = BITS(s->isa.instr.fp.opcode6_2, 1, 0);
+  switch (op) {
+    TAB(0b00, fmadds) TAB(0b01, fmsubs) TAB(0b10, fnmsubs) TAB(0b11, fnmadds)
+  }
   return EXEC_ID_inv;
 }

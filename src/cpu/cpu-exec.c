@@ -219,9 +219,9 @@ static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
+    n_remain = n;
     int idx = fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
-    n_remain = n;
     exec_table[idx](&s);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
@@ -263,12 +263,11 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
-      IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->pc, cpu.pc));
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
     } else {
-      word_t intr = MUXONE(_SHARE, INTR_EMPTY, isa_query_intr());
+      word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
-        cpu.pc = raise_intr(intr, prev_s->pc);
+        cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }

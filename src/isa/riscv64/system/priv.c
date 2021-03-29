@@ -26,9 +26,6 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
-
-#define FFLAGS_MASK 0x1f
-#define FRM_MASK 0x03
 #define FCSR_MASK 0xff
 
 #define is_read(csr) (src == (void *)(csr))
@@ -39,9 +36,9 @@ static inline word_t csr_read(word_t *src) {
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
   else if (is_read(sip))    { return mip->val & SIP_MASK; }
-  else if (is_read(fflags)) { return fflags->val & FFLAGS_MASK; }
-  else if (is_read(frm))    { return frm->val & FRM_MASK; }
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
+  else if (is_read(fflags)) { return fcsr->fflags.val; }
+  else if (is_read(frm))    { return fcsr->frm; }
   return *src;
 }
 
@@ -51,24 +48,14 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
   else if (is_write(medeleg)) { *dest = src & 0xbbff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
-  else if (is_write(fflags)) {
+  else if (is_write(fflags)) { fcsr->fflags.val = src; }
+  else if (is_write(frm)) { fcsr->frm = src; }
+  else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
+  else { *dest = src; }
+
+  if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     mstatus->fs = 3;
     mstatus->sd = 1;
-    *dest = src & FFLAGS_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (is_write(frm)) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = src & FRM_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (is_write(fcsr)) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = src & FCSR_MASK;
-    fflags->val = src & FFLAGS_MASK;
-    frm->val = ((src)>>5) & FRM_MASK;
-  } else {
-    *dest = src;
   }
 
   if (is_write(sstatus) || is_write(mstatus)) {
@@ -126,12 +113,13 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   return 0;
 }
 
-void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
+void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
+    const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src, imm); return;
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src); break;
-    case HOSTCALL_PRIV: ret = priv_instr(imm, src); break;
+    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }
   if (dest) *dest = ret;
