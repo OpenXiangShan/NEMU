@@ -26,7 +26,7 @@ static const void* get_nemu_decode() {
 }
 
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
-  memset(s, 0, sizeof(*s));
+  s->tnext = s->ntnext = NULL;
   s->pc = pc;
   s->EHelper = get_nemu_decode();
   return s;
