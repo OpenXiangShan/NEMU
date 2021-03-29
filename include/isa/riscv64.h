@@ -13,7 +13,7 @@
 
 // #define XIANGSHAN_DEBUG
 // #define ENABLE_DISAMBIGUATE
-// #define FORCE_RAISE_PF
+#define FORCE_RAISE_PF
 
 // reg
 struct DisambiguationState {
