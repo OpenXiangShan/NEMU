@@ -177,13 +177,14 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
   s->EHelper = exec_table[idx];
 
   if (bb_start) {
-    s = tcache_new(old->pc);
+    vaddr_t thispc = old->pc;
+    s = tcache_new(thispc);
     if (s == NULL) goto full;
-    bb_t *ret = bb_insert(old->pc, s);
+    bb_t *ret = bb_insert(thispc, s);
     if (ret == NULL) { // basic block list is full
-full: old->EHelper = get_nemu_decode(); // decode again
-      save_globals(old);
-      tcache_flush();
+full: tcache_flush();
+      s = tcache_tmp_new(thispc); // decode again
+      save_globals(s);
       longjmp_exec(NEMU_EXEC_AGAIN);
     }
 
