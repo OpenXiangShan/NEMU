@@ -21,6 +21,11 @@ void update_clint() {
   mip->mtip = (clint_base[CLINT_MTIME] >= clint_base[CLINT_MTIMECMP]);
 }
 
+uint64_t clint_uptime() {
+  update_clint();
+  return clint_base[CLINT_MTIME];
+}
+
 static void clint_io_handler(uint32_t offset, int len, bool is_write) {
   update_clint();
 }

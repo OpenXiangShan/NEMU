@@ -1,9 +1,9 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
-#include "../local-include/intr.h"
 #include <cpu/cpu.h>
 
 int update_mmu_state();
+uint64_t clint_uptime();
 
 static word_t csr_array[4096] = {};
 
@@ -39,6 +39,7 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
+  else if (is_read(mtime))  { return clint_uptime(); }
   return *src;
 }
 
@@ -76,7 +77,6 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
-  if (csrid == 0xc01) { longjmp_exception(EX_II); } // time
   word_t *csr = csr_decode(csrid);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
