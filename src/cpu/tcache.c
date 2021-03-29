@@ -15,7 +15,7 @@ typedef struct bb_t {
 static Decode tcache_pool[TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static Decode tcache_tmp_pool[TCACHE_TMP_SIZE] = {};
-static bool tcache_tmp_bitmap[TCACHE_TMP_SIZE] = {};
+static Decode *tcache_tmp_freelist = NULL;
 static bb_t bb_pool[BB_POOL_SIZE] = {};
 static int bb_idx = 0;
 static bb_t bb_list [BB_LIST_SIZE] = {};
@@ -39,22 +39,32 @@ static inline Decode* tcache_new(vaddr_t pc) {
   return &tcache_pool[tc_idx ++];
 }
 
+#ifdef DEBUG
+#define tcache_tmp_check(s) do { \
+  int idx = s - tcache_tmp_pool; \
+  Assert(idx >= 0 && idx < TCACHE_TMP_SIZE, "idx = %d, s = %p", idx, s); \
+} while (0)
+#else
+#define tcache_tmp_check(s)
+#endif
+
 static inline Decode* tcache_tmp_new(vaddr_t pc) {
-  int i;
-  for (i = 0; i < TCACHE_TMP_SIZE; i ++) {
-    if (tcache_tmp_bitmap[i] == 0) {
-      tcache_tmp_bitmap[i] = 1;
-      return tcache_entry_init(&tcache_tmp_pool[i], pc);
-    }
-  }
-  assert(0);
-  return NULL;
+  Decode *s = tcache_tmp_freelist;
+  assert(s != NULL);
+  tcache_tmp_check(s);
+  tcache_tmp_check(tcache_tmp_freelist->tnext);
+  tcache_tmp_freelist = tcache_tmp_freelist->tnext;
+  tcache_tmp_check(tcache_tmp_freelist);
+  tcache_tmp_check(tcache_tmp_freelist->tnext);
+  return tcache_entry_init(s, pc);
 }
 
 static inline void tcache_tmp_free(Decode *s) {
-  int idx = s - tcache_tmp_pool;
-  assert(idx >= 0 && idx < TCACHE_TMP_SIZE);
-  tcache_tmp_bitmap[idx] = 0;
+  tcache_tmp_check(s);
+  tcache_tmp_check(tcache_tmp_freelist);
+  s->tnext = tcache_tmp_freelist;
+  tcache_tmp_freelist = s;
+  tcache_tmp_check(tcache_tmp_freelist->tnext);
 }
 
 
@@ -124,7 +134,13 @@ static void tcache_flush() {
   tc_idx = 0;
   bb_idx = 0;
   memset(bb_list, -1, sizeof(bb_list));
-  memset(tcache_tmp_bitmap, 0, sizeof(tcache_tmp_bitmap));
+
+  int i;
+  for (i = 0; i < TCACHE_TMP_SIZE - 1; i ++) {
+    tcache_tmp_pool[i].tnext = &tcache_tmp_pool[i + 1];
+  }
+  tcache_tmp_pool[TCACHE_TMP_SIZE - 1].tnext = NULL;
+  tcache_tmp_freelist = &tcache_tmp_pool[0];
 }
 
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
