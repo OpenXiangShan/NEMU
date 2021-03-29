@@ -236,10 +236,37 @@ static inline def_EHelper(fstcw){
 }
 
 static inline def_EHelper(fldenv){
-  TODO();
+  rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 0, 4);
+  rtl_sr_fcw(s, s0);
+  rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 4, 4);
+  rtl_sr_fsw(s, s0);
+  cpu.ftop = (cpu.fsw >> 11) & 0x7;
+  // others are not loaded
+  print_asm_template2(fldenv);
 }
+
 static inline def_EHelper(fstenv){
-  TODO();
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 0, &cpu.fcw, 4);
+  cpu.fsw = (cpu.fsw & ~0x3800) | ((cpu.ftop & 0x7) << 11);
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 4, &cpu.fsw, 4);
+  rtlreg_t ftag = 0;
+  int i;
+  for (i = 7; i >= 0; i --) {
+    ftag <<= 2;
+    if (i > cpu.ftop) { ftag |= 3; } // empty
+    else {
+      rtl_class387(s, s0, &cpu.fpr[i]);
+      if (*s0 == 0x4200 || *s0 == 0x4000) { ftag |= 1; } // zero
+      else if (*s0 == 0x700 || *s0 == 0x4600 || *s0 == 0x4400 || *s0 == 0x500 ||
+          *s0 == 0x100 || *s0 == 0x300) { ftag |= 2; } // NaNs, INFs, denormal
+    }
+  }
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 8, &ftag, 4);
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 12, rz, 4);  // fpip
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 16, rz, 4);  // fpcs
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 20, rz, 4);  // fpoo
+  rtl_sm(s, s->isa.mbase, s->isa.moff + 24, rz, 4);  // fpos
+  print_asm_template2(fstenv);
 }
 
 static inline def_EHelper(fcmovbe){
@@ -264,6 +291,30 @@ static inline def_EHelper(fcmovnbe){
     *dfdest = *dfsrc1;
   }
   print_asm_fpu_template2(fcmovnbe);
+}
+
+static inline def_EHelper(fcmove){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_E);
+#else
+  rtl_setcc(s, s0, CC_E);
+#endif
+  if (*s0) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmove);
+}
+
+static inline def_EHelper(fcmovne){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_NE);
+#else
+  rtl_setcc(s, s0, CC_NE);
+#endif
+  if (*s0) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmovne);
 }
 
 static inline def_EHelper(fcmovb){
