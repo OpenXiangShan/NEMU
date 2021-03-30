@@ -80,6 +80,46 @@ static inline def_DHelper(empty) {}
 #define TAB(idx, tab) IDTAB(idx, empty, tab)
 #define EMPTY(idx) TAB(idx, inv)
 
+__attribute__((always_inline))
+static inline void pattern_decode(const char *str, int len,
+    uint32_t *key, uint32_t *mask, uint32_t *shift) {
+  uint32_t __key = 0, __mask = 0, __shift = 0;
+#define macro(i) \
+  if ((i) >= len) goto finish; \
+  else { \
+    char c = str[i]; \
+    if (c != ' ') { \
+      Assert(c == '0' || c == '1' || c == '?', \
+          "invalid character '%c' in pattern string", c); \
+      __key  = (__key  << 1) | (c == '1' ? 1 : 0); \
+      __mask = (__mask << 1) | (c == '?' ? 0 : 1); \
+      __shift = (c == '?' ? __shift + 1 : 0); \
+    } \
+  }
+
+#define macro2(i)  macro(i);   macro((i) + 1)
+#define macro4(i)  macro2(i);  macro2((i) + 2)
+#define macro8(i)  macro4(i);  macro4((i) + 4)
+#define macro16(i) macro8(i);  macro8((i) + 8)
+#define macro32(i) macro16(i); macro16((i) + 16)
+#define macro64(i) macro32(i); macro32((i) + 32)
+  macro64(0);
+#undef macro
+finish:
+  *key = __key >> __shift;
+  *mask = __mask >> __shift;
+  *shift = __shift;
+}
+
+#define def_INSTR_IDTAB(pattern, id, tab) do { \
+  uint32_t key, mask, shift; \
+  pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
+  if (((get_instr(s) >> shift) & mask) == key) \
+    { concat(decode_, id)(s); return concat(table_, tab)(s); } \
+} while (0)
+
+#define def_INSTR_TAB(pattern, tab) def_INSTR_IDTAB(pattern, empty, tab)
+
 
 #define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
 #define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
