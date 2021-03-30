@@ -251,131 +251,81 @@ def_THelper(c_addi_dispatch) {
   return table_c_addi(s);
 }
 
-def_THelper(op_imm_c) {
-  if ((s->isa.instr.r.funct7 & ~0x1) == 32) {
-    switch (s->isa.instr.r.funct3) { TAB(5, c_srai) }
-  }
-  switch (s->isa.instr.i.funct3) {
-    TAB(0, c_addi_dispatch)  TAB(1, c_slli)  TAB(2, slti) TAB(3, sltui)
-    TAB(4, xori)  TAB(5, c_srli)  TAB(6, ori)  TAB(7, c_andi)
-  }
-  return EXEC_ID_inv;
-};
-
-
 def_THelper(c_addiw_dispatch) {
   return table_c_addiw(s);
 }
 
-def_THelper(op_imm32_c) {
-  if (s->isa.instr.r.funct7 == 32) {
-    switch (s->isa.instr.r.funct3) { TAB(5, sraiw) }
-  }
-  switch (s->isa.instr.i.funct3) {
-    TAB(0, c_addiw_dispatch) TAB(1, slliw) TAB(5, srliw)
-  }
+def_THelper(c_ldst) {
+  int mmu_mode = isa_mmu_state();
+  if (mmu_mode == MMU_DIRECT) {
+    def_INSTR_TAB("010 ??? ??? ?? ??? ??", lw);
+    def_INSTR_TAB("011 ??? ??? ?? ??? ??", ld);
+    def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw);
+    def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd);
+  } else if (mmu_mode == MMU_TRANSLATE) {
+    def_INSTR_TAB("010 ??? ??? ?? ??? ??", lw_mmu);
+    def_INSTR_TAB("011 ??? ??? ?? ??? ??", ld_mmu);
+    def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw_mmu);
+    def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd_mmu);
+  } else assert(0);
   return EXEC_ID_inv;
 }
 
-def_THelper(c_jr_dispatch) {
-  if (BITS(s->isa.instr.val, 11, 7) == 1) return table_p_ret(s);
-  return table_c_jr(s);
-}
-
-def_THelper(c_jalr_dispatch) {
-  if (BITS(s->isa.instr.val, 11, 7) != 1) return table_c_jalr(s);
-  return table_jalr(s); // c_jalr can not handle correctly when rs1 == ra
-}
-
-def_THelper(misc) {
-  uint32_t instr = s->isa.instr.val;
-  uint32_t bits12not0 = (BITS(instr, 12, 12) != 0);
-  uint32_t bits11_7not0 = (BITS(instr, 11, 7) != 0);
-  uint32_t bits6_2not0 = (BITS(instr, 6, 2) != 0);
-  uint32_t op = (bits12not0 << 2) | (bits11_7not0 << 1) | bits6_2not0;
-  switch (op) {
-    IDTAB(0b010, C_JR, c_jr_dispatch)
-    IDTAB(0b011, C_MOV, c_mv)
-    IDTAB(0b110, C_JALR, c_jalr_dispatch)
-    IDTAB(0b111, C_ADD, c_add)
-  }
+def_THelper(rvc_Q0) {
+  def_INSTR_IDTAB("000 ???????? ??? ??", C_ADDI4SPN, addi);
+  def_INSTR_IDTAB("001 ??? ??? ?? ??? ??", C_FLD, fld);
+  def_INSTR_IDTAB("010 ??? ??? ?? ??? ??", C_LW , c_ldst);
+  def_INSTR_IDTAB("011 ??? ??? ?? ??? ??", C_LD , c_ldst);
+  def_INSTR_IDTAB("101 ??? ??? ?? ??? ??", C_FSD, fsd);
+  def_INSTR_IDTAB("110 ??? ??? ?? ??? ??", C_SW , c_ldst);
+  def_INSTR_IDTAB("111 ??? ??? ?? ??? ??", C_SD , c_ldst);
   return EXEC_ID_inv;
 }
 
-def_THelper(lui_addi16sp) {
-  uint32_t rd = BITS(s->isa.instr.val, 11, 7);
-  assert(rd != 0);
-  switch (rd) {
-    IDTAB(2, C_ADDI16SP, c_addi)
-    default: // and other cases
-    IDTAB(1, CI_simm_lui, lui)
-  }
+def_THelper(rvc_Q1) {
+  def_INSTR_IDTAB("000 ? ????? ????? ??", CI_simm    , c_addi_dispatch);
+  def_INSTR_IDTAB("001 ? ????? ????? ??", CI_simm    , c_addiw_dispatch);
+  def_INSTR_IDTAB("010 ? ????? 00000 ??", C_LI       , p_li_0);
+  def_INSTR_IDTAB("010 ? ????? 00001 ??", C_LI       , p_li_1);
+  def_INSTR_IDTAB("010 ? ????? ????? ??", C_LI       , c_li);
+  def_INSTR_IDTAB("011 ? 00010 ????? ??", C_ADDI16SP , c_addi);
+  def_INSTR_IDTAB("011 ? ????? ????? ??", CI_simm_lui, lui);
+  def_INSTR_IDTAB("100 ? 00??? ????? ??", CB_shift   , c_srli);
+  def_INSTR_IDTAB("100 ? 01??? ????? ??", CB_shift   , c_srai);
+  def_INSTR_IDTAB("100 ? 10??? ????? ??", CB_andi    , c_andi);
+  def_INSTR_IDTAB("100 0 11??? 00??? ??", CS         , c_sub);
+  def_INSTR_IDTAB("100 0 11??? 01??? ??", CS         , c_xor);
+  def_INSTR_IDTAB("100 0 11??? 10??? ??", CS         , c_or);
+  def_INSTR_IDTAB("100 0 11??? 11??? ??", CS         , c_and);
+  def_INSTR_IDTAB("100 1 11??? 00??? ??", CS         , c_subw);
+  def_INSTR_IDTAB("100 1 11??? 01??? ??", CS         , c_addw);
+  def_INSTR_IDTAB("101 ??????????? ??"  , CJ         , c_j);
+  def_INSTR_IDTAB("110 ??? ??? ????? ??", CB         , c_beqz);
+  def_INSTR_IDTAB("111 ??? ??? ????? ??", CB         , c_bnez);
   return EXEC_ID_inv;
 }
 
-def_THelper(misc_alu) {
-  uint32_t instr = s->isa.instr.val;
-  uint32_t op = BITS(instr, 11, 10);
-  if (op == 3) {
-    uint32_t op2 = (BITS(instr, 12, 12) << 2) | BITS(instr, 6, 5);
-    switch (op2) {
-      IDTAB(0, CS, c_sub) IDTAB(1, CS, c_xor) IDTAB(2, CS, c_or)  IDTAB(3, CS, c_and)
-      IDTAB(4, CS, c_subw)IDTAB(5, CS, c_addw)
-    }
-  } else {
-    switch (op) {
-      IDTAB(0, CB_shift, c_srli)
-      IDTAB(1, CB_shift, c_srai)
-      IDTAB(2, CB_andi,  c_andi)
-    }
-  }
+def_THelper(rvc_Q2) {
+  def_INSTR_IDTAB("000 ? ????? ????? ??", CI_uimm, c_slli);
+  def_INSTR_IDTAB("001 ? ????? ????? ??", C_FLDSP, fld);
+  def_INSTR_IDTAB("010 ? ????? ????? ??", C_LWSP , c_ldst);
+  def_INSTR_IDTAB("011 ? ????? ????? ??", C_LDSP , c_ldst);
+  def_INSTR_IDTAB("100 0 00001 00000 ??", C_JR   , p_ret);
+  def_INSTR_IDTAB("100 0 ????? 00000 ??", C_JR   , c_jr);
+  def_INSTR_IDTAB("100 0 ????? ????? ??", C_MOV  , c_mv);
+  def_INSTR_TAB  ("100 1 00000 00000 ??",          inv);  // ebreak
+  def_INSTR_IDTAB("100 1 00001 00000 ??", C_JALR , jalr); // c_jalr can not handle correctly when rs1 == ra
+  def_INSTR_IDTAB("100 1 ????? 00000 ??", C_JALR , c_jalr);
+  def_INSTR_IDTAB("100 1 ????? ????? ??", C_ADD  , c_add);
+  def_INSTR_IDTAB("101 ? ????? ????? ??", C_FSDSP, fsd);
+  def_INSTR_IDTAB("110 ? ????? ????? ??", C_SWSP , c_ldst);
+  def_INSTR_IDTAB("111 ? ????? ????? ??", C_SDSP , c_ldst);
   return EXEC_ID_inv;
-}
-
-def_THelper(ld_dispatch) {
-  int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return table_ld(s);
-  else if (mmu_mode == MMU_TRANSLATE) return table_ld_mmu(s);
-  else assert(0);
-}
-
-def_THelper(lw_dispatch) {
-  int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return table_lw(s);
-  else if (mmu_mode == MMU_TRANSLATE) return table_lw_mmu(s);
-  else assert(0);
-}
-
-def_THelper(sd_dispatch) {
-  int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return table_sd(s);
-  else if (mmu_mode == MMU_TRANSLATE) return table_sd_mmu(s);
-  else assert(0);
-}
-
-def_THelper(sw_dispatch) {
-  int mmu_mode = isa_mmu_state();
-  if (mmu_mode == MMU_DIRECT) return table_sw(s);
-  else if (mmu_mode == MMU_TRANSLATE) return table_sw_mmu(s);
-  else assert(0);
 }
 
 def_THelper(rvc) {
-  uint32_t rvc_opcode = (s->isa.instr.r.opcode1_0 << 3) | BITS(s->isa.instr.val, 15, 13);
-  switch (rvc_opcode) {
-    IDTAB(000, C_ADDI4SPN, addi)          IDTAB(001, C_FLD, fld)
-    IDTAB(002, C_LW, lw_dispatch)         IDTAB(003, C_LD, ld_dispatch)
-                                          IDTAB(005, C_FSD, fsd)
-    IDTAB(006, C_SW, sw_dispatch)         IDTAB(007, C_SD, sd_dispatch)
-    IDTAB(010, CI_simm, c_addi_dispatch)  IDTAB(011, CI_simm, c_addiw_dispatch)
-    IDTAB(012, C_LI, li_dispatch)         TAB  (013, lui_addi16sp)
-    TAB  (014, misc_alu)                  IDTAB(015, CJ, c_j)
-    IDTAB(016, CB, c_beqz)                IDTAB(017, CB, c_bnez)
-    IDTAB(020, CI_uimm, c_slli)           IDTAB(021, C_FLDSP, fld)
-    IDTAB(022, C_LWSP, lw_dispatch)       IDTAB(023, C_LDSP, ld_dispatch)
-    TAB  (024, misc)                      IDTAB(025, C_FSDSP, fsd)
-    IDTAB(026, C_SWSP, sw_dispatch)       IDTAB(027, C_SDSP, sd_dispatch)
-  }
+  def_INSTR_TAB("?????????????? 00", rvc_Q0);
+  def_INSTR_TAB("?????????????? 01", rvc_Q1);
+  def_INSTR_TAB("?????????????? 10", rvc_Q2);
   return table_inv(s);
 };
-

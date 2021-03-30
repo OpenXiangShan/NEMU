@@ -80,6 +80,60 @@ static inline def_DHelper(empty) {}
 #define TAB(idx, tab) IDTAB(idx, empty, tab)
 #define EMPTY(idx) TAB(idx, inv)
 
+__attribute__((always_inline))
+static inline uint32_t decode_key(char c) {
+  switch (c) {
+    case '0': return 0;
+    case '1': return 1;
+    case '?': return 0;
+    default: panic("invalid character '%c' in pattern string", c);
+  }
+}
+
+__attribute__((always_inline))
+static inline uint32_t decode_mask(char c) {
+  switch (c) {
+    case '0': return 1;
+    case '1': return 1;
+    case '?': return 0;
+    default: panic("invalid character '%c' in pattern string", c);
+  }
+}
+
+__attribute__((always_inline))
+static inline uint32_t pattern_key(const char *str, int len) {
+  uint32_t key = 0;
+  Assert(len < 64, "pattern len = %d too long!", len);
+#define macro(i) if ((i) >= len) return key; else if (str[i] != ' ') key = (key << 1) | decode_key(str[i]);
+#define macro2(i)  macro(i);   macro((i) + 1)
+#define macro4(i)  macro2(i);  macro2((i) + 2)
+#define macro8(i)  macro4(i);  macro4((i) + 4)
+#define macro16(i) macro8(i);  macro8((i) + 8)
+#define macro32(i) macro16(i); macro16((i) + 16)
+#define macro64(i) macro32(i); macro32((i) + 32)
+  macro64(0);
+#undef macro
+  return key;
+}
+
+__attribute__((always_inline))
+static inline uint32_t pattern_mask(const char *str, int len) {
+  uint32_t mask = 0;
+  Assert(len < 64, "pattern len = %d too long!", len);
+#define macro(i) if (i >= len) return mask; else if (str[i] != ' ') mask = (mask << 1) | decode_mask(str[i]);
+  macro64(0);
+#undef macro
+  return mask;
+}
+
+#define def_INSTR_IDTAB(pattern, id, tab) do { \
+  if ((get_instr(s) & (pattern_mask(pattern, STRLEN(pattern)))) \
+      == pattern_key(pattern, STRLEN(pattern))) \
+    { concat(decode_, id)(s); return concat(table_, tab)(s); } \
+} while (0)
+
+#define def_INSTR_TAB(pattern, tab) def_INSTR_IDTAB(pattern, empty, tab)
+
 
 #define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
 #define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
