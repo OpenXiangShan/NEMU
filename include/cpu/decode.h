@@ -81,30 +81,22 @@ static inline def_DHelper(empty) {}
 #define EMPTY(idx) TAB(idx, inv)
 
 __attribute__((always_inline))
-static inline uint32_t decode_key(char c) {
-  switch (c) {
-    case '0': return 0;
-    case '1': return 1;
-    case '?': return 0;
-    default: panic("invalid character '%c' in pattern string", c);
+static inline void pattern_decode(const char *str, int len,
+    uint32_t *key, uint32_t *mask, uint32_t *shift) {
+  uint32_t __key = 0, __mask = 0, __shift = 0;
+#define macro(i) \
+  if ((i) >= len) goto finish; \
+  else { \
+    char c = str[i]; \
+    if (c != ' ') { \
+      Assert(c == '0' || c == '1' || c == '?', \
+          "invalid character '%c' in pattern string", c); \
+      __key  = (__key  << 1) | (c == '1' ? 1 : 0); \
+      __mask = (__mask << 1) | (c == '?' ? 0 : 1); \
+      __shift = (c == '?' ? __shift + 1 : 0); \
+    } \
   }
-}
 
-__attribute__((always_inline))
-static inline uint32_t decode_mask(char c) {
-  switch (c) {
-    case '0': return 1;
-    case '1': return 1;
-    case '?': return 0;
-    default: panic("invalid character '%c' in pattern string", c);
-  }
-}
-
-__attribute__((always_inline))
-static inline uint32_t pattern_key(const char *str, int len) {
-  uint32_t key = 0;
-  Assert(len < 64, "pattern len = %d too long!", len);
-#define macro(i) if ((i) >= len) return key; else if (str[i] != ' ') key = (key << 1) | decode_key(str[i]);
 #define macro2(i)  macro(i);   macro((i) + 1)
 #define macro4(i)  macro2(i);  macro2((i) + 2)
 #define macro8(i)  macro4(i);  macro4((i) + 4)
@@ -113,22 +105,16 @@ static inline uint32_t pattern_key(const char *str, int len) {
 #define macro64(i) macro32(i); macro32((i) + 32)
   macro64(0);
 #undef macro
-  return key;
-}
-
-__attribute__((always_inline))
-static inline uint32_t pattern_mask(const char *str, int len) {
-  uint32_t mask = 0;
-  Assert(len < 64, "pattern len = %d too long!", len);
-#define macro(i) if (i >= len) return mask; else if (str[i] != ' ') mask = (mask << 1) | decode_mask(str[i]);
-  macro64(0);
-#undef macro
-  return mask;
+finish:
+  *key = __key >> __shift;
+  *mask = __mask >> __shift;
+  *shift = __shift;
 }
 
 #define def_INSTR_IDTAB(pattern, id, tab) do { \
-  if ((get_instr(s) & (pattern_mask(pattern, STRLEN(pattern)))) \
-      == pattern_key(pattern, STRLEN(pattern))) \
+  uint32_t key, mask, shift; \
+  pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
+  if (((get_instr(s) >> shift) & mask) == key) \
     { concat(decode_, id)(s); return concat(table_, tab)(s); } \
 } while (0)
 
