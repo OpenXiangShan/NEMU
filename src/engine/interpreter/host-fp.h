@@ -24,10 +24,10 @@ static inline float32_t i32_to_f32 (rtlreg_t a) { return float32((int32_t)a); }
 static inline float32_t ui32_to_f32(rtlreg_t a) { return float32((uint32_t)a); }
 static inline float32_t i64_to_f32 (rtlreg_t a) { return float32((int64_t)a); }
 static inline float32_t ui64_to_f32(rtlreg_t a) { return float32((uint64_t)a); }
-static inline int32_t  my_f32_to_i32 (float32_t a) { return (int32_t)a.f; }
-static inline uint32_t my_f32_to_ui32(float32_t a) { return (uint32_t)a.f; }
-static inline int64_t  my_f32_to_i64 (float32_t a) { return (int64_t)a.f; }
-static inline uint64_t my_f32_to_ui64(float32_t a) { return (uint64_t)a.f; }
+static inline int32_t  my_f32_to_i32 (float32_t a) { return llrintf(a.f); }
+static inline uint32_t my_f32_to_ui32(float32_t a) { return llrintf(a.f); }
+static inline int64_t  my_f32_to_i64 (float32_t a) { return llrintf(a.f); }
+static inline uint64_t my_f32_to_ui64(float32_t a) { return llrintf(a.f); }
 
 
 typedef union { uint64_t v; double f; } float64_t;
@@ -49,10 +49,10 @@ static inline float64_t i32_to_f64 (rtlreg_t a) { return float64((int32_t)a); }
 static inline float64_t ui32_to_f64(rtlreg_t a) { return float64((uint32_t)a); }
 static inline float64_t i64_to_f64 (rtlreg_t a) { return float64((int64_t)a); }
 static inline float64_t ui64_to_f64(rtlreg_t a) { return float64((uint64_t)a); }
-static inline int32_t  my_f64_to_i32 (float64_t a) { return (int32_t)a.f; }
-static inline uint32_t my_f64_to_ui32(float64_t a) { return (uint32_t)a.f; }
-static inline int64_t  my_f64_to_i64 (float64_t a) { return (int64_t)a.f; }
-static inline uint64_t my_f64_to_ui64(float64_t a) { return (uint64_t)a.f; }
+static inline int32_t  my_f64_to_i32 (float64_t a) { return llrint(a.f); }
+static inline uint32_t my_f64_to_ui32(float64_t a) { return llrint(a.f); }
+static inline int64_t  my_f64_to_i64 (float64_t a) { return llrint(a.f); }
+static inline uint64_t my_f64_to_ui64(float64_t a) { return llrint(a.f); }
 
 static inline float64_t f32_to_f64(float32_t a) { return float64(a.f); }
 static inline float32_t f64_to_f32(float64_t a) { return float32(a.f); }

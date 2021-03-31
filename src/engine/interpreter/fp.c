@@ -22,7 +22,7 @@ uint32_t isa_fp_get_rm(Decode *s);
 void isa_fp_set_ex(uint32_t ex);
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
-  IFDEF(CONFIG_FPU_SOFTFLOAT, fp_set_rm(isa_fp_get_rm(s)));
+  fp_set_rm(isa_fp_get_rm(s));
   int w = FPCALL_W(cmd);
   int op = FPCALL_OP(cmd);
 
