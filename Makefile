@@ -51,7 +51,7 @@ else
 SHARE = 1
 endif
 
-ifeq ($(ENGINE),interpreter)
+ifdef CONFIG_FPU_SOFTFLOAT
 SOFTFLOAT = resource/softfloat/build/softfloat.a
 ifeq ($(ISA),riscv64)
 SPECIALIZE_TYPE = RISCV
@@ -66,6 +66,8 @@ $(SOFTFLOAT):
 	SPECIALIZE_TYPE=$(SPECIALIZE_TYPE) $(MAKE) -s -C resource/softfloat/
 
 .PHONY: $(SOFTFLOAT)
+else ifdef CONFIG_FPU
+LDFLAGS += -lm
 endif
 
 include $(NEMU_HOME)/scripts/git.mk

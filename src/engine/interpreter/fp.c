@@ -1,15 +1,11 @@
 #include <rtl/rtl.h>
-#include <softfloat.h>
-#include <specialize.h>
-#include <internals.h>
+#include MUXDEF(CONFIG_FPU_SOFTFLOAT, "softfloat-fp.h", "host-fp.h")
 
 #define BOX_MASK 0xFFFFFFFF00000000
-#define F32_SIGN ((uint64_t)1ul << 31)
-#define F64_SIGN ((uint64_t)1ul << 63)
 
 static inline rtlreg_t unbox(rtlreg_t r) {
-  if ((r & BOX_MASK) == BOX_MASK) return r & ~BOX_MASK;
-  else return defaultNaNF32UI;
+  return MUXDEF(CONFIG_FPU_SOFTFLOAT, (r & BOX_MASK) == BOX_MASK, true)
+    ? (r & ~BOX_MASK) : defaultNaNF32UI;
 }
 
 static inline float32_t rtlToF32(rtlreg_t r) {
@@ -22,35 +18,11 @@ static inline float64_t rtlToF64(rtlreg_t r) {
   return f;
 }
 
-static inline float32_t f32_min(float32_t a, float32_t b){
-  bool less = f32_lt_quiet(a, b) || (f32_eq(a, b) && (a.v & F32_SIGN));
-  if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
-  else return(less || isNaNF32UI(b.v) ? a : b);
-}
-
-static inline float32_t f32_max(float32_t a, float32_t b){
-  bool greater = f32_lt_quiet(b, a) || (f32_eq(b, a) && (b.v & F32_SIGN));
-  if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
-  else return(greater || isNaNF32UI(b.v) ? a : b);
-}
-
-static inline float64_t f64_min(float64_t a, float64_t b){
-  bool less = f64_lt_quiet(a, b) || (f64_eq(a, b) && (a.v & F64_SIGN));
-  if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
-  else return(less || isNaNF64UI(b.v) ? a : b);
-}
-
-static inline float64_t f64_max(float64_t a, float64_t b){
-  bool greater = f64_lt_quiet(b, a) || (f64_eq(b, a) && (b.v & F64_SIGN));
-  if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
-  else return(greater || isNaNF64UI(b.v) ? a : b);
-}
-
 uint32_t isa_fp_get_rm(Decode *s);
-void isa_fp_update_ex_flags(Decode *s, uint32_t ex_flags);
+void isa_fp_set_ex(uint32_t ex);
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
-  softfloat_roundingMode = isa_fp_get_rm(s);
+  IFDEF(CONFIG_FPU_SOFTFLOAT, fp_set_rm(isa_fp_get_rm(s)));
   int w = FPCALL_W(cmd);
   int op = FPCALL_OP(cmd);
 
@@ -78,10 +50,10 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_I64ToF: *dest = i64_to_f32 (*src1).v; break;
       case FPCALL_U64ToF: *dest = ui64_to_f32(*src1).v; break;
 
-      case FPCALL_FToI32: *dest = f32_to_i32 (fsrc1, softfloat_roundingMode, true); break;
-      case FPCALL_FToU32: *dest = f32_to_ui32(fsrc1, softfloat_roundingMode, true); break;
-      case FPCALL_FToI64: *dest = f32_to_i64 (fsrc1, softfloat_roundingMode, true); break;
-      case FPCALL_FToU64: *dest = f32_to_ui64(fsrc1, softfloat_roundingMode, true); break;
+      case FPCALL_FToI32: *dest = my_f32_to_i32 (fsrc1); break;
+      case FPCALL_FToU32: *dest = my_f32_to_ui32(fsrc1); break;
+      case FPCALL_FToI64: *dest = my_f32_to_i64 (fsrc1); break;
+      case FPCALL_FToU64: *dest = my_f32_to_ui64(fsrc1); break;
       default: panic("op = %d not supported", op);
     }
   } else if (w == FPCALL_W64) {
@@ -108,10 +80,10 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_I64ToF: *dest = i64_to_f64 (*src1).v; break;
       case FPCALL_U64ToF: *dest = ui64_to_f64(*src1).v; break;
 
-      case FPCALL_FToI32: *dest = f64_to_i32 (fsrc1, softfloat_roundingMode, true); break;
-      case FPCALL_FToU32: *dest = f64_to_ui32(fsrc1, softfloat_roundingMode, true); break;
-      case FPCALL_FToI64: *dest = f64_to_i64 (fsrc1, softfloat_roundingMode, true); break;
-      case FPCALL_FToU64: *dest = f64_to_ui64(fsrc1, softfloat_roundingMode, true); break;
+      case FPCALL_FToI32: *dest = my_f64_to_i32 (fsrc1); break;
+      case FPCALL_FToU32: *dest = my_f64_to_ui32(fsrc1); break;
+      case FPCALL_FToI64: *dest = my_f64_to_i64 (fsrc1); break;
+      case FPCALL_FToU64: *dest = my_f64_to_ui64(fsrc1); break;
 
       case FPCALL_F32ToF64: *dest = f32_to_f64(rtlToF32(*src1)).v; break;
       case FPCALL_F64ToF32: *dest = f64_to_f32(fsrc1).v; break;
@@ -119,8 +91,9 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
     }
   }
 
-  if (softfloat_exceptionFlags) {
-    isa_fp_update_ex_flags(s, softfloat_exceptionFlags);
-    softfloat_exceptionFlags = 0;
+  uint32_t ex = MUXDEF(CONFIG_FPU_SOFTFLOAT, fp_get_exception(), 0);
+  if (ex) {
+    isa_fp_set_ex(ex);
+    fp_clear_exception();
   }
 }
