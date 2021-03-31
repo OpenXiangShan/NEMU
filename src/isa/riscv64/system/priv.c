@@ -1,6 +1,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include <cpu/cpu.h>
+#include <cpu/difftest.h>
 
 int update_mmu_state();
 uint64_t clint_uptime();
@@ -37,11 +38,12 @@ static inline word_t* csr_decode(uint32_t addr) {
 static inline word_t csr_read(word_t *src) {
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
-  else if (is_read(sip))    { return mip->val & SIP_MASK; }
+  else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
-  else if (is_read(mtime))  { return clint_uptime(); }
+  else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
+  if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
 
