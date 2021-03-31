@@ -1,10 +1,7 @@
 #include <cpu/decode.h>
 #include <cpu/cpu.h>
 
-#define TCACHE_SIZE (8 * 1024)
-#define TCACHE_TMP_SIZE (TCACHE_SIZE / 4 + 2)
-#define BB_POOL_SIZE 1024
-#define BB_LIST_SIZE 1024
+#define TCACHE_TMP_SIZE (CONFIG_TCACHE_SIZE / 4 + 2)
 
 typedef struct bb_t {
   Decode *s;
@@ -12,13 +9,13 @@ typedef struct bb_t {
   vaddr_t pc;
 } bb_t;
 
-static Decode tcache_pool[TCACHE_SIZE] = {};
+static Decode tcache_pool[CONFIG_TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static Decode tcache_tmp_pool[TCACHE_TMP_SIZE] = {};
 static Decode *tcache_tmp_freelist = NULL;
-static bb_t bb_pool[BB_POOL_SIZE] = {};
+static bb_t bb_pool[CONFIG_BB_POOL_SIZE] = {};
 static int bb_idx = 0;
-static bb_t bb_list [BB_LIST_SIZE] = {};
+static bb_t bb_list [CONFIG_BB_LIST_SIZE] = {};
 static const void **g_special_exec_table = NULL;
 
 static const void* get_nemu_decode() {
@@ -33,8 +30,8 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
 }
 
 static inline Decode* tcache_new(vaddr_t pc) {
-  if (tc_idx == TCACHE_SIZE) return NULL;
-  assert(tc_idx < TCACHE_SIZE);
+  if (tc_idx == CONFIG_TCACHE_SIZE) return NULL;
+  assert(tc_idx < CONFIG_TCACHE_SIZE);
   Decode *s = &tcache_pool[tc_idx];
   tc_idx ++;
   return tcache_entry_init(s, pc);
@@ -70,8 +67,8 @@ static inline void tcache_tmp_free(Decode *s) {
 
 
 static inline bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
-  if (bb_idx == BB_POOL_SIZE) return NULL;
-  assert(bb_idx < BB_POOL_SIZE);
+  if (bb_idx == CONFIG_BB_POOL_SIZE) return NULL;
+  assert(bb_idx < CONFIG_BB_POOL_SIZE);
   bb_t *bb = &bb_pool[bb_idx ++];
   bb->s = s;
   bb->pc = pc;
@@ -80,7 +77,7 @@ static inline bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
 }
 
 static inline bb_t* bb_hash(vaddr_t pc) {
-  int idx = (pc / CONFIG_ILEN_MIN) % BB_LIST_SIZE;
+  int idx = (pc / CONFIG_ILEN_MIN) % CONFIG_BB_LIST_SIZE;
   return &bb_list[idx];
 }
 

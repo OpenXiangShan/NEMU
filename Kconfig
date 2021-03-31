@@ -211,10 +211,24 @@ config PERF_OPT
   bool "Performance optimization"
   default y
 
-if PERF_OPT && !DEBUG
+if PERF_OPT
+config TCACHE_SIZE
+  int "Number of entries in trace cache"
+  default 8192
+
+config BB_LIST_SIZE
+  int "Number of entries in basic block metadata list"
+  default 1024
+
+config BB_POOL_SIZE
+  int "Number of entries in basic block metadata pool"
+  default 1024
+
+if !DEBUG
 config DISABLE_INSTR_CNT
   bool "Disable instruction counting (single step is also disabled)"
   default y
+endif
 endif
 
 config ENABLE_INSTR_CNT
