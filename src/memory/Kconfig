@@ -14,6 +14,10 @@ config PC_RESET_OFFSET
   default 0 if MODE_USER
   default 0x100000
 
+config USE_MMAP
+  bool "Allocate guest physical memory with mmap()"
+  default y
+
 config MEM_RANDOM
   depends on MODE_SYSTEM && !DIFFTEST
   bool "Initialize the memory with random values"
