@@ -34,6 +34,10 @@ config ISA64
   bool
   default y
 
+if ISA_riscv64
+source "src/isa/riscv64/Kconfig"
+endif
+
 choice
   prompt "NEMU execution engine"
   default ENGINE_INTERPRETER
