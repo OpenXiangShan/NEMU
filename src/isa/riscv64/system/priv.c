@@ -4,6 +4,8 @@
 
 int update_mmu_state();
 uint64_t clint_uptime();
+void fp_set_dirty();
+void fp_update_rm_cache(uint32_t rm);
 
 static word_t csr_array[4096] = {};
 
@@ -55,8 +57,8 @@ static inline void csr_write(word_t *dest, word_t src) {
   else { *dest = src; }
 
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
+    fp_set_dirty();
+    fp_update_rm_cache(fcsr->frm);
   }
 
   if (is_write(sstatus) || is_write(mstatus)) {

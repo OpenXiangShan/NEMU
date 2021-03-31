@@ -22,9 +22,16 @@ uint32_t isa_fp_get_rm(Decode *s);
 void isa_fp_set_ex(uint32_t ex);
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
-  fp_set_rm(isa_fp_get_rm(s));
-  int w = FPCALL_W(cmd);
-  int op = FPCALL_OP(cmd);
+  uint32_t w = FPCALL_W(cmd);
+  uint32_t op = FPCALL_OP(cmd);
+  if (op < FPCALL_NEED_RM) {
+    static uint32_t last_rm = -1;
+    uint32_t rm = isa_fp_get_rm(s);
+    if (rm != last_rm) {
+      fp_set_rm(rm);
+      last_rm = rm;
+    }
+  }
 
   if (w == FPCALL_W32) {
     float32_t fsrc1 = rtlToF32(*src1);

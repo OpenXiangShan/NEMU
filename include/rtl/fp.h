@@ -29,15 +29,8 @@ enum {
   FPCALL_SUB,
   FPCALL_MUL,
   FPCALL_DIV,
-  FPCALL_MAX,
-  FPCALL_MIN,
   FPCALL_SQRT,
-
   FPCALL_MADD,
-
-  FPCALL_LE,
-  FPCALL_EQ,
-  FPCALL_LT,
 
   FPCALL_I32ToF,
   FPCALL_U32ToF,
@@ -51,6 +44,14 @@ enum {
 
   FPCALL_F32ToF64,
   FPCALL_F64ToF32,
+
+  FPCALL_NEED_RM,  // seperator
+
+  FPCALL_MAX,
+  FPCALL_MIN,
+  FPCALL_LE,
+  FPCALL_EQ,
+  FPCALL_LT,
 };
 
 #define FPCALL_CMD(op, w) (((op) << 16) | (w))

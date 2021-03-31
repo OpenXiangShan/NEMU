@@ -3,6 +3,18 @@
 #include <rtl/fp.h>
 #include <cpu/cpu.h>
 
+static uint32_t nemu_rm_cache = 0;
+void fp_update_rm_cache(uint32_t rm) {
+  switch (rm) {
+    case 0: nemu_rm_cache = FPCALL_RM_RNE; return;
+    case 1: nemu_rm_cache = FPCALL_RM_RTZ; return;
+    case 2: nemu_rm_cache = FPCALL_RM_RDN; return;
+    case 3: nemu_rm_cache = FPCALL_RM_RUP; return;
+    case 4: nemu_rm_cache = FPCALL_RM_RMM; return;
+    default: assert(0);
+  }
+}
+
 bool fp_enable() {
   return (mstatus->fs != 0);
 }
@@ -14,20 +26,14 @@ void fp_set_dirty() {
 
 uint32_t isa_fp_get_rm(Decode *s) {
   uint32_t rm = s->isa.instr.fp.rm;
-  if (rm == 7) { rm = fcsr->frm; }
-  if (rm <= 4) {
-    switch (rm) {
-      case 0: return FPCALL_RM_RNE;
-      case 1: return FPCALL_RM_RTZ;
-      case 2: return FPCALL_RM_RDN;
-      case 3: return FPCALL_RM_RUP;
-      case 4: return FPCALL_RM_RMM;
-      default: assert(0);
-    }
-  }
-  else {
-    save_globals(s);
-    longjmp_exception(EX_II);
+  if (rm == 7) { return nemu_rm_cache; }
+  switch (rm) {
+    case 0: return FPCALL_RM_RNE;
+    case 1: return FPCALL_RM_RTZ;
+    case 2: return FPCALL_RM_RDN;
+    case 3: return FPCALL_RM_RUP;
+    case 4: return FPCALL_RM_RMM;
+    default: save_globals(s); longjmp_exception(EX_II);
   }
 }
 
