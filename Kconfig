@@ -181,6 +181,18 @@ endmenu
 source "src/memory/Kconfig"
 source "src/device/Kconfig"
 
+menuconfig FPU
+  bool "Enable FPU"
+  default y
+  help
+    Enable floating point support.
+
+if FPU
+config FPU_SOFTFLOAT
+  bool "Use softfloat library"
+  default n
+endif # FPU
+
 menu "Miscellaneous"
 choice
   prompt "Host timer"
