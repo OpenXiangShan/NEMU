@@ -72,12 +72,14 @@ static inline void fp_set_rm(int rm) {
 
 static inline uint32_t fp_get_exception() {
   uint32_t ex = 0;
+#if 0
   uint32_t host_ex = fetestexcept(FE_ALL_EXCEPT);
   if (host_ex & FE_INEXACT  ) ex |= FPCALL_EX_NX;
   if (host_ex & FE_UNDERFLOW) ex |= FPCALL_EX_UF;
   if (host_ex & FE_OVERFLOW ) ex |= FPCALL_EX_OF;
   if (host_ex & FE_DIVBYZERO) ex |= FPCALL_EX_DZ;
   if (host_ex & FE_INVALID  ) ex |= FPCALL_EX_NV;
+#endif
   return ex;
 }
 

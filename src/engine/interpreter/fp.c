@@ -98,7 +98,7 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
     }
   }
 
-  uint32_t ex = MUXDEF(CONFIG_FPU_SOFTFLOAT, fp_get_exception(), 0);
+  uint32_t ex = fp_get_exception();
   if (ex) {
     isa_fp_set_ex(ex);
     fp_clear_exception();
