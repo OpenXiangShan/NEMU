@@ -1,6 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 #define EFLAGS_BIT_CF 0
 #define EFLAGS_BIT_PF 2

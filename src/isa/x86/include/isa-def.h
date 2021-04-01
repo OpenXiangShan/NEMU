@@ -8,7 +8,6 @@
 
 //#define LAZY_CC
 //#define ENABLE_DIFFTEST_INSTR_QUEUE
-#define DETERMINISTIC
 #endif
 
 // memory
@@ -16,7 +15,6 @@
 #define LAZY_CC
 #endif
 
-// reg
 #ifndef __ICS_EXPORT
 /* the Control Register 0 */
 typedef union CR0 {
@@ -144,12 +142,12 @@ typedef struct {
   word_t moff;
 } x86_ISADecodeInfo;
 
-#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
+//#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
 #ifdef __ICS_EXPORT
-#define isa_vaddr_check(vaddr, len, type) (MEM_RET_OK)
+#define isa_mmu_state() (MMU_DIRECT)
 #else
-#define isa_vaddr_check(vaddr, len, type) (cpu.cr0.paging ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+#define isa_mmu_state() (cpu.cr0.paging ? MMU_TRANSLATE : MMU_DIRECT)
 #endif
-#define x86_has_mem_exception() (false)
+#define isa_mmu_check(vaddr, len, type) isa_mmu_state()
 
 #endif

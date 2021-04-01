@@ -3,7 +3,7 @@
 #include <memory/vaddr.h>
 #ifndef __ICS_EXPORT
 #include "../local-include/reg.h"
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 typedef union PageTableEntry {
   struct {

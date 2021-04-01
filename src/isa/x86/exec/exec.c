@@ -1,3 +1,4 @@
+#if 0
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
 #include "all-instr.h"
@@ -351,3 +352,4 @@ vaddr_t isa_exec_once() {
 #endif
   return s.seq_pc;
 }
+#endif
