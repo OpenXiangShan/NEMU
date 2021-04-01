@@ -20,7 +20,7 @@ bool fp_enable() {
 }
 
 void fp_set_dirty() {
-  mstatus->sd = 1;
+  // lazily update mstatus->sd when reading mstatus
   mstatus->fs = 3;
 }
 
