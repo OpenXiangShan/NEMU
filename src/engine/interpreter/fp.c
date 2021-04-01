@@ -27,7 +27,7 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
   if (op < FPCALL_NEED_RM) {
     static uint32_t last_rm = -1;
     uint32_t rm = isa_fp_get_rm(s);
-    if (rm != last_rm) {
+    if (unlikely(rm != last_rm)) {
       fp_set_rm(rm);
       last_rm = rm;
     }

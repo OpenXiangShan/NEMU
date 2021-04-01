@@ -26,7 +26,7 @@ void fp_set_dirty() {
 
 uint32_t isa_fp_get_rm(Decode *s) {
   uint32_t rm = s->isa.instr.fp.rm;
-  if (rm == 7) { return nemu_rm_cache; }
+  if (likely(rm == 7)) { return nemu_rm_cache; }
   switch (rm) {
     case 0: return FPCALL_RM_RNE;
     case 1: return FPCALL_RM_RTZ;
