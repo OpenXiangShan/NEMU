@@ -143,6 +143,7 @@ static void tcache_flush() {
 
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
 static int tcache_state = TCACHE_RUNNING;
+static Decode *bb_now = NULL, *bb_now_tmp = NULL;
 int fetch_decode(Decode *s, vaddr_t pc);
 
 __attribute__((noinline))
@@ -152,65 +153,51 @@ Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
   return s->tnext;
 }
 
+static inline void tcache_patch_and_free(Decode *bb_tmp, Decode *bb) {
+  if (bb_tmp->tnext)  { bb_tmp->tnext->tnext = bb; }
+  if (bb_tmp->ntnext) { bb_tmp->ntnext->ntnext = bb; }
+  tcache_tmp_free(bb_tmp);
+}
+
 __attribute__((noinline))
 Decode* tcache_decode(Decode *s, const void **exec_table) {
   static int idx_in_bb = 0;
-  int bb_start = (tcache_state == TCACHE_RUNNING);
-  Decode *old = s;
+  vaddr_t thispc = s->pc;
 
-  if (bb_start) {
+  if (tcache_state == TCACHE_RUNNING) {  // start of a basic block
     // first check whether this basic block is already decoded
-    bb_t *bb = bb_find(old->pc);
+    bb_t *bb = bb_find(thispc);
     if (bb != NULL) { // already decoded
-      s = bb->s;
-      if (old->tnext)  { old->tnext->tnext = s; }
-      if (old->ntnext) { old->ntnext->ntnext = s; }
-      tcache_tmp_free(old);
-      return s;
+      tcache_patch_and_free(s, bb->s);
+      return bb->s;
     }
+
+    Decode *old = s;
+    s = tcache_new(thispc);
+    if (s == NULL) { goto full; }
+
+    bb_now_tmp = old;
+    bb_now = s;
+    idx_in_bb = 1;
+    tcache_state = TCACHE_BB_BUILDING;
   }
 
   save_globals(s);
-  int idx = fetch_decode(s, s->pc); // note that exception may happen!
+  int idx = fetch_decode(s, thispc); // note that exception may happen!
   s->EHelper = exec_table[idx];
-
-  if (bb_start) {
-    vaddr_t thispc = old->pc;
-    s = tcache_new(thispc);
-    if (s == NULL) goto full;
-    bb_t *ret = bb_insert(thispc, s);
-    if (ret == NULL) { // basic block list is full
-full: tcache_flush();
-      s = tcache_tmp_new(thispc); // decode again
-      save_globals(s);
-      longjmp_exec(NEMU_EXEC_AGAIN);
-    }
-
-    // now is safe to update states
-    *s = *old;
-    idx_in_bb = 1;
-    tcache_state = TCACHE_BB_BUILDING;
-    if (old->tnext)  { old->tnext->tnext = s; }
-    if (old->ntnext) { old->ntnext->ntnext = s; }
-    tcache_tmp_free(old);
-  }
-
   s->idx_in_bb = idx_in_bb ++;
 
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
-    if (next == NULL) {
-      vaddr_t thispc = s->pc;
-      tcache_flush();
-      idx_in_bb = 1;
-      // decode this instruction again
-      Decode *again = tcache_tmp_new(thispc);
-      save_globals(again);
-      tcache_state = TCACHE_RUNNING;
-      longjmp_exec(NEMU_EXEC_AGAIN);
-    }
+    if (next == NULL) { goto full; }
     assert(next == s + 1);
   } else {
+    // the end of the basic block
+    bb_t *ret = bb_insert(bb_now->pc, bb_now);
+    if (ret == NULL) { goto full; } // basic block list is full
+    tcache_patch_and_free(bb_now_tmp, bb_now);
+    bb_now = bb_now_tmp = NULL;
+
     switch (s->type) {
       case INSTR_TYPE_J: tcache_bb_fetch(s, true, s->jnpc); break;
       case INSTR_TYPE_B:
@@ -224,17 +211,19 @@ full: tcache_flush();
   }
 
   return s;
+
+full:
+  tcache_flush();
+  s = tcache_tmp_new(thispc); // decode this instruction again
+  save_globals(s);
+  bb_now = bb_now_tmp = NULL;
+  tcache_state = TCACHE_RUNNING;
+  longjmp_exec(NEMU_EXEC_AGAIN);
 }
 
 static Decode ex = {};
 
 void tcache_handle_exception(vaddr_t jpc) {
-  if (tcache_state == TCACHE_BB_BUILDING) {
-    // When exception happens in the middle of the basic block,
-    // the property `next == s + 1` may not hold when the exception returns.
-    // This is hard to fix, therefore we just flush the tcache.
-    tcache_flush();
-  }
   tcache_bb_fetch(&ex, true, jpc);
   save_globals(ex.tnext);
   tcache_state = TCACHE_RUNNING;
