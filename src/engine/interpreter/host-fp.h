@@ -15,8 +15,8 @@ static inline float32_t f32_div(float32_t a, float32_t b) { return float32(a.f /
 static inline float32_t f32_sqrt(float32_t a) { return float32(sqrtf(a.f)); }
 static inline float32_t f32_mulAdd(float32_t a, float32_t b,
     float32_t c) { return float32(fmaf(a.f, b.f, c.f)); }
-static inline float32_t f32_min(float32_t a, float32_t b) { return float32(fminf(a.f, b.f)); }
-static inline float32_t f32_max(float32_t a, float32_t b) { return float32(fmaxf(a.f, b.f)); }
+static inline float32_t f32_min(float32_t a, float32_t b) { return float32(a.f < b.f ? a.f : b.f); }
+static inline float32_t f32_max(float32_t a, float32_t b) { return float32(a.f > b.f ? a.f : b.f); }
 static inline bool f32_le(float32_t a, float32_t b) { return a.f <= b.f; }
 static inline bool f32_lt(float32_t a, float32_t b) { return a.f <  b.f; }
 static inline bool f32_eq(float32_t a, float32_t b) { return a.f == b.f; }
@@ -40,8 +40,8 @@ static inline float64_t f64_div(float64_t a, float64_t b) { return float64(a.f /
 static inline float64_t f64_sqrt(float64_t a) { return float64(sqrt(a.f)); }
 static inline float64_t f64_mulAdd(float64_t a, float64_t b,
     float64_t c) { return float64(fma(a.f, b.f, c.f)); }
-static inline float64_t f64_min(float64_t a, float64_t b) { return float64(fmin(a.f, b.f)); }
-static inline float64_t f64_max(float64_t a, float64_t b) { return float64(fmax(a.f, b.f)); }
+static inline float64_t f64_min(float64_t a, float64_t b) { return float64(a.f < b.f ? a.f : b.f); }
+static inline float64_t f64_max(float64_t a, float64_t b) { return float64(a.f > b.f ? a.f : b.f); }
 static inline bool f64_le(float64_t a, float64_t b) { return a.f <= b.f; }
 static inline bool f64_lt(float64_t a, float64_t b) { return a.f <  b.f; }
 static inline bool f64_eq(float64_t a, float64_t b) { return a.f == b.f; }

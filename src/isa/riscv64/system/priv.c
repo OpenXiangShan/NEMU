@@ -1,6 +1,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include <cpu/cpu.h>
+#include <cpu/difftest.h>
 
 int update_mmu_state();
 uint64_t clint_uptime();
@@ -34,14 +35,23 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_write(csr) (dest == (void *)(csr))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
+static inline void update_mstatus_sd() {
+  // mstatus.fs is always dirty or off in QEMU 3.1.0
+  if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
+  mstatus->sd = (mstatus->fs == 3);
+}
+
 static inline word_t csr_read(word_t *src) {
+  if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
+
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
-  else if (is_read(sip))    { return mip->val & SIP_MASK; }
+  else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
-  else if (is_read(mtime))  { return clint_uptime(); }
+  else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
+  if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
 
@@ -56,15 +66,15 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
   else { *dest = src; }
 
+  bool need_update_mstatus_sd = false;
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
+    need_update_mstatus_sd = true;
   }
 
-  if (is_write(sstatus) || is_write(mstatus)) {
-    // mstatus.fs is always dirty or off in QEMU 3.1.0
-    if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
-    mstatus->sd = (mstatus->fs == 3);
+  if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
+    update_mstatus_sd();
   }
 
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }

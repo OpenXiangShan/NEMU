@@ -3,7 +3,6 @@
 #include <device/map.h>
 #include "local-include/csr.h"
 
-#define CLINT_MMIO 0xa2000000
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
 #define TIMEBASE 10000000ul
@@ -32,7 +31,7 @@ static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_clint() {
   clint_base = (void *)new_space(0x10000);
-  add_mmio_map("clint", CLINT_MMIO, (void *)clint_base, 0x10000, clint_io_handler);
+  add_mmio_map("clint", CONFIG_CLINT_MMIO, (void *)clint_base, 0x10000, clint_io_handler);
   IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
   boot_time = get_time();
 }

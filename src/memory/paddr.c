@@ -4,11 +4,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+#ifdef CONFIG_USE_MMAP
+#include <sys/mman.h>
+static const uint8_t *pmem = (void *)0x100000000ul;
+#else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+#endif
 #define HOST_PMEM_OFFSET (void *)(pmem - CONFIG_MBASE)
-
-word_t mmio_read(paddr_t addr, int len);
-void mmio_write(paddr_t addr, int len, word_t data);
 
 void* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(void *haddr) { return haddr - HOST_PMEM_OFFSET; }
@@ -22,6 +24,14 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
 }
 
 void init_mem() {
+#ifdef CONFIG_USE_MMAP
+  void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+  if (ret != pmem) {
+    perror("mmap");
+    assert(0);
+  }
+#endif
 #ifdef CONFIG_MEM_RANDOM
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;

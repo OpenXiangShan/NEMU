@@ -27,8 +27,16 @@ enum {
 };
 
 typedef struct Decode {
-  struct Decode *tnext;  // next pointer for taken branch and jump
-  struct Decode *ntnext; // next pointer for non-taken branch
+  union {
+    struct {
+      struct Decode *tnext;  // next pointer for taken branch and jump
+      struct Decode *ntnext; // next pointer for non-taken branch
+    };
+    struct {  // only used by tcache_tmp_pool
+      struct Decode *list_next; // next pointer for list
+      struct Decode *bb_src;    // pointer recording the source of basic block direction
+    };
+  };
   vaddr_t pc;
   vaddr_t snpc; // sequential next pc
   const void *EHelper;
