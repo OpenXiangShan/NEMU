@@ -1,12 +1,21 @@
 #define F64_SIGN ((uint64_t)1 << 63)
 
 def_EHelper(fld) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DIRECT);
   rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 def_EHelper(fsd) {
-  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DYNAMIC);
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DIRECT);
+}
+
+def_EHelper(fld_mmu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 8, MMU_TRANSLATE);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
+}
+
+def_EHelper(fsd_mmu) {
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_TRANSLATE);
 }
 
 def_fop_template(faddd, FPCALL_ADD, FPCALL_W64)

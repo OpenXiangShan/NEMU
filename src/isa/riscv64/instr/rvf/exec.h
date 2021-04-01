@@ -1,13 +1,23 @@
 #define F32_SIGN ((uint64_t)1 << 31)
 
 def_EHelper(flw) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DIRECT);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fsw) {
   rtl_funbox(s, s0, ddest);
-  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DYNAMIC);
+  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DIRECT);
+}
+
+def_EHelper(flw_mmu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_TRANSLATE);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
+}
+
+def_EHelper(fsw_mmu) {
+  rtl_funbox(s, s0, ddest);
+  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_TRANSLATE);
 }
 
 #define def_fop_template(name, op, w) \
