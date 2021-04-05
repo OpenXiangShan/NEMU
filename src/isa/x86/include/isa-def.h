@@ -134,14 +134,17 @@ typedef struct {
   uint8_t instr[16];
   uint8_t *p_instr;
   bool is_operand_size_16;
+  bool is_rm_memory;
 #define PREFIX_REP   1
 #define PREFIX_REPNZ 2
   int rep_flags;
   uint8_t ext_opcode;
   const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
-  rtlreg_t mbr;
+  const rtlreg_t *midx;
   word_t moff;
+  word_t mscale;
+  rtlreg_t mbr;
 } x86_ISADecodeInfo;
 
 //#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))

@@ -49,7 +49,6 @@ typedef union {
   uint8_t val;
 } SIB;
 
-#if 0
 static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 
@@ -59,7 +58,7 @@ static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
 
   if (m->R_M == R_ESP) {
     SIB sib;
-    sib.val = instr_fetch(&s->seq_pc, 1);
+    sib.val = instr_fetch(&s->snpc, 1);
     base_reg = sib.base;
     scale = sib.ss;
 
@@ -78,21 +77,15 @@ static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
 
   if (disp_size != 0) {
     /* has disp */
-    disp = instr_fetch(&s->seq_pc, disp_size);
+    disp = instr_fetch(&s->snpc, disp_size);
     if (disp_size == 1) { disp = (int8_t)disp; }
   }
 
   s->isa.mbase = (base_reg != -1 ? &reg_l(base_reg) : rz);
-  if (index_reg != -1) {
-    rtl_shli(s, s1, &reg_l(index_reg), scale);
-    rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
-    s->isa.mbase = &s->isa.mbr;
-  }
-  if (ISNDEF(__PA__) && s->isa.sreg_base != NULL) {
-    rtl_add(s, &s->isa.mbr, s->isa.mbase, s->isa.sreg_base);
-    s->isa.mbase = &s->isa.mbr;
-  }
+  s->isa.midx = (index_reg != -1 ? &reg_l(index_reg) : rz);
+  s->isa.mscale = scale;
   s->isa.moff = disp;
+  rm->preg = &rm->val;
 
 #ifdef CONFIG_DEBUG
   char disp_buf[16];
@@ -106,44 +99,15 @@ static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   else { disp_buf[0] = '\0'; }
 
   if (base_reg == -1) { base_buf[0] = '\0'; }
-  else {
-    sprintf(base_buf, "%%%s", reg_name(base_reg, 4));
-  }
+  else { sprintf(base_buf, "%%%s", reg_name(base_reg, 4)); }
 
   if (index_reg == -1) { index_buf[0] = '\0'; }
-  else {
-    sprintf(index_buf, ",%%%s,%d", reg_name(index_reg, 4), 1 << scale);
-  }
+  else { sprintf(index_buf, ",%%%s,%d", reg_name(index_reg, 4), 1 << scale); }
 
-  if (base_reg == -1 && index_reg == -1) {
-    sprintf(rm->str, "%s", disp_buf);
-  }
-  else {
-    sprintf(rm->str, "%s(%s%s)", disp_buf, base_buf, index_buf);
-  }
+  if (base_reg == -1 && index_reg == -1) { sprintf(rm->str, "%s", disp_buf); }
+  else { sprintf(rm->str, "%s(%s%s)", disp_buf, base_buf, index_buf); }
 #endif
-
-  rm->type = OP_TYPE_MEM;
 }
-
-void read_ModR_M(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
-  ModR_M m;
-  m.val = instr_fetch(&s->seq_pc, 1);
-  s->isa.ext_opcode = m.opcode;
-  if (reg != NULL) operand_reg(s, reg, load_reg_val, m.reg, reg->width);
-  if (m.mod == 3) operand_reg(s, rm, load_rm_val, m.R_M, rm->width);
-  else {
-    if (((s->opcode == 0x80 || s->opcode == 0x81 || s->opcode == 0x83) && s->isa.ext_opcode == 7) ||
-        (s->opcode == 0x1ba && s->isa.ext_opcode == 4)) {
-      // fix with cmp and bt, since they do not write memory
-      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 0));
-    }
-    load_addr(s, &m, rm);
-    if (load_rm_val) rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, rm->width);
-    rm->preg = &rm->val;
-  }
-}
-#endif
 
 static inline void operand_reg(Decode *s, Operand *op, int r, int width) {
   width = x86_width_decode(s, width);
@@ -220,7 +184,6 @@ def_DopHelper(r) {
   operand_reg(s, op, r, width);
 }
 
-#if 0
 /* I386 manual does not contain this abbreviation.
  * We decode everything of modR/M byte in one time.
  */
@@ -231,10 +194,17 @@ def_DopHelper(r) {
  * Rd
  * Sw
  */
-static inline void operand_rm(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
-  read_ModR_M(s, rm, load_rm_val, reg, load_reg_val);
+static inline void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
+  ModR_M m;
+  m.val = x86_instr_fetch(s, 1);
+  s->isa.ext_opcode = m.opcode;
+  if (reg != NULL) operand_reg(s, reg, m.reg, width);
+  if (m.mod == 3) operand_reg(s, rm, m.R_M, width);
+  else { load_addr(s, &m, rm); }
+  s->isa.is_rm_memory = (m.mod != 3);
 }
 
+#if 0
 /* Ob, Ov */
 def_DopHelper(O) {
   op->type = OP_TYPE_MEM;
@@ -258,11 +228,13 @@ static inline def_DHelper(G2E) {
   }
   operand_rm(s, id_dest, true, id_src1, true);
 }
+#endif
 
-static inline def_DHelper(mov_G2E) {
-  operand_rm(s, id_dest, false, id_src1, true);
+static inline def_DHelper(G2E) {
+  operand_rm(s, id_dest, id_src1, width);
 }
 
+#if 0
 // for bts and btr
 static inline def_DHelper(bit_G2E) {
   operand_rm(s, id_dest, false, id_src1, true);
@@ -320,11 +292,12 @@ static inline def_DHelper(I2E) {
   decode_op_I(s, id_src1, true);
 }
 
-static inline def_DHelper(mov_I2E) {
-  operand_rm(s, id_dest, false, NULL, false);
-  decode_op_I(s, id_src1, true);
-}
 #endif
+
+static inline def_DHelper(I2E) {
+  operand_rm(s, id_dest, NULL, width);
+  decode_op_I(s, id_src1, width);
+}
 
 /* XX <- Ib
  * eXX <- Iv
@@ -528,9 +501,28 @@ void operand_write(Decode *s, Operand *op, rtlreg_t* src) {
 }
 #endif
 
+def_THelper(main);
+
+def_THelper(operand_size) {
+  s->isa.is_operand_size_16 = true;
+  return table_main(s);
+}
+
+#define x86_def_INSTR_IDTAB(pattern, id, tab) \
+  def_INSTR_raw(pattern, { concat(decode_, id)(s, 0); \
+    if (s->isa.is_operand_size_16) return concat5(table_, tab, w, _, id)(s); \
+    else return concat5(table_, tab, l, _, id)(s); \
+  })
+#define x86_def_INSTR_TAB(pattern, tab) def_INSTR_TAB(pattern, tab)
+
 def_THelper(main) {
-  def_INSTR_IDTAB("1011 1???", I2r, movl_I2r);
-  def_INSTR_TAB  ("1101 0110",      nemu_trap);
+  x86_instr_fetch(s, 1);
+
+  x86_def_INSTR_TAB  ("0110 0110",      operand_size);
+  x86_def_INSTR_IDTAB("1000 1001", G2E, mov);
+  x86_def_INSTR_IDTAB("1011 1???", I2r, mov);
+  x86_def_INSTR_IDTAB("1100 0111", I2E, mov);
+  x86_def_INSTR_TAB  ("1101 0110",      nemu_trap);
   return table_inv(s);
 }
 
@@ -539,8 +531,8 @@ int isa_fetch_decode(Decode *s) {
   s->isa.p_instr = s->isa.instr;
   s->isa.is_operand_size_16 = 0;
   s->isa.rep_flags = 0;
+  s->isa.sreg_base = NULL;
 
-  x86_instr_fetch(s, 1);
   idx = table_main(s);
 
   return idx;

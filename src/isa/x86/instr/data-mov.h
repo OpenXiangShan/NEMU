@@ -6,6 +6,11 @@
   }
 
 def_EWDWBHelper(movl_I2r, mov_I2r, mov, l, r);
+def_EWDWBHelper(movw_I2r, mov_I2r, mov, w, r);
+def_EWDWBHelper(movl_G2E, mov_G2E, mov, l, E);
+def_EWDWBHelper(movw_G2E, mov_G2E, mov, w, E);
+def_EWDWBHelper(movl_I2E, mov_I2E, mov, l, E);
+def_EWDWBHelper(movw_I2E, mov_I2E, mov, w, E);
 
 #if 0
 def_EHelper(mov) {

@@ -119,12 +119,14 @@ finish:
   *shift = __shift;
 }
 
-#define def_INSTR_IDTABW(pattern, id, tab, width) do { \
+#define def_INSTR_raw(pattern, body) do { \
   uint32_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
-  if (((get_instr(s) >> shift) & mask) == key) \
-    { concat(decode_, id)(s, width); return concat(table_, tab)(s); } \
+  if (((get_instr(s) >> shift) & mask) == key) { body; } \
 } while (0)
+
+#define def_INSTR_IDTABW(pattern, id, tab, width) \
+  def_INSTR_raw(pattern, { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
 
 #define def_INSTR_IDTAB(pattern, id, tab)   def_INSTR_IDTABW(pattern, id, tab, 0)
 #define def_INSTR_TABW(pattern, tab, width) def_INSTR_IDTABW(pattern, empty, tab, width)

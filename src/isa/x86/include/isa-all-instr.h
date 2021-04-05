@@ -10,7 +10,8 @@
 
 #define INSTR_UNARY(f)
 #define INSTR_BINARY(f) \
-  f(movl_I2r)
+  f(movl_I2r) f(movl_G2E) f(movl_I2E) \
+  f(movw_I2r) f(movw_G2E) f(movw_I2E)
 #define INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
