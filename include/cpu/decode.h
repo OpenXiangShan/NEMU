@@ -14,8 +14,8 @@ typedef struct {
     word_t imm;
     sword_t simm;
   };
-//  rtlreg_t val;
-  IFDEF(CONFIG_DEBUG, int reg);
+  IFDEF(CONFIG_ISA_x86, int reg);
+  IFDEF(CONFIG_ISA_x86, rtlreg_t val);
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 
@@ -79,7 +79,7 @@ typedef struct Decode {
   MAP(INSTR_TERNARY, def_THelper_ternary)
 
 
-#define def_DHelper(name) void concat(decode_, name) (Decode *s)
+#define def_DHelper(name) void concat(decode_, name) (Decode *s, int width)
 // empty decode helper
 static inline def_DHelper(empty) {}
 
@@ -119,14 +119,16 @@ finish:
   *shift = __shift;
 }
 
-#define def_INSTR_IDTAB(pattern, id, tab) do { \
+#define def_INSTR_IDTABW(pattern, id, tab, width) do { \
   uint32_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
   if (((get_instr(s) >> shift) & mask) == key) \
-    { concat(decode_, id)(s); return concat(table_, tab)(s); } \
+    { concat(decode_, id)(s, width); return concat(table_, tab)(s); } \
 } while (0)
 
-#define def_INSTR_TAB(pattern, tab) def_INSTR_IDTAB(pattern, empty, tab)
+#define def_INSTR_IDTAB(pattern, id, tab)   def_INSTR_IDTABW(pattern, id, tab, 0)
+#define def_INSTR_TABW(pattern, tab, width) def_INSTR_IDTABW(pattern, empty, tab, width)
+#define def_INSTR_TAB(pattern, tab)         def_INSTR_IDTABW(pattern, empty, tab, 0)
 
 
 #define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))

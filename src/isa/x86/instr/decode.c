@@ -1,9 +1,31 @@
 #include "../local-include/rtl.h"
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
+#include "decode.h"
 #include <isa-all-instr.h>
 
-//def_all_THelper();
+def_all_THelper();
+
+static inline int x86_width_decode(Decode *s, int width) {
+  if (width == WIDTH_dynamic) return (s->isa.is_operand_size_16 ? 2 : 4);
+  return width;
+}
+
+static inline word_t x86_instr_fetch(Decode *s, int len) {
+  word_t ret = instr_fetch(&s->snpc, len);
+  word_t ret_save = ret;
+  int i;
+  for (i = 0; i < len; i ++) {
+    *(s->isa.p_instr) = ret & 0xff;
+    ret >>= 8;
+    s->isa.p_instr ++;
+  }
+  return ret_save;
+}
+
+static inline word_t get_instr(Decode *s) {
+  return *(s->isa.p_instr - 1);
+}
 
 typedef union {
   struct {
@@ -121,82 +143,84 @@ void read_ModR_M(Decode *s, Operand *rm, bool load_rm_val, Operand *reg, bool lo
     rm->preg = &rm->val;
   }
 }
+#endif
 
-static inline void operand_reg(Decode *s, Operand *op, bool load_val, int r, int width) {
-  op->type = OP_TYPE_REG;
+static inline void operand_reg(Decode *s, Operand *op, int r, int width) {
+  width = x86_width_decode(s, width);
   op->reg = r;
-
-  if (width == 4) {
-    op->preg = &reg_l(r);
-  } else {
+  if (width == 4) { op->preg = &reg_l(r); }
+  else {
     assert(width == 1 || width == 2);
     op->preg = &op->val;
-    if (load_val) rtl_lr(s, &op->val, r, width);
   }
-
   print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
-static inline void operand_imm(Decode *s, Operand *op, bool load_val, word_t imm, int width) {
-  op->type = OP_TYPE_IMM;
-  op->imm = imm;
-  if (load_val) {
-    rtl_li(s, &op->val, imm);
-    op->preg = &op->val;
-  }
+static inline void operand_imm(Decode *s, Operand *op, word_t imm) {
+  op->preg = &op->val;
+  op->val = imm;
   print_Dop(op->str, OP_STR_SIZE, "$0x%x", imm);
 }
 
 // decode operand helper
-#define def_DopHelper(name) void concat(decode_op_, name) (Decode *s, Operand *op, bool load_val)
+#define def_DopHelper(name) \
+  static inline void concat(decode_op_, name) (Decode *s, Operand *op, int width)
 
 /* Refer to Appendix A in i386 manual for the explanations of these abbreviations */
 
 /* Ib, Iv */
-static inline def_DopHelper(I) {
+def_DopHelper(I) {
   /* pc here is pointing to the immediate */
-  word_t imm = instr_fetch(&s->seq_pc, op->width);
-  operand_imm(s, op, load_val, imm, op->width);
+  width = x86_width_decode(s, width);
+  word_t imm = x86_instr_fetch(s, width);
+  operand_imm(s, op, imm);
 }
 
+#if 0
 /* I386 manual does not contain this abbreviation, but it is different from
  * the one above from the view of implementation. So we use another helper
  * function to decode it.
  */
 /* sign immediate */
-static inline def_DopHelper(SI) {
+def_DopHelper(SI) {
+  width = x86_width_decode(s, width);
 #ifdef __ICS_EXPORT
-  /* TODO: Use instr_fetch() to read `op->width' bytes of memory
+  /* TODO: Use x86_instr_fetch() to read `op->width' bytes of memory
    * pointed by 's->seq_pc'. Interpret the result as a signed immediate,
    * and call `operand_imm()` as following.
    *
-   operand_imm(s, op, load_val, ???, op->width);
+   operand_imm(s, op, ???);
    */
   TODO();
 #else
-  word_t imm = instr_fetch(&s->seq_pc, op->width);
-  if (op->width == 1) imm = (int8_t)imm;
-  else if (op->width == 2) imm = (int16_t)imm;
-  operand_imm(s, op, load_val, imm, op->width);
+  word_t imm = x86_instr_fetch(s, width);
+  if (width == 1) imm = (int8_t)imm;
+  else if (width == 2) imm = (int16_t)imm;
+  operand_imm(s, op, imm);
 #endif
 }
+#endif
 
+#if 0
 /* I386 manual does not contain this abbreviation.
  * It is convenient to merge them into a single helper function.
  */
 /* AL/eAX */
-static inline def_DopHelper(a) {
-  operand_reg(s, op, load_val, R_EAX, op->width);
+def_DopHelper(a) {
+  operand_reg(s, op, R_EAX, width);
 }
+#endif
 
 /* This helper function is use to decode register encoded in the opcode. */
 /* XX: AL, AH, BL, BH, CL, CH, DL, DH
  * eXX: eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI
  */
-static inline def_DopHelper(r) {
-  operand_reg(s, op, load_val, s->opcode & 0x7, op->width);
+def_DopHelper(r) {
+  int r = get_instr(s) & 0x7;
+  operand_reg(s, op, r, width);
 }
 
+#if 0
 /* I386 manual does not contain this abbreviation.
  * We decode everything of modR/M byte in one time.
  */
@@ -212,9 +236,9 @@ static inline void operand_rm(Decode *s, Operand *rm, bool load_rm_val, Operand 
 }
 
 /* Ob, Ov */
-static inline def_DopHelper(O) {
+def_DopHelper(O) {
   op->type = OP_TYPE_MEM;
-  s->isa.moff = instr_fetch(&s->seq_pc, 4);
+  s->isa.moff = x86_instr_fetch(s, 4);
   s->isa.mbase = s->isa.sreg_base ? s->isa.sreg_base : rz;
   if (load_val) {
     rtl_lm(s, &op->val, s->isa.mbase, s->isa.moff, op->width);
@@ -300,15 +324,17 @@ static inline def_DHelper(mov_I2E) {
   operand_rm(s, id_dest, false, NULL, false);
   decode_op_I(s, id_src1, true);
 }
+#endif
 
 /* XX <- Ib
  * eXX <- Iv
  */
 static inline def_DHelper(I2r) {
-  decode_op_r(s, id_dest, true);
-  decode_op_I(s, id_src1, true);
+  decode_op_r(s, id_dest, width);
+  decode_op_I(s, id_src1, width);
 }
 
+#if 0
 static inline def_DHelper(mov_I2r) {
   decode_op_r(s, id_dest, false);
   decode_op_I(s, id_src1, true);
@@ -494,14 +520,28 @@ static inline def_DHelper(Ib2xmm) {
 }
 #endif
 
-static inline void operand_write(Decode *s, Operand *op, rtlreg_t* src) {
+
+void operand_write(Decode *s, Operand *op, rtlreg_t* src) {
   if (op->type == OP_TYPE_REG) { rtl_sr(s, op->reg, src, op->width); }
   else if (op->type == OP_TYPE_MEM) { rtl_sm(s, s->isa.mbase, s->isa.moff, src, op->width); }
   else { assert(0); }
 }
 #endif
 
+def_THelper(main) {
+  def_INSTR_IDTAB("1011 1???", I2r, movl_I2r);
+  def_INSTR_TAB  ("1101 0110",      nemu_trap);
+  return table_inv(s);
+}
+
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
+  s->isa.p_instr = s->isa.instr;
+  s->isa.is_operand_size_16 = 0;
+  s->isa.rep_flags = 0;
+
+  x86_instr_fetch(s, 1);
+  idx = table_main(s);
+
   return idx;
 }

@@ -1,6 +1,15 @@
-static inline def_EHelper(mov) {
+#define def_EWDWBHelper(name, id, exec, width, wb) \
+  def_EHelper(name) { \
+    concat(rt_decode_, id) (s, concat(WIDTH_, width)); \
+    concat(rt_exec_, exec) (s); \
+    concat(rt_wb_, wb) (s, concat(WIDTH_, width)); \
+  }
+
+def_EWDWBHelper(movl_I2r, mov_I2r, mov, l, r);
+
+#if 0
+def_EHelper(mov) {
   operand_write(s, id_dest, dsrc1);
-  print_asm_template2(mov);
 }
 
 #ifndef __ICS_EXPORT
@@ -201,3 +210,4 @@ static inline def_EHelper(lea) {
   operand_write(s, id_dest, ddest);
   print_asm_template2(lea);
 }
+#endif

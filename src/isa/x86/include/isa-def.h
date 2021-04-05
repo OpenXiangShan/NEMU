@@ -131,6 +131,8 @@ typedef struct {
 
 // decode
 typedef struct {
+  uint8_t instr[16];
+  uint8_t *p_instr;
   bool is_operand_size_16;
 #define PREFIX_REP   1
 #define PREFIX_REPNZ 2
