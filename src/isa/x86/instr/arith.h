@@ -1,5 +1,7 @@
-#include "cc.h"
+def_DEWBWHelper(subl_SI2E, SI2E, sub, E, l);
+def_DEWBWHelper(subw_SI2E, SI2E, sub, E, w);
 
+#if 0
 #ifndef __ICS_EXPORT
 static inline def_EHelper(add) {
 #ifdef LAZY_CC
@@ -20,28 +22,6 @@ static inline def_EHelper(add) {
   operand_write(s, id_dest, s0);
 #endif
   print_asm_template2(add);
-}
-
-// dest <- sub result
-static inline void cmp_internal(Decode *s) {
-  rtl_sub(s, s0, ddest, dsrc1);
-  rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_is_sub_carry(s, s1, ddest, dsrc1);
-  rtl_set_CF(s, s1);
-  rtl_is_sub_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
-  rtl_set_OF(s, s1);
-}
-
-static inline def_EHelper(sub) {
-#ifdef LAZY_CC
-  rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
-  rtl_sub(s, ddest, ddest, dsrc1);
-  operand_write(s, id_dest, ddest);
-#else
-  cmp_internal(s);
-  operand_write(s, id_dest, s0);
-#endif
-  print_asm_template2(sub);
 }
 
 static inline def_EHelper(cmp) {
@@ -430,3 +410,4 @@ static inline def_EHelper(idiv) {
 
   print_asm_template1(idiv);
 }
+#endif

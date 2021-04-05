@@ -32,12 +32,29 @@ static inline void rt_operand_rm(Decode *s,
   }
 }
 
-def_RDHelper(mov_I2r) { }
-
 def_RDHelper(mov_G2E) {
   rt_operand_rm(s, id_dest, false, id_src1, true, width);
 }
 
 def_RDHelper(mov_I2E) {
   rt_operand_rm(s, id_dest, false, NULL, false, width);
+}
+
+def_RDHelper(G2E) {
+#if 0
+  if (s->opcode != 0x38 && s->opcode != 0x39 && // cmp
+      s->opcode != 0x84 && s->opcode != 0x85) { // test
+    IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  }
+#endif
+  rt_operand_rm(s, id_dest, true, id_src1, true, width);
+}
+
+def_RDHelper(SI2E) {
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  rt_operand_rm(s, id_dest, true, NULL, false, width);
+}
+
+def_RDHelper(r) {
+  rt_operand_reg(s, id_dest, width);
 }

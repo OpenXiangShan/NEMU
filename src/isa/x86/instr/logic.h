@@ -1,5 +1,7 @@
-#include "cc.h"
+def_DEWBWHelper(xorl_G2E, G2E, xor, E, l);
+def_DEWBWHelper(xorw_G2E, G2E, xor, E, w);
 
+#if 0
 #ifndef __ICS_EXPORT
 // dest <- and result
 static inline void and_internal(Decode *s) {
@@ -29,19 +31,6 @@ static inline def_EHelper(and) {
   operand_write(s, id_dest, s0);
 #endif
   print_asm_template2(and);
-}
-
-static inline def_EHelper(xor) {
-  rtl_xor(s, ddest, ddest, dsrc1);
-#ifdef LAZY_CC
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
-#else
-  rtl_update_ZFSF(s, ddest, id_dest->width);
-  rtl_mv(s, &cpu.CF, rz);
-  rtl_mv(s, &cpu.OF, rz);
-#endif
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(xor);
 }
 
 static inline def_EHelper(or) {
@@ -367,3 +356,4 @@ static inline def_EHelper(setcc) {
 
   print_asm("set%s %s", get_cc_name(cc), id_dest->str);
 }
+#endif

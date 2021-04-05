@@ -1,28 +1,17 @@
-#define def_EWDWBHelper(name, id, exec, width, wb) \
-  def_EHelper(name) { \
-    concat(rt_decode_, id) (s, concat(WIDTH_, width)); \
-    concat(rt_exec_, exec) (s); \
-    concat(rt_wb_, wb) (s, concat(WIDTH_, width)); \
-  }
+def_EWBWHelper(movl_I2r, mov, r, l);
+def_EWBWHelper(movw_I2r, mov, r, w);
+def_DEWBWHelper(movl_G2E, mov_G2E, mov, E, l);
+def_DEWBWHelper(movw_G2E, mov_G2E, mov, E, w);
+def_DEWBWHelper(movl_I2E, mov_I2E, mov, E, l);
+def_DEWBWHelper(movw_I2E, mov_I2E, mov, E, w);
 
-def_EWDWBHelper(movl_I2r, mov_I2r, mov, l, r);
-def_EWDWBHelper(movw_I2r, mov_I2r, mov, w, r);
-def_EWDWBHelper(movl_G2E, mov_G2E, mov, l, E);
-def_EWDWBHelper(movw_G2E, mov_G2E, mov, w, E);
-def_EWDWBHelper(movl_I2E, mov_I2E, mov, l, E);
-def_EWDWBHelper(movw_I2E, mov_I2E, mov, w, E);
+def_DEWHelper(pushl_r, r, push, l);
+def_DEWHelper(pushw_r, r, push, w);
+def_EWHelper(pushl_I, push, l);
+def_EWHelper(pushw_I, push, w);
 
 #if 0
-def_EHelper(mov) {
-  operand_write(s, id_dest, dsrc1);
-}
-
 #ifndef __ICS_EXPORT
-static inline def_EHelper(push) {
-  rtl_push(s, ddest);
-  print_asm_template1(push);
-}
-
 static inline def_EHelper(pop) {
   rtl_pop(s, ddest);
   operand_write(s, id_dest, ddest);
