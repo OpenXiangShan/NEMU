@@ -66,7 +66,7 @@ static inline vma_t* vma_list_new_dyn_area(size_t length) {
   vma_t *p = dyn_start;
   for (; !vma_list_is_end(p); p = p->next) {
     vma_t *right = p->next;
-    size_t free = right->addr - p->addr + p->length;
+    size_t free = right->addr - (p->addr + p->length);
     if (free >= length) return p;
   }
   assert(0);
