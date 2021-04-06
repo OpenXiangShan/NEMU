@@ -129,3 +129,20 @@ int user_munmap(void *addr, size_t length) {
   free(p);
   return ret;
 }
+
+void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
+    int flags, void *new_addr) {
+  vma_t *p = vma_list_find_fix_area(old_addr, old_size);
+  assert(p != NULL);
+  vma_t *next = p->next;
+  size_t free_size_to_expand = next->addr - p->addr;
+  new_size = ROUNDUP(new_size, 4096);
+  if (free_size_to_expand >= new_size) {
+    p->length = new_size;
+    void *ret = mremap(old_addr, old_size, new_size, 0); // dont move
+    if (ret != old_addr) perror("mremap");
+    assert(ret == old_addr);
+    return old_addr;
+  }
+  assert(0);
+}

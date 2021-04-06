@@ -165,6 +165,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 91: ret = user_munmap(user_to_host(arg1), arg2); break;
     case 122: ret = uname(user_to_host(arg1)); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
+    case 163: ret = (uintptr_t)user_mremap(user_to_host(arg1), arg2, arg3, arg4, user_to_host(arg5)); break;
     case 174: return 0; // sigaction
     case 183: ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
               assert(ret != 0); // should success
