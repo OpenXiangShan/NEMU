@@ -5,8 +5,16 @@ def_DEWBWHelper(addw_E2G ,  E2G, add, r, w);
 def_DEWBWHelper(addl_SI2E,    E, add, E, l);
 def_DEWBWHelper(addw_SI2E,    E, add, E, w);
 
+def_DEWBWHelper(subl_E2G ,  E2G, sub, r, l);
+def_DEWBWHelper(subw_E2G ,  E2G, sub, r, w);
 def_DEWBWHelper(subl_SI2E,    E, sub, E, l);
 def_DEWBWHelper(subw_SI2E,    E, sub, E, w);
+
+def_DEWBWHelper(adcl_E2G ,  E2G, adc, r, l);
+def_DEWBWHelper(adcw_E2G ,  E2G, adc, r, w);
+
+def_DEWBWHelper(sbbl_E2G ,  E2G, sbb, r, l);
+def_DEWBWHelper(sbbw_E2G ,  E2G, sbb, r, w);
 
 def_DEWHelper(cmpl_G2E ,  G2E, cmp, l);
 def_DEWHelper(cmpw_G2E ,  G2E, cmp, w);
@@ -27,23 +35,17 @@ def_DEWBWHelper(incw_r, r, inc, r, w);
 def_DEWBWHelper(incl_E, E, inc, E, l);
 def_DEWBWHelper(incw_E, E, inc, E, w);
 
+def_DEWBWHelper(decl_r, r, dec, r, l);
+def_DEWBWHelper(decw_r, r, dec, r, w);
+
+def_DEWBWHelper(imull_E2G, E2G, imul2, r, l);
+def_DEWBWHelper(imulw_E2G, E2G, imul2, r, w);
+
+def_DEWHelper(idivl_E, E, idiv, l);
+def_DEWHelper(idivw_E, E, idiv, w);
+
 #if 0
 #ifndef __ICS_EXPORT
-
-static inline def_EHelper(dec) {
-#ifdef LAZY_CC
-  rtl_subi(s, ddest, ddest, 1);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, id_dest->width);
-  operand_write(s, id_dest, ddest);
-#else
-  rtl_subi(s, s0, ddest, 1);
-  rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
-  rtl_set_OF(s, s1);
-  operand_write(s, id_dest, s0);
-#endif
-  print_asm_template1(dec);
-}
 
 static inline def_EHelper(neg) {
 #ifdef LAZY_CC
@@ -113,57 +115,6 @@ static inline def_EHelper(neg) {
 }
 #endif
 
-static inline def_EHelper(adc) {
-#ifdef LAZY_CC
-  rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
-  rtl_add(s, s0, dsrc1, s0);
-  rtl_set_lazycc_src2(s, dsrc1);
-  rtl_add(s, ddest, ddest, s0);
-  rtl_set_lazycc(s, ddest, s0, NULL, LAZYCC_ADC, id_dest->width);
-  operand_write(s, id_dest, ddest);
-#else
-  rtl_get_CF(s, s0);
-  rtl_add(s, s0, dsrc1, s0);
-  rtl_add(s, s1, ddest, s0);
-  rtl_update_ZFSF(s, s1, id_dest->width);
-  rtl_is_add_overflow(s, s2, s1, ddest, dsrc1, id_dest->width);
-  rtl_set_OF(s, s2);
-  if (id_dest->width != 4) {
-    rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - id_dest->width) * 8));
-  }
-  rtl_is_add_carry(s, s2, s1, s0);
-  rtl_is_add_carry(s, s0, s0, dsrc1);
-  rtl_or(s, s0, s0, s2);
-  rtl_set_CF(s, s0);
-  operand_write(s, id_dest, s1);
-#endif
-  print_asm_template2(adc);
-}
-
-static inline def_EHelper(sbb) {
-#ifdef LAZY_CC
-  rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
-  rtl_add(s, s0, dsrc1, s0);
-  rtl_set_lazycc_src2(s, dsrc1);
-  rtl_set_lazycc_src1(s, ddest);
-  rtl_sub(s, ddest, ddest, s0);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SBB, id_dest->width);
-  operand_write(s, id_dest, ddest);
-#else
-  rtl_get_CF(s, s0);
-  rtl_add(s, s0, dsrc1, s0);
-  rtl_sub(s, s1, ddest, s0);
-  rtl_update_ZFSF(s, s1, id_dest->width);
-  rtl_is_sub_overflow(s, s2, s1, ddest, dsrc1, id_dest->width);
-  rtl_set_OF(s, s2);
-  rtl_is_add_carry(s, s2, s0, dsrc1);
-  rtl_is_sub_carry(s, s0, ddest, s0);
-  rtl_or(s, s0, s0, s2);
-  rtl_set_CF(s, s0);
-  operand_write(s, id_dest, s1);
-#endif
-  print_asm_template2(sbb);
-}
 
 static inline def_EHelper(mul) {
   switch (id_dest->width) {
@@ -266,39 +217,6 @@ static inline def_EHelper(imul1) {
   print_asm_template1(imul);
 }
 
-// imul with two operands
-static inline def_EHelper(imul2) {
-  rtl_sext(s, dsrc1, dsrc1, id_src1->width);
-  rtl_sext(s, ddest, ddest, id_dest->width);
-
-#ifndef __PA__
-  if (id_dest->width == 4) {
-    rtl_muls_hi(s, s1, ddest, dsrc1);
-  }
-#endif
-
-  rtl_mulu_lo(s, ddest, ddest, dsrc1);
-  operand_write(s, id_dest, ddest);
-
-#ifndef __PA__
-  if (id_dest->width == 2) {
-    rtl_sext(s, s0, ddest, id_dest->width);
-    rtl_setrelop(s, RELOP_NE, s0, s0, ddest);
-  } else if (id_dest->width == 4) {
-    rtl_msb(s, s0, ddest, id_dest->width);
-    rtl_add(s, s0, s1, s0);
-    rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
-  } else {
-    assert(0);
-  }
-  rtl_set_CF(s, s0);
-  rtl_set_OF(s, s0);
-  rtl_update_ZFSF(s, ddest, id_dest->width);
-#endif
-
-  print_asm_template2(imul);
-}
-
 // imul with three operands
 static inline def_EHelper(imul3) {
   rtl_sext(s, dsrc2, dsrc2, id_dest->width);
@@ -363,35 +281,4 @@ static inline def_EHelper(div) {
   print_asm_template1(div);
 }
 
-static inline def_EHelper(idiv) {
-  switch (id_dest->width) {
-    case 1:
-      rtl_lr(s, s0, R_AX, 2);
-      rtl_divs_q(s, s1, s0, ddest);
-      rtl_sr(s, R_AL, s1, 1);
-      rtl_divs_r(s, s1, s0, ddest);
-      rtl_sr(s, R_AH, s1, 1);
-      break;
-    case 2:
-      rtl_lr(s, s0, R_AX, 2);
-      rtl_lr(s, s1, R_DX, 2);
-      rtl_shli(s, s1, s1, 16);
-      rtl_or(s, s0, s0, s1);
-      rtl_divs_q(s, s1, s0, ddest);
-      rtl_sr(s, R_AX, s1, 2);
-      rtl_divs_r(s, s1, s0, ddest);
-      rtl_sr(s, R_DX, s1, 2);
-      break;
-    case 4:
-      ; rtlreg_t *pdest = ddest;
-      if (ddest == &cpu.eax) pdest = s0;
-      rtl_mv(s, s0, &cpu.eax);
-      rtl_div64s_q(s, &cpu.eax, &cpu.edx, s0, pdest);
-      rtl_div64s_r(s, &cpu.edx, &cpu.edx, s0, pdest);
-      break;
-    default: assert(0);
-  }
-
-  print_asm_template1(idiv);
-}
 #endif

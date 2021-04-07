@@ -1,37 +1,20 @@
 def_DEWBWHelper(xorl_G2E, G2E, xor, E, l);
 def_DEWBWHelper(xorw_G2E, G2E, xor, E, w);
 
+def_DEWBWHelper(orl_G2E, G2E, or, E, l);
+def_DEWBWHelper(orw_G2E, G2E, or, E, w);
+
 def_DEWBWHelper(andl_SI2E,    E, and, E, l);
 def_DEWBWHelper(andw_SI2E,    E, and, E, w);
+
+def_DEWHelper(testl_G2E,  G2E, test, l);
+def_DEWHelper(testw_G2E,  G2E, test, w);
+def_DEWHelper(testb_I2E,    E, test, b);
 
 def_EWBWHelper(setcc, setcc, E, b);
 
 #if 0
 #ifndef __ICS_EXPORT
-
-static inline def_EHelper(test) {
-#ifdef LAZY_CC
-  rtl_and(s, s0, ddest, dsrc1);
-  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
-#else
-  and_internal(s);
-#endif
-  print_asm_template2(test);
-}
-
-static inline def_EHelper(or) {
-  rtl_or(s, ddest, ddest, dsrc1);
-#ifdef LAZY_CC
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
-#else
-  rtl_update_ZFSF(s, ddest, id_dest->width);
-  rtl_mv(s, &cpu.CF, rz);
-  rtl_mv(s, &cpu.OF, rz);
-#endif
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(or);
-}
-
 static inline def_EHelper(not) {
   rtl_not(s, ddest, ddest);
   operand_write(s, id_dest, ddest);
