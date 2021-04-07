@@ -13,6 +13,10 @@ def_DEWHelper(pushl_E, E, push, l);
 def_DEWHelper(pushw_E, E, push, w);
 def_EWHelper(pushl_I, push, l);
 def_EWHelper(pushw_I, push, w);
+def_EWHelper(pushb_SI,push, l);
+
+def_EWHelper(popl_r, pop, l);
+def_EWHelper(popw_r, pop, w);
 
 def_DEWBWHelper(movzbl_Eb2G, mov_Eb2G, mov, r, l);
 def_DEWBWHelper(movzbw_Eb2G, mov_Eb2G, mov, r, w);
@@ -27,12 +31,6 @@ def_EHelper(leave) {
 
 #if 0
 #ifndef __ICS_EXPORT
-static inline def_EHelper(pop) {
-  rtl_pop(s, ddest);
-  operand_write(s, id_dest, ddest);
-  print_asm_template1(pop);
-}
-
 static inline def_EHelper(pusha) {
   rtl_mv(s, s0, &cpu.esp);
   rtl_push(s, &cpu.eax);

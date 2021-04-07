@@ -18,17 +18,16 @@ static inline void rt_operand_rm(Decode *s,
     }
 #endif
 
+    rtl_mv(s, &s->isa.mbr, s->isa.mbase);
     if (s->isa.midx != rz) {
       rtl_shli(s, s1, s->isa.midx, s->isa.mscale);
-      rtl_add(s, &s->isa.mbr, s->isa.mbase, s1);
-      s->isa.mbase = &s->isa.mbr;
+      rtl_add(s, &s->isa.mbr, &s->isa.mbr, s1);
     }
     if (ISNDEF(__PA__) && s->isa.sreg_base != NULL) {
-      rtl_add(s, &s->isa.mbr, s->isa.mbase, s->isa.sreg_base);
-      s->isa.mbase = &s->isa.mbr;
+      rtl_add(s, &s->isa.mbr, &s->isa.mbr, s->isa.sreg_base);
     }
 
-    if (load_rm_val) rtl_lm(s, &rm->val, s->isa.mbase, s->isa.moff, width, MMU_DYNAMIC);
+    if (load_rm_val) rtl_lm(s, &rm->val, &s->isa.mbr, s->isa.moff, width, MMU_DYNAMIC);
   }
 }
 
@@ -46,6 +45,10 @@ def_RDHelper(mov_Eb2G) {
 
 def_RDHelper(mov_I2E) {
   rt_operand_rm(s, id_dest, false, NULL, false, width);
+}
+
+def_RDHelper(E2G) {
+  rt_operand_rm(s, id_src1, true, id_dest, true, width);
 }
 
 def_RDHelper(G2E) {

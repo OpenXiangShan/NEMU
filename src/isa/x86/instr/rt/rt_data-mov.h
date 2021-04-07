@@ -6,6 +6,10 @@ def_REHelper(push) {
   rtl_push(s, ddest);
 }
 
+def_REHelper(pop) {
+  rtl_pop(s, ddest);
+}
+
 def_REHelper(lea) {
   rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
 }

@@ -1,19 +1,27 @@
 def_DEWBWHelper(addl_G2E ,  G2E, add, E, l);
 def_DEWBWHelper(addw_G2E ,  G2E, add, E, w);
+def_DEWBWHelper(addl_E2G ,  E2G, add, r, l);
+def_DEWBWHelper(addw_E2G ,  E2G, add, r, w);
 def_DEWBWHelper(addl_SI2E, SI2E, add, E, l);
 def_DEWBWHelper(addw_SI2E, SI2E, add, E, w);
 
 def_DEWBWHelper(subl_SI2E, SI2E, sub, E, l);
 def_DEWBWHelper(subw_SI2E, SI2E, sub, E, w);
 
-def_DEWHelper(cmpl_SI2E, SI2E, cmp, l);
-def_DEWHelper(cmpw_SI2E, SI2E, cmp, w);
-def_DEWHelper(cmpb_I2E ,    E, cmp, b);
+def_DEWHelper(cmpl_G2E ,  G2E, cmp, l);
+def_DEWHelper(cmpw_G2E ,  G2E, cmp, w);
+def_DEWHelper(cmpl_E2G ,  E2G, cmp, l);
+def_DEWHelper(cmpw_E2G ,  E2G, cmp, w);
 def_DEWHelper(cmpl_I2a ,    r, cmp, l);
 def_DEWHelper(cmpw_I2a ,    r, cmp, w);
+def_DEWHelper(cmpb_I2E ,    E, cmp, b);
+def_DEWHelper(cmpl_SI2E, SI2E, cmp, l);
+def_DEWHelper(cmpw_SI2E, SI2E, cmp, w);
 
 def_DEWBWHelper(incl_r, r, inc, r, l);
 def_DEWBWHelper(incw_r, r, inc, r, w);
+def_DEWBWHelper(incl_E, E, inc, E, l);
+def_DEWBWHelper(incw_E, E, inc, E, w);
 
 #if 0
 #ifndef __ICS_EXPORT

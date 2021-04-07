@@ -300,6 +300,10 @@ static inline def_DHelper(I) {
   decode_op_I(s, id_dest, width);
 }
 
+static inline def_DHelper(SI) {
+  decode_op_SI(s, id_dest, width);
+}
+
 static inline def_DHelper(r) {
   decode_op_r(s, id_dest, width);
 }
@@ -432,10 +436,6 @@ static inline def_DHelper(LJ) {
 }
 #endif
 
-static inline def_DHelper(push_SI) {
-  decode_op_SI(s, id_dest, true);
-}
-
 static inline def_DHelper(in_I2a) {
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -519,6 +519,7 @@ def_THelper(gp1_SI2E) {
 }
 
 def_THelper(gp5) {
+  x86_def_INSTR_TABV("?? 000 ???", E, inc);
   x86_def_INSTR_TABV("?? 110 ???", E, push);
   return EXEC_ID_inv;
 }
@@ -537,13 +538,18 @@ def_THelper(main) {
   s->isa.opcode = get_instr(s);
 
   x86_def_INSTR_IDTABV("0000 0001",  G2E, add);
+  x86_def_INSTR_IDTABV("0000 0011",  E2G, add);
   x86_def_INSTR_TAB   ("0000 1111",       _2byte_esc);
   x86_def_INSTR_IDTABV("0011 0001",  G2E, xor);
+  x86_def_INSTR_IDTABV("0011 1001",  G2E, cmp);
+  x86_def_INSTR_IDTABV("0011 1011",  E2G, cmp);
   x86_def_INSTR_IDTABV("0011 1101",  I2a, cmp);
   x86_def_INSTR_IDTABV("0100 0???",    r, inc);
   x86_def_INSTR_IDTABV("0101 0???",    r, push);
+  x86_def_INSTR_IDTABV("0101 1???",    r, pop);
   x86_def_INSTR_TAB   ("0110 0110",       operand_size);
   x86_def_INSTR_IDTABV("0110 1000",    I, push);
+  x86_def_INSTR_IDTABW("0110 1010",   SI, pushb_SI, 1);
   x86_def_INSTR_IDTABW("0111 ????",    J, jcc, 1);
   x86_def_INSTR_IDTABW("1000 0000",  I2E, gp1_I2E_b, 1);
   x86_def_INSTR_IDTAB ("1000 0011", SI2E, gp1_SI2E);
