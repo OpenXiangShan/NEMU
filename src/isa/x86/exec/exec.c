@@ -159,15 +159,15 @@ static inline def_EHelper(fp_gp6) {
 static inline def_EHelper(fp_gp7) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
-    EMPTY(0x00) EX(0x01, fyl2xp1) EX(0x02, fsqrt) EMPTY(0x03)
-    EX(0x04, frndint) EX(0x05, fscale) EMPTY(0x06) EMPTY(0x07)
+    EMPTY(0x00) IDEX(0x01, St0_St1, fyl2xp1) EX(0x02, fsqrt) EMPTY(0x03)
+    EX(0x04, frndint) IDEX(0x05, St0_St1, fscale) EMPTY(0x06) EMPTY(0x07)
   }
 }
 
 static inline def_EHelper(fp_gp8) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
-    EX(0x00, f2xm1) EX(0x01, fyl2x) EMPTY(0x02) EMPTY(0x03)
+    EX(0x00, f2xm1) IDEX(0x01, St0_St1, fyl2x) EMPTY(0x02) EMPTY(0x03)
     EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
   }
 }
