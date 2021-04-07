@@ -5,8 +5,6 @@
 
 typedef void(*io_callback_t)(uint32_t, int, bool);
 
-#define XIANGSHAN
-
 #ifdef XIANGSHAN
   
   // SD

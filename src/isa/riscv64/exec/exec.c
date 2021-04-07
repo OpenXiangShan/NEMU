@@ -186,6 +186,9 @@ static inline make_EHelper(misc_alu) {
 }
 
 static inline void exec(DecodeExecState *s) {
+#ifdef XIANGSHAN_DEBUG
+  uint64_t current_pc = s->seq_pc;
+#endif
   if ((s->seq_pc & 0xfff) == 0xffe) {
     // instruction may accross page boundary
     uint32_t lo = instr_fetch(&s->seq_pc, 2);
@@ -207,6 +210,9 @@ static inline void exec(DecodeExecState *s) {
     s->isa.instr.val = instr_fetch(&s->seq_pc, 4);
   }
 
+#ifdef XIANGSHAN_DEBUG
+  printf("[NEMU] exec pc = 0x%lx, instr = 0x%0x\n", current_pc, s->isa.instr.val);
+#endif
   return_on_mem_ex();
 
   if (s->isa.instr.r.opcode1_0 == 0x3) {

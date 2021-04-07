@@ -18,7 +18,7 @@ void init_isa(void) {
   cpu.mode = MODE_M;
 #ifndef __DIFF_REF_QEMU__
   // QEMU seems to initialize mstatus with 0
-  mstatus->val = 0x00001800;
+  mstatus->val = 0x0;
 #endif
 
 #define ext(e) (1 << ((e) - 'a'))

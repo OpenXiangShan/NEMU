@@ -78,6 +78,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
+      level, vaddr, pg_base, p_pte, pte.val);
+#endif
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
       //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
