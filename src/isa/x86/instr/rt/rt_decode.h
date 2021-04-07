@@ -65,11 +65,6 @@ def_RDHelper(M2G) {
   rt_operand_rm(s, id_src1, false, id_dest, false, width);
 }
 
-def_RDHelper(SI2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
-  rt_operand_rm(s, id_dest, true, NULL, false, width);
-}
-
 def_RDHelper(r) {
   rt_operand_reg(s, id_dest, width);
 }

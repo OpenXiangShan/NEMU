@@ -1,8 +1,8 @@
 def_DEWBWHelper(xorl_G2E, G2E, xor, E, l);
 def_DEWBWHelper(xorw_G2E, G2E, xor, E, w);
 
-def_DEWBWHelper(andl_SI2E, SI2E, and, E, l);
-def_DEWBWHelper(andw_SI2E, SI2E, and, E, w);
+def_DEWBWHelper(andl_SI2E,    E, and, E, l);
+def_DEWBWHelper(andw_SI2E,    E, and, E, w);
 
 def_EWBWHelper(setcc, setcc, E, b);
 

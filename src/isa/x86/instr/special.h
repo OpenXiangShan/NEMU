@@ -1,3 +1,6 @@
+def_EHelper(nop) {
+}
+
 def_EHelper(inv) {
   save_globals(s);
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, NULL, 0);

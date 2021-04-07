@@ -510,6 +510,14 @@ def_THelper(gp1_I2E_b) {
   return EXEC_ID_inv;
 }
 
+def_THelper(gp1_I2E) {
+//  x86_def_INSTR_TABV("?? 000 ???", I2E, add);
+//  x86_def_INSTR_TABV("?? 100 ???", I2E, and);
+//  x86_def_INSTR_TABV("?? 101 ???", I2E, sub);
+  x86_def_INSTR_TABV("?? 111 ???", I2E, cmp);
+  return EXEC_ID_inv;
+}
+
 def_THelper(gp1_SI2E) {
   x86_def_INSTR_TABV("?? 000 ???", SI2E, add);
   x86_def_INSTR_TABV("?? 100 ???", SI2E, and);
@@ -541,8 +549,10 @@ def_THelper(main) {
   x86_def_INSTR_IDTABV("0000 0011",  E2G, add);
   x86_def_INSTR_TAB   ("0000 1111",       _2byte_esc);
   x86_def_INSTR_IDTABV("0011 0001",  G2E, xor);
+  x86_def_INSTR_IDTABW("0011 1000",  G2E, cmpb_G2E, 1);
   x86_def_INSTR_IDTABV("0011 1001",  G2E, cmp);
   x86_def_INSTR_IDTABV("0011 1011",  E2G, cmp);
+  x86_def_INSTR_IDTABW("0011 1100",  I2a, cmpb_I2a, 1);
   x86_def_INSTR_IDTABV("0011 1101",  I2a, cmp);
   x86_def_INSTR_IDTABV("0100 0???",    r, inc);
   x86_def_INSTR_IDTABV("0101 0???",    r, push);
@@ -552,16 +562,21 @@ def_THelper(main) {
   x86_def_INSTR_IDTABW("0110 1010",   SI, pushb_SI, 1);
   x86_def_INSTR_IDTABW("0111 ????",    J, jcc, 1);
   x86_def_INSTR_IDTABW("1000 0000",  I2E, gp1_I2E_b, 1);
+  x86_def_INSTR_IDTAB ("1000 0001",  I2E, gp1_I2E);
   x86_def_INSTR_IDTAB ("1000 0011", SI2E, gp1_SI2E);
+  x86_def_INSTR_IDTABW("1000 1000",  G2E, movb_G2E, 1);
   x86_def_INSTR_IDTABV("1000 1001",  G2E, mov);
+  x86_def_INSTR_IDTABW("1000 1010",  E2G, movb_E2G, 1);
   x86_def_INSTR_IDTABV("1000 1011",  E2G, mov);
   x86_def_INSTR_IDTABW("1000 1101",  E2G, lea, 4);
+  x86_def_INSTR_TAB   ("1001 0000",       nop);
   x86_def_INSTR_IDTABV("1011 1???",  I2r, mov);
   x86_def_INSTR_TAB   ("1100 0011",       ret);
   x86_def_INSTR_IDTABV("1100 0111",  I2E, mov);
   x86_def_INSTR_TAB   ("1100 1001",       leave);
   x86_def_INSTR_TAB   ("1101 0110",       nemu_trap);
   x86_def_INSTR_IDTABW("1110 1000",    J, call, 4);
+  x86_def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
   x86_def_INSTR_IDTAB ("1111 1111",    E, gp5);
   return table_inv(s);
 }
@@ -577,7 +592,7 @@ int isa_fetch_decode(Decode *s) {
 
   s->type = INSTR_TYPE_N;
   switch (idx) {
-    case EXEC_ID_call:
+    case EXEC_ID_call: case EXEC_ID_jmp:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_jcc:
