@@ -141,7 +141,11 @@ int force_raise_pf(vaddr_t vaddr, int type){
       }
       if (cpu.mode == MODE_M) {
         mtval->val = cpu.disambiguation_state.mtval;
-        if(vaddr != cpu.disambiguation_state.mtval){
+        if(
+          vaddr != cpu.disambiguation_state.mtval &&
+          // cross page ipf caused mismatch is legal
+          !((vaddr & 0xfff) == 0xffe && (cpu.disambiguation_state.mtval & 0xfff) == 0x000)
+        ){
           printf("[WRANING] nemu mtval %lx does not match core mtval %lx\n",
             vaddr,
             cpu.disambiguation_state.mtval
@@ -149,7 +153,11 @@ int force_raise_pf(vaddr_t vaddr, int type){
         }
       } else {
         stval->val = cpu.disambiguation_state.stval;
-        if(vaddr != cpu.disambiguation_state.stval){
+        if(
+          vaddr != cpu.disambiguation_state.stval &&
+          // cross page ipf caused mismatch is legal
+          !((vaddr & 0xfff) == 0xffe && (cpu.disambiguation_state.stval & 0xfff) == 0x000)
+        ){
           printf("[WRANING] nemu stval %lx does not match core stval %lx\n",
             vaddr,
             cpu.disambiguation_state.stval

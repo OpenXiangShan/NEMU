@@ -143,7 +143,7 @@ static inline make_EHelper(fp_ld) {
 }
 
 static inline make_EHelper(fp_st) {
-    *s0 = s->width == 4 ? box(*ddest) : *ddest;
+    *s0 = s->width == 4 ? unbox(*ddest) : *ddest;
     rtl_sm(s, dsrc1, id_src2->imm, s0, s->width);
 
     print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(id_src1->reg, 4));
