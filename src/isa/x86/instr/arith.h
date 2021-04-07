@@ -1,50 +1,22 @@
+def_DEWBWHelper(addl_G2E ,  G2E, add, E, l);
+def_DEWBWHelper(addw_G2E ,  G2E, add, E, w);
+def_DEWBWHelper(addl_SI2E, SI2E, add, E, l);
+def_DEWBWHelper(addw_SI2E, SI2E, add, E, w);
+
 def_DEWBWHelper(subl_SI2E, SI2E, sub, E, l);
 def_DEWBWHelper(subw_SI2E, SI2E, sub, E, w);
 
+def_DEWHelper(cmpl_SI2E, SI2E, cmp, l);
+def_DEWHelper(cmpw_SI2E, SI2E, cmp, w);
+def_DEWHelper(cmpb_I2E ,    E, cmp, b);
+def_DEWHelper(cmpl_I2a ,    r, cmp, l);
+def_DEWHelper(cmpw_I2a ,    r, cmp, w);
+
+def_DEWBWHelper(incl_r, r, inc, r, l);
+def_DEWBWHelper(incw_r, r, inc, r, w);
+
 #if 0
 #ifndef __ICS_EXPORT
-static inline def_EHelper(add) {
-#ifdef LAZY_CC
-  rtl_set_lazycc_src1(s, dsrc1);  // set src firstly cuz maybe $dest = $src
-  rtl_add(s, ddest, ddest, dsrc1);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_ADD, id_dest->width);
-  operand_write(s, id_dest, ddest);
-#else
-  rtl_add(s, s0, ddest, dsrc1);
-  rtl_update_ZFSF(s, s0, id_dest->width);
-  if (id_dest->width != 4) {
-    rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - id_dest->width) * 8));
-  }
-  rtl_is_add_carry(s, s1, s0, ddest);
-  rtl_set_CF(s, s1);
-  rtl_is_add_overflow(s, s1, s0, ddest, dsrc1, id_dest->width);
-  rtl_set_OF(s, s1);
-  operand_write(s, id_dest, s0);
-#endif
-  print_asm_template2(add);
-}
-
-static inline def_EHelper(cmp) {
-#ifdef LAZY_CC
-  rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, id_dest->width);
-#else
-  cmp_internal(s);
-#endif
-  print_asm_template2(cmp);
-}
-
-static inline def_EHelper(inc) {
-  rtl_addi(s, ddest, ddest, 1);
-#ifdef LAZY_CC
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, id_dest->width);
-#else
-  rtl_update_ZFSF(s, ddest, id_dest->width);
-  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
-  rtl_set_OF(s, s1);
-#endif
-  operand_write(s, id_dest, ddest);
-  print_asm_template1(inc);
-}
 
 static inline def_EHelper(dec) {
 #ifdef LAZY_CC

@@ -4,20 +4,35 @@
 
 #define INSTR_NULLARY(f) \
   f(inv) f(nemu_trap) \
-  f(ret)
+  f(ret) f(leave)
 
 #define INSTR_UNARY(f) \
-  f(call) \
+  f(call) f(jcc) f(setcc) \
   f(pushl_r) f(pushw_r) \
-  f(pushl_I) f(pushw_I)
+  f(pushl_E) f(pushw_E) \
+  f(pushl_I) f(pushw_I) \
+  f(incl_r) f(incw_r) \
 
 #define INSTR_BINARY(f) \
-  f(movl_I2r) f(movl_G2E) f(movl_I2E) \
-  f(movw_I2r) f(movw_G2E) f(movw_I2E) \
+  f(movl_I2r) f(movl_G2E) f(movl_E2G) f(movl_I2E) \
+  f(movw_I2r) f(movw_G2E) f(movw_E2G) f(movw_I2E) \
+  f(addl_G2E) \
+  f(addw_G2E) \
+  f(addl_SI2E) \
+  f(addw_SI2E) \
   f(subl_SI2E) \
   f(subw_SI2E) \
+  f(cmpl_SI2E) \
+  f(cmpw_SI2E) \
+  f(cmpb_I2E) \
+  f(cmpl_I2a) \
+  f(cmpw_I2a) \
+  f(andl_SI2E) \
+  f(andw_SI2E) \
   f(xorl_G2E) \
-  f(xorw_G2E)
+  f(xorw_G2E) \
+  f(lea) \
+  f(movzbw_Eb2G) f(movzbl_Eb2G)
 
 #define INSTR_TERNARY(f)
 

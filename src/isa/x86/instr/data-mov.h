@@ -2,13 +2,28 @@ def_EWBWHelper(movl_I2r, mov, r, l);
 def_EWBWHelper(movw_I2r, mov, r, w);
 def_DEWBWHelper(movl_G2E, mov_G2E, mov, E, l);
 def_DEWBWHelper(movw_G2E, mov_G2E, mov, E, w);
+def_DEWBWHelper(movl_E2G, mov_E2G, mov, r, l);
+def_DEWBWHelper(movw_E2G, mov_E2G, mov, r, w);
 def_DEWBWHelper(movl_I2E, mov_I2E, mov, E, l);
 def_DEWBWHelper(movw_I2E, mov_I2E, mov, E, w);
 
 def_DEWHelper(pushl_r, r, push, l);
 def_DEWHelper(pushw_r, r, push, w);
+def_DEWHelper(pushl_E, E, push, l);
+def_DEWHelper(pushw_E, E, push, w);
 def_EWHelper(pushl_I, push, l);
 def_EWHelper(pushw_I, push, w);
+
+def_DEWBWHelper(movzbl_Eb2G, mov_Eb2G, mov, r, l);
+def_DEWBWHelper(movzbw_Eb2G, mov_Eb2G, mov, r, w);
+
+def_DEWBWHelper(lea, M2G, lea, r, l);
+
+
+def_EHelper(leave) {
+  rtl_mv(s, &cpu.esp, &cpu.ebp);
+  rtl_pop(s, &cpu.ebp);
+}
 
 #if 0
 #ifndef __ICS_EXPORT
@@ -41,12 +56,6 @@ static inline def_EHelper(popa) {
   rtl_pop(s, &cpu.ecx);
   rtl_pop(s, &cpu.eax);
   print_asm("popa");
-}
-
-static inline def_EHelper(leave) {
-  rtl_mv(s, &cpu.esp, &cpu.ebp);
-  rtl_pop(s, &cpu.ebp);
-  print_asm("leave");
 }
 
 static inline def_EHelper(cltd) {
@@ -199,9 +208,4 @@ static inline def_EHelper(movzx) {
   print_asm_template2(movzx);
 }
 
-static inline def_EHelper(lea) {
-  rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(lea);
-}
 #endif

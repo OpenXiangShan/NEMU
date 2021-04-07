@@ -162,7 +162,6 @@ def_DopHelper(SI) {
 #endif
 }
 
-#if 0
 /* I386 manual does not contain this abbreviation.
  * It is convenient to merge them into a single helper function.
  */
@@ -170,7 +169,6 @@ def_DopHelper(SI) {
 def_DopHelper(a) {
   operand_reg(s, op, R_EAX, width);
 }
-#endif
 
 /* This helper function is use to decode register encoded in the opcode. */
 /* XX: AL, AH, BL, BH, CL, CH, DL, DH
@@ -240,29 +238,30 @@ static inline def_DHelper(bit_G2E) {
   rtl_andi(s, &id_src1->val, dsrc1, 0x1f);
   id_src1->preg = &id_src1->val;
 }
+#endif
 
 /* Gb <- Eb
  * Gv <- Ev
  */
 static inline def_DHelper(E2G) {
-  operand_rm(s, id_src1, true, id_dest, true);
+  operand_rm(s, id_src1, id_dest, width);
 }
 
-static inline def_DHelper(mov_E2G) {
-  operand_rm(s, id_src1, true, id_dest, false);
-}
-
-static inline def_DHelper(lea_M2G) {
-  operand_rm(s, id_src1, false, id_dest, false);
+static inline def_DHelper(Eb2G) {
+  operand_rm(s, id_src1, id_dest, 1);
+  // overwrite the wrong decode result by `operand_rm()` with the correct width
+  operand_reg(s, id_dest, id_dest->reg, width);
 }
 
 /* AL <- Ib
  * eAX <- Iv
  */
 static inline def_DHelper(I2a) {
-  decode_op_a(s, id_dest, true);
-  decode_op_I(s, id_src1, true);
+  decode_op_a(s, id_dest, width);
+  decode_op_I(s, id_src1, width);
 }
+
+#if 0
 
 /* Gv <- EvIb
  * Gv <- EvIv
@@ -305,15 +304,11 @@ static inline def_DHelper(r) {
   decode_op_r(s, id_dest, width);
 }
 
-#if 0
 static inline def_DHelper(E) {
-  operand_rm(s, id_dest, true, NULL, false);
+  operand_rm(s, id_dest, NULL, width);
 }
 
-static inline def_DHelper(setcc_E) {
-  operand_rm(s, id_dest, false, NULL, false);
-}
-
+#if 0
 static inline def_DHelper(gp6_E) {
   operand_rm(s, id_dest, true, NULL, false);
 }
@@ -420,9 +415,9 @@ static inline def_DHelper(a2r) {
 
 static inline def_DHelper(J) {
   // the target address can be computed in the decode stage
-  word_t imm = x86_instr_fetch(s, 4);
-  id_dest->simm = s->snpc + imm;
-  operand_imm(s, id_src1, s->snpc);
+  decode_op_SI(s, id_dest, width);
+  id_dest->imm = id_dest->val + s->snpc;
+  operand_imm(s, id_src1, s->snpc);  // for call
 }
 #if 0
 #ifndef __ICS_EXPORT
@@ -504,28 +499,64 @@ def_THelper(operand_size) {
     if (s->isa.is_operand_size_16) return concat5(table_, tab, w, _, id)(s); \
     else return concat5(table_, tab, l, _, id)(s); \
   })
+#define x86_def_INSTR_IDTABW def_INSTR_IDTABW
 #define x86_def_INSTR_IDTAB  def_INSTR_IDTAB
 #define x86_def_INSTR_TAB    def_INSTR_TAB
 
+def_THelper(gp1_I2E_b) {
+//  x86_def_INSTR_TAB("?? 100 ???", andb_I2E);
+//  x86_def_INSTR_TAB("?? 101 ???", subb_I2E);
+  x86_def_INSTR_TAB("?? 111 ???", cmpb_I2E);
+  return EXEC_ID_inv;
+}
+
 def_THelper(gp1_SI2E) {
+  x86_def_INSTR_TABV("?? 000 ???", SI2E, add);
+  x86_def_INSTR_TABV("?? 100 ???", SI2E, and);
   x86_def_INSTR_TABV("?? 101 ???", SI2E, sub);
+  x86_def_INSTR_TABV("?? 111 ???", SI2E, cmp);
+  return EXEC_ID_inv;
+}
+
+def_THelper(gp5) {
+  x86_def_INSTR_TABV("?? 110 ???", E, push);
+  return EXEC_ID_inv;
+}
+
+def_THelper(_2byte_esc) {
+  x86_instr_fetch(s, 1);
+  s->isa.opcode = get_instr(s) | 0x100;
+
+  x86_def_INSTR_IDTABW("1001 0100",    E, setcc, 1);
+  x86_def_INSTR_IDTABV("1011 0110", Eb2G, movzb);
   return EXEC_ID_inv;
 }
 
 def_THelper(main) {
   x86_instr_fetch(s, 1);
+  s->isa.opcode = get_instr(s);
 
+  x86_def_INSTR_IDTABV("0000 0001",  G2E, add);
+  x86_def_INSTR_TAB   ("0000 1111",       _2byte_esc);
   x86_def_INSTR_IDTABV("0011 0001",  G2E, xor);
+  x86_def_INSTR_IDTABV("0011 1101",  I2a, cmp);
+  x86_def_INSTR_IDTABV("0100 0???",    r, inc);
   x86_def_INSTR_IDTABV("0101 0???",    r, push);
   x86_def_INSTR_TAB   ("0110 0110",       operand_size);
   x86_def_INSTR_IDTABV("0110 1000",    I, push);
+  x86_def_INSTR_IDTABW("0111 ????",    J, jcc, 1);
+  x86_def_INSTR_IDTABW("1000 0000",  I2E, gp1_I2E_b, 1);
   x86_def_INSTR_IDTAB ("1000 0011", SI2E, gp1_SI2E);
   x86_def_INSTR_IDTABV("1000 1001",  G2E, mov);
+  x86_def_INSTR_IDTABV("1000 1011",  E2G, mov);
+  x86_def_INSTR_IDTABW("1000 1101",  E2G, lea, 4);
   x86_def_INSTR_IDTABV("1011 1???",  I2r, mov);
   x86_def_INSTR_TAB   ("1100 0011",       ret);
   x86_def_INSTR_IDTABV("1100 0111",  I2E, mov);
+  x86_def_INSTR_TAB   ("1100 1001",       leave);
   x86_def_INSTR_TAB   ("1101 0110",       nemu_trap);
-  x86_def_INSTR_IDTAB ("1110 1000",    J, call);
+  x86_def_INSTR_IDTABW("1110 1000",    J, call, 4);
+  x86_def_INSTR_IDTAB ("1111 1111",    E, gp5);
   return table_inv(s);
 }
 
@@ -543,13 +574,8 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_call:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_J; break;
 
-#if 0
-    case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
-    case EXEC_ID_bltu: case EXEC_ID_bgeu:
-    case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
-    case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
+    case EXEC_ID_jcc:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
-#endif
 
     case EXEC_ID_ret: s->type = INSTR_TYPE_I; break;
   }

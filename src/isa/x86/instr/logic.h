@@ -1,15 +1,13 @@
 def_DEWBWHelper(xorl_G2E, G2E, xor, E, l);
 def_DEWBWHelper(xorw_G2E, G2E, xor, E, w);
 
+def_DEWBWHelper(andl_SI2E, SI2E, and, E, l);
+def_DEWBWHelper(andw_SI2E, SI2E, and, E, w);
+
+def_EWBWHelper(setcc, setcc, E, b);
+
 #if 0
 #ifndef __ICS_EXPORT
-// dest <- and result
-static inline void and_internal(Decode *s) {
-  rtl_and(s, s0, ddest, dsrc1);
-  rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_mv(s, &cpu.CF, rz);
-  rtl_mv(s, &cpu.OF, rz);
-}
 
 static inline def_EHelper(test) {
 #ifdef LAZY_CC
@@ -19,18 +17,6 @@ static inline def_EHelper(test) {
   and_internal(s);
 #endif
   print_asm_template2(test);
-}
-
-static inline def_EHelper(and) {
-#ifdef LAZY_CC
-  rtl_and(s, ddest, ddest, dsrc1);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
-  operand_write(s, id_dest, ddest);
-#else
-  and_internal(s);
-  operand_write(s, id_dest, s0);
-#endif
-  print_asm_template2(and);
 }
 
 static inline def_EHelper(or) {
@@ -344,16 +330,4 @@ static inline def_EHelper(shr) {
 }
 
 #endif
-
-static inline def_EHelper(setcc) {
-  uint32_t cc = s->opcode & 0xf;
-#ifdef LAZY_CC
-  rtl_lazy_setcc(s, ddest, cc);
-#else
-  rtl_setcc(s, ddest, cc);
-#endif
-  operand_write(s, id_dest, ddest);
-
-  print_asm("set%s %s", get_cc_name(cc), id_dest->str);
-}
 #endif

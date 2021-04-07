@@ -133,6 +133,7 @@ typedef struct {
 typedef struct {
   uint8_t instr[16];
   uint8_t *p_instr;
+  uint32_t opcode;
   bool is_operand_size_16;
   bool is_rm_memory;
 #define PREFIX_REP   1
