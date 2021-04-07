@@ -51,7 +51,12 @@ void isa_reg_display() {
   }
   printf("fpu st top: %d\n", cpu.ftop);
   for (i = 0; i< 8; i ++) {
-    printf("fpr[%d]: 0x%016lx\n", i, cpu.fpr[i]);
+    union {
+      uint64_t i;
+      double f;
+    } u;
+    u.i = cpu.fpr[i];
+    printf("fpr[%d]: 0x%016lx  %lf\n", i, u.i, u.f);
   }
   printf("pc: 0x%08x\n", cpu.pc);
 }
