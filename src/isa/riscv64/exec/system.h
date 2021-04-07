@@ -4,6 +4,8 @@
 static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
   switch (addr) {
     case 0xc01:  // time
+    case 0x3b4:
+    // case 0xb03:
       raise_intr(s, EX_II, cpu.pc);
       return false;
   }
