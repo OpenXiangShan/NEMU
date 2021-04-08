@@ -151,3 +151,13 @@ def_REHelper(sar) {
   panic("TODO: implement CF and OF with lazy cc");
 #endif
 }
+
+def_REHelper(rol) {
+  rtl_shl(s, s0, ddest, dsrc1);
+  rtl_li(s, s1, width * 8);
+  rtl_sub(s, s1, s1, dsrc1);
+  rtl_shr(s, s1, ddest, s1);
+  rtl_or(s, ddest, s0, s1);
+  // unnecessary to update eflags in NEMU
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
+}

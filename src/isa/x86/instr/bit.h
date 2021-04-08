@@ -1,3 +1,7 @@
+def_DEWHelper(bsrl_E2G, mov_E2G, bsr, l);
+def_DEWHelper(bsrw_E2G, mov_E2G, bsr, w);
+
+#if 0
 static inline def_EHelper(bsf) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
@@ -16,23 +20,6 @@ static inline def_EHelper(bsf) {
   }
   operand_write(s, id_dest, ddest);
   print_asm_template2(bsf);
-}
-
-static inline def_EHelper(bsr) {
-#ifndef CONFIG_ENGINE_INTERPRETER
-  panic("not support in engines other than interpreter");
-#endif
-
-  rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
-  rtl_set_ZF(s, s0);
-
-  int bit = 31;
-  if (*dsrc1 != 0) {
-    while ((*dsrc1 & (1u << bit)) == 0) bit--;
-    *ddest = bit;
-    operand_write(s, id_dest, ddest);
-  }
-  print_asm_template2(bsr);
 }
 
 static inline def_EHelper(bt) {
@@ -100,3 +87,4 @@ static inline def_EHelper(bswap) {
 
   print_asm_template1(bswap);
 }
+#endif

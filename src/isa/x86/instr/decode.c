@@ -506,6 +506,7 @@ def_THelper(operand_size) {
   })
 #define x86_def_INSTR_IDTABW def_INSTR_IDTABW
 #define x86_def_INSTR_IDTAB  def_INSTR_IDTAB
+#define x86_def_INSTR_TABW   def_INSTR_TABW
 #define x86_def_INSTR_TAB    def_INSTR_TAB
 
 def_THelper(gp1_I2E_b) {
@@ -517,7 +518,7 @@ def_THelper(gp1_I2E_b) {
 
 def_THelper(gp1_I2E) {
 //  x86_def_INSTR_TABV("?? 000 ???", I2E, add);
-//  x86_def_INSTR_TABV("?? 100 ???", I2E, and);
+  x86_def_INSTR_TABV("?? 100 ???", I2E, and);
   x86_def_INSTR_TABV("?? 101 ???", I2E, sub);
   x86_def_INSTR_TABV("?? 111 ???", I2E, cmp);
   return EXEC_ID_inv;
@@ -525,6 +526,7 @@ def_THelper(gp1_I2E) {
 
 def_THelper(gp1_SI2E) {
   x86_def_INSTR_TABV("?? 000 ???", SI2E, add);
+  x86_def_INSTR_TABV("?? 001 ???", SI2E, or);
   x86_def_INSTR_TABV("?? 010 ???", SI2E, adc);
   x86_def_INSTR_TABV("?? 100 ???", SI2E, and);
   x86_def_INSTR_TABV("?? 101 ???", SI2E, sub);
@@ -535,12 +537,13 @@ def_THelper(gp1_SI2E) {
 
 def_THelper(gp2_1_E) {
 //  x86_def_INSTR_TABV("?? 100 ???", cl2E, shl);
-//  x86_def_INSTR_TABV("?? 101 ???", cl2E, shr);
+  x86_def_INSTR_TABV("?? 101 ???", 1_E, shr);
   x86_def_INSTR_TABV("?? 111 ???", 1_E, sar);
   return EXEC_ID_inv;
 }
 
 def_THelper(gp2_cl2E) {
+  x86_def_INSTR_TABV("?? 000 ???", cl2E, rol);
   x86_def_INSTR_TABV("?? 100 ???", cl2E, shl);
   x86_def_INSTR_TABV("?? 101 ???", cl2E, shr);
   x86_def_INSTR_TABV("?? 111 ???", cl2E, sar);
@@ -559,8 +562,15 @@ def_THelper(gp3_b) {
   return EXEC_ID_inv;
 }
 
+def_THelper(test_gp3) {
+  if (s->isa.is_operand_size_16) return table_testw_I2E(s);
+  else return table_testl_I2E(s);
+}
+
 def_THelper(gp3) {
+  x86_def_INSTR_IDTAB("?? 000 ???", test_I, test_gp3);
   x86_def_INSTR_TABV("?? 010 ???", E, not);
+  x86_def_INSTR_TABV("?? 011 ???", E, neg);
   x86_def_INSTR_TABV("?? 100 ???", E, mul);
   x86_def_INSTR_TABV("?? 101 ???", E, imul);
   x86_def_INSTR_TABV("?? 110 ???", E, div);
@@ -570,6 +580,7 @@ def_THelper(gp3) {
 
 def_THelper(gp5) {
   x86_def_INSTR_TABV("?? 000 ???", E, inc);
+  x86_def_INSTR_TABV("?? 001 ???", E, dec);
   x86_def_INSTR_TAB ("?? 010 ???", call_E);
   x86_def_INSTR_TAB ("?? 100 ???", jmp_E);
   x86_def_INSTR_TABV("?? 110 ???", E, push);
@@ -585,6 +596,7 @@ def_THelper(_2byte_esc) {
   x86_def_INSTR_IDTABV("1010 1111",  E2G, imul);
   x86_def_INSTR_IDTABV("1011 0110", Eb2G, movzb);
   x86_def_INSTR_IDTABW("1011 0111", Ew2G, movzwl_Ew2G, 4);
+  x86_def_INSTR_IDTABV("1011 1101",  E2G, bsr);
   x86_def_INSTR_IDTABV("1011 1110", Eb2G, movsb);
   x86_def_INSTR_IDTABW("1011 1111", Ew2G, movswl_Ew2G, 4);
   return EXEC_ID_inv;
@@ -594,19 +606,28 @@ def_THelper(main) {
   x86_instr_fetch(s, 1);
   s->isa.opcode = get_instr(s);
 
+  x86_def_INSTR_IDTABW("0000 0000",  G2E, addb_G2E, 1);
   x86_def_INSTR_IDTABV("0000 0001",  G2E, add);
+  x86_def_INSTR_IDTABW("0000 0010",  E2G, addb_E2G, 1);
   x86_def_INSTR_IDTABV("0000 0011",  E2G, add);
+  x86_def_INSTR_IDTABV("0000 0101",  I2a, add);
   x86_def_INSTR_IDTABV("0000 1001",  G2E, or);
+  x86_def_INSTR_IDTABV("0000 1011",  E2G, or);
+  x86_def_INSTR_IDTABV("0000 1101",  I2a, or);
   x86_def_INSTR_IDTABW("0000 1010",  E2G, orb_E2G, 1);
   x86_def_INSTR_TAB   ("0000 1111",       _2byte_esc);
+  x86_def_INSTR_IDTABV("0001 0001",  G2E, adc);
   x86_def_INSTR_IDTABV("0001 0011",  E2G, adc);
   x86_def_INSTR_IDTABV("0001 1001",  G2E, sbb);
   x86_def_INSTR_IDTABV("0001 1011",  E2G, sbb);
+  x86_def_INSTR_IDTABV("0010 0001",  G2E, and);
   x86_def_INSTR_IDTABW("0010 0010",  E2G, andb_E2G, 1);
+  x86_def_INSTR_IDTABV("0010 0011",  E2G, and);
   x86_def_INSTR_IDTABV("0010 0101",  I2a, and);
   x86_def_INSTR_IDTABV("0010 1001",  G2E, sub);
   x86_def_INSTR_IDTABV("0010 1011",  E2G, sub);
   x86_def_INSTR_IDTABV("0011 0001",  G2E, xor);
+  x86_def_INSTR_IDTABV("0011 0011",  E2G, xor);
   x86_def_INSTR_IDTABW("0011 1000",  G2E, cmpb_G2E, 1);
   x86_def_INSTR_IDTABV("0011 1001",  G2E, cmp);
   x86_def_INSTR_IDTABV("0011 1011",  E2G, cmp);
@@ -636,6 +657,8 @@ def_THelper(main) {
   x86_def_INSTR_IDTABV("1010 0001",  O2a, mov);
   x86_def_INSTR_IDTABW("1010 0010",  a2O, movb_a2O, 1);
   x86_def_INSTR_IDTABV("1010 0011",  a2O, mov);
+  x86_def_INSTR_TABW  ("1010 0100",       movsb, 1);
+  x86_def_INSTR_IDTABW("1010 1000",  I2a, testb_I2a, 1);
   x86_def_INSTR_IDTABW("1011 0???",  I2r, movb_I2r, 1);
   x86_def_INSTR_IDTABV("1011 1???",  I2r, mov);
   x86_def_INSTR_IDTAB ("1100 0001", Ib2E, gp2_Ib2E);

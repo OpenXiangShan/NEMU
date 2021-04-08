@@ -117,6 +117,21 @@ def_REHelper(sbb) {
 #endif
 }
 
+def_REHelper(neg) {
+#ifdef LAZY_CC
+  rtl_sub(s, ddest, rz, ddest);
+  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, width);
+#else
+  rtl_sub(s, s0, rz, ddest);
+  rtl_update_ZFSF(s, s0, width);
+  rtl_setrelopi(s, RELOP_NE, s1, ddest, 0);
+  rtl_set_CF(s, s1);
+  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (width * 8 - 1));
+  rtl_set_OF(s, s1);
+  rtl_mv(s, ddest, s0);
+#endif
+}
+
 def_REHelper(mul) {
   switch (width) {
     case 1:

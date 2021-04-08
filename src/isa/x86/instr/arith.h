@@ -1,7 +1,11 @@
 def_DEWBWHelper(addl_G2E ,  G2E, add, E, l);
 def_DEWBWHelper(addw_G2E ,  G2E, add, E, w);
+def_DEWBWHelper(addb_G2E ,  G2E, add, E, b);
 def_DEWBWHelper(addl_E2G ,  E2G, add, r, l);
 def_DEWBWHelper(addw_E2G ,  E2G, add, r, w);
+def_DEWBWHelper(addb_E2G ,  E2G, add, r, b);
+def_DEWBWHelper(addl_I2a ,    r, add, r, l);
+def_DEWBWHelper(addw_I2a ,    r, add, r, w);
 def_DEWBWHelper(addl_SI2E,    E, add, E, l);
 def_DEWBWHelper(addw_SI2E,    E, add, E, w);
 
@@ -14,6 +18,8 @@ def_DEWBWHelper(subw_I2E ,    E, sub, E, w);
 def_DEWBWHelper(subl_SI2E,    E, sub, E, l);
 def_DEWBWHelper(subw_SI2E,    E, sub, E, w);
 
+def_DEWBWHelper(adcl_G2E ,  G2E, adc, E, l);
+def_DEWBWHelper(adcw_G2E ,  G2E, adc, E, w);
 def_DEWBWHelper(adcl_E2G ,  E2G, adc, r, l);
 def_DEWBWHelper(adcw_E2G ,  E2G, adc, r, w);
 def_DEWBWHelper(adcl_SI2E,    E, adc, E, l);
@@ -45,6 +51,11 @@ def_DEWBWHelper(incw_E, E, inc, E, w);
 
 def_DEWBWHelper(decl_r, r, dec, r, l);
 def_DEWBWHelper(decw_r, r, dec, r, w);
+def_DEWBWHelper(decl_E, E, dec, E, l);
+def_DEWBWHelper(decw_E, E, dec, E, w);
+
+def_DEWHelper(negl_E, E, neg, l);
+def_DEWHelper(negw_E, E, neg, w);
 
 def_DEWHelper(mull_E, E, mul, l);
 def_DEWHelper(mulw_E, E, mul, w);
@@ -62,23 +73,6 @@ def_DEWHelper(idivw_E, E, idiv, w);
 
 #if 0
 #ifndef __ICS_EXPORT
-
-static inline def_EHelper(neg) {
-#ifdef LAZY_CC
-  rtl_sub(s, ddest, rz, ddest);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, id_dest->width);
-  operand_write(s, id_dest, ddest);
-#else
-  rtl_sub(s, s0, rz, ddest);
-  rtl_update_ZFSF(s, s0, id_dest->width);
-  rtl_setrelopi(s, RELOP_NE, s1, ddest, 0);
-  rtl_set_CF(s, s1);
-  rtl_setrelopi(s, RELOP_EQ, s1, ddest, 0x1u << (id_dest->width * 8 - 1));
-  rtl_set_OF(s, s1);
-  operand_write(s, id_dest, s0);
-#endif
-  print_asm_template1(neg);
-}
 
 static inline def_EHelper(xadd) {
   rtl_add(s, s0, ddest, dsrc1);
