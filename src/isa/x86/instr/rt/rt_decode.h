@@ -78,6 +78,10 @@ def_RDHelper(r) {
   rt_operand_reg(s, id_dest, width);
 }
 
+def_RDHelper(dx_src) {
+  rt_operand_reg(s, id_src1, 2);
+}
+
 def_RDHelper(E) {
   rt_operand_rm(s, id_dest, true, NULL, false, width);
 }

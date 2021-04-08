@@ -16,7 +16,11 @@ def_DEWBWHelper(subw_SI2E,    E, sub, E, w);
 
 def_DEWBWHelper(adcl_E2G ,  E2G, adc, r, l);
 def_DEWBWHelper(adcw_E2G ,  E2G, adc, r, w);
+def_DEWBWHelper(adcl_SI2E,    E, adc, E, l);
+def_DEWBWHelper(adcw_SI2E,    E, adc, E, w);
 
+def_DEWBWHelper(sbbl_G2E ,  G2E, sbb, E, l);
+def_DEWBWHelper(sbbw_G2E ,  G2E, sbb, E, w);
 def_DEWBWHelper(sbbl_E2G ,  E2G, sbb, r, l);
 def_DEWBWHelper(sbbw_E2G ,  E2G, sbb, r, w);
 

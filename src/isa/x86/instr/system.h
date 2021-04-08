@@ -1,12 +1,9 @@
+def_DEWBWHelper(inl_dx2a, dx_src, in, r, l);
+def_DEWBWHelper(inw_dx2a, dx_src, in, r, w);
+
 def_DEWHelper(outb_a2dx, a2dx, out, b);
 
 #if 0
-
-def_EHelper(in) {
-  rtl_hostcall(s, HOSTCALL_PIO, s0, dsrc1, 1);
-  operand_write(s, id_dest, s0);
-  print_asm_template2(in);
-}
 
 void load_sreg(int idx, uint16_t val);
 

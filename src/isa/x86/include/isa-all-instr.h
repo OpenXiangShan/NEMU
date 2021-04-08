@@ -27,15 +27,15 @@
   f(addw_G2E) f(addw_E2G) f(addw_SI2E) \
   f(subl_G2E) f(subl_E2G) f(subl_I2E) f(subl_SI2E) \
   f(subw_G2E) f(subw_E2G) f(subw_I2E) f(subw_SI2E) \
-  f(adcl_E2G) \
-  f(adcw_E2G) \
-  f(sbbl_E2G) \
-  f(sbbw_E2G) \
+  f(adcl_E2G) f(adcl_SI2E) \
+  f(adcw_E2G) f(adcw_SI2E) \
+  f(sbbl_G2E) f(sbbl_E2G) \
+  f(sbbw_G2E) f(sbbw_E2G) \
   f(cmpl_G2E) f(cmpl_E2G) f(cmpl_I2a) f(cmpl_I2E) f(cmpl_SI2E) \
   f(cmpw_G2E) f(cmpw_E2G) f(cmpw_I2a) f(cmpw_I2E) f(cmpw_SI2E) \
   f(cmpb_G2E) f(cmpb_I2a) f(cmpb_I2E) \
-  f(andl_SI2E) \
-  f(andw_SI2E) \
+  f(andl_I2a) f(andl_SI2E) \
+  f(andw_I2a) f(andw_SI2E) \
   f(andb_E2G) \
   f(orl_G2E) \
   f(orw_G2E) \
@@ -64,6 +64,8 @@
   f(divw_E) \
   f(idivl_E) \
   f(idivw_E) \
+  f(inl_dx2a) \
+  f(inw_dx2a) \
   f(outb_a2dx) \
 
 #define INSTR_TERNARY(f)

@@ -8,6 +8,8 @@ def_DEWBWHelper(orw_G2E, G2E, or, E, w);
 def_DEWBWHelper(orb_E2G, E2G, or, r, b);
 
 def_DEWBWHelper(andb_E2G ,  E2G, and, r, b);
+def_DEWBWHelper(andl_I2a ,    r, and, r, l);
+def_DEWBWHelper(andw_I2a ,    r, and, r, w);
 def_DEWBWHelper(andl_SI2E,    E, and, E, l);
 def_DEWBWHelper(andw_SI2E,    E, and, E, w);
 
