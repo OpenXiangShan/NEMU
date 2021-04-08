@@ -36,13 +36,15 @@
   f(cmpb_G2E) f(cmpb_I2a) f(cmpb_I2E) \
   f(andl_SI2E) \
   f(andw_SI2E) \
+  f(andb_E2G) \
   f(orl_G2E) \
   f(orw_G2E) \
+  f(orb_E2G) \
   f(testl_G2E) \
   f(testw_G2E) \
-  f(testb_I2E) \
-  f(xorl_G2E) \
-  f(xorw_G2E) \
+  f(testb_G2E) f(testb_I2E) \
+  f(xorl_G2E) f(xorl_SI2E) \
+  f(xorw_G2E) f(xorw_SI2E) \
   f(notl_E) \
   f(notw_E) \
   f(shll_Ib2E) f(shll_cl2E) \
@@ -58,6 +60,8 @@
   f(mulw_E) \
   f(imull_E) f(imull_E2G) \
   f(imulw_E) f(imulw_E2G) \
+  f(divl_E) \
+  f(divw_E) \
   f(idivl_E) \
   f(idivw_E) \
 

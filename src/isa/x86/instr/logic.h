@@ -1,9 +1,13 @@
-def_DEWBWHelper(xorl_G2E, G2E, xor, E, l);
-def_DEWBWHelper(xorw_G2E, G2E, xor, E, w);
+def_DEWBWHelper(xorl_G2E , G2E, xor, E, l);
+def_DEWBWHelper(xorw_G2E , G2E, xor, E, w);
+def_DEWBWHelper(xorl_SI2E,   E, xor, E, l);
+def_DEWBWHelper(xorw_SI2E,   E, xor, E, w);
 
 def_DEWBWHelper(orl_G2E, G2E, or, E, l);
 def_DEWBWHelper(orw_G2E, G2E, or, E, w);
+def_DEWBWHelper(orb_E2G, E2G, or, r, b);
 
+def_DEWBWHelper(andb_E2G ,  E2G, and, r, b);
 def_DEWBWHelper(andl_SI2E,    E, and, E, l);
 def_DEWBWHelper(andw_SI2E,    E, and, E, w);
 
@@ -26,6 +30,7 @@ def_DEWBWHelper(sarw_1_E ,    E, sar, E, w);
 
 def_DEWHelper(testl_G2E,  G2E, test, l);
 def_DEWHelper(testw_G2E,  G2E, test, w);
+def_DEWHelper(testb_G2E,  G2E, test, b);
 def_DEWHelper(testb_I2E,    E, test, b);
 
 def_EWBWHelper(setcc, setcc, E, b);

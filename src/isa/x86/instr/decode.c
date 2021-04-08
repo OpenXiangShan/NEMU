@@ -523,6 +523,7 @@ def_THelper(gp1_SI2E) {
   x86_def_INSTR_TABV("?? 000 ???", SI2E, add);
   x86_def_INSTR_TABV("?? 100 ???", SI2E, and);
   x86_def_INSTR_TABV("?? 101 ???", SI2E, sub);
+  x86_def_INSTR_TABV("?? 110 ???", SI2E, xor);
   x86_def_INSTR_TABV("?? 111 ???", SI2E, cmp);
   return EXEC_ID_inv;
 }
@@ -557,6 +558,7 @@ def_THelper(gp3) {
   x86_def_INSTR_TABV("?? 010 ???", E, not);
   x86_def_INSTR_TABV("?? 100 ???", E, mul);
   x86_def_INSTR_TABV("?? 101 ???", E, imul);
+  x86_def_INSTR_TABV("?? 110 ???", E, div);
   x86_def_INSTR_TABV("?? 111 ???", E, idiv);
   return EXEC_ID_inv;
 }
@@ -574,7 +576,7 @@ def_THelper(_2byte_esc) {
   s->isa.opcode = get_instr(s) | 0x100;
 
   x86_def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
-  x86_def_INSTR_IDTABW("1001 0100",    E, setcc, 1);
+  x86_def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
   x86_def_INSTR_IDTABV("1010 1111",  E2G, imul);
   x86_def_INSTR_IDTABV("1011 0110", Eb2G, movzb);
   x86_def_INSTR_IDTABW("1011 0111", Ew2G, movzwl_Ew2G, 4);
@@ -590,9 +592,11 @@ def_THelper(main) {
   x86_def_INSTR_IDTABV("0000 0001",  G2E, add);
   x86_def_INSTR_IDTABV("0000 0011",  E2G, add);
   x86_def_INSTR_IDTABV("0000 1001",  G2E, or);
+  x86_def_INSTR_IDTABW("0000 1010",  E2G, orb_E2G, 1);
   x86_def_INSTR_TAB   ("0000 1111",       _2byte_esc);
   x86_def_INSTR_IDTABV("0001 0011",  E2G, adc);
   x86_def_INSTR_IDTABV("0001 1011",  E2G, sbb);
+  x86_def_INSTR_IDTABW("0010 0010",  E2G, andb_E2G, 1);
   x86_def_INSTR_IDTABV("0010 1001",  G2E, sub);
   x86_def_INSTR_IDTABV("0010 1011",  E2G, sub);
   x86_def_INSTR_IDTABV("0011 0001",  G2E, xor);
@@ -612,6 +616,7 @@ def_THelper(main) {
   x86_def_INSTR_IDTABW("1000 0000",  I2E, gp1_I2E_b, 1);
   x86_def_INSTR_IDTAB ("1000 0001",  I2E, gp1_I2E);
   x86_def_INSTR_IDTAB ("1000 0011", SI2E, gp1_SI2E);
+  x86_def_INSTR_IDTABW("1000 0100",  G2E, testb_G2E, 1);
   x86_def_INSTR_IDTABV("1000 0101",  G2E, test);
   x86_def_INSTR_IDTABW("1000 1000",  G2E, movb_G2E, 1);
   x86_def_INSTR_IDTABV("1000 1001",  G2E, mov);
@@ -634,6 +639,7 @@ def_THelper(main) {
   x86_def_INSTR_IDTAB ("1101 0011", cl2E, gp2_cl2E);
   x86_def_INSTR_TAB   ("1101 0110",       nemu_trap);
   x86_def_INSTR_IDTABW("1110 1000",    J, call, 4);
+  x86_def_INSTR_IDTABW("1110 1001",    J,  jmp, 4);
   x86_def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
   x86_def_INSTR_IDTABW("1111 0110",    E, gp3_b, 1);
   x86_def_INSTR_IDTAB ("1111 0111",    E, gp3);

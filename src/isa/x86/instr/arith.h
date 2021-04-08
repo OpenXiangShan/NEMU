@@ -42,13 +42,16 @@ def_DEWBWHelper(incw_E, E, inc, E, w);
 def_DEWBWHelper(decl_r, r, dec, r, l);
 def_DEWBWHelper(decw_r, r, dec, r, w);
 
+def_DEWHelper(mull_E, E, mul, l);
+def_DEWHelper(mulw_E, E, mul, w);
+
 def_DEWHelper(imull_E, E, imul1, l);
 def_DEWHelper(imulw_E, E, imul1, w);
 def_DEWBWHelper(imull_E2G, E2G, imul2, r, l);
 def_DEWBWHelper(imulw_E2G, E2G, imul2, r, w);
 
-def_DEWHelper(mull_E, E, mul, l);
-def_DEWHelper(mulw_E, E, mul, w);
+def_DEWHelper(divl_E, E, div, l);
+def_DEWHelper(divw_E, E, div, w);
 
 def_DEWHelper(idivl_E, E, idiv, l);
 def_DEWHelper(idivw_E, E, idiv, w);
@@ -155,38 +158,6 @@ static inline def_EHelper(imul3) {
   operand_write(s, id_dest, ddest);
 
   print_asm_template3(imul);
-}
-
-static inline def_EHelper(div) {
-  switch (id_dest->width) {
-    case 1:
-      rtl_lr(s, s0, R_AX, 2);
-      rtl_divu_q(s, s1, s0, ddest);
-      rtl_sr(s, R_AL, s1, 1);
-      rtl_divu_r(s, s1, s0, ddest);
-      rtl_sr(s, R_AH, s1, 1);
-      break;
-    case 2:
-      rtl_lr(s, s0, R_AX, 2);
-      rtl_lr(s, s1, R_DX, 2);
-      rtl_shli(s, s1, s1, 16);
-      rtl_or(s, s0, s0, s1);
-      rtl_divu_q(s, s1, s0, ddest);
-      rtl_sr(s, R_AX, s1, 2);
-      rtl_divu_r(s, s1, s0, ddest);
-      rtl_sr(s, R_DX, s1, 2);
-      break;
-    case 4:
-      ; rtlreg_t *pdest = ddest;
-      if (ddest == &cpu.eax) pdest = s0;
-      rtl_mv(s, s0, &cpu.eax);
-      rtl_div64u_q(s, &cpu.eax, &cpu.edx, s0, pdest);
-      rtl_div64u_r(s, &cpu.edx, &cpu.edx, s0, pdest);
-      break;
-    default: assert(0);
-  }
-
-  print_asm_template1(div);
 }
 
 #endif
