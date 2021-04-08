@@ -117,6 +117,103 @@ def_REHelper(sbb) {
 #endif
 }
 
+def_REHelper(mul) {
+  switch (width) {
+    case 1:
+      rtl_lr(s, s0, R_EAX, 1);
+      rtl_mulu_lo(s, s1, ddest, s0);
+#ifndef __PA__
+      rtl_update_ZFSF(s, s1, width);
+      rtl_andi(s, s0, s1, 0xff00);
+      rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
+      rtl_set_OF(s, s0);
+      rtl_set_CF(s, s0);
+#endif
+      rtl_sr(s, R_AX, s1, 2);
+      break;
+    case 2:
+      rtl_lr(s, s0, R_EAX, 2);
+      rtl_mulu_lo(s, s1, ddest, s0);
+#ifndef __PA__
+      rtl_update_ZFSF(s, s1, width);
+      rtl_shri(s, s0, s1, 16);
+      rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
+      rtl_set_OF(s, s0);
+      rtl_set_CF(s, s0);
+#endif
+      rtl_sr(s, R_AX, s1, 2);
+      rtl_shri(s, s1, s1, 16);
+      rtl_sr(s, R_DX, s1, 2);
+      break;
+    case 4:
+      ; rtlreg_t *pdest = ddest;
+      if (ddest == &cpu.edx) {
+        rtl_mv(s, s0, ddest);
+        pdest = s0;
+      }
+      rtl_mulu_hi(s, &cpu.edx, pdest, &cpu.eax);
+      rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
+#ifndef __PA__
+      rtl_update_ZFSF(s, &cpu.eax, width);
+      rtl_setrelopi(s, RELOP_NE, s0, &cpu.edx, 0);
+      rtl_set_OF(s, s0);
+      rtl_set_CF(s, s0);
+#endif
+      break;
+    default: assert(0);
+  }
+}
+
+// imul with one operand
+def_REHelper(imul1) {
+  switch (width) {
+    case 1:
+      rtl_lr(s, s0, R_EAX, 1);
+      rtl_sext(s, s0, s0, 1);
+      rtl_sext(s, ddest, ddest, 1);
+      rtl_mulu_lo(s, s1, ddest, s0);
+#ifndef __PA__
+      rtl_update_ZFSF(s, s1, 1);
+      rtl_sext(s, s0, s1, 1);
+      rtl_setrelop(s, RELOP_NE, s0, s0, s1);
+#endif
+      rtl_sr(s, R_AX, s1, 2);
+      break;
+    case 2:
+      rtl_lr(s, s0, R_EAX, 2);
+      rtl_sext(s, s0, s0, 2);
+      rtl_sext(s, ddest, ddest, 2);
+      rtl_mulu_lo(s, s1, ddest, s0);
+#ifndef __PA__
+      rtl_update_ZFSF(s, s1, 2);
+      rtl_sext(s, s0, s1, 2);
+      rtl_setrelop(s, RELOP_NE, s0, s0, s1);
+#endif
+      rtl_sr(s, R_AX, s1, 2);
+      rtl_shri(s, s1, s1, 16);
+      rtl_sr(s, R_DX, s1, 2);
+      break;
+    case 4:
+      ; rtlreg_t *pdest = ddest;
+      if (ddest == &cpu.edx) {
+        rtl_mv(s, s0, ddest);
+        pdest = s0;
+      }
+      rtl_muls_hi(s, &cpu.edx, pdest, &cpu.eax);
+      rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
+#ifndef __PA__
+      rtl_update_ZFSF(s, &cpu.eax, 4);
+      rtl_msb(s, s0, &cpu.eax, 4);
+      rtl_add(s, s0, &cpu.edx, s0);
+      rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
+#endif
+      break;
+    default: assert(0);
+  }
+
+  rtl_set_CF(s, s0);
+  rtl_set_OF(s, s0);
+}
 
 
 // imul with two operands

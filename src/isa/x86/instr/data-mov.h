@@ -8,6 +8,13 @@ def_DEWBWHelper(movw_E2G, mov_E2G, mov, r, w);
 def_DEWBWHelper(movb_E2G, mov_E2G, mov, r, b);
 def_DEWBWHelper(movl_I2E, mov_I2E, mov, E, l);
 def_DEWBWHelper(movw_I2E, mov_I2E, mov, E, w);
+def_DEWBWHelper(movb_I2E, mov_I2E, mov, E, b);
+def_DEWBWHelper(movl_O2a, O, mov, r, l);
+def_DEWBWHelper(movw_O2a, O, mov, r, w);
+def_DEWBWHelper(movb_O2a, O, mov, r, b);
+def_DEWBWHelper(movl_a2O, mov_a2O, mov, O, l);
+def_DEWBWHelper(movw_a2O, mov_a2O, mov, O, w);
+def_DEWBWHelper(movb_a2O, mov_a2O, mov, O, b);
 
 def_DEWHelper(pushl_r, r, push, l);
 def_DEWHelper(pushw_r, r, push, w);
@@ -22,6 +29,11 @@ def_EWHelper(popw_r, pop, w);
 
 def_DEWBWHelper(movzbl_Eb2G, mov_Eb2G, mov, r, l);
 def_DEWBWHelper(movzbw_Eb2G, mov_Eb2G, mov, r, w);
+def_DEWBWHelper(movzwl_Ew2G, mov_Ew2G, mov, r, l);
+
+def_DEWBWHelper(movsbl_Eb2G, mov_Eb2G, movsb, r, l);
+def_DEWBWHelper(movsbw_Eb2G, mov_Eb2G, movsb, r, w);
+def_DEWBWHelper(movswl_Ew2G, mov_Ew2G, movsw, r, l);
 
 def_DEWBWHelper(lea, M2G, lea, r, l);
 
@@ -37,7 +49,6 @@ def_EHelper(leave) {
 }
 
 #if 0
-#ifndef __ICS_EXPORT
 static inline def_EHelper(pusha) {
   rtl_mv(s, s0, &cpu.esp);
   rtl_push(s, &cpu.eax);
@@ -143,64 +154,4 @@ static inline def_EHelper(cmovcc) {
 
   print_asm("cmov%s %s,%s", get_cc_name(cc), id_src1->str, id_dest->str);
 }
-#else
-static inline def_EHelper(push) {
-  TODO();
-  print_asm_template1(push);
-}
-
-static inline def_EHelper(pop) {
-  TODO();
-  print_asm_template1(pop);
-}
-
-static inline def_EHelper(pusha) {
-  TODO();
-  print_asm("pusha");
-}
-
-static inline def_EHelper(popa) {
-  TODO();
-  print_asm("popa");
-}
-
-static inline def_EHelper(leave) {
-  TODO();
-  print_asm("leave");
-}
-
-static inline def_EHelper(cltd) {
-  if (s->isa.is_operand_size_16) {
-    TODO();
-  }
-  else {
-    TODO();
-  }
-  print_asm(s->isa.is_operand_size_16 ? "cwtl" : "cltd");
-}
-
-static inline def_EHelper(cwtl) {
-  if (s->isa.is_operand_size_16) {
-    TODO();
-  }
-  else {
-    TODO();
-  }
-  print_asm(s->isa.is_operand_size_16 ? "cbtw" : "cwtl");
-}
-#endif
-
-static inline def_EHelper(movsx) {
-  id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
-  rtl_sext(s, ddest, dsrc1, id_src1->width);
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(movsx);
-}
-
-static inline def_EHelper(movzx) {
-  id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
-  operand_write(s, id_dest, dsrc1);
-  print_asm_template2(movzx);
-}
-
 #endif

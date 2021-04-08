@@ -11,5 +11,13 @@ def_REHelper(pop) {
 }
 
 def_REHelper(lea) {
-  rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
+  rtl_addi(s, ddest, &s->isa.mbr, s->isa.moff);
+}
+
+def_REHelper(movsb) {
+  rtl_sext(s, ddest, dsrc1, 1);
+}
+
+def_REHelper(movsw) {
+  rtl_sext(s, ddest, dsrc1, 2);
 }

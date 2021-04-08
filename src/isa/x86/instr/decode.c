@@ -199,20 +199,13 @@ static inline void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
   s->isa.is_rm_memory = (m.mod != 3);
 }
 
-#if 0
 /* Ob, Ov */
 def_DopHelper(O) {
-  op->type = OP_TYPE_MEM;
-  s->isa.moff = x86_instr_fetch(s, 4);
+  s->isa.moff = instr_fetch(&s->snpc, 4);
   s->isa.mbase = s->isa.sreg_base ? s->isa.sreg_base : rz;
-  if (load_val) {
-    rtl_lm(s, &op->val, s->isa.mbase, s->isa.moff, op->width);
-    op->preg = &op->val;
-  }
-
+  op->preg = &op->val;
   print_Dop(op->str, OP_STR_SIZE, "0x%x", s->isa.moff);
 }
-#endif
 
 /* Eb <- Gb
  * Ev <- Gv
@@ -249,6 +242,12 @@ static inline def_DHelper(E2G) {
 
 static inline def_DHelper(Eb2G) {
   operand_rm(s, id_src1, id_dest, 1);
+  // overwrite the wrong decode result by `operand_rm()` with the correct width
+  operand_reg(s, id_dest, id_dest->reg, width);
+}
+
+static inline def_DHelper(Ew2G) {
+  operand_rm(s, id_src1, id_dest, 2);
   // overwrite the wrong decode result by `operand_rm()` with the correct width
   operand_reg(s, id_dest, id_dest->reg, width);
 }
@@ -342,27 +341,28 @@ static inline def_DHelper(SI_E2G) {
   id_src1->width = 1;
   decode_op_SI(s, id_src1, true);
 }
+#endif
 
-static inline def_DHelper(gp2_1_E) {
-  operand_rm(s, id_dest, true, NULL, false);
-  operand_imm(s, id_src1, true, 1, 1);
+static inline def_DHelper(1_E) { // use by gp2
+  operand_rm(s, id_dest, NULL, width);
+  operand_imm(s, id_src1, 1);
 }
 
-static inline def_DHelper(gp2_cl2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
-  operand_rm(s, id_dest, true, NULL, false);
+static inline def_DHelper(cl2E) {  // use by gp2
+  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  operand_rm(s, id_dest, NULL, width);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
-  operand_reg(s, id_src1, true, R_ECX, 4);
+  operand_reg(s, id_src1, R_ECX, 4);
 }
 
-static inline def_DHelper(gp2_Ib2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
-  operand_rm(s, id_dest, true, NULL, false);
-  id_src1->width = 1;
-  decode_op_I(s, id_src1, true);
+static inline def_DHelper(Ib2E) { // use by gp2
+  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  operand_rm(s, id_dest, NULL, width);
+  decode_op_I(s, id_src1, 1);
 }
 
+#if 0
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
@@ -388,18 +388,19 @@ static inline def_DHelper(a_G2E) {
   operand_rm(s, id_dest, true, id_src2, true);
   operand_reg(s, id_src1, true, R_EAX, 4);
 }
-
+#endif
 
 static inline def_DHelper(O2a) {
-  decode_op_O(s, id_src1, true);
-  decode_op_a(s, id_dest, false);
+  decode_op_O(s, id_src1, 0);
+  decode_op_a(s, id_dest, width);
 }
 
 static inline def_DHelper(a2O) {
-  decode_op_a(s, id_src1, true);
-  decode_op_O(s, id_dest, false);
+  decode_op_a(s, id_src1, width);
+  decode_op_O(s, id_dest, 0);
 }
 
+#if 0
 // for scas and stos
 static inline def_DHelper(aSrc) {
   decode_op_a(s, id_src1, true);
@@ -513,7 +514,7 @@ def_THelper(gp1_I2E_b) {
 def_THelper(gp1_I2E) {
 //  x86_def_INSTR_TABV("?? 000 ???", I2E, add);
 //  x86_def_INSTR_TABV("?? 100 ???", I2E, and);
-//  x86_def_INSTR_TABV("?? 101 ???", I2E, sub);
+  x86_def_INSTR_TABV("?? 101 ???", I2E, sub);
   x86_def_INSTR_TABV("?? 111 ???", I2E, cmp);
   return EXEC_ID_inv;
 }
@@ -526,18 +527,44 @@ def_THelper(gp1_SI2E) {
   return EXEC_ID_inv;
 }
 
+def_THelper(gp2_1_E) {
+//  x86_def_INSTR_TABV("?? 100 ???", cl2E, shl);
+//  x86_def_INSTR_TABV("?? 101 ???", cl2E, shr);
+  x86_def_INSTR_TABV("?? 111 ???", 1_E, sar);
+  return EXEC_ID_inv;
+}
+
+def_THelper(gp2_cl2E) {
+  x86_def_INSTR_TABV("?? 100 ???", cl2E, shl);
+  x86_def_INSTR_TABV("?? 101 ???", cl2E, shr);
+  x86_def_INSTR_TABV("?? 111 ???", cl2E, sar);
+  return EXEC_ID_inv;
+}
+
+def_THelper(gp2_Ib2E) {
+  x86_def_INSTR_TABV("?? 100 ???", Ib2E, shl);
+  x86_def_INSTR_TABV("?? 101 ???", Ib2E, shr);
+  x86_def_INSTR_TABV("?? 111 ???", Ib2E, sar);
+  return EXEC_ID_inv;
+}
+
 def_THelper(gp3_b) {
   x86_def_INSTR_IDTABW("?? 000 ???", test_I, testb_I2E, 1);
   return EXEC_ID_inv;
 }
 
 def_THelper(gp3) {
+  x86_def_INSTR_TABV("?? 010 ???", E, not);
+  x86_def_INSTR_TABV("?? 100 ???", E, mul);
+  x86_def_INSTR_TABV("?? 101 ???", E, imul);
   x86_def_INSTR_TABV("?? 111 ???", E, idiv);
   return EXEC_ID_inv;
 }
 
 def_THelper(gp5) {
   x86_def_INSTR_TABV("?? 000 ???", E, inc);
+  x86_def_INSTR_TAB ("?? 010 ???", call_E);
+  x86_def_INSTR_TAB ("?? 100 ???", jmp_E);
   x86_def_INSTR_TABV("?? 110 ???", E, push);
   return EXEC_ID_inv;
 }
@@ -546,9 +573,13 @@ def_THelper(_2byte_esc) {
   x86_instr_fetch(s, 1);
   s->isa.opcode = get_instr(s) | 0x100;
 
+  x86_def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   x86_def_INSTR_IDTABW("1001 0100",    E, setcc, 1);
   x86_def_INSTR_IDTABV("1010 1111",  E2G, imul);
   x86_def_INSTR_IDTABV("1011 0110", Eb2G, movzb);
+  x86_def_INSTR_IDTABW("1011 0111", Ew2G, movzwl_Ew2G, 4);
+  x86_def_INSTR_IDTABV("1011 1110", Eb2G, movsb);
+  x86_def_INSTR_IDTABW("1011 1111", Ew2G, movswl_Ew2G, 4);
   return EXEC_ID_inv;
 }
 
@@ -562,6 +593,7 @@ def_THelper(main) {
   x86_def_INSTR_TAB   ("0000 1111",       _2byte_esc);
   x86_def_INSTR_IDTABV("0001 0011",  E2G, adc);
   x86_def_INSTR_IDTABV("0001 1011",  E2G, sbb);
+  x86_def_INSTR_IDTABV("0010 1001",  G2E, sub);
   x86_def_INSTR_IDTABV("0010 1011",  E2G, sub);
   x86_def_INSTR_IDTABV("0011 0001",  G2E, xor);
   x86_def_INSTR_IDTABW("0011 1000",  G2E, cmpb_G2E, 1);
@@ -588,10 +620,18 @@ def_THelper(main) {
   x86_def_INSTR_IDTABW("1000 1101",  E2G, lea, 4);
   x86_def_INSTR_TAB   ("1001 0000",       nop);
   x86_def_INSTR_TAB   ("1001 1001",       cltd);
+  x86_def_INSTR_IDTABW("1010 0000",  O2a, movb_O2a, 1);
+  x86_def_INSTR_IDTABV("1010 0001",  O2a, mov);
+  x86_def_INSTR_IDTABW("1010 0010",  a2O, movb_a2O, 1);
+  x86_def_INSTR_IDTABV("1010 0011",  a2O, mov);
   x86_def_INSTR_IDTABV("1011 1???",  I2r, mov);
+  x86_def_INSTR_IDTAB ("1100 0001", Ib2E, gp2_Ib2E);
   x86_def_INSTR_TAB   ("1100 0011",       ret);
+  x86_def_INSTR_IDTABW("1100 0110",  I2E, movb_I2E, 1);
   x86_def_INSTR_IDTABV("1100 0111",  I2E, mov);
   x86_def_INSTR_TAB   ("1100 1001",       leave);
+  x86_def_INSTR_IDTAB ("1101 0001",  1_E, gp2_1_E);
+  x86_def_INSTR_IDTAB ("1101 0011", cl2E, gp2_cl2E);
   x86_def_INSTR_TAB   ("1101 0110",       nemu_trap);
   x86_def_INSTR_IDTABW("1110 1000",    J, call, 4);
   x86_def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
@@ -618,7 +658,8 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_jcc:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
-    case EXEC_ID_ret: s->type = INSTR_TYPE_I; break;
+    case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E:
+      s->type = INSTR_TYPE_I; break;
   }
 
   return idx;
