@@ -29,6 +29,8 @@ def_DEWBWHelper(sbbl_G2E ,  G2E, sbb, E, l);
 def_DEWBWHelper(sbbw_G2E ,  G2E, sbb, E, w);
 def_DEWBWHelper(sbbl_E2G ,  E2G, sbb, r, l);
 def_DEWBWHelper(sbbw_E2G ,  E2G, sbb, r, w);
+def_DEWBWHelper(sbbl_SI2E,    E, sbb, E, l);
+def_DEWBWHelper(sbbw_SI2E,    E, sbb, E, w);
 
 def_DEWHelper(cmpl_G2E ,  G2E, cmp, l);
 def_DEWHelper(cmpw_G2E ,  G2E, cmp, w);
@@ -53,6 +55,7 @@ def_DEWBWHelper(decl_r, r, dec, r, l);
 def_DEWBWHelper(decw_r, r, dec, r, w);
 def_DEWBWHelper(decl_E, E, dec, E, l);
 def_DEWBWHelper(decw_E, E, dec, E, w);
+def_DEWBWHelper(decb_E, E, dec, E, b);
 
 def_DEWHelper(negl_E, E, neg, l);
 def_DEWHelper(negw_E, E, neg, w);
@@ -64,6 +67,8 @@ def_DEWHelper(imull_E, E, imul1, l);
 def_DEWHelper(imulw_E, E, imul1, w);
 def_DEWBWHelper(imull_E2G, E2G, imul2, r, l);
 def_DEWBWHelper(imulw_E2G, E2G, imul2, r, w);
+def_DEWBWHelper(imull_I_E2G, E_src, imul3, r, l);
+def_DEWBWHelper(imulw_I_E2G, E_src, imul3, r, w);
 
 def_DEWHelper(divl_E, E, div, l);
 def_DEWHelper(divw_E, E, div, w);
@@ -72,8 +77,6 @@ def_DEWHelper(idivl_E, E, idiv, l);
 def_DEWHelper(idivw_E, E, idiv, w);
 
 #if 0
-#ifndef __ICS_EXPORT
-
 static inline def_EHelper(xadd) {
   rtl_add(s, s0, ddest, dsrc1);
 #ifdef LAZY_CC
@@ -93,69 +96,4 @@ static inline def_EHelper(xadd) {
   operand_write(s, id_dest, s0);
   print_asm_template2(xadd);
 }
-#else
-static inline def_EHelper(add) {
-  TODO();
-  print_asm_template2(add);
-}
-
-static inline def_EHelper(sub) {
-  TODO();
-  print_asm_template2(sub);
-}
-
-static inline def_EHelper(cmp) {
-  TODO();
-  print_asm_template2(cmp);
-}
-
-static inline def_EHelper(inc) {
-  TODO();
-  print_asm_template1(inc);
-}
-
-static inline def_EHelper(dec) {
-  TODO();
-  print_asm_template1(dec);
-}
-
-static inline def_EHelper(neg) {
-  TODO();
-  print_asm_template1(neg);
-}
-#endif
-
-
-// imul with three operands
-static inline def_EHelper(imul3) {
-  rtl_sext(s, dsrc2, dsrc2, id_dest->width);
-
-#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
-  if (id_dest->width == 4) {
-    rtl_muls_hi(s, s1, dsrc2, dsrc1);
-  }
-#endif
-
-  rtl_mulu_lo(s, ddest, dsrc2, dsrc1);
-
-#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
-  if (id_dest->width == 2) {
-    rtl_sext(s, s0, ddest, id_dest->width);
-    rtl_setrelop(s, RELOP_NE, s0, s0, ddest);
-  } else if (id_dest->width == 4) {
-    rtl_msb(s, s0, ddest, id_dest->width);
-    rtl_add(s, s0, s1, s0);
-    rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
-  } else {
-    assert(0);
-  }
-  rtl_set_CF(s, s0);
-  rtl_set_OF(s, s0);
-  rtl_update_ZFSF(s, ddest, id_dest->width);
-#endif
-  operand_write(s, id_dest, ddest);
-
-  print_asm_template3(imul);
-}
-
 #endif

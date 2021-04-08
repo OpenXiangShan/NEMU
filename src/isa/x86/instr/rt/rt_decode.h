@@ -93,3 +93,7 @@ def_RDHelper(O) {
 def_RDHelper(a_src) {
   rt_operand_reg(s, id_src1, width);
 }
+
+def_RDHelper(E_src) {
+  rt_operand_rm(s, id_src1, true, NULL, false, width);
+}

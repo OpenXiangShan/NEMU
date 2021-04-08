@@ -38,6 +38,17 @@ def_DEWBWHelper(movswl_Ew2G, mov_Ew2G, movsw, r, l);
 
 def_DEWBWHelper(lea, M2G, lea, r, l);
 
+def_EHelper(cwtl) {
+  if (s->isa.is_operand_size_16) {
+    rtl_sext(s, s0, &cpu.eax, 1);
+    rtl_sr(s, R_AX, s0, 2);
+  }
+  else {
+    rtl_sext(s, &cpu.eax, &cpu.eax, 2);
+  }
+}
+
+
 def_EHelper(cltd) {
   if (s->isa.is_operand_size_16) { TODO(); }
   else { rtl_sari(s, &cpu.edx, &cpu.eax, 31); }
@@ -73,18 +84,6 @@ static inline def_EHelper(popa) {
   rtl_pop(s, &cpu.ecx);
   rtl_pop(s, &cpu.eax);
   print_asm("popa");
-}
-
-static inline def_EHelper(cwtl) {
-  if (s->isa.is_operand_size_16) {
-    rtl_sext(s, s0, &cpu.eax, 1);
-    rtl_sr(s, R_AX, s0, 2);
-  }
-  else {
-    rtl_sext(s, &cpu.eax, &cpu.eax, 2);
-  }
-
-  print_asm(s->isa.is_operand_size_16 ? "cbtw" : "cwtl");
 }
 
 static inline def_EHelper(xchg) {

@@ -230,7 +230,6 @@ def_REHelper(imul1) {
   rtl_set_OF(s, s0);
 }
 
-
 // imul with two operands
 def_REHelper(imul2) {
   rtl_sext(s, dsrc1, dsrc1, width);
@@ -243,6 +242,35 @@ def_REHelper(imul2) {
   rtl_mulu_lo(s, ddest, ddest, dsrc1);
 
 #ifndef __PA__
+  if (width == 2) {
+    rtl_sext(s, s0, ddest, width);
+    rtl_setrelop(s, RELOP_NE, s0, s0, ddest);
+  } else if (width == 4) {
+    rtl_msb(s, s0, ddest, width);
+    rtl_add(s, s0, s1, s0);
+    rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
+  } else {
+    assert(0);
+  }
+  rtl_set_CF(s, s0);
+  rtl_set_OF(s, s0);
+  rtl_update_ZFSF(s, ddest, width);
+#endif
+}
+
+// imul with three operands
+def_REHelper(imul3) {
+  rtl_sext(s, dsrc1, dsrc1, width);
+
+#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
+  if (id_dest->width == 4) {
+    rtl_muls_hi(s, s1, dsrc1, dsrc2);
+  }
+#endif
+
+  rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
+
+#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
   if (width == 2) {
     rtl_sext(s, s0, ddest, width);
     rtl_setrelop(s, RELOP_NE, s0, s0, ddest);

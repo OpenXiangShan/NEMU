@@ -1,15 +1,22 @@
 def_DEWBWHelper(xorl_G2E , G2E, xor, E, l);
 def_DEWBWHelper(xorw_G2E , G2E, xor, E, w);
+def_DEWBWHelper(xorb_G2E , G2E, xor, E, b);
 def_DEWBWHelper(xorl_E2G , E2G, xor, r, l);
 def_DEWBWHelper(xorw_E2G , E2G, xor, r, w);
+def_DEWBWHelper(xorb_E2G , E2G, xor, r, b);
 def_DEWBWHelper(xorl_SI2E,   E, xor, E, l);
 def_DEWBWHelper(xorw_SI2E,   E, xor, E, w);
+def_DEWBWHelper(xorl_I2a ,   r, xor, r, l);
+def_DEWBWHelper(xorw_I2a ,   r, xor, r, w);
 
 def_DEWBWHelper(orl_G2E, G2E, or, E, l);
 def_DEWBWHelper(orw_G2E, G2E, or, E, w);
 def_DEWBWHelper(orl_E2G, E2G, or, r, l);
 def_DEWBWHelper(orw_E2G, E2G, or, r, w);
 def_DEWBWHelper(orb_E2G, E2G, or, r, b);
+def_DEWBWHelper(orl_I2E ,  E, or, E, l);
+def_DEWBWHelper(orw_I2E ,  E, or, E, w);
+def_DEWBWHelper(orb_I2E ,  E, or, E, b);
 def_DEWBWHelper(orl_SI2E,  E, or, E, l);
 def_DEWBWHelper(orw_SI2E,  E, or, E, w);
 def_DEWBWHelper(orl_I2a,   r, or, r, l);
@@ -38,6 +45,7 @@ def_DEWBWHelper(shrl_cl2E,    E, shr, E, l);
 def_DEWBWHelper(shrw_cl2E,    E, shr, E, w);
 def_DEWBWHelper(shrl_1_E ,    E, shr, E, l);
 def_DEWBWHelper(shrw_1_E ,    E, shr, E, w);
+def_DEWBWHelper(shrb_1_E ,    E, shr, E, b);
 
 def_DEWBWHelper(sarl_Ib2E,    E, sar, E, l);
 def_DEWBWHelper(sarw_Ib2E,    E, sar, E, w);
@@ -63,7 +71,6 @@ def_DEWBWHelper(roll_cl2E,    E, rol, E, l);
 def_DEWBWHelper(rolw_cl2E,    E, rol, E, w);
 
 #if 0
-#ifndef __ICS_EXPORT
 static inline def_EHelper(ror) {
   rtl_shr(s, s0, ddest, dsrc1);
   rtl_li(s, s1, id_dest->width * 8);
@@ -186,49 +193,4 @@ static inline def_EHelper(rcl) {
   operand_write(s, id_dest, ddest);
   print_asm_template2(rcl);
 }
-#else
-static inline def_EHelper(test) {
-  TODO();
-  print_asm_template2(test);
-}
-
-static inline def_EHelper(and) {
-  TODO();
-  print_asm_template2(and);
-}
-
-static inline def_EHelper(xor) {
-  TODO();
-  print_asm_template2(xor);
-}
-
-static inline def_EHelper(or) {
-  TODO();
-  print_asm_template2(or);
-}
-
-static inline def_EHelper(not) {
-  TODO();
-  print_asm_template1(not);
-}
-
-static inline def_EHelper(sar) {
-  TODO();
-  // unnecessary to update CF and OF in NEMU
-  print_asm_template2(sar);
-}
-
-static inline def_EHelper(shl) {
-  TODO();
-  // unnecessary to update CF and OF in NEMU
-  print_asm_template2(shl);
-}
-
-static inline def_EHelper(shr) {
-  TODO();
-  // unnecessary to update CF and OF in NEMU
-  print_asm_template2(shr);
-}
-
-#endif
 #endif
