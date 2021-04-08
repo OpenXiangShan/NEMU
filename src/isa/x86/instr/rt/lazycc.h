@@ -59,7 +59,7 @@ static const int cc2relop_logic [] = {
 
 
 static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
-  rtlreg_t *p;
+  rtlreg_t *p = NULL;
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
   if ((cc2relop[cc] & UNARY) && !exception) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
@@ -330,15 +330,6 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
 negcc_reverse:
     if NEGCC(cc) rtl_xori(s, dest, dest, 1);
     return;
-}
-
-static inline def_rtl(lazy_jcc, uint32_t cc) {
-  if (cpu.cc_dirty == false) { 
-    cpu.cc_dynamic = cpu.cc_op | 0x100; 
-    // printf("dynamic hit\n");
-  }
-  rtl_lazy_setcc_internal(s, (rtlreg_t *)s2, cc);
-  rtl_jrelop(s, RELOP_NE, s2, rz, s->jmp_pc);
 }
 
 static inline def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {

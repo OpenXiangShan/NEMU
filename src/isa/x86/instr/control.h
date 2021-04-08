@@ -1,19 +1,19 @@
 def_EHelper(call) {
-  IFDEF(LAZY_CC, clean_lazycc(s));
+  IFDEF(LAZY_CC, clean_lazycc());
   // the target address is calculated at the decode stage
   rtl_push(s, dsrc1);
   rtl_j(s, id_dest->imm);
 }
 
 def_EHelper(ret) {
-  IFDEF(LAZY_CC, clean_lazycc(s));
+  IFDEF(LAZY_CC, clean_lazycc());
   rtl_pop(s, s0);
   rtl_jr(s, s0);
 }
 
 def_EHelper(jmp) {
   // the target address is calculated at the decode stage
-  IFDEF(LAZY_CC, clean_lazycc(s));
+  IFDEF(LAZY_CC, clean_lazycc());
   rtl_j(s, id_dest->imm);
 }
 
@@ -21,12 +21,12 @@ def_EHelper(jcc) {
   // the target address is calculated at the decode stage
   uint32_t cc = s->isa.opcode & 0xf;
 #ifdef LAZY_CC
-  rtl_lazy_jcc(s, cc);
-  clean_lazycc(s);
+  rtl_lazy_setcc(s, s0, cc);
+  clean_lazycc();
 #else
   rtl_setcc(s, s0, cc);
-  rtl_jrelop(s, RELOP_NE, s0, rz, id_dest->simm);
 #endif
+  rtl_jrelop(s, RELOP_NE, s0, rz, id_dest->simm);
 }
 
 def_EHelper(call_E) {

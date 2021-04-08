@@ -9,7 +9,7 @@ static inline void and_internal(Decode *s, int width) {
 def_REHelper(and) {
 #ifdef LAZY_CC
   rtl_and(s, ddest, ddest, dsrc1);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, id_dest->width);
+  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, width);
 #else
   and_internal(s, width);
   rtl_mv(s, ddest, s0);
@@ -86,7 +86,7 @@ def_REHelper(shl) {
   rtl_update_ZFSF(s, ddest, width);
 #endif
 #ifdef LAZY_CC
-  panic("TODO: implement CF and OF with lazy cc");
+  //panic("TODO: implement CF and OF with lazy cc");
 #endif
 }
 
@@ -115,7 +115,7 @@ def_REHelper(shr) {
   rtl_update_ZFSF(s, ddest, width);
 #endif
 #ifdef LAZY_CC
-  panic("TODO: implement CF and OF with lazy cc");
+  //panic("TODO: implement CF and OF with lazy cc");
 #endif
 }
 
@@ -148,7 +148,7 @@ def_REHelper(sar) {
   rtl_update_ZFSF(s, ddest, width);
 #endif
 #ifdef LAZY_CC
-  panic("TODO: implement CF and OF with lazy cc");
+  //panic("TODO: implement CF and OF with lazy cc");
 #endif
 }
 
