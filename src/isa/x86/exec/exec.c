@@ -332,7 +332,7 @@ vaddr_t isa_exec_once() {
   commit_instr(cpu.pc, instr_buf, instr_len);
 #endif
 
-#ifndef __PA__
+#ifndef CONFIG_PA
   if (cpu.mem_exception != 0) {
     cpu.pc = raise_intr(cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;

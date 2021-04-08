@@ -224,7 +224,7 @@ static inline def_DHelper(bit_G2E) {
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
     s->isa.mbase = &s->isa.mbr;
     if (s->opcode != 0x1a3) { // bt
-      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
     }
     rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
   }
@@ -273,7 +273,7 @@ static inline def_DHelper(I_E2G) {
  */
 
 static inline def_DHelper(I2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, NULL, width);
   decode_op_I(s, id_src1, width);
 }
@@ -341,7 +341,7 @@ static inline def_DHelper(1_E) { // use by gp2
 }
 
 static inline def_DHelper(cl2E) {  // use by gp2
-  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, NULL, width);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -349,7 +349,7 @@ static inline def_DHelper(cl2E) {  // use by gp2
 }
 
 static inline def_DHelper(Ib2E) { // use by gp2
-  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, NULL, width);
   decode_op_I(s, id_src1, 1);
 }
@@ -358,7 +358,7 @@ static inline def_DHelper(Ib2E) { // use by gp2
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -367,7 +367,7 @@ static inline def_DHelper(Ib_G2E) {
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline def_DHelper(cl_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
@@ -376,7 +376,7 @@ static inline def_DHelper(cl_G2E) {
 
 // for cmpxchg
 static inline def_DHelper(a_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   operand_reg(s, id_src1, true, R_EAX, 4);
 }

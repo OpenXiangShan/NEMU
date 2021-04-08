@@ -38,7 +38,7 @@ static inline word_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-#ifdef __PA__
+#ifdef CONFIG_PA
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   Assert(pte->p, "vaddr = %x, cpu.pc = %x", vaddr, cpu.pc);
   return true;
@@ -77,7 +77,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   assert(level == 0);
   if (!check_permission(&pte[0], true, vaddr, type)) return MEM_RET_FAIL;
 
-#if !defined(__PA__) || defined(CONFIG_DIFFTEST)
+#if !defined(CONFIG_PA) || defined(CONFIG_DIFFTEST)
   if (!pte[1].a) {
     pte[1].a = 1;
     paddr_write(p_pte[1], PTE_SIZE, pte[1].val);

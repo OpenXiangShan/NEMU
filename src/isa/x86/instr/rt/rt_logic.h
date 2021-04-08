@@ -7,7 +7,7 @@ static inline void and_internal(Decode *s, int width) {
 }
 
 def_REHelper(and) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_and(s, ddest, ddest, dsrc1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, width);
 #else
@@ -18,7 +18,7 @@ def_REHelper(and) {
 
 def_REHelper(or) {
   rtl_or(s, ddest, ddest, dsrc1);
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, width);
 #else
   rtl_update_ZFSF(s, ddest, width);
@@ -29,7 +29,7 @@ def_REHelper(or) {
 
 
 def_REHelper(test) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_and(s, s0, ddest, dsrc1);
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, width);
 #else
@@ -39,7 +39,7 @@ def_REHelper(test) {
 
 def_REHelper(xor) {
   rtl_xor(s, ddest, ddest, dsrc1);
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, width);
 #else
   rtl_update_ZFSF(s, ddest, width);
@@ -54,7 +54,7 @@ def_REHelper(not) {
 
 def_REHelper(setcc) {
   uint32_t cc = s->isa.opcode & 0xf;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_lazy_setcc(s, ddest, cc);
 #else
   rtl_setcc(s, ddest, cc);
@@ -62,7 +62,7 @@ def_REHelper(setcc) {
 }
 
 def_REHelper(shl) {
-#ifndef __PA__
+#ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) return;
@@ -85,13 +85,13 @@ def_REHelper(shl) {
   rtl_shl(s, ddest, ddest, dsrc1);
   rtl_update_ZFSF(s, ddest, width);
 #endif
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   //panic("TODO: implement CF and OF with lazy cc");
 #endif
 }
 
 def_REHelper(shr) {
-#ifndef __PA__
+#ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) return;
@@ -114,7 +114,7 @@ def_REHelper(shr) {
   rtl_shr(s, ddest, ddest, dsrc1);
   rtl_update_ZFSF(s, ddest, width);
 #endif
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   //panic("TODO: implement CF and OF with lazy cc");
 #endif
 }
@@ -124,7 +124,7 @@ def_REHelper(sar) {
   // lower 5 bits of dsrc1, which do not change after
   // rtl_sext(), and it is still sematically correct
   rtl_sext(s, ddest, ddest, width);
-#ifndef __PA__
+#ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
   if (count == 0) return;
@@ -147,7 +147,7 @@ def_REHelper(sar) {
   rtl_sar(s, ddest, ddest, dsrc1);
   rtl_update_ZFSF(s, ddest, width);
 #endif
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   //panic("TODO: implement CF and OF with lazy cc");
 #endif
 }

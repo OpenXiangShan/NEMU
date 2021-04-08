@@ -1,0 +1,11 @@
+menu "ISA-dependent Options for x86"
+
+config LAZY_CC
+  bool "Enable lazy evaluation for condition codes"
+  default y
+
+config PA
+  bool "Enable PA version"
+  default n
+
+endmenu

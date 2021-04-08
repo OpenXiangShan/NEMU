@@ -1,26 +1,26 @@
 def_EHelper(call) {
-  IFDEF(LAZY_CC, clean_lazycc());
+  IFDEF(CONFIG_LAZY_CC, clean_lazycc());
   // the target address is calculated at the decode stage
   rtl_push(s, dsrc1);
   rtl_j(s, id_dest->imm);
 }
 
 def_EHelper(ret) {
-  IFDEF(LAZY_CC, clean_lazycc());
+  IFDEF(CONFIG_LAZY_CC, clean_lazycc());
   rtl_pop(s, s0);
   rtl_jr(s, s0);
 }
 
 def_EHelper(jmp) {
   // the target address is calculated at the decode stage
-  IFDEF(LAZY_CC, clean_lazycc());
+  IFDEF(CONFIG_LAZY_CC, clean_lazycc());
   rtl_j(s, id_dest->imm);
 }
 
 def_EHelper(jcc) {
   // the target address is calculated at the decode stage
   uint32_t cc = s->isa.opcode & 0xf;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_lazy_setcc(s, s2, cc);
   rtl_mv(s, s0, s2);
   clean_lazycc();
@@ -31,7 +31,7 @@ def_EHelper(jcc) {
 }
 
 def_EHelper(call_E) {
-  IFDEF(LAZY_CC, clean_lazycc(s));
+  IFDEF(CONFIG_LAZY_CC, clean_lazycc());
   rt_decode_E(s, 4);
   rtl_li(s, s0, s->snpc);
   rtl_push(s, s0);
@@ -39,7 +39,7 @@ def_EHelper(call_E) {
 }
 
 def_EHelper(jmp_E) {
-  IFDEF(LAZY_CC, clean_lazycc(s));
+  IFDEF(CONFIG_LAZY_CC, clean_lazycc());
   rt_decode_E(s, 4);
   rtl_jr(s, ddest);
 }
@@ -51,8 +51,8 @@ def_EHelper(jmp_E) {
 static inline def_EHelper(ret_imm) {
   rtl_pop(s, s0);
   rtl_jr(s, s0);
-#ifdef LAZY_CC
-  clean_lazycc(s);
+#ifdef CONFIG_LAZY_CC
+  clean_lazycc();
 #endif
   rtl_add(s, &cpu.esp, &cpu.esp, ddest);
   print_asm("ret %s", id_dest->str);

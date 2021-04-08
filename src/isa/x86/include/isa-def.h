@@ -4,18 +4,6 @@
 #include <common.h>
 
 #ifndef __ICS_EXPORT
-//#define __PA__
-
-//#define LAZY_CC
-//#define ENABLE_DIFFTEST_INSTR_QUEUE
-#endif
-
-// memory
-#ifdef __ENGINE_rv64__
-#define LAZY_CC
-#endif
-
-#ifndef __ICS_EXPORT
 /* the Control Register 0 */
 typedef union CR0 {
   struct {
@@ -82,7 +70,7 @@ typedef struct {
 
   rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtlreg_t cc_dest, cc_src1, cc_src2;
   uint32_t cc_width, cc_op, cc_dirty, cc_dynamic;
 #endif
@@ -123,7 +111,7 @@ typedef struct {
 
   int mem_exception;
   word_t error_code;
-  IFNDEF(__PA__, int lock);
+  IFNDEF(CONFIG_PA, int lock);
 
   bool INTR;
 #endif

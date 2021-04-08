@@ -157,7 +157,7 @@ static inline def_rtl(update_PF, const rtlreg_t* result) {
 static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
   rtl_update_ZF(s, result, width);
   rtl_update_SF(s, result, width);
-#ifndef __PA__
+#ifndef CONFIG_PA
   rtl_update_PF(s, result);
 #endif
 }

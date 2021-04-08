@@ -1,7 +1,7 @@
 #include <cpu/exec.h>
 #include "cc.h"
 
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
 static inline def_rtl(set_lazycc_dest, const rtlreg_t *dest) {
   rtl_mv(s, &cpu.cc_dest, dest);
 }

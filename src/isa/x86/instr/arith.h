@@ -79,7 +79,7 @@ def_DEWHelper(idivw_E, E, idiv, w);
 #if 0
 static inline def_EHelper(xadd) {
   rtl_add(s, s0, ddest, dsrc1);
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc_src1(s, dsrc1);
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_ADD, id_dest->width);
 #else

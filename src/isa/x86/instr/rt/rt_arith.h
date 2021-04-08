@@ -1,5 +1,5 @@
 def_REHelper(add) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc_src1(s, dsrc1);  // set src firstly cuz maybe $dest = $src
   rtl_add(s, ddest, ddest, dsrc1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_ADD, width);
@@ -28,7 +28,7 @@ static inline void cmp_internal(Decode *s, int width) {
 }
 
 def_REHelper(sub) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, width);
   rtl_sub(s, ddest, ddest, dsrc1);
 #else
@@ -38,7 +38,7 @@ def_REHelper(sub) {
 }
 
 def_REHelper(cmp) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, width);
 #else
   cmp_internal(s, width);
@@ -47,7 +47,7 @@ def_REHelper(cmp) {
 
 def_REHelper(inc) {
   rtl_addi(s, ddest, ddest, 1);
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, width);
 #else
   rtl_update_ZFSF(s, ddest, width);
@@ -57,7 +57,7 @@ def_REHelper(inc) {
 }
 
 def_REHelper(dec) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_subi(s, ddest, ddest, 1);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, width);
 #else
@@ -70,7 +70,7 @@ def_REHelper(dec) {
 }
 
 def_REHelper(adc) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
   rtl_set_lazycc_src2(s, dsrc1);
@@ -95,7 +95,7 @@ def_REHelper(adc) {
 }
 
 def_REHelper(sbb) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
   rtl_set_lazycc_src2(s, dsrc1);
@@ -118,7 +118,7 @@ def_REHelper(sbb) {
 }
 
 def_REHelper(neg) {
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_sub(s, ddest, rz, ddest);
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, width);
 #else
@@ -137,7 +137,7 @@ def_REHelper(mul) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef __PA__
+#ifndef CONFIG_PA
       rtl_update_ZFSF(s, s1, width);
       rtl_andi(s, s0, s1, 0xff00);
       rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
@@ -149,7 +149,7 @@ def_REHelper(mul) {
     case 2:
       rtl_lr(s, s0, R_EAX, 2);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef __PA__
+#ifndef CONFIG_PA
       rtl_update_ZFSF(s, s1, width);
       rtl_shri(s, s0, s1, 16);
       rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
@@ -168,7 +168,7 @@ def_REHelper(mul) {
       }
       rtl_mulu_hi(s, &cpu.edx, pdest, &cpu.eax);
       rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
-#ifndef __PA__
+#ifndef CONFIG_PA
       rtl_update_ZFSF(s, &cpu.eax, width);
       rtl_setrelopi(s, RELOP_NE, s0, &cpu.edx, 0);
       rtl_set_OF(s, s0);
@@ -187,7 +187,7 @@ def_REHelper(imul1) {
       rtl_sext(s, s0, s0, 1);
       rtl_sext(s, ddest, ddest, 1);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef __PA__
+#ifndef CONFIG_PA
       rtl_update_ZFSF(s, s1, 1);
       rtl_sext(s, s0, s1, 1);
       rtl_setrelop(s, RELOP_NE, s0, s0, s1);
@@ -199,7 +199,7 @@ def_REHelper(imul1) {
       rtl_sext(s, s0, s0, 2);
       rtl_sext(s, ddest, ddest, 2);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef __PA__
+#ifndef CONFIG_PA
       rtl_update_ZFSF(s, s1, 2);
       rtl_sext(s, s0, s1, 2);
       rtl_setrelop(s, RELOP_NE, s0, s0, s1);
@@ -216,7 +216,7 @@ def_REHelper(imul1) {
       }
       rtl_muls_hi(s, &cpu.edx, pdest, &cpu.eax);
       rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
-#ifndef __PA__
+#ifndef CONFIG_PA
       rtl_update_ZFSF(s, &cpu.eax, 4);
       rtl_msb(s, s0, &cpu.eax, 4);
       rtl_add(s, s0, &cpu.edx, s0);
@@ -235,13 +235,13 @@ def_REHelper(imul2) {
   rtl_sext(s, dsrc1, dsrc1, width);
   rtl_sext(s, ddest, ddest, width);
 
-#ifndef __PA__
+#ifndef CONFIG_PA
   if (width == 4) { rtl_muls_hi(s, s1, ddest, dsrc1); }
 #endif
 
   rtl_mulu_lo(s, ddest, ddest, dsrc1);
 
-#ifndef __PA__
+#ifndef CONFIG_PA
   if (width == 2) {
     rtl_sext(s, s0, ddest, width);
     rtl_setrelop(s, RELOP_NE, s0, s0, ddest);
@@ -262,7 +262,7 @@ def_REHelper(imul2) {
 def_REHelper(imul3) {
   rtl_sext(s, dsrc1, dsrc1, width);
 
-#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
+#if !defined(CONFIG_PA) && defined(CONFIG_DIFFTEST)
   if (width == 4) {
     rtl_muls_hi(s, s1, dsrc1, dsrc2);
   }
@@ -270,7 +270,7 @@ def_REHelper(imul3) {
 
   rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
 
-#if !defined(__PA__) && defined(CONFIG_DIFFTEST)
+#if !defined(CONFIG_PA) && defined(CONFIG_DIFFTEST)
   if (width == 2) {
     rtl_sext(s, s0, ddest, width);
     rtl_setrelop(s, RELOP_NE, s0, s0, ddest);

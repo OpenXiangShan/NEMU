@@ -14,7 +14,7 @@ static inline void rt_operand_rm(Decode *s,
     if (((s->opcode == 0x80 || s->opcode == 0x81 || s->opcode == 0x83) && s->isa.ext_opcode == 7) ||
         (s->opcode == 0x1ba && s->isa.ext_opcode == 4)) {
       // fix with cmp and bt, since they do not write memory
-      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 0));
+      IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 0));
     }
 #endif
 
@@ -23,7 +23,7 @@ static inline void rt_operand_rm(Decode *s,
       rtl_shli(s, s1, s->isa.midx, s->isa.mscale);
       rtl_add(s, &s->isa.mbr, &s->isa.mbr, s1);
     }
-    if (ISNDEF(__PA__) && s->isa.sreg_base != NULL) {
+    if (ISNDEF(CONFIG_PA) && s->isa.sreg_base != NULL) {
       rtl_add(s, &s->isa.mbr, &s->isa.mbr, s->isa.sreg_base);
     }
 
@@ -59,7 +59,7 @@ def_RDHelper(G2E) {
 #if 0
   if (s->opcode != 0x38 && s->opcode != 0x39 && // cmp
       s->opcode != 0x84 && s->opcode != 0x85) { // test
-    IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(__PA__, cpu.lock = 1));
+    IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   }
 #endif
   rt_operand_rm(s, id_dest, true, id_src1, true, width);

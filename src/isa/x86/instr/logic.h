@@ -100,7 +100,7 @@ static inline def_EHelper(shld) {
   rtl_or(s, ddest, s0, s1);
 
   operand_write(s, id_dest, ddest);
-#ifndef LAZY_CC
+#ifndef CONFIG_LAZY_CC
   rtl_update_ZFSF(s, ddest, id_dest->width);
   // unnecessary to update CF and OF in NEMU
 #endif
@@ -136,7 +136,7 @@ static inline def_EHelper(shrd) {
   rtl_or(s, ddest, s0, s1);
 
   operand_write(s, id_dest, ddest);
-#ifndef LAZY_CC
+#ifndef CONFIG_LAZY_CC
   rtl_update_ZFSF(s, ddest, id_dest->width);
   // unnecessary to update CF and OF in NEMU
 #endif

@@ -135,7 +135,7 @@ static inline def_EHelper(cmpxchg8b) {
 
 static inline def_EHelper(cmovcc) {
   uint32_t cc = s->opcode & 0xf;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   rtl_lazy_setcc(s, s0, cc);
 #else
   rtl_setcc(s, s0, cc);
