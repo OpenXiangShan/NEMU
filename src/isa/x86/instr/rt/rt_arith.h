@@ -263,7 +263,7 @@ def_REHelper(imul3) {
   rtl_sext(s, dsrc1, dsrc1, width);
 
 #if !defined(__PA__) && defined(CONFIG_DIFFTEST)
-  if (id_dest->width == 4) {
+  if (width == 4) {
     rtl_muls_hi(s, s1, dsrc1, dsrc2);
   }
 #endif
