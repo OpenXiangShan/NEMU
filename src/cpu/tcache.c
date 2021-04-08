@@ -1,6 +1,8 @@
 #include <cpu/decode.h>
 #include <cpu/cpu.h>
 
+#ifdef CONFIG_PERF_OPT
+
 #define TCACHE_BB_SIZE (CONFIG_TCACHE_SIZE / 4 + 2)
 
 typedef struct bb_t {
@@ -245,3 +247,4 @@ Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
   g_special_exec_table = special_exec_table;
   return tcache_bb_new(reset_vector);
 }
+#endif
