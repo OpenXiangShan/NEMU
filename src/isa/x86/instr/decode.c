@@ -202,7 +202,7 @@ static inline void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
 /* Ob, Ov */
 def_DopHelper(O) {
   s->isa.moff = instr_fetch(&s->snpc, 4);
-  s->isa.mbase = s->isa.sreg_base ? s->isa.sreg_base : rz;
+  s->isa.mbr = s->isa.sreg_base ? *(s->isa.sreg_base) : 0;
   op->preg = &op->val;
   print_Dop(op->str, OP_STR_SIZE, "0x%x", s->isa.moff);
 }

@@ -87,7 +87,7 @@ def_RDHelper(E) {
 }
 
 def_RDHelper(O) {
-  rtl_lm(s, dsrc1, s->isa.mbase, s->isa.moff, width, MMU_DYNAMIC);
+  rtl_lm(s, dsrc1, &s->isa.mbr, s->isa.moff, width, MMU_DYNAMIC);
 }
 
 def_RDHelper(a_src) {
