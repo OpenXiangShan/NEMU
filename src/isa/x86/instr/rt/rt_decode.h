@@ -51,10 +51,6 @@ def_RDHelper(mov_I2E) {
   rt_operand_rm(s, id_dest, false, NULL, false, width);
 }
 
-def_RDHelper(mov_a2O) {
-  rt_operand_reg(s, id_src1, width);
-}
-
 def_RDHelper(E2G) {
   rt_operand_rm(s, id_src1, true, id_dest, true, width);
 }
@@ -73,6 +69,11 @@ def_RDHelper(M2G) {
   rt_operand_rm(s, id_src1, false, id_dest, false, width);
 }
 
+def_RDHelper(a2dx) {
+  rt_operand_reg(s, id_src1, width);
+  rt_operand_reg(s, id_dest, 2);
+}
+
 def_RDHelper(r) {
   rt_operand_reg(s, id_dest, width);
 }
@@ -83,4 +84,8 @@ def_RDHelper(E) {
 
 def_RDHelper(O) {
   rtl_lm(s, dsrc1, s->isa.mbase, s->isa.moff, width, MMU_DYNAMIC);
+}
+
+def_RDHelper(a_src) {
+  rt_operand_reg(s, id_src1, width);
 }

@@ -22,7 +22,7 @@
 #define INSTR_BINARY(f) \
   f(movl_I2r) f(movl_G2E) f(movl_E2G) f(movl_I2E) f(movl_O2a) f(movl_a2O) \
   f(movw_I2r) f(movw_G2E) f(movw_E2G) f(movw_I2E) f(movw_O2a) f(movw_a2O) \
-  f(movb_G2E) f(movb_E2G) f(movb_I2E) f(movb_O2a) f(movb_a2O) \
+  f(movb_I2r) f(movb_G2E) f(movb_E2G) f(movb_I2E) f(movb_O2a) f(movb_a2O) \
   f(addl_G2E) f(addl_E2G) f(addl_SI2E) \
   f(addw_G2E) f(addw_E2G) f(addw_SI2E) \
   f(subl_G2E) f(subl_E2G) f(subl_I2E) f(subl_SI2E) \
@@ -64,6 +64,7 @@
   f(divw_E) \
   f(idivl_E) \
   f(idivw_E) \
+  f(outb_a2dx) \
 
 #define INSTR_TERNARY(f)
 

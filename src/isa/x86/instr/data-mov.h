@@ -1,5 +1,6 @@
 def_EWBWHelper(movl_I2r, mov, r, l);
 def_EWBWHelper(movw_I2r, mov, r, w);
+def_EWBWHelper(movb_I2r, mov, r, b);
 def_DEWBWHelper(movl_G2E, mov_G2E, mov, E, l);
 def_DEWBWHelper(movw_G2E, mov_G2E, mov, E, w);
 def_DEWBWHelper(movb_G2E, mov_G2E, mov, E, b);
@@ -12,9 +13,9 @@ def_DEWBWHelper(movb_I2E, mov_I2E, mov, E, b);
 def_DEWBWHelper(movl_O2a, O, mov, r, l);
 def_DEWBWHelper(movw_O2a, O, mov, r, w);
 def_DEWBWHelper(movb_O2a, O, mov, r, b);
-def_DEWBWHelper(movl_a2O, mov_a2O, mov, O, l);
-def_DEWBWHelper(movw_a2O, mov_a2O, mov, O, w);
-def_DEWBWHelper(movb_a2O, mov_a2O, mov, O, b);
+def_DEWBWHelper(movl_a2O, a_src, mov, O, l);
+def_DEWBWHelper(movw_a2O, a_src, mov, O, w);
+def_DEWBWHelper(movb_a2O, a_src, mov, O, b);
 
 def_DEWHelper(pushl_r, r, push, l);
 def_DEWHelper(pushw_r, r, push, w);
