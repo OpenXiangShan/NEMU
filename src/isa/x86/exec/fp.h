@@ -329,6 +329,30 @@ static inline def_EHelper(fcmovb){
   print_asm_fpu_template2(fcmovb);
 }
 
+static inline def_EHelper(fcmovnb){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_B);
+#else
+  rtl_setcc(s, s0, CC_B);
+#endif
+  if (!(*s0)) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmovb);
+}
+
+static inline def_EHelper(fcmovnu){
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_P);
+#else
+  rtl_setcc(s, s0, CC_P);
+#endif
+  if (!(*s0)) {
+    *dfdest = *dfsrc1;
+  }
+  print_asm_fpu_template2(fcmovnu);
+}
+
 static inline def_EHelper(fsqrt) {
   *dfdest = f64_sqrt(fprToF64(*dfdest)).v;
   print_asm_fpu_template(fsqrt);
@@ -383,4 +407,31 @@ static inline def_EHelper(fscale) {
   a.f = pow(2.0, a.f);
   *dfdest = f64_mul(fprToF64(*dfdest), fprToF64(a.i)).v;
   print_asm_fpu_template(fscale);
+}
+
+static inline def_EHelper(fpatan) {
+  union {
+    double f;
+    uint64_t i;
+  } a;
+  a.i = f64_div(fprToF64(*dfsrc1), fprToF64(*dfdest)).v;
+  a.f = atan(a.f);
+  *dfsrc1 = a.i;
+  rtl_popftop();
+  print_asm_fpu_template(fpatan);
+}
+
+static inline def_EHelper(fprem) {
+  union {
+    double f;
+    uint64_t i;
+  } a, b;
+  a.i = *dfdest;
+  b.i = *dfsrc1;
+  a.f = fmod(a.f, b.f);
+  *dfdest = a.i;
+  rtl_lr_fsw(s, s0);
+  rtl_andi(s, s0, s0, ~0x4700);
+  rtl_sr_fsw(s, s0);
+  print_asm_fpu_template(fprem);
 }

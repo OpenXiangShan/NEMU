@@ -134,6 +134,7 @@ void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
     int flags, void *new_addr) {
   vma_t *p = vma_list_find_fix_area(old_addr, old_size);
   assert(p != NULL);
+  assert(!(flags & MREMAP_FIXED));
   vma_t *next = p->next;
   size_t free_size_to_expand = next->addr - p->addr;
   new_size = ROUNDUP(new_size, 4096);
@@ -143,6 +144,11 @@ void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
     if (ret != old_addr) perror("mremap");
     assert(ret == old_addr);
     return old_addr;
+  } else {
+    // should move
+    new_addr = user_mmap(NULL, new_size, p->prot, p->flags & ~MAP_FIXED, -1, 0);
+    memcpy(new_addr, old_addr, old_size);
+    user_munmap(old_addr, p->length);
+    return new_addr;
   }
-  assert(0);
 }

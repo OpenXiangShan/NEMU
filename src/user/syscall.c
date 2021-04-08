@@ -6,12 +6,19 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/sysinfo.h>
+#include <sys/time.h>
+#include <sys/times.h>
 #include <fcntl.h>
 #include <errno.h>
 
 static inline int user_fd(int fd) {
   if (fd >= 0 && fd <= 2) return user_state.std_fd[fd];
   return fd;
+}
+
+static inline uint64_t gen_uint64(uint32_t lo, uint32_t hi) {
+  return ((uint64_t)hi << 32) | lo;
 }
 
 static inline sword_t get_syscall_ret(intptr_t ret) {
@@ -146,6 +153,97 @@ static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
   return -1;
 }
 
+static inline word_t user_sysinfo(void *info) {
+  struct {
+    sword_t uptime;
+    word_t loads[3];
+    word_t totalram;
+    word_t freeram;
+    word_t sharedram;
+    word_t bufferram;
+    word_t totalswap;
+    word_t freeswap;
+    uint16_t procs;
+    uint16_t pad;
+    word_t totalhigh;
+    word_t freehigh;
+    uint32_t mem_unit;
+    char _f[20-2*sizeof(long)-sizeof(int)];
+  } *guest_info = info;
+  struct sysinfo host_info;
+  int ret = sysinfo(&host_info);
+  assert(ret == 0);
+
+  guest_info->uptime = host_info.uptime;
+  guest_info->loads[0] = host_info.loads[0];
+  guest_info->loads[1] = host_info.loads[1];
+  guest_info->loads[2] = host_info.loads[2];
+  guest_info->totalram = host_info.totalram;
+  guest_info->freeram = host_info.freeram;
+  guest_info->sharedram = host_info.sharedram;
+  guest_info->bufferram = host_info.bufferram;
+  guest_info->totalswap = host_info.totalswap;
+  guest_info->freeswap = host_info.freeswap;
+  guest_info->procs = host_info.procs;
+  guest_info->pad = host_info.pad;
+  guest_info->totalhigh = host_info.totalhigh;
+  guest_info->freehigh = host_info.freehigh;
+  guest_info->mem_unit = host_info.mem_unit;
+
+  return ret;
+}
+
+static inline word_t user_clock_gettime(clockid_t id, void *tp) {
+  struct {
+    sword_t tv_sec;
+    sword_t tv_nsec;
+  } *guest_tp = tp;
+  struct timespec host_tp;
+  int ret = clock_gettime(id, &host_tp);
+  assert(ret == 0);
+
+  guest_tp->tv_sec  = host_tp.tv_sec;
+  guest_tp->tv_nsec = host_tp.tv_nsec;
+
+  return ret;
+}
+
+static inline word_t user_gettimeofday(void *tv, void *tz) {
+  struct {
+    sword_t tv_sec;
+    sword_t tv_usec;
+  } *guest_tv = tv;
+  struct timeval host_tv;
+  int ret = gettimeofday(&host_tv, tz);
+  assert(ret == 0);
+
+  if (tv != NULL) {
+    guest_tv->tv_sec  = host_tv.tv_sec;
+    guest_tv->tv_usec = host_tv.tv_usec;
+  }
+
+  return ret;
+}
+
+static inline word_t user_times(void *buf) {
+  struct {
+    sword_t tms_utime;
+    sword_t tms_stime;
+    sword_t tms_cutime;
+    sword_t tms_cstime;
+  } *guest_buf = buf;
+  struct tms host_buf;
+  clock_t ret = times(&host_buf);
+  assert(ret != (clock_t)-1);
+
+  guest_buf->tms_utime  = host_buf.tms_utime;
+  guest_buf->tms_stime  = host_buf.tms_stime;
+  guest_buf->tms_cutime = host_buf.tms_cutime;
+  guest_buf->tms_cstime = host_buf.tms_cstime;
+
+  return ret;
+}
+
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
@@ -159,10 +257,13 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 13: ret = time(user_to_host(arg1)); break;
     case 20: return getpid();
     case 33: ret = access(user_to_host(arg1), arg2); break;
+    case 43: ret = user_times(user_to_host(arg1)); break;
     case 45: ret = user_sys_brk(arg1); break;
     case 54: ret = ioctl(user_fd(arg1), arg2, arg3); break;
+    case 78: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case 91: ret = user_munmap(user_to_host(arg1), arg2); break;
+    case 116: ret = user_sysinfo(user_to_host(arg1)); break;
     case 122: ret = uname(user_to_host(arg1)); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 163: ret = (uintptr_t)user_mremap(user_to_host(arg1), arg2, arg3, arg4, user_to_host(arg5)); break;
@@ -173,6 +274,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
               break;
     case 192: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
                   arg3, arg4, user_fd(arg5), arg6 << 12); break;
+    case 194: ret = ftruncate(user_fd(arg1), gen_uint64(arg2, arg3)); break;
     case 195: return user_sys_stat64(user_to_host(arg1), arg2);
     case 196: return user_sys_lstat64(user_to_host(arg1), arg2);
     case 197: return user_sys_fstat64(user_fd(arg1), arg2);
@@ -182,6 +284,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 202: return getegid();
     case 221: ret = fcntl(user_fd(arg1), arg2, arg3); break;
     case 243: ret = user_sys_set_thread_area(arg1); break;
+    case 265: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
     case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }

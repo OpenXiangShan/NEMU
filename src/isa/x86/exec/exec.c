@@ -159,7 +159,7 @@ static inline def_EHelper(fp_gp6) {
 static inline def_EHelper(fp_gp7) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
-    EMPTY(0x00) IDEX(0x01, St0_St1, fyl2xp1) EX(0x02, fsqrt) EMPTY(0x03)
+    IDEX(0x00, St0_St1, fprem) IDEX(0x01, St0_St1, fyl2xp1) EX(0x02, fsqrt) EMPTY(0x03)
     EX(0x04, frndint) IDEX(0x05, St0_St1, fscale) EMPTY(0x06) EMPTY(0x07)
   }
 }
@@ -167,7 +167,7 @@ static inline def_EHelper(fp_gp7) {
 static inline def_EHelper(fp_gp8) {
   uint8_t opb = BITS(s->isa.ext_opcode,2,0);
   switch (opb) {
-    EX(0x00, f2xm1) IDEX(0x01, St0_St1, fyl2x) EMPTY(0x02) EMPTY(0x03)
+    EX(0x00, f2xm1) IDEX(0x01, St0_St1, fyl2x) EMPTY(0x02) IDEX(0x03, St0_St1, fpatan)
     EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
   }
 }
@@ -211,7 +211,7 @@ static inline def_EHelper(fp) {
       IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      IDEX(0x16, St0_Est, fp_gp8)     IDEX(0x17, St0, fp_gp7)
       IDEX(0x20, St0_Est, fcmovb)     IDEX(0x21, St0_Est, fcmove)     IDEX(0x22, St0_Est, fcmovbe)    EMPTY(0x23)
       EMPTY(0x24)                     EX  (0x25, fp_gp3)              EMPTY(0x26)                     EMPTY(0x27)
-      EMPTY(0x30)                     IDEX(0x31, St0_Est, fcmovne)    IDEX(0x32, St0_Est, fcmovnbe)   EMPTY(0x33)
+      IDEX(0x30, St0_Est, fcmovnb)    IDEX(0x31, St0_Est, fcmovne)    IDEX(0x32, St0_Est, fcmovnbe)   IDEX(0x33, St0_Est, fcmovnu)
       EX  (0x34, fp_gp4)              IDEX(0x35, St0_Est, fucomi)     IDEX(0x36, St0_Est, fcomi)      EMPTY(0x37)
       IDEX(0x40, Est_St0, fadd)       IDEX(0x41, Est_St0, fmul)       EMPTY(0x42)                     EMPTY(0x43)
       IDEX(0x44, Est_St0, fsubr)      IDEX(0x45, Est_St0, fsub)       IDEX(0x46, Est_St0, fdivr)      IDEX(0x47, Est_St0, fdiv)
