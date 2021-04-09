@@ -32,7 +32,7 @@ def_EHelper(jcc) {
 
 def_EHelper(call_E) {
   IFDEF(CONFIG_LAZY_CC, clean_lazycc());
-  rt_decode_E(s, 4);
+  rtl_decode_unary(s, true);
   rtl_li(s, s0, s->snpc);
   rtl_push(s, s0);
   rtl_jr(s, ddest);
@@ -40,7 +40,7 @@ def_EHelper(call_E) {
 
 def_EHelper(jmp_E) {
   IFDEF(CONFIG_LAZY_CC, clean_lazycc());
-  rt_decode_E(s, 4);
+  rtl_decode_unary(s, true);
   rtl_jr(s, ddest);
 }
 

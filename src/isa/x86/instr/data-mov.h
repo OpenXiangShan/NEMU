@@ -1,42 +1,49 @@
-def_EWBWHelper(movl_I2r, mov, r, l);
-def_EWBWHelper(movw_I2r, mov, r, w);
-def_EWBWHelper(movb_I2r, mov, r, b);
-def_DEWBWHelper(movl_G2E, mov_G2E, mov, E, l);
-def_DEWBWHelper(movw_G2E, mov_G2E, mov, E, w);
-def_DEWBWHelper(movb_G2E, mov_G2E, mov, E, b);
-def_DEWBWHelper(movl_E2G, mov_E2G, mov, r, l);
-def_DEWBWHelper(movw_E2G, mov_E2G, mov, r, w);
-def_DEWBWHelper(movb_E2G, mov_E2G, mov, r, b);
-def_DEWBWHelper(movl_I2E, mov_I2E, mov, E, l);
-def_DEWBWHelper(movw_I2E, mov_I2E, mov, E, w);
-def_DEWBWHelper(movb_I2E, mov_I2E, mov, E, b);
-def_DEWBWHelper(movl_O2a, O, mov, r, l);
-def_DEWBWHelper(movw_O2a, O, mov, r, w);
-def_DEWBWHelper(movb_O2a, O, mov, r, b);
-def_DEWBWHelper(movl_a2O, a_src, mov, O, l);
-def_DEWBWHelper(movw_a2O, a_src, mov, O, w);
-def_DEWBWHelper(movb_a2O, a_src, mov, O, b);
+def_EHelper(mov) {
+  rtl_decode_binary(s, false, true);
+  rtl_wb(s, dsrc1);
+}
 
-def_DEWHelper(pushl_r, r, push, l);
-def_DEWHelper(pushw_r, r, push, w);
-def_DEWHelper(pushl_E, E, push, l);
-def_DEWHelper(pushw_E, E, push, w);
-def_EWHelper(pushl_I, push, l);
-def_EWHelper(pushw_I, push, w);
-def_EWHelper(pushb_SI,push, l);
+def_EHelper(push) {
+  rtl_decode_unary(s, true);
+  rtl_push(s, ddest);
+}
 
-def_EWHelper(popl_r, pop, l);
-def_EWHelper(popw_r, pop, w);
+def_EHelper(pop) {
+  rtl_decode_unary(s, false);
+  rtl_pop(s, ddest);
+}
 
-def_DEWBWHelper(movzbl_Eb2G, mov_Eb2G, mov, r, l);
-def_DEWBWHelper(movzbw_Eb2G, mov_Eb2G, mov, r, w);
-def_DEWBWHelper(movzwl_Ew2G, mov_Ew2G, mov, r, l);
+def_EHelper(lea) {
+  rtl_decode_binary(s, false, false);
+  rtl_addi(s, ddest, &s->isa.mbr, s->isa.moff);
+  rtl_wb_r(s, ddest);
+}
 
-def_DEWBWHelper(movsbl_Eb2G, mov_Eb2G, movsb, r, l);
-def_DEWBWHelper(movsbw_Eb2G, mov_Eb2G, movsb, r, w);
-def_DEWBWHelper(movswl_Ew2G, mov_Ew2G, movsw, r, l);
+def_EHelper(movzb) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 1);
+  rtl_wb_r(s, dsrc1);
+}
 
-def_DEWBWHelper(lea, M2G, lea, r, l);
+def_EHelper(movzw) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 2);
+  rtl_wb_r(s, dsrc1);
+}
+
+def_EHelper(movsb) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 1);
+  rtl_sext(s, ddest, dsrc1, 1);
+  rtl_wb_r(s, ddest);
+}
+
+def_EHelper(movsw) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 2);
+  rtl_sext(s, ddest, dsrc1, 2);
+  rtl_wb_r(s, ddest);
+}
 
 def_EHelper(cwtl) {
   if (s->isa.is_operand_size_16) {
@@ -48,12 +55,10 @@ def_EHelper(cwtl) {
   }
 }
 
-
 def_EHelper(cltd) {
   if (s->isa.is_operand_size_16) { TODO(); }
   else { rtl_sari(s, &cpu.edx, &cpu.eax, 31); }
 }
-
 
 def_EHelper(leave) {
   rtl_mv(s, &cpu.esp, &cpu.ebp);

@@ -1,7 +1,15 @@
-def_DEWBWHelper(inl_dx2a, dx_src, in, r, l);
-def_DEWBWHelper(inw_dx2a, dx_src, in, r, w);
+def_EHelper(in) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 2);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (1 << 4) | s->isa.width);
+  rtl_wb_r(s, ddest);
+}
 
-def_DEWHelper(outb_a2dx, a2dx, out, b);
+def_EHelper(out) {
+  rt_decode(s, id_dest, true, 2);
+  rt_decode(s, id_src1, true, s->isa.width);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (0 << 4) | s->isa.width);
+}
 
 #if 0
 

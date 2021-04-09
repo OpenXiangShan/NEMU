@@ -122,12 +122,12 @@ typedef struct {
   uint8_t instr[16];
   uint8_t *p_instr;
   uint32_t opcode;
-  bool is_operand_size_16;
-  bool is_rm_memory;
 #define PREFIX_REP   1
 #define PREFIX_REPNZ 2
-  int rep_flags;
+  int8_t width;
+  uint8_t rep_flags;
   uint8_t ext_opcode;
+  bool is_operand_size_16;
   const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
   const rtlreg_t *midx;
@@ -135,6 +135,8 @@ typedef struct {
   word_t mscale;
   rtlreg_t mbr;
 } x86_ISADecodeInfo;
+
+enum { OP_TYPE_IMM, OP_TYPE_REG, OP_TYPE_MEM };
 
 //#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
 #ifdef __ICS_EXPORT

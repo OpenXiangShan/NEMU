@@ -1,79 +1,185 @@
-def_DEWBWHelper(xorl_G2E , G2E, xor, E, l);
-def_DEWBWHelper(xorw_G2E , G2E, xor, E, w);
-def_DEWBWHelper(xorb_G2E , G2E, xor, E, b);
-def_DEWBWHelper(xorl_E2G , E2G, xor, r, l);
-def_DEWBWHelper(xorw_E2G , E2G, xor, r, w);
-def_DEWBWHelper(xorb_E2G , E2G, xor, r, b);
-def_DEWBWHelper(xorl_SI2E,   E, xor, E, l);
-def_DEWBWHelper(xorw_SI2E,   E, xor, E, w);
-def_DEWBWHelper(xorl_I2a ,   r, xor, r, l);
-def_DEWBWHelper(xorw_I2a ,   r, xor, r, w);
+def_EHelper(and) {
+  rtl_decode_binary(s, true, true);
+  rtl_and(s, ddest, ddest, dsrc1);
+#ifdef CONFIG_LAZY_CC
+  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+#else
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
+#endif
+  rtl_wb(s, ddest);
+}
 
-def_DEWBWHelper(orl_G2E, G2E, or, E, l);
-def_DEWBWHelper(orw_G2E, G2E, or, E, w);
-def_DEWBWHelper(orl_E2G, E2G, or, r, l);
-def_DEWBWHelper(orw_E2G, E2G, or, r, w);
-def_DEWBWHelper(orb_E2G, E2G, or, r, b);
-def_DEWBWHelper(orl_I2E ,  E, or, E, l);
-def_DEWBWHelper(orw_I2E ,  E, or, E, w);
-def_DEWBWHelper(orb_I2E ,  E, or, E, b);
-def_DEWBWHelper(orl_SI2E,  E, or, E, l);
-def_DEWBWHelper(orw_SI2E,  E, or, E, w);
-def_DEWBWHelper(orl_I2a,   r, or, r, l);
-def_DEWBWHelper(orw_I2a,   r, or, r, w);
+def_EHelper(or) {
+  rtl_decode_binary(s, true, true);
+  rtl_or(s, ddest, ddest, dsrc1);
+#ifdef CONFIG_LAZY_CC
+  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+#else
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
+#endif
+  rtl_wb(s, ddest);
+}
 
-def_DEWBWHelper(andl_G2E ,  G2E, and, E, l);
-def_DEWBWHelper(andw_G2E ,  G2E, and, E, w);
-def_DEWBWHelper(andl_E2G ,  E2G, and, r, l);
-def_DEWBWHelper(andw_E2G ,  E2G, and, r, w);
-def_DEWBWHelper(andb_E2G ,  E2G, and, r, b);
-def_DEWBWHelper(andl_I2a ,    r, and, r, l);
-def_DEWBWHelper(andw_I2a ,    r, and, r, w);
-def_DEWBWHelper(andl_I2E ,    E, and, E, l);
-def_DEWBWHelper(andw_I2E ,    E, and, E, w);
-def_DEWBWHelper(andl_SI2E,    E, and, E, l);
-def_DEWBWHelper(andw_SI2E,    E, and, E, w);
+def_EHelper(test) {
+  rtl_decode_binary(s, true, true);
+  rtl_and(s, s0, ddest, dsrc1);
+#ifdef CONFIG_LAZY_CC
+  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+#else
+  rtl_update_ZFSF(s, s0, s->isa.width);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
+#endif
+}
 
-def_DEWBWHelper(shll_Ib2E,    E, shl, E, l);
-def_DEWBWHelper(shlw_Ib2E,    E, shl, E, w);
-def_DEWBWHelper(shll_cl2E,    E, shl, E, l);
-def_DEWBWHelper(shlw_cl2E,    E, shl, E, w);
+def_EHelper(xor) {
+  rtl_decode_binary(s, true, true);
+  rtl_xor(s, ddest, ddest, dsrc1);
+#ifdef CONFIG_LAZY_CC
+  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+#else
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+  rtl_mv(s, &cpu.CF, rz);
+  rtl_mv(s, &cpu.OF, rz);
+#endif
+  rtl_wb(s, ddest);
+}
 
-def_DEWBWHelper(shrl_Ib2E,    E, shr, E, l);
-def_DEWBWHelper(shrw_Ib2E,    E, shr, E, w);
-def_DEWBWHelper(shrl_cl2E,    E, shr, E, l);
-def_DEWBWHelper(shrw_cl2E,    E, shr, E, w);
-def_DEWBWHelper(shrl_1_E ,    E, shr, E, l);
-def_DEWBWHelper(shrw_1_E ,    E, shr, E, w);
-def_DEWBWHelper(shrb_1_E ,    E, shr, E, b);
+def_EHelper(not) {
+  rtl_decode_unary(s, true);
+  rtl_not(s, ddest, ddest);
+  rtl_wb(s, ddest);
+}
 
-def_DEWBWHelper(sarl_Ib2E,    E, sar, E, l);
-def_DEWBWHelper(sarw_Ib2E,    E, sar, E, w);
-def_DEWBWHelper(sarl_cl2E,    E, sar, E, l);
-def_DEWBWHelper(sarw_cl2E,    E, sar, E, w);
-def_DEWBWHelper(sarl_1_E ,    E, sar, E, l);
-def_DEWBWHelper(sarw_1_E ,    E, sar, E, w);
+def_EHelper(setcc) {
+  rtl_decode_unary(s, false);
+  uint32_t cc = s->isa.opcode & 0xf;
+#ifdef CONFIG_LAZY_CC
+  rtl_lazy_setcc(s, ddest, cc);
+#else
+  rtl_setcc(s, ddest, cc);
+#endif
+  rtl_wb(s, ddest);
+}
 
-def_DEWHelper(testl_G2E,  G2E, test, l);
-def_DEWHelper(testw_G2E,  G2E, test, w);
-def_DEWHelper(testb_G2E,  G2E, test, b);
-def_DEWHelper(testl_I2E,    E, test, l);
-def_DEWHelper(testw_I2E,    E, test, w);
-def_DEWHelper(testb_I2E,    E, test, b);
-def_DEWHelper(testb_I2a,    r, test, b);
+def_EHelper(shl) {
+  rtl_decode_binary(s, true, true);
+#ifndef CONFIG_PA
+#ifdef CONFIG_ENGINE_INTERPRETER
+//  int count = *dsrc1 & 0x1f;
+//  if (count == 0) return;
+#endif
 
-def_EWBWHelper(setcc, setcc, E, b);
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_shl(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_msb(s, s0, s1, s->isa.width);
+  rtl_set_CF(s, s0);
+  rtl_shl(s, ddest, ddest, dsrc1);
 
-def_EWBWHelper(notl_E, not, E, l);
-def_EWBWHelper(notw_E, not, E, w);
+  if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
+    rtl_xor(s, s0, s1, ddest);
+    rtl_msb(s, s0, s0, s->isa.width);
+    rtl_set_OF(s, s0);
+  }
 
-def_DEWBWHelper(roll_cl2E,    E, rol, E, l);
-def_DEWBWHelper(rolw_cl2E,    E, rol, E, w);
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+#else
+  rtl_shl(s, ddest, ddest, dsrc1);
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+#endif
+#ifdef CONFIG_LAZY_CC
+  //panic("TODO: implement CF and OF with lazy cc");
+#endif
+  rtl_wb(s, ddest);
+}
+
+def_EHelper(shr) {
+  rtl_decode_binary(s, true, true);
+#ifndef CONFIG_PA
+#ifdef CONFIG_ENGINE_INTERPRETER
+//  int count = *dsrc1 & 0x1f;
+//  if (count == 0) return;
+#endif
+
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_andi(s, s0, s1, 0x1);
+  rtl_set_CF(s, s0);
+  rtl_shr(s, ddest, ddest, dsrc1);
+
+  if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
+    rtl_xor(s, s0, s1, ddest);
+    rtl_msb(s, s0, s0, s->isa.width);
+    rtl_set_OF(s, s0);
+  }
+
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+#else
+  rtl_shr(s, ddest, ddest, dsrc1);
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+#endif
+#ifdef CONFIG_LAZY_CC
+  //panic("TODO: implement CF and OF with lazy cc");
+#endif
+  rtl_wb(s, ddest);
+}
+
+def_EHelper(sar) {
+  rtl_decode_binary(s, true, true);
+
+  // if ddest == dsrc1, rtl_sar() still only use the
+  // lower 5 bits of dsrc1, which do not change after
+  // rtl_sext(), and it is still sematically correct
+  rtl_sext(s, ddest, ddest, s->isa.width);
+#ifndef CONFIG_PA
+#ifdef CONFIG_ENGINE_INTERPRETER
+//  int count = *dsrc1 & 0x1f;
+//  if (count == 0) return;
+#endif
+
+  rtl_subi(s, s0, dsrc1, 1);
+  rtl_sar(s, s1, ddest, s0); // shift (cnt - 1)
+  rtl_andi(s, s0, s1, 0x1);
+  rtl_set_CF(s, s0);
+  rtl_sar(s, ddest, ddest, dsrc1);
+
+  if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
+    rtl_xor(s, s0, s1, ddest);
+    rtl_msb(s, s0, s0, s->isa.width);
+    rtl_set_OF(s, s0);
+  }
+
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+#else
+  rtl_sar(s, ddest, ddest, dsrc1);
+  rtl_update_ZFSF(s, ddest, s->isa.width);
+#endif
+#ifdef CONFIG_LAZY_CC
+  //panic("TODO: implement CF and OF with lazy cc");
+#endif
+  rtl_wb(s, ddest);
+}
+
+def_EHelper(rol) {
+  rtl_decode_binary(s, true, true);
+  rtl_shl(s, s0, ddest, dsrc1);
+  rtl_li(s, s1, s->isa.width * 8);
+  rtl_sub(s, s1, s1, dsrc1);
+  rtl_shr(s, s1, ddest, s1);
+  rtl_or(s, ddest, s0, s1);
+  rtl_wb(s, ddest);
+  // unnecessary to update eflags in NEMU
+  //difftest_skip_eflags(EFLAGS_MASK_ALL);
+}
 
 #if 0
 static inline def_EHelper(ror) {
   rtl_shr(s, s0, ddest, dsrc1);
-  rtl_li(s, s1, id_dest->width * 8);
+  rtl_li(s, s1, id_dest->s->isa.width * 8);
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shl(s, s1, ddest, s1);
   rtl_or(s, ddest, s0, s1);
@@ -85,7 +191,7 @@ static inline def_EHelper(ror) {
 }
 
 static inline def_EHelper(shld) {
-  assert(id_dest->width == 4);
+  assert(id_dest->s->isa.width == 4);
   rtl_shl(s, s0, ddest, dsrc1);
 
   rtl_li(s, s1, 31);
@@ -101,14 +207,14 @@ static inline def_EHelper(shld) {
 
   operand_write(s, id_dest, ddest);
 #ifndef CONFIG_LAZY_CC
-  rtl_update_ZFSF(s, ddest, id_dest->width);
+  rtl_update_ZFSF(s, ddest, id_dest->s->isa.width);
   // unnecessary to update CF and OF in NEMU
 #endif
   print_asm_template3(shld);
 }
 
 static inline def_EHelper(shrd) {
-  assert(id_dest->width == 4);
+  assert(id_dest->s->isa.width == 4);
 
 #ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc1 & 0x1f;
@@ -137,7 +243,7 @@ static inline def_EHelper(shrd) {
 
   operand_write(s, id_dest, ddest);
 #ifndef CONFIG_LAZY_CC
-  rtl_update_ZFSF(s, ddest, id_dest->width);
+  rtl_update_ZFSF(s, ddest, id_dest->s->isa.width);
   // unnecessary to update CF and OF in NEMU
 #endif
   print_asm_template3(shrd);
@@ -159,7 +265,7 @@ static inline def_EHelper(rcr) {
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
 
-  rtl_li(s, s1, id_dest->width * 8);
+  rtl_li(s, s1, id_dest->s->isa.width * 8);
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shl(s, s1, ddest, s1);
   rtl_shli(s, s1, s1, 1);
@@ -184,7 +290,7 @@ static inline def_EHelper(rcl) {
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
 
-  rtl_li(s, s1, id_dest->width * 8);
+  rtl_li(s, s1, id_dest->s->isa.width * 8);
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shr(s, s1, ddest, s1);
   rtl_shri(s, s1, s1, 1);

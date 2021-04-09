@@ -4,18 +4,16 @@
 #include <isa.h>
 
 #define OP_STR_SIZE 40
-enum { OP_TYPE_REG, OP_TYPE_MEM, OP_TYPE_IMM };
 
 typedef struct {
-//  uint32_t type;
-//  int width;
   union {
     rtlreg_t *preg;
     word_t imm;
     sword_t simm;
   };
-  IFDEF(CONFIG_ISA_x86, int reg);
   IFDEF(CONFIG_ISA_x86, rtlreg_t val);
+  IFDEF(CONFIG_ISA_x86, uint8_t type);
+  IFDEF(CONFIG_ISA_x86, uint8_t reg);
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 
