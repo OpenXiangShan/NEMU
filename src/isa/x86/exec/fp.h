@@ -413,10 +413,17 @@ static inline def_EHelper(fpatan) {
   union {
     double f;
     uint64_t i;
-  } a;
-  a.i = f64_div(fprToF64(*dfsrc1), fprToF64(*dfdest)).v;
-  a.f = atan(a.f);
-  *dfsrc1 = a.i;
+  } dest, src;
+  dest.i = *dfdest;
+  src.i = *dfsrc1;
+
+  double tmp = src.f / dest.f;
+  dest.f = atan(tmp);
+  if (src.f < 0 && dest.f > 0) { dest.f -= M_PI; }
+  else if (src.f > 0 && dest.f < 0) { dest.f += M_PI; }
+  assert(fabs(dest.f) < M_PI);
+
+  *dfsrc1 = dest.i;
   rtl_popftop();
   print_asm_fpu_template(fpatan);
 }
