@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <stdlib.h>
 #include <monitor/monitor.h>
 #include "user.h"
 #include <unistd.h>
@@ -9,6 +10,7 @@
 #include <sys/sysinfo.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include <sys/uio.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -244,6 +246,23 @@ static inline word_t user_times(void *buf) {
   return ret;
 }
 
+static inline word_t user_writev(int fd, void *iov, int iovcnt) {
+  struct {
+    word_t iov_base;
+    word_t iov_len;
+  } *guest_iov = iov;
+  struct iovec *host_iov = malloc(sizeof(*host_iov) * iovcnt);
+  assert(host_iov != NULL);
+  int i;
+  for (i = 0; i < iovcnt; i ++) {
+    host_iov[i].iov_base = user_to_host(guest_iov[i].iov_base);
+    host_iov[i].iov_len = guest_iov[i].iov_len;
+  }
+  ssize_t ret = writev(fd, host_iov, iovcnt);
+  free(host_iov);
+  return ret;
+}
+
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
@@ -266,6 +285,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 116: ret = user_sysinfo(user_to_host(arg1)); break;
     case 122: ret = uname(user_to_host(arg1)); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
+    case 146: ret = user_writev(user_fd(arg1), user_to_host(arg2), arg3); break;
     case 163: ret = (uintptr_t)user_mremap(user_to_host(arg1), arg2, arg3, arg4, user_to_host(arg5)); break;
     case 174: return 0; // sigaction
     case 183: ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
