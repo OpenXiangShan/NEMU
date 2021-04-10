@@ -186,7 +186,7 @@ static inline def_EHelper(fp) {
       IDEX(0x20, St0_M_32i, fadd)     IDEX(0x21, St0_M_32i, fmul)     IDEX(0x22, St0_M_32i, fcom)     IDEX(0x23, St0_M_32i, fcomp)
       IDEX(0x24, St0_M_32i, fsub)     IDEX(0x25, St0_M_32i, fsubr)    IDEX(0x26, St0_M_32i, fdiv)     IDEX(0x27, St0_M_32i, fdivr)
       IDEX(0x30, ld_St0_M_32i, fld)   EMPTY(0x31)                     IDEX(0x32, st_M_St0_32i, fst)   IDEX(0x33, st_M_St0_32i, fstp)
-      EMPTY(0x34)                     IDEX(0x35, ld_St0_M_64r, fld)   EMPTY(0x36)                     IDEX(0x37, st_M_St0_64r, fstp)
+      EMPTY(0x34)                     EMPTY(0x35) /*IDEX(0x35, ld_St0_M_80r, fld)*/   EMPTY(0x36)                     /*IDEX(0x37, st_M_St0_64r, fstp)*/ EMPTY(0x37)
       IDEX(0x40, St0_M_64r, fadd)     IDEX(0x41, St0_M_64r, fmul)     IDEX(0x42, St0_M_64r, fcom)     IDEX(0x43, St0_M_64r, fcomp)
       IDEX(0x44, St0_M_64r, fsub)     IDEX(0x45, St0_M_64r, fsubr)    IDEX(0x46, St0_M_64r, fdiv)     IDEX(0x47, St0_M_64r, fdivr)
       IDEX(0x50, ld_St0_M_64r, fld)   EMPTY(0x51)                     IDEX(0x52, st_M_St0_64r, fst)   IDEX(0x53, st_M_St0_64r, fstp)
