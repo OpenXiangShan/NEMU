@@ -209,7 +209,7 @@ static inline def_EHelper(fp) {
       IDEX(0x04, St0_Est, fsub)       IDEX(0x05, St0_Est, fsubr)      IDEX(0x06, St0_Est, fdiv)       IDEX(0x07, St0_Est, fdivr)
       IDEX(0x10, ld_Est_St0, fld)     IDEX(0x11, St0_Est, fxch)       EX  (0x12, nop)                 EMPTY(0x13)
       IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      IDEX(0x16, St0_Est, fp_gp8)     IDEX(0x17, St0, fp_gp7)
-      IDEX(0x20, St0_Est, fcmovb)     IDEX(0x21, St0_Est, fcmove)     IDEX(0x22, St0_Est, fcmovbe)    EMPTY(0x23)
+      IDEX(0x20, St0_Est, fcmovb)     IDEX(0x21, St0_Est, fcmove)     IDEX(0x22, St0_Est, fcmovbe)    IDEX(0x23, St0_Est, fcmovu)
       EMPTY(0x24)                     EX  (0x25, fp_gp3)              EMPTY(0x26)                     EMPTY(0x27)
       IDEX(0x30, St0_Est, fcmovnb)    IDEX(0x31, St0_Est, fcmovne)    IDEX(0x32, St0_Est, fcmovnbe)   IDEX(0x33, St0_Est, fcmovnu)
       EX  (0x34, fp_gp4)              IDEX(0x35, St0_Est, fucomi)     IDEX(0x36, St0_Est, fcomi)      EMPTY(0x37)

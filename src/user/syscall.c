@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <isa.h>
 #include <stdlib.h>
 #include <monitor/monitor.h>
@@ -92,6 +93,10 @@ static inline word_t user_sysinfo(void *info) {
   return ret;
 }
 
+static inline word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
+  return ftruncate(fd, gen_uint64(lo, hi));
+}
+
 static inline word_t user_clock_gettime(clockid_t id, void *tp) {
   struct timespec host_tp;
   int ret = clock_gettime(id, &host_tp);
@@ -129,6 +134,27 @@ static inline word_t user_writev(int fd, void *iov, int iovcnt) {
   return ret;
 }
 
+static inline word_t user_getrusage(int who, void *usage) {
+  struct rusage host_usage;
+  int ret = getrusage(who, &host_usage);
+  assert(ret == 0);
+  translate_rusage(&host_usage, usage);
+  return ret;
+}
+
+static inline word_t user_getrlimit(int resource, void *rlim) {
+  struct rlimit host_rlim;
+  int ret = getrlimit(resource, &host_rlim);
+  assert(ret == 0);
+  translate_rlimit(&host_rlim, rlim);
+  return ret;
+}
+
+static inline word_t user_prlimit64(pid_t pid, int resource,
+    const void *new_limit, void *old_limit) {
+  return prlimit(pid, resource, new_limit, old_limit);
+}
+
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
@@ -145,6 +171,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 43: ret = user_times(user_to_host(arg1)); break;
     case 45: ret = user_sys_brk(arg1); break;
     case 54: ret = ioctl(user_fd(arg1), arg2, arg3); break;
+    case 77: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case 78: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case 91: ret = user_munmap(user_to_host(arg1), arg2); break;
@@ -158,9 +185,10 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
               assert(ret != 0); // should success
               ret = strlen(user_to_host(arg1)) + 1;
               break;
+    case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
     case 192: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
                   arg3, arg4, user_fd(arg5), arg6 << 12); break;
-    case 194: ret = ftruncate(user_fd(arg1), gen_uint64(arg2, arg3)); break;
+    case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
     case 195: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case 196: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
     case 197: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
@@ -172,6 +200,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 243: ret = user_set_thread_area(user_to_host(arg1)); break;
     case 265: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
     case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
+    case 340: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }
   ret = get_syscall_ret(ret);
