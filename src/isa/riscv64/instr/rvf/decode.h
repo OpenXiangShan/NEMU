@@ -4,7 +4,6 @@ static int table_fmadd_d_dispatch(Decode *s);
 
 static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
-  IFDEF(CONFIG_DEBUG, op->reg = val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
 }
 
