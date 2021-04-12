@@ -12,7 +12,7 @@ static inline uint32_t get_instr(Decode *s) {
 
 // decode operand helper
 #define def_DopHelper(name) \
-  void concat(decode_op_, name) (Decode *s, Operand *op, uint64_t val, bool flag)
+  void concat(decode_op_, name) (Decode *s, Operand *op, word_t val, bool flag)
 
 #include "rvi/decode.h"
 #include "rvf/decode.h"
