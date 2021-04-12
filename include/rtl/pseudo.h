@@ -12,7 +12,7 @@ static inline def_rtl(li, rtlreg_t* dest, const rtlreg_t imm) {
 }
 
 static inline def_rtl(mv, rtlreg_t* dest, const rtlreg_t *src1) {
-  if (dest != src1) rtl_add(s, dest, src1, rz);
+  rtl_addi(s, dest, src1, 0);
 }
 
 static inline def_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
@@ -42,7 +42,9 @@ static inline def_rtl(sext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   if (width == word_size) {
     rtl_mv(s, dest, src1);
   } else {
-    assert(width == 1 || width == 2 || width == 4);
+#ifdef CONFIG_RT_CHECK
+    assert(width == 1 || width == 2 || MUXDEF(CONFIG_ISA64, width == 4, false));
+#endif
     rtl_shli(s, dest, src1, (word_size - width) * 8);
     rtl_sari(s, dest, dest, (word_size - width) * 8);
   }
@@ -58,7 +60,9 @@ static inline def_rtl(zext, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   if (width == word_size) {
     rtl_mv(s, dest, src1);
   } else {
-    assert(width == 1 || width == 2 || width == 4);
+#ifdef CONFIG_RT_CHECK
+    assert(width == 1 || width == 2 || MUXDEF(CONFIG_ISA64, width == 4, false));
+#endif
     rtl_shli(s, dest, src1, (word_size - width) * 8);
     rtl_shri(s, dest, dest, (word_size - width) * 8);
   }
@@ -79,7 +83,7 @@ static inline def_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
 
 static inline def_rtl(trap, vaddr_t ret_pc, word_t NO) {
   rtl_li(s, t0, ret_pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, t0, t0, NO);
+  rtl_hostcall(s, HOSTCALL_TRAP, t0, t0, NULL, NO);
   rtl_jr(s, t0);
 }
 

@@ -1,0 +1,7 @@
+menu "ISA-dependent Options for riscv64"
+
+config CLINT_MMIO
+  hex "MMIO address of CLINT"
+  default 0xa2000000
+
+endmenu

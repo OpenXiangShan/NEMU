@@ -32,7 +32,7 @@ static inline def_EHelper(sti) {
 }
 
 static inline def_EHelper(pushf) {
-  void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
+  void rtl_compute_eflags(Decode *s, rtlreg_t *dest);
   rtl_compute_eflags(s, s0);
   rtl_push(s, s0);
   print_asm("pushf");
@@ -42,15 +42,15 @@ static inline def_EHelper(pushf) {
 }
 
 static inline def_EHelper(popf) {
-  void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
+  void rtl_set_eflags(Decode *s, const rtlreg_t *src);
   rtl_pop(s, s0);
   rtl_set_eflags(s, s0);
   print_asm("popf");
 }
 
 static inline def_EHelper(sahf) {
-  void rtl_set_eflags(DecodeExecState *s, const rtlreg_t *src);
-  void rtl_compute_eflags(DecodeExecState *s, rtlreg_t *dest);
+  void rtl_set_eflags(Decode *s, const rtlreg_t *src);
+  void rtl_compute_eflags(Decode *s, rtlreg_t *dest);
 
   rtl_compute_eflags(s, s0);
   rtl_andi(s, s0, s0, ~0xff);

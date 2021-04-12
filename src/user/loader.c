@@ -5,13 +5,8 @@
 #include <unistd.h>
 #include "user.h"
 
-#ifdef __ISA64__
-# define Elf_Ehdr Elf64_Ehdr
-# define Elf_Phdr Elf64_Phdr
-#else
-# define Elf_Ehdr Elf32_Ehdr
-# define Elf_Phdr Elf32_Phdr
-#endif
+# define Elf_Ehdr MUXDEF(CONFIG_ISA64, Elf64_Ehdr, Elf32_Ehdr)
+# define Elf_Phdr MUXDEF(CONFIG_ISA64, Elf64_Phdr, Elf32_Ehdr)
 
 #if defined(__ISA_x86__)
 # define ELF_TYPE EM_386
@@ -78,7 +73,7 @@ static long load_elf(char *elfpath) {
   user_state.phent = elf->e_phentsize;
   user_state.phnum = elf->e_phnum;
   cpu.pc = elf->e_entry;
-  return brk - PMEM_BASE;
+  return brk - CONFIG_MBASE;
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {

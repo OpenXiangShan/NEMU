@@ -12,7 +12,7 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #elif defined(__ISA_riscv32__)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 33) // GRPs + pc
 #elif defined(__ISA_riscv64__)
-# define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1 + 6)) // GRPs + pc + [m|s][status|cause|epc]
+# define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
 #else
 # error Unsupport ISA
 #endif

@@ -1,7 +1,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
-#if defined(__ENGINE_interpreter__)
+#if defined(CONFIG_ENGINE_INTERPRETER)
 
 void set_eflags(uint32_t val);
 
@@ -10,7 +10,9 @@ static void load_sreg(int idx, uint16_t val) {
 
   if (val == 0) return;
 
-#ifdef USER_MODE
+  assert(0);
+#if 0
+#ifdef CONFIG_MODE_USER
   assert(cpu.sreg[idx].ti == 0); // check the table bit
   extern uint32_t GDT[];
   cpu.sreg[idx].base = GDT[cpu.sreg[idx].idx];
@@ -29,12 +31,13 @@ static void load_sreg(int idx, uint16_t val) {
   uint32_t base = (desc_hi & 0xff000000) | ((desc_hi & 0xff) << 16) | (desc_lo >> 16);
   cpu.sreg[idx].base = base;
 #endif
+#endif
 }
 
 static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (dest != NULL) {
     switch (csrid) {
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
       case 0 ... CSR_LDTR: *dest = cpu.sreg[csrid].val; break;
       case CSR_CR0 ... CSR_CR4: *dest = cpu.cr[csrid - CSR_CR0]; break;
 #endif
@@ -43,7 +46,8 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   }
   if (src != NULL) {
     switch (csrid) {
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
+#if 0
       case CSR_IDTR:
         cpu.idtr.limit = vaddr_read(*src, 2);
         cpu.idtr.base  = vaddr_read(*src + 2, 4);
@@ -52,6 +56,7 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
         cpu.gdtr.limit = vaddr_read(*src, 2);
         cpu.gdtr.base  = vaddr_read(*src + 2, 4);
         break;
+#endif
       case CSR_CR0 ... CSR_CR4: cpu.cr[csrid - CSR_CR0] = *src; break;
 #endif
       case 0 ... CSR_LDTR: load_sreg(csrid, *src); break;
@@ -61,6 +66,8 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 }
 
 static inline word_t iret() {
+  assert(0);
+#if 0
   int old_cpl = cpu.sreg[CSR_CS].rpl;
   uint32_t new_pc = vaddr_read(cpu.esp + 0, 4);
   uint32_t new_cs = vaddr_read(cpu.esp + 4, 4);
@@ -78,6 +85,7 @@ static inline word_t iret() {
   cpu.sreg[CSR_CS].val = new_cs;
 
   return new_pc;
+#endif
 }
 
 static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
@@ -87,21 +95,22 @@ static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   }
 }
 
-void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
+void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
+    const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src, imm); return;
-#ifdef USER_MODE
+    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+#ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
       Assert(imm == 0x80, "Unsupport exception = %d", imm);
       uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
           uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
       cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx, cpu.esi, cpu.edi, cpu.ebp);
-      ret = *src;
+      ret = *src1;
       break;
 #else
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src); break;
-    case HOSTCALL_PRIV: ret = priv_instr(imm, src); break;
+    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
 #endif
     default: panic("Unsupported hostcall ID = %d", id);
   }

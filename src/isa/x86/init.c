@@ -16,7 +16,7 @@ static const uint8_t img []  = {
 
 static void restart() {
   /* Set the initial instruction pointer. */
-  cpu.pc = PMEM_BASE + IMAGE_START;
+  cpu.pc = RESET_VECTOR;
 #ifndef __ICS_EXPORT
   cpu.sreg[CSR_CS].val = 0x8;
   cpu.cr0.val = 0x60000011;
@@ -29,32 +29,30 @@ void init_mc146818rtc();
 void init_i8253();
 void init_ioport80();
 void init_i8237a();
-void init_sdcard(const char *img);
 
 void init_isa() {
   /* Test the implementation of the `CPU_state' structure. */
   void reg_test();
-#ifndef DETERMINISTIC
+#ifndef CONFIG_DETERMINISTIC
   reg_test();
 #endif
 
   /* Load built-in image. */
-  memcpy(guest_to_host(IMAGE_START), img, sizeof(img));
+  memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
   /* Initialize this virtual computer system. */
   restart();
 
-#ifndef USER_MODE
+#ifndef CONFIG_MODE_USER
   init_i8259a();
   init_mc146818rtc();
   init_i8253();
   init_ioport80();
   init_i8237a();
-  init_sdcard("/home/yzh/sdi/debian-16G.img");
 #endif
 }
 
-#ifdef USER_MODE
+#ifdef CONFIG_MODE_USER
 
 // we only maintain base of the segment here
 uint32_t GDT[4] = {0};

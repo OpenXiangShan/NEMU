@@ -4,7 +4,7 @@
 #include <common.h>
 
 static inline int check_reg_index(int index) {
-  assert(index >= 0 && index < 32);
+  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
   return index;
 }
 
@@ -12,7 +12,7 @@ static inline int check_reg_index(int index) {
 
 static inline const char* reg_name(int index, int width) {
   extern const char* regsl[];
-  assert(index >= 0 && index < 32);
+  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
   return regsl[index];
 }
 

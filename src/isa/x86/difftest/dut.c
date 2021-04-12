@@ -1,45 +1,10 @@
 #include <isa.h>
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 #include "../local-include/reg.h"
 #include <difftest.h>
 
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>
-
-#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
-#define INSTR_QUEUE_SIZE (1 << 7)
-static uint32_t q_idx = 0;
-struct {
-  vaddr_t pc;
-  uint8_t instr[20];
-  uint8_t instr_len;
-} instr_queue[INSTR_QUEUE_SIZE];
-
-void commit_instr(vaddr_t thispc, uint8_t *instr_buf, uint8_t instr_len) {
-  instr_queue[q_idx].pc = thispc;
-  instr_queue[q_idx].instr_len = instr_len;
-  assert(instr_len < 20);
-  memcpy(instr_queue[q_idx].instr, instr_buf, instr_len);
-  q_idx = (q_idx + 1) % INSTR_QUEUE_SIZE;
-}
-
-void dump_instr_queue() {
-  int i;
-  int victim_idx = (q_idx - 1) % INSTR_QUEUE_SIZE;
-  printf("======== instruction queue =========\n");
-  for (i = 0; i < INSTR_QUEUE_SIZE; i ++) {
-    printf("%5s 0x%08x: ", (i == victim_idx ? "-->" : ""), instr_queue[i].pc);
-    int j;
-    for (j = 0; j < instr_queue[i].instr_len; j ++) {
-      printf("%02x ", instr_queue[i].instr[j]);
-    }
-    printf("\n");
-  }
-  printf("======== instruction queue end =========\n");
-}
-#else
-#define dump_instr_queue()
-#endif
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   if (memcmp(&cpu, ref_r, DIFFTEST_REG_SIZE)) {
@@ -48,7 +13,6 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._32, cpu.gpr[i]._32);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
-    dump_instr_queue();
     return false;
   }
   return true;
@@ -56,7 +20,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 
 void isa_difftest_attach() {
   // first copy the image
-  ref_difftest_memcpy(0, guest_to_host(0), PMEM_SIZE, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, DIFFTEST_TO_REF);
 
   // then set some special registers
   uint8_t code[] = {

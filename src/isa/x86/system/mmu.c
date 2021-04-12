@@ -3,7 +3,7 @@
 #include <memory/vaddr.h>
 #ifndef __ICS_EXPORT
 #include "../local-include/reg.h"
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 typedef union PageTableEntry {
   struct {
@@ -38,7 +38,7 @@ static inline word_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-#ifdef __PA__
+#ifdef CONFIG_PA
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   Assert(pte->p, "vaddr = %x, cpu.pc = %x", vaddr, cpu.pc);
   return true;
@@ -77,22 +77,20 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   assert(level == 0);
   if (!check_permission(&pte[0], true, vaddr, type)) return MEM_RET_FAIL;
 
-#if !defined(__PA__) || defined(DIFF_TEST)
+#if !defined(CONFIG_PA) || defined(CONFIG_DIFFTEST)
   if (!pte[1].a) {
     pte[1].a = 1;
-    paddr_write(p_pte[1], pte[1].val, PTE_SIZE);
-#ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF);
-#endif
+    paddr_write(p_pte[1], PTE_SIZE, pte[1].val);
+    IFDEF(CONFIG_DIFFTEST,
+        ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte[0].a || (!pte[0].d && is_write)) {
     pte[0].a = 1;
     pte[0].d |= is_write;
-    paddr_write(p_pte[0], pte[0].val, PTE_SIZE);
-#ifdef DIFF_TEST
-    ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF);
-#endif
+    paddr_write(p_pte[0], PTE_SIZE, pte[0].val);
+    IFDEF(CONFIG_DIFFTEST,
+        ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
 #endif
 
@@ -103,14 +101,14 @@ bad:
   return MEM_RET_FAIL;
 }
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
   return ptw(vaddr, type);
 }
 #else
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return MEM_RET_FAIL;
 }
 #endif

@@ -1,4 +1,4 @@
-#include <monitor/monitor.h>
+//#include <monitor/monitor.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <isa.h>
@@ -10,7 +10,7 @@
 #include <linux/kvm.h>
 
 uint32_t pio_read(ioaddr_t addr, int len);
-void pio_write(ioaddr_t addr, uint32_t data, int len);
+void pio_write(ioaddr_t addr, int len, uint32_t data);
 
 /* CR0 bits */
 #define CR0_PE 1u
@@ -124,7 +124,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           struct kvm_run *p = vcpu->kvm_run;
           uint8_t *p_data = (uint8_t *)p + p->io.data_offset;
           if (p->io.direction == KVM_EXIT_IO_OUT) {
-            pio_write(p->io.port, *(uint32_t *)p_data, p->io.size);
+            pio_write(p->io.port, p->io.size, *(uint32_t *)p_data);
           }
           else {
             // FIXME
@@ -137,7 +137,7 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           struct kvm_run *p = vcpu->kvm_run;
           if (p->mmio.is_write) {
             uint64_t data = *(uint64_t *)p->mmio.data;
-            paddr_write(p->mmio.phys_addr, data, p->mmio.len);
+            paddr_write(p->mmio.phys_addr, p->mmio.len, data);
           } else {
             uint64_t data = paddr_read(p->mmio.phys_addr, p->mmio.len);
             memcpy(p->mmio.data, &data, p->mmio.len);
@@ -201,21 +201,21 @@ int run_protected_mode(struct vm *vm, struct vcpu *vcpu) {
   memset(&regs, 0, sizeof(regs));
   /* Clear all FLAGS bits, except bit 1 which is always set. */
   regs.rflags = 2;
-  regs.rip = IMAGE_START;
+  regs.rip = RESET_VECTOR;
 
   if (ioctl(vcpu->fd, KVM_SET_REGS, &regs) < 0) {
     perror("KVM_SET_REGS");
     assert(0);
   }
 
-  memcpy(vm->mem, guest_to_host(0), PMEM_SIZE);
+  memcpy(vm->mem, guest_to_host(CONFIG_MBASE), CONFIG_MSIZE);
   return run_vm(vm, vcpu, 4);
 }
 
 void kvm_exec() {
   struct vm vm;
   struct vcpu vcpu;
-  vm_init(&vm, PMEM_SIZE);
+  vm_init(&vm, CONFIG_MSIZE);
   vcpu_init(&vm, &vcpu);
 
   run_protected_mode(&vm, &vcpu);

@@ -1,8 +1,8 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 
-#if !defined(__ICS_EXPORT) && defined(__ENGINE_interpreter__)
-#include <monitor/difftest.h>
+#if !defined(__ICS_EXPORT) && defined(CONFIG_ENGINE_INTERPRETER)
+#include <cpu/difftest.h>
 
 typedef union GateDescriptor {
   struct {
@@ -18,6 +18,7 @@ typedef union GateDescriptor {
 uint32_t compute_eflags();
 
 word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
+#if 0
   assert(NO < 256);
   int old_cs = cpu.sreg[CSR_CS].val;
   // fetch the gate descriptor with ring 0
@@ -43,44 +44,46 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
     cpu.esp = vaddr_read(cpu.sreg[CSR_TR].base + 4, 4);
     cpu.sreg[CSR_SS].val = vaddr_read(cpu.sreg[CSR_TR].base + 8, 2);
 
-    vaddr_write(cpu.esp - 4, ss3, 4);
-    vaddr_write(cpu.esp - 8, esp3, 4);
+    vaddr_write(cpu.esp - 4, 4, ss3);
+    vaddr_write(cpu.esp - 8, 4, esp3);
     cpu.esp -= 8;
   }
 
-  vaddr_write(cpu.esp - 4, compute_eflags(), 4);
+  vaddr_write(cpu.esp - 4, 4, compute_eflags());
   __attribute__((unused)) word_t eflags_esp = cpu.esp - 4;
-  vaddr_write(cpu.esp - 8, old_cs, 4);
-  vaddr_write(cpu.esp - 12, ret_addr, 4);
+  vaddr_write(cpu.esp -  8, 4, old_cs);
+  vaddr_write(cpu.esp - 12, 4, ret_addr);
   cpu.esp -= 12;
 
-#ifndef __PA__
-  if (NO == 14) {
+  if (IFNDEF(CONFIG_PA) && NO == 14) {
     // page fault has error code
-    vaddr_write(cpu.esp - 4, cpu.error_code, 4);
+    vaddr_write(cpu.esp - 4, 4, cpu.error_code);
     cpu.esp -= 4;
   }
-#endif
 
   cpu.IF = 0;
   cpu.sreg[CSR_CS].val = new_cs;
 
-#if defined(__DIFF_REF_KVM__)
+#if defined(CONFIG_DIFFTEST_REF_KVM)
   if (ref_difftest_raise_intr) ref_difftest_raise_intr(NO);
-#elif !defined(__DIFF_REF_NEMU__)
+#elif !defined(CONFIG_DIFFTEST_REF_NEMU)
   difftest_skip_dut(1, 2);
   void difftest_fix_eflags(void *arg);
   difftest_set_patch(difftest_fix_eflags, (void *)(uintptr_t)eflags_esp);
 #endif
 
   return new_pc;
+#endif
+  assert(0);
+  return 0;
 }
 
-void query_intr() {
+word_t isa_query_intr() {
   if (cpu.INTR && cpu.IF) {
     cpu.INTR = false;
-    cpu.pc = raise_intr(IRQ_TIMER, cpu.pc);
+    return IRQ_TIMER;
   }
+  return INTR_EMPTY;
 }
 #else
 word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
@@ -88,14 +91,14 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
    * That is, use ``NO'' to index the IDT.
    */
 
-#if !defined(__ENGINE_interpreter__)
+#if !defined(CONFIG_ENGINE_INTERPRETER)
   panic("not support in non-interpreter mode");
 #endif
   return 0;
 }
 
 void query_intr() {
-#if !defined(__ENGINE_interpreter__)
+#if !defined(CONFIG_ENGINE_INTERPRETER)
   panic("not support in non-interpreter mode");
 #endif
 }

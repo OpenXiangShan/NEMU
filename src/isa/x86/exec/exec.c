@@ -1,3 +1,4 @@
+#if 0
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
 #include "all-instr.h"
@@ -5,7 +6,7 @@
 #undef CASE_ENTRY
 #define CASE_ENTRY(idx, id, ex, w) case idx: set_width(s, w); id(s); return_on_mem_ex(); ex(s); break;
 
-static inline void set_width(DecodeExecState *s, int width) {
+static inline void set_width(Decode *s, int width) {
   if (width == -1) return;
   if (width == 0) {
     width = s->isa.is_operand_size_16 ? 2 : 4;
@@ -288,7 +289,7 @@ static inline def_EHelper(2byte_esc) {
   }
 }
 
-static inline void fetch_decode_exec(DecodeExecState *s) {
+static inline void fetch_decode_exec(Decode *s) {
   uint8_t opcode;
 again:
   opcode = instr_fetch(&s->seq_pc, 1);
@@ -436,7 +437,7 @@ vaddr_t isa_exec_once() {
   return 0;
 #endif
 #endif
-  DecodeExecState s;
+  Decode s;
   s.is_jmp = 0;
   s.isa = (ISADecodeInfo) { 0 };
   s.seq_pc = cpu.pc;
@@ -452,7 +453,7 @@ vaddr_t isa_exec_once() {
   commit_instr(cpu.pc, instr_buf, instr_len);
 #endif
 
-#ifndef __PA__
+#ifndef CONFIG_PA
   if (cpu.mem_exception != 0) {
     cpu.pc = raise_intr(cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;
@@ -465,10 +466,11 @@ vaddr_t isa_exec_once() {
 #endif
 
 #ifndef __ICS_EXPORT
-#if !defined(DIFF_TEST) && !_SHARE
+#if !defined(CONFIG_DIFFTEST) && !defined(CONFIG_SHARE)
   void query_intr();
   query_intr();
 #endif
 #endif
   return s.seq_pc;
 }
+#endif

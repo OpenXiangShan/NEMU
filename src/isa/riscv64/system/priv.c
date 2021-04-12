@@ -1,6 +1,12 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
-#include "../local-include/intr.h"
+#include <cpu/cpu.h>
+#include <cpu/difftest.h>
+
+int update_mmu_state();
+uint64_t clint_uptime();
+void fp_set_dirty();
+void fp_update_rm_cache(uint32_t rm);
 
 static word_t csr_array[4096] = {};
 
@@ -23,65 +29,58 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
-
-#define FFLAGS_MASK 0x1f
-#define FRM_MASK 0x03
 #define FCSR_MASK 0xff
 
+#define is_read(csr) (src == (void *)(csr))
+#define is_write(csr) (dest == (void *)(csr))
+#define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
+
+static inline void update_mstatus_sd() {
+  // mstatus.fs is always dirty or off in QEMU 3.1.0
+  if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
+  mstatus->sd = (mstatus->fs == 3);
+}
+
 static inline word_t csr_read(word_t *src) {
-  if (src == (void *)sstatus) {
-    return mstatus->val & SSTATUS_RMASK;
-  } else if (src == (void *)sie) {
-    return mie->val & SIE_MASK;
-  } else if (src == (void *)sip) {
-    return mip->val & SIP_MASK;
-  } else if (src == (void *)fflags) {
-    return fflags->val & FFLAGS_MASK;
-  } else if (src == (void *)frm) {
-    return frm->val & FRM_MASK;
-  } else if (src == (void *)fcsr) {
-    return fcsr->val & FCSR_MASK;
-  }
+  if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
+
+  if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
+  else if (is_read(sie))    { return mie->val & SIE_MASK; }
+  else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
+  else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
+  else if (is_read(fflags)) { return fcsr->fflags.val; }
+  else if (is_read(frm))    { return fcsr->frm; }
+  else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
+  if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
-  if (dest == (void *)sstatus) {
-    mstatus->val = (mstatus->val & ~SSTATUS_WMASK) | (src & SSTATUS_WMASK);
-  } else if (dest == (void *)sie) {
-    mie->val = (mie->val & ~SIE_MASK) | (src & SIE_MASK);
-  } else if (dest == (void *)sip) {
-    mip->val = (mip->val & ~SIP_MASK) | (src & SIP_MASK);
-  } else if (dest == (void *)medeleg) {
-    *dest = src & 0xbbff;
-  } else if (dest == (void *)mideleg) {
-    *dest = src & 0x222;
-  } else if (dest == (void *)fflags) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = src & FFLAGS_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (dest == (void *)frm) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = src & FRM_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-  } else if (dest == (void *)fcsr) {
-    mstatus->fs = 3;
-    mstatus->sd = 1;
-    *dest = src & FCSR_MASK;
-    fflags->val = src & FFLAGS_MASK;
-    frm->val = ((src)>>5) & FRM_MASK;
-  } else {
-    *dest = src;
+  if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
+  else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
+  else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
+  else if (is_write(medeleg)) { *dest = src & 0xbbff; }
+  else if (is_write(mideleg)) { *dest = src & 0x222; }
+  else if (is_write(fflags)) { fcsr->fflags.val = src; }
+  else if (is_write(frm)) { fcsr->frm = src; }
+  else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
+  else { *dest = src; }
+
+  bool need_update_mstatus_sd = false;
+  if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
+    fp_set_dirty();
+    fp_update_rm_cache(fcsr->frm);
+    need_update_mstatus_sd = true;
   }
 
-  if (dest == (void *)sstatus || dest == (void *)mstatus) {
-#ifdef __DIFF_REF_QEMU__
-    // mstatus.fs is always dirty or off in QEMU 3.1.0
-    if (mstatus->fs) { mstatus->fs = 3; }
-#endif
-    mstatus->sd = (mstatus->fs == 3);
+  if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
+    update_mstatus_sd();
+  }
+
+  if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
+      is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
+    set_sys_state_flag(SYS_STATE_UPDATE);
   }
 }
 
@@ -100,38 +99,39 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case 0x102: // sret
       mstatus->sie = mstatus->spie;
-#ifdef __DIFF_REF_QEMU__
-      // this is bug of QEMU
-      mstatus->spie = 0;
-#else
-      mstatus->spie = 1;
-#endif
+      mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
+          : 1);
       cpu.mode = mstatus->spp;
       mstatus->spp = MODE_U;
       return sepc->val;
     case 0x302: // mret
       mstatus->mie = mstatus->mpie;
-#ifdef __DIFF_REF_QEMU__
-      // this is bug of QEMU
-      mstatus->mpie = 0;
-#else
-      mstatus->mpie = 1;
-#endif
+      mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
+          : 1);
       cpu.mode = mstatus->mpp;
       mstatus->mpp = MODE_U;
+      update_mmu_state();
       return mepc->val;
+      break;
+    case 0x120: // sfence.vma
+      mmu_tlb_flush(*src);
+      break;
+    case 0x105: break; // wfi
+    case -1: // fence.i
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     default: panic("Unsupported privilige operation = %d", op);
   }
   return 0;
 }
 
-void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
+void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
+    const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src, imm); return;
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src); break;
-    case HOSTCALL_PRIV: ret = priv_instr(imm, src); break;
+    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }
   if (dest) *dest = ret;

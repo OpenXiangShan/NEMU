@@ -11,6 +11,5 @@
 #define MEM_OK 0
 
 word_t raise_intr(uint32_t NO, vaddr_t epc);
-#define return_on_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
 
 #endif

@@ -1,11 +1,11 @@
 #include <sys/time.h>
 
 static inline def_EHelper(rdtsc) {
-#ifndef __ENGINE_interpreter__
+#ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 
-#ifdef DETERMINISTIC
+#ifdef CONFIG_DETERMINISTIC
   cpu.edx = 0;
   cpu.eax = 0;
 #else

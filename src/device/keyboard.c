@@ -1,9 +1,6 @@
 #include <device/map.h>
-#include <monitor/monitor.h>
+#include <utils.h>
 #include <SDL2/SDL.h>
-
-#define I8042_DATA_PORT 0x60
-#define I8042_DATA_MMIO 0xa1000060
 
 static uint32_t *i8042_data_port_base = NULL;
 
@@ -60,6 +57,6 @@ static void i8042_data_io_handler(uint32_t offset, int len, bool is_write) {
 void init_i8042() {
   i8042_data_port_base = (void *)new_space(4);
   i8042_data_port_base[0] = _KEY_NONE;
-  add_pio_map("keyboard", I8042_DATA_PORT, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
-  add_mmio_map("keyboard", I8042_DATA_MMIO, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_pio_map("keyboard", CONFIG_I8042_DATA_PORT, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_mmio_map("keyboard", CONFIG_I8042_DATA_MMIO, (void *)i8042_data_port_base, 4, i8042_data_io_handler);
 }

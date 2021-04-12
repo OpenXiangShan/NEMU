@@ -5,21 +5,9 @@ endif
 
 BUILD_PATH = $(abspath $(REPO_PATH)/build/Linux-x86_64-GCC)
 
-EXTRA_SRCS = $(shell find extra -name "*.c")
-EXTRA_OBJS = $(EXTRA_SRCS:%.c=build/%.o)
-CFLAGS = -O2 -MMD -Wall -Werror -I./repo/source/include -I./repo/source/RISCV
-
--include $(EXTRA_OBJS:.o=.d)
-
-build/%.o: %.c
-	@echo + CC $<
-	@mkdir -p $(dir $@)
-	@gcc $(CFLAGS) -c -o $@ $<
-
-all: $(EXTRA_OBJS)
+all:
 	$(MAKE) -C $(BUILD_PATH) all
 	mkdir -p build/
-	cp $(BUILD_PATH)/softfloat.a build/softfloat.a
-	ar rcs build/softfloat.a $(EXTRA_OBJS)
+	ln -sf $(BUILD_PATH)/softfloat.a build/softfloat.a
 
 .PHONY: all

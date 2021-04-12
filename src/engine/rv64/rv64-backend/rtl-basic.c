@@ -4,21 +4,17 @@
 #include "../spill.h"
 
 void rv64_relop(uint32_t relop, uint32_t idx_dest, uint32_t idx_src1, uint32_t idx_src2);
-uint32_t dest2rvidx(DecodeExecState *s, const rtlreg_t* dest);
-uint32_t src2rvidx(DecodeExecState *s, const rtlreg_t* src);
-int rtlreg_is_zero(DecodeExecState *s, const rtlreg_t *r);
+uint32_t dest2rvidx(Decode *s, const rtlreg_t* dest);
+uint32_t src2rvidx(Decode *s, const rtlreg_t* src);
+int rtlreg_is_zero(Decode *s, const rtlreg_t *r);
 
 static inline void rv64_zextw(uint32_t rd, uint32_t rs) {
-#ifndef ISA64
   // mask32 is set during initialization
-  rv64_and(rd, rs, mask32);
-#endif
+  IFNDEF(CONFIG_ISA64, rv64_and(rd, rs, mask32));
 }
 
 static inline void rv64_sextw(uint32_t rd, uint32_t rs) {
-#ifndef ISA64
-  rv64_addw(rd, rs, x0);
-#endif
+  IFNDEF(CONFIG_ISA64, rv64_addw(rd, rs, x0));
 }
 
 static inline sword_t get_imm_hi(const sword_t imm) {
@@ -95,11 +91,8 @@ def_rtl_compute_reg(and, and)
 def_rtl_compute_reg(or, or)
 def_rtl_compute_reg(xor, xor)
 
-#ifdef ISA64
 def_rtl_compute_imm_opt(addi, add, addi)
-#else
-def_rtl_compute_imm_opt(addi, add, addiw)
-#endif
+def_rtl_compute_imm_opt(addi, add, MUXDEF(CONFIG_USA64, addi, addiw))
 def_rtl_compute_imm_opt(andi, and, andi)
 def_rtl_compute_imm_opt(xori, xor, xori)
 def_rtl_compute_imm_opt(ori, or, ori)
@@ -108,7 +101,7 @@ def_rtl(subi, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) {
   rtl_addi(s, dest, src1, -imm);
 }
 
-#ifdef ISA64
+#ifdef CONFIG_ISA64
 def_rtl_compute_reg(add, add)
 def_rtl_compute_reg(sub, sub)
 def_rtl_compute_reg(shl, sll)
@@ -167,7 +160,7 @@ finish:
 }
 
 
-#ifdef ISA64
+#ifdef CONFIG_ISA64
 def_rtl_compute_reg(mulu_lo, mul)
 def_rtl_compute_reg(mulu_hi, mulhu)
 def_rtl_compute_reg(muls_hi, mulh)
@@ -243,7 +236,7 @@ static inline int prepare_addr(int addr_rvidx_final, int addr_rvidx, const sword
   uint32_t lui_imm = (rv_imm.imm_31_12 + (rv_imm.imm_11_0 >> 11)) & 0xfffffu;
   if (addr_rvidx == 0) rv64_lui(addr_rvidx_final, lui_imm);
   else if (lui_imm == 0) {
-#ifdef ISA64
+#ifdef CONFIG_ISA64
     addr_rvidx_final = addr_rvidx;
 #else
     rv64_zextw(addr_rvidx_final, addr_rvidx);
@@ -268,11 +261,7 @@ def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, const sword_t imm, int len) {
   switch (len) {
     case 1: rv64_lbu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
     case 2: rv64_lhu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
-#ifdef ISA64
-    case 4: rv64_lwu(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
-#else
-    case 4: rv64_lw (dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
-#endif
+    case 4: MUXDEF(CONFIG_ISA64, rv64_lwu, rv64_lw)(dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
     case 8: rv64_ld (dest_rvidx, addr_rvidx_final, imm & 0xfff); break;
     default: assert(0);
   }

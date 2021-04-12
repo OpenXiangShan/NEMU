@@ -31,7 +31,7 @@ def_rtl_compute_reg_imm(shl)
 def_rtl_compute_reg_imm(shr)
 def_rtl_compute_reg_imm(sar)
 
-#ifdef ISA64
+#ifdef CONFIG_ISA64
 def_rtl_compute_reg_imm(addw)
 def_rtl_compute_reg_imm(subw)
 def_rtl_compute_reg_imm(shlw)
@@ -63,7 +63,7 @@ def_rtl_compute_reg(divu_r)
 def_rtl_compute_reg(divs_q)
 def_rtl_compute_reg(divs_r)
 
-#ifdef ISA64
+#ifdef CONFIG_ISA64
 def_rtl_compute_reg(mulw)
 def_rtl_compute_reg(divw)
 def_rtl_compute_reg(divuw)
@@ -101,29 +101,25 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 // memory
 
-static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
-#ifdef __ICS_EXPORT
-  *dest = vaddr_read(*addr + offset, len);
-#else
-  word_t val = vaddr_read(*addr + offset, len);
-  if (!isa_has_mem_exception()) *dest = val;
-#endif
+static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
+    word_t offset, int len, int mmu_mode) {
+  *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
 }
 
-static inline def_rtl(sm, const rtlreg_t* addr, word_t offset, const rtlreg_t* src1, int len) {
-  vaddr_write(*addr + offset, *src1, len);
+static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
+    word_t offset, int len, int mmu_mode) {
+  vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
 }
 
-static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
-  word_t val = vaddr_read(*addr + offset, len);
-#ifndef __ICS_EXPORT
-  if (isa_has_mem_exception()) return;
-#endif
+static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
+    word_t offset, int len, int mmu_mode) {
+  word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
     case 2: *dest = (sword_t)(int16_t)val; return;
-    default: assert(0);
+    IFDEF(CONFIG_ISA64, case 8: *dest = (sword_t)(int64_t)val; return);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -132,7 +128,8 @@ static inline def_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
     case 4: *dest = *(uint32_t *)addr; return;
     case 1: *dest = *( uint8_t *)addr; return;
     case 2: *dest = *(uint16_t *)addr; return;
-    default: assert(0);
+    IFDEF(CONFIG_ISA64, case 8: *dest = *(uint64_t *)addr; return);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -141,27 +138,26 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
     case 4: *(uint32_t *)addr = *src1; return;
     case 1: *( uint8_t *)addr = *src1; return;
     case 2: *(uint16_t *)addr = *src1; return;
-    default: assert(0);
+    IFDEF(CONFIG_ISA64, case 8: *(uint64_t *)addr = *src1; return);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
 // control
 
 static inline def_rtl(j, vaddr_t target) {
-  s->jmp_pc = target;
-  s->is_jmp = true;
+  cpu.pc = target;
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
-  s->jmp_pc = *target;
-  s->is_jmp = true;
+  cpu.pc = *target;
 }
 
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
-  if (is_jmp) rtl_j(s, target);
+  rtl_j(s, (is_jmp ? target : s->snpc));
 }
 
-#include "rtl-fp.h"
+//#include "rtl-fp.h"
 #endif

@@ -1,4 +1,4 @@
-static inline int SSEprefix(DecodeExecState *s) {
+static inline int SSEprefix(Decode *s) {
   assert(!(s->isa.rep_flags != 0 && s->isa.is_operand_size_16));
   if (s->isa.is_operand_size_16) return 1;
   else if (s->isa.rep_flags == PREFIX_REP) return 2;

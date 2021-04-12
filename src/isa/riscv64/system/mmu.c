@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
@@ -47,7 +48,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && pte->x)) {
       assert(!cpu.amo);
       stval->val = vaddr;
-      cpu.mem_exception = EX_IPF;
+      longjmp_exception(EX_IPF);
       return false;
     }
   } else if (type == MEM_TYPE_READ) {
@@ -55,15 +56,18 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && can_load)) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
-      cpu.mem_exception = (cpu.amo ? EX_SPF : EX_LPF);
+      //if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
+      int ex = (cpu.amo ? EX_SPF : EX_LPF);
+      cpu.amo = false;
+      longjmp_exception(ex);
       return false;
     }
   } else {
     if (!(ok && pte->w)) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_SPF;
+      cpu.amo = false;
+      longjmp_exception(EX_SPF);
       return false;
     }
   }
@@ -106,7 +110,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
-    paddr_write(p_pte, pte.val, PTE_SIZE);
+    paddr_write(p_pte, PTE_SIZE, pte.val);
   }
 
   return pg_base | MEM_RET_OK;
@@ -116,21 +120,38 @@ bad:
   return MEM_RET_FAIL;
 }
 
-int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
-  bool ifetch = (type == MEM_TYPE_IFETCH);
-  if ((!ifetch) && (vaddr & (len - 1)) != 0) {
-    mtval->val = vaddr;
-    cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
-    return MEM_RET_FAIL;
-  }
+static int ifetch_mmu_state = MMU_DIRECT;
+static int data_mmu_state = MMU_DIRECT;
+
+int get_data_mmu_state() {
+  return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
+}
+
+static inline int update_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) return MEM_RET_NEED_TRANSLATE;
+    if (satp->mode == 8) return MMU_TRANSLATE;
   }
-  return MEM_RET_OK;
+  return MMU_DIRECT;
 }
 
-paddr_t isa_mmu_translate(vaddr_t vaddr, int type, int len) {
+int update_mmu_state() {
+  ifetch_mmu_state = update_mmu_state_internal(true);
+  int data_mmu_state_old = data_mmu_state;
+  data_mmu_state = update_mmu_state_internal(false);
+  return (data_mmu_state ^ data_mmu_state_old) ? true : false;
+}
+
+int isa_mmu_check(vaddr_t vaddr, int len, int type) {
+  if (type == MEM_TYPE_IFETCH) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
+  if (likely((vaddr & (len - 1)) == 0)) return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
+  mtval->val = vaddr;
+  cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+  assert(0);
+  return MEM_RET_FAIL;
+}
+
+paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return ptw(vaddr, type);
 }

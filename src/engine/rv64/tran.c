@@ -14,7 +14,7 @@ int trans_buffer_index = 0;
 int tran_next_pc = NEXT_PC_SEQ;
 
 void clear_trans_buffer() { trans_buffer_index = 0; }
-void asm_print(vaddr_t this_pc, int instr_len, bool print_flag);
+void asm_print(vaddr_t pc, int instr_len, bool print_flag);
 vaddr_t rv64_exec_trans_buffer(void *buf, int nr_instr, int npc_type);
 void guest_getregs(CPU_state *cpu);
 void spill_reset();
@@ -29,7 +29,7 @@ typedef struct TB {
   uint32_t nr_instr;
   uint32_t guest_nr_instr;
   uint32_t hit_time;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   uint32_t cc_dynamic;
   uint32_t cc_op;
   uint32_t last_block;
@@ -118,30 +118,23 @@ void tran_mainloop() {
     if (tb == NULL || (tb->cc_dynamic && tb->last_block != tb_last)) {
       clear_trans_buffer();
       spill_reset();
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
       if (tb && tb->cc_dynamic) printf("dynamic_cc required! 1st op: %d, 2nd op: %d\n", tb->cc_dynamic & 0xff, cpu.cc_op);
 #endif
       tran_next_pc = NEXT_PC_SEQ;
       int guest_nr_instr = 0;
       while (1) {
-        __attribute__((unused)) vaddr_t this_pc = cpu.pc;
-        __attribute__((unused)) vaddr_t seq_pc = isa_exec_once();
+        __attribute__((unused)) vaddr_t pc = cpu.pc;
+        __attribute__((unused)) vaddr_t snpc = isa_exec_once();
         guest_nr_instr ++;
 
         spill_flush_local();
 
         if (nemu_state.state != NEMU_RUNNING) tran_next_pc = NEXT_PC_END;
 
-#ifdef DEBUG
-        asm_print(this_pc, seq_pc - this_pc, true);
-#endif
-#ifdef DIFF_TEST
-        if (tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
-        if (true)
-#else
-        if (tran_next_pc != NEXT_PC_SEQ)
-#endif
-        {
+        IFDEF(CONFIG_DEBUG, asm_print(pc, snpc - pc, true));
+        if (ISDEF(CONFIG_DIFFTEST) && tran_next_pc == NEXT_PC_SEQ) spill_writeback_all();
+        if (ISNDEF(CONFIG_DIFFTEST) && tran_next_pc != NEXT_PC_SEQ) {
           tb = malloc(sizeof(TB));
           tb->pc = tb_start;
           tb->nr_instr = trans_buffer_index;
@@ -153,7 +146,7 @@ void tran_mainloop() {
           tb->hit_time = 0;
           tb->next = head.next;
           head.next = tb;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
           tb->cc_dynamic = cpu.cc_dynamic;
           tb->cc_op = cpu.cc_op;
           if (cpu.cc_dynamic) cpu.cc_dynamic = 0;
@@ -166,7 +159,7 @@ void tran_mainloop() {
 
     //Log("enter tb with pc = " FMT_WORD " , nr_instr = %d", tb->pc, tb->nr_instr);
     vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
     cpu.cc_op = tb->cc_op;
     tb_last = tb_start;
 #endif
@@ -187,7 +180,7 @@ void tran_mainloop() {
     if (tb->npc_type != NEXT_PC_SEQ) cpu.pc = next_pc;
     else cpu.pc = tb->npc;
 
-#ifdef DIFF_TEST
+#ifdef CONFIG_DIFFTEST
     guest_getregs(&cpu);
     difftest_step(tb_start, cpu.pc);
     if (nemu_state.state == NEMU_ABORT) break;

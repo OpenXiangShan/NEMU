@@ -12,7 +12,7 @@ static inline def_rtl(lr, rtlreg_t* dest, int r, int width) {
     case 4: rtl_mv(s, dest, &reg_l(r)); return;
     case 1: rtl_host_lm(s, dest, &reg_b(r), 1); return;
     case 2: rtl_host_lm(s, dest, &reg_w(r), 2); return;
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -21,7 +21,7 @@ static inline def_rtl(sr, int r, const rtlreg_t* src1, int width) {
     case 4: rtl_mv(s, &reg_l(r), src1); return;
     case 1: rtl_host_sm(s, &reg_b(r), src1, 1); return;
     case 2: rtl_host_sm(s, &reg_w(r), src1, 2); return;
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -29,16 +29,14 @@ static inline def_rtl(sr, int r, const rtlreg_t* src1, int width) {
 static inline def_rtl(push, const rtlreg_t* src1) {
   // esp <- esp - 4
   // M[esp] <- src1
-  rtl_sm(s, &cpu.esp, -4, src1, 4);
-  return_on_mem_ex();
+  rtl_sm(s, src1, &cpu.esp, -4, 4, MMU_DYNAMIC);
   rtl_subi(s, &cpu.esp, &cpu.esp, 4);
 }
 
 static inline def_rtl(pop, rtlreg_t* dest) {
   // dest <- M[esp]
   // esp <- esp + 4
-  rtl_lm(s, dest, &cpu.esp, 0, 4);
-  return_on_mem_ex();
+  rtl_lm(s, dest, &cpu.esp, 0, 4, MMU_DYNAMIC);
   rtl_addi(s, &cpu.esp, &cpu.esp, 4);
 }
 
@@ -159,7 +157,7 @@ static inline def_rtl(update_PF, const rtlreg_t* result) {
 static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
   rtl_update_ZF(s, result, width);
   rtl_update_SF(s, result, width);
-#ifndef __PA__
+#ifndef CONFIG_PA
   rtl_update_PF(s, result);
 #endif
 }

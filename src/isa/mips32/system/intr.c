@@ -2,7 +2,7 @@
 #include "../local-include/intr.h"
 
 #ifndef __ICS_EXPORT
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 word_t raise_intr(uint32_t NO, vaddr_t epc) {
 #define EX_ENTRY 0x80000180
@@ -17,7 +17,7 @@ word_t raise_intr(uint32_t NO, vaddr_t epc) {
   return target;
 }
 
-void query_intr() {
+void isa_query_intr() {
   if (cpu.INTR && (cpu.status.ie) && !(cpu.status.exl)) {
     cpu.INTR = false;
     cpu.pc = raise_intr(0, cpu.pc);
@@ -32,6 +32,6 @@ word_t raise_intr(uint32_t NO, vaddr_t epc) {
   return 0;
 }
 
-void query_intr() {
+void isa_query_intr() {
 }
 #endif
