@@ -1,43 +1,37 @@
 #include <isa.h>
-#include <memory/paddr.h>
-#include <memory/vaddr.h>
-#include <memory/host-tlb.h>
 
-#ifdef CONFIG_PERF_OPT
+#if defined(CONFIG_PERF_OPT) && !defined(CONFIG_MODE_USER)
 #define ENABLE_HOSTTLB 1
 #endif
 
 #ifdef CONFIG_MODE_USER
-#define vaddr2uint8(addr)  (uint8_t  *)(void *)(uintptr_t)(addr)
-#define vaddr2uint16(addr) (uint16_t *)(void *)(uintptr_t)(addr)
-#define vaddr2uint32(addr) (uint32_t *)(void *)(uintptr_t)(addr)
-#define vaddr2uint64(addr) (uint64_t *)(void *)(uintptr_t)(addr)
+#include <memory/host.h>
 
-static inline word_t vaddr_read(vaddr_t addr, int len) {
-  switch (len) {
-    case 1: return *vaddr2uint8 (addr);
-    case 2: return *vaddr2uint16(addr);
-    case 4: return *vaddr2uint32(addr);
-    IFDEF(CONFIG_ISA64, case 8: return *vaddr2uint64(addr));
-    default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
-  }
+static inline void* user_to_host(word_t uaddr) {
+  return (void *)(uintptr_t)uaddr;
 }
 
-static inline void vaddr_write(vaddr_t addr, int len, word_t data) {
-  switch (len) {
-    case 1: *vaddr2uint8 (addr) = data; break;
-    case 2: *vaddr2uint16(addr) = data; break;
-    case 4: *vaddr2uint32(addr) = data; break;
-    IFDEF(CONFIG_ISA64, case 8: *vaddr2uint64(addr) = data; break);
-    IFDEF(CONFIG_RT_CHECK, default: assert(0));
-  }
+word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+  return host_read(user_to_host(addr), len);
 }
 
-static inline word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read(addr, len);
+void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+  host_write(user_to_host(addr), len, data);
+}
+
+word_t vaddr_ifetch(vaddr_t addr, int len) {
+  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
+}
+
+word_t vaddr_read_safe(vaddr_t addr, int len) {
+  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
 }
 
 #else
+
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
+#include <memory/host-tlb.h>
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB

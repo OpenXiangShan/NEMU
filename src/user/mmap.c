@@ -32,10 +32,6 @@ static inline bool vma_list_is_end(vma_t *p) {
   return (p == &vma_list);
 }
 
-static inline bool vma_list_is_empty() {
-  return vma_list_is_end(vma_list.next);
-}
-
 static inline vma_t* vma_list_find_fix_area(void *addr, size_t length) {
   vma_t *p;
   vma_foreach(p) {

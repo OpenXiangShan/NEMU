@@ -28,3 +28,11 @@ void init_isa() {
 
   IFNDEF(CONFIG_SHARE, init_clint());
 }
+
+#ifdef CONFIG_MODE_USER
+
+void isa_init_user(word_t sp) {
+  cpu.gpr[2]._64 = sp;
+  //cpu.edx = 0; // no handler for atexit()
+}
+#endif
