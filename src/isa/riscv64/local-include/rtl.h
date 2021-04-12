@@ -12,7 +12,8 @@ static inline def_rtl(fbox, rtlreg_t *dest, rtlreg_t *src) {
 }
 
 static inline def_rtl(funbox, rtlreg_t *dest, rtlreg_t *src) {
-  assert((*src & FBOX_MASK) == FBOX_MASK); // return defaultNaNF32UI;
+  // should return defaultNaNF32UI;
+  IFDEF(CONFIG_RT_CHECK, assert((*src & FBOX_MASK) == FBOX_MASK));
   rtl_andi(s, dest, src, ~FBOX_MASK);
 }
 

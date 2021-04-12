@@ -119,7 +119,7 @@ static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     case 1: *dest = (sword_t)( int8_t)val; return;
     case 2: *dest = (sword_t)(int16_t)val; return;
     IFDEF(CONFIG_ISA64, case 8: *dest = (sword_t)(int64_t)val; return);
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -129,7 +129,7 @@ static inline def_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
     case 1: *dest = *( uint8_t *)addr; return;
     case 2: *dest = *(uint16_t *)addr; return;
     IFDEF(CONFIG_ISA64, case 8: *dest = *(uint64_t *)addr; return);
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -139,7 +139,7 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
     case 1: *( uint8_t *)addr = *src1; return;
     case 2: *(uint16_t *)addr = *src1; return;
     IFDEF(CONFIG_ISA64, case 8: *(uint64_t *)addr = *src1; return);
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 

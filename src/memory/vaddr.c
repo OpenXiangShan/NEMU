@@ -19,7 +19,7 @@ static inline word_t vaddr_read(vaddr_t addr, int len) {
     case 2: return *vaddr2uint16(addr);
     case 4: return *vaddr2uint32(addr);
     IFDEF(CONFIG_ISA64, case 8: return *vaddr2uint64(addr));
-    default: assert(0);
+    default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
   }
 }
 
@@ -29,7 +29,7 @@ static inline void vaddr_write(vaddr_t addr, int len, word_t data) {
     case 2: *vaddr2uint16(addr) = data; break;
     case 4: *vaddr2uint32(addr) = data; break;
     IFDEF(CONFIG_ISA64, case 8: *vaddr2uint64(addr) = data; break);
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 

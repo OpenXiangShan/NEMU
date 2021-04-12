@@ -42,7 +42,7 @@ static inline Decode* tcache_new(vaddr_t pc) {
   return tcache_entry_init(s, pc);
 }
 
-#ifdef DEBUG
+#ifdef CONFIG_RT_CHECK
 #define tcache_bb_check(s) do { \
   int idx = s - tcache_bb_pool; \
   Assert(idx >= 0 && idx < TCACHE_BB_SIZE, "idx = %d, s = %p", idx, s); \

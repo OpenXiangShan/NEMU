@@ -12,7 +12,7 @@ static inline def_rtl(lr, rtlreg_t* dest, int r, int width) {
     case 4: rtl_mv(s, dest, &reg_l(r)); return;
     case 1: rtl_host_lm(s, dest, &reg_b(r), 1); return;
     case 2: rtl_host_lm(s, dest, &reg_w(r), 2); return;
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 
@@ -21,7 +21,7 @@ static inline def_rtl(sr, int r, const rtlreg_t* src1, int width) {
     case 4: rtl_mv(s, &reg_l(r), src1); return;
     case 1: rtl_host_sm(s, &reg_b(r), src1, 1); return;
     case 2: rtl_host_sm(s, &reg_w(r), src1, 2); return;
-    default: assert(0);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
 

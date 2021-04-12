@@ -6,7 +6,7 @@
 enum { PRIV_ERET, PRIV_TLBWR, PRIV_TLBWI, PRIV_TLBP };
 
 static inline int check_reg_index(int index) {
-  assert(index >= 0 && index < 32);
+  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
   return index;
 }
 
@@ -14,13 +14,13 @@ static inline int check_reg_index(int index) {
 
 static inline const char* reg_name(int index, int width) {
   extern const char* regsl[];
-  assert(index >= 0 && index < 32);
+  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
   return regsl[index];
 }
 
 static inline const char* cp0_name(int index) {
   extern const char* cp0[];
-  assert(index >= 0 && index < 32);
+  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
   return cp0[index];
 }
 
