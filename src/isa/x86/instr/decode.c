@@ -21,6 +21,55 @@ static inline word_t get_instr(Decode *s) {
   return *(s->isa.p_instr - 1);
 }
 
+enum {
+  F_CF = 0x1,
+  F_PF = 0x2,
+  F_ZF = 0x4,
+  F_SF = 0x8,
+  F_OF = 0x10,
+  F_ALL = F_CF | F_PF | F_ZF | F_SF | F_OF,
+};
+
+static const uint8_t cc2flag [16] = {
+  [CC_O] = F_OF, [CC_NO] = F_OF,
+  [CC_B] = F_CF, [CC_NB] = F_CF,
+  [CC_E] = F_ZF, [CC_NE] = F_ZF,
+  [CC_BE] = F_ZF | F_CF, [CC_NBE] = F_ZF | F_CF,
+  [CC_S] = F_SF, [CC_NS] = F_SF,
+  [CC_P] = F_PF, [CC_NP] = F_PF,
+  [CC_L] = F_SF | F_OF, [CC_NL] = F_SF | F_OF,
+  [CC_LE] = F_SF | F_OF | F_ZF, [CC_NLE] = F_SF | F_OF | F_ZF,
+};
+
+static const struct {
+  uint8_t def, use;
+} flag_table[TOTAL_INSTR] = {
+  [EXEC_ID_add] = { F_ALL, 0 },
+  [EXEC_ID_adc] = { F_ALL, F_CF },
+  [EXEC_ID_and] = { F_ALL, 0 },
+  [EXEC_ID_bsr] = { F_ALL, 0 },
+  [EXEC_ID_cmp] = { F_ALL, 0 },
+  [EXEC_ID_dec] = { F_ALL & ~F_CF, 0 },
+  [EXEC_ID_div] = { F_ALL, 0 },
+  [EXEC_ID_idiv] = { F_ALL, 0 },
+  [EXEC_ID_imul1] = { F_ALL, 0 },
+  [EXEC_ID_imul2] = { F_ALL, 0 },
+  [EXEC_ID_imul3] = { F_ALL, 0 },
+  [EXEC_ID_inc] = { F_ALL & ~F_CF, 0 },
+  [EXEC_ID_jcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
+  [EXEC_ID_mul] = { F_ALL, 0 },
+  [EXEC_ID_neg] = { F_ALL, 0 },
+  [EXEC_ID_or] = { F_ALL, 0 },
+  [EXEC_ID_sar] = { F_ALL, 0 },
+  [EXEC_ID_shl] = { F_ALL, 0 },
+  [EXEC_ID_shr] = { F_ALL, 0 },
+  [EXEC_ID_sbb] = { F_ALL, F_CF },
+  [EXEC_ID_setcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
+  [EXEC_ID_sub] = { F_ALL, 0 },
+  [EXEC_ID_test] = { F_ALL, 0 },
+  [EXEC_ID_xor] = { F_ALL, 0 },
+};
+
 typedef union {
   struct {
     uint8_t R_M		:3;
@@ -187,7 +236,6 @@ def_DopHelper(r) {
 static inline void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
   ModR_M m;
   m.val = x86_instr_fetch(s, 1);
-  s->isa.ext_opcode = m.opcode;
   if (reg != NULL) operand_reg(s, reg, m.reg, width);
   if (m.mod == 3) operand_reg(s, rm, m.R_M, width);
   else { load_addr(s, &m, rm); }
@@ -649,6 +697,35 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E:
       s->type = INSTR_TYPE_I; break;
   }
+
+#ifdef CONFIG_PERF_OPT
+  s->isa.flag_def = flag_table[idx].def;
+  s->isa.flag_use = flag_table[idx].use;
+  if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc) {
+    s->isa.flag_use = cc2flag[s->isa.opcode & 0xf];
+  }
+
+  static Decode *bb_start = NULL;
+  static int bb_idx = 0;
+
+  if (bb_idx == 0) bb_start = s;
+
+  if (s->type != INSTR_TYPE_N) { // the end of a basic block
+    if (s - bb_start == bb_idx) {
+      // now scan and update `flag_def`
+      Decode *p;
+      uint32_t use = s->isa.flag_use;
+      for (p = s - 1; p >= bb_start; p --) {
+        use |= p->isa.flag_use;
+        uint32_t real_def = p->isa.flag_def & use;
+        use &= ~p->isa.flag_def;
+        p->isa.flag_def = real_def;
+      }
+    }
+  }
+
+  bb_idx ++;
+#endif
 
   return idx;
 }

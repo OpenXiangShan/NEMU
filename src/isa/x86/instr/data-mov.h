@@ -46,7 +46,7 @@ def_EHelper(movsw) {
 }
 
 def_EHelper(cwtl) {
-  if (s->isa.is_operand_size_16) {
+  if (s->isa.width == 2) {
     rtl_sext(s, s0, &cpu.eax, 1);
     rtl_sr(s, R_AX, s0, 2);
   }
@@ -56,7 +56,7 @@ def_EHelper(cwtl) {
 }
 
 def_EHelper(cltd) {
-  if (s->isa.is_operand_size_16) { TODO(); }
+  if (s->isa.width == 2) { TODO(); }
   else { rtl_sari(s, &cpu.edx, &cpu.eax, 31); }
 }
 
@@ -140,7 +140,7 @@ static inline def_EHelper(cmpxchg8b) {
 
 static inline def_EHelper(cmovcc) {
   uint32_t cc = s->opcode & 0xf;
-#ifdef CONFIG_LAZY_CC
+#ifdef CONFIG_x86_CC_LAZY
   rtl_lazy_setcc(s, s0, cc);
 #else
   rtl_setcc(s, s0, cc);

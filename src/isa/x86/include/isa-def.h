@@ -70,7 +70,7 @@ typedef struct {
 
   rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 
-#ifdef CONFIG_LAZY_CC
+#ifdef CONFIG_x86_CC_LAZY
   rtlreg_t cc_dest, cc_src1, cc_src2;
   uint32_t cc_width, cc_op, cc_dirty, cc_dynamic;
 #endif
@@ -121,12 +121,13 @@ typedef struct {
 typedef struct {
   uint8_t instr[16];
   uint8_t *p_instr;
-  uint32_t opcode;
+  uint16_t opcode;
 #define PREFIX_REP   1
 #define PREFIX_REPNZ 2
   int8_t width;
   uint8_t rep_flags;
-  uint8_t ext_opcode;
+  uint8_t flag_def;
+  uint8_t flag_use;
   bool is_operand_size_16;
   const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
