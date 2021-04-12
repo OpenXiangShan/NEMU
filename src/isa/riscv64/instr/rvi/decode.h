@@ -32,7 +32,7 @@ static inline def_DHelper(U) {
 }
 
 static inline def_DHelper(auipc) {
-  decode_U(s);
+  decode_U(s, width);
   id_src1->imm += s->pc;
 }
 

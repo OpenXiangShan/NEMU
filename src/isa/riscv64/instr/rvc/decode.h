@@ -46,7 +46,7 @@ static inline def_DHelper(CI_simm) {
 }
 
 static inline def_DHelper(CI_simm_lui) {
-  decode_CI_simm(s);
+  decode_CI_simm(s, width);
   // the immediate of LUI is placed at id_src1->imm
   id_src1->imm = id_src2->imm << 12;
 }
@@ -57,7 +57,7 @@ static inline def_DHelper(CI_uimm) {
 }
 
 static inline def_DHelper(C_LI) {
-  decode_CI_simm(s);
+  decode_CI_simm(s, width);
   decode_op_r(s, id_src1, 0, true);
 }
 
