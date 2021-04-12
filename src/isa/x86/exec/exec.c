@@ -79,6 +79,19 @@ static inline def_EHelper(gp5) {
   }
 }
 
+/* 0x0f 0x01*/
+static inline def_EHelper(gp7) {
+  switch (s->isa.ext_opcode) {
+#ifdef __ICS_EXPORT
+    EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
+    EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
+#else
+    EMPTY(0) EMPTY(1) EXW  (2, lgdt, -1) EXW  (3, lidt, -1)
+    EMPTY(4) EMPTY(5) EMPTY(6)           EXW  (7, invlpg, -1)
+#endif
+  }
+}
+
 #ifndef __ICS_EXPORT
 /* 0x0f 0x00*/
 static inline def_EHelper(gp6) {
@@ -95,20 +108,128 @@ static inline def_EHelper(gp8) {
     EXW  (4, bt, -1) EXW  (5, bts, -1) EXW  (6, btr, -1) EMPTY(7)
   }
 }
-#endif
 
-/* 0x0f 0x01*/
-static inline def_EHelper(gp7) {
-  switch (s->isa.ext_opcode) {
-#ifdef __ICS_EXPORT
-    EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
-    EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
-#else
-    EMPTY(0) EMPTY(1) EXW  (2, lgdt, -1) EXW  (3, lidt, -1)
-    EMPTY(4) EMPTY(5) EMPTY(6)           EXW  (7, invlpg, -1)
-#endif
+static inline def_EHelper(fp_gp1) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EX(0x00, fchs) EX(0x01, fabs) EMPTY(0x02) EMPTY(0x03)
+    EX(0x04, ftst) EX(0x05, fxam) EMPTY(0x06) EMPTY(0x07)
   }
 }
+
+static inline def_EHelper(fp_gp2) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EX(0x00, fld1)   EX(0x01, fldl2t) EX(0x02, fldl2e) EX(0x03, fldpi)
+    EX(0x04, fldlg2) EX(0x05, fldln2) EX(0x06, fldz)   EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp3) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EMPTY(0x00) IDEX(0x01,St0_St1,fucompp) EMPTY(0x02) EMPTY(0x03)
+    EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp4) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EMPTY(0x00) EMPTY(0x01) EMPTY(0x02) EX   (0X03, finit)
+    EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp5) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EMPTY(0x00) IDEX(0x01,St0_St1,fcompp) EMPTY(0x02) EMPTY(0x03)
+    EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp6) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    IDEXW(0x00, fsw2a, fstsw, 2) EMPTY(0x01) EMPTY(0x02) EMPTY(0x03)
+    EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp7) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    IDEX(0x00, St0_St1, fprem) IDEX(0x01, St0_St1, fyl2xp1) EX(0x02, fsqrt) EMPTY(0x03)
+    EX(0x04, frndint) IDEX(0x05, St0_St1, fscale) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp_gp8) {
+  uint8_t opb = BITS(s->isa.ext_opcode,2,0);
+  switch (opb) {
+    EX(0x00, f2xm1) IDEX(0x01, St0_St1, fyl2x) EMPTY(0x02) IDEX(0x03, St0_St1, fpatan)
+    EMPTY(0x04) EMPTY(0x05) EMPTY(0x06) EMPTY(0x07)
+  }
+}
+
+static inline def_EHelper(fp) {
+  uint8_t fp_opcode = BITS(s->opcode,2,0)<<4 | BITS(s->isa.ext_opcode,5,3);
+  uint8_t fp_mod = BITS(s->isa.ext_opcode,7,6);
+  if(fp_mod != 3){
+    //if (cpu.pc == 0x82a46c9) Log("fp_opcode = 0x%x", fp_opcode);
+    switch (fp_opcode)
+    {
+      IDEX(0x00, St0_M_32r, fadd)     IDEX(0x01, St0_M_32r, fmul)     IDEX(0x02, St0_M_32r, fcom)     IDEX(0x03, St0_M_32r, fcomp)
+      IDEX(0x04, St0_M_32r, fsub)     IDEX(0x05, St0_M_32r, fsubr)    IDEX(0x06, St0_M_32r, fdiv)     IDEX(0x07, St0_M_32r, fdivr)
+      IDEX(0x10, ld_St0_M_32r, fld)   EMPTY(0x11)                     IDEX(0x12, st_M_St0_32r, fst)   IDEX(0x13, st_M_St0_32r, fstp)
+      IDEX(0x14, St0_Est, fldenv)     IDEXW(0x15, M2fcw, fldcw, 2)    IDEX(0x16, St0_Est, fstenv)       IDEXW(0x17, fcw2M, fstcw, 2)
+      IDEX(0x20, St0_M_32i, fadd)     IDEX(0x21, St0_M_32i, fmul)     IDEX(0x22, St0_M_32i, fcom)     IDEX(0x23, St0_M_32i, fcomp)
+      IDEX(0x24, St0_M_32i, fsub)     IDEX(0x25, St0_M_32i, fsubr)    IDEX(0x26, St0_M_32i, fdiv)     IDEX(0x27, St0_M_32i, fdivr)
+      IDEX(0x30, ld_St0_M_32i, fld)   EMPTY(0x31)                     IDEX(0x32, st_M_St0_32i, fst)   IDEX(0x33, st_M_St0_32i, fstp)
+      EMPTY(0x34)                     EMPTY(0x35) /*IDEX(0x35, ld_St0_M_80r, fld)*/   EMPTY(0x36)                     /*IDEX(0x37, st_M_St0_64r, fstp)*/ EMPTY(0x37)
+      IDEX(0x40, St0_M_64r, fadd)     IDEX(0x41, St0_M_64r, fmul)     IDEX(0x42, St0_M_64r, fcom)     IDEX(0x43, St0_M_64r, fcomp)
+      IDEX(0x44, St0_M_64r, fsub)     IDEX(0x45, St0_M_64r, fsubr)    IDEX(0x46, St0_M_64r, fdiv)     IDEX(0x47, St0_M_64r, fdivr)
+      IDEX(0x50, ld_St0_M_64r, fld)   EMPTY(0x51)                     IDEX(0x52, st_M_St0_64r, fst)   IDEX(0x53, st_M_St0_64r, fstp)
+      EMPTY(0x54)                     EMPTY(0x55)                     EMPTY(0x56)                     IDEXW(0x57, fsw2M, fstsw, 2)
+      IDEX(0x60, St0_M_16i, fadd)     IDEX(0x61, St0_M_16i, fmul)     IDEX(0x62, St0_M_16i, fcom)     IDEX(0x63, St0_M_16i, fcomp)
+      IDEX(0x64, St0_M_16i, fsub)     IDEX(0x65, St0_M_16i, fsubr)    IDEX(0x66, St0_M_16i, fdiv)     IDEX(0x67, St0_M_16i, fdivr)
+      IDEX(0x70, ld_St0_M_16i, fld)   EMPTY(0x71)                     IDEX(0x72, st_M_St0_16i, fst)   IDEX(0x73, st_M_St0_16i, fstp)
+      EMPTY(0x74)                     IDEX(0x75, ld_St0_M_64i, fld)   EMPTY(0x76)                     IDEX(0x77, st_M_St0_64i, fstp)
+      default:
+        exec_inv(s);
+        break;
+    }
+  }
+  else
+  {
+    //if (cpu.pc == 0x8094758) Log("fp_opcode = 0x%x", fp_opcode);
+    switch (fp_opcode)
+    {
+      IDEX(0x00, St0_Est, fadd)       IDEX(0x01, St0_Est, fmul)       IDEX(0x02, St0_Est, fcom)       IDEX(0x03, St0_Est, fcomp)
+      IDEX(0x04, St0_Est, fsub)       IDEX(0x05, St0_Est, fsubr)      IDEX(0x06, St0_Est, fdiv)       IDEX(0x07, St0_Est, fdivr)
+      IDEX(0x10, ld_Est_St0, fld)     IDEX(0x11, St0_Est, fxch)       EX  (0x12, nop)                 EMPTY(0x13)
+      IDEX(0x14, St0, fp_gp1)         IDEX(0x15, ld_St0, fp_gp2)      IDEX(0x16, St0_Est, fp_gp8)     IDEX(0x17, St0, fp_gp7)
+      IDEX(0x20, St0_Est, fcmovb)     IDEX(0x21, St0_Est, fcmove)     IDEX(0x22, St0_Est, fcmovbe)    IDEX(0x23, St0_Est, fcmovu)
+      EMPTY(0x24)                     EX  (0x25, fp_gp3)              EMPTY(0x26)                     EMPTY(0x27)
+      IDEX(0x30, St0_Est, fcmovnb)    IDEX(0x31, St0_Est, fcmovne)    IDEX(0x32, St0_Est, fcmovnbe)   IDEX(0x33, St0_Est, fcmovnu)
+      EX  (0x34, fp_gp4)              IDEX(0x35, St0_Est, fucomi)     IDEX(0x36, St0_Est, fcomi)      EMPTY(0x37)
+      IDEX(0x40, Est_St0, fadd)       IDEX(0x41, Est_St0, fmul)       EMPTY(0x42)                     EMPTY(0x43)
+      IDEX(0x44, Est_St0, fsubr)      IDEX(0x45, Est_St0, fsub)       IDEX(0x46, Est_St0, fdivr)      IDEX(0x47, Est_St0, fdiv)
+      EMPTY(0x50)                     EMPTY(0x51)                     IDEX(0x52, st_Est_St0, fst)     IDEX(0x53, st_Est_St0, fstp)
+      IDEX(0x54, St0_Est, fucom)      IDEX(0x55, St0_Est, fucomp)     EMPTY(0x56)                     EMPTY(0x57)
+      IDEX(0x60, Est_St0, faddp)      IDEX(0x61, Est_St0, fmulp)      EMPTY(0x62)                     EX  (0x63, fp_gp5)
+      IDEX(0x64, Est_St0, fsubrp)     IDEX(0x65, Est_St0, fsubp)      IDEX(0x66, Est_St0, fdivrp)     IDEX(0x67, Est_St0, fdivp)
+      EMPTY(0x70)                     EMPTY(0x71)                     EMPTY(0x72)                     EMPTY(0x73)
+      EX  (0x74, fp_gp6)              IDEX(0x75, St0_Est, fucomip)    IDEX (0x76, St0_Est, fcomip)    EMPTY(0x77)
+      default:
+        exec_inv(s);
+        break;
+    }
+  }
+  
+}
+#endif
 
 static inline def_EHelper(2byte_esc) {
   uint8_t opcode = instr_fetch(&s->seq_pc, 1);
@@ -274,8 +395,8 @@ IDEXW(0xc0, gp2_Ib2E, gp2, 1)IDEX (0xc1, gp2_Ib2E, gp2) IDEXW(0xc2, I, ret_imm, 
                             IDEXW(0xcd, I, int, 1)                                  EX   (0xcf, iret)
 IDEXW(0xd0, gp2_1_E, gp2, 1)IDEX (0xd1, gp2_1_E, gp2)   IDEXW(0xd2, gp2_cl2E, gp2, 1)IDEX (0xd3, gp2_cl2E, gp2)
                                                         EX   (0xd6, nemu_trap)
-EX   (0xd8, fpu)            EX   (0xd9, fpu)            EX   (0xda, fpu)            EX   (0xdb, fpu)
-EX   (0xdc, fpu)            EX   (0xdd, fpu)            EX   (0xde, fpu)            EX   (0xdf, fpu)
+IDEX(0xd8, fp_ext, fp)      IDEX(0xd9, fp_ext, fp)      IDEX(0xda, fp_ext, fp)      IDEX(0xdb, fp_ext, fp)
+IDEX(0xdc, fp_ext, fp)      IDEX(0xdd, fp_ext, fp)      IDEX(0xde, fp_ext, fp)      IDEX(0xdf, fp_ext, fp)
                                                                                     IDEXW(0xe3, J, jecxz, 1)
 IDEXW(0xe4, in_I2a, in, 1)                              IDEXW(0xe6, out_a2I, out, 1)
 IDEX (0xe8, J, call)        IDEXW(0xe9, J, jmp, 4)      IDEXW(0xea, LJ, ljmp, 4)    IDEXW(0xeb, J, jmp, 1)

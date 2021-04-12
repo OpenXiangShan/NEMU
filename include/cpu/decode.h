@@ -7,6 +7,8 @@
 
 typedef struct {
   union {
+    IFDEF(CONFIG_ISA_x86, uint64_t *pfreg);
+    IFDEF(CONFIG_ISA_x86, uint64_t fval);
     rtlreg_t *preg;
     word_t imm;
     sword_t simm;
