@@ -126,7 +126,8 @@ echo -e "\n============ End of preset commands =============\n"
 /root/nemutrap/good-trap
 ```
 
-* 若在不方便输入的环境(如NEMU, verilator仿真等)中测试, 可采用如下方式避免登录时输入
+* 若在不方便输入的环境(如NEMU, verilator仿真等)中测试, 可采用如下两种方式的其中一种, 避免登录时输入
+  * 通过紧急模式登录
 ```
 cd /lib/systemd/system
 # 通过紧急模式登录, 不启动非必须的服务, 节省将近一半的登录时间
@@ -136,6 +137,7 @@ vim emergency.service
   -ExecStart=-/lib/systemd/systemd-sulogin-shell emergency
   +ExecStart=-/bin/bash
 ```
+  * 免密码登录, 见[这里](https://superuser.com/questions/969923/automatic-root-login-in-debian-8-0-console-only)
 
 * 退出并卸载镜像
 ```
