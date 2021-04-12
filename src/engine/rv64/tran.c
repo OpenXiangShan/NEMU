@@ -29,7 +29,7 @@ typedef struct TB {
   uint32_t nr_instr;
   uint32_t guest_nr_instr;
   uint32_t hit_time;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   uint32_t cc_dynamic;
   uint32_t cc_op;
   uint32_t last_block;
@@ -118,7 +118,7 @@ void tran_mainloop() {
     if (tb == NULL || (tb->cc_dynamic && tb->last_block != tb_last)) {
       clear_trans_buffer();
       spill_reset();
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
       if (tb && tb->cc_dynamic) printf("dynamic_cc required! 1st op: %d, 2nd op: %d\n", tb->cc_dynamic & 0xff, cpu.cc_op);
 #endif
       tran_next_pc = NEXT_PC_SEQ;
@@ -146,7 +146,7 @@ void tran_mainloop() {
           tb->hit_time = 0;
           tb->next = head.next;
           head.next = tb;
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
           tb->cc_dynamic = cpu.cc_dynamic;
           tb->cc_op = cpu.cc_op;
           if (cpu.cc_dynamic) cpu.cc_dynamic = 0;
@@ -159,7 +159,7 @@ void tran_mainloop() {
 
     //Log("enter tb with pc = " FMT_WORD " , nr_instr = %d", tb->pc, tb->nr_instr);
     vaddr_t next_pc = rv64_exec_trans_buffer(tb->code, tb->nr_instr, tb->npc_type);
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
     cpu.cc_op = tb->cc_op;
     tb_last = tb_start;
 #endif

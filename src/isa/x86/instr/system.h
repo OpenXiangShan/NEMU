@@ -1,17 +1,18 @@
-#include <monitor/difftest.h>
-
-static inline def_EHelper(in) {
-  rtl_hostcall(s, HOSTCALL_PIO, s0, dsrc1, 1);
-  operand_write(s, id_dest, s0);
-  print_asm_template2(in);
+def_EHelper(in) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 2);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (1 << 4) | s->isa.width);
+  rtl_wb_r(s, ddest);
 }
 
-static inline def_EHelper(out) {
-  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, 0);
-  print_asm_template2(out);
+def_EHelper(out) {
+  rt_decode(s, id_dest, true, 2);
+  rt_decode(s, id_src1, true, s->isa.width);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (0 << 4) | s->isa.width);
 }
 
-#ifndef __ICS_EXPORT
+#if 0
+
 void load_sreg(int idx, uint16_t val);
 
 static inline def_EHelper(lidt) {
@@ -115,35 +116,5 @@ static inline def_EHelper(ltr) {
 }
 
 static inline def_EHelper(mov_r2dr) {
-}
-
-
-#else
-static inline def_EHelper(lidt) {
-  TODO();
-  print_asm_template1(lidt);
-}
-
-static inline def_EHelper(mov_r2cr) {
-  TODO();
-  print_asm("movl %%%s,%%cr%d", reg_name(id_src1->reg, 4), id_dest->reg);
-}
-
-static inline def_EHelper(mov_cr2r) {
-  TODO();
-  print_asm("movl %%cr%d,%%%s", id_src1->reg, reg_name(id_dest->reg, 4));
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
-}
-
-static inline def_EHelper(int) {
-  TODO();
-  print_asm("int %s", id_dest->str);
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-}
-
-static inline def_EHelper(iret) {
-  TODO();
-  print_asm("iret");
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_ref());
 }
 #endif

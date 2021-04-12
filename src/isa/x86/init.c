@@ -32,7 +32,7 @@ void init_i8237a();
 void init_isa() {
   /* Test the implementation of the `CPU_state' structure. */
   void reg_test();
-#ifndef DETERMINISTIC
+#ifndef CONFIG_DETERMINISTIC
   reg_test();
 #endif
 

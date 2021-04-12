@@ -5,7 +5,7 @@ static inline def_EHelper(rdtsc) {
   panic("not support in engines other than interpreter");
 #endif
 
-#ifdef DETERMINISTIC
+#ifdef CONFIG_DETERMINISTIC
   cpu.edx = 0;
   cpu.eax = 0;
 #else

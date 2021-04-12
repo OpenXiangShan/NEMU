@@ -1,0 +1,18 @@
+menu "ISA-dependent Options for x86"
+
+choice
+  prompt "Optimization for condition code evaulation"
+  default x86_CC_SKIP
+config x86_CC_SKIP
+  bool "Skip CC"
+config x86_CC_LAZY
+  bool "Lazy CC"
+config x86_CC_NONE
+  bool "none"
+endchoice
+
+config PA
+  bool "Enable PA version"
+  default n
+
+endmenu

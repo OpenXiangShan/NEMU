@@ -136,7 +136,8 @@ Decode* tcache_decode(Decode *s, const void **exec_table);
 void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
 
-static inline Decode* jr_fetch(Decode *s, vaddr_t target) {
+//static inline
+Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
   return tcache_jr_fetch(s, target);
@@ -189,6 +190,7 @@ def_EHelper(nemu_decode) {
 }
 
 end_of_bb:
+__attribute__((unused))
 #ifdef CONFIG_ENABLE_INSTR_CNT
     n_remain = n;
     if (unlikely(n <= 0)) break;
@@ -199,6 +201,7 @@ end_of_bb:
   }
 
 end_of_loop:
+__attribute__((unused))
   debug_difftest(this_s, s);
   prev_s = s;
   return n;

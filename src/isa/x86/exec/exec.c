@@ -1,3 +1,4 @@
+#if 0
 #include <cpu/exec.h>
 #include "../local-include/decode.h"
 #include "all-instr.h"
@@ -331,7 +332,7 @@ vaddr_t isa_exec_once() {
   commit_instr(cpu.pc, instr_buf, instr_len);
 #endif
 
-#ifndef __PA__
+#ifndef CONFIG_PA
   if (cpu.mem_exception != 0) {
     cpu.pc = raise_intr(cpu.mem_exception, cpu.pc);
     cpu.mem_exception = 0;
@@ -351,3 +352,4 @@ vaddr_t isa_exec_once() {
 #endif
   return s.seq_pc;
 }
+#endif

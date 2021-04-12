@@ -1,7 +1,7 @@
 #include <cpu/exec.h>
 #include "cc.h"
 
-#ifdef LAZY_CC
+#ifdef CONFIG_x86_CC_LAZY
 static inline def_rtl(set_lazycc_dest, const rtlreg_t *dest) {
   rtl_mv(s, &cpu.cc_dest, dest);
 }
@@ -39,11 +39,11 @@ static const int cc2relop [] = {
   [CC_O]  = 0,                 [CC_NO]  = 0,
   [CC_B]  = RELOP_LTU,         [CC_NB]  = RELOP_GEU,
   [CC_E]  = UNARY | RELOP_EQ,  [CC_NE]  = UNARY | RELOP_NE,
-  [CC_BE] = 0,                 [CC_NBE] = 0,
+  [CC_BE] = RELOP_LEU,         [CC_NBE] = RELOP_GTU,
   [CC_S]  = UNARY | RELOP_LT,  [CC_NS]  = UNARY | RELOP_GE,
   [CC_P]  = 0,                 [CC_NP]  = 0,
-  [CC_L]  = 0,                 [CC_NL]  = 0,
-  [CC_LE] = 0,                 [CC_NLE] = 0,
+  [CC_L]  = RELOP_LT,          [CC_NL]  = RELOP_GE,
+  [CC_LE] = RELOP_LE,          [CC_NLE] = RELOP_GT,
 };
 
 static const int cc2relop_logic [] = {
@@ -59,7 +59,7 @@ static const int cc2relop_logic [] = {
 
 
 static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
-  rtlreg_t *p;
+  rtlreg_t *p = NULL;
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
   if ((cc2relop[cc] & UNARY) && !exception) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
@@ -84,13 +84,6 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_O: case CC_NO:
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
-          goto negcc_reverse;
-          return;
-        case CC_L: case CC_NL:
-          rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_is_add_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
-          rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
           goto negcc_reverse;
           return;
         case CC_LE: case CC_NLE:
@@ -123,29 +116,6 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_O: case CC_NO:
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_sub_overflow(s, dest, dest, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
-          goto negcc_reverse;
-          return;
-        case CC_L: case CC_NL:
-          rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_is_sub_overflow(s, s0, dest, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
-          rtl_msb(s, s1, dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
-          goto negcc_reverse;
-          return;
-        case CC_LE: case CC_NLE:
-          rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_is_sub_overflow(s, s0, dest, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
-          rtl_msb(s, s1, dest, cpu.cc_width);
-          rtl_xor(s, s0, s0, s1);
-          rtl_setrelopi(s, RELOP_EQ, s1, dest, 0);
-          rtl_or(s, dest, s0, s1);
-          goto negcc_reverse;
-          return;
-        case CC_BE: case CC_NBE:
-          rtl_is_sub_carry(s, s0, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_sub(s, s1, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_setrelopi(s, RELOP_EQ, s1, s1, 0);
-          rtl_or(s, dest, s0, s1);
           goto negcc_reverse;
           return;
         default:
@@ -330,15 +300,6 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
 negcc_reverse:
     if NEGCC(cc) rtl_xori(s, dest, dest, 1);
     return;
-}
-
-static inline def_rtl(lazy_jcc, uint32_t cc) {
-  if (cpu.cc_dirty == false) { 
-    cpu.cc_dynamic = cpu.cc_op | 0x100; 
-    // printf("dynamic hit\n");
-  }
-  rtl_lazy_setcc_internal(s, (rtlreg_t *)s2, cc);
-  rtl_jrelop(s, RELOP_NE, s2, rz, s->jmp_pc);
 }
 
 static inline def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {

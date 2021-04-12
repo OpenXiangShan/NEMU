@@ -4,20 +4,6 @@
 #include <common.h>
 
 #ifndef __ICS_EXPORT
-//#define __PA__
-
-//#define LAZY_CC
-//#define ENABLE_DIFFTEST_INSTR_QUEUE
-#define DETERMINISTIC
-#endif
-
-// memory
-#ifdef __ENGINE_rv64__
-#define LAZY_CC
-#endif
-
-// reg
-#ifndef __ICS_EXPORT
 /* the Control Register 0 */
 typedef union CR0 {
   struct {
@@ -84,7 +70,7 @@ typedef struct {
 
   rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 
-#ifdef LAZY_CC
+#ifdef CONFIG_x86_CC_LAZY
   rtlreg_t cc_dest, cc_src1, cc_src2;
   uint32_t cc_width, cc_op, cc_dirty, cc_dynamic;
 #endif
@@ -125,7 +111,7 @@ typedef struct {
 
   int mem_exception;
   word_t error_code;
-  IFNDEF(__PA__, int lock);
+  IFNDEF(CONFIG_PA, int lock);
 
   bool INTR;
 #endif
@@ -133,23 +119,32 @@ typedef struct {
 
 // decode
 typedef struct {
-  bool is_operand_size_16;
+  uint8_t instr[16];
+  uint8_t *p_instr;
+  uint16_t opcode;
 #define PREFIX_REP   1
 #define PREFIX_REPNZ 2
-  int rep_flags;
-  uint8_t ext_opcode;
+  int8_t width;
+  uint8_t rep_flags;
+  uint8_t flag_def;
+  uint8_t flag_use;
+  bool is_operand_size_16;
   const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
-  rtlreg_t mbr;
+  const rtlreg_t *midx;
   word_t moff;
+  word_t mscale;
+  rtlreg_t mbr;
 } x86_ISADecodeInfo;
 
-#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
+enum { OP_TYPE_IMM, OP_TYPE_REG, OP_TYPE_MEM };
+
+//#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
 #ifdef __ICS_EXPORT
-#define isa_vaddr_check(vaddr, len, type) (MEM_RET_OK)
+#define isa_mmu_state() (MMU_DIRECT)
 #else
-#define isa_vaddr_check(vaddr, len, type) (cpu.cr0.paging ? MEM_RET_NEED_TRANSLATE : MEM_RET_OK)
+#define isa_mmu_state() (cpu.cr0.paging ? MMU_TRANSLATE : MMU_DIRECT)
 #endif
-#define x86_has_mem_exception() (false)
+#define isa_mmu_check(vaddr, len, type) isa_mmu_state()
 
 #endif

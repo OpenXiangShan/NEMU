@@ -23,7 +23,7 @@ uint32_t rtlreg2varidx(Decode *s, const rtlreg_t* dest) {
   CASE(&id_src2->val, 6)
   CASE(&id_dest->val, 7)
   CASE(&s->isa.mbr, 8)
-#ifdef LAZY_CC
+#ifdef CONFIG_LAZY_CC
   CASE(&cpu.cc_dest, 13)
   CASE(&cpu.cc_src1, 14)
   CASE(&cpu.cc_src2, 15)

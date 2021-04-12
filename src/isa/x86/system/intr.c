@@ -2,7 +2,7 @@
 #include "../local-include/intr.h"
 
 #if !defined(__ICS_EXPORT) && defined(CONFIG_ENGINE_INTERPRETER)
-#include <monitor/difftest.h>
+#include <cpu/difftest.h>
 
 typedef union GateDescriptor {
   struct {
@@ -18,6 +18,7 @@ typedef union GateDescriptor {
 uint32_t compute_eflags();
 
 word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
+#if 0
   assert(NO < 256);
   int old_cs = cpu.sreg[CSR_CS].val;
   // fetch the gate descriptor with ring 0
@@ -54,7 +55,7 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
   vaddr_write(cpu.esp - 12, 4, ret_addr);
   cpu.esp -= 12;
 
-  if (IFNDEF(__PA__) && NO == 14) {
+  if (IFNDEF(CONFIG_PA) && NO == 14) {
     // page fault has error code
     vaddr_write(cpu.esp - 4, 4, cpu.error_code);
     cpu.esp -= 4;
@@ -72,13 +73,17 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
 #endif
 
   return new_pc;
+#endif
+  assert(0);
+  return 0;
 }
 
-void query_intr() {
+word_t isa_query_intr() {
   if (cpu.INTR && cpu.IF) {
     cpu.INTR = false;
-    cpu.pc = raise_intr(IRQ_TIMER, cpu.pc);
+    return IRQ_TIMER;
   }
+  return INTR_EMPTY;
 }
 #else
 word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {

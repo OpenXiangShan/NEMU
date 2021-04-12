@@ -1,0 +1,8 @@
+#include "../instr/data-mov.h"
+#include "../instr/arith.h"
+#include "../instr/logic.h"
+#include "../instr/control.h"
+#include "../instr/string.h"
+#include "../instr/bit.h"
+#include "../instr/system.h"
+#include "../instr/special.h"

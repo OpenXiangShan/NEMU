@@ -1,20 +1,71 @@
-static inline def_EHelper(mov) {
-  operand_write(s, id_dest, dsrc1);
-  print_asm_template2(mov);
+def_EHelper(mov) {
+  rtl_decode_binary(s, false, true);
+  rtl_wb(s, dsrc1);
 }
 
-#ifndef __ICS_EXPORT
-static inline def_EHelper(push) {
+def_EHelper(push) {
+  rtl_decode_unary(s, true);
   rtl_push(s, ddest);
-  print_asm_template1(push);
 }
 
-static inline def_EHelper(pop) {
+def_EHelper(pop) {
+  rtl_decode_unary(s, false);
   rtl_pop(s, ddest);
-  operand_write(s, id_dest, ddest);
-  print_asm_template1(pop);
 }
 
+def_EHelper(lea) {
+  rtl_decode_binary(s, false, false);
+  rtl_addi(s, ddest, &s->isa.mbr, s->isa.moff);
+  rtl_wb_r(s, ddest);
+}
+
+def_EHelper(movzb) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 1);
+  rtl_wb_r(s, dsrc1);
+}
+
+def_EHelper(movzw) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 2);
+  rtl_wb_r(s, dsrc1);
+}
+
+def_EHelper(movsb) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 1);
+  rtl_sext(s, ddest, dsrc1, 1);
+  rtl_wb_r(s, ddest);
+}
+
+def_EHelper(movsw) {
+  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_src1, true, 2);
+  rtl_sext(s, ddest, dsrc1, 2);
+  rtl_wb_r(s, ddest);
+}
+
+def_EHelper(cwtl) {
+  if (s->isa.width == 2) {
+    rtl_sext(s, s0, &cpu.eax, 1);
+    rtl_sr(s, R_AX, s0, 2);
+  }
+  else {
+    rtl_sext(s, &cpu.eax, &cpu.eax, 2);
+  }
+}
+
+def_EHelper(cltd) {
+  if (s->isa.width == 2) { TODO(); }
+  else { rtl_sari(s, &cpu.edx, &cpu.eax, 31); }
+}
+
+def_EHelper(leave) {
+  rtl_mv(s, &cpu.esp, &cpu.ebp);
+  rtl_pop(s, &cpu.ebp);
+}
+
+#if 0
 static inline def_EHelper(pusha) {
   rtl_mv(s, s0, &cpu.esp);
   rtl_push(s, &cpu.eax);
@@ -38,34 +89,6 @@ static inline def_EHelper(popa) {
   rtl_pop(s, &cpu.ecx);
   rtl_pop(s, &cpu.eax);
   print_asm("popa");
-}
-
-static inline def_EHelper(leave) {
-  rtl_mv(s, &cpu.esp, &cpu.ebp);
-  rtl_pop(s, &cpu.ebp);
-  print_asm("leave");
-}
-
-static inline def_EHelper(cltd) {
-  if (s->isa.is_operand_size_16) {
-    TODO();
-  }
-  else {
-    rtl_sari(s, &cpu.edx, &cpu.eax, 31);
-  }
-  print_asm(s->isa.is_operand_size_16 ? "cwtl" : "cltd");
-}
-
-static inline def_EHelper(cwtl) {
-  if (s->isa.is_operand_size_16) {
-    rtl_sext(s, s0, &cpu.eax, 1);
-    rtl_sr(s, R_AX, s0, 2);
-  }
-  else {
-    rtl_sext(s, &cpu.eax, &cpu.eax, 2);
-  }
-
-  print_asm(s->isa.is_operand_size_16 ? "cbtw" : "cwtl");
 }
 
 static inline def_EHelper(xchg) {
@@ -117,7 +140,7 @@ static inline def_EHelper(cmpxchg8b) {
 
 static inline def_EHelper(cmovcc) {
   uint32_t cc = s->opcode & 0xf;
-#ifdef LAZY_CC
+#ifdef CONFIG_x86_CC_LAZY
   rtl_lazy_setcc(s, s0, cc);
 #else
   rtl_setcc(s, s0, cc);
@@ -136,68 +159,4 @@ static inline def_EHelper(cmovcc) {
 
   print_asm("cmov%s %s,%s", get_cc_name(cc), id_src1->str, id_dest->str);
 }
-#else
-static inline def_EHelper(push) {
-  TODO();
-  print_asm_template1(push);
-}
-
-static inline def_EHelper(pop) {
-  TODO();
-  print_asm_template1(pop);
-}
-
-static inline def_EHelper(pusha) {
-  TODO();
-  print_asm("pusha");
-}
-
-static inline def_EHelper(popa) {
-  TODO();
-  print_asm("popa");
-}
-
-static inline def_EHelper(leave) {
-  TODO();
-  print_asm("leave");
-}
-
-static inline def_EHelper(cltd) {
-  if (s->isa.is_operand_size_16) {
-    TODO();
-  }
-  else {
-    TODO();
-  }
-  print_asm(s->isa.is_operand_size_16 ? "cwtl" : "cltd");
-}
-
-static inline def_EHelper(cwtl) {
-  if (s->isa.is_operand_size_16) {
-    TODO();
-  }
-  else {
-    TODO();
-  }
-  print_asm(s->isa.is_operand_size_16 ? "cbtw" : "cwtl");
-}
 #endif
-
-static inline def_EHelper(movsx) {
-  id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
-  rtl_sext(s, ddest, dsrc1, id_src1->width);
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(movsx);
-}
-
-static inline def_EHelper(movzx) {
-  id_dest->width = s->isa.is_operand_size_16 ? 2 : 4;
-  operand_write(s, id_dest, dsrc1);
-  print_asm_template2(movzx);
-}
-
-static inline def_EHelper(lea) {
-  rtl_addi(s, ddest, s->isa.mbase, s->isa.moff);
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(lea);
-}
