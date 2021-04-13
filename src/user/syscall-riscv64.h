@@ -2,28 +2,37 @@
 #define USER_SYS_fcntl 25
 #define USER_SYS_ioctl 29
 #define USER_SYS_unlinkat 35
+#define USER_SYS_ftruncate 46
+#define USER_SYS_faccessat 48
 #define USER_SYS_openat 56
 #define USER_SYS_close 57
 #define USER_SYS_lseek 62
 #define USER_SYS_read 63
 #define USER_SYS_write 64
+#define USER_SYS_writev 66
 #define USER_SYS_readlinkat 78
 #define USER_SYS_fstatat 79
 #define USER_SYS_fstat 80
 #define USER_SYS_exit 93
 #define USER_SYS_exit_group 94
+#define USER_SYS_clock_gettime 113
 #define USER_SYS_rt_sigaction 134
+#define USER_SYS_times 153
 #define USER_SYS_uname 160
+#define USER_SYS_getrusage 165
 #define USER_SYS_gettimeofday 169
 #define USER_SYS_getpid 172
 #define USER_SYS_getuid 174
 #define USER_SYS_geteuid 175
 #define USER_SYS_getgid 176
 #define USER_SYS_getegid 177
+#define USER_SYS_sysinfo 179
 #define USER_SYS_brk 214
 #define USER_SYS_munmap 215
 #define USER_SYS_mremap 216
 #define USER_SYS_mmap 222
+#define USER_SYS_mprotect 226
+#define USER_SYS_prlimit64 261
 
 struct user_stat {
   uint64_t st_dev;
