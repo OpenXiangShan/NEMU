@@ -22,7 +22,7 @@
 #define USER_SYS_sigaction 174
 #define USER_SYS_getcwd 183
 #define USER_SYS_getrlimit 191
-#define USER_SYS_mmap 192
+#define USER_SYS_mmap2 192
 #define USER_SYS_ftruncate64 194
 #define USER_SYS_stat64 195
 #define USER_SYS_lstat64 196

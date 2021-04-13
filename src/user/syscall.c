@@ -176,11 +176,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
   uintptr_t ret = 0;
   switch (id) {
 #if 0
-    case 252: // exit_group() is treated as exit()
-    case 1: user_sys_exit(arg1); break;
-    case 3: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case 4: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case 6: ret = close(user_fd(arg1)); break;
     case 10: ret = unlink(user_to_host(arg1)); break;
     case 13: ret = time(user_to_host(arg1)); break;
     case 20: return getpid();
@@ -191,7 +186,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 77: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case 78: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
-    case 91: ret = user_munmap(user_to_host(arg1), arg2); break;
     case 116: ret = user_sysinfo(user_to_host(arg1)); break;
     case 122: ret = uname(user_to_host(arg1)); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
@@ -203,8 +197,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
               ret = strlen(user_to_host(arg1)) + 1;
               break;
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
-    case 192: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
-                  arg3, arg4, user_fd(arg5), arg6 << 12); break;
     case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
     case 195: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case 196: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
@@ -216,7 +208,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 221: ret = fcntl(user_fd(arg1), arg2, arg3); break;
     case 243: ret = user_set_thread_area(user_to_host(arg1)); break;
     case 265: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
-    case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     case 340: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
 #endif
     case USER_SYS_exit_group:
@@ -225,8 +216,14 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_uname: ret = uname(user_to_host(arg1)); break;
     case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
-         user_to_host(arg2), user_to_host(arg3), arg4); break;
+          user_to_host(arg2), user_to_host(arg3), arg4); break;
     case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
+    case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
+          arg3, arg4, user_fd(arg5), arg6 << 12); break;
+    case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
+    case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_close: ret = close(user_fd(arg1)); break;
+    case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }
   ret = get_syscall_ret(ret);

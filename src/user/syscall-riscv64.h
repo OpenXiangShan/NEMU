@@ -1,3 +1,6 @@
+#define USER_SYS_openat 56
+#define USER_SYS_close 57
+#define USER_SYS_read 63
 #define USER_SYS_write 64
 #define USER_SYS_readlinkat 78
 #define USER_SYS_fstat 80
@@ -5,6 +8,8 @@
 #define USER_SYS_exit_group 94
 #define USER_SYS_uname 160
 #define USER_SYS_brk 214
+#define USER_SYS_munmap 215
+#define USER_SYS_mmap 222
 
 struct user_stat {
   uint64_t st_dev;
