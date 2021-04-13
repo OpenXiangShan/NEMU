@@ -2,8 +2,19 @@
 #include <isa.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
+#include <sys/utsname.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <sys/sysinfo.h>
+#include <sys/time.h>
+#include <sys/times.h>
+#include <sys/uio.h>
+#include <sys/resource.h>
+#include <fcntl.h>
+
 #include "user.h"
-#include "syscall-def.h"
 #include MUXDEF(CONFIG_ISA_x86,     "syscall-x86.h", \
          MUXDEF(CONFIG_ISA_mips32,  "syscall-mips32.h", \
          MUXDEF(CONFIG_ISA_riscv32, "syscall-riscv32.h", \
