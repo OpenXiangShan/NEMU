@@ -15,7 +15,7 @@ void init_isa() {
   cpu.gpr[0]._64 = 0;
   cpu.pc = RESET_VECTOR;
 
-  cpu.mode = MODE_M;
+  cpu.mode = MUXDEF(CONFIG_MODE_USER, MODE_U, MODE_M);
   mstatus->val = 0;
 
 #define ext(e) (1 << ((e) - 'a'))
