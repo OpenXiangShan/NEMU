@@ -58,6 +58,18 @@ static inline word_t user_sys_fstatat(int dirfd,
   return ret;
 }
 
+static inline word_t user_gettimeofday(void *tv, void *tz) {
+#ifdef CONFIG_ISA64
+  return gettimeofday(tv, tz);
+#else
+  struct timeval host_tv;
+  int ret = gettimeofday(&host_tv, tz);
+  assert(ret == 0);
+  if (tv != NULL) { translate_timeval(&host_tv, tv); }
+  return ret;
+#endif
+}
+
 #if 0
 static inline word_t user_sys_stat64(const char *pathname, void *statbuf) {
   struct stat buf;
@@ -128,14 +140,6 @@ static inline word_t user_clock_gettime(clockid_t id, void *tp) {
   return ret;
 }
 
-static inline word_t user_gettimeofday(void *tv, void *tz) {
-  struct timeval host_tv;
-  int ret = gettimeofday(&host_tv, tz);
-  assert(ret == 0);
-  if (tv != NULL) { translate_timeval(&host_tv, tv); }
-  return ret;
-}
-
 static inline word_t user_times(void *buf) {
   struct tms host_buf;
   clock_t ret = times(&host_buf);
@@ -186,11 +190,9 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
 #if 0
     case 10: ret = unlink(user_to_host(arg1)); break;
     case 13: ret = time(user_to_host(arg1)); break;
-    case 20: return getpid();
     case 33: ret = access(user_to_host(arg1), arg2); break;
     case 43: ret = user_times(user_to_host(arg1)); break;
     case 45: ret = user_sys_brk(arg1); break;
-    case 54: ret = ioctl(user_fd(arg1), arg2, arg3); break;
     case 77: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case 78: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
@@ -198,21 +200,11 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 122: ret = uname(user_to_host(arg1)); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 146: ret = user_writev(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case 163: ret = (uintptr_t)user_mremap(user_to_host(arg1), arg2, arg3, arg4, user_to_host(arg5)); break;
-    case 183: ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
-              assert(ret != 0); // should success
-              ret = strlen(user_to_host(arg1)) + 1;
-              break;
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
     case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
     case 195: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case 196: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
     case 197: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
-    case 199: return getuid();
-    case 200: return getgid();
-    case 201: return geteuid();
-    case 202: return getegid();
-    case 221: ret = fcntl(user_fd(arg1), arg2, arg3); break;
     case 243: ret = user_set_thread_area(user_to_host(arg1)); break;
     case 265: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
     case 340: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
@@ -232,7 +224,25 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
     case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
-    case USER_SYS_fstatat: ret = user_sys_fstatat(arg1, user_to_host(arg2), user_to_host(arg3), arg4); break;
+    case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
+          user_to_host(arg2), user_to_host(arg3), arg4); break;
+    case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
+          arg2, arg3, arg4, user_to_host(arg5)); break;
+    case USER_SYS_gettimeofday: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
+    case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_getcwd:
+          ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
+          assert(ret != 0); // should success
+          ret = strlen(user_to_host(arg1)) + 1;
+          break;
+    case USER_SYS_getuid: return getuid();
+    case USER_SYS_getgid: return getgid();
+    case USER_SYS_geteuid: return geteuid();
+    case USER_SYS_getegid: return getegid();
+    case USER_SYS_ioctl: ret = ioctl(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_fcntl: ret = fcntl(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_getpid: return getpid();
     default: panic("Unsupported syscall ID = %ld", id);
   }
   ret = get_syscall_ret(ret);
