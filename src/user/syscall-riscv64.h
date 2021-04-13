@@ -3,9 +3,11 @@
 #define USER_SYS_read 63
 #define USER_SYS_write 64
 #define USER_SYS_readlinkat 78
+#define USER_SYS_fstatat 79
 #define USER_SYS_fstat 80
 #define USER_SYS_exit 93
 #define USER_SYS_exit_group 94
+#define USER_SYS_rt_sigaction 134
 #define USER_SYS_uname 160
 #define USER_SYS_brk 214
 #define USER_SYS_munmap 215
