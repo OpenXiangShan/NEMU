@@ -33,7 +33,7 @@ struct user_stat64 {
   unsigned long long st_ino;
 } __attribute__((packed));
 
-static inline void translate_stat(struct stat *hostbuf, struct user_stat64 *userbuf) {
+static inline void translate_stat64(struct stat *hostbuf, struct user_stat64 *userbuf) {
   userbuf->st_dev = hostbuf->st_dev;
   userbuf->__st_ino = hostbuf->st_ino;
   userbuf->st_mode = hostbuf->st_mode;

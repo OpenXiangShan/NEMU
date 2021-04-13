@@ -1,22 +1,30 @@
 #define _GNU_SOURCE
 #include <isa.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "user.h"
 #include "syscall-def.h"
-#include <errno.h>
+#include MUXDEF(CONFIG_ISA_x86,     "syscall-x86.h", \
+         MUXDEF(CONFIG_ISA_mips32,  "syscall-mips32.h", \
+         MUXDEF(CONFIG_ISA_riscv32, "syscall-riscv32.h", \
+         MUXDEF(CONFIG_ISA_riscv64, "syscall-riscv64.h", \
+         ))))
+
 
 static inline int user_fd(int fd) {
   if (fd >= 0 && fd <= 2) return user_state.std_fd[fd];
   return fd;
 }
 
-static inline uint64_t gen_uint64(uint32_t lo, uint32_t hi) {
-  return ((uint64_t)hi << 32) | lo;
-}
-
 static inline sword_t get_syscall_ret(intptr_t ret) {
   return (ret == -1) ? -errno : ret;
 }
+
+#if 0
+static inline uint64_t gen_uint64(uint32_t lo, uint32_t hi) {
+  return ((uint64_t)hi << 32) | lo;
+}
+#endif
 
 static inline void user_sys_exit(int status) {
   void set_nemu_state(int state, vaddr_t pc, int halt_ret);
@@ -35,24 +43,32 @@ static inline word_t user_sys_brk(word_t new_brk) {
   return new_brk;
 }
 
+static inline word_t user_sys_fstat(int fd, void *statbuf) {
+  struct stat buf;
+  int ret = get_syscall_ret(fstat(fd, &buf));
+  if (ret == 0) translate_stat(&buf, statbuf);
+  return ret;
+}
+
+#if 0
 static inline word_t user_sys_stat64(const char *pathname, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(stat(pathname, &buf));
-  if (ret == 0) translate_stat(&buf, statbuf);
+  if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
 
 static inline word_t user_sys_lstat64(const char *pathname, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(lstat(pathname, &buf));
-  if (ret == 0) translate_stat(&buf, statbuf);
+  if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
 
 static inline word_t user_sys_fstat64(int fd, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
-  if (ret == 0) translate_stat(&buf, statbuf);
+  if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
 
@@ -153,11 +169,13 @@ static inline word_t user_prlimit64(pid_t pid, int resource,
     const void *new_limit, void *old_limit) {
   return prlimit(pid, resource, new_limit, old_limit);
 }
+#endif
 
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
   switch (id) {
+#if 0
     case 252: // exit_group() is treated as exit()
     case 1: user_sys_exit(arg1); break;
     case 3: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
@@ -200,6 +218,15 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 265: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
     case 295: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     case 340: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
+#endif
+    case USER_SYS_exit_group:
+    case USER_SYS_exit: user_sys_exit(arg1); break;
+    case USER_SYS_brk: ret = user_sys_brk(arg1); break;
+    case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_uname: ret = uname(user_to_host(arg1)); break;
+    case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
+         user_to_host(arg2), user_to_host(arg3), arg4); break;
+    case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
     default: panic("Unsupported syscall ID = %ld", id);
   }
   ret = get_syscall_ret(ret);
