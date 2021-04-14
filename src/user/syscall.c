@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <isa.h>
+#include <cpu/cpu.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
@@ -40,6 +41,7 @@ static inline uint64_t gen_uint64(uint32_t lo, uint32_t hi) {
 static inline void user_sys_exit(int status) {
   void set_nemu_state(int state, vaddr_t pc, int halt_ret);
   set_nemu_state(NEMU_END, cpu.pc, status);
+  longjmp_exec(NEMU_EXEC_END);
 }
 
 static inline word_t user_sys_brk(word_t new_brk) {
