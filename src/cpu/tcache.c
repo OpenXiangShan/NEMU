@@ -181,18 +181,18 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
 
     Decode *old = s;
     s = tcache_new(thispc);
+    idx_in_bb = 1;
     if (s == NULL) { goto full; }
 
     bb_now_record = old;
     bb_now = s;
-    idx_in_bb = 1;
     tcache_state = TCACHE_BB_BUILDING;
   }
 
   save_globals(s);
+  s->idx_in_bb = idx_in_bb;
   int idx = fetch_decode(s, thispc); // note that exception may happen!
   s->EHelper = exec_table[idx];
-  s->idx_in_bb = idx_in_bb ++;
 
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
@@ -217,11 +217,13 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
     tcache_state = TCACHE_RUNNING;
   }
 
+  idx_in_bb ++;
   return s;
 
 full:
   tcache_flush();
   s = tcache_bb_new(thispc); // decode this instruction again
+  s->idx_in_bb = idx_in_bb;
   save_globals(s);
   bb_now = bb_now_record = NULL;
   tcache_state = TCACHE_RUNNING;
