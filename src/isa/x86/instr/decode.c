@@ -716,15 +716,16 @@ int isa_fetch_decode(Decode *s) {
       Decode *p;
       uint32_t use = s->isa.flag_use;
       for (p = s - 1; p >= bb_start; p --) {
-        use |= p->isa.flag_use;
         uint32_t real_def = p->isa.flag_def & use;
         use &= ~p->isa.flag_def;
+        use |=  p->isa.flag_use;
         p->isa.flag_def = real_def;
       }
     }
+    bb_idx = 0;
+  } else {
+    bb_idx ++;
   }
-
-  bb_idx ++;
 #endif
 
   return idx;
