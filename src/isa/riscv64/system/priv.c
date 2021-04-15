@@ -97,6 +97,7 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 
 static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
+#ifndef CONFIG_MODE_USER
     case 0x102: // sret
       mstatus->sie = mstatus->spie;
       mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
@@ -117,6 +118,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       mmu_tlb_flush(*src);
       break;
     case 0x105: break; // wfi
+#endif
     case -1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
@@ -130,7 +132,18 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
   word_t ret = 0;
   switch (id) {
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+#ifdef CONFIG_MODE_USER
+    case HOSTCALL_TRAP:
+      Assert(imm == 0x8, "Unsupport exception = %ld", imm);
+      uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
+          uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
+      cpu.gpr[10]._64 = host_syscall(cpu.gpr[17]._64, cpu.gpr[10]._64, cpu.gpr[11]._64,
+          cpu.gpr[12]._64, cpu.gpr[13]._64, cpu.gpr[14]._64, cpu.gpr[15]._64);
+      ret = *src1 + 4;
+      break;
+#else
     case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+#endif
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }

@@ -29,6 +29,7 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
+#ifndef CONFIG_MODE_USER
 static inline long load_img() {
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
@@ -50,6 +51,7 @@ static inline long load_img() {
   fclose(fp);
   return size;
 }
+#endif
 
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {

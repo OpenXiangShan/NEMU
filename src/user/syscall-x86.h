@@ -1,15 +1,42 @@
-#include <common.h>
-#include <unistd.h>
-#include <sys/utsname.h>
-#include <time.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/sysinfo.h>
-#include <sys/time.h>
-#include <sys/times.h>
-#include <sys/uio.h>
-#include <sys/resource.h>
-#include <fcntl.h>
+#define USER_SYS_exit_group 252
+#define USER_SYS_exit 1
+#define USER_SYS_read 3
+#define USER_SYS_write 4
+#define USER_SYS_close 6
+#define USER_SYS_unlink 10
+#define USER_SYS_time 13
+#define USER_SYS_getpid 20
+#define USER_SYS_access 33
+#define USER_SYS_times 43
+#define USER_SYS_brk 45
+#define USER_SYS_ioctl 54
+#define USER_SYS_getrusage 77
+#define USER_SYS_gettimeofday 78
+#define USER_SYS_readlink 85
+#define USER_SYS_munmap 91
+#define USER_SYS_sysinfo 116
+#define USER_SYS_uname 122
+#define USER_SYS_llseek 140
+#define USER_SYS_writev 146
+#define USER_SYS_mremap 163
+#define USER_SYS_sigaction 174
+#define USER_SYS_getcwd 183
+#define USER_SYS_getrlimit 191
+#define USER_SYS_mmap2 192
+#define USER_SYS_ftruncate64 194
+#define USER_SYS_stat64 195
+#define USER_SYS_lstat64 196
+#define USER_SYS_fstat64 197
+#define USER_SYS_getuid 199
+#define USER_SYS_getgid 200
+#define USER_SYS_geteuid 201
+#define USER_SYS_getegid 202
+#define USER_SYS_fcntl 221
+#define USER_SYS_set_thread_area 243
+#define USER_SYS_clock_gettime 295
+#define USER_SYS_openat 295
+#define USER_SYS_prlimit64 340
+
 
 struct user_stat64 {
   uint64_t st_dev;
@@ -33,7 +60,7 @@ struct user_stat64 {
   unsigned long long st_ino;
 } __attribute__((packed));
 
-static inline void translate_stat(struct stat *hostbuf, struct user_stat64 *userbuf) {
+static inline void translate_stat64(struct stat *hostbuf, struct user_stat64 *userbuf) {
   userbuf->st_dev = hostbuf->st_dev;
   userbuf->__st_ino = hostbuf->st_ino;
   userbuf->st_mode = hostbuf->st_mode;

@@ -16,7 +16,7 @@ void fp_update_rm_cache(uint32_t rm) {
 }
 
 bool fp_enable() {
-  return (mstatus->fs != 0);
+  return MUXDEF(CONFIG_MODE_USER, true, mstatus->fs != 0);
 }
 
 void fp_set_dirty() {

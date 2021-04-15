@@ -50,15 +50,19 @@ static long load_elf(char *elfpath) {
       ph->p_memsz += pad_byte;
 
       void *haddr = user_to_host(ph->p_vaddr);
-      user_mmap(haddr, ph->p_filesz, PROT_READ | PROT_WRITE,
-          MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
+      if (ph->p_filesz != 0) {
+        user_mmap(haddr, ph->p_filesz, PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
+      }
       if (ph->p_flags & PF_W) {
         // bss
         memset(haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
         void *bss_page = haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        uint32_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
-          MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+        sword_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
+        if (memsz > 0) {
+          user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
+              MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+        }
       }
 
       if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;

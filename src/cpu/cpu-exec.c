@@ -24,8 +24,6 @@ rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  g_nr_guest_instr ++;
-
   log_write("%s\n", asmbuf);
   if (g_print_step) { puts(asmbuf); }
 
@@ -44,11 +42,12 @@ void save_globals(Decode *s) {
 }
 
 static void update_instr_cnt() {
-#ifdef CONFIG_ENABLE_INSTR_CNT
+#if defined(CONFIG_PERF_OPT) && defined(CONFIG_ENABLE_INSTR_CNT)
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+  n_remain = n_batch; // clean n_remain
 #endif
 }
 
@@ -222,10 +221,10 @@ static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
-    n_remain = n;
     int idx = fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
     exec_table[idx](&s);
+    g_nr_guest_instr ++;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
@@ -234,8 +233,10 @@ static int execute(int n) {
 #endif
 
 static void update_global() {
+#ifdef CONFIG_PERF_OPT
   update_instr_cnt();
-  IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->pc);
+  cpu.pc = prev_s->pc;
+#endif
 }
 
 /* Simulate how the CPU works. */
@@ -253,6 +254,7 @@ void cpu_exec(uint64_t n) {
   n_remain_total = n; // deal with setjmp()
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
+    n_remain -= prev_s->idx_in_bb - 1;
     update_global();
   }
 

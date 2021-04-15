@@ -46,6 +46,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       break;
     case HOSTCALL_INV: invalid_instr(s->pc); break;
     case HOSTCALL_FP:  rtl_fpcall(s, dest, src1, src2, imm); break;
+#ifdef CONFIG_DEVICE
     case HOSTCALL_PIO: {
       int width = imm & 0xf;
       bool is_in = ((imm & ~0xf) != 0);
@@ -53,6 +54,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       else pio_write(*dest, width, *src1);
       break;
     }
+#endif
     default: isa_hostcall(id, dest, src1, src2, imm); break;
   }
 }
