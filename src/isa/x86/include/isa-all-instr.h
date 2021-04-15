@@ -16,13 +16,13 @@
 
 #define INSTR_BINARY(f) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \
-  f(and) f(or) f(test) f(xor) f(shl) f(shr) f(sar) f(rol) \
+  f(and) f(or) f(test) f(xor) f(shl) f(shr) f(sar) f(rol) f(ror) \
   f(lea) f(movzb) f(movzw) f(movsb) f(movsw) \
   f(imul2) \
   f(bsr) \
   f(in) f(out) \
 
 #define INSTR_TERNARY(f) \
-  f(imul3)
+  f(imul3) f(shld) f(shrd)
 
 def_all_EXEC_ID();

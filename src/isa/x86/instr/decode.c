@@ -398,26 +398,25 @@ static inline def_DHelper(Ib2E) { // use by gp2
   decode_op_I(s, id_src1, 1);
 }
 
-#if 0
 /* Ev <- GvIb
  * use for shld/shrd */
 static inline def_DHelper(Ib_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
-  operand_rm(s, id_dest, true, id_src2, true);
-  id_src1->width = 1;
-  decode_op_I(s, id_src1, true);
+  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
+  operand_rm(s, id_dest, id_src1, width);
+  decode_op_I(s, id_src2, 1);
 }
 
 /* Ev <- GvCL
  * use for shld/shrd */
 static inline def_DHelper(cl_G2E) {
-  IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
-  operand_rm(s, id_dest, true, id_src2, true);
+  //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
+  operand_rm(s, id_dest, id_src1, width);
   // shift instructions will eventually use the lower
   // 5 bits of %cl, therefore it is OK to load %ecx
-  operand_reg(s, id_src1, true, R_ECX, 4);
+  operand_reg(s, id_src2, R_ECX, 4);
 }
 
+#if 0
 // for cmpxchg
 static inline def_DHelper(a_G2E) {
   IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
@@ -545,6 +544,7 @@ def_THelper(gp1) {
 
 def_THelper(gp2) {
   def_INSTR_TABW("?? 000 ???", rol, -1);
+  def_INSTR_TABW("?? 001 ???", ror, -1);
   def_INSTR_TABW("?? 100 ???", shl, -1);
   def_INSTR_TABW("?? 101 ???", shr, -1);
   def_INSTR_TABW("?? 111 ???", sar, -1);
@@ -584,6 +584,8 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
   def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
+  def_INSTR_IDTAB ("1010 0101",cl_G2E,shld);
+  def_INSTR_IDTAB ("1010 1100",Ib_G2E,shrd);
   def_INSTR_IDTAB ("1011 0110", Eb2G, movzb);
   def_INSTR_IDTABW("1011 0111", Ew2G, movzw, 4);
   def_INSTR_IDTAB ("1011 1101",  E2G, bsr);
@@ -601,6 +603,7 @@ def_THelper(main) {
   def_INSTR_IDTABW("0000 0010",  E2G, add, 1);
   def_INSTR_IDTAB ("0000 0011",  E2G, add);
   def_INSTR_IDTAB ("0000 0101",  I2a, add);
+  def_INSTR_IDTABW("0000 1000",  G2E, or, 1);
   def_INSTR_IDTAB ("0000 1001",  G2E, or);
   def_INSTR_IDTAB ("0000 1011",  E2G, or);
   def_INSTR_IDTAB ("0000 1101",  I2a, or);
@@ -610,12 +613,15 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0001 0011",  E2G, adc);
   def_INSTR_IDTAB ("0001 1001",  G2E, sbb);
   def_INSTR_IDTAB ("0001 1011",  E2G, sbb);
+  def_INSTR_IDTABW("0010 0000",  G2E, and, 1);
   def_INSTR_IDTAB ("0010 0001",  G2E, and);
   def_INSTR_IDTABW("0010 0010",  E2G, and, 1);
   def_INSTR_IDTAB ("0010 0011",  E2G, and);
+  def_INSTR_IDTABW("0010 0100",  I2a, and, 1);
   def_INSTR_IDTAB ("0010 0101",  I2a, and);
   def_INSTR_IDTAB ("0010 1001",  G2E, sub);
   def_INSTR_IDTAB ("0010 1011",  E2G, sub);
+  def_INSTR_IDTAB ("0010 1101",  I2a, sub);
   def_INSTR_IDTABW("0011 0000",  G2E, xor, 1);
   def_INSTR_IDTAB ("0011 0001",  G2E, xor);
   def_INSTR_IDTABW("0011 0010",  E2G, xor, 1);
@@ -653,9 +659,11 @@ def_THelper(main) {
   def_INSTR_IDTABW("1010 0010",  a2O, mov, 1);
   def_INSTR_IDTAB ("1010 0011",  a2O, mov);
   def_INSTR_TABW  ("1010 0100",       movs, 1);
+  def_INSTR_TAB   ("1010 0101",       movs);
   def_INSTR_IDTABW("1010 1000",  I2a, test, 1);
   def_INSTR_IDTABW("1011 0???",  I2r, mov, 1);
   def_INSTR_IDTAB ("1011 1???",  I2r, mov);
+  def_INSTR_IDTABW("1100 0000", Ib2E, gp2, 1);
   def_INSTR_IDTAB ("1100 0001", Ib2E, gp2);
   def_INSTR_TAB   ("1100 0011",       ret);
   def_INSTR_IDTABW("1100 0110",  I2E, mov, 1);
@@ -670,6 +678,7 @@ def_THelper(main) {
   def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
   def_INSTR_IDTAB ("1110 1101", dx2a, in);
   def_INSTR_IDTABW("1110 1110", a2dx, out, 1);
+  def_INSTR_IDTAB ("1110 1111", a2dx, out);
   def_INSTR_IDTABW("1111 0110",    E, gp3, 1);
   def_INSTR_IDTAB ("1111 0111",    E, gp3);
   def_INSTR_IDTABW("1111 1110",    E, gp4, 1);
