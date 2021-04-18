@@ -6,7 +6,9 @@
   f(inv) f(nemu_trap) f(nop) \
   f(ret) f(leave) \
   f(cwtl) f(cltd) \
-  f(movs)
+  f(movs) \
+  f(pushf) \
+  f(clc) f(stc)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) \

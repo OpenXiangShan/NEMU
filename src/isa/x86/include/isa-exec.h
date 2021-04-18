@@ -4,5 +4,6 @@
 #include "../instr/control.h"
 #include "../instr/string.h"
 #include "../instr/bit.h"
+#include "../instr/eflags.h"
 #include "../instr/system.h"
 #include "../instr/special.h"

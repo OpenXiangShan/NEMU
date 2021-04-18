@@ -68,6 +68,9 @@ static const struct {
   [EXEC_ID_sub] = { F_ALL, 0 },
   [EXEC_ID_test] = { F_ALL, 0 },
   [EXEC_ID_xor] = { F_ALL, 0 },
+  [EXEC_ID_pushf] = { 0, F_ALL },
+  [EXEC_ID_clc] = { F_CF, 0 },
+  [EXEC_ID_stc] = { F_CF, 0 },
 };
 
 typedef union {
@@ -609,8 +612,10 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0000 1101",  I2a, or);
   def_INSTR_IDTABW("0000 1010",  E2G, or, 1);
   def_INSTR_TAB   ("0000 1111",       _2byte_esc);
+  def_INSTR_IDTABW("0001 0000",  G2E, adc, 1);
   def_INSTR_IDTAB ("0001 0001",  G2E, adc);
   def_INSTR_IDTAB ("0001 0011",  E2G, adc);
+  def_INSTR_IDTABW("0001 1000",  G2E, sbb, 1);
   def_INSTR_IDTAB ("0001 1001",  G2E, sbb);
   def_INSTR_IDTAB ("0001 1011",  E2G, sbb);
   def_INSTR_IDTABW("0010 0000",  G2E, and, 1);
@@ -619,6 +624,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0010 0011",  E2G, and);
   def_INSTR_IDTABW("0010 0100",  I2a, and, 1);
   def_INSTR_IDTAB ("0010 0101",  I2a, and);
+  def_INSTR_IDTABW("0010 1000",  G2E, sub, 1);
   def_INSTR_IDTAB ("0010 1001",  G2E, sub);
   def_INSTR_IDTAB ("0010 1011",  E2G, sub);
   def_INSTR_IDTAB ("0010 1101",  I2a, sub);
@@ -654,6 +660,7 @@ def_THelper(main) {
   def_INSTR_TAB   ("1001 0000",       nop);
   def_INSTR_TAB   ("1001 1000",       cwtl);
   def_INSTR_TAB   ("1001 1001",       cltd);
+  def_INSTR_TAB   ("1001 1100",       pushf);
   def_INSTR_IDTABW("1010 0000",  O2a, mov, 1);
   def_INSTR_IDTAB ("1010 0001",  O2a, mov);
   def_INSTR_IDTABW("1010 0010",  a2O, mov, 1);
@@ -671,6 +678,7 @@ def_THelper(main) {
   def_INSTR_TAB   ("1100 1001",       leave);
   def_INSTR_IDTABW("1101 0000",  1_E, gp2, 1);
   def_INSTR_IDTAB ("1101 0001",  1_E, gp2);
+  def_INSTR_IDTABW("1101 0010", cl2E, gp2, 1);
   def_INSTR_IDTAB ("1101 0011", cl2E, gp2);
   def_INSTR_TAB   ("1101 0110",       nemu_trap);
   def_INSTR_IDTABW("1110 1000",    J, call, 4);
@@ -681,6 +689,8 @@ def_THelper(main) {
   def_INSTR_IDTAB ("1110 1111", a2dx, out);
   def_INSTR_IDTABW("1111 0110",    E, gp3, 1);
   def_INSTR_IDTAB ("1111 0111",    E, gp3);
+  def_INSTR_TAB   ("1111 1000",       clc);
+  def_INSTR_TAB   ("1111 1001",       stc);
   def_INSTR_IDTABW("1111 1110",    E, gp4, 1);
   def_INSTR_IDTAB ("1111 1111",    E, gp5);
   return table_inv(s);
@@ -723,7 +733,8 @@ int isa_fetch_decode(Decode *s) {
     if (s - bb_start == bb_idx) {
       // now scan and update `flag_def`
       Decode *p;
-      uint32_t use = s->isa.flag_use;
+      //uint32_t use = s->isa.flag_use;
+      uint32_t use = F_ALL; //s->isa.flag_use;
       for (p = s - 1; p >= bb_start; p --) {
         uint32_t real_def = p->isa.flag_def & use;
         use &= ~p->isa.flag_def;
