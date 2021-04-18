@@ -165,7 +165,7 @@ config DIFFTEST_REF_PATH
   string
   default "tools/qemu-dl-diff" if DIFFTEST_REF_QEMU_DL
   default "tools/qemu-socket-diff" if DIFFTEST_REF_QEMU_SOCKET
-  default "tools/kvm" if DIFFTEST_REF_KVM
+  default "tools/kvm-diff" if DIFFTEST_REF_KVM
   default "." if DIFFTEST_REF_NEMU
   default "none"
 
