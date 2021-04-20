@@ -337,7 +337,7 @@ def_EHelper(imul2) {
 
 // imul with three operands
 def_EHelper(imul3) {
-  rtl_decode_binary(s, true, true); // the 3rd operand is always immediate
+  rtl_decode_binary(s, false, true); // the 3rd operand is always immediate
   rtl_sext(s, dsrc1, dsrc1, s->isa.width);
 
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
