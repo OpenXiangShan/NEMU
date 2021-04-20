@@ -369,14 +369,11 @@ static inline def_DHelper(SI2E) {
   if (width == 2) { *dsrc1 &= 0xffff; }
 }
 
-#if 0
 static inline def_DHelper(SI_E2G) {
-  assert(id_dest->width == 2 || id_dest->width == 4);
-  operand_rm(s, id_src2, true, id_dest, false);
-  id_src1->width = 1;
-  decode_op_SI(s, id_src1, true);
+  assert(width == 2 || width == 4);
+  operand_rm(s, id_src1, id_dest, width);
+  decode_op_SI(s, id_src2, 1);
 }
-#endif
 
 static inline def_DHelper(1_E) { // use by gp2
   operand_rm(s, id_dest, NULL, width);
@@ -598,6 +595,7 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
   def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
+  def_INSTR_IDTAB ("1010 0100",Ib_G2E,shld);
   def_INSTR_IDTAB ("1010 0101",cl_G2E,shld);
   def_INSTR_IDTAB ("1010 1100",Ib_G2E,shrd);
   def_INSTR_IDTAB ("1011 0110", Eb2G, movzb);
@@ -646,6 +644,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0011 0101",  I2a, xor);
   def_INSTR_IDTABW("0011 1000",  G2E, cmp, 1);
   def_INSTR_IDTAB ("0011 1001",  G2E, cmp);
+  def_INSTR_IDTABW("0011 1010",  E2G, cmp, 1);
   def_INSTR_IDTAB ("0011 1011",  E2G, cmp);
   def_INSTR_IDTABW("0011 1100",  I2a, cmp, 1);
   def_INSTR_IDTAB ("0011 1101",  I2a, cmp);
@@ -659,6 +658,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0110 1000",    I, push);
   def_INSTR_IDTAB ("0110 1001",I_E2G, imul3);
   def_INSTR_IDTABW("0110 1010",   SI, push, 1);
+  def_INSTR_IDTAB ("0110 1011",SI_E2G,imul3);
   def_INSTR_IDTABW("0111 ????",    J, jcc, 1);
   def_INSTR_IDTABW("1000 0000",  I2E, gp1, 1);
   def_INSTR_IDTAB ("1000 0001",  I2E, gp1);
@@ -681,6 +681,7 @@ def_THelper(main) {
   def_INSTR_TABW  ("1010 0100",       movs, 1);
   def_INSTR_TAB   ("1010 0101",       movs);
   def_INSTR_IDTABW("1010 1000",  I2a, test, 1);
+  def_INSTR_IDTAB ("1010 1001",  I2a, test);
   def_INSTR_IDTABW("1011 0???",  I2r, mov, 1);
   def_INSTR_IDTAB ("1011 1???",  I2r, mov);
   def_INSTR_IDTABW("1100 0000", Ib2E, gp2, 1);
