@@ -88,16 +88,17 @@ def_EHelper(popa) {
   rtl_pop(s, &cpu.eax);
 }
 
-#if 0
-static inline def_EHelper(xchg) {
+def_EHelper(xchg) {
+  rtl_decode_binary(s, true, true);
   if (ddest != dsrc1) {
     rtl_mv(s, s0, dsrc1);
-    operand_write(s, id_src1, ddest);
-    operand_write(s, id_dest, s0);
+    if      (id_src1->type == OP_TYPE_REG) rtl_sr(s, id_src1->reg, ddest, s->isa.width);
+    else if (id_src1->type == OP_TYPE_MEM) rtl_sm(s, ddest, &s->isa.mbr, s->isa.moff, s->isa.width, MMU_DYNAMIC);
+    rtl_wb(s, s0);
   }
-  print_asm_template2(xchg);
 }
 
+#if 0
 static inline def_EHelper(cmpxchg) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");

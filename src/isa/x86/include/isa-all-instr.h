@@ -12,7 +12,7 @@
   f(iret)
 
 #define INSTR_UNARY(f) \
-  f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) \
+  f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) \
   f(push) f(pop) \
   f(inc) f(dec) f(neg) f(not) \
   f(mul) f(imul1) f(div) f(idiv) \
@@ -23,7 +23,7 @@
   f(and) f(or) f(test) f(xor) f(shl) f(shr) f(sar) f(rol) f(ror) \
   f(lea) f(movzb) f(movzw) f(movsb) f(movsw) \
   f(imul2) \
-  f(bsr) \
+  f(bsr) f(xchg) \
   f(in) f(out) f(mov_cr2r) f(mov_r2cr) \
 
 #define INSTR_TERNARY(f) \

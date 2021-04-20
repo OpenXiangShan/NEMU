@@ -618,6 +618,7 @@ def_THelper(main) {
   def_INSTR_IDTABW("0000 1000",  G2E, or, 1);
   def_INSTR_IDTAB ("0000 1001",  G2E, or);
   def_INSTR_IDTAB ("0000 1011",  E2G, or);
+  def_INSTR_IDTABW("0000 1100",  I2a, or, 1);
   def_INSTR_IDTAB ("0000 1101",  I2a, or);
   def_INSTR_IDTABW("0000 1010",  E2G, or, 1);
   def_INSTR_TAB   ("0000 1111",       _2byte_esc);
@@ -635,6 +636,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0010 0101",  I2a, and);
   def_INSTR_IDTABW("0010 1000",  G2E, sub, 1);
   def_INSTR_IDTAB ("0010 1001",  G2E, sub);
+  def_INSTR_IDTABW("0010 1010",  E2G, sub, 1);
   def_INSTR_IDTAB ("0010 1011",  E2G, sub);
   def_INSTR_IDTAB ("0010 1101",  I2a, sub);
   def_INSTR_IDTABW("0011 0000",  G2E, xor, 1);
@@ -665,6 +667,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("1000 0011", SI2E, gp1);
   def_INSTR_IDTABW("1000 0100",  G2E, test, 1);
   def_INSTR_IDTAB ("1000 0101",  G2E, test);
+  def_INSTR_IDTABW("1000 0110",  G2E, xchg, 1);
   def_INSTR_IDTABW("1000 1000",  G2E, mov, 1);
   def_INSTR_IDTAB ("1000 1001",  G2E, mov);
   def_INSTR_IDTABW("1000 1010",  E2G, mov, 1);
@@ -686,6 +689,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("1011 1???",  I2r, mov);
   def_INSTR_IDTABW("1100 0000", Ib2E, gp2, 1);
   def_INSTR_IDTAB ("1100 0001", Ib2E, gp2);
+  def_INSTR_IDTABW("1100 0010",    I, ret_imm, 2);
   def_INSTR_TAB   ("1100 0011",       ret);
   def_INSTR_IDTABW("1100 0110",  I2E, mov, 1);
   def_INSTR_IDTAB ("1100 0111",  I2E, mov);
@@ -729,7 +733,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_jcc:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
-    case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E:
+    case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E: case EXEC_ID_ret_imm:
     case EXEC_ID__int: case EXEC_ID_iret:
       s->type = INSTR_TYPE_I; break;
   }
