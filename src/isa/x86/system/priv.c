@@ -1,5 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include <cpu/cpu.h>
 
 #if defined(CONFIG_ENGINE_INTERPRETER)
 
@@ -57,6 +58,7 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
       case 0 ... CSR_LDTR: load_sreg(csrid, *src); break;
       default: panic("Writing to CSR = %d is not supported", csrid);
     }
+    if (csrid == CSR_CR3) mmu_tlb_flush(0);
   }
 }
 
@@ -77,6 +79,7 @@ static inline word_t iret() {
   }
   cpu.sreg[CSR_CS].val = new_cs;
 
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
   return new_pc;
 }
 
