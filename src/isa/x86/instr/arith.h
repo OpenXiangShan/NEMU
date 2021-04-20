@@ -187,7 +187,7 @@ def_EHelper(neg) {
 
 def_EHelper(mul) {
   rtl_decode_unary(s, true);
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  IFNDEF(CONFIG_PA, int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true));
   switch (s->isa.width) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
@@ -243,7 +243,7 @@ def_EHelper(mul) {
 // imul with one operand
 def_EHelper(imul1) {
   rtl_decode_unary(s, true);
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  IFNDEF(CONFIG_PA, int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true));
   switch (s->isa.width) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
@@ -305,7 +305,7 @@ def_EHelper(imul2) {
   rtl_sext(s, dsrc1, dsrc1, s->isa.width);
   rtl_sext(s, ddest, ddest, s->isa.width);
 
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  IFNDEF(CONFIG_PA, int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true));
 #ifndef CONFIG_PA
   if (need_update_eflags) {
     if (s->isa.width == 4) { rtl_muls_hi(s, s1, ddest, dsrc1); }

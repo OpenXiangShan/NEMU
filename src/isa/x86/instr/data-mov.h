@@ -65,8 +65,7 @@ def_EHelper(leave) {
   rtl_pop(s, &cpu.ebp);
 }
 
-#if 0
-static inline def_EHelper(pusha) {
+def_EHelper(pusha) {
   rtl_mv(s, s0, &cpu.esp);
   rtl_push(s, &cpu.eax);
   rtl_push(s, &cpu.ecx);
@@ -76,10 +75,9 @@ static inline def_EHelper(pusha) {
   rtl_push(s, &cpu.ebp);
   rtl_push(s, &cpu.esi);
   rtl_push(s, &cpu.edi);
-  print_asm("pusha");
 }
 
-static inline def_EHelper(popa) {
+def_EHelper(popa) {
   rtl_pop(s, &cpu.edi);
   rtl_pop(s, &cpu.esi);
   rtl_pop(s, &cpu.ebp);
@@ -88,9 +86,9 @@ static inline def_EHelper(popa) {
   rtl_pop(s, &cpu.edx);
   rtl_pop(s, &cpu.ecx);
   rtl_pop(s, &cpu.eax);
-  print_asm("popa");
 }
 
+#if 0
 static inline def_EHelper(xchg) {
   if (ddest != dsrc1) {
     rtl_mv(s, s0, dsrc1);

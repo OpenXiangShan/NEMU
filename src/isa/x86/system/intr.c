@@ -18,7 +18,6 @@ typedef union GateDescriptor {
 uint32_t compute_eflags();
 
 word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
-#if 0
   assert(NO < 256);
   int old_cs = cpu.sreg[CSR_CS].val;
   // fetch the gate descriptor with ring 0
@@ -26,8 +25,8 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
   cpu.mem_exception = 0;
 
   GateDesc gate;
-  gate.val[0] = vaddr_read(cpu.idtr.base + NO * 8 + 0, 4);
-  gate.val[1] = vaddr_read(cpu.idtr.base + NO * 8 + 4, 4);
+  gate.val[0] = vaddr_read(NULL, cpu.idtr.base + NO * 8 + 0, 4, MMU_DYNAMIC);
+  gate.val[1] = vaddr_read(NULL, cpu.idtr.base + NO * 8 + 4, 4, MMU_DYNAMIC);
   assert(gate.present); // check the present bit
 
   uint16_t new_cs = gate.selector;
@@ -41,23 +40,23 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
 
     uint32_t esp3 = cpu.esp;
     uint32_t ss3  = cpu.sreg[CSR_SS].val;
-    cpu.esp = vaddr_read(cpu.sreg[CSR_TR].base + 4, 4);
-    cpu.sreg[CSR_SS].val = vaddr_read(cpu.sreg[CSR_TR].base + 8, 2);
+    cpu.esp = vaddr_read(NULL, cpu.sreg[CSR_TR].base + 4, 4, MMU_DYNAMIC);
+    cpu.sreg[CSR_SS].val = vaddr_read(NULL, cpu.sreg[CSR_TR].base + 8, 2, MMU_DYNAMIC);
 
-    vaddr_write(cpu.esp - 4, 4, ss3);
-    vaddr_write(cpu.esp - 8, 4, esp3);
+    vaddr_write(NULL, cpu.esp - 4, 4, ss3, MMU_DYNAMIC);
+    vaddr_write(NULL, cpu.esp - 8, 4, esp3, MMU_DYNAMIC);
     cpu.esp -= 8;
   }
 
-  vaddr_write(cpu.esp - 4, 4, compute_eflags());
+  vaddr_write(NULL, cpu.esp - 4, 4, compute_eflags(), MMU_DYNAMIC);
   __attribute__((unused)) word_t eflags_esp = cpu.esp - 4;
-  vaddr_write(cpu.esp -  8, 4, old_cs);
-  vaddr_write(cpu.esp - 12, 4, ret_addr);
+  vaddr_write(NULL, cpu.esp -  8, 4, old_cs, MMU_DYNAMIC);
+  vaddr_write(NULL, cpu.esp - 12, 4, ret_addr, MMU_DYNAMIC);
   cpu.esp -= 12;
 
-  if (IFNDEF(CONFIG_PA) && NO == 14) {
+  if (ISNDEF(CONFIG_PA) && NO == 14) {
     // page fault has error code
-    vaddr_write(cpu.esp - 4, 4, cpu.error_code);
+    vaddr_write(NULL, cpu.esp - 4, 4, cpu.error_code, MMU_DYNAMIC);
     cpu.esp -= 4;
   }
 
@@ -73,9 +72,6 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
 #endif
 
   return new_pc;
-#endif
-  assert(0);
-  return 0;
 }
 
 word_t isa_query_intr() {

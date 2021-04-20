@@ -355,10 +355,6 @@ static inline def_DHelper(E) {
 static inline def_DHelper(gp6_E) {
   operand_rm(s, id_dest, true, NULL, false);
 }
-
-static inline def_DHelper(gp7_E) {
-  operand_rm(s, id_dest, false, NULL, false);
-}
 #endif
 
 /* used by test in group3 */
@@ -580,10 +576,25 @@ def_THelper(gp5) {
   return EXEC_ID_inv;
 }
 
+def_THelper(gp6) {
+  def_INSTR_TABW("?? 011 ???", ltr, -1);
+  return EXEC_ID_inv;
+}
+
+def_THelper(gp7) {
+  def_INSTR_TABW("?? 010 ???", lgdt, -1);
+  def_INSTR_TABW("?? 011 ???", lidt, -1);
+  return EXEC_ID_inv;
+}
+
 def_THelper(_2byte_esc) {
   x86_instr_fetch(s, 1);
   s->isa.opcode = get_instr(s) | 0x100;
 
+  def_INSTR_IDTABW("0000 0000",    E, gp6, 2);
+  def_INSTR_IDTABW("0000 0001",    E, gp7, 4);
+  def_INSTR_IDTABW("0010 0000",  G2E, mov_cr2r, 4);
+  def_INSTR_IDTABW("0010 0010",  E2G, mov_r2cr, 4);
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
   def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
@@ -642,6 +653,8 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0100 1???",    r, dec);
   def_INSTR_IDTAB ("0101 0???",    r, push);
   def_INSTR_IDTAB ("0101 1???",    r, pop);
+  def_INSTR_TAB   ("0110 0000",       pusha);
+  def_INSTR_TAB   ("0110 0001",       popa);
   def_INSTR_TAB   ("0110 0110",       operand_size);
   def_INSTR_IDTAB ("0110 1000",    I, push);
   def_INSTR_IDTAB ("0110 1001",I_E2G, imul3);
@@ -676,6 +689,8 @@ def_THelper(main) {
   def_INSTR_IDTABW("1100 0110",  I2E, mov, 1);
   def_INSTR_IDTAB ("1100 0111",  I2E, mov);
   def_INSTR_TAB   ("1100 1001",       leave);
+  def_INSTR_IDTABW("1100 1101",    I, _int, 1);
+  def_INSTR_TAB   ("1100 1111",       iret);
   def_INSTR_IDTABW("1101 0000",  1_E, gp2, 1);
   def_INSTR_IDTAB ("1101 0001",  1_E, gp2);
   def_INSTR_IDTABW("1101 0010", cl2E, gp2, 1);
@@ -714,6 +729,7 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E:
+    case EXEC_ID__int: case EXEC_ID_iret:
       s->type = INSTR_TYPE_I; break;
   }
 
