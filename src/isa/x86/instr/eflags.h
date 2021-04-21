@@ -1,3 +1,22 @@
+def_EHelper(pushf) {
+  void rtl_compute_eflags(Decode *s, rtlreg_t *dest);
+  rtl_compute_eflags(s, s0);
+  rtl_push(s, s0);
+
+  extern void difftest_fix_eflags(void *arg);
+  difftest_set_patch(difftest_fix_eflags, (void *)(uintptr_t)cpu.esp);
+}
+
+def_EHelper(clc) {
+  rtl_set_CF(s, rz);
+}
+
+def_EHelper(stc) {
+  rtl_li(s, s0, 1);
+  rtl_set_CF(s, s0);
+}
+
+#if 0
 static inline def_EHelper(cld) {
   rtl_set_DF(s, rz);
   print_asm("cld");
@@ -9,17 +28,6 @@ static inline def_EHelper(std) {
   print_asm("std");
 }
 
-static inline def_EHelper(stc) {
-  rtl_li(s, s0, 1);
-  rtl_set_CF(s, s0);
-  print_asm("stc");
-}
-
-static inline def_EHelper(clc) {
-  rtl_set_CF(s, rz);
-  print_asm("clc");
-}
-
 static inline def_EHelper(cli) {
   rtl_set_IF(s, rz);
   print_asm("cli");
@@ -29,16 +37,6 @@ static inline def_EHelper(sti) {
   rtl_li(s, s0, 1);
   rtl_set_IF(s, s0);
   print_asm("sti");
-}
-
-static inline def_EHelper(pushf) {
-  void rtl_compute_eflags(Decode *s, rtlreg_t *dest);
-  rtl_compute_eflags(s, s0);
-  rtl_push(s, s0);
-  print_asm("pushf");
-
-  extern void difftest_fix_eflags(void *arg);
-  difftest_set_patch(difftest_fix_eflags, (void *)(uintptr_t)cpu.esp);
 }
 
 static inline def_EHelper(popf) {
@@ -60,3 +58,4 @@ static inline def_EHelper(sahf) {
 
   print_asm("sahf");
 }
+#endif

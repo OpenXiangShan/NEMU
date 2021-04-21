@@ -127,6 +127,10 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 #define rtl_priv_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
+  if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) { \
+    s = tcache_handle_flush(s->pc); \
+    g_sys_state_flag = 0; \
+  } \
   goto end_of_loop; \
 } while (0)
 

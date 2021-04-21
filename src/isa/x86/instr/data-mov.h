@@ -65,8 +65,7 @@ def_EHelper(leave) {
   rtl_pop(s, &cpu.ebp);
 }
 
-#if 0
-static inline def_EHelper(pusha) {
+def_EHelper(pusha) {
   rtl_mv(s, s0, &cpu.esp);
   rtl_push(s, &cpu.eax);
   rtl_push(s, &cpu.ecx);
@@ -76,10 +75,9 @@ static inline def_EHelper(pusha) {
   rtl_push(s, &cpu.ebp);
   rtl_push(s, &cpu.esi);
   rtl_push(s, &cpu.edi);
-  print_asm("pusha");
 }
 
-static inline def_EHelper(popa) {
+def_EHelper(popa) {
   rtl_pop(s, &cpu.edi);
   rtl_pop(s, &cpu.esi);
   rtl_pop(s, &cpu.ebp);
@@ -88,18 +86,19 @@ static inline def_EHelper(popa) {
   rtl_pop(s, &cpu.edx);
   rtl_pop(s, &cpu.ecx);
   rtl_pop(s, &cpu.eax);
-  print_asm("popa");
 }
 
-static inline def_EHelper(xchg) {
+def_EHelper(xchg) {
+  rtl_decode_binary(s, true, true);
   if (ddest != dsrc1) {
     rtl_mv(s, s0, dsrc1);
-    operand_write(s, id_src1, ddest);
-    operand_write(s, id_dest, s0);
+    if      (id_src1->type == OP_TYPE_REG) rtl_sr(s, id_src1->reg, ddest, s->isa.width);
+    else if (id_src1->type == OP_TYPE_MEM) rtl_sm(s, ddest, &s->isa.mbr, s->isa.moff, s->isa.width, MMU_DYNAMIC);
+    rtl_wb(s, s0);
   }
-  print_asm_template2(xchg);
 }
 
+#if 0
 static inline def_EHelper(cmpxchg) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");

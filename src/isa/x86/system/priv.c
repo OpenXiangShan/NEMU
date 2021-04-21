@@ -1,5 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include <cpu/cpu.h>
 
 #if defined(CONFIG_ENGINE_INTERPRETER)
 
@@ -10,8 +11,6 @@ static void load_sreg(int idx, uint16_t val) {
 
   if (val == 0) return;
 
-  assert(0);
-#if 0
 #ifdef CONFIG_MODE_USER
   assert(cpu.sreg[idx].ti == 0); // check the table bit
   extern uint32_t GDT[];
@@ -22,15 +21,14 @@ static void load_sreg(int idx, uint16_t val) {
 
   assert(cpu.sreg[idx].ti == 0); // check the table bit
   uint32_t desc_base = cpu.gdtr.base + (cpu.sreg[idx].idx << 3);
-  uint32_t desc_lo = vaddr_read(desc_base + 0, 4);
-  uint32_t desc_hi = vaddr_read(desc_base + 4, 4);
+  uint32_t desc_lo = vaddr_read(NULL, desc_base + 0, 4, MMU_DYNAMIC);
+  uint32_t desc_hi = vaddr_read(NULL, desc_base + 4, 4, MMU_DYNAMIC);
   assert((desc_hi >> 15) & 0x1); // check the present bit
 
   cpu.sreg[CSR_CS].rpl = old_cpl; // restore CPL
 
   uint32_t base = (desc_hi & 0xff000000) | ((desc_hi & 0xff) << 16) | (desc_lo >> 16);
   cpu.sreg[idx].base = base;
-#endif
 #endif
 }
 
@@ -47,45 +45,42 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (src != NULL) {
     switch (csrid) {
 #ifndef CONFIG_MODE_USER
-#if 0
       case CSR_IDTR:
-        cpu.idtr.limit = vaddr_read(*src, 2);
-        cpu.idtr.base  = vaddr_read(*src + 2, 4);
+        cpu.idtr.limit = vaddr_read(NULL, *src, 2, MMU_DYNAMIC);
+        cpu.idtr.base  = vaddr_read(NULL, *src + 2, 4, MMU_DYNAMIC);
         break;
       case CSR_GDTR:
-        cpu.gdtr.limit = vaddr_read(*src, 2);
-        cpu.gdtr.base  = vaddr_read(*src + 2, 4);
+        cpu.gdtr.limit = vaddr_read(NULL, *src, 2, MMU_DYNAMIC);
+        cpu.gdtr.base  = vaddr_read(NULL, *src + 2, 4, MMU_DYNAMIC);
         break;
-#endif
       case CSR_CR0 ... CSR_CR4: cpu.cr[csrid - CSR_CR0] = *src; break;
 #endif
       case 0 ... CSR_LDTR: load_sreg(csrid, *src); break;
       default: panic("Writing to CSR = %d is not supported", csrid);
     }
+    if (csrid == CSR_CR3) mmu_tlb_flush(0);
   }
 }
 
 static inline word_t iret() {
-  assert(0);
-#if 0
   int old_cpl = cpu.sreg[CSR_CS].rpl;
-  uint32_t new_pc = vaddr_read(cpu.esp + 0, 4);
-  uint32_t new_cs = vaddr_read(cpu.esp + 4, 4);
-  uint32_t eflags = vaddr_read(cpu.esp + 8, 4);
+  uint32_t new_pc = vaddr_read(NULL, cpu.esp + 0, 4, MMU_DYNAMIC);
+  uint32_t new_cs = vaddr_read(NULL, cpu.esp + 4, 4, MMU_DYNAMIC);
+  uint32_t eflags = vaddr_read(NULL, cpu.esp + 8, 4, MMU_DYNAMIC);
   cpu.esp += 12;
   set_eflags(eflags);
   int new_cpl = new_cs & 0x3;
   if (new_cpl > old_cpl) {
     // return to user
-    uint32_t esp3 = vaddr_read(cpu.esp + 0, 4);
-    uint32_t ss3  = vaddr_read(cpu.esp + 4, 4);
+    uint32_t esp3 = vaddr_read(NULL, cpu.esp + 0, 4, MMU_DYNAMIC);
+    uint32_t ss3  = vaddr_read(NULL, cpu.esp + 4, 4, MMU_DYNAMIC);
     cpu.esp = esp3;
     cpu.sreg[CSR_SS].val = ss3;
   }
   cpu.sreg[CSR_CS].val = new_cs;
 
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
   return new_pc;
-#endif
 }
 
 static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {

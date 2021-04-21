@@ -1,6 +1,6 @@
 // from NEMU
 #include <memory/paddr.h>
-#include <isa/x86.h>
+#include <isa-def.h>
 
 #include <difftest.h>
 

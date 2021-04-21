@@ -39,24 +39,20 @@ def_EHelper(call_E) {
 }
 
 def_EHelper(jmp_E) {
-  IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_decode_unary(s, true);
   rtl_jr(s, ddest);
 }
 
 
+def_EHelper(ret_imm) {
+  IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
+  rtl_pop(s, s0);
+  rtl_add(s, &cpu.esp, &cpu.esp, ddest);
+  rtl_jr(s, s0);
+}
+
 #if 0
 #ifndef __ICS_EXPORT
-
-static inline def_EHelper(ret_imm) {
-  rtl_pop(s, s0);
-  rtl_jr(s, s0);
-#ifdef CONFIG_x86_CC_LAZY
-  clean_lazycc();
-#endif
-  rtl_add(s, &cpu.esp, &cpu.esp, ddest);
-  print_asm("ret %s", id_dest->str);
-}
 
 static inline def_EHelper(ljmp) {
   rtl_j(s, s->jmp_pc);
