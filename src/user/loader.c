@@ -8,11 +8,11 @@
 # define Elf_Ehdr MUXDEF(CONFIG_ISA64, Elf64_Ehdr, Elf32_Ehdr)
 # define Elf_Phdr MUXDEF(CONFIG_ISA64, Elf64_Phdr, Elf32_Phdr)
 
-#if defined(__ISA_x86__)
+#if defined(CONFIG_ISA_x86)
 # define ELF_TYPE EM_386
-#elif defined(__ISA_mipS32__)
+#elif defined(CONFIG_ISA_mips32)
 # define ELF_TYPE EM_MIPS
-#elif defined(__ISA_riscv32__) || defined(__ISA_riscv64__)
+#elif defined(CONFIG_ISA_riscv32) || defined(CONFIG_ISA_riscv64)
 # define ELF_TYPE EM_RISCV
 #else
 # error Unsupported ISA
