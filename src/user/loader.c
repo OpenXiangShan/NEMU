@@ -6,7 +6,7 @@
 #include "user.h"
 
 # define Elf_Ehdr MUXDEF(CONFIG_ISA64, Elf64_Ehdr, Elf32_Ehdr)
-# define Elf_Phdr MUXDEF(CONFIG_ISA64, Elf64_Phdr, Elf32_Ehdr)
+# define Elf_Phdr MUXDEF(CONFIG_ISA64, Elf64_Phdr, Elf32_Phdr)
 
 #if defined(__ISA_x86__)
 # define ELF_TYPE EM_386
