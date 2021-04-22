@@ -8,8 +8,9 @@
   f(cwtl) f(cltd) \
   f(movs) \
   f(pushf) f(pusha) f(popa) \
-  f(clc) f(stc) \
-  f(iret)
+  f(clc) f(stc) f(cld) \
+  f(iret) \
+  f(cpuid)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) \
@@ -25,6 +26,7 @@
   f(imul2) \
   f(bsr) f(xchg) \
   f(in) f(out) f(mov_cr2r) f(mov_r2cr) \
+  f(cmovcc)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

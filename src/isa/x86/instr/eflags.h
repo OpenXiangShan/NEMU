@@ -16,12 +16,11 @@ def_EHelper(stc) {
   rtl_set_CF(s, s0);
 }
 
-#if 0
-static inline def_EHelper(cld) {
+def_EHelper(cld) {
   rtl_set_DF(s, rz);
-  print_asm("cld");
 }
 
+#if 0
 static inline def_EHelper(std) {
   rtl_li(s, s0, 1);
   rtl_set_DF(s, s0);

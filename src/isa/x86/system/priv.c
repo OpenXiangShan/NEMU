@@ -62,6 +62,7 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   }
 }
 
+#ifndef CONFIG_MODE_USER
 static inline word_t iret() {
   int old_cpl = cpu.sreg[CSR_CS].rpl;
   uint32_t new_pc = vaddr_read(NULL, cpu.esp + 0, 4, MMU_DYNAMIC);
@@ -89,6 +90,7 @@ static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     default: panic("Unsupported privilige operation = %d", op);
   }
 }
+#endif
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {

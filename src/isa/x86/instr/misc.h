@@ -1,5 +1,12 @@
-#include <sys/time.h>
+def_EHelper(cpuid) {
+  rtl_mv(s, &cpu.eax, rz);
+  rtl_mv(s, &cpu.ebx, rz);
+  rtl_mv(s, &cpu.ecx, rz);
+  rtl_mv(s, &cpu.edx, rz);
+  difftest_skip_ref();
+}
 
+#if 0
 static inline def_EHelper(rdtsc) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
@@ -21,16 +28,6 @@ static inline def_EHelper(rdtsc) {
   print_asm("rdtsc");
 }
 
-static inline def_EHelper(cpuid) {
-  rtl_mv(s, &cpu.eax, rz);
-  rtl_mv(s, &cpu.ebx, rz);
-  rtl_mv(s, &cpu.ecx, rz);
-  rtl_mv(s, &cpu.edx, rz);
-
-  difftest_skip_ref();
-  print_asm("cpuid");
-}
-
 static inline def_EHelper(fwait) {
   print_asm("fwait");
 }
@@ -44,3 +41,4 @@ static inline def_EHelper(hlt) {
   if (ref_difftest_raise_intr) ref_difftest_raise_intr(IRQ_TIMER);
   print_asm("hlt");
 }
+#endif

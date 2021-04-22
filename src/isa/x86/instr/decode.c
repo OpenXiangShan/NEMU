@@ -71,6 +71,7 @@ static const struct {
   [EXEC_ID_pushf] = { 0, F_ALL },
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
+  [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
 };
 
 typedef union {
@@ -518,6 +519,11 @@ def_THelper(operand_size) {
   return table_main(s);
 }
 
+def_THelper(rep) {
+  s->isa.rep_flags = PREFIX_REP;
+  return table_main(s);
+}
+
 #undef def_INSTR_IDTABW
 #define def_INSTR_IDTABW(pattern, id, tab, w) \
   def_INSTR_raw(pattern, { \
@@ -592,12 +598,14 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTABW("0000 0001",    E, gp7, 4);
   def_INSTR_IDTABW("0010 0000",  G2E, mov_cr2r, 4);
   def_INSTR_IDTABW("0010 0010",  E2G, mov_r2cr, 4);
+  def_INSTR_IDTAB ("0100 ????",  E2G, cmovcc);
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
-  def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
+  def_INSTR_TAB   ("1010 0010",       cpuid);
   def_INSTR_IDTAB ("1010 0100",Ib_G2E,shld);
   def_INSTR_IDTAB ("1010 0101",cl_G2E,shld);
   def_INSTR_IDTAB ("1010 1100",Ib_G2E,shrd);
+  def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
   def_INSTR_IDTAB ("1011 0110", Eb2G, movzb);
   def_INSTR_IDTABW("1011 0111", Ew2G, movzw, 4);
   def_INSTR_IDTAB ("1011 1101",  E2G, bsr);
@@ -709,8 +717,11 @@ def_THelper(main) {
   def_INSTR_IDTAB ("1110 1111", a2dx, out);
   def_INSTR_IDTABW("1111 0110",    E, gp3, 1);
   def_INSTR_IDTAB ("1111 0111",    E, gp3);
+  //def_INSTR_TAB   ("1111 0010",       repnz);
+  def_INSTR_TAB   ("1111 0011",       rep);
   def_INSTR_TAB   ("1111 1000",       clc);
   def_INSTR_TAB   ("1111 1001",       stc);
+  def_INSTR_TAB   ("1111 1100",       cld);
   def_INSTR_IDTABW("1111 1110",    E, gp4, 1);
   def_INSTR_IDTAB ("1111 1111",    E, gp5);
   return table_inv(s);
@@ -741,7 +752,7 @@ int isa_fetch_decode(Decode *s) {
 #ifdef CONFIG_PERF_OPT
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
-  if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc) {
+  if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {
     s->isa.flag_use = cc2flag[s->isa.opcode & 0xf];
   }
 
