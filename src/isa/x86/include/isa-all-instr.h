@@ -7,10 +7,11 @@
   f(ret) f(leave) \
   f(cwtl) f(cltd) \
   f(movs) \
+  f(rep_movs) f(rep_stos) \
   f(pushf) f(pusha) f(popa) \
   f(clc) f(stc) f(cld) \
   f(iret) \
-  f(cpuid)
+  f(cpuid) f(rdtsc)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) \
@@ -24,9 +25,10 @@
   f(and) f(or) f(test) f(xor) f(shl) f(shr) f(sar) f(rol) f(ror) \
   f(lea) f(movzb) f(movzw) f(movsb) f(movsw) \
   f(imul2) \
-  f(bsr) f(xchg) \
+  f(bsr) f(xchg) f(cmpxchg) \
   f(in) f(out) f(mov_cr2r) f(mov_r2cr) \
-  f(cmovcc)
+  f(cmovcc) \
+  f(mov_rm2sreg)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

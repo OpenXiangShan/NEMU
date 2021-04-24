@@ -6,28 +6,20 @@ def_EHelper(cpuid) {
   difftest_skip_ref();
 }
 
-#if 0
-static inline def_EHelper(rdtsc) {
-#ifndef CONFIG_ENGINE_INTERPRETER
-  panic("not support in engines other than interpreter");
-#endif
-
-#ifdef CONFIG_DETERMINISTIC
-  cpu.edx = 0;
-  cpu.eax = 0;
+def_EHelper(rdtsc) {
+#if defined(CONFIG_DETERMINISTIC) || defined(CONFIG_ENGINE_INTERPRETER)
+  rtl_li(s, &cpu.edx, 0);
+  rtl_li(s, &cpu.eax, 0);
 #else
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  uint64_t tsc = now.tv_sec * 1000000ull + now.tv_usec;
+  uint64_t tsc = get_time()
   cpu.edx = tsc >> 32;
   cpu.eax = tsc & 0xffffffff;
 #endif
 
   difftest_skip_ref();
-
-  print_asm("rdtsc");
 }
 
+#if 0
 static inline def_EHelper(fwait) {
   print_asm("fwait");
 }

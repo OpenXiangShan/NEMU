@@ -119,23 +119,24 @@ def_EHelper(cmovcc) {
   rtl_wb(s, ddest);
 }
 
-#if 0
-static inline def_EHelper(cmpxchg) {
+def_EHelper(cmpxchg) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
 
-  rtl_setrelop(s, RELOP_EQ, s0, dsrc1, ddest);
+  assert(s->isa.width == 4);
+  rtl_decode_binary(s, true, true);
+
+  rtl_setrelop(s, RELOP_EQ, s0, &cpu.eax, ddest);
   rtl_set_ZF(s, s0);
   if (cpu.ZF) {
-    operand_write(s, id_dest, dsrc2);
+    rtl_wb(s, dsrc1);
   } else {
-    operand_write(s, id_src1, ddest);
+    rtl_sr(s, R_EAX, ddest, s->isa.width);
   }
-
-  print_asm_template2(cmpxchg);
 }
 
+#if 0
 static inline def_EHelper(cmpxchg8b) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");

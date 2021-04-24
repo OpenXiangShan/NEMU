@@ -171,7 +171,9 @@ static inline word_t user_sys_fstat64(int fd, void *statbuf) {
   if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
+#endif
 
+#ifdef CONFIG_ISA_x86
 static inline word_t user_set_thread_area(void *u_info) {
   struct user_desc *info = u_info;
   assert(info->entry_number == -1);
@@ -189,7 +191,9 @@ static inline word_t user_set_thread_area(void *u_info) {
   info->entry_number = 2;
   return 0;
 }
+#endif
 
+#if 0
 static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
     uint32_t offset_low, uint64_t *result, uint32_t whence) {
   off_t ret = lseek(fd, ((off_t)offset_high << 32) | offset_low, whence);
@@ -226,15 +230,15 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 10: ret = unlink(user_to_host(arg1)); break;
     case 13: ret = time(user_to_host(arg1)); break;
     case 33: ret = access(user_to_host(arg1), arg2); break;
-    case 85: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
     case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
     case 195: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case 196: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
     case 197: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
-    case 243: ret = user_set_thread_area(user_to_host(arg1)); break;
 #endif
+    IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
+        ret = user_set_thread_area(user_to_host(arg1)); break);
     case USER_SYS_exit_group:
     case USER_SYS_exit: user_sys_exit(arg1); break;
     case USER_SYS_brk: ret = user_sys_brk(arg1); break;
@@ -279,6 +283,8 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_mprotect: return 0; // not implemented
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
     case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
+#else
+    case USER_SYS_readlink: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }
