@@ -496,14 +496,6 @@ static inline def_DHelper(a2dx) {
 
 #if 0
 #ifndef __ICS_EXPORT
-static inline def_DHelper(E2xmm) {
-  operand_rm(s, id_src1, false, id_dest, false);
-}
-
-static inline def_DHelper(xmm2E) {
-  operand_rm(s, id_dest, false, id_src1, false);
-}
-
 static inline def_DHelper(Ib2xmm) {
   operand_rm(s, id_dest, false, NULL, false);
   id_src1->width = 1;
@@ -511,6 +503,55 @@ static inline def_DHelper(Ib2xmm) {
 }
 #endif
 #endif
+
+
+static inline int SSEprefix(Decode *s) {
+  assert(!(s->isa.rep_flags != 0 && s->isa.is_operand_size_16));
+  if (s->isa.is_operand_size_16) return 1;
+  else if (s->isa.rep_flags == PREFIX_REP) return 2;
+  else if (s->isa.rep_flags == PREFIX_REPNZ) return 3;
+  else return 0;
+}
+
+def_THelper(sse_0x6f) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: decode_E2G(s, s->isa.width); return table_movdqa_E2xmm(s);
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0x73) {
+  int pfx = SSEprefix(s);
+  assert(pfx == 1);
+  def_INSTR_TABW("?? 010 ???", psrlq, -1);
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0x7e) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: s->isa.width = 4; decode_G2E(s, s->isa.width); return table_movd_xmm2E(s);
+    case 2: decode_E2G(s, s->isa.width); return table_movq_E2xmm(s);
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0xd6) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: decode_G2E(s, s->isa.width); return table_movq_xmm2E(s);
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0xef) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: decode_E2G(s, s->isa.width); return table_pxor(s);
+  }
+  return EXEC_ID_inv;
+}
 
 def_THelper(main);
 
@@ -524,14 +565,7 @@ def_THelper(rep) {
   panic("not support REP in engines other than interpreter");
 #endif
   s->isa.rep_flags = PREFIX_REP;
-  x86_instr_fetch(s, 1);
-  s->isa.opcode = get_instr(s);
-
-  def_INSTR_TABW  ("1010 0100", rep_movs, 1);
-  def_INSTR_TAB   ("1010 0101", rep_movs);
-  def_INSTR_TAB   ("1010 1011", rep_stos);
-
-  return EXEC_ID_inv;
+  return table_main(s);
 }
 
 def_THelper(gs) {
@@ -615,6 +649,9 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTABW("0010 0010",  E2G, mov_r2cr, 4);
   def_INSTR_TAB   ("0011 0001",       rdtsc);
   def_INSTR_IDTAB ("0100 ????",  E2G, cmovcc);
+  def_INSTR_TAB   ("0110 1111",       sse_0x6f);
+  def_INSTR_IDTAB ("0111 0011", Ib2E, sse_0x73);
+  def_INSTR_TAB   ("0111 1110",       sse_0x7e);
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
   def_INSTR_TAB   ("1010 0010",       cpuid);
@@ -628,6 +665,8 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTAB ("1011 1101",  E2G, bsr);
   def_INSTR_IDTAB ("1011 1110", Eb2G, movsb);
   def_INSTR_IDTABW("1011 1111", Ew2G, movsw, 4);
+  def_INSTR_TAB   ("1101 0110",       sse_0xd6);
+  def_INSTR_TAB   ("1110 1111",       sse_0xef);
   return EXEC_ID_inv;
 }
 
@@ -709,6 +748,13 @@ def_THelper(main) {
   def_INSTR_IDTAB ("1010 0001",  O2a, mov);
   def_INSTR_IDTABW("1010 0010",  a2O, mov, 1);
   def_INSTR_IDTAB ("1010 0011",  a2O, mov);
+
+  if (s->isa.rep_flags == PREFIX_REP) {
+    def_INSTR_TABW  ("1010 0100", rep_movs, 1);
+    def_INSTR_TAB   ("1010 0101", rep_movs);
+    def_INSTR_TAB   ("1010 1011", rep_stos);
+  }
+
   def_INSTR_TABW  ("1010 0100",       movs, 1);
   def_INSTR_TAB   ("1010 0101",       movs);
   def_INSTR_IDTABW("1010 1000",  I2a, test, 1);

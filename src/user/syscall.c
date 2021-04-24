@@ -164,7 +164,9 @@ static inline word_t user_sys_lstat64(const char *pathname, void *statbuf) {
   if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
+#endif
 
+#ifndef CONFIG_ISA64
 static inline word_t user_sys_fstat64(int fd, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
@@ -229,13 +231,11 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
 #if 0
     case 10: ret = unlink(user_to_host(arg1)); break;
     case 13: ret = time(user_to_host(arg1)); break;
-    case 33: ret = access(user_to_host(arg1), arg2); break;
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
     case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
     case 195: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case 196: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
-    case 197: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
 #endif
     IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
         ret = user_set_thread_area(user_to_host(arg1)); break);
@@ -285,6 +285,8 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
 #else
     case USER_SYS_readlink: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_access: ret = access(user_to_host(arg1), arg2); break;
+    case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }

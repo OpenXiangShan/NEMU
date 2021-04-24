@@ -28,7 +28,8 @@
   f(bsr) f(xchg) f(cmpxchg) \
   f(in) f(out) f(mov_cr2r) f(mov_r2cr) \
   f(cmovcc) \
-  f(mov_rm2sreg)
+  f(mov_rm2sreg) \
+  f(movq_E2xmm) f(movq_xmm2E) f(movdqa_E2xmm) f(psrlq) f(movd_xmm2E) f(pxor)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)
