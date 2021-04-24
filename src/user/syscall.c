@@ -251,6 +251,10 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_times: ret = user_times(user_to_host(arg1)); break;
     case USER_SYS_getrusage: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case USER_SYS_prlimit64: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
+    case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
+    case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_close: ret = close(user_fd(arg1)); break;
+    case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
 #ifdef CONFIG_ISA64
     case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
           user_to_host(arg2), user_to_host(arg3), arg4); break;
@@ -258,11 +262,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
           user_to_host(arg2), user_to_host(arg3), arg4); break;
     case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
-          arg3, arg4, user_fd(arg5), arg6 << 12); break;
-    case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
-    case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case USER_SYS_close: ret = close(user_fd(arg1)); break;
-    case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
+          arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
     case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
           arg2, arg3, arg4, user_to_host(arg5)); break;
@@ -287,6 +287,8 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_readlink: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_access: ret = access(user_to_host(arg1), arg2); break;
     case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
+    case USER_SYS_mmap2: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
+          arg3, arg4, user_fd(arg5), arg6 << 12); break;
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }

@@ -72,6 +72,8 @@ static const struct {
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
   [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
+  [EXEC_ID_xadd] = { F_ALL, 0 },
+  [EXEC_ID_bt] = { F_ALL, 0 },
 };
 
 typedef union {
@@ -568,6 +570,10 @@ def_THelper(rep) {
   return table_main(s);
 }
 
+def_THelper(lock) {
+  return table_main(s);
+}
+
 def_THelper(gs) {
   s->isa.sreg_base = &cpu.sreg[CSR_GS].base;
   return table_main(s);
@@ -655,6 +661,7 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
   def_INSTR_TAB   ("1010 0010",       cpuid);
+  def_INSTR_IDTAB ("1010 0011",  G2E, bt);
   def_INSTR_IDTAB ("1010 0100",Ib_G2E,shld);
   def_INSTR_IDTAB ("1010 0101",cl_G2E,shld);
   def_INSTR_IDTAB ("1010 1100",Ib_G2E,shrd);
@@ -665,6 +672,7 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTAB ("1011 1101",  E2G, bsr);
   def_INSTR_IDTAB ("1011 1110", Eb2G, movsb);
   def_INSTR_IDTABW("1011 1111", Ew2G, movsw, 4);
+  def_INSTR_IDTAB ("1100 0001",  G2E, xadd);
   def_INSTR_TAB   ("1101 0110",       sse_0xd6);
   def_INSTR_TAB   ("1110 1111",       sse_0xef);
   return EXEC_ID_inv;
@@ -752,6 +760,7 @@ def_THelper(main) {
   if (s->isa.rep_flags == PREFIX_REP) {
     def_INSTR_TABW  ("1010 0100", rep_movs, 1);
     def_INSTR_TAB   ("1010 0101", rep_movs);
+    def_INSTR_TABW  ("1010 1010", rep_stos, 1);
     def_INSTR_TAB   ("1010 1011", rep_stos);
   }
 
@@ -775,12 +784,14 @@ def_THelper(main) {
   def_INSTR_IDTABW("1101 0010", cl2E, gp2, 1);
   def_INSTR_IDTAB ("1101 0011", cl2E, gp2);
   def_INSTR_TAB   ("1101 0110",       nemu_trap);
+  def_INSTR_IDTABW("1110 0011",    J, jecxz, 1);
   def_INSTR_IDTABW("1110 1000",    J, call, 4);
   def_INSTR_IDTABW("1110 1001",    J,  jmp, 4);
   def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
   def_INSTR_IDTAB ("1110 1101", dx2a, in);
   def_INSTR_IDTABW("1110 1110", a2dx, out, 1);
   def_INSTR_IDTAB ("1110 1111", a2dx, out);
+  def_INSTR_TAB   ("1111 0000",       lock);
   def_INSTR_IDTABW("1111 0110",    E, gp3, 1);
   def_INSTR_IDTAB ("1111 0111",    E, gp3);
   //def_INSTR_TAB   ("1111 0010",       repnz);
@@ -807,7 +818,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_call: case EXEC_ID_jmp:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_J; break;
 
-    case EXEC_ID_jcc:
+    case EXEC_ID_jcc: case EXEC_ID_jecxz:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
     case EXEC_ID_rep_movs:
     case EXEC_ID_rep_stos:

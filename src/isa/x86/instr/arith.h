@@ -432,24 +432,25 @@ def_EHelper(idiv) {
   }
 }
 
-#if 0
-static inline def_EHelper(xadd) {
+def_EHelper(xadd) {
+  rtl_decode_binary(s, true, true);
   rtl_add(s, s0, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_set_lazycc_src1(s, dsrc1);
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_ADD, s->isa.width);
 #else
-  rtl_update_ZFSF(s, s0, s->isa.width);
-  if (s->isa.width != 4) {
-    rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - s->isa.width) * 8));
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  if (need_update_eflags) {
+    rtl_update_ZFSF(s, s0, s->isa.width);
+    if (s->isa.width != 4) {
+      rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - s->isa.width) * 8));
+    }
+    rtl_is_add_carry(s, s1, s0, ddest);
+    rtl_set_CF(s, s1);
+    rtl_is_add_overflow(s, s1, s0, ddest, dsrc1, s->isa.width);
+    rtl_set_OF(s, s1);
   }
-  rtl_is_add_carry(s, s1, s0, ddest);
-  rtl_set_CF(s, s1);
-  rtl_is_add_overflow(s, s1, s0, ddest, dsrc1, s->isa.width);
-  rtl_set_OF(s, s1);
 #endif
-  operand_write(s, id_src1, ddest);
-  operand_write(s, id_dest, s0);
-  print_asm_template2(xadd);
+  rtl_sr(s, id_src1->reg, ddest, s->isa.width);
+  rtl_wb(s, s0);
 }
-#endif

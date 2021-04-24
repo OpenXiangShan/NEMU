@@ -16,6 +16,23 @@ def_EHelper(bsr) {
   }
 }
 
+def_EHelper(bt) {
+  if (id_dest->type == OP_TYPE_MEM) {
+    rtl_shri(s, s0, dsrc1, 5);
+    rtl_shli(s, s0, s0, 2);
+    rtl_add(s, s0, s->isa.mbase, s0);
+    s->isa.mbase = s0;
+  }
+
+  rtl_decode_binary(s, true, true);
+
+  rtl_li(s, s0, 1);
+  rtl_shl(s, s0, s0, dsrc1);
+  rtl_and(s, s0, s0, ddest);
+  rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
+  rtl_set_CF(s, s0);
+}
+
 #if 0
 static inline def_EHelper(bsf) {
 #ifndef CONFIG_ENGINE_INTERPRETER
@@ -35,15 +52,6 @@ static inline def_EHelper(bsf) {
   }
   operand_write(s, id_dest, ddest);
   print_asm_template2(bsf);
-}
-
-static inline def_EHelper(bt) {
-  rtl_li(s, s0, 1);
-  rtl_shl(s, s0, s0, dsrc1);
-  rtl_and(s, s0, s0, ddest);
-  rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
-  rtl_set_CF(s, s0);
-  print_asm_template2(bt);
 }
 
 static inline def_EHelper(btc) {
