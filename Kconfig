@@ -118,6 +118,7 @@ config CC_DEBUG
   default n
 
 config CC_ASAN
+  depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
 
