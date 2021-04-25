@@ -187,8 +187,8 @@ config IQUEUE
   default n
 endmenu
 
-source "src/memory/Kconfig"
 if !MODE_USER
+source "src/memory/Kconfig"
 source "src/device/Kconfig"
 endif
 

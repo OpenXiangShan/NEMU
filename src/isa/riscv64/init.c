@@ -15,7 +15,7 @@ void init_isa() {
   cpu.gpr[0]._64 = 0;
   cpu.pc = RESET_VECTOR;
 
-  cpu.mode = MUXDEF(CONFIG_MODE_USER, MODE_U, MODE_M);
+  cpu.mode = MODE_M;
   mstatus->val = 0;
 
 #define ext(e) (1 << ((e) - 'a'))
@@ -26,13 +26,5 @@ void init_isa() {
 
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
-  IFNDEF(CONFIG_SHARE, IFNDEF(CONFIG_MODE_USER, init_clint()));
+  IFNDEF(CONFIG_SHARE, init_clint());
 }
-
-#ifdef CONFIG_MODE_USER
-
-void isa_init_user(word_t sp) {
-  cpu.gpr[2]._64 = sp;
-  //cpu.edx = 0; // no handler for atexit()
-}
-#endif

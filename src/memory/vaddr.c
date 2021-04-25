@@ -1,33 +1,8 @@
 #include <isa.h>
 
-#if defined(CONFIG_PERF_OPT) && !defined(CONFIG_MODE_USER)
+#ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1
 #endif
-
-#ifdef CONFIG_MODE_USER
-#include <memory/host.h>
-
-static inline void* user_to_host(word_t uaddr) {
-  return (void *)(uintptr_t)uaddr;
-}
-
-word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
-  return host_read(user_to_host(addr), len);
-}
-
-void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
-  host_write(user_to_host(addr), len, data);
-}
-
-word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
-}
-
-word_t vaddr_read_safe(vaddr_t addr, int len) {
-  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
-}
-
-#else
 
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
@@ -117,5 +92,3 @@ word_t vaddr_read_safe(vaddr_t addr, int len) {
   // FIXME: when reading fails, return an error instead of raising exceptions
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_READ, MMU_DYNAMIC);
 }
-
-#endif

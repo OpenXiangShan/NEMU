@@ -3,6 +3,12 @@
 
 #include <common.h>
 
+#ifdef CONFIG_MODE_USER
+#define CONFIG_MBASE 0
+#define CONFIG_MSIZE 0
+#define CONFIG_PC_RESET_OFFSET 0
+#endif
+
 #define RESET_VECTOR (CONFIG_MBASE + CONFIG_PC_RESET_OFFSET)
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */

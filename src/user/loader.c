@@ -22,7 +22,7 @@ void isa_init_user(word_t sp);
 
 user_state_t user_state = {};
 
-static long load_elf(char *elfpath) {
+static void load_elf(char *elfpath) {
   Assert(elfpath != NULL, "User program is not given");
   FILE *fp = fopen(elfpath, "rb");
   Assert(fp, "Can not open '%s'", elfpath);
@@ -77,7 +77,6 @@ static long load_elf(char *elfpath) {
   user_state.phent = elf->e_phentsize;
   user_state.phnum = elf->e_phnum;
   cpu.pc = elf->e_entry;
-  return brk - CONFIG_MBASE;
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {
@@ -150,10 +149,9 @@ static void redirction_std() {
   fp = freopen("/dev/tty", "w", stdout); assert(fp);
 }
 
-long init_user(char *elfpath, int argc, char *argv[]) {
+void init_user(char *elfpath, int argc, char *argv[]) {
   redirction_std();
-  long size = load_elf(elfpath);
+  load_elf(elfpath);
   word_t sp = init_stack(argc, argv);
   isa_init_user(sp);
-  return size;
 }
