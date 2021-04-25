@@ -165,7 +165,7 @@ static int execute(int n) {
     exec_table[TOTAL_INSTR] = &&nemu_decode;
     extern Decode* tcache_init(const void **speical_exec_table, vaddr_t reset_vector);
     s = tcache_init(exec_table + TOTAL_INSTR, cpu.pc);
-    hosttlb_init();
+    IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
   }
 

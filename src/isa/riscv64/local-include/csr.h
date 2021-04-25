@@ -229,6 +229,4 @@ MAP(CSRS, CSRS_DECL)
 
 word_t csrid_read(uint32_t csrid);
 
-enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
-
 #endif

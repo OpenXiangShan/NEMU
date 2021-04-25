@@ -96,23 +96,26 @@ void init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log(log_file);
 
-  /* Fill the memory with garbage content. */
+  /* Initialize memory. */
   init_mem();
-
-  /* Perform ISA dependent initialization. */
-  init_isa();
 
   /* Load the image to memory. This will overwrite the built-in image. */
 #ifdef CONFIG_MODE_USER
-  void init_mmap();
-  init_mmap();
-
   int user_argc = argc - user_argidx;
   char **user_argv = argv + user_argidx;
-  long init_user(char *elfpath, int argc, char *argv[]);
-  long img_size = init_user(img_file, user_argc, user_argv);
+  void init_user(char *elfpath, int argc, char *argv[]);
+  init_user(img_file, user_argc, user_argv);
 #else
+  /* Perform ISA dependent initialization. */
+  init_isa();
+
   long img_size = load_img();
+
+  /* Initialize differential testing. */
+  init_difftest(diff_so_file, img_size, difftest_port);
+
+  /* Initialize devices. */
+  init_device();
 #endif
 
   /* Compile the regular expressions. */
@@ -120,12 +123,6 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
-
-  /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
-
-  /* Initialize devices. */
-  IFDEF(CONFIG_DEVICE, init_device());
 
   /* Display welcome message. */
   welcome();

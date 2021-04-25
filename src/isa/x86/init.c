@@ -43,26 +43,9 @@ void init_isa() {
   /* Initialize this virtual computer system. */
   restart();
 
-#ifndef CONFIG_MODE_USER
   init_i8259a();
   init_mc146818rtc();
   init_i8253();
   init_ioport80();
   init_i8237a();
-#endif
 }
-
-#ifdef CONFIG_MODE_USER
-
-// we only maintain base of the segment here
-uint32_t GDT[4] = {0};
-
-void isa_init_user(word_t sp) {
-  cpu.esp = sp;
-  cpu.edx = 0; // no handler for atexit()
-  cpu.sreg[CSR_CS].val = 0xb; cpu.sreg[CSR_CS].base = 0;
-  cpu.sreg[CSR_DS].val = 0xb; cpu.sreg[CSR_DS].base = 0;
-  cpu.sreg[CSR_ES].val = 0xb; cpu.sreg[CSR_ES].base = 0;
-  cpu.sreg[CSR_FS].val = 0xb; cpu.sreg[CSR_FS].base = 0;
-}
-#endif

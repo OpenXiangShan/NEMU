@@ -5,7 +5,8 @@ endif
 -include $(NEMU_HOME)/include/config/auto.conf
 -include $(NEMU_HOME)/include/config/auto.conf.cmd
 
-DIRS-y = src/cpu src/memory src/monitor src/utils
+DIRS-y = src/cpu src/monitor src/utils
+DIRS-$(CONFIG_MODE_SYSTEM) += src/memory
 
 remove_quote = $(patsubst "%",%,$(1))
 

@@ -1,8 +1,27 @@
 #include "user.h"
+#include <isa.h>
+#include <memory/host.h>
 #include <stdlib.h>
 
 #define ROUNDUP(a, sz)      ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 #define ROUNDDOWN(a, sz)    ((((uintptr_t)a)) & ~((sz) - 1))
+
+word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+  return host_read(user_to_host(addr), len);
+}
+
+void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+  host_write(user_to_host(addr), len, data);
+}
+
+word_t vaddr_ifetch(vaddr_t addr, int len) {
+  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
+}
+
+word_t vaddr_read_safe(vaddr_t addr, int len) {
+  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
+}
+
 
 typedef struct vma_t {
   void *addr;
@@ -78,7 +97,7 @@ static inline vma_t* vma_new(void *addr, size_t length, int prot,
   return vma;
 }
 
-void init_mmap() {
+void init_mem() {
   vma_t *p = &vma_list;
   p->next = p->prev = p;
 

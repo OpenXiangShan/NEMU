@@ -145,6 +145,7 @@ static int cmd_x(char *args) {
   return 0;
 }
 
+#ifdef CONFIG_MODE_SYSTEM
 static int cmd_detach(char *args) {
   difftest_detach();
   return 0;
@@ -191,6 +192,8 @@ static int cmd_load(char *args) {
   }
   return 0;
 }
+#else
+#endif
 
 #endif
 
@@ -214,10 +217,12 @@ static struct {
   { "p", "Evaluate the value of expression", cmd_p },
   { "w", "Set watchpoint", cmd_w },
   { "d", "Delete watchpoint", cmd_d },
+#ifdef CONFIG_MODE_SYSTEM
   { "detach", "detach diff test", cmd_detach },
   { "attach", "attach diff test", cmd_attach },
   { "save", "save snapshot", cmd_save },
   { "load", "load snapshot", cmd_load },
+#endif
 #endif
   { "q", "Exit NEMU", cmd_q },
 
