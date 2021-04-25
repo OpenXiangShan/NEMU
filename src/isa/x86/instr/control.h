@@ -43,12 +43,15 @@ def_EHelper(jmp_E) {
   rtl_jr(s, ddest);
 }
 
-
 def_EHelper(ret_imm) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_pop(s, s0);
   rtl_add(s, &cpu.esp, &cpu.esp, ddest);
   rtl_jr(s, s0);
+}
+
+def_EHelper(jecxz) {
+  rtl_jrelop(s, RELOP_EQ, &cpu.ecx, rz, id_dest->simm);
 }
 
 #if 0
@@ -61,10 +64,6 @@ static inline def_EHelper(ljmp) {
   print_asm("ljmp %s,%s", id_src1->str, id_dest->str);
 }
 
-static inline def_EHelper(jecxz) {
-  rtl_jrelop(s, RELOP_EQ, &cpu.ecx, rz, s->jmp_pc);
-  print_asm("jecxz %x", s->jmp_pc);
-}
 #else
 static inline def_EHelper(call) {
   // the target address is calculated at the decode stage

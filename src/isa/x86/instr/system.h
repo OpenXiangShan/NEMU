@@ -49,16 +49,16 @@ def_EHelper(iret) {
   rtl_priv_jr(s, s0);
 }
 
+def_EHelper(mov_rm2sreg) {
+  rtl_decode_binary(s, false, true);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, NULL, id_dest->reg);
+  if (ISNDEF(CONFIG_DIFFTEST_REF_NEMU) && id_dest->reg == 2) { difftest_skip_dut(1, 2); } // SS
+}
+
 #if 0
 static inline def_EHelper(lldt) {
   rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, CSR_LDTR);
   print_asm_template1(lldt);
-}
-
-static inline def_EHelper(mov_rm2sreg) {
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc1, id_dest->reg);
-  if (ISNDEF(CONFIG_DIFFTEST_REF_NEMU) && id_dest->reg == 2) { difftest_skip_dut(1, 2); } // SS
-  print_asm("movw %s,%%%s", id_src1->str, sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(mov_sreg2rm) {

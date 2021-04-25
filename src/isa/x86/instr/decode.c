@@ -71,6 +71,9 @@ static const struct {
   [EXEC_ID_pushf] = { 0, F_ALL },
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
+  [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
+  [EXEC_ID_xadd] = { F_ALL, 0 },
+  [EXEC_ID_bt] = { F_ALL, 0 },
 };
 
 typedef union {
@@ -248,7 +251,7 @@ static inline void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
 /* Ob, Ov */
 def_DopHelper(O) {
   s->isa.moff = instr_fetch(&s->snpc, 4);
-  s->isa.mbase = s->isa.sreg_base ? s->isa.sreg_base : rz;
+  s->isa.mbase = rz;
   s->isa.midx = rz;
   op->preg = &op->val;
   op->type = OP_TYPE_MEM;
@@ -441,13 +444,13 @@ static inline def_DHelper(aSrc) {
 static inline def_DHelper(aDest) {
   decode_op_a(s, id_dest, false);
 }
+#endif
 
 // for xchg
 static inline def_DHelper(a2r) {
-  decode_op_a(s, id_src1, true);
-  decode_op_r(s, id_dest, true);
+  decode_op_a(s, id_src1, width);
+  decode_op_r(s, id_dest, width);
 }
-#endif
 
 static inline def_DHelper(J) {
   // the target address can be computed in the decode stage
@@ -495,14 +498,6 @@ static inline def_DHelper(a2dx) {
 
 #if 0
 #ifndef __ICS_EXPORT
-static inline def_DHelper(E2xmm) {
-  operand_rm(s, id_src1, false, id_dest, false);
-}
-
-static inline def_DHelper(xmm2E) {
-  operand_rm(s, id_dest, false, id_src1, false);
-}
-
 static inline def_DHelper(Ib2xmm) {
   operand_rm(s, id_dest, false, NULL, false);
   id_src1->width = 1;
@@ -511,10 +506,76 @@ static inline def_DHelper(Ib2xmm) {
 #endif
 #endif
 
+
+static inline int SSEprefix(Decode *s) {
+  assert(!(s->isa.rep_flags != 0 && s->isa.is_operand_size_16));
+  if (s->isa.is_operand_size_16) return 1;
+  else if (s->isa.rep_flags == PREFIX_REP) return 2;
+  else if (s->isa.rep_flags == PREFIX_REPNZ) return 3;
+  else return 0;
+}
+
+def_THelper(sse_0x6f) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: decode_E2G(s, s->isa.width); return table_movdqa_E2xmm(s);
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0x73) {
+  int pfx = SSEprefix(s);
+  assert(pfx == 1);
+  def_INSTR_TABW("?? 010 ???", psrlq, -1);
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0x7e) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: s->isa.width = 4; decode_G2E(s, s->isa.width); return table_movd_xmm2E(s);
+    case 2: decode_E2G(s, s->isa.width); return table_movq_E2xmm(s);
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0xd6) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: decode_G2E(s, s->isa.width); return table_movq_xmm2E(s);
+  }
+  return EXEC_ID_inv;
+}
+
+def_THelper(sse_0xef) {
+  int pfx = SSEprefix(s);
+  switch (pfx) {
+    case 1: decode_E2G(s, s->isa.width); return table_pxor(s);
+  }
+  return EXEC_ID_inv;
+}
+
 def_THelper(main);
 
 def_THelper(operand_size) {
   s->isa.is_operand_size_16 = true;
+  return table_main(s);
+}
+
+def_THelper(rep) {
+#ifndef CONFIG_ENGINE_INTERPRETER
+  panic("not support REP in engines other than interpreter");
+#endif
+  s->isa.rep_flags = PREFIX_REP;
+  return table_main(s);
+}
+
+def_THelper(lock) {
+  return table_main(s);
+}
+
+def_THelper(gs) {
+  s->isa.sreg_base = &cpu.sreg[CSR_GS].base;
   return table_main(s);
 }
 
@@ -592,17 +653,28 @@ def_THelper(_2byte_esc) {
   def_INSTR_IDTABW("0000 0001",    E, gp7, 4);
   def_INSTR_IDTABW("0010 0000",  G2E, mov_cr2r, 4);
   def_INSTR_IDTABW("0010 0010",  E2G, mov_r2cr, 4);
+  def_INSTR_TAB   ("0011 0001",       rdtsc);
+  def_INSTR_IDTAB ("0100 ????",  E2G, cmovcc);
+  def_INSTR_TAB   ("0110 1111",       sse_0x6f);
+  def_INSTR_IDTAB ("0111 0011", Ib2E, sse_0x73);
+  def_INSTR_TAB   ("0111 1110",       sse_0x7e);
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
-  def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
+  def_INSTR_TAB   ("1010 0010",       cpuid);
+  def_INSTR_IDTAB ("1010 0011",  G2E, bt);
   def_INSTR_IDTAB ("1010 0100",Ib_G2E,shld);
   def_INSTR_IDTAB ("1010 0101",cl_G2E,shld);
   def_INSTR_IDTAB ("1010 1100",Ib_G2E,shrd);
+  def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
+  def_INSTR_IDTAB ("1011 0001",  G2E, cmpxchg);
   def_INSTR_IDTAB ("1011 0110", Eb2G, movzb);
   def_INSTR_IDTABW("1011 0111", Ew2G, movzw, 4);
   def_INSTR_IDTAB ("1011 1101",  E2G, bsr);
   def_INSTR_IDTAB ("1011 1110", Eb2G, movsb);
   def_INSTR_IDTABW("1011 1111", Ew2G, movsw, 4);
+  def_INSTR_IDTAB ("1100 0001",  G2E, xadd);
+  def_INSTR_TAB   ("1101 0110",       sse_0xd6);
+  def_INSTR_TAB   ("1110 1111",       sse_0xef);
   return EXEC_ID_inv;
 }
 
@@ -656,6 +728,7 @@ def_THelper(main) {
   def_INSTR_IDTAB ("0101 1???",    r, pop);
   def_INSTR_TAB   ("0110 0000",       pusha);
   def_INSTR_TAB   ("0110 0001",       popa);
+  def_INSTR_TAB   ("0110 0101",       gs);
   def_INSTR_TAB   ("0110 0110",       operand_size);
   def_INSTR_IDTAB ("0110 1000",    I, push);
   def_INSTR_IDTAB ("0110 1001",I_E2G, imul3);
@@ -673,7 +746,9 @@ def_THelper(main) {
   def_INSTR_IDTABW("1000 1010",  E2G, mov, 1);
   def_INSTR_IDTAB ("1000 1011",  E2G, mov);
   def_INSTR_IDTABW("1000 1101",  E2G, lea, 4);
+  def_INSTR_IDTABW("1000 1110",  E2G, mov_rm2sreg, 2);
   def_INSTR_TAB   ("1001 0000",       nop);
+  def_INSTR_IDTAB ("1001 0???",  a2r, xchg);
   def_INSTR_TAB   ("1001 1000",       cwtl);
   def_INSTR_TAB   ("1001 1001",       cltd);
   def_INSTR_TAB   ("1001 1100",       pushf);
@@ -681,6 +756,14 @@ def_THelper(main) {
   def_INSTR_IDTAB ("1010 0001",  O2a, mov);
   def_INSTR_IDTABW("1010 0010",  a2O, mov, 1);
   def_INSTR_IDTAB ("1010 0011",  a2O, mov);
+
+  if (s->isa.rep_flags == PREFIX_REP) {
+    def_INSTR_TABW  ("1010 0100", rep_movs, 1);
+    def_INSTR_TAB   ("1010 0101", rep_movs);
+    def_INSTR_TABW  ("1010 1010", rep_stos, 1);
+    def_INSTR_TAB   ("1010 1011", rep_stos);
+  }
+
   def_INSTR_TABW  ("1010 0100",       movs, 1);
   def_INSTR_TAB   ("1010 0101",       movs);
   def_INSTR_IDTABW("1010 1000",  I2a, test, 1);
@@ -701,16 +784,21 @@ def_THelper(main) {
   def_INSTR_IDTABW("1101 0010", cl2E, gp2, 1);
   def_INSTR_IDTAB ("1101 0011", cl2E, gp2);
   def_INSTR_TAB   ("1101 0110",       nemu_trap);
+  def_INSTR_IDTABW("1110 0011",    J, jecxz, 1);
   def_INSTR_IDTABW("1110 1000",    J, call, 4);
   def_INSTR_IDTABW("1110 1001",    J,  jmp, 4);
   def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
   def_INSTR_IDTAB ("1110 1101", dx2a, in);
   def_INSTR_IDTABW("1110 1110", a2dx, out, 1);
   def_INSTR_IDTAB ("1110 1111", a2dx, out);
+  def_INSTR_TAB   ("1111 0000",       lock);
   def_INSTR_IDTABW("1111 0110",    E, gp3, 1);
   def_INSTR_IDTAB ("1111 0111",    E, gp3);
+  //def_INSTR_TAB   ("1111 0010",       repnz);
+  def_INSTR_TAB   ("1111 0011",       rep);
   def_INSTR_TAB   ("1111 1000",       clc);
   def_INSTR_TAB   ("1111 1001",       stc);
+  def_INSTR_TAB   ("1111 1100",       cld);
   def_INSTR_IDTABW("1111 1110",    E, gp4, 1);
   def_INSTR_IDTAB ("1111 1111",    E, gp5);
   return table_inv(s);
@@ -730,8 +818,11 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_call: case EXEC_ID_jmp:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_J; break;
 
-    case EXEC_ID_jcc:
+    case EXEC_ID_jcc: case EXEC_ID_jecxz:
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+    case EXEC_ID_rep_movs:
+    case EXEC_ID_rep_stos:
+      s->jnpc = s->pc; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E: case EXEC_ID_ret_imm:
     case EXEC_ID__int: case EXEC_ID_iret:
@@ -741,7 +832,7 @@ int isa_fetch_decode(Decode *s) {
 #ifdef CONFIG_PERF_OPT
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
-  if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc) {
+  if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {
     s->isa.flag_use = cc2flag[s->isa.opcode & 0xf];
   }
 

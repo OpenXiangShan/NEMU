@@ -33,7 +33,7 @@
 #define USER_SYS_getegid 202
 #define USER_SYS_fcntl 221
 #define USER_SYS_set_thread_area 243
-#define USER_SYS_clock_gettime 295
+#define USER_SYS_clock_gettime 265
 #define USER_SYS_openat 295
 #define USER_SYS_prlimit64 340
 

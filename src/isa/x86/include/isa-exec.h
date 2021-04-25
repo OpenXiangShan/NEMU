@@ -6,4 +6,6 @@
 #include "../instr/bit.h"
 #include "../instr/eflags.h"
 #include "../instr/system.h"
+#include "../instr/misc.h"
 #include "../instr/special.h"
+#include "../instr/vector.h"
