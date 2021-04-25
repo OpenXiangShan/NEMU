@@ -60,7 +60,7 @@ static inline uint64_t my_f64_to_ui64(float64_t a) {
   return f64_to_ui64(a, softfloat_roundingMode, true);
 }
 
-staic inline uint_fast16_t f64_classify( float64_t a ) {
+static inline uint_fast16_t f64_classify( float64_t a ) {
   union ui64_f64 uA;
   uint_fast64_t uiA;
 
