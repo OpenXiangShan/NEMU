@@ -1,10 +1,10 @@
 #include <rtl/rtl.h>
-#include MUXDEF(CONFIG_FPU_SOFTFLOAT, "softfloat-fp.h", "host-fp.h")
+#include MUXDEF(CONFIG_FPU_SOFT, "softfloat-fp.h", "host-fp.h")
 
 #define BOX_MASK 0xFFFFFFFF00000000
 
 static inline rtlreg_t unbox(rtlreg_t r) {
-  return MUXDEF(CONFIG_FPU_SOFTFLOAT, (r & BOX_MASK) == BOX_MASK, true)
+  return MUXDEF(CONFIG_FPU_SOFT, (r & BOX_MASK) == BOX_MASK, true)
     ? (r & ~BOX_MASK) : defaultNaNF32UI;
 }
 

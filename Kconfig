@@ -191,17 +191,16 @@ if !MODE_USER
 source "src/device/Kconfig"
 endif
 
-menuconfig FPU
-  bool "Enable FPU"
-  default y
-  help
-    Enable floating point support.
-
-if FPU
-config FPU_SOFTFLOAT
+choice
+  prompt "FPU Emulation"
+  default FPU_HOST
+config FPU_HOST
+  bool "Use host floating point operation"
+config FPU_SOFT
   bool "Use softfloat library"
-  default n
-endif # FPU
+config FPU_NONE
+  bool "Disable FPU Emulation"
+endchoice
 
 menu "Miscellaneous"
 choice
