@@ -11,7 +11,7 @@ def_EHelper(rdtsc) {
   rtl_li(s, &cpu.edx, 0);
   rtl_li(s, &cpu.eax, 0);
 #else
-  uint64_t tsc = get_time()
+  uint64_t tsc = get_time();
   cpu.edx = tsc >> 32;
   cpu.eax = tsc & 0xffffffff;
 #endif
