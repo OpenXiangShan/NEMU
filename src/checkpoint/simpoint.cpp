@@ -44,9 +44,12 @@
 #include <algorithm>
 #include <iostream>
 
+#include <base/output.h>
 #include <checkpoint/simpoint.h>
 #include <debug.h>
 #include <monitor/monitor.h>
+
+namespace SimPointNS {
 
 SimPoint::SimPoint()
     : intervalCount(0),
@@ -66,6 +69,7 @@ SimPoint::init() {
     intervalSize = profiling_interval;
     Log("Doing simpoint profiling with interval %lu", intervalSize);
     auto path = pathManager.getOutputPath() + "/simpoint_bbv.gz";
+    using NEMUNS::simout;
     simpointStream = simout.create(path, false);
     if (!simpointStream)
       xpanic("unable to open SimPoint profile_file %s\n", path.c_str());
@@ -140,9 +144,11 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
   }
 }
 
-SimPoint simPoint;
+}
+
+SimPointNS::SimPoint simPointObj;
 
 void init_simpoint()
 {
-  simPoint.init();
+  simPointObj.init();
 }

@@ -265,16 +265,25 @@ static inline make_EHelper(fsgnj) {
     switch (rm)
     {
     case 0: // sgnj
-        if(s->width == 4) print_asm_template3(fsgnj.s);
-        else print_asm_template3(fsgnj.d);
+        if(s->width == 4) {
+            print_asm_template3(fsgnj.s);
+        } else {
+            print_asm_template3(fsgnj.d);
+        }
         break;
     case 1: // sgnjn
-        if(s->width == 4) print_asm_template3(fsgnjn.s);
-        else print_asm_template3(fsgnjn.d);
+        if(s->width == 4) {
+            print_asm_template3(fsgnjn.s);
+        } else {
+            print_asm_template3(fsgnjn.d);
+        }
         break;
     case 2: // sgnjx
-        if(s->width == 4) print_asm_template3(fsgnjx.s);
-        else print_asm_template3(fsgnjx.d);
+        if(s->width == 4) {
+            print_asm_template3(fsgnjx.s);
+        } else {
+            print_asm_template3(fsgnjx.d);
+        }
         break;
     default:
         assert(0);
@@ -291,8 +300,11 @@ static inline make_EHelper(fmv_F_to_G) {
     if(rm == 0){
         // fmv fpr to gpr
         rtl_sext(s, s0, dsrc1, s->width);
-        if(s->width == 4) print_asm_template2(fmv.x.w);
-        else print_asm_template2(fmv.x.d);
+        if(s->width == 4) {
+            print_asm_template2(fmv.x.w);
+        } else {
+            print_asm_template2(fmv.x.d);
+        }
     } else {
         // fclass
         if(s->width == 4){

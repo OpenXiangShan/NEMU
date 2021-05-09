@@ -36,7 +36,7 @@ class SiameseProfiler
 
     uint64_t intervalDrift;
 
-    OutputStream *outStream;
+    typename NEMUNS::OutputStream *outStream;
 
     unsigned footprintPeriodSize;
 

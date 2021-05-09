@@ -73,6 +73,8 @@ struct hash<BasicBlockRange>
 };
 }
 
+namespace SimPointNS {
+
 class SimPoint
 {
   public:
@@ -102,7 +104,7 @@ class SimPoint
     /** Excess inst count from previous interval*/
     uint64_t intervalDrift;
     /** Pointer to SimPoint BBV output stream */
-    OutputStream *simpointStream;
+    NEMUNS::OutputStream *simpointStream;
 
     /** Basic Block information */
     struct BBInfo
@@ -124,7 +126,8 @@ class SimPoint
 
 };
 
+};
 
-extern SimPoint simPoint;
+extern SimPointNS::SimPoint simPointObj;
 
 #endif // __CPU_SIMPLE_PROBES_SIMPOINT_HH__

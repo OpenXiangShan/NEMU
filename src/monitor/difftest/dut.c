@@ -4,6 +4,8 @@
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
 
+namespace NEMUASDUT {
+
 void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n) = NULL;
 void (*ref_difftest_getregs)(void *c) = NULL;
 void (*ref_difftest_setregs)(const void *c) = NULL;
@@ -134,3 +136,5 @@ void difftest_attach() {
 
   isa_difftest_attach();
 }
+
+};

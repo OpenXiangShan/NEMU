@@ -11,6 +11,7 @@ env = Environment(
         CPPDEFINES = {
             '__DIFF_REF_QEMU__': None,
             'XIANGSHAN': 1,
+            # 'SHARE': 1,
             },
         CC = 'g++',
         CXX = 'g++',
@@ -25,8 +26,6 @@ env = Environment(
         CFLAGS = shared_flags,
         )
 env.Append(CPPDEFINES = {
-    # '__DIFF_REF_QEMU__': None,
-    # 'XIANGSHAN': 1,
 
     '__ENGINE_interpreter__': None,
     '__SIMPOINT': None,

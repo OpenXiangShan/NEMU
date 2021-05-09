@@ -1,4 +1,5 @@
 #include <checkpoint/serializer.h>
+#include <monitor/difftest.h>
 
 #include <isa.h>
 #include <memory/paddr.h>
@@ -147,15 +148,13 @@ static int cmd_q(char *args) {
 
 static int cmd_help(char *args);
 
-void difftest_detach();
-void difftest_attach();
 static int cmd_detach(char *args) {
-  difftest_detach();
+  NEMUASDUT::difftest_detach();
   return 0;
 }
 
 static int cmd_attach(char *args) {
-  difftest_attach();
+  NEMUASDUT::difftest_attach();
   return 0;
 }
 

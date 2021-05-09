@@ -19,3 +19,6 @@ outputs*
 /src/iostream3/SConscript
 /src/iostream3/TODO
 /src/iostream3/test.cc
+*.o
+*.d
+.sconsign.dblite

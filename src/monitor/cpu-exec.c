@@ -37,7 +37,7 @@ void monitor_statistic(void) {
 }
 
 nemu_bool log_enable(void) {
-  return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
+  return false;
 }
 
 void display_inv_msg(vaddr_t pc) {

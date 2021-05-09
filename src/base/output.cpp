@@ -60,6 +60,8 @@
 #include <debug.h>
 #include <iostream>
 
+namespace NEMUNS {
+
 using namespace std;
 
 OutputDirectory simout;
@@ -342,3 +344,5 @@ OutputDirectory::remove(const string &name, bool recursive)
         }
     }
 }
+
+};

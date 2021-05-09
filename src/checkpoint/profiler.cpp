@@ -7,6 +7,7 @@
 #include <numeric>
 #include <vector>
 
+#include <base/output.h>
 #include <base/sized_ranker.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/profiler.h>
@@ -125,6 +126,7 @@ void SiameseProfiler::init()
     intervalSize = profiling_interval;
     Log("Doing betapoint profiling with interval %lu", intervalSize);
     auto path = pathManager.getWorkloadPath() + "/betapoint.csv.gz";
+    using NEMUNS::simout;
     outStream = simout.create(path, false);
     if (!outStream)
       xpanic("unable to open Betapoint profile_file %s\n", path.c_str());

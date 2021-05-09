@@ -1,4 +1,5 @@
 #include <checkpoint/serializer.h>
+#include <monitor/difftest.h>
 
 #include <isa.h>
 #include <memory/paddr.h>
@@ -13,7 +14,6 @@ void init_regex();
 void init_wp_pool();
 void init_device();
 void init_engine();
-void init_difftest(char *ref_so_file, long img_size, int port);
 
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
@@ -230,7 +230,7 @@ void init_monitor(int argc, char *argv[]) {
 
   if (!checkpointRestoring) {
     /* Initialize differential testing. */
-    init_difftest(diff_so_file, img_size, difftest_port);
+      NEMUASDUT::init_difftest(diff_so_file, img_size, difftest_port);
   }
 
   /* Display welcome message. */

@@ -102,6 +102,7 @@ static nemu_bool make_token(char *e) {
           case TK_NOTYPE: break;
           case TK_NUM:
           case TK_REG: sprintf(tokens[nr_token].str, "%.*s", substr_len, substr_start);
+                       __attribute__ ((fallthrough));
           default: tokens[nr_token].type = rules[i].token_type;
                    nr_token ++;
         }

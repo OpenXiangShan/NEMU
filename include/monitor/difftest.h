@@ -3,15 +3,20 @@
 
 #include <common.h>
 
+namespace NEMUASDUT {
 #ifdef DIFF_TEST
-void difftest_skip_ref(void);
-void difftest_skip_dut(int nr_ref, int nr_dut);
-void difftest_step(vaddr_t ori_pc, vaddr_t next_pc);
+extern void difftest_skip_ref(void);
+extern void difftest_skip_dut(int nr_ref, int nr_dut);
+extern void difftest_step(vaddr_t ori_pc, vaddr_t next_pc);
 #else
 #define difftest_skip_ref()
 #define difftest_skip_dut(nr_ref, nr_dut)
 #define difftest_step(ori_pc, next_pc)
 #endif
+
+extern void difftest_detach();
+extern void difftest_attach();
+extern void init_difftest(char *ref_so_file, long img_size, int port);
 
 extern void (*ref_difftest_memcpy_from_dut)(paddr_t dest, void *src, size_t n);
 extern void (*ref_difftest_getregs)(void *c);
@@ -19,6 +24,8 @@ extern void (*ref_difftest_setregs)(const void *c);
 extern void (*ref_difftest_get_mastatus)(void *c);
 extern void (*ref_difftest_set_mastatus)(const void *c);
 extern void (*ref_difftest_exec)(uint64_t n);
+
+}
 
 static inline nemu_bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
