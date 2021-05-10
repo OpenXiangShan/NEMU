@@ -33,12 +33,12 @@ static void load_elf(char *elfpath) {
   uint8_t buf[512];
   int ret = fread(buf, 512, 1, fp);
   assert(ret == 1);
-  elf = (void*)buf;
+  elf = (Elf_Ehdr *)buf;
   assert(buf[0] == 0x7f && buf[1] == 'E' && buf[2] == 'L' && buf[3] == 'F');
   assert(elf->e_machine == ELF_TYPE);
 
   /* Load each program segment */
-  ph = (void *)elf + elf->e_phoff;
+  ph = (Elf_Phdr *)((uint8_t *)elf + elf->e_phoff);
   eph = ph + elf->e_phnum;
   vaddr_t brk = 0;
   for (; ph < eph; ph ++) {
@@ -56,8 +56,8 @@ static void load_elf(char *elfpath) {
       }
       if (ph->p_flags & PF_W) {
         // bss
-        memset(haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
-        void *bss_page = haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
+        memset((uint8_t *)haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
+        void *bss_page = (uint8_t *)haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
         sword_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
         if (memsz > 0) {
           user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
@@ -80,7 +80,7 @@ static void load_elf(char *elfpath) {
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {
-  void *sp = user_to_host(0xc0000000);
+  uint8_t *sp = (uint8_t *)user_to_host(0xc0000000);
   uint32_t stack_size = 8 * 1024 * 1024;
   user_mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
@@ -99,7 +99,7 @@ static inline word_t init_stack(int argc, char *argv[]) {
   char **p = arr; \
   for (; *p != NULL; p ++) { \
     push_str(*p); \
-    assert(i < sizeof(strs) / sizeof(strs[0])); \
+    assert(i < (int) (sizeof(strs) / sizeof(strs[0]))); \
     strs[i ++] = host_to_user(sp); \
   } \
   strs[i ++] = 0; \
@@ -109,7 +109,7 @@ static inline word_t init_stack(int argc, char *argv[]) {
   push_str_array(envp);
 
   // aligning
-  sp = (void *)ROUNDDOWN(sp, sizeof(word_t));
+  sp = (uint8_t *)ROUNDDOWN(sp, sizeof(word_t));
 
   // AT_RANDOM
   push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef);

@@ -12,7 +12,7 @@ def_EHelper(csrrw) {
 def_EHelper(csrrs) {
   csr_difftest();
   rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, id_src2->imm);
-  rtl_or(s, s1, s0, dsrc1);
+  rtl_nemuor(s, s1, s0, dsrc1);
   rtl_mv(s, ddest, s0);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, id_src2->imm);
   rtl_priv_next(s);

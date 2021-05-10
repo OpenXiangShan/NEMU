@@ -67,7 +67,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, type);
   if (mmu_mode == MMU_DIRECT) return paddr_read(addr, len);
 #ifndef __ICS_EXPORT
-  return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) (s, addr, len, type);
+  return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
 #endif
   return 0;
 }
@@ -76,11 +76,11 @@ word_t vaddr_ifetch(vaddr_t addr, int len) {
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
 }
 
-inline word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
   return vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode);
 }
 
-inline void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data); return; }
 #ifndef __ICS_EXPORT

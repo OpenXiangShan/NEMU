@@ -121,16 +121,16 @@ static bb_t* bb_find(vaddr_t pc) {
   } while (1);
 }
 
-static void tcache_bb_fetch(Decode *this, int is_taken, vaddr_t jpc) {
+static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
   bb_t* bb = bb_find(jpc);
   if (bb != NULL) {
-    if (is_taken) { this->tnext = bb->s; }
-    else { this->ntnext = bb->s; }
+    if (is_taken) { _this->tnext = bb->s; }
+    else { _this->ntnext = bb->s; }
   } else {
     Decode *ret = tcache_bb_new(jpc);
-    if (is_taken) { ret->type = BB_RECORD_TYPE_TAKEN; this->tnext = ret; }
-    else { ret->type = BB_RECORD_TYPE_NTAKEN; this->ntnext = ret; }
-    ret->bb_src = this;
+    if (is_taken) { ret->type = BB_RECORD_TYPE_TAKEN; _this->tnext = ret; }
+    else { ret->type = BB_RECORD_TYPE_NTAKEN; _this->ntnext = ret; }
+    ret->bb_src = _this;
   }
 }
 
@@ -191,8 +191,8 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
 
   save_globals(s);
   s->idx_in_bb = idx_in_bb;
-  int idx = fetch_decode(s, thispc); // note that exception may happen!
-  s->EHelper = exec_table[idx];
+  // int idx = fetch_decode(s, thispc); // note that exception may happen!
+  s->EHelper = exec_table[fetch_decode(s, thispc)];
 
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);

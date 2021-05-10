@@ -8,7 +8,7 @@
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
 
 typedef struct {
-  void *offset; // offset from the guest virtual address of the data page to the host virtual address
+  uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
 } HostTLBEntry;
 

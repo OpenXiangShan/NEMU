@@ -8,13 +8,13 @@
 #define FBOX_MASK 0xFFFFFFFF00000000ull
 
 static inline def_rtl(fbox, rtlreg_t *dest, rtlreg_t *src) {
-  rtl_ori(s, dest, src, FBOX_MASK);
+  rtl_nemuori(s, dest, src, FBOX_MASK);
 }
 
 static inline def_rtl(funbox, rtlreg_t *dest, rtlreg_t *src) {
   // should return defaultNaNF32UI;
   IFDEF(CONFIG_RT_CHECK, assert((*src & FBOX_MASK) == FBOX_MASK));
-  rtl_andi(s, dest, src, ~FBOX_MASK);
+  rtl_nemuandi(s, dest, src, ~FBOX_MASK);
 }
 
 static inline def_rtl(fsr, rtlreg_t *fdest, rtlreg_t *src, int width) {

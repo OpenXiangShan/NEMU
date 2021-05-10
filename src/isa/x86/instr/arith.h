@@ -11,7 +11,7 @@ def_EHelper(add) {
     rtl_add(s, s0, ddest, dsrc1);
     rtl_update_ZFSF(s, s0, s->isa.width);
     if (s->isa.width != 4) {
-      rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - s->isa.width) * 8));
+      rtl_nemuandi(s, s0, s0, 0xffffffffu >> ((4 - s->isa.width) * 8));
     }
     rtl_is_add_carry(s, s1, s0, ddest);
     rtl_set_CF(s, s1);
@@ -119,11 +119,11 @@ def_EHelper(adc) {
     rtl_is_add_overflow(s, s2, s1, ddest, dsrc1, s->isa.width);
     rtl_set_OF(s, s2);
     if (s->isa.width != 4) {
-      rtl_andi(s, s1, s1, 0xffffffffu >> ((4 - s->isa.width) * 8));
+      rtl_nemuandi(s, s1, s1, 0xffffffffu >> ((4 - s->isa.width) * 8));
     }
     rtl_is_add_carry(s, s2, s1, s0);
     rtl_is_add_carry(s, s0, s0, dsrc1);
-    rtl_or(s, s0, s0, s2);
+    rtl_nemuor(s, s0, s0, s2);
     rtl_set_CF(s, s0);
     rtl_wb(s, s1);
   } else {
@@ -154,7 +154,7 @@ def_EHelper(sbb) {
     rtl_set_OF(s, s2);
     rtl_is_add_carry(s, s2, s0, dsrc1);
     rtl_is_sub_carry(s, s0, ddest, s0);
-    rtl_or(s, s0, s0, s2);
+    rtl_nemuor(s, s0, s0, s2);
     rtl_set_CF(s, s0);
     rtl_wb(s, s1);
   } else {
@@ -195,7 +195,7 @@ def_EHelper(mul) {
 #ifndef CONFIG_PA
       if (need_update_eflags) {
         rtl_update_ZFSF(s, s1, s->isa.width);
-        rtl_andi(s, s0, s1, 0xff00);
+        rtl_nemuandi(s, s0, s1, 0xff00);
         rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
         rtl_set_OF(s, s0);
         rtl_set_CF(s, s0);
@@ -384,7 +384,7 @@ def_EHelper(div) {
       rtl_lr(s, s0, R_AX, 2);
       rtl_lr(s, s1, R_DX, 2);
       rtl_shli(s, s1, s1, 16);
-      rtl_or(s, s0, s0, s1);
+      rtl_nemuor(s, s0, s0, s1);
       rtl_divu_q(s, s1, s0, ddest);
       rtl_divu_r(s, s0, s0, ddest);
       rtl_sr(s, R_AX, s1, 2);
@@ -415,7 +415,7 @@ def_EHelper(idiv) {
       rtl_lr(s, s0, R_AX, 2);
       rtl_lr(s, s1, R_DX, 2);
       rtl_shli(s, s1, s1, 16);
-      rtl_or(s, s0, s0, s1);
+      rtl_nemuor(s, s0, s0, s1);
       rtl_divs_q(s, s1, s0, ddest);
       rtl_divs_r(s, s0, s0, ddest);
       rtl_sr(s, R_AX, s1, 2);
@@ -443,7 +443,7 @@ def_EHelper(xadd) {
   if (need_update_eflags) {
     rtl_update_ZFSF(s, s0, s->isa.width);
     if (s->isa.width != 4) {
-      rtl_andi(s, s0, s0, 0xffffffffu >> ((4 - s->isa.width) * 8));
+      rtl_nemuandi(s, s0, s0, 0xffffffffu >> ((4 - s->isa.width) * 8));
     }
     rtl_is_add_carry(s, s1, s0, ddest);
     rtl_set_CF(s, s1);

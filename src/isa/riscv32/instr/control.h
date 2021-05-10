@@ -7,7 +7,7 @@ def_EHelper(jal) {
 
 def_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_nemuandi(s, s0, s0, ~0x1u));
   rtl_li(s, ddest, s->snpc);
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, s0);

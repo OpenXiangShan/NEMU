@@ -9,7 +9,7 @@ static inline rtlreg_t unbox(rtlreg_t r) {
 }
 
 static inline float32_t rtlToF32(rtlreg_t r) {
-  float32_t f = { .v = unbox(r) };
+  float32_t f = { .v = (uint32_t)unbox(r) };
   return f;
 }
 

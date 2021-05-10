@@ -18,7 +18,7 @@ static inline void invalid_instr(vaddr_t thispc) {
   temp[0] = instr_fetch(&pc, 4);
   temp[1] = instr_fetch(&pc, 4);
 
-  uint8_t *p = (void *)temp;
+  uint8_t *p = (uint8_t *)temp;
   printf("invalid opcode(PC = " FMT_WORD "):\n"
       "\t%02x %02x %02x %02x %02x %02x %02x %02x ...\n"
       "\t%08x %08x...\n",

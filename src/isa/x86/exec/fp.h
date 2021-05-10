@@ -67,14 +67,14 @@ BUILD_EXEC_F_RP(div);
 static inline void fucom_helper(DecodeExecState *s, uint64_t* fp_dest, uint64_t* fp_src){
   rtl_li(s, t0, 0x4500);
   rtl_lr_fsw(s,s0);
-  rtl_or(s, s0, s0, t0);
-  rtl_xor(s, s0, s0, t0);
+  rtl_nemuor(s, s0, s0, t0);
+  rtl_nemuxor(s, s0, s0, t0);
   rtl_f64_lt(s, t0, fp_dest, fp_src);
   rtl_shli(s, t0, t0, 8);
-  rtl_or(s, s0, s0, t0);
+  rtl_nemuor(s, s0, s0, t0);
   rtl_f64_eq(s, t0, fp_dest, fp_src);
   rtl_shli(s, t0, t0, 14);
-  rtl_or(s, s0, s0, t0);
+  rtl_nemuor(s, s0, s0, t0);
   rtl_sr_fsw(s,s0);
 }
 static inline def_EHelper(fcom){
@@ -204,9 +204,9 @@ static inline def_EHelper(fxam){
   rtl_class387(s, s2, dfdest);
   rtl_li(s, t0, 0x4700);
   rtl_lr_fsw(s, s0);
-  rtl_or(s, s0, s0, t0);
-  rtl_xor(s, s0, s0, t0);
-  rtl_or(s, s0, s0, s2);
+  rtl_nemuor(s, s0, s0, t0);
+  rtl_nemuxor(s, s0, s0, t0);
+  rtl_nemuor(s, s0, s0, s2);
   rtl_sr_fsw(s, s0);
   print_asm_fpu_template(fxam);
 }
@@ -450,7 +450,7 @@ static inline def_EHelper(fprem) {
   a.f = fmod(a.f, b.f);
   *dfdest = a.i;
   rtl_lr_fsw(s, s0);
-  rtl_andi(s, s0, s0, ~0x4700);
+  rtl_nemuandi(s, s0, s0, ~0x4700);
   rtl_sr_fsw(s, s0);
   print_asm_fpu_template(fprem);
 }

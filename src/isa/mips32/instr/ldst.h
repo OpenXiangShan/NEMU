@@ -35,11 +35,11 @@ def_EHelper(swl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shamt2
-  rtl_andi(s, s1, s0, 0x3);
+  rtl_nemuandi(s, s1, s0, 0x3);
   rtl_shli(s, s1, s1, 3);
 
   // load the aligned memory word
-  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_nemuandi(s, s0, s0, ~0x3u);
   rtl_lm(s, s0, s0, 0, 4);
 
   // prepare memory data
@@ -56,11 +56,11 @@ def_EHelper(swl) {
   rtl_shr(s, s1, ddest, s1);
 
   // merge the word
-  rtl_or(s, s1, s0, s1);
+  rtl_nemuor(s, s1, s0, s1);
 
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_nemuandi(s, s0, s0, ~0x3u);
   rtl_sm(s, s0, 0, s1, 4);
 }
 
@@ -68,13 +68,13 @@ def_EHelper(swr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
-  rtl_andi(s, s1, s0, 0x3);
+  rtl_nemuandi(s, s1, s0, 0x3);
   rtl_shli(s, s1, s1, 3);
   rtl_subi(s, s1, s1, 24);
   rtl_neg(s, s1, s1);
 
   // load the aligned memory word
-  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_nemuandi(s, s0, s0, ~0x3u);
   rtl_lm(s, s0, s0, 0, 4);
 
   // prepare memory data
@@ -91,11 +91,11 @@ def_EHelper(swr) {
   rtl_shl(s, s1, ddest, s1);
 
   // merge the word
-  rtl_or(s, s1, s0, s1);
+  rtl_nemuor(s, s1, s0, s1);
 
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
-  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_nemuandi(s, s0, s0, ~0x3u);
   rtl_sm(s, s0, 0, s1, 4);
 }
 
@@ -103,13 +103,13 @@ def_EHelper(lwl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
-  rtl_andi(s, s1, s0, 0x3);
+  rtl_nemuandi(s, s1, s0, 0x3);
   rtl_shli(s, s1, s1, 3);
   rtl_subi(s, s1, s1, 24);
   rtl_neg(s, s1, s1);
 
   // load the aligned memory word
-  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_nemuandi(s, s0, s0, ~0x3u);
   rtl_lm(s, s0, s0, 0, 4);
 
   // prepare memory data
@@ -126,18 +126,18 @@ def_EHelper(lwl) {
   rtl_shri(s, ddest, ddest, 8);   // shift 8 bit
 
   // merge the word
-  rtl_or(s, ddest, s0, ddest);
+  rtl_nemuor(s, ddest, s0, ddest);
 }
 
 def_EHelper(lwr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 
   // mem.shmat2
-  rtl_andi(s, s1, s0, 0x3);
+  rtl_nemuandi(s, s1, s0, 0x3);
   rtl_shli(s, s1, s1, 3);
 
   // load the aligned memory word
-  rtl_andi(s, s0, s0, ~0x3u);
+  rtl_nemuandi(s, s0, s0, ~0x3u);
   rtl_lm(s, s0, s0, 0, 4);
 
   // prepare memory data
@@ -154,6 +154,6 @@ def_EHelper(lwr) {
   rtl_shli(s, ddest, ddest, 8);   // shift 8 bit
 
   // merge the word
-  rtl_or(s, ddest, s0, ddest);
+  rtl_nemuor(s, ddest, s0, ddest);
 }
 #endif

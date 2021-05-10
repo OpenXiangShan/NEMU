@@ -22,7 +22,7 @@
 
 #define INSTR_BINARY(f) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \
-  f(and) f(or) f(test) f(xor) f(shl) f(shr) f(sar) f(rol) f(ror) \
+  f(nemuand) f(nemuor) f(test) f(nemuxor) f(shl) f(shr) f(sar) f(rol) f(ror) \
   f(lea) f(movzb) f(movzw) f(movsb) f(movsw) \
   f(imul2) \
   f(bsr) f(bt) f(xchg) f(cmpxchg) \

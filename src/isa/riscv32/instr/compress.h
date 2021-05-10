@@ -34,7 +34,7 @@ def_EHelper(c_jal) {
 }
 
 def_EHelper(c_jr) {
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_nemuandi(s, s0, s0, ~0x1u));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
 }
@@ -68,7 +68,7 @@ def_EHelper(c_srai) {
 }
 
 def_EHelper(c_andi) {
-  rtl_andi(s, ddest, ddest, id_src2->imm);
+  rtl_nemuandi(s, ddest, ddest, id_src2->imm);
 }
 
 def_EHelper(c_mv) {
@@ -79,16 +79,16 @@ def_EHelper(c_add) {
   rtl_add(s, ddest, ddest, dsrc2);
 }
 
-def_EHelper(c_and) {
-  rtl_and(s, ddest, ddest, dsrc2);
+def_EHelper(c_nemuand) {
+  rtl_nemuand(s, ddest, ddest, dsrc2);
 }
 
-def_EHelper(c_or) {
-  rtl_or(s, ddest, ddest, dsrc2);
+def_EHelper(c_nemuor) {
+  rtl_nemuor(s, ddest, ddest, dsrc2);
 }
 
 def_EHelper(c_xor) {
-  rtl_xor(s, ddest, ddest, dsrc2);
+  rtl_nemuxor(s, ddest, ddest, dsrc2);
 }
 
 def_EHelper(c_sub) {

@@ -279,7 +279,7 @@ static inline def_DHelper(bit_G2E) {
     }
     rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
   }
-  rtl_andi(s, &id_src1->val, dsrc1, 0x1f);
+  rtl_nemuandi(s, &id_src1->val, dsrc1, 0x1f);
   id_src1->preg = &id_src1->val;
 }
 #endif
@@ -589,12 +589,12 @@ def_THelper(gs) {
 
 def_THelper(gp1) {
   def_INSTR_TABW("?? 000 ???", add, -1);
-  def_INSTR_TABW("?? 001 ???", or , -1);
+  def_INSTR_TABW("?? 001 ???", nemuor , -1);
   def_INSTR_TABW("?? 010 ???", adc, -1);
   def_INSTR_TABW("?? 011 ???", sbb, -1);
-  def_INSTR_TABW("?? 100 ???", and, -1);
+  def_INSTR_TABW("?? 100 ???", nemuand, -1);
   def_INSTR_TABW("?? 101 ???", sub, -1);
-  def_INSTR_TABW("?? 110 ???", xor, -1);
+  def_INSTR_TABW("?? 110 ???", nemuxor, -1);
   def_INSTR_TABW("?? 111 ???", cmp, -1);
   return EXEC_ID_inv;
 }
@@ -687,12 +687,12 @@ def_THelper(main) {
   def_INSTR_IDTABW("0000 0010",  E2G, add, 1);
   def_INSTR_IDTAB ("0000 0011",  E2G, add);
   def_INSTR_IDTAB ("0000 0101",  I2a, add);
-  def_INSTR_IDTABW("0000 1000",  G2E, or, 1);
-  def_INSTR_IDTAB ("0000 1001",  G2E, or);
-  def_INSTR_IDTAB ("0000 1011",  E2G, or);
-  def_INSTR_IDTABW("0000 1100",  I2a, or, 1);
-  def_INSTR_IDTAB ("0000 1101",  I2a, or);
-  def_INSTR_IDTABW("0000 1010",  E2G, or, 1);
+  def_INSTR_IDTABW("0000 1000",  G2E, nemuor, 1);
+  def_INSTR_IDTAB ("0000 1001",  G2E, nemuor);
+  def_INSTR_IDTAB ("0000 1011",  E2G, nemuor);
+  def_INSTR_IDTABW("0000 1100",  I2a, nemuor, 1);
+  def_INSTR_IDTAB ("0000 1101",  I2a, nemuor);
+  def_INSTR_IDTABW("0000 1010",  E2G, nemuor, 1);
   def_INSTR_TAB   ("0000 1111",       _2byte_esc);
   def_INSTR_IDTABW("0001 0000",  G2E, adc, 1);
   def_INSTR_IDTAB ("0001 0001",  G2E, adc);
@@ -700,22 +700,22 @@ def_THelper(main) {
   def_INSTR_IDTABW("0001 1000",  G2E, sbb, 1);
   def_INSTR_IDTAB ("0001 1001",  G2E, sbb);
   def_INSTR_IDTAB ("0001 1011",  E2G, sbb);
-  def_INSTR_IDTABW("0010 0000",  G2E, and, 1);
-  def_INSTR_IDTAB ("0010 0001",  G2E, and);
-  def_INSTR_IDTABW("0010 0010",  E2G, and, 1);
-  def_INSTR_IDTAB ("0010 0011",  E2G, and);
-  def_INSTR_IDTABW("0010 0100",  I2a, and, 1);
-  def_INSTR_IDTAB ("0010 0101",  I2a, and);
+  def_INSTR_IDTABW("0010 0000",  G2E, nemuand, 1);
+  def_INSTR_IDTAB ("0010 0001",  G2E, nemuand);
+  def_INSTR_IDTABW("0010 0010",  E2G, nemuand, 1);
+  def_INSTR_IDTAB ("0010 0011",  E2G, nemuand);
+  def_INSTR_IDTABW("0010 0100",  I2a, nemuand, 1);
+  def_INSTR_IDTAB ("0010 0101",  I2a, nemuand);
   def_INSTR_IDTABW("0010 1000",  G2E, sub, 1);
   def_INSTR_IDTAB ("0010 1001",  G2E, sub);
   def_INSTR_IDTABW("0010 1010",  E2G, sub, 1);
   def_INSTR_IDTAB ("0010 1011",  E2G, sub);
   def_INSTR_IDTAB ("0010 1101",  I2a, sub);
-  def_INSTR_IDTABW("0011 0000",  G2E, xor, 1);
-  def_INSTR_IDTAB ("0011 0001",  G2E, xor);
-  def_INSTR_IDTABW("0011 0010",  E2G, xor, 1);
-  def_INSTR_IDTAB ("0011 0011",  E2G, xor);
-  def_INSTR_IDTAB ("0011 0101",  I2a, xor);
+  def_INSTR_IDTABW("0011 0000",  G2E, nemuxor, 1);
+  def_INSTR_IDTAB ("0011 0001",  G2E, nemuxor);
+  def_INSTR_IDTABW("0011 0010",  E2G, nemuxor, 1);
+  def_INSTR_IDTAB ("0011 0011",  E2G, nemuxor);
+  def_INSTR_IDTAB ("0011 0101",  I2a, nemuxor);
   def_INSTR_IDTABW("0011 1000",  G2E, cmp, 1);
   def_INSTR_IDTAB ("0011 1001",  G2E, cmp);
   def_INSTR_IDTABW("0011 1010",  E2G, cmp, 1);

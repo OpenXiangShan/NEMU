@@ -22,9 +22,9 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   switch (funct5) {
     case 0b00001: rtl_mv (s, s1, src2); break;
     case 0b00000: rtl_add(s, s1, s0, src2); break;
-    case 0b01000: rtl_or (s, s1, s0, src2); break;
-    case 0b01100: rtl_and(s, s1, s0, src2); break;
-    case 0b00100: rtl_xor(s, s1, s0, src2); break;
+    case 0b01000: rtl_nemuor (s, s1, s0, src2); break;
+    case 0b01100: rtl_nemuand(s, s1, s0, src2); break;
+    case 0b00100: rtl_nemuxor(s, s1, s0, src2); break;
     case 0b11100: *s1 = (*s0 > *src2 ? *s0 : *src2); break;
     case 0b10100: *s1 = ((sword_t)*s0 > (sword_t)*src2 ? *s0 : *src2); break;
     case 0b11000: *s1 = (*s0 < *src2 ? *s0 : *src2); break;

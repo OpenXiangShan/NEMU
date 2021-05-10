@@ -1,7 +1,10 @@
 #ifndef __USER_H__
 #define __USER_H__
 
+#ifndef __cplusplus
 #define _GNU_SOURCE
+#endif
+
 #include <memory/vaddr.h>
 #include <sys/mman.h>
 

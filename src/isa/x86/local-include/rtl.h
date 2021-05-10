@@ -43,9 +43,9 @@ static inline def_rtl(pop, rtlreg_t* dest) {
 static inline def_rtl(is_sub_overflow, rtlreg_t* dest,
     const rtlreg_t* res, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
   // dest <- is_overflow(src1 - src2)
-  rtl_xor(s, t0, src1, src2);
-  rtl_xor(s, dest, src1, res);
-  rtl_and(s, dest, t0, dest);
+  rtl_nemuxor(s, t0, src1, src2);
+  rtl_nemuxor(s, dest, src1, res);
+  rtl_nemuand(s, dest, t0, dest);
   rtl_msb(s, dest, dest, width);
 }
 
@@ -125,7 +125,7 @@ def_rtl_setget_eflags(PF)
 static inline def_rtl(update_ZF, const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
   if (width != 4) {
-    rtl_andi(s, t0, result, 0xffffffffu >> ((4 - width) * 8));
+    rtl_nemuandi(s, t0, result, 0xffffffffu >> ((4 - width) * 8));
     rtl_setrelopi(s, RELOP_EQ, t0, t0, 0);
   }
   else {
@@ -144,13 +144,13 @@ static inline def_rtl(update_PF, const rtlreg_t* result) {
   // eflags.PF <- is_parity(result[7 .. 0])
   // HACK: `s2` is rarely used, so we use it here
   rtl_shri(s, t0, result, 4);
-  rtl_xor(s, t0, t0, result);
+  rtl_nemuxor(s, t0, t0, result);
   rtl_shri(s, s2, t0, 2);
-  rtl_xor(s, t0, t0, s2);
+  rtl_nemuxor(s, t0, t0, s2);
   rtl_shri(s, s2, t0, 1);
-  rtl_xor(s, t0, t0, s2);
+  rtl_nemuxor(s, t0, t0, s2);
   rtl_not(s, t0, t0);
-  rtl_andi(s, t0, t0, 1);
+  rtl_nemuandi(s, t0, t0, 1);
   rtl_set_PF(s, t0);
 }
 

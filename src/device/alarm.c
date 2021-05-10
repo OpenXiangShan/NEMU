@@ -11,7 +11,7 @@ static int idx = 0;
 
 void add_alarm_handle(void *h) {
   assert(idx < MAX_HANDLER);
-  handler[idx ++] = h;
+  handler[idx ++] = (void (*)(void))h;
 }
 
 static void alarm_sig_handler(int signum) {

@@ -27,8 +27,8 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
   if (imm) rtl_li(s, s1, s->isa.instr.i.rs1);
   else rtl_mv(s, s1, src1);
   switch (op) {
-    case 2: rtl_or(s, s1, s0, s1); break;
-    case 3: rtl_not(s, s1, s1); rtl_and(s, s1, s0, s1); break;
+    case 2: rtl_nemuor(s, s1, s0, s1); break;
+    case 3: rtl_not(s, s1, s1); rtl_nemuand(s, s1, s0, s1); break;
   }
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, NULL, id);
   rtl_mv(s, dest, s0);

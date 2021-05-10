@@ -25,8 +25,8 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
   cpu.mem_exception = 0;
 
   GateDesc gate;
-  gate.val[0] = vaddr_read(NULL, cpu.idtr.base + NO * 8 + 0, 4, MMU_DYNAMIC);
-  gate.val[1] = vaddr_read(NULL, cpu.idtr.base + NO * 8 + 4, 4, MMU_DYNAMIC);
+  gate.val[0] = vaddr_read(NULL, (vaddr_t) cpu.idtr.base + NO * 8 + 0, 4, MMU_DYNAMIC);
+  gate.val[1] = vaddr_read(NULL, (vaddr_t) cpu.idtr.base + NO * 8 + 4, 4, MMU_DYNAMIC);
   assert(gate.present); // check the present bit
 
   uint16_t new_cs = gate.selector;
@@ -40,8 +40,8 @@ word_t raise_intr(uint32_t NO, vaddr_t ret_addr) {
 
     uint32_t esp3 = cpu.esp;
     uint32_t ss3  = cpu.sreg[CSR_SS].val;
-    cpu.esp = vaddr_read(NULL, cpu.sreg[CSR_TR].base + 4, 4, MMU_DYNAMIC);
-    cpu.sreg[CSR_SS].val = vaddr_read(NULL, cpu.sreg[CSR_TR].base + 8, 2, MMU_DYNAMIC);
+    cpu.esp = vaddr_read(NULL, (vaddr_t) cpu.sreg[CSR_TR].base + 4, 4, MMU_DYNAMIC);
+    cpu.sreg[CSR_SS].val = vaddr_read(NULL, (vaddr_t) cpu.sreg[CSR_TR].base + 8, 2, MMU_DYNAMIC);
 
     vaddr_write(NULL, cpu.esp - 4, 4, ss3, MMU_DYNAMIC);
     vaddr_write(NULL, cpu.esp - 8, 4, esp3, MMU_DYNAMIC);

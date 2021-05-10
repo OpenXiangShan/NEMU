@@ -32,7 +32,7 @@ static inline void clean_lazycc() {
 #define NEGCCRELOP(cc) (NEGCC(cc) ? RELOP_NE : RELOP_EQ)
 #define MASKDEST(reg) \
   p = &cpu.cc_dest; \
-  if (cpu.cc_width != 4) { rtl_andi(s, reg, &cpu.cc_dest, 0xffffffffu >> ((4 - cpu.cc_width) * 8)); p = reg;}
+  if (cpu.cc_width != 4) { rtl_nemuandi(s, reg, &cpu.cc_dest, 0xffffffffu >> ((4 - cpu.cc_width) * 8)); p = reg;}
 
 #define UNARY 0x100  // compare with cpu.cc_dest and rz
 static const int cc2relop [] = {
@@ -90,17 +90,17 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           MASKDEST(s0);
           rtl_setrelopi(s, RELOP_EQ, s0, p, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
         case CC_BE: case CC_NBE:
           MASKDEST(s0);
           rtl_is_add_carry(s, s1, p, &cpu.cc_src1);
           rtl_setrelopi(s, RELOP_EQ, s0, p, 0);
-          rtl_or(s, dest, s0, s1);
+          rtl_nemuor(s, dest, s0, s1);
           goto negcc_reverse;
           return;
         default:
@@ -137,14 +137,14 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_L: case CC_NL:
           rtl_setrelopi(s, NEGCCRELOP(cc), s0, &cpu.cc_dest, -(0x1u << (cpu.cc_width * 8 - 1)));
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           return;
         case CC_LE: case CC_NLE:
           rtl_setrelopi(s, RELOP_EQ, s0, &cpu.cc_dest, -(0x1u << (cpu.cc_width * 8 - 1)));
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           rtl_setrelopi(s, RELOP_EQ, s0, &cpu.cc_dest, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
         case CC_BE:
@@ -163,15 +163,15 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_L: case CC_NL:
           rtl_setrelopi(s, NEGCCRELOP(cc), s0, &cpu.cc_dest, 0x1u << (cpu.cc_width * 8 - 1));
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           return;
         case CC_LE: case CC_NLE:
           rtl_setrelopi(s, RELOP_EQ, s0, &cpu.cc_dest, 0x1u << (cpu.cc_width * 8 - 1));
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           MASKDEST(s0);
           rtl_setrelopi(s, RELOP_EQ, s0, p, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
       }
@@ -186,15 +186,15 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_addi(s, s0, &cpu.cc_dest, 1);
           rtl_setrelopi(s, NEGCCRELOP(cc), s0, s0, 0x1u << (cpu.cc_width * 8 - 1));
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           return;
         case CC_LE: case CC_NLE:
           rtl_addi(s, s0, &cpu.cc_dest, 1);
           rtl_setrelopi(s, RELOP_EQ, s0, s0, 0x1u << (cpu.cc_width * 8 - 1));
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           rtl_setrelopi(s, RELOP_EQ, s0, &cpu.cc_dest, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
       }
@@ -205,7 +205,7 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           MASKDEST(s0);
           rtl_is_add_carry(s, s1, &cpu.cc_src1, &cpu.cc_src2);
           rtl_is_add_carry(s, dest, p, &cpu.cc_src1);
-          rtl_or(s, dest, s1, dest);
+          rtl_nemuor(s, dest, s1, dest);
           goto negcc_reverse;
           return;
         case CC_O: case CC_NO:
@@ -217,17 +217,17 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, s0, &cpu.cc_dest, dest, &cpu.cc_src2, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           goto negcc_reverse;
           return;
         case CC_LE: case CC_NLE:
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, s0, &cpu.cc_dest, dest, &cpu.cc_src2, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           MASKDEST(s0);
           rtl_setrelopi(s, RELOP_EQ, s0, p, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
         case CC_BE: case CC_NBE:
@@ -235,8 +235,8 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_setrelopi(s, RELOP_EQ, s1, p, 0);
           rtl_is_add_carry(s, t0, &cpu.cc_src1, &cpu.cc_src2);
           rtl_is_add_carry(s, s0, p, &cpu.cc_src1);
-          rtl_or(s, dest, t0, s0);
-          rtl_or(s, dest, dest, s1);
+          rtl_nemuor(s, dest, t0, s0);
+          rtl_nemuor(s, dest, dest, s1);
           goto negcc_reverse;
           return;
       }
@@ -247,7 +247,7 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
           rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
           rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
-          rtl_or(s, dest, s0, s1);
+          rtl_nemuor(s, dest, s0, s1);
           goto negcc_reverse;
           return;
         case CC_O: case CC_NO:
@@ -257,25 +257,25 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_L: case CC_NL:
           rtl_is_sub_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           goto negcc_reverse;
           return;
         case CC_LE: case CC_NLE:
           rtl_is_sub_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_nemuxor(s, dest, s0, s1);
           MASKDEST(s0);
           rtl_setrelopi(s, RELOP_EQ, s0, p, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
         case CC_BE: case CC_NBE:
           rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
           rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
           rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
-          rtl_or(s, dest, s0, s1);
+          rtl_nemuor(s, dest, s0, s1);
           rtl_setrelopi(s, RELOP_EQ, s0, &cpu.cc_dest, 0);
-          rtl_or(s, dest, dest, s0);
+          rtl_nemuor(s, dest, dest, s0);
           goto negcc_reverse;
           return;
       }
@@ -298,7 +298,7 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
   }
   panic("unhandle cc_op = %d, cc = %d", cpu.cc_op, cc);
 negcc_reverse:
-    if NEGCC(cc) rtl_xori(s, dest, dest, 1);
+    if NEGCC(cc) rtl_nemuxori(s, dest, dest, 1);
     return;
 }
 

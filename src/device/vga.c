@@ -50,11 +50,11 @@ void vga_update_screen() {
 void init_vga() {
   IFDEF(CONFIG_VGA_SHOW_SCREEN, init_screen());
 
-  vgactl_port_base = (void *)new_space(8);
+  vgactl_port_base = (uint32_t *)new_space(8);
   vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
-  add_pio_map("screen", CONFIG_VGA_CTL_PORT, (void *)vgactl_port_base, 8, NULL);
-  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, (void *)vgactl_port_base, 8, NULL);
+  add_pio_map("screen", CONFIG_VGA_CTL_PORT, (uint8_t *)vgactl_port_base, 8, NULL);
+  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, (uint8_t *)vgactl_port_base, 8, NULL);
 
-  vmem = (void *)new_space(SCREEN_SIZE);
-  add_mmio_map("vmem", CONFIG_FB_ADDR, (void *)vmem, SCREEN_SIZE, NULL);
+  vmem = (uint32_t (*)[SCREEN_W])new_space(SCREEN_SIZE);
+  add_mmio_map("vmem", CONFIG_FB_ADDR, (uint8_t *)vmem, SCREEN_SIZE, NULL);
 }

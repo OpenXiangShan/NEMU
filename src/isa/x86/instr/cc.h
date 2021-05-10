@@ -57,11 +57,11 @@ static inline void rtl_setcc(Decode *s, rtlreg_t* dest, uint32_t subcode) {
     case CC_O: rtl_mv(s, dest, &cpu.OF); break;
     case CC_B: rtl_mv(s, dest, &cpu.CF); break;
     case CC_E: rtl_mv(s, dest, &cpu.ZF); break;
-    case CC_BE: rtl_or(s, dest, &cpu.CF, &cpu.ZF); break;
+    case CC_BE: rtl_nemuor(s, dest, &cpu.CF, &cpu.ZF); break;
     case CC_S: rtl_mv(s, dest, &cpu.SF); break;
-    case CC_L: rtl_xor(s, dest, &cpu.SF, &cpu.OF); break;
-    case CC_LE: rtl_xor(s, dest, &cpu.SF, &cpu.OF);
-                rtl_or(s, dest, dest, &cpu.ZF);
+    case CC_L: rtl_nemuxor(s, dest, &cpu.SF, &cpu.OF); break;
+    case CC_LE: rtl_nemuxor(s, dest, &cpu.SF, &cpu.OF);
+                rtl_nemuor(s, dest, dest, &cpu.ZF);
                 break;
     case CC_P: rtl_mv(s, dest, &cpu.PF); break;
 #endif
@@ -69,7 +69,7 @@ static inline void rtl_setcc(Decode *s, rtlreg_t* dest, uint32_t subcode) {
   }
 
   if (invert) {
-    rtl_xori(s, dest, dest, 0x1);
+    rtl_nemuxori(s, dest, dest, 0x1);
   }
 #ifdef __ICS_EXPORT
   assert(*dest == 0 || *dest == 1);

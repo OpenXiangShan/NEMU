@@ -115,8 +115,8 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_serial() {
   serial_base = new_space(8);
-  add_pio_map("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
-  add_mmio_map("serial", CONFIG_SERIAL_MMIO, serial_base, 8, serial_io_handler);
+  add_pio_map("serial", CONFIG_SERIAL_PORT, (uint8_t *)serial_base, 8, serial_io_handler);
+  add_mmio_map("serial", CONFIG_SERIAL_MMIO, (uint8_t *)serial_base, 8, serial_io_handler);
 
 #ifdef CONFIG_SERIAL_INPUT_FIFO
   init_fifo();

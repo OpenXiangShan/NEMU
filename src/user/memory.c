@@ -15,11 +15,11 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
-  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
+  return vaddr_read(NULL, (vaddr_t) addr, len, MMU_DYNAMIC);
 }
 
 word_t vaddr_read_safe(vaddr_t addr, int len) {
-  return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
+  return vaddr_read(NULL, (vaddr_t) addr, len, MMU_DYNAMIC);
 }
 
 
@@ -39,12 +39,12 @@ static vma_t *dyn_start;
 
 #define vma_foreach(p) for (p = vma_list.next; !vma_list_is_end(p); p = p->next)
 
-static inline void vma_list_add_after(vma_t *left, vma_t *new) {
+static inline void vma_list_add_after(vma_t *left, vma_t *_new) {
   vma_t *right = left->next;
-  new->next = right;
-  new->prev = left;
-  left->next = new;
-  right->prev = new;
+  _new->next = right;
+  _new->prev = left;
+  left->next = _new;
+  right->prev = _new;
 }
 
 static inline bool vma_list_is_end(vma_t *p) {
@@ -64,8 +64,8 @@ static inline vma_t* vma_list_new_fix_area(void *addr, size_t length) {
   vma_t *p;
   vma_foreach(p) {
     void *l = p->addr;
-    void *r = p->addr + p->length;
-    if (!((addr + length <= l) || (addr >= r))) {
+    void *r = (uint8_t *)p->addr + p->length;
+    if (!(((uint8_t *)addr + length <= (uint8_t *)l) || (addr >= r))) {
       // overlap
       return NULL;
     }
@@ -81,7 +81,7 @@ static inline vma_t* vma_list_new_dyn_area(size_t length) {
   vma_t *p = dyn_start;
   for (; !vma_list_is_end(p); p = p->next) {
     vma_t *right = p->next;
-    size_t free = right->addr - (p->addr + p->length);
+    size_t free = (uint8_t *)right->addr - ((uint8_t *)p->addr + p->length);
     if (free >= length) return p;
   }
   assert(0);
@@ -90,7 +90,7 @@ static inline vma_t* vma_list_new_dyn_area(size_t length) {
 
 static inline vma_t* vma_new(void *addr, size_t length, int prot,
     int flags, int fd, off_t offset) {
-  vma_t *vma = malloc(sizeof(vma_t));
+  vma_t *vma = (vma_t *) malloc(sizeof(vma_t));
   assert(vma);
   *vma = (vma_t) { .addr = addr, .length = length, .prot = prot,
     .flags = flags, .fd = fd, .offset = offset };
@@ -120,7 +120,7 @@ void *user_mmap(void *addr, size_t length, int prot,
     assert(left != NULL);
   } else {
     left = vma_list_new_dyn_area(length);
-    addr = left->addr + left->length;
+    addr = (uint8_t *)left->addr + left->length;
     flags |= MAP_FIXED;
   }
   vma_t *vma = vma_new(addr, length, prot, flags, fd, offset);
@@ -151,7 +151,7 @@ void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
   assert(p != NULL);
   assert(!(flags & MREMAP_FIXED));
   vma_t *next = p->next;
-  size_t free_size_to_expand = next->addr - p->addr;
+  size_t free_size_to_expand = (uint8_t *)next->addr - (uint8_t *)p->addr;
   new_size = ROUNDUP(new_size, 4096);
   if (free_size_to_expand >= new_size) {
     p->length = new_size;

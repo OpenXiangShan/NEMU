@@ -26,16 +26,16 @@ def_EHelper(sltu) {
   rtl_setrelop(s, RELOP_LTU, ddest, dsrc1, dsrc2);
 }
 
-def_EHelper(xor) {
-  rtl_xor(s, ddest, dsrc1, dsrc2);
+def_EHelper(nemuxor) {
+  rtl_nemuxor(s, ddest, dsrc1, dsrc2);
 }
 
-def_EHelper(or) {
-  rtl_or(s, ddest, dsrc1, dsrc2);
+def_EHelper(nemuor) {
+  rtl_nemuor(s, ddest, dsrc1, dsrc2);
 }
 
-def_EHelper(and) {
-  rtl_and(s, ddest, dsrc1, dsrc2);
+def_EHelper(nemuand) {
+  rtl_nemuand(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(addi) {
@@ -63,15 +63,15 @@ def_EHelper(sltui) {
 }
 
 def_EHelper(xori) {
-  rtl_xori(s, ddest, dsrc1, id_src2->imm);
+  rtl_nemuxori(s, ddest, dsrc1, id_src2->imm);
 }
 
-def_EHelper(ori) {
-  rtl_ori(s, ddest, dsrc1, id_src2->imm);
+def_EHelper(nemuori) {
+  rtl_nemuori(s, ddest, dsrc1, id_src2->imm);
 }
 
-def_EHelper(andi) {
-  rtl_andi(s, ddest, dsrc1, id_src2->imm);
+def_EHelper(nemuandi) {
+  rtl_nemuandi(s, ddest, dsrc1, id_src2->imm);
 }
 
 def_EHelper(auipc) {
