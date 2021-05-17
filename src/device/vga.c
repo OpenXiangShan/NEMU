@@ -52,9 +52,9 @@ void init_vga() {
 
   vgactl_port_base = (uint32_t *)new_space(8);
   vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
-  add_pio_map("screen", CONFIG_VGA_CTL_PORT, (uint8_t *)vgactl_port_base, 8, NULL);
-  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, (uint8_t *)vgactl_port_base, 8, NULL);
+  add_pio_map ("screen", CONFIG_VGA_CTL_PORT, vgactl_port_base, 8, NULL);
+  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, vgactl_port_base, 8, NULL);
 
   vmem = (uint32_t (*)[SCREEN_W])new_space(SCREEN_SIZE);
-  add_mmio_map("vmem", CONFIG_FB_ADDR, (uint8_t *)vmem, SCREEN_SIZE, NULL);
+  add_mmio_map("vmem", CONFIG_FB_ADDR, vmem, SCREEN_SIZE, NULL);
 }

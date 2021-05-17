@@ -21,8 +21,8 @@ static void load_sreg(int idx, uint16_t val) {
 
   assert(cpu.sreg[idx].ti == 0); // check the table bit
   uint32_t desc_base = cpu.gdtr.base + (cpu.sreg[idx].idx << 3);
-  uint32_t desc_lo = vaddr_read(NULL, (vaddr_t) desc_base + 0, 4, MMU_DYNAMIC);
-  uint32_t desc_hi = vaddr_read(NULL, (vaddr_t) desc_base + 4, 4, MMU_DYNAMIC);
+  uint32_t desc_lo = vaddr_read(NULL, desc_base + 0, 4, MMU_DYNAMIC);
+  uint32_t desc_hi = vaddr_read(NULL, desc_base + 4, 4, MMU_DYNAMIC);
   assert((desc_hi >> 15) & 0x1); // check the present bit
 
   cpu.sreg[CSR_CS].rpl = old_cpl; // restore CPL
@@ -46,12 +46,12 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
     switch (csrid) {
 #ifndef CONFIG_MODE_USER
       case CSR_IDTR:
-        cpu.idtr.limit = vaddr_read(NULL, (vaddr_t) *src, 2, MMU_DYNAMIC);
-        cpu.idtr.base  = vaddr_read(NULL, (vaddr_t) *src + 2, 4, MMU_DYNAMIC);
+        cpu.idtr.limit = vaddr_read(NULL, *src, 2, MMU_DYNAMIC);
+        cpu.idtr.base  = vaddr_read(NULL, *src + 2, 4, MMU_DYNAMIC);
         break;
       case CSR_GDTR:
-        cpu.gdtr.limit = vaddr_read(NULL, (vaddr_t) *src, 2, MMU_DYNAMIC);
-        cpu.gdtr.base  = vaddr_read(NULL, (vaddr_t) *src + 2, 4, MMU_DYNAMIC);
+        cpu.gdtr.limit = vaddr_read(NULL, *src, 2, MMU_DYNAMIC);
+        cpu.gdtr.base  = vaddr_read(NULL, *src + 2, 4, MMU_DYNAMIC);
         break;
       case CSR_CR0 ... CSR_CR4: cpu.cr[csrid - CSR_CR0] = *src; break;
 #endif
@@ -65,16 +65,16 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifndef CONFIG_MODE_USER
 static inline word_t iret() {
   int old_cpl = cpu.sreg[CSR_CS].rpl;
-  uint32_t new_pc = vaddr_read(NULL, (vaddr_t) cpu.esp + 0, 4, MMU_DYNAMIC);
-  uint32_t new_cs = vaddr_read(NULL, (vaddr_t) cpu.esp + 4, 4, MMU_DYNAMIC);
-  uint32_t eflags = vaddr_read(NULL, (vaddr_t) cpu.esp + 8, 4, MMU_DYNAMIC);
+  uint32_t new_pc = vaddr_read(NULL, cpu.esp + 0, 4, MMU_DYNAMIC);
+  uint32_t new_cs = vaddr_read(NULL, cpu.esp + 4, 4, MMU_DYNAMIC);
+  uint32_t eflags = vaddr_read(NULL, cpu.esp + 8, 4, MMU_DYNAMIC);
   cpu.esp += 12;
   set_eflags(eflags);
   int new_cpl = new_cs & 0x3;
   if (new_cpl > old_cpl) {
     // return to user
-    uint32_t esp3 = vaddr_read(NULL, (vaddr_t) cpu.esp + 0, 4, MMU_DYNAMIC);
-    uint32_t ss3  = vaddr_read(NULL, (vaddr_t) cpu.esp + 4, 4, MMU_DYNAMIC);
+    uint32_t esp3 = vaddr_read(NULL, cpu.esp + 0, 4, MMU_DYNAMIC);
+    uint32_t ss3  = vaddr_read(NULL, cpu.esp + 4, 4, MMU_DYNAMIC);
     cpu.esp = esp3;
     cpu.sreg[CSR_SS].val = ss3;
   }

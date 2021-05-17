@@ -31,8 +31,7 @@ static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_clint() {
   clint_base = (uint64_t *)new_space(0x10000);
-  add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base,
-          0x10000, clint_io_handler);
-  IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle((void *)update_clint));
+  add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
+  IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
   boot_time = get_time();
 }

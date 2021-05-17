@@ -103,7 +103,7 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-  *dest = vaddr_read(s, (vaddr_t) *addr + offset, len, mmu_mode);
+  *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
 }
 
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
@@ -113,7 +113,7 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-  word_t val = vaddr_read(s, (vaddr_t) *addr + offset, len, mmu_mode);
+  word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;

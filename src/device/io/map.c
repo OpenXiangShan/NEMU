@@ -33,7 +33,7 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
 
-  word_t data = *(word_t *)(map->space + offset) & (~0Lu >> ((8 - len) << 3));
+  word_t data = *(word_t *)((uint8_t *)map->space + offset) & (~0Lu >> ((8 - len) << 3));
   return data;
 }
 
@@ -42,7 +42,7 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
 
-  memcpy(map->space + offset, &data, len);
+  memcpy((uint8_t *)map->space + offset, &data, len);
 
   invoke_callback(map->callback, offset, len, true);
 }

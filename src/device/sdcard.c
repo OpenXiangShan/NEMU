@@ -109,7 +109,7 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_sdcard() {
   base = (uint32_t *)new_space(0x80);
-  add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, (uint8_t *)base, 0x80, sdcard_io_handler);
+  add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, base, 0x80, sdcard_io_handler);
 
   //base[SDEDM] = (8 << 4); // number of data in fifo
 

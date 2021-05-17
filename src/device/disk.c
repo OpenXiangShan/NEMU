@@ -29,10 +29,8 @@ static void disk_io_handler(uint32_t offset, int len, bool is_write) {
 void init_disk() {
   uint32_t space_size = sizeof(uint32_t) * NR_REG;
   disk_base = (uint32_t *)new_space(space_size);
-  add_pio_map ("disk", CONFIG_DISK_CTL_PORT,
-          (uint8_t *)disk_base, space_size, disk_io_handler);
-  add_mmio_map("disk", CONFIG_DISK_CTL_MMIO,
-          (uint8_t *)disk_base, space_size, disk_io_handler);
+  add_pio_map ("disk", CONFIG_DISK_CTL_PORT, disk_base, space_size, disk_io_handler);
+  add_mmio_map("disk", CONFIG_DISK_CTL_MMIO, disk_base, space_size, disk_io_handler);
 
   const char *path = CONFIG_DISK_IMG_PATH;
   fp = fopen(path, "r");

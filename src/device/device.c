@@ -63,6 +63,6 @@ void init_device() {
   IFDEF(CONFIG_HAS_DISK, init_disk());
   IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
 
-  add_alarm_handle((void *)set_device_update_flag);
+  add_alarm_handle(set_device_update_flag);
   init_alarm();
 }

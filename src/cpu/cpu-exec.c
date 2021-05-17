@@ -146,12 +146,12 @@ Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-static inline void debug_difftest(Decode *this_dut, Decode *next) {
-  IFDEF(CONFIG_IQUEUE, iqueue_commit(this_dut->pc, (void *)&this_dut->isa.instr.val, this_dut->snpc - this_dut->pc));
-  IFDEF(CONFIG_DEBUG, debug_hook(this_dut->pc, this_dut->logbuf));
+static inline void debug_difftest(Decode *_this, Decode *next) {
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
+  IFDEF(CONFIG_DEBUG, debug_hook(_this->pc, _this->logbuf));
   IFDEF(CONFIG_DIFFTEST, save_globals(next));
   IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
-  IFDEF(CONFIG_DIFFTEST, difftest_step(this_dut->pc, next->pc));
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
 static int execute(int n) {

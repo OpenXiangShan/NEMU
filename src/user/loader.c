@@ -49,15 +49,15 @@ static void load_elf(char *elfpath) {
       ph->p_filesz += pad_byte;
       ph->p_memsz += pad_byte;
 
-      void *haddr = user_to_host(ph->p_vaddr);
+      uint8_t *haddr = user_to_host(ph->p_vaddr);
       if (ph->p_filesz != 0) {
         user_mmap(haddr, ph->p_filesz, PROT_READ | PROT_WRITE,
             MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
       }
       if (ph->p_flags & PF_W) {
         // bss
-        memset((uint8_t *)haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
-        void *bss_page = (uint8_t *)haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
+        memset(haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
+        void *bss_page = haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
         sword_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
         if (memsz > 0) {
           user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
@@ -80,7 +80,7 @@ static void load_elf(char *elfpath) {
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {
-  uint8_t *sp = (uint8_t *)user_to_host(0xc0000000);
+  uint8_t *sp = user_to_host(0xc0000000);
   uint32_t stack_size = 8 * 1024 * 1024;
   user_mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);

@@ -170,6 +170,7 @@ __attribute__((noinline))
 Decode* tcache_decode(Decode *s, const void **exec_table) {
   static int idx_in_bb = 0;
   vaddr_t thispc = s->pc;
+  int idx = 0;
 
   if (tcache_state == TCACHE_RUNNING) {  // start of a basic block
     // first check whether this basic block is already decoded
@@ -191,8 +192,8 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
 
   save_globals(s);
   s->idx_in_bb = idx_in_bb;
-  // int idx = fetch_decode(s, thispc); // note that exception may happen!
-  s->EHelper = exec_table[fetch_decode(s, thispc)];
+  idx = fetch_decode(s, thispc); // note that exception may happen!
+  s->EHelper = exec_table[idx];
 
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);

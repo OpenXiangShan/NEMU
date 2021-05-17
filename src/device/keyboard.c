@@ -22,9 +22,9 @@ enum {
 };
 
 #define SDL_KEYMAP(k) keymap[concat(SDL_SCANCODE_, k)] = concat(_KEY_, k);
-static uint32_t keymap[256];
+static uint32_t keymap[256] = {};
 
-void init_keymap() {
+static inline void init_keymap() {
   MAP(_KEYS, SDL_KEYMAP)
 }
 
@@ -59,9 +59,7 @@ static void i8042_data_io_handler(uint32_t offset, int len, bool is_write) {
 void init_i8042() {
   i8042_data_port_base = (uint32_t *)new_space(4);
   i8042_data_port_base[0] = _KEY_NONE;
-  add_pio_map("keyboard", CONFIG_I8042_DATA_PORT,
-          (uint8_t *)i8042_data_port_base, 4, i8042_data_io_handler);
-  add_mmio_map("keyboard", CONFIG_I8042_DATA_MMIO,
-          (uint8_t *)i8042_data_port_base, 4, i8042_data_io_handler);
+  add_pio_map ("keyboard", CONFIG_I8042_DATA_PORT, i8042_data_port_base, 4, i8042_data_io_handler);
+  add_mmio_map("keyboard", CONFIG_I8042_DATA_MMIO, i8042_data_port_base, 4, i8042_data_io_handler);
   init_keymap();
 }
