@@ -28,7 +28,7 @@ def_EHelper(bt) {
 
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);
-  rtl_nemuand(s, s0, s0, ddest);
+  rtl_and(s, s0, s0, ddest);
   rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
   rtl_set_CF(s, s0);
 }
@@ -57,10 +57,10 @@ static inline def_EHelper(bsf) {
 static inline def_EHelper(btc) {
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);
-  rtl_nemuand(s, s1, s0, ddest);
+  rtl_and(s, s1, s0, ddest);
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
-  rtl_nemuxor(s, ddest, ddest, s0);
+  rtl_xor(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
   print_asm_template2(btc);
 }
@@ -68,10 +68,10 @@ static inline def_EHelper(btc) {
 static inline def_EHelper(bts) {
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);
-  rtl_nemuand(s, s1, s0, ddest);
+  rtl_and(s, s1, s0, ddest);
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
-  rtl_nemuor(s, ddest, ddest, s0);
+  rtl_or(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
   print_asm_template2(bts);
 }
@@ -79,11 +79,11 @@ static inline def_EHelper(bts) {
 static inline def_EHelper(btr) {
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);
-  rtl_nemuand(s, s1, s0, ddest);
+  rtl_and(s, s1, s0, ddest);
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
   rtl_not(s, s0, s0);
-  rtl_nemuand(s, ddest, ddest, s0);
+  rtl_and(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
   print_asm_template2(btr);
 }
@@ -94,17 +94,17 @@ static inline def_EHelper(bswap) {
 
   // src[31:24]
   rtl_shri(s, s0, ddest, 24);
-  rtl_nemuor(s, s1, s1, s0);
+  rtl_or(s, s1, s1, s0);
 
   // src[15:8]
   rtl_shli(s, s0, ddest, 8);
-  rtl_nemuandi(s, s0, s0, 0xff0000);
-  rtl_nemuor(s, s1, s1, s0);
+  rtl_andi(s, s0, s0, 0xff0000);
+  rtl_or(s, s1, s1, s0);
 
   // src[23:16]
   rtl_shri(s, s0, ddest, 8);
-  rtl_nemuandi(s, s0, s0, 0xff00);
-  rtl_nemuor(s, ddest, s1, s0);
+  rtl_andi(s, s0, s0, 0xff00);
+  rtl_or(s, ddest, s1, s0);
 
   operand_write(s, id_dest, ddest);
 

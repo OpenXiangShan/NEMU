@@ -136,7 +136,7 @@ def_THelper(op_imm_c) {
   }
   switch (s->isa.instr.i.funct3) {
     TAB(0, c_addi_dispatch)  TAB(1, c_slli)  TAB(2, slti) TAB(3, sltui)
-    TAB(4, xori)  TAB(5, c_srli)  TAB(6, nemuori)  TAB(7, c_andi)
+    TAB(4, xori)  TAB(5, c_srli)  TAB(6, ori)  TAB(7, c_andi)
   }
   return EXEC_ID_inv;
 }
@@ -148,7 +148,7 @@ def_THelper(op_imm) {
   }
   switch (s->isa.instr.i.funct3) {
     TAB(0, addi_dispatch)  TAB(1, slli)  TAB(2, slti) TAB(3, sltui)
-    TAB(4, xori)  TAB(5, srli)  TAB(6, nemuori)  TAB(7, nemuandi)
+    TAB(4, xori)  TAB(5, srli)  TAB(6, ori)  TAB(7, andi)
   }
   return EXEC_ID_inv;
 };
@@ -170,15 +170,15 @@ def_THelper(op) {
   if (s->isa.instr.r.rd == s->isa.instr.r.rs1) {
     switch (index) {
       TAB(pair(0, 0), c_add)
-      TAB(pair(0, 4), c_nemuxor)
-      TAB(pair(0, 6), c_nemuor)
-      TAB(pair(0, 7), c_nemuand)
+      TAB(pair(0, 4), c_xor)
+      TAB(pair(0, 6), c_or)
+      TAB(pair(0, 7), c_and)
     }
   }
 
   switch (index) {
     TAB(pair(0, 0), add)  TAB(pair(0, 1), sll)  TAB(pair(0, 2), slt)  TAB(pair(0, 3), sltu)
-    TAB(pair(0, 4), nemuxor)  TAB(pair(0, 5), srl)  TAB(pair(0, 6), nemuor)   TAB(pair(0, 7), nemuand)
+    TAB(pair(0, 4), xor)  TAB(pair(0, 5), srl)  TAB(pair(0, 6), or)   TAB(pair(0, 7), and)
     TAB(pair(1, 0), mul)  TAB(pair(1, 1), mulh) TAB(pair(1, 2),mulhsu)TAB(pair(1, 3), mulhu)
     TAB(pair(1, 4), div)  TAB(pair(1, 5), divu) TAB(pair(1, 6), rem)  TAB(pair(1, 7), remu)
   }

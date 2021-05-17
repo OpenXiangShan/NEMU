@@ -120,7 +120,7 @@ def_THelper(special) {
     IDTAB(030, R, mult)    IDTAB(031, R, multu)   IDTAB(032, R, div)     IDTAB(033, R, divu)
 
                            IDTAB(041, R, add)                            IDTAB(043, R, sub)
-    IDTAB(044, R, nemuand)     IDTAB(045, R, nemuor)      IDTAB(046, R, nemuxor)     IDTAB(047, R, nor)
+    IDTAB(044, R, and)     IDTAB(045, R, or)      IDTAB(046, R, xor)     IDTAB(047, R, nor)
                                                   IDTAB(052, R, slt)     IDTAB(053, R, sltu)
 #endif
   }
@@ -173,7 +173,7 @@ def_THelper(main) {
     TAB  (000, special)    TAB  (001, regimm)     IDTAB(002, J, j)       IDTAB(003, jal, jal)
     IDTAB(004, B, beq)     IDTAB(005, B, bne)     IDTAB(006, B, blez)    IDTAB(007, B, bgtz)
                            IDTAB(011, I, addi)    IDTAB(012, I, slti)    IDTAB(013, I, sltui)
-    IDTAB(014, IU, nemuandi)   IDTAB(015, IU, nemuori)    IDTAB(016, IU, xori)   IDTAB(017, lui, lui)
+    IDTAB(014, IU, andi)   IDTAB(015, IU, ori)    IDTAB(016, IU, xori)   IDTAB(017, lui, lui)
     TAB  (020, cop0)
 
 

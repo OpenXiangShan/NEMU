@@ -21,8 +21,8 @@ static inline def_EHelper(gp1) {
     EMPTY(0) EMPTY(1) EMPTY(2) EMPTY(3)
     EMPTY(4) EMPTY(5) EMPTY(6) EMPTY(7)
 #else
-    EXW(0, add, -1) EXW(1, nemuor, -1)  EXW(2, adc, -1) EXW(3, sbb, -1)
-    EXW(4, nemuand, -1) EXW(5, sub, -1) EXW(6, nemuxor, -1) EXW(7, cmp, -1)
+    EXW(0, add, -1) EXW(1, or, -1)  EXW(2, adc, -1) EXW(3, sbb, -1)
+    EXW(4, and, -1) EXW(5, sub, -1) EXW(6, xor, -1) EXW(7, cmp, -1)
 #endif
   }
 }
@@ -343,18 +343,18 @@ again:
 //34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 IDEXW(0x00, G2E, add, 1)    IDEX (0x01, G2E, add)       IDEXW(0x02, E2G, add, 1)    IDEX (0x03, E2G, add)
 IDEXW(0x04, I2a, add, 1)    IDEX (0x05, I2a, add)       EX   (0x06, push_es)        EX   (0x07, pop_es)
-IDEXW(0x08, G2E, nemuor, 1)     IDEX (0x09, G2E, nemuor)        IDEXW(0x0a, E2G, nemuor, 1)     IDEX (0x0b, E2G, nemuor)
-IDEXW(0x0c, I2a, nemuor, 1)     IDEX (0x0d, I2a, nemuor)        EMPTY(0x0e)                 EX   (0x0f, 2byte_esc)
+IDEXW(0x08, G2E, or, 1)     IDEX (0x09, G2E, or)        IDEXW(0x0a, E2G, or, 1)     IDEX (0x0b, E2G, or)
+IDEXW(0x0c, I2a, or, 1)     IDEX (0x0d, I2a, or)        EMPTY(0x0e)                 EX   (0x0f, 2byte_esc)
 IDEXW(0x10, G2E, adc, 1)    IDEX (0x11, G2E, adc)       IDEXW(0x12, E2G, adc, 1)    IDEX (0x13, E2G, adc)
 IDEXW(0x14, I2a, adc, 1)    IDEX (0x15, I2a, adc)
 IDEXW(0x18, G2E, sbb, 1)    IDEX (0x19, G2E, sbb)       IDEXW(0x1a, E2G, sbb, 1)    IDEX (0x1b, E2G, sbb)
 IDEXW(0x1c, I2a, sbb, 1)                                EX   (0x1e, push_ds)        EX   (0x1f, pop_ds)
-IDEXW(0x20, G2E, nemuand, 1)    IDEX (0x21, G2E, nemuand)       IDEXW(0x22, E2G, nemuand, 1)    IDEX (0x23, E2G, nemuand)
-IDEXW(0x24, I2a, nemuand, 1)    IDEX (0x25, I2a, nemuand)
+IDEXW(0x20, G2E, and, 1)    IDEX (0x21, G2E, and)       IDEXW(0x22, E2G, and, 1)    IDEX (0x23, E2G, and)
+IDEXW(0x24, I2a, and, 1)    IDEX (0x25, I2a, and)
 IDEXW(0x28, G2E, sub, 1)    IDEX (0x29, G2E, sub)       IDEXW(0x2a, E2G, sub, 1)    IDEX (0x2b, E2G, sub)
 IDEXW(0x2c, I2a, sub, 1)    IDEX (0x2d, I2a, sub)
-IDEXW(0x30, G2E, nemuxor, 1)    IDEX (0x31, G2E, nemuxor)       IDEXW(0x32, E2G, nemuxor, 1)    IDEX (0x33, E2G, nemuxor)
-IDEXW(0x34, I2a, nemuxor, 1)    IDEX (0x35, I2a, nemuxor)
+IDEXW(0x30, G2E, xor, 1)    IDEX (0x31, G2E, xor)       IDEXW(0x32, E2G, xor, 1)    IDEX (0x33, E2G, xor)
+IDEXW(0x34, I2a, xor, 1)    IDEX (0x35, I2a, xor)
 IDEXW(0x38, G2E, cmp, 1)    IDEX (0x39, G2E, cmp)       IDEXW(0x3a, E2G, cmp, 1)    IDEX (0x3b, E2G, cmp)
 IDEXW(0x3c, I2a, cmp, 1)    IDEX (0x3d, I2a, cmp)
 IDEX (0x40, r, inc)         IDEX (0x41, r, inc)         IDEX (0x42, r, inc)         IDEX (0x43, r, inc)

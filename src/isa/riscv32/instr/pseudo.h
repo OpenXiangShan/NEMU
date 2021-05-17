@@ -43,7 +43,7 @@ def_EHelper(p_bgez) {
 }
 
 def_EHelper(p_ret) {
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_nemuandi(s, s0, s0, ~0x1u));
+//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, &cpu.gpr[1]._32);
 }

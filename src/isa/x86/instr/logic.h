@@ -1,6 +1,6 @@
-def_EHelper(nemuand) {
+def_EHelper(and) {
   rtl_decode_binary(s, true, true);
-  rtl_nemuand(s, ddest, ddest, dsrc1);
+  rtl_and(s, ddest, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
 #else
@@ -14,9 +14,9 @@ def_EHelper(nemuand) {
   rtl_wb(s, ddest);
 }
 
-def_EHelper(nemuor) {
+def_EHelper(or) {
   rtl_decode_binary(s, true, true);
-  rtl_nemuor(s, ddest, ddest, dsrc1);
+  rtl_or(s, ddest, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
 #else
@@ -32,7 +32,7 @@ def_EHelper(nemuor) {
 
 def_EHelper(test) {
   rtl_decode_binary(s, true, true);
-  rtl_nemuand(s, s0, ddest, dsrc1);
+  rtl_and(s, s0, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
 #else
@@ -45,9 +45,9 @@ def_EHelper(test) {
 #endif
 }
 
-def_EHelper(nemuxor) {
+def_EHelper(xor) {
   rtl_decode_binary(s, true, true);
-  rtl_nemuxor(s, ddest, ddest, dsrc1);
+  rtl_xor(s, ddest, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
 #else
@@ -94,7 +94,7 @@ def_EHelper(shl) {
     rtl_shl(s, ddest, ddest, dsrc1);
 
     if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
-      rtl_nemuxor(s, s0, s1, ddest);
+      rtl_xor(s, s0, s1, ddest);
       rtl_msb(s, s0, s0, s->isa.width);
       rtl_set_OF(s, s0);
     }
@@ -124,12 +124,12 @@ def_EHelper(shr) {
   if (need_update_eflags) {
     rtl_subi(s, s0, dsrc1, 1);
     rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
-    rtl_nemuandi(s, s0, s1, 0x1);
+    rtl_andi(s, s0, s1, 0x1);
     rtl_set_CF(s, s0);
     rtl_shr(s, ddest, ddest, dsrc1);
 
     if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
-      rtl_nemuxor(s, s0, s1, ddest);
+      rtl_xor(s, s0, s1, ddest);
       rtl_msb(s, s0, s0, s->isa.width);
       rtl_set_OF(s, s0);
     }
@@ -164,12 +164,12 @@ def_EHelper(sar) {
   if (need_update_eflags) {
     rtl_subi(s, s0, dsrc1, 1);
     rtl_sar(s, s1, ddest, s0); // shift (cnt - 1)
-    rtl_nemuandi(s, s0, s1, 0x1);
+    rtl_andi(s, s0, s1, 0x1);
     rtl_set_CF(s, s0);
     rtl_sar(s, ddest, ddest, dsrc1);
 
     if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
-      rtl_nemuxor(s, s0, s1, ddest);
+      rtl_xor(s, s0, s1, ddest);
       rtl_msb(s, s0, s0, s->isa.width);
       rtl_set_OF(s, s0);
     }
@@ -194,7 +194,7 @@ def_EHelper(rol) {
   rtl_li(s, s1, s->isa.width * 8);
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shr(s, s1, ddest, s1);
-  rtl_nemuor(s, ddest, s0, s1);
+  rtl_or(s, ddest, s0, s1);
   rtl_wb(s, ddest);
   // unnecessary to update eflags in NEMU
   //difftest_skip_eflags(EFLAGS_MASK_ALL);
@@ -206,7 +206,7 @@ def_EHelper(ror) {
   rtl_li(s, s1, s->isa.width * 8);
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shl(s, s1, ddest, s1);
-  rtl_nemuor(s, ddest, s0, s1);
+  rtl_or(s, ddest, s0, s1);
   rtl_wb(s, ddest);
   // unnecessary to update eflags in NEMU
   //difftest_skip_eflags(EFLAGS_MASK_ALL);
@@ -227,7 +227,7 @@ def_EHelper(shld) {
   rtl_shr(s, s1, dsrc1, s1);
   rtl_shri(s, s1, s1, 1);
 
-  rtl_nemuor(s, ddest, s0, s1);
+  rtl_or(s, ddest, s0, s1);
   rtl_wb(s, ddest);
 
 #ifndef CONFIG_x86_CC_LAZY
@@ -251,7 +251,7 @@ def_EHelper(shrd) {
 #endif
   rtl_subi(s, s0, dsrc2, 1);
   rtl_shr(s, s1, ddest, s0); // shift (cnt - 1)
-  rtl_nemuandi(s, s0, s1, 0x1);
+  rtl_andi(s, s0, s1, 0x1);
   rtl_set_CF(s, s0);
   rtl_shr(s, s0, ddest, dsrc2);
 
@@ -264,7 +264,7 @@ def_EHelper(shrd) {
   rtl_shl(s, s1, dsrc1, s1);
   rtl_shli(s, s1, s1, 1);
 
-  rtl_nemuor(s, ddest, s0, s1);
+  rtl_or(s, ddest, s0, s1);
   rtl_wb(s, ddest);
 
 #ifndef CONFIG_x86_CC_LAZY
@@ -281,12 +281,12 @@ static inline def_EHelper(rcr) {
   rtl_shli(s, s1, s1, 31);
   rtl_shr(s, s1, s1, dsrc1);
   rtl_shli(s, s1, s1, 1);
-  rtl_nemuor(s, s0, s0, s1);
+  rtl_or(s, s0, s0, s1);
 
   rtl_li(s, s1, 1);
   rtl_shl(s, s1, s1, dsrc1);
   rtl_shri(s, s1, s1, 1);
-  rtl_nemuand(s, s1, ddest, s1);
+  rtl_and(s, s1, ddest, s1);
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
 
@@ -294,7 +294,7 @@ static inline def_EHelper(rcr) {
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shl(s, s1, ddest, s1);
   rtl_shli(s, s1, s1, 1);
-  rtl_nemuor(s, ddest, s0, s1);
+  rtl_or(s, ddest, s0, s1);
 
   operand_write(s, id_dest, ddest);
   print_asm_template2(rcr);
@@ -306,12 +306,12 @@ static inline def_EHelper(rcl) {
   rtl_get_CF(s, s1);
   rtl_shl(s, s1, s1, dsrc1);
   rtl_shri(s, s1, s1, 1);
-  rtl_nemuor(s, s0, s0, s1);
+  rtl_or(s, s0, s0, s1);
 
   rtl_li(s, s1, 0x80000000);
   rtl_shr(s, s1, s1, dsrc1);
   rtl_shli(s, s1, s1, 1);
-  rtl_nemuand(s, s1, ddest, s1);
+  rtl_and(s, s1, ddest, s1);
   rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
   rtl_set_CF(s, s1);
 
@@ -319,7 +319,7 @@ static inline def_EHelper(rcl) {
   rtl_sub(s, s1, s1, dsrc1);
   rtl_shr(s, s1, ddest, s1);
   rtl_shri(s, s1, s1, 1);
-  rtl_nemuor(s, ddest, s0, s1);
+  rtl_or(s, ddest, s0, s1);
 
   operand_write(s, id_dest, ddest);
   print_asm_template2(rcl);

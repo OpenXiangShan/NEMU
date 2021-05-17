@@ -10,10 +10,10 @@ static inline def_rtl(mux, rtlreg_t* dest, const rtlreg_t* cond,
   rtl_setrelopi(s, RELOP_EQ, s0, cond, 0);
   rtl_subi(s, s0, s0, 1);
   // s0 = mask
-  rtl_nemuand(s, s1, src1, s0);
+  rtl_and(s, s1, src1, s0);
   rtl_not(s, s0, s0);
-  rtl_nemuand(s, dest, src2, s0);
-  rtl_nemuor(s, dest, dest, s1);
+  rtl_and(s, dest, src2, s0);
+  rtl_or(s, dest, dest, s1);
 }
 
 #endif

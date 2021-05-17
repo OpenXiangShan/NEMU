@@ -24,9 +24,9 @@
 
 def_rtl_compute_reg_imm(add)
 def_rtl_compute_reg_imm(sub)
-def_rtl_compute_reg_imm(nemuand)
-def_rtl_compute_reg_imm(nemuor)
-def_rtl_compute_reg_imm(nemuxor)
+def_rtl_compute_reg_imm(and)
+def_rtl_compute_reg_imm(or)
+def_rtl_compute_reg_imm(xor)
 def_rtl_compute_reg_imm(shl)
 def_rtl_compute_reg_imm(shr)
 def_rtl_compute_reg_imm(sar)

@@ -16,13 +16,13 @@
   f(lw_mmu) f(sw_mmu) f(lh_mmu) f(lb_mmu) f(lhu_mmu) f(lbu_mmu) f(sh_mmu) f(sb_mmu)
 
 #define INSTR_TERNARY(f) \
-  f(add) f(sll) f(srl) f(slt) f(sltu) f(nemuxor) f(nemuor) f(sub) f(sra) f(nemuand) \
-  f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(nemuori) f(srai) f(nemuandi) \
+  f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
+  f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
   f(jalr) f(beq) f(bne) f(blt) f(bge) f(bltu) f(bgeu) \
   f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) f(rem) f(remu) \
   f(csrrw) f(csrrs) \
   f(c_li) f(c_addi) f(c_slli) f(c_srli) f(c_srai) f(c_andi) \
-  f(c_add) f(c_nemuand) f(c_nemuor) f(c_xor) f(c_sub) \
+  f(c_add) f(c_and) f(c_or) f(c_xor) f(c_sub) \
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz)
 
 def_all_EXEC_ID();

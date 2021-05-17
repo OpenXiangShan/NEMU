@@ -9,7 +9,7 @@
 #define def_EHelper(name) \
   s ++; \
   goto finish_label; /* this is for the previous def_EHelper() */ \
-  def_label(name)
+  def_label(concat(exec_, name))
 #define def_finish() def_label(finish_label)
 #else
 #define def_EHelper(name) static inline void concat(exec_, name) (Decode *s)

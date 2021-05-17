@@ -20,7 +20,7 @@ static inline def_rtl(not, rtlreg_t *dest, const rtlreg_t* src1) {
 #ifdef __ICS_EXPORT
   TODO();
 #else
-  rtl_nemuxori(s, dest, src1, -1);
+  rtl_xori(s, dest, src1, -1);
 #endif
 }
 
@@ -76,7 +76,7 @@ static inline def_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
 #else
   rtl_shri(s, dest, src1, width * 8 - 1);
   if (width != 4) {
-    rtl_nemuandi(s, dest, dest, 0x1);
+    rtl_andi(s, dest, dest, 0x1);
   }
 #endif
 }
