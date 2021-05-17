@@ -193,7 +193,6 @@ def_EHelper(nemu_decode) {
 }
 
 end_of_bb:
-__attribute__((unused))
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
     if (unlikely(n <= 0)) break;
