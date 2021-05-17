@@ -6,14 +6,14 @@
 
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
-static const uint8_t *pmem = (void *)0x100000000ul;
+static const uint8_t *pmem = (uint8_t *)0x100000000ul;
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
-#define HOST_PMEM_OFFSET (void *)(pmem - CONFIG_MBASE)
+#define HOST_PMEM_OFFSET (uint8_t *)(pmem - CONFIG_MBASE)
 
-void* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
-paddr_t host_to_guest(void *haddr) { return haddr - HOST_PMEM_OFFSET; }
+uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
+paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
 static inline word_t pmem_read(paddr_t addr, int len) {
   return host_read(guest_to_host(addr), len);
@@ -36,7 +36,7 @@ void init_mem() {
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
-  for (i = 0; i < CONFIG_MSIZE / sizeof(p[0]); i ++) {
+  for (i = 0; i < (int) (CONFIG_MSIZE / sizeof(p[0])); i ++) {
     p[i] = rand();
   }
 #endif

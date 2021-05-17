@@ -60,13 +60,13 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_audio() {
   uint32_t space_size = sizeof(uint32_t) * nr_reg;
-  audio_base = (void *)new_space(space_size);
-  add_pio_map("audio", CONFIG_AUDIO_CTL_PORT, (void *)audio_base, space_size, audio_io_handler);
-  add_mmio_map("audio", CONFIG_AUDIO_CTL_MMIO, (void *)audio_base, space_size, audio_io_handler);
+  audio_base = (uint32_t *)new_space(space_size);
+  add_pio_map ("audio", CONFIG_AUDIO_CTL_PORT, audio_base, space_size, audio_io_handler);
+  add_mmio_map("audio", CONFIG_AUDIO_CTL_MMIO, audio_base, space_size, audio_io_handler);
 #ifndef __ICS_EXPORT
   audio_base[reg_sbuf_size] = CONFIG_SB_SIZE;
 #endif
 
-  sbuf = (void *)new_space(CONFIG_SB_SIZE);
-  add_mmio_map("audio-sbuf", CONFIG_SB_ADDR, (void *)sbuf, CONFIG_SB_SIZE, NULL);
+  sbuf = (uint8_t *)new_space(CONFIG_SB_SIZE);
+  add_mmio_map("audio-sbuf", CONFIG_SB_ADDR, sbuf, CONFIG_SB_SIZE, NULL);
 }

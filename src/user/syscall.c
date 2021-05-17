@@ -1,4 +1,7 @@
+#ifndef __cplusplus
 #define _GNU_SOURCE
+#endif
+
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <stdlib.h>
@@ -60,7 +63,7 @@ static inline word_t user_sys_brk(word_t new_brk) {
 static inline word_t user_sys_fstat(int fd, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
-  if (ret == 0) translate_stat(&buf, statbuf);
+  if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
   return ret;
 }
 
@@ -68,14 +71,14 @@ static inline word_t user_sys_fstatat(int dirfd,
     const char *pathname, void *statbuf, int flags) {
   struct stat buf;
   int ret = get_syscall_ret(fstatat(dirfd, pathname, &buf, flags));
-  if (ret == 0) translate_stat(&buf, statbuf);
+  if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
   return ret;
 }
 #endif
 
 static inline word_t user_gettimeofday(void *tv, void *tz) {
 #ifdef CONFIG_ISA64
-  return gettimeofday(tv, tz);
+  return gettimeofday((struct timeval *) tv, (__timezone_ptr_t) tz);
 #else
   struct timeval host_tv;
   int ret = gettimeofday(&host_tv, tz);
@@ -87,7 +90,7 @@ static inline word_t user_gettimeofday(void *tv, void *tz) {
 
 static inline word_t user_clock_gettime(clockid_t id, void *tp) {
 #ifdef CONFIG_ISA64
-  return clock_gettime(id, tp);
+  return clock_gettime(id, (struct timespec *) tp);
 #else
   struct timespec host_tp;
   int ret = clock_gettime(id, &host_tp);
@@ -99,7 +102,7 @@ static inline word_t user_clock_gettime(clockid_t id, void *tp) {
 
 static inline word_t user_sysinfo(void *info) {
 #ifdef CONFIG_ISA64
-  return sysinfo(info);
+  return sysinfo((struct sysinfo *) info);
 #else
   struct sysinfo host_info;
   int ret = sysinfo(&host_info);
@@ -111,7 +114,7 @@ static inline word_t user_sysinfo(void *info) {
 
 static inline word_t user_writev(int fd, void *iov, int iovcnt) {
 #ifdef CONFIG_ISA64
-  return writev(fd, iov, iovcnt);
+  return writev(fd, (const struct iovec*) iov, iovcnt);
 #else
   struct user_iovec *user_iov = iov;
   struct iovec *host_iov = malloc(sizeof(*host_iov) * iovcnt);
@@ -128,7 +131,7 @@ static inline word_t user_writev(int fd, void *iov, int iovcnt) {
 
 static inline word_t user_times(void *buf) {
 #ifdef CONFIG_ISA64
-  return times(buf);
+  return times((struct tms *) buf);
 #else
   struct tms host_buf;
   clock_t ret = times(&host_buf);
@@ -140,7 +143,7 @@ static inline word_t user_times(void *buf) {
 
 static inline word_t user_getrusage(int who, void *usage) {
 #ifdef CONFIG_ISA64
-  return getrusage(who, usage);
+  return getrusage(who, (struct rusage *) usage);
 #else
   struct rusage host_usage;
   int ret = getrusage(who, &host_usage);
@@ -221,7 +224,8 @@ static inline word_t user_getrlimit(int resource, void *rlim) {
 
 static inline word_t user_prlimit64(pid_t pid, int resource,
     const void *new_limit, void *old_limit) {
-  return prlimit(pid, resource, new_limit, old_limit);
+  return prlimit(pid, (enum __rlimit_resource) resource,
+          (const struct rlimit *) new_limit, (struct rlimit *) old_limit);
 }
 
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
@@ -243,7 +247,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_exit: user_sys_exit(arg1); break;
     case USER_SYS_brk: ret = user_sys_brk(arg1); break;
     case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case USER_SYS_uname: ret = uname(user_to_host(arg1)); break;
+    case USER_SYS_uname: ret = uname((struct utsname *) user_to_host(arg1)); break;
     case USER_SYS_gettimeofday: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case USER_SYS_sysinfo: ret = user_sysinfo(user_to_host(arg1)); break;
     case USER_SYS_clock_gettime: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
@@ -251,27 +255,29 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_times: ret = user_times(user_to_host(arg1)); break;
     case USER_SYS_getrusage: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case USER_SYS_prlimit64: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
-    case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
+    case USER_SYS_openat: ret = openat(user_fd(arg1),
+                                  (const char *) user_to_host(arg2), arg3, arg4); break;
     case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
     case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
 #ifdef CONFIG_ISA64
     case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
-          user_to_host(arg2), user_to_host(arg3), arg4); break;
+          (const char*) user_to_host(arg2), (char*) user_to_host(arg3), arg4); break;
     case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
     case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
-          user_to_host(arg2), user_to_host(arg3), arg4); break;
+          (const char*) user_to_host(arg2), user_to_host(arg3), arg4); break;
     case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
           arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
     case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
           arg2, arg3, arg4, user_to_host(arg5)); break;
     case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
-    case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1),
+                                    (const char *) user_to_host(arg2), arg3); break;
     case USER_SYS_getcwd:
-          ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
+          ret = (uintptr_t)getcwd((char *)user_to_host(arg1), arg2);
           assert(ret != 0); // should success
-          ret = strlen(user_to_host(arg1)) + 1;
+          ret = strlen((const char *) user_to_host(arg1)) + 1;
           break;
     case USER_SYS_getuid: return getuid();
     case USER_SYS_getgid: return getgid();
@@ -282,7 +288,8 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_getpid: return getpid();
     case USER_SYS_mprotect: return 0; // not implemented
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
-    case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
+    case USER_SYS_faccessat: ret = faccessat(user_fd(arg1),
+                                     (const char *)user_to_host(arg2), arg3, 0); break;
 #else
     case USER_SYS_readlink: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_access: ret = access(user_to_host(arg1), arg2); break;

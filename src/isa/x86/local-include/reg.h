@@ -30,7 +30,7 @@ static inline const char* reg_name(int index, int width) {
 
 static inline const char* sreg_name(int index) {
   const char *name[] = { "es", "cs", "ss", "ds", "fs", "gs" };
-  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < sizeof(name) / sizeof(name[0])));
+  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < ARRLEN(name)));
   return name[index];
 }
 

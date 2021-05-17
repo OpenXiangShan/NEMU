@@ -96,7 +96,7 @@ int fetch_decode(Decode *s, vaddr_t pc) {
 }
 
 #ifdef CONFIG_PERF_OPT
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&name,
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
 #define rtl_j(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
@@ -146,12 +146,12 @@ Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-static inline void debug_difftest(Decode *this, Decode *next) {
-  IFDEF(CONFIG_IQUEUE, iqueue_commit(this->pc, (void *)&this->isa.instr.val, this->snpc - this->pc));
-  IFDEF(CONFIG_DEBUG, debug_hook(this->pc, this->logbuf));
+static inline void debug_difftest(Decode *_this, Decode *next) {
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
+  IFDEF(CONFIG_DEBUG, debug_hook(_this->pc, _this->logbuf));
   IFDEF(CONFIG_DIFFTEST, save_globals(next));
   IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
-  IFDEF(CONFIG_DIFFTEST, difftest_step(this->pc, next->pc));
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
 static int execute(int n) {
@@ -162,7 +162,7 @@ static int execute(int n) {
   Decode *s = prev_s;
 
   if (likely(init_flag == 0)) {
-    exec_table[TOTAL_INSTR] = &&nemu_decode;
+    exec_table[TOTAL_INSTR] = &&exec_nemu_decode;
     extern Decode* tcache_init(const void **speical_exec_table, vaddr_t reset_vector);
     s = tcache_init(exec_table + TOTAL_INSTR, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
@@ -193,7 +193,6 @@ def_EHelper(nemu_decode) {
 }
 
 end_of_bb:
-__attribute__((unused))
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
     if (unlikely(n <= 0)) break;
@@ -203,7 +202,6 @@ __attribute__((unused))
   }
 
 end_of_loop:
-__attribute__((unused))
   debug_difftest(this_s, s);
   prev_s = s;
   return n;

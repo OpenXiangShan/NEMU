@@ -33,12 +33,12 @@ static void load_elf(char *elfpath) {
   uint8_t buf[512];
   int ret = fread(buf, 512, 1, fp);
   assert(ret == 1);
-  elf = (void*)buf;
+  elf = (Elf_Ehdr *)buf;
   assert(buf[0] == 0x7f && buf[1] == 'E' && buf[2] == 'L' && buf[3] == 'F');
   assert(elf->e_machine == ELF_TYPE);
 
   /* Load each program segment */
-  ph = (void *)elf + elf->e_phoff;
+  ph = (Elf_Phdr *)((uint8_t *)elf + elf->e_phoff);
   eph = ph + elf->e_phnum;
   vaddr_t brk = 0;
   for (; ph < eph; ph ++) {
@@ -49,7 +49,7 @@ static void load_elf(char *elfpath) {
       ph->p_filesz += pad_byte;
       ph->p_memsz += pad_byte;
 
-      void *haddr = user_to_host(ph->p_vaddr);
+      uint8_t *haddr = user_to_host(ph->p_vaddr);
       if (ph->p_filesz != 0) {
         user_mmap(haddr, ph->p_filesz, PROT_READ | PROT_WRITE,
             MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
@@ -80,7 +80,7 @@ static void load_elf(char *elfpath) {
 }
 
 static inline word_t init_stack(int argc, char *argv[]) {
-  void *sp = user_to_host(0xc0000000);
+  uint8_t *sp = user_to_host(0xc0000000);
   uint32_t stack_size = 8 * 1024 * 1024;
   user_mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
@@ -99,7 +99,7 @@ static inline word_t init_stack(int argc, char *argv[]) {
   char **p = arr; \
   for (; *p != NULL; p ++) { \
     push_str(*p); \
-    assert(i < sizeof(strs) / sizeof(strs[0])); \
+    assert(i < ARRLEN(strs)); \
     strs[i ++] = host_to_user(sp); \
   } \
   strs[i ++] = 0; \
@@ -109,7 +109,7 @@ static inline word_t init_stack(int argc, char *argv[]) {
   push_str_array(envp);
 
   // aligning
-  sp = (void *)ROUNDDOWN(sp, sizeof(word_t));
+  sp = (uint8_t *)ROUNDDOWN(sp, sizeof(word_t));
 
   // AT_RANDOM
   push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef); push(0xdeadbeef);

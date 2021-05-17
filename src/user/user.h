@@ -1,7 +1,10 @@
 #ifndef __USER_H__
 #define __USER_H__
 
+#ifndef __cplusplus
 #define _GNU_SOURCE
+#endif
+
 #include <memory/vaddr.h>
 #include <sys/mman.h>
 
@@ -24,8 +27,8 @@ int user_munmap(void *addr, size_t length);
 void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
     int flags, void *new_addr);
 
-static inline void* user_to_host(word_t uaddr) {
-  return (void *)(uintptr_t)uaddr;
+static inline uint8_t* user_to_host(word_t uaddr) {
+  return (uint8_t *)(uintptr_t)uaddr;
 }
 
 static inline word_t host_to_user(void *haddr) {

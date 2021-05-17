@@ -35,7 +35,7 @@ def_EHelper(div) {
 #ifdef CONFIG_ENGINE_INTERPRETER
   if (*dsrc2 == 0) {
     rtl_li(s, ddest, ~0lu);
-  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
+  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == ~(word_t)0) {
     rtl_mv(s, ddest, dsrc1);
   } else
 #endif
@@ -55,7 +55,7 @@ def_EHelper(rem) {
 #ifdef CONFIG_ENGINE_INTERPRETER
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
-  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == -1) {
+  } else if (*dsrc1 == 0x8000000000000000LL && *dsrc2 == ~(word_t)0) {
     rtl_mv(s, ddest, rz);
   } else
 #endif
@@ -81,7 +81,7 @@ def_EHelper(divw) {
   rtl_sext(s, s1, dsrc2, 4);
   if (*s1 == 0) {
     rtl_li(s, s0, ~0lu);
-  } else if (*s0 == 0x80000000 && *s1 == -1) {
+  } else if (*s0 == 0x80000000 && *s1 == ~(word_t)0) {
     //rtl_mv(s, s0, s0);
   } else {
     rtl_divs_q(s, s0, s0, s1);
@@ -98,7 +98,7 @@ def_EHelper(remw) {
   rtl_sext(s, s1, dsrc2, 4);
   if (*s1 == 0) {
     //rtl_mv(s, s0, s0);
-  } else if (*s0 == 0x80000000 && *s1 == -1) {
+  } else if (*s0 == 0x80000000 && *s1 == ~(word_t)0) {
     rtl_mv(s, s0, rz);
   } else {
     rtl_divs_r(s, s0, s0, s1);

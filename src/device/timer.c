@@ -21,8 +21,8 @@ static void timer_intr() {
 }
 
 void init_timer() {
-  rtc_port_base = (void*)new_space(8);
-  add_pio_map("rtc", CONFIG_RTC_PORT, (void *)rtc_port_base, 8, rtc_io_handler);
-  add_mmio_map("rtc", CONFIG_RTC_MMIO, (void *)rtc_port_base, 8, rtc_io_handler);
+  rtc_port_base = (uint32_t *)new_space(8);
+  add_pio_map ("rtc", CONFIG_RTC_PORT, rtc_port_base, 8, rtc_io_handler);
+  add_mmio_map("rtc", CONFIG_RTC_MMIO, rtc_port_base, 8, rtc_io_handler);
   add_alarm_handle(timer_intr);
 }

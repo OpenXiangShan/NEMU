@@ -78,6 +78,8 @@ choice
   default CC_GCC
 config CC_GCC
   bool "gcc"
+config CC_GPP
+  bool "g++"
 config CC_CLANG
   bool "clang"
 endchoice
@@ -85,6 +87,7 @@ endchoice
 config CC
   string
   default "gcc" if CC_GCC
+  default "g++" if CC_GPP
   default "clang" if CC_CLANG
   default "none"
 

@@ -9,9 +9,12 @@ static const uint32_t img [] = {
   0x0000006b,  // nemu_trap
 };
 
+void init_csr();
 void init_clint();
 
 void init_isa() {
+  init_csr();
+
   cpu.gpr[0]._64 = 0;
   cpu.pc = RESET_VECTOR;
 

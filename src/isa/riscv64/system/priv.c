@@ -11,11 +11,12 @@ void fp_update_rm_cache(uint32_t rm);
 static word_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
-  concat(name, _t)* const name = (void *)&csr_array[addr];
+  concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 MAP(CSRS, CSRS_DEF)
 
-#define CSRS_EXIST(name, addr) [addr] = 1,
-static bool csr_exist[4096] = {
+#define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
+static bool csr_exist[4096] = {};
+void init_csr() {
   MAP(CSRS, CSRS_EXIST)
 };
 

@@ -1,15 +1,15 @@
 #include <common.h>
+#include "device/alarm.h"
 #include <sys/time.h>
 #include <signal.h>
 
 #define TIMER_HZ 60
 #define MAX_HANDLER 8
 
-typedef void (*alarm_handler_t) ();
 static alarm_handler_t handler[MAX_HANDLER] = {};
 static int idx = 0;
 
-void add_alarm_handle(void *h) {
+void add_alarm_handle(alarm_handler_t h) {
   assert(idx < MAX_HANDLER);
   handler[idx ++] = h;
 }

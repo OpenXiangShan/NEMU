@@ -38,7 +38,7 @@ static TLBEntry TLB[4096] = {};
 static bool TLBValid[4096] = {};
 
 static inline int TLB_hash(uint32_t vpn) {
-  return vpn % (sizeof(TLB) / sizeof(TLB[0]));
+  return vpn % ARRLEN(TLB);
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
