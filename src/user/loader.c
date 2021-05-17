@@ -99,7 +99,7 @@ static inline word_t init_stack(int argc, char *argv[]) {
   char **p = arr; \
   for (; *p != NULL; p ++) { \
     push_str(*p); \
-    assert(i < (int) (sizeof(strs) / sizeof(strs[0]))); \
+    assert(i < ARRLEN(strs)); \
     strs[i ++] = host_to_user(sp); \
   } \
   strs[i ++] = 0; \

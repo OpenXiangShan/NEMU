@@ -50,7 +50,7 @@ static struct rule {
 #endif
 };
 
-#define NR_REGEX ((int) (sizeof(rules) / sizeof(rules[0]) ))
+#define NR_REGEX ARRLEN(rules)
 
 static regex_t re[NR_REGEX] = {};
 

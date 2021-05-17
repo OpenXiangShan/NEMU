@@ -230,7 +230,7 @@ static struct {
 
 };
 
-#define NR_CMD ((int) (sizeof(cmd_table) / sizeof(cmd_table[0])))
+#define NR_CMD ARRLEN(cmd_table)
 
 static int cmd_help(char *args) {
   /* extract the first argument */
