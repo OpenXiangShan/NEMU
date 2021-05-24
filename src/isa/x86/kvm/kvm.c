@@ -1,3 +1,4 @@
+#if 0
 //#include <monitor/monitor.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
@@ -220,3 +221,4 @@ void kvm_exec() {
 
   run_protected_mode(&vm, &vcpu);
 }
+#endif
