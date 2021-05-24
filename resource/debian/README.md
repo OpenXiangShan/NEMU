@@ -138,6 +138,12 @@ vim emergency.service
   +ExecStart=-/bin/bash
 ```
   * 免密码登录, 见[这里](https://superuser.com/questions/969923/automatic-root-login-in-debian-8-0-console-only)
+```
+cd /lib/systemd/system
+vim serial-getty@.service
+  -ExecStart=-/sbin/agetty -o '-p -- \\u' --keep-baud 115200,57600,38400,9600 %I $TERM
+  +ExecStart=-/sbin/agetty -a root --keep-baud 115200,57600,38400,9600 %I $TERM
+```
 
 * 退出并卸载镜像
 ```
