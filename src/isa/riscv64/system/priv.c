@@ -23,13 +23,19 @@ void init_csr() {
 
 rtlreg_t csr_perf;
 
-static inline int csr_is_legal(uint32_t addr) {
+static inline bool csr_is_legal(uint32_t addr) {
   assert(addr < 4096);
+  // CSR does not exist
   if(!csr_exist[addr]) {
     printf("[NEMU] unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
-    return 0;
+    return false;
   }
-  return 1;
+  // CSR exists, but access is not legal
+  int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
+  if (!(cpu.mode >= lowest_access_priv_level)) {
+    return false;
+  }
+  return true;
 }
 
 static inline word_t* csr_decode(uint32_t addr) {
