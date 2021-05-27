@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 
+void init_aligncheck();
 void init_log(const char *log_file);
 void init_mem();
 void init_regex();
@@ -123,6 +124,9 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
+
+  /* Enable alignment checking for in a x86 host */
+  init_aligncheck();
 
   /* Display welcome message. */
   welcome();
