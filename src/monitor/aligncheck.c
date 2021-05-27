@@ -2,6 +2,8 @@
 #define _GNU_SOURCE
 #endif
 #include <common.h>
+
+#ifdef CONFIG_AC_HOST
 #include <signal.h>
 
 #define RFLAGS_AC (1u << 18)
@@ -50,3 +52,7 @@ void init_aligncheck() {
 
   aligncheck_enable();
 }
+#else
+void init_aligncheck() {
+}
+#endif

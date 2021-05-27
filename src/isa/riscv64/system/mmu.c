@@ -145,11 +145,13 @@ int update_mmu_state() {
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if (type == MEM_TYPE_IFETCH) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
-  if (likely((vaddr & (len - 1)) == 0)) return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
-  mtval->val = vaddr;
-  cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
-  assert(0);
-  return MEM_RET_FAIL;
+  if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
+    assert(0);
+    mtval->val = vaddr;
+    cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+    return MEM_RET_FAIL;
+  }
+  return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
