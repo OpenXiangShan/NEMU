@@ -9,6 +9,11 @@ static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
       raise_intr(s, EX_II, cpu.pc);
       return false;
   }
+  int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
+  if (!(cpu.mode >= lowest_access_priv_level)) {
+    raise_intr(s, EX_II, cpu.pc);
+    return false;
+  }
   return true;
 }
 
