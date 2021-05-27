@@ -54,32 +54,18 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
-  if ((s->pc & 0xfff) == 0xffe) {
-    // instruction may accross page boundary
-    uint32_t lo = instr_fetch(&s->snpc, 2);
-    s->isa.instr.val = lo & 0xffff;
-    if (s->isa.instr.r.opcode1_0 != 0x3) {
-      // this is an RVC instruction
-      goto rvc;
-    }
+  s->isa.instr.val = instr_fetch(&s->snpc, 2);
+  if (s->isa.instr.r.opcode1_0 != 0x3) {
+    // this is an RVC instruction
+    idx = table_rvc(s);
+  } else {
     // this is a 4-byte instruction, should fetch the MSB part
     // NOTE: The fetch here may cause IPF.
     // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
     // Refer to `mtval` in the privileged manual for more details.
     uint32_t hi = instr_fetch(&s->snpc, 2);
-    s->isa.instr.val |= ((hi & 0xffff) << 16);
-  } else {
-    // in-page instructions, fetch 4 byte and
-    // see whether it is an RVC instruction later
-    s->isa.instr.val = instr_fetch(&s->snpc, 4);
-  }
-
-  if (s->isa.instr.r.opcode1_0 == 0x3) {
+    s->isa.instr.val |= (hi << 16);
     idx = table_main(s);
-  } else {
-    // RVC instructions are only 2-byte
-    s->snpc -= 2;
-rvc: idx = table_rvc(s);
   }
 
   s->type = INSTR_TYPE_N;

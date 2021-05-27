@@ -206,6 +206,17 @@ config FPU_NONE
   bool "Disable FPU Emulation"
 endchoice
 
+choice
+  prompt "Detectingmisaligned memory accessing"
+  default AC_HOST
+config AC_HOST
+  bool "By host CPU (x86 host only)"
+config AC_SOFT
+  bool "By software emulation"
+config AC_NONE
+  bool "Disable"
+endchoice
+
 menu "Miscellaneous"
 choice
   prompt "Host timer"
