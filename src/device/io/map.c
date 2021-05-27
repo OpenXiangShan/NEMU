@@ -1,5 +1,5 @@
 #include <isa.h>
-#include <memory/paddr.h>
+#include <memory/host.h>
 #include <memory/vaddr.h>
 #include <device/map.h>
 
@@ -32,17 +32,13 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
-
-  word_t data = *(word_t *)((uint8_t *)map->space + offset) & (~0Lu >> ((8 - len) << 3));
-  return data;
+  return host_read(map->space + offset, len);
 }
 
 void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   assert(len >= 1 && len <= 8);
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
-
-  memcpy((uint8_t *)map->space + offset, &data, len);
-
+  host_write(map->space + offset, len, data);
   invoke_callback(map->callback, offset, len, true);
 }
