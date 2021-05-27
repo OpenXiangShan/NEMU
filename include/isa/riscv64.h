@@ -123,6 +123,15 @@ typedef struct {
       uint32_t fmt       : 2;
       uint32_t funct5    : 5;
     } fp;
+    struct {
+      uint32_t opcode1_0 : 2;
+      uint32_t opcode6_2 : 5;
+      uint32_t rd        : 5;
+      uint32_t funct3    : 3;
+      uint32_t rs1       : 5;
+      uint32_t imm6_0    : 7;
+      uint32_t funct5    : 5;
+    } bi;
     uint32_t val;
   } instr;
 } riscv64_ISADecodeInfo;

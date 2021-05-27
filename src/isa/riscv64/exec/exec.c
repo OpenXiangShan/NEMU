@@ -51,7 +51,7 @@ static inline make_EHelper(op_fp){
     EX(4, fsgnj) EX(5, fmin_fmax)
     EX(8, fcvt_F_to_F) EX(11, fsqrt) 
     IDEX(20, F_fpr_to_gpr, fcmp) 
-    IDEX(24, F_fpr_to_gpr, fcvt_F_to_G) IDEX(26, F_gpr_to_fpr, fcvt_G_to_F)
+    IDEX(24, F_fpr_to_gpr, fcvt_F_to_G) IDEX(26, F_gpr_to_fpr, fcvt_G_to_F) 
     IDEX(28, F_fpr_to_gpr, fmv_F_to_G) IDEX(30, F_gpr_to_fpr, fmv_G_to_F)
     default: exec_inv(s);
   }
@@ -59,30 +59,142 @@ static inline make_EHelper(op_fp){
 
 static inline make_EHelper(op_imm) {
   switch (s->isa.instr.i.funct3) {
-    EX(0, addi)  EX(1, slli)  EX(2, slti) EX(3, sltui)
-    EX(4, xori)  EX(5, srli)  EX(6, ori)  EX(7, andi)
+    EX(0, addi)     EX(2, slti)     EX(3, sltui)
+    EX(4, xori)     EX(6, ori)      EX(7, andi)
+
+    case 1:
+      switch (s->isa.instr.i.simm11_0 >> 7) {        
+        EX(0, slli)   EX(1, shfli)
+        EX(4, sloi)   EX(5, sbseti)
+                      EX(9, sbclri)
+                      EX(13, sbinvi)
+        case 12:
+          switch(s->isa.instr.i.simm11_0 & 0x1f) {
+            EX(0, clz)      EX(1, ctz)      EX(2, pcnt)     EX(3, bmatflip)
+            EX(4, sext_b)   EX(5, sext_h)
+            EX(16, crc32_b) EX(17, crc32_h) EX(18, crc32_w) EX(19, crc32_d)
+            EX(24,crc32c_b) EX(25,crc32c_h) EX(26,crc32c_w) EX(27, crc32c_d)  
+            default: exec_inv(s);   
+          }
+          break;
+        default: exec_inv(s);
+      }
+      break;
+    case 5:
+      if((s->isa.instr.i.simm11_0 >> 6) & 0x1){
+        switch(1) {
+          EX(1, fsri)
+          default: exec_inv(s);
+        }
+        break;
+      }else{
+        switch (s->isa.instr.i.simm11_0 >> 7) {
+          EX(0, srli)   EX(1, unshfli)
+          EX(4, sroi)   EX(5, gorci)
+          EX(8, srai)   EX(9, sbexti)
+          EX(12,rori)   EX(13, grevi)
+          default: exec_inv(s);
+        }
+        break;
+      }
   }
 }
 
 static inline make_EHelper(op_imm32) {
   switch (s->isa.instr.i.funct3) {
-    EX(0, addiw) EX(1, slliw) EX(5, srliw)
+    EX(0, addiw)
+    EX(4, addiwu)
+    case 1:
+      switch (s->isa.instr.i.simm11_0 >> 7) {
+        EX(0, slliw)
+        EX(1, slliuw)
+        EX(4, sloiw)   
+        EX(5, sbsetiw)
+        EX(9, sbclriw)
+        EX(13, sbinviw)
+        case 12:
+          switch (s->isa.instr.i.simm11_0 & 0x1f){
+            EX(0, clzw)   EX(1, ctzw)   EX(2, pcntw)
+            default: exec_inv(s);
+          }
+          break;
+      }
+      break;
+    case 5:
+      if((s->isa.instr.i.simm11_0 >> 6) & 0x1) {
+        switch(1) {
+          EX(1, fsri)
+          default: exec_inv(s);
+        }
+        break;
+      }else{
+        switch (s->isa.instr.i.simm11_0 >> 7){
+          EX(0, srliw)
+          EX(4, sroiw)   EX(5, gorciw)
+          EX(8, sraiw)   EX(9, sbextiw)
+          EX(12,roriw)   EX(13,greviw)
+          default: exec_inv(s);
+        }
+        break;
+      }
     default: exec_inv(s);
   }
 }
 
 static inline make_EHelper(op) {
   uint32_t idx = s->isa.instr.r.funct7;
-  if (idx == 32) idx = 2;
-  assert(idx <= 2);
+  // if (idx == 32) idx = 2;
+  // assert(idx <= 2);
 #define pair(x, y) (((x) << 3) | (y))
-  switch (pair(idx, s->isa.instr.r.funct3)) {
-    EX(pair(0, 0), add)  EX(pair(0, 1), sll)  EX(pair(0, 2), slt)  EX(pair(0, 3), sltu)
-    EX(pair(0, 4), xor)  EX(pair(0, 5), srl)  EX(pair(0, 6), or)   EX(pair(0, 7), and)
-    EX(pair(1, 0), mul)  EX(pair(1, 1), mulh) EX(pair(1,2), mulhsu)EX(pair(1, 3), mulhu)
-    EX(pair(1, 4), div)  EX(pair(1, 5), divu) EX(pair(1, 6), rem)  EX(pair(1, 7), remu)
-    EX(pair(2, 0), sub)  EX(pair(2, 5), sra)
-    default: exec_inv(s);
+  if((idx & 0x3) == 2){
+    switch(s->isa.instr.r.funct3){
+      EX(1, fsl)  EX(5, fsr)
+      default: exec_inv(s);
+    }
+  }else if((idx & 0x3) == 3){
+    switch(s->isa.instr.r.funct3){
+      EX(1, cmix) EX(5, cmov)
+      default: exec_inv(s);
+    }
+  }else{
+    switch (pair(idx, s->isa.instr.r.funct3)) {
+      EX(pair(0, 0), add)  EX(pair(0, 1), sll)  EX(pair(0, 2), slt)  EX(pair(0, 3), sltu)
+      EX(pair(0, 4), xor)  EX(pair(0, 5), srl)  EX(pair(0, 6), or)   EX(pair(0, 7), and)
+      EX(pair(1, 0), mul)  EX(pair(1, 1), mulh) EX(pair(1,2), mulhsu)EX(pair(1, 3), mulhu)
+      EX(pair(1, 4), div)  EX(pair(1, 5), divu) EX(pair(1, 6), rem)  EX(pair(1, 7), remu)
+      EX(pair(32, 0), sub) EX(pair(32, 5), sra)
+
+      // B-extension
+                              EX(pair(4, 1), shfl)                                EX(pair(4, 3), bmator)   
+      EX(pair(4, 4), pack)    EX(pair(4, 5), unshfl)    EX(pair(4, 6), bext)      EX(pair(4, 7), packh)
+      EX(pair(5, 1), clmul)   EX(pair(5, 2), clmulr)    EX(pair(5, 3), clmulh)    EX(pair(5, 4), min)
+      EX(pair(5, 5), max)     EX(pair(5, 6), minu)      EX(pair(5, 7), maxu)
+
+      EX(pair(16, 1), slo)
+      EX(pair(16, 2), sh1add)
+      EX(pair(16, 4), sh2add)
+      EX(pair(16, 5), sro)
+      EX(pair(16, 6), sh3add)
+      EX(pair(20, 1), sbset)
+      EX(pair(20, 5), gorc)
+      EX(pair(48, 1), rol)
+      EX(pair(48, 5), ror)
+      EX(pair(52, 1), sbinv)
+      EX(pair(52, 5), grev)
+
+      EX(pair(32, 4), xnor)
+      EX(pair(32, 6), orn)
+      EX(pair(32, 7), andn)
+
+      EX(pair(36, 1), sbclr)
+      EX(pair(36, 3), bmatxor)
+      EX(pair(36, 4), packu)
+      EX(pair(36, 5), sbext)
+      EX(pair(36, 6), bdep)
+      EX(pair(36, 7), bfp)
+
+      default: exec_inv(s);
+    }
   }
 #undef pair
 }
@@ -90,16 +202,57 @@ static inline make_EHelper(op) {
 
 static inline make_EHelper(op32) {
   uint32_t idx = s->isa.instr.r.funct7;
-  if (idx == 32) idx = 2;
-  assert(idx <= 2);
+  // if (idx == 32) idx = 2;
+  // assert(idx <= 2);
 #define pair(x, y) (((x) << 3) | (y))
-  switch (pair(idx, s->isa.instr.r.funct3)) {
-    EX(pair(0, 0), addw) EX(pair(0, 1), sllw)
-                         EX(pair(0, 5), srlw)
-    EX(pair(1, 0), mulw)
-    EX(pair(1, 4), divw) EX(pair(1, 5), divuw) EX(pair(1, 6), remw)  EX(pair(1, 7), remuw)
-    EX(pair(2, 0), subw) EX(pair(2, 5), sraw)
-    default: exec_inv(s);
+  if((idx & 0x3) == 2){
+    switch (s->isa.instr.r.funct3) {
+      EX(1, fsl)  EX(5, fsr)
+      default: 
+        exec_inv(s);
+    }
+  }
+  else{
+    switch (pair(idx, s->isa.instr.r.funct3)) {
+      EX(pair(0, 0), addw) EX(pair(0, 1), sllw)
+                          EX(pair(0, 5), srlw)
+      EX(pair(1, 0), mulw)
+      EX(pair(1, 4), divw) EX(pair(1, 5), divuw) EX(pair(1, 6), remw)  EX(pair(1, 7), remuw)
+      EX(pair(32, 0), subw) EX(pair(32, 5), sraw)
+
+      // B-extension
+      EX(pair(4, 0), adduw)
+      EX(pair(4, 1), shflw)
+      EX(pair(4, 4), packw) 
+      EX(pair(4, 5), unshflw)
+      EX(pair(4, 6), bextw)
+      EX(pair(5, 0), addwu)
+      EX(pair(5, 1), clmulw)
+      EX(pair(5, 2), clmulrw)
+      EX(pair(5, 3), clmulhw)
+
+      EX(pair(16, 1), slow)
+      EX(pair(16, 2), sh1adduw)
+      EX(pair(16, 4), sh2adduw)
+      EX(pair(16, 5), srow)
+      EX(pair(16, 6), sh3adduw)
+      EX(pair(20, 1), sbsetw)
+      EX(pair(20, 5), gorcw)
+      EX(pair(48, 1), rolw)
+      EX(pair(48, 5), rorw)
+      EX(pair(52, 1), sbinvw)
+      EX(pair(52, 5), grevw)
+
+      EX(pair(36, 0), subuw)
+      EX(pair(36, 1), sbclrw)
+      EX(pair(36, 4), packuw)
+      EX(pair(36, 5), sbextw)
+      EX(pair(36, 6), bdepw)
+      EX(pair(36, 7), bfpw)
+      EX(pair(37, 0), subwu)
+
+      default: exec_inv(s);
+    }
   }
 #undef pair
 }
@@ -110,7 +263,7 @@ static inline make_EHelper(branch) {
     EX(4, blt)  EX(5, bge)  EX(6, bltu)EX(7, bgeu)
   }
 }
-
+  
 static inline make_EHelper(system) {
   switch (s->isa.instr.i.funct3) {
     EX(0, priv)  IDEX(1, csr, csrrw)  IDEX(2, csr, csrrs)  IDEX(3, csr, csrrc)
@@ -268,7 +421,7 @@ vaddr_t isa_exec_once() {
 
   // reset gpr[0]
   reg_l(0) = 0;
-
+  //printf("%x %d\n",s.seq_pc, cpu.gpr[10]._64);
   return s.seq_pc;
 }
 

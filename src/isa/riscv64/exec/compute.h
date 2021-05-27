@@ -70,14 +70,18 @@ static inline make_EHelper(srai) {
 }
 
 static inline make_EHelper(srli) {
-  // the LSB of funct7 may be "1" due to the shift amount can be >= 32
-  // this rule is disabled when a compressed inst comes in
-  if ((s->isa.instr.r.funct7 & ~0x1) == 32 && s->isa.instr.r.opcode1_0 == 0x3) {
-    exec_srai(s);
-  } else {
-    rtl_shri(s, ddest, dsrc1, id_src2->imm);
-    print_asm_template3(srli);
-  }
+  // // the LSB of funct7 may be "1" due to the shift amount can be >= 32
+  // // this rule is disabled when a compressed inst comes in
+  // if ((s->isa.instr.r.funct7 & ~0x1) == 32 && s->isa.instr.r.opcode1_0 == 0x3) {
+  //   exec_srai(s);
+  // } else {
+  //   rtl_shri(s, ddest, dsrc1, id_src2->imm);
+  //   print_asm_template3(srli);
+  // }
+
+  // add bit-manip and handle encode conflict
+  rtl_shri(s, ddest, dsrc1, id_src2->imm);
+  print_asm_template3(srli);
 }
 
 static inline make_EHelper(slti) {
@@ -158,12 +162,12 @@ static inline make_EHelper(slliw) {
 
 static inline make_EHelper(srliw) {
   assert((s->isa.instr.r.funct7 & 0x1) == 0);
-  if (s->isa.instr.r.funct7 == 32) {
-    rtl_sariw(s, ddest, dsrc1, id_src2->imm);
-    print_asm_template3(sraiw);
-  }
-  else {
-    rtl_shriw(s, ddest, dsrc1, id_src2->imm);
-    print_asm_template3(srliw);
-  }
+  rtl_shriw(s, ddest, dsrc1, id_src2->imm);
+  print_asm_template3(srliw);
+}
+
+static inline make_EHelper(sraiw) {
+  assert((s->isa.instr.r.funct7 & 0x1) == 0);
+  rtl_sariw(s, ddest, dsrc1, id_src2->imm);
+  print_asm_template3(sraiw);
 }

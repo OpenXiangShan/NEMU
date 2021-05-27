@@ -29,8 +29,20 @@ static inline make_DopHelper(fpr){
 }
 
 static inline make_DHelper(I) {
+  // for b manipulation
+  sword_t imm;
+  if(s->isa.instr.bi.funct3 == 1 || s->isa.instr.bi.funct3 == 5){
+    if(s->isa.instr.bi.funct5 == 1 || s->isa.instr.bi.imm6_0 >> 6){
+      imm = s->isa.instr.bi.imm6_0 & 0x3f;
+    }else{
+      imm = s->isa.instr.bi.imm6_0;
+    }
+  }else{
+    imm = s->isa.instr.i.simm11_0;
+  }
+  
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
-  decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, true);
+  decode_op_i(s, id_src2, imm,/*(sword_t)s->isa.instr.i.simm11_0,*/ true);
   decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
 }
 
