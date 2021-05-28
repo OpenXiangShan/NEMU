@@ -207,7 +207,7 @@ config FPU_NONE
 endchoice
 
 choice
-  prompt "Detectingmisaligned memory accessing"
+  prompt "Detecting misaligned memory accessing"
   default AC_HOST
 config AC_HOST
   bool "By host CPU (x86 host only)"

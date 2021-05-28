@@ -84,6 +84,7 @@ ifdef CONFIG_DIFFTEST
 DIFF_REF_PATH = $(NEMU_HOME)/$(call remove_quote,$(CONFIG_DIFFTEST_REF_PATH))
 DIFF_REF_SO = $(DIFF_REF_PATH)/build/$(ISA)-$(call remove_quote,$(CONFIG_DIFFTEST_REF_NAME))-so
 MKFLAGS = ISA=$(ISA) SHARE=1 ENGINE=interpreter
+ARGS_DIFF = --diff=$(DIFF_REF_SO)
 
 ifndef CONFIG_DIFFTEST_REF_NEMU
 $(DIFF_REF_SO):
@@ -100,7 +101,7 @@ $(BINARY): compile_git
 # Some convenient rules
 
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
-override ARGS += --diff=$(DIFF_REF_SO)
+override ARGS += $(ARGS_DIFF)
 
 # Command to execute NEMU
 IMG ?=
