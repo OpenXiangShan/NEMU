@@ -46,7 +46,7 @@ static inline def_DHelper(r2fr){
 }
 
 def_THelper(fload) {
-  if (!fp_enable()) return EXEC_ID_rt_inv;
+  if (!fp_enable()) return table_rt_inv(s);
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
@@ -60,7 +60,7 @@ def_THelper(fload) {
 }
 
 def_THelper(fstore) {
-  if (!fp_enable()) return EXEC_ID_rt_inv;
+  if (!fp_enable()) return table_rt_inv(s);
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
@@ -74,7 +74,7 @@ def_THelper(fstore) {
 }
 
 def_THelper(op_fp) {
-  if (!fp_enable()) return EXEC_ID_rt_inv;
+  if (!fp_enable()) return table_rt_inv(s);
 
   if ((s->isa.instr.fp.fmt == 0b00 && s->isa.instr.fp.funct5 == 0b01000) ||
       s->isa.instr.fp.fmt == 0b01) return table_op_fp_d(s);
@@ -111,7 +111,7 @@ def_THelper(op_fp) {
 }
 
 def_THelper(fmadd_dispatch) {
-  if (!fp_enable()) return EXEC_ID_rt_inv;
+  if (!fp_enable()) return table_rt_inv(s);
   def_INSTR_TAB("????? 01 ????? ????? ??? ????? ????? ??", fmadd_d_dispatch);
 
   def_INSTR_TAB("????? 00 ????? ????? ??? ????? 10000 ??", fmadds);
