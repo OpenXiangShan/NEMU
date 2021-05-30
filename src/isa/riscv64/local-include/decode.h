@@ -32,12 +32,19 @@ static inline make_DHelper(I) {
   // for b manipulation
   sword_t imm;
   if(s->isa.instr.bi.funct3 == 1 || s->isa.instr.bi.funct3 == 5){
-    if(s->isa.instr.bi.funct5 == 1 || s->isa.instr.bi.imm6_0 >> 6){
+    if(s->isa.instr.bi.funct5 == 0 || s->isa.instr.bi.funct5 == 8){
+      imm = s->isa.instr.i.simm11_0;
+    }
+    else if(s->isa.instr.bi.funct5 == 1 || s->isa.instr.bi.imm6_0 >> 6){
       imm = s->isa.instr.bi.imm6_0 & 0x3f;
     }else{
       imm = s->isa.instr.bi.imm6_0;
     }
   }else{
+    imm = s->isa.instr.i.simm11_0;
+  }
+
+  if(s->isa.instr.i.opcode6_2 == 0){
     imm = s->isa.instr.i.simm11_0;
   }
   
