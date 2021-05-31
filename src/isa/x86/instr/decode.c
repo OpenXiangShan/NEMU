@@ -175,7 +175,7 @@ static void operand_reg(Decode *s, Operand *op, int r, int width) {
 
 static void operand_imm(Decode *s, Operand *op, word_t imm) {
   op->preg = &op->val;
-  op->val = imm;
+  rtl_li(s, op->preg, imm);
   op->type = OP_TYPE_IMM;
 }
 
