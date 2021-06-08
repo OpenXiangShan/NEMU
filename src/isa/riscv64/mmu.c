@@ -109,15 +109,17 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
 #if !_SHARE
-  bool is_write = (type == MEM_TYPE_WRITE);
-  if (!pte.a || (!pte.d && is_write)) {
-    pte.a = true;
-    pte.d |= is_write;
-    paddr_write(p_pte, pte.val, PTE_SIZE);
+  if (!isa_has_mem_exception()) {
+    bool is_write = (type == MEM_TYPE_WRITE);
+    if (!pte.a || (!pte.d && is_write)) {
+      pte.a = true;
+      pte.d |= is_write;
+      paddr_write(p_pte, pte.val, PTE_SIZE);
+    }
   }
 #endif
 
-  return pg_base | MEM_RET_OK;
+  return isa_has_mem_exception() ? MEM_RET_FAIL : pg_base | MEM_RET_OK;
 }
 
 int force_raise_pf_record(vaddr_t vaddr, int type) {
@@ -194,12 +196,13 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
 
   bool ifetch = (type == MEM_TYPE_IFETCH);
 
-  // riscv-privileged 4.4.1: Addressing and Memory Protection: 
-  // Instruction fetch addresses and load and store effective addresses, 
+  // riscv-privileged 4.4.1: Addressing and Memory Protection:
+  // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
-  word_t va_mask = ((((word_t)1) << (63 - 39 + 1)) - 1);
-  word_t va_msbs = vaddr >> 39;
-  bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+  bool vm_enable = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && satp->mode == 8;
+  word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
+  word_t va_msbs = vaddr >> 38;
+  bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
 
 // #ifdef FORCE_RAISE_PF
 //   int forced_result = force_raise_pf(vaddr, type);
@@ -210,25 +213,26 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
   if(!va_msbs_ok){
     if(ifetch){
       stval->val = vaddr;
-      cpu.mem_exception = EX_IAF;
+      cpu.mem_exception = EX_IPF;
     } else if(type == MEM_TYPE_READ){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = (cpu.amo ? EX_SAF : EX_LAF);
+      cpu.mem_exception = (cpu.amo ? EX_SPF : EX_LPF);
     } else {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_SAF;
+      cpu.mem_exception = EX_SPF;
     }
     return MEM_RET_FAIL;
   }
 
-  
+
   if ((!ifetch) && (vaddr & (len - 1)) != 0) {
     mtval->val = vaddr;
     cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
-    return MEM_RET_FAIL;
+    // return MEM_RET_FAIL; // LAM|SAM, go on to check pf
   }
+
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);
@@ -241,9 +245,9 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len) {
       }
 #endif
       return MEM_RET_NEED_TRANSLATE;
-    } 
+    }
   }
-  return MEM_RET_OK;
+  return isa_has_mem_exception() ? MEM_RET_FAIL : MEM_RET_OK;
 }
 
 #ifdef ENABLE_DISAMBIGUATE
