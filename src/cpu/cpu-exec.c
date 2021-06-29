@@ -198,9 +198,11 @@ static void execute(int n) {
     defined(CONFIG_IQUEUE) || defined(CONFIG_DIFFTEST)
     this_s = s;
 #endif
-    __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
     goto *(s->EHelper);
+
+{
+    __attribute__((unused)) void *jptr;
 
 #undef s0
 #undef s1
@@ -215,6 +217,7 @@ def_EHelper(nemu_decode) {
   s = tcache_decode(s);
   IFDEF(CONFIG_BB_COUNT, decode_num ++);
   continue;
+}
 }
 
 extern void update_bb_count(vaddr_t pc, int decode_num);
