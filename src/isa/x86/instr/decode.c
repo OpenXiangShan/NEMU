@@ -22,6 +22,7 @@ static word_t get_instr(Decode *s) {
   return *(s->isa.p_instr - 1);
 }
 
+#ifdef CONFIG_x86_CC_SKIP
 enum {
   F_CF = 0x1,
   F_PF = 0x2,
@@ -32,7 +33,6 @@ enum {
   F_FCMP = F_CF | F_PF | F_ZF,
 };
 
-#ifdef CONFIG_x86_CC_SKIP
 static const uint8_t cc2flag [16] = {
   [CC_O] = F_OF, [CC_NO] = F_OF,
   [CC_B] = F_CF, [CC_NB] = F_CF,
