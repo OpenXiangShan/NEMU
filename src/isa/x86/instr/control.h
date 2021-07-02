@@ -1,7 +1,8 @@
 def_EHelper(call) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   // the target address is calculated at the decode stage
-  rtl_push(s, dsrc1);
+  rtl_li(s, s0, s->snpc);
+  rtl_push(s, s0);
   ftrace_call(s->pc, id_dest->imm);
   rtl_j(s, id_dest->imm);
 }

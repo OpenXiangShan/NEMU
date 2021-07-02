@@ -1,4 +1,3 @@
-#include "../local-include/rtl.h"
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include <isa-all-instr.h>
@@ -193,8 +192,8 @@ static void operand_reg(Decode *s, Operand *op, int r, int width) {
 }
 
 static void operand_imm(Decode *s, Operand *op, word_t imm) {
+  op->val = imm;
   op->preg = &op->val;
-  rtl_li(s, op->preg, imm);
   op->type = OP_TYPE_IMM;
 }
 
@@ -465,7 +464,6 @@ static def_DHelper(J) {
   // the target address can be computed in the decode stage
   sword_t offset = fetch_simm(s, width);
   id_dest->imm = offset + s->snpc;
-  operand_imm(s, id_src1, s->snpc);  // for call
 }
 #if 0
 #ifndef __ICS_EXPORT
