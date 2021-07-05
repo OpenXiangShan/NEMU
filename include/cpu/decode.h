@@ -39,7 +39,8 @@ typedef struct Decode {
   };
   vaddr_t pc;
   vaddr_t snpc; // sequential next pc
-  const void *EHelper;
+  IFDEF (CONFIG_PERF_OPT, const void *EHelper);
+  IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
   Operand dest, src1, src2;
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1

@@ -23,5 +23,6 @@ void mmu_tlb_flush(vaddr_t vaddr);
 
 struct Decode;
 void save_globals(struct Decode *s);
+void fetch_decode(struct Decode *s, vaddr_t pc);
 
 #endif
