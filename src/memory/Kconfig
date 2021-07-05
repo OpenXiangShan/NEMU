@@ -10,7 +10,7 @@ config MSIZE
   default 0x8000000
 
 config PC_RESET_OFFSET
-  hex "Offset of reset vecotr from the base of memory"
+  hex "Offset of reset vector from the base of memory"
   default 0 if MODE_USER
   default 0x100000
 
