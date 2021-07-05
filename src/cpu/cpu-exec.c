@@ -85,16 +85,6 @@ void longjmp_exception(int ex_cause) {
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
 
-int fetch_decode(Decode *s, vaddr_t pc) {
-  s->pc = pc;
-  s->snpc = pc;
-  IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
-  int idx = isa_fetch_decode(s);
-  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
-        s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf));
-  return idx;
-}
-
 #ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
@@ -134,12 +124,14 @@ int fetch_decode(Decode *s, vaddr_t pc) {
   goto end_of_loop; \
 } while (0)
 
+static const void **g_exec_table;
+
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc);
-Decode* tcache_decode(Decode *s, const void **exec_table);
+Decode* tcache_decode(Decode *s);
 void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
 
-//static inline
+static inline
 Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
@@ -155,16 +147,16 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 }
 
 static int execute(int n) {
-  static const void* exec_table[TOTAL_INSTR + 1] = {
+  static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
   static int init_flag = 0;
   Decode *s = prev_s;
 
   if (likely(init_flag == 0)) {
-    exec_table[TOTAL_INSTR] = &&exec_nemu_decode;
-    extern Decode* tcache_init(const void **speical_exec_table, vaddr_t reset_vector);
-    s = tcache_init(exec_table + TOTAL_INSTR, cpu.pc);
+    g_exec_table = local_exec_table;
+    extern Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
+    s = tcache_init(&&exec_nemu_decode, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
   }
@@ -188,7 +180,7 @@ static int execute(int n) {
 #include "isa-exec.h"
 
 def_EHelper(nemu_decode) {
-  s = tcache_decode(s, exec_table);
+  s = tcache_decode(s);
   continue;
 }
 
@@ -207,24 +199,23 @@ end_of_loop:
   return n;
 }
 #else
-typedef void (*EHelper_t)(Decode *s);
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 
 #define rtl_priv_next(s)
 #define rtl_priv_jr(s, target) rtl_jr(s, target)
 
 #include "isa-exec.h"
+static const void* g_exec_table[TOTAL_INSTR] = {
+  MAP(INSTR_LIST, FILL_EXEC_TABLE)
+};
 
 static int execute(int n) {
-  static const EHelper_t exec_table[TOTAL_INSTR] = {
-    MAP(INSTR_LIST, FILL_EXEC_TABLE)
-  };
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
-    int idx = fetch_decode(&s, cpu.pc);
+    fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
-    exec_table[idx](&s);
+    s.EHelper(&s);
     g_nr_guest_instr ++;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
@@ -232,6 +223,16 @@ static int execute(int n) {
   return n;
 }
 #endif
+
+void fetch_decode(Decode *s, vaddr_t pc) {
+  s->pc = pc;
+  s->snpc = pc;
+  IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
+  int idx = isa_fetch_decode(s);
+  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
+        s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf));
+  s->EHelper = g_exec_table[idx];
+}
 
 static void update_global() {
 #ifdef CONFIG_PERF_OPT

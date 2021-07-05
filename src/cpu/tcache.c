@@ -20,17 +20,13 @@ static Decode *tcache_bb_freelist = NULL;
 static bb_t bb_pool[CONFIG_BB_POOL_SIZE] = {};
 static int bb_idx = 0;
 static bb_t bb_list [CONFIG_BB_LIST_SIZE] = {};
-static const void **g_special_exec_table = NULL;
-
-static const void* get_nemu_decode() {
-  return g_special_exec_table[0];
-}
+static const void *g_exec_nemu_decode;
 
 static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   s->tnext = s->ntnext = NULL;
   s->type = 0;
   s->pc = pc;
-  s->EHelper = get_nemu_decode();
+  s->EHelper = g_exec_nemu_decode;
   return s;
 }
 
@@ -150,7 +146,6 @@ static void tcache_flush() {
 enum { TCACHE_BB_BUILDING, TCACHE_RUNNING };
 static int tcache_state = TCACHE_RUNNING;
 static Decode *bb_now = NULL, *bb_now_record = NULL;
-int fetch_decode(Decode *s, vaddr_t pc);
 
 __attribute__((noinline))
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
@@ -167,10 +162,9 @@ static inline void tcache_patch_and_free(Decode *bb_record, Decode *bb) {
 }
 
 __attribute__((noinline))
-Decode* tcache_decode(Decode *s, const void **exec_table) {
+Decode* tcache_decode(Decode *s) {
   static int idx_in_bb = 0;
   vaddr_t thispc = s->pc;
-  int idx = 0;
 
   if (tcache_state == TCACHE_RUNNING) {  // start of a basic block
     // first check whether this basic block is already decoded
@@ -192,8 +186,7 @@ Decode* tcache_decode(Decode *s, const void **exec_table) {
 
   save_globals(s);
   s->idx_in_bb = idx_in_bb;
-  idx = fetch_decode(s, thispc); // note that exception may happen!
-  s->EHelper = exec_table[idx];
+  fetch_decode(s, thispc); // note that exception may happen!
 
   if (s->type == INSTR_TYPE_N) {
     Decode *next = tcache_new(s->snpc);
@@ -245,9 +238,9 @@ Decode* tcache_handle_flush(vaddr_t snpc) {
   return ex.tnext;
 }
 
-Decode* tcache_init(const void **special_exec_table, vaddr_t reset_vector) {
+Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
   tcache_flush();
-  g_special_exec_table = special_exec_table;
+  g_exec_nemu_decode = exec_nemu_decode;
   return tcache_bb_new(reset_vector);
 }
 #endif
