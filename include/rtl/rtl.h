@@ -46,7 +46,6 @@ enum {
   HOSTCALL_EXIT,  // handling nemu_trap
   HOSTCALL_INV,   // invalid opcode
   HOSTCALL_PIO,   // port I/O
-  HOSTCALL_FP,    // floating point operation
   HOSTCALL_CSR,   // system registers / control status registers
   HOSTCALL_TRAP,  // trap by interrupts/exceptions
   HOSTCALL_PRIV,  // privilige instructions
@@ -54,6 +53,7 @@ enum {
 
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm);
+def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd);
 
 #include <rtl-basic.h>
 #include <rtl/pseudo.h>
