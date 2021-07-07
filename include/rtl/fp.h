@@ -3,8 +3,6 @@
 
 #include <common.h>
 
-typedef uint64_t fpreg_t;
-
 enum {
   FPCALL_W32,
   FPCALL_W64,

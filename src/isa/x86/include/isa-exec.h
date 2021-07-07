@@ -8,4 +8,5 @@
 #include "../instr/system.h"
 #include "../instr/misc.h"
 #include "../instr/special.h"
+#include "../instr/fp.h"
 #include "../instr/vector.h"

@@ -11,14 +11,16 @@
   f(pushf) f(pusha) f(popa) \
   f(clc) f(stc) f(cld) \
   f(iret) \
-  f(cpuid) f(rdtsc)
+  f(cpuid) f(rdtsc) \
+  f(fld1)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) f(jecxz) \
   f(push) f(pop) \
   f(inc) f(dec) f(neg) f(not) \
   f(mul) f(imul1) f(div) f(idiv) \
-  f(lgdt) f(lidt) f(ltr) f(_int)
+  f(lgdt) f(lidt) f(ltr) f(_int) \
+  f(fstps) f(flds)
 
 #define INSTR_BINARY(f) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \
@@ -30,7 +32,8 @@
   f(cmovcc) \
   f(mov_rm2sreg) \
   f(movq_E2xmm) f(movq_xmm2E) f(movdqa_E2xmm) f(psrlq) f(movd_xmm2E) f(pxor) \
-  f(xadd)
+  f(xadd) \
+  f(faddp)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

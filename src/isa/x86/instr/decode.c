@@ -685,6 +685,8 @@ def_THelper(_2byte_esc) {
   return EXEC_ID_inv;
 }
 
+#include "fp/decode.h"
+
 def_THelper(main) {
   x86_instr_fetch(s, 1);
   s->isa.opcode = get_instr(s);
@@ -791,6 +793,8 @@ def_THelper(main) {
   def_hex_INSTR_IDTABW("d2", cl2E, gp2, 1);
   def_hex_INSTR_IDTAB ("d3", cl2E, gp2);
   def_hex_INSTR_TAB   ("d6",       nemu_trap);
+  def_hex_INSTR_TAB   ("d9",       fpu_d9);
+  def_hex_INSTR_TAB   ("de",       fpu_de);
   def_hex_INSTR_IDTABW("e3",    J, jecxz, 1);
   def_hex_INSTR_IDTABW("e8",    J, call, 4);
   def_hex_INSTR_IDTABW("e9",    J,  jmp, 4);

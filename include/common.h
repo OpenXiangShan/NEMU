@@ -14,6 +14,7 @@ typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;
 #define FMT_WORD MUXDEF(CONFIG_ISA64, "0x%016lx", "0x%08x")
 
 typedef word_t rtlreg_t;
+typedef uint64_t fpreg_t;
 typedef word_t vaddr_t;
 typedef uint32_t paddr_t;
 typedef uint16_t ioaddr_t;
