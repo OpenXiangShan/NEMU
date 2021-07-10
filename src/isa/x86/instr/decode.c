@@ -30,6 +30,7 @@ enum {
   F_ALL = F_CF | F_PF | F_ZF | F_SF | F_OF,
 };
 
+#ifdef CONFIG_x86_CC_SKIP
 static const uint8_t cc2flag [16] = {
   [CC_O] = F_OF, [CC_NO] = F_OF,
   [CC_B] = F_CF, [CC_NB] = F_CF,
@@ -75,6 +76,7 @@ static const struct {
   [EXEC_ID_xadd] = { F_ALL, 0 },
   [EXEC_ID_bt] = { F_ALL, 0 },
 };
+#endif
 
 typedef union {
   struct {
@@ -793,8 +795,10 @@ def_THelper(main) {
   def_hex_INSTR_IDTABW("d2", cl2E, gp2, 1);
   def_hex_INSTR_IDTAB ("d3", cl2E, gp2);
   def_hex_INSTR_TAB   ("d6",       nemu_trap);
+  def_hex_INSTR_TAB   ("d8",       fpu_d8);
   def_hex_INSTR_TAB   ("d9",       fpu_d9);
   def_hex_INSTR_TAB   ("db",       fpu_db);
+  def_hex_INSTR_TAB   ("dc",       fpu_dc);
   def_hex_INSTR_TAB   ("dd",       fpu_dd);
   def_hex_INSTR_TAB   ("de",       fpu_de);
   def_hex_INSTR_TAB   ("df",       fpu_df);
@@ -843,7 +847,7 @@ int isa_fetch_decode(Decode *s) {
       s->type = INSTR_TYPE_I; break;
   }
 
-#ifdef CONFIG_PERF_OPT
+#ifdef CONFIG_x86_CC_SKIP
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
   if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {
