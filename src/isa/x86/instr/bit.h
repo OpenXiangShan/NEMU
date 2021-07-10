@@ -33,11 +33,12 @@ def_EHelper(bt) {
   rtl_set_CF(s, s0);
 }
 
-#if 0
-static inline def_EHelper(bsf) {
+def_EHelper(bsf) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
+
+  rtl_decode_binary(s, false, true);
 
   rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
   rtl_set_ZF(s, s0);
@@ -47,13 +48,14 @@ static inline def_EHelper(bsf) {
   if (*dsrc1 != 0) {
     while ((*dsrc1 & (1u << bit)) == 0) bit++;
     *ddest = bit;
-  } else if (s->isa.rep_flags) {
+  } else if (s->isa.rep_flags == PREFIX_REP) {
     *ddest = 32;
   }
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(bsf);
+  rtl_wb_r(s, ddest);
 }
 
+
+#if 0
 static inline def_EHelper(btc) {
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);

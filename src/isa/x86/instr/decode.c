@@ -674,10 +674,12 @@ def_THelper(_2byte_esc) {
   def_hex_INSTR_IDTAB ("a4",Ib_G2E,shld);
   def_hex_INSTR_IDTAB ("a5",cl_G2E,shld);
   def_hex_INSTR_IDTAB ("ac",Ib_G2E,shrd);
+  def_hex_INSTR_IDTAB ("ad",cl_G2E,shrd);
   def_hex_INSTR_IDTAB ("af",  E2G, imul2);
   def_hex_INSTR_IDTAB ("b1",  G2E, cmpxchg);
   def_hex_INSTR_IDTAB ("b6", Eb2G, movzb);
   def_hex_INSTR_IDTABW("b7", Ew2G, movzw, 4);
+  def_hex_INSTR_IDTAB ("bc",  E2G, bsf);
   def_hex_INSTR_IDTAB ("bd",  E2G, bsr);
   def_hex_INSTR_IDTAB ("be", Eb2G, movsb);
   def_hex_INSTR_IDTABW("bf", Ew2G, movsw, 4);

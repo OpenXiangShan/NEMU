@@ -50,6 +50,7 @@ def_THelper(fpu_d8) {
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fadd);
+    def_INSTR_IDTAB("1100 1???", ST0_STi, fmul);
     def_INSTR_IDTAB("1111 0???", ST0_STi, fdiv);
   } else {
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmuls);
@@ -93,7 +94,9 @@ def_THelper(fpu_dc) {
   x86_instr_fetch(s, 1);
 
   if (get_instr(s) >= 0xc0) {
+    def_INSTR_IDTAB("1100 0???", STi_ST0, fadd);
     def_INSTR_IDTAB("1110 0???", STi_ST0, fsubr);
+    def_INSTR_IDTAB("1110 1???", STi_ST0, fsub);
   } else {
     def_INSTR_IDTAB("?? 100 ???", mem_ST0, fsubl);
   }
@@ -120,6 +123,8 @@ def_THelper(fpu_de) {
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", STi_ST0, faddp);
+    def_INSTR_IDTAB("1100 1???", STi_ST0, fmulp);
+    def_INSTR_IDTAB("1111 0???", STi_ST0, fdivrp);
     def_INSTR_IDTAB("1111 1???", STi_ST0, fdivp);
   } else {
   }
