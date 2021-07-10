@@ -39,10 +39,18 @@ static inline def_DHelper(STi_ST0) {
   operand_freg(s, id_src1, 0);
 }
 
+static inline def_DHelper(ST0_STi) {
+  int i = get_instr(s) & 0x7;
+  operand_freg(s, id_src1, i);
+  operand_freg(s, id_dest, 0);
+}
+
 def_THelper(fpu_d8) {
   x86_instr_fetch(s, 1);
 
   if (get_instr(s) >= 0xc0) {
+    def_INSTR_IDTAB("1100 0???", ST0_STi, fadd);
+    def_INSTR_IDTAB("1111 0???", ST0_STi, fdiv);
   } else {
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmuls);
   }
@@ -85,6 +93,7 @@ def_THelper(fpu_dc) {
   x86_instr_fetch(s, 1);
 
   if (get_instr(s) >= 0xc0) {
+    def_INSTR_IDTAB("1110 0???", STi_ST0, fsubr);
   } else {
     def_INSTR_IDTAB("?? 100 ???", mem_ST0, fsubl);
   }

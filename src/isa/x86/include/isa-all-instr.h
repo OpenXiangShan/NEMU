@@ -35,7 +35,7 @@
   f(mov_rm2sreg) \
   f(movq_E2xmm) f(movq_xmm2E) f(movdqa_E2xmm) f(psrlq) f(movd_xmm2E) f(pxor) \
   f(xadd) \
-  f(faddp) f(fdivp) \
+  f(fadd) f(faddp) f(fsubr) f(fdiv) f(fdivp) \
   f(fucomi) f(fcomip)
 
 #define INSTR_TERNARY(f) \
