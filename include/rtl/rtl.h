@@ -111,4 +111,6 @@ def_rtl_f2i_prototype(fcvt_f64_to_u64);
 def_rtl_fp_unary_prototype(fcvt_f32_to_f64);
 def_rtl_fp_unary_prototype(fcvt_f64_to_f32);
 
+def_rtl_fp_unary_prototype(fmv);
+
 #endif

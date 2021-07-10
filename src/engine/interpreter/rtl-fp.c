@@ -118,3 +118,7 @@ def_rtl_f2i(fcvt_f64_to_i64, my_f64_to_i64,  64);
 def_rtl_f2i(fcvt_f64_to_u64, my_f64_to_ui64, 64);
 def_rtl_fp_unary(fcvt_f32_to_f64, f32_to_f64, 32, true);
 def_rtl_fp_unary(fcvt_f64_to_f32, f64_to_f32, 64, true);
+
+def_rtl(fmv, fpreg_t *dest, const fpreg_t *src1) {
+  *dest = *src1;
+}

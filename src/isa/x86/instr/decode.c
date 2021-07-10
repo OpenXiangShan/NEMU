@@ -794,7 +794,10 @@ def_THelper(main) {
   def_hex_INSTR_IDTAB ("d3", cl2E, gp2);
   def_hex_INSTR_TAB   ("d6",       nemu_trap);
   def_hex_INSTR_TAB   ("d9",       fpu_d9);
+  def_hex_INSTR_TAB   ("db",       fpu_db);
+  def_hex_INSTR_TAB   ("dd",       fpu_dd);
   def_hex_INSTR_TAB   ("de",       fpu_de);
+  def_hex_INSTR_TAB   ("df",       fpu_df);
   def_hex_INSTR_IDTABW("e3",    J, jecxz, 1);
   def_hex_INSTR_IDTABW("e8",    J, call, 4);
   def_hex_INSTR_IDTABW("e9",    J,  jmp, 4);

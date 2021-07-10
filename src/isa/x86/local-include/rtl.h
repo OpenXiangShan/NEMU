@@ -66,28 +66,6 @@ static inline def_rtl(is_add_carry, rtlreg_t* dest,
   // dest <- is_carry(src1 + src2)
   rtl_is_sub_carry(s, dest, res, src1);
 }
-
-static inline def_rtl(flm, fpreg_t *dest, const rtlreg_t* addr,
-    word_t offset, int len, int mmu_mode) {
-  if (len == 8) {
-    uint32_t lo = vaddr_read(s, *addr + offset + 0, 4, mmu_mode);
-    uint32_t hi = vaddr_read(s, *addr + offset + 4, 4, mmu_mode);
-    *dest = lo | ((uint64_t)hi << 32);
-  } else {
-    *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
-  }
-}
-
-static inline def_rtl(fsm, const fpreg_t *src1, const rtlreg_t* addr,
-    word_t offset, int len, int mmu_mode) {
-  if (len == 8) {
-    vaddr_write(s, *addr + offset + 0, 4, *src1, mmu_mode);
-    vaddr_write(s, *addr + offset + 4, 4, *src1 >> 32, mmu_mode);
-  } else {
-    vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
-  }
-}
-
 #else
 static inline def_rtl(push, const rtlreg_t* src1) {
   // esp <- esp - 4
@@ -182,6 +160,36 @@ static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
   rtl_update_PF(s, result);
 #endif
 }
+
+static inline def_rtl(flm, fpreg_t *dest, const rtlreg_t* addr,
+    word_t offset, int len, int mmu_mode) {
+  if (len == 8) {
+    uint32_t lo = vaddr_read(s, *addr + offset + 0, 4, mmu_mode);
+    uint32_t hi = vaddr_read(s, *addr + offset + 4, 4, mmu_mode);
+    *dest = lo | ((uint64_t)hi << 32);
+  } else {
+    *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
+  }
+}
+
+static inline def_rtl(fsm, const fpreg_t *src1, const rtlreg_t* addr,
+    word_t offset, int len, int mmu_mode) {
+  if (len == 8) {
+    vaddr_write(s, *addr + offset + 0, 4, *src1, mmu_mode);
+    vaddr_write(s, *addr + offset + 4, 4, *src1 >> 32, mmu_mode);
+  } else {
+    vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  }
+}
+
+static inline def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
+  rtl_fltd(s, t0, src1, src2);
+  rtl_set_CF(s, t0);
+  rtl_feqd(s, t0, src1, src2);
+  rtl_set_ZF(s, t0);
+  rtl_set_PF(s, rz);
+}
+
 #else
 #define def_rtl_setget_eflags(f) \
   static inline def_rtl(concat(set_, f), const rtlreg_t* src) { \

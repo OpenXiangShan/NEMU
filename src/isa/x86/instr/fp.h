@@ -1,2 +1,6 @@
+#include "fp/fp-include.h"
+
 #include "fp/arith.h"
-#include "fp/ldst.h"
+#include "fp/cmp.h"
+#include "fp/fcsw.h"
+#include "fp/mov.h"
