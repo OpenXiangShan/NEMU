@@ -2,6 +2,9 @@
 #define __ISA_RISCV64_H__
 
 #include <common.h>
+#ifdef CONFIG_RVV_010
+#include "../instr/rvv/vreg.h"
+#endif // CONFIG_RVV_010
 
 typedef struct {
   union {
@@ -16,6 +19,18 @@ typedef struct {
     uint64_t _64;
   } fpr[32];
 
+#ifdef CONFIG_RVV_010
+  //vector
+  union {
+    uint64_t _64[VENUM64];
+    uint32_t _32[VENUM32];
+    uint16_t _16[VENUM16];
+    uint8_t  _8[VENUM8];
+  } vr[32];
+
+  uint64_t vstart;
+  uint64_t vxsat, vxrm, vl, vtype;
+#endif // CONFIG_RVV_010
 
   uint8_t mode;
 
