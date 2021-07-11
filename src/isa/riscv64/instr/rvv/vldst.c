@@ -62,7 +62,7 @@ static void vld(int mode, int is_signed, Decode *s) {
 
   // TODO: the idx larger than vl need reset to zero.
   rtl_li(s, s0, 0);
-  csr_write(IDXVSTART, s0);
+  vcsr_write(IDXVSTART, s0);
 }
 
 def_EHelper(vlduu) { //unit-strided
