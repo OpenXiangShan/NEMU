@@ -1,5 +1,5 @@
 #include "vreg.h"
-#include "local-include/csr.h"
+#include "../local-include/csr.h"
 #include <stdio.h>
 #include "isa.h"
 
