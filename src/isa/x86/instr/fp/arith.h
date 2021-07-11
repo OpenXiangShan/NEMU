@@ -46,6 +46,13 @@ def_EHelper(fsubr) {
   rtl_fsubd(s, dfdest, dfsrc1, dfdest);
 }
 
+def_EHelper(fsubrs) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+  rtl_fcvt_f32_to_f64(s, &s->isa.fptmp, &s->isa.fptmp);
+  rtl_fsubd(s, dfdest, &s->isa.fptmp, dfdest);
+}
+
 def_EHelper(fsubrl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
@@ -82,6 +89,12 @@ def_EHelper(fmulp) {
 
 def_EHelper(fdiv) {
   rtl_fdivd(s, dfdest, dfdest, dfsrc1);
+}
+
+def_EHelper(fdivl) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  rtl_fdivd(s, dfdest, dfdest, &s->isa.fptmp);
 }
 
 def_EHelper(fdivp) {

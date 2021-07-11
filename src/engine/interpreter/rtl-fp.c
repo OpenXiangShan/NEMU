@@ -72,10 +72,20 @@ static inline void fp_update_ex() {
       op_name(*src1).v, \
       fpreg_t *dest, const rtlreg_t *src1)
 
+#define def_rtl_i642f(name, op_name) \
+  def_rtl_fp(name, true, \
+      op_name(*src1).v, \
+      fpreg_t *dest, const fpreg_t *src1)
+
 #define def_rtl_f2i(name, op_name, w) \
   def_rtl_fp(name, true, \
       op_name(fpToF(*src1, w)), \
       rtlreg_t *dest, const fpreg_t *src1)
+
+#define def_rtl_f2i64(name, op_name, w) \
+  def_rtl_fp(name, true, \
+      op_name(fpToF(*src1, w)), \
+      fpreg_t *dest, const fpreg_t *src1)
 
 def_rtl_fp_binary(fadds, f32_add, 32, true);
 def_rtl_fp_binary(fsubs, f32_sub, 32, true);
@@ -90,12 +100,12 @@ def_rtl_fp_cmp(flts, f32_lt, 32);
 def_rtl_fp_cmp(feqs, f32_eq, 32);
 def_rtl_i2f(fcvt_i32_to_f32, i32_to_f32);
 def_rtl_i2f(fcvt_u32_to_f32, ui32_to_f32);
-def_rtl_i2f(fcvt_i64_to_f32, i64_to_f32);
-def_rtl_i2f(fcvt_u64_to_f32, ui64_to_f32);
+def_rtl_i642f(fcvt_i64_to_f32, i64_to_f32);
+def_rtl_i642f(fcvt_u64_to_f32, ui64_to_f32);
 def_rtl_f2i(fcvt_f32_to_i32, my_f32_to_i32,  32);
 def_rtl_f2i(fcvt_f32_to_u32, my_f32_to_ui32, 32);
-def_rtl_f2i(fcvt_f32_to_i64, my_f32_to_i64,  32);
-def_rtl_f2i(fcvt_f32_to_u64, my_f32_to_ui64, 32);
+def_rtl_f2i64(fcvt_f32_to_i64, my_f32_to_i64,  32);
+def_rtl_f2i64(fcvt_f32_to_u64, my_f32_to_ui64, 32);
 
 def_rtl_fp_binary(faddd, f64_add, 64, true);
 def_rtl_fp_binary(fsubd, f64_sub, 64, true);
@@ -110,12 +120,12 @@ def_rtl_fp_cmp(fltd, f64_lt, 64);
 def_rtl_fp_cmp(feqd, f64_eq, 64);
 def_rtl_i2f(fcvt_i32_to_f64, i32_to_f64);
 def_rtl_i2f(fcvt_u32_to_f64, ui32_to_f64);
-def_rtl_i2f(fcvt_i64_to_f64, i64_to_f64);
-def_rtl_i2f(fcvt_u64_to_f64, ui64_to_f64);
+def_rtl_i642f(fcvt_i64_to_f64, i64_to_f64);
+def_rtl_i642f(fcvt_u64_to_f64, ui64_to_f64);
 def_rtl_f2i(fcvt_f64_to_i32, my_f64_to_i32,  64);
 def_rtl_f2i(fcvt_f64_to_u32, my_f64_to_ui32, 64);
-def_rtl_f2i(fcvt_f64_to_i64, my_f64_to_i64,  64);
-def_rtl_f2i(fcvt_f64_to_u64, my_f64_to_ui64, 64);
+def_rtl_f2i64(fcvt_f64_to_i64, my_f64_to_i64,  64);
+def_rtl_f2i64(fcvt_f64_to_u64, my_f64_to_ui64, 64);
 def_rtl_fp_unary(fcvt_f32_to_f64, f32_to_f64, 32, true);
 def_rtl_fp_unary(fcvt_f64_to_f32, f64_to_f32, 64, true);
 

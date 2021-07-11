@@ -24,3 +24,7 @@ def_EHelper(fldcw) {
   void x86_fp_set_rm(uint32_t rm_x86);
   x86_fp_set_rm(rm_x86);
 }
+
+def_EHelper(fwait) {
+  // empty
+}

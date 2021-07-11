@@ -140,6 +140,7 @@ typedef struct {
   word_t mscale;
   rtlreg_t mbr;
   fpreg_t fptmp;
+  uint64_t tmp64;
 } x86_ISADecodeInfo;
 
 enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };

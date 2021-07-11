@@ -6,13 +6,13 @@
   f(inv) f(nemu_trap) f(nop) \
   f(ret) f(leave) \
   f(cwtl) f(cltd) \
-  f(movs) \
-  f(rep_movs) f(rep_stos) \
+  f(movs) f(stos) \
+  f(rep_movs) f(rep_stos) f(repz_cmps) \
   f(pushf) f(pusha) f(popa) \
   f(clc) f(stc) f(cld) \
   f(iret) \
   f(cpuid) f(rdtsc) \
-  f(fchs) f(fabs) f(fsqrt) f(fxam) f(fld1) f(fldz) f(fnstsw)
+  f(fchs) f(fabs) f(fsqrt) f(fxam) f(fld1) f(fldz) f(fnstsw) f(fwait)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) f(jecxz) \
@@ -21,9 +21,9 @@
   f(mul) f(imul1) f(div) f(idiv) \
   f(lgdt) f(lidt) f(ltr) f(_int) \
   f(flds) f(fldl) f(fstl) f(fld) f(fstps) f(fstpl) f(fstp) \
-  f(fildl) f(fistl) f(fistpl) \
+  f(fildl) f(fildll) f(fistl) f(fistpl) \
   f(fxch) f(fnstcw) f(fldcw) \
-  f(faddl) f(fadds) f(fsubl) f(fsubs) f(fsubrl) f(fmull) f(fmuls)
+  f(faddl) f(fadds) f(fsubl) f(fsubs) f(fsubrs) f(fsubrl) f(fmull) f(fmuls) f(fdivl)
 
 #define INSTR_BINARY(f) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \

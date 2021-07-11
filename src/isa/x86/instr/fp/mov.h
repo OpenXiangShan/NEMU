@@ -62,6 +62,13 @@ def_EHelper(fildl) {
   ftop_push();
 }
 
+def_EHelper(fildll) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.tmp64, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  rtl_fcvt_i64_to_f64(s, dfdest, &s->isa.tmp64);
+  ftop_push();
+}
+
 def_EHelper(fistl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fcvt_f64_to_i32(s, s0, dfsrc1);

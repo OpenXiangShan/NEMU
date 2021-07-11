@@ -66,8 +66,12 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
   def_rtl(name, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2)
 #define def_rtl_i2f_prototype(name) \
   def_rtl(name, fpreg_t *dest, const rtlreg_t *src1)
+#define def_rtl_i642f_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
 #define def_rtl_f2i_prototype(name) \
   def_rtl(name, rtlreg_t *dest, const fpreg_t *src1)
+#define def_rtl_f2i64_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
 
 def_rtl_fp_binary_prototype(fadds);
 def_rtl_fp_binary_prototype(fsubs);
@@ -82,12 +86,12 @@ def_rtl_fp_cmp_prototype(flts);
 def_rtl_fp_cmp_prototype(feqs);
 def_rtl_i2f_prototype(fcvt_i32_to_f32);
 def_rtl_i2f_prototype(fcvt_u32_to_f32);
-def_rtl_i2f_prototype(fcvt_i64_to_f32);
-def_rtl_i2f_prototype(fcvt_u64_to_f32);
+def_rtl_i642f_prototype(fcvt_i64_to_f32);
+def_rtl_i642f_prototype(fcvt_u64_to_f32);
 def_rtl_f2i_prototype(fcvt_f32_to_i32);
 def_rtl_f2i_prototype(fcvt_f32_to_u32);
-def_rtl_f2i_prototype(fcvt_f32_to_i64);
-def_rtl_f2i_prototype(fcvt_f32_to_u64);
+def_rtl_f2i64_prototype(fcvt_f32_to_i64);
+def_rtl_f2i64_prototype(fcvt_f32_to_u64);
 
 def_rtl_fp_binary_prototype(faddd);
 def_rtl_fp_binary_prototype(fsubd);
@@ -102,12 +106,12 @@ def_rtl_fp_cmp_prototype(fltd);
 def_rtl_fp_cmp_prototype(feqd);
 def_rtl_i2f_prototype(fcvt_i32_to_f64);
 def_rtl_i2f_prototype(fcvt_u32_to_f64);
-def_rtl_i2f_prototype(fcvt_i64_to_f64);
-def_rtl_i2f_prototype(fcvt_u64_to_f64);
+def_rtl_i642f_prototype(fcvt_i64_to_f64);
+def_rtl_i642f_prototype(fcvt_u64_to_f64);
 def_rtl_f2i_prototype(fcvt_f64_to_i32);
 def_rtl_f2i_prototype(fcvt_f64_to_u32);
-def_rtl_f2i_prototype(fcvt_f64_to_i64);
-def_rtl_f2i_prototype(fcvt_f64_to_u64);
+def_rtl_f2i64_prototype(fcvt_f64_to_i64);
+def_rtl_f2i64_prototype(fcvt_f64_to_u64);
 def_rtl_fp_unary_prototype(fcvt_f32_to_f64);
 def_rtl_fp_unary_prototype(fcvt_f64_to_f32);
 

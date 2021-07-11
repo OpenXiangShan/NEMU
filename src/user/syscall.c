@@ -154,13 +154,6 @@ static inline word_t user_getrusage(int who, void *usage) {
 }
 
 #if 0
-static inline word_t user_sys_stat64(const char *pathname, void *statbuf) {
-  struct stat buf;
-  int ret = get_syscall_ret(stat(pathname, &buf));
-  if (ret == 0) translate_stat64(&buf, statbuf);
-  return ret;
-}
-
 static inline word_t user_sys_lstat64(const char *pathname, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(lstat(pathname, &buf));
@@ -170,6 +163,13 @@ static inline word_t user_sys_lstat64(const char *pathname, void *statbuf) {
 #endif
 
 #ifndef CONFIG_ISA64
+static inline word_t user_sys_stat64(const char *pathname, void *statbuf) {
+  struct stat buf;
+  int ret = get_syscall_ret(stat(pathname, &buf));
+  if (ret == 0) translate_stat64(&buf, statbuf);
+  return ret;
+}
+
 static inline word_t user_sys_fstat64(int fd, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
@@ -238,7 +238,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
     case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
-    case 195: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case 196: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
 #endif
     IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
@@ -260,6 +259,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
     case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
+    case USER_SYS_rt_sigaction: return 0; // not implemented
 #ifdef CONFIG_ISA64
     case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
           (const char*) user_to_host(arg2), (char*) user_to_host(arg3), arg4); break;
@@ -268,7 +268,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
           (const char*) user_to_host(arg2), user_to_host(arg3), arg4); break;
     case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
           arg3, arg4, user_fd(arg5), arg6); break;
-    case USER_SYS_rt_sigaction: return 0; // not implemented
     case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
           arg2, arg3, arg4, user_to_host(arg5)); break;
     case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
@@ -294,6 +293,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_readlink: ret = readlink((char *)user_to_host(arg1), (char *)user_to_host(arg2), arg3); break;
     case USER_SYS_access: ret = access((char *)user_to_host(arg1), arg2); break;
     case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
+    case USER_SYS_stat64: return user_sys_stat64((char *)user_to_host(arg1), user_to_host(arg2));
     case USER_SYS_mmap2: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
           arg3, arg4, user_fd(arg5), arg6 << 12); break;
 #endif

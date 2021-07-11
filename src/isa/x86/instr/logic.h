@@ -245,7 +245,8 @@ def_EHelper(shrd) {
   int count = *dsrc2 & 0x1f;
   if (count == 0) {
     rtl_wb(s, ddest);
-    assert(0);
+    goto end;
+    //assert(0);
     //return;
   }
 #endif
@@ -271,6 +272,7 @@ def_EHelper(shrd) {
   rtl_update_ZFSF(s, ddest, s->isa.width);
   // unnecessary to update CF and OF in NEMU
 #endif
+end: ;
 }
 
 #if 0
