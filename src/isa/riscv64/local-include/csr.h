@@ -19,6 +19,15 @@
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01)
 
+#ifdef CONFIG_RVV_010
+  #define VCSRS(f) \
+  f(vstart, 0x008) \
+  f(vxsat, 0x009) \
+  f(vxrm, 0x00a) \
+  f(vl, 0xc20) \
+  f(vtype, 0xc21)
+#endif
+
 #define CSR_STRUCT_START(name) \
   typedef union { \
     struct {
@@ -256,6 +265,9 @@ rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, bool max_req);
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
+#ifdef CONFIG_RVV_010
+  MAP(VCSRS, CSRS_DECL)
+#endif // CONFIG_RVV_010
 
 word_t csrid_read(uint32_t csrid);
 

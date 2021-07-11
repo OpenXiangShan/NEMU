@@ -143,7 +143,7 @@ static inline def_THelper(OP_V) { // 10_101
     default: exec_inv(s);
   }
 
-  s->width = 1 << vtype_t->vsew;
+  s->width = 1 << vtype->vsew;
   s->vm = s->isa.instr.v_opv1.v_vm; //1 for without mask; 0 for with mask
 
   /*
