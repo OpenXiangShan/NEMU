@@ -20,10 +20,11 @@
   f(inc) f(dec) f(neg) f(not) \
   f(mul) f(imul1) f(div) f(idiv) \
   f(lgdt) f(lidt) f(ltr) f(_int) \
-  f(flds) f(fldl) f(fstl) f(fld) f(fstps) f(fstpl) f(fstp) \
+  f(flds) f(fldl) f(fstl) f(fld) f(fsts) f(fstps) f(fstpl) f(fstp) \
   f(fildl) f(fildll) f(fistl) f(fistpl) \
   f(fxch) f(fnstcw) f(fldcw) \
-  f(faddl) f(fadds) f(fsubl) f(fsubs) f(fsubrs) f(fsubrl) f(fmull) f(fmuls) f(fdivl)
+  f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) \
+  f(fmuls) f(fmull) f(fdivs) f(fdivl) f(fdivrs) f(fdivrl)
 
 #define INSTR_BINARY(f) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \
@@ -36,7 +37,8 @@
   f(mov_rm2sreg) \
   f(movq_E2xmm) f(movq_xmm2E) f(movdqa_E2xmm) f(psrlq) f(movd_xmm2E) f(pxor) \
   f(xadd) \
-  f(fadd) f(faddp) f(fsub) f(fsubp) f(fsubr) f(fsubrp) f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivrp) \
+  f(fadd) f(faddp) f(fsub) f(fsubp) f(fsubr) f(fsubrp) \
+  f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivr) f(fdivrp) \
   f(fcomi) f(fcomip) f(fucomi) f(fucomip) \
   f(fcmovb) f(fcmovbe)
 

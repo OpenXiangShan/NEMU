@@ -91,6 +91,13 @@ def_EHelper(fdiv) {
   rtl_fdivd(s, dfdest, dfdest, dfsrc1);
 }
 
+def_EHelper(fdivs) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+  rtl_fcvt_f32_to_f64(s, &s->isa.fptmp, &s->isa.fptmp);
+  rtl_fdivd(s, dfdest, dfdest, &s->isa.fptmp);
+}
+
 def_EHelper(fdivl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
@@ -100,6 +107,23 @@ def_EHelper(fdivl) {
 def_EHelper(fdivp) {
   rtl_fdivd(s, dfdest, dfdest, dfsrc1);
   ftop_pop();
+}
+
+def_EHelper(fdivr) {
+  rtl_fdivd(s, dfdest, dfsrc1, dfdest);
+}
+
+def_EHelper(fdivrs) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+  rtl_fcvt_f32_to_f64(s, &s->isa.fptmp, &s->isa.fptmp);
+  rtl_fdivd(s, dfdest, &s->isa.fptmp, dfdest);
+}
+
+def_EHelper(fdivrl) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  rtl_fdivd(s, dfdest, &s->isa.fptmp, dfdest);
 }
 
 def_EHelper(fdivrp) {

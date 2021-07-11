@@ -31,6 +31,12 @@ def_EHelper(fstl) {
   rtl_fsm(s, dfsrc1, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
 }
 
+def_EHelper(fsts) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_fcvt_f64_to_f32(s, &s->isa.fptmp, dfsrc1);
+  rtl_fsm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+}
+
 def_EHelper(fstps) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fcvt_f64_to_f32(s, &s->isa.fptmp, dfsrc1);

@@ -59,6 +59,8 @@ def_THelper(fpu_d8) {
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmuls);
     def_INSTR_IDTAB("?? 100 ???", mem_ST0, fsubs);
     def_INSTR_IDTAB("?? 101 ???", mem_ST0, fsubrs);
+    def_INSTR_IDTAB("?? 110 ???", mem_ST0, fdivs);
+    def_INSTR_IDTAB("?? 111 ???", mem_ST0, fdivrs);
   }
 
   return EXEC_ID_inv;
@@ -78,6 +80,7 @@ def_THelper(fpu_d9) {
     def_INSTR_IDTAB("1100 1???", STi_ST0, fxch);
   } else {
     def_INSTR_IDTAB("?? 000 ???", ld_ST0, flds);
+    def_INSTR_IDTAB("?? 010 ???", st_ST0, fsts);
     def_INSTR_IDTAB("?? 011 ???", st_ST0, fstps);
     def_INSTR_IDTAB("?? 101 ???", st_ST0, fldcw);
     def_INSTR_IDTAB("?? 111 ???", st_ST0, fnstcw);
@@ -121,12 +124,15 @@ def_THelper(fpu_dc) {
     def_INSTR_IDTAB("1100 1???", STi_ST0, fmul);
     def_INSTR_IDTAB("1110 0???", STi_ST0, fsubr);
     def_INSTR_IDTAB("1110 1???", STi_ST0, fsub);
+    def_INSTR_IDTAB("1111 0???", STi_ST0, fdivr);
+    def_INSTR_IDTAB("1111 1???", STi_ST0, fdiv);
   } else {
     def_INSTR_IDTAB("?? 000 ???", mem_ST0, faddl);
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmull);
     def_INSTR_IDTAB("?? 100 ???", mem_ST0, fsubl);
     def_INSTR_IDTAB("?? 101 ???", mem_ST0, fsubrl);
     def_INSTR_IDTAB("?? 110 ???", mem_ST0, fdivl);
+    def_INSTR_IDTAB("?? 111 ???", mem_ST0, fdivrl);
   }
 
   return EXEC_ID_inv;
