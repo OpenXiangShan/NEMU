@@ -23,8 +23,8 @@ static void vld(int mode, int is_signed, Decode *s) {
   //        1  ->  8            1  ->  16
   //        2  ->  16           2  ->  32
   //        4  ->  32           3  ->  64
-  s->v_width = s->v_width == 0 ? 1 << vtype->vsew : s->v_width;
-  bool error = (s->v_width * 8) > (8 << vtype->vsew);
+  s->v_width = s->v_width == 0 ? 1 << vtype_t->vsew : s->v_width;
+  bool error = (s->v_width * 8) > (8 << vtype_t->vsew);
   if(error) {
     printf("vld encounter an instr: v_width > SEW: mode::%d is_signed:%d\n", mode, is_signed);
     longjmp_raise_intr(EX_II);
@@ -39,19 +39,19 @@ static void vld(int mode, int is_signed, Decode *s) {
     //TODO: need special rtl function, but here ignore it
     if(mode == MODE_INDEXED) {
       rtl_mv(s, &(s->tmp_reg[0]), &(s->src1.val));
-      get_vreg(id_src2->reg, idx, t0, vtype->vsew, vtype->vlmul, 1, 1);
+      get_vreg(id_src2->reg, idx, t0, vtype_t->vsew, vtype_t->vlmul, 1, 1);
       rtl_add(s, s0, s0, t0);
     }
     
     // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx, vtype_t->vsew, vtype_t->vlmul);
     
     // op
     if(s->vm != 0 || mask != 0) {
       rtl_lm(s, s1, s0, 0, s->v_width);
       if (is_signed) rtl_sext(s, s1, s1, s->v_width);
       
-      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+      set_vreg(id_dest->reg, idx, *s1, vtype_t->vsew, vtype_t->vlmul, 1);
     }
     
     switch (mode) {
@@ -139,8 +139,8 @@ static void vst(int mode, DecodeExecState *s) {
   //        1  ->  8            1  ->  16
   //        2  ->  16           2  ->  32
   //        4  ->  32           3  ->  64
-  s->v_width = s->v_width == 0 ? 1 << vtype->vsew : s->v_width;
-  bool error = (s->v_width * 8) < (8 << vtype->vsew);
+  s->v_width = s->v_width == 0 ? 1 << vtype_t->vsew : s->v_width;
+  bool error = (s->v_width * 8) < (8 << vtype_t->vsew);
   if(error) {
     printf("vst encounter an instr: v_width < SEW: mode::%d\n", mode);
     longjmp_raise_intr(EX_II);
@@ -153,9 +153,9 @@ static void vst(int mode, DecodeExecState *s) {
     //TODO: need special rtl function, but here ignore it
     if(mode == MODE_INDEXED) {
       rtl_mv(s, s0, &id_src->val);
-      get_vreg(id_src2->reg, idx, t0, vtype->vsew, vtype->vlmul, 1, 1);
+      get_vreg(id_src2->reg, idx, t0, vtype_t->vsew, vtype_t->vlmul, 1, 1);
       rtl_add(s, s0, s0, t0);
-      // switch(vtype->vsew) {
+      // switch(vtype_t->vsew) {
       //   case 0 : rtl_addi(&s0, &s0, vreg_b(id_src2->reg, idx)); break;
       //   case 1 : rtl_addi(&s0, &s0, vreg_s(id_src2->reg, idx)); break;
       //   case 2 : rtl_addi(&s0, &s0, vreg_i(id_src2->reg, idx)); break;
@@ -165,24 +165,24 @@ static void vst(int mode, DecodeExecState *s) {
     
     // mask
     // uint8_t mask;
-    // switch (vtype->vsew) {
+    // switch (vtype_t->vsew) {
     //   case 0 : mask = (uint8_t)(vreg_b(0, idx) & 0x1); break;
     //   case 1 : mask = (uint8_t)(vreg_s(0, idx) & 0x1); break;
     //   case 2 : mask = (uint8_t)(vreg_i(0, idx) & 0x1); break;
     //   case 3 : mask = (uint8_t)(vreg_l(0, idx) & 0x1); break;
     //   default: mask = 0;
     // }
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx, vtype_t->vsew, vtype_t->vlmul);
 
     // op
     if(s->vm != 0 || mask != 0) {
-      // switch (vtype->vsew) {
+      // switch (vtype_t->vsew) {
       //   case 0 : rtl_li(&s1, vreg_b(id_dest->reg, idx)); break;
       //   case 1 : rtl_li(&s1, vreg_s(id_dest->reg, idx)); break;
       //   case 2 : rtl_li(&s1, vreg_i(id_dest->reg, idx)); break;
       //   case 3 : rtl_li(&s1, vreg_l(id_dest->reg, idx)); break;
       // }
-      get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
+      get_vreg(id_dest->reg, idx, s1, vtype_t->vsew, vtype_t->vlmul, 0, 1);
       rtl_sm(s, s0, 0, s1, s->v_width);
     }
 
