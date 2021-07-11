@@ -13,11 +13,17 @@ static word_t csr_array[4096] = {};
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 MAP(CSRS, CSRS_DEF)
+#ifdef CONFIG_RVV_010
+MAP(VCSRS, CSRS_DEF)
+#endif // CONFIG_RVV_010
 
 #define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
 static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
+  #ifdef CONFIG_RVV_010
+  MAP(VCSRS, CSRS_EXIST)
+  #endif // CONFIG_RVV_010
 };
 
 static inline word_t* csr_decode(uint32_t addr) {
@@ -55,6 +61,13 @@ static inline word_t csr_read(word_t *src) {
   if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
+
+#ifdef CONFIG_RVV_010
+void vcsr_write(uint32_t addr,  rtlreg_t *src) {
+  word_t *dest = csr_decode(addr);
+  *dest = *src;
+}
+#endif // CONFIG_RVV_010
 
 static inline void csr_write(word_t *dest, word_t src) {
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }

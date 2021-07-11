@@ -16,14 +16,14 @@ def_EHelper(vsetvl){
   rtl_lr(s, &(id_src->val), id_src1->reg, 4);
   rtlreg_t vl = check_vsetvl(id_src2->val, id_src->val, id_src->reg==0);
   rtlreg_t error = 1ul << 63;
-  if(vl==(uint64_t)-1) csr_write(IDXVTYPE, &error); //TODO: may cause error.
-  else csr_write(IDXVTYPE, &(id_src2->val));
-  csr_write(IDXVL, &vl);
+  if(vl==(uint64_t)-1) vcsr_write(IDXVTYPE, &error); //TODO: may cause error.
+  else vcsr_write(IDXVTYPE, &(id_src2->val));
+  vcsr_write(IDXVL, &vl);
 
   rtl_sr(s, id_dest->reg, &vl, 8/*4*/);
 
   rtl_li(s, &(s->tmp_reg[0]), 0);
-  csr_write(IDXVSTART, &(s->tmp_reg[0]));
+  vcsr_write(IDXVSTART, &(s->tmp_reg[0]));
 
   print_asm_template3(vsetvl);
 }
