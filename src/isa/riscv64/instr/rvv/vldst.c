@@ -16,17 +16,17 @@
 #define MODE_INDEXED 2
 
 #define VLD(mode, is_signed, s) vld(mode, is_signed, s);
-static void vld(int mode, int is_signed, DecodeExecState *s) {
+static void vld(int mode, int is_signed, Decode *s) {
   
-  //TODO: raise instr when decinfo.width > SEW
-  //width   0  -> none    SEW   0  ->  8
+  //TODO: raise instr when decinfo.v_width > SEW
+  //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16
   //        2  ->  16           2  ->  32
   //        4  ->  32           3  ->  64
-  s->width = s->width == 0 ? 1 << vtype->vsew : s->width;
-  bool error = (s->width * 8) > (8 << vtype->vsew);
+  s->v_width = s->v_width == 0 ? 1 << vtype->vsew : s->v_width;
+  bool error = (s->v_width * 8) > (8 << vtype->vsew);
   if(error) {
-    printf("vld encounter an instr: width > SEW: mode::%d is_signed:%d\n", mode, is_signed);
+    printf("vld encounter an instr: v_width > SEW: mode::%d is_signed:%d\n", mode, is_signed);
     longjmp_raise_intr(EX_II);
   }
   // previous decode does not load vals for us 
@@ -48,14 +48,14 @@ static void vld(int mode, int is_signed, DecodeExecState *s) {
     
     // op
     if(s->vm != 0 || mask != 0) {
-      rtl_lm(s, s1, s0, 0, s->width);
-      if (is_signed) rtl_sext(s, s1, s1, s->width);
+      rtl_lm(s, s1, s0, 0, s->v_width);
+      if (is_signed) rtl_sext(s, s1, s1, s->v_width);
       
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
     }
     
     switch (mode) {
-      case MODE_UNIT   : rtl_addi(s, s0, s0, s->width); break;
+      case MODE_UNIT   : rtl_addi(s, s0, s0, s->v_width); break;
       case MODE_STRIDED: rtl_add(s, s0, s0, &id_src2->val) ; break;
     }
   }
@@ -66,7 +66,7 @@ static void vld(int mode, int is_signed, DecodeExecState *s) {
 }
 
 def_EHelper(vlduu) { //unit-strided
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vle.v);
     case 1 : print_asm_template3(vlbu.v);
     case 2 : print_asm_template3(vlhu.v);
@@ -77,7 +77,7 @@ def_EHelper(vlduu) { //unit-strided
 }
 
 def_EHelper(vldsu) { //strided unsigned
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vlse.v);
     case 1 : print_asm_template3(vlsbu.v);
     case 2 : print_asm_template3(vlshu.v);
@@ -88,7 +88,7 @@ def_EHelper(vldsu) { //strided unsigned
 }
 
 def_EHelper(vldxu) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vlxe.v);
     case 1 : print_asm_template3(vlxbu.v);
     case 2 : print_asm_template3(vlxhu.v);
@@ -99,7 +99,7 @@ def_EHelper(vldxu) {
 }
 
 def_EHelper(vldus) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vle.v);
     case 1 : print_asm_template3(vlb.v);
     case 2 : print_asm_template3(vlh.v);
@@ -110,7 +110,7 @@ def_EHelper(vldus) {
 }
 
 def_EHelper(vldss) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vlse.v);
     case 1 : print_asm_template3(vlsb.v);
     case 2 : print_asm_template3(vlsh.v);
@@ -121,7 +121,7 @@ def_EHelper(vldss) {
 }
 
 def_EHelper(vldxs) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vlxe.v);
     case 1 : print_asm_template3(vlxb.v);
     case 2 : print_asm_template3(vlxh.v);
@@ -134,15 +134,15 @@ def_EHelper(vldxs) {
 // vector store
 #define VST(mode) vst(mode, s);
 static void vst(int mode, DecodeExecState *s) {
-  //TODO: raise instr when decinfo.width > SEW
-  //width   0  -> none    SEW   0  ->  8
+  //TODO: raise instr when decinfo.v_width > SEW
+  //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16
   //        2  ->  16           2  ->  32
   //        4  ->  32           3  ->  64
-  s->width = s->width == 0 ? 1 << vtype->vsew : s->width;
-  bool error = (s->width * 8) < (8 << vtype->vsew);
+  s->v_width = s->v_width == 0 ? 1 << vtype->vsew : s->v_width;
+  bool error = (s->v_width * 8) < (8 << vtype->vsew);
   if(error) {
-    printf("vst encounter an instr: width < SEW: mode::%d\n", mode);
+    printf("vst encounter an instr: v_width < SEW: mode::%d\n", mode);
     longjmp_raise_intr(EX_II);
   }
 
@@ -183,11 +183,11 @@ static void vst(int mode, DecodeExecState *s) {
       //   case 3 : rtl_li(&s1, vreg_l(id_dest->reg, idx)); break;
       // }
       get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
-      rtl_sm(s, s0, 0, s1, s->width);
+      rtl_sm(s, s0, 0, s1, s->v_width);
     }
 
     switch (mode) {
-      case MODE_UNIT   : rtl_addi(s, s0, s0, s->width); break;
+      case MODE_UNIT   : rtl_addi(s, s0, s0, s->v_width); break;
       case MODE_STRIDED: rtl_add(s, s0, s0, &id_src2->val) ; break;
     }
   }
@@ -196,7 +196,7 @@ static void vst(int mode, DecodeExecState *s) {
 }
 
 def_EHelper(vstu) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vse.v);
     case 1 : print_asm_template3(vsb.v);
     case 2 : print_asm_template3(vsh.v);
@@ -207,7 +207,7 @@ def_EHelper(vstu) {
 }
 
 def_EHelper(vsts) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vsse.v);
     case 1 : print_asm_template3(vssb.v);
     case 2 : print_asm_template3(vssh.v);
@@ -218,7 +218,7 @@ def_EHelper(vsts) {
 }
 
 def_EHelper(vstx) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vsxe.v);
     case 1 : print_asm_template3(vsxb.v);
     case 2 : print_asm_template3(vsxh.v);
@@ -229,7 +229,7 @@ def_EHelper(vstx) {
 }
 
 def_EHelper(vstxu) {
-  switch (s->width) {
+  switch (s->v_width) {
     case 0 : print_asm_template3(vsuxe.v);
     case 1 : print_asm_template3(vsuxb.v);
     case 2 : print_asm_template3(vsuxh.v);
