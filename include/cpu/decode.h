@@ -47,6 +47,14 @@ typedef struct Decode {
   uint8_t type;
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80]);
+  #ifdef CONFIG_RVV_010
+  // for vector
+  int v_width;
+  uint32_t vm;
+  uint32_t src_vmode;
+  rtlreg_t tmp_reg[4];
+  #endif // CONFIG_RVV_010
+
 } Decode;
 
 #define id_src1 (&s->src1)

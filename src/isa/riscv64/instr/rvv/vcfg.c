@@ -1,0 +1,29 @@
+#include "cpu/exec.h"
+#include "../local-include/vreg.h"
+#include "../local-include/csr.h"
+#include <stdio.h>
+#include "../local-include/intr.h"
+#include "../local-include/rtl.h"
+#include <setjmp.h>
+
+#define id_src (&s->src1)
+#define id_src2 (&s->src2)
+#define id_dest (&s->dest)
+
+def_EHelper(vsetvl){
+  //vlmul+lg2(VLEN) <= vsew + vl
+  // previous decode does not load vals for us
+  rtl_lr(s, &(id_src->val), id_src1->reg, 4);
+  rtlreg_t vl = check_vsetvl(id_src2->val, id_src->val, id_src->reg==0);
+  rtlreg_t error = 1ul << 63;
+  if(vl==(uint64_t)-1) csr_write(IDXVTYPE, &error); //TODO: may cause error.
+  else csr_write(IDXVTYPE, &(id_src2->val));
+  csr_write(IDXVL, &vl);
+
+  rtl_sr(s, id_dest->reg, &vl, 8/*4*/);
+
+  rtl_li(s, &(s->tmp_reg[0]), 0);
+  csr_write(IDXVSTART, &(s->tmp_reg[0]));
+
+  print_asm_template3(vsetvl);
+}
