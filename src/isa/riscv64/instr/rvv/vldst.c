@@ -133,7 +133,7 @@ def_EHelper(vldxs) {
 
 // vector store
 #define VST(mode) vst(mode, s);
-static void vst(int mode, DecodeExecState *s) {
+static void vst(int mode, Decode *s) {
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16

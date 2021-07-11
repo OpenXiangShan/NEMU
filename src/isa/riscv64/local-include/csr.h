@@ -235,6 +235,12 @@ CSR_STRUCT_END(mtime)
 
 #ifdef CONFIG_RVV_010
 // TODO: implement these vcsr
+#define IDXVSTART 0x008
+#define IDXVXSAT  0x009
+#define IDXVXRM   0x00a
+#define IDXVL     0xc20
+#define IDXVTYPE  0xc21
+
 CSR_STRUCT_START(vstart)
 CSR_STRUCT_END(vstart)
 
