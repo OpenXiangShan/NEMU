@@ -127,6 +127,10 @@ def_rtl(fli, fpreg_t *dest, uint64_t imm) {
   *dest = imm;
 }
 
+def_rtl(fneg, fpreg_t *dest, const fpreg_t *src1) {
+  *dest = *src1 ^ 0x8000000000000000ul;
+}
+
 def_rtl(fabs, fpreg_t *dest, const fpreg_t *src1) {
   *dest = *src1 & 0x7ffffffffffffffful;
 }

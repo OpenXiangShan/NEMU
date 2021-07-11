@@ -799,6 +799,7 @@ def_THelper(main) {
   def_hex_INSTR_TAB   ("d6",       nemu_trap);
   def_hex_INSTR_TAB   ("d8",       fpu_d8);
   def_hex_INSTR_TAB   ("d9",       fpu_d9);
+  def_hex_INSTR_TAB   ("da",       fpu_da);
   def_hex_INSTR_TAB   ("db",       fpu_db);
   def_hex_INSTR_TAB   ("dc",       fpu_dc);
   def_hex_INSTR_TAB   ("dd",       fpu_dd);

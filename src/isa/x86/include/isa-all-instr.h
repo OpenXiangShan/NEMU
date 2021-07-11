@@ -12,7 +12,7 @@
   f(clc) f(stc) f(cld) \
   f(iret) \
   f(cpuid) f(rdtsc) \
-  f(fabs) f(fsqrt) f(fxam) f(fld1) f(fldz) f(fnstsw)
+  f(fchs) f(fabs) f(fsqrt) f(fxam) f(fld1) f(fldz) f(fnstsw)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) f(jecxz) \
@@ -23,7 +23,7 @@
   f(flds) f(fldl) f(fstl) f(fld) f(fstps) f(fstpl) f(fstp) \
   f(fildl) f(fistl) f(fistpl) \
   f(fxch) f(fnstcw) f(fldcw) \
-  f(fsubl) f(fsubs) f(fmull) f(fmuls)
+  f(faddl) f(fadds) f(fsubl) f(fsubs) f(fsubrl) f(fmull) f(fmuls)
 
 #define INSTR_BINARY(f) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \
@@ -36,8 +36,9 @@
   f(mov_rm2sreg) \
   f(movq_E2xmm) f(movq_xmm2E) f(movdqa_E2xmm) f(psrlq) f(movd_xmm2E) f(pxor) \
   f(xadd) \
-  f(fadd) f(fadds) f(faddp) f(fsub) f(fsubr) f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivrp) \
-  f(fcomi) f(fcomip) f(fucomi) f(fucomip)
+  f(fadd) f(faddp) f(fsub) f(fsubp) f(fsubr) f(fsubrp) f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivrp) \
+  f(fcomi) f(fcomip) f(fucomi) f(fucomip) \
+  f(fcmovb) f(fcmovbe)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

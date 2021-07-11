@@ -51,6 +51,8 @@ def_THelper(fpu_d8) {
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fadd);
     def_INSTR_IDTAB("1100 1???", ST0_STi, fmul);
+    def_INSTR_IDTAB("1110 0???", ST0_STi, fsub);
+    def_INSTR_IDTAB("1110 1???", ST0_STi, fsubr);
     def_INSTR_IDTAB("1111 0???", ST0_STi, fdiv);
   } else {
     def_INSTR_IDTAB("?? 000 ???", mem_ST0, fadds);
@@ -65,6 +67,7 @@ def_THelper(fpu_d9) {
   x86_instr_fetch(s, 1);
 
   if (get_instr(s) >= 0xc0) {
+    def_hex_INSTR_IDTAB("e0", ST0     , fchs);
     def_hex_INSTR_IDTAB("e1", ST0     , fabs);
     def_hex_INSTR_IDTAB("e5", ST0     , fxam);
     def_hex_INSTR_IDTAB("e8", push_ST0, fld1);
@@ -77,6 +80,18 @@ def_THelper(fpu_d9) {
     def_INSTR_IDTAB("?? 011 ???", st_ST0, fstps);
     def_INSTR_IDTAB("?? 101 ???", st_ST0, fldcw);
     def_INSTR_IDTAB("?? 111 ???", st_ST0, fnstcw);
+  }
+
+  return EXEC_ID_inv;
+}
+
+def_THelper(fpu_da) {
+  x86_instr_fetch(s, 1);
+
+  if (get_instr(s) >= 0xc0) {
+    def_INSTR_IDTAB("1100 0???", ST0_STi, fcmovb);
+    def_INSTR_IDTAB("1101 0???", ST0_STi, fcmovbe);
+  } else {
   }
 
   return EXEC_ID_inv;
@@ -102,11 +117,14 @@ def_THelper(fpu_dc) {
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", STi_ST0, fadd);
+    def_INSTR_IDTAB("1100 1???", STi_ST0, fmul);
     def_INSTR_IDTAB("1110 0???", STi_ST0, fsubr);
     def_INSTR_IDTAB("1110 1???", STi_ST0, fsub);
   } else {
+    def_INSTR_IDTAB("?? 000 ???", mem_ST0, faddl);
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmull);
     def_INSTR_IDTAB("?? 100 ???", mem_ST0, fsubl);
+    def_INSTR_IDTAB("?? 101 ???", mem_ST0, fsubrl);
   }
 
   return EXEC_ID_inv;
@@ -132,6 +150,8 @@ def_THelper(fpu_de) {
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", STi_ST0, faddp);
     def_INSTR_IDTAB("1100 1???", STi_ST0, fmulp);
+    def_INSTR_IDTAB("1110 0???", STi_ST0, fsubrp);
+    def_INSTR_IDTAB("1110 1???", STi_ST0, fsubp);
     def_INSTR_IDTAB("1111 0???", STi_ST0, fdivrp);
     def_INSTR_IDTAB("1111 1???", STi_ST0, fdivp);
   } else {

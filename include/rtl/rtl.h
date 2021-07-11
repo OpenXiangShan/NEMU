@@ -113,6 +113,7 @@ def_rtl_fp_unary_prototype(fcvt_f64_to_f32);
 
 def_rtl_fp_unary_prototype(fmv);
 def_rtl(fli, fpreg_t *dest, uint64_t imm);
+def_rtl_fp_unary_prototype(fneg);
 def_rtl_fp_unary_prototype(fabs);
 
 #endif
