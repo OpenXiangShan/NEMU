@@ -14,3 +14,7 @@ def_EHelper(fnstcw) {
   rtl_li(s, s0, 0);
   rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
 }
+
+def_EHelper(fldcw) {
+  // TODO
+}

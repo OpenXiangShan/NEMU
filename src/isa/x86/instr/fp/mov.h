@@ -61,3 +61,16 @@ def_EHelper(fildl) {
   rtl_fcvt_i32_to_f64(s, dfdest, s0);
   ftop_push();
 }
+
+def_EHelper(fistl) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_fcvt_f64_to_i32(s, s0, dfsrc1);
+  rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+}
+
+def_EHelper(fistpl) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_fcvt_f64_to_i32(s, s0, dfsrc1);
+  rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+  ftop_pop();
+}
