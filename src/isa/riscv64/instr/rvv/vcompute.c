@@ -31,7 +31,7 @@ typedef enum {
 
 #define ARTHI(opcode, is_signed) arthimetic_instr(opcode, is_signed, 0, s);
 #define ARTHI_COMP(opcode, is_signed) arthimetic_instr(opcode, is_signed, 1, s);
-static void arthimetic_instr(int opcode, int is_signed, int dest_reg, DecodeExecState *s) {
+static void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -180,7 +180,7 @@ static void arthimetic_instr(int opcode, int is_signed, int dest_reg, DecodeExec
 }
 
 #define MASKINSTR(opcode) mask_instr(opcode, s);
-static void mask_instr(int opcode, DecodeExecState *s) {
+static void mask_instr(int opcode, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -222,7 +222,7 @@ static void mask_instr(int opcode, DecodeExecState *s) {
 }
 
 #define REDInstr(opcode, is_signed) reduction_instr(opcode, is_signed, s);
-static void reduction_instr(int opcode, int is_signed, DecodeExecState *s) {
+static void reduction_instr(int opcode, int is_signed, Decode *s) {
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
 

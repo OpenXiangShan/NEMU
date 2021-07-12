@@ -48,7 +48,7 @@ static void vld(int mode, int is_signed, Decode *s) {
     
     // op
     if(s->vm != 0 || mask != 0) {
-      rtl_lm(s, s1, s0, 0, s->v_width);
+      rtl_lm(s, s1, s0, 0, s->v_width, MMU_DYNAMIC);
       if (is_signed) rtl_sext(s, s1, s1, s->v_width);
       
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
@@ -183,7 +183,7 @@ static void vst(int mode, Decode *s) {
       //   case 3 : rtl_li(&s1, vreg_l(id_dest->reg, idx)); break;
       // }
       get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
-      rtl_sm(s, s0, 0, s1, s->v_width);
+      rtl_sm(s, s0, s1, 0, s->v_width, MMU_DYNAMIC);
     }
 
     switch (mode) {

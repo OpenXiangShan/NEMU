@@ -16,6 +16,8 @@ typedef struct {
   IFDEF(CONFIG_ISA_x86, rtlreg_t val);
   IFDEF(CONFIG_ISA_x86, uint8_t type);
   IFDEF(CONFIG_ISA_x86, uint8_t reg);
+  IFDEF(CONFIG_RVV_010, rtlreg_t val);
+  IFDEF(CONFIG_RVV_010, uint8_t reg);
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 

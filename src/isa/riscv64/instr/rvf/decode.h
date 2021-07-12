@@ -5,6 +5,9 @@ static int table_fmadd_d_dispatch(Decode *s);
 static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
+#ifdef CONFIG_RVV_010
+  op->reg = val;
+#endif // CONFIG_RVV_010
 }
 
 static inline def_DHelper(fr) {
