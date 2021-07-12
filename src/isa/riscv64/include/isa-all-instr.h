@@ -1,3 +1,5 @@
+#ifndef __RISCV64_ISA_ALL_INSTR_H__
+#define __RISCV64_ISA_ALL_INSTR_H__
 #include <cpu/decode.h>
 #include "../local-include/rtl.h"
 
@@ -46,7 +48,9 @@
   f(vwadd) f(vwsub) f(vwaddu_w) f(vwadd_w) \
   f(vwsubu_w) f(vwsub_w) f(vwmulu) f(vwmulsu) \
   f(vwmul) f(vwmaccu) f(vwnmacc) f(vwmaccsu) \
-  f(vwmaccus) f(vstore) f(vload)
+  f(vwmaccus) f(vlduu) f(vldsu) f(vldxu) \
+  f(vldus) f(vldss) f(vldxs) f(vstu) \
+  f(vsts) f(vstx) f(vstxu)
 #else // CONFIG_RVV_010
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV_010
@@ -105,3 +109,5 @@
   VECTOR_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
+
+#endif // __RISCV64_ISA_ALL_INSTR_H__
