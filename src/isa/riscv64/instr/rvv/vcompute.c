@@ -615,7 +615,7 @@ def_EHelper(vmfirst) {
   rtl_sr(s, id_dest->reg, s1, 4);
 }
 
-def_EHelper(VMUNARYO) {
+def_EHelper(vmunaryo) {
   longjmp_raise_intr(EX_II);
 }
 

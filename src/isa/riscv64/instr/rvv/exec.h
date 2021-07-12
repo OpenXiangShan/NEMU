@@ -80,7 +80,7 @@ def_EHelper(vslide1up);
 def_EHelper(vslide1down);
 def_EHelper(vmpopc);
 def_EHelper(vmfirst);
-def_EHelper(VMUNARYO);
+def_EHelper(vmunaryo);
 def_EHelper(vcompress);
 def_EHelper(vmandnot);
 def_EHelper(vmand);
