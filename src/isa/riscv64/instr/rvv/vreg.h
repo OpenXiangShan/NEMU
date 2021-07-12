@@ -33,6 +33,7 @@ static inline int check_reg_index2(int index2, int elen) {
 #define vreg_s(index1, index2) (cpu.vr[check_reg_index1(index1)]._16[check_reg_index2(index2, 16)])
 #define vreg_b(index1, index2) (cpu.vr[check_reg_index1(index1)]._8[check_reg_index2(index2,   8)])
 
+rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
 
 static inline const char * vreg_name(int index, int width) {
   extern const char * vregsl[];
@@ -51,4 +52,7 @@ void longjmp_raise_intr(uint32_t foo);
 #define SRC_SI  3
 #define UNSIGNED     0
 #define SIGNED       1
+
+void vcsr_write(uint32_t addr,  rtlreg_t *src);
+
 #endif //__RISCV64_VREG_H__

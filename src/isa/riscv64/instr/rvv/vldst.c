@@ -1,5 +1,5 @@
 #include "cpu/exec.h"
-#include "../local-include/vreg.h"
+#include "vreg.h"
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include <stdio.h>
