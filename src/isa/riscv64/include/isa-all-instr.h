@@ -45,7 +45,7 @@
   f(vmnor) f(vmxnor) f(vdivu) f(vdiv) f(vremu) \
   f(vrem) f(vmulhu) f(vmul) f(vmulhsu) f(vmulh) \
   f(vmadd) f(vnmsub) f(vmacc) f(vnmsac) f(vwaddu) \
-  f(vwadd) f(vwsub) f(vwaddu_w) f(vwadd_w) \
+  f(vwadd) f(vwsub) f(vwsubu) f(vwaddu_w) f(vwadd_w) \
   f(vwsubu_w) f(vwsub_w) f(vwmulu) f(vwmulsu) \
   f(vwmul) f(vwmaccu) f(vwnmacc) f(vwmaccsu) \
   f(vwmaccus) f(vlduu) f(vldsu) f(vldxu) \
