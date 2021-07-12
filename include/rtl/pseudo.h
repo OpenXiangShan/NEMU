@@ -87,4 +87,16 @@ static inline def_rtl(trap, vaddr_t ret_pc, word_t NO) {
   rtl_jr(s, t0);
 }
 
+static inline def_rtl(mux, rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t* src1, const rtlreg_t* src2) {
+  // dest <- (cond ? src1 : src2)
+//  TODO();
+  rtl_setrelopi(s, RELOP_EQ, t0, cond, 0);
+  rtl_subi(s, t0, t0, 1);
+  // t0 = mask
+  rtl_and(s, &t1, src1, t0);
+  rtl_not(s, t0, t0);
+  rtl_and(s, t0, src2, t0);
+  rtl_or(s, dest, t0, &t1);
+}
+
 #endif

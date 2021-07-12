@@ -59,6 +59,8 @@ typedef struct Decode {
 
 } Decode;
 
+rtlreg_t s0, s1, t0, t1, ir;
+
 #define id_src1 (&s->src1)
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)

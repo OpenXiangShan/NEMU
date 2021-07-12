@@ -266,6 +266,8 @@ CSR_STRUCT_START(vtype)
 CSR_STRUCT_END(vtype)
 
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, bool max_req);
+rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
+void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
 #endif // CONFIG_RVV_010
 
