@@ -117,3 +117,8 @@ def_EHelper(vwmaccu);
 def_EHelper(vwnmacc);
 def_EHelper(vwmaccsu);
 def_EHelper(vwmaccus);
+
+#include "vcfg.h"
+#include "vcompute.h"
+#include "vldst.h"
+#include "vreg_impl.h"
