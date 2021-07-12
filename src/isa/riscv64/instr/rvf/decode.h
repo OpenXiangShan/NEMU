@@ -55,7 +55,7 @@ def_THelper(fload) {
   #ifdef CONFIG_RVV_010
   const int table [8] = {1, 0, 0, 0, 0, 2, 4, 0};
   s->vm = s->isa.instr.v_opv1.v_vm; //1 for without mask; 0 for with mask
-  s->width = table[s->isa.instr.vldfp.v_width];
+  s->v_width = table[s->isa.instr.vldfp.v_width];
   #endif // CONFIG_RVV_010
 
   int mmu_mode = isa_mmu_state();
@@ -87,7 +87,7 @@ def_THelper(fstore) {
   #ifdef CONFIG_RVV_010
   const int table [8] = {1, 0, 0, 0, 0, 2, 4, 0};
   s->vm = s->isa.instr.v_opv1.v_vm; //1 for without mask; 0 for with mask
-  s->width = table[s->isa.instr.vldfp.v_width];
+  s->v_width = table[s->isa.instr.vldfp.v_width];
   #endif // CONFIG_RVV_010
 
   int mmu_mode = isa_mmu_state();
