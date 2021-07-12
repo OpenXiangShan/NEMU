@@ -21,6 +21,36 @@
 #define SYS_INSTR_TERNARY(f) f(system)
 #endif
 
+#ifdef CONFIG_RVV_010
+#define VECTOR_INSTR_TERNARY(f) \
+  f(vadd) f(vsub) f(vrsub) f(vminu) f(vmin) \
+  f(vmaxu) f(vmax) f(vand) f(vor) f(vxor) \
+  f(vrgather) f(vslideup) f(vslidedown) \
+  f(vadc) f(vmadc) f(vsbc) f(vmsbc) \
+  f(vmerge) f(vmseq) f(vmsne) f(vmsltu) \
+  f(vmslt) f(vmsleu) f(vmsle) f(vmsgtu) \
+  f(vmsgt) f(vsaddu) f(vsadd) f(vssubu) \
+  f(vssub) f(vaadd) f(vsll) f(vasub) \
+  f(vsmul) f(vsrl) f(vsra) f(vssrl) \
+  f(vssra) f(vnsrl) f(vnsra) f(vnclipu) \
+  f(vnclip) f(vssrl) f(vwredsumu) f(vwredsum) \
+  f(vdotu) f(vdot) f(vwsmaccu) f(vwsnacc) \
+  f(vwsmaccsu) f(vwsmaccus) f(vredsum) \
+  f(vredand) f(vredor) f(vredxor) f(vredminu) \
+  f(vredmin) f(vredmaxu) f(vredmax) f(vmpopc) \
+  f(vmfirst) f(vmunaryo) f(vcompress) f(vmandnot) \
+  f(vmand) f(vmor) f(vmxor) f(vmornot) f(vmnand) \
+  f(vmnor) f(vmxnor) f(vdivu) f(vdiv) f(vremu) \
+  f(vrem) f(vmulhu) f(mul) f(vmulhsu) f(vmulh) \
+  f(vmadd) f(vnmsub) f(vmacc) f(vnmsac) f(vwaddu) \
+  f(vwadd) f(vwsub) f(vwaddu_w) f(vwadd_w) \
+  f(vwsubu_w) f(vwsub_w) f(vwmulu) f(vwmulsu) \
+  f(vwmul) f(vwmaccu) f(vwnmacc) f(vwmaccsu) \
+  f(vwmaccus) f(vstore) f(vload)
+#else // CONFIG_RVV_010
+#define VECTOR_INSTR_TERNARY(f)
+#endif // CONFIG_RVV_010
+
 #define FLOAT_INSTR_TERNARY(f) \
   f(fadds) f(fsubs) f(fmuls) f(fdivs) f(fmins) f(fmaxs) \
   f(faddd) f(fsubd) f(fmuld) f(fdivd) f(fmind) f(fmaxd) \
@@ -71,6 +101,7 @@
   f(p_inc) f(p_dec) \
   AMO_INSTR_TERNARY(f) \
   SYS_INSTR_TERNARY(f) \
-  FLOAT_INSTR_TERNARY(f)
+  FLOAT_INSTR_TERNARY(f) \
+  VECTOR_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
