@@ -155,11 +155,15 @@ store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
-  if (cpu.amo) {
+  static int overflow = 0;
+  if (cpu.amo || overflow) {
     return;
   }
   store_commit_t *commit = store_commit_queue + tail;
-  assert(!commit->valid);
+  if(commit->valid){ // store commit queue overflow
+    overflow = 1;
+    printf("[WARNING] difftest store queue overflow, difftest store commit disabled\n");
+  };
   uint64_t offset = addr % 8ULL;
   commit->addr = addr - offset;
   commit->valid = 1;
