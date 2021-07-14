@@ -54,6 +54,18 @@ def_EHelper(bsf) {
   rtl_wb_r(s, ddest);
 }
 
+def_EHelper(bts) {
+  rtl_decode_binary(s, true, true);
+  if (id_dest->type == OP_TYPE_MEM) { assert(0); }
+
+  rtl_li(s, s0, 1);
+  rtl_shl(s, s0, s0, dsrc1);
+  rtl_and(s, s1, s0, ddest);
+  rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
+  rtl_set_CF(s, s1);
+  rtl_or(s, ddest, ddest, s0);
+  rtl_wb_r(s, ddest);
+}
 
 #if 0
 static inline def_EHelper(btc) {
@@ -65,17 +77,6 @@ static inline def_EHelper(btc) {
   rtl_xor(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
   print_asm_template2(btc);
-}
-
-static inline def_EHelper(bts) {
-  rtl_li(s, s0, 1);
-  rtl_shl(s, s0, s0, dsrc1);
-  rtl_and(s, s1, s0, ddest);
-  rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
-  rtl_set_CF(s, s1);
-  rtl_or(s, ddest, ddest, s0);
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(bts);
 }
 
 static inline def_EHelper(btr) {

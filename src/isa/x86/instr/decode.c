@@ -673,6 +673,7 @@ def_THelper(_2byte_esc) {
   def_hex_INSTR_IDTAB ("a3",  G2E, bt);
   def_hex_INSTR_IDTAB ("a4",Ib_G2E,shld);
   def_hex_INSTR_IDTAB ("a5",cl_G2E,shld);
+  def_hex_INSTR_IDTAB ("ab",  G2E, bts);
   def_hex_INSTR_IDTAB ("ac",Ib_G2E,shrd);
   def_hex_INSTR_IDTAB ("ad",cl_G2E,shrd);
   def_hex_INSTR_IDTAB ("af",  E2G, imul2);

@@ -31,8 +31,10 @@ def_EHelper(fwait) {
 
 def_EHelper(fldenv) {
   rt_decode_mem(s, id_dest, false, 0);
-  //rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
-  //rtl_sr_fcw(s, s0);
+  rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
+  uint32_t rm_x86 = BITS(*s0, 11, 10);
+  void x86_fp_set_rm(uint32_t rm_x86);
+  x86_fp_set_rm(rm_x86);
   rtl_lm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
   cpu.ftop = (cpu.fsw >> 11) & 0x7;
   // others are not loaded
@@ -40,7 +42,10 @@ def_EHelper(fldenv) {
 
 def_EHelper(fnstenv) {
   rt_decode_mem(s, id_dest, false, 0);
-  //rtl_sm(s, &cpu.fcw, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
+  uint32_t x86_fp_get_rm();
+  uint32_t rm_x86 = x86_fp_get_rm();
+  rtl_li(s, s0, rm_x86 << 10);
+  rtl_sm(s, s0, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
   cpu.fsw = (cpu.fsw & ~0x3800) | ((cpu.ftop & 0x7) << 11);
   rtl_sm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
 #if 0

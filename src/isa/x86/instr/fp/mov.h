@@ -13,6 +13,11 @@ def_EHelper(fldl2e) {
   ftop_push();
 }
 
+def_EHelper(fldlg2) {
+  rtl_fli(s, dfdest, 0x3FD34413509F79FEull);
+  ftop_push();
+}
+
 def_EHelper(fldln2) {
   rtl_fli(s, dfdest, 0x3FE62E42FEFA39EFull);
   ftop_push();
@@ -45,6 +50,10 @@ def_EHelper(fsts) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fcvt_f64_to_f32(s, &s->isa.fptmp, dfsrc1);
   rtl_fsm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
+}
+
+def_EHelper(fst) {
+  rtl_fmv(s, dfdest, dfsrc1);
 }
 
 def_EHelper(fstps) {

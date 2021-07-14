@@ -81,10 +81,12 @@ def_THelper(fpu_d9) {
     def_hex_INSTR_IDTAB("e5", ST0     , fxam);
     def_hex_INSTR_IDTAB("e8", push_ST0, fld1);
     def_hex_INSTR_IDTAB("ea", push_ST0, fldl2e);
+    def_hex_INSTR_IDTAB("ec", push_ST0, fldlg2);
     def_hex_INSTR_IDTAB("ed", push_ST0, fldln2);
     def_hex_INSTR_IDTAB("ee", push_ST0, fldz);
     def_hex_INSTR_IDTAB("f0", ST0     , f2xm1);
     def_hex_INSTR_IDTAB("f1", ST0_ST1 , fyl2x);
+    def_hex_INSTR_IDTAB("f9", ST0_ST1 , fyl2xp1);
     def_hex_INSTR_IDTAB("fa", ST0     , fsqrt);
     def_hex_INSTR_IDTAB("fc", ST0     , frndint);
     def_hex_INSTR_IDTAB("fd", ST0_ST1 , fscale);
@@ -144,6 +146,7 @@ def_THelper(fpu_dc) {
   } else {
     def_INSTR_IDTAB("?? 000 ???", mem_ST0, faddl);
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmull);
+    def_INSTR_IDTAB("?? 011 ???", mem_ST0, fcompl);
     def_INSTR_IDTAB("?? 100 ???", mem_ST0, fsubl);
     def_INSTR_IDTAB("?? 101 ???", mem_ST0, fsubrl);
     def_INSTR_IDTAB("?? 110 ???", mem_ST0, fdivl);
@@ -157,7 +160,9 @@ def_THelper(fpu_dd) {
   x86_instr_fetch(s, 1);
 
   if (get_instr(s) >= 0xc0) {
+    def_INSTR_IDTAB("1101 0???", STi_ST0, fst);
     def_INSTR_IDTAB("1101 1???", STi_ST0, fstp);
+    def_INSTR_IDTAB("1110 1???", STi_ST0, fucomp);
   } else {
     def_INSTR_IDTAB("?? 000 ???", ld_ST0, fldl);
     def_INSTR_IDTAB("?? 010 ???", st_ST0, fstl);

@@ -164,3 +164,11 @@ def_EHelper(fyl2x) {
   rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
   ftop_pop();
 }
+
+def_EHelper(fyl2xp1) {
+  rtl_fli(s, &s->isa.fptmp, 0x3ff0000000000000ull);
+  rtl_faddd(s, &s->isa.fptmp, &s->isa.fptmp, dfdest);
+  rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, &s->isa.fptmp, NULL);
+  rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
+  ftop_pop();
+}
