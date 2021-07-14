@@ -260,6 +260,13 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
           break;
     case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
           arg2, arg3, arg4, user_to_host(arg5)); break;
+    case USER_SYS_getuid: return getuid();
+    case USER_SYS_getgid: return getgid();
+    case USER_SYS_geteuid: return geteuid();
+    case USER_SYS_getegid: return getegid();
+    case USER_SYS_getpid: return getpid();
+    case USER_SYS_ioctl: ret = ioctl(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_fcntl: ret = fcntl(user_fd(arg1), arg2, arg3); break;
 #ifdef CONFIG_ISA64
     case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
           user_to_host(arg2), user_to_host(arg3), arg4); break;
@@ -270,13 +277,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
           arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case USER_SYS_getuid: return getuid();
-    case USER_SYS_getgid: return getgid();
-    case USER_SYS_geteuid: return geteuid();
-    case USER_SYS_getegid: return getegid();
-    case USER_SYS_ioctl: ret = ioctl(user_fd(arg1), arg2, arg3); break;
-    case USER_SYS_fcntl: ret = fcntl(user_fd(arg1), arg2, arg3); break;
-    case USER_SYS_getpid: return getpid();
     case USER_SYS_mprotect: return 0; // not implemented
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
     case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;

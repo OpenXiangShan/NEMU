@@ -201,6 +201,7 @@ def_THelper(fpu_df) {
     def_INSTR_IDTAB("1111 0???", STi_ST0, fcomip);
   } else {
     def_INSTR_IDTAB("?? 000 ???", ld_ST0, filds);
+    def_INSTR_IDTAB("?? 011 ???", ld_ST0, fistps);
     def_INSTR_IDTAB("?? 101 ???", ld_ST0, fildll);
     def_INSTR_IDTAB("?? 111 ???", st_ST0, fistpll);
   }

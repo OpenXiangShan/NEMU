@@ -23,7 +23,7 @@
   f(mul) f(imul1) f(div) f(idiv) \
   f(lgdt) f(lidt) f(ltr) f(_int) \
   f(flds) f(fldl) f(fstl) f(fld) f(fsts) f(fstps) f(fstpl) f(fstp) f(fst) \
-  f(filds) f(fildl) f(fildll) f(fistl) f(fistpl) f(fistpll) \
+  f(filds) f(fildl) f(fildll) f(fistl) f(fistps) f(fistpl) f(fistpll) \
   f(fxch) f(fnstcw) f(fldcw) f(fnstenv) f(fldenv) \
   f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) f(fcompl) \
   f(fmuls) f(fmull) f(fdivs) f(fdivl) f(fdivrs) f(fdivrl)
