@@ -73,7 +73,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
     return;
   }
   store_commit_t *commit = store_commit_queue + tail;
-  if(!commit->valid){
+  if(commit->valid){ // store commit queue overflow
     overflow = 1;
     printf("[WARNING] difftest store queue overflow, difftest store commit disabled\n");
   };
