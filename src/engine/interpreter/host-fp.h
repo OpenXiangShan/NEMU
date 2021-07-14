@@ -57,8 +57,16 @@ static inline uint64_t my_f64_to_ui64(float64_t a) { return llrint(a.f); }
 static inline float64_t f32_to_f64(float32_t a) { return float64(a.f); }
 static inline float32_t f64_to_f32(float64_t a) { return float32(a.f); }
 
-static inline float64_t my_f64_roundToInt(float64_t a) {
+static inline float64_t fpcall_f64_roundToInt(float64_t a) {
   return float64(nearbyint(a.f));
+}
+
+static inline float64_t fpcall_f64_pow2(float64_t a) {
+  return float64(pow(2.0, a.f));
+}
+
+static inline float64_t fpcall_f64_log2(float64_t a) {
+  return float64(log2(a.f));
 }
 
 static inline void fp_set_rm(int rm) {

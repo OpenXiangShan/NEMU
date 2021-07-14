@@ -45,6 +45,11 @@ static inline def_DHelper(ST0_STi) {
   operand_freg(s, id_dest, 0);
 }
 
+static inline def_DHelper(ST0_ST1) {
+  operand_freg(s, id_src1, 1);
+  operand_freg(s, id_dest, 0);
+}
+
 def_THelper(fpu_d8) {
   x86_instr_fetch(s, 1);
 
@@ -54,6 +59,7 @@ def_THelper(fpu_d8) {
     def_INSTR_IDTAB("1110 0???", ST0_STi, fsub);
     def_INSTR_IDTAB("1110 1???", ST0_STi, fsubr);
     def_INSTR_IDTAB("1111 0???", ST0_STi, fdiv);
+    def_INSTR_IDTAB("1111 1???", ST0_STi, fdivr);
   } else {
     def_INSTR_IDTAB("?? 000 ???", mem_ST0, fadds);
     def_INSTR_IDTAB("?? 001 ???", mem_ST0, fmuls);
@@ -74,16 +80,23 @@ def_THelper(fpu_d9) {
     def_hex_INSTR_IDTAB("e1", ST0     , fabs);
     def_hex_INSTR_IDTAB("e5", ST0     , fxam);
     def_hex_INSTR_IDTAB("e8", push_ST0, fld1);
+    def_hex_INSTR_IDTAB("ea", push_ST0, fldl2e);
+    def_hex_INSTR_IDTAB("ed", push_ST0, fldln2);
     def_hex_INSTR_IDTAB("ee", push_ST0, fldz);
+    def_hex_INSTR_IDTAB("f0", ST0     , f2xm1);
+    def_hex_INSTR_IDTAB("f1", ST0_ST1 , fyl2x);
     def_hex_INSTR_IDTAB("fa", ST0     , fsqrt);
     def_hex_INSTR_IDTAB("fc", ST0     , frndint);
+    def_hex_INSTR_IDTAB("fd", ST0_ST1 , fscale);
     def_INSTR_IDTAB("1100 0???", ld_ST0, fld);
     def_INSTR_IDTAB("1100 1???", STi_ST0, fxch);
   } else {
     def_INSTR_IDTAB("?? 000 ???", ld_ST0, flds);
     def_INSTR_IDTAB("?? 010 ???", st_ST0, fsts);
     def_INSTR_IDTAB("?? 011 ???", st_ST0, fstps);
+    def_INSTR_IDTAB("?? 100 ???", st_ST0, fldenv);
     def_INSTR_IDTAB("?? 101 ???", st_ST0, fldcw);
+    def_INSTR_IDTAB("?? 110 ???", st_ST0, fnstenv);
     def_INSTR_IDTAB("?? 111 ???", st_ST0, fnstcw);
   }
 
@@ -96,6 +109,7 @@ def_THelper(fpu_da) {
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fcmovb);
     def_INSTR_IDTAB("1101 0???", ST0_STi, fcmovbe);
+    def_hex_INSTR_IDTAB("e9", ST0_ST1 , fucompp);
   } else {
   }
 

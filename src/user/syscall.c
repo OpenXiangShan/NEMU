@@ -174,6 +174,16 @@ static inline word_t user_sys_lstat64(const char *pathname, void *statbuf) {
   if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
+
+static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
+    uint32_t offset_low, uint64_t *result, uint32_t whence) {
+  off_t ret = lseek(fd, ((off_t)offset_high << 32) | offset_low, whence);
+  if (ret != (off_t)-1) {
+    *result = ret;
+    return 0;
+  }
+  return -1;
+}
 #endif
 
 #ifdef CONFIG_ISA_x86
@@ -197,16 +207,6 @@ static inline word_t user_set_thread_area(void *u_info) {
 #endif
 
 #if 0
-static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
-    uint32_t offset_low, uint64_t *result, uint32_t whence) {
-  off_t ret = lseek(fd, ((off_t)offset_high << 32) | offset_low, whence);
-  if (ret != (off_t)-1) {
-    *result = ret;
-    return 0;
-  }
-  return -1;
-}
-
 static inline word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
   return ftruncate(fd, gen_uint64(lo, hi));
 }
@@ -231,8 +231,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
   uintptr_t ret = 0;
   switch (id) {
 #if 0
-    case 10: ret = unlink(user_to_host(arg1)); break;
-    case 140: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
     case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
 #endif
@@ -242,7 +240,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_exit: user_sys_exit(arg1); break;
     case USER_SYS_brk: ret = user_sys_brk(arg1); break;
     case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case USER_SYS_uname: ret = uname((struct utsname *) user_to_host(arg1)); break;
+    case USER_SYS_uname: ret = uname(user_to_host(arg1)); break;
     case USER_SYS_gettimeofday: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case USER_SYS_sysinfo: ret = user_sysinfo(user_to_host(arg1)); break;
     case USER_SYS_clock_gettime: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
@@ -250,30 +248,28 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_times: ret = user_times(user_to_host(arg1)); break;
     case USER_SYS_getrusage: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case USER_SYS_prlimit64: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
-    case USER_SYS_openat: ret = openat(user_fd(arg1),
-                                  (const char *) user_to_host(arg2), arg3, arg4); break;
+    case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
     case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
     case USER_SYS_getcwd:
-          ret = (uintptr_t)getcwd((char *)user_to_host(arg1), arg2);
+          ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
           assert(ret != 0); // should success
-          ret = strlen((const char *) user_to_host(arg1)) + 1;
+          ret = strlen(user_to_host(arg1)) + 1;
           break;
-#ifdef CONFIG_ISA64
-    case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
-          (const char*) user_to_host(arg2), (char*) user_to_host(arg3), arg4); break;
-    case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
-    case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
-          (const char*) user_to_host(arg2), user_to_host(arg3), arg4); break;
-    case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
-          arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
           arg2, arg3, arg4, user_to_host(arg5)); break;
+#ifdef CONFIG_ISA64
+    case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
+          user_to_host(arg2), user_to_host(arg3), arg4); break;
+    case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
+    case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
+          user_to_host(arg2), user_to_host(arg3), arg4); break;
+    case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
+          arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
-    case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1),
-                                    (const char *) user_to_host(arg2), arg3); break;
+    case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_getuid: return getuid();
     case USER_SYS_getgid: return getgid();
     case USER_SYS_geteuid: return geteuid();
@@ -283,17 +279,18 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_getpid: return getpid();
     case USER_SYS_mprotect: return 0; // not implemented
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
-    case USER_SYS_faccessat: ret = faccessat(user_fd(arg1),
-                                     (const char *)user_to_host(arg2), arg3, 0); break;
+    case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
 #else
-    case USER_SYS_time: ret = time((time_t *)user_to_host(arg1)); break;
-    case USER_SYS_readlink: ret = readlink((char *)user_to_host(arg1), (char *)user_to_host(arg2), arg3); break;
-    case USER_SYS_access: ret = access((char *)user_to_host(arg1), arg2); break;
+    case USER_SYS_time: ret = time(user_to_host(arg1)); break;
+    case USER_SYS_readlink: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_access: ret = access(user_to_host(arg1), arg2); break;
     case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
-    case USER_SYS_stat64: return user_sys_stat64((char *)user_to_host(arg1), user_to_host(arg2));
-    case USER_SYS_lstat64: return user_sys_lstat64((char *)user_to_host(arg1), user_to_host(arg2));
+    case USER_SYS_stat64: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
+    case USER_SYS_lstat64: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
     case USER_SYS_mmap2: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
           arg3, arg4, user_fd(arg5), arg6 << 12); break;
+    case USER_SYS_llseek: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
+    case USER_SYS_unlink: ret = unlink(user_to_host(arg1)); break;
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }

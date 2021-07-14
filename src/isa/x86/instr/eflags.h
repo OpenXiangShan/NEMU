@@ -43,8 +43,9 @@ static inline def_EHelper(popf) {
   rtl_set_eflags(s, s0);
   print_asm("popf");
 }
+#endif
 
-static inline def_EHelper(sahf) {
+def_EHelper(sahf) {
   void rtl_set_eflags(Decode *s, const rtlreg_t *src);
   void rtl_compute_eflags(Decode *s, rtlreg_t *dest);
 
@@ -53,7 +54,4 @@ static inline def_EHelper(sahf) {
   rtl_lr(s, s1, R_AH, 1);
   rtl_or(s, s0, s0, s1);
   rtl_set_eflags(s, s0);
-
-  print_asm("sahf");
 }
-#endif

@@ -60,7 +60,7 @@ static inline uint64_t my_f64_to_ui64(float64_t a) {
   return f64_to_ui64(a, softfloat_roundingMode, true);
 }
 
-static inline uint64_t my_f64_roundToInt(float64_t a) {
+static inline float64_t fpcall_f64_roundToInt(float64_t a) {
   return f64_roundToInt(a, softfloat_roundingMode, false);
 }
 

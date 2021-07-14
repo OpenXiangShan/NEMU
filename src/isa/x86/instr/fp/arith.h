@@ -146,3 +146,21 @@ def_EHelper(fsqrt) {
 def_EHelper(frndint) {
   rtl_fpcall(s, FPCALL_ROUNDINT, dfdest, dfdest, NULL);
 }
+
+def_EHelper(f2xm1) {
+  rtl_fpcall(s, FPCALL_POW2, dfdest, dfdest, NULL);
+  rtl_fli(s, &s->isa.fptmp, 0x3ff0000000000000ull); // 1.0
+  rtl_fsubd(s, dfdest, dfdest, &s->isa.fptmp);
+}
+
+def_EHelper(fscale) {
+  rtl_fpcall(s, FPCALL_ROUNDINT, &s->isa.fptmp, dfsrc1, NULL);
+  rtl_fpcall(s, FPCALL_POW2, &s->isa.fptmp, &s->isa.fptmp, NULL);
+  rtl_fmuld(s, dfdest, dfdest, &s->isa.fptmp);
+}
+
+def_EHelper(fyl2x) {
+  rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, dfdest, NULL);
+  rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
+  ftop_pop();
+}

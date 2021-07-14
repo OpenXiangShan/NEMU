@@ -8,6 +8,16 @@ def_EHelper(fldz) {
   ftop_push();
 }
 
+def_EHelper(fldl2e) {
+  rtl_fli(s, dfdest, 0x3FF71547652B82FEull);
+  ftop_push();
+}
+
+def_EHelper(fldln2) {
+  rtl_fli(s, dfdest, 0x3FE62E42FEFA39EFull);
+  ftop_push();
+}
+
 def_EHelper(flds) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, dfdest, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);

@@ -28,6 +28,8 @@ enum {
 
 enum {
   FPCALL_ROUNDINT,
+  FPCALL_POW2,
+  FPCALL_LOG2,
 };
 
 #endif
