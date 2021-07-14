@@ -8,8 +8,8 @@
 #define F32_SIGN ((uint64_t)1ul << 31)
 #define F64_SIGN ((uint64_t)1ul << 63)
 
-static inline float32_t rtlToF32(rtlreg_t r);
-static inline float64_t rtlToF64(rtlreg_t r);
+static inline float32_t rtlToF32(fpreg_t r) { float32_t f = { .v = r }; return f; }
+static inline float64_t rtlToF64(fpreg_t r) { float64_t f = { .v = r }; return f; }
 
 static inline float32_t f32_min(float32_t a, float32_t b){
   bool less = f32_lt_quiet(a, b) || (f32_eq(a, b) && (a.v & F32_SIGN));
@@ -58,6 +58,10 @@ static inline int64_t  my_f64_to_i64 (float64_t a) {
 }
 static inline uint64_t my_f64_to_ui64(float64_t a) {
   return f64_to_ui64(a, softfloat_roundingMode, true);
+}
+
+static inline uint64_t my_f64_roundToInt(float64_t a) {
+  return f64_roundToInt(a, softfloat_roundingMode, false);
 }
 
 static inline uint_fast16_t f64_classify( float64_t a ) {

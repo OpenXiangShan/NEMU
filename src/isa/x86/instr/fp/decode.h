@@ -76,6 +76,7 @@ def_THelper(fpu_d9) {
     def_hex_INSTR_IDTAB("e8", push_ST0, fld1);
     def_hex_INSTR_IDTAB("ee", push_ST0, fldz);
     def_hex_INSTR_IDTAB("fa", ST0     , fsqrt);
+    def_hex_INSTR_IDTAB("fc", ST0     , frndint);
     def_INSTR_IDTAB("1100 0???", ld_ST0, fld);
     def_INSTR_IDTAB("1100 1???", STi_ST0, fxch);
   } else {
@@ -178,6 +179,7 @@ def_THelper(fpu_df) {
     def_INSTR_IDTAB("1111 0???", STi_ST0, fcomip);
   } else {
     def_INSTR_IDTAB("?? 101 ???", ld_ST0, fildll);
+    def_INSTR_IDTAB("?? 111 ???", st_ST0, fistpll);
   }
 
   return EXEC_ID_inv;

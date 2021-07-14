@@ -87,3 +87,10 @@ def_EHelper(fistpl) {
   rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
   ftop_pop();
 }
+
+def_EHelper(fistpll) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_fcvt_f64_to_i64(s, &s->isa.tmp64, dfsrc1);
+  rtl_fsm(s, &s->isa.tmp64, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  ftop_pop();
+}

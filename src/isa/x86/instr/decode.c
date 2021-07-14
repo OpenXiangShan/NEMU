@@ -827,6 +827,7 @@ def_THelper(main) {
   def_hex_INSTR_TAB   ("f8",       clc);
   def_hex_INSTR_TAB   ("f9",       stc);
   def_hex_INSTR_TAB   ("fc",       cld);
+  def_hex_INSTR_TAB   ("fd",       std);
   def_hex_INSTR_IDTABW("fe",    E, gp4, 1);
   def_hex_INSTR_IDTAB ("ff",    E, gp5);
   return table_inv(s);

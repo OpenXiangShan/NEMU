@@ -120,4 +120,7 @@ def_rtl(fli, fpreg_t *dest, uint64_t imm);
 def_rtl_fp_unary_prototype(fneg);
 def_rtl_fp_unary_prototype(fabs);
 
+def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1,
+    const fpreg_t *src2);
+
 #endif

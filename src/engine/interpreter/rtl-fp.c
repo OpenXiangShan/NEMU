@@ -32,6 +32,7 @@ static inline void fp_update_rm(Decode *s) {
 }
 
 static inline void fp_update_ex() {
+  return;
   uint32_t ex = fp_get_exception();
   if (ex) {
     isa_fp_set_ex(ex);
@@ -143,4 +144,13 @@ def_rtl(fneg, fpreg_t *dest, const fpreg_t *src1) {
 
 def_rtl(fabs, fpreg_t *dest, const fpreg_t *src1) {
   *dest = *src1 & 0x7ffffffffffffffful;
+}
+
+def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
+  switch (id) {
+    case FPCALL_ROUNDINT:
+      *dest = my_f64_roundToInt(fpToF64(*src1)).v;
+      break;
+    default: panic("unsupport id = %d", id);
+  }
 }

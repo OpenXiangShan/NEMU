@@ -9,10 +9,10 @@
   f(movs) f(stos) \
   f(rep_movs) f(rep_stos) f(repz_cmps) \
   f(pushf) f(pusha) f(popa) \
-  f(clc) f(stc) f(cld) \
+  f(clc) f(stc) f(cld) f(std) \
   f(iret) \
   f(cpuid) f(rdtsc) \
-  f(fchs) f(fabs) f(fsqrt) f(fxam) f(fld1) f(fldz) f(fnstsw) f(fwait)
+  f(fchs) f(fabs) f(fsqrt) f(fxam) f(frndint) f(fld1) f(fldz) f(fnstsw) f(fwait)
 
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) f(jecxz) \
@@ -21,7 +21,7 @@
   f(mul) f(imul1) f(div) f(idiv) \
   f(lgdt) f(lidt) f(ltr) f(_int) \
   f(flds) f(fldl) f(fstl) f(fld) f(fsts) f(fstps) f(fstpl) f(fstp) \
-  f(fildl) f(fildll) f(fistl) f(fistpl) \
+  f(fildl) f(fildll) f(fistl) f(fistpl) f(fistpll) \
   f(fxch) f(fnstcw) f(fldcw) \
   f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) \
   f(fmuls) f(fmull) f(fdivs) f(fdivl) f(fdivrs) f(fdivrl)

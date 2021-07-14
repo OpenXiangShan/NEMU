@@ -26,4 +26,8 @@ enum {
   FPCALL_EX_NV = 0x10,  // invalid operation
 };
 
+enum {
+  FPCALL_ROUNDINT,
+};
+
 #endif

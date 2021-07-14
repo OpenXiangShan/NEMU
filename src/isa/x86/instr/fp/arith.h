@@ -142,3 +142,7 @@ def_EHelper(fabs) {
 def_EHelper(fsqrt) {
   rtl_fsqrtd(s, dfdest, dfdest);
 }
+
+def_EHelper(frndint) {
+  rtl_fpcall(s, FPCALL_ROUNDINT, dfdest, dfdest, NULL);
+}
