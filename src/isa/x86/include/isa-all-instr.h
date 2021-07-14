@@ -42,7 +42,7 @@
   f(fadd) f(faddp) f(fsub) f(fsubp) f(fsubr) f(fsubrp) \
   f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivr) f(fdivrp) \
   f(fcomi) f(fcomip) f(fucomi) f(fucomip) \
-  f(fcmovb) f(fcmovbe)
+  f(fcmovb) f(fcmove) f(fcmovbe) f(fcmovne) f(fcmovnbe)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

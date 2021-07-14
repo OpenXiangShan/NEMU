@@ -110,6 +110,7 @@ def_THelper(fpu_da) {
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fcmovb);
+    def_INSTR_IDTAB("1100 1???", ST0_STi, fcmove);
     def_INSTR_IDTAB("1101 0???", ST0_STi, fcmovbe);
     def_hex_INSTR_IDTAB("e9", ST0_ST1 , fucompp);
   } else {
@@ -122,6 +123,8 @@ def_THelper(fpu_db) {
   x86_instr_fetch(s, 1);
 
   if (get_instr(s) >= 0xc0) {
+    def_INSTR_IDTAB("1100 1???", ST0_STi, fcmovne);
+    def_INSTR_IDTAB("1101 0???", ST0_STi, fcmovnbe);
     def_INSTR_IDTAB("1110 1???", STi_ST0, fucomi);
     def_INSTR_IDTAB("1111 0???", STi_ST0, fcomi);
   } else {
