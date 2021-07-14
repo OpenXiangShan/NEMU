@@ -7,7 +7,7 @@
   f(ret) f(leave) \
   f(cwtl) f(cltd) \
   f(movs) f(stos) \
-  f(rep_movs) f(rep_stos) f(repz_cmps) \
+  f(rep_movs) f(rep_stos) f(repz_cmps) f(repnz_scas) \
   f(pushf) f(pusha) f(popa) \
   f(clc) f(stc) f(cld) f(std) f(sahf) \
   f(iret) \
@@ -19,11 +19,11 @@
 #define INSTR_UNARY(f) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) f(jecxz) \
   f(push) f(pop) \
-  f(inc) f(dec) f(neg) f(not) \
+  f(inc) f(dec) f(neg) f(not) f(bswap) \
   f(mul) f(imul1) f(div) f(idiv) \
   f(lgdt) f(lidt) f(ltr) f(_int) \
   f(flds) f(fldl) f(fstl) f(fld) f(fsts) f(fstps) f(fstpl) f(fstp) f(fst) \
-  f(fildl) f(fildll) f(fistl) f(fistpl) f(fistpll) \
+  f(filds) f(fildl) f(fildll) f(fistl) f(fistpl) f(fistpll) \
   f(fxch) f(fnstcw) f(fldcw) f(fnstenv) f(fldenv) \
   f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) f(fcompl) \
   f(fmuls) f(fmull) f(fdivs) f(fdivl) f(fdivrs) f(fdivrl)

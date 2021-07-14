@@ -436,12 +436,12 @@ static inline def_DHelper(a2O) {
   decode_op_O(s, id_dest, 0);
 }
 
-#if 0
 // for scas and stos
 static inline def_DHelper(aSrc) {
-  decode_op_a(s, id_src1, true);
+  decode_op_a(s, id_src1, width);
 }
 
+#if 0
 // for lods
 static inline def_DHelper(aDest) {
   decode_op_a(s, id_dest, false);
@@ -572,6 +572,14 @@ def_THelper(rep) {
   return table_main(s);
 }
 
+def_THelper(repnz) {
+#ifndef CONFIG_ENGINE_INTERPRETER
+  panic("not support REP in engines other than interpreter");
+#endif
+  s->isa.rep_flags = PREFIX_REPNZ;
+  return table_main(s);
+}
+
 def_THelper(lock) {
   return table_main(s);
 }
@@ -685,6 +693,7 @@ def_THelper(_2byte_esc) {
   def_hex_INSTR_IDTAB ("be", Eb2G, movsb);
   def_hex_INSTR_IDTABW("bf", Ew2G, movsw, 4);
   def_hex_INSTR_IDTAB ("c1",  G2E, xadd);
+  def_INSTR_IDTABW("1100 1???", r, bswap, 4);
   def_hex_INSTR_TAB   ("d6",       sse_0xd6);
   def_hex_INSTR_TAB   ("ef",       sse_0xef);
   return EXEC_ID_inv;
@@ -781,15 +790,17 @@ def_THelper(main) {
     def_hex_INSTR_TABW  ("a4", rep_movs, 1);
     def_hex_INSTR_TAB   ("a5", rep_movs);
     def_hex_INSTR_TABW  ("a6", repz_cmps, 1);
-    def_hex_INSTR_TABW  ("aa", rep_stos, 1);
-    def_hex_INSTR_TAB   ("ab", rep_stos);
+    def_hex_INSTR_IDTABW("aa", aSrc, rep_stos, 1);
+    def_hex_INSTR_IDTAB ("ab", aSrc, rep_stos);
+  } else if (s->isa.rep_flags == PREFIX_REPNZ) {
+    def_hex_INSTR_IDTABW("ae", aSrc, repnz_scas, 1);
   }
 
   def_hex_INSTR_TABW  ("a4",       movs, 1);
   def_hex_INSTR_TAB   ("a5",       movs);
   def_hex_INSTR_IDTABW("a8",  I2a, test, 1);
   def_hex_INSTR_IDTAB ("a9",  I2a, test);
-  def_hex_INSTR_TABW  ("aa", stos, 1);
+  def_hex_INSTR_IDTABW("aa", aSrc, stos, 1);
   def_INSTR_IDTABW("1011 0???",  I2r, mov, 1);
   def_INSTR_IDTAB ("1011 1???",  I2r, mov);
   def_hex_INSTR_IDTABW("c0", Ib2E, gp2, 1);
@@ -824,7 +835,7 @@ def_THelper(main) {
   def_hex_INSTR_TAB   ("f0",       lock);
   def_hex_INSTR_IDTABW("f6",    E, gp3, 1);
   def_hex_INSTR_IDTAB ("f7",    E, gp3);
-  //def_hex_INSTR_TAB   ("f2",       repnz);
+  def_hex_INSTR_TAB   ("f2",       repnz);
   def_hex_INSTR_TAB   ("f3",       rep);
   def_hex_INSTR_TAB   ("f8",       clc);
   def_hex_INSTR_TAB   ("f9",       stc);
@@ -854,6 +865,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_rep_movs:
     case EXEC_ID_rep_stos:
     case EXEC_ID_repz_cmps:
+    case EXEC_ID_repnz_scas:
       s->jnpc = s->pc; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E: case EXEC_ID_ret_imm:

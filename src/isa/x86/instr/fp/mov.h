@@ -80,6 +80,13 @@ def_EHelper(fxch) {
   rtl_fmv(s, dfdest, &s->isa.fptmp);
 }
 
+def_EHelper(filds) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_lms(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
+  rtl_fcvt_i32_to_f64(s, dfdest, s0);
+  ftop_push();
+}
+
 def_EHelper(fildl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_lm(s, s0, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);

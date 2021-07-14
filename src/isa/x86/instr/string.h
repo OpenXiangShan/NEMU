@@ -19,13 +19,15 @@ def_EHelper(rep_movs) {
 }
 
 def_EHelper(stos) {
-  rtl_sm(s, &cpu.eax, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+  rt_decode_reg(s, id_src1, true, s->isa.width);
+  rtl_sm(s, dsrc1, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
   rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * s->isa.width);
 }
 
 def_EHelper(rep_stos) {
   if (cpu.ecx != 0) {
-    rtl_sm(s, &cpu.eax, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+    rt_decode_reg(s, id_src1, true, s->isa.width);
+    rtl_sm(s, dsrc1, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * s->isa.width);
 
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
@@ -38,8 +40,6 @@ def_EHelper(repz_cmps) {
   if (cpu.ecx != 0) {
     rtl_lm(s, &id_dest->val, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
     rtl_lm(s, &id_src1->val, &cpu.esi, 0, s->isa.width, MMU_DYNAMIC);
-    rtl_setrelop(s, RELOP_EQ, s0, &id_dest->val, &id_src1->val);
-    rtl_set_ZF(s, s0);
     rtl_addi(s, &cpu.esi, &cpu.esi, (cpu.DF ? -1 : 1) * s->isa.width);
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * s->isa.width);
 
@@ -57,6 +57,29 @@ def_EHelper(repz_cmps) {
   rtl_setrelop(s, RELOP_NE, s0, &cpu.ecx, rz);
   rtl_and(s, s0, s0, &cpu.ZF);
   rtl_jrelop(s, RELOP_NE, s0, rz, s->pc);
+}
+
+def_EHelper(repnz_scas) {
+  if (cpu.ecx != 0) {
+    rt_decode_reg(s, id_src1, true, s->isa.width);
+    rtl_lm(s, s0, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+    rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * s->isa.width);
+
+    rtl_sub(s, s1, dsrc1, s0);
+    rtl_update_ZFSF(s, s1, s->isa.width);
+    rtl_is_sub_carry(s, s1, dsrc1, s0);
+    rtl_set_CF(s, s1);
+    rtl_sub(s, s1, dsrc1, s0);
+    rtl_is_sub_overflow(s, s1, s1, dsrc1, s0, s->isa.width);
+    rtl_set_OF(s, s1);
+
+    rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
+  }
+
+  // if (!(cpu.ecx == 0 || cpu.ZF)) rtl_j(s, cpu.pc);
+  rtl_setrelop(s, RELOP_EQ, s0, &cpu.ecx, rz);
+  rtl_or(s, s0, s0, &cpu.ZF);
+  rtl_jrelop(s, RELOP_EQ, s0, rz, s->pc);
 }
 
 #if 0
