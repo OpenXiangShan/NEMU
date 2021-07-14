@@ -28,6 +28,7 @@ enum {
   F_SF = 0x8,
   F_OF = 0x10,
   F_ALL = F_CF | F_PF | F_ZF | F_SF | F_OF,
+  F_FCMP = F_CF | F_PF | F_ZF,
 };
 
 #ifdef CONFIG_x86_CC_SKIP
@@ -70,11 +71,25 @@ static const struct {
   [EXEC_ID_test] = { F_ALL, 0 },
   [EXEC_ID_xor] = { F_ALL, 0 },
   [EXEC_ID_pushf] = { 0, F_ALL },
+  [EXEC_ID_popf] = { F_ALL, 0 },
+  [EXEC_ID_sahf] = { 0, F_ALL & ~F_OF },
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
   [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
   [EXEC_ID_xadd] = { F_ALL, 0 },
-  [EXEC_ID_bt] = { F_ALL, 0 },
+  [EXEC_ID_bt]  = { F_ALL & ~F_ZF, 0 },
+  [EXEC_ID_bts] = { F_ALL & ~F_ZF, 0 },
+  [EXEC_ID_bsf] = { F_ALL, 0 },
+  [EXEC_ID_fcmovb]  = { 0, F_CF },
+  [EXEC_ID_fcmovnb] = { 0, F_CF },
+  [EXEC_ID_fcmove]  = { 0, F_ZF },
+  [EXEC_ID_fcmovne] = { 0, F_ZF },
+  [EXEC_ID_fcmovbe] = { 0, F_CF | F_ZF },
+  [EXEC_ID_fcmovnbe]= { 0, F_CF | F_ZF },
+  [EXEC_ID_fucomi]  = { F_FCMP, 0 },
+  [EXEC_ID_fucomip] = { F_FCMP, 0 },
+  [EXEC_ID_fcomi]   = { F_FCMP, 0 },
+  [EXEC_ID_fcomip]  = { F_FCMP, 0 },
 };
 #endif
 
