@@ -36,14 +36,13 @@ static inline def_EHelper(sti) {
   rtl_set_IF(s, s0);
   print_asm("sti");
 }
+#endif
 
-static inline def_EHelper(popf) {
+def_EHelper(popf) {
   void rtl_set_eflags(Decode *s, const rtlreg_t *src);
   rtl_pop(s, s0);
   rtl_set_eflags(s, s0);
-  print_asm("popf");
 }
-#endif
 
 def_EHelper(sahf) {
   void rtl_set_eflags(Decode *s, const rtlreg_t *src);

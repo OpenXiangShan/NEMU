@@ -8,7 +8,7 @@
   f(cwtl) f(cltd) \
   f(movs) f(stos) \
   f(rep_movs) f(rep_stos) f(repz_cmps) f(repnz_scas) \
-  f(pushf) f(pusha) f(popa) \
+  f(pushf) f(popf) f(pusha) f(popa) \
   f(clc) f(stc) f(cld) f(std) f(sahf) \
   f(iret) \
   f(cpuid) f(rdtsc) \
@@ -42,7 +42,7 @@
   f(fadd) f(faddp) f(fsub) f(fsubp) f(fsubr) f(fsubrp) \
   f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivr) f(fdivrp) \
   f(fcomi) f(fcomip) f(fucomi) f(fucomip) \
-  f(fcmovb) f(fcmove) f(fcmovbe) f(fcmovne) f(fcmovnbe)
+  f(fcmovb) f(fcmove) f(fcmovbe) f(fcmovnb) f(fcmovne) f(fcmovnbe)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

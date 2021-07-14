@@ -35,12 +35,6 @@ static inline sword_t get_syscall_ret(intptr_t ret) {
   return (ret == -1) ? -errno : ret;
 }
 
-#if 0
-static inline uint64_t gen_uint64(uint32_t lo, uint32_t hi) {
-  return ((uint64_t)hi << 32) | lo;
-}
-#endif
-
 static inline void user_sys_exit(int status) {
   void set_nemu_state(int state, vaddr_t pc, int halt_ret);
   set_nemu_state(NEMU_END, cpu.pc, status);
@@ -184,6 +178,10 @@ static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
   }
   return -1;
 }
+
+static inline word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
+  return ftruncate(fd, ((uint64_t)hi << 32) | lo);
+}
 #endif
 
 #ifdef CONFIG_ISA_x86
@@ -207,10 +205,6 @@ static inline word_t user_set_thread_area(void *u_info) {
 #endif
 
 #if 0
-static inline word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
-  return ftruncate(fd, gen_uint64(lo, hi));
-}
-
 static inline word_t user_getrlimit(int resource, void *rlim) {
   struct rlimit host_rlim;
   int ret = getrlimit(resource, &host_rlim);
@@ -232,7 +226,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
   switch (id) {
 #if 0
     case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
-    case 194: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
 #endif
     IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
         ret = user_set_thread_area(user_to_host(arg1)); break);
@@ -291,6 +284,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
           arg3, arg4, user_fd(arg5), arg6 << 12); break;
     case USER_SYS_llseek: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case USER_SYS_unlink: ret = unlink(user_to_host(arg1)); break;
+    case USER_SYS_ftruncate64: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }

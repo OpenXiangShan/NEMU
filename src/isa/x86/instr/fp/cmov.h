@@ -25,6 +25,15 @@ def_EHelper(fcmovbe) {
   if (*s0) { *dfdest = *dfsrc1; }
 }
 
+def_EHelper(fcmovnb) {
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_B);
+#else
+  rtl_setcc(s, s0, CC_B);
+#endif
+  if (!*s0) { *dfdest = *dfsrc1; }
+}
+
 def_EHelper(fcmovne) {
 #ifdef LAZY_CC
   rtl_lazy_setcc(s, s0, CC_E);

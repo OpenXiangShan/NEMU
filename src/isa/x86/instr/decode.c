@@ -780,6 +780,7 @@ def_THelper(main) {
   def_hex_INSTR_TAB   ("99",       cltd);
   def_hex_INSTR_TAB   ("9b",       fwait);
   def_hex_INSTR_TAB   ("9c",       pushf);
+  def_hex_INSTR_TAB   ("9d",       popf);
   def_hex_INSTR_TAB   ("9e",       sahf);
   def_hex_INSTR_IDTABW("a0",  O2a, mov, 1);
   def_hex_INSTR_IDTAB ("a1",  O2a, mov);
