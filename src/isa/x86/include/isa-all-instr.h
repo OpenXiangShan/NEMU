@@ -12,7 +12,8 @@
   f(clc) f(stc) f(cld) f(std) f(sahf) \
   f(iret) \
   f(cpuid) f(rdtsc) \
-  f(fchs) f(fabs) f(fsqrt) f(fxam) f(f2xm1) f(frndint) f(fscale) f(fyl2x) f(fyl2xp1) \
+  f(fchs) f(fabs) f(fsqrt) f(fxam) f(f2xm1) f(frndint) \
+  f(fscale) f(fyl2x) f(fyl2xp1) f(fprem) f(fpatan) \
   f(fld1) f(fldl2e) f(fldlg2) f(fldln2) f(fldz) \
   f(fnstsw) f(fwait) f(fucomp) f(fucompp)
 
@@ -25,7 +26,7 @@
   f(flds) f(fldl) f(fstl) f(fld) f(fsts) f(fstps) f(fstpl) f(fstp) f(fst) \
   f(filds) f(fildl) f(fildll) f(fistl) f(fistps) f(fistpl) f(fistpll) \
   f(fxch) f(fnstcw) f(fldcw) f(fnstenv) f(fldenv) \
-  f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) f(fcompl) \
+  f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) f(fcoml) f(fcompl) \
   f(fmuls) f(fmull) f(fdivs) f(fdivl) f(fdivrs) f(fdivrl)
 
 #define INSTR_BINARY(f) \
@@ -42,7 +43,7 @@
   f(fadd) f(faddp) f(fsub) f(fsubp) f(fsubr) f(fsubrp) \
   f(fmul) f(fmulp) f(fdiv) f(fdivp) f(fdivr) f(fdivrp) \
   f(fcomi) f(fcomip) f(fucomi) f(fucomip) \
-  f(fcmovb) f(fcmove) f(fcmovbe) f(fcmovnb) f(fcmovne) f(fcmovnbe)
+  f(fcmovb) f(fcmove) f(fcmovbe) f(fcmovnb) f(fcmovne) f(fcmovnbe) f(fcmovu) f(fcmovnu)
 
 #define INSTR_TERNARY(f) \
   f(imul3) f(shld) f(shrd)

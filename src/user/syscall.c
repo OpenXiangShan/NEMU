@@ -53,23 +53,6 @@ static inline word_t user_sys_brk(word_t new_brk) {
   return new_brk;
 }
 
-#ifdef CONFIG_ISA64
-static inline word_t user_sys_fstat(int fd, void *statbuf) {
-  struct stat buf;
-  int ret = get_syscall_ret(fstat(fd, &buf));
-  if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
-  return ret;
-}
-
-static inline word_t user_sys_fstatat(int dirfd,
-    const char *pathname, void *statbuf, int flags) {
-  struct stat buf;
-  int ret = get_syscall_ret(fstatat(dirfd, pathname, &buf, flags));
-  if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
-  return ret;
-}
-#endif
-
 static inline word_t user_gettimeofday(void *tv, void *tz) {
 #ifdef CONFIG_ISA64
   return gettimeofday((struct timeval *) tv, (__timezone_ptr_t) tz);
@@ -147,7 +130,22 @@ static inline word_t user_getrusage(int who, void *usage) {
 #endif
 }
 
-#ifndef CONFIG_ISA64
+#ifdef CONFIG_ISA64
+static inline word_t user_sys_fstat(int fd, void *statbuf) {
+  struct stat buf;
+  int ret = get_syscall_ret(fstat(fd, &buf));
+  if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
+  return ret;
+}
+
+static inline word_t user_sys_fstatat(int dirfd,
+    const char *pathname, void *statbuf, int flags) {
+  struct stat buf;
+  int ret = get_syscall_ret(fstatat(dirfd, pathname, &buf, flags));
+  if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
+  return ret;
+}
+#else
 static inline word_t user_sys_stat64(const char *pathname, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(stat(pathname, &buf));
@@ -182,7 +180,14 @@ static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
 static inline word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
   return ftruncate(fd, ((uint64_t)hi << 32) | lo);
 }
-#endif
+
+static inline word_t user_getrlimit(int resource, void *rlim) {
+  struct rlimit host_rlim;
+  int ret = getrlimit(resource, &host_rlim);
+  assert(ret == 0);
+  translate_rlimit(&host_rlim, rlim);
+  return ret;
+}
 
 #ifdef CONFIG_ISA_x86
 static inline word_t user_set_thread_area(void *u_info) {
@@ -203,15 +208,6 @@ static inline word_t user_set_thread_area(void *u_info) {
   return 0;
 }
 #endif
-
-#if 0
-static inline word_t user_getrlimit(int resource, void *rlim) {
-  struct rlimit host_rlim;
-  int ret = getrlimit(resource, &host_rlim);
-  assert(ret == 0);
-  translate_rlimit(&host_rlim, rlim);
-  return ret;
-}
 #endif
 
 static inline word_t user_prlimit64(pid_t pid, int resource,
@@ -224,9 +220,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
   switch (id) {
-#if 0
-    case 191: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
-#endif
     IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
         ret = user_set_thread_area(user_to_host(arg1)); break);
     case USER_SYS_exit_group:
@@ -285,6 +278,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_llseek: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case USER_SYS_unlink: ret = unlink(user_to_host(arg1)); break;
     case USER_SYS_ftruncate64: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_getrlimit: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }

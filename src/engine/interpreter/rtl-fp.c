@@ -151,6 +151,8 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const fpreg_t *
     case FPCALL_ROUNDINT: *dest = fpcall_f64_roundToInt(fpToF64(*src1)).v; break;
     case FPCALL_POW2: *dest = fpcall_f64_pow2(fpToF64(*src1)).v; break;
     case FPCALL_LOG2: *dest = fpcall_f64_log2(fpToF64(*src1)).v; break;
+    case FPCALL_MOD: *dest = fpcall_f64_mod(fpToF64(*src1), fpToF64(*src2)).v; break;
+    case FPCALL_ATAN: *dest = fpcall_f64_atan(fpToF64(*src1), fpToF64(*src2)).v; break;
     default: panic("unsupport id = %d", id);
   }
 }

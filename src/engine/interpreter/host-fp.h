@@ -69,6 +69,14 @@ static inline float64_t fpcall_f64_log2(float64_t a) {
   return float64(log2(a.f));
 }
 
+static inline float64_t fpcall_f64_mod(float64_t a, float64_t b) {
+  return float64(fmod(a.f, b.f));
+}
+
+static inline float64_t fpcall_f64_atan(float64_t a, float64_t b) {
+  return float64(atan2(a.f, b.f));
+}
+
 static inline void fp_set_rm(int rm) {
   switch (rm) {
     case FPCALL_RM_RNE: rm = FE_TONEAREST; break;

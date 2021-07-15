@@ -25,6 +25,15 @@ def_EHelper(fcmovbe) {
   if (*s0) { *dfdest = *dfsrc1; }
 }
 
+def_EHelper(fcmovu) {
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_P);
+#else
+  rtl_setcc(s, s0, CC_P);
+#endif
+  if (*s0) { *dfdest = *dfsrc1; }
+}
+
 def_EHelper(fcmovnb) {
 #ifdef LAZY_CC
   rtl_lazy_setcc(s, s0, CC_B);
@@ -51,3 +60,13 @@ def_EHelper(fcmovnbe) {
 #endif
   if (!*s0) { *dfdest = *dfsrc1; }
 }
+
+def_EHelper(fcmovnu) {
+#ifdef LAZY_CC
+  rtl_lazy_setcc(s, s0, CC_P);
+#else
+  rtl_setcc(s, s0, CC_P);
+#endif
+  if (!*s0) { *dfdest = *dfsrc1; }
+}
+

@@ -86,6 +86,8 @@ static const struct {
   [EXEC_ID_fcmovne] = { 0, F_ZF },
   [EXEC_ID_fcmovbe] = { 0, F_CF | F_ZF },
   [EXEC_ID_fcmovnbe]= { 0, F_CF | F_ZF },
+  [EXEC_ID_fcmovu]  = { 0, F_PF },
+  [EXEC_ID_fcmovnu] = { 0, F_PF },
   [EXEC_ID_fucomi]  = { F_FCMP, 0 },
   [EXEC_ID_fucomip] = { F_FCMP, 0 },
   [EXEC_ID_fcomi]   = { F_FCMP, 0 },

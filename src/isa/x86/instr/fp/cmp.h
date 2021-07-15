@@ -26,6 +26,12 @@ def_EHelper(fucompp) {
   ftop_pop2();
 }
 
+def_EHelper(fcoml) {
+  rt_decode_mem(s, id_dest, false, 0);
+  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  rtl_fcmp_fsw(s, &cpu.fsw, dfdest, &s->isa.fptmp);
+}
+
 def_EHelper(fcompl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);

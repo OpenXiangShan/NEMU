@@ -172,3 +172,13 @@ def_EHelper(fyl2xp1) {
   rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
   ftop_pop();
 }
+
+def_EHelper(fprem) {
+  rtl_fpcall(s, FPCALL_MOD, dfdest, dfdest, dfsrc1);
+  rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700);
+}
+
+def_EHelper(fpatan) {
+  rtl_fpcall(s, FPCALL_ATAN, dfsrc1, dfsrc1, dfdest);
+  ftop_pop();
+}
