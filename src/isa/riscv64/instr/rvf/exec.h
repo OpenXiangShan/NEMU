@@ -20,101 +20,99 @@ def_EHelper(fsw_mmu) {
   rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_TRANSLATE);
 }
 
-#define def_fop_template(name, op, w) \
+#define def_fop_template(name, w) \
   def_EHelper(name) { \
-    rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(op, w)); \
+    concat(rtl_, name)(s, ddest, dsrc1, dsrc2); \
     rtl_fsr(s, ddest, ddest, w); \
   }
 
-def_fop_template(fadds, FPCALL_ADD, FPCALL_W32)
-def_fop_template(fsubs, FPCALL_SUB, FPCALL_W32)
-def_fop_template(fmuls, FPCALL_MUL, FPCALL_W32)
-def_fop_template(fdivs, FPCALL_DIV, FPCALL_W32)
-def_fop_template(fmins, FPCALL_MIN, FPCALL_W32)
-def_fop_template(fmaxs, FPCALL_MAX, FPCALL_W32)
+def_fop_template(fadds, FPCALL_W32)
+def_fop_template(fsubs, FPCALL_W32)
+def_fop_template(fmuls, FPCALL_W32)
+def_fop_template(fdivs, FPCALL_W32)
+def_fop_template(fmins, FPCALL_W32)
+def_fop_template(fmaxs, FPCALL_W32)
 
 def_EHelper(fsqrts) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_SQRT, FPCALL_W32));
+  rtl_fsqrts(s, ddest, dsrc1);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fmadds) {
   rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
-  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fmadds(s, s0, dsrc1, dsrc2);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
 }
 
 def_EHelper(fmsubs) {
   rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
   rtl_xori(s, s0, s0, F32_SIGN);
-  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fmadds(s, s0, dsrc1, dsrc2);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
 }
 
 def_EHelper(fnmsubs) {
   rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
   rtl_xori(s, s1, dsrc1, F32_SIGN);
-  rtl_hostcall(s, HOSTCALL_FP, s0, s1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fmadds(s, s0, s1, dsrc2);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
 }
 
 def_EHelper(fnmadds) {
   rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
-  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
+  rtl_fmadds(s, s0, dsrc1, dsrc2);
   rtl_xori(s, s0, s0, F32_SIGN);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
 }
 
 def_EHelper(fles) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LE, FPCALL_W32));
+  rtl_fles(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(flts) {
-  rtl_mv(s, ddest, dsrc1);
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LT, FPCALL_W32));
+  rtl_flts(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(feqs) {
-  rtl_mv(s, ddest, dsrc1);
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_EQ, FPCALL_W32));
+  rtl_feqs(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(fcvt_s_w) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_I32ToF, FPCALL_W32));
+  rtl_fcvt_i32_to_f32(s, ddest, dsrc1);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fcvt_s_wu) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_U32ToF, FPCALL_W32));
+  rtl_fcvt_u32_to_f32(s, ddest, dsrc1);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fcvt_s_l) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_I64ToF, FPCALL_W32));
+  rtl_fcvt_i64_to_f32(s, ddest, dsrc1);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fcvt_s_lu) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_U64ToF, FPCALL_W32));
+  rtl_fcvt_u64_to_f32(s, ddest, dsrc1);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fcvt_w_s) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI32, FPCALL_W32));
+  rtl_fcvt_f32_to_i32(s, ddest, dsrc1);
   rtl_sext(s, ddest, ddest, 4);
 }
 
 def_EHelper(fcvt_wu_s) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU32, FPCALL_W32));
+  rtl_fcvt_f32_to_u32(s, ddest, dsrc1);
   rtl_sext(s, ddest, ddest, 4);
 }
 
 def_EHelper(fcvt_l_s) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI64, FPCALL_W32));
+  rtl_fcvt_f32_to_i64(s, ddest, dsrc1);
 }
 
 def_EHelper(fcvt_lu_s) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU64, FPCALL_W32));
+  rtl_fcvt_f32_to_u64(s, ddest, dsrc1);
 }
 
 def_EHelper(fsgnjs) {

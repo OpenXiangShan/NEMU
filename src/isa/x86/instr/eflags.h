@@ -20,13 +20,12 @@ def_EHelper(cld) {
   rtl_set_DF(s, rz);
 }
 
-#if 0
-static inline def_EHelper(std) {
+def_EHelper(std) {
   rtl_li(s, s0, 1);
   rtl_set_DF(s, s0);
-  print_asm("std");
 }
 
+#if 0
 static inline def_EHelper(cli) {
   rtl_set_IF(s, rz);
   print_asm("cli");
@@ -37,15 +36,15 @@ static inline def_EHelper(sti) {
   rtl_set_IF(s, s0);
   print_asm("sti");
 }
+#endif
 
-static inline def_EHelper(popf) {
+def_EHelper(popf) {
   void rtl_set_eflags(Decode *s, const rtlreg_t *src);
   rtl_pop(s, s0);
   rtl_set_eflags(s, s0);
-  print_asm("popf");
 }
 
-static inline def_EHelper(sahf) {
+def_EHelper(sahf) {
   void rtl_set_eflags(Decode *s, const rtlreg_t *src);
   void rtl_compute_eflags(Decode *s, rtlreg_t *dest);
 
@@ -54,7 +53,4 @@ static inline def_EHelper(sahf) {
   rtl_lr(s, s1, R_AH, 1);
   rtl_or(s, s0, s0, s1);
   rtl_set_eflags(s, s0);
-
-  print_asm("sahf");
 }
-#endif

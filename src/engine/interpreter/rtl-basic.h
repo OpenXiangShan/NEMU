@@ -159,5 +159,4 @@ static inline def_rtl(jrelop, uint32_t relop,
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
 
-//#include "rtl-fp.h"
 #endif

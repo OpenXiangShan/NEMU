@@ -28,8 +28,10 @@ enum {
   F_SF = 0x8,
   F_OF = 0x10,
   F_ALL = F_CF | F_PF | F_ZF | F_SF | F_OF,
+  F_FCMP = F_CF | F_PF | F_ZF,
 };
 
+#ifdef CONFIG_x86_CC_SKIP
 static const uint8_t cc2flag [16] = {
   [CC_O] = F_OF, [CC_NO] = F_OF,
   [CC_B] = F_CF, [CC_NB] = F_CF,
@@ -47,7 +49,6 @@ static const struct {
   [EXEC_ID_add] = { F_ALL, 0 },
   [EXEC_ID_adc] = { F_ALL, F_CF },
   [EXEC_ID_and] = { F_ALL, 0 },
-  [EXEC_ID_bsr] = { F_ALL, 0 },
   [EXEC_ID_cmp] = { F_ALL, 0 },
   [EXEC_ID_dec] = { F_ALL & ~F_CF, 0 },
   [EXEC_ID_div] = { F_ALL, 0 },
@@ -69,12 +70,32 @@ static const struct {
   [EXEC_ID_test] = { F_ALL, 0 },
   [EXEC_ID_xor] = { F_ALL, 0 },
   [EXEC_ID_pushf] = { 0, F_ALL },
+  [EXEC_ID_popf] = { F_ALL, 0 },
+  [EXEC_ID_sahf] = { 0, F_ALL & ~F_OF },
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
   [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
   [EXEC_ID_xadd] = { F_ALL, 0 },
-  [EXEC_ID_bt] = { F_ALL, 0 },
+  [EXEC_ID_bt]  = { F_ALL & ~F_ZF, 0 },
+  [EXEC_ID_bts] = { F_ALL & ~F_ZF, 0 },
+  [EXEC_ID_bsf] = { F_ALL, 0 },
+  [EXEC_ID_bsr] = { F_ALL, 0 },
+  [EXEC_ID_repz_cmps] = { F_ALL, 0 },
+  [EXEC_ID_repnz_scas] = { F_ALL, 0 },
+  [EXEC_ID_fcmovb]  = { 0, F_CF },
+  [EXEC_ID_fcmovnb] = { 0, F_CF },
+  [EXEC_ID_fcmove]  = { 0, F_ZF },
+  [EXEC_ID_fcmovne] = { 0, F_ZF },
+  [EXEC_ID_fcmovbe] = { 0, F_CF | F_ZF },
+  [EXEC_ID_fcmovnbe]= { 0, F_CF | F_ZF },
+  [EXEC_ID_fcmovu]  = { 0, F_PF },
+  [EXEC_ID_fcmovnu] = { 0, F_PF },
+  [EXEC_ID_fucomi]  = { F_FCMP, 0 },
+  [EXEC_ID_fucomip] = { F_FCMP, 0 },
+  [EXEC_ID_fcomi]   = { F_FCMP, 0 },
+  [EXEC_ID_fcomip]  = { F_FCMP, 0 },
 };
+#endif
 
 typedef union {
   struct {
@@ -434,12 +455,12 @@ static inline def_DHelper(a2O) {
   decode_op_O(s, id_dest, 0);
 }
 
-#if 0
 // for scas and stos
 static inline def_DHelper(aSrc) {
-  decode_op_a(s, id_src1, true);
+  decode_op_a(s, id_src1, width);
 }
 
+#if 0
 // for lods
 static inline def_DHelper(aDest) {
   decode_op_a(s, id_dest, false);
@@ -570,6 +591,14 @@ def_THelper(rep) {
   return table_main(s);
 }
 
+def_THelper(repnz) {
+#ifndef CONFIG_ENGINE_INTERPRETER
+  panic("not support REP in engines other than interpreter");
+#endif
+  s->isa.rep_flags = PREFIX_REPNZ;
+  return table_main(s);
+}
+
 def_THelper(lock) {
   return table_main(s);
 }
@@ -579,13 +608,20 @@ def_THelper(gs) {
   return table_main(s);
 }
 
-#undef def_INSTR_IDTABW
-#define def_INSTR_IDTABW(pattern, id, tab, w) \
-  def_INSTR_raw(pattern, { \
+#define def_x86_INSTR_IDTABW(decode_fun, pattern, id, tab, w) \
+  def_INSTR_raw(decode_fun, pattern, { \
       if (w != -1) s->isa.width = (w == 0 ? (s->isa.is_operand_size_16 ? 2 : 4) : w); \
       concat(decode_, id)(s, s->isa.width); \
       return concat(table_, tab)(s); \
     })
+
+#undef def_INSTR_IDTABW
+#define def_INSTR_IDTABW(pattern, id, tab, w) \
+  def_x86_INSTR_IDTABW(pattern_decode, pattern, id, tab, w)
+
+#undef def_hex_INSTR_IDTABW
+#define def_hex_INSTR_IDTABW(pattern, id, tab, w) \
+  def_x86_INSTR_IDTABW(pattern_decode_hex, pattern, id, tab, w)
 
 def_THelper(gp1) {
   def_INSTR_TABW("?? 000 ???", add, -1);
@@ -649,158 +685,184 @@ def_THelper(_2byte_esc) {
   x86_instr_fetch(s, 1);
   s->isa.opcode = get_instr(s) | 0x100;
 
-  def_INSTR_IDTABW("0000 0000",    E, gp6, 2);
-  def_INSTR_IDTABW("0000 0001",    E, gp7, 4);
-  def_INSTR_IDTABW("0010 0000",  G2E, mov_cr2r, 4);
-  def_INSTR_IDTABW("0010 0010",  E2G, mov_r2cr, 4);
-  def_INSTR_TAB   ("0011 0001",       rdtsc);
+  def_hex_INSTR_IDTABW("00",    E, gp6, 2);
+  def_hex_INSTR_IDTABW("01",    E, gp7, 4);
+  def_hex_INSTR_IDTABW("20",  G2E, mov_cr2r, 4);
+  def_hex_INSTR_IDTABW("22",  E2G, mov_r2cr, 4);
+  def_hex_INSTR_TAB   ("31",       rdtsc);
   def_INSTR_IDTAB ("0100 ????",  E2G, cmovcc);
-  def_INSTR_TAB   ("0110 1111",       sse_0x6f);
-  def_INSTR_IDTAB ("0111 0011", Ib2E, sse_0x73);
-  def_INSTR_TAB   ("0111 1110",       sse_0x7e);
+  def_hex_INSTR_TAB   ("6f",       sse_0x6f);
+  def_hex_INSTR_IDTAB ("73", Ib2E, sse_0x73);
+  def_hex_INSTR_TAB   ("7e",       sse_0x7e);
   def_INSTR_IDTABW("1000 ????",    J, jcc, 4);
   def_INSTR_IDTABW("1001 ????",    E, setcc, 1);
-  def_INSTR_TAB   ("1010 0010",       cpuid);
-  def_INSTR_IDTAB ("1010 0011",  G2E, bt);
-  def_INSTR_IDTAB ("1010 0100",Ib_G2E,shld);
-  def_INSTR_IDTAB ("1010 0101",cl_G2E,shld);
-  def_INSTR_IDTAB ("1010 1100",Ib_G2E,shrd);
-  def_INSTR_IDTAB ("1010 1111",  E2G, imul2);
-  def_INSTR_IDTAB ("1011 0001",  G2E, cmpxchg);
-  def_INSTR_IDTAB ("1011 0110", Eb2G, movzb);
-  def_INSTR_IDTABW("1011 0111", Ew2G, movzw, 4);
-  def_INSTR_IDTAB ("1011 1101",  E2G, bsr);
-  def_INSTR_IDTAB ("1011 1110", Eb2G, movsb);
-  def_INSTR_IDTABW("1011 1111", Ew2G, movsw, 4);
-  def_INSTR_IDTAB ("1100 0001",  G2E, xadd);
-  def_INSTR_TAB   ("1101 0110",       sse_0xd6);
-  def_INSTR_TAB   ("1110 1111",       sse_0xef);
+  def_hex_INSTR_TAB   ("a2",       cpuid);
+  def_hex_INSTR_IDTAB ("a3",  G2E, bt);
+  def_hex_INSTR_IDTAB ("a4",Ib_G2E,shld);
+  def_hex_INSTR_IDTAB ("a5",cl_G2E,shld);
+  def_hex_INSTR_IDTAB ("ab",  G2E, bts);
+  def_hex_INSTR_IDTAB ("ac",Ib_G2E,shrd);
+  def_hex_INSTR_IDTAB ("ad",cl_G2E,shrd);
+  def_hex_INSTR_IDTAB ("af",  E2G, imul2);
+  def_hex_INSTR_IDTAB ("b1",  G2E, cmpxchg);
+  def_hex_INSTR_IDTAB ("b6", Eb2G, movzb);
+  def_hex_INSTR_IDTABW("b7", Ew2G, movzw, 4);
+  def_hex_INSTR_IDTAB ("bc",  E2G, bsf);
+  def_hex_INSTR_IDTAB ("bd",  E2G, bsr);
+  def_hex_INSTR_IDTAB ("be", Eb2G, movsb);
+  def_hex_INSTR_IDTABW("bf", Ew2G, movsw, 4);
+  def_hex_INSTR_IDTAB ("c1",  G2E, xadd);
+  def_INSTR_IDTABW("1100 1???", r, bswap, 4);
+  def_hex_INSTR_TAB   ("d6",       sse_0xd6);
+  def_hex_INSTR_TAB   ("ef",       sse_0xef);
   return EXEC_ID_inv;
 }
+
+#include "fp/decode.h"
 
 def_THelper(main) {
   x86_instr_fetch(s, 1);
   s->isa.opcode = get_instr(s);
 
-  def_INSTR_IDTABW("0000 0000",  G2E, add, 1);
-  def_INSTR_IDTAB ("0000 0001",  G2E, add);
-  def_INSTR_IDTABW("0000 0010",  E2G, add, 1);
-  def_INSTR_IDTAB ("0000 0011",  E2G, add);
-  def_INSTR_IDTAB ("0000 0101",  I2a, add);
-  def_INSTR_IDTABW("0000 1000",  G2E, or, 1);
-  def_INSTR_IDTAB ("0000 1001",  G2E, or);
-  def_INSTR_IDTAB ("0000 1011",  E2G, or);
-  def_INSTR_IDTABW("0000 1100",  I2a, or, 1);
-  def_INSTR_IDTAB ("0000 1101",  I2a, or);
-  def_INSTR_IDTABW("0000 1010",  E2G, or, 1);
-  def_INSTR_TAB   ("0000 1111",       _2byte_esc);
-  def_INSTR_IDTABW("0001 0000",  G2E, adc, 1);
-  def_INSTR_IDTAB ("0001 0001",  G2E, adc);
-  def_INSTR_IDTAB ("0001 0011",  E2G, adc);
-  def_INSTR_IDTABW("0001 1000",  G2E, sbb, 1);
-  def_INSTR_IDTAB ("0001 1001",  G2E, sbb);
-  def_INSTR_IDTAB ("0001 1011",  E2G, sbb);
-  def_INSTR_IDTABW("0010 0000",  G2E, and, 1);
-  def_INSTR_IDTAB ("0010 0001",  G2E, and);
-  def_INSTR_IDTABW("0010 0010",  E2G, and, 1);
-  def_INSTR_IDTAB ("0010 0011",  E2G, and);
-  def_INSTR_IDTABW("0010 0100",  I2a, and, 1);
-  def_INSTR_IDTAB ("0010 0101",  I2a, and);
-  def_INSTR_IDTABW("0010 1000",  G2E, sub, 1);
-  def_INSTR_IDTAB ("0010 1001",  G2E, sub);
-  def_INSTR_IDTABW("0010 1010",  E2G, sub, 1);
-  def_INSTR_IDTAB ("0010 1011",  E2G, sub);
-  def_INSTR_IDTAB ("0010 1101",  I2a, sub);
-  def_INSTR_IDTABW("0011 0000",  G2E, xor, 1);
-  def_INSTR_IDTAB ("0011 0001",  G2E, xor);
-  def_INSTR_IDTABW("0011 0010",  E2G, xor, 1);
-  def_INSTR_IDTAB ("0011 0011",  E2G, xor);
-  def_INSTR_IDTAB ("0011 0101",  I2a, xor);
-  def_INSTR_IDTABW("0011 1000",  G2E, cmp, 1);
-  def_INSTR_IDTAB ("0011 1001",  G2E, cmp);
-  def_INSTR_IDTABW("0011 1010",  E2G, cmp, 1);
-  def_INSTR_IDTAB ("0011 1011",  E2G, cmp);
-  def_INSTR_IDTABW("0011 1100",  I2a, cmp, 1);
-  def_INSTR_IDTAB ("0011 1101",  I2a, cmp);
+  def_hex_INSTR_IDTABW("00",  G2E, add, 1);
+  def_hex_INSTR_IDTAB ("01",  G2E, add);
+  def_hex_INSTR_IDTABW("02",  E2G, add, 1);
+  def_hex_INSTR_IDTAB ("03",  E2G, add);
+  def_hex_INSTR_IDTAB ("05",  I2a, add);
+  def_hex_INSTR_IDTABW("08",  G2E, or, 1);
+  def_hex_INSTR_IDTAB ("09",  G2E, or);
+  def_hex_INSTR_IDTABW("0a",  E2G, or, 1);
+  def_hex_INSTR_IDTAB ("0b",  E2G, or);
+  def_hex_INSTR_IDTABW("0c",  I2a, or, 1);
+  def_hex_INSTR_IDTAB ("0d",  I2a, or);
+  def_hex_INSTR_TAB   ("0f",       _2byte_esc);
+  def_hex_INSTR_IDTABW("10",  G2E, adc, 1);
+  def_hex_INSTR_IDTAB ("11",  G2E, adc);
+  def_hex_INSTR_IDTAB ("13",  E2G, adc);
+  def_hex_INSTR_IDTABW("18",  G2E, sbb, 1);
+  def_hex_INSTR_IDTAB ("19",  G2E, sbb);
+  def_hex_INSTR_IDTAB ("1b",  E2G, sbb);
+  def_hex_INSTR_IDTABW("1c",  I2a, sbb, 1);
+  def_hex_INSTR_IDTABW("20",  G2E, and, 1);
+  def_hex_INSTR_IDTAB ("21",  G2E, and);
+  def_hex_INSTR_IDTABW("22",  E2G, and, 1);
+  def_hex_INSTR_IDTAB ("23",  E2G, and);
+  def_hex_INSTR_IDTABW("24",  I2a, and, 1);
+  def_hex_INSTR_IDTAB ("25",  I2a, and);
+  def_hex_INSTR_IDTABW("28",  G2E, sub, 1);
+  def_hex_INSTR_IDTAB ("29",  G2E, sub);
+  def_hex_INSTR_IDTABW("2a",  E2G, sub, 1);
+  def_hex_INSTR_IDTAB ("2b",  E2G, sub);
+  def_hex_INSTR_IDTABW("2c",  I2a, sub, 1);
+  def_hex_INSTR_IDTAB ("2d",  I2a, sub);
+  def_hex_INSTR_IDTABW("30",  G2E, xor, 1);
+  def_hex_INSTR_IDTAB ("31",  G2E, xor);
+  def_hex_INSTR_IDTABW("32",  E2G, xor, 1);
+  def_hex_INSTR_IDTAB ("33",  E2G, xor);
+  def_hex_INSTR_IDTABW("34",  I2a, xor, 1);
+  def_hex_INSTR_IDTAB ("35",  I2a, xor);
+  def_hex_INSTR_IDTABW("38",  G2E, cmp, 1);
+  def_hex_INSTR_IDTAB ("39",  G2E, cmp);
+  def_hex_INSTR_IDTABW("3a",  E2G, cmp, 1);
+  def_hex_INSTR_IDTAB ("3b",  E2G, cmp);
+  def_hex_INSTR_IDTABW("3c",  I2a, cmp, 1);
+  def_hex_INSTR_IDTAB ("3d",  I2a, cmp);
   def_INSTR_IDTAB ("0100 0???",    r, inc);
   def_INSTR_IDTAB ("0100 1???",    r, dec);
   def_INSTR_IDTAB ("0101 0???",    r, push);
   def_INSTR_IDTAB ("0101 1???",    r, pop);
-  def_INSTR_TAB   ("0110 0000",       pusha);
-  def_INSTR_TAB   ("0110 0001",       popa);
-  def_INSTR_TAB   ("0110 0101",       gs);
-  def_INSTR_TAB   ("0110 0110",       operand_size);
-  def_INSTR_IDTAB ("0110 1000",    I, push);
-  def_INSTR_IDTAB ("0110 1001",I_E2G, imul3);
-  def_INSTR_IDTABW("0110 1010",   SI, push, 1);
-  def_INSTR_IDTAB ("0110 1011",SI_E2G,imul3);
+  def_hex_INSTR_TAB   ("60",       pusha);
+  def_hex_INSTR_TAB   ("61",       popa);
+  def_hex_INSTR_TAB   ("65",       gs);
+  def_hex_INSTR_TAB   ("66",       operand_size);
+  def_hex_INSTR_IDTAB ("68",    I, push);
+  def_hex_INSTR_IDTAB ("69",I_E2G, imul3);
+  def_hex_INSTR_IDTABW("6a",   SI, push, 1);
+  def_hex_INSTR_IDTAB ("6b",SI_E2G,imul3);
   def_INSTR_IDTABW("0111 ????",    J, jcc, 1);
-  def_INSTR_IDTABW("1000 0000",  I2E, gp1, 1);
-  def_INSTR_IDTAB ("1000 0001",  I2E, gp1);
-  def_INSTR_IDTAB ("1000 0011", SI2E, gp1);
-  def_INSTR_IDTABW("1000 0100",  G2E, test, 1);
-  def_INSTR_IDTAB ("1000 0101",  G2E, test);
-  def_INSTR_IDTABW("1000 0110",  G2E, xchg, 1);
-  def_INSTR_IDTABW("1000 1000",  G2E, mov, 1);
-  def_INSTR_IDTAB ("1000 1001",  G2E, mov);
-  def_INSTR_IDTABW("1000 1010",  E2G, mov, 1);
-  def_INSTR_IDTAB ("1000 1011",  E2G, mov);
-  def_INSTR_IDTABW("1000 1101",  E2G, lea, 4);
-  def_INSTR_IDTABW("1000 1110",  E2G, mov_rm2sreg, 2);
-  def_INSTR_TAB   ("1001 0000",       nop);
+  def_hex_INSTR_IDTABW("80",  I2E, gp1, 1);
+  def_hex_INSTR_IDTAB ("81",  I2E, gp1);
+  def_hex_INSTR_IDTAB ("83", SI2E, gp1);
+  def_hex_INSTR_IDTABW("84",  G2E, test, 1);
+  def_hex_INSTR_IDTAB ("85",  G2E, test);
+  def_hex_INSTR_IDTABW("86",  G2E, xchg, 1);
+  def_hex_INSTR_IDTAB ("87",  G2E, xchg);
+  def_hex_INSTR_IDTABW("88",  G2E, mov, 1);
+  def_hex_INSTR_IDTAB ("89",  G2E, mov);
+  def_hex_INSTR_IDTABW("8a",  E2G, mov, 1);
+  def_hex_INSTR_IDTAB ("8b",  E2G, mov);
+  def_hex_INSTR_IDTABW("8d",  E2G, lea, 4);
+  def_hex_INSTR_IDTABW("8e",  E2G, mov_rm2sreg, 2);
+  def_hex_INSTR_TAB   ("90",       nop);
   def_INSTR_IDTAB ("1001 0???",  a2r, xchg);
-  def_INSTR_TAB   ("1001 1000",       cwtl);
-  def_INSTR_TAB   ("1001 1001",       cltd);
-  def_INSTR_TAB   ("1001 1100",       pushf);
-  def_INSTR_IDTABW("1010 0000",  O2a, mov, 1);
-  def_INSTR_IDTAB ("1010 0001",  O2a, mov);
-  def_INSTR_IDTABW("1010 0010",  a2O, mov, 1);
-  def_INSTR_IDTAB ("1010 0011",  a2O, mov);
+  def_hex_INSTR_TAB   ("98",       cwtl);
+  def_hex_INSTR_TAB   ("99",       cltd);
+  def_hex_INSTR_TAB   ("9b",       fwait);
+  def_hex_INSTR_TAB   ("9c",       pushf);
+  def_hex_INSTR_TAB   ("9d",       popf);
+  def_hex_INSTR_TAB   ("9e",       sahf);
+  def_hex_INSTR_IDTABW("a0",  O2a, mov, 1);
+  def_hex_INSTR_IDTAB ("a1",  O2a, mov);
+  def_hex_INSTR_IDTABW("a2",  a2O, mov, 1);
+  def_hex_INSTR_IDTAB ("a3",  a2O, mov);
 
   if (s->isa.rep_flags == PREFIX_REP) {
-    def_INSTR_TABW  ("1010 0100", rep_movs, 1);
-    def_INSTR_TAB   ("1010 0101", rep_movs);
-    def_INSTR_TABW  ("1010 1010", rep_stos, 1);
-    def_INSTR_TAB   ("1010 1011", rep_stos);
+    def_hex_INSTR_TABW  ("a4", rep_movs, 1);
+    def_hex_INSTR_TAB   ("a5", rep_movs);
+    def_hex_INSTR_TABW  ("a6", repz_cmps, 1);
+    def_hex_INSTR_IDTABW("aa", aSrc, rep_stos, 1);
+    def_hex_INSTR_IDTAB ("ab", aSrc, rep_stos);
+  } else if (s->isa.rep_flags == PREFIX_REPNZ) {
+    def_hex_INSTR_IDTABW("ae", aSrc, repnz_scas, 1);
   }
 
-  def_INSTR_TABW  ("1010 0100",       movs, 1);
-  def_INSTR_TAB   ("1010 0101",       movs);
-  def_INSTR_IDTABW("1010 1000",  I2a, test, 1);
-  def_INSTR_IDTAB ("1010 1001",  I2a, test);
+  def_hex_INSTR_TABW  ("a4",       movs, 1);
+  def_hex_INSTR_TAB   ("a5",       movs);
+  def_hex_INSTR_IDTABW("a8",  I2a, test, 1);
+  def_hex_INSTR_IDTAB ("a9",  I2a, test);
+  def_hex_INSTR_IDTABW("aa", aSrc, stos, 1);
   def_INSTR_IDTABW("1011 0???",  I2r, mov, 1);
   def_INSTR_IDTAB ("1011 1???",  I2r, mov);
-  def_INSTR_IDTABW("1100 0000", Ib2E, gp2, 1);
-  def_INSTR_IDTAB ("1100 0001", Ib2E, gp2);
-  def_INSTR_IDTABW("1100 0010",    I, ret_imm, 2);
-  def_INSTR_TAB   ("1100 0011",       ret);
-  def_INSTR_IDTABW("1100 0110",  I2E, mov, 1);
-  def_INSTR_IDTAB ("1100 0111",  I2E, mov);
-  def_INSTR_TAB   ("1100 1001",       leave);
-  def_INSTR_IDTABW("1100 1101",    I, _int, 1);
-  def_INSTR_TAB   ("1100 1111",       iret);
-  def_INSTR_IDTABW("1101 0000",  1_E, gp2, 1);
-  def_INSTR_IDTAB ("1101 0001",  1_E, gp2);
-  def_INSTR_IDTABW("1101 0010", cl2E, gp2, 1);
-  def_INSTR_IDTAB ("1101 0011", cl2E, gp2);
-  def_INSTR_TAB   ("1101 0110",       nemu_trap);
-  def_INSTR_IDTABW("1110 0011",    J, jecxz, 1);
-  def_INSTR_IDTABW("1110 1000",    J, call, 4);
-  def_INSTR_IDTABW("1110 1001",    J,  jmp, 4);
-  def_INSTR_IDTABW("1110 1011",    J,  jmp, 1);
-  def_INSTR_IDTAB ("1110 1101", dx2a, in);
-  def_INSTR_IDTABW("1110 1110", a2dx, out, 1);
-  def_INSTR_IDTAB ("1110 1111", a2dx, out);
-  def_INSTR_TAB   ("1111 0000",       lock);
-  def_INSTR_IDTABW("1111 0110",    E, gp3, 1);
-  def_INSTR_IDTAB ("1111 0111",    E, gp3);
-  //def_INSTR_TAB   ("1111 0010",       repnz);
-  def_INSTR_TAB   ("1111 0011",       rep);
-  def_INSTR_TAB   ("1111 1000",       clc);
-  def_INSTR_TAB   ("1111 1001",       stc);
-  def_INSTR_TAB   ("1111 1100",       cld);
-  def_INSTR_IDTABW("1111 1110",    E, gp4, 1);
-  def_INSTR_IDTAB ("1111 1111",    E, gp5);
+  def_hex_INSTR_IDTABW("c0", Ib2E, gp2, 1);
+  def_hex_INSTR_IDTAB ("c1", Ib2E, gp2);
+  def_hex_INSTR_IDTABW("c2",    I, ret_imm, 2);
+  def_hex_INSTR_TAB   ("c3",       ret);
+  def_hex_INSTR_IDTABW("c6",  I2E, mov, 1);
+  def_hex_INSTR_IDTAB ("c7",  I2E, mov);
+  def_hex_INSTR_TAB   ("c9",       leave);
+  def_hex_INSTR_IDTABW("cd",    I, _int, 1);
+  def_hex_INSTR_TAB   ("cf",       iret);
+  def_hex_INSTR_IDTABW("d0",  1_E, gp2, 1);
+  def_hex_INSTR_IDTAB ("d1",  1_E, gp2);
+  def_hex_INSTR_IDTABW("d2", cl2E, gp2, 1);
+  def_hex_INSTR_IDTAB ("d3", cl2E, gp2);
+  def_hex_INSTR_TAB   ("d6",       nemu_trap);
+  def_hex_INSTR_TAB   ("d8",       fpu_d8);
+  def_hex_INSTR_TAB   ("d9",       fpu_d9);
+  def_hex_INSTR_TAB   ("da",       fpu_da);
+  def_hex_INSTR_TAB   ("db",       fpu_db);
+  def_hex_INSTR_TAB   ("dc",       fpu_dc);
+  def_hex_INSTR_TAB   ("dd",       fpu_dd);
+  def_hex_INSTR_TAB   ("de",       fpu_de);
+  def_hex_INSTR_TAB   ("df",       fpu_df);
+  def_hex_INSTR_IDTABW("e3",    J, jecxz, 1);
+  def_hex_INSTR_IDTABW("e8",    J, call, 4);
+  def_hex_INSTR_IDTABW("e9",    J,  jmp, 4);
+  def_hex_INSTR_IDTABW("eb",    J,  jmp, 1);
+  def_hex_INSTR_IDTAB ("ed", dx2a, in);
+  def_hex_INSTR_IDTABW("ee", a2dx, out, 1);
+  def_hex_INSTR_IDTAB ("ef", a2dx, out);
+  def_hex_INSTR_TAB   ("f0",       lock);
+  def_hex_INSTR_IDTABW("f6",    E, gp3, 1);
+  def_hex_INSTR_IDTAB ("f7",    E, gp3);
+  def_hex_INSTR_TAB   ("f2",       repnz);
+  def_hex_INSTR_TAB   ("f3",       rep);
+  def_hex_INSTR_TAB   ("f8",       clc);
+  def_hex_INSTR_TAB   ("f9",       stc);
+  def_hex_INSTR_TAB   ("fc",       cld);
+  def_hex_INSTR_TAB   ("fd",       std);
+  def_hex_INSTR_IDTABW("fe",    E, gp4, 1);
+  def_hex_INSTR_IDTAB ("ff",    E, gp5);
   return table_inv(s);
 }
 
@@ -822,6 +884,8 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
     case EXEC_ID_rep_movs:
     case EXEC_ID_rep_stos:
+    case EXEC_ID_repz_cmps:
+    case EXEC_ID_repnz_scas:
       s->jnpc = s->pc; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E: case EXEC_ID_ret_imm:
@@ -829,7 +893,7 @@ int isa_fetch_decode(Decode *s) {
       s->type = INSTR_TYPE_I; break;
   }
 
-#ifdef CONFIG_PERF_OPT
+#ifdef CONFIG_x86_CC_SKIP
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
   if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {

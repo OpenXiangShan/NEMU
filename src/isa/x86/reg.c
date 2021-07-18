@@ -56,7 +56,9 @@ void isa_reg_display() {
       double f;
     } u;
     u.i = cpu.fpr[i];
-    printf("fpr[%d]: 0x%016lx  %lf\n", i, u.i, u.f);
+    printf("fpr[%d]: 0x%016lx  %lf", i, u.i, u.f);
+    if (i == cpu.ftop) printf(" <- ftop");
+    printf("\n");
   }
   printf("pc: 0x%08x\n", cpu.pc);
 }

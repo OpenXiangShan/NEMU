@@ -46,7 +46,6 @@ enum {
   HOSTCALL_EXIT,  // handling nemu_trap
   HOSTCALL_INV,   // invalid opcode
   HOSTCALL_PIO,   // port I/O
-  HOSTCALL_FP,    // floating point operation
   HOSTCALL_CSR,   // system registers / control status registers
   HOSTCALL_TRAP,  // trap by interrupts/exceptions
   HOSTCALL_PRIV,  // privilige instructions
@@ -57,5 +56,71 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 
 #include <rtl-basic.h>
 #include <rtl/pseudo.h>
+
+#define def_rtl_fp_unary_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
+#define def_rtl_fp_binary_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const fpreg_t *src1, const fpreg_t *src2)
+#define def_rtl_fp_ternary_prototype(name) def_rtl_fp_binary_prototype(name)
+#define def_rtl_fp_cmp_prototype(name) \
+  def_rtl(name, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2)
+#define def_rtl_i2f_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const rtlreg_t *src1)
+#define def_rtl_i642f_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
+#define def_rtl_f2i_prototype(name) \
+  def_rtl(name, rtlreg_t *dest, const fpreg_t *src1)
+#define def_rtl_f2i64_prototype(name) \
+  def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
+
+def_rtl_fp_binary_prototype(fadds);
+def_rtl_fp_binary_prototype(fsubs);
+def_rtl_fp_binary_prototype(fmuls);
+def_rtl_fp_binary_prototype(fdivs);
+def_rtl_fp_binary_prototype(fmins);
+def_rtl_fp_binary_prototype(fmaxs);
+def_rtl_fp_unary_prototype(fsqrts);
+def_rtl_fp_ternary_prototype(fmadds);
+def_rtl_fp_cmp_prototype(fles);
+def_rtl_fp_cmp_prototype(flts);
+def_rtl_fp_cmp_prototype(feqs);
+def_rtl_i2f_prototype(fcvt_i32_to_f32);
+def_rtl_i2f_prototype(fcvt_u32_to_f32);
+def_rtl_i642f_prototype(fcvt_i64_to_f32);
+def_rtl_i642f_prototype(fcvt_u64_to_f32);
+def_rtl_f2i_prototype(fcvt_f32_to_i32);
+def_rtl_f2i_prototype(fcvt_f32_to_u32);
+def_rtl_f2i64_prototype(fcvt_f32_to_i64);
+def_rtl_f2i64_prototype(fcvt_f32_to_u64);
+
+def_rtl_fp_binary_prototype(faddd);
+def_rtl_fp_binary_prototype(fsubd);
+def_rtl_fp_binary_prototype(fmuld);
+def_rtl_fp_binary_prototype(fdivd);
+def_rtl_fp_binary_prototype(fmind);
+def_rtl_fp_binary_prototype(fmaxd);
+def_rtl_fp_unary_prototype(fsqrtd);
+def_rtl_fp_ternary_prototype(fmaddd);
+def_rtl_fp_cmp_prototype(fled);
+def_rtl_fp_cmp_prototype(fltd);
+def_rtl_fp_cmp_prototype(feqd);
+def_rtl_i2f_prototype(fcvt_i32_to_f64);
+def_rtl_i2f_prototype(fcvt_u32_to_f64);
+def_rtl_i642f_prototype(fcvt_i64_to_f64);
+def_rtl_i642f_prototype(fcvt_u64_to_f64);
+def_rtl_f2i_prototype(fcvt_f64_to_i32);
+def_rtl_f2i_prototype(fcvt_f64_to_u32);
+def_rtl_f2i64_prototype(fcvt_f64_to_i64);
+def_rtl_f2i64_prototype(fcvt_f64_to_u64);
+def_rtl_fp_unary_prototype(fcvt_f32_to_f64);
+def_rtl_fp_unary_prototype(fcvt_f64_to_f32);
+
+def_rtl_fp_unary_prototype(fmv);
+def_rtl(fli, fpreg_t *dest, uint64_t imm);
+def_rtl_fp_unary_prototype(fneg);
+def_rtl_fp_unary_prototype(fabs);
+
+def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1,
+    const fpreg_t *src2);
 
 #endif

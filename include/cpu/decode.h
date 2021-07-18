@@ -113,6 +113,7 @@ static inline void pattern_decode(const char *str, int len,
 #define macro32(i) macro16(i); macro16((i) + 16)
 #define macro64(i) macro32(i); macro32((i) + 32)
   macro64(0);
+  panic("pattern too long");
 #undef macro
 finish:
   *key = __key >> __shift;
@@ -120,18 +121,49 @@ finish:
   *shift = __shift;
 }
 
-#define def_INSTR_raw(pattern, body) do { \
+__attribute__((always_inline))
+static inline void pattern_decode_hex(const char *str, int len,
+    uint32_t *key, uint32_t *mask, uint32_t *shift) {
+  uint32_t __key = 0, __mask = 0, __shift = 0;
+#define macro(i) \
+  if ((i) >= len) goto finish; \
+  else { \
+    char c = str[i]; \
+    if (c != ' ') { \
+      Assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || c == '?', \
+          "invalid character '%c' in pattern string", c); \
+      __key  = (__key  << 4) | (c == '?' ? 0 : (c >= '0' && c <= '9') ? c - '0' : c - 'a' + 10); \
+      __mask = (__mask << 4) | (c == '?' ? 0 : 0xf); \
+      __shift = (c == '?' ? __shift + 4 : 0); \
+    } \
+  }
+
+  macro16(0);
+  panic("pattern too long");
+#undef macro
+finish:
+  *key = __key >> __shift;
+  *mask = __mask >> __shift;
+  *shift = __shift;
+}
+
+#define def_INSTR_raw(decode_fun, pattern, body) do { \
   uint32_t key, mask, shift; \
-  pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
+  decode_fun(pattern, STRLEN(pattern), &key, &mask, &shift); \
   if (((get_instr(s) >> shift) & mask) == key) { body; } \
 } while (0)
 
 #define def_INSTR_IDTABW(pattern, id, tab, width) \
-  def_INSTR_raw(pattern, { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
-
+  def_INSTR_raw(pattern_decode, pattern, { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
 #define def_INSTR_IDTAB(pattern, id, tab)   def_INSTR_IDTABW(pattern, id, tab, 0)
 #define def_INSTR_TABW(pattern, tab, width) def_INSTR_IDTABW(pattern, empty, tab, width)
 #define def_INSTR_TAB(pattern, tab)         def_INSTR_IDTABW(pattern, empty, tab, 0)
+
+#define def_hex_INSTR_IDTABW(pattern, id, tab, width) \
+  def_INSTR_raw(pattern_decode_hex, pattern, { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
+#define def_hex_INSTR_IDTAB(pattern, id, tab)   def_hex_INSTR_IDTABW(pattern, id, tab, 0)
+#define def_hex_INSTR_TABW(pattern, tab, width) def_hex_INSTR_IDTABW(pattern, empty, tab, width)
+#define def_hex_INSTR_TAB(pattern, tab)         def_hex_INSTR_IDTABW(pattern, empty, tab, 0)
 
 
 #define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))

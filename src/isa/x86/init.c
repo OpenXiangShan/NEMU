@@ -21,6 +21,7 @@ static void restart() {
   cpu.sreg[CSR_CS].val = 0x8;
   cpu.cr0.val = 0x60000011;
   cpu.fcw = 0x37f;
+  cpu.ftop = 7;
 #endif
 }
 

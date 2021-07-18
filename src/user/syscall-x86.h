@@ -19,7 +19,7 @@
 #define USER_SYS_llseek 140
 #define USER_SYS_writev 146
 #define USER_SYS_mremap 163
-#define USER_SYS_sigaction 174
+#define USER_SYS_rt_sigaction 174
 #define USER_SYS_getcwd 183
 #define USER_SYS_getrlimit 191
 #define USER_SYS_mmap2 192

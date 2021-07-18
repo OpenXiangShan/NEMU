@@ -33,11 +33,12 @@ def_EHelper(bt) {
   rtl_set_CF(s, s0);
 }
 
-#if 0
-static inline def_EHelper(bsf) {
+def_EHelper(bsf) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support in engines other than interpreter");
 #endif
+
+  rtl_decode_binary(s, false, true);
 
   rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
   rtl_set_ZF(s, s0);
@@ -47,13 +48,26 @@ static inline def_EHelper(bsf) {
   if (*dsrc1 != 0) {
     while ((*dsrc1 & (1u << bit)) == 0) bit++;
     *ddest = bit;
-  } else if (s->isa.rep_flags) {
+  } else if (s->isa.rep_flags == PREFIX_REP) {
     *ddest = 32;
   }
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(bsf);
+  rtl_wb_r(s, ddest);
 }
 
+def_EHelper(bts) {
+  rtl_decode_binary(s, true, true);
+  if (id_dest->type == OP_TYPE_MEM) { assert(0); }
+
+  rtl_li(s, s0, 1);
+  rtl_shl(s, s0, s0, dsrc1);
+  rtl_and(s, s1, s0, ddest);
+  rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
+  rtl_set_CF(s, s1);
+  rtl_or(s, ddest, ddest, s0);
+  rtl_wb_r(s, ddest);
+}
+
+#if 0
 static inline def_EHelper(btc) {
   rtl_li(s, s0, 1);
   rtl_shl(s, s0, s0, dsrc1);
@@ -63,17 +77,6 @@ static inline def_EHelper(btc) {
   rtl_xor(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
   print_asm_template2(btc);
-}
-
-static inline def_EHelper(bts) {
-  rtl_li(s, s0, 1);
-  rtl_shl(s, s0, s0, dsrc1);
-  rtl_and(s, s1, s0, ddest);
-  rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
-  rtl_set_CF(s, s1);
-  rtl_or(s, ddest, ddest, s0);
-  operand_write(s, id_dest, ddest);
-  print_asm_template2(bts);
 }
 
 static inline def_EHelper(btr) {
@@ -87,8 +90,9 @@ static inline def_EHelper(btr) {
   operand_write(s, id_dest, ddest);
   print_asm_template2(btr);
 }
+#endif
 
-static inline def_EHelper(bswap) {
+def_EHelper(bswap) {
   // src[7:0]
   rtl_shli(s, s1, ddest, 24);
 
@@ -106,8 +110,5 @@ static inline def_EHelper(bswap) {
   rtl_andi(s, s0, s0, 0xff00);
   rtl_or(s, ddest, s1, s0);
 
-  operand_write(s, id_dest, ddest);
-
-  print_asm_template1(bswap);
+  rtl_wb_r(s, ddest);
 }
-#endif

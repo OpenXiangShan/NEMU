@@ -1,6 +1,8 @@
 #ifndef __RTL_FP_H__
 #define __RTL_FP_H__
 
+#include <common.h>
+
 enum {
   FPCALL_W32,
   FPCALL_W64,
@@ -25,37 +27,11 @@ enum {
 };
 
 enum {
-  FPCALL_ADD,
-  FPCALL_SUB,
-  FPCALL_MUL,
-  FPCALL_DIV,
-  FPCALL_SQRT,
-  FPCALL_MADD,
-
-  FPCALL_I32ToF,
-  FPCALL_U32ToF,
-  FPCALL_I64ToF,
-  FPCALL_U64ToF,
-
-  FPCALL_FToI32,
-  FPCALL_FToU32,
-  FPCALL_FToI64,
-  FPCALL_FToU64,
-
-  FPCALL_F32ToF64,
-  FPCALL_F64ToF32,
-
-  FPCALL_NEED_RM,  // seperator
-
-  FPCALL_MAX,
-  FPCALL_MIN,
-  FPCALL_LE,
-  FPCALL_EQ,
-  FPCALL_LT,
+  FPCALL_ROUNDINT,
+  FPCALL_POW2,
+  FPCALL_LOG2,
+  FPCALL_MOD,
+  FPCALL_ATAN,
 };
-
-#define FPCALL_CMD(op, w) (((op) << 16) | (w))
-#define FPCALL_OP(cmd) ((cmd) >> 16)
-#define FPCALL_W(cmd)  ((cmd) & 0x3)
 
 #endif
