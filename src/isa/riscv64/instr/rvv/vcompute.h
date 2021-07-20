@@ -11,7 +11,7 @@
 #define id_dest (&s->dest)
 
 
-typedef enum {
+enum op_t {
   ADD, SUB, RSUB, MINU, MIN, MAXU, MAX, AND,
   OR, XOR, RGATHER, SLIDEUP, SLIDEDOWN, ADC, MADC, SBC,
   MSBC, MERGE, MSEQ, MSNE, MSLTU, MSLT, MSLEU, MSLE,
@@ -27,11 +27,11 @@ typedef enum {
   MADD, NMSUB, MACC, NMSAC, WADDU, WADD, WSUBU, WSUB,
   WADDU_W, WADD_W, WSUBU_W, WSUB_W, WMULU, WMULSU, WMUL, WMACCU,
   WNMACC, WMACCSU, WMACCUS,
-} op_t;
+};
 
 #define ARTHI(opcode, is_signed) arthimetic_instr(opcode, is_signed, 0, s);
 #define ARTHI_COMP(opcode, is_signed) arthimetic_instr(opcode, is_signed, 1, s);
-static void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
+void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -180,7 +180,7 @@ static void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s)
 }
 
 #define MASKINSTR(opcode) mask_instr(opcode, s);
-static void mask_instr(int opcode, Decode *s) {
+void mask_instr(int opcode, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -222,7 +222,7 @@ static void mask_instr(int opcode, Decode *s) {
 }
 
 #define REDInstr(opcode, is_signed) reduction_instr(opcode, is_signed, s);
-static void reduction_instr(int opcode, int is_signed, Decode *s) {
+void reduction_instr(int opcode, int is_signed, Decode *s) {
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
 
@@ -545,34 +545,8 @@ def_EHelper(vredmax) {
   longjmp_raise_intr(EX_II);
 }
 
-def_EHelper(vext_x_v) {
-  int vlmax = ((VLEN >> 3) >> vtype->vsew);
 
-  if(vlmax > id_src->val) {
-    get_vreg(id_src2->reg, id_src->val, s0, vtype->vsew, vtype->vlmul, UNSIGNED, 0);
-  } else {
-    rtl_li(s, s0, 0);
-  }
-  rtl_sr(s, id_dest->reg, s0, 4);
-  // longjmp_raise_intr(EX_II);
-}
 
-def_EHelper(vmv_s_x) {
-  // longjmp_raise_intr(EX_II);
-  int vlmax = ((VLEN >> 3) >> vtype->vsew);
-  set_vreg(id_dest->reg, 0, id_src->val, vtype->vsew, vtype->vlmul, 0);
-  for(int i=1; i<vlmax; i++) {
-    set_vreg(id_dest->reg, i, 0, vtype->vsew, vtype->vlmul, 0);
-  }
-}
-
-def_EHelper(vslide1up) {
-  longjmp_raise_intr(EX_II);
-}
-
-def_EHelper(vslide1down) {
-  longjmp_raise_intr(EX_II);
-}
 
 def_EHelper(vmpopc) {
   // longjmp_raise_intr(EX_II);

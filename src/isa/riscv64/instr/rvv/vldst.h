@@ -16,7 +16,7 @@
 #define MODE_INDEXED 2
 
 #define VLD(mode, is_signed, s) vld(mode, is_signed, s);
-static void vld(int mode, int is_signed, Decode *s) {
+void vld(int mode, int is_signed, Decode *s) {
   
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
@@ -39,8 +39,8 @@ static void vld(int mode, int is_signed, Decode *s) {
     //TODO: need special rtl function, but here ignore it
     if(mode == MODE_INDEXED) {
       rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
-      get_vreg(id_src2->reg, idx, t0, vtype->vsew, vtype->vlmul, 1, 1);
-      rtl_add(s, s0, s0, t0);
+      get_vreg(id_src2->reg, idx, &tmp_reg[3], vtype->vsew, vtype->vlmul, 1, 1);
+      rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[3]);
     }
     
     // mask
@@ -48,21 +48,21 @@ static void vld(int mode, int is_signed, Decode *s) {
     
     // op
     if(s->vm != 0 || mask != 0) {
-      rtl_lm(s, s1, s0, 0, s->v_width, MMU_DYNAMIC);
-      if (is_signed) rtl_sext(s, s1, s1, s->v_width);
+      rtl_lm(s, &tmp_reg[1], &tmp_reg[0], 0, s->v_width, MMU_DYNAMIC);
+      if (is_signed) rtl_sext(s, &tmp_reg[1], &tmp_reg[1], s->v_width);
       
-      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+      set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype->vsew, vtype->vlmul, 1);
     }
     
     switch (mode) {
-      case MODE_UNIT   : rtl_addi(s, s0, s0, s->v_width); break;
-      case MODE_STRIDED: rtl_add(s, s0, s0, &id_src2->val) ; break;
+      case MODE_UNIT   : rtl_addi(s, &tmp_reg[0], &tmp_reg[0], s->v_width); break;
+      case MODE_STRIDED: rtl_add(s, &tmp_reg[0], &tmp_reg[0], &id_src2->val) ; break;
     }
   }
 
   // TODO: the idx larger than vl need reset to zero.
-  rtl_li(s, s0, 0);
-  vcsr_write(IDXVSTART, s0);
+  rtl_li(s, &tmp_reg[0], 0);
+  vcsr_write(IDXVSTART, &tmp_reg[0]);
 }
 
 def_EHelper(vlduu) { //unit-strided
@@ -140,7 +140,7 @@ def_EHelper(vldxs) {
 
 // vector store
 #define VST(mode) vst(mode, s);
-static void vst(int mode, Decode *s) {
+void vst(int mode, Decode *s) {
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16
@@ -154,19 +154,19 @@ static void vst(int mode, Decode *s) {
   }
 
   word_t idx;
-  rtl_mv(s, s0, &id_src->val);
+  rtl_mv(s, &tmp_reg[0], &id_src->val);
   for(idx = vstart->val; idx < vl->val; idx ++) {
     //TODO: SEW now only supports LE 64bit
     //TODO: need special rtl function, but here ignore it
     if(mode == MODE_INDEXED) {
-      rtl_mv(s, s0, &id_src->val);
-      get_vreg(id_src2->reg, idx, t0, vtype->vsew, vtype->vlmul, 1, 1);
-      rtl_add(s, s0, s0, t0);
+      rtl_mv(s, &tmp_reg[0], &id_src->val);
+      get_vreg(id_src2->reg, idx, &tmp_reg[3], vtype->vsew, vtype->vlmul, 1, 1);
+      rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[3]);
       // switch(vtype->vsew) {
-      //   case 0 : rtl_addi(&s0, &s0, vreg_b(id_src2->reg, idx)); break;
-      //   case 1 : rtl_addi(&s0, &s0, vreg_s(id_src2->reg, idx)); break;
-      //   case 2 : rtl_addi(&s0, &s0, vreg_i(id_src2->reg, idx)); break;
-      //   case 3 : rtl_addi(&s0, &s0, vreg_l(id_src2->reg, idx)); break;
+      //   case 0 : rtl_addi(&&tmp_reg[0], &&tmp_reg[0], vreg_b(id_src2->reg, idx)); break;
+      //   case 1 : rtl_addi(&&tmp_reg[0], &&tmp_reg[0], vreg_s(id_src2->reg, idx)); break;
+      //   case 2 : rtl_addi(&&tmp_reg[0], &&tmp_reg[0], vreg_i(id_src2->reg, idx)); break;
+      //   case 3 : rtl_addi(&&tmp_reg[0], &&tmp_reg[0], vreg_l(id_src2->reg, idx)); break;
       // }
     }
     
@@ -184,18 +184,18 @@ static void vst(int mode, Decode *s) {
     // op
     if(s->vm != 0 || mask != 0) {
       // switch (vtype->vsew) {
-      //   case 0 : rtl_li(&s1, vreg_b(id_dest->reg, idx)); break;
-      //   case 1 : rtl_li(&s1, vreg_s(id_dest->reg, idx)); break;
-      //   case 2 : rtl_li(&s1, vreg_i(id_dest->reg, idx)); break;
-      //   case 3 : rtl_li(&s1, vreg_l(id_dest->reg, idx)); break;
+      //   case 0 : rtl_li(&&tmp_reg[1], vreg_b(id_dest->reg, idx)); break;
+      //   case 1 : rtl_li(&&tmp_reg[1], vreg_s(id_dest->reg, idx)); break;
+      //   case 2 : rtl_li(&&tmp_reg[1], vreg_i(id_dest->reg, idx)); break;
+      //   case 3 : rtl_li(&&tmp_reg[1], vreg_l(id_dest->reg, idx)); break;
       // }
-      get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
-      rtl_sm(s, s0, s1, 0, s->v_width, MMU_DYNAMIC);
+      get_vreg(id_dest->reg, idx, &tmp_reg[1], vtype->vsew, vtype->vlmul, 0, 1);
+      rtl_sm(s, &tmp_reg[0], &tmp_reg[1], 0, s->v_width, MMU_DYNAMIC);
     }
 
     switch (mode) {
-      case MODE_UNIT   : rtl_addi(s, s0, s0, s->v_width); break;
-      case MODE_STRIDED: rtl_add(s, s0, s0, &id_src2->val) ; break;
+      case MODE_UNIT   : rtl_addi(s, &tmp_reg[0], &tmp_reg[0], s->v_width); break;
+      case MODE_STRIDED: rtl_add(s, &tmp_reg[0], &tmp_reg[0], &id_src2->val) ; break;
     }
   }
   // TODO: the idx larger than vl need reset to zero.

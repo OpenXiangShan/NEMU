@@ -10,7 +10,7 @@
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
 
-def_EHelper(vsetvl){
+def_EHelper(vsetvl) {
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
   rtl_lr(s, &(id_src->val), id_src1->reg, 4);
