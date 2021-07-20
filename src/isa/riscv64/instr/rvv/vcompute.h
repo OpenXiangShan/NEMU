@@ -85,20 +85,20 @@ static void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s)
         rtl_sext(s, s0, s0, s->v_width);
         rtl_sar(s, s1, s0, s1); break;
       case MULHU : 
-        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
+        vs1 = (uint64_t)(((__uint128_t)(vs0) * (__uint128_t)(vs1))>>(s->v_width*8));
         break;
       case MUL : rtl_mulu_lo(s, s1, s0, s1); break;
       case MULHSU :
         rtl_sext(s, t0, s0, s->v_width);
         rtl_sari(s, t0, t0, s->v_width*8-1);
         rtl_and(s, t0, s1, t0);
-        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
+        vs1 = (uint64_t)(((__uint128_t)(vs0) * (__uint128_t)(vs1))>>(s->v_width*8));
         rtl_sub(s, s1, s1, t0);
         break;
       case MULH :
         rtl_sext(s, s0, s0, s->v_width);
         rtl_sext(s, s1, s1, s->v_width);
-        *s1 = (uint64_t)(((__int128_t)(sword_t)(s0) * (__int128_t)(sword_t)(s1))>>(s->v_width*8));
+        vs1 = (uint64_t)(((__int128_t)(sword_t)(vs0) * (__int128_t)(sword_t)(vs1))>>(s->v_width*8));
         break;
       case MACC : 
         rtl_mulu_lo(s, s1, s0, s1);
@@ -216,7 +216,7 @@ static void mask_instr(int opcode, Decode *s) {
   int vlmax = ((VLEN >> 3) >> vtype->vsew) << vtype->vlmul;
   rtl_li(s, s1, 0);
   for( idx = vl->val; idx < vlmax; idx++) {  
-    set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
+    set_mask(id_dest->reg, idx, vs1, vtype->vsew, vtype->vlmul);
   }
   vcsr_write(IDXVSTART, s1);
 }
@@ -252,7 +252,7 @@ static void reduction_instr(int opcode, int is_signed, Decode *s) {
     }
 
   }
-  set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+  set_vreg(id_dest->reg, 0, vs1, vtype->vsew, vtype->vlmul, 0);
   
   int vlmax =  ((VLEN >> 3) >> vtype->vsew);
   for(int i=1; i<vlmax; i++) {
@@ -606,7 +606,7 @@ def_EHelper(vmfirst) {
   for(idx = 0; idx < vlmax; idx ++) {
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
     *s0 &= 1;
-    if(*s0 == 1) break;
+    if(vs0 == 1) break;
   }
   if(idx < vlmax)
     rtl_li(s, s1, idx);  
@@ -631,7 +631,7 @@ def_EHelper(vmandnot) {
 
 def_EHelper(vmand) {
   MASKINSTR(MAND)
-  print_asm_template3(vmand)
+  print_asm_template3(vmand);
   // longjmp_raise_intr(EX_II);
 }
 
