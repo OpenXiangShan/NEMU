@@ -33,12 +33,12 @@ static void vld(int mode, int is_signed, Decode *s) {
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
 
   word_t idx;
-  rtl_mv(s, &(s->tmp_reg[0]), &(s->src1.val));
+  rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
   for(idx = vstart->val; idx < vl->val; idx ++) {
     //TODO: SEW now only supports LE 64bit
     //TODO: need special rtl function, but here ignore it
     if(mode == MODE_INDEXED) {
-      rtl_mv(s, &(s->tmp_reg[0]), &(s->src1.val));
+      rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
       get_vreg(id_src2->reg, idx, t0, vtype->vsew, vtype->vlmul, 1, 1);
       rtl_add(s, s0, s0, t0);
     }

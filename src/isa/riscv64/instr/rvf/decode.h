@@ -71,7 +71,10 @@ def_THelper(vstore) {
 #endif
 
 def_THelper(fload) {
+#ifndef CONFIG_RVV_010
+  // FIXME: rvv also require flags set
   if (!fp_enable()) return table_rt_inv(s);
+#endif // CONFIG_RVV_010
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   
   #ifdef CONFIG_RVV_010

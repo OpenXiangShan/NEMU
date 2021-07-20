@@ -50,7 +50,7 @@
   f(vwmul) f(vwmaccu) f(vwnmacc) f(vwmaccsu) \
   f(vwmaccus) f(vlduu) f(vldsu) f(vldxu) \
   f(vldus) f(vldss) f(vldxs) f(vstu) \
-  f(vsts) f(vstx) f(vstxu)
+  f(vsts) f(vstx) f(vstxu) f(vsetvl) 
 #else // CONFIG_RVV_010
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV_010
