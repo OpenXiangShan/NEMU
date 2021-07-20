@@ -25,5 +25,5 @@ def_EHelper(vsetvl){
   rtl_li(s, &(s->tmp_reg[0]), 0);
   vcsr_write(IDXVSTART, &(s->tmp_reg[0]));
 
-  print_asm_template3(vsetvl);
+  // print_asm_template3(vsetvl);
 }

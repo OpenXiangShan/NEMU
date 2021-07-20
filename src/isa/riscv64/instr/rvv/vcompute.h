@@ -270,19 +270,19 @@ static void reduction_instr(int opcode, int is_signed, Decode *s) {
 
 def_EHelper(vadd) {
   ARTHI(ADD, SIGNED)
-  print_asm_template3(vadd);
+  // print_asm_template3(vadd);
 }
 
 def_EHelper(vsub) {
   Assert(s->src_vmode != SRC_VI, "vsub.vi not supported\n");
   ARTHI(SUB, SIGNED)
-  print_asm_template3(vsub);
+  // print_asm_template3(vsub);
 }
 
 def_EHelper(vrsub) {
   Assert(s->src_vmode != SRC_VV, "vrsub.vv not supported\n");
   ARTHI(RSUB, SIGNED)
-  print_asm_template3(vrsub);
+  // print_asm_template3(vrsub);
 }
 
 def_EHelper(vminu) {
@@ -303,19 +303,19 @@ def_EHelper(vmax) {
 
 def_EHelper(vand) {
   ARTHI(AND, SIGNED)
-  print_asm_template3(vand);
+  // print_asm_template3(vand);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vor) {
   ARTHI(OR, SIGNED)
-  print_asm_template3(vor);
+  // print_asm_template3(vor);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vxor) {
   ARTHI(XOR, SIGNED)
-  print_asm_template3(vxor);
+  // print_asm_template3(vxor);
   // longjmp_raise_intr(EX_II);
 }
 
@@ -349,59 +349,59 @@ def_EHelper(vmsbc) {
 
 def_EHelper(vmerge) {
   ARTHI(MERGE, SIGNED)
-  print_asm_template3(vmerge);
+  // print_asm_template3(vmerge);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmseq) {
   ARTHI_COMP(MSEQ, SIGNED)
-  print_asm_template3(vmseq);
+  // print_asm_template3(vmseq);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsne) {
   ARTHI_COMP(MSNE, SIGNED)
-  print_asm_template3(vmsne);
+  // print_asm_template3(vmsne);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsltu) {
   Assert(s->src_vmode != SRC_VI, "vmsltu not supprt SRC_VI\n");
   ARTHI_COMP(MSLTU, UNSIGNED)
-  print_asm_template3(vmsltu);
+  // print_asm_template3(vmsltu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmslt) {
   Assert(s->src_vmode != SRC_VI, "vmslt not supprt SRC_VI\n");
   ARTHI_COMP(MSLT, SIGNED)
-  print_asm_template3(vmslt);
+  // print_asm_template3(vmslt);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsleu) {
   ARTHI_COMP(MSLEU, UNSIGNED)
-  print_asm_template3(vmsleu);
+  // print_asm_template3(vmsleu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsle) {
   ARTHI_COMP(MSLE, SIGNED);
-  print_asm_template3(vmsle);
+  // print_asm_template3(vmsle);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsgtu) {
   Assert(s->src_vmode != SRC_VV, "vmsgtu not support SRC_VV\n");
   ARTHI_COMP(MSGTU, UNSIGNED)
-  print_asm_template3(vmsgtu);
+  // print_asm_template3(vmsgtu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsgt) {
   Assert(s->src_vmode != SRC_VV, "vmsgt not support SRC_VV\n");
   ARTHI_COMP(MSGT, SIGNED)
-  print_asm_template3(vmsgt);
+  // print_asm_template3(vmsgt);
   // longjmp_raise_intr(EX_II);
 }
 
@@ -427,7 +427,7 @@ def_EHelper(vaadd) {
 
 def_EHelper(vsll) {
   ARTHI(SLL, UNSIGNED)
-  print_asm_template3(vsll);
+  // print_asm_template3(vsll);
   // longjmp_raise_intr(EX_II);
 }
 
@@ -441,13 +441,13 @@ def_EHelper(vsmul) {
 
 def_EHelper(vsrl) {
   ARTHI(SRL, UNSIGNED)
-  print_asm_template3(vsrl);
+  // print_asm_template3(vsrl);
   //longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vsra) {
   ARTHI(SRA, UNSIGNED)
-  print_asm_template3(vsra);
+  // print_asm_template3(vsra);
   // longjmp_raise_intr(EX_II);
 }
 
@@ -625,129 +625,129 @@ def_EHelper(vcompress) {
 
 def_EHelper(vmandnot) {
   MASKINSTR(MANDNOT)
-  print_asm_template3(vmandnot);
+  // print_asm_template3(vmandnot);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmand) {
   MASKINSTR(MAND)
-  print_asm_template3(vmand);
+  // print_asm_template3(vmand);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmor) {
   MASKINSTR(MOR)
-  print_asm_template3(vmor);
+  // print_asm_template3(vmor);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmxor) {
   MASKINSTR(MXOR)
-  print_asm_template3(vmxor);
+  // print_asm_template3(vmxor);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmornot) {
   MASKINSTR(MORNOT)
-  print_asm_template3(vmornot);
+  // print_asm_template3(vmornot);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmnand) {
   MASKINSTR(MNAND)
-  print_asm_template3(vmnand);
+  // print_asm_template3(vmnand);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmnor) {
   MASKINSTR(MNOR)
-  print_asm_template3(vmnor);
+  // print_asm_template3(vmnor);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmxnor) {
   MASKINSTR(MXNOR);
-  print_asm_template3(vmnor);
+  // print_asm_template3(vmnor);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vdivu) {
   Assert(s->src_vmode != SRC_VI, "vdivu does not support SRC_VI\n");
   ARTHI(DIVU, UNSIGNED)
-  print_asm_template3(vdivu);
+  // print_asm_template3(vdivu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vdiv) {
   Assert(s->src_vmode != SRC_VI, "vdiv does not support SRC_VI\n");
   ARTHI(DIV, SIGNED)
-  print_asm_template3(vdiv);
+  // print_asm_template3(vdiv);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vremu) {
   Assert(s->src_vmode != SRC_VI, "vremu does not support SRC_VI\n");
   ARTHI(REMU, UNSIGNED)
-  print_asm_template3(vremu);
+  // print_asm_template3(vremu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vrem) {
   Assert(s->src_vmode != SRC_VI, "vrem does not support SRC_VI\n");
   ARTHI(REM, SIGNED)
-  print_asm_template3(vrem);
+  // print_asm_template3(vrem);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmulhu) {
   Assert(s->src_vmode != SRC_VI, "vmulhu does not support SRC_VI\n");
   ARTHI(MULHU, UNSIGNED)
-  print_asm_template3(vmulhu);
+  // print_asm_template3(vmulhu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmul) {
   Assert(s->src_vmode != SRC_VI, "vmul does not support SRC_VI\n");
   ARTHI(MUL, SIGNED)
-  print_asm_template3(vmul);
+  // print_asm_template3(vmul);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmulhsu) {
   Assert(s->src_vmode != SRC_VI, "vmulhsu does not support SRC_VI\n");
   ARTHI(MULHSU, UNSIGNED)
-  print_asm_template3(vmulshu);
+  // print_asm_template3(vmulshu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmulh) {
   Assert(s->src_vmode != SRC_VI, "vmulh does not support SRC_VI\n");
   ARTHI(MULH, SIGNED)
-  print_asm_template3(vmulh);
+  // print_asm_template3(vmulh);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmadd) {
   ARTHI(MADD, SIGNED)
-  print_asm_template3(vmadd);
+  // print_asm_template3(vmadd);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vnmsub) {
   ARTHI(NMSUB, SIGNED)
-  print_asm_template3(vnmsub);
+  // print_asm_template3(vnmsub);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmacc) {
   ARTHI(MACC, SIGNED)
-  print_asm_template3(vmacc);
+  // print_asm_template3(vmacc);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vnmsac) {
   ARTHI(NMSAC, SIGNED)
-  print_asm_template3(vmacc);
+  // print_asm_template3(vmacc);
   // longjmp_raise_intr(EX_II);
 }
 

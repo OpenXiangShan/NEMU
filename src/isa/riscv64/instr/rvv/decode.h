@@ -9,6 +9,12 @@ static inline def_DHelper(OP_V) { // 10_101, same to R
 
 static inline def_DHelper(vsetvl) {
   rtl_li(s, &id_src2->val, s->isa.instr.v_opv2.v_bigbit ? id_src2->val : s->isa.instr.v_opv2.v_zimm);
+  if (s->isa.instr.v_opv2.v_bigbit) {
+    print_Dop(id_src2->str, OP_STR_SIZE, "%ld", id_src2->val);
+  } else {
+    print_Dop(id_src2->str, OP_STR_SIZE, "%ld", s->isa.instr.v_opv2.v_zimm);
+  }
+  
 }
 
 //vector
