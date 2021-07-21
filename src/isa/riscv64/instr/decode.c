@@ -3,7 +3,6 @@
 #include <cpu/decode.h>
 #include <isa-all-instr.h>
 
-rtlreg_t vs0, vs1, vt0, vt1, vir;
 
 def_all_THelper();
 

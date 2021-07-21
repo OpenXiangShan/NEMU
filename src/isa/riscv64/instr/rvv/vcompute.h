@@ -10,6 +10,15 @@
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
 
+#undef s0
+#undef s1
+//#undef s2
+//#undef t0
+
+#define s0    (&tmp_reg[0])
+#define s1    (&tmp_reg[1])
+//#define s2    (&tmp_reg[2])
+//#define t0    (&tmp_reg[3])
 
 enum op_t {
   ADD, SUB, RSUB, MINU, MIN, MAXU, MAX, AND,
@@ -41,14 +50,14 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
       // masked and mask off exec will left dest unmodified.
       if(opcode != MERGE && mask==0) continue;
     } else if(opcode == MERGE) {
-      mask = 1; // merge(mv) get the first operand (vs1, rs1, imm);
+      mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
     }
 
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
      if(is_signed) rtl_sext(s, s0, s0, 1 << vtype->vsew);
 
-    // operand - vs1 / rs1 / imm
+    // operand - s1 / rs1 / imm
     switch (s->src_vmode) {
       case SRC_VV : 
         get_vreg(id_src->reg, idx, s1, vtype->vsew, vtype->vlmul, is_signed, 1);
@@ -85,20 +94,20 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
         rtl_sext(s, s0, s0, s->v_width);
         rtl_sar(s, s1, s0, s1); break;
       case MULHU : 
-        vs1 = (uint64_t)(((__uint128_t)(vs0) * (__uint128_t)(vs1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
         break;
       case MUL : rtl_mulu_lo(s, s1, s0, s1); break;
       case MULHSU :
         rtl_sext(s, t0, s0, s->v_width);
         rtl_sari(s, t0, t0, s->v_width*8-1);
         rtl_and(s, t0, s1, t0);
-        vs1 = (uint64_t)(((__uint128_t)(vs0) * (__uint128_t)(vs1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
         rtl_sub(s, s1, s1, t0);
         break;
       case MULH :
         rtl_sext(s, s0, s0, s->v_width);
         rtl_sext(s, s1, s1, s->v_width);
-        vs1 = (uint64_t)(((__int128_t)(sword_t)(vs0) * (__int128_t)(sword_t)(vs1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__int128_t)(sword_t)(*s0) * (__int128_t)(sword_t)(*s1))>>(s->v_width*8));
         break;
       case MACC : 
         rtl_mulu_lo(s, s1, s0, s1);
@@ -187,7 +196,7 @@ void mask_instr(int opcode, Decode *s) {
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul); // unproper usage of s0
     *s0 &= 1; // only LSB
 
-    // operand - vs1
+    // operand - s1
     *s1 = get_mask(id_src->reg, idx, vtype->vsew, vtype->vlmul); // unproper usage of s1
     *s1 &= 1; // only LSB
 
@@ -216,7 +225,7 @@ void mask_instr(int opcode, Decode *s) {
   int vlmax = ((VLEN >> 3) >> vtype->vsew) << vtype->vlmul;
   rtl_li(s, s1, 0);
   for( idx = vl->val; idx < vlmax; idx++) {  
-    set_mask(id_dest->reg, idx, vs1, vtype->vsew, vtype->vlmul);
+    set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
   }
   vcsr_write(IDXVSTART, s1);
 }
@@ -234,7 +243,7 @@ void reduction_instr(int opcode, int is_signed, Decode *s) {
       // masked and mask off exec will left dest unmodified.
       if(opcode != MERGE && mask==0) continue;
     } else if(opcode == MERGE) {
-      mask = 1; // merge(mv) get the first operand (vs1, rs1, imm);
+      mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
     }
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
@@ -252,7 +261,7 @@ void reduction_instr(int opcode, int is_signed, Decode *s) {
     }
 
   }
-  set_vreg(id_dest->reg, 0, vs1, vtype->vsew, vtype->vlmul, 0);
+  set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
   
   int vlmax =  ((VLEN >> 3) >> vtype->vsew);
   for(int i=1; i<vlmax; i++) {
@@ -580,7 +589,7 @@ def_EHelper(vmfirst) {
   for(idx = 0; idx < vlmax; idx ++) {
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
     *s0 &= 1;
-    if(vs0 == 1) break;
+    if(*s0 == 1) break;
   }
   if(idx < vlmax)
     rtl_li(s, s1, idx);  
@@ -784,3 +793,9 @@ def_EHelper(vwmaccsu) {
 def_EHelper(vwmaccus) {
   longjmp_raise_intr(EX_II);
 }
+
+// dirty job here
+#undef s0
+#undef s1
+#define s0 &ls0
+#define s1 &ls1
