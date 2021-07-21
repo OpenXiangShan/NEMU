@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #include "vldst_impl.h"
 void vp_set_dirty();
 
@@ -112,3 +115,5 @@ void vst(int mode, Decode *s, int mmu_mode) {
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
 }
+
+#endif // CONFIG_RVV_010

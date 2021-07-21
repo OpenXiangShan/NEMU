@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #include "vcompute_impl.h"
 
 #undef s0
@@ -246,3 +249,5 @@ void reduction_instr(int opcode, int is_signed, Decode *s) {
 #undef s1
 #define s0 &ls0
 #define s1 &ls1
+
+#endif // CONFIG_RVV_010

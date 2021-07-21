@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #ifndef __RISCV64_VREG_H__
 #define __RISCV64_VREG_H__
 
@@ -56,3 +59,5 @@ void longjmp_raise_intr(uint32_t foo);
 void vcsr_write(uint32_t addr,  rtlreg_t *src);
 
 #endif //__RISCV64_VREG_H__
+
+#endif // CONFIG_RVV_010

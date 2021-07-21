@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #include "vreg.h"
 #include "../local-include/csr.h"
 #include <stdio.h>
@@ -99,3 +102,5 @@ void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul
 void longjmp_raise_intr(uint32_t foo) {
     assert(0);
 }
+
+#endif // CONFIG_RVV_010

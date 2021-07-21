@@ -1,3 +1,9 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
+#ifndef __RISCV64_VCOMPUTE_IMPL_H__
+#define __RISCV64_VCOMPUTE_IMPL_H__
+
 #include "cpu/exec.h"
 #include "vreg.h"
 #include "../local-include/csr.h"
@@ -40,3 +46,7 @@ void reduction_instr(int opcode, int is_signed, Decode *s);
 #define MASKINSTR(opcode) mask_instr(opcode, s);
 
 #define REDInstr(opcode, is_signed) reduction_instr(opcode, is_signed, s);
+
+#endif // __RISCV64_VCOMPUTE_IMPL_H__
+
+#endif // CONFIG_RVV_010

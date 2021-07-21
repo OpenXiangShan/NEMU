@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #include "cpu/exec.h"
 #include "../local-include/vreg.h"
 #include "../local-include/csr.h"
@@ -30,3 +33,5 @@ def_EHelper(vsetvl) {
 
   // print_asm_template3(vsetvl);
 }
+
+#endif // CONFIG_RVV_010

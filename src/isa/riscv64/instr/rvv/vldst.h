@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #include "vldst_impl.h"
 
 
@@ -248,3 +251,5 @@ def_EHelper(vstxu_mmu) {
   VST(MODE_INDEXED, MMU_TRANSLATE)
   //print_asm_template3(vstxu);
 }
+
+#endif // CONFIG_RVV_010

@@ -1,3 +1,6 @@
+#include <common.h>
+#ifdef CONFIG_RVV_010
+
 #include "vcompute_impl.h"
 
 // #define PERMInstr(opcode) permutation_instr(opcode, pc);
@@ -526,3 +529,4 @@ def_EHelper(vwmaccus) {
 }
 
 
+#endif // CONFIG_RVV_010
