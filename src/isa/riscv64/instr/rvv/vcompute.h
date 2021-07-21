@@ -41,6 +41,7 @@ enum op_t {
 #define ARTHI(opcode, is_signed) arthimetic_instr(opcode, is_signed, 0, s);
 #define ARTHI_COMP(opcode, is_signed) arthimetic_instr(opcode, is_signed, 1, s);
 void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
+  vp_set_dirty();
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -190,6 +191,7 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
 
 #define MASKINSTR(opcode) mask_instr(opcode, s);
 void mask_instr(int opcode, Decode *s) {
+  vp_set_dirty();
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -232,6 +234,7 @@ void mask_instr(int opcode, Decode *s) {
 
 #define REDInstr(opcode, is_signed) reduction_instr(opcode, is_signed, s);
 void reduction_instr(int opcode, int is_signed, Decode *s) {
+  vp_set_dirty();
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
 

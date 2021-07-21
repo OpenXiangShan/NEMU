@@ -139,6 +139,9 @@ def_THelper(vsetvl_dispatch) {
 
 // All RVV instructions decode start from here
 def_THelper(OP_V) { // 10_101
+  if (!vp_enable()) {
+    return EXEC_ID_inv;
+  }
   switch (s->isa.instr.i.funct3) {
     case 0 : s->src_vmode = SRC_VV; break;
     case 1 : s->src_vmode = SRC_VV; break;

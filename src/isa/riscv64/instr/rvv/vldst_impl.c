@@ -1,7 +1,8 @@
 #include "vldst_impl.h"
+void vp_set_dirty();
 
 void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
-  
+  vp_set_dirty();
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16
@@ -50,6 +51,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
 }
 
 void vst(int mode, Decode *s, int mmu_mode) {
+  vp_set_dirty();
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16
