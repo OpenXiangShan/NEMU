@@ -1,6 +1,6 @@
 #include "vldst_impl.h"
 
-void vld(int mode, int is_signed, Decode *s) {
+void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
@@ -32,7 +32,7 @@ void vld(int mode, int is_signed, Decode *s) {
     
     // op
     if(s->vm != 0 || mask != 0) {
-      rtl_lm(s, &tmp_reg[1], &tmp_reg[0], 0, s->v_width, MMU_DYNAMIC);
+      rtl_lm(s, &tmp_reg[1], &tmp_reg[0], 0, s->v_width, mmu_mode);
       if (is_signed) rtl_sext(s, &tmp_reg[1], &tmp_reg[1], s->v_width);
       
       set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype->vsew, vtype->vlmul, 1);
@@ -49,7 +49,7 @@ void vld(int mode, int is_signed, Decode *s) {
   vcsr_write(IDXVSTART, &tmp_reg[0]);
 }
 
-void vst(int mode, Decode *s) {
+void vst(int mode, Decode *s, int mmu_mode) {
   //TODO: raise instr when decinfo.v_width > SEW
   //v_width   0  -> none    SEW   0  ->  8
   //        1  ->  8            1  ->  16
@@ -99,7 +99,7 @@ void vst(int mode, Decode *s) {
       //   case 3 : rtl_li(&&tmp_reg[1], vreg_l(id_dest->reg, idx)); break;
       // }
       get_vreg(id_dest->reg, idx, &tmp_reg[1], vtype->vsew, vtype->vlmul, 0, 1);
-      rtl_sm(s, &tmp_reg[0], &tmp_reg[1], 0, s->v_width, MMU_DYNAMIC);
+      rtl_sm(s, &tmp_reg[0], &tmp_reg[1], 0, s->v_width, mmu_mode);
     }
 
     switch (mode) {

@@ -47,7 +47,7 @@ CSR_STRUCT_START(mstatus)
   uint64_t pad1: 1;
   uint64_t mpie: 1;
   uint64_t spp : 1;
-  uint64_t pad2: 2;
+  uint64_t vs: 2;
   uint64_t mpp : 2;
   uint64_t fs  : 2;
   uint64_t xs  : 2;

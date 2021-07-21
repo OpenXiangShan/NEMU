@@ -15,9 +15,9 @@
 #define MODE_STRIDED 1
 #define MODE_INDEXED 2
 
-#define VLD(mode, is_signed, s) vld(mode, is_signed, s);
+#define VLD(mode, is_signed, s, mmu_mode) vld(mode, is_signed, s, mmu_mode);
 
-void vld(int mode, int is_signed, Decode *s);
+void vld(int mode, int is_signed, Decode *s, int mmu_mode);
 // vector store
-#define VST(mode) vst(mode, s);
-void vst(int mode, Decode *s);
+#define VST(mode, mmu_mode) vst(mode, s, mmu_mode);
+void vst(int mode, Decode *s, int mmu_mode);
