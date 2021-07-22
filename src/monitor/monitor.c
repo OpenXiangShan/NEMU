@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 
+#ifndef CONFIG_SHARE
 void init_aligncheck();
 void init_log(const char *log_file);
 void init_mem();
@@ -131,3 +132,4 @@ void init_monitor(int argc, char *argv[]) {
   /* Display welcome message. */
   welcome();
 }
+#endif

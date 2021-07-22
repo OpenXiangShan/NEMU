@@ -53,13 +53,21 @@ void init_mem() {
 /* Memory accessing interfaces */
 
 word_t paddr_read(paddr_t addr, int len) {
+#ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else return mmio_read(addr, len);
+#else
+  return pmem_read(addr, len);
+#endif
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
+#ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data);
   else mmio_write(addr, len, data);
+#else
+  return pmem_write(addr, len, data);
+#endif
 }
 
 

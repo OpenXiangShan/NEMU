@@ -82,7 +82,6 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   int level;
   int64_t vaddr39 = vaddr << (64 - 39);
   vaddr39 >>= (64 - 39);
-  bool is_write = (type == MEM_TYPE_WRITE);
   if ((uint64_t)vaddr39 != vaddr) goto bad;
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
@@ -113,6 +112,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
 #if !CONFIG_SHARE
+  bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;

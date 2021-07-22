@@ -10,7 +10,9 @@ static const uint32_t img [] = {
 };
 
 void init_csr();
+#ifndef CONFIG_SHARE
 void init_clint();
+#endif
 
 void init_isa() {
   init_csr();

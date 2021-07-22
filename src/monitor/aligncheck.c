@@ -4,6 +4,7 @@
 #include <common.h>
 
 #ifdef CONFIG_AC_HOST
+#ifndef CONFIG_SHARE
 #include <signal.h>
 
 #define RFLAGS_AC (1u << 18)
@@ -55,4 +56,5 @@ void init_aligncheck() {
 #else
 void init_aligncheck() {
 }
+#endif
 #endif

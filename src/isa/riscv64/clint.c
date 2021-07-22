@@ -25,6 +25,7 @@ uint64_t clint_uptime() {
   return clint_base[CLINT_MTIME];
 }
 
+#ifndef CONFIG_SHARE
 static void clint_io_handler(uint32_t offset, int len, bool is_write) {
   update_clint();
 }
@@ -35,3 +36,4 @@ void init_clint() {
   IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
   boot_time = get_time();
 }
+#endif
