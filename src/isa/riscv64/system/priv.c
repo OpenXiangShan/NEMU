@@ -55,6 +55,9 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
+
+#define FFLAGS_MASK 0x1f
+#define FRM_MASK 0x03
 #define FCSR_MASK 0xff
 
 #define is_read(csr) (src == (void *)(csr))
@@ -74,8 +77,8 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
-  else if (is_read(fflags)) { return fcsr->fflags.val; }
-  else if (is_read(frm))    { return fcsr->frm; }
+  else if (is_read(fflags)) { return fcsr->fflags.val & FFLAGS_MASK; }
+  else if (is_read(frm))    { return fcsr->frm & FRM_MASK; }
   else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
   if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
@@ -87,9 +90,22 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
   else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
-  else if (is_write(fflags)) { fcsr->fflags.val = src; }
-  else if (is_write(frm)) { fcsr->frm = src; }
-  else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
+  else if (is_write(fflags)) {
+    *dest = src & FFLAGS_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+    // fcsr->fflags.val = src;
+  }
+  else if (is_write(frm)) {
+    *dest = src & FRM_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+    // fcsr->frm = src;
+  }
+  else if (is_write(fcsr)) {
+    *dest = src & FCSR_MASK;
+    fflags->val = src & FFLAGS_MASK;
+    frm->val = ((src)>>5) & FRM_MASK;
+    // *dest = src & FCSR_MASK;
+  }
   else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
