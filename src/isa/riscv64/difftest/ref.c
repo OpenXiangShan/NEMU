@@ -3,8 +3,10 @@
 #include "../local-include/intr.h"
 #include "../local-include/csr.h"
 
+// csr_prepare() & csr_writeback() are used to maintain 
+// a compact mirror of critical CSRs
+// For processor difftest only 
 static void csr_prepare() {
-   return;
   cpu.mstatus = mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
@@ -27,7 +29,6 @@ static void csr_prepare() {
 }
 
 static void csr_writeback() {
-   return;
   mstatus->val = cpu.mstatus;
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;

@@ -21,6 +21,7 @@ typedef struct {
     uint64_t _64;
   } fpr[32];
 
+  // shadow CSRs for difftest
   uint64_t pc;
   uint64_t mstatus, mcause, mepc;
   uint64_t sstatus, scause, sepc;
@@ -30,6 +31,7 @@ typedef struct {
   uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
 
+  // exec state
   bool amo;
   int mem_exception;
 
@@ -39,7 +41,7 @@ typedef struct {
 
   bool INTR;
 
-  // Disambiguation
+  // Disambiguation / Guided exec
   bool need_disambiguate;
   struct DisambiguationState disambiguation_state;
 } riscv64_CPU_state;
