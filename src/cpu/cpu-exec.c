@@ -13,7 +13,11 @@
  * You can modify this value as you want.
  */
 #define MAX_INSTR_TO_PRINT 10
+#ifndef CONFIG_SHARE
 #define BATCH_SIZE 65536
+#else
+#define BATCH_SIZE 1
+#endif
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
@@ -42,7 +46,7 @@ void save_globals(Decode *s) {
 }
 
 static void update_instr_cnt() {
-#if defined(CONFIG_PERF_OPT) && defined(CONFIG_ENABLE_INSTR_CNT)
+#if defined(CONFIG_ENABLE_INSTR_CNT)
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
@@ -156,6 +160,7 @@ static int execute(int n) {
   if (likely(init_flag == 0)) {
     g_exec_table = local_exec_table;
     extern Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
+    printf("[NEMU] cpu pc = 0x%lx\n", cpu.pc);
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
@@ -168,6 +173,7 @@ static int execute(int n) {
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
+    printf("[NEMU] exec pc = 0x%lx\n", s->pc);
     goto *(s->EHelper);
 
 #undef s0
@@ -184,6 +190,7 @@ def_EHelper(nemu_decode) {
 #ifdef XIANGSHAN_DEBUG
   printf("[NEMU] exec pc = 0x%lx\n", s->pc);
 #endif
+  printf("[NEMU] real exec pc = 0x%lx\n", s->pc);
   continue;
 }
 
@@ -240,12 +247,12 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->EHelper = g_exec_table[idx];
 }
 
-static void update_global() {
 #ifdef CONFIG_PERF_OPT
+static void update_global() {
   update_instr_cnt();
   cpu.pc = prev_s->pc;
-#endif
 }
+#endif
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
@@ -263,7 +270,9 @@ void cpu_exec(uint64_t n) {
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
     n_remain -= prev_s->idx_in_bb - 1;
+#ifdef CONFIG_PERF_OPT
     update_global();
+#endif
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
@@ -288,7 +297,11 @@ void cpu_exec(uint64_t n) {
 
     int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
     n_remain = execute(n_batch);
+#ifdef CONFIG_PERF_OPT
     update_global();
+#else
+    n_remain_total -= n_batch;
+#endif
   }
 
   uint64_t timer_end = get_time();

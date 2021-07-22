@@ -236,6 +236,7 @@ config LARGE_COPY
   default n
 
 config PERF_OPT
+  depends on !SHARE
   bool "Performance optimization"
   default y
 
@@ -252,7 +253,7 @@ config BB_POOL_SIZE
   int "Number of entries in basic block metadata pool"
   default 1024
 
-if !DEBUG
+if !DEBUG && !SHARE
 config DISABLE_INSTR_CNT
   bool "Disable instruction counting (single step is also disabled)"
   default y
