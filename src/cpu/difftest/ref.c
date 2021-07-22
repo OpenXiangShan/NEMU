@@ -26,13 +26,13 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
   }
 }
 
-void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
+void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_LARGE_COPY
-  if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(addr), buf, n);
-  else nemu_large_memcpy(buf, guest_to_host(addr), n);
+  if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
+  else nemu_large_memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #else
-  if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(addr), buf, n);
-  else memcpy(buf, guest_to_host(addr), n);
+  if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
+  else memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #endif
 }
 
@@ -64,6 +64,11 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
+}
+
+void difftest_guided_exec(void * guide) {
+  // cpu_guided_exec(n);
+  // TODO
 }
 
 void difftest_raise_intr(word_t NO) {
