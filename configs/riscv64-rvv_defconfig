@@ -1,0 +1,99 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# NEMU Configuration Menu
+#
+# CONFIG_ISA_x86 is not set
+# CONFIG_ISA_mips32 is not set
+# CONFIG_ISA_riscv32 is not set
+CONFIG_ISA_riscv64=y
+CONFIG_ISA="riscv64"
+CONFIG_ILEN_MIN=2
+CONFIG_ISA64=y
+
+#
+# ISA-dependent Options for riscv64
+#
+CONFIG_CLINT_MMIO=0xa2000000
+CONFIG_RVV_010=y
+# end of ISA-dependent Options for riscv64
+
+CONFIG_ENGINE_INTERPRETER=y
+CONFIG_ENGINE="interpreter"
+CONFIG_MODE_SYSTEM=y
+# CONFIG_MODE_USER is not set
+
+#
+# Build Options
+#
+CONFIG_CC_GCC=y
+# CONFIG_CC_GPP is not set
+# CONFIG_CC_CLANG is not set
+CONFIG_CC="gcc"
+CONFIG_CC_O0=y
+# CONFIG_CC_O1 is not set
+# CONFIG_CC_O2 is not set
+# CONFIG_CC_O3 is not set
+CONFIG_CC_OPT="-O0"
+CONFIG_CC_LTO=y
+CONFIG_CC_DEBUG=y
+# CONFIG_CC_ASAN is not set
+# CONFIG_SHARE is not set
+# end of Build Options
+
+#
+# Testing and Debugging
+#
+# CONFIG_DEBUG is not set
+# CONFIG_DIFFTEST is not set
+CONFIG_DIFFTEST_REF_PATH="none"
+CONFIG_DIFFTEST_REF_NAME="none"
+CONFIG_DETERMINISTIC=y
+# CONFIG_IQUEUE is not set
+# end of Testing and Debugging
+
+#
+# Memory Configuration
+#
+CONFIG_MBASE=0x80000000
+CONFIG_MSIZE=0x8000000
+CONFIG_PC_RESET_OFFSET=0x0
+CONFIG_USE_MMAP=y
+CONFIG_MEM_RANDOM=y
+# end of Memory Configuration
+
+CONFIG_DEVICE=y
+CONFIG_HAS_PORT_IO=y
+CONFIG_HAS_SERIAL=y
+CONFIG_SERIAL_PORT=0x3f8
+CONFIG_SERIAL_MMIO=0xa10003f8
+# CONFIG_SERIAL_INPUT_FIFO is not set
+CONFIG_HAS_TIMER=y
+CONFIG_RTC_PORT=0x48
+CONFIG_RTC_MMIO=0xa1000048
+# CONFIG_HAS_KEYBOARD is not set
+# CONFIG_HAS_VGA is not set
+# CONFIG_HAS_AUDIO is not set
+# CONFIG_HAS_DISK is not set
+CONFIG_HAS_SDCARD=y
+CONFIG_SDCARD_CTL_MMIO=0xa3000000
+CONFIG_SDCARD_IMG_PATH=""
+CONFIG_FPU_HOST=y
+# CONFIG_FPU_SOFT is not set
+# CONFIG_FPU_NONE is not set
+# CONFIG_AC_HOST is not set
+# CONFIG_AC_SOFT is not set
+CONFIG_AC_NONE=y
+
+#
+# Miscellaneous
+#
+CONFIG_TIMER_GETTIMEOFDAY=y
+# CONFIG_TIMER_CLOCK_GETTIME is not set
+CONFIG_RT_CHECK=y
+CONFIG_PERF_OPT=y
+CONFIG_TCACHE_SIZE=8192
+CONFIG_BB_LIST_SIZE=1024
+CONFIG_BB_POOL_SIZE=1024
+# CONFIG_DISABLE_INSTR_CNT is not set
+CONFIG_ENABLE_INSTR_CNT=y
+# end of Miscellaneous

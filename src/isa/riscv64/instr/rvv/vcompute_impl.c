@@ -207,6 +207,7 @@ void mask_instr(int opcode, Decode *s) {
 
 void reduction_instr(int opcode, int is_signed, Decode *s) {
   vp_set_dirty();
+  // TODO: check here: does not need align??
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
 

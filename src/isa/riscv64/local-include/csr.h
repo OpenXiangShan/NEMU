@@ -258,10 +258,10 @@ CSR_STRUCT_START(vl)
 CSR_STRUCT_END(vl)
 
 CSR_STRUCT_START(vtype)
-  uint64_t vlmul :  2;
+  uint64_t vlmul :  3;
   uint64_t vsew  :  3;
   uint64_t vediv :  2;
-  uint64_t pad   : 56;
+  uint64_t pad   : 55;
   uint64_t vill  :  1;
 CSR_STRUCT_END(vtype)
 
