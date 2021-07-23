@@ -21,6 +21,10 @@ NEMUState nemu_state = {.state = NEMU_STOP};
 static uint64_t g_nr_guest_instr = 0;
 const rtlreg_t rzero = 0;
 
+#if __ISA__ == riscv64
+riscv64_TLB_State dtlb;
+#endif
+
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
 
 int goodtrap(void) {
@@ -33,6 +37,9 @@ void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
 
 void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
+#if __ISA__ == riscv64
+  Log("dtlb access = %ld miss = %ld miss rate = %lf", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
+#endif
 }
 
 bool log_enable(void) {
@@ -57,7 +64,7 @@ void cpu_exec(uint64_t n) {
       return;
     default: nemu_state.state = NEMU_RUNNING;
   }
-
+  monitor_statistic();
   for (; n > 0; n --) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
 

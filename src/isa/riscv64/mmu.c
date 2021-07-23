@@ -3,6 +3,7 @@
 #include <memory/paddr.h>
 #include "local-include/csr.h"
 #include "local-include/intr.h"
+#include <stdlib.h>
 
 typedef union PageTableEntry {
   struct {
@@ -69,7 +70,26 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   return true;
 }
 
+void riscv64_dtlb_access(riscv64_TLB_State* tlb, uint64_t vaddr, uint64_t type) {
+  tlb->access += 1;
+  // TODO: handle super page
+  bool hit = false;
+  for (int i = 0; i < TLBEntrySize; i++) {
+    if (tlb->nv[i] && tlb->ntags[i] == VPN(vaddr)) {
+      hit = true;
+    }
+  }
+  if (!hit) {
+    int refill_index = rand() % TLBEntrySize;
+    tlb->miss += 1;
+    tlb->nv[refill_index] = true;
+    tlb->ntags[refill_index] = VPN(vaddr);
+  }
+}
+
 static paddr_t ptw(vaddr_t vaddr, int type) {
+
+  isa_dtlb_access(&dtlb, vaddr, type);
 
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer

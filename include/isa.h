@@ -17,6 +17,9 @@ extern CPU_state cpu;
 extern rtlreg_t csr_array[4096];
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
+#if __ISA__ == riscv64
+extern riscv64_TLB_State dtlb;
+#endif
 
 // exec
 vaddr_t isa_exec_once();
@@ -30,6 +33,9 @@ bool isa_mmu_safe(vaddr_t vaddr, int type);
 int isa_vaddr_check(vaddr_t vaddr, int type, int len);
 #endif
 #define isa_has_mem_exception concat(__ISA__, _has_mem_exception)
+#if __ISA__ == riscv64
+#define isa_dtlb_access concat(__ISA__, _dtlb_access)
+#endif
 
 // difftest
   // for dut

@@ -127,6 +127,24 @@ typedef struct {
   } instr;
 } riscv64_ISADecodeInfo;
 
+#define TLBEntrySize 32
+#define TLBSPEntrySize 4
+
+// just record miss rate, don't do the translation job
+typedef struct {
+  uint64_t ntags[TLBEntrySize];
+  uint64_t stags[TLBSPEntrySize];
+  bool nv[TLBEntrySize];
+  bool sv[TLBSPEntrySize];
+  bool ssize[TLBSPEntrySize];
+  
+  uint64_t access;
+  uint64_t miss;
+} riscv64_TLB_State;
+
 #define riscv64_has_mem_exception() (cpu.mem_exception != 0)
+
+#define VPN(vaddr) (vaddr >> 12) 
+void riscv64_dtlb_access(riscv64_TLB_State* tlb, uint64_t vaddr, uint64_t type);
 
 #endif
