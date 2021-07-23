@@ -56,20 +56,17 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
   return 0;
 #endif
 }
-
-// vaddr_t disambiguate_exec(void *disambiguate_para){
-//   return isa_disambiguate_exec(disambiguate_para);
-// }
 #endif
 
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
 
+#ifdef CONFIG_GUIDED_EXEC
 void difftest_guided_exec(void * guide) {
-  // cpu_guided_exec(n);
-  // TODO
+  isa_difftest_guided_exec(guide);
 }
+#endif
 
 void difftest_raise_intr(word_t NO) {
   isa_difftest_raise_intr(NO);

@@ -124,10 +124,6 @@ config CC_ASAN
   depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
-
-config SHARE
-  bool "Build shared library"
-  default n
 endmenu
 
 menu "Testing and Debugging"
@@ -217,6 +213,28 @@ config AC_NONE
   bool "Disable"
 endchoice
 
+menu "Processor difftest reference config"
+config SHARE
+  bool "Build shared library as processor difftest reference"
+  default n
+
+config CONFIG_DIFFTEST_STORE_COMMIT
+  depends on SHARE
+  bool "Maintain a committed store queue for processor ref"
+  default y
+
+config GUIDED_EXEC
+  depends on SHARE
+  bool "Enable DUT guided execution"
+  default y
+
+config LARGE_COPY
+  depends on SHARE
+  bool "Enable difftest large memory copy optimization"
+  default y
+
+endmenu
+
 menu "Miscellaneous"
 choice
   prompt "Host timer"
@@ -230,10 +248,6 @@ endchoice
 config RT_CHECK
   bool "Enable runtime checking"
   default y
-
-config LARGE_COPY
-  bool "Enable difftest large memory copy optimization"
-  default n
 
 config PERF_OPT
   depends on !SHARE
@@ -264,11 +278,4 @@ config ENABLE_INSTR_CNT
   bool
   default n if DISABLE_INSTR_CNT
   default y
-
-if SHARE
-config CONFIG_DIFFTEST_STORE_COMMIT
-  bool "Maintain a committed store queue for processor ref"
-  default y
-endif
-
 endmenu

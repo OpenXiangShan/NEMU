@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <cpu/cpu.h>
 #include <difftest.h>
 #include "../local-include/intr.h"
 #include "../local-include/csr.h"
@@ -83,3 +84,13 @@ void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
 void isa_difftest_raise_intr(word_t NO) {
   cpu.pc = raise_intr(NO, cpu.pc);
 }
+
+#ifdef CONFIG_GUIDED_EXEC
+void isa_difftest_guided_exec(void * guide) {
+  memcpy(&cpu.execution_guide, guide, sizeof(struct ExecutionGuide));
+
+  cpu.guided_exec = true;
+  cpu_exec(1);
+  cpu.guided_exec = false;
+}
+#endif

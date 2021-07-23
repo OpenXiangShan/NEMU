@@ -160,12 +160,6 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   word_t va_msbs = vaddr >> 38;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
 
-// #ifdef FORCE_RAISE_PF
-//   int forced_result = force_raise_pf(vaddr, type);
-//   if(forced_result != MEM_RET_OK)
-//     return forced_result;
-// #endif
-
   if(!va_msbs_ok){
     if(is_ifetch){
       stval->val = vaddr;
@@ -215,40 +209,40 @@ int force_raise_pf_record(vaddr_t vaddr, int type) {
 int force_raise_pf(vaddr_t vaddr, int type){
   bool ifetch = (type == MEM_TYPE_IFETCH);
 
-  if(cpu.need_disambiguate){
-    if(ifetch && cpu.disambiguation_state.exceptionNo == EX_IPF){
+  if(cpu.guided_exec){
+    if(ifetch && cpu.execution_guide.exceptionNo == EX_IPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
       if (cpu.mode == MODE_M) {
-        mtval->val = cpu.disambiguation_state.mtval;
+        mtval->val = cpu.execution_guide.mtval;
         if(
-          vaddr != cpu.disambiguation_state.mtval &&
+          vaddr != cpu.execution_guide.mtval &&
           // cross page ipf caused mismatch is legal
-          !((vaddr & 0xfff) == 0xffe && (cpu.disambiguation_state.mtval & 0xfff) == 0x000)
+          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.mtval & 0xfff) == 0x000)
         ){
           printf("[WRANING] nemu mtval %lx does not match core mtval %lx\n",
             vaddr,
-            cpu.disambiguation_state.mtval
+            cpu.execution_guide.mtval
           );
         }
       } else {
-        stval->val = cpu.disambiguation_state.stval;
+        stval->val = cpu.execution_guide.stval;
         if(
-          vaddr != cpu.disambiguation_state.stval &&
+          vaddr != cpu.execution_guide.stval &&
           // cross page ipf caused mismatch is legal
-          !((vaddr & 0xfff) == 0xffe && (cpu.disambiguation_state.stval & 0xfff) == 0x000)
+          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.stval & 0xfff) == 0x000)
         ){
           printf("[WRANING] nemu stval %lx does not match core stval %lx\n",
             vaddr,
-            cpu.disambiguation_state.stval
+            cpu.execution_guide.stval
           );
         }
       }
       cpu.mem_exception = EX_IPF;
       printf("force raise IPF\n");
       return MEM_RET_FAIL;
-    } else if(!ifetch && type == MEM_TYPE_READ && cpu.disambiguation_state.exceptionNo == EX_LPF){
+    } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exceptionNo == EX_LPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
@@ -257,7 +251,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       cpu.mem_exception = EX_LPF;
       printf("force raise LPF\n");
       return MEM_RET_FAIL;
-    } else if(type == MEM_TYPE_WRITE && cpu.disambiguation_state.exceptionNo == EX_SPF){
+    } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exceptionNo == EX_SPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
