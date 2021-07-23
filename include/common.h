@@ -23,6 +23,8 @@ typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
 #define FMT_PADDR MUXDEF(PMEM64, "0x%016lx", "0x%08x")
 typedef uint16_t ioaddr_t;
 
+#define CP printf("%s: %d\n", __FILE__, __LINE__);fflush( stdout );
+
 #include <debug.h>
 
 #endif

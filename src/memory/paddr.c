@@ -21,6 +21,9 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 }
 
 static inline void pmem_write(paddr_t addr, int len, word_t data) {
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  store_commit_queue_push(addr, data, len);
+#endif
   host_write(guest_to_host(addr), len, data);
 }
 
@@ -34,7 +37,7 @@ void init_mem() {
   }
 #endif
 
-#ifdef DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
   for (int i = 0; i < STORE_QUEUE_SIZE; i++) {
     store_commit_queue[i].valid = 0;
   }
@@ -71,7 +74,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
 }
 
 
-#ifdef DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
 store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 

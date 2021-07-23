@@ -50,7 +50,7 @@ void difftest_uarchstatus_cpy(void *dut, bool direction) {
 }
 
 int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
-#ifdef DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
   return check_store_commit(saddr, sdata, smask);
 #else
   return 0;

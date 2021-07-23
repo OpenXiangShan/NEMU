@@ -265,4 +265,10 @@ config ENABLE_INSTR_CNT
   default n if DISABLE_INSTR_CNT
   default y
 
+if SHARE
+config CONFIG_DIFFTEST_STORE_COMMIT
+  bool "Maintain a committed store queue for processor ref"
+  default y
+endif
+
 endmenu

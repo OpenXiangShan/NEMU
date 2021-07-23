@@ -34,11 +34,7 @@ static inline bool in_pmem(paddr_t addr) {
 word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, int len, word_t data);
 
-#if CONFIG_SHARE
-#define DIFFTEST_STORE_COMMIT
-#endif
-
-#ifdef DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
 #define STORE_QUEUE_SIZE 48
 typedef struct {
