@@ -19,6 +19,15 @@
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01)
 
+#ifdef CONFIG_RVV_010
+  #define VCSRS(f) \
+  f(vstart, 0x008) \
+  f(vxsat, 0x009) \
+  f(vxrm, 0x00a) \
+  f(vl, 0xc20) \
+  f(vtype, 0xc21)
+#endif
+
 #define CSR_STRUCT_START(name) \
   typedef union { \
     struct {
@@ -38,7 +47,7 @@ CSR_STRUCT_START(mstatus)
   uint64_t pad1: 1;
   uint64_t mpie: 1;
   uint64_t spp : 1;
-  uint64_t pad2: 2;
+  uint64_t vs: 2;
   uint64_t mpp : 2;
   uint64_t fs  : 2;
   uint64_t xs  : 2;
@@ -224,8 +233,49 @@ CSR_STRUCT_END(fcsr)
 CSR_STRUCT_START(mtime)
 CSR_STRUCT_END(mtime)
 
+#ifdef CONFIG_RVV_010
+// TODO: implement these vcsr
+#define IDXVSTART 0x008
+#define IDXVXSAT  0x009
+#define IDXVXRM   0x00a
+#define IDXVL     0xc20
+#define IDXVTYPE  0xc21
+
+CSR_STRUCT_START(vstart)
+CSR_STRUCT_END(vstart)
+
+CSR_STRUCT_START(vxsat)
+  uint64_t sat :  1;
+  uint64_t pad : 63;
+CSR_STRUCT_END(vxsat)
+
+CSR_STRUCT_START(vxrm)
+  uint64_t rm  :  2;
+  uint64_t pad : 62;
+CSR_STRUCT_END(vxrm)
+
+CSR_STRUCT_START(vl)
+CSR_STRUCT_END(vl)
+
+CSR_STRUCT_START(vtype)
+  uint64_t vlmul :  3;
+  uint64_t vsew  :  3;
+  uint64_t vediv :  2;
+  uint64_t pad   : 55;
+  uint64_t vill  :  1;
+CSR_STRUCT_END(vtype)
+
+rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, bool max_req);
+rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
+void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
+
+#endif // CONFIG_RVV_010
+
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
+#ifdef CONFIG_RVV_010
+  MAP(VCSRS, CSRS_DECL)
+#endif // CONFIG_RVV_010
 
 word_t csrid_read(uint32_t csrid);
 
