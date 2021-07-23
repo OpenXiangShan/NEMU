@@ -163,15 +163,15 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if(!va_msbs_ok){
     if(is_ifetch){
       stval->val = vaddr;
-      cpu.mem_exception = EX_IPF;
+      longjmp_exception(EX_IPF);
     } else if(type == MEM_TYPE_READ){
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = (cpu.amo ? EX_SPF : EX_LPF);
+      longjmp_exception(cpu.amo ? EX_SPF : EX_LPF);
     } else {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_SPF;
+      longjmp_exception(EX_SPF);
     }
     return MEM_RET_FAIL;
   }
@@ -180,7 +180,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     assert(0);
     mtval->val = vaddr;
-    cpu.mem_exception = (cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+    longjmp_exception(cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
     return MEM_RET_FAIL;
   }
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
@@ -239,8 +239,8 @@ int force_raise_pf(vaddr_t vaddr, int type){
           );
         }
       }
-      cpu.mem_exception = EX_IPF;
       printf("force raise IPF\n");
+      longjmp_exception(EX_IPF);
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exceptionNo == EX_LPF){
       if (force_raise_pf_record(vaddr, type)) {
@@ -248,8 +248,8 @@ int force_raise_pf(vaddr_t vaddr, int type){
       }
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_LPF;
       printf("force raise LPF\n");
+      longjmp_exception(EX_LPF);
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exceptionNo == EX_SPF){
       if (force_raise_pf_record(vaddr, type)) {
@@ -257,8 +257,8 @@ int force_raise_pf(vaddr_t vaddr, int type){
       }
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
-      cpu.mem_exception = EX_SPF;
       printf("force raise SPF\n");
+      longjmp_exception(EX_SPF);
       return MEM_RET_FAIL;
     }
   }

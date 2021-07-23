@@ -85,6 +85,9 @@ void longjmp_exec(int cause) {
 }
 
 void longjmp_exception(int ex_cause) {
+#ifdef CONFIG_GUIDED_EXEC
+  cpu.guided_exec = false;
+#endif
   g_ex_cause = ex_cause;
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
@@ -256,6 +259,7 @@ static void update_global() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+  IFDEF(CONFIG_SHARE, assert(n <= 1));
   g_print_step = (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
@@ -286,6 +290,7 @@ void cpu_exec(uint64_t n) {
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+      IFDEF(CONFIG_SHARE, break);
     } else {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
