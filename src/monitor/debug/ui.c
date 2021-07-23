@@ -10,6 +10,7 @@
 
 void cpu_exec(uint64_t);
 int is_batch_mode();
+int get_max_instr();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -30,7 +31,7 @@ static char* rl_gets() {
 }
 
 static int cmd_c(char *args) {
-  cpu_exec(-1);
+  cpu_exec(get_max_instr());
   return 0;
 }
 
