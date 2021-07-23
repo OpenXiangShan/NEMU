@@ -47,6 +47,10 @@ LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
+ifdef CONFIG_MEM_COMPRESS
+LDFLAGS += -lz
+endif
+
 ifndef CONFIG_SHARE
 LDFLAGS += -lreadline -ldl -pie
 else
