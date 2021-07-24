@@ -35,7 +35,7 @@ static char* rl_gets() {
 }
 
 static int cmd_c(char *args) {
-  cpu_exec(-1);
+  cpu_exec((args == NULL) ? -1 : atoi(args));
   return 0;
 }
 
@@ -257,7 +257,8 @@ static int cmd_help(char *args) {
 
 void ui_mainloop() {
   if (is_batch_mode()) {
-    cmd_c(NULL);
+    extern char *max_instr;
+    cmd_c(max_instr);
     return;
   }
 
