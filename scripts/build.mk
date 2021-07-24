@@ -2,8 +2,8 @@
 
 ifdef SHARE
 SO = -so
-CFLAGS  += -fPIC -D_SHARE=1
-LDFLAGS += -rdynamic -shared -fPIC
+CFLAGS += -fPIC -D_SHARE=1
+LIBS   += -rdynamic -shared -fPIC
 endif
 
 WORK_DIR  = $(shell pwd)
@@ -42,9 +42,9 @@ $(OBJ_DIR)/%.o: %.c
 
 app: $(BINARY)
 
-$(BINARY): $(OBJS) $(LIBS)
+$(BINARY): $(OBJS) $(ARCHIVES)
 	@echo + LD $@
-	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(ARCHIVES) $(LIBS)
 
 clean:
 	-rm -rf $(BUILD_DIR)
