@@ -82,10 +82,10 @@ void riscv64_dtlb_access(riscv64_TLB_State* tlb, uint64_t vaddr, uint64_t type) 
   if (!hit) {
     int refill_index = rand() % TLBEntrySize;
     tlb->miss += 1;
-    Log("before refill %d", refill_index);
+    // Log("before refill %d", refill_index);
     tlb->nv[refill_index] = true;
     tlb->ntags[refill_index] = VPN(vaddr);
-    Log("refill success");
+    // Log("refill success");
   }
 }
 

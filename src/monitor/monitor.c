@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <monitor/monitor.h>
+#include <monitor/compress.h>
 #include <getopt.h>
 #include <stdlib.h>
 
@@ -47,15 +48,25 @@ static inline long load_img() {
 
   Log("The image is %s", img_file);
 
-  fseek(fp, 0, SEEK_END);
-  long size = ftell(fp);
+  if (isGzFile(img_file)) {
+    Log("Gzip file detected and loading image from extraceed gz file");
+    int ret = readFromGz(guest_to_host(IMAGE_START), img_file, PMEM_SIZE, LOAD_RAM);
 
-  fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
-  assert(ret == 1);
+    assert(ret >= 0);
+    return ret;
 
-  fclose(fp);
-  return size;
+  } else {
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+
+    fseek(fp, 0, SEEK_SET);
+    int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
+    assert(ret == 1);
+
+    fclose(fp);
+    return size;
+  }
+
 }
 
 static inline void parse_args(int argc, char *argv[]) {

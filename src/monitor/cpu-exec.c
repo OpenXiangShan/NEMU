@@ -64,7 +64,7 @@ void cpu_exec(uint64_t n) {
       return;
     default: nemu_state.state = NEMU_RUNNING;
   }
-  monitor_statistic();
+
   for (; n > 0; n --) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
 
@@ -96,7 +96,6 @@ void cpu_exec(uint64_t n) {
 
     if (nemu_state.state != NEMU_RUNNING) break;
   }
-
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
@@ -108,4 +107,9 @@ void cpu_exec(uint64_t n) {
       monitor_statistic();
       if (nemu_state.state == NEMU_ABORT) abort();
   }
+
+  if (nemu_state.state == NEMU_STOP) {
+    monitor_statistic();
+  }
+
 }

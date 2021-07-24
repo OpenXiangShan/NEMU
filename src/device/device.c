@@ -33,6 +33,7 @@ void device_update() {
       case SDL_QUIT: {
         void monitor_statistic();
         monitor_statistic();
+        Log();
         exit(0);
       }
 
