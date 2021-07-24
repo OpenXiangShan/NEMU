@@ -14,8 +14,10 @@ NAME    = nemu-$(ENGINE)
 FILELIST_MK = $(shell find . -name "filelist.mk")
 include $(FILELIST_MK)
 
+DIRS-BLACKLIST-y += $(DIRS-BLACKLIST)
+SRCS-BLACKLIST-y += $(SRCS-BLACKLIST) $(shell find $(DIRS-BLACKLIST-y) -name "*.c")
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
-SRCS = $(SRCS-y)
+SRCS = $(filter-out $(SRCS-BLACKLIST-y),$(SRCS-y))
 
 CC = $(call remove_quote,$(CONFIG_CC))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))

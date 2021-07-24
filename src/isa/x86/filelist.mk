@@ -1,0 +1,1 @@
+DIRS-BLACKLIST$(CONFIG_DEVICE) += src/isa/x86/device

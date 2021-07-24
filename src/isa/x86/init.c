@@ -25,12 +25,6 @@ static void restart() {
 #endif
 }
 
-void init_i8259a();
-void init_mc146818rtc();
-void init_i8253();
-void init_ioport80();
-void init_i8237a();
-
 void init_isa() {
   /* Test the implementation of the `CPU_state' structure. */
   void reg_test();
@@ -44,9 +38,16 @@ void init_isa() {
   /* Initialize this virtual computer system. */
   restart();
 
+#ifndef CONFIG_DEVICE
+  void init_i8259a();
+  void init_mc146818rtc();
+  void init_i8253();
+  void init_ioport80();
+  void init_i8237a();
   init_i8259a();
   init_mc146818rtc();
   init_i8253();
   init_ioport80();
   init_i8237a();
+#endif
 }
