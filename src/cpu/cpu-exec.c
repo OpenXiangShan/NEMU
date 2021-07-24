@@ -163,7 +163,6 @@ static int execute(int n) {
   if (likely(init_flag == 0)) {
     g_exec_table = local_exec_table;
     extern Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
-    printf("[NEMU] cpu pc = 0x%lx\n", cpu.pc);
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
@@ -176,7 +175,6 @@ static int execute(int n) {
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
 
-    printf("[NEMU] exec pc = 0x%lx\n", s->pc);
     goto *(s->EHelper);
 
 #undef s0
@@ -193,7 +191,6 @@ def_EHelper(nemu_decode) {
 #ifdef XIANGSHAN_DEBUG
   printf("[NEMU] exec pc = 0x%lx\n", s->pc);
 #endif
-  printf("[NEMU] real exec pc = 0x%lx\n", s->pc);
   continue;
 }
 
