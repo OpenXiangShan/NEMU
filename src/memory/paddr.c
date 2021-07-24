@@ -40,7 +40,7 @@ void init_mem() {
   uint32_t *p = (uint32_t *)pmem;
   uint64_t i;
   for (i = 0; i < PMEM_SIZE / sizeof(p[0]); i ++) {
-    p[i] = rand();
+    // p[i] = rand();
   }
 #endif
 }
