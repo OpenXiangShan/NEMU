@@ -16,6 +16,7 @@ static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
+char *max_instr = NULL;
 
 int is_batch_mode() { return batch_mode; }
 
@@ -113,6 +114,7 @@ static inline long load_img() {
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
+    {"max-instr", required_argument, NULL, 'I'},
     {"log"      , required_argument, NULL, 'l'},
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
@@ -120,9 +122,10 @@ static inline int parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
+      case 'I': max_instr = optarg; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
@@ -130,6 +133,7 @@ static inline int parse_args(int argc, char *argv[]) {
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
+        printf("\t-I,--max-instr          max number of instructions executed\n");
         printf("\t-l,--log=FILE           output log to FILE\n");
         printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
         printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
