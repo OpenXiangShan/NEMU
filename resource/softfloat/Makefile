@@ -4,10 +4,19 @@ ifeq ($(wildcard repo/COPYING.txt),)
 endif
 
 BUILD_PATH = $(abspath $(REPO_PATH)/build/Linux-x86_64-GCC)
+SHARED_BUILD_PATH = $(abspath ./shared)
 
 all:
 	$(MAKE) -C $(BUILD_PATH) all
 	mkdir -p build/
 	ln -sf $(BUILD_PATH)/softfloat.a build/softfloat.a
+
+all-shared:
+	$(MAKE) -C $(SHARED_BUILD_PATH) all
+	mkdir -p build/
+	ln -sf $(SHARED_BUILD_PATH)/softfloat.a build/softfloat.a
+
+clean:
+	$(MAKE) -C $(BUILD_PATH) clean
 
 .PHONY: all

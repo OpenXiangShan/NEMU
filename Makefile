@@ -73,7 +73,11 @@ INC_DIR += resource/softfloat/repo/source/include
 INC_DIR += resource/softfloat/repo/source/$(SPECIALIZE_TYPE)
 LIBS += $(SOFTFLOAT)
 $(SOFTFLOAT):
+ifndef CONFIG_SHARE
 	SPECIALIZE_TYPE=$(SPECIALIZE_TYPE) $(MAKE) -s -C resource/softfloat/
+else
+	SPECIALIZE_TYPE=$(SPECIALIZE_TYPE) $(MAKE) -s -C resource/softfloat/ all-shared
+endif
 
 .PHONY: $(SOFTFLOAT)
 else ifdef CONFIG_FPU_HOST
