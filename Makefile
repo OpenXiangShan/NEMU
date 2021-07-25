@@ -7,7 +7,7 @@ endif
 
 remove_quote = $(patsubst "%",%,$(1))
 
-ISA    ?= $(call remove_quote,$(CONFIG_ISA))
+GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
 NAME    = nemu-$(ENGINE)
 
@@ -24,7 +24,7 @@ CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
-CFLAGS  += $(CFLAGS_BUILD) -D__ISA__=$(ISA)
+CFLAGS  += $(CFLAGS_BUILD) -D__GUEST_ISA__=$(GUEST_ISA)
 LDFLAGS += $(CFLAGS_BUILD)
 
 include $(NEMU_HOME)/resource/softfloat/fpu.mk
