@@ -70,28 +70,76 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   return true;
 }
 
-void riscv64_dtlb_access(riscv64_TLB_State* tlb, uint64_t vaddr, uint64_t type) {
+void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
+  riscv64_TLB_State *tlb;
+  if (type == MEM_TYPE_IFETCH) { tlb = &itlb; }
+  else { tlb = &dtlb; }
+
   tlb->access += 1;
   // TODO: handle super page
   bool hit = false;
-  for (int i = 0; i < TLBEntrySize; i++) {
-    if (tlb->nv[i] && tlb->ntags[i] == VPN(vaddr)) {
-      hit = true;
+  for (int i = 0; i < TLBEntryNum; i++) {
+    if (tlb->normal[i].v && tlb->normal[i].tag == VPN(vaddr)) {
+      hit = true; return;
     }
   }
+
+  // l2 tlb
   if (!hit) {
-    int refill_index = rand() % TLBEntrySize;
+    int refill_index = rand() % TLBEntryNum;
     tlb->miss += 1;
-    // Log("before refill %d", refill_index);
-    tlb->nv[refill_index] = true;
-    tlb->ntags[refill_index] = VPN(vaddr);
-    // Log("refill success");
+    tlb->normal[refill_index].v = true;
+    tlb->normal[refill_index].tag = VPN(vaddr);
+
+    // l3
+    l2tlb.access ++;
+    bool l2hit = false;
+    int index = get_l3_index(vaddr);
+    for (int i = 0; i < L2TLBL3WayNum; i++) {
+      if (l2tlb.l3[index][i].v && l2tlb.l3[index][i].tag == get_l3_tag(vaddr)) {
+        l2hit = true; return;
+      }
+    }
+    if (!l2hit) {
+      l2tlb.miss ++;
+      l2tlb.mem_access ++;
+      refill_index = rand() % L2TLBL3WayNum;
+      l2tlb.l3[index][refill_index].tag = get_l3_tag(vaddr);
+      l2tlb.l3[index][refill_index].v = true;
+
+      // l2
+      index = get_l2_index(vaddr);
+      for (int i = 0; i < L2TLBL2WayNum; i ++) {
+        if (l2tlb.l2[index][i].v && l2tlb.l2[index][i].tag == get_l2_tag(vaddr)) {
+          l2hit = true; return;
+        }
+      }
+      if (!l2hit) {
+        l2tlb.mem_access ++;
+        refill_index = rand() % L2TLBL2WayNum;
+        l2tlb.l2[index][refill_index].tag = get_l2_tag(vaddr);
+        l2tlb.l2[index][refill_index].v = true;
+
+        // l1
+        for (int i = 0; i < L2TLBL1EntryNum; i++) {
+          if (l2tlb.l1[i].v && l2tlb.l1[i].tag == get_l1_tag(vaddr)) {
+            l2hit = true; return;
+          }
+        }
+        if (!l2hit) {
+          l2tlb.mem_access ++;
+          refill_index = rand() % L2TLBL1EntryNum;
+          l2tlb.l1[refill_index].tag = get_l1_tag(vaddr);
+          l2tlb.l1[refill_index].v = true;
+        }
+      }
+    }
   }
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
 
-  isa_dtlb_access(&dtlb, vaddr, type);
+  isa_tlb_access(vaddr, type);
 
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer

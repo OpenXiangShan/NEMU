@@ -127,24 +127,57 @@ typedef struct {
   } instr;
 } riscv64_ISADecodeInfo;
 
-#define TLBEntrySize 32
-#define TLBSPEntrySize 4
+#define TLBEntryNum 32
+#define TLBSPEntryNum 4
+#define L2TLBL1EntryNum 16
+#define L2TLBL2EntryNum 1024
+#define L2TLBL3EntryNum 4096
+#define L2TLBSPEntryNum 16
+#define L2TLBL2WayNum 8
+#define L2TLBL3WayNum 16
+#define L2TLBWaySize 4
+#define L2TLBL2SetNum (L2TLBL2EntryNum / L2TLBL2WayNum / L2TLBWaySize)
+#define L2TLBL3SetNum (L2TLBL3EntryNum / L2TLBL3WayNum / L2TLBWaySize)
 
 // just record miss rate, don't do the translation job
 typedef struct {
-  uint64_t ntags[TLBEntrySize];
-  uint64_t stags[TLBSPEntrySize];
-  bool nv[TLBEntrySize];
-  bool sv[TLBSPEntrySize];
-  bool ssize[TLBSPEntrySize];
-  
+  uint64_t tag;
+  bool v;
+} tlb_entry;
+
+typedef struct {
+  uint64_t tag;
+  bool v;
+  uint64_t size;
+} tlb_sp_entry;
+
+typedef struct {
+  tlb_entry normal[TLBEntryNum];
+  tlb_sp_entry super[TLBSPEntryNum];
+
   uint64_t access;
   uint64_t miss;
 } riscv64_TLB_State;
 
+typedef struct {
+  tlb_entry l1[L2TLBL1EntryNum];
+  tlb_entry l2[L2TLBL2SetNum][L2TLBL2WayNum];
+  tlb_entry l3[L2TLBL3SetNum][L2TLBL3WayNum];
+  tlb_sp_entry sp[L2TLBSPEntryNum];
+
+  uint64_t access;
+  uint64_t miss;
+  uint64_t mem_access;
+} riscv64_L2TLB_State;
+
 #define riscv64_has_mem_exception() (cpu.mem_exception != 0)
 
 #define VPN(vaddr) (vaddr >> 12) 
-void riscv64_dtlb_access(riscv64_TLB_State* tlb, uint64_t vaddr, uint64_t type);
+#define get_l3_index(vaddr) ((VPN(vaddr) / L2TLBWaySize) % L2TLBL3SetNum)
+#define get_l2_index(vaddr) (((VPN(vaddr) >> 9) / L2TLBWaySize) % L2TLBL2SetNum)
+#define get_l3_tag(vaddr) ((VPN(vaddr) / L2TLBWaySize))
+#define get_l2_tag(vaddr) ((VPN(vaddr) >> 9) / L2TLBWaySize)
+#define get_l1_tag(vaddr) ((VPN(vaddr) >> 18))
+void riscv64_tlb_access(uint64_t vaddr, uint64_t type);
 
 #endif

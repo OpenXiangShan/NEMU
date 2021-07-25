@@ -53,6 +53,7 @@ static inline long load_img() {
     int ret = readFromGz(guest_to_host(IMAGE_START), img_file, PMEM_SIZE, LOAD_RAM);
 
     assert(ret >= 0);
+    Log("Finish loading image");
     return ret;
 
   } else {
@@ -63,6 +64,7 @@ static inline long load_img() {
     int ret = fread(guest_to_host(IMAGE_START), size, 1, fp);
     assert(ret == 1);
 
+    Log("Finish loading image");
     fclose(fp);
     return size;
   }
@@ -130,6 +132,9 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
+
+  /* set rand seed */
+  srand(0);
 
   /* Display welcome message. */
   welcome();

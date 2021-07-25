@@ -19,6 +19,8 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 #if __ISA__ == riscv64
 extern riscv64_TLB_State dtlb;
+extern riscv64_TLB_State itlb;
+extern riscv64_L2TLB_State l2tlb;
 #endif
 
 // exec
@@ -34,7 +36,7 @@ int isa_vaddr_check(vaddr_t vaddr, int type, int len);
 #endif
 #define isa_has_mem_exception concat(__ISA__, _has_mem_exception)
 #if __ISA__ == riscv64
-#define isa_dtlb_access concat(__ISA__, _dtlb_access)
+#define isa_tlb_access concat(__ISA__, _tlb_access)
 #endif
 
 // difftest

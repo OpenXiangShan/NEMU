@@ -23,6 +23,8 @@ const rtlreg_t rzero = 0;
 
 #if __ISA__ == riscv64
 riscv64_TLB_State dtlb;
+riscv64_TLB_State itlb;
+riscv64_L2TLB_State l2tlb;
 #endif
 
 void asm_print(vaddr_t ori_pc, int instr_len, bool print_flag);
@@ -39,6 +41,8 @@ void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
 #if __ISA__ == riscv64
   Log("dtlb access = %ld miss = %ld miss rate = %lf", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
+  Log("itlb access = %ld miss = %ld miss rate = %lf", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
+  Log("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
 #endif
 }
 
@@ -64,7 +68,7 @@ void cpu_exec(uint64_t n) {
       return;
     default: nemu_state.state = NEMU_RUNNING;
   }
-
+  monitor_statistic();
   for (; n > 0; n --) {
     __attribute__((unused)) vaddr_t ori_pc = cpu.pc;
 
