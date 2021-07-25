@@ -36,8 +36,14 @@ void isa_reg_display() {
       cpu.pc, mstatus->val, mcause->val, mepc->val);
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
       "", csrid_read(0x100), scause->val, sepc->val);
-
-  #ifdef CONFIG_RVV_010
+  printf("satp: " FMT_WORD "\n", satp->val);
+  printf("mip: " FMT_WORD " mie: " FMT_WORD " mscratch: " FMT_WORD " sscratch: " FMT_WORD "\n", 
+      mip->val, mie->val, mscratch->val, sscratch->val);
+  printf("mideleg: " FMT_WORD " medeleg: " FMT_WORD "\n", 
+      mideleg->val, medeleg->val);
+  printf("mtval: " FMT_WORD " stval: " FMT_WORD " mtvec: " FMT_WORD " stvec: " FMT_WORD "\n", 
+      mtval->val, stval->val, mtvec->val, stvec->val);
+#ifdef CONFIG_RVV_010
   //vector register
   extern const char * vregsl[];
   for(i = 0; i < 32; i ++) {
@@ -48,7 +54,8 @@ void isa_reg_display() {
   }
   printf("vtype: " FMT_WORD " vstart: " FMT_WORD " vxsat: " FMT_WORD "\n", vtype->val, vstart->val, vxsat->val);
   printf("vxrm: " FMT_WORD " vl: " FMT_WORD "\n", vxrm->val, vl->val);
-  #endif // CONFIG_RVV_010
+#endif // CONFIG_RVV_010
+  fflush(stdout);
 }
 
 rtlreg_t isa_reg_str2val(const char *s, bool *success) {

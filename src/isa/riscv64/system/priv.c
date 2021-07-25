@@ -1,5 +1,6 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
+#include "../local-include/intr.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 
@@ -8,7 +9,7 @@ uint64_t clint_uptime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 
-static word_t csr_array[4096] = {};
+rtlreg_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
@@ -26,9 +27,33 @@ void init_csr() {
   #endif // CONFIG_RVV_010
 };
 
+rtlreg_t csr_perf;
+
+static inline bool csr_is_legal(uint32_t addr) {
+  assert(addr < 4096);
+  // CSR does not exist
+  if(!csr_exist[addr]) {
+    printf("[NEMU] unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+    return false;
+  }
+  // CSR exists, but access is not legal
+  int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
+  if (!(cpu.mode >= lowest_access_priv_level)) {
+    return false;
+  }
+  return true;
+}
+
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
-  Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+  // Now we check if CSR is implemented / legal to access in csr_is_legal()
+  // Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+
+  // Skip CSR for perfcnt
+  // TODO: dirty implementation
+  if ((addr >= 0xb00 && addr <= 0xb1f) || (addr >= 0x320 && addr <= 0x33f)) {
+    return &csr_perf;
+  }
   return &csr_array[addr];
 }
 #ifdef CONFIG_RVV_010
@@ -39,6 +64,9 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
+
+#define FFLAGS_MASK 0x1f
+#define FRM_MASK 0x03
 #define FCSR_MASK 0xff
 
 #define is_read(csr) (src == (void *)(csr))
@@ -58,9 +86,11 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
-  else if (is_read(fflags)) { return fcsr->fflags.val; }
-  else if (is_read(frm))    { return fcsr->frm; }
+  else if (is_read(fflags)) { return fcsr->fflags.val & FFLAGS_MASK; }
+  else if (is_read(frm))    { return fcsr->frm & FRM_MASK; }
+#ifndef CONFIG_SHARE
   else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
+#endif
   if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
@@ -76,11 +106,24 @@ static inline void csr_write(word_t *dest, word_t src) {
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
-  else if (is_write(medeleg)) { *dest = src & 0xbbff; }
+  else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
-  else if (is_write(fflags)) { fcsr->fflags.val = src; }
-  else if (is_write(frm)) { fcsr->frm = src; }
-  else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
+  else if (is_write(fflags)) {
+    *dest = src & FFLAGS_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+    // fcsr->fflags.val = src;
+  }
+  else if (is_write(frm)) {
+    *dest = src & FRM_MASK;
+    fcsr->val = (frm->val)<<5 | fflags->val;
+    // fcsr->frm = src;
+  }
+  else if (is_write(fcsr)) {
+    *dest = src & FCSR_MASK;
+    fflags->val = src & FFLAGS_MASK;
+    frm->val = ((src)>>5) & FRM_MASK;
+    // *dest = src & FCSR_MASK;
+  }
   else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
@@ -106,6 +149,10 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+  if (!csr_is_legal(csrid)) {
+    longjmp_exception(EX_II);
+    return;
+  }
   word_t *csr = csr_decode(csrid);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }

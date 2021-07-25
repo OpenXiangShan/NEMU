@@ -1,3 +1,5 @@
+#include <common.h>
+#ifndef CONFIG_SHARE
 void init_monitor(int, char *[]);
 void engine_start();
 int is_exit_status_bad();
@@ -11,3 +13,4 @@ int main(int argc, char *argv[]) {
 
   return is_exit_status_bad();
 }
+#endif

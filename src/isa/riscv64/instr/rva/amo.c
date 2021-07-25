@@ -1,4 +1,5 @@
 #include <rtl/rtl.h>
+#include "../local-include/intr.h"
 
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
@@ -8,11 +9,21 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   if (funct5 == 0b00010) { // lr
     rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     cpu.lr_addr = *src1;
+    cpu.lr_valid = 1;
     return;
   } else if (funct5 == 0b00011) { // sc
     // should check overlapping instead of equality
-    int success = cpu.lr_addr == *src1;
-    if (success) rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
+    int success = cpu.lr_addr == *src1 && cpu.lr_valid;
+    if (success) {
+      rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
+      cpu.lr_valid = 0;
+    } else {
+      // Even if scInvalid, SPF (if raised) also needs to be reported
+      if(isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
+        isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
+      }
+      return_on_mem_ex();
+    }
     rtl_li(s, dest, !success);
     return;
   }

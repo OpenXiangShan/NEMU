@@ -13,7 +13,11 @@
  * You can modify this value as you want.
  */
 #define MAX_INSTR_TO_PRINT 10
+#ifndef CONFIG_SHARE
 #define BATCH_SIZE 65536
+#else
+#define BATCH_SIZE 1
+#endif
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
@@ -42,7 +46,7 @@ void save_globals(Decode *s) {
 }
 
 static void update_instr_cnt() {
-#if defined(CONFIG_PERF_OPT) && defined(CONFIG_ENABLE_INSTR_CNT)
+#if defined(CONFIG_ENABLE_INSTR_CNT)
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= (n_remain_total > n_executed) ? n_executed : n_remain_total;
@@ -81,6 +85,9 @@ void longjmp_exec(int cause) {
 }
 
 void longjmp_exception(int ex_cause) {
+#ifdef CONFIG_GUIDED_EXEC
+  cpu.guided_exec = false;
+#endif
   g_ex_cause = ex_cause;
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
@@ -181,6 +188,9 @@ static int execute(int n) {
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s);
+#ifdef XIANGSHAN_DEBUG
+  printf("[NEMU] exec pc = 0x%lx\n", s->pc);
+#endif
   continue;
 }
 
@@ -215,6 +225,9 @@ static int execute(int n) {
   for (;n > 0; n --) {
     fetch_decode(&s, cpu.pc);
     cpu.pc = s.snpc;
+#ifdef XIANGSHAN_DEBUG
+    printf("[NEMU] exec pc = 0x%lx\n", s.pc);
+#endif
     s.EHelper(&s);
     g_nr_guest_instr ++;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
@@ -234,15 +247,16 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->EHelper = g_exec_table[idx];
 }
 
-static void update_global() {
 #ifdef CONFIG_PERF_OPT
+static void update_global() {
   update_instr_cnt();
   cpu.pc = prev_s->pc;
-#endif
 }
+#endif
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+  IFDEF(CONFIG_SHARE, assert(n <= 1));
   g_print_step = (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
@@ -257,7 +271,9 @@ void cpu_exec(uint64_t n) {
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
     n_remain -= prev_s->idx_in_bb - 1;
+#ifdef CONFIG_PERF_OPT
     update_global();
+#endif
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
@@ -271,6 +287,7 @@ void cpu_exec(uint64_t n) {
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+      IFDEF(CONFIG_SHARE, break);
     } else {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
@@ -282,7 +299,11 @@ void cpu_exec(uint64_t n) {
 
     int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
     n_remain = execute(n_batch);
+#ifdef CONFIG_PERF_OPT
     update_global();
+#else
+    n_remain_total -= n_batch;
+#endif
   }
 
   uint64_t timer_end = get_time();

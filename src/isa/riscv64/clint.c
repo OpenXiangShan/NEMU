@@ -3,6 +3,7 @@
 #include <device/map.h>
 #include "local-include/csr.h"
 
+#ifndef CONFIG_SHARE
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
 #define TIMEBASE 10000000ul
@@ -35,3 +36,4 @@ void init_clint() {
   IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
   boot_time = get_time();
 }
+#endif

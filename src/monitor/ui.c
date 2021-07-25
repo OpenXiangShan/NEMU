@@ -11,6 +11,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#ifndef CONFIG_SHARE
 int is_batch_mode();
 int set_watchpoint(char *e);
 bool delete_watchpoint(int NO);
@@ -293,3 +294,4 @@ void ui_mainloop() {
     if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
   }
 }
+#endif

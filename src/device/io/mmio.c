@@ -17,6 +17,7 @@ void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, io_
     .space = space, .callback = callback };
   Log("Add mmio map '%s' at [" FMT_PADDR ", " FMT_PADDR "]",
       maps[nr_map].name, maps[nr_map].low, maps[nr_map].high);
+  fflush(stdout);
 
   nr_map ++;
 }
