@@ -79,7 +79,9 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val & FFLAGS_MASK; }
   else if (is_read(frm))    { return fcsr->frm & FRM_MASK; }
+#ifndef CONFIG_SHARE
   else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
+#endif
   if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }

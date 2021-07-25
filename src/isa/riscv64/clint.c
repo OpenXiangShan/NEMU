@@ -3,6 +3,7 @@
 #include <device/map.h>
 #include "local-include/csr.h"
 
+#ifndef CONFIG_SHARE
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
 #define TIMEBASE 10000000ul
@@ -25,7 +26,6 @@ uint64_t clint_uptime() {
   return clint_base[CLINT_MTIME];
 }
 
-#ifndef CONFIG_SHARE
 static void clint_io_handler(uint32_t offset, int len, bool is_write) {
   update_clint();
 }
