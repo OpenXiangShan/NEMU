@@ -204,6 +204,7 @@ endif
 
 choice
   prompt "FPU Emulation"
+  default FPU_SOFT if AM
   default FPU_HOST
 config FPU_HOST
   bool "Use host floating point operation"
@@ -215,7 +216,7 @@ endchoice
 
 choice
   prompt "Detecting misaligned memory accessing"
-  default AC_HOST
+  default AC_NONE
 config AC_HOST
   bool "By host CPU (x86 host only)"
 config AC_SOFT

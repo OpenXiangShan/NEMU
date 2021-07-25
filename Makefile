@@ -34,6 +34,7 @@ include $(NEMU_HOME)/scripts/isa.mk
 
 ifdef CONFIG_AM
 include $(AM_HOME)/Makefile
+LINKAGE += $(ARCHIVES)
 else
 include $(NEMU_HOME)/scripts/native.mk
 endif

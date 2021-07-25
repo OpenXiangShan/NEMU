@@ -2,8 +2,8 @@
 
 ifdef SHARE
 SO = -so
-CFLAGS += -fPIC -D_SHARE=1
-LIBS   += -rdynamic -shared -fPIC
+CFLAGS  += -fPIC -D_SHARE=1
+LDFLAGS += -rdynamic -shared -fPIC
 endif
 
 WORK_DIR  = $(shell pwd)

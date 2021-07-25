@@ -9,5 +9,7 @@ SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 
 ifdef CONFIG_DEVICE
+ifndef CONFIG_AM
 LIBS += -lSDL2
+endif
 endif
