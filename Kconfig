@@ -72,6 +72,13 @@ config MODE_USER
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
 endchoice
 
+if MODE_SYSTEM
+config AM
+  bool "Build as an application on AM"
+  default n
+
+endif
+
 menu "Build Options"
 choice
   prompt "Compiler"
