@@ -1,5 +1,5 @@
-#ifndef __DIFFTEST_H__
-#define __DIFFTEST_H__
+#ifndef __DIFFTEST_DEF_H__
+#define __DIFFTEST_DEF_H__
 
 #include <stdint.h>
 

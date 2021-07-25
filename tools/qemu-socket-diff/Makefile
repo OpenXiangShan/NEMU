@@ -4,6 +4,7 @@ SRCS += $(shell find src/isa/$(GUEST_ISA) -name "*.c")
 
 SHARE = 1
 CFLAGS += -DNEMU_HOME=$(NEMU_HOME) -D_ISA_H_=\"isa/$(GUEST_ISA).h\"
+INC_PATH += $(NEMU_HOME)/include
 
 include $(NEMU_HOME)/scripts/isa.mk
 include $(NEMU_HOME)/scripts/build.mk

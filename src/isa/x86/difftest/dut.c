@@ -1,7 +1,6 @@
 #include <isa.h>
 #include <cpu/difftest.h>
 #include "../local-include/reg.h"
-#include <difftest.h>
 
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>
