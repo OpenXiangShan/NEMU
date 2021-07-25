@@ -49,7 +49,7 @@ static void update_instr_cnt() {
 #if defined(CONFIG_ENABLE_INSTR_CNT)
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
-  n_remain_total -= n_executed;
+  n_remain_total -= (n_remain_total > n_executed) ? n_executed : n_remain_total;
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
   n_remain = n_batch; // clean n_remain
 #endif

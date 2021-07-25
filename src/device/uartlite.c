@@ -114,14 +114,6 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   }
 }
 
-// static void preset_input() {
-//   char buf[] = debian_cmd;
-//   int i;
-//   for (i = 0; i < strlen(buf); i ++) {
-//     serial_enqueue(buf[i]);
-//   }
-// }
-
 void init_uartlite() {
   serial_base = new_space(0xd);
   add_pio_map("uartlite", CONFIG_UARTLITE_PORT, serial_base, 0xd, serial_io_handler);

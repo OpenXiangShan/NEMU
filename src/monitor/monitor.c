@@ -17,6 +17,7 @@ static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
+char *max_instr = NULL;
 
 int is_batch_mode() { return batch_mode; }
 
@@ -32,11 +33,67 @@ static inline void welcome() {
 }
 
 #ifndef CONFIG_MODE_USER
+
+#ifdef CONFIG_MEM_COMPRESS
+#include <zlib.h>
+
+static long load_gz_img(const char *filename) {
+  gzFile compressed_mem = gzopen(filename, "rb");
+  Assert(compressed_mem, "Can not open '%s'", filename);
+
+  const uint32_t chunk_size = 16384;
+  uint8_t *temp_page = (uint8_t *)calloc(chunk_size, sizeof(long));
+  uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
+  uint8_t *pmem_current;
+
+  // load file byte by byte to pmem
+  uint64_t curr_size = 0;
+  while (curr_size < CONFIG_MSIZE) {
+    uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
+    if (bytes_read == 0) {
+      break;
+    }
+    for (uint32_t x = 0; x < bytes_read; x++) {
+      pmem_current = pmem_start + curr_size + x;
+      uint8_t read_data = *(temp_page + x);
+      if (read_data != 0 || *pmem_current != 0) {
+        *pmem_current = read_data;
+      }
+    }
+    curr_size += bytes_read;
+  }
+
+  // check again to ensure the bin has been fully loaded
+  uint32_t left_bytes = gzread(compressed_mem, temp_page, chunk_size);
+  Assert(left_bytes == 0, "File size is larger than buf_size!\n");
+
+  free(temp_page);
+  Assert(!gzclose(compressed_mem), "Error closing '%s'\n", filename);
+  return curr_size;
+}
+
+// Return whether a file is a gz file, determined by its name.
+// If the filename ends with ".gz", we treat it as a gz file.
+bool is_gz_file(const char *filename) {
+  if (filename == NULL || strlen(filename) < 3) {
+    return false;
+  }
+  return !strcmp(filename + (strlen(filename) - 3), ".gz");
+}
+#endif // CONFIG_MEM_COMPRESS
+
 static inline long load_img() {
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
   }
+
+#ifdef CONFIG_MEM_COMPRESS
+  if (is_gz_file(img_file)) {
+    Log("The image is %s", img_file);
+    return load_gz_img(img_file);
+  }
+#endif
 
   FILE *fp = fopen(img_file, "rb");
   Assert(fp, "Can not open '%s'", img_file);
@@ -53,11 +110,12 @@ static inline long load_img() {
   fclose(fp);
   return size;
 }
-#endif
+#endif // CONFIG_MODE_USER
 
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
+    {"max-instr", required_argument, NULL, 'I'},
     {"log"      , required_argument, NULL, 'l'},
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
@@ -65,9 +123,10 @@ static inline int parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
+      case 'I': max_instr = optarg; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
@@ -75,6 +134,7 @@ static inline int parse_args(int argc, char *argv[]) {
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
+        printf("\t-I,--max-instr          max number of instructions executed\n");
         printf("\t-l,--log=FILE           output log to FILE\n");
         printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
         printf("\t-p,--port=PORT          run DiffTest with port PORT\n");

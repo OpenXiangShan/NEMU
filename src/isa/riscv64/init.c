@@ -28,6 +28,12 @@ void init_isa() {
   misa->extensions |= ext('d') | ext('f');
   misa->mxl = 2; // XLEN = 64
 
+  #ifdef CONFIG_RVV_010
+  // vecotr
+  vl->val = 0;
+  vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
+  #endif // CONFIG_RVV_010
+
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
   IFNDEF(CONFIG_SHARE, init_clint());
