@@ -172,7 +172,9 @@ typedef struct {
 
 #define riscv64_has_mem_exception() (cpu.mem_exception != 0)
 
+enum {PAGE_4KB, PAGE_2MB, PAGE_1GB};
 #define VPN(vaddr) (vaddr >> 12) 
+#define SUPERVPN(vaddr, i) (VPN(vaddr) >> ((3-i) * 9))
 #define get_l3_index(vaddr) ((VPN(vaddr) / L2TLBWaySize) % L2TLBL3SetNum)
 #define get_l2_index(vaddr) (((VPN(vaddr) >> 9) / L2TLBWaySize) % L2TLBL2SetNum)
 #define get_l3_tag(vaddr) ((VPN(vaddr) / L2TLBWaySize))

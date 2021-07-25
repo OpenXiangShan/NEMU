@@ -70,6 +70,39 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   return true;
 }
 
+static int get_page_size(uint64_t vaddr) {
+  int level;
+  PTE pte;
+  word_t pg_base = PGBASE(satp->ppn);
+  word_t p_pte;
+
+  for (level = PTW_LEVEL - 1; level >= 0; ) {
+    p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+    pte.val = paddr_read(p_pte, PTE_SIZE);
+    pg_base = PGBASE(pte.ppn);
+    if (!pte.v) {
+      break;
+    }
+    if (pte.r || pte.x) { break; }
+    else {
+      level --;
+      if (level < 0) { break; }
+    }
+  }
+  if (level < 0 || !pte.v) return -1;
+  if (level == 0) return PAGE_4KB;
+  if (level == 1) return PAGE_2MB;
+  else return PAGE_1GB;
+}
+
+static bool inline normal_page_hit(tlb_entry *entry, uint64_t tag) {
+  return entry->v && entry->tag == tag;
+}
+
+static bool inline super_page_hit(tlb_sp_entry *entry, uint64_t vaddr) {
+  return entry->v && (entry->size == PAGE_2MB ? SUPERVPN(entry->tag, 2) == SUPERVPN(vaddr, 2) : SUPERVPN(entry->tag, 1) == SUPERVPN(vaddr, 1));
+}
+
 void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
   riscv64_TLB_State *tlb;
   if (type == MEM_TYPE_IFETCH) { tlb = &itlb; }
@@ -77,60 +110,90 @@ void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
 
   tlb->access += 1;
   // TODO: handle super page
+  int size = get_page_size(vaddr);
+  if (size < 0) return;
+
   bool hit = false;
-  for (int i = 0; i < TLBEntryNum; i++) {
-    if (tlb->normal[i].v && tlb->normal[i].tag == VPN(vaddr)) {
+  for (int i = 0; i < TLBEntryNum && size == PAGE_4KB; i++) {
+    if (normal_page_hit(&tlb->normal[i], VPN(vaddr))) {
+      hit = true; return;
+    }
+  }
+  for (int i = 0; i < TLBSPEntryNum && size != PAGE_4KB; i++) {
+    if (super_page_hit(&tlb->super[i], vaddr)) {
       hit = true; return;
     }
   }
 
   // l2 tlb
   if (!hit) {
-    int refill_index = rand() % TLBEntryNum;
     tlb->miss += 1;
-    tlb->normal[refill_index].v = true;
-    tlb->normal[refill_index].tag = VPN(vaddr);
+    if (size == PAGE_4KB) {
+      int refill_index = rand() % TLBEntryNum;
+      tlb->normal[refill_index].v = true;
+      tlb->normal[refill_index].tag = VPN(vaddr);
+    } else {
+      int refill_index = rand() % TLBSPEntryNum;
+      tlb->super[refill_index].v = true;
+      tlb->super[refill_index].tag = vaddr;
+      tlb->super[refill_index].size = size;
+    }
 
     // l3
     l2tlb.access ++;
     bool l2hit = false;
     int index = get_l3_index(vaddr);
-    for (int i = 0; i < L2TLBL3WayNum; i++) {
-      if (l2tlb.l3[index][i].v && l2tlb.l3[index][i].tag == get_l3_tag(vaddr)) {
+    for (int i = 0; i < L2TLBL3WayNum && size == PAGE_4KB; i++) {
+      if (normal_page_hit(&l2tlb.l3[index][i], get_l3_tag(vaddr))) {
+        l2hit = true; return;
+      }
+    }
+    for (int i = 0; i < L2TLBSPEntryNum && size != PAGE_4KB; i ++) {
+      if (super_page_hit(&l2tlb.sp[i], vaddr)){
         l2hit = true; return;
       }
     }
     if (!l2hit) {
       l2tlb.miss ++;
       l2tlb.mem_access ++;
-      refill_index = rand() % L2TLBL3WayNum;
-      l2tlb.l3[index][refill_index].tag = get_l3_tag(vaddr);
-      l2tlb.l3[index][refill_index].v = true;
+      if (size == PAGE_4KB) {
+        int refill_index = rand() % L2TLBL3WayNum;
+        l2tlb.l3[index][refill_index].tag = get_l3_tag(vaddr);
+        l2tlb.l3[index][refill_index].v = true;
+      } else {
+        int refill_index = rand() % L2TLBSPEntryNum;
+        l2tlb.sp[refill_index].tag = vaddr;
+        l2tlb.sp[refill_index].v = true;
+      }
 
       // l2
       index = get_l2_index(vaddr);
-      for (int i = 0; i < L2TLBL2WayNum; i ++) {
-        if (l2tlb.l2[index][i].v && l2tlb.l2[index][i].tag == get_l2_tag(vaddr)) {
+      for (int i = 0; i < L2TLBL2WayNum && size == PAGE_4KB; i ++) {
+        if (normal_page_hit(&l2tlb.l2[index][i], get_l2_tag(vaddr))) {
           l2hit = true; return;
         }
       }
       if (!l2hit) {
-        l2tlb.mem_access ++;
-        refill_index = rand() % L2TLBL2WayNum;
-        l2tlb.l2[index][refill_index].tag = get_l2_tag(vaddr);
-        l2tlb.l2[index][refill_index].v = true;
+        if (size == PAGE_4KB) {
+          l2tlb.mem_access ++;
+          int refill_index = rand() % L2TLBL2WayNum;
+          l2tlb.l2[index][refill_index].tag = get_l2_tag(vaddr);
+          l2tlb.l2[index][refill_index].v = true;
+        }
 
         // l1
-        for (int i = 0; i < L2TLBL1EntryNum; i++) {
-          if (l2tlb.l1[i].v && l2tlb.l1[i].tag == get_l1_tag(vaddr)) {
+        for (int i = 0; i < L2TLBL1EntryNum && (size == PAGE_4KB || size == PAGE_2MB); i++) {
+          if (normal_page_hit(&l2tlb.l1[i], get_l2_tag(vaddr))) {
             l2hit = true; return;
           }
         }
         if (!l2hit) {
-          l2tlb.mem_access ++;
-          refill_index = rand() % L2TLBL1EntryNum;
-          l2tlb.l1[refill_index].tag = get_l1_tag(vaddr);
-          l2tlb.l1[refill_index].v = true;
+          if (size == PAGE_4KB || size == PAGE_2MB) {
+            l2tlb.mem_access ++;
+            int refill_index = rand() % L2TLBL1EntryNum;
+            l2tlb.l1[refill_index].tag = get_l1_tag(vaddr);
+            l2tlb.l1[refill_index].v = true;
+          }
         }
       }
     }
@@ -149,14 +212,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE);
 #ifdef XIANGSHAN_DEBUG
-    printf("[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
+    Log("[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
       level, vaddr, pg_base, p_pte, pte.val);
 #endif
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
-      //Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
-      //    ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
-      //    level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
+//      Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
+//          ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
+//          level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
       break;
     }
     if (pte.r || pte.x) { break; }
