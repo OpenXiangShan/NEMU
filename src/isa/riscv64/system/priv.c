@@ -33,7 +33,9 @@ static inline bool csr_is_legal(uint32_t addr) {
   assert(addr < 4096);
   // CSR does not exist
   if(!csr_exist[addr]) {
-    printf("[NEMU] unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
+#ifdef CONFIG_PANIC_ON_UNIMP_CSR
+    panic("[NEMU] unimplemented CSR 0x%x", addr);
+#endif
     return false;
   }
   // CSR exists, but access is not legal

@@ -73,6 +73,7 @@ CONFIG_SHARE=y
 CONFIG_CONFIG_DIFFTEST_STORE_COMMIT=y
 CONFIG_GUIDED_EXEC=y
 CONFIG_LARGE_COPY=y
+# CONFIG_PANIC_ON_UNIMP_CSR is not set
 # end of Processor difftest reference config
 
 #
