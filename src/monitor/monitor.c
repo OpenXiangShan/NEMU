@@ -32,6 +32,12 @@ static inline void welcome() {
 
 #ifndef CONFIG_MODE_USER
 static inline long load_img() {
+#ifdef CONFIG_AM
+  extern char bin_start, bin_end;
+  size_t size = &bin_end - &bin_start;
+  memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
+  return size;
+#else
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
@@ -51,6 +57,7 @@ static inline long load_img() {
 
   fclose(fp);
   return size;
+#endif
 }
 #endif
 
@@ -129,5 +136,13 @@ void init_monitor(int argc, char *argv[]) {
   init_aligncheck();
 
   /* Display welcome message. */
+  welcome();
+}
+
+void am_init_monitor() {
+  init_mem();
+  init_isa();
+  load_img();
+  init_device();
   welcome();
 }
