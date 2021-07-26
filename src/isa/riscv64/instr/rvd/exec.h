@@ -121,6 +121,7 @@ def_EHelper(fsgnjd) {
   rtl_andi(s, s0, dsrc1, ~F64_SIGN);
   rtl_andi(s, ddest, dsrc2, F64_SIGN);
   rtl_or(s, ddest, s0, ddest);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 def_EHelper(fsgnjnd) {
@@ -128,6 +129,7 @@ def_EHelper(fsgnjnd) {
   rtl_xori(s, ddest, dsrc2, F64_SIGN);
   rtl_andi(s, ddest, ddest, F64_SIGN);
   rtl_or(s, ddest, s0, ddest);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 def_EHelper(fsgnjxd) {
@@ -135,6 +137,7 @@ def_EHelper(fsgnjxd) {
   rtl_xor(s, ddest, dsrc1, dsrc2);
   rtl_andi(s, ddest, ddest, F64_SIGN);
   rtl_or(s, ddest, s0, ddest);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 def_EHelper(fmv_x_d) {
@@ -143,4 +146,8 @@ def_EHelper(fmv_x_d) {
 
 def_EHelper(fmv_d_x) {
   rtl_fsr(s, ddest, dsrc1, FPCALL_W64);
+}
+
+def_EHelper(fclassd) {
+  rtl_fclass(s, ddest, dsrc1, FPCALL_W64);
 }

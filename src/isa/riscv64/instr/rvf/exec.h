@@ -1,13 +1,14 @@
 #define F32_SIGN ((uint64_t)1 << 31)
 
+def_rtl(fclass, rtlreg_t *, rtlreg_t *, int);
+
 def_EHelper(flw) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DIRECT);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fsw) {
-  rtl_funbox(s, s0, ddest);
-  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DIRECT);
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DIRECT);
 }
 
 def_EHelper(flw_mmu) {
@@ -118,23 +119,32 @@ def_EHelper(fcvt_lu_s) {
 }
 
 def_EHelper(fsgnjs) {
-  rtl_andi(s, s0, dsrc1, ~F32_SIGN);
-  rtl_andi(s, ddest, dsrc2, F32_SIGN);
+  rtl_funbox(s, s0, dsrc1);
+  rtl_funbox(s, ddest, dsrc2);
+  rtl_andi(s, s0, s0, ~F32_SIGN);
+  rtl_andi(s, ddest, ddest, F32_SIGN);
   rtl_or(s, ddest, s0, ddest);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fsgnjns) {
-  rtl_andi(s, s0, dsrc1, ~F32_SIGN);
-  rtl_xori(s, ddest, dsrc2, F32_SIGN);
+  rtl_funbox(s, s0, dsrc1);
+  rtl_funbox(s, ddest, dsrc2);
+  rtl_andi(s, s0, s0, ~F32_SIGN);
+  rtl_xori(s, ddest, ddest, F32_SIGN);
   rtl_andi(s, ddest, ddest, F32_SIGN);
   rtl_or(s, ddest, s0, ddest);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fsgnjxs) {
-  rtl_andi(s, s0, dsrc1, ~F32_SIGN);
-  rtl_xor(s, ddest, dsrc1, dsrc2);
+  rtl_funbox(s, s0, dsrc1);
+  rtl_funbox(s, ddest, dsrc2);
+  rtl_xor(s, ddest, s0, ddest);
+  rtl_andi(s, s0, s0, ~F32_SIGN);
   rtl_andi(s, ddest, ddest, F32_SIGN);
   rtl_or(s, ddest, s0, ddest);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fmv_x_w) {
@@ -143,4 +153,8 @@ def_EHelper(fmv_x_w) {
 
 def_EHelper(fmv_w_x) {
   rtl_fsr(s, ddest, dsrc1, FPCALL_W32);
+}
+
+def_EHelper(fclasss) {
+  rtl_fclass(s, ddest, dsrc1, FPCALL_W32);
 }

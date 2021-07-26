@@ -6,15 +6,19 @@
 #include "csr.h"
 
 #define FBOX_MASK 0xFFFFFFFF00000000ull
+// The bit pattern for a default generated 32-bit floating-point NaN
+#define defaultNaNF32UI 0x7FC00000
 
 static inline def_rtl(fbox, rtlreg_t *dest, rtlreg_t *src) {
   rtl_ori(s, dest, src, FBOX_MASK);
 }
 
 static inline def_rtl(funbox, rtlreg_t *dest, rtlreg_t *src) {
-  // should return defaultNaNF32UI;
-  IFDEF(CONFIG_RT_CHECK, assert((*src & FBOX_MASK) == FBOX_MASK));
-  rtl_andi(s, dest, src, ~FBOX_MASK);
+  if((*src & FBOX_MASK) == FBOX_MASK){
+      rtl_andi(s, dest, src, ~FBOX_MASK);
+  } else {
+      *dest = defaultNaNF32UI;
+  }
 }
 
 static inline def_rtl(fsr, rtlreg_t *fdest, rtlreg_t *src, int width) {

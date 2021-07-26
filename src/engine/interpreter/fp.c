@@ -20,10 +20,12 @@ static inline float64_t rtlToF64(rtlreg_t r) {
 
 uint32_t isa_fp_get_rm(Decode *s);
 void isa_fp_set_ex(uint32_t ex);
+void isa_fp_csr_check();
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
   uint32_t w = FPCALL_W(cmd);
   uint32_t op = FPCALL_OP(cmd);
+  isa_fp_csr_check();
   if (op < FPCALL_NEED_RM) {
     static uint32_t last_rm = -1;
     uint32_t rm = isa_fp_get_rm(s);
@@ -103,4 +105,12 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
     isa_fp_set_ex(ex);
     fp_clear_exception();
   }
+}
+
+def_rtl(fclass, rtlreg_t *fdest, rtlreg_t *src, int width) {
+  if (width == FPCALL_W32) {
+    *fdest = f32_classify(rtlToF32(*src));
+  } else if (width == FPCALL_W64) {
+    *fdest = f64_classify(rtlToF64(*src));
+  } else assert(0);
 }

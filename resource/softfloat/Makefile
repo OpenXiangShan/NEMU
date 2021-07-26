@@ -10,4 +10,7 @@ all:
 	mkdir -p build/
 	ln -sf $(BUILD_PATH)/softfloat.a build/softfloat.a
 
+clean:
+	$(MAKE) -C $(BUILD_PATH) clean
+
 .PHONY: all
