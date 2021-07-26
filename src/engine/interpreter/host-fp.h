@@ -87,4 +87,14 @@ static inline void fp_clear_exception() {
   feclearexcept(FE_ALL_EXCEPT);
 }
 
+uint_fast16_t f32_classify( float32_t a )
+{
+  panic("host-fp does not support f32_classify");
+}
+
+uint_fast16_t f64_classify( float64_t a )
+{
+  panic("host-fp does not support f64_classify");
+}
+
 #endif

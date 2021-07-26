@@ -106,3 +106,11 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
     fp_clear_exception();
   }
 }
+
+def_rtl(fclass, rtlreg_t *fdest, rtlreg_t *src, int width) {
+  if (width == FPCALL_W32) {
+    *fdest = f32_classify(rtlToF32(*src));
+  } else if (width == FPCALL_W64) {
+    *fdest = f64_classify(rtlToF64(*src));
+  } else assert(0);
+}

@@ -1,5 +1,7 @@
 #define F32_SIGN ((uint64_t)1 << 31)
 
+def_rtl(fclass, rtlreg_t *, rtlreg_t *, int);
+
 def_EHelper(flw) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 4, MMU_DIRECT);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
@@ -143,4 +145,8 @@ def_EHelper(fmv_x_w) {
 
 def_EHelper(fmv_w_x) {
   rtl_fsr(s, ddest, dsrc1, FPCALL_W32);
+}
+
+def_EHelper(fclasss) {
+  rtl_fclass(s, ddest, dsrc1, FPCALL_W32);
 }

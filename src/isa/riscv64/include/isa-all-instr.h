@@ -87,7 +87,7 @@
   f(fcvt_s_w) f(fcvt_s_wu) f(fcvt_s_l) f(fcvt_s_lu) \
   f(fcvt_w_s) f(fcvt_wu_s) f(fcvt_l_s) f(fcvt_lu_s) \
   f(fsgnjs) f(fsgnjns) f(fsgnjxs) \
-  f(fmv_x_w) f(fmv_w_x) \
+  f(fmv_x_w) f(fmv_w_x) f(fclasss) f(fclassd)\
   f(fld) f(fsd) f(fld_mmu) f(fsd_mmu) \
   f(fsqrtd) f(fled) f(fltd) f(feqd) \
   f(fcvt_d_w) f(fcvt_d_wu) f(fcvt_d_l) f(fcvt_d_lu) \
