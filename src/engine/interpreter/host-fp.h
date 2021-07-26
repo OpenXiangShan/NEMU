@@ -1,5 +1,4 @@
 #ifndef __HOSTFP_H__
-#include <rtl/fp.h>
 #include <math.h>
 #include <fenv.h>
 

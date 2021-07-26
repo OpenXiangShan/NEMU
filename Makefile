@@ -27,8 +27,6 @@ CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
 CFLAGS  += $(CFLAGS_BUILD) -D__GUEST_ISA__=$(GUEST_ISA)
 LDFLAGS += $(CFLAGS_BUILD)
 
-include $(NEMU_HOME)/resource/softfloat/fpu.mk
-
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk
 
@@ -36,5 +34,6 @@ ifdef CONFIG_AM
 include $(AM_HOME)/Makefile
 LINKAGE += $(ARCHIVES)
 else
+include $(NEMU_HOME)/resource/softfloat/fpu.mk
 include $(NEMU_HOME)/scripts/native.mk
 endif

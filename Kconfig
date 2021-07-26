@@ -87,8 +87,10 @@ config CC_GCC
   bool "gcc"
 config CC_GPP
   bool "g++"
+if !AM
 config CC_CLANG
   bool "clang"
+endif
 endchoice
 
 config CC
@@ -119,9 +121,11 @@ config CC_OPT
   default "-O3" if CC_O3
   default "none"
 
+if !AM
 config CC_LTO
   bool "Enable link-time optimization"
   default y
+endif
 
 config CC_DEBUG
   bool "Enable debug information"
@@ -204,12 +208,14 @@ endif
 
 choice
   prompt "FPU Emulation"
-  default FPU_SOFT if AM
+  default FPU_NONE if AM
   default FPU_HOST
+if !AM
 config FPU_HOST
   bool "Use host floating point operation"
 config FPU_SOFT
   bool "Use softfloat library"
+endif
 config FPU_NONE
   bool "Disable FPU Emulation"
 endchoice

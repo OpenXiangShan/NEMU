@@ -92,6 +92,7 @@ config VGA_SIZE_800x600
 endchoice
 endif # HAS_VGA
 
+if !AM
 menuconfig HAS_AUDIO
   bool "Enable audio"
   default y
@@ -114,6 +115,7 @@ config AUDIO_CTL_MMIO
   hex "MMIO address of the audio controller"
   default 0xa1000200
 endif # HAS_AUDIO
+endif
 
 menuconfig HAS_DISK
   bool "Enable disk"

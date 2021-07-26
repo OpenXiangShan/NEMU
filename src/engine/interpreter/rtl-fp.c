@@ -1,5 +1,6 @@
 #include <rtl/rtl.h>
-#include MUXDEF(CONFIG_FPU_SOFT, "softfloat-fp.h", "host-fp.h")
+#include MUXDEF(CONFIG_FPU_SOFT, "softfloat-fp.h", \
+    MUXDEF(CONFIG_FPU_HOST, "host-fp.h", "none-fp.h"))
 
 #define BOX_MASK 0xFFFFFFFF00000000
 
