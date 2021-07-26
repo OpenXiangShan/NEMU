@@ -3,7 +3,6 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#define TIMER_HZ 60
 #define MAX_HANDLER 8
 
 static alarm_handler_t handler[MAX_HANDLER] = {};

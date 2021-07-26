@@ -1,15 +1,28 @@
 #include <common.h>
 #include <device/map.h>
-#include <SDL2/SDL.h>
 
 #define SCREEN_W (MUXDEF(CONFIG_VGA_SIZE_800x600, 800, 400))
 #define SCREEN_H (MUXDEF(CONFIG_VGA_SIZE_800x600, 600, 300))
-#define SCREEN_SIZE ((SCREEN_H * SCREEN_W) * sizeof(uint32_t))
 
-static uint32_t (*vmem) [SCREEN_W] = NULL;
+static inline uint32_t screen_width() {
+  return MUXDEF(CONFIG_AM, io_read(AM_GPU_CONFIG).width, SCREEN_W);
+}
+
+static inline uint32_t screen_height() {
+  return MUXDEF(CONFIG_AM, io_read(AM_GPU_CONFIG).height, SCREEN_H);
+}
+
+static inline uint32_t screen_size() {
+  return screen_width() * screen_height() * sizeof(uint32_t);
+}
+
+static void *vmem = NULL;
 static uint32_t *vgactl_port_base = NULL;
 
 #ifdef CONFIG_VGA_SHOW_SCREEN
+#ifndef CONFIG_AM
+#include <SDL2/SDL.h>
+
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
 
@@ -28,11 +41,18 @@ static inline void init_screen() {
 }
 
 static inline void update_screen() {
-  SDL_UpdateTexture(texture, NULL, vmem, SCREEN_W * sizeof(vmem[0][0]));
+  SDL_UpdateTexture(texture, NULL, vmem, SCREEN_W * sizeof(uint32_t));
   SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 }
+#else
+static inline void init_screen() {}
+
+static inline void update_screen() {
+  io_write(AM_GPU_FBDRAW, 0, 0, vmem, screen_width(), screen_height(), true);
+}
+#endif
 #endif
 
 void vga_update_screen() {
@@ -51,10 +71,10 @@ void init_vga() {
   IFDEF(CONFIG_VGA_SHOW_SCREEN, init_screen());
 
   vgactl_port_base = (uint32_t *)new_space(8);
-  vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
+  vgactl_port_base[0] = (screen_width() << 16) | screen_height();
   add_pio_map ("screen", CONFIG_VGA_CTL_PORT, vgactl_port_base, 8, NULL);
   add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, vgactl_port_base, 8, NULL);
 
-  vmem = (uint32_t (*)[SCREEN_W])new_space(SCREEN_SIZE);
-  add_mmio_map("vmem", CONFIG_FB_ADDR, vmem, SCREEN_SIZE, NULL);
+  vmem = new_space(screen_size());
+  add_mmio_map("vmem", CONFIG_FB_ADDR, vmem, screen_size(), NULL);
 }

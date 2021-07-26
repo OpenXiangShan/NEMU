@@ -226,6 +226,7 @@ config AC_NONE
 endchoice
 
 menu "Miscellaneous"
+if !AM
 choice
   prompt "Host timer"
   default TIMER_GETTIMEOFDAY
@@ -234,6 +235,7 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+endif
 
 config RT_CHECK
   bool "Enable runtime checking"

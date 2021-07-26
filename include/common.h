@@ -3,11 +3,16 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <string.h>
 
 #include <generated/autoconf.h>
 #include <macro.h>
+
+#ifdef CONFIG_AM
+#include <klib.h>
+#else
+#include <assert.h>
+#endif
 
 #if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul
 #define PMEM64 1
