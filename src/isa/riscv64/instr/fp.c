@@ -47,3 +47,10 @@ void isa_fp_set_ex(uint32_t ex) {
   fcsr->fflags.val = f;
   fp_set_dirty();
 }
+
+void isa_fp_csr_check() {
+  if(unlikely(mstatus->fs == 0)){
+    longjmp_exception(EX_II);
+    assert(0);
+  }
+}
