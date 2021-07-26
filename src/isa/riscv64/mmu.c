@@ -95,109 +95,130 @@ static int get_page_size(uint64_t vaddr) {
   else return PAGE_1GB;
 }
 
-static bool inline normal_page_hit(tlb_entry *entry, uint64_t tag) {
+bool inline normal_page_hit(tlb_entry *entry, uint64_t tag) {
   return entry->v && entry->tag == tag;
 }
 
-static bool inline super_page_hit(tlb_sp_entry *entry, uint64_t vaddr) {
+bool inline super_page_hit(tlb_sp_entry *entry, uint64_t vaddr) {
   return entry->v && (entry->size == PAGE_2MB ? SUPERVPN(entry->tag, 2) == SUPERVPN(vaddr, 2) : SUPERVPN(entry->tag, 1) == SUPERVPN(vaddr, 1));
 }
 
-void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
+bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
   riscv64_TLB_State *tlb;
   if (type == MEM_TYPE_IFETCH) { tlb = &itlb; }
   else { tlb = &dtlb; }
 
   tlb->access += 1;
-  // TODO: handle super page
   int size = get_page_size(vaddr);
-  if (size < 0) return;
+  if (size < 0) return true; // return true to aviod more actions
 
-  bool hit = false;
   for (int i = 0; i < TLBEntryNum && size == PAGE_4KB; i++) {
     if (normal_page_hit(&tlb->normal[i], VPN(vaddr))) {
-      hit = true; return;
+      return true;
     }
   }
   for (int i = 0; i < TLBSPEntryNum && size != PAGE_4KB; i++) {
     if (super_page_hit(&tlb->super[i], vaddr)) {
-      hit = true; return;
+      return true;
     }
   }
 
-  // l2 tlb
-  if (!hit) {
-    tlb->miss += 1;
-    if (size == PAGE_4KB) {
-      int refill_index = rand() % TLBEntryNum;
-      tlb->normal[refill_index].v = true;
-      tlb->normal[refill_index].tag = VPN(vaddr);
-    } else {
-      int refill_index = rand() % TLBSPEntryNum;
-      tlb->super[refill_index].v = true;
-      tlb->super[refill_index].tag = vaddr;
-      tlb->super[refill_index].size = size;
-    }
+  // miss, then refill
+  tlb->miss ++;
+  if (size == PAGE_4KB) {
+    int refill_index = rand() % TLBEntryNum;
+    tlb->normal[refill_index].v = true;
+    tlb->normal[refill_index].tag = VPN(vaddr);
+  } else {
+    int refill_index = rand() % TLBSPEntryNum;
+    tlb->super[refill_index].v = true;
+    tlb->super[refill_index].tag = vaddr;
+    tlb->super[refill_index].size = size;
+  }
 
-    // l3
-    l2tlb.access ++;
-    bool l2hit = false;
-    int index = get_l3_index(vaddr);
-    for (int i = 0; i < L2TLBL3WayNum && size == PAGE_4KB; i++) {
-      if (normal_page_hit(&l2tlb.l3[index][i], get_l3_tag(vaddr))) {
-        l2hit = true; return;
-      }
-    }
-    for (int i = 0; i < L2TLBSPEntryNum && size != PAGE_4KB; i ++) {
-      if (super_page_hit(&l2tlb.sp[i], vaddr)){
-        l2hit = true; return;
-      }
-    }
-    if (!l2hit) {
-      l2tlb.miss ++;
-      l2tlb.mem_access ++;
-      if (size == PAGE_4KB) {
-        int refill_index = rand() % L2TLBL3WayNum;
-        l2tlb.l3[index][refill_index].tag = get_l3_tag(vaddr);
-        l2tlb.l3[index][refill_index].v = true;
-      } else {
-        int refill_index = rand() % L2TLBSPEntryNum;
-        l2tlb.sp[refill_index].tag = vaddr;
-        l2tlb.sp[refill_index].v = true;
-      }
+  return false;
+}
 
-      // l2
-      index = get_l2_index(vaddr);
-      for (int i = 0; i < L2TLBL2WayNum && size == PAGE_4KB; i ++) {
-        if (normal_page_hit(&l2tlb.l2[index][i], get_l2_tag(vaddr))) {
-          l2hit = true; return;
-        }
-      }
-      if (!l2hit) {
-        if (size == PAGE_4KB) {
-          l2tlb.mem_access ++;
-          int refill_index = rand() % L2TLBL2WayNum;
-          l2tlb.l2[index][refill_index].tag = get_l2_tag(vaddr);
-          l2tlb.l2[index][refill_index].v = true;
-        }
+bool l2tlb_l3_access(uint64_t vaddr) {
+  l2tlb.access ++;
+  int size = get_page_size(vaddr);
+  if (size < 0) return true;
 
-        // l1
-        for (int i = 0; i < L2TLBL1EntryNum && (size == PAGE_4KB || size == PAGE_2MB); i++) {
-          if (normal_page_hit(&l2tlb.l1[i], get_l2_tag(vaddr))) {
-            l2hit = true; return;
-          }
-        }
-        if (!l2hit) {
-          if (size == PAGE_4KB || size == PAGE_2MB) {
-            l2tlb.mem_access ++;
-            int refill_index = rand() % L2TLBL1EntryNum;
-            l2tlb.l1[refill_index].tag = get_l1_tag(vaddr);
-            l2tlb.l1[refill_index].v = true;
-          }
-        }
-      }
+  int index = get_l3_index(vaddr);
+  for (int i = 0; i < L2TLBL3WayNum && size == PAGE_4KB; i++) {
+    if (normal_page_hit(&l2tlb.l3[index][i], get_l3_tag(vaddr))) {
+      return true;
     }
   }
+  for (int i = 0; i < L2TLBSPEntryNum && size != PAGE_4KB; i ++) {
+    if (super_page_hit(&l2tlb.sp[i], vaddr)){
+      return true;
+    }
+  }
+
+  // miss, then refill
+  l2tlb.miss ++;
+  l2tlb.mem_access ++;
+  if (size == PAGE_4KB) {
+    int refill_index = rand() % L2TLBL3WayNum;
+    l2tlb.l3[index][refill_index].tag = get_l3_tag(vaddr);
+    l2tlb.l3[index][refill_index].v = true;
+  } else {
+    int refill_index = rand() % L2TLBSPEntryNum;
+    l2tlb.sp[refill_index].tag = vaddr;
+    l2tlb.sp[refill_index].v = true;
+  }
+
+  return false;
+}
+
+bool l2tlb_l2_access(uint64_t vaddr) {
+  int size = get_page_size(vaddr);
+  if (size < 0) return true;
+
+  int index = get_l2_index(vaddr);
+  for (int i = 0; i < L2TLBL2WayNum && size == PAGE_4KB; i ++) {
+    if (normal_page_hit(&l2tlb.l2[index][i], get_l2_tag(vaddr))) {
+      return true;
+    }
+  }
+
+  // miss, then refill
+  if (size == PAGE_4KB) {
+    l2tlb.mem_access ++;
+    int refill_index = rand() % L2TLBL2WayNum;
+    l2tlb.l2[index][refill_index].tag = get_l2_tag(vaddr);
+    l2tlb.l2[index][refill_index].v = true;
+  }
+
+  return false;
+}
+
+bool l2tlb_l1_access(uint64_t vaddr) {
+  int size = get_page_size(vaddr);
+  if (size < 0) return true;
+
+  for (int i = 0; i < L2TLBL1EntryNum && (size == PAGE_4KB || size == PAGE_2MB); i++) {
+    if (normal_page_hit(&l2tlb.l1[i], get_l2_tag(vaddr))) {
+      return true;
+    }
+  }
+
+  if (size == PAGE_4KB || size == PAGE_2MB) {
+    l2tlb.mem_access ++;
+    int refill_index = rand() % L2TLBL1EntryNum;
+    l2tlb.l1[refill_index].tag = get_l1_tag(vaddr);
+    l2tlb.l1[refill_index].v = true;
+  }
+
+  return false;
+}
+
+void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
+  if (!tlb_l1_access(vaddr, type))
+    if (!l2tlb_l3_access(vaddr))
+      if (!l2tlb_l2_access(vaddr))
+        l2tlb_l1_access(vaddr);
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
