@@ -1,8 +1,6 @@
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <device/mmio.h>
-#include <stdlib.h>
-#include <time.h>
 
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
@@ -33,7 +31,6 @@ void init_mem() {
   }
 #endif
 #ifdef CONFIG_MEM_RANDOM
-  srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
   for (i = 0; i < (int) (CONFIG_MSIZE / sizeof(p[0])); i ++) {

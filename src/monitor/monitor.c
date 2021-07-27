@@ -1,8 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
-#include <getopt.h>
-#include <stdlib.h>
 
+void init_rand();
 void init_aligncheck();
 void init_log(const char *log_file);
 void init_mem();
@@ -12,6 +11,8 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 
 #ifndef CONFIG_AM
+#include <getopt.h>
+
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
@@ -104,6 +105,9 @@ void init_monitor(int argc, char *argv[]) {
   parse_args(argc, argv);
 #endif
 
+  /* Set random seed. */
+  init_rand();
+
   /* Open the log file. */
   init_log(log_file);
 
@@ -143,6 +147,7 @@ void init_monitor(int argc, char *argv[]) {
 }
 #else
 void am_init_monitor() {
+  init_rand();
   init_mem();
   init_isa();
   load_img();

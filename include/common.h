@@ -12,6 +12,7 @@
 #include <klib.h>
 #else
 #include <assert.h>
+#include <stdlib.h>
 #endif
 
 #if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul

@@ -1,7 +1,4 @@
 #include <common.h>
-#ifndef __ICS_EXPORT
-#include <stdlib.h>
-#endif
 
 #define NR_WP 32
 

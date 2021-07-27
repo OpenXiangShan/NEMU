@@ -4,7 +4,6 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/utsname.h>
