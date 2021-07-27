@@ -44,7 +44,7 @@ void isa_fp_set_ex(uint32_t ex) {
   if (ex & FPCALL_EX_OF) f |= 0x04;
   if (ex & FPCALL_EX_DZ) f |= 0x08;
   if (ex & FPCALL_EX_NV) f |= 0x10;
-  fcsr->fflags.val = f;
+  fcsr->fflags.val = fcsr->fflags.val | f;
   fp_set_dirty();
 }
 

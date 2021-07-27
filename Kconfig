@@ -233,6 +233,11 @@ config LARGE_COPY
   bool "Enable difftest large memory copy optimization"
   default y
 
+config PANIC_ON_UNIMP_CSR
+  depends on SHARE
+  bool "Panic if an unimplemented CSR is being accessed"
+  default n
+
 endmenu
 
 menu "Miscellaneous"
