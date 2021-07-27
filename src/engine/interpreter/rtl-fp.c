@@ -42,6 +42,27 @@ static void fp_update_ex() {
   }
 }
 
+def_rtl(flm, fpreg_t *dest, const rtlreg_t *addr,
+    word_t offset, int len, int mmu_mode) {
+  if (len == 8 && !ISDEF(CONFIG_ISA64)) {
+    uint32_t lo = vaddr_read(s, *addr + offset + 0, 4, mmu_mode);
+    uint32_t hi = vaddr_read(s, *addr + offset + 4, 4, mmu_mode);
+    *dest = lo | ((uint64_t)hi << 32);
+  } else {
+    *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
+  }
+}
+
+def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr,
+    word_t offset, int len, int mmu_mode) {
+  if (len == 8 && !ISDEF(CONFIG_ISA64)) {
+    vaddr_write(s, *addr + offset + 0, 4, *src1, mmu_mode);
+    vaddr_write(s, *addr + offset + 4, 4, *src1 >> 32, mmu_mode);
+  } else {
+    vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  }
+}
+
 #define fpToF(fpreg, w) concat(fpToF, w)(fpreg)
 #define def_rtl_fp(name, has_rm, body, ...) \
   def_rtl(name, __VA_ARGS__) { \

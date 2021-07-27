@@ -162,27 +162,6 @@ static inline def_rtl(update_ZFSF, const rtlreg_t* result, int width) {
 #endif
 }
 
-static inline def_rtl(flm, fpreg_t *dest, const rtlreg_t* addr,
-    word_t offset, int len, int mmu_mode) {
-  if (len == 8) {
-    uint32_t lo = vaddr_read(s, *addr + offset + 0, 4, mmu_mode);
-    uint32_t hi = vaddr_read(s, *addr + offset + 4, 4, mmu_mode);
-    *dest = lo | ((uint64_t)hi << 32);
-  } else {
-    *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
-  }
-}
-
-static inline def_rtl(fsm, const fpreg_t *src1, const rtlreg_t* addr,
-    word_t offset, int len, int mmu_mode) {
-  if (len == 8) {
-    vaddr_write(s, *addr + offset + 0, 4, *src1, mmu_mode);
-    vaddr_write(s, *addr + offset + 4, 4, *src1 >> 32, mmu_mode);
-  } else {
-    vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
-  }
-}
-
 #else
 #define def_rtl_setget_eflags(f) \
   static inline def_rtl(concat(set_, f), const rtlreg_t* src) { \

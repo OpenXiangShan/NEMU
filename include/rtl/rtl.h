@@ -61,6 +61,9 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 #ifndef __ICS_EXPORT
 #include <rtl/fp.h>
 
+def_rtl(flm, fpreg_t *dest, const rtlreg_t *addr, word_t offset, int len, int mmu_mode);
+def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr, word_t offset, int len, int mmu_mode);
+
 #define def_rtl_fp_unary_prototype(name) \
   def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
 #define def_rtl_fp_binary_prototype(name) \
