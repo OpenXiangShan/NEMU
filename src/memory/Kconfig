@@ -14,6 +14,7 @@ config PC_RESET_OFFSET
   default 0 if MODE_USER
   default 0x100000
 
+if !AM
 config USE_MMAP
   bool "Allocate guest physical memory with mmap()"
   default y
@@ -24,5 +25,6 @@ config MEM_RANDOM
   default y
   help
     This may help to find undefined behaviors.
+endif
 
 endmenu #MEMORY

@@ -13,7 +13,7 @@ CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
 OBJDUMP = $(CROSS_COMPILE)objdump
 OBJCOPY = $(CROSS_COMPILE)objcopy
-INCLUDES  = $(addprefix -I, $(INC_DIR))
+INCLUDES  = $(addprefix -I, $(INC_PATH))
 CFLAGS   += -fno-PIE -mcmodel=medany -O2 -MMD -Wall -Werror $(INCLUDES)
 
 # Files to be compiled

@@ -1,2 +1,2 @@
-INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
-DIRS-y += src/isa/$(ISA)
+INC_PATH += $(NEMU_HOME)/src/isa/$(GUEST_ISA)/include
+DIRS-y += src/isa/$(GUEST_ISA)

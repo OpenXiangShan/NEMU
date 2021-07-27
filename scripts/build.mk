@@ -2,14 +2,14 @@
 
 ifdef SHARE
 SO = -so
-CFLAGS += -fPIC -D_SHARE=1
-LIBS   += -rdynamic -shared -fPIC
+CFLAGS  += -fPIC
+LDFLAGS += -rdynamic -shared -fPIC
 endif
 
 WORK_DIR  = $(shell pwd)
 BUILD_DIR = $(WORK_DIR)/build
 
-INC_DIR += $(WORK_DIR)/include $(NEMU_HOME)/lib-include
+INC_PATH += $(WORK_DIR)/include
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
@@ -20,7 +20,7 @@ CCACHE := $(if $(shell which ccache),ccache,)
 # Compilation flags
 CC := $(CCACHE) $(CC)
 LD := $(CCACHE) $(CC)
-INCLUDES = $(addprefix -I, $(INC_DIR))
+INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
 

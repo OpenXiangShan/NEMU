@@ -38,7 +38,12 @@ def_EHelper(movdqa_E2xmm) {
 def_EHelper(psrlq) {
   rtl_decode_unary(s, false);
   assert(id_dest->type == OP_TYPE_REG);
+#ifdef __LP64__
   cpu.xmm[id_dest->reg]._128 >>= id_src1->imm;
+#else
+  cpu.xmm[id_dest->reg]._128._64[0] >>= id_src1->imm;
+  cpu.xmm[id_dest->reg]._128._64[1] >>= id_src1->imm;
+#endif
 }
 
 def_EHelper(movd_xmm2E) {
@@ -66,5 +71,10 @@ def_EHelper(pxor) {
     rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 12, 4, MMU_DYNAMIC);
     src._32[3] = *s0;
   }
+#ifdef __LP64__
   cpu.xmm[id_dest->reg]._128 ^= src._128;
+#else
+  cpu.xmm[id_dest->reg]._128._64[0] ^= src._128._64[0];
+  cpu.xmm[id_dest->reg]._128._64[1] ^= src._128._64[1];
+#endif
 }

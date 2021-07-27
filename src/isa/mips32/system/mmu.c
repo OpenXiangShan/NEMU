@@ -4,8 +4,6 @@
 #ifndef __ICS_EXPORT
 #include <cpu/cpu.h>
 #include "../local-include/intr.h"
-#include <stdlib.h>
-#include <time.h>
 
 #define NR_TLB 16
 
@@ -40,7 +38,6 @@ void init_mmu() {
   for (i = 0; i < NR_TLB; i ++) {
     tlb[i].lo[0].V = tlb[i].lo[1].V = 0;
   }
-  srand(time(0));
 }
 
 static inline void update_tlb(int idx) {

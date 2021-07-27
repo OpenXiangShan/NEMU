@@ -1,7 +1,7 @@
 #include <common.h>
 #include <elf.h>
 #include <setjmp.h>
-#include <difftest.h>
+#include <difftest-def.h>
 
 static void (*qemu_cpu_physical_memory_rw)(long addr, uint8_t *buf, int len, int is_write) = NULL;
 static int (*qemu_gdb_write_register)(void *cpu, uint8_t *buf, int reg) = NULL;

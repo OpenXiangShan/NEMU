@@ -1,8 +1,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
-#include <getopt.h>
-#include <stdlib.h>
 
+void init_rand();
 void init_aligncheck();
 void init_log(const char *log_file);
 void init_mem();
@@ -11,6 +10,9 @@ void init_wp_pool();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 
+#ifndef CONFIG_TARGET_AM
+#include <getopt.h>
+
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
@@ -18,6 +20,7 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 
 int is_batch_mode() { return batch_mode; }
+#endif
 
 static inline void welcome() {
   Log("Debug: \33[1;32m%s\33[0m", MUXDEF(CONFIG_DEBUG, "ON","OFF"));
@@ -26,12 +29,18 @@ static inline void welcome() {
       "If it is not necessary, you can turn it off in include/common.h.")
   );
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", str(__ISA__));
+  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", str(__GUEST_ISA__));
   printf("For help, type \"help\"\n");
 }
 
 #ifndef CONFIG_MODE_USER
 static inline long load_img() {
+#ifdef CONFIG_TARGET_AM
+  extern char bin_start, bin_end;
+  size_t size = &bin_end - &bin_start;
+  memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
+  return size;
+#else
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
@@ -51,9 +60,11 @@ static inline long load_img() {
 
   fclose(fp);
   return size;
+#endif
 }
 #endif
 
+#ifndef CONFIG_TARGET_AM
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -94,6 +105,9 @@ void init_monitor(int argc, char *argv[]) {
   parse_args(argc, argv);
 #endif
 
+  /* Set random seed. */
+  init_rand();
+
   /* Open the log file. */
   init_log(log_file);
 
@@ -131,3 +145,13 @@ void init_monitor(int argc, char *argv[]) {
   /* Display welcome message. */
   welcome();
 }
+#else
+void am_init_monitor() {
+  init_rand();
+  init_mem();
+  init_isa();
+  load_img();
+  init_device();
+  welcome();
+}
+#endif

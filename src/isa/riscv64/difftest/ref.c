@@ -1,5 +1,5 @@
 #include <isa.h>
-#include <difftest.h>
+#include <difftest-def.h>
 #include "../local-include/intr.h"
 #include "../local-include/csr.h"
 

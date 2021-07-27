@@ -5,7 +5,6 @@
 #include <memory/host-tlb.h>
 #include <isa-all-instr.h>
 #include <locale.h>
-#include <setjmp.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -32,7 +31,11 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
+#ifndef CONFIG_TARGET_AM
+#include <setjmp.h>
 static jmp_buf jbuf_exec = {};
+#endif
+
 static uint64_t n_remain_total;
 static int n_remain;
 static Decode *prev_s;
@@ -53,7 +56,7 @@ static void update_instr_cnt() {
 
 void monitor_statistic() {
   update_instr_cnt();
-  setlocale(LC_NUMERIC, "");
+  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
   Log("host time spent = %'ld us", g_timer);
 #ifdef CONFIG_ENABLE_INSTR_CNT
   Log("total guest instructions = %'ld", g_nr_guest_instr);
@@ -64,7 +67,7 @@ void monitor_statistic() {
 #endif
 }
 
-static word_t g_ex_cause = 0;
+static word_t g_ex_cause = NEMU_EXEC_RUNNING;
 static int g_sys_state_flag = 0;
 
 void set_sys_state_flag(int flag) {
@@ -77,7 +80,11 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 }
 
 void longjmp_exec(int cause) {
+#ifdef CONFIG_TARGET_AM
+  Assert(cause == NEMU_EXEC_END, "NEMU on AM does not support exception");
+#else
   longjmp(jbuf_exec, cause);
+#endif
 }
 
 void longjmp_exception(int ex_cause) {
@@ -162,7 +169,7 @@ static int execute(int n) {
   }
 
   __attribute__((unused)) Decode *this_s = NULL;
-  while (true) {
+  while (MUXDEF(CONFIG_TARGET_AM, g_ex_cause != NEMU_EXEC_END, true)) {
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
@@ -217,6 +224,7 @@ static int execute(int n) {
     cpu.pc = s.snpc;
     s.EHelper(&s);
     g_nr_guest_instr ++;
+    IFDEF(CONFIG_TARGET_AM, if (g_ex_cause == NEMU_EXEC_END) break);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
@@ -254,11 +262,13 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 
   n_remain_total = n; // deal with setjmp()
-  int cause;
+  int cause = NEMU_EXEC_RUNNING;
+#ifndef CONFIG_TARGET_AM
   if ((cause = setjmp(jbuf_exec))) {
     n_remain -= prev_s->idx_in_bb - 1;
     update_global();
   }
+#endif
 
   while (nemu_state.state == NEMU_RUNNING &&
       MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
@@ -272,7 +282,7 @@ void cpu_exec(uint64_t n) {
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
     } else {
-      word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
+      word_t intr = MUXDEF(CONFIG_TARGET_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
         cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));

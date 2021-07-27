@@ -1,7 +1,6 @@
 #include <isa.h>
 #ifndef __ICS_EXPORT
 #include <memory/vaddr.h>
-#include <stdlib.h>
 #endif
 
 /* We use the POSIX regex functions to process regular expressions.

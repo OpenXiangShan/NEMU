@@ -1,8 +1,8 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
+#include <common.h>
 #include <stdio.h>
-#include <assert.h>
 #include <utils.h>
 
 #define Log(format, ...) \
@@ -12,10 +12,9 @@
 #define Assert(cond, ...) \
   do { \
     if (!(cond)) { \
-      fflush(stdout); \
-      fprintf(stderr, "\33[1;31m"); \
-      fprintf(stderr, __VA_ARGS__); \
-      fprintf(stderr, "\33[0m\n"); \
+      MUXDEF(CONFIG_TARGET_AM, (printf("\33[1;31m"), printf(__VA_ARGS__), printf("\33[0m\n")), \
+          (fflush(stdout), fprintf(stderr, "\33[1;31m"), \
+           fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\33[0m\n"))); \
       extern void isa_reg_display(); \
       extern void monitor_statistic(); \
       isa_reg_display(); \

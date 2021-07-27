@@ -72,6 +72,19 @@ config MODE_USER
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
 endchoice
 
+choice
+  prompt "Build target"
+  default TARGET_NATIVE_ELF
+config TARGET_NATIVE_ELF
+  bool "Executable on Linux Native"
+config TARGET_SHARE
+  bool "Shared object (used as REF for differential testing)"
+if MODE_SYSTEM
+config TARGET_AM
+  bool "Application on Abstract-Machine"
+endif
+endchoice
+
 menu "Build Options"
 choice
   prompt "Compiler"
@@ -80,8 +93,10 @@ config CC_GCC
   bool "gcc"
 config CC_GPP
   bool "g++"
+if !AM
 config CC_CLANG
   bool "clang"
+endif
 endchoice
 
 config CC
@@ -112,9 +127,11 @@ config CC_OPT
   default "-O3" if CC_O3
   default "none"
 
+if !AM
 config CC_LTO
   bool "Enable link-time optimization"
   default y
+endif
 
 config CC_DEBUG
   bool "Enable debug information"
@@ -124,22 +141,18 @@ config CC_ASAN
   depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
-
-config SHARE
-  bool "Build shared library"
-  default n
 endmenu
 
 menu "Testing and Debugging"
 config DEBUG
-  depends on !SHARE
+  depends on !TARGET_SHARE
   bool "Enable debug features"
   default n
   help
     Enable debug features, which include instruction tracing and watchpoint.
 
 config DIFFTEST
-  depends on !SHARE
+  depends on !TARGET_SHARE
   bool "Enable differential testing"
   default n
   help
@@ -197,20 +210,25 @@ endif
 
 choice
   prompt "FPU Emulation"
+  default FPU_NONE if AM
   default FPU_HOST
+if !AM
 config FPU_HOST
   bool "Use host floating point operation"
 config FPU_SOFT
   bool "Use softfloat library"
+endif
 config FPU_NONE
   bool "Disable FPU Emulation"
 endchoice
 
 choice
   prompt "Detecting misaligned memory accessing"
-  default AC_HOST
+  default AC_NONE
+if !AM
 config AC_HOST
   bool "By host CPU (x86 host only)"
+endif
 config AC_SOFT
   bool "By software emulation"
 config AC_NONE
@@ -218,6 +236,7 @@ config AC_NONE
 endchoice
 
 menu "Miscellaneous"
+if !AM
 choice
   prompt "Host timer"
   default TIMER_GETTIMEOFDAY
@@ -226,6 +245,7 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+endif
 
 config RT_CHECK
   bool "Enable runtime checking"

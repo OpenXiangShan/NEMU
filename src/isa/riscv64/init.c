@@ -29,5 +29,5 @@ void init_isa() {
 
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
-  IFNDEF(CONFIG_SHARE, init_clint());
+  IFNDEF(CONFIG_TARGET_SHARE, init_clint());
 }

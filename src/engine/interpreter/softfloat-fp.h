@@ -64,6 +64,22 @@ static inline float64_t fpcall_f64_roundToInt(float64_t a) {
   return f64_roundToInt(a, softfloat_roundingMode, false);
 }
 
+static inline float64_t fpcall_f64_pow2(float64_t a) {
+  assert(0);
+}
+
+static inline float64_t fpcall_f64_log2(float64_t a) {
+  assert(0);
+}
+
+static inline float64_t fpcall_f64_mod(float64_t a, float64_t b) {
+  assert(0);
+}
+
+static inline float64_t fpcall_f64_atan(float64_t a, float64_t b) {
+  assert(0);
+}
+
 static inline uint_fast16_t f64_classify( float64_t a ) {
   union ui64_f64 uA;
   uint_fast64_t uiA;

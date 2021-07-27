@@ -3,11 +3,17 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <string.h>
 
 #include <generated/autoconf.h>
 #include <macro.h>
+
+#ifdef CONFIG_TARGET_AM
+#include <klib.h>
+#else
+#include <assert.h>
+#include <stdlib.h>
+#endif
 
 #if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul
 #define PMEM64 1
@@ -23,6 +29,12 @@ typedef word_t vaddr_t;
 typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
 #define FMT_PADDR MUXDEF(PMEM64, "0x%016lx", "0x%08x")
 typedef uint16_t ioaddr_t;
+
+#ifndef __LP64__
+typedef struct {
+  uint64_t _64[2];
+} __uint128_t;
+#endif
 
 #include <debug.h>
 
