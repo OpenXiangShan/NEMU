@@ -8,6 +8,8 @@ SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
 SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 
+SRCS-BLACKLIST-$(CONFIG_AM) += src/device/alarm.c
+
 ifdef CONFIG_DEVICE
 ifndef CONFIG_AM
 LIBS += -lSDL2

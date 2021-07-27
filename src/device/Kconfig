@@ -115,7 +115,6 @@ config AUDIO_CTL_MMIO
   hex "MMIO address of the audio controller"
   default 0xa1000200
 endif # HAS_AUDIO
-endif
 
 menuconfig HAS_DISK
   bool "Enable disk"
@@ -149,5 +148,6 @@ config SDCARD_IMG_PATH
   string "The path of sdcard image"
   default ""
 endif # HAS_SDCARD
+endif
 
 endif # DEVICE

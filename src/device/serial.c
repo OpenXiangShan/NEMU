@@ -103,7 +103,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   switch (offset) {
     /* We bind the serial port with the host stderr in NEMU. */
     case CH_OFFSET:
-      if (is_write) putc(serial_base[0], stderr);
+      if (is_write) MUXDEF(CONFIG_AM, putch(serial_base[0]), putc(serial_base[0], stderr));
       else serial_base[0] = MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_dequeue(), 0xff);
       break;
     case LSR_OFFSET:

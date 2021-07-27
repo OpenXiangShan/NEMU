@@ -223,8 +223,10 @@ endchoice
 choice
   prompt "Detecting misaligned memory accessing"
   default AC_NONE
+if !AM
 config AC_HOST
   bool "By host CPU (x86 host only)"
+endif
 config AC_SOFT
   bool "By software emulation"
 config AC_NONE

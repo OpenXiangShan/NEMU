@@ -8,7 +8,7 @@ const char *regsw[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
 const char *regsb[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 
 void reg_test() {
-  srand(time(0));
+  srand(MUXDEF(CONFIG_AM, 0, time(0)));
   word_t sample[8];
   word_t pc_sample = rand();
   cpu.pc = pc_sample;

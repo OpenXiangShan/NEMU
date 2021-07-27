@@ -11,8 +11,8 @@ enum {
 };
 
 void cpu_exec(uint64_t n);
-__attribute__((noreturn)) void longjmp_exec(int cause);
-__attribute__((noreturn)) void longjmp_exception(int ex_cause);
+IFNDEF(CONFIG_AM, __attribute__((noreturn))) void longjmp_exec(int cause);
+IFNDEF(CONFIG_AM, __attribute__((noreturn))) void longjmp_exception(int ex_cause);
 
 enum {
   SYS_STATE_UPDATE = 1,

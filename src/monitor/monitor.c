@@ -11,6 +11,7 @@ void init_wp_pool();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 
+#ifndef CONFIG_AM
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
@@ -18,6 +19,7 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 
 int is_batch_mode() { return batch_mode; }
+#endif
 
 static inline void welcome() {
   Log("Debug: \33[1;32m%s\33[0m", MUXDEF(CONFIG_DEBUG, "ON","OFF"));
@@ -61,6 +63,7 @@ static inline long load_img() {
 }
 #endif
 
+#ifndef CONFIG_AM
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -138,7 +141,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Display welcome message. */
   welcome();
 }
-
+#else
 void am_init_monitor() {
   init_mem();
   init_isa();
@@ -146,3 +149,4 @@ void am_init_monitor() {
   init_device();
   welcome();
 }
+#endif
