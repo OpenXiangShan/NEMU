@@ -8,7 +8,7 @@
 #include <generated/autoconf.h>
 #include <macro.h>
 
-#ifdef CONFIG_AM
+#ifdef CONFIG_TARGET_AM
 #include <klib.h>
 #else
 #include <assert.h>

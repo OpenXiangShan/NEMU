@@ -72,12 +72,18 @@ config MODE_USER
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
 endchoice
 
+choice
+  prompt "Build target"
+  default TARGET_NATIVE_ELF
+config TARGET_NATIVE_ELF
+  bool "Executable on Linux Native"
+config TARGET_SHARE
+  bool "Shared object (used as REF for differential testing)"
 if MODE_SYSTEM
-config AM
-  bool "Build as an application on AM"
-  default n
-
+config TARGET_AM
+  bool "Application on Abstract-Machine"
 endif
+endchoice
 
 menu "Build Options"
 choice
@@ -135,22 +141,18 @@ config CC_ASAN
   depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
-
-config SHARE
-  bool "Build shared library"
-  default n
 endmenu
 
 menu "Testing and Debugging"
 config DEBUG
-  depends on !SHARE
+  depends on !TARGET_SHARE
   bool "Enable debug features"
   default n
   help
     Enable debug features, which include instruction tracing and watchpoint.
 
 config DIFFTEST
-  depends on !SHARE
+  depends on !TARGET_SHARE
   bool "Enable differential testing"
   default n
   help

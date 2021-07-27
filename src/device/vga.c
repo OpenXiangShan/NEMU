@@ -5,11 +5,11 @@
 #define SCREEN_H (MUXDEF(CONFIG_VGA_SIZE_800x600, 600, 300))
 
 static inline uint32_t screen_width() {
-  return MUXDEF(CONFIG_AM, io_read(AM_GPU_CONFIG).width, SCREEN_W);
+  return MUXDEF(CONFIG_TARGET_AM, io_read(AM_GPU_CONFIG).width, SCREEN_W);
 }
 
 static inline uint32_t screen_height() {
-  return MUXDEF(CONFIG_AM, io_read(AM_GPU_CONFIG).height, SCREEN_H);
+  return MUXDEF(CONFIG_TARGET_AM, io_read(AM_GPU_CONFIG).height, SCREEN_H);
 }
 
 static inline uint32_t screen_size() {
@@ -20,7 +20,7 @@ static void *vmem = NULL;
 static uint32_t *vgactl_port_base = NULL;
 
 #ifdef CONFIG_VGA_SHOW_SCREEN
-#ifndef CONFIG_AM
+#ifndef CONFIG_TARGET_AM
 #include <SDL2/SDL.h>
 
 static SDL_Renderer *renderer = NULL;

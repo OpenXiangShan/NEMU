@@ -2,7 +2,7 @@
 
 ifdef SHARE
 SO = -so
-CFLAGS  += -fPIC -D_SHARE=1
+CFLAGS  += -fPIC
 LDFLAGS += -rdynamic -shared -fPIC
 endif
 

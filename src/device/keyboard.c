@@ -3,7 +3,7 @@
 
 #define KEYDOWN_MASK 0x8000
 
-#ifndef CONFIG_AM
+#ifndef CONFIG_TARGET_AM
 #include <SDL2/SDL.h>
 
 // Note that this is not the standard
@@ -78,5 +78,5 @@ void init_i8042() {
   i8042_data_port_base[0] = _KEY_NONE;
   add_pio_map ("keyboard", CONFIG_I8042_DATA_PORT, i8042_data_port_base, 4, i8042_data_io_handler);
   add_mmio_map("keyboard", CONFIG_I8042_DATA_MMIO, i8042_data_port_base, 4, i8042_data_io_handler);
-  IFNDEF(CONFIG_AM, init_keymap());
+  IFNDEF(CONFIG_TARGET_AM, init_keymap());
 }

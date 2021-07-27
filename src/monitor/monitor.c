@@ -10,7 +10,7 @@ void init_wp_pool();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 
-#ifndef CONFIG_AM
+#ifndef CONFIG_TARGET_AM
 #include <getopt.h>
 
 static char *log_file = NULL;
@@ -35,7 +35,7 @@ static inline void welcome() {
 
 #ifndef CONFIG_MODE_USER
 static inline long load_img() {
-#ifdef CONFIG_AM
+#ifdef CONFIG_TARGET_AM
   extern char bin_start, bin_end;
   size_t size = &bin_end - &bin_start;
   memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
@@ -64,7 +64,7 @@ static inline long load_img() {
 }
 #endif
 
-#ifndef CONFIG_AM
+#ifndef CONFIG_TARGET_AM
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
