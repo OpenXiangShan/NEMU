@@ -17,8 +17,16 @@ static inline bool csr_check(DecodeExecState *s, uint32_t addr) {
   return true;
 }
 
+static inline bool csr_readonly(uint32_t addr) {
+  return addr >= 0xc00;
+}
+
 static inline make_EHelper(csrrw) {
   uint32_t addr = id_src2->imm;
+  if (csr_readonly(addr)) {
+    raise_intr(s, EX_II, cpu.pc);
+    return;
+  }
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   csr_write(addr, dsrc1);
@@ -29,6 +37,10 @@ static inline make_EHelper(csrrw) {
 
 static inline make_EHelper(csrrs) {
   uint32_t addr = id_src2->imm;
+  if (csr_readonly(addr) && s->isa.instr.i.rs1 != 0) {
+    raise_intr(s, EX_II, cpu.pc);
+    return;
+  }
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
@@ -42,6 +54,10 @@ static inline make_EHelper(csrrs) {
 
 static inline make_EHelper(csrrc) {
   uint32_t addr = id_src2->imm;
+  if (csr_readonly(addr) && s->isa.instr.i.rs1 != 0) {
+    raise_intr(s, EX_II, cpu.pc);
+    return;
+  }
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
@@ -56,6 +72,10 @@ static inline make_EHelper(csrrc) {
 
 static inline make_EHelper(csrrwi) {
   uint32_t addr = id_src2->imm;
+  if (csr_readonly(addr)) {
+    raise_intr(s, EX_II, cpu.pc);
+    return;
+  }
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   rtl_li(s, s1, id_src1->imm);
@@ -67,6 +87,10 @@ static inline make_EHelper(csrrwi) {
 
 static inline make_EHelper(csrrsi) {
   uint32_t addr = id_src2->imm;
+  if (csr_readonly(addr) && id_src1->imm != 0) {
+    raise_intr(s, EX_II, cpu.pc);
+    return;
+  }
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
@@ -80,6 +104,10 @@ static inline make_EHelper(csrrsi) {
 
 static inline make_EHelper(csrrci) {
   uint32_t addr = id_src2->imm;
+  if (csr_readonly(addr) && id_src1->imm != 0) {
+    raise_intr(s, EX_II, cpu.pc);
+    return;
+  }
   if (!csr_check(s, addr)) return;
   csr_read(s0, addr);
   if (id_src1->reg != 0) {
@@ -99,6 +127,10 @@ static inline make_EHelper(priv) {
       print_asm("ecall");
       break;
     case 0x102:
+      if (mstatus->tsr && cpu.mode == MODE_S) {
+        raise_intr(s, EX_II, cpu.pc);
+        break;
+     }
       mstatus->sie = mstatus->spie;
 #ifdef __DIFF_REF_QEMU__
       // this is bug of QEMU
