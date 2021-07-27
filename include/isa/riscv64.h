@@ -34,7 +34,7 @@ typedef struct {
   uint64_t pc;
   uint64_t mstatus, mcause, mepc;
   uint64_t sstatus, scause, sepc;
-  
+
   uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
 
   uint64_t mtval, stval, mtvec, stvec;
@@ -152,7 +152,14 @@ typedef struct {
 } tlb_sp_entry;
 
 typedef struct {
-  tlb_entry normal[TLBEntryNum];
+  uint64_t tag;
+  bool v;
+  uint64_t length;
+} tlb_hb_entry;
+
+typedef struct {
+  // tlb_entry normal[TLBEntryNum];
+  tlb_hb_entry hebing[TLBEntryNum];
   tlb_sp_entry super[TLBSPEntryNum];
 
   uint64_t access;
@@ -173,7 +180,7 @@ typedef struct {
 #define riscv64_has_mem_exception() (cpu.mem_exception != 0)
 
 enum {PAGE_4KB, PAGE_2MB, PAGE_1GB};
-#define VPN(vaddr) (vaddr >> 12) 
+#define VPN(vaddr) (vaddr >> 12)
 #define SUPERVPN(vaddr, i) (VPN(vaddr) >> ((3-i) * 9))
 #define get_l3_index(vaddr) ((VPN(vaddr) / L2TLBWaySize) % L2TLBL3SetNum)
 #define get_l2_index(vaddr) (((VPN(vaddr) >> 9) / L2TLBWaySize) % L2TLBL2SetNum)
@@ -181,5 +188,7 @@ enum {PAGE_4KB, PAGE_2MB, PAGE_1GB};
 #define get_l2_tag(vaddr) ((VPN(vaddr) >> 9) / L2TLBWaySize)
 #define get_l1_tag(vaddr) ((VPN(vaddr) >> 18))
 void riscv64_tlb_access(uint64_t vaddr, uint64_t type);
+
+#define EntryNumPerWalker 8
 
 #endif

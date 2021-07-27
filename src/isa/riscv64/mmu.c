@@ -95,12 +95,91 @@ static int get_page_size(uint64_t vaddr) {
   else return PAGE_1GB;
 }
 
+static void get_ppn(uint64_t vpn, uint64_t *ppn, bool *valid) {
+  *valid = false;
+  int level;
+  PTE pte;
+  word_t pg_base = PGBASE(satp->ppn);
+  word_t p_pte;
+
+  for (level = PTW_LEVEL - 1; level >= 0; ) {
+    p_pte = pg_base + VPNi(vpn << 12, level) * PTE_SIZE;
+    pte.val = paddr_read(p_pte, PTE_SIZE);
+    pg_base = PGBASE(pte.ppn);
+    if (!pte.v) {
+      break;
+    }
+    if (pte.r || pte.x) { break; }
+    else {
+      level --;
+      if (level < 0) { break; }
+    }
+  }
+  if (level !=0 || !pte.v) return ;
+  *valid = true; // only support 4KB page hebing
+  *ppn = pte.ppn;
+  // Log("trans: vpn:%016x ppn:%016x valid:%d", vpn, *ppn, *valid);
+  return ;
+}
+
 bool inline normal_page_hit(tlb_entry *entry, uint64_t tag) {
   return entry->v && entry->tag == tag;
 }
 
+bool inline hebing_page_hit(tlb_hb_entry *entry, uint64_t tag) {
+  // length: 0 for 1, 1 for 2
+  return entry->v && (entry->tag <= tag && entry->tag + entry->length >= tag);
+}
+
 bool inline super_page_hit(tlb_sp_entry *entry, uint64_t vaddr) {
   return entry->v && (entry->size == PAGE_2MB ? SUPERVPN(entry->tag, 2) == SUPERVPN(vaddr, 2) : SUPERVPN(entry->tag, 1) == SUPERVPN(vaddr, 1));
+}
+
+typedef struct {
+  uint64_t big;
+  uint64_t small;
+} two_vpn;
+
+void hebing_new(uint64_t vpn, two_vpn *result) {
+  // must be 4KB page
+  uint64_t ppn[EntryNumPerWalker];
+  bool valid[EntryNumPerWalker];
+  int wanted = vpn % EntryNumPerWalker;
+  int begin = vpn / EntryNumPerWalker * EntryNumPerWalker;
+  for (int i = 0; i < EntryNumPerWalker; i++) {
+    ppn[i] = 0; valid[i] = false;
+    get_ppn(begin + i, &ppn[i], &valid[i]);
+  }
+
+  int low = wanted;
+  int high = wanted;
+
+  for (; low > 0 && (ppn[low] == ppn[low - 1] + 1) && valid[low - 1]; low --);
+  for (; high < (EntryNumPerWalker - 1) && (ppn[high] == ppn[high + 1] - 1) && valid[high + 1]; high ++ );
+
+  result->big = high + vpn / EntryNumPerWalker * EntryNumPerWalker;
+  result->small = low + vpn / EntryNumPerWalker * EntryNumPerWalker;
+  // Log("new: tag: %016x length: 1 + %d -", result->small, result->big - result->small);
+  return ;
+}
+
+void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
+  // walk the page table and find adjacent entry and flush it
+  for (int i = 0; i < TLBEntryNum; i ++) {
+    if (hebing_page_hit(&tlb->hebing[i], vpn->small - 1)) {
+      assert(!hebing_page_hit(&tlb->hebing[i], vpn->big));
+      vpn->small = tlb->hebing[i].tag;
+      tlb->hebing[i].v = false;
+    }
+    if (hebing_page_hit(&tlb->hebing[i], vpn->big + 1)) {
+      vpn->big = tlb->hebing[i].tag + tlb->hebing[i].length;
+      tlb->hebing[i].v = false;
+    }
+  }
+  result->length = vpn->big - vpn->small;
+  result->tag = vpn->small;
+  // Log("old: tag: %016x length: 1 + %d +", result->tag, result->length);
+  return ;
 }
 
 bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
@@ -113,7 +192,7 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
   if (size < 0) return true; // return true to aviod more actions
 
   for (int i = 0; i < TLBEntryNum && size == PAGE_4KB; i++) {
-    if (normal_page_hit(&tlb->normal[i], VPN(vaddr))) {
+    if (hebing_page_hit(&tlb->hebing[i], VPN(vaddr))) {
       return true;
     }
   }
@@ -127,8 +206,16 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
   tlb->miss ++;
   if (size == PAGE_4KB) {
     int refill_index = rand() % TLBEntryNum;
-    tlb->normal[refill_index].v = true;
-    tlb->normal[refill_index].tag = VPN(vaddr);
+    // aligned-8 entries read
+    two_vpn tmp_two_vpn;
+    hebing_new(VPN(vaddr), &tmp_two_vpn);
+    // walk the tlb to find adjacent entry
+    tlb_hb_entry hb_result;
+    hebing_old(tlb, &tmp_two_vpn, &hb_result);
+
+    tlb->hebing[refill_index].v = true;
+    tlb->hebing[refill_index].tag = hb_result.tag;
+    tlb->hebing[refill_index].length = hb_result.length;
   } else {
     int refill_index = rand() % TLBSPEntryNum;
     tlb->super[refill_index].v = true;
