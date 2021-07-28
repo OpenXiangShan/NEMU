@@ -139,6 +139,7 @@ typedef struct {
 #define L2TLBL2SetNum (L2TLBL2EntryNum / L2TLBL2WayNum / L2TLBWaySize)
 #define L2TLBL3SetNum (L2TLBL3EntryNum / L2TLBL3WayNum / L2TLBWaySize)
 #define EntryNumPerWalker 8
+#define MAXSTRIDE 4
 
 // just record miss rate, don't do the translation job
 typedef struct {
@@ -157,6 +158,7 @@ typedef struct {
   bool v;
   uint64_t length;
   uint64_t ppn;
+  uint64_t stride;
 } tlb_hb_entry;
 
 typedef struct {
@@ -170,6 +172,9 @@ typedef struct {
   uint64_t hb_new[EntryNumPerWalker];
   uint64_t hb_old[EntryNumPerWalker + EntryNumPerWalker + 1];
   uint64_t hb_access[EntryNumPerWalker + EntryNumPerWalker + 1];
+  uint64_t hb_stride_new[EntryNumPerWalker];
+  uint64_t hb_stride_old[EntryNumPerWalker + EntryNumPerWalker + 1];
+  uint64_t hb_stride_access[EntryNumPerWalker + EntryNumPerWalker + 1];
 } riscv64_TLB_State;
 
 typedef struct {
@@ -195,5 +200,7 @@ enum {PAGE_4KB, PAGE_2MB, PAGE_1GB};
 #define get_l1_tag(vaddr) ((VPN(vaddr) >> 18))
 void riscv64_tlb_access(uint64_t vaddr, uint64_t type);
 void mmu_statistic();
+
+// #define TLB_DEBUG
 
 #endif

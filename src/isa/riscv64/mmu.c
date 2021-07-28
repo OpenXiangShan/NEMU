@@ -95,8 +95,8 @@ static int get_page_size(uint64_t vaddr) {
   else return PAGE_1GB;
 }
 
-static void get_ppn(uint64_t vpn, uint64_t *ppn, bool *valid) {
-  *valid = false;
+static uint64_t get_ppn(uint64_t vpn, bool *valid) {
+  if (valid != NULL) *valid = false;
   int level;
   PTE pte;
   word_t pg_base = PGBASE(satp->ppn);
@@ -115,11 +115,10 @@ static void get_ppn(uint64_t vpn, uint64_t *ppn, bool *valid) {
       if (level < 0) { break; }
     }
   }
-  if (level !=0 || !pte.v) return ;
-  *valid = true; // only support 4KB page hebing
-  *ppn = pte.ppn;
-  // Log("trans: vpn:%016x ppn:%016x valid:%d", vpn, *ppn, *valid);
-  return ;
+  if (level !=0 || !pte.v) return -1;
+
+  if (valid != NULL) *valid = true; // only support 4KB page hebing
+  return pte.ppn;
 }
 
 bool inline normal_page_hit(tlb_entry *entry, uint64_t tag) {
@@ -127,8 +126,15 @@ bool inline normal_page_hit(tlb_entry *entry, uint64_t tag) {
 }
 
 bool inline hebing_page_hit(tlb_hb_entry *entry, uint64_t tag) {
-  // length: 0 for 1, 1 for 2
-  return entry->v && (entry->tag <= tag && entry->tag + entry->length >= tag);
+  // length: N stand for N+1
+  // stride: low-bit be same, high bit in range.
+  // stride usage:
+#ifdef TLB_DEBUG
+  if (entry->v) {
+    Log("valid entry: tag: %016x ppn: %016x length: %d stride: %016x hit:%d", entry->tag, entry->ppn, entry->length, entry->stride, entry->v && (entry->tag <= tag) && ((entry->tag + entry->length) > tag));
+  }
+#endif
+  return entry->v && (entry->tag <= tag) && ((entry->tag + entry->length) >= tag);
 }
 
 bool inline super_page_hit(tlb_sp_entry *entry, uint64_t vaddr) {
@@ -140,6 +146,7 @@ typedef struct {
   uint64_t small;
 
   uint64_t ppn;
+  uint64_t stride;
 } two_vpn;
 
 int get_length_index(int length_out) {
@@ -153,72 +160,165 @@ int get_length_index(int length_out) {
   return 2 * EntryNumPerWalker;
 }
 
+bool inline isPower2(int a) {
+  return (a & (a - 1)) == 0;
+}
+
+int log2int(int a) {
+  for (int i = 0; a >= 0; i++, a /= 2) {
+    if (a == 1) return i;
+  }
+  return 0;
+}
+
+int powerOf(int a, int b) {
+  return a << b;
+}
+
 void hebing_new(uint64_t vpn, two_vpn *result) {
   // must be 4KB page
   uint64_t ppn[EntryNumPerWalker];
   bool valid[EntryNumPerWalker];
   int wanted = vpn % EntryNumPerWalker;
   int begin = vpn / EntryNumPerWalker * EntryNumPerWalker;
+  int gap[EntryNumPerWalker - 1];
   for (int i = 0; i < EntryNumPerWalker; i++) {
-    ppn[i] = 0; valid[i] = false;
-    get_ppn(begin + i, &ppn[i], &valid[i]);
+    valid[i] = false;
+    ppn[i] = get_ppn(begin + i, &valid[i]);
+#ifdef TLB_DEBUG
+    Log("trans %d: vpn:%016x ppn:%016x valid:%d", i, begin + i, ppn[i], valid[i]);
+#endif
+  }
+  for (int i = 0; i < EntryNumPerWalker - 1; i ++) {
+    gap[i] = ppn[i + 1] - ppn[i];
   }
 
   int low = wanted;
   int high = wanted;
+  int low_gap = 0, high_gap = 0;
+  bool low_valid = (wanted != 0) && isPower2(gap[wanted - 1]);
+  bool high_valid = (wanted != EntryNumPerWalker - 1) && isPower2(gap[wanted]);
 
-  for (; low > 0 && (ppn[low] == ppn[low - 1] + 1) && valid[low - 1]; low --);
-  for (; high < (EntryNumPerWalker - 1) && (ppn[high] == ppn[high + 1] - 1) && valid[high + 1]; high ++ );
+  if (low_valid)
+    for (low_gap = gap[low - 1]; low > 0 && valid[low - 1] && gap[low-1] == low_gap; low --);
+  if (high_valid)
+    for (high_gap = gap[high]; high < (EntryNumPerWalker - 1) && valid[high + 1] && gap[high] == high_gap; high ++ );
 
-  result->big = high + vpn / EntryNumPerWalker * EntryNumPerWalker;
-  result->small = low + vpn / EntryNumPerWalker * EntryNumPerWalker;
-  result->ppn = ppn[low];
-
-  // Log("new: tag: %016x length: 1 + %d -", result->small, result->big - result->small);
+  if (low_valid && high_valid && low_gap == high_gap && (low_gap <= MAXSTRIDE)) {
+    result->big = high + vpn / EntryNumPerWalker * EntryNumPerWalker;
+    result->small = low + vpn / EntryNumPerWalker * EntryNumPerWalker;
+    result->ppn = ppn[low];
+    result->stride = log2int(low_gap);
+  } else if (low_valid && (low_gap <= MAXSTRIDE) && (!high_valid || ((low_gap != high_gap) && (wanted - low > high - low)))) {
+    result->big = vpn;
+    result->small = low + vpn / EntryNumPerWalker * EntryNumPerWalker;
+    result->ppn = ppn[low];
+    result->stride = log2int(low_gap);
+  } else if (high_valid && (high_gap <= MAXSTRIDE)) {
+    result->big = high + vpn / EntryNumPerWalker * EntryNumPerWalker;
+    result->small = vpn;
+    result->ppn = ppn[wanted];
+    result->stride = log2int(high_gap);
+  } else {
+    result->big = vpn;
+    result->small = vpn;
+    result->ppn = ppn[wanted];
+    result->stride = 0;
+  }
+#ifdef TLB_DEBUG
+  Log("new: tag: %016x ppn: %016x stride: %d length: 1 + %d -", result->small, result->ppn, result->stride, result->big - result->small);
+#endif
   return ;
 }
 
 uint64_t tran_to_ppn(tlb_hb_entry *entry, uint64_t vpn) {
   assert(hebing_page_hit(entry, vpn));
 
-  return entry->ppn + vpn - entry->tag;
+  return entry->ppn + ((vpn - entry->tag) << entry->stride);
+}
+
+void hb_perf_add_wrapper(riscv64_TLB_State *tlb, uint64_t length, uint64_t stride, bool is_old) {
+  if (is_old) {
+    if (stride == 0)
+      tlb->hb_old[get_length_index(length)] ++;
+    else
+      tlb->hb_stride_old[get_length_index(length)] ++;
+  } else {
+    if (stride == 0)
+      tlb->hb_new[get_length_index(length)] ++;
+    else
+      tlb->hb_stride_new[get_length_index(length)] ++;
+  }
+}
+
+void hb_perf_access_wrapper(riscv64_TLB_State *tlb, uint64_t length, uint64_t stride) {
+  if (stride == 0)
+    tlb->hb_access[get_length_index(length)] ++;
+  else
+    tlb->hb_stride_access[get_length_index(length)] ++;
+}
+
+void hb_perf_dec_wrapper(riscv64_TLB_State *tlb, uint64_t length, uint64_t stride, bool is_old) {
+  if (is_old) {
+    if (stride == 0)
+      tlb->hb_old[get_length_index(length)] --;
+    else
+      tlb->hb_stride_old[get_length_index(length)] --;
+  } else {
+    if (stride == 0)
+      tlb->hb_new[get_length_index(length)] --;
+    else
+      tlb->hb_stride_new[get_length_index(length)] --;
+  }
 }
 
 void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
   // walk the page table and find adjacent entry and flush it
-  tlb->hb_new[get_length_index(vpn->big - vpn->small)] ++;
+  hb_perf_add_wrapper(tlb, vpn->big - vpn->small, vpn->stride, false);
 
   for (int i = 0; i < TLBEntryNum; i ++) {
     if (hebing_page_hit(&tlb->hebing[i], vpn->small - 1)) {
       assert(!hebing_page_hit(&tlb->hebing[i], vpn->big));
-      if (tran_to_ppn(&tlb->hebing[i], vpn->small - 1) == vpn->ppn - 1) {
+      if (get_ppn(vpn->small - 1, NULL) == (vpn->ppn - powerOf(1, vpn->stride)) &&
+        ((tlb->hebing[i].length == 0) || tlb->hebing[i].stride == vpn->stride)
+      ) {
         vpn->small = tlb->hebing[i].tag;
         vpn->ppn = tlb->hebing[i].ppn;
 
         tlb->hebing[i].v = false;
         tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
+        
+        hb_perf_dec_wrapper(tlb, tlb->hebing[i].length, tlb->hebing[i].stride, false);
       }
-
     }
     if (hebing_page_hit(&tlb->hebing[i], vpn->big + 1) &&
-      tran_to_ppn(&tlb->hebing[i], vpn->big + 1) == (vpn->ppn + vpn->big - vpn->small + 1)
+      get_ppn(vpn->big + 1, NULL) == (vpn->ppn + powerOf(vpn->big - vpn->small + 1, vpn->stride)) &&
+      ((tlb->hebing[i].length == 0) || tlb->hebing[i].stride == vpn->stride)
     ) {
       vpn->big = tlb->hebing[i].tag + tlb->hebing[i].length;
       tlb->hebing[i].v = false;
 
-      tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
+      hb_perf_dec_wrapper(tlb, tlb->hebing[i].length, tlb->hebing[i].stride, false);
     }
   }
+
   result->length = vpn->big - vpn->small;
   result->tag = vpn->small;
   result->ppn = vpn->ppn;
+  result->stride = vpn->stride;
 
-  tlb->hb_old[get_length_index(result->length)] ++;
-  // Log("old: tag: %016x length: 1 + %d +", result->tag, result->length);
+  hb_perf_add_wrapper(tlb, result->length, result->stride, true);
+  hb_perf_access_wrapper(tlb, result->length, result->stride);
+#ifdef TLB_DEBUG
+  Log("old: tag: %016x ppn: %016x stride: %d length: 1 + %d +", result->tag, result->ppn, result->stride, result->length);
+#endif
   return ;
 }
 
 bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
+#ifdef TLB_DEBUG
+  Log("access %s vpn %p ...", type == MEM_TYPE_IFETCH ? "itlb" : "dtlb", VPN(vaddr));
+#endif
   riscv64_TLB_State *tlb;
   if (type == MEM_TYPE_IFETCH) { tlb = &itlb; }
   else { tlb = &dtlb; }
@@ -229,7 +329,7 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
 
   for (int i = 0; i < TLBEntryNum && size == PAGE_4KB; i++) {
     if (hebing_page_hit(&tlb->hebing[i], VPN(vaddr))) {
-      tlb->hb_access[get_length_index(tlb->hebing[i].length)] ++;
+      hb_perf_access_wrapper(tlb, tlb->hebing[i].length, tlb->hebing[i].stride);
       return true;
     }
   }
@@ -245,7 +345,9 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
     int refill_index = rand() % TLBEntryNum;
     // aligned-8 entries read
     two_vpn tmp_two_vpn;
-    // Log("----------------------%s refill %ld -----------------", type == MEM_TYPE_IFETCH ? "itlb" : "dtlb", refill_index);
+#ifdef TLB_DEBUG
+    Log("----------------------%s refill vpn %016x index %ld -----------------", type == MEM_TYPE_IFETCH ? "itlb" : "dtlb", VPN(vaddr), refill_index);
+#endif
     hebing_new(VPN(vaddr), &tmp_two_vpn);
     // walk the tlb to find adjacent entry
     tlb_hb_entry hb_result;
@@ -255,6 +357,7 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
     tlb->hebing[refill_index].tag = hb_result.tag;
     tlb->hebing[refill_index].length = hb_result.length;
     tlb->hebing[refill_index].ppn = hb_result.ppn;
+    tlb->hebing[refill_index].stride = hb_result.stride;
   } else {
     int refill_index = rand() % TLBSPEntryNum;
     tlb->super[refill_index].v = true;
@@ -352,6 +455,8 @@ void mmu_statistic() {
   Log("itlb access = %ld miss = %ld miss rate = %lf", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
   Log("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
   printf("itlb hebing *** dtlb hebing\n");
+
+  printf("stride is 1:\n");
   for (int i = 0; i < EntryNumPerWalker; i ++) {
     printf("%d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_new[i], itlb.hb_old[i], itlb.hb_access[i], dtlb.hb_new[i], dtlb.hb_old[i], dtlb.hb_access[i]);
   }
@@ -359,6 +464,15 @@ void mmu_statistic() {
     printf("%d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_old[i + EntryNumPerWalker], itlb.hb_access[i + EntryNumPerWalker], dtlb.hb_old[i + EntryNumPerWalker], dtlb.hb_access[i + EntryNumPerWalker]);
   }
   printf("more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_old[2 * EntryNumPerWalker - 1], itlb.hb_access[2 * EntryNumPerWalker - 1], dtlb.hb_old[2 * EntryNumPerWalker - 1], dtlb.hb_access[2 * EntryNumPerWalker - 1]);
+
+  printf("stride is 2 or 4:\n");
+  for (int i = 0; i < EntryNumPerWalker; i ++) {
+    printf("%d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_stride_new[i], itlb.hb_stride_old[i], itlb.hb_stride_access[i], dtlb.hb_stride_new[i], dtlb.hb_stride_old[i], dtlb.hb_stride_access[i]);
+  }
+  for (int i = 0; i < EntryNumPerWalker; i ++) {
+    printf("%d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_stride_old[i + EntryNumPerWalker], itlb.hb_stride_access[i + EntryNumPerWalker], dtlb.hb_stride_old[i + EntryNumPerWalker], dtlb.hb_stride_access[i + EntryNumPerWalker]);
+  }
+  printf("more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_stride_old[2 * EntryNumPerWalker - 1], itlb.hb_stride_access[2 * EntryNumPerWalker - 1], dtlb.hb_stride_old[2 * EntryNumPerWalker - 1], dtlb.hb_stride_access[2 * EntryNumPerWalker - 1]);
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
@@ -378,9 +492,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #endif
     pg_base = PGBASE(pte.ppn);
     if (!pte.v) {
-//      Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
-//          ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
-//          level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
+    //  Log("level %d: pc = " FMT_WORD ", vaddr = " FMT_WORD
+    //      ", pg_base = " FMT_WORD ", p_pte = " FMT_WORD ", pte = " FMT_WORD,
+    //      level, cpu.pc, vaddr, pg_base, p_pte, pte.val);
       break;
     }
     if (pte.r || pte.x) { break; }
