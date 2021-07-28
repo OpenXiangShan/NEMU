@@ -156,6 +156,7 @@ typedef struct {
   uint64_t tag;
   bool v;
   uint64_t length;
+  uint64_t ppn;
 } tlb_hb_entry;
 
 typedef struct {
