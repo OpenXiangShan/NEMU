@@ -168,6 +168,7 @@ typedef struct {
 
   uint64_t hb_new[EntryNumPerWalker];
   uint64_t hb_old[EntryNumPerWalker + EntryNumPerWalker + 1];
+  uint64_t hb_access[EntryNumPerWalker + EntryNumPerWalker + 1];
 } riscv64_TLB_State;
 
 typedef struct {
