@@ -339,7 +339,7 @@ void mmu_statistic() {
     printf("%d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_new[i], itlb.hb_old[i], itlb.hb_access[i], dtlb.hb_new[i], dtlb.hb_old[i], dtlb.hb_access[i]);
   }
   for (int i = 0; i < EntryNumPerWalker; i ++) {
-    printf("%d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) - 1, EntryNumPerWalker << (i + 1), itlb.hb_old[i + EntryNumPerWalker], itlb.hb_access[i + EntryNumPerWalker], dtlb.hb_old[i + EntryNumPerWalker], dtlb.hb_access[i + EntryNumPerWalker]);
+    printf("%d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_old[i + EntryNumPerWalker], itlb.hb_access[i + EntryNumPerWalker], dtlb.hb_old[i + EntryNumPerWalker], dtlb.hb_access[i + EntryNumPerWalker]);
   }
   printf("more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_old[2 * EntryNumPerWalker - 1], itlb.hb_access[2 * EntryNumPerWalker - 1], dtlb.hb_old[2 * EntryNumPerWalker - 1], dtlb.hb_access[2 * EntryNumPerWalker - 1]);
 }
