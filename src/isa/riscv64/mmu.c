@@ -138,6 +138,8 @@ bool inline super_page_hit(tlb_sp_entry *entry, uint64_t vaddr) {
 typedef struct {
   uint64_t big;
   uint64_t small;
+
+  uint64_t ppn;
 } two_vpn;
 
 int get_length_index(int length_out) {
@@ -170,9 +172,16 @@ void hebing_new(uint64_t vpn, two_vpn *result) {
 
   result->big = high + vpn / EntryNumPerWalker * EntryNumPerWalker;
   result->small = low + vpn / EntryNumPerWalker * EntryNumPerWalker;
+  result->ppn = ppn[low];
 
   // Log("new: tag: %016x length: 1 + %d -", result->small, result->big - result->small);
   return ;
+}
+
+uint64_t tran_to_ppn(tlb_hb_entry *entry, uint64_t vpn) {
+  assert(hebing_page_hit(entry, vpn));
+
+  return entry->ppn + vpn - entry->tag;
 }
 
 void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
@@ -182,12 +191,18 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
   for (int i = 0; i < TLBEntryNum; i ++) {
     if (hebing_page_hit(&tlb->hebing[i], vpn->small - 1)) {
       assert(!hebing_page_hit(&tlb->hebing[i], vpn->big));
-      vpn->small = tlb->hebing[i].tag;
-      tlb->hebing[i].v = false;
+      if (tran_to_ppn(&tlb->hebing[i], vpn->small - 1) == vpn->ppn - 1) {
+        vpn->small = tlb->hebing[i].tag;
+        vpn->ppn = tlb->hebing[i].ppn;
 
-      tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
+        tlb->hebing[i].v = false;
+        tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
+      }
+
     }
-    if (hebing_page_hit(&tlb->hebing[i], vpn->big + 1)) {
+    if (hebing_page_hit(&tlb->hebing[i], vpn->big + 1) &&
+      tran_to_ppn(&tlb->hebing[i], vpn->big + 1) == (vpn->ppn + vpn->big - vpn->small + 1)
+    ) {
       vpn->big = tlb->hebing[i].tag + tlb->hebing[i].length;
       tlb->hebing[i].v = false;
 
@@ -196,6 +211,7 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
   }
   result->length = vpn->big - vpn->small;
   result->tag = vpn->small;
+  result->ppn = vpn->ppn;
 
   tlb->hb_old[get_length_index(result->length)] ++;
   // Log("old: tag: %016x length: 1 + %d +", result->tag, result->length);
@@ -238,6 +254,7 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
     tlb->hebing[refill_index].v = true;
     tlb->hebing[refill_index].tag = hb_result.tag;
     tlb->hebing[refill_index].length = hb_result.length;
+    tlb->hebing[refill_index].ppn = hb_result.ppn;
   } else {
     int refill_index = rand() % TLBSPEntryNum;
     tlb->super[refill_index].v = true;
