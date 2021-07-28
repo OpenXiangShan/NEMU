@@ -57,4 +57,7 @@ void init_aligncheck() {
 void init_aligncheck() {
 }
 #endif
+#else
+void init_aligncheck() {
+}
 #endif
