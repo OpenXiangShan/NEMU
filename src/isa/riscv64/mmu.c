@@ -140,6 +140,17 @@ typedef struct {
   uint64_t small;
 } two_vpn;
 
+int get_length_index(int length_out) {
+  int length = length_out + 1;
+  if (length <= EntryNumPerWalker) {
+    return length - 1;
+  } else if (length <= (EntryNumPerWalker << EntryNumPerWalker)) {
+    for (int i = 0, j = EntryNumPerWalker; i < EntryNumPerWalker; i ++, j *= 2)
+      if (length <= j*2) return i + EntryNumPerWalker;
+  }
+  return 2 * EntryNumPerWalker;
+}
+
 void hebing_new(uint64_t vpn, two_vpn *result) {
   // must be 4KB page
   uint64_t ppn[EntryNumPerWalker];
@@ -159,25 +170,34 @@ void hebing_new(uint64_t vpn, two_vpn *result) {
 
   result->big = high + vpn / EntryNumPerWalker * EntryNumPerWalker;
   result->small = low + vpn / EntryNumPerWalker * EntryNumPerWalker;
+
   // Log("new: tag: %016x length: 1 + %d -", result->small, result->big - result->small);
   return ;
 }
 
 void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
   // walk the page table and find adjacent entry and flush it
+  tlb->hb_new[get_length_index(vpn->big - vpn->small)] ++;
+
   for (int i = 0; i < TLBEntryNum; i ++) {
     if (hebing_page_hit(&tlb->hebing[i], vpn->small - 1)) {
       assert(!hebing_page_hit(&tlb->hebing[i], vpn->big));
       vpn->small = tlb->hebing[i].tag;
       tlb->hebing[i].v = false;
+
+      tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
     }
     if (hebing_page_hit(&tlb->hebing[i], vpn->big + 1)) {
       vpn->big = tlb->hebing[i].tag + tlb->hebing[i].length;
       tlb->hebing[i].v = false;
+
+      tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
     }
   }
   result->length = vpn->big - vpn->small;
   result->tag = vpn->small;
+
+  tlb->hb_old[get_length_index(result->length)] ++;
   // Log("old: tag: %016x length: 1 + %d +", result->tag, result->length);
   return ;
 }
@@ -208,6 +228,7 @@ bool tlb_l1_access(uint64_t vaddr, uint64_t type) {
     int refill_index = rand() % TLBEntryNum;
     // aligned-8 entries read
     two_vpn tmp_two_vpn;
+    // Log("----------------------%s refill %ld -----------------", type == MEM_TYPE_IFETCH ? "itlb" : "dtlb", refill_index);
     hebing_new(VPN(vaddr), &tmp_two_vpn);
     // walk the tlb to find adjacent entry
     tlb_hb_entry hb_result;
@@ -306,6 +327,20 @@ void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
     if (!l2tlb_l3_access(vaddr))
       if (!l2tlb_l2_access(vaddr))
         l2tlb_l1_access(vaddr);
+}
+
+void mmu_statistic() {
+  Log("dtlb access = %ld miss = %ld miss rate = %lf", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
+  Log("itlb access = %ld miss = %ld miss rate = %lf", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
+  Log("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
+  printf("itlb hebing | dtlb hebing\n");
+  for (int i = 0; i < EntryNumPerWalker; i ++) {
+    printf("%d: [%d-%d] | [%d-%d]\n", i+1, itlb.hb_new[i], itlb.hb_old[i], dtlb.hb_new[i], dtlb.hb_old[i]);
+  }
+  for (int i = 0; i < EntryNumPerWalker; i ++) {
+    printf("%d-%d: [0-%d] | [0,%d]\n", (EntryNumPerWalker << i) - 1, EntryNumPerWalker << (i + 1), itlb.hb_old[i + EntryNumPerWalker], dtlb.hb_old[i + EntryNumPerWalker]);
+  }
+  printf("more: [0,%d] | [0,%d]\n", itlb.hb_old[2 * EntryNumPerWalker - 1], dtlb.hb_old[2 * EntryNumPerWalker - 1]);
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {

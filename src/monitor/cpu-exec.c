@@ -40,9 +40,8 @@ void rtl_exit(int state, vaddr_t halt_pc, uint32_t halt_ret) {
 void monitor_statistic(void) {
   Log("total guest instructions = %ld", g_nr_guest_instr);
 #if __ISA__ == riscv64
-  Log("dtlb access = %ld miss = %ld miss rate = %lf", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
-  Log("itlb access = %ld miss = %ld miss rate = %lf", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
-  Log("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
+#include <isa/riscv64.h>
+  mmu_statistic();
 #endif
 }
 
