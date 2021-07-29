@@ -276,6 +276,7 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
   // walk the page table and find adjacent entry and flush it
   hb_perf_add_wrapper(tlb, vpn->big - vpn->small, vpn->stride, false);
 
+#ifdef DOOLDHEBING
   for (int i = 0; i < TLBEntryNum; i ++) {
     if (hebing_page_hit(&tlb->hebing[i], vpn->small - 1)) {
       assert(!hebing_page_hit(&tlb->hebing[i], vpn->big));
@@ -287,7 +288,7 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
 
         tlb->hebing[i].v = false;
         tlb->hb_old[get_length_index(tlb->hebing[i].length)] --;
-        
+
         hb_perf_dec_wrapper(tlb, tlb->hebing[i].length, tlb->hebing[i].stride, false);
       }
     }
@@ -301,17 +302,23 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
       hb_perf_dec_wrapper(tlb, tlb->hebing[i].length, tlb->hebing[i].stride, false);
     }
   }
+#endif
 
   result->length = vpn->big - vpn->small;
   result->tag = vpn->small;
   result->ppn = vpn->ppn;
   result->stride = vpn->stride;
 
+#ifdef DOOLDHEBING
   hb_perf_add_wrapper(tlb, result->length, result->stride, true);
-  hb_perf_access_wrapper(tlb, result->length, result->stride);
+
 #ifdef TLB_DEBUG
   Log("old: tag: %016x ppn: %016x stride: %d length: 1 + %d +", result->tag, result->ppn, result->stride, result->length);
 #endif
+
+#endif
+  hb_perf_access_wrapper(tlb, result->length, result->stride);
+
   return ;
 }
 

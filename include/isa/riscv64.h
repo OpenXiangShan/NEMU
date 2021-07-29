@@ -140,6 +140,8 @@ typedef struct {
 #define L2TLBL3SetNum (L2TLBL3EntryNum / L2TLBL3WayNum / L2TLBWaySize)
 #define EntryNumPerWalker 8
 #define MAXSTRIDE 4
+// NOTE: 只需要stride为4即可
+#define DOOLDHEBING
 
 // just record miss rate, don't do the translation job
 typedef struct {
