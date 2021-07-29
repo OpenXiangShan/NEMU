@@ -458,9 +458,9 @@ void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
 }
 
 void mmu_statistic() {
-  Log("dtlb access = %ld miss = %ld miss rate = %lf", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
-  Log("itlb access = %ld miss = %ld miss rate = %lf", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
-  Log("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
+  printf("dtlb access = %ld miss = %ld miss rate = %lf\n", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
+  printf("itlb access = %ld miss = %ld miss rate = %lf\n", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
+  printf("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld\n", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
   printf("itlb hebing *** dtlb hebing\n");
 
   printf("stride is 1:\n");
