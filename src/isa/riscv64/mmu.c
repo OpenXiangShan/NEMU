@@ -458,28 +458,28 @@ void riscv64_tlb_access(uint64_t vaddr, uint64_t type) {
 }
 
 void mmu_statistic() {
-  printf("dtlb access = %ld miss = %ld miss rate = %lf\n", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
-  printf("itlb access = %ld miss = %ld miss rate = %lf\n", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
-  printf("l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld\n", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
-  printf("itlb hebing *** dtlb hebing\n");
+  printf("[PERF] dtlb access = %ld miss = %ld miss rate = %lf\n", dtlb.access, dtlb.miss, (dtlb.miss * 1.0) / dtlb.access);
+  printf("[PERF] itlb access = %ld miss = %ld miss rate = %lf\n", itlb.access, itlb.miss, (itlb.miss * 1.0) / itlb.access);
+  printf("[PERF] l2tlb access = %ld miss = %ld miss rate = %lf mem access = %ld\n", l2tlb.access, l2tlb.miss, (l2tlb.miss * 1.0) / l2tlb.access, l2tlb.mem_access);
+  printf("[PERF] itlb hebing *** dtlb hebing\n");
 
-  printf("stride is 1:\n");
+  printf("[PERF] stride is 1:\n");
   for (int i = 0; i < EntryNumPerWalker; i ++) {
-    printf("%d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_new[i], itlb.hb_old[i], itlb.hb_access[i], dtlb.hb_new[i], dtlb.hb_old[i], dtlb.hb_access[i]);
+    printf("[PERF] %d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_new[i], itlb.hb_old[i], itlb.hb_access[i], dtlb.hb_new[i], dtlb.hb_old[i], dtlb.hb_access[i]);
   }
   for (int i = 0; i < EntryNumPerWalker; i ++) {
-    printf("%d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_old[i + EntryNumPerWalker], itlb.hb_access[i + EntryNumPerWalker], dtlb.hb_old[i + EntryNumPerWalker], dtlb.hb_access[i + EntryNumPerWalker]);
+    printf("[PERF] %d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_old[i + EntryNumPerWalker], itlb.hb_access[i + EntryNumPerWalker], dtlb.hb_old[i + EntryNumPerWalker], dtlb.hb_access[i + EntryNumPerWalker]);
   }
-  printf("more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_old[2 * EntryNumPerWalker - 1], itlb.hb_access[2 * EntryNumPerWalker - 1], dtlb.hb_old[2 * EntryNumPerWalker - 1], dtlb.hb_access[2 * EntryNumPerWalker - 1]);
+  printf("[PERF] more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_old[2 * EntryNumPerWalker - 1], itlb.hb_access[2 * EntryNumPerWalker - 1], dtlb.hb_old[2 * EntryNumPerWalker - 1], dtlb.hb_access[2 * EntryNumPerWalker - 1]);
 
-  printf("stride is 2 or 4:\n");
+  printf("[PERF] stride is 2 or 4:\n");
   for (int i = 0; i < EntryNumPerWalker; i ++) {
-    printf("%d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_stride_new[i], itlb.hb_stride_old[i], itlb.hb_stride_access[i], dtlb.hb_stride_new[i], dtlb.hb_stride_old[i], dtlb.hb_stride_access[i]);
+    printf("[PERF] %d: [%d-%d]-%d *** [%d-%d]-%d\n", i+1, itlb.hb_stride_new[i], itlb.hb_stride_old[i], itlb.hb_stride_access[i], dtlb.hb_stride_new[i], dtlb.hb_stride_old[i], dtlb.hb_stride_access[i]);
   }
   for (int i = 0; i < EntryNumPerWalker; i ++) {
-    printf("%d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_stride_old[i + EntryNumPerWalker], itlb.hb_stride_access[i + EntryNumPerWalker], dtlb.hb_stride_old[i + EntryNumPerWalker], dtlb.hb_stride_access[i + EntryNumPerWalker]);
+    printf("[PERF] %d-%d: [0-%d]-%d *** [0,%d]-%d\n", (EntryNumPerWalker << i) + 1, EntryNumPerWalker << (i + 1), itlb.hb_stride_old[i + EntryNumPerWalker], itlb.hb_stride_access[i + EntryNumPerWalker], dtlb.hb_stride_old[i + EntryNumPerWalker], dtlb.hb_stride_access[i + EntryNumPerWalker]);
   }
-  printf("more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_stride_old[2 * EntryNumPerWalker - 1], itlb.hb_stride_access[2 * EntryNumPerWalker - 1], dtlb.hb_stride_old[2 * EntryNumPerWalker - 1], dtlb.hb_stride_access[2 * EntryNumPerWalker - 1]);
+  printf("[PERF] more: [0,%d]-%d *** [0,%d]-%d\n", itlb.hb_stride_old[2 * EntryNumPerWalker - 1], itlb.hb_stride_access[2 * EntryNumPerWalker - 1], dtlb.hb_stride_old[2 * EntryNumPerWalker - 1], dtlb.hb_stride_access[2 * EntryNumPerWalker - 1]);
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
