@@ -14,7 +14,7 @@ config PC_RESET_OFFSET
   default 0 if MODE_USER
   default 0x100000
 
-if !AM
+if !TARGET_AM
 config USE_MMAP
   bool "Allocate guest physical memory with mmap()"
   default y
