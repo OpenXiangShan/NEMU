@@ -67,6 +67,7 @@ config MODE_SYSTEM
     Support full-system functionality, including privileged instructions, MMU and devices.
 
 config MODE_USER
+  depends on !TARGET_AM
   bool "User mode"
   help
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
@@ -79,10 +80,8 @@ config TARGET_NATIVE_ELF
   bool "Executable on Linux Native"
 config TARGET_SHARE
   bool "Shared object (used as REF for differential testing)"
-if MODE_SYSTEM
 config TARGET_AM
   bool "Application on Abstract-Machine"
-endif
 endchoice
 
 menu "Build Options"
@@ -93,10 +92,9 @@ config CC_GCC
   bool "gcc"
 config CC_GPP
   bool "g++"
-if !AM
 config CC_CLANG
+  depends on !TARGET_AM
   bool "clang"
-endif
 endchoice
 
 config CC
@@ -127,11 +125,10 @@ config CC_OPT
   default "-O3" if CC_O3
   default "none"
 
-if !AM
 config CC_LTO
+  depends on !TARGET_AM
   bool "Enable link-time optimization"
   default y
-endif
 
 config CC_DEBUG
   bool "Enable debug information"
@@ -152,7 +149,7 @@ config DEBUG
     Enable debug features, which include instruction tracing and watchpoint.
 
 config DIFFTEST
-  depends on !TARGET_SHARE
+  depends on !TARGET_SHARE && !TARGET_AM
   bool "Enable differential testing"
   default n
   help
@@ -210,14 +207,14 @@ endif
 
 choice
   prompt "FPU Emulation"
-  default FPU_NONE if AM
+  default FPU_NONE if TARGET_AM
   default FPU_HOST
-if !AM
 config FPU_HOST
+  depends on !TARGET_AM
   bool "Use host floating point operation"
 config FPU_SOFT
+  depends on !TARGET_AM
   bool "Use softfloat library"
-endif
 config FPU_NONE
   bool "Disable FPU Emulation"
 endchoice
@@ -225,10 +222,9 @@ endchoice
 choice
   prompt "Detecting misaligned memory accessing"
   default AC_NONE
-if !AM
 config AC_HOST
+  depends on !TARGET_AM
   bool "By host CPU (x86 host only)"
-endif
 config AC_SOFT
   bool "By software emulation"
 config AC_NONE
@@ -236,8 +232,8 @@ config AC_NONE
 endchoice
 
 menu "Miscellaneous"
-if !AM
 choice
+  depends on !TARGET_AM
   prompt "Host timer"
   default TIMER_GETTIMEOFDAY
 config TIMER_GETTIMEOFDAY
@@ -245,13 +241,13 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
-endif
 
 config RT_CHECK
   bool "Enable runtime checking"
   default y
 
 config PERF_OPT
+  depends on !TARGET_AM
   bool "Performance optimization"
   default y
 

@@ -92,7 +92,7 @@ config VGA_SIZE_800x600
 endchoice
 endif # HAS_VGA
 
-if !AM
+if !TARGET_AM
 menuconfig HAS_AUDIO
   bool "Enable audio"
   default y
