@@ -181,7 +181,7 @@ void hebing_new(uint64_t vpn, two_vpn *result) {
   bool valid[EntryNumPerWalker];
   int wanted = vpn % EntryNumPerWalker;
   int begin = vpn / EntryNumPerWalker * EntryNumPerWalker;
-  int gap[EntryNumPerWalker - 1];
+
   for (int i = 0; i < EntryNumPerWalker; i++) {
     valid[i] = false;
     ppn[i] = get_ppn(begin + i, &valid[i]);
@@ -189,6 +189,9 @@ void hebing_new(uint64_t vpn, two_vpn *result) {
     Log("trans %d: vpn:%016x ppn:%016x valid:%d", i, begin + i, ppn[i], valid[i]);
 #endif
   }
+
+#ifdef HEBING
+  int gap[EntryNumPerWalker - 1];
   for (int i = 0; i < EntryNumPerWalker - 1; i ++) {
     gap[i] = ppn[i + 1] - ppn[i];
   }
@@ -220,11 +223,14 @@ void hebing_new(uint64_t vpn, two_vpn *result) {
     result->ppn = ppn[wanted];
     result->stride = log2int(high_gap);
   } else {
+#endif
     result->big = vpn;
     result->small = vpn;
     result->ppn = ppn[wanted];
     result->stride = 0;
+#ifdef HEBING
   }
+#endif
 #ifdef TLB_DEBUG
   Log("new: tag: %016x ppn: %016x stride: %d length: 1 + %d -", result->small, result->ppn, result->stride, result->big - result->small);
 #endif
@@ -274,6 +280,7 @@ void hb_perf_dec_wrapper(riscv64_TLB_State *tlb, uint64_t length, uint64_t strid
 
 void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
   // walk the page table and find adjacent entry and flush it
+#ifdef HEBING
   hb_perf_add_wrapper(tlb, vpn->big - vpn->small, vpn->stride, false);
 
 #ifdef DOOLDHEBING
@@ -303,12 +310,14 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
     }
   }
 #endif
+#endif
 
   result->length = vpn->big - vpn->small;
   result->tag = vpn->small;
   result->ppn = vpn->ppn;
   result->stride = vpn->stride;
 
+#ifdef HEBING
 #ifdef DOOLDHEBING
   hb_perf_add_wrapper(tlb, result->length, result->stride, true);
 
@@ -318,6 +327,7 @@ void hebing_old(riscv64_TLB_State *tlb, two_vpn *vpn, tlb_hb_entry *result) {
 
 #endif
   hb_perf_access_wrapper(tlb, result->length, result->stride);
+#endif
 
   return ;
 }

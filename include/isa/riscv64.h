@@ -142,6 +142,7 @@ typedef struct {
 #define MAXSTRIDE 4
 // NOTE: 只需要stride为4即可
 #define DOOLDHEBING
+#define HEBING
 
 // just record miss rate, don't do the translation job
 typedef struct {
