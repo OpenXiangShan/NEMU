@@ -89,8 +89,8 @@ CONFIG_SDCARD_IMG_PATH=""
 # CONFIG_FPU_HOST is not set
 CONFIG_FPU_SOFT=y
 # CONFIG_FPU_NONE is not set
-CONFIG_AC_HOST=y
-# CONFIG_AC_SOFT is not set
+# CONFIG_AC_HOST is not set
+CONFIG_AC_SOFT=y
 # CONFIG_AC_NONE is not set
 
 #
