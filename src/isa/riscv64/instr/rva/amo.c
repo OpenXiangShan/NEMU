@@ -12,6 +12,12 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     cpu.lr_valid = 1;
     return;
   } else if (funct5 == 0b00011) { // sc
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+    // cpu.amu for sc instructions is set to true when store difftest is enabled.
+    // Atomic instructions don't commit through store queue and need to be skipped.
+    // Store difftest uses cpu.amo to skip atomic store instructions.
+    cpu.amo = true;
+#endif
     // should check overlapping instead of equality
     int success = cpu.lr_addr == *src1 && cpu.lr_valid;
     if (success) {
@@ -25,6 +31,9 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       return_on_mem_ex();
     }
     rtl_li(s, dest, !success);
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+    cpu.amo = false;
+#endif
     return;
   }
 
