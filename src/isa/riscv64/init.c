@@ -3,10 +3,11 @@
 #include "local-include/csr.h"
 
 static const uint32_t img [] = {
-  0x800002b7,  // lui t0,0x80000
-  0x0002a023,  // sw  zero,0(t0)
-  0x0002a503,  // lw  a0,0(t0)
+  0x00000297,  // auipc t0,0
+  0x0002b823,  // sw  zero,16(t0)
+  0x0102b503,  // lw  a0,16(t0)
   0x0000006b,  // nemu_trap
+  0xdeadbeef,  // some data
 };
 
 void init_csr();
