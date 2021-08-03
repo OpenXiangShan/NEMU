@@ -3,6 +3,7 @@ menu "Memory Configuration"
 config MBASE
   hex "Memory base address"
   default 0x08048000 if MODE_USER
+  default 0x0        if ISA_x86
   default 0x80000000
 
 config MSIZE
@@ -11,8 +12,8 @@ config MSIZE
 
 config PC_RESET_OFFSET
   hex "Offset of reset vector from the base of memory"
-  default 0 if MODE_USER
-  default 0x100000
+  default 0x100000 if ISA_x86
+  default 0
 
 if !TARGET_AM
 config USE_MMAP
