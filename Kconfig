@@ -229,9 +229,9 @@ config GUIDED_EXEC
   default y
 
 config LARGE_COPY
-  depends on SHARE
+  depends on SHARE && !MEM_RANDOM
   bool "Enable difftest large memory copy optimization"
-  default y
+  default n
 
 config PANIC_ON_UNIMP_CSR
   depends on SHARE
