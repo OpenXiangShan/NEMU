@@ -24,7 +24,7 @@ config SERIAL_PORT
 
 config SERIAL_MMIO
   hex "MMIO address of the serial controller"
-  default 0xa10003f8
+  default 0xa00003f8
 
 config SERIAL_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
@@ -43,7 +43,7 @@ config RTC_PORT
 
 config RTC_MMIO
   hex "MMIO address of the timer"
-  default 0xa1000048
+  default 0xa0000048
 endif # HAS_TIMER
 
 menuconfig HAS_KEYBOARD
@@ -58,7 +58,7 @@ config I8042_DATA_PORT
 
 config I8042_DATA_MMIO
   hex "MMIO address of the keyboard controller"
-  default 0xa1000060
+  default 0xa0000060
 endif # HAS_KEYBOARD
 
 menuconfig HAS_VGA
@@ -68,7 +68,7 @@ menuconfig HAS_VGA
 if HAS_VGA
 config FB_ADDR
   hex "Physical address of the VGA frame buffer"
-  default 0xa0000000
+  default 0xa1000000
 
 config VGA_CTL_PORT
   depends on HAS_PORT_IO
@@ -77,7 +77,7 @@ config VGA_CTL_PORT
 
 config VGA_CTL_MMIO
   hex "MMIO address of the VGA controller"
-  default 0xa1000100
+  default 0xa0000100
 
 config VGA_SHOW_SCREEN
   bool "Enable SDL SCREEN"
@@ -101,7 +101,7 @@ menuconfig HAS_AUDIO
 if HAS_AUDIO
 config SB_ADDR
   hex "Physical address of the audio stream buffer"
-  default 0xa0800000
+  default 0xa1200000
 
 config SB_SIZE
   hex "Size of the audio stream buffer"
@@ -114,7 +114,7 @@ config AUDIO_CTL_PORT
 
 config AUDIO_CTL_MMIO
   hex "MMIO address of the audio controller"
-  default 0xa1000200
+  default 0xa0000200
 endif # HAS_AUDIO
 
 menuconfig HAS_DISK
@@ -129,7 +129,7 @@ config DISK_CTL_PORT
 
 config DISK_CTL_MMIO
   hex "MMIO address of the disk controller"
-  default 0xa1000300
+  default 0xa0000300
 
 config DISK_IMG_PATH
   string "The path of disk image"
