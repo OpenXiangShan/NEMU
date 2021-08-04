@@ -61,7 +61,9 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
 void init_audio() {
   uint32_t space_size = sizeof(uint32_t) * nr_reg;
   audio_base = (uint32_t *)new_space(space_size);
+#ifdef CONFIG_HAS_PORTIO
   add_pio_map ("audio", CONFIG_AUDIO_CTL_PORT, audio_base, space_size, audio_io_handler);
+#endif
   add_mmio_map("audio", CONFIG_AUDIO_CTL_MMIO, audio_base, space_size, audio_io_handler);
 #ifndef __ICS_EXPORT
   audio_base[reg_sbuf_size] = CONFIG_SB_SIZE;
