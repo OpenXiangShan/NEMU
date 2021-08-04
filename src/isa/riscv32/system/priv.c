@@ -36,12 +36,13 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   return 0;
 }
 
-void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src, uint32_t imm) {
+void isa_hostcall(uint32_t id, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src, imm); return;
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src); break;
-    case HOSTCALL_PRIV: ret = priv_instr(imm, src); break;
+    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }
   if (dest) *dest = ret;
