@@ -50,7 +50,6 @@ def_EHelper(p_jal) {
 
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, &cpu.gpr[1]._64);
 }
 

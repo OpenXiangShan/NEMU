@@ -22,14 +22,12 @@ def_EHelper(c_j) {
 
 def_EHelper(c_jr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
 }
 
 def_EHelper(c_jalr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
   rtl_li(s, &cpu.gpr[1]._64, s->snpc);
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
 }
 
