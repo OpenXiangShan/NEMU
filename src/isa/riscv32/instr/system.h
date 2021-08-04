@@ -14,12 +14,12 @@ def_EHelper(csrrs) {
 }
 
 def_EHelper(ecall) {
-  rtl_trap(s, s->pc, 9);
+  rtl_trap(s, s->pc, 8 + cpu.mode);
   rtl_priv_jr(s, t0);
 }
 
-def_EHelper(sret) {
-  rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, NULL, 0x102);
+def_EHelper(mret) {
+  rtl_hostcall(s, HOSTCALL_PRIV, s0, NULL, NULL, 0x302);
   rtl_priv_jr(s, s0);
 }
 
