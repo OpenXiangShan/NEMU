@@ -11,7 +11,6 @@ static const uint32_t img [] = {
 };
 
 void init_csr();
-void init_clint();
 
 void init_isa() {
   init_csr();
@@ -30,5 +29,8 @@ void init_isa() {
 
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
-  IFNDEF(CONFIG_TARGET_SHARE, init_clint());
+#if !defined(CONFIG_TARGET_SHARE) && !defined(CONFIG_PA)
+  void init_clint();
+  init_clint();
+#endif
 }

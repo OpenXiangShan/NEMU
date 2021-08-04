@@ -1,6 +1,11 @@
 menu "ISA-dependent Options for riscv64"
 
+config PA
+  bool "Enable PA version"
+  default n
+
 config CLINT_MMIO
+  depends on !PA
   hex "MMIO address of CLINT"
   default 0xa2000000
 
