@@ -68,7 +68,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIP_MASK (0x222 & mideleg->val)
 
 #define FFLAGS_MASK 0x1f
-#define FRM_MASK 0x03
+#define FRM_MASK 0x07
 #define FCSR_MASK 0xff
 
 #define is_read(csr) (src == (void *)(csr))
