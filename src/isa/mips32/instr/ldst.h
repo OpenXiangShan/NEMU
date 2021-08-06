@@ -22,7 +22,7 @@ def_EHelper(sw) {
   def_ldst_template(concat(sh , suffix), sm , 2, mmu_mode) \
   def_ldst_template(concat(sb , suffix), sm , 1, mmu_mode)
 
-def_all_ldst(, MMU_DIRECT)
+def_all_ldst(, MMU_DYNAMIC)
 //def_all_ldst(_mmu, MMU_TRANSLATE)
 
 def_EHelper(swl) {
