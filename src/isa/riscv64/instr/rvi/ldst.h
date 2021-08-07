@@ -4,7 +4,7 @@
   }
 
 #define def_all_ldst(suffix, mmu_mode) \
-  def_ldst_template(concat(ld , suffix), lms, 8, mmu_mode) \
+  def_ldst_template(concat(ld , suffix), lm , 8, mmu_mode) \
   def_ldst_template(concat(lw , suffix), lms, 4, mmu_mode) \
   def_ldst_template(concat(lh , suffix), lms, 2, mmu_mode) \
   def_ldst_template(concat(lb , suffix), lms, 1, mmu_mode) \

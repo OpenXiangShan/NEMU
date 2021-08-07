@@ -1,5 +1,5 @@
 #define difftest_skip_delay_slot() \
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(2, 1))
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(2, 2))
 
 def_EHelper(j) {
   difftest_skip_delay_slot();

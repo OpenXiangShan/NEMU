@@ -56,6 +56,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_query_intr() {
+#ifdef CONFIG_PA
+  if (cpu.INTR && mstatus->mie) {
+    cpu.INTR = false;
+    return 0x8000000000000007;
+  }
+  return INTR_EMPTY;
+#else
   word_t intr_vec = mie->val & mip->val;
   if (!intr_vec) return INTR_EMPTY;
 
@@ -75,4 +82,5 @@ word_t isa_query_intr() {
     }
   }
   return INTR_EMPTY;
+#endif
 }

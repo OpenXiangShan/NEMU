@@ -1,35 +1,29 @@
+#ifdef __ICS_EXPORT
 def_EHelper(lw) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4);
 }
 
 def_EHelper(sw) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 4);
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 4);
 }
-#ifndef __ICS_EXPORT
+#else
+#define def_ldst_template(name, rtl_instr, width, mmu_mode) \
+  def_EHelper(name) { \
+    concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); \
+  }
 
-def_EHelper(lh) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 2);
-}
+#define def_all_ldst(suffix, mmu_mode) \
+  def_ldst_template(concat(lw , suffix), lm , 4, mmu_mode) \
+  def_ldst_template(concat(lh , suffix), lms, 2, mmu_mode) \
+  def_ldst_template(concat(lb , suffix), lms, 1, mmu_mode) \
+  def_ldst_template(concat(lhu, suffix), lm , 2, mmu_mode) \
+  def_ldst_template(concat(lbu, suffix), lm , 1, mmu_mode) \
+  def_ldst_template(concat(sw , suffix), sm , 4, mmu_mode) \
+  def_ldst_template(concat(sh , suffix), sm , 2, mmu_mode) \
+  def_ldst_template(concat(sb , suffix), sm , 1, mmu_mode)
 
-def_EHelper(lb) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 1);
-}
-
-def_EHelper(lhu) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 2);
-}
-
-def_EHelper(lbu) {
-  rtl_lm(s, ddest, dsrc1, id_src2->imm, 1);
-}
-
-def_EHelper(sh) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 2);
-}
-
-def_EHelper(sb) {
-  rtl_sm(s, dsrc1, id_src2->imm, ddest, 1);
-}
+def_all_ldst(, MMU_DYNAMIC)
+//def_all_ldst(_mmu, MMU_TRANSLATE)
 
 def_EHelper(swl) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
@@ -40,7 +34,7 @@ def_EHelper(swl) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
+  rtl_lm(s, s0, s0, 0, 4, MMU_DYNAMIC);
 
   // prepare memory data
   rtl_shri(s, s0, s0, 8);   // shift 8 bit
@@ -61,7 +55,7 @@ def_EHelper(swl) {
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_sm(s, s0, 0, s1, 4);
+  rtl_sm(s, s1, s0, 0, 4, MMU_DYNAMIC);
 }
 
 def_EHelper(swr) {
@@ -75,7 +69,7 @@ def_EHelper(swr) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
+  rtl_lm(s, s0, s0, 0, 4, MMU_DYNAMIC);
 
   // prepare memory data
   rtl_shli(s, s0, s0, 8);   // shift 8 bit
@@ -96,7 +90,7 @@ def_EHelper(swr) {
   // write back
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_sm(s, s0, 0, s1, 4);
+  rtl_sm(s, s1, s0, 0, 4, MMU_DYNAMIC);
 }
 
 def_EHelper(lwl) {
@@ -110,7 +104,7 @@ def_EHelper(lwl) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
+  rtl_lm(s, s0, s0, 0, 4, MMU_DYNAMIC);
 
   // prepare memory data
   rtl_shl(s, s0, s0, s1);
@@ -138,7 +132,7 @@ def_EHelper(lwr) {
 
   // load the aligned memory word
   rtl_andi(s, s0, s0, ~0x3u);
-  rtl_lm(s, s0, s0, 0, 4);
+  rtl_lm(s, s0, s0, 0, 4, MMU_DYNAMIC);
 
   // prepare memory data
   rtl_shr(s, s0, s0, s1);

@@ -158,11 +158,9 @@ config DIFFTEST
 
 choice
   prompt "Reference design"
-  default DIFFTEST_REF_QEMU_DL
+  default DIFFTEST_REF_QEMU
   depends on DIFFTEST
-config DIFFTEST_REF_QEMU_DL
-  bool "QEMU, communicate with dynamic linking"
-config DIFFTEST_REF_QEMU_SOCKET
+config DIFFTEST_REF_QEMU
   bool "QEMU, communicate with socket"
 config DIFFTEST_REF_KVM
   bool "KVM"
@@ -170,23 +168,16 @@ config DIFFTEST_REF_NEMU
   bool "NEMU"
 endchoice
 
-config DIFFTEST_REF_QEMU
-  depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
-  bool
-  default y
-
 config DIFFTEST_REF_PATH
   string
-  default "tools/qemu-dl-diff" if DIFFTEST_REF_QEMU_DL
-  default "tools/qemu-socket-diff" if DIFFTEST_REF_QEMU_SOCKET
+  default "tools/qemu-diff" if DIFFTEST_REF_QEMU
   default "tools/kvm-diff" if DIFFTEST_REF_KVM
   default "." if DIFFTEST_REF_NEMU
   default "none"
 
 config DIFFTEST_REF_NAME
   string
-  default "qemu" if DIFFTEST_REF_QEMU_DL
-  default "qemu" if DIFFTEST_REF_QEMU_SOCKET
+  default "qemu" if DIFFTEST_REF_QEMU
   default "kvm" if DIFFTEST_REF_KVM
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
   default "none"

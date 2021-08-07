@@ -1,6 +1,6 @@
 #ifdef __ICS_EXPORT
 def_EHelper(lw) {
-  rtl_lms(s, ddest, dsrc1, id_src2->imm, 4);
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 4);
 }
 
 def_EHelper(sw) {
@@ -13,7 +13,7 @@ def_EHelper(sw) {
   }
 
 #define def_all_ldst(suffix, mmu_mode) \
-  def_ldst_template(concat(lw , suffix), lms, 4, mmu_mode) \
+  def_ldst_template(concat(lw , suffix), lm , 4, mmu_mode) \
   def_ldst_template(concat(lh , suffix), lms, 2, mmu_mode) \
   def_ldst_template(concat(lb , suffix), lms, 1, mmu_mode) \
   def_ldst_template(concat(lhu, suffix), lm , 2, mmu_mode) \

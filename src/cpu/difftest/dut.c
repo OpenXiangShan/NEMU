@@ -13,8 +13,6 @@ void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 #ifdef CONFIG_DIFFTEST
 
-IFDEF(CONFIG_DIFFTEST_REF_QEMU_DL, __thread uint8_t resereve_for_qemu_tls[4096]);
-
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
 void (*patch_fn)(void *arg) = NULL;

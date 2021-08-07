@@ -10,23 +10,23 @@ typedef struct {
 
   vaddr_t pc;
 #ifndef __ICS_EXPORT
-  vaddr_t stvec;
-  vaddr_t scause;
-  vaddr_t sepc;
-  vaddr_t sscratch;
+  vaddr_t mtvec;
+  vaddr_t mcause;
+  vaddr_t mepc;
+  vaddr_t mscratch;
+  int mode;
   union {
     struct {
-      uint32_t uie : 1;
-      uint32_t sie : 1;
-      uint32_t pad0: 2;
-      uint32_t upie: 1;
-      uint32_t spie: 1;
-      uint32_t pad1: 2;
-      uint32_t spp : 1;
-      uint32_t dontcare :21;
+      uint32_t pad0: 3;
+      uint32_t mie : 1;
+      uint32_t pad1: 3;
+      uint32_t mpie: 1;
+      uint32_t pad2: 3;
+      uint32_t mpp : 2;
+      uint32_t dontcare :19;
     };
     uint32_t val;
-  } sstatus;
+  } mstatus;
   union {
     struct {
       uint32_t ppn :22;

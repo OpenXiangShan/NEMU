@@ -17,7 +17,8 @@ static void restart() {
   /* The zero register is always 0. */
   cpu.gpr[0]._32 = 0;
 #ifndef __ICS_EXPORT
-  cpu.sstatus.val = 0x000c0100;
+  cpu.mode = 3;
+  cpu.mstatus.val = 0x00001800;
 #endif
 }
 

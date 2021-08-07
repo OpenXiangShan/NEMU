@@ -3,18 +3,21 @@
 
 #ifndef __ICS_EXPORT
 word_t raise_intr(uint32_t NO, vaddr_t epc) {
-  cpu.scause = NO;
-  cpu.sepc = epc;
-  cpu.sstatus.spie = cpu.sstatus.sie;
-  cpu.sstatus.sie = 0;
-  return cpu.stvec;
+  cpu.mcause = NO;
+  cpu.mepc = epc;
+  cpu.mstatus.mpp = cpu.mode;
+  cpu.mode = 3;
+  cpu.mstatus.mpie = cpu.mstatus.mie;
+  cpu.mstatus.mie = 0;
+  return cpu.mtvec;
 }
 
-void isa_query_intr() {
-  if (cpu.INTR && cpu.sstatus.sie) {
+word_t isa_query_intr() {
+  if (cpu.INTR && cpu.mstatus.mie) {
     cpu.INTR = false;
-    cpu.pc = raise_intr(0x80000005, cpu.pc);
+    return 0x80000007;
   }
+  return INTR_EMPTY;
 }
 
 #else
@@ -26,6 +29,7 @@ word_t raise_intr(uint32_t NO, vaddr_t epc) {
   return 0;
 }
 
-void isa_query_intr() {
+word_t isa_query_intr() {
+  return INTR_EMPTY;
 }
 #endif

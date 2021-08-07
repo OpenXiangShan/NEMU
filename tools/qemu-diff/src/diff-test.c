@@ -1,8 +1,6 @@
 #include "common.h"
 #include <sys/prctl.h>
 #include <signal.h>
-#include <difftest-def.h>
-#include _ISA_H_
 
 bool gdb_connect_qemu(int);
 bool gdb_memcpy_to_qemu(uint32_t, void *, int);
@@ -62,7 +60,8 @@ void difftest_init(int port) {
     }
 
     close(STDIN_FILENO);
-    execlp(ISA_QEMU_BIN, ISA_QEMU_BIN, ISA_QEMU_ARGS "-S", "-gdb", buf, "-nographic", NULL);
+    execlp(ISA_QEMU_BIN, ISA_QEMU_BIN, ISA_QEMU_ARGS "-S", "-gdb", buf, "-nographic",
+        "-serial", "none", "-monitor", "none", NULL);
     perror("exec");
     assert(0);
   }
