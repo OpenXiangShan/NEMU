@@ -1,4 +1,6 @@
 #include "sim.h"
+#define __ISA_riscv64__
+#include <difftest-def.h>
 
 static std::vector<std::pair<reg_t, abstract_device_t*>> difftest_plugin_devices;
 static std::vector<std::string> difftest_htif_args;
@@ -32,7 +34,7 @@ context_t diff_target;
 void sim_t::diff_get_regs(void* diff_context) {
   struct diff_context_t* ctx = (struct diff_context_t*)diff_context;
   processor_t *p = get_core("0");
-  for(int i = 0; i < NXPR; i++){
+  for(int i = 0; i < NXPR; i++) {
     ctx->gpr[i] = p->get_state()->XPR[i];
   }
   ctx->pc = p->get_state()->pc;
@@ -42,7 +44,7 @@ void sim_t::diff_set_regs(void* diff_context) {
   struct diff_context_t* ctx = (struct diff_context_t*)diff_context;
   processor_t *p = get_core("0");
   state_t *state = p->get_state();
-  for(int i = 0; i < NXPR; i++){
+  for(int i = 0; i < NXPR; i++) {
     state->XPR.write(i, ctx->gpr[i]);
   }
   state->pc = ctx->pc;
@@ -51,7 +53,7 @@ void sim_t::diff_set_regs(void* diff_context) {
 void sim_t::diff_memcpy(reg_t dest, void* src, size_t n) {
   processor_t *p = get_core("0");
   mmu_t* mmu = p->get_mmu();
-  for(size_t i = 0; i < n; i++){
+  for(size_t i = 0; i < n; i++) {
     mmu->store_uint8(dest+i, *((uint8_t*)src+i));
   }
 }
@@ -60,16 +62,22 @@ void sim_t::diff_idle() {
   idle();
 }
 
-void difftest_memcpy_from_dut(reg_t dest, void *src, size_t n) {
-  s->diff_memcpy(dest, src, n);
+extern "C" {
+
+void difftest_memcpy(reg_t addr, void *buf, size_t n, bool direction) {
+  if (direction == DIFFTEST_TO_REF) {
+    s->diff_memcpy(addr, buf, n);
+  } else {
+    assert(0);
+  }
 }
 
-void difftest_getregs(void* diff_context) {
-  s->diff_get_regs(diff_context);
-}
-
-void difftest_setregs(void* diff_context) {
-  s->diff_set_regs(diff_context);
+void difftest_regcpy(void* dut, bool direction) {
+  if (direction == DIFFTEST_TO_REF) {
+    s->diff_set_regs(dut);
+  } else {
+    s->diff_get_regs(dut);
+  }
 }
 
 void difftest_exec() {
@@ -81,4 +89,10 @@ void difftest_init() {
   s = new sim_t(DEFAULT_ISA, DEFAULT_PRIV, DEFAULT_VARCH, 1, false, false,
       0, 0, NULL, reg_t(-1), difftest_mem, difftest_plugin_devices, difftest_htif_args,
       std::move(difftest_hartids), difftest_dm_config, nullptr, true, NULL);
+}
+
+void difftest_raise_intr() {
+  assert(0);
+}
+
 }

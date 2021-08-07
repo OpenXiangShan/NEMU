@@ -158,12 +158,20 @@ config DIFFTEST
 
 choice
   prompt "Reference design"
+  default DIFFTEST_REF_SPIKE if ISA_riscv64
+  default DIFFTEST_REF_KVM if ISA_x86
   default DIFFTEST_REF_QEMU
   depends on DIFFTEST
 config DIFFTEST_REF_QEMU
   bool "QEMU, communicate with socket"
+if ISA_riscv64
+config DIFFTEST_REF_SPIKE
+  bool "Spike"
+endif
+if ISA_x86
 config DIFFTEST_REF_KVM
   bool "KVM"
+endif
 config DIFFTEST_REF_NEMU
   bool "NEMU"
 endchoice
@@ -172,6 +180,7 @@ config DIFFTEST_REF_PATH
   string
   default "tools/qemu-diff" if DIFFTEST_REF_QEMU
   default "tools/kvm-diff" if DIFFTEST_REF_KVM
+  default "tools/spike-diff" if DIFFTEST_REF_SPIKE
   default "." if DIFFTEST_REF_NEMU
   default "none"
 
@@ -179,6 +188,7 @@ config DIFFTEST_REF_NAME
   string
   default "qemu" if DIFFTEST_REF_QEMU
   default "kvm" if DIFFTEST_REF_KVM
+  default "spike" if DIFFTEST_REF_SPIKE
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
   default "none"
 

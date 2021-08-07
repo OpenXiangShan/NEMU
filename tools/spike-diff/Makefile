@@ -18,10 +18,11 @@ $(shell mkdir -p $(BUILD_DIR))
 
 inc_dependencies = fesvr riscv disasm customext fdt softfloat spike_main spike_dasm build
 INC_PATH  = -I$(REPO_PATH) $(addprefix -I$(REPO_PATH)/, $(inc_dependencies))
+INC_PATH += -I$(NEMU_HOME)/include
 lib_dependencies = libspike_main.a libriscv.a libdisasm.a libsoftfloat.a libfesvr.a libfdt.a
 INC_LIBS  = $(addprefix $(REPO_PATH)/build/, $(lib_dependencies))
 
-NAME = spike-so
+NAME = $(GUEST_ISA)-spike-so
 BINARY = $(BUILD_DIR)/$(NAME)
 SRCS = difftest.cc
 
@@ -32,5 +33,6 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 all: $(BINARY)
+.DEFAULT_GOAL = all
 
 .PHONY: all clean $(SPIKE)
