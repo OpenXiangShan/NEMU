@@ -19,7 +19,7 @@ void init_isa() {
   cpu.pc = RESET_VECTOR;
 
   cpu.mode = MODE_M;
-  mstatus->val = 0;
+  mstatus->val = 0xa00000000ull;
 
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
