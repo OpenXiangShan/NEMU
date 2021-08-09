@@ -1,13 +1,12 @@
 #include "sim.h"
-#define RV32
-#ifdef RV32
+#include "../../include/common.h"
+#ifdef CONFIG_ISA_riscv32
 #define __ISA_riscv32__
 #undef DEFAULT_ISA
 #define DEFAULT_ISA "RV32IM"
 #else
 #define __ISA_riscv64__
 #endif
-#include "../../include/common.h"
 #include <difftest-def.h>
 
 static std::vector<std::pair<reg_t, abstract_device_t*>> difftest_plugin_devices;
@@ -69,7 +68,7 @@ void sim_t::diff_memcpy(reg_t dest, void* src, size_t n) {
 
 extern "C" {
 
-void difftest_memcpy(reg_t addr, void *buf, size_t n, bool direction) {
+void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
     s->diff_memcpy(addr, buf, n);
   } else {
