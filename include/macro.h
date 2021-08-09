@@ -77,12 +77,9 @@
 
 #define PG_ALIGN __attribute((aligned(4096)))
 
-#if 1
+#if !defined(likely)
 #define likely(cond)   __builtin_expect(cond, 1)
 #define unlikely(cond) __builtin_expect(cond, 0)
-#else
-#define likely(cond)   (cond)
-#define unlikely(cond) (cond)
 #endif
 
 // for AM IOE

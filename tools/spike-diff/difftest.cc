@@ -1,5 +1,13 @@
 #include "sim.h"
+#define RV32
+#ifdef RV32
+#define __ISA_riscv32__
+#undef DEFAULT_ISA
+#define DEFAULT_ISA "RV32IM"
+#else
 #define __ISA_riscv64__
+#endif
+#include "../../include/common.h"
 #include <difftest-def.h>
 
 static std::vector<std::pair<reg_t, abstract_device_t*>> difftest_plugin_devices;
@@ -18,8 +26,8 @@ static debug_module_config_t difftest_dm_config = {
 };
 
 struct diff_context_t {
-  reg_t gpr[32];
-  reg_t pc;
+  word_t gpr[32];
+  word_t pc;
 };
 
 static sim_t* s;
@@ -45,7 +53,7 @@ void sim_t::diff_set_regs(void* diff_context) {
   processor_t *p = get_core("0");
   state_t *state = p->get_state();
   for(int i = 0; i < NXPR; i++) {
-    state->XPR.write(i, ctx->gpr[i]);
+    state->XPR.write(i, (sword_t)ctx->gpr[i]);
   }
   state->pc = ctx->pc;
 }
