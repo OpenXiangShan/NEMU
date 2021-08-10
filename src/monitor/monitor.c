@@ -23,13 +23,13 @@ int is_batch_mode() { return batch_mode; }
 #endif
 
 static inline void welcome() {
-  Log("Debug: \33[1;32m%s\33[0m", MUXDEF(CONFIG_DEBUG, "ON","OFF"));
+  Log("Debug: %s", MUXDEF(CONFIG_DEBUG, ASNI_FMT("ON", ASNI_FG_GREEN) ,ASNI_FMT("OFF", ASNI_FG_RED)));
   IFDEF(CONFIG_DEBUG, Log("If debug mode is on, a log file will be generated "
       "to record every instruction NEMU executes. This may lead to a large log file. "
       "If it is not necessary, you can turn it off in include/common.h.")
   );
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", str(__GUEST_ISA__));
+  printf("Welcome to %s-NEMU!\n", ASNI_FMT(str(__GUEST_ISA__), ASNI_FG_YELLOW ASNI_BG_RED));
   printf("For help, type \"help\"\n");
 }
 

@@ -6,15 +6,14 @@
 #include <utils.h>
 
 #define Log(format, ...) \
-    _Log("\33[1;34m[%s,%d,%s] " format "\33[0m\n", \
+    _Log(ASNI_FMT("[%s,%d,%s] " format "\n", ASNI_FG_BLUE), \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
-#define Assert(cond, ...) \
+#define Assert(cond, format, ...) \
   do { \
     if (!(cond)) { \
-      MUXDEF(CONFIG_TARGET_AM, (printf("\33[1;31m"), printf(__VA_ARGS__), printf("\33[0m\n")), \
-          (fflush(stdout), fprintf(stderr, "\33[1;31m"), \
-           fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\33[0m\n"))); \
+      MUXDEF(CONFIG_TARGET_AM, printf(ASNI_FMT(format, ASNI_FG_RED), ## __VA_ARGS__), \
+        (fflush(stdout), fprintf(stderr, ASNI_FMT(format, ASNI_FG_RED), ##  __VA_ARGS__))); \
       extern void isa_reg_display(); \
       extern void monitor_statistic(); \
       isa_reg_display(); \
@@ -23,7 +22,7 @@
     } \
   } while (0)
 
-#define panic(...) Assert(0, __VA_ARGS__)
+#define panic(format, ...) Assert(0, format, ## __VA_ARGS__)
 
 #define TODO() panic("please implement me")
 
