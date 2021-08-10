@@ -61,7 +61,7 @@ word_t paddr_read(paddr_t addr, int len) {
   else return mmio_read(addr, len);
 #else
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
-  else printf("ERROR: invalid mem access to paddr %lx, NEMU loaded 0 to continue difftest\n", addr);
+  else printf("ERROR: invalid mem access to paddr " FMT_PADDR ", NEMU loaded 0 to continue difftest\n", addr);
   return 0;
 #endif
 }
