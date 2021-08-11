@@ -15,11 +15,9 @@ BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
 CC ?= gcc
 
-CCACHE := $(if $(shell which ccache),ccache,)
-
 # Compilation flags
-CC := $(CCACHE) $(CC)
-LD := $(CCACHE) $(CC)
+CC := $(CC)
+LD := $(CC)
 INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
