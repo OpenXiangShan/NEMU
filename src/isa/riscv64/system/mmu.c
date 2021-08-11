@@ -30,14 +30,14 @@ typedef union PageTableEntry {
 #define PTW_LEVEL 3
 #define PTE_SIZE 8
 #define VPNMASK 0x1ff
-static inline uintptr_t VPNiSHFT(int i) {
+static uintptr_t VPNiSHFT(int i) {
   return (PGSHFT) + 9 * i;
 }
-static inline uintptr_t VPNi(vaddr_t va, int i) {
+static uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
-static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
+static bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
   assert(mode == MODE_U || mode == MODE_S);
@@ -127,7 +127,7 @@ int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
 }
 
-static inline int update_mmu_state_internal(bool ifetch) {
+static int update_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
     assert(satp->mode == 0 || satp->mode == 8);

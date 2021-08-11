@@ -22,7 +22,7 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
-static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
+static void debug_hook(vaddr_t pc, const char *asmbuf) {
   log_write("%s\n", asmbuf);
   if (g_print_step) { puts(asmbuf); }
 
@@ -138,14 +138,13 @@ Decode* tcache_decode(Decode *s);
 void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
 
-static inline
-Decode* jr_fetch(Decode *s, vaddr_t target) {
+static Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
   return tcache_jr_fetch(s, target);
 }
 
-static inline void debug_difftest(Decode *_this, Decode *next) {
+static void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
   IFDEF(CONFIG_DEBUG, debug_hook(_this->pc, _this->logbuf));
   IFDEF(CONFIG_DIFFTEST, save_globals(next));

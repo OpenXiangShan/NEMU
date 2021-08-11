@@ -42,7 +42,7 @@ static char serial_dequeue() {
   return ch;
 }
 
-static inline uint8_t serial_rx_ready_flag() {
+static uint8_t serial_rx_ready_flag() {
   static uint32_t last = 0; // unit: s
   uint32_t now = get_time() / 1000000;
   if (now > last) {

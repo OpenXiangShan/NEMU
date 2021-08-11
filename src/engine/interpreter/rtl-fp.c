@@ -4,17 +4,17 @@
 
 #define BOX_MASK 0xFFFFFFFF00000000
 
-static inline fpreg_t unbox(fpreg_t r) {
+static fpreg_t unbox(fpreg_t r) {
   return MUXDEF(CONFIG_FPU_SOFT, (r & BOX_MASK) == BOX_MASK, true)
     ? (r & ~BOX_MASK) : defaultNaNF32UI;
 }
 
-static inline float32_t fpToF32(fpreg_t r) {
+static float32_t fpToF32(fpreg_t r) {
   float32_t f = { .v = (uint32_t)unbox(r) };
   return f;
 }
 
-static inline float64_t fpToF64(fpreg_t r) {
+static float64_t fpToF64(fpreg_t r) {
   float64_t f = { .v = r };
   return f;
 }
@@ -24,7 +24,7 @@ void isa_fp_set_ex(uint32_t ex);
 
 static uint32_t last_rm = -1;
 
-static inline void fp_update_rm(Decode *s) {
+static void fp_update_rm(Decode *s) {
   uint32_t rm = isa_fp_get_rm(s);
   if (unlikely(rm != last_rm)) {
     fp_set_rm(rm);
@@ -32,7 +32,7 @@ static inline void fp_update_rm(Decode *s) {
   }
 }
 
-static inline void fp_update_ex() {
+static void fp_update_ex() {
   return;
   uint32_t ex = fp_get_exception();
   if (ex) {

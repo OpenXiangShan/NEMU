@@ -63,7 +63,7 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 #endif
 #endif
 
-static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
+static word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, type);
   if (mmu_mode == MMU_DIRECT) return paddr_read(addr, len);
 #ifndef __ICS_EXPORT

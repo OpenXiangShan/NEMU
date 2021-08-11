@@ -5,8 +5,7 @@
 
 def_all_THelper();
 
-__attribute__((always_inline))
-static inline uint32_t get_instr(Decode *s) {
+static uint32_t get_instr(Decode *s) {
   return s->isa.instr.val;
 }
 

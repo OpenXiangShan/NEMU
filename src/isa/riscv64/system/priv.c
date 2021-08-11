@@ -20,7 +20,7 @@ void init_csr() {
   MAP(CSRS, CSRS_EXIST)
 };
 
-static inline word_t* csr_decode(uint32_t addr) {
+static word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
@@ -36,13 +36,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_write(csr) (dest == (void *)(csr))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
-static inline void update_mstatus_sd() {
+static void update_mstatus_sd() {
   // mstatus.fs is always dirty or off in QEMU 3.1.0
   if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
   mstatus->sd = (mstatus->fs == 3);
 }
 
-static inline word_t csr_read(word_t *src) {
+static word_t csr_read(word_t *src) {
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
@@ -56,7 +56,7 @@ static inline word_t csr_read(word_t *src) {
   return *src;
 }
 
-static inline void csr_write(word_t *dest, word_t src) {
+static void csr_write(word_t *dest, word_t src) {
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }

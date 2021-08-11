@@ -33,7 +33,7 @@ static uint32_t addr = 0;
 static bool write_cmd = 0;
 static bool read_ext_csd = false;
 
-static inline void prepare_rw(int is_write) {
+static void prepare_rw(int is_write) {
   blk_addr = base[SDARG];
   addr = 0;
   if (fp) fseek(fp, blk_addr << 9, SEEK_SET);

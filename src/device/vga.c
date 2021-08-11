@@ -4,15 +4,15 @@
 #define SCREEN_W (MUXDEF(CONFIG_VGA_SIZE_800x600, 800, 400))
 #define SCREEN_H (MUXDEF(CONFIG_VGA_SIZE_800x600, 600, 300))
 
-static inline uint32_t screen_width() {
+static uint32_t screen_width() {
   return MUXDEF(CONFIG_TARGET_AM, io_read(AM_GPU_CONFIG).width, SCREEN_W);
 }
 
-static inline uint32_t screen_height() {
+static uint32_t screen_height() {
   return MUXDEF(CONFIG_TARGET_AM, io_read(AM_GPU_CONFIG).height, SCREEN_H);
 }
 
-static inline uint32_t screen_size() {
+static uint32_t screen_size() {
   return screen_width() * screen_height() * sizeof(uint32_t);
 }
 
@@ -26,7 +26,7 @@ static uint32_t *vgactl_port_base = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
 
-static inline void init_screen() {
+static void init_screen() {
   SDL_Window *window = NULL;
   char title[128];
   sprintf(title, "%s-NEMU", str(__GUEST_ISA__));
@@ -40,16 +40,16 @@ static inline void init_screen() {
       SDL_TEXTUREACCESS_STATIC, SCREEN_W, SCREEN_H);
 }
 
-static inline void update_screen() {
+static void update_screen() {
   SDL_UpdateTexture(texture, NULL, vmem, SCREEN_W * sizeof(uint32_t));
   SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 }
 #else
-static inline void init_screen() {}
+static void init_screen() {}
 
-static inline void update_screen() {
+static void update_screen() {
   io_write(AM_GPU_FBDRAW, 0, 0, vmem, screen_width(), screen_height(), true);
 }
 #endif

@@ -17,13 +17,13 @@ uint8_t* new_space(int size) {
   return p;
 }
 
-static inline void check_bound(IOMap *map, paddr_t addr) {
+static void check_bound(IOMap *map, paddr_t addr) {
   Assert(map != NULL && addr <= map->high && addr >= map->low,
       "address (" FMT_PADDR ") is out of bound {%s} [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, (map ? map->name : "???"), (map ? map->low : 0), (map ? map->high : 0), cpu.pc);
 }
 
-static inline void invoke_callback(io_callback_t c, paddr_t offset, int len, bool is_write) {
+static void invoke_callback(io_callback_t c, paddr_t offset, int len, bool is_write) {
   if (c != NULL) { c(offset, len, is_write); }
 }
 

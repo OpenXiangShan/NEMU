@@ -57,7 +57,7 @@ static void kvm_set_step_mode(bool watch, uint32_t watch_addr) {
   }
 }
 
-static inline void kvm_getregs(struct kvm_regs *r) {
+static void kvm_getregs(struct kvm_regs *r) {
   if (ioctl(vcpu.fd, KVM_GET_REGS, r) < 0) {
     perror("KVM_GET_REGS");
     assert(0);
@@ -211,7 +211,7 @@ static void setup_protected_mode(struct kvm_sregs *sregs) {
   sregs->ds = sregs->es = sregs->fs = sregs->gs = sregs->ss = seg;
 }
 
-static inline uint64_t va2pa(uint64_t va) {
+static uint64_t va2pa(uint64_t va) {
   if (vcpu.kvm_run->s.regs.sregs.cr0 & CR0_PG) {
     struct kvm_translation t = { .linear_address = va };
     int ret = ioctl(vcpu.fd, KVM_TRANSLATE, &t);
@@ -221,7 +221,7 @@ static inline uint64_t va2pa(uint64_t va) {
   return va;
 }
 
-static inline int patching() {
+static int patching() {
   // patching for special instructions
   uint32_t pc = va2pa(vcpu.kvm_run->s.regs.regs.rip);
   if (pc == 0xffffffff) return 0;
@@ -255,12 +255,12 @@ static inline int patching() {
   return 0;
 }
 
-static inline void fix_push_sreg() {
+static void fix_push_sreg() {
   uint32_t esp = va2pa(vcpu.kvm_run->s.regs.regs.rsp);
   *(uint32_t *)(vm.mem + esp) &= 0x0000ffff;
 }
 
-static inline void patching_after(uint64_t last_pc) {
+static void patching_after(uint64_t last_pc) {
   uint32_t pc = va2pa(last_pc);
   if (pc == 0xffffffff) return;
   uint8_t opcode = vm.mem[pc];

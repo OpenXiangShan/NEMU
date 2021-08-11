@@ -22,7 +22,7 @@ static int bb_idx = 0;
 static bb_t bb_list [CONFIG_BB_LIST_SIZE] = {};
 static const void *g_exec_nemu_decode;
 
-static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
+static Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   s->tnext = s->ntnext = NULL;
   s->type = 0;
   s->pc = pc;
@@ -30,7 +30,7 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   return s;
 }
 
-static inline Decode* tcache_new(vaddr_t pc) {
+static Decode* tcache_new(vaddr_t pc) {
   if (tc_idx == CONFIG_TCACHE_SIZE) return NULL;
   assert(tc_idx < CONFIG_TCACHE_SIZE);
   Decode *s = &tcache_pool[tc_idx];
@@ -47,7 +47,7 @@ static inline Decode* tcache_new(vaddr_t pc) {
 #define tcache_bb_check(s)
 #endif
 
-static inline Decode* tcache_bb_new(vaddr_t pc) {
+static Decode* tcache_bb_new(vaddr_t pc) {
   Decode *s = tcache_bb_freelist;
   assert(s != NULL);
   tcache_bb_check(s);
@@ -58,7 +58,7 @@ static inline Decode* tcache_bb_new(vaddr_t pc) {
   return tcache_entry_init(s, pc);
 }
 
-static inline void tcache_bb_free(Decode *s) {
+static void tcache_bb_free(Decode *s) {
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist);
   s->tnext = tcache_bb_freelist;
@@ -67,7 +67,7 @@ static inline void tcache_bb_free(Decode *s) {
 }
 
 
-static inline bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
+static bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
   if (bb_idx == CONFIG_BB_POOL_SIZE) return NULL;
   assert(bb_idx < CONFIG_BB_POOL_SIZE);
   bb_t *bb = &bb_pool[bb_idx ++];
@@ -77,7 +77,7 @@ static inline bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
   return bb;
 }
 
-static inline bb_t* bb_hash(vaddr_t pc) {
+static bb_t* bb_hash(vaddr_t pc) {
   int idx = (pc / CONFIG_ILEN_MIN) % CONFIG_BB_LIST_SIZE;
   return &bb_list[idx];
 }
@@ -154,7 +154,7 @@ Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
   return s->tnext;
 }
 
-static inline void tcache_patch_and_free(Decode *bb_record, Decode *bb) {
+static void tcache_patch_and_free(Decode *bb_record, Decode *bb) {
   Decode *src = bb_record->bb_src;
   if (bb_record->type == BB_RECORD_TYPE_TAKEN)  { src->tnext = bb; }
   if (bb_record->type == BB_RECORD_TYPE_NTAKEN) { src->ntnext = bb; }

@@ -18,7 +18,7 @@ static uint32_t *audio_base = NULL;
 static int tail = 0;
 #endif
 
-static inline void audio_play(void *userdata, uint8_t *stream, int len) {
+static void audio_play(void *userdata, uint8_t *stream, int len) {
 #ifndef __ICS_EXPORT
   int nread = len;
   int count = audio_base[reg_count];

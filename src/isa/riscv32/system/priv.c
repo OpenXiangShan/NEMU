@@ -2,7 +2,7 @@
 #include "../local-include/intr.h"
 #include <cpu/cpu.h>
 
-static inline word_t* csr_decode(uint32_t csr) {
+static word_t* csr_decode(uint32_t csr) {
   switch (csr) {
     case 0x180: return &cpu.satp.val;
     case 0x300: return &cpu.mstatus.val;

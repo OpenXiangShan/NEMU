@@ -26,7 +26,7 @@ enum {
 #define SDL_KEYMAP(k) keymap[concat(SDL_SCANCODE_, k)] = concat(_KEY_, k);
 static uint32_t keymap[256] = {};
 
-static inline void init_keymap() {
+static void init_keymap() {
   MAP(_KEYS, SDL_KEYMAP)
 }
 
@@ -34,13 +34,13 @@ static inline void init_keymap() {
 static int key_queue[KEY_QUEUE_LEN] = {};
 static int key_f = 0, key_r = 0;
 
-static inline void key_enqueue(uint32_t am_scancode) {
+static void key_enqueue(uint32_t am_scancode) {
   key_queue[key_r] = am_scancode;
   key_r = (key_r + 1) % KEY_QUEUE_LEN;
   Assert(key_r != key_f, "key queue overflow!");
 }
 
-static inline uint32_t key_dequeue() {
+static uint32_t key_dequeue() {
   uint32_t key = _KEY_NONE;
   if (key_f != key_r) {
     key = key_queue[key_f];
@@ -58,7 +58,7 @@ void send_key(uint8_t scancode, bool is_keydown) {
 #else
 #define _KEY_NONE 0
 
-static inline uint32_t key_dequeue() {
+static uint32_t key_dequeue() {
   AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
   uint32_t am_scancode = ev.keycode | (ev.keydown ? KEYDOWN_MASK : 0);
   return am_scancode;

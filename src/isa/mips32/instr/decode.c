@@ -5,8 +5,7 @@
 
 def_all_THelper();
 
-__attribute__((always_inline))
-static inline uint32_t get_instr(Decode *s) {
+static uint32_t get_instr(Decode *s) {
   return s->isa.instr.val;
 }
 
@@ -14,62 +13,62 @@ static inline uint32_t get_instr(Decode *s) {
 #define def_DopHelper(name) \
   void concat(decode_op_, name) (Decode *s, Operand *op, uint32_t val, bool flag)
 
-static inline def_DopHelper(i) {
+static def_DopHelper(i) {
   op->imm = val;
   print_Dop(op->str, OP_STR_SIZE, (flag ? "0x%x" : "%d"), op->imm);
 }
 
-static inline def_DopHelper(r) {
+static def_DopHelper(r) {
   bool load_val = flag;
   static word_t zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
-static inline def_DHelper(IU) {
+static def_DHelper(IU) {
   decode_op_r(s, id_src1, s->isa.instr.iu.rs, true);
   decode_op_i(s, id_src2, s->isa.instr.iu.imm, true);
   decode_op_r(s, id_dest, s->isa.instr.iu.rt, false);
 }
 
-static inline def_DHelper(ld) {
+static def_DHelper(ld) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
-static inline def_DHelper(st) {
+static def_DHelper(st) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, true);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
-static inline def_DHelper(lui) {
+static def_DHelper(lui) {
   decode_op_i(s, id_src1, s->isa.instr.iu.imm << 16, true);
   decode_op_r(s, id_dest, s->isa.instr.iu.rt, false);
 }
 
 #ifndef __ICS_EXPORT
-static inline def_DHelper(I) {
+static def_DHelper(I) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
 }
 
-static inline def_DHelper(J) {
+static def_DHelper(J) {
   vaddr_t target = (s->pc & 0xf0000000) | (s->isa.instr.j.target << 2);
   decode_op_i(s, id_dest, target, true);
 }
 
-static inline def_DHelper(R) {
+static def_DHelper(R) {
   decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
 }
 
-static inline def_DHelper(B) {
+static def_DHelper(B) {
   sword_t offset = (s->isa.instr.i.simm << 2);
   decode_op_i(s, id_dest, s->pc + offset + 4, true);
   decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
@@ -77,30 +76,30 @@ static inline def_DHelper(B) {
   //s->snpc += 4; // skip the delay slot
 }
 
-static inline def_DHelper(shift) {
+static def_DHelper(shift) {
   decode_op_i(s, id_src1, s->isa.instr.r.sa, false);
   decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
 }
 
-static inline def_DHelper(cmov) {
+static def_DHelper(cmov) {
   decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, true);
 }
 
-static inline def_DHelper(jal) {
+static def_DHelper(jal) {
   decode_J(s, width);
   id_src2->imm = s->pc + 8;
 }
 
-static inline def_DHelper(jalr) {
+static def_DHelper(jalr) {
   decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
   id_src2->imm = s->pc + 8;
 }
 
-static inline def_DHelper(cp0) {
+static def_DHelper(cp0) {
 //  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
   decode_op_i(s, id_dest, s->isa.instr.r.rd, false);

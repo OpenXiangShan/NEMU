@@ -22,7 +22,7 @@ static int difftest_port = 1234;
 int is_batch_mode() { return batch_mode; }
 #endif
 
-static inline void welcome() {
+static void welcome() {
   Log("Debug: %s", MUXDEF(CONFIG_DEBUG, ASNI_FMT("ON", ASNI_FG_GREEN) ,ASNI_FMT("OFF", ASNI_FG_RED)));
   IFDEF(CONFIG_DEBUG, Log("If debug mode is on, a log file will be generated "
       "to record every instruction NEMU executes. This may lead to a large log file. "
@@ -34,7 +34,7 @@ static inline void welcome() {
 }
 
 #ifndef CONFIG_MODE_USER
-static inline long load_img() {
+static long load_img() {
 #ifdef CONFIG_TARGET_AM
   extern char bin_start, bin_end;
   size_t size = &bin_end - &bin_start;
@@ -65,7 +65,7 @@ static inline long load_img() {
 #endif
 
 #ifndef CONFIG_TARGET_AM
-static inline int parse_args(int argc, char *argv[]) {
+static int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
     {"log"      , required_argument, NULL, 'l'},
