@@ -1,4 +1,5 @@
 #include "common.h"
+#include <difftest-def.h>
 #include <sys/prctl.h>
 #include <signal.h>
 

@@ -11,9 +11,7 @@
 
 typedef uint32_t paddr_t;
 
-#include <difftest-def.h>
-#include _ISA_H_
-
+#include "isa.h"
 #include "protocol.h"
 
 #endif
