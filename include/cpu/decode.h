@@ -64,8 +64,8 @@ typedef struct Decode {
 #define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
 
 
-#define def_THelper(name) \
-  static inline int concat(table_, name) (Decode *s)
+// prototype of table helpers
+#define def_THelper(name) static inline int concat(table_, name) (Decode *s)
 #define def_THelper_arity(name, arity) \
   def_THelper(name) { concat(print_asm_template, arity)(name); return concat(EXEC_ID_, name); }
 #define def_THelper_nullary(name) def_THelper_arity(name, 0)
@@ -80,14 +80,10 @@ typedef struct Decode {
   MAP(INSTR_TERNARY, def_THelper_ternary)
 
 
+// prototype of decode helpers
 #define def_DHelper(name) void concat(decode_, name) (Decode *s, int width)
 // empty decode helper
 static inline def_DHelper(empty) {}
-
-#define CASE_ENTRY(idx, id, tab) case idx: id(s); return tab(s);
-#define IDTAB(idx, id, tab) CASE_ENTRY(idx, concat(decode_, id), concat(table_, tab))
-#define TAB(idx, tab) IDTAB(idx, empty, tab)
-#define EMPTY(idx) TAB(idx, inv)
 
 __attribute__((always_inline))
 static inline void pattern_decode(const char *str, int len,
