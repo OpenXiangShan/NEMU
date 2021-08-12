@@ -203,7 +203,7 @@ Decode* tcache_decode(Decode *s) {
       case INSTR_TYPE_J: tcache_bb_fetch(s, true, s->jnpc); break;
       case INSTR_TYPE_B:
         tcache_bb_fetch(s, true, s->jnpc);
-        tcache_bb_fetch(s, false, s->snpc + MUXDEF(__ISA_mips32__, 4, 0));
+        tcache_bb_fetch(s, false, s->snpc + MUXDEF(CONFIG_ISA_mips32, 4, 0));
         break;
       case INSTR_TYPE_I: s->tnext = s->ntnext = s; break; // update dynamically
       default: assert(0);

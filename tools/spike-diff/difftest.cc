@@ -1,13 +1,11 @@
 #include "sim.h"
 #include "../../include/common.h"
+#include <difftest-def.h>
+
 #ifdef CONFIG_ISA_riscv32
-#define __ISA_riscv32__
 #undef DEFAULT_ISA
 #define DEFAULT_ISA "RV32IM"
-#else
-#define __ISA_riscv64__
 #endif
-#include <difftest-def.h>
 
 static std::vector<std::pair<reg_t, abstract_device_t*>> difftest_plugin_devices;
 static std::vector<std::string> difftest_htif_args;
