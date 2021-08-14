@@ -294,12 +294,12 @@ void cpu_exec(uint64_t n) {
 
     if (cause == NEMU_EXEC_EXCEPTION) {
       cause = 0;
-      cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
+      cpu.pc = isa_raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
     } else {
       word_t intr = MUXDEF(CONFIG_TARGET_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
-        cpu.pc = raise_intr(intr, cpu.pc);
+        cpu.pc = isa_raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }

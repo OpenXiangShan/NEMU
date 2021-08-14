@@ -44,6 +44,7 @@ BLACK_LIST = [
   r'^/src/isa/riscv64/filelist.mk',
   r'^/src/isa/riscv64/Kconfig',
   r'^/src/isa/riscv64/local-include/csr.h',
+  r'^/src/isa/riscv64/local-include/intr.h',
   r'^/src/isa/riscv64/instr/rv*/',
   r'^/src/isa/riscv64/instr/rv*/',
   r'^/src/isa/riscv64/instr/priv/',

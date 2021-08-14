@@ -13,7 +13,7 @@ enum {
   IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
 };
 
-word_t raise_intr(word_t NO, vaddr_t epc) {
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   switch (NO) {
     case EX_II:
     case EX_IPF:
@@ -87,7 +87,7 @@ word_t isa_query_intr() {
 #endif
 }
 #else
-word_t raise_intr(word_t NO, vaddr_t epc) {
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * That is, use ``NO'' to index the IDT.
    */

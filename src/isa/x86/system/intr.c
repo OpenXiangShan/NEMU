@@ -17,7 +17,7 @@ typedef union GateDescriptor {
 
 uint32_t compute_eflags();
 
-word_t raise_intr(word_t NO, vaddr_t ret_addr) {
+word_t isa_raise_intr(word_t NO, vaddr_t ret_addr) {
   assert(NO < 256);
   int old_cs = cpu.sreg[CSR_CS].val;
   // fetch the gate descriptor with ring 0
@@ -82,7 +82,7 @@ word_t isa_query_intr() {
   return INTR_EMPTY;
 }
 #else
-word_t raise_intr(word_t NO, vaddr_t ret_addr) {
+word_t isa_raise_intr(word_t NO, vaddr_t ret_addr) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * That is, use ``NO'' to index the IDT.
    */

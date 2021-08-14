@@ -7,5 +7,5 @@ void isa_difftest_regcpy(void *dut, bool direction) {
 }
 
 void isa_difftest_raise_intr(word_t NO) {
-  cpu.pc = raise_intr(NO, cpu.pc);
+  cpu.pc = isa_raise_intr(NO, cpu.pc);
 }

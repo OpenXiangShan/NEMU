@@ -3,7 +3,6 @@
 
 #include <common.h>
 
-#ifndef __ICS_EXPORT
 enum {
   EX_IAM, // instruction address misaligned
   EX_IAF, // instruction address fault
@@ -22,7 +21,5 @@ enum {
   EX_RS1, // reserved
   EX_SPF, // store/amo page fault
 };
-#endif
-word_t raise_intr(word_t NO, vaddr_t epc);
 
 #endif
