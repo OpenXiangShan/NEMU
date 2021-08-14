@@ -1,6 +1,5 @@
 #include <isa.h>
 #include <difftest-def.h>
-#include "../local-include/intr.h"
 #include "../local-include/csr.h"
 
 static void csr_prepare() {

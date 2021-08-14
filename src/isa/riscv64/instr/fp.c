@@ -2,6 +2,7 @@
 #include "../local-include/intr.h"
 #include <rtl/fp.h>
 #include <cpu/cpu.h>
+#include <cpu/decode.h>
 
 static uint32_t nemu_rm_cache = 0;
 void fp_update_rm_cache(uint32_t rm) {

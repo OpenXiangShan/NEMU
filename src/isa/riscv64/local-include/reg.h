@@ -11,18 +11,19 @@ static inline int check_reg_index(int index) {
 #define reg_l(index) (cpu.gpr[check_reg_index(index)]._64)
 
 static inline const char* reg_name(int index, int width) {
-  extern const char* regsl[];
+  extern const char* regs[];
   IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
-  return regsl[index];
+  return regs[index];
 }
 
+#ifndef __ICS_EXPORT
 // Floating Point Regs
 #define fpreg_l(index) (cpu.fpr[check_reg_index(index)]._64)
 
 static inline const char* fpreg_name(int index, int width){
-  extern const char* fpregsl[];
+  extern const char* fpregs[];
   IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
-  return fpregsl[index];
+  return fpregs[index];
 }
-
+#endif
 #endif

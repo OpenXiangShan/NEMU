@@ -11,9 +11,9 @@ static inline int check_reg_index(int index) {
 #define reg_l(index) (cpu.gpr[check_reg_index(index)]._32)
 
 static inline const char* reg_name(int index, int width) {
-  extern const char* regsl[];
+  extern const char* regs[];
   IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
-  return regsl[index];
+  return regs[index];
 }
 
 #endif

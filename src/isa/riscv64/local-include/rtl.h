@@ -3,6 +3,7 @@
 
 #include <rtl/rtl.h>
 #include "reg.h"
+#ifndef __ICS_EXPORT
 #include "csr.h"
 
 #define FBOX_MASK 0xFFFFFFFF00000000ull
@@ -24,5 +25,9 @@ static inline def_rtl(fsr, rtlreg_t *fdest, rtlreg_t *src, int width) {
   void fp_set_dirty();
   fp_set_dirty();
 }
+#else
 
+// no isa-dependent rtl instructions
+
+#endif
 #endif

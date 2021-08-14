@@ -1,7 +1,6 @@
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
-#include <cpu/decode.h>
 #include <isa-all-instr.h>
 #include <locale.h>
 
@@ -314,8 +313,8 @@ void cpu_exec(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
     fetch_decode(&s, cpu.pc);
-    cpu.pc = s.snpc;
     s.EHelper(&s);
+    cpu.pc = s.snpc;
     g_nr_guest_instr ++;
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));

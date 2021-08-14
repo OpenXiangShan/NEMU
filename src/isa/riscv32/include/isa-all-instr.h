@@ -1,5 +1,5 @@
 #include <cpu/decode.h>
-#include <rtl/rtl.h>
+#include "../local-include/rtl.h"
 
 #ifndef __ICS_EXPORT
 #define INSTR_NULLARY(f) \

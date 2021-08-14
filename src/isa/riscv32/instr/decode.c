@@ -1,6 +1,5 @@
-#include "../local-include/rtl.h"
+#include "../local-include/reg.h"
 #include <cpu/ifetch.h>
-#include <cpu/decode.h>
 #include <isa-all-instr.h>
 
 def_all_THelper();
@@ -11,7 +10,7 @@ static uint32_t get_instr(Decode *s) {
 
 // decode operand helper
 #define def_DopHelper(name) \
-  void concat(decode_op_, name) (Decode *s, Operand *op, uint32_t val, bool flag)
+  void concat(decode_op_, name) (Decode *s, Operand *op, word_t val, bool flag)
 
 static def_DopHelper(i) {
   op->imm = val;
@@ -42,8 +41,8 @@ static def_DHelper(S) {
   decode_op_i(s, id_src2, simm, false);
   decode_op_r(s, id_dest, s->isa.instr.s.rs2, true);
 }
-#ifndef __ICS_EXPORT
 
+#ifndef __ICS_EXPORT
 static def_DHelper(R) {
   decode_op_r(s, id_src1, s->isa.instr.r.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rs2, true);
@@ -257,7 +256,6 @@ int isa_fetch_decode(Decode *s) {
   return idx;
 }
 #else
-
 def_THelper(load) {
   def_INSTR_TAB("??????? ????? ????? 010 ????? ????? ??", lw);
   return EXEC_ID_inv;

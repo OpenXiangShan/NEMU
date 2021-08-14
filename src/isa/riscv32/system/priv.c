@@ -1,6 +1,5 @@
-#include "../local-include/rtl.h"
+#include <rtl/rtl.h>
 #ifndef __ICS_EXPORT
-#include "../local-include/intr.h"
 #include <cpu/cpu.h>
 
 static word_t* csr_decode(uint32_t csr) {
@@ -40,7 +39,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 }
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest,
-    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm) {
+    const rtlreg_t *src1, const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
@@ -52,7 +51,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest,
 }
 #else
 void isa_hostcall(uint32_t id, rtlreg_t *dest,
-    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm) {
+    const rtlreg_t *src1, const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
     default: panic("Unsupported hostcall ID = %d", id);

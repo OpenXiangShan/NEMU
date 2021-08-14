@@ -9,6 +9,7 @@ UNIFDEF_EXTRA_FILE_LIST = [
   r'^/runall.sh',
   r'^/Makefile',
   r'^/Kconfig',
+  r'^/src/memory/Kconfig',
   r'^/scripts/git.mk',
 ]
 
