@@ -120,7 +120,7 @@ void init_monitor(int argc, char *argv[]) {
   init_difftest(diff_so_file, img_size, difftest_port);
 
   /* Initialize devices. */
-  init_device();
+  IFDEF(CONFIG_DEVICE, init_device());
 #endif
 
   /* Compile the regular expressions. */
@@ -145,7 +145,7 @@ void am_init_monitor() {
   init_mem();
   init_isa();
   load_img();
-  init_device();
+  IFDEF(CONFIG_DEVICE, init_device());
   welcome();
 }
 #endif
