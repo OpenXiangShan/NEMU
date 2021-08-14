@@ -23,9 +23,10 @@ rtlreg_t tmp_reg[4];
 static void debug_hook(vaddr_t pc, const char *asmbuf) {
   log_write("%s\n", asmbuf);
   if (g_print_step) { puts(asmbuf); }
-
+#ifndef __ICS_EXPORT
   void scan_watchpoint(vaddr_t pc);
   scan_watchpoint(pc);
+#endif
 }
 #endif
 
