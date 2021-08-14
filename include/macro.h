@@ -62,10 +62,10 @@
 #define IFZERO(macro, ...) MUXZERO(macro, __KEEP, __IGNORE)(__VA_ARGS__)
 
 // functional-programming-like macro (X-macro)
-// apply the function `f` to each element in the contain `c`
+// apply the function `f` to each element in the container `c`
 // NOTE1: `c` should be defined as a list like:
 //   f(a0) f(a1) f(a2) ...
-// NOTE2: each element in the contain can be a tuple
+// NOTE2: each element in the container can be a tuple
 #define MAP(c, f) c(f)
 
 #define BITMASK(bits) ((1ull << (bits)) - 1)

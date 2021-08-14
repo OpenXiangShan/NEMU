@@ -111,8 +111,6 @@ void init_sdcard() {
   base = (uint32_t *)new_space(0x80);
   add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, base, 0x80, sdcard_io_handler);
 
-  //base[SDEDM] = (8 << 4); // number of data in fifo
-
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
   const char *img = CONFIG_SDCARD_IMG_PATH;

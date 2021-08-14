@@ -2,7 +2,6 @@
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
 #include <cpu/decode.h>
-#include <memory/host-tlb.h>
 #include <isa-all-instr.h>
 #include <locale.h>
 
@@ -12,7 +11,6 @@
  * You can modify this value as you want.
  */
 #define MAX_INSTR_TO_PRINT 10
-#define BATCH_SIZE 65536
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
@@ -31,10 +29,10 @@ static void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
-#ifndef CONFIG_TARGET_AM
-#include <setjmp.h>
-static jmp_buf jbuf_exec = {};
-#endif
+#ifndef __ICS_EXPORT
+#include <memory/host-tlb.h>
+
+#define BATCH_SIZE 65536
 
 static uint64_t n_remain_total;
 static int n_remain;
@@ -54,19 +52,6 @@ static void update_instr_cnt() {
 #endif
 }
 
-void monitor_statistic() {
-  update_instr_cnt();
-  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
-  Log("host time spent = %'ld us", g_timer);
-#ifdef CONFIG_ENABLE_INSTR_CNT
-  Log("total guest instructions = %'ld", g_nr_guest_instr);
-  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
-  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
-#else
-  Log("CONFIG_ENABLE_INSTR_CNT is not defined");
-#endif
-}
-
 static word_t g_ex_cause = NEMU_EXEC_RUNNING;
 static int g_sys_state_flag = 0;
 
@@ -79,13 +64,18 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   if (vaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
+#ifndef CONFIG_TARGET_AM
+#include <setjmp.h>
+static jmp_buf jbuf_exec = {};
+
 void longjmp_exec(int cause) {
-#ifdef CONFIG_TARGET_AM
-  Assert(cause == NEMU_EXEC_END, "NEMU on AM does not support exception");
-#else
   longjmp(jbuf_exec, cause);
-#endif
 }
+#else
+void longjmp_exec(int cause) {
+  Assert(cause == NEMU_EXEC_END, "NEMU on AM does not support exception");
+}
+#endif
 
 void longjmp_exception(int ex_cause) {
   g_ex_cause = ex_cause;
@@ -183,7 +173,7 @@ static int execute(int n) {
 #define s1 &ls1
 #define s2 &ls2
 
-#include "isa-exec.h"
+#include <isa-exec.h>
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s);
@@ -210,7 +200,7 @@ end_of_loop:
 #define rtl_priv_next(s)
 #define rtl_priv_jr(s, target) rtl_jr(s, target)
 
-#include "isa-exec.h"
+#include <isa-exec.h>
 static const void* g_exec_table[TOTAL_INSTR] = {
   MAP(INSTR_LIST, FILL_EXEC_TABLE)
 };
@@ -231,6 +221,23 @@ static int execute(int n) {
 }
 #endif
 
+static void update_global() {
+#ifdef CONFIG_PERF_OPT
+  update_instr_cnt();
+  cpu.pc = prev_s->pc;
+#endif
+}
+#endif
+
+#ifdef __ICS_EXPORT
+#include <isa-exec.h>
+
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
+static const void* g_exec_table[TOTAL_INSTR] = {
+  MAP(INSTR_LIST, FILL_EXEC_TABLE)
+};
+#endif
+
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
@@ -241,10 +248,18 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->EHelper = g_exec_table[idx];
 }
 
-static void update_global() {
-#ifdef CONFIG_PERF_OPT
+void monitor_statistic() {
+#ifndef __ICS_EXPORT
   update_instr_cnt();
-  cpu.pc = prev_s->pc;
+#endif
+  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
+  Log("host time spent = %'ld us", g_timer);
+#ifdef CONFIG_ENABLE_INSTR_CNT
+  Log("total guest instructions = %'ld", g_nr_guest_instr);
+  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+#else
+  Log("CONFIG_ENABLE_INSTR_CNT is not defined");
 #endif
 }
 
@@ -260,6 +275,7 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_start = get_time();
 
+#ifndef __ICS_EXPORT
   n_remain_total = n; // deal with setjmp()
   int cause = NEMU_EXEC_RUNNING;
 #ifndef CONFIG_TARGET_AM
@@ -293,6 +309,18 @@ void cpu_exec(uint64_t n) {
     n_remain = execute(n_batch);
     update_global();
   }
+#else
+  Decode s;
+  for (;n > 0; n --) {
+    fetch_decode(&s, cpu.pc);
+    cpu.pc = s.snpc;
+    s.EHelper(&s);
+    g_nr_guest_instr ++;
+    if (nemu_state.state != NEMU_RUNNING) break;
+    IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+  }
+#endif
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;

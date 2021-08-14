@@ -2,25 +2,12 @@
 #include <memory/paddr.h>
 
 void init_rand();
-void init_aligncheck();
 void init_log(const char *log_file);
 void init_mem();
 void init_regex();
 void init_wp_pool();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
-
-#ifndef CONFIG_TARGET_AM
-#include <getopt.h>
-
-static char *log_file = NULL;
-static char *diff_so_file = NULL;
-static char *img_file = NULL;
-static int batch_mode = false;
-static int difftest_port = 1234;
-
-int is_batch_mode() { return batch_mode; }
-#endif
 
 static void welcome() {
   Log("Debug: %s", MUXDEF(CONFIG_DEBUG, ASNI_FMT("ON", ASNI_FG_GREEN) ,ASNI_FMT("OFF", ASNI_FG_RED)));
@@ -33,14 +20,19 @@ static void welcome() {
   printf("For help, type \"help\"\n");
 }
 
+#ifndef CONFIG_TARGET_AM
+#include <getopt.h>
+
+static char *log_file = NULL;
+static char *diff_so_file = NULL;
+static char *img_file = NULL;
+static int batch_mode = false;
+static int difftest_port = 1234;
+
+int is_batch_mode() { return batch_mode; }
+
 #ifndef CONFIG_MODE_USER
 static long load_img() {
-#ifdef CONFIG_TARGET_AM
-  extern char bin_start, bin_end;
-  size_t size = &bin_end - &bin_start;
-  memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
-  return size;
-#else
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
@@ -60,11 +52,9 @@ static long load_img() {
 
   fclose(fp);
   return size;
-#endif
 }
 #endif
 
-#ifndef CONFIG_TARGET_AM
 static int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -139,13 +129,17 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize the watchpoint pool. */
   init_wp_pool();
 
-  /* Enable alignment checking for in a x86 host */
-  init_aligncheck();
-
   /* Display welcome message. */
   welcome();
 }
-#else
+#else // CONFIG_TARGET_AM
+static long load_img() {
+  extern char bin_start, bin_end;
+  size_t size = &bin_end - &bin_start;
+  memcpy(guest_to_host(RESET_VECTOR), &bin_start, size);
+  return size;
+}
+
 void am_init_monitor() {
   init_rand();
   init_mem();

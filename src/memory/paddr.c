@@ -38,8 +38,6 @@ void init_mem() {
 #endif
 }
 
-/* Memory accessing interfaces */
-
 word_t paddr_read(paddr_t addr, int len) {
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else return mmio_read(addr, len);

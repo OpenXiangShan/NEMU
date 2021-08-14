@@ -2,7 +2,6 @@
 #define __MEMORY_PADDR_H__
 
 #include <common.h>
-
 #ifdef CONFIG_MODE_USER
 #define CONFIG_MBASE 0
 #define CONFIG_MSIZE 0
@@ -17,6 +16,7 @@ uint8_t* guest_to_host(paddr_t paddr);
 paddr_t host_to_guest(uint8_t *haddr);
 
 static inline bool in_pmem(paddr_t addr) {
+#ifndef __ICS_EXPORT
   paddr_t mbase_mask = CONFIG_MBASE - 1;
   paddr_t msize_mask = CONFIG_MSIZE - 1;
   bool mbase_align = (CONFIG_MBASE & mbase_mask) == 0;
@@ -27,6 +27,9 @@ static inline bool in_pmem(paddr_t addr) {
   } else {
     return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + CONFIG_MSIZE);
   }
+#else
+  return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + CONFIG_MSIZE);
+#endif
 }
 
 word_t paddr_read(paddr_t addr, int len);

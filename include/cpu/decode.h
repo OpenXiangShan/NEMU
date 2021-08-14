@@ -19,6 +19,7 @@ typedef struct {
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 
+#ifndef __ICS_EXPORT
 enum {
   INSTR_TYPE_N, // normal
   INSTR_TYPE_J, // jump
@@ -48,12 +49,44 @@ typedef struct Decode {
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80]);
 } Decode;
+#else
+typedef struct Decode {
+  vaddr_t pc;
+  vaddr_t snpc; // sequential next pc
+  void (*EHelper)(struct Decode *);
+  Operand dest, src1, src2;
+  ISADecodeInfo isa;
+  IFDEF(CONFIG_DEBUG, char logbuf[80]);
+} Decode;
+#endif
 
 #define id_src1 (&s->src1)
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
 
 
+// --- instruction tracing log ---
+#define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
+#define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
+
+#ifndef suffix_char
+#define suffix_char(width) ' '
+#endif
+
+#define print_asm_template0(instr) \
+  print_asm(str(instr) "%c", suffix_char(id_dest->width))
+
+#define print_asm_template1(instr) \
+  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
+
+#define print_asm_template2(instr) \
+  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
+
+#define print_asm_template3(instr) \
+  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
+
+
+// --- container for all instrucitons ---
 #define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
 
 #define def_EXEC_ID(name) \
@@ -64,7 +97,7 @@ typedef struct Decode {
 #define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
 
 
-// prototype of table helpers
+// --- prototype of table helpers ---
 #define def_THelper(name) static inline int concat(table_, name) (Decode *s)
 #define def_THelper_arity(name, arity) \
   def_THelper(name) { concat(print_asm_template, arity)(name); return concat(EXEC_ID_, name); }
@@ -80,11 +113,13 @@ typedef struct Decode {
   MAP(INSTR_TERNARY, def_THelper_ternary)
 
 
-// prototype of decode helpers
+// --- prototype of decode helpers ---
 #define def_DHelper(name) void concat(decode_, name) (Decode *s, int width)
 // empty decode helper
 static inline def_DHelper(empty) {}
 
+
+// --- pattern matching mechanism ---
 __attribute__((always_inline))
 static inline void pattern_decode(const char *str, int len,
     uint32_t *key, uint32_t *mask, uint32_t *shift) {
@@ -143,6 +178,8 @@ finish:
   *shift = __shift;
 }
 
+
+// --- pattern matching wrappers for decode ---
 #define def_INSTR_raw(decode_fun, pattern, body) do { \
   uint32_t key, mask, shift; \
   decode_fun(pattern, STRLEN(pattern), &key, &mask, &shift); \
@@ -150,35 +187,17 @@ finish:
 } while (0)
 
 #define def_INSTR_IDTABW(pattern, id, tab, width) \
-  def_INSTR_raw(pattern_decode, pattern, { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
+  def_INSTR_raw(pattern_decode, pattern, \
+      { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
 #define def_INSTR_IDTAB(pattern, id, tab)   def_INSTR_IDTABW(pattern, id, tab, 0)
 #define def_INSTR_TABW(pattern, tab, width) def_INSTR_IDTABW(pattern, empty, tab, width)
 #define def_INSTR_TAB(pattern, tab)         def_INSTR_IDTABW(pattern, empty, tab, 0)
 
 #define def_hex_INSTR_IDTABW(pattern, id, tab, width) \
-  def_INSTR_raw(pattern_decode_hex, pattern, { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
+  def_INSTR_raw(pattern_decode_hex, pattern, \
+      { concat(decode_, id)(s, width); return concat(table_, tab)(s); })
 #define def_hex_INSTR_IDTAB(pattern, id, tab)   def_hex_INSTR_IDTABW(pattern, id, tab, 0)
 #define def_hex_INSTR_TABW(pattern, tab, width) def_hex_INSTR_IDTABW(pattern, empty, tab, width)
 #define def_hex_INSTR_TAB(pattern, tab)         def_hex_INSTR_IDTABW(pattern, empty, tab, 0)
-
-
-#define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
-#define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
-
-#ifndef suffix_char
-#define suffix_char(width) ' '
-#endif
-
-#define print_asm_template0(instr) \
-  print_asm(str(instr) "%c", suffix_char(id_dest->width))
-
-#define print_asm_template1(instr) \
-  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
-
-#define print_asm_template2(instr) \
-  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
-
-#define print_asm_template3(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
 
 #endif

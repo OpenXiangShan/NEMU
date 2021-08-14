@@ -9,9 +9,9 @@ remove_quote = $(patsubst "%",%,$(1))
 
 GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
-NAME    = nemu-$(ENGINE)
+NAME    = $(GUEST_ISA)-nemu-$(ENGINE)
 
-FILELIST_MK = $(shell find . -name "filelist.mk")
+FILELIST_MK = $(shell find ./src -name "filelist.mk")
 include $(FILELIST_MK)
 
 DIRS-BLACKLIST-y += $(DIRS-BLACKLIST)
@@ -28,12 +28,13 @@ CFLAGS  += $(CFLAGS_BUILD) -D__GUEST_ISA__=$(GUEST_ISA)
 LDFLAGS += $(CFLAGS_BUILD)
 
 include $(NEMU_HOME)/scripts/config.mk
-include $(NEMU_HOME)/scripts/isa.mk
 
 ifdef CONFIG_TARGET_AM
 include $(AM_HOME)/Makefile
 LINKAGE += $(ARCHIVES)
 else
+#ifndef __ICS_EXPORT
 include $(NEMU_HOME)/resource/softfloat/fpu.mk
+#endif
 include $(NEMU_HOME)/scripts/native.mk
 endif

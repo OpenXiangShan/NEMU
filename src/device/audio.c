@@ -14,12 +14,11 @@ enum {
 
 static uint8_t *sbuf = NULL;
 static uint32_t *audio_base = NULL;
+
 #ifndef __ICS_EXPORT
 static int tail = 0;
-#endif
 
 static void audio_play(void *userdata, uint8_t *stream, int len) {
-#ifndef __ICS_EXPORT
   int nread = len;
   int count = audio_base[reg_count];
   if (count < len) nread = count;
@@ -35,11 +34,9 @@ static void audio_play(void *userdata, uint8_t *stream, int len) {
   }
   audio_base[reg_count] -= nread;
   if (len > nread) memset(stream + nread, 0, len - nread);
-#endif
 }
 
 static void audio_io_handler(uint32_t offset, int len, bool is_write) {
-#ifndef __ICS_EXPORT
   if (offset == reg_init * sizeof(uint32_t) && len == 4 && is_write) {
     SDL_AudioSpec s = {};
     s.freq = audio_base[reg_freq];
@@ -55,8 +52,11 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
     SDL_OpenAudio(&s, NULL);
     SDL_PauseAudio(0);
   }
-#endif
 }
+#else
+static void audio_io_handler(uint32_t offset, int len, bool is_write) {
+}
+#endif
 
 void init_audio() {
   uint32_t space_size = sizeof(uint32_t) * nr_reg;

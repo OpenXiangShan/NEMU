@@ -30,12 +30,14 @@ typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
 #define FMT_PADDR MUXDEF(PMEM64, "0x%016lx", "0x%08x")
 typedef uint16_t ioaddr_t;
 
+#ifndef __ICS_EXPORT
 #ifndef __LP64__
 typedef struct {
   uint64_t _64[2];
 } __uint128_t;
 #endif
 
+#endif
 #include <debug.h>
 
 #endif

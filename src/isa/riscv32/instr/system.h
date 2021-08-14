@@ -1,5 +1,3 @@
-#ifndef __ICS_EXPORT
-
 def_EHelper(csrrw) {
   rtl_hostcall(s, HOSTCALL_CSR, ddest, dsrc1, NULL, id_src2->imm);
   rtl_priv_next(s);
@@ -27,4 +25,3 @@ def_EHelper(sfence_vma) {
   rtl_hostcall(s, HOSTCALL_PRIV, NULL, dsrc1, NULL, 0x120);
   rtl_priv_next(s);
 }
-#endif

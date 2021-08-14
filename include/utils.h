@@ -65,8 +65,10 @@ extern char log_asmbuf[80];
 
 word_t expr(char *e, bool *success);
 
+#ifdef CONFIG_IQUEUE
 // ----------- iqueue -----------
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
 void iqueue_dump();
 
+#endif
 #endif

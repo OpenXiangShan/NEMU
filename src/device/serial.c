@@ -5,9 +5,11 @@
 // NOTE: this is compatible to 16550
 
 #define CH_OFFSET 0
+#ifndef __ICS_EXPORT
 #define LSR_OFFSET 5
 #define LSR_TX_READY 0x20
 #define LSR_RX_READY 0x01
+#endif
 
 static uint8_t *serial_base = NULL;
 
@@ -104,12 +106,17 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
     /* We bind the serial port with the host stderr in NEMU. */
     case CH_OFFSET:
       if (is_write) MUXDEF(CONFIG_TARGET_AM, putch(serial_base[0]), putc(serial_base[0], stderr));
+#ifdef __ICS_EXPORT
+      else panic("do not support read");
+#else
       else serial_base[0] = MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_dequeue(), 0xff);
       break;
     case LSR_OFFSET:
       if (!is_write)
         serial_base[5] = LSR_TX_READY | MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_rx_ready_flag(), 0);
+#endif
       break;
+    default: panic("do not support offset = %d", offset);
   }
 }
 

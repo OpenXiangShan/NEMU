@@ -55,7 +55,7 @@ void send_key(uint8_t scancode, bool is_keydown) {
     key_enqueue(am_scancode);
   }
 }
-#else
+#else // !CONFIG_TARGET_AM
 #define _KEY_NONE 0
 
 static uint32_t key_dequeue() {

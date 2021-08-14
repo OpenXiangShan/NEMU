@@ -40,8 +40,6 @@ enum {
   RELOP_GEU   = 8 | 0 | 0 | 1,
 };
 
-#include <rtl/fp.h>
-
 enum {
   HOSTCALL_EXIT,  // handling nemu_trap
   HOSTCALL_INV,   // invalid opcode
@@ -56,6 +54,9 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 
 #include <rtl-basic.h>
 #include <rtl/pseudo.h>
+
+#ifndef __ICS_EXPORT
+#include <rtl/fp.h>
 
 #define def_rtl_fp_unary_prototype(name) \
   def_rtl(name, fpreg_t *dest, const fpreg_t *src1)
@@ -122,5 +123,6 @@ def_rtl_fp_unary_prototype(fabs);
 
 def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1,
     const fpreg_t *src2);
+#endif
 
 #endif

@@ -4,10 +4,12 @@ import re, shutil
 
 NEMU_HOME  = (Path(__file__) / '../../..').resolve()
 EXPORT_DIR = NEMU_HOME / 'tools' / 'export' / 'output'
-UNIFDEF_FLAGS = '-D__ICS_EXPORT -UISA64 -U__ENGINE_rv64__ -ULAZY_CC'
+UNIFDEF_FLAGS = '-D__ICS_EXPORT -ULAZY_CC -UCONFIG_MODE_USER -UCONFIG_PERF_OPT -UCONFIG_USE_MMAP -UCONFIG_SERIAL_INPUT_FIFO -DCONFIG_PA -DCONFIG_ENABLE_INSTR_CNT -UCONFIG_IQUEUE'
 UNIFDEF_EXTRA_FILE_LIST = [
   r'^/runall.sh',
-  r'^/Makefile.git',
+  r'^/Makefile',
+  r'^/Kconfig',
+  r'^/scripts/git.mk',
 ]
 
 def convert(r):

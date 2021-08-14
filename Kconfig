@@ -21,6 +21,12 @@ config ISA
   default "riscv64" if ISA_riscv64
   default "none"
 
+config ISA64
+  depends on ISA_riscv64
+  bool
+  default y
+
+#ifndef __ICS_EXPORT
 config ILEN_MIN
   int
   default 1 if ISA_x86
@@ -29,11 +35,6 @@ config ILEN_MIN
   default 2 if ISA_riscv64
   default 1
 
-config ISA64
-  depends on ISA_riscv64
-  bool
-  default y
-
 if ISA_x86
 source "src/isa/x86/Kconfig"
 endif
@@ -41,6 +42,7 @@ endif
 if ISA_riscv64
 source "src/isa/riscv64/Kconfig"
 endif
+#endif
 
 choice
   prompt "NEMU execution engine"
@@ -65,12 +67,13 @@ config MODE_SYSTEM
   bool "System mode"
   help
     Support full-system functionality, including privileged instructions, MMU and devices.
-
+#ifndef __ICS_EXPORT
 config MODE_USER
   depends on !TARGET_AM
   bool "User mode"
   help
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
+#endif
 endchoice
 
 choice
@@ -135,7 +138,7 @@ config CC_DEBUG
   default n
 
 config CC_ASAN
-  depends on !MODE_USER
+  depends on MODE_SYSTEM
   bool "Enable address sanitizer"
   default n
 endmenu
@@ -191,7 +194,7 @@ config DIFFTEST_REF_NAME
   default "spike" if DIFFTEST_REF_SPIKE
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
   default "none"
-
+#ifndef __ICS_EXPORT
 config DETERMINISTIC
   bool "Make the behavior of NEMU deterministic"
   default n
@@ -199,13 +202,15 @@ config DETERMINISTIC
 config IQUEUE
   bool "Record the last instrucitons executed"
   default n
+#endif
 endmenu
 
-if !MODE_USER
+if MODE_SYSTEM
 source "src/memory/Kconfig"
 source "src/device/Kconfig"
 endif
 
+#ifndef __ICS_EXPORT
 choice
   prompt "FPU Emulation"
   default FPU_NONE if TARGET_AM
@@ -231,6 +236,7 @@ config AC_SOFT
 config AC_NONE
   bool "Disable"
 endchoice
+#endif
 
 menu "Miscellaneous"
 choice
@@ -247,6 +253,7 @@ config RT_CHECK
   bool "Enable runtime checking"
   default y
 
+#ifndef __ICS_EXPORT
 config PERF_OPT
   depends on !TARGET_AM
   bool "Performance optimization"
@@ -276,5 +283,5 @@ config ENABLE_INSTR_CNT
   bool
   default n if DISABLE_INSTR_CNT
   default y
-
+#endif
 endmenu

@@ -1,19 +1,10 @@
 #include <isa.h>
 #include <utils.h>
 #include <cpu/cpu.h>
-#ifndef __ICS_EXPORT
-#include <memory/paddr.h>
-#include <memory/vaddr.h>
-#include <cpu/difftest.h>
-#endif
-
 #include <readline/readline.h>
 #include <readline/history.h>
 
 int is_batch_mode();
-int set_watchpoint(char *e);
-bool delete_watchpoint(int NO);
-void list_watchpoint();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -39,6 +30,14 @@ static int cmd_c(char *args) {
 }
 
 #ifndef __ICS_EXPORT
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
+#include <cpu/difftest.h>
+
+int set_watchpoint(char *e);
+bool delete_watchpoint(int NO);
+void list_watchpoint();
+
 static int cmd_si(char *args) {
   /* extract the first argument */
   char *arg = strtok(NULL, " ");
@@ -191,7 +190,6 @@ static int cmd_load(char *args) {
   }
   return 0;
 }
-#else
 #endif
 
 #endif

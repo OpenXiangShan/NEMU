@@ -1,5 +1,3 @@
-#ifndef __ICS_EXPORT
-
 def_EHelper(jal) {
   rtl_li(s, ddest, id_src2->imm);
   rtl_j(s, id_src1->imm);
@@ -35,4 +33,3 @@ def_EHelper(bltu) {
 def_EHelper(bgeu) {
   rtl_jrelop(s, RELOP_GEU, dsrc1, dsrc2, id_dest->imm);
 }
-#endif

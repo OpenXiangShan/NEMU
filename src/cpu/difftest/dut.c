@@ -15,9 +15,9 @@ void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
+#ifndef __ICS_EXPORT
 void (*patch_fn)(void *arg) = NULL;
 static void* patch_arg = NULL;
-#ifndef __ICS_EXPORT
 static bool is_detach = false;
 #endif
 
@@ -55,11 +55,13 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   }
 }
 
+#ifndef __ICS_EXPORT
 void difftest_set_patch(void (*fn)(void *arg), void *arg) {
   patch_fn = fn;
   patch_arg = arg;
 }
 
+#endif
 void init_difftest(char *ref_so_file, long img_size, int port) {
   assert(ref_so_file != NULL);
 
@@ -94,11 +96,13 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
   if (!isa_difftest_checkregs(ref, pc)) {
-    isa_reg_display();
-    IFDEF(CONFIG_IQUEUE, iqueue_dump());
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
+    isa_reg_display();
+#ifndef __ICS_EXPORT
+    IFDEF(CONFIG_IQUEUE, iqueue_dump());
     longjmp_exec(NEMU_EXEC_END);
+#endif
   }
 }
 
@@ -130,12 +134,12 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   ref_difftest_exec(1);
-
+#ifndef __ICS_EXPORT
   if (patch_fn) {
     patch_fn(patch_arg);
     patch_fn = NULL;
   }
-
+#endif
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 
   checkregs(&ref_r, pc);
@@ -153,7 +157,6 @@ void difftest_attach() {
   isa_difftest_attach();
 }
 #endif
-
 #else
 void init_difftest(char *ref_so_file, long img_size, int port) { }
 #endif
