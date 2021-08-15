@@ -18,6 +18,10 @@ static void welcome() {
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("Welcome to %s-NEMU!\n", ASNI_FMT(str(__GUEST_ISA__), ASNI_FG_YELLOW ASNI_BG_RED));
   printf("For help, type \"help\"\n");
+#ifdef __ICS_EXPORT
+  Log("Exercise: Please remove me in the source code and compile NEMU again.");
+  assert(0);
+#endif
 }
 
 #ifndef CONFIG_TARGET_AM
