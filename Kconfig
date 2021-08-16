@@ -133,7 +133,7 @@ config CC_OPT
 config CC_LTO
   depends on !TARGET_AM
   bool "Enable link-time optimization"
-  default y
+  default n
 
 config CC_DEBUG
   bool "Enable debug information"
@@ -148,7 +148,7 @@ endmenu
 menu "Testing and Debugging"
 config DEBUG
   depends on !TARGET_SHARE
-  bool "Enable debug features"
+  bool "Enable debug features inside NEMU"
   default n
   help
     Enable debug features, which include instruction tracing and watchpoint.
@@ -177,8 +177,10 @@ if ISA_x86
 config DIFFTEST_REF_KVM
   bool "KVM"
 endif
+#ifndef __ICS_EXPORT
 config DIFFTEST_REF_NEMU
   bool "NEMU"
+#endif
 endchoice
 
 config DIFFTEST_REF_PATH
@@ -186,7 +188,9 @@ config DIFFTEST_REF_PATH
   default "tools/qemu-diff" if DIFFTEST_REF_QEMU
   default "tools/kvm-diff" if DIFFTEST_REF_KVM
   default "tools/spike-diff" if DIFFTEST_REF_SPIKE
+#ifndef __ICS_EXPORT
   default "." if DIFFTEST_REF_NEMU
+#endif
   default "none"
 
 config DIFFTEST_REF_NAME
@@ -194,7 +198,9 @@ config DIFFTEST_REF_NAME
   default "qemu" if DIFFTEST_REF_QEMU
   default "kvm" if DIFFTEST_REF_KVM
   default "spike" if DIFFTEST_REF_SPIKE
+#ifndef __ICS_EXPORT
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
+#endif
   default "none"
 #ifndef __ICS_EXPORT
 config DETERMINISTIC
