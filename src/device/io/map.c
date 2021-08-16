@@ -5,8 +5,8 @@
 
 #define IO_SPACE_MAX (2 * 1024 * 1024)
 
-static uint8_t io_space[IO_SPACE_MAX] PG_ALIGN = {};
-static uint8_t *p_space = io_space;
+static uint8_t *io_space = NULL;
+static uint8_t *p_space = NULL;
 
 uint8_t* new_space(int size) {
   uint8_t *p = p_space;
@@ -29,6 +29,12 @@ static void check_bound(IOMap *map, paddr_t addr) {
 
 static void invoke_callback(io_callback_t c, paddr_t offset, int len, bool is_write) {
   if (c != NULL) { c(offset, len, is_write); }
+}
+
+void init_map() {
+  io_space = malloc(IO_SPACE_MAX);
+  assert(io_space);
+  p_space = io_space;
 }
 
 word_t map_read(paddr_t addr, int len, IOMap *map) {

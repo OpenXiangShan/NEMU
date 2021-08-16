@@ -2,9 +2,11 @@
 #include <memory/paddr.h>
 #include <device/mmio.h>
 
-#ifdef CONFIG_USE_MMAP
+#if defined(CONFIG_USE_MMAP)
 #include <sys/mman.h>
 #define pmem ((uint8_t *)0x100000000ul)
+#elif defined(CONFIG_TARGET_AM)
+static uint8_t *pmem = NULL;
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
@@ -21,13 +23,16 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
 }
 
 void init_mem() {
-#ifdef CONFIG_USE_MMAP
+#if defined(CONFIG_USE_MMAP)
   void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != pmem) {
     perror("mmap");
     assert(0);
   }
+#elif defined(CONFIG_TARGET_AM)
+  pmem = malloc(CONFIG_MSIZE);
+  assert(pmem);
 #endif
 #ifdef CONFIG_MEM_RANDOM
   uint32_t *p = (uint32_t *)pmem;
