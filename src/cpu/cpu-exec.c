@@ -158,7 +158,7 @@ static int execute(int n) {
   }
 
   __attribute__((unused)) Decode *this_s = NULL;
-  while (MUXDEF(CONFIG_TARGET_AM, g_ex_cause != NEMU_EXEC_END, true)) {
+  while (MUXDEF(CONFIG_TARGET_AM, nemu_state.state != NEMU_RUNNING, true)) {
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
@@ -213,7 +213,7 @@ static int execute(int n) {
     cpu.pc = s.snpc;
     s.EHelper(&s);
     g_nr_guest_instr ++;
-    IFDEF(CONFIG_TARGET_AM, if (g_ex_cause == NEMU_EXEC_END) break);
+    IFDEF(CONFIG_TARGET_AM, if (nemu_state.state != NEMU_RUNNING) break);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
