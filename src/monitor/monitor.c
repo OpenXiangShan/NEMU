@@ -108,7 +108,6 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize memory. */
   init_mem();
 
-  /* Load the image to memory. This will overwrite the built-in image. */
 #ifdef CONFIG_MODE_USER
   int user_argc = argc - user_argidx;
   char **user_argv = argv + user_argidx;
@@ -118,6 +117,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
+  /* Load the image to memory. This will overwrite the built-in image. */
   long img_size = load_img();
 
   /* Initialize differential testing. */
