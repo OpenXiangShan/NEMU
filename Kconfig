@@ -153,6 +153,16 @@ config DEBUG
   help
     Enable debug features, which include instruction tracing and watchpoint.
 
+config LOG_START
+  depends on DEBUG
+  int "When instruction tracing is enabled (unit: number of instructions)"
+  default 0
+
+config LOG_END
+  depends on DEBUG
+  int "When instruction tracing is disabled (unit: number of instructions)"
+  default 10000
+
 config DIFFTEST
   depends on !TARGET_SHARE && !TARGET_AM
   bool "Enable differential testing"
