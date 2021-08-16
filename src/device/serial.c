@@ -97,15 +97,18 @@ static void init_fifo() {
   fifo_fd = open(FIFO_PATH, O_RDONLY | O_NONBLOCK);
   assert(fifo_fd != -1);
 }
-
 #endif
+
+static void serial_putc(char ch) {
+  MUXDEF(CONFIG_TARGET_AM, putch(ch), putc(ch, stderr));
+}
 
 static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   assert(len == 1);
   switch (offset) {
     /* We bind the serial port with the host stderr in NEMU. */
     case CH_OFFSET:
-      if (is_write) MUXDEF(CONFIG_TARGET_AM, putch(serial_base[0]), putc(serial_base[0], stderr));
+      if (is_write) serial_putc(serial_base[0]);
 #ifdef __ICS_EXPORT
       else panic("do not support read");
 #else
