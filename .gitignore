@@ -6,7 +6,6 @@
 !*.[cSh]
 !.gitignore
 !README.md
-!scripts/runall.sh
 !Kconfig
 include/config
 include/generated
