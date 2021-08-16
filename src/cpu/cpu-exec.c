@@ -253,10 +253,11 @@ void monitor_statistic() {
   update_instr_cnt();
 #endif
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
-  Log("host time spent = %'ld us", g_timer);
+#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
+  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
 #ifdef CONFIG_ENABLE_INSTR_CNT
-  Log("total guest instructions = %'ld", g_nr_guest_instr);
-  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
+  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 #else
   Log("CONFIG_ENABLE_INSTR_CNT is not defined");
