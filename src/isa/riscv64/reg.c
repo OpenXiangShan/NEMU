@@ -42,7 +42,7 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   *success = true;
   for (i = 0; i < 32; i ++) {
-    if (strcmp(regs[i], s) == 0) return reg_l(i);
+    if (strcmp(regs[i], s) == 0) return gpr(i);
   }
 
   if (strcmp("pc", s) == 0) return cpu.pc;

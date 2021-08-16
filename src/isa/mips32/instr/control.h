@@ -8,13 +8,13 @@ def_EHelper(j) {
 
 def_EHelper(jal) {
   difftest_skip_delay_slot();
-  rtl_li(s, &reg_l(31), id_src2->imm);
+  rtl_li(s, &gpr(31), id_src2->imm);
   rtl_j(s, id_dest->imm);
 }
 
 def_EHelper(ret) {
   difftest_skip_delay_slot();
-  rtl_jr(s, &reg_l(31));
+  rtl_jr(s, &gpr(31));
 }
 
 def_EHelper(jr) {

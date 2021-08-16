@@ -3,7 +3,7 @@ static int table_op_fp_d(Decode *s);
 static int table_fmadd_d_dispatch(Decode *s);
 
 static inline def_DopHelper(fr){
-  op->preg = &fpreg_l(val);
+  op->preg = &fpr(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
 }
 

@@ -21,7 +21,7 @@ static def_DopHelper(i) {
 static def_DopHelper(r) {
   bool load_val = flag;
   static word_t zero_null = 0;
-  op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
+  op->preg = (!load_val && val == 0) ? &zero_null : &gpr(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
