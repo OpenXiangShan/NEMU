@@ -41,7 +41,7 @@ void init_isa() {
 
   /* Initialize this virtual computer system. */
   restart();
-#if !defined(CONFIG_TARGET_SHARE) && !defined(CONFIG_PA)
+#if !defined(CONFIG_TARGET_SHARE) && !defined(CONFIG_PA) && !defined(CONFIG_TARGET_AM)
   void init_clint();
   init_clint();
 #endif

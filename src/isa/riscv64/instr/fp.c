@@ -36,6 +36,7 @@ uint32_t isa_fp_get_rm(Decode *s) {
     case 4: return FPCALL_RM_RMM;
     default: save_globals(s); longjmp_exception(EX_II);
   }
+  return FPCALL_RM_RNE;
 }
 
 void isa_fp_set_ex(uint32_t ex) {

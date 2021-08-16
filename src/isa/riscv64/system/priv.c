@@ -53,7 +53,14 @@ static word_t csr_read(word_t *src) {
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
-  else if (is_read(mtime))  { difftest_skip_ref(); return MUXDEF(CONFIG_PA, 0, clint_uptime()); }
+  else if (is_read(mtime))  {
+    difftest_skip_ref();
+#if defined(CONFIG_PA) || defined(CONFIG_TARGET_AM)
+    return 0;
+#else
+    return clint_uptime();
+#endif
+  }
   if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
