@@ -232,10 +232,7 @@ def_THelper(main) {
 
 int isa_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
-  int idx = EXEC_ID_inv;
-  if (s->isa.instr.i.opcode1_0 == 0x3) {
-    idx = table_main(s);
-  }
+  int idx = table_main(s);
 
   s->type = INSTR_TYPE_N;
   switch (idx) {
@@ -276,10 +273,7 @@ def_THelper(main) {
 
 int isa_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
-  int idx = EXEC_ID_inv;
-  if (s->isa.instr.i.opcode1_0 == 0x3) {
-    idx = table_main(s);
-  }
+  int idx = table_main(s);
   return idx;
 }
 #endif
