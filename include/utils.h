@@ -58,8 +58,8 @@ uint64_t get_time();
     log_write(__VA_ARGS__); \
   } while (0)
 
-extern char log_bytebuf[80];
-extern char log_asmbuf[80];
+extern char log_bytebuf[50];
+extern char log_asmbuf[128];
 
 // ----------- expr -----------
 

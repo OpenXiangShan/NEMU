@@ -243,9 +243,19 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
-  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
-        s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf));
   s->EHelper = g_exec_table[idx];
+#ifdef CONFIG_DEBUG
+  char *p = s->logbuf;
+  int len = snprintf(p, sizeof(s->logbuf), FMT_WORD ":   %s", s->pc, log_bytebuf);
+  p += len;
+  int ilen = s->snpc - s->pc;
+  int ilen_max = MUXDEF(CONFIG_ISA_x86, 16, 4);
+  int space_len = 3 * (ilen_max - ilen + 1);
+  memset(p, ' ', space_len);
+  p += space_len;
+  strcpy(p, log_asmbuf);
+  assert(strlen(s->logbuf) < sizeof(s->logbuf));
+#endif
 }
 
 void monitor_statistic() {

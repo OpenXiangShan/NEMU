@@ -18,5 +18,5 @@ bool log_enable() {
   return (g_nr_guest_instr >= CONFIG_LOG_START) && (g_nr_guest_instr <= CONFIG_LOG_END);
 }
 
-char log_bytebuf[80] = {};
-char log_asmbuf[80] = {};
+char log_bytebuf[50] = {};
+char log_asmbuf[128] = {};
