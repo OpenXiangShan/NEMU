@@ -327,8 +327,8 @@ void cpu_exec(uint64_t n) {
     s.EHelper(&s);
     cpu.pc = s.snpc;
     g_nr_guest_instr ++;
-    if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
 #endif
