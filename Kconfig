@@ -147,7 +147,7 @@ endmenu
 
 menu "Testing and Debugging"
 config DEBUG
-  depends on !TARGET_SHARE
+  depends on !TARGET_SHARE && !TARGET_AM
   bool "Enable debug features inside NEMU"
   default n
   help
