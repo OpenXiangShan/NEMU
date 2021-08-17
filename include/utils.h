@@ -61,10 +61,6 @@ uint64_t get_time();
 extern char log_bytebuf[50];
 extern char log_asmbuf[128];
 
-// ----------- expr -----------
-
-word_t expr(char *e, bool *success);
-
 #ifdef CONFIG_IQUEUE
 // ----------- iqueue -----------
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);

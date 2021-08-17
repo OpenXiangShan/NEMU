@@ -24,13 +24,13 @@ typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;
 #define FMT_WORD MUXDEF(CONFIG_ISA64, "0x%016lx", "0x%08x")
 
 typedef word_t rtlreg_t;
-typedef uint64_t fpreg_t;
 typedef word_t vaddr_t;
 typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
 #define FMT_PADDR MUXDEF(PMEM64, "0x%016lx", "0x%08x")
 typedef uint16_t ioaddr_t;
 
 #ifndef __ICS_EXPORT
+typedef uint64_t fpreg_t;
 #ifndef __LP64__
 typedef struct {
   uint64_t _64[2];

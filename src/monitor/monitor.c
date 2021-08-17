@@ -4,10 +4,9 @@
 void init_rand();
 void init_log(const char *log_file);
 void init_mem();
-void init_regex();
-void init_wp_pool();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
+void init_sdb();
 
 static void welcome() {
   Log("Debug: %s", MUXDEF(CONFIG_DEBUG, ASNI_FMT("ON", ASNI_FG_GREEN), ASNI_FMT("OFF", ASNI_FG_RED)));
@@ -27,13 +26,12 @@ static void welcome() {
 #ifndef CONFIG_TARGET_AM
 #include <getopt.h>
 
+void sdb_set_batch_mode();
+
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
-static int batch_mode = false;
 static int difftest_port = 1234;
-
-int is_batch_mode() { return batch_mode; }
 
 #ifndef CONFIG_MODE_USER
 static long load_img() {
@@ -71,7 +69,7 @@ static int parse_args(int argc, char *argv[]) {
   int o;
   while ( (o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
     switch (o) {
-      case 'b': batch_mode = true; break;
+      case 'b': sdb_set_batch_mode(); break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
@@ -127,11 +125,8 @@ void init_monitor(int argc, char *argv[]) {
   IFDEF(CONFIG_DEVICE, init_device());
 #endif
 
-  /* Compile the regular expressions. */
-  init_regex();
-
-  /* Initialize the watchpoint pool. */
-  init_wp_pool();
+  /* Initialize the simple debugger. */
+  init_sdb();
 
   /* Display welcome message. */
   welcome();
