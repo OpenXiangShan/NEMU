@@ -84,7 +84,14 @@ void difftest_init() {
 }
 
 #ifdef CONFIG_MULTICORE_DIFF
+uint8_t *golden_pmem = NULL;
+
 void difftest_set_mhartid(int n) {
   isa_difftest_set_mhartid(n);
+}
+
+void difftest_put_gmaddr(uint8_t* ptr) {
+  golden_pmem = ptr;
+  printf("[NEMU] goldenmem: %p\n", golden_pmem);
 }
 #endif
