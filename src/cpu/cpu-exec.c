@@ -194,48 +194,51 @@ end_of_loop:
   prev_s = s;
   return n;
 }
-#else
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
-
+#endif // CONFIG_PERF_OPT
+#endif // __ICS_EXPORT
+#ifndef CONFIG_PERF_OPT
+#ifndef __ICS_EXPORT
 #define rtl_priv_next(s)
 #define rtl_priv_jr(s, target) rtl_jr(s, target)
-
+#endif
 #include <isa-exec.h>
+
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 static const void* g_exec_table[TOTAL_INSTR] = {
   MAP(INSTR_LIST, FILL_EXEC_TABLE)
 };
 
+void fetch_decode(Decode *s, vaddr_t pc);
+
+static void fetch_decode_exec_updatepc(Decode *s) {
+  fetch_decode(s, cpu.pc);
+  s->EHelper(s);
+  cpu.pc = s->snpc;
+}
+#endif
+#ifndef __ICS_EXPORT
+#ifndef CONFIG_PERF_OPT
 static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
-    fetch_decode(&s, cpu.pc);
-    cpu.pc = s.snpc;
-    s.EHelper(&s);
+    fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
-    IFDEF(CONFIG_TARGET_AM, if (nemu_state.state != NEMU_RUNNING) break);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
   return n;
 }
-#endif
 
 static void update_global() {
-#ifdef CONFIG_PERF_OPT
+}
+#else
+static void update_global() {
   update_instr_cnt();
   cpu.pc = prev_s->pc;
-#endif
 }
 #endif
-
-#ifdef __ICS_EXPORT
-#include <isa-exec.h>
-
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
-static const void* g_exec_table[TOTAL_INSTR] = {
-  MAP(INSTR_LIST, FILL_EXEC_TABLE)
-};
 #endif
 
 void fetch_decode(Decode *s, vaddr_t pc) {
@@ -323,9 +326,7 @@ void cpu_exec(uint64_t n) {
 #else
   Decode s;
   for (;n > 0; n --) {
-    fetch_decode(&s, cpu.pc);
-    s.EHelper(&s);
-    cpu.pc = s.snpc;
+    fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     if (nemu_state.state != NEMU_RUNNING) break;
