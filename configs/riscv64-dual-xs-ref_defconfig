@@ -1,0 +1,87 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# NEMU Configuration Menu
+#
+# CONFIG_ISA_x86 is not set
+# CONFIG_ISA_mips32 is not set
+# CONFIG_ISA_riscv32 is not set
+CONFIG_ISA_riscv64=y
+CONFIG_ISA="riscv64"
+CONFIG_ILEN_MIN=2
+CONFIG_ISA64=y
+
+#
+# ISA-dependent Options for riscv64
+#
+CONFIG_CLINT_MMIO=0x38000000
+CONFIG_MULTICORE_DIFF=y
+# CONFIG_RVV_010 is not set
+# end of ISA-dependent Options for riscv64
+
+CONFIG_ENGINE_INTERPRETER=y
+CONFIG_ENGINE="interpreter"
+CONFIG_MODE_SYSTEM=y
+# CONFIG_MODE_USER is not set
+
+#
+# Build Options
+#
+CONFIG_CC_GCC=y
+# CONFIG_CC_GPP is not set
+# CONFIG_CC_CLANG is not set
+CONFIG_CC="gcc"
+# CONFIG_CC_O0 is not set
+# CONFIG_CC_O1 is not set
+CONFIG_CC_O2=y
+# CONFIG_CC_O3 is not set
+CONFIG_CC_OPT="-O2"
+CONFIG_CC_LTO=y
+CONFIG_CC_DEBUG=y
+# CONFIG_CC_ASAN is not set
+# end of Build Options
+
+#
+# Testing and Debugging
+#
+CONFIG_DIFFTEST_REF_PATH="none"
+CONFIG_DIFFTEST_REF_NAME="none"
+# CONFIG_DETERMINISTIC is not set
+# CONFIG_IQUEUE is not set
+# end of Testing and Debugging
+
+#
+# Memory Configuration
+#
+CONFIG_MBASE=0x80000000
+CONFIG_MSIZE=0x200000000
+CONFIG_PC_RESET_OFFSET=0x0
+CONFIG_USE_MMAP=y
+# CONFIG_MEM_RANDOM is not set
+# CONFIG_MEM_COMPRESS is not set
+# end of Memory Configuration
+
+# CONFIG_FPU_HOST is not set
+CONFIG_FPU_SOFT=y
+# CONFIG_FPU_NONE is not set
+CONFIG_AC_HOST=y
+# CONFIG_AC_SOFT is not set
+# CONFIG_AC_NONE is not set
+
+#
+# Processor difftest reference config
+#
+CONFIG_SHARE=y
+CONFIG_DIFFTEST_STORE_COMMIT=y
+CONFIG_GUIDED_EXEC=y
+CONFIG_LARGE_COPY=y
+# CONFIG_PANIC_ON_UNIMP_CSR is not set
+# end of Processor difftest reference config
+
+#
+# Miscellaneous
+#
+CONFIG_TIMER_GETTIMEOFDAY=y
+# CONFIG_TIMER_CLOCK_GETTIME is not set
+CONFIG_RT_CHECK=y
+CONFIG_ENABLE_INSTR_CNT=y
+# end of Miscellaneous

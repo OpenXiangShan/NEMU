@@ -50,7 +50,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t rdata = golden_pmem_read(addr, len);
+    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len);
 #else
     word_t rdata = paddr_read(addr, len);
 #endif
