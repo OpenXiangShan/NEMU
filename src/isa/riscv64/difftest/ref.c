@@ -108,3 +108,9 @@ void isa_difftest_guided_exec(void * guide) {
   cpu.guided_exec = false;
 }
 #endif
+
+#ifdef CONFIG_MULTICORE_DIFF
+void isa_difftest_set_mhartid(int n) {
+  mhartid->val = n;
+}
+#endif
