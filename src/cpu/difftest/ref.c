@@ -82,3 +82,17 @@ void difftest_init() {
   /* create dummy address space for serial */
   //add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
 }
+
+#ifdef CONFIG_MULTICORE_DIFF
+uint8_t *golden_pmem = NULL;
+
+void difftest_set_mhartid(int n) {
+  isa_difftest_set_mhartid(n);
+}
+
+void difftest_put_gmaddr(uint8_t* ptr) {
+  golden_pmem = ptr;
+}
+
+#endif
+
