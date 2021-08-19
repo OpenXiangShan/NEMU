@@ -19,42 +19,42 @@ static def_DopHelper(i) {
 }
 
 static def_DopHelper(r) {
-  bool load_val = flag;
+  bool is_write = flag;
   static word_t zero_null = 0;
-  op->preg = (!load_val && val == 0) ? &zero_null : &gpr(val);
+  op->preg = (is_write && val == 0) ? &zero_null : &gpr(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
 static def_DHelper(IU) {
-  decode_op_r(s, id_src1, s->isa.instr.iu.rs, true);
+  decode_op_r(s, id_src1, s->isa.instr.iu.rs, false);
   decode_op_i(s, id_src2, s->isa.instr.iu.imm, true);
-  decode_op_r(s, id_dest, s->isa.instr.iu.rt, false);
+  decode_op_r(s, id_dest, s->isa.instr.iu.rt, true);
 }
 
 static def_DHelper(ld) {
-  decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
-  decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
-  decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
-}
-
-static def_DHelper(st) {
-  decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
+  decode_op_r(s, id_src1, s->isa.instr.i.rs, false);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, true);
   print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
+static def_DHelper(st) {
+  decode_op_r(s, id_src1, s->isa.instr.i.rs, false);
+  decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
+  decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
+  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
+}
+
 static def_DHelper(lui) {
   decode_op_i(s, id_src1, s->isa.instr.iu.imm << 16, true);
-  decode_op_r(s, id_dest, s->isa.instr.iu.rt, false);
+  decode_op_r(s, id_dest, s->isa.instr.iu.rt, true);
 }
 
 #ifndef __ICS_EXPORT
 static def_DHelper(I) {
-  decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
+  decode_op_r(s, id_src1, s->isa.instr.i.rs, false);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
-  decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
+  decode_op_r(s, id_dest, s->isa.instr.i.rt, true);
 }
 
 static def_DHelper(J) {
@@ -63,28 +63,28 @@ static def_DHelper(J) {
 }
 
 static def_DHelper(R) {
-  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
-  decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
-  decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
+  decode_op_r(s, id_src1, s->isa.instr.r.rs, false);
+  decode_op_r(s, id_src2, s->isa.instr.r.rt, false);
+  decode_op_r(s, id_dest, s->isa.instr.r.rd, true);
 }
 
 static def_DHelper(B) {
   sword_t offset = (s->isa.instr.i.simm << 2);
   decode_op_i(s, id_dest, s->pc + offset + 4, true);
-  decode_op_r(s, id_src1, s->isa.instr.i.rs, true);
-  decode_op_r(s, id_src2, s->isa.instr.i.rt, true);
+  decode_op_r(s, id_src1, s->isa.instr.i.rs, false);
+  decode_op_r(s, id_src2, s->isa.instr.i.rt, false);
   //s->snpc += 4; // skip the delay slot
 }
 
 static def_DHelper(shift) {
   decode_op_i(s, id_src1, s->isa.instr.r.sa, false);
-  decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
-  decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
+  decode_op_r(s, id_src2, s->isa.instr.r.rt, false);
+  decode_op_r(s, id_dest, s->isa.instr.r.rd, true);
 }
 
 static def_DHelper(cmov) {
-  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
-  decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
+  decode_op_r(s, id_src1, s->isa.instr.r.rs, false);
+  decode_op_r(s, id_src2, s->isa.instr.r.rt, false);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, true);
 }
 
@@ -94,14 +94,14 @@ static def_DHelper(jal) {
 }
 
 static def_DHelper(jalr) {
-  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
-  decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
+  decode_op_r(s, id_src1, s->isa.instr.r.rs, false);
+  decode_op_r(s, id_dest, s->isa.instr.r.rd, true);
   id_src2->imm = s->pc + 8;
 }
 
 static def_DHelper(cp0) {
-//  decode_op_r(s, id_src1, s->isa.instr.r.rs, true);
-  decode_op_r(s, id_src2, s->isa.instr.r.rt, true);
+//  decode_op_r(s, id_src1, s->isa.instr.r.rs, false);
+  decode_op_r(s, id_src2, s->isa.instr.r.rt, false);
   decode_op_i(s, id_dest, s->isa.instr.r.rd, false);
   print_Dop(id_dest->str, OP_STR_SIZE, "%s", cp0_name(id_dest->imm));
 }

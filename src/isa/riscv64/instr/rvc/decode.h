@@ -17,8 +17,8 @@ static inline void decode_op_C_imm6(Decode *s, uint32_t imm6, bool sign, int shi
 static inline void decode_op_C_rd_rs1(Decode *s, bool creg) {
   uint32_t instr = s->isa.instr.val;
   uint32_t rd_rs1 = (creg ? creg2reg(BITS(instr, 9, 7)) : BITS(instr, 11, 7));
-  decode_op_r(s, id_src1, rd_rs1, true);
-  decode_op_r(s, id_dest, rd_rs1, false);
+  decode_op_r(s, id_src1, rd_rs1, false);
+  decode_op_r(s, id_dest, rd_rs1, true);
 }
 
 // creg = false for CI, true for CB_shift and CB_andi
@@ -35,7 +35,7 @@ static inline void decode_op_rd_rs1_imm6(Decode *s, bool sign, int shift, int ro
 static inline def_DHelper(CR) {
   decode_op_C_rd_rs1(s, false);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
-  decode_op_r(s, id_src2, rs2, true);
+  decode_op_r(s, id_src2, rs2, false);
 }
 #endif
 
@@ -58,22 +58,22 @@ static inline def_DHelper(CI_uimm) {
 
 static inline def_DHelper(C_LI) {
   decode_CI_simm(s, width);
-  decode_op_r(s, id_src1, 0, true);
+  decode_op_r(s, id_src1, 0, false);
 }
 
 static inline def_DHelper(C_ADDI16SP) {
-  decode_op_r(s, id_src1, 2, true);
+  decode_op_r(s, id_src1, 2, false);
   uint32_t instr = s->isa.instr.val;
   sword_t simm = (SEXT(BITS(instr, 12, 12), 1) << 9) | (BITS(instr, 4, 3) << 7) |
     (BITS(instr, 5, 5) << 6) | (BITS(instr, 2, 2) << 5) | (BITS(instr, 6, 6) << 4);
   assert(simm != 0);
   decode_op_i(s, id_src2, simm, false);
-  decode_op_r(s, id_dest, 2, false);
+  decode_op_r(s, id_dest, 2, true);
 }
 
 // SP-relative load/store
 static inline void decode_C_xxSP(Decode *s, uint32_t imm6, int rotate) {
-  decode_op_r(s, id_src1, 2, true);
+  decode_op_r(s, id_src1, 2, false);
   decode_op_C_imm6(s, imm6, false, 0, rotate);
 }
 
@@ -82,7 +82,7 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
   if (is_fp) decode_op_fr(s, id_dest, rd, false);
-  else decode_op_r(s, id_dest, rd, false);
+  else decode_op_r(s, id_dest, rd, true);
 }
 
 static inline def_DHelper(C_LWSP) {
@@ -104,7 +104,7 @@ static inline void decode_C_SxSP(Decode *s, int rotate, bool is_fp) {
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
   if (is_fp) decode_op_fr(s, id_dest, rs2, true);
-  else decode_op_r(s, id_dest, rs2, true);
+  else decode_op_r(s, id_dest, rs2, false);
 }
 
 static inline def_DHelper(C_SWSP) {
@@ -122,13 +122,13 @@ static inline def_DHelper(C_FSDSP) {
 // ---------- CIW ---------- 
 
 static inline def_DHelper(C_ADDI4SPN) {
-  decode_op_r(s, id_src1, 2, true);
+  decode_op_r(s, id_src1, 2, false);
   uint32_t instr = s->isa.instr.val;
   uint32_t imm9_6 = ror_imm(BITS(instr, 12, 7), 6, 4); // already at the right place
   uint32_t imm = imm9_6 | BITS(instr, 5, 5) << 3 | BITS(instr, 6, 6) << 2;
   Assert(imm != 0, "pc = " FMT_WORD, s->pc);
   decode_op_i(s, id_src2, imm, false);
-  decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), false);
+  decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), true);
 }
 
 // ---------- CL ---------- 
@@ -136,7 +136,7 @@ static inline def_DHelper(C_ADDI4SPN) {
 // load/store
 static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bool is_fp) {
   uint32_t instr = s->isa.instr.val;
-  decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
+  decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), false);
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, false);
@@ -173,7 +173,7 @@ static inline def_DHelper(C_FSD) {
 static inline def_DHelper(CS) {
   decode_op_C_rd_rs1(s, true);
   uint32_t rs2 = creg2reg(BITS(s->isa.instr.val, 4, 2));
-  decode_op_r(s, id_src2, rs2, true);
+  decode_op_r(s, id_src2, rs2, false);
 }
 
 // ---------- CB ---------- 
@@ -187,8 +187,8 @@ static inline def_DHelper(CB) {
   uint32_t imm2_1 = BITS(instr, 4, 3);
   sword_t offset = (simm8 << 8) | (imm7_6 << 6) | (imm5 << 5) | (imm4_3 << 3) | (imm2_1 << 1);
   decode_op_i(s, id_dest, s->pc + offset, true);
-  decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
-  decode_op_r(s, id_src2, 0, true);
+  decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), false);
+  decode_op_r(s, id_src2, 0, false);
 }
 
 static inline def_DHelper(CB_shift) {
@@ -218,20 +218,20 @@ static inline def_DHelper(CJ) {
 }
 
 static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_zero, bool is_rd_zero) {
-  decode_op_r(s, id_src1, (is_rs1_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), true);
-  decode_op_r(s, id_src2, (is_rs2_zero ? 0 : BITS(s->isa.instr.val, 6, 2)), true);
-  decode_op_r(s, id_dest, (is_rd_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), false);
+  decode_op_r(s, id_src1, (is_rs1_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), false);
+  decode_op_r(s, id_src2, (is_rs2_zero ? 0 : BITS(s->isa.instr.val, 6, 2)), false);
+  decode_op_r(s, id_dest, (is_rd_zero ? 0 : BITS(s->isa.instr.val, 11, 7)), true);
 }
 
 static inline def_DHelper(C_JR) {
-  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
+  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), false);
 }
 
 static inline def_DHelper(C_MOV) {
   // we should put the source at src1 to call c_mv()
-  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 6, 2), true);
-  decode_op_r(s, id_src2, 0, true);
-  decode_op_r(s, id_dest, BITS(s->isa.instr.val, 11, 7), false);
+  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 6, 2), false);
+  decode_op_r(s, id_src2, 0, false);
+  decode_op_r(s, id_dest, BITS(s->isa.instr.val, 11, 7), true);
 }
 
 static inline def_DHelper(C_ADD) {
@@ -239,9 +239,9 @@ static inline def_DHelper(C_ADD) {
 }
 
 static inline def_DHelper(C_JALR) {
-  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
+  decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), false);
   decode_op_i(s, id_src2, 0, true);
-  decode_op_r(s, id_dest, 1, false);
+  decode_op_r(s, id_dest, 1, true);
 }
 
 
