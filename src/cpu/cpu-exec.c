@@ -213,7 +213,7 @@ void fetch_decode(Decode *s, vaddr_t pc);
 static void fetch_decode_exec_updatepc(Decode *s) {
   fetch_decode(s, cpu.pc);
   s->EHelper(s);
-  cpu.pc = s->snpc;
+  cpu.pc = s->dnpc;
 }
 #endif
 #ifndef __ICS_EXPORT
@@ -246,6 +246,9 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
+#ifndef CONFIG_PERF_OPT
+  s->dnpc = s->snpc;
+#endif
   s->EHelper = g_exec_table[idx];
 #ifdef CONFIG_DEBUG
   char *p = s->logbuf;
