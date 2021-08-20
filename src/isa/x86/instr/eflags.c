@@ -21,11 +21,11 @@ enum {
 };
 
 #define RTL_ENCODE(flag) \
-  rtl_shli(s, t0, &cpu.flag, concat(EFLAGS_BIT_, flag)); \
+  rtl_slli(s, t0, &cpu.flag, concat(EFLAGS_BIT_, flag)); \
   rtl_or(s, dest, dest, t0);
 
 #define RTL_DECODE(flag) \
-  rtl_shri(s, &cpu.flag, src, concat(EFLAGS_BIT_, flag)); \
+  rtl_srli(s, &cpu.flag, src, concat(EFLAGS_BIT_, flag)); \
   rtl_andi(s, &cpu.flag, &cpu.flag, 0x1);
 
 #define ENCODE(flag) | (cpu.flag << (concat(EFLAGS_BIT_, flag)))

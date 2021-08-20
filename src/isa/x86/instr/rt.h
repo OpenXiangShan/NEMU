@@ -16,7 +16,7 @@ static inline void rt_decode_mem(Decode *s, Operand *op, bool load, int width) {
 
   rtl_mv(s, &s->isa.mbr, s->isa.mbase);
   if (s->isa.midx != rz) {
-    rtl_shli(s, s1, s->isa.midx, s->isa.mscale);
+    rtl_slli(s, s1, s->isa.midx, s->isa.mscale);
     rtl_add(s, &s->isa.mbr, &s->isa.mbr, s1);
   }
   if (ISNDEF(CONFIG_PA) && s->isa.sreg_base != NULL) {

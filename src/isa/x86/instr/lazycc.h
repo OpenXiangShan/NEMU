@@ -71,7 +71,7 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
     }
     int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
     if (cpu.cc_width != 4 && !exception) {
-      rtl_shli(s, dest, p, 32 - cpu.cc_width * 8);
+      rtl_slli(s, dest, p, 32 - cpu.cc_width * 8);
       p = dest;
     }
     rtl_setrelop(s, relop, dest, p, rz);
@@ -285,7 +285,7 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_LE: case CC_NLE: case CC_L: case CC_NL:
           p = &cpu.cc_dest;
           if (cpu.cc_width != 4) {
-            rtl_shli(s, dest, p, 32 - cpu.cc_width * 8);
+            rtl_slli(s, dest, p, 32 - cpu.cc_width * 8);
             p = dest;
           }
         default:

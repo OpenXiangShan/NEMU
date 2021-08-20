@@ -209,14 +209,14 @@ def_EHelper(mul) {
 #ifndef CONFIG_PA
       if (need_update_eflags) {
         rtl_update_ZFSF(s, s1, s->isa.width);
-        rtl_shri(s, s0, s1, 16);
+        rtl_srli(s, s0, s1, 16);
         rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
         rtl_set_OF(s, s0);
         rtl_set_CF(s, s0);
       }
 #endif
       rtl_sr(s, R_AX, s1, 2);
-      rtl_shri(s, s1, s1, 16);
+      rtl_srli(s, s1, s1, 16);
       rtl_sr(s, R_DX, s1, 2);
       break;
     case 4:
@@ -272,7 +272,7 @@ def_EHelper(imul1) {
       }
 #endif
       rtl_sr(s, R_AX, s1, 2);
-      rtl_shri(s, s1, s1, 16);
+      rtl_srli(s, s1, s1, 16);
       rtl_sr(s, R_DX, s1, 2);
       break;
     case 4:
@@ -383,7 +383,7 @@ def_EHelper(div) {
     case 2:
       rtl_lr(s, s0, R_AX, 2);
       rtl_lr(s, s1, R_DX, 2);
-      rtl_shli(s, s1, s1, 16);
+      rtl_slli(s, s1, s1, 16);
       rtl_or(s, s0, s0, s1);
       rtl_divu_q(s, s1, s0, ddest);
       rtl_divu_r(s, s0, s0, ddest);
@@ -414,7 +414,7 @@ def_EHelper(idiv) {
     case 2:
       rtl_lr(s, s0, R_AX, 2);
       rtl_lr(s, s1, R_DX, 2);
-      rtl_shli(s, s1, s1, 16);
+      rtl_slli(s, s1, s1, 16);
       rtl_or(s, s0, s0, s1);
       rtl_divs_q(s, s1, s0, ddest);
       rtl_divs_r(s, s0, s0, ddest);

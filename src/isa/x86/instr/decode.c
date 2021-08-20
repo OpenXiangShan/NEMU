@@ -291,8 +291,8 @@ static def_DHelper(G2E) {
 static def_DHelper(bit_G2E) {
   operand_rm(s, id_dest, false, id_src1, true);
   if (s->isa.mbase) {
-    rtl_shri(s, s0, dsrc1, 5);
-    rtl_shli(s, s0, s0, 2);
+    rtl_srli(s, s0, dsrc1, 5);
+    rtl_slli(s, s0, s0, 2);
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
     s->isa.mbase = &s->isa.mbr;
     if (s->opcode != 0x1a3) { // bt

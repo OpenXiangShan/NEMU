@@ -36,15 +36,15 @@ def_EHelper(nor) {
 }
 
 def_EHelper(sll) {
-  rtl_shl(s, ddest, dsrc2, dsrc1);
+  rtl_sll(s, ddest, dsrc2, dsrc1);
 }
 
 def_EHelper(srl) {
-  rtl_shr(s, ddest, dsrc2, dsrc1);
+  rtl_srl(s, ddest, dsrc2, dsrc1);
 }
 
 def_EHelper(sra) {
-  rtl_sar(s, ddest, dsrc2, dsrc1);
+  rtl_sra(s, ddest, dsrc2, dsrc1);
 }
 
 def_EHelper(addi) {
@@ -72,15 +72,15 @@ def_EHelper(xori) {
 }
 
 def_EHelper(slli) {
-  rtl_shli(s, ddest, dsrc2, id_src1->imm);
+  rtl_slli(s, ddest, dsrc2, id_src1->imm);
 }
 
 def_EHelper(srli) {
-  rtl_shri(s, ddest, dsrc2, id_src1->imm);
+  rtl_srli(s, ddest, dsrc2, id_src1->imm);
 }
 
 def_EHelper(srai) {
-  rtl_sari(s, ddest, dsrc2, id_src1->imm);
+  rtl_srai(s, ddest, dsrc2, id_src1->imm);
 }
 
 def_EHelper(movz) {
