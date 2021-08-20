@@ -69,7 +69,7 @@ def_EHelper(ror) {
 }
 
 def_EHelper(rori) {
-  *ddest = _rv_ror(*dsrc1, id_src2->imm & 0x3f);
+  *ddest = _rv_ror(*dsrc1, id_src2->imm);
 }
 
 def_EHelper(rorw) {
@@ -77,7 +77,7 @@ def_EHelper(rorw) {
 }
 
 def_EHelper(roriw) {
-  *ddest = _rv32_ror(*dsrc1, id_src2->imm & 0x1f);
+  *ddest = _rv32_ror(*dsrc1, id_src2->imm);
 }
 
 def_EHelper(bclr) {
@@ -85,7 +85,7 @@ def_EHelper(bclr) {
 }
 
 def_EHelper(bclri) {
-  *ddest = _rv_bclr(*dsrc1, id_src2->imm & 0x1f);
+  *ddest = _rv_bclr(*dsrc1, id_src2->imm);
 }
 
 def_EHelper(bset) {
@@ -93,7 +93,7 @@ def_EHelper(bset) {
 }
 
 def_EHelper(bseti) {
-  *ddest = _rv_bset(*dsrc1, id_src2->imm & 0x1f);
+  *ddest = _rv_bset(*dsrc1, id_src2->imm);
 }
 
 def_EHelper(binv) {
@@ -101,7 +101,7 @@ def_EHelper(binv) {
 }
 
 def_EHelper(binvi) {
-  *ddest = _rv_binv(*dsrc1, id_src2->imm & 0x1f);
+  *ddest = _rv_binv(*dsrc1, id_src2->imm);
 }
 
 def_EHelper(bext) {
@@ -109,7 +109,7 @@ def_EHelper(bext) {
 }
 
 def_EHelper(bexti) {
-  *ddest = _rv_bext(*dsrc1, id_src2->imm & 0x1f);
+  *ddest = _rv_bext(*dsrc1, id_src2->imm);
 }
 
 def_EHelper(clmul) {
@@ -142,40 +142,32 @@ def_EHelper(maxu) {
 
 def_EHelper(adduw) {
   *ddest = *dsrc2 + (uint32_t)*dsrc1;
-  // *ddest = _rv_adduw(*dsrc1, *dsrc2);
 }
 
 def_EHelper(slliuw) {
   *ddest = (uint32_t)*dsrc1 << (id_src2->imm & 0x1f);
-  //*ddest = _rv_slliuw(*dsrc1, id_src2->imm & 0x1f);
 }
 
 def_EHelper(sh1add) {
   *ddest = (*dsrc1 << 1) + *dsrc2;
-  // *ddest = _rv_sh1add(*dsrc1, *dsrc2);
 }
 
 def_EHelper(sh2add) {
   *ddest = (*dsrc1 << 2) + *dsrc2;
-  // *ddest = _rv_sh2add(*dsrc1, *dsrc2);
 }
 
 def_EHelper(sh3add) {
   *ddest = (*dsrc1 << 3) + *dsrc2;
-  // *ddest = _rv_sh3add(*dsrc1, *dsrc2);
 }
 
 def_EHelper(sh1adduw) {
   *ddest = ((uint32_t)*dsrc1 << 1) + *dsrc2;
-  // *ddest = _rv_sh1adduw(*dsrc1, *dsrc2);
 }
 
 def_EHelper(sh2adduw) {
   *ddest = ((uint32_t)*dsrc1 << 2) + *dsrc2;
-  // *ddest = _rv_sh2adduw(*dsrc1, *dsrc2);
 }
 
 def_EHelper(sh3adduw) {
   *ddest = ((uint32_t)*dsrc1 << 3) + *dsrc2;
-  // *ddest = _rv_sh3adduw(*dsrc1, *dsrc2);
 }
