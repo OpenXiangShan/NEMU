@@ -18,6 +18,8 @@ static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
+void device_update();
+
 #ifdef CONFIG_DEBUG
 static void debug_hook(vaddr_t pc, const char *asmbuf) {
   log_write("%s\n", asmbuf);
@@ -304,10 +306,7 @@ void cpu_exec(uint64_t n) {
 
   while (nemu_state.state == NEMU_RUNNING &&
       MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
-#ifdef CONFIG_DEVICE
-    extern void device_update();
-    device_update();
-#endif
+    IFDEF(CONFIG_DEVICE, device_update());
 
     if (cause == NEMU_EXEC_EXCEPTION) {
       cause = 0;
@@ -334,6 +333,7 @@ void cpu_exec(uint64_t n) {
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    IFDEF(CONFIG_DEVICE, device_update());
   }
 #endif
 
