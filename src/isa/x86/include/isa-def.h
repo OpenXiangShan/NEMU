@@ -164,10 +164,10 @@ enum { OP_TYPE_IMM, OP_TYPE_REG, OP_TYPE_MEM };
 
 //#define suffix_char(width) ((width) == 4 ? 'l' : ((width) == 1 ? 'b' : ((width) == 2 ? 'w' : '?')))
 #ifdef __ICS_EXPORT
-#define isa_mmu_state() (MMU_DIRECT)
+#define isa_mmu_check(vaddr, len, type) (MMU_DIRECT)
 #else
 #define isa_mmu_state() (cpu.cr0.paging ? MMU_TRANSLATE : MMU_DIRECT)
-#endif
 #define isa_mmu_check(vaddr, len, type) isa_mmu_state()
+#endif
 
 #endif

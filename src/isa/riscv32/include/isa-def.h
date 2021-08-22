@@ -106,10 +106,10 @@ typedef struct {
 } riscv32_ISADecodeInfo;
 
 #ifdef __ICS_EXPORT
-#define isa_mmu_state() (MMU_DIRECT)
+#define isa_mmu_check(vaddr, len, type) (MMU_DIRECT)
 #else
 #define isa_mmu_state() (cpu.satp.mode ? MMU_TRANSLATE : MMU_DIRECT)
-#endif
 #define isa_mmu_check(vaddr, len, type) isa_mmu_state()
+#endif
 
 #endif
