@@ -1,8 +1,6 @@
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
-#include <cpu/decode.h>
-#include <memory/host-tlb.h>
 #include <isa-all-instr.h>
 #include <locale.h>
 
@@ -12,7 +10,6 @@
  * You can modify this value as you want.
  */
 #define MAX_INSTR_TO_PRINT 10
-#define BATCH_SIZE 65536
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
@@ -21,20 +18,23 @@ static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
+void device_update();
+
 #ifdef CONFIG_DEBUG
-static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
+static void debug_hook(vaddr_t pc, const char *asmbuf) {
   log_write("%s\n", asmbuf);
   if (g_print_step) { puts(asmbuf); }
-
+#ifndef __ICS_EXPORT
   void scan_watchpoint(vaddr_t pc);
   scan_watchpoint(pc);
+#endif
 }
 #endif
 
-#ifndef CONFIG_TARGET_AM
-#include <setjmp.h>
-static jmp_buf jbuf_exec = {};
-#endif
+#ifndef __ICS_EXPORT
+#include <memory/host-tlb.h>
+
+#define BATCH_SIZE 65536
 
 static uint64_t n_remain_total;
 static int n_remain;
@@ -54,19 +54,6 @@ static void update_instr_cnt() {
 #endif
 }
 
-void monitor_statistic() {
-  update_instr_cnt();
-  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
-  Log("host time spent = %'ld us", g_timer);
-#ifdef CONFIG_ENABLE_INSTR_CNT
-  Log("total guest instructions = %'ld", g_nr_guest_instr);
-  if (g_timer > 0) Log("simulation frequency = %'ld instr/s", g_nr_guest_instr * 1000000 / g_timer);
-  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
-#else
-  Log("CONFIG_ENABLE_INSTR_CNT is not defined");
-#endif
-}
-
 static word_t g_ex_cause = NEMU_EXEC_RUNNING;
 static int g_sys_state_flag = 0;
 
@@ -79,13 +66,18 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   if (vaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
+#ifndef CONFIG_TARGET_AM
+#include <setjmp.h>
+static jmp_buf jbuf_exec = {};
+
 void longjmp_exec(int cause) {
-#ifdef CONFIG_TARGET_AM
-  Assert(cause == NEMU_EXEC_END, "NEMU on AM does not support exception");
-#else
   longjmp(jbuf_exec, cause);
-#endif
 }
+#else
+void longjmp_exec(int cause) {
+  Assert(cause == NEMU_EXEC_END, "NEMU on AM does not support exception");
+}
+#endif
 
 void longjmp_exception(int ex_cause) {
   g_ex_cause = ex_cause;
@@ -138,14 +130,13 @@ Decode* tcache_decode(Decode *s);
 void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
 
-static inline
-Decode* jr_fetch(Decode *s, vaddr_t target) {
+static Decode* jr_fetch(Decode *s, vaddr_t target) {
   if (likely(s->tnext->pc == target)) return s->tnext;
   if (likely(s->ntnext->pc == target)) return s->ntnext;
   return tcache_jr_fetch(s, target);
 }
 
-static inline void debug_difftest(Decode *_this, Decode *next) {
+static void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
   IFDEF(CONFIG_DEBUG, debug_hook(_this->pc, _this->logbuf));
   IFDEF(CONFIG_DIFFTEST, save_globals(next));
@@ -169,7 +160,7 @@ static int execute(int n) {
   }
 
   __attribute__((unused)) Decode *this_s = NULL;
-  while (MUXDEF(CONFIG_TARGET_AM, g_ex_cause != NEMU_EXEC_END, true)) {
+  while (MUXDEF(CONFIG_TARGET_AM, nemu_state.state != NEMU_RUNNING, true)) {
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
@@ -184,7 +175,7 @@ static int execute(int n) {
 #define s1 &ls1
 #define s2 &ls2
 
-#include "isa-exec.h"
+#include <isa-exec.h>
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s);
@@ -205,31 +196,51 @@ end_of_loop:
   prev_s = s;
   return n;
 }
-#else
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
-
+#endif // CONFIG_PERF_OPT
+#endif // __ICS_EXPORT
+#ifndef CONFIG_PERF_OPT
+#ifndef __ICS_EXPORT
 #define rtl_priv_next(s)
 #define rtl_priv_jr(s, target) rtl_jr(s, target)
+#endif
+#include <isa-exec.h>
 
-#include "isa-exec.h"
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 static const void* g_exec_table[TOTAL_INSTR] = {
   MAP(INSTR_LIST, FILL_EXEC_TABLE)
 };
 
+void fetch_decode(Decode *s, vaddr_t pc);
+
+static void fetch_decode_exec_updatepc(Decode *s) {
+  fetch_decode(s, cpu.pc);
+  s->EHelper(s);
+  cpu.pc = s->dnpc;
+}
+#endif
+#ifndef __ICS_EXPORT
+#ifndef CONFIG_PERF_OPT
 static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
-    fetch_decode(&s, cpu.pc);
-    cpu.pc = s.snpc;
-    s.EHelper(&s);
+    fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
-    IFDEF(CONFIG_TARGET_AM, if (g_ex_cause == NEMU_EXEC_END) break);
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
   return n;
 }
+
+static void update_global() {
+}
+#else
+static void update_global() {
+  update_instr_cnt();
+  cpu.pc = prev_s->pc;
+}
+#endif
 #endif
 
 void fetch_decode(Decode *s, vaddr_t pc) {
@@ -237,15 +248,37 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
-  IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
-        s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf));
+#ifndef CONFIG_PERF_OPT
+  s->dnpc = s->snpc;
+#endif
   s->EHelper = g_exec_table[idx];
+#ifdef CONFIG_DEBUG
+  char *p = s->logbuf;
+  int len = snprintf(p, sizeof(s->logbuf), FMT_WORD ":   %s", s->pc, log_bytebuf);
+  p += len;
+  int ilen = s->snpc - s->pc;
+  int ilen_max = MUXDEF(CONFIG_ISA_x86, 16, 4);
+  int space_len = 3 * (ilen_max - ilen + 1);
+  memset(p, ' ', space_len);
+  p += space_len;
+  strcpy(p, log_asmbuf);
+  assert(strlen(s->logbuf) < sizeof(s->logbuf));
+#endif
 }
 
-static void update_global() {
-#ifdef CONFIG_PERF_OPT
+void monitor_statistic() {
+#ifndef __ICS_EXPORT
   update_instr_cnt();
-  cpu.pc = prev_s->pc;
+#endif
+  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
+#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
+  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
+#ifdef CONFIG_ENABLE_INSTR_CNT
+  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
+  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+#else
+  Log("CONFIG_ENABLE_INSTR_CNT is not defined");
 #endif
 }
 
@@ -261,6 +294,7 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_start = get_time();
 
+#ifndef __ICS_EXPORT
   n_remain_total = n; // deal with setjmp()
   int cause = NEMU_EXEC_RUNNING;
 #ifndef CONFIG_TARGET_AM
@@ -272,19 +306,16 @@ void cpu_exec(uint64_t n) {
 
   while (nemu_state.state == NEMU_RUNNING &&
       MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
-#ifdef CONFIG_DEVICE
-    extern void device_update();
-    device_update();
-#endif
+    IFDEF(CONFIG_DEVICE, device_update());
 
     if (cause == NEMU_EXEC_EXCEPTION) {
       cause = 0;
-      cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
+      cpu.pc = isa_raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
     } else {
       word_t intr = MUXDEF(CONFIG_TARGET_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
-        cpu.pc = raise_intr(intr, cpu.pc);
+        cpu.pc = isa_raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }
@@ -294,6 +325,17 @@ void cpu_exec(uint64_t n) {
     n_remain = execute(n_batch);
     update_global();
   }
+#else
+  Decode s;
+  for (;n > 0; n --) {
+    fetch_decode_exec_updatepc(&s);
+    g_nr_guest_instr ++;
+    IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    if (nemu_state.state != NEMU_RUNNING) break;
+    IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    IFDEF(CONFIG_DEVICE, device_update());
+  }
+#endif
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;

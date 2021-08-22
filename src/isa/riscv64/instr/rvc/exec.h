@@ -52,15 +52,15 @@ def_EHelper(c_addiw) {
 }
 
 def_EHelper(c_slli) {
-  rtl_shli(s, ddest, ddest, id_src2->imm);
+  rtl_slli(s, ddest, ddest, id_src2->imm);
 }
 
 def_EHelper(c_srli) {
-  rtl_shri(s, ddest, ddest, id_src2->imm);
+  rtl_srli(s, ddest, ddest, id_src2->imm);
 }
 
 def_EHelper(c_srai) {
-  rtl_sari(s, ddest, ddest, id_src2->imm);
+  rtl_srai(s, ddest, ddest, id_src2->imm);
 }
 
 def_EHelper(c_andi) {

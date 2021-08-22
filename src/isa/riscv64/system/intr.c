@@ -1,6 +1,9 @@
-#include <cpu/difftest.h>
-#include "../local-include/csr.h"
+#include <isa.h>
+
+#ifndef __ICS_EXPORT
 #include "../local-include/intr.h"
+#include "../local-include/csr.h"
+#include <cpu/difftest.h>
 
 void update_mmu_state();
 
@@ -11,7 +14,7 @@ enum {
   IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
 };
 
-word_t raise_intr(word_t NO, vaddr_t epc) {
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   switch (NO) {
     case EX_II:
     case EX_IPF:
@@ -84,3 +87,16 @@ word_t isa_query_intr() {
   return INTR_EMPTY;
 #endif
 }
+#else
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
+  /* TODO: Trigger an interrupt/exception with ``NO''.
+   * That is, use ``NO'' to index the IDT.
+   */
+
+  return 0;
+}
+
+word_t isa_query_intr() {
+  return INTR_EMPTY;
+}
+#endif

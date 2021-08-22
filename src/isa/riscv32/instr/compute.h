@@ -12,15 +12,15 @@ def_EHelper(sub) {
 }
 
 def_EHelper(sll) {
-  rtl_shl(s, ddest, dsrc1, dsrc2);
+  rtl_sll(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(srl) {
-  rtl_shr(s, ddest, dsrc1, dsrc2);
+  rtl_srl(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(sra) {
-  rtl_sar(s, ddest, dsrc1, dsrc2);
+  rtl_sra(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(slt) {
@@ -48,15 +48,15 @@ def_EHelper(addi) {
 }
 
 def_EHelper(slli) {
-  rtl_shli(s, ddest, dsrc1, id_src2->imm);
+  rtl_slli(s, ddest, dsrc1, id_src2->imm);
 }
 
 def_EHelper(srli) {
-  rtl_shri(s, ddest, dsrc1, id_src2->imm);
+  rtl_srli(s, ddest, dsrc1, id_src2->imm);
 }
 
 def_EHelper(srai) {
-  rtl_sari(s, ddest, dsrc1, id_src2->imm);
+  rtl_srai(s, ddest, dsrc1, id_src2->imm);
 }
 
 

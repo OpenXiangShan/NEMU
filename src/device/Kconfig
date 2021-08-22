@@ -138,7 +138,7 @@ endif # HAS_DISK
 
 menuconfig HAS_SDCARD
   bool "Enable sdcard"
-  default y
+  default n
 
 if HAS_SDCARD
 config SDCARD_CTL_MMIO

@@ -26,7 +26,7 @@ static void trap_sig_handler(int sig, siginfo_t *info, void *ucontext) {
   uc->uc_mcontext.gregs[REG_EFL] &= ~RFLAGS_TF;
 }
 
-static inline void aligncheck_enable() {
+static void aligncheck_enable() {
   asm volatile(
       "add $-128, %%rsp \n"    // skip past the red-zone
       "pushf\n"

@@ -4,10 +4,6 @@
 
 static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   uint32_t instr = vaddr_ifetch(*pc, len);
-#ifdef ENABLE_DIFFTEST_INSTR_QUEUE
-  extern void add_instr(uint8_t *instr, int len);
-  add_instr((void *)&instr, len);
-#endif
 #ifdef CONFIG_DEBUG
   uint8_t *p_instr = (void *)&instr;
   int i;

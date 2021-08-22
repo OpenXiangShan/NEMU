@@ -16,11 +16,11 @@ static HostTLBEntry hosttlb[HOSTTLB_SIZE * 2];
 static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
 
-static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
+static vaddr_t hosttlb_vpn(vaddr_t vaddr) {
   return (vaddr >> PAGE_SHIFT);
 }
 
-static inline int hosttlb_idx(vaddr_t vaddr) {
+static int hosttlb_idx(vaddr_t vaddr) {
   return (hosttlb_vpn(vaddr) % HOSTTLB_SIZE);
 }
 

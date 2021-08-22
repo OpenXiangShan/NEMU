@@ -1,4 +1,5 @@
 #include "common.h"
+#include <difftest-def.h>
 #include <sys/prctl.h>
 #include <signal.h>
 
@@ -69,7 +70,7 @@ void difftest_init(int port) {
     // father
 
     gdb_connect_qemu(port);
-    printf("Connect to QEMU with %s tcpsuccessfully\n", buf);
+    printf("Connect to QEMU with %s successfully\n", buf);
 
     atexit(gdb_exit);
 
@@ -78,6 +79,6 @@ void difftest_init(int port) {
 }
 
 void difftest_raise_intr(uint64_t NO) {
-  printf("raise_intr is not supported in QEMU-socket\n");
+  printf("raise_intr is not supported\n");
   assert(0);
 }

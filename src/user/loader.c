@@ -79,7 +79,7 @@ static void load_elf(char *elfpath) {
   cpu.pc = elf->e_entry;
 }
 
-static inline word_t init_stack(int argc, char *argv[]) {
+static word_t init_stack(int argc, char *argv[]) {
   uint8_t *sp = user_to_host(0xc0000000);
   uint32_t stack_size = 8 * 1024 * 1024;
   user_mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,

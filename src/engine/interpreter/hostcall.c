@@ -12,7 +12,7 @@ void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
   nemu_state.halt_ret = halt_ret;
 }
 
-static inline void invalid_instr(vaddr_t thispc) {
+static void invalid_instr(vaddr_t thispc) {
   uint32_t temp[2];
   vaddr_t pc = thispc;
   temp[0] = instr_fetch(&pc, 4);
@@ -44,7 +44,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       set_nemu_state(NEMU_END, s->pc, *src1);
       break;
     case HOSTCALL_INV: invalid_instr(s->pc); break;
-#ifdef CONFIG_DEVICE
+#ifdef CONFIG_HAS_PORT_IO
     case HOSTCALL_PIO: {
       int width = imm & 0xf;
       bool is_in = ((imm & ~0xf) != 0);
@@ -53,6 +53,10 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       break;
     }
 #endif
+#ifndef __ICS_EXPORT
     default: isa_hostcall(id, dest, src1, src2, imm); break;
+#else
+    default: panic("Unsupport hostcall ID = %d", id); break;
+#endif
   }
 }

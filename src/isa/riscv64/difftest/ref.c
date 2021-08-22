@@ -1,6 +1,5 @@
 #include <isa.h>
 #include <difftest-def.h>
-#include "../local-include/intr.h"
 #include "../local-include/csr.h"
 
 static void csr_prepare() {
@@ -35,5 +34,5 @@ void isa_difftest_regcpy(void *dut, bool direction) {
 }
 
 void isa_difftest_raise_intr(word_t NO) {
-  cpu.pc = raise_intr(NO, cpu.pc);
+  cpu.pc = isa_raise_intr(NO, cpu.pc);
 }

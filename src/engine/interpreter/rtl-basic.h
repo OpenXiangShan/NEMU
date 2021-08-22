@@ -27,20 +27,20 @@ def_rtl_compute_reg_imm(sub)
 def_rtl_compute_reg_imm(and)
 def_rtl_compute_reg_imm(or)
 def_rtl_compute_reg_imm(xor)
-def_rtl_compute_reg_imm(shl)
-def_rtl_compute_reg_imm(shr)
-def_rtl_compute_reg_imm(sar)
+def_rtl_compute_reg_imm(sll)
+def_rtl_compute_reg_imm(srl)
+def_rtl_compute_reg_imm(sra)
 
 #ifdef CONFIG_ISA64
 def_rtl_compute_reg_imm(addw)
 def_rtl_compute_reg_imm(subw)
-def_rtl_compute_reg_imm(shlw)
-def_rtl_compute_reg_imm(shrw)
-def_rtl_compute_reg_imm(sarw)
+def_rtl_compute_reg_imm(sllw)
+def_rtl_compute_reg_imm(srlw)
+def_rtl_compute_reg_imm(sraw)
 #define rtl_addiw rtl_addwi
-#define rtl_shliw rtl_shlwi
-#define rtl_shriw rtl_shrwi
-#define rtl_sariw rtl_sarwi
+#define rtl_slliw rtl_sllwi
+#define rtl_srliw rtl_srlwi
+#define rtl_sraiw rtl_srawi
 #endif
 
 static inline def_rtl(setrelop, uint32_t relop, rtlreg_t *dest,
@@ -101,6 +101,7 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 // memory
 
+#ifndef __ICS_EXPORT
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
@@ -122,6 +123,26 @@ static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
+#else
+static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
+  *dest = vaddr_read(*addr + offset, len);
+}
+
+static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr, word_t offset, int len) {
+  vaddr_write(*addr + offset, len, *src1);
+}
+
+static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr, word_t offset, int len) {
+  word_t val = vaddr_read(*addr + offset, len);
+  switch (len) {
+    case 4: *dest = (sword_t)(int32_t)val; return;
+    case 1: *dest = (sword_t)( int8_t)val; return;
+    case 2: *dest = (sword_t)(int16_t)val; return;
+    IFDEF(CONFIG_ISA64, case 8: *dest = (sword_t)(int64_t)val; return);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
+  }
+}
+#endif
 
 static inline def_rtl(host_lm, rtlreg_t* dest, const void *addr, int len) {
   switch (len) {
@@ -146,11 +167,15 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline def_rtl(j, vaddr_t target) {
-  cpu.pc = target;
+#ifndef CONFIG_PERF_OPT
+  s->dnpc = target;
+#endif
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
-  cpu.pc = *target;
+#ifndef CONFIG_PERF_OPT
+  s->dnpc = *target;
+#endif
 }
 
 static inline def_rtl(jrelop, uint32_t relop,
@@ -158,5 +183,4 @@ static inline def_rtl(jrelop, uint32_t relop,
   bool is_jmp = interpret_relop(relop, *src1, *src2);
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
-
 #endif

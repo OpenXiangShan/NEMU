@@ -77,10 +77,10 @@ typedef struct {
   } instr;
 } mips32_ISADecodeInfo;
 
-#define isa_mmu_state() (MMU_DYNAMIC)
 #ifdef __ICS_EXPORT
 #define isa_mmu_check(vaddr, len, type) (MMU_DIRECT)
 #else
+#define isa_mmu_state() (MMU_DYNAMIC)
 #define isa_mmu_check(vaddr, len, type) ((vaddr & 0x80000000u) == 0 ? MMU_TRANSLATE : MMU_DIRECT)
 #endif
 

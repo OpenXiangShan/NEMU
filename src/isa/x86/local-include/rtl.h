@@ -142,11 +142,11 @@ static inline def_rtl(update_SF, const rtlreg_t* result, int width) {
 static inline def_rtl(update_PF, const rtlreg_t* result) {
   // eflags.PF <- is_parity(result[7 .. 0])
   // HACK: `s2` is rarely used, so we use it here
-  rtl_shri(s, t0, result, 4);
+  rtl_srli(s, t0, result, 4);
   rtl_xor(s, t0, t0, result);
-  rtl_shri(s, s2, t0, 2);
+  rtl_srli(s, s2, t0, 2);
   rtl_xor(s, t0, t0, s2);
-  rtl_shri(s, s2, t0, 1);
+  rtl_srli(s, s2, t0, 1);
   rtl_xor(s, t0, t0, s2);
   rtl_not(s, t0, t0);
   rtl_andi(s, t0, t0, 1);
@@ -200,10 +200,10 @@ static inline def_rtl(fcmp_fsw, rtlreg_t *dest, const fpreg_t *src1, const fpreg
     rtl_li(s, dest, 0x1000);
   } else {
     rtl_feqd(s, t0, src1, src2);
-    rtl_shli(s, dest, t0, 6);
+    rtl_slli(s, dest, t0, 6);
     rtl_fltd(s, t0, src1, src2);
     rtl_or(s, dest, dest, t0);
-    rtl_shli(s, dest, dest, 8);
+    rtl_slli(s, dest, dest, 8);
   }
 }
 

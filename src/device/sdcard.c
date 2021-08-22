@@ -33,7 +33,7 @@ static uint32_t addr = 0;
 static bool write_cmd = 0;
 static bool read_ext_csd = false;
 
-static inline void prepare_rw(int is_write) {
+static void prepare_rw(int is_write) {
   blk_addr = base[SDARG];
   addr = 0;
   if (fp) fseek(fp, blk_addr << 9, SEEK_SET);
@@ -110,8 +110,6 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
 void init_sdcard() {
   base = (uint32_t *)new_space(0x80);
   add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, base, 0x80, sdcard_io_handler);
-
-  //base[SDEDM] = (8 << 4); // number of data in fifo
 
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 

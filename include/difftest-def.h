@@ -2,17 +2,18 @@
 #define __DIFFTEST_DEF_H__
 
 #include <stdint.h>
+#include <generated/autoconf.h>
 
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 
-#if defined(__ISA_x86__)
-# define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9) // GPRs + PC
-#elif defined(__ISA_mips32__)
+#if defined(CONFIG_ISA_x86)
+# define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9) // GPRs + pc
+#elif defined(CONFIG_ISA_mips32)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 38) // GRPs + status + lo + hi + badvaddr + cause + pc
-#elif defined(__ISA_riscv32__)
+#elif defined(CONFIG_ISA_riscv32)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 33) // GRPs + pc
-#elif defined(__ISA_riscv64__)
-# define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
+#elif defined(CONFIG_ISA_riscv64)
+# define DIFFTEST_REG_SIZE (sizeof(uint64_t) * 33) // GRPs + pc
 #else
 # error Unsupport ISA
 #endif

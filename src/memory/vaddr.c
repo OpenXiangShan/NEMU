@@ -1,14 +1,13 @@
 #include <isa.h>
-
-#ifdef CONFIG_PERF_OPT
-#define ENABLE_HOSTTLB 1
-#endif
-
 #include <memory/paddr.h>
-#include <memory/vaddr.h>
-#include <memory/host-tlb.h>
 
 #ifndef __ICS_EXPORT
+#include <memory/vaddr.h>
+#ifdef CONFIG_PERF_OPT
+#define ENABLE_HOSTTLB 1
+#include <memory/host-tlb.h>
+#endif
+
 #ifndef ENABLE_HOSTTLB
 static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
   word_t data = 0;
@@ -61,15 +60,11 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   }
 }
 #endif
-#endif
 
-static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
+static word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, type);
   if (mmu_mode == MMU_DIRECT) return paddr_read(addr, len);
-#ifndef __ICS_EXPORT
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
-#endif
-  return 0;
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
@@ -83,12 +78,23 @@ word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data); return; }
-#ifndef __ICS_EXPORT
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
-#endif
 }
 
 word_t vaddr_read_safe(vaddr_t addr, int len) {
   // FIXME: when reading fails, return an error instead of raising exceptions
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_READ, MMU_DYNAMIC);
 }
+#else
+word_t vaddr_ifetch(vaddr_t addr, int len) {
+  return paddr_read(addr, len);
+}
+
+word_t vaddr_read(vaddr_t addr, int len) {
+  return paddr_read(addr, len);
+}
+
+void vaddr_write(vaddr_t addr, int len, word_t data) {
+  paddr_write(addr, len, data);
+}
+#endif

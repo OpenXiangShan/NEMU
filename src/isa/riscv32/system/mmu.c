@@ -37,7 +37,7 @@ typedef struct {
 static TLBEntry TLB[4096] = {};
 static bool TLBValid[4096] = {};
 
-static inline int TLB_hash(uint32_t vpn) {
+static int TLB_hash(uint32_t vpn) {
   return vpn % ARRLEN(TLB);
 }
 

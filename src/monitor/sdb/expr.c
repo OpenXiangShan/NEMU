@@ -145,7 +145,7 @@ static int op_prec(int t) {
   }
 }
 
-static inline int op_prec_cmp(int t1, int t2) {
+static int op_prec_cmp(int t1, int t2) {
   return op_prec(t1) - op_prec(t2);
 }
 

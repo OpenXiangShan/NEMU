@@ -39,7 +39,7 @@ static vma_t *dyn_start;
 
 #define vma_foreach(p) for (p = vma_list.next; !vma_list_is_end(p); p = p->next)
 
-static inline void vma_list_add_after(vma_t *left, vma_t *_new) {
+static void vma_list_add_after(vma_t *left, vma_t *_new) {
   vma_t *right = left->next;
   _new->next = right;
   _new->prev = left;
@@ -47,11 +47,11 @@ static inline void vma_list_add_after(vma_t *left, vma_t *_new) {
   right->prev = _new;
 }
 
-static inline bool vma_list_is_end(vma_t *p) {
+static bool vma_list_is_end(vma_t *p) {
   return (p == &vma_list);
 }
 
-static inline vma_t* vma_list_find_fix_area(uintptr_t addr, size_t length) {
+static vma_t* vma_list_find_fix_area(uintptr_t addr, size_t length) {
   vma_t *p;
   vma_foreach(p) {
     if (p->addr == addr && p->length == length) return p;
@@ -59,7 +59,7 @@ static inline vma_t* vma_list_find_fix_area(uintptr_t addr, size_t length) {
   return NULL;
 }
 
-static inline vma_t* vma_list_new_fix_area(uintptr_t addr, size_t length) {
+static vma_t* vma_list_new_fix_area(uintptr_t addr, size_t length) {
   vma_t *candidate = NULL;
   vma_t *p;
   vma_foreach(p) {
@@ -77,7 +77,7 @@ static inline vma_t* vma_list_new_fix_area(uintptr_t addr, size_t length) {
 }
 
 // return the vma_t whose right is suitable
-static inline vma_t* vma_list_new_dyn_area(size_t length) {
+static vma_t* vma_list_new_dyn_area(size_t length) {
   vma_t *p = dyn_start;
   for (; !vma_list_is_end(p); p = p->next) {
     vma_t *right = p->next;
@@ -88,7 +88,7 @@ static inline vma_t* vma_list_new_dyn_area(size_t length) {
   return NULL;
 }
 
-static inline vma_t* vma_new(uintptr_t addr, size_t length, int prot,
+static vma_t* vma_new(uintptr_t addr, size_t length, int prot,
     int flags, int fd, off_t offset) {
   vma_t *vma = (vma_t *) malloc(sizeof(vma_t));
   assert(vma);

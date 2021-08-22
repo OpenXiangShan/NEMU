@@ -1,5 +1,6 @@
 .DEFAULT_GOAL = app
 
+# Add necessary options if the target is a shared library
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC
@@ -15,11 +16,9 @@ BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
 CC ?= gcc
 
-CCACHE := $(if $(shell which ccache),ccache,)
-
 # Compilation flags
-CC := $(CCACHE) $(CC)
-LD := $(CCACHE) $(CC)
+CC := $(CC)
+LD := $(CC)
 INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
@@ -30,7 +29,7 @@ OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
 $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
 # Depencies

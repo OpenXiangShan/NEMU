@@ -1,5 +1,5 @@
+#include <rtl/rtl.h>
 #include "../local-include/csr.h"
-#include "../local-include/rtl.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 
@@ -20,7 +20,7 @@ void init_csr() {
   MAP(CSRS, CSRS_EXIST)
 };
 
-static inline word_t* csr_decode(uint32_t addr) {
+static word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
   Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
@@ -36,13 +36,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_write(csr) (dest == (void *)(csr))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
-static inline void update_mstatus_sd() {
+static void update_mstatus_sd() {
   // mstatus.fs is always dirty or off in QEMU 3.1.0
   if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
   mstatus->sd = (mstatus->fs == 3);
 }
 
-static inline word_t csr_read(word_t *src) {
+static word_t csr_read(word_t *src) {
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
@@ -51,12 +51,19 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
-  else if (is_read(mtime))  { difftest_skip_ref(); return MUXDEF(CONFIG_PA, 0, clint_uptime()); }
+  else if (is_read(mtime))  {
+    difftest_skip_ref();
+#if defined(CONFIG_PA) || defined(CONFIG_TARGET_AM)
+    return 0;
+#else
+    return clint_uptime();
+#endif
+  }
   if (is_read(mip)) { difftest_skip_ref(); }
   return *src;
 }
 
-static inline void csr_write(word_t *dest, word_t src) {
+static void csr_write(word_t *dest, word_t src) {
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
@@ -128,8 +135,8 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   return 0;
 }
 
-void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
-    const rtlreg_t *src2, word_t imm) {
+void isa_hostcall(uint32_t id, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
@@ -143,7 +150,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       ret = *src1 + 4;
       break;
 #else
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_TRAP: ret = isa_raise_intr(imm, *src1); break;
 #endif
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);

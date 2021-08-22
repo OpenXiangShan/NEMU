@@ -6,6 +6,6 @@ def_EHelper(inv) {
 
 def_EHelper(nemu_trap) {
   save_globals(s);
-  rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[2]._32, NULL, 0); // gpr[2] is $v0
+  rtl_hostcall(s, HOSTCALL_EXIT, NULL, &gpr(2), NULL, 0); // gpr(2) is $v0
   longjmp_exec(NEMU_EXEC_END);
 }

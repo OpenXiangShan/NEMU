@@ -1,8 +1,7 @@
-#include "../local-include/rtl.h"
-#include "../local-include/intr.h"
+#include <isa.h>
 
 #ifndef __ICS_EXPORT
-word_t raise_intr(uint32_t NO, vaddr_t epc) {
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   cpu.mcause = NO;
   cpu.mepc = epc;
   cpu.mstatus.mpp = cpu.mode;
@@ -21,7 +20,7 @@ word_t isa_query_intr() {
 }
 
 #else
-word_t raise_intr(uint32_t NO, vaddr_t epc) {
+word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * That is, use ``NO'' to index the IDT.
    */

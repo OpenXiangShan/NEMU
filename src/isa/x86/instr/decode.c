@@ -5,7 +5,7 @@
 
 def_all_THelper();
 
-static inline word_t x86_instr_fetch(Decode *s, int len) {
+static word_t x86_instr_fetch(Decode *s, int len) {
   word_t ret = instr_fetch(&s->snpc, len);
   word_t ret_save = ret;
   int i;
@@ -17,7 +17,7 @@ static inline word_t x86_instr_fetch(Decode *s, int len) {
   return ret_save;
 }
 
-static inline word_t get_instr(Decode *s) {
+static word_t get_instr(Decode *s) {
   return *(s->isa.p_instr - 1);
 }
 
@@ -119,7 +119,7 @@ typedef union {
   uint8_t val;
 } SIB;
 
-static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
+static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   assert(m->mod != 3);
 
   sword_t disp = 0;
@@ -180,7 +180,7 @@ static inline void load_addr(Decode *s, ModR_M *m, Operand *rm) {
 #endif
 }
 
-static inline void operand_reg(Decode *s, Operand *op, int r, int width) {
+static void operand_reg(Decode *s, Operand *op, int r, int width) {
   op->reg = r;
   if (width == 4) { op->preg = &reg_l(r); }
   else {
@@ -191,7 +191,7 @@ static inline void operand_reg(Decode *s, Operand *op, int r, int width) {
   print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
-static inline void operand_imm(Decode *s, Operand *op, word_t imm) {
+static void operand_imm(Decode *s, Operand *op, word_t imm) {
   op->preg = &op->val;
   op->val = imm;
   op->type = OP_TYPE_IMM;
@@ -200,7 +200,7 @@ static inline void operand_imm(Decode *s, Operand *op, word_t imm) {
 
 // decode operand helper
 #define def_DopHelper(name) \
-  static inline void concat(decode_op_, name) (Decode *s, Operand *op, int width)
+  static void concat(decode_op_, name) (Decode *s, Operand *op, int width)
 
 /* Refer to Appendix A in i386 manual for the explanations of these abbreviations */
 
@@ -260,7 +260,7 @@ def_DopHelper(r) {
  * Rd
  * Sw
  */
-static inline void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
+static void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
   ModR_M m;
   m.val = x86_instr_fetch(s, 1);
   if (reg != NULL) operand_reg(s, reg, m.reg, width);
@@ -282,17 +282,17 @@ def_DopHelper(O) {
 /* Eb <- Gb
  * Ev <- Gv
  */
-static inline def_DHelper(G2E) {
+static def_DHelper(G2E) {
   operand_rm(s, id_dest, id_src1, width);
 }
 
 #if 0
 // for bts and btr
-static inline def_DHelper(bit_G2E) {
+static def_DHelper(bit_G2E) {
   operand_rm(s, id_dest, false, id_src1, true);
   if (s->isa.mbase) {
-    rtl_shri(s, s0, dsrc1, 5);
-    rtl_shli(s, s0, s0, 2);
+    rtl_srli(s, s0, dsrc1, 5);
+    rtl_slli(s, s0, s0, 2);
     rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
     s->isa.mbase = &s->isa.mbr;
     if (s->opcode != 0x1a3) { // bt
@@ -308,17 +308,17 @@ static inline def_DHelper(bit_G2E) {
 /* Gb <- Eb
  * Gv <- Ev
  */
-static inline def_DHelper(E2G) {
+static def_DHelper(E2G) {
   operand_rm(s, id_src1, id_dest, width);
 }
 
-static inline def_DHelper(Eb2G) {
+static def_DHelper(Eb2G) {
   operand_rm(s, id_src1, id_dest, 1);
   // overwrite the wrong decode result by `operand_rm()` with the correct width
   operand_reg(s, id_dest, id_dest->reg, width);
 }
 
-static inline def_DHelper(Ew2G) {
+static def_DHelper(Ew2G) {
   operand_rm(s, id_src1, id_dest, 2);
   // overwrite the wrong decode result by `operand_rm()` with the correct width
   operand_reg(s, id_dest, id_dest->reg, width);
@@ -327,7 +327,7 @@ static inline def_DHelper(Ew2G) {
 /* AL <- Ib
  * eAX <- Iv
  */
-static inline def_DHelper(I2a) {
+static def_DHelper(I2a) {
   decode_op_a(s, id_dest, width);
   decode_op_I(s, id_src1, width);
 }
@@ -335,7 +335,7 @@ static inline def_DHelper(I2a) {
 /* Gv <- EvIb
  * Gv <- EvIv
  * use for imul */
-static inline def_DHelper(I_E2G) {
+static def_DHelper(I_E2G) {
   operand_rm(s, id_src1, id_dest, width);
   decode_op_SI(s, id_src2, width); // imul takes the imm as signed
 }
@@ -344,7 +344,7 @@ static inline def_DHelper(I_E2G) {
  * Ev <- Iv
  */
 
-static inline def_DHelper(I2E) {
+static def_DHelper(I2E) {
   IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, NULL, width);
   decode_op_I(s, id_src1, width);
@@ -353,58 +353,58 @@ static inline def_DHelper(I2E) {
 /* XX <- Ib
  * eXX <- Iv
  */
-static inline def_DHelper(I2r) {
+static def_DHelper(I2r) {
   decode_op_r(s, id_dest, width);
   decode_op_I(s, id_src1, width);
 }
 
 /* used by unary operations */
-static inline def_DHelper(I) {
+static def_DHelper(I) {
   decode_op_I(s, id_dest, width);
 }
 
-static inline def_DHelper(SI) {
+static def_DHelper(SI) {
   decode_op_SI(s, id_dest, width);
 }
 
-static inline def_DHelper(r) {
+static def_DHelper(r) {
   decode_op_r(s, id_dest, width);
 }
 
-static inline def_DHelper(E) {
+static def_DHelper(E) {
   operand_rm(s, id_dest, NULL, width);
 }
 
 #if 0
-static inline def_DHelper(gp6_E) {
+static def_DHelper(gp6_E) {
   operand_rm(s, id_dest, true, NULL, false);
 }
 #endif
 
 /* used by test in group3 */
-static inline def_DHelper(test_I) {
+static def_DHelper(test_I) {
   decode_op_I(s, id_src1, width);
 }
 
-static inline def_DHelper(SI2E) {
+static def_DHelper(SI2E) {
   assert(width == 2 || width == 4);
   operand_rm(s, id_dest, NULL, width);
   decode_op_SI(s, id_src1, 1);
   if (width == 2) { *dsrc1 &= 0xffff; }
 }
 
-static inline def_DHelper(SI_E2G) {
+static def_DHelper(SI_E2G) {
   assert(width == 2 || width == 4);
   operand_rm(s, id_src1, id_dest, width);
   decode_op_SI(s, id_src2, 1);
 }
 
-static inline def_DHelper(1_E) { // use by gp2
+static def_DHelper(1_E) { // use by gp2
   operand_rm(s, id_dest, NULL, width);
   operand_imm(s, id_src1, 1);
 }
 
-static inline def_DHelper(cl2E) {  // use by gp2
+static def_DHelper(cl2E) {  // use by gp2
   //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, NULL, width);
   // shift instructions will eventually use the lower
@@ -412,7 +412,7 @@ static inline def_DHelper(cl2E) {  // use by gp2
   operand_reg(s, id_src1, R_ECX, 4);
 }
 
-static inline def_DHelper(Ib2E) { // use by gp2
+static def_DHelper(Ib2E) { // use by gp2
   //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, NULL, width);
   decode_op_I(s, id_src1, 1);
@@ -420,7 +420,7 @@ static inline def_DHelper(Ib2E) { // use by gp2
 
 /* Ev <- GvIb
  * use for shld/shrd */
-static inline def_DHelper(Ib_G2E) {
+static def_DHelper(Ib_G2E) {
   //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, id_src1, width);
   decode_op_I(s, id_src2, 1);
@@ -428,7 +428,7 @@ static inline def_DHelper(Ib_G2E) {
 
 /* Ev <- GvCL
  * use for shld/shrd */
-static inline def_DHelper(cl_G2E) {
+static def_DHelper(cl_G2E) {
   //IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, id_src1, width);
   // shift instructions will eventually use the lower
@@ -438,42 +438,42 @@ static inline def_DHelper(cl_G2E) {
 
 #if 0
 // for cmpxchg
-static inline def_DHelper(a_G2E) {
+static def_DHelper(a_G2E) {
   IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
   operand_rm(s, id_dest, true, id_src2, true);
   operand_reg(s, id_src1, true, R_EAX, 4);
 }
 #endif
 
-static inline def_DHelper(O2a) {
+static def_DHelper(O2a) {
   decode_op_O(s, id_src1, 0);
   decode_op_a(s, id_dest, width);
 }
 
-static inline def_DHelper(a2O) {
+static def_DHelper(a2O) {
   decode_op_a(s, id_src1, width);
   decode_op_O(s, id_dest, 0);
 }
 
 // for scas and stos
-static inline def_DHelper(aSrc) {
+static def_DHelper(aSrc) {
   decode_op_a(s, id_src1, width);
 }
 
 #if 0
 // for lods
-static inline def_DHelper(aDest) {
+static def_DHelper(aDest) {
   decode_op_a(s, id_dest, false);
 }
 #endif
 
 // for xchg
-static inline def_DHelper(a2r) {
+static def_DHelper(a2r) {
   decode_op_a(s, id_src1, width);
   decode_op_r(s, id_dest, width);
 }
 
-static inline def_DHelper(J) {
+static def_DHelper(J) {
   // the target address can be computed in the decode stage
   decode_op_SI(s, id_dest, width);
   id_dest->imm = id_dest->val + s->snpc;
@@ -483,7 +483,7 @@ static inline def_DHelper(J) {
 #ifndef __ICS_EXPORT
 
 // for long jump
-static inline def_DHelper(LJ) {
+static def_DHelper(LJ) {
   decode_op_I(s, id_dest, false); // offset
   id_src1->width = 2;
   decode_op_I(s, id_src1, false); // CS
@@ -492,34 +492,34 @@ static inline def_DHelper(LJ) {
 }
 #endif
 
-static inline def_DHelper(in_I2a) {
+static def_DHelper(in_I2a) {
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
   decode_op_a(s, id_dest, false);
 }
 #endif
 
-static inline def_DHelper(dx2a) {
+static def_DHelper(dx2a) {
   operand_reg(s, id_src1, R_DX, 2);
   decode_op_a(s, id_dest, width);
 }
 
 #if 0
-static inline def_DHelper(out_a2I) {
+static def_DHelper(out_a2I) {
   decode_op_a(s, id_src1, true);
   id_dest->width = 1;
   decode_op_I(s, id_dest, true);
 }
 #endif
 
-static inline def_DHelper(a2dx) {
+static def_DHelper(a2dx) {
   decode_op_a(s, id_src1, width);
   operand_reg(s, id_dest, R_DX, 2);
 }
 
 #if 0
 #ifndef __ICS_EXPORT
-static inline def_DHelper(Ib2xmm) {
+static def_DHelper(Ib2xmm) {
   operand_rm(s, id_dest, false, NULL, false);
   id_src1->width = 1;
   decode_op_I(s, id_src1, true);
@@ -528,7 +528,7 @@ static inline def_DHelper(Ib2xmm) {
 #endif
 
 
-static inline int SSEprefix(Decode *s) {
+static int SSEprefix(Decode *s) {
   assert(!(s->isa.rep_flags != 0 && s->isa.is_operand_size_16));
   if (s->isa.is_operand_size_16) return 1;
   else if (s->isa.rep_flags == PREFIX_REP) return 2;

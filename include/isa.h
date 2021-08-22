@@ -21,23 +21,27 @@ word_t isa_reg_str2val(const char *name, bool *success);
 // exec
 struct Decode;
 int isa_fetch_decode(struct Decode *s);
-void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
-    const rtlreg_t *src2, word_t imm);
+#ifndef __ICS_EXPORT
+void isa_hostcall(uint32_t id, rtlreg_t *dest,
+    const rtlreg_t *src1, const rtlreg_t *src2, word_t imm);
+#endif
 
 // memory
 enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
 enum { MEM_RET_OK, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
+#ifndef __ICS_EXPORT
 #ifndef isa_mmu_state
 int isa_mmu_state();
+#endif
 #endif
 #ifndef isa_mmu_check
 int isa_mmu_check(vaddr_t vaddr, int len, int type);
 #endif
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 
-// interrupt
-vaddr_t raise_intr(word_t NO, vaddr_t epc);
+// interrupt/exception
+vaddr_t isa_raise_intr(word_t NO, vaddr_t epc);
 #define INTR_EMPTY ((word_t)-1)
 word_t isa_query_intr();
 

@@ -3,26 +3,25 @@
 
 #include <common.h>
 
-static inline int check_reg_index(int index) {
-  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
-  return index;
+static inline int check_reg_idx(int idx) {
+  IFDEF(CONFIG_RT_CHECK, assert(idx >= 0 && idx < 32));
+  return idx;
 }
 
-#define reg_l(index) (cpu.gpr[check_reg_index(index)]._64)
+#define gpr(idx) (cpu.gpr[check_reg_idx(idx)]._64)
 
-static inline const char* reg_name(int index, int width) {
-  extern const char* regsl[];
-  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
-  return regsl[index];
+static inline const char* reg_name(int idx, int width) {
+  extern const char* regs[];
+  return regs[check_reg_idx(idx)];
 }
 
+#ifndef __ICS_EXPORT
 // Floating Point Regs
-#define fpreg_l(index) (cpu.fpr[check_reg_index(index)]._64)
+#define fpr(idx) (cpu.fpr[check_reg_idx(idx)]._64)
 
-static inline const char* fpreg_name(int index, int width){
-  extern const char* fpregsl[];
-  IFDEF(CONFIG_RT_CHECK, assert(index >= 0 && index < 32));
-  return fpregsl[index];
+static inline const char* fpreg_name(int idx, int width){
+  extern const char* fpregs[];
+  return fpregs[check_reg_idx(idx)];
 }
-
+#endif
 #endif

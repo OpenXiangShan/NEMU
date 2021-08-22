@@ -10,6 +10,6 @@
 
 #define MEM_OK 0
 
-word_t raise_intr(uint32_t NO, vaddr_t epc);
+word_t isa_raise_intr(uint32_t NO, vaddr_t epc);
 
 #endif

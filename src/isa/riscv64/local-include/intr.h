@@ -1,7 +1,7 @@
-#ifndef __INTR_H__
-#define __INTR_H__
+#ifndef __RISCV64_INTR_H__
+#define __RISCV64_INTR_H__
 
-#include <cpu/decode.h>
+#include <common.h>
 
 enum {
   EX_IAM, // instruction address misaligned
@@ -21,13 +21,5 @@ enum {
   EX_RS1, // reserved
   EX_SPF, // store/amo page fault
 };
-
-// now NEMU does not support EX_IAM,
-// so it may ok to use EX_IAM to indicate a successful memory access
-#define MEM_OK 0
-
-word_t raise_intr(word_t NO, vaddr_t epc);
-#define return_on_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
-
 
 #endif

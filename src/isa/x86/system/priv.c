@@ -32,7 +32,7 @@ static void load_sreg(int idx, uint16_t val) {
 #endif
 }
 
-static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (dest != NULL) {
     switch (csrid) {
 #ifndef CONFIG_MODE_USER
@@ -63,7 +63,7 @@ static inline void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 }
 
 #ifndef CONFIG_MODE_USER
-static inline word_t iret() {
+static word_t iret() {
   int old_cpl = cpu.sreg[CSR_CS].rpl;
   uint32_t new_pc = vaddr_read(NULL, cpu.esp + 0, 4, MMU_DYNAMIC);
   uint32_t new_cs = vaddr_read(NULL, cpu.esp + 4, 4, MMU_DYNAMIC);
@@ -84,7 +84,7 @@ static inline word_t iret() {
   return new_pc;
 }
 
-static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
+static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case PRIV_IRET: return iret();
     default: panic("Unsupported privilige operation = %d", op);
@@ -106,7 +106,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       ret = *src1;
       break;
 #else
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_TRAP: ret = isa_raise_intr(imm, *src1); break;
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
 #endif
     default: panic("Unsupported hostcall ID = %d", id);

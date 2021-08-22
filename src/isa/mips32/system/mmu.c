@@ -40,7 +40,7 @@ void init_mmu() {
   }
 }
 
-static inline void update_tlb(int idx) {
+static void update_tlb(int idx) {
   tlb[idx].hi.val = cpu.entryhi.val;
   tlb[idx].lo[0].val = cpu.entrylo0;
   tlb[idx].lo[1].val = cpu.entrylo1;
@@ -66,7 +66,7 @@ void tlbp() {
   cpu.index |= 0x80000000;
 }
 
-static inline int32_t search_ppn(vaddr_t addr, int type) {
+static int32_t search_ppn(vaddr_t addr, int type) {
   union {
     struct {
       uint32_t offset :12;

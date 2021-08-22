@@ -30,21 +30,21 @@ typedef union PageTableEntry {
 #define PTE_SIZE 4
 #define VPNMASK 0x3ff
 
-static inline word_t VPNiSHFT(int i) {
+static word_t VPNiSHFT(int i) {
   return PGSHFT + 10 * i;
 }
 
-static inline word_t VPNi(vaddr_t va, int i) {
+static word_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 
 #ifdef CONFIG_PA
-static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
+static bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   Assert(pte->p, "vaddr = %x, cpu.pc = %x", vaddr, cpu.pc);
   return true;
 }
 #else
-static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
+static bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   int is_user = cpu.sreg[CSR_CS].rpl == MODE_R3;
   int is_write = (type == MEM_TYPE_WRITE) || (type == MEM_TYPE_READ && cpu.lock);
   ok = ok && pte->p;
@@ -60,7 +60,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 #endif
 
-static inline paddr_t ptw(vaddr_t vaddr, int type) {
+static paddr_t ptw(vaddr_t vaddr, int type) {
   word_t pg_base = PGBASE(cpu.cr3.ppn);
   word_t p_pte[PTW_LEVEL]; // pte pointer
   PTE pte[PTW_LEVEL];

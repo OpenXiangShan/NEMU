@@ -1,6 +1,7 @@
 #include <cpu/decode.h>
 #include "../local-include/rtl.h"
 
+#ifndef __ICS_EXPORT
 #ifdef CONFIG_DEBUG
 #define AMO_INSTR_BINARY(f) \
   f(lr_w) f(lr_d)
@@ -72,5 +73,11 @@
   AMO_INSTR_TERNARY(f) \
   SYS_INSTR_TERNARY(f) \
   FLOAT_INSTR_TERNARY(f)
+#else
+#define INSTR_NULLARY(f) f(inv) f(nemu_trap)
+#define INSTR_UNARY(f)
+#define INSTR_BINARY(f) f(auipc)
+#define INSTR_TERNARY(f) f(ld) f(sd)
+#endif
 
 def_all_EXEC_ID();

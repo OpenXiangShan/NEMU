@@ -25,22 +25,22 @@
          ))))
 
 
-static inline int user_fd(int fd) {
+static int user_fd(int fd) {
   if (fd >= 0 && fd <= 2) return user_state.std_fd[fd];
   return fd;
 }
 
-static inline sword_t get_syscall_ret(intptr_t ret) {
+static sword_t get_syscall_ret(intptr_t ret) {
   return (ret == -1) ? -errno : ret;
 }
 
-static inline void user_sys_exit(int status) {
+static void user_sys_exit(int status) {
   void set_nemu_state(int state, vaddr_t pc, int halt_ret);
   set_nemu_state(NEMU_END, cpu.pc, status);
   longjmp_exec(NEMU_EXEC_END);
 }
 
-static inline word_t user_sys_brk(word_t new_brk) {
+static word_t user_sys_brk(word_t new_brk) {
   if (new_brk == 0) return user_state.brk;
   if (new_brk >= user_state.brk_page) {
     uint32_t size = ROUNDUP(new_brk - user_state.brk_page + 1, PAGE_SIZE);
@@ -52,7 +52,7 @@ static inline word_t user_sys_brk(word_t new_brk) {
   return new_brk;
 }
 
-static inline word_t user_gettimeofday(void *tv, void *tz) {
+static word_t user_gettimeofday(void *tv, void *tz) {
 #ifdef CONFIG_ISA64
   return gettimeofday((struct timeval *) tv, (__timezone_ptr_t) tz);
 #else
@@ -64,7 +64,7 @@ static inline word_t user_gettimeofday(void *tv, void *tz) {
 #endif
 }
 
-static inline word_t user_clock_gettime(clockid_t id, void *tp) {
+static word_t user_clock_gettime(clockid_t id, void *tp) {
 #ifdef CONFIG_ISA64
   return clock_gettime(id, (struct timespec *) tp);
 #else
@@ -76,7 +76,7 @@ static inline word_t user_clock_gettime(clockid_t id, void *tp) {
 #endif
 }
 
-static inline word_t user_sysinfo(void *info) {
+static word_t user_sysinfo(void *info) {
 #ifdef CONFIG_ISA64
   return sysinfo((struct sysinfo *) info);
 #else
@@ -88,7 +88,7 @@ static inline word_t user_sysinfo(void *info) {
 #endif
 }
 
-static inline word_t user_writev(int fd, void *iov, int iovcnt) {
+static word_t user_writev(int fd, void *iov, int iovcnt) {
 #ifdef CONFIG_ISA64
   return writev(fd, (const struct iovec*) iov, iovcnt);
 #else
@@ -105,7 +105,7 @@ static inline word_t user_writev(int fd, void *iov, int iovcnt) {
 #endif
 }
 
-static inline word_t user_times(void *buf) {
+static word_t user_times(void *buf) {
 #ifdef CONFIG_ISA64
   return times((struct tms *) buf);
 #else
@@ -117,7 +117,7 @@ static inline word_t user_times(void *buf) {
 #endif
 }
 
-static inline word_t user_getrusage(int who, void *usage) {
+static word_t user_getrusage(int who, void *usage) {
 #ifdef CONFIG_ISA64
   return getrusage(who, (struct rusage *) usage);
 #else
@@ -130,14 +130,14 @@ static inline word_t user_getrusage(int who, void *usage) {
 }
 
 #ifdef CONFIG_ISA64
-static inline word_t user_sys_fstat(int fd, void *statbuf) {
+static word_t user_sys_fstat(int fd, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
   if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
   return ret;
 }
 
-static inline word_t user_sys_fstatat(int dirfd,
+static word_t user_sys_fstatat(int dirfd,
     const char *pathname, void *statbuf, int flags) {
   struct stat buf;
   int ret = get_syscall_ret(fstatat(dirfd, pathname, &buf, flags));
@@ -145,28 +145,28 @@ static inline word_t user_sys_fstatat(int dirfd,
   return ret;
 }
 #else
-static inline word_t user_sys_stat64(const char *pathname, void *statbuf) {
+static word_t user_sys_stat64(const char *pathname, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(stat(pathname, &buf));
   if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
 
-static inline word_t user_sys_fstat64(int fd, void *statbuf) {
+static word_t user_sys_fstat64(int fd, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(fstat(fd, &buf));
   if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
 
-static inline word_t user_sys_lstat64(const char *pathname, void *statbuf) {
+static word_t user_sys_lstat64(const char *pathname, void *statbuf) {
   struct stat buf;
   int ret = get_syscall_ret(lstat(pathname, &buf));
   if (ret == 0) translate_stat64(&buf, statbuf);
   return ret;
 }
 
-static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
+static word_t user_sys_llseek(int fd, uint32_t offset_high,
     uint32_t offset_low, uint64_t *result, uint32_t whence) {
   off_t ret = lseek(fd, ((off_t)offset_high << 32) | offset_low, whence);
   if (ret != (off_t)-1) {
@@ -176,11 +176,11 @@ static inline word_t user_sys_llseek(int fd, uint32_t offset_high,
   return -1;
 }
 
-static inline word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
+static word_t user_ftruncate64(int fd, uint32_t lo, uint32_t hi) {
   return ftruncate(fd, ((uint64_t)hi << 32) | lo);
 }
 
-static inline word_t user_getrlimit(int resource, void *rlim) {
+static word_t user_getrlimit(int resource, void *rlim) {
   struct rlimit host_rlim;
   int ret = getrlimit(resource, &host_rlim);
   assert(ret == 0);
@@ -189,7 +189,7 @@ static inline word_t user_getrlimit(int resource, void *rlim) {
 }
 
 #ifdef CONFIG_ISA_x86
-static inline word_t user_set_thread_area(void *u_info) {
+static word_t user_set_thread_area(void *u_info) {
   struct user_desc *info = u_info;
   assert(info->entry_number == -1);
   assert(info->seg_32bit);
@@ -209,7 +209,7 @@ static inline word_t user_set_thread_area(void *u_info) {
 #endif
 #endif
 
-static inline word_t user_prlimit64(pid_t pid, int resource,
+static word_t user_prlimit64(pid_t pid, int resource,
     const void *new_limit, void *old_limit) {
   return prlimit(pid, (enum __rlimit_resource) resource,
           (const struct rlimit *) new_limit, (struct rlimit *) old_limit);

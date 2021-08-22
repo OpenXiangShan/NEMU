@@ -1,6 +1,7 @@
 #include <cpu/decode.h>
-#include <rtl/rtl.h>
+#include "../local-include/rtl.h"
 
+#ifndef __ICS_EXPORT
 #define INSTR_NULLARY(f) \
   f(inv) f(nemu_trap) f(ecall) f(mret) f(sfence_vma) f(p_ret)
 
@@ -24,5 +25,11 @@
   f(c_li) f(c_addi) f(c_slli) f(c_srli) f(c_srai) f(c_andi) \
   f(c_add) f(c_and) f(c_or) f(c_xor) f(c_sub) \
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz)
+#else
+#define INSTR_NULLARY(f) f(inv) f(nemu_trap)
+#define INSTR_UNARY(f)
+#define INSTR_BINARY(f) f(lui)
+#define INSTR_TERNARY(f) f(lw) f(sw)
+#endif
 
 def_all_EXEC_ID();

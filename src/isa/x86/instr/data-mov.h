@@ -57,7 +57,7 @@ def_EHelper(cwtl) {
 
 def_EHelper(cltd) {
   if (s->isa.width == 2) { TODO(); }
-  else { rtl_sari(s, &cpu.edx, &cpu.eax, 31); }
+  else { rtl_srai(s, &cpu.edx, &cpu.eax, 31); }
 }
 
 def_EHelper(leave) {

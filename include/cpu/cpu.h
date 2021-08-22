@@ -3,6 +3,7 @@
 
 #include <common.h>
 
+#ifndef __ICS_EXPORT
 enum {
   NEMU_EXEC_RUNNING = 0, // unused by longjmp()
   NEMU_EXEC_END,
@@ -24,5 +25,8 @@ void mmu_tlb_flush(vaddr_t vaddr);
 struct Decode;
 void save_globals(struct Decode *s);
 void fetch_decode(struct Decode *s, vaddr_t pc);
+#else
+void cpu_exec(uint64_t n);
+#endif
 
 #endif

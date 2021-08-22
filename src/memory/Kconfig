@@ -2,7 +2,9 @@ menu "Memory Configuration"
 
 config MBASE
   hex "Memory base address"
+#ifndef __ICS_EXPORT
   default 0x08048000 if MODE_USER
+#endif
   default 0x0        if ISA_x86
   default 0x80000000
 
@@ -16,10 +18,11 @@ config PC_RESET_OFFSET
   default 0
 
 if !TARGET_AM
+#ifndef __ICS_EXPORT
 config USE_MMAP
   bool "Allocate guest physical memory with mmap()"
   default y
-
+#endif
 config MEM_RANDOM
   depends on MODE_SYSTEM && !DIFFTEST
   bool "Initialize the memory with random values"

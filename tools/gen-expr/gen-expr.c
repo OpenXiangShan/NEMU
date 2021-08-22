@@ -17,7 +17,7 @@ static char *code_format =
 "}";
 
 #ifdef __ICS_EXPORT
-static inline void gen_rand_expr() {
+static void gen_rand_expr() {
   buf[0] = '\0';
 }
 #else
@@ -25,20 +25,20 @@ static char *pbuf;
 
 #define format_buf(fmt, ...) pbuf += sprintf(pbuf, fmt, ##__VA_ARGS__)
 
-static inline uint32_t choose(uint32_t max) {
+static uint32_t choose(uint32_t max) {
   return rand() % max;
 }
 
-static inline void gen_rand_op() {
+static void gen_rand_op() {
   char op_list[] = {'+', '-', '*', '/', '+', '-', '*'};
   format_buf("%c", op_list[choose(7)]);
 }
 
-static inline void gen_num() {
+static void gen_num() {
   format_buf("%uu", rand());
 }
 
-static inline void gen_space() {
+static void gen_space() {
   char *space_list[3] = {
     "",
     " ",
@@ -49,7 +49,7 @@ static inline void gen_space() {
 
 static int nr_op = 0;
 
-static inline void gen_rand_expr() {
+static void gen_rand_expr() {
   gen_space();
   switch (choose(3)) {
     default:

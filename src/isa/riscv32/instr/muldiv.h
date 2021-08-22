@@ -1,4 +1,3 @@
-#ifndef __ICS_EXPORT
 def_EHelper(mul) {
   rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
 }
@@ -26,7 +25,7 @@ def_EHelper(mulhsu) {
   // In the end, ans = (a < 0 ? mulhu(a, b) - b : mulhu(a, b))
   //                 = mulhu(a, b) - (a < 0 ? b : 0)
 
-  rtl_sari(s, s0, dsrc1, 31);
+  rtl_srai(s, s0, dsrc1, 31);
   rtl_and(s, s0, dsrc2, s0); // s0 = (id_src1->val < 0 ? id_src2->val : 0)
   rtl_mulu_hi(s, s1, dsrc1, dsrc2);
   rtl_sub(s, ddest, s1, s0);
@@ -47,4 +46,3 @@ def_EHelper(rem) {
 def_EHelper(remu) {
   rtl_divu_r(s, ddest, dsrc1, dsrc2);
 }
-#endif

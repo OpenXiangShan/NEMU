@@ -1,8 +1,7 @@
-#include "../local-include/rtl.h"
-#include "../local-include/intr.h"
+#include <rtl/rtl.h>
 #include <cpu/cpu.h>
 
-static inline word_t* csr_decode(uint32_t csr) {
+static word_t* csr_decode(uint32_t csr) {
   switch (csr) {
     case 0x180: return &cpu.satp.val;
     case 0x300: return &cpu.mstatus.val;
@@ -39,11 +38,11 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 }
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest,
-    const rtlreg_t *src1, const rtlreg_t *src2, uint32_t imm) {
+    const rtlreg_t *src1, const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_TRAP: ret = isa_raise_intr(imm, *src1); break;
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }
