@@ -30,6 +30,8 @@ BLACK_LIST = [
   r'^/include/generated/',
   r'^/include/memory/host-tlb.h',
   r'^/include/rtl/fp.h',
+  r'^/src/isa/*/system/priv.c',
+
   r'^/src/isa/mips32/local-include/intr.h',
   r'^/src/isa/x86/exec/eflags.c',
   r'^/src/isa/x86/exec/lazycc.h',

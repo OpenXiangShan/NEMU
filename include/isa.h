@@ -21,8 +21,10 @@ word_t isa_reg_str2val(const char *name, bool *success);
 // exec
 struct Decode;
 int isa_fetch_decode(struct Decode *s);
+#ifndef __ICS_EXPORT
 void isa_hostcall(uint32_t id, rtlreg_t *dest,
     const rtlreg_t *src1, const rtlreg_t *src2, word_t imm);
+#endif
 
 // memory
 enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
