@@ -1,9 +1,13 @@
 def_EHelper(add) {
   rtl_decode_binary(s, true, true);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc_src1(s, dsrc1);  // set src firstly cuz maybe $dest = $src
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc_src1(s, dsrc1);  // set src firstly cuz maybe $dest = $src
+  }
   rtl_add(s, ddest, ddest, dsrc1);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_ADD, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_ADD, s->isa.width);
+  }
   rtl_wb(s, ddest);
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
@@ -28,7 +32,9 @@ def_EHelper(add) {
 def_EHelper(sub) {
   rtl_decode_binary(s, true, true);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, s->isa.width);
+  }
   rtl_sub(s, ddest, ddest, dsrc1);
   rtl_wb(s, ddest);
 #else
@@ -51,7 +57,11 @@ def_EHelper(sub) {
 def_EHelper(cmp) {
   rtl_decode_binary(s, true, true);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, s->isa.width);
+  } else {
+    Log("@@@ pc = 0x%x", s->pc);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -69,7 +79,9 @@ def_EHelper(inc) {
   rtl_decode_unary(s, true);
   rtl_addi(s, ddest, ddest, 1);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -85,7 +97,9 @@ def_EHelper(dec) {
   rtl_decode_unary(s, true);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_subi(s, ddest, ddest, 1);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -105,9 +119,13 @@ def_EHelper(adc) {
 #ifdef CONFIG_x86_CC_LAZY
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
-  rtl_set_lazycc_src2(s, dsrc1);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc_src2(s, dsrc1);
+  }
   rtl_add(s, ddest, ddest, s0);
-  rtl_set_lazycc(s, ddest, s0, NULL, LAZYCC_ADC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, s0, NULL, LAZYCC_ADC, s->isa.width);
+  }
   rtl_wb(s, ddest);
 #else
   rtl_get_CF(s, s0);
@@ -138,10 +156,14 @@ def_EHelper(sbb) {
 #ifdef CONFIG_x86_CC_LAZY
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
-  rtl_set_lazycc_src2(s, dsrc1);
-  rtl_set_lazycc_src1(s, ddest);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc_src2(s, dsrc1);
+    rtl_set_lazycc_src1(s, ddest);
+  }
   rtl_sub(s, ddest, ddest, s0);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SBB, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SBB, s->isa.width);
+  }
   rtl_wb(s, ddest);
 #else
   rtl_get_CF(s, s0);
@@ -168,7 +190,9 @@ def_EHelper(neg) {
   rtl_decode_unary(s, true);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_sub(s, ddest, rz, ddest);
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_NEG, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -443,7 +467,9 @@ def_EHelper(xadd) {
   rtl_add(s, s0, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
   rtl_set_lazycc_src1(s, dsrc1);
-  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_ADD, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_ADD, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {

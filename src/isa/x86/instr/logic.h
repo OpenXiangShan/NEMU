@@ -2,7 +2,9 @@ def_EHelper(and) {
   rtl_decode_binary(s, true, true);
   rtl_and(s, ddest, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -18,7 +20,9 @@ def_EHelper(or) {
   rtl_decode_binary(s, true, true);
   rtl_or(s, ddest, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -34,7 +38,9 @@ def_EHelper(test) {
   rtl_decode_binary(s, true, true);
   rtl_and(s, s0, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
@@ -49,7 +55,9 @@ def_EHelper(xor) {
   rtl_decode_binary(s, true, true);
   rtl_xor(s, ddest, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+  }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {

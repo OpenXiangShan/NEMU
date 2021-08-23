@@ -22,7 +22,7 @@ static word_t get_instr(Decode *s) {
   return *(s->isa.p_instr - 1);
 }
 
-#ifdef CONFIG_x86_CC_SKIP
+#ifndef CONFIG_x86_CC_NONE
 enum {
   F_CF = 0x1,
   F_PF = 0x2,
@@ -870,7 +870,7 @@ int isa_fetch_decode(Decode *s) {
       s->type = INSTR_TYPE_I; break;
   }
 
-#ifdef CONFIG_x86_CC_SKIP
+#ifndef CONFIG_x86_CC_NONE
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
   if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {
@@ -887,7 +887,7 @@ int isa_fetch_decode(Decode *s) {
       // now scan and update `flag_def`
       Decode *p;
       //uint32_t use = s->isa.flag_use;
-      uint32_t use = F_ALL; //s->isa.flag_use;
+      uint32_t use = (idx == EXEC_ID_call || s->type == INSTR_TYPE_I ? 0 : F_ALL); //s->isa.flag_use;
       for (p = s - 1; p >= bb_start; p --) {
         uint32_t real_def = p->isa.flag_def & use;
         use &= ~p->isa.flag_def;
