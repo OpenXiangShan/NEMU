@@ -121,6 +121,9 @@ void init_monitor(int argc, char *argv[]) {
   void init_user(char *elfpath, int argc, char *argv[]);
   init_user(img_file, user_argc, user_argv);
 #else
+  /* Initialize devices. */
+  IFDEF(CONFIG_DEVICE, init_device());
+
   /* Perform ISA dependent initialization. */
   init_isa();
 
@@ -129,9 +132,6 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
-
-  /* Initialize devices. */
-  IFDEF(CONFIG_DEVICE, init_device());
 #endif
 
   /* Initialize the simple debugger. */
