@@ -80,11 +80,14 @@ def_EHelper(setcc) {
 
 def_EHelper(shl) {
   rtl_decode_binary(s, true, true);
-#ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER
 //  int count = *dsrc1 & 0x1f;
 //  if (count == 0) return;
 #endif
+#ifdef CONFIG_x86_CC_LAZY
+  //panic("TODO: implement CF and OF with lazy cc");
+  rtl_sll(s, ddest, ddest, dsrc1);
+#else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
     rtl_subi(s, s0, dsrc1, 1);
@@ -103,23 +106,19 @@ def_EHelper(shl) {
   } else {
     rtl_sll(s, ddest, ddest, dsrc1);
   }
-#else
-  rtl_sll(s, ddest, ddest, dsrc1);
-  rtl_update_ZFSF(s, ddest, s->isa.width);
-#endif
-#ifdef CONFIG_x86_CC_LAZY
-  //panic("TODO: implement CF and OF with lazy cc");
 #endif
   rtl_wb(s, ddest);
 }
 
 def_EHelper(shr) {
   rtl_decode_binary(s, true, true);
-#ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER
 //  int count = *dsrc1 & 0x1f;
 //  if (count == 0) return;
 #endif
+#ifdef CONFIG_x86_CC_LAZY
+  rtl_srl(s, ddest, ddest, dsrc1);
+#else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
     rtl_subi(s, s0, dsrc1, 1);
@@ -138,12 +137,6 @@ def_EHelper(shr) {
   } else {
     rtl_srl(s, ddest, ddest, dsrc1);
   }
-#else
-  rtl_srl(s, ddest, ddest, dsrc1);
-  rtl_update_ZFSF(s, ddest, s->isa.width);
-#endif
-#ifdef CONFIG_x86_CC_LAZY
-  //panic("TODO: implement CF and OF with lazy cc");
 #endif
   rtl_wb(s, ddest);
 }
@@ -155,11 +148,13 @@ def_EHelper(sar) {
   // lower 5 bits of dsrc1, which do not change after
   // rtl_sext(), and it is still sematically correct
   rtl_sext(s, ddest, ddest, s->isa.width);
-#ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER
 //  int count = *dsrc1 & 0x1f;
 //  if (count == 0) return;
 #endif
+#ifdef CONFIG_x86_CC_LAZY
+  rtl_sra(s, ddest, ddest, dsrc1);
+#else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
     rtl_subi(s, s0, dsrc1, 1);
@@ -178,12 +173,6 @@ def_EHelper(sar) {
   } else {
     rtl_sra(s, ddest, ddest, dsrc1);
   }
-#else
-  rtl_sra(s, ddest, ddest, dsrc1);
-  rtl_update_ZFSF(s, ddest, s->isa.width);
-#endif
-#ifdef CONFIG_x86_CC_LAZY
-  //panic("TODO: implement CF and OF with lazy cc");
 #endif
   rtl_wb(s, ddest);
 }

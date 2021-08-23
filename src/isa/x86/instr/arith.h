@@ -187,12 +187,14 @@ def_EHelper(neg) {
 
 def_EHelper(mul) {
   rtl_decode_unary(s, true);
-  IFNDEF(CONFIG_PA, int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true));
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+#endif
   switch (s->isa.width) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
       if (need_update_eflags) {
         rtl_update_ZFSF(s, s1, s->isa.width);
         rtl_andi(s, s0, s1, 0xff00);
@@ -206,7 +208,7 @@ def_EHelper(mul) {
     case 2:
       rtl_lr(s, s0, R_EAX, 2);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
       if (need_update_eflags) {
         rtl_update_ZFSF(s, s1, s->isa.width);
         rtl_srli(s, s0, s1, 16);
@@ -227,7 +229,7 @@ def_EHelper(mul) {
       }
       rtl_mulu_hi(s, &cpu.edx, pdest, &cpu.eax);
       rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
       if (need_update_eflags) {
         rtl_update_ZFSF(s, &cpu.eax, s->isa.width);
         rtl_setrelopi(s, RELOP_NE, s0, &cpu.edx, 0);
@@ -243,14 +245,16 @@ def_EHelper(mul) {
 // imul with one operand
 def_EHelper(imul1) {
   rtl_decode_unary(s, true);
-  IFNDEF(CONFIG_PA, int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true));
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+#endif
   switch (s->isa.width) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
       rtl_sext(s, s0, s0, 1);
       rtl_sext(s, ddest, ddest, 1);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
       if (need_update_eflags) {
         rtl_update_ZFSF(s, s1, 1);
         rtl_sext(s, s0, s1, 1);
@@ -264,7 +268,7 @@ def_EHelper(imul1) {
       rtl_sext(s, s0, s0, 2);
       rtl_sext(s, ddest, ddest, 2);
       rtl_mulu_lo(s, s1, ddest, s0);
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
       if (need_update_eflags) {
         rtl_update_ZFSF(s, s1, 2);
         rtl_sext(s, s0, s1, 2);
@@ -283,7 +287,7 @@ def_EHelper(imul1) {
       }
       rtl_muls_hi(s, &cpu.edx, pdest, &cpu.eax);
       rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
       if (need_update_eflags) {
         rtl_update_ZFSF(s, &cpu.eax, 4);
         rtl_msb(s, s0, &cpu.eax, 4);
@@ -295,8 +299,10 @@ def_EHelper(imul1) {
     default: assert(0);
   }
 
+#if !defined(CONFIG_x86_CC_LAZY)
   rtl_set_CF(s, s0);
   rtl_set_OF(s, s0);
+#endif
 }
 
 // imul with two operands
@@ -305,8 +311,8 @@ def_EHelper(imul2) {
   rtl_sext(s, dsrc1, dsrc1, s->isa.width);
   rtl_sext(s, ddest, ddest, s->isa.width);
 
-  IFNDEF(CONFIG_PA, int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true));
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
     if (s->isa.width == 4) { rtl_muls_hi(s, s1, ddest, dsrc1); }
   }
@@ -314,7 +320,7 @@ def_EHelper(imul2) {
 
   rtl_mulu_lo(s, ddest, ddest, dsrc1);
 
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
   if (need_update_eflags) {
     if (s->isa.width == 2) {
       rtl_sext(s, s0, ddest, s->isa.width);
@@ -342,7 +348,7 @@ def_EHelper(imul3) {
 
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
   if (need_update_eflags) {
-#if !defined(CONFIG_PA) && defined(CONFIG_DIFFTEST)
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
     if (s->isa.width == 4) { rtl_muls_hi(s, s1, dsrc1, dsrc2); }
 #endif
   }
@@ -350,7 +356,7 @@ def_EHelper(imul3) {
   rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
 
   if (need_update_eflags) {
-#if !defined(CONFIG_PA) && defined(CONFIG_DIFFTEST)
+#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
     if (s->isa.width == 2) {
       rtl_sext(s, s0, ddest, s->isa.width);
       rtl_setrelop(s, RELOP_NE, s0, s0, ddest);
