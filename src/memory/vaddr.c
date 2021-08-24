@@ -18,7 +18,11 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
     int ret = mmu_ret & PAGE_MASK;
     if (ret != MEM_RET_OK) return 0;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
+#ifdef CONFIG_MULTICORE_DIFF
+    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1);
+#else
     word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1);
+#endif
     data |= byte << (i << 3);
   }
   return data;
@@ -45,7 +49,11 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+#ifdef CONFIG_MULTICORE_DIFF
+    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len);
+#else
     word_t rdata = paddr_read(addr, len);
+#endif
 #ifdef XIANGSHAN_DEBUG
     printf("[NEMU] mmu_read: vaddr 0x%lx, paddr 0x%lx, rdata 0x%lx\n",
       vaddr, addr, rdata);
