@@ -45,9 +45,13 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   ok = ok && !(mode == MODE_U && !pte->u);
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
   if (ifetch) {
+#ifdef CONFIG_SHARE
+//  update a/d by exception
     bool update_ad = !pte->a;
 //   if (update_ad && ok && pte->x) Log("raise exception to update ad for ifecth");
-
+#else
+    bool update_ad = false;
+#endif
     if (!(ok && pte->x) || update_ad) {
       assert(!cpu.amo);
       stval->val = vaddr;
@@ -56,9 +60,12 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     }
   } else if (type == MEM_TYPE_READ) {
     bool can_load = pte->r || (mstatus->mxr && pte->x);
+#ifdef CONFIG_SHARE
     bool update_ad = !pte->a;
 //    if (update_ad && ok && can_load) Log("raise exception to update ad for load");
-
+#else
+    bool update_ad = false;
+#endif
     if (!(ok && can_load) || update_ad) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
@@ -69,9 +76,12 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else {
+#ifdef CONFIG_SHARE
     bool update_ad = !pte->a || !pte->d;
 //    if (update_ad && ok && pte->w) Log("raise exception to update ad for store");
-
+#else
+    bool update_ad = false;
+#endif
     if (!(ok && pte->w) || update_ad) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
@@ -120,11 +130,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
 
-#if !CONFIG_SHARE && 0 // try to update ad by exception
+#ifndef CONFIG_SHARE
+  // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
-    Log("try to update a/d by hardware, should not come there...");
-    exit(0);
     pte.a = true;
     pte.d |= is_write;
     paddr_write(p_pte, PTE_SIZE, pte.val);
