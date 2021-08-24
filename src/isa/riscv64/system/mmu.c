@@ -45,7 +45,14 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   ok = ok && !(mode == MODE_U && !pte->u);
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
   if (ifetch) {
-    if (!(ok && pte->x)) {
+#ifdef CONFIG_SHARE
+//  update a/d by exception
+    bool update_ad = !pte->a;
+//   if (update_ad && ok && pte->x) Log("raise exception to update ad for ifecth");
+#else
+    bool update_ad = false;
+#endif
+    if (!(ok && pte->x) || update_ad) {
       assert(!cpu.amo);
       stval->val = vaddr;
       longjmp_exception(EX_IPF);
@@ -53,7 +60,13 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     }
   } else if (type == MEM_TYPE_READ) {
     bool can_load = pte->r || (mstatus->mxr && pte->x);
-    if (!(ok && can_load)) {
+#ifdef CONFIG_SHARE
+    bool update_ad = !pte->a;
+//    if (update_ad && ok && can_load) Log("raise exception to update ad for load");
+#else
+    bool update_ad = false;
+#endif
+    if (!(ok && can_load) || update_ad) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       //if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
@@ -63,7 +76,13 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else {
-    if (!(ok && pte->w)) {
+#ifdef CONFIG_SHARE
+    bool update_ad = !pte->a || !pte->d;
+//    if (update_ad && ok && pte->w) Log("raise exception to update ad for store");
+#else
+    bool update_ad = false;
+#endif
+    if (!(ok && pte->w) || update_ad) {
       if (cpu.mode == MODE_M) mtval->val = vaddr;
       else stval->val = vaddr;
       cpu.amo = false;
@@ -115,7 +134,8 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
 
-#if !CONFIG_SHARE
+#ifndef CONFIG_SHARE
+  // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
@@ -182,6 +202,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
+    Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     assert(0);
     mtval->val = vaddr;
     longjmp_exception(cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
