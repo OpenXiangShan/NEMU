@@ -57,24 +57,43 @@ static const int cc2relop_logic [] = {
   [CC_LE] = RELOP_LE,          [CC_NLE] = RELOP_GT,
 };
 
+enum { CCTYPE_SETCC, CCTYPE_JCC };
 
-static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
+typedef struct {
+  union {
+    rtlreg_t *dest;
+    word_t target;
+  };
+  int type;
+} CCtype;
+
+static inline def_rtl(setrelop_or_jrelop, uint32_t relop,
+    CCtype *type, const rtlreg_t *src1, const rtlreg_t *src2) {
+  switch (type->type) {
+    case CCTYPE_SETCC: rtl_setrelop(s, relop, type->dest, src1, src2); break;
+    case CCTYPE_JCC:   rtl_jrelop(s, relop, src1, src2, type->target); break;
+    default: assert(0);
+  }
+}
+
+static inline def_rtl(lazycc_internal, CCtype *type, uint32_t cc) {
   rtlreg_t *p = NULL;
+  rtlreg_t *tmp = (type->type == CCTYPE_SETCC ? type->dest : s2);
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
   if ((cc2relop[cc] & UNARY) && !exception) {
     uint32_t relop = cc2relop[cc] ^ UNARY;
     p = &cpu.cc_dest;
     if (cpu.cc_op == LAZYCC_SUB) {
       // sub && (CC_S || CC_NS)
-      rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
-      p = dest;
+      rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
+      p = tmp;
     }
     int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
     if (cpu.cc_width != 4 && !exception) {
-      rtl_slli(s, dest, p, 32 - cpu.cc_width * 8);
-      p = dest;
+      rtl_slli(s, tmp, p, 32 - cpu.cc_width * 8);
+      p = tmp;
     }
-    rtl_setrelop(s, relop, dest, p, rz);
+    rtl_setrelop_or_jrelop(s, relop, type, p, rz);
     return;
   }
 
@@ -82,11 +101,14 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
     case LAZYCC_ADD:
       switch (cc) {
         case CC_O: case CC_NO:
+#if 0
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
           goto negcc_reverse;
           return;
+#endif
         case CC_LE: case CC_NLE:
+#if 0
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
@@ -96,17 +118,20 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_or(s, dest, dest, s0);
           goto negcc_reverse;
           return;
+#endif
         case CC_BE: case CC_NBE:
+#if 0
           MASKDEST(s0);
           rtl_is_add_carry(s, s1, p, &cpu.cc_src1);
           rtl_setrelopi(s, RELOP_EQ, s0, p, 0);
           rtl_or(s, dest, s0, s1);
           goto negcc_reverse;
           return;
+#endif
+          assert(0);
         default:
           if (cc2relop[cc] != 0) {
-            MASKDEST(s0);
-            rtl_setrelop(s, cc2relop[cc], dest, p, &cpu.cc_src1);
+            rtl_setrelop_or_jrelop(s, cc2relop[cc], type, &cpu.cc_dest, &cpu.cc_src1);
             return;
           }
       }
@@ -114,17 +139,22 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
     case LAZYCC_SUB:
       switch (cc) {
         case CC_O: case CC_NO:
+          assert(0);
+#if 0
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_sub_overflow(s, dest, dest, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
           goto negcc_reverse;
+#endif
           return;
         default:
           if (cc2relop[cc] != 0) {
-            rtl_setrelop(s, cc2relop[cc] & 0xf, dest, &cpu.cc_dest, &cpu.cc_src1);
+            //rtl_setrelop(s, cc2relop[cc] & 0xf, dest, &cpu.cc_dest, &cpu.cc_src1);
+            rtl_setrelop_or_jrelop(s, cc2relop[cc] & 0xf, type, &cpu.cc_dest, &cpu.cc_src1);
             return;
           }
       }
       break;
+#if 0
     case LAZYCC_NEG:
       switch (cc) {
         case CC_B: case CC_NB:
@@ -241,15 +271,19 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           return;
       }
       break;
+#endif
     case LAZYCC_SBB:
       switch (cc) {
-        case CC_B: case CC_NB:
+        case CC_B:
           rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
           rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
           rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
-          rtl_or(s, dest, s0, s1);
-          goto negcc_reverse;
+          rtl_or(s, tmp, s0, s1);
+          if (type->type == CCTYPE_JCC) {
+            rtl_jrelop(s, RELOP_NE, tmp, rz, type->target);
+          }
           return;
+#if 0
         case CC_O: case CC_NO:
           rtl_is_sub_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
           goto negcc_reverse;
@@ -278,6 +312,7 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
           rtl_or(s, dest, dest, s0);
           goto negcc_reverse;
           return;
+#endif
       }
       break;
     case LAZYCC_LOGIC:
@@ -285,28 +320,44 @@ static inline def_rtl(lazy_setcc_internal, rtlreg_t *dest, uint32_t cc) {
         case CC_LE: case CC_NLE: case CC_L: case CC_NL:
           p = &cpu.cc_dest;
           if (cpu.cc_width != 4) {
-            rtl_slli(s, dest, p, 32 - cpu.cc_width * 8);
-            p = dest;
+            rtl_slli(s, tmp, p, 32 - cpu.cc_width * 8);
+            p = tmp;
           }
         default:
-          if (p != dest) p = &cpu.cc_dest;
-          rtl_setrelop(s, cc2relop_logic[cc], dest, p, rz);
+          if (p != tmp) p = &cpu.cc_dest;
+          rtl_setrelop_or_jrelop(s, cc2relop_logic[cc], type, p, rz);
           return;
       }
       break;
     default: panic("unhandle cc_op = %d", cpu.cc_op);
   }
   panic("unhandle cc_op = %d, cc = %d", cpu.cc_op, cc);
+#if 0
 negcc_reverse:
     if NEGCC(cc) rtl_xori(s, dest, dest, 1);
+#endif
     return;
 }
 
 static inline def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
-  if (cpu.cc_dirty == false) { 
-    cpu.cc_dynamic = cpu.cc_op | 0x100; 
+  if (cpu.cc_dirty == false) {
+    cpu.cc_dynamic = cpu.cc_op | 0x100;
     // printf("dynamic hit\n");
   }
-  rtl_lazy_setcc_internal(s, dest, cc);
+  CCtype type;
+  type.dest = dest;
+  type.type = CCTYPE_SETCC;
+  rtl_lazycc_internal(s, &type, cc);
+}
+
+static inline def_rtl(lazy_jcc, word_t target, uint32_t cc) {
+  if (cpu.cc_dirty == false) {
+    cpu.cc_dynamic = cpu.cc_op | 0x100;
+  }
+  clean_lazycc();
+  CCtype type;
+  type.target = target;
+  type.type = CCTYPE_JCC;
+  rtl_lazycc_internal(s, &type, cc);
 }
 #endif
