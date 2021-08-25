@@ -6,6 +6,9 @@
 #include "../instr/rvd/exec.h"
 #include "../instr/rva/exec.h"
 #include "../instr/priv/exec.h"
+#ifdef CONFIG_RVB
+#include "../instr/rvb/exec.h"
+#endif
 #ifdef CONFIG_RVV_010
 #include "../instr/rvv/exec.h"
 #endif

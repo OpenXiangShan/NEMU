@@ -58,7 +58,25 @@
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV_010
 
-//
+#ifdef CONFIG_RVB
+#define BITMANIP_INSTR_TERNARY(f) \
+  f(andn) f(orn) f(xnor) \
+  f(min) f(minu) f(max) f(maxu) \
+  f(bclr) f(bset) f(binv) f(bext) \
+  f(bclri) f(bseti) f(binvi) f(bexti) \
+  f(clmul) f(clmulr) f(clmulh) \
+  f(rol) f(rolw) f(ror) f(rori) f(rorw) f(roriw) \
+  f(sh1add) f(sh2add) f(sh3add) f(sh1adduw) f(sh2adduw) f(sh3adduw) \
+  f(adduw) f(slliuw)
+
+#define BITMANIP_INSTR_BINARY(f) \
+  f(clz) f(clzw) f(ctz) f(ctzw) f(cpop) f(cpopw) \
+  f(orc_b) f(rev8) f(sext_b) f(sext_h) f(zext_h)
+
+#else // CONFIG_RVB
+#define BITMANIP_INSTR_TERNARY(f)
+#define BITMANIP_INSTR_BINARY(f)
+#endif // CONFIG_RVB
 
 #define FLOAT_INSTR_TERNARY(f) \
   f(fadds) f(fsubs) f(fmuls) f(fdivs) f(fmins) f(fmaxs) \
@@ -79,6 +97,7 @@
   f(ld) f(lw) f(lh) f(lb) f(lwu) f(lhu) f(lbu) f(sd) f(sw) f(sh) f(sb) \
   f(c_j) f(p_jal) f(c_jr) f(c_jalr) \
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
+  BITMANIP_INSTR_BINARY(f) \
   AMO_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
@@ -111,6 +130,7 @@
   AMO_INSTR_TERNARY(f) \
   SYS_INSTR_TERNARY(f) \
   FLOAT_INSTR_TERNARY(f) \
+  BITMANIP_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();

@@ -8,6 +8,10 @@ config MULTICORE_DIFF
   bool "(Beta) Enable multi-core difftest APIs for RISC-V"
   default false
 
+config RVB
+  bool "RISC-V Bitmanip Extension v1.0"
+  default y
+
 config RVV_010
   bool "Experimental RISC-V Vector Extension v0.10"
 
