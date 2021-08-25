@@ -21,6 +21,9 @@ bool fp_enable() {
 
 void fp_set_dirty() {
   // lazily update mstatus->sd when reading mstatus
+#ifdef CONFIG_SHARE
+  mstatus->sd = 1;
+#endif
   mstatus->fs = 3;
 }
 

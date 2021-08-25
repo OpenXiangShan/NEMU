@@ -50,4 +50,20 @@ store_commit_t *store_commit_queue_pop();
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 #endif
 
+#ifdef CONFIG_MULTICORE_DIFF
+extern uint8_t* golden_pmem;
+
+static inline word_t golden_pmem_read(paddr_t addr, int len) {
+  assert(golden_pmem != NULL);
+  void *p = &golden_pmem[addr - 0x80000000];
+  switch (len) {
+    case 1: return *(uint8_t  *)p;
+    case 2: return *(uint16_t *)p;
+    case 4: return *(uint32_t *)p;
+    case 8: return *(uint64_t *)p;
+    default: assert(0);
+  }
+}
+#endif
+
 #endif
