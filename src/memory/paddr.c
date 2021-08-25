@@ -4,6 +4,8 @@
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <cpu/cpu.h>
+#include "../local-include/intr.h"
 
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
@@ -61,7 +63,10 @@ word_t paddr_read(paddr_t addr, int len) {
   else return mmio_read(addr, len);
 #else
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
-  else printf("ERROR: invalid mem access to paddr " FMT_PADDR ", NEMU loaded 0 to continue difftest\n", addr);
+  else {
+    printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
+    longjmp_exception(EX_II);
+  }
   return 0;
 #endif
 }
@@ -71,7 +76,12 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr))) pmem_write(addr, len, data);
   else mmio_write(addr, len, data);
 #else
-  return pmem_write(addr, len, data);
+  if (likely(in_pmem(addr))) return pmem_write(addr, len, data);
+  else {
+    printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
+    longjmp_exception(EX_II);
+    return;
+  } 
 #endif
 }
 
