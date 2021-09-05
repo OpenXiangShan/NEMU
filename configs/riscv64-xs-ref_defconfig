@@ -14,6 +14,8 @@ CONFIG_ISA64=y
 # ISA-dependent Options for riscv64
 #
 CONFIG_CLINT_MMIO=0x38000000
+# CONFIG_MULTICORE_DIFF is not set
+CONFIG_RVB=y
 # CONFIG_RVV_010 is not set
 # end of ISA-dependent Options for riscv64
 
@@ -62,8 +64,8 @@ CONFIG_USE_MMAP=y
 # CONFIG_FPU_HOST is not set
 CONFIG_FPU_SOFT=y
 # CONFIG_FPU_NONE is not set
-CONFIG_AC_HOST=y
-# CONFIG_AC_SOFT is not set
+# CONFIG_AC_HOST is not set
+CONFIG_AC_SOFT=y
 # CONFIG_AC_NONE is not set
 
 #
