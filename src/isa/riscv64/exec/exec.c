@@ -168,7 +168,7 @@ static inline make_EHelper(op) {
                               EX(pair(4, 1), shfl)                                EX(pair(4, 3), bmator)   
       EX(pair(4, 4), pack)    EX(pair(4, 5), unshfl)    EX(pair(4, 6), bext)      EX(pair(4, 7), packh)
       EX(pair(5, 1), clmul)   EX(pair(5, 2), clmulr)    EX(pair(5, 3), clmulh)    EX(pair(5, 4), min)
-      EX(pair(5, 5), max)     EX(pair(5, 6), minu)      EX(pair(5, 7), maxu)
+      EX(pair(5, 6), max)     EX(pair(5, 5), minu)      EX(pair(5, 7), maxu)
 
       EX(pair(16, 1), slo)
       EX(pair(16, 2), sh1add)

@@ -170,7 +170,7 @@ static inline make_EHelper(fsri) {
 make_EHelper(addwu) { *ddest = (uint32_t)*dsrc1 + (uint32_t)*dsrc2; print_asm_template3(addwu); }
 make_EHelper(subwu) { *ddest = (uint32_t)*dsrc1 - (uint32_t)*dsrc2; print_asm_template3(subwu); }
 make_EHelper(addiwu) { *ddest = (uint32_t)*dsrc1 + (uint32_t)id_src2->imm; print_asm_template3(addiwu); }
-make_EHelper(adduw) { *ddest = *dsrc1 + (uint32_t)*dsrc2; print_asm_template3(adduw); }
+make_EHelper(adduw) { *ddest = (uint32_t)*dsrc1 + *dsrc2; print_asm_template3(adduw); }
 make_EHelper(subuw) { *ddest = *dsrc1 - (uint32_t)*dsrc2; print_asm_template3(subuw); }
 make_EHelper(slliuw) { *ddest = (uint32_t)*dsrc1 << id_src2->imm; print_asm_template3(slliuw); }
 
