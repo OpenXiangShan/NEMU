@@ -83,6 +83,7 @@ static inline long load_img() {
   Assert(fp, "Can not open '%s'", img_file);
 
   Log("The image is %s", img_file);
+  Log("diff is %s", diff_so_file);
 
   fseek(fp, 0, SEEK_END);
   long size = ftell(fp);
@@ -143,7 +144,9 @@ static inline void parse_args(int argc, char *argv[]) {
       case 'b': batch_mode = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
-      case 'd': diff_so_file = optarg; break;
+      case 'd': diff_so_file = optarg; 
+                Log("diff is %s", diff_so_file);
+                break;
 
       case 'D': stats_base_dir = optarg; break;
       case 'w': workload_name = optarg; break;

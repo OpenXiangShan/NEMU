@@ -9,7 +9,7 @@ void init_simpoint();
 void init_profiler();
 void init_serializer();
 
-int nemu_main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   /* Initialize the monitor. */
   init_monitor(argc, argv);
 
