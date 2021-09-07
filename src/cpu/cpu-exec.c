@@ -297,7 +297,7 @@ void cpu_exec(uint64_t n) {
       }
     }
 
-    int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
+    int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
     n_remain = execute(n_batch);
 #ifdef CONFIG_PERF_OPT
     update_global();

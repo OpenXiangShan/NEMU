@@ -211,6 +211,15 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
 
+#ifdef CONFIG_SHARE
+void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
+  if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
+    mtval->val = vaddr;
+    longjmp_exception(cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+  }
+}
+#endif
+
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
