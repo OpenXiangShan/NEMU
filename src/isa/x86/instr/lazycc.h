@@ -274,11 +274,12 @@ static inline def_rtl(lazycc_internal, CCtype *type, uint32_t cc) {
 #endif
     case LAZYCC_SBB:
       switch (cc) {
-        case CC_B:
+        case CC_B: case CC_NB:
           rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
           rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
           rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
           rtl_or(s, tmp, s0, s1);
+          if (cc == CC_NB) rtl_xori(s, tmp, tmp, 1);
           if (type->type == CCTYPE_JCC) {
             rtl_jrelop(s, RELOP_NE, tmp, rz, type->target);
           }
