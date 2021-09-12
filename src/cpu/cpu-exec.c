@@ -25,26 +25,14 @@ void device_update();
 
 #define BATCH_SIZE 65536
 
-static uint64_t n_remain_total;
-static int n_remain;
+static uint64_t g_nr_guest_instr_end = 0;
 static Decode *prev_s;
 
 void save_globals(Decode *s) {
   IFDEF(CONFIG_PERF_OPT, prev_s = s);
 }
 
-static void update_instr_cnt() {
-#if defined(CONFIG_PERF_OPT) && !defined(CONFIG_INSTR_CNT_DISABLE)
-  int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
-  uint32_t n_executed = n_batch - n_remain;
-  n_remain_total -= n_executed;
-  g_nr_guest_instr += n_executed;
-  n_remain = n_batch; // clean n_remain
-#endif
-}
-
 static void debug_difftest(Decode *_this, vaddr_t dnpc) {
-  IFNDEF(CONFIG_PERF_OPT, g_nr_guest_instr ++);
 #ifdef CONFIG_ITRACE
   log_write("%s\n", _this->logbuf);
   if (g_print_step) { puts(_this->logbuf); }
@@ -95,17 +83,20 @@ void longjmp_exception(int ex_cause) {
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
 #define rtl_j(s, target) do { \
-  IFDEF(CONFIG_INSTR_CNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
   s = s->tnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jr(s, target) do { \
-  IFDEF(CONFIG_INSTR_CNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
-  IFDEF(CONFIG_INSTR_CNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
   if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
   else s = s->ntnext; \
   goto end_of_bb; \
@@ -113,6 +104,7 @@ void longjmp_exception(int ex_cause) {
 
 #define rtl_priv_next(s) do { \
   if (g_sys_state_flag) { \
+    IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++); \
     s = (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) ? \
       tcache_handle_flush(s->snpc) : s + 1; \
     g_sys_state_flag = 0; \
@@ -121,7 +113,8 @@ void longjmp_exception(int ex_cause) {
 } while (0)
 
 #define rtl_priv_jr(s, target) do { \
-  IFDEF(CONFIG_INSTR_CNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++); \
   s = jr_fetch(s, *(target)); \
   if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) { \
     s = tcache_handle_flush(s->pc); \
@@ -143,7 +136,7 @@ static Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-static int execute(int n) {
+static void execute(int n) {
   static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
@@ -183,16 +176,17 @@ def_EHelper(nemu_decode) {
 }
 
 end_of_bb:
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, if (unlikely(n <= 0)) break);
+
     def_finish();
-    IFDEF(CONFIG_INSTR_CNT_PRECISE, n --);
-    IFNDEF(CONFIG_INSTR_CNT_DISABLE, if (unlikely(n <= 0)) break);
+    IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++);
+    IFDEF(CONFIG_ICOUNT_PRECISE, if (unlikely(-- n <= 0)) break);
     debug_difftest(this_s, s->pc);
   }
 
 end_of_loop:
   debug_difftest(this_s, s->pc);
   prev_s = s;
-  return n;
 }
 #endif // CONFIG_PERF_OPT
 #endif // __ICS_EXPORT
@@ -218,24 +212,21 @@ static void fetch_decode_exec_updatepc(Decode *s) {
 #endif
 #ifndef __ICS_EXPORT
 #ifndef CONFIG_PERF_OPT
-static int execute(int n) {
+static void execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
-    IFNDEF(CONFIG_INSTR_CNT_DISABLE, g_nr_guest_instr ++);
-    IFNDEF(CONFIG_INSTR_CNT_DISABLE, n_remain_total --);
+    IFNDEF(CONFIG_ICOUNT_DISABLE, g_nr_guest_instr ++);
     debug_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
   }
-  return n;
 }
 
 static void update_global() {
 }
 #else
 static void update_global() {
-  update_instr_cnt();
   cpu.pc = prev_s->pc;
 }
 #endif
@@ -265,13 +256,10 @@ void fetch_decode(Decode *s, vaddr_t pc) {
 }
 
 void monitor_statistic() {
-#ifndef __ICS_EXPORT
-  update_instr_cnt();
-#endif
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
-#ifndef CONFIG_INSTR_CNT_DISABLE
+#ifndef CONFIG_ICOUNT_DISABLE
   Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
   if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
@@ -293,17 +281,17 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 
 #ifndef __ICS_EXPORT
-  n_remain_total = n; // deal with setjmp()
+  g_nr_guest_instr_end = g_nr_guest_instr + n;
   int cause = NEMU_EXEC_RUNNING;
 #ifndef CONFIG_TARGET_AM
   if ((cause = setjmp(jbuf_exec))) {
-    IFDEF(CONFIG_INSTR_CNT_BASIC_BLOCK, n_remain -= prev_s->idx_in_bb - 1);
+    IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += prev_s->idx_in_bb - 1);
     update_global();
   }
 #endif
 
   while (nemu_state.state == NEMU_RUNNING &&
-      MUXDEF(CONFIG_INSTR_CNT_DISABLE, true, n_remain_total > 0)) {
+      MUXDEF(CONFIG_ICOUNT_DISABLE, true, g_nr_guest_instr < g_nr_guest_instr_end)) {
     IFDEF(CONFIG_DEVICE, device_update());
 
     if (cause == NEMU_EXEC_EXCEPTION) {
@@ -319,8 +307,9 @@ void cpu_exec(uint64_t n) {
       }
     }
 
-    int n_batch = n >= BATCH_SIZE ? BATCH_SIZE : n;
-    n_remain = execute(n_batch);
+    uint32_t nremain = g_nr_guest_instr_end - g_nr_guest_instr;
+    int nbatch = nremain >= BATCH_SIZE ? BATCH_SIZE : nremain;
+    execute(nbatch);
     update_global();
   }
 #else

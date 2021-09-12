@@ -306,15 +306,15 @@ endif
 
 choice
   prompt "Instruction Count"
-  default INSTR_CNT_PRECISE if DEBUG || TARGET_SHARE
-  default INSTR_CNT_DISABLE
-config INSTR_CNT_PRECISE
+  default ICOUNT_PRECISE if DEBUG || TARGET_SHARE
+  default ICOUNT_DISABLE
+config ICOUNT_PRECISE
   bool "Precise to every instruction"
 if !DEBUG && !TARGET_SHARE
-config INSTR_CNT_BASIC_BLOCK
+config ICOUNT_BASIC_BLOCK
   depends on PERF_OPT
   bool "Precise to every basic block"
-config INSTR_CNT_DISABLE
+config ICOUNT_DISABLE
   bool "Disable instruction count"
 endif
 endchoice
