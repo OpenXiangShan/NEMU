@@ -192,8 +192,16 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           return;
       }
       break;
+#endif
     case LAZYCC_DEC:
       switch (cc) {
+        case CC_NB:  // CF is already stored in cpu.cc_src1
+          op->relop = RELOP_EQ;
+          op->src1 = &cpu.cc_src1;
+          op->src2 = rz;
+          rtl_setrelop_or_jrelop(s, op);
+          return;
+#if 0
         case CC_O: case CC_NO:
           rtl_addi(s, dest, &cpu.cc_dest, 1);
           rtl_setrelopi(s, NEGCCRELOP(cc), dest, dest, 0x1u << (cpu.cc_width * 8 - 1));
@@ -213,8 +221,10 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           rtl_or(s, dest, dest, s0);
           goto negcc_reverse;
           return;
+#endif
       }
       break;
+#if 0
     case LAZYCC_ADC:
       switch (cc) {
         case CC_B: case CC_NB:

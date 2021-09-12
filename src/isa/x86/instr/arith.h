@@ -80,6 +80,8 @@ def_EHelper(inc) {
   rtl_addi(s, ddest, ddest, 1);
 #ifdef CONFIG_x86_CC_LAZY
   if (s->isa.flag_def != 0) {
+    // compute CF to cpu.cc_src1
+    rtl_lazy_setcc(s, &cpu.cc_src1, CC_B);
     rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, s->isa.width);
   }
 #else
@@ -98,6 +100,8 @@ def_EHelper(dec) {
 #ifdef CONFIG_x86_CC_LAZY
   rtl_subi(s, ddest, ddest, 1);
   if (s->isa.flag_def != 0) {
+    // compute CF to cpu.cc_src1
+    rtl_lazy_setcc(s, &cpu.cc_src1, CC_B);
     rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_DEC, s->isa.width);
   }
 #else
