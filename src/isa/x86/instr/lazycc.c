@@ -331,6 +331,17 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           return;
       }
       break;
+    case LAZYCC_SHR:
+      switch (cc) {
+        case CC_B: case CC_NB:
+          rtl_andi(s, tmp, &cpu.cc_src1, 0x1);
+          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+          op->src1 = tmp;
+          op->src2 = rz;
+          rtl_setrelop_or_jrelop(s, op);
+          return;
+      }
+      break;
     default: panic("unhandle cc_op = %d", cpu.cc_op);
   }
   panic("unhandle cc_op = %d, cc = %d", cpu.cc_op, cc);

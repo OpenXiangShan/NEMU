@@ -93,10 +93,13 @@ def_EHelper(shl) {
 //  if (count == 0) return;
 #endif
 #ifdef CONFIG_x86_CC_LAZY
-  //panic("TODO: implement CF and OF with lazy cc");
+  if (s->isa.flag_def != 0) {
+    rtl_subi(s, s0, dsrc1, 1);
+    rtl_sll(s, &cpu.cc_src1, ddest, s0); // shift (cnt - 1)
+  }
   rtl_sll(s, ddest, ddest, dsrc1);
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SHL, s->isa.width);
   }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
@@ -128,9 +131,13 @@ def_EHelper(shr) {
 //  if (count == 0) return;
 #endif
 #ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_subi(s, s0, dsrc1, 1);
+    rtl_srl(s, &cpu.cc_src1, ddest, s0); // shift (cnt - 1)
+  }
   rtl_srl(s, ddest, ddest, dsrc1);
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SHR, s->isa.width);
   }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
@@ -167,9 +174,13 @@ def_EHelper(sar) {
 //  if (count == 0) return;
 #endif
 #ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_subi(s, s0, dsrc1, 1);
+    rtl_sra(s, &cpu.cc_src1, ddest, s0); // shift (cnt - 1)
+  }
   rtl_sra(s, ddest, ddest, dsrc1);
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_LOGIC, s->isa.width);
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SAR, s->isa.width);
   }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
