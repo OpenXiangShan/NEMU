@@ -15,7 +15,7 @@ static const int cc2relop [] = {
   [CC_E]  = UNARY | RELOP_EQ,  [CC_NE]  = UNARY | RELOP_NE,
   [CC_BE] = RELOP_LEU,         [CC_NBE] = RELOP_GTU,
   [CC_S]  = UNARY | RELOP_LT,  [CC_NS]  = UNARY | RELOP_GE,
-  [CC_P]  = 0,                 [CC_NP]  = 0,
+  [CC_P]  = UNARY,             [CC_NP]  = UNARY,
   [CC_L]  = RELOP_LT,          [CC_NL]  = RELOP_GE,
   [CC_LE] = RELOP_LE,          [CC_NLE] = RELOP_GT,
 };
@@ -44,12 +44,29 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
   rtlreg_t *p = NULL;
   rtlreg_t *tmp = (op->type == CCTYPE_SETCC ? op->dest : s2);
   int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
+  assert(cc2relop[cc] != 0);
   if ((cc2relop[cc] & UNARY) && !exception) {
     p = &cpu.cc_dest;
     if (cpu.cc_op == LAZYCC_SUB) {
-      // sub && (CC_S || CC_NS)
+      // sub && (CC_S || CC_NS || CC_P || CC_NP)
+      // should compute the real result of the sub
       rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
       p = tmp;
+    }
+    if (cc == CC_P || cc == CC_NP) {
+      // start:                     p  = ????76543210
+      rtl_srli(s, t0, p, 4);    //  t0 =     ????7654
+      rtl_xor(s, t0, t0, p);    //  t0 =    ????(7^3)(6^2)(5^1)(4^0)
+      rtl_srli(s, tmp, t0, 2);  // tmp =      ??  ?    ?  (7^3)(6^2)
+      rtl_xor(s, t0, t0, tmp);  //  t0 =          ?    ?  (7^3^5^1)(6^2^4^0)
+      rtl_srli(s, tmp, t0, 1);  // tmp =                      ?    (7^3^5^1)
+      rtl_xor(s, t0, t0, tmp);  //  t0 =                      ?    (7^6^5^4^3^2^1^0)
+      rtl_andi(s, tmp, t0, 1);  // tmp = !PF
+      op->relop = (cc == CC_P ? RELOP_EQ : RELOP_NE);
+      op->src1 = tmp;
+      op->src2 = rz;
+      rtl_setrelop_or_jrelop(s, op);
+      return;
     }
     int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
     if (cpu.cc_width != 4 && !exception) {
@@ -324,9 +341,10 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           }
         default:
           if (p != tmp) p = &cpu.cc_dest;
-            op->relop = cc2relop_logic[cc];
-            op->src1 = p;
-            op->src2 = rz;
+          op->relop = cc2relop_logic[cc];
+          assert(op->relop != 0);
+          op->src1 = p;
+          op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
           return;
       }
