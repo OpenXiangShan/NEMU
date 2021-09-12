@@ -16,6 +16,7 @@
 #define USER_SYS_munmap 91
 #define USER_SYS_sysinfo 116
 #define USER_SYS_uname 122
+#define USER_SYS_mprotect 125
 #define USER_SYS_llseek 140
 #define USER_SYS_writev 146
 #define USER_SYS_mremap 163

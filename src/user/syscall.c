@@ -129,6 +129,10 @@ static word_t user_getrusage(int who, void *usage) {
 #endif
 }
 
+static int user_sys_mprotect(void *addr, size_t len, int prot) {
+  return 0;
+}
+
 #ifdef CONFIG_ISA64
 static word_t user_sys_fstat(int fd, void *statbuf) {
   struct stat buf;
@@ -252,6 +256,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_getpid: return getpid();
     case USER_SYS_ioctl: ret = ioctl(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_fcntl: ret = fcntl(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_mprotect: ret = user_sys_mprotect(user_to_host(arg1), arg2, arg3); break;
 #ifdef CONFIG_ISA64
     case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
           user_to_host(arg2), user_to_host(arg3), arg4); break;
