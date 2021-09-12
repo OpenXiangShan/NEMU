@@ -57,12 +57,14 @@ static void kvm_set_step_mode(bool watch, uint32_t watch_addr) {
   }
 }
 
+#if 0
 static void kvm_getregs(struct kvm_regs *r) {
   if (ioctl(vcpu.fd, KVM_GET_REGS, r) < 0) {
     perror("KVM_GET_REGS");
     assert(0);
   }
 }
+#endif
 
 static void kvm_setregs(const struct kvm_regs *r) {
   if (ioctl(vcpu.fd, KVM_SET_REGS, r) < 0) {
