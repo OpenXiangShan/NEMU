@@ -126,13 +126,15 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           }
       }
       break;
-#if 0
     case LAZYCC_NEG:
       switch (cc) {
-        case CC_B: case CC_NB:
-          rtl_setrelopi(s, RELOP_NE, dest, &cpu.cc_dest, 0);
-          goto negcc_reverse;
+        case CC_B: //case CC_NB:
+          op->relop = RELOP_NE;
+          op->src1 = &cpu.cc_dest;
+          op->src2 = rz;
+          rtl_setrelop_or_jrelop(s, op);
           return;
+#if 0
         case CC_O: case CC_NO:
           rtl_setrelopi(s, NEGCCRELOP(cc), dest, &cpu.cc_dest, -(0x1u << (cpu.cc_width * 8 - 1)));
           return;
@@ -155,8 +157,10 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
         case CC_NBE:
           rtl_li(s, dest, 0);
           return;
+#endif
       }
       break;
+#if 0
     case LAZYCC_INC:
       switch (cc) {
         case CC_O: case CC_NO:
