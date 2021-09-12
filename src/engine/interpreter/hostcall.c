@@ -53,6 +53,12 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       break;
     }
 #endif
+    case HOSTCALL_TRAP_THIS:
+    case HOSTCALL_TRAP_NEXT: {
+      word_t ret = isa_raise_intr(imm, (id == HOSTCALL_TRAP_THIS ? s->pc : s->snpc));
+      if (dest) *dest = ret;
+      break;
+    }
 #ifndef __ICS_EXPORT
     default: isa_hostcall(id, dest, src1, src2, imm); break;
 #else

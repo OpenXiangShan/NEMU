@@ -9,8 +9,7 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     // priv
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
     if (id == 0) { // ecall
-      rtl_trap(s, s->pc, 8 + cpu.mode);
-      rtl_mv(s, jpc, t0);
+      rtl_hostcall(s, HOSTCALL_TRAP_THIS, jpc, NULL, NULL, 8 + cpu.mode);
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
     }

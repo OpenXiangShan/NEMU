@@ -40,8 +40,8 @@ def_EHelper(ltr) {
 }
 
 def_EHelper(_int) {
-  rtl_trap(s, s->snpc, id_dest->val);
-  rtl_priv_jr(s, t0);
+  rtl_hostcall(s, HOSTCALL_TRAP_NEXT, s0, NULL, NULL, id_dest->val);
+  rtl_priv_jr(s, s0);
 }
 
 def_EHelper(iret) {

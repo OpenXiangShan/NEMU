@@ -2,6 +2,15 @@
 #include "../local-include/intr.h"
 
 #if !defined(__ICS_EXPORT) && defined(CONFIG_ENGINE_INTERPRETER)
+#ifdef CONFIG_MODE_USER
+word_t isa_raise_intr(word_t NO, vaddr_t ret_addr) {
+  Assert(NO == 0x80, "Unsupport exception = %d", NO);
+  uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
+      uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
+  cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx, cpu.esi, cpu.edi, cpu.ebp);
+  return ret_addr;
+}
+#else
 #include <cpu/difftest.h>
 
 typedef union GateDescriptor {
@@ -81,6 +90,7 @@ word_t isa_query_intr() {
   }
   return INTR_EMPTY;
 }
+#endif
 #else
 word_t isa_raise_intr(word_t NO, vaddr_t ret_addr) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
