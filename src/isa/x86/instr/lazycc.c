@@ -117,10 +117,20 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           return;
         default:
           if (cc2relop[cc] != 0) {
+            rtlreg_t *pdest = &cpu.cc_dest;
+            rtlreg_t *psrc1 = &cpu.cc_src1;
+            if (cpu.cc_width != 4) {
+              if (cc == CC_L || cc == CC_NL || cc == CC_LE || cc == CC_NLE) {
+                rtl_slli(s, tmp, pdest, 32 - cpu.cc_width * 8);
+                rtl_slli(s, t0,  psrc1, 32 - cpu.cc_width * 8);
+                pdest = tmp;
+                psrc1 = t0;
+              }
+            }
             //rtl_setrelop(s, cc2relop[cc] & 0xf, dest, &cpu.cc_dest, &cpu.cc_src1);
             op->relop = cc2relop[cc] & 0xf;
-            op->src1 = &cpu.cc_dest;
-            op->src2 = &cpu.cc_src1;
+            op->src1 = pdest;
+            op->src2 = psrc1;
             rtl_setrelop_or_jrelop(s, op);
             return;
           }
