@@ -868,7 +868,7 @@ def_THelper(main) {
 
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
-  s->isa.p_instr = s->isa.instr;
+  s->isa.p_instr = s->isa.instr.val;
   s->isa.is_operand_size_16 = 0;
   s->isa.rep_flags = 0;
   s->isa.sreg_base = NULL;
