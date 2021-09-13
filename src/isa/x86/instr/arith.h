@@ -59,8 +59,6 @@ def_EHelper(cmp) {
 #ifdef CONFIG_x86_CC_LAZY
   if (s->isa.flag_def != 0) {
     rtl_set_lazycc(s, ddest, dsrc1, NULL, LAZYCC_SUB, s->isa.width);
-  } else {
-    Log("@@@ pc = 0x%x", s->pc);
   }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
@@ -81,7 +79,7 @@ def_EHelper(inc) {
 #ifdef CONFIG_x86_CC_LAZY
   if (s->isa.flag_def != 0) {
     // compute CF to cpu.cc_src1
-    rtl_lazy_setcc(s, &cpu.cc_src1, CC_B);
+//    rtl_lazy_setcc(s, &cpu.cc_src1, CC_B);
     rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_INC, s->isa.width);
   }
 #else
