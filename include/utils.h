@@ -41,7 +41,7 @@ uint64_t get_time();
 
 #define ASNI_FMT(str, fmt) fmt str ASNI_NONE
 
-#define log_write(...) IFDEF(CONFIG_DEBUG, \
+#define log_write(...) IFDEF(CONFIG_LOG, \
   do { \
     extern FILE* log_fp; \
     extern bool log_enable(); \

@@ -4,7 +4,7 @@ def_EHelper(name) { \
   rtl_amo_slow_path(s, ddest, dsrc1, dsrc2); \
 }
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_ITRACE
 #define AMO_LIST(f, s) \
   f(concat3(lr     , _, s)) \
   f(concat3(sc     , _, s)) \

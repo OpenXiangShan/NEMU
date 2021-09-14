@@ -4,7 +4,7 @@
 
 static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   uint32_t instr = vaddr_ifetch(*pc, len);
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_ITRACE
   uint8_t *p_instr = (void *)&instr;
   int i;
   for (i = 0; i < len; i ++) {

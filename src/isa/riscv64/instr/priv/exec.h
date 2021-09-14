@@ -6,7 +6,7 @@ def_EHelper(name) { \
   else rtl_priv_next(s); \
 }
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_ITRACE
 #define SYS_INSTR_LIST(f) \
   f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
   f(ecall)  f(mret)   f(sret)  f(sfence_vma) f(wfi) \

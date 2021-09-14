@@ -146,22 +146,39 @@ config CC_ASAN
 endmenu
 
 menu "Testing and Debugging"
-config DEBUG
-  depends on !TARGET_SHARE && !TARGET_AM
-  bool "Enable debug features inside NEMU"
-  default n
-  help
-    Enable debug features, which include instruction tracing and watchpoint.
 
-config LOG_START
-  depends on DEBUG
-  int "When instruction tracing is enabled (unit: number of instructions)"
+config LOG
+  depends on !TARGET_SHARE && !TARGET_AM
+  bool "Enable logging"
+  default n
+
+config WATCHPOINT
+  depends on !TARGET_SHARE && !TARGET_AM
+  bool "Enable watchpoint"
+  default n
+
+config TRACE
+  bool "Enable tracer"
+  default n
+
+config TRACE_START
+  depends on TRACE
+  int "When tracing is enabled (unit: number of instructions)"
   default 0
 
-config LOG_END
-  depends on DEBUG
-  int "When instruction tracing is disabled (unit: number of instructions)"
+config TRACE_END
+  depends on TRACE
+  int "When tracing is disabled (unit: number of instructions)"
   default 10000
+
+config ITRACE
+  depends on TRACE
+  bool "Enable instruction tracer"
+  default n
+
+config IQUEUE
+  bool "Record the last instrucitons executed"
+  default n
 
 config DIFFTEST
   depends on !TARGET_SHARE && !TARGET_AM
@@ -215,10 +232,6 @@ config DIFFTEST_REF_NAME
 #ifndef __ICS_EXPORT
 config DETERMINISTIC
   bool "Make the behavior of NEMU deterministic"
-  default n
-
-config IQUEUE
-  bool "Record the last instrucitons executed"
   default n
 #endif
 endmenu

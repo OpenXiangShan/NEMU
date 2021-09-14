@@ -2,7 +2,7 @@
 #include "../local-include/rtl.h"
 
 #ifndef __ICS_EXPORT
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_ITRACE
 #define AMO_INSTR_BINARY(f) \
   f(lr_w) f(lr_d)
 #define AMO_INSTR_TERNARY(f) \

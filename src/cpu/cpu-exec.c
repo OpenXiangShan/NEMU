@@ -20,17 +20,6 @@ rtlreg_t tmp_reg[4];
 
 void device_update();
 
-#ifdef CONFIG_DEBUG
-static void debug_hook(vaddr_t pc, const char *asmbuf) {
-  log_write("%s\n", asmbuf);
-  if (g_print_step) { puts(asmbuf); }
-#ifndef __ICS_EXPORT
-  void scan_watchpoint(vaddr_t pc);
-  scan_watchpoint(pc);
-#endif
-}
-#endif
-
 #ifndef __ICS_EXPORT
 #include <memory/host-tlb.h>
 
@@ -49,9 +38,27 @@ static void update_instr_cnt() {
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= n_executed;
-  IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
+  g_nr_guest_instr += n_executed;
   n_remain = n_batch; // clean n_remain
 #endif
+}
+
+static void debug_difftest(Decode *_this, vaddr_t dnpc) {
+  IFNDEF(CONFIG_PERF_OPT, g_nr_guest_instr ++);
+#ifdef CONFIG_ITRACE
+  log_write("%s\n", _this->logbuf);
+  if (g_print_step) { puts(_this->logbuf); }
+#endif
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
+#ifndef __ICS_EXPORT
+#ifdef CONFIG_WATCHPOINT
+  void scan_watchpoint(vaddr_t pc);
+  scan_watchpoint(_this->pc);
+#endif
+#endif
+  IFDEF(CONFIG_DIFFTEST, save_globals(_this));
+  IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 }
 
 static word_t g_ex_cause = NEMU_EXEC_RUNNING;
@@ -136,14 +143,6 @@ static Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
-static void debug_difftest(Decode *_this, Decode *next) {
-  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
-  IFDEF(CONFIG_DEBUG, debug_hook(_this->pc, _this->logbuf));
-  IFDEF(CONFIG_DIFFTEST, save_globals(next));
-  IFDEF(CONFIG_DIFFTEST, cpu.pc = next->pc);
-  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
-}
-
 static int execute(int n) {
   static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
@@ -159,9 +158,10 @@ static int execute(int n) {
     init_flag = 1;
   }
 
-  __attribute__((unused)) Decode *this_s = NULL;
+  __attribute__((unused)) Decode *this_s = s;
   while (MUXDEF(CONFIG_TARGET_AM, nemu_state.state != NEMU_RUNNING, true)) {
-#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
+#if defined(CONFIG_ITRACE) || defined(CONFIG_WATCHPOINT) || \
+    defined(CONFIG_IQUEUE) || defined(CONFIG_DIFFTEST)
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
@@ -188,11 +188,11 @@ end_of_bb:
     if (unlikely(n <= 0)) break;
 
     def_finish();
-    debug_difftest(this_s, s);
+    debug_difftest(this_s, s->pc);
   }
 
 end_of_loop:
-  debug_difftest(this_s, s);
+  debug_difftest(this_s, s->pc);
   prev_s = s;
   return n;
 }
@@ -226,9 +226,8 @@ static int execute(int n) {
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
-    IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+    debug_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
-    IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
   }
   return n;
 }
@@ -246,13 +245,13 @@ static void update_global() {
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
-  IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
+  IFDEF(CONFIG_ITRACE, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
 #ifndef CONFIG_PERF_OPT
   s->dnpc = s->snpc;
 #endif
   s->EHelper = g_exec_table[idx];
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_ITRACE
   char *p = s->logbuf;
   int len = snprintf(p, sizeof(s->logbuf), FMT_WORD ":   %s", s->pc, log_bytebuf);
   p += len;
@@ -330,9 +329,9 @@ void cpu_exec(uint64_t n) {
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
-    IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
-    if (nemu_state.state != NEMU_RUNNING) break;
+    debug_hook(s.pc, s.logbuf);
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
   }
 #endif

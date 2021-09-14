@@ -159,7 +159,7 @@ static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   rm->preg = &rm->val;
   rm->type = OP_TYPE_MEM;
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_ITRACE
   char disp_buf[16];
   char base_buf[8];
   char index_buf[8];

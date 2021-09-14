@@ -78,10 +78,10 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
+    IFDEF(CONFIG_ITRACE, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
       s->type = INSTR_TYPE_I; break;
 
-#ifndef CONFIG_DEBUG
+#ifndef CONFIG_ITRACE
     case EXEC_ID_system:
       if (s->isa.instr.i.funct3 == 0) {
         switch (s->isa.instr.csr.csr) {
