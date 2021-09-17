@@ -146,11 +146,43 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline def_rtl(j, vaddr_t target) {
+#ifdef CONFIG_GUIDED_EXEC
+  if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
+    if(cpu.execution_guide.jump_target != target) {
+      cpu.pc = cpu.execution_guide.jump_target;
+      printf("input jump target & real jump targe does not match\n");
+      printf("input target %lx, real target %lx\n", cpu.execution_guide.jump_target, target);
+      goto end_of_rtl_j;
+    }
+  }
+#endif
+
   cpu.pc = target;
+
+#ifdef CONFIG_GUIDED_EXEC
+end_of_rtl_j:
+; // make compiler happy
+#endif
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
+#ifdef CONFIG_GUIDED_EXEC
+  if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
+    if(cpu.execution_guide.jump_target != *target) {
+      cpu.pc = cpu.execution_guide.jump_target;
+      printf("input jump target & real jump targe does not match\n");
+      printf("input target %lx, real target %lx\n", cpu.execution_guide.jump_target, *target);
+      goto end_of_rtl_jr;
+    }
+  }
+#endif
+
   cpu.pc = *target;
+
+#ifdef CONFIG_GUIDED_EXEC
+end_of_rtl_jr:
+; // make compiler happy
+#endif
 }
 
 static inline def_rtl(jrelop, uint32_t relop,

@@ -223,6 +223,11 @@ config DIFFTEST_STORE_COMMIT
   bool "Maintain a committed store queue for processor ref"
   default y
 
+config RUN_AHEAD_SUPPORT
+  depends on SHARE
+  bool "Support jump based on target provided by DUT"
+  default y
+
 config GUIDED_EXEC
   depends on SHARE
   bool "Enable DUT guided execution"
