@@ -153,7 +153,7 @@ config LOG
   default n
 
 config WATCHPOINT
-  depends on !TARGET_SHARE && !TARGET_AM
+  depends on TARGET_NATIVE_ELF
   bool "Enable watchpoint"
   default n
 
@@ -181,7 +181,7 @@ config IQUEUE
   default n
 
 config DIFFTEST
-  depends on !TARGET_SHARE && !TARGET_AM
+  depends on TARGET_NATIVE_ELF
   bool "Enable differential testing"
   default n
   help
