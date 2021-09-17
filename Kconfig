@@ -147,11 +147,6 @@ endmenu
 
 menu "Testing and Debugging"
 
-config LOG
-  depends on !TARGET_SHARE && !TARGET_AM
-  bool "Enable logging"
-  default n
-
 config WATCHPOINT
   depends on TARGET_NATIVE_ELF
   bool "Enable watchpoint"

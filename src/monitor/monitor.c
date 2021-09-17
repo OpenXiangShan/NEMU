@@ -9,11 +9,6 @@ void init_device();
 void init_sdb();
 
 static void welcome() {
-  Log("Logging: %s", MUXDEF(CONFIG_LOG, ASNI_FMT("ON", ASNI_FG_GREEN), ASNI_FMT("OFF", ASNI_FG_RED)));
-  IFDEF(CONFIG_LOG, Log("If debug mode is on, a log file will be generated "
-      "to record every instruction NEMU executes. This may lead to a large log file. "
-      "If it is not necessary, you can turn it off in include/common.h.")
-  );
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("Welcome to %s-NEMU!\n", ASNI_FMT(str(__GUEST_ISA__), ASNI_FG_YELLOW ASNI_BG_RED));
   printf("For help, type \"help\"\n");
