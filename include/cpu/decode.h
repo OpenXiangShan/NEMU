@@ -48,7 +48,7 @@ typedef struct Decode {
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
   uint8_t type;
   ISADecodeInfo isa;
-  IFDEF(CONFIG_ITRACE, char logbuf[80]);
+  IFDEF(CONFIG_ITRACE, char logbuf[128]);
 } Decode;
 #else
 typedef struct Decode {
@@ -58,7 +58,7 @@ typedef struct Decode {
   void (*EHelper)(struct Decode *);
   Operand dest, src1, src2;
   ISADecodeInfo isa;
-  IFDEF(CONFIG_ITRACE, char logbuf[80]);
+  IFDEF(CONFIG_ITRACE, char logbuf[128]);
 } Decode;
 #endif
 
