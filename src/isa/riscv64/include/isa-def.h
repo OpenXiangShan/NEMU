@@ -21,7 +21,12 @@ struct ExecutionGuide {
   uint64_t jump_target;
 };
 
+struct DebugInfo {
+
+};
+
 typedef struct {
+  // Below will be synced by regcpy when run difftest, DO NOT TOUCH
   union {
     uint64_t _64;
   } gpr[32];
@@ -36,6 +41,10 @@ typedef struct {
   uint64_t sstatus, scause, sepc;
   
   uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
+  uint64_t mtval, stval, mtvec, stvec;
+  uint64_t mode;
+  // Above will be synced by regcpy when run difftest, DO NOT TOUCH
+
 #ifdef CONFIG_RVV_010
   //vector
   union {
@@ -48,9 +57,6 @@ typedef struct {
   uint64_t vstart;
   uint64_t vxsat, vxrm, vl, vtype;
 #endif // CONFIG_RVV_010
-
-  uint64_t mtval, stval, mtvec, stvec;
-  uint64_t mode;
 
   // exec state
   bool amo;
@@ -65,6 +71,9 @@ typedef struct {
   // Guided exec
   bool guided_exec;
   struct ExecutionGuide execution_guide;
+
+  // User defined debug info
+  struct DebugInfo debug;
 } riscv64_CPU_state;
 
 // decode
