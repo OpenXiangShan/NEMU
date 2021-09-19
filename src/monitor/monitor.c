@@ -7,6 +7,7 @@ void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
+void init_disasm();
 
 static void welcome() {
   Log("Build time: %s, %s", __TIME__, __DATE__);
@@ -122,6 +123,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize the simple debugger. */
   init_sdb();
+
+  init_disasm();
 
   /* Display welcome message. */
   welcome();

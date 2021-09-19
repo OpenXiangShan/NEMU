@@ -243,15 +243,19 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->EHelper = g_exec_table[idx];
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
-  int len = snprintf(p, sizeof(s->logbuf), FMT_WORD ":   %s", s->pc, log_bytebuf);
+  int len = snprintf(p, sizeof(s->logbuf), FMT_WORD ": %s", s->pc, log_bytebuf);
   p += len;
   int ilen = s->snpc - s->pc;
-  int ilen_max = MUXDEF(CONFIG_ISA_x86, 16, 4);
-  int space_len = 3 * (ilen_max - ilen + 1);
+  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
+  int space_len = ilen_max - ilen;
+  if (space_len < 0) space_len = 0;
+  space_len = space_len * 3 + 1;
   memset(p, ' ', space_len);
   p += space_len;
-  strcpy(p, log_asmbuf);
-  assert(strlen(s->logbuf) < sizeof(s->logbuf));
+
+  void disassemble(char *str, int size, vaddr_t pc, uint8_t *code, int nbyte);
+  disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
+      MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.instr.val, ilen);
 #endif
 }
 
