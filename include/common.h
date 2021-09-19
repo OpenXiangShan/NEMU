@@ -24,6 +24,11 @@ typedef MUXDEF(PMEM64, uint64_t, uint32_t) paddr_t;
 typedef uint16_t ioaddr_t;
 
 #define CP printf("%s: %d\n", __FILE__, __LINE__);fflush( stdout );
+struct DynamicConfig {
+  bool ignore_illegal_mem_access;
+};
+extern struct DynamicConfig dynamic_config;
+void update_dynamic_config(void* config);
 
 #include <debug.h>
 
