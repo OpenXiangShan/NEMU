@@ -34,7 +34,9 @@ void save_globals(Decode *s) {
 
 static void debug_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE
-  log_write("%s\n", _this->logbuf);
+#ifdef CONFIG_ITRACE_COND
+  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
+#endif
   if (g_print_step) { puts(_this->logbuf); }
 #endif
   IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));

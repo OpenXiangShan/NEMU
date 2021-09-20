@@ -171,6 +171,11 @@ config ITRACE
   bool "Enable instruction tracer"
   default n
 
+config ITRACE_COND
+  depends on ITRACE
+  string "Only trace instructions when the condition is true"
+  default "true"
+
 config IQUEUE
   bool "Record the last instrucitons executed"
   default n
