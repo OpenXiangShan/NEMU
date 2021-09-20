@@ -64,15 +64,9 @@ typedef struct Decode {
 #define id_dest (&s->dest)
 
 
-//// --- container for all instrucitons ---
-//#define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
-
-#define def_EXEC_ID(name) \
-  enum { concat(EXEC_ID_, name) = __COUNTER__ };
-#define def_all_EXEC_ID() MAP(INSTR_LIST, def_EXEC_ID)
-
-#define INSTR_CNT(name) + 1
-#define TOTAL_INSTR (0 MAP(INSTR_LIST, INSTR_CNT))
+// `INSTR_LIST` is defined at src/isa/$ISA/include/isa-all-instr.h
+#define def_EXEC_ID(name) concat(EXEC_ID_, name),
+#define def_all_EXEC_ID() enum { MAP(INSTR_LIST, def_EXEC_ID) TOTAL_INSTR }
 
 
 // --- prototype of table helpers ---
