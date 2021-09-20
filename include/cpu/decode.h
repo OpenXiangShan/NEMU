@@ -3,8 +3,6 @@
 
 #include <isa.h>
 
-#define OP_STR_SIZE 40
-
 typedef struct {
   union {
     IFDEF(CONFIG_ISA_x86, uint64_t *pfreg);
@@ -16,7 +14,6 @@ typedef struct {
   IFDEF(CONFIG_ISA_x86, rtlreg_t val);
   IFDEF(CONFIG_ISA_x86, uint8_t type);
   IFDEF(CONFIG_ISA_x86, uint8_t reg);
-  IFDEF(CONFIG_ITRACE, char str[OP_STR_SIZE]);
 } Operand;
 
 #ifndef __ICS_EXPORT
@@ -67,29 +64,8 @@ typedef struct Decode {
 #define id_dest (&s->dest)
 
 
-// --- instruction tracing log ---
-#define print_Dop(...) IFDEF(CONFIG_ITRACE, snprintf(__VA_ARGS__))
-#define print_asm(...) IFDEF(CONFIG_ITRACE, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
-
-#ifndef suffix_char
-#define suffix_char(width) ' '
-#endif
-
-#define print_asm_template0(instr) \
-  print_asm(str(instr) "%c", suffix_char(id_dest->width))
-
-#define print_asm_template1(instr) \
-  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
-
-#define print_asm_template2(instr) \
-  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
-
-#define print_asm_template3(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
-
-
-// --- container for all instrucitons ---
-#define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
+//// --- container for all instrucitons ---
+//#define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
 
 #define def_EXEC_ID(name) \
   enum { concat(EXEC_ID_, name) = __COUNTER__ };
@@ -101,18 +77,8 @@ typedef struct Decode {
 
 // --- prototype of table helpers ---
 #define def_THelper(name) static inline int concat(table_, name) (Decode *s)
-#define def_THelper_arity(name, arity) \
-  def_THelper(name) { concat(print_asm_template, arity)(name); return concat(EXEC_ID_, name); }
-#define def_THelper_nullary(name) def_THelper_arity(name, 0)
-#define def_THelper_unary(name)   def_THelper_arity(name, 1)
-#define def_THelper_binary(name)  def_THelper_arity(name, 2)
-#define def_THelper_ternary(name) def_THelper_arity(name, 3)
-
-#define def_all_THelper() \
-  MAP(INSTR_NULLARY, def_THelper_nullary) \
-  MAP(INSTR_UNARY,   def_THelper_unary  ) \
-  MAP(INSTR_BINARY,  def_THelper_binary ) \
-  MAP(INSTR_TERNARY, def_THelper_ternary)
+#define def_THelper_body(name) def_THelper(name) { return concat(EXEC_ID_, name); }
+#define def_all_THelper() MAP(INSTR_LIST, def_THelper_body)
 
 
 // --- prototype of decode helpers ---

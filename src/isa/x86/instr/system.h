@@ -58,25 +58,21 @@ def_EHelper(mov_rm2sreg) {
 #if 0
 static inline def_EHelper(lldt) {
   rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, CSR_LDTR);
-  print_asm_template1(lldt);
 }
 
 static inline def_EHelper(mov_sreg2rm) {
   rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, id_src1->reg);
   operand_write(s, id_dest, s0);
-  print_asm("movw %%%s,%s", sreg_name(id_src1->reg), id_dest->str);
 }
 
 static inline def_EHelper(push_sreg_internal) {
   rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, id_dest->reg);
   rtl_push(s, s0);
-  print_asm("push %%%s", sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(pop_sreg_internal) {
   rtl_pop(s, s0);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, id_dest->reg);
-  print_asm("pop %%%s", sreg_name(id_dest->reg));
 }
 
 static inline def_EHelper(push_fs) {

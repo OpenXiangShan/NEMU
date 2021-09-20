@@ -61,29 +61,24 @@ static inline def_EHelper(ljmp) {
   rtl_j(s, s->jmp_pc);
   rtl_li(s, s0, id_src1->imm);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, CSR_CS);
-  print_asm("ljmp %s,%s", id_src1->str, id_dest->str);
 }
 
 #else
 static inline def_EHelper(call) {
   // the target address is calculated at the decode stage
   TODO();
-  print_asm("call %x", s->jmp_pc);
 }
 
 static inline def_EHelper(ret) {
   TODO();
-  print_asm("ret");
 }
 
 static inline def_EHelper(ret_imm) {
   TODO();
-  print_asm("ret %s", id_dest->str);
 }
 
 static inline def_EHelper(call_rm) {
   TODO();
-  print_asm("call *%s", id_dest->str);
 }
 #endif
 #endif

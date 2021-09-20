@@ -22,6 +22,3 @@ bool log_enable() {
   return (g_nr_guest_instr >= CONFIG_TRACE_START) &&
          (g_nr_guest_instr <= CONFIG_TRACE_END);
 }
-
-char log_bytebuf[50] = {};
-char log_asmbuf[128] = {};

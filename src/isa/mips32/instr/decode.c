@@ -15,14 +15,12 @@ static uint32_t get_instr(Decode *s) {
 
 static def_DopHelper(i) {
   op->imm = val;
-  print_Dop(op->str, OP_STR_SIZE, (flag ? "0x%x" : "%d"), op->imm);
 }
 
 static def_DopHelper(r) {
   bool is_write = flag;
   static word_t zero_null = 0;
   op->preg = (is_write && val == 0) ? &zero_null : &gpr(val);
-  print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
 }
 
 static def_DHelper(IU) {
@@ -35,14 +33,12 @@ static def_DHelper(ld) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, false);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, true);
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
 static def_DHelper(st) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs, false);
   decode_op_i(s, id_src2, s->isa.instr.i.simm, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rt, false);
-  print_Dop(id_src1->str, OP_STR_SIZE, "%d(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs, 4));
 }
 
 static def_DHelper(lui) {
@@ -103,7 +99,6 @@ static def_DHelper(cp0) {
 //  decode_op_r(s, id_src1, s->isa.instr.r.rs, false);
   decode_op_r(s, id_src2, s->isa.instr.r.rt, false);
   decode_op_i(s, id_dest, s->isa.instr.r.rd, false);
-  print_Dop(id_dest->str, OP_STR_SIZE, "%s", cp0_name(id_dest->imm));
 }
 
 def_THelper(jr_dispatch) {

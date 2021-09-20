@@ -155,7 +155,5 @@ static inline def_EHelper(cmpxchg8b) {
     rtl_mv(s, &cpu.eax, ddest);
     rtl_mv(s, &cpu.edx, s0);
   }
-
-  print_asm_template2(cmpxchg8b);
 }
 #endif

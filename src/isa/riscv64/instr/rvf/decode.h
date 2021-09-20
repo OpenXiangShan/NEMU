@@ -4,7 +4,6 @@ static int table_fmadd_d_dispatch(Decode *s);
 
 static inline def_DopHelper(fr){
   op->preg = &fpr(val);
-  print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
 }
 
 static inline def_DHelper(fr) {
@@ -47,7 +46,6 @@ static inline def_DHelper(r2fr){
 
 def_THelper(fload) {
   if (!fp_enable()) return table_rt_inv(s);
-  print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("??????? ????? ????? 010 ????? ????? ??", flw);
@@ -61,7 +59,6 @@ def_THelper(fload) {
 
 def_THelper(fstore) {
   if (!fp_enable()) return table_rt_inv(s);
-  print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("??????? ????? ????? 010 ????? ????? ??", fsw);

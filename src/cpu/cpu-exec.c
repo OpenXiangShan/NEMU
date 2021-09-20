@@ -235,7 +235,6 @@ static void update_global() {
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
-  IFDEF(CONFIG_ITRACE, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
 #ifndef CONFIG_PERF_OPT
   s->dnpc = s->snpc;
@@ -243,9 +242,13 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->EHelper = g_exec_table[idx];
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
-  int len = snprintf(p, sizeof(s->logbuf), FMT_WORD ": %s", s->pc, log_bytebuf);
-  p += len;
+  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
   int ilen = s->snpc - s->pc;
+  int i;
+  uint8_t *instr = (uint8_t *)&s->isa.instr.val;
+  for (i = 0; i < ilen; i ++) {
+    p += snprintf(p, 3, " %02x", instr[i]);
+  }
   int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
   int space_len = ilen_max - ilen;
   if (space_len < 0) space_len = 0;

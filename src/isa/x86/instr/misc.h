@@ -21,7 +21,6 @@ def_EHelper(rdtsc) {
 
 #if 0
 static inline def_EHelper(fwait) {
-  print_asm("fwait");
 }
 
 static inline def_EHelper(fpu) {
@@ -31,6 +30,5 @@ static inline def_EHelper(fpu) {
 static inline def_EHelper(hlt) {
   rtl_trap(s, s->seq_pc, IRQ_TIMER);
   if (ref_difftest_raise_intr) ref_difftest_raise_intr(IRQ_TIMER);
-  print_asm("hlt");
 }
 #endif

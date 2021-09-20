@@ -158,27 +158,6 @@ static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   s->isa.moff = disp;
   rm->preg = &rm->val;
   rm->type = OP_TYPE_MEM;
-
-#ifdef CONFIG_ITRACE
-  char disp_buf[16];
-  char base_buf[8];
-  char index_buf[8];
-
-  if (disp_size != 0) {
-    /* has disp */
-    sprintf(disp_buf, "%s%#x", (disp < 0 ? "-" : ""), (disp < 0 ? -disp : disp));
-  }
-  else { disp_buf[0] = '\0'; }
-
-  if (base_reg == -1) { base_buf[0] = '\0'; }
-  else { sprintf(base_buf, "%%%s", reg_name(base_reg, 4)); }
-
-  if (index_reg == -1) { index_buf[0] = '\0'; }
-  else { sprintf(index_buf, ",%%%s,%d", reg_name(index_reg, 4), 1 << scale); }
-
-  if (base_reg == -1 && index_reg == -1) { sprintf(rm->str, "%s", disp_buf); }
-  else { sprintf(rm->str, "%s(%s%s)", disp_buf, base_buf, index_buf); }
-#endif
 }
 
 static void operand_reg(Decode *s, Operand *op, int r, int width) {
@@ -189,14 +168,12 @@ static void operand_reg(Decode *s, Operand *op, int r, int width) {
     op->preg = &op->val;
   }
   op->type = OP_TYPE_REG;
-  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
 static void operand_imm(Decode *s, Operand *op, word_t imm) {
   op->preg = &op->val;
   op->val = imm;
   op->type = OP_TYPE_IMM;
-  print_Dop(op->str, OP_STR_SIZE, "$0x%x", imm);
 }
 
 // decode operand helper
@@ -277,7 +254,6 @@ def_DopHelper(O) {
   s->isa.midx = rz;
   op->preg = &op->val;
   op->type = OP_TYPE_MEM;
-  print_Dop(op->str, OP_STR_SIZE, "0x%x", s->isa.moff);
 }
 
 /* Eb <- Gb

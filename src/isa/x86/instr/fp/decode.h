@@ -2,7 +2,6 @@ static inline void operand_freg(Decode *s, Operand *op, int i) {
   op->type = OP_TYPE_REG;
   op->reg = i;
 //  op->pfreg = &cpu.fpr[(cpu.ftop + i) & 0x7];
-  print_Dop(op->str, OP_STR_SIZE, "%%st(%d)", i);
 }
 
 static inline void operand_frm(Decode *s, Operand *rm, Operand *reg, int i) {

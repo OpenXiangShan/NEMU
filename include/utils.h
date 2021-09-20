@@ -58,9 +58,6 @@ uint64_t get_time();
     log_write(__VA_ARGS__); \
   } while (0)
 
-extern char log_bytebuf[50];
-extern char log_asmbuf[128];
-
 #ifdef CONFIG_IQUEUE
 // ----------- iqueue -----------
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
