@@ -180,6 +180,16 @@ config IQUEUE
   bool "Record the last instrucitons executed"
   default n
 
+config MTRACE
+  depends on TRACE
+  bool "Enable memory tracer"
+  default n
+
+config MTRACE_COND
+  depends on MTRACE
+  string "Only trace memory accesses when the condition is true"
+  default "true"
+
 config DIFFTEST
   depends on TARGET_NATIVE_ELF
   bool "Enable differential testing"

@@ -1,6 +1,7 @@
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <device/mmio.h>
+#include <isa.h>
 
 #if defined(CONFIG_USE_MMAP)
 #include <sys/mman.h>
@@ -15,11 +16,20 @@ uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
 static word_t pmem_read(paddr_t addr, int len) {
-  return host_read(guest_to_host(addr), len);
+  word_t ret = host_read(guest_to_host(addr), len);
+#if defined(CONFIG_MTRACE_COND)
+  if (MTRACE_COND) log_write(FMT_WORD ": pmem[" FMT_PADDR "] %d-> " FMT_WORD "\n",
+      cpu.pc, addr, len, ret);
+#endif
+  return ret;
 }
 
 static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
+#if defined(CONFIG_MTRACE_COND)
+  if (MTRACE_COND) log_write(FMT_WORD ": pmem[" FMT_PADDR "] <-%d " FMT_WORD "\n",
+      cpu.pc, addr, len, data);
+#endif
 }
 
 void init_mem() {
