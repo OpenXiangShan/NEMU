@@ -71,8 +71,8 @@ void difftest_guided_exec(void * guide) {
 #endif
 
 #ifdef CONFIG_QUERY_REF
-void difftest_query_ref(void * result_buffer) {
-  isa_difftest_query_ref(result_buffer);
+void difftest_query_ref(void * result_buffer, uint64_t type) {
+  isa_difftest_query_ref(result_buffer, type);
 }
 #endif
 

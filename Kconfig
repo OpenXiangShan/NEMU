@@ -231,7 +231,7 @@ config GUIDED_EXEC
 config QUERY_REF
   depends on SHARE
   bool "Enable event query support when used as difftest ref"
-  default n
+  default y
 
 config LARGE_COPY
   depends on SHARE && !MEM_RANDOM

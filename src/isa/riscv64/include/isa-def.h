@@ -26,6 +26,10 @@ struct DebugInfo {
 };
 
 #ifdef CONFIG_QUERY_REF
+typedef enum RefQueryType {
+  REF_QUERY_MEM_EVENT
+} RefQueryType;
+
 struct MemEventQueryResult {
   uint64_t pc;
   bool mem_access;

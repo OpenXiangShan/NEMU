@@ -110,11 +110,21 @@ void isa_difftest_guided_exec(void * guide) {
 #endif
 
 #ifdef CONFIG_QUERY_REF
-void isa_difftest_query_ref(void *result_buffer) {
-  size_t size = sizeof(cpu.query_mem_event);
-  memcpy(result_buffer, &cpu.query_mem_event, size);
-  // nemu result buffer will be flushed after query 
-  memset(&cpu.query_mem_event, 0, size);
+void isa_difftest_query_ref(void *result_buffer, uint64_t type) {
+  size_t size;
+  switch(type) {
+    case REF_QUERY_MEM_EVENT:
+      size = sizeof(cpu.query_mem_event);
+      memcpy(result_buffer, &cpu.query_mem_event, size);
+      // nemu result buffer will be flushed after query 
+      printf_with_pid("mem_access %x\n", cpu.query_mem_event.mem_access);
+      printf_with_pid("mem_access_is_load %x\n", cpu.query_mem_event.mem_access_is_load);
+      printf_with_pid("mem_access_vaddr %lx\n", cpu.query_mem_event.mem_access_vaddr);
+      memset(&cpu.query_mem_event, 0, size);
+      break;
+    default:
+      panic("Invalid ref query type");
+  }
 }
 #endif
 
