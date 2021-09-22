@@ -109,6 +109,15 @@ void isa_difftest_guided_exec(void * guide) {
 }
 #endif
 
+#ifdef CONFIG_QUERY_REF
+void isa_difftest_query_ref(void *result_buffer) {
+  size_t size = sizeof(cpu.query_mem_event);
+  memcpy(result_buffer, &cpu.query_mem_event, size);
+  // nemu result buffer will be flushed after query 
+  memset(&cpu.query_mem_event, 0, size);
+}
+#endif
+
 #ifdef CONFIG_MULTICORE_DIFF
 void isa_difftest_set_mhartid(int n) {
   mhartid->val = n;

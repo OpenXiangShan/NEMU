@@ -52,7 +52,8 @@ void isa_difftest_regcpy(void *dut, bool direction);
 void isa_difftest_csrcpy(void *dut, bool direction);
 void isa_difftest_raise_intr(word_t NO);
 void isa_difftest_uarchstatus_cpy(void *dut, bool direction);
-void isa_difftest_guided_exec(void * guide);
+void isa_difftest_guided_exec(void *guide);
+void isa_difftest_query_ref(void *result_buffer);
 #ifdef CONFIG_MULTICORE_DIFF
 void isa_difftest_set_mhartid(int n);
 #endif

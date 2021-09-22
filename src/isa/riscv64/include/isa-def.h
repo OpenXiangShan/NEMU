@@ -22,8 +22,19 @@ struct ExecutionGuide {
 };
 
 struct DebugInfo {
-
+  uint64_t current_pc;
 };
+
+#ifdef CONFIG_QUERY_REF
+struct MemEventQueryResult {
+  uint64_t pc;
+  bool mem_access;
+  bool mem_access_is_load;
+  // uint64_t mem_access_paddr;
+  uint64_t mem_access_vaddr;
+  // uint64_t mem_access_result;
+};
+#endif
 
 typedef struct {
   // Below will be synced by regcpy when run difftest, DO NOT TOUCH
@@ -74,6 +85,9 @@ typedef struct {
 
   // User defined debug info
   struct DebugInfo debug;
+#ifdef CONFIG_QUERY_REF
+  struct MemEventQueryResult query_mem_event;
+#endif
 } riscv64_CPU_state;
 
 // decode
