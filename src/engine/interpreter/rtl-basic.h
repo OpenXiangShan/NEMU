@@ -168,9 +168,9 @@ static inline def_rtl(j, vaddr_t target) {
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     if(cpu.execution_guide.jump_target != target) {
       cpu.pc = cpu.execution_guide.jump_target;
-      printf("input jump target %lx & real jump target %lx does not match\n",
-        cpu.execution_guide.jump_target, target
-      );
+      // printf("input jump target %lx & real jump target %lx does not match\n",
+      //   cpu.execution_guide.jump_target, target
+      // );
       goto end_of_rtl_j;
     }
   }
@@ -189,9 +189,9 @@ static inline def_rtl(jr, rtlreg_t *target) {
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     if(cpu.execution_guide.jump_target != *target) {
       cpu.pc = cpu.execution_guide.jump_target;
-      printf("input jump target %lx & real jump target %lx does not match\n",
-        cpu.execution_guide.jump_target, *target
-      );
+      // printf("input jump target %lx & real jump target %lx does not match\n",
+      //   cpu.execution_guide.jump_target, *target
+      // );
       goto end_of_rtl_jr;
     }
   }
