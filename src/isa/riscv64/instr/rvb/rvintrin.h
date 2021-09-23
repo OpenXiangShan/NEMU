@@ -69,6 +69,10 @@ int32_t _rv32_srl    (int32_t rs1, int32_t rs2) { return (uint32_t)rs1 >> (rs2 &
 int32_t _rv32_rol    (int32_t rs1, int32_t rs2) { return _rv32_sll(rs1, rs2) | _rv32_srl(rs1, -rs2); }
 int32_t _rv32_ror    (int32_t rs1, int32_t rs2) { return _rv32_srl(rs1, rs2) | _rv32_sll(rs1, -rs2); }
 
+int32_t _rv32_pack(int32_t rs1, int32_t rs2) { return (rs1 & 0x0000ffff)   | (rs2 << 16); }
+int64_t _rv64_pack(int64_t rs1, int64_t rs2) { return (rs1 & 0xffffffffLL) | (rs2 << 32); }
+int64_t _rv64_packh(int64_t rs1, int64_t rs2) { return (rs1 & 0xff) | ((rs2 & 0xff) << 8); }
+
 int64_t _rv64_grev(int64_t rs1, int64_t rs2)
 {
 	uint64_t x = rs1;
@@ -123,6 +127,23 @@ int64_t _rv64_clmulr(int64_t rs1, int64_t rs2)
 	return x;
 }
 
+int64_t xperm(int64_t rs1, int64_t rs2, int sz_log2)
+{
+	int64_t r = 0;
+	int64_t sz = 1LL << sz_log2;
+	int64_t mask = (1LL << sz) - 1;
+	for (int i = 0; i < 64; i += sz) {
+		int64_t pos = ((rs2 >> i) & mask) << sz_log2;
+		if (pos < 64)
+		r |= ((rs1 >> pos) & mask) << i;
+	}
+	return r;
+}
+int64_t _rv64_xpermn (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 2); }
+int64_t _rv64_xpermb (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 3); }
+int64_t _rv64_xpermh (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 4); }
+int64_t _rv64_xpermw (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 5); }
+
 long _rv_andn(long rs1, long rs2) { return rs1 & ~rs2; }
 long _rv_orn (long rs1, long rs2) { return rs1 | ~rs2; }
 long _rv_xnor(long rs1, long rs2) { return rs1 ^ ~rs2; }
@@ -152,6 +173,10 @@ long _rv_clmul    (long rs1, long rs2) { return _rv64_clmul    (rs1, rs2); }
 long _rv_clmulh   (long rs1, long rs2) { return _rv64_clmulh   (rs1, rs2); }
 long _rv_clmulr   (long rs1, long rs2) { return _rv64_clmulr   (rs1, rs2); }
 
+long _rv_pack   (long rs1, long rs2) { return _rv64_pack   (rs1, rs2); }
+long _rv_packh  (long rs1, long rs2) { return _rv64_packh  (rs1, rs2); }
+long _rv_xpermn  (long rs1, long rs2) { return _rv64_xpermn  (rs1, rs2); }
+long _rv_xpermb  (long rs1, long rs2) { return _rv64_xpermb  (rs1, rs2); }
 
 
 #define RVINTRIN_GREV_PSEUDO_OP64(_arg, _name) \
@@ -159,6 +184,7 @@ long _rv_clmulr   (long rs1, long rs2) { return _rv64_clmulr   (rs1, rs2); }
 
 
 RVINTRIN_GREV_PSEUDO_OP64(56, rev8)
+RVINTRIN_GREV_PSEUDO_OP64(7, revb)
 
 
 #define RVINTRIN_GORC_PSEUDO_OP64(_arg, _name) \

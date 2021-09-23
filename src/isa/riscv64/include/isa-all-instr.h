@@ -67,11 +67,13 @@
   f(clmul) f(clmulr) f(clmulh) \
   f(rol) f(rolw) f(ror) f(rori) f(rorw) f(roriw) \
   f(sh1add) f(sh2add) f(sh3add) f(sh1adduw) f(sh2adduw) f(sh3adduw) \
+  f(pack) f(packh) f(packw) \
+  f(xpermn) f(xpermb) \
   f(adduw) f(slliuw)
 
 #define BITMANIP_INSTR_BINARY(f) \
   f(clz) f(clzw) f(ctz) f(ctzw) f(cpop) f(cpopw) \
-  f(orc_b) f(rev8) f(sext_b) f(sext_h) f(zext_h)
+  f(orc_b) f(rev8) f(revb) f(sext_b) f(sext_h) f(zext_h)
 
 #else // CONFIG_RVB
 #define BITMANIP_INSTR_TERNARY(f)
