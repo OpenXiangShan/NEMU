@@ -64,4 +64,9 @@ void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
 void iqueue_dump();
 
 #endif
+
+void init_ftrace(const char *file);
+void ftrace_call(word_t pc, word_t target);
+void ftrace_ret(word_t pc);
+
 #endif
