@@ -38,7 +38,7 @@ void init_isa() {
   /* Initialize this virtual computer system. */
   restart();
 
-#ifndef CONFIG_DEVICE
+#if 0
   void init_i8259a();
   void init_mc146818rtc();
   void init_i8253();
