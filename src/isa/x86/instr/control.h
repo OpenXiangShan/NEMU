@@ -2,12 +2,14 @@ def_EHelper(call) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   // the target address is calculated at the decode stage
   rtl_push(s, dsrc1);
+  ftrace_call(s->pc, id_dest->imm);
   rtl_j(s, id_dest->imm);
 }
 
 def_EHelper(ret) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_pop(s, s0);
+  ftrace_ret(s->pc);
   rtl_jr(s, s0);
 }
 
@@ -35,6 +37,7 @@ def_EHelper(call_E) {
   rtl_decode_unary(s, true);
   rtl_li(s, s0, s->snpc);
   rtl_push(s, s0);
+  ftrace_call(s->pc, *ddest);
   rtl_jr(s, ddest);
 }
 
@@ -47,6 +50,7 @@ def_EHelper(ret_imm) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_pop(s, s0);
   rtl_add(s, &cpu.esp, &cpu.esp, ddest);
+  ftrace_ret(s->pc);
   rtl_jr(s, s0);
 }
 
