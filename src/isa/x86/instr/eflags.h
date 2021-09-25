@@ -28,13 +28,11 @@ def_EHelper(std) {
 #if 0
 static inline def_EHelper(cli) {
   rtl_set_IF(s, rz);
-  print_asm("cli");
 }
 
 static inline def_EHelper(sti) {
   rtl_li(s, s0, 1);
   rtl_set_IF(s, s0);
-  print_asm("sti");
 }
 #endif
 

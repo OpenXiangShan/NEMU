@@ -16,6 +16,7 @@
         (fflush(stdout), fprintf(stderr, ASNI_FMT(format, ASNI_FG_RED) "\n", ##  __VA_ARGS__))); \
       extern void isa_reg_display(); \
       extern void monitor_statistic(); \
+      IFDEF(CONFIG_IQUEUE, iqueue_dump()); \
       isa_reg_display(); \
       monitor_statistic(); \
       assert(cond); \

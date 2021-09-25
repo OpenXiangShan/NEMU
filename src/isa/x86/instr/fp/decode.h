@@ -2,7 +2,6 @@ static inline void operand_freg(Decode *s, Operand *op, int i) {
   op->type = OP_TYPE_REG;
   op->reg = i;
 //  op->pfreg = &cpu.fpr[(cpu.ftop + i) & 0x7];
-  print_Dop(op->str, OP_STR_SIZE, "%%st(%d)", i);
 }
 
 static inline void operand_frm(Decode *s, Operand *rm, Operand *reg, int i) {
@@ -51,7 +50,7 @@ static inline def_DHelper(ST0_ST1) {
 }
 
 def_THelper(fpu_d8) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fadd);
@@ -73,7 +72,7 @@ def_THelper(fpu_d8) {
 }
 
 def_THelper(fpu_d9) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_hex_INSTR_IDTAB("e0", ST0     , fchs);
@@ -108,7 +107,7 @@ def_THelper(fpu_d9) {
 }
 
 def_THelper(fpu_da) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fcmovb);
@@ -123,7 +122,7 @@ def_THelper(fpu_da) {
 }
 
 def_THelper(fpu_db) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", ST0_STi, fcmovnb);
@@ -142,7 +141,7 @@ def_THelper(fpu_db) {
 }
 
 def_THelper(fpu_dc) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", STi_ST0, fadd);
@@ -166,7 +165,7 @@ def_THelper(fpu_dc) {
 }
 
 def_THelper(fpu_dd) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1101 0???", STi_ST0, fst);
@@ -182,7 +181,7 @@ def_THelper(fpu_dd) {
 }
 
 def_THelper(fpu_de) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_INSTR_IDTAB("1100 0???", STi_ST0, faddp);
@@ -198,7 +197,7 @@ def_THelper(fpu_de) {
 }
 
 def_THelper(fpu_df) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
 
   if (get_instr(s) >= 0xc0) {
     def_hex_INSTR_TAB("e0", fnstsw);

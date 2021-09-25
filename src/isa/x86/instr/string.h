@@ -87,8 +87,6 @@ static inline def_EHelper(lods) {
   rtl_lm(s, ddest, &cpu.esi, 0, id_dest->width);
   rtl_addi(s, &cpu.esi, &cpu.esi, (cpu.DF ? -1 : 1) * id_dest->width);
   operand_write(s, id_dest, ddest);
-
-  print_asm("lods (%%esi), %%eax");
 }
 
 static inline def_EHelper(stos) {
@@ -106,8 +104,6 @@ static inline def_EHelper(stos) {
     cpu.ecx --;
     if (count - 1 != 0) rtl_j(s, cpu.pc);
   }
-
-  print_asm("stos %%eax, (%%edi)");
 }
 
 static inline def_EHelper(scas) {
@@ -136,8 +132,6 @@ static inline def_EHelper(scas) {
     rtl_is_sub_overflow(s, s1, s1, dsrc1, s0, id_dest->width);
     rtl_set_OF(s, s1);
   }
-
-  print_asm("stos %%eax, (%%edi)");
 }
 
 static inline def_EHelper(cmps) {
@@ -169,7 +163,5 @@ static inline def_EHelper(cmps) {
       rtl_set_OF(s, s0);
     }
   }
-
-  print_asm("cmps (%%edi), (%%esi)");
 }
 #endif

@@ -123,7 +123,9 @@ typedef struct {
 
 // decode
 typedef struct {
-  uint8_t instr[16];
+  struct {
+    uint8_t val[16];
+  } instr;
   uint8_t *p_instr;
   uint16_t opcode;
 #define PREFIX_REP   1

@@ -44,7 +44,8 @@ def_EHelper(p_bgez) {
 
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  rtl_jr(s, &cpu.gpr[1]._32);
+  ftrace_ret(s->pc);
+  rtl_jr(s, &gpr(1));
 }
 
 // non-standard pseudo instructions

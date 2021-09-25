@@ -234,7 +234,6 @@ def_EHelper(shld) {
   rtl_update_ZFSF(s, ddest, s->isa.width);
   // unnecessary to update CF and OF in NEMU
 #endif
-  print_asm_template3(shld);
 }
 
 def_EHelper(shrd) {
@@ -299,7 +298,6 @@ static inline def_EHelper(rcr) {
   rtl_or(s, ddest, s0, s1);
 
   operand_write(s, id_dest, ddest);
-  print_asm_template2(rcr);
 }
 
 static inline def_EHelper(rcl) {
@@ -324,6 +322,5 @@ static inline def_EHelper(rcl) {
   rtl_or(s, ddest, s0, s1);
 
   operand_write(s, id_dest, ddest);
-  print_asm_template2(rcl);
 }
 #endif

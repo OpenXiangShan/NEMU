@@ -7,13 +7,10 @@ void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
+void init_disasm();
+void init_ftrace(const char *file);
 
 static void welcome() {
-  Log("Debug: %s", MUXDEF(CONFIG_DEBUG, ASNI_FMT("ON", ASNI_FG_GREEN), ASNI_FMT("OFF", ASNI_FG_RED)));
-  IFDEF(CONFIG_DEBUG, Log("If debug mode is on, a log file will be generated "
-      "to record every instruction NEMU executes. This may lead to a large log file. "
-      "If it is not necessary, you can turn it off in include/common.h.")
-  );
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("Welcome to %s-NEMU!\n", ASNI_FMT(str(__GUEST_ISA__), ASNI_FG_YELLOW ASNI_BG_RED));
   printf("For help, type \"help\"\n");
@@ -63,6 +60,7 @@ static int parse_args(int argc, char *argv[]) {
     {"log"      , required_argument, NULL, 'l'},
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
+    {"ftrace"   , required_argument, NULL,  0 },
     {"help"     , no_argument      , NULL, 'h'},
     {0          , 0                , NULL,  0 },
   };
@@ -73,6 +71,7 @@ static int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
+      case 0: init_ftrace(optarg); break;
       case 1: img_file = optarg; return optind - 1;
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
@@ -127,6 +126,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize the simple debugger. */
   init_sdb();
+
+  init_disasm();
 
   /* Display welcome message. */
   welcome();

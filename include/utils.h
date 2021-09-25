@@ -41,11 +41,11 @@ uint64_t get_time();
 
 #define ASNI_FMT(str, fmt) fmt str ASNI_NONE
 
-#define log_write(...) IFDEF(CONFIG_DEBUG, \
+#define log_write(...) IFDEF(CONFIG_TARGET_NATIVE_ELF, \
   do { \
     extern FILE* log_fp; \
     extern bool log_enable(); \
-    if (log_fp != NULL && log_enable()) { \
+    if (log_enable()) { \
       fprintf(log_fp, __VA_ARGS__); \
       fflush(log_fp); \
     } \
@@ -58,13 +58,15 @@ uint64_t get_time();
     log_write(__VA_ARGS__); \
   } while (0)
 
-extern char log_bytebuf[50];
-extern char log_asmbuf[128];
-
 #ifdef CONFIG_IQUEUE
 // ----------- iqueue -----------
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
 void iqueue_dump();
 
 #endif
+
+void init_ftrace(const char *file);
+void ftrace_call(word_t pc, word_t target);
+void ftrace_ret(word_t pc);
+
 #endif

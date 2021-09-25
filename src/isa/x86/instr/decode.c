@@ -5,15 +5,16 @@
 
 def_all_THelper();
 
-static word_t x86_instr_fetch(Decode *s, int len) {
+static word_t x86_instr_fetch(Decode *s, int len, bool advance_p_instr) {
+  uint8_t *p = &s->isa.instr.val[s->snpc - s->pc];
   word_t ret = instr_fetch(&s->snpc, len);
   word_t ret_save = ret;
   int i;
   for (i = 0; i < len; i ++) {
-    *(s->isa.p_instr) = ret & 0xff;
+    p[i] = ret & 0xff;
     ret >>= 8;
-    s->isa.p_instr ++;
   }
+  if (advance_p_instr) s->isa.p_instr += len;
   return ret_save;
 }
 
@@ -128,7 +129,7 @@ static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
 
   if (m->R_M == R_ESP) {
     SIB sib;
-    sib.val = instr_fetch(&s->snpc, 1);
+    sib.val = x86_instr_fetch(s, 1, false);
     base_reg = sib.base;
     scale = sib.ss;
 
@@ -147,7 +148,7 @@ static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
 
   if (disp_size != 0) {
     /* has disp */
-    disp = instr_fetch(&s->snpc, disp_size);
+    disp = x86_instr_fetch(s, disp_size, false);
     if (disp_size == 1) { disp = (int8_t)disp; }
   }
 
@@ -157,27 +158,6 @@ static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
   s->isa.moff = disp;
   rm->preg = &rm->val;
   rm->type = OP_TYPE_MEM;
-
-#ifdef CONFIG_DEBUG
-  char disp_buf[16];
-  char base_buf[8];
-  char index_buf[8];
-
-  if (disp_size != 0) {
-    /* has disp */
-    sprintf(disp_buf, "%s%#x", (disp < 0 ? "-" : ""), (disp < 0 ? -disp : disp));
-  }
-  else { disp_buf[0] = '\0'; }
-
-  if (base_reg == -1) { base_buf[0] = '\0'; }
-  else { sprintf(base_buf, "%%%s", reg_name(base_reg, 4)); }
-
-  if (index_reg == -1) { index_buf[0] = '\0'; }
-  else { sprintf(index_buf, ",%%%s,%d", reg_name(index_reg, 4), 1 << scale); }
-
-  if (base_reg == -1 && index_reg == -1) { sprintf(rm->str, "%s", disp_buf); }
-  else { sprintf(rm->str, "%s(%s%s)", disp_buf, base_buf, index_buf); }
-#endif
 }
 
 static void operand_reg(Decode *s, Operand *op, int r, int width) {
@@ -188,14 +168,12 @@ static void operand_reg(Decode *s, Operand *op, int r, int width) {
     op->preg = &op->val;
   }
   op->type = OP_TYPE_REG;
-  print_Dop(op->str, OP_STR_SIZE, "%%%s", reg_name(r, width));
 }
 
 static void operand_imm(Decode *s, Operand *op, word_t imm) {
   op->preg = &op->val;
   op->val = imm;
   op->type = OP_TYPE_IMM;
-  print_Dop(op->str, OP_STR_SIZE, "$0x%x", imm);
 }
 
 // decode operand helper
@@ -207,7 +185,7 @@ static void operand_imm(Decode *s, Operand *op, word_t imm) {
 /* Ib, Iv */
 def_DopHelper(I) {
   /* pc here is pointing to the immediate */
-  word_t imm = instr_fetch(&s->snpc, width);
+  word_t imm = x86_instr_fetch(s, width, false);
   operand_imm(s, op, imm);
 }
 
@@ -226,7 +204,7 @@ def_DopHelper(SI) {
    */
   TODO();
 #else
-  word_t imm = instr_fetch(&s->snpc, width);
+  word_t imm = x86_instr_fetch(s, width, false);
   if (width == 1) imm = (int8_t)imm;
   else if (width == 2) imm = (int16_t)imm;
   operand_imm(s, op, imm);
@@ -262,7 +240,7 @@ def_DopHelper(r) {
  */
 static void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
   ModR_M m;
-  m.val = x86_instr_fetch(s, 1);
+  m.val = x86_instr_fetch(s, 1, true);
   if (reg != NULL) operand_reg(s, reg, m.reg, width);
   if (m.mod == 3) operand_reg(s, rm, m.R_M, width);
   else { load_addr(s, &m, rm); }
@@ -271,12 +249,11 @@ static void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
 
 /* Ob, Ov */
 def_DopHelper(O) {
-  s->isa.moff = instr_fetch(&s->snpc, 4);
+  s->isa.moff = x86_instr_fetch(s, 4, false);
   s->isa.mbase = rz;
   s->isa.midx = rz;
   op->preg = &op->val;
   op->type = OP_TYPE_MEM;
-  print_Dop(op->str, OP_STR_SIZE, "0x%x", s->isa.moff);
 }
 
 /* Eb <- Gb
@@ -682,7 +659,7 @@ def_THelper(gp7) {
 }
 
 def_THelper(_2byte_esc) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
   s->isa.opcode = get_instr(s) | 0x100;
 
   def_hex_INSTR_IDTABW("00",    E, gp6, 2);
@@ -721,7 +698,7 @@ def_THelper(_2byte_esc) {
 #include "fp/decode.h"
 
 def_THelper(main) {
-  x86_instr_fetch(s, 1);
+  x86_instr_fetch(s, 1, true);
   s->isa.opcode = get_instr(s);
 
   def_hex_INSTR_IDTABW("00",  G2E, add, 1);
@@ -868,7 +845,7 @@ def_THelper(main) {
 
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
-  s->isa.p_instr = s->isa.instr;
+  s->isa.p_instr = s->isa.instr.val;
   s->isa.is_operand_size_16 = 0;
   s->isa.rep_flags = 0;
   s->isa.sreg_base = NULL;

@@ -76,7 +76,6 @@ static inline def_EHelper(btc) {
   rtl_set_CF(s, s1);
   rtl_xor(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
-  print_asm_template2(btc);
 }
 
 static inline def_EHelper(btr) {
@@ -88,7 +87,6 @@ static inline def_EHelper(btr) {
   rtl_not(s, s0, s0);
   rtl_and(s, ddest, ddest, s0);
   operand_write(s, id_dest, ddest);
-  print_asm_template2(btr);
 }
 #endif
 

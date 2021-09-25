@@ -146,25 +146,72 @@ config CC_ASAN
 endmenu
 
 menu "Testing and Debugging"
-config DEBUG
-  depends on !TARGET_SHARE && !TARGET_AM
-  bool "Enable debug features inside NEMU"
-  default n
-  help
-    Enable debug features, which include instruction tracing and watchpoint.
 
-config LOG_START
-  depends on DEBUG
-  int "When instruction tracing is enabled (unit: number of instructions)"
+config WATCHPOINT
+  depends on TARGET_NATIVE_ELF
+  bool "Enable watchpoint"
+  default n
+
+config TRACE
+  bool "Enable tracer"
+  default n
+
+config TRACE_START
+  depends on TRACE
+  int "When tracing is enabled (unit: number of instructions)"
   default 0
 
-config LOG_END
-  depends on DEBUG
-  int "When instruction tracing is disabled (unit: number of instructions)"
+config TRACE_END
+  depends on TRACE
+  int "When tracing is disabled (unit: number of instructions)"
   default 10000
 
+config ITRACE
+  depends on TRACE
+  bool "Enable instruction tracer"
+  default n
+
+config ITRACE_COND
+  depends on ITRACE
+  string "Only trace instructions when the condition is true"
+  default "true"
+
+config IQUEUE
+  bool "Record the last instrucitons executed"
+  default n
+
+config MTRACE
+  depends on TRACE
+  bool "Enable memory tracer"
+  default n
+
+config MTRACE_COND
+  depends on MTRACE
+  string "Only trace memory accesses when the condition is true"
+  default "true"
+
+config FTRACE
+  depends on TRACE
+  bool "Enable function call tracer"
+  default n
+
+config FTRACE_COND
+  depends on FTRACE
+  string "Only trace function calls when the condition is true"
+  default "true"
+
+config DTRACE
+  depends on TRACE
+  bool "Enable device tracer"
+  default n
+
+config DTRACE_COND
+  depends on DTRACE
+  string "Only trace device accesses when the condition is true"
+  default "true"
+
 config DIFFTEST
-  depends on !TARGET_SHARE && !TARGET_AM
+  depends on TARGET_NATIVE_ELF
   bool "Enable differential testing"
   default n
   help
@@ -215,10 +262,6 @@ config DIFFTEST_REF_NAME
 #ifndef __ICS_EXPORT
 config DETERMINISTIC
   bool "Make the behavior of NEMU deterministic"
-  default n
-
-config IQUEUE
-  bool "Record the last instrucitons executed"
   default n
 #endif
 endmenu
@@ -289,17 +332,22 @@ config BB_LIST_SIZE
 config BB_POOL_SIZE
   int "Number of entries in basic block metadata pool"
   default 1024
-
-if !DEBUG
-config DISABLE_INSTR_CNT
-  bool "Disable instruction counting (single step is also disabled)"
-  default y
-endif
 endif
 
-config ENABLE_INSTR_CNT
-  bool
-  default n if DISABLE_INSTR_CNT
-  default y
+choice
+  prompt "Instruction Count"
+  default ICOUNT_PRECISE if DEBUG || TARGET_SHARE
+  default ICOUNT_DISABLE
+config ICOUNT_PRECISE
+  bool "Precise to every instruction"
+if !DEBUG && !TARGET_SHARE
+config ICOUNT_BASIC_BLOCK
+  depends on PERF_OPT
+  bool "Precise to every basic block"
+config ICOUNT_DISABLE
+  bool "Disable instruction count"
+endif
+endchoice
+
 #endif
 endmenu
