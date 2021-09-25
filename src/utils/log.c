@@ -10,7 +10,9 @@ void init_log(const char *log_file) {
     Assert(fp, "Can not open '%s'", log_file);
     log_fp = fp;
   }
+#ifndef CONFIG_MODE_USER
   Log("Log is written to %s", log_file ? log_file : "stdout");
+#endif
 }
 
 bool log_enable() {
