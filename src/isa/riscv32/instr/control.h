@@ -12,7 +12,7 @@ def_EHelper(jalr) {
   rtl_li(s, ddest, s->snpc);
   if (ddest == &gpr(1)) {
     ftrace_call(s->pc, *s0);
-  } else if (!(ddest >= &gpr(1) && ddest <= &gpr(31))) {
+  } else if (dsrc1 == &gpr(1)) {
     ftrace_ret(s->pc);
   }
   rtl_jr(s, s0);
