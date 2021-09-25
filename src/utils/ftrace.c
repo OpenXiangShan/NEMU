@@ -2,8 +2,12 @@
 #include <elf.h>
 
 #if defined(CONFIG_FTRACE_COND)
+#define Elf_Ehdr MUXDEF(CONFIG_ISA_riscv64, Elf64_Ehdr, Elf32_Ehdr)
+#define Elf_Shdr MUXDEF(CONFIG_ISA_riscv64, Elf64_Shdr, Elf32_Shdr)
+#define Elf_Sym  MUXDEF(CONFIG_ISA_riscv64, Elf64_Sym , Elf32_Sym)
+
 static char **strtab = NULL;
-static Elf32_Sym **symtab = NULL;
+static Elf_Sym **symtab = NULL;
 static int *nr_symtab_entry = NULL;
 static int nr_file = 0;
 
@@ -11,12 +15,12 @@ static void read_elf(const char *file, int n) {
   FILE *fp = fopen(file, "rb");
   Assert(fp, "Can not open '%s'", file);
 
-  uint8_t buf[sizeof(Elf32_Ehdr)];
-  int ret = fread(buf, sizeof(Elf32_Ehdr), 1, fp);
+  uint8_t buf[sizeof(Elf_Ehdr)];
+  int ret = fread(buf, sizeof(Elf_Ehdr), 1, fp);
   assert(ret == 1);
 
   /* The first several bytes contain the ELF header. */
-  Elf32_Ehdr *elf = (void *)buf;
+  Elf_Ehdr *elf = (void *)buf;
   char magic[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
 
   /* Check ELF header */
@@ -26,7 +30,7 @@ static void read_elf(const char *file, int n) {
 
   /* Load section header table */
   uint32_t sh_size = elf->e_shentsize * elf->e_shnum;
-  Elf32_Shdr *sh = malloc(sh_size);
+  Elf_Shdr *sh = malloc(sh_size);
   fseek(fp, elf->e_shoff, SEEK_SET);
   ret = fread(sh, sh_size, 1, fp);
   assert(ret == 1);

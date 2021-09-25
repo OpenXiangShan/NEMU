@@ -44,13 +44,15 @@ def_EHelper(p_bgez) {
 }
 
 def_EHelper(p_jal) {
-  rtl_li(s, &cpu.gpr[1]._64, id_src2->imm);
+  rtl_li(s, &gpr(1), id_src2->imm);
+  ftrace_call(s->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  rtl_jr(s, &cpu.gpr[1]._64);
+  ftrace_ret(s->pc);
+  rtl_jr(s, &gpr(1));
 }
 
 // non-standard pseudo instructions

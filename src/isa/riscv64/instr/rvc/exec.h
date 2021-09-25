@@ -22,12 +22,16 @@ def_EHelper(c_j) {
 
 def_EHelper(c_jr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+  if (dsrc1 == &gpr(1)) {
+    ftrace_ret(s->pc);
+  }
   rtl_jr(s, dsrc1);
 }
 
 def_EHelper(c_jalr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
-  rtl_li(s, &cpu.gpr[1]._64, s->snpc);
+  rtl_li(s, &gpr(1), s->snpc);
+  ftrace_call(s->pc, *dsrc1);
   rtl_jr(s, dsrc1);
 }
 
