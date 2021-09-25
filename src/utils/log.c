@@ -1,9 +1,4 @@
-#include <utils.h>
-
-#ifndef CONFIG_TRACE_START
-#define CONFIG_TRACE_START 0
-#define CONFIG_TRACE_END   0
-#endif
+#include <common.h>
 
 FILE *log_fp = NULL;
 
@@ -19,6 +14,6 @@ void init_log(const char *log_file) {
 
 bool log_enable() {
   extern uint64_t g_nr_guest_instr;
-  return (g_nr_guest_instr >= CONFIG_TRACE_START) &&
-         (g_nr_guest_instr <= CONFIG_TRACE_END);
+  return MUXDEF(CONFIG_TRACE, (g_nr_guest_instr >= CONFIG_TRACE_START) &&
+         (g_nr_guest_instr <= CONFIG_TRACE_END), false);
 }
