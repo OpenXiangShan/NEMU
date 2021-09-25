@@ -1,5 +1,6 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include <cpu/cpu.h>
 #include <cpu/difftest.h>
 
 void tlbwr();
@@ -38,6 +39,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case PRIV_ERET:
       cpu.status.exl = 0;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       return cpu.epc;
     case PRIV_TLBWR: tlbwr(); break;
     case PRIV_TLBWI: tlbwi(); break;
