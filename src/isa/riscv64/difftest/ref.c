@@ -114,6 +114,7 @@ void isa_difftest_query_ref(void *result_buffer, uint64_t type) {
   size_t size;
   switch(type) {
     case REF_QUERY_MEM_EVENT:
+      cpu.query_mem_event.pc = cpu.debug.current_pc; // update pc
       size = sizeof(cpu.query_mem_event);
       memcpy(result_buffer, &cpu.query_mem_event, size);
       // nemu result buffer will be flushed after query 

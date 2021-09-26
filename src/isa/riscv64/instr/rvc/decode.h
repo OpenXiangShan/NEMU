@@ -128,12 +128,10 @@ static inline def_DHelper(C_ADDI4SPN) {
   uint32_t imm = imm9_6 | BITS(instr, 5, 5) << 3 | BITS(instr, 6, 6) << 2;
   // Assert(imm != 0, "pc = " FMT_WORD, s->pc);
 #ifndef SHARE
-  fprintf(stderr, "Invalid inst 0x0000: pc = " FMT_WORD, s->pc);
-  fflush(stderr);
+  panic("Invalid inst 0x0000: pc = " FMT_WORD, s->pc);
 #else
   if(!dynamic_config.ignore_illegal_mem_access){
-    fprintf(stderr, "Invalid inst 0x0000: pc = " FMT_WORD, s->pc);
-    fflush(stderr);
+    panic("Invalid inst 0x0000: pc = " FMT_WORD, s->pc);
   }
 #endif
   decode_op_i(s, id_src2, imm, false);
