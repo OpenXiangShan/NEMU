@@ -69,7 +69,6 @@ config MODE_SYSTEM
     Support full-system functionality, including privileged instructions, MMU and devices.
 #ifndef __ICS_EXPORT
 config MODE_USER
-  depends on !TARGET_AM
   bool "User mode"
   help
     Only support non-privileged instructions. System calls are forwarded to NEMU or Linux host.
@@ -86,6 +85,7 @@ config TARGET_SHARE
   bool "Shared object (used as REF for differential testing)"
 #endif
 config TARGET_AM
+  depends on !MODE_USER
   bool "Application on Abstract-Machine"
 endchoice
 

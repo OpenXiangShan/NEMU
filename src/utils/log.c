@@ -1,5 +1,6 @@
 #include <common.h>
 
+extern uint64_t g_nr_guest_instr;
 FILE *log_fp = NULL;
 
 void init_log(const char *log_file) {
@@ -9,11 +10,12 @@ void init_log(const char *log_file) {
     Assert(fp, "Can not open '%s'", log_file);
     log_fp = fp;
   }
-  Log("Log is written to %s", log_file ? "stdout" : log_file);
+#ifndef CONFIG_MODE_USER
+  Log("Log is written to %s", log_file ? log_file : "stdout");
+#endif
 }
 
 bool log_enable() {
-  extern uint64_t g_nr_guest_instr;
   return MUXDEF(CONFIG_TRACE, (g_nr_guest_instr >= CONFIG_TRACE_START) &&
          (g_nr_guest_instr <= CONFIG_TRACE_END), false);
 }

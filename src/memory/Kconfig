@@ -20,6 +20,7 @@ config PC_RESET_OFFSET
 if !TARGET_AM
 #ifndef __ICS_EXPORT
 config USE_MMAP
+  depends on !TARGET_SHARE
   bool "Allocate guest physical memory with mmap()"
   default y
 #endif

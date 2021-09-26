@@ -46,7 +46,8 @@ enum {
   HOSTCALL_PIO,   // port I/O
 #ifndef __ICS_EXPORT
   HOSTCALL_CSR,   // system registers / control status registers
-  HOSTCALL_TRAP,  // trap by interrupts/exceptions
+  HOSTCALL_TRAP_THIS,  // trap by interrupts/exceptions, save this pc
+  HOSTCALL_TRAP_NEXT,  // trap by interrupts/exceptions, save next pc
   HOSTCALL_PRIV,  // privilige instructions
 #endif
 };

@@ -1,8 +1,8 @@
 #include "../local-include/intr.h"
 
 def_EHelper(syscall) {
-  rtl_trap(s, s->pc, EX_SYSCALL);
-  rtl_priv_jr(s, t0);
+  rtl_hostcall(s, HOSTCALL_TRAP_THIS, s0, NULL, NULL, EX_SYSCALL);
+  rtl_priv_jr(s, s0);
 }
 
 def_EHelper(eret) {

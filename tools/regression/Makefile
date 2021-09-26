@@ -1,0 +1,62 @@
+NANOS_HOME = ~/projectn/nanos-lite
+AMTESTS = ~/projectn/am-kernels/tests/am-tests
+HELLO = ~/projectn/am-kernels/kernels/hello
+MICROBENCH = ~/projectn/am-kernels/benchmarks/microbench
+FCEUX = ~/projectn/fceux-am/
+
+MAKE_NEMU := $(MAKE) -C $(NEMU_HOME)
+MAKE_NANOS := $(MAKE) -C $(NANOS_HOME)
+
+all:
+	$(MAKE) run-x86-pa
+	$(MAKE) run-mips32
+	$(MAKE) run-riscv32
+	$(MAKE) run-riscv64-pa
+
+# reset to a non-AM config
+reset-config:
+	$(MAKE_NEMU) ARCH=native riscv64_defconfig
+
+run-x86-pa: reset-config
+	$(MAKE) -C $(NEMU_HOME) x86-ref_defconfig
+	$(MAKE) -C $(NEMU_HOME)
+	$(MAKE) -C $(NEMU_HOME) x86-pa-difftest_defconfig
+	$(MAKE) -C $(MICROBENCH) ARCH=x86-nemu run mainargs=test
+	#$(MAKE) -C $(FCEUX) ARCH=x86-nemu run mainargs=mario
+	$(MAKE) -C $(NANOS_HOME) ARCH=x86-nemu update VME=1
+	$(MAKE) -C $(NANOS_HOME) ARCH=x86-nemu run
+
+run-x86-user: reset-config
+	$(MAKE) -C $(NEMU_HOME) x86-user-ref_defconfig
+	$(MAKE) -C $(NEMU_HOME)
+	$(MAKE) -C $(NEMU_HOME) x86-user_defconfig
+	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=/home/yzh/Templates/syscall.bin
+	LOADER="$(NEMU_HOME)/build/x86-nemu-interpreter -b" $(MAKE) -C ~/sdi/spec2006-lite-i386/401.bzip2 run-test
+
+run-mips32: reset-config
+	$(MAKE) -C $(NEMU_HOME) mips32-difftest_defconfig
+	$(MAKE) -C $(MICROBENCH) ARCH=mips32-nemu run mainargs=test
+	$(MAKE) -C $(NANOS_HOME) ARCH=mips32-nemu update VME=1
+	$(MAKE) -C $(NANOS_HOME) ARCH=mips32-nemu run
+
+run-riscv32: reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv32-difftest_defconfig
+	$(MAKE) -C $(MICROBENCH) ARCH=riscv32-nemu run mainargs=test
+	$(MAKE) -C $(NANOS_HOME) ARCH=riscv32-nemu update VME=1
+	$(MAKE) -C $(NANOS_HOME) ARCH=riscv32-nemu run
+
+run-riscv64-pa: reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv64-pa-difftest_defconfig
+	$(MAKE) -C $(MICROBENCH) ARCH=riscv64-nemu run mainargs=test
+	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu update VME=1
+	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu run
+
+TEST = $(MICROBENCH)
+
+run-icount: reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv64-pa-icount-bb_defconfig
+	$(MAKE) -C $(TEST) ARCH=riscv64-nemu run mainargs=ref
+	$(MAKE) -C $(NEMU_HOME) riscv64-pa-icount-instr_defconfig
+	$(MAKE) -C $(TEST) ARCH=riscv64-nemu run mainargs=ref
+	$(MAKE) -C $(NEMU_HOME) riscv64-pa-non-perfopt_defconfig
+	$(MAKE) -C $(TEST) ARCH=riscv64-nemu run mainargs=ref

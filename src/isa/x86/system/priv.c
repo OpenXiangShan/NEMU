@@ -97,16 +97,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
   word_t ret = 0;
   switch (id) {
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
-#ifdef CONFIG_MODE_USER
-    case HOSTCALL_TRAP:
-      Assert(imm == 0x80, "Unsupport exception = %d", imm);
-      uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
-          uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
-      cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx, cpu.esi, cpu.edi, cpu.ebp);
-      ret = *src1;
-      break;
-#else
-    case HOSTCALL_TRAP: ret = isa_raise_intr(imm, *src1); break;
+#ifndef CONFIG_MODE_USER
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
 #endif
     default: panic("Unsupported hostcall ID = %d", id);

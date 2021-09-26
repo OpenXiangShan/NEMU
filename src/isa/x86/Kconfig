@@ -18,6 +18,7 @@ config x86_CC_NONE
 endif
 
 config PA
+  depends on MODE_SYSTEM
   bool "Enable PA version"
   default n
 

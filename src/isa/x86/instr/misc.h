@@ -24,11 +24,13 @@ static inline def_EHelper(fwait) {
 }
 
 static inline def_EHelper(fpu) {
-  rtl_trap(s, cpu.pc, 7);
+  assert(0);
+  //rtl_trap(s, cpu.pc, 7);
 }
 
 static inline def_EHelper(hlt) {
-  rtl_trap(s, s->seq_pc, IRQ_TIMER);
+  assert(0);
+  //rtl_trap(s, s->seq_pc, IRQ_TIMER);
   if (ref_difftest_raise_intr) ref_difftest_raise_intr(IRQ_TIMER);
 }
 #endif

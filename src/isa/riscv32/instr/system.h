@@ -12,8 +12,8 @@ def_EHelper(csrrs) {
 }
 
 def_EHelper(ecall) {
-  rtl_trap(s, s->pc, 8 + cpu.mode);
-  rtl_priv_jr(s, t0);
+  rtl_hostcall(s, HOSTCALL_TRAP_THIS, s0, NULL, NULL, 8 + cpu.mode);
+  rtl_priv_jr(s, s0);
 }
 
 def_EHelper(mret) {

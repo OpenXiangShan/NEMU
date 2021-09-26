@@ -80,12 +80,4 @@ static inline def_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   }
 #endif
 }
-#ifndef __ICS_EXPORT
-
-static inline def_rtl(trap, vaddr_t ret_pc, word_t NO) {
-  rtl_li(s, t0, ret_pc);
-  rtl_hostcall(s, HOSTCALL_TRAP, t0, t0, NULL, NO);
-  rtl_jr(s, t0);
-}
-#endif
 #endif
