@@ -20,6 +20,7 @@ enum {
 };
 void set_sys_state_flag(int flag);
 void mmu_tlb_flush(vaddr_t vaddr);
+void tcache_flush();
 
 struct Decode;
 void save_globals(struct Decode *s);

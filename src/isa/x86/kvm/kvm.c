@@ -138,9 +138,9 @@ int run_vm(struct vm *vm, struct vcpu *vcpu, size_t sz) {
           struct kvm_run *p = vcpu->kvm_run;
           if (p->mmio.is_write) {
             uint64_t data = *(uint64_t *)p->mmio.data;
-            paddr_write(p->mmio.phys_addr, p->mmio.len, data);
+            paddr_write(p->mmio.phys_addr, p->mmio.len, data, cpu.mode);
           } else {
-            uint64_t data = paddr_read(p->mmio.phys_addr, p->mmio.len);
+            uint64_t data = paddr_read(p->mmio.phys_addr, p->mmio.len, 0, 0);
             memcpy(p->mmio.data, &data, p->mmio.len);
           }
           continue;

@@ -68,7 +68,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
 
   for (level = PTW_LEVEL - 1; level >= 0; level --) {
     p_pte[level] = pg_base + VPNi(vaddr, level) * PTE_SIZE;
-    pte[level].val = paddr_read(p_pte[level], PTE_SIZE);
+    pte[level].val = paddr_read(p_pte[level], PTE_SIZE, 0, 0);
     pg_base = PGBASE(pte[level].ppn);
     if (!pte[level].p) goto bad;
   }
@@ -80,7 +80,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
 #if !defined(CONFIG_PA) || defined(CONFIG_DIFFTEST)
   if (!pte[1].a) {
     pte[1].a = 1;
-    paddr_write(p_pte[1], PTE_SIZE, pte[1].val);
+    paddr_write(p_pte[1], PTE_SIZE, pte[1].val, cpu.mode);
     IFDEF(CONFIG_DIFFTEST,
         ref_difftest_memcpy(p_pte[1], &pte[1].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
@@ -88,7 +88,7 @@ static inline paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte[0].a || (!pte[0].d && is_write)) {
     pte[0].a = 1;
     pte[0].d |= is_write;
-    paddr_write(p_pte[0], PTE_SIZE, pte[0].val);
+    paddr_write(p_pte[0], PTE_SIZE, pte[0].val, cpu.mode);
     IFDEF(CONFIG_DIFFTEST,
         ref_difftest_memcpy(p_pte[0], &pte[0].val, PTE_SIZE, DIFFTEST_TO_REF));
   }
@@ -112,3 +112,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return MEM_RET_FAIL;
 }
 #endif
+
+bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode) {
+  return true; // TODO: complete it
+}

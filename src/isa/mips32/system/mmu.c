@@ -108,3 +108,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return ((uint32_t)(ppn << 12) + 0x80000000) | MEM_RET_OK;
 #endif
 }
+
+bool isa_pmp_check_permission(paddr_t paddr, int len, int type, int mode) {
+  return true; // TODO: complete it
+}
