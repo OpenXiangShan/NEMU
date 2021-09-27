@@ -19,7 +19,41 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 void device_update();
+void fetch_decode(Decode *s, vaddr_t pc);
 
+static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
+#ifdef CONFIG_ITRACE_COND
+  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
+#endif
+  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
+#ifndef __ICS_EXPORT
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
+  void scan_watchpoint(vaddr_t pc);
+  IFDEF(CONFIG_WATCHPOINT, scan_watchpoint(_this->pc));
+  IFDEF(CONFIG_DIFFTEST, save_globals(_this));
+  IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
+#endif
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+}
+
+#ifndef CONFIG_PERF_OPT
+#ifndef __ICS_EXPORT
+#define rtl_priv_next(s)
+#define rtl_priv_jr(s, target) rtl_jr(s, target)
+#endif
+#include <isa-exec.h>
+
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
+static const void* g_exec_table[TOTAL_INSTR] = {
+  MAP(INSTR_LIST, FILL_EXEC_TABLE)
+};
+
+static void fetch_decode_exec_updatepc(Decode *s) {
+  fetch_decode(s, cpu.pc);
+  s->EHelper(s);
+  cpu.pc = s->dnpc;
+}
+#endif
 #ifndef __ICS_EXPORT
 #include <memory/host-tlb.h>
 
@@ -28,21 +62,12 @@ void device_update();
 static uint64_t g_nr_guest_instr_end = 0;
 static Decode *prev_s;
 
-void save_globals(Decode *s) {
-  IFDEF(CONFIG_PERF_OPT, prev_s = s);
+static void update_global() {
+  IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->pc);
 }
 
-static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
-#ifdef CONFIG_ITRACE_COND
-  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
-#endif
-  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
-  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
-  void scan_watchpoint(vaddr_t pc);
-  IFDEF(CONFIG_WATCHPOINT, scan_watchpoint(_this->pc));
-  IFDEF(CONFIG_DIFFTEST, save_globals(_this));
-  IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
-  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+void save_globals(Decode *s) {
+  IFDEF(CONFIG_PERF_OPT, prev_s = s);
 }
 
 static word_t g_ex_cause = NEMU_EXEC_RUNNING;
@@ -184,30 +209,7 @@ end_of_loop:
   trace_and_difftest(this_s, s->pc);
   prev_s = s;
 }
-#endif // CONFIG_PERF_OPT
-#endif // __ICS_EXPORT
-#ifndef CONFIG_PERF_OPT
-#ifndef __ICS_EXPORT
-#define rtl_priv_next(s)
-#define rtl_priv_jr(s, target) rtl_jr(s, target)
-#endif
-#include <isa-exec.h>
-
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
-static const void* g_exec_table[TOTAL_INSTR] = {
-  MAP(INSTR_LIST, FILL_EXEC_TABLE)
-};
-
-void fetch_decode(Decode *s, vaddr_t pc);
-
-static void fetch_decode_exec_updatepc(Decode *s) {
-  fetch_decode(s, cpu.pc);
-  s->EHelper(s);
-  cpu.pc = s->dnpc;
-}
-#endif
-#ifndef __ICS_EXPORT
-#ifndef CONFIG_PERF_OPT
+#else // CONFIG_PERF_OPT
 static void execute(int n) {
   static Decode s;
   prev_s = &s;
@@ -218,23 +220,8 @@ static void execute(int n) {
     if (nemu_state.state != NEMU_RUNNING) break;
   }
 }
-
-static void update_global() {
-}
-#else
-static void update_global() {
-  cpu.pc = prev_s->pc;
-}
-#endif
-#else // __ICS_EXPORT
-static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
-#ifdef CONFIG_ITRACE_COND
-  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
-#endif
-  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
-  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
-}
-#endif
+#endif // CONFIG_PERF_OPT
+#endif // __ICS_EXPORT
 
 static void statistic() {
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
