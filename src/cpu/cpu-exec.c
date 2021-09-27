@@ -32,20 +32,14 @@ void save_globals(Decode *s) {
   IFDEF(CONFIG_PERF_OPT, prev_s = s);
 }
 
-static void debug_difftest(Decode *_this, vaddr_t dnpc) {
-#ifdef CONFIG_ITRACE
+static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) log_write("%s\n", _this->logbuf);
 #endif
-  if (g_print_step) { puts(_this->logbuf); }
-#endif
+  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
-#ifndef __ICS_EXPORT
-#ifdef CONFIG_WATCHPOINT
   void scan_watchpoint(vaddr_t pc);
-  scan_watchpoint(_this->pc);
-#endif
-#endif
+  IFDEF(CONFIG_WATCHPOINT, scan_watchpoint(_this->pc));
   IFDEF(CONFIG_DIFFTEST, save_globals(_this));
   IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
@@ -183,11 +177,11 @@ end_of_bb:
     def_finish();
     IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++);
     IFDEF(CONFIG_ICOUNT_PRECISE, if (unlikely(-- n <= 0)) break);
-    debug_difftest(this_s, s->pc);
+    trace_and_difftest(this_s, s->pc);
   }
 
 end_of_loop:
-  debug_difftest(this_s, s->pc);
+  trace_and_difftest(this_s, s->pc);
   prev_s = s;
 }
 #endif // CONFIG_PERF_OPT
@@ -220,7 +214,7 @@ static void execute(int n) {
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
     IFNDEF(CONFIG_ICOUNT_DISABLE, g_nr_guest_instr ++);
-    debug_difftest(&s, cpu.pc);
+    trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
   }
 }
@@ -232,6 +226,14 @@ static void update_global() {
   cpu.pc = prev_s->pc;
 }
 #endif
+#else // __ICS_EXPORT
+static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
+#ifdef CONFIG_ITRACE_COND
+  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
+#endif
+  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+}
 #endif
 
 static void statistic() {
@@ -334,8 +336,7 @@ void cpu_exec(uint64_t n) {
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
-    debug_hook(s.pc, s.logbuf);
-    IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
   }
