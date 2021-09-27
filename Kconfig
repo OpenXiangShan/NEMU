@@ -85,7 +85,9 @@ config TARGET_SHARE
   bool "Shared object (used as REF for differential testing)"
 #endif
 config TARGET_AM
+#ifndef __ICS_EXPORT
   depends on !MODE_USER
+#endif
   bool "Application on Abstract-Machine"
 endchoice
 
@@ -147,10 +149,12 @@ endmenu
 
 menu "Testing and Debugging"
 
+#ifndef __ICS_EXPORT
 config WATCHPOINT
   depends on TARGET_NATIVE_ELF
   bool "Enable watchpoint"
   default n
+#endif
 
 config TRACE
   bool "Enable tracer"
@@ -176,6 +180,7 @@ config ITRACE_COND
   string "Only trace instructions when the condition is true"
   default "true"
 
+#ifndef __ICS_EXPORT
 config IQUEUE
   bool "Record the last instrucitons executed"
   default n
@@ -209,6 +214,7 @@ config DTRACE_COND
   depends on DTRACE
   string "Only trace device accesses when the condition is true"
   default "true"
+#endif
 
 config DIFFTEST
   depends on TARGET_NATIVE_ELF

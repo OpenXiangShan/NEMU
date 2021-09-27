@@ -27,7 +27,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest,
 #endif
 
 // memory
-enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
+enum { MMU_DIRECT, MMU_TRANSLATE, MMU_FAIL, MMU_DYNAMIC };
 enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE };
 enum { MEM_RET_OK, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
 #ifndef __ICS_EXPORT

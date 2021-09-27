@@ -19,7 +19,41 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 void device_update();
+void fetch_decode(Decode *s, vaddr_t pc);
 
+static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
+#ifdef CONFIG_ITRACE_COND
+  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
+#endif
+  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
+#ifndef __ICS_EXPORT
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
+  void scan_watchpoint(vaddr_t pc);
+  IFDEF(CONFIG_WATCHPOINT, scan_watchpoint(_this->pc));
+  IFDEF(CONFIG_DIFFTEST, save_globals(_this));
+  IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
+#endif
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+}
+
+#ifndef CONFIG_PERF_OPT
+#ifndef __ICS_EXPORT
+#define rtl_priv_next(s)
+#define rtl_priv_jr(s, target) rtl_jr(s, target)
+#endif
+#include <isa-exec.h>
+
+#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
+static const void* g_exec_table[TOTAL_INSTR] = {
+  MAP(INSTR_LIST, FILL_EXEC_TABLE)
+};
+
+static void fetch_decode_exec_updatepc(Decode *s) {
+  fetch_decode(s, cpu.pc);
+  s->EHelper(s);
+  cpu.pc = s->dnpc;
+}
+#endif
 #ifndef __ICS_EXPORT
 #include <memory/host-tlb.h>
 
@@ -28,27 +62,12 @@ void device_update();
 static uint64_t g_nr_guest_instr_end = 0;
 static Decode *prev_s;
 
-void save_globals(Decode *s) {
-  IFDEF(CONFIG_PERF_OPT, prev_s = s);
+static void update_global() {
+  IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->pc);
 }
 
-static void debug_difftest(Decode *_this, vaddr_t dnpc) {
-#ifdef CONFIG_ITRACE
-#ifdef CONFIG_ITRACE_COND
-  if (ITRACE_COND) log_write("%s\n", _this->logbuf);
-#endif
-  if (g_print_step) { puts(_this->logbuf); }
-#endif
-  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
-#ifndef __ICS_EXPORT
-#ifdef CONFIG_WATCHPOINT
-  void scan_watchpoint(vaddr_t pc);
-  scan_watchpoint(_this->pc);
-#endif
-#endif
-  IFDEF(CONFIG_DIFFTEST, save_globals(_this));
-  IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
-  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+void save_globals(Decode *s) {
+  IFDEF(CONFIG_PERF_OPT, prev_s = s);
 }
 
 static word_t g_ex_cause = NEMU_EXEC_RUNNING;
@@ -183,56 +202,47 @@ end_of_bb:
     def_finish();
     IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++);
     IFDEF(CONFIG_ICOUNT_PRECISE, if (unlikely(-- n <= 0)) break);
-    debug_difftest(this_s, s->pc);
+    trace_and_difftest(this_s, s->pc);
   }
 
 end_of_loop:
-  debug_difftest(this_s, s->pc);
+  trace_and_difftest(this_s, s->pc);
   prev_s = s;
 }
-#endif // CONFIG_PERF_OPT
-#endif // __ICS_EXPORT
-#ifndef CONFIG_PERF_OPT
-#ifndef __ICS_EXPORT
-#define rtl_priv_next(s)
-#define rtl_priv_jr(s, target) rtl_jr(s, target)
-#endif
-#include <isa-exec.h>
-
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
-static const void* g_exec_table[TOTAL_INSTR] = {
-  MAP(INSTR_LIST, FILL_EXEC_TABLE)
-};
-
-void fetch_decode(Decode *s, vaddr_t pc);
-
-static void fetch_decode_exec_updatepc(Decode *s) {
-  fetch_decode(s, cpu.pc);
-  s->EHelper(s);
-  cpu.pc = s->dnpc;
-}
-#endif
-#ifndef __ICS_EXPORT
-#ifndef CONFIG_PERF_OPT
+#else // CONFIG_PERF_OPT
 static void execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
     IFNDEF(CONFIG_ICOUNT_DISABLE, g_nr_guest_instr ++);
-    debug_difftest(&s, cpu.pc);
+    trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
   }
 }
+#endif // CONFIG_PERF_OPT
+#endif // __ICS_EXPORT
 
-static void update_global() {
-}
+static void statistic() {
+  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
+#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
+  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
+#ifndef CONFIG_ICOUNT_DISABLE
+  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
+  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 #else
-static void update_global() {
-  cpu.pc = prev_s->pc;
+  Log("Instruction count is disabled. You may enable it in menuconfig.");
+#endif
 }
+
+void assert_fail_msg() {
+#ifdef CONFIG_IQUEUE
+  iqueue_dump();
 #endif
-#endif
+  isa_reg_display();
+  statistic();
+}
 
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
@@ -261,19 +271,6 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   void disassemble(char *str, int size, vaddr_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.instr.val, ilen);
-#endif
-}
-
-void monitor_statistic() {
-  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
-#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
-  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
-#ifndef CONFIG_ICOUNT_DISABLE
-  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
-  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
-  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
-#else
-  Log("Instruction count is disabled. You may change it in menuconfig.");
 #endif
 }
 
@@ -326,8 +323,7 @@ void cpu_exec(uint64_t n) {
   for (;n > 0; n --) {
     fetch_decode_exec_updatepc(&s);
     g_nr_guest_instr ++;
-    debug_hook(s.pc, s.logbuf);
-    IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
   }
@@ -346,7 +342,6 @@ void cpu_exec(uint64_t n) {
             ASNI_FMT("HIT BAD TRAP", ASNI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
-    case NEMU_QUIT:
-      monitor_statistic();
+    case NEMU_QUIT: statistic();
   }
 }

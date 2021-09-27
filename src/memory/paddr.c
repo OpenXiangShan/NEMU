@@ -58,13 +58,13 @@ void init_mem() {
 word_t paddr_read(paddr_t addr, int len) {
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   MUXDEF(CONFIG_DEVICE, return mmio_read(addr, len),
-    panic("address = " FMT_PADDR " is out of bound of physical memory [" FMT_PADDR ", " FMT_PADDR ")",
-      addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE));
+    panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR ") at pc = " FMT_WORD,
+      addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE, cpu.pc));
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
   MUXDEF(CONFIG_DEVICE, mmio_write(addr, len, data),
-    panic("address = " FMT_PADDR " is out of bound of physical memory [" FMT_PADDR ", " FMT_PADDR ")",
-      addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE));
+    panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR ") at pc = " FMT_WORD,
+      addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE, cpu.pc));
 }
