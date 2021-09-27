@@ -234,6 +234,27 @@ static void update_global() {
 #endif
 #endif
 
+static void statistic() {
+  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
+#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
+  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
+#ifndef CONFIG_ICOUNT_DISABLE
+  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
+  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
+  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+#else
+  Log("Instruction count is disabled. You may enable it in menuconfig.");
+#endif
+}
+
+void assert_fail_msg() {
+#ifdef CONFIG_IQUEUE
+  iqueue_dump();
+#endif
+  isa_reg_display();
+  statistic();
+}
+
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
@@ -261,19 +282,6 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   void disassemble(char *str, int size, vaddr_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.instr.val, ilen);
-#endif
-}
-
-void monitor_statistic() {
-  IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
-#define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
-  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
-#ifndef CONFIG_ICOUNT_DISABLE
-  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_instr);
-  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " instr/s", g_nr_guest_instr * 1000000 / g_timer);
-  else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
-#else
-  Log("Instruction count is disabled. You may change it in menuconfig.");
 #endif
 }
 
@@ -346,7 +354,6 @@ void cpu_exec(uint64_t n) {
             ASNI_FMT("HIT BAD TRAP", ASNI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
-    case NEMU_QUIT:
-      monitor_statistic();
+    case NEMU_QUIT: statistic();
   }
 }
