@@ -65,8 +65,10 @@ BLACK_LIST = [
   r'^/src/monitor/aligncheck.c',
   r'^/src/user/',
   r'^/src/utils/iqueue.c',
+  r'^/src/utils/ftrace.c',
   r'^/resource/softfloat/',
   r'^/tools/spike-diff/repo/',
+  r'^/tools/regression/',
 ]
 
 export(WHITE_LIST, BLACK_LIST)
