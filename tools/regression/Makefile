@@ -1,8 +1,12 @@
-NANOS_HOME = ~/projectn/nanos-lite
-AMTESTS = ~/projectn/am-kernels/tests/am-tests
-HELLO = ~/projectn/am-kernels/kernels/hello
-MICROBENCH = ~/projectn/am-kernels/benchmarks/microbench
-FCEUX = ~/projectn/fceux-am/
+PROJECTN_HOME = $(NEMU_HOME)/..
+NANOS_HOME = $(PROJECTN_HOME)/nanos-lite
+AM_KERNELS_HOME = $(PROJECTN_HOME)/am-kernels
+
+AMTESTS = $(AM_KERNELS_HOME)/tests/am-tests
+HELLO = $(AM_KERNELS_HOME)/kernels/hello
+MICROBENCH = $(AM_KERNELS_HOME)/benchmarks/microbench
+NEMU_ON_AM = $(AM_KERNELS_HOME)/kernels/nemu
+FCEUX = $(PROJECTN_HOME)/fceux-am/
 
 MAKE_NEMU := $(MAKE) -C $(NEMU_HOME)
 MAKE_NANOS := $(MAKE) -C $(NANOS_HOME)
@@ -60,3 +64,8 @@ run-icount: reset-config
 	$(MAKE) -C $(TEST) ARCH=riscv64-nemu run mainargs=ref
 	$(MAKE) -C $(NEMU_HOME) riscv64-pa-non-perfopt_defconfig
 	$(MAKE) -C $(TEST) ARCH=riscv64-nemu run mainargs=ref
+
+run-nemu-on-am: reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv64-pa-difftest_defconfig
+	$(MAKE) -C $(MICROBENCH) ARCH=riscv64-nemu mainargs=test
+	$(MAKE) -C $(NEMU_ON_AM) ARCH=riscv64-nemu mainargs=$(MICROBENCH)/build/microbench-riscv64-nemu.bin
