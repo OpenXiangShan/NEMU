@@ -11,7 +11,7 @@ static llvm::MCDisassembler *gDisassembler = nullptr;
 static llvm::MCSubtargetInfo *gSTI = nullptr;
 static llvm::MCInstPrinter *gIP = nullptr;
 
-static void create_disassembler(const char *triple) {
+extern "C" void init_disasm(const char *triple) {
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmParsers();
@@ -49,7 +49,7 @@ static void create_disassembler(const char *triple) {
   gIP->setPrintBranchImmAsAddress(true);
 }
 
-static void llvm_disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte) {
+extern "C" void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte) {
   MCInst inst;
   llvm::ArrayRef<uint8_t> arr(code, nbyte);
   uint64_t dummy_size = 0;
@@ -63,21 +63,4 @@ static void llvm_disassemble(char *str, int size, uint64_t pc, uint8_t *code, in
   const char *p = s.c_str() + skip;
   assert((int)s.length() - skip < size);
   strcpy(str, p);
-}
-
-extern "C" {
-#include <common.h>
-
-void disassemble(char *str, int size, vaddr_t pc, uint8_t *code, int nbyte) {
-  return llvm_disassemble(str, size, pc, code, nbyte);
-}
-
-void init_disasm() {
-  const char *triple =
-    MUXDEF(CONFIG_ISA_x86,     "i686",
-    MUXDEF(CONFIG_ISA_mips32,  "mipsel",
-    MUXDEF(CONFIG_ISA_riscv32, "riscv32",
-    MUXDEF(CONFIG_ISA_riscv64, "riscv64", "bad")))) "-pc-linux-gnu";
-  create_disassembler(triple);
-}
 }

@@ -7,7 +7,7 @@ void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
-void init_disasm();
+void init_disasm(const char *triple);
 #ifndef __ICS_EXPORT
 void init_ftrace(const char *file);
 #endif
@@ -121,6 +121,9 @@ void init_monitor(int argc, char *argv[]) {
   void init_user(char *elfpath, int argc, char *argv[]);
   init_user(img_file, user_argc, user_argv);
 #else
+  /* Initialize devices. */
+  IFDEF(CONFIG_DEVICE, init_device());
+
   /* Perform ISA dependent initialization. */
   init_isa();
 
@@ -129,15 +132,17 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
-
-  /* Initialize devices. */
-  IFDEF(CONFIG_DEVICE, init_device());
 #endif
 
   /* Initialize the simple debugger. */
   init_sdb();
 
-  init_disasm();
+  IFDEF(CONFIG_ITRACE, init_disasm(
+    MUXDEF(CONFIG_ISA_x86,     "i686",
+    MUXDEF(CONFIG_ISA_mips32,  "mipsel",
+    MUXDEF(CONFIG_ISA_riscv32, "riscv32",
+    MUXDEF(CONFIG_ISA_riscv64, "riscv64", "bad")))) "-pc-linux-gnu"
+  ));
 
   /* Display welcome message. */
   welcome();
