@@ -69,3 +69,9 @@ run-nemu-on-am: reset-config
 	$(MAKE) -C $(NEMU_HOME) riscv64-pa-difftest_defconfig
 	$(MAKE) -C $(MICROBENCH) ARCH=riscv64-nemu mainargs=test
 	$(MAKE) -C $(NEMU_ON_AM) ARCH=riscv64-nemu mainargs=$(MICROBENCH)/build/microbench-riscv64-nemu.bin
+
+LINUX = $(PROJECTN_HOME)/workbench/build/linux.bin
+
+run-linux: #reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv64_defconfig
+	$(MAKE) -C $(NEMU_HOME) run ARGS="-b -l build/nemu-log.txt" IMG=$(LINUX)
