@@ -171,7 +171,7 @@ config TRACE_END
   default 10000
 
 config ITRACE
-  depends on TRACE
+  depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
   bool "Enable instruction tracer"
   default n
 

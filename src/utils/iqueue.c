@@ -24,7 +24,7 @@ void iqueue_dump() {
   printf("======== instruction queue =========\n");
   for (i = 0; i < INSTR_QUEUE_SIZE; i ++) {
     printf("%5s " FMT_WORD ": ", (i == victim_idx ? "-->" : ""), iqueue[i].pc);
-#ifdef CONFIG_TARGET_NATIVE_ELF
+#ifdef CONFIG_ITRACE
     void disassemble(char *str, int size, vaddr_t pc, uint8_t *code, int nbyte);
     char buf[80];
     disassemble(buf, sizeof(buf), iqueue[i].pc, iqueue[i].instr, iqueue[i].ilen);
