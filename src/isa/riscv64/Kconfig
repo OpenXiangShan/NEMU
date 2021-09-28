@@ -7,6 +7,6 @@ config PA
 config CLINT_MMIO
   depends on !PA
   hex "MMIO address of CLINT"
-  default 0xa2000000
+  default 0x02000000
 
 endmenu

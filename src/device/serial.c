@@ -119,7 +119,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
         serial_base[5] = LSR_TX_READY | MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_rx_ready_flag(), 0);
 #endif
       break;
-    default: panic("do not support offset = %d", offset);
+    default: Assert(offset <= 7, "do not support offset = %d", offset);
   }
 }
 
