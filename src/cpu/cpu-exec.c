@@ -305,12 +305,14 @@ void cpu_exec(uint64_t n) {
       cpu.pc = isa_raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
     } else {
-      word_t intr = MUXDEF(CONFIG_TARGET_SHARE, INTR_EMPTY, isa_query_intr());
+#ifdef CONFIG_HAS_INTR
+      word_t intr = isa_query_intr();
       if (intr != INTR_EMPTY) {
         cpu.pc = isa_raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }
+#endif
     }
 
     uint32_t nremain = g_nr_guest_instr_end - g_nr_guest_instr;
