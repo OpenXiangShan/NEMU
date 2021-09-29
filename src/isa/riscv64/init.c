@@ -41,7 +41,7 @@ void init_isa() {
 
   /* Initialize this virtual computer system. */
   restart();
-#if defined(CONFIG_TARGET_NATIVE_ELF) && !defined(CONFIG_PA)
+#ifdef CONFIG_HAS_CLINT
   void init_clint();
   init_clint();
 #endif
