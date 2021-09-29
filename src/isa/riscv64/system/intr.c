@@ -96,8 +96,8 @@ word_t isa_query_intr() {
   }
   return INTR_EMPTY;
 #endif
-#endif
 }
+#endif // CONFIG_USER_MODE
 #else
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.

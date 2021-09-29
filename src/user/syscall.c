@@ -54,7 +54,7 @@ static word_t user_sys_brk(word_t new_brk) {
 
 static word_t user_gettimeofday(void *tv, void *tz) {
 #ifdef CONFIG_ISA64
-  return gettimeofday((struct timeval *) tv, (__timezone_ptr_t) tz);
+  return gettimeofday((struct timeval *) tv, (struct timezone *) tz);
 #else
   struct timeval host_tv;
   int ret = gettimeofday(&host_tv, tz);
@@ -262,7 +262,6 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
           arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case USER_SYS_mprotect: return 0; // not implemented
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
     case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
 #else
