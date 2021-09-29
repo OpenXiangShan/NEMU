@@ -355,5 +355,10 @@ config ICOUNT_DISABLE
 endif
 endchoice
 
+config HAS_INTR
+  depends on TARGET_NATIVE_ELF && MODE_SYSTEM && ENGINE_INTERPRETER
+  bool
+  default y
+
 #endif
 endmenu
