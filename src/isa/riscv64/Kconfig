@@ -4,8 +4,13 @@ config PA
   bool "Enable PA version"
   default n
 
+config HAS_CLINT
+  depends on !PA && MODE_SYSTEM && DEVICE && TARGET_NATIVE_ELF
+  bool
+  default y
+
 config CLINT_MMIO
-  depends on !PA
+  depends on HAS_CLINT
   hex "MMIO address of CLINT"
   default 0x02000000
 
