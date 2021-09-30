@@ -28,6 +28,10 @@ def_EHelper(rev8) {
   *ddest = _rv_rev8(*dsrc1);
 }
 
+def_EHelper(revb) {
+  *ddest = _rv_revb(*dsrc1);
+}
+
 def_EHelper(orc_b) {
   *ddest = _rv_orc_b(*dsrc1);
 }
@@ -138,6 +142,27 @@ def_EHelper(max) {
 
 def_EHelper(maxu) {
   *ddest = _rv_maxu(*dsrc1, *dsrc2);
+}
+
+def_EHelper(pack) {
+  *ddest = _rv_pack(*dsrc1, *dsrc2);
+}
+
+def_EHelper(packw) {
+  *ddest = _rv32_pack(*dsrc1, *dsrc2);
+}
+
+def_EHelper(packh) {
+  *ddest = _rv_packh(*dsrc1, *dsrc2);
+}
+
+
+def_EHelper(xpermn) {
+  *ddest = _rv_xpermn(*dsrc1, *dsrc2);
+}
+
+def_EHelper(xpermb) {
+  *ddest = _rv_xpermb(*dsrc1, *dsrc2);
 }
 
 def_EHelper(adduw) {
