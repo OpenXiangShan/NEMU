@@ -1,6 +1,7 @@
 menu "ISA-dependent Options for riscv64"
 
 config PA
+  depends on MODE_SYSTEM
   bool "Enable PA version"
   default n
 
