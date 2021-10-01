@@ -34,7 +34,10 @@ run-x86-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) x86-user-ref_defconfig
 	$(MAKE) -C $(NEMU_HOME)
 	$(MAKE) -C $(NEMU_HOME) x86-user_defconfig
-	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=/home/yzh/Templates/syscall.bin
+	$(MAKE) -C ./tests/x86-syscall
+	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/x86-syscall/build/x86-syscall.elf)
+	$(MAKE) -C ./tests/hello ISA=x86
+	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-x86.elf)
 	LOADER="$(NEMU_HOME)/build/x86-nemu-interpreter -b" $(MAKE) -C ~/sdi/spec2006-lite-i386/401.bzip2 run-test
 
 run-mips32: reset-config
@@ -55,6 +58,12 @@ run-riscv64-pa: reset-config
 	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu update VME=1
 	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu run
 
+run-riscv64-user: reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv64-user_defconfig
+	$(MAKE) -C ./tests/hello ISA=riscv64
+	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-riscv64.elf)
+	LOADER="$(NEMU_HOME)/build/riscv64-nemu-interpreter -b" $(MAKE) -C ~/projectn/spec2006-lite-riscv64/401.bzip2 run-test
+
 TEST = $(MICROBENCH)
 
 run-icount: reset-config
@@ -72,6 +81,6 @@ run-nemu-on-am: reset-config
 
 LINUX = $(PROJECTN_HOME)/workbench/build/linux.bin
 
-run-linux: #reset-config
+run-linux: reset-config
 	$(MAKE) -C $(NEMU_HOME) riscv64_defconfig
 	$(MAKE) -C $(NEMU_HOME) run ARGS="-b -l build/nemu-log.txt" IMG=$(LINUX)
