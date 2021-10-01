@@ -19,6 +19,7 @@ UNIFDEF_FLAGS =   ' -D__ICS_EXPORT' \
                 + ' -UCONFIG_FTRACE_COND' \
                 + ' -UCONFIG_DTRACE' \
                 + ' -UCONFIG_DTRACE_COND' \
+                + ' -UCONFIG_HAS_CLINT' \
 
 UNIFDEF_EXTRA_FILE_LIST = [
   r'^/runall.sh',
