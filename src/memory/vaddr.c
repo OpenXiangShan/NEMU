@@ -42,7 +42,7 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
 
 __attribute__((noinline))
 static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) {
-#ifdef XIANGSHAN_DEBUG
+#ifdef CONFIG_SHARE
   vaddr_t vaddr = addr;
 #endif
   paddr_t pg_base = isa_mmu_translate(addr, len, type);
@@ -54,9 +54,11 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
 #else
     word_t rdata = paddr_read(addr, len, type, cpu.mode);
 #endif
-#ifdef XIANGSHAN_DEBUG
-    printf("[NEMU] mmu_read: vaddr 0x%lx, paddr 0x%lx, rdata 0x%lx\n",
-      vaddr, addr, rdata);
+#ifdef CONFIG_SHARE
+    if (unlikely(cpu.debug_difftest)) {
+      fprintf(stderr, "[NEMU] mmu_read: vaddr 0x%lx, paddr 0x%lx, rdata 0x%lx\n",
+        vaddr, addr, rdata);
+    }
 #endif
     return rdata;
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
@@ -67,16 +69,18 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
 
 __attribute__((noinline))
 static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data) {
-#ifdef XIANGSHAN_DEBUG
+#ifdef CONFIG_SHARE
   vaddr_t vaddr = addr;
 #endif
   paddr_t pg_base = isa_mmu_translate(addr, len, MEM_TYPE_WRITE);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
-#ifdef XIANGSHAN_DEBUG
-    printf("[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len %d, data 0x%lx\n",
-      vaddr, addr, len, data);
+#ifdef CONFIG_SHARE
+    if (unlikely(cpu.debug_difftest)) {
+      fprintf(stderr, "[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len %d, data 0x%lx\n",
+        vaddr, addr, len, data);
+    }
 #endif
     paddr_write(addr, len, data, cpu.mode);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {

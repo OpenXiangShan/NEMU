@@ -111,9 +111,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S);
 #endif
-#ifdef XIANGSHAN_DEBUG
-    printf("[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
-      level, vaddr, pg_base, p_pte, pte.val);
+#ifdef CONFIG_SHARE
+    if (unlikely(cpu.debug_difftest)) {
+      fprintf(stderr, "[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
+        level, vaddr, pg_base, p_pte, pte.val);
+    }
 #endif
     pg_base = PGBASE(pte.ppn);
     if (!pte.v || (!pte.r && pte.w)) goto bad;

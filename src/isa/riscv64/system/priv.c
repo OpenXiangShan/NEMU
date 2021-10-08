@@ -67,6 +67,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
+#define SIP_WMASK_S 0x2
 
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
@@ -154,7 +155,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-  else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
+  else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
   else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
   else if (is_write(fflags)) {
