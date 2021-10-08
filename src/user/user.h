@@ -10,6 +10,7 @@
 
 typedef struct {
   word_t entry;
+  word_t load_base;
   word_t brk;
   word_t brk_page;
   word_t program_brk;

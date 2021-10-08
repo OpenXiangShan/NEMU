@@ -77,10 +77,12 @@ void set_sys_state_flag(int flag) {
   g_sys_state_flag |= flag;
 }
 
+#if defined(CONFIG_ENGINE_INTERPRETER) && defined(CONFIG_MODE_SYSTEM)
 void mmu_tlb_flush(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
   if (vaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
+#endif
 
 #ifndef CONFIG_TARGET_AM
 #include <setjmp.h>

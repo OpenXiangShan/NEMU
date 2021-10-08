@@ -14,6 +14,14 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   host_write(user_to_host(addr), len, data);
 }
 
+uint8_t* guest_to_host(paddr_t paddr) {
+  return user_to_host(paddr);
+}
+
+paddr_t host_to_guest(uint8_t *haddr) {
+  return host_to_user(haddr);
+}
+
 word_t vaddr_ifetch(vaddr_t addr, int len) {
   return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
 }
@@ -22,7 +30,39 @@ word_t vaddr_read_safe(vaddr_t addr, int len) {
   return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
 }
 
+word_t paddr_read(paddr_t addr, int len) {
+  assert(0);
+}
 
+void paddr_write(paddr_t addr, int len, word_t data) {
+  assert(0);
+}
+
+#ifdef CONFIG_TARGET_SHARE
+void init_mem() {
+  void *pmem_base = (void *)USER_BASE;
+  void *ret = mmap(pmem_base, 0xc0000000, PROT_READ | PROT_WRITE,
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+  if (ret != pmem_base) {
+    perror("mmap");
+    assert(0);
+  }
+}
+
+word_t user_mmap(word_t addr, size_t length, int prot,
+    int flags, int fd, off_t offset) {
+  assert(0);
+}
+
+int user_munmap(word_t addr, size_t length) {
+  assert(0);
+}
+
+word_t user_mremap(word_t old_addr, size_t old_size, size_t new_size,
+    int flags, word_t new_addr) {
+  assert(0);
+}
+#else
 typedef struct vma_t {
   uintptr_t addr;
   size_t length;
@@ -172,3 +212,4 @@ word_t user_mremap(word_t old_addr, size_t old_size, size_t new_size,
     return new_addr;
   }
 }
+#endif

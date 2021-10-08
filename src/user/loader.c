@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <cpu/difftest.h>
 #include <stdio.h>
 #include <elf.h>
 #include <sys/auxv.h>
@@ -17,6 +18,10 @@
 #else
 # error Unsupported ISA
 #endif
+
+#define STACK_END  0xc0000000
+#define STACK_SIZE (8 * 1024 * 1024)
+#define STACK_START (STACK_END - STACK_SIZE)
 
 void isa_init_user(word_t sp);
 
@@ -40,7 +45,7 @@ static void load_elf(char *elfpath) {
   /* Load each program segment */
   ph = (Elf_Phdr *)((uint8_t *)elf + elf->e_phoff);
   eph = ph + elf->e_phnum;
-  vaddr_t brk = 0;
+  vaddr_t brk = 0, load_base = (vaddr_t)-1ull;
   for (; ph < eph; ph ++) {
     if (ph->p_type == PT_LOAD) {
       uint32_t pad_byte = ph->p_vaddr % PAGE_SIZE;
@@ -66,10 +71,12 @@ static void load_elf(char *elfpath) {
       }
 
       if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
+      if (ph->p_vaddr < load_base) load_base = ph->p_vaddr;
       if (ph->p_offset == 0) { user_state.phdr = ph->p_vaddr + elf->e_phoff; }
     }
   }
   fclose(fp);
+  user_state.load_base = load_base;
   user_state.brk = brk;
   user_state.brk_page = ROUNDUP(brk, PAGE_SIZE);
   user_state.program_brk = brk;
@@ -80,11 +87,9 @@ static void load_elf(char *elfpath) {
 }
 
 static word_t init_stack(int argc, char *argv[]) {
-  word_t sp_user = 0xc0000000;
-  uint32_t stack_size = 8 * 1024 * 1024;
-  user_mmap(sp_user - stack_size, stack_size, PROT_READ | PROT_WRITE,
+  user_mmap(STACK_START, STACK_SIZE, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
-  uint8_t *sp = user_to_host(sp_user);
+  uint8_t *sp = user_to_host(STACK_END);
 
   word_t strs[128] = {};
   int i = 0;
@@ -150,9 +155,18 @@ static void redirction_std() {
   fp = freopen("/dev/tty", "w", stdout); assert(fp);
 }
 
-void init_user(char *elfpath, int argc, char *argv[]) {
+void init_user(char *elfpath, int argc, char *argv[], char *diff_so_file) {
   redirction_std();
   load_elf(elfpath);
   word_t sp = init_stack(argc, argv);
   isa_init_user(sp);
+
+  void init_difftest(char *ref_so_file, long img_size, int port);
+  init_difftest(diff_so_file, 0, 0);
+#ifdef CONFIG_DIFFTEST
+  word_t start = user_state.load_base;
+  word_t end = user_state.program_brk;
+  ref_difftest_memcpy(start, user_to_host(start), end - start, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(STACK_START, user_to_host(STACK_START), STACK_SIZE, DIFFTEST_TO_REF);
+#endif
 }
