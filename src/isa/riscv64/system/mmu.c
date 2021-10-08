@@ -110,7 +110,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pte.val	= paddr_read(p_pte, PTE_SIZE);
 #endif
 #ifdef CONFIG_SHARE
-    if (unlikely(cpu.debug_difftest)) {
+    if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
         level, vaddr, pg_base, p_pte, pte.val);
     }
@@ -245,8 +245,8 @@ int force_raise_pf_record(vaddr_t vaddr, int type) {
 int force_raise_pf(vaddr_t vaddr, int type){
   bool ifetch = (type == MEM_TYPE_IFETCH);
 
-  if(cpu.guided_exec){
-    if(ifetch && cpu.execution_guide.exceptionNo == EX_IPF){
+  if(cpu.guided_exec && cpu.execution_guide.force_raise_exception){
+    if(ifetch && cpu.execution_guide.exception_num == EX_IPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
@@ -278,7 +278,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       printf("force raise IPF\n");
       longjmp_exception(EX_IPF);
       return MEM_RET_FAIL;
-    } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exceptionNo == EX_LPF){
+    } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
@@ -287,7 +287,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       printf("force raise LPF\n");
       longjmp_exception(EX_LPF);
       return MEM_RET_FAIL;
-    } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exceptionNo == EX_SPF){
+    } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
