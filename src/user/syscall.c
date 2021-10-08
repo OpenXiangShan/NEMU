@@ -16,6 +16,7 @@
 #include <sys/uio.h>
 #include <sys/resource.h>
 #include <fcntl.h>
+#include <cpu/difftest.h>
 
 #include "user.h"
 #include MUXDEF(CONFIG_ISA_x86,     "syscall-x86.h", \
@@ -32,6 +33,11 @@ static int user_fd(int fd) {
 
 static sword_t get_syscall_ret(intptr_t ret) {
   return (ret == -1) ? -errno : ret;
+}
+
+static word_t user_write(int fd, const void *buf, size_t count) {
+  difftest_skip_ref();
+  return write(fd, buf, count);
 }
 
 static void user_sys_exit(int status) {
@@ -228,7 +234,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_exit_group:
     case USER_SYS_exit: user_sys_exit(arg1); break;
     case USER_SYS_brk: ret = user_sys_brk(arg1); break;
-    case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_write: ret = user_write(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_uname: ret = uname(user_to_host(arg1)); break;
     case USER_SYS_gettimeofday: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case USER_SYS_sysinfo: ret = user_sysinfo(user_to_host(arg1)); break;

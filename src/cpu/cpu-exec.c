@@ -298,6 +298,13 @@ void cpu_exec(uint64_t n) {
   }
 #endif
 
+#ifdef CONFIG_TARGET_SHARE
+  if (prev_s != NULL && cpu.pc != prev_s->pc) {
+    // caused by difftest_skip_ref()
+    IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+  }
+#endif
+
   while (nemu_state.state == NEMU_RUNNING &&
       MUXDEF(CONFIG_ICOUNT_DISABLE, true, g_nr_guest_instr < g_nr_guest_instr_end)) {
     IFDEF(CONFIG_DEVICE, device_update());
