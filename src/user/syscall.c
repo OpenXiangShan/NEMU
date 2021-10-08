@@ -44,7 +44,7 @@ static word_t user_sys_brk(word_t new_brk) {
   if (new_brk == 0) return user_state.brk;
   if (new_brk >= user_state.brk_page) {
     uint32_t size = ROUNDUP(new_brk - user_state.brk_page + 1, PAGE_SIZE);
-    user_mmap(user_to_host(user_state.brk_page), size, PROT_READ | PROT_WRITE,
+    user_mmap(user_state.brk_page, size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
     user_state.brk_page += size;
   }
@@ -240,15 +240,14 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
     case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
-    case USER_SYS_munmap: ret = user_munmap(user_to_host(arg1), arg2); break;
+    case USER_SYS_munmap: ret = user_munmap(arg1, arg2); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
     case USER_SYS_getcwd:
           ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
           assert(ret != 0); // should success
           ret = strlen(user_to_host(arg1)) + 1;
           break;
-    case USER_SYS_mremap: ret = (uintptr_t)user_mremap(user_to_host(arg1),
-          arg2, arg3, arg4, user_to_host(arg5)); break;
+    case USER_SYS_mremap: ret = user_mremap(arg1, arg2, arg3, arg4, arg5); break;
     case USER_SYS_getuid: return getuid();
     case USER_SYS_getgid: return getgid();
     case USER_SYS_geteuid: return geteuid();
@@ -263,8 +262,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
     case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
           user_to_host(arg2), user_to_host(arg3), arg4); break;
-    case USER_SYS_mmap: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
-          arg3, arg4, user_fd(arg5), arg6); break;
+    case USER_SYS_mmap: ret = user_mmap(arg1, arg2, arg3, arg4, user_fd(arg5), arg6); break;
     case USER_SYS_lseek: ret = lseek(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_unlinkat: ret = unlinkat(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
@@ -276,8 +274,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
     case USER_SYS_stat64: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
     case USER_SYS_lstat64: return user_sys_lstat64(user_to_host(arg1), user_to_host(arg2));
-    case USER_SYS_mmap2: ret = (uintptr_t)user_mmap(user_to_host(arg1), arg2,
-          arg3, arg4, user_fd(arg5), arg6 << 12); break;
+    case USER_SYS_mmap2: ret = user_mmap(arg1, arg2, arg3, arg4, user_fd(arg5), arg6 << 12); break;
     case USER_SYS_llseek: ret = user_sys_llseek(user_fd(arg1), arg2, arg3, user_to_host(arg4), arg5); break;
     case USER_SYS_unlink: ret = unlink(user_to_host(arg1)); break;
     case USER_SYS_ftruncate64: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;

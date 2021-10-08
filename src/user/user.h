@@ -21,11 +21,11 @@ typedef struct {
 
 extern user_state_t user_state;
 
-void *user_mmap(void *addr, size_t length, int prot,
+word_t user_mmap(word_t addr, size_t length, int prot,
     int flags, int fd, off_t offset);
-int user_munmap(void *addr, size_t length);
-void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
-    int flags, void *new_addr);
+int user_munmap(word_t addr, size_t length);
+word_t user_mremap(word_t old_addr, size_t old_size, size_t new_size,
+    int flags, word_t new_addr);
 
 static inline void* user_to_host(word_t uaddr) {
   return (void *)(uintptr_t)uaddr;
