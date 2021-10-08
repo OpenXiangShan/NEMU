@@ -118,10 +118,10 @@ static inline word_t csr_read(word_t *src) {
 
     int idx = (src - &csr_array[CSR_PMPADDR0]);
     uint8_t cfg = pmpcfg_from_index(idx);
-// #ifdef XIANGSHAN_DEBUG
+#ifdef XIANGSHAN_DEBUG
     printf("[NEMU] pmp addr read %d : 0x%016lx\n", idx,
       (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
-// #endif
+#endif
 
     if ((cfg & PMP_A) >= PMP_NAPOT)
       return *src | (~pmp_tor_mask() >> 1);
@@ -188,9 +188,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (idx < NUM_PMP && !locked && !(next_locked && next_tor)) {
       *dest = src & (((word_t)1 << (PADDRBITS - PMP_SHIFT)) - 1);
     }
-// #ifdef XIANGSHAN_DEBUG
+#ifdef XIANGSHAN_DEBUG
     printf("[NEMU] write pmpaddr%d to %016lx\n",idx, *dest);
-// #endif
+#endif
     tcache_flush();
     mmu_tlb_flush(0);
   }
@@ -207,10 +207,10 @@ static inline void csr_write(word_t *dest, word_t src) {
         cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
       cfg_data |= (cfg << (i*8));
     }
-// #ifdef XIANGSHAN_DEBUG
+#ifdef XIANGSHAN_DEBUG
     int idx = dest - &csr_array[CSR_PMPCFG0];
     printf("[NEMU] write pmp cfg%d to %016lx\n",idx, cfg_data);
-// #endif
+#endif
 
     *dest = cfg_data;
 
