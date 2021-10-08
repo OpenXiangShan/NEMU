@@ -317,6 +317,7 @@ void cpu_exec(uint64_t n) {
           (nemu_state.state == NEMU_ABORT ? "\33[1;31mABORT" :
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
+      Log("trap code:%d", nemu_state.halt_ret);
       // fall through
     case NEMU_QUIT:
       monitor_statistic();

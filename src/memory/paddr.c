@@ -59,14 +59,14 @@ void init_mem() {
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 #ifdef XIANGSHAN_DEBUG
-  printf("[NEMU] paddr read addr:%lx len:%d type:%d mode:%d\n", addr, len, type, mode);
+  printf("[NEMU]  paddr read addr:%lx len:%d type:%d mode:%d\n", addr, len, type, mode);
 #endif
 
-  if (!isa_pmp_check_permission(addr, len, type, mode)) {
-    if (type == MEM_TYPE_IFETCH) {
+  if (!isa_pmp_check_permission(addr, len, MEM_TYPE_READ, mode)) {
+    if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
       longjmp_exception(EX_IAF);
       return false;
-    } else if (cpu.amo) {
+    } else if (cpu.amo || type == MEM_TYPE_WRITE_READ) {
       longjmp_exception(EX_SAF);
       return false;
     } else {
@@ -89,7 +89,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode) {
 #ifdef XIANGSHAN_DEBUG
-  printf("[NEMU] paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
+  printf("[NEMU]  paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
 #endif
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
     longjmp_exception(EX_SAF);
@@ -104,7 +104,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode) {
     printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
     longjmp_exception(EX_II);
     return;
-  } 
+  }
 #endif
 }
 

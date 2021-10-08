@@ -107,7 +107,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
-    pte.val	= paddr_read(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S);
+    pte.val	= paddr_read(p_pte, PTE_SIZE,
+      type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
+      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S);
 #endif
 #ifdef XIANGSHAN_DEBUG
     printf("[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
@@ -176,8 +178,8 @@ int update_mmu_state() {
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   bool is_ifetch = type == MEM_TYPE_IFETCH;
-  // riscv-privileged 4.4.1: Addressing and Memory Protection: 
-  // Instruction fetch addresses and load and store effective addresses, 
+  // riscv-privileged 4.4.1: Addressing and Memory Protection:
+  // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && satp->mode == 8;
   word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
@@ -304,14 +306,14 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   uint32_t mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
   // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
 #ifdef XIANGSHAN_DEBUG
-  printf("[NEMU] pmp out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d mode:%d", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
+  printf("[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
 #endif
   // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
 
   if (NUM_PMP == 0) {
     return true;
   }
-    
+
   word_t base = 0;
   for (int i = 0; i < NUM_PMP; i++) {
     word_t pmpaddr = pmpaddr_from_index(i);
@@ -336,33 +338,33 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
         any_match |= match;
         all_match &= match;
 #ifdef XIANGSHAN_DEBUG
-        printf("[NEMU] PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s\n",
+        printf("[NEMU]   PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s\n",
           offset, addr, cur_addr, tor, mask, base, match ? "true" : "false");
 #endif
       }
 
 #ifdef XIANGSHAN_DEBUG
-      printf("[NEMU] PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d\n",
+      printf("[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d\n",
        i, cfg, pmpaddr, is_na4, !is_na4 && !is_tor, is_tor, base, addr, any_match);
 #endif
       if (any_match) {
         // If the PMP matches only a strict subset of the access, fail it
         if (!all_match) {
 #ifdef XIANGSHAN_DEBUG
-          printf("[NEMU] PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match\n", addr, len, type, mode);
+          printf("[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match\n", addr, len, type, mode);
 #endif
           return false;
         }
-          
+
 #ifdef XIANGSHAN_DEBUG
         bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
             (type == MEM_TYPE_READ && (cfg & PMP_R)) ||
             (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
             (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
-        printf("[NEMU] pmp addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", addr, len, type, mode, 
+        printf("[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", addr, len, type, mode,
             pass ? "true" : "false for permission denied");
         if (!pass) {
-          printf("[NEMU] pmp matched index:%d cfg:%02x addr:%016lx tor:%016lx base:%016lx\n", i, cfg, pmpaddr, tor, base);
+          printf("[NEMU]   PMP matched index:%d cfg:%02x addr:%016lx tor:%016lx base:%016lx\n", i, cfg, pmpaddr, tor, base);
         }
 #endif
         return
@@ -377,7 +379,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   }
 
 #ifdef XIANGSHAN_DEBUG
-  printf("[NEMU] pmp addr:0x%016lx len:%d type:%d mode:%d pass:%s\n", addr, len, type, mode, 
+  if (mode != MODE_M) printf("[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s\n", addr, len, type, mode,
     mode == MODE_M ? "true for mode m but no match" : "false for no match with less than M mode");
 #endif
   return mode == MODE_M;
