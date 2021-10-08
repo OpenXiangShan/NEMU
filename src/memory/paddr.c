@@ -58,8 +58,10 @@ void init_mem() {
 /* Memory accessing interfaces */
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode) {
-#ifdef XIANGSHAN_DEBUG
-  printf("[NEMU]  paddr read addr:%lx len:%d type:%d mode:%d\n", addr, len, type, mode);
+#ifdef CONFIG_SHARE
+  if(cpu.debug_difftest) {
+    fprintf(stderr, "[NEMU]  paddr read addr:%lx len:%d type:%d mode:%d\n", addr, len, type, mode);
+  }
 #endif
 
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_READ, mode)) {
@@ -88,9 +90,12 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode) {
-#ifdef XIANGSHAN_DEBUG
-  printf("[NEMU]  paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
+#ifdef CONFIG_SHARE
+  if(cpu.debug_difftest) {
+    fprintf(stderr, "[NEMU]  paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
+  }
 #endif
+
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
     longjmp_exception(EX_SAF);
     return ;
