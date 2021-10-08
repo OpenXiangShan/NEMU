@@ -80,6 +80,12 @@ void difftest_raise_intr(word_t NO) {
   isa_difftest_raise_intr(NO);
 }
 
+void difftest_enable_debug() {
+#ifdef CONFIG_SHARE
+  dynamic_config.debug_difftest = true;
+#endif
+}
+
 void difftest_init() {
   init_mem();
 
@@ -87,6 +93,10 @@ void difftest_init() {
   init_isa();
   /* create dummy address space for serial */
   //add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
+
+#ifdef CONFIG_SHARE
+  dynamic_config.debug_difftest = false;
+#endif
 }
 
 #ifdef CONFIG_MULTICORE_DIFF

@@ -189,9 +189,6 @@ static int execute(int n) {
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s);
-#ifdef XIANGSHAN_DEBUG
-  printf("[NEMU] exec pc = 0x%lx\n", s->pc);
-#endif
   continue;
 }
 
@@ -227,8 +224,10 @@ static int execute(int n) {
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
-#ifdef XIANGSHAN_DEBUG
-    printf("(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc, s.isa.instr.val);
+#ifdef CONFIG_SHARE
+    if (unlikely(dynamic_config.debug_difftest)) {
+      fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc, s.isa.instr.val);
+    }
 #endif
     s.EHelper(&s);
     g_nr_guest_instr ++;
