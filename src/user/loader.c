@@ -46,6 +46,7 @@ static void load_elf(char *elfpath) {
   ph = (Elf_Phdr *)((uint8_t *)elf + elf->e_phoff);
   eph = ph + elf->e_phnum;
   vaddr_t brk = 0, load_base = (vaddr_t)-1ull;
+  IFDEF(CONFIG_DIFFTEST, uint32_t last_page = 0);
   for (; ph < eph; ph ++) {
     if (ph->p_type == PT_LOAD) {
       uint32_t pad_byte = ph->p_vaddr % PAGE_SIZE;
@@ -53,6 +54,20 @@ static void load_elf(char *elfpath) {
       ph->p_offset -= pad_byte;
       ph->p_filesz += pad_byte;
       ph->p_memsz += pad_byte;
+
+#ifdef CONFIG_DIFFTEST
+      uint32_t this_first_page = ph->p_vaddr / PAGE_SIZE;
+      uint32_t this_last_page = (ph->p_vaddr + ph->p_memsz) / PAGE_SIZE;
+      if (load_base != (vaddr_t)-1ull) {
+        int pad_page = this_first_page - last_page;
+        if (pad_page > 0) {
+          // fill readable pages for difftest to copy continuous memory region to REF
+          user_mmap(last_page * PAGE_SIZE, PAGE_SIZE * pad_page, PROT_READ,
+              MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+        }
+      }
+      last_page = this_last_page + 1;
+#endif
 
       if (ph->p_filesz != 0) {
         user_mmap(ph->p_vaddr, ph->p_filesz, PROT_READ | PROT_WRITE,
