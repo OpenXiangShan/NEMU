@@ -59,13 +59,17 @@ static void load_elf(char *elfpath) {
             MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
       }
       if (ph->p_flags & PF_W) {
-        // bss
-        uint8_t *haddr = user_to_host(ph->p_vaddr);
-        memset(haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
-        word_t bss_page = ph->p_vaddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        sword_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        if (memsz > 0) {
-          user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
+        // bss, first clean the padding bytes of the last page from ELF file
+        word_t uaddr = ph->p_vaddr + ph->p_filesz;
+        int nbyte = PAGE_SIZE - (uaddr % PAGE_SIZE);
+        memset(user_to_host(uaddr), 0, nbyte);
+
+        // clear the remaining bss bytes
+        uaddr += nbyte;
+        assert(uaddr % PAGE_SIZE == 0);
+        nbyte = ph->p_memsz - ph->p_filesz - nbyte;
+        if (nbyte > 0) {
+          user_mmap(uaddr, nbyte, PROT_READ | PROT_WRITE,
               MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
         }
       }
