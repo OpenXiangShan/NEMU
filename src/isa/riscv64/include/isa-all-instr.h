@@ -80,6 +80,22 @@
 #define BITMANIP_INSTR_BINARY(f)
 #endif // CONFIG_RVB
 
+#ifdef CONFIG_RVK // TODO: RV32 TO BE IMPLIED
+#define CRYPTO_INSTR_TERNARY(f) \
+  f(aes64es) f(aes64esm) f(aes64ds) f(aes64dsm) \
+  f(aes64ks1i) f(aes64ks2) \
+  f(sm4ks) f(sm4ed)
+
+#define CRYPTO_INSTR_BINARY(f) \
+  f(aes64im) f(sm3p0) f(sm3p1) \
+  f(sha256sig0) f(sha256sig1) f(sha256sum0) f(sha256sum1) \
+  f(sha512sig0) f(sha512sig1) f(sha512sum0) f(sha512sum1)
+
+#else // CONFIG_RVK
+#define CRYPTO_INSTR_TERNARY(f)
+#define CRYPTO_INSTR_BINARY(f)
+#endif // CONFIG_RVK
+
 #define FLOAT_INSTR_TERNARY(f) \
   f(fadds) f(fsubs) f(fmuls) f(fdivs) f(fmins) f(fmaxs) \
   f(faddd) f(fsubd) f(fmuld) f(fdivd) f(fmind) f(fmaxd) \
@@ -100,6 +116,7 @@
   f(c_j) f(p_jal) f(c_jr) f(c_jalr) \
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
   BITMANIP_INSTR_BINARY(f) \
+  CRYPTO_INSTR_BINARY(f) \
   AMO_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
@@ -133,6 +150,7 @@
   SYS_INSTR_TERNARY(f) \
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
+  CRYPTO_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
