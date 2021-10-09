@@ -385,6 +385,17 @@ shift_right_cf:
           goto shift_right_cf;
       }
       break;
+    case LAZYCC_BT:
+      switch (cc) {
+        case CC_B: case CC_NB:
+          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+          // cc_dest == rz --> CF = 0 -> CC_NB
+          op->src1 = &cpu.cc_dest;
+          op->src2 = rz;
+          rtl_setrelop_or_jrelop(s, op);
+          return;
+      }
+      break;
     default: panic("unhandle cc_op = %d", cpu.cc_op);
   }
   panic("unhandle cc_op = %d, cc = %d", cpu.cc_op, cc);

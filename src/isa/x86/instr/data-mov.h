@@ -127,6 +127,22 @@ def_EHelper(cmpxchg) {
   assert(s->isa.width == 4);
   rtl_decode_binary(s, true, true);
 
+#ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, &cpu.eax, NULL, LAZYCC_SUB, s->isa.width);
+  }
+#else
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  if (need_update_eflags) {
+    rtl_sub(s, s0, ddest, &cpu.eax);
+    rtl_update_ZFSF(s, s0, s->isa.width);
+    rtl_is_sub_carry(s, s1, ddest, dsrc1);
+    rtl_set_CF(s, s1);
+    rtl_is_sub_overflow(s, s1, s0, ddest, dsrc1, s->isa.width);
+    rtl_set_OF(s, s1);
+  }
+#endif
+
   rtl_setrelop(s, RELOP_EQ, s0, &cpu.eax, ddest);
   rtl_set_ZF(s, s0);
   if (cpu.ZF) {

@@ -16,6 +16,7 @@ enum {
   LAZYCC_SHL,
   LAZYCC_SHR,
   LAZYCC_SAR,
+  LAZYCC_BT,
 };
 
 static inline def_rtl(set_lazycc_dest, const rtlreg_t *dest) {
