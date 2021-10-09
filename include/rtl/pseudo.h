@@ -80,4 +80,18 @@ static inline def_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
   }
 #endif
 }
+
+#ifndef __ICS_EXPORT
+static inline def_rtl(cmov, rtlreg_t* dest, const rtlreg_t* cond,
+    const rtlreg_t* src1) {
+  // dest <- (cond ? src1 : dest)
+  rtl_setrelopi(s, RELOP_EQ, t0, cond, 0);
+  rtl_subi(s, t0, t0, 1);
+  // t0 = mask
+  rtl_and(s, s2, src1, t0);
+  rtl_not(s, t0, t0);
+  rtl_and(s, dest, dest, t0);
+  rtl_or(s, dest, dest, s2);
+}
+#endif
 #endif

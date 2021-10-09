@@ -108,22 +108,11 @@ def_EHelper(cmovcc) {
   rtl_setcc(s, s0, cc);
 #endif
 
-  // ddest <- (s0 ? dsrc1 : ddest)
-  rtl_setrelopi(s, RELOP_EQ, s0, s0, 0);
-  rtl_subi(s, s0, s0, 1);
-  // s0 = mask
-  rtl_and(s, s1, dsrc1, s0);
-  rtl_not(s, s0, s0);
-  rtl_and(s, ddest, ddest, s0);
-  rtl_or(s, ddest, ddest, s1);
+  rtl_cmov(s, ddest, s0, dsrc1);
   rtl_wb(s, ddest);
 }
 
 def_EHelper(cmpxchg) {
-#ifndef CONFIG_ENGINE_INTERPRETER
-  panic("not support in engines other than interpreter");
-#endif
-
   assert(s->isa.width == 4);
   rtl_decode_binary(s, true, true);
 
@@ -136,20 +125,18 @@ def_EHelper(cmpxchg) {
   if (need_update_eflags) {
     rtl_sub(s, s0, ddest, &cpu.eax);
     rtl_update_ZFSF(s, s0, s->isa.width);
-    rtl_is_sub_carry(s, s1, ddest, dsrc1);
+    rtl_is_sub_carry(s, s1, ddest, &cpu.eax);
     rtl_set_CF(s, s1);
-    rtl_is_sub_overflow(s, s1, s0, ddest, dsrc1, s->isa.width);
+    rtl_is_sub_overflow(s, s1, s0, ddest, &cpu.eax, s->isa.width);
     rtl_set_OF(s, s1);
   }
 #endif
 
-  rtl_setrelop(s, RELOP_EQ, s0, &cpu.eax, ddest);
-  rtl_set_ZF(s, s0);
-  if (cpu.ZF) {
-    rtl_wb(s, dsrc1);
-  } else {
-    rtl_sr(s, R_EAX, ddest, s->isa.width);
-  }
+  rtl_setrelop(s, RELOP_EQ, s0, ddest, &cpu.eax);
+  rtl_cmov(s, ddest, s0, dsrc1);
+  rtl_wb(s, ddest);
+  rtl_subi(s, s1, s0, 1);
+  rtl_cmov(s, &cpu.eax, s1, ddest);
 }
 
 #if 0
