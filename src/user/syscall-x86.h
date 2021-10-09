@@ -79,6 +79,8 @@ static inline void translate_stat64(struct stat *hostbuf, struct user_stat64 *us
   userbuf->target_st_ctime = hostbuf->st_ctime;
   userbuf->target_st_ctime_nsec = hostbuf->st_ctim.tv_nsec;
   userbuf->st_ino = hostbuf->st_ino;
+
+  difftest_memcpy_to_ref(userbuf, sizeof(*userbuf));
 }
 
 struct user_desc {

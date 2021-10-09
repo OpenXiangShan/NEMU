@@ -19,12 +19,16 @@
 #include <cpu/difftest.h>
 
 #include "user.h"
+
+static void difftest_memcpy_to_ref(void *host_addr, word_t size) {
+  IFDEF(CONFIG_DIFFTEST, ref_difftest_memcpy(host_to_user(host_addr), host_addr, size, DIFFTEST_TO_REF));
+}
+
 #include MUXDEF(CONFIG_ISA_x86,     "syscall-x86.h", \
          MUXDEF(CONFIG_ISA_mips32,  "syscall-mips32.h", \
          MUXDEF(CONFIG_ISA_riscv32, "syscall-riscv32.h", \
          MUXDEF(CONFIG_ISA_riscv64, "syscall-riscv64.h", \
          ))))
-
 
 static int user_fd(int fd) {
   if (fd >= 0 && fd <= 2) return user_state.std_fd[fd];
@@ -33,11 +37,6 @@ static int user_fd(int fd) {
 
 static sword_t get_syscall_ret(intptr_t ret) {
   return (ret == -1) ? -errno : ret;
-}
-
-static word_t user_write(int fd, const void *buf, size_t count) {
-  difftest_skip_ref();
-  return write(fd, buf, count);
 }
 
 static void user_sys_exit(int status) {
@@ -56,6 +55,24 @@ static word_t user_sys_brk(word_t new_brk) {
   }
   user_state.brk = new_brk;
   return new_brk;
+}
+
+static word_t user_read(int fd, void *buf, size_t count) {
+  word_t ret = read(fd, buf, count);
+  difftest_memcpy_to_ref(buf, count);
+  return ret;
+}
+
+static word_t user_uname(struct utsname *buf) {
+  word_t ret = uname(buf);
+  difftest_memcpy_to_ref(buf, sizeof(*buf));
+  return ret;
+}
+
+static word_t user_readlink(const char *pathname, char *buf, size_t bufsiz) {
+  word_t ret = readlink(pathname, buf, bufsiz);
+  difftest_memcpy_to_ref(buf, bufsiz);
+  return ret;
 }
 
 static word_t user_gettimeofday(void *tv, void *tz) {
@@ -228,14 +245,19 @@ static word_t user_prlimit64(pid_t pid, int resource,
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
+  switch(id) {
+    IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area: break);
+    default: difftest_skip_ref();
+  }
+
   switch (id) {
     IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
         ret = user_set_thread_area(user_to_host(arg1)); break);
     case USER_SYS_exit_group:
     case USER_SYS_exit: user_sys_exit(arg1); break;
     case USER_SYS_brk: ret = user_sys_brk(arg1); break;
-    case USER_SYS_write: ret = user_write(user_fd(arg1), user_to_host(arg2), arg3); break;
-    case USER_SYS_uname: ret = uname(user_to_host(arg1)); break;
+    case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_uname: ret = user_uname(user_to_host(arg1)); break;
     case USER_SYS_gettimeofday: ret = user_gettimeofday(user_to_host(arg1), user_to_host(arg2)); break;
     case USER_SYS_sysinfo: ret = user_sysinfo(user_to_host(arg1)); break;
     case USER_SYS_clock_gettime: ret = user_clock_gettime(arg1, user_to_host(arg2)); break;
@@ -244,7 +266,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_getrusage: ret = user_getrusage(arg1, user_to_host(arg2)); break;
     case USER_SYS_prlimit64: ret = user_prlimit64(arg1, arg2, user_to_host(arg3), user_to_host(arg4)); break;
     case USER_SYS_openat: ret = openat(user_fd(arg1), user_to_host(arg2), arg3, arg4); break;
-    case USER_SYS_read: ret = read(user_fd(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_read: ret = user_read(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
     case USER_SYS_munmap: ret = user_munmap(arg1, arg2); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
@@ -275,7 +297,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
 #else
     case USER_SYS_time: ret = time(user_to_host(arg1)); break;
-    case USER_SYS_readlink: ret = readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
+    case USER_SYS_readlink: ret = user_readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_access: ret = access(user_to_host(arg1), arg2); break;
     case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));
     case USER_SYS_stat64: return user_sys_stat64(user_to_host(arg1), user_to_host(arg2));
