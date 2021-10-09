@@ -12,6 +12,10 @@ config RVB
   bool "RISC-V Bitmanip Extension v1.0"
   default y
 
+config RVK
+  bool "RISC-V Cryptography Extension v1.0"
+  default y
+
 config RVV_010
   bool "Experimental RISC-V Vector Extension v0.10"
 

@@ -33,7 +33,7 @@
  *
  */
 
-#ifdef CONFIG_RVB
+#if defined(CONFIG_RVB) || defined(CONFIG_RVK)
 
 #include <limits.h>
 #include <stdint.h>
@@ -141,8 +141,8 @@ int64_t xperm(int64_t rs1, int64_t rs2, int sz_log2)
 }
 int64_t _rv64_xpermn (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 2); }
 int64_t _rv64_xpermb (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 3); }
-int64_t _rv64_xpermh (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 4); }
-int64_t _rv64_xpermw (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 5); }
+// int64_t _rv64_xpermh (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 4); }
+// int64_t _rv64_xpermw (int64_t rs1, int64_t rs2) { return xperm(rs1, rs2, 5); }
 
 long _rv_andn(long rs1, long rs2) { return rs1 & ~rs2; }
 long _rv_orn (long rs1, long rs2) { return rs1 | ~rs2; }
@@ -193,4 +193,4 @@ RVINTRIN_GREV_PSEUDO_OP64(7, revb)
 RVINTRIN_GORC_PSEUDO_OP64( 7, orc_b)
 
 
-#endif // RVINTRIN_H
+#endif
