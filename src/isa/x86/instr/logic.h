@@ -266,12 +266,29 @@ def_EHelper(shrd) {
     //return;
   }
 #endif
-  rtl_subi(s, s0, dsrc2, 1);
-  rtl_srl(s, s1, ddest, s0); // shift (cnt - 1)
-  rtl_andi(s, s0, s1, 0x1);
-  rtl_set_CF(s, s0);
-  rtl_srl(s, s0, ddest, dsrc2);
 
+#ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_subi(s, s0, dsrc2, 1);
+    rtl_srl(s, &cpu.cc_src1, ddest, s0); // shift (cnt - 1)
+  }
+#else
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  if (need_update_eflags) {
+    rtl_subi(s, s0, dsrc2, 1);
+    rtl_srl(s, s1, ddest, s0); // shift (cnt - 1)
+    rtl_andi(s, s0, s1, 0x1);
+    rtl_set_CF(s, s0);
+
+    //if (MUXDEF(CONFIG_DIFFTEST_REF_KVM, count == 1, 1)) {
+    //  rtl_xor(s, s0, s1, ddest);
+    //  rtl_msb(s, s0, s0, s->isa.width);
+    //  rtl_set_OF(s, s0);
+    //}
+  }
+#endif
+
+  rtl_srl(s, s0, ddest, dsrc2);
   rtl_li(s, s1, 31);
   rtl_sub(s, s1, s1, dsrc2);
   // shift twice to deal with dsrc1 = 0
@@ -284,9 +301,14 @@ def_EHelper(shrd) {
   rtl_or(s, ddest, s0, s1);
   rtl_wb(s, ddest);
 
-#ifndef CONFIG_x86_CC_LAZY
-  rtl_update_ZFSF(s, ddest, s->isa.width);
-  // unnecessary to update CF and OF in NEMU
+#ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SHR, s->isa.width);
+  }
+#else
+  if (need_update_eflags) {
+    rtl_update_ZFSF(s, ddest, s->isa.width);
+  }
 #endif
 end: ;
 }

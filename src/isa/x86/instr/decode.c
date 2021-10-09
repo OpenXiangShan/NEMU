@@ -65,6 +65,8 @@ static const struct {
   [EXEC_ID_sar] = { F_ALL, 0 },
   [EXEC_ID_shl] = { F_ALL, 0 },
   [EXEC_ID_shr] = { F_ALL, 0 },
+  [EXEC_ID_shld] = { F_ALL, 0 },
+  [EXEC_ID_shrd] = { F_ALL, 0 },
   [EXEC_ID_sbb] = { F_ALL, F_CF },
   [EXEC_ID_setcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
   [EXEC_ID_sub] = { F_ALL, 0 },
