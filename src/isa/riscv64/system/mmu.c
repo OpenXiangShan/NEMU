@@ -314,6 +314,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   // }
 #endif
 
+#ifdef CONFIG_RV_PMP
   if (NUM_PMP == 0) {
     return true;
   }
@@ -395,4 +396,8 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
 
   return mode == MODE_M;
+
+#else
+  return true;
+#endif
 }

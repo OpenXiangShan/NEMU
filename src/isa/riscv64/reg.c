@@ -43,12 +43,17 @@ void isa_reg_display() {
       mideleg->val, medeleg->val);
   printf("mtval: " FMT_WORD " stval: " FMT_WORD " mtvec: " FMT_WORD " stvec: " FMT_WORD "\n",
       mtval->val, stval->val, mtvec->val, stvec->val);
+#ifdef CONFIG_RV_PMP
   printf("privilege mode:%ld  pmp: below\n", cpu.mode);
   for (int i = 0; i < NUM_PMP; i++) {
     printf("%2d: cfg:0x%02x addr:0x%016lx", i, pmpcfg_from_index(i), pmpaddr_from_index(i));
     if (i % 2 == 1) printf("\n");
     else printf("|");
   }
+#else
+  printf("privilege mode:%ld\n", cpu.mode);
+#endif
+
 #ifdef CONFIG_RVV_010
   //vector register
   extern const char * vregsl[];

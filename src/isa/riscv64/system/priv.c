@@ -109,6 +109,10 @@ static inline void update_mstatus_sd() {
 static inline word_t csr_read(word_t *src) {
 
   if (is_read_pmpaddr) {
+#ifndef CONFIG_RV_PMP
+    longjmp_exception(EX_II);
+    return 0;
+#else
     // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
     if (NUM_PMP == 0) {
       Log("pmp number is 0, raise illegal instr exception when read pmpaddr");
@@ -128,6 +132,7 @@ static inline word_t csr_read(word_t *src) {
       return *src | (~pmp_tor_mask() >> 1);
     else
       return *src & pmp_tor_mask();
+#endif
   }
 
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
@@ -176,6 +181,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     // *dest = src & FCSR_MASK;
   }
   else if (is_write_pmpaddr) {
+#ifndef CONFIG_RV_PMP
+  return ;
+#else
     // If no PMPs are configured, disallow access to all.  Otherwise, allow
     // access to all, but unimplemented ones are hardwired to zero.
     if (NUM_PMP == 0)
@@ -194,9 +202,14 @@ static inline void csr_write(word_t *dest, word_t src) {
       fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
     }
 #endif
+
     mmu_tlb_flush(0);
+#endif
   }
   else if (is_write_pmpcfg) {
+#ifndef CONFIG_RV_PMP
+  return;
+#else
     if (NUM_PMP == 0)
       return;
 
@@ -215,9 +228,11 @@ static inline void csr_write(word_t *dest, word_t src) {
       fprintf(stderr, "[NEMU] write pmp cfg%d to %016lx\n",idx, cfg_data);
     }
 #endif
+
     *dest = cfg_data;
 
     mmu_tlb_flush(0);
+#endif
   } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;

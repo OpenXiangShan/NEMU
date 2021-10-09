@@ -15,4 +15,9 @@ config RVB
 config RVV_010
   bool "Experimental RISC-V Vector Extension v0.10"
 
+config RV_PMP
+  depends on !PERF_OPT
+  bool "Enable PMP"
+  default y
+
 endmenu
