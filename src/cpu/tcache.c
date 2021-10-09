@@ -243,4 +243,11 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
   g_exec_nemu_decode = exec_nemu_decode;
   return tcache_bb_new(reset_vector);
 }
+
+void tcache_check_and_flush(vaddr_t pc) {
+  bool nearly_full = false;
+  nearly_full |= (tc_idx > CONFIG_TCACHE_SIZE * 15 / 16);
+  nearly_full |= (bb_idx > CONFIG_BB_POOL_SIZE * 15 / 16);
+  if (nearly_full) { tcache_handle_flush(pc); }
+}
 #endif

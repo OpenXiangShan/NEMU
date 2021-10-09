@@ -59,7 +59,7 @@ static void fetch_decode_exec_updatepc(Decode *s) {
 
 #define BATCH_SIZE 65536
 
-static uint64_t g_nr_guest_instr_end = 0;
+IFNDEF(CONFIG_TARGET_SHARE, static uint64_t g_nr_guest_instr_end = 0);
 static Decode *prev_s;
 
 static void update_global() {
@@ -276,6 +276,8 @@ void fetch_decode(Decode *s, vaddr_t pc) {
 #endif
 }
 
+#ifndef CONFIG_TARGET_SHARE
+
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
   g_print_step = (n < MAX_INSTR_TO_PRINT);
@@ -295,13 +297,6 @@ void cpu_exec(uint64_t n) {
   if ((cause = setjmp(jbuf_exec))) {
     IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += prev_s->idx_in_bb - 1);
     update_global();
-  }
-#endif
-
-#ifdef CONFIG_TARGET_SHARE
-  if (prev_s != NULL && cpu.pc != prev_s->pc) {
-    // caused by difftest_skip_ref()
-    IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
   }
 #endif
 
@@ -356,3 +351,23 @@ void cpu_exec(uint64_t n) {
     case NEMU_QUIT: statistic();
   }
 }
+#else
+void cpu_exec(uint64_t n) {
+#ifdef CONFIG_MODE_SYSTEM
+  panic("FIXME: add support of exception");
+#endif
+
+#ifdef CONFIG_PERF_OPT
+  void tcache_check_and_flush(vaddr_t pc);
+  tcache_check_and_flush(cpu.pc);
+
+  if (prev_s != NULL && cpu.pc != prev_s->pc) {
+    // caused by difftest_skip_ref()
+    tcache_handle_exception(cpu.pc);
+  }
+#endif
+
+  execute(n);
+  update_global();
+}
+#endif
