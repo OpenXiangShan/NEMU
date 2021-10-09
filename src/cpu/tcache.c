@@ -243,9 +243,4 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
   g_exec_nemu_decode = exec_nemu_decode;
   return tcache_bb_new(reset_vector);
 }
-#else
-void tcache_flush() {
-  return;
-}
-
 #endif

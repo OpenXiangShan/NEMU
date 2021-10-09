@@ -194,7 +194,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
     }
 #endif
-    tcache_flush();
     mmu_tlb_flush(0);
   }
   else if (is_write_pmpcfg) {
@@ -218,7 +217,6 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
     *dest = cfg_data;
 
-    tcache_flush();
     mmu_tlb_flush(0);
   } else { *dest = src; }
 
