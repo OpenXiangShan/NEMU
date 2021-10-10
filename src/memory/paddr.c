@@ -64,7 +64,8 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
   }
 #endif
 
-  if (!isa_pmp_check_permission(addr, len, MEM_TYPE_READ, mode)) {
+  assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
+  if (!isa_pmp_check_permission(addr, len, type, mode)) {
     if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
       longjmp_exception(EX_IAF);
       return false;

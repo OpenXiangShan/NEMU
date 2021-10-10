@@ -308,10 +308,12 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   uint32_t mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
   // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
 #ifdef CONFIG_SHARE
-  // if(cpu.debug_difftest) {
-  //   fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
-  //   // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
-  // }
+  if(cpu.debug_difftest) {
+    if (mode != out_mode) {
+      fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
+        // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
+    }
+  }
 #endif
 
 #ifdef CONFIG_RV_PMP
@@ -369,7 +371,8 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #ifdef CONFIG_SHARE
         if(cpu.debug_difftest) {
           bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
-              (type == MEM_TYPE_READ && (cfg & PMP_R)) ||
+              ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+                type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
               (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
               (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
           fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
@@ -379,7 +382,8 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 
         return
           (mode == MODE_M && !(cfg & PMP_L)) ||
-          (type == MEM_TYPE_READ && (cfg & PMP_R)) ||
+          ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+            type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
           (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
           (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
       }
