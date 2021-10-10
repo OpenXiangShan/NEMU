@@ -9,6 +9,9 @@
 #ifdef CONFIG_RVB
 #include "../instr/rvb/exec.h"
 #endif
+#ifdef CONFIG_RVK
+#include "../instr/rvk/exec.h"
+#endif
 #ifdef CONFIG_RVV_010
 #include "../instr/rvv/exec.h"
 #endif

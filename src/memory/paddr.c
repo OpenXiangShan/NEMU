@@ -59,7 +59,7 @@ void init_mem() {
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 #ifdef CONFIG_SHARE
-  if(cpu.debug_difftest) {
+  if(dynamic_config.debug_difftest) {
     fprintf(stderr, "[NEMU]  paddr read addr:%lx len:%d type:%d mode:%d\n", addr, len, type, mode);
   }
 #endif
@@ -83,6 +83,8 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 #else
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
+    if(dynamic_config.ignore_illegal_mem_access)
+      return 0;
     printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
     longjmp_exception(EX_II);
   }
@@ -92,7 +94,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode) {
 #ifdef CONFIG_SHARE
-  if(cpu.debug_difftest) {
+  if(dynamic_config.debug_difftest) {
     fprintf(stderr, "[NEMU]  paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
   }
 #endif
@@ -107,6 +109,8 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode) {
 #else
   if (likely(in_pmem(addr))) return pmem_write(addr, len, data);
   else {
+    if(dynamic_config.ignore_illegal_mem_access)
+      return;
     printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
     longjmp_exception(EX_II);
     return;

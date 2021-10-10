@@ -123,7 +123,7 @@ static inline word_t csr_read(word_t *src) {
     int idx = (src - &csr_array[CSR_PMPADDR0]);
     uint8_t cfg = pmpcfg_from_index(idx);
 #ifdef CONFIG_SHARE
-    if(cpu.debug_difftest) {
+    if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] pmp addr read %d : 0x%016lx\n", idx,
         (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
     }
@@ -198,7 +198,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       *dest = src & (((word_t)1 << (PADDRBITS - PMP_SHIFT)) - 1);
     }
 #ifdef CONFIG_SHARE
-    if(cpu.debug_difftest) {
+    if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
     }
 #endif
@@ -223,7 +223,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       cfg_data |= (cfg << (i*8));
     }
 #ifdef CONFIG_SHARE
-    if(cpu.debug_difftest) {
+    if(dynamic_config.debug_difftest) {
       int idx = dest - &csr_array[CSR_PMPCFG0];
       fprintf(stderr, "[NEMU] write pmp cfg%d to %016lx\n",idx, cfg_data);
     }

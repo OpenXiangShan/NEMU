@@ -6,6 +6,7 @@
 #include <isa-all-instr.h>
 #include <locale.h>
 #include <setjmp.h>
+#include <unistd.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -221,10 +222,11 @@ static int execute(int n) {
   prev_s = &s;
   for (;n > 0; n --) {
     fetch_decode(&s, cpu.pc);
+    cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
 #ifdef CONFIG_SHARE
-    if (unlikely(cpu.debug_difftest)) {
-      fprintf(stderr, "[NEMU] exec pc = 0x%lx\n", s.pc);
+    if (unlikely(dynamic_config.debug_difftest)) {
+      fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc, s.isa.instr.val);
     }
 #endif
     s.EHelper(&s);

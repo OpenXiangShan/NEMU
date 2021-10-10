@@ -1,3 +1,4 @@
+#ifdef CONFIG_RVB
 #include "rvintrin.h"
 
 def_EHelper(clz) {
@@ -196,3 +197,5 @@ def_EHelper(sh2adduw) {
 def_EHelper(sh3adduw) {
   *ddest = ((uint32_t)*dsrc1 << 3) + *dsrc2;
 }
+
+#endif

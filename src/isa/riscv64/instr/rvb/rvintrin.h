@@ -33,7 +33,7 @@
  *
  */
 
-#ifdef CONFIG_RVB
+#if defined(CONFIG_RVB) || defined(CONFIG_RVK)
 
 #include <limits.h>
 #include <stdint.h>
@@ -193,4 +193,4 @@ RVINTRIN_GREV_PSEUDO_OP64(7, revb)
 RVINTRIN_GORC_PSEUDO_OP64( 7, orc_b)
 
 
-#endif // RVINTRIN_H
+#endif
