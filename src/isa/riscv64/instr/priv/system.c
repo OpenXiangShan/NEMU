@@ -14,7 +14,7 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
     }
-    int is_jmp = (id != 0x120) && (id != 0x105); // sfence.vma and wfi
+    int is_jmp = (id != 0x120) && (id != 0x105) && (id != 0x160) && (id != 0x180) && (id != 0x181) && (id != 0x127); // sfence.vma  wfi  sinval_vma  sfence_w_inval and sfence_inval_ir
     return is_jmp;
   }
 

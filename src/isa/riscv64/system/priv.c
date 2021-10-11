@@ -247,6 +247,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
+  if (is_write(satp)) { mmu_tlb_flush(0); } // flush TLB when writing to satp
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
@@ -287,10 +288,15 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       update_mmu_state();
       return mepc->val;
       break;
+    case 0x127: // sfence_vma_asid_t1
     case 0x120: // sfence.vma
+    case 0x160: // sinval.vma
       mmu_tlb_flush(*src);
       break;
-    case 0x105: break; // wfi
+    case 0x105:// wfi
+    case 0x180:// sfence_w_inval
+    case 0x181:// sfence_inval_ir
+      break; 
 #endif
     case -1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);

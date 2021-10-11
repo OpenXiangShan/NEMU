@@ -13,7 +13,7 @@
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
   f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(mret) f(sret) f(sfence_vma) f(wfi)
+  f(ecall) f(mret) f(sret) f(sfence_vma) f(wfi) f(sinval_vma) f(sfence_w_inval) f(sfence_inval_ir) f(sfence_vma_asid_t1)
 #define SYS_INSTR_TERNARY(f) \
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 #else
