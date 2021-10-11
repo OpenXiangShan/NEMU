@@ -1,4 +1,5 @@
 def_EHelper(movq_E2xmm) {
+  assert(0);
   rtl_decode_binary(s, false, false);
 
   rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 0, 4, MMU_DYNAMIC);
@@ -11,6 +12,7 @@ def_EHelper(movq_E2xmm) {
 }
 
 def_EHelper(movq_xmm2E) {
+  assert(0);
   rtl_decode_binary(s, false, false);
   *s0 = cpu.xmm[id_src1->reg]._32[0];
   rtl_sm(s, s0, &s->isa.mbr, s->isa.moff + 0, 4, MMU_DYNAMIC);
@@ -19,6 +21,7 @@ def_EHelper(movq_xmm2E) {
 }
 
 def_EHelper(movdqa_E2xmm) {
+  assert(0);
   rtl_decode_binary(s, false, false);
   if (id_src1->type == OP_TYPE_REG) {
     cpu.xmm[id_dest->reg] = cpu.xmm[id_src1->reg];
@@ -36,6 +39,7 @@ def_EHelper(movdqa_E2xmm) {
 }
 
 def_EHelper(psrlq) {
+  assert(0);
   rtl_decode_unary(s, false);
   assert(id_dest->type == OP_TYPE_REG);
 #ifdef __LP64__
@@ -47,12 +51,14 @@ def_EHelper(psrlq) {
 }
 
 def_EHelper(movd_xmm2E) {
+  assert(0);
   rtl_decode_binary(s, false, false);
   rtl_li(s, s0, cpu.xmm[id_src1->reg]._32[0]);
   rtl_wb(s, s0);
 }
 
 def_EHelper(pxor) {
+  assert(0);
   rtl_decode_binary(s, false, false);
   union {
     __uint128_t _128;
