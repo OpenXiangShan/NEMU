@@ -53,7 +53,7 @@ typedef struct {
   uint64_t pc;
   uint64_t mstatus, mcause, mepc;
   uint64_t sstatus, scause, sepc;
-  
+
   uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
   uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
@@ -181,7 +181,7 @@ typedef struct {
     } v_opv2;
     struct {
       uint32_t pad19     :15;
-      uint32_t v_imm5    : 5;  
+      uint32_t v_imm5    : 5;
     } v_opv3;
     //vector-LOAD-FP
     struct {
@@ -216,5 +216,7 @@ enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
 
 int get_data_mmu_state();
 #define isa_mmu_state() get_data_mmu_state()
+
+
 
 #endif

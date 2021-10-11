@@ -10,8 +10,11 @@
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
   f(mtval      , 0x343) f(mip        , 0x344) \
-  f(pmpcfg0    , 0x3a0) \
+  f(pmpcfg0    , 0x3a0) f(pmpcfg1    , 0x3a1) f(pmpcfg2    , 0x3a2) f(pmpcfg3    , 0x3a3) \
   f(pmpaddr0   , 0x3b0) f(pmpaddr1   , 0x3b1) f(pmpaddr2   , 0x3b2) f(pmpaddr3   , 0x3b3) \
+  f(pmpaddr4   , 0x3b4) f(pmpaddr5   , 0x3b5) f(pmpaddr6   , 0x3b6) f(pmpaddr7   , 0x3b7) \
+  f(pmpaddr8   , 0x3b8) f(pmpaddr9   , 0x3b9) f(pmpaddr10  , 0x3ba) f(pmpaddr11  , 0x3bb) \
+  f(pmpaddr12  , 0x3bc) f(pmpaddr13  , 0x3bd) f(pmpaddr14  , 0x3be) f(pmpaddr15  , 0x3bf) \
   f(mhartid    , 0xf14) \
   f(sstatus    , 0x100) \
   f(sie        , 0x104) f(stvec      , 0x105) f(scounteren , 0x106) \
@@ -26,8 +29,11 @@
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
   f(mtval      , 0x343) f(mip        , 0x344) \
-  f(pmpcfg0    , 0x3a0) \
+  f(pmpcfg0    , 0x3a0) f(pmpcfg1    , 0x3a1) f(pmpcfg2    , 0x3a2) f(pmpcfg3    , 0x3a3) \
   f(pmpaddr0   , 0x3b0) f(pmpaddr1   , 0x3b1) f(pmpaddr2   , 0x3b2) f(pmpaddr3   , 0x3b3) \
+  f(pmpaddr4   , 0x3b4) f(pmpaddr5   , 0x3b5) f(pmpaddr6   , 0x3b6) f(pmpaddr7   , 0x3b7) \
+  f(pmpaddr8   , 0x3b8) f(pmpaddr9   , 0x3b9) f(pmpaddr10  , 0x3ba) f(pmpaddr11  , 0x3bb) \
+  f(pmpaddr12  , 0x3bc) f(pmpaddr13  , 0x3bd) f(pmpaddr14  , 0x3be) f(pmpaddr15  , 0x3bf) \
   f(mhartid    , 0xf14) \
   f(sstatus    , 0x100) \
   f(sie        , 0x104) f(stvec      , 0x105) f(scounteren , 0x106) \
@@ -149,8 +155,53 @@ CSR_STRUCT_START(mip)
   uint64_t meip : 1;
 CSR_STRUCT_END(mip)
 
+/** pmp */
+
+#define PMP_R     0x01
+#define PMP_W     0x02
+#define PMP_X     0x04
+#define PMP_A     0x18
+#define PMP_L     0x80
+#define PMP_SHIFT 2
+#define PMP_PLATFORMGARIN 6 // log2(512 / 8)
+
+#define PMP_TOR   0x08
+#define PMP_NA4   0x10
+#define PMP_NAPOT 0x18
+
+#define CSR_PMPCFG0 0x3a0
+#define CSR_PMPCFG1 0x3a1
+#define CSR_PMPCFG2 0x3a2
+#define CSR_PMPCFG3 0x3a3
+#define CSR_PMPADDR0 0x3b0
+#define CSR_PMPADDR1 0x3b1
+#define CSR_PMPADDR2 0x3b2
+#define CSR_PMPADDR3 0x3b3
+#define CSR_PMPADDR4 0x3b4
+#define CSR_PMPADDR5 0x3b5
+#define CSR_PMPADDR6 0x3b6
+#define CSR_PMPADDR7 0x3b7
+#define CSR_PMPADDR8 0x3b8
+#define CSR_PMPADDR9 0x3b9
+#define CSR_PMPADDR10 0x3ba
+#define CSR_PMPADDR11 0x3bb
+#define CSR_PMPADDR12 0x3bc
+#define CSR_PMPADDR13 0x3bd
+#define CSR_PMPADDR14 0x3be
+#define CSR_PMPADDR15 0x3bf
+#define NUM_PMP 16 // can change in 0/16/64, but need change the above CSR declare
+
 CSR_STRUCT_START(pmpcfg0)
 CSR_STRUCT_END(pmpcfg0)
+
+CSR_STRUCT_START(pmpcfg1)
+CSR_STRUCT_END(pmpcfg1)
+
+CSR_STRUCT_START(pmpcfg2)
+CSR_STRUCT_END(pmpcfg2)
+
+CSR_STRUCT_START(pmpcfg3)
+CSR_STRUCT_END(pmpcfg3)
 
 CSR_STRUCT_START(pmpaddr0)
 CSR_STRUCT_END(pmpaddr0)
@@ -163,6 +214,42 @@ CSR_STRUCT_END(pmpaddr2)
 
 CSR_STRUCT_START(pmpaddr3)
 CSR_STRUCT_END(pmpaddr3)
+
+CSR_STRUCT_START(pmpaddr4)
+CSR_STRUCT_END(pmpaddr4)
+
+CSR_STRUCT_START(pmpaddr5)
+CSR_STRUCT_END(pmpaddr5)
+
+CSR_STRUCT_START(pmpaddr6)
+CSR_STRUCT_END(pmpaddr6)
+
+CSR_STRUCT_START(pmpaddr7)
+CSR_STRUCT_END(pmpaddr7)
+
+CSR_STRUCT_START(pmpaddr8)
+CSR_STRUCT_END(pmpaddr8)
+
+CSR_STRUCT_START(pmpaddr9)
+CSR_STRUCT_END(pmpaddr9)
+
+CSR_STRUCT_START(pmpaddr10)
+CSR_STRUCT_END(pmpaddr10)
+
+CSR_STRUCT_START(pmpaddr11)
+CSR_STRUCT_END(pmpaddr11)
+
+CSR_STRUCT_START(pmpaddr12)
+CSR_STRUCT_END(pmpaddr12)
+
+CSR_STRUCT_START(pmpaddr13)
+CSR_STRUCT_END(pmpaddr13)
+
+CSR_STRUCT_START(pmpaddr14)
+CSR_STRUCT_END(pmpaddr14)
+
+CSR_STRUCT_START(pmpaddr15)
+CSR_STRUCT_END(pmpaddr15)
 
 CSR_STRUCT_START(sstatus)
   uint64_t uie : 1;
@@ -296,5 +383,11 @@ MAP(CSRS, CSRS_DECL)
 #endif // CONFIG_RVV_010
 
 word_t csrid_read(uint32_t csrid);
+
+// PMP
+uint8_t pmpcfg_from_index(int idx);
+word_t pmpaddr_from_index(int idx);
+word_t pmpaddr_from_csrid(int id);
+word_t pmp_tor_mask();
 
 #endif

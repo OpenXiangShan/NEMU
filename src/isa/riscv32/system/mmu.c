@@ -54,14 +54,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   paddr_t pdir_base = cpu.satp.ppn << 12;
 
   PTE pde;
-  pde.val	= paddr_read(pdir_base + addr->pdir_idx * 4, 4);
+  pde.val	= paddr_read(pdir_base + addr->pdir_idx * 4, 4, MEM_TYPE_READ, MODE_S);
   if (!pde.valid) {
     panic("pc = %x, vaddr = %x, pdir_base = %x, pde = %x", cpu.pc, vaddr, pdir_base, pde.val);
   }
 
   paddr_t pt_base = pde.ppn << 12;
   PTE pte;
-  pte.val = paddr_read(pt_base + addr->pt_idx * 4, 4);
+  pte.val = paddr_read(pt_base + addr->pt_idx * 4, 4, MEM_TYPE_READ, MODE_S);
   if (!pte.valid) {
     panic("pc = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.pc, vaddr, pt_base, pte.val);
   }
@@ -74,7 +74,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   //if (!pte.access || (pte.dirty == 0 && is_write)) {
   //  pte.access = 1;
   //  pte.dirty |= is_write;
-  //  paddr_write(pt_base + addr->pt_idx * 4, 4, pte.val);
+  //  paddr_write(pt_base + addr->pt_idx * 4, 4, pte.val, cpu.mode);
   //}
 
   return pte.ppn << 12;
@@ -88,3 +88,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   return MEM_RET_FAIL;
 }
 #endif
+
+bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode) {
+  return true; // TODO: complete it
+}

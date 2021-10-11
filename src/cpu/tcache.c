@@ -130,7 +130,7 @@ static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
   }
 }
 
-static void tcache_flush() {
+void tcache_flush() {
   tc_idx = 0;
   bb_idx = 0;
   memset(bb_list, -1, sizeof(bb_list));

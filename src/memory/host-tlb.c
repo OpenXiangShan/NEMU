@@ -57,7 +57,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
   }
-  return paddr_read(paddr, len);
+  return paddr_read(paddr, len, MEM_TYPE_READ, MODE_S);
 }
 
 __attribute__((noinline))
@@ -68,7 +68,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
   }
-  paddr_write(paddr, len, data);
+  paddr_write(paddr, len, data, MODE_S);
 }
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {

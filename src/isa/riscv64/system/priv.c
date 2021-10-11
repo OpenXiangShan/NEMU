@@ -3,6 +3,7 @@
 #include "../local-include/intr.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
+#include <memory/paddr.h>
 
 int update_mmu_state();
 uint64_t clint_uptime();
@@ -74,7 +75,30 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
+#define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG0]) && src < (&(csr_array[CSR_PMPCFG0]) + (NUM_PMP/4)))
+#define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR0]) && src < (&(csr_array[CSR_PMPADDR0]) + NUM_PMP))
+#define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (NUM_PMP/4)))
+#define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + NUM_PMP))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
+
+uint8_t pmpcfg_from_index(int idx) {
+  int xlen = 64;
+  uint8_t *cfg_base = (uint8_t *)&csr_array[CSR_PMPCFG0];
+  int cfgPerCSR = xlen / 8;
+  return *(cfg_base + ((xlen / 32) * (idx / cfgPerCSR)) * cfgPerCSR + (idx % cfgPerCSR));
+}
+
+word_t pmpaddr_from_index(int idx) {
+  return csr_array[CSR_PMPADDR0 + idx];
+}
+
+word_t pmpaddr_from_csrid(int id) {
+  return csr_array[id];
+}
+
+word_t inline pmp_tor_mask() {
+  return -((word_t)1 << (PMP_PLATFORMGARIN - PMP_SHIFT));
+}
 
 static inline void update_mstatus_sd() {
   // mstatus.fs is always dirty or off in QEMU 3.1.0
@@ -83,6 +107,34 @@ static inline void update_mstatus_sd() {
 }
 
 static inline word_t csr_read(word_t *src) {
+
+  if (is_read_pmpaddr) {
+#ifndef CONFIG_RV_PMP
+    longjmp_exception(EX_II);
+    return 0;
+#else
+    // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
+    if (NUM_PMP == 0) {
+      Log("pmp number is 0, raise illegal instr exception when read pmpaddr");
+      longjmp_exception(EX_II);
+      return 0;
+    }
+
+    int idx = (src - &csr_array[CSR_PMPADDR0]);
+    uint8_t cfg = pmpcfg_from_index(idx);
+#ifdef CONFIG_SHARE
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] pmp addr read %d : 0x%016lx\n", idx,
+        (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
+    }
+#endif
+    if ((cfg & PMP_A) >= PMP_NAPOT)
+      return *src | (~pmp_tor_mask() >> 1);
+    else
+      return *src & pmp_tor_mask();
+#endif
+  }
+
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
@@ -106,6 +158,7 @@ void vcsr_write(uint32_t addr,  rtlreg_t *src) {
 #endif // CONFIG_RVV_010
 
 static inline void csr_write(word_t *dest, word_t src) {
+
   if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
@@ -127,7 +180,60 @@ static inline void csr_write(word_t *dest, word_t src) {
     frm->val = ((src)>>5) & FRM_MASK;
     // *dest = src & FCSR_MASK;
   }
-  else { *dest = src; }
+  else if (is_write_pmpaddr) {
+#ifndef CONFIG_RV_PMP
+  return ;
+#else
+    // If no PMPs are configured, disallow access to all.  Otherwise, allow
+    // access to all, but unimplemented ones are hardwired to zero.
+    if (NUM_PMP == 0)
+      return;
+
+    int idx = dest - &csr_array[CSR_PMPADDR0];
+    word_t cfg = pmpcfg_from_index(idx);
+    bool locked = cfg & PMP_L;
+    bool next_locked = idx < NUM_PMP && (pmpcfg_from_index(idx+1) & PMP_L);
+    bool next_tor = idx < NUM_PMP && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
+    if (idx < NUM_PMP && !locked && !(next_locked && next_tor)) {
+      *dest = src & (((word_t)1 << (PADDRBITS - PMP_SHIFT)) - 1);
+    }
+#ifdef CONFIG_SHARE
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
+    }
+#endif
+
+    mmu_tlb_flush(0);
+#endif
+  }
+  else if (is_write_pmpcfg) {
+#ifndef CONFIG_RV_PMP
+  return;
+#else
+    if (NUM_PMP == 0)
+      return;
+
+    int xlen = 64;
+    word_t cfg_data = 0;
+    for (int i = 0; i < xlen / 8; i ++ ) {
+      word_t cfg = ((src >> (i*8)) & 0xff) & (PMP_R | PMP_W | PMP_X | PMP_A | PMP_L);
+      cfg &= ~PMP_W | ((cfg & PMP_R) ? PMP_W : 0); // Disallow R=0 W=1
+      if (PMP_PLATFORMGARIN != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
+        cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
+      cfg_data |= (cfg << (i*8));
+    }
+#ifdef CONFIG_SHARE
+    if(dynamic_config.debug_difftest) {
+      int idx = dest - &csr_array[CSR_PMPCFG0];
+      fprintf(stderr, "[NEMU] write pmp cfg%d to %016lx\n",idx, cfg_data);
+    }
+#endif
+
+    *dest = cfg_data;
+
+    mmu_tlb_flush(0);
+#endif
+  } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {

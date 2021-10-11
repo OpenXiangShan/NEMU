@@ -107,7 +107,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
-    pte.val	= paddr_read(p_pte, PTE_SIZE);
+    pte.val	= paddr_read(p_pte, PTE_SIZE,
+      type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
+      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -142,7 +144,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
-    paddr_write(p_pte, PTE_SIZE, pte.val);
+    paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode);
   }
 #endif
 
@@ -178,8 +180,8 @@ int update_mmu_state() {
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   bool is_ifetch = type == MEM_TYPE_IFETCH;
-  // riscv-privileged 4.4.1: Addressing and Memory Protection: 
-  // Instruction fetch addresses and load and store effective addresses, 
+  // riscv-privileged 4.4.1: Addressing and Memory Protection:
+  // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && satp->mode == 8;
   word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
@@ -299,4 +301,107 @@ int force_raise_pf(vaddr_t vaddr, int type){
     }
   }
   return MEM_RET_OK;
+}
+
+bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
+  // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
+#ifdef CONFIG_SHARE
+  if(dynamic_config.debug_difftest) {
+    if (mode != out_mode) {
+      fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
+        // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
+    }
+  }
+#endif
+
+#ifdef CONFIG_RV_PMP
+  if (NUM_PMP == 0) {
+    return true;
+  }
+
+  word_t base = 0;
+  for (int i = 0; i < NUM_PMP; i++) {
+    word_t pmpaddr = pmpaddr_from_index(i);
+    word_t tor = (pmpaddr & pmp_tor_mask()) << PMP_SHIFT;
+    uint8_t cfg = pmpcfg_from_index(i);
+
+    if (cfg & PMP_A) {
+      bool is_tor = (cfg & PMP_A) == PMP_TOR;
+      bool is_na4 = (cfg & PMP_A) == PMP_NA4;
+
+      word_t mask = (pmpaddr << 1) | (!is_na4) | ~pmp_tor_mask();
+      mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+
+      // Check each 4-byte sector of the access
+      bool any_match = false;
+      bool all_match = true;
+      for (word_t offset = 0; offset < len; offset += 1 << PMP_SHIFT) {
+        word_t cur_addr = addr + offset;
+        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
+        bool tor_match = base <= cur_addr && cur_addr < tor;
+        bool match = is_tor ? tor_match : napot_match;
+        any_match |= match;
+        all_match &= match;
+#ifdef CONFIG_SHARE
+        // if(dynamic_config.debug_difftest) {
+        //   fprintf(stderr, "[NEMU]   PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s\n",
+        //   offset, addr, cur_addr, tor, mask, base, match ? "true" : "false");
+        // }
+#endif
+      }
+#ifdef CONFIG_SHARE
+        if(dynamic_config.debug_difftest) {
+          fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d\n",
+            i, cfg, pmpaddr, is_na4, !is_na4 && !is_tor, is_tor, base, addr, any_match);
+        }
+#endif
+      if (any_match) {
+        // If the PMP matches only a strict subset of the access, fail it
+        if (!all_match) {
+#ifdef CONFIG_SHARE
+          if(dynamic_config.debug_difftest) {
+            fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match\n", addr, len, type, mode);
+          }
+#endif
+          return false;
+        }
+
+#ifdef CONFIG_SHARE
+        if(dynamic_config.debug_difftest) {
+          bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
+              ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+                type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
+              (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
+              (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
+          fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
+              pass ? "true" : "false for permission denied");
+        }
+#endif
+
+        return
+          (mode == MODE_M && !(cfg & PMP_L)) ||
+          ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+            type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
+          (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
+          (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
+      }
+    }
+
+    base = tor;
+  }
+
+#ifdef CONFIG_SHARE
+  if(dynamic_config.debug_difftest) {
+    if (mode != MODE_M) fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s\n", addr, len, type, mode,
+    mode == MODE_M ? "true for mode m but no match" : "false for no match with less than M mode");
+  }
+#endif
+
+  return mode == MODE_M;
+
+#else
+  return true;
+#endif
 }
