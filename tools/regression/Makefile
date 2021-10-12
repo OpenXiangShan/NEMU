@@ -30,6 +30,8 @@ run-x86-pa: reset-config
 	$(MAKE) -C $(NANOS_HOME) ARCH=x86-nemu update VME=1
 	$(MAKE) -C $(NANOS_HOME) ARCH=x86-nemu run
 
+RUN_X86_USER = $(NEMU_HOME)/build/x86-nemu-interpreter -b --diff=$(NEMU_HOME)/build/x86-nemu-interpreter-so
+
 run-x86-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) x86-user-ref_defconfig
 	$(MAKE) -C $(NEMU_HOME)
@@ -40,7 +42,7 @@ run-x86-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-x86.elf)
 	$(MAKE) -C ./tests/float-test ISA=x86
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/float-test/build/float-test-x86.elf)
-	LOADER="$(NEMU_HOME)/build/x86-nemu-interpreter -b" $(MAKE) -C ~/sdi/spec2006-lite-i386/401.bzip2 run-test
+	LOADER="$(RUN_X86_USER)" $(MAKE) -C ~/sdi/spec2006-lite-i386/429.mcf run-test
 
 run-mips32: reset-config
 	$(MAKE) -C $(NEMU_HOME) mips32-difftest_defconfig
