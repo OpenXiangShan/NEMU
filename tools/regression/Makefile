@@ -38,6 +38,8 @@ run-x86-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/x86-syscall/build/x86-syscall.elf)
 	$(MAKE) -C ./tests/hello ISA=x86
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-x86.elf)
+	$(MAKE) -C ./tests/float-test ISA=x86
+	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/float-test/build/float-test-x86.elf)
 	LOADER="$(NEMU_HOME)/build/x86-nemu-interpreter -b" $(MAKE) -C ~/sdi/spec2006-lite-i386/401.bzip2 run-test
 
 run-mips32: reset-config
