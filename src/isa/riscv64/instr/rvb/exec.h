@@ -167,11 +167,11 @@ def_EHelper(xpermb) {
 }
 
 def_EHelper(adduw) {
-  *ddest = *dsrc2 + (uint32_t)*dsrc1;
+  *ddest = *dsrc2 + (uint64_t)(uint32_t)*dsrc1;
 }
 
 def_EHelper(slliuw) {
-  *ddest = (uint32_t)*dsrc1 << (id_src2->imm & 0x1f);
+  *ddest = (uint64_t)(uint32_t)*dsrc1 << (id_src2->imm & 0x1f);
 }
 
 def_EHelper(sh1add) {
@@ -187,15 +187,15 @@ def_EHelper(sh3add) {
 }
 
 def_EHelper(sh1adduw) {
-  *ddest = ((uint32_t)*dsrc1 << 1) + *dsrc2;
+  *ddest = ((uint64_t)(uint32_t)*dsrc1 << 1) + *dsrc2;
 }
 
 def_EHelper(sh2adduw) {
-  *ddest = ((uint32_t)*dsrc1 << 2) + *dsrc2;
+  *ddest = ((uint64_t)(uint32_t)*dsrc1 << 2) + *dsrc2;
 }
 
 def_EHelper(sh3adduw) {
-  *ddest = ((uint32_t)*dsrc1 << 3) + *dsrc2;
+  *ddest = ((uint64_t)(uint32_t)*dsrc1 << 3) + *dsrc2;
 }
 
 #endif
