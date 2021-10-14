@@ -2,6 +2,7 @@
 #include <isa.h>
 #include <memory/host.h>
 #include <stdlib.h>
+#include <cpu/difftest.h>
 
 #define ROUNDUP(a, sz)      ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 #define ROUNDDOWN(a, sz)    ((((uintptr_t)a)) & ~((sz) - 1))
@@ -181,6 +182,11 @@ int user_munmap(word_t addr, size_t length) {
   vma_t *next = p->next;
   prev->next = next;
   next->prev = prev;
+
+#ifdef CONFIG_DIFFTEST
+  memset(user_to_host(addr), 0, length);
+  ref_difftest_memcpy(addr, user_to_host(addr), length, DIFFTEST_TO_REF);
+#endif
 
   int ret = munmap(user_to_host(addr), length);
   assert(ret == 0);
