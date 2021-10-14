@@ -253,6 +253,14 @@ static word_t user_prlimit64(pid_t pid, int resource,
           (const struct rlimit *) new_limit, (struct rlimit *) old_limit);
 }
 
+static word_t user_time(time_t *tloc) {
+  word_t ret = time(tloc);
+  if (tloc != NULL) {
+    difftest_memcpy_to_ref(tloc, sizeof(*tloc));
+  }
+  return ret;
+}
+
 static word_t user_getcwd(char *buf, size_t size) {
   word_t ret = (uintptr_t)getcwd(buf, size);
   assert(ret != 0); // should success
@@ -310,7 +318,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_ftruncate: ret = ftruncate(user_fd(arg1), arg2); break;
     case USER_SYS_faccessat: ret = faccessat(user_fd(arg1), user_to_host(arg2), arg3, 0); break;
 #else
-    case USER_SYS_time: ret = time(user_to_host(arg1)); break;
+    case USER_SYS_time: ret = user_time(user_to_host(arg1)); break;
     case USER_SYS_readlink: ret = user_readlink(user_to_host(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_access: ret = access(user_to_host(arg1), arg2); break;
     case USER_SYS_fstat64: return user_sys_fstat64(user_fd(arg1), user_to_host(arg2));

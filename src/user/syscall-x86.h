@@ -128,6 +128,7 @@ static inline void translate_sysinfo(struct sysinfo *host_info, struct user_sysi
   user_info->totalhigh = host_info->totalhigh;
   user_info->freehigh = host_info->freehigh;
   user_info->mem_unit = host_info->mem_unit;
+  difftest_memcpy_to_ref(user_info, sizeof(*user_info));
 }
 
 struct user_timespec {
@@ -138,6 +139,7 @@ struct user_timespec {
 static inline void translate_timespec(struct timespec *host_tp, struct user_timespec *user_tp) {
   user_tp->tv_sec  = host_tp->tv_sec;
   user_tp->tv_nsec = host_tp->tv_nsec;
+  difftest_memcpy_to_ref(user_tp, sizeof(*user_tp));
 }
 
 struct user_timeval {
@@ -148,6 +150,7 @@ struct user_timeval {
 static inline void translate_timeval(struct timeval *host_tv, struct user_timeval *user_tv) {
   user_tv->tv_sec  = host_tv->tv_sec;
   user_tv->tv_usec = host_tv->tv_usec;
+  difftest_memcpy_to_ref(user_tv, sizeof(*user_tv));
 }
 
 struct user_tms{
@@ -162,6 +165,7 @@ static inline void translate_tms(struct tms *host_tms, struct user_tms *user_tms
   user_tms->tms_stime  = host_tms->tms_stime;
   user_tms->tms_cutime = host_tms->tms_cutime;
   user_tms->tms_cstime = host_tms->tms_cstime;
+  difftest_memcpy_to_ref(user_tms, sizeof(*user_tms));
 }
 
 struct user_iovec {
@@ -220,4 +224,5 @@ struct user_rlimit {
 static inline void translate_rlimit(struct rlimit *host_rlim, struct user_rlimit *user_rlim) {
   user_rlim->rlim_cur = host_rlim->rlim_cur;
   user_rlim->rlim_max = host_rlim->rlim_max;
+  difftest_memcpy_to_ref(user_rlim, sizeof(*user_rlim));
 }

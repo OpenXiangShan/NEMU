@@ -214,6 +214,7 @@ word_t user_mremap(word_t old_addr, size_t old_size, size_t new_size,
     // should move
     new_addr = user_mmap(0, new_size, p->prot, p->flags & ~MAP_FIXED, -1, 0);
     memcpy(user_to_host(new_addr), user_to_host(old_addr), old_size);
+    IFDEF(CONFIG_DIFFTEST, ref_difftest_memcpy(new_addr, user_to_host(new_addr), old_size, DIFFTEST_TO_REF));
     user_munmap(old_addr, p->length);
     return new_addr;
   }
