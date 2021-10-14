@@ -171,7 +171,7 @@ static void redirction_std() {
   FILE *fp;
   fp = freopen("/dev/tty", "r", stdin);  assert(fp);
   fp = freopen("/dev/tty", "w", stdout); assert(fp);
-  fp = freopen("/dev/tty", "w", stdout); assert(fp);
+  fp = freopen("/dev/tty", "w", stderr); assert(fp);
 }
 
 void init_user(char *elfpath, int argc, char *argv[], char *diff_so_file) {
