@@ -253,6 +253,13 @@ static word_t user_prlimit64(pid_t pid, int resource,
           (const struct rlimit *) new_limit, (struct rlimit *) old_limit);
 }
 
+static word_t user_getcwd(char *buf, size_t size) {
+  word_t ret = (uintptr_t)getcwd(buf, size);
+  assert(ret != 0); // should success
+  difftest_memcpy_to_ref(buf, size);
+  return strlen(buf) + 1;
+}
+
 uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3,
     uintptr_t arg4, uintptr_t arg5, uintptr_t arg6) {
   uintptr_t ret = 0;
@@ -281,11 +288,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_close: ret = close(user_fd(arg1)); break;
     case USER_SYS_munmap: ret = user_munmap(arg1, arg2); break;
     case USER_SYS_rt_sigaction: return 0; // not implemented
-    case USER_SYS_getcwd:
-          ret = (uintptr_t)getcwd(user_to_host(arg1), arg2);
-          assert(ret != 0); // should success
-          ret = strlen(user_to_host(arg1)) + 1;
-          break;
+    case USER_SYS_getcwd: ret = user_getcwd(user_to_host(arg1), arg2); break;
     case USER_SYS_mremap: ret = user_mremap(arg1, arg2, arg3, arg4, arg5); break;
     case USER_SYS_getuid: return getuid();
     case USER_SYS_getgid: return getgid();
