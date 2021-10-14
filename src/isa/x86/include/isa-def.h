@@ -66,18 +66,15 @@ typedef struct {
   };
 
   vaddr_t pc;
-  uint32_t eflags;
-
-  rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
-
-  uint64_t fpr[8];
   rtlreg_t ftop;
+  uint64_t fpr[8];
   rtlreg_t fsw,fcw;
   
 #ifdef CONFIG_x86_CC_LAZY
   rtlreg_t cc_dest, cc_src1, cc_src2;
   uint32_t cc_width, cc_op, cc_dirty, cc_dynamic;
 #endif
+  rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 
   union {
     __uint128_t _128;

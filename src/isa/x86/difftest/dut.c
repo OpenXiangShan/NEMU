@@ -12,6 +12,16 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._32, cpu.gpr[i]._32);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
+    for (i = 0; i < ARRLEN(cpu.fpr); i ++) {
+      uint64_t ref = ref_r->fpr[i], dut = cpu.fpr[i];
+      if (ref != dut) {
+        Log("fpr[%d] is different after executing instruction at pc = " FMT_WORD
+            ", right = 0x%lx, wrong = 0x%lx", i, pc, ref, dut);
+      }
+    }
+    difftest_check_reg("ftop", pc, ref_r->ftop, cpu.ftop);
+    difftest_check_reg("fsw", pc, ref_r->fsw, cpu.fsw);
+    difftest_check_reg("fcw", pc, ref_r->fcw, cpu.fcw);
     return false;
   }
   return true;
