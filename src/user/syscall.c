@@ -16,6 +16,7 @@
 #include <sys/uio.h>
 #include <sys/resource.h>
 #include <fcntl.h>
+#include <termios.h>
 #include <cpu/difftest.h>
 
 #include "user.h"
@@ -198,6 +199,7 @@ static word_t user_sys_llseek(int fd, uint32_t offset_high,
   off_t ret = lseek(fd, ((off_t)offset_high << 32) | offset_low, whence);
   if (ret != (off_t)-1) {
     *result = ret;
+    difftest_memcpy_to_ref(result, sizeof(*result));
     return 0;
   }
   return -1;
@@ -212,6 +214,15 @@ static word_t user_getrlimit(int resource, void *rlim) {
   int ret = getrlimit(resource, &host_rlim);
   assert(ret == 0);
   translate_rlimit(&host_rlim, rlim);
+  return ret;
+}
+
+static word_t user_ioctl(int fd, unsigned long request, uintptr_t p) {
+  assert(request == 0x5401); // TCGETS
+  word_t ret = ioctl(fd, request, p);
+  if (ret == 0) {
+    difftest_memcpy_to_ref((void *)p, sizeof(struct termios));
+  }
   return ret;
 }
 
@@ -281,7 +292,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_geteuid: return geteuid();
     case USER_SYS_getegid: return getegid();
     case USER_SYS_getpid: return getpid();
-    case USER_SYS_ioctl: ret = ioctl(user_fd(arg1), arg2, arg3); break;
+    case USER_SYS_ioctl: ret = user_ioctl(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_fcntl: ret = fcntl(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_mprotect: ret = user_sys_mprotect(user_to_host(arg1), arg2, arg3); break;
 #ifdef CONFIG_ISA64
