@@ -43,7 +43,8 @@ static def_rtl(setrelop_or_jrelop, CCop *op) {
 static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
   rtlreg_t *p = NULL;
   rtlreg_t *tmp = (op->type == CCTYPE_SETCC ? op->dest : s2);
-  int exception = (cpu.cc_op == LAZYCC_SUB) && (cc == CC_E || cc == CC_NE);
+  int exception = (cpu.cc_op == LAZYCC_SUB || cpu.cc_op == LAZYCC_FCMP || cpu.cc_op == LAZYCC_FCMP_SAME)
+    && (cc == CC_E || cc == CC_NE);
   assert(cc2relop[cc] != 0);
   if ((cc2relop[cc] & UNARY) && !exception) {
     p = &cpu.cc_dest;
@@ -54,6 +55,11 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       p = tmp;
     }
     if (cc == CC_P || cc == CC_NP) {
+      if (cpu.cc_op == LAZYCC_FCMP || cpu.cc_op == LAZYCC_FCMP_SAME) {
+        op->relop = (cc == CC_P ? RELOP_FALSE : RELOP_TRUE);
+        rtl_setrelop_or_jrelop(s, op);
+        return;
+      }
       // start:                     p  = ????76543210
       rtl_srli(s, t0, p, 4);    //  t0 =     ????7654
       rtl_xor(s, t0, t0, p);    //  t0 =    ????(7^3)(6^2)(5^1)(4^0)
@@ -396,9 +402,29 @@ shift_right_cf:
           return;
       }
       break;
-    default: panic("unhandle cc_op = %d", cpu.cc_op);
+    case LAZYCC_FCMP:
+      switch (cc) {
+        case CC_B:   rtl_fltd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
+        case CC_BE:  rtl_fled(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
+        case CC_NB:  rtl_fled(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
+        case CC_NBE: rtl_fltd(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
+        fcmp_check_jcc:
+          if (op->type == CCTYPE_JCC) {
+            op->relop = RELOP_NE;
+            op->src1 = tmp;
+            op->src2 = rz;
+          }
+          return;
+      }
+      break;
+    case LAZYCC_FCMP_SAME:
+      switch (cc) {
+        case CC_NE: op->relop = RELOP_FALSE; return;
+      }
+      break;
+    default: panic("unhandle cc_op = %d at pc = " FMT_WORD, cpu.cc_op, s->pc);
   }
-  panic("unhandle cc_op = %d, cc = %d", cpu.cc_op, cc);
+  panic("unhandle cc_op = %d, cc = %d at pc = " FMT_WORD, cpu.cc_op, cc, s->pc);
 #if 0
 negcc_reverse:
     if NEGCC(cc) rtl_xori(s, dest, dest, 1);

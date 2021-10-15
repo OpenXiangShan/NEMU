@@ -182,31 +182,6 @@ static inline def_rtl(fsm, const fpreg_t *src1, const rtlreg_t* addr,
   }
 }
 
-static inline def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
-  if (src1 == src2) {
-    rtl_set_CF(s, rz);
-    rtl_li(s, t0, 1);
-  } else {
-    rtl_fltd(s, t0, src1, src2);
-    rtl_set_CF(s, t0);
-    rtl_feqd(s, t0, src1, src2);
-  }
-  rtl_set_ZF(s, t0);
-  rtl_set_PF(s, rz);
-}
-
-static inline def_rtl(fcmp_fsw, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
-  if (src1 == src2) {
-    rtl_li(s, dest, 0x1000);
-  } else {
-    rtl_feqd(s, t0, src1, src2);
-    rtl_slli(s, dest, t0, 6);
-    rtl_fltd(s, t0, src1, src2);
-    rtl_or(s, dest, dest, t0);
-    rtl_slli(s, dest, dest, 8);
-  }
-}
-
 #else
 #define def_rtl_setget_eflags(f) \
   static inline def_rtl(concat(set_, f), const rtlreg_t* src) { \

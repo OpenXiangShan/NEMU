@@ -1,3 +1,6 @@
+def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2);
+def_rtl(fcmp_fsw, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2);
+
 def_EHelper(fucomi) {
   rtl_fcmp(s, dfsrc1, dfdest);
 }

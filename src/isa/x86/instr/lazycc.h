@@ -5,18 +5,10 @@
 
 #ifdef CONFIG_x86_CC_LAZY
 enum {
-  LAZYCC_ADD,
-  LAZYCC_SUB,
-  LAZYCC_INC,
-  LAZYCC_DEC,
-  LAZYCC_NEG,
-  LAZYCC_ADC,
-  LAZYCC_SBB,
-  LAZYCC_LOGIC,
-  LAZYCC_SHL,
-  LAZYCC_SHR,
-  LAZYCC_SAR,
-  LAZYCC_BT,
+  LAZYCC_ADD, LAZYCC_SUB, LAZYCC_INC, LAZYCC_DEC,
+  LAZYCC_NEG, LAZYCC_ADC, LAZYCC_SBB, LAZYCC_LOGIC,
+  LAZYCC_SHL, LAZYCC_SHR, LAZYCC_SAR, LAZYCC_BT,
+  LAZYCC_FCMP, LAZYCC_FCMP_SAME,
 };
 
 static inline def_rtl(set_lazycc_dest, const rtlreg_t *dest) {
@@ -39,6 +31,13 @@ static inline def_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, co
   cpu.cc_op = cc_op;
   cpu.cc_width = width;
   cpu.cc_dirty = true;
+}
+
+static inline def_rtl(fp_set_lazycc, const fpreg_t *dest, const fpreg_t *src1, uint32_t cc_op) {
+  rtl_fmv(s, &cpu.cc_fp_dest, dest);
+  if (src1 != NULL) rtl_fmv(s, &cpu.cc_fp_src1, src1);
+  cpu.cc_op = cc_op;
+  IFDEF(CONFIG_ENGINE_SDITRAN, cpu.cc_dirty = true);
 }
 
 static inline void clean_lazycc() {

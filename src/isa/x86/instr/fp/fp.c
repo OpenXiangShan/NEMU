@@ -31,3 +31,42 @@ uint32_t isa_fp_get_rm(Decode *s) {
 void isa_fp_set_ex(uint32_t ex) {
   assert(0);
 }
+
+#include "../lazycc.h"
+
+def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
+#ifdef CONFIG_x86_CC_LAZY
+  assert(s->isa.flag_def != 0);
+  if (src1 == src2) {
+    rtl_fp_set_lazycc(s, src1, NULL, LAZYCC_FCMP_SAME);
+  } else {
+    rtl_fp_set_lazycc(s, src1, src2, LAZYCC_FCMP);
+  }
+#else
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  if (need_update_eflags) {
+    if (src1 == src2) {
+      rtl_set_CF(s, rz);
+      rtl_li(s, t0, 1);
+    } else {
+      rtl_fltd(s, t0, src1, src2);
+      rtl_set_CF(s, t0);
+      rtl_feqd(s, t0, src1, src2);
+    }
+    rtl_set_ZF(s, t0);
+    rtl_set_PF(s, rz);
+  }
+#endif
+}
+
+def_rtl(fcmp_fsw, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
+  if (src1 == src2) {
+    rtl_li(s, dest, 0x1000);
+  } else {
+    rtl_feqd(s, t0, src1, src2);
+    rtl_slli(s, dest, t0, 6);
+    rtl_fltd(s, t0, src1, src2);
+    rtl_or(s, dest, dest, t0);
+    rtl_slli(s, dest, dest, 8);
+  }
+}
