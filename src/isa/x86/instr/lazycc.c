@@ -43,8 +43,11 @@ static def_rtl(setrelop_or_jrelop, CCop *op) {
 static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
   rtlreg_t *p = NULL;
   rtlreg_t *tmp = (op->type == CCTYPE_SETCC ? op->dest : s2);
+  int invert = cc & 0x1;
+  uint32_t origin_cc = cc;
+  cc &= ~0x1;
   int exception = (cpu.cc_op == LAZYCC_SUB || cpu.cc_op == LAZYCC_FCMP || cpu.cc_op == LAZYCC_FCMP_SAME)
-    && (cc == CC_E || cc == CC_NE);
+    && cc == CC_E;
   exception |= cpu.cc_op == LAZYCC_POPF;
   if ((cc2relop[cc] & UNARY) && !exception) {
     p = &cpu.cc_dest;
@@ -54,9 +57,9 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
       p = tmp;
     }
-    if (cc == CC_P || cc == CC_NP) {
+    if (cc == CC_P) {
       if (cpu.cc_op == LAZYCC_FCMP || cpu.cc_op == LAZYCC_FCMP_SAME) {
-        op->relop = (cc == CC_P ? RELOP_FALSE : RELOP_TRUE);
+        op->relop = (invert ? RELOP_TRUE : RELOP_FALSE);
         rtl_setrelop_or_jrelop(s, op);
         return;
       }
@@ -68,18 +71,18 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       rtl_srli(s, tmp, t0, 1);  // tmp =                      ?    (7^3^5^1)
       rtl_xor(s, t0, t0, tmp);  //  t0 =                      ?    (7^6^5^4^3^2^1^0)
       rtl_andi(s, tmp, t0, 1);  // tmp = !PF
-      op->relop = (cc == CC_P ? RELOP_EQ : RELOP_NE);
+      op->relop = (invert ? RELOP_NE : RELOP_EQ);
       op->src1 = tmp;
       op->src2 = rz;
       rtl_setrelop_or_jrelop(s, op);
       return;
     }
-    int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E || cc == CC_NE);
+    int exception = (cpu.cc_op == LAZYCC_LOGIC) && (cc == CC_E);
     if (cpu.cc_width != 4 && !exception) {
       rtl_slli(s, tmp, p, 32 - cpu.cc_width * 8);
       p = tmp;
     }
-    op->relop = cc2relop[cc] ^ UNARY;
+    op->relop = cc2relop[origin_cc] ^ UNARY;
     op->src1 = p;
     op->src2 = rz;
     rtl_setrelop_or_jrelop(s, op);
@@ -89,18 +92,18 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
   switch (cpu.cc_op) {
     case LAZYCC_ADD:
       switch (cc) {
-        case CC_O: case CC_NO:
+        case CC_O:
           rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, tmp, &cpu.cc_dest, &cpu.cc_src1, tmp, cpu.cc_width);
           if (op->type == CCTYPE_JCC) {
-            op->relop = (cc == CC_NO ? RELOP_EQ : RELOP_NE);
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
             op->src1 = tmp;
             op->src2 = rz;
           } else {
-            if (cc == CC_NO) rtl_xori(s, tmp, tmp, 1);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
           }
           return;
-        case CC_LE: case CC_NLE:
+        case CC_LE:
 #if 0
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_add_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
@@ -112,7 +115,7 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           goto negcc_reverse;
           return;
 #endif
-        case CC_BE: case CC_NBE:
+        case CC_BE:
 #if 0
           MASKDEST(s0);
           rtl_is_add_carry(s, s1, p, &cpu.cc_src1);
@@ -123,8 +126,8 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
 #endif
           panic("TODO: pc = 0x%x", s->pc);
         default:
-          if (cc2relop[cc] != 0) {
-            op->relop = cc2relop[cc];
+          if (cc2relop[origin_cc] != 0) {
+            op->relop = cc2relop[origin_cc];
             op->src1 = &cpu.cc_dest;
             op->src2 = &cpu.cc_src1;
             rtl_setrelop_or_jrelop(s, op);
@@ -134,23 +137,23 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_SUB:
       switch (cc) {
-        case CC_O: case CC_NO:
+        case CC_O:
           rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
           rtl_is_sub_overflow(s, tmp, tmp, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
           if (op->type == CCTYPE_JCC) {
-            op->relop = (cc == CC_NO ? RELOP_EQ : RELOP_NE);
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
             op->src1 = tmp;
             op->src2 = rz;
           } else {
-            if (cc == CC_NO) rtl_xori(s, tmp, tmp, 1);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
           }
           return;
         default:
-          if (cc2relop[cc] != 0) {
+          if (cc2relop[origin_cc] != 0) {
             rtlreg_t *pdest = &cpu.cc_dest;
             rtlreg_t *psrc1 = &cpu.cc_src1;
             if (cpu.cc_width != 4) {
-              if (cc == CC_L || cc == CC_NL || cc == CC_LE || cc == CC_NLE) {
+              if (cc == CC_L || cc == CC_LE) {
                 rtl_slli(s, tmp, pdest, 32 - cpu.cc_width * 8);
                 rtl_slli(s, t0,  psrc1, 32 - cpu.cc_width * 8);
                 pdest = tmp;
@@ -158,7 +161,7 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
               }
             }
             //rtl_setrelop(s, cc2relop[cc] & 0xf, dest, &cpu.cc_dest, &cpu.cc_src1);
-            op->relop = cc2relop[cc] & 0xf;
+            op->relop = cc2relop[origin_cc] & 0xf;
             op->src1 = pdest;
             op->src2 = psrc1;
             rtl_setrelop_or_jrelop(s, op);
@@ -168,8 +171,8 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_NEG:
       switch (cc) {
-        case CC_B: //case CC_NB:
-          op->relop = RELOP_NE;
+        case CC_B:
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           op->src1 = &cpu.cc_dest;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -202,8 +205,8 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_INC:
       switch (cc) {
-        case CC_B: case CC_NB: // CF is already stored in cpu.cc_src1
-          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+        case CC_B: // CF is already stored in cpu.cc_src1
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           op->src1 = &cpu.cc_src1;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -231,8 +234,8 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_DEC:
       switch (cc) {
-        case CC_B: case CC_NB:  // CF is already stored in cpu.cc_src1
-          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+        case CC_B: // CF is already stored in cpu.cc_src1
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           op->src1 = &cpu.cc_src1;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -262,16 +265,16 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_ADC:
       switch (cc) {
-        case CC_B: case CC_NB:
+        case CC_B:
           rtl_is_add_carry(s, s0, &cpu.cc_src1, &cpu.cc_src2);
           rtl_is_add_carry(s, s1, &cpu.cc_dest, &cpu.cc_src1);
           rtl_or(s, tmp, s0, s1);
           if (op->type == CCTYPE_JCC) {
-            op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
             op->src1 = tmp;
             op->src2 = rz;
           } else {
-            if (cc == CC_NB) rtl_xori(s, tmp, tmp, 1);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
           }
           return;
 #if 0
@@ -311,29 +314,29 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_SBB:
       switch (cc) {
-        case CC_B: case CC_NB:
+        case CC_B:
           rtl_sub(s, s0, &cpu.cc_src1, &cpu.cc_dest);
           rtl_is_add_carry(s, s0, s0, &cpu.cc_src2);
           rtl_is_sub_carry(s, s1, &cpu.cc_src1, &cpu.cc_dest);
           rtl_or(s, tmp, s0, s1);
           if (op->type == CCTYPE_JCC) {
-            op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
             op->src1 = tmp;
             op->src2 = rz;
           } else {
-            if (cc == CC_NB) rtl_xori(s, tmp, tmp, 1);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
           }
           return;
-        case CC_L: case CC_NL:
+        case CC_L:
           rtl_is_sub_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
           rtl_xor(s, tmp, s0, s1);
           if (op->type == CCTYPE_JCC) {
-            op->relop = (cc == CC_NL ? RELOP_EQ : RELOP_NE);
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
             op->src1 = tmp;
             op->src2 = rz;
           } else {
-            if (cc == CC_NL) rtl_xori(s, tmp, tmp, 1);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
           }
           return;
 #if 0
@@ -364,8 +367,8 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_LOGIC:
       switch (cc) {
-        case CC_P: case CC_NP: panic("should not reach here");
-        case CC_LE: case CC_NLE: case CC_L: case CC_NL:
+        case CC_P: panic("should not reach here");
+        case CC_LE: case CC_L:
           p = &cpu.cc_dest;
           if (cpu.cc_width != 4) {
             rtl_slli(s, tmp, p, 32 - cpu.cc_width * 8);
@@ -373,7 +376,7 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
           }
         default:
           if (p != tmp) p = &cpu.cc_dest;
-          op->relop = cc2relop_logic[cc];
+          op->relop = cc2relop_logic[origin_cc];
           op->src1 = p;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -382,9 +385,9 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_SHL:
       switch (cc) {
-        case CC_B: case CC_NB:
+        case CC_B:
           rtl_msb(s, tmp, &cpu.cc_src1, cpu.cc_width);
-          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           op->src1 = tmp;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -393,10 +396,10 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_SHR:
       switch (cc) {
-        case CC_B: case CC_NB:
+        case CC_B:
 shift_right_cf:
           rtl_andi(s, tmp, &cpu.cc_src1, 0x1);
-          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           op->src1 = tmp;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -405,14 +408,13 @@ shift_right_cf:
       break;
     case LAZYCC_SAR:
       switch (cc) {
-        case CC_B: case CC_NB:
-          goto shift_right_cf;
+        case CC_B: goto shift_right_cf;
       }
       break;
     case LAZYCC_BT:
       switch (cc) {
-        case CC_B: case CC_NB:
-          op->relop = (cc == CC_NB ? RELOP_EQ : RELOP_NE);
+        case CC_B:
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           // cc_dest == rz --> CF = 0 -> CC_NB
           op->src1 = &cpu.cc_dest;
           op->src2 = rz;
@@ -422,37 +424,39 @@ shift_right_cf:
       break;
     case LAZYCC_FCMP:
       switch (cc) {
-        case CC_E: case CC_NE: rtl_feqd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1);
+        case CC_E: rtl_feqd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1);
           if (op->type == CCTYPE_SETCC) {
-            if (cc == CC_NE) rtl_xori(s, tmp, tmp, 1);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
           } else {
-            op->relop = (cc == CC_NE ? RELOP_EQ : RELOP_NE);
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
             op->src1 = tmp;
             op->src2 = rz;
           }
           return;
-        case CC_B:   rtl_fltd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
-        case CC_BE:  rtl_fled(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
-        case CC_NB:  rtl_fled(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
-        case CC_NBE: rtl_fltd(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
-        fcmp_check_jcc:
-          if (op->type == CCTYPE_JCC) {
-            op->relop = RELOP_NE;
-            op->src1 = tmp;
-            op->src2 = rz;
+        default: switch (origin_cc) {
+          case CC_B:   rtl_fltd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
+          case CC_BE:  rtl_fled(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
+          case CC_NB:  rtl_fled(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
+          case CC_NBE: rtl_fltd(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
+          fcmp_check_jcc:
+            if (op->type == CCTYPE_JCC) {
+              op->relop = RELOP_NE;
+              op->src1 = tmp;
+              op->src2 = rz;
+            }
+            return;
           }
-          return;
       }
       break;
     case LAZYCC_FCMP_SAME:
       switch (cc) {
-        case CC_NE: op->relop = RELOP_FALSE; return;
+        case CC_E: op->relop = (invert ? RELOP_FALSE : RELOP_TRUE); return;
       }
       break;
     case LAZYCC_MUL:
       switch (cc) {
         case CC_O:
-          op->relop = RELOP_NE;
+          op->relop = (invert ? RELOP_EQ : RELOP_NE);
           op->src1 = &cpu.cc_dest;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -461,18 +465,15 @@ shift_right_cf:
       break;
     case LAZYCC_POPF: {
       int shift = 0;
-      int invert = 0;
       switch (cc) {
-        case CC_O:   shift = 11; goto popf_check_jcc;
-        case CC_B:   shift = 0;  goto popf_check_jcc;
-        case CC_NB:  shift = 0;  invert = 1; goto popf_check_jcc;
-        case CC_E:   shift = 6;  goto popf_check_jcc;
-        case CC_NE:  shift = 6;  invert = 1; goto popf_check_jcc;
-        case CC_P:   shift = 2;  goto popf_check_jcc;
-        case CC_S:   shift = 7;  goto popf_check_jcc;
-        case CC_NBE: rtl_srli(s, tmp, &cpu.cc_dest, 6);  // move ZF to bit 0 (CF)
-                     rtl_or(s, tmp, tmp, &cpu.cc_dest);
-                     shift = 0;  invert = 1; goto popf_check_jcc;
+        case CC_O:  shift = 11; goto popf_check_jcc;
+        case CC_B:  shift = 0;  goto popf_check_jcc;
+        case CC_E:  shift = 6;  goto popf_check_jcc;
+        case CC_P:  shift = 2;  goto popf_check_jcc;
+        case CC_S:  shift = 7;  goto popf_check_jcc;
+        case CC_BE: rtl_srli(s, tmp, &cpu.cc_dest, 6);  // move ZF to bit 0 (CF)
+                    rtl_or(s, tmp, tmp, &cpu.cc_dest);
+                    shift = 0;  goto popf_check_jcc;
         popf_check_jcc:
           rtl_andi(s, tmp, &cpu.cc_dest, 1 << shift);
           if (op->type == CCTYPE_JCC) {
@@ -485,16 +486,12 @@ shift_right_cf:
           }
           return;
       }
-   }
+    }
       break;
     default: panic("unhandle cc_op = %d at pc = " FMT_WORD, cpu.cc_op, s->pc);
   }
-  panic("unhandle cc_op = %d, cc = %d at pc = " FMT_WORD, cpu.cc_op, cc, s->pc);
-#if 0
-negcc_reverse:
-    if NEGCC(cc) rtl_xori(s, dest, dest, 1);
-#endif
-    return;
+  panic("unhandle cc_op = %d, cc = %d at pc = " FMT_WORD, cpu.cc_op, origin_cc, s->pc);
+  return;
 }
 
 def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc) {
