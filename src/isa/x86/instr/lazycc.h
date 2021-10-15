@@ -54,6 +54,7 @@ typedef struct {
   const rtlreg_t *src1, *src2;
   int type;
   int relop;
+  int invert;
 } CCop;
 
 def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc);
