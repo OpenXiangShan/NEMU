@@ -220,28 +220,42 @@ def_EHelper(mul) {
     case 1:
       rtl_lr(s, s0, R_EAX, 1);
       rtl_mulu_lo(s, s1, ddest, s0);
-#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
+#if !defined(CONFIG_PA)
+#ifdef CONFIG_x86_CC_LAZY
+      if (s->isa.flag_def != 0) {
+        rtl_andi(s, s0, s1, 0xff00);
+        rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_MUL, s->isa.width);
+      }
+#else
       if (need_update_eflags) {
-        rtl_update_ZFSF(s, s1, s->isa.width);
         rtl_andi(s, s0, s1, 0xff00);
         rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
         rtl_set_OF(s, s0);
         rtl_set_CF(s, s0);
+        rtl_update_ZFSF(s, s1, s->isa.width);
       }
+#endif
 #endif
       rtl_sr(s, R_AX, s1, 2);
       break;
     case 2:
       rtl_lr(s, s0, R_EAX, 2);
       rtl_mulu_lo(s, s1, ddest, s0);
-#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
+#if !defined(CONFIG_PA)
+#ifdef CONFIG_x86_CC_LAZY
+      if (s->isa.flag_def != 0) {
+        rtl_srli(s, s0, s1, 16);
+        rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_MUL, s->isa.width);
+      }
+#else
       if (need_update_eflags) {
-        rtl_update_ZFSF(s, s1, s->isa.width);
         rtl_srli(s, s0, s1, 16);
         rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
         rtl_set_OF(s, s0);
         rtl_set_CF(s, s0);
+        rtl_update_ZFSF(s, s1, s->isa.width);
       }
+#endif
 #endif
       rtl_sr(s, R_AX, s1, 2);
       rtl_srli(s, s1, s1, 16);
@@ -255,13 +269,19 @@ def_EHelper(mul) {
       }
       rtl_mulu_hi(s, &cpu.edx, pdest, &cpu.eax);
       rtl_mulu_lo(s, &cpu.eax, pdest, &cpu.eax);
-#if !defined(CONFIG_PA) && !defined(CONFIG_x86_CC_LAZY)
+#if !defined(CONFIG_PA)
+#ifdef CONFIG_x86_CC_LAZY
+      if (s->isa.flag_def != 0) {
+        rtl_set_lazycc(s, &cpu.edx, NULL, NULL, LAZYCC_MUL, s->isa.width);
+      }
+#else
       if (need_update_eflags) {
-        rtl_update_ZFSF(s, &cpu.eax, s->isa.width);
         rtl_setrelopi(s, RELOP_NE, s0, &cpu.edx, 0);
         rtl_set_OF(s, s0);
         rtl_set_CF(s, s0);
+        rtl_update_ZFSF(s, &cpu.eax, s->isa.width);
       }
+#endif
 #endif
       break;
     default: assert(0);

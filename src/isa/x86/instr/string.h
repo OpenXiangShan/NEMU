@@ -59,20 +59,31 @@ def_EHelper(repz_cmps) {
     rtl_slli(s, s0, s0, get_shift(s->isa.width));
     rtl_add(s, &cpu.esi, &cpu.esi, s0);
     rtl_add(s, &cpu.edi, &cpu.edi, s0);
-
-    rtl_sub(s, s0, &id_src1->val, &id_dest->val);
-    rtl_update_ZFSF(s, s0, s->isa.width);
-    rtl_is_sub_carry(s, s1, &id_src1->val, &id_dest->val);
-    rtl_set_CF(s, s1);
-    rtl_is_sub_overflow(s, s0, s0, &id_src1->val, &id_dest->val, s->isa.width);
-    rtl_set_OF(s, s0);
-
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
   }
 
 //  if ((cpu.ecx != 0 && cpu.ZF)) rtl_j(s, cpu.pc);
   rtl_setrelop(s, RELOP_NE, s0, &cpu.ecx, rz);
-  rtl_and(s, s0, s0, &cpu.ZF);
+  rtl_setrelop(s, RELOP_EQ, s1, &id_src1->val, &id_dest->val);
+  rtl_and(s, s0, s0, s1);
+  if (!*s0) {
+    // exit the loop
+#ifdef CONFIG_x86_CC_LAZY
+    if (s->isa.flag_def != 0) {
+      rtl_set_lazycc(s, &id_src1->val, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
+    }
+#else
+    int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+    if (need_update_eflags) {
+      rtl_is_sub_carry(s, s1, &id_src1->val, &id_dest->val);
+      rtl_set_CF(s, s1);
+      rtl_sub(s, s1, &id_src1->val, &id_dest->val);
+      rtl_update_ZFSF(s, s1, s->isa.width);
+      rtl_is_sub_overflow(s, s1, s1, &id_src1->val, &id_dest->val, s->isa.width);
+      rtl_set_OF(s, s1);
+    }
+#endif
+  }
   rtl_jrelop(s, RELOP_NE, s0, rz, s->pc);
 }
 
