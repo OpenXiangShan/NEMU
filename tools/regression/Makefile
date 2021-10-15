@@ -42,7 +42,7 @@ run-x86-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-x86.elf)
 	$(MAKE) -C ./tests/float-test ISA=x86
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/float-test/build/float-test-x86.elf)
-	LOADER="$(RUN_X86_USER)" $(MAKE) -C ~/sdi/spec2006-lite-i386/429.mcf run-test
+	LOADER="$(RUN_X86_USER)" $(MAKE) -C ~/sdi/spec2006-lite-i386 run-all-test
 
 run-mips32: reset-config
 	$(MAKE) -C $(NEMU_HOME) mips32-difftest_defconfig

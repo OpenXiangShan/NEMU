@@ -37,6 +37,7 @@
 #define USER_SYS_clock_gettime 265
 #define USER_SYS_openat 295
 #define USER_SYS_prlimit64 340
+#define USER_SYS_clock_gettime64 403
 
 
 struct user_stat64 {
@@ -79,7 +80,6 @@ static inline void translate_stat64(struct stat *hostbuf, struct user_stat64 *us
   userbuf->target_st_ctime = hostbuf->st_ctime;
   userbuf->target_st_ctime_nsec = hostbuf->st_ctim.tv_nsec;
   userbuf->st_ino = hostbuf->st_ino;
-
   difftest_memcpy_to_ref(userbuf, sizeof(*userbuf));
 }
 
@@ -214,6 +214,7 @@ static inline void translate_rusage(struct rusage *host_usage, struct user_rusag
   user_usage->ru_nsignals = host_usage->ru_nsignals;
   user_usage->ru_nvcsw    = host_usage->ru_nvcsw;
   user_usage->ru_nivcsw   = host_usage->ru_nivcsw;
+  difftest_memcpy_to_ref(user_usage, sizeof(*user_usage));
 }
 
 struct user_rlimit {
@@ -222,6 +223,7 @@ struct user_rlimit {
 };
 
 static inline void translate_rlimit(struct rlimit *host_rlim, struct user_rlimit *user_rlim) {
+  assert(0);
   user_rlim->rlim_cur = host_rlim->rlim_cur;
   user_rlim->rlim_max = host_rlim->rlim_max;
   difftest_memcpy_to_ref(user_rlim, sizeof(*user_rlim));

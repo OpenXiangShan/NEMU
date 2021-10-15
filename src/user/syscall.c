@@ -249,8 +249,12 @@ static word_t user_set_thread_area(void *u_info) {
 
 static word_t user_prlimit64(pid_t pid, int resource,
     const void *new_limit, void *old_limit) {
-  return prlimit(pid, (enum __rlimit_resource) resource,
-          (const struct rlimit *) new_limit, (struct rlimit *) old_limit);
+  int ret = prlimit(pid, (enum __rlimit_resource) resource,
+      (const struct rlimit *) new_limit, (struct rlimit *) old_limit);
+  if (old_limit != NULL) {
+    difftest_memcpy_to_ref(old_limit, sizeof(struct rlimit));
+  }
+  return ret;
 }
 
 static word_t user_time(time_t *tloc) {
@@ -329,6 +333,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_unlink: ret = unlink(user_to_host(arg1)); break;
     case USER_SYS_ftruncate64: ret = user_ftruncate64(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_getrlimit: ret = user_getrlimit(arg1, user_to_host(arg2)); break;
+    case USER_SYS_clock_gettime64: ret = -38; break; // Function not implemented
 #endif
     default: panic("Unsupported syscall ID = %ld", id);
   }
