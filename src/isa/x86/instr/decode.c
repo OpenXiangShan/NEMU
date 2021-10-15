@@ -74,7 +74,7 @@ static const struct {
   [EXEC_ID_xor] = { F_ALL, 0 },
   [EXEC_ID_pushf] = { 0, F_ALL },
   [EXEC_ID_popf] = { F_ALL, 0 },
-  [EXEC_ID_sahf] = { 0, F_ALL & ~F_OF },
+  [EXEC_ID_sahf] = { F_OF, F_ALL & ~F_OF },
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
   [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`

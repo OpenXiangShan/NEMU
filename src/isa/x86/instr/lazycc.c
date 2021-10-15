@@ -45,6 +45,7 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
   rtlreg_t *tmp = (op->type == CCTYPE_SETCC ? op->dest : s2);
   int exception = (cpu.cc_op == LAZYCC_SUB || cpu.cc_op == LAZYCC_FCMP || cpu.cc_op == LAZYCC_FCMP_SAME)
     && (cc == CC_E || cc == CC_NE);
+  exception |= cpu.cc_op == LAZYCC_POPF;
   if ((cc2relop[cc] & UNARY) && !exception) {
     p = &cpu.cc_dest;
     if (cpu.cc_op == LAZYCC_SUB) {
@@ -89,12 +90,16 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
     case LAZYCC_ADD:
       switch (cc) {
         case CC_O: case CC_NO:
-#if 0
-          rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_is_add_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, dest, cpu.cc_width);
-          goto negcc_reverse;
+          rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
+          rtl_is_add_overflow(s, tmp, &cpu.cc_dest, &cpu.cc_src1, tmp, cpu.cc_width);
+          if (op->type == CCTYPE_JCC) {
+            op->relop = (cc == CC_NO ? RELOP_EQ : RELOP_NE);
+            op->src1 = tmp;
+            op->src2 = rz;
+          } else {
+            if (cc == CC_NO) rtl_xori(s, tmp, tmp, 1);
+          }
           return;
-#endif
         case CC_LE: case CC_NLE:
 #if 0
           rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
@@ -130,12 +135,15 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
     case LAZYCC_SUB:
       switch (cc) {
         case CC_O: case CC_NO:
-          panic("TODO: pc = 0x%x", s->pc);
-#if 0
-          rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
-          rtl_is_sub_overflow(s, dest, dest, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
-          goto negcc_reverse;
-#endif
+          rtl_sub(s, tmp, &cpu.cc_dest, &cpu.cc_src1);
+          rtl_is_sub_overflow(s, tmp, tmp, &cpu.cc_dest, &cpu.cc_src1, cpu.cc_width);
+          if (op->type == CCTYPE_JCC) {
+            op->relop = (cc == CC_NO ? RELOP_EQ : RELOP_NE);
+            op->src1 = tmp;
+            op->src2 = rz;
+          } else {
+            if (cc == CC_NO) rtl_xori(s, tmp, tmp, 1);
+          }
           return;
         default:
           if (cc2relop[cc] != 0) {
@@ -316,15 +324,21 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
             if (cc == CC_NB) rtl_xori(s, tmp, tmp, 1);
           }
           return;
-#if 0
-        case CC_O: case CC_NO:
-          rtl_is_sub_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
-          goto negcc_reverse;
-          return;
         case CC_L: case CC_NL:
           rtl_is_sub_overflow(s, s0, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
           rtl_msb(s, s1, &cpu.cc_dest, cpu.cc_width);
-          rtl_xor(s, dest, s0, s1);
+          rtl_xor(s, tmp, s0, s1);
+          if (op->type == CCTYPE_JCC) {
+            op->relop = (cc == CC_NL ? RELOP_EQ : RELOP_NE);
+            op->src1 = tmp;
+            op->src2 = rz;
+          } else {
+            if (cc == CC_NL) rtl_xori(s, tmp, tmp, 1);
+          }
+          return;
+#if 0
+        case CC_O: case CC_NO:
+          rtl_is_sub_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
           goto negcc_reverse;
           return;
         case CC_LE: case CC_NLE:
@@ -350,6 +364,7 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
       break;
     case LAZYCC_LOGIC:
       switch (cc) {
+        case CC_P: case CC_NP: panic("should not reach here");
         case CC_LE: case CC_NLE: case CC_L: case CC_NL:
           p = &cpu.cc_dest;
           if (cpu.cc_width != 4) {
@@ -359,7 +374,6 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
         default:
           if (p != tmp) p = &cpu.cc_dest;
           op->relop = cc2relop_logic[cc];
-          assert(op->relop != 0);
           op->src1 = p;
           op->src2 = rz;
           rtl_setrelop_or_jrelop(s, op);
@@ -444,6 +458,34 @@ shift_right_cf:
           rtl_setrelop_or_jrelop(s, op);
           return;
       }
+      break;
+    case LAZYCC_POPF: {
+      int shift = 0;
+      int invert = 0;
+      switch (cc) {
+        case CC_O:   shift = 11; goto popf_check_jcc;
+        case CC_B:   shift = 0;  goto popf_check_jcc;
+        case CC_NB:  shift = 0;  invert = 1; goto popf_check_jcc;
+        case CC_E:   shift = 6;  goto popf_check_jcc;
+        case CC_NE:  shift = 6;  invert = 1; goto popf_check_jcc;
+        case CC_P:   shift = 2;  goto popf_check_jcc;
+        case CC_S:   shift = 7;  goto popf_check_jcc;
+        case CC_NBE: rtl_srli(s, tmp, &cpu.cc_dest, 6);  // move ZF to bit 0 (CF)
+                     rtl_or(s, tmp, tmp, &cpu.cc_dest);
+                     shift = 0;  invert = 1; goto popf_check_jcc;
+        popf_check_jcc:
+          rtl_andi(s, tmp, &cpu.cc_dest, 1 << shift);
+          if (op->type == CCTYPE_JCC) {
+            op->relop = (invert ? RELOP_EQ : RELOP_NE);
+            op->src1 = tmp;
+            op->src2 = rz;
+          } else {
+            if (shift)  rtl_srli(s, tmp, tmp, shift);
+            if (invert) rtl_xori(s, tmp, tmp, 1);
+          }
+          return;
+      }
+   }
       break;
     default: panic("unhandle cc_op = %d at pc = " FMT_WORD, cpu.cc_op, s->pc);
   }
