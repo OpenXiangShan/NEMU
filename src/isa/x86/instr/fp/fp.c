@@ -57,14 +57,16 @@ def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
 #endif
 }
 
-def_rtl(fcmp_fsw, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
+def_rtl(fcmp_fsw, const fpreg_t *src1, const fpreg_t *src2) {
   if (src1 == src2) {
-    rtl_li(s, dest, 0x1000);
+    rtl_li(s, s0, 0x1000);
   } else {
     rtl_feqd(s, t0, src1, src2);
-    rtl_slli(s, dest, t0, 6);
+    rtl_slli(s, s0, t0, 6);
     rtl_fltd(s, t0, src1, src2);
-    rtl_or(s, dest, dest, t0);
-    rtl_slli(s, dest, dest, 8);
+    rtl_or(s, s0, s0, t0);
+    rtl_slli(s, s0, s0, 8);
   }
+  rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700); // mask
+  rtl_or(s, &cpu.fsw, &cpu.fsw, s0);
 }
