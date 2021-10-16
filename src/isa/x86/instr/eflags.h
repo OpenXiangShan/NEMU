@@ -51,10 +51,8 @@ def_EHelper(cld) {
 }
 
 def_EHelper(std) {
-  IFNDEF(CONFIG_ENGINE_INTERPRETER, assert(0));
-  rtl_li(s, s0, -1);
+  rtl_li(s, s0, -1); // encoded value
   rtl_host_sm(s, &cpu.DF, s0, 4);
-//  rtl_set_DF(s, s0);
 }
 
 #if 0
