@@ -1,24 +1,24 @@
 def_EHelper(fld_const) {
   rtl_fpcall(s, FPCALL_LOADCONST, dfdest, NULL, NULL, id_src1->val);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(flds) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, dfdest, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
   rtl_fcvt_f32_to_f64(s, dfdest, dfdest);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(fldl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, dfdest, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(fld) {
   rtl_fmv(s, dfdest, dfsrc1);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(fstl) {
@@ -40,18 +40,18 @@ def_EHelper(fstps) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fcvt_f64_to_f32(s, &s->isa.fptmp, dfsrc1);
   rtl_fsm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fstpl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fsm(s, dfsrc1, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fstp) {
   rtl_fmv(s, dfdest, dfsrc1);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fxch) {
@@ -64,20 +64,20 @@ def_EHelper(filds) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_lms(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
   rtl_fcvt_i32_to_f64(s, dfdest, s0);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(fildl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_lm(s, s0, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
   rtl_fcvt_i32_to_f64(s, dfdest, s0);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(fildll) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fpcall(s, FPCALL_FILDLL, dfdest, NULL, &s->isa.mbr, s->isa.moff);
-  ftop_push();
+  ftop_update(s);
 }
 
 def_EHelper(fistl) {
@@ -90,20 +90,20 @@ def_EHelper(fistps) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fcvt_f64_to_i32(s, s0, dfsrc1);
   rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fistpl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fcvt_f64_to_i32(s, s0, dfsrc1);
   rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 4, MMU_DYNAMIC);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fistpll) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_fpcall(s, FPCALL_FISTLL, dfsrc1, NULL, &s->isa.mbr, s->isa.moff);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1);

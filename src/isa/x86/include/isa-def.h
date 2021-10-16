@@ -148,6 +148,7 @@ typedef struct {
   uint8_t flag_def;
   uint8_t flag_use;
   bool is_operand_size_16;
+  uint8_t ftop;
   const rtlreg_t *sreg_base;
   const rtlreg_t *mbase;
   const rtlreg_t *midx;

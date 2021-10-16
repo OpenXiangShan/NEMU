@@ -7,7 +7,7 @@ def_EHelper(fucomi) {
 
 def_EHelper(fucomip) {
   rtl_fcmp(s, dfsrc1, dfdest);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fcomi) {
@@ -16,17 +16,17 @@ def_EHelper(fcomi) {
 
 def_EHelper(fcomip) {
   rtl_fcmp(s, dfsrc1, dfdest);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fucomp) {
   rtl_fcmp_fsw(s, dfsrc1, dfdest);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fucompp) {
   rtl_fcmp_fsw(s, dfdest, dfsrc1);
-  ftop_pop2();
+  ftop_update(s);
 }
 
 def_EHelper(fcoml) {
@@ -39,5 +39,5 @@ def_EHelper(fcompl) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
   rtl_fcmp_fsw(s, dfdest, &s->isa.fptmp);
-  ftop_pop();
+  ftop_update(s);
 }

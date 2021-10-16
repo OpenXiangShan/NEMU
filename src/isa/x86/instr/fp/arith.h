@@ -17,7 +17,7 @@ def_EHelper(fadds) {
 
 def_EHelper(faddp) {
   rtl_faddd(s, dfdest, dfdest, dfsrc1);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fsub) {
@@ -39,7 +39,7 @@ def_EHelper(fsubs) {
 
 def_EHelper(fsubp) {
   rtl_fsubd(s, dfdest, dfdest, dfsrc1);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fsubr) {
@@ -61,7 +61,7 @@ def_EHelper(fsubrl) {
 
 def_EHelper(fsubrp) {
   rtl_fsubd(s, dfdest, dfsrc1, dfdest);
-  ftop_pop();
+  ftop_update(s);
 }
 
 
@@ -84,7 +84,7 @@ def_EHelper(fmuls) {
 
 def_EHelper(fmulp) {
   rtl_fmuld(s, dfdest, dfdest, dfsrc1);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fdiv) {
@@ -106,7 +106,7 @@ def_EHelper(fdivl) {
 
 def_EHelper(fdivp) {
   rtl_fdivd(s, dfdest, dfdest, dfsrc1);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fdivr) {
@@ -128,7 +128,7 @@ def_EHelper(fdivrl) {
 
 def_EHelper(fdivrp) {
   rtl_fdivd(s, dfdest, dfsrc1, dfdest);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fchs) {
@@ -162,7 +162,7 @@ def_EHelper(fscale) {
 def_EHelper(fyl2x) {
   rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, dfdest, NULL, 0);
   rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fyl2xp1) {
@@ -170,7 +170,7 @@ def_EHelper(fyl2xp1) {
   rtl_faddd(s, &s->isa.fptmp, &s->isa.fptmp, dfdest);
   rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, &s->isa.fptmp, NULL, 0);
   rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
-  ftop_pop();
+  ftop_update(s);
 }
 
 def_EHelper(fprem) {
@@ -180,5 +180,5 @@ def_EHelper(fprem) {
 
 def_EHelper(fpatan) {
   rtl_fpcall(s, FPCALL_ATAN, dfsrc1, dfdest, NULL, 0);
-  ftop_pop();
+  ftop_update(s);
 }
