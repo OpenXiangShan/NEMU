@@ -121,7 +121,12 @@ static void lazycc_add(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
 #endif
   }
   Assert(cc2relop_sub[cc] != 0, "unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
-  lazycc_codegen(s, op, false, cc2relop_sub[cc], &cpu.cc_dest, &cpu.cc_src1);
+  rtlreg_t *p = &cpu.cc_dest;
+  if (cpu.cc_width != 4) {
+    rtl_andi(s, tmp, &cpu.cc_dest, 0xffffffffu >> ((4 - cpu.cc_width) * 8));
+    p = tmp;
+  }
+  lazycc_codegen(s, op, false, cc2relop_sub[cc], p, &cpu.cc_src1);
 }
 
 static void lazycc_sub(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
