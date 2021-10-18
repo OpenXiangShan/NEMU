@@ -23,6 +23,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 void init_flash() {
   flash_base = new_space(CONFIG_FLASH_SIZE);
   const char *img = CONFIG_FLASH_IMG_PATH;
+  // const char *img = "/home52/whq/xs-env/nexus-am/tests/cputest/build/dummy-riscv64-noop.bin";
   fp = fopen(img, "r");
   if (fp == NULL) {
     Log("Can not find flash image: %s", img);
@@ -30,6 +31,14 @@ void init_flash() {
     flash_base = (uint8_t*) preset_flash;
   } else {
     __attribute__((unused)) int ret;
+    fseek(fp, 0, SEEK_END);
+    int size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    Assert(
+      size <= CONFIG_FLASH_SIZE,
+      "img size %d is larget than flash size %d",
+      size, CONFIG_FLASH_SIZE
+    );
     ret = fread(flash_base, 1, CONFIG_FLASH_SIZE, fp);
   }
   add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
