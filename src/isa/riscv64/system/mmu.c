@@ -305,7 +305,8 @@ int force_raise_pf(vaddr_t vaddr, int type){
 
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
-  uint32_t mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
+  __attribute__((unused)) uint32_t mode; 
+  mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
   // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
