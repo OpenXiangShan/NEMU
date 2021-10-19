@@ -1,25 +1,5 @@
-def_EHelper(fld1) {
-  rtl_fli(s, dfdest, 0x3ff0000000000000ull);
-  ftop_push();
-}
-
-def_EHelper(fldz) {
-  rtl_fli(s, dfdest, 0);
-  ftop_push();
-}
-
-def_EHelper(fldl2e) {
-  rtl_fli(s, dfdest, 0x3FF71547652B82FEull);
-  ftop_push();
-}
-
-def_EHelper(fldlg2) {
-  rtl_fli(s, dfdest, 0x3FD34413509F79FEull);
-  ftop_push();
-}
-
-def_EHelper(fldln2) {
-  rtl_fli(s, dfdest, 0x3FE62E42FEFA39EFull);
+def_EHelper(fld_const) {
+  rtl_fpcall(s, FPCALL_LOADCONST, dfdest, NULL, id_src1->val);
   ftop_push();
 }
 

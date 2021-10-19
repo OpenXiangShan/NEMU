@@ -20,6 +20,22 @@ static float64_t fpToF64(fpreg_t r) {
   return f;
 }
 
+static fpreg_t fpcall_load_const(int idx) {
+  static uint64_t table[] = {
+    0x3ff0000000000000ull, // 1.0
+    0x0,                   // FIXME: log2(10)
+    0x3FF71547652B82FEull, // log2(e)
+    0x0,                   // FIXME: pi
+    0x3FD34413509F79FEull, // lg(2)
+    0x3FE62E42FEFA39EFull, // ln(2)
+    0x0,                   // 0.0
+  };
+  assert(idx != 1);
+  assert(idx != 3);
+  assert(idx != 7);
+  return table[idx];
+}
+
 uint32_t isa_fp_get_rm(Decode *s);
 void isa_fp_set_ex(uint32_t ex);
 
@@ -171,7 +187,12 @@ def_rtl(fclassd, rtlreg_t *dest, const fpreg_t *src1) {
   *dest = 1 << ((int64_t)(*src1) < 0 ? 1 : 6);
 }
 
-def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
+def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src, uint32_t imm) {
+  if (id == FPCALL_LOADCONST) {
+    *dest = fpcall_load_const(imm);
+    return;
+  }
+
   // Some library floating point functions gives very small
   // rounding diffrerence between DUT and REF. This is strange.
   // But we deal with it by skip the guest instruction of REF.
@@ -180,12 +201,12 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const fpreg_t *
   switch (id) {
     case FPCALL_ROUNDINT:
       fp_update_rm(s);
-      *dest = fpcall_f64_roundToInt(fpToF64(*src1)).v;
+      *dest = fpcall_f64_roundToInt(fpToF64(*src)).v;
       break;
-    case FPCALL_POW2: *dest = fpcall_f64_pow2(fpToF64(*src1)).v; break;
-    case FPCALL_LOG2: *dest = fpcall_f64_log2(fpToF64(*src1)).v; break;
-    case FPCALL_MOD: *dest = fpcall_f64_mod(fpToF64(*src1), fpToF64(*src2)).v; break;
-    case FPCALL_ATAN: *dest = fpcall_f64_atan(fpToF64(*src1), fpToF64(*src2)).v; break;
+    case FPCALL_POW2: *dest = fpcall_f64_pow2(fpToF64(*src)).v; break;
+    case FPCALL_LOG2: *dest = fpcall_f64_log2(fpToF64(*src)).v; break;
+    case FPCALL_MOD: *dest = fpcall_f64_mod(fpToF64(*dest), fpToF64(*src)).v; break;
+    case FPCALL_ATAN: *dest = fpcall_f64_atan(fpToF64(*dest), fpToF64(*src)).v; break;
     default: panic("unsupport id = %d", id);
   }
 }

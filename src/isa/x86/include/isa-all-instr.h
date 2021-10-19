@@ -14,7 +14,6 @@
   f(cpuid) f(rdtsc) \
   f(fchs) f(fabs) f(fsqrt) f(fxam) f(f2xm1) f(frndint) \
   f(fscale) f(fyl2x) f(fyl2xp1) f(fprem) f(fpatan) \
-  f(fld1) f(fldl2e) f(fldlg2) f(fldln2) f(fldz) \
   f(fnstsw) f(fwait) f(fucomp) f(fucompp) \
   f(call) f(jcc) f(jmp) f(setcc) f(call_E) f(jmp_E) f(ret_imm) f(jecxz) \
   f(push) f(pop) \
@@ -23,7 +22,7 @@
   f(lgdt) f(lidt) f(ltr) f(_int) \
   f(flds) f(fldl) f(fstl) f(fld) f(fsts) f(fstps) f(fstpl) f(fstp) f(fst) \
   f(filds) f(fildl) f(fildll) f(fistl) f(fistps) f(fistpl) f(fistpll) \
-  f(fxch) f(fnstcw) f(fldcw) f(fnstenv) f(fldenv) \
+  f(fxch) f(fnstcw) f(fldcw) f(fnstenv) f(fldenv) f(fld_const) \
   f(fadds) f(faddl) f(fsubs) f(fsubl) f(fsubrs) f(fsubrl) f(fcoml) f(fcompl) \
   f(fmuls) f(fmull) f(fdivs) f(fdivl) f(fdivrs) f(fdivrl) \
   f(mov) f(add) f(sub) f(adc) f(sbb) f(cmp) \

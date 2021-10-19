@@ -32,6 +32,7 @@ enum {
   FPCALL_LOG2,
   FPCALL_MOD,
   FPCALL_ATAN,
+  FPCALL_LOADCONST,
 };
 
 #endif
