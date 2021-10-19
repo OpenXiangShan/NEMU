@@ -25,19 +25,12 @@ static inline def_rtl(set_lazycc_src2, const rtlreg_t *src2) {
 
 static inline def_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2,
     uint32_t cc_op, uint32_t width) {
-  rtl_set_lazycc_dest(s, dest);
+  if (dest != NULL) rtl_set_lazycc_dest(s, dest);
   if (src1 != NULL) rtl_set_lazycc_src1(s, src1);
   if (src2 != NULL) rtl_set_lazycc_src2(s, src2);
   cpu.cc_op = cc_op;
   cpu.cc_width = width;
   cpu.cc_dirty = true;
-}
-
-static inline def_rtl(fp_set_lazycc, const fpreg_t *dest, const fpreg_t *src1, uint32_t cc_op) {
-  rtl_fmv(s, &cpu.cc_fp_dest, dest);
-  if (src1 != NULL) rtl_fmv(s, &cpu.cc_fp_src1, src1);
-  cpu.cc_op = cc_op;
-  IFDEF(CONFIG_ENGINE_SDITRAN, cpu.cc_dirty = true);
 }
 
 static inline void clean_lazycc() {

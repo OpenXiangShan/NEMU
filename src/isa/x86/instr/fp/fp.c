@@ -37,25 +37,23 @@ void isa_fp_set_ex(uint32_t ex) {
 def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
 #ifdef CONFIG_x86_CC_LAZY
   assert(s->isa.flag_def != 0);
-  if (src1 == src2) {
-    rtl_fp_set_lazycc(s, src1, NULL, LAZYCC_FCMP_SAME);
-  } else {
-    rtl_fp_set_lazycc(s, src1, src2, LAZYCC_FCMP);
+  if (src1 != src2) {
+    rtl_fltd(s, &cpu.cc_dest, src1, src2); // cc_dest = CF
+    rtl_feqd(s, &cpu.cc_src1, src1, src2); // cc_src1 = ZF
   }
+  int cc = (src1 == src2 ? LAZYCC_FCMP_SAME : LAZYCC_FCMP);
+  rtl_set_lazycc(s, NULL, NULL, NULL, cc, 0);
 #else
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
-  if (need_update_eflags) {
-    if (src1 == src2) {
-      rtl_set_CF(s, rz);
-      rtl_li(s, t0, 1);
-    } else {
-      rtl_fltd(s, t0, src1, src2);
-      rtl_set_CF(s, t0);
-      rtl_feqd(s, t0, src1, src2);
-    }
-    rtl_set_ZF(s, t0);
-    rtl_set_PF(s, rz);
+  if (src1 == src2) {
+    rtl_set_CF(s, rz);
+    rtl_li(s, t0, 1);
+  } else {
+    rtl_fltd(s, t0, src1, src2);
+    rtl_set_CF(s, t0);
+    rtl_feqd(s, t0, src1, src2);
   }
+  rtl_set_ZF(s, t0);
+  rtl_set_PF(s, rz);
 #endif
 }
 

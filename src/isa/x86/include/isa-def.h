@@ -73,7 +73,6 @@ typedef struct {
 #ifdef CONFIG_x86_CC_LAZY
   rtlreg_t cc_dest, cc_src1, cc_src2;
   uint32_t cc_width, cc_op, cc_dirty, cc_dynamic;
-  fpreg_t cc_fp_dest, cc_fp_src1;
 #endif
   rtlreg_t OF, CF, SF, ZF, IF, DF, PF;
 

@@ -63,7 +63,8 @@ static void lazycc_E(Decode *s, CCop *op, rtlreg_t *tmp) {
   switch (cpu.cc_op) {
     case LAZYCC_FCMP_SAME: op->relop = RELOP_TRUE ^ op->invert; return;
     case LAZYCC_FCMP:
-      rtl_feqd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1);
+      if (op->type == CCTYPE_SETCC) { rtl_mv(s, tmp, &cpu.cc_src1); }
+      else { tmp = &cpu.cc_src1; }
       lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
       return;
     case LAZYCC_SUB:
@@ -374,21 +375,14 @@ static void lazycc_bt(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
 
 static void lazycc_fcmp(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
   switch (cc) {
-    case CC_E: rtl_feqd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1);
-               lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
-               break;
-    default: switch (cc | op->invert) {
-      case CC_B:   rtl_fltd(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
-      case CC_BE:  rtl_fled(s, tmp, &cpu.cc_fp_dest, &cpu.cc_fp_src1); goto fcmp_check_jcc;
-      case CC_NB:  rtl_fled(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
-      case CC_NBE: rtl_fltd(s, tmp, &cpu.cc_fp_src1, &cpu.cc_fp_dest); goto fcmp_check_jcc;
-fcmp_check_jcc:
-        op->invert = false;
-        lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
-        break;
-      default: panic("unhandle cc = %d at pc = " FMT_WORD, cc | op->invert, s->pc);
-      }
+    case CC_B:
+      if (op->type == CCTYPE_SETCC) { rtl_mv(s, tmp, &cpu.cc_dest); }
+      else { tmp = &cpu.cc_dest; }
+      break;
+    case CC_BE:  rtl_or(s, tmp, &cpu.cc_dest, &cpu.cc_src1); break;
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc | op->invert, s->pc);
   }
+  lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
 }
 
 static void lazycc_mul(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
