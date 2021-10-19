@@ -1,7 +1,9 @@
 void x86_fp_set_rm(uint32_t rm_x86);
 
 def_EHelper(fxam) {
-  rtl_li(s, s0, ((int64_t)*dfdest < 0) << 9); // sign bit
+  rtl_fclassd(s, s0, dfdest);
+  rtl_setrelopi(s, RELOP_LTU, s0, s0, 0b10000); // less than 0 ?
+  rtl_slli(s, s0, s0, 9); // sign bit
   rtl_ori(s, s0, s0, 0x4 << 8); // normal number
   rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700); // mask
   rtl_or(s, &cpu.fsw, &cpu.fsw, s0);

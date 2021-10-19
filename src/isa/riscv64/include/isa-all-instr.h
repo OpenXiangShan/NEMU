@@ -39,7 +39,8 @@
   f(fcvt_d_w) f(fcvt_d_wu) f(fcvt_d_l) f(fcvt_d_lu) \
   f(fcvt_w_d) f(fcvt_wu_d) f(fcvt_l_d) f(fcvt_lu_d) \
   f(fmv_x_d) f(fmv_d_x) \
-  f(fcvt_d_s) f(fcvt_s_d)
+  f(fcvt_d_s) f(fcvt_s_d) \
+  f(fclassd)
 
 #define INSTR_RVC(f) \
   f(c_j) f(p_jal) f(c_jr) f(c_jalr) \

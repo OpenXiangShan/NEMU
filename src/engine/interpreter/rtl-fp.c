@@ -167,6 +167,10 @@ def_rtl(fabs, fpreg_t *dest, const fpreg_t *src1) {
   *dest = *src1 & 0x7ffffffffffffffful;
 }
 
+def_rtl(fclassd, rtlreg_t *dest, const fpreg_t *src1) {
+  *dest = 1 << ((int64_t)(*src1) < 0 ? 1 : 6);
+}
+
 def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
   // Some library floating point functions gives very small
   // rounding diffrerence between DUT and REF. This is strange.
