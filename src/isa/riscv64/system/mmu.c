@@ -309,12 +309,12 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
   // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
 #ifdef CONFIG_SHARE
-  if(dynamic_config.debug_difftest) {
-    if (mode != out_mode) {
-      fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
-        // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
-    }
-  }
+  // if(dynamic_config.debug_difftest) {
+  //   if (mode != out_mode) {
+  //     fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
+  //       // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
+  //   }
+  // }
 #endif
 
 #ifdef CONFIG_RV_PMP
@@ -353,32 +353,32 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
       }
 #ifdef CONFIG_SHARE
-        if(dynamic_config.debug_difftest) {
-          fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d\n",
-            i, cfg, pmpaddr, is_na4, !is_na4 && !is_tor, is_tor, base, addr, any_match);
-        }
+        // if(dynamic_config.debug_difftest) {
+        //   fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d\n",
+        //     i, cfg, pmpaddr, is_na4, !is_na4 && !is_tor, is_tor, base, addr, any_match);
+        // }
 #endif
       if (any_match) {
         // If the PMP matches only a strict subset of the access, fail it
         if (!all_match) {
 #ifdef CONFIG_SHARE
-          if(dynamic_config.debug_difftest) {
-            fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match\n", addr, len, type, mode);
-          }
+          // if(dynamic_config.debug_difftest) {
+          //   fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match\n", addr, len, type, mode);
+          // }
 #endif
           return false;
         }
 
 #ifdef CONFIG_SHARE
-        if(dynamic_config.debug_difftest) {
-          bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
-              ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
-                type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
-              (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
-              (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
-          fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
-              pass ? "true" : "false for permission denied");
-        }
+        // if(dynamic_config.debug_difftest) {
+        //   bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
+        //       ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+        //         type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
+        //       (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
+        //       (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
+        //   fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
+        //       pass ? "true" : "false for permission denied");
+        // }
 #endif
 
         return
@@ -394,10 +394,10 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   }
 
 #ifdef CONFIG_SHARE
-  if(dynamic_config.debug_difftest) {
-    if (mode != MODE_M) fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s\n", addr, len, type, mode,
-    mode == MODE_M ? "true for mode m but no match" : "false for no match with less than M mode");
-  }
+  // if(dynamic_config.debug_difftest) {
+  //   if (mode != MODE_M) fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s\n", addr, len, type, mode,
+  //   mode == MODE_M ? "true for mode m but no match" : "false for no match with less than M mode");
+  // }
 #endif
 
   return mode == MODE_M;
