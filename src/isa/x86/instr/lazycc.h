@@ -11,23 +11,11 @@ enum {
   LAZYCC_MUL, LAZYCC_POPF, LAZYCC_FCMP, LAZYCC_FCMP_SAME,
 };
 
-static inline def_rtl(set_lazycc_dest, const rtlreg_t *dest) {
-  rtl_mv(s, &cpu.cc_dest, dest);
-}
-
-static inline def_rtl(set_lazycc_src1, const rtlreg_t *src1) {
-  rtl_mv(s, &cpu.cc_src1, src1);
-}
-
-static inline def_rtl(set_lazycc_src2, const rtlreg_t *src2) {
-  rtl_mv(s, &cpu.cc_src2, src2);
-}
-
 static inline def_rtl(set_lazycc, const rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2,
     uint32_t cc_op, uint32_t width) {
-  if (dest != NULL) rtl_set_lazycc_dest(s, dest);
-  if (src1 != NULL) rtl_set_lazycc_src1(s, src1);
-  if (src2 != NULL) rtl_set_lazycc_src2(s, src2);
+  if (dest != NULL) rtl_mv(s, &cpu.cc_dest, dest);
+  if (src1 != NULL) rtl_mv(s, &cpu.cc_src1, src1);
+  if (src2 != NULL) rtl_mv(s, &cpu.cc_src2, src2);
   cpu.cc_op = cc_op;
   cpu.cc_width = width;
   cpu.cc_dirty = true;

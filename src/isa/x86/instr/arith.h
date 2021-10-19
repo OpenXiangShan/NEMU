@@ -2,7 +2,7 @@ def_EHelper(add) {
   rtl_decode_binary(s, true, true);
 #ifdef CONFIG_x86_CC_LAZY
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc_src1(s, dsrc1);  // set src firstly cuz maybe $dest = $src
+    rtl_mv(s, &cpu.cc_src1, dsrc1);  // set src firstly cuz maybe $dest = $src
   }
   rtl_add(s, ddest, ddest, dsrc1);
   if (s->isa.flag_def != 0) {
@@ -122,7 +122,7 @@ def_EHelper(adc) {
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc_src2(s, dsrc1);
+    rtl_mv(s, &cpu.cc_src2, dsrc1);
   }
   rtl_add(s, ddest, ddest, s0);
   if (s->isa.flag_def != 0) {
@@ -159,8 +159,8 @@ def_EHelper(sbb) {
   rtl_lazy_setcc(s, s0, CC_B); // reading CC_B is to read CF
   rtl_add(s, s0, dsrc1, s0);
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc_src2(s, dsrc1);
-    rtl_set_lazycc_src1(s, ddest);
+    rtl_mv(s, &cpu.cc_src2, dsrc1);
+    rtl_mv(s, &cpu.cc_src1, ddest);
   }
   rtl_sub(s, ddest, ddest, s0);
   if (s->isa.flag_def != 0) {
@@ -488,9 +488,8 @@ def_EHelper(xadd) {
   rtl_decode_binary(s, true, true);
   rtl_add(s, s0, ddest, dsrc1);
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_set_lazycc_src1(s, dsrc1);
   if (s->isa.flag_def != 0) {
-    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_ADD, s->isa.width);
+    rtl_set_lazycc(s, s0, dsrc1, NULL, LAZYCC_ADD, s->isa.width);
   }
 #else
   int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
