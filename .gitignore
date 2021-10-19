@@ -9,5 +9,6 @@
 !README.md
 !scripts/runall.sh
 !Kconfig
+!.github/workflows/ci.yml
 include/config
 include/generated
