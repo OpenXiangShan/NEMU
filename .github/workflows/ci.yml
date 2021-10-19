@@ -33,11 +33,11 @@ jobs:
           export NEMU_HOME=$(pwd)
           make riscv64-xs_defconfig
           make -j
-          make clean
+          make clean-all
       
       - name: Build NEMU as difftest ref
         run: |
           export NEMU_HOME=$(pwd)
           make riscv64-xs-ref_defconfig
           make -j
-          make clean
+          make clean-all
