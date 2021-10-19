@@ -42,8 +42,7 @@ static void fp_update_ex() {
   }
 }
 
-def_rtl(flm, fpreg_t *dest, const rtlreg_t *addr,
-    word_t offset, int len, int mmu_mode) {
+def_rtl(flm, fpreg_t *dest, const rtlreg_t *addr, sword_t offset, int len, int mmu_mode) {
   if (len == 8 && !ISDEF(CONFIG_ISA64)) {
     uint32_t lo = vaddr_read(s, *addr + offset + 0, 4, mmu_mode);
     uint32_t hi = vaddr_read(s, *addr + offset + 4, 4, mmu_mode);
@@ -53,8 +52,7 @@ def_rtl(flm, fpreg_t *dest, const rtlreg_t *addr,
   }
 }
 
-def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr,
-    word_t offset, int len, int mmu_mode) {
+def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr, sword_t offset, int len, int mmu_mode) {
   if (len == 8 && !ISDEF(CONFIG_ISA64)) {
     vaddr_write(s, *addr + offset + 0, 4, *src1, mmu_mode);
     vaddr_write(s, *addr + offset + 4, 4, *src1 >> 32, mmu_mode);
