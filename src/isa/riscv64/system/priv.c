@@ -233,6 +233,8 @@ static inline void csr_write(word_t *dest, word_t src) {
 
     mmu_tlb_flush(0);
 #endif
+  } else if (is_write(satp)) {
+    *dest = ASID_MASKED_SATP(src);
   } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
@@ -247,6 +249,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
+  if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
