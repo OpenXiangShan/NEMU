@@ -1,5 +1,4 @@
 menuconfig DEVICE
-  depends on !SHARE
   bool "Devices"
   default y
   help
@@ -8,14 +7,17 @@ menuconfig DEVICE
 if DEVICE
 
 config HAS_PORT_IO
+  depends on !SHARE
   bool
   default y
 
 menuconfig HAS_SERIAL
+  depends on !SHARE
   bool "Enable serial"
   default y
 
 menuconfig HAS_UARTLITE
+  depends on !SHARE
   bool "Enable uartlite"
   default n
 
@@ -54,6 +56,7 @@ config UARTLITE_INPUT_FIFO
 endif # HAS_UARTLITE
 
 menuconfig HAS_TIMER
+  depends on !SHARE
   bool "Enable timer"
   default y
 
@@ -69,6 +72,7 @@ config RTC_MMIO
 endif # HAS_TIMER
 
 menuconfig HAS_KEYBOARD
+  depends on !SHARE
   bool "Enable keyboard"
   default y
 
@@ -84,6 +88,7 @@ config I8042_DATA_MMIO
 endif # HAS_KEYBOARD
 
 menuconfig HAS_VGA
+  depends on !SHARE
   bool "Enable VGA"
   default y
 
@@ -116,6 +121,7 @@ endchoice
 endif # HAS_VGA
 
 menuconfig HAS_AUDIO
+  depends on !SHARE
   bool "Enable audio"
   default y
 
@@ -139,6 +145,7 @@ config AUDIO_CTL_MMIO
 endif # HAS_AUDIO
 
 menuconfig HAS_DISK
+  depends on !SHARE
   bool "Enable disk"
   default y
 
@@ -158,6 +165,7 @@ config DISK_IMG_PATH
 endif # HAS_DISK
 
 menuconfig HAS_SDCARD
+  depends on !SHARE
   bool "Enable sdcard"
   default y
 
@@ -170,5 +178,23 @@ config SDCARD_IMG_PATH
   string "The path of sdcard image"
   default ""
 endif # HAS_SDCARD
+
+menuconfig HAS_FLASH
+  bool "Enable flash"
+  default n
+
+if HAS_FLASH
+config FLASH_START_ADDR
+  hex "Flash start addr"
+  default 0x10000000
+
+config FLASH_SIZE
+  hex "Flash size"
+  default 0x00000100
+
+config FLASH_IMG_PATH
+  string "The path of flash image"
+  default ""
+endif # HAS_FLASH
 
 endif # DEVICE

@@ -9,10 +9,19 @@ config MSIZE
   hex "Memory size"
   default 0x8000000
 
+config RESET_FROM_MMIO
+  bool "Reset from mmio address"
+  default n
+
 config PC_RESET_OFFSET
   hex "Offset of reset vector from the base of memory"
   default 0 if MODE_USER
   default 0x100000
+
+config MMIO_RESET_VECTOR
+  hex "MMIO based reset vector"
+  depends on RESET_FROM_MMIO
+  default 0x10000000
 
 config USE_MMAP
   bool "Allocate guest physical memory with mmap()"

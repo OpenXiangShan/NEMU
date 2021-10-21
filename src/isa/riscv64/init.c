@@ -17,8 +17,13 @@ void init_clint();
 void init_isa() {
   init_csr();
 
-  cpu.gpr[0]._64 = 0;
+#ifndef CONFIG_RESET_FROM_MMIO
   cpu.pc = RESET_VECTOR;
+#else
+  cpu.pc = CONFIG_MMIO_RESET_VECTOR;
+#endif
+
+  cpu.gpr[0]._64 = 0;
 
   cpu.mode = MODE_M;
   mstatus->val = 0;
@@ -42,4 +47,5 @@ void init_isa() {
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
   IFNDEF(CONFIG_SHARE, init_clint());
+  Log("NEMU will start from pc 0x%lx", cpu.pc);
 }
