@@ -292,6 +292,10 @@ CSR_STRUCT_START(sip)
   uint64_t pad2 : 2;
 CSR_STRUCT_END(sip)
 
+#define SATP_ASID_MAX (0xFFFFL << 44)
+#define SATP_ASID_LEN 16 // max is 16
+#define SATP_ASID_MASK ((SATP_ASID_MAX >> (16-SATP_ASID_LEN)) & SATP_ASID_MAX)
+#define ASID_MASKED_SATP(x) ((x & ~SATP_ASID_MAX) | (x & SATP_ASID_MASK))
 
 CSR_STRUCT_START(satp)
   uint64_t ppn :44;
