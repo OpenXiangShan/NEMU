@@ -182,6 +182,16 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t 
   switch (id) {
     case FPCALL_LOADCONST: *dest = fpcall_load_const(imm); return;
     case FPCALL_SETRM: fp_set_rm(*src2); return;
+#ifdef CONFIG_ISA_x86
+    case FPCALL_FILDLL:
+      rtl_flm(s, dest, src2, imm, 8, MMU_DYNAMIC);
+      rtl_fcvt_i64_to_f64(s, dest, dest);
+      return;
+    case FPCALL_FISTLL:
+      rtl_fcvt_f64_to_i64(s, &s->isa.fptmp, dest);
+      rtl_fsm(s, &s->isa.fptmp, src2, imm, 8, MMU_DYNAMIC);
+      return;
+#endif
   }
 
   // Some library floating point functions gives very small
