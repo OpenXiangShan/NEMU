@@ -82,3 +82,18 @@ def_rtl(fcmp_fsw, const fpreg_t *src1, const fpreg_t *src2) {
   rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700); // mask
   rtl_or(s, &cpu.fsw, &cpu.fsw, s0);
 }
+
+def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1) {
+  uint8_t opcode_lo = *(s->isa.p_instr - 1);
+  uint8_t opcode_hi = *(s->isa.p_instr - 2);
+  uint32_t cc_idx = (opcode_lo >> 3) & 0x3;
+  int invert = opcode_hi & 0x1;
+  uint32_t cc_table[] = { CC_B, CC_E, CC_BE, CC_P };
+  uint32_t cc = cc_table[cc_idx] ^ invert;
+#ifdef CONFIG_x86_CC_LAZY
+  rtl_lazy_setcc(s, s0, cc);
+#else
+  rtl_setcc(s, s0, cc);
+#endif
+  rtl_fpcall(s, FPCALL_CMOV, dest, src1, s0, 0);
+}

@@ -105,3 +105,14 @@ def_EHelper(fistpll) {
   rtl_fpcall(s, FPCALL_FISTLL, dfsrc1, NULL, &s->isa.mbr, s->isa.moff);
   ftop_pop();
 }
+
+def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1);
+
+def_EHelper(fcmovb)   { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmove)   { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovbe)  { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovu)   { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovnb)  { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovne)  { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovnbe) { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovnu)  { rtl_fcmovcc(s, dfdest, dfsrc1); }

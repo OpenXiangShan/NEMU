@@ -36,6 +36,7 @@ enum {
   FPCALL_SETRM,
   FPCALL_FILDLL,
   FPCALL_FISTLL,
+  FPCALL_CMOV,
 };
 
 #endif

@@ -4,4 +4,3 @@
 #include "fp/cmp.h"
 #include "fp/fcsw.h"
 #include "fp/mov.h"
-#include "fp/cmov.h"

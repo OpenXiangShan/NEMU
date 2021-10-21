@@ -192,6 +192,7 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t 
       rtl_fsm(s, &s->isa.fptmp, src2, imm, 8, MMU_DYNAMIC);
       return;
 #endif
+    case FPCALL_CMOV: if (*src2) *dest = *src1; return;
   }
 
   // Some library floating point functions gives very small
