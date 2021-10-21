@@ -233,6 +233,22 @@ def_EHelper(shld) {
   assert(s->isa.width == 4);
   rtl_decode_binary(s, true, true);
 
+#ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_subi(s, s0, dsrc2, 1);
+    rtl_sll(s, &cpu.cc_src1, ddest, s0); // shift (cnt - 1)
+  }
+#else
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  if (need_update_eflags) {
+    rtl_subi(s, s0, dsrc2, 32);
+    rtl_sub(s, s0, rz, s0);
+    rtl_srl(s, s1, ddest, s0); // shift (cnt - 1)
+    rtl_andi(s, s0, s1, 0x1);
+    rtl_set_CF(s, s0);
+  }
+#endif
+
   rtl_sll(s, s0, ddest, dsrc2);
 
   rtl_li(s, s1, 31);
@@ -247,9 +263,14 @@ def_EHelper(shld) {
   rtl_or(s, ddest, s0, s1);
   rtl_wb(s, ddest);
 
-#ifndef CONFIG_x86_CC_LAZY
-  rtl_update_ZFSF(s, ddest, s->isa.width);
-  // unnecessary to update CF and OF in NEMU
+#ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_set_lazycc(s, ddest, NULL, NULL, LAZYCC_SHL, s->isa.width);
+  }
+#else
+  if (need_update_eflags) {
+    rtl_update_ZFSF(s, ddest, s->isa.width);
+  }
 #endif
 }
 
