@@ -51,7 +51,7 @@ def_EHelper(jmp_E) {
 def_EHelper(ret_imm) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_pop(s, s0);
-  rtl_add(s, &cpu.esp, &cpu.esp, ddest);
+  rtl_addi(s, &cpu.esp, &cpu.esp, id_dest->val);
   ftrace_ret(s->pc);
   rtl_jr(s, s0);
 }
