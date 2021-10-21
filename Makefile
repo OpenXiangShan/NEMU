@@ -12,6 +12,7 @@ remove_quote = $(patsubst "%",%,$(1))
 
 ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
 CFLAGS += -D__ISA__=$(ISA)
+# CFLAGS += -g
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
 
@@ -32,6 +33,7 @@ SRCS-$(CONFIG_HAS_VGA) += src/device/vga.c
 SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
 SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
+SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
 
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
