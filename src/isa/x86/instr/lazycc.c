@@ -61,7 +61,7 @@ static void lazycc_P(Decode *s, CCop *op, rtlreg_t *tmp) {
 
 static void lazycc_E(Decode *s, CCop *op, rtlreg_t *tmp) {
   switch (cpu.cc_op) {
-    case LAZYCC_FCMP_SAME: op->relop = RELOP_TRUE ^ op->invert; return;
+    case LAZYCC_FCMP_SAME: lazycc_codegen(s, op, false, RELOP_TRUE, tmp, rz); return;
     case LAZYCC_FCMP:
       if (op->type == CCTYPE_SETCC) { rtl_mv(s, tmp, &cpu.cc_src1); }
       else { tmp = &cpu.cc_src1; }
