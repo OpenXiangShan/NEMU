@@ -1,5 +1,5 @@
 def_EHelper(fld_const) {
-  rtl_fpcall(s, FPCALL_LOADCONST, dfdest, NULL, id_src1->val);
+  rtl_fpcall(s, FPCALL_LOADCONST, dfdest, NULL, NULL, id_src1->val);
   ftop_push();
 }
 

@@ -49,7 +49,6 @@ enum {
   HOSTCALL_TRAP_THIS,  // trap by interrupts/exceptions, save this pc
   HOSTCALL_TRAP_NEXT,  // trap by interrupts/exceptions, save next pc
   HOSTCALL_PRIV,  // privilige instructions
-  HOSTCALL_SETRM, // set rounding mode for floating point
 #endif
 };
 
@@ -128,7 +127,7 @@ def_rtl_fp_unary_prototype(fneg);
 def_rtl_fp_unary_prototype(fabs);
 def_rtl(fclassd, rtlreg_t *dest, const fpreg_t *src1);
 
-def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src, uint32_t imm);
+def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t *src2, uint32_t imm);
 #endif
 
 #endif

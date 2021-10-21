@@ -33,6 +33,7 @@ enum {
   FPCALL_MOD,
   FPCALL_ATAN,
   FPCALL_LOADCONST,
+  FPCALL_SETRM,
 };
 
 #endif

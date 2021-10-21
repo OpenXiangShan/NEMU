@@ -45,7 +45,7 @@ static void fp_update_ex() {
   }
 }
 
-void fp_set_rm(uint32_t isa_rm) {
+static void fp_set_rm(uint32_t isa_rm) {
   static uint32_t last_rm = -1;
   if (last_rm != isa_rm) {
     uint32_t fpcall_rm = isa_fp_translate_rm(isa_rm);
@@ -178,9 +178,10 @@ def_rtl(fclassd, rtlreg_t *dest, const fpreg_t *src1) {
   *dest = 1 << ((int64_t)(*src1) < 0 ? 1 : 6);
 }
 
-def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src, uint32_t imm) {
+def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t *src2, uint32_t imm) {
   switch (id) {
     case FPCALL_LOADCONST: *dest = fpcall_load_const(imm); return;
+    case FPCALL_SETRM: fp_set_rm(*src2); return;
   }
 
   // Some library floating point functions gives very small
@@ -189,11 +190,11 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src, uint32_t imm) {
   difftest_skip_ref();
 
   switch (id) {
-    case FPCALL_ROUNDINT: *dest = fpcall_f64_roundToInt(fpToF64(*src)).v; break;
-    case FPCALL_POW2: *dest = fpcall_f64_pow2(fpToF64(*src)).v; break;
-    case FPCALL_LOG2: *dest = fpcall_f64_log2(fpToF64(*src)).v; break;
-    case FPCALL_MOD: *dest = fpcall_f64_mod(fpToF64(*dest), fpToF64(*src)).v; break;
-    case FPCALL_ATAN: *dest = fpcall_f64_atan(fpToF64(*dest), fpToF64(*src)).v; break;
+    case FPCALL_ROUNDINT: *dest = fpcall_f64_roundToInt(fpToF64(*src1)).v; break;
+    case FPCALL_POW2: *dest = fpcall_f64_pow2(fpToF64(*src1)).v; break;
+    case FPCALL_LOG2: *dest = fpcall_f64_log2(fpToF64(*src1)).v; break;
+    case FPCALL_MOD: *dest = fpcall_f64_mod(fpToF64(*dest), fpToF64(*src1)).v; break;
+    case FPCALL_ATAN: *dest = fpcall_f64_atan(fpToF64(*dest), fpToF64(*src1)).v; break;
     default: panic("unsupport id = %d", id);
   }
 }

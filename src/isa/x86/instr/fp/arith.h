@@ -144,41 +144,41 @@ def_EHelper(fsqrt) {
 }
 
 def_EHelper(frndint) {
-  rtl_fpcall(s, FPCALL_ROUNDINT, dfdest, dfdest, 0);
+  rtl_fpcall(s, FPCALL_ROUNDINT, dfdest, dfdest, NULL, 0);
 }
 
 def_EHelper(f2xm1) {
-  rtl_fpcall(s, FPCALL_POW2, dfdest, dfdest, 0);
-  rtl_fpcall(s, FPCALL_LOADCONST, &s->isa.fptmp, NULL, 0); // load 1.0
+  rtl_fpcall(s, FPCALL_POW2, dfdest, dfdest, NULL, 0);
+  rtl_fpcall(s, FPCALL_LOADCONST, &s->isa.fptmp, NULL, NULL, 0); // load 1.0
   rtl_fsubd(s, dfdest, dfdest, &s->isa.fptmp);
 }
 
 def_EHelper(fscale) {
-  rtl_fpcall(s, FPCALL_ROUNDINT, &s->isa.fptmp, dfsrc1, 0);
-  rtl_fpcall(s, FPCALL_POW2, &s->isa.fptmp, &s->isa.fptmp, 0);
+  rtl_fpcall(s, FPCALL_ROUNDINT, &s->isa.fptmp, dfsrc1, NULL, 0);
+  rtl_fpcall(s, FPCALL_POW2, &s->isa.fptmp, &s->isa.fptmp, NULL, 0);
   rtl_fmuld(s, dfdest, dfdest, &s->isa.fptmp);
 }
 
 def_EHelper(fyl2x) {
-  rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, dfdest, 0);
+  rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, dfdest, NULL, 0);
   rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
   ftop_pop();
 }
 
 def_EHelper(fyl2xp1) {
-  rtl_fpcall(s, FPCALL_LOADCONST, &s->isa.fptmp, NULL, 0); // load 1.0
+  rtl_fpcall(s, FPCALL_LOADCONST, &s->isa.fptmp, NULL, NULL, 0); // load 1.0
   rtl_faddd(s, &s->isa.fptmp, &s->isa.fptmp, dfdest);
-  rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, &s->isa.fptmp, 0);
+  rtl_fpcall(s, FPCALL_LOG2, &s->isa.fptmp, &s->isa.fptmp, NULL, 0);
   rtl_fmuld(s, dfsrc1, dfsrc1, &s->isa.fptmp);
   ftop_pop();
 }
 
 def_EHelper(fprem) {
-  rtl_fpcall(s, FPCALL_MOD, dfdest, dfsrc1, 0);
+  rtl_fpcall(s, FPCALL_MOD, dfdest, dfsrc1, NULL, 0);
   rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700);
 }
 
 def_EHelper(fpatan) {
-  rtl_fpcall(s, FPCALL_ATAN, dfsrc1, dfdest, 0);
+  rtl_fpcall(s, FPCALL_ATAN, dfsrc1, dfdest, NULL, 0);
   ftop_pop();
 }

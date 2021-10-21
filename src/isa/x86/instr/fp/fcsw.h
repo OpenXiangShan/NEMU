@@ -22,7 +22,7 @@ def_EHelper(fldcw) {
   rtl_host_sm(s, &cpu.fcw, s0, 4);
   rtl_srli(s, s0, s0, 10);
   rtl_andi(s, s0, s0, 0x3);
-  rtl_hostcall(s, HOSTCALL_SETRM, NULL, s0, NULL, 0);
+  rtl_fpcall(s, FPCALL_SETRM, NULL, NULL, s0, 0);
 }
 
 def_EHelper(fwait) {
@@ -35,7 +35,7 @@ def_EHelper(fldenv) {
   rtl_mv(s, s0, &cpu.fcw);
   rtl_srli(s, s0, s0, 10);
   rtl_andi(s, s0, s0, 0x3);
-  rtl_hostcall(s, HOSTCALL_SETRM, NULL, s0, NULL, 0);
+  rtl_fpcall(s, FPCALL_SETRM, NULL, NULL, s0, 0);
   rtl_lm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
   // others are not loaded
 }
