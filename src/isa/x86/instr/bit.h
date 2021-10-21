@@ -44,15 +44,20 @@ def_EHelper(bt) {
 }
 
 def_EHelper(bsf) {
-#ifndef CONFIG_ENGINE_INTERPRETER
-  panic("not support in engines other than interpreter");
-#endif
-
   rtl_decode_binary(s, false, true);
 
-  rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
-  rtl_set_ZF(s, s0);
-  rtl_set_CF(s, rz);
+#ifdef CONFIG_x86_CC_LAZY
+  if (s->isa.flag_def != 0) {
+    rtl_setrelopi(s, RELOP_EQ, &cpu.cc_dest, dsrc1, 0);
+    rtl_set_lazycc(s, NULL, NULL, NULL, LAZYCC_BSF, 0);
+  }
+#else
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  if (need_update_eflags) {
+    rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
+    rtl_set_ZF(s, s0);
+  }
+#endif
 
   int bit = 0;
   if (*dsrc1 != 0) {
