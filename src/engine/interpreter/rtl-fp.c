@@ -36,25 +36,21 @@ static fpreg_t fpcall_load_const(int idx) {
   return table[idx];
 }
 
-uint32_t isa_fp_get_rm(Decode *s);
-void isa_fp_set_ex(uint32_t ex);
-
-static uint32_t last_rm = -1;
-
-static void fp_update_rm(Decode *s) {
-  uint32_t rm = isa_fp_get_rm(s);
-  if (unlikely(rm != last_rm)) {
-    fp_set_rm(rm);
-    last_rm = rm;
-  }
-}
-
 static void fp_update_ex() {
   return;
   uint32_t ex = fp_get_exception();
   if (ex) {
     isa_fp_set_ex(ex);
     fp_clear_exception();
+  }
+}
+
+void fp_set_rm(uint32_t isa_rm) {
+  static uint32_t last_rm = -1;
+  if (last_rm != isa_rm) {
+    uint32_t fpcall_rm = isa_fp_translate_rm(isa_rm);
+    fp_set_rm_internal(fpcall_rm);
+    last_rm = isa_rm;
   }
 }
 
@@ -80,7 +76,6 @@ def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr, sword_t offset, int len,
 #define fpToF(fpreg, w) concat(fpToF, w)(fpreg)
 #define def_rtl_fp(name, has_rm, body, ...) \
   def_rtl(name, __VA_ARGS__) { \
-    if (has_rm) { fp_update_rm(s); } \
     *dest = (body); \
     fp_update_ex(); \
   }
@@ -184,9 +179,8 @@ def_rtl(fclassd, rtlreg_t *dest, const fpreg_t *src1) {
 }
 
 def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src, uint32_t imm) {
-  if (id == FPCALL_LOADCONST) {
-    *dest = fpcall_load_const(imm);
-    return;
+  switch (id) {
+    case FPCALL_LOADCONST: *dest = fpcall_load_const(imm); return;
   }
 
   // Some library floating point functions gives very small
@@ -195,10 +189,7 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src, uint32_t imm) {
   difftest_skip_ref();
 
   switch (id) {
-    case FPCALL_ROUNDINT:
-      fp_update_rm(s);
-      *dest = fpcall_f64_roundToInt(fpToF64(*src)).v;
-      break;
+    case FPCALL_ROUNDINT: *dest = fpcall_f64_roundToInt(fpToF64(*src)).v; break;
     case FPCALL_POW2: *dest = fpcall_f64_pow2(fpToF64(*src)).v; break;
     case FPCALL_LOG2: *dest = fpcall_f64_log2(fpToF64(*src)).v; break;
     case FPCALL_MOD: *dest = fpcall_f64_mod(fpToF64(*dest), fpToF64(*src)).v; break;

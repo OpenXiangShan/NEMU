@@ -3,6 +3,7 @@
 #include <cpu/decode.h>
 #include <cpu/cpu.h>
 
+#if 0
 static uint32_t g_rm = FPCALL_RM_RNE;
 
 void x86_fp_set_rm(uint32_t rm_x86) {
@@ -26,6 +27,17 @@ uint32_t x86_fp_get_rm() {
 
 uint32_t isa_fp_get_rm(Decode *s) {
   return g_rm;
+}
+#endif
+
+uint32_t isa_fp_translate_rm(uint32_t x86_rm) {
+  uint32_t table[] = {
+    FPCALL_RM_RNE,
+    FPCALL_RM_RDN,
+    FPCALL_RM_RUP,
+    FPCALL_RM_RTZ
+  };
+  return table[x86_rm];
 }
 
 void isa_fp_set_ex(uint32_t ex) {

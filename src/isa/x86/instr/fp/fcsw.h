@@ -1,5 +1,3 @@
-void x86_fp_set_rm(uint32_t rm_x86);
-
 def_EHelper(fxam) {
   rtl_fclassd(s, s0, dfdest);
   rtl_setrelopi(s, RELOP_LTU, s0, s0, 0b10000); // less than 0 ?
@@ -20,8 +18,11 @@ def_EHelper(fnstcw) {
 
 def_EHelper(fldcw) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_lm(s, &cpu.fcw, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
-  x86_fp_set_rm(cpu.frm);
+  rtl_lm(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
+  rtl_host_sm(s, &cpu.fcw, s0, 4);
+  rtl_srli(s, s0, s0, 10);
+  rtl_andi(s, s0, s0, 0x3);
+  rtl_hostcall(s, HOSTCALL_SETRM, NULL, s0, NULL, 0);
 }
 
 def_EHelper(fwait) {
@@ -31,7 +32,10 @@ def_EHelper(fwait) {
 def_EHelper(fldenv) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_lm(s, &cpu.fcw, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
-  x86_fp_set_rm(cpu.frm);
+  rtl_mv(s, s0, &cpu.fcw);
+  rtl_srli(s, s0, s0, 10);
+  rtl_andi(s, s0, s0, 0x3);
+  rtl_hostcall(s, HOSTCALL_SETRM, NULL, s0, NULL, 0);
   rtl_lm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
   // others are not loaded
 }

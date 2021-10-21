@@ -5,6 +5,7 @@
 
 uint32_t pio_read(ioaddr_t addr, int len);
 void pio_write(ioaddr_t addr, int len, uint32_t data);
+void fp_set_rm(uint32_t isa_rm);
 
 void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
   nemu_state.state = state;
@@ -60,6 +61,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       if (dest) *dest = ret;
       break;
     }
+    case HOSTCALL_SETRM: fp_set_rm(*src1); return;
     default: isa_hostcall(id, dest, src1, src2, imm); break;
 #else
     default: panic("Unsupport hostcall ID = %d", id); break;

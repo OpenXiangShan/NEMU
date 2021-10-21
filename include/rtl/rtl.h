@@ -49,6 +49,7 @@ enum {
   HOSTCALL_TRAP_THIS,  // trap by interrupts/exceptions, save this pc
   HOSTCALL_TRAP_NEXT,  // trap by interrupts/exceptions, save next pc
   HOSTCALL_PRIV,  // privilige instructions
+  HOSTCALL_SETRM, // set rounding mode for floating point
 #endif
 };
 

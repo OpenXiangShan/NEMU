@@ -76,7 +76,7 @@ static inline float64_t fpcall_f64_atan(float64_t a, float64_t b) {
   return float64(atan2(a.f, b.f));
 }
 
-static inline void fp_set_rm(int rm) {
+static inline void fp_set_rm_internal(int rm) {
   switch (rm) {
     case FPCALL_RM_RNE: rm = FE_TONEAREST; break;
     case FPCALL_RM_RTZ: rm = FE_TOWARDZERO; break;
