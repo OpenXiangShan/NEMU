@@ -98,7 +98,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 void paddr_write(paddr_t addr, int len, word_t data, int mode) {
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
-    fprintf(stderr, "[NEMU]  paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
+    fprintf(stderr, "[NEMU]  paddr write addr:" FMT_PADDR " len:%d mode:%d\n", addr, len, mode);
   }
 #endif
 
