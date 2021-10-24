@@ -90,25 +90,35 @@ def_EHelper(repz_cmps) {
 def_EHelper(repnz_scas) {
   if (cpu.ecx != 0) {
     rt_decode_reg(s, id_src1, true, s->isa.width);
-    rtl_lm(s, s0, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
-    rtl_host_lm(s, s1, &cpu.DF, 4); // encoded value
-    rtl_slli(s, s1, s1, get_shift(s->isa.width));
-    rtl_add(s, &cpu.edi, &cpu.edi, s1);
-
-    rtl_sub(s, s1, dsrc1, s0);
-    rtl_update_ZFSF(s, s1, s->isa.width);
-    rtl_is_sub_carry(s, s1, dsrc1, s0);
-    rtl_set_CF(s, s1);
-    rtl_sub(s, s1, dsrc1, s0);
-    rtl_is_sub_overflow(s, s1, s1, dsrc1, s0, s->isa.width);
-    rtl_set_OF(s, s1);
-
+    rtl_lm(s, &id_dest->val, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+    rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
+    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+    rtl_add(s, &cpu.edi, &cpu.edi, s0);
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
   }
 
   // if (!(cpu.ecx == 0 || cpu.ZF)) rtl_j(s, cpu.pc);
   rtl_setrelop(s, RELOP_EQ, s0, &cpu.ecx, rz);
-  rtl_or(s, s0, s0, &cpu.ZF);
+  rtl_setrelop(s, RELOP_EQ, s1, dsrc1, &id_dest->val);
+  rtl_or(s, s0, s0, s1);
+  if (*s0) {
+    // exit the loop
+#ifdef CONFIG_x86_CC_LAZY
+    if (s->isa.flag_def != 0) {
+      rtl_set_lazycc(s, dsrc1, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
+    }
+#else
+    int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+    if (need_update_eflags) {
+      rtl_is_sub_carry(s, s1, dsrc1, &id_dest->val);
+      rtl_set_CF(s, s1);
+      rtl_sub(s, s1, dsrc1, &id_dest->val);
+      rtl_update_ZFSF(s, s1, s->isa.width);
+      rtl_is_sub_overflow(s, s1, s1, dsrc1, &id_dest->val, s->isa.width);
+      rtl_set_OF(s, s1);
+    }
+#endif
+  }
   rtl_jrelop(s, RELOP_EQ, s0, rz, s->pc);
 }
 
