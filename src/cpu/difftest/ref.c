@@ -1,7 +1,12 @@
 #include <isa.h>
-#include <memory/paddr.h>
 #include <cpu/cpu.h>
 #include <difftest-def.h>
+#ifdef CONFIG_MODE_SYSTEM
+#include <memory/paddr.h>
+#else
+#include "../../user/user.h"
+#define guest_to_host user_to_host
+#endif
 
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(addr), buf, n);
@@ -21,8 +26,11 @@ void difftest_raise_intr(word_t NO) {
 }
 
 void difftest_init() {
+#ifdef CONFIG_MODE_USER
+  void init_mem();
+  init_mem();
+#else
   /* Perform ISA dependent initialization. */
   init_isa();
-  /* create dummy address space for serial */
-  //add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
+#endif
 }

@@ -1,4 +1,5 @@
 #include <isa.h>
+#include <cpu/difftest.h>
 #include <stdio.h>
 #include <elf.h>
 #include <sys/auxv.h>
@@ -17,6 +18,10 @@
 #else
 # error Unsupported ISA
 #endif
+
+#define STACK_END  0xc0000000
+#define STACK_SIZE (8 * 1024 * 1024)
+#define STACK_START (STACK_END - STACK_SIZE)
 
 void isa_init_user(word_t sp);
 
@@ -40,7 +45,8 @@ static void load_elf(char *elfpath) {
   /* Load each program segment */
   ph = (Elf_Phdr *)((uint8_t *)elf + elf->e_phoff);
   eph = ph + elf->e_phnum;
-  vaddr_t brk = 0;
+  vaddr_t brk = 0, load_base = (vaddr_t)-1ull;
+  IFDEF(CONFIG_DIFFTEST, uint32_t last_page = 0);
   for (; ph < eph; ph ++) {
     if (ph->p_type == PT_LOAD) {
       uint32_t pad_byte = ph->p_vaddr % PAGE_SIZE;
@@ -49,27 +55,47 @@ static void load_elf(char *elfpath) {
       ph->p_filesz += pad_byte;
       ph->p_memsz += pad_byte;
 
-      uint8_t *haddr = user_to_host(ph->p_vaddr);
+#ifdef CONFIG_DIFFTEST
+      uint32_t this_first_page = ph->p_vaddr / PAGE_SIZE;
+      uint32_t this_last_page = (ph->p_vaddr + ph->p_memsz) / PAGE_SIZE;
+      if (load_base != (vaddr_t)-1ull) {
+        int pad_page = this_first_page - last_page;
+        if (pad_page > 0) {
+          // fill readable pages for difftest to copy continuous memory region to REF
+          user_mmap(last_page * PAGE_SIZE, PAGE_SIZE * pad_page, PROT_READ,
+              MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+        }
+      }
+      last_page = this_last_page + 1;
+#endif
+
       if (ph->p_filesz != 0) {
-        user_mmap(haddr, ph->p_filesz, PROT_READ | PROT_WRITE,
+        user_mmap(ph->p_vaddr, ph->p_filesz, PROT_READ | PROT_WRITE,
             MAP_PRIVATE | MAP_FIXED, fileno(fp), ph->p_offset);
       }
       if (ph->p_flags & PF_W) {
-        // bss
-        memset(haddr + ph->p_filesz, 0, PAGE_SIZE - ph->p_filesz % PAGE_SIZE);
-        void *bss_page = haddr + ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        sword_t memsz = ph->p_memsz - ROUNDUP(ph->p_filesz, PAGE_SIZE);
-        if (memsz > 0) {
-          user_mmap(bss_page, memsz, PROT_READ | PROT_WRITE,
+        // bss, first clean the padding bytes of the last page from ELF file
+        word_t uaddr = ph->p_vaddr + ph->p_filesz;
+        int nbyte = PAGE_SIZE - (uaddr % PAGE_SIZE);
+        memset(user_to_host(uaddr), 0, nbyte);
+
+        // clear the remaining bss bytes
+        uaddr += nbyte;
+        assert(uaddr % PAGE_SIZE == 0);
+        nbyte = ph->p_memsz - ph->p_filesz - nbyte;
+        if (nbyte > 0) {
+          user_mmap(uaddr, nbyte, PROT_READ | PROT_WRITE,
               MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
         }
       }
 
       if (ph->p_vaddr + ph->p_memsz > brk) brk = ph->p_vaddr + ph->p_memsz;
+      if (ph->p_vaddr < load_base) load_base = ph->p_vaddr;
       if (ph->p_offset == 0) { user_state.phdr = ph->p_vaddr + elf->e_phoff; }
     }
   }
   fclose(fp);
+  user_state.load_base = load_base;
   user_state.brk = brk;
   user_state.brk_page = ROUNDUP(brk, PAGE_SIZE);
   user_state.program_brk = brk;
@@ -80,10 +106,9 @@ static void load_elf(char *elfpath) {
 }
 
 static word_t init_stack(int argc, char *argv[]) {
-  uint8_t *sp = user_to_host(0xc0000000);
-  uint32_t stack_size = 8 * 1024 * 1024;
-  user_mmap(sp - stack_size, stack_size, PROT_READ | PROT_WRITE,
+  user_mmap(STACK_START, STACK_SIZE, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+  uint8_t *sp = user_to_host(STACK_END);
 
   word_t strs[128] = {};
   int i = 0;
@@ -149,9 +174,18 @@ static void redirction_std() {
   fp = freopen("/dev/tty", "w", stdout); assert(fp);
 }
 
-void init_user(char *elfpath, int argc, char *argv[]) {
+void init_user(char *elfpath, int argc, char *argv[], char *diff_so_file) {
   redirction_std();
   load_elf(elfpath);
   word_t sp = init_stack(argc, argv);
   isa_init_user(sp);
+
+  void init_difftest(char *ref_so_file, long img_size, int port);
+  init_difftest(diff_so_file, 0, 0);
+#ifdef CONFIG_DIFFTEST
+  word_t start = user_state.load_base;
+  word_t end = user_state.program_brk;
+  ref_difftest_memcpy(start, user_to_host(start), end - start, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(STACK_START, user_to_host(STACK_START), STACK_SIZE, DIFFTEST_TO_REF);
+#endif
 }

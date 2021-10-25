@@ -2,6 +2,7 @@
 #include <isa.h>
 #include <memory/host.h>
 #include <stdlib.h>
+#include <cpu/difftest.h>
 
 #define ROUNDUP(a, sz)      ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 #define ROUNDDOWN(a, sz)    ((((uintptr_t)a)) & ~((sz) - 1))
@@ -14,6 +15,14 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   host_write(user_to_host(addr), len, data);
 }
 
+uint8_t* guest_to_host(paddr_t paddr) {
+  return user_to_host(paddr);
+}
+
+paddr_t host_to_guest(uint8_t *haddr) {
+  return host_to_user(haddr);
+}
+
 word_t vaddr_ifetch(vaddr_t addr, int len) {
   return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
 }
@@ -22,7 +31,39 @@ word_t vaddr_read_safe(vaddr_t addr, int len) {
   return vaddr_read(NULL, addr, len, MMU_DYNAMIC);
 }
 
+word_t paddr_read(paddr_t addr, int len) {
+  assert(0);
+}
 
+void paddr_write(paddr_t addr, int len, word_t data) {
+  assert(0);
+}
+
+#ifdef CONFIG_TARGET_SHARE
+void init_mem() {
+  void *pmem_base = (void *)USER_BASE;
+  void *ret = mmap(pmem_base, 0xc0000000, PROT_READ | PROT_WRITE,
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+  if (ret != pmem_base) {
+    perror("mmap");
+    assert(0);
+  }
+}
+
+word_t user_mmap(word_t addr, size_t length, int prot,
+    int flags, int fd, off_t offset) {
+  assert(0);
+}
+
+int user_munmap(word_t addr, size_t length) {
+  assert(0);
+}
+
+word_t user_mremap(word_t old_addr, size_t old_size, size_t new_size,
+    int flags, word_t new_addr) {
+  assert(0);
+}
+#else
 typedef struct vma_t {
   uintptr_t addr;
   size_t length;
@@ -111,43 +152,51 @@ void init_mem() {
   vma_list_add_after(dyn_start, kernel);
 }
 
-void *user_mmap(void *addr, size_t length, int prot,
+word_t user_mmap(word_t addr, size_t length, int prot,
     int flags, int fd, off_t offset) {
   vma_t *left = NULL;
   length = ROUNDUP(length, 4096);
   if (flags & MAP_FIXED) {
-    left = vma_list_new_fix_area((uintptr_t)addr, length);
+    left = vma_list_new_fix_area(addr, length);
     assert(left != NULL);
   } else {
+    assert(addr == 0);
     left = vma_list_new_dyn_area(length);
-    addr = (uint8_t *)left->addr + left->length;
+    addr = left->addr + left->length;
     flags |= MAP_FIXED;
   }
-  vma_t *vma = vma_new((uintptr_t)addr, length, prot, flags, fd, offset);
+  vma_t *vma = vma_new(addr, length, prot, flags, fd, offset);
   vma_list_add_after(left, vma);
 
-  void *ret = mmap(addr, length, prot, flags, fd, offset);
-  if (flags & MAP_FIXED) { assert(ret == addr); }
-  return ret;
+  void *haddr = user_to_host(addr);
+  assert(flags & MAP_FIXED);
+  void *ret = mmap(haddr, length, prot, flags, fd, offset);
+  assert(ret == haddr);
+  return addr;
 }
 
-int user_munmap(void *addr, size_t length) {
-  vma_t *p = vma_list_find_fix_area((uintptr_t)addr, length);
+int user_munmap(word_t addr, size_t length) {
+  vma_t *p = vma_list_find_fix_area(addr, length);
   assert(p != NULL);
   vma_t *prev = p->prev;
   vma_t *next = p->next;
   prev->next = next;
   next->prev = prev;
 
-  int ret = munmap(addr, length);
+#ifdef CONFIG_DIFFTEST
+  memset(user_to_host(addr), 0, length);
+  ref_difftest_memcpy(addr, user_to_host(addr), length, DIFFTEST_TO_REF);
+#endif
+
+  int ret = munmap(user_to_host(addr), length);
   assert(ret == 0);
   free(p);
   return ret;
 }
 
-void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
-    int flags, void *new_addr) {
-  vma_t *p = vma_list_find_fix_area((uintptr_t)old_addr, old_size);
+word_t user_mremap(word_t old_addr, size_t old_size, size_t new_size,
+    int flags, word_t new_addr) {
+  vma_t *p = vma_list_find_fix_area(old_addr, old_size);
   assert(p != NULL);
   assert(!(flags & MREMAP_FIXED));
   vma_t *next = p->next;
@@ -155,15 +204,19 @@ void *user_mremap(void *old_addr, size_t old_size, size_t new_size,
   new_size = ROUNDUP(new_size, 4096);
   if (free_size_to_expand >= new_size) {
     p->length = new_size;
-    void *ret = mremap(old_addr, old_size, new_size, 0); // dont move
-    if (ret != old_addr) perror("mremap");
-    assert(ret == old_addr);
+    void *ret = mremap(user_to_host(old_addr), old_size, new_size, 0); // dont move
+    if (ret != user_to_host(old_addr)) {
+      perror("mremap");
+      assert(0);
+    }
     return old_addr;
   } else {
     // should move
-    new_addr = user_mmap(NULL, new_size, p->prot, p->flags & ~MAP_FIXED, -1, 0);
-    memcpy(new_addr, old_addr, old_size);
+    new_addr = user_mmap(0, new_size, p->prot, p->flags & ~MAP_FIXED, -1, 0);
+    memcpy(user_to_host(new_addr), user_to_host(old_addr), old_size);
+    IFDEF(CONFIG_DIFFTEST, ref_difftest_memcpy(new_addr, user_to_host(new_addr), old_size, DIFFTEST_TO_REF));
     user_munmap(old_addr, p->length);
     return new_addr;
   }
 }
+#endif

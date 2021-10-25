@@ -118,8 +118,8 @@ void init_monitor(int argc, char *argv[]) {
 #ifdef CONFIG_MODE_USER
   int user_argc = argc - user_argidx;
   char **user_argv = argv + user_argidx;
-  void init_user(char *elfpath, int argc, char *argv[]);
-  init_user(img_file, user_argc, user_argv);
+  void init_user(char *elfpath, int argc, char *argv[], char *diff_so_file);
+  init_user(img_file, user_argc, user_argv, diff_so_file);
 #else
   /* Initialize devices. */
   IFDEF(CONFIG_DEVICE, init_device());
