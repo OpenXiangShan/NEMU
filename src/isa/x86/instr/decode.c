@@ -1,4 +1,3 @@
-#include "../local-include/rtl.h"
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include <isa-all-instr.h>
@@ -20,6 +19,25 @@ static word_t x86_instr_fetch(Decode *s, int len, bool advance_p_instr) {
 
 static word_t get_instr(Decode *s) {
   return *(s->isa.p_instr - 1);
+}
+
+static word_t fetch_imm(Decode *s, int width) {
+  return x86_instr_fetch(s, width, false);
+}
+
+static word_t fetch_simm(Decode *s, int width) {
+#ifdef __ICS_EXPORT
+  /* TODO: Use instr_fetch() to read `width' bytes of memory
+   * pointed by 's->snpc'. Return the result as a signed immediate.
+   */
+  TODO();
+  return 0;
+#else
+  word_t imm = x86_instr_fetch(s, width, false);
+  if (width == 1) imm = (int8_t)imm;
+  else if (width == 2) imm = (int16_t)imm;
+  return imm;
+#endif
 }
 
 #ifndef CONFIG_x86_CC_NONE
@@ -174,8 +192,8 @@ static void operand_reg(Decode *s, Operand *op, int r, int width) {
 }
 
 static void operand_imm(Decode *s, Operand *op, word_t imm) {
-  op->preg = &op->val;
   op->val = imm;
+  op->preg = &op->val;
   op->type = OP_TYPE_IMM;
 }
 
@@ -188,7 +206,7 @@ static void operand_imm(Decode *s, Operand *op, word_t imm) {
 /* Ib, Iv */
 def_DopHelper(I) {
   /* pc here is pointing to the immediate */
-  word_t imm = x86_instr_fetch(s, width, false);
+  word_t imm = fetch_imm(s, width);
   operand_imm(s, op, imm);
 }
 
@@ -198,20 +216,8 @@ def_DopHelper(I) {
  */
 /* sign immediate */
 def_DopHelper(SI) {
-#ifdef __ICS_EXPORT
-  /* TODO: Use x86_instr_fetch() to read `op->width' bytes of memory
-   * pointed by 's->seq_pc'. Interpret the result as a signed immediate,
-   * and call `operand_imm()` as following.
-   *
-   operand_imm(s, op, ???);
-   */
-  TODO();
-#else
-  word_t imm = x86_instr_fetch(s, width, false);
-  if (width == 1) imm = (int8_t)imm;
-  else if (width == 2) imm = (int16_t)imm;
+  word_t imm = fetch_simm(s, width);
   operand_imm(s, op, imm);
-#endif
 }
 
 /* I386 manual does not contain this abbreviation.
@@ -369,8 +375,9 @@ static def_DHelper(test_I) {
 static def_DHelper(SI2E) {
   assert(width == 2 || width == 4);
   operand_rm(s, id_dest, NULL, width);
-  decode_op_SI(s, id_src1, 1);
-  if (width == 2) { *dsrc1 &= 0xffff; }
+  sword_t simm = fetch_simm(s, 1);
+  if (width == 2) { simm &= 0xffff; }
+  operand_imm(s, id_src1, simm);
 }
 
 static def_DHelper(SI_E2G) {
@@ -455,9 +462,8 @@ static def_DHelper(a2r) {
 
 static def_DHelper(J) {
   // the target address can be computed in the decode stage
-  decode_op_SI(s, id_dest, width);
-  id_dest->imm = id_dest->val + s->snpc;
-  operand_imm(s, id_src1, s->snpc);  // for call
+  sword_t offset = fetch_simm(s, width);
+  id_dest->imm = offset + s->snpc;
 }
 #if 0
 #ifndef __ICS_EXPORT

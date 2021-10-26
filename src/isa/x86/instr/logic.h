@@ -232,6 +232,7 @@ def_EHelper(ror) {
 def_EHelper(shld) {
   assert(s->isa.width == 4);
   rtl_decode_binary(s, true, true);
+  rt_decode(s, id_src2, true, s->isa.width);
 
 #ifdef CONFIG_x86_CC_LAZY
   if (s->isa.flag_def != 0) {
@@ -277,6 +278,7 @@ def_EHelper(shld) {
 def_EHelper(shrd) {
   assert(s->isa.width == 4);
   rtl_decode_binary(s, true, true);
+  rt_decode(s, id_src2, true, s->isa.width);
 
 #ifdef CONFIG_ENGINE_INTERPRETER
   int count = *dsrc2 & 0x1f;

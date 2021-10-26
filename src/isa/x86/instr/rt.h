@@ -1,6 +1,11 @@
 #ifndef __RT_H__
 #define __RT_H__
 
+static inline void rt_decode_imm(Decode *s, Operand *op, bool load, int width) {
+  assert(load);
+  IFNDEF(CONFIG_ENGINE_INTERPRETER, rtl_li(s, op->preg, op->val));
+}
+
 static inline void rt_decode_reg(Decode *s, Operand *op, bool load, int width) {
   if (load && (width == 1 || width == 2)) { rtl_lr(s, op->preg, op->reg, width); }
 }
@@ -27,8 +32,11 @@ static inline void rt_decode_mem(Decode *s, Operand *op, bool load, int width) {
 }
 
 static inline void rt_decode(Decode *s, Operand *op, bool load, int width) {
-  if      (op->type == OP_TYPE_REG) rt_decode_reg(s, op, load, width);
-  else if (op->type == OP_TYPE_MEM) rt_decode_mem(s, op, load, width);
+  switch (op->type) {
+    case OP_TYPE_IMM: rt_decode_imm(s, op, load, width); break;
+    case OP_TYPE_REG: rt_decode_reg(s, op, load, width); break;
+    case OP_TYPE_MEM: rt_decode_mem(s, op, load, width); break;
+  }
 }
 
 static inline def_rtl(decode_unary, bool load) {
@@ -53,6 +61,7 @@ static inline def_rtl(wb_m, rtlreg_t *src) {
 static inline def_rtl(wb, rtlreg_t *src) {
   if      (id_dest->type == OP_TYPE_REG) rtl_wb_r(s, src);
   else if (id_dest->type == OP_TYPE_MEM) rtl_wb_m(s, src);
+  else assert(0);
 }
 
 #include "cc.h"
