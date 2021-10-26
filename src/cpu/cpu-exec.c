@@ -242,7 +242,7 @@ void assert_fail_msg() {
 #ifdef CONFIG_IQUEUE
   iqueue_dump();
 #endif
-  isa_reg_display();
+  IFDEF(CONFIG_ENGINE_INTERPRETER, isa_reg_display());
   statistic();
 }
 

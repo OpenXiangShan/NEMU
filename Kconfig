@@ -342,11 +342,11 @@ endif
 
 choice
   prompt "Instruction Count"
-  default ICOUNT_PRECISE if DEBUG || TARGET_SHARE
+  default ICOUNT_PRECISE if DIFFTEST || TRACE || TARGET_SHARE
   default ICOUNT_DISABLE
 config ICOUNT_PRECISE
   bool "Precise to every instruction"
-if !DEBUG && !TARGET_SHARE
+if !DIFFTEST && !TRACE && !TARGET_SHARE
 config ICOUNT_BASIC_BLOCK
   depends on PERF_OPT
   bool "Precise to every basic block"

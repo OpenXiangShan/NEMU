@@ -21,8 +21,8 @@ static inline bool f32_lt(float32_t a, float32_t b) { return a.f <  b.f; }
 static inline bool f32_eq(float32_t a, float32_t b) { return a.f == b.f; }
 static inline float32_t i32_to_f32 (rtlreg_t a) { return float32((int32_t)a); }
 static inline float32_t ui32_to_f32(rtlreg_t a) { return float32((uint32_t)a); }
-static inline float32_t i64_to_f32 (rtlreg_t a) { return float32((int64_t)a); }
-static inline float32_t ui64_to_f32(rtlreg_t a) { return float32((uint64_t)a); }
+static inline float32_t i64_to_f32 (uint64_t a) { return float32((int64_t)a); }
+static inline float32_t ui64_to_f32(uint64_t a) { return float32((uint64_t)a); }
 static inline int32_t  my_f32_to_i32 (float32_t a) { return llrintf(a.f); }
 static inline uint32_t my_f32_to_ui32(float32_t a) { return llrintf(a.f); }
 static inline int64_t  my_f32_to_i64 (float32_t a) { return llrintf(a.f); }
@@ -46,8 +46,8 @@ static inline bool f64_lt(float64_t a, float64_t b) { return a.f <  b.f; }
 static inline bool f64_eq(float64_t a, float64_t b) { return a.f == b.f; }
 static inline float64_t i32_to_f64 (rtlreg_t a) { return float64((int32_t)a); }
 static inline float64_t ui32_to_f64(rtlreg_t a) { return float64((uint32_t)a); }
-static inline float64_t i64_to_f64 (rtlreg_t a) { return float64((int64_t)a); }
-static inline float64_t ui64_to_f64(rtlreg_t a) { return float64((uint64_t)a); }
+static inline float64_t i64_to_f64 (uint64_t a) { return float64((int64_t)a); }
+static inline float64_t ui64_to_f64(uint64_t a) { return float64((uint64_t)a); }
 static inline int32_t  my_f64_to_i32 (float64_t a) { return llrint(a.f); }
 static inline uint32_t my_f64_to_ui32(float64_t a) { return llrint(a.f); }
 static inline int64_t  my_f64_to_i64 (float64_t a) { return llrint(a.f); }
