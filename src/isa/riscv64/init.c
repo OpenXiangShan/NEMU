@@ -32,7 +32,9 @@ void init_isa() {
   pmpcfg1->val = 0;
   pmpcfg2->val = 0;
   pmpcfg3->val = 0;
-  
+
+  srnctl->val = 3; // enable extension 'svinval' [1]
+
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
   misa->extensions |= ext('d') | ext('f');

@@ -21,6 +21,7 @@
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
+  f(srnctl     , 0x5c4) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01)
 #else
@@ -40,6 +41,7 @@
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
+  f(srnctl     , 0x5c4) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
 #endif
 
@@ -316,6 +318,16 @@ CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(sscratch)
 CSR_STRUCT_END(sscratch)
+
+// NOTE: srcctl is a supervisor custom read/write csr
+// to fix xiangshan that:
+// rnctl: move elimination,
+// svinval: one vm extension
+CSR_STRUCT_START(srnctl)
+  uint64_t rnctrl  : 1;
+  uint64_t svinval : 1;
+  uint64_t reserve :63;
+CSR_STRUCT_END(srnctl)
 
 CSR_STRUCT_START(fflags)
 CSR_STRUCT_END(fflags)
