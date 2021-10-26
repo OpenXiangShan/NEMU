@@ -293,6 +293,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     case 0x120: // sfence.vma
       mmu_tlb_flush(*src);
       break;
+#ifdef CONFIG_RV_SVINVAL
     case 0x160: // sinval.vma
       if (!srnctl->svinval) { // srnctl contrl extension enable or not
         longjmp_exception(EX_II);
@@ -309,6 +310,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         longjmp_exception(EX_II);
       }
       break;
+#endif
     case 0x105: break; // wfi
 #endif
     case -1: // fence.i

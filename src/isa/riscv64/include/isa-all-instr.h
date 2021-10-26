@@ -12,11 +12,20 @@
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
   f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
+
+#ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
   f(ecall) f(mret) f(sret) f(wfi) \
   f(sfence_w_inval) f(sfence_inval_ir)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) f(sinval_vma)
+#else
+#define SYS_INSTR_NULLARY(f) \
+  f(ecall) f(mret) f(sret) f(wfi)
+#define SYS_INSTR_BINARY(f) \
+  f(sfence_vma)
+#endif
+
 #define SYS_INSTR_TERNARY(f) \
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 #else

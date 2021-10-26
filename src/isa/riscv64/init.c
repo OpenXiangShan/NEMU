@@ -33,7 +33,9 @@ void init_isa() {
   pmpcfg2->val = 0;
   pmpcfg3->val = 0;
 
+#ifdef CONFIG_RV_SVINVAL
   srnctl->val = 3; // enable extension 'svinval' [1]
+#endif
 
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
