@@ -1,25 +1,5 @@
-def_EHelper(fld1) {
-  rtl_fli(s, dfdest, 0x3ff0000000000000ull);
-  ftop_push();
-}
-
-def_EHelper(fldz) {
-  rtl_fli(s, dfdest, 0);
-  ftop_push();
-}
-
-def_EHelper(fldl2e) {
-  rtl_fli(s, dfdest, 0x3FF71547652B82FEull);
-  ftop_push();
-}
-
-def_EHelper(fldlg2) {
-  rtl_fli(s, dfdest, 0x3FD34413509F79FEull);
-  ftop_push();
-}
-
-def_EHelper(fldln2) {
-  rtl_fli(s, dfdest, 0x3FE62E42FEFA39EFull);
+def_EHelper(fld_const) {
+  rtl_fpcall(s, FPCALL_LOADCONST, dfdest, NULL, NULL, id_src1->val);
   ftop_push();
 }
 
@@ -96,8 +76,7 @@ def_EHelper(fildl) {
 
 def_EHelper(fildll) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_flm(s, &s->isa.tmp64, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
-  rtl_fcvt_i64_to_f64(s, dfdest, &s->isa.tmp64);
+  rtl_fpcall(s, FPCALL_FILDLL, dfdest, NULL, &s->isa.mbr, s->isa.moff);
   ftop_push();
 }
 
@@ -123,7 +102,17 @@ def_EHelper(fistpl) {
 
 def_EHelper(fistpll) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_fcvt_f64_to_i64(s, &s->isa.tmp64, dfsrc1);
-  rtl_fsm(s, &s->isa.tmp64, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  rtl_fpcall(s, FPCALL_FISTLL, dfsrc1, NULL, &s->isa.mbr, s->isa.moff);
   ftop_pop();
 }
+
+def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1);
+
+def_EHelper(fcmovb)   { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmove)   { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovbe)  { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovu)   { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovnb)  { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovne)  { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovnbe) { rtl_fcmovcc(s, dfdest, dfsrc1); }
+def_EHelper(fcmovnu)  { rtl_fcmovcc(s, dfdest, dfsrc1); }

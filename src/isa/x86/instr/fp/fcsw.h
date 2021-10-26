@@ -1,7 +1,10 @@
 def_EHelper(fxam) {
-  rtl_li(s, s0, ((int64_t)*dfdest < 0) << 9); // sign bit
-  rtl_li(s, s1, 0x4 << 8); // normal number
-  rtl_or(s, &cpu.fsw, s0, s1);
+  rtl_fclassd(s, s0, dfdest);
+  rtl_setrelopi(s, RELOP_LTU, s0, s0, 0b10000); // less than 0 ?
+  rtl_slli(s, s0, s0, 9); // sign bit
+  rtl_ori(s, s0, s0, 0x4 << 8); // normal number
+  rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700); // mask
+  rtl_or(s, &cpu.fsw, &cpu.fsw, s0);
 }
 
 def_EHelper(fnstsw) {
@@ -10,19 +13,16 @@ def_EHelper(fnstsw) {
 
 def_EHelper(fnstcw) {
   rt_decode_mem(s, id_dest, false, 0);
-  uint32_t x86_fp_get_rm();
-  uint32_t rm_x86 = x86_fp_get_rm();
-  rtl_li(s, s0, rm_x86 << 10);
-  rtl_sm(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
+  rtl_sm(s, &cpu.fcw, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
 }
 
 def_EHelper(fldcw) {
   rt_decode_mem(s, id_dest, false, 0);
   rtl_lm(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
-
-  uint32_t rm_x86 = BITS(*s0, 11, 10);
-  void x86_fp_set_rm(uint32_t rm_x86);
-  x86_fp_set_rm(rm_x86);
+  rtl_host_sm(s, &cpu.fcw, s0, 4);
+  rtl_srli(s, s0, s0, 10);
+  rtl_andi(s, s0, s0, 0x3);
+  rtl_fpcall(s, FPCALL_SETRM, NULL, NULL, s0, 0);
 }
 
 def_EHelper(fwait) {
@@ -31,22 +31,18 @@ def_EHelper(fwait) {
 
 def_EHelper(fldenv) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_lm(s, s0, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
-  uint32_t rm_x86 = BITS(*s0, 11, 10);
-  void x86_fp_set_rm(uint32_t rm_x86);
-  x86_fp_set_rm(rm_x86);
+  rtl_lm(s, &cpu.fcw, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
+  rtl_mv(s, s0, &cpu.fcw);
+  rtl_srli(s, s0, s0, 10);
+  rtl_andi(s, s0, s0, 0x3);
+  rtl_fpcall(s, FPCALL_SETRM, NULL, NULL, s0, 0);
   rtl_lm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
-  cpu.ftop = (cpu.fsw >> 11) & 0x7;
   // others are not loaded
 }
 
 def_EHelper(fnstenv) {
   rt_decode_mem(s, id_dest, false, 0);
-  uint32_t x86_fp_get_rm();
-  uint32_t rm_x86 = x86_fp_get_rm();
-  rtl_li(s, s0, rm_x86 << 10);
-  rtl_sm(s, s0, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
-  cpu.fsw = (cpu.fsw & ~0x3800) | ((cpu.ftop & 0x7) << 11);
+  rtl_sm(s, &cpu.fcw, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
   rtl_sm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
 #if 0
   rtlreg_t ftag = 0;

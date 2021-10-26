@@ -9,7 +9,7 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #if defined(CONFIG_ISA_x86)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9 /* GPRs + pc */ \
                           + sizeof(uint64_t) * 8 /* FPRs */ \
-                          + sizeof(uint32_t) * 3 /* ftop, fsw, fcw */ )
+                          + sizeof(uint32_t) * 2 /* fsw, fcw */ )
 #elif defined(CONFIG_ISA_mips32)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 38) // GRPs + status + lo + hi + badvaddr + cause + pc
 #elif defined(CONFIG_ISA_riscv32)

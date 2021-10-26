@@ -66,9 +66,25 @@ typedef struct {
   };
 
   vaddr_t pc;
-  rtlreg_t ftop;
+  union {
+    struct {
+      uint32_t     : 11;
+      uint32_t ftop: 3;
+      uint32_t     : 2;
+    };
+    rtlreg_t fsw;
+  };
+
   uint64_t fpr[8];
-  rtlreg_t fsw,fcw;
+
+  union {
+    struct {
+      uint32_t     : 10;
+      uint32_t frm : 2;
+      uint32_t     : 4;
+    };
+    rtlreg_t fcw;
+  };
   
 #ifdef CONFIG_x86_CC_LAZY
   rtlreg_t cc_dest, cc_src1, cc_src2;
@@ -139,7 +155,6 @@ typedef struct {
   word_t mscale;
   rtlreg_t mbr;
   fpreg_t fptmp;
-  uint64_t tmp64;
 } x86_ISADecodeInfo;
 
 enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };

@@ -16,8 +16,10 @@ static inline def_DHelper(ST0) {
   operand_freg(s, id_dest, 0);
 }
 
-static inline def_DHelper(push_ST0) {
+static inline def_DHelper(load_const) {
   operand_freg(s, id_dest, -1);
+  int idx = get_instr(s) & 0x7;
+  operand_imm(s, id_src1, idx);
 }
 
 static inline def_DHelper(ld_ST0) {
@@ -78,11 +80,6 @@ def_THelper(fpu_d9) {
     def_hex_INSTR_IDTAB("e0", ST0     , fchs);
     def_hex_INSTR_IDTAB("e1", ST0     , fabs);
     def_hex_INSTR_IDTAB("e5", ST0     , fxam);
-    def_hex_INSTR_IDTAB("e8", push_ST0, fld1);
-    def_hex_INSTR_IDTAB("ea", push_ST0, fldl2e);
-    def_hex_INSTR_IDTAB("ec", push_ST0, fldlg2);
-    def_hex_INSTR_IDTAB("ed", push_ST0, fldln2);
-    def_hex_INSTR_IDTAB("ee", push_ST0, fldz);
     def_hex_INSTR_IDTAB("f0", ST0     , f2xm1);
     def_hex_INSTR_IDTAB("f1", ST0_ST1 , fyl2x);
     def_hex_INSTR_IDTAB("f3", ST0_ST1 , fpatan);
@@ -93,6 +90,7 @@ def_THelper(fpu_d9) {
     def_hex_INSTR_IDTAB("fd", ST0_ST1 , fscale);
     def_INSTR_IDTAB("1100 0???", ld_ST0, fld);
     def_INSTR_IDTAB("1100 1???", STi_ST0, fxch);
+    def_INSTR_IDTAB("1110 1???", load_const, fld_const);
   } else {
     def_INSTR_IDTAB("?? 000 ???", ld_ST0, flds);
     def_INSTR_IDTAB("?? 010 ???", st_ST0, fsts);

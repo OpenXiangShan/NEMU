@@ -45,6 +45,10 @@ vaddr_t isa_raise_intr(word_t NO, vaddr_t epc);
 #define INTR_EMPTY ((word_t)-1)
 word_t isa_query_intr();
 
+// floating point
+uint32_t isa_fp_translate_rm(uint32_t isa_rm);
+void isa_fp_set_ex(uint32_t ex);
+
 // difftest
   // for dut
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);

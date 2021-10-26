@@ -3,6 +3,7 @@
 #include <cpu/decode.h>
 #include <cpu/cpu.h>
 
+#if 0
 static uint32_t g_rm = FPCALL_RM_RNE;
 
 void x86_fp_set_rm(uint32_t rm_x86) {
@@ -26,6 +27,17 @@ uint32_t x86_fp_get_rm() {
 
 uint32_t isa_fp_get_rm(Decode *s) {
   return g_rm;
+}
+#endif
+
+uint32_t isa_fp_translate_rm(uint32_t x86_rm) {
+  uint32_t table[] = {
+    FPCALL_RM_RNE,
+    FPCALL_RM_RDN,
+    FPCALL_RM_RUP,
+    FPCALL_RM_RTZ
+  };
+  return table[x86_rm];
 }
 
 void isa_fp_set_ex(uint32_t ex) {
@@ -57,14 +69,31 @@ def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
 #endif
 }
 
-def_rtl(fcmp_fsw, rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2) {
+def_rtl(fcmp_fsw, const fpreg_t *src1, const fpreg_t *src2) {
   if (src1 == src2) {
-    rtl_li(s, dest, 0x1000);
+    rtl_li(s, s0, 0x1000);
   } else {
     rtl_feqd(s, t0, src1, src2);
-    rtl_slli(s, dest, t0, 6);
+    rtl_slli(s, s0, t0, 6);
     rtl_fltd(s, t0, src1, src2);
-    rtl_or(s, dest, dest, t0);
-    rtl_slli(s, dest, dest, 8);
+    rtl_or(s, s0, s0, t0);
+    rtl_slli(s, s0, s0, 8);
   }
+  rtl_andi(s, &cpu.fsw, &cpu.fsw, ~0x4700); // mask
+  rtl_or(s, &cpu.fsw, &cpu.fsw, s0);
+}
+
+def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1) {
+  uint8_t opcode_lo = *(s->isa.p_instr - 1);
+  uint8_t opcode_hi = *(s->isa.p_instr - 2);
+  uint32_t cc_idx = (opcode_lo >> 3) & 0x3;
+  int invert = opcode_hi & 0x1;
+  uint32_t cc_table[] = { CC_B, CC_E, CC_BE, CC_P };
+  uint32_t cc = cc_table[cc_idx] ^ invert;
+#ifdef CONFIG_x86_CC_LAZY
+  rtl_lazy_setcc(s, s0, cc);
+#else
+  rtl_setcc(s, s0, cc);
+#endif
+  rtl_fpcall(s, FPCALL_CMOV, dest, src1, s0, 0);
 }

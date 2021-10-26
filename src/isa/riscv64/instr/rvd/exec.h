@@ -144,3 +144,7 @@ def_EHelper(fmv_x_d) {
 def_EHelper(fmv_d_x) {
   rtl_fsr(s, ddest, dsrc1, FPCALL_W64);
 }
+
+def_EHelper(fclassd) {
+  rtl_fclassd(s, ddest, dsrc1);
+}

@@ -107,7 +107,7 @@ static inline uint_fast16_t f64_classify( float64_t a ) {
     ( isNaN && !isSNaN )                       << 9;
 }
 
-static inline void fp_set_rm(int rm) {
+static inline void fp_set_rm_internal(int rm) {
   switch (rm) {
     case FPCALL_RM_RNE: softfloat_roundingMode = softfloat_round_near_even; break;
     case FPCALL_RM_RTZ: softfloat_roundingMode = softfloat_round_minMag; break;
