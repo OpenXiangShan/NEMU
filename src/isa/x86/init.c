@@ -22,6 +22,7 @@ static void restart() {
   cpu.cr0.val = 0x60000011;
   cpu.fcw = 0x37f;
   cpu.ftop = 7;
+  cpu.DF = 1; // encoded value
 #endif
 }
 

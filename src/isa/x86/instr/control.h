@@ -23,13 +23,14 @@ def_EHelper(jcc) {
   // the target address is calculated at the decode stage
   uint32_t cc = s->isa.opcode & 0xf;
 #ifdef CONFIG_x86_CC_LAZY
-  rtl_lazy_setcc(s, s2, cc);
-  rtl_mv(s, s0, s2);
-  clean_lazycc();
+  CCop op;
+  op.target = id_dest->imm;
+  rtl_lazy_jcc(s, &op, cc);
+  rtl_jrelop(s, op.relop, op.src1, op.src2, op.target);
 #else
   rtl_setcc(s, s0, cc);
-#endif
   rtl_jrelop(s, RELOP_NE, s0, rz, id_dest->simm);
+#endif
 }
 
 def_EHelper(call_E) {

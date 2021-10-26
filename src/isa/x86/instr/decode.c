@@ -22,6 +22,7 @@ static word_t get_instr(Decode *s) {
   return *(s->isa.p_instr - 1);
 }
 
+#ifndef CONFIG_x86_CC_NONE
 enum {
   F_CF = 0x1,
   F_PF = 0x2,
@@ -32,7 +33,6 @@ enum {
   F_FCMP = F_CF | F_PF | F_ZF,
 };
 
-#ifdef CONFIG_x86_CC_SKIP
 static const uint8_t cc2flag [16] = {
   [CC_O] = F_OF, [CC_NO] = F_OF,
   [CC_B] = F_CF, [CC_NB] = F_CF,
@@ -51,13 +51,13 @@ static const struct {
   [EXEC_ID_adc] = { F_ALL, F_CF },
   [EXEC_ID_and] = { F_ALL, 0 },
   [EXEC_ID_cmp] = { F_ALL, 0 },
-  [EXEC_ID_dec] = { F_ALL & ~F_CF, 0 },
+  [EXEC_ID_dec] = { F_ALL & ~F_CF, MUXDEF(CONFIG_x86_CC_LAZY, F_CF, 0) },
   [EXEC_ID_div] = { F_ALL, 0 },
   [EXEC_ID_idiv] = { F_ALL, 0 },
   [EXEC_ID_imul1] = { F_ALL, 0 },
   [EXEC_ID_imul2] = { F_ALL, 0 },
   [EXEC_ID_imul3] = { F_ALL, 0 },
-  [EXEC_ID_inc] = { F_ALL & ~F_CF, 0 },
+  [EXEC_ID_inc] = { F_ALL & ~F_CF, MUXDEF(CONFIG_x86_CC_LAZY, F_CF, 0) },
   [EXEC_ID_jcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
   [EXEC_ID_mul] = { F_ALL, 0 },
   [EXEC_ID_neg] = { F_ALL, 0 },
@@ -65,6 +65,8 @@ static const struct {
   [EXEC_ID_sar] = { F_ALL, 0 },
   [EXEC_ID_shl] = { F_ALL, 0 },
   [EXEC_ID_shr] = { F_ALL, 0 },
+  [EXEC_ID_shld] = { F_ALL, 0 },
+  [EXEC_ID_shrd] = { F_ALL, 0 },
   [EXEC_ID_sbb] = { F_ALL, F_CF },
   [EXEC_ID_setcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
   [EXEC_ID_sub] = { F_ALL, 0 },
@@ -72,11 +74,12 @@ static const struct {
   [EXEC_ID_xor] = { F_ALL, 0 },
   [EXEC_ID_pushf] = { 0, F_ALL },
   [EXEC_ID_popf] = { F_ALL, 0 },
-  [EXEC_ID_sahf] = { 0, F_ALL & ~F_OF },
+  [EXEC_ID_sahf] = { F_ALL & ~F_OF, MUXDEF(CONFIG_x86_CC_LAZY, F_OF, 0) },
   [EXEC_ID_clc] = { F_CF, 0 },
   [EXEC_ID_stc] = { F_CF, 0 },
   [EXEC_ID_cmovcc] = { 0, F_ALL },  // update `use` at the end of `isa_fetch_decode()`
   [EXEC_ID_xadd] = { F_ALL, 0 },
+  [EXEC_ID_cmpxchg] = { F_ALL, 0 },
   [EXEC_ID_bt]  = { F_ALL & ~F_ZF, 0 },
   [EXEC_ID_bts] = { F_ALL & ~F_ZF, 0 },
   [EXEC_ID_bsf] = { F_ALL, 0 },
@@ -870,7 +873,7 @@ int isa_fetch_decode(Decode *s) {
       s->type = INSTR_TYPE_I; break;
   }
 
-#ifdef CONFIG_x86_CC_SKIP
+#ifndef CONFIG_x86_CC_NONE
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
   if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {
@@ -887,7 +890,7 @@ int isa_fetch_decode(Decode *s) {
       // now scan and update `flag_def`
       Decode *p;
       //uint32_t use = s->isa.flag_use;
-      uint32_t use = F_ALL; //s->isa.flag_use;
+      uint32_t use = (idx == EXEC_ID_call || s->type == INSTR_TYPE_I ? 0 : F_ALL); //s->isa.flag_use;
       for (p = s - 1; p >= bb_start; p --) {
         uint32_t real_def = p->isa.flag_def & use;
         use &= ~p->isa.flag_def;

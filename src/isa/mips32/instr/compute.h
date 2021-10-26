@@ -84,11 +84,12 @@ def_EHelper(srai) {
 }
 
 def_EHelper(movz) {
-  rtl_mux(s, ddest, dsrc2, ddest, dsrc1);
+  rtl_setrelopi(s, RELOP_EQ, s0, dsrc2, 0);
+  rtl_cmov(s, ddest, s0, dsrc1);
 }
 
 def_EHelper(movn) {
-  rtl_mux(s, ddest, dsrc2, dsrc1, ddest);
+  rtl_cmov(s, ddest, dsrc2, dsrc1);
 }
 
 def_EHelper(clz) {

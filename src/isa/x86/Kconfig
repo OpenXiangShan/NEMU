@@ -1,9 +1,8 @@
 menu "ISA-dependent Options for x86"
 
-if PERF_OPT
 choice
   prompt "Optimization for condition code evaulation"
-  default x86_CC_SKIP
+  default x86_CC_LAZY
 config x86_CC_SKIP
   bool "Skip CC"
 config x86_CC_LAZY
@@ -11,11 +10,6 @@ config x86_CC_LAZY
 config x86_CC_NONE
   bool "none"
 endchoice
-endif
-
-if !PERF_OPT
-config x86_CC_NONE
-endif
 
 config PA
   depends on MODE_SYSTEM

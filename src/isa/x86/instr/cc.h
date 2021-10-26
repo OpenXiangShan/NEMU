@@ -11,17 +11,6 @@ enum {
 };
 
 #ifndef __ICS_EXPORT
-enum {
-  LAZYCC_ADD,
-  LAZYCC_SUB,
-  LAZYCC_INC,
-  LAZYCC_DEC,
-  LAZYCC_NEG,
-  LAZYCC_ADC,
-  LAZYCC_SBB,
-  LAZYCC_LOGIC,
-};
-
 #include "lazycc.h"
 #endif
 
