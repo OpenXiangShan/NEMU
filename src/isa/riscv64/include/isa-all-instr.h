@@ -12,16 +12,30 @@
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
   f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
+
+#ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(mret) f(sret) f(sfence_vma) f(wfi)
+  f(ecall) f(mret) f(sret) f(wfi) \
+  f(sfence_w_inval) f(sfence_inval_ir)
+#define SYS_INSTR_BINARY(f) \
+  f(sfence_vma) f(sinval_vma)
+#else
+#define SYS_INSTR_NULLARY(f) \
+  f(ecall) f(mret) f(sret) f(wfi)
+#define SYS_INSTR_BINARY(f) \
+  f(sfence_vma)
+#endif
+
 #define SYS_INSTR_TERNARY(f) \
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 #else
 #define AMO_INSTR_BINARY(f)
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #define SYS_INSTR_NULLARY(f)
+#define SYS_INSTR_BINARY(f)
 #define SYS_INSTR_TERNARY(f) f(system)
 #endif
+// TODO: sfence.vma and sinval.vma need two reg operand, only one(addr) now
 
 #ifdef CONFIG_RVV_010
 #define VECTOR_INSTR_TERNARY(f) \
@@ -118,6 +132,7 @@
   BITMANIP_INSTR_BINARY(f) \
   CRYPTO_INSTR_BINARY(f) \
   AMO_INSTR_BINARY(f) \
+  SYS_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
   f(flw) f(fsw) f(flw_mmu) f(fsw_mmu) \

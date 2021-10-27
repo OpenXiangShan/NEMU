@@ -24,4 +24,8 @@ config RV_PMP
   bool "Enable PMP"
   default y
 
+config RV_SVINVAL
+  bool "Enable VM Extension Svinval"
+  default y
+
 endmenu
