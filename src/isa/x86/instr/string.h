@@ -68,21 +68,19 @@ def_EHelper(repz_cmps) {
   rtl_and(s, s0, s0, s1);
   if (!*s0) {
     // exit the loop
-#ifdef CONFIG_x86_CC_LAZY
-    if (s->isa.flag_def != 0) {
-      rtl_set_lazycc(s, &id_src1->val, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
-    }
-#else
-    int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+    int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
     if (need_update_eflags) {
+#ifdef CONFIG_x86_CC_LAZY
+      rtl_set_lazycc(s, &id_src1->val, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
+#else
       rtl_is_sub_carry(s, s1, &id_src1->val, &id_dest->val);
       rtl_set_CF(s, s1);
       rtl_sub(s, s1, &id_src1->val, &id_dest->val);
       rtl_update_ZFSF(s, s1, s->isa.width);
       rtl_is_sub_overflow(s, s1, s1, &id_src1->val, &id_dest->val, s->isa.width);
       rtl_set_OF(s, s1);
-    }
 #endif
+    }
   }
   rtl_jrelop(s, RELOP_NE, s0, rz, s->pc);
 }
@@ -103,21 +101,19 @@ def_EHelper(repnz_scas) {
   rtl_or(s, s0, s0, s1);
   if (*s0) {
     // exit the loop
-#ifdef CONFIG_x86_CC_LAZY
-    if (s->isa.flag_def != 0) {
-      rtl_set_lazycc(s, dsrc1, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
-    }
-#else
-    int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+    int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
     if (need_update_eflags) {
+#ifdef CONFIG_x86_CC_LAZY
+      rtl_set_lazycc(s, dsrc1, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
+#else
       rtl_is_sub_carry(s, s1, dsrc1, &id_dest->val);
       rtl_set_CF(s, s1);
       rtl_sub(s, s1, dsrc1, &id_dest->val);
       rtl_update_ZFSF(s, s1, s->isa.width);
       rtl_is_sub_overflow(s, s1, s1, dsrc1, &id_dest->val, s->isa.width);
       rtl_set_OF(s, s1);
-    }
 #endif
+    }
   }
   rtl_jrelop(s, RELOP_EQ, s0, rz, s->pc);
 }

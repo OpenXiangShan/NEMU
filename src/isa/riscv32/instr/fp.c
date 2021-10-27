@@ -1,6 +1,6 @@
-#include <cpu/decode.h>
+#include <common.h>
 
-uint32_t isa_fp_get_rm(Decode *s) {
+uint32_t isa_fp_translate_rm(uint32_t riscv64_rm) {
   assert(0);
 }
 

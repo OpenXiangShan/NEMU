@@ -895,8 +895,8 @@ int isa_fetch_decode(Decode *s) {
     if (s - bb_start == bb_idx) {
       // now scan and update `flag_def`
       Decode *p;
-      //uint32_t use = s->isa.flag_use;
-      uint32_t use = (idx == EXEC_ID_call || s->type == INSTR_TYPE_I ? 0 : F_ALL); //s->isa.flag_use;
+      uint32_t use = F_ALL;
+      //uint32_t use = (idx == EXEC_ID_call || s->type == INSTR_TYPE_I ? 0 : F_ALL); //s->isa.flag_use;
       for (p = s - 1; p >= bb_start; p --) {
         uint32_t real_def = p->isa.flag_def & use;
         use &= ~p->isa.flag_def;

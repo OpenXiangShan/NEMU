@@ -100,14 +100,8 @@ def_EHelper(xchg) {
 
 def_EHelper(cmovcc) {
   rtl_decode_binary(s, false, true);
-
   uint32_t cc = s->isa.opcode & 0xf;
-#ifdef CONFIG_x86_CC_LAZY
-  rtl_lazy_setcc(s, s0, cc);
-#else
   rtl_setcc(s, s0, cc);
-#endif
-
   rtl_cmov(s, ddest, s0, dsrc1);
   rtl_wb(s, ddest);
 }
@@ -115,22 +109,19 @@ def_EHelper(cmovcc) {
 def_EHelper(cmpxchg) {
   assert(s->isa.width == 4);
   rtl_decode_binary(s, true, true);
-
-#ifdef CONFIG_x86_CC_LAZY
-  if (s->isa.flag_def != 0) {
-    rtl_set_lazycc(s, ddest, &cpu.eax, NULL, LAZYCC_SUB, s->isa.width);
-  }
-#else
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
   if (need_update_eflags) {
+#ifdef CONFIG_x86_CC_LAZY
+    rtl_set_lazycc(s, ddest, &cpu.eax, NULL, LAZYCC_SUB, s->isa.width);
+#else
     rtl_sub(s, s0, ddest, &cpu.eax);
     rtl_update_ZFSF(s, s0, s->isa.width);
     rtl_is_sub_carry(s, s1, ddest, &cpu.eax);
     rtl_set_CF(s, s1);
     rtl_is_sub_overflow(s, s1, s0, ddest, &cpu.eax, s->isa.width);
     rtl_set_OF(s, s1);
-  }
 #endif
+  }
 
   rtl_setrelop(s, RELOP_EQ, s0, ddest, &cpu.eax);
   rtl_cmov(s, ddest, s0, dsrc1);

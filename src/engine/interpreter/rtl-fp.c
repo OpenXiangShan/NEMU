@@ -74,60 +74,44 @@ def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr, sword_t offset, int len,
 }
 
 #define fpToF(fpreg, w) concat(fpToF, w)(fpreg)
-#define def_rtl_fp(name, has_rm, body, ...) \
-  def_rtl(name, __VA_ARGS__) { \
-    *dest = (body); \
-    fp_update_ex(); \
-  }
+#define def_rtl_fp(name, body, ...) \
+  def_rtl(name, __VA_ARGS__) { *dest = (body); fp_update_ex(); }
 
-#define def_rtl_fp_unary(name, op_name, w, has_rm) \
-  def_rtl_fp(name, has_rm, \
-      op_name(fpToF(*src1, w)).v, \
-      fpreg_t *dest, const fpreg_t *src1)
+#define def_rtl_fp_unary(name, op_name, w) \
+  def_rtl_fp(name, op_name(fpToF(*src1, w)).v, fpreg_t *dest, const fpreg_t *src1)
 
-#define def_rtl_fp_binary(name, op_name, w, has_rm) \
-  def_rtl_fp(name, has_rm, \
-      op_name(fpToF(*src1, w), fpToF(*src2, w)).v, \
+#define def_rtl_fp_binary(name, op_name, w) \
+  def_rtl_fp(name, op_name(fpToF(*src1, w), fpToF(*src2, w)).v, \
       fpreg_t *dest, const fpreg_t *src1, const fpreg_t *src2)
 
-#define def_rtl_fp_ternary(name, op_name, w, has_rm) \
-  def_rtl_fp(name, has_rm, \
-      op_name(fpToF(*src1, w), fpToF(*src2, w), fpToF(*dest, w)).v, \
+#define def_rtl_fp_ternary(name, op_name, w) \
+  def_rtl_fp(name, op_name(fpToF(*src1, w), fpToF(*src2, w), fpToF(*dest, w)).v, \
       fpreg_t *dest, const fpreg_t *src1, const fpreg_t *src2)
 
 #define def_rtl_fp_cmp(name, op_name, w) \
-  def_rtl_fp(name, false, \
-      op_name(fpToF(*src1, w), fpToF(*src2, w)), \
+  def_rtl_fp(name, op_name(fpToF(*src1, w), fpToF(*src2, w)), \
       rtlreg_t *dest, const fpreg_t *src1, const fpreg_t *src2)
 
 #define def_rtl_i2f(name, op_name) \
-  def_rtl_fp(name, true, \
-      op_name(*src1).v, \
-      fpreg_t *dest, const rtlreg_t *src1)
+  def_rtl_fp(name, op_name(*src1).v, fpreg_t *dest, const rtlreg_t *src1)
 
 #define def_rtl_i642f(name, op_name) \
-  def_rtl_fp(name, true, \
-      op_name(*src1).v, \
-      fpreg_t *dest, const fpreg_t *src1)
+  def_rtl_fp(name, op_name(*src1).v, fpreg_t *dest, const fpreg_t *src1)
 
 #define def_rtl_f2i(name, op_name, w) \
-  def_rtl_fp(name, true, \
-      op_name(fpToF(*src1, w)), \
-      rtlreg_t *dest, const fpreg_t *src1)
+  def_rtl_fp(name, op_name(fpToF(*src1, w)), rtlreg_t *dest, const fpreg_t *src1)
 
 #define def_rtl_f2i64(name, op_name, w) \
-  def_rtl_fp(name, true, \
-      op_name(fpToF(*src1, w)), \
-      fpreg_t *dest, const fpreg_t *src1)
+  def_rtl_fp(name, op_name(fpToF(*src1, w)), fpreg_t *dest, const fpreg_t *src1)
 
-def_rtl_fp_binary(fadds, f32_add, 32, true);
-def_rtl_fp_binary(fsubs, f32_sub, 32, true);
-def_rtl_fp_binary(fmuls, f32_mul, 32, true);
-def_rtl_fp_binary(fdivs, f32_div, 32, true);
-def_rtl_fp_binary(fmins, f32_min, 32, false);
-def_rtl_fp_binary(fmaxs, f32_max, 32, false);
-def_rtl_fp_unary(fsqrts, f32_sqrt, 32, true);
-def_rtl_fp_ternary(fmadds, f32_mulAdd, 32, true);
+def_rtl_fp_binary(fadds, f32_add, 32);
+def_rtl_fp_binary(fsubs, f32_sub, 32);
+def_rtl_fp_binary(fmuls, f32_mul, 32);
+def_rtl_fp_binary(fdivs, f32_div, 32);
+def_rtl_fp_binary(fmins, f32_min, 32);
+def_rtl_fp_binary(fmaxs, f32_max, 32);
+def_rtl_fp_unary(fsqrts, f32_sqrt, 32);
+def_rtl_fp_ternary(fmadds, f32_mulAdd, 32);
 def_rtl_fp_cmp(fles, f32_le, 32);
 def_rtl_fp_cmp(flts, f32_lt, 32);
 def_rtl_fp_cmp(feqs, f32_eq, 32);
@@ -140,14 +124,14 @@ def_rtl_f2i(fcvt_f32_to_u32, my_f32_to_ui32, 32);
 def_rtl_f2i64(fcvt_f32_to_i64, my_f32_to_i64,  32);
 def_rtl_f2i64(fcvt_f32_to_u64, my_f32_to_ui64, 32);
 
-def_rtl_fp_binary(faddd, f64_add, 64, true);
-def_rtl_fp_binary(fsubd, f64_sub, 64, true);
-def_rtl_fp_binary(fmuld, f64_mul, 64, true);
-def_rtl_fp_binary(fdivd, f64_div, 64, true);
-def_rtl_fp_binary(fmind, f64_min, 64, false);
-def_rtl_fp_binary(fmaxd, f64_max, 64, false);
-def_rtl_fp_unary(fsqrtd, f64_sqrt, 64, true);
-def_rtl_fp_ternary(fmaddd, f64_mulAdd, 64, true);
+def_rtl_fp_binary(faddd, f64_add, 64);
+def_rtl_fp_binary(fsubd, f64_sub, 64);
+def_rtl_fp_binary(fmuld, f64_mul, 64);
+def_rtl_fp_binary(fdivd, f64_div, 64);
+def_rtl_fp_binary(fmind, f64_min, 64);
+def_rtl_fp_binary(fmaxd, f64_max, 64);
+def_rtl_fp_unary(fsqrtd, f64_sqrt, 64);
+def_rtl_fp_ternary(fmaddd, f64_mulAdd, 64);
 def_rtl_fp_cmp(fled, f64_le, 64);
 def_rtl_fp_cmp(fltd, f64_lt, 64);
 def_rtl_fp_cmp(feqd, f64_eq, 64);
@@ -159,8 +143,8 @@ def_rtl_f2i(fcvt_f64_to_i32, my_f64_to_i32,  64);
 def_rtl_f2i(fcvt_f64_to_u32, my_f64_to_ui32, 64);
 def_rtl_f2i64(fcvt_f64_to_i64, my_f64_to_i64,  64);
 def_rtl_f2i64(fcvt_f64_to_u64, my_f64_to_ui64, 64);
-def_rtl_fp_unary(fcvt_f32_to_f64, f32_to_f64, 32, true);
-def_rtl_fp_unary(fcvt_f64_to_f32, f64_to_f32, 64, true);
+def_rtl_fp_unary(fcvt_f32_to_f64, f32_to_f64, 32);
+def_rtl_fp_unary(fcvt_f64_to_f32, f64_to_f32, 64);
 
 def_rtl(fmv, fpreg_t *dest, const fpreg_t *src1) {
   *dest = *src1;
@@ -182,6 +166,7 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t 
   switch (id) {
     case FPCALL_LOADCONST: *dest = fpcall_load_const(imm); return;
     case FPCALL_SETRM: fp_set_rm(*src2); return;
+    case FPCALL_SETRM_CONST: fp_set_rm(imm); return;
 #ifdef CONFIG_ISA_x86
     case FPCALL_FILDLL:
       rtl_flm(s, dest, src2, imm, 8, MMU_DYNAMIC);

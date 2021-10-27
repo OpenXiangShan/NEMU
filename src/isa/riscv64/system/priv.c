@@ -71,6 +71,7 @@ static void csr_write(word_t *dest, word_t src) {
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
+    rtl_fpcall(NULL, FPCALL_SETRM, NULL, NULL, NULL, 0b111);
     need_update_mstatus_sd = true;
   }
 

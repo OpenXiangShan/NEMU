@@ -1,34 +1,4 @@
-#include "../local-include/intr.h"
 #include <rtl/fp.h>
-#include <cpu/decode.h>
-#include <cpu/cpu.h>
-
-#if 0
-static uint32_t g_rm = FPCALL_RM_RNE;
-
-void x86_fp_set_rm(uint32_t rm_x86) {
-  switch (rm_x86) {
-    case 0b00: g_rm = FPCALL_RM_RNE; break;
-    case 0b01: g_rm = FPCALL_RM_RDN; break;
-    case 0b10: g_rm = FPCALL_RM_RUP; break;
-    case 0b11: g_rm = FPCALL_RM_RTZ; break;
-  }
-}
-
-uint32_t x86_fp_get_rm() {
-  switch (g_rm) {
-    case FPCALL_RM_RNE: return 0b00;
-    case FPCALL_RM_RDN: return 0b01;
-    case FPCALL_RM_RUP: return 0b10;
-    case FPCALL_RM_RTZ: return 0b11;
-  }
-  return 0;
-}
-
-uint32_t isa_fp_get_rm(Decode *s) {
-  return g_rm;
-}
-#endif
 
 uint32_t isa_fp_translate_rm(uint32_t x86_rm) {
   uint32_t table[] = {
@@ -90,10 +60,6 @@ def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1) {
   int invert = opcode_hi & 0x1;
   uint32_t cc_table[] = { CC_B, CC_E, CC_BE, CC_P };
   uint32_t cc = cc_table[cc_idx] ^ invert;
-#ifdef CONFIG_x86_CC_LAZY
-  rtl_lazy_setcc(s, s0, cc);
-#else
   rtl_setcc(s, s0, cc);
-#endif
   rtl_fpcall(s, FPCALL_CMOV, dest, src1, s0, 0);
 }
