@@ -14,55 +14,45 @@ def_EHelper(bt) {
   rtl_sll(s, s0, s0, dsrc1);
   rtl_and(s, s0, s0, ddest);
 
-#ifdef CONFIG_x86_CC_LAZY
-  if (s->isa.flag_def != 0) {
-    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_BT, s->isa.width);
-  }
-#else
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
   if (need_update_eflags) {
+#ifdef CONFIG_x86_CC_LAZY
+    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_BT, s->isa.width);
+#else
     rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
     rtl_set_CF(s, s0);
-  }
 #endif
+  }
 }
 
 def_EHelper(bsf) {
   rtl_decode_binary(s, false, true);
-
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+  if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
-  if (s->isa.flag_def != 0) {
     rtl_setrelopi(s, RELOP_EQ, &cpu.cc_dest, dsrc1, 0);
     rtl_set_lazycc(s, NULL, NULL, NULL, LAZYCC_BS, 0);
-  }
 #else
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
-  if (need_update_eflags) {
     rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
     rtl_set_ZF(s, s0);
-  }
 #endif
-
+  }
   *ddest = bit_scan(*dsrc1, false);
   rtl_wb_r(s, ddest);
 }
 
 def_EHelper(bsr) {
   rtl_decode_binary(s, false, true);
-
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+  if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
-  if (s->isa.flag_def != 0) {
     rtl_setrelopi(s, RELOP_EQ, &cpu.cc_dest, dsrc1, 0);
     rtl_set_lazycc(s, NULL, NULL, NULL, LAZYCC_BS, 0);
-  }
 #else
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
-  if (need_update_eflags) {
     rtl_setrelopi(s, RELOP_EQ, s0, dsrc1, 0);
     rtl_set_ZF(s, s0);
-  }
 #endif
-
+  }
   *ddest = bit_scan(*dsrc1, true);
   rtl_wb_r(s, ddest);
 }
@@ -74,19 +64,16 @@ def_EHelper(bts) {
   rtl_li(s, s0, 1);
   rtl_sll(s, s0, s0, dsrc1);
 
-#ifdef CONFIG_x86_CC_LAZY
-  if (s->isa.flag_def != 0) {
-    rtl_and(s, s1, s0, ddest);
-    rtl_set_lazycc(s, s1, NULL, NULL, LAZYCC_BT, s->isa.width);
-  }
-#else
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_SKIP, s->isa.flag_def != 0, true);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
   if (need_update_eflags) {
     rtl_and(s, s1, s0, ddest);
+#ifdef CONFIG_x86_CC_LAZY
+    rtl_set_lazycc(s, s1, NULL, NULL, LAZYCC_BT, s->isa.width);
+#else
     rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
     rtl_set_CF(s, s1);
-  }
 #endif
+  }
 
   rtl_or(s, ddest, ddest, s0);
   rtl_wb_r(s, ddest);
