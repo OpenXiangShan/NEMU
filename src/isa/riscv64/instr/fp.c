@@ -5,15 +5,18 @@
 #include <cpu/decode.h>
 
 static uint32_t nemu_rm_cache = 0;
-void fp_update_rm_cache(uint32_t rm) {
-  switch (rm) {
-    case 0: nemu_rm_cache = FPCALL_RM_RNE; return;
-    case 1: nemu_rm_cache = FPCALL_RM_RTZ; return;
-    case 2: nemu_rm_cache = FPCALL_RM_RDN; return;
-    case 3: nemu_rm_cache = FPCALL_RM_RUP; return;
-    case 4: nemu_rm_cache = FPCALL_RM_RMM; return;
-    default: assert(0);
-  }
+void fp_update_rm_cache(uint32_t rm) { nemu_rm_cache = rm; }
+
+uint32_t isa_fp_translate_rm(uint32_t riscv64_rm) {
+  if (riscv64_rm == 0b111) riscv64_rm = nemu_rm_cache;
+  uint32_t table[] = {
+    FPCALL_RM_RNE,
+    FPCALL_RM_RTZ,
+    FPCALL_RM_RDN,
+    FPCALL_RM_RUP,
+    FPCALL_RM_RMM
+  };
+  return table[riscv64_rm];
 }
 
 bool fp_enable() {

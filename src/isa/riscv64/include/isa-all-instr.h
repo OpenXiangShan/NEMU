@@ -29,6 +29,8 @@
   f(fcvt_s_w) f(fcvt_s_wu) f(fcvt_s_l) f(fcvt_s_lu) \
   f(fcvt_w_s) f(fcvt_wu_s) f(fcvt_l_s) f(fcvt_lu_s) \
   f(fmv_x_w) f(fmv_w_x) \
+  f(fcvt_s_w_rm) \
+  f(fcvt_w_s_rm) f(fcvt_l_s_rm) f(fcvt_lu_s_rm) \
 
 #define INSTR_RVD(f) \
   f(fld) f(fsd) f(fld_mmu) f(fsd_mmu) \
@@ -38,6 +40,9 @@
   f(fsgnjd) f(fsgnjnd) f(fsgnjxd) \
   f(fcvt_d_w) f(fcvt_d_wu) f(fcvt_d_l) f(fcvt_d_lu) \
   f(fcvt_w_d) f(fcvt_wu_d) f(fcvt_l_d) f(fcvt_lu_d) \
+  f(fcvt_d_w_rm) f(fcvt_d_wu_rm) f(fcvt_d_l_rm) \
+  f(fcvt_w_d_rm) f(fcvt_wu_d_rm) f(fcvt_l_d_rm) f(fcvt_lu_d_rm) \
+  f(fcvt_d_s_rm) f(fcvt_s_d_rm) \
   f(fmv_x_d) f(fmv_d_x) \
   f(fcvt_d_s) f(fcvt_s_d) \
   f(fclassd)

@@ -182,6 +182,7 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t 
   switch (id) {
     case FPCALL_LOADCONST: *dest = fpcall_load_const(imm); return;
     case FPCALL_SETRM: fp_set_rm(*src2); return;
+    case FPCALL_SETRM_CONST: fp_set_rm(imm); return;
 #ifdef CONFIG_ISA_x86
     case FPCALL_FILDLL:
       rtl_flm(s, dest, src2, imm, 8, MMU_DYNAMIC);
