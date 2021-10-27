@@ -78,11 +78,7 @@ def_EHelper(not) {
 def_EHelper(setcc) {
   rtl_decode_unary(s, false);
   uint32_t cc = s->isa.opcode & 0xf;
-#ifdef CONFIG_x86_CC_LAZY
-  rtl_lazy_setcc(s, ddest, cc);
-#else
   rtl_setcc(s, ddest, cc);
-#endif
   rtl_wb(s, ddest);
 }
 

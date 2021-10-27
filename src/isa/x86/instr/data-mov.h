@@ -100,14 +100,8 @@ def_EHelper(xchg) {
 
 def_EHelper(cmovcc) {
   rtl_decode_binary(s, false, true);
-
   uint32_t cc = s->isa.opcode & 0xf;
-#ifdef CONFIG_x86_CC_LAZY
-  rtl_lazy_setcc(s, s0, cc);
-#else
   rtl_setcc(s, s0, cc);
-#endif
-
   rtl_cmov(s, ddest, s0, dsrc1);
   rtl_wb(s, ddest);
 }

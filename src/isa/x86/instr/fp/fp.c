@@ -60,10 +60,6 @@ def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1) {
   int invert = opcode_hi & 0x1;
   uint32_t cc_table[] = { CC_B, CC_E, CC_BE, CC_P };
   uint32_t cc = cc_table[cc_idx] ^ invert;
-#ifdef CONFIG_x86_CC_LAZY
-  rtl_lazy_setcc(s, s0, cc);
-#else
   rtl_setcc(s, s0, cc);
-#endif
   rtl_fpcall(s, FPCALL_CMOV, dest, src1, s0, 0);
 }

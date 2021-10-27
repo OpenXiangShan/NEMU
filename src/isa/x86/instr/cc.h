@@ -16,22 +16,28 @@ enum {
 
 /* Condition Code */
 
-static inline const char* get_cc_name(int subcode) {
+static inline const char* get_cc_name(int cc) {
   static const char *cc_name[] = {
     "o", "no", "b", "nb",
     "e", "ne", "be", "nbe",
     "s", "ns", "p", "np",
     "l", "nl", "le", "nle"
   };
-  return cc_name[subcode];
+  return cc_name[cc];
 }
 
-static inline void rtl_setcc(Decode *s, rtlreg_t* dest, uint32_t subcode) {
-  uint32_t invert = subcode & 0x1;
+static inline void rtl_setcc(Decode *s, rtlreg_t* dest, uint32_t cc) {
+#ifdef CONFIG_x86_CC_LAZY
+  def_rtl(lazy_setcc, rtlreg_t *dest, uint32_t cc);
+  rtl_lazy_setcc(s, dest, cc);
+  return;
+#endif
+
+  uint32_t invert = cc & 0x1;
 
   // TODO: Query EFLAGS to determine whether the condition code is satisfied.
   // dest <- ( cc is satisfied ? 1 : 0)
-  switch (subcode & 0xe) {
+  switch (cc & 0xe) {
 #ifdef __ICS_EXPORT
     case CC_O:
     case CC_B:
