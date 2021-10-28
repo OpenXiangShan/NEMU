@@ -253,7 +253,7 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   int idx = isa_new_fetch_decode(s);
 #ifndef CONFIG_PERF_OPT
-  s->dnpc = s->snpc;
+  //s->dnpc = s->snpc;
 #endif
   s->EHelper = g_exec_table[idx];
 #ifdef CONFIG_ITRACE
