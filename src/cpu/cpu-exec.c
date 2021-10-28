@@ -50,7 +50,7 @@ static const void* g_exec_table[TOTAL_INSTR] = {
 
 static void fetch_decode_exec_updatepc(Decode *s) {
   fetch_decode(s, cpu.pc);
-  s->EHelper(s);
+  //s->EHelper(s);
   cpu.pc = s->dnpc;
 }
 #endif
@@ -246,10 +246,12 @@ void assert_fail_msg() {
   statistic();
 }
 
+int isa_new_fetch_decode(Decode *s);
+
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
-  int idx = isa_fetch_decode(s);
+  int idx = isa_new_fetch_decode(s);
 #ifndef CONFIG_PERF_OPT
   s->dnpc = s->snpc;
 #endif
