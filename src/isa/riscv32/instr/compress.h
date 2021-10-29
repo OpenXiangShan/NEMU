@@ -24,73 +24,25 @@
 //       C.ADDI16SP (the same as C.ADDI)
 //       C.NOP      (the same as C.ADDI)
 
-def_EHelper(c_j) {
-  rtl_j(s, id_src1->imm);
-}
-
 def_EHelper(c_jal) {
   rtl_li(s, &gpr(1), id_src2->imm);
   ftrace_call(s->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 
-def_EHelper(c_jr) {
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  rtl_jr(s, dsrc1);
-}
-
-def_EHelper(c_beqz) {
-  rtl_jrelop(s, RELOP_EQ, dsrc1, rz, id_dest->imm);
-}
-
-def_EHelper(c_bnez) {
-  rtl_jrelop(s, RELOP_NE, dsrc1, rz, id_dest->imm);
-}
-
-def_EHelper(c_li) {
-  rtl_li(s, ddest, id_src2->imm);
-}
-
-def_EHelper(c_addi) {
-  rtl_addi(s, ddest, ddest, id_src2->imm);
-}
-
-def_EHelper(c_slli) {
-  rtl_slli(s, ddest, ddest, id_src2->imm);
-}
-
-def_EHelper(c_srli) {
-  rtl_srli(s, ddest, ddest, id_src2->imm);
-}
-
-def_EHelper(c_srai) {
-  rtl_srai(s, ddest, ddest, id_src2->imm);
-}
-
-def_EHelper(c_andi) {
-  rtl_andi(s, ddest, ddest, id_src2->imm);
-}
-
-def_EHelper(c_mv) {
-  rtl_mv(s, ddest, dsrc1);
-}
-
-def_EHelper(c_add) {
-  rtl_add(s, ddest, ddest, dsrc2);
-}
-
-def_EHelper(c_and) {
-  rtl_and(s, ddest, ddest, dsrc2);
-}
-
-def_EHelper(c_or) {
-  rtl_or(s, ddest, ddest, dsrc2);
-}
-
-def_EHelper(c_xor) {
-  rtl_xor(s, ddest, ddest, dsrc2);
-}
-
-def_EHelper(c_sub) {
-  rtl_sub(s, ddest, ddest, dsrc2);
-}
+def_EHelper(c_jr)   { rtl_jr(s, dsrc1); }
+def_EHelper(c_j)    { rtl_j(s, id_src1->imm); }
+def_EHelper(c_beqz) { rtl_jrelop(s, RELOP_EQ, dsrc1, rz, id_dest->imm); }
+def_EHelper(c_bnez) { rtl_jrelop(s, RELOP_NE, dsrc1, rz, id_dest->imm); }
+def_EHelper(c_li)   { rtl_li(s, ddest, id_src2->imm); }
+def_EHelper(c_addi) { rtl_addi(s, ddest, ddest, id_src2->imm); }
+def_EHelper(c_slli) { rtl_slli(s, ddest, ddest, id_src2->imm); }
+def_EHelper(c_srli) { rtl_srli(s, ddest, ddest, id_src2->imm); }
+def_EHelper(c_srai) { rtl_srai(s, ddest, ddest, id_src2->imm); }
+def_EHelper(c_andi) { rtl_andi(s, ddest, ddest, id_src2->imm); }
+def_EHelper(c_mv)   { rtl_mv(s, ddest, dsrc1); }
+def_EHelper(c_add)  { rtl_add(s, ddest, ddest, dsrc2); }
+def_EHelper(c_and)  { rtl_and(s, ddest, ddest, dsrc2); }
+def_EHelper(c_or)   { rtl_or(s, ddest, ddest, dsrc2); }
+def_EHelper(c_xor)  { rtl_xor(s, ddest, ddest, dsrc2); }
+def_EHelper(c_sub)  { rtl_sub(s, ddest, ddest, dsrc2); }
