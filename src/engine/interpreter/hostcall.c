@@ -12,7 +12,8 @@ void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
   nemu_state.halt_ret = halt_ret;
 }
 
-static void invalid_instr(vaddr_t thispc) {
+__attribute__((noinline))
+void invalid_instr(vaddr_t thispc) {
   uint32_t temp[2];
   vaddr_t pc = thispc;
   temp[0] = instr_fetch(&pc, 4);

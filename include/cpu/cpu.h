@@ -29,4 +29,9 @@ void fetch_decode(struct Decode *s, vaddr_t pc);
 void cpu_exec(uint64_t n);
 #endif
 
+void set_nemu_state(int state, vaddr_t pc, int halt_ret);
+void invalid_instr(vaddr_t thispc);
+#define NEMUTRAP(thispc, code) set_nemu_state(NEMU_END, thispc, code)
+#define INV(thispc) invalid_instr(thispc)
+
 #endif
