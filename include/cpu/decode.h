@@ -37,7 +37,6 @@ typedef struct Decode {
   };
   vaddr_t pc;
   vaddr_t snpc; // static next pc
-  IFNDEF(CONFIG_PERF_OPT, vaddr_t dnpc); // dynamic next pc
   IFDEF (CONFIG_PERF_OPT, const void *EHelper);
   IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
   Operand dest, src1, src2;

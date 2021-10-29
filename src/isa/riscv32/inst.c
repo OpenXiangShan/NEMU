@@ -3,7 +3,7 @@
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 
-#define R(i) (cpu.gpr[i]._32)
+#define R(i) gpr(i)
 #define Mr(addr, len)       vaddr_read(s, addr, len, MMU_DYNAMIC)
 #define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC)
 
@@ -13,55 +13,93 @@ enum {
   TYPE_N, // none
 };
 
+static word_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
+static word_t immU(uint32_t i) { return BITS(i, 31, 12) << 12; }
+static word_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); }
+static word_t immJ(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 20) |
+  (BITS(i, 19, 12) << 12) | (BITS(i, 20, 20) << 11) | (BITS(i, 30, 21) << 1);
+}
+static word_t immB(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 12) |
+  (BITS(i, 7, 7) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1);
+}
+
+#ifdef CONFIG_PERF_OPT
+#include <isa-all-instr.h>
+static void decode_i(Operand *op, word_t val)  { op->imm = val; }
+static void decode_r(Operand *op, word_t *reg) { op->preg = reg; }
+
+static void decode_operand(Decode *s, word_t *src1, word_t *src2, word_t *imm, int type) {
+  static word_t zero_null = 0;
+  uint32_t i = s->isa.instr.val;
+  int rd  = BITS(i, 11, 7);
+  int rs1 = BITS(i, 19, 15);
+  int rs2 = BITS(i, 24, 20);
+#define Rr(n) &R(n)
+#define Rw(n) (n == 0 ? &zero_null : &R(n))
+  decode_r(id_dest, Rw(rd));
+  switch (type) {
+    case TYPE_I: decode_r(id_src1, Rr(rs1)); decode_i(id_src2, immI(i)); break;
+    case TYPE_U: decode_i(id_src1, immU(i)); decode_i(id_src2, s->pc + immU(i)); break;
+    case TYPE_J:
+      decode_i(id_src1, s->pc + immJ(i));
+      decode_i(id_src2, s->snpc);
+      break;
+    case TYPE_S:
+      decode_r(id_dest, Rr(rs2));
+      decode_r(id_src1, Rr(rs1));
+      decode_i(id_src2, immS(i));
+      break;
+    case TYPE_B: decode_i(id_dest, s->pc + immB(i)); // fall through
+    case TYPE_R:
+      decode_r(id_src1, Rr(rs1));
+      decode_r(id_src2, Rr(rs2));
+      break;
+  }
+}
+#else
 static void decode_operand(Decode *s, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.instr.val;
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
   switch (type) {
-    case TYPE_I: *imm = SEXT(BITS(i, 31, 20), 12);
-                 *src1 = R(rs1); *src2 = *imm;
-                 break;
-    case TYPE_U: *imm = BITS(i, 31, 12) << 12; break;
-    case TYPE_J: *imm = (SEXT(BITS(i, 31, 31), 1) << 20) | (BITS(i, 19, 12) << 12) |
-                   (BITS(i, 20, 20) << 11) | (BITS(i, 30, 21) << 1);
-                 break;
-    case TYPE_S: *imm = (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); goto R;
-    case TYPE_B:
-      *imm = (SEXT(BITS(i, 31, 31), 1) << 12) | (BITS(i, 7, 7) << 11) |
-        (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1);
-      // fall through
+    case TYPE_I: *src1 = R(rs1); *src2 = immI(i); break;
+    case TYPE_U: *imm = immU(i); break;
+    case TYPE_J: *imm = immJ(i); break;
+    case TYPE_S: *imm = immS(i); goto R;
+    case TYPE_B: *imm = immB(i); // fall through
     case TYPE_R: R: *src1 = R(rs1); *src2 = R(rs2); break;
   }
 }
+#endif
 
-int isa_new_fetch_decode(Decode *s) {
-  s->isa.instr.val = instr_fetch(&s->snpc, 4);
-  s->dnpc = s->snpc;
-  int rd  = BITS(s->isa.instr.val, 11, 7);
+static int decode_exec(Decode *s) {
+  int rd = BITS(s->isa.instr.val, 11, 7);
   word_t imm = 0, src1 = 0, src2 = 0;
+  cpu.pc = s->snpc;
 
 #define INSTPAT_INST(s) ((s)->isa.instr.val)
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
   decode_operand(s, &src1, &src2, &imm, concat(TYPE_, type)); \
+  IFDEF(CONFIG_PERF_OPT, return concat(EXEC_ID_, name)); \
   __VA_ARGS__ ; \
 }
 
   INSTPAT_START();
   INSTPAT("??????? ????? ????? ??? ????? 01101 11", lui      , U, R(rd) = imm);
   INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc    , U, R(rd) = imm + s->pc);
-  INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal      , J, s->dnpc = s->pc + imm, R(rd) = s->snpc);
-  INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr     , I, s->dnpc = src1 + src2, R(rd) = s->snpc);
-  INSTPAT("??????? ????? ????? 000 ????? 11000 11", beq      , B, if (src1 == src2) s->dnpc = s->pc + imm);
-  INSTPAT("??????? ????? ????? 001 ????? 11000 11", bne      , B, if (src1 != src2) s->dnpc = s->pc + imm);
-  INSTPAT("??????? ????? ????? 100 ????? 11000 11", blt      , B, if ((sword_t)src1 <  (sword_t)src2) s->dnpc = s->pc + imm);
-  INSTPAT("??????? ????? ????? 101 ????? 11000 11", bge      , B, if ((sword_t)src1 >= (sword_t)src2) s->dnpc = s->pc + imm);
-  INSTPAT("??????? ????? ????? 110 ????? 11000 11", bltu     , B, if (src1 <  src2) s->dnpc = s->pc + imm);
-  INSTPAT("??????? ????? ????? 111 ????? 11000 11", bgeu     , B, if (src1 >= src2) s->dnpc = s->pc + imm);
+  INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal      , J, cpu.pc = s->pc + imm, R(rd) = s->snpc);
+  INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr     , I, cpu.pc = src1 + src2, R(rd) = s->snpc);
+  INSTPAT("??????? ????? ????? 000 ????? 11000 11", beq      , B, if (src1 == src2) cpu.pc = s->pc + imm);
+  INSTPAT("??????? ????? ????? 001 ????? 11000 11", bne      , B, if (src1 != src2) cpu.pc = s->pc + imm);
+  INSTPAT("??????? ????? ????? 100 ????? 11000 11", blt      , B, if ((sword_t)src1 <  (sword_t)src2) cpu.pc = s->pc + imm);
+  INSTPAT("??????? ????? ????? 101 ????? 11000 11", bge      , B, if ((sword_t)src1 >= (sword_t)src2) cpu.pc = s->pc + imm);
+  INSTPAT("??????? ????? ????? 110 ????? 11000 11", bltu     , B, if (src1 <  src2) cpu.pc = s->pc + imm);
+  INSTPAT("??????? ????? ????? 111 ????? 11000 11", bgeu     , B, if (src1 >= src2) cpu.pc = s->pc + imm);
   INSTPAT("??????? ????? ????? 000 ????? 00000 11", lb       , I, R(rd) = SEXT(Mr(src1 + src2, 1), 8));
   INSTPAT("??????? ????? ????? 001 ????? 00000 11", lh       , I, R(rd) = SEXT(Mr(src1 + src2, 2), 16));
   INSTPAT("??????? ????? ????? 010 ????? 00000 11", lw       , I, R(rd) = Mr(src1 + src2, 4));
-  INSTPAT("??????? ????? ????? 100 ????? 00000 11", lb       , I, R(rd) = Mr(src1 + src2, 1));
-  INSTPAT("??????? ????? ????? 101 ????? 00000 11", lh       , I, R(rd) = Mr(src1 + src2, 2));
+  INSTPAT("??????? ????? ????? 100 ????? 00000 11", lbu      , I, R(rd) = Mr(src1 + src2, 1));
+  INSTPAT("??????? ????? ????? 101 ????? 00000 11", lhu      , I, R(rd) = Mr(src1 + src2, 2));
   INSTPAT("??????? ????? ????? 000 ????? 01000 11", sb       , S, Mw(src1 + imm, 1, src2));
   INSTPAT("??????? ????? ????? 001 ????? 01000 11", sh       , S, Mw(src1 + imm, 2, src2));
   INSTPAT("??????? ????? ????? 010 ????? 01000 11", sw       , S, Mw(src1 + imm, 4, src2));
@@ -80,7 +118,7 @@ int isa_new_fetch_decode(Decode *s) {
   INSTPAT("0000000 ????? ????? 010 ????? 01100 11", slt      , R, R(rd) = (sword_t)src1 <  (sword_t)src2);
   INSTPAT("0000000 ????? ????? 011 ????? 01100 11", sltu     , R, R(rd) = src1 <  src2);
   INSTPAT("0000000 ????? ????? 100 ????? 01100 11", xor      , R, R(rd) = src1 ^  src2);
-  INSTPAT("0000000 ????? ????? 101 ????? 01100 11", slr      , R, R(rd) = src1 >> src2);
+  INSTPAT("0000000 ????? ????? 101 ????? 01100 11", srl      , R, R(rd) = src1 >> src2);
   INSTPAT("0100000 ????? ????? 101 ????? 01100 11", sra      , R, R(rd) = (sword_t)src1 >> src2);
   INSTPAT("0000000 ????? ????? 110 ????? 01100 11", or       , R, R(rd) = src1 |  src2);
   INSTPAT("0000000 ????? ????? 111 ????? 01100 11", and      , R, R(rd) = src1 &  src2);
@@ -101,4 +139,27 @@ int isa_new_fetch_decode(Decode *s) {
   R(0) = 0; // reset $zero to 0
 
   return 0;
+}
+
+int isa_new_fetch_decode(Decode *s) {
+  s->isa.instr.val = instr_fetch(&s->snpc, 4);
+  int idx = decode_exec(s);
+#ifdef CONFIG_PERF_OPT
+  s->type = INSTR_TYPE_N;
+  switch (idx) {
+    case EXEC_ID_c_j: case EXEC_ID_c_jal: case EXEC_ID_jal:
+      s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
+
+    case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
+    case EXEC_ID_bltu: case EXEC_ID_bgeu:
+    case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
+    case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
+      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+
+    case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
+    case EXEC_ID_mret: case EXEC_ID_ecall:
+      s->type = INSTR_TYPE_I;
+  }
+#endif
+  return idx;
 }

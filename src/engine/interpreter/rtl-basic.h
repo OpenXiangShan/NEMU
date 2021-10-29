@@ -167,14 +167,16 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline def_rtl(j, vaddr_t target) {
+  assert(0);
 #ifndef CONFIG_PERF_OPT
-  s->dnpc = target;
+  //s->dnpc = target;
 #endif
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
+  assert(0);
 #ifndef CONFIG_PERF_OPT
-  s->dnpc = *target;
+  //s->dnpc = *target;
 #endif
 }
 
