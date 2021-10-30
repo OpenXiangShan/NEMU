@@ -2,6 +2,7 @@
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
+#include <cpu/difftest.h>
 
 #define R(i) gpr(i)
 #define Mr(addr, len)       vaddr_read(s, addr, len, MMU_DYNAMIC)
@@ -193,7 +194,7 @@ if (mmu_mode == MMU_TRANSLATE) {
   return 0;
 }
 
-int isa_new_fetch_decode(Decode *s) {
+int isa_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = decode_exec(s);
 #ifdef CONFIG_PERF_OPT

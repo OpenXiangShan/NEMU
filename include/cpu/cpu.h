@@ -12,8 +12,8 @@ enum {
 };
 
 void cpu_exec(uint64_t n);
-IFNDEF(CONFIG_TARGET_AM, __attribute__((noreturn))) void longjmp_exec(int cause);
-IFNDEF(CONFIG_TARGET_AM, __attribute__((noreturn))) void longjmp_exception(int ex_cause);
+IFDEF(CONFIG_PERF_OPT, __attribute__((noreturn))) void longjmp_exec(int cause);
+IFDEF(CONFIG_PERF_OPT, __attribute__((noreturn))) void longjmp_exception(int ex_cause);
 
 enum {
   SYS_STATE_UPDATE = 1,
@@ -31,7 +31,10 @@ void cpu_exec(uint64_t n);
 
 void set_nemu_state(int state, vaddr_t pc, int halt_ret);
 void invalid_instr(vaddr_t thispc);
-#define NEMUTRAP(thispc, code) set_nemu_state(NEMU_END, thispc, code)
+#define NEMUTRAP(thispc, code) do { \
+  difftest_skip_ref(); \
+  set_nemu_state(NEMU_END, thispc, code); \
+} while (0)
 #define INV(thispc) invalid_instr(thispc)
 
 #endif
