@@ -41,24 +41,14 @@ static void decode_operand(Decode *s, word_t *src1, word_t *src2, word_t *imm, i
   int rs2 = BITS(i, 24, 20);
 #define Rr(n) &R(n)
 #define Rw(n) (n == 0 ? &zero_null : &R(n))
-  decode_r(id_dest, Rw(rd));
+  decode_r(id_dest, (type == TYPE_S ? Rr(rs2) : Rw(rd)));
   switch (type) {
     case TYPE_I: decode_r(id_src1, Rr(rs1)); decode_i(id_src2, immI(i)); break;
     case TYPE_U: decode_i(id_src1, immU(i)); decode_i(id_src2, s->pc + immU(i)); break;
-    case TYPE_J:
-      decode_i(id_src1, s->pc + immJ(i));
-      decode_i(id_src2, s->snpc);
-      break;
-    case TYPE_S:
-      decode_r(id_dest, Rr(rs2));
-      decode_r(id_src1, Rr(rs1));
-      decode_i(id_src2, immS(i));
-      break;
+    case TYPE_J: decode_i(id_src1, s->pc + immJ(i)); decode_i(id_src2, s->snpc); break;
+    case TYPE_S: decode_r(id_src1, Rr(rs1)); decode_i(id_src2, immS(i)); break;
     case TYPE_B: decode_i(id_dest, s->pc + immB(i)); // fall through
-    case TYPE_R:
-      decode_r(id_src1, Rr(rs1));
-      decode_r(id_src2, Rr(rs2));
-      break;
+    case TYPE_R: decode_r(id_src1, Rr(rs1)); decode_r(id_src2, Rr(rs2)); break;
   }
 }
 #else
