@@ -15,7 +15,7 @@ static void restart() {
   cpu.pc = RESET_VECTOR;
 
   /* The zero register is always 0. */
-  cpu.gpr[0]._32 = 0;
+  cpu.gpr[0] = 0;
 #ifndef __ICS_EXPORT
   cpu.mode = 3;
   cpu.mstatus.val = 0x00001800;
