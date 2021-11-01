@@ -37,4 +37,6 @@ void invalid_instr(vaddr_t thispc);
 } while (0)
 #define INV(thispc) invalid_instr(thispc)
 
+extern word_t g_ex_cause;
+
 #endif

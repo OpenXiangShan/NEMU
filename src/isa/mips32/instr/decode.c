@@ -195,7 +195,7 @@ def_THelper(main) {
   return table_inv(s);
 }
 
-int isa_fetch_decode(Decode *s) {
+int isa_old_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
   int idx = table_main(s);
 

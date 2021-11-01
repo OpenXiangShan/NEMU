@@ -12,6 +12,7 @@
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
+word_t g_ex_cause = NEMU_EXEC_RUNNING;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
@@ -44,7 +45,6 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 
 static jmp_buf jbuf_exec = {};
 static Decode *prev_s;
-static word_t g_ex_cause = NEMU_EXEC_RUNNING;
 static int g_sys_state_flag = 0;
 IFNDEF(CONFIG_TARGET_SHARE, static uint64_t g_nr_guest_instr_end = 0);
 
@@ -187,6 +187,7 @@ end_of_loop:
 #else
 void mmu_tlb_flush(vaddr_t vaddr) { }
 void longjmp_exec(int cause) { }
+void longjmp_exception(int ex_cause) { g_ex_cause = ex_cause; }
 void save_globals(Decode *s) { }
 void set_sys_state_flag(int flag) { }
 #endif // CONFIG_PERF_OPT
