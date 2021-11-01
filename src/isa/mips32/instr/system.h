@@ -11,23 +11,15 @@ def_EHelper(eret) {
 }
 
 def_EHelper(mfc0) {
-  rtl_hostcall(s, HOSTCALL_CSR, dsrc2, NULL, NULL, id_dest->imm);
+  rtl_hostcall(s, HOSTCALL_CSR, dsrc2, NULL, NULL, BITS(s->isa.instr.val, 15, 11));
   rtl_priv_next(s);
 }
 
 def_EHelper(mtc0) {
-  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc2, NULL, id_dest->imm);
+  rtl_hostcall(s, HOSTCALL_CSR, NULL, dsrc2, NULL, BITS(s->isa.instr.val, 15, 11));
   rtl_priv_next(s);
 }
 
-def_EHelper(tlbwr) {
-  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, PRIV_TLBWR);
-}
-
-def_EHelper(tlbwi) {
-  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, PRIV_TLBWI);
-}
-
-def_EHelper(tlbp) {
-  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, PRIV_TLBP);
-}
+def_EHelper(tlbwr) { rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, PRIV_TLBWR); }
+def_EHelper(tlbwi) { rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, PRIV_TLBWI); }
+def_EHelper(tlbp)  { rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, PRIV_TLBP); }

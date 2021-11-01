@@ -47,32 +47,6 @@ typedef struct {
 // decode
 typedef struct {
   union {
-    struct {
-      int32_t  simm   : 16;
-      uint32_t rt     :  5;
-      uint32_t rs     :  5;
-      uint32_t opcode :  6;
-    } i;
-    struct {
-      uint32_t imm    : 16;
-      uint32_t rt     :  5;
-      uint32_t rs     :  5;
-      uint32_t opcode :  6;
-    } iu;
-#ifndef __ICS_EXPORT
-    struct {
-      uint32_t target : 26;
-      uint32_t opcode :  6;
-    } j;
-#endif
-    struct {
-      uint32_t func   : 6;
-      uint32_t sa     : 5;
-      uint32_t rd     : 5;
-      uint32_t rt     : 5;
-      uint32_t rs     : 5;
-      uint32_t opcode : 6;
-    } r;
     uint32_t val;
   } instr;
 } mips32_ISADecodeInfo;

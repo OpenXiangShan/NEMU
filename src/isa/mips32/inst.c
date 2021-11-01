@@ -9,7 +9,7 @@
 #define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(); tmp; })
 #define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex()
 #define check_ex() do { \
-  if (g_ex_cause != NEMU_EXEC_RUNNING) { \
+  if (MUXDEF(CONFIG_PERF_OPT, false, g_ex_cause != NEMU_EXEC_RUNNING)) { \
     cpu.pc = isa_raise_intr(g_ex_cause, s->pc); \
     g_ex_cause = NEMU_EXEC_RUNNING; \
     return 0; \
