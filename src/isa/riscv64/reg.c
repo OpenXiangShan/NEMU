@@ -35,8 +35,8 @@ void isa_reg_display() {
 #ifdef CONFIG_MODE_SYSTEM
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
-  printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
-      "", csrid_read(0x100), scause->val, sepc->val);
+  printf("mode: %-16d sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
+      cpu.mode, csrid_read(0x100), scause->val, sepc->val);
 #endif
 }
 
