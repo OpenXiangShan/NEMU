@@ -9,7 +9,7 @@
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
-  f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
+  f(addi) f(slli) f(srli) f(slti) f(sltiu) f(xori) f(ori) f(srai) f(andi) \
   f(jalr) f(beq) f(bne) f(blt) f(bge) f(bltu) f(bgeu) \
   f(addw) f(sllw) f(srlw) f(subw) f(sraw) \
   f(addiw) f(slliw) f(srliw) f(sraiw) \
@@ -52,9 +52,8 @@
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
   f(c_li) f(c_addi) f(c_slli) f(c_srli) f(c_srai) f(c_andi) f(c_addiw) \
   f(c_add) f(c_and) f(c_or) f(c_xor) f(c_sub) f(c_addw) f(c_subw) \
-  f(p_li_0) f(p_li_1) \
+  f(p_li_0) f(p_li_1) f(p_inc) f(p_dec) f(p_mv_src1) \
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
-  f(p_inc) f(p_dec) \
 
 #define INSTR_SPECIAL(f) \
   f(inv) f(rt_inv) f(nemu_trap) \

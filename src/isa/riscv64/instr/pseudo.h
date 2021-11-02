@@ -72,3 +72,7 @@ def_EHelper(p_inc) {
 def_EHelper(p_dec) {
   rtl_subi(s, ddest, ddest, 1);
 }
+
+def_EHelper(p_mv_src1) {
+  rtl_mv(s, ddest, dsrc1);
+}

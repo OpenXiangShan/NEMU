@@ -72,7 +72,7 @@ def_EHelper(c_andi) {
 }
 
 def_EHelper(c_mv) {
-  rtl_mv(s, ddest, dsrc1);
+  rtl_mv(s, ddest, dsrc2);
 }
 
 def_EHelper(c_add) {
