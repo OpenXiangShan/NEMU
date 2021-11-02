@@ -286,78 +286,44 @@ static word_t immCSS(uint32_t i, int rotate) {
   return ror_imm(imm6, 6, rotate);
 }
 
+static void decode_rd_rs1(int *rd, word_t *src1, int r) { *rd = r; *src1 = R(r); }
+
 static void decode_operand_rvc(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.instr.val;
+  int r9_7 = creg2reg(BITS(i, 9, 7));
+  int r4_2 = creg2reg(BITS(i, 4, 2));
+  int r11_7 = BITS(i, 11, 7);
+  int r6_2 = BITS(i, 6, 2);
   switch (type) {
-    case TYPE_CIW: *rd = creg2reg(BITS(i, 4, 2)); *src1 = R(2); *src2 = immCIW(i); break;
+    case TYPE_CIW: *rd = r4_2; *src1 = R(2); *src2 = immCIW(i); break;
     case TYPE_CLW: *src2 = imm_CLDST(i, 1); goto CL;
     case TYPE_CLD: *src2 = imm_CLDST(i, 2); // fall through
-    CL:
-      *rd = creg2reg(BITS(i, 4, 2));
-      *src1 = R(creg2reg(BITS(i, 9, 7)));
-      break;
+    CL: *rd = r4_2; *src1 = R(r9_7); break;
     case TYPE_CSW: *imm = imm_CLDST(i, 1); goto CW;
     case TYPE_CSD: *imm = imm_CLDST(i, 2); // fall through
-    CW:
-      *src1 = R(creg2reg(BITS(i, 9, 7)));
-      *src2 = R(creg2reg(BITS(i, 4, 2)));
-      break;
-    case TYPE_CI:
-      *rd = BITS(i, 11, 7);
-      *src1 = R(*rd);
-      *src2 = immCI(i, true, 0, 0);
-      break;
+    CW: *src1 = R(r9_7); *src2 = R(r4_2); break;
+    case TYPE_CI: decode_rd_rs1(rd, src1, r11_7); *src2 = immCI(i, true, 0, 0); break;
     case TYPE_CADDI16SP:
-      *rd = 2;
-      *src1 = R(*rd);
+      decode_rd_rs1(rd, src1, 2);
       *src2 = (SEXT(BITS(i, 12, 12), 1) << 9) | (BITS(i, 4, 3) << 7) |
         (BITS(i, 5, 5) << 6) | (BITS(i, 2, 2) << 5) | (BITS(i, 6, 6) << 4);
       break;
-    case TYPE_CLUI:
-      *rd = BITS(i, 11, 7);
-      *src2 = immCI(i, true, 0, 0) << 12;
-      break;
-    case TYPE_CSHIFT:
-      *rd = creg2reg(BITS(i, 9, 7));
-      *src1 = R(*rd);
-      *src2 = immCI(i, false, 0, 0);
-      break;
-    case TYPE_CANDI:
-      *rd = creg2reg(BITS(i, 9, 7));
-      *src1 = R(*rd);
-      *src2 = immCI(i, true, 0, 0);
-      break;
-    case TYPE_CS:
-      *rd = creg2reg(BITS(i, 9, 7));
-      *src1 = R(*rd);
-      *src2 = R(creg2reg(BITS(i, 4, 2)));
-      break;
+    case TYPE_CLUI: *rd = r11_7; *src2 = immCI(i, true, 0, 0) << 12; break;
+    case TYPE_CSHIFT: decode_rd_rs1(rd, src1, r9_7); *src2 = immCI(i, false, 0, 0); break;
+    case TYPE_CANDI:  decode_rd_rs1(rd, src1, r9_7); *src2 = immCI(i, true, 0, 0); break;
+    case TYPE_CS: decode_rd_rs1(rd, src1, r9_7); *src2 = R(r4_2); break;
     case TYPE_CJ: *imm = s->pc + immCJ(i); break;
-    case TYPE_CB: *src1 = R(creg2reg(BITS(i, 9, 7))); *imm = s->pc + immCB(i); break;
-    case TYPE_CIU:
-      *rd = BITS(i, 11, 7);
-      *src1 = R(*rd);
-      *src2 = immCI(i, false, 0, 0);
-      break;
+    case TYPE_CB: *src1 = R(r9_7); *imm = s->pc + immCB(i); break;
+    case TYPE_CIU: decode_rd_rs1(rd, src1, r11_7); *src2 = immCI(i, false, 0, 0); break;
     case TYPE_CFLDSP: *src2 = immCI(i, false, 0, 3); goto CI_ld;
     case TYPE_CLWSP:  *src2 = immCI(i, false, 0, 2); goto CI_ld;
     case TYPE_CLDSP:  *src2 = immCI(i, false, 0, 3); // fall through
-    CI_ld:
-      *rd = BITS(i, 11, 7);
-      *src1 = R(2);
-      break;
+    CI_ld: *rd = r11_7; *src1 = R(2); break;
     case TYPE_CFSDSP: *imm = immCSS(i, 3); goto CSS;
     case TYPE_CSWSP:  *imm = immCSS(i, 2); goto CSS;
     case TYPE_CSDSP:  *imm = immCSS(i, 3); // fall through
-    CSS:
-      *src1 = R(2);
-      *src2 = R(BITS(i, 6, 2));
-      break;
-    case TYPE_CR:
-      *rd = BITS(i, 11, 7);
-      *src1 = R(*rd);
-      *src2 = R(BITS(i, 6, 2));
-      break;
+    CSS: *src1 = R(2); *src2 = R(r6_2); break;
+    case TYPE_CR: decode_rd_rs1(rd, src1, r11_7); *src2 = R(r6_2); break;
   }
 }
 
