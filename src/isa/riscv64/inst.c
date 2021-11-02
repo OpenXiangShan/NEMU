@@ -22,7 +22,7 @@ enum {
   TYPE_N, // none
 
   TYPE_CIW, TYPE_CFLD, TYPE_CLW, TYPE_CLD, TYPE_CFSD, TYPE_CSW, TYPE_CSD,
-  TYPE_CI, TYPE_CADDI16SP, TYPE_CLUI, TYPE_CSHIFT,
+  TYPE_CI, TYPE_CASP, TYPE_CLUI, TYPE_CSHIFT,
   TYPE_CANDI, TYPE_CS, TYPE_CJ, TYPE_CB, TYPE_CIU, TYPE_CR,
   TYPE_CFLDSP, TYPE_CLWSP, TYPE_CLDSP,
   TYPE_CFSDSP, TYPE_CSWSP, TYPE_CSDSP,
@@ -244,49 +244,38 @@ if (mmu_mode == MMU_TRANSLATE) {
   return 0;
 }
 
-#define creg2reg(creg) (creg + 8)
+__attribute__((always_inline))
+static word_t rvc_imm_internal(uint32_t instr, const char *str, int len, char sign) {
+  word_t imm = 0;
+  uint32_t msb_mask = 0;
+  uint32_t instr_sll16 = instr << 16;
+  assert(len == 16);
+#define macro(i) do { \
+    char c = str[i]; \
+    if (c != '.') { \
+      Assert((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'), \
+          "invalid character '%c' in pattern string", c); \
+      int pos = (c >= '0' && c <= '9') ? c - '0' : c - 'a' + 10; \
+      int nr_srl = 16 + (15 - (i)) - pos; \
+      uint32_t mask = 1u << pos ; \
+      imm |= (instr_sll16 >> nr_srl) & mask; \
+      if (mask > msb_mask) { msb_mask = mask;} \
+    } \
+  } while (0)
 
-static uint32_t ror_imm(uint32_t imm, int len, int r) {
-  if (r == 0) return imm;
-  uint32_t copy = imm | (imm << len);
-  uint32_t mask = BITMASK(len) << r;
-  return copy & mask;
-}
+  macro16(0);
+#undef macro
 
-static word_t immCIW(uint32_t i) {
-  uint32_t imm9_6 = ror_imm(BITS(i, 12, 7), 6, 4); // already at the right place
-  uint32_t imm = imm9_6 | BITS(i, 5, 5) << 3 | BITS(i, 6, 6) << 2;
-  assert(imm != 0);
+  assert(sign == 's' || sign == 'u');
+  if (sign == 's' && (msb_mask & imm)) {
+    imm |= (-imm) & ~((word_t)msb_mask - 1);
+  }
   return imm;
 }
 
-static word_t imm_CLDST(uint32_t i, int rotate) {
-  uint32_t imm5 = (BITS(i, 12, 10) << 2) | BITS(i, 6, 5);
-  return ror_imm(imm5, 5, rotate) << 1;
-}
-
-static word_t immCI(uint32_t i, bool sign, int shift, int rotate) {
-  uint32_t imm6 = (BITS(i, 12, 12) << 5) | BITS(i, 6, 2);
-  return sign ? SEXT(imm6, 6) << shift : ror_imm(imm6, 6, rotate);
-}
-
-static word_t immCJ(uint32_t i) {
-  return (SEXT(BITS(i, 12, 12), 1) << 11) | (BITS(i, 8, 8) << 10) | (BITS(i, 10, 9) << 8) |
-    (BITS(i, 6, 6) << 7) | (BITS(i, 7, 7) << 6) | (BITS(i, 2, 2) << 5) |
-    (BITS(i, 11, 11) << 4) | (BITS(i, 5, 3) << 1);
-}
-
-static word_t immCB(uint32_t i) {
-  return (SEXT(BITS(i, 12, 12), 1) << 8) | (BITS(i, 6, 5) << 6) |
-    (BITS(i, 2, 2) << 5) | (BITS(i, 11, 10) << 3) | (BITS(i, 4, 3) << 1);
-}
-
-static word_t immCSS(uint32_t i, int rotate) {
-  uint32_t imm6 = BITS(i, 12, 7);
-  return ror_imm(imm6, 6, rotate);
-}
-
-static void decode_rd_rs1(int *rd, word_t *src1, int r) { *rd = r; *src1 = R(r); }
+#define rvc_simm(i, str) rvc_imm_internal(i, str, STRLEN(str), 's')
+#define rvc_uimm(i, str) rvc_imm_internal(i, str, STRLEN(str), 'u')
+#define creg2reg(creg) (creg + 8)
 
 static void decode_operand_rvc(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.instr.val;
@@ -294,36 +283,31 @@ static void decode_operand_rvc(Decode *s, int *rd, word_t *src1, word_t *src2, w
   int r4_2 = creg2reg(BITS(i, 4, 2));
   int r11_7 = BITS(i, 11, 7);
   int r6_2 = BITS(i, 6, 2);
+#define rdrs1(r0, r1) do { *rd = r0; *src1 = R(r1); } while (0)
+#define rdrs1_same(r) rdrs1(r, r)
+#define rs1rs2(r1, r2) do { *src1 = R(r1); *src2 = R(r2); } while (0)
   switch (type) {
-    case TYPE_CIW: *rd = r4_2; *src1 = R(2); *src2 = immCIW(i); break;
-    case TYPE_CLW: *src2 = imm_CLDST(i, 1); goto CL;
-    case TYPE_CLD: *src2 = imm_CLDST(i, 2); // fall through
-    CL: *rd = r4_2; *src1 = R(r9_7); break;
-    case TYPE_CSW: *imm = imm_CLDST(i, 1); goto CW;
-    case TYPE_CSD: *imm = imm_CLDST(i, 2); // fall through
-    CW: *src1 = R(r9_7); *src2 = R(r4_2); break;
-    case TYPE_CI: decode_rd_rs1(rd, src1, r11_7); *src2 = immCI(i, true, 0, 0); break;
-    case TYPE_CADDI16SP:
-      decode_rd_rs1(rd, src1, 2);
-      *src2 = (SEXT(BITS(i, 12, 12), 1) << 9) | (BITS(i, 4, 3) << 7) |
-        (BITS(i, 5, 5) << 6) | (BITS(i, 2, 2) << 5) | (BITS(i, 6, 6) << 4);
-      break;
-    case TYPE_CLUI: *rd = r11_7; *src2 = immCI(i, true, 0, 0) << 12; break;
-    case TYPE_CSHIFT: decode_rd_rs1(rd, src1, r9_7); *src2 = immCI(i, false, 0, 0); break;
-    case TYPE_CANDI:  decode_rd_rs1(rd, src1, r9_7); *src2 = immCI(i, true, 0, 0); break;
-    case TYPE_CS: decode_rd_rs1(rd, src1, r9_7); *src2 = R(r4_2); break;
-    case TYPE_CJ: *imm = s->pc + immCJ(i); break;
-    case TYPE_CB: *src1 = R(r9_7); *imm = s->pc + immCB(i); break;
-    case TYPE_CIU: decode_rd_rs1(rd, src1, r11_7); *src2 = immCI(i, false, 0, 0); break;
-    case TYPE_CFLDSP: *src2 = immCI(i, false, 0, 3); goto CI_ld;
-    case TYPE_CLWSP:  *src2 = immCI(i, false, 0, 2); goto CI_ld;
-    case TYPE_CLDSP:  *src2 = immCI(i, false, 0, 3); // fall through
-    CI_ld: *rd = r11_7; *src1 = R(2); break;
-    case TYPE_CFSDSP: *imm = immCSS(i, 3); goto CSS;
-    case TYPE_CSWSP:  *imm = immCSS(i, 2); goto CSS;
-    case TYPE_CSDSP:  *imm = immCSS(i, 3); // fall through
-    CSS: *src1 = R(2); *src2 = R(r6_2); break;
-    case TYPE_CR: decode_rd_rs1(rd, src1, r11_7); *src2 = R(r6_2); break;
+    case TYPE_CIW:    *src2 = rvc_uimm(i, "...54987623.....");         rdrs1(r4_2, 2); break;
+    case TYPE_CLW:    *src2 = rvc_uimm(i, "...543...26....."); goto CL;
+    case TYPE_CLD:    *src2 = rvc_uimm(i, "...543...76....."); CL:     rdrs1(r4_2, r9_7); break;
+    case TYPE_CSW:    *imm  = rvc_uimm(i, "...543...26....."); goto CW;
+    case TYPE_CSD:    *imm  = rvc_uimm(i, "...543...76....."); CW:     rs1rs2(r9_7, r4_2); break;
+    case TYPE_CI:     *src2 = rvc_simm(i, "...5.....43210..");         rdrs1_same(r11_7); break;
+    case TYPE_CASP:   *src2 = rvc_simm(i, "...9.....46875..");         rdrs1_same(2); break;
+    case TYPE_CLUI:   *src2 = rvc_simm(i, "...5.....43210..") << 12;   *rd = r11_7; break;
+    case TYPE_CSHIFT: *src2 = rvc_uimm(i, "...5.....43210..");         rdrs1_same(r9_7); break;
+    case TYPE_CANDI:  *src2 = rvc_simm(i, "...5.....43210..");         rdrs1_same(r9_7); break;
+    case TYPE_CJ:     *imm  = rvc_simm(i, "...b498a673215..") + s->pc; break;
+    case TYPE_CB:     *imm  = rvc_simm(i, "...843...76215..") + s->pc; *src1 = R(r9_7); break;
+    case TYPE_CIU:    *src2 = rvc_uimm(i, "...5.....43210..");         rdrs1_same(r11_7); break;
+    case TYPE_CFLDSP: *src2 = rvc_uimm(i, "...5.....43876.."); goto CI_ld;
+    case TYPE_CLWSP:  *src2 = rvc_uimm(i, "...5.....43276.."); goto CI_ld;
+    case TYPE_CLDSP:  *src2 = rvc_uimm(i, "...5.....43876.."); CI_ld:  rdrs1(r11_7, 2); break;
+    case TYPE_CFSDSP: *imm  = rvc_uimm(i, "...543876......."); goto CSS;
+    case TYPE_CSWSP:  *imm  = rvc_uimm(i, "...543276......."); goto CSS;
+    case TYPE_CSDSP:  *imm  = rvc_uimm(i, "...543876......."); CSS:    rs1rs2(2, r6_2); break;
+    case TYPE_CS: rdrs1_same(r9_7);  *src2 = R(r4_2); break;
+    case TYPE_CR: rdrs1_same(r11_7); *src2 = R(r6_2); break;
   }
 }
 
@@ -356,7 +340,7 @@ static int decode_exec_rvc(Decode *s) {
   INSTPAT("000 ? ????? ????? 01", addi    , CI , R(rd) = src1 + src2);
   INSTPAT("001 ? ????? ????? 01", addiw   , CI , R(rd) = sextw(src1 + src2));
   INSTPAT("010 ? ????? ????? 01", addi    , CI , R(rd) = src2);  // C.LI
-  INSTPAT("011 ? 00010 ????? 01", addi    , CADDI16SP, R(rd) = src1 + src2); // C.ADDI16SP
+  INSTPAT("011 ? 00010 ????? 01", addi    , CASP,R(rd) = src1 + src2); // C.ADDI16SP
   INSTPAT("011 ? ????? ????? 01", lui     , CLUI,R(rd) = src2);
   INSTPAT("100 ? 00??? ????? 01", srli    , CSHIFT, R(rd) = src1 >> src2);
   INSTPAT("100 ? 01??? ????? 01", srai    , CSHIFT, R(rd) = (sword_t)src1 >> src2);
