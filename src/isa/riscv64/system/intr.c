@@ -39,9 +39,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
     switch (NO) {
-      case EX_IPF: case EX_LPF: case EX_SPF:
-      case EX_LAM: case EX_SAM:
-        break;
+      case EX_IPF: case EX_LPF: case EX_SPF: case EX_LAM: case EX_SAM: case EX_II: break;
       default: stval->val = 0;
     }
     cpu.mode = MODE_S;
@@ -54,9 +52,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
     switch (NO) {
-      case EX_IPF: case EX_LPF: case EX_SPF:
-      case EX_LAM: case EX_SAM:
-        break;
+      case EX_IPF: case EX_LPF: case EX_SPF: case EX_LAM: case EX_SAM: case EX_II: break;
       default: mtval->val = 0;
     }
     cpu.mode = MODE_M;

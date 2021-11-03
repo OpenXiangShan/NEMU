@@ -29,7 +29,6 @@ void init_csr() {
 
 static word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
-  Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
   return &csr_array[addr];
 }
 
@@ -67,7 +66,9 @@ static word_t csr_read(word_t *src) {
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
+#ifdef CONFIG_DIFFTEST_REF_QEMU
   else if (is_read(mtime))  { difftest_skip_ref(); return MUXDEF(CONFIG_HAS_CLINT, clint_uptime(), 0); }
+#endif
   else if (is_read(mip))    { difftest_skip_ref(); }
   return *src;
 }
@@ -111,9 +112,8 @@ static void csr_write(word_t *dest, word_t src) {
   }
 }
 
-word_t csrid_read(uint32_t csrid) {
-  return csr_read(csr_decode(csrid));
-}
+word_t csrid_read(uint32_t csrid) { return csr_read(csr_decode(csrid)); }
+word_t csr_is_exist(uint32_t csrid) { return csr_exist[csrid]; }
 
 static void csrrw(word_t *dest, const word_t *src, uint32_t csrid) {
   word_t *csr = csr_decode(csrid);
