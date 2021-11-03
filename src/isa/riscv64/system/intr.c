@@ -25,12 +25,9 @@ enum {
 };
 
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
-  switch (NO) {
-    case EX_II:
-    case EX_IPF:
-    case EX_LPF:
-    case EX_SPF: difftest_skip_dut(1, 2); break;
-  }
+#ifdef CONFIG_DIFFTEST_REF_QEMU
+  switch (NO) { case EX_II: case EX_IPF: case EX_LPF: case EX_SPF: difftest_skip_dut(1, 2); }
+#endif
 
   word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
   bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);

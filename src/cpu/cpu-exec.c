@@ -280,6 +280,7 @@ void cpu_exec(uint64_t n) {
       cause = 0;
       cpu.pc = isa_raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+      IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->pc, cpu.pc));
     } else {
 #ifdef CONFIG_HAS_INTR
       word_t intr = isa_query_intr();
