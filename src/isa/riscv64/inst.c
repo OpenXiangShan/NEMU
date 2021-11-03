@@ -8,6 +8,7 @@
 #define R(i) gpr(i)
 #define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(); tmp; })
 #define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex()
+#define jcond(cond, target) do { if (cond) { cpu.pc = target; is_jmp = true; } } while (0)
 
 enum {
   TYPE_R, TYPE_I, TYPE_J,
@@ -69,12 +70,11 @@ static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, 
   }
 }
 
-static void jcond(bool cond, vaddr_t target) { if (cond) cpu.pc = target; }
 static word_t sextw(word_t x) { return (int64_t)(int32_t)x; }
 
 static int decode_exec(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
-  cpu.pc = s->snpc;
+  bool is_jmp = false;
 
 #define INSTPAT_INST(s) ((s)->isa.instr.val)
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
@@ -214,8 +214,8 @@ if (mmu_mode == MMU_TRANSLATE) {
 #ifdef CONFIG_PERF_OPT
   INSTPAT("??????? ????? ????? ??? ????? 11100 11", system , I);
 #else
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, cpu.pc = isa_raise_intr(cpu.mode + 8, s->pc));
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , I, cpu.pc = priv_instr(src2, NULL));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, cpu.pc = isa_raise_intr(cpu.mode + 8, s->pc); is_jmp = true);
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , I, cpu.pc = priv_instr(src2, NULL); is_jmp = true);
   INSTPAT("0001001 ????? ????? 000 00000 11100 11", sfence_vma,I); // do nothing in non-perf mode
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, csrrw(&R(dest), src1, src2));
   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, csrrs(&R(dest), src1, src2));
@@ -230,6 +230,7 @@ if (mmu_mode == MMU_TRANSLATE) {
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
+  if (!is_jmp) cpu.pc = s->snpc;
 
   return 0;
 }
@@ -302,7 +303,7 @@ static void decode_operand_rvc(Decode *s, word_t *dest, word_t *src1, word_t *sr
 
 static int decode_exec_rvc(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
-  cpu.pc = s->snpc;
+  bool is_jmp = false;
 
 #undef INSTPAT_MATCH
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
@@ -385,6 +386,7 @@ if (mmu_mode == MMU_TRANSLATE) {
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
+  if (!is_jmp) cpu.pc = s->snpc;
 
   return 0;
 }
