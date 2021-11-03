@@ -83,6 +83,9 @@ static void csr_write(word_t *dest, word_t src) {
   else if (is_write(fflags)) { fcsr->fflags.val = src; }
   else if (is_write(frm)) { fcsr->frm = src; }
   else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
+  else if (is_write(pmpaddr0) || is_write(pmpaddr1) || is_write(pmpaddr2) || is_write(pmpaddr3)) {
+    *dest = src & 0x003fffffffffffffull;
+  }
   else { *dest = src; }
 
   if (is_write(misa) && !(misa->extensions & ext('f'))) {
