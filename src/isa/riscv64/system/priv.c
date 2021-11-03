@@ -33,8 +33,17 @@ static word_t* csr_decode(uint32_t addr) {
   return &csr_array[addr];
 }
 
-#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
+                       //    6         5         4         3         2         1         0
+                       // 3210987654321098765432109876543210987654321098765432109876543210
+                       //                                            U S     M   I  F DCBA
+#define MISA_WMASK      0b0000000000000000000000000000000000000000000000000000000000101000ul
+#define MSTATUS_WMASK   0b0000000000000000000000000011000000000000011111100111100111101010ul
+#define MIP_WMASK       0b0000000000000000000000000000000000000000000000000000001000101010ul
+#define MIE_WMASK       0b0000000000000000000000000000000000000000000000000000101010101010ul
+#define MEDELEG_WMASK   0b0000000000000000000000000000000000000000000000001011001111111110ul
+#define MIDELEG_WMASK   0b0000000000000000000000000000000000000000000000000000001000100010ul
+#define SSTATUS_WMASK   0b0000000000000000000000000000000000000000000011000110000101100010ul
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3ull << 32) | (0x3 << 15) | (1ull << 63))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 #define FCSR_MASK 0xff
@@ -64,7 +73,9 @@ static word_t csr_read(word_t *src) {
 }
 
 static void csr_write(word_t *dest, word_t src) {
-  if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
+  if (is_write(mstatus)) { *dest = mask_bitset(*dest, MSTATUS_WMASK, src); }
+  else if (is_write(misa)) { *dest = mask_bitset(*dest, MISA_WMASK, src); }
+  else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, SIP_MASK, src); }
   else if (is_write(medeleg)) { *dest = src & 0xbbff; }
