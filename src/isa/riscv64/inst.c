@@ -22,10 +22,6 @@ enum {
   TYPE_CFSDSP, TYPE_CSWSP, TYPE_CSDSP,
 };
 
-void csrrw(word_t *dest, word_t src, uint32_t csrid);
-void csrrs(word_t *dest, word_t src, uint32_t csrid);
-word_t priv_instr(uint32_t op, const word_t *src);
-
 static word_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
 static word_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
 static word_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); }
@@ -211,15 +207,9 @@ if (mmu_mode == MMU_TRANSLATE) {
   INSTPAT("0000001 ????? ????? 111 ????? 01110 11", remuw  , R, R(dest) = sextw((uint32_t)src1 % (uint32_t)src2));
 
   // privileged
-#ifdef CONFIG_PERF_OPT
-  INSTPAT("??????? ????? ????? ??? ????? 11100 11", system , I);
-#else
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, cpu.pc = isa_raise_intr(cpu.mode + 8, s->pc); is_jmp = true);
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , I, cpu.pc = priv_instr(src2, NULL); is_jmp = true);
-  INSTPAT("0001001 ????? ????? 000 00000 11100 11", sfence_vma,I); // do nothing in non-perf mode
-  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, csrrw(&R(dest), src1, src2));
-  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, csrrs(&R(dest), src1, src2));
-#endif
+  extern int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t id, rtlreg_t *jpc);
+  INSTPAT("??????? ????? ????? ??? ????? 11100 11", system , I,
+      is_jmp = rtl_sys_slow_path(s, &R(dest), &src1, src2, NULL));
 
   // rva
   extern void rtl_amo_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);

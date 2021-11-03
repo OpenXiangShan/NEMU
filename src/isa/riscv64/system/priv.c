@@ -115,27 +115,14 @@ word_t csrid_read(uint32_t csrid) {
   return csr_read(csr_decode(csrid));
 }
 
-static void csrrw_opt_mode(word_t *dest, const word_t *src, uint32_t csrid) {
+static void csrrw(word_t *dest, const word_t *src, uint32_t csrid) {
   word_t *csr = csr_decode(csrid);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
   if (src != NULL) { csr_write(csr, tmp); }
 }
 
-void csrrw(word_t *dest, word_t src, uint32_t csrid) {
-  word_t *csr = csr_decode(csrid);
-  if (dest != NULL) { *dest = csr_read(csr); }
-  csr_write(csr, src);
-}
-
-void csrrs(word_t *dest, word_t src, uint32_t csrid) {
-  word_t *csr = csr_decode(csrid);
-  word_t val = csr_read(csr);
-  if (dest != NULL) { *dest = val; }
-  csr_write(csr, val | src);
-}
-
-word_t priv_instr(uint32_t op, const rtlreg_t *src) {
+static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
 #ifndef CONFIG_MODE_USER
     case 0x102: // sret
@@ -171,7 +158,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest,
     const rtlreg_t *src1, const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw_opt_mode(dest, src1, imm); return;
+    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }
