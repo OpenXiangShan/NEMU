@@ -392,6 +392,7 @@ if (mmu_mode == MMU_TRANSLATE) {
 int isa_fetch_decode(Decode *s) {
   int idx = 0;
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
+  check_ex();
   if (BITS(s->isa.instr.val, 1, 0) != 0x3) {
     // this is an RVC instruction
     idx = decode_exec_rvc(s);
@@ -401,6 +402,7 @@ int isa_fetch_decode(Decode *s) {
     // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
     // Refer to `mtval` in the privileged manual for more details.
     uint32_t hi = instr_fetch(&s->snpc, 2);
+    check_ex();
     s->isa.instr.val |= (hi << 16);
     idx = decode_exec(s);
   }
