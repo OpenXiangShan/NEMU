@@ -85,6 +85,10 @@ static void csr_write(word_t *dest, word_t src) {
   else if (is_write(fcsr)) { *dest = src & FCSR_MASK; }
   else { *dest = src; }
 
+  if (is_write(misa) && !(misa->extensions & ext('f'))) {
+    misa->extensions &= ~ext('d');
+  }
+
   bool need_update_mstatus_sd = false;
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     fp_set_dirty();
