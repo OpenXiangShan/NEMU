@@ -18,6 +18,13 @@ MAP(CSRS, CSRS_DEF)
 static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
+  mstatus->val = 0xa00000000ull;
+#define ext(e) (1ull << ((e) - 'a'))
+  misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
+  misa->extensions |= ext('d') | ext('f');
+  misa->mxl = 2; // XLEN = 64
+
+  cpu.mode = MODE_M;
 };
 
 static word_t* csr_decode(uint32_t addr) {
