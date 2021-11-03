@@ -221,6 +221,10 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->EHelper = g_exec_table[idx];
 #else
   isa_fetch_decode(s);
+  if (g_ex_cause != NEMU_EXEC_RUNNING) {
+    cpu.pc = isa_raise_intr(g_ex_cause, s->pc);
+    g_ex_cause = NEMU_EXEC_RUNNING;
+  }
 #endif
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;

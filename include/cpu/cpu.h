@@ -37,6 +37,9 @@ void invalid_instr(vaddr_t thispc);
 } while (0)
 #define INV(thispc) invalid_instr(thispc)
 
-extern word_t g_ex_cause;
+#define check_ex() do { \
+  extern word_t g_ex_cause; \
+  if (MUXDEF(CONFIG_PERF_OPT, false, g_ex_cause != NEMU_EXEC_RUNNING)) { return 0; } \
+} while (0)
 
 #endif
