@@ -25,9 +25,8 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
   }
 
   if (!csr_is_exist(id)) {
-    save_globals(s);
-    mtval->val = s->isa.instr.val;
-    longjmp_exception(EX_II);
+    extern void rt_inv(Decode *s);
+    rt_inv(s);
     return 0;
   }
   IFDEF(CONFIG_DIFFTEST_REF_QEMU, difftest_skip_dut(1, 3));
