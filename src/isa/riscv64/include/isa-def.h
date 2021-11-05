@@ -9,10 +9,12 @@ typedef struct {
   } gpr[32];
 
   vaddr_t pc;
-#ifndef __ICS_EXPORT
-  uint64_t mstatus, mcause, mepc;
-  uint64_t sstatus, scause, sepc;
+#ifndef CONFIG_PA
+  uint64_t mstatus, mepc, mtval, mcause;
+  uint64_t          sepc, stval, scause;
+#endif
 
+#ifndef __ICS_EXPORT
   union {
     uint64_t _64;
   } fpr[32];

@@ -8,7 +8,7 @@ static void csr_prepare() {
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = csrid_read(0x100); // sstatus
+//  cpu.sstatus = csrid_read(0x100); // sstatus
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 }

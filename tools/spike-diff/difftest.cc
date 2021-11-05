@@ -26,6 +26,10 @@ static debug_module_config_t difftest_dm_config = {
 struct diff_context_t {
   word_t gpr[32];
   word_t pc;
+#ifndef CONFIG_PA
+  word_t mstatus, mepc, mtval, mcause;
+  word_t          sepc, stval, scause;
+#endif
 };
 
 static sim_t* s = NULL;
@@ -47,6 +51,15 @@ void sim_t::diff_get_regs(void* diff_context) {
     ctx->gpr[i] = state->XPR[i];
   }
   ctx->pc = state->pc;
+#ifndef CONFIG_PA
+  ctx->mstatus = state->mstatus;
+  ctx->mepc    = state->mepc   ;
+  ctx->mtval   = state->mtval  ;
+  ctx->mcause  = state->mcause ;
+  ctx->sepc    = state->sepc   ;
+  ctx->stval   = state->stval  ;
+  ctx->scause  = state->scause ;
+#endif
 }
 
 void sim_t::diff_set_regs(void* diff_context) {
