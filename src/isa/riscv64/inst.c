@@ -7,8 +7,8 @@
 #include <cpu/difftest.h>
 
 #define R(i) gpr(i)
-#define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(); tmp; })
-#define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex()
+#define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(0); tmp; })
+#define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex(0)
 #define jcond(cond, target) do { if (cond) { cpu.pc = target; is_jmp = true; } } while (0)
 
 bool fp_enable();
@@ -225,9 +225,9 @@ if (mmu_mode == MMU_TRANSLATE) {
 
 if (fp_enable()) {
 } else {
-  INSTPAT("????? ?? ????? ????? 01? ????? 0?001 11", rt_inv, N, rt_inv(s); check_ex()); // fld/flw/fsd/fsw
-  INSTPAT("????? ?? ????? ????? ??? ????? 10100 11", rt_inv, N, rt_inv(s); check_ex()); // fop
-  INSTPAT("????? ?? ????? ????? ??? ????? 100?? 11", rt_inv, N, rt_inv(s); check_ex()); // fmadd/fmsub/fnmsub/fnmadd
+  INSTPAT("????? ?? ????? ????? 01? ????? 0?001 11", rt_inv, N, rt_inv(s); check_ex(0)); // fld/flw/fsd/fsw
+  INSTPAT("????? ?? ????? ????? ??? ????? 10100 11", rt_inv, N, rt_inv(s); check_ex(0)); // fop
+  INSTPAT("????? ?? ????? ????? ??? ????? 100?? 11", rt_inv, N, rt_inv(s); check_ex(0)); // fmadd/fmsub/fnmsub/fnmadd
 }
 
   INSTPAT("??????? ????? ????? ??? ????? 11010 11", nemu_trap, N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
@@ -319,7 +319,7 @@ static int decode_exec_rvc(Decode *s) {
 
   INSTPAT_START();
 if (!fp_enable()) {
-  INSTPAT("?01 ??? ??? ?? ??? ?0", rt_inv, N, rt_inv(s); check_ex());
+  INSTPAT("?01 ??? ??? ?? ??? ?0", rt_inv, N, rt_inv(s); check_ex(0));
 }
 #ifdef CONFIG_PERF_OPT
   INSTPAT("000 0 ????? 00001 01", p_inc   , CI);
@@ -402,7 +402,7 @@ if (mmu_mode == MMU_TRANSLATE) {
 int isa_fetch_decode(Decode *s) {
   int idx = 0;
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
-  check_ex();
+  check_ex(0);
   if (BITS(s->isa.instr.val, 1, 0) != 0x3) {
     // this is an RVC instruction
     idx = decode_exec_rvc(s);
@@ -412,7 +412,7 @@ int isa_fetch_decode(Decode *s) {
     // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
     // Refer to `mtval` in the privileged manual for more details.
     uint32_t hi = instr_fetch(&s->snpc, 2);
-    check_ex();
+    check_ex(0);
     s->isa.instr.val |= (hi << 16);
     idx = decode_exec(s);
   }

@@ -6,8 +6,8 @@
 #include <cpu/difftest.h>
 
 #define R(i) gpr(i)
-#define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(); tmp; })
-#define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex()
+#define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(0); tmp; })
+#define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex(0)
 
 enum {
   TYPE_U, TYPE_R, TYPE_I,
@@ -220,7 +220,7 @@ static int decode_exec(Decode *s) {
 
 int isa_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
-  check_ex();
+  check_ex(0);
   int idx = decode_exec(s);
 #ifdef CONFIG_PERF_OPT
   s->type = INSTR_TYPE_N;
