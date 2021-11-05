@@ -87,6 +87,7 @@ static void csr_write(word_t *dest, word_t src) {
   else if (is_write(pmpaddr0) || is_write(pmpaddr1) || is_write(pmpaddr2) || is_write(pmpaddr3)) {
     *dest = src & 0x003fffffffffffffull;
   }
+  else if (is_write(mcounteren) || is_write(scounteren)) { *dest = (uint32_t)src; }
   else { *dest = src; }
 
   if (is_write(misa) && !(misa->extensions & ext('f'))) {
