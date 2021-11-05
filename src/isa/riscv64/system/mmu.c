@@ -110,6 +110,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
   if (!pte.a || (!pte.d && is_write)) {
+    IFDEF(CONFIG_DIFFTEST_REF_SPIKE, goto bad);
     pte.a = true;
     pte.d |= is_write;
     paddr_write(p_pte, PTE_SIZE, pte.val);
