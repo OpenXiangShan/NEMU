@@ -82,7 +82,7 @@ static inline float64_t fpcall_f64_log2(float64_t a) { return f64_bad_op(); }
 static inline float64_t fpcall_f64_mod(float64_t a, float64_t b) { return f64_bad_op(); }
 static inline float64_t fpcall_f64_atan(float64_t a, float64_t b) { return f64_bad_op(); }
 
-static inline void fp_set_rm(int rm) { bad_info(); }
+static inline void fp_set_rm_internal(uint32_t rm) { bad_info(); }
 static inline uint32_t fp_get_exception() { return u32_bad_op(); }
 static inline void fp_clear_exception() { bad_info(); }
 

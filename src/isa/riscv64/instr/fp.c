@@ -5,7 +5,9 @@ static uint32_t nemu_rm_cache = 0;
 void fp_update_rm_cache(uint32_t rm) { nemu_rm_cache = rm; }
 
 bool fp_enable() {
-  return MUXDEF(CONFIG_MODE_USER, true, mstatus->fs != 0);
+  IFDEF(CONFIG_FPU_NONE, return false);
+  IFDEF(CONFIG_MODE_USER, return true);
+  return mstatus->fs != 0;
 }
 
 void fp_set_dirty() {

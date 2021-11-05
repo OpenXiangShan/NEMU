@@ -16,8 +16,8 @@ def_EHelper(inv) {
 }
 
 def_EHelper(rt_inv) {
-  save_globals(s);
-  longjmp_exception(EX_II);
+  extern void rt_inv(Decode *s);
+  rt_inv(s);
 }
 
 def_EHelper(nemu_trap) {

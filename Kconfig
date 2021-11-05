@@ -289,6 +289,7 @@ config FPU_SOFT
   depends on !TARGET_AM
   bool "Use softfloat library"
 config FPU_NONE
+  depends on !CONFIG_MODE_USER
   bool "Disable FPU Emulation"
 endchoice
 
