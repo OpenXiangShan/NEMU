@@ -113,7 +113,14 @@ static void csr_write(word_t *dest, word_t src) {
 }
 
 word_t csrid_read(uint32_t csrid) { return csr_read(csr_decode(csrid)); }
-word_t csr_is_exist(uint32_t csrid) { return csr_exist[csrid]; }
+word_t csr_is_exist(uint32_t csrid) {
+  extern bool fp_enable();
+  if (!fp_enable()) {
+    // fflags, frm, fcsr
+    if ((csrid == 0x001) || (csrid == 0x002) || (csrid == 0x003)) return false;
+  }
+  return csr_exist[csrid];
+}
 
 static void csrrw(word_t *dest, const word_t *src, uint32_t csrid) {
   word_t *csr = csr_decode(csrid);
