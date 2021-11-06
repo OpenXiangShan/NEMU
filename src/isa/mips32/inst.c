@@ -7,7 +7,7 @@
 
 #define R(i) gpr(i)
 #define Mr(addr, len)       ({ word_t tmp = vaddr_read(s, addr, len, MMU_DYNAMIC); check_ex(0); tmp; })
-#define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC); check_ex(0)
+#define Mw(addr, len, data) vaddr_write(s, addr, len, data, MMU_DYNAMIC);
 
 enum {
   TYPE_U, TYPE_R, TYPE_I,
