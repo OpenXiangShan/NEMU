@@ -24,7 +24,7 @@ void init_csr() {
   misa->extensions |= ext('d') | ext('f');
   misa->mxl = 2; // XLEN = 64
 
-  cpu.mode = MODE_M;
+  cpu.mode = MUXDEF(CONFIG_MODE_SYSTEM, MODE_M, MODE_U);
 };
 
 static word_t* csr_decode(uint32_t addr) {
