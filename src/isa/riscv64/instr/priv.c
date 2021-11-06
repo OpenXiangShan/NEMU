@@ -1,8 +1,7 @@
 #include <rtl/rtl.h>
 #include <cpu/difftest.h>
 #include <cpu/cpu.h>
-#include "../../local-include/intr.h"
-#include "../../local-include/csr.h"
+#include "../local-include/csr.h"
 
 extern bool csr_is_exist(uint32_t csrid);
 
