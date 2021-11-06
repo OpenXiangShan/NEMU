@@ -44,14 +44,14 @@ def_EHelper(fsqrts) {
 
 def_EHelper(fmadds) {
   check_rm(s);
-  rtl_mv(s, s0, &fpr(s->isa.instr.fp.funct5)); // rs3
+  rtl_mv(s, s0, &fpr(INSTR_RS3(s)));
   rtl_fmadds(s, s0, dsrc1, dsrc2);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
 }
 
 def_EHelper(fmsubs) {
   check_rm(s);
-  rtl_mv(s, s0, &fpr(s->isa.instr.fp.funct5)); // rs3
+  rtl_mv(s, s0, &fpr(INSTR_RS3(s)));
   rtl_xori(s, s0, s0, F32_SIGN);
   rtl_fmadds(s, s0, dsrc1, dsrc2);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
@@ -59,7 +59,7 @@ def_EHelper(fmsubs) {
 
 def_EHelper(fnmsubs) {
   check_rm(s);
-  rtl_mv(s, s0, &fpr(s->isa.instr.fp.funct5)); // rs3
+  rtl_mv(s, s0, &fpr(INSTR_RS3(s)));
   rtl_xori(s, s1, dsrc1, F32_SIGN);
   rtl_fmadds(s, s0, s1, dsrc2);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
@@ -67,7 +67,7 @@ def_EHelper(fnmsubs) {
 
 def_EHelper(fnmadds) {
   check_rm(s);
-  rtl_mv(s, s0, &fpr(s->isa.instr.fp.funct5)); // rs3
+  rtl_mv(s, s0, &fpr(INSTR_RS3(s)));
   rtl_fmadds(s, s0, dsrc1, dsrc2);
   rtl_xori(s, s0, s0, F32_SIGN);
   rtl_fsr(s, ddest, s0, FPCALL_W32);
@@ -161,27 +161,27 @@ def_EHelper(fmv_w_x) {
 
 
 def_EHelper(fcvt_s_w_rm) {
-  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, s->isa.instr.fp.rm);
+  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, INSTR_FP_RM(s));
   rtl_fcvt_i32_to_f32(s, ddest, dsrc1);
   rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, 0b111);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
 def_EHelper(fcvt_w_s_rm) {
-  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, s->isa.instr.fp.rm);
+  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, INSTR_FP_RM(s));
   rtl_fcvt_f32_to_i32(s, ddest, dsrc1);
   rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, 0b111);
   rtl_sext(s, ddest, ddest, 4);
 }
 
 def_EHelper(fcvt_l_s_rm) {
-  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, s->isa.instr.fp.rm);
+  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, INSTR_FP_RM(s));
   rtl_fcvt_f32_to_i64(s, ddest, dsrc1);
   rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, 0b111);
 }
 
 def_EHelper(fcvt_lu_s_rm) {
-  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, s->isa.instr.fp.rm);
+  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, INSTR_FP_RM(s));
   rtl_fcvt_f32_to_u64(s, ddest, dsrc1);
   rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, 0b111);
 }

@@ -7,7 +7,8 @@ extern bool csr_is_exist(uint32_t csrid);
 
 __attribute__((cold))
 int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t id, rtlreg_t *jpc) {
-  uint32_t funct3 = s->isa.instr.i.funct3;
+  uint32_t instr = s->isa.instr.val;
+  uint32_t funct3 = BITS(instr, 14, 12);
   id &= 0xfff;
   if (funct3 == 0) {
     // priv
@@ -33,7 +34,8 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
   rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, NULL, id);
   int imm = funct3 & 0x4;
   int op  = funct3 & 0x3;
-  if (imm) rtl_li(s, s1, s->isa.instr.i.rs1);
+  int rs1 = BITS(instr, 19, 15);
+  if (imm) rtl_li(s, s1, rs1);
   else rtl_mv(s, s1, src1);
   switch (op) {
     case 2: rtl_or(s, s1, s0, s1); break;

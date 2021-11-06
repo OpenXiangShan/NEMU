@@ -531,6 +531,7 @@ int isa_fetch_decode(Decode *s) {
     s->isa.instr.val |= (hi << 16);
     idx = decode_exec(s);
   }
+  uint32_t instr = s->isa.instr.val;
 #ifdef CONFIG_PERF_OPT
   s->type = INSTR_TYPE_N;
   switch (idx) {
@@ -547,8 +548,8 @@ int isa_fetch_decode(Decode *s) {
       s->type = INSTR_TYPE_I; break;
 
     case EXEC_ID_system:
-      if (s->isa.instr.i.funct3 == 0) {
-        switch (s->isa.instr.csr.csr) {
+      if (BITS(instr, 14, 12) == 0) {
+        switch (BITS(instr, 31, 20)) {
           case 0:     // ecall
           case 0x102: // sret
           case 0x302: // mret

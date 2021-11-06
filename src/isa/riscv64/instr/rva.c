@@ -3,8 +3,9 @@
 
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
-  uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
-  int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
+  uint32_t instr = s->isa.instr.val;
+  uint32_t funct5 = BITS(instr, 31, 27);
+  int width = BITS(instr, 12, 12) ? 8 : 4;
 
   if (funct5 == 0b00010) { // lr
     vaddr_t paddr = *src1;
