@@ -6,8 +6,8 @@ def_EHelper(flw) {
 }
 
 def_EHelper(fsw) {
-  rtl_funbox(s, s0, ddest);
-  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_DIRECT);
+  rtl_funbox(s, s0, dsrc2);
+  rtl_sm(s, s0, dsrc1, id_dest->imm, 4, MMU_DIRECT);
 }
 
 def_EHelper(flw_mmu) {
@@ -16,8 +16,8 @@ def_EHelper(flw_mmu) {
 }
 
 def_EHelper(fsw_mmu) {
-  rtl_funbox(s, s0, ddest);
-  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_TRANSLATE);
+  rtl_funbox(s, s0, dsrc2);
+  rtl_sm(s, s0, dsrc1, id_dest->imm, 4, MMU_TRANSLATE);
 }
 
 #define check_rm(s) IFDEF(CONFIG_RT_CHECK, Assert(s->isa.instr.fp.rm == 0b111, "s->pc = " FMT_WORD, s->pc));

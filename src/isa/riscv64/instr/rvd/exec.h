@@ -6,7 +6,7 @@ def_EHelper(fld) {
 }
 
 def_EHelper(fsd) {
-  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_DIRECT);
+  rtl_sm(s, dsrc2, dsrc1, id_dest->imm, 8, MMU_DIRECT);
 }
 
 def_EHelper(fld_mmu) {
@@ -15,7 +15,7 @@ def_EHelper(fld_mmu) {
 }
 
 def_EHelper(fsd_mmu) {
-  rtl_sm(s, ddest, dsrc1, id_src2->imm, 8, MMU_TRANSLATE);
+  rtl_sm(s, dsrc2, dsrc1, id_dest->imm, 8, MMU_TRANSLATE);
 }
 
 def_fop_template(faddd, FPCALL_W64, true)
