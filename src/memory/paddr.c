@@ -3,12 +3,12 @@
 #include <device/mmio.h>
 #include <isa.h>
 
-#if defined(CONFIG_USE_MMAP)
+#if defined(CONFIG_PMEM_MMAP)
 #include <sys/mman.h>
 #define pmem ((uint8_t *)0x100000000ul)
-#elif defined(CONFIG_TARGET_AM)
+#elif defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
-#else
+#else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
 
@@ -33,14 +33,14 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
 }
 
 void init_mem() {
-#if defined(CONFIG_USE_MMAP)
+#if defined(CONFIG_PMEM_MMAP)
   void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != pmem) {
     perror("mmap");
     assert(0);
   }
-#elif defined(CONFIG_TARGET_AM)
+#elif defined(CONFIG_PMEM_MALLOC)
   pmem = malloc(CONFIG_MSIZE);
   assert(pmem);
 #endif
