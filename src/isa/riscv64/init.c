@@ -1,8 +1,5 @@
 #include <isa.h>
 #include <memory/paddr.h>
-#ifndef __ICS_EXPORT
-#include "local-include/csr.h"
-#endif
 
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
@@ -19,19 +16,10 @@ static void restart() {
   cpu.pc = RESET_VECTOR;
 
   /* The zero register is always 0. */
-  cpu.gpr[0]._64 = 0;
+  cpu.gpr[0] = 0;
 #ifndef __ICS_EXPORT
   void init_csr();
   init_csr();
-
-  cpu.mode = MODE_M;
-  mstatus->val = 0xa00000000ull;
-
-#define ext(e) (1 << ((e) - 'a'))
-  misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
-  misa->extensions |= ext('d') | ext('f');
-
-  misa->mxl = 2; // XLEN = 64
 #endif
 }
 

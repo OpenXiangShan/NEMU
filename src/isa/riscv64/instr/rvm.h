@@ -1,14 +1,7 @@
-def_EHelper(mul) {
-  rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
-}
-
-def_EHelper(mulh) {
-  rtl_muls_hi(s, ddest, dsrc1, dsrc2);
-}
-
-def_EHelper(mulhu) {
-  rtl_mulu_hi(s, ddest, dsrc1, dsrc2);
-}
+def_EHelper(mul)   { rtl_mulu_lo(s, ddest, dsrc1, dsrc2); }
+def_EHelper(mulh)  { rtl_muls_hi(s, ddest, dsrc1, dsrc2); }
+def_EHelper(mulhu) { rtl_mulu_hi(s, ddest, dsrc1, dsrc2); }
+def_EHelper(mulw)  { rtl_mulw(s, ddest, dsrc1, dsrc2); }
 
 def_EHelper(mulhsu) {
   // Algorithm:
@@ -69,10 +62,6 @@ def_EHelper(remu) {
   } else
 #endif
     rtl_divu_r(s, ddest, dsrc1, dsrc2);
-}
-
-def_EHelper(mulw) {
-  rtl_mulw(s, ddest, dsrc1, dsrc2);
 }
 
 def_EHelper(divw) {

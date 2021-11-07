@@ -62,11 +62,13 @@ run-riscv64-pa: reset-config
 	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu update VME=1
 	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu run
 
+RUN_RISCV64_USER = $(NEMU_HOME)/build/riscv64-nemu-interpreter -b --diff=$(NEMU_HOME)/build/riscv64-nemu-interpreter-so
+
 run-riscv64-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) riscv64-user_defconfig
 	$(MAKE) -C ./tests/hello ISA=riscv64
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-riscv64.elf)
-	LOADER="$(NEMU_HOME)/build/riscv64-nemu-interpreter -b" $(MAKE) -C ~/projectn/spec2006-lite-riscv64/401.bzip2 run-test
+	LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64 run-all-test
 
 TEST = $(MICROBENCH)
 

@@ -21,13 +21,13 @@ const char *fpregs[] = {
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%4s: " FMT_WORD " ", regs[i], cpu.gpr[i]._64);
+    printf("%4s: " FMT_WORD " ", regs[i], cpu.gpr[i]);
     if (i % 4 == 3) {
       printf("\n");
     }
   }
   for (i = 0; i < 32; i ++) {
-    printf("%4s: " FMT_WORD " ", fpregs[i], cpu.fpr[i]._64);
+    printf("%4s: " FMT_WORD " ", fpregs[i], cpu.fpr[i]);
     if (i % 4 == 3) {
       printf("\n");
     }
@@ -35,8 +35,10 @@ void isa_reg_display() {
 #ifdef CONFIG_MODE_SYSTEM
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
-  printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
-      "", csrid_read(0x100), scause->val, sepc->val);
+  printf("mode: %-16d sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
+      cpu.mode, csrid_read(0x100), scause->val, sepc->val);
+#else
+  printf("pc: " FMT_WORD "\n", cpu.pc);
 #endif
 }
 

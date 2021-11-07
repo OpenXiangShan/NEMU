@@ -1,7 +1,6 @@
 #include <cpu/cpu.h>
-#include <cpu/exec.h>
+#include <cpu/decode.h>
 #include <cpu/difftest.h>
-#include <isa-all-instr.h>
 #include <locale.h>
 
 /* The assembly code of instructions executed is only output to the screen
@@ -13,13 +12,13 @@
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
+word_t g_ex_cause = NEMU_EXEC_RUNNING;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 void device_update();
-void fetch_decode(Decode *s, vaddr_t pc);
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
@@ -36,31 +35,27 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 }
 
-#ifndef CONFIG_PERF_OPT
-#ifndef __ICS_EXPORT
-#define rtl_priv_next(s)
-#define rtl_priv_jr(s, target) rtl_jr(s, target)
-#endif
-#include <isa-exec.h>
-
-#define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
-static const void* g_exec_table[TOTAL_INSTR] = {
-  MAP(INSTR_LIST, FILL_EXEC_TABLE)
-};
-
-static void fetch_decode_exec_updatepc(Decode *s) {
-  fetch_decode(s, cpu.pc);
-  s->EHelper(s);
-  cpu.pc = s->dnpc;
-}
-#endif
-#ifndef __ICS_EXPORT
+#ifdef CONFIG_PERF_OPT
+#include <cpu/exec.h>
+#include <isa-all-instr.h>
 #include <memory/host-tlb.h>
+#include <setjmp.h>
 
 #define BATCH_SIZE 65536
 
-IFNDEF(CONFIG_TARGET_SHARE, static uint64_t g_nr_guest_instr_end = 0);
+static jmp_buf jbuf_exec = {};
 static Decode *prev_s;
+static int g_sys_state_flag = 0;
+IFNDEF(CONFIG_TARGET_SHARE, static uint64_t g_nr_guest_instr_end = 0);
+
+void longjmp_exec(int cause) {
+  longjmp(jbuf_exec, cause);
+}
+
+void longjmp_exception(int ex_cause) {
+  g_ex_cause = ex_cause;
+  longjmp_exec(NEMU_EXEC_EXCEPTION);
+}
 
 static void update_global() {
   IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->pc);
@@ -69,9 +64,6 @@ static void update_global() {
 void save_globals(Decode *s) {
   IFDEF(CONFIG_PERF_OPT, prev_s = s);
 }
-
-static word_t g_ex_cause = NEMU_EXEC_RUNNING;
-static int g_sys_state_flag = 0;
 
 void set_sys_state_flag(int flag) {
   g_sys_state_flag |= flag;
@@ -84,25 +76,6 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 }
 #endif
 
-#ifndef CONFIG_TARGET_AM
-#include <setjmp.h>
-static jmp_buf jbuf_exec = {};
-
-void longjmp_exec(int cause) {
-  longjmp(jbuf_exec, cause);
-}
-#else
-void longjmp_exec(int cause) {
-  Assert(cause == NEMU_EXEC_END, "NEMU on AM does not support exception");
-}
-#endif
-
-void longjmp_exception(int ex_cause) {
-  g_ex_cause = ex_cause;
-  longjmp_exec(NEMU_EXEC_EXCEPTION);
-}
-
-#ifdef CONFIG_PERF_OPT
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
 #define rtl_j(s, target) do { \
@@ -211,19 +184,13 @@ end_of_loop:
   trace_and_difftest(this_s, s->pc);
   prev_s = s;
 }
-#else // CONFIG_PERF_OPT
-static void execute(int n) {
-  static Decode s;
-  prev_s = &s;
-  for (;n > 0; n --) {
-    fetch_decode_exec_updatepc(&s);
-    IFNDEF(CONFIG_ICOUNT_DISABLE, g_nr_guest_instr ++);
-    trace_and_difftest(&s, cpu.pc);
-    if (nemu_state.state != NEMU_RUNNING) break;
-  }
-}
+#else
+void mmu_tlb_flush(vaddr_t vaddr) { }
+void longjmp_exec(int cause) { }
+void longjmp_exception(int ex_cause) { g_ex_cause = ex_cause; }
+void save_globals(Decode *s) { }
+void set_sys_state_flag(int flag) { }
 #endif // CONFIG_PERF_OPT
-#endif // __ICS_EXPORT
 
 static void statistic() {
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
@@ -249,11 +216,16 @@ void assert_fail_msg() {
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
+#ifdef CONFIG_PERF_OPT
   int idx = isa_fetch_decode(s);
-#ifndef CONFIG_PERF_OPT
-  s->dnpc = s->snpc;
-#endif
   s->EHelper = g_exec_table[idx];
+#else
+  isa_fetch_decode(s);
+  if (g_ex_cause != NEMU_EXEC_RUNNING) {
+    cpu.pc = isa_raise_intr(g_ex_cause, s->pc);
+    g_ex_cause = NEMU_EXEC_RUNNING;
+  }
+#endif
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
@@ -290,7 +262,7 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_start = get_time();
 
-#ifndef __ICS_EXPORT
+#ifdef CONFIG_PERF_OPT
   g_nr_guest_instr_end = g_nr_guest_instr + n;
   int cause = NEMU_EXEC_RUNNING;
 #ifndef CONFIG_TARGET_AM
@@ -308,6 +280,7 @@ void cpu_exec(uint64_t n) {
       cause = 0;
       cpu.pc = isa_raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+      IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->pc, cpu.pc));
     } else {
 #ifdef CONFIG_HAS_INTR
       word_t intr = isa_query_intr();
@@ -327,11 +300,16 @@ void cpu_exec(uint64_t n) {
 #else
   Decode s;
   for (;n > 0; n --) {
-    fetch_decode_exec_updatepc(&s);
+    fetch_decode(&s, cpu.pc);
     g_nr_guest_instr ++;
     trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
+    word_t intr = MUXDEF(CONFIG_HAS_INTR, isa_query_intr(), INTR_EMPTY);
+    if (intr != INTR_EMPTY) {
+      cpu.pc = isa_raise_intr(intr, cpu.pc);
+      IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
+    }
   }
 #endif
 

@@ -6,7 +6,7 @@
 #define INSTR_RVI(f) \
   f(lui) f(auipc) f(jal) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
-  f(addi) f(slli) f(srli) f(slti) f(sltui) f(xori) f(ori) f(srai) f(andi) \
+  f(addi) f(slli) f(srli) f(slti) f(sltiu) f(xori) f(ori) f(srai) f(andi) \
   f(lw) f(sw) f(lh) f(lb) f(lhu) f(lbu) f(sh) f(sb) \
   f(lw_mmu) f(sw_mmu) f(lh_mmu) f(lb_mmu) f(lhu_mmu) f(lbu_mmu) f(sh_mmu) f(sb_mmu) \
   f(jalr) f(beq) f(bne) f(blt) f(bge) f(bltu) f(bgeu) \

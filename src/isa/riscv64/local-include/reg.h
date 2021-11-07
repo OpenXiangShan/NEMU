@@ -8,7 +8,7 @@ static inline int check_reg_idx(int idx) {
   return idx;
 }
 
-#define gpr(idx) (cpu.gpr[check_reg_idx(idx)]._64)
+#define gpr(idx) (cpu.gpr[check_reg_idx(idx)])
 
 static inline const char* reg_name(int idx, int width) {
   extern const char* regs[];
@@ -17,7 +17,7 @@ static inline const char* reg_name(int idx, int width) {
 
 #ifndef __ICS_EXPORT
 // Floating Point Regs
-#define fpr(idx) (cpu.fpr[check_reg_idx(idx)]._64)
+#define fpr(idx) (cpu.fpr[check_reg_idx(idx)])
 
 static inline const char* fpreg_name(int idx, int width){
   extern const char* fpregs[];

@@ -47,7 +47,7 @@ static void user_sys_exit(int status) {
 }
 
 static word_t user_sys_brk(word_t new_brk) {
-  if (new_brk == 0) return user_state.brk;
+  if (new_brk == 0) return ROUNDUP(user_state.brk, PAGE_SIZE);
   if (new_brk >= user_state.brk_page) {
     uint32_t size = ROUNDUP(new_brk - user_state.brk_page + 1, PAGE_SIZE);
     user_mmap(user_state.brk_page, size, PROT_READ | PROT_WRITE,

@@ -26,21 +26,10 @@
 //       beqz   bnez
 //       li     mv
 
-def_EHelper(p_blez) {
-  rtl_jrelop(s, RELOP_GE, rz, dsrc2, id_dest->imm);
-}
-
-def_EHelper(p_bgtz) {
-  rtl_jrelop(s, RELOP_LT, rz, dsrc2, id_dest->imm);
-}
-
-def_EHelper(p_bltz) {
-  rtl_jrelop(s, RELOP_LT, dsrc1, rz, id_dest->imm);
-}
-
-def_EHelper(p_bgez) {
-  rtl_jrelop(s, RELOP_GE, dsrc1, rz, id_dest->imm);
-}
+def_EHelper(p_blez) { rtl_jrelop(s, RELOP_GE, rz, dsrc2, id_dest->imm); }
+def_EHelper(p_bgtz) { rtl_jrelop(s, RELOP_LT, rz, dsrc2, id_dest->imm); }
+def_EHelper(p_bltz) { rtl_jrelop(s, RELOP_LT, dsrc1, rz, id_dest->imm); }
+def_EHelper(p_bgez) { rtl_jrelop(s, RELOP_GE, dsrc1, rz, id_dest->imm); }
 
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
@@ -50,18 +39,7 @@ def_EHelper(p_ret) {
 
 // non-standard pseudo instructions
 
-def_EHelper(p_li_0) {
-  rtl_li(s, ddest, 0);
-}
-
-def_EHelper(p_li_1) {
-  rtl_li(s, ddest, 1);
-}
-
-def_EHelper(p_inc) {
-  rtl_addi(s, ddest, ddest, 1);
-}
-
-def_EHelper(p_dec) {
-  rtl_subi(s, ddest, ddest, 1);
-}
+def_EHelper(p_li_0) { rtl_li(s, ddest, 0); }
+def_EHelper(p_li_1) { rtl_li(s, ddest, 1); }
+def_EHelper(p_inc)  { rtl_addi(s, ddest, ddest, 1); }
+def_EHelper(p_dec)  { rtl_subi(s, ddest, ddest, 1); }

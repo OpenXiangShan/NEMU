@@ -6,8 +6,8 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   Assert(NO == 0x8, "Unsupport exception = %ld", NO);
   uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
       uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
-  cpu.gpr[10]._64 = host_syscall(cpu.gpr[17]._64, cpu.gpr[10]._64, cpu.gpr[11]._64,
-      cpu.gpr[12]._64, cpu.gpr[13]._64, cpu.gpr[14]._64, cpu.gpr[15]._64);
+  cpu.gpr[10] = host_syscall(cpu.gpr[17], cpu.gpr[10], cpu.gpr[11],
+      cpu.gpr[12], cpu.gpr[13], cpu.gpr[14], cpu.gpr[15]);
   return epc + 4;
 }
 #else
@@ -25,12 +25,9 @@ enum {
 };
 
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
-  switch (NO) {
-    case EX_II:
-    case EX_IPF:
-    case EX_LPF:
-    case EX_SPF: difftest_skip_dut(1, 2); break;
-  }
+#ifdef CONFIG_DIFFTEST_REF_QEMU
+  switch (NO) { case EX_II: case EX_IPF: case EX_LPF: case EX_SPF: difftest_skip_dut(1, 2); }
+#endif
 
   word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
   bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);
@@ -42,9 +39,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
     switch (NO) {
-      case EX_IPF: case EX_LPF: case EX_SPF:
-      case EX_LAM: case EX_SAM:
-        break;
+      case EX_IPF: case EX_LPF: case EX_SPF: case EX_LAM: case EX_SAM: case EX_II: break;
       default: stval->val = 0;
     }
     cpu.mode = MODE_S;
@@ -57,9 +52,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
     switch (NO) {
-      case EX_IPF: case EX_LPF: case EX_SPF:
-      case EX_LAM: case EX_SAM:
-        break;
+      case EX_IPF: case EX_LPF: case EX_SPF: case EX_LAM: case EX_SAM: case EX_II: break;
       default: mtval->val = 0;
     }
     cpu.mode = MODE_M;

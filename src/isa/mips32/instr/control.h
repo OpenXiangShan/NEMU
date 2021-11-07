@@ -43,7 +43,7 @@ def_EHelper(beq) {
 
 def_EHelper(blez) {
   difftest_skip_delay_slot();
-  rtl_jrelop(s, RELOP_LE, dsrc1, dsrc2, id_dest->imm);
+  rtl_jrelop(s, RELOP_LE, dsrc1, rz, id_dest->imm);
 }
 
 def_EHelper(bltz) {
@@ -53,7 +53,7 @@ def_EHelper(bltz) {
 
 def_EHelper(bgtz) {
   difftest_skip_delay_slot();
-  rtl_jrelop(s, RELOP_GT, dsrc1, dsrc2, id_dest->imm);
+  rtl_jrelop(s, RELOP_GT, dsrc1, rz, id_dest->imm);
 }
 
 def_EHelper(bgez) {

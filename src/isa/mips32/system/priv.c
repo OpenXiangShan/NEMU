@@ -7,7 +7,7 @@ void tlbwr();
 void tlbwi();
 void tlbp();
 
-static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+void csrrw(word_t *dest, const word_t *src, uint32_t csrid) {
   if (dest != NULL) {
     switch (csrid) {
       case 0:  *dest = cpu.index; break;
@@ -35,7 +35,7 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   }
 }
 
-static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
+word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case PRIV_ERET:
       cpu.status.exl = 0;

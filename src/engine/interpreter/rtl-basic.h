@@ -3,6 +3,7 @@
 
 #include "c_op.h"
 #include <memory/vaddr.h>
+#include <cpu/cpu.h>
 
 /* RTL basic instructions */
 
@@ -115,6 +116,7 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
+  check_ex();
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
@@ -167,14 +169,16 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 
 static inline def_rtl(j, vaddr_t target) {
+  assert(0);
 #ifndef CONFIG_PERF_OPT
-  s->dnpc = target;
+  //s->dnpc = target;
 #endif
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
+  assert(0);
 #ifndef CONFIG_PERF_OPT
-  s->dnpc = *target;
+  //s->dnpc = *target;
 #endif
 }
 

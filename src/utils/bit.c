@@ -7,3 +7,7 @@ uint32_t bit_scan(uint32_t x, bool reverse) {
   while ((x & (1u << bit)) == 0) bit += step;
   return bit;
 }
+
+uint32_t clz(uint32_t x) {
+  return sizeof(x) * 8 - 1 - bit_scan(x, true);
+}

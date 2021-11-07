@@ -37,7 +37,6 @@ typedef struct Decode {
   };
   vaddr_t pc;
   vaddr_t snpc; // static next pc
-  IFNDEF(CONFIG_PERF_OPT, vaddr_t dnpc); // dynamic next pc
   IFDEF (CONFIG_PERF_OPT, const void *EHelper);
   IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
   Operand dest, src1, src2;
@@ -161,5 +160,17 @@ finish:
 #define def_hex_INSTR_IDTAB(pattern, id, tab)   def_hex_INSTR_IDTABW(pattern, id, tab, 0)
 #define def_hex_INSTR_TABW(pattern, tab, width) def_hex_INSTR_IDTABW(pattern, empty, tab, width)
 #define def_hex_INSTR_TAB(pattern, tab)         def_hex_INSTR_IDTABW(pattern, empty, tab, 0)
+
+#define INSTPAT(pattern, ...) do { \
+  uint32_t key, mask, shift; \
+  pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
+  if (((INSTPAT_INST(s) >> shift) & mask) == key) { \
+    INSTPAT_MATCH(s, ##__VA_ARGS__); \
+    goto *(__instpat_end); \
+  } \
+} while (0)
+
+#define INSTPAT_START(name) { const void ** __instpat_end = &&concat(__instpat_end_, name);
+#define INSTPAT_END(name)   concat(__instpat_end_, name): ; }
 
 #endif

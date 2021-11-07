@@ -40,6 +40,7 @@ static Decode* tcache_new(vaddr_t pc) {
 
 #ifdef CONFIG_RT_CHECK
 #define tcache_bb_check(s) do { \
+  assert(s != NULL); \
   int idx = s - tcache_bb_pool; \
   Assert(idx >= 0 && idx < TCACHE_BB_SIZE, "idx = %d, s = %p", idx, s); \
 } while (0)
@@ -49,7 +50,6 @@ static Decode* tcache_new(vaddr_t pc) {
 
 static Decode* tcache_bb_new(vaddr_t pc) {
   Decode *s = tcache_bb_freelist;
-  assert(s != NULL);
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist->tnext);
   tcache_bb_freelist = tcache_bb_freelist->tnext;

@@ -17,7 +17,7 @@
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
-  f(mtime      , 0xc01)
+  IFDEF(CONFIG_DIFFTEST_REF_QEMU, f(mtime      , 0xc01))
 
 #define CSR_STRUCT_START(name) \
   typedef union { \
@@ -221,8 +221,10 @@ CSR_STRUCT_START(fcsr)
   };
 CSR_STRUCT_END(fcsr)
 
+#ifdef CONFIG_DIFFTEST_REF_QEMU
 CSR_STRUCT_START(mtime)
 CSR_STRUCT_END(mtime)
+#endif
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)

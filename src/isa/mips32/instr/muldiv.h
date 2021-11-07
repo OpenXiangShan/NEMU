@@ -1,18 +1,7 @@
-def_EHelper(mfhi) {
-  rtl_mv(s, ddest, &cpu.hi);
-}
-
-def_EHelper(mflo) {
-  rtl_mv(s, ddest, &cpu.lo);
-}
-
-def_EHelper(mthi) {
-  rtl_mv(s, &cpu.hi, dsrc1);
-}
-
-def_EHelper(mtlo) {
-  rtl_mv(s, &cpu.lo, dsrc1);
-}
+def_EHelper(mfhi) { rtl_mv(s, ddest, &cpu.hi); }
+def_EHelper(mflo) { rtl_mv(s, ddest, &cpu.lo); }
+def_EHelper(mthi) { rtl_mv(s, &cpu.hi, dsrc1); }
+def_EHelper(mtlo) { rtl_mv(s, &cpu.lo, dsrc1); }
 
 def_EHelper(mul) {
   rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
