@@ -37,6 +37,8 @@ void isa_reg_display() {
       cpu.pc, mstatus->val, mcause->val, mepc->val);
   printf("mode: %-16d sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
       cpu.mode, csrid_read(0x100), scause->val, sepc->val);
+#else
+  printf("pc: " FMT_WORD "\n", cpu.pc);
 #endif
 }
 
