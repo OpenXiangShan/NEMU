@@ -5,13 +5,9 @@
 
 // reg
 typedef struct {
-  struct {
-    rtlreg_t _32;
-  } gpr[32];
-
+  rtlreg_t gpr[32];
 #ifdef __ICS_EXPORT
   rtlreg_t pad[5];
-
   vaddr_t pc;
 #else
   union {

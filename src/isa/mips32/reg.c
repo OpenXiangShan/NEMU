@@ -23,7 +23,7 @@ const char *cp0[] = {
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%s: 0x%08x ", regs[i], cpu.gpr[i]._32);
+    printf("%s: 0x%08x ", regs[i], cpu.gpr[i]);
     if (i % 4 == 3) printf("\n");
   }
   printf("pc: 0x%08x\n", cpu.pc);

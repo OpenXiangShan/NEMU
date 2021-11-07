@@ -6,8 +6,8 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   Assert(NO == 0x8, "Unsupport exception = %ld", NO);
   uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
       uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
-  cpu.gpr[10]._64 = host_syscall(cpu.gpr[17]._64, cpu.gpr[10]._64, cpu.gpr[11]._64,
-      cpu.gpr[12]._64, cpu.gpr[13]._64, cpu.gpr[14]._64, cpu.gpr[15]._64);
+  cpu.gpr[10] = host_syscall(cpu.gpr[17], cpu.gpr[10], cpu.gpr[11],
+      cpu.gpr[12], cpu.gpr[13], cpu.gpr[14], cpu.gpr[15]);
   return epc + 4;
 }
 #else

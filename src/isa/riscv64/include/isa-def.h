@@ -4,10 +4,7 @@
 #include <common.h>
 
 typedef struct {
-  union {
-    uint64_t _64;
-  } gpr[32];
-
+  uint64_t gpr[32];
   vaddr_t pc;
 #ifndef CONFIG_PA
   uint64_t mstatus, mepc, mtval, mcause;
@@ -15,10 +12,7 @@ typedef struct {
 #endif
 
 #ifndef __ICS_EXPORT
-  union {
-    uint64_t _64;
-  } fpr[32];
-
+  uint64_t fpr[32];
 
   uint8_t mode;
 

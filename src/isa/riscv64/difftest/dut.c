@@ -10,7 +10,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     int i;
     // do not check $0
     for (i = 1; i < ARRLEN(cpu.gpr); i ++) {
-      difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._64, cpu.gpr[i]._64);
+      difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i], cpu.gpr[i]);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
     ok = false;

@@ -16,7 +16,7 @@ static void restart() {
   cpu.pc = RESET_VECTOR;
 
   /* The zero register is always 0. */
-  cpu.gpr[0]._64 = 0;
+  cpu.gpr[0] = 0;
 #ifndef __ICS_EXPORT
   void init_csr();
   init_csr();

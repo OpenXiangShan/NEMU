@@ -21,13 +21,13 @@ const char *fpregs[] = {
 void isa_reg_display() {
   int i;
   for (i = 0; i < 32; i ++) {
-    printf("%4s: " FMT_WORD " ", regs[i], cpu.gpr[i]._64);
+    printf("%4s: " FMT_WORD " ", regs[i], cpu.gpr[i]);
     if (i % 4 == 3) {
       printf("\n");
     }
   }
   for (i = 0; i < 32; i ++) {
-    printf("%4s: " FMT_WORD " ", fpregs[i], cpu.fpr[i]._64);
+    printf("%4s: " FMT_WORD " ", fpregs[i], cpu.fpr[i]);
     if (i % 4 == 3) {
       printf("\n");
     }

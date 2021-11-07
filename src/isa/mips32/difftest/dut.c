@@ -9,7 +9,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   if (memcmp(&cpu, ref_r, sizeof(cpu.gpr))) {
     int i;
     for (i = 0; i < ARRLEN(cpu.gpr); i ++) {
-      difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._32, cpu.gpr[i]._32);
+      difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i], cpu.gpr[i]);
     }
     same = false;
   }
