@@ -4,12 +4,9 @@
 static uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
 static uint32_t preset_flash[] = {
-  0x00000413,
-  0x0000a117,
-  0xffc10113,
-  0x00002537,
-  0x30052073,
-  0x5006b
+  0x0010029b,
+  0x01f29293,
+  0x00028067
 };
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
@@ -23,11 +20,10 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 void init_flash() {
   flash_base = new_space(CONFIG_FLASH_SIZE);
   const char *img = CONFIG_FLASH_IMG_PATH;
-  // const char *img = "/home52/whq/xs-env/nexus-am/tests/cputest/build/dummy-riscv64-noop.bin";
   fp = fopen(img, "r");
   if (fp == NULL) {
-    Log("Can not find flash image: %s", img);
-    Log("Use built-in image instead");
+    // Log("Can not find flash image: %s", img);
+    // Log("Use built-in image instead");
     flash_base = (uint8_t*) preset_flash;
   } else {
     __attribute__((unused)) int ret;
