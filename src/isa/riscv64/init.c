@@ -40,14 +40,16 @@ void init_isa() {
   misa->extensions |= ext('d') | ext('f');
   misa->mxl = 2; // XLEN = 64
 
-  #ifdef CONFIG_RVV_010
-  // vecotr
+#ifdef CONFIG_RVV_010
+  // vector
   vl->val = 0;
   vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
-  #endif // CONFIG_RVV_010
+#endif // CONFIG_RVV_010
 
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
   init_device();
+#ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
+#endif
 }
