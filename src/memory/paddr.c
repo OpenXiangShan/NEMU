@@ -127,14 +127,14 @@ store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
-  static int overflow = 0;
-  if (cpu.amo || overflow) {
+  if (cpu.amo) {
     return;
   }
+  static int overflow = 0;
   store_commit_t *commit = store_commit_queue + tail;
-  if(commit->valid){ // store commit queue overflow
+  if (commit->valid && !overflow) { // store commit queue overflow
     overflow = 1;
-    printf("[WARNING] difftest store queue overflow, difftest store commit disabled\n");
+    printf("[WARNING] difftest store queue overflow\n");
   };
   uint64_t offset = addr % 8ULL;
   commit->addr = addr - offset;
