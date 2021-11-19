@@ -10,6 +10,9 @@ static const uint32_t img [] = {
 };
 
 void init_csr();
+#ifndef CONFIG_SHARE
+void init_clint();
+#endif
 void init_device();
 
 void init_isa() {
@@ -47,8 +50,10 @@ void init_isa() {
 #endif // CONFIG_RVV_010
 
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
+  
+  IFNDEF(CONFIG_SHARE, init_clint());
+  IFDEF(CONFIG_SHARE, init_device());
 
-  init_device();
 #ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
 #endif
