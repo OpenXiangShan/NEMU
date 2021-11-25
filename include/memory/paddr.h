@@ -59,7 +59,7 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 #ifdef CONFIG_MULTICORE_DIFF
 extern uint8_t* golden_pmem;
 
-static inline word_t golden_pmem_read(paddr_t addr, int len) {
+static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode) {
   assert(golden_pmem != NULL);
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
