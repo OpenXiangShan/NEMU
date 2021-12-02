@@ -27,7 +27,11 @@ void init_isa() {
   cpu.gpr[0]._64 = 0;
 
   cpu.mode = MODE_M;
-  mstatus->val = 0;
+  // For RV64 systems, the SXL and UXL fields are WARL fields that
+  // control the value of XLEN for S-mode and U-mode, respectively.
+  // For RV64 systems, if S-mode is not supported, then SXL is hardwired to zero.
+  // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
+  mstatus->val = 0xaUL << 32;
 
   pmpcfg0->val = 0;
   pmpcfg1->val = 0;

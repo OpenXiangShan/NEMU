@@ -59,6 +59,9 @@ static inline word_t* csr_decode(uint32_t addr) {
   }
   return &csr_array[addr];
 }
+
+// WPRI, SXL, UXL cannot be written
+#define MSTATUS_WMASK (0x7ff9bbUL) | (1UL << 63)
 #ifdef CONFIG_RVV_010
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
@@ -159,7 +162,8 @@ void vcsr_write(uint32_t addr,  rtlreg_t *src) {
 
 static inline void csr_write(word_t *dest, word_t src) {
 
-  if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
+  if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+  else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
   else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
