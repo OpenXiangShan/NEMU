@@ -105,7 +105,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
-    pte.val = golden_pmem_read(p_pte, PTE_SIZE);
+    pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0);
 #else
     pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :

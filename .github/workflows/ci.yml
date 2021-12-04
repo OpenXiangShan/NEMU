@@ -34,10 +34,17 @@ jobs:
           make riscv64-xs_defconfig
           make -j
           make clean-all
-      
+
       - name: Build NEMU as difftest ref
         run: |
           export NEMU_HOME=$(pwd)
           make riscv64-xs-ref_defconfig
+          make -j
+          make clean-all
+
+      - name: Build NEMU as difftest dual ref
+        run: |
+          export NEMU_HOME=$(pwd)
+          make riscv64-dual-xs-ref_defconfig
           make -j
           make clean-all

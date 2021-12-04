@@ -12,3 +12,6 @@
 !.github/workflows/ci.yml
 include/config
 include/generated
+build
+.vscode
+
