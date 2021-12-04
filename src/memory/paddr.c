@@ -31,6 +31,9 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
 
 void init_mem() {
 #ifdef CONFIG_USE_MMAP
+  #ifdef CONFIG_MULTICORE_DIFF
+    panic("Pmem must not use mmap during multi-core difftest");
+  #endif
   void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != pmem) {
