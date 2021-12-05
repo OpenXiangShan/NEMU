@@ -4,23 +4,10 @@
 
 static void csr_prepare() {
    return;
-  cpu.mstatus = mstatus->val;
-  cpu.mcause  = mcause->val;
-  cpu.mepc    = mepc->val;
-
-//  cpu.sstatus = csrid_read(0x100); // sstatus
-  cpu.scause  = scause->val;
-  cpu.sepc    = sepc->val;
 }
 
 static void csr_writeback() {
    return;
-  mstatus->val = cpu.mstatus;
-  mcause ->val = cpu.mcause ;
-  mepc   ->val = cpu.mepc   ;
-  //sstatus->val = cpu.sstatus;  // sstatus is a shadow of mstatus
-  scause ->val = cpu.scause ;
-  sepc   ->val = cpu.sepc   ;
 }
 
 void isa_difftest_regcpy(void *dut, bool direction) {
