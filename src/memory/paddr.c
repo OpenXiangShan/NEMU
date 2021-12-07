@@ -31,6 +31,9 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
 
 void init_mem() {
 #ifdef CONFIG_USE_MMAP
+  #ifdef CONFIG_MULTICORE_DIFF
+    panic("Pmem must not use mmap during multi-core difftest");
+  #endif
   void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != pmem) {
@@ -60,7 +63,7 @@ void init_mem() {
 word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
-    fprintf(stderr, "[NEMU]  paddr read addr:%lx len:%d type:%d mode:%d\n", addr, len, type, mode);
+    fprintf(stderr, "[NEMU]  paddr read addr:" FMT_PADDR " len:%d type:%d mode:%d\n", addr, len, type, mode);
   }
 #endif
 
@@ -98,7 +101,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 void paddr_write(paddr_t addr, int len, word_t data, int mode) {
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
-    fprintf(stderr, "[NEMU]  paddr write addr:%lx len:%d mode:%d\n", addr, len, mode);
+    fprintf(stderr, "[NEMU]  paddr write addr:" FMT_PADDR " len:%d mode:%d\n", addr, len, mode);
   }
 #endif
 
