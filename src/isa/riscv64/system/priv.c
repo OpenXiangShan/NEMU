@@ -61,7 +61,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 }
 
 // WPRI, SXL, UXL cannot be written
-#define MSTATUS_WMASK (0x7ff9bbUL) | (1UL << 63)
+#define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63)
 #ifdef CONFIG_RVV_010
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
@@ -240,7 +240,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     mmu_tlb_flush(0);
 #endif
   } else if (is_write(satp)) {
-    *dest = ASID_MASKED_SATP(src);
+    *dest = MASKED_SATP(src);
   } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
