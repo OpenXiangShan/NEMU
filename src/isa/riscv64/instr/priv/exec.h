@@ -7,9 +7,16 @@ def_EHelper(name) { \
 }
 
 #ifdef CONFIG_DEBUG
+#ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_LIST(f) \
   f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
   f(ecall)  f(mret)   f(sret)  f(sfence_vma) f(wfi) \
+  f(sfence_w_inval) f(sfence_inval_ir) f(sinval_vma)
+#else
+#define SYS_INSTR_LIST(f) \
+  f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
+  f(ecall)  f(mret)   f(sret)  f(sfence_vma) f(wfi)
+#endif
 
 MAP(SYS_INSTR_LIST, def_SYS_EHelper)
 #else
