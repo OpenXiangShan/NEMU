@@ -54,7 +54,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     if (!(ok && pte->x) || update_ad) {
       assert(!cpu.amo);
-      stval->val = vaddr;
+      INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
       return false;
     }
@@ -67,10 +67,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     bool update_ad = false;
 #endif
     if (!(ok && can_load) || update_ad) {
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
       //if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
+      INTR_TVAL_REG(ex) = vaddr;
       cpu.amo = false;
       longjmp_exception(ex);
       return false;
@@ -83,8 +82,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     bool update_ad = false;
 #endif
     if (!(ok && pte->w) || update_ad) {
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
+      INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
       return false;
@@ -105,11 +103,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
-    pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0);
+    pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
 #else
     pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
-      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S);
+      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -144,7 +142,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if (!pte.a || (!pte.d && is_write)) {
     pte.a = true;
     pte.d |= is_write;
-    paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode);
+    paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
   }
 #endif
 
@@ -191,14 +189,14 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if(!va_msbs_ok){
     if(is_ifetch){
       stval->val = vaddr;
+      INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
     } else if(type == MEM_TYPE_READ){
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
-      longjmp_exception(cpu.amo ? EX_SPF : EX_LPF);
+      int ex = cpu.amo ? EX_SPF : EX_LPF;
+      INTR_TVAL_REG(ex) = vaddr;
+      longjmp_exception(ex);
     } else {
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
+      INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
     }
     return MEM_RET_FAIL;
@@ -208,8 +206,9 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     assert(0);
-    mtval->val = vaddr;
-    longjmp_exception(cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+    int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+    INTR_TVAL_REG(ex) = vaddr;
+    longjmp_exception(ex);
     return MEM_RET_FAIL;
   }
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
@@ -218,8 +217,9 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #ifdef CONFIG_SHARE
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
-    mtval->val = vaddr;
-    longjmp_exception(cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM);
+    int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+    INTR_TVAL_REG(ex) = vaddr;
+    longjmp_exception(ex);
   }
 }
 #endif
@@ -252,7 +252,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
-      if (cpu.mode == MODE_M) {
+      if (!intr_deleg_S(EX_IPF)) {
         mtval->val = cpu.execution_guide.mtval;
         if(
           vaddr != cpu.execution_guide.mtval &&
@@ -284,8 +284,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
+      INTR_TVAL_REG(EX_LPF) = vaddr;
       printf("force raise LPF\n");
       longjmp_exception(EX_LPF);
       return MEM_RET_FAIL;
@@ -293,8 +292,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
-      if (cpu.mode == MODE_M) mtval->val = vaddr;
-      else stval->val = vaddr;
+      INTR_TVAL_REG(EX_SPF) = vaddr;
       printf("force raise SPF\n");
       longjmp_exception(EX_SPF);
       return MEM_RET_FAIL;

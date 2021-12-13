@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <cpu/cpu.h>
+#include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
 #ifdef CONFIG_USE_MMAP
@@ -60,7 +61,7 @@ void init_mem() {
 
 /* Memory accessing interfaces */
 
-word_t paddr_read(paddr_t addr, int len, int type, int mode) {
+word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
     fprintf(stderr, "[NEMU]  paddr read addr:" FMT_PADDR " len:%d type:%d mode:%d\n", addr, len, type, mode);
@@ -70,12 +71,15 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
     if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
+      INTR_TVAL_REG(EX_IAF) = vaddr;
       longjmp_exception(EX_IAF);
       return false;
     } else if (cpu.amo || type == MEM_TYPE_WRITE_READ) {
+      INTR_TVAL_REG(EX_SAF) = vaddr;
       longjmp_exception(EX_SAF);
       return false;
     } else {
+      INTR_TVAL_REG(EX_LAF) = vaddr;
       longjmp_exception(EX_LAF);
       return false;
     }
@@ -98,7 +102,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode) {
 #endif
 }
 
-void paddr_write(paddr_t addr, int len, word_t data, int mode) {
+void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
     fprintf(stderr, "[NEMU]  paddr write addr:" FMT_PADDR " len:%d mode:%d\n", addr, len, mode);
@@ -106,6 +110,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode) {
 #endif
 
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
+    INTR_TVAL_REG(EX_SAF) = vaddr;
     longjmp_exception(EX_SAF);
     return ;
   }
