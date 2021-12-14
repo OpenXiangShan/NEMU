@@ -11,6 +11,12 @@ enum {
   IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
 };
 
+bool intr_deleg_S(word_t exceptionNO) {
+  word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
+  bool delegS = ((deleg & (1 << (exceptionNO & 0xf))) != 0) && (cpu.mode < MODE_M);
+  return delegS;
+}
+
 word_t raise_intr(word_t NO, vaddr_t epc) {
   switch (NO) {
     case EX_II:
@@ -19,8 +25,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 
-  word_t deleg = (NO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (NO & 0xf))) != 0) && (cpu.mode < MODE_M);
+  bool delegS = intr_deleg_S(NO);
 
   if (delegS) {
     scause->val = NO;
@@ -31,6 +36,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
+      case EX_IAF: case EX_LAF: case EX_SAF:
         break;
       default: stval->val = 0;
     }
@@ -46,6 +52,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
+      case EX_IAF: case EX_LAF: case EX_SAF:
         break;
       default: mtval->val = 0;
     }

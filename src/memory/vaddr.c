@@ -11,6 +11,7 @@
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
 static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
+  vaddr_t vaddr = addr;
   word_t data = 0;
   int i;
   for (i = 0; i < len; i ++, addr ++) {
@@ -19,9 +20,9 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
     if (ret != MEM_RET_OK) return 0;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1, type, cpu.mode);
+    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1, type, cpu.mode, vaddr);
 #else
-    word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1, type, cpu.mode);
+    word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1, type, cpu.mode, vaddr);
 #endif
     data |= byte << (i << 3);
   }
@@ -29,13 +30,14 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
 }
 
 static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
+  vaddr_t vaddr = addr;
   int i;
   for (i = 0; i < len; i ++, addr ++) {
     paddr_t mmu_ret = isa_mmu_translate(addr, 1, MEM_TYPE_WRITE);
     int ret = mmu_ret & PAGE_MASK;
     if (ret != MEM_RET_OK) return;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
-    paddr_write(paddr, 1, data & 0xff, cpu.mode);
+    paddr_write(paddr, 1, data & 0xff, cpu.mode, vaddr);
     data >>= 8;
   }
 }
@@ -50,9 +52,9 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len, type, cpu.mode);
+    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len, type, cpu.mode, vaddr);
 #else
-    word_t rdata = paddr_read(addr, len, type, cpu.mode);
+    word_t rdata = paddr_read(addr, len, type, cpu.mode, vaddr);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -82,7 +84,7 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
         vaddr, addr, len, data);
     }
 #endif
-    paddr_write(addr, len, data, cpu.mode);
+    paddr_write(addr, len, data, cpu.mode, vaddr);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     vaddr_write_cross_page(addr, len, data);
   }
@@ -98,7 +100,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
 #endif
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, type);
-  if (mmu_mode == MMU_DIRECT) return paddr_read(addr, len, type, cpu.mode);
+  if (mmu_mode == MMU_DIRECT) return paddr_read(addr, len, type, cpu.mode, addr);
 #ifndef __ICS_EXPORT
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
 #endif
@@ -119,7 +121,7 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
-  if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data, cpu.mode); return; }
+  if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data, cpu.mode, addr); return; }
 #ifndef __ICS_EXPORT
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 #endif

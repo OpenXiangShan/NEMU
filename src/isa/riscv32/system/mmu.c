@@ -54,14 +54,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   paddr_t pdir_base = cpu.satp.ppn << 12;
 
   PTE pde;
-  pde.val	= paddr_read(pdir_base + addr->pdir_idx * 4, 4, MEM_TYPE_READ, MODE_S);
+  pde.val	= paddr_read(pdir_base + addr->pdir_idx * 4, 4, MEM_TYPE_READ, MODE_S, vaddr);
   if (!pde.valid) {
     panic("pc = %x, vaddr = %x, pdir_base = %x, pde = %x", cpu.pc, vaddr, pdir_base, pde.val);
   }
 
   paddr_t pt_base = pde.ppn << 12;
   PTE pte;
-  pte.val = paddr_read(pt_base + addr->pt_idx * 4, 4, MEM_TYPE_READ, MODE_S);
+  pte.val = paddr_read(pt_base + addr->pt_idx * 4, 4, MEM_TYPE_READ, MODE_S, vaddr);
   if (!pte.valid) {
     panic("pc = %x, vaddr = %x, pt_base = %x, pte = %x", cpu.pc, vaddr, pt_base, pte.val);
   }

@@ -37,8 +37,8 @@ static inline bool in_pmem(paddr_t addr) {
   }
 }
 
-word_t paddr_read(paddr_t addr, int len, int type, int mode);
-void paddr_write(paddr_t addr, int len, word_t data, int mode);
+word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
+void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
@@ -59,7 +59,7 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 #ifdef CONFIG_MULTICORE_DIFF
 extern uint8_t* golden_pmem;
 
-static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode) {
+static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   assert(golden_pmem != NULL);
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
