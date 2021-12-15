@@ -87,7 +87,7 @@ BUILD_EXEC_B2(maxu)
 
 // BUILD_EXEC_B2W(slo)
 // BUILD_EXEC_B2W(sro)
-// BUILD_EXEC_B2W(rol)
+BUILD_EXEC_B2W(rol)
 BUILD_EXEC_B2W(ror)
 // BUILD_EXEC_B2W(sbclr)
 // BUILD_EXEC_B2W(sbset)
@@ -181,15 +181,15 @@ BUILD_EXEC_BI2W(ror)
 // make_EHelper(addwu) { *ddest = (uint32_t)*dsrc1 + (uint32_t)*dsrc2; print_asm_template3(addwu); }
 // make_EHelper(subwu) { *ddest = (uint32_t)*dsrc1 - (uint32_t)*dsrc2; print_asm_template3(subwu); }
 // make_EHelper(addiwu) { *ddest = (uint32_t)*dsrc1 + (uint32_t)id_src2->imm; print_asm_template3(addiwu); }
-make_EHelper(adduw) { *ddest = (uint32_t)*dsrc1 + *dsrc2; print_asm_template3(adduw); }
+make_EHelper(adduw) { *ddest = (uint64_t)(uint32_t)*dsrc1 + *dsrc2; print_asm_template3(adduw); }
 // make_EHelper(subuw) { *ddest = *dsrc1 - (uint32_t)*dsrc2; print_asm_template3(subuw); }
-make_EHelper(slliuw) { *ddest = (uint32_t)*dsrc1 << id_src2->imm; print_asm_template3(slliuw); }
+make_EHelper(slliuw) { *ddest = (uint64_t)(uint32_t)*dsrc1 << id_src2->imm; print_asm_template3(slliuw); }
 
 make_EHelper(sh1add) { *ddest = (*dsrc1 << 1) + *dsrc2; print_asm_template3(sh1add); }
 make_EHelper(sh2add) { *ddest = (*dsrc1 << 2) + *dsrc2; print_asm_template3(sh2add); }
 make_EHelper(sh3add) { *ddest = (*dsrc1 << 3) + *dsrc2; print_asm_template3(sh3add); }
-make_EHelper(sh1adduw) { *ddest = ((uint32_t)*dsrc1 << 1) + *dsrc2; print_asm_template3(sh1adduw); }
-make_EHelper(sh2adduw) { *ddest = ((uint32_t)*dsrc1 << 2) + *dsrc2; print_asm_template3(sh2adduw); }
-make_EHelper(sh3adduw) { *ddest = ((uint32_t)*dsrc1 << 3) + *dsrc2; print_asm_template3(sh3adduw); }
+make_EHelper(sh1adduw) { *ddest = ((uint64_t)(uint32_t)*dsrc1 << 1) + *dsrc2; print_asm_template3(sh1adduw); }
+make_EHelper(sh2adduw) { *ddest = ((uint64_t)(uint32_t)*dsrc1 << 2) + *dsrc2; print_asm_template3(sh2adduw); }
+make_EHelper(sh3adduw) { *ddest = ((uint64_t)(uint32_t)*dsrc1 << 3) + *dsrc2; print_asm_template3(sh3adduw); }
 
 //printf("rs1=%lx, rs2=%lx, rs3=%lx, rd=%lx.", *dsrc1, id_src2->imm, *s0, *ddest);

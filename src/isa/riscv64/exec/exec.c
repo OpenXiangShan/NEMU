@@ -176,7 +176,7 @@ static inline make_EHelper(op32) {
     EX(pair(16, 2), sh1adduw)
     EX(pair(16, 4), sh2adduw)
     EX(pair(16, 6), sh3adduw)
-    // EX(pair(48, 1), rolw)
+    EX(pair(48, 1), rolw)
     EX(pair(48, 5), rorw)
 
     default: exec_inv(s);
