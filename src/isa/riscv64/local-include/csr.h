@@ -172,7 +172,7 @@ CSR_STRUCT_END(mip)
 #define PMP_A     0x18
 #define PMP_L     0x80
 #define PMP_SHIFT 2
-#define PMP_PLATFORMGARIN 6 // log2(512 / 8)
+#define PMP_PLATFORMGARIN 12 // log2(4KB)
 
 #define PMP_TOR   0x08
 #define PMP_NA4   0x10
