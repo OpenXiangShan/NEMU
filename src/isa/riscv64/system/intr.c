@@ -17,6 +17,14 @@ bool intr_deleg_S(word_t exceptionNO) {
   return delegS;
 }
 
+static word_t get_trap_pc(word_t xtvec, word_t xcause) {
+  word_t base = (xtvec >> 2) << 2;
+  word_t mode = (xtvec & 0x1); // bit 1 is reserved, dont care here.
+  bool is_intr = (xcause >> (sizeof(word_t)-1)) == 1;
+  bool casue_no = xcause & 0xf;
+  return (is_intr && mode==1) ? (base + (casue_no << 2)) : base;
+}
+
 word_t raise_intr(word_t NO, vaddr_t epc) {
   switch (NO) {
     case EX_II:
@@ -42,7 +50,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     }
     cpu.mode = MODE_S;
     update_mmu_state();
-    return stvec->val;
+    return get_trap_pc(stvec->val, scause->val);
+    // return stvec->val;
   } else {
     mcause->val = NO;
     mepc->val = epc;
@@ -58,7 +67,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     }
     cpu.mode = MODE_M;
     update_mmu_state();
-    return mtvec->val;
+    return get_trap_pc(mtvec->val, mcause->val);
+    // return mtvec->val;
   }
 }
 
