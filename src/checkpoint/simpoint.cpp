@@ -73,6 +73,8 @@ SimPoint::init() {
     simpointStream = simout.create(path, false);
     if (!simpointStream)
       xpanic("unable to open SimPoint profile_file %s\n", path.c_str());
+    else
+      Log("create SimPoint profile_file %s", path.c_str());
   }
 }
 

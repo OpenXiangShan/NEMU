@@ -74,6 +74,7 @@ CFLAGS   += -O2 -MMD -Wno-format -Wall \
 			-ggdb3 $(INCLUDES) \
             -D__ENGINE_$(ENGINE)__ \
             -D__SIMPOINT \
+	    -DFLAT_CPTPATH \
             -D__GCPT_COMPATIBLE__ \
             -D__ISA__=$(ISA) -D__ISA_$(ISA)__ -D_ISA_H_=\"isa/$(ISA).h\"
 			# -Wc++-compat \
@@ -91,17 +92,17 @@ OBJS += $(CPP_OBJS)
 
 $(OBJ_DIR)/isa/riscv64/softfloat/%.o: src/isa/riscv64/softfloat/%.c
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -D__cplusplus -w -fPIC -c -o $@ $<
+	$(CC) $(CFLAGS) -D__cplusplus -w -fPIC -c -o $@ $<
 
 $(OBJ_DIR)/%.o: src/%.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.o: src/%.cpp
 	@echo + CC $<
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
 
 
 # Depencies

@@ -31,17 +31,33 @@ Serializer::Serializer() :
 
 }
 
-
 void Serializer::serializePMem(uint64_t inst_count) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
 
+  if (simpoint2Weights.empty()) {
+    Log("Error: serializePMem but simpoint2Weights is empty, exit");
+    exit(0);
+  }
+
   uint8_t *pmem = getPmem();
   string filepath;
   if (profiling_state == SimpointCheckpointing) {
-      filepath = pathManager.getOutputPath() + "_" + \
-                        to_string(simpoint2Weights.begin()->first) + "_" + \
+#ifdef FLAT_CPTPATH
+  std::string path_dir = pathManager.getOutputPath() + pathManager.getWorkloadName() + "_" + \
+                        to_string(simpoint2Weights.begin()->first * intervalSize) + "_" + \
+                        to_string(simpoint2Weights.begin()->second) + "/0/";
+  if (!fs::exists(fs::path(path_dir))) {
+    fs::create_directories(fs::path(path_dir));
+    Log("Created %s\n", path_dir.c_str());
+  }
+  filepath = path_dir + "_" + \
+                        to_string(simpoint2Weights.begin()->first * intervalSize) + "_.gz";
+#else
+  filepath = pathManager.getOutputPath() + "_" + \
+                        to_string(simpoint2Weights.begin()->first * intervalSize) + "_" + \
                         to_string(simpoint2Weights.begin()->second) + "_.gz";
+#endif
   } else {
       filepath = pathManager.getOutputPath() + "_" + \
                         to_string(inst_count) + "_.gz";
@@ -226,6 +242,8 @@ void Serializer::init() {
 
     auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0");
     auto weights_file = fstream(pathManager.getSimpointPath() + "weights0");
+    Log("simpoint file: %s", pathManager.getSimpointPath() + "simpoints0");
+    Log("weight file: %s", pathManager.getSimpointPath() + "weights0");
     assert(!simpoints_file.bad());
     assert(!weights_file.bad());
 
@@ -239,6 +257,7 @@ void Serializer::init() {
 
       Log("Simpoint %i: @ %lu, weight: %f", simpoint_id, simpoint_location, weight);
     }
+    assert(!simpoint2Weights.empty());
   } else if (checkpointTaking) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
@@ -248,17 +267,15 @@ void Serializer::init() {
 }
 
 bool Serializer::shouldTakeCpt(uint64_t num_insts) {
-  if ((profiling_state != SimpointCheckpointing ||
-      simpoint2Weights.empty())
-          && !checkpointTaking) {
+  if ((profiling_state != SimpointCheckpointing || simpoint2Weights.empty()) && !checkpointTaking) {
     return false;
   }
   extern bool xpoint_profiling_started;
 
   if (profiling_state == SimpointCheckpointing) {
-      uint64_t next_point = simpoint2Weights.begin()->first * intervalSize + 100000;
+      uint64_t next_point = ((simpoint2Weights.begin()->first >= 1) ? (simpoint2Weights.begin()->first - 1) : 0) * intervalSize + 100000;
       if (num_insts >= next_point) {
-          Log("Should take cpt now: %lu", num_insts);
+          //Log("Should take cpt now: %lu", num_insts);
           return true;
       } else if (num_insts % intervalSize == 0) {
           Log("First cpt @ %lu, now: %lu",
@@ -266,7 +283,7 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
       }
   } else if (checkpointTaking && xpoint_profiling_started){
       if (num_insts >= nextNormalPoint) {
-          Log("Should take cpt now: %lu", num_insts);
+          //Log("Should take cpt now: %lu", num_insts);
           return true;
       }
   }
@@ -279,6 +296,9 @@ void Serializer::notify_taken(uint64_t i) {
     simpoint2Weights.erase(simpoint2Weights.begin());
     if (!simpoint2Weights.empty()) {
         pathManager.incCptID();
+    } else {
+      Log("All the checkpoints have been taken, exit...");
+      exit(0);
     }
 
   } else if (checkpointTaking) {

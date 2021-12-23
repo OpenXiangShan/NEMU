@@ -32,6 +32,7 @@ void PathManager::init() {
 
   Log("Cpt id: %i", cptID);
   workloadPath = statsBaseDir + "/" + configName + "/" + workloadName + "/";
+  flat_workloadPath = statsBaseDir + "/" + configName + "/";
 
   if (profiling_state == SimpointCheckpointing) {
     assert(simpoints_dir);
@@ -42,17 +43,21 @@ void PathManager::init() {
 }
 
 void PathManager::setOutputDir() {
+  #ifdef FLAT_CPTPATH
+  std::string output_path = flat_workloadPath;
+  #else
   std::string output_path = workloadPath;
   if (cptID != -1) {
     output_path += to_string(cptID) + "/";
   }
+  #endif
 
   outputPath = fs::path(output_path);
 
   if (!fs::exists(outputPath)) {
     fs::create_directories(outputPath);
+    Log("Created %s\n", output_path.c_str());
   }
-  Log("Created %s\n", output_path.c_str());
 }
 
 void PathManager::incCptID() {
@@ -63,6 +68,11 @@ std::string PathManager::getOutputPath() const {
   assert(fs::exists(outputPath));
   return outputPath.string();
 }
+
+std::string PathManager::getWorkloadName() const {
+  return workloadName;
+}
+
 
 std::string PathManager::getSimpointPath() const {
   // cerr << simpointPath.string() << endl;
