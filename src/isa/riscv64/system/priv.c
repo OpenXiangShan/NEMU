@@ -143,6 +143,8 @@ static inline word_t csr_read(word_t *src) {
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
+  else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
+  else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
   else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
   else if (is_read(fflags)) { return fcsr->fflags.val & FFLAGS_MASK; }
@@ -168,6 +170,8 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(mip)) { mip->val = mask_bitset(mip->val, MIP_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
+  else if (is_write(mtvec)) { *dest = src & ~(0x2UL); }
+  else if (is_write(stvec)) { *dest = src & ~(0x2UL); }
   else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
   else if (is_write(fflags)) {
