@@ -10,7 +10,11 @@
 
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
+#ifdef CONFIG_NOHYPE_REF
+static uint8_t *pmem = (uint8_t *)0x100000000ul;
+#else
 static const uint8_t *pmem = (uint8_t *)0x100000000ul;
+#endif
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
@@ -29,6 +33,13 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
 #endif
   host_write(guest_to_host(addr), len, data);
 }
+
+#ifdef CONFIG_NOHYPE_REF
+void init_pmem_offset(int tid){
+  pmem += CONFIG_MSIZE * tid;
+  fprintf(stderr, "pmem now:%lx, tid:%d\n", (uint64_t)pmem, tid);
+}
+#endif
 
 void init_mem() {
 #ifdef CONFIG_USE_MMAP

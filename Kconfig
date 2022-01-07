@@ -243,6 +243,11 @@ config PANIC_ON_UNIMP_CSR
   bool "Panic if an unimplemented CSR is being accessed"
   default n
 
+config NOHYPE_REF
+  depends on SHARE && USE_MMAP
+  bool "Using this shared library as nohype difftest ref"
+  default n
+
 endmenu
 
 menu "Miscellaneous"

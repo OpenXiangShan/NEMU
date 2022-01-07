@@ -12,6 +12,9 @@
 #define RESET_VECTOR (CONFIG_MBASE + CONFIG_PC_RESET_OFFSET)
 
 void init_mem();
+#ifdef CONFIG_NOHYPE_REF
+void init_pmem_offset(int tid);
+#endif
 
 #ifdef CONFIG_SHARE
 #define PADDRBITS 36

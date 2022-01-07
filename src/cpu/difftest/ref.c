@@ -99,6 +99,22 @@ void difftest_init() {
 #endif
 }
 
+#ifdef CONFIG_NOHYPE_REF
+void difftest_nohype_init(int tid) {
+  init_pmem_offset(tid);
+  init_mem();
+
+  /* Perform ISA dependent initialization. */
+  init_isa();
+  /* create dummy address space for serial */
+  //add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
+
+#ifdef CONFIG_SHARE
+  dynamic_config.debug_difftest = false;
+#endif
+}
+#endif
+
 #ifdef CONFIG_MULTICORE_DIFF
 uint8_t *golden_pmem = NULL;
 
