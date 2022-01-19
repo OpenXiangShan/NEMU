@@ -15,7 +15,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
     ok = false;
   }
-#ifndef CONFIG_PA
+#if !defined(CONFIG_PA) && defined(CONFIG_MODE_SYSTEM)
 #define check_csr(name) ok &= difftest_check_reg(str(name), pc, ref_r->name, name->val);
 #define csr_list(f) f(mstatus) f(mepc) f(mtval) f(mcause) \
                                f(sepc) f(stval) f(scause)
