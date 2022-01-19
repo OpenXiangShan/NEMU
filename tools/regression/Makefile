@@ -65,6 +65,8 @@ run-riscv64-pa: reset-config
 RUN_RISCV64_USER = $(NEMU_HOME)/build/riscv64-nemu-interpreter -b --diff=$(NEMU_HOME)/build/riscv64-nemu-interpreter-so
 
 run-riscv64-user: reset-config
+	$(MAKE) -C $(NEMU_HOME) riscv64-user-ref_defconfig
+	$(MAKE) -C $(NEMU_HOME)
 	$(MAKE) -C $(NEMU_HOME) riscv64-user_defconfig
 	$(MAKE) -C ./tests/hello ISA=riscv64
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-riscv64.elf)

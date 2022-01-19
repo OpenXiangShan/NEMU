@@ -74,4 +74,5 @@ static inline void translate_stat(struct stat *hostbuf, struct user_stat *userbu
   userbuf->target_st_mtime_nsec = hostbuf->st_mtim.tv_nsec;
   userbuf->target_st_ctime = hostbuf->st_ctime;
   userbuf->target_st_ctime_nsec = hostbuf->st_ctim.tv_nsec;
+  difftest_memcpy_to_ref(userbuf, sizeof(*userbuf));
 }

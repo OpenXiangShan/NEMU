@@ -28,7 +28,9 @@ void difftest_raise_intr(word_t NO) {
 void difftest_init() {
 #ifdef CONFIG_MODE_USER
   void init_mem();
+  void isa_init_user(word_t sp);
   init_mem();
+  isa_init_user(0);
 #else
   /* Perform ISA dependent initialization. */
   init_isa();

@@ -70,12 +70,6 @@ static word_t user_uname(struct utsname *buf) {
   return ret;
 }
 
-static word_t user_readlink(const char *pathname, char *buf, size_t bufsiz) {
-  word_t ret = readlink(pathname, buf, bufsiz);
-  difftest_memcpy_to_ref(buf, bufsiz);
-  return ret;
-}
-
 static word_t user_gettimeofday(void *tv, void *tz) {
 #ifdef CONFIG_ISA64
   return gettimeofday((struct timeval *) tv, (struct timezone *) tz);
@@ -90,7 +84,9 @@ static word_t user_gettimeofday(void *tv, void *tz) {
 
 static word_t user_clock_gettime(clockid_t id, void *tp) {
 #ifdef CONFIG_ISA64
-  return clock_gettime(id, (struct timespec *) tp);
+  word_t ret = clock_gettime(id, (struct timespec *) tp);
+  difftest_memcpy_to_ref(tp, sizeof(struct timespec));
+  return ret;
 #else
   struct timespec host_tp;
   int ret = clock_gettime(id, &host_tp);
@@ -172,6 +168,13 @@ static word_t user_sys_fstatat(int dirfd,
   if (ret == 0) translate_stat(&buf, (struct user_stat *) statbuf);
   return ret;
 }
+
+static word_t user_readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz) {
+  word_t ret = readlinkat(dirfd, pathname, buf, bufsiz);
+  difftest_memcpy_to_ref(buf, bufsiz);
+  return ret;
+}
+
 #else
 static word_t user_sys_stat64(const char *pathname, void *statbuf) {
   struct stat buf;
@@ -217,11 +220,16 @@ static word_t user_getrlimit(int resource, void *rlim) {
   return ret;
 }
 
-static word_t user_ioctl(int fd, unsigned long request, uintptr_t p) {
-  assert(request == 0x5401); // TCGETS
-  word_t ret = ioctl(fd, request, p);
-  if (ret == 0) {
-    difftest_memcpy_to_ref((void *)p, sizeof(struct termios));
+static word_t user_readlink(const char *pathname, char *buf, size_t bufsiz) {
+  word_t ret = readlink(pathname, buf, bufsiz);
+  difftest_memcpy_to_ref(buf, bufsiz);
+  return ret;
+}
+
+static word_t user_time(time_t *tloc) {
+  word_t ret = time(tloc);
+  if (tloc != NULL) {
+    difftest_memcpy_to_ref(tloc, sizeof(*tloc));
   }
   return ret;
 }
@@ -247,20 +255,21 @@ static word_t user_set_thread_area(void *u_info) {
 #endif
 #endif
 
+static word_t user_ioctl(int fd, unsigned long request, uintptr_t p) {
+  assert(request == 0x5401); // TCGETS
+  word_t ret = ioctl(fd, request, p);
+  if (ret == 0) {
+    difftest_memcpy_to_ref((void *)p, sizeof(struct termios));
+  }
+  return ret;
+}
+
 static word_t user_prlimit64(pid_t pid, int resource,
     const void *new_limit, void *old_limit) {
   int ret = prlimit(pid, (enum __rlimit_resource) resource,
       (const struct rlimit *) new_limit, (struct rlimit *) old_limit);
   if (old_limit != NULL) {
     difftest_memcpy_to_ref(old_limit, sizeof(struct rlimit));
-  }
-  return ret;
-}
-
-static word_t user_time(time_t *tloc) {
-  word_t ret = time(tloc);
-  if (tloc != NULL) {
-    difftest_memcpy_to_ref(tloc, sizeof(*tloc));
   }
   return ret;
 }
@@ -311,7 +320,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     case USER_SYS_fcntl: ret = fcntl(user_fd(arg1), arg2, arg3); break;
     case USER_SYS_mprotect: ret = user_sys_mprotect(user_to_host(arg1), arg2, arg3); break;
 #ifdef CONFIG_ISA64
-    case USER_SYS_readlinkat: ret = readlinkat(user_fd(arg1),
+    case USER_SYS_readlinkat: ret = user_readlinkat(user_fd(arg1),
           user_to_host(arg2), user_to_host(arg3), arg4); break;
     case USER_SYS_fstat: ret = user_sys_fstat(user_fd(arg1), user_to_host(arg2)); break;
     case USER_SYS_fstatat: ret = user_sys_fstatat(user_fd(arg1),
