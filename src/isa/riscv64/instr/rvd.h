@@ -18,6 +18,24 @@ def_EHelper(fsd_mmu) {
   rtl_sm(s, dsrc2, dsrc1, id_dest->imm, 8, MMU_TRANSLATE);
 }
 
+def_EHelper(fldsp) {
+  rtl_lm(s, ddest, &gpr(2), id_src2->imm, 8, MMU_DIRECT);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
+}
+
+def_EHelper(fsdsp) {
+  rtl_sm(s, dsrc2, &gpr(2), id_dest->imm, 8, MMU_DIRECT);
+}
+
+def_EHelper(fldsp_mmu) {
+  rtl_lm(s, ddest, &gpr(2), id_src2->imm, 8, MMU_TRANSLATE);
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
+}
+
+def_EHelper(fsdsp_mmu) {
+  rtl_sm(s, dsrc2, &gpr(2), id_dest->imm, 8, MMU_TRANSLATE);
+}
+
 def_fop_template(faddd, FPCALL_W64, true)
 def_fop_template(fsubd, FPCALL_W64, true)
 def_fop_template(fmuld, FPCALL_W64, true)

@@ -35,6 +35,25 @@ def_EHelper(p_jal) {
   rtl_j(s, id_src1->imm);
 }
 
+def_EHelper(p_jalr_ra) {
+  rtl_addi(s, s0, &gpr(1), id_src2->imm);
+  rtl_li(s, &gpr(1), s->snpc);
+  ftrace_call(s->pc, *s0);
+  rtl_jr(s, s0);
+}
+
+def_EHelper(p_jalr_ra_noimm) {
+  rtl_mv(s, s0, &gpr(1));
+  rtl_li(s, &gpr(1), s->snpc);
+  ftrace_call(s->pc, *s0);
+  rtl_jr(s, s0);
+}
+
+def_EHelper(p_jalr_t0) {
+  rtl_addi(s, s0, &gpr(6), id_src2->imm);
+  rtl_jr(s, s0);
+}
+
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   ftrace_ret(s->pc);
@@ -48,3 +67,24 @@ def_EHelper(p_li_1) { rtl_li(s, ddest, 1); }
 def_EHelper(p_inc) { rtl_addi(s, ddest, ddest, 1); }
 def_EHelper(p_dec) { rtl_subi(s, ddest, ddest, 1); }
 def_EHelper(p_mv_src1) { rtl_mv(s, ddest, dsrc1); }
+def_EHelper(p_mv_src2) { rtl_mv(s, ddest, dsrc2); }
+def_EHelper(p_not) { rtl_not(s, ddest, dsrc1); }
+def_EHelper(p_neg) { rtl_neg(s, ddest, dsrc2); }
+def_EHelper(p_negw) { rtl_subw(s, ddest, rz, dsrc2); }
+def_EHelper(p_seqz) { rtl_setrelopi(s, RELOP_LTU, ddest, dsrc1, 1); }
+def_EHelper(p_snez) { rtl_setrelop(s, RELOP_LTU, ddest, rz, dsrc2); }
+def_EHelper(p_sltz) { rtl_setrelop(s, RELOP_LT, ddest, dsrc1, rz); }
+def_EHelper(p_sgtz) { rtl_setrelop(s, RELOP_LT, ddest, rz, dsrc2); }
+
+#define F32_SIGN ((uint64_t)1 << 31)
+#define F64_SIGN ((uint64_t)1 << 63)
+#define LOW32_MASK (((uint64_t)1 << 32) - 1)
+
+def_EHelper(p_fmv_s) { rtl_andi(s, ddest, dsrc1, LOW32_MASK); }
+def_EHelper(p_fabs_s) { rtl_andi(s, ddest, dsrc1, ~F32_SIGN); }
+def_EHelper(p_fneg_s) { rtl_xori(s, ddest, dsrc1, F32_SIGN); }
+def_EHelper(p_fmv_d) { rtl_mv(s, ddest, dsrc1); }
+def_EHelper(p_fabs_d) { rtl_andi(s, ddest, dsrc1, ~F64_SIGN); }
+def_EHelper(p_fneg_d) { rtl_xori(s, ddest, dsrc1, F64_SIGN); }
+def_EHelper(p_li_ra) { rtl_li(s, &gpr(1), id_src2->imm); }
+def_EHelper(p_li_t0) { rtl_li(s, &gpr(6), id_src2->imm); }

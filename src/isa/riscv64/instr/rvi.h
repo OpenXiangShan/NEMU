@@ -58,8 +58,12 @@ def_EHelper(bgeu) { rtl_jrelop(s, RELOP_GEU, dsrc1, dsrc2, id_dest->imm); }
 
 #define def_ld_template(name, rtl_instr, width, mmu_mode) \
   def_EHelper(name) { concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); }
+#define def_ldsp_template(name, rtl_instr, width, mmu_mode) \
+  def_EHelper(name) { concat(rtl_, rtl_instr) (s, ddest, &gpr(2), id_src2->imm, width, mmu_mode); }
 #define def_st_template(name, rtl_instr, width, mmu_mode) \
   def_EHelper(name) { concat(rtl_, rtl_instr) (s, dsrc2, dsrc1, id_dest->imm, width, mmu_mode); }
+#define def_stsp_template(name, rtl_instr, width, mmu_mode) \
+  def_EHelper(name) { concat(rtl_, rtl_instr) (s, dsrc2, &gpr(2), id_dest->imm, width, mmu_mode); }
 
 #define def_all_ldst(suffix, mmu_mode) \
   def_ld_template(concat(ld , suffix), lm , 8, mmu_mode) \
@@ -72,7 +76,12 @@ def_EHelper(bgeu) { rtl_jrelop(s, RELOP_GEU, dsrc1, dsrc2, id_dest->imm); }
   def_st_template(concat(sd , suffix), sm , 8, mmu_mode) \
   def_st_template(concat(sw , suffix), sm , 4, mmu_mode) \
   def_st_template(concat(sh , suffix), sm , 2, mmu_mode) \
-  def_st_template(concat(sb , suffix), sm , 1, mmu_mode)
+  def_st_template(concat(sb , suffix), sm , 1, mmu_mode) \
+  def_ldsp_template(concat(ldsp, suffix), lm, 8, mmu_mode) \
+  def_ldsp_template(concat(lwsp, suffix), lms, 4, mmu_mode) \
+  def_stsp_template(concat(sdsp, suffix), sm, 8, mmu_mode) \
+  def_stsp_template(concat(swsp, suffix), sm, 4, mmu_mode)
+
 
 def_all_ldst(, MMU_DIRECT)
 def_all_ldst(_mmu, MMU_TRANSLATE)

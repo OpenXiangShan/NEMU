@@ -20,6 +20,26 @@ def_EHelper(fsw_mmu) {
   rtl_sm(s, s0, dsrc1, id_dest->imm, 4, MMU_TRANSLATE);
 }
 
+def_EHelper(flwsp) {
+  rtl_lm(s, ddest, &gpr(2), id_src2->imm, 4, MMU_DIRECT);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
+}
+
+def_EHelper(fswsp) {
+  rtl_funbox(s, s0, dsrc2);
+  rtl_sm(s, s0, &gpr(2), id_dest->imm, 4, MMU_DIRECT);
+}
+
+def_EHelper(flwsp_mmu) {
+  rtl_lm(s, ddest, &gpr(2), id_src2->imm, 4, MMU_TRANSLATE);
+  rtl_fsr(s, ddest, ddest, FPCALL_W32);
+}
+
+def_EHelper(fswsp_mmu) {
+  rtl_funbox(s, s0, dsrc2);
+  rtl_sm(s, s0, &gpr(2), id_dest->imm, 4, MMU_TRANSLATE);
+}
+
 #define check_rm(s) IFDEF(CONFIG_RT_CHECK, Assert(INSTR_FP_RM(s) == 0b111, "s->pc = " FMT_WORD, s->pc));
 
 #define def_fop_template(name, w, has_rm) \

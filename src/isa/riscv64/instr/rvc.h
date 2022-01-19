@@ -50,3 +50,5 @@ def_EHelper(c_xor)  { rtl_xor(s, ddest, ddest, dsrc2); }
 def_EHelper(c_sub)  { rtl_sub(s, ddest, ddest, dsrc2); }
 def_EHelper(c_addw) { rtl_addw(s, ddest, ddest, dsrc2); }
 def_EHelper(c_subw) { rtl_subw(s, ddest, ddest, dsrc2); }
+def_EHelper(c_addix_sp) {rtl_addi(s, ddest, &gpr(2),id_src2->imm); }
+def_EHelper(c_addisp_sp) {rtl_addi(s, &gpr(2), &gpr(2),id_src2->imm); }

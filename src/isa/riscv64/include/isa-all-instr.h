@@ -8,6 +8,7 @@
   f(ld) f(lw) f(lh) f(lb) f(lwu) f(lhu) f(lbu) f(sd) f(sw) f(sh) f(sb) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
+  f(ldsp) f(lwsp) f(sdsp) f(swsp) f(ldsp_mmu) f(lwsp_mmu) f(sdsp_mmu) f(swsp_mmu) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
   f(addi) f(slli) f(srli) f(slti) f(sltiu) f(xori) f(ori) f(srai) f(andi) \
   f(jalr) f(beq) f(bne) f(blt) f(bge) f(bltu) f(bgeu) \
@@ -22,6 +23,7 @@
 
 #define INSTR_RVF(f) \
   f(flw) f(fsw) f(flw_mmu) f(fsw_mmu) \
+  f(flwsp) f(flwsp_mmu) f(fswsp) f(fswsp_mmu) \
   f(fadds) f(fsubs) f(fmuls) f(fdivs) f(fmins) f(fmaxs) \
   f(fsqrts) f(fles) f(flts) f(feqs) \
   f(fmadds) f(fmsubs) f(fnmsubs) f(fnmadds) \
@@ -34,6 +36,7 @@
 
 #define INSTR_RVD(f) \
   f(fld) f(fsd) f(fld_mmu) f(fsd_mmu) \
+  f(fldsp) f(fldsp_mmu) f(fsdsp) f(fsdsp_mmu) \
   f(faddd) f(fsubd) f(fmuld) f(fdivd) f(fmind) f(fmaxd) \
   f(fsqrtd) f(fled) f(fltd) f(feqd) \
   f(fmaddd) f(fmsubd) f(fnmsubd) f(fnmaddd) \
@@ -52,8 +55,12 @@
   f(c_beqz) f(c_bnez) f(c_mv) f(p_sext_w) \
   f(c_li) f(c_addi) f(c_slli) f(c_srli) f(c_srai) f(c_andi) f(c_addiw) \
   f(c_add) f(c_and) f(c_or) f(c_xor) f(c_sub) f(c_addw) f(c_subw) \
-  f(p_li_0) f(p_li_1) f(p_inc) f(p_dec) f(p_mv_src1) \
+  f(c_addix_sp) f(c_addisp_sp) \
+  f(p_li_0) f(p_li_1) f(p_inc) f(p_dec) f(p_mv_src1) f(p_mv_src2) \
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
+  f(p_not) f(p_neg) f(p_negw) f(p_seqz) f(p_snez) f(p_sltz) f(p_sgtz) \
+  f(p_fmv_s) f(p_fabs_s) f(p_fneg_s) f(p_fmv_d) f(p_fabs_d) f(p_fneg_d) \
+  f(p_li_ra) f(p_li_t0) f(p_jalr_ra) f(p_jalr_t0) f(p_jalr_ra_noimm) \
 
 #define INSTR_SPECIAL(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
