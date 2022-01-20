@@ -15,7 +15,7 @@
   f(addw) f(sllw) f(srlw) f(subw) f(sraw) \
   f(addiw) f(slliw) f(srliw) f(sraiw) \
   f(fence_i) f(fence) \
-  f(p_ret) \
+  f(p_ret) f(jal_next) \
 
 #define INSTR_RVM(f) \
   f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) f(rem) f(remu) \
@@ -61,6 +61,7 @@
   f(p_not) f(p_neg) f(p_negw) f(p_seqz) f(p_snez) f(p_sltz) f(p_sgtz) \
   f(p_fmv_s) f(p_fabs_s) f(p_fneg_s) f(p_fmv_d) f(p_fabs_d) f(p_fneg_d) \
   f(p_li_ra) f(p_li_t0) f(p_jalr_ra) f(p_jalr_t0) f(p_jalr_ra_noimm) \
+  f(p_jal_next) f(c_j_next) \
 
 #define INSTR_SPECIAL(f) \
   f(inv) f(rt_inv) f(nemu_trap) \

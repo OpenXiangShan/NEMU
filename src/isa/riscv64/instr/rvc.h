@@ -18,6 +18,8 @@
 
 def_EHelper(c_j) { rtl_j(s, id_src1->imm); }
 
+def_EHelper(c_j_next) { rtl_j_next(s, id_src1->imm); }
+
 def_EHelper(c_jr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   if (dsrc1 == &gpr(1)) {

@@ -35,6 +35,12 @@ def_EHelper(p_jal) {
   rtl_j(s, id_src1->imm);
 }
 
+def_EHelper(p_jal_next) {
+  rtl_li(s, &gpr(1), id_src2->imm);
+  ftrace_call(s->pc, id_src1->imm);
+  rtl_j_next(s, id_src1->imm);
+}
+
 def_EHelper(p_jalr_ra) {
   rtl_addi(s, s0, &gpr(1), id_src2->imm);
   rtl_li(s, &gpr(1), s->snpc);

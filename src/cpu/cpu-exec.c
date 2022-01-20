@@ -84,6 +84,12 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   s = s->tnext; \
   goto end_of_bb; \
 } while (0)
+#define rtl_j_next(s, target) do { \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  s ++; \
+  goto end_of_bb; \
+} while (0)
 #define rtl_jr(s, target) do { \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
@@ -211,6 +217,10 @@ void assert_fail_msg() {
 #endif
   IFDEF(CONFIG_ENGINE_INTERPRETER, isa_reg_display());
   statistic();
+}
+
+void update_exec_table(Decode* s, int idx){
+  s->EHelper = g_exec_table[idx];
 }
 
 void fetch_decode(Decode *s, vaddr_t pc) {

@@ -579,6 +579,24 @@ int isa_fetch_decode(Decode *s) {
   }
   uint32_t instr = s->isa.instr.val;
 #ifdef CONFIG_PERF_OPT
+  extern void update_exec_table(Decode* s, int idx);
+  static Decode* prev_s;
+  static int prev_idx = 0;
+  static int prev_type_j = 0;
+  if(prev_type_j){
+    rtlreg_t target = prev_s->src1.imm;
+    if(target == s->pc){
+      int new_idx = (prev_idx == EXEC_ID_c_j) ? EXEC_ID_c_j_next :
+                    (prev_idx == EXEC_ID_p_jal) ? EXEC_ID_p_jal_next :
+                    (prev_idx == EXEC_ID_jal) ? EXEC_ID_jal_next : -1;
+      assert(new_idx != -1);
+      update_exec_table(prev_s, new_idx);
+    }
+  }
+  prev_s = s;
+  prev_idx = idx;
+  prev_type_j = (idx == EXEC_ID_c_j) ||(idx == EXEC_ID_p_jal) || (idx == EXEC_ID_jal);
+
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
