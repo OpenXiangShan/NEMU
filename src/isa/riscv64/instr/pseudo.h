@@ -28,6 +28,14 @@ def_EHelper(p_blez) { rtl_jrelop(s, RELOP_GE, rz, dsrc2, id_dest->imm); }
 def_EHelper(p_bgtz) { rtl_jrelop(s, RELOP_LT, rz, dsrc2, id_dest->imm); }
 def_EHelper(p_bltz) { rtl_jrelop(s, RELOP_LT, dsrc1, rz, id_dest->imm); }
 def_EHelper(p_bgez) { rtl_jrelop(s, RELOP_GE, dsrc1, rz, id_dest->imm); }
+def_EHelper(p_blez_tnext) { rtl_jrelop_tnext(s, RELOP_GE, rz, dsrc2, id_dest->imm); }
+def_EHelper(p_bgtz_tnext) { rtl_jrelop_tnext(s, RELOP_LT, rz, dsrc2, id_dest->imm); }
+def_EHelper(p_bltz_tnext) { rtl_jrelop_tnext(s, RELOP_LT, dsrc1, rz, id_dest->imm); }
+def_EHelper(p_bgez_tnext) { rtl_jrelop_tnext(s, RELOP_GE, dsrc1, rz, id_dest->imm); }
+def_EHelper(p_blez_ntnext) { rtl_jrelop_ntnext(s, RELOP_GE, rz, dsrc2, id_dest->imm); }
+def_EHelper(p_bgtz_ntnext) { rtl_jrelop_ntnext(s, RELOP_LT, rz, dsrc2, id_dest->imm); }
+def_EHelper(p_bltz_ntnext) { rtl_jrelop_ntnext(s, RELOP_LT, dsrc1, rz, id_dest->imm); }
+def_EHelper(p_bgez_ntnext) { rtl_jrelop_ntnext(s, RELOP_GE, dsrc1, rz, id_dest->imm); }
 
 def_EHelper(p_jal) {
   rtl_li(s, &gpr(1), id_src2->imm);

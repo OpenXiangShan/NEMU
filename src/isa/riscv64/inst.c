@@ -583,8 +583,9 @@ int isa_fetch_decode(Decode *s) {
   static Decode* prev_s;
   static int prev_idx = 0;
   static int prev_type_j = 0;
+  static int prev_type_b = 0;
   if(prev_type_j){
-    rtlreg_t target = prev_s->src1.imm;
+    rtlreg_t target = prev_s->jnpc;
     if(target == s->pc){
       int new_idx = (prev_idx == EXEC_ID_c_j) ? EXEC_ID_c_j_next :
                     (prev_idx == EXEC_ID_p_jal) ? EXEC_ID_p_jal_next :
@@ -592,21 +593,57 @@ int isa_fetch_decode(Decode *s) {
       assert(new_idx != -1);
       update_exec_table(prev_s, new_idx);
     }
+  } else if(prev_type_b){
+    rtlreg_t target_tk = prev_s->jnpc;
+    rtlreg_t target_nt = prev_s->pc + (BITS(prev_s->isa.instr.val, 1, 0) == 0x3 ? 4 : 2);
+    if(s->pc == target_tk){
+      int new_idx = (prev_idx == EXEC_ID_beq) ? EXEC_ID_beq_tnext :
+                    (prev_idx == EXEC_ID_bne) ? EXEC_ID_bne_tnext :
+                    (prev_idx == EXEC_ID_blt) ? EXEC_ID_blt_tnext :
+                    (prev_idx == EXEC_ID_bge) ? EXEC_ID_bge_tnext :
+                    (prev_idx == EXEC_ID_bltu) ? EXEC_ID_bltu_tnext :
+                    (prev_idx == EXEC_ID_bgeu) ? EXEC_ID_bgeu_tnext :
+                    (prev_idx == EXEC_ID_c_beqz) ? EXEC_ID_c_beqz_tnext :
+                    (prev_idx == EXEC_ID_c_bnez) ? EXEC_ID_c_bnez_tnext :
+                    (prev_idx == EXEC_ID_p_bltz) ? EXEC_ID_p_bltz_tnext :
+                    (prev_idx == EXEC_ID_p_bgez) ? EXEC_ID_p_bgez_tnext :
+                    (prev_idx == EXEC_ID_p_blez) ? EXEC_ID_p_blez_tnext :
+                    (prev_idx == EXEC_ID_p_bgtz) ? EXEC_ID_p_bgtz_tnext : -1;
+      assert(new_idx != -1);
+      update_exec_table(prev_s, new_idx);
+    } else if(s->pc == target_nt){
+      int new_idx = (prev_idx == EXEC_ID_beq) ? EXEC_ID_beq_ntnext :
+                    (prev_idx == EXEC_ID_bne) ? EXEC_ID_bne_ntnext :
+                    (prev_idx == EXEC_ID_blt) ? EXEC_ID_blt_ntnext :
+                    (prev_idx == EXEC_ID_bge) ? EXEC_ID_bge_ntnext :
+                    (prev_idx == EXEC_ID_bltu) ? EXEC_ID_bltu_ntnext :
+                    (prev_idx == EXEC_ID_bgeu) ? EXEC_ID_bgeu_ntnext :
+                    (prev_idx == EXEC_ID_c_beqz) ? EXEC_ID_c_beqz_ntnext :
+                    (prev_idx == EXEC_ID_c_bnez) ? EXEC_ID_c_bnez_ntnext :
+                    (prev_idx == EXEC_ID_p_bltz) ? EXEC_ID_p_bltz_ntnext :
+                    (prev_idx == EXEC_ID_p_bgez) ? EXEC_ID_p_bgez_ntnext :
+                    (prev_idx == EXEC_ID_p_blez) ? EXEC_ID_p_blez_ntnext :
+                    (prev_idx == EXEC_ID_p_bgtz) ? EXEC_ID_p_bgtz_ntnext : -1;
+      assert(new_idx != -1);
+      update_exec_table(prev_s, new_idx);
+    }
   }
+
   prev_s = s;
   prev_idx = idx;
-  prev_type_j = (idx == EXEC_ID_c_j) ||(idx == EXEC_ID_p_jal) || (idx == EXEC_ID_jal);
+  prev_type_j = 0;
+  prev_type_b = 0;
 
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
-      s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
+      s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; prev_type_j = 1; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; prev_type_b = 1; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     case EXEC_ID_p_jalr_ra: case EXEC_ID_p_jalr_t0: case EXEC_ID_p_jalr_ra_noimm:

@@ -103,6 +103,20 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
+#define rtl_jrelop_tnext(s, relop, src1, src2, target) do { \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  if (interpret_relop(relop, *src1, *src2)) s ++; \
+  else s = s->ntnext; \
+  goto end_of_bb; \
+} while (0)
+#define rtl_jrelop_ntnext(s, relop, src1, src2, target) do { \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
+  else s ++; \
+  goto end_of_bb; \
+} while (0)
 
 #define rtl_priv_next(s) do { \
   if (g_sys_state_flag) { \

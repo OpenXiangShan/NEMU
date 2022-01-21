@@ -37,6 +37,11 @@ def_EHelper(c_jalr) {
 
 def_EHelper(c_beqz) { rtl_jrelop(s, RELOP_EQ, dsrc1, rz, id_dest->imm); }
 def_EHelper(c_bnez) { rtl_jrelop(s, RELOP_NE, dsrc1, rz, id_dest->imm); }
+def_EHelper(c_beqz_tnext) { rtl_jrelop_tnext(s, RELOP_EQ, dsrc1, rz, id_dest->imm); }
+def_EHelper(c_bnez_tnext) { rtl_jrelop_tnext(s, RELOP_NE, dsrc1, rz, id_dest->imm); }
+def_EHelper(c_beqz_ntnext) { rtl_jrelop_ntnext(s, RELOP_EQ, dsrc1, rz, id_dest->imm); }
+def_EHelper(c_bnez_ntnext) { rtl_jrelop_ntnext(s, RELOP_NE, dsrc1, rz, id_dest->imm); }
+
 def_EHelper(c_li)   { rtl_li(s, ddest, id_src2->imm); }
 def_EHelper(c_addi) { rtl_addi(s, ddest, ddest, id_src2->imm); }
 def_EHelper(c_addiw){ rtl_addiw(s, ddest, ddest, id_src2->imm); }

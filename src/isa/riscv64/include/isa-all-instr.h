@@ -16,6 +16,8 @@
   f(addiw) f(slliw) f(srliw) f(sraiw) \
   f(fence_i) f(fence) \
   f(p_ret) f(jal_next) \
+  f(beq_tnext) f(bne_tnext) f(blt_tnext) f(bge_tnext) f(bltu_tnext) f(bgeu_tnext) \
+  f(beq_ntnext) f(bne_ntnext) f(blt_ntnext) f(bge_ntnext) f(bltu_ntnext) f(bgeu_ntnext) \
 
 #define INSTR_RVM(f) \
   f(mul) f(mulh) f(mulhu) f(mulhsu) f(div) f(divu) f(rem) f(remu) \
@@ -62,6 +64,9 @@
   f(p_fmv_s) f(p_fabs_s) f(p_fneg_s) f(p_fmv_d) f(p_fabs_d) f(p_fneg_d) \
   f(p_li_ra) f(p_li_t0) f(p_jalr_ra) f(p_jalr_t0) f(p_jalr_ra_noimm) \
   f(p_jal_next) f(c_j_next) \
+  f(c_beqz_tnext) f(c_bnez_tnext) f(c_beqz_ntnext) f(c_bnez_ntnext) \
+  f(p_blez_tnext) f(p_bgtz_tnext) f(p_bltz_tnext) f(p_bgez_tnext) \
+  f(p_blez_ntnext) f(p_bgtz_ntnext) f(p_bltz_ntnext) f(p_bgez_ntnext) \
 
 #define INSTR_SPECIAL(f) \
   f(inv) f(rt_inv) f(nemu_trap) \

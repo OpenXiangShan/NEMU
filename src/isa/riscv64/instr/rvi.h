@@ -64,6 +64,20 @@ def_EHelper(bge) { rtl_jrelop(s, RELOP_GE, dsrc1, dsrc2, id_dest->imm); }
 def_EHelper(bltu) { rtl_jrelop(s, RELOP_LTU, dsrc1, dsrc2, id_dest->imm); }
 def_EHelper(bgeu) { rtl_jrelop(s, RELOP_GEU, dsrc1, dsrc2, id_dest->imm); }
 
+def_EHelper(beq_tnext) { rtl_jrelop_tnext(s, RELOP_EQ, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bne_tnext) { rtl_jrelop_tnext(s, RELOP_NE, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(blt_tnext) { rtl_jrelop_tnext(s, RELOP_LT, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bge_tnext) { rtl_jrelop_tnext(s, RELOP_GE, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bltu_tnext) { rtl_jrelop_tnext(s, RELOP_LTU, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bgeu_tnext) { rtl_jrelop_tnext(s, RELOP_GEU, dsrc1, dsrc2, id_dest->imm); }
+
+def_EHelper(beq_ntnext) { rtl_jrelop_ntnext(s, RELOP_EQ, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bne_ntnext) { rtl_jrelop_ntnext(s, RELOP_NE, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(blt_ntnext) { rtl_jrelop_ntnext(s, RELOP_LT, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bge_ntnext) { rtl_jrelop_ntnext(s, RELOP_GE, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bltu_ntnext) { rtl_jrelop_ntnext(s, RELOP_LTU, dsrc1, dsrc2, id_dest->imm); }
+def_EHelper(bgeu_ntnext) { rtl_jrelop_ntnext(s, RELOP_GEU, dsrc1, dsrc2, id_dest->imm); }
+
 #define def_ld_template(name, rtl_instr, width, mmu_mode) \
   def_EHelper(name) { concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); }
 #define def_ldsp_template(name, rtl_instr, width, mmu_mode) \
