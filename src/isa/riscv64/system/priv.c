@@ -56,15 +56,15 @@ static void update_mstatus_sd() {
   if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
   mstatus->sd = (mstatus->fs == 3);
 }
-
+extern void fp_update_ex();
 static word_t csr_read(word_t *src) {
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
-  else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
-  else if (is_read(fflags)) { return fcsr->fflags.val; }
+  else if (is_read(fcsr))   { fp_update_ex(); return fcsr->val & FCSR_MASK; }
+  else if (is_read(fflags)) { fp_update_ex(); return fcsr->fflags.val; }
   else if (is_read(frm))    { return fcsr->frm; }
 #ifdef CONFIG_DIFFTEST_REF_QEMU
   else if (is_read(mtime))  { difftest_skip_ref(); return MUXDEF(CONFIG_HAS_CLINT, clint_uptime(), 0); }

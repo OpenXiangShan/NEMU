@@ -90,7 +90,7 @@ static inline void fp_set_rm_internal(int rm) {
 
 static inline uint32_t fp_get_exception() {
   uint32_t ex = 0;
-#if 0
+#if 1
   uint32_t host_ex = fetestexcept(FE_ALL_EXCEPT);
   if (host_ex & FE_INEXACT  ) ex |= FPCALL_EX_NX;
   if (host_ex & FE_UNDERFLOW) ex |= FPCALL_EX_UF;

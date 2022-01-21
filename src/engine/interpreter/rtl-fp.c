@@ -36,8 +36,7 @@ static fpreg_t fpcall_load_const(int idx) {
   return table[idx];
 }
 
-static void fp_update_ex() {
-  return;
+void fp_update_ex() {
   uint32_t ex = fp_get_exception();
   if (ex) {
     isa_fp_set_ex(ex);
@@ -75,7 +74,7 @@ def_rtl(fsm, const fpreg_t *src1, const rtlreg_t *addr, sword_t offset, int len,
 
 #define fpToF(fpreg, w) concat(fpToF, w)(fpreg)
 #define def_rtl_fp(name, body, ...) \
-  def_rtl(name, __VA_ARGS__) { *dest = (body); fp_update_ex(); }
+  def_rtl(name, __VA_ARGS__) { *dest = (body); }
 
 #define def_rtl_fp_unary(name, op_name, w) \
   def_rtl_fp(name, op_name(fpToF(*src1, w)).v, fpreg_t *dest, const fpreg_t *src1)
