@@ -227,10 +227,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     word_t cfg_data = 0;
     for (int i = 0; i < xlen / 8; i ++ ) {
       word_t cfg = ((src >> (i*8)) & 0xff) & (PMP_R | PMP_W | PMP_X | PMP_A | PMP_L);
+      word_t old = (*dest >> (i*8)) & 0xff;
       cfg &= ~PMP_W | ((cfg & PMP_R) ? PMP_W : 0); // Disallow R=0 W=1
       if (PMP_PLATFORMGARIN != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
         cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
-      cfg_data |= (cfg << (i*8));
+      cfg_data |= (old & PMP_L)!=0 ? (old << (i*8)) : (cfg << (i*8));
     }
 #ifdef CONFIG_SHARE
     if(dynamic_config.debug_difftest) {
