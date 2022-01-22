@@ -138,6 +138,24 @@ def_EHelper(fcvt_lu_d) {
   rtl_fcvt_f64_to_u64(s, ddest, dsrc1);
 }
 
+def_EHelper(fcvt_w_d_rmm) {
+  rtl_fcvt_f64_to_i32_rmm(s, ddest, dsrc1);
+  rtl_sext(s, ddest, ddest, 4);
+}
+
+def_EHelper(fcvt_wu_d_rmm) {
+  rtl_fcvt_f64_to_u32_rmm(s, ddest, dsrc1);
+  rtl_sext(s, ddest, ddest, 4);
+}
+
+def_EHelper(fcvt_l_d_rmm) {
+  rtl_fcvt_f64_to_i64_rmm(s, ddest, dsrc1);
+}
+
+def_EHelper(fcvt_lu_d_rmm) {
+  rtl_fcvt_f64_to_u64_rmm(s, ddest, dsrc1);
+}
+
 def_EHelper(fcvt_d_s) {
   check_rm(s);
   rtl_fcvt_f32_to_f64(s, ddest, dsrc1);

@@ -96,9 +96,13 @@ def_rtl_i2f_prototype(fcvt_u32_to_f32);
 def_rtl_i642f_prototype(fcvt_i64_to_f32);
 def_rtl_i642f_prototype(fcvt_u64_to_f32);
 def_rtl_f2i_prototype(fcvt_f32_to_i32);
+def_rtl_f2i_prototype(fcvt_f32_to_i32_rmm);
 def_rtl_f2i_prototype(fcvt_f32_to_u32);
+def_rtl_f2i_prototype(fcvt_f32_to_u32_rmm);
 def_rtl_f2i64_prototype(fcvt_f32_to_i64);
+def_rtl_f2i64_prototype(fcvt_f32_to_i64_rmm);
 def_rtl_f2i64_prototype(fcvt_f32_to_u64);
+def_rtl_f2i64_prototype(fcvt_f32_to_u64_rmm);
 
 def_rtl_fp_binary_prototype(faddd);
 def_rtl_fp_binary_prototype(fsubd);
@@ -116,9 +120,13 @@ def_rtl_i2f_prototype(fcvt_u32_to_f64);
 def_rtl_i642f_prototype(fcvt_i64_to_f64);
 def_rtl_i642f_prototype(fcvt_u64_to_f64);
 def_rtl_f2i_prototype(fcvt_f64_to_i32);
+def_rtl_f2i_prototype(fcvt_f64_to_i32_rmm);
 def_rtl_f2i_prototype(fcvt_f64_to_u32);
+def_rtl_f2i_prototype(fcvt_f64_to_u32_rmm);
 def_rtl_f2i64_prototype(fcvt_f64_to_i64);
+def_rtl_f2i64_prototype(fcvt_f64_to_i64_rmm);
 def_rtl_f2i64_prototype(fcvt_f64_to_u64);
+def_rtl_f2i64_prototype(fcvt_f64_to_u64_rmm);
 def_rtl_fp_unary_prototype(fcvt_f32_to_f64);
 def_rtl_fp_unary_prototype(fcvt_f64_to_f32);
 

@@ -27,6 +27,10 @@ static inline int32_t  my_f32_to_i32 (float32_t a) { return llrintf(a.f); }
 static inline uint32_t my_f32_to_ui32(float32_t a) { return llrintf(a.f); }
 static inline int64_t  my_f32_to_i64 (float32_t a) { return llrintf(a.f); }
 static inline uint64_t my_f32_to_ui64(float32_t a) { return llrintf(a.f); }
+static inline int32_t  my_f32_to_i32_rmm (float32_t a) { return llroundf(a.f); }
+static inline uint32_t my_f32_to_ui32_rmm(float32_t a) { return llroundf(a.f); }
+static inline int64_t  my_f32_to_i64_rmm (float32_t a) { return llroundf(a.f); }
+static inline uint64_t my_f32_to_ui64_rmm(float32_t a) { return llroundf(a.f); }
 
 
 typedef union { uint64_t v; double f; } float64_t;
@@ -52,6 +56,10 @@ static inline int32_t  my_f64_to_i32 (float64_t a) { return llrint(a.f); }
 static inline uint32_t my_f64_to_ui32(float64_t a) { return llrint(a.f); }
 static inline int64_t  my_f64_to_i64 (float64_t a) { return llrint(a.f); }
 static inline uint64_t my_f64_to_ui64(float64_t a) { return llrint(a.f); }
+static inline int32_t  my_f64_to_i32_rmm (float64_t a) { return llround(a.f); }
+static inline uint32_t my_f64_to_ui32_rmm(float64_t a) { return llround(a.f); }
+static inline int64_t  my_f64_to_i64_rmm (float64_t a) { return llround(a.f); }
+static inline uint64_t my_f64_to_ui64_rmm(float64_t a) { return llround(a.f); }
 
 static inline float64_t f32_to_f64(float32_t a) { return float64(a.f); }
 static inline float32_t f64_to_f32(float64_t a) { return float32(a.f); }
