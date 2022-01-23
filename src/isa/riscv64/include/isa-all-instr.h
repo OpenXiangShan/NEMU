@@ -36,6 +36,7 @@
   f(fcvt_s_w_rm) \
   f(fcvt_w_s_rm) f(fcvt_l_s_rm) f(fcvt_lu_s_rm) \
   f(fcvt_w_s_rmm) f(fcvt_wu_s_rmm) f(fcvt_l_s_rmm) f(fcvt_lu_s_rmm) \
+  f(fcvt_wu_s_rm) \
 
 #define INSTR_RVD(f) \
   f(fld) f(fsd) f(fld_mmu) f(fsd_mmu) \

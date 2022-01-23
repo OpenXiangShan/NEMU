@@ -212,6 +212,13 @@ def_EHelper(fcvt_w_s_rm) {
   rtl_sext(s, ddest, ddest, 4);
 }
 
+def_EHelper(fcvt_wu_s_rm){
+  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, INSTR_FP_RM(s));
+  rtl_fcvt_f32_to_u32(s, ddest, dsrc1);
+  rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, 0b111);
+  rtl_sext(s, ddest, ddest, 4);
+}
+
 def_EHelper(fcvt_l_s_rm) {
   rtl_fpcall(s, FPCALL_SETRM_CONST, NULL, NULL, NULL, INSTR_FP_RM(s));
   rtl_fcvt_f32_to_i64(s, ddest, dsrc1);
