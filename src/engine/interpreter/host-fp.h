@@ -3,6 +3,15 @@
 #include <fenv.h>
 
 #define defaultNaNF32UI 0x7FC00000
+#define I32MAX 0x7fffffff
+#define I32MIN 0x80000000
+#define U32MAX 0xffffffff
+#define I64MAX 0x7fffffffffffffffll
+#define I64MIN 0x8000000000000000ll
+#define U64MAX 0xffffffffffffffffull
+
+static inline void fp_set_exception(int excep);
+static inline void fp_clear_exception();
 
 typedef union { uint32_t v; float  f; } float32_t;
 static inline float32_t float32(float f) { float32_t r = { .f = f }; return r; }
@@ -23,14 +32,146 @@ static inline float32_t i32_to_f32 (rtlreg_t a) { return float32((int32_t)a); }
 static inline float32_t ui32_to_f32(rtlreg_t a) { return float32((uint32_t)a); }
 static inline float32_t i64_to_f32 (uint64_t a) { return float32((int64_t)a); }
 static inline float32_t ui64_to_f32(uint64_t a) { return float32((uint64_t)a); }
-static inline int32_t  my_f32_to_i32 (float32_t a) { return llrintf(a.f); }
-static inline uint32_t my_f32_to_ui32(float32_t a) { return llrintf(a.f); }
-static inline int64_t  my_f32_to_i64 (float32_t a) { return llrintf(a.f); }
-static inline uint64_t my_f32_to_ui64(float32_t a) { return llrintf(a.f); }
-static inline int32_t  my_f32_to_i32_rmm (float32_t a) { return llroundf(a.f); }
-static inline uint32_t my_f32_to_ui32_rmm(float32_t a) { return llroundf(a.f); }
-static inline int64_t  my_f32_to_i64_rmm (float32_t a) { return llroundf(a.f); }
-static inline uint64_t my_f32_to_ui64_rmm(float32_t a) { return llroundf(a.f); }
+
+static inline int32_t check_f32_i32(bool* succ, float32_t a){
+  int sign = a.v >> 31;
+  int exp = BITS(a.v, 30, 23);
+  int mant = BITS(a.v, 22, 0);
+  if(exp == 0 && mant == 0) {
+    *succ = 1;
+    return llrintf(a.f);
+  }
+  exp -= 127;
+  if(exp > 31 || (exp == 31 && (!sign || mant))){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return sign ? I32MIN : I32MAX;
+  }
+  return 0;
+}
+
+static inline uint32_t check_f32_ui32(bool* succ, float32_t a){
+  int sign = a.v >> 31;
+  int exp = BITS(a.v, 30, 23);
+  int mant = BITS(a.v, 22, 0);
+  if(exp == 0 && mant == 0){
+    *succ = 1;
+    return llrintf(a.f);
+  }
+  exp -= 127;
+  if(sign && (exp >= 0 || (mant >> exp) != 0)){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return 0;
+  }
+  if(!sign && exp >= 32){
+    *succ = 1;
+    fp_set_exception(FE_INVALID);
+    return U32MAX;
+  }
+  return 0;
+}
+
+static inline int64_t check_f32_i64(bool* succ, float32_t a){
+  int sign = a.v >> 31;
+  int exp = BITS(a.v, 30, 23);
+  int mant = BITS(a.v, 22, 0);
+  if(exp == 0 && mant == 0) {
+    *succ = 1;
+    return llrintf(a.f);
+  }
+  exp -= 127;
+  if(exp > 63 || (exp == 63 && (!sign || mant))){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return sign ? I64MIN : I64MAX;
+  }
+  return 0;
+}
+
+static inline uint64_t check_f32_ui64(bool* succ, float32_t a){
+  int sign = a.v >> 31;
+  int exp = BITS(a.v, 30, 23);
+  int mant = BITS(a.v, 22, 0);
+  if(exp == 0 && mant == 0){
+    *succ = 1;
+    return llrintf(a.f);
+  }
+  exp -= 127;
+  if(sign && (exp >= 0 || (mant >> exp) != 0)){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return 0;
+  }
+  if(!sign && exp >= 64){
+    *succ = 1;
+    fp_set_exception(FE_INVALID);
+    return U64MAX;
+  }
+  if(exp == 63){
+    *succ = 1;
+    a.v = (189 << 23) | mant;
+    uint64_t ret = (uint64_t)llrintf(a.f) << 1;
+    fp_clear_exception();
+    return ret;
+  }
+  return 0;
+}
+
+static inline int32_t my_f32_to_i32 (float32_t a) {
+  bool succ = 0;
+  int32_t ret = check_f32_i32(&succ, a);
+  if(succ) return ret;
+  return llrintf(a.f);
+}
+
+static inline uint32_t my_f32_to_ui32(float32_t a) {
+  bool succ = 0;
+  uint32_t ret = check_f32_ui32(&succ, a);
+  if(succ) return ret;
+  return llrintf(a.f);
+}
+
+static inline int64_t my_f32_to_i64 (float32_t a) {
+  bool succ = 0;
+  int64_t ret = check_f32_i64(&succ, a);
+  if(succ) return ret;
+  return llrintf(a.f);
+}
+
+static inline uint64_t my_f32_to_ui64(float32_t a) {
+  bool succ = 0;
+  uint64_t ret = check_f32_ui64(&succ, a);
+  if(succ) return ret;
+  return llrintf(a.f);
+}
+
+static inline int32_t  my_f32_to_i32_rmm (float32_t a) {
+  bool succ = 0;
+  int32_t ret = check_f32_i32(&succ, a);
+  if(succ) return ret;
+  return llroundf(a.f);
+}
+
+static inline uint32_t my_f32_to_ui32_rmm(float32_t a) {
+  bool succ = 0;
+  uint32_t ret = check_f32_ui32(&succ, a);
+  if(succ) return ret;
+  return llroundf(a.f);
+}
+
+static inline int64_t  my_f32_to_i64_rmm (float32_t a) {
+  bool succ = 0;
+  int64_t ret = check_f32_i64(&succ, a);
+  if(succ) return ret;
+  return llroundf(a.f);
+}
+static inline uint64_t my_f32_to_ui64_rmm(float32_t a) {
+  bool succ = 0;
+  uint64_t ret = check_f32_ui64(&succ, a);
+  if(succ) return ret;
+  return llroundf(a.f);
+}
 
 
 typedef union { uint64_t v; double f; } float64_t;
@@ -51,15 +192,142 @@ static inline bool f64_eq(float64_t a, float64_t b) { return a.f == b.f; }
 static inline float64_t i32_to_f64 (rtlreg_t a) { return float64((int32_t)a); }
 static inline float64_t ui32_to_f64(rtlreg_t a) { return float64((uint32_t)a); }
 static inline float64_t i64_to_f64 (uint64_t a) { return float64((int64_t)a); }
-static inline float64_t ui64_to_f64(uint64_t a) { return float64((uint64_t)a); }
-static inline int32_t  my_f64_to_i32 (float64_t a) { return llrint(a.f); }
-static inline uint32_t my_f64_to_ui32(float64_t a) { return llrint(a.f); }
-static inline int64_t  my_f64_to_i64 (float64_t a) { return llrint(a.f); }
-static inline uint64_t my_f64_to_ui64(float64_t a) { return llrint(a.f); }
-static inline int32_t  my_f64_to_i32_rmm (float64_t a) { return llround(a.f); }
-static inline uint32_t my_f64_to_ui32_rmm(float64_t a) { return llround(a.f); }
-static inline int64_t  my_f64_to_i64_rmm (float64_t a) { return llround(a.f); }
-static inline uint64_t my_f64_to_ui64_rmm(float64_t a) { return llround(a.f); }
+static inline float64_t ui64_to_f64(uint64_t a) { float64_t ret = float64(a); if(a == 0) ret.v=0; return ret; }
+
+static inline int32_t check_f64_i32(bool* succ, float64_t a){
+  int64_t sign = a.v >> 63;
+  int64_t exp = BITS(a.v, 62, 52);
+  int64_t mant = BITS(a.v, 51, 0);
+  if(exp == 0 && mant == 0) {
+    *succ = 1;
+    return llrint(a.f);
+  }
+  exp -= 1023;
+  if(exp > 31 || (exp == 31 && (!sign || (mant >> 21)))){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return sign ? I32MIN : I32MAX;
+  }
+  return 0;
+}
+
+static inline uint32_t check_f64_ui32(bool* succ, float64_t a){
+  int64_t sign = a.v >> 63;
+  int64_t exp = BITS(a.v, 62, 52);
+  int64_t mant = BITS(a.v, 51, 0);
+  if(exp == 0 && mant == 0){
+    *succ = 1;
+    return llrint(a.f);
+  }
+  exp -= 1023;
+  if(sign && (exp >= 0 || (mant >> exp) != 0)){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return 0;
+  }
+  if(!sign && exp >= 32){
+    *succ = 1;
+    fp_set_exception(FE_INVALID);
+    return U32MAX;
+  }
+  return 0;
+}
+
+static inline int64_t check_f64_i64(bool* succ, float64_t a){
+  int64_t sign = a.v >> 63;
+  int64_t exp = BITS(a.v, 62, 52);
+  int64_t mant = BITS(a.v, 51, 0);
+  if(exp == 0 && mant == 0) {
+    *succ = 1;
+    return llrint(a.f);
+  }
+  exp -= 1023;
+  if(exp > 63 || (exp == 63 && (!sign || mant))){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return sign ? I64MIN : I64MAX;
+  }
+  return 0;
+}
+
+static inline uint64_t check_f64_ui64(bool* succ, float64_t a){
+  int64_t sign = a.v >> 63;
+  int64_t exp = BITS(a.v, 62, 52);
+  int64_t mant = BITS(a.v, 51, 0);
+  if(exp == 0 && mant == 0){
+    *succ = 1;
+    return llrint(a.f);
+  }
+  exp -= 1023;
+  if(sign && (exp >= 0 || (mant >> exp) != 0)){
+    fp_set_exception(FE_INVALID);
+    *succ = 1;
+    return 0;
+  }
+  if(!sign && exp >= 64){
+    *succ = 1;
+    fp_set_exception(FE_INVALID);
+    return U64MAX;
+  }
+  if(exp == 63){  // out of long long bound
+    *succ = 1;
+    a.v = ((uint64_t)1085 << 52) | mant;
+    uint64_t ret = (uint64_t)llrint(a.f) << 1;
+    fp_clear_exception();
+    return ret;
+  }
+  return 0;
+}
+
+static inline int32_t  my_f64_to_i32 (float64_t a) {
+  bool succ = 0;
+  int32_t ret = check_f64_i32(&succ, a);
+  if(succ) return ret;
+  return llrint(a.f);
+}
+
+static inline uint32_t my_f64_to_ui32(float64_t a) {
+  bool succ = 0;
+  uint32_t ret = check_f64_ui32(&succ, a);
+  if(succ) return ret;
+  return llrint(a.f);
+}
+static inline int64_t  my_f64_to_i64 (float64_t a) {
+  bool succ = 0;
+  int64_t ret = check_f64_i64(&succ, a);
+  if(succ) return ret;
+  return llrint(a.f);
+}
+static inline uint64_t my_f64_to_ui64(float64_t a) {
+  bool succ = 0;
+  uint64_t ret = check_f64_ui64(&succ, a);
+  if(succ) return ret;
+  return llrint(a.f);
+}
+static inline int32_t  my_f64_to_i32_rmm (float64_t a) {
+  bool succ = 0;
+  int32_t ret = check_f64_i32(&succ, a);
+  if(succ) return ret;
+  return llround(a.f);
+}
+static inline uint32_t my_f64_to_ui32_rmm(float64_t a) {
+  bool succ = 0;
+  uint32_t ret = check_f64_ui32(&succ, a);
+  if(succ) return ret;
+  return llround(a.f);
+}
+static inline int64_t  my_f64_to_i64_rmm (float64_t a) {
+  bool succ = 0;
+  int64_t ret = check_f64_i64(&succ, a);
+  if(succ) return ret;
+  return llround(a.f);
+}
+static inline uint64_t my_f64_to_ui64_rmm(float64_t a) {
+  bool succ = 0;
+  uint64_t ret = check_f64_ui64(&succ, a);
+  if(succ) return ret;
+  return llround(a.f);
+}
 
 static inline float64_t f32_to_f64(float32_t a) { return float64(a.f); }
 static inline float32_t f64_to_f32(float64_t a) { return float32(a.f); }
@@ -111,6 +379,11 @@ static inline uint32_t fp_get_exception() {
 
 static inline void fp_clear_exception() {
   feclearexcept(FE_ALL_EXCEPT);
+}
+
+static inline void fp_set_exception(int excep){
+  fp_clear_exception();
+  feraiseexcept(excep);
 }
 
 #endif
