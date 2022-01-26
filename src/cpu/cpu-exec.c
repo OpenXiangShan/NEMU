@@ -234,7 +234,9 @@ void assert_fail_msg() {
 }
 
 void update_exec_table(Decode* s, int idx){
+#ifdef CONFIG_PERF_OPT
   s->EHelper = g_exec_table[idx];
+#endif
 }
 
 void fetch_decode(Decode *s, vaddr_t pc) {

@@ -587,8 +587,8 @@ int isa_fetch_decode(Decode *s) {
     s->isa.instr.val |= (hi << 16);
     idx = decode_exec(s);
   }
-  uint32_t instr = s->isa.instr.val;
 #ifdef CONFIG_PERF_OPT
+  uint32_t instr = s->isa.instr.val;
   extern void update_exec_table(Decode* s, int idx);
   static Decode* prev_s;
   static int prev_idx = 0;
