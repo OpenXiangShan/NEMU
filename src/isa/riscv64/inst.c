@@ -405,7 +405,8 @@ if(rs1 == rs2) {
   return 0;
 }
 
-static word_t rvc_imm_internal(uint32_t instr, const char *str, int len, bool sign) {
+__attribute__((always_inline))
+static inline word_t rvc_imm_internal(uint32_t instr, const char *str, int len, bool sign) {
   word_t imm = 0;
   uint32_t msb_mask = 0;
   uint32_t instr_sll16 = instr << 16;
