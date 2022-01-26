@@ -59,6 +59,8 @@ static Decode* tcache_bb_new(vaddr_t pc) {
 }
 
 static void tcache_bb_free(Decode *s) {
+  int idx = s - tcache_bb_pool;
+  if (!(idx >= 0 && idx < TCACHE_BB_SIZE)) { return; }
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist);
   s->tnext = tcache_bb_freelist;
