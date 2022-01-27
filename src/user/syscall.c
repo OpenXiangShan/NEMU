@@ -69,9 +69,19 @@ static word_t user_read(int fd, void *buf, size_t count) {
 }
 
 static word_t user_uname(struct utsname *buf) {
-  word_t ret = uname(buf);
+  const int sz = 65, sz_total = sz * 6;
+  char kbuf[sz_total];
+  memset(kbuf, 0, sz_total);
+  strcpy(kbuf + 0*sz, "NEMU (user mode)");
+  strcpy(kbuf + 1*sz, "");
+  strcpy(kbuf + 2*sz, "4.15.0");
+  strcpy(kbuf + 3*sz, "");
+  strcpy(kbuf + 4*sz, "");
+  strcpy(kbuf + 5*sz, "");
+  memcpy(buf, kbuf, sizeof(kbuf));
+
   difftest_memcpy_to_ref(buf, sizeof(*buf));
-  return ret;
+  return 0;
 }
 
 static word_t user_gettimeofday(void *tv, void *tz) {
