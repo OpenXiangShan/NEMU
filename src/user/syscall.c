@@ -53,6 +53,10 @@ static word_t user_sys_brk(word_t new_brk) {
     user_mmap(user_state.brk_page, size, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, -1, 0);
     user_state.brk_page += size;
+  } else {
+    word_t new_brk_page = ROUNDUP(new_brk, PAGE_SIZE);
+    uint32_t size = user_state.brk_page - new_brk_page;
+    memset(user_to_host(new_brk_page), 0, size);
   }
   user_state.brk = new_brk;
   return new_brk;
