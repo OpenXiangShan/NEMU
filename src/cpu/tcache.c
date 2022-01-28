@@ -115,7 +115,12 @@ static bb_t* bb_find(vaddr_t pc) {
   bb_t *head = bb;
   do {
     bb = bb->next;
-    if (bb == (void *)-1ul) return pc & 1 ? bb_find(pc & (~1ull)) : NULL;
+    if (bb == (void *)-1ul)
+#if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
+      return pc & 1 ? bb_find(pc & (~1ull)) : NULL;
+#else
+      return NULL;
+#endif
     if (bb->pc == pc) {
       Decode *tmp_s = bb->s; vaddr_t tmp_pc = bb->pc;
       bb->s = head->s; bb->pc = head->pc;
