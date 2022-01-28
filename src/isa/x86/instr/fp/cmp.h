@@ -31,13 +31,13 @@ def_EHelper(fucompp) {
 
 def_EHelper(fcoml) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
+  rtl_flm(s, &s->extraInfo->isa.fptmp, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff, 8, MMU_DYNAMIC);
   rtl_fcmp_fsw(s, dfdest, &s->isa.fptmp);
 }
 
 def_EHelper(fcompl) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_flm(s, &s->isa.fptmp, &s->isa.mbr, s->isa.moff, 8, MMU_DYNAMIC);
-  rtl_fcmp_fsw(s, dfdest, &s->isa.fptmp);
+  rtl_flm(s, &s->extraInfo->isa.fptmp, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff, 8, MMU_DYNAMIC);
+  rtl_fcmp_fsw(s, dfdest, &s->extraInfo->isa.fptmp);
   ftop_update(s);
 }

@@ -4,8 +4,8 @@ def_EHelper(bt) {
   if (id_dest->type == OP_TYPE_MEM) {
     rtl_srli(s, s0, dsrc1, 5);
     rtl_slli(s, s0, s0, 2);
-    rtl_add(s, s0, s->isa.mbase, s0);
-    s->isa.mbase = s0;
+    rtl_add(s, s0, s->extraInfo->isa.mbase, s0);
+    s->extraInfo->isa.mbase = s0;
   }
 
   rtl_decode_binary(s, true, true);
@@ -14,10 +14,10 @@ def_EHelper(bt) {
   rtl_sll(s, s0, s0, dsrc1);
   rtl_and(s, s0, s0, ddest);
 
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->extraInfo->isa.flag_def != 0);
   if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
-    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_BT, s->isa.width);
+    rtl_set_lazycc(s, s0, NULL, NULL, LAZYCC_BT, s->extraInfo->isa.width);
 #else
     rtl_setrelopi(s, RELOP_NE, s0, s0, 0);
     rtl_set_CF(s, s0);
@@ -27,7 +27,7 @@ def_EHelper(bt) {
 
 def_EHelper(bsf) {
   rtl_decode_binary(s, false, true);
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->extraInfo->isa.flag_def != 0);
   if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
     rtl_setrelopi(s, RELOP_EQ, &cpu.cc_dest, dsrc1, 0);
@@ -43,7 +43,7 @@ def_EHelper(bsf) {
 
 def_EHelper(bsr) {
   rtl_decode_binary(s, false, true);
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->extraInfo->isa.flag_def != 0);
   if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
     rtl_setrelopi(s, RELOP_EQ, &cpu.cc_dest, dsrc1, 0);
@@ -64,11 +64,11 @@ def_EHelper(bts) {
   rtl_li(s, s0, 1);
   rtl_sll(s, s0, s0, dsrc1);
 
-  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+  int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->extraInfo->isa.flag_def != 0);
   if (need_update_eflags) {
     rtl_and(s, s1, s0, ddest);
 #ifdef CONFIG_x86_CC_LAZY
-    rtl_set_lazycc(s, s1, NULL, NULL, LAZYCC_BT, s->isa.width);
+    rtl_set_lazycc(s, s1, NULL, NULL, LAZYCC_BT, s->extraInfo->isa.width);
 #else
     rtl_setrelopi(s, RELOP_NE, s1, s1, 0);
     rtl_set_CF(s, s1);

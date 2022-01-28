@@ -14,8 +14,10 @@ typedef struct bb_t {
 enum { BB_RECORD_TYPE_NTAKEN = 1, BB_RECORD_TYPE_TAKEN };
 
 static Decode tcache_pool[CONFIG_TCACHE_SIZE] = {};
+static ExtraInfo tcache_extra[CONFIG_TCACHE_SIZE] = {};
 static int tc_idx = 0;
 static Decode tcache_bb_pool[TCACHE_BB_SIZE] = {};
+static ExtraInfo tcache_bb_extra[TCACHE_BB_SIZE] = {};
 static Decode *tcache_bb_freelist = NULL;
 static bb_t bb_pool[CONFIG_BB_POOL_SIZE] = {};
 static int bb_idx = 0;
@@ -29,9 +31,10 @@ static int bb_list_insts[CONFIG_BB_LIST_SIZE] = {};
 static int bb_pool_insts[CONFIG_BB_POOL_SIZE] = {};
 #endif
 static Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
-  s->tnext = s->ntnext = NULL;
-  s->type = 0;
-  s->pc = pc;
+  ExtraInfo* extra = s->extraInfo;
+  extra->tnext = extra->ntnext = NULL;
+  extra->type = 0;
+  extra->pc = pc;
   s->EHelper = g_exec_nemu_decode;
   return s;
 }
@@ -58,7 +61,7 @@ static Decode* tcache_bb_new(vaddr_t pc) {
   Decode *s = tcache_bb_freelist;
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist->tnext);
-  tcache_bb_freelist = tcache_bb_freelist->tnext;
+  tcache_bb_freelist = tcache_bb_freelist->extraInfo->tnext;
   tcache_bb_check(tcache_bb_freelist);
   tcache_bb_check(tcache_bb_freelist->tnext);
   return tcache_entry_init(s, pc);
@@ -69,7 +72,7 @@ static void tcache_bb_free(Decode *s) {
   if (!(idx >= 0 && idx < TCACHE_BB_SIZE)) { return; }
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist);
-  s->tnext = tcache_bb_freelist;
+  s->extraInfo->tnext = tcache_bb_freelist;
   tcache_bb_freelist = s;
   tcache_bb_check(tcache_bb_freelist->tnext);
 }
@@ -149,14 +152,15 @@ void update_bb_count(vaddr_t pc, int decode_num){
 
 static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
   bb_t* bb = bb_find(jpc);
+  ExtraInfo* this_extra = _this->extraInfo;
   if (bb != NULL) {
-    if (is_taken) { _this->tnext = bb->s; }
-    else { _this->ntnext = bb->s; }
+    if (is_taken) {this_extra->tnext = bb->s; }
+    else { this_extra->ntnext = bb->s; }
   } else {
     Decode *ret = tcache_bb_new(jpc);
-    if (is_taken) { ret->type = BB_RECORD_TYPE_TAKEN; _this->tnext = ret; }
-    else { ret->type = BB_RECORD_TYPE_NTAKEN; _this->ntnext = ret; }
-    ret->bb_src = _this;
+    if (is_taken) { ret->extraInfo->type = BB_RECORD_TYPE_TAKEN; this_extra->tnext = ret; }
+    else { ret->extraInfo->type = BB_RECORD_TYPE_NTAKEN; this_extra->ntnext = ret; }
+    ret->extraInfo->bb_src = _this;
   }
 }
 
@@ -165,14 +169,14 @@ extern FILE * bb_fp;
 void save_bb_msg(){
   for(int i = 0; i < CONFIG_BB_POOL_SIZE; i++){
     if(bb_pool_count[i] != 0){
-      fprintf(bb_fp, "0x%lx %d %d\n", bb_pool[i].pc, bb_pool_count[i], bb_pool_insts[i]);
+      fprintf(bb_fp, "0x%lx %d %d\n", bb_pool[i].extraInfo.pc, bb_pool_count[i], bb_pool_insts[i]);
       fflush(bb_fp);
     }
   }
 
   for(int i = 0; i < CONFIG_BB_LIST_SIZE; i++){
     if(bb_list_count[i] != 0){
-      fprintf(bb_fp, "0x%lx %d %d\n", bb_list[i].pc, bb_list_count[i], bb_list_insts[i]);
+      fprintf(bb_fp, "0x%lx %d %d\n", bb_list[i].extraInfo.pc, bb_list_count[i], bb_list_insts[i]);
       fflush(bb_fp);
     }
   }
@@ -193,9 +197,9 @@ static void tcache_flush() {
 
   int i;
   for (i = 0; i < TCACHE_BB_SIZE - 1; i ++) {
-    tcache_bb_pool[i].list_next = &tcache_bb_pool[i + 1];
+    tcache_bb_pool[i].extraInfo->list_next = &tcache_bb_pool[i + 1];
   }
-  tcache_bb_pool[TCACHE_BB_SIZE - 1].list_next = NULL;
+  tcache_bb_pool[TCACHE_BB_SIZE - 1].extraInfo->list_next = NULL;
   tcache_bb_freelist = &tcache_bb_pool[0];
 }
 
@@ -205,22 +209,22 @@ static Decode *bb_now = NULL, *bb_now_record = NULL;
 
 __attribute__((noinline))
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
-  s->ntnext = s->tnext;
+  s->extraInfo->ntnext = s->extraInfo->tnext;
   tcache_bb_fetch(s, true, jpc);
-  return s->tnext;
+  return s->extraInfo->tnext;
 }
 
 static void tcache_patch_and_free(Decode *bb_record, Decode *bb) {
-  Decode *src = bb_record->bb_src;
-  if (bb_record->type == BB_RECORD_TYPE_TAKEN)  { src->tnext = bb; }
-  if (bb_record->type == BB_RECORD_TYPE_NTAKEN) { src->ntnext = bb; }
+  Decode *src = bb_record->extraInfo->bb_src;
+  if (bb_record->extraInfo->type == BB_RECORD_TYPE_TAKEN)  { src->extraInfo->tnext = bb; }
+  if (bb_record->extraInfo->type == BB_RECORD_TYPE_NTAKEN) { src->extraInfo->ntnext = bb; }
   tcache_bb_free(bb_record);
 }
 
 __attribute__((noinline))
 Decode* tcache_decode(Decode *s) {
   static int idx_in_bb = 0;
-  vaddr_t thispc = s->pc;
+  vaddr_t thispc = s->extraInfo->pc;
 
   if (tcache_state == TCACHE_RUNNING) {  // start of a basic block
     // first check whether this basic block is already decoded
@@ -241,27 +245,27 @@ Decode* tcache_decode(Decode *s) {
   }
 
   save_globals(s);
-  s->idx_in_bb = idx_in_bb;
-  fetch_decode(s, thispc); // note that exception may happen!
+  s->extraInfo->idx_in_bb = idx_in_bb;
 
-  if (s->type == INSTR_TYPE_N) {
-    Decode *next = tcache_new(s->snpc);
+  fetch_decode(s, thispc); // note that exception may happen!
+  if (s->extraInfo->type == INSTR_TYPE_N) {
+    Decode *next = tcache_new(s->extraInfo->snpc);
     if (next == NULL) { goto full; }
     assert(next == s + 1);
   } else {
     // the end of the basic block
-    bb_t *ret = bb_insert(bb_now->pc, bb_now);
+    bb_t *ret = bb_insert(bb_now->extraInfo->pc, bb_now);
     if (ret == NULL) { goto full; } // basic block list is full
     tcache_patch_and_free(bb_now_record, bb_now);
     bb_now = bb_now_record = NULL;
 
-    switch (s->type) {
-      case INSTR_TYPE_J: tcache_bb_fetch(s, true, s->jnpc); break;
+    switch (s->extraInfo->type) {
+      case INSTR_TYPE_J: tcache_bb_fetch(s, true, s->extraInfo->jnpc); break;
       case INSTR_TYPE_B:
-        tcache_bb_fetch(s, true, s->jnpc);
-        tcache_bb_fetch(s, false, s->snpc + MUXDEF(CONFIG_ISA_mips32, 4, 0));
+        tcache_bb_fetch(s, true, s->extraInfo->jnpc);
+        tcache_bb_fetch(s, false, s->extraInfo->snpc + MUXDEF(CONFIG_ISA_mips32, 4, 0));
         break;
-      case INSTR_TYPE_I: s->tnext = s->ntnext = s; break; // update dynamically
+      case INSTR_TYPE_I: s->extraInfo->tnext = s->extraInfo->ntnext = s; break; // update dynamically
       default: assert(0);
     }
     tcache_state = TCACHE_RUNNING;
@@ -273,7 +277,7 @@ Decode* tcache_decode(Decode *s) {
 full:
   tcache_flush();
   s = tcache_bb_new(thispc); // decode this instruction again
-  s->idx_in_bb = idx_in_bb;
+  s->extraInfo->idx_in_bb = idx_in_bb;
   save_globals(s);
   bb_now = bb_now_record = NULL;
   tcache_state = TCACHE_RUNNING;
@@ -284,17 +288,23 @@ static Decode ex = {};
 
 void tcache_handle_exception(vaddr_t jpc) {
   tcache_bb_fetch(&ex, true, jpc);
-  save_globals(ex.tnext);
+  save_globals(ex.extraInfo->tnext);
   tcache_state = TCACHE_RUNNING;
 }
 
 Decode* tcache_handle_flush(vaddr_t snpc) {
   tcache_flush();
   tcache_handle_exception(snpc);
-  return ex.tnext;
+  return ex.extraInfo->tnext;
 }
 
 Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
+  for(int i = 0; i < CONFIG_TCACHE_SIZE; i++){
+    tcache_pool[i].extraInfo = &tcache_extra[i];
+  }
+  for(int i = 0; i < TCACHE_BB_SIZE; i++){
+    tcache_bb_pool[i].extraInfo = &tcache_bb_extra[i];
+  }
   tcache_flush();
   g_exec_nemu_decode = exec_nemu_decode;
   return tcache_bb_new(reset_vector);

@@ -24,7 +24,7 @@ enum {
   INSTR_TYPE_I, // indirect
 };
 
-typedef struct Decode {
+typedef struct ExtraInfo {
   union {
     struct {
       struct Decode *tnext;  // next pointer for taken branch and jump
@@ -37,14 +37,18 @@ typedef struct Decode {
   };
   vaddr_t pc;
   vaddr_t snpc; // static next pc
-  IFDEF (CONFIG_PERF_OPT, const void *EHelper);
-  IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
-  Operand dest, src1, src2;
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
   uint8_t type;
   ISADecodeInfo isa;
   IFDEF(CONFIG_ITRACE, char logbuf[128]);
+}ExtraInfo;
+
+typedef struct Decode {
+  IFDEF (CONFIG_PERF_OPT, const void *EHelper);
+  IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
+  Operand dest, src1, src2;
+  ExtraInfo* extraInfo;
 } Decode;
 #else
 typedef struct Decode {

@@ -5,20 +5,20 @@
 def_all_THelper();
 
 static word_t x86_instr_fetch(Decode *s, int len, bool advance_p_instr) {
-  uint8_t *p = &s->isa.instr.val[s->snpc - s->pc];
-  word_t ret = instr_fetch(&s->snpc, len);
+  uint8_t *p = &s->extraInfo->isa.instr.val[s->extraInfo->snpc - s->extraInfo->pc];
+  word_t ret = instr_fetch(&s->extraInfo->snpc, len);
   word_t ret_save = ret;
   int i;
   for (i = 0; i < len; i ++) {
     p[i] = ret & 0xff;
     ret >>= 8;
   }
-  if (advance_p_instr) s->isa.p_instr += len;
+  if (advance_p_instr) s->extraInfo->isa.p_instr += len;
   return ret_save;
 }
 
 static word_t get_instr(Decode *s) {
-  return *(s->isa.p_instr - 1);
+  return *(s->extraInfo->isa.p_instr - 1);
 }
 
 static word_t fetch_imm(Decode *s, int width) {
@@ -28,7 +28,7 @@ static word_t fetch_imm(Decode *s, int width) {
 static word_t fetch_simm(Decode *s, int width) {
 #ifdef __ICS_EXPORT
   /* TODO: Use instr_fetch() to read `width' bytes of memory
-   * pointed by 's->snpc'. Return the result as a signed immediate.
+   * pointed by 's->extraInfo->snpc'. Return the result as a signed immediate.
    */
   TODO();
   return 0;
@@ -173,10 +173,10 @@ static void load_addr(Decode *s, ModR_M *m, Operand *rm) {
     if (disp_size == 1) { disp = (int8_t)disp; }
   }
 
-  s->isa.mbase = (base_reg != -1 ? &reg_l(base_reg) : rz);
-  s->isa.midx = (index_reg != -1 ? &reg_l(index_reg) : rz);
-  s->isa.mscale = scale;
-  s->isa.moff = disp;
+  s->extraInfo->isa.mbase = (base_reg != -1 ? &reg_l(base_reg) : rz);
+  s->extraInfo->isa.midx = (index_reg != -1 ? &reg_l(index_reg) : rz);
+  s->extraInfo->isa.mscale = scale;
+  s->extraInfo->isa.moff = disp;
   rm->preg = &rm->val;
   rm->type = OP_TYPE_MEM;
 }
@@ -233,7 +233,7 @@ def_DopHelper(a) {
  * eXX: eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI
  */
 def_DopHelper(r) {
-  int r = s->isa.opcode & 0x7;
+  int r = s->extraInfo->isa.opcode & 0x7;
   operand_reg(s, op, r, width);
 }
 
@@ -253,14 +253,14 @@ static void operand_rm(Decode *s, Operand *rm, Operand *reg, int width) {
   if (reg != NULL) operand_reg(s, reg, m.reg, width);
   if (m.mod == 3) operand_reg(s, rm, m.R_M, width);
   else { load_addr(s, &m, rm); }
-  //s->isa.is_rm_memory = (m.mod != 3);
+  //s->extraInfo->isa.is_rm_memory = (m.mod != 3);
 }
 
 /* Ob, Ov */
 def_DopHelper(O) {
-  s->isa.moff = x86_instr_fetch(s, 4, false);
-  s->isa.mbase = rz;
-  s->isa.midx = rz;
+  s->extraInfo->isa.moff = x86_instr_fetch(s, 4, false);
+  s->extraInfo->isa.mbase = rz;
+  s->extraInfo->isa.midx = rz;
   op->preg = &op->val;
   op->type = OP_TYPE_MEM;
 }
@@ -276,15 +276,15 @@ static def_DHelper(G2E) {
 // for bts and btr
 static def_DHelper(bit_G2E) {
   operand_rm(s, id_dest, false, id_src1, true);
-  if (s->isa.mbase) {
+  if (s->extraInfo->isa.mbase) {
     rtl_srli(s, s0, dsrc1, 5);
     rtl_slli(s, s0, s0, 2);
-    rtl_add(s, &s->isa.mbr, s->isa.mbase, s0);
-    s->isa.mbase = &s->isa.mbr;
-    if (s->opcode != 0x1a3) { // bt
+    rtl_add(s, &s->extraInfo->isa.mbr, s->extraInfo->isa.mbase, s0);
+    s->extraInfo->isa.mbase = &s->extraInfo->isa.mbr;
+    if (s->extraInfo->opcode != 0x1a3) { // bt
       IFDEF(CONFIG_DIFFTEST_REF_KVM, IFNDEF(CONFIG_PA, cpu.lock = 1));
     }
-    rtl_lm(s, &id_dest->val, s->isa.mbase, s->isa.moff, id_dest->width);
+    rtl_lm(s, &id_dest->val, s->extraInfo->isa.mbase, s->extraInfo->isa.moff, id_dest->width);
   }
   rtl_andi(s, &id_src1->val, dsrc1, 0x1f);
   id_src1->preg = &id_src1->val;
@@ -463,7 +463,7 @@ static def_DHelper(a2r) {
 static def_DHelper(J) {
   // the target address can be computed in the decode stage
   sword_t offset = fetch_simm(s, width);
-  id_dest->imm = offset + s->snpc;
+  id_dest->imm = offset + s->extraInfo->snpc;
 }
 #if 0
 #ifndef __ICS_EXPORT
@@ -474,7 +474,7 @@ static def_DHelper(LJ) {
   id_src1->width = 2;
   decode_op_I(s, id_src1, false); // CS
   // the target address can be computed in the decode stage
-  s->jmp_pc = id_dest->imm;
+  s->extraInfo->jmp_pc = id_dest->imm;
 }
 #endif
 
@@ -515,17 +515,17 @@ static def_DHelper(Ib2xmm) {
 
 
 static int SSEprefix(Decode *s) {
-  assert(!(s->isa.rep_flags != 0 && s->isa.is_operand_size_16));
-  if (s->isa.is_operand_size_16) return 1;
-  else if (s->isa.rep_flags == PREFIX_REP) return 2;
-  else if (s->isa.rep_flags == PREFIX_REPNZ) return 3;
+  assert(!(s->extraInfo->isa.rep_flags != 0 && s->extraInfo->isa.is_operand_size_16));
+  if (s->extraInfo->isa.is_operand_size_16) return 1;
+  else if (s->extraInfo->isa.rep_flags == PREFIX_REP) return 2;
+  else if (s->extraInfo->isa.rep_flags == PREFIX_REPNZ) return 3;
   else return 0;
 }
 
 def_THelper(sse_0x6f) {
   int pfx = SSEprefix(s);
   switch (pfx) {
-    case 1: decode_E2G(s, s->isa.width); return table_movdqa_E2xmm(s);
+    case 1: decode_E2G(s, s->extraInfo->isa.width); return table_movdqa_E2xmm(s);
   }
   return EXEC_ID_inv;
 }
@@ -540,8 +540,8 @@ def_THelper(sse_0x73) {
 def_THelper(sse_0x7e) {
   int pfx = SSEprefix(s);
   switch (pfx) {
-    case 1: s->isa.width = 4; decode_G2E(s, s->isa.width); return table_movd_xmm2E(s);
-    case 2: decode_E2G(s, s->isa.width); return table_movq_E2xmm(s);
+    case 1: s->extraInfo->isa.width = 4; decode_G2E(s, s->extraInfo->isa.width); return table_movd_xmm2E(s);
+    case 2: decode_E2G(s, s->extraInfo->isa.width); return table_movq_E2xmm(s);
   }
   return EXEC_ID_inv;
 }
@@ -549,7 +549,7 @@ def_THelper(sse_0x7e) {
 def_THelper(sse_0xd6) {
   int pfx = SSEprefix(s);
   switch (pfx) {
-    case 1: decode_G2E(s, s->isa.width); return table_movq_xmm2E(s);
+    case 1: decode_G2E(s, s->extraInfo->isa.width); return table_movq_xmm2E(s);
   }
   return EXEC_ID_inv;
 }
@@ -557,7 +557,7 @@ def_THelper(sse_0xd6) {
 def_THelper(sse_0xef) {
   int pfx = SSEprefix(s);
   switch (pfx) {
-    case 1: decode_E2G(s, s->isa.width); return table_pxor(s);
+    case 1: decode_E2G(s, s->extraInfo->isa.width); return table_pxor(s);
   }
   return EXEC_ID_inv;
 }
@@ -565,7 +565,7 @@ def_THelper(sse_0xef) {
 def_THelper(main);
 
 def_THelper(operand_size) {
-  s->isa.is_operand_size_16 = true;
+  s->extraInfo->isa.is_operand_size_16 = true;
   return table_main(s);
 }
 
@@ -573,7 +573,7 @@ def_THelper(rep) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support REP in engines other than interpreter");
 #endif
-  s->isa.rep_flags = PREFIX_REP;
+  s->extraInfo->isa.rep_flags = PREFIX_REP;
   return table_main(s);
 }
 
@@ -581,7 +581,7 @@ def_THelper(repnz) {
 #ifndef CONFIG_ENGINE_INTERPRETER
   panic("not support REP in engines other than interpreter");
 #endif
-  s->isa.rep_flags = PREFIX_REPNZ;
+  s->extraInfo->isa.rep_flags = PREFIX_REPNZ;
   return table_main(s);
 }
 
@@ -590,14 +590,14 @@ def_THelper(lock) {
 }
 
 def_THelper(gs) {
-  s->isa.sreg_base = &cpu.sreg[CSR_GS].base;
+  s->extraInfo->isa.sreg_base = &cpu.sreg[CSR_GS].base;
   return table_main(s);
 }
 
 #define def_x86_INSTR_IDTABW(decode_fun, pattern, id, tab, w) \
   def_INSTR_raw(decode_fun, pattern, { \
-      if (w != -1) s->isa.width = (w == 0 ? (s->isa.is_operand_size_16 ? 2 : 4) : w); \
-      concat(decode_, id)(s, s->isa.width); \
+      if (w != -1) s->extraInfo->isa.width = (w == 0 ? (s->extraInfo->isa.is_operand_size_16 ? 2 : 4) : w); \
+      concat(decode_, id)(s, s->extraInfo->isa.width); \
       return concat(table_, tab)(s); \
     })
 
@@ -631,7 +631,7 @@ def_THelper(gp2) {
 }
 
 def_THelper(gp3) {
-  def_INSTR_IDTABW("?? 000 ???", test_I, test, s->isa.width);
+  def_INSTR_IDTABW("?? 000 ???", test_I, test, s->extraInfo->isa.width);
   def_INSTR_TABW  ("?? 010 ???", not, -1);
   def_INSTR_TABW  ("?? 011 ???", neg, -1);
   def_INSTR_TABW  ("?? 100 ???", mul, -1);
@@ -669,7 +669,7 @@ def_THelper(gp7) {
 
 def_THelper(_2byte_esc) {
   x86_instr_fetch(s, 1, true);
-  s->isa.opcode = get_instr(s) | 0x100;
+  s->extraInfo->isa.opcode = get_instr(s) | 0x100;
 
   def_hex_INSTR_IDTABW("00",    E, gp6, 2);
   def_hex_INSTR_IDTABW("01",    E, gp7, 4);
@@ -708,7 +708,7 @@ def_THelper(_2byte_esc) {
 
 def_THelper(main) {
   x86_instr_fetch(s, 1, true);
-  s->isa.opcode = get_instr(s);
+  s->extraInfo->isa.opcode = get_instr(s);
 
   def_hex_INSTR_IDTABW("00",  G2E, add, 1);
   def_hex_INSTR_IDTAB ("01",  G2E, add);
@@ -792,13 +792,13 @@ def_THelper(main) {
   def_hex_INSTR_IDTABW("a2",  a2O, mov, 1);
   def_hex_INSTR_IDTAB ("a3",  a2O, mov);
 
-  if (s->isa.rep_flags == PREFIX_REP) {
+  if (s->extraInfo->isa.rep_flags == PREFIX_REP) {
     def_hex_INSTR_TABW  ("a4", rep_movs, 1);
     def_hex_INSTR_TAB   ("a5", rep_movs);
     def_hex_INSTR_TABW  ("a6", repz_cmps, 1);
     def_hex_INSTR_IDTABW("aa", aSrc, rep_stos, 1);
     def_hex_INSTR_IDTAB ("ab", aSrc, rep_stos);
-  } else if (s->isa.rep_flags == PREFIX_REPNZ) {
+  } else if (s->extraInfo->isa.rep_flags == PREFIX_REPNZ) {
     def_hex_INSTR_IDTABW("ae", aSrc, repnz_scas, 1);
   }
 
@@ -854,36 +854,36 @@ def_THelper(main) {
 
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
-  s->isa.p_instr = s->isa.instr.val;
-  s->isa.is_operand_size_16 = 0;
-  s->isa.rep_flags = 0;
-  s->isa.sreg_base = NULL;
+  s->extraInfo->isa.p_instr = s->extraInfo->isa.instr.val;
+  s->extraInfo->isa.is_operand_size_16 = 0;
+  s->extraInfo->isa.rep_flags = 0;
+  s->extraInfo->isa.sreg_base = NULL;
 
   idx = table_main(s);
 
-  s->type = INSTR_TYPE_N;
+  s->extraInfo->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_call: case EXEC_ID_jmp:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_J; break;
+      s->extraInfo->jnpc = id_dest->imm; s->extraInfo->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_jcc: case EXEC_ID_jecxz:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->extraInfo->jnpc = id_dest->imm; s->extraInfo->type = INSTR_TYPE_B; break;
     case EXEC_ID_rep_movs:
     case EXEC_ID_rep_stos:
     case EXEC_ID_repz_cmps:
     case EXEC_ID_repnz_scas:
-      s->jnpc = s->pc; s->type = INSTR_TYPE_B; break;
+      s->extraInfo->jnpc = s->extraInfo->pc; s->extraInfo->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_ret: case EXEC_ID_call_E: case EXEC_ID_jmp_E: case EXEC_ID_ret_imm:
     case EXEC_ID__int: case EXEC_ID_iret:
-      s->type = INSTR_TYPE_I; break;
+      s->extraInfo->type = INSTR_TYPE_I; break;
   }
 
 #ifndef CONFIG_x86_CC_NONE
-  s->isa.flag_def = flag_table[idx].def;
-  s->isa.flag_use = flag_table[idx].use;
+  s->extraInfo->isa.flag_def = flag_table[idx].def;
+  s->extraInfo->isa.flag_use = flag_table[idx].use;
   if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {
-    s->isa.flag_use = cc2flag[s->isa.opcode & 0xf];
+    s->extraInfo->isa.flag_use = cc2flag[s->extraInfo->isa.opcode & 0xf];
   }
 
   static Decode *bb_start = NULL;
@@ -891,17 +891,17 @@ int isa_fetch_decode(Decode *s) {
 
   if (bb_idx == 0) bb_start = s;
 
-  if (s->type != INSTR_TYPE_N) { // the end of a basic block
+  if (s->extraInfo->type != INSTR_TYPE_N) { // the end of a basic block
     if (s - bb_start == bb_idx) {
       // now scan and update `flag_def`
       Decode *p;
       uint32_t use = F_ALL;
       //uint32_t use = (idx == EXEC_ID_call || s->type == INSTR_TYPE_I ? 0 : F_ALL); //s->isa.flag_use;
       for (p = s - 1; p >= bb_start; p --) {
-        uint32_t real_def = p->isa.flag_def & use;
-        use &= ~p->isa.flag_def;
-        use |=  p->isa.flag_use;
-        p->isa.flag_def = real_def;
+        uint32_t real_def = p->extraInfo->isa.flag_def & use;
+        use &= ~p->extraInfo->isa.flag_def;
+        use |=  p->extraInfo->isa.flag_use;
+        p->extraInfo->isa.flag_def = real_def;
       }
     }
     bb_idx = 0;

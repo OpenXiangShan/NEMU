@@ -15,7 +15,7 @@
 bool fp_enable();
 void rt_inv(Decode *s) {
   save_globals(s);
-  mtval->val = s->isa.instr.val;
+  mtval->val = s->extraInfo->isa.instr.val;
   longjmp_exception(EX_II);
 }
 
@@ -68,7 +68,7 @@ static word_t zero_null = 0;
 #endif
 
 static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, int type) {
-  uint32_t i = s->isa.instr.val;
+  uint32_t i = s->extraInfo->isa.instr.val;
   int rd  = BITS(i, 11, 7);
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
@@ -77,16 +77,16 @@ static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, 
     case TYPE_FST: destI(immS(i)); src1R(rs1); src2FR(rs2); break;
     case TYPE_FLD: destFR(rd); // fall through
     case TYPE_I: src1R(rs1);             src2I(immI(i)); break;
-    case TYPE_U: src1I(immU(i));         src2I(immU(i) + s->pc); break;
-    case TYPE_J: src1I(s->pc + immJ(i)); src2I(s->snpc); break;
+    case TYPE_U: src1I(immU(i));         src2I(immU(i) + s->extraInfo->pc); break;
+    case TYPE_J: src1I(s->extraInfo->pc + immJ(i)); src2I(s->extraInfo->snpc); break;
     case TYPE_S: destI(immS(i));         goto R;
-    case TYPE_B: destI(immB(i) + s->pc); R: // fall through
+    case TYPE_B: destI(immB(i) + s->extraInfo->pc); R: // fall through
     case TYPE_R: src1R(rs1); src2R(rs2); break;
     case TYPE_N: break;
     case TYPE_FR: src1FR(rs1); src2FR(rs2); destFR(rd); break;
     case TYPE_FR2R: src1FR(rs1); src2FR(rs2); destR(rd); break;
     case TYPE_R2FR: src1R(rs1); destFR(rd); break;
-    default: panic("type = %d at pc = " FMT_WORD , type, s->pc);
+    default: panic("type = %d at pc = " FMT_WORD , type, s->extraInfo->pc);
   }
 }
 
@@ -96,7 +96,7 @@ static int decode_exec(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
   bool is_jmp = false;
 
-#define INSTPAT_INST(s) ((s)->isa.instr.val)
+#define INSTPAT_INST(s) ((s)->extraInfo->isa.instr.val)
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
   decode_operand(s, &dest, &src1, &src2, concat(TYPE_, type)); \
   IFDEF(CONFIG_PERF_OPT, return concat(EXEC_ID_, name)); \
@@ -116,8 +116,8 @@ static int decode_exec(Decode *s) {
   static void *jmptab[256];
   uint32_t inst_slr2 = INSTPAT_INST(s) >> 2;  // the 2 bits at LSB are always 2'b11
   int idx = BITS(inst_slr2, 4, 0) | (BITS(inst_slr2, 12, 10) << 5);
-  int rs1 = BITS(s->isa.instr.val, 19, 15);
-  int rd  = BITS(s->isa.instr.val, 11, 7);
+  int rs1 = BITS(s->extraInfo->isa.instr.val, 19, 15);
+  int rd  = BITS(s->extraInfo->isa.instr.val, 11, 7);
   int mmu_mode = isa_mmu_state();
   const void *jmptarget = jmptab[idx];
   if (jmptarget != NULL) goto *jmptarget;
@@ -407,7 +407,7 @@ if (rd == rs1) {
 
   SET_JMPTAB(fp);
 if (fp_enable()) {
-int rs2 = BITS(s->isa.instr.val, 24, 20);
+int rs2 = BITS(s->extraInfo->isa.instr.val, 24, 20);
 if(rs1 == rs2) {
   INSTPAT("0010000 ????? ????? 000 ????? 10100 11" , p_fmv_s  , FR);
   INSTPAT("0010000 ????? ????? 010 ????? 10100 11" , p_fabs_s , FR);
@@ -523,9 +523,9 @@ if(rs1 == rs2) {
   INSTPAT("0000000 00000 00001 ??? 00001 11001 11", p_jalr_ra_noimm , I);
   INSTPAT("??????? ????? 00001 ??? 00001 11001 11", p_jalr_ra, I);
   INSTPAT("??????? ????? 00110 ??? 00000 11001 11", p_jalr_t0, I);
-  INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr   , I, jcond(true, src1 + src2); R(dest) = s->snpc);
+  INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr   , I, jcond(true, src1 + src2); R(dest) = s->extraInfo->snpc);
 
-  INSTLAB("??????? ????? ????? ??? ????? 11010 11", nemu_trap, N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
+  INSTLAB("??????? ????? ????? ??? ????? 11010 11", nemu_trap, N, NEMUTRAP(s->extraInfo->pc, R(10))); // R(10) is $a0
 
   INSTLAB("??????? ????? ????? ??? 00000 11011 11", c_j    , J);
   INSTPAT("??????? ????? ????? ??? 00001 11011 11", p_jal  , J);
@@ -536,11 +536,11 @@ if(rs1 == rs2) {
   INSTLAB("??????? ????? ????? ??? ????? 11100 11", system , I,
       is_jmp = rtl_sys_slow_path(s, &R(dest), &src1, src2, NULL));
 
-  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
+  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->extraInfo->pc));
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
-  if (!is_jmp) cpu.pc = s->snpc;
+  if (!is_jmp) cpu.pc = s->extraInfo->snpc;
 
   return 0;
 }
@@ -578,7 +578,7 @@ static inline word_t rvc_imm_internal(uint32_t instr, const char *str, int len, 
 #define creg2reg(creg) (creg + 8)
 
 static void decode_operand_rvc(Decode *s, word_t *dest, word_t *src1, word_t *src2, int type) {
-  uint32_t i = s->isa.instr.val;
+  uint32_t i = s->extraInfo->isa.instr.val;
   int r9_7 = creg2reg(BITS(i, 9, 7));
   int r4_2 = creg2reg(BITS(i, 4, 2));
   int r11_7 = BITS(i, 11, 7);
@@ -597,8 +597,8 @@ static void decode_operand_rvc(Decode *s, word_t *dest, word_t *src1, word_t *sr
     case TYPE_CLUI:   src1I(rvc_simm(i, "...5.....43210..") << 12);   destR(r11_7); break;
     case TYPE_CSHIFT: src2I(rvc_uimm(i, "...5.....43210.."));         rdrs1_same(r9_7); break;
     case TYPE_CANDI:  src2I(rvc_simm(i, "...5.....43210.."));         rdrs1_same(r9_7); break;
-    case TYPE_CJ:     src1I(rvc_simm(i, "...b498a673215..") + s->pc); break;
-    case TYPE_CB:     destI(rvc_simm(i, "...843...76215..") + s->pc); rs1rs2(r9_7, 0); break;
+    case TYPE_CJ:     src1I(rvc_simm(i, "...b498a673215..") + s->extraInfo->pc); break;
+    case TYPE_CB:     destI(rvc_simm(i, "...843...76215..") + s->extraInfo->pc); rs1rs2(r9_7, 0); break;
     case TYPE_CIU:    src2I(rvc_uimm(i, "...5.....43210.."));         rdrs1_same(r11_7); break;
     case TYPE_CLWSP:  src2I(rvc_uimm(i, "...5.....43276..")); goto CI_ld;
     case TYPE_CLDSP:  src2I(rvc_uimm(i, "...5.....43876..")); CI_ld:  rdrs1(r11_7, 2); break;
@@ -610,7 +610,7 @@ static void decode_operand_rvc(Decode *s, word_t *dest, word_t *src1, word_t *sr
     case TYPE_CFSDSP: destI(rvc_uimm(i, "...543876.......")); src1R(2); src2FR(r6_2); break;
     case TYPE_CS: rdrs1_same(r9_7);  src2R(r4_2); break;
     case TYPE_CR: rdrs1_same(r11_7); src2R(r6_2); break;
-    default: panic("inst = %x type = %d at pc = " FMT_WORD , s->isa.instr.val, type, s->pc);
+    default: panic("inst = %x type = %d at pc = " FMT_WORD , s->extraInfo->isa.instr.val, type, s->extraInfo->pc);
   }
 }
 
@@ -644,7 +644,7 @@ if (!fp_enable()) {
   INSTPAT("100 0 00001 00000 10", p_ret   , CR);
 
   // Q0
-  INSTLAB("000  00000000  000 00", inv    , N   , INV(s->pc));
+  INSTLAB("000  00000000  000 00", inv    , N   , INV(s->extraInfo->pc));
   INSTPAT("000  ????????  ??? 00", c_addix_sp, CIW , R(dest) = src1 + src2); // C.ADDI4SPN
 
   SET_JMPTAB(fld);
@@ -728,7 +728,7 @@ if (mmu_mode == MMU_TRANSLATE) {
   // c_jalr can not handle correctly when rs1 == ra, fall back to general jalr
   INSTLAB("100 1 00001 00000 10", jalr    , CR);
   INSTPAT("100 1 00000 00000 10", inv     , N);  // ebreak
-  INSTPAT("100 1 ????? 00000 10", c_jalr  , CR, jcond(true, src1); R(1) = s->snpc);
+  INSTPAT("100 1 ????? 00000 10", c_jalr  , CR, jcond(true, src1); R(1) = s->extraInfo->snpc);
   INSTPAT("100 1 ????? ????? 10", c_add   , CR, R(dest) = src1 + src2);
 
   SET_JMPTAB(fsdsp);
@@ -749,7 +749,7 @@ if (mmu_mode == MMU_TRANSLATE) {
 }
   INSTPAT("111 ? ????? ????? 10", sdsp    , CSDSP , Mw(src1 + dest, 8, src2));
 
-  INSTPAT("??? ??? ??? ?? ??? ??", inv    , N  , INV(s->pc));
+  INSTPAT("??? ??? ??? ?? ??? ??", inv    , N  , INV(s->extraInfo->pc));
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
@@ -757,16 +757,17 @@ if (mmu_mode == MMU_TRANSLATE) {
   // if an exception is raised during execution, we will
   // still update cpu.pc here, but it will be overwritten
   // in cpu.exec.c:fetch_decode(), since `g_ex_cause ` is set
-  if (!is_jmp) cpu.pc = s->snpc;
+  if (!is_jmp) cpu.pc = s->extraInfo->snpc;
 
   return 0;
 }
 
 int isa_fetch_decode(Decode *s) {
   int idx = 0;
-  s->isa.instr.val = instr_fetch(&s->snpc, 2);
+  ExtraInfo* extra = s->extraInfo;
+  extra->isa.instr.val = instr_fetch(&extra->snpc, 2);
   check_ex(0);
-  if (BITS(s->isa.instr.val, 1, 0) != 0x3) {
+  if (BITS(extra->isa.instr.val, 1, 0) != 0x3) {
     // this is an RVC instruction
     idx = decode_exec_rvc(s);
   } else {
@@ -774,21 +775,21 @@ int isa_fetch_decode(Decode *s) {
     // NOTE: The fetch here may cause IPF.
     // If it is the case, we should have mepc = xxxffe and mtval = yyy000.
     // Refer to `mtval` in the privileged manual for more details.
-    uint32_t hi = instr_fetch(&s->snpc, 2);
+    uint32_t hi = instr_fetch(&extra->snpc, 2);
     check_ex(0);
-    s->isa.instr.val |= (hi << 16);
+    extra->isa.instr.val |= (hi << 16);
     idx = decode_exec(s);
   }
 #ifdef CONFIG_PERF_OPT
-  uint32_t instr = s->isa.instr.val;
+  uint32_t instr = extra->isa.instr.val;
   extern void update_exec_table(Decode* s, int idx);
   static Decode* prev_s;
   static int prev_idx = 0;
   static int prev_type_j = 0;
   static int prev_type_b = 0;
   if(prev_type_j){
-    rtlreg_t target = prev_s->jnpc;
-    if(target == s->pc){
+    rtlreg_t target = prev_s->extraInfo->jnpc;
+    if(target == extra->pc){
       int new_idx = (prev_idx == EXEC_ID_c_j) ? EXEC_ID_c_j_next :
                     (prev_idx == EXEC_ID_p_jal) ? EXEC_ID_p_jal_next :
                     (prev_idx == EXEC_ID_jal) ? EXEC_ID_jal_next : -1;
@@ -796,9 +797,9 @@ int isa_fetch_decode(Decode *s) {
       update_exec_table(prev_s, new_idx);
     }
   } else if(prev_type_b){
-    rtlreg_t target_tk = prev_s->jnpc;
-    rtlreg_t target_nt = prev_s->pc + (BITS(prev_s->isa.instr.val, 1, 0) == 0x3 ? 4 : 2);
-    if(s->pc == target_tk){
+    rtlreg_t target_tk = prev_s->extraInfo->jnpc;
+    rtlreg_t target_nt = prev_s->extraInfo->pc + (BITS(prev_s->extraInfo->isa.instr.val, 1, 0) == 0x3 ? 4 : 2);
+    if(extra->pc == target_tk){
       int new_idx = (prev_idx == EXEC_ID_beq) ? EXEC_ID_beq_tnext :
                     (prev_idx == EXEC_ID_bne) ? EXEC_ID_bne_tnext :
                     (prev_idx == EXEC_ID_blt) ? EXEC_ID_blt_tnext :
@@ -813,7 +814,7 @@ int isa_fetch_decode(Decode *s) {
                     (prev_idx == EXEC_ID_p_bgtz) ? EXEC_ID_p_bgtz_tnext : -1;
       assert(new_idx != -1);
       update_exec_table(prev_s, new_idx);
-    } else if(s->pc == target_nt){
+    } else if(extra->pc == target_nt){
       int new_idx = (prev_idx == EXEC_ID_beq) ? EXEC_ID_beq_ntnext :
                     (prev_idx == EXEC_ID_bne) ? EXEC_ID_bne_ntnext :
                     (prev_idx == EXEC_ID_blt) ? EXEC_ID_blt_ntnext :
@@ -836,20 +837,20 @@ int isa_fetch_decode(Decode *s) {
   prev_type_j = 0;
   prev_type_b = 0;
 
-  s->type = INSTR_TYPE_N;
+  extra->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
-      s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; prev_type_j = 1; break;
+      extra->jnpc = id_src1->imm; extra->type = INSTR_TYPE_J; prev_type_j = 1; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; prev_type_b = 1; break;
+      extra->jnpc = id_dest->imm; extra->type = INSTR_TYPE_B; prev_type_b = 1; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     case EXEC_ID_p_jalr_ra: case EXEC_ID_p_jalr_t0: case EXEC_ID_p_jalr_ra_noimm:
-      s->type = INSTR_TYPE_I; break;
+      extra->type = INSTR_TYPE_I; break;
 
     case EXEC_ID_system:
       if (BITS(instr, 14, 12) == 0) {
@@ -857,7 +858,7 @@ int isa_fetch_decode(Decode *s) {
           case 0:     // ecall
           case 0x102: // sret
           case 0x302: // mret
-            s->type = INSTR_TYPE_I;
+            extra->type = INSTR_TYPE_I;
         }
       }
       break;

@@ -47,17 +47,17 @@ static word_t zero_null = 0;
 #endif
 
 static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, int type) {
-  uint32_t i = s->isa.instr.val;
+  uint32_t i = s->extraInfo->isa.instr.val;
   int rd  = BITS(i, 11, 7);
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
   destR(rd);
   switch (type) {
     case TYPE_I: src1R(rs1);             src2I(immI(i)); break;
-    case TYPE_U: src1I(immU(i));         src2I(immU(i) + s->pc); break;
-    case TYPE_J: src1I(s->pc + immJ(i)); src2I(s->snpc); break;
+    case TYPE_U: src1I(immU(i));         src2I(immU(i) + s->extraInfo->pc); break;
+    case TYPE_J: src1I(s->extraInfo->pc + immJ(i)); src2I(s->extraInfo->snpc); break;
     case TYPE_S: destI(immS(i));         goto R;
-    case TYPE_B: destI(immB(i) + s->pc); R: // fall through
+    case TYPE_B: destI(immB(i) + s->extraInfo->pc); R: // fall through
     case TYPE_R: src1R(rs1); src2R(rs2); break;
   }
 }
@@ -68,7 +68,7 @@ static void jcond(bool cond, vaddr_t target) {
 
 static int decode_exec(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
-  cpu.pc = s->snpc;
+  cpu.pc = s->extraInfo->snpc;
 
 #define INSTPAT_INST(s) ((s)->isa.instr.val)
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
@@ -93,8 +93,8 @@ static int decode_exec(Decode *s) {
   INSTPAT("0000000 00001 00000 000 ????? 00100 11", p_li_1   , I);
   INSTPAT("??????? ????? 00000 000 ????? 00100 11", c_li     , I);
   INSTPAT("0000000 00000 ????? 000 ????? 00100 11", c_mv     , I);
-  int rs1 = BITS(s->isa.instr.val, 19, 15);
-  int rd  = BITS(s->isa.instr.val, 11, 7);
+  int rs1 = BITS(s->extraInfo->isa.instr.val, 19, 15);
+  int rd  = BITS(s->extraInfo->isa.instr.val, 11, 7);
 if (rd == rs1) {
   INSTPAT("0000000 ????? ????? 000 ????? 01100 11", c_add    , R);
   INSTPAT("0100000 ????? ????? 000 ????? 01100 11", c_sub    , R);
@@ -124,7 +124,7 @@ if (mmu_mode == MMU_TRANSLATE) {
   INSTPAT("??????? ????? ????? ??? ????? 01101 11", lui      , U, R(dest) = src1);
   INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc    , U, R(dest) = src2);
   INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal      , J, jcond(true, src1); R(dest) = src2);
-  INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr     , I, jcond(true, src1 + src2); R(dest) = s->snpc);
+  INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr     , I, jcond(true, src1 + src2); R(dest) = s->extraInfo->snpc);
   INSTPAT("??????? ????? ????? 000 ????? 11000 11", beq      , B, jcond(src1 == src2, dest));
   INSTPAT("??????? ????? ????? 001 ????? 11000 11", bne      , B, jcond(src1 != src2, dest));
   INSTPAT("??????? ????? ????? 100 ????? 11000 11", blt      , B, jcond((sword_t)src1 <  (sword_t)src2, dest));
@@ -168,14 +168,14 @@ if (mmu_mode == MMU_TRANSLATE) {
   INSTPAT("0000001 ????? ????? 110 ????? 01100 11", rem      , R, R(dest) = (sword_t)src1 %  (sword_t)src2);
   INSTPAT("0000001 ????? ????? 111 ????? 01100 11", remu     , R, R(dest) = src1 %  src2);
 
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall    , N, cpu.pc = isa_raise_intr(cpu.mode + 8, s->pc));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall    , N, cpu.pc = isa_raise_intr(cpu.mode + 8, s->extraInfo->pc));
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret     , I, cpu.pc = priv_instr(src2, NULL));
   INSTPAT("0001001 ????? ????? 000 00000 11100 11", sfence_vma,I); // do nothing in non-perf mode
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw    , I, csrrw(&R(dest), src1, src2));
   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs    , I, csrrs(&R(dest), src1, src2));
 
-  INSTPAT("??????? ????? ????? ??? ????? 11010 11", nemu_trap, N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
-  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv      , N, INV(s->pc));
+  INSTPAT("??????? ????? ????? ??? ????? 11010 11", nemu_trap, N, NEMUTRAP(s->extraInfo->pc, R(10))); // R(10) is $a0
+  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv      , N, INV(s->extraInfo>pc));
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
@@ -184,23 +184,23 @@ if (mmu_mode == MMU_TRANSLATE) {
 }
 
 int isa_fetch_decode(Decode *s) {
-  s->isa.instr.val = instr_fetch(&s->snpc, 4);
+  s->extraInfo->isa.instr.val = instr_fetch(&s->extraInfo->snpc, 4);
   int idx = decode_exec(s);
 #ifdef CONFIG_PERF_OPT
-  s->type = INSTR_TYPE_N;
+  s->extraInfo->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_c_jal: case EXEC_ID_jal:
-      s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
+      s->extraInfo->jnpc = id_src1->imm; s->extraInfo->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->extraInfo->jnpc = id_dest->imm; s->extraInfo->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_jalr:
     case EXEC_ID_mret: case EXEC_ID_ecall:
-      s->type = INSTR_TYPE_I;
+      s->extraInfo->type = INSTR_TYPE_I;
   }
 #endif
   return idx;

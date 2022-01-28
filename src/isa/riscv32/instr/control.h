@@ -1,7 +1,7 @@
 def_EHelper(jal) {
   rtl_li(s, ddest, id_src2->imm);
   if (ddest == &gpr(1)) {
-    ftrace_call(s->pc, id_src1->imm);
+    ftrace_call(s->extraInfo->pc, id_src1->imm);
   }
   rtl_j(s, id_src1->imm);
 }
@@ -9,11 +9,11 @@ def_EHelper(jal) {
 def_EHelper(jalr) {
   rtl_addi(s, s0, dsrc1, id_src2->imm);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  rtl_li(s, ddest, s->snpc);
+  rtl_li(s, ddest, s->extraInfo->snpc);
   if (ddest == &gpr(1)) {
-    ftrace_call(s->pc, *s0);
+    ftrace_call(s->extraInfo->pc, *s0);
   } else if (dsrc1 == &gpr(1)) {
-    ftrace_ret(s->pc);
+    ftrace_ret(s->extraInfo->pc);
   }
   rtl_jr(s, s0);
 }

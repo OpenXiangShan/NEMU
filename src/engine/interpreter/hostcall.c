@@ -42,9 +42,9 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
   switch (id) {
     case HOSTCALL_EXIT:
       difftest_skip_ref();
-      set_nemu_state(NEMU_END, s->pc, *src1);
+      set_nemu_state(NEMU_END, s->extraInfo->pc, *src1);
       break;
-    case HOSTCALL_INV: invalid_instr(s->pc); break;
+    case HOSTCALL_INV: invalid_instr(s->extraInfo->pc); break;
 #ifdef CONFIG_HAS_PORT_IO
     case HOSTCALL_PIO: {
       int width = imm & 0xf;
@@ -57,7 +57,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 #ifndef __ICS_EXPORT
     case HOSTCALL_TRAP_THIS:
     case HOSTCALL_TRAP_NEXT: {
-      word_t ret = isa_raise_intr(imm, (id == HOSTCALL_TRAP_THIS ? s->pc : s->snpc));
+      word_t ret = isa_raise_intr(imm, (id == HOSTCALL_TRAP_THIS ? s->extraInfo->pc : s->extraInfo->snpc));
       if (dest) *dest = ret;
       break;
     }

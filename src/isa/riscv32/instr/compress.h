@@ -26,7 +26,7 @@
 
 def_EHelper(c_jal) {
   rtl_li(s, &gpr(1), id_src2->imm);
-  ftrace_call(s->pc, id_src1->imm);
+  ftrace_call(s->extraInfo->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 

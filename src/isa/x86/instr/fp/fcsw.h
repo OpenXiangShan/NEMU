@@ -13,12 +13,12 @@ def_EHelper(fnstsw) {
 
 def_EHelper(fnstcw) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_sm(s, &cpu.fcw, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
+  rtl_sm(s, &cpu.fcw, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff, 2, MMU_DYNAMIC);
 }
 
 def_EHelper(fldcw) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_lm(s, s0, &s->isa.mbr, s->isa.moff, 2, MMU_DYNAMIC);
+  rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff, 2, MMU_DYNAMIC);
   rtl_host_sm(s, &cpu.fcw, s0, 4);
   rtl_srli(s, s0, s0, 10);
   rtl_andi(s, s0, s0, 0x3);
@@ -31,19 +31,19 @@ def_EHelper(fwait) {
 
 def_EHelper(fldenv) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_lm(s, &cpu.fcw, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
+  rtl_lm(s, &cpu.fcw, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 0, 4, MMU_DYNAMIC);
   rtl_mv(s, s0, &cpu.fcw);
   rtl_srli(s, s0, s0, 10);
   rtl_andi(s, s0, s0, 0x3);
   rtl_fpcall(s, FPCALL_SETRM, NULL, NULL, s0, 0);
-  rtl_lm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
+  rtl_lm(s, &cpu.fsw, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 4, 4, MMU_DYNAMIC);
   // others are not loaded
 }
 
 def_EHelper(fnstenv) {
   rt_decode_mem(s, id_dest, false, 0);
-  rtl_sm(s, &cpu.fcw, s->isa.mbase, s->isa.moff + 0, 4, MMU_DYNAMIC);
-  rtl_sm(s, &cpu.fsw, s->isa.mbase, s->isa.moff + 4, 4, MMU_DYNAMIC);
+  rtl_sm(s, &cpu.fcw, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 0, 4, MMU_DYNAMIC);
+  rtl_sm(s, &cpu.fsw, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 4, 4, MMU_DYNAMIC);
 #if 0
   rtlreg_t ftag = 0;
   int i;
@@ -57,10 +57,10 @@ def_EHelper(fnstenv) {
           *s0 == 0x100 || *s0 == 0x300) { ftag |= 2; } // NaNs, INFs, denormal
     }
   }
-  rtl_sm(s, s->isa.mbase, s->isa.moff + 8, &ftag, 4);
-  rtl_sm(s, s->isa.mbase, s->isa.moff + 12, rz, 4);  // fpip
-  rtl_sm(s, s->isa.mbase, s->isa.moff + 16, rz, 4);  // fpcs
-  rtl_sm(s, s->isa.mbase, s->isa.moff + 20, rz, 4);  // fpoo
-  rtl_sm(s, s->isa.mbase, s->isa.moff + 24, rz, 4);  // fpos
+  rtl_sm(s, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 8, &ftag, 4);
+  rtl_sm(s, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 12, rz, 4);  // fpip
+  rtl_sm(s, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 16, rz, 4);  // fpcs
+  rtl_sm(s, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 20, rz, 4);  // fpoo
+  rtl_sm(s, s->extraInfo->isa.mbase, s->extraInfo->isa.moff + 24, rz, 4);  // fpos
 #endif
 }

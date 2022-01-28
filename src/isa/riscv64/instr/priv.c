@@ -7,7 +7,7 @@ extern bool csr_is_exist(uint32_t csrid);
 
 __attribute__((cold))
 int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t id, rtlreg_t *jpc) {
-  uint32_t instr = s->isa.instr.val;
+  uint32_t instr = s->extraInfo->isa.instr.val;
   uint32_t funct3 = BITS(instr, 14, 12);
   id &= 0xfff;
   if (funct3 == 0) {

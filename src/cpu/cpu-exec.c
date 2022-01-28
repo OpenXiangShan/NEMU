@@ -24,15 +24,15 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) log_write("%s\n", _this->logbuf);
 #endif
-  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
+  if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->extraInfo->logbuf)); }
 #ifndef __ICS_EXPORT
-  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val, _this->snpc - _this->pc));
+  IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->extraInfo->pc, (void *)&_this->extraInfo->isa.instr.val, _this->extraInfo->snpc - _this->extraInfo->pc));
   void scan_watchpoint(vaddr_t pc);
-  IFDEF(CONFIG_WATCHPOINT, scan_watchpoint(_this->pc));
+  IFDEF(CONFIG_WATCHPOINT, scan_watchpoint(_this->extraInfo->pc));
   IFDEF(CONFIG_DIFFTEST, save_globals(_this));
   IFDEF(CONFIG_DIFFTEST, cpu.pc = dnpc);
 #endif
-  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->extraInfo->pc, dnpc));
 }
 
 #ifdef CONFIG_PERF_OPT
@@ -58,7 +58,7 @@ void longjmp_exception(int ex_cause) {
 }
 
 static void update_global() {
-  IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->pc);
+  IFDEF(CONFIG_PERF_OPT, cpu.pc = prev_s->extraInfo->pc);
 }
 
 void save_globals(Decode *s) {
@@ -79,41 +79,41 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
 #define rtl_j(s, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
-  s = s->tnext; \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
+  s = s->extraInfo->tnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_j_next(s, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
   s ++; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jr(s, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
-  else s = s->ntnext; \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
+  if (interpret_relop(relop, *src1, *src2)) s = s->extraInfo->tnext; \
+  else s = s->extraInfo->ntnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop_tnext(s, relop, src1, src2, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
   if (interpret_relop(relop, *src1, *src2)) s ++; \
-  else s = s->ntnext; \
+  else s = s->extraInfo->ntnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop_ntnext(s, relop, src1, src2, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
+  if (interpret_relop(relop, *src1, *src2)) s = s->extraInfo->tnext; \
   else s ++; \
   goto end_of_bb; \
 } while (0)
@@ -122,18 +122,18 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   if (g_sys_state_flag) { \
     IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++); \
     s = (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) ? \
-      tcache_handle_flush(s->snpc) : s + 1; \
+      tcache_handle_flush(s->extraInfo->snpc) : s + 1; \
     g_sys_state_flag = 0; \
     goto end_of_loop; \
   } \
 } while (0)
 
 #define rtl_priv_jr(s, target) do { \
-  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->idx_in_bb); \
+  IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
   IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++); \
   s = jr_fetch(s, *(target)); \
   if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) { \
-    s = tcache_handle_flush(s->pc); \
+    s = tcache_handle_flush(s->extraInfo->pc); \
     g_sys_state_flag = 0; \
   } \
   goto end_of_loop; \
@@ -147,8 +147,8 @@ void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
 
 static Decode* jr_fetch(Decode *s, vaddr_t target) {
-  if (likely(s->tnext->pc == target)) return s->tnext;
-  if (likely(s->ntnext->pc == target)) return s->ntnext;
+  if (likely(s->extraInfo->tnext->extraInfo->pc == target)) return s->extraInfo->tnext;
+  if (likely(s->extraInfo->ntnext->extraInfo->pc == target)) return s->extraInfo->ntnext;
   return tcache_jr_fetch(s, target);
 }
 
@@ -189,7 +189,7 @@ static void execute(int n) {
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
-    IFDEF(CONFIG_BB_COUNT, prev_bb_pc = s->pc);
+    IFDEF(CONFIG_BB_COUNT, prev_bb_pc = s->extraInfo->pc);
   }
 
   __attribute__((unused)) Decode *this_s = s;
@@ -220,18 +220,18 @@ def_EHelper(nemu_decode) {
 extern void update_bb_count(vaddr_t pc, int decode_num);
 end_of_bb:
   IFDEF(CONFIG_BB_COUNT, update_bb_count(prev_bb_pc, decode_num));
-  IFDEF(CONFIG_BB_COUNT, prev_bb_pc = s->pc);
+  IFDEF(CONFIG_BB_COUNT, prev_bb_pc = s->extraInfo->pc);
   IFDEF(CONFIG_BB_COUNT, decode_num = 0);
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, if (unlikely(n <= 0)) break);
 
     def_finish();
     IFDEF(CONFIG_ICOUNT_PRECISE, g_nr_guest_instr ++);
     IFDEF(CONFIG_ICOUNT_PRECISE, if (unlikely(-- n <= 0)) break);
-    trace_and_difftest(this_s, s->pc);
+    trace_and_difftest(this_s, s->extraInfo->pc);
   }
 
 end_of_loop:
-  trace_and_difftest(this_s, s->pc);
+  trace_and_difftest(this_s, s->extraInfo->pc);
   prev_s = s;
 }
 #else
@@ -270,24 +270,24 @@ void update_exec_table(Decode* s, int idx){
 }
 
 void fetch_decode(Decode *s, vaddr_t pc) {
-  s->pc = pc;
-  s->snpc = pc;
+  s->extraInfo->pc = pc;
+  s->extraInfo->snpc = pc;
 #ifdef CONFIG_PERF_OPT
   int idx = isa_fetch_decode(s);
   s->EHelper = g_exec_table[idx];
 #else
   isa_fetch_decode(s);
   if (g_ex_cause != NEMU_EXEC_RUNNING) {
-    cpu.pc = isa_raise_intr(g_ex_cause, s->pc);
+    cpu.pc = isa_raise_intr(g_ex_cause, s->extraInfo->pc);
     g_ex_cause = NEMU_EXEC_RUNNING;
   }
 #endif
 #ifdef CONFIG_ITRACE
-  char *p = s->logbuf;
-  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-  int ilen = s->snpc - s->pc;
+  char *p = s->extraInfo->logbuf;
+  p += snprintf(p, sizeof(s->extraInfo->logbuf), FMT_WORD ":", s->extraInfo->pc);
+  int ilen = s->extraInfo->snpc - s->extraInfo->pc;
   int i;
-  uint8_t *instr = (uint8_t *)&s->isa.instr.val;
+  uint8_t *instr = (uint8_t *)&s->extraInfo->isa.instr.val;
   for (i = 0; i < ilen; i ++) {
     p += snprintf(p, 4, " %02x", instr[i]);
   }
@@ -299,8 +299,8 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   p += space_len;
 
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-  disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
-      MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.instr.val, ilen);
+  disassemble(p, s->extraInfo->logbuf + sizeof(s->extraInfo->logbuf) - p,
+      MUXDEF(CONFIG_ISA_x86, s->extraInfo->snpc, s->extraInfo->pc), (uint8_t *)&s->extraInfo->isa.instr.val, ilen);
 #endif
 }
 
@@ -334,9 +334,9 @@ void cpu_exec(uint64_t n) {
 
     if (cause == NEMU_EXEC_EXCEPTION) {
       cause = 0;
-      cpu.pc = isa_raise_intr(g_ex_cause, prev_s->pc);
+      cpu.pc = isa_raise_intr(g_ex_cause, prev_s->extraInfo->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
-      IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->pc, cpu.pc));
+      IFDEF(CONFIG_DIFFTEST, difftest_step(prev_s->extraInfo->pc, cpu.pc));
     } else {
 #ifdef CONFIG_HAS_INTR
       word_t intr = isa_query_intr();
@@ -395,7 +395,7 @@ void cpu_exec(uint64_t n) {
   void tcache_check_and_flush(vaddr_t pc);
   tcache_check_and_flush(cpu.pc);
 
-  if (prev_s != NULL && cpu.pc != prev_s->pc) {
+  if (prev_s != NULL && cpu.pc != prev_s->extraInfo->pc) {
     // caused by difftest_skip_ref()
     tcache_handle_exception(cpu.pc);
   }

@@ -121,7 +121,7 @@ static void lazycc_add(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
       return;
 #endif
   }
-  Assert(cc2relop_sub[cc] != 0, "unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+  Assert(cc2relop_sub[cc] != 0, "unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   rtlreg_t *p = &cpu.cc_dest;
   if (cpu.cc_width != 4) {
     rtl_andi(s, tmp, &cpu.cc_dest, 0xffffffffu >> ((4 - cpu.cc_width) * 8));
@@ -157,7 +157,7 @@ static void lazycc_sub(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
 static void lazycc_neg(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
   switch (cc) {
     case CC_B: lazycc_codegen(s, op, false, RELOP_NE, &cpu.cc_dest, rz); break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
 #if 0
     case CC_O: case CC_NO:
       rtl_setrelopi(s, NEGCCRELOP(cc), dest, &cpu.cc_dest, -(0x1u << (cpu.cc_width * 8 - 1)));
@@ -189,7 +189,7 @@ static void lazycc_inc(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
   switch (cc) {
     // CF is already stored in cpu.cc_src1
     case CC_B: lazycc_codegen(s, op, false, RELOP_NE, &cpu.cc_src1, rz); break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
 #if 0
     case CC_O: case CC_NO:
       rtl_setrelopi(s, NEGCCRELOP(cc), dest, &cpu.cc_dest, 0x1u << (cpu.cc_width * 8 - 1));
@@ -248,7 +248,7 @@ static void lazycc_adc(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
       rtl_or(s, tmp, s0, s1);
       lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
       return;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
 #if 0
     case CC_O: case CC_NO:
       rtl_sub(s, dest, &cpu.cc_dest, &cpu.cc_src1);
@@ -300,7 +300,7 @@ static void lazycc_sbb(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
       rtl_xor(s, tmp, s0, s1);
       lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
       return;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
 #if 0
     case CC_O: case CC_NO:
       rtl_is_sub_overflow(s, dest, &cpu.cc_dest, &cpu.cc_src1, &cpu.cc_src2, cpu.cc_width);
@@ -345,7 +345,7 @@ static void lazycc_shl(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
     case CC_B: rtl_msb(s, tmp, &cpu.cc_src1, cpu.cc_width);
                lazycc_codegen(s, op, false, RELOP_NE, tmp, rz);
                break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   }
 }
 
@@ -354,14 +354,14 @@ static void lazycc_shr(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
     case CC_B: rtl_andi(s, tmp, &cpu.cc_src1, 0x1);
                lazycc_codegen(s, op, false, RELOP_NE, tmp, rz);
                break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   }
 }
 
 static void lazycc_sar(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
   switch (cc) {
     case CC_B: lazycc_shr(s, op, tmp, cc); break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   }
 }
 
@@ -369,7 +369,7 @@ static void lazycc_bt(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
   switch (cc) {
     // cc_dest == rz --> CF = 0 -> CC_NB
     case CC_B: lazycc_codegen(s, op, false, RELOP_NE, &cpu.cc_dest, rz); break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   }
 }
 
@@ -380,7 +380,7 @@ static void lazycc_fcmp(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
       else { tmp = &cpu.cc_dest; }
       break;
     case CC_BE:  rtl_or(s, tmp, &cpu.cc_dest, &cpu.cc_src1); break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc | op->invert, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc | op->invert, s->extraInfo->pc);
   }
   lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
 }
@@ -388,7 +388,7 @@ static void lazycc_fcmp(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
 static void lazycc_mul(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
   switch (cc) {
     case CC_O: lazycc_codegen(s, op, false, RELOP_NE, &cpu.cc_dest, rz); break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   }
 }
 
@@ -408,7 +408,7 @@ static void lazycc_popf(Decode *s, CCop *op, rtlreg_t *tmp, uint32_t cc) {
       if (op->type == CCTYPE_SETCC && shift != 0) { rtl_srli(s, tmp, tmp, shift); }
       lazycc_codegen(s, op, true, RELOP_NE, tmp, rz);
       break;
-    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->pc);
+    default: panic("unhandle cc = %d at pc = " FMT_WORD, cc, s->extraInfo->pc);
   }
 }
 
@@ -441,7 +441,7 @@ static def_rtl(lazycc_internal, CCop *op, uint32_t cc) {
     case LAZYCC_BT:   lazycc_bt   (s, op, tmp, cc); break;
     case LAZYCC_FCMP: lazycc_fcmp (s, op, tmp, cc); break;
     case LAZYCC_MUL:  lazycc_mul  (s, op, tmp, cc); break;
-    default: panic("unhandle cc_op = %d at pc = " FMT_WORD, cpu.cc_op, s->pc);
+    default: panic("unhandle cc_op = %d at pc = " FMT_WORD, cpu.cc_op, s->extraInfo->pc);
   }
 }
 

@@ -39,27 +39,27 @@ def_EHelper(p_bgez_ntnext) { rtl_jrelop_ntnext(s, RELOP_GE, dsrc1, rz, id_dest->
 
 def_EHelper(p_jal) {
   rtl_li(s, &gpr(1), id_src2->imm);
-  ftrace_call(s->pc, id_src1->imm);
+  ftrace_call(s->extraInfo->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 
 def_EHelper(p_jal_next) {
   rtl_li(s, &gpr(1), id_src2->imm);
-  ftrace_call(s->pc, id_src1->imm);
+  ftrace_call(s->extraInfo->pc, id_src1->imm);
   rtl_j_next(s, id_src1->imm);
 }
 
 def_EHelper(p_jalr_ra) {
   rtl_addi(s, s0, &gpr(1), id_src2->imm);
-  rtl_li(s, &gpr(1), s->snpc);
-  ftrace_call(s->pc, *s0);
+  rtl_li(s, &gpr(1), s->extraInfo->snpc);
+  ftrace_call(s->extraInfo->pc, *s0);
   rtl_jr(s, s0);
 }
 
 def_EHelper(p_jalr_ra_noimm) {
   rtl_mv(s, s0, &gpr(1));
-  rtl_li(s, &gpr(1), s->snpc);
-  ftrace_call(s->pc, *s0);
+  rtl_li(s, &gpr(1), s->extraInfo->snpc);
+  ftrace_call(s->extraInfo->pc, *s0);
   rtl_jr(s, s0);
 }
 
@@ -70,7 +70,7 @@ def_EHelper(p_jalr_t0) {
 
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  ftrace_ret(s->pc);
+  ftrace_ret(s->extraInfo->pc);
   rtl_jr(s, &gpr(1));
 }
 

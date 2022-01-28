@@ -1,5 +1,5 @@
-#define INSTR_RS3(s) BITS(s->isa.instr.val, 31, 27)
-#define INSTR_FP_RM(s) BITS(s->isa.instr.val, 14, 12)
+#define INSTR_RS3(s) BITS(s->extraInfo->isa.instr.val, 31, 27)
+#define INSTR_FP_RM(s) BITS(s->extraInfo->isa.instr.val, 14, 12)
 
 #include "../instr/pseudo.h"
 #include "../instr/rvi.h"

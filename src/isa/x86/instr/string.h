@@ -1,11 +1,11 @@
 #define get_shift(width) ((width) / 2)
 
 def_EHelper(movs) {
-  rtl_lm(s, s0, &cpu.esi, 0, s->isa.width, MMU_DYNAMIC);
-  rtl_sm(s, s0, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+  rtl_lm(s, s0, &cpu.esi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
+  rtl_sm(s, s0, &cpu.edi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
   rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
-  if (s->isa.width > 1) {
-    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+  if (s->extraInfo->isa.width > 1) {
+    rtl_slli(s, s0, s0, get_shift(s->extraInfo->isa.width));
   }
   rtl_add(s, &cpu.esi, &cpu.esi, s0);
   rtl_add(s, &cpu.edi, &cpu.edi, s0);
@@ -13,50 +13,50 @@ def_EHelper(movs) {
 
 def_EHelper(rep_movs) {
   if (cpu.ecx != 0) {
-    rtl_lm(s, s0, &cpu.esi, 0, s->isa.width, MMU_DYNAMIC);
-    rtl_sm(s, s0, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+    rtl_lm(s, s0, &cpu.esi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
+    rtl_sm(s, s0, &cpu.edi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
     rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
-    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+    rtl_slli(s, s0, s0, get_shift(s->extraInfo->isa.width));
     rtl_add(s, &cpu.esi, &cpu.esi, s0);
     rtl_add(s, &cpu.edi, &cpu.edi, s0);
 
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
   }
 
-  rtl_jrelop(s, RELOP_NE, &cpu.ecx, rz, s->pc);
+  rtl_jrelop(s, RELOP_NE, &cpu.ecx, rz, s->extraInfo->pc);
 }
 
 def_EHelper(stos) {
-  rt_decode_reg(s, id_src1, true, s->isa.width);
-  rtl_sm(s, dsrc1, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+  rt_decode_reg(s, id_src1, true, s->extraInfo->isa.width);
+  rtl_sm(s, dsrc1, &cpu.edi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
   rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
-  if (s->isa.width > 1) {
-    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+  if (s->extraInfo->isa.width > 1) {
+    rtl_slli(s, s0, s0, get_shift(s->extraInfo->isa.width));
   }
   rtl_add(s, &cpu.edi, &cpu.edi, s0);
 }
 
 def_EHelper(rep_stos) {
   if (cpu.ecx != 0) {
-    rt_decode_reg(s, id_src1, true, s->isa.width);
-    rtl_sm(s, dsrc1, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+    rt_decode_reg(s, id_src1, true, s->extraInfo->isa.width);
+    rtl_sm(s, dsrc1, &cpu.edi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
 
     rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
-    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+    rtl_slli(s, s0, s0, get_shift(s->extraInfo->isa.width));
     rtl_add(s, &cpu.edi, &cpu.edi, s0);
 
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
   }
 
-  rtl_jrelop(s, RELOP_NE, &cpu.ecx, rz, s->pc);
+  rtl_jrelop(s, RELOP_NE, &cpu.ecx, rz, s->extraInfo->pc);
 }
 
 def_EHelper(repz_cmps) {
   if (cpu.ecx != 0) {
-    rtl_lm(s, &id_dest->val, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
-    rtl_lm(s, &id_src1->val, &cpu.esi, 0, s->isa.width, MMU_DYNAMIC);
+    rtl_lm(s, &id_dest->val, &cpu.edi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
+    rtl_lm(s, &id_src1->val, &cpu.esi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
     rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
-    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+    rtl_slli(s, s0, s0, get_shift(s->extraInfo->isa.width));
     rtl_add(s, &cpu.esi, &cpu.esi, s0);
     rtl_add(s, &cpu.edi, &cpu.edi, s0);
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
@@ -71,26 +71,26 @@ def_EHelper(repz_cmps) {
     int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
     if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
-      rtl_set_lazycc(s, &id_src1->val, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
+      rtl_set_lazycc(s, &id_src1->val, &id_dest->val, NULL, LAZYCC_SUB, s->extraInfo->isa.width);
 #else
       rtl_is_sub_carry(s, s1, &id_src1->val, &id_dest->val);
       rtl_set_CF(s, s1);
       rtl_sub(s, s1, &id_src1->val, &id_dest->val);
-      rtl_update_ZFSF(s, s1, s->isa.width);
-      rtl_is_sub_overflow(s, s1, s1, &id_src1->val, &id_dest->val, s->isa.width);
+      rtl_update_ZFSF(s, s1, s->extraInfo->isa.width);
+      rtl_is_sub_overflow(s, s1, s1, &id_src1->val, &id_dest->val, s->extraInfo->isa.width);
       rtl_set_OF(s, s1);
 #endif
     }
   }
-  rtl_jrelop(s, RELOP_NE, s0, rz, s->pc);
+  rtl_jrelop(s, RELOP_NE, s0, rz, s->extraInfo->pc);
 }
 
 def_EHelper(repnz_scas) {
   if (cpu.ecx != 0) {
-    rt_decode_reg(s, id_src1, true, s->isa.width);
-    rtl_lm(s, &id_dest->val, &cpu.edi, 0, s->isa.width, MMU_DYNAMIC);
+    rt_decode_reg(s, id_src1, true, s->extraInfo->isa.width);
+    rtl_lm(s, &id_dest->val, &cpu.edi, 0, s->extraInfo->isa.width, MMU_DYNAMIC);
     rtl_host_lm(s, s0, &cpu.DF, 4); // encoded value
-    rtl_slli(s, s0, s0, get_shift(s->isa.width));
+    rtl_slli(s, s0, s0, get_shift(s->extraInfo->isa.width));
     rtl_add(s, &cpu.edi, &cpu.edi, s0);
     rtl_subi(s, &cpu.ecx, &cpu.ecx, 1);
   }
@@ -101,21 +101,21 @@ def_EHelper(repnz_scas) {
   rtl_or(s, s0, s0, s1);
   if (*s0) {
     // exit the loop
-    int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->isa.flag_def != 0);
+    int need_update_eflags = MUXDEF(CONFIG_x86_CC_NONE, true, s->extraInfo->isa.flag_def != 0);
     if (need_update_eflags) {
 #ifdef CONFIG_x86_CC_LAZY
-      rtl_set_lazycc(s, dsrc1, &id_dest->val, NULL, LAZYCC_SUB, s->isa.width);
+      rtl_set_lazycc(s, dsrc1, &id_dest->val, NULL, LAZYCC_SUB, s->extraInfo->isa.width);
 #else
       rtl_is_sub_carry(s, s1, dsrc1, &id_dest->val);
       rtl_set_CF(s, s1);
       rtl_sub(s, s1, dsrc1, &id_dest->val);
-      rtl_update_ZFSF(s, s1, s->isa.width);
-      rtl_is_sub_overflow(s, s1, s1, dsrc1, &id_dest->val, s->isa.width);
+      rtl_update_ZFSF(s, s1, s->extraInfo->isa.width);
+      rtl_is_sub_overflow(s, s1, s1, dsrc1, &id_dest->val, s->extraInfo->isa.width);
       rtl_set_OF(s, s1);
 #endif
     }
   }
-  rtl_jrelop(s, RELOP_EQ, s0, rz, s->pc);
+  rtl_jrelop(s, RELOP_EQ, s0, rz, s->extraInfo->pc);
 }
 
 #if 0
@@ -127,16 +127,16 @@ static inline def_EHelper(lods) {
 
 static inline def_EHelper(stos) {
 #ifndef CONFIG_ENGINE_INTERPRETER
-  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
+  Assert(s->extraInfo->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
-  word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
+  word_t count = (s->extraInfo->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_sm(s, &cpu.edi, 0, dsrc1, id_dest->width);
     return_on_mem_ex();
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * id_dest->width);
   }
-  if (s->isa.rep_flags && count != 0) {
+  if (s->extraInfo->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if (count - 1 != 0) rtl_j(s, cpu.pc);
   }
@@ -144,11 +144,11 @@ static inline def_EHelper(stos) {
 
 static inline def_EHelper(scas) {
 #ifndef CONFIG_ENGINE_INTERPRETER
-  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
+  Assert(s->extraInfo->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
-  int is_repnz = (s->isa.rep_flags == PREFIX_REPNZ);
-  word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
+  int is_repnz = (s->extraInfo->isa.rep_flags == PREFIX_REPNZ);
+  word_t count = (s->extraInfo->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_lm(s, s0, &cpu.edi, 0, id_dest->width);
     return_on_mem_ex();
@@ -156,7 +156,7 @@ static inline def_EHelper(scas) {
     rtl_set_ZF(s, s1);
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * id_dest->width);
   }
-  if (s->isa.rep_flags && count != 0) {
+  if (s->extraInfo->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if ((count - 1 != 0) && (is_repnz ^ cpu.ZF)) rtl_j(s, cpu.pc);
   } else {
@@ -172,11 +172,11 @@ static inline def_EHelper(scas) {
 
 static inline def_EHelper(cmps) {
 #ifndef CONFIG_ENGINE_INTERPRETER
-  Assert(s->isa.rep_flags == 0, "not support REP in engines other than interpreter");
+  Assert(s->extraInfo->isa.rep_flags == 0, "not support REP in engines other than interpreter");
 #endif
 
-  int is_repnz = (s->isa.rep_flags == PREFIX_REPNZ);
-  word_t count = (s->isa.rep_flags ? cpu.ecx : 1);
+  int is_repnz = (s->extraInfo->isa.rep_flags == PREFIX_REPNZ);
+  word_t count = (s->extraInfo->isa.rep_flags ? cpu.ecx : 1);
   if (count != 0) {
     rtl_lm(s, &id_dest->val, &cpu.edi, 0, id_dest->width);
     return_on_mem_ex();
@@ -187,7 +187,7 @@ static inline def_EHelper(cmps) {
     rtl_addi(s, &cpu.esi, &cpu.esi, (cpu.DF ? -1 : 1) * id_dest->width);
     rtl_addi(s, &cpu.edi, &cpu.edi, (cpu.DF ? -1 : 1) * id_dest->width);
   }
-  if (s->isa.rep_flags && count != 0) {
+  if (s->extraInfo->isa.rep_flags && count != 0) {
     cpu.ecx --;
     if ((count - 1 != 0) && (is_repnz ^ cpu.ZF)) rtl_j(s, cpu.pc);
     else {

@@ -1,14 +1,14 @@
 def_EHelper(in) {
-  rt_decode(s, id_dest, false, s->isa.width);
+  rt_decode(s, id_dest, false, s->extraInfo->isa.width);
   rt_decode(s, id_src1, true, 2);
-  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (1 << 4) | s->isa.width);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (1 << 4) | s->extraInfo->isa.width);
   rtl_wb_r(s, ddest);
 }
 
 def_EHelper(out) {
   rt_decode(s, id_dest, true, 2);
-  rt_decode(s, id_src1, true, s->isa.width);
-  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (0 << 4) | s->isa.width);
+  rt_decode(s, id_src1, true, s->extraInfo->isa.width);
+  rtl_hostcall(s, HOSTCALL_PIO, ddest, dsrc1, NULL, (0 << 4) | s->extraInfo->isa.width);
 }
 
 def_EHelper(mov_r2cr) {
@@ -24,13 +24,13 @@ def_EHelper(mov_cr2r) {
 
 def_EHelper(lidt) {
   rtl_decode_unary(s, false);
-  rtl_addi(s, ddest, &s->isa.mbr, s->isa.moff);
+  rtl_addi(s, ddest, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_IDTR);
 }
 
 def_EHelper(lgdt) {
   rtl_decode_unary(s, false);
-  rtl_addi(s, ddest, &s->isa.mbr, s->isa.moff);
+  rtl_addi(s, ddest, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, ddest, NULL, CSR_GDTR);
 }
 

@@ -44,7 +44,7 @@ static word_t zero_null = 0;
 #endif
 
 static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, int type) {
-  uint32_t i = s->isa.instr.val;
+  uint32_t i = s->extraInfo->isa.instr.val;
   int rd = BITS(i, 15, 11);
   int rt = BITS(i, 20, 16);
   int rs = BITS(i, 25, 21);
@@ -52,11 +52,11 @@ static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, 
   switch (type) {
     case TYPE_U: src1R(rs); src2I(immU(i)); break;
     case TYPE_I: src1R(rs); src2I(immI(i)); break;
-    case TYPE_J: destI((s->pc & 0xf0000000) | immJ(i)); src2I(s->pc + 8); break;
+    case TYPE_J: destI((s->extraInfo->pc & 0xf0000000) | immJ(i)); src2I(s->extraInfo->pc + 8); break;
     case TYPE_S: src1I(immS(i)); src2R(rt); break;
-    case TYPE_B: destI(s->pc + immB(i) + 4); // fall through
+    case TYPE_B: destI(s->extraInfo->pc + immB(i) + 4); // fall through
     case TYPE_R: src1R(rs); src2R(rt); break;
-    case TYPE_jalr: src1R(rs); src2I(s->pc + 8); break;
+    case TYPE_jalr: src1R(rs); src2I(s->extraInfo->pc + 8); break;
   }
 }
 
@@ -129,7 +129,7 @@ static word_t swr(Decode *s, uint32_t rt, vaddr_t addr) {
 
 static int decode_exec(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
-  cpu.pc = s->snpc;
+  cpu.pc = s->extraInfo->snpc;
 
 #define INSTPAT_INST(s) ((s)->isa.instr.val)
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
@@ -146,10 +146,10 @@ static int decode_exec(Decode *s) {
   INSTPAT("000000 ????? ????? ????? 00000 000110", srlv   , R, R(dest) = src2 >> src1);
   INSTPAT("000000 ????? ????? ????? 00000 000111", srav   , R, R(dest) = (sword_t)src2 >> src1);
   INSTPAT("000000 ????? 00000 00000 ????? 001000", jr     , R, jcond(true, src1));
-  INSTPAT("000000 ????? 00000 ????? ????? 001001", jalr   , jalr, R(dest) = s->pc + 8; jcond(true, src1));
+  INSTPAT("000000 ????? 00000 ????? ????? 001001", jalr   , jalr, R(dest) = s->extraInfo->pc + 8; jcond(true, src1));
   INSTPAT("000000 ????? ????? ????? 00000 001010", movz   , R, if (src2 == 0) R(dest) = src1);
   INSTPAT("000000 ????? ????? ????? 00000 001011", movn   , R, if (src2 != 0) R(dest) = src1);
-  INSTPAT("000000 ????? ????? ????? ????? 001100", syscall, N, cpu.pc = isa_raise_intr(EX_SYSCALL, s->pc));
+  INSTPAT("000000 ????? ????? ????? ????? 001100", syscall, N, cpu.pc = isa_raise_intr(EX_SYSCALL, s->extraInfo->pc));
   INSTPAT("000000 00000 00000 ????? 00000 010000", mfhi   , R, R(dest) = cpu.hi);
   INSTPAT("000000 ????? 00000 00000 00000 010001", mthi   , R, cpu.hi = src1);
   INSTPAT("000000 00000 00000 ????? 00000 010010", mflo   , R, R(dest) = cpu.lo);
@@ -176,7 +176,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("000001 ????? 00000 ????? ????? ??????", bltz   , B, jcond((int32_t)src1 <  0, dest));
   INSTPAT("000001 ????? 00001 ????? ????? ??????", bgez   , B, jcond((int32_t)src1 >= 0, dest));
   INSTPAT("000010 ????? ????? ????? ????? ??????", j      , J, jcond(true, dest));
-  INSTPAT("000011 ????? ????? ????? ????? ??????", jal    , J, jcond(true, dest); R(31) = s->pc + 8);
+  INSTPAT("000011 ????? ????? ????? ????? ??????", jal    , J, jcond(true, dest); R(31) = s->extraInfo->pc + 8);
   INSTPAT("000100 ????? ????? ????? ????? ??????", beq    , B, jcond(src1 == src2, dest));
   INSTPAT("000101 ????? ????? ????? ????? ??????", bne    , B, jcond(src1 != src2, dest));
   INSTPAT("000110 ????? ????? ????? ????? ??????", blez   , B, jcond((int32_t)src1 <= 0, dest));
@@ -201,7 +201,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("101011 ????? ????? ????? ????? ??????", sw     , I, Mw(src1 + src2, 4, R(dest)));
   INSTPAT("101110 ????? ????? ????? ????? ??????", swr    , I, swr(s, dest, src1 + src2));
 
-  int rt = BITS(s->isa.instr.val, 20, 16);
+  int rt = BITS(s->extraInfo->isa.instr.val, 20, 16);
   INSTPAT("010000 00000 ????? ????????????????"  , mfc0   , R, csrrw(&R(rt), NULL, dest));
   INSTPAT("010000 00100 ????? ????????????????"  , mtc0   , R, csrrw(NULL, &R(rt), dest));
   INSTPAT("010000 1 0000000000000000000 001000"  , tlbp   , N, priv_instr(PRIV_TLBP, NULL));
@@ -209,8 +209,8 @@ static int decode_exec(Decode *s) {
   INSTPAT("010000 1 0000000000000000000 000110"  , tlbwr  , N, priv_instr(PRIV_TLBWR, NULL));
   INSTPAT("010000 1 0000000000000000000 011000"  , eret   , N, cpu.pc = priv_instr(PRIV_ERET, NULL));
 
-  INSTPAT("111100 ????? ????? ????? ????? ??????", nemu_trap, N, NEMUTRAP(s->pc, R(2))); // R(2) is $v0;
-  INSTPAT("?????? ????? ????? ????? ????? ??????", inv    , N, INV(s->pc));
+  INSTPAT("111100 ????? ????? ????? ????? ??????", nemu_trap, N, NEMUTRAP(s->extraInfo->pc, R(2))); // R(2) is $v0;
+  INSTPAT("?????? ????? ????? ????? ????? ??????", inv    , N, INV(s->extraInfo->pc));
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
@@ -219,22 +219,22 @@ static int decode_exec(Decode *s) {
 }
 
 int isa_fetch_decode(Decode *s) {
-  s->isa.instr.val = instr_fetch(&s->snpc, 4);
+  s->extraInfo->isa.instr.val = instr_fetch(&s->extraInfo->snpc, 4);
   check_ex(0);
   int idx = decode_exec(s);
 #ifdef CONFIG_PERF_OPT
-  s->type = INSTR_TYPE_N;
+  s->extraInfo->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_j: case EXEC_ID_jal:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_J; break;
+      s->extraInfo->jnpc = id_dest->imm; s->extraInfo->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blez:
     case EXEC_ID_bltz: case EXEC_ID_bgez: case EXEC_ID_bgtz:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->extraInfo->jnpc = id_dest->imm; s->extraInfo->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_ret: case EXEC_ID_jr: case EXEC_ID_jalr:
     case EXEC_ID_eret: case EXEC_ID_syscall:
-      s->type = INSTR_TYPE_I;
+      s->extraInfo->type = INSTR_TYPE_I;
   }
 #endif
   return idx;

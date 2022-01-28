@@ -40,7 +40,7 @@ def_EHelper(fswsp_mmu) {
   rtl_sm(s, s0, &gpr(2), id_dest->imm, 4, MMU_TRANSLATE);
 }
 
-#define check_rm(s) IFDEF(CONFIG_RT_CHECK, Assert(INSTR_FP_RM(s) == 0b111, "s->pc = " FMT_WORD, s->pc));
+#define check_rm(s) IFDEF(CONFIG_RT_CHECK, Assert(INSTR_FP_RM(s) == 0b111, "s->pc = " FMT_WORD, s->extraInfo->pc));
 
 #define def_fop_template(name, w, has_rm) \
   def_EHelper(name) { \

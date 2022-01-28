@@ -2,9 +2,9 @@ def_EHelper(movq_E2xmm) {
   assert(0);
   rtl_decode_binary(s, false, false);
 
-  rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 0, 4, MMU_DYNAMIC);
+  rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 0, 4, MMU_DYNAMIC);
   cpu.xmm[id_dest->reg]._32[0] = *s0;
-  rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 4, 4, MMU_DYNAMIC);
+  rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 4, 4, MMU_DYNAMIC);
   cpu.xmm[id_dest->reg]._32[1] = *s0;
 
     //rtl_li(s, s0, cpu.xmm[id_dest->reg]._32[0]);
@@ -15,9 +15,9 @@ def_EHelper(movq_xmm2E) {
   assert(0);
   rtl_decode_binary(s, false, false);
   *s0 = cpu.xmm[id_src1->reg]._32[0];
-  rtl_sm(s, s0, &s->isa.mbr, s->isa.moff + 0, 4, MMU_DYNAMIC);
+  rtl_sm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 0, 4, MMU_DYNAMIC);
   *s0 = cpu.xmm[id_src1->reg]._32[1];
-  rtl_sm(s, s0, &s->isa.mbr, s->isa.moff + 4, 4, MMU_DYNAMIC);
+  rtl_sm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 4, 4, MMU_DYNAMIC);
 }
 
 def_EHelper(movdqa_E2xmm) {
@@ -27,13 +27,13 @@ def_EHelper(movdqa_E2xmm) {
     cpu.xmm[id_dest->reg] = cpu.xmm[id_src1->reg];
   } else {
     assert(0);
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 0, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->extraInfo->isa.mbr, s->extraInfo->isa.moff + 0, 4, MMU_DYNAMIC);
     cpu.xmm[id_dest->reg]._32[0] = *s0;
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 4, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 4, 4, MMU_DYNAMIC);
     cpu.xmm[id_dest->reg]._32[1] = *s0;
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 8, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 8, 4, MMU_DYNAMIC);
     cpu.xmm[id_dest->reg]._32[2] = *s0;
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 12, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 12, 4, MMU_DYNAMIC);
     cpu.xmm[id_dest->reg]._32[3] = *s0;
   }
 }
@@ -68,13 +68,13 @@ def_EHelper(pxor) {
     assert(0);
     src._128 = cpu.xmm[id_src1->reg]._128;
   } else {
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 0, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 0, 4, MMU_DYNAMIC);
     src._32[0] = *s0;
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 4, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 4, 4, MMU_DYNAMIC);
     src._32[1] = *s0;
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 8, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 8, 4, MMU_DYNAMIC);
     src._32[2] = *s0;
-    rtl_lm(s, s0, &s->isa.mbr, s->isa.moff + 12, 4, MMU_DYNAMIC);
+    rtl_lm(s, s0, &s->extraInfo->isa.mbr, s->extraInfo->isa.moff + 12, 4, MMU_DYNAMIC);
     src._32[3] = *s0;
   }
 #ifdef __LP64__

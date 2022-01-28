@@ -33,7 +33,7 @@ def_EHelper(p_bgez) { rtl_jrelop(s, RELOP_GE, dsrc1, rz, id_dest->imm); }
 
 def_EHelper(p_ret) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
-  ftrace_ret(s->pc);
+  ftrace_ret(s->extraInfo->pc);
   rtl_jr(s, &gpr(1));
 }
 

@@ -4,6 +4,6 @@
 #define dfdest (id_dest->pfreg)
 #define dfsrc1 (id_src1->pfreg)
 #define dfsrc2 (id_src2->pfreg)
-#define ftop_update(s) (cpu.ftop = s->isa.ftop)
+#define ftop_update(s) (cpu.ftop = s->extraInfo->isa.ftop)
 
 #endif

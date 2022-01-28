@@ -18,7 +18,7 @@ void isa_fp_set_ex(uint32_t ex) {
 
 def_rtl(fcmp, const fpreg_t *src1, const fpreg_t *src2) {
 #ifdef CONFIG_x86_CC_LAZY
-  assert(s->isa.flag_def != 0);
+  assert(s->extraInfo->isa.flag_def != 0);
   if (src1 != src2) {
     rtl_fltd(s, &cpu.cc_dest, src1, src2); // cc_dest = CF
     rtl_feqd(s, &cpu.cc_src1, src1, src2); // cc_src1 = ZF
@@ -54,8 +54,8 @@ def_rtl(fcmp_fsw, const fpreg_t *src1, const fpreg_t *src2) {
 }
 
 def_rtl(fcmovcc, fpreg_t *dest, const fpreg_t *src1) {
-  uint8_t opcode_lo = *(s->isa.p_instr - 1);
-  uint8_t opcode_hi = *(s->isa.p_instr - 2);
+  uint8_t opcode_lo = *(s->extraInfo->isa.p_instr - 1);
+  uint8_t opcode_hi = *(s->extraInfo->isa.p_instr - 2);
   uint32_t cc_idx = (opcode_lo >> 3) & 0x3;
   int invert = opcode_hi & 0x1;
   uint32_t cc_table[] = { CC_B, CC_E, CC_BE, CC_P };

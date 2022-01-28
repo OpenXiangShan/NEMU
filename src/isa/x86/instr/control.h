@@ -1,16 +1,16 @@
 def_EHelper(call) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   // the target address is calculated at the decode stage
-  rtl_li(s, s0, s->snpc);
+  rtl_li(s, s0, s->extraInfo->snpc);
   rtl_push(s, s0);
-  ftrace_call(s->pc, id_dest->imm);
+  ftrace_call(s->extraInfo->pc, id_dest->imm);
   rtl_j(s, id_dest->imm);
 }
 
 def_EHelper(ret) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_pop(s, s0);
-  ftrace_ret(s->pc);
+  ftrace_ret(s->extraInfo->pc);
   rtl_jr(s, s0);
 }
 
@@ -22,7 +22,7 @@ def_EHelper(jmp) {
 
 def_EHelper(jcc) {
   // the target address is calculated at the decode stage
-  uint32_t cc = s->isa.opcode & 0xf;
+  uint32_t cc = s->extraInfo->isa.opcode & 0xf;
 #ifdef CONFIG_x86_CC_LAZY
   CCop op;
   op.target = id_dest->imm;
@@ -37,9 +37,9 @@ def_EHelper(jcc) {
 def_EHelper(call_E) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_decode_unary(s, true);
-  rtl_li(s, s0, s->snpc);
+  rtl_li(s, s0, s->extraInfo->snpc);
   rtl_push(s, s0);
-  ftrace_call(s->pc, *ddest);
+  ftrace_call(s->extraInfo->pc, *ddest);
   rtl_jr(s, ddest);
 }
 
@@ -52,7 +52,7 @@ def_EHelper(ret_imm) {
   IFDEF(CONFIG_x86_CC_LAZY, clean_lazycc());
   rtl_pop(s, s0);
   rtl_addi(s, &cpu.esp, &cpu.esp, id_dest->val);
-  ftrace_ret(s->pc);
+  ftrace_ret(s->extraInfo->pc);
   rtl_jr(s, s0);
 }
 
@@ -64,7 +64,7 @@ def_EHelper(jecxz) {
 #ifndef __ICS_EXPORT
 
 static inline def_EHelper(ljmp) {
-  rtl_j(s, s->jmp_pc);
+  rtl_j(s, s->extraInfo->jmp_pc);
   rtl_li(s, s0, id_src1->imm);
   rtl_hostcall(s, HOSTCALL_CSR, NULL, s0, CSR_CS);
 }

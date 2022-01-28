@@ -1,6 +1,6 @@
-#define ftop_pop(s)  (s->isa.ftop = (cpu.ftop + 1) & 0x7)
-#define ftop_pop2(s) (s->isa.ftop = (cpu.ftop + 2) & 0x7)
-#define ftop_push(s) (s->isa.ftop = (cpu.ftop - 1) & 0x7)
+#define ftop_pop(s)  (s->extraInfo->isa.ftop = (cpu.ftop + 1) & 0x7)
+#define ftop_pop2(s) (s->extraInfo->isa.ftop = (cpu.ftop + 2) & 0x7)
+#define ftop_push(s) (s->extraInfo->isa.ftop = (cpu.ftop - 1) & 0x7)
 
 static inline void operand_freg(Decode *s, Operand *op, int i) {
   op->type = OP_TYPE_REG;
