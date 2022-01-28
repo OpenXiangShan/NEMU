@@ -9,3 +9,5 @@ CONFIG_PC_RESET_OFFSET=0x0
 # CONFIG_HAS_DISK is not set
 # CONFIG_RT_CHECK is not set
 # CONFIG_PERF_OPT is not set
+# CONFIG_BB_COUNT is not set
+# CONFIG_EHELPER_COUNT is not set
