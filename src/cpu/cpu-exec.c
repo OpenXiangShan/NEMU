@@ -81,7 +81,7 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 #define rtl_j(s, target) do { \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
-  s = s->extraInfo->tnext; \
+  s = s->tnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_j_next(s, target) do { \
@@ -99,21 +99,21 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->extraInfo->tnext; \
-  else s = s->extraInfo->ntnext; \
+  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
+  else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop_tnext(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
   if (interpret_relop(relop, *src1, *src2)) s ++; \
-  else s = s->extraInfo->ntnext; \
+  else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop_ntnext(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, n -= s->extraInfo->idx_in_bb); \
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += s->extraInfo->idx_in_bb); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->extraInfo->tnext; \
+  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
   else s ++; \
   goto end_of_bb; \
 } while (0)
@@ -147,8 +147,8 @@ void tcache_handle_exception(vaddr_t jpc);
 Decode* tcache_handle_flush(vaddr_t snpc);
 
 static Decode* jr_fetch(Decode *s, vaddr_t target) {
-  if (likely(s->extraInfo->tnext->extraInfo->pc == target)) return s->extraInfo->tnext;
-  if (likely(s->extraInfo->ntnext->extraInfo->pc == target)) return s->extraInfo->ntnext;
+  if (likely(s->tnext->extraInfo->pc == target)) return s->tnext;
+  if (likely(s->ntnext->extraInfo->pc == target)) return s->ntnext;
   return tcache_jr_fetch(s, target);
 }
 

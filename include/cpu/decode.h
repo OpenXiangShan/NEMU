@@ -25,16 +25,6 @@ enum {
 };
 
 typedef struct ExtraInfo {
-  union {
-    struct {
-      struct Decode *tnext;  // next pointer for taken branch and jump
-      struct Decode *ntnext; // next pointer for non-taken branch
-    };
-    struct {  // only used by tcache_tmp_pool
-      struct Decode *list_next; // next pointer for list
-      struct Decode *bb_src;    // pointer recording the source of basic block direction
-    };
-  };
   vaddr_t pc;
   vaddr_t snpc; // static next pc
   vaddr_t jnpc;
@@ -45,6 +35,16 @@ typedef struct ExtraInfo {
 }ExtraInfo;
 
 typedef struct Decode {
+  union {
+    struct {
+      struct Decode *tnext;  // next pointer for taken branch and jump
+      struct Decode *ntnext; // next pointer for non-taken branch
+    };
+    struct {  // only used by tcache_tmp_pool
+      struct Decode *list_next; // next pointer for list
+      struct Decode *bb_src;    // pointer recording the source of basic block direction
+    };
+  };
   IFDEF (CONFIG_PERF_OPT, const void *EHelper);
   IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
   Operand dest, src1, src2;

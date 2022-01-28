@@ -32,7 +32,7 @@ static int bb_pool_insts[CONFIG_BB_POOL_SIZE] = {};
 #endif
 static Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   ExtraInfo* extra = s->extraInfo;
-  extra->tnext = extra->ntnext = NULL;
+  s->tnext = s->ntnext = NULL;
   extra->type = 0;
   extra->pc = pc;
   s->EHelper = g_exec_nemu_decode;
@@ -61,7 +61,7 @@ static Decode* tcache_bb_new(vaddr_t pc) {
   Decode *s = tcache_bb_freelist;
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist->tnext);
-  tcache_bb_freelist = tcache_bb_freelist->extraInfo->tnext;
+  tcache_bb_freelist = tcache_bb_freelist->tnext;
   tcache_bb_check(tcache_bb_freelist);
   tcache_bb_check(tcache_bb_freelist->tnext);
   return tcache_entry_init(s, pc);
@@ -72,7 +72,7 @@ static void tcache_bb_free(Decode *s) {
   if (!(idx >= 0 && idx < TCACHE_BB_SIZE)) { return; }
   tcache_bb_check(s);
   tcache_bb_check(tcache_bb_freelist);
-  s->extraInfo->tnext = tcache_bb_freelist;
+  s->tnext = tcache_bb_freelist;
   tcache_bb_freelist = s;
   tcache_bb_check(tcache_bb_freelist->tnext);
 }
@@ -152,15 +152,14 @@ void update_bb_count(vaddr_t pc, int decode_num){
 
 static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
   bb_t* bb = bb_find(jpc);
-  ExtraInfo* this_extra = _this->extraInfo;
   if (bb != NULL) {
-    if (is_taken) {this_extra->tnext = bb->s; }
-    else { this_extra->ntnext = bb->s; }
+    if (is_taken) {_this->tnext = bb->s; }
+    else { _this->ntnext = bb->s; }
   } else {
     Decode *ret = tcache_bb_new(jpc);
-    if (is_taken) { ret->extraInfo->type = BB_RECORD_TYPE_TAKEN; this_extra->tnext = ret; }
-    else { ret->extraInfo->type = BB_RECORD_TYPE_NTAKEN; this_extra->ntnext = ret; }
-    ret->extraInfo->bb_src = _this;
+    if (is_taken) { ret->extraInfo->type = BB_RECORD_TYPE_TAKEN; _this->tnext = ret; }
+    else { ret->extraInfo->type = BB_RECORD_TYPE_NTAKEN; _this->ntnext = ret; }
+    ret->bb_src = _this;
   }
 }
 
@@ -197,9 +196,9 @@ static void tcache_flush() {
 
   int i;
   for (i = 0; i < TCACHE_BB_SIZE - 1; i ++) {
-    tcache_bb_pool[i].extraInfo->list_next = &tcache_bb_pool[i + 1];
+    tcache_bb_pool[i].list_next = &tcache_bb_pool[i + 1];
   }
-  tcache_bb_pool[TCACHE_BB_SIZE - 1].extraInfo->list_next = NULL;
+  tcache_bb_pool[TCACHE_BB_SIZE - 1].list_next = NULL;
   tcache_bb_freelist = &tcache_bb_pool[0];
 }
 
@@ -209,15 +208,15 @@ static Decode *bb_now = NULL, *bb_now_record = NULL;
 
 __attribute__((noinline))
 Decode* tcache_jr_fetch(Decode *s, vaddr_t jpc) {
-  s->extraInfo->ntnext = s->extraInfo->tnext;
+  s->ntnext = s->tnext;
   tcache_bb_fetch(s, true, jpc);
-  return s->extraInfo->tnext;
+  return s->tnext;
 }
 
 static void tcache_patch_and_free(Decode *bb_record, Decode *bb) {
-  Decode *src = bb_record->extraInfo->bb_src;
-  if (bb_record->extraInfo->type == BB_RECORD_TYPE_TAKEN)  { src->extraInfo->tnext = bb; }
-  if (bb_record->extraInfo->type == BB_RECORD_TYPE_NTAKEN) { src->extraInfo->ntnext = bb; }
+  Decode *src = bb_record->bb_src;
+  if (bb_record->extraInfo->type == BB_RECORD_TYPE_TAKEN)  { src->tnext = bb; }
+  if (bb_record->extraInfo->type == BB_RECORD_TYPE_NTAKEN) { src->ntnext = bb; }
   tcache_bb_free(bb_record);
 }
 
@@ -265,7 +264,7 @@ Decode* tcache_decode(Decode *s) {
         tcache_bb_fetch(s, true, s->extraInfo->jnpc);
         tcache_bb_fetch(s, false, s->extraInfo->snpc + MUXDEF(CONFIG_ISA_mips32, 4, 0));
         break;
-      case INSTR_TYPE_I: s->extraInfo->tnext = s->extraInfo->ntnext = s; break; // update dynamically
+      case INSTR_TYPE_I: s->tnext = s->ntnext = s; break; // update dynamically
       default: assert(0);
     }
     tcache_state = TCACHE_RUNNING;
@@ -288,14 +287,14 @@ static Decode ex = {};
 
 void tcache_handle_exception(vaddr_t jpc) {
   tcache_bb_fetch(&ex, true, jpc);
-  save_globals(ex.extraInfo->tnext);
+  save_globals(ex.tnext);
   tcache_state = TCACHE_RUNNING;
 }
 
 Decode* tcache_handle_flush(vaddr_t snpc) {
   tcache_flush();
   tcache_handle_exception(snpc);
-  return ex.extraInfo->tnext;
+  return ex.tnext;
 }
 
 Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
