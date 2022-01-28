@@ -152,6 +152,30 @@ static Decode* jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
+#ifdef CONFIG_BB_COUNT
+static vaddr_t prev_bb_pc = 0;
+static int decode_num = 0;
+#endif
+
+#ifdef CONFIG_EHELPER_COUNT
+typedef struct INST_INFO{
+  char str[128];
+  uint64_t count;
+}InstInfo;
+#define EXEC_ID_nemu_decode TOTAL_INSTR
+#define FILL_INST_INFO(name) [concat(EXEC_ID_, name)] = {.str=""#name"", .count=0},
+static InstInfo inst_count[TOTAL_INSTR + 1] = {
+  MAP(INSTR_LIST, FILL_INST_INFO)
+};
+extern FILE *inst_fp;
+void save_inst_msg(){
+  for(int i = 0; i < TOTAL_INSTR; i++){
+    fprintf(inst_fp, "%s %ld\n", inst_count[i].str, inst_count[i].count);
+  }
+  fprintf(inst_fp, "%s %ld\n", "nemu_decode", inst_count[TOTAL_INSTR].count);
+}
+#endif
+
 static void execute(int n) {
   static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
@@ -165,6 +189,7 @@ static void execute(int n) {
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
+    IFDEF(CONFIG_BB_COUNT, prev_bb_pc = s->pc);
   }
 
   __attribute__((unused)) Decode *this_s = s;
@@ -188,10 +213,15 @@ static void execute(int n) {
 
 def_EHelper(nemu_decode) {
   s = tcache_decode(s);
+  IFDEF(CONFIG_BB_COUNT, decode_num ++);
   continue;
 }
 
+extern void update_bb_count(vaddr_t pc, int decode_num);
 end_of_bb:
+  IFDEF(CONFIG_BB_COUNT, update_bb_count(prev_bb_pc, decode_num));
+  IFDEF(CONFIG_BB_COUNT, prev_bb_pc = s->pc);
+  IFDEF(CONFIG_BB_COUNT, decode_num = 0);
   IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, if (unlikely(n <= 0)) break);
 
     def_finish();

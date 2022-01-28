@@ -22,6 +22,12 @@ static int bb_idx = 0;
 static bb_t bb_list [CONFIG_BB_LIST_SIZE] = {};
 static const void *g_exec_nemu_decode;
 
+#ifdef CONFIG_BB_COUNT
+static int bb_list_count[CONFIG_BB_LIST_SIZE] = {};
+static int bb_pool_count[CONFIG_BB_POOL_SIZE] = {};
+static int bb_list_insts[CONFIG_BB_LIST_SIZE] = {};
+static int bb_pool_insts[CONFIG_BB_POOL_SIZE] = {};
+#endif
 static Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   s->tnext = s->ntnext = NULL;
   s->type = 0;
@@ -118,6 +124,23 @@ static bb_t* bb_find(vaddr_t pc) {
     }
   } while (1);
 }
+#ifdef CONFIG_BB_COUNT
+void update_bb_count(vaddr_t pc, int decode_num){
+  bb_t* bb = bb_find(pc);
+  if(!bb) { return;}
+  int pool_idx = bb - bb_pool;
+  int list_idx = bb - bb_list;
+  if(pool_idx >= 0 & pool_idx < CONFIG_BB_POOL_SIZE){
+    bb_pool_count[pool_idx] ++;
+    if(decode_num != 0) bb_pool_insts[pool_idx] = decode_num;
+  }
+  else if(list_idx >= 0 & list_idx < CONFIG_BB_LIST_SIZE){
+    bb_list_count[list_idx] ++;
+    if(decode_num != 0) bb_list_insts[list_idx] = decode_num;
+  }
+  else Assert(0, "pc=%lx pool_idx=%d list_idx=%d\n", pc, pool_idx, list_idx);
+}
+#endif
 
 static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
   bb_t* bb = bb_find(jpc);
@@ -132,7 +155,33 @@ static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
   }
 }
 
+#ifdef CONFIG_BB_COUNT
+extern FILE * bb_fp;
+void save_bb_msg(){
+  for(int i = 0; i < CONFIG_BB_POOL_SIZE; i++){
+    if(bb_pool_count[i] != 0){
+      fprintf(bb_fp, "0x%lx %d %d\n", bb_pool[i].pc, bb_pool_count[i], bb_pool_insts[i]);
+      fflush(bb_fp);
+    }
+  }
+
+  for(int i = 0; i < CONFIG_BB_LIST_SIZE; i++){
+    if(bb_list_count[i] != 0){
+      fprintf(bb_fp, "0x%lx %d %d\n", bb_list[i].pc, bb_list_count[i], bb_list_insts[i]);
+      fflush(bb_fp);
+    }
+  }
+}
+#endif
+
 static void tcache_flush() {
+#ifdef CONFIG_BB_COUNT
+  if(bb_idx != 0) save_bb_msg();
+  memset(bb_list_count, 0, sizeof(bb_list_count));
+  memset(bb_pool_count, 0, sizeof(bb_pool_count));
+  memset(bb_list_insts, 0, sizeof(bb_list_insts));
+  memset(bb_pool_insts, 0, sizeof(bb_pool_insts));
+#endif
   tc_idx = 0;
   bb_idx = 0;
   memset(bb_list, -1, sizeof(bb_list));

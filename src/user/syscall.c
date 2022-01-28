@@ -40,7 +40,13 @@ static sword_t get_syscall_ret(intptr_t ret) {
   return (ret == -1) ? -errno : ret;
 }
 
+void save_bb_msg();
+void save_inst_msg();
+extern char *img_file;
+
 static void user_sys_exit(int status) {
+  IFDEF(CONFIG_BB_COUNT, save_bb_msg());
+  IFDEF(CONFIG_EHELPER_COUNT, save_inst_msg());
   void set_nemu_state(int state, vaddr_t pc, int halt_ret);
   set_nemu_state(NEMU_END, cpu.pc, status);
   longjmp_exec(NEMU_EXEC_END);

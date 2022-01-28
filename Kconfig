@@ -367,5 +367,13 @@ config HAS_INTR
   bool
   default y
 
+config BB_COUNT
+  bool "Basic block count"
+  default y
+
+config EHELPER_COUNT
+bool "Ehelper count"
+default y
+
 #endif
 endmenu
