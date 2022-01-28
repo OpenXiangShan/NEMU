@@ -30,7 +30,7 @@ def_EHelper(c_jr) {
 
 def_EHelper(c_jalr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
-  rtl_li(s, &gpr(1), s->extraInfo->snpc);
+  rtl_li(s, &gpr(1), id_dest->imm);
   ftrace_call(s->extraInfo->pc, *dsrc1);
   rtl_jr(s, dsrc1);
 }

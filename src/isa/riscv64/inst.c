@@ -31,6 +31,8 @@ enum {
   TYPE_CFSDSP, TYPE_CSWSP, TYPE_CSDSP,
 
   TYPE_FLD, TYPE_FST, TYPE_FR, TYPE_FR2R, TYPE_R2FR,
+
+  TYPE_I_JALR, TYPE_CR_JALR,
 };
 
 static word_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
@@ -86,6 +88,7 @@ static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, 
     case TYPE_FR: src1FR(rs1); src2FR(rs2); destFR(rd); break;
     case TYPE_FR2R: src1FR(rs1); src2FR(rs2); destR(rd); break;
     case TYPE_R2FR: src1R(rs1); destFR(rd); break;
+    case TYPE_I_JALR: src1R(rs1);   destI(s->extraInfo->snpc);  src2I(immI(i)); break;
     default: panic("type = %d at pc = " FMT_WORD , type, s->extraInfo->pc);
   }
 }
@@ -520,9 +523,9 @@ if(rs1 == rs2) {
 
   INSTLAB("0000000 00000 00001 ??? 00000 11001 11", p_ret  , I);
   INSTPAT("0000000 00000 ????? ??? 00000 11001 11", c_jr   , I);
-  INSTPAT("0000000 00000 00001 ??? 00001 11001 11", p_jalr_ra_noimm , I);
-  INSTPAT("??????? ????? 00001 ??? 00001 11001 11", p_jalr_ra, I);
-  INSTPAT("??????? ????? 00110 ??? 00000 11001 11", p_jalr_t0, I);
+  INSTPAT("0000000 00000 00001 ??? 00001 11001 11", p_jalr_ra_noimm , I_JALR);
+  INSTPAT("??????? ????? 00001 ??? 00001 11001 11", p_jalr_ra, I_JALR);
+  INSTPAT("??????? ????? 00110 ??? 00000 11001 11", p_jalr_t0, I_JALR);
   INSTPAT("??????? ????? ????? ??? ????? 11001 11", jalr   , I, jcond(true, src1 + src2); R(dest) = s->extraInfo->snpc);
 
   INSTLAB("??????? ????? ????? ??? ????? 11010 11", nemu_trap, N, NEMUTRAP(s->extraInfo->pc, R(10))); // R(10) is $a0
@@ -610,6 +613,7 @@ static void decode_operand_rvc(Decode *s, word_t *dest, word_t *src1, word_t *sr
     case TYPE_CFSDSP: destI(rvc_uimm(i, "...543876.......")); src1R(2); src2FR(r6_2); break;
     case TYPE_CS: rdrs1_same(r9_7);  src2R(r4_2); break;
     case TYPE_CR: rdrs1_same(r11_7); src2R(r6_2); break;
+    case TYPE_CR_JALR: rdrs1_same(r11_7); src2R(r6_2); destI(s->extraInfo->snpc); break;
     default: panic("inst = %x type = %d at pc = " FMT_WORD , s->extraInfo->isa.instr.val, type, s->extraInfo->pc);
   }
 }
@@ -728,7 +732,7 @@ if (mmu_mode == MMU_TRANSLATE) {
   // c_jalr can not handle correctly when rs1 == ra, fall back to general jalr
   INSTLAB("100 1 00001 00000 10", jalr    , CR);
   INSTPAT("100 1 00000 00000 10", inv     , N);  // ebreak
-  INSTPAT("100 1 ????? 00000 10", c_jalr  , CR, jcond(true, src1); R(1) = s->extraInfo->snpc);
+  INSTPAT("100 1 ????? 00000 10", c_jalr  , CR_JALR, jcond(true, src1); R(1) = s->extraInfo->snpc);
   INSTPAT("100 1 ????? ????? 10", c_add   , CR, R(dest) = src1 + src2);
 
   SET_JMPTAB(fsdsp);

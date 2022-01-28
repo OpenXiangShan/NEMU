@@ -51,14 +51,14 @@ def_EHelper(p_jal_next) {
 
 def_EHelper(p_jalr_ra) {
   rtl_addi(s, s0, &gpr(1), id_src2->imm);
-  rtl_li(s, &gpr(1), s->extraInfo->snpc);
+  rtl_li(s, &gpr(1),id_dest->imm);
   ftrace_call(s->extraInfo->pc, *s0);
   rtl_jr(s, s0);
 }
 
 def_EHelper(p_jalr_ra_noimm) {
   rtl_mv(s, s0, &gpr(1));
-  rtl_li(s, &gpr(1), s->extraInfo->snpc);
+  rtl_li(s, &gpr(1), id_dest->imm);
   ftrace_call(s->extraInfo->pc, *s0);
   rtl_jr(s, s0);
 }
