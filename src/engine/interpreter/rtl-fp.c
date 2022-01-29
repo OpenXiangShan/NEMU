@@ -1,8 +1,9 @@
+#define _GNU_SOURCE
 #include <rtl/rtl.h>
 #include <cpu/difftest.h>
 #include MUXDEF(CONFIG_FPU_SOFT, "softfloat-fp.h", \
     MUXDEF(CONFIG_FPU_HOST, "host-fp.h", "none-fp.h"))
-
+#include <signal.h>
 #define BOX_MASK 0xFFFFFFFF00000000
 
 static fpreg_t unbox(fpreg_t r) {
@@ -200,4 +201,13 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t 
     case FPCALL_ATAN: *dest = fpcall_f64_atan(fpToF64(*dest), fpToF64(*src1)).v; break;
     default: panic("unsupport id = %d", id);
   }
+}
+
+void fpe_handler(int sig){
+  Assert(0, "recieve sig %d\n", sig);
+}
+
+void init_fp(){
+  feenableexcept(FE_DIVBYZERO);
+  signal(SIGFPE, fpe_handler);
 }

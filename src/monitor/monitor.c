@@ -8,6 +8,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
 void init_disasm(const char *triple);
+void init_fp();
 #ifndef __ICS_EXPORT
 void init_ftrace(const char *file);
 #endif
@@ -114,6 +115,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize memory. */
   init_mem();
+
+  init_fp();
 
 #ifdef CONFIG_MODE_USER
   int user_argc = argc - user_argidx;
