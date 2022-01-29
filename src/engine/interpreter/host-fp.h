@@ -33,6 +33,18 @@ static inline float32_t ui32_to_f32(rtlreg_t a) { return float32((uint32_t)a); }
 static inline float32_t i64_to_f32 (uint64_t a) { return float32((int64_t)a); }
 static inline float32_t ui64_to_f32(uint64_t a) { return float32((uint64_t)a); }
 
+static inline int get_fp_round(){
+  int rm = fegetround();
+  switch (rm) {
+    case FE_TONEAREST: rm = FP_INT_TONEAREST; break;
+    case FE_TOWARDZERO: rm = FP_INT_TOWARDZERO; break;
+    case FE_DOWNWARD: rm = FP_INT_DOWNWARD; break;
+    case FE_UPWARD: rm = FP_INT_UPWARD; break;
+    default: assert(0);
+  }
+  return rm;
+}
+
 static inline int32_t check_f32_i32(bool* succ, float32_t a){
   int sign = a.v >> 31;
   int exp = BITS(a.v, 30, 23);
@@ -118,33 +130,10 @@ static inline uint64_t check_f32_ui64(bool* succ, float32_t a){
   return 0;
 }
 
-static inline int32_t my_f32_to_i32 (float32_t a) {
-  bool succ = 0;
-  int32_t ret = check_f32_i32(&succ, a);
-  if(succ) return ret;
-  return llrintf(a.f);
-}
-
-static inline uint32_t my_f32_to_ui32(float32_t a) {
-  bool succ = 0;
-  uint32_t ret = check_f32_ui32(&succ, a);
-  if(succ) return ret;
-  return llrintf(a.f);
-}
-
-static inline int64_t my_f32_to_i64 (float32_t a) {
-  bool succ = 0;
-  int64_t ret = check_f32_i64(&succ, a);
-  if(succ) return ret;
-  return llrintf(a.f);
-}
-
-static inline uint64_t my_f32_to_ui64(float32_t a) {
-  bool succ = 0;
-  uint64_t ret = check_f32_ui64(&succ, a);
-  if(succ) return ret;
-  return llrintf(a.f);
-}
+static inline int32_t my_f32_to_i32 (float32_t a) { return fromfpxf(a.f, get_fp_round(), 32); }
+static inline uint32_t my_f32_to_ui32(float32_t a) { return ufromfpxf(a.f, get_fp_round(), 32); }
+static inline int64_t my_f32_to_i64 (float32_t a) { return fromfpxf(a.f, get_fp_round(), 64); }
+static inline uint64_t my_f32_to_ui64(float32_t a) { return ufromfpxf(a.f, get_fp_round(), 64); }
 
 static inline int32_t  my_f32_to_i32_rmm (float32_t a) {
   bool succ = 0;
@@ -166,13 +155,13 @@ static inline int64_t  my_f32_to_i64_rmm (float32_t a) {
   if(succ) return ret;
   return llroundf(a.f);
 }
+
 static inline uint64_t my_f32_to_ui64_rmm(float32_t a) {
   bool succ = 0;
   uint64_t ret = check_f32_ui64(&succ, a);
   if(succ) return ret;
   return llroundf(a.f);
 }
-
 
 typedef union { uint64_t v; double f; } float64_t;
 static inline float64_t float64(double f) { float64_t r = { .f = f }; return r; }
@@ -279,31 +268,11 @@ static inline uint64_t check_f64_ui64(bool* succ, float64_t a){
   return 0;
 }
 
-static inline int32_t  my_f64_to_i32 (float64_t a) {
-  bool succ = 0;
-  int32_t ret = check_f64_i32(&succ, a);
-  if(succ) return ret;
-  return llrint(a.f);
-}
+static inline int32_t  my_f64_to_i32 (float64_t a) { return fromfpx(a.f, get_fp_round(), 32); }
+static inline uint32_t my_f64_to_ui32(float64_t a) { return ufromfpx(a.f, get_fp_round(), 32); }
+static inline int64_t  my_f64_to_i64 (float64_t a) { return fromfpx(a.f, get_fp_round(), 64); }
+static inline uint64_t my_f64_to_ui64(float64_t a) { return ufromfpx(a.f, get_fp_round(), 64); }
 
-static inline uint32_t my_f64_to_ui32(float64_t a) {
-  bool succ = 0;
-  uint32_t ret = check_f64_ui32(&succ, a);
-  if(succ) return ret;
-  return llrint(a.f);
-}
-static inline int64_t  my_f64_to_i64 (float64_t a) {
-  bool succ = 0;
-  int64_t ret = check_f64_i64(&succ, a);
-  if(succ) return ret;
-  return llrint(a.f);
-}
-static inline uint64_t my_f64_to_ui64(float64_t a) {
-  bool succ = 0;
-  uint64_t ret = check_f64_ui64(&succ, a);
-  if(succ) return ret;
-  return llrint(a.f);
-}
 static inline int32_t  my_f64_to_i32_rmm (float64_t a) {
   bool succ = 0;
   int32_t ret = check_f64_i32(&succ, a);
