@@ -123,10 +123,6 @@ def_rtl_f2i(fcvt_f32_to_i32, my_f32_to_i32,  32);
 def_rtl_f2i(fcvt_f32_to_u32, my_f32_to_ui32, 32);
 def_rtl_f2i64(fcvt_f32_to_i64, my_f32_to_i64,  32);
 def_rtl_f2i64(fcvt_f32_to_u64, my_f32_to_ui64, 32);
-def_rtl_f2i(fcvt_f32_to_i32_rmm, my_f32_to_i32_rmm,  32);
-def_rtl_f2i(fcvt_f32_to_u32_rmm, my_f32_to_ui32_rmm, 32);
-def_rtl_f2i64(fcvt_f32_to_i64_rmm, my_f32_to_i64_rmm,  32);
-def_rtl_f2i64(fcvt_f32_to_u64_rmm, my_f32_to_ui64_rmm, 32);
 
 def_rtl_fp_binary(faddd, f64_add, 64);
 def_rtl_fp_binary(fsubd, f64_sub, 64);
@@ -147,10 +143,7 @@ def_rtl_f2i(fcvt_f64_to_i32, my_f64_to_i32,  64);
 def_rtl_f2i(fcvt_f64_to_u32, my_f64_to_ui32, 64);
 def_rtl_f2i64(fcvt_f64_to_i64, my_f64_to_i64,  64);
 def_rtl_f2i64(fcvt_f64_to_u64, my_f64_to_ui64, 64);
-def_rtl_f2i(fcvt_f64_to_i32_rmm, my_f64_to_i32_rmm,  64);
-def_rtl_f2i(fcvt_f64_to_u32_rmm, my_f64_to_ui32_rmm, 64);
-def_rtl_f2i64(fcvt_f64_to_i64_rmm, my_f64_to_i64_rmm,  64);
-def_rtl_f2i64(fcvt_f64_to_u64_rmm, my_f64_to_ui64_rmm, 64);
+
 def_rtl_fp_unary(fcvt_f32_to_f64, f32_to_f64, 32);
 def_rtl_fp_unary(fcvt_f64_to_f32, f64_to_f32, 64);
 

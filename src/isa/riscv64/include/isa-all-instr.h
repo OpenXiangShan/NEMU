@@ -35,7 +35,6 @@
   f(fmv_x_w) f(fmv_w_x) \
   f(fcvt_s_w_rm) \
   f(fcvt_w_s_rm) f(fcvt_l_s_rm) f(fcvt_lu_s_rm) \
-  f(fcvt_w_s_rmm) f(fcvt_wu_s_rmm) f(fcvt_l_s_rmm) f(fcvt_lu_s_rmm) \
   f(fcvt_wu_s_rm) \
 
 #define INSTR_RVD(f) \
@@ -53,7 +52,6 @@
   f(fmv_x_d) f(fmv_d_x) \
   f(fcvt_d_s) f(fcvt_s_d) \
   f(fclassd) \
-  f(fcvt_w_d_rmm) f(fcvt_wu_d_rmm) f(fcvt_l_d_rmm) f(fcvt_lu_d_rmm) \
 
 #define INSTR_RVC(f) \
   f(c_j) f(p_jal) f(c_jr) f(c_jalr) \
