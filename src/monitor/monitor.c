@@ -19,8 +19,10 @@ static void welcome() {
         "to record the trace. This may lead to a large log file. "
         "If it is not necessary, you can disable it in menuconfig"));
   Log("Build time: %s, %s", __TIME__, __DATE__);
+#ifndef QUIET
   printf("Welcome to %s-NEMU!\n", ASNI_FMT(str(__GUEST_ISA__), ASNI_FG_YELLOW ASNI_BG_RED));
   printf("For help, type \"help\"\n");
+#endif
 #ifdef __ICS_EXPORT
   Log("Exercise: Please remove me in the source code and compile NEMU again.");
   assert(0);
