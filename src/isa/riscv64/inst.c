@@ -98,6 +98,7 @@ static word_t sextw(word_t x) { return (int64_t)(int32_t)x; }
 static int decode_exec(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
   bool is_jmp = false;
+  uint32_t instr = s->extraInfo->isa.instr.val;
 
 #define INSTPAT_INST(s) ((s)->extraInfo->isa.instr.val)
 #define INSTPAT_MATCH(s, name, type, ... /* body */ ) { \
@@ -119,8 +120,8 @@ static int decode_exec(Decode *s) {
   static void *jmptab[256];
   uint32_t inst_slr2 = INSTPAT_INST(s) >> 2;  // the 2 bits at LSB are always 2'b11
   int idx = BITS(inst_slr2, 4, 0) | (BITS(inst_slr2, 12, 10) << 5);
-  int rs1 = BITS(s->extraInfo->isa.instr.val, 19, 15);
-  int rd  = BITS(s->extraInfo->isa.instr.val, 11, 7);
+  int rs1 = BITS(instr, 19, 15);
+  int rd  = BITS(instr, 11, 7);
   int mmu_mode = isa_mmu_state();
   const void *jmptarget = jmptab[idx];
   if (jmptarget != NULL) goto *jmptarget;
@@ -410,7 +411,7 @@ if (rd == rs1) {
 
   SET_JMPTAB(fp);
 if (fp_enable()) {
-int rs2 = BITS(s->extraInfo->isa.instr.val, 24, 20);
+int rs2 = BITS(instr, 24, 20);
 if(rs1 == rs2) {
   INSTPAT("0010000 ????? ????? 000 ????? 10100 11" , p_fmv_s  , FR);
   INSTPAT("0010000 ????? ????? 010 ????? 10100 11" , p_fabs_s , FR);
@@ -759,7 +760,13 @@ if (mmu_mode == MMU_TRANSLATE) {
 
 int isa_fetch_decode(Decode *s) {
   int idx = 0;
+  uint32_t instr = 0;
   ExtraInfo* extra = s->extraInfo;
+#ifdef CONFIG_MODE_USER
+  instr = instr_fetch(&extra->snpc, 4);
+  extra->isa.instr.val = instr;
+  idx = (BITS(instr, 1, 0) != 0x3 ? extra->snpc -= 2, decode_exec_rvc(s) : decode_exec(s));
+#else
   extra->isa.instr.val = instr_fetch(&extra->snpc, 2);
   check_ex(0);
   if (BITS(extra->isa.instr.val, 1, 0) != 0x3) {
@@ -775,8 +782,9 @@ int isa_fetch_decode(Decode *s) {
     extra->isa.instr.val |= (hi << 16);
     idx = decode_exec(s);
   }
+  instr = extra->isa.instr.val;
+#endif
 #ifdef CONFIG_PERF_OPT
-  uint32_t instr = extra->isa.instr.val;
   extern void update_exec_table(Decode* s, int idx);
   static Decode* prev_s;
   static int prev_idx = 0;
