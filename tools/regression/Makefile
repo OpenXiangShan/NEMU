@@ -57,20 +57,23 @@ run-riscv32: reset-config
 	$(MAKE) -C $(NANOS_HOME) ARCH=riscv32-nemu run
 
 run-riscv64-pa: reset-config
-	$(MAKE) -C $(NEMU_HOME) riscv64-pa-difftest_defconfig
-	$(MAKE) -C $(MICROBENCH) ARCH=riscv64-nemu run mainargs=test
-	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu update VME=1
-	$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu run
+	$(MAKE) -C $(NEMU_HOME) riscv64-pa_defconfig
+	#$(MAKE) -C $(NEMU_HOME) riscv64-pa-difftest_defconfig
+	$(MAKE) -C $(MICROBENCH) ARCH=riscv64-nemu run mainargs=huge
+	#$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu update VME=1
+	#$(MAKE) -C $(NANOS_HOME) ARCH=riscv64-nemu run
 
 RUN_RISCV64_USER = $(NEMU_HOME)/build/riscv64-nemu-interpreter -b --diff=$(NEMU_HOME)/build/riscv64-nemu-interpreter-so
 
 run-riscv64-user: reset-config
-	$(MAKE) -C $(NEMU_HOME) riscv64-user-ref_defconfig
-	$(MAKE) -C $(NEMU_HOME)
+	#$(MAKE) -C $(NEMU_HOME) riscv64-user-ref_defconfig
+	#$(MAKE) -C $(NEMU_HOME)
 	$(MAKE) -C $(NEMU_HOME) riscv64-user_defconfig
 	$(MAKE) -C ./tests/hello ISA=riscv64
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-riscv64.elf)
-	LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64 run-all-test
+	#$(RUN_RISCV64_USER) /home/yzh/software/TestFloat-3e/build/Linux-rv64-GCC/testfloat -all2 -level 2 -checkAll
+	#LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64 run-all-test
+	LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64/470.lbm run-test
 
 TEST = $(MICROBENCH)
 

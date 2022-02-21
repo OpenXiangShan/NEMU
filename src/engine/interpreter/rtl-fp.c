@@ -197,7 +197,9 @@ def_rtl(fpcall, uint32_t id, fpreg_t *dest, const fpreg_t *src1, const rtlreg_t 
 }
 
 void fpe_handler(int sig){
-  Assert(0, "recieve sig %d\n", sig);
+  static int i = 0;
+  i ++;
+  Assert(i < 5000000, "recieve sig %d\n", sig);
 }
 
 void init_fp(){
