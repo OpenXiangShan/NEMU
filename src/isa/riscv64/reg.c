@@ -147,6 +147,8 @@ void csr_write(uint32_t addr, rtlreg_t *src) {
     *dest = *src & FCSR_MASK;
     fflags->val = *src & FFLAGS_MASK;
     frm->val = ((*src)>>5) & FRM_MASK;
+  } else if (dest == (void *)satp) {
+    *dest = MASKED_SATP(*src);
   } else {
     *dest = *src;
 

@@ -11,6 +11,12 @@
     // #define PMEM_SIZE (256 * 1024 * 1024L)
 #endif
 
+#ifdef _SHARE
+  #define PADDRBITS 36
+#else
+  #define PADDRBITS 40
+#endif
+
 void init_mem();
 void allocate_mem();
 

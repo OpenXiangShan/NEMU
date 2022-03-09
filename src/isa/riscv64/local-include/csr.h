@@ -2,6 +2,7 @@
 #define __CSR_H__
 
 #include <common.h>
+#include <memory/paddr.h>
 
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
@@ -177,6 +178,17 @@ CSR_STRUCT_START(sip)
   uint64_t pad2 : 2;
 CSR_STRUCT_END(sip)
 
+#define SATP_ASID_LEN 0 // max is 16. asid is not support in this branch, set it to 0
+#define SATP_PADDR_LEN (PADDRBITS-12) // max is 44
+#define SATP_ASID_MAX_LEN 16
+#define SATP_PADDR_MAX_LEN 44
+
+#define SATP_MODE_MASK (8UL << (SATP_ASID_MAX_LEN + SATP_PADDR_MAX_LEN))
+#define SATP_ASID_MASK (((1L << SATP_ASID_LEN)-1) << SATP_PADDR_MAX_LEN)
+#define SATP_PADDR_MASK ((1L << SATP_PADDR_LEN)-1)
+
+#define SATP_MASK (SATP_MODE_MASK | SATP_ASID_MASK | SATP_PADDR_MASK)
+#define MASKED_SATP(x) (SATP_MASK & x)
 
 CSR_STRUCT_START(satp)
   uint64_t ppn :44;
