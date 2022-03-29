@@ -33,6 +33,12 @@ sudo debootstrap --arch=riscv64 --keyring /usr/share/keyrings/debian-ports-archi
 sudo debootstrap --arch=i386 --keyring /usr/share/keyrings/debian-archive-keyring.gpg --include=debian-archive-keyring stable /mnt http://deb.debian.org/debian
 ```
 
+如果在运行上述 `debootstrap` 命令时提示 gpg key 错误，可以在[Debian官方镜像](https://packages.debian.org/bullseye/all/debian-ports-archive-keyring/download)上选择合适的镜像下载最新的安装包，并手动安装。更新完 debian-ports-archive-keyring 包后，可以重新尝试执行上面的 `debootstrap` 命令。以下命令在 2022 年 3 月 29 日是可用的：
+```
+wget http://ftp.cn.debian.org/debian/pool/main/d/debian-ports-archive-keyring/debian-ports-archive-keyring_2022.02.15\~deb11u1_all.deb .
+sudo dpkg -i debian-ports-archive-keyring_2022.02.15\~deb11u1_all.deb
+```
+
 * 进入镜像
 ```
 sudo chroot /mnt /bin/bash
