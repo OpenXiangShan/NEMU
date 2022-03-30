@@ -38,6 +38,22 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
 #endif
 }
 
+void difftest_load_flash(void *flash_bin, size_t f_size){
+  extern uint8_t *flash_base;
+  FILE * fp = fopen(flash_bin, "r");
+  printf("[NMEU] flash_image change into %s\n", (char *)flash_bin);
+  __attribute__((unused)) int ret;
+  fseek(fp, 0, SEEK_END);
+  int size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  Assert(
+    size <= CONFIG_FLASH_SIZE,
+    "img size %d is larget than flash size %d",
+    size, CONFIG_FLASH_SIZE
+  );
+  ret = fread(flash_base, 1, CONFIG_FLASH_SIZE, fp);
+}
+
 void difftest_regcpy(void *dut, bool direction) {
   isa_difftest_regcpy(dut, direction);
 }

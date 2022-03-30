@@ -1,8 +1,9 @@
 #include <utils.h>
 #include <device/map.h>
 
-static uint8_t *flash_base = NULL;
+uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
+static const char *flash_img = CONFIG_FLASH_IMG_PATH;
 static uint32_t preset_flash[] = {
   0x0010029b,
   0x01f29293,
@@ -18,9 +19,10 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_flash() {
+#if CONFIG_HAS_FLASH == 1
   flash_base = new_space(CONFIG_FLASH_SIZE);
-  const char *img = CONFIG_FLASH_IMG_PATH;
-  fp = fopen(img, "r");
+  printf("[NMEU] flash_image is %s\n",flash_img);
+  fp = fopen(flash_img, "r");
   if (fp == NULL) {
     // Log("Can not find flash image: %s", img);
     // Log("Use built-in image instead");
@@ -37,5 +39,8 @@ void init_flash() {
     );
     ret = fread(flash_base, 1, CONFIG_FLASH_SIZE, fp);
   }
+#else
+  flash_base = (uint8_t*) preset_flash;
+#endif  
   add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
 }
