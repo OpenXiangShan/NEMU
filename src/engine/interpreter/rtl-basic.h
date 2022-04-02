@@ -104,6 +104,7 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
+  printf("[NEMU-load-unsigned] pc:0x%lx addr:" FMT_PADDR " read data :%lx \n",cpu.pc,*addr + offset,*dest);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -115,6 +116,7 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  printf("[NEMU-store] pc:0x%lx addr:" FMT_PADDR " store data :%lx \n",cpu.pc,*addr + offset,*src1);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -126,6 +128,7 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
+  printf("[NEMU-load-signed] pc:0x%lx addr:" FMT_PADDR " read data :%lx \n",cpu.pc,*addr + offset,val);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;

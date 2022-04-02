@@ -15,6 +15,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   //   printf("Flash read offset %x len %x\n", offset, len);
   //   printf("data %lx\n", *(uint64_t*)&flash_base[offset]);
   // }
+  Assert(!is_write, "write to flash is illegal");
   return;
 }
 
@@ -26,6 +27,7 @@ void init_flash() {
   if (fp == NULL) {
     // Log("Can not find flash image: %s", img);
     // Log("Use built-in image instead");
+    printf("Can not find flash image: %s", flash_img);
     flash_base = (uint8_t*) preset_flash;
   } else {
     __attribute__((unused)) int ret;

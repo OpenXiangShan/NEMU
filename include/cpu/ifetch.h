@@ -3,6 +3,7 @@
 #include <memory/vaddr.h>
 
 static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
+   printf("[NEMU] fetch-decode pc: 0x%lx\n", *pc);
   uint32_t instr = vaddr_ifetch(*pc, len);
 #ifdef ENABLE_DIFFTEST_INSTR_QUEUE
   extern void add_instr(uint8_t *instr, int len);
@@ -17,6 +18,7 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   }
 #endif
   (*pc) += len;
+  printf("[NEMU] fetch-decode instr: 0x%x\n", instr);
   return instr;
 }
 

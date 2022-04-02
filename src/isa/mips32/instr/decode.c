@@ -192,7 +192,9 @@ def_THelper(main) {
 }
 
 int isa_fetch_decode(Decode *s) {
+  printf("[NEMU] fetch-decode pc:" FMT_PADDR "\n", &s->snpc);
   s->isa.instr.val = instr_fetch(&s->snpc, 4);
+  printf("[NEMU] fetch-decode instr: 0x%x\n", s->isa.instr.val);
   int idx = table_main(s);
 
   s->type = INSTR_TYPE_N;
