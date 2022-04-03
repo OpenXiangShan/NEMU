@@ -44,9 +44,7 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
 
 __attribute__((noinline))
 static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) {
-#ifdef CONFIG_SHARE
   vaddr_t vaddr = addr;
-#endif
   paddr_t pg_base = isa_mmu_translate(addr, len, type);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
@@ -71,9 +69,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
 
 __attribute__((noinline))
 static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data) {
-#ifdef CONFIG_SHARE
   vaddr_t vaddr = addr;
-#endif
   paddr_t pg_base = isa_mmu_translate(addr, len, MEM_TYPE_WRITE);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
