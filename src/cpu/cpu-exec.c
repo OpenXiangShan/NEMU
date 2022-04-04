@@ -1,3 +1,4 @@
+#include <checkpoint/profiling.h>
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
@@ -44,6 +45,15 @@ static Decode *prev_s;
 
 void save_globals(Decode *s) {
   IFDEF(CONFIG_PERF_OPT, prev_s = s);
+}
+
+uint64_t get_abs_instr_count () {
+#if defined(CONFIG_ENABLE_INSTR_CNT)
+  int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+  uint32_t n_executed = n_batch - n_remain;
+  return n_executed + g_nr_guest_instr;
+#endif
+  return 0;
 }
 
 static void update_instr_cnt() {
@@ -158,6 +168,26 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
+uint64_t per_bb_profile(Decode *s) {
+  uint64_t abs_inst_count = get_abs_instr_count();
+  if (profiling_state == SimpointProfiling && profiling_started) {
+    simpoint_profiling(s->pc, true, abs_inst_count);
+  }
+
+  extern bool able_to_take_cpt();
+  if (checkpoint_taking && profiling_started && able_to_take_cpt()) {
+    // update cpu pc!
+    cpu.pc = s->pc;
+
+    extern bool try_take_cpt(uint64_t icount);
+    bool taken = try_take_cpt(abs_inst_count);
+    if (taken) {
+      Log("Should take checkpoint on pc 0x%lx", s->pc);
+    }
+  }
+  return abs_inst_count;
+}
+
 static int execute(int n) {
   Logtb("Will execute %i instrs\n", n);
   static const void* local_exec_table[TOTAL_INSTR] = {
@@ -200,14 +230,27 @@ def_EHelper(nemu_decode) {
 end_of_bb:
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
+
+    // Here is per bb action
+    uint64_t abs_inst_count = per_bb_profile(s);
+    Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
+    Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
+
     if (unlikely(n <= 0)) break;
 
+    // Here is per inst action
+    // Because every instruction executed goes here, don't put Log here to improve performance
     def_finish();
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
     debug_difftest(this_s, s);
   }
 
 end_of_loop:
+  // Here is per loop action and some priv instruction action
+  Loge("end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
+       prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);
+  per_bb_profile(s);
+
   debug_difftest(this_s, s);
   prev_s = s;
   return n;

@@ -72,6 +72,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 #define SIP_WMASK_S 0x2
+#define MTIE_MASK (1 << 7)
 
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
@@ -162,6 +163,11 @@ void vcsr_write(uint32_t addr,  rtlreg_t *src) {
   *dest = *src;
 }
 #endif // CONFIG_RVV_010
+
+void disable_time_intr() {
+    Log("Disabled machine time interruption\n");
+    mie->val = mask_bitset(mie->val, MTIE_MASK, 0);
+}
 
 static inline void csr_write(word_t *dest, word_t src) {
 
