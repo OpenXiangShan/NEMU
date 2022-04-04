@@ -7,8 +7,29 @@
 #include <unistd.h>
 
 #define Log(format, ...) \
-    _Log("\33[1;34m[%s,%d,%s] " format "\33[0m\n", \
+    _Log("\33[1;34m[%s:%d,%s] " format "\33[0m\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+
+#define debug_start 0
+#define debug_end   (~(0UL))
+
+#define Logf(flag, ...) \
+  do { \
+    extern uint64_t g_nr_guest_instr; \
+    if (g_nr_guest_instr >= debug_start && g_nr_guest_instr <= debug_end) { \
+      if (flag == dflag_mem && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \
+      if (flag == dflag_translate && ISDEF(CONFIG_TRANSLOG)) Log(__VA_ARGS__); \
+      if (flag == dflag_trace_inst && ISDEF(CONFIG_TRACE_INST)) Log(__VA_ARGS__); \
+      if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
+      if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
+    } \
+  } while (0)
+
+#define Logm(...) Logf(dflag_mem, __VA_ARGS__)
+#define Logtr(...) Logf(dflag_translate, __VA_ARGS__)
+#define Logtb(...) Logf(dflag_trace_bb, __VA_ARGS__)
+#define Logti(...) Logf(dflag_trace_inst, __VA_ARGS__)
+#define Loge(...) Logf(dflag_exit, __VA_ARGS__)
 
 #define Assert(cond, ...) \
   do { \

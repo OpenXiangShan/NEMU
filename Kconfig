@@ -184,6 +184,27 @@ config DETERMINISTIC
 config IQUEUE
   bool "Record the last instrucitons executed"
   default n
+
+config MEMLOG
+  bool "Enable Log for memory"
+  default n
+
+config TRANSLOG
+  bool "Enable Log for address translation"
+  default n
+
+config EXITLOG
+  bool "Enable Log for exiting reasons"
+  default n
+
+config TRACE_INST
+  bool "Enable Log for tracing instructions"
+  default n
+
+config TRACE_BB
+  bool "Enable Log for tracing basic block"
+  default n
+
 endmenu
 
 if !MODE_USER

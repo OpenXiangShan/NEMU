@@ -15,6 +15,16 @@ typedef struct {
 
 extern NEMUState nemu_state;
 
+enum {
+  dflag_none = 0,
+  dflag_mem,
+  dflag_translate,
+  dflag_trace_bb,
+  dflag_trace_inst,
+  dflag_exit,
+};
+
+
 // ----------- timer -----------
 
 uint64_t get_time();
