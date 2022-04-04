@@ -76,12 +76,7 @@ static long load_gz_img(const char *filename) {
 
 // Return whether a file is a gz file, determined by its name.
 // If the filename ends with ".gz", we treat it as a gz file.
-bool is_gz_file(const char *filename) {
-  if (filename == NULL || strlen(filename) < 3) {
-    return false;
-  }
-  return !strcmp(filename + (strlen(filename) - 3), ".gz");
-}
+
 #endif // CONFIG_MEM_COMPRESS
 
 static inline long load_img(char* img_name, char *which_img, unsigned load_start, size_t img_size) {
