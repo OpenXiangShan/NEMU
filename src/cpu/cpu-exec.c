@@ -52,7 +52,9 @@ static void update_instr_cnt() {
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= (n_remain_total > n_executed) ? n_executed : n_remain_total;
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
-  n_remain = n_batch; // clean n_remain
+
+  n_remain = n_batch > n_remain_total ? n_remain_total : n_batch; // clean n_remain
+  // Loge("n_remain = %i, n_remain_total = %lu\n", n_remain, n_remain_total);
 #endif
 }
 
