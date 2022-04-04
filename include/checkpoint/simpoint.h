@@ -89,18 +89,21 @@ class SimPoint
      * Called at every macro inst to increment basic block inst counts and
      * to profile block if end of block.
      */
-    void profile(Addr pc, bool is_control, bool is_last_uop);
+    void profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_count);
+
+    void profile_with_abs_icount(Addr pc, bool is_control, bool is_last_uop, uint64_t abs_icount);
 
   private:
+    uint64_t lastICount{0};
     /** SimPoint profiling interval size in instructions */
-    static constexpr uint64_t intervalSize = 200 * 1000 * 1000;
+    uint64_t intervalSize;
 
     /** Inst count in current basic block */
     uint64_t intervalCount;
     /** Excess inst count from previous interval*/
     uint64_t intervalDrift;
     /** Pointer to SimPoint BBV output stream */
-    OutputStream *simpointStream;
+    NEMUNS::OutputStream *simpointStream;
 
     /** Basic Block information */
     struct BBInfo

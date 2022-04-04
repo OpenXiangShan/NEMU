@@ -38,11 +38,14 @@
  *          Curtis Dunham
  */
 
+#include "checkpoint/path_manager.h"
+#include <cassert>
 #include <debug.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
 #include "checkpoint/simpoint.h"
+#include "checkpoint/profiling.h"
 
 namespace SimPointNS
 {
@@ -54,20 +57,41 @@ SimPoint::SimPoint()
       currentBBV(0, 0),
       currentBBVInstCount(0) {
 
-  simpointStream = simout.create("simpoint_bbv", false);
+  simpointStream = NEMUNS::simout.create("simpoint_bbv", false);
   if (!simpointStream)
     xpanic("unable to open SimPoint profile_file");
 }
 
 SimPoint::~SimPoint() {
-  simout.close(simpointStream);
+  NEMUNS::simout.close(simpointStream);
 }
 
 void
-SimPoint::init() {}
+SimPoint::init() {
+  if (profiling_state == SimpointProfiling) {
+    assert(checkpoint_interval);
+    intervalSize = checkpoint_interval;
+    Log("Doing simpoint profiling with interval %lu", intervalSize);
+    auto path = pathManager.getOutputPath() + "/simpoint_bbv.gz";
+
+    using NEMUNS::simout;
+    simpointStream = simout.create(path, false);
+
+    if (!simpointStream)
+      xpanic("unable to open SimPoint profile_file %s\n", path.c_str());
+  }
+}
 
 void
-SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
+SimPoint::profile_with_abs_icount(Addr pc, bool is_control, bool is_last_uop, uint64_t abs_icount) {
+  unsigned exec_count = abs_icount - lastICount;
+  // Log("0x%lx -> icount = %lu\n", pc, abs_icount);
+  profile(pc, is_control, is_last_uop, exec_count);
+  lastICount = abs_icount;
+}
+
+void
+SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_count) {
 
   if (!is_last_uop)
     return;
@@ -75,8 +99,8 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
   if (!currentBBVInstCount)
     currentBBV.first = pc;
 
-  ++intervalCount;
-  ++currentBBVInstCount;
+  intervalCount += instr_count;
+  currentBBVInstCount += instr_count;
 
   // If inst is control inst, assume end of basic block.
   if (is_control) {
@@ -123,11 +147,26 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop) {
                                   << ":" << cnt_itr->second << " ";
       }
       *simpointStream->stream() << "\n";
+      Log("Simpoint profilied %lu instrs", intervalCount);
 
       intervalDrift = (intervalCount + intervalDrift) - intervalSize;
       intervalCount = 0;
     }
   }
+}
+
+}
+
+SimPointNS::SimPoint simpoit_obj;
+
+extern "C" {
+
+void simpoint_init() {
+  simpoit_obj.init();
+}
+
+void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {
+  simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
 }
 
 }
