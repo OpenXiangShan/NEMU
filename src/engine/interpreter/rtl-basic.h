@@ -2,6 +2,7 @@
 #define __RTL_BASIC_H__
 
 #include "c_op.h"
+#include <checkpoint/profiling.h>
 #include <memory/vaddr.h>
 
 /* RTL basic instructions */
@@ -162,6 +163,8 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 }
 
 // control
+extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count);
+extern uint64_t get_abs_instr_count();
 
 static inline def_rtl(j, vaddr_t target) {
 #ifdef CONFIG_GUIDED_EXEC
@@ -177,6 +180,10 @@ static inline def_rtl(j, vaddr_t target) {
 #endif
 
   cpu.pc = target;
+
+  if (profiling_state == SimpointProfiling && profiling_started) {
+    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
+  }
 
 #ifdef CONFIG_GUIDED_EXEC
 end_of_rtl_j:
@@ -198,6 +205,10 @@ static inline def_rtl(jr, rtlreg_t *target) {
 #endif
 
   cpu.pc = *target;
+
+  if (profiling_state == SimpointProfiling && profiling_started) {
+    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
+  }
 
 #ifdef CONFIG_GUIDED_EXEC
 end_of_rtl_jr:
