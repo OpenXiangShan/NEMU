@@ -10,10 +10,12 @@ WORK_DIR  = $(shell pwd)
 BUILD_DIR = $(WORK_DIR)/build
 
 INC_DIR += $(WORK_DIR)/include $(NEMU_HOME)/lib-include
+XINC_DIR = $(INC_DIR) $(WORK_DIR)/resource
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
 CC ?= gcc
+CXX = g++
 
 CCACHE := $(if $(shell which ccache),ccache,)
 
@@ -21,20 +23,33 @@ CCACHE := $(if $(shell which ccache),ccache,)
 CC := $(CCACHE) $(CC)
 LD := $(CCACHE) $(CC)
 INCLUDES = $(addprefix -I, $(INC_DIR))
+XINCLUDES = $(addprefix -I, $(XINC_DIR))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
+CXXFLAGS  := -O2 -MMD -Wall -Werror --std=c++17 $(XINCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
+# filesystem
+LDFLAGS += -lstdc++fs -lstdc++
 
-OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
+COBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
+XOBJS = $(XSRCS:%.cpp=$(OBJ_DIR)/%.opp)
+OBJS = $(COBJS) $(XOBJS)
 
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -E $(SO_CFLAGS) -c -o $@.c $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
+$(OBJ_DIR)/%.opp: %.cpp
+	@echo + CXX $<
+	@mkdir -p $(dir $@)
+	@$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(call call_fixdep, $(@:.opp=.d), $@)
+
 # Depencies
--include $(OBJS:.o=.d)
+-include $(COBJS:.o=.d) $(XOBJS:.opp=.d)
 
 # Some convenient rules
 
