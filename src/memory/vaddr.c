@@ -95,8 +95,14 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     isa_misalign_data_addr_check(addr, len, type);
   }
 #endif
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, type);
-  if (mmu_mode == MMU_DIRECT) return paddr_read(addr, len, type, cpu.mode, addr);
+  if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+    Logm("Checking mmu when MMU_DYN");
+    mmu_mode = isa_mmu_check(addr, len, type);
+  }
+  if (mmu_mode == MMU_DIRECT) {
+    Logm("Paddr reading directly");
+    return paddr_read(addr, len, type, cpu.mode, addr);
+  }
 #ifndef __ICS_EXPORT
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
 #endif
@@ -108,6 +114,7 @@ word_t vaddr_ifetch(vaddr_t addr, int len) {
 }
 
 word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+  Logm("Reading vaddr %lx", addr);
   return vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode);
 }
 
