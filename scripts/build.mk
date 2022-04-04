@@ -28,11 +28,18 @@ CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 CXXFLAGS  := -O2 -MMD -Wall -Werror --std=c++17 $(XINCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
 # filesystem
+ifndef SHARE
 LDFLAGS += -lstdc++fs -lstdc++
+endif
 
 COBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
 XOBJS = $(XSRCS:%.cpp=$(OBJ_DIR)/%.opp)
+
+ifndef SHARE
 OBJS = $(COBJS) $(XOBJS)
+else
+OBJS = $(COBJS)
+endif
 
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c
@@ -49,7 +56,11 @@ $(OBJ_DIR)/%.opp: %.cpp
 	$(call call_fixdep, $(@:.opp=.d), $@)
 
 # Depencies
+ifndef SHARE
 -include $(COBJS:.o=.d) $(XOBJS:.opp=.d)
+else
+-include $(COBJS:.o=.d)
+endif
 
 # Some convenient rules
 

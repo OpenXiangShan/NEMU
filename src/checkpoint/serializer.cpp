@@ -16,7 +16,6 @@
 #include <zlib.h>
 #include <limits>
 #include <string>
-#include <boost/algorithm/string/predicate.hpp>
 
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
@@ -43,6 +42,10 @@ extern "C" {
 uint8_t *get_pmem();
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 uint8_t* guest_to_host(paddr_t paddr);
+
+// check gz file, from utils
+bool is_gz_file(const char *filename);
+
 #include <debug.h>
 }
 
@@ -188,7 +191,7 @@ void Serializer::serialize(uint64_t inst_count) {
 
 void Serializer::unserialize(const char *file) {
   const size_t PMEM_SIZE = CONFIG_MSIZE;
-  if (!boost::algorithm::ends_with(file, ".gz")) {
+  if (!is_gz_file(file)) {
     // process raw binary
     FILE *fp = fopen(file, "rb");
     if (fp == NULL) Log("Checkpoint not found\n");
