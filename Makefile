@@ -39,7 +39,11 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
+DIRS-cpp = src/checkpoint src/base src/iostream3
+XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
+
 CC = $(call remove_quote,$(CONFIG_CC))
+CXX = $(call remove_quote,$(CONFIG_CXX))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
@@ -49,9 +53,7 @@ LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
-ifdef CONFIG_MEM_COMPRESS
 LDFLAGS += -lz
-endif
 
 ifndef CONFIG_SHARE
 LDFLAGS += -lreadline -ldl -pie
