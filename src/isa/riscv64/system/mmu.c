@@ -43,12 +43,15 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   assert(mode == MODE_U || mode == MODE_S);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
+  Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12);
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
   if (ifetch) {
+    Logtr("Translate for instr reading");
 #ifdef CONFIG_SHARE
 //  update a/d by exception
     bool update_ad = !pte->a;
-//   if (update_ad && ok && pte->x) Log("raise exception to update ad for ifecth");
+    if (update_ad && ok && pte->x)
+      Logtr("raise exception to update ad for ifecth");
 #else
     bool update_ad = false;
 #endif
@@ -59,28 +62,32 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else if (type == MEM_TYPE_READ) {
+    Logtr("Translate for memory reading");
     bool can_load = pte->r || (mstatus->mxr && pte->x);
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a;
-//    if (update_ad && ok && can_load) Log("raise exception to update ad for load");
+    if (update_ad && ok && can_load)
+      Logtr("raise exception to update ad for load");
 #else
     bool update_ad = false;
 #endif
     if (!(ok && can_load) || update_ad) {
-      //if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
+      if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
       INTR_TVAL_REG(ex) = vaddr;
       cpu.amo = false;
+      Logtr("Memory read translation exception!");
       longjmp_exception(ex);
       return false;
     }
   } else {
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a || !pte->d;
-//    if (update_ad && ok && pte->w) Log("raise exception to update ad for store");
+   if (update_ad && ok && pte->w) Logtr("raise exception to update ad for store");
 #else
     bool update_ad = false;
 #endif
+    Logtr("Translate for memory writing");
     if (!(ok && pte->w) || update_ad) {
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
@@ -92,7 +99,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
-
+  Logtr("Page walking for 0x%lx\n", vaddr);
   word_t pg_base = PGBASE(satp->ppn);
   word_t p_pte; // pte pointer
   PTE pte;
@@ -149,6 +156,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pg_base | MEM_RET_OK;
 
 bad:
+  Logtr("Memory translation bad");
   check_permission(&pte, false, vaddr, type);
   return MEM_RET_FAIL;
 }
@@ -177,6 +185,7 @@ int update_mmu_state() {
 }
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
+  Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
   // riscv-privileged 4.4.1: Addressing and Memory Protection:
   // Instruction fetch addresses and load and store effective addresses,
