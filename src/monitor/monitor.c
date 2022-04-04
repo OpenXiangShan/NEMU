@@ -1,4 +1,6 @@
 #include <isa.h>
+#include <checkpoint/cpt_env.h>
+#include <checkpoint/profiling.h>
 #include <memory/paddr.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -82,9 +84,10 @@ bool is_gz_file(const char *filename) {
 }
 #endif // CONFIG_MEM_COMPRESS
 
-static inline long load_img() {
-  if (img_file == NULL) {
-    Log("No image is given. Use the default build-in image.");
+static inline long load_img(char* img_name, char *which_img, unsigned load_start, size_t img_size) {
+  char *loading_img = img_name;
+  if (img_name == NULL) {
+    Log("No image is given. Use the default build-in image/restorer.");
     return 4096; // built-in image size
   }
 
@@ -95,16 +98,21 @@ static inline long load_img() {
   }
 #endif
 
-  FILE *fp = fopen(img_file, "rb");
-  Assert(fp, "Can not open '%s'", img_file);
+  FILE *fp = fopen(loading_img, "rb");
+  Assert(fp, "Can not open '%s'", loading_img);
 
-  Log("The image is %s", img_file);
+  Log("The image (%s) is %s", which_img, loading_img);
 
-  fseek(fp, 0, SEEK_END);
-  long size = ftell(fp);
+  size_t size;
+  if (img_size == 0) {
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+  } else {
+    size=img_size;
+  }
 
-  fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
+  int ret = fread(guest_to_host(load_start), size, 1, fp);
   assert(ret == 1);
 
   fclose(fp);
@@ -120,10 +128,31 @@ static inline int parse_args(int argc, char *argv[]) {
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
     {"help"     , no_argument      , NULL, 'h'},
+
+    // path setting
+    {"output-base-dir"    , required_argument, NULL, 'D'},
+    {"workload-name"      , required_argument, NULL, 'w'},
+    {"config-name"        , required_argument, NULL, 'C'},
+
+    // restore cpt
+    {"restore-cpt"        , required_argument, NULL, 'c'},
+    {"cpt-restorer"       , required_argument, NULL, 'r'},
+
+    // take cpt
+    {"simpoint-dir"       , required_argument, NULL, 'S'},
+    {"uniform-cpt"        , no_argument      , NULL, 'u'},
+    {"cpt-interval"       , required_argument, NULL, 5},
+
+    // profiling
+    {"simpoint-profile"   , no_argument      , NULL, 3},
+
+    // restore cpt
+    {"cpt-id"             , required_argument, NULL, 4},
+
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:D:w:C:c:r:S:u", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
       case 'I': max_instr = optarg; break;
@@ -131,6 +160,43 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
       case 1: img_file = optarg; return optind - 1;
+
+      case 'D': output_base_dir = optarg; break;
+      case 'w': workload_name = optarg; break;
+      case 'C': config_name = optarg; break;
+
+      case 'c':
+        cpt_file = optarg;
+        checkpoint_restoring = true;
+        Log("Restoring from checkpoint");
+        break;
+      
+      case 'r':
+        restorer = optarg;
+        break;
+
+      case 'S':
+        assert(profiling_state == NoProfiling);
+        simpoints_dir = optarg;
+        profiling_state = SimpointCheckpointing;
+        checkpoint_taking = true;
+        Log("Taking simpoint checkpoints");
+        break;
+      
+      case 'u':
+        checkpoint_taking = true;
+        break;
+
+      case 5: sscanf(optarg, "%lu", &checkpoint_interval); break;
+
+      case 3:
+        assert(profiling_state == NoProfiling);
+        profiling_state = SimpointProfiling;
+        Log("Doing Simpoint Profiling");
+        break;
+
+      case 4: sscanf(optarg, "%d", &cpt_id); break;
+
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
@@ -138,6 +204,20 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-l,--log=FILE           output log to FILE\n");
         printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
         printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
+
+        printf("\t-D,--statdir=STAT_DIR   store simpoint bbv, cpts, and stats in STAT_DIR\n");
+        printf("\t-w,--workload=WORKLOAD  the name of sub_dir of this run in STAT_DIR\n");
+        printf("\t-C,--config=CONFIG      running configuration\n");
+
+        printf("\t-c,--cpt=CPT_FILE       restore from CPT FILE\n");
+        printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
+
+        printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
+        printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
+        printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
+
+        printf("\t--simpoint-profile      simpoint profiling\n");
+        printf("\t--cpt-id                checkpoint id\n");
         printf("\n");
         exit(0);
     }
@@ -155,11 +235,22 @@ void init_monitor(int argc, char *argv[]) {
   parse_args(argc, argv);
 #endif
 
+  extern void init_path_manager();
+  extern void simpoint_init();
+  extern void init_serializer();
+  extern void unserialize();
+
+  init_path_manager();
+  simpoint_init();
+  init_serializer();
+
   /* Open the log file. */
   init_log(log_file);
 
   /* Initialize memory. */
   init_mem();
+
+  unserialize();
 
   /* Load the image to memory. This will overwrite the built-in image. */
 #ifdef CONFIG_MODE_USER
@@ -171,8 +262,34 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
-  long img_size = load_img();
+  // when there is a gcpt[restorer], we put bbl after gcpt[restorer]
+  uint64_t bbl_start;
+  long img_size; // how large we should copy for difftest
 
+  if (checkpoint_restoring) {
+    // When restoring cpt, gcpt restorer from cmdline is optional,
+    // because a gcpt already ships a restorer
+    img_size = CONFIG_MSIZE;
+    bbl_start = CONFIG_MSIZE; // bbl size should never be used, let it crash if used
+    if (img_file != NULL) {
+      Log("img_file %s will not used when restoring gcpt\n", img_file);
+    }
+    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
+
+  } else if (checkpoint_taking) {
+    // boot: jump to restorer --> restorer jump to bbl 
+    assert(img_file != NULL);
+    assert(restorer != NULL);
+    bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
+
+    long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
+    long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+    img_size = restorer_size + bbl_size;
+  } else {
+    bbl_start = RESET_VECTOR;
+    img_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+  }
+  
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
 
