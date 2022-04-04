@@ -36,7 +36,7 @@ static char* rl_gets() {
 }
 
 static int cmd_c(char *args) {
-  cpu_exec((args == NULL) ? -1 : atoi(args));
+  cpu_exec((args == NULL) ? -1 : (uint64_t) atol(args));
   return 0;
 }
 
