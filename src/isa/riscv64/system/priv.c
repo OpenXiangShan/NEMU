@@ -191,14 +191,17 @@ static inline void csr_write(word_t *dest, word_t src) {
     // *dest = src & FCSR_MASK;
   }
   else if (is_write_pmpaddr) {
+    Log("Writing pmp addr");
 #ifndef CONFIG_RV_PMP
-  return ;
+    Log("PMP disabled ignore");
+    return ;
 #else
     // If no PMPs are configured, disallow access to all.  Otherwise, allow
     // access to all, but unimplemented ones are hardwired to zero.
     if (NUM_PMP == 0)
       return;
 
+    Log("PMP updated\n");
     int idx = dest - &csr_array[CSR_PMPADDR0];
     word_t cfg = pmpcfg_from_index(idx);
     bool locked = cfg & PMP_L;
@@ -217,6 +220,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
   }
   else if (is_write_pmpcfg) {
+    // Log("Writing pmp config");
 #ifndef CONFIG_RV_PMP
   return;
 #else
@@ -272,10 +276,12 @@ word_t csrid_read(uint32_t csrid) {
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (!csr_is_legal(csrid)) {
+    Log("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
   }
   word_t *csr = csr_decode(csrid);
+  // Log("Decoding csr id %u to %p", csrid, csr);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
   if (src != NULL) { csr_write(csr, tmp); }
@@ -300,6 +306,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
       mstatus->mpp = MODE_U;
       update_mmu_state();
+      Loge("Executing mret to 0x%lx", mepc->val);
       return mepc->val;
       break;
     case 0x120: // sfence.vma

@@ -82,6 +82,7 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 }
 
 void longjmp_exec(int cause) {
+  Loge("Longjmp to jbuf_exec with cause: %i", cause);
   longjmp(jbuf_exec, cause);
 }
 
@@ -90,6 +91,7 @@ void longjmp_exception(int ex_cause) {
   cpu.guided_exec = false;
 #endif
   g_ex_cause = ex_cause;
+  Loge("longjmp_exec(NEMU_EXEC_EXCEPTION)");
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
 
@@ -155,6 +157,7 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 }
 
 static int execute(int n) {
+  Logtb("Will execute %i instrs\n", n);
   static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
@@ -198,6 +201,7 @@ end_of_bb:
     if (unlikely(n <= 0)) break;
 
     def_finish();
+    Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
     debug_difftest(this_s, s);
   }
 
@@ -263,18 +267,23 @@ void cpu_exec(uint64_t n) {
     case NEMU_END: case NEMU_ABORT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
       return;
-    default: nemu_state.state = NEMU_RUNNING;
+    default:
+      nemu_state.state = NEMU_RUNNING;
+      Log("Setting NEMU state to RUNNING");
   }
 
   uint64_t timer_start = get_time();
 
   n_remain_total = n; // deal with setjmp()
+  Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
     n_remain -= prev_s->idx_in_bb - 1;
+    // Here is exception handle
 #ifdef CONFIG_PERF_OPT
     update_global();
 #endif
+    Loge("After update_global, n_remain: %i, n_remain_total: %li", n_remain, n_remain_total);
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
@@ -285,6 +294,7 @@ void cpu_exec(uint64_t n) {
 #endif
 
     if (cause == NEMU_EXEC_EXCEPTION) {
+      Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
@@ -292,6 +302,7 @@ void cpu_exec(uint64_t n) {
     } else {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
+        Loge("NEMU raise intr");
         cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
@@ -301,7 +312,9 @@ void cpu_exec(uint64_t n) {
     int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
     n_remain = execute(n_batch);
 #ifdef CONFIG_PERF_OPT
-    update_global();
+    // return from execute
+    update_global(cpu.pc);
+    Loge("n_remain_total: %lu", n_remain_total);
 #else
     n_remain_total -= n_batch;
 #endif
@@ -311,7 +324,10 @@ void cpu_exec(uint64_t n) {
   g_timer += timer_end - timer_start;
 
   switch (nemu_state.state) {
-    case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
+    case NEMU_RUNNING: nemu_state.state = NEMU_STOP;
+      Log("NEMU stopped when running");
+      monitor_statistic();
+      break;
 
     case NEMU_END: case NEMU_ABORT:
       Log("nemu: %s\33[0m at pc = " FMT_WORD,
