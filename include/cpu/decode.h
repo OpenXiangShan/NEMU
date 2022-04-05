@@ -118,8 +118,8 @@ static inline def_DHelper(empty) {}
 
 __attribute__((always_inline))
 static inline void pattern_decode(const char *str, int len,
-    uint32_t *key, uint32_t *mask, uint32_t *shift) {
-  uint32_t __key = 0, __mask = 0, __shift = 0;
+    uint64_t *key, uint64_t *mask, uint64_t *shift) {
+  uint64_t __key = 0, __mask = 0, __shift = 0;
 #define macro(i) \
   if ((i) >= len) goto finish; \
   else { \
@@ -148,7 +148,7 @@ finish:
 }
 
 #define def_INSTR_raw(pattern, body) do { \
-  uint32_t key, mask, shift; \
+  uint64_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
   if (((get_instr(s) >> shift) & mask) == key) { body; } \
 } while (0)
