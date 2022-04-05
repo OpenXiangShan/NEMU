@@ -51,6 +51,8 @@
 #include <map>
 #include <string>
 
+namespace NEMUNS {
+
 class OutputDirectory;
 
 class OutputStream
@@ -303,5 +305,8 @@ class OutputDirectory
 };
 
 extern OutputDirectory simout;
+
+};
+
 
 #endif // __BASE_OUTPUT_HH__
