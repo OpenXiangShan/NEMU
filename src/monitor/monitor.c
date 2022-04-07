@@ -235,9 +235,13 @@ void init_monitor(int argc, char *argv[]) {
   extern void init_serializer();
   extern void unserialize();
 
-  init_path_manager();
-  simpoint_init();
-  init_serializer();
+  bool cpt_features_enabled = checkpoint_restoring || checkpoint_taking || profiling_state == SimpointProfiling;
+  if (cpt_features_enabled) {
+
+    init_path_manager();
+    simpoint_init();
+    init_serializer();
+  }
 
   /* Open the log file. */
   init_log(log_file);
@@ -245,7 +249,9 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize memory. */
   init_mem();
 
-  unserialize();
+  if (cpt_features_enabled) {
+    unserialize();
+  }
 
   /* Load the image to memory. This will overwrite the built-in image. */
 #ifdef CONFIG_MODE_USER
