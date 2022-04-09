@@ -59,4 +59,12 @@ word_t expr(char *e, bool *success);
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
 void iqueue_dump();
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+bool is_gz_file(const char *filename);
+#ifdef __cplusplus
+}
+#endif
+
 #endif
