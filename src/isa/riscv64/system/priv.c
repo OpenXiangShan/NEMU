@@ -197,9 +197,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     // *dest = src & FCSR_MASK;
   }
   else if (is_write_pmpaddr) {
-    Log("Writing pmp addr");
+    Logtr("Writing pmp addr");
 #ifndef CONFIG_RV_PMP
-    Log("PMP disabled ignore");
+    Logtr("PMP disabled ignore");
     return ;
 #else
     // If no PMPs are configured, disallow access to all.  Otherwise, allow
@@ -207,7 +207,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (NUM_PMP == 0)
       return;
 
-    Log("PMP updated\n");
+    Logtr("PMP updated\n");
     int idx = dest - &csr_array[CSR_PMPADDR0];
     word_t cfg = pmpcfg_from_index(idx);
     bool locked = cfg & PMP_L;
