@@ -87,9 +87,9 @@ static inline long load_img(char* img_name, char *which_img, unsigned load_start
   }
 
 #ifdef CONFIG_MEM_COMPRESS
-  if (is_gz_file(img_file)) {
-    Log("The image is %s", img_file);
-    return load_gz_img(img_file);
+  if (is_gz_file(loading_img)) {
+    Log("The image is %s", loading_img);
+    return load_gz_img(loading_img);
   }
 #endif
 
@@ -165,7 +165,7 @@ static inline int parse_args(int argc, char *argv[]) {
         checkpoint_restoring = true;
         Log("Restoring from checkpoint");
         break;
-      
+
       case 'r':
         restorer = optarg;
         break;
@@ -177,7 +177,7 @@ static inline int parse_args(int argc, char *argv[]) {
         checkpoint_taking = true;
         Log("Taking simpoint checkpoints");
         break;
-      
+
       case 'u':
         checkpoint_taking = true;
         break;
@@ -278,7 +278,7 @@ void init_monitor(int argc, char *argv[]) {
     load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
 
   } else if (checkpoint_taking) {
-    // boot: jump to restorer --> restorer jump to bbl 
+    // boot: jump to restorer --> restorer jump to bbl
     assert(img_file != NULL);
     assert(restorer != NULL);
     bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
@@ -290,7 +290,7 @@ void init_monitor(int argc, char *argv[]) {
     bbl_start = RESET_VECTOR;
     img_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
   }
-  
+
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
 
