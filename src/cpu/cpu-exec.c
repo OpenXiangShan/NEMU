@@ -365,6 +365,11 @@ void cpu_exec(uint64_t n) {
 #endif
   }
 
+  // If nemu_state.state is NEMU_RUNNING, n_remain_total should be zero.
+  if (nemu_state.state == NEMU_RUNNING) {
+    nemu_state.state = NEMU_QUIT;
+  }
+
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
 
