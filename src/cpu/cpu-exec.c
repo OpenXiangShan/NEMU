@@ -175,7 +175,7 @@ uint64_t per_bb_profile(Decode *s) {
   }
 
   extern bool able_to_take_cpt();
-  if (checkpoint_taking && profiling_started && able_to_take_cpt()) {
+  if (checkpoint_taking && profiling_started && (force_cpt_mmode || able_to_take_cpt())) {
     // update cpu pc!
     cpu.pc = s->pc;
 

@@ -18,11 +18,13 @@ def_EHelper(nemu_trap) {
       disable_time_intr();
   } else if (cpu.gpr[10]._64 == 0x101) {
       extern uint64_t g_nr_guest_instr;
-
-      Log("Start profiling, resetting inst count from %lu to 1, (n_remain_total will not be cleared)\n", g_nr_guest_instr);
-      g_nr_guest_instr = 1;
       extern bool profiling_started;
-      profiling_started = true;
+
+      if (!profiling_started) {
+        Log("Start profiling, resetting inst count from %lu to 1, (n_remain_total will not be cleared)\n", g_nr_guest_instr);
+        g_nr_guest_instr = 1;
+        profiling_started = true;
+      }
 
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0

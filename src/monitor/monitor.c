@@ -57,9 +57,11 @@ static inline int parse_args(int argc, char *argv[]) {
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"uniform-cpt"        , no_argument      , NULL, 'u'},
     {"cpt-interval"       , required_argument, NULL, 5},
+    {"cpt-mmode"          , no_argument      , NULL, 7},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
+    {"dont-skip-boot"     , no_argument      , NULL, 6},
 
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
@@ -67,7 +69,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:D:w:C:c:r:S:u", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:D:w:C:cr:S:u", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
       case 'I': max_instr = optarg; break;
@@ -109,6 +111,17 @@ static inline int parse_args(int argc, char *argv[]) {
         Log("Doing Simpoint Profiling");
         break;
 
+      case 6:
+        // start profiling/checkpointing right after boot,
+        // instead of waiting for the pseudo inst to notify NEMU.
+        profiling_started = true;
+        break;
+
+      case 7:
+        Log("Force to take checkpoint on m mode. You should know what you are doing!");
+        force_cpt_mmode = true;
+        break;
+
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
       default:
@@ -129,8 +142,10 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
+        printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
 
         printf("\t--simpoint-profile      simpoint profiling\n");
+        printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--cpt-id                checkpoint id\n");
         printf("\n");
         exit(0);
