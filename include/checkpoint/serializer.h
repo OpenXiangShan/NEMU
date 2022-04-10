@@ -21,8 +21,6 @@ class Serializer
 
     explicit Serializer();
 
-    void unserialize(const char *file);
-
     void init();
 
     bool shouldTakeCpt(uint64_t num_insts);
