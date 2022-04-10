@@ -204,7 +204,7 @@ void init_monitor(int argc, char *argv[]) {
     img_size = CONFIG_MSIZE;
     bbl_start = CONFIG_MSIZE; // bbl size should never be used, let it crash if used
 
-    load_img(img_file, "GCpt file form cmdline", RESET_VECTOR, 0);
+    load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
     load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
 
   } else if (checkpoint_taking) {
