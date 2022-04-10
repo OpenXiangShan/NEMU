@@ -175,7 +175,7 @@ uint64_t per_bb_profile(Decode *s) {
   }
 
   extern bool able_to_take_cpt();
-  if (checkpoint_taking && profiling_started && able_to_take_cpt()) {
+  if (checkpoint_taking && profiling_started && (force_cpt_mmode || able_to_take_cpt())) {
     // update cpu pc!
     cpu.pc = s->pc;
 
@@ -387,8 +387,13 @@ void cpu_exec(uint64_t n) {
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
       Log("trap code:%d", nemu_state.halt_ret);
-      // fall through
-    case NEMU_QUIT:
       monitor_statistic();
-  }
+      break;
+    case NEMU_QUIT:
+#ifndef CONFIG_SHARE
+      monitor_statistic();
+#else
+      break;
+#endif
+    }
 }

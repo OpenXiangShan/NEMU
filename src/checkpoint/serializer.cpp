@@ -185,66 +185,6 @@ void Serializer::serialize(uint64_t inst_count) {
 //  isa_reg_display();
 }
 
-void Serializer::unserialize(const char *file) {
-  const size_t PMEM_SIZE = CONFIG_MSIZE;
-  if (!is_gz_file(file)) {
-    // process raw binary
-    FILE *fp = fopen(file, "rb");
-    if (fp == NULL) Log("Checkpoint not found\n");
-    xpanic("Can not open file %s \n", file);
-
-    Log("Opening cpt file: %s", file);
-    fseek(fp, 0, SEEK_END);
-    uint64_t size = ftell(fp);
-    if (size < PMEM_SIZE) {
-      Log("Cpt size = %lu is too large, only load 0x%lu", size, PMEM_SIZE);
-      size = PMEM_SIZE;
-    }
-
-    fseek(fp, 0, SEEK_SET);
-    int ret = fread(guest_to_host(RESTORER_START), size, 1, fp);
-    assert(ret == 1);
-
-  } else {
-
-    gzFile compressed_mem = gzopen(file, "rb");
-    if (compressed_mem == nullptr) {
-      xpanic("Can't open physical memory checkpoint file '%s'", file);
-    }
-    Log("Opening cpt file: %s", file);
-
-    uint64_t curr_size = 0;
-    const uint32_t chunk_size = 16384;
-    long *temp_page = new long[chunk_size];
-    long *pmem_current;
-
-    while (curr_size < PMEM_SIZE) {
-      uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
-      if (bytes_read == 0) {
-        break;
-      }
-      assert(bytes_read % sizeof(long) == 0);
-      for (uint32_t x = 0; x < bytes_read / sizeof(long); x++) {
-        if (*(temp_page + x) != 0) {
-          pmem_current = (long*)(get_pmem() + curr_size + x * sizeof(long));
-          *pmem_current = *(temp_page + x);
-        }
-      }
-      curr_size += bytes_read;
-    }
-    Log("Read %lu bytes from gz stream in total", curr_size);
-
-    extern bool profiling_started;
-    profiling_started = true;
-
-    delete [] temp_page;
-
-    if (gzclose(compressed_mem)) {
-      xpanic("Error closing '%s'\n", file);
-    }
-  }
-}
-
 void Serializer::init() {
   if  (profiling_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
@@ -270,8 +210,8 @@ void Serializer::init() {
   } else if (checkpoint_taking) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
-    Log("Taking normal checkpionts with interval %lu", checkpoint_interval);
-    nextNormalPoint = intervalSize;
+    Log("Taking uniform checkpionts with interval %lu", checkpoint_interval);
+    nextUniformPoint = intervalSize;
   }
 }
 
@@ -293,7 +233,7 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
                   next_point, num_insts);
       }
   } else if (checkpoint_taking && profiling_started){
-      if (num_insts >= nextNormalPoint) {
+      if (num_insts >= nextUniformPoint) {
           Log("Should take cpt now: %lu", num_insts);
           return true;
       }
@@ -310,7 +250,7 @@ void Serializer::notify_taken(uint64_t i) {
     }
 
   } else if (checkpoint_taking) {
-    nextNormalPoint += intervalSize;
+    nextUniformPoint += intervalSize;
     pathManager.incCptID();
   }
 }
@@ -330,12 +270,6 @@ bool try_take_cpt(uint64_t icount) {
     return true;
   }
   return false;
-}
-
-void unserialize() {
-  if (cpt_file != nullptr) {
-    serializer.unserialize(cpt_file);
-  }
 }
 
 }

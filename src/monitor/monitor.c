@@ -1,6 +1,7 @@
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/profiling.h>
+#include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -34,87 +35,6 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
-#ifndef CONFIG_MODE_USER
-
-#ifdef CONFIG_MEM_COMPRESS
-#include <zlib.h>
-
-static long load_gz_img(const char *filename) {
-  gzFile compressed_mem = gzopen(filename, "rb");
-  Assert(compressed_mem, "Can not open '%s'", filename);
-
-  const uint32_t chunk_size = 16384;
-  uint8_t *temp_page = (uint8_t *)calloc(chunk_size, sizeof(long));
-  uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
-  uint8_t *pmem_current;
-
-  // load file byte by byte to pmem
-  uint64_t curr_size = 0;
-  while (curr_size < CONFIG_MSIZE) {
-    uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
-    if (bytes_read == 0) {
-      break;
-    }
-    for (uint32_t x = 0; x < bytes_read; x++) {
-      pmem_current = pmem_start + curr_size + x;
-      uint8_t read_data = *(temp_page + x);
-      if (read_data != 0 || *pmem_current != 0) {
-        *pmem_current = read_data;
-      }
-    }
-    curr_size += bytes_read;
-  }
-
-  // check again to ensure the bin has been fully loaded
-  uint32_t left_bytes = gzread(compressed_mem, temp_page, chunk_size);
-  Assert(left_bytes == 0, "File size is larger than buf_size!\n");
-
-  free(temp_page);
-  Assert(!gzclose(compressed_mem), "Error closing '%s'\n", filename);
-  return curr_size;
-}
-
-// Return whether a file is a gz file, determined by its name.
-// If the filename ends with ".gz", we treat it as a gz file.
-
-#endif // CONFIG_MEM_COMPRESS
-
-static inline long load_img(char* img_name, char *which_img, unsigned load_start, size_t img_size) {
-  char *loading_img = img_name;
-  if (img_name == NULL) {
-    Log("No image is given. Use the default build-in image/restorer.");
-    return 4096; // built-in image size
-  }
-
-#ifdef CONFIG_MEM_COMPRESS
-  if (is_gz_file(loading_img)) {
-    Log("The image is %s", loading_img);
-    return load_gz_img(loading_img);
-  }
-#endif
-
-  FILE *fp = fopen(loading_img, "rb");
-  Assert(fp, "Can not open '%s'", loading_img);
-
-  Log("The image (%s) is %s", which_img, loading_img);
-
-  size_t size;
-  if (img_size == 0) {
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-  } else {
-    size=img_size;
-  }
-
-  int ret = fread(guest_to_host(load_start), size, 1, fp);
-  assert(ret == 1);
-
-  fclose(fp);
-  return size;
-}
-#endif // CONFIG_MODE_USER
-
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -130,16 +50,18 @@ static inline int parse_args(int argc, char *argv[]) {
     {"config-name"        , required_argument, NULL, 'C'},
 
     // restore cpt
-    {"restore-cpt"        , required_argument, NULL, 'c'},
+    {"restore"            , no_argument      , NULL, 'c'},
     {"cpt-restorer"       , required_argument, NULL, 'r'},
 
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"uniform-cpt"        , no_argument      , NULL, 'u'},
     {"cpt-interval"       , required_argument, NULL, 5},
+    {"cpt-mmode"          , no_argument      , NULL, 7},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
+    {"dont-skip-boot"     , no_argument      , NULL, 6},
 
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
@@ -147,7 +69,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:D:w:C:c:r:S:u", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:D:w:C:cr:S:u", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
       case 'I': max_instr = optarg; break;
@@ -161,7 +83,6 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'C': config_name = optarg; break;
 
       case 'c':
-        cpt_file = optarg;
         checkpoint_restoring = true;
         Log("Restoring from checkpoint");
         break;
@@ -190,6 +111,17 @@ static inline int parse_args(int argc, char *argv[]) {
         Log("Doing Simpoint Profiling");
         break;
 
+      case 6:
+        // start profiling/checkpointing right after boot,
+        // instead of waiting for the pseudo inst to notify NEMU.
+        profiling_started = true;
+        break;
+
+      case 7:
+        Log("Force to take checkpoint on m mode. You should know what you are doing!");
+        force_cpt_mmode = true;
+        break;
+
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
       default:
@@ -204,14 +136,16 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-w,--workload=WORKLOAD  the name of sub_dir of this run in STAT_DIR\n");
         printf("\t-C,--config=CONFIG      running configuration\n");
 
-        printf("\t-c,--cpt=CPT_FILE       restore from CPT FILE\n");
+        printf("\t-c,--restore            restoring from CPT FILE\n");
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
 
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
+        printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
 
         printf("\t--simpoint-profile      simpoint profiling\n");
+        printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--cpt-id                checkpoint id\n");
         printf("\n");
         exit(0);
@@ -235,9 +169,8 @@ void init_monitor(int argc, char *argv[]) {
   extern void init_serializer();
   extern void unserialize();
 
-  bool cpt_features_enabled = checkpoint_restoring || checkpoint_taking || profiling_state == SimpointProfiling;
-  if (cpt_features_enabled) {
-
+  bool output_features_enabled = checkpoint_taking || profiling_state == SimpointProfiling;
+  if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
     init_serializer();
@@ -248,10 +181,6 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize memory. */
   init_mem();
-
-  if (cpt_features_enabled) {
-    unserialize();
-  }
 
   /* Load the image to memory. This will overwrite the built-in image. */
 #ifdef CONFIG_MODE_USER
@@ -270,23 +199,31 @@ void init_monitor(int argc, char *argv[]) {
   if (checkpoint_restoring) {
     // When restoring cpt, gcpt restorer from cmdline is optional,
     // because a gcpt already ships a restorer
+    assert(img_file != NULL);
+
     img_size = CONFIG_MSIZE;
     bbl_start = CONFIG_MSIZE; // bbl size should never be used, let it crash if used
-    if (img_file != NULL) {
-      Log("img_file %s will not used when restoring gcpt\n", img_file);
-    }
+
+    load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
     load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
 
   } else if (checkpoint_taking) {
     // boot: jump to restorer --> restorer jump to bbl
     assert(img_file != NULL);
     assert(restorer != NULL);
+
     bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
 
     long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
     long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
     img_size = restorer_size + bbl_size;
   } else {
+    if (restorer != NULL) {
+      Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! "
+      "If you don't know what you are doing, this will corrupt your memory/program. "
+      "If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
+      panic("Providing cpt restorer without restoring cpt or taking cpt\n");
+    }
     bbl_start = RESET_VECTOR;
     img_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
   }

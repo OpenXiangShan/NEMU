@@ -16,5 +16,6 @@ extern bool checkpoint_restoring;
 extern uint64_t checkpoint_interval;
 
 extern bool profiling_started;
+extern bool force_cpt_mmode;
 
 #endif

@@ -6,6 +6,7 @@ bool checkpoint_restoring = false;
 uint64_t checkpoint_interval = 0;
 
 bool profiling_started = false;
+bool force_cpt_mmode = false;
 
 #ifdef CONFIG_SHARE
 // empty definition on share
