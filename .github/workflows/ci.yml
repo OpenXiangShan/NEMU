@@ -33,6 +33,24 @@ jobs:
           export NEMU_HOME=$(pwd)
           make riscv64-xs_defconfig
           make -j
+      - name: test boot linux
+        run: |
+          export NEMU_HOME=$(pwd)
+          git submodule update --init ready-to-run
+          # test boot linux
+          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          make clean-all
+
+      - name: test cpt taking and restoring
+        run: |
+          export NEMU_HOME=$(pwd)
+          make riscv64-xs-novga_defconfig
+          make -j
+          cd resource/gcpt_restore && make && cd $NEMU_HOME
+          # take cpt, and put cpt in output_top/test/linux
+          ./scripts/take.sh
+          # restore cpt
+          ./scripts/restore.sh
           make clean-all
 
       - name: Build NEMU as difftest ref

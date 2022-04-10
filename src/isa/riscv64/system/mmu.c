@@ -214,7 +214,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
-    assert(0);
+    // assert(0);
     int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
     INTR_TVAL_REG(ex) = vaddr;
     longjmp_exception(ex);
