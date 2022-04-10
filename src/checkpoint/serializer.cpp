@@ -210,8 +210,8 @@ void Serializer::init() {
   } else if (checkpoint_taking) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
-    Log("Taking normal checkpionts with interval %lu", checkpoint_interval);
-    nextNormalPoint = intervalSize;
+    Log("Taking uniform checkpionts with interval %lu", checkpoint_interval);
+    nextUniformPoint = intervalSize;
   }
 }
 
@@ -233,7 +233,7 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
                   next_point, num_insts);
       }
   } else if (checkpoint_taking && profiling_started){
-      if (num_insts >= nextNormalPoint) {
+      if (num_insts >= nextUniformPoint) {
           Log("Should take cpt now: %lu", num_insts);
           return true;
       }
@@ -250,7 +250,7 @@ void Serializer::notify_taken(uint64_t i) {
     }
 
   } else if (checkpoint_taking) {
-    nextNormalPoint += intervalSize;
+    nextUniformPoint += intervalSize;
     pathManager.incCptID();
   }
 }
