@@ -5,6 +5,8 @@
 #include <memory/paddr.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include<signal.h>
+#include<unistd.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
@@ -35,6 +37,22 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
+void sig_handler(int signum) {
+  if (signum == SIGINT) {
+    Log("received SIGINT, mark manual cpt flag\n");
+    if (wait_manual_oneshot_cpt) {
+      recvd_manual_oneshot_cpt = true;
+    } else if (wait_manual_uniform_cpt) {
+      recvd_manual_uniform_cpt = true;
+      reset_inst_counters();
+    } else {
+      panic("Received SIGINT when not waiting for it");
+    }
+  } else {
+    panic("Unhandled signal: %i\n", signum);
+  }
+}
+
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -56,6 +74,8 @@ static inline int parse_args(int argc, char *argv[]) {
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"uniform-cpt"        , no_argument      , NULL, 'u'},
+    {"manual-oneshot-cpt" , no_argument      , NULL, 8},
+    {"manual-uniform-cpt" , no_argument      , NULL, 9},
     {"cpt-interval"       , required_argument, NULL, 5},
     {"cpt-mmode"          , no_argument      , NULL, 7},
 
@@ -122,6 +142,20 @@ static inline int parse_args(int argc, char *argv[]) {
         force_cpt_mmode = true;
         break;
 
+      case 8:
+        wait_manual_oneshot_cpt = true;
+        // fall through
+      case 9:
+        if (!wait_manual_oneshot_cpt) {
+          wait_manual_uniform_cpt = true;
+        }
+        Log("Manually take cpt by send signal");
+        checkpoint_taking = true;
+        if (signal(SIGINT, sig_handler) == SIG_ERR) {
+          panic("Cannot catch SIGINT!\n");
+        }
+        break;
+
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
       default:
@@ -143,6 +177,8 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
+        printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
+        printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
 
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
