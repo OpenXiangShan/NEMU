@@ -27,6 +27,7 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
+static bool manual_cpt_quit = false;
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
@@ -175,14 +176,21 @@ uint64_t per_bb_profile(Decode *s) {
   }
 
   extern bool able_to_take_cpt();
-  if (checkpoint_taking && profiling_started && (force_cpt_mmode || able_to_take_cpt())) {
+  bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
+  if (checkpoint_taking && able_to_take &&
+      ((manual_cpt && !manual_cpt_quit) || profiling_started)) {
     // update cpu pc!
     cpu.pc = s->pc;
 
     extern bool try_take_cpt(uint64_t icount);
     bool taken = try_take_cpt(abs_inst_count);
     if (taken) {
-      Log("Should take checkpoint on pc 0x%lx", s->pc);
+      Log("Have taken checkpoint on pc 0x%lx", s->pc);
+      if (manual_cpt) {
+        Log("Quit after taken manual cpt\n");
+        nemu_state.state = NEMU_QUIT;
+        manual_cpt_quit = true;
+      }
     }
   }
   return abs_inst_count;
@@ -237,6 +245,7 @@ end_of_bb:
     Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
 
     if (unlikely(n <= 0)) break;
+    if (unlikely(manual_cpt_quit)) break;
 
     // Here is per inst action
     // Because every instruction executed goes here, don't put Log here to improve performance

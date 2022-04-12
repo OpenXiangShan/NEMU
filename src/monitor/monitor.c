@@ -5,6 +5,8 @@
 #include <memory/paddr.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include<signal.h>
+#include<unistd.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
@@ -35,6 +37,15 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
+void sig_handler(int signum) {
+  if (signum == SIGINT) {
+    Log("received SIGINT, mark manual cpt flag\n");
+    manual_cpt = true;
+  } else {
+    panic("Unhandled signal: %i\n", signum);
+  }
+}
+
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -56,6 +67,7 @@ static inline int parse_args(int argc, char *argv[]) {
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"uniform-cpt"        , no_argument      , NULL, 'u'},
+    {"manual-cpt"         , no_argument      , NULL, 8},
     {"cpt-interval"       , required_argument, NULL, 5},
     {"cpt-mmode"          , no_argument      , NULL, 7},
 
@@ -122,6 +134,15 @@ static inline int parse_args(int argc, char *argv[]) {
         force_cpt_mmode = true;
         break;
 
+      case 8:
+        Log("Manually take cpt by send signal");
+        checkpoint_taking = true;
+        if (signal(SIGINT, sig_handler) == SIG_ERR) {
+          panic("Cannot catch SIGINT!\n");
+        }
+
+        break;
+
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
       default:
@@ -143,6 +164,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
+        printf("\t--manual-cpt            Manually take cpt by send signal.\n");
 
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");

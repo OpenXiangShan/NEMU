@@ -232,6 +232,10 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
           Log("First cpt @ %lu, now: %lu",
                   next_point, num_insts);
       }
+  } else if (checkpoint_taking && manual_cpt){
+    Log("Take manual cpt now: %lu", num_insts);
+    return true;
+
   } else if (checkpoint_taking && profiling_started){
       if (num_insts >= nextUniformPoint) {
           Log("Should take cpt now: %lu", num_insts);

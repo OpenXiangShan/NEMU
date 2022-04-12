@@ -14,6 +14,7 @@ extern int profiling_state;
 extern bool checkpoint_taking;
 extern bool checkpoint_restoring;
 extern uint64_t checkpoint_interval;
+extern bool manual_cpt;
 
 extern bool profiling_started;
 extern bool force_cpt_mmode;
