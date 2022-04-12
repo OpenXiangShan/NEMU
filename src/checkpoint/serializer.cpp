@@ -232,7 +232,7 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
           Log("First cpt @ %lu, now: %lu",
                   next_point, num_insts);
       }
-  } else if (checkpoint_taking && manual_cpt){
+  } else if (checkpoint_taking && recvd_manual_oneshot_cpt){
     Log("Take manual cpt now: %lu", num_insts);
     return true;
 

@@ -178,7 +178,7 @@ uint64_t per_bb_profile(Decode *s) {
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
   if (checkpoint_taking && able_to_take &&
-      ((manual_cpt && !manual_cpt_quit) || profiling_started)) {
+      ((recvd_manual_oneshot_cpt && !manual_cpt_quit) || profiling_started)) {
     // update cpu pc!
     cpu.pc = s->pc;
 
@@ -186,7 +186,7 @@ uint64_t per_bb_profile(Decode *s) {
     bool taken = try_take_cpt(abs_inst_count);
     if (taken) {
       Log("Have taken checkpoint on pc 0x%lx", s->pc);
-      if (manual_cpt) {
+      if (recvd_manual_oneshot_cpt) {
         Log("Quit after taken manual cpt\n");
         nemu_state.state = NEMU_QUIT;
         manual_cpt_quit = true;
