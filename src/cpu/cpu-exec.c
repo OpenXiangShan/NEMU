@@ -108,6 +108,7 @@ void longjmp_exception(int ex_cause) {
 }
 
 #ifdef CONFIG_PERF_OPT
+static bool manual_cpt_quit = false;
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
 #define rtl_j(s, target) do { \
@@ -175,14 +176,21 @@ uint64_t per_bb_profile(Decode *s) {
   }
 
   extern bool able_to_take_cpt();
-  if (checkpoint_taking && profiling_started && (force_cpt_mmode || able_to_take_cpt())) {
+  bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
+  if (checkpoint_taking && able_to_take &&
+      ((recvd_manual_oneshot_cpt && !manual_cpt_quit) || profiling_started)) {
     // update cpu pc!
     cpu.pc = s->pc;
 
     extern bool try_take_cpt(uint64_t icount);
     bool taken = try_take_cpt(abs_inst_count);
     if (taken) {
-      Log("Should take checkpoint on pc 0x%lx", s->pc);
+      Log("Have taken checkpoint on pc 0x%lx", s->pc);
+      if (recvd_manual_oneshot_cpt) {
+        Log("Quit after taken manual cpt\n");
+        nemu_state.state = NEMU_QUIT;
+        manual_cpt_quit = true;
+      }
     }
   }
   return abs_inst_count;
@@ -237,6 +245,7 @@ end_of_bb:
     Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
 
     if (unlikely(n <= 0)) break;
+    if (unlikely(manual_cpt_quit)) break;
 
     // Here is per inst action
     // Because every instruction executed goes here, don't put Log here to improve performance
