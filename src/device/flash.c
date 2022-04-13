@@ -22,13 +22,12 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 void init_flash(const char *flash_img) {
   printf("init_flash\n");
 #if CONFIG_HAS_FLASH == 1
-  printf("[NMEU] flash_image is %s\n",flash_img);
   fp = fopen(flash_img, "r");
   if (fp == NULL) {
     // Log("Can not find flash image: %s", img);
     // Log("Use built-in image instead");
-    printf("Can not find flash image: %s\n", flash_img);
-    printf("Use built-in image instead\n");
+    printf("[NEMU] Can not find flash image: %s\n", flash_img);
+    printf("[NEMU] Use built-in image instead\n");
     add_mmio_map("flash", CONFIG_FLASH_START_ADDR, (uint8_t *)preset_flash, CONFIG_FLASH_SIZE, flash_io_handler);
     return;
   } else {
@@ -48,6 +47,5 @@ void init_flash(const char *flash_img) {
 #else
   flash_base = (uint8_t*) preset_flash;
 #endif  
-  printf("[NMEU] flash_base is %p\n",(void *)flash_base);
   add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
 }

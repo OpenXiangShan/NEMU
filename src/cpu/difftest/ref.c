@@ -45,7 +45,6 @@ void difftest_load_flash(void *flash_bin, size_t f_size){
 #ifndef CONFIG_HAS_FLASH
   printf("nemu does not enable flash fetch!\n");
 #else
-  printf("[NMEU] flash_image is %s\n",(const char *)flash_bin);
   init_flash((const char *)flash_bin);
 #endif
 }
