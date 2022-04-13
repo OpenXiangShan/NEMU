@@ -15,6 +15,16 @@ typedef struct {
 
 extern NEMUState nemu_state;
 
+enum {
+  dflag_none = 0,
+  dflag_mem,
+  dflag_translate,
+  dflag_trace_bb,
+  dflag_trace_inst,
+  dflag_exit,
+};
+
+
 // ----------- timer -----------
 
 uint64_t get_time();
@@ -48,5 +58,13 @@ word_t expr(char *e, bool *success);
 // ----------- iqueue -----------
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
 void iqueue_dump();
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+bool is_gz_file(const char *filename);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

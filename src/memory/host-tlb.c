@@ -57,6 +57,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
   }
+  Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return paddr_read(paddr, len, MEM_TYPE_READ, MODE_S, vaddr);
 }
 
@@ -72,10 +73,16 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
 }
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
+  Logm("hosttlb_reading " FMT_WORD, vaddr);
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) return hosttlb_read_slowpath(s, vaddr, len, type);
-  return host_read(e->offset + vaddr, len);
+  if (unlikely(e->gvpn != gvpn)) {
+    Logm("Host TLB slow path");
+    return hosttlb_read_slowpath(s, vaddr, len, type);
+  } else {
+    Logm("Host TLB fast path");
+    return host_read(e->offset + vaddr, len);
+  }
 }
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {

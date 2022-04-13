@@ -1,3 +1,4 @@
+#include <checkpoint/profiling.h>
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
@@ -46,13 +47,24 @@ void save_globals(Decode *s) {
   IFDEF(CONFIG_PERF_OPT, prev_s = s);
 }
 
+uint64_t get_abs_instr_count () {
+#if defined(CONFIG_ENABLE_INSTR_CNT)
+  int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+  uint32_t n_executed = n_batch - n_remain;
+  return n_executed + g_nr_guest_instr;
+#endif
+  return 0;
+}
+
 static void update_instr_cnt() {
 #if defined(CONFIG_ENABLE_INSTR_CNT)
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
   uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= (n_remain_total > n_executed) ? n_executed : n_remain_total;
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
-  n_remain = n_batch; // clean n_remain
+
+  n_remain = n_batch > n_remain_total ? n_remain_total : n_batch; // clean n_remain
+  // Loge("n_remain = %i, n_remain_total = %lu\n", n_remain, n_remain_total);
 #endif
 }
 
@@ -82,6 +94,7 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 }
 
 void longjmp_exec(int cause) {
+  Loge("Longjmp to jbuf_exec with cause: %i", cause);
   longjmp(jbuf_exec, cause);
 }
 
@@ -90,6 +103,7 @@ void longjmp_exception(int ex_cause) {
   cpu.guided_exec = false;
 #endif
   g_ex_cause = ex_cause;
+  Loge("longjmp_exec(NEMU_EXEC_EXCEPTION)");
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
 
@@ -154,7 +168,28 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
+uint64_t per_bb_profile(Decode *s) {
+  uint64_t abs_inst_count = get_abs_instr_count();
+  if (profiling_state == SimpointProfiling && profiling_started) {
+    simpoint_profiling(s->pc, true, abs_inst_count);
+  }
+
+  extern bool able_to_take_cpt();
+  if (checkpoint_taking && profiling_started && (force_cpt_mmode || able_to_take_cpt())) {
+    // update cpu pc!
+    cpu.pc = s->pc;
+
+    extern bool try_take_cpt(uint64_t icount);
+    bool taken = try_take_cpt(abs_inst_count);
+    if (taken) {
+      Log("Should take checkpoint on pc 0x%lx", s->pc);
+    }
+  }
+  return abs_inst_count;
+}
+
 static int execute(int n) {
+  Logtb("Will execute %i instrs\n", n);
   static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
@@ -195,13 +230,27 @@ def_EHelper(nemu_decode) {
 end_of_bb:
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
+
+    // Here is per bb action
+    uint64_t abs_inst_count = per_bb_profile(s);
+    Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
+    Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
+
     if (unlikely(n <= 0)) break;
 
+    // Here is per inst action
+    // Because every instruction executed goes here, don't put Log here to improve performance
     def_finish();
+    Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
     debug_difftest(this_s, s);
   }
 
 end_of_loop:
+  // Here is per loop action and some priv instruction action
+  Loge("end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
+       prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);
+  per_bb_profile(s);
+
   debug_difftest(this_s, s);
   prev_s = s;
   return n;
@@ -263,18 +312,23 @@ void cpu_exec(uint64_t n) {
     case NEMU_END: case NEMU_ABORT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
       return;
-    default: nemu_state.state = NEMU_RUNNING;
+    default:
+      nemu_state.state = NEMU_RUNNING;
+      Loge("Setting NEMU state to RUNNING");
   }
 
   uint64_t timer_start = get_time();
 
   n_remain_total = n; // deal with setjmp()
+  Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
     n_remain -= prev_s->idx_in_bb - 1;
+    // Here is exception handle
 #ifdef CONFIG_PERF_OPT
     update_global();
 #endif
+    Loge("After update_global, n_remain: %i, n_remain_total: %li", n_remain, n_remain_total);
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
@@ -285,6 +339,7 @@ void cpu_exec(uint64_t n) {
 #endif
 
     if (cause == NEMU_EXEC_EXCEPTION) {
+      Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
@@ -292,6 +347,7 @@ void cpu_exec(uint64_t n) {
     } else {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
+        Loge("NEMU raise intr");
         cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
@@ -301,17 +357,29 @@ void cpu_exec(uint64_t n) {
     int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
     n_remain = execute(n_batch);
 #ifdef CONFIG_PERF_OPT
-    update_global();
+    // return from execute
+    update_global(cpu.pc);
+    Loge("n_remain_total: %lu", n_remain_total);
 #else
     n_remain_total -= n_batch;
 #endif
+  }
+
+  // If nemu_state.state is NEMU_RUNNING, n_remain_total should be zero.
+  if (nemu_state.state == NEMU_RUNNING) {
+    nemu_state.state = NEMU_QUIT;
   }
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
 
   switch (nemu_state.state) {
-    case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
+    case NEMU_RUNNING: nemu_state.state = NEMU_STOP;
+      Loge("NEMU stopped when running");
+      if (ISDEF(CONFIG_EXITLOG)) {
+        monitor_statistic();
+      }
+      break;
 
     case NEMU_END: case NEMU_ABORT:
       Log("nemu: %s\33[0m at pc = " FMT_WORD,
@@ -319,8 +387,13 @@ void cpu_exec(uint64_t n) {
            (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP" : "\33[1;31mHIT BAD TRAP")),
           nemu_state.halt_pc);
       Log("trap code:%d", nemu_state.halt_ret);
-      // fall through
-    case NEMU_QUIT:
       monitor_statistic();
-  }
+      break;
+    case NEMU_QUIT:
+#ifndef CONFIG_SHARE
+      monitor_statistic();
+#else
+      break;
+#endif
+    }
 }
