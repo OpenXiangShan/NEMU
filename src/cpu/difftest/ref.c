@@ -3,6 +3,9 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 
+extern void init_flash();
+
+
 #ifdef CONFIG_LARGE_COPY
 static void nemu_large_memcpy(void *dest, void *src, size_t n) {
   uint64_t *_dest = (uint64_t *)dest;
@@ -35,6 +38,14 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
 #else
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else memcpy(dut_buf, guest_to_host(nemu_addr), n);
+#endif
+}
+
+void difftest_load_flash(void *flash_bin, size_t f_size){
+#ifndef CONFIG_HAS_FLASH
+  printf("nemu does not enable flash fetch!\n");
+#else
+  init_flash((const char *)flash_bin);
 #endif
 }
 
