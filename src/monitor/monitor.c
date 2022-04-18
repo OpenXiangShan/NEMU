@@ -269,6 +269,11 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   init_device();
+
+  if (ISDEF(CONFIG_GEN_TRACE)) {
+    extern void init_tracer(const char *data_file, const char *inst_file);
+    init_tracer("data_dep_trace.pbuf", "inst_fetch_trace.pbuf");
+  }
 #endif
 
   /* Compile the regular expressions. */

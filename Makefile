@@ -39,7 +39,7 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
-DIRS-cpp = src/checkpoint src/base src/iostream3
+DIRS-cpp = src/checkpoint src/base src/iostream3 src/inst_trace
 DIRS-y += src/checkpoint  # profiling.c
 XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
 
@@ -54,7 +54,7 @@ LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
-LDFLAGS += -lz
+LDFLAGS += -lz -lprotobuf
 
 ifndef CONFIG_SHARE
 LDFLAGS += -lreadline -ldl -pie

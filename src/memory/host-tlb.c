@@ -3,6 +3,7 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
+#include <cpu/decode.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -10,6 +11,7 @@
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
+  paddr_t gppbase; // guest physical page number
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 2];
@@ -56,6 +58,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return paddr_read(paddr, len, MEM_TYPE_READ, MODE_S, vaddr);
@@ -68,9 +71,13 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
   paddr_write(paddr, len, data, MODE_S, vaddr);
 }
+
+void recordMem(uint64_t pc, uint64_t paddr);
+void recordFetch(uint64_t pc, uint64_t inst_paddr);
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
@@ -81,6 +88,12 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
+    paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
+    if (s != NULL) { // mem read
+      recordMem(s->pc, paddr);
+    } else {
+      recordFetch(vaddr, paddr);
+    }
     return host_read(e->offset + vaddr, len);
   }
 }
@@ -92,5 +105,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
+  paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
+  recordMem(s->pc, paddr);
   host_write(e->offset + vaddr, len, data);
 }

@@ -315,4 +315,9 @@ config ENABLE_INSTR_CNT
   bool
   default n if DISABLE_INSTR_CNT
   default y
+
+config GEN_TRACE
+  bool "generate gem5 elastic trace"
+  default n
+
 endmenu
