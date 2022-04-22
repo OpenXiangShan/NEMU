@@ -69,12 +69,12 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   Assert(fp, "Can not open '%s'", loading_img);
 
   size_t size;
-  if (img_size == 0) {
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-  } else {
-    size=img_size;
+  fseek(fp, 0, SEEK_END);
+  size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  if (img_size != 0 && (size > img_size)) {
+    Log("Warning: size is larger than img_size(upper limit), please check if code is missing. size:%lx img_size:%lx", size, img_size);
+    size = img_size;
   }
 
   int ret = fread(guest_to_host(load_start), size, 1, fp);
