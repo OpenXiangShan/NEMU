@@ -12,6 +12,11 @@
 
 using namespace std;
 
+extern "C" {
+#include <debug.h>
+extern bool log_enable();
+}
+
 void PathManager::init() {
   assert(output_base_dir);
   statsBaseDir = output_base_dir;

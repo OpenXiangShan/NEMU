@@ -43,6 +43,7 @@ uint8_t *get_pmem();
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 uint8_t* guest_to_host(paddr_t paddr);
 #include <debug.h>
+extern bool log_enable();
 }
 
 void Serializer::serializePMem(uint64_t inst_count) {

@@ -21,6 +21,7 @@ enum {
   dflag_translate,
   dflag_trace_bb,
   dflag_trace_inst,
+  dflag_trace_inst_dasm,
   dflag_exit,
 };
 
