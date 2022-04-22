@@ -205,7 +205,7 @@ void init_monitor(int argc, char *argv[]) {
     bbl_start = CONFIG_MSIZE; // bbl size should never be used, let it crash if used
 
     load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
-    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
+    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
 
   } else if (checkpoint_taking) {
     // boot: jump to restorer --> restorer jump to bbl
@@ -214,7 +214,7 @@ void init_monitor(int argc, char *argv[]) {
 
     bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
 
-    long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
+    long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
     long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
     img_size = restorer_size + bbl_size;
   } else {

@@ -19,9 +19,15 @@ config RVK
 config RVV_010
   bool "Experimental RISC-V Vector Extension v0.10"
 
-config RV_PMP
+config RV_PMP_CSR
+  bool "Enable PMP CSR Read & Write"
+  default y
+
+config RV_PMP_CHECK
+  # todo: pmp check still not work when enable PERF_OPT
   depends on !PERF_OPT
-  bool "Enable PMP"
+  depends on RV_PMP_CSR
+  bool "Enable PMP Check"
   default y
 
 config RV_SVINVAL
