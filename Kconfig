@@ -129,10 +129,11 @@ endmenu
 menu "Testing and Debugging"
 config DEBUG
   depends on !SHARE
-  bool "Enable debug features"
+  bool "Enable debug features: instruction tracing and watchpoint"
   default n
   help
     Enable debug features, which include instruction tracing and watchpoint.
+    Add -l <logfile path> to enable instruction tracing and log dump.
 
 config DIFFTEST
   depends on !SHARE
@@ -199,6 +200,11 @@ config EXITLOG
 
 config TRACE_INST
   bool "Enable Log for tracing instructions"
+  default n
+
+config TRACE_INST_DASM
+  depends on DEBUG
+  bool "Enable rich Log for tracing instructions, pc, inst and dasm included"
   default n
 
 config TRACE_BB

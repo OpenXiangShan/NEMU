@@ -50,6 +50,12 @@
 namespace SimPointNS
 {
 
+extern "C" {
+#include <debug.h>
+extern bool log_enable();
+extern FILE *log_fp;
+}
+
 SimPoint::SimPoint()
     : intervalCount(0),
       intervalDrift(0),

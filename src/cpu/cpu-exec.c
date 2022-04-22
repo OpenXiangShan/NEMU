@@ -292,6 +292,8 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
+  Logtid(FMT_WORD ":   %s%*.s%s",
+        s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf);
   IFDEF(CONFIG_DEBUG, snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s",
         s->pc, log_bytebuf, 50 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf));
   s->EHelper = g_exec_table[idx];
