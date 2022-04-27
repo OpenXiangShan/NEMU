@@ -272,7 +272,7 @@ void init_monitor(int argc, char *argv[]) {
 
   if (ISDEF(CONFIG_GEN_TRACE)) {
     extern void init_tracer(const char *data_file, const char *inst_file);
-    init_tracer("data_dep_trace.pbuf", "inst_fetch_trace.pbuf");
+    init_tracer("./cache-trace/data_dep_trace.pbuf", "./cache-trace/inst_fetch_trace.pbuf");
   }
 #endif
 

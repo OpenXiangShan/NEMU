@@ -36,25 +36,30 @@ void ElasticTrace::recordMem(uint64_t pc, uint64_t paddr)
     dep_pkt.set_size(1);
     dep_pkt.set_comp_delay(1);
     dataTraceStream->write(dep_pkt);
+    tick += 500;
 }
 
 
 void ElasticTrace::recordFetch(uint64_t pc, uint64_t inst_paddr)
 {
     ProtoMessage::Packet inst_fetch_pkt;
-    inst_fetch_pkt.set_tick(instCount);
+    inst_fetch_pkt.set_tick(tick);
     inst_fetch_pkt.set_cmd(1);  // MemCmd::ReadReqinstCount
     inst_fetch_pkt.set_pc(pc);
     inst_fetch_pkt.set_flags(0);
     inst_fetch_pkt.set_addr(inst_paddr);
     inst_fetch_pkt.set_size(2); // RVC minimal size
     instTraceStream->write(inst_fetch_pkt);
+    tick += 500;
 }
 
 void ElasticTrace::close()
 {
-    delete dataTraceStream;
-    delete instTraceStream;
+    if (dataTraceStream) {
+        assert(instTraceStream);
+        delete dataTraceStream;
+        delete instTraceStream;
+    }
 }
 
 ElasticTrace elasticTracer;

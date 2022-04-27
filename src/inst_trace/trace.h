@@ -3,10 +3,11 @@
 class ElasticTrace
 {
   private:
-    ProtoOutputStream *dataTraceStream;
-    ProtoOutputStream *instTraceStream;
+    ProtoOutputStream *dataTraceStream{};
+    ProtoOutputStream *instTraceStream{};
 
     uint64_t instCount;
+    uint64_t tick;
 
   public:
     void init(const char *data_file, const char *inst_file);
