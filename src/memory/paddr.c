@@ -10,6 +10,8 @@
 
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 static uint8_t *pmem = (uint8_t *)0x100000000ul;
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
@@ -40,9 +42,28 @@ void init_mem() {
   #ifdef CONFIG_MULTICORE_DIFF
     panic("Pmem must not use mmap during multi-core difftest");
   #endif
-  void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
-      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-  if (ret != pmem) {
+  bool named_mmap = true;
+  void *mmap_ret = NULL;
+  if (named_mmap) {
+    const char *backFile = "/tmp/backed_mem_for_cpt";
+    int fd = open(backFile, O_RDWR | O_TRUNC | O_CREAT, (mode_t)0600);
+    if (!fd) {
+      panic("Failed to create file %s", backFile);
+    }
+    int trunc_ret = ftruncate(fd, CONFIG_MSIZE);  // create sparse file
+    if (trunc_ret == -1) {
+      panic("Failed to truncate file %s", backFile);
+    } else {
+      Log("Truncate file %s to 0x%lx Bytes", backFile, CONFIG_MSIZE);
+    }
+    mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
+        MAP_SHARED | MAP_FIXED, fd, 0);
+
+  } else {
+    mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+  }
+  if (mmap_ret != pmem) {
     perror("mmap");
     assert(0);
   }
