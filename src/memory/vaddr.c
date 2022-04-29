@@ -101,6 +101,8 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
+    void recordMem(uint64_t pc, uint64_t paddr);
+    recordMem(addr, addr);
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
