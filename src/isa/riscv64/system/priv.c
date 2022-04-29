@@ -282,7 +282,7 @@ word_t csrid_read(uint32_t csrid) {
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (!csr_is_legal(csrid)) {
-    Log("Illegal csr id %u", csrid);
+    Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
   }
