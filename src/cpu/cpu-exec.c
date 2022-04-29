@@ -403,6 +403,8 @@ void cpu_exec(uint64_t n) {
     case NEMU_QUIT:
 #ifndef CONFIG_SHARE
       monitor_statistic();
+      extern void serialize_reg_to_mem();
+      serialize_reg_to_mem();
 #else
       break;
 #endif

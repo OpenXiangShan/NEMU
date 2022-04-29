@@ -60,6 +60,7 @@ void ElasticTrace::close()
         delete dataTraceStream;
         delete instTraceStream;
     }
+    printf("Close inst&data trace\n");
 }
 
 ElasticTrace elasticTracer;

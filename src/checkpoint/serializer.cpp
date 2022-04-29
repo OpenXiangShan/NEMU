@@ -277,4 +277,8 @@ bool try_take_cpt(uint64_t icount) {
   return false;
 }
 
+void serialize_reg_to_mem() {
+  serializer.serializeRegs();
+}
+
 }
