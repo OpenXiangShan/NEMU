@@ -23,6 +23,8 @@ restore_csr_vector:
   li t1, MSTATUS_MIE
   and t2, t1, t0
   slli t2, t2, 4 # shift to MPIE
+  slli t1, t1, 4 # MPIE mask
+  csrc CSR_MSTATUS, t1
   csrs CSR_MSTATUS, t2
 
   # clear MIE
