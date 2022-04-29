@@ -128,7 +128,6 @@ endmenu
 
 menu "Testing and Debugging"
 config DEBUG
-  depends on !SHARE
   bool "Enable debug features: instruction tracing and watchpoint"
   default n
   help
