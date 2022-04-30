@@ -66,7 +66,7 @@ void init_device() {
   IFDEF(CONFIG_HAS_DISK, init_disk());
   IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
 #ifndef CONFIG_SHARE
-  IFDEF(CONFIG_HAS_FLASH, init_flash(FLASH_IMG_PATH));
+  IFDEF(CONFIG_HAS_FLASH, init_flash(CONFIG_FLASH_IMG_PATH));
 #endif
 
   add_alarm_handle(set_device_update_flag);
