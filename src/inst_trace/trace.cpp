@@ -1,10 +1,14 @@
 #include "inst_dep_record.pb.h"
 #include "packet.pb.h"
 #include "trace.h"
+#include <generated/autoconf.h>
 
 
 void ElasticTrace::init(const char *data_file, const char *inst_file)
 {
+    if (!data_file || !inst_file) {
+        fprintf(stderr, "Must provide datafile and instfile when enable elastic tracing\n");
+    }
     assert(data_file);
     assert(inst_file);
     assert(strcmp(data_file, "") != 0);
@@ -69,22 +73,30 @@ extern "C" {
 
 void init_tracer(const char *data_file, const char *inst_file)
 {
+#ifdef CONFIG_GEN_TRACE
     elasticTracer.init(data_file, inst_file);
+#endif
 }
 
 void recordMem(uint64_t pc, uint64_t paddr)
 {
+#ifdef CONFIG_GEN_TRACE
     elasticTracer.recordMem(pc, paddr);
+#endif
 }
 
 void recordFetch(uint64_t pc, uint64_t inst_paddr)
 {
+#ifdef CONFIG_GEN_TRACE
     elasticTracer.recordFetch(pc, inst_paddr);
+#endif
 }
 
 void close_tracer()
 {
+#ifdef CONFIG_GEN_TRACE
     elasticTracer.close();
+#endif
 }
 
 }

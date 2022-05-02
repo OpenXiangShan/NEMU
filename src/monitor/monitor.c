@@ -24,6 +24,9 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
 
+static char *etrace_inst = NULL;
+static char *etrace_data = NULL;
+
 int is_batch_mode() { return batch_mode; }
 
 static inline void welcome() {
@@ -82,6 +85,8 @@ static inline int parse_args(int argc, char *argv[]) {
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"dont-skip-boot"     , no_argument      , NULL, 6},
+    {"etrace-inst"        , required_argument, NULL, 11},
+    {"etrace-data"        , required_argument, NULL, 12},
 
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
@@ -130,6 +135,8 @@ static inline int parse_args(int argc, char *argv[]) {
         profiling_state = SimpointProfiling;
         Log("Doing Simpoint Profiling");
         break;
+      case 11: etrace_inst = optarg; break;
+      case 12: etrace_data = optarg; break;
 
       case 6:
         // start profiling/checkpointing right after boot,
@@ -183,6 +190,8 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--cpt-id                checkpoint id\n");
+        printf("\t--etrace-inst           GEM5 elastic trace inst output file\n");
+        printf("\t--etrace-data           GEM5 elastic trace data output file\n");
         printf("\n");
         exit(0);
     }
@@ -270,10 +279,8 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize devices. */
   init_device();
 
-  if (ISDEF(CONFIG_GEN_TRACE)) {
-    extern void init_tracer(const char *data_file, const char *inst_file);
-    init_tracer("./cache-trace/data_dep_trace.pbuf", "./cache-trace/inst_fetch_trace.pbuf");
-  }
+  extern void init_tracer(const char *data_file, const char *inst_file);
+  init_tracer(etrace_data, etrace_inst);
 #endif
 
   /* Compile the regular expressions. */
