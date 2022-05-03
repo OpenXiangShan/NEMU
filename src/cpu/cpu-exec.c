@@ -197,6 +197,7 @@ uint64_t per_bb_profile(Decode *s) {
 }
 
 static int execute(int n) {
+  extern void update_clint_byinst();
   Logtb("Will execute %i instrs\n", n);
   static const void* local_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)
@@ -239,6 +240,7 @@ end_of_bb:
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n_remain = n);
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
 
+    update_clint_byinst();
     // Here is per bb action
     uint64_t abs_inst_count = per_bb_profile(s);
     Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
@@ -255,6 +257,7 @@ end_of_bb:
   }
 
 end_of_loop:
+  update_clint_byinst();
   // Here is per loop action and some priv instruction action
   Loge("end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
        prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);

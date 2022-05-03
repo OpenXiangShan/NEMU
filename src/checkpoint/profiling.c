@@ -18,6 +18,8 @@ void reset_inst_counters() {
   extern bool profiling_started;
   Log("Start profiling, resetting inst count from %lu to 1, (n_remain_total will not be cleared)\n", g_nr_guest_instr);
   g_nr_guest_instr = 1;
+  extern void reset_cline_instcnt(uint64_t reset_val);
+  reset_cline_instcnt(1);
   profiling_started = true;
 }
 

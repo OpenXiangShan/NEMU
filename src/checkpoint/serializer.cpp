@@ -60,7 +60,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
   fseek(fp, 0, SEEK_SET);
   assert(restorer_size == fread(pmem, 1, restorer_size, fp));
   fclose(fp);
-  Log("Put gcpt restorer %s to start of pmem", restorer);
+  // Log("Put gcpt restorer %s to start of pmem", restorer);
 
   string filepath;
   if (profiling_state == SimpointCheckpointing) {
@@ -89,7 +89,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
     if (gzwrite(compressed_mem, pmem + written, (uint32_t) pass_size) != (int) pass_size) {
       xpanic("Write failed on physical memory checkpoint file\n");
     }
-    Log("Written 0x%lx bytes\n", pass_size);
+    // Log("Written 0x%lx bytes\n", pass_size);
   }
 
   if (gzclose(compressed_mem)){
@@ -106,20 +106,20 @@ void Serializer::serializeRegs() {
   for (unsigned i = 0; i < 32; i++) {
     *(intRegCpt + i) = cpu.gpr[i]._64;
   }
-  Log("Writing int registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
-      INT_REG_CPT_ADDR, INT_REG_CPT_ADDR + 32 * 8,
-      IntRegStartAddr, IntRegStartAddr + 32 * 8
-      );
+  // Log("Writing int registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+  //     INT_REG_CPT_ADDR, INT_REG_CPT_ADDR + 32 * 8,
+  //     IntRegStartAddr, IntRegStartAddr + 32 * 8
+  //     );
 
 
   auto *floatRegCpt = (uint64_t *) (get_pmem() + FloatRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
   }
-  Log("Writing float registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
-      FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
-      FloatRegStartAddr, FloatRegStartAddr + 32 * 8
-      );
+  // Log("Writing float registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+  //     FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
+  //     FloatRegStartAddr, FloatRegStartAddr + 32 * 8
+  //     );
 
 
   auto *pc = (uint64_t *) (get_pmem() + PCAddr);
@@ -147,18 +147,18 @@ void Serializer::serializeRegs() {
     *(csrCpt + i) = val;
 
     if (csr_array[i] != 0) {
-      Log("CSR 0x%x: 0x%lx", i, *(csrCpt + i));
+      // Log("CSR 0x%x: 0x%lx", i, *(csrCpt + i));
     }
   }
-  Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
-      CSR_CPT_ADDR, CSR_CPT_ADDR + 4096 * 8,
-      CSRStartAddr, CSRStartAddr + 4096 * 8
-      );
+  // Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+  //     CSR_CPT_ADDR, CSR_CPT_ADDR + 4096 * 8,
+  //     CSRStartAddr, CSRStartAddr + 4096 * 8
+  //     );
 
 
   auto *flag = (uint64_t *) (get_pmem() + CptFlagAddr);
   *flag = CPT_MAGIC_BUMBER;
-  Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAGS);
+  // Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAGS);
 
   auto *mode_flag = (uint64_t *) (get_pmem() + CptFlagAddr + 8);
   *mode_flag = cpu.mode;
@@ -167,11 +167,11 @@ void Serializer::serializeRegs() {
   auto *mtime = (uint64_t *) (get_pmem() + CptFlagAddr + 16);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
   *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS+16);
+  Log("Record time: 0x%lx at addr 0x%x", *mtime, BOOT_FLAGS+16);
 
   auto *mtime_cmp = (uint64_t *) (get_pmem() + CptFlagAddr + 24);
   *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS+24);
+  Log("Record timecmp: 0x%lx at addr 0x%x", *mtime_cmp, BOOT_FLAGS+24);
 
   regDumped = true;
 }

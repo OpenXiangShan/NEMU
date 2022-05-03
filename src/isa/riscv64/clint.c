@@ -7,18 +7,39 @@
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
 #define TIMEBASE 10000000ul
+//assume NEMU is a 2GHz IPC=1 CPU, clint working at 1MHz
+#define TIMEBASEINST 2000
 
 static uint64_t *clint_base = NULL;
 static uint64_t boot_time = 0;
+static uint64_t old_inst_cnt = 0;
 
 void update_clint() {
+/*
 #ifdef CONFIG_DETERMINISTIC
   clint_base[CLINT_MTIME] += TIMEBASE / 10000;
 #else
   uint64_t now = get_time() - boot_time;
   clint_base[CLINT_MTIME] = TIMEBASE * now / 1000000;
 #endif
+*/
   mip->mtip = (clint_base[CLINT_MTIME] >= clint_base[CLINT_MTIMECMP]);
+}
+
+void update_clint_byinst()
+{
+  extern uint64_t get_abs_instr_count ();
+  uint64_t new_inst_cnt = get_abs_instr_count();
+  uint64_t tick = (new_inst_cnt - old_inst_cnt) / TIMEBASEINST;
+  clint_base[CLINT_MTIME] += tick;
+  old_inst_cnt += tick * TIMEBASEINST;
+  
+  mip->mtip = (clint_base[CLINT_MTIME] >= clint_base[CLINT_MTIMECMP]);
+}
+
+void reset_cline_instcnt(uint64_t reset_val)
+{
+  old_inst_cnt = reset_val;
 }
 
 uint64_t clint_uptime() {
@@ -27,12 +48,15 @@ uint64_t clint_uptime() {
 }
 
 static void clint_io_handler(uint32_t offset, int len, bool is_write) {
+  // Log("clint io handler offset:0x%x is_write:%d val:0x%lx",offset,is_write,clint_base[offset/sizeof(uint64_t)]);
   update_clint();
 }
 
 void init_clint() {
   clint_base = (uint64_t *)new_space(0x10000);
   add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
+  clint_base[CLINT_MTIME] = 0x1;
+  clint_base[CLINT_MTIMECMP] = 0x1;
   IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
   boot_time = get_time();
 }
