@@ -7,6 +7,7 @@
 #define CH_OFFSET 0
 #define LSR_OFFSET 5
 #define LSR_TX_READY 0x20
+#define LSR_FIFO_EMPTY 0x40
 #define LSR_RX_READY 0x01
 
 static uint8_t *serial_base = NULL;
@@ -108,7 +109,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
       break;
     case LSR_OFFSET:
       if (!is_write)
-        serial_base[5] = LSR_TX_READY | MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_rx_ready_flag(), 0);
+        serial_base[5] = LSR_TX_READY | LSR_FIFO_EMPTY | MUXDEF(CONFIG_SERIAL_INPUT_FIFO, serial_rx_ready_flag(), 0);
       break;
   }
 }
