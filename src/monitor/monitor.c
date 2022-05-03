@@ -106,7 +106,14 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 1: img_file = optarg; return optind - 1;
+      case 1: {
+        img_file = optarg;
+        if (ISDEF(CONFIG_MODE_USER)) {
+          return optind - 1;
+        } else {
+          break;
+        }
+      }
 
       case 'D': output_base_dir = optarg; break;
       case 'w': workload_name = optarg; break;
