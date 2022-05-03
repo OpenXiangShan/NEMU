@@ -23,6 +23,9 @@ uint8_t *get_pmem()
   return pmem;
 }
 
+char *mapped_cpt_file = NULL;
+bool map_image_as_output_cpt = false;
+
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
@@ -42,24 +45,35 @@ void init_mem() {
   #ifdef CONFIG_MULTICORE_DIFF
     panic("Pmem must not use mmap during multi-core difftest");
   #endif
-  bool named_mmap = true;
+  bool named_mmap = mapped_cpt_file != NULL || map_image_as_output_cpt;
   void *mmap_ret = NULL;
   if (named_mmap) {
-    const char *backFile = "/tmp/backed_mem_for_cpt";
-    int fd = open(backFile, O_RDWR | O_TRUNC | O_CREAT, (mode_t)0600);
-    if (!fd) {
-      panic("Failed to create file %s", backFile);
+    Log("mmap memory to named file %s", mapped_cpt_file);
+    if (!map_image_as_output_cpt) {
+      int fd = open(mapped_cpt_file, O_RDWR | O_TRUNC | O_CREAT, (mode_t)0600);
+      if (!fd) {
+        panic("Failed to create file %s", mapped_cpt_file);
+      }
+      int trunc_ret = ftruncate(fd, CONFIG_MSIZE);  // create sparse file
+      if (trunc_ret == -1) {
+        panic("Failed to truncate file %s", mapped_cpt_file);
+      } else {
+        Log("Truncate file %s to 0x%lx Bytes", mapped_cpt_file, CONFIG_MSIZE);
+      }
+      mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
+          MAP_SHARED | MAP_FIXED, fd, 0);
+
+    } else {  // Directly map to image(cpt)
+      int fd = open(mapped_cpt_file, O_RDWR);
+      if (!fd) {
+        panic("Failed to open(R/W) file %s", mapped_cpt_file);
+      }
+      mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
+          MAP_SHARED | MAP_FIXED, fd, 0);
     }
-    int trunc_ret = ftruncate(fd, CONFIG_MSIZE);  // create sparse file
-    if (trunc_ret == -1) {
-      panic("Failed to truncate file %s", backFile);
-    } else {
-      Log("Truncate file %s to 0x%lx Bytes", backFile, CONFIG_MSIZE);
-    }
-    mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
-        MAP_SHARED | MAP_FIXED, fd, 0);
 
   } else {
+    Log("mmap memory to anonymous file");
     mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
         MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   }

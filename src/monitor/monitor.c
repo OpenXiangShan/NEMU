@@ -27,6 +27,9 @@ char *max_instr = NULL;
 static char *etrace_inst = NULL;
 static char *etrace_data = NULL;
 
+extern char *mapped_cpt_file;  // defined in paddr.c
+extern bool map_image_as_output_cpt;
+
 int is_batch_mode() { return batch_mode; }
 
 static inline void welcome() {
@@ -73,6 +76,7 @@ static inline int parse_args(int argc, char *argv[]) {
     // restore cpt
     {"restore"            , no_argument      , NULL, 'c'},
     {"cpt-restorer"       , required_argument, NULL, 'r'},
+    {"map-img-as-outcpt"  , no_argument      , NULL, 13},
 
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
@@ -81,6 +85,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"manual-uniform-cpt" , no_argument      , NULL, 9},
     {"cpt-interval"       , required_argument, NULL, 5},
     {"cpt-mmode"          , no_argument      , NULL, 7},
+    {"map-cpt"            , required_argument, NULL, 10},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -115,6 +120,11 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'r':
         restorer = optarg;
         break;
+      case 13: {
+        extern bool map_image_as_output_cpt;
+        map_image_as_output_cpt = true;
+        break;
+      }
 
       case 'S':
         assert(profiling_state == NoProfiling);
@@ -162,6 +172,11 @@ static inline int parse_args(int argc, char *argv[]) {
           panic("Cannot catch SIGINT!\n");
         }
         break;
+      case 10: { // map-cpt
+        mapped_cpt_file = optarg;
+        Log("Setting mapped_cpt_file to %s", mapped_cpt_file);
+        break;
+      }
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
@@ -179,6 +194,7 @@ static inline int parse_args(int argc, char *argv[]) {
 
         printf("\t-c,--restore            restoring from CPT FILE\n");
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
+        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it\n");
 
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
@@ -186,6 +202,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
+        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n");
 
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
@@ -208,6 +225,12 @@ void init_monitor(int argc, char *argv[]) {
 #else
   parse_args(argc, argv);
 #endif
+
+  if (map_image_as_output_cpt) {
+    assert(!mapped_cpt_file);
+    mapped_cpt_file = img_file;
+    checkpoint_restoring = true;
+  }
 
   extern void init_path_manager();
   extern void simpoint_init();
@@ -249,8 +272,14 @@ void init_monitor(int argc, char *argv[]) {
     img_size = CONFIG_MSIZE;
     bbl_start = CONFIG_MSIZE; // bbl size should never be used, let it crash if used
 
-    load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
-    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+    if (map_image_as_output_cpt) {  // map_cpt is loaded in init_mem
+      Log("Restoring with memory image cpt");
+    } else {
+      load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
+    }
+    if (restorer) {
+      load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+    }
 
   } else if (checkpoint_taking) {
     // boot: jump to restorer --> restorer jump to bbl
