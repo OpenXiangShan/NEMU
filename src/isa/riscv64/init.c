@@ -55,7 +55,8 @@ void init_isa() {
 
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
-  if (cpt_file == NULL) {
+  extern bool checkpoint_restoring;
+  if (cpt_file == NULL && !checkpoint_restoring) {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
 #else
