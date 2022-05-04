@@ -64,9 +64,14 @@ void init_mem() {
           MAP_SHARED | MAP_FIXED, fd, 0);
 
     } else {  // Directly map to image(cpt)
+      if (is_gz_file(mapped_cpt_file)) {
+        panic("Cannot map to gz file\n");
+      }
       int fd = open(mapped_cpt_file, O_RDWR);
       if (!fd) {
         panic("Failed to open(R/W) file %s", mapped_cpt_file);
+      } else {
+        Log("Execute directly on %s", mapped_cpt_file);
       }
       mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
           MAP_SHARED | MAP_FIXED, fd, 0);
