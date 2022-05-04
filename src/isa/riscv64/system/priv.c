@@ -114,7 +114,7 @@ static inline void update_mstatus_sd() {
 static inline word_t csr_read(word_t *src) {
 
   if (is_read_pmpaddr) {
-#ifndef CONFIG_RV_PMP
+#ifndef CONFIG_RV_PMP_CSR
     longjmp_exception(EX_II);
     return 0;
 #else
@@ -198,8 +198,8 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else if (is_write_pmpaddr) {
     Logtr("Writing pmp addr");
-#ifndef CONFIG_RV_PMP
-    Logtr("PMP disabled ignore");
+#ifndef CONFIG_RV_PMP_CSR
+    Logtr("PMP disabled, ignore");
     return ;
 #else
     // If no PMPs are configured, disallow access to all.  Otherwise, allow
@@ -227,7 +227,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else if (is_write_pmpcfg) {
     // Log("Writing pmp config");
-#ifndef CONFIG_RV_PMP
+#ifndef CONFIG_RV_PMP_CSR
   return;
 #else
     if (NUM_PMP == 0)
@@ -282,7 +282,7 @@ word_t csrid_read(uint32_t csrid) {
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (!csr_is_legal(csrid)) {
-    Log("Illegal csr id %u", csrid);
+    Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
   }
