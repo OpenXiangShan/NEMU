@@ -315,6 +315,9 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize devices. */
   init_device();
 
+  if (etrace_data || etrace_inst) {
+      assert(ISDEF(CONFIG_GEN_TRACE));
+  }
   extern void init_tracer(const char *data_file, const char *inst_file);
   init_tracer(etrace_data, etrace_inst);
 #endif
