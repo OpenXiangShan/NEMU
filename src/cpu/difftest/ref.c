@@ -53,10 +53,8 @@ void difftest_set_ramsize(size_t ram_size){
   // should be called before difftest_init()
 #ifdef CONFIG_USE_MMAP
   if(ram_size){
-    printf("[NEMU] NEMU memory size set to %ld MB\n", ram_size / 1024 / 1024);
     MEMORY_SIZE = ram_size;
   }else{
-    printf("[NEMU] NEMU memory size remain unchanged\n");
   }
 #else
   printf("Set CONFIG_USE_MMAP to enbale configurable memory size\n");

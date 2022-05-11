@@ -20,7 +20,6 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_flash(const char *flash_img) {
-  printf("[NEMU] Initializing NEMU flash device.\n");
 #if CONFIG_HAS_FLASH == 1
   fp = fopen(flash_img, "r");
   if (fp == NULL) {
