@@ -49,6 +49,19 @@ void difftest_load_flash(void *flash_bin, size_t f_size){
 #endif
 }
 
+void difftest_set_ramsize(size_t ram_size){
+  // should be called before difftest_init()
+#ifdef CONFIG_USE_MMAP
+  if(ram_size){
+    MEMORY_SIZE = ram_size;
+  }else{
+  }
+#else
+  printf("Set CONFIG_USE_MMAP to enbale configurable memory size\n");
+  printf("NEMU memory size remain unchanged\n");
+#endif
+}
+
 void difftest_regcpy(void *dut, bool direction) {
   isa_difftest_regcpy(dut, direction);
 }

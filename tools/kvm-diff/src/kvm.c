@@ -395,7 +395,7 @@ void difftest_raise_intr(word_t NO) {
 }
 
 void difftest_init(int port) {
-  vm_init(CONFIG_MSIZE);
+  vm_init(MEMORY_SIZE);
   vcpu_init();
   run_protected_mode();
 }

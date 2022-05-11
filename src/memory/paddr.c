@@ -8,6 +8,8 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
+unsigned long MEMORY_SIZE = CONFIG_MSIZE;
+
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
 static uint8_t *pmem = (uint8_t *)0x100000000ul;
@@ -40,7 +42,7 @@ void init_mem() {
   #ifdef CONFIG_MULTICORE_DIFF
     panic("Pmem must not use mmap during multi-core difftest");
   #endif
-  void *ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
+  void *ret = mmap((void *)pmem, MEMORY_SIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != pmem) {
     perror("mmap");
@@ -58,7 +60,7 @@ void init_mem() {
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
   int i;
-  for (i = 0; i < (int) (CONFIG_MSIZE / sizeof(p[0])); i ++) {
+  for (i = 0; i < (int) (MEMORY_SIZE / sizeof(p[0])); i ++) {
     p[i] = rand();
   }
 #endif

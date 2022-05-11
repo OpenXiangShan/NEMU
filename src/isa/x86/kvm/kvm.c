@@ -209,14 +209,14 @@ int run_protected_mode(struct vm *vm, struct vcpu *vcpu) {
     assert(0);
   }
 
-  memcpy(vm->mem, guest_to_host(CONFIG_MBASE), CONFIG_MSIZE);
+  memcpy(vm->mem, guest_to_host(CONFIG_MBASE), MEMORY_SIZE);
   return run_vm(vm, vcpu, 4);
 }
 
 void kvm_exec() {
   struct vm vm;
   struct vcpu vcpu;
-  vm_init(&vm, CONFIG_MSIZE);
+  vm_init(&vm, MEMORY_SIZE);
   vcpu_init(&vm, &vcpu);
 
   run_protected_mode(&vm, &vcpu);

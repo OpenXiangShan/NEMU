@@ -19,7 +19,7 @@ long load_gz_img(const char *filename) {
 
   // load file byte by byte to pmem
   uint64_t curr_size = 0;
-  while (curr_size < CONFIG_MSIZE) {
+  while (curr_size < MEMORY_SIZE) {
     uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
     if (bytes_read == 0) {
       break;

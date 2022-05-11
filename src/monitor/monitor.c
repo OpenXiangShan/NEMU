@@ -201,8 +201,8 @@ void init_monitor(int argc, char *argv[]) {
     // because a gcpt already ships a restorer
     assert(img_file != NULL);
 
-    img_size = CONFIG_MSIZE;
-    bbl_start = CONFIG_MSIZE; // bbl size should never be used, let it crash if used
+    img_size = MEMORY_SIZE;
+    bbl_start = MEMORY_SIZE; // bbl size should never be used, let it crash if used
 
     load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
     load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);

@@ -10,6 +10,7 @@
 #include "../isa/riscv64/local-include/csr.h"
 
 #include <isa.h>
+#include <common.h>
 
 #include <cinttypes>
 #include <iostream>
@@ -44,12 +45,13 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 uint8_t* guest_to_host(paddr_t paddr);
 #include <debug.h>
 extern bool log_enable();
+extern unsigned long MEMORY_SIZE;
 }
 
 void Serializer::serializePMem(uint64_t inst_count) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
-  const size_t PMEM_SIZE = CONFIG_MSIZE;
+  const size_t PMEM_SIZE = MEMORY_SIZE;
   uint8_t *pmem = get_pmem();
 
   assert(restorer);
