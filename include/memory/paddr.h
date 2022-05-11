@@ -3,6 +3,8 @@
 
 #include <common.h>
 
+extern unsigned long MEMORY_SIZE;
+
 #ifdef CONFIG_MODE_USER
 #define CONFIG_MBASE 0
 #define CONFIG_MSIZE 0
@@ -26,14 +28,14 @@ paddr_t host_to_guest(uint8_t *haddr);
 
 static inline bool in_pmem(paddr_t addr) {
   paddr_t mbase_mask = CONFIG_MBASE - 1;
-  paddr_t msize_mask = CONFIG_MSIZE - 1;
+  paddr_t msize_mask = MEMORY_SIZE - 1;
   bool mbase_align = (CONFIG_MBASE & mbase_mask) == 0;
-  bool msize_align = (CONFIG_MSIZE & msize_mask) == 0;
+  bool msize_align = (MEMORY_SIZE & msize_mask) == 0;
   bool msize_inside_mbase = msize_mask <= mbase_mask;
   if (mbase_align && msize_align && msize_inside_mbase) {
     return (addr & ~msize_mask) == CONFIG_MBASE;
   } else {
-    return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + CONFIG_MSIZE);
+    return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + MEMORY_SIZE);
   }
 }
 
