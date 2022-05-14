@@ -22,6 +22,7 @@ enum {
   dflag_trace_bb,
   dflag_trace_inst,
   dflag_trace_inst_dasm,
+  dflag_betapoint,
   dflag_exit,
 };
 

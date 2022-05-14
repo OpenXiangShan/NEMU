@@ -207,6 +207,10 @@ config TRACE_INST_DASM
   bool "Enable rich Log for tracing instructions, pc, inst and dasm included"
   default n
 
+config BETA_LOG
+  bool "Enable Log for betapoint profiling"
+  default n
+
 config TRACE_BB
   bool "Enable Log for tracing basic block"
   default n
