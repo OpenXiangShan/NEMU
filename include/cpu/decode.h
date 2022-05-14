@@ -153,15 +153,15 @@ finish:
 #endif
 
 #define print_asm_template0(instr) \
-  print_asm(str(instr) "%c", suffix_char(id_dest->width))
+  print_asm(ne_str(instr) "%c", suffix_char(id_dest->width))
 
 #define print_asm_template1(instr) \
-  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
+  print_asm(ne_str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
 
 #define print_asm_template2(instr) \
-  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
+  print_asm(ne_str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
 
 #define print_asm_template3(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
+  print_asm(ne_str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
 
 #endif

@@ -39,7 +39,7 @@ static inline void welcome() {
       "If it is not necessary, you can turn it off in include/common.h.")
   );
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", str(__ISA__));
+  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", ne_str(__ISA__));
   printf("For help, type \"help\"\n");
 }
 
