@@ -3,7 +3,7 @@
 //
 
 #include <checkpoint/path_manager.h>
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 #include <checkpoint/serializer.h>
 #include <checkpoint/cpt_env.h>
 

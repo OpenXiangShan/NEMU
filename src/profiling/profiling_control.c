@@ -1,4 +1,4 @@
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 
 int profiling_state = NoProfiling;
 bool checkpoint_taking = false;

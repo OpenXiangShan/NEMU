@@ -1,4 +1,4 @@
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>

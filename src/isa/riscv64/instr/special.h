@@ -1,5 +1,5 @@
 #include "../local-include/intr.h"
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 
 def_EHelper(inv) {
   save_globals(s);

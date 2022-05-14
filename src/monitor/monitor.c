@@ -1,6 +1,6 @@
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>

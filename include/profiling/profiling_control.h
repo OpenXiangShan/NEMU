@@ -1,5 +1,5 @@
-#ifndef __CHECKPOINT_PROFILING_H__
-#define __CHECKPOINT_PROFILING_H__
+#ifndef __PROFILING_CONTROL_H__
+#define __PROFILING_CONTROL_H__
 
 #include <common.h>
 
@@ -7,6 +7,7 @@ enum ProfilingState {
     NoProfiling = 0,
     SimpointProfiling,
     SimpointCheckpointing,
+    BetapointProfiling,
     UniformCheckpointing
 };
 
@@ -25,4 +26,4 @@ extern bool force_cpt_mmode;
 
 void reset_inst_counters();
 
-#endif
+#endif // __PROFILING_CONTROL_H__

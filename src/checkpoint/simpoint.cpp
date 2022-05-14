@@ -44,8 +44,9 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-#include "checkpoint/simpoint.h"
-#include "checkpoint/profiling.h"
+
+#include <checkpoint/simpoint.h>
+#include <profiling/profiling_control.h>
 
 namespace SimPointNS
 {

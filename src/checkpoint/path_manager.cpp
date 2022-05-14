@@ -4,7 +4,7 @@
 
 #include <checkpoint/path_manager.h>
 #include <checkpoint/cpt_env.h>
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 
 #include <cassert>
 #include <iostream>
