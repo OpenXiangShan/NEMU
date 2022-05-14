@@ -1,6 +1,6 @@
-#include "inst_dep_record.pb.h"
-#include "packet.pb.h"
-#include "trace.h"
+#include "inst_trace/inst_dep_record.pb.h"
+#include "inst_trace/packet.pb.h"
+#include "inst_trace/trace.h"
 #include <generated/autoconf.h>
 
 

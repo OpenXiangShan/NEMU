@@ -36,7 +36,7 @@
  */
 
 #include "debug.h"
-#include "protoio.h"
+#include "inst_trace/protoio.h"
 
 using namespace std;
 using namespace google::protobuf;

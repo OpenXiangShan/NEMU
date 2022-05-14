@@ -17,3 +17,5 @@ class ElasticTrace
     
     void close();
 };
+
+extern ElasticTrace elasticTracer;
