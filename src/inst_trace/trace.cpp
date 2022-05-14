@@ -78,20 +78,6 @@ void init_tracer(const char *data_file, const char *inst_file)
 #endif
 }
 
-void recordMem(uint64_t pc, uint64_t paddr)
-{
-#ifdef CONFIG_GEN_TRACE
-    elasticTracer.recordMem(pc, paddr);
-#endif
-}
-
-void recordFetch(uint64_t pc, uint64_t inst_paddr)
-{
-#ifdef CONFIG_GEN_TRACE
-    elasticTracer.recordFetch(pc, inst_paddr);
-#endif
-}
-
 void close_tracer()
 {
 #ifdef CONFIG_GEN_TRACE
