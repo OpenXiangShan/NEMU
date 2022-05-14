@@ -8,6 +8,7 @@
 #include <locale.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <profiling/betapoint-ext.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -114,16 +115,21 @@ static bool manual_cpt_quit = false;
 #define rtl_j(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = s->tnext; \
+  br_taken = true; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
+  br_taken = true; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
+  if (interpret_relop(relop, *src1, *src2)) { \
+    s = s->tnext; \
+    br_taken = true; \
+  } \
   else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
@@ -169,17 +175,21 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
-uint64_t per_bb_profile(Decode *s) {
+uint64_t per_bb_profile(Decode *s, bool control_taken) {
   uint64_t abs_inst_count = get_abs_instr_count();
   if (profiling_state == SimpointProfiling && profiling_started) {
     simpoint_profiling(s->pc, true, abs_inst_count);
+  }
+
+  if (true) {
+    control_profile(prev_s->pc, s->pc, control_taken);
   }
 
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
   if (checkpoint_taking && able_to_take &&
       ((recvd_manual_oneshot_cpt && !manual_cpt_quit) || profiling_started)) {
-    // update cpu pc!
+    // update cpu pc to point to next pc
     cpu.pc = s->pc;
 
     extern bool try_take_cpt(uint64_t icount);
@@ -213,11 +223,13 @@ static int execute(int n) {
   }
 
   __attribute__((unused)) Decode *this_s = NULL;
+  __attribute__((unused)) bool br_taken = false;
   while (true) {
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
+    br_taken = false;
 
     goto *(s->EHelper);
 
@@ -240,7 +252,7 @@ end_of_bb:
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
 
     // Here is per bb action
-    uint64_t abs_inst_count = per_bb_profile(s);
+    uint64_t abs_inst_count = per_bb_profile(s, br_taken);
     Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
     Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
 
@@ -251,6 +263,8 @@ end_of_bb:
     // Because every instruction executed goes here, don't put Log here to improve performance
     def_finish();
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
+    // for betapoint profiling
+    save_globals(s);
     debug_difftest(this_s, s);
   }
 
@@ -258,7 +272,7 @@ end_of_loop:
   // Here is per loop action and some priv instruction action
   Loge("end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
        prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);
-  per_bb_profile(s);
+  per_bb_profile(s, br_taken); // TODO: this should be true for mret
 
   debug_difftest(this_s, s);
   prev_s = s;

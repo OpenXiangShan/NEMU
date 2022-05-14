@@ -1,3 +1,9 @@
 [submodule "ready-to-run"]
 	path = ready-to-run
 	url = https://github.com/OpenXiangShan/ready-to-run.git
+[submodule "resource/zstd"]
+	path = resource/zstd
+	url = https://github.com/facebook/zstd.git
+[submodule "resource/lz4"]
+	path = resource/lz4
+	url = https://github.com/lz4/lz4.git
