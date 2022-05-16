@@ -198,7 +198,7 @@ CSR_STRUCT_END(mip)
 #define CSR_PMPADDR13 0x3bd
 #define CSR_PMPADDR14 0x3be
 #define CSR_PMPADDR15 0x3bf
-#define NUM_PMP 16 // can change in 0/16/64, but need change the above CSR declare
+#define NUM_PMP 0 // can change in 0/16/64, but need change the above CSR declare
 
 CSR_STRUCT_START(pmpcfg0)
 CSR_STRUCT_END(pmpcfg0)

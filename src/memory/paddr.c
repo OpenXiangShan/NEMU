@@ -101,11 +101,11 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 #else
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
+    if(dynamic_config.ignore_illegal_mem_access)
+      return 0;
 #ifdef CONFIG_HAS_FLASH
     return mmio_read(addr, len);
 #endif
-    if(dynamic_config.ignore_illegal_mem_access)
-      return 0;
     printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
     longjmp_exception(EX_II);
   }

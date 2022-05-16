@@ -26,6 +26,11 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
+#ifdef CONFIG_SHARE
+  if(unlikely(dynamic_config.debug_difftest)) {
+      fprintf(stderr, "[NEMU] raise_intr: NO:%lx, epc:%lx\n",NO,epc);
+  }
+#endif
   switch (NO) {
     case EX_II:
     case EX_IPF:
