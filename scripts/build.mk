@@ -29,7 +29,7 @@ CXXFLAGS  := -O2 -MMD -Wall -Werror --std=c++17 $(XINCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
 # filesystem
 ifndef SHARE
-LDFLAGS += -lstdc++fs -lstdc++
+LDFLAGS += -lstdc++fs -lstdc++ -lm
 endif
 
 COBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)

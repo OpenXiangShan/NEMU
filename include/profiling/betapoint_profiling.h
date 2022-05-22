@@ -2,6 +2,7 @@
 #include <debug.h>
 #include <lz4.h>
 #include <zstd.h>
+#include <profiling/ppm.h>
 #include <boost/dynamic_bitset.hpp>
 #include "boost/utility/binary.hpp"
 
@@ -46,18 +47,40 @@ class ControlProfiler: public CompressProfiler {
 
     const unsigned brHistLen{64};
     boost::dynamic_bitset<> brHist;
+
+    PPMNS::PPM ppm;
   public:
     ControlProfiler();
 
     void controlProfile(vaddr_t pc, vaddr_t target, bool taken);
 
+    void onExit();
 };
 
 class MemProfiler: public CompressProfiler {
     struct MemInfo{
+        // vaddr_t pc;
         vaddr_t vaddr;
         paddr_t paddr;
+        paddr_t padding0;
+        paddr_t padding1;
     };
+
+    MemInfo *info;
+
+    unsigned _tokenBytes = sizeof(MemInfo);
+    unsigned tokenBytes() override {
+        return _tokenBytes;
+    }
+
+  public:
+    MemProfiler();
+
+    void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);
+    void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);;
+
 };
 
+extern ControlProfiler ctrlProfiler;
+extern MemProfiler memProfiler;
 }

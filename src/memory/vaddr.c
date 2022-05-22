@@ -7,6 +7,7 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
+#include <cpu/decode.h>
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
@@ -101,8 +102,13 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
-    void recordMem(uint64_t pc, uint64_t paddr);
-    recordMem(addr, addr);
+    void recordMem(uint64_t pc, uint64_t vaddr, uint64_t paddr);
+    void recordFetch(uint64_t pc, uint64_t vaddr, uint64_t inst_paddr);
+    if (s != NULL) { // mem read
+      recordMem(((struct Decode *)s)->pc, addr, addr);
+    } else { // ifetch
+      recordFetch(addr, addr, addr);
+    }
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT

@@ -115,17 +115,20 @@ static bool manual_cpt_quit = false;
 #define rtl_j(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = s->tnext; \
+  is_ctrl = true; \
   br_taken = true; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
+  is_ctrl = true; \
   br_taken = true; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  is_ctrl = true; \
   if (interpret_relop(relop, *src1, *src2)) { \
     s = s->tnext; \
     br_taken = true; \
@@ -181,7 +184,7 @@ uint64_t per_bb_profile(Decode *s, bool control_taken) {
     simpoint_profiling(s->pc, true, abs_inst_count);
   }
 
-  if (true) {
+  if (false) {
     control_profile(prev_s->pc, s->pc, control_taken);
   }
 
@@ -224,12 +227,14 @@ static int execute(int n) {
 
   __attribute__((unused)) Decode *this_s = NULL;
   __attribute__((unused)) bool br_taken = false;
+  __attribute__((unused)) bool is_ctrl = false;
   while (true) {
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
     br_taken = false;
+    is_ctrl = false;
 
     goto *(s->EHelper);
 
@@ -252,9 +257,11 @@ end_of_bb:
     IFNDEF(CONFIG_ENABLE_INSTR_CNT, n --);
 
     // Here is per bb action
-    uint64_t abs_inst_count = per_bb_profile(s, br_taken);
-    Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
-    Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
+    if (is_ctrl) {
+      uint64_t abs_inst_count = per_bb_profile(s, br_taken);
+      Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
+      Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
+    }
 
     if (unlikely(n <= 0)) break;
     if (unlikely(manual_cpt_quit)) break;
@@ -272,7 +279,9 @@ end_of_loop:
   // Here is per loop action and some priv instruction action
   Loge("end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
        prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);
-  per_bb_profile(s, br_taken); // TODO: this should be true for mret
+  if (is_ctrl) {
+    per_bb_profile(s, br_taken); // TODO: this should be true for mret
+  }
 
   debug_difftest(this_s, s);
   prev_s = s;
@@ -417,6 +426,7 @@ void cpu_exec(uint64_t n) {
     case NEMU_QUIT:
 #ifndef CONFIG_SHARE
       monitor_statistic();
+      control_on_exit();
       extern char *mapped_cpt_file;  // defined in paddr.c
       if (mapped_cpt_file != NULL) {
         extern void serialize_reg_to_mem();
