@@ -78,6 +78,7 @@ void ControlProfiler::onExit() {
 MemProfiler::MemProfiler()
     : CompressProfiler() {
     info = reinterpret_cast<MemInfo *>(inputBuf);
+    bitMap = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/64);
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -98,6 +99,12 @@ void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
 
 void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
     Logbeta("vaddr: 0x%010lx, paddr: 0x%010lx", vaddr, paddr);
+    roaring_bitmap_add(bitMap, paddr / CacheBlockSize);
+}
+
+void MemProfiler::onExit() {
+    uint32_t cardinality = roaring_bitmap_get_cardinality(bitMap);
+    Log("Footprint: %u cacheblocks\n", cardinality);
 }
 
 ControlProfiler ctrlProfiler;
@@ -112,8 +119,9 @@ void control_profile(vaddr_t pc, vaddr_t target, bool taken) {
     BetaPointNS::ctrlProfiler.controlProfile(pc, target, taken);
 }
 
-void control_on_exit() {
+void beta_on_exit() {
     BetaPointNS::ctrlProfiler.onExit();
+    BetaPointNS::memProfiler.onExit();
 }
 
 }  // extern C

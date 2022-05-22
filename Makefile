@@ -118,7 +118,10 @@ LIBS += $(ZSTD)
 $(ZSTD):
 	$(MAKE) -s -C $(ZSTD_REPO_PATH)
 
-
+ROARING = resource/CRoaring/build/src/libroaring.a
+ROARING_REPO_PATH = resource/CRoaring
+INC_DIR += $(ROARING_REPO_PATH)/include
+LIBS += $(ROARING)
 
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk

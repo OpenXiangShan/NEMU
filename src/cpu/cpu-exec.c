@@ -426,7 +426,7 @@ void cpu_exec(uint64_t n) {
     case NEMU_QUIT:
 #ifndef CONFIG_SHARE
       monitor_statistic();
-      control_on_exit();
+      beta_on_exit();
       extern char *mapped_cpt_file;  // defined in paddr.c
       if (mapped_cpt_file != NULL) {
         extern void serialize_reg_to_mem();

@@ -3,8 +3,10 @@
 #include <lz4.h>
 #include <zstd.h>
 #include <profiling/ppm.h>
+#include <roaring/roaring.h>
+
 #include <boost/dynamic_bitset.hpp>
-#include "boost/utility/binary.hpp"
+#include <boost/utility/binary.hpp>
 
 namespace BetaPointNS {
 
@@ -29,6 +31,8 @@ class CompressProfiler {
     unsigned compressBlock(size_t input_size, char *in_ptr);
 
     virtual unsigned tokenBytes() = 0;
+
+    virtual void onExit() = 0;
 };
 
 class ControlProfiler: public CompressProfiler {
@@ -54,7 +58,7 @@ class ControlProfiler: public CompressProfiler {
 
     void controlProfile(vaddr_t pc, vaddr_t target, bool taken);
 
-    void onExit();
+    void onExit() override;
 };
 
 class MemProfiler: public CompressProfiler {
@@ -73,12 +77,17 @@ class MemProfiler: public CompressProfiler {
         return _tokenBytes;
     }
 
+    roaring_bitmap_t *bitMap;
+
+    const unsigned CacheBlockSize{64};
+
   public:
     MemProfiler();
 
     void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);
     void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);;
 
+    void onExit() override;
 };
 
 extern ControlProfiler ctrlProfiler;
