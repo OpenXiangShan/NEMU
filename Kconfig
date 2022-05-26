@@ -324,4 +324,8 @@ config GEN_TRACE
   bool "generate gem5 elastic trace"
   default n
 
+config DATAFLOW_PROF
+  bool "Profiling dataflow dependency"
+  default n
+
 endmenu
