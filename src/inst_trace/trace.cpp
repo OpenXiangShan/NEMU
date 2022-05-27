@@ -31,6 +31,9 @@ void ElasticTrace::init(const char *data_file, const char *inst_file)
 
 void ElasticTrace::recordMem(uint64_t pc, uint64_t paddr)
 {
+    if (paddr < 0x80000000UL) {
+        return;
+    }
     ProtoMessage::InstDepRecord dep_pkt;
     dep_pkt.set_type(ProtoMessage::InstDepRecord_RecordType::InstDepRecord_RecordType_LOAD);
     dep_pkt.set_seq_num(instCount++);
@@ -46,6 +49,9 @@ void ElasticTrace::recordMem(uint64_t pc, uint64_t paddr)
 
 void ElasticTrace::recordFetch(uint64_t pc, uint64_t inst_paddr)
 {
+    if (inst_paddr < 0x80000000UL) {
+        return;
+    }
     ProtoMessage::Packet inst_fetch_pkt;
     inst_fetch_pkt.set_tick(tick);
     inst_fetch_pkt.set_cmd(1);  // MemCmd::ReadReqinstCount

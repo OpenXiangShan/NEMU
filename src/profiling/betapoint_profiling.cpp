@@ -1,6 +1,7 @@
 #include "profiling/betapoint_profiling.h"
 
 #include <common.h>
+#include <checkpoint/cpt_env.h>
 #include <debug.h>
 #include <lz4.h>
 #include <zstd.h>
@@ -123,7 +124,7 @@ MemProfiler::MemProfiler()
     // for (unsigned i = 0; i < bucketRanges.size(); i++) {
     //     Log("bucketRanges[%u]: %li", i, bucketRanges[i]);
     // }
-    localAccessCountFile.open(std::string(outputDir) + "logs/localAccessCount.csv", std::ios::out);
+    // localAccessCountFile.open(std::string(outputDir()) + "/logs/localAccessCount.csv", std::ios::out);
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -196,7 +197,7 @@ void MemProfiler::localProfile(vaddr_t pc, paddr_t paddr, int is_write){
     } else {
         localAccessCount[is_write][pc] += 1;
     }
-    localAccessCountFile << is_write << "," << paddr << std::endl;
+    // localAccessCountFile << is_write << "," << paddr << std::endl;
 }
 
 std::array<unsigned, 4> &MemProfiler::getNewDistinctStride() {
@@ -210,7 +211,7 @@ std::array<unsigned, 4> &MemProfiler::getNewDistinctStride() {
 void MemProfiler::dumpStride(){
     std::ofstream ofs;
     Log("Dump stride histogram");
-    ofs.open("stride_histogram.csv");
+    ofs.open(std::string(outputDir()) + "/stride_histogram.csv");
     std::stringstream ss;
 
     uint64_t global_stride_total, local_stride_total, local_pc_count;
@@ -239,8 +240,11 @@ void MemProfiler::dumpStride(){
                 break;
             }
         }
-        for (auto iter = globalStrideBuckets[mem_type].begin(); iter != globalStrideBuckets[mem_type].end(); ++iter){
-            std::cout << "~" << iter->first << ": " << iter->second << std::endl;
+        for (auto iter = globalStrideBuckets[mem_type].begin();
+            iter != globalStrideBuckets[mem_type].end(); ++iter){
+            if (StrideVerbose) {
+                std::cout << "~" << iter->first << ": " << iter->second << std::endl;
+            }
             ss << iter->second << ",";
         }
         ss << 0 << std::endl;
@@ -273,8 +277,11 @@ void MemProfiler::dumpStride(){
             // Log("pc: 0x%lx, local stride total: %lu, local pc count: %lu", pc_stride_pair.first,
             //     local_stride_total, local_pc_count);
         }
-        for (auto iter = localStrideBuckets[mem_type].begin(); iter != localStrideBuckets[mem_type].end(); ++iter){
-            std::cout << "~" << iter->first << ": " << iter->second << std::endl;
+        for (auto iter = localStrideBuckets[mem_type].begin();
+            iter != localStrideBuckets[mem_type].end(); ++iter){
+            if (StrideVerbose) {
+                std::cout << "~" << iter->first << ": " << iter->second << std::endl;
+            }
             ss << iter->second << ",";
         }
         ss << 0 << std::endl;
@@ -304,7 +311,7 @@ void MemProfiler::calcReuseMatrix() {
     }
     Log("Dump Reuse matrix");
     std::ofstream ofs;
-    ofs.open("reuse_matrix.csv");
+    ofs.open(std::string(outputDir()) + "/reuse_matrix.csv");
     for (unsigned i = 0; i < reuseBitMaps.size(); i++) {
         for (unsigned j = 0; j < reuseBitMaps.size(); j++) {
             ofs << reuseMatrix[i][j] << ",";
@@ -337,7 +344,7 @@ void MemProfiler::onExit() {
     dumpReuseMatrix();
 
     computeTopAccesses();
-    localAccessCountFile.close();
+    // localAccessCountFile.close();
 }
 
 void MemProfiler::dumpDistinctStrideInc() {
@@ -389,7 +396,10 @@ void MemProfiler::computeTopAccesses() {
 
 DataflowProfiler::DataflowProfiler() {
     ppmMisPreds.push_back(0);
-    chunkStatsStream.open(std::string(outputDir) + "chunk_stats.csv", std::ios::out);
+}
+
+void DataflowProfiler::onStart() {
+    chunkStatsStream.open(std::string(outputDir()) + "/chunk_stats.csv", std::ios::out);
 }
 
 void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
@@ -513,7 +523,6 @@ ControlProfiler ctrlProfiler;
 MemProfiler memProfiler;
 DataflowProfiler dataflowProfiler;
 
-const char *outputDir = "./";
 }
 
 
@@ -527,6 +536,12 @@ void dataflow_profile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_widt
         uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, uint8_t is_ctrl) {
     BetaPointNS::dataflowProfiler.dataflowProfile(pc, paddr, is_store, mem_width,
         dst_id, src1_id, src2_id, fsrc3_id, is_ctrl);
+}
+
+void beta_on_start() {
+    BetaPointNS::ctrlProfiler.onStart();
+    BetaPointNS::memProfiler.onStart();
+    BetaPointNS::dataflowProfiler.onStart();
 }
 
 void beta_on_exit() {

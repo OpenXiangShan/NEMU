@@ -1,5 +1,6 @@
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
+#include <profiling/betapoint-ext.h>
 #include <profiling/profiling_control.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
@@ -250,6 +251,9 @@ void init_monitor(int argc, char *argv[]) {
     simpoint_init();
     init_serializer();
   }
+
+  /* betapoint profiler init. */
+  beta_on_start();
 
   /* Open the log file. */
   init_log(log_file);

@@ -1,6 +1,7 @@
 #include <profiling/ppm.h>
 #include <common.h>
 #include <debug.h>
+#include <checkpoint/cpt_env.h>
 #include <lz4.h>
 #include <zstd.h>
 #include <roaring/roaring.h>
@@ -21,8 +22,6 @@
 namespace BetaPointNS {
 
 #define statChunkSize (1024 * 1024)
-
-extern const char *outputDir;
 
 class CompressProfiler {
   protected:
@@ -47,6 +46,13 @@ class CompressProfiler {
     virtual unsigned tokenBytes() = 0;
 
     virtual void onExit() = 0;
+
+    const char *outputDir() {
+        return output_base_dir;
+    }
+    
+  public:
+    virtual void onStart() {};
 };
 
 class ControlProfiler: public CompressProfiler {
@@ -163,12 +169,14 @@ class MemProfiler: public CompressProfiler {
     // uint64_t numPages{(uint64_t)CONFIG_MSIZE/PageSize};
     uint64_t numCacheBlocks{(uint64_t)CONFIG_MSIZE/CacheBlockSize};
     std::vector<roaring_bitmap_t *> reuseBitMaps;
-    uint64_t reuseChunkSize{1024 * 128 * 1};
+    uint64_t reuseChunkSize{2500};
     uint64_t nextNewChunkInsts{0};
     std::vector<std::vector<double>> reuseMatrix;
 
     void reuseProfile(paddr_t paddr);
     void calcReuseMatrix();
+
+    const bool StrideVerbose{false};
     
   public:
     MemProfiler();
@@ -242,12 +250,17 @@ class DataflowProfiler {
 
     std::ofstream chunkStatsStream;
 
+    const char *outputDir() {
+        return output_base_dir;
+    }
   public:
     DataflowProfiler();
 
     uint64_t getProfiledInsts() const {
         return profiledInsts;
     }
+
+    void onStart();
 
     void onExit();
 
