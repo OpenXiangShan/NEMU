@@ -11,6 +11,12 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/utility/binary.hpp>
 
+#include <map>
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <utility>
+
 namespace BetaPointNS {
 
 class CompressProfiler {
@@ -97,13 +103,23 @@ class MemProfiler: public CompressProfiler {
 
     roaring_bitmap_t *bitMap;
 
+    // store memory address corresponding to pc
+    std::vector<std::map<vaddr_t, paddr_t> > localMap;
+    std::vector<std::map<int64_t, int> > globalStride;
+    std::vector<std::map<vaddr_t, std::vector<std::pair<int64_t, int> > > > localStride;
+
     const unsigned CacheBlockSize{64};
+
+    paddr_t lastReadAddr, lastWriteAddr;
 
   public:
     MemProfiler();
 
     void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_write);
+    void globalStrideProfile(paddr_t paddr, int is_write);
+    void localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write);
     void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);;
+    void dumpStride(int bucketSize);
 
     void onExit() override;
 };

@@ -11,7 +11,7 @@ void recordMem(uint64_t pc, uint64_t vaddr, uint64_t paddr, bool is_write)
 #ifdef CONFIG_GEN_TRACE
     elasticTracer.recordMem(pc, paddr);
 #endif
-    // BetaPointNS::memProfiler.memProfile(pc, vaddr, paddr, is_write);
+    BetaPointNS::memProfiler.memProfile(pc, vaddr, paddr, is_write);
 }
 
 void recordFetch(uint64_t pc, uint64_t vaddr, uint64_t inst_paddr)

@@ -1,4 +1,7 @@
+#include <profiling/profiling_control.h>
 #include <isa.h>
+#include <profiling/betapoint-ext.h>
+
 
 #ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1

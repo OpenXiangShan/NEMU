@@ -9,6 +9,7 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <profiling/betapoint-ext.h>
+#include <roaring/roaring.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -430,6 +431,9 @@ void cpu_exec(uint64_t n) {
           nemu_state.halt_pc);
       Log("trap code:%d", nemu_state.halt_ret);
       monitor_statistic();
+      if (nemu_state.state == NEMU_END) {
+        beta_on_exit();
+      }
       break;
     case NEMU_QUIT:
 #ifndef CONFIG_SHARE
