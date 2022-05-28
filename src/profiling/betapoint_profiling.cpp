@@ -61,8 +61,9 @@ void ControlProfiler::controlProfile(vaddr_t pc, vaddr_t target, bool taken) {
     }
 
     // ppm
-    if (false) {
+    if (true) {
         bool pred = ppm.lookup(pc, brHist);
+        calculateProbAndPenalty(pc, target, taken, pred);
         ppm.update(pc, brHist, taken, pred);
     }
 
@@ -72,9 +73,35 @@ void ControlProfiler::controlProfile(vaddr_t pc, vaddr_t target, bool taken) {
 }
 
 void ControlProfiler::onExit() {
-    Log("PPM correct: %lu, PPM mispred: %lu", ppm.correct, ppm.mispred);
-    Log("MPKI: %f", (double)ppm.mispred / (double) ::g_nr_guest_instr * 1000);
+    printf("PPM correct: %lu, PPM mispred: %lu\n", ppm.correct, ppm.mispred);
+    printf("MPKI: %f\n", (double)ppm.mispred / (double) ::g_nr_guest_instr * 1000);
 }
+
+std::pair<float, unsigned> ControlProfiler::getProbAndPenalty(vaddr_t pc) {
+    assert(pc == lastCtrlPC);
+    return std::make_pair(lastCtrlMisProb, lastCtrlPenalty);
+}
+
+float ControlProfiler::getExpPenalty(vaddr_t pc) {
+    Logbeta("pc: %lx, lastCtrl pc: %lx", pc, lastCtrlPC);
+    assert(pc == lastCtrlPC);
+    return lastPenaltyExpectation;
+}
+
+void ControlProfiler::calculateProbAndPenalty(vaddr_t pc, vaddr_t target, bool taken, bool ppm_pred) {
+    if (ppm_pred != taken) {
+        lastCtrlMisProb = 1.0;
+        // todo: calculate real penalty with dataflow info?
+        lastCtrlPenalty = DummyPenalty;
+    } else {
+        lastCtrlMisProb = 0.0;
+        lastCtrlPenalty = 0;
+    }
+    lastPenaltyExpectation = lastCtrlPenalty * lastCtrlMisProb;
+    lastCtrlPC = pc;
+    Logbeta("Calc for pc 0x%010lx", pc);
+}
+
 
 MemProfiler::MemProfiler()
     : CompressProfiler() {
@@ -98,7 +125,7 @@ void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
     }
 }
 
-void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
+void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_write) {
     Logbeta("vaddr: 0x%010lx, paddr: 0x%010lx", vaddr, paddr);
     roaring_bitmap_add(bitMap, paddr / CacheBlockSize);
 }

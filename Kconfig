@@ -215,6 +215,14 @@ config TRACE_BB
   bool "Enable Log for tracing basic block"
   default n
 
+config MEMPROF_LOG
+  bool "Enable Log for memory profiling"
+  default n
+
+config CTRLPROF_LOG
+  bool "Enable Log for memory profiling"
+  default n
+
 endmenu
 
 if !MODE_USER

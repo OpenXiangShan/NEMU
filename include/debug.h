@@ -19,6 +19,8 @@
     if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
     if (flag == dflag_betapoint && ISDEF(CONFIG_BETA_LOG)) Log(__VA_ARGS__); \
     if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
+    if (flag == dflag_memprof && ISDEF(CONFIG_MEMPROF_LOG)) Log(__VA_ARGS__); \
+    if (flag == dflag_ctrlprof && ISDEF(CONFIG_CTRLPROF_LOG)) Log(__VA_ARGS__); \
   } while (0)
 
 #define Logm(...) Logf(dflag_mem, __VA_ARGS__)
@@ -28,6 +30,8 @@
 #define Logtid(...) Logf(dflag_trace_inst_dasm, __VA_ARGS__)
 #define Logbeta(...) Logf(dflag_betapoint, __VA_ARGS__)
 #define Loge(...) Logf(dflag_exit, __VA_ARGS__)
+#define Logmp(...) Logf(dflag_memprof, __VA_ARGS__)
+#define Logcp(...) Logf(dflag_ctrlprof, __VA_ARGS__)
 
 #define Assert(cond, ...) \
   do { \

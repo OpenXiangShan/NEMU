@@ -1,8 +1,8 @@
+#include <profiling/ppm.h>
 #include <common.h>
 #include <debug.h>
 #include <lz4.h>
 #include <zstd.h>
-#include <profiling/ppm.h>
 #include <roaring/roaring.h>
 
 #include <array>
@@ -56,13 +56,28 @@ class ControlProfiler: public CompressProfiler {
     boost::dynamic_bitset<> brHist;
 
     PPMNS::PPM ppm;
+
+    const unsigned DummyPenalty{128};
+
+    paddr_t lastCtrlPC;
+    unsigned lastCtrlPenalty;
+    float lastCtrlMisProb;
+    float lastPenaltyExpectation;
+
   public:
     ControlProfiler();
 
     void controlProfile(vaddr_t pc, vaddr_t target, bool taken);
 
     void onExit() override;
+
+    void calculateProbAndPenalty(vaddr_t pc, vaddr_t target, bool taken, bool ppm_pred);
+
+    std::pair<float, unsigned> getProbAndPenalty(vaddr_t pc);
+    float getExpPenalty(vaddr_t pc);
 };
+
+extern ControlProfiler ctrlProfiler;
 
 class MemProfiler: public CompressProfiler {
     struct MemInfo{
@@ -87,13 +102,12 @@ class MemProfiler: public CompressProfiler {
   public:
     MemProfiler();
 
-    void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);
+    void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_write);
     void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);;
 
     void onExit() override;
 };
 
-extern ControlProfiler ctrlProfiler;
 extern MemProfiler memProfiler;
 
 class DataflowProfiler {

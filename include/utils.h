@@ -24,6 +24,8 @@ enum {
   dflag_trace_inst_dasm,
   dflag_betapoint,
   dflag_exit,
+  dflag_memprof,
+  dflag_ctrlprof,
 };
 
 

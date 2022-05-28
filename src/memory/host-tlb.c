@@ -61,6 +61,12 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     e->gvpn = hosttlb_vpn(vaddr);
     e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
+  if (s != NULL) {
+    s->is_store = false;
+    s->paddr = paddr;
+    s->mem_width = len;
+    recordMem(s->pc, vaddr, paddr, s->is_store);
+  }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return paddr_read(paddr, len, MEM_TYPE_READ, MODE_S, vaddr);
 }
@@ -74,11 +80,12 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     e->gvpn = hosttlb_vpn(vaddr);
     e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
+  s->is_store = true;
+  s->paddr = paddr;
+  s->mem_width = len;
+  recordMem(s->pc, vaddr, paddr, s->is_store);
   paddr_write(paddr, len, data, MODE_S, vaddr);
 }
-
-void recordMem(uint64_t pc, uint64_t vaddr, uint64_t paddr);
-void recordFetch(uint64_t pc, uint64_t vaddr, uint64_t inst_paddr);
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
@@ -91,7 +98,10 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     Logm("Host TLB fast path");
     paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
     if (s != NULL) { // mem read
-      recordMem(s->pc, vaddr, paddr);
+      s->is_store = false;
+      s->paddr = paddr;
+      s->mem_width = len;
+      recordMem(s->pc, vaddr, paddr, s->is_store);
     } else {
       recordFetch(vaddr, vaddr, paddr);
     }
@@ -107,6 +117,9 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     return;
   }
   paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
-  recordMem(s->pc, vaddr, paddr);
+  s->is_store = true;
+  s->paddr = paddr;
+  s->mem_width = len;
+  recordMem(s->pc, vaddr, paddr, s->is_store);
   host_write(e->offset + vaddr, len, data);
 }
