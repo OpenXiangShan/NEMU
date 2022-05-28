@@ -19,6 +19,7 @@ typedef struct {
   IFDEF(CONFIG_RVV_010, rtlreg_t val);
   IFDEF(CONFIG_RVV_010, uint8_t reg);
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
+  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t flat_reg_id);
 } Operand;
 
 enum {
@@ -56,6 +57,11 @@ typedef struct Decode {
   uint32_t src_vmode;
   rtlreg_t tmp_reg[4];
   #endif // CONFIG_RVV_010
+
+  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t fsrc3_id);
+  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t mem_width);
+  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t is_store);
+  IFDEF(CONFIG_DATAFLOW_PROF, paddr_t paddr);
 
 } Decode;
 

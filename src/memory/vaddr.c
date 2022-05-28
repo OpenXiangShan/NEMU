@@ -8,6 +8,7 @@
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
 #include <cpu/decode.h>
+#include <profiling/inst_profiling.h>
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB

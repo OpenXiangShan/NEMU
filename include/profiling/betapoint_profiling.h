@@ -5,6 +5,9 @@
 #include <profiling/ppm.h>
 #include <roaring/roaring.h>
 
+#include <array>
+#include <list>
+#include <unordered_map>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/utility/binary.hpp>
 
@@ -92,4 +95,41 @@ class MemProfiler: public CompressProfiler {
 
 extern ControlProfiler ctrlProfiler;
 extern MemProfiler memProfiler;
+
+class DataflowProfiler {
+    struct MemDepRecord {
+        uint64_t ssn;
+        paddr_t paddr;
+        unsigned depLen;
+
+        MemDepRecord(uint64_t ssn, paddr_t paddr, unsigned depLen) : ssn(ssn), paddr(paddr), depLen(depLen) {}
+    };
+    // std::list<MemDepRecord> memRecordList;
+    std::unordered_map<paddr_t, MemDepRecord> memDepMap;
+    void clearMemDepMap() {
+        memDepMap.clear();
+    }
+
+    uint64_t storeSN{0};
+    // unsigned inFlightInstCount{0};
+    unsigned inFlightInstCount{0};
+    unsigned inFlightStoreCount{0};
+    const unsigned storeQueueSize{72};
+    const unsigned instWindowSize{512};
+
+    std::array<unsigned, 64> regDepMap;
+    void clearRegDepMap() {
+        for (auto &regDep : regDepMap) {
+            regDep = 0;
+        }
+    }
+
+    const unsigned storeLatency{1}, loadLatency{1},
+            divLatency{1}, controlLatency{1}, addMulLatency{1};
+
+  public:
+    void dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
+        uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, u_int8_t is_ctrl);
+};
+
 }
