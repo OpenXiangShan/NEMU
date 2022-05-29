@@ -104,9 +104,13 @@ class MemProfiler: public CompressProfiler {
     roaring_bitmap_t *bitMap;
 
     // store memory address corresponding to pc
-    std::vector<std::map<vaddr_t, paddr_t> > localMap;
-    std::vector<std::map<int64_t, int> > globalStride;
-    std::vector<std::map<vaddr_t, std::vector<std::pair<int64_t, int> > > > localStride;
+    std::vector<std::map<vaddr_t, paddr_t>> localMap;
+    // store temporary global stride and local stride
+    std::vector<std::map<int64_t, int>> tempGlobalStride;
+    std::vector<std::map<vaddr_t, std::vector<std::pair<int64_t, int>>>> tempLocalStride;
+    // store global stride and local stride
+    std::vector<std::map<int64_t, int>> globalStride;
+    std::vector<std::map<int64_t, int>> localStride;
 
     const unsigned CacheBlockSize{64};
 
@@ -118,8 +122,14 @@ class MemProfiler: public CompressProfiler {
     void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_write);
     void globalStrideProfile(paddr_t paddr, int is_write);
     void localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write);
-    void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);;
+    void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);
     void dumpStride(int bucketSize);
+    std::vector<std::map<int64_t, int>> &getGlobalStrides() {
+        return globalStride;
+    }
+    std::vector<std::map<int64_t, int>> &getLocalStrides() {
+        return localStride;
+    }
 
     void onExit() override;
 };

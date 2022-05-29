@@ -108,14 +108,15 @@ MemProfiler::MemProfiler()
     info = reinterpret_cast<MemInfo *>(inputBuf);
     bitMap = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/64);
     std::map<int64_t, int> vecGlobalMap;
-    globalStride.push_back(vecGlobalMap);
-    globalStride.push_back(vecGlobalMap);
     std::map<vaddr_t, paddr_t> vecLocalMap;
-    localMap.push_back(vecLocalMap);
-    localMap.push_back(vecLocalMap);
     std::map<vaddr_t, std::vector<std::pair<int64_t, int> > > veclocalStride;
-    localStride.push_back(veclocalStride);
-    localStride.push_back(veclocalStride);
+    for(int mem_type = 0;mem_type < 2;mem_type++){
+        tempGlobalStride.push_back(vecGlobalMap);
+        globalStride.push_back(vecGlobalMap);
+        localStride.push_back(vecGlobalMap);
+        localMap.push_back(vecLocalMap);
+        tempLocalStride.push_back(veclocalStride);
+    }
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -144,10 +145,10 @@ void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_w
 void MemProfiler::globalStrideProfile(paddr_t paddr, int is_write){
     paddr_t last_addr = is_write ? lastWriteAddr: lastReadAddr;
     int64_t stride = int64_t(paddr - last_addr);
-    if (globalStride[is_write].find(stride) == globalStride[is_write].end()) {
-        globalStride[is_write][stride] = 1;
+    if (tempGlobalStride[is_write].find(stride) == tempGlobalStride[is_write].end()) {
+        tempGlobalStride[is_write][stride] = 1;
     } else {
-        globalStride[is_write][stride] = globalStride[is_write][stride] + 1;
+        tempGlobalStride[is_write][stride] = tempGlobalStride[is_write][stride] + 1;
     }
     lastReadAddr = is_write ? lastReadAddr: paddr;
     lastWriteAddr = is_write ? paddr: lastWriteAddr;
@@ -160,12 +161,12 @@ void MemProfiler::localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write){
         paddr_t pre_addr = localMap[is_write][pc];
         localMap[is_write][pc] = paddr;
         int64_t stride = int64_t(paddr - pre_addr);
-        if (localStride[is_write].find(pc) == localStride[is_write].end()) {
+        if (tempLocalStride[is_write].find(pc) == tempLocalStride[is_write].end()) {
             std::vector<std::pair<int64_t, int>> vec;
             vec.push_back(std::make_pair(stride, 1));
-            localStride[is_write].insert(std::pair<vaddr_t, std::vector<std::pair<int64_t, int>>>(pc, vec));
+            tempLocalStride[is_write].insert(std::pair<vaddr_t, std::vector<std::pair<int64_t, int>>>(pc, vec));
         } else {
-            for(std::vector<std::pair<int64_t, int> >::iterator iter = localStride[is_write][pc].begin();iter != localStride[is_write][pc].end();++iter){
+            for(std::vector<std::pair<int64_t, int> >::iterator iter = tempLocalStride[is_write][pc].begin();iter != tempLocalStride[is_write][pc].end();++iter){
                 if (iter->first == stride) {
                     iter->second++;
                     break;
@@ -181,16 +182,25 @@ void MemProfiler::dumpStride(int bucketSize){
     std::stringstream ss;
 
     for(int mem_type = 0;mem_type < 2;mem_type++){
-        if (mem_type) {
+        if (mem_type == 0) {
             ss << "global read stride:" << std::endl;
         } else {
             ss << "global write stride:" << std::endl;
         }
-        for(std::map<int64_t, int>::iterator iter = globalStride[mem_type].begin();iter != globalStride[mem_type].end();++iter){
-            if (iter->first < 0) {
-                ss << std::hex << "-" << -iter->first << " " << std::oct << iter->second << std::endl;
+        for(auto iter = tempGlobalStride[mem_type].begin();iter != tempGlobalStride[mem_type].end();++iter){
+            int64_t index = iter->first < 0 ? iter->first / bucketSize - 1 : iter->first / bucketSize;
+            auto &global_stride = globalStride[mem_type];
+            if (global_stride.find(index) == global_stride.end()) {
+                global_stride[index] = iter->second;
             } else {
-                ss << std::hex << iter->first << " " << std::oct << iter->second << std::endl;
+                global_stride[index] = global_stride[index] + iter->second;
+            }
+        }
+        for(auto iter = globalStride[mem_type].begin();iter != globalStride[mem_type].end();++iter){
+            if (iter->first >= 0) {
+                ss << std::hex << iter->first * bucketSize << "~" << (iter->first + 1) * bucketSize - 1 << " " << std::oct << iter->second << std::endl;
+            } else {
+                ss << std::hex << "-" << -iter->first * bucketSize << "~-" << (-iter->first - 1) * bucketSize + 1 << " " << std::oct << iter->second << std::endl;
             }
         }
     }
@@ -201,19 +211,19 @@ void MemProfiler::dumpStride(int bucketSize){
         } else {
             ss << "local write stride:" << std::endl;
         }
-        std::map<int64_t, int> local;
-        for(std::map<vaddr_t, std::vector<std::pair<int64_t, int> > >::iterator iter = localStride[mem_type].begin();iter != localStride[mem_type].end();++iter){
+        for(auto iter = tempLocalStride[mem_type].begin();iter != tempLocalStride[mem_type].end();++iter){
             std::vector<std::pair<int64_t, int> > vec = iter->second;
-            for(std::vector<std::pair<int64_t, int> >::iterator iter1 = vec.begin();iter1 != vec.end();++iter1){
-                int64_t index = iter->first < 0 ? iter1->first / bucketSize - 1 : iter1->first / bucketSize;
-                if (local.find(index) == local.end()) {
-                    local[index] = iter1->second;
+            for(std::vector<std::pair<int64_t, int> >::iterator vecIter = vec.begin();vecIter != vec.end();++vecIter){
+                int64_t index = vecIter->first < 0 ? vecIter->first / bucketSize - 1 : vecIter->first / bucketSize;
+                auto &local_stride = localStride[mem_type];
+                if (local_stride.find(index) == local_stride.end()) {
+                    local_stride[index] = vecIter->second;
                 } else {
-                    local[index] = local[index] + iter1->second;
+                    local_stride[index] = local_stride[index] + vecIter->second;
                 }
             }
         }
-        for(std::map<int64_t, int>::iterator iter = local.begin();iter != local.end();++iter){
+        for(auto iter = localStride[mem_type].begin();iter != localStride[mem_type].end();++iter){
             if (iter->first >= 0) {
                 ss << std::hex << iter->first * bucketSize << "~" << (iter->first + 1) * bucketSize - 1 << " " << std::oct << iter->second << std::endl;
             } else {
