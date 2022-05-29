@@ -16,6 +16,7 @@
 #include <vector>
 #include <fstream>
 #include <utility>
+#include <limits>
 
 namespace BetaPointNS {
 
@@ -103,18 +104,24 @@ class MemProfiler: public CompressProfiler {
 
     roaring_bitmap_t *bitMap;
 
-    // store memory address corresponding to pc
-    std::vector<std::map<vaddr_t, paddr_t>> localMap;
-    // store temporary global stride and local stride
-    std::vector<std::map<int64_t, int>> tempGlobalStride;
-    std::vector<std::map<vaddr_t, std::vector<std::pair<int64_t, int>>>> tempLocalStride;
+    using StrideCountMap = std::map<int64_t, int64_t>;
+
+    // store last memory access address corresponding to pc
+    std::array<std::map<vaddr_t, paddr_t>, 2> localLastAddr;
+
+    // store in-flight global stride and local stride
+    std::array<StrideCountMap, 2> globalStrides;
+    std::array<std::map<vaddr_t, StrideCountMap>, 2> localStrides;
+
     // store global stride and local stride
-    std::vector<std::map<int64_t, int>> globalStride;
-    std::vector<std::map<int64_t, int>> localStride;
+    std::array<StrideCountMap, 2> globalStrideBuckets;
+    std::array<StrideCountMap, 2> localStrideBuckets;
 
     const unsigned CacheBlockSize{64};
 
     paddr_t lastReadAddr, lastWriteAddr;
+    const std::vector<int64_t> bucketRanges{
+        -4096, -512, -64, -8, 0, 8, 64, 512, 4096, std::numeric_limits<int64_t>::max()};
 
   public:
     MemProfiler();
@@ -124,11 +131,11 @@ class MemProfiler: public CompressProfiler {
     void localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write);
     void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);
     void dumpStride(int bucketSize);
-    std::vector<std::map<int64_t, int>> &getGlobalStrides() {
-        return globalStride;
+    std::array<StrideCountMap, 2> &getGlobalStrides() {
+        return globalStrideBuckets;
     }
-    std::vector<std::map<int64_t, int>> &getLocalStrides() {
-        return localStride;
+    std::array<StrideCountMap, 2> &getLocalStrides() {
+        return localStrideBuckets;
     }
 
     void onExit() override;
