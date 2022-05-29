@@ -12,6 +12,8 @@ extern uint64_t g_nr_guest_instr;
 
 namespace BetaPointNS {
 
+extern DataflowProfiler dataflowProfiler;
+
 CompressProfiler::CompressProfiler()
     : cctx(ZSTD_createCCtx()) {
     ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, 1);
@@ -106,7 +108,7 @@ void ControlProfiler::calculateProbAndPenalty(vaddr_t pc, vaddr_t target, bool t
 MemProfiler::MemProfiler()
     : CompressProfiler() {
     info = reinterpret_cast<MemInfo *>(inputBuf);
-    bitMap = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/64);
+    bitMap = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/CacheBlockSize);
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -130,6 +132,7 @@ void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_w
     roaring_bitmap_add(bitMap, paddr / CacheBlockSize);
     globalStrideProfile(paddr, is_write);
     localStrideProfile(pc, paddr, is_write);
+    reuseProfile(paddr);
 }
 
 void MemProfiler::globalStrideProfile(paddr_t paddr, int is_write){
@@ -226,16 +229,47 @@ void MemProfiler::dumpStride(int bucketSize){
     ofs.close();
 }
 
+void MemProfiler::reuseProfile(paddr_t paddr) {
+    uint64_t icount = dataflowProfiler.getProfiledInsts();
+    if (icount >= nextNewChunkInsts) {
+        nextNewChunkInsts += reuseChunkSize;
+        reuseBitMaps.push_back(roaring_bitmap_create_with_capacity(numPages));
+    }
+    auto &reuse_bitmap = reuseBitMaps.back();
+    roaring_bitmap_add(reuse_bitmap, paddr / PageSize);
+}
+
+void MemProfiler::calcReuseMatrix() {
+    reuseMatrix.resize(reuseBitMaps.size(), std::vector<uint64_t>(reuseBitMaps.size(), 0));
+    for (unsigned i = 0; i < reuseBitMaps.size(); i++) {
+        for (unsigned j = i + 1; j < reuseBitMaps.size(); j++) {
+            reuseMatrix[i][j] = roaring_bitmap_and_cardinality(reuseBitMaps[i], reuseBitMaps[j]);
+        }
+    }
+    printf("Reuse matrix\n");
+    for (unsigned i = 0; i < reuseBitMaps.size(); i++) {
+        for (unsigned j = i + 1; j < reuseBitMaps.size(); j++) {
+            printf(" %lu", reuseMatrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
 void MemProfiler::onExit() {
     uint32_t cardinality = roaring_bitmap_get_cardinality(bitMap);
     printf("Footprint: %u cacheblocks\n", cardinality);
     printf("dump stride\n");
     dumpStride(6);
+    calcReuseMatrix();
+    for (auto &reuse_bitmap: reuseBitMaps) {
+        roaring_bitmap_free(reuse_bitmap);
+    }
 }
 
 
 void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
         uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, uint8_t is_ctrl) {
+    profiledInsts++;
     if (mem_width != 0) {
         for (paddr_t baddr = paddr; baddr < paddr + mem_width; baddr++) {
             auto it = memDepMap.find(baddr);

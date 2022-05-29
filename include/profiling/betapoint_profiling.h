@@ -102,8 +102,15 @@ class MemProfiler: public CompressProfiler {
         return _tokenBytes;
     }
 
+    const unsigned CacheBlockSize{64};
+    const unsigned PageSize{4096};
+
+    ///////////////////////////////////////////
+    // Footprint
     roaring_bitmap_t *bitMap;
 
+    ///////////////////////////////////////////
+    // Strides
     using StrideCountMap = std::map<int64_t, int64_t>;
 
     // store last memory access address corresponding to pc
@@ -117,12 +124,21 @@ class MemProfiler: public CompressProfiler {
     std::array<StrideCountMap, 2> globalStrideBuckets;
     std::array<StrideCountMap, 2> localStrideBuckets;
 
-    const unsigned CacheBlockSize{64};
-
     paddr_t lastReadAddr, lastWriteAddr;
     const std::vector<int64_t> bucketRanges{
         -4096, -512, -64, -8, 0, 8, 64, 512, 4096, std::numeric_limits<int64_t>::max()};
 
+    ///////////////////////////////////////////
+    // Reuse
+    uint64_t numPages{(uint64_t)CONFIG_MSIZE/PageSize};
+    std::vector<roaring_bitmap_t *> reuseBitMaps;
+    uint64_t reuseChunkSize{8192};
+    uint64_t nextNewChunkInsts{0};
+    std::vector<std::vector<uint64_t>> reuseMatrix;
+
+    void reuseProfile(paddr_t paddr);
+    void calcReuseMatrix();
+    
   public:
     MemProfiler();
 
@@ -174,7 +190,13 @@ class DataflowProfiler {
     const unsigned storeLatency{1}, loadLatency{1},
             divLatency{1}, controlLatency{1}, addMulLatency{1};
 
+    uint64_t profiledInsts{};
+
   public:
+    uint64_t getProfiledInsts() const {
+        return profiledInsts;
+    }
+
     void dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
         uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, u_int8_t is_ctrl);
 };
