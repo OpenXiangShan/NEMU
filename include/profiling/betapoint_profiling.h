@@ -130,11 +130,12 @@ class MemProfiler: public CompressProfiler {
 
     ///////////////////////////////////////////
     // Reuse
-    uint64_t numPages{(uint64_t)CONFIG_MSIZE/PageSize};
+    // uint64_t numPages{(uint64_t)CONFIG_MSIZE/PageSize};
+    uint64_t numCacheBlocks{(uint64_t)CONFIG_MSIZE/CacheBlockSize};
     std::vector<roaring_bitmap_t *> reuseBitMaps;
-    uint64_t reuseChunkSize{8192};
+    uint64_t reuseChunkSize{1024 * 1024 * 1};
     uint64_t nextNewChunkInsts{0};
-    std::vector<std::vector<uint64_t>> reuseMatrix;
+    std::vector<std::vector<double>> reuseMatrix;
 
     void reuseProfile(paddr_t paddr);
     void calcReuseMatrix();

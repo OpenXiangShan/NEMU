@@ -233,23 +233,24 @@ void MemProfiler::reuseProfile(paddr_t paddr) {
     uint64_t icount = dataflowProfiler.getProfiledInsts();
     if (icount >= nextNewChunkInsts) {
         nextNewChunkInsts += reuseChunkSize;
-        reuseBitMaps.push_back(roaring_bitmap_create_with_capacity(numPages));
+        reuseBitMaps.push_back(roaring_bitmap_create_with_capacity(numCacheBlocks));
     }
     auto &reuse_bitmap = reuseBitMaps.back();
-    roaring_bitmap_add(reuse_bitmap, paddr / PageSize);
+    roaring_bitmap_add(reuse_bitmap, paddr / CacheBlockSize);
 }
 
 void MemProfiler::calcReuseMatrix() {
-    reuseMatrix.resize(reuseBitMaps.size(), std::vector<uint64_t>(reuseBitMaps.size(), 0));
+    reuseMatrix.resize(reuseBitMaps.size(), std::vector<double>(reuseBitMaps.size(), 0.0));
     for (unsigned i = 0; i < reuseBitMaps.size(); i++) {
         for (unsigned j = i + 1; j < reuseBitMaps.size(); j++) {
-            reuseMatrix[i][j] = roaring_bitmap_and_cardinality(reuseBitMaps[i], reuseBitMaps[j]);
+            reuseMatrix[i][j] = (double) roaring_bitmap_and_cardinality(reuseBitMaps[i], reuseBitMaps[j]) /
+                    (double) roaring_bitmap_get_cardinality(reuseBitMaps[i]);
         }
     }
     printf("Reuse matrix\n");
     for (unsigned i = 0; i < reuseBitMaps.size(); i++) {
-        for (unsigned j = i + 1; j < reuseBitMaps.size(); j++) {
-            printf(" %lu", reuseMatrix[i][j]);
+        for (unsigned j = 0; j < reuseBitMaps.size(); j++) {
+            printf(" %f", reuseMatrix[i][j]);
         }
         printf("\n");
     }
@@ -342,8 +343,8 @@ void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store,
     inFlightInstCount++;
     if (inFlightInstCount >= instWindowSize) {
         // dump critical path
-        auto m = std::max_element(regDepMap.begin(), regDepMap.end());
-        Log("critical path: %u", *m);
+        // auto m = std::max_element(regDepMap.begin(), regDepMap.end());
+        // Log("critical path: %u", *m);
         // clear
         inFlightInstCount = 0;
         clearRegDepMap();
