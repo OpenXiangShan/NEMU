@@ -20,6 +20,10 @@
 
 namespace BetaPointNS {
 
+#define statChunkSize (1024 * 1024)
+
+extern const char *outputDir;
+
 class CompressProfiler {
   protected:
     static const unsigned bufBytes = 64;
@@ -109,9 +113,17 @@ class MemProfiler: public CompressProfiler {
     // Footprint
     roaring_bitmap_t *bitMap;
 
+    uint64_t lastFootprintSize{0};
+    std::vector<unsigned> footprintIncrements;
+
     ///////////////////////////////////////////
     // Strides
     using StrideCountMap = std::map<int64_t, int64_t>;
+
+    enum {
+        GlobalStride = 0,
+        LocalStride
+    };
 
     // store last memory access address corresponding to pc
     std::array<std::map<vaddr_t, paddr_t>, 2> localLastAddr;
@@ -128,12 +140,19 @@ class MemProfiler: public CompressProfiler {
     const std::vector<int64_t> bucketRanges{
         -4096, -512, -64, -8, 0, 8, 64, 512, 4096, std::numeric_limits<int64_t>::max()};
 
+    std::array<roaring_bitmap_t *, 4> distinctStrides;
+
+    std::array<unsigned, 4> lastCardinalities{0, 0, 0, 0};
+    std::array<unsigned, 4> newDistinctStrides{0, 0, 0, 0};
+    std::array<unsigned, 4> &getNewDistinctStride();
+    std::vector<std::array<unsigned, 4>> newDistinctStrideHist;
+
     ///////////////////////////////////////////
     // Reuse
     // uint64_t numPages{(uint64_t)CONFIG_MSIZE/PageSize};
     uint64_t numCacheBlocks{(uint64_t)CONFIG_MSIZE/CacheBlockSize};
     std::vector<roaring_bitmap_t *> reuseBitMaps;
-    uint64_t reuseChunkSize{1024 * 1024 * 1};
+    uint64_t reuseChunkSize{1024 * 128 * 1};
     uint64_t nextNewChunkInsts{0};
     std::vector<std::vector<double>> reuseMatrix;
 
@@ -154,6 +173,12 @@ class MemProfiler: public CompressProfiler {
     std::array<StrideCountMap, 2> &getLocalStrides() {
         return localStrideBuckets;
     }
+
+    uint64_t getFootprint() const {
+        return roaring_bitmap_get_cardinality(bitMap);
+    }
+
+    void chunkEnd();
 
     void onExit() override;
 };
@@ -193,10 +218,18 @@ class DataflowProfiler {
 
     uint64_t profiledInsts{};
 
+    std::vector<unsigned> criticalPathLen;
+
+    std::vector<unsigned> ppmMisPreds;
+
   public:
+    DataflowProfiler();
+
     uint64_t getProfiledInsts() const {
         return profiledInsts;
     }
+
+    void onExit();
 
     void dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
         uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, u_int8_t is_ctrl);

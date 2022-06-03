@@ -109,6 +109,9 @@ MemProfiler::MemProfiler()
     : CompressProfiler() {
     info = reinterpret_cast<MemInfo *>(inputBuf);
     bitMap = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/CacheBlockSize);
+    for (unsigned i = 0; i < 4; i++) {
+        distinctStrides[i] = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/CacheBlockSize);
+    }
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -145,6 +148,7 @@ void MemProfiler::globalStrideProfile(paddr_t paddr, int is_write){
     }
     lastReadAddr = is_write ? lastReadAddr: paddr;
     lastWriteAddr = is_write ? paddr: lastWriteAddr;
+    roaring_bitmap_add(distinctStrides[GlobalStride * 2 + is_write], paddr / CacheBlockSize);
 }
 
 void MemProfiler::localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write){
@@ -163,19 +167,29 @@ void MemProfiler::localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write){
             pc_entry_it->second[stride] += 1;
         }
     }
+    roaring_bitmap_add(distinctStrides[LocalStride * 2 + is_write], paddr / CacheBlockSize);
+}
+
+std::array<unsigned, 4> &MemProfiler::getNewDistinctStride() {
+    for (unsigned i = 0; i < 4; i++) {
+        newDistinctStrides[i] = roaring_bitmap_get_cardinality(distinctStrides[i]) - lastCardinalities[i];
+        lastCardinalities[i] += newDistinctStrides[i];
+    }
+    return newDistinctStrides;
 }
 
 void MemProfiler::dumpStride(int bucketSize){
     std::ofstream ofs;
-    ofs.open("strideHistogram.txt");
+    Log("Dump stride histogram");
+    ofs.open("stride_histogram.csv");
     std::stringstream ss;
 
     for (int mem_type = 0; mem_type < 2; mem_type++){
-        if (mem_type == 0) {
-            ss << "global read stride:" << std::endl;
-        } else {
-            ss << "global write stride:" << std::endl;
-        }
+        // if (mem_type == 0) {
+        //     ss << "global read stride:" << std::endl;
+        // } else {
+        //     ss << "global write stride:" << std::endl;
+        // }
         auto iter = globalStrides[mem_type].begin();
         auto &global_stride_bucket = globalStrideBuckets[mem_type];
         for (auto cursor: bucketRanges) {
@@ -192,16 +206,18 @@ void MemProfiler::dumpStride(int bucketSize){
             }
         }
         for (auto iter = globalStrideBuckets[mem_type].begin(); iter != globalStrideBuckets[mem_type].end(); ++iter){
-            ss << "~" << iter->first << ": " << iter->second << std::endl;
+            // ss << "~" << iter->first << ": " << iter->second << std::endl;
+            ss << iter->second << ",";
         }
+        ss << 0 << std::endl;
     }
 
     for (int mem_type = 0; mem_type < 2; mem_type++){
-        if (mem_type == 0) {
-            ss << "local read stride:" << std::endl;
-        } else {
-            ss << "local write stride:" << std::endl;
-        }
+        // if (mem_type == 0) {
+        //     ss << "local read stride:" << std::endl;
+        // } else {
+        //     ss << "local write stride:" << std::endl;
+        // }
         auto &local_stride_bucket = localStrideBuckets[mem_type];
         for (auto cursor: bucketRanges) {
             for (auto pc_stride_pair: localStrides[mem_type]) {
@@ -221,8 +237,10 @@ void MemProfiler::dumpStride(int bucketSize){
             }
         }
         for (auto iter = localStrideBuckets[mem_type].begin(); iter != localStrideBuckets[mem_type].end(); ++iter){
-            ss << "~" << iter->first << ": " << iter->second << std::endl;
+            // ss << "~" << iter->first << ": " << iter->second << std::endl;
+            ss << iter->second << ",";
         }
+        ss << 0 << std::endl;
     }
 
     ofs << ss.rdbuf();
@@ -247,13 +265,28 @@ void MemProfiler::calcReuseMatrix() {
                     (double) roaring_bitmap_get_cardinality(reuseBitMaps[i]);
         }
     }
-    printf("Reuse matrix\n");
+    Log("Dump Reuse matrix");
+    std::ofstream ofs;
+    ofs.open("reuse_matrix.csv");
     for (unsigned i = 0; i < reuseBitMaps.size(); i++) {
         for (unsigned j = 0; j < reuseBitMaps.size(); j++) {
-            printf(" %f", reuseMatrix[i][j]);
+            ofs << reuseMatrix[i][j] << ",";
         }
-        printf("\n");
+        ofs << 0 << std::endl;
     }
+}
+
+void MemProfiler::chunkEnd() {
+    auto inc = (int64_t) memProfiler.getFootprint() - lastFootprintSize;
+    if (inc >= 0) {
+        footprintIncrements.push_back(inc);
+        lastFootprintSize = memProfiler.getFootprint();
+    } else {
+        xpanic("Footprint decrease: %ld", inc);
+    }
+
+    const auto &new_distinct_strides = getNewDistinctStride();
+    newDistinctStrideHist.push_back(new_distinct_strides);
 }
 
 void MemProfiler::onExit() {
@@ -265,8 +298,31 @@ void MemProfiler::onExit() {
     for (auto &reuse_bitmap: reuseBitMaps) {
         roaring_bitmap_free(reuse_bitmap);
     }
+
+    std::ofstream outf;
+
+    Log("Dump footprint increments: %lu", footprintIncrements.size());
+    outf.open(std::string(outputDir) + "new_footprints.csv", std::ios::out);
+    for (const auto &x: footprintIncrements) {
+        outf << x << ",";
+    }
+    outf << 0 << std::endl;
+    outf.close();
+
+    Log("Dump new distinct strides : %lu", newDistinctStrideHist.size());
+    outf.open(std::string(outputDir) + "new_strides.csv", std::ios::out);
+    for (unsigned i = 0; i < 4; i++) {
+        for (const auto &x: newDistinctStrideHist) {
+            outf << x[i] << ",";
+        }
+        outf << 0 << std::endl;
+    }
+    outf.close();
 }
 
+DataflowProfiler::DataflowProfiler() {
+    ppmMisPreds.push_back(0);
+}
 
 void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
         uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, uint8_t is_ctrl) {
@@ -325,6 +381,7 @@ void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store,
             // control instruction universally increase the path by its flush cycle expectation
             float penalty = ctrlProfiler.getExpPenalty(pc);
             if (penalty > 0.01) {
+                ppmMisPreds.back()++;
                 for (auto &it: regDepMap) {
                     if (it > 0) {
                         it += penalty;
@@ -342,8 +399,17 @@ void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store,
     regDepMap[0] = 0; // always set it to zero to simplify logic
     inFlightInstCount++;
     if (inFlightInstCount >= instWindowSize) {
-        // dump critical path
-        // auto m = std::max_element(regDepMap.begin(), regDepMap.end());
+        // append critical path
+        auto m = std::max_element(regDepMap.begin(), regDepMap.end());
+        criticalPathLen.push_back(*m);
+
+        // start new ppm miss counter
+        ppmMisPreds.push_back(0);
+
+        // count footprint increase
+
+        memProfiler.chunkEnd();
+
         // Log("critical path: %u", *m);
         // clear
         inFlightInstCount = 0;
@@ -352,10 +418,33 @@ void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store,
     }
 }
 
+void DataflowProfiler::onExit() {
+    std::ofstream outf;
+
+    Log("Dump critical path size: %lu", criticalPathLen.size());
+    outf.open(std::string(outputDir) + "critical_paths.csv", std::ios::out);
+    for (const auto &x: criticalPathLen) {
+        outf << x << ",";
+    }
+    outf << 0 << std::endl;
+    outf.close();
+
+    Log("Dump ppm miss count: %lu", ppmMisPreds.size());
+    outf.open(std::string(outputDir) + "ppm_mispreds.csv", std::ios::out);
+    for (const auto &x: ppmMisPreds) {
+        outf << x << ",";
+    }
+    outf << 0 << std::endl;
+    outf.close();
+
+
+}
+
 ControlProfiler ctrlProfiler;
 MemProfiler memProfiler;
 DataflowProfiler dataflowProfiler;
 
+const char *outputDir = "./";
 }
 
 
@@ -374,6 +463,7 @@ void dataflow_profile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_widt
 void beta_on_exit() {
     BetaPointNS::ctrlProfiler.onExit();
     BetaPointNS::memProfiler.onExit();
+    BetaPointNS::dataflowProfiler.onExit();
 }
 
 }  // extern C
