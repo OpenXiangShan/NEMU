@@ -6,7 +6,7 @@ static FILE *fp = NULL;
 // static const char *flash_img = CONFIG_FLASH_IMG_PATH;
 static uint32_t preset_flash[] = {
   0x0010029b,
-  0x01f29293,
+  0x02529293,
   0x00028067
 };
 
