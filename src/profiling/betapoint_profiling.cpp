@@ -112,6 +112,17 @@ MemProfiler::MemProfiler()
     for (unsigned i = 0; i < 4; i++) {
         distinctStrides[i] = roaring_bitmap_create_with_capacity(CONFIG_MSIZE/CacheBlockSize);
     }
+    // init bucket ranges
+    bucketRanges.resize(numHalfBuckets * 2 + 2);
+    bucketRanges[numHalfBuckets] = 0;
+    for (unsigned i = 0; i < numHalfBuckets; i++) {
+        bucketRanges[numHalfBuckets + 1 + i] = bucketStart * powl(2, i);
+        bucketRanges[numHalfBuckets - 1 - i] = -bucketStart * powl(2, i);
+    }
+    bucketRanges.back() = std::numeric_limits<int64_t>::max();
+    for (unsigned i = 0; i < bucketRanges.size(); i++) {
+        Log("bucketRanges[%u]: %li", i, bucketRanges[i]);
+    }
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -132,6 +143,9 @@ void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
 
 void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_write) {
     Logbeta("vaddr: 0x%010lx, paddr: 0x%010lx", vaddr, paddr);
+    // basic:
+    numLoads += !is_write;
+    numStores += is_write;
     roaring_bitmap_add(bitMap, paddr / CacheBlockSize);
     globalStrideProfile(paddr, is_write);
     localStrideProfile(pc, paddr, is_write);
@@ -144,7 +158,7 @@ void MemProfiler::globalStrideProfile(paddr_t paddr, int is_write){
     if (globalStrides[is_write].find(stride) == globalStrides[is_write].end()) {
         globalStrides[is_write][stride] = 1;
     } else {
-        globalStrides[is_write][stride] = globalStrides[is_write][stride] + 1;
+        globalStrides[is_write][stride] += 1;
     }
     lastReadAddr = is_write ? lastReadAddr: paddr;
     lastWriteAddr = is_write ? paddr: lastWriteAddr;
@@ -184,7 +198,9 @@ void MemProfiler::dumpStride(int bucketSize){
     ofs.open("stride_histogram.csv");
     std::stringstream ss;
 
+    uint64_t global_stride_total, local_stride_total, local_pc_count;
     for (int mem_type = 0; mem_type < 2; mem_type++){
+        global_stride_total = 0;
         // if (mem_type == 0) {
         //     ss << "global read stride:" << std::endl;
         // } else {
@@ -193,12 +209,13 @@ void MemProfiler::dumpStride(int bucketSize){
         auto iter = globalStrides[mem_type].begin();
         auto &global_stride_bucket = globalStrideBuckets[mem_type];
         for (auto cursor: bucketRanges) {
+            global_stride_bucket[cursor] = 0;
+        }
+        for (auto cursor: bucketRanges) {
             while (iter != globalStrides[mem_type].end() && iter->first < cursor) {
-                if (global_stride_bucket.find(iter->first) == global_stride_bucket.end()) {
-                    global_stride_bucket[cursor] = iter->second;
-                } else {
-                    global_stride_bucket[cursor] += + iter->second;
-                }
+                // auto ub = global_stride_bucket.upper_bound(iter->first);
+                global_stride_bucket[cursor] += iter->second;
+                global_stride_total += iter->second;
                 iter++;
             }
             if (iter == globalStrides[mem_type].end()) {
@@ -210,9 +227,12 @@ void MemProfiler::dumpStride(int bucketSize){
             ss << iter->second << ",";
         }
         ss << 0 << std::endl;
+        Log("global stride total: %lu", global_stride_total);
     }
 
     for (int mem_type = 0; mem_type < 2; mem_type++){
+        local_stride_total = 0;
+        local_pc_count = 0;
         // if (mem_type == 0) {
         //     ss << "local read stride:" << std::endl;
         // } else {
@@ -220,27 +240,27 @@ void MemProfiler::dumpStride(int bucketSize){
         // }
         auto &local_stride_bucket = localStrideBuckets[mem_type];
         for (auto cursor: bucketRanges) {
-            for (auto pc_stride_pair: localStrides[mem_type]) {
-                auto &stride_count_map = pc_stride_pair.second;
-                auto stride_count_pair = stride_count_map.begin();
-                while (stride_count_pair != stride_count_map.end() && stride_count_pair->first < cursor) {
-                    if (local_stride_bucket.find(cursor) == local_stride_bucket.end()) {
-                        local_stride_bucket[cursor] = stride_count_pair->second;
-                    } else {
-                        local_stride_bucket[cursor] += stride_count_pair->second;
-                    }
-                    stride_count_pair++;
-                }
-                if (stride_count_pair == stride_count_map.end()) {
-                    break;
-                }
+            local_stride_bucket[cursor] = 0;
+        }
+        for (auto pc_stride_pair: localStrides[mem_type]) {
+            local_pc_count += 1;
+            auto &stride_count_map = pc_stride_pair.second;
+            auto stride_count_pair = stride_count_map.begin();
+            while (stride_count_pair != stride_count_map.end()) {
+                auto ub = local_stride_bucket.upper_bound(stride_count_pair->first);
+                ub->second += stride_count_pair->second;
+                stride_count_pair++;
+                local_stride_total += stride_count_pair->second;
             }
+            // Log("pc: 0x%lx, local stride total: %lu, local pc count: %lu", pc_stride_pair.first,
+            //     local_stride_total, local_pc_count);
         }
         for (auto iter = localStrideBuckets[mem_type].begin(); iter != localStrideBuckets[mem_type].end(); ++iter){
             // ss << "~" << iter->first << ": " << iter->second << std::endl;
             ss << iter->second << ",";
         }
         ss << 0 << std::endl;
+        Log("local stride total: %lu, local pc count: %lu", local_stride_total, local_pc_count);
     }
 
     ofs << ss.rdbuf();
@@ -291,17 +311,18 @@ void MemProfiler::chunkEnd() {
 
 void MemProfiler::onExit() {
     uint32_t cardinality = roaring_bitmap_get_cardinality(bitMap);
-    printf("Footprint: %u cacheblocks\n", cardinality);
-    printf("dump stride\n");
+    Log("numLoad: %lu, numStore: %lu", numLoads, numStores);
+    Log("Footprint: %u cacheblocks\n", cardinality);
+    Log("dump stride\n");
     dumpStride(6);
+
     calcReuseMatrix();
     for (auto &reuse_bitmap: reuseBitMaps) {
         roaring_bitmap_free(reuse_bitmap);
     }
 
-    std::ofstream outf;
-
     Log("Dump footprint increments: %lu", footprintIncrements.size());
+    std::ofstream outf;
     outf.open(std::string(outputDir) + "new_footprints.csv", std::ios::out);
     for (const auto &x: footprintIncrements) {
         outf << x << ",";

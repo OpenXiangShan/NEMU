@@ -110,6 +110,10 @@ class MemProfiler: public CompressProfiler {
     const unsigned PageSize{4096};
 
     ///////////////////////////////////////////
+    // Basic
+    uint64_t numLoads, numStores;
+
+    ///////////////////////////////////////////
     // Footprint
     roaring_bitmap_t *bitMap;
 
@@ -137,8 +141,10 @@ class MemProfiler: public CompressProfiler {
     std::array<StrideCountMap, 2> localStrideBuckets;
 
     paddr_t lastReadAddr, lastWriteAddr;
-    const std::vector<int64_t> bucketRanges{
-        -4096, -512, -64, -8, 0, 8, 64, 512, 4096, std::numeric_limits<int64_t>::max()};
+
+    const unsigned numHalfBuckets{16};
+    const int bucketStart{4};
+    std::vector<int64_t> bucketRanges;
 
     std::array<roaring_bitmap_t *, 4> distinctStrides;
 
