@@ -121,6 +121,11 @@ class MemProfiler: public CompressProfiler {
     std::vector<unsigned> footprintIncrements;
 
     ///////////////////////////////////////////
+    // PC -> access count
+    std::array<std::map<vaddr_t, int64_t>, 2> localAccessCount;
+    std::ofstream localAccessCountFile;
+
+    ///////////////////////////////////////////
     // Strides
     using StrideCountMap = std::map<int64_t, int64_t>;
 
@@ -169,10 +174,15 @@ class MemProfiler: public CompressProfiler {
     MemProfiler();
 
     void memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_write);
-    void globalStrideProfile(paddr_t paddr, int is_write);
-    void localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write);
+    void globalProfile(paddr_t paddr, int is_write);
+    void localProfile(vaddr_t pc, paddr_t paddr, int is_write);
     void compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr);
-    void dumpStride(int bucketSize);
+
+    void dumpStride();
+    void dumpFootPrintInc();
+    void dumpDistinctStrideInc();
+    void dumpReuseMatrix();
+
     std::array<StrideCountMap, 2> &getGlobalStrides() {
         return globalStrideBuckets;
     }
@@ -185,6 +195,8 @@ class MemProfiler: public CompressProfiler {
     }
 
     void chunkEnd();
+
+    void computeTopAccesses();
 
     void onExit() override;
 };
@@ -228,6 +240,8 @@ class DataflowProfiler {
 
     std::vector<unsigned> ppmMisPreds;
 
+    std::ofstream chunkStatsStream;
+
   public:
     DataflowProfiler();
 
@@ -239,6 +253,10 @@ class DataflowProfiler {
 
     void dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
         uint8_t dst_id, uint8_t src1_id, uint8_t src2_id, uint8_t fsrc3_id, u_int8_t is_ctrl);
+
+    std::ofstream &getChunkStatsStream() {
+        return chunkStatsStream;
+    }
 };
 
 }

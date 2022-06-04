@@ -120,9 +120,10 @@ MemProfiler::MemProfiler()
         bucketRanges[numHalfBuckets - 1 - i] = -bucketStart * powl(2, i);
     }
     bucketRanges.back() = std::numeric_limits<int64_t>::max();
-    for (unsigned i = 0; i < bucketRanges.size(); i++) {
-        Log("bucketRanges[%u]: %li", i, bucketRanges[i]);
-    }
+    // for (unsigned i = 0; i < bucketRanges.size(); i++) {
+    //     Log("bucketRanges[%u]: %li", i, bucketRanges[i]);
+    // }
+    localAccessCountFile.open(std::string(outputDir) + "logs/localAccessCount.csv", std::ios::out);
 }
 
 void MemProfiler::compressProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr) {
@@ -147,12 +148,12 @@ void MemProfiler::memProfile(vaddr_t pc, vaddr_t vaddr, paddr_t paddr, bool is_w
     numLoads += !is_write;
     numStores += is_write;
     roaring_bitmap_add(bitMap, paddr / CacheBlockSize);
-    globalStrideProfile(paddr, is_write);
-    localStrideProfile(pc, paddr, is_write);
+    globalProfile(paddr, is_write);
+    localProfile(pc, paddr, is_write);
     reuseProfile(paddr);
 }
 
-void MemProfiler::globalStrideProfile(paddr_t paddr, int is_write){
+void MemProfiler::globalProfile(paddr_t paddr, int is_write){
     paddr_t last_addr = is_write ? lastWriteAddr: lastReadAddr;
     int64_t stride = int64_t(paddr - last_addr);
     if (globalStrides[is_write].find(stride) == globalStrides[is_write].end()) {
@@ -165,7 +166,9 @@ void MemProfiler::globalStrideProfile(paddr_t paddr, int is_write){
     roaring_bitmap_add(distinctStrides[GlobalStride * 2 + is_write], paddr / CacheBlockSize);
 }
 
-void MemProfiler::localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write){
+void MemProfiler::localProfile(vaddr_t pc, paddr_t paddr, int is_write){
+    ///////////////////////////////////////////
+    // local stride profiling
     if (localLastAddr[is_write].find(pc) == localLastAddr[is_write].end()) {
         localLastAddr[is_write][pc] = paddr;
     } else {
@@ -181,7 +184,19 @@ void MemProfiler::localStrideProfile(vaddr_t pc, paddr_t paddr, int is_write){
             pc_entry_it->second[stride] += 1;
         }
     }
+
+    ///////////////////////////////////////////
+    // distinct stride profiling
     roaring_bitmap_add(distinctStrides[LocalStride * 2 + is_write], paddr / CacheBlockSize);
+
+    ///////////////////////////////////////////
+    // local access count profiling
+    if (localAccessCount[is_write].count(pc) == 0) {
+        localAccessCount[is_write][pc] = 1;
+    } else {
+        localAccessCount[is_write][pc] += 1;
+    }
+    localAccessCountFile << is_write << "," << paddr << std::endl;
 }
 
 std::array<unsigned, 4> &MemProfiler::getNewDistinctStride() {
@@ -192,13 +207,15 @@ std::array<unsigned, 4> &MemProfiler::getNewDistinctStride() {
     return newDistinctStrides;
 }
 
-void MemProfiler::dumpStride(int bucketSize){
+void MemProfiler::dumpStride(){
     std::ofstream ofs;
     Log("Dump stride histogram");
     ofs.open("stride_histogram.csv");
     std::stringstream ss;
 
     uint64_t global_stride_total, local_stride_total, local_pc_count;
+
+    // dump global stride
     for (int mem_type = 0; mem_type < 2; mem_type++){
         global_stride_total = 0;
         // if (mem_type == 0) {
@@ -223,13 +240,14 @@ void MemProfiler::dumpStride(int bucketSize){
             }
         }
         for (auto iter = globalStrideBuckets[mem_type].begin(); iter != globalStrideBuckets[mem_type].end(); ++iter){
-            // ss << "~" << iter->first << ": " << iter->second << std::endl;
+            std::cout << "~" << iter->first << ": " << iter->second << std::endl;
             ss << iter->second << ",";
         }
         ss << 0 << std::endl;
         Log("global stride total: %lu", global_stride_total);
     }
 
+    // dump local stride
     for (int mem_type = 0; mem_type < 2; mem_type++){
         local_stride_total = 0;
         local_pc_count = 0;
@@ -249,20 +267,19 @@ void MemProfiler::dumpStride(int bucketSize){
             while (stride_count_pair != stride_count_map.end()) {
                 auto ub = local_stride_bucket.upper_bound(stride_count_pair->first);
                 ub->second += stride_count_pair->second;
-                stride_count_pair++;
                 local_stride_total += stride_count_pair->second;
+                stride_count_pair++;
             }
             // Log("pc: 0x%lx, local stride total: %lu, local pc count: %lu", pc_stride_pair.first,
             //     local_stride_total, local_pc_count);
         }
         for (auto iter = localStrideBuckets[mem_type].begin(); iter != localStrideBuckets[mem_type].end(); ++iter){
-            // ss << "~" << iter->first << ": " << iter->second << std::endl;
+            std::cout << "~" << iter->first << ": " << iter->second << std::endl;
             ss << iter->second << ",";
         }
         ss << 0 << std::endl;
         Log("local stride total: %lu, local pc count: %lu", local_stride_total, local_pc_count);
     }
-
     ofs << ss.rdbuf();
     ofs.close();
 }
@@ -312,37 +329,67 @@ void MemProfiler::chunkEnd() {
 void MemProfiler::onExit() {
     uint32_t cardinality = roaring_bitmap_get_cardinality(bitMap);
     Log("numLoad: %lu, numStore: %lu", numLoads, numStores);
-    Log("Footprint: %u cacheblocks\n", cardinality);
-    Log("dump stride\n");
-    dumpStride(6);
+    Log("Footprint: %u cacheblocks, %u KiB \n", cardinality, cardinality * CacheBlockSize / 1024);
 
-    calcReuseMatrix();
-    for (auto &reuse_bitmap: reuseBitMaps) {
-        roaring_bitmap_free(reuse_bitmap);
-    }
+    dumpStride();
+    dumpDistinctStrideInc();
+    dumpFootPrintInc();
+    dumpReuseMatrix();
 
-    Log("Dump footprint increments: %lu", footprintIncrements.size());
-    std::ofstream outf;
-    outf.open(std::string(outputDir) + "new_footprints.csv", std::ios::out);
-    for (const auto &x: footprintIncrements) {
-        outf << x << ",";
-    }
-    outf << 0 << std::endl;
-    outf.close();
+    computeTopAccesses();
+    localAccessCountFile.close();
+}
 
+void MemProfiler::dumpDistinctStrideInc() {
     Log("Dump new distinct strides : %lu", newDistinctStrideHist.size());
-    outf.open(std::string(outputDir) + "new_strides.csv", std::ios::out);
+    auto &outf = dataflowProfiler.getChunkStatsStream();
     for (unsigned i = 0; i < 4; i++) {
+        outf << "stride_inc" << i << ",";
         for (const auto &x: newDistinctStrideHist) {
             outf << x[i] << ",";
         }
         outf << 0 << std::endl;
     }
-    outf.close();
+}
+
+void MemProfiler::dumpFootPrintInc() {
+    Log("Dump footprint increments: %lu", footprintIncrements.size());
+    auto &outf = dataflowProfiler.getChunkStatsStream();
+    outf << "footprint_inc,";
+    for (const auto &x: footprintIncrements) {
+        outf << x << ",";
+    }
+    outf << 0 << std::endl;
+}
+
+void MemProfiler::dumpReuseMatrix() {
+    calcReuseMatrix();
+    for (auto &reuse_bitmap: reuseBitMaps) {
+        roaring_bitmap_free(reuse_bitmap);
+    }
+}
+
+void MemProfiler::computeTopAccesses() {
+    for (int mem_type = 0; mem_type < 2; mem_type++) {
+        std::vector<std::pair<vaddr_t, int64_t>> pairs;
+        for (auto it: localAccessCount[mem_type]) {
+            pairs.push_back(it);
+        }
+        std::sort(pairs.begin(), pairs.end(),
+        [=](const std::pair<vaddr_t, int64_t> &a, const std::pair<vaddr_t, int64_t> &b) {
+            return a.second > b.second;
+        });
+        // for (auto i = 0; i < 20; i++) {
+        //     Log("Top %d access, PC: 0x%lx, count: %lu, distinct strides: %ld, last addr: 0x%010lx", i,
+        //     pairs[i].first , pairs[i].second,
+        //     localStrides[mem_type][pairs[i].first].size(), localLastAddr[mem_type][pairs[i].first]);
+        // }
+    }
 }
 
 DataflowProfiler::DataflowProfiler() {
     ppmMisPreds.push_back(0);
+    chunkStatsStream.open(std::string(outputDir) + "chunk_stats.csv", std::ios::out);
 }
 
 void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_width,
@@ -440,25 +487,26 @@ void DataflowProfiler::dataflowProfile(vaddr_t pc, paddr_t paddr, bool is_store,
 }
 
 void DataflowProfiler::onExit() {
-    std::ofstream outf;
 
+    auto &outf = chunkStatsStream;
     Log("Dump critical path size: %lu", criticalPathLen.size());
-    outf.open(std::string(outputDir) + "critical_paths.csv", std::ios::out);
+    outf << "critical_path_len,";
     for (const auto &x: criticalPathLen) {
         outf << x << ",";
     }
     outf << 0 << std::endl;
-    outf.close();
 
     Log("Dump ppm miss count: %lu", ppmMisPreds.size());
-    outf.open(std::string(outputDir) + "ppm_mispreds.csv", std::ios::out);
+
+    auto back = ppmMisPreds.back();
+    ppmMisPreds.pop_back();
+    outf << "ppm_miss_preds,";
     for (const auto &x: ppmMisPreds) {
         outf << x << ",";
     }
-    outf << 0 << std::endl;
-    outf.close();
+    outf << back << std::endl;
 
-
+    chunkStatsStream.close();
 }
 
 ControlProfiler ctrlProfiler;
@@ -484,6 +532,7 @@ void dataflow_profile(vaddr_t pc, paddr_t paddr, bool is_store, uint8_t mem_widt
 void beta_on_exit() {
     BetaPointNS::ctrlProfiler.onExit();
     BetaPointNS::memProfiler.onExit();
+    // must call dataflowProfiler.onExit() after memProfiler.onExit()
     BetaPointNS::dataflowProfiler.onExit();
 }
 
