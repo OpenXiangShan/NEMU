@@ -4,19 +4,17 @@
 uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
 // static const char *flash_img = CONFIG_FLASH_IMG_PATH;
-#if CONFIG_FLASH_START_ADDR == 0x1ffff80000
 static uint32_t preset_flash[] = {
+#if CONFIG_FLASH_PRESET_TYPE == 0x1
   0x0010029b,
   0x02529293,
   0x00028067
-};
 #else
-static uint32_t preset_flash[] = {
   0x0010029b,
   0x01f29293,
   0x00028067
-};
 #endif
+};
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   // if(!is_write){
