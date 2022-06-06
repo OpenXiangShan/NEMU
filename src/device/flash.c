@@ -1,20 +1,16 @@
 #include <utils.h>
 #include <device/map.h>
+#include <stdlib.h>
 
 uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
 // static const char *flash_img = CONFIG_FLASH_IMG_PATH;
-static uint32_t preset_flash[] = {
-#if CONFIG_FLASH_PRESET_TYPE == 0x1
-  0x0010029b,
-  0x02529293,
-  0x00028067
-#else
-  0x0010029b,
-  0x01f29293,
-  0x00028067
-#endif
-};
+static uint32_t preset_flash[3];
+// static uint32_t preset_flash[] = {
+//   0x0010029b,
+//   0x01f29293,
+//   0x00028067
+// };
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   // if(!is_write){
@@ -26,6 +22,14 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_flash(const char *flash_img) {
+  __attribute__((unused)) int ret;
+  char* preset_flash_path = malloc(strlen(getenv("NEMU_HOME")) + strlen(CONFIG_FLASH_PRESET_PATH) + 1);
+  strcpy(preset_flash_path, getenv("NEMU_HOME"));
+  strcat(preset_flash_path, CONFIG_FLASH_PRESET_PATH);
+  fp = fopen(preset_flash_path, "rb");
+  ret = fread(preset_flash, sizeof(uint32_t), 3, fp);
+  fclose(fp);
+  free(preset_flash_path);
 #if CONFIG_HAS_FLASH == 1
   fp = fopen(flash_img, "r");
   if (fp == NULL) {
@@ -36,7 +40,6 @@ void init_flash(const char *flash_img) {
     add_mmio_map("flash", CONFIG_FLASH_START_ADDR, (uint8_t *)preset_flash, CONFIG_FLASH_SIZE, flash_io_handler);
     return;
   } else {
-    __attribute__((unused)) int ret;
     fseek(fp, 0, SEEK_END);
     int size = ftell(fp);
     fseek(fp, 0, SEEK_SET);

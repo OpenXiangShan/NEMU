@@ -11,6 +11,7 @@
 !scripts/runall.sh
 !Kconfig
 !.github/workflows/ci.yml
+!resource/flash/*.bin
 include/config
 include/generated
 build
