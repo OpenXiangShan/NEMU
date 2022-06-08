@@ -4,11 +4,12 @@
 uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
 // static const char *flash_img = CONFIG_FLASH_IMG_PATH;
-static uint32_t preset_flash[] = {
-  0x0010029b,
-  0x01f29293,
-  0x00028067
-};
+static uint32_t preset_flash[3];
+// static uint32_t preset_flash[] = {
+//   0x0010029b,
+//   0x01f29293,
+//   0x00028067
+// };
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   // if(!is_write){
@@ -20,6 +21,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_flash(const char *flash_img) {
+  sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", &preset_flash[0], &preset_flash[1], &preset_flash[2]);
 #if CONFIG_HAS_FLASH == 1
   fp = fopen(flash_img, "r");
   if (fp == NULL) {

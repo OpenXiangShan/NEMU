@@ -184,6 +184,10 @@ menuconfig HAS_FLASH
   default n
 
 if HAS_FLASH
+config FLASH_PRESET_CONTENT
+  string "The content of flash preset"
+  default "0x0010029b,0x01f29293,0x00028067"
+
 config FLASH_START_ADDR
   hex "Flash start addr"
   default 0x10000000
