@@ -70,6 +70,7 @@ static inline int parse_args(int argc, char *argv[]) {
     // restore cpt
     {"restore"            , no_argument      , NULL, 'c'},
     {"cpt-restorer"       , required_argument, NULL, 'r'},
+    {"sd-cpt"             , required_argument, NULL, 10},
 
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
@@ -109,6 +110,9 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 'r':
         restorer = optarg;
+        break;
+      case 10:
+        sd_cpt = optarg;
         break;
 
       case 'S':
@@ -172,6 +176,7 @@ static inline int parse_args(int argc, char *argv[]) {
 
         printf("\t-c,--restore            restoring from CPT FILE\n");
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
+        printf("\t--sd-cpt=sdcard.bin     binary of sdcard checkpoint data\n");
 
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");

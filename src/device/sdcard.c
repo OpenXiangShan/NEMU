@@ -1,10 +1,12 @@
 #include <device/map.h>
 #include "mmc.h"
+#include "checkpoint/cpt_env.h"
+#include "checkpoint/profiling.h"
 
 // http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf
 
 // see page 26 of the manual above
-#define MEMORY_SIZE (16ull * 1024 * 1024 * 1024)  // 16GB
+#define MEMORY_SIZE (64ull * 1024 * 1024 * 1024)  // 64GB
 #define READ_BL_LEN 15
 #define BLOCK_LEN (1 << READ_BL_LEN)
 #define NR_BLOCK (MEMORY_SIZE / BLOCK_LEN)
@@ -107,6 +109,27 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
   }
 }
 
+void serialize_sdcard(FILE *sdfp) {
+  __attribute__((unused)) int ret;
+  ret = fwrite(base,4,0x80/4,sdfp);
+  ret = fwrite(&addr,4,1,sdfp);
+  ret = fwrite(&write_cmd,1,1,sdfp);
+  ret = fwrite(&read_ext_csd,1,1,sdfp);
+  uint64_t pos = ftell(fp);
+  ret = fwrite(&pos,8,1,sdfp);
+}
+
+void unserialize_sdcard(FILE *sdfp) {
+  __attribute__((unused)) int ret;
+  ret = fread(base,4,0x80/4,sdfp);
+  ret = fread(&addr,4,1,sdfp);
+  ret = fread(&write_cmd,1,1,sdfp);
+  ret = fread(&read_ext_csd,1,1,sdfp);
+  uint64_t pos;
+  ret = fread(&pos,8,1,sdfp);
+  ret = fseek(fp,pos,SEEK_SET);
+}
+
 void init_sdcard() {
   base = (uint32_t *)new_space(0x80);
   add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, base, 0x80, sdcard_io_handler);
@@ -116,10 +139,20 @@ void init_sdcard() {
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
   const char *img = CONFIG_SDCARD_IMG_PATH;
-  fp = fopen(img, "r+");
+  fp = fopen(img, "r");
   if (fp == NULL) {
       Log("Can not find sdcard image: %s", img);
   } else {
       Log("Using sdcard image: %s", img);
+  }
+  if (sd_cpt){
+    FILE* sdfp = fopen(sd_cpt,"rb");
+    if (sdfp == NULL){
+      Log("Can not open sdcard cpt: %s", sd_cpt);
+    }
+    else {
+      unserialize_sdcard(sdfp);
+      fclose(sdfp);
+    }
   }
 }

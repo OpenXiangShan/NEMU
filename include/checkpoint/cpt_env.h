@@ -8,5 +8,6 @@ extern char *simpoints_dir;
 extern int cpt_id;
 extern char *cpt_file;
 extern char *restorer;
+extern char *sd_cpt;
 
 #endif

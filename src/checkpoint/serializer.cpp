@@ -42,6 +42,7 @@ extern "C" {
 uint8_t *get_pmem();
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 uint8_t* guest_to_host(paddr_t paddr);
+void serialize_sdcard(FILE *fp);
 #include <debug.h>
 }
 
@@ -97,6 +98,14 @@ void Serializer::serializePMem(uint64_t inst_count) {
   }
   Log("Checkpoint done!\n");
   regDumped = false;
+}
+
+void Serializer::serializeSDCard(){
+  string filepath;
+  filepath = pathManager.getOutputPath() + "sdcard.bin";
+  FILE* sdfp = fopen(filepath.c_str(),"wb");
+  serialize_sdcard(sdfp);
+  fclose(sdfp);
 }
 
 extern void csr_writeback();
@@ -181,6 +190,7 @@ void Serializer::serialize(uint64_t inst_count) {
 //  isa_reg_display();
   serializeRegs();
   serializePMem(inst_count);
+  serializeSDCard();
 
 //  isa_reg_display();
 }

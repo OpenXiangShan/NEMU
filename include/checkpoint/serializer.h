@@ -17,6 +17,8 @@ class Serializer
 
     void serializePMem(uint64_t inst_count);
 
+    void serializeSDCard();
+
     void serializeRegs();
 
     explicit Serializer();

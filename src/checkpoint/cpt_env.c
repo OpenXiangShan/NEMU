@@ -7,3 +7,4 @@ char *simpoints_dir = NULL;
 int cpt_id = -1;
 char *cpt_file = NULL;
 char *restorer = NULL;
+char *sd_cpt = NULL;
