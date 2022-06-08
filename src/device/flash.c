@@ -1,6 +1,5 @@
 #include <utils.h>
 #include <device/map.h>
-#include <stdlib.h>
 
 uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
@@ -22,14 +21,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_flash(const char *flash_img) {
-  __attribute__((unused)) int ret;
-  char* preset_flash_path = malloc(strlen(getenv("NEMU_HOME")) + strlen(CONFIG_FLASH_PRESET_PATH) + 1);
-  strcpy(preset_flash_path, getenv("NEMU_HOME"));
-  strcat(preset_flash_path, CONFIG_FLASH_PRESET_PATH);
-  fp = fopen(preset_flash_path, "rb");
-  ret = fread(preset_flash, sizeof(uint32_t), 3, fp);
-  fclose(fp);
-  free(preset_flash_path);
+  sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", &preset_flash[0], &preset_flash[1], &preset_flash[2]);
 #if CONFIG_HAS_FLASH == 1
   fp = fopen(flash_img, "r");
   if (fp == NULL) {
@@ -40,6 +32,7 @@ void init_flash(const char *flash_img) {
     add_mmio_map("flash", CONFIG_FLASH_START_ADDR, (uint8_t *)preset_flash, CONFIG_FLASH_SIZE, flash_io_handler);
     return;
   } else {
+    __attribute__((unused)) int ret;
     fseek(fp, 0, SEEK_END);
     int size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
