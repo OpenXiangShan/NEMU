@@ -115,6 +115,11 @@ void difftest_nohype_init(int tid) {
 }
 #endif
 
+void difftest_sdcard_init(const char* img_path,const char* sd_cpt_bin_path) {
+  extern void difftest_set_sdcard(const char* img_path,const char* sd_cpt_bin_path);
+  difftest_set_sdcard(img_path,sd_cpt_bin_path);
+}
+
 #ifdef CONFIG_MULTICORE_DIFF
 uint8_t *golden_pmem = NULL;
 

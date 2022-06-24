@@ -107,6 +107,27 @@ static void sdcard_io_handler(uint32_t offset, int len, bool is_write) {
   }
 }
 
+void unserialize_sdcard(FILE *sdfp) {
+  __attribute__((unused)) int ret;
+  ret = fread(base,4,0x80/4,sdfp);
+  ret = fread(&addr,4,1,sdfp);
+  ret = fread(&write_cmd,1,1,sdfp);
+  ret = fread(&read_ext_csd,1,1,sdfp);
+  uint64_t pos;
+  ret = fread(&pos,8,1,sdfp);
+  ret = fseek(fp,pos,SEEK_SET);
+}
+
+void difftest_set_sdcard(const char* img_path,const char* sd_cpt_bin_path) {
+  fp = fopen(img_path, "r");
+  if (fp == NULL) Log("Difftest can not find sdcard image: %s", img_path);
+  FILE* sdfp = fopen(sd_cpt_bin_path,"rb");
+  if (sdfp){
+    unserialize_sdcard(sdfp);
+    fclose(sdfp);
+  }
+}
+
 void init_sdcard() {
   base = (uint32_t *)new_space(0x80);
   add_mmio_map("sdhci", CONFIG_SDCARD_CTL_MMIO, base, 0x80, sdcard_io_handler);
@@ -116,6 +137,6 @@ void init_sdcard() {
   Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
 
   const char *img = CONFIG_SDCARD_IMG_PATH;
-  fp = fopen(img, "r+");
+  fp = fopen(img, "r");
   if (fp == NULL) Log("Can not find sdcard image: %s", img);
 }

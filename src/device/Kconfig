@@ -165,7 +165,6 @@ config DISK_IMG_PATH
 endif # HAS_DISK
 
 menuconfig HAS_SDCARD
-  depends on !SHARE
   bool "Enable sdcard"
   default y
 

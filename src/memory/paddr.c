@@ -103,7 +103,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   else {
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
-#ifdef CONFIG_HAS_FLASH
+#if defined(CONFIG_HAS_FLASH) || defined(CONFIG_HAS_SDCARD)
     return mmio_read(addr, len);
 #endif
     printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
@@ -133,6 +133,9 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   else {
     if(dynamic_config.ignore_illegal_mem_access)
       return;
+#if defined(CONFIG_HAS_SDCARD)
+    return mmio_write(addr, len, data);
+#endif
     printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
     longjmp_exception(EX_II);
     return;
