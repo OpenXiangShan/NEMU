@@ -48,9 +48,9 @@ jobs:
           make -j
           cd resource/gcpt_restore && make && cd $NEMU_HOME
           # take cpt, and put cpt in output_top/test/linux
-          ./scripts/take.sh
+          bash ./scripts/take.sh
           # restore cpt
-          ./scripts/restore.sh
+          bash ./scripts/restore.sh
           make clean-all
 
       - name: Build NEMU as difftest ref
