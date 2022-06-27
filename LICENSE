@@ -53,7 +53,7 @@
 
       3， 请将如下声明文本放入每个源文件的头部注释中。
 
-   Copyright (c) 2014-2019 Zihao Yu, Nanjing University
+   Copyright (c) 2014-2021 Zihao Yu, Nanjing University
    Copyright (c) 2020-2022 Institute of Computing Technology, Chinese Academy of Sciences
    NEMU is licensed under Mulan PSL v2.
    You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -119,7 +119,7 @@
       iii Attach the statement to the appropriate annotated syntax at the beginning of each source file.
 
 
-   Copyright (c) 2014-2019 Zihao Yu, Nanjing University
+   Copyright (c) 2014-2021 Zihao Yu, Nanjing University
    Copyright (c) 2020-2022 Institute of Computing Technology, Chinese Academy of Sciences
    NEMU is licensed under Mulan PSL v2.
    You can use this software according to the terms and conditions of the Mulan PSL v2.
