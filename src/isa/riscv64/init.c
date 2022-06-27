@@ -28,6 +28,7 @@ static const uint32_t img [] = {
 void init_csr();
 #ifndef CONFIG_SHARE
 void init_clint();
+void init_plic();
 #endif
 void init_device();
 
@@ -79,6 +80,7 @@ void init_isa() {
 #endif
 
   IFNDEF(CONFIG_SHARE, init_clint());
+  IFNDEF(CONFIG_SHARE, init_plic());
   IFDEF(CONFIG_SHARE, init_device());
 
 #ifndef CONFIG_SHARE

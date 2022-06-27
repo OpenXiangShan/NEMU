@@ -4,6 +4,14 @@ config CLINT_MMIO
   hex "MMIO address of CLINT"
   default 0xa2000000
 
+config PLIC_MMIO
+  hex "MMIO address of PLIC"
+  default 0xc000000
+
+config PLIC_NR_INTR
+  int "Number of external interrupt connected to PLIC"
+  default 1
+
 config MULTICORE_DIFF
   bool "(Beta) Enable multi-core difftest APIs for RISC-V"
   default false
