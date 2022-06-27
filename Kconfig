@@ -281,6 +281,10 @@ config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
 
+config REPORT_ILLEGAL_INSTR
+  bool "Let NEMU report illegal instruction"
+  default y
+
 config RT_CHECK
   bool "Enable runtime checking"
   default y

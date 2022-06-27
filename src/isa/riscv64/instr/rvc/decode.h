@@ -142,16 +142,7 @@ static inline def_DHelper(C_ADDI4SPN) {
   uint32_t instr = s->isa.instr.val;
   uint32_t imm9_6 = ror_imm(BITS(instr, 12, 7), 6, 4); // already at the right place
   uint32_t imm = imm9_6 | BITS(instr, 5, 5) << 3 | BITS(instr, 6, 6) << 2;
-  // Assert(imm != 0, "pc = " FMT_WORD, s->pc);
-  if(unlikely(imm == 0)){ 
-#ifndef SHARE
-    panic("Invalid inst 0x0000: pc = " FMT_WORD, s->pc);
-#else
-    if(!dynamic_config.ignore_illegal_mem_access){
-      panic("Invalid inst 0x0000: pc = " FMT_WORD, s->pc);
-    }
-#endif
-  }
+  Assert(imm != 0, "pc = " FMT_WORD, s->pc);
   decode_op_i(s, id_src2, imm, false);
   decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), false);
 }
@@ -371,6 +362,7 @@ def_THelper(rvc_Q2_misc) {
 }
 
 def_THelper(rvc_Q0) {
+  def_INSTR_TAB("000 00000000 ??? ??", inv);
   def_INSTR_IDTAB("000 ???????? ??? ??", C_ADDI4SPN, addi);
   def_INSTR_IDTAB("001 ??? ??? ?? ??? ??", C_FLD, c_fldst);
   def_INSTR_IDTAB("010 ??? ??? ?? ??? ??", C_LW , c_ldst);

@@ -18,8 +18,12 @@
 
 def_EHelper(inv) {
   save_globals(s);
+#ifdef CONFIG_REPORT_ILLEGAL_INSTR
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, NULL, 0);
   longjmp_exec(NEMU_EXEC_END);
+#else
+  longjmp_exception(EX_II);
+#endif
 }
 
 def_EHelper(rt_inv) {

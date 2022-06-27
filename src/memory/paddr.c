@@ -24,6 +24,8 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
+bool is_in_mmio(paddr_t addr);
+
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 
 #ifdef CONFIG_USE_MMAP
@@ -51,6 +53,18 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
   store_commit_queue_push(addr, data, len);
 #endif
   host_write(guest_to_host(addr), len, data);
+}
+
+static inline void raise_access_fault(int cause, vaddr_t vaddr) {
+  INTR_TVAL_REG(cause) = vaddr;
+  longjmp_exception(cause);
+}
+
+static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
+  int cause = EX_LAF;
+  if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) { cause = EX_IAF; }
+  else if (cpu.amo || type == MEM_TYPE_WRITE_READ)             { cause = EX_SAF; }
+  raise_access_fault(cause, vaddr);
 }
 
 void init_mem() {
@@ -94,23 +108,16 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
     Log("isa pmp check failed");
-    if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
-      INTR_TVAL_REG(EX_IAF) = vaddr;
-      longjmp_exception(EX_IAF);
-      return false;
-    } else if (cpu.amo || type == MEM_TYPE_WRITE_READ) {
-      INTR_TVAL_REG(EX_SAF) = vaddr;
-      longjmp_exception(EX_SAF);
-      return false;
-    } else {
-      INTR_TVAL_REG(EX_LAF) = vaddr;
-      longjmp_exception(EX_LAF);
-      return false;
-    }
+    raise_read_access_fault(type, vaddr);
+    return 0;
   }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
-  else return mmio_read(addr, len);
+  else {
+    if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
+    else raise_read_access_fault(type, vaddr);
+    return 0;
+  }
 #else
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
@@ -119,8 +126,8 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 #endif
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
-    printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
-    longjmp_exception(EX_II);
+    printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+    raise_read_access_fault(type, vaddr);
   }
   return 0;
 #endif
@@ -134,20 +141,22 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #endif
 
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
-    INTR_TVAL_REG(EX_SAF) = vaddr;
-    longjmp_exception(EX_SAF);
+    raise_access_fault(EX_SAF, vaddr);
     return ;
   }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data);
-  else mmio_write(addr, len, data);
+  else {
+    if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
+    else raise_access_fault(EX_SAF, vaddr);
+  }
 #else
   if (likely(in_pmem(addr))) return pmem_write(addr, len, data);
   else {
     if(dynamic_config.ignore_illegal_mem_access)
       return;
-    printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise illegal inst exception\n", addr);
-    longjmp_exception(EX_II);
+    printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+    raise_access_fault(EX_SAF, vaddr);
     return;
   }
 #endif
