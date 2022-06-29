@@ -220,7 +220,7 @@ config MEMPROF_LOG
   default n
 
 config CTRLPROF_LOG
-  bool "Enable Log for memory profiling"
+  bool "Enable Log for control profiling"
   default n
 
 endmenu
