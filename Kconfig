@@ -223,6 +223,10 @@ config CTRLPROF_LOG
   bool "Enable Log for control profiling"
   default n
 
+config SIMPOINT_LOG
+  bool "Enable Log for simpoint profiling"
+  default n
+
 endmenu
 
 if !MODE_USER

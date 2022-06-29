@@ -26,6 +26,7 @@ enum {
   dflag_exit,
   dflag_memprof,
   dflag_ctrlprof,
+  dflag_simpoint,
 };
 
 

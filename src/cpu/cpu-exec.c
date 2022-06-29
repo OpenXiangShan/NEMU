@@ -179,10 +179,11 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
-uint64_t per_bb_profile(Decode *s, bool control_taken) {
+uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   uint64_t abs_inst_count = get_abs_instr_count();
   if (profiling_state == SimpointProfiling && profiling_started) {
-    simpoint_profiling(s->pc, true, abs_inst_count);
+    simpoint_profiling(prev_s->pc, true, abs_inst_count);
+    simpoint_profiling(s->pc, false, abs_inst_count);
   }
 
   if (true) {
@@ -258,7 +259,7 @@ end_of_bb:
 
     // Here is per bb action
     if (is_ctrl) {
-      uint64_t abs_inst_count = per_bb_profile(s, br_taken);
+      uint64_t abs_inst_count = per_bb_profile(prev_s, s, br_taken);
       Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
       Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
     }
@@ -289,7 +290,7 @@ end_of_loop:
   Loge("end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
        prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);
   if (is_ctrl) {
-    per_bb_profile(s, br_taken); // TODO: this should be true for mret
+    per_bb_profile(prev_s, s, br_taken); // TODO: this should be true for mret
   }
 
   debug_difftest(this_s, s);
