@@ -58,10 +58,12 @@ typedef struct Decode {
   rtlreg_t tmp_reg[4];
   #endif // CONFIG_RVV_010
 
-  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t fsrc3_id);
-  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t mem_width);
-  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t is_store);
-  IFDEF(CONFIG_DATAFLOW_PROF, paddr_t paddr);
+  #ifdef CONFIG_DATAFLOW_PROF
+  uint8_t fsrc3_id;
+  uint8_t mem_width;
+  uint8_t is_store;
+  paddr_t paddr;
+  #endif
 
 } Decode;
 

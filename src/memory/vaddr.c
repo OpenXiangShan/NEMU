@@ -106,6 +106,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
+#ifdef CONFIG_DATAFLOW_PROF
     if (s != NULL) { // mem read
       struct Decode *_s = s;
       _s->is_store = false;
@@ -115,6 +116,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     } else { // ifetch
       recordFetch(addr, addr, addr);
     }
+#endif
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
@@ -139,10 +141,12 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
 #endif
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_mode == MMU_DIRECT) {
+#ifdef CONFIG_DATAFLOW_PROF
     s->is_store = true;
     s->paddr = addr;
     s->mem_width = len;
     recordMem(s->pc, addr, addr, s->is_store);
+#endif
     paddr_write(addr, len, data, cpu.mode, addr);
     return;
   }

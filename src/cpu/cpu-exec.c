@@ -186,9 +186,9 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
     simpoint_profiling(s->pc, false, abs_inst_count);
   }
 
-  if (true) {
-    control_profile(prev_s->pc, s->pc, control_taken);
-  }
+#ifdef CONFIG_DATAFLOW_PROF
+  control_profile(prev_s->pc, s->pc, control_taken);
+#endif
 
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
@@ -270,12 +270,15 @@ end_of_bb:
     // Here is per inst action
     // Because every instruction executed goes here, don't put Log here to improve performance
     def_finish();
+
+#ifdef CONFIG_DATAFLOW_PROF
     Logti("prev pc = 0x%lx, pc = 0x%lx, is_ctrl: %i, prev dst: %u, dst: %u", prev_s->pc, s->pc, is_ctrl,
       prev_s->dest.flat_reg_id, s->dest.flat_reg_id);
 
     // dataflow profiling
     dataflow_profile(prev_s->pc, prev_s->paddr, prev_s->is_store, prev_s->mem_width,
       prev_s->dest.flat_reg_id, prev_s->src1.flat_reg_id, prev_s->src2.flat_reg_id, prev_s->fsrc3_id, is_ctrl);
+#endif
 
     // clear for recording next inst
     is_ctrl = false;
