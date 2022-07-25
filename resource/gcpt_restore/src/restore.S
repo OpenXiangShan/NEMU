@@ -15,6 +15,10 @@ boot_decide_vector:
 
 1:
 restore_csr_vector:
+  # set fs
+  li t0, MSTATUS_FS
+  csrs  CSR_MSTATUS, t0
+
   li t0, CSR_CPT_ADDR
   CSRS(CSRS_RESTORE)
 
