@@ -31,7 +31,7 @@ void init_isa() {
   // control the value of XLEN for S-mode and U-mode, respectively.
   // For RV64 systems, if S-mode is not supported, then SXL is hardwired to zero.
   // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
-  mstatus->val = 0xaUL << 32;
+  mstatus->val = (0xaUL << 32) | 0x2000;
 
   pmpcfg0->val = 0;
   pmpcfg1->val = 0;
