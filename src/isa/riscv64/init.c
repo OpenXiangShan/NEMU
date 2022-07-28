@@ -50,9 +50,7 @@ void init_isa() {
   mstatus->val = 0xaUL << 32;
 
   pmpcfg0->val = 0;
-  pmpcfg1->val = 0;
   pmpcfg2->val = 0;
-  pmpcfg3->val = 0;
 
 #ifdef CONFIG_RV_SVINVAL
   srnctl->val = 3; // enable extension 'svinval' [1]
