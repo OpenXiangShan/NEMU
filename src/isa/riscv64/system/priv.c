@@ -270,7 +270,19 @@ static inline void csr_write(word_t *dest, word_t src) {
     mmu_tlb_flush(0);
 #endif
   } else if (is_write(satp)) {
-    *dest = MASKED_SATP(src);
+
+#define SATP_MODE_BARE  0
+#define SATP_MODE_SV39  8
+
+    word_t mode;
+
+    mode = (src >> SATP_PADDR_MAX_LEN) >> SATP_ASID_MAX_LEN;
+
+    if (mode == SATP_MODE_BARE || mode == SATP_MODE_SV39)
+    {
+        *dest = MASKED_SATP(src);
+    }
+
   } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
