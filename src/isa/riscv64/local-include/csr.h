@@ -302,7 +302,7 @@ CSR_STRUCT_START(sip)
 CSR_STRUCT_END(sip)
 
 #define SATP_ASID_LEN 16 // max is 16
-#define SATP_PADDR_LEN (PADDRBITS-12) // max is 44
+#define SATP_PADDR_LEN (CONFIG_PADDRBITS-12) // max is 44
 #define SATP_ASID_MAX_LEN 16
 #define SATP_PADDR_MAX_LEN 44
 

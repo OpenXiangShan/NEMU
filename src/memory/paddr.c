@@ -30,7 +30,9 @@ uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
 static inline word_t pmem_read(paddr_t addr, int len) {
-  return host_read(guest_to_host(addr), len);
+  word_t result = host_read(guest_to_host(addr), len);
+  Logm("Pmem read result 0x%016lx", result);
+  return result;
 }
 
 static inline void pmem_write(paddr_t addr, int len, word_t data) {
@@ -112,6 +114,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     fprintf(stderr, "[NEMU]  paddr read addr:" FMT_PADDR " len:%d type:%d mode:%d\n", addr, len, type, mode);
   }
 #endif
+  Logm("Paddr read addr:" FMT_PADDR " len:%d type:%d mode:%d", addr, len, type, mode);
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
@@ -151,9 +154,10 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_SHARE
   if(dynamic_config.debug_difftest) {
-    fprintf(stderr, "[NEMU]  paddr write addr:" FMT_PADDR " len:%d mode:%d\n", addr, len, mode);
+    fprintf(stderr, "[NEMU]  paddr write addr:" FMT_PADDR " len:%d mode:%d data:%lx\n", addr, len, mode, data);
   }
 #endif
+  Logm("Paddr write addr:" FMT_PADDR " len:%d mode:%d data:%lx", addr, len, mode, data);
 
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
     INTR_TVAL_REG(EX_SAF) = vaddr;

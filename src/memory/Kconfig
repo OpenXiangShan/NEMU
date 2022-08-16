@@ -9,6 +9,11 @@ config MSIZE
   hex "Memory size"
   default 0x8000000
 
+config PADDRBITS
+  int "The number of paddr bits"
+  default 36 if SHARE
+  default 40
+
 config BBL_OFFSET_WITH_CPT
   hex "The offset of bbl / baremetal app with using gcpt"
   default 0xa0000

@@ -214,7 +214,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     bool next_locked = idx < NUM_PMP && (pmpcfg_from_index(idx+1) & PMP_L);
     bool next_tor = idx < NUM_PMP && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
     if (idx < NUM_PMP && !locked && !(next_locked && next_tor)) {
-      *dest = src & (((word_t)1 << (PADDRBITS - PMP_SHIFT)) - 1);
+      *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
     }
 #ifdef CONFIG_SHARE
     if(dynamic_config.debug_difftest) {
@@ -282,7 +282,7 @@ word_t csrid_read(uint32_t csrid) {
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   if (!csr_is_legal(csrid)) {
-    Log("Illegal csr id %u", csrid);
+    Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
   }
