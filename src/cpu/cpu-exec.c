@@ -129,17 +129,19 @@ void longjmp_exception(int ex_cause) {
 #define rtl_j(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = s->tnext; \
+  printf("%lx 1 1 %lx\n", s->pc, target); \
   goto end_of_bb; \
 } while (0)
 #define rtl_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  printf("%lx 1 1 %lx\n", s->pc, *target); \
   s = jr_fetch(s, *(target)); \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
-  else s = s->ntnext; \
+  if (interpret_relop(relop, *src1, *src2)) {s = s->tnext; printf("%lx %d 0 %lx\n", s->pc, 1, target); } \
+  else {s = s->ntnext; printf("%lx %d 0 %lx\n", s->pc, 0, target); } \
   goto end_of_bb; \
 } while (0)
 

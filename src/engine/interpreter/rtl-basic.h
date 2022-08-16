@@ -194,7 +194,7 @@ static inline def_rtl(j, vaddr_t target) {
     }
   }
 #endif
-  printf("%lx 1 1 %lx\n", s->pc, target);
+  // printf("%lx 1 1 %lx\n", s->pc, target);
   cpu.pc = target;
 
   if (profiling_state == SimpointProfiling && profiling_started) {
@@ -219,7 +219,7 @@ static inline def_rtl(jr, rtlreg_t *target) {
     }
   }
 #endif
-  printf("%lx 1 1 %lx\n", s->pc, *target);
+  printf("%lx,1,1,%lx\n", s->pc, *target);
   cpu.pc = *target;
 
   if (profiling_state == SimpointProfiling && profiling_started) {
@@ -235,7 +235,7 @@ end_of_rtl_jr:
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
-  printf("%lx %d 0 %lx\n", s->pc, is_jmp, target);
+  printf("%lx,%d,0,%lx\n", s->pc, is_jmp, target);
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
 
