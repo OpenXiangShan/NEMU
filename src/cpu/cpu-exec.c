@@ -182,6 +182,7 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   uint64_t abs_inst_count = get_abs_instr_count();
   if (profiling_state == SimpointProfiling && profiling_started) {
+    extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count);
     simpoint_profiling(prev_s->pc, true, abs_inst_count);
     simpoint_profiling(s->pc, false, abs_inst_count);
   }

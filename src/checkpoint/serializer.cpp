@@ -107,7 +107,7 @@ void Serializer::serializeRegs() {
   for (unsigned i = 0; i < 32; i++) {
     *(intRegCpt + i) = cpu.gpr[i]._64;
   }
-  Log("Writing int registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+  Log("Writing int registers to checkpoint memory @[0x%lx, 0x%lx) [0x%x, 0x%x)",
       INT_REG_CPT_ADDR, INT_REG_CPT_ADDR + 32 * 8,
       IntRegStartAddr, IntRegStartAddr + 32 * 8
       );
@@ -117,7 +117,7 @@ void Serializer::serializeRegs() {
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
   }
-  Log("Writing float registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+  Log("Writing float registers to checkpoint memory @[0x%lx, 0x%lx) [0x%x, 0x%x)",
       FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
       FloatRegStartAddr, FloatRegStartAddr + 32 * 8
       );
@@ -125,7 +125,7 @@ void Serializer::serializeRegs() {
 
   auto *pc = (uint64_t *) (get_pmem() + PCAddr);
   *pc = cpu.pc;
-  Log("Writing PC: 0x%lx at addr 0x%x", cpu.pc, PC_CPT_ADDR);
+  Log("Writing PC: 0x%lx at addr 0x%lx", cpu.pc, PC_CPT_ADDR);
 
 
 //  csr_writeback();
@@ -151,7 +151,7 @@ void Serializer::serializeRegs() {
       Log("CSR 0x%x: 0x%lx", i, *(csrCpt + i));
     }
   }
-  Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+  Log("Writing CSR to checkpoint memory @[0x%lx, 0x%lx) [0x%x, 0x%x)",
       CSR_CPT_ADDR, CSR_CPT_ADDR + 4096 * 8,
       CSRStartAddr, CSRStartAddr + 4096 * 8
       );
@@ -159,20 +159,20 @@ void Serializer::serializeRegs() {
 
   auto *flag = (uint64_t *) (get_pmem() + CptFlagAddr);
   *flag = CPT_MAGIC_BUMBER;
-  Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAGS);
+  Log("Touching Flag: 0x%x at addr 0x%lx", CPT_MAGIC_BUMBER, BOOT_FLAGS);
 
   auto *mode_flag = (uint64_t *) (get_pmem() + CptFlagAddr + 8);
   *mode_flag = cpu.mode;
-  Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS+8);
+  Log("Record mode flag: 0x%lx at addr 0x%lx", cpu.mode, BOOT_FLAGS+8);
 
   auto *mtime = (uint64_t *) (get_pmem() + CptFlagAddr + 16);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
   *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS+16);
+  Log("Record time: 0x%lx at addr 0x%lx", cpu.mode, BOOT_FLAGS+16);
 
   auto *mtime_cmp = (uint64_t *) (get_pmem() + CptFlagAddr + 24);
   *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS+24);
+  Log("Record time: 0x%lx at addr 0x%lx", cpu.mode, BOOT_FLAGS+24);
 
   regDumped = true;
 }

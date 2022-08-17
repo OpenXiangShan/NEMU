@@ -11,7 +11,8 @@ boot_decide_vector:
   ld t1, (s0) #load boot flag
   li t2, CPT_MAGIC_BUMBER
   beq t1, t2,1f
-  j RESET_VECTOR
+  li t1, RESET_VECTOR
+  jr t1
 
 1:
 restore_csr_vector:
