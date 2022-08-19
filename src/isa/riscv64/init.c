@@ -67,6 +67,18 @@ void init_isa() {
   vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
 #endif // CONFIG_RVV_010
 
+#ifdef CONFIG_RV_ARCH_CSRS
+  #ifdef CONFIG_USE_XS_ARCH_CSRS
+    mvendorid->val = 0;
+    marchid->val = 25;
+    mimpid->val = 0;
+  #else
+    mvendorid->val = CONFIG_MVENDORID_VALUE;
+    marchid->val = CONFIG_MARCHID_VALUE;
+    mimpid->val = CONFIG_MIMPID_VALUE;
+  #endif // CONFIG_USE_XS_ARCH_CSRS
+#endif // CONFIG_RV_ARCH_CSRS
+
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
   if (cpt_file == NULL) {

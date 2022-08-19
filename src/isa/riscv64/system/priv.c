@@ -30,10 +30,14 @@ rtlreg_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
+
 MAP(CSRS, CSRS_DEF)
 #ifdef CONFIG_RVV_010
-MAP(VCSRS, CSRS_DEF)
+  MAP(VCSRS, CSRS_DEF)
 #endif // CONFIG_RVV_010
+#ifdef CONFIG_RV_ARCH_CSRS
+  MAP(ARCH_CSRS, CSRS_DEF)
+#endif // CONFIG_RV_ARCH_CSRS
 
 #define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
 static bool csr_exist[4096] = {};
@@ -42,6 +46,9 @@ void init_csr() {
   #ifdef CONFIG_RVV_010
   MAP(VCSRS, CSRS_EXIST)
   #endif // CONFIG_RVV_010
+  #ifdef CONFIG_RV_ARCH_CSRS
+  MAP(ARCH_CSRS, CSRS_EXIST)
+  #endif // CONFIG_RV_ARCH_CSRS
 };
 
 rtlreg_t csr_perf;
