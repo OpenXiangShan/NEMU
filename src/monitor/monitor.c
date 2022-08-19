@@ -37,7 +37,7 @@ static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
-
+FILE *fp;
 int is_batch_mode() { return batch_mode; }
 
 static inline void welcome() {
@@ -92,7 +92,16 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 1: img_file = optarg; return optind - 1;
+      case 1: 
+              img_file = optarg; 
+              printf("base %s config %s workload %s", output_base_dir, config_name, workload_name);
+              char branch_trace_path[256];
+              sprintf(branch_trace_path, "mkdir -p %s/%s/%s/", output_base_dir, config_name, workload_name);
+              system(branch_trace_path);
+              sprintf(branch_trace_path, "%s/%s/%s/branch-trace.csv", output_base_dir, config_name, workload_name);
+              printf("trace path = %s\n", branch_trace_path);
+              fp = fopen(branch_trace_path,"w+");
+              return optind - 1;
 
       case 'D': output_base_dir = optarg; break;
       case 'w': workload_name = optarg; break;
@@ -167,6 +176,14 @@ static inline int parse_args(int argc, char *argv[]) {
         exit(0);
     }
   }
+  printf("base %s config %s workload %s", output_base_dir, config_name, workload_name);
+  char branch_trace_path[256];
+  sprintf(branch_trace_path, "mkdir -p %s/%s/%s/", output_base_dir, config_name, workload_name);
+  system(branch_trace_path);
+  sprintf(branch_trace_path, "%s/%s/%s/branch-trace.csv", output_base_dir, config_name, workload_name);
+  printf("trace path = %s\n", branch_trace_path);
+  
+  fp = fopen(branch_trace_path,"w+");
   return 0;
 }
 

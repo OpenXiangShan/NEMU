@@ -14,9 +14,11 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+extern FILE *fp;
+
 def_EHelper(jal) {
   rtl_li(s, ddest, id_src2->imm);
-  printf("%lx,1,1,%lx\n", s->pc, id_src1->imm);
+  fprintf(fp, "%lx,1,1,%lx\n", s->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 

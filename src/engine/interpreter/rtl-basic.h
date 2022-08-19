@@ -181,6 +181,7 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count);
 extern uint64_t get_abs_instr_count();
+extern FILE *fp;
 
 static inline def_rtl(j, vaddr_t target) {
 #ifdef CONFIG_GUIDED_EXEC
@@ -219,7 +220,7 @@ static inline def_rtl(jr, rtlreg_t *target) {
     }
   }
 #endif
-  printf("%lx,1,1,%lx\n", s->pc, *target);
+  fprintf(fp, "%lx,1,1,%lx\n", s->pc, *target);
   cpu.pc = *target;
 
   if (profiling_state == SimpointProfiling && profiling_started) {
@@ -235,7 +236,7 @@ end_of_rtl_jr:
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
-  printf("%lx,%d,0,%lx\n", s->pc, is_jmp, target);
+  fprintf(fp, "%lx,%d,0,%lx\n", s->pc, is_jmp, target);
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
 

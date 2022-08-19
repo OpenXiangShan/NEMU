@@ -30,9 +30,9 @@
 // (5) redundant from the aspect of EHelper
 //       C.ADDI16SP (the same as C.ADDI)
 //       C.NOP      (the same as C.ADDI)
-
+extern FILE *fp;
 def_EHelper(c_j) {
-  printf("%lx,1,1,%lx\n", s->pc, id_src1->imm);
+  fprintf(fp, "%lx,1,1,%lx\n", s->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 

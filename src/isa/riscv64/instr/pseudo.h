@@ -58,9 +58,11 @@ def_EHelper(p_bgez) {
   rtl_jrelop(s, RELOP_GE, dsrc1, rz, id_dest->imm);
 }
 
+extern FILE *fp;
+
 def_EHelper(p_jal) {
   rtl_li(s, &cpu.gpr[1]._64, id_src2->imm);
-  printf("%lx,1,1,%lx\n", s->pc, id_src1->imm);
+  fprintf(fp, "%lx,1,1,%lx\n", s->pc, id_src1->imm);
   rtl_j(s, id_src1->imm);
 }
 
