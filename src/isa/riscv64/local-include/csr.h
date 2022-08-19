@@ -77,6 +77,11 @@
   f(vtype, 0xc21)
 #endif
 
+#ifdef CONFIG_RV_ARCH_CSRS
+  #define ARCH_CSRS(f) \
+  f(mvendorid  , 0xf11) f(marchid    , 0xf12) f(mimpid     , 0xf13)
+#endif
+
 #define CSR_STRUCT_START(name) \
   typedef union { \
     struct {
@@ -417,11 +422,25 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #endif // CONFIG_RVV_010
 
+#ifdef CONFIG_RV_ARCH_CSRS
+CSR_STRUCT_START(mvendorid)
+CSR_STRUCT_END(mvendorid)
+
+CSR_STRUCT_START(marchid)
+CSR_STRUCT_END(marchid)
+
+CSR_STRUCT_START(marchid)
+CSR_STRUCT_END(mimpid)
+#endif // CONFIG_RV_ARCH_CSRS
+
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
 #ifdef CONFIG_RVV_010
   MAP(VCSRS, CSRS_DECL)
 #endif // CONFIG_RVV_010
+#ifdef CONFIG_RV_ARCH_CSRS
+  MAP(ARCH_CSRS, CSRS_DECL)
+#endif // CONFIG_RV_ARCH_CSRS
 
 word_t csrid_read(uint32_t csrid);
 
