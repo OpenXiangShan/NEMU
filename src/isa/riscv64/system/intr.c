@@ -36,8 +36,8 @@ bool intr_deleg_S(word_t exceptionNO) {
 static word_t get_trap_pc(word_t xtvec, word_t xcause) {
   word_t base = (xtvec >> 2) << 2;
   word_t mode = (xtvec & 0x1); // bit 1 is reserved, dont care here.
-  bool is_intr = (xcause >> (sizeof(word_t)-1)) == 1;
-  bool casue_no = xcause & 0xf;
+  bool is_intr = (xcause >> (sizeof(word_t)*8 - 1)) == 1;
+  word_t casue_no = xcause & 0xf;
   return (is_intr && mode==1) ? (base + (casue_no << 2)) : base;
 }
 
