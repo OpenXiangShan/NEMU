@@ -99,11 +99,7 @@ void init_mem() {
 /* Memory accessing interfaces */
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
-#ifdef CONFIG_SHARE
-  if(dynamic_config.debug_difftest) {
-    fprintf(stderr, "[NEMU]  paddr read addr:" FMT_PADDR " len:%d type:%d mode:%d\n", addr, len, type, mode);
-  }
-#endif
+
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
@@ -119,7 +115,14 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     return 0;
   }
 #else
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  if (likely(in_pmem(addr))) {
+    uint64_t rdata = pmem_read(addr, len);
+    if (dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d\n",
+        addr, rdata, len, type, mode);
+    }
+    return rdata;
+  }
   else {
 #ifdef CONFIG_HAS_FLASH
     return mmio_read(addr, len);
@@ -134,12 +137,6 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
-#ifdef CONFIG_SHARE
-  if(dynamic_config.debug_difftest) {
-    fprintf(stderr, "[NEMU]  paddr write addr:" FMT_PADDR " len:%d mode:%d\n", addr, len, mode);
-  }
-#endif
-
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
     raise_access_fault(EX_SAF, vaddr);
     return ;
@@ -151,7 +148,13 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     else raise_access_fault(EX_SAF, vaddr);
   }
 #else
-  if (likely(in_pmem(addr))) return pmem_write(addr, len, data);
+  if (likely(in_pmem(addr))) {
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
+        addr, data, len, mode);
+    }
+    return pmem_write(addr, len, data);
+  }
   else {
     if(dynamic_config.ignore_illegal_mem_access)
       return;
