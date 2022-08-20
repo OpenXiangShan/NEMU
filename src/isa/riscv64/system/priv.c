@@ -339,11 +339,17 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       return mepc->val;
       break;
     case 0x120: // sfence.vma
+      // Described in 3.1.6.5 Virtualization Support in mstatus Register
+      // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
+      // while executing in S-mode will raise an illegal instruction exception.
+      if (cpu.mode == MODE_S && mstatus->tvm == 1)
+        longjmp_exception(EX_II);
       mmu_tlb_flush(*src);
       break;
 #ifdef CONFIG_RV_SVINVAL
     case 0x160: // sinval.vma
-      if (!srnctl->svinval) { // srnctl contrl extension enable or not
+      if ((cpu.mode == MODE_S && mstatus->tvm == 1) ||
+          !srnctl->svinval) { // srnctl contrl extension enable or not
         longjmp_exception(EX_II);
       }
       mmu_tlb_flush(*src);
