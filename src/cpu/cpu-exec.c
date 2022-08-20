@@ -109,11 +109,13 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   if (vaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
+_Noreturn
 void longjmp_exec(int cause) {
   Loge("Longjmp to jbuf_exec with cause: %i", cause);
   longjmp(jbuf_exec, cause);
 }
 
+_Noreturn
 void longjmp_exception(int ex_cause) {
 #ifdef CONFIG_GUIDED_EXEC
   cpu.guided_exec = false;
