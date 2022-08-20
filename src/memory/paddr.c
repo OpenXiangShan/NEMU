@@ -125,7 +125,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   }
   else {
 #ifdef CONFIG_HAS_FLASH
-    return mmio_read(addr, len);
+    if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
 #endif
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
