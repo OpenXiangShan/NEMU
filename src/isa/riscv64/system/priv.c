@@ -177,6 +177,8 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
 #endif
   if (is_read(mip)) { difftest_skip_ref(); }
+
+  if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
   return *src;
 }
 
@@ -277,6 +279,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     mmu_tlb_flush(0);
 #endif
   } else if (is_write(satp)) {
+    if (cpu.mode == MODE_S && mstatus->tvm == 1) {
+      longjmp_exception(EX_II);
+    }
     *dest = MASKED_SATP(src);
   } else { *dest = src; }
 
