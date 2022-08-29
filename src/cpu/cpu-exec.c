@@ -326,7 +326,7 @@ void cpu_exec(uint64_t n) {
   int cause = NEMU_EXEC_RUNNING;
 #ifndef CONFIG_TARGET_AM
   if ((cause = setjmp(jbuf_exec))) {
-    IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += prev_s->idx_in_bb - 1);
+    IFDEF(CONFIG_ICOUNT_BASIC_BLOCK, g_nr_guest_instr += prev_s->extraInfo->idx_in_bb - 1);
     update_global();
   }
 #endif

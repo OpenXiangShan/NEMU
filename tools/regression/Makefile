@@ -73,7 +73,7 @@ run-riscv64-user: reset-config
 	$(MAKE) -C $(NEMU_HOME) run ARGS=-b IMG=$(abspath ./tests/hello/build/hello-riscv64.elf)
 	#$(RUN_RISCV64_USER) /home/yzh/software/TestFloat-3e/build/Linux-rv64-GCC/testfloat -all2 -level 2 -checkAll
 	#LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64 run-all-test
-	LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64/470.lbm run-test
+	LOADER="$(RUN_RISCV64_USER)" $(MAKE) -C ~/projectn/spec2006-lite-riscv64/401.bzip2 run-test
 
 TEST = $(MICROBENCH)
 

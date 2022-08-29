@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <utils.h>
 
-#define QUIET 1
+//#define QUIET 1
 
 #ifdef QUIET
 #define Log(format, ...)
