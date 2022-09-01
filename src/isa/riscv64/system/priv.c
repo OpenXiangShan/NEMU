@@ -373,7 +373,11 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       }
       break;
 #endif
-    case 0x105: break; // wfi
+    case 0x105: // wfi
+      if (cpu.mode < MODE_M && mstatus->tw == 1){
+        longjmp_exception(EX_II);
+      }
+    break;
 #endif
     case -1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
