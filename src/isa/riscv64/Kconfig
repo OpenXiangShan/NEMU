@@ -34,6 +34,10 @@ config RV_SVINVAL
   bool "Enable VM Extension Svinval"
   default y
 
+config MISA_UNCHANGEABLE
+  bool "Make misa cannot be changed by CSR write instructions like XS"
+  default y
+
 config RV_ARCH_CSRS
   bool "Enable mvendorid, marchid, mimpid CSR"
   default y
