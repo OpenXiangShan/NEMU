@@ -205,6 +205,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(stvec)) { *dest = src & ~(0x2UL); }
   else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
+#ifdef CONFIG_MISA_UNCHANGEABLE
+  else if (is_write(misa)) { /* do nothing */ }
+#endif
   else if (is_write(fflags)) {
     *dest = src & FFLAGS_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
