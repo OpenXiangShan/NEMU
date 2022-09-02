@@ -20,7 +20,11 @@ def_EHelper(jal) {
 }
 
 def_EHelper(jalr) {
+  // Described at 2.5 Control Transter Instructions
+  // The target address is obtained by adding the sign-extended 12-bit I-immediate to the register rs1
   rtl_addi(s, s0, dsrc1, id_src2->imm);
+  // then setting the least-significant bit of the result to zero.
+  rtl_andi(s, s0, s0, ~1);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
@@ -31,7 +35,7 @@ def_EHelper(jalr) {
 #else
   rtl_li(s, ddest, s->snpc);
 #endif
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
   rtl_jr(s, s0);
 }
 
