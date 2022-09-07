@@ -27,6 +27,9 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     if (id == 0) { // ecall
       rtl_trap(s, s->pc, 8 + cpu.mode);
       rtl_mv(s, jpc, t0);
+    } else if (id == 1) {
+      rtl_trap(s, s->pc, 3);
+      rtl_mv(s, jpc, t0);
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
     }
