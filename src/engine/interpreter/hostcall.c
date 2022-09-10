@@ -15,9 +15,11 @@
 ***************************************************************************************/
 
 #include <utils.h>
+#include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <rtl/rtl.h>
 #include <cpu/difftest.h>
+#include "../local-include/intr.h"
 
 uint32_t pio_read(ioaddr_t addr, int len);
 void pio_write(ioaddr_t addr, int len, uint32_t data);
@@ -29,6 +31,9 @@ void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
 }
 
 static inline void invalid_instr(vaddr_t thispc) {
+#ifdef CONFIG_SHARE
+  longjmp_exception(EX_II);
+#else
   uint32_t temp[2];
   vaddr_t pc = thispc;
   temp[0] = instr_fetch(&pc, 4);
@@ -49,6 +54,7 @@ static inline void invalid_instr(vaddr_t thispc) {
       "* Every line of untested code is always wrong!\33[0m\n\n", isa_logo);
 
   set_nemu_state(NEMU_ABORT, thispc, -1);
+#endif // CONFIG_SHARE
 }
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd);
