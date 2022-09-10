@@ -170,9 +170,27 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
   else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
-  else if (is_read(fcsr))   { return fcsr->val & FCSR_MASK; }
-  else if (is_read(fflags)) { return fcsr->fflags.val & FFLAGS_MASK; }
-  else if (is_read(frm))    { return fcsr->frm & FRM_MASK; }
+  else if (is_read(fcsr))   {
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#else
+    return fcsr->val & FCSR_MASK;
+#endif // CONFIG_FPU_NONE
+  }
+  else if (is_read(fflags)) {
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#else
+    return fcsr->fflags.val & FFLAGS_MASK;
+#endif // CONFIG_FPU_NONE
+  }
+  else if (is_read(frm))    {
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#else
+    return fcsr->frm & FRM_MASK;
+#endif // CONFIG_FPU_NONE
+  }
 #ifndef CONFIG_SHARE
   else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
 #endif
@@ -204,20 +222,32 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
   else if (is_write(fflags)) {
+#ifdef CONFIG_FPU_NONE
+  longjmp_exception(EX_II);
+#else
     *dest = src & FFLAGS_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
     // fcsr->fflags.val = src;
+#endif // CONFIG_FPU_NONE
   }
   else if (is_write(frm)) {
+#ifdef CONFIG_FPU_NONE
+  longjmp_exception(EX_II);
+#else
     *dest = src & FRM_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
     // fcsr->frm = src;
+#endif // CONFIG_FPU_NONE
   }
   else if (is_write(fcsr)) {
+#ifdef CONFIG_FPU_NONE
+  longjmp_exception(EX_II);
+#else
     *dest = src & FCSR_MASK;
     fflags->val = src & FFLAGS_MASK;
     frm->val = ((src)>>5) & FRM_MASK;
     // *dest = src & FCSR_MASK;
+#endif // CONFIG_FPU_NONE
   }
   else if (is_write_pmpaddr) {
     Logtr("Writing pmp addr");
@@ -282,9 +312,14 @@ static inline void csr_write(word_t *dest, word_t src) {
 
   bool need_update_mstatus_sd = false;
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
+#ifdef CONFIG_FPU_NONE
+  longjmp_exception(EX_II);
+#else
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
     need_update_mstatus_sd = true;
+#endif // CONFIG_FPU_NONE
+
   }
 
   if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {

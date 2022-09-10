@@ -57,6 +57,7 @@ uint32_t isa_fp_get_rm(Decode *s) {
 }
 
 void isa_fp_set_ex(uint32_t ex) {
+#ifndef CONFIG_FPU_NONE
   uint32_t f = 0;
   if (ex & FPCALL_EX_NX) f |= 0x01;
   if (ex & FPCALL_EX_UF) f |= 0x02;
@@ -65,11 +66,14 @@ void isa_fp_set_ex(uint32_t ex) {
   if (ex & FPCALL_EX_NV) f |= 0x10;
   fcsr->fflags.val = fcsr->fflags.val | f;
   fp_set_dirty();
+#endif // CONFIG_FPU_NONE
 }
 
 void isa_fp_csr_check() {
+#ifndef CONFIG_FPU_NONE
   if(unlikely(mstatus->fs == 0)){
     longjmp_exception(EX_II);
     assert(0);
   }
+#endif // CONFIG_FPU_NONE
 }
