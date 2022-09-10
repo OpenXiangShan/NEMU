@@ -46,7 +46,7 @@ static inline void decode_op_rd_rs1_imm6(Decode *s, bool sign, int shift, int ro
 }
 
 #if 0
-// ---------- CR ---------- 
+// ---------- CR ----------
 
 static inline def_DHelper(CR) {
   decode_op_C_rd_rs1(s, false);
@@ -55,7 +55,7 @@ static inline def_DHelper(CR) {
 }
 #endif
 
-// ---------- CI ---------- 
+// ---------- CI ----------
 
 static inline def_DHelper(CI_simm) {
   decode_op_rd_rs1_imm6(s, true, 0, 0, false);
@@ -113,7 +113,7 @@ static inline def_DHelper(C_FLDSP) {
   decode_C_LxSP(s, 3, true);
 }
 
-// ---------- CSS ---------- 
+// ---------- CSS ----------
 
 static inline void decode_C_SxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = BITS(s->isa.instr.val, 12, 7);
@@ -135,7 +135,7 @@ static inline def_DHelper(C_FSDSP) {
   decode_C_SxSP(s, 3, true);
 }
 
-// ---------- CIW ---------- 
+// ---------- CIW ----------
 
 static inline def_DHelper(C_ADDI4SPN) {
   decode_op_r(s, id_src1, 2, true);
@@ -147,7 +147,7 @@ static inline def_DHelper(C_ADDI4SPN) {
   decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), false);
 }
 
-// ---------- CL ---------- 
+// ---------- CL ----------
 
 // load/store
 static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bool is_fp) {
@@ -172,7 +172,7 @@ static inline def_DHelper(C_FLD) {
   decode_C_ldst_common(s, 2, false, true);
 }
 
-// ---------- CS ---------- 
+// ---------- CS ----------
 
 static inline def_DHelper(C_SW) {
   decode_C_ldst_common(s, 1, true, false);
@@ -192,7 +192,7 @@ static inline def_DHelper(CS) {
   decode_op_r(s, id_src2, rs2, true);
 }
 
-// ---------- CB ---------- 
+// ---------- CB ----------
 
 static inline def_DHelper(CB) {
   uint32_t instr = s->isa.instr.val;
@@ -215,7 +215,7 @@ static inline def_DHelper(CB_andi) {
   decode_op_rd_rs1_imm6(s, true, 0, 0, true);
 }
 
-// ---------- CJ ---------- 
+// ---------- CJ ----------
 
 static inline def_DHelper(CJ) {
   uint32_t instr = s->isa.instr.val;
@@ -288,6 +288,7 @@ def_THelper(c_ldst) {
 }
 
 def_THelper(c_fldst) {
+#ifndef CONFIG_FPU_NONE
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("001 ??? ??? ?? ??? ??", fld);
@@ -296,6 +297,7 @@ def_THelper(c_fldst) {
     def_INSTR_TAB("001 ??? ??? ?? ??? ??", fld_mmu);
     def_INSTR_TAB("101 ??? ??? ?? ??? ??", fsd_mmu);
   } else assert(0);
+#endif // CONFIG_FPU_NONE
   return EXEC_ID_inv;
 }
 
@@ -364,10 +366,14 @@ def_THelper(rvc_Q2_misc) {
 def_THelper(rvc_Q0) {
   def_INSTR_TAB("000 00000000 ??? ??", inv);
   def_INSTR_IDTAB("000 ???????? ??? ??", C_ADDI4SPN, addi);
+#ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("001 ??? ??? ?? ??? ??", C_FLD, c_fldst);
+#endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("010 ??? ??? ?? ??? ??", C_LW , c_ldst);
   def_INSTR_IDTAB("011 ??? ??? ?? ??? ??", C_LD , c_ldst);
+#ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("101 ??? ??? ?? ??? ??", C_FSD, c_fldst);
+#endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("110 ??? ??? ?? ??? ??", C_SW , c_ldst);
   def_INSTR_IDTAB("111 ??? ??? ?? ??? ??", C_SD , c_ldst);
   return EXEC_ID_inv;
@@ -387,11 +393,15 @@ def_THelper(rvc_Q1) {
 
 def_THelper(rvc_Q2) {
   def_INSTR_IDTAB("000 ? ????? ????? ??", CI_uimm, c_slli);
+#ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("001 ? ????? ????? ??", C_FLDSP, c_fldst);
+#endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("010 ? ????? ????? ??", C_LWSP , c_ldst);
   def_INSTR_IDTAB("011 ? ????? ????? ??", C_LDSP , c_ldst);
   def_INSTR_TAB  ("100 ? ????? ????? ??",          rvc_Q2_misc);
+#ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("101 ? ????? ????? ??", C_FSDSP, c_fldst);
+#endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("110 ? ????? ????? ??", C_SWSP , c_ldst);
   def_INSTR_IDTAB("111 ? ????? ????? ??", C_SDSP , c_ldst);
   return EXEC_ID_inv;

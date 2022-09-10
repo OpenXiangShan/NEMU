@@ -58,7 +58,9 @@ void init_isa() {
 
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
+#ifndef CONFIG_FPU_NONE
   misa->extensions |= ext('d') | ext('f');
+#endif // CONFIG_FPU_NONE
   misa->mxl = 2; // XLEN = 64
 
 #ifdef CONFIG_RVV_010
