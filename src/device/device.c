@@ -21,6 +21,8 @@
 
 void init_serial();
 void init_uartlite();
+void init_uart_snps();
+void init_plic();
 void init_timer();
 void init_alarm();
 void init_vga();
@@ -75,6 +77,8 @@ void sdl_clear_event_queue() {
 void init_device() {
   IFDEF(CONFIG_HAS_SERIAL, init_serial());
   IFDEF(CONFIG_HAS_UARTLITE, init_uartlite());
+  IFDEF(CONFIG_HAS_UART_SNPS, init_uart_snps());
+  IFDEF(CONFIG_HAS_PLIC, init_plic());
   IFDEF(CONFIG_HAS_TIMER, init_timer());
   IFDEF(CONFIG_HAS_VGA, init_vga());
   IFDEF(CONFIG_HAS_KEYBOARD, init_i8042());

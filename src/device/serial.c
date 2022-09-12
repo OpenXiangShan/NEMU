@@ -28,6 +28,8 @@
 
 static uint8_t *serial_base = NULL;
 
+#include <stdio.h>
+
 #ifdef CONFIG_SERIAL_INPUT_FIFO
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -134,9 +136,12 @@ void init_serial() {
 #ifdef CONFIG_SERIAL_UARTLITE
   void init_uartlite();
   init_uartlite();
+  void init_uart_snps();
+  init_uart_snps();
   // to avoid unused-function warning
   (void)serial_io_handler;
 #else
+  printf("init_serial\n");
   serial_base = new_space(8);
   add_pio_map ("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
   add_mmio_map("serial", CONFIG_SERIAL_MMIO, serial_base, 8, serial_io_handler);
