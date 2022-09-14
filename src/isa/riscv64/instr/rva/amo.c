@@ -61,10 +61,22 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     case 0b01000: rtl_or (s, s1, s0, src2); break;
     case 0b01100: rtl_and(s, s1, s0, src2); break;
     case 0b00100: rtl_xor(s, s1, s0, src2); break;
-    case 0b11100: *s1 = (*s0 > *src2 ? *s0 : *src2); break;
-    case 0b10100: *s1 = ((sword_t)*s0 > (sword_t)*src2 ? *s0 : *src2); break;
-    case 0b11000: *s1 = (*s0 < *src2 ? *s0 : *src2); break;
-    case 0b10000: *s1 = ((sword_t)*s0 < (sword_t)*src2 ? *s0 : *src2); break;
+    case 0b10000: // amomin
+      if (width == 8) *s1 = ((int64_t)*s0 < (int64_t)*src2 ? *s0 : *src2);
+      else *s1 = ((int32_t)*s0 < (int32_t)*src2 ? *s0 : *src2);
+      break;
+    case 0b10100: // amomax
+      if (width == 8) *s1 = ((int64_t)*s0 > (int64_t)*src2 ? *s0 : *src2);
+      else *s1 = ((int32_t)*s0 > (int32_t)*src2 ? *s0 : *src2);
+      break;
+    case 0b11000: // amominu
+      if (width == 8) *s1 = ((uint64_t)*s0 < (uint64_t)*src2 ? *s0 : *src2); 
+      else *s1 = ((uint32_t)*s0 < (uint32_t)*src2 ? *s0 : *src2);
+      break;
+    case 0b11100: // amomaxu
+      if (width == 8) *s1 = ((uint64_t)*s0 > (uint64_t)*src2 ? *s0 : *src2); 
+      else *s1 = ((uint32_t)*s0 > (uint32_t)*src2 ? *s0 : *src2);
+      break;
     default: assert(0);
   }
   rtl_sm(s, s1, src1, 0, width, MMU_DYNAMIC);
