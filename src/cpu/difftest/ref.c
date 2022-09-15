@@ -104,11 +104,13 @@ void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
 
-#ifdef CONFIG_GUIDED_EXEC
 void difftest_guided_exec(void * guide) {
+#ifdef CONFIG_GUIDED_EXEC
   isa_difftest_guided_exec(guide);
-}
+#else
+  difftest_exec(1);
 #endif
+}
 
 #ifdef CONFIG_QUERY_REF
 void difftest_query_ref(void * result_buffer, uint64_t type) {
