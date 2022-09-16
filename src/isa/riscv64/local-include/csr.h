@@ -447,7 +447,7 @@ CSR_STRUCT_END(mvendorid)
 CSR_STRUCT_START(marchid)
 CSR_STRUCT_END(marchid)
 
-CSR_STRUCT_START(marchid)
+CSR_STRUCT_START(mimpid)
 CSR_STRUCT_END(mimpid)
 #endif // CONFIG_RV_ARCH_CSRS
 
