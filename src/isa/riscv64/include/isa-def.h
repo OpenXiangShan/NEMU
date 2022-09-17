@@ -108,6 +108,10 @@ typedef struct {
 #ifdef CONFIG_QUERY_REF
   struct MemEventQueryResult query_mem_event;
 #endif
+
+#ifdef CONFIG_RVSDEXT
+  bool debug_mode;
+#endif
 } riscv64_CPU_state;
 
 // decode
