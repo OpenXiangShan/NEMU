@@ -33,7 +33,18 @@
 
 #else
   #define CORE_DEBUG_CSRS(f)
-#endif
+#endif // CONFIG_RVSDEXT
+
+// Trigger CSRs in Sdtrig ISA extension
+#ifdef CONFIG_RVSDTRIG
+  #define TRIGGER_CSRS(f) \
+  f(scontext   , 0x6a8) \
+  f(tselect    , 0x7a0) f(tdata1     , 0x7a1) f(tdata2     , 0x7a2) f(tdata3     , 0x7a3) \
+  f(tinfo      , 0x7a4) f(tcontrol   , 0x7a5) f(mcontext   , 0x7a8) \
+  
+#else
+  #define TRIGGER_CSRS(f)
+#endif // CONFIG_RVSDTRIG
 
 // SHARE mode does not support mtime
 #ifdef CONFIG_RV_PMP_CSR
@@ -64,6 +75,7 @@
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01) \
   CORE_DEBUG_CSRS(f) \
+  TRIGGER_CSRS(f) \
 
 #else
 #define CSRS(f) \
@@ -81,6 +93,7 @@
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   CORE_DEBUG_CSRS(f) \
+  TRIGGER_CSRS(f) \
 
 #endif
 
@@ -494,6 +507,143 @@ CSR_STRUCT_END(dscratch0)
 CSR_STRUCT_START(dscratch1)
 CSR_STRUCT_END(dscratch1)
 #endif // CONFIG_RVSDEXT
+
+#ifdef CONFIG_RVSDTRIG
+CSR_STRUCT_START(scontext)  // 0x5a8
+CSR_STRUCT_END(scontext)
+
+CSR_STRUCT_START(tselect)   // 0x7a0
+CSR_STRUCT_END(tselect)
+
+CSR_STRUCT_START(tdata1)    // 0x7a1
+  union {
+    struct {
+      uint64_t load   : 1;  // [0]
+      uint64_t store  : 1;  // [1]
+      uint64_t execute: 1;  // [2]
+      uint64_t u      : 1;  // [3]
+      uint64_t s      : 1;  // [4]
+      uint64_t pad0   : 1;  // [5]
+      uint64_t m      : 1;  // [6]
+      uint64_t match  : 4;  // [10:7]
+      uint64_t chain  : 1;  // [11]
+      uint64_t action : 4;  // [15:12]
+      uint64_t sizelo : 2;  // [17:16]
+      uint64_t timing : 1;  // [18]
+      uint64_t select : 1;  // [19]
+      uint64_t hit    : 1;  // [20]
+      uint64_t sizehi : 2;  // [22:21]
+      uint64_t pad1   : 30; // [52:23]
+      uint64_t maskmax: 6;  // [58:53]
+      uint64_t dmode  : 1;  // [59] 
+      uint64_t type   : 4;  // [63:60]
+    } mcontrol;
+    struct {
+      uint64_t load   : 1;  // [0]
+      uint64_t store  : 1;  // [1]
+      uint64_t execute: 1;  // [2]
+      uint64_t u      : 1;  // [3]
+      uint64_t s      : 1;  // [4]
+      uint64_t pad0   : 1;  // [5]
+      uint64_t m      : 1;  // [6]
+      uint64_t match  : 4;  // [10:7]
+      uint64_t chain  : 1;  // [11]
+      uint64_t action : 4;  // [15:12]
+      uint64_t size   : 4;  // [19:16]
+      uint64_t timing : 1;  // [20]
+      uint64_t select : 1;  // [21]
+      uint64_t hit    : 1;  // [22]
+      uint64_t vu     : 1;  // [23]
+      uint64_t vs     : 1;  // [24]
+      uint64_t pad1   : 34; // [58:25]
+      uint64_t dmode  : 1;  // [59] 
+      uint64_t type   : 4;  // [63:60]
+    } mcontrol6;
+    struct {
+      uint64_t action : 6;  // [5:0]
+      uint64_t u      : 1;  // [6]
+      uint64_t s      : 1;  // [7]
+      uint64_t pending: 1;  // [8]
+      uint64_t m      : 1;  // [9]
+      uint64_t count  : 14; // [23:10]
+      uint64_t hit    : 1;  // [24]
+      uint64_t vu     : 1;  // [25]
+      uint64_t vs     : 1;  // [26]
+      uint64_t pad    : 32; // [58:27]
+      uint64_t dmode  : 1;  // [59] 
+      uint64_t type   : 4;  // [63:60]
+    } icount;
+    struct {
+      uint64_t action : 6;  // [5:0]
+      uint64_t u      : 1;  // [6]
+      uint64_t s      : 1;  // [7]
+      uint64_t pad0   : 1;  // [8]
+      uint64_t m      : 1;  // [9]
+      uint64_t nmi    : 1;  // [10]
+      uint64_t vu     : 1;  // [11]
+      uint64_t vs     : 1;  // [12]
+      uint64_t pad1   : 45; // [57:13]
+      uint64_t hit    : 1;  // [58]
+      uint64_t dmode  : 1;  // [59] 
+      uint64_t type   : 4;  // [63:60]
+    } itrigger;
+    struct {
+      uint64_t action : 6;  // [5:0]
+      uint64_t u      : 1;  // [6]
+      uint64_t s      : 1;  // [7]
+      uint64_t pad0   : 1;  // [8]
+      uint64_t m      : 1;  // [9]
+      uint64_t pad1   : 1;  // [10]
+      uint64_t vu     : 1;  // [11]
+      uint64_t vs     : 1;  // [12]
+      uint64_t pad2   : 45; // [57:13]
+      uint64_t hit    : 1;  // [58]
+      uint64_t dmode  : 1;  // [59] 
+      uint64_t type   : 4;  // [63:60]
+    } etrigger;
+    struct {
+      uint64_t action : 6;  // [5:0]
+      uint64_t select : 16; // [21:6]
+      uint64_t intctl : 1;  // [22]
+      uint64_t pad    : 35; // [57:23]
+      uint64_t hit    : 1;  // [58]
+      uint64_t dmode  : 1;  // [59] 
+      uint64_t type   : 4;  // [63:60]
+    } tmexttrigger;
+  };
+CSR_STRUCT_END(tdata1)
+
+CSR_STRUCT_START(tdata2)    // 0x7a2
+CSR_STRUCT_END(tdata2)
+
+CSR_STRUCT_START(tdata3)    // 0x7a3
+  union {
+    struct {
+      uint64_t sselect    : 2;  // [1:0]
+      uint64_t svalue     : 34; // [35:2]
+      uint64_t sbytemask  : 5;  // [40:36]
+      uint64_t pad0       : 7;  // [47:41]
+      uint64_t mhselect   : 3;  // [50:48]
+      uint64_t mhvalue    : 13; // [63:51]
+    } textra64;
+  };
+CSR_STRUCT_END(tdata3)
+
+CSR_STRUCT_START(tinfo)     // 0x7a4
+  uint64_t info : 16;       // [15:0] 
+CSR_STRUCT_END(tinfo)
+
+CSR_STRUCT_START(tcontrol)  // 0x7a5
+  uint64_t pad0 : 3;        // [2:0] 
+  uint64_t mte  : 1;        // [3]
+  uint64_t pad1 : 3;        // [6:4]
+  uint64_t mpte : 1;        // [7]
+CSR_STRUCT_END(tcontrol)
+
+CSR_STRUCT_START(mcontext)  // 0x7a8
+CSR_STRUCT_END(mcontext)
+
+#endif // CONFIG_RVSDTRIG
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)

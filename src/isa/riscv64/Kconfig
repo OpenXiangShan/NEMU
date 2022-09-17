@@ -83,4 +83,8 @@ config RVSDEXT
   bool "(Beta) RISC-V Sdext ISA Extension v1.0"
   default n
 
+config RVSDTRIG
+  bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
+  default n
+
 endmenu
