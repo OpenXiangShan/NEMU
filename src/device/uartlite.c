@@ -116,7 +116,11 @@ static void init_fifo() {
 #endif
 
 static void serial_io_handler(uint32_t offset, int len, bool is_write) {
+#ifdef CONFIG_UARTLITE_ASSERT_FOUR
+  assert(len == 1 || len == 4);
+#else
   assert(len == 1);
+#endif
   switch (offset) {
     /* We bind the serial port with the host stdout in NEMU. */
     case UARTLITE_TX_FIFO:
