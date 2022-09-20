@@ -100,7 +100,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
 #define FCSR_MASK 0xff
-
+#define SATP_SV39_MASK 0xf000000000000000ULL
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
 #define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG0]) && src < (&(csr_array[CSR_PMPCFG0]) + (NUM_PMP/4)))
@@ -315,7 +315,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (cpu.mode == MODE_S && mstatus->tvm == 1) {
       longjmp_exception(EX_II);
     }
-    *dest = MASKED_SATP(src);
+    // Only support Sv39, ignore write that sets other mode
+    if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+      *dest = MASKED_SATP(src);
   } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
