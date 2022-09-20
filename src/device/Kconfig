@@ -63,6 +63,8 @@ config UARTLITE_MMIO
 config UARTLITE_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
+config UARTLITE_ASSERT_FOUR
+  bool "Allow 4 byte write to allow community drivers"
 endif # HAS_UARTLITE
 
 if HAS_UART_SNPS
