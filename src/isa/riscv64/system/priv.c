@@ -17,9 +17,11 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include "../local-include/trigger.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
+#include <stdlib.h>
 
 int update_mmu_state();
 uint64_t clint_uptime();
@@ -51,6 +53,14 @@ void init_csr() {
   MAP(ARCH_CSRS, CSRS_EXIST)
   #endif // CONFIG_RV_ARCH_CSRS
 };
+
+#ifdef CONFIG_RVSDTRIG
+void init_trigger() {
+  cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) 
+    cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
+}
+#endif // CONFIG_RVSDTRIG
 
 rtlreg_t csr_perf;
 
@@ -221,6 +231,11 @@ static inline word_t csr_read(word_t *src) {
   if (is_read(mip)) { difftest_skip_ref(); }
 
   if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
+#ifdef CONFIG_RVSDTRIG
+  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val; }
+  if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
+  if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
+#endif // CONFIG_RVSDTRIG
   return *src;
 }
 
@@ -365,6 +380,33 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Only support Sv39, ignore write that sets other mode
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       *dest = MASKED_SATP(src);
+#ifdef CONFIG_RVSDTRIG
+  } else if (is_write(tselect)) {
+    *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
+  } else if (is_write(tdata1)) {
+    // not write to dest
+    tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
+    tdata1_t wdata = *(tdata1_t*)&src;
+    switch (wdata.type)
+    {
+    case TRIG_TYPE_NONE: // write type 0 to disable this trigger
+      tdata1_reg->type = TRIG_TYPE_DISABLE;
+      break;
+    case TRIG_TYPE_MCONTROL: 
+      tdata1_reg->type = TRIG_TYPE_MCONTROL;
+      tdata1_reg->data = wdata.data;
+      tm_update_timings(cpu.TM, wdata);
+      break;
+    default:
+      // do nothing for not supported trigger type
+      break;
+    }
+  } else if (is_write(tdata2)) {
+    // not write to dest
+    tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
+    tdata2_t wdata = *(tdata2_t*)&src;
+    tdata2_reg->val = wdata.val;
+#endif // CONFIG_RVSDTRIG
   } else { *dest = src; }
 
   bool need_update_mstatus_sd = false;

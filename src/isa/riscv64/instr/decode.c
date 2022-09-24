@@ -15,6 +15,9 @@
 ***************************************************************************************/
 
 #include "../local-include/rtl.h"
+#include "../local-include/trigger.h"
+#include "../local-include/intr.h"
+#include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include <isa-all-instr.h>
@@ -82,6 +85,16 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
+#ifdef CONFIG_RVSDTRIG
+  trig_action_t action = -1;
+  if (cpu.TM->check_timings.bf) {
+    tm_check_hit(&action, cpu.TM, TRIG_OP_EXECUTE, s->snpc, 0);
+  }
+  if (action == 0) {
+    longjmp_exception(EX_BP);
+  }
+#endif
+
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
     // this is an RVC instruction
@@ -95,6 +108,15 @@ int isa_fetch_decode(Decode *s) {
     s->isa.instr.val |= (hi << 16);
     idx = table_main(s);
   }
+
+#ifdef CONFIG_RVSDTRIG
+  if (cpu.TM->check_timings.af) {
+    tm_check_hit(&action, cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, 0);
+  }
+  if (action == 0) {
+    longjmp_exception(EX_BP);
+  }
+#endif
 
   s->type = INSTR_TYPE_N;
   switch (idx) {

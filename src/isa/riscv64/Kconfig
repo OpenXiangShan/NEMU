@@ -87,4 +87,9 @@ config RVSDTRIG
   bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
   default n
 
+config TRIGGER_NUM
+  int "Number of supported triggers"
+  depends on RVSDTRIG
+  default 15
+
 endmenu
