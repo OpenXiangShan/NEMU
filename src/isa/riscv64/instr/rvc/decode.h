@@ -14,6 +14,9 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <cpu/cpu.h>
+#include "../local-include/intr.h"
+
 #define creg2reg(creg) (creg + 8)
 
 // rotate without shift, e.g. ror(0bxxxxyy, 6, 2) = 0byyxxxx00
@@ -63,6 +66,15 @@ static inline def_DHelper(CI_simm) {
 
 static inline def_DHelper(CI_simm_lui) {
   decode_CI_simm(s, width);
+#ifdef CONFIG_SHARE
+  // C.LUI is only valid when rd != {x0, x2}, and when the immediate is not
+  // equal to zero. The code points with nzimm=0 are reserved; the remaining
+  // code points with rd=x0 are HINTs; and the remaining code points with rd=x2
+  // correspond to the C.ADDI16SP instruction.
+  if (id_src2->imm == 0) {
+    longjmp_exception(EX_II);
+  }
+#endif
   // the immediate of LUI is placed at id_src1->imm
   id_src1->imm = id_src2->imm << 12;
 }
