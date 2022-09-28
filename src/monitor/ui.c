@@ -23,11 +23,11 @@
 #include <cpu/difftest.h>
 #endif
 
+#ifndef CONFIG_SHARE
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#ifndef CONFIG_SHARE
 int is_batch_mode();
 int set_watchpoint(char *e);
 bool delete_watchpoint(int NO);

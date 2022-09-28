@@ -72,7 +72,9 @@ LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
 
+ifdef CONFIG_MEM_COMPRESS
 LDFLAGS += -lz
+endif
 
 ifndef CONFIG_SHARE
 LDFLAGS += -lreadline -ldl -pie
@@ -81,7 +83,9 @@ SHARE = 1
 endif
 
 ifdef CONFIG_DEVICE
+ifndef CONFIG_SHARE
 LDFLAGS += -lSDL2
+endif
 endif
 
 ifdef CONFIG_FPU_SOFT

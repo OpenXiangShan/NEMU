@@ -17,7 +17,9 @@
 #include <common.h>
 #include <utils.h>
 #include <device/alarm.h>
+#ifndef CONFIG_SHARE
 #include <SDL2/SDL.h>
+#endif
 
 void init_serial();
 void init_uartlite();
@@ -48,6 +50,7 @@ void device_update() {
   device_update_flag = false;
   IFDEF(CONFIG_HAS_VGA, vga_update_screen());
 
+#ifndef CONFIG_SHARE
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
@@ -67,11 +70,14 @@ void device_update() {
       default: break;
     }
   }
+#endif
 }
 
 void sdl_clear_event_queue() {
+#ifndef CONFIG_SHARE
   SDL_Event event;
   while (SDL_PollEvent(&event));
+#endif
 }
 
 void init_device() {

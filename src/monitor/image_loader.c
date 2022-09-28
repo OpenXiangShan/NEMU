@@ -17,8 +17,9 @@
 #include <stdlib.h>
 #include <macro.h>
 #include <memory/paddr.h>
+#ifdef CONFIG_MEM_COMPRESS
 #include <zlib.h>
-
+#endif
 
 #ifndef CONFIG_MODE_USER
 
