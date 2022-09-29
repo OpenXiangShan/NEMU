@@ -10,3 +10,6 @@
 [submodule "resource/CRoaring"]
 	path = resource/CRoaring
 	url = https://github.com/RoaringBitmap/CRoaring.git
+[submodule "resource/simpoint/simpoint_repo"]
+	path = resource/simpoint/simpoint_repo
+	url = https://github.com/shinezyy/SimPoint.3.2-fix.git
