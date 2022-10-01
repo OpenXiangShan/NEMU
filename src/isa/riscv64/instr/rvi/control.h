@@ -24,7 +24,7 @@ def_EHelper(jalr) {
   // The target address is obtained by adding the sign-extended 12-bit I-immediate to the register rs1
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   // then setting the least-significant bit of the result to zero.
-  rtl_andi(s, s0, s0, ~1);
+  rtl_andi(s, s0, s0, ~1UL);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {

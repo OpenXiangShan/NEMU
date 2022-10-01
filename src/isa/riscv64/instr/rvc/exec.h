@@ -36,16 +36,28 @@ def_EHelper(c_j) {
 }
 
 def_EHelper(c_jr) {
+#ifdef CONFIG_SHARE
+  // See rvi/control.h:26. JALR should set the LSB to 0.
+  rtl_andi(s, s0, dsrc1, ~1UL);
+  rtl_jr(s, s0);
+#else
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
+#endif
 }
 
 def_EHelper(c_jalr) {
-//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
   rtl_li(s, &cpu.gpr[1]._64, s->snpc);
+#ifdef CONFIG_SHARE
+  // See rvi/control.h:26. JALR should set the LSB to 0.
+  rtl_andi(s, s0, dsrc1, ~1UL);
+  rtl_jr(s, s0);
+#else
+//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
+#endif
 }
 
 def_EHelper(c_beqz) {
