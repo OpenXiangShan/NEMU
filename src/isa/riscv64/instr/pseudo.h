@@ -64,9 +64,15 @@ def_EHelper(p_jal) {
 }
 
 def_EHelper(p_ret) {
+#ifdef CONFIG_SHARE
+  // See rvi/control.h:26. JALR should set the LSB to 0.
+  rtl_andi(s, s0, &cpu.gpr[1]._64, ~1UL);
+  rtl_jr(s, s0);
+#else
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, &cpu.gpr[1]._64);
+#endif // CONFIG_SHARE
 }
 
 // non-standard pseudo instructions
