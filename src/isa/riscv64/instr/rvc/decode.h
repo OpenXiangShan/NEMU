@@ -280,6 +280,14 @@ def_THelper(c_addi_dispatch) {
 }
 
 def_THelper(c_addiw_dispatch) {
+#ifdef CONFIG_SHARE
+  // C.ADDIW is only valid when rd != x0; the code points with rd=x0 are reserved.
+  uint32_t instr = s->isa.instr.val;
+  uint32_t rd  = BITS(instr, 11, 7);
+  if (rd == 0) {
+    return EXEC_ID_inv;
+  }
+#endif
   return table_c_addiw(s);
 }
 
