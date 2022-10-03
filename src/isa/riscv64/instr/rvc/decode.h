@@ -265,6 +265,12 @@ static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_
 }
 
 static inline def_DHelper(C_JR) {
+  #ifdef CONFIG_SHARE
+  // C.JR is only valid when rs1!=x0; the code point with rs1=x0 is reserved.
+  if (BITS(s->isa.instr.val, 11, 7) == 0) {
+    longjmp_exception(EX_II);
+  }
+#endif // CONFIG_SHARE
   decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
 }
 
@@ -300,7 +306,7 @@ def_THelper(c_addiw_dispatch) {
   if (rd == 0) {
     return EXEC_ID_inv;
   }
-#endif
+#endif // CONFIG_SHARE
   return table_c_addiw(s);
 }
 
