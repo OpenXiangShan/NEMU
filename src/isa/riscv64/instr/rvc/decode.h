@@ -74,7 +74,7 @@ static inline def_DHelper(CI_simm_lui) {
   if (id_src2->imm == 0) {
     longjmp_exception(EX_II);
   }
-#endif
+#endif // CONFIG_SHARE
   // the immediate of LUI is placed at id_src1->imm
   id_src1->imm = id_src2->imm << 12;
 }
@@ -94,7 +94,14 @@ static inline def_DHelper(C_ADDI16SP) {
   uint32_t instr = s->isa.instr.val;
   sword_t simm = (SEXT(BITS(instr, 12, 12), 1) << 9) | (BITS(instr, 4, 3) << 7) |
     (BITS(instr, 5, 5) << 6) | (BITS(instr, 2, 2) << 5) | (BITS(instr, 6, 6) << 4);
+#ifdef CONFIG_SHARE
+  // C.ADDI16SP is only valid when nzimm!=0; the code point with nzimm=0 is reserved.
+  if (simm == 0) {
+    longjmp_exception(EX_II);
+  }
+#else
   assert(simm != 0);
+#endif // CONFIG_SHARE
   decode_op_i(s, id_src2, simm, false);
   decode_op_r(s, id_dest, 2, false);
 }
