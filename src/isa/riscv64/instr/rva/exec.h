@@ -19,7 +19,7 @@ def_EHelper(name) { \
   rtl_amo_slow_path(s, ddest, dsrc1, dsrc2); \
 }
 
-#ifdef CONFIG_DEBUG
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #define AMO_LIST(f, s) \
   f(concat3(lr     , _, s)) \
   f(concat3(sc     , _, s)) \

@@ -19,7 +19,7 @@
 #include <cpu/decode.h>
 #include "../local-include/rtl.h"
 
-#ifdef CONFIG_DEBUG
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #define AMO_INSTR_BINARY(f) \
   f(lr_w) f(lr_d)
 #define AMO_INSTR_TERNARY(f) \
@@ -28,7 +28,12 @@
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
   f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
+#else
+#define AMO_INSTR_BINARY(f)
+#define AMO_INSTR_TERNARY(f) f(atomic)
+#endif
 
+#ifdef CONFIG_DEBUG
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
   f(ecall) f(mret) f(sret) f(wfi) \
@@ -45,8 +50,6 @@
 #define SYS_INSTR_TERNARY(f) \
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 #else
-#define AMO_INSTR_BINARY(f)
-#define AMO_INSTR_TERNARY(f) f(atomic)
 #define SYS_INSTR_NULLARY(f)
 #define SYS_INSTR_BINARY(f)
 #define SYS_INSTR_TERNARY(f) f(system)
