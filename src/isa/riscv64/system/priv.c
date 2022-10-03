@@ -422,7 +422,12 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     case -1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
-    default: panic("Unsupported privilige operation = %d", op);
+    default:
+#ifdef CONFIG_SHARE
+      longjmp_exception(EX_II);
+#else
+      panic("Unsupported privilege operation = %d", op);
+#endif // CONFIG_SHARE
   }
   return 0;
 }
