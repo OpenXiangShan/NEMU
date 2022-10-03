@@ -71,7 +71,7 @@ static inline def_DHelper(CI_simm_lui) {
   // equal to zero. The code points with nzimm=0 are reserved; the remaining
   // code points with rd=x0 are HINTs; and the remaining code points with rd=x2
   // correspond to the C.ADDI16SP instruction.
-  if (id_src2->imm == 0) {
+  if (unlikely(id_src2->imm == 0)) {
     longjmp_exception(EX_II);
   }
 #endif // CONFIG_SHARE
@@ -96,7 +96,7 @@ static inline def_DHelper(C_ADDI16SP) {
     (BITS(instr, 5, 5) << 6) | (BITS(instr, 2, 2) << 5) | (BITS(instr, 6, 6) << 4);
 #ifdef CONFIG_SHARE
   // C.ADDI16SP is only valid when nzimm!=0; the code point with nzimm=0 is reserved.
-  if (simm == 0) {
+  if (unlikely(simm == 0)) {
     longjmp_exception(EX_II);
   }
 #else
@@ -118,7 +118,7 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
 #ifdef CONFIG_SHARE
   // C.LxSP is only valid when rd!=x0; the code points with rd=x0 are reserved.
-  if (rd == 0) {
+  if (unlikely(rd == 0)) {
     longjmp_exception(EX_II);
   }
 #endif // CONFIG_SHARE
@@ -267,7 +267,7 @@ static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_
 static inline def_DHelper(C_JR) {
   #ifdef CONFIG_SHARE
   // C.JR is only valid when rs1!=x0; the code point with rs1=x0 is reserved.
-  if (BITS(s->isa.instr.val, 11, 7) == 0) {
+  if (unlikely(BITS(s->isa.instr.val, 11, 7) == 0)) {
     longjmp_exception(EX_II);
   }
 #endif // CONFIG_SHARE
@@ -303,7 +303,7 @@ def_THelper(c_addiw_dispatch) {
   // C.ADDIW is only valid when rd != x0; the code points with rd=x0 are reserved.
   uint32_t instr = s->isa.instr.val;
   uint32_t rd  = BITS(instr, 11, 7);
-  if (rd == 0) {
+  if (unlikely(rd == 0)) {
     return EXEC_ID_inv;
   }
 #endif // CONFIG_SHARE
