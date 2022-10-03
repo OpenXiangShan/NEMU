@@ -18,6 +18,7 @@
 #define __INTR_H__
 
 #include <cpu/decode.h>
+#include "csr.h"
 
 enum {
   EX_IAM, // instruction address misaligned

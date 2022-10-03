@@ -14,6 +14,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <cpu/cpu.h>
+#include <memory/paddr.h>
 #include <rtl/rtl.h>
 #include "../local-include/intr.h"
 
@@ -45,6 +47,11 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
         isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
       }
       return_on_mem_ex();
+      // check store access fault
+      if (!in_pmem(*src1)) {
+        INTR_TVAL_REG(EX_SAF) = *src1;
+        longjmp_exception(EX_SAF);
+      }
     }
     rtl_li(s, dest, !success);
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -70,11 +77,11 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       else *s1 = ((int32_t)*s0 > (int32_t)*src2 ? *s0 : *src2);
       break;
     case 0b11000: // amominu
-      if (width == 8) *s1 = ((uint64_t)*s0 < (uint64_t)*src2 ? *s0 : *src2); 
+      if (width == 8) *s1 = ((uint64_t)*s0 < (uint64_t)*src2 ? *s0 : *src2);
       else *s1 = ((uint32_t)*s0 < (uint32_t)*src2 ? *s0 : *src2);
       break;
     case 0b11100: // amomaxu
-      if (width == 8) *s1 = ((uint64_t)*s0 > (uint64_t)*src2 ? *s0 : *src2); 
+      if (width == 8) *s1 = ((uint64_t)*s0 > (uint64_t)*src2 ? *s0 : *src2);
       else *s1 = ((uint32_t)*s0 > (uint32_t)*src2 ? *s0 : *src2);
       break;
     default: assert(0);
