@@ -116,6 +116,12 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = (BITS(s->isa.instr.val, 12, 12) << 5) | BITS(s->isa.instr.val, 6, 2);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
+#ifdef CONFIG_SHARE
+  // C.LxSP is only valid when rd!=x0; the code points with rd=x0 are reserved.
+  if (rd == 0) {
+    longjmp_exception(EX_II);
+  }
+#endif // CONFIG_SHARE
   if (is_fp) decode_op_fr(s, id_dest, rd, false);
   else decode_op_r(s, id_dest, rd, false);
 }
