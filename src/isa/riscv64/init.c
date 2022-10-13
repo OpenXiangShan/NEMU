@@ -18,12 +18,14 @@
 #include <memory/paddr.h>
 #include "local-include/csr.h"
 
+#ifndef CONFIG_SHARE
 static const uint32_t img [] = {
   0x800002b7,  // lui t0,0x80000
   0x0002a023,  // sw  zero,0(t0)
   0x0002a503,  // lw  a0,0(t0)
   0x0000006b,  // nemu_trap
 };
+#endif
 
 void init_csr();
 #ifndef CONFIG_SHARE
@@ -86,8 +88,6 @@ void init_isa() {
   if (cpt_file == NULL) {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
-#else
-  memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 #endif
 
   IFNDEF(CONFIG_SHARE, init_clint());
