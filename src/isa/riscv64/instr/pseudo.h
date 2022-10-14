@@ -37,7 +37,7 @@
 //       j      jal(ra)   jalr(rs)
 //       beqz   bnez
 //       li     mv
-
+#include <generated/autoconf.h>
 def_EHelper(p_sext_w) {
   rtl_addiw(s, ddest, dsrc1, 0);
 }
@@ -60,6 +60,13 @@ def_EHelper(p_bgez) {
 
 def_EHelper(p_jal) {
   rtl_li(s, &cpu.gpr[1]._64, id_src2->imm);
+#ifdef CONFIG_BR_LOG
+  br_log[br_count].pc = s->pc; // cpu.pc - 4;
+  br_log[br_count].target = id_src1->imm;
+  br_log[br_count].taken = 1;
+  br_log[br_count].type = 1;
+  br_count++;
+#endif // CONFIG_BR_LOG
   rtl_j(s, id_src1->imm);
 }
 

@@ -177,8 +177,8 @@ bad:
   return MEM_RET_FAIL;
 }
 
-static int ifetch_mmu_state = MMU_DIRECT;
-static int data_mmu_state = MMU_DIRECT;
+int ifetch_mmu_state = MMU_DIRECT;
+int data_mmu_state = MMU_DIRECT;
 
 int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);

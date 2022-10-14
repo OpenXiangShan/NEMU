@@ -14,6 +14,39 @@ config PADDRBITS
   default 36 if SHARE
   default 40
 
+config STORE_LOG
+  bool "Enable store log"
+  default n
+
+config STORE_LOG_SIZE
+  int "The size of store log"
+  depends on STORE_LOG
+  default 80000
+
+config SPEC_GAP
+  int "distance between speculative and stable snapshot"
+  depends on LIGHTQS
+  default 40
+
+config LIGHTQS
+  bool "Enable lightssss"
+  depends on STORE_LOG
+  default n
+
+config LIGHTQS_DEBUG
+  bool "lightssss debug log"
+  depends on LIGHTQS
+  default n
+
+config BR_LOG
+  bool "Enable branch log"
+  default n
+
+config BR_LOG_SIZE
+  int "The size of branch log"
+  depends on BR_LOG
+  default 50000000
+
 config BBL_OFFSET_WITH_CPT
   hex "The offset of bbl / baremetal app with using gcpt"
   default 0xa0000

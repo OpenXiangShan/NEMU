@@ -17,7 +17,6 @@ menuconfig HAS_SERIAL
   default y
 
 menuconfig HAS_UARTLITE
-  depends on !SHARE
   bool "Enable uartlite"
   default n
 
@@ -121,7 +120,6 @@ config I8042_DATA_MMIO
 endif # HAS_KEYBOARD
 
 menuconfig HAS_VGA
-  depends on !SHARE
   bool "Enable VGA"
   default y
 
@@ -141,7 +139,7 @@ config VGA_CTL_MMIO
 
 config VGA_SHOW_SCREEN
   bool "Enable SDL SCREEN"
-  default y
+  default n
 
 choice
   prompt "Screen Size"

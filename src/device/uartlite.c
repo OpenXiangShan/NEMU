@@ -124,7 +124,11 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   switch (offset) {
     /* We bind the serial port with the host stdout in NEMU. */
     case UARTLITE_TX_FIFO:
-      if (is_write) putc(serial_base[UARTLITE_TX_FIFO], stderr);
+      if (is_write) {
+	  #ifndef CONFIG_SHARE
+          putc(serial_base[UARTLITE_TX_FIFO], stderr);
+          #endif // CONFIG_SHARE
+      }
       else panic("Cannot read UARTLITE_TX_FIFO");
       break;
     case UARTLITE_STAT_REG:
@@ -135,7 +139,9 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_uartlite() {
   serial_base = new_space(0xd);
+#ifdef CONFIG_UARTLITE_PORT
   add_pio_map("uartlite", CONFIG_UARTLITE_PORT, serial_base, 0xd, serial_io_handler);
+#endif
   add_mmio_map("uartlite", CONFIG_UARTLITE_MMIO, serial_base, 0xd, serial_io_handler);
 
 #ifdef CONFIG_UARTLITE_INPUT_FIFO
