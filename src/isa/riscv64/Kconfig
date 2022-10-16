@@ -18,6 +18,11 @@ config RVK
 
 config RVV_010
   bool "Experimental RISC-V Vector Extension v0.10"
+  default y
+
+config RV_DEBUG
+  bool "RISC-V Debug Extension"
+  default y
 
 config RV_PMP_CSR
   bool "Enable PMP CSR Read & Write"
