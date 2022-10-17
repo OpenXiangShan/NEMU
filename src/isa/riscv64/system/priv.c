@@ -395,7 +395,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     case TRIG_TYPE_MCONTROL: 
       tdata1_reg->type = TRIG_TYPE_MCONTROL;
       tdata1_reg->data = wdata.data;
-      tm_update_timings(cpu.TM, wdata);
+      tm_update_timings(cpu.TM);
       break;
     default:
       // do nothing for not supported trigger type

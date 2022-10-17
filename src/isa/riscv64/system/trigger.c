@@ -1,22 +1,27 @@
-#ifdef CONFIG_RVSDTRIG
 #include "isa.h"
 #include "cpu/cpu.h"
 #include "../local-include/trigger.h"
 #include "../local-include/csr.h"
+#include "../local-include/intr.h"
 
-void tm_update_timings(struct TriggerModule* TM, tdata1_t tdata1) {
-  if (!(tdata1.type == TRIG_TYPE_MCONTROL))
-    return;
-  trig_mcontrol_t* mcontrol = (trig_mcontrol_t*)&tdata1;
-  TM->check_timings.bf = mcontrol->execute  && !mcontrol->timing;
-  TM->check_timings.af = mcontrol->execute  && mcontrol->timing;
-  TM->check_timings.br = mcontrol->load     && !mcontrol->timing;
-  TM->check_timings.ar = mcontrol->load     && mcontrol->timing;
-  TM->check_timings.bw = mcontrol->store    && !mcontrol->timing;
+#ifdef CONFIG_RVSDTRIG
+
+void tm_update_timings(struct TriggerModule* TM) {
+  TM->check_timings.val = 0;
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
+    tdata1_t* tdata1 = (tdata1_t*)&TM->triggers[i].tdata1.val;
+    if (tdata1->type != TRIG_TYPE_MCONTROL)
+      continue;
+    trig_mcontrol_t* mcontrol = (trig_mcontrol_t*)tdata1;
+    TM->check_timings.bf |= mcontrol->execute  && !mcontrol->timing;
+    TM->check_timings.af |= mcontrol->execute  && mcontrol->timing;
+    TM->check_timings.br |= mcontrol->load     && !mcontrol->timing;
+    TM->check_timings.ar |= mcontrol->load     && mcontrol->timing;
+    TM->check_timings.bw |= mcontrol->store    && !mcontrol->timing;
+  }
 }
 
-void tm_check_hit(
-  /*out*/ trig_action_t * const action,
+trig_action_t tm_check_hit(
   struct TriggerModule* TM,
   trig_op_t op,
   vaddr_t addr,
@@ -25,11 +30,11 @@ void tm_check_hit(
 #ifdef CONFIG_RVSDEXT
   // do nothing in debug mode
   if (cpu.debug_mode)
-    return;
+    return TRIG_ACTION_NONE;
 #endif
-
   // check mcontrol
   // Action can be taken only when all triggers on the chain are hit.
+  trig_action_t action = TRIG_ACTION_NONE;
   bool chain_ok = true;
   for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
     if (TM->triggers[i].tdata1.common.type != TRIG_TYPE_MCONTROL)
@@ -39,17 +44,19 @@ void tm_check_hit(
       continue;
     }
     bool match = trigger_match(&TM->triggers[i], op, addr, data);
-    TM->triggers[i].tdata1.mcontrol.hit = match;
+    if (!match)
+      continue;
+    TM->triggers[i].tdata1.mcontrol.hit |= match;
     if (match && !TM->triggers[i].tdata1.mcontrol.chain) {
-      *action = TM->triggers[i].tdata1.mcontrol.action;
-      return;
+      action = TM->triggers[i].tdata1.mcontrol.action;
     } 
     chain_ok = match;
   }
+  return action;
 }
 
 bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data) {
-  // not neet trigger condition
+  // not meet trigger condition
   if (((op & TRIG_OP_EXECUTE) && !trig->tdata1.mcontrol.execute) ||
       ((op & TRIG_OP_LOAD)    && !trig->tdata1.mcontrol.load) ||
       ((op & TRIG_OP_STORE)   && !trig->tdata1.mcontrol.store) ||
@@ -97,6 +104,15 @@ bool trigger_value_match(Trigger* trig, word_t value) {
       return ((value >> 32) & mask) == (tdata2_val & mask);
     }
     default : panic("Unsupported trigger match id %d", trig->tdata1.mcontrol.match);
+  }
+}
+
+void trigger_handler(const trig_action_t action)
+{
+  switch (action) {
+    case TRIG_ACTION_NONE: /* no trigger hit, do nothing */; break;
+    case TRIG_ACTION_BKPT_EXCPT: longjmp_exception(EX_BP); break;
+    default: panic("Unsupported trigger action %d", action);  break;
   }
 }
 

@@ -31,6 +31,7 @@ typedef enum {
   TRIG_ACTION_TRACE_ON      = 2,
   TRIG_ACTION_TRACE_OFF     = 3,
   TRIG_ACTION_TRACE_NOTIFY  = 4,
+  TRIG_ACTION_NONE          = -1,
 } trig_action_t;
 
 typedef enum {
@@ -175,13 +176,18 @@ typedef struct TriggerModule {
   Trigger triggers[CONFIG_TRIGGER_NUM + 1];
 } TriggerModule;
 
-void tm_update_timings(struct TriggerModule* TM, tdata1_t tdata1);
+void tm_update_timings(struct TriggerModule* TM);
 
-void tm_check_hit(trig_action_t * const action, struct TriggerModule* TM, trig_op_t op, vaddr_t addr,word_t data);
+trig_action_t tm_check_hit(struct TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
 
 bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data);
 
 bool trigger_value_match(Trigger* trig, word_t value);
+
+void trigger_handler(const trig_action_t action);
+
+// Used to avoid magic number
+#define TRIGGER_NO_VALUE (0)
 
 #endif // __TRIGGER_H__
 #endif // CONFIG_RVSDTRIG

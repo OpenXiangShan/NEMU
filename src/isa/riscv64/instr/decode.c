@@ -86,13 +86,11 @@ int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
 #ifdef CONFIG_RVSDTRIG
-  trig_action_t action = -1;
+  trig_action_t action = TRIG_ACTION_NONE;
   if (cpu.TM->check_timings.bf) {
-    tm_check_hit(&action, cpu.TM, TRIG_OP_EXECUTE, s->snpc, 0);
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->snpc, TRIGGER_NO_VALUE);
   }
-  if (action == 0) {
-    longjmp_exception(EX_BP);
-  }
+  trigger_handler(action);
 #endif
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
@@ -111,11 +109,9 @@ int isa_fetch_decode(Decode *s) {
 
 #ifdef CONFIG_RVSDTRIG
   if (cpu.TM->check_timings.af) {
-    tm_check_hit(&action, cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, 0);
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, s->isa.instr.val);
   }
-  if (action == 0) {
-    longjmp_exception(EX_BP);
-  }
+  trigger_handler(action);
 #endif
 
   s->type = INSTR_TYPE_N;
