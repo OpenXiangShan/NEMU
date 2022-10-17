@@ -49,7 +49,7 @@ trig_action_t tm_check_hit(
     TM->triggers[i].tdata1.mcontrol.hit |= match;
     if (match && !TM->triggers[i].tdata1.mcontrol.chain) {
       action = TM->triggers[i].tdata1.mcontrol.action;
-    } 
+    }
     chain_ok = match;
   }
   return action;
