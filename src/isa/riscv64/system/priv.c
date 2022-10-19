@@ -386,22 +386,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       Loge("Executing mret to 0x%lx", mepc->val);
       return mepc->val;
       break;
-    case 0x120: // sfence.vma
-      // Described in 3.1.6.5 Virtualization Support in mstatus Register
-      // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
-      // while executing in S-mode will raise an illegal instruction exception.
-      if (cpu.mode == MODE_S && mstatus->tvm == 1)
-        longjmp_exception(EX_II);
-      mmu_tlb_flush(*src);
-      break;
 #ifdef CONFIG_RV_SVINVAL
-    case 0x160: // sinval.vma
-      if ((cpu.mode == MODE_S && mstatus->tvm == 1) ||
-          !srnctl->svinval) { // srnctl contrl extension enable or not
-        longjmp_exception(EX_II);
-      }
-      mmu_tlb_flush(*src);
-      break;
     case 0x180: // sfence.w.inval
       if (!srnctl->svinval) {
         longjmp_exception(EX_II);
@@ -412,22 +397,42 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         longjmp_exception(EX_II);
       }
       break;
-#endif
+#endif // CONFIG_RV_SVINVAL
     case 0x105: // wfi
       if (cpu.mode < MODE_M && mstatus->tw == 1){
         longjmp_exception(EX_II);
       }
     break;
-#endif
+#endif // CONFIG_MODE_USER
     case -1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     default:
+      switch (op >> 5) { // instr[31:25]
+        case 0x09: // sfence.vma
+          // Described in 3.1.6.5 Virtualization Support in mstatus Register
+          // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
+          // while executing in S-mode will raise an illegal instruction exception.
+          if (cpu.mode == MODE_S && mstatus->tvm == 1)
+            longjmp_exception(EX_II);
+          mmu_tlb_flush(*src);
+          break;
+#ifdef CONFIG_RV_SVINVAL
+        case 0x0b: // sinval.vma
+          if ((cpu.mode == MODE_S && mstatus->tvm == 1) ||
+            !srnctl->svinval) { // srnctl contrl extension enable or not
+            longjmp_exception(EX_II);
+          }
+          mmu_tlb_flush(*src);
+          break;
+#endif // CONFIG_RV_SVINVAL
+        default:
 #ifdef CONFIG_SHARE
-      longjmp_exception(EX_II);
+          longjmp_exception(EX_II);
 #else
-      panic("Unsupported privilege operation = %d", op);
+          panic("Unsupported privilege operation = %d", op);
 #endif // CONFIG_SHARE
+      }
   }
   return 0;
 }
