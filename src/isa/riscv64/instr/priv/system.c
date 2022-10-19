@@ -32,19 +32,15 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
       rtl_trap(s, s->pc, 8 + cpu.mode);
       rtl_mv(s, jpc, t0);
 #ifdef CONFIG_RV_DEBUG
-    } else if (id == 1) {
+    } else if (id == 1) { // ebreak
       rtl_trap(s, s->pc, 3);
       rtl_mv(s, jpc, t0);
 #endif
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
     }
-#ifdef CONFIG_RV_SVINVAL
-    int is_jmp = (id != 0x120) && (id != 0x105) && (id != 0x160) && (id != 0x180) && (id != 0x181);
-    // sfence.vma : wfi : sinval.vma : sfence.w.inval : sfence.inval.ir
-#else
-    int is_jmp = (id != 0x120) && (id != 0x105);
-#endif
+    // is_jmp: ecall, ebreak, mret, sret
+    int is_jmp = (id == 0) || (id == 1) || (id == 0x102) || (id == 0x302);
     return is_jmp;
   }
 
