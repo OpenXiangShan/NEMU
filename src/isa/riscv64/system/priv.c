@@ -221,7 +221,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
   else if (is_write(mtvec)) { *dest = src & ~(0x2UL); }
   else if (is_write(stvec)) { *dest = src & ~(0x2UL); }
-  else if (is_write(medeleg)) { *dest = src & 0xf3ff; }
+  else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }
