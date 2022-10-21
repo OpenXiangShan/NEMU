@@ -217,7 +217,10 @@ CSR_STRUCT_END(mip)
 #define CSR_PMPADDR13 0x3bd
 #define CSR_PMPADDR14 0x3be
 #define CSR_PMPADDR15 0x3bf
-#define NUM_PMP 16 // can change in 0/16/64, but need change the above CSR declare
+// This is the maximum PMP register allowed.
+// If you need to change the number of actual PMP registers,
+// please set CONFIG_RV_PMP_NUM in the config file.
+#define MAX_NUM_PMP 16
 
 CSR_STRUCT_START(pmpcfg0)
 CSR_STRUCT_END(pmpcfg0)

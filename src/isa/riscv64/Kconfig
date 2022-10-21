@@ -28,6 +28,12 @@ config RV_PMP_CSR
   bool "Enable PMP CSR Read & Write"
   default y
 
+config RV_PMP_NUM
+  depends on RV_PMP_CSR
+  int "Number of PMP CSR registers"
+  default 16
+  range 0 16
+
 config RV_PMP_CHECK
   # todo: pmp check still not work when enable PERF_OPT
   depends on !PERF_OPT
