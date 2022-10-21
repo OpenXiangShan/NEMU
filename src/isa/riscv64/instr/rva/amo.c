@@ -43,12 +43,13 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       cpu.lr_valid = 0;
     } else {
       // Even if scInvalid, SPF (if raised) also needs to be reported
-      if(isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
-        isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
+      uint64_t paddr = 0;
+      if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
+        paddr = isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
       }
       return_on_mem_ex();
       // check store access fault
-      if (!in_pmem(*src1)) {
+      if (!in_pmem(paddr)) {
         INTR_TVAL_REG(EX_SAF) = *src1;
         longjmp_exception(EX_SAF);
       }
