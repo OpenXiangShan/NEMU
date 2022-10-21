@@ -118,7 +118,7 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
 #ifdef CONFIG_SHARE
   // C.LxSP is only valid when rd!=x0; the code points with rd=x0 are reserved.
-  if (unlikely(rd == 0)) {
+  if (unlikely(rd == 0 && !is_fp)) {
     longjmp_exception(EX_II);
   }
 #endif // CONFIG_SHARE
