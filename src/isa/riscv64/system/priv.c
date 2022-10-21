@@ -103,10 +103,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SATP_SV39_MASK 0xf000000000000000ULL
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
-#define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG0]) && src < (&(csr_array[CSR_PMPCFG0]) + (NUM_PMP/4)))
-#define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR0]) && src < (&(csr_array[CSR_PMPADDR0]) + NUM_PMP))
-#define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (NUM_PMP/4)))
-#define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + NUM_PMP))
+#define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG0]) && src < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
+#define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR0]) && src < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
+#define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
+#define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
 uint8_t pmpcfg_from_index(int idx) {
@@ -142,13 +142,20 @@ static inline word_t csr_read(word_t *src) {
     return 0;
 #else
     // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
-    if (NUM_PMP == 0) {
-      Log("pmp number is 0, raise illegal instr exception when read pmpaddr");
+    if (CONFIG_RV_PMP_NUM == 0) {
+      Loge("pmp number is 0, raise illegal instr exception when read pmpaddr");
       longjmp_exception(EX_II);
       return 0;
     }
 
     int idx = (src - &csr_array[CSR_PMPADDR0]);
+    // Check whether the PMP register is out of bound.
+    if (idx >= CONFIG_RV_PMP_NUM) {
+      Loge("pmp number is smaller than the index, raise illegal instr exception when read pmpaddr");
+      longjmp_exception(EX_II);
+      return 0;
+    }
+
     uint8_t cfg = pmpcfg_from_index(idx);
 #ifdef CONFIG_SHARE
     if(dynamic_config.debug_difftest) {
@@ -262,16 +269,23 @@ static inline void csr_write(word_t *dest, word_t src) {
 #else
     // If no PMPs are configured, disallow access to all.  Otherwise, allow
     // access to all, but unimplemented ones are hardwired to zero.
-    if (NUM_PMP == 0)
+    if (CONFIG_RV_PMP_NUM == 0)
       return;
 
     Logtr("PMP updated\n");
     int idx = dest - &csr_array[CSR_PMPADDR0];
+    // Check whether the PMP register is out of bound.
+    if (idx >= CONFIG_RV_PMP_NUM) {
+      Loge("pmp number is smaller than the index, raise illegal instr exception when read pmpaddr");
+      longjmp_exception(EX_II);
+      return;
+    }
+
     word_t cfg = pmpcfg_from_index(idx);
     bool locked = cfg & PMP_L;
-    bool next_locked = idx < NUM_PMP && (pmpcfg_from_index(idx+1) & PMP_L);
-    bool next_tor = idx < NUM_PMP && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
-    if (idx < NUM_PMP && !locked && !(next_locked && next_tor)) {
+    bool next_locked = idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_L);
+    bool next_tor = idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
+    if (idx < CONFIG_RV_PMP_NUM && !locked && !(next_locked && next_tor)) {
       *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
     }
 #ifdef CONFIG_SHARE
@@ -288,7 +302,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifndef CONFIG_RV_PMP_CSR
   return;
 #else
-    if (NUM_PMP == 0)
+    if (CONFIG_RV_PMP_NUM == 0)
       return;
 
     int xlen = 64;

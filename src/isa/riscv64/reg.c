@@ -61,7 +61,7 @@ void isa_reg_display() {
       mtval->val, stval->val, mtvec->val, stvec->val);
 #ifdef CONFIG_RV_PMP_CSR
   printf("privilege mode:%ld  pmp: below\n", cpu.mode);
-  for (int i = 0; i < NUM_PMP; i++) {
+  for (int i = 0; i < CONFIG_RV_PMP_NUM; i++) {
     printf("%2d: cfg:0x%02x addr:0x%016lx", i, pmpcfg_from_index(i), pmpaddr_from_index(i));
     if (i % 2 == 1) printf("\n");
     else printf("|");
