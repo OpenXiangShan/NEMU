@@ -110,10 +110,22 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
 uint8_t pmpcfg_from_index(int idx) {
+  // for now, nemu only support 16 pmp entries in a XLEN=64 machine
   int xlen = 64;
-  uint8_t *cfg_base = (uint8_t *)&csr_array[CSR_PMPCFG0];
+  assert(idx < CONFIG_RV_PMP_NUM);
+  assert(CONFIG_RV_PMP_NUM <= 16);
   int cfgPerCSR = xlen / 8;
-  return *(cfg_base + ((xlen / 32) * (idx / cfgPerCSR)) * cfgPerCSR + (idx % cfgPerCSR));
+  // no black magic, just get CSR addr from idx
+  int cfg_csr_addr;
+  switch (idx / cfgPerCSR) {
+    case 0: cfg_csr_addr = CSR_PMPCFG0; break;
+    case 1: cfg_csr_addr = CSR_PMPCFG2; break;
+    // case 2: cfg_csr_addr = CSR_PMPCFG4; break;
+    // case 3: cfg_csr_addr = CSR_PMPCFG8; break;
+    default: assert(0);
+  }
+  uint8_t *cfg_reg = (uint8_t *)&csr_array[cfg_csr_addr];
+  return *(cfg_reg + (idx % cfgPerCSR));
 }
 
 word_t pmpaddr_from_index(int idx) {
@@ -283,8 +295,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 
     word_t cfg = pmpcfg_from_index(idx);
     bool locked = cfg & PMP_L;
-    bool next_locked = idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_L);
-    bool next_tor = idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
+    // Note that the last pmp cfg do not have next_locked or next_tor
+    bool next_locked = idx == (CONFIG_RV_PMP_NUM-1) ? false : idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_L);
+    bool next_tor = idx == (CONFIG_RV_PMP_NUM-1) ? false : idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
     if (idx < CONFIG_RV_PMP_NUM && !locked && !(next_locked && next_tor)) {
       *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
     }
