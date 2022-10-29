@@ -25,13 +25,14 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
 
   if (funct5 == 0b00010) { // lr
+    assert(!cpu.amo);
     rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     cpu.lr_addr = *src1;
     cpu.lr_valid = 1;
     return;
   } else if (funct5 == 0b00011) { // sc
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-    // cpu.amu for sc instructions is set to true when store difftest is enabled.
+    // cpu.amo for sc instructions is set to true when store difftest is enabled.
     // Atomic instructions don't commit through store queue and need to be skipped.
     // Store difftest uses cpu.amo to skip atomic store instructions.
     cpu.amo = true;
