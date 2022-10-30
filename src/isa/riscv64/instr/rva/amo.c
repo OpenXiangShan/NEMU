@@ -44,7 +44,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       cpu.lr_valid = 0;
     } else {
       // Even if scInvalid, SPF (if raised) also needs to be reported
-      uint64_t paddr = 0;
+      uint64_t paddr = *dsrc1;
       if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
         paddr = isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
       }
