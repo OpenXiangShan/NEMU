@@ -365,6 +365,7 @@ void cpu_exec(uint64_t n) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
+      cpu.amo = false; // clean up
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       IFDEF(CONFIG_SHARE, break);
     } else {
