@@ -25,7 +25,7 @@
 #include <generated/autoconf.h>
 #include <macro.h>
 
-#if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul
+#if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul || defined(CONFIG_SHARE)
 #define PMEM64 1
 #endif
 
