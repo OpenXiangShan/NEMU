@@ -121,8 +121,48 @@ bool trigger_value_match(Trigger* trig, word_t value) {
   }
 }
 
-void trigger_handler(const trig_action_t action)
-{
+bool trigger_check_chain_legal(const struct TriggerModule* TM, const int max_chain_len) {
+  int chain_len = 0;
+  int i = 0;
+  while (i < CONFIG_TRIGGER_NUM && chain_len < max_chain_len) {
+    if (TM->triggers[i].tdata1.mcontrol.chain) {
+      chain_len++;
+    } else {
+      chain_len = 0;
+    }
+    i++;
+  }
+  if (!(chain_len < max_chain_len))
+    printf("trigger_check_chain_legal returns false\n");
+  return chain_len < max_chain_len;
+}
+
+void mcontrol_checked_write(trig_mcontrol_t* mcontrol, word_t* wdata, const struct TriggerModule* TM) {
+  trig_mcontrol_t* wdata_mcontrol = (trig_mcontrol_t*)wdata;
+  mcontrol->type = TRIG_TYPE_MCONTROL;
+  mcontrol->dmode = 0;
+  mcontrol->maskmax = 0;
+  mcontrol->pad1 = 0;
+  mcontrol->sizehi = 0;
+  mcontrol->hit = 0;
+  mcontrol->select = wdata_mcontrol->select;
+  mcontrol->timing = wdata_mcontrol->timing;
+  mcontrol->sizelo = 0;
+  mcontrol->action = wdata_mcontrol->action <= TRIG_ACTION_DEBUG_MODE ? wdata_mcontrol->action : TRIG_ACTION_BKPT_EXCPT;
+  mcontrol->chain = wdata_mcontrol->chain; // chain length will be checked later
+  mcontrol->match = (wdata_mcontrol->match == TRIG_MATCH_EQ || wdata_mcontrol->match == TRIG_MATCH_GE || wdata_mcontrol->match == TRIG_MATCH_LT)
+    ? wdata_mcontrol->match : TRIG_MATCH_EQ;
+  mcontrol->m = wdata_mcontrol->m;
+  mcontrol->pad0 = 0;
+  mcontrol->s = wdata_mcontrol->s;
+  mcontrol->u = wdata_mcontrol->u;
+  mcontrol->execute = wdata_mcontrol->execute;
+  mcontrol->store = wdata_mcontrol->store;
+  mcontrol->load = wdata_mcontrol->load;
+  mcontrol->chain = trigger_check_chain_legal(TM, 2) && wdata_mcontrol->chain;
+}
+
+void trigger_handler(const trig_action_t action) {
   switch (action) {
     case TRIG_ACTION_NONE: /* no trigger hit, do nothing */; break;
     case TRIG_ACTION_BKPT_EXCPT: longjmp_exception(EX_BP); break;

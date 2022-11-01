@@ -232,7 +232,8 @@ static inline word_t csr_read(word_t *src) {
 
   if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
 #ifdef CONFIG_RVSDTRIG
-  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val; }
+  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val ^
+    (cpu.TM->triggers[tselect->val].tdata1.mcontrol.hit << 20); }
   if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
   if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
 #endif // CONFIG_RVSDTRIG
@@ -390,11 +391,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     switch (wdata.type)
     {
     case TRIG_TYPE_NONE: // write type 0 to disable this trigger
+    case TRIG_TYPE_DISABLE:
       tdata1_reg->type = TRIG_TYPE_DISABLE;
       break;
-    case TRIG_TYPE_MCONTROL: 
-      tdata1_reg->type = TRIG_TYPE_MCONTROL;
-      tdata1_reg->data = wdata.data;
+    case TRIG_TYPE_MCONTROL:
+      mcontrol_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol, &src, cpu.TM);
       tm_update_timings(cpu.TM);
       break;
     default:

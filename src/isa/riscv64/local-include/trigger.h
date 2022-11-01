@@ -184,6 +184,8 @@ bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data);
 
 bool trigger_value_match(Trigger* trig, word_t value);
 
+void mcontrol_checked_write(trig_mcontrol_t* mcontrol, word_t* wdata, const struct TriggerModule* TM);
+
 void trigger_handler(const trig_action_t action);
 
 // Used to avoid magic number
