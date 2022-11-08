@@ -42,6 +42,10 @@ void difftest_regcpy(void *dut, bool direction) {
   isa_difftest_regcpy(dut, direction);
 }
 
+bool detectMem() {
+  return isa_detectMem();
+}
+
 #ifdef RV64_FULL_DIFF
 void difftest_csrcpy(void *dut, bool direction) {
   isa_difftest_csrcpy(dut, direction);

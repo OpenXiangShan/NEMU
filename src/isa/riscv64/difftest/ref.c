@@ -1,6 +1,9 @@
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
+#include "memory/paddr.h"
+#include "memory/host.h"
+#include "memory/vaddr.h"
 #include "../local-include/intr.h"
 #include "../local-include/csr.h"
 
@@ -72,6 +75,10 @@ void isa_difftest_regcpy(void *dut, bool direction) {
     csr_prepare();
     memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
   }
+}
+
+bool isa_detectMem() {
+  return (host_read(guest_to_host(0xf93a1198), 8) == 0x204234d3);
 }
 
 void isa_difftest_csrcpy(void *dut, bool direction) {

@@ -62,6 +62,8 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
         vaddr, addr, rdata);
     }
 #endif
+    if (vaddr == 0xfffffffff91a1198)
+	    Log("vaddr_mmu_read: addr = 0x%lx, len = %d, type = %d, pg_base = 0x%lx, data = %#lx\n", addr, len, type, pg_base, rdata);
     return rdata;
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
     return vaddr_read_cross_page(addr, len, type);
@@ -78,6 +80,8 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+    if (vaddr == 0xfffffffff91a1198)
+	    Log("vaddr_mmu_write: addr = 0x%lx, len = %d, pg_base = 0x%lx, data = %#lx\n", addr, len, pg_base, data);
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len %d, data 0x%lx\n",
