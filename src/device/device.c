@@ -16,10 +16,10 @@
 
 #include <common.h>
 #include <utils.h>
-#include <device/alarm.h>
 #ifndef CONFIG_SHARE
+#include <device/alarm.h>
 #include <SDL2/SDL.h>
-#endif
+#endif // CONFIG_SHARE
 
 void init_serial();
 void init_uartlite();
@@ -39,9 +39,11 @@ void vga_update_screen();
 
 static int device_update_flag = false;
 
+#ifndef CONFIG_SHARE
 static void set_device_update_flag() {
   device_update_flag = true;
 }
+#endif // CONFIG_SHARE
 
 void device_update() {
   if (!device_update_flag) {
@@ -95,6 +97,8 @@ void init_device() {
   IFDEF(CONFIG_HAS_FLASH, init_flash(CONFIG_FLASH_IMG_PATH));
 #endif
 
+#ifndef CONFIG_SHARE
   add_alarm_handle(set_device_update_flag);
   init_alarm();
+#endif
 }
