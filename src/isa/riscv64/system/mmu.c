@@ -129,7 +129,12 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 
   // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
-  if (!pte.a || (!pte.d && is_write)) {
+  bool amo_first_half_load = type == MEM_TYPE_READ && cpu.amo;
+  // we only let amo second half to touch the pte
+  if ((!pte.a && !amo_first_half_load) || (!pte.d && is_write)) {
+    if (dynamic_config.debug_difftest) {
+      fprintf(stderr, "pte.a: %i, type: %i, is amo: %i, write: %i\n", pte.a, type, cpu.amo, is_write);
+    }
     pte.a = true;
     pte.d |= is_write;
     paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
