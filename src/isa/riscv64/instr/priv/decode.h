@@ -20,7 +20,7 @@ static inline def_DHelper(csr) {
   decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
 }
 
-#ifdef CONFIG_DEBUG
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #ifdef CONFIG_RVH
 def_THelper(system) {
   def_INSTR_IDTAB("000000000000 00000 000 00000 ????? ??", csr, ecall);
