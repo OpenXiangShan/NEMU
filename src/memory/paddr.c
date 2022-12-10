@@ -174,9 +174,11 @@ store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
+#ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
     return;
   }
+#endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
   static int overflow = 0;
   store_commit_t *commit = store_commit_queue + tail;
   if (commit->valid && !overflow) { // store commit queue overflow
