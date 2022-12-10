@@ -71,7 +71,7 @@ static inline bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rt
     case RELOP_LEU: return src1 <= src2;
     case RELOP_GTU: return src1 > src2;
     case RELOP_GEU: return src1 >= src2;
-    default: panic("unsupport relop = %d", relop);
+    default: panic("unsupported relop = %d", relop);
   }
 }
 

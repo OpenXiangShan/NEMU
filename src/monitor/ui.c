@@ -225,7 +225,7 @@ static struct {
   const char *description;
   int (*handler) (char *);
 } cmd_table [] = {
-  { "help", "Display informations about all supported commands", cmd_help },
+  { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
 #ifndef __ICS_EXPORT
   { "si", "step", cmd_si },

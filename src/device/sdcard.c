@@ -129,7 +129,7 @@ void init_sdcard() {
 
   //base[SDEDM] = (8 << 4); // number of data in fifo
 
-  Assert(C_SIZE < (1 << 12), "shoule be fit in 12 bits");
+  Assert(C_SIZE < (1 << 12), "should be fit in 12 bits");
 
   const char *img = CONFIG_SDCARD_IMG_PATH;
   fp = fopen(img, "r+");

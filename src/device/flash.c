@@ -53,7 +53,7 @@ void init_flash(const char *flash_img) {
     fseek(fp, 0, SEEK_SET);
     Assert(
       size <= CONFIG_FLASH_SIZE,
-      "img size %d is larget than flash size %d",
+      "img size %d is larger than flash size %d",
       size, CONFIG_FLASH_SIZE
     );
     flash_base = new_space(CONFIG_FLASH_SIZE);

@@ -46,7 +46,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     case 0x120:; // sfence.vma
       mmu_tlb_flush(*src);
       return 0;
-    default: panic("Unsupported privilige operation = %d", op);
+    default: panic("Unsupported privilege operation = %d", op);
   }
   return 0;
 }

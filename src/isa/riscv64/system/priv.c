@@ -471,7 +471,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
 #ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
-      Assert(imm == 0x8, "Unsupport exception = %ld", imm);
+      Assert(imm == 0x8, "Unsupported exception = %ld", imm);
       uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
           uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
       cpu.gpr[10]._64 = host_syscall(cpu.gpr[17]._64, cpu.gpr[10]._64, cpu.gpr[11]._64,

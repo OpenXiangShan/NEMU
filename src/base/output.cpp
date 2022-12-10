@@ -150,7 +150,7 @@ OutputDirectory::close(OutputStream *file)
 {
     auto i = files.find(file->name());
     if (i == files.end())
-        xpanic("Attempted to close an unregistred file stream");
+        xpanic("Attempted to close an unregistered file stream");
 
     files.erase(i);
 
