@@ -64,7 +64,7 @@ enum {
   HOSTCALL_FP,    // floating point operation
   HOSTCALL_CSR,   // system registers / control status registers
   HOSTCALL_TRAP,  // trap by interrupts/exceptions
-  HOSTCALL_PRIV,  // privilige instructions
+  HOSTCALL_PRIV,  // privilege instructions
 };
 
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
