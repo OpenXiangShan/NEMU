@@ -55,7 +55,7 @@ $(OBJ_DIR)/%.opp: %.cpp
 	@$(CXX) $(CXXFLAGS) -c -o $@ $<
 	$(call call_fixdep, $(@:.opp=.d), $@)
 
-# Depencies
+# Dependencies
 ifndef SHARE
 -include $(COBJS:.o=.d) $(XOBJS:.opp=.d)
 else
