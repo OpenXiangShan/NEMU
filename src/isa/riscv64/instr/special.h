@@ -16,3 +16,7 @@ def_EHelper(nemu_trap) {
   rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
   longjmp_exec(NEMU_EXEC_END);
 }
+
+def_EHelper(gem5_trap) {
+  //do nothing
+}

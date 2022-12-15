@@ -116,7 +116,7 @@
   f(fmadds) f(fmsubs) f(fnmsubs) f(fnmadds) f(fmaddd) f(fmsubd) f(fnmsubd) f(fnmaddd)
 
 #define INSTR_NULLARY(f) \
-  f(inv) f(rt_inv) f(nemu_trap) \
+  f(inv) f(rt_inv) f(nemu_trap) f(gem5_trap)\
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f) \
   f(p_ret)
