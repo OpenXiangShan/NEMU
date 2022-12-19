@@ -150,7 +150,7 @@ finish:
 #define def_INSTR_raw(pattern, body) do { \
   uint64_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
-  if (((get_instr(s) >> shift) & mask) == key) { body; } \
+  if ((((uint64_t)get_instr(s) >> shift) & mask) == key) { body; } \
 } while (0)
 
 #define def_INSTR_IDTABW(pattern, id, tab, width) \
