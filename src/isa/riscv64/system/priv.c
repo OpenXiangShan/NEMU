@@ -238,8 +238,20 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(mip)) { mip->val = mask_bitset(mip->val, MIP_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
-  else if (is_write(mtvec)) { *dest = src & ~(0x2UL); }
-  else if (is_write(stvec)) { *dest = src & ~(0x2UL); }
+  else if (is_write(mtvec)) {
+#ifdef XTVEC_VECTORED_MODE
+    *dest = src & ~(0x2UL);
+#else
+    *dest = src & ~(0x3UL);
+#endif // XTVEC_VECTORED_MODE
+}
+  else if (is_write(stvec)) {
+#ifdef XTVEC_VECTORED_MODE
+    *dest = src & ~(0x2UL);
+#else
+    *dest = src & ~(0x3UL);
+#endif // XTVEC_VECTORED_MODE
+}
   else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_MISA_UNCHANGEABLE

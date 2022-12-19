@@ -24,6 +24,7 @@ CONFIG_RV_PMP_NUM=4
 # CONFIG_RV_PMP_CHECK is not set
 # CONFIG_RV_SVINVAL is not set
 CONFIG_MISA_UNCHANGEABLE=y
+CONFIG_XTVEC_VECTORED_MODE=y
 # CONFIG_RV_ARCH_CSRS is not set
 # end of ISA-dependent Options for riscv64
 
