@@ -53,18 +53,22 @@ void init_csr() {
 
 rtlreg_t csr_perf;
 
-static inline bool csr_is_legal(uint32_t addr) {
+static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   assert(addr < 4096);
-  // CSR does not exist
+  // Attempts to access a non-existent CSR raise an illegal instruction exception.
   if(!csr_exist[addr]) {
 #ifdef CONFIG_PANIC_ON_UNIMP_CSR
     panic("[NEMU] unimplemented CSR 0x%x", addr);
 #endif
     return false;
   }
-  // CSR exists, but access is not legal
+  // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
   if (!(cpu.mode >= lowest_access_priv_level)) {
+    return false;
+  }
+  // or to write a read-only register also raise illegal instruction exceptions.
+  if (need_write && (addr >> 10) == 0x3) {
     return false;
   }
   return true;
@@ -388,7 +392,7 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
-  if (!csr_is_legal(csrid)) {
+  if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
