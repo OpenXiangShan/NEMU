@@ -1,7 +1,7 @@
 menu "ISA-dependent Options for x86"
 
 choice
-  prompt "Optimization for condition code evaulation"
+  prompt "Optimization for condition code evaluation"
   default x86_CC_SKIP
 config x86_CC_SKIP
   bool "Skip CC"

@@ -11,7 +11,7 @@ SECTIONS
   /* Code and read-only segment                                         */
   /*--------------------------------------------------------------------*/
 
-  /* Begining of code and text segment */
+  /* Beginning of code and text segment */
   . = 0x80000000;
 
   /* restore: Restore Program code section */

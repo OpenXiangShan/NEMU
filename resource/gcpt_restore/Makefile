@@ -45,7 +45,7 @@ $(OBJ_DIR)/%.o: %.S
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 
-# Depencies
+# Dependencies
 -include $(OBJS:.o=.d)
 
 $(BINARY): $(OBJS)

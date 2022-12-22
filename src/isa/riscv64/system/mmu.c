@@ -284,7 +284,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
           // cross page ipf caused mismatch is legal
           !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.mtval & 0xfff) == 0x000)
         ){
-          printf("[WRANING] nemu mtval %lx does not match core mtval %lx\n",
+          printf("[WARNING] nemu mtval %lx does not match core mtval %lx\n",
             vaddr,
             cpu.execution_guide.mtval
           );
@@ -296,7 +296,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
           // cross page ipf caused mismatch is legal
           !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.stval & 0xfff) == 0x000)
         ){
-          printf("[WRANING] nemu stval %lx does not match core stval %lx\n",
+          printf("[WARNING] nemu stval %lx does not match core stval %lx\n",
             vaddr,
             cpu.execution_guide.stval
           );

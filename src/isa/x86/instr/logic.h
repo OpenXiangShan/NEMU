@@ -168,7 +168,7 @@ def_EHelper(sar) {
 
   // if ddest == dsrc1, rtl_sar() still only use the
   // lower 5 bits of dsrc1, which do not change after
-  // rtl_sext(), and it is still sematically correct
+  // rtl_sext(), and it is still semantically correct
   rtl_sext(s, ddest, ddest, s->isa.width);
 #ifndef CONFIG_PA
 #ifdef CONFIG_ENGINE_INTERPRETER

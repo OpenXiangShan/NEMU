@@ -68,7 +68,7 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   char *loading_img = img_name;
   Log("Loading %s: %s\n", which_img, img_name);
   if (img_name == NULL) {
-    Log("No image is given. Use the default build-in image/restorer.");
+    Log("No image is given. Use the default built-in image/restorer.");
     return 4096; // built-in image size
   }
 
