@@ -261,6 +261,8 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }
 #endif
+  else if (is_write(mepc)) { *dest = src & (~0x1UL); }
+  else if (is_write(sepc)) { *dest = src & (~0x1UL); }
   else if (is_write(fflags)) {
 #ifdef CONFIG_FPU_NONE
   longjmp_exception(EX_II);
