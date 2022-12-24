@@ -20,7 +20,8 @@
 #include <cpu/cpu.h>
 
 bool vp_enable() {
-  return MUXDEF(CONFIG_MODE_USER, true, mstatus->vs != 0);
+  return true;
+  //return MUXDEF(CONFIG_MODE_USER, true, mstatus->vs != 0);
 }
 
 void vp_set_dirty() {

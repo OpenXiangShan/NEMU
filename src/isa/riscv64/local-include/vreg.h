@@ -19,7 +19,7 @@
 
 #include "common.h"
 
-#define VLEN 256
+#define VLEN 128
 #define VLENLG 8
 #define MAXELEN 64
 #define VENUM64 (VLEN/64)
@@ -63,8 +63,7 @@ void longjmp_raise_intr(uint32_t foo);
 
 #define SRC_VV  0
 #define SRC_VI  1
-#define SRC_VS  2
-#define SRC_SI  3
+#define SRC_VX  2
 #define UNSIGNED     0
 #define SIGNED       1
 #endif //__RISCV64_VREG_H__

@@ -36,13 +36,13 @@
 #ifdef CONFIG_DEBUG
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(mret) f(sret) f(wfi) \
+  f(ecall) f(ebreak) f(mret) f(sret) f(wfi) \
   f(sfence_w_inval) f(sfence_inval_ir)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) f(sinval_vma)
 #else
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(mret) f(sret) f(wfi)
+  f(ecall) f(ebreak) f(mret) f(sret) f(wfi)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma)
 #endif
@@ -60,7 +60,7 @@
 #define VECTOR_INSTR_TERNARY(f) \
   f(vadd) f(vsub) f(vrsub) f(vminu) f(vmin) \
   f(vmaxu) f(vmax) f(vand) f(vor) f(vxor) \
-  f(vrgather)  \
+  f(vrgather) f(vrgatherei16) \
   f(vadc) f(vmadc) f(vsbc) f(vmsbc) \
   f(vmerge) f(vmseq) f(vmsne) f(vmsltu) \
   f(vmslt) f(vmsleu) f(vmsle) f(vmsgtu) \
@@ -72,21 +72,24 @@
   f(vdotu) f(vdot) f(vwsmaccu) f(vwsmacc) \
   f(vwsmaccsu) f(vwsmaccus) f(vredsum) \
   f(vredand) f(vredor) f(vredxor) f(vredminu) \
-  f(vredmin) f(vredmaxu) f(vredmax) f(vmpopc) \
-  f(vmfirst) f(vmunaryo) f(vcompress) f(vmandnot) \
+  f(vredmin) f(vredmaxu) f(vredmax) f(vmvsx) \
+  f(vmvxs) f(vcpop) f(vfirst) f(vmsbf) f(vmsof) \
+  f(vmsif) f(viota) f(vid) f(vcompress) f(vmandnot) \
   f(vmand) f(vmor) f(vmxor) f(vmornot) f(vmnand) \
   f(vmnor) f(vmxnor) f(vdivu) f(vdiv) f(vremu) \
   f(vrem) f(vmulhu) f(vmul) f(vmulhsu) f(vmulh) \
   f(vmadd) f(vnmsub) f(vmacc) f(vnmsac) f(vwaddu) \
   f(vwadd) f(vwsub) f(vwsubu) f(vwaddu_w) f(vwadd_w) \
   f(vwsubu_w) f(vwsub_w) f(vwmulu) f(vwmulsu) \
-  f(vwmul) f(vwmaccu) f(vwnmacc) f(vwmaccsu) \
+  f(vwmul) f(vwmaccu) f(vwmacc) f(vwmaccsu) \
   f(vwmaccus) f(vlduu) f(vldsu) f(vldxu) \
   f(vldus) f(vldss) f(vldxs) f(vstu) \
-  f(vsts) f(vstx) f(vstxu) f(vsetvl) \
+  f(vsts) f(vstx) f(vstxu) f(vsetvl) f(vsetvli) f(vsetivli) \
   f(vlduu_mmu) f(vldsu_mmu) f(vldxu_mmu) \
   f(vldus_mmu) f(vldss_mmu) f(vldxs_mmu) f(vstu_mmu) \
-  f(vsts_mmu) f(vstx_mmu) f(vstxu_mmu) f(vslideup) f(vslidedown)
+  f(vsts_mmu) f(vstx_mmu) f(vstxu_mmu) \
+  f(vslideup) f(vslidedown) f(vslide1up) f(vslide1down) f(vmvnr) \
+  f(vzextvf8) f(vsextvf8) f(vzextvf4) f(vsextvf4) f(vzextvf2) f(vsextvf2)
 #else // CONFIG_RVV_010
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV_010

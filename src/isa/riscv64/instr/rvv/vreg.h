@@ -21,7 +21,7 @@
 
 #include "common.h"
 
-#define VLEN 256
+#define VLEN 128
 #define VLENLG 8
 #define MAXELEN 64
 #define VENUM64 (VLEN/64)
@@ -59,6 +59,7 @@ static inline const char * vreg_name(int index, int width) {
   return vregsl[index];
 }
 
+int get_vlmax(int vsew, int vlmul);
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign);
 void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul, int needAlgin);
 
@@ -66,12 +67,12 @@ void longjmp_raise_intr(uint32_t foo);
 
 #define SRC_VV  0
 #define SRC_VI  1
-#define SRC_VS  2
-#define SRC_SI  3
+#define SRC_VX  2
 #define UNSIGNED     0
 #define SIGNED       1
 
 void vcsr_write(uint32_t addr,  rtlreg_t *src);
+void vcsr_read(uint32_t addr, rtlreg_t *dest);
 
 #endif //__RISCV64_VREG_H__
 

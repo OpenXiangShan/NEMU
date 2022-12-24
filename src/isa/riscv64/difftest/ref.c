@@ -44,11 +44,13 @@ static void csr_prepare() {
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
 #ifdef CONFIG_RVV_010
-  cpu.vtype   = vtype->val;
   cpu.vstart  = vstart->val;
   cpu.vxsat   = vxsat->val;
   cpu.vxrm    = vxrm->val;
+  cpu.vcsr    = vcsr->val;
   cpu.vl      = vl->val;
+  cpu.vtype   = vtype->val;
+  cpu.vlenb   = vlenb->val;
 #endif // CONFIG_RVV_010
 }
 
@@ -72,11 +74,13 @@ static void csr_writeback() {
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
 #ifdef CONFIG_RVV_010
-  vtype->val   = cpu.vtype;
   vstart->val  = cpu.vstart;
   vxsat->val   = cpu.vxsat;
   vxrm->val    = cpu.vxrm;
+  vcsr->val    = cpu.vcsr;
   vl->val      = cpu.vl;
+  vtype->val   = cpu.vtype;
+  vlenb->val   = cpu.vlenb;
 #endif //CONFIG_RVV_010
 }
 

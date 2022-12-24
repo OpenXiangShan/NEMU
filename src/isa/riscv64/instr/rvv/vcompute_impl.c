@@ -24,11 +24,11 @@
 
 #define s0    (&tmp_reg[0])
 #define s1    (&tmp_reg[1])
+#define s2    (&tmp_reg[2])
+#define s3    (&tmp_reg[3])
 
-
-
-void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
-  vp_set_dirty();
+void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
+  int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -36,14 +36,22 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
     if(s->vm == 0) {
       // merge instr will exec no matter mask or not
       // masked and mask off exec will left dest unmodified.
-      if(opcode != MERGE && mask==0) continue;
-    } else if(opcode == MERGE) {
-      mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
+      if(opcode != MERGE \
+        && opcode != ADC \
+        && opcode != MADC \
+        && opcode != SBC \
+        && opcode != MSBC \
+        && mask==0) continue;
+
+    } else {
+      if(opcode == MERGE) {
+        mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
+      }
     }
 
     // operand - vs2
-    get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
-     if(is_signed) rtl_sext(s, s0, s0, 1 << vtype->vsew);
+    get_vreg(id_src2->reg, idx, s0, vtype->vsew+narrow, vtype->vlmul, is_signed, 1);
+     if(is_signed) rtl_sext(s, s0, s0, 1 << (vtype->vsew+narrow));
 
     // operand - s1 / rs1 / imm
     switch (s->src_vmode) {
@@ -51,7 +59,7 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
         get_vreg(id_src->reg, idx, s1, vtype->vsew, vtype->vlmul, is_signed, 1);
         if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
         break;
-      case SRC_VS :   
+      case SRC_VX :   
         rtl_lr(s, &(id_src->val), id_src1->reg, 4);
         rtl_mv(s, s1, &id_src->val); 
         if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
@@ -70,21 +78,80 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
       case AND : rtl_and(s, s1, s0, s1); break;
       case OR  : rtl_or(s, s1, s0, s1); break;
       case XOR : rtl_xor(s, s1, s0, s1); break;
+      case MIN : rtl_min(s, s1, s0, s1); break;
+      case MAX : rtl_max(s, s1, s0, s1); break;
+      case MINU: rtl_minu(s, s1, s0, s1); break;
+      case MAXU: rtl_maxu(s, s1, s0, s1); break;
+      case VEXT: rtl_mv(s, s1, s0); break;
+      case ADC : 
+        rtl_add(s, s1, s0, s1);
+        rtl_li(s, s2, mask);
+        rtl_add(s, s1, s1, s2); break;
+      case SBC : 
+        rtl_sub(s, s1, s0, s1);
+        rtl_li(s, s2, mask);
+        rtl_sub(s, s1, s1, s2); break;
+      case MADC:
+        if ((int64_t)*s1 >= 0 && (int64_t)*s0 >= 0) {
+            int64_t tmp = (int64_t)*s0 + (int64_t)*s1 + mask;
+            if (tmp < 0) {
+                rtl_li(s, s1, 1);
+            } else {
+                rtl_li(s, s1, 0);
+            }
+        } else {
+            int64_t tmp = (int64_t)*s0 + (int64_t)*s1 + mask;
+            if (tmp >= 0) {
+                rtl_li(s, s1, 1);
+            } else {
+                rtl_li(s, s1, 0);
+            }
+        }
+        break;
+      case MSBC:
+        if ((int64_t)*s0 >= 0 && (int64_t)*s1 >= 0) {
+            int64_t tmp = (int64_t)*s0 - (int64_t)*s1 - mask;
+            if (tmp < 0) {
+                rtl_li(s, s1, 1);
+            } else {
+                rtl_li(s, s1, 0);
+            }
+        } else {
+            int64_t tmp = (int64_t)*s0 - (int64_t)*s1 - mask;
+            if (tmp >= 0) {
+                rtl_li(s, s1, 1);
+            } else {
+                rtl_li(s, s1, 0);
+            }
+        }
+        break;
       case SLL :
         rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW) is valid
         //rtl_sext(s0, s0, 8 - (1 << vtype->vsew)); //sext first
         rtl_shl(s, s1, s0, s1); break;
       case SRL :
-        rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
+        if (narrow)
+            rtl_andi(s, s1, s1, s->v_width*16-1); //low lg2(SEW)
+        else
+            rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
         rtl_shr(s, s1, s0, s1); break;
       case SRA :
-        rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
-        rtl_sext(s, s0, s0, s->v_width);
+        if (narrow) {
+            rtl_andi(s, s1, s1, s->v_width*16-1); //low lg2(SEW)
+            rtl_sext(s, s0, s0, s->v_width*2);
+        }
+        else {
+            rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
+            rtl_sext(s, s0, s0, s->v_width);
+        }
         rtl_sar(s, s1, s0, s1); break;
       case MULHU : 
         *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
         break;
       case MUL : rtl_mulu_lo(s, s1, s0, s1); break;
+      case MULSU : 
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_mulu_lo(s, s1, s0, s1); break;
       case MULHSU :
         rtl_sext(s, t0, s0, s->v_width);
         rtl_sari(s, t0, t0, s->v_width*8-1);
@@ -99,7 +166,19 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
         break;
       case MACC : 
         rtl_mulu_lo(s, s1, s0, s1);
-        get_vreg(id_dest->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
+        get_vreg(id_dest->reg, idx, s0, vtype->vsew+widening, vtype->vlmul, is_signed, 1);
+        rtl_add(s, s1, s1, s0);
+        break;
+      case MACCSU :
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
+        rtl_mulu_lo(s, s1, s0, s1);
+        get_vreg(id_dest->reg, idx, s0, vtype->vsew+widening, vtype->vlmul, is_signed, 1);
+        rtl_add(s, s1, s1, s0);
+        break;
+      case MACCUS :
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_mulu_lo(s, s1, s0, s1);
+        get_vreg(id_dest->reg, idx, s0, vtype->vsew+widening, vtype->vlmul, is_signed, 1);
         rtl_add(s, s1, s1, s0);
         break;
       case NMSAC :
@@ -108,15 +187,13 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
         rtl_sub(s, s1, s0, s1);
         break;
       case MADD :
-        get_vreg(id_dest->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
-        rtl_mulu_lo(s, s1, s0, s1);
-        get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
+        get_vreg(id_dest->reg, idx, s2, vtype->vsew, vtype->vlmul, is_signed, 1);
+        rtl_mulu_lo(s, s1, s1, s2);
         rtl_add(s, s1, s1, s0);
         break;
       case NMSUB :
-        get_vreg(id_dest->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
-        rtl_mulu_lo(s, s1, s1, s0);
-        get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
+        get_vreg(id_dest->reg, idx, s2, vtype->vsew, vtype->vlmul, is_signed, 1);
+        rtl_mulu_lo(s, s1, s2, s1);
         rtl_sub(s, s1, s0, s1);
         break;
       case DIVU :
@@ -152,20 +229,43 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
       case MSLE  : rtl_setrelop(s, RELOP_LE,  s1, s0, s1); break;
       case MSGTU : rtl_setrelop(s, RELOP_GTU, s1, s0, s1); break;
       case MSGT  : rtl_setrelop(s, RELOP_GT,  s1, s0, s1); break;
+      case SLIDEUP :
+        if (idx >= *s1) get_vreg(id_src2->reg, idx - *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case SLIDEDOWN :
+        if (idx + *s1 < vlmax) get_vreg(id_src2->reg, idx + *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else rtl_li(s, s1, 0);
+        break;
+      case SLIDE1UP :
+        if (idx > 0) get_vreg(id_src2->reg, idx - 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case SLIDE1DOWN :
+        if (idx < vl->val - 1) get_vreg(id_src2->reg, idx + 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case RGATHER :
+        if (*s1 < vlmax) get_vreg(id_src2->reg, *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else rtl_li(s, s1, 0);
+        break;
+      case RGATHEREI16 :
+        get_vreg(id_src1->reg, idx, s1, 1, vtype->vlmul, 0, 1);
+        if (*s1 < vlmax) get_vreg(id_src2->reg, *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else rtl_li(s, s1, 0);
+        break;
     }
 
     // store to vrf
-    if(dest_reg == 1) 
+    if(dest_mask == 1) 
       set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
-    else 
-      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    else
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew+widening, vtype->vlmul, 1);
   }
 
   // idx gt the vl need to be zeroed.
   // int vlmax = ((VLEN >> 3) >> vtype->vsew) << vtype->vlmul;
   // for(idx = vl->val; idx < vlmax; idx ++) {
   //   rtl_li(s1, 0);
-  //   if(dest_reg == 1) 
+  //   if(dest_mask == 1) 
   //     set_mask(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul);
   //   else 
   //     set_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 1);
@@ -178,7 +278,6 @@ void arthimetic_instr(int opcode, int is_signed, int dest_reg, Decode *s) {
 
 
 void mask_instr(int opcode, Decode *s) {
-  vp_set_dirty();
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -210,31 +309,19 @@ void mask_instr(int opcode, Decode *s) {
     *s1 &= 1; // make sure the LSB
     set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
   }
-
-  int vlmax = ((VLEN >> 3) >> vtype->vsew) << vtype->vlmul;
-  rtl_li(s, s1, 0);
-  for( idx = vl->val; idx < vlmax; idx++) {  
-    set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
-  }
-  vcsr_write(IDXVSTART, s1);
 }
 
 
-void reduction_instr(int opcode, int is_signed, Decode *s) {
-  vp_set_dirty();
+void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   // TODO: check here: does not need align??
-  get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, is_signed, 0);
-  if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
+  get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 1);
+  if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
 
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if(s->vm == 0) {
-      // merge instr will exec no matter mask or not
-      // masked and mask off exec will left dest unmodified.
-      if(opcode != MERGE && mask==0) continue;
-    } else if(opcode == MERGE) {
-      mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
+    if(s->vm == 0 && mask==0) {
+      continue;
     }
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
@@ -247,17 +334,16 @@ void reduction_instr(int opcode, int is_signed, Decode *s) {
       case REDOR  : rtl_or(s, s1, s0, s1); break;
       case REDAND : rtl_and(s, s1, s0, s1); break;
       case REDXOR : rtl_xor(s, s1, s0, s1); break;
+      case REDMIN : rtl_min(s, s1, s0, s1); break;
+      case REDMAX : rtl_max(s, s1, s0, s1); break;
+      case REDMINU: rtl_minu(s, s1, s0, s1); break;
+      case REDMAXU: rtl_maxu(s, s1, s0, s1); break;
       //  case MIN : 
       // MINU is hard to achieve parallel
     }
 
   }
-  set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
-  
-  int vlmax =  ((VLEN >> 3) >> vtype->vsew);
-  for(int i=1; i<vlmax; i++) {
-    set_vreg(id_dest->reg, i, 0, vtype->vsew, vtype->vlmul, 0);
-  }
+  set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
 }
 
 // dirty job here

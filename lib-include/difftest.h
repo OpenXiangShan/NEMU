@@ -32,7 +32,11 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 33) // GRPs + pc
 #elif defined(__ISA_riscv64__)
 #ifdef RV64_FULL_DIFF 
+#ifdef CONFIG_RVV_010 
+#define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1 + 64 + 7))
+#else
 #define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1))
+#endif
 // GRPs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode
 #else
 # define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc

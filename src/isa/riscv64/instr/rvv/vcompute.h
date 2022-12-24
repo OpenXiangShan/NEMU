@@ -44,19 +44,19 @@ def_EHelper(vrsub) {
 }
 
 def_EHelper(vminu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(MINU, UNSIGNED)
 }
 
 def_EHelper(vmin) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(MIN, SIGNED)
 }
 
 def_EHelper(vmaxu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(MAXU, UNSIGNED)
 }
 
 def_EHelper(vmax) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(MAX, SIGNED)
 }
 
 def_EHelper(vand) {
@@ -78,31 +78,43 @@ def_EHelper(vxor) {
 }
 
 def_EHelper(vrgather) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(RGATHER, UNSIGNED)
+}
+
+def_EHelper(vrgatherei16) {
+  ARTHI(RGATHEREI16, UNSIGNED)
 }
 
 def_EHelper(vslideup) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(SLIDEUP, UNSIGNED)
 }
 
 def_EHelper(vslidedown) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(SLIDEDOWN, UNSIGNED)
+}
+
+def_EHelper(vslide1up) {
+  ARTHI(SLIDE1UP, UNSIGNED)
+}
+
+def_EHelper(vslide1down) {
+  ARTHI(SLIDE1DOWN, UNSIGNED)
 }
 
 def_EHelper(vadc) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(ADC, SIGNED)
 }
 
 def_EHelper(vmadc) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_MASK(MADC, SIGNED)
 }
 
 def_EHelper(vsbc) {
-  longjmp_raise_intr(EX_II);
+  ARTHI(SBC, SIGNED)
 }
 
 def_EHelper(vmsbc) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_MASK(MSBC, SIGNED)
 }
 
 def_EHelper(vmerge) {
@@ -112,53 +124,53 @@ def_EHelper(vmerge) {
 }
 
 def_EHelper(vmseq) {
-  ARTHI_COMP(MSEQ, SIGNED)
+  ARTHI_MASK(MSEQ, SIGNED)
   // print_asm_template3(vmseq);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsne) {
-  ARTHI_COMP(MSNE, SIGNED)
+  ARTHI_MASK(MSNE, SIGNED)
   // print_asm_template3(vmsne);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsltu) {
   Assert(s->src_vmode != SRC_VI, "vmsltu not supprt SRC_VI\n");
-  ARTHI_COMP(MSLTU, UNSIGNED)
+  ARTHI_MASK(MSLTU, UNSIGNED)
   // print_asm_template3(vmsltu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmslt) {
   Assert(s->src_vmode != SRC_VI, "vmslt not supprt SRC_VI\n");
-  ARTHI_COMP(MSLT, SIGNED)
+  ARTHI_MASK(MSLT, SIGNED)
   // print_asm_template3(vmslt);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsleu) {
-  ARTHI_COMP(MSLEU, UNSIGNED)
+  ARTHI_MASK(MSLEU, UNSIGNED)
   // print_asm_template3(vmsleu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsle) {
-  ARTHI_COMP(MSLE, SIGNED);
+  ARTHI_MASK(MSLE, SIGNED);
   // print_asm_template3(vmsle);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsgtu) {
   Assert(s->src_vmode != SRC_VV, "vmsgtu not support SRC_VV\n");
-  ARTHI_COMP(MSGTU, UNSIGNED)
+  ARTHI_MASK(MSGTU, UNSIGNED)
   // print_asm_template3(vmsgtu);
   // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsgt) {
   Assert(s->src_vmode != SRC_VV, "vmsgt not support SRC_VV\n");
-  ARTHI_COMP(MSGT, SIGNED)
+  ARTHI_MASK(MSGT, SIGNED)
   // print_asm_template3(vmsgt);
   // longjmp_raise_intr(EX_II);
 }
@@ -218,11 +230,11 @@ def_EHelper(vssra) {
 }
 
 def_EHelper(vnsrl) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_NARROW(SRL, UNSIGNED, 1)
 }
 
 def_EHelper(vnsra) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_NARROW(SRA, UNSIGNED, 1)
 }
 
 def_EHelper(vnclipu) {
@@ -234,11 +246,11 @@ def_EHelper(vnclip) {
 }
 
 def_EHelper(vwredsumu) {
-  longjmp_raise_intr(EX_II);
+  REDInstr_WIDE(REDSUM, UNSIGNED);
 }
 
 def_EHelper(vwredsum) {
-  longjmp_raise_intr(EX_II);
+  REDInstr_WIDE(REDSUM, SIGNED);
 }
 
 def_EHelper(vdotu) {
@@ -288,32 +300,56 @@ def_EHelper(vredxor) {
 }
 
 def_EHelper(vredminu) {
-  longjmp_raise_intr(EX_II);
+  REDInstr(REDMINU, UNSIGNED);
 }
 
 def_EHelper(vredmin) {
-  longjmp_raise_intr(EX_II);
+  REDInstr(REDMIN, SIGNED);
 }
 
 def_EHelper(vredmaxu) {
-  longjmp_raise_intr(EX_II);
+  REDInstr(REDMAXU, UNSIGNED);
 }
 
 def_EHelper(vredmax) {
-  longjmp_raise_intr(EX_II);
+  REDInstr(REDMAX, SIGNED);
 }
 
+def_EHelper(vmvsx) {
+  rtl_lr(s, &(id_src->val), id_src1->reg, 4);
+  rtl_mv(s, s1, &id_src->val); 
+  rtl_sext(s, s1, s1, 1 << vtype->vsew);
+  set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
+}
 
+def_EHelper(vmvxs) {
+  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
+  rtl_sext(s, s0, s0, 1 << 3);
+  rtl_sr(s, id_dest->reg, s0, 4);
+}
 
+def_EHelper(vmvnr) {
+    rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5 );
+    int NREG = (*s1) + 1;
+    int len = (VLEN >> 6) * NREG;
+    int vlmul = 0;
+    while (NREG > 1) {
+      NREG = NREG >> 1;
+      vlmul++;
+    }
+    for (int i = 0; i < len; i++) {
+      get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
+      set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
+    }
+}
 
-def_EHelper(vmpopc) {
+def_EHelper(vcpop) {
   // longjmp_raise_intr(EX_II);
   if(vstart->val != 0)
     longjmp_raise_intr(EX_II);
   
-  int vlmax = ((VLEN >> 3) >> vtype->vsew) << vtype->vlmul;
   rtl_li(s, s1, 0);
-  for(int idx = 0; idx < vlmax; idx ++) {
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
         // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask == 0)
@@ -328,31 +364,172 @@ def_EHelper(vmpopc) {
   rtl_sr(s, id_dest->reg, s1, 4);
 }
 
-def_EHelper(vmfirst) {
+def_EHelper(vfirst) {
   // longjmp_raise_intr(EX_II);
   if(vstart->val != 0)
     longjmp_raise_intr(EX_II);
   
-  int vlmax = ((VLEN >> 3) >> vtype->vsew) << vtype->vlmul;
-  int idx;
-  for(idx = 0; idx < vlmax; idx ++) {
+  int pos = -1;
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
     *s0 &= 1;
-    if(*s0 == 1) break;
+    if(*s0 == 1) {
+        pos = idx;
+        break;
+    }
   }
-  if(idx < vlmax)
-    rtl_li(s, s1, idx);  
-  else
-    rtl_li(s, s1, -1);
+  rtl_li(s, s1, pos);
   rtl_sr(s, id_dest->reg, s1, 4);
 }
 
-def_EHelper(vmunaryo) {
-  longjmp_raise_intr(EX_II);
+def_EHelper(vmsbf) {
+  if(vstart->val != 0)
+    longjmp_raise_intr(EX_II);
+
+  bool first_one = false;
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if(s->vm == 0 && mask == 0)
+      continue;
+    
+    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+    *s0 &= 1;
+
+    if(!first_one && *s0 == 1) {
+      first_one = true;
+    }
+
+    if(first_one) {
+      set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
+    } else{
+      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+    }
+  }
+}
+
+def_EHelper(vmsof) {
+  if(vstart->val != 0)
+    longjmp_raise_intr(EX_II);
+
+  bool first_one = false;
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if(s->vm == 0 && mask == 0)
+      continue;
+    
+    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+    *s0 &= 1;
+
+    if(!first_one && *s0 == 1) {
+      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      first_one = true;
+      continue;
+    }
+    set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
+  }
+}
+
+def_EHelper(vmsif) {
+  if(vstart->val != 0)
+    longjmp_raise_intr(EX_II);
+
+  bool first_one = false;
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if(s->vm == 0 && mask == 0)
+      continue;
+    
+    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+    *s0 &= 1;
+
+    if(first_one) {
+      set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
+    } else{
+      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+    }
+
+    if(!first_one && *s0 == 1) {
+      first_one = true;
+    }
+  }
+}
+
+def_EHelper(viota) {
+  if(vstart->val != 0)
+    longjmp_raise_intr(EX_II);
+
+  rtl_li(s, s1, 0);
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if(s->vm == 0 && mask == 0)
+      continue;
+    
+    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+    *s0 &= 1;
+
+    set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    
+    if(*s0 == 1) {
+      rtl_addi(s, s1, s1, 1);
+    }
+  }
+}
+
+def_EHelper(vid) {
+  for(int idx = 0; idx < vl->val; idx ++) {
+        // mask
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    // Masking does not change the index value written to active elements.
+    if(s->vm == 0 && mask == 0)
+      continue;
+
+    rtl_li(s, s1, idx);
+    set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+  }
+}
+
+def_EHelper(vzextvf8) {
+  ARTHI_NARROW(VEXT, UNSIGNED, -3);
+}
+
+def_EHelper(vsextvf8) {
+  ARTHI_NARROW(VEXT, SIGNED, -3);
+}
+
+def_EHelper(vzextvf4) {
+  ARTHI_NARROW(VEXT, UNSIGNED, -2);
+}
+
+def_EHelper(vsextvf4) {
+  ARTHI_NARROW(VEXT, SIGNED, -2);
+}
+
+def_EHelper(vzextvf2) {
+  ARTHI_NARROW(VEXT, UNSIGNED, -1);
+}
+
+def_EHelper(vsextvf2) {
+  ARTHI_NARROW(VEXT, SIGNED, -1);
 }
 
 def_EHelper(vcompress) {
-  longjmp_raise_intr(EX_II);
+  if(vstart->val != 0)
+    longjmp_raise_intr(EX_II);
+
+  rtl_li(s, s1, 0);
+  for(int idx = vstart->val; idx < vl->val; idx ++) {
+    rtlreg_t mask = get_mask(id_src1->reg, idx, vtype->vsew, vtype->vlmul);
+    
+    if (mask == 0) {
+        continue;
+    }
+
+    get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, 1, 1);
+
+    set_vreg(id_dest->reg, *s1, *s0, vtype->vsew, vtype->vlmul, 1);
+    
+    rtl_addi(s, s1, s1, 1);
+  }
 }
 
 def_EHelper(vmandnot) {
@@ -484,63 +661,63 @@ def_EHelper(vnmsac) {
 }
 
 def_EHelper(vwaddu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(ADD, UNSIGNED)
 }
 
 def_EHelper(vwadd) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(ADD, SIGNED)
 }
 
 def_EHelper(vwsubu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(SUB, UNSIGNED)
 }
 
 def_EHelper(vwsub) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(SUB, SIGNED)
 }
 
 def_EHelper(vwaddu_w) {
-  longjmp_raise_intr(EX_II);
+  arthimetic_instr(ADD, UNSIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwadd_w) {
-  longjmp_raise_intr(EX_II);
+  arthimetic_instr(ADD, SIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwsubu_w) {
-  longjmp_raise_intr(EX_II);
+  arthimetic_instr(SUB, UNSIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwsub_w) {
-  longjmp_raise_intr(EX_II);
+  arthimetic_instr(SUB, SIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwmulu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(MUL, UNSIGNED)
 }
 
 def_EHelper(vwmulsu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(MULSU, UNSIGNED)
 }
 
 def_EHelper(vwmul) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(MUL, SIGNED)
 }
 
 def_EHelper(vwmaccu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(MACC, UNSIGNED)
 }
 
-def_EHelper(vwnmacc) {
-  longjmp_raise_intr(EX_II);
+def_EHelper(vwmacc) {
+  ARTHI_WIDE(MACC, SIGNED)
 }
 
 def_EHelper(vwmaccsu) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(MACCSU, UNSIGNED)
 }
 
 def_EHelper(vwmaccus) {
-  longjmp_raise_intr(EX_II);
+  ARTHI_WIDE(MACCUS, UNSIGNED)
 }
 
 
