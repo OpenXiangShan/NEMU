@@ -61,7 +61,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     e->gvpn = hosttlb_vpn(vaddr);
     e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
-#ifdef CONFIG_DATAFLOW_PROF
+#ifdef CONFIG_MEM_PROF
   if (s != NULL) {
     s->is_store = false;
     s->paddr = paddr;
@@ -82,7 +82,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     e->gvpn = hosttlb_vpn(vaddr);
     e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
-#ifdef CONFIG_DATAFLOW_PROF
+#ifdef CONFIG_MEM_PROF
   s->is_store = true;
   s->paddr = paddr;
   s->mem_width = len;
@@ -100,7 +100,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
-#ifdef CONFIG_DATAFLOW_PROF
+#ifdef CONFIG_MEM_PROF
     paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
     if (s != NULL) { // mem read
       s->is_store = false;
@@ -122,7 +122,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
-#ifdef CONFIG_DATAFLOW_PROF
+#ifdef CONFIG_MEM_PROF
   paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
   s->is_store = true;
   s->paddr = paddr;

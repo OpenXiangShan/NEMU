@@ -340,4 +340,8 @@ config DATAFLOW_PROF
   bool "Profiling dataflow dependency"
   default n
 
+config MEM_PROF
+  bool "Profiling memory"
+  default n
+
 endmenu

@@ -58,7 +58,7 @@ typedef struct Decode {
   rtlreg_t tmp_reg[4];
   #endif // CONFIG_RVV_010
 
-  #ifdef CONFIG_DATAFLOW_PROF
+  #if defined(CONFIG_DATAFLOW_PROF) || defined(CONFIG_MEM_PROF)
   uint8_t fsrc3_id;
   uint8_t mem_width;
   uint8_t is_store;
