@@ -19,7 +19,30 @@
 
 #include <cpu/decode.h>
 #include "csr.h"
-
+#ifdef CONFIG_RVH
+enum {
+  EX_IAM, // instruction address misaligned
+  EX_IAF, // instruction address fault
+  EX_II,  // illegal instruction
+  EX_BP,  // breakpoint
+  EX_LAM, // load address misaligned
+  EX_LAF, // load address fault
+  EX_SAM, // store/amo address misaligned
+  EX_SAF, // store/amo address fault
+  EX_ECU, // ecall from U-mode or VU-mode
+  EX_ECS, // ecall from HS-mode 
+  EX_ECVS,// ecall from VS-mode
+  EX_ECM, // ecall from M-mode
+  EX_IPF, // instruction page fault
+  EX_LPF, // load page fault
+  EX_RS1, // reserved
+  EX_SPF, // store/amo page fault
+  EX_IGPF = 20,// instruction guest-page fault
+  EX_LGPF,// load guest-page fault
+  EX_VI,  // virtual instruction
+  EX_SGPF // store/amo guest-page fault
+};
+#else
 enum {
   EX_IAM, // instruction address misaligned
   EX_IAF, // instruction address fault
@@ -38,6 +61,7 @@ enum {
   EX_RS1, // reserved
   EX_SPF, // store/amo page fault
 };
+#endif
 
 // now NEMU does not support EX_IAM,
 // so it may ok to use EX_IAM to indicate a successful memory access

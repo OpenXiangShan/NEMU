@@ -65,6 +65,10 @@ void init_isa() {
 #ifndef CONFIG_FPU_NONE
   misa->extensions |= ext('d') | ext('f');
 #endif // CONFIG_FPU_NONE
+#ifdef CONFIG_RVH
+  misa->extensions |= ext('h');
+#endif
+
   misa->mxl = 2; // XLEN = 64
 
 #ifdef CONFIG_RVV_010

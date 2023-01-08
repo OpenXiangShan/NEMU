@@ -88,6 +88,14 @@ typedef struct {
   uint64_t vxsat, vxrm, vl, vtype;
 #endif // CONFIG_RVV_010
 
+#ifdef CONFIG_RVH
+  bool v; // virtualization mode
+  uint64_t hstatus, hedeleg, hideleg, hie, hcounteren, hgeie, htval;
+  uint64_t hip, hvip, htinst, hgeip, henvcfg, hgatp, htimedelta;
+  uint64_t vsstatus, vsie, vstvec, vsscratch;
+  uint64_t vsepc, vscause, vstval, vsip, vsatp;
+#endif
+
   // exec state
   bool amo;
   int mem_exception;

@@ -36,5 +36,19 @@ def_EHelper(name) { \
 
 MAP(SYS_INSTR_LIST, def_SYS_EHelper)
 #else
+#ifdef CONFIG_RVH
+def_EHelper(hload){
+  extern int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id);
+  hload(s, ddest, dsrc1, id_src2->imm);
+}
+
+def_EHelper(hstore){
+  extern int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2);
+  hstore(s, ddest, dsrc1, dsrc2);
+}
+
+def_SYS_EHelper(priv)
+#else
 def_SYS_EHelper(system)
+#endif
 #endif

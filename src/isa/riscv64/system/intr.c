@@ -22,27 +22,52 @@ void update_mmu_state();
 
 #define INTR_BIT (1ULL << 63)
 enum {
-  IRQ_USIP, IRQ_SSIP, IRQ_HSIP, IRQ_MSIP,
-  IRQ_UTIP, IRQ_STIP, IRQ_HTIP, IRQ_MTIP,
-  IRQ_UEIP, IRQ_SEIP, IRQ_HEIP, IRQ_MEIP
+  IRQ_USIP, IRQ_SSIP, IRQ_VSSIP, IRQ_MSIP,
+  IRQ_UTIP, IRQ_STIP, IRQ_VSTIP, IRQ_MTIP,
+  IRQ_UEIP, IRQ_SEIP, IRQ_VSEIP, IRQ_MEIP, IRQ_SGEI
 };
 
+#ifdef CONFIG_RVH
+bool intr_deleg_S(word_t exceptionNO) {
+  word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
+  bool delegS = ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M);
+  return delegS;
+}
+bool intr_deleg_VS(word_t exceptionNO){
+  bool delegS = intr_deleg_S(exceptionNO);
+  word_t deleg = (exceptionNO & INTR_BIT ? hideleg->val : hedeleg->val);
+  bool delegVS = ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M);
+  return delegS && delegVS;
+}
+
+#else
 bool intr_deleg_S(word_t exceptionNO) {
   word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
   bool delegS = ((deleg & (1 << (exceptionNO & 0xf))) != 0) && (cpu.mode < MODE_M);
   return delegS;
 }
+#endif
 
 static word_t get_trap_pc(word_t xtvec, word_t xcause) {
   word_t base = (xtvec >> 2) << 2;
   word_t mode = (xtvec & 0x1); // bit 1 is reserved, dont care here.
   bool is_intr = (xcause >> (sizeof(word_t)*8 - 1)) == 1;
-  word_t casue_no = xcause & 0xf;
-  return (is_intr && mode==1) ? (base + (casue_no << 2)) : base;
+#ifdef CONFIG_RVH
+  word_t cause_no = xcause & 0xff;
+#else
+  word_t cause_no = xcause & 0xf;
+#endif
+  return (is_intr && mode==1) ? (base + (cause_no << 2)) : base;
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
   switch (NO) {
+#ifdef CONFIG_RVH
+    case EX_VI:
+    case EX_IGPF:
+    case EX_LGPF:
+    case EX_SGPF:
+#endif
     case EX_II:
     case EX_IPF:
     case EX_LPF:
@@ -50,8 +75,36 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 
   bool delegS = intr_deleg_S(NO);
-
+#ifdef CONFIG_RVH
+  bool delegVS = intr_deleg_VS(NO);
+  if (delegVS){
+    vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT))>>1) | INTR_BIT : NO;
+    vsepc->val = epc;
+    vsstatus->spp = cpu.mode;
+    vsstatus->spie = vsstatus->sie;
+    vsstatus->sie = 0;
+    switch (NO) {
+      case EX_IPF: case EX_LPF: case EX_SPF:
+      case EX_LAM: case EX_SAM:
+      case EX_IAF: case EX_LAF: case EX_SAF:
+        break;
+      default: vstval->val = 0;
+    }
+    cpu.v = 1;
+    cpu.mode = MODE_S;
+    update_mmu_state();
+    return get_trap_pc(vstvec->val, vscause->val);
+  }else if(delegS){
+    hstatus->spv = cpu.v;
+    if(cpu.v){
+      hstatus->spvp = cpu.mode; 
+    }
+    cpu.v = 0;
+    hstatus->gva = (stval->val != 0);
+    htval->val = 0;
+#else
   if (delegS) {
+#endif
     scause->val = NO;
     sepc->val = epc;
     mstatus->spp = cpu.mode;
@@ -69,6 +122,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     return get_trap_pc(stvec->val, scause->val);
     // return stvec->val;
   } else {
+#ifdef CONFIG_RVH
+    mstatus->mpv = cpu.v;
+    mstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
+                    (0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF);
+#endif
     mcause->val = NO;
     mepc->val = epc;
     mstatus->mpp = cpu.mode;
@@ -91,19 +149,38 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 word_t isa_query_intr() {
   word_t intr_vec = mie->val & mip->val;
   if (!intr_vec) return INTR_EMPTY;
-
+  int intr_num;
+#ifdef CONFIG_RVH
+  const int priority [] = {
+    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
+    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
+    IRQ_UEIP, IRQ_USIP, IRQ_UTIP,
+    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP, IRQ_SGEI
+  };
+  intr_num = 13;
+#else
   const int priority [] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
     IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
     IRQ_UEIP, IRQ_USIP, IRQ_UTIP
   };
+  intr_num = 9;
+#endif // CONFIG_RVH
   int i;
-  for (i = 0; i < 9; i ++) {
+
+  for (i = 0; i < intr_num; i ++) {
     int irq = priority[i];
     if (intr_vec & (1 << irq)) {
       bool deleg = (mideleg->val & (1 << irq)) != 0;
+#ifdef CONFIG_RVH
+      bool hdeleg = (hideleg->val & (1 << irq)) != 0;
+      bool global_enable = (hdeleg & deleg)? ((cpu.mode == MODE_S) && vsstatus->sie) || (cpu.mode < MODE_S):
+                           (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
+                           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M);  
+#else
       bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
+#endif
       if (global_enable) return irq | INTR_BIT;
     }
   }

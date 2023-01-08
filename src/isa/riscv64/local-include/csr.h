@@ -82,6 +82,19 @@
   f(mvendorid  , 0xf11) f(marchid    , 0xf12) f(mimpid     , 0xf13)
 #endif
 
+#ifdef CONFIG_RVH
+  #define HCSRS(f) \
+  f(hstatus    , 0x600) f(hedeleg    , 0x602) f(hideleg    , 0x603) \
+  f(hie        , 0x604) f(hcounteren , 0x606) f(hgeie      , 0x607) \
+  f(htval      , 0x643) f(hip        , 0x644) f(hvip       , 0x645) \
+  f(htinst     , 0x64A) f(hgeip      , 0xE12) f(henvcfg    , 0x60A) \
+  f(hgatp      , 0x680) f(htimedelta , 0x605) \
+  f(vsstatus   , 0x200) f(vsie       , 0x204) f(vstvec     , 0x205) \
+  f(vsscratch  , 0x240) f(vsepc      , 0x241) f(vscause    , 0x242) \
+  f(vstval     , 0x243) f(vsip       , 0x244) f(vsatp      , 0x280) \
+  f(mtval2     , 0x348)
+#endif
+
 #define CSR_STRUCT_START(name) \
   typedef union { \
     struct {
@@ -116,7 +129,13 @@ CSR_STRUCT_START(mstatus)
   uint64_t sxl : 2;
   uint64_t sbe : 1;
   uint64_t mbe : 1;
+#ifdef CONFIG_RVH
+  uint64_t gva : 1;
+  uint64_t mpv : 1;
+  uint64_t pad4:23;
+#else
   uint64_t pad4:25;
+#endif
   uint64_t sd  : 1;
 CSR_STRUCT_END(mstatus)
 
@@ -155,34 +174,44 @@ CSR_STRUCT_END(mscratch)
 CSR_STRUCT_START(mtval)
 CSR_STRUCT_END(mtval)
 
+#ifdef CONFIG_RVH
+CSR_STRUCT_START(mtval2)
+CSR_STRUCT_END(mtval2)
+
+CSR_STRUCT_START(mtinst)
+CSR_STRUCT_END(mtinst)
+#endif
+
 CSR_STRUCT_START(mie)
   uint64_t usie : 1;
   uint64_t ssie : 1;
-  uint64_t hsie : 1;
+  uint64_t vssie: 1;
   uint64_t msie : 1;
   uint64_t utie : 1;
   uint64_t stie : 1;
-  uint64_t htie : 1;
+  uint64_t vstie: 1;
   uint64_t mtie : 1;
   uint64_t ueie : 1;
   uint64_t seie : 1;
-  uint64_t heie : 1;
+  uint64_t vseie: 1;
   uint64_t meie : 1;
+  uint64_t sgeie: 1;
 CSR_STRUCT_END(mie)
 
 CSR_STRUCT_START(mip)
   uint64_t usip : 1;
   uint64_t ssip : 1;
-  uint64_t hsip : 1;
+  uint64_t vssip: 1;
   uint64_t msip : 1;
   uint64_t utip : 1;
   uint64_t stip : 1;
-  uint64_t htip : 1;
+  uint64_t vstip: 1;
   uint64_t mtip : 1;
   uint64_t ueip : 1;
   uint64_t seip : 1;
-  uint64_t heip : 1;
+  uint64_t vseip: 1;
   uint64_t meip : 1;
+  uint64_t sgeip: 1;
 CSR_STRUCT_END(mip)
 
 /** pmp */
@@ -436,6 +465,187 @@ CSR_STRUCT_START(marchid)
 CSR_STRUCT_END(mimpid)
 #endif // CONFIG_RV_ARCH_CSRS
 
+#ifdef CONFIG_RVH
+CSR_STRUCT_START(hstatus)
+  uint64_t pad0  : 5;
+  uint64_t vsbe  : 1;
+  uint64_t gva   : 1;
+  uint64_t spv   : 1;
+  uint64_t spvp  : 1;
+  uint64_t hu    : 1;
+  uint64_t pad1  : 2;
+  uint64_t vgein : 6;
+  uint64_t pad2  : 2;
+  uint64_t vtvm  : 1;
+  uint64_t vtw   : 1;
+  uint64_t vtsr  : 1;
+  uint64_t pad3  : 9;
+  uint64_t vsxl  : 2;
+CSR_STRUCT_END(hstatus)
+
+CSR_STRUCT_START(hedeleg)
+CSR_STRUCT_END(hedeleg)
+
+CSR_STRUCT_START(hideleg)
+CSR_STRUCT_END(hideleg)
+
+CSR_STRUCT_START(hie)
+  uint64_t pad0  : 2;
+  uint64_t vssie : 1;
+  uint64_t pad1  : 3;
+  uint64_t vstie : 1;
+  uint64_t pad2  : 3;
+  uint64_t vseie : 1;
+  uint64_t pad3  : 1;
+  uint64_t sgeie : 1;
+CSR_STRUCT_END(hie)
+
+CSR_STRUCT_START(hcounteren)
+CSR_STRUCT_END(hcounteren)
+
+CSR_STRUCT_START(hgeie)
+CSR_STRUCT_END(hgeie)
+
+CSR_STRUCT_START(htval)
+CSR_STRUCT_END(htval)
+
+CSR_STRUCT_START(hip)
+  uint64_t pad0  : 2;
+  uint64_t vssip : 1;
+  uint64_t pad1  : 3;
+  uint64_t vstip : 1;
+  uint64_t pad2  : 3;
+  uint64_t vseip : 1;
+  uint64_t pad3  : 1;
+  uint64_t sgeip : 1;
+CSR_STRUCT_END(hip)
+
+CSR_STRUCT_START(hvip)
+  uint64_t pad0  : 2;
+  uint64_t vssip : 1;
+  uint64_t pad1  : 3;
+  uint64_t vstip : 1;
+  uint64_t pad2  : 3;
+  uint64_t vseip : 1;
+CSR_STRUCT_END(hvip)
+
+CSR_STRUCT_START(htinst)
+CSR_STRUCT_END(htinst)
+
+CSR_STRUCT_START(hgeip)
+CSR_STRUCT_END(hgeip)
+
+CSR_STRUCT_START(henvcfg)
+  uint64_t fiom   : 1;
+  uint64_t pad0   : 3;
+  uint64_t cbie   : 2;
+  uint64_t cbcfe  : 1;
+  uint64_t cbze   : 1;
+  uint64_t pad1   :54;
+  uint64_t pbmte  : 1;
+  uint64_t vstce  : 1;
+CSR_STRUCT_END(henvcfg)
+
+CSR_STRUCT_START(hgatp)
+  uint64_t ppn    : 44;
+  uint64_t vmid   : 14;
+  uint64_t pad0   : 2;
+  uint64_t mode   : 4;
+CSR_STRUCT_END(hgatp)
+
+CSR_STRUCT_START(htimedelta)
+CSR_STRUCT_END(htimedelta)
+
+CSR_STRUCT_START(vsstatus)
+  uint64_t pad0: 1;
+  uint64_t sie : 1;
+  uint64_t pad1: 3;
+  uint64_t spie: 1;
+  uint64_t ube : 1;
+  uint64_t pad2: 1;
+  uint64_t spp : 1;
+  uint64_t vs  : 2;
+  uint64_t pad3: 2;
+  uint64_t fs  : 2;
+  uint64_t xs  : 2;
+  uint64_t pad4: 1;
+  uint64_t sum : 1;
+  uint64_t mxr : 1;
+  union{
+    struct{
+      uint64_t pad5:11;
+      uint64_t sd  : 1;
+    }_32;
+    struct{
+      uint64_t pad5:12;
+      uint64_t uxl : 2;
+      uint64_t pad6:29;
+      uint64_t sd  : 1;
+    }_64;
+  };
+CSR_STRUCT_END(vsstatus)
+
+CSR_STRUCT_START(vsie)
+  uint64_t pad0 : 1;
+  uint64_t ssie : 1;
+  uint64_t pad1 : 3;
+  uint64_t stie : 1;
+  uint64_t pad2 : 3;
+  uint64_t seie : 1;
+CSR_STRUCT_END(vsie)
+
+CSR_STRUCT_START(vstvec)
+  uint64_t mode  : 2;
+  uint64_t base  :62;
+CSR_STRUCT_END(vstvec)
+
+CSR_STRUCT_START(vsscratch)
+CSR_STRUCT_END(vsscratch)
+
+CSR_STRUCT_START(vsepc)
+CSR_STRUCT_END(vsepc)
+
+CSR_STRUCT_START(vscause)
+  union{
+    struct{
+      uint64_t code:31;
+      uint64_t intr: 1;
+    }_32;
+    struct{
+      uint64_t code:63;
+      uint64_t intr: 1;
+    }_64;
+  };
+CSR_STRUCT_END(vscause)
+
+CSR_STRUCT_START(vstval)
+CSR_STRUCT_END(vstval)
+
+CSR_STRUCT_START(vsip)
+  uint64_t pad0 : 1;
+  uint64_t ssip : 1;
+  uint64_t pad1 : 3;
+  uint64_t stip : 1;
+  uint64_t pad2 : 3;
+  uint64_t seip : 1;
+CSR_STRUCT_END(vsip)
+
+CSR_STRUCT_START(vsatp)
+  union{
+    struct{
+      uint64_t ppn  :22;
+      uint64_t asid : 9;
+      uint64_t mode : 1;
+    }_32;
+    struct{
+      uint64_t ppn  :44;
+      uint64_t asid :16;
+      uint64_t mode : 4;
+    }_64;
+  }; 
+CSR_STRUCT_END(vsatp)
+#endif
+
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
 #ifdef CONFIG_RVV_010
@@ -444,7 +654,13 @@ MAP(CSRS, CSRS_DECL)
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DECL)
 #endif // CONFIG_RV_ARCH_CSRS
-
+#ifdef CONFIG_RVH
+  extern bool v; // virtualization mode
+  MAP(HCSRS, CSRS_DECL)
+  #define vsatp_mode ((hstatus->vsxl == 1)? vsatp->_32.mode : vsatp->_64.mode)
+  #define vsatp_asid ((hstatus->vsxl == 1)? vsatp->_32.asid : vsatp->_64.asid)
+  #define vsatp_ppn  ((hstatus->vsxl == 1)? vsatp->_32.ppn  : vsatp->_64.ppn)
+#endif
 word_t csrid_read(uint32_t csrid);
 
 // PMP

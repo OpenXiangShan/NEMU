@@ -38,6 +38,10 @@ MAP(CSRS, CSRS_DEF)
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DEF)
 #endif // CONFIG_RV_ARCH_CSRS
+#ifdef CONFIG_RVH
+  bool v;
+  MAP(HCSRS, CSRS_DEF)
+#endif //CONFIG_RVH
 
 #define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
 static bool csr_exist[4096] = {};
@@ -49,6 +53,10 @@ void init_csr() {
   #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_EXIST)
   #endif // CONFIG_RV_ARCH_CSRS
+  #ifdef CONFIG_RVH
+  v = 0;
+  MAP(HCSRS, CSRS_EXIST)
+  #endif
 };
 
 rtlreg_t csr_perf;
@@ -84,7 +92,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 }
 
 // WPRI, SXL, UXL cannot be written
+#ifdef CONFIG_RVH
+#define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
+#define HSTATUS_WMASK ((0x3 << 32) | (1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
+#else
 #define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63)
+#endif
+
 #ifdef CONFIG_RVV_010
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
@@ -92,6 +106,15 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif // CONFIG_RVV_010
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
+#define MIE_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
+
+#ifdef CONFIG_RVH
+#define MIDELEG_RDONLY ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
+#define HIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
+#define HIE_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
+#define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
+#endif 
+
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 #define SIP_WMASK_S 0x2
@@ -182,6 +205,25 @@ static inline word_t csr_read(word_t *src) {
 #endif
   }
 
+#ifdef CONFIG_RVH
+ if (v == 1) {
+  if (is_read(sstatus))      { return vsstatus->val; }
+  else if (is_read(sie))     { return (hie->val & VSI_MASK) >> 1;}
+  else if (is_read(stvec))   { return vstvec->val; }
+  else if (is_read(sscratch)){ return vsscratch->val;}
+  else if (is_read(sepc))    { return vsepc->val;}
+  else if (is_read(scause))  { return vscause->val;}
+  else if (is_read(stval))   { return vstval->val;}
+  else if (is_read(sip))     { return (hip->val & VSI_MASK) >> 1;}
+  else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_II); }
+}
+if (is_read(mideleg))        { return mideleg->val | MIDELEG_RDONLY;}
+if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
+if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
+if (is_read(hip))            { return mip->val & HIP_MASK;}
+if (is_read(hie))            { return mie->val & HIE_MASK;}
+#endif
+
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
@@ -232,11 +274,44 @@ void disable_time_intr() {
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
-
+  #ifdef CONFIG_RVH
+  if(v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch) 
+        || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 
+        || is_write(satp) || is_write(stvec))){
+    if (is_write(sstatus))      { vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); }
+    else if (is_write(sie))     { hie->val = mask_bitset(hie->val, VSI_MASK, src << 1); }
+    else if (is_write(stvec))   { vstvec->val = src; }
+    else if (is_write(sscratch)){ vsscratch->val = src;}
+    else if (is_write(sepc))    { vsepc->val = src;}
+    else if (is_write(scause))  { vscause->val = src;}
+    else if (is_write(stval))   { vstval->val = src;}
+    else if (is_write(sip))     { hip->val = mask_bitset(hip->val, VSI_MASK, src << 1);}
+    else if (is_write(satp))    { 
+      if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
+        longjmp_exception(EX_VI);
+      }else{
+        vsatp->val = src;
+      }
+    }else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
+  }else if (is_write(mideleg)){*dest = (src & 0x222) | MIDELEG_RDONLY; }
+  else if (is_write(hie)){
+    mie->val = mask_bitset(mie->val, HIE_MASK, src);
+  }else if(is_write(hip)){
+    mip->val = mask_bitset(mip->val, HIE_MASK, src);
+  }
+  else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+#else
   if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+#endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-  else if (is_write(mip)) { mip->val = mask_bitset(mip->val, MIP_MASK, src); }
+  else if (is_write(mip)) {   
+#ifdef CONFIG_RVH
+    mip->val = mask_bitset(mip->val, MIP_MASK | HIP_MASK, src);
+#else
+    mip->val = mask_bitset(mip->val, MIP_MASK, src); 
+#endif // CONFIG_RVH
+  }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
   else if (is_write(mtvec)) { *dest = src & ~(0x2UL); }
   else if (is_write(stvec)) { *dest = src & ~(0x2UL); }
@@ -392,6 +467,21 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
 #ifndef CONFIG_MODE_USER
     case 0x102: // sret
+#ifdef CONFIG_RVH
+      if (cpu.v == 0){
+        cpu.v = hstatus->spv;
+        hstatus->spv = 0;
+      }else if (cpu.v == 1){
+        if(cpu.mode == MODE_S && hstatus->vtsr){
+          longjmp_exception(EX_VI);
+        }
+        cpu.mode = vsstatus->spp;
+        vsstatus->spp = MODE_U;
+        vsstatus->sie = vsstatus->spie;
+        vsstatus->spie = 1;
+        return vsepc->val;
+      }
+#endif // CONFIG_RVH
       if (cpu.mode == MODE_S && mstatus->tsr) {
         longjmp_exception(EX_II);
       }
@@ -407,6 +497,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
           : 1);
       cpu.mode = mstatus->mpp;
+#ifdef CONFIG_RVH
+      cpu.v = mstatus->mpv;
+      mstatus->mpv = 0;
+#endif // CONFIG_RVH
       if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
       mstatus->mpp = MODE_U;
       update_mmu_state();
@@ -426,9 +520,16 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       break;
 #endif // CONFIG_RV_SVINVAL
     case 0x105: // wfi
+#ifdef CONFIG_RVH
+      if(cpu.v == 1 && cpu.mode == MODE_S 
+      && hstatus->vtw == 1 && mstatus->tw == 0){
+        longjmp_exception(EX_VI);
+      }
+#else
       if (cpu.mode < MODE_M && mstatus->tw == 1){
         longjmp_exception(EX_II);
       }
+#endif  
     break;
 #endif // CONFIG_MODE_USER
     case -1: // fence.i
@@ -440,19 +541,64 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           // Described in 3.1.6.5 Virtualization Support in mstatus Register
           // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
           // while executing in S-mode will raise an illegal instruction exception.
+          
+#ifdef CONFIG_RVH
+          if(cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1){
+            longjmp_exception(EX_VI);
+          }else if (cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1)
+            longjmp_exception(EX_II);
+#else
           if (cpu.mode == MODE_S && mstatus->tvm == 1)
             longjmp_exception(EX_II);
+#endif // CONFIG_RVH
           mmu_tlb_flush(*src);
           break;
 #ifdef CONFIG_RV_SVINVAL
         case 0x0b: // sinval.vma
+#ifdef CONFIG_RVH
+          if(cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_VI);
+          if((cpu.v && cpu.mode == MODE_S && hstatus->vtvm == 1) ||
+            !srnctl->svinval){
+            longjmp_exception(EX_VI);
+          }else if ((cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1) ||
+            !srnctl->svinval){
+              longjmp_exception(EX_II);
+            }
+#else
           if ((cpu.mode == MODE_S && mstatus->tvm == 1) ||
             !srnctl->svinval) { // srnctl contrl extension enable or not
             longjmp_exception(EX_II);
           }
+#endif // CONFIG_RVH
           mmu_tlb_flush(*src);
           break;
 #endif // CONFIG_RV_SVINVAL
+#ifdef CONFIG_RVH
+        case 0x11: // hfence.vvma
+          if(cpu.v) longjmp_exception(EX_VI);
+          if(cpu.mode == MODE_U) longjmp_exception(EX_II);
+          if(!(cpu.mode == MODE_M || (cpu.mode == MODE_S && !cpu.v))) longjmp_exception(EX_II);
+          mmu_tlb_flush(*src);
+          break;
+        case 0x31: // hfence.gvma
+          if(cpu.v) longjmp_exception(EX_VI);
+          if(cpu.mode == MODE_U) longjmp_exception(EX_II);
+          if(!(cpu.mode == MODE_M || (cpu.mode == MODE_S && !cpu.v && mstatus->tvm == 0))) longjmp_exception(EX_II);
+          mmu_tlb_flush(*src);
+          break;
+#ifdef CONFIG_RV_SVINVAL
+        case 0x13: // hinval.vvma
+          if(cpu.v) longjmp_exception(EX_VI);
+          if(cpu.mode == MODE_U) longjmp_exception(EX_II);
+          mmu_tlb_flush(*src);
+          break;
+        case 0x33: // hinval.gvma
+          if(cpu.v) longjmp_exception(EX_VI);
+          if(cpu.mode == MODE_U || (cpu.mode == MODE_S && !cpu.v && mstatus->tvm)) longjmp_exception(EX_II);
+          mmu_tlb_flush(*src);
+          break;
+#endif // CONFIG_SVINVAL
+#endif // CONFIG_RVH
         default:
 #ifdef CONFIG_SHARE
           longjmp_exception(EX_II);
@@ -486,3 +632,102 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
   }
   if (dest) *dest = ret;
 }
+
+#ifdef CONFIG_RVH
+int rvh_hlvx_check(struct Decode *s, int type){
+  int rtn_type = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4 
+                  && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683))? MEM_TYPE_READ_HX:type;
+  return rtn_type;
+}
+int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
+  if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
+    longjmp_exception(EX_II);
+  }
+  if(cpu.v) longjmp_exception(EX_VI);
+  int mmu_mode = isa_mmu_state();
+  int v = cpu.v;
+  int mode = cpu.mode;
+  cpu.mode = hstatus->spvp;
+  cpu.v = 1;
+  switch (id) {
+    case 0x600: // hlv.b
+      rtl_lms(s, dest, src1, 0, 1, mmu_mode);
+      break;
+    case 0x601: // hlv.bu
+      rtl_lm(s, dest, src1, 0, 1, mmu_mode);
+      break;
+    case 0x640: // hlv.h
+      rtl_lms(s, dest, src1, 0, 2, mmu_mode);
+      break;
+    case 0x641: // hlv.hu
+      rtl_lm(s, dest, src1, 0, 2, mmu_mode);
+      break;
+    case 0x643: // hlvx.hu
+      rtl_lm(s, dest, src1, 0, 2, mmu_mode);
+      break;
+    case 0x680: // hlv.w
+      rtl_lms(s, dest, src1, 0, 4, mmu_mode);
+      break;
+    case 0x681: // hlv.wu
+      rtl_lm(s, dest, src1, 0, 4, mmu_mode);
+      break;
+    case 0x683: // hlvx.wu
+      rtl_lm(s, dest, src1, 0, 4, mmu_mode);
+      break;
+    case 0x6c0: // hlv.d
+      rtl_lms(s, dest, src1, 0, 8, mmu_mode);
+      break;
+    default:
+      cpu.v = v;
+      cpu.mode = mode;
+#ifdef CONFIG_SHARE
+      longjmp_exception(EX_II);
+#else
+      panic("Unsupported hypervisor vm load store operation = %d", id);
+#endif // CONFIG_SHARE
+  }
+  cpu.v = v;
+  cpu.mode = mode;
+  return 0;
+}
+
+int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2){
+  if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
+    longjmp_exception(EX_II);
+  }
+  if(cpu.v) longjmp_exception(EX_VI);
+  uint32_t op = s->isa.instr.r.funct7;
+  int mmu_mode = isa_mmu_state();
+  int v = cpu.v;
+  int mode = cpu.mode;
+  cpu.mode = hstatus->spvp;
+  cpu.v = 1;
+  int len;
+  switch (op) {
+  case 0x31: // hsv.b
+    len = 1;
+    break;
+  case 0x33: // hsv.h
+    len = 2;
+    break;
+  case 0x35: // hsv.w
+    len = 4;
+    break;
+  case 0x37: // hsv.d
+    len = 8;
+    break;
+  default:
+    cpu.v = v;
+    cpu.mode = mode;
+    #ifdef CONFIG_SHARE
+      longjmp_exception(EX_II);
+#else
+      panic("Unsupported hypervisor vm load store operation = %d", op);
+#endif // CONFIG_SHARE
+  }
+  rtl_sm(s, src2, src1, 0, len, mmu_mode);
+  cpu.v = v;
+  cpu.mode = mode;
+  return 0;
+}
+#endif
