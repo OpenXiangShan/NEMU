@@ -38,8 +38,7 @@ int get_mode(Decode *s) {
 }
 
 void set_vtype_vl(Decode *s, int mode) {
-  int vl_mode = get_mode(s);
-  rtlreg_t vl_num = check_vsetvl(id_src2->val, id_src1->val, vl_mode);
+  rtlreg_t vl_num = check_vsetvl(id_src2->val, id_src1->val, mode);
   rtlreg_t error = 1ul << 63;
   
   if(vl_num == (uint64_t)-1) {
