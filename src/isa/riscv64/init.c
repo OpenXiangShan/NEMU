@@ -69,6 +69,7 @@ void init_isa() {
 
 #ifdef CONFIG_RVV_010
   // vector
+  misa->extensions |= ext('v');
   vl->val = 0;
   vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
 #endif // CONFIG_RVV_010
