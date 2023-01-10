@@ -202,7 +202,7 @@ typedef struct {
     } v_opv3;
     struct {
       uint32_t pad18     :15;
-      int32_t  v_simm5   : 5;
+      uint32_t v_zimm5   : 5;
       uint32_t v_zimm    :10;
       uint32_t v_bigbit  : 2;
     } v_opv4;

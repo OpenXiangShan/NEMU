@@ -39,9 +39,9 @@ static inline def_DHelper(vsetvl) {
         print_Dop(id_src2->str, OP_STR_SIZE, "%ld", id_src2->val);
         break;
     case 0b11:
-        rtl_li(s, &id_src1->val, s->isa.instr.v_opv4.v_simm5);
+        rtl_li(s, &id_src1->val, s->isa.instr.v_opv4.v_zimm5);
         rtl_li(s, &id_src2->val, s->isa.instr.v_opv4.v_zimm);
-        print_Dop(id_src1->str, OP_STR_SIZE, "%d", s->isa.instr.v_opv4.v_simm5);
+        print_Dop(id_src1->str, OP_STR_SIZE, "%d", s->isa.instr.v_opv4.v_zimm5);
         print_Dop(id_src2->str, OP_STR_SIZE, "%d", s->isa.instr.v_opv4.v_zimm);
         break;
   }
