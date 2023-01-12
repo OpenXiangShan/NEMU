@@ -73,7 +73,7 @@ chmod +w,+x /root
 TMP_DIR=/run/mytest
 
 cmd=(
-# enbale swap
+# enable swap
   "swapon -a"
 
 # show system information

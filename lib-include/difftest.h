@@ -38,7 +38,7 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 # define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
 #endif
 #else
-# error Unsupport ISA
+# error Unsupported ISA
 #endif
 
 #ifdef RV64_UARCH_SYNC

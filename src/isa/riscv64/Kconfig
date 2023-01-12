@@ -53,6 +53,10 @@ config MISA_UNCHANGEABLE
   bool "Make misa cannot be changed by CSR write instructions like XS"
   default y
 
+config XTVEC_VECTORED_MODE
+  bool "Support Vectored MODE of mtvec/stvec"
+  default y
+
 config RV_ARCH_CSRS
   bool "Enable mvendorid, marchid, mimpid CSR"
   default y

@@ -102,7 +102,7 @@ static inline word_t iret() {
 static inline word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
     case PRIV_IRET: return iret();
-    default: panic("Unsupported privilige operation = %d", op);
+    default: panic("Unsupported privilege operation = %d", op);
   }
 }
 #endif
@@ -114,7 +114,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
 #ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
-      Assert(imm == 0x80, "Unsupport exception = %d", imm);
+      Assert(imm == 0x80, "Unsupported exception = %d", imm);
       uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
           uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
       cpu.eax = host_syscall(cpu.eax, cpu.ebx, cpu.ecx, cpu.edx, cpu.esi, cpu.edi, cpu.ebp);

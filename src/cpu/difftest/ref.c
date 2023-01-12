@@ -73,7 +73,7 @@ void difftest_set_ramsize(size_t ram_size){
   }else{
   }
 #else
-  printf("Set CONFIG_USE_MMAP to enbale configurable memory size\n");
+  printf("Set CONFIG_USE_MMAP to enable configurable memory size\n");
   printf("NEMU memory size remain unchanged\n");
 #endif
 }

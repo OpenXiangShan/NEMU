@@ -60,7 +60,7 @@ enum {
   FPCALL_F32ToF64,
   FPCALL_F64ToF32,
 
-  FPCALL_NEED_RM,  // seperator
+  FPCALL_NEED_RM,  // separator
 
   FPCALL_MAX,
   FPCALL_MIN,

@@ -61,18 +61,22 @@ void init_csr() {
 
 rtlreg_t csr_perf;
 
-static inline bool csr_is_legal(uint32_t addr) {
+static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   assert(addr < 4096);
-  // CSR does not exist
+  // Attempts to access a non-existent CSR raise an illegal instruction exception.
   if(!csr_exist[addr]) {
 #ifdef CONFIG_PANIC_ON_UNIMP_CSR
     panic("[NEMU] unimplemented CSR 0x%x", addr);
 #endif
     return false;
   }
-  // CSR exists, but access is not legal
+  // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
   if (!(cpu.mode >= lowest_access_priv_level)) {
+    return false;
+  }
+  // or to write a read-only register also raise illegal instruction exceptions.
+  if (need_write && (addr >> 10) == 0x3) {
     return false;
   }
   return true;
@@ -317,8 +321,20 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
-  else if (is_write(mtvec)) { *dest = src & ~(0x2UL); }
-  else if (is_write(stvec)) { *dest = src & ~(0x2UL); }
+  else if (is_write(mtvec)) {
+#ifdef XTVEC_VECTORED_MODE
+    *dest = src & ~(0x2UL);
+#else
+    *dest = src & ~(0x3UL);
+#endif // XTVEC_VECTORED_MODE
+}
+  else if (is_write(stvec)) {
+#ifdef XTVEC_VECTORED_MODE
+    *dest = src & ~(0x2UL);
+#else
+    *dest = src & ~(0x3UL);
+#endif // XTVEC_VECTORED_MODE
+}
   else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_MISA_UNCHANGEABLE
@@ -455,7 +471,7 @@ word_t csrid_read(uint32_t csrid) {
 }
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
-  if (!csr_is_legal(csrid)) {
+  if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
@@ -621,7 +637,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
 #ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
-      Assert(imm == 0x8, "Unsupport exception = %ld", imm);
+      Assert(imm == 0x8, "Unsupported exception = %ld", imm);
       uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2,
           uintptr_t arg3, uintptr_t arg4, uintptr_t arg5, uintptr_t arg6);
       cpu.gpr[10]._64 = host_syscall(cpu.gpr[17]._64, cpu.gpr[10]._64, cpu.gpr[11]._64,

@@ -57,7 +57,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     case PRIV_TLBWR: tlbwr(); break;
     case PRIV_TLBWI: tlbwi(); break;
     case PRIV_TLBP:  tlbp(); break;
-    default: panic("Unsupported privilige operation = %d", op);
+    default: panic("Unsupported privilege operation = %d", op);
   }
   return 0;
 }

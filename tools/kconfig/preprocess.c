@@ -562,7 +562,7 @@ static bool is_end_of_token(char c)
 }
 
 /*
- * Expand variables in a token.  The parsing stops when a token separater
+ * Expand variables in a token.  The parsing stops when a token separator
  * (in most cases, it is a whitespace) is encountered.  'str' is updated to
  * point to the next character.
  *
