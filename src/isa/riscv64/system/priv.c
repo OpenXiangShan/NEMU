@@ -110,6 +110,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #ifdef CONFIG_RVH
 #define MIDELEG_RDONLY ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
+#define HVIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #define HIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #define HIE_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
@@ -208,13 +209,13 @@ static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RVH
  if (v == 1) {
   if (is_read(sstatus))      { return vsstatus->val; }
-  else if (is_read(sie))     { return (hie->val & VSI_MASK) >> 1;}
+  else if (is_read(sie))     { return (mie->val & VSI_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
   else if (is_read(sepc))    { return vsepc->val;}
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
-  else if (is_read(sip))     { return (hip->val & VSI_MASK) >> 1;}
+  else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
   else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_II); }
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_RDONLY;}
@@ -222,6 +223,7 @@ if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
 if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_MASK;}
 if (is_read(hie))            { return mie->val & HIE_MASK;}
+if (is_read(hvip))           { return mip->val & HVIP_MASK;}
 #endif
 
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
@@ -279,13 +281,13 @@ static inline void csr_write(word_t *dest, word_t src) {
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 
         || is_write(satp) || is_write(stvec))){
     if (is_write(sstatus))      { vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); }
-    else if (is_write(sie))     { hie->val = mask_bitset(hie->val, VSI_MASK, src << 1); }
+    else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VSI_MASK, src << 1); }
     else if (is_write(stvec))   { vstvec->val = src; }
     else if (is_write(sscratch)){ vsscratch->val = src;}
     else if (is_write(sepc))    { vsepc->val = src;}
     else if (is_write(scause))  { vscause->val = src;}
     else if (is_write(stval))   { vstval->val = src;}
-    else if (is_write(sip))     { hip->val = mask_bitset(hip->val, VSI_MASK, src << 1);}
+    else if (is_write(sip))     { mip->val = mask_bitset(mip->val, VSI_MASK, src << 1);}
     else if (is_write(satp))    { 
       if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
         longjmp_exception(EX_VI);
@@ -297,7 +299,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(hie)){
     mie->val = mask_bitset(mie->val, HIE_MASK, src);
   }else if(is_write(hip)){
-    mip->val = mask_bitset(mip->val, HIE_MASK, src);
+    mip->val = mask_bitset(mip->val, HIP_MASK, src);
+  }else if(is_write(hvip)){
+    mip->val = mask_bitset(mip->val, HVIP_MASK, src);
   }
   else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else

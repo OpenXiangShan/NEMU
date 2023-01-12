@@ -33,18 +33,38 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
+#ifdef CONFIG_RV_DEBUG
+  #define RV_D_NULLARY(f) f(ebreak)
+#else
+  #define RV_D_NULLARY(f)
+#endif
+
+#ifdef CONFIG_RVH 
+#ifdef CONFIG_RV_SVINVAL
+  #define RVH_INST_BINARY(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma) \
+    f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d) \
+    f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
+#else
+  #define RVH_INST_BINARY(f) f(hfence_vvma) f(hfence_gvma) \
+    f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d) \
+    f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
+#endif // CONFIG_RV_SVINVAL
+#else
+  #define RVH_INST_BINARY(f)
+#endif // CONFIG_RVH
+
 #ifdef CONFIG_DEBUG
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
   f(ecall) f(mret) f(sret) f(wfi) \
-  f(sfence_w_inval) f(sfence_inval_ir)
+  f(sfence_w_inval) f(sfence_inval_ir) RV_D_NULLARY(f)
 #define SYS_INSTR_BINARY(f) \
-  f(sfence_vma) f(sinval_vma)
+  f(sfence_vma) f(sinval_vma) RVH_INST_BINARY(f)
 #else
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(mret) f(sret) f(wfi)
+  f(ecall) f(mret) f(sret) f(wfi) RV_D_NULLARY(f)
 #define SYS_INSTR_BINARY(f) \
-  f(sfence_vma)
+  f(sfence_vma) RVH_INST_BINARY(f)
 #endif
 
 #define SYS_INSTR_TERNARY(f) \
