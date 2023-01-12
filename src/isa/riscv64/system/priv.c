@@ -413,6 +413,9 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       update_mmu_state();
       return sepc->val;
     case 0x302: // mret
+      if (cpu.mode < MODE_M) {
+        longjmp_exception(EX_II);
+      }
       mstatus->mie = mstatus->mpie;
       mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
           : 1);
