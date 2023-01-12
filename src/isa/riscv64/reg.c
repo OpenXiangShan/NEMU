@@ -68,7 +68,7 @@ void isa_reg_display() {
       hgatp->val, vsscratch->val, vsstatus->val, vstvec->val);
   printf("vsepc: " FMT_WORD " vscause: " FMT_WORD " vstval: " FMT_WORD " vsatp: " FMT_WORD "\n",
       vsepc->val, vscause->val, vstval->val, vsatp->val);
-  printf("virtualization mode: %d\n", cpu.v);
+  printf("virtualization mode: %ld\n", cpu.v);
 #endif
 #ifdef CONFIG_RV_PMP_CSR
   printf("privilege mode:%ld  pmp: below\n", cpu.mode);

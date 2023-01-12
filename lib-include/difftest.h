@@ -21,7 +21,7 @@
 
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 
-#define RV64_FULL_DIFF
+#define RV64_FULL_DIFF_H
 #define RV64_UARCH_SYNC
 
 #if defined(__ISA_x86__)
@@ -31,9 +31,12 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #elif defined(__ISA_riscv32__)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 33) // GRPs + pc
 #elif defined(__ISA_riscv64__)
-#ifdef RV64_FULL_DIFF 
+#if defined RV64_FULL_DIFF 
 #define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1))
 // GRPs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode
+#elif defined RV64_FULL_DIFF_H
+#define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1 + 1 + 16))
+// GRPs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode + v-mode + HCSRS 
 #else
 # define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
 #endif

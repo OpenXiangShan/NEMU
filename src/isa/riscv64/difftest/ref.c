@@ -50,6 +50,24 @@ static void csr_prepare() {
   cpu.vxrm    = vxrm->val;
   cpu.vl      = vl->val;
 #endif // CONFIG_RVV_010
+#ifdef CONFIG_RVH
+  cpu.mtval2  = mtval2->val;
+  cpu.mtinst  = mtinst->val;
+  cpu.hstatus = hstatus->val;
+  cpu.hideleg = hideleg->val;
+  cpu.hedeleg = hedeleg->val;
+  cpu.hcounteren = hcounteren->val;
+  cpu.htval   = htval->val;
+  cpu.htinst  = htinst->val;
+  cpu.hgatp   = hgatp->val;
+  cpu.vsstatus= vsstatus->val;
+  cpu.vstvec  = vstvec->val;
+  cpu.vsepc   = vsepc->val;
+  cpu.vscause = vscause->val;
+  cpu.vstval  = vstval->val;
+  cpu.vsatp   = vsatp->val;
+  cpu.vsscratch = vsscratch->val;
+#endif
 }
 
 static void csr_writeback() {
@@ -78,6 +96,24 @@ static void csr_writeback() {
   vxrm->val    = cpu.vxrm;
   vl->val      = cpu.vl;
 #endif //CONFIG_RVV_010
+#ifdef CONFIG_RVH
+  mtval2->val  = cpu.mtval2; 
+  mtinst->val  = cpu.mtinst; 
+  hstatus->val = cpu.hstatus;
+  hideleg->val = cpu.hideleg;
+  hedeleg->val = cpu.hedeleg;
+  hcounteren->val = cpu.hcounteren;
+  htval->val   = cpu.htval;  
+  htinst->val  = cpu.htinst;
+  hgatp->val   = cpu.hgatp;   
+  vsstatus->val= cpu.vsstatus;
+  vstvec->val  = cpu.vstvec;
+  vsepc->val   = cpu.vsepc; 
+  vscause->val = cpu.vscause;
+  vstval->val  = cpu.vstval;
+  vsatp->val   = cpu.vsatp;  
+  vsscratch->val = cpu.vsscratch;
+#endif
 }
 
 void isa_difftest_regcpy(void *dut, bool direction) {
