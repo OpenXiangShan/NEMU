@@ -16,7 +16,7 @@
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
-  f(mtval      , 0x343) f(mip        , 0x344) \
+  f(mtval      , 0x343) f(mip        , 0x344) f(mcycle     , 0xb00) f(minstret   , 0xb02) \
   f(pmpcfg0    , 0x3a0) f(pmpcfg1    , 0x3a1) f(pmpcfg2    , 0x3a2) f(pmpcfg3    , 0x3a3) \
   f(pmpaddr0   , 0x3b0) f(pmpaddr1   , 0x3b1) f(pmpaddr2   , 0x3b2) f(pmpaddr3   , 0x3b3) \
   f(pmpaddr4   , 0x3b4) f(pmpaddr5   , 0x3b5) f(pmpaddr6   , 0x3b6) f(pmpaddr7   , 0x3b7) \
@@ -36,7 +36,7 @@
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
-  f(mtval      , 0x343) f(mip        , 0x344) \
+  f(mtval      , 0x343) f(mip        , 0x344) f(mcycle     , 0xb00) f(minstret   , 0xb02) \
   f(pmpcfg0    , 0x3a0) f(pmpcfg1    , 0x3a1) f(pmpcfg2    , 0x3a2) f(pmpcfg3    , 0x3a3) \
   f(pmpaddr0   , 0x3b0) f(pmpaddr1   , 0x3b1) f(pmpaddr2   , 0x3b2) f(pmpaddr3   , 0x3b3) \
   f(pmpaddr4   , 0x3b4) f(pmpaddr5   , 0x3b5) f(pmpaddr6   , 0x3b6) f(pmpaddr7   , 0x3b7) \
@@ -163,6 +163,13 @@ CSR_STRUCT_START(mip)
   uint64_t heip : 1;
   uint64_t meip : 1;
 CSR_STRUCT_END(mip)
+
+CSR_STRUCT_START(minstret)
+CSR_STRUCT_END(minstret)
+
+CSR_STRUCT_START(mcycle)
+CSR_STRUCT_END(mcycle)
+
 
 /** pmp */
 
