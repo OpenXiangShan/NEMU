@@ -410,6 +410,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       cpu.mode = mstatus->spp;
       if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
       mstatus->spp = MODE_U;
+      update_mmu_state();
       return sepc->val;
     case 0x302: // mret
       mstatus->mie = mstatus->mpie;
