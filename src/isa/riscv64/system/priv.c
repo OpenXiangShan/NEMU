@@ -176,11 +176,8 @@ static inline void update_mstatus_sd() {
 
 static inline word_t csr_read(word_t *src) {
 
+#ifdef CONFIG_RV_PMP_CSR
   if (is_read_pmpaddr) {
-#ifndef CONFIG_RV_PMP_CSR
-    longjmp_exception(EX_II);
-    return 0;
-#else
     // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
     if (CONFIG_RV_PMP_NUM == 0) {
       Loge("pmp number is 0, raise illegal instr exception when read pmpaddr");
@@ -207,8 +204,8 @@ static inline word_t csr_read(word_t *src) {
       return *src | (~pmp_tor_mask() >> 1);
     else
       return *src & pmp_tor_mask();
-#endif
   }
+#endif // CONFIG_RV_PMP_CSR
 
 #ifdef CONFIG_RVH
  if (v == 1) {
@@ -340,6 +337,8 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }
 #endif
+  else if (is_write(mepc)) { *dest = src & (~0x1UL); }
+  else if (is_write(sepc)) { *dest = src & (~0x1UL); }
   else if (is_write(fflags)) {
 #ifdef CONFIG_FPU_NONE
   longjmp_exception(EX_II);
@@ -368,12 +367,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     // *dest = src & FCSR_MASK;
 #endif // CONFIG_FPU_NONE
   }
+#ifdef CONFIG_RV_PMP_CSR
   else if (is_write_pmpaddr) {
     Logtr("Writing pmp addr");
-#ifndef CONFIG_RV_PMP_CSR
-    Logtr("PMP disabled, ignore");
-    return ;
-#else
     // If no PMPs are configured, disallow access to all.  Otherwise, allow
     // access to all, but unimplemented ones are hardwired to zero.
     if (CONFIG_RV_PMP_NUM == 0)
@@ -403,13 +399,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
 
     mmu_tlb_flush(0);
-#endif
   }
   else if (is_write_pmpcfg) {
     // Log("Writing pmp config");
-#ifndef CONFIG_RV_PMP_CSR
-  return;
-#else
     if (CONFIG_RV_PMP_NUM == 0)
       return;
 
@@ -432,8 +424,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = cfg_data;
 
     mmu_tlb_flush(0);
+  }
 #endif
-  } else if (is_write(satp)) {
+  else if (is_write(satp)) {
     if (cpu.mode == MODE_S && mstatus->tvm == 1) {
       longjmp_exception(EX_II);
     }
@@ -492,7 +485,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         cpu.v = hstatus->spv;
         hstatus->spv = 0;
       }else if (cpu.v == 1){
-        if(cpu.mode == MODE_S && hstatus->vtsr){
+        if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
           longjmp_exception(EX_VI);
         }
         cpu.mode = vsstatus->spp;
@@ -502,7 +495,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         return vsepc->val;
       }
 #endif // CONFIG_RVH
-      if (cpu.mode == MODE_S && mstatus->tsr) {
+      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
         longjmp_exception(EX_II);
       }
       mstatus->sie = mstatus->spie;
@@ -511,8 +504,12 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       cpu.mode = mstatus->spp;
       if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
       mstatus->spp = MODE_U;
+      update_mmu_state();
       return sepc->val;
     case 0x302: // mret
+      if (cpu.mode < MODE_M) {
+        longjmp_exception(EX_II);
+      }
       mstatus->mie = mstatus->mpie;
       mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
           : 1);
