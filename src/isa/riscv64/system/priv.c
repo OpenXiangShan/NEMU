@@ -54,7 +54,7 @@ void init_csr() {
   MAP(ARCH_CSRS, CSRS_EXIST)
   #endif // CONFIG_RV_ARCH_CSRS
   #ifdef CONFIG_RVH
-  v = 0;
+  cpu.v = 0;
   MAP(HCSRS, CSRS_EXIST)
   #endif
 };

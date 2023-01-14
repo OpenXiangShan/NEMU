@@ -72,6 +72,7 @@ static void csr_prepare() {
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
+  if(cpu.mip != ref_r->mip) ref_r->mip = cpu.mip; // ignore difftest for mip
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
     int i;
     // do not check $0

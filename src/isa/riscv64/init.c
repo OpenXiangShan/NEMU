@@ -66,7 +66,15 @@ void init_isa() {
   misa->extensions |= ext('d') | ext('f');
 #endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVH
+  #ifdef CONFIG_RVV_010
+  #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
+  #else
+  #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+  #endif // CONFIG_RVV_010
+  #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
   misa->extensions |= ext('h');
+  hstatus->vsxl = 2; // equal to max len (spike)
+  vsstatus->val = mstatus->val & SSTATUS_RMASK;
 #endif
 
   misa->mxl = 2; // XLEN = 64
