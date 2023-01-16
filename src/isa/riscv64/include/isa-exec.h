@@ -28,7 +28,7 @@
 #ifdef CONFIG_RVK
 #include "../instr/rvk/exec.h"
 #endif
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #include "../instr/rvv/exec.h"
 #endif
 #include "../instr/special.h"

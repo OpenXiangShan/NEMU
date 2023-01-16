@@ -27,9 +27,9 @@ static inline def_DopHelper(r) {
   static word_t zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   op->reg = val;
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 }
 
 static inline def_DHelper(I) {

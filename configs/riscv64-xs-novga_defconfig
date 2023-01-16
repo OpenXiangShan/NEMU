@@ -19,7 +19,7 @@ CONFIG_RVB=y
 CONFIG_RVK=y
 CONFIG_RV_PMP_CSR=y
 # CONFIG_RV_PMP_CHECK is not set
-# CONFIG_RVV_010 is not set
+# CONFIG_RVV is not set
 CONFIG_RV_SVINVAL=y
 # end of ISA-dependent Options for riscv64
 

@@ -17,7 +17,7 @@ CONFIG_CLINT_MMIO=0x1f10000000
 # CONFIG_MULTICORE_DIFF is not set
 CONFIG_RVB=y
 CONFIG_RVK=y
-# CONFIG_RVV_010 is not set
+# CONFIG_RVV is not set
 CONFIG_RV_PMP_CSR=y
 CONFIG_RV_SVINVAL=y
 # end of ISA-dependent Options for riscv64
