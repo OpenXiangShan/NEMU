@@ -15,7 +15,7 @@
 
 #include <common.h>
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #include "cpu/exec.h"
 #include "../local-include/vreg.h"
@@ -83,4 +83,4 @@ def_EHelper(vsetivli) {
   // print_asm_template3(vsetvl);
 }
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

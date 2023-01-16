@@ -33,9 +33,9 @@ rtlreg_t csr_array[4096] = {};
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 
 MAP(CSRS, CSRS_DEF)
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DEF)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DEF)
 #endif // CONFIG_RV_ARCH_CSRS
@@ -44,9 +44,9 @@ MAP(CSRS, CSRS_DEF)
 static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
-  #ifdef CONFIG_RVV_010
+  #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_EXIST)
-  #endif // CONFIG_RVV_010
+  #endif // CONFIG_RVV
   #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_EXIST)
   #endif // CONFIG_RV_ARCH_CSRS
@@ -90,11 +90,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 // WPRI, SXL, UXL cannot be written
 #define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63)
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
 #define SIE_MASK (0x222 & mideleg->val)
@@ -194,7 +194,7 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
   else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
 #endif
   else if (is_read(fcsr))   {
@@ -227,7 +227,7 @@ static inline word_t csr_read(word_t *src) {
   return *src;
 }
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 void vcsr_write(uint32_t addr,  rtlreg_t *src) {
   word_t *dest = csr_decode(addr);
   *dest = *src;
@@ -236,7 +236,7 @@ void vcsr_read(uint32_t addr,  rtlreg_t *dest) {
   word_t *src = csr_decode(addr);
   *dest = *src;
 }
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 void disable_time_intr() {
     Log("Disabled machine time interruption\n");
@@ -266,7 +266,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 }
   else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   else if (is_write(vcsr)) { vxrm->val = (src >> 1) & 0x3; vxsat->val = src & 0x1; }
 #endif
 #ifdef CONFIG_MISA_UNCHANGEABLE
@@ -396,7 +396,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     //vp_set_dirty();
   }

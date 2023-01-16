@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #include "vcompute_impl.h"
 
@@ -721,4 +721,4 @@ def_EHelper(vwmaccus) {
 }
 
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

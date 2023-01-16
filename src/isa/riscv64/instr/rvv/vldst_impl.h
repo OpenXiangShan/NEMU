@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #ifndef __RISCV64_VLDST_IMPL_H__
 #define  __RISCV64_VLDST_IMPL_H__
@@ -45,4 +45,4 @@ void vst(int mode, Decode *s, int mmu_mode);
 
 #endif // __RISCV64_VLDST_IMPL_H__
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

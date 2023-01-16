@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #ifndef __RISCV64_VREG_H__
 #define __RISCV64_VREG_H__
@@ -76,4 +76,4 @@ void vcsr_read(uint32_t addr, rtlreg_t *dest);
 
 #endif //__RISCV64_VREG_H__
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

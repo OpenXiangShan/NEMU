@@ -13,7 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #ifndef __RISCV64_VREG_H__
 #define __RISCV64_VREG_H__
 
@@ -68,4 +68,4 @@ void longjmp_raise_intr(uint32_t foo);
 #define SIGNED       1
 #endif //__RISCV64_VREG_H__
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

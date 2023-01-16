@@ -68,7 +68,7 @@
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
 #endif
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   #define VCSRS(f) \
   f(vstart, 0x008) \
   f(vxsat, 0x009) \
@@ -389,7 +389,7 @@ CSR_STRUCT_END(fcsr)
 CSR_STRUCT_START(mtime)
 CSR_STRUCT_END(mtime)
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 // TODO: implement these vcsr
 #define IDXVSTART 0x008
 #define IDXVXSAT  0x009
@@ -435,7 +435,7 @@ rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode);
 rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
 void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
 CSR_STRUCT_START(mvendorid)
@@ -450,9 +450,9 @@ CSR_STRUCT_END(mimpid)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DECL)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DECL)
 #endif // CONFIG_RV_ARCH_CSRS

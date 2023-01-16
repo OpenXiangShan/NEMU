@@ -73,7 +73,7 @@ void isa_reg_display() {
   printf("privilege mode:%ld\n", cpu.mode);
 #endif
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   //vector register
   extern const char * vregsl[];
   for(i = 0; i < 32; i ++) {
@@ -84,7 +84,7 @@ void isa_reg_display() {
   }
   printf("vtype: " FMT_WORD " vstart: " FMT_WORD " vxsat: " FMT_WORD "\n", vtype->val, vstart->val, vxsat->val);
   printf("vxrm: " FMT_WORD " vl: " FMT_WORD " vcsr: " FMT_WORD "\n", vxrm->val, vl->val, vcsr->val);
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
   fflush(stdout);
 }
 

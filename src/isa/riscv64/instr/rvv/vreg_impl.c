@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #include "vreg.h"
 #include "../local-include/csr.h"
@@ -129,4 +129,4 @@ void longjmp_raise_intr(uint32_t foo) {
     assert(0);
 }
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

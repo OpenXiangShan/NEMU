@@ -43,7 +43,7 @@ static void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   cpu.vstart  = vstart->val;
   cpu.vxsat   = vxsat->val;
   cpu.vxrm    = vxrm->val;
@@ -51,7 +51,7 @@ static void csr_prepare() {
   cpu.vl      = vl->val;
   cpu.vtype   = vtype->val;
   cpu.vlenb   = vlenb->val;
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 }
 
 static void csr_writeback() {
@@ -73,7 +73,7 @@ static void csr_writeback() {
   stval->val    = cpu.stval;
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   vstart->val  = cpu.vstart;
   vxsat->val   = cpu.vxsat;
   vxrm->val    = cpu.vxrm;
@@ -81,7 +81,7 @@ static void csr_writeback() {
   vl->val      = cpu.vl;
   vtype->val   = cpu.vtype;
   vlenb->val   = cpu.vlenb;
-#endif //CONFIG_RVV_010
+#endif //CONFIG_RVV
 }
 
 void isa_difftest_regcpy(void *dut, bool direction) {

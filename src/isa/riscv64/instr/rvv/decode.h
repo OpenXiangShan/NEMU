@@ -13,7 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 void vp_set_dirty();
 
@@ -362,4 +362,4 @@ def_THelper(OP_V) { // 10_101
   return EXEC_ID_inv;
 }
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #include "vldst_impl.h"
 
@@ -129,4 +129,4 @@ void vst(int mode, Decode *s, int mmu_mode) {
   vstart->val = 0;
 }
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

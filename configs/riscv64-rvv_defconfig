@@ -14,7 +14,7 @@ CONFIG_ISA64=y
 # ISA-dependent Options for riscv64
 #
 CONFIG_CLINT_MMIO=0xa2000000
-CONFIG_RVV_010=y
+CONFIG_RVV=y
 # end of ISA-dependent Options for riscv64
 
 CONFIG_ENGINE_INTERPRETER=y

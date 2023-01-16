@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #include "vcompute_impl.h"
 
@@ -352,4 +352,4 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 #define s0 &ls0
 #define s1 &ls1
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #ifndef __RISCV64_VCOMPUTE_IMPL_H__
 #define __RISCV64_VCOMPUTE_IMPL_H__
@@ -68,4 +68,4 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s);
 
 #endif // __RISCV64_VCOMPUTE_IMPL_H__
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

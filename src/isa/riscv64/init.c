@@ -67,12 +67,12 @@ void init_isa() {
 #endif // CONFIG_FPU_NONE
   misa->mxl = 2; // XLEN = 64
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   // vector
   misa->extensions |= ext('v');
   vl->val = 0;
   vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
   #ifdef CONFIG_USE_XS_ARCH_CSRS

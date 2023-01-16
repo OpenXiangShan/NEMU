@@ -56,7 +56,7 @@
 #endif
 // TODO: sfence.vma and sinval.vma need two reg operand, only one(addr) now
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f) \
   f(vadd) f(vsub) f(vrsub) f(vminu) f(vmin) \
   f(vmaxu) f(vmax) f(vand) f(vor) f(vxor) \
@@ -90,9 +90,9 @@
   f(vsts_mmu) f(vstx_mmu) f(vstxu_mmu) \
   f(vslideup) f(vslidedown) f(vslide1up) f(vslide1down) f(vmvnr) \
   f(vzextvf8) f(vsextvf8) f(vzextvf4) f(vsextvf4) f(vzextvf2) f(vsextvf2)
-#else // CONFIG_RVV_010
+#else // CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 #ifdef CONFIG_RVB
 #define BITMANIP_INSTR_TERNARY(f) \

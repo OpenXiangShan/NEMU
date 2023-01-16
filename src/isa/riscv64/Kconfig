@@ -16,8 +16,8 @@ config RVK
   bool "RISC-V Cryptography Extension v1.0"
   default y
 
-config RVV_010
-  bool "Experimental RISC-V Vector Extension v0.10"
+config RVV
+  bool "RISC-V Vector Extension v1.0"
   default y
 
 config RV_DEBUG
