@@ -406,7 +406,21 @@ static inline void csr_write(word_t *dest, word_t src) {
     scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else
-  if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+  if (is_write(mstatus)) {
+    unsigned prev_mpp = mstatus->mpp;
+    mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
+    // Need to do an extra check for mstatus.MPP:
+    // xPP fields are WARL fields that can hold only privilege mode x
+    // and any implemented privilege mode lower than x.
+    // M-mode software can determine whether a privilege mode is implemented
+    // by writing that mode to MPP then reading it back. If the machine
+    // provides only U and M modes, then only a single hardware storage bit
+    // is required to represent either 00 or 11 in MPP.
+    if (mstatus->mpp == MODE_H) {
+      // MODE_H is not implemented. The write will not take effect.
+      mstatus->mpp = prev_mpp;
+    }
+  }
 #endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
