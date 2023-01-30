@@ -60,7 +60,12 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     }
   } else if (type == MEM_TYPE_READ) {
     bool can_load = pte->r || (mstatus->mxr && pte->x);
+    #ifdef CONFIG_SHARE
+      bool update_ad = !pte->a;
+//    if (update_ad && ok && can_load) Log("raise exception to update ad for load");
+    #else
     bool update_ad = false;
+    #endif
     if (!(ok && can_load) || update_ad) {
       //if (cpu.amo) Log("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
@@ -70,7 +75,12 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else {
+#ifdef CONFIG_SHARE
+    bool update_ad = !pte->a || !pte->d;
+//    if (update_ad && ok && pte->w) Log("raise exception to update ad for store");
+#else
     bool update_ad = false;
+#endif
     if (!(ok && pte->w) || update_ad) {
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
@@ -126,7 +136,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
 
-
+#ifndef CONFIG_SHARE
   // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
   bool amo_first_half_load = type == MEM_TYPE_READ && cpu.amo;
@@ -139,6 +149,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pte.d |= is_write;
     paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
   }
+#endif
 
 
   return pg_base | MEM_RET_OK;
