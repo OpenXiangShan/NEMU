@@ -263,6 +263,9 @@ end_of_bb:
       Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
       Logtb("Executed %ld instructions in total, pc: 0x%lx\n", (int64_t) abs_inst_count, prev_s->pc);
     }
+    if (manual_cpt_quit) {
+      Log("unlikely(manual_cpt_quit)=%ld, manual_cpt_quit=%d", unlikely(manual_cpt_quit), manual_cpt_quit);
+    }
 
     if (unlikely(n <= 0)) break;
     if (unlikely(manual_cpt_quit)) break;
