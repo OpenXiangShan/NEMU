@@ -75,6 +75,7 @@ void init_isa() {
   misa->extensions |= ext('h');
   hstatus->vsxl = 2; // equal to max len (spike)
   vsstatus->val = mstatus->val & SSTATUS_RMASK;
+  mideleg->val |= ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2));
 #endif
 
   misa->mxl = 2; // XLEN = 64

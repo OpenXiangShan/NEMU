@@ -71,7 +71,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     case EX_II:
     case EX_IPF:
     case EX_LPF:
+  #ifdef CONFIG_DIFFTEST_REF_SPIKE
+    case EX_SPF: difftest_skip_dut(1, 0); break;
+  #else
     case EX_SPF: difftest_skip_dut(1, 2); break;
+  #endif
   }
 
   bool delegS = intr_deleg_S(NO);

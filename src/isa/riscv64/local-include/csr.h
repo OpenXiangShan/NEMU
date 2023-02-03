@@ -95,7 +95,7 @@
   f(vsstatus   , 0x200) f(vsie       , 0x204) f(vstvec     , 0x205) \
   f(vsscratch  , 0x240) f(vsepc      , 0x241) f(vscause    , 0x242) \
   f(vstval     , 0x243) f(vsip       , 0x244) f(vsatp      , 0x280) \
-  f(mtval2     , 0x348) f(mtinst     , 0x34A)
+  f(mtval2     , 0x34b) f(mtinst     , 0x34A)
 #endif
 
 #define CSR_STRUCT_START(name) \

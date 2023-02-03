@@ -70,7 +70,7 @@ app: $(BINARY)
 
 $(BINARY): $(OBJS) $(LIBS)
 	@echo + LD $@
-	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+	@$(LD) -g -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 clean:
 	-rm -rf $(BUILD_DIR)
