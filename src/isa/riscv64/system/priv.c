@@ -72,9 +72,18 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   }
   // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
+#ifdef CONFIG_RVH
+  int priv = cpu.mode == MODE_S ? MODE_HS : cpu.mode;
+  if(priv < lowest_access_priv_level){
+    if(cpu.v && lowest_access_priv_level <= MODE_HS)
+      longjmp_exception(EX_VI);
+    return false;
+  }
+#else
   if (!(cpu.mode >= lowest_access_priv_level)) {
     return false;
   }
+#endif
   // or to write a read-only register also raise illegal instruction exceptions.
   if (need_write && (addr >> 10) == 0x3) {
     return false;
@@ -562,15 +571,14 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #endif // CONFIG_RV_SVINVAL
     case 0x105: // wfi
 #ifdef CONFIG_RVH
-      if(cpu.v == 1 && cpu.mode == MODE_S 
-      && hstatus->vtw == 1 && mstatus->tw == 0){
+      if((cpu.v && cpu.mode == MODE_S && hstatus->vtw == 1 && mstatus->tw == 0)
+          ||(cpu.v && cpu.mode == MODE_U && mstatus->tw == 0)){
         longjmp_exception(EX_VI);
       }
-#else
-      if (cpu.mode < MODE_M && mstatus->tw == 1){
+#endif
+      if ((cpu.mode < MODE_M && mstatus->tw == 1) || (cpu.mode == MODE_U)){
         longjmp_exception(EX_II);
-      }
-#endif  
+      } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
     break;
 #endif // CONFIG_MODE_USER
     case -1: // fence.i

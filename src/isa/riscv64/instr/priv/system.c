@@ -29,7 +29,11 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
 #else
     if (id == 0) { // ecall
 #endif
+#ifdef CONFIG_RVH
+      rtl_trap(s, s->pc, 8 + cpu.mode + (cpu.mode == MODE_S && cpu.v));
+#else
       rtl_trap(s, s->pc, 8 + cpu.mode);
+#endif
       rtl_mv(s, jpc, t0);
 #ifdef CONFIG_RV_DEBUG
     } else if (id == 1) { // ebreak

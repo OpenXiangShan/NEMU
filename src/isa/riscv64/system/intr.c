@@ -36,7 +36,7 @@ bool intr_deleg_S(word_t exceptionNO) {
 bool intr_deleg_VS(word_t exceptionNO){
   bool delegS = intr_deleg_S(exceptionNO);
   word_t deleg = (exceptionNO & INTR_BIT ? hideleg->val : hedeleg->val);
-  bool delegVS = ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M);
+  bool delegVS = cpu.v && ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M);
   return delegS && delegVS;
 }
 
@@ -128,8 +128,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   } else {
 #ifdef CONFIG_RVH
     mstatus->mpv = cpu.v;
+    cpu.v = 0;
     mstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
-                    (0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF);
+                    (cpu.v && ((0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF)));
 #endif
     mcause->val = NO;
     mepc->val = epc;
