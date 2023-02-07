@@ -61,23 +61,17 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
+  printf("NO:%ld, epc: %lx, v:%ld\n", NO, epc, cpu.v);
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  difftest_skip_dut(1, 0);
+#else
   switch (NO) {
-#ifdef CONFIG_RVH
-    case EX_VI:
-    case EX_IGPF:
-    case EX_LGPF:
-    case EX_SGPF:
-#endif
     case EX_II:
     case EX_IPF:
     case EX_LPF:
-  #ifdef CONFIG_DIFFTEST_REF_SPIKE
-    case EX_SPF: difftest_skip_dut(1, 0); break;
-  #else
     case EX_SPF: difftest_skip_dut(1, 2); break;
-  #endif
   }
-
+#endif
   bool delegS = intr_deleg_S(NO);
 #ifdef CONFIG_RVH
   bool delegVS = intr_deleg_VS(NO);
@@ -128,9 +122,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   } else {
 #ifdef CONFIG_RVH
     mstatus->mpv = cpu.v;
-    cpu.v = 0;
     mstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
                     (cpu.v && ((0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF)));
+    cpu.v = 0;
 #endif
     mcause->val = NO;
     mepc->val = epc;

@@ -68,7 +68,12 @@ static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
   paddr_t paddr = va2pa(s, vaddr, len, type);
+  #ifdef CONFIG_RVH
+  extern bool hld_st;
+  if (likely(in_pmem(paddr) && !(hld_st))) {
+  #else
   if (likely(in_pmem(paddr))) {
+  #endif
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);

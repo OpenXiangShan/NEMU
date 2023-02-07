@@ -58,6 +58,7 @@ static inline uintptr_t GVPNi(vaddr_t va, int i) {
   return (i == 2)?  (va >> VPNiSHFT(i)) & GPVPNMASK : (va >> VPNiSHFT(i)) & VPNMASK;
 }
   static bool hlvx = 0;
+  bool hld_st = 0;
 #endif
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -131,7 +132,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 #ifdef CONFIG_RVH
 paddr_t G_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
-  if(cpu.v && hgatp->mode == 8){
+  if((cpu.v || hld_st) && hgatp->mode == 8){
     if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
       if (type == MEM_TYPE_IFETCH){
           if(intr_deleg_S(EX_IGPF)){
@@ -174,15 +175,26 @@ paddr_t G_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       pg_base = PGBASE(pte.ppn);
       if (!pte.v || (!pte.r && pte.w)) return MEM_RET_FAIL;
       if (pte.r || pte.x) {
-        if(hlvx) return (pte.x)? pg_base : MEM_RET_FAIL;
-        if(mstatus->mxr) return pg_base; 
-        if(pte.r) return pg_base;
-        else return MEM_RET_FAIL; 
+        break;
       }else {
         level --;
         if (level < 0) { return MEM_RET_FAIL; }
       }
     }
+    if (level > 0) {
+      // superpage
+      word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
+      if ((pg_base & pg_mask) != 0) {
+        // missaligned superpage
+        return MEM_RET_FAIL;
+      }
+      pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
+    }
+    paddr_t ret = pg_base | (gpaddr & PAGE_MASK);
+    if(hlvx) return (pte.x)? ret : MEM_RET_FAIL;
+    if(mstatus->mxr) return ret; 
+    if(pte.r) return ret;
+    else return MEM_RET_FAIL; 
   }
   return gpaddr;
 }
@@ -197,7 +209,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     hlvx = 1;
     type = MEM_TYPE_READ;
   }
-  if(cpu.v){
+  if(cpu.v || hld_st){
     if(vsatp_mode == 0) return G_stage(vaddr, vaddr, type);
     pg_base = PGBASE(vsatp_ppn);
   }
@@ -214,18 +226,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
 #else
   #ifdef CONFIG_RVH
-    if(cpu.v){
-      pte.val = G_stage(p_pte, vaddr, type);
-    }else{
-      pte.val	= paddr_read(p_pte, PTE_SIZE,
-        type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
-        type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+    if(cpu.v || hld_st){
+      p_pte = G_stage(p_pte, vaddr, type);
+      if(p_pte == MEM_RET_FAIL) return MEM_RET_FAIL;
     }
-  #else
+  #endif //CONFIG_RVH
     pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
-  #endif //CONFIG_RVH
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -243,7 +251,6 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 
   if (!check_permission(&pte, true, vaddr, type)) return MEM_RET_FAIL;
-
   if (level > 0) {
     // superpage
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
@@ -253,7 +260,12 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
-
+  #ifdef CONFIG_RVH
+  if(cpu.v || hld_st){
+    pg_base = G_stage(pg_base, vaddr, type);
+    if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+  }
+  #endif //CONFIG_RVH
 #ifndef CONFIG_SHARE
   // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
@@ -274,6 +286,21 @@ bad:
 
 static int ifetch_mmu_state = MMU_DIRECT;
 static int data_mmu_state = MMU_DIRECT;
+#ifdef CONFIG_RVH
+static int h_mmu_state = MMU_DIRECT;
+static inline int update_h_mmu_state_internal(bool ifetch) {
+  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
+  if (mode < MODE_M) {
+    assert(vsatp_mode == 0 || vsatp_mode == 8);
+    assert(hgatp->mode == 0 || hgatp->mode == 8);
+    if (vsatp_mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
+  }
+  return MMU_DIRECT;
+}
+int get_h_mmu_state() {
+  return (h_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
+}
+#endif
 
 int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
@@ -292,6 +319,9 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+#ifdef CONFIG_RVH
+  h_mmu_state = update_h_mmu_state_internal(false);
+#endif
   return (data_mmu_state ^ data_mmu_state_old) ? true : false;
 }
 
@@ -385,6 +415,10 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     longjmp_exception(ex);
     return MEM_RET_FAIL;
   }
+#ifdef CONFIG_RVH
+  if(hld_st)
+    return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
+#endif
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
 

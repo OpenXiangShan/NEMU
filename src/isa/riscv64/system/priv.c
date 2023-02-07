@@ -483,8 +483,11 @@ static inline void csr_write(word_t *dest, word_t src) {
   if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
     update_mstatus_sd();
   }
-
+#ifdef CONFIG_RVH
+  if (is_write(mstatus) || is_write(satp) || is_write(vsatp) || is_write(hgatp)) { update_mmu_state(); }
+#else
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
+#endif
   if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
@@ -688,16 +691,14 @@ int rvh_hlvx_check(struct Decode *s, int type){
                   && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683))? MEM_TYPE_READ_HX:type;
   return rtn_type;
 }
+extern bool hld_st;
 int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
+  hld_st = true;
   if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
     longjmp_exception(EX_II);
   }
   if(cpu.v) longjmp_exception(EX_VI);
-  int mmu_mode = isa_mmu_state();
-  int v = cpu.v;
-  int mode = cpu.mode;
-  cpu.mode = hstatus->spvp;
-  cpu.v = 1;
+  int mmu_mode = get_h_mmu_state();
   switch (id) {
     case 0x600: // hlv.b
       rtl_lms(s, dest, src1, 0, 1, mmu_mode);
@@ -727,30 +728,24 @@ int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
       rtl_lms(s, dest, src1, 0, 8, mmu_mode);
       break;
     default:
-      cpu.v = v;
-      cpu.mode = mode;
 #ifdef CONFIG_SHARE
       longjmp_exception(EX_II);
 #else
       panic("Unsupported hypervisor vm load store operation = %d", id);
 #endif // CONFIG_SHARE
   }
-  cpu.v = v;
-  cpu.mode = mode;
+  hld_st = false;
   return 0;
 }
 
 int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2){
+  hld_st = true;
   if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
     longjmp_exception(EX_II);
   }
   if(cpu.v) longjmp_exception(EX_VI);
   uint32_t op = s->isa.instr.r.funct7;
-  int mmu_mode = isa_mmu_state();
-  int v = cpu.v;
-  int mode = cpu.mode;
-  cpu.mode = hstatus->spvp;
-  cpu.v = 1;
+  int mmu_mode = isa_mmu_state();  
   int len;
   switch (op) {
   case 0x31: // hsv.b
@@ -766,8 +761,6 @@ int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * sr
     len = 8;
     break;
   default:
-    cpu.v = v;
-    cpu.mode = mode;
     #ifdef CONFIG_SHARE
       longjmp_exception(EX_II);
 #else
@@ -775,8 +768,7 @@ int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * sr
 #endif // CONFIG_SHARE
   }
   rtl_sm(s, src2, src1, 0, len, mmu_mode);
-  cpu.v = v;
-  cpu.mode = mode;
+  hld_st = false;
   return 0;
 }
 #endif

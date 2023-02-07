@@ -238,7 +238,8 @@ enum { MODE_U = 0, MODE_S, MODE_HS, MODE_M };
 
 int get_data_mmu_state();
 #define isa_mmu_state() get_data_mmu_state()
-
-
+#ifdef CONFIG_RVH
+int get_h_mmu_state();
+#endif
 
 #endif
