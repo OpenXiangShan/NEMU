@@ -61,9 +61,9 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
-  printf("NO:%ld, epc: %lx, v:%ld\n", NO, epc, cpu.v);
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
-  difftest_skip_dut(1, 0);
+  if((NO & INTR_BIT) == 0)
+    difftest_skip_dut(1, 0);
 #else
   switch (NO) {
     case EX_II:
@@ -173,8 +173,8 @@ word_t isa_query_intr() {
       bool deleg = (mideleg->val & (1 << irq)) != 0;
 #ifdef CONFIG_RVH
       bool hdeleg = (hideleg->val & (1 << irq)) != 0;
-      bool global_enable = (hdeleg & deleg)? ((cpu.mode == MODE_S) && vsstatus->sie) || (cpu.mode < MODE_S):
-                           (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
+      bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && vsstatus->sie) || (cpu.v && cpu.mode < MODE_S):
+                           (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v:
                            ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M);  
 #else
       bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :

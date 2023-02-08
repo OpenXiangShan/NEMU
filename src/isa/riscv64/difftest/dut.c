@@ -26,12 +26,20 @@
 #ifdef CONFIG_RVH
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
 #endif //CONFIG_RVH
+
+#ifdef CONFIG_RVV_010
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
+#else
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#endif // CONFIG_RVV_010
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
+
 static void csr_prepare() {
   cpu.mstatus = mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = csrid_read(0x100); // sstatus
+  cpu.sstatus = mstatus->val & SSTATUS_RMASK; // sstatus
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 
@@ -77,7 +85,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
   if(cpu.mip != ref_r->mip) ref_r->mip = cpu.mip; // ignore difftest for mip
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
-    int i;
+    int i;    
     // do not check $0
     for (i = 1; i < ARRLEN(cpu.gpr); i ++) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._64, cpu.gpr[i]._64);
@@ -89,6 +97,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(mstatus   );
     check_reg(mcause    );
     check_reg(mepc      );
+    check_reg(sstatus   );
     check_reg(scause    );
     check_reg(sepc      );
     check_reg(satp      );

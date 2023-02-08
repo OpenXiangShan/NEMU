@@ -51,7 +51,7 @@ void isa_reg_display() {
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
-      "", csrid_read(0x100), scause->val, sepc->val);
+      "", cpu.sstatus, scause->val, sepc->val);
   printf("satp: " FMT_WORD "\n", satp->val);
   printf("mip: " FMT_WORD " mie: " FMT_WORD " mscratch: " FMT_WORD " sscratch: " FMT_WORD "\n",
       mip->val, mie->val, mscratch->val, sscratch->val);

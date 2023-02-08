@@ -39,7 +39,6 @@ MAP(CSRS, CSRS_DEF)
   MAP(ARCH_CSRS, CSRS_DEF)
 #endif // CONFIG_RV_ARCH_CSRS
 #ifdef CONFIG_RVH
-  bool v;
   MAP(HCSRS, CSRS_DEF)
 #endif //CONFIG_RVH
 
@@ -123,6 +122,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #ifdef CONFIG_RVH
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
+#define MEDELEG_MASK ((1 << 23) | (1 << 22) | (1 << 21) | (1 << 20) | (1 << 15) | (1 << 13) | (1 << 12) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 3) | (1 << 0))
 #define HVIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #define HIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #define HIE_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
@@ -217,7 +217,7 @@ static inline word_t csr_read(word_t *src) {
 #endif // CONFIG_RV_PMP_CSR
 
 #ifdef CONFIG_RVH
- if (v == 1) {
+ if (cpu.v == 1) {
   if (is_read(sstatus))      { return vsstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))     { return (mie->val & VSI_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
@@ -226,7 +226,7 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
   else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
-  else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_II); }
+  else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_VI); }
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
@@ -287,7 +287,7 @@ void disable_time_intr() {
 
 static inline void csr_write(word_t *dest, word_t src) {
   #ifdef CONFIG_RVH
-  if(v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch) 
+  if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch) 
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 
         || is_write(satp) || is_write(stvec))){
     if (is_write(sstatus))      { vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); }
@@ -365,7 +365,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = src & ~(0x3UL);
 #endif // XTVEC_VECTORED_MODE
 }
+#ifdef CONFIG_RVH
+  else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
+#else
   else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
+#endif
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }
@@ -593,7 +597,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           // Described in 3.1.6.5 Virtualization Support in mstatus Register
           // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
           // while executing in S-mode will raise an illegal instruction exception.
-          
+
 #ifdef CONFIG_RVH
           if(cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1){
             longjmp_exception(EX_VI);
