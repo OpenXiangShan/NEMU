@@ -117,16 +117,25 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
 #endif // CONFIG_RVV_010
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
+#ifdef CONFIG_RVH
+#define MIP_MASK ((1 << 9) | (1 << 5) | (1 << 1))
+#define MIE_MASK ((1 << 9) | (1 << 5) | (1 << 1))
+#else
 #define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
 #define MIE_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
-
+#endif
 #ifdef CONFIG_RVH
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
 #define MEDELEG_MASK ((1 << 23) | (1 << 22) | (1 << 21) | (1 << 20) | (1 << 15) | (1 << 13) | (1 << 12) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 3) | (1 << 0))
-#define HVIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
-#define HIP_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
-#define HIE_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
+#define VS_MASK ((1 << 10) | (1 << 6) | (1 << 2))
+#define VSSIP (1 << 2)
+#define HVIP_MASK ((1 << 10) | (1 << 6) | (1 << 2))
+#define HS_MASK   ((1 << 12) | VS_MASK)
+#define HIP_RMASK HS_MASK
+#define HIP_WMASK VSSIP
+#define HIE_RMASK HS_MASK
+#define HIE_WMASK HS_MASK
 #endif 
 
 #define SIE_MASK (0x222 & mideleg->val)
@@ -229,11 +238,14 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_VI); }
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
+if (is_read(hideleg))        { return hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
 if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
-if (is_read(hip))            { return mip->val & HIP_MASK;}
-if (is_read(hie))            { return mie->val & HIE_MASK;}
+if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
+if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
+if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
 #endif
 
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
@@ -242,7 +254,12 @@ if (is_read(hvip))           { return mip->val & HVIP_MASK;}
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
   else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
   else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
-  else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
+  else if (is_read(sip))    { 
+#ifndef CONFIG_RVH
+    difftest_skip_ref();
+#endif 
+    return mip->val & SIP_MASK; 
+  }
   else if (is_read(fcsr))   {
 #ifdef CONFIG_FPU_NONE
     longjmp_exception(EX_II);
@@ -267,8 +284,9 @@ if (is_read(hvip))           { return mip->val & HVIP_MASK;}
 #ifndef CONFIG_SHARE
   else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
 #endif
+#ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
-
+#endif
   if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
   return *src;
 }
@@ -305,11 +323,14 @@ static inline void csr_write(word_t *dest, word_t src) {
         vsatp->val = src;
       }
     }else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
-  }else if (is_write(mideleg)){*dest = (src & 0x222) | MIDELEG_FORCED_MASK;}
-  else if (is_write(hie)){
-    mie->val = mask_bitset(mie->val, HIE_MASK, src);
+  }else if (is_write(mideleg)){
+    *dest = (src & 0x222) | MIDELEG_FORCED_MASK;
+  }else if (is_write(hideleg)){
+    hideleg->val = mask_bitset(hideleg->val, VS_MASK, src);
+  }else if (is_write(hie)){
+    mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
   }else if(is_write(hip)){
-    mip->val = mask_bitset(mip->val, HIP_MASK, src);
+    mip->val = mask_bitset(mip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
   }else if(is_write(hvip)){
     mip->val = mask_bitset(mip->val, HVIP_MASK, src);
   }else if(is_write(hstatus)){
@@ -317,7 +338,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   }else if(is_write(vsstatus)){ 
     vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); 
   }else if(is_write(vsie)){ 
-    mie->val = mask_bitset(mie->val, VSI_MASK, src << 1); 
+    mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1); 
+  }else if(is_write(vsip)){ 
+    mip->val = mask_bitset(mip->val, VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
   }else if(is_write(vstvec)){ 
     vstvec->val = src; 
   }else if(is_write(vsscratch)){ 
@@ -328,8 +351,6 @@ static inline void csr_write(word_t *dest, word_t src) {
     vscause->val = src;
   }else if(is_write(vstval)){ 
     vstval->val = src;
-  }else if(is_write(vsip)){ 
-    mip->val = mask_bitset(mip->val, VSI_MASK, src << 1);
   }else if(is_write(vsatp)){ 
     if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
       longjmp_exception(EX_VI);
@@ -343,9 +364,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-  else if (is_write(mip)) {   
+  else if (is_write(mip)) {  
 #ifdef CONFIG_RVH
-    mip->val = mask_bitset(mip->val, MIP_MASK | HIP_MASK, src);
+    mip->val = mask_bitset(mip->val, MIP_MASK | VSSIP, src);
 #else
     mip->val = mask_bitset(mip->val, MIP_MASK, src); 
 #endif // CONFIG_RVH
