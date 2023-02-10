@@ -712,9 +712,10 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 
 #ifdef CONFIG_RVH
 int rvh_hlvx_check(struct Decode *s, int type){
-  int rtn_type = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4 
-                  && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683))? MEM_TYPE_READ_HX:type;
-  return rtn_type;
+  extern bool hlvx;
+  hlvx = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4 
+                  && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683));
+  return hlvx;
 }
 extern bool hld_st;
 int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
@@ -770,7 +771,7 @@ int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * sr
   }
   if(cpu.v) longjmp_exception(EX_VI);
   uint32_t op = s->isa.instr.r.funct7;
-  int mmu_mode = isa_mmu_state();  
+  int mmu_mode = get_h_mmu_state();
   int len;
   switch (op) {
   case 0x31: // hsv.b
