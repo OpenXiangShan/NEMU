@@ -181,7 +181,6 @@ paddr_t G_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       raise_G_ex(gpaddr, vaddr, type);
     }
     word_t pg_base = PGBASE(hgatp->ppn);
-    printf("hgatp: %lx\n", pg_base);
     int level;
     word_t p_pte;
     PTE pte;
@@ -509,7 +508,6 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
-  printf("ptw result: 0x%lx\n", ptw_result);
 #ifdef FORCE_RAISE_PF
   if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
     return MEM_RET_FAIL;

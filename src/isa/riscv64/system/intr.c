@@ -78,7 +78,6 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   int hld_st_temp = hld_st;
   hld_st = 0;
   bool delegVS = intr_deleg_VS(NO);
-  printf("NO: %ld, deleg S: %d, deleg VS: %d\n", NO, delegS, delegVS);
   if (delegVS){
     vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT))>>1) | INTR_BIT : NO;
     vsepc->val = epc;
