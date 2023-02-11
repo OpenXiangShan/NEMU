@@ -78,6 +78,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   int hld_st_temp = hld_st;
   hld_st = 0;
   bool delegVS = intr_deleg_VS(NO);
+  printf("NO: %ld, deleg S: %d, deleg VS: %d\n", NO, delegS, delegVS);
   if (delegVS){
     vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT))>>1) | INTR_BIT : NO;
     vsepc->val = epc;
@@ -96,12 +97,14 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     update_mmu_state();
     return get_trap_pc(vstvec->val, vscause->val);
   }else if(delegS){
+    int v = (mstatus->mprv)? mstatus->mpv : cpu.v;
+    hstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
+                    ((v || hld_st_temp) && ((0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF)));
     hstatus->spv = cpu.v;
     if(cpu.v){
       hstatus->spvp = cpu.mode; 
     }
     cpu.v = 0;
-    hstatus->gva = (stval->val != 0);
 #else
   if (delegS) {
 #endif
@@ -115,11 +118,15 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
 #ifdef CONFIG_RVH
+        htval->val = 0;
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
 #endif
         break;
       default: stval->val = 0;
+#ifdef CONFIG_RVH
+               htval->val = 0;
+#endif
     }
     cpu.mode = MODE_S;
     update_mmu_state();
@@ -151,6 +158,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       default: mtval->val = 0;
 #ifdef CONFIG_RVH
                mtval2->val = 0;
+               htval->val = 0;
 #endif
     }
     cpu.mode = MODE_M;

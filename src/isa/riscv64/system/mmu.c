@@ -144,7 +144,6 @@ bool has_two_stage_translation(){
 }
 
 void raise_G_ex(paddr_t gpaddr, vaddr_t vaddr, int type){
-  printf("type:%d, intr_deleg_s:%d, gpaddr: %lx\n", type, intr_deleg_S(EX_LGPF), gpaddr);
   if (type == MEM_TYPE_IFETCH){
     if(intr_deleg_S(EX_IGPF)){
       stval->val = vaddr;
@@ -182,16 +181,17 @@ paddr_t G_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       raise_G_ex(gpaddr, vaddr, type);
     }
     word_t pg_base = PGBASE(hgatp->ppn);
+    printf("hgatp: %lx\n", pg_base);
     int level;
     word_t p_pte;
     PTE pte;
     for (level = PTW_LEVEL - 1; level >=0;){
-      p_pte = pg_base + VPNi(gpaddr, level) * PTE_SIZE;
+      p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
       pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
       pg_base = PGBASE(pte.ppn);
-      Logtr("g pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", pg_base, pte.v, pte.r, pte.w, pte.x);
+      Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
       if(pte.v && !pte.r && !pte.w && !pte.x){
         level --;
         if (level < 0) { break; }
@@ -375,39 +375,67 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
   word_t va_msbs = vaddr >> 38;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
-
+#ifdef CONFIG_RVH
+  bool gpf = false;
+  if(cpu.v && vsatp_mode == 0){ // don't need bits 63–39 are equal to bit 38
+    word_t maxgpa = ((((word_t)1) << 41) - 1);
+    if((vaddr & ~maxgpa) == 0){
+      va_msbs_ok = 1;
+    }else{
+      gpf = true;
+    }
+  } 
+#endif
   if(!va_msbs_ok){
     if(is_ifetch){
-      stval->val = vaddr;
 #ifdef CONFIG_RVH
-      if(cpu.v){
+      if(hld_st || gpf){
         if(intr_deleg_S(EX_IGPF)){
           stval->val = vaddr;
-          htval->val = 0;
+          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = 0;
+          mtval2->val = vaddr >> 2;
         }
         longjmp_exception(EX_IGPF);
+      }else if(cpu.v){
+        if(intr_deleg_S(EX_IPF)){
+          vstval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+        longjmp_exception(EX_IPF);
       }else{
         INTR_TVAL_REG(EX_IPF) = vaddr;
         longjmp_exception(EX_IPF);
       }
 #else
+      stval->val = vaddr;
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
 #endif
     } else if(type == MEM_TYPE_READ){
 #ifdef CONFIG_RVH
       int ex;
-      if(cpu.v){
+      if(hld_st || gpf){
         ex = cpu.amo ? EX_SGPF : EX_LGPF;
         if(intr_deleg_S(ex)){
           stval->val = vaddr;
-          htval->val = 0;
+          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = 0;
+          mtval2->val = vaddr >> 2;
+        }
+      }else if(cpu.v){
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        if(intr_deleg_S(ex)){
+          vstval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
         }
       }else{
         ex = cpu.amo ? EX_SPF : EX_LPF;
@@ -421,15 +449,24 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
     } else {
 #ifdef CONFIG_RVH
-      if(cpu.v){
+      if(hld_st || gpf){
         if(intr_deleg_S(EX_SGPF)){
           stval->val = vaddr;
-          htval->val = 0;
+          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = 0;
+          mtval2->val = vaddr >> 2;
         }
         longjmp_exception(EX_SGPF);
+      }else if(cpu.v){
+        if(intr_deleg_S(EX_SPF)){
+          vstval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+        longjmp_exception(EX_SPF);
       }else{
         INTR_TVAL_REG(EX_SPF) = vaddr;
         longjmp_exception(EX_SPF);
