@@ -52,6 +52,6 @@ class Serializer
 extern Serializer serializer;
 
 #define RESTORER_START 0
-#define MAX_RESTORER_SIZE 0xa000
+#define MAX_RESTORER_SIZE 0xa0000
 
 #endif //NEMU_SERIALIZER_H

@@ -25,9 +25,10 @@ restore_csr_vector:
   slli t2, t2, 4 # shift to MPIE
   slli t1, t1, 4 # MPIE mask
   csrc CSR_MSTATUS, t1
-  csrs CSR_MSTATUS, t2
+  # csrs CSR_MSTATUS, t2
 
   # clear MIE
+  li t1, MSTATUS_MIE
   csrc CSR_MSTATUS, t1
 
 
@@ -54,7 +55,7 @@ restore_csr_vector:
   sd t1, (t0)
 
   li t0, MIE_MTIE
-  csrs CSR_MIE, t0
+  csrc CSR_MIE, t0
 
   # csrr t1, CSR_MSTATUS
   # srli t0, t1, 63
