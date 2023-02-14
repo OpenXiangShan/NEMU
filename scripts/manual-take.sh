@@ -1,8 +1,11 @@
+# rm -rf ./redis_output_top/test_manual
+mkdir -p ./redis_cpt
 ./build/riscv64-nemu-interpreter \
-    --cpt-interval 100000000 -u -b \
-    -D output_top \
-    -C test_manual \
-    -w linux \
+    --cpt-interval 10000000 -u -b \
+    -D redis_cpt \
+    -C 10M \
+    -w get_loop \
     -r ./resource/gcpt_restore/build/gcpt.bin \
     --manual-uniform-cpt \
-    $n/projects/rv-linux/riscv-pk/bbl-debian.bin
+    /nfs/home/zhangchuanqi/lvna/for_xs/xs-env/sw/riscv-pk/build/bbl.bin
+    # /nfs/home/zhangchuanqi/lvna/for_xs/xs-env/NEMU/ready-to-run/linux-0xa0000.bin
