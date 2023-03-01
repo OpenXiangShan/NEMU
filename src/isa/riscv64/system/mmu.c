@@ -89,7 +89,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
     bool update_ad = false;
 #endif
-    if (!(ok && pte->x) || update_ad) {
+    if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
@@ -113,7 +113,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
     bool update_ad = false;
 #endif
-    if (!(ok && can_load) || update_ad) {
+    if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
       INTR_TVAL_REG(ex) = vaddr;
@@ -130,7 +130,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     bool update_ad = false;
 #endif
     Logtr("Translate for memory writing");
-    if (!(ok && pte->w) || update_ad) {
+    if (!(ok && pte->w && !pte->pad) || update_ad) {
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
@@ -274,7 +274,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #endif
     pg_base = PGBASE(pte.ppn);
     if (!pte.v || (!pte.r && pte.w)) goto bad;
-    if (pte.r || pte.x) { break; }
+    if (pte.r || pte.x || pte.pad) { break; }
     else {
       level --;
       if (level < 0) { goto bad; }
