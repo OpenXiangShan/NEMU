@@ -19,7 +19,7 @@
 
 #define CP_MMIO_BASE 0x20000
 #define MEMORY_8G_OFFSET 0x200000000
-#define IO_OFFSET 0x20000
+#define IO_OFFSET 0x3000000
 #define CP_IDSEL 0x0
 #define CP_HARTSEL 0x8
 #define CP_MEM_OFFSET 0x10
@@ -30,5 +30,9 @@
 
 #define CSR_RHARTID 0xBC0
 #define CSR_VHARTID 0xBC1
+#define CSR_MEMOFF 0xBC2
+#define CSR_IOOFF 0xBC3
+#define CSR_NOHYPEMODE 0xBC4
+
 
 #endif //__RESTORE_ROM_ADDR__

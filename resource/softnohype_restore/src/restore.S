@@ -9,32 +9,23 @@
 boot_decide_vector:
   li s0, CP_MMIO_BASE
   csrr a0, mhartid
-  beqz a0, soft_nohype_set
-soft_nohype_wait:
-  fence
-  ld t0, CP_NOHYPE_BARRIER(s0) #get barrier
-  beqz t0, soft_nohype_wait
+  beqz a0, soft_nohype_allbarrier #core 0 need not reset
+  #set hartid
   csrw CSR_VHARTID,zero
-  j soft_nohype_allbarrier
-soft_nohype_set:
-  #get all hart num
-  ld t0, CP_HARTNUM(s0)
-  add t0, t0, -1; # t0 = t0 + -1
-9:
+  #set nohype mode to csr mode
+  li t3,1
+  csrw CSR_NOHYPEMODE,t3
   #calculate offset
   li t1, MEMORY_8G_OFFSET
   li t2, IO_OFFSET
-  mul t1, t1, t0
-  mul t2, t2, t0
-  fence
-  sd t0, CP_HARTSEL(s0) #sel hart
-  sd t1, CP_MEM_OFFSET(s0) #set mem offset
-  sd t2, CP_IO_OFFSET(s0) #set IO offset
-  fence
-  add t0, t0, -1;
-  bnez t0, 9b
-  li t0, 1
-  sd t0, CP_NOHYPE_BARRIER(s0)  #set barrier
+  mul t1, t1, a0
+  mul t2, t2, a0
+  csrw CSR_IOOFF,t2
+  csrw CSR_MEMOFF,t1
+  # set mtimecmp to avoid timer interrupt from not used clint
+  li t0, CLINT_MMIO+CLINT_MTIMECMP
+  li t1, -1
+  sd t1, (t0)
 soft_nohype_allbarrier:
   fence
 
