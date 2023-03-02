@@ -149,7 +149,13 @@ void isa_difftest_query_ref(void *result_buffer, uint64_t type) {
 #endif
 
 #ifdef CONFIG_MULTICORE_DIFF
+int difftest_id = 0;
 void isa_difftest_set_mhartid(int n) {
   mhartid->val = n;
+  difftest_id = n;
+#ifdef CONFIG_ENABLE_LVNA
+  rhartid->val = n;
+  vhartid->val = n;
+#endif
 }
 #endif

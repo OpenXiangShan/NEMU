@@ -429,3 +429,14 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   return true;
 #endif
 }
+
+#ifdef CONFIG_ENABLE_LVNA
+paddr_t isa_mmu_paddr_remap(paddr_t addr) {
+  if (addr < CONFIG_NOHYPE_MMIO_START_REMAP_ADDR)
+    return addr;
+  if (addr >= CONFIG_MBASE)
+    return addr + nohypememoff->val;
+  else
+    return addr + nohypeiooff->val;
+}
+#endif

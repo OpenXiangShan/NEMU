@@ -26,6 +26,17 @@
 #define CUSTOM_CSR(f)
 #endif
 
+#ifdef CONFIG_ENABLE_LVNA
+#define LVNA_CSR(f) \
+  f(sdsid , 0x9c0) \
+  f(rhartid , 0xbc0) \
+  f(vhartid , 0xbc1) \
+  f(nohypememoff , 0xbc2) \
+  f(nohypeiooff , 0xbc3) \
+  f(nohypemodesel , 0xbc4)
+#else
+#define LVNA_CSR(f)
+#endif
 // SHARE mode does not support mtime
 #ifdef CONFIG_RV_PMP_CSR
 #define CSRS_PMP(f) \
@@ -52,6 +63,7 @@
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
+  LVNA_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01)
 #else
@@ -68,6 +80,7 @@
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
+  LVNA_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
 #endif
 
@@ -365,6 +378,27 @@ CSR_STRUCT_START(srnctl)
   uint64_t svinval : 1;
   uint64_t reserve :63;
 CSR_STRUCT_END(srnctl)
+#endif
+
+#ifdef CONFIG_ENABLE_LVNA
+CSR_STRUCT_START(sdsid)
+CSR_STRUCT_END(sdsid)
+
+CSR_STRUCT_START(rhartid)
+CSR_STRUCT_END(rhartid)
+
+CSR_STRUCT_START(vhartid)
+CSR_STRUCT_END(vhartid)
+
+CSR_STRUCT_START(nohypememoff)
+CSR_STRUCT_END(nohypememoff)
+
+CSR_STRUCT_START(nohypeiooff)
+CSR_STRUCT_END(nohypeiooff)
+
+CSR_STRUCT_START(nohypemodesel)
+CSR_STRUCT_END(nohypemodesel)
+
 #endif
 
 CSR_STRUCT_START(fflags)

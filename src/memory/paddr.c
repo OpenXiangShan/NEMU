@@ -73,7 +73,9 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
 void init_mem() {
 #ifdef CONFIG_USE_MMAP
   #ifdef CONFIG_MULTICORE_DIFF
-    panic("Pmem must not use mmap during multi-core difftest");
+    // panic("Pmem must not use mmap during multi-core difftest");
+    extern int difftest_id;
+    pmem += difftest_id * MEMORY_SIZE;
   #endif
   void *ret = mmap((void *)pmem, MEMORY_SIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
@@ -103,6 +105,9 @@ void init_mem() {
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 
+#ifdef CONFIG_ENABLE_LVNA
+  addr = isa_mmu_paddr_remap(addr);
+#endif
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
@@ -140,6 +145,11 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
+
+#ifdef CONFIG_ENABLE_LVNA
+  addr = isa_mmu_paddr_remap(addr);
+#endif
+
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
     raise_access_fault(EX_SAF, vaddr);
     return ;

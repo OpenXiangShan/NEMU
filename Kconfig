@@ -274,6 +274,15 @@ config PANIC_ON_UNIMP_CSR
   bool "Panic if an unimplemented CSR is being accessed"
   default n
 
+config ENABLE_LVNA
+  depends on SHARE
+  bool "Enable LvNA Nohype difftest support"
+  default n
+if ENABLE_LVNA
+  config NOHYPE_MMIO_START_REMAP_ADDR
+  hex "Nohype MMIO start remap address"
+  default 0x10000000
+endif
 endmenu
 
 menu "Miscellaneous"

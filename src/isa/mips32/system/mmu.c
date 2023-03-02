@@ -127,3 +127,9 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 bool isa_pmp_check_permission(paddr_t paddr, int len, int type, int mode) {
   return true; // TODO: complete it
 }
+
+#ifdef CONFIG_ENABLE_LVNA
+paddr_t isa_mmu_paddr_remap(paddr_t addr) {
+  return addr; //not supported
+}
+#endif

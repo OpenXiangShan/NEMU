@@ -221,6 +221,9 @@ static inline word_t csr_read(word_t *src) {
   if (is_read(mip)) { difftest_skip_ref(); }
 
   if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
+#ifdef CONFIG_ENABLE_LVNA
+  if (is_read(mhartid)) { return vhartid->val; }
+#endif
   return *src;
 }
 
@@ -271,6 +274,10 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
   else if (is_write(mepc)) { *dest = src & (~0x1UL); }
   else if (is_write(sepc)) { *dest = src & (~0x1UL); }
+#ifdef CONFIG_ENABLE_LVNA
+  else if (is_write(rhartid)) { /* do nothing */ }
+  else if (is_write(nohypemodesel)) { *dest = src & 0x1UL; }
+#endif
   else if (is_write(fflags)) {
 #ifdef CONFIG_FPU_NONE
   longjmp_exception(EX_II);

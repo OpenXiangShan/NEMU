@@ -60,6 +60,12 @@ void init_isa() {
   srnctl->val = 3; // enable extension 'svinval' [1]
 #endif
 
+#ifdef CONFIG_ENABLE_LVNA
+  nohypememoff->val = 0;
+  nohypeiooff->val = 0;
+  nohypemodesel->val = 1; //use offset from csr
+#endif
+
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
 #ifndef CONFIG_FPU_NONE

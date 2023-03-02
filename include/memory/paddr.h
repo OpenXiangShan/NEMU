@@ -74,6 +74,10 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   assert(golden_pmem != NULL);
+#ifdef CONFIG_ENABLE_LVNA
+  paddr_t isa_mmu_paddr_remap(paddr_t addr);
+  addr = isa_mmu_paddr_remap(addr);
+#endif
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
     case 1: return *(uint8_t  *)p;
