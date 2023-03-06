@@ -39,6 +39,28 @@ def_EHelper(jalr) {
   rtl_jr(s, s0);
 }
 
+#ifdef CONFIG_RV_DASICS
+def_EHelper(dasicsret) {
+  // Described at 2.5 Control Transter Instructions
+  // The target address is obtained by adding the sign-extended 12-bit I-immediate to the register rs1
+  rtl_addi(s, s0, dsrc1, id_src2->imm);
+  // then setting the least-significant bit of the result to zero.
+  rtl_andi(s, s0, s0, ~1UL);
+//  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
+#ifdef CONFIG_GUIDED_EXEC
+  if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
+    rtl_li(s, ddest, cpu.execution_guide.jump_target);
+  } else {
+    rtl_li(s, ddest, s->snpc);
+  }
+#else
+  rtl_li(s, ddest, s->snpc);
+#endif
+  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
+  rtl_jr_dasicsret(s, s0);
+}
+#endif  // CONFIG_RV_DASICS
+
 def_EHelper(beq) {
   rtl_jrelop(s, RELOP_EQ, dsrc1, dsrc2, id_dest->imm);
 }

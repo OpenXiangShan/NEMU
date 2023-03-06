@@ -47,6 +47,9 @@ def_THelper(main) {
 #ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00001 ??", fload , fload);
 #endif // CONFIG_FPU_NONE
+#ifdef CONFIG_RV_DASICS
+  def_INSTR_IDTAB("??????? ????? ????? 111 ????? 00010 11", I     , dasics);
+#endif  // CONFIG_RV_DASICS
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00011 ??", I     , mem_fence);
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00100 ??", I     , op_imm);
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00101 ??", auipc , auipc);
@@ -108,7 +111,9 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
+    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicsret:)
+    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: \
+      IFDEF(CONFIG_RVN, case EXEC_ID_uret:))
       s->type = INSTR_TYPE_I; break;
 
 #ifndef CONFIG_DEBUG
@@ -116,6 +121,9 @@ int isa_fetch_decode(Decode *s) {
       if (s->isa.instr.i.funct3 == 0) {
         switch (s->isa.instr.csr.csr) {
           case 0:     // ecall
+#ifdef CONFIG_RVN
+          case 0x002: // uret
+#endif  // CONFIG_RVN
           case 0x102: // sret
           case 0x302: // mret
             s->type = INSTR_TYPE_I;

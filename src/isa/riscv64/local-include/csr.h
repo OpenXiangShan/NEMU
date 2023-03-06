@@ -38,6 +38,25 @@
 #define CSRS_PMP(f)
 #endif // CONFIG_RV_PMP_CSR
 
+// CSRs for DASICS protection mechanism
+#ifdef CONFIG_RV_DASICS
+#define DASICS_CSRS(f) \
+  f(dsmcfg,      0xbc0) f(dsmbound0,   0xbc1) f(dsmbound1,   0xbc2) \
+  f(dumcfg,      0x5c0) f(dumbound0,   0x5c1) f(dumbound1,   0x5c2) \
+  f(dlcfg0,      0x881) f(dlcfg1,      0x882) \
+  f(dlbound0,    0x883) f(dlbound1,    0x884) f(dlbound2,    0x885) f(dlbound3,    0x886) \
+  f(dlbound4,    0x887) f(dlbound5,    0x888) f(dlbound6,    0x889) f(dlbound7,    0x88a) \
+  f(dlbound8,    0x88b) f(dlbound9,    0x88c) f(dlbound10,   0x88d) f(dlbound11,   0x88e) \
+  f(dlbound12,   0x88f) f(dlbound13,   0x890) f(dlbound14,   0x891) f(dlbound15,   0x892) \
+  f(dlbound16,   0x893) f(dlbound17,   0x894) f(dlbound18,   0x895) f(dlbound19,   0x896) \
+  f(dlbound20,   0x897) f(dlbound21,   0x898) f(dlbound22,   0x899) f(dlbound23,   0x89a) \
+  f(dlbound24,   0x89b) f(dlbound25,   0x89c) f(dlbound26,   0x89d) f(dlbound27,   0x89e) \
+  f(dlbound28,   0x89f) f(dlbound29,   0x8a0) f(dlbound30,   0x8a1) f(dlbound31,   0x8a2) \
+  f(dmaincall,   0x8a3) f(dretpc,      0x8a4) f(dretpcfz,    0x8a5)
+#else  // CONFIG_RV_DASICS
+#define DASICS_CSRS(f)
+#endif  // !CONFIG_RV_DASICS
+
 #ifndef CONFIG_SHARE
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
@@ -69,6 +88,14 @@
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
+#endif
+
+#ifdef CONFIG_RVN
+#define NCSRS(f) \
+  f(ustatus,     0x000) f(uie,         0x004) f(utvec,       0x005) \
+  f(uscratch,    0x040) f(uepc,        0x041) f(ucause,      0x042) \
+  f(utval,       0x043) f(uip,         0x044) \
+  f(sedeleg,     0x102) f(sideleg,     0x103)
 #endif
 
 #ifdef CONFIG_RVV
@@ -392,6 +419,54 @@ CSR_STRUCT_END(fcsr)
 CSR_STRUCT_START(mtime)
 CSR_STRUCT_END(mtime)
 
+#ifdef CONFIG_RVN
+CSR_STRUCT_START(ustatus)
+  uint64_t uie :1;
+  uint64_t pad :3;
+  uint64_t upie:1;
+CSR_STRUCT_END(ustatus)
+
+CSR_STRUCT_START(uie)
+  uint64_t usie:1;
+  uint64_t pad0:3;
+  uint64_t utie:1;
+  uint64_t pad1:3;
+  uint64_t ueie:1;
+  uint64_t pad2:3;
+CSR_STRUCT_END(uie)
+
+CSR_STRUCT_START(utvec)
+CSR_STRUCT_END(utvec)
+
+CSR_STRUCT_START(uscratch)
+CSR_STRUCT_END(uscratch)
+
+CSR_STRUCT_START(uepc)
+CSR_STRUCT_END(uepc)
+
+CSR_STRUCT_START(ucause)
+CSR_STRUCT_END(ucause)
+
+CSR_STRUCT_START(utval)
+CSR_STRUCT_END(utval)
+
+CSR_STRUCT_START(uip)
+  uint64_t usip:1;
+  uint64_t pad0:3;
+  uint64_t utip:1;
+  uint64_t pad1:3;
+  uint64_t ueip:1;
+  uint64_t pad2:3;
+CSR_STRUCT_END(uip)
+
+CSR_STRUCT_START(sedeleg)
+CSR_STRUCT_END(sedeleg)
+
+CSR_STRUCT_START(sideleg)
+CSR_STRUCT_END(sideleg)
+
+#endif  // CONFIG_RVN
+
 #ifdef CONFIG_RVV
 // TODO: implement these vcsr
 #define IDXVSTART 0x008
@@ -451,14 +526,178 @@ CSR_STRUCT_START(marchid)
 CSR_STRUCT_END(mimpid)
 #endif // CONFIG_RV_ARCH_CSRS
 
+#ifdef CONFIG_RV_DASICS
+
+#define MCFG_UCLS   0x8ul
+#define MCFG_SCLS   0x4ul
+#define MCFG_UENA   0X2ul
+#define MCFG_SENA   0x1ul
+
+CSR_STRUCT_START(dsmcfg)
+  uint64_t mcfg_sena:1;
+  uint64_t mcfg_uena:1;
+  uint64_t mcfg_scls:1;
+  uint64_t mcfg_ucls:1;
+CSR_STRUCT_END(dsmcfg)
+
+CSR_STRUCT_START(dsmbound0)
+CSR_STRUCT_END(dsmbound0)
+
+CSR_STRUCT_START(dsmbound1)
+CSR_STRUCT_END(dsmbound1)
+
+CSR_STRUCT_START(dumcfg)
+  uint64_t pad0     :1;
+  uint64_t mcfg_uena:1;
+  uint64_t pad1     :1;
+  uint64_t mcfg_ucls:1;
+CSR_STRUCT_END(dumcfg)
+
+CSR_STRUCT_START(dumbound0)
+CSR_STRUCT_END(dumbound0)
+
+CSR_STRUCT_START(dumbound1)
+CSR_STRUCT_END(dumbound1)
+
+#define CSR_DLCFG0   0x881
+#define CSR_DLBOUND0 0x883
+#define CSR_DLBOUND1 0x884
+
+#define LIBCFG_MASK 0xful
+#define LIBCFG_V    0x8ul
+#define LIBCFG_X    0x4ul
+#define LIBCFG_R    0x2ul
+#define LIBCFG_W    0x1ul
+
+#define MAX_DASICS_LIBBOUNDS 16
+
+CSR_STRUCT_START(dlcfg0)
+CSR_STRUCT_END(dlcfg0)
+
+CSR_STRUCT_START(dlcfg1)
+CSR_STRUCT_END(dlcfg1)
+
+CSR_STRUCT_START(dlbound0)
+CSR_STRUCT_END(dlbound0)
+
+CSR_STRUCT_START(dlbound1)
+CSR_STRUCT_END(dlbound1)
+
+CSR_STRUCT_START(dlbound2)
+CSR_STRUCT_END(dlbound2)
+
+CSR_STRUCT_START(dlbound3)
+CSR_STRUCT_END(dlbound3)
+
+CSR_STRUCT_START(dlbound4)
+CSR_STRUCT_END(dlbound4)
+
+CSR_STRUCT_START(dlbound5)
+CSR_STRUCT_END(dlbound5)
+
+CSR_STRUCT_START(dlbound6)
+CSR_STRUCT_END(dlbound6)
+
+CSR_STRUCT_START(dlbound7)
+CSR_STRUCT_END(dlbound7)
+
+CSR_STRUCT_START(dlbound8)
+CSR_STRUCT_END(dlbound8)
+
+CSR_STRUCT_START(dlbound9)
+CSR_STRUCT_END(dlbound9)
+
+CSR_STRUCT_START(dlbound10)
+CSR_STRUCT_END(dlbound10)
+
+CSR_STRUCT_START(dlbound11)
+CSR_STRUCT_END(dlbound11)
+
+CSR_STRUCT_START(dlbound12)
+CSR_STRUCT_END(dlbound12)
+
+CSR_STRUCT_START(dlbound13)
+CSR_STRUCT_END(dlbound13)
+
+CSR_STRUCT_START(dlbound14)
+CSR_STRUCT_END(dlbound14)
+
+CSR_STRUCT_START(dlbound15)
+CSR_STRUCT_END(dlbound15)
+
+CSR_STRUCT_START(dlbound16)
+CSR_STRUCT_END(dlbound16)
+
+CSR_STRUCT_START(dlbound17)
+CSR_STRUCT_END(dlbound17)
+
+CSR_STRUCT_START(dlbound18)
+CSR_STRUCT_END(dlbound18)
+
+CSR_STRUCT_START(dlbound19)
+CSR_STRUCT_END(dlbound19)
+
+CSR_STRUCT_START(dlbound20)
+CSR_STRUCT_END(dlbound20)
+
+CSR_STRUCT_START(dlbound21)
+CSR_STRUCT_END(dlbound21)
+
+CSR_STRUCT_START(dlbound22)
+CSR_STRUCT_END(dlbound22)
+
+CSR_STRUCT_START(dlbound23)
+CSR_STRUCT_END(dlbound23)
+
+CSR_STRUCT_START(dlbound24)
+CSR_STRUCT_END(dlbound24)
+
+CSR_STRUCT_START(dlbound25)
+CSR_STRUCT_END(dlbound25)
+
+CSR_STRUCT_START(dlbound26)
+CSR_STRUCT_END(dlbound26)
+
+CSR_STRUCT_START(dlbound27)
+CSR_STRUCT_END(dlbound27)
+
+CSR_STRUCT_START(dlbound28)
+CSR_STRUCT_END(dlbound28)
+
+CSR_STRUCT_START(dlbound29)
+CSR_STRUCT_END(dlbound29)
+
+CSR_STRUCT_START(dlbound30)
+CSR_STRUCT_END(dlbound30)
+
+CSR_STRUCT_START(dlbound31)
+CSR_STRUCT_END(dlbound31)
+
+CSR_STRUCT_START(dmaincall)
+CSR_STRUCT_END(dmaincall)
+
+CSR_STRUCT_START(dretpc)
+CSR_STRUCT_END(dretpc)
+
+CSR_STRUCT_START(dretpcfz)
+CSR_STRUCT_END(dretpcfz)
+
+#endif  // CONFIG_RV_DASICS
+
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
+#ifdef CONFIG_RVN
+  MAP(NCSRS, CSRS_DECL)
+#endif
 #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DECL)
 #endif // CONFIG_RVV
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DECL)
 #endif // CONFIG_RV_ARCH_CSRS
+#ifdef CONFIG_RV_DASICS
+  MAP(DASICS_CSRS, CSRS_DECL)
+#endif // CONFIG_RV_DASICS
 
 word_t csrid_read(uint32_t csrid);
 
@@ -467,5 +706,15 @@ uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmpaddr_from_csrid(int id);
 word_t pmp_tor_mask();
+
+// DASICS
+#ifdef CONFIG_RV_DASICS
+bool dasics_in_trusted_zone(uint64_t pc);
+uint8_t dasics_libcfg_from_index(int i);
+word_t dasics_libbound_from_index(int i);
+bool dasics_match_dlib(uint64_t addr, uint8_t cfg);
+void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_dasicsret);
+#endif  // CONFIG_RV_DASICS
 
 #endif

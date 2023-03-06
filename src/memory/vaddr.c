@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <cpu/decode.h>
 
 #ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1
@@ -111,6 +112,10 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     isa_misalign_data_addr_check(addr, len, type);
   }
 #endif
+#ifdef CONFIG_RV_DASICS
+  void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+  dasics_ldst_helper(((struct Decode *)s)->pc, addr, len, type);
+#endif  // CONFIG_RV_DASICS
   if (unlikely(mmu_mode == MMU_DYNAMIC)) {
     Logm("Checking mmu when MMU_DYN");
     mmu_mode = isa_mmu_check(addr, len, type);
@@ -139,6 +144,10 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
+#ifdef CONFIG_RV_DASICS
+  void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+  dasics_ldst_helper(s->pc, addr, len, MEM_TYPE_WRITE);
+#endif  // CONFIG_RV_DASICS
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data, cpu.mode, addr); return; }
 #ifndef __ICS_EXPORT

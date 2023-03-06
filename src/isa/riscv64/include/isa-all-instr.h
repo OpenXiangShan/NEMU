@@ -33,6 +33,12 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
+#if (defined(CONFIG_DEBUG) && defined(CONFIG_RVN))
+#define RVN_INSTR_NULLARY(f) f(uret)
+#else
+#define RVN_INSTR_NULLARY(f)
+#endif  // CONFIG_RVN
+
 #ifdef CONFIG_DEBUG
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
@@ -156,11 +162,18 @@
   f(fmadds) f(fmsubs) f(fnmsubs) f(fnmadds) f(fmaddd) f(fmsubd) f(fnmsubd) f(fnmaddd)
 #endif // CONFIG_FPU_NONE
 
+#ifdef CONFIG_RV_DASICS
+#define DASICS_INSTR_TERNARY(f) f(dasicsret)
+#else
+#define DASICS_INSTR_TERNARY(f)
+#endif  // CONFIG_RV_DASICS
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f) \
-  f(p_ret)
+  f(p_ret) \
+  RVN_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
   f(p_li_0) f(p_li_1)
@@ -195,7 +208,8 @@
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
-  VECTOR_INSTR_TERNARY(f)
+  VECTOR_INSTR_TERNARY(f) \
+  DASICS_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
 

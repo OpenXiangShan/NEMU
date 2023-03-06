@@ -20,8 +20,16 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config RVN
+  bool "RISC-V User-Level Interrupts Extension v1.1"
+  default y
+
 config RV_DEBUG
   bool "RISC-V Debug Extension"
+  default y
+
+config RV_DASICS
+  bool "Enable DASICS Protection Mechanism for RV64"
   default y
 
 config RV_PMP_CSR
