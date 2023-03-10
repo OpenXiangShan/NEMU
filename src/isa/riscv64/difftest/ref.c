@@ -23,12 +23,22 @@
 // csr_prepare() & csr_writeback() are used to maintain 
 // a compact mirror of critical CSRs
 // For processor difftest only 
+#ifdef CONFIG_RVH
+#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
+#endif //CONFIG_RVH
+
+#ifdef CONFIG_RVV_010
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
+#else
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#endif // CONFIG_RVV_010
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 static void csr_prepare() {
   cpu.mstatus = mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = csrid_read(0x100); // sstatus
+  cpu.sstatus = mstatus->val & SSTATUS_RMASK; // sstatus
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 
