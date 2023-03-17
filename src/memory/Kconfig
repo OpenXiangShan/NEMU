@@ -11,8 +11,7 @@ config MSIZE
 
 config PADDRBITS
   int "The number of paddr bits"
-  default 36 if SHARE
-  default 40
+  default 36
 
 config BBL_OFFSET_WITH_CPT
   hex "The offset of bbl / baremetal app with using gcpt"
