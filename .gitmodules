@@ -1,3 +1,4 @@
 [submodule "ready-to-run"]
 	path = ready-to-run
-	url = https://github.com/OpenXiangShan/ready-to-run.git
+	url = https://gitee.com/xuyb1999/ready-to-run.git
+	branch = dev-nemu-difftest
