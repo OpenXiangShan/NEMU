@@ -61,7 +61,7 @@ void isa_reg_display() {
       mtval->val, stval->val, mtvec->val, stvec->val);
 #ifdef CONFIG_RVN
   printf("ustatus: " FMT_WORD " utvec: " FMT_WORD " utval: " FMT_WORD " uscratch: " FMT_WORD "\n",
-      ustatus->val, utvec->val, utval->val, uscratch->val);
+      csrid_read(0x000), utvec->val, utval->val, uscratch->val);
   printf("uepc: " FMT_WORD " ucause: " FMT_WORD " sedeleg: " FMT_WORD " sideleg: " FMT_WORD "\n",
       uepc->val, ucause->val, sedeleg->val, sideleg->val);
 #endif  // CONFIG_RVN
@@ -69,7 +69,7 @@ void isa_reg_display() {
   printf("dsmcfg: " FMT_WORD " dsmbound0: " FMT_WORD " dsmbound1: " FMT_WORD "\n",
       dsmcfg->val, dsmbound0->val, dsmbound1->val);
   printf("dumcfg: " FMT_WORD " dumbound0: " FMT_WORD " dumbound1: " FMT_WORD "\n",
-      dumcfg->val, dumbound0->val, dumbound1->val);
+      csrid_read(0x5c0), dumbound0->val, dumbound1->val);
   for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
     printf("%2d: cfg:0x%02x boundhi:0x%016lx boundlo:0x%016lx", i, dasics_libcfg_from_index(i), \
       dasics_libbound_from_index(i << 1), dasics_libbound_from_index((i << 1) + 1));
