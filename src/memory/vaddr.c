@@ -114,7 +114,9 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
 #endif
 #ifdef CONFIG_RV_DASICS
   void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
-  dasics_ldst_helper(((struct Decode *)s)->pc, addr, len, type);
+  if (s != NULL) {
+    dasics_ldst_helper(((struct Decode *)s)->pc, addr, len, type);    
+  }
 #endif  // CONFIG_RV_DASICS
   if (unlikely(mmu_mode == MMU_DYNAMIC)) {
     Logm("Checking mmu when MMU_DYN");
