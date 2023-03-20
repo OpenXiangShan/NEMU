@@ -201,7 +201,6 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
     for (int i = 0; i < len; i++) {
       if (!dasics_match_dlib(vaddr + i, LIBCFG_V | LIBCFG_R)) {
         INTR_TVAL_REG(ex) = vaddr + i;  // To avoid load inst that crosses libzone
-        // raise_intr(ex, pc);
         longjmp_exception(ex);
         break;
       }
@@ -212,7 +211,6 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
     for (int i = 0; i < len; ++i) {
       if (!dasics_match_dlib(vaddr + i, LIBCFG_V | LIBCFG_W)) {
         INTR_TVAL_REG(ex) = vaddr + i;  // To avoid store inst that crosses libzone
-        // raise_intr(ex, pc);
         longjmp_exception(ex);
         break;
       }
@@ -238,7 +236,6 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_d
   if (!allow_brjp) {
     int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
     INTR_TVAL_REG(ex) = newpc;
-    // raise_intr(ex, pc);
     longjmp_exception(ex);
   }
 
@@ -743,10 +740,6 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     case HOSTCALL_TRAP: 
 #ifdef CONFIG_RV_DASICS
       bool hostcall_trusted = dasics_in_trusted_zone(pc);
-
-      // if (pc == 0x80200512) {
-      //   printf("[DEBUG] hostcall_trusted = %d, epc = 0x%lx, cause = %ld, cpu.mode = %ld\n", hostcall_trusted, *src1, imm, cpu.mode);
-      // }
 
       if (!hostcall_trusted && cpu.mode == MODE_U) {
         ret = raise_intr(EX_DUEF, *src1);
