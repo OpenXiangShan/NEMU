@@ -186,7 +186,14 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count);
 extern uint64_t get_abs_instr_count();
 
+#ifdef CONFIG_RV_DASICS
+extern void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_dasicsret);
+#endif  // CONFIG_RV_DASICS
+
 static inline def_rtl(j, vaddr_t target) {
+#ifdef CONFIG_RV_DASICS
+  dasics_redirect_helper(s->pc, target, s->snpc, false);
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     if(cpu.execution_guide.jump_target != target) {
@@ -212,6 +219,9 @@ end_of_rtl_j:
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
+#ifdef CONFIG_RV_DASICS
+  dasics_redirect_helper(s->pc, *(vaddr_t *)target, s->snpc, false);
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     if(cpu.execution_guide.jump_target != *target) {
@@ -240,6 +250,59 @@ static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
   rtl_j(s, (is_jmp ? target : s->snpc));
+}
+
+static inline def_rtl(jr_dasicsret, rtlreg_t *target) {
+#ifdef CONFIG_RV_DASICS
+  dasics_redirect_helper(s->pc, *(vaddr_t *)target, s->snpc, true);
+#endif  // CONFIG_RV_DASICS
+#ifdef CONFIG_GUIDED_EXEC
+  if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
+    if(cpu.execution_guide.jump_target != *target) {
+      cpu.pc = cpu.execution_guide.jump_target;
+      // printf("input jump target %lx & real jump target %lx does not match\n",
+      //   cpu.execution_guide.jump_target, *target
+      // );
+      goto end_of_rtl_jr_dasicsret;
+    }
+  }
+#endif
+
+  cpu.pc = *target;
+
+  if (profiling_state == SimpointProfiling && profiling_started) {
+    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
+  }
+
+#ifdef CONFIG_GUIDED_EXEC
+end_of_rtl_jr_dasicsret:
+; // make compiler happy
+#endif
+}
+
+static inline def_rtl(priv_jr, rtlreg_t *target) {
+#ifdef CONFIG_GUIDED_EXEC
+  if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
+    if(cpu.execution_guide.jump_target != *target) {
+      cpu.pc = cpu.execution_guide.jump_target;
+      // printf("input jump target %lx & real jump target %lx does not match\n",
+      //   cpu.execution_guide.jump_target, *target
+      // );
+      goto end_of_rtl_priv_jr;
+    }
+  }
+#endif
+
+  cpu.pc = *target;
+
+  if (profiling_state == SimpointProfiling && profiling_started) {
+    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
+  }
+
+#ifdef CONFIG_GUIDED_EXEC
+end_of_rtl_priv_jr:
+; // make compiler happy
+#endif
 }
 
 //#include "rtl-fp.h"

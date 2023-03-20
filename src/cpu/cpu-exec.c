@@ -293,7 +293,7 @@ end_of_loop:
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 
 #define rtl_priv_next(s)
-#define rtl_priv_jr(s, target) rtl_jr(s, target)
+// NOTE: 'rtl_priv_jr' is implemented in rtl_basic.h without using rtl_jr
 
 #include "isa-exec.h"
 static const void* g_exec_table[TOTAL_INSTR] = {
