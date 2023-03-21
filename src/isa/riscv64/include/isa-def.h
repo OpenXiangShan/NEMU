@@ -73,6 +73,26 @@ typedef struct {
   uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
   uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
+
+#ifdef CONFIG_RVN
+  uint64_t ustatus, ucause, uepc;
+  uint64_t uscratch, utval, utvec;
+  uint64_t sedeleg, sideleg;
+#endif  // CONFIG_RVN
+
+#ifdef CONFIG_RV_DASICS
+  uint64_t dsmcfg, dsmbound0, dsmbound1;
+  uint64_t dumcfg, dumbound0, dumbound1;
+  uint64_t dlcfg0, dlcfg1;
+  uint64_t dlbound0, dlbound1, dlbound2, dlbound3, dlbound4, dlbound5;
+  uint64_t dlbound6, dlbound7, dlbound8, dlbound9, dlbound10, dlbound11;
+  uint64_t dlbound12, dlbound13, dlbound14, dlbound15, dlbound16, dlbound17;
+  uint64_t dlbound18, dlbound19, dlbound20, dlbound21, dlbound22, dlbound23;
+  uint64_t dlbound24, dlbound25, dlbound26, dlbound27, dlbound28, dlbound29;
+  uint64_t dlbound30, dlbound31;
+  uint64_t dmaincall, dretpc, dretpcfz;
+#endif  // CONFIG_RV_DASICS
+
   // Above will be synced by regcpy when run difftest, DO NOT TOUCH
 
 #ifdef CONFIG_RVV

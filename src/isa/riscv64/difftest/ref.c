@@ -43,6 +43,66 @@ static void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
+#ifdef CONFIG_RVN
+  cpu.ustatus  = csrid_read(0x000);  // ustatus
+  cpu.ucause   = ucause->val;
+  cpu.uepc     = uepc->val;
+  cpu.uscratch = uscratch->val;
+  cpu.sedeleg  = sedeleg->val;
+  cpu.sideleg  = sideleg->val;
+  cpu.utval    = utval->val;
+  cpu.utvec    = utvec->val;
+#endif  // CONFIG_RVN
+
+#ifdef CONFIG_RV_DASICS
+  cpu.dsmcfg    = dsmcfg->val;
+  cpu.dsmbound0 = dsmbound0->val;
+  cpu.dsmbound1 = dsmbound1->val;
+
+  cpu.dumcfg    = csrid_read(0x5c0);  // dumcfg
+  cpu.dumbound0 = dumbound0->val;
+  cpu.dumbound1 = dumbound1->val;
+
+  cpu.dlcfg0    = dlcfg0->val;
+  cpu.dlcfg1    = dlcfg1->val;
+  cpu.dlbound0  = dlbound0->val;
+  cpu.dlbound1  = dlbound1->val;
+  cpu.dlbound2  = dlbound2->val;
+  cpu.dlbound3  = dlbound3->val;
+  cpu.dlbound4  = dlbound4->val;
+  cpu.dlbound5  = dlbound5->val;
+  cpu.dlbound6  = dlbound6->val;
+  cpu.dlbound7  = dlbound7->val;
+  cpu.dlbound8  = dlbound8->val;
+  cpu.dlbound9  = dlbound9->val;
+  cpu.dlbound10 = dlbound10->val;
+  cpu.dlbound11 = dlbound11->val;
+  cpu.dlbound12 = dlbound12->val;
+  cpu.dlbound13 = dlbound13->val;
+  cpu.dlbound14 = dlbound14->val;
+  cpu.dlbound15 = dlbound15->val;
+  cpu.dlbound16 = dlbound16->val;
+  cpu.dlbound17 = dlbound17->val;
+  cpu.dlbound18 = dlbound18->val;
+  cpu.dlbound19 = dlbound19->val;
+  cpu.dlbound20 = dlbound20->val;
+  cpu.dlbound21 = dlbound21->val;
+  cpu.dlbound22 = dlbound22->val;
+  cpu.dlbound23 = dlbound23->val;
+  cpu.dlbound24 = dlbound24->val;
+  cpu.dlbound25 = dlbound25->val;
+  cpu.dlbound26 = dlbound26->val;
+  cpu.dlbound27 = dlbound27->val;
+  cpu.dlbound28 = dlbound28->val;
+  cpu.dlbound29 = dlbound29->val;
+  cpu.dlbound30 = dlbound30->val;
+  cpu.dlbound31 = dlbound31->val;
+
+  cpu.dmaincall = dmaincall->val;
+  cpu.dretpc    = dretpc->val;
+  cpu.dretpcfz  = dretpcfz->val;
+#endif  // CONFIG_RV_DASICS
+
 #ifdef CONFIG_RVV
   cpu.vstart  = vstart->val;
   cpu.vxsat   = vxsat->val;
@@ -61,6 +121,11 @@ static void csr_writeback() {
   //sstatus->val = cpu.sstatus;  // sstatus is a shadow of mstatus
   scause ->val = cpu.scause ;
   sepc   ->val = cpu.sepc   ;
+#ifdef CONFIG_RVN
+  //ustatus->val = cpu.ustatus;  // ustatus is a shadow of mstatus
+  ucause->val  = cpu.ucause;
+  uepc->val    = cpu.uepc;
+#endif  // CONFIG_RVN
 
   satp->val     = cpu.satp;
   mip->val      = cpu.mip;
@@ -73,6 +138,63 @@ static void csr_writeback() {
   stval->val    = cpu.stval;
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
+#ifdef CONFIG_RVN
+  uscratch->val = cpu.uscratch;
+  sideleg->val  = cpu.sideleg;
+  sedeleg->val  = cpu.sedeleg;
+  utval->val    = cpu.utval;
+  utvec->val    = cpu.utvec;
+#endif  // CONFIG_RVN
+
+#ifdef CONFIG_RV_DASICS
+  dsmcfg->val    = cpu.dsmcfg;
+  dsmbound0->val = cpu.dsmbound0;
+  dsmbound1->val = cpu.dsmbound1;
+
+  // dumcfg->val    = cpu.dumcfg;  // dumcfg is a shadow of dsmcfg
+  dumbound0->val = cpu.dumbound0;
+  dumbound1->val = cpu.dumbound1;
+
+  dlcfg0->val    = cpu.dlcfg0;
+  dlcfg1->val    = cpu.dlcfg1;
+  dlbound0->val  = cpu.dlbound0;
+  dlbound1->val  = cpu.dlbound1;
+  dlbound2->val  = cpu.dlbound2;
+  dlbound3->val  = cpu.dlbound3;
+  dlbound4->val  = cpu.dlbound4;
+  dlbound5->val  = cpu.dlbound5;
+  dlbound6->val  = cpu.dlbound6;
+  dlbound7->val  = cpu.dlbound7;
+  dlbound8->val  = cpu.dlbound8;
+  dlbound9->val  = cpu.dlbound9;
+  dlbound10->val = cpu.dlbound10;
+  dlbound11->val = cpu.dlbound11;
+  dlbound12->val = cpu.dlbound12;
+  dlbound13->val = cpu.dlbound13;
+  dlbound14->val = cpu.dlbound14;
+  dlbound15->val = cpu.dlbound15;
+  dlbound16->val = cpu.dlbound16;
+  dlbound17->val = cpu.dlbound17;
+  dlbound18->val = cpu.dlbound18;
+  dlbound19->val = cpu.dlbound19;
+  dlbound20->val = cpu.dlbound20;
+  dlbound21->val = cpu.dlbound21;
+  dlbound22->val = cpu.dlbound22;
+  dlbound23->val = cpu.dlbound23;
+  dlbound24->val = cpu.dlbound24;
+  dlbound25->val = cpu.dlbound25;
+  dlbound26->val = cpu.dlbound26;
+  dlbound27->val = cpu.dlbound27;
+  dlbound28->val = cpu.dlbound28;
+  dlbound29->val = cpu.dlbound29;
+  dlbound30->val = cpu.dlbound30;
+  dlbound31->val = cpu.dlbound31;
+
+  dmaincall->val = cpu.dmaincall;
+  dretpc->val    = cpu.dretpc;
+  dretpcfz->val  = cpu.dretpcfz;
+#endif  // CONFIG_RV_DASICS
+
 #ifdef CONFIG_RVV
   vstart->val  = cpu.vstart;
   vxsat->val   = cpu.vxsat;
