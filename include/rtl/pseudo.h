@@ -100,7 +100,7 @@ static inline def_rtl(msb, rtlreg_t* dest, const rtlreg_t* src1, int width) {
 static inline def_rtl(trap, vaddr_t ret_pc, word_t NO) {
   rtl_li(s, t0, ret_pc);
   rtl_hostcall(s, HOSTCALL_TRAP, t0, t0, NULL, NO);
-  rtl_jr(s, t0);
+  rtl_priv_jr(s, t0);
 }
 static inline def_rtl(mux, rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t* src1, const rtlreg_t* src2) {
   // dest <- (cond ? src1 : src2)
