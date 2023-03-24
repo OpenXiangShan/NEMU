@@ -46,6 +46,7 @@ MAP(CSRS, CSRS_DEF)
 static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
+  MAP(CSRS_HPM, CSRS_EXIST)
   #ifdef CONFIG_RVV_010
   MAP(VCSRS, CSRS_EXIST)
   #endif // CONFIG_RVV_010
@@ -193,7 +194,9 @@ static inline void update_mstatus_sd() {
 }
 
 static inline word_t csr_read(word_t *src) {
-
+  if(src == &csr_perf){
+    return 0;
+  }
 #ifdef CONFIG_RV_PMP_CSR
   if (is_read_pmpaddr) {
     // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
@@ -304,6 +307,9 @@ void disable_time_intr() {
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
+  if((dest == &csr_perf)){
+    return;
+  }
   #ifdef CONFIG_RVH
   if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch) 
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 

@@ -49,7 +49,7 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
   }
 
   save_globals(s);
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
+  // IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
 
   // funct3 != 0: CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI
 
