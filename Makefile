@@ -52,6 +52,7 @@ SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
 SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
+SRCS-$(CONFIG_HAS_TRACE) += src/device/trace.c
 
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
