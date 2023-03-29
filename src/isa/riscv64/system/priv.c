@@ -325,9 +325,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if (is_write(satp))    { 
       if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
         longjmp_exception(EX_VI);
-      }else{
-        vsatp->val = src;
       }
+      if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+        vsatp->val = MASKED_SATP(src);
     }else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
   }else if (is_write(mideleg)){
     *dest = (src & 0x222) | MIDELEG_FORCED_MASK;
@@ -360,9 +360,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   }else if(is_write(vsatp)){ 
     if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
       longjmp_exception(EX_VI);
-    }else{
-      vsatp->val = src;
     }
+    if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+      vsatp->val = MASKED_SATP(src);
   }
   else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else
@@ -497,7 +497,15 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Only support Sv39, ignore write that sets other mode
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       *dest = MASKED_SATP(src);
-  } else { *dest = src; }
+  }
+#ifdef CONFIG_RVH
+  else if (is_write(hgatp)) {
+    // Only support Sv39, ignore write that sets other mode
+    if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+      hgatp->val = MASKED_HGATP(src);
+  } 
+#endif// CONFIG_RVH
+  else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {

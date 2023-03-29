@@ -20,8 +20,11 @@
 #include <stdint.h>
 
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
-
+#ifdef CONFIG_RVH
 #define RV64_FULL_DIFF_H
+#else
+#define RV64_FULL_DIFF
+#endif
 #define RV64_UARCH_SYNC
 
 #if defined(__ISA_x86__)
