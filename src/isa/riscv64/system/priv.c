@@ -131,6 +131,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
 #define VS_MASK ((1 << 10) | (1 << 6) | (1 << 2))
 #define VSSIP (1 << 2)
+#define SSIP (1 << 1)
 #define HVIP_MASK ((1 << 10) | (1 << 6) | (1 << 2))
 #define HS_MASK   ((1 << 12) | VS_MASK)
 #define HIP_RMASK HS_MASK
@@ -231,13 +232,13 @@ static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RVH
  if (cpu.v == 1) {
   if (is_read(sstatus))      { return vsstatus->val & SSTATUS_RMASK; }
-  else if (is_read(sie))     { return (mie->val & VSI_MASK) >> 1;}
+  else if (is_read(sie))     { return (mie->val & VS_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
   else if (is_read(sepc))    { return vsepc->val;}
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
-  else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
+  else if (is_read(sip))     { return (mip->val & VS_MASK) >> 1;}
   else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_VI); }
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
@@ -315,13 +316,13 @@ static inline void csr_write(word_t *dest, word_t src) {
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 
         || is_write(satp) || is_write(stvec))){
     if (is_write(sstatus))      { vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); }
-    else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VSI_MASK, src << 1); }
+    else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VS_MASK, src << 1); }
     else if (is_write(stvec))   { vstvec->val = src; }
     else if (is_write(sscratch)){ vsscratch->val = src;}
     else if (is_write(sepc))    { vsepc->val = src;}
     else if (is_write(scause))  { vscause->val = src;}
     else if (is_write(stval))   { vstval->val = src;}
-    else if (is_write(sip))     { mip->val = mask_bitset(mip->val, VSI_MASK, src << 1);}
+    else if (is_write(sip))     { mip->val = mask_bitset(mip->val, VSSIP, src << 1);}
     else if (is_write(satp))    { 
       if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
         longjmp_exception(EX_VI);
