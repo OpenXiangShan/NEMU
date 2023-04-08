@@ -1,6 +1,7 @@
 #include "restore_rom_addr.h"
 #include "encoding.h"
 #include "csr.h"
+#define FULL_WAYMASK
 
   .option norvc
   .section ".restore.code","ax",@progbits
@@ -9,7 +10,8 @@
 boot_decide_vector:
   li s0, CP_MMIO_BASE
   csrr a0, mhartid
-  beqz a0, soft_nohype_allbarrier #core 0 need not reset
+  csrw CSR_DSID, a0
+  beqz a0, set_othercores #core 0 need not reset
   #set hartid
   csrw CSR_VHARTID,zero
   #set nohype mode to csr mode
@@ -22,10 +24,49 @@ boot_decide_vector:
   mul t2, t2, a0
   csrw CSR_IOOFF,t2
   csrw CSR_MEMOFF,t1
+  j soft_nohype_allbarrier
+set_othercores:
+  ld t0, CP_HARTNUM(s0) #get all hart num
+  add t0, t0, -1; # t0 = t0 + -1
+  #set qos (waymask)
+  li s1, 0xFF #full waymask
+#ifdef FULL_WAYMASK
+  mv s2, s1
+  mv s3, s1
+#else
+  li s2, 0x7f #core0 waymask
+  xor s3, s2, s1 #other core waymask
+#endif
+  beqz t0, only_core0_mask # in case of only core0
+2:
+  # set other cores
   # set mtimecmp to avoid timer interrupt from not used clint
-  li t0, CLINT_MMIO+CLINT_MTIMECMP
-  li t1, -1
-  sd t1, (t0)
+  li a1, CLINT_MMIO+CLINT_MTIMECMP
+  slli t1, t0, 3 # 8byte per hart
+  add a1, a1, t1 # mtimecmp for hart t0
+  li a2, -1
+  sd a2, (a1)
+  # set waymask
+  sd t0, CP_IDSEL(s0)
+  sd s3, CP_WAYMASK(s0)
+  fence
+  # set waymask for prefetch
+  ori t1, t0, 1 << 4
+  sd t1, CP_IDSEL(s0)
+  sd s3, CP_WAYMASK(s0)
+  fence
+  add t0, t0, -1
+  bnez t0, 2b
+only_core0_mask:
+  #set core0
+  sd zero, CP_IDSEL(s0)
+  sd s2, CP_WAYMASK(s0)
+  fence
+  ori t1, zero, 1 << 4
+  sd t1, CP_IDSEL(s0)
+  sd s2, CP_WAYMASK(s0)
+  fence
+
 soft_nohype_allbarrier:
   fence
 

@@ -33,6 +33,7 @@
 #define CSR_MEMOFF 0xBC2
 #define CSR_IOOFF 0xBC3
 #define CSR_NOHYPEMODE 0xBC4
+#define CSR_DSID 0x9C0
 
 
 #endif //__RESTORE_ROM_ADDR__
