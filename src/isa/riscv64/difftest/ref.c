@@ -138,8 +138,8 @@ void isa_difftest_regcpy(void *dut, bool direction) {
     lightqs_take_reg_snapshot();
     // clint_take_snapshot();
     // pmem ops are logged automatically
-    stable_log_begin = restore_count;
-    spec_log_begin = restore_count + AHEAD_LENGTH;
+    stable_log_begin = restore_count + 1;
+    spec_log_begin = restore_count + AHEAD_LENGTH + 1;
     cpu_exec(AHEAD_LENGTH);
     lightqs_take_spec_reg_snapshot();
     // clint_take_spec_snapshot();
