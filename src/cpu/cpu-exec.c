@@ -297,8 +297,11 @@ uint64_t stable_log_begin, spec_log_begin;
 extern int ifetch_mmu_state;
 extern int data_mmu_state;
 struct lightqs_reg_ss reg_ss, spec_reg_ss;
+void csr_writeback();
+void csr_prepare();
 
 void lightqs_take_reg_snapshot() {
+  csr_prepare();
   reg_ss.br_cnt = br_count;
   reg_ss.inst_cnt = g_nr_guest_instr;
   #ifdef CONFIG_LIGHTQS_DEBUG
@@ -341,6 +344,7 @@ void lightqs_take_reg_snapshot() {
 }
 
 void lightqs_take_spec_reg_snapshot() {
+  csr_prepare();
   spec_reg_ss.br_cnt = br_count;
   spec_reg_ss.inst_cnt = g_nr_guest_instr;
   spec_reg_ss.pc = cpu.pc;
@@ -424,6 +428,7 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
     cpu.gpr[i]._64 = reg_ss.gpr[i];
     cpu.fpr[i]._64 = reg_ss.fpr[i];
   }
+  csr_writeback();
   #ifdef CONFIG_LIGHTQS_DEBUG
   printf("lightqs restore inst_cnt %lu\n", reg_ss.inst_cnt);
   #endif // CONFIG_LIGHTQS_DEBUG

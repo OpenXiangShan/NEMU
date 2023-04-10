@@ -21,10 +21,24 @@
 #include "../local-include/intr.h"
 #include "../local-include/csr.h"
 #include <generated/autoconf.h>
+#include <stdlib.h>
+
+void ramcmp() {
+  printf("ram cmp called\n");
+  uint64_t *ahead_ram = (uint64_t *)(0x1100000000ul);
+  uint64_t *normal_ram = (uint64_t *)(0x100000000ul);
+  for (int i = 0; i < CONFIG_MSIZE / 8; i++) {
+    if (ahead_ram[i] != normal_ram[i]) {
+      printf("Memory diff at 0x%x\n", i);
+      exit(1);
+    }
+  }
+}
+
 // csr_prepare() & csr_writeback() are used to maintain 
 // a compact mirror of critical CSRs
 // For processor difftest only 
-static void csr_prepare() {
+void csr_prepare() {
   cpu.mstatus = mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
@@ -55,7 +69,7 @@ static void csr_prepare() {
 #endif // CONFIG_RVV
 }
 
-static void csr_writeback() {
+void csr_writeback() {
   mstatus->val = cpu.mstatus;
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;
@@ -108,6 +122,7 @@ void isa_difftest_regcpy(void *dut, bool direction, bool restore, uint64_t resto
 #else
 void isa_difftest_regcpy(void *dut, bool direction) {
 #endif // CONFIG_LIGHTQS
+  //ramcmp();
   if (direction == DIFFTEST_TO_REF) {
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
     csr_writeback();
@@ -153,6 +168,7 @@ void isa_difftest_uarchstatus_cpy(void *dut, bool direction, uint64_t restore_co
 #else
 void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
 #endif // CONFIG_LIGHTQS
+  //ramcmp();
 
   if (direction == DIFFTEST_TO_REF) {
     struct SyncState* ms = (struct SyncState*)dut;
@@ -192,6 +208,7 @@ void isa_difftest_raise_intr(word_t NO, uint64_t restore_count) {
 #else
 void isa_difftest_raise_intr(word_t NO) {
 #endif // CONFIG_LIGHTQS
+  //ramcmp();
   cpu.pc = raise_intr(NO, cpu.pc);
 
 #ifdef CONFIG_LIGHTQS
@@ -232,14 +249,17 @@ void isa_difftest_guided_exec(void * guide) {
   cpu_exec(1);
   cpu.guided_exec = false;
 
+  // guided exec may affect ram content, in this case, normal so have finished guided exec
+  //ramcmp();
+
 #ifdef CONFIG_LIGHTQS
   // after processing, take another snapshot
   // FIXME: update spec_log_begin
   lightqs_take_reg_snapshot();
   // clint_take_snapshot();
   // pmem ops are logged automatically
-  stable_log_begin = restore_count;
-  spec_log_begin = restore_count + AHEAD_LENGTH;
+  stable_log_begin = restore_count + 1;
+  spec_log_begin = restore_count + 1 + AHEAD_LENGTH;
   cpu_exec(AHEAD_LENGTH);
   lightqs_take_spec_reg_snapshot();
   // clint_take_spec_snapshot();
