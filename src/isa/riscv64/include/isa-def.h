@@ -55,6 +55,8 @@ struct MemEventQueryResult {
 };
 #endif
 
+typedef struct TriggerModule TriggerModule;
+
 typedef struct {
   // Below will be synced by regcpy when run difftest, DO NOT TOUCH
   union {
@@ -107,6 +109,14 @@ typedef struct {
   struct DebugInfo debug;
 #ifdef CONFIG_QUERY_REF
   struct MemEventQueryResult query_mem_event;
+#endif
+
+#ifdef CONFIG_RVSDEXT
+  bool debug_mode;
+#endif
+
+#ifdef CONFIG_RVSDTRIG
+  TriggerModule *TM;
 #endif
 } riscv64_CPU_state;
 

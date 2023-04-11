@@ -20,6 +20,7 @@
 #include <rtl/rtl.h>
 #include "reg.h"
 #include "csr.h"
+#include "trigger.h"
 
 #define FBOX_MASK 0xFFFFFFFF00000000ull
 // The bit pattern for a default generated 32-bit floating-point NaN
