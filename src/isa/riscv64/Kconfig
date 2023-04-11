@@ -81,10 +81,12 @@ config MIMPID_VALUE
 
 config RVSDEXT
   bool "(Beta) RISC-V Sdext ISA Extension v1.0"
+  depends on RV_DEBUG
   default n
 
 config RVSDTRIG
   bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
+  depends on RV_DEBUG
   default n
 
 config TRIGGER_NUM
