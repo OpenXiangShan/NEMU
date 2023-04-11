@@ -21,10 +21,18 @@
 #ifdef CONFIG_PERF_OPT
 #define finish_label exec_finish
 #define def_label(l) l:
+#ifdef CONFIG_HAS_TRACE
+#define def_EHelper(name) \
+  s ++; \
+  goto finish_label; /* this is for the previous def_EHelper() */ \
+  def_label(concat(exec_, name))\
+  trace_gather_info(s, #name);
+#else
 #define def_EHelper(name) \
   s ++; \
   goto finish_label; /* this is for the previous def_EHelper() */ \
   def_label(concat(exec_, name))
+#endif
 #define def_finish() def_label(finish_label)
 #else
 #define def_EHelper(name) static inline void concat(exec_, name) (Decode *s)

@@ -24,6 +24,7 @@
 #include <locale.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <device/trace.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -133,17 +134,50 @@ void longjmp_exception(int ex_cause) {
   s = s->tnext; \
   goto end_of_bb; \
 } while (0)
+#ifdef CONFIG_HAS_TRACE
+extern int guest_instr_trace;
+#define rtl_jr(s, target) do { \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  s = jr_fetch(s, *(target)); \
+  if(guest_instr_trace){\
+  traceIP->group[ngroups].itype = ITYPE_UNINFERABLE_JUMP_OR_RESERVED;\
+  ngroups ++;\
+  groups_instr = -1;}\
+  goto end_of_bb; \
+} while (0)
+#else
 #define rtl_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
   goto end_of_bb; \
 } while (0)
+#endif
+
+#ifdef CONFIG_HAS_TRACE
+#define rtl_jrelop(s, relop, src1, src2, target) do { \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  if (interpret_relop(relop, *src1, *src2)){\
+  if(guest_instr_trace){\
+  traceIP->group[ngroups].itype = ITYPE_TAKEN_BRANCH;\
+  ngroups ++;\
+  groups_instr = -1;}\
+  s = s->tnext;} \
+  else{\
+  if(guest_instr_trace){\
+  traceIP->group[ngroups].itype = ITYPE_NON_TAKEN_BRANCH;\
+  ngroups ++;\
+  groups_instr = -1;}\
+  s = s->ntnext;} \
+  goto end_of_bb; \
+} while (0)
+#else
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
   else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)
+#endif
 
 #define rtl_priv_next(s) do { \
   if (g_sys_state_flag) { \
@@ -154,6 +188,24 @@ void longjmp_exception(int ex_cause) {
   } \
 } while (0)
 
+#ifdef CONFIG_HAS_TRACE
+#define rtl_priv_jr(s, target) do { \
+  IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
+  if(s->isa.instr.csr.csr==0x102 || s->isa.instr.csr.csr==0x302){\
+  traceIP->priv  = cpu.mode;\
+  traceIP->group[ngroups].itype = ITYPE_EXCEPTION_OR_INTERRUPT_RETURN;\
+  trace_handle_info(0);\
+  ngroups = 0;\
+  groups_instr = -1;\
+  retired_instr_this_cycle = -1;}\
+  s = jr_fetch(s, *(target)); \
+  if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) { \
+    s = tcache_handle_flush(s->pc); \
+    g_sys_state_flag = 0; \
+  } \
+  goto end_of_loop; \
+} while (0)
+#else
 #define rtl_priv_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
   s = jr_fetch(s, *(target)); \
@@ -163,6 +215,7 @@ void longjmp_exception(int ex_cause) {
   } \
   goto end_of_loop; \
 } while (0)
+#endif
 
 static const void **g_exec_table;
 
@@ -364,6 +417,31 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
+#ifdef CONFIG_HAS_TRACE
+      switch (cpu.mode)
+      {
+      case MODE_S:
+        traceIP->cause = cpu.scause;
+        traceIP->tval  = cpu.stval;
+        traceIP->priv  = PRIV_U;
+        break;
+      case MODE_M:
+        traceIP->cause = cpu.mcause;
+        traceIP->tval  = cpu.mtval;
+        traceIP->priv  = PRIV_S_OR_HS;
+        break;
+      default:
+        break;
+      }
+      traceIP->group[ngroups].itype = ITYPE_EXCEPTION;
+      fprintf(trace_log_fp, "excep pc addr=%08lx\n",prev_s->pc);
+      traceIP->group[ngroups].iretire -= prev_s->isa.instr.r.opcode1_0 != 0x3 ? 1 : 2;
+      traceIP->group[ngroups].ilastsize = preilastsize;
+
+      ngroups ++;
+      groups_instr = -1;
+      retired_instr_this_cycle = -1;
+#endif
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
@@ -372,6 +450,27 @@ void cpu_exec(uint64_t n) {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
+#ifdef CONFIG_HAS_TRACE
+        switch (cpu.mode)
+        {
+        case MODE_S:
+          traceIP->cause = cpu.scause;
+          traceIP->tval  = cpu.stval;
+          traceIP->priv  = PRIV_U;
+          break;
+        case MODE_M:
+          traceIP->cause = cpu.mcause;
+          traceIP->tval  = cpu.mtval;
+          traceIP->priv  = PRIV_S_OR_HS;
+          break;
+        default:
+          break;
+        }
+        traceIP->group[ngroups].itype = ITYPE_INTERRUPT;
+        ngroups ++;
+        groups_instr = -1;
+        retired_instr_this_cycle = -1;
+#endif
         cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));

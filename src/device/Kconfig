@@ -6,6 +6,10 @@ menuconfig DEVICE
 
 if DEVICE
 
+config HAS_TRACE
+  bool "Support Nexus-based Trace"
+  default y
+
 config HAS_PORT_IO
   depends on !SHARE
   bool

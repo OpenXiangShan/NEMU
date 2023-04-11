@@ -53,6 +53,10 @@ static char* rl_gets() {
 
 static int cmd_c(char *args) {
   cpu_exec((args == NULL) ? -1 : (uint64_t) atol(args));
+#ifdef CONFIG_HAS_TRACE
+  void trace_off();
+  trace_off();
+#endif
   return 0;
 }
 
@@ -215,6 +219,10 @@ static int cmd_load(char *args) {
 #endif
 
 static int cmd_q(char *args) {
+#ifdef CONFIG_HAS_TRACE
+  void trace_off();
+  trace_off();
+#endif
   return -1;
 }
 
