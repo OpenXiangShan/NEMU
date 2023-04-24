@@ -59,12 +59,26 @@ set_othercores:
   bnez t0, 2b
 only_core0_mask:
   #set core0
-  sd zero, CP_IDSEL(s0)
+  # li t0, 1
+  csrw CSR_DSID, t0
+  sd t0, CP_IDSEL(s0)
   sd s2, CP_WAYMASK(s0)
   fence
-  ori t1, zero, 1 << 4
+  ori t1, t0, 1 << 4
   sd t1, CP_IDSEL(s0)
   sd s2, CP_WAYMASK(s0)
+
+//#define BUCKET_ON
+#ifdef BUCKET_ON
+  sd t0, CP_IDSEL(s0)
+  li t2, 64
+  sd t2, CP_BUCKET_SIZE(s0)
+  li t2, 8192
+  sd t2, CP_BUCKET_FREQ(s0)
+  li t2, 5
+  sd t2, CP_BUCKET_INC(s0)
+#endif
+
   fence
 
 soft_nohype_allbarrier:

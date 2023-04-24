@@ -27,6 +27,9 @@
 #define CP_WAYMASK 0x20
 #define CP_NOHYPE_BARRIER 0x28
 #define CP_HARTNUM 0x30
+#define CP_BUCKET_FREQ 0x38
+#define CP_BUCKET_SIZE 0x40
+#define CP_BUCKET_INC 0x48
 
 #define CSR_RHARTID 0xBC0
 #define CSR_VHARTID 0xBC1
