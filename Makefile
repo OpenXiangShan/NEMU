@@ -123,6 +123,10 @@ ROARING_REPO_PATH = resource/CRoaring
 INC_DIR += $(ROARING_REPO_PATH)/include
 LIBS += $(ROARING)
 
+$(ROARING):
+	mkdir -p $(ROARING_REPO_PATH)/build
+	cd $(ROARING_REPO_PATH)/build && cmake .. && cmake --build .
+
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk
