@@ -39,9 +39,9 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 #endif
     // should check overlapping instead of equality
     int success = cpu.lr_addr == *src1 && cpu.lr_valid;
+    cpu.lr_valid = 0;
     if (success) {
       rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
-      cpu.lr_valid = 0;
     } else {
       cpu.lr_valid = 0;
       // Even if scInvalid, SPF (if raised) also needs to be reported
