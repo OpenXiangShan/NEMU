@@ -38,6 +38,17 @@
 #define CSRS_PMP(f)
 #endif // CONFIG_RV_PMP_CSR
 
+#ifdef CONFIG_RV_SPMP_CSR
+#define CSRS_SPMP(f) \
+  f(spmpcfg0    , 0x1a0) f(spmpcfg2, 0x1a2)\
+  f(spmpaddr0   , 0x1b0) f(spmpaddr1   , 0x1b1) f(spmpaddr2   , 0x1b2) f(spmpaddr3   , 0x1b3) \
+  f(spmpaddr4   , 0x1b4) f(spmpaddr5   , 0x1b5) f(spmpaddr6   , 0x1b6) f(spmpaddr7   , 0x1b7) \
+  f(spmpaddr8   , 0x1b8) f(spmpaddr9   , 0x1b9) f(spmpaddr10  , 0x1ba) f(spmpaddr11  , 0x1bb) \
+  f(spmpaddr12  , 0x1bc) f(spmpaddr13  , 0x1bd) f(spmpaddr14  , 0x1be) f(spmpaddr15  , 0x1bf)
+#else
+#define CSRS_SPMP(f)
+#endif // CONFIG_RV_SPMP_CSR
+
 #ifndef CONFIG_SHARE
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
@@ -45,6 +56,7 @@
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
   f(mtval      , 0x343) f(mip        , 0x344) \
   CSRS_PMP(f) \
+  CSRS_SPMP(f) \
   f(mhartid    , 0xf14) \
   f(sstatus    , 0x100) \
   f(sie        , 0x104) f(stvec      , 0x105) f(scounteren , 0x106) \
@@ -222,6 +234,45 @@ CSR_STRUCT_END(mip)
 #define CSR_PMPADDR13 0x3bd
 #define CSR_PMPADDR14 0x3be
 #define CSR_PMPADDR15 0x3bf
+
+/** spmp */
+
+//R/W/X/A/L field in sPMP configuration registers
+#define SPMP_R     0x01
+#define SPMP_W     0x02
+#define SPMP_X     0x04
+#define SPMP_A     0x18
+#define SPMP_S     0x80       
+#define SPMP_SHIFT 2
+#define SPMP_PLATFORMGARIN 12 // log2(4KB)
+
+//encoding of A field in sPMP configuration registers
+#define SPMP_TOR   0x08
+#define SPMP_NA4   0x10
+#define SPMP_NAPOT 0x18
+
+#define SPMP_OFF   0x00
+#define SPMP_NO_PERM  0
+
+#define CSR_SPMPCFG0        0x1a0
+#define CSR_SPMPCFG2        0x1a2
+#define CSR_SPMPADDR0       0x1b0
+#define CSR_SPMPADDR1       0x1b1
+#define CSR_SPMPADDR2       0x1b2
+#define CSR_SPMPADDR3       0x1b3
+#define CSR_SPMPADDR4       0x1b4
+#define CSR_SPMPADDR5       0x1b5
+#define CSR_SPMPADDR6       0x1b6
+#define CSR_SPMPADDR7       0x1b7
+#define CSR_SPMPADDR8       0x1b8
+#define CSR_SPMPADDR9       0x1b9
+#define CSR_SPMPADDR10      0x1ba
+#define CSR_SPMPADDR11      0x1bb
+#define CSR_SPMPADDR12      0x1bc
+#define CSR_SPMPADDR13      0x1bd
+#define CSR_SPMPADDR14      0x1be
+#define CSR_SPMPADDR15      0x1bf
+
 // This is the maximum PMP register allowed.
 // If you need to change the number of actual PMP registers,
 // please set CONFIG_RV_PMP_NUM in the config file.
@@ -281,6 +332,66 @@ CSR_STRUCT_END(pmpaddr14)
 
 CSR_STRUCT_START(pmpaddr15)
 CSR_STRUCT_END(pmpaddr15)
+
+// This is the maximum SPMP register allowed.
+// If you need to change the number of actual SPMP registers,
+// please set CONFIG_RV_SPMP_NUM in the config file.
+#define MAX_NUM_SPMP 16
+
+CSR_STRUCT_START(spmpcfg0)
+CSR_STRUCT_END(spmpcfg0)
+
+
+CSR_STRUCT_START(spmpcfg2)
+CSR_STRUCT_END(spmpcfg2)
+
+CSR_STRUCT_START(spmpaddr0)
+CSR_STRUCT_END(spmpaddr0)
+
+CSR_STRUCT_START(spmpaddr1)
+CSR_STRUCT_END(spmpaddr1)
+
+CSR_STRUCT_START(spmpaddr2)
+CSR_STRUCT_END(spmpaddr2)
+
+CSR_STRUCT_START(spmpaddr3)
+CSR_STRUCT_END(spmpaddr3)
+
+CSR_STRUCT_START(spmpaddr4)
+CSR_STRUCT_END(spmpaddr4)
+
+CSR_STRUCT_START(spmpaddr5)
+CSR_STRUCT_END(spmpaddr5)
+
+CSR_STRUCT_START(spmpaddr6)
+CSR_STRUCT_END(spmpaddr6)
+
+CSR_STRUCT_START(spmpaddr7)
+CSR_STRUCT_END(spmpaddr7)
+
+CSR_STRUCT_START(spmpaddr8)
+CSR_STRUCT_END(spmpaddr8)
+
+CSR_STRUCT_START(spmpaddr9)
+CSR_STRUCT_END(spmpaddr9)
+
+CSR_STRUCT_START(spmpaddr10)
+CSR_STRUCT_END(spmpaddr10)
+
+CSR_STRUCT_START(spmpaddr11)
+CSR_STRUCT_END(spmpaddr11)
+
+CSR_STRUCT_START(spmpaddr12)
+CSR_STRUCT_END(spmpaddr12)
+
+CSR_STRUCT_START(spmpaddr13)
+CSR_STRUCT_END(spmpaddr13)
+
+CSR_STRUCT_START(spmpaddr14)
+CSR_STRUCT_END(spmpaddr14)
+
+CSR_STRUCT_START(spmpaddr15)
+CSR_STRUCT_END(spmpaddr15)
 
 CSR_STRUCT_START(sstatus)
   uint64_t uie : 1;
@@ -467,5 +578,11 @@ uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmpaddr_from_csrid(int id);
 word_t pmp_tor_mask();
+
+// sPMP
+uint8_t spmpcfg_from_index(int idx);
+word_t spmpaddr_from_index(int idx);
+word_t spmpaddr_from_csrid(int id);
+word_t spmp_tor_mask();
 
 #endif

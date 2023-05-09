@@ -39,7 +39,24 @@ config RV_PMP_CHECK
   depends on !PERF_OPT
   depends on RV_PMP_CSR
   bool "Enable PMP Check"
+  default n
+
+config RV_SPMP_CSR
+  bool "Enable sPMP CSR Read & Write"
   default y
+
+config RV_SPMP_NUM
+  depends on RV_SPMP_CSR
+  int "Number of sPMP CSR registers"
+  default 16
+  range 0 16
+
+config RV_SPMP_CHECK
+  # todo: spmp check still not work when enable PERF_OPT
+  depends on !PERF_OPT
+  depends on RV_SPMP_CSR
+  bool "Enable sPMP Check"
+  default n
 
 config RV_SVINVAL
   bool "Enable VM Extension Svinval"

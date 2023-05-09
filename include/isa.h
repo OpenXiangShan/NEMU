@@ -53,6 +53,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type);
 #endif
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode);
+bool isa_spmp_check_permission(paddr_t addr, int len, int type, int mode);
 
 // interrupt
 vaddr_t raise_intr(word_t NO, vaddr_t epc);

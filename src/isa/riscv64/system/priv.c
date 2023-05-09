@@ -113,6 +113,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
 #define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
+#define is_read_spmpcfg (src >= &(csr_array[CSR_SPMPCFG0]) && src < (&(csr_array[CSR_SPMPCFG0]) + (MAX_NUM_SPMP/4)))
+#define is_read_spmpaddr (src >= &(csr_array[CSR_SPMPADDR0]) && src < (&(csr_array[CSR_SPMPADDR0]) + MAX_NUM_SPMP))
+#define is_write_spmpcfg (dest >= &(csr_array[CSR_SPMPCFG0]) && dest < (&(csr_array[CSR_SPMPCFG0]) + (MAX_NUM_SPMP/4)))
+#define is_write_spmpaddr (dest >= &(csr_array[CSR_SPMPADDR0]) && dest < (&(csr_array[CSR_SPMPADDR0]) + MAX_NUM_SPMP))
 
 uint8_t pmpcfg_from_index(int idx) {
   // for now, nemu only support 16 pmp entries in a XLEN=64 machine
@@ -143,6 +147,37 @@ word_t pmpaddr_from_csrid(int id) {
 
 word_t inline pmp_tor_mask() {
   return -((word_t)1 << (PMP_PLATFORMGARIN - PMP_SHIFT));
+}
+
+uint8_t spmpcfg_from_index(int idx) {
+  // for now, nemu only support 16 spmp entries in a XLEN=64 machine
+  int xlen = 64;
+  assert(idx < CONFIG_RV_SPMP_NUM);
+  assert(CONFIG_RV_SPMP_NUM <= 16);
+  int cfgPerCSR = xlen / 8;
+  // no black magic, just get CSR addr from idx
+  int cfg_csr_addr;
+  switch (idx / cfgPerCSR) {
+    case 0: cfg_csr_addr = CSR_SPMPCFG0; break;
+    case 1: cfg_csr_addr = CSR_SPMPCFG2; break;
+    // case 2: cfg_csr_addr = CSR_PMPCFG4; break;
+    // case 3: cfg_csr_addr = CSR_PMPCFG8; break;
+    default: assert(0);
+  }
+  uint8_t *cfg_reg = (uint8_t *)&csr_array[cfg_csr_addr];
+  return *(cfg_reg + (idx % cfgPerCSR));
+}
+
+word_t spmpaddr_from_index(int idx) {
+  return csr_array[CSR_SPMPADDR0 + idx];
+}
+
+word_t spmpaddr_from_csrid(int id) {
+  return csr_array[id];
+}
+
+word_t inline spmp_tor_mask() {
+  return -((word_t)1 << (SPMP_PLATFORMGARIN - SPMP_SHIFT));
 }
 
 static inline void update_mstatus_sd() {
@@ -183,6 +218,37 @@ static inline word_t csr_read(word_t *src) {
       return *src & pmp_tor_mask();
   }
 #endif // CONFIG_RV_PMP_CSR
+
+#ifdef CONFIG_RV_SPMP_CSR
+  if (is_read_spmpaddr) {
+    // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
+    if (CONFIG_RV_SPMP_NUM == 0) {
+      Loge("spmp number is 0, raise illegal instr exception when read spmpaddr");
+      longjmp_exception(EX_II);
+      return 0;
+    }
+
+    int idx = (src - &csr_array[CSR_SPMPADDR0]);
+    // Check whether the sPMP register is out of bound.
+    if (idx >= CONFIG_RV_SPMP_NUM) {
+      Loge("spmp number is smaller than the index, raise illegal instr exception when read spmpaddr");
+      longjmp_exception(EX_II);
+      return 0;
+    }
+
+    uint8_t cfg = spmpcfg_from_index(idx);
+#ifdef CONFIG_SHARE
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] spmp addr read %d : 0x%016lx\n", idx,
+        (cfg & SPMP_A) >= SPMP_NAPOT ? *src | (~spmp_tor_mask() >> 1) : *src & spmp_tor_mask());
+    }
+#endif
+    if ((cfg & SPMP_A) >= SPMP_NAPOT)
+      return *src | (~spmp_tor_mask() >> 1);
+    else
+      return *src & spmp_tor_mask();
+  }
+#endif // CONFIG_RV_SPMP_CSR
 
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
@@ -353,6 +419,64 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
 #endif
 
+    *dest = cfg_data;
+
+    mmu_tlb_flush(0);
+  }
+#endif
+#ifdef CONFIG_RV_SPMP_CSR
+  else if (is_write_spmpaddr) {
+    Logtr("Writing spmp addr");
+    // If no sPMPs are configured, disallow access to all.  Otherwise, allow
+    // access to all, but unimplemented ones are hardwired to zero.
+    if (CONFIG_RV_SPMP_NUM == 0)
+      return;
+
+    Logtr("SPMP updated\n");
+    int idx = dest - &csr_array[CSR_SPMPADDR0];
+    // Check whether the PMP register is out of bound.
+    if (idx >= CONFIG_RV_SPMP_NUM) {
+      Loge("spmp number is smaller than the index, raise illegal instr exception when write spmpaddr");
+      longjmp_exception(EX_II);
+      return;
+    }
+
+    word_t cfg = spmpcfg_from_index(idx);
+    bool locked = cfg & SPMP_S;
+    // Note that the last spmp cfg do not have next_locked or next_tor
+    bool next_locked = idx == (CONFIG_RV_SPMP_NUM-1) ? false : idx < CONFIG_RV_SPMP_NUM && (spmpcfg_from_index(idx+1) & SPMP_S);
+    bool next_tor = idx == (CONFIG_RV_SPMP_NUM-1) ? false : idx < CONFIG_RV_SPMP_NUM && (spmpcfg_from_index(idx+1) & SPMP_A) == SPMP_TOR;
+    if (idx < CONFIG_RV_SPMP_NUM && !locked && !(next_locked && next_tor)) {
+      *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - SPMP_SHIFT)) - 1);
+    }
+#ifdef CONFIG_SHARE
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] write spmp addr%d to %016lx\n",idx, *dest);
+    }
+#endif
+
+    mmu_tlb_flush(0);
+  }
+  else if (is_write_spmpcfg) {
+    // Log("Writing spmp config");
+    if (CONFIG_RV_SPMP_NUM == 0)
+      return;
+
+    int xlen = 64;
+    word_t cfg_data = 0;
+    for (int i = 0; i < xlen / 8; i ++ ) {
+      word_t cfg = ((src >> (i*8)) & 0xff) & (SPMP_R | SPMP_W | SPMP_X | SPMP_A | SPMP_S);
+      cfg &= ~SPMP_W | ((cfg & SPMP_R) ? SPMP_W : 0); // Disallow R=0 W=1
+      if (SPMP_PLATFORMGARIN != SPMP_SHIFT && (cfg & SPMP_A) == SPMP_NA4)
+        cfg |= SPMP_NAPOT; // Disallow A=NA4 when granularity > 4
+      cfg_data |= (cfg << (i*8));
+    }
+#ifdef CONFIG_SHARE
+    if(dynamic_config.debug_difftest) {
+      int idx = dest - &csr_array[CSR_PMPCFG0];
+      fprintf(stderr, "[NEMU] write pmp cfg%d to %016lx\n",idx, cfg_data);
+    }
+#endif
     *dest = cfg_data;
 
     mmu_tlb_flush(0);

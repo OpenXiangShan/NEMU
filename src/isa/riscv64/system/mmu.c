@@ -429,3 +429,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   return true;
 #endif
 }
+
+bool isa_spmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
+  return true;
+}
