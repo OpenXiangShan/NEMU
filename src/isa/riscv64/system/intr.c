@@ -62,8 +62,16 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
-  if((NO & INTR_BIT) == 0)
-    difftest_skip_dut(1, 0);
+  // if((NO & INTR_BIT) == 0){
+  //   printf("NO: %ld, epc:0x%lx\n", NO, epc);
+  //   difftest_skip_dut(1, 0);
+  // }
+  switch (NO) {
+    case EX_II:
+    case EX_IPF:
+    case EX_LPF:
+    case EX_SPF: difftest_skip_dut(1, 0); break;
+  }
 #else
   switch (NO) {
     case EX_II:

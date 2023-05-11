@@ -300,6 +300,7 @@ static int execute(int n) {
     g_nr_guest_instr ++;
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    if(isa_query_intr()){break;}
     if (nemu_state.state == NEMU_STOP) {
         break;
     }

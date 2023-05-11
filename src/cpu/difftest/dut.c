@@ -66,7 +66,7 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   if (is_detach) return;
 #endif
   skip_dut_nr_instr += nr_dut;
-
+// printf("skip nr dut %d, nr ref: %d, skip_dut_nr_instr: %d, pc: "FMT_WORD"\n", nr_dut, nr_ref, skip_dut_nr_instr, cpu.pc);
   while (nr_ref -- > 0) {
     ref_difftest_exec(1);
   }
@@ -135,7 +135,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
     }
     skip_dut_nr_instr --;
     if (skip_dut_nr_instr == 0)
-      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, pc);
+      panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD " npc = " FMT_WORD, ref_r.pc, pc, npc);
     return;
   }
 
