@@ -74,7 +74,7 @@ void isa_reg_display() {
 #endif
 
 #ifdef CONFIG_RV_SPMP_CSR
-  printf("privilege mode:%ld  spmp: below\n", cpu.mode);
+  printf("spmp: below\n");
   for (int i = 0; i < CONFIG_RV_SPMP_NUM; i++) {
     printf("%2d: cfg:0x%02x addr:0x%016lx", i, spmpcfg_from_index(i), spmpaddr_from_index(i));
     if (i % 2 == 1) printf("\n");
@@ -82,6 +82,8 @@ void isa_reg_display() {
   }
 #ifndef CONFIG_RV_SPMP_CHECK
   printf("spmp csr rw: enable, spmp check: disable\n");
+#else
+  printf("spmp csr rw: enable, spmp check: enable\n");
 #endif
 #else
   printf("privilege mode:%ld\n", cpu.mode);

@@ -29,7 +29,7 @@ enum {
 
 bool intr_deleg_S(word_t exceptionNO) {
   word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (exceptionNO & 0xf))) != 0) && (cpu.mode < MODE_M);
+  bool delegS = ((deleg & (1 << (exceptionNO & 0x3f))) != 0) && (cpu.mode < MODE_M);
   return delegS;
 }
 
@@ -78,6 +78,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
+#ifdef CONFIG_RV_SPMP_CHECK
+      case EX_ISF: case EX_LSF: case EX_SSF:
+#endif
         break;
       default: mtval->val = 0;
     }

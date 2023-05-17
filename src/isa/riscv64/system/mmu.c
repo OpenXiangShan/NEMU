@@ -430,6 +430,144 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
 }
 
+#ifdef CONFIG_RV_SPMP_CHECK
+static bool napot_decode(paddr_t addr, word_t spmp_addr) {
+  word_t spmp_addr_start, spmp_addr_end;
+  spmp_addr_start = (spmp_addr & (spmp_addr + 1)) << SPMP_SHIFT;
+  spmp_addr_end = (spmp_addr | (spmp_addr + 1)) << SPMP_SHIFT;
+  return ((spmp_addr_start <= addr && addr < spmp_addr_end) ? true : false);
+}
+
+static uint8_t address_matching(paddr_t base, paddr_t addr, int len, word_t spmp_addr, uint8_t addr_mode) {
+  paddr_t addr_s, addr_e;
+  addr_s = addr;
+  addr_e = addr + len;
+  uint8_t s_flag = 0;
+  uint8_t e_flag = 0;
+
+  if (addr_mode == SPMP_TOR) {
+    spmp_addr = spmp_addr << SPMP_SHIFT;
+    s_flag = (base <= addr_s && addr_s < spmp_addr ) ? 1 : 0;
+    e_flag = (base <= addr_e && addr_e < spmp_addr) ? 1 : 0;
+  }
+  else if (addr_mode == SPMP_NA4) {
+    spmp_addr = spmp_addr << SPMP_SHIFT;
+    s_flag = (spmp_addr <= addr_s && addr_s < (spmp_addr + (1 << SPMP_SHIFT))) ? 1 : 0;
+    e_flag = (spmp_addr <= addr_e && addr_e < (spmp_addr + (1 << SPMP_SHIFT))) ? 1 : 0;
+  }
+  else if (addr_mode == SPMP_NAPOT) {
+    s_flag = napot_decode(addr_s, spmp_addr) ? 1 : 0;
+    e_flag = napot_decode(addr_e, spmp_addr) ? 1 : 0;
+  }
+  return s_flag + e_flag;
+}
+
+static bool spmp_internal_check_permission(uint8_t spmp_cfg, int type, int out_mode) {
+  uint8_t spmp_permission, permission_ret;  // ret R/W/X
+  spmp_permission = ((spmp_cfg & SPMP_S) >> 4) | (spmp_cfg & SPMP_R) << 2 | (spmp_cfg & SPMP_W) | ((spmp_cfg & SPMP_X) >> 2); // input S/R/W/X
+  if (out_mode == MODE_S) {
+    if (!mstatus->sum) {
+      switch(spmp_permission) {
+        case 0b0010: 
+        case 0b0011: permission_ret = 0b110; break;
+        case 0b1001: 
+        case 0b1010: permission_ret = 0b001; break;
+        case 0b1011: permission_ret = 0b101; break;
+        case 0b1100: permission_ret = 0b100; break;
+        case 0b1101: permission_ret = 0b101; break;
+        case 0b1110: permission_ret = 0b110; break;
+        case 0b1111: permission_ret = 0b100; break;
+        default: permission_ret = 0b000; break;
+      }
+    }
+    else {
+      switch(spmp_permission) {
+        case 0b0010: 
+        case 0b0011: permission_ret = 0b110; break;
+        case 0b0100: 
+        case 0b0101: permission_ret = 0b100; break;
+        case 0b0110:
+        case 0b0111: permission_ret = 0b110; break;
+        case 0b1001: 
+        case 0b1010: permission_ret = 0b001; break;
+        case 0b1011: permission_ret = 0b101; break;
+        case 0b1100: permission_ret = 0b100; break;
+        case 0b1101: permission_ret = 0b101; break;
+        case 0b1110: permission_ret = 0b110; break;
+        case 0b1111: permission_ret = 0b100; break;
+        default: permission_ret = 0b000; break;
+      }
+    }
+  }
+  else if (out_mode == MODE_U) {
+   switch (spmp_permission) {
+    case 0b0001: permission_ret = 0b001; break;
+    case 0b0010: permission_ret = 0b100; break;
+    case 0b0011: permission_ret = 0b110; break;
+    case 0b0100: permission_ret = 0b100; break;
+    case 0b0101: permission_ret = 0b101; break;
+    case 0b0110: permission_ret = 0b110; break;
+    case 0b0111: permission_ret = 0b111; break;
+    case 0b1010:
+    case 0b1011: permission_ret = 0b001; break;
+    case 0b1111: permission_ret = 0b100; break;
+    default: permission_ret = 0b000; break;
+   }
+  } 
+  else { // MODE_M
+    permission_ret = 0b111;
+  }
+  switch (type) {
+    case MEM_TYPE_IFETCH: 
+      return ((permission_ret | 0b001) == permission_ret);
+    case MEM_TYPE_READ:
+      return ((permission_ret | 0b100) == permission_ret);
+    case MEM_TYPE_WRITE:
+      return ((permission_ret | 0b010) == permission_ret);
+    case MEM_TYPE_IFETCH_READ:
+      return ((permission_ret | 0b101) == permission_ret);
+    case MEM_TYPE_WRITE_READ:
+      return ((permission_ret | 0b110) == permission_ret);
+    default:
+      return false;
+  }
+}
+#endif
+
+
 bool isa_spmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
+#ifdef CONFIG_RV_SPMP_CHECK
+  word_t base = 0;
+  for (int i = 0; i < CONFIG_RV_SPMP_NUM; i++) {
+    word_t spmp_addr = spmpaddr_from_index(i);
+    uint8_t spmp_cfg = spmpcfg_from_index(i);
+    uint8_t addr_mode = spmp_cfg & PMP_A;
+    if (addr_mode != 0) {
+      uint8_t matching_result = 0;
+      matching_result = address_matching(base, addr, len, spmp_addr, addr_mode); 
+      if (matching_result == 1)
+      {
+        printf("spmp addr misalianed!\n");
+        return false;
+      }
+      else if (matching_result == 0){
+        continue;
+      }
+      else {
+        return spmp_internal_check_permission(spmp_cfg, type, out_mode);
+      }
+    }
+    base = spmp_addr << SPMP_SHIFT;
+  }
+  // no matching --> true or false??
+  if (out_mode == MODE_U) {
+    printf("spmp Mode U refuse!");
+    return false;
+  }
+  else {
+    return true;
+  }
+#else
   return true;
+#endif
 }

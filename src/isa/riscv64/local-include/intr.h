@@ -37,6 +37,11 @@ enum {
   EX_LPF, // load page fault
   EX_RS1, // reserved
   EX_SPF, // store/amo page fault
+#ifdef CONFIG_RV_SPMP_CHECK
+  EX_ISF, // instr spmp fault
+  EX_LSF, // load spmp fault
+  EX_SSF  // store spmp fault
+#endif
 };
 
 // now NEMU does not support EX_IAM,

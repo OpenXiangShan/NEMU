@@ -121,8 +121,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 uint8_t pmpcfg_from_index(int idx) {
   // for now, nemu only support 16 pmp entries in a XLEN=64 machine
   int xlen = 64;
+#ifdef CONFIG_RV_PMP_NUM
   assert(idx < CONFIG_RV_PMP_NUM);
   assert(CONFIG_RV_PMP_NUM <= 16);
+#endif
   int cfgPerCSR = xlen / 8;
   // no black magic, just get CSR addr from idx
   int cfg_csr_addr;
@@ -152,8 +154,10 @@ word_t inline pmp_tor_mask() {
 uint8_t spmpcfg_from_index(int idx) {
   // for now, nemu only support 16 spmp entries in a XLEN=64 machine
   int xlen = 64;
+#ifdef CONFIG_RV_SPMP_NUM
   assert(idx < CONFIG_RV_SPMP_NUM);
   assert(CONFIG_RV_SPMP_NUM <= 16);
+#endif
   int cfgPerCSR = xlen / 8;
   // no black magic, just get CSR addr from idx
   int cfg_csr_addr;
@@ -221,7 +225,7 @@ static inline word_t csr_read(word_t *src) {
 
 #ifdef CONFIG_RV_SPMP_CSR
   if (is_read_spmpaddr) {
-    // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
+    // If n_spmp is zero, that means spmp is not implemented hence raise trap if it tries to access the csr
     if (CONFIG_RV_SPMP_NUM == 0) {
       Loge("spmp number is 0, raise illegal instr exception when read spmpaddr");
       longjmp_exception(EX_II);
@@ -441,12 +445,8 @@ static inline void csr_write(word_t *dest, word_t src) {
       return;
     }
 
-    word_t cfg = spmpcfg_from_index(idx);
-    bool locked = cfg & SPMP_S;
-    // Note that the last spmp cfg do not have next_locked or next_tor
-    bool next_locked = idx == (CONFIG_RV_SPMP_NUM-1) ? false : idx < CONFIG_RV_SPMP_NUM && (spmpcfg_from_index(idx+1) & SPMP_S);
-    bool next_tor = idx == (CONFIG_RV_SPMP_NUM-1) ? false : idx < CONFIG_RV_SPMP_NUM && (spmpcfg_from_index(idx+1) & SPMP_A) == SPMP_TOR;
-    if (idx < CONFIG_RV_SPMP_NUM && !locked && !(next_locked && next_tor)) {
+    // SPMP has no Lock bits
+    if (idx < CONFIG_RV_SPMP_NUM) {
       *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - SPMP_SHIFT)) - 1);
     }
 #ifdef CONFIG_SHARE
@@ -466,7 +466,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     word_t cfg_data = 0;
     for (int i = 0; i < xlen / 8; i ++ ) {
       word_t cfg = ((src >> (i*8)) & 0xff) & (SPMP_R | SPMP_W | SPMP_X | SPMP_A | SPMP_S);
-      cfg &= ~SPMP_W | ((cfg & SPMP_R) ? SPMP_W : 0); // Disallow R=0 W=1
+      // sPMP allow R=0 W=1 for share region usage
       if (SPMP_PLATFORMGARIN != SPMP_SHIFT && (cfg & SPMP_A) == SPMP_NA4)
         cfg |= SPMP_NAPOT; // Disallow A=NA4 when granularity > 4
       cfg_data |= (cfg << (i*8));
