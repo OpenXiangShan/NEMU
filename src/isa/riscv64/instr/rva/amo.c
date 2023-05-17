@@ -26,9 +26,9 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
   if (funct5 == 0b00010) { // lr
     assert(!cpu.amo);
-    rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     cpu.lr_addr = *src1;
     cpu.lr_valid = 1;
+    rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     return;
   } else if (funct5 == 0b00011) { // sc
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -43,6 +43,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
       cpu.lr_valid = 0;
     } else {
+      cpu.lr_valid = 0;
       // Even if scInvalid, SPF (if raised) also needs to be reported
       uint64_t paddr = *dsrc1;
       if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
