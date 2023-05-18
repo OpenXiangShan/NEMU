@@ -67,6 +67,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   //   difftest_skip_dut(1, 0);
   // }
   switch (NO) {
+#ifdef CONFIG_RVH
+    case EX_IGPF:
+    case EX_LGPF:
+    case EX_SGPF:
+#endif
     case EX_II:
     case EX_IPF:
     case EX_LPF:
@@ -74,6 +79,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 #else
   switch (NO) {
+#ifdef CONFIG_RVH
+    case EX_IGPF:
+    case EX_LGPF:
+    case EX_SGPF:
+#endif
     case EX_II:
     case EX_IPF:
     case EX_LPF:

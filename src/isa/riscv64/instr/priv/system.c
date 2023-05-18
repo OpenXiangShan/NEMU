@@ -23,7 +23,7 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
   uint32_t funct3 = s->isa.instr.i.funct3;
   if (funct3 == 0) {
     // priv
-    IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+    // IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 #ifdef CONFIG_SHARE
     if (s->isa.instr.val == 0x73) { // ecall
 #else
