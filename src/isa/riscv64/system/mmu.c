@@ -301,9 +301,78 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
-    pte.a = true;
-    pte.d |= is_write;
-    paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
+    // pte.a = true;
+    // pte.d |= is_write;
+    // paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
+    switch (type)
+    {
+    int ex;
+    case MEM_TYPE_IFETCH:
+#ifdef CONFIG_RVH
+      if(cpu.v){
+        if(intr_deleg_S(EX_IPF)){
+          vstval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+        longjmp_exception(EX_IPF);
+      }else{
+        INTR_TVAL_REG(EX_IPF) = vaddr;
+        longjmp_exception(EX_IPF);
+      }
+#else
+      stval->val = vaddr;
+      INTR_TVAL_REG(EX_IPF) = vaddr;
+      longjmp_exception(EX_IPF);
+#endif
+      break;
+    case MEM_TYPE_READ:
+#ifdef CONFIG_RVH
+      if(cpu.v){
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        if(intr_deleg_S(ex)){
+          vstval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+      }else{
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        INTR_TVAL_REG(ex) = vaddr;
+      }
+      longjmp_exception(ex);
+#else
+      ex = cpu.amo ? EX_SPF : EX_LPF;
+      INTR_TVAL_REG(ex) = vaddr;
+      longjmp_exception(ex);
+#endif
+      break;
+    case MEM_TYPE_WRITE:
+#ifdef CONFIG_RVH
+      if(cpu.v){
+        if(intr_deleg_S(EX_SPF)){
+          vstval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+        longjmp_exception(EX_SPF);
+      }else{
+        INTR_TVAL_REG(EX_SPF) = vaddr;
+        longjmp_exception(EX_SPF);
+      }
+#else
+      INTR_TVAL_REG(EX_SPF) = vaddr;
+      longjmp_exception(EX_SPF);
+#endif
+      break;
+    default:
+      break;
+    }
   }
 #endif
 
