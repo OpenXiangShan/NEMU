@@ -175,7 +175,6 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       default: mtval->val = 0;
 #ifdef CONFIG_RVH
                mtval2->val = 0;
-               htval->val = 0;
 #endif
     }
     cpu.mode = MODE_M;

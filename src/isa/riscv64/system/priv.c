@@ -232,6 +232,7 @@ static inline word_t csr_read(word_t *src) {
 
 #ifdef CONFIG_RVH
  if (cpu.v == 1) {
+  
   if (is_read(sstatus))      { return vsstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))     { return (mie->val & VS_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
@@ -240,7 +241,12 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
   else if (is_read(sip))     { return (mip->val & VS_MASK) >> 1;}
-  else if (is_read(satp)&& cpu.mode == MODE_S && hstatus->vtvm == 1) { longjmp_exception(EX_VI); }
+  else if (is_read(satp))    { 
+    if (cpu.mode == MODE_S && hstatus->vtvm == 1) { 
+      longjmp_exception(EX_VI); 
+    }else
+      return vsatp->val;
+  }
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
 if (is_read(hideleg))        { return hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK);}

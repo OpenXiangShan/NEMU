@@ -144,6 +144,7 @@ bool has_two_stage_translation(){
 }
 
 void raise_G_ex(paddr_t gpaddr, vaddr_t vaddr, int type){
+  printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
   if (type == MEM_TYPE_IFETCH){
     if(intr_deleg_S(EX_IGPF)){
       stval->val = vaddr;
@@ -293,7 +294,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
-    pg_base = G_stage(pg_base, vaddr, type) & ~PAGE_MASK;
+    pg_base = G_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
   }
   #endif //CONFIG_RVH
