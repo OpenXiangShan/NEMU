@@ -148,11 +148,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 bool dasics_in_trusted_zone(uint64_t pc)
 {
-  bool is_smain_enable = dsmbound1->val <= dsmbound0->val && dsmcfg->mcfg_sena;
-  bool is_umain_enable = dumbound1->val <= dumbound0->val && dsmcfg->mcfg_uena;
+  bool is_smain_enable = dsmcfg->mcfg_sena;
+  bool is_umain_enable = dsmcfg->mcfg_uena;
 
-  bool in_smain_zone = pc <= dsmbound0->val && pc >= dsmbound1->val && cpu.mode == MODE_S && is_smain_enable;
-  bool in_umain_zone = pc <= dumbound0->val && pc >= dumbound1->val && cpu.mode == MODE_U && is_umain_enable;
+  bool in_smain_zone = pc >= dsmbound0->val && pc < dsmbound1->val && cpu.mode == MODE_S && is_smain_enable;
+  bool in_umain_zone = pc >= dumbound0->val && pc < dumbound1->val && cpu.mode == MODE_U && is_umain_enable;
 
   bool in_s_trusted_zone = in_smain_zone || (cpu.mode == MODE_S && !is_smain_enable);
   bool in_u_trusted_zone = in_umain_zone || (cpu.mode == MODE_U && !is_umain_enable);
@@ -178,10 +178,10 @@ bool dasics_match_dlib(uint64_t addr, uint8_t cfg)
   bool within_range = false;
   for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
     uint8_t cfgval = dasics_libcfg_from_index(i);
-    word_t boundhi = dasics_libbound_from_index(i << 1);
-    word_t boundlo = dasics_libbound_from_index((i << 1) + 1);
+    word_t boundlo = dasics_libbound_from_index(i << 1);
+    word_t boundhi = dasics_libbound_from_index((i << 1) + 1);
 
-    if (!((cfgval & cfg) ^ cfg) && boundlo <= addr && addr <= boundhi) {
+    if (!((cfgval & cfg) ^ cfg) && boundlo <= addr && addr < boundhi) {
       within_range = true;
       break;
     }

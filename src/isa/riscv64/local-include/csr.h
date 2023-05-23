@@ -41,18 +41,18 @@
 // CSRs for DASICS protection mechanism
 #ifdef CONFIG_RV_DASICS
 #define DASICS_CSRS(f) \
-  f(dsmcfg,      0xbc0) f(dsmbound0,   0xbc1) f(dsmbound1,   0xbc2) \
-  f(dumcfg,      0x5c0) f(dumbound0,   0x5c1) f(dumbound1,   0x5c2) \
-  f(dlcfg0,      0x881) f(dlcfg1,      0x882) \
-  f(dlbound0,    0x883) f(dlbound1,    0x884) f(dlbound2,    0x885) f(dlbound3,    0x886) \
-  f(dlbound4,    0x887) f(dlbound5,    0x888) f(dlbound6,    0x889) f(dlbound7,    0x88a) \
-  f(dlbound8,    0x88b) f(dlbound9,    0x88c) f(dlbound10,   0x88d) f(dlbound11,   0x88e) \
-  f(dlbound12,   0x88f) f(dlbound13,   0x890) f(dlbound14,   0x891) f(dlbound15,   0x892) \
-  f(dlbound16,   0x893) f(dlbound17,   0x894) f(dlbound18,   0x895) f(dlbound19,   0x896) \
-  f(dlbound20,   0x897) f(dlbound21,   0x898) f(dlbound22,   0x899) f(dlbound23,   0x89a) \
-  f(dlbound24,   0x89b) f(dlbound25,   0x89c) f(dlbound26,   0x89d) f(dlbound27,   0x89e) \
-  f(dlbound28,   0x89f) f(dlbound29,   0x8a0) f(dlbound30,   0x8a1) f(dlbound31,   0x8a2) \
-  f(dmaincall,   0x8a3) f(dretpc,      0x8a4) f(dretpcfz,    0x8a5)
+  f(dsmcfg,      0xbc0) f(dsmbound0,   0xbc2) f(dsmbound1,   0xbc3) \
+  f(dumcfg,      0x9e0) f(dumbound0,   0x9e2) f(dumbound1,   0x9e3) \
+  f(dlcfg0,      0x880) f(dlcfg1,      0x881) \
+  f(dlbound0,    0x890) f(dlbound1,    0x891) f(dlbound2,    0x892) f(dlbound3,    0x893) \
+  f(dlbound4,    0x894) f(dlbound5,    0x895) f(dlbound6,    0x896) f(dlbound7,    0x897) \
+  f(dlbound8,    0x898) f(dlbound9,    0x899) f(dlbound10,   0x89a) f(dlbound11,   0x89b) \
+  f(dlbound12,   0x89c) f(dlbound13,   0x89d) f(dlbound14,   0x89e) f(dlbound15,   0x89f) \
+  f(dlbound16,   0x8a0) f(dlbound17,   0x8a1) f(dlbound18,   0x8a2) f(dlbound19,   0x8a3) \
+  f(dlbound20,   0x8a4) f(dlbound21,   0x8a5) f(dlbound22,   0x8a6) f(dlbound23,   0x8a7) \
+  f(dlbound24,   0x8a8) f(dlbound25,   0x8a9) f(dlbound26,   0x8aa) f(dlbound27,   0x8ab) \
+  f(dlbound28,   0x8ac) f(dlbound29,   0x8ad) f(dlbound30,   0x8ae) f(dlbound31,   0x8af) \
+  f(dmaincall,   0x8b0) f(dretpc,      0x8b1) f(dretpcfz,    0x8b2)
 #else  // CONFIG_RV_DASICS
 #define DASICS_CSRS(f)
 #endif  // !CONFIG_RV_DASICS
@@ -560,8 +560,8 @@ CSR_STRUCT_START(dumbound1)
 CSR_STRUCT_END(dumbound1)
 
 #define CSR_DLCFG0   0x881
-#define CSR_DLBOUND0 0x883
-#define CSR_DLBOUND1 0x884
+#define CSR_DLBOUND0 0x890
+#define CSR_DLBOUND1 0x891
 
 #define LIBCFG_MASK 0xful
 #define LIBCFG_V    0x8ul
