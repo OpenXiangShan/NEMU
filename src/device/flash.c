@@ -38,8 +38,8 @@ void load_flash_contents(const char *flash_img) {
   }
 
   if (!flash_img || !(fp = fopen(flash_img, "r"))) {
-    Log("Can not find flash image: %s", flash_img);
-    Log("Use built-in image instead");
+    // Log("Can not find flash image: %s", flash_img);
+    // Log("Use built-in image instead");
     uint32_t *p = (uint32_t *)flash_base;
     sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", p, p + 1, p + 2);
   } else {
