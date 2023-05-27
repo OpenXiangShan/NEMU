@@ -94,6 +94,10 @@ void init_mem() {
   #ifdef CONFIG_MULTICORE_DIFF
     panic("Pmem must not use mmap during multi-core difftest");
   #endif
+  // Note: we are using MAP_FIXED here, in the SHARED mode, even if
+  // init_mem may be called multiple times, the memory space will be
+  // allocated only once at the first time called.
+  // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
   void *ret = mmap((void *)pmem, MEMORY_SIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != pmem) {
