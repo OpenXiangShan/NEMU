@@ -17,7 +17,9 @@
 #include <device/map.h>
 #include <sys/mman.h>
 
-static uint8_t *flash_base = NULL;
+// put flash below the physical memory and allow a max size of 256MB.
+// See the notes at paddr.c:79 for why we fix the address here.
+static uint8_t *flash_base  = (uint8_t *)0xf0000000ul;
 static FILE *fp = NULL;
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
@@ -27,9 +29,11 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 
 void load_flash_contents(const char *flash_img) {
   // create mmap with zero contents
-  flash_base = mmap(NULL, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  if (flash_base == MAP_FAILED) {
-    Log("mmap for flash failed");
+  assert(CONFIG_FLASH_SIZE < 0x10000000UL);
+  void *ret = mmap((void *)flash_base, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE,
+    MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+  if (ret != flash_base) {
+    perror("mmap");
     assert(0);
   }
 
