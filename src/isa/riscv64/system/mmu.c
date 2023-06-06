@@ -144,7 +144,7 @@ bool has_two_stage_translation(){
 }
 
 void raise_G_ex(paddr_t gpaddr, vaddr_t vaddr, int type){
-  printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
+  // printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
   if (type == MEM_TYPE_IFETCH){
     if(intr_deleg_S(EX_IGPF)){
       stval->val = vaddr;

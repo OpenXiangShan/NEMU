@@ -128,6 +128,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
 #endif
   if (skip_dut_nr_instr > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
+    // printf("pc: %lx, ref pc: %lx skip_dut_nr_instr: %d\n", pc, ref_r.pc, skip_dut_nr_instr);
     if (ref_r.pc == npc) {
       skip_dut_nr_instr = 0;
       checkregs(&ref_r, npc);
@@ -140,6 +141,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   if (is_skip_ref) {
+    // printf("is_skip_ref\n");
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
