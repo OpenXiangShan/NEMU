@@ -34,7 +34,7 @@
 #endif
 
 #if (defined(CONFIG_DEBUG) && defined(CONFIG_RVN))
-#define RVN_INSTR_NULLARY(f) f(uret)
+#define RVN_INSTR_NULLARY(f) //f(uret)
 #else
 #define RVN_INSTR_NULLARY(f)
 #endif  // CONFIG_RVN
@@ -42,13 +42,13 @@
 #ifdef CONFIG_DEBUG
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(mret) f(sret) f(wfi) \
+  f(ecall) f(ebreak) f(mret) f(sret) f(uret) f(wfi) \
   f(sfence_w_inval) f(sfence_inval_ir)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) f(sinval_vma)
 #else
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(mret) f(sret) f(wfi)
+  f(ecall) f(ebreak) f(mret) f(sret) f(uret) f(wfi)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma)
 #endif
