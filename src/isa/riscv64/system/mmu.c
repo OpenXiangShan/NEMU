@@ -60,7 +60,8 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12);
-  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
+  //ok = ok && !(pte->u && ((mode == MODE_S) && ((!mstatus->sum && mstatus->mprv) || ifetch)));
+  ok = ok && !(pte->u && ((mode == MODE_S) && ((!mstatus->sum) || ifetch)));
   if (ifetch) {
     Logtr("Translate for instr reading");
 #ifdef CONFIG_SHARE
@@ -177,8 +178,8 @@ bad:
   return MEM_RET_FAIL;
 }
 
-static int ifetch_mmu_state = MMU_DIRECT;
-static int data_mmu_state = MMU_DIRECT;
+int ifetch_mmu_state = MMU_DIRECT;
+int data_mmu_state = MMU_DIRECT;
 
 int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);

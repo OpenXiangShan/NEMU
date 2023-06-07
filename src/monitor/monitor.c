@@ -37,6 +37,8 @@ static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
+extern char *reg_dump_file;
+extern char *mem_dump_file;
 
 int is_batch_mode() { return batch_mode; }
 
@@ -82,6 +84,10 @@ static inline int parse_args(int argc, char *argv[]) {
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
 
+    // dump state
+    {"dump-mem"           , required_argument, NULL, 'M'},
+    {"dump-reg"           , required_argument, NULL, 'R'},
+
     {0          , 0                , NULL,  0 },
   };
   int o;
@@ -118,6 +124,13 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'u':
         checkpoint_taking = true;
         break;
+
+      case 'R':
+          reg_dump_file = optarg;
+          break;
+      case 'M':
+          mem_dump_file = optarg;
+          break;
 
       case 5: sscanf(optarg, "%lu", &checkpoint_interval); break;
 
@@ -163,6 +176,8 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--cpt-id                checkpoint id\n");
+        printf("\t-M,--dump-mem=DUMP_FILE dump memory into FILE\n");
+        printf("\t-R,--dump-reg=DUMP_FILE dump register value into FILE\n");
         printf("\n");
         exit(0);
     }

@@ -32,7 +32,7 @@ void init_csr();
 void init_trigger();
 #endif
 
-#ifndef CONFIG_SHARE
+#if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
 #endif
 void init_device();
@@ -100,8 +100,9 @@ void init_isa() {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
 #endif
-
-  IFNDEF(CONFIG_SHARE, init_clint());
+  #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
+  init_clint();
+  #endif
   IFDEF(CONFIG_SHARE, init_device());
 
 #ifndef CONFIG_SHARE
