@@ -24,6 +24,21 @@ config RV_DEBUG
   bool "RISC-V Debug Extension"
   default y
 
+config RVSDEXT
+  bool "(Beta) RISC-V Sdext ISA Extension v1.0"
+  depends on RV_DEBUG
+  default n
+
+config RVSDTRIG
+  bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
+  depends on RV_DEBUG
+  default n
+
+config TRIGGER_NUM
+  int "Number of supported triggers"
+  depends on RVSDTRIG
+  default 10
+
 config RV_PMP_CSR
   bool "Enable PMP CSR Read & Write"
   default y

@@ -14,6 +14,12 @@
 ***************************************************************************************/
 
 #include "compute.h"
+
+#ifndef CONFIG_RVSDTRIG
 #include "ldst.h"
+#else
+#include "ldst_trig.h"
+#endif
+
 #include "control.h"
 #include "fence.h"

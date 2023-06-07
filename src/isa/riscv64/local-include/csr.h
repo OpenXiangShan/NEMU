@@ -26,6 +26,26 @@
 #define CUSTOM_CSR(f)
 #endif
 
+// Debug Mode ISA CSRs in Sdext ISA extension
+#ifdef CONFIG_RVSDEXT
+  #define CORE_DEBUG_CSRS(f) \
+  f(dcsr       , 0x7b0) f(dpc        , 0x7b1) f(dscratch0  , 0x7b2) f(dscratch1  , 0x7b3) \
+
+#else
+  #define CORE_DEBUG_CSRS(f)
+#endif // CONFIG_RVSDEXT
+
+// Trigger CSRs in Sdtrig ISA extension
+#ifdef CONFIG_RVSDTRIG
+  #define TRIGGER_CSRS(f) \
+  f(scontext   , 0x6a8) \
+  f(tselect    , 0x7a0) f(tdata1     , 0x7a1) f(tdata2     , 0x7a2) f(tdata3     , 0x7a3) \
+  f(tinfo      , 0x7a4) f(tcontrol   , 0x7a5) f(mcontext   , 0x7a8) \
+  
+#else
+  #define TRIGGER_CSRS(f)
+#endif // CONFIG_RVSDTRIG
+
 // SHARE mode does not support mtime
 #ifdef CONFIG_RV_PMP_CSR
 #define CSRS_PMP(f) \
@@ -53,7 +73,10 @@
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
-  f(mtime      , 0xc01)
+  f(mtime      , 0xc01) \
+  CORE_DEBUG_CSRS(f) \
+  TRIGGER_CSRS(f) \
+
 #else
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
@@ -68,7 +91,10 @@
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
-  f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
+  f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
+  CORE_DEBUG_CSRS(f) \
+  TRIGGER_CSRS(f) \
+
 #endif
 
 #ifdef CONFIG_RVV
@@ -447,9 +473,85 @@ CSR_STRUCT_END(mvendorid)
 CSR_STRUCT_START(marchid)
 CSR_STRUCT_END(marchid)
 
-CSR_STRUCT_START(marchid)
+CSR_STRUCT_START(mimpid)
 CSR_STRUCT_END(mimpid)
 #endif // CONFIG_RV_ARCH_CSRS
+
+#ifdef CONFIG_RVSDEXT
+CSR_STRUCT_START(dcsr)
+  uint64_t prv      : 2 ; // [1:0]
+  uint64_t step     : 1 ; // [2]
+  uint64_t nmip     : 1 ; // [3]
+  uint64_t mprven   : 1 ; // [4]
+  uint64_t v        : 1 ; // [5]
+  uint64_t cause    : 3 ; // [8:6]
+  uint64_t stoptime : 1 ; // [9]
+  uint64_t stopcount: 1 ; // [10]
+  uint64_t stepie   : 1 ; // [11]
+  uint64_t ebreaku  : 1 ; // [12]
+  uint64_t ebreaks  : 1 ; // [13]
+  uint64_t pad0     : 1 ; // [14]
+  uint64_t ebreakm  : 1 ; // [15]
+  uint64_t ebreakvu : 1 ; // [16]
+  uint64_t ebreakvs : 1 ; // [17]
+  uint64_t pad1     : 10; // [27:18]
+  uint64_t debugver : 4 ; // [31:28]
+CSR_STRUCT_END(dcsr)
+
+CSR_STRUCT_START(dpc)
+CSR_STRUCT_END(dpc)
+
+CSR_STRUCT_START(dscratch0)
+CSR_STRUCT_END(dscratch0)
+
+CSR_STRUCT_START(dscratch1)
+CSR_STRUCT_END(dscratch1)
+#endif // CONFIG_RVSDEXT
+
+#ifdef CONFIG_RVSDTRIG
+CSR_STRUCT_START(scontext)  // 0x5a8
+CSR_STRUCT_END(scontext)
+
+CSR_STRUCT_START(tselect)   // 0x7a0
+CSR_STRUCT_END(tselect)
+
+CSR_STRUCT_START(tdata1)    // 0x7a1
+  uint64_t data   : 59;     // [58:0]
+  uint64_t dmode  : 1;      // [59]
+  uint64_t type   : 4;      // [63:60]
+CSR_STRUCT_END(tdata1)
+
+CSR_STRUCT_START(tdata2)    // 0x7a2
+CSR_STRUCT_END(tdata2)
+
+CSR_STRUCT_START(tdata3)    // 0x7a3
+  union {
+    struct {
+      uint64_t sselect    : 2;  // [1:0]
+      uint64_t svalue     : 34; // [35:2]
+      uint64_t sbytemask  : 5;  // [40:36]
+      uint64_t pad0       : 7;  // [47:41]
+      uint64_t mhselect   : 3;  // [50:48]
+      uint64_t mhvalue    : 13; // [63:51]
+    } textra64;
+  };
+CSR_STRUCT_END(tdata3)
+
+CSR_STRUCT_START(tinfo)     // 0x7a4
+  uint64_t info : 16;       // [15:0] 
+CSR_STRUCT_END(tinfo)
+
+CSR_STRUCT_START(tcontrol)  // 0x7a5
+  uint64_t pad0 : 3;        // [2:0] 
+  uint64_t mte  : 1;        // [3]
+  uint64_t pad1 : 3;        // [6:4]
+  uint64_t mpte : 1;        // [7]
+CSR_STRUCT_END(tcontrol)
+
+CSR_STRUCT_START(mcontext)  // 0x7a8
+CSR_STRUCT_END(mcontext)
+
+#endif // CONFIG_RVSDTRIG
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)

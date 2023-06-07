@@ -28,7 +28,13 @@ static const uint32_t img [] = {
 #endif
 
 void init_csr();
+#ifdef CONFIG_RVSDTRIG
+void init_trigger();
+#endif
+
+#if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
+#endif
 void init_device();
 
 void init_isa() {
@@ -84,14 +90,19 @@ void init_isa() {
   #endif // CONFIG_USE_XS_ARCH_CSRS
 #endif // CONFIG_RV_ARCH_CSRS
 
+#ifdef CONFIG_RVSDTRIG
+  init_trigger();
+#endif // CONFIG_RVSDTRIG
+
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
   if (cpt_file == NULL) {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
 #endif
-
+  #ifdef CONFIG_LIGHTQS
   init_clint();
+  #endif
   IFDEF(CONFIG_SHARE, init_device());
 
 #ifndef CONFIG_SHARE
