@@ -100,7 +100,7 @@ void init_isa() {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
 #endif
-  #ifdef CONFIG_LIGHTQS
+  #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
   init_clint();
   #endif
   IFDEF(CONFIG_SHARE, init_device());
