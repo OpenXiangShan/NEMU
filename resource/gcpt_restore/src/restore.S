@@ -15,6 +15,10 @@ boot_decide_vector:
 
 1:
 restore_csr_vector:
+  # set fs
+  li t0, MSTATUS_FS
+  csrs  CSR_MSTATUS, t0
+
   li t0, CSR_CPT_ADDR
   CSRS(CSRS_RESTORE)
 
@@ -25,7 +29,7 @@ restore_csr_vector:
   slli t2, t2, 4 # shift to MPIE
   slli t1, t1, 4 # MPIE mask
   csrc CSR_MSTATUS, t1
-  # csrs CSR_MSTATUS, t2
+  csrs CSR_MSTATUS, t2
 
   # clear MIE
   li t1, MSTATUS_MIE
@@ -54,8 +58,9 @@ restore_csr_vector:
   ld t1, 16(s0)
   sd t1, (t0)
 
+  # turn on/off timer interrupt
   li t0, MIE_MTIE
-  csrc CSR_MIE, t0
+  csrs CSR_MIE, t0
 
   # csrr t1, CSR_MSTATUS
   # srli t0, t1, 63
