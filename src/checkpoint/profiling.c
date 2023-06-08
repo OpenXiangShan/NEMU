@@ -9,6 +9,7 @@ bool wait_manual_oneshot_cpt = false;
 bool wait_manual_uniform_cpt = false;
 bool recvd_manual_oneshot_cpt = false;
 bool recvd_manual_uniform_cpt = false;
+bool ready_to_exit_taking = false;
 
 bool profiling_started = false;
 bool force_cpt_mmode = false;

@@ -258,7 +258,17 @@ void init_monitor(int argc, char *argv[]) {
     long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
     long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
     img_size = restorer_size + bbl_size;
-  } else {
+  }  else if (profiling_state == SimpointProfiling) {
+    assert(img_file != NULL);
+    assert(restorer != NULL);
+
+    bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
+
+    long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0x400);
+    long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+    img_size = restorer_size + bbl_size;
+  }
+  else {
     if (restorer != NULL) {
       Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! "
       "If you don't know what you are doing, this will corrupt your memory/program. "

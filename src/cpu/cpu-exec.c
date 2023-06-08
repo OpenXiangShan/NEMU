@@ -192,6 +192,11 @@ uint64_t per_bb_profile(Decode *s) {
         manual_cpt_quit = true;
       }
     }
+    if (ready_to_exit_taking) {
+      Log("Quit after taken cpt fulfill\n");
+      nemu_state.state = NEMU_QUIT;
+      manual_cpt_quit = true;
+    }
   }
   return abs_inst_count;
 }

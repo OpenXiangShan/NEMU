@@ -231,6 +231,11 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
           && !checkpoint_taking) {
     return false;
   }
+
+  if (unlikely(ready_to_exit_taking)) {
+    Log("Should not take cpt if ready to exit");
+    return false;
+  }
   extern bool profiling_started;
 
   if (profiling_state == SimpointCheckpointing) {
@@ -258,9 +263,14 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
 void Serializer::notify_taken(uint64_t i) {
   Log("Taking checkpoint @ instruction count %lu", i);
   if (profiling_state == SimpointCheckpointing) {
-    simpoint2Weights.erase(simpoint2Weights.begin());
+    if (!simpoint2Weights.empty()) {
+      simpoint2Weights.erase(simpoint2Weights.begin());
+    }
     if (!simpoint2Weights.empty()) {
         pathManager.incCptID();
+    }
+    else {
+      ready_to_exit_taking = true;
     }
 
   } else if (checkpoint_taking) {

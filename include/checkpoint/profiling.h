@@ -19,6 +19,7 @@ extern bool wait_manual_oneshot_cpt;
 extern bool wait_manual_uniform_cpt;
 extern bool recvd_manual_oneshot_cpt;
 extern bool recvd_manual_uniform_cpt;
+extern bool ready_to_exit_taking;
 
 extern bool profiling_started;
 extern bool force_cpt_mmode;
