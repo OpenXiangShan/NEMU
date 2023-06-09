@@ -20,6 +20,7 @@
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
+#include <isa.h>
 
 int update_mmu_state();
 uint64_t clint_uptime();
@@ -201,6 +202,8 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
     for (int i = 0; i < len; i++) {
       if (!dasics_match_dlib(vaddr + i, LIBCFG_V | LIBCFG_R)) {
         INTR_TVAL_REG(ex) = vaddr + i;  // To avoid load inst that crosses libzone
+        Logm("Dasics load exception occur %lx", vaddr);
+        //isa_reg_display();
         longjmp_exception(ex);
         break;
       }
@@ -211,6 +214,8 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
     for (int i = 0; i < len; ++i) {
       if (!dasics_match_dlib(vaddr + i, LIBCFG_V | LIBCFG_W)) {
         INTR_TVAL_REG(ex) = vaddr + i;  // To avoid store inst that crosses libzone
+        Logm("Dasics store exception occur %lx", vaddr);
+        //isa_reg_display();
         longjmp_exception(ex);
         break;
       }
@@ -224,6 +229,9 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_d
   bool dst_trusted = dasics_in_trusted_zone(newpc);
   bool src_freezone = dasics_match_dlib(pc, LIBCFG_V | LIBCFG_X);
   bool dst_freezone = dasics_match_dlib(newpc, LIBCFG_V | LIBCFG_X);
+
+  Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d), dasicsret: %d\n", pc, src_trusted, src_freezone, newpc, dst_trusted, dst_freezone, is_dasicsret);
+  Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
 
   bool allow_lib_to_main = !src_trusted && dst_trusted && \
     (newpc == dretpc->val || newpc == dmaincall->val);

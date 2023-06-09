@@ -133,6 +133,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
+  Logm("Fetching vaddr %lx", addr);
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
 }
 
@@ -142,6 +143,7 @@ word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 }
 
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+  Logm("Writing vaddr %lx, data :%lx\n", addr, data);
 #ifdef CONFIG_SHARE
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);

@@ -559,7 +559,7 @@ CSR_STRUCT_END(dumbound0)
 CSR_STRUCT_START(dumbound1)
 CSR_STRUCT_END(dumbound1)
 
-#define CSR_DLCFG0   0x881
+#define CSR_DLCFG0   0x880
 #define CSR_DLBOUND0 0x890
 #define CSR_DLBOUND1 0x891
 
