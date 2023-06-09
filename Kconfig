@@ -322,7 +322,7 @@ endif
 endif
 
 config ENABLE_INSTR_CNT
-  bool
+  bool "Enable instruction counting"
   default n if DISABLE_INSTR_CNT
   default y
 endmenu

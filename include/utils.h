@@ -51,17 +51,19 @@ uint64_t get_time();
 #define log_write(...) IFDEF(CONFIG_DEBUG, \
   do { \
     extern FILE* log_fp; \
-    extern bool log_enable(); \
-    if (log_fp != NULL && log_enable()) { \
+    extern void log_flush(); \
+    if (log_fp != NULL) { \
+      log_flush(); \
       fprintf(log_fp, __VA_ARGS__); \
       fflush(log_fp); \
+    }else{ \
+      printf(__VA_ARGS__); \
     } \
   } while (0) \
 )
 
 #define _Log(...) \
   do { \
-    printf(__VA_ARGS__); \
     log_write(__VA_ARGS__); \
   } while (0)
 
