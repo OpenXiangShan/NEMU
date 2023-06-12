@@ -25,5 +25,7 @@ int is_exit_status_bad() {
   } else {
     Log("NEMU exit with good state: %i, halt ret: %i", nemu_state.state, nemu_state.halt_ret);
   }
+  extern void log_close();
+  log_close();
   return !good;
 }

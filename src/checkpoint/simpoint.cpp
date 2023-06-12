@@ -54,7 +54,8 @@ extern "C" {
 #include <debug.h>
 extern bool log_enable();
 extern void log_flush();
-extern bool has_log(); 
+extern char *log_filebuf; 
+extern uint64_t record_row_number;  
 extern FILE *log_fp;
 }
 
