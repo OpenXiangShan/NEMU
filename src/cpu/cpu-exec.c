@@ -46,7 +46,7 @@ rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  log_write("%s\n", asmbuf);
+  Logti("%s\n", asmbuf);
   if (g_print_step) { puts(asmbuf); }
 
   void scan_watchpoint(vaddr_t pc);

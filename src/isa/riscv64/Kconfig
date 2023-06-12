@@ -75,6 +75,7 @@ config MARCHID_VALUE
   depends on RV_ARCH_CSRS
   depends on !USE_XS_ARCH_CSRS
   hex "Value of CSR marchid"
+  default 0x5 if DIFFTEST_REF_SPIKE
   default 0x0
 
 config MIMPID_VALUE

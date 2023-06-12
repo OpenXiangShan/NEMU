@@ -19,8 +19,7 @@
 #define LOG_START (0)
 // restrict the size of log file
 #define LOG_END   (1024 * 1024 * 50)
-uint64_t instr_count = 0;
-uint64_t record_instr_count = 0;
+uint64_t record_row_number = 0;
 FILE *log_fp = NULL;
 
 void init_log(const char *log_file) {
@@ -35,12 +34,10 @@ bool log_enable() {
 }
 
 void log_flush() {
-  extern uint64_t g_nr_guest_instr;
-  record_instr_count += (g_nr_guest_instr - instr_count);
-  instr_count = g_nr_guest_instr;
-  if(record_instr_count > LOG_END){
+  record_row_number ++;
+  if(record_row_number > LOG_END){
     rewind(log_fp);
-    record_instr_count = 0;
+    record_row_number = 0;
   }
 }
 
