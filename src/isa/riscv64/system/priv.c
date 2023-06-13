@@ -535,6 +535,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp) || is_write(hgatp)) { update_mmu_state(); }
+  if (is_write(hstatus)) {
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
+  }
 #else
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
 #endif
