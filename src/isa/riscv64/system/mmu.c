@@ -272,7 +272,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
         level, vaddr, pg_base, p_pte, pte.val);
     }
 #endif
-    pg_base = PGBASE(pte.ppn);
+    pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w)) goto bad;
     if (pte.r || pte.x) { break; }
     else {
