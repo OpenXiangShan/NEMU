@@ -72,8 +72,8 @@ void isa_reg_display() {
       csrid_read(0x5c0), dumbound0->val, dumbound1->val);
   printf("dmaincall: " FMT_WORD " dretpc: " FMT_WORD " dretpcfz: " FMT_WORD "\n",
       dmaincall->val, dretpc->val, dretpcfz->val);
-  printf("dlcfg0: " FMT_WORD " dlcfg1: " FMT_WORD "\n",
-      dlcfg0->val, dlcfg1->val);
+  printf("dlcfg0: " FMT_WORD "\n",
+      dlcfg0->val);
   for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
     printf("%2d: cfg:0x%02x boundlo:0x%016lx boundhi :0x%016lx", i, dasics_libcfg_from_index(i), \
       dasics_libbound_from_index(i << 1), dasics_libbound_from_index((i << 1) + 1));

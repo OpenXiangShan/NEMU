@@ -64,7 +64,6 @@ static void csr_prepare() {
   cpu.dumbound1 = dumbound1->val;
 
   cpu.dlcfg0    = dlcfg0->val;
-  cpu.dlcfg1    = dlcfg1->val;
   cpu.dlbound0  = dlbound0->val;
   cpu.dlbound1  = dlbound1->val;
   cpu.dlbound2  = dlbound2->val;
@@ -156,7 +155,6 @@ static void csr_writeback() {
   dumbound1->val = cpu.dumbound1;
 
   dlcfg0->val    = cpu.dlcfg0;
-  dlcfg1->val    = cpu.dlcfg1;
   dlbound0->val  = cpu.dlbound0;
   dlbound1->val  = cpu.dlbound1;
   dlbound2->val  = cpu.dlbound2;

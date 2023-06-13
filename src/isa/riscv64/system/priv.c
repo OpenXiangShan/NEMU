@@ -163,14 +163,27 @@ bool dasics_in_trusted_zone(uint64_t pc)
 
 uint8_t dasics_libcfg_from_index(int i) {
   assert(0 <= i && i < MAX_DASICS_LIBBOUNDS);
-  int dlcfg_idx = i >> 3;  // One dlcfg register has 8 tiny configs
-  int tinycfg_idx = i & 0x7;
-  return (csr_array[CSR_DLCFG0 + dlcfg_idx] >> (tinycfg_idx << 3)) & LIBCFG_MASK;
+  return (csr_array[CSR_DLCFG0] >> (i << 2)) & LIBCFG_MASK;
 }
 
 word_t dasics_libbound_from_index(int i) {
   assert(0 <= i && i < (MAX_DASICS_LIBBOUNDS << 1));
   return csr_array[CSR_DLBOUND0 + i];
+}
+
+uint16_t dasics_jumpcfg_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_JUMPBOUNDS);
+  return (csr_array[CSR_DJCFG] >> (i << 4)) & JUMPCFG_MASK;
+}
+
+word_t dasics_jumpbound_low_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_JUMPBOUNDS);
+  return csr_array[CSR_DJBOUND0 + 2*i];
+}
+
+word_t dasics_jumpbound_high_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_JUMPBOUNDS);
+  return csr_array[CSR_DJBOUND0 + 2*i + 1];
 }
 
 bool dasics_match_dlib(uint64_t addr, uint8_t cfg)
@@ -188,6 +201,21 @@ bool dasics_match_dlib(uint64_t addr, uint8_t cfg)
     }
   }
 
+  return within_range;
+}
+
+bool dasics_match_djumpbound(uint64_t addr, uint8_t cfg) {
+  bool within_range = false;
+  for (int i = 0; i < MAX_DASICS_JUMPBOUNDS; ++i) {
+    uint16_t cfgval = dasics_jumpcfg_from_index(i);
+    word_t boundlo = dasics_jumpbound_low_from_index(i);
+    word_t boundhi = dasics_jumpbound_high_from_index(i);
+
+    if (!((cfgval & cfg) ^ cfg) && boundlo <= addr && addr < boundhi) {
+      within_range = true;
+      break;
+    }
+  }
   return within_range;
 }
 
@@ -227,8 +255,8 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_d
   // Check whether this redirect instruction is permitted
   bool src_trusted = dasics_in_trusted_zone(pc);
   bool dst_trusted = dasics_in_trusted_zone(newpc);
-  bool src_freezone = dasics_match_dlib(pc, LIBCFG_V | LIBCFG_X);
-  bool dst_freezone = dasics_match_dlib(newpc, LIBCFG_V | LIBCFG_X);
+  bool src_freezone = dasics_match_djumpbound(pc, JUMPCFG_V);
+  bool dst_freezone = dasics_match_djumpbound(newpc, JUMPCFG_V);
 
   Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d), dasicsret: %d\n", pc, src_trusted, src_freezone, newpc, dst_trusted, dst_freezone, is_dasicsret);
   Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
