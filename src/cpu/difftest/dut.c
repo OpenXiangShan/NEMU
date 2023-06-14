@@ -140,7 +140,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   if (is_skip_ref) {
-    // printf("is_skip_ref\n");
+    // Log("is_skip_ref\n");
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
@@ -155,7 +155,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
-  Log("run ref %lx, %lx", pc, ref_r.pc);
+  // Log("run ref %lx, %lx, %ld", pc, ref_r.pc, cpu.v);
   checkregs(&ref_r, pc);
 }
 #ifndef __ICS_EXPORT

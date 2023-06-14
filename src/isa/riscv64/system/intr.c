@@ -62,7 +62,7 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
-  // printf("NO: %ld, epc:0x%lx\n", NO, epc);
+  // Log("NO: %ld, epc:0x%lx", NO, epc);
   switch (NO) {
 #ifdef CONFIG_RVH
     case EX_VI:
@@ -96,7 +96,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   hld_st = 0;
   bool delegVS = intr_deleg_VS(NO);
   if (delegVS){
-    vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT))>>1) | INTR_BIT : NO;
+    vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
