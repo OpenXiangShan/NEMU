@@ -80,6 +80,13 @@ void isa_reg_display() {
     if (i % 2 == 1) printf("\n");
     else printf("|");
   }
+  printf("djcfg: " FMT_WORD "\n", djcfg->val);
+  for (int i = 0; i < MAX_DASICS_JUMPBOUNDS; ++i) {
+    printf("%2d: cfg:0x%02x boundlo: 0x%016lx boundhi: 0x%016lx", i, dasics_jumpcfg_from_index(i), \
+      dasics_jumpbound_low_from_index(i), dasics_jumpbound_high_from_index(i));
+    if (i % 2 == 1) printf("\n");
+    else printf("|");
+  }
 #endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RV_PMP_CSR
   printf("privilege mode:%ld  pmp: below\n", cpu.mode);
