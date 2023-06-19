@@ -195,6 +195,13 @@ static inline void update_mstatus_sd() {
   mstatus->sd = (mstatus->fs == 3);
 }
 
+static inline void update_vsstatus_sd() {
+  if (hstatus->vsxl == 1)
+    vsstatus->_32.sd = (vsstatus->fs == 3);
+  else
+    vsstatus->_64.sd = (vsstatus->fs == 3);
+}
+
 static inline word_t csr_read(word_t *src) {
   if(src == &csr_perf){
     return 0;
@@ -322,7 +329,10 @@ static inline void csr_write(word_t *dest, word_t src) {
   if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch) 
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 
         || is_write(satp) || is_write(stvec))){
-    if (is_write(sstatus))      { vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); }
+    if (is_write(sstatus))      { 
+      vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); 
+      update_vsstatus_sd();
+    }
     else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VS_MASK, src << 1); }
     else if (is_write(stvec))   { vstvec->val = src; }
     else if (is_write(sscratch)){ vsscratch->val = src;}
