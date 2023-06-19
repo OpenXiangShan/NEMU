@@ -76,6 +76,10 @@ config TVAL_EX_II
   bool "Update m/stval on illegal instruction exceptions"
   default n
 
+config FS_CLEAN_STATE
+  bool "XSTATUS.FS has the state of Clean"
+  default y
+
 config RV_ARCH_CSRS
   bool "Enable mvendorid, marchid, mimpid CSR"
   default y
