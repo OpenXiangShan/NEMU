@@ -447,6 +447,9 @@ static int execute(int n) {
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
+#ifdef CONFIG_TVAL_EX_II
+    cpu.instr = s.isa.instr.val;
+#endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc, s.isa.instr.val);
