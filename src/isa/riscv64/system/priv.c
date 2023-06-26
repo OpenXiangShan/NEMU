@@ -141,12 +141,14 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR0]) && src < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
 #define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
 #define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
+#define is_write_dasics_mem_bound (dest >= &(csr_array[CSR_DLBOUND0]) && dest < (&(csr_array[CSR_DLBOUND0]) + MAX_DASICS_LIBBOUNDS))
+#define is_write_dasics_jump_bound (dest >= &(csr_array[CSR_DJBOUND0]) && dest < (&(csr_array[CSR_DJBOUND0]) + MAX_DASICS_JUMPBOUNDS))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
 #ifdef CONFIG_RV_DASICS
 #define DUMCFG_MASK (MCFG_UENA | MCFG_UCLS)
 #define DSMCFG_MASK (MCFG_SENA | MCFG_SCLS | DUMCFG_MASK)
-
+#define BOUND_ADDR_ALGIN 0x7
 bool dasics_in_trusted_zone(uint64_t pc)
 {
   bool is_smain_enable = dsmcfg->mcfg_sena;
@@ -270,19 +272,19 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_d
                     dst_freezone || allow_freezone_to_lib;
 
   if (!allow_brjp) {
-    int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
-    INTR_TVAL_REG(ex) = newpc;
-    longjmp_exception(ex);
+    // int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
+    // INTR_TVAL_REG(ex) = newpc;
+    // longjmp_exception(ex);
   }
 
   // Set dretpc when redirect from trusted zone to untrusted, if not dasicsret
   if (src_trusted && !dst_trusted && !is_dasicsret) {
-    dretpc->val = nextpc;
+    //dretpc->val = nextpc;
   }
 
   // FIXME: This code is only for UCAS-OS test!
   if (!src_trusted && !src_freezone && !dst_trusted && dst_freezone) {
-    dretpcfz->val = nextpc;
+    //dretpcfz->val = nextpc;
   }
 }
 #endif  // CONFIG_RV_DASICS
@@ -606,6 +608,8 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Then update dmcfg itself. CLS bit has already taken effect, thus set it to zero
     word_t mask = is_write(dsmcfg) ? DSMCFG_MASK : DUMCFG_MASK;
     dsmcfg->val = (dsmcfg->val & ~mask) | (src & ~MCFG_SCLS & ~MCFG_UCLS & mask);
+  } else if (is_write_dasics_mem_bound || is_write_dasics_jump_bound) {
+    *dest = src & ~BOUND_ADDR_ALGIN; 
   }
 #endif  // CONFIG_RV_DASICS
   else if (is_write(satp)) {
