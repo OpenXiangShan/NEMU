@@ -72,7 +72,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
 #ifdef CONFIG_RVH
-  ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? vsstatus->sum: mstatus->sum) || ifetch)));
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? ((hstatus->vsxl == 1)? vsstatus->_32.sum  : vsstatus->_64.sum): mstatus->sum) || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
 #else
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
@@ -101,7 +101,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   if(hlvx)
     can_load = pte->x;
   else
-    can_load = pte->r || ((mstatus->mxr || (vsstatus->mxr && virt)) && pte->x);
+    can_load = pte->r || ((mstatus->mxr || (((hstatus->vsxl == 1)? vsstatus->_32.mxr  : vsstatus->_64.mxr) && virt)) && pte->x);
 #else
   bool can_load = pte->r || (mstatus->mxr && pte->x);
 #endif

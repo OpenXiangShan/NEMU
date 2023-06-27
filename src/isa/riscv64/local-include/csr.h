@@ -595,26 +595,40 @@ CSR_STRUCT_START(htimedelta)
 CSR_STRUCT_END(htimedelta)
 
 CSR_STRUCT_START(vsstatus)
-  uint64_t pad0: 1;
-  uint64_t sie : 1;
-  uint64_t pad1: 3;
-  uint64_t spie: 1;
-  uint64_t ube : 1;
-  uint64_t pad2: 1;
-  uint64_t spp : 1;
-  uint64_t vs  : 2;
-  uint64_t pad3: 2;
-  uint64_t fs  : 2;
-  uint64_t xs  : 2;
-  uint64_t pad4: 1;
-  uint64_t sum : 1;
-  uint64_t mxr : 1;
   union{
     struct{
+      uint64_t pad0: 1;
+      uint64_t sie : 1;
+      uint64_t pad1: 3;
+      uint64_t spie: 1;
+      uint64_t ube : 1;
+      uint64_t pad2: 1;
+      uint64_t spp : 1;
+      uint64_t vs  : 2;
+      uint64_t pad3: 2;
+      uint64_t fs  : 2;
+      uint64_t xs  : 2;
+      uint64_t pad4: 1;
+      uint64_t sum : 1;
+      uint64_t mxr : 1;
       uint64_t pad5:11;
       uint64_t sd  : 1;
     }_32;
     struct{
+      uint64_t pad0: 1;
+      uint64_t sie : 1;
+      uint64_t pad1: 3;
+      uint64_t spie: 1;
+      uint64_t ube : 1;
+      uint64_t pad2: 1;
+      uint64_t spp : 1;
+      uint64_t vs  : 2;
+      uint64_t pad3: 2;
+      uint64_t fs  : 2;
+      uint64_t xs  : 2;
+      uint64_t pad4: 1;
+      uint64_t sum : 1;
+      uint64_t mxr : 1;
       uint64_t pad5:12;
       uint64_t uxl : 2;
       uint64_t pad6:29;
@@ -698,6 +712,7 @@ MAP(CSRS, CSRS_DECL)
   #define vsatp_mode ((hstatus->vsxl == 1)? vsatp->_32.mode : vsatp->_64.mode)
   #define vsatp_asid ((hstatus->vsxl == 1)? vsatp->_32.asid : vsatp->_64.asid)
   #define vsatp_ppn  ((hstatus->vsxl == 1)? vsatp->_32.ppn  : vsatp->_64.ppn)
+  #define _vsstatus_  ((hstatus->vsxl == 1)? vsstatus->_32  : vsstatus->_64)
 #endif
 word_t csrid_read(uint32_t csrid);
 

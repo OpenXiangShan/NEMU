@@ -197,9 +197,9 @@ static inline void update_mstatus_sd() {
 
 static inline void update_vsstatus_sd() {
   if (hstatus->vsxl == 1)
-    vsstatus->_32.sd = (vsstatus->fs == 3);
+    vsstatus->_32.sd = (vsstatus->_32.fs == 3);
   else
-    vsstatus->_64.sd = (vsstatus->fs == 3);
+    vsstatus->_64.sd = (vsstatus->_64.fs == 3);
 }
 
 static inline word_t csr_read(word_t *src) {
@@ -240,7 +240,7 @@ static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RVH
  if (cpu.v == 1) {
   
-  if (is_read(sstatus))      { return vsstatus->val & SSTATUS_RMASK; }
+  if (is_read(sstatus))      { update_vsstatus_sd(); return vsstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))     { return (mie->val & VS_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
@@ -322,6 +322,7 @@ void disable_time_intr() {
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
+  Log("csr write");
   if((dest == &csr_perf)){
     return;
   }
@@ -548,6 +549,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
   }
+  if (is_write(vsstatus)){
+    update_vsstatus_sd();
+  }
 #else
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
 #endif
@@ -587,10 +591,21 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
           longjmp_exception(EX_VI);
         }
-        cpu.mode = vsstatus->spp;
-        vsstatus->spp = MODE_U;
-        vsstatus->sie = vsstatus->spie;
-        vsstatus->spie = 1;
+        if (hstatus->vsxl == 1){
+          cpu.mode = vsstatus->_32.spp;
+          vsstatus->_32.spp = MODE_U;
+          vsstatus->_32.sie = vsstatus->_32.spie;
+          vsstatus->_32.spie = 1;
+        }else{
+          cpu.mode = vsstatus->_64.spp;
+          vsstatus->_64.spp = MODE_U;
+          vsstatus->_64.sie = vsstatus->_64.spie;
+          vsstatus->_64.spie = 1;
+        }
+        // cpu.mode = vsstatus->spp;
+        // vsstatus->spp = MODE_U;
+        // vsstatus->sie = vsstatus->spie;
+        // vsstatus->spie = 1;
         return vsepc->val;
       }
 #endif // CONFIG_RVH
