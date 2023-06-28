@@ -138,8 +138,9 @@ word_t vaddr_ifetch(vaddr_t addr, int len) {
 }
 
 word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
-  Logm("Reading vaddr %lx", addr);
-  return vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode);
+  word_t read_data = vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode); 
+  Logm("Reading vaddr %lx  data  %lx", addr, read_data);
+  return read_data;
 }
 
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {

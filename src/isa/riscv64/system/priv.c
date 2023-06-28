@@ -212,6 +212,7 @@ bool dasics_match_djumpbound(uint64_t addr, uint8_t cfg) {
     uint16_t cfgval = dasics_jumpcfg_from_index(i);
     word_t boundlo = dasics_jumpbound_low_from_index(i);
     word_t boundhi = dasics_jumpbound_high_from_index(i);
+    Logm("[free zone check] cfgval:%d,  boundlo:%lx  boundhi:%lx\n",cfgval,boundlo,boundhi);
 
     if (!((cfgval & cfg) ^ cfg) && boundlo <= addr && addr < boundhi) {
       within_range = true;
@@ -272,9 +273,11 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_d
                     dst_freezone || allow_freezone_to_lib;
 
   if (!allow_brjp) {
-    // int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
-    // INTR_TVAL_REG(ex) = newpc;
-    // longjmp_exception(ex);
+    int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
+    INTR_TVAL_REG(ex) = newpc;
+    isa_reg_display();
+    Logm("Dasics jump exception occur: pc%lx  (st:%d, altm:%d, df:%d, aftl:%d)\n",pc,src_trusted,allow_lib_to_main,dst_freezone,allow_freezone_to_lib);
+    longjmp_exception(ex);
   }
 
   // Set dretpc when redirect from trusted zone to untrusted, if not dasicsret
@@ -610,6 +613,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     dsmcfg->val = (dsmcfg->val & ~mask) | (src & ~MCFG_SCLS & ~MCFG_UCLS & mask);
   } else if (is_write_dasics_mem_bound || is_write_dasics_jump_bound) {
     *dest = src & ~BOUND_ADDR_ALGIN; 
+    if(is_write_dasics_jump_bound) Logm("[write jump bound]: write addr %016lx src: %lx\n",*dest,src );
   }
 #endif  // CONFIG_RV_DASICS
   else if (is_write(satp)) {
