@@ -322,7 +322,6 @@ void disable_time_intr() {
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
-  Log("csr write");
   if((dest == &csr_perf)){
     return;
   }
