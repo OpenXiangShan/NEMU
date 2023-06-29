@@ -512,7 +512,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           // Described in 3.1.6.5 Virtualization Support in mstatus Register
           // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
           // while executing in S-mode will raise an illegal instruction exception.
-          if (cpu.mode == MODE_S && mstatus->tvm == 1)
+          if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
             longjmp_exception(EX_II);
           mmu_tlb_flush(*src);
           break;
