@@ -40,6 +40,9 @@ void fp_set_dirty() {
 #ifdef CONFIG_SHARE
   mstatus->sd = 1;
 #endif
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  mstatus->sd = 1;
+#endif // Spike update fs and sd in the meantime
   mstatus->fs = 3;
 }
 

@@ -62,7 +62,6 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
-  // Log("NO: %ld, epc:0x%lx", NO, epc);
   switch (NO) {
 #ifdef CONFIG_RVH
     case EX_VI:
