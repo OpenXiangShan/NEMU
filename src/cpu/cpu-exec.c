@@ -444,6 +444,7 @@ static int execute(int n) {
 #ifdef CONFIG_LIGHTQS_DEBUG
     printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
 #endif // CONFIG_LIGHTQS_DEBUG
+    cpu.amo = false;
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
