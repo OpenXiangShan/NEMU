@@ -313,10 +313,8 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       if(cpu.v){
         if(intr_deleg_S(EX_IPF)){
           vstval->val = vaddr;
-          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
         }
         longjmp_exception(EX_IPF);
       }else{
@@ -335,10 +333,8 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
         ex = cpu.amo ? EX_SPF : EX_LPF;
         if(intr_deleg_S(ex)){
           vstval->val = vaddr;
-          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
         }
       }else{
         ex = cpu.amo ? EX_SPF : EX_LPF;
@@ -356,10 +352,8 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       if(cpu.v){
         if(intr_deleg_S(EX_SPF)){
           vstval->val = vaddr;
-          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
         }
         longjmp_exception(EX_SPF);
       }else{
@@ -470,10 +464,8 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
       }else if(cpu.v){
         if(intr_deleg_S(EX_IPF)){
           vstval->val = vaddr;
-          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
         }
         longjmp_exception(EX_IPF);
       }else{
@@ -501,10 +493,8 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         ex = cpu.amo ? EX_SPF : EX_LPF;
         if(intr_deleg_S(ex)){
           vstval->val = vaddr;
-          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
         }
       }else{
         ex = cpu.amo ? EX_SPF : EX_LPF;
@@ -530,10 +520,8 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
       }else if(cpu.v){
         if(intr_deleg_S(EX_SPF)){
           vstval->val = vaddr;
-          htval->val = vaddr >> 2;
         }else{
           mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
         }
         longjmp_exception(EX_SPF);
       }else{

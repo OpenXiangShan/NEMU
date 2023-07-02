@@ -64,7 +64,7 @@ uint64_t get_time();
     printf(__VA_ARGS__); \
   }while (0)\
  )*/
-#define log_write(...) MUXDEF(CONFIG_DEBUG, \
+#define log_write(...) \
   do { \
     extern FILE* log_fp; \
     extern char *log_filebuf; \
@@ -76,11 +76,8 @@ uint64_t get_time();
     }else{ \
       printf(__VA_ARGS__); \
     } \
-  } while (0), \
-  do { \
-    printf(__VA_ARGS__); \
-  }while (0)\
-)
+  } while (0)
+
 #define _Log(...) \
   do { \
     log_write(__VA_ARGS__); \
