@@ -28,12 +28,31 @@ bool is_in_mmio(paddr_t addr);
 
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 
+#ifdef CONFIG_LIGHTQS
+#define PMEMBASE 0x1100000000ul
+#else
+#define PMEMBASE 0x100000000ul
+#endif // CONFIG_LIGHTQS
+
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
-static uint8_t *pmem = (uint8_t *)0x100000000ul;
+static uint8_t *pmem = (uint8_t *)PMEMBASE;
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
+
+#ifdef CONFIG_STORE_LOG
+struct store_log {
+  uint64_t inst_cnt;
+  paddr_t addr;
+  word_t orig_data;
+  // new value and write length makes no sense for restore
+} store_log_buf[CONFIG_STORE_LOG_SIZE], spec_store_log_buf[CONFIG_STORE_LOG_SIZE];
+
+uint64_t store_log_ptr = 0, spec_store_log_ptr = CONFIG_SPEC_GAP;
+
+#endif // CONFIG_STORE_LOG
+
 #define HOST_PMEM_OFFSET (uint8_t *)(pmem - CONFIG_MBASE)
 
 uint8_t *get_pmem()
@@ -110,7 +129,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     raise_read_access_fault(type, vaddr);
     return 0;
   }
-#ifndef CONFIG_SHARE
+#if true
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
@@ -139,14 +158,64 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 #endif
 }
 
+#ifdef CONFIG_LIGHTQS
+
+extern uint64_t g_nr_guest_instr;
+
+extern uint64_t stable_log_begin, spec_log_begin;
+
+void pmem_record_store(paddr_t addr) {
+  // align to 8 byte
+  addr = (addr >> 3) << 3;
+  uint64_t rdata = pmem_read(addr, 8);
+  //assert(g_nr_guest_instr >= stable_log_begin);
+  store_log_buf[store_log_ptr].inst_cnt = g_nr_guest_instr;
+  store_log_buf[store_log_ptr].addr = addr;
+  store_log_buf[store_log_ptr].orig_data = rdata;
+  ++store_log_ptr;
+  if (g_nr_guest_instr >= spec_log_begin) {
+    spec_store_log_buf[spec_store_log_ptr].inst_cnt = g_nr_guest_instr;
+    spec_store_log_buf[spec_store_log_ptr].addr = addr;
+    spec_store_log_buf[spec_store_log_ptr].orig_data = rdata;
+    ++spec_store_log_ptr;
+  }
+}
+
+
+
+void pmem_record_restore(uint64_t restore_inst_cnt) {
+  if (spec_log_begin <= restore_inst_cnt) {
+    // use speculative rather than old stable
+    memcpy(store_log_buf, spec_store_log_buf, sizeof(store_log_buf));
+    store_log_ptr = spec_store_log_ptr;
+  }
+  for (int i = store_log_ptr - 1; i >= 0; i--) {
+    if (store_log_buf[i].inst_cnt > restore_inst_cnt) {
+      pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data);
+    } else {
+      break;
+    }
+  }
+}
+
+void pmem_record_reset() {
+  store_log_ptr = 0;
+}
+
+#endif // CONFIG_LIGHTQS
+
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
     raise_access_fault(EX_SAF, vaddr);
     return ;
   }
-#ifndef CONFIG_SHARE
-  if (likely(in_pmem(addr))) pmem_write(addr, len, data);
-  else {
+#ifdef CONFIG_SHARE
+  if (likely(in_pmem(addr))) {
+    #ifdef CONFIG_LIGHTQS
+    pmem_record_store(addr);
+    #endif // CONFIG_LIGHTQS
+    pmem_write(addr, len, data);
+  } else {
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
     else raise_access_fault(EX_SAF, vaddr);
   }
@@ -157,14 +226,17 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
         addr, data, len, mode);
     }
     return pmem_write(addr, len, data);
-  }
-  else {
-    if(dynamic_config.ignore_illegal_mem_access)
+  } else {
+    if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
+    else {
+      if(dynamic_config.ignore_illegal_mem_access)
+        return;
+      printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+      raise_access_fault(EX_SAF, vaddr);
       return;
-    printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
-    raise_access_fault(EX_SAF, vaddr);
-    return;
+    }
   }
+  
 #endif
 }
 
@@ -239,3 +311,19 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
 }
 
 #endif
+
+char *mem_dump_file = NULL;
+
+void dump_pmem() {
+  if (mem_dump_file == NULL) {
+    printf("No memory dump file is specified, memory dump skipped.\n");
+    return ;
+  }
+  FILE *fp = fopen(mem_dump_file, "wb");
+  if (fp == NULL) {
+    printf("Cannot open file %s, memory dump skipped.\n", mem_dump_file);
+  }
+  fwrite(pmem, sizeof(char), MEMORY_SIZE, fp);
+}
+
+

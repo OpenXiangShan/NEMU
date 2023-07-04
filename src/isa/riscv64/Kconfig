@@ -16,8 +16,8 @@ config RVK
   bool "RISC-V Cryptography Extension v1.0"
   default y
 
-config RVV_010
-  bool "Experimental RISC-V Vector Extension v0.10"
+config RVV
+  bool "RISC-V Vector Extension v1.0"
   default y
 
 config RV_DEBUG
@@ -26,7 +26,22 @@ config RV_DEBUG
 
 config RVH
   bool "RISC-V Hypervisor Extension v1.0"
-  default y
+  default n
+
+config RVSDEXT
+  bool "(Beta) RISC-V Sdext ISA Extension v1.0"
+  depends on RV_DEBUG
+  default n
+
+config RVSDTRIG
+  bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
+  depends on RV_DEBUG
+  default n
+
+config TRIGGER_NUM
+  int "Number of supported triggers"
+  depends on RVSDTRIG
+  default 10
 
 config RV_PMP_CSR
   bool "Enable PMP CSR Read & Write"

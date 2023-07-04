@@ -14,7 +14,8 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+
+#ifdef CONFIG_RVV
 
 #include "cpu/exec.h"
 #include "../local-include/vreg.h"
@@ -24,29 +25,62 @@
 #include "../local-include/rtl.h"
 #include <setjmp.h>
 
-#define id_src (&s->src1)
-#define id_src2 (&s->src2)
-#define id_dest (&s->dest)
-void vp_set_dirty();
+int get_mode(Decode *s) {
+  rtl_lr(s, &(id_src1->val), id_src1->reg, 4);
+  int mode = 0;
+  if (id_src1->reg == 0 && id_dest->reg != 0) {
+    mode = 1;
+  }
+  else if (id_src1->reg == 0 && id_dest->reg == 0) {
+    mode = 2;
+  }
+  return mode;
+}
+
+void set_vtype_vl(Decode *s, int mode) {
+  rtlreg_t vl_num = check_vsetvl(id_src2->val, id_src1->val, mode);
+  rtlreg_t error = 1ul << 63;
+  
+  if(vl_num == (uint64_t)-1) {
+    vtype->val = error;
+  }
+  else {
+    vtype->val = id_src2->val;
+  }
+  
+  vl->val = vl_num;
+
+  rtl_sr(s, id_dest->reg, &vl_num, 8/*4*/);
+
+  vstart->val = 0;
+}
 
 def_EHelper(vsetvl) {
 
-  vp_set_dirty();
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
-  rtl_lr(s, &(id_src->val), id_src1->reg, 4);
-  rtlreg_t vl = check_vsetvl(id_src2->val, id_src->val, id_src->reg==0);
-  rtlreg_t error = 1ul << 63;
-  if(vl==(uint64_t)-1) vcsr_write(IDXVTYPE, &error); //TODO: may cause error.
-  else vcsr_write(IDXVTYPE, &(id_src2->val));
-  vcsr_write(IDXVL, &vl);
-
-  rtl_sr(s, id_dest->reg, &vl, 8/*4*/);
-
-  rtl_li(s, &(s->tmp_reg[0]), 0);
-  vcsr_write(IDXVSTART, &(s->tmp_reg[0]));
+  int mode = get_mode(s);
+  set_vtype_vl(s, mode);
 
   // print_asm_template3(vsetvl);
 }
 
-#endif // CONFIG_RVV_010
+def_EHelper(vsetvli) {
+
+  //vlmul+lg2(VLEN) <= vsew + vl
+  // previous decode does not load vals for us
+  int mode = get_mode(s);
+  set_vtype_vl(s, mode);
+
+  // print_asm_template3(vsetvl);
+}
+
+def_EHelper(vsetivli) {
+  //vlmul+lg2(VLEN) <= vsew + vl
+  // previous decode does not load vals for us
+  set_vtype_vl(s, 0);
+
+  // print_asm_template3(vsetvl);
+}
+
+#endif // CONFIG_RVV

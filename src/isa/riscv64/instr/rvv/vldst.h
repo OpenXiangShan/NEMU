@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 
 #include "vldst_impl.h"
 
@@ -267,4 +267,4 @@ def_EHelper(vstxu_mmu) {
   //print_asm_template3(vstxu);
 }
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV

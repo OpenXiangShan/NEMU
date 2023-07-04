@@ -383,8 +383,8 @@ bad:
   return MEM_RET_FAIL;
 }
 
-static int ifetch_mmu_state = MMU_DIRECT;
-static int data_mmu_state = MMU_DIRECT;
+int ifetch_mmu_state = MMU_DIRECT;
+int data_mmu_state = MMU_DIRECT;
 #ifdef CONFIG_RVH
 static int h_mmu_state = MMU_DIRECT;
 static inline int update_h_mmu_state_internal(bool ifetch) {

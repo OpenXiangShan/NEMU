@@ -32,8 +32,8 @@ typedef struct {
   IFDEF(CONFIG_ISA_x86, rtlreg_t val);
   IFDEF(CONFIG_ISA_x86, uint8_t type);
   IFDEF(CONFIG_ISA_x86, uint8_t reg);
-  IFDEF(CONFIG_RVV_010, rtlreg_t val);
-  IFDEF(CONFIG_RVV_010, uint8_t reg);
+  IFDEF(CONFIG_RVV, rtlreg_t val);
+  IFDEF(CONFIG_RVV, uint8_t reg);
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
 } Operand;
 
@@ -65,13 +65,13 @@ typedef struct Decode {
   uint8_t type;
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80]);
-  #ifdef CONFIG_RVV_010
+  #ifdef CONFIG_RVV
   // for vector
   int v_width;
   uint32_t vm;
   uint32_t src_vmode;
   rtlreg_t tmp_reg[4];
-  #endif // CONFIG_RVV_010
+  #endif // CONFIG_RVV
 
 } Decode;
 

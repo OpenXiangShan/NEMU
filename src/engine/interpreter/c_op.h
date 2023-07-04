@@ -28,6 +28,10 @@
 #define c_shl(a, b) ((a) << ((b) & c_shift_mask))
 #define c_shr(a, b) ((a) >> ((b) & c_shift_mask))
 #define c_sar(a, b) ((sword_t)(a) >> ((b) & c_shift_mask))
+#define c_min(a, b) ((int64_t)(a) < (int64_t)(b) ? (a) : (b))
+#define c_max(a, b) ((int64_t)(a) > (int64_t)(b) ? (a) : (b))
+#define c_minu(a, b) ((uint64_t)(a) < (uint64_t)(b) ? (a) : (b))
+#define c_maxu(a, b) ((uint64_t)(a) > (uint64_t)(b) ? (a) : (b))
 
 #ifdef CONFIG_ISA64
 #define c_sext32to64(a) ((int64_t)(int32_t)(a))

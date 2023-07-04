@@ -46,7 +46,12 @@ struct DynamicConfig {
 };
 extern struct DynamicConfig dynamic_config;
 void update_dynamic_config(void* config);
-
+struct br_info {
+  uint64_t pc;
+  uint64_t target;
+  int taken;
+  int type; // 0: branch 1: jmp
+};
 #include <debug.h>
 
 #endif

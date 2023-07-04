@@ -17,14 +17,17 @@
 #include "../local-include/csr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
+#include "../local-include/trigger.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
+#include <stdlib.h>
 
 int update_mmu_state();
 uint64_t clint_uptime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
+void vp_set_dirty();
 
 rtlreg_t csr_array[4096] = {};
 
@@ -32,9 +35,9 @@ rtlreg_t csr_array[4096] = {};
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 
 MAP(CSRS, CSRS_DEF)
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DEF)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DEF)
 #endif // CONFIG_RV_ARCH_CSRS
@@ -47,9 +50,9 @@ static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
   MAP(CSRS_HPM, CSRS_EXIST)
-  #ifdef CONFIG_RVV_010
+  #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_EXIST)
-  #endif // CONFIG_RVV_010
+  #endif // CONFIG_RVV
   #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_EXIST)
   #endif // CONFIG_RV_ARCH_CSRS
@@ -58,6 +61,14 @@ void init_csr() {
   MAP(HCSRS, CSRS_EXIST)
   #endif
 };
+
+#ifdef CONFIG_RVSDTRIG
+void init_trigger() {
+  cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) 
+    cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
+}
+#endif // CONFIG_RVSDTRIG
 
 rtlreg_t csr_perf;
 
@@ -112,11 +123,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63)
 #endif
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 #ifdef CONFIG_RVH
 #define MIP_MASK ((1 << 9) | (1 << 5) | (1 << 1))
@@ -278,6 +289,9 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
 #endif 
     return mip->val & SIP_MASK; 
   }
+#ifdef CONFIG_RVV
+  else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
+#endif
   else if (is_read(fcsr))   {
 #ifdef CONFIG_FPU_NONE
     longjmp_exception(EX_II);
@@ -306,15 +320,25 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   if (is_read(mip)) { difftest_skip_ref(); }
 #endif
   if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
+#ifdef CONFIG_RVSDTRIG
+  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val ^
+    (cpu.TM->triggers[tselect->val].tdata1.mcontrol.hit << 20); }
+  if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
+  if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
+#endif // CONFIG_RVSDTRIG
   return *src;
 }
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 void vcsr_write(uint32_t addr,  rtlreg_t *src) {
   word_t *dest = csr_decode(addr);
   *dest = *src;
 }
-#endif // CONFIG_RVV_010
+void vcsr_read(uint32_t addr,  rtlreg_t *dest) {
+  word_t *src = csr_decode(addr);
+  *dest = *src;
+}
+#endif // CONFIG_RVV
 
 void disable_time_intr() {
     Log("Disabled machine time interruption\n");
@@ -400,18 +424,18 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
   else if (is_write(mtvec)) {
-#ifdef XTVEC_VECTORED_MODE
+#ifdef CONFIG_XTVEC_VECTORED_MODE
     *dest = src & ~(0x2UL);
 #else
     *dest = src & ~(0x3UL);
-#endif // XTVEC_VECTORED_MODE
+#endif // CONFIG_XTVEC_VECTORED_MODE
 }
   else if (is_write(stvec)) {
-#ifdef XTVEC_VECTORED_MODE
+#ifdef CONFIG_XTVEC_VECTORED_MODE
     *dest = src & ~(0x2UL);
 #else
     *dest = src & ~(0x3UL);
-#endif // XTVEC_VECTORED_MODE
+#endif // CONFIG_XTVEC_VECTORED_MODE
 }
 #ifdef CONFIG_RVH
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
@@ -419,6 +443,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
 #endif
   else if (is_write(mideleg)) { *dest = src & 0x222; }
+#ifdef CONFIG_RVV
+  else if (is_write(vcsr)) { vxrm->val = (src >> 1) & 0x3; vxsat->val = src & 0x1; }
+#endif
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }
 #endif
@@ -518,6 +545,33 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Only support Sv39, ignore write that sets other mode
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       *dest = MASKED_SATP(src);
+#ifdef CONFIG_RVSDTRIG
+  } else if (is_write(tselect)) {
+    *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
+  } else if (is_write(tdata1)) {
+    // not write to dest
+    tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
+    tdata1_t wdata = *(tdata1_t*)&src;
+    switch (wdata.type)
+    {
+    case TRIG_TYPE_NONE: // write type 0 to disable this trigger
+    case TRIG_TYPE_DISABLE:
+      tdata1_reg->type = TRIG_TYPE_DISABLE;
+      break;
+    case TRIG_TYPE_MCONTROL:
+      mcontrol_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol, &src, cpu.TM);
+      tm_update_timings(cpu.TM);
+      break;
+    default:
+      // do nothing for not supported trigger type
+      break;
+    }
+  } else if (is_write(tdata2)) {
+    // not write to dest
+    tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
+    tdata2_t wdata = *(tdata2_t*)&src;
+    tdata2_reg->val = wdata.val;
+#endif // CONFIG_RVSDTRIG
   }
 #ifdef CONFIG_RVH
   else if (is_write(hgatp)) {
@@ -559,6 +613,11 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
+#ifdef CONFIG_RVV
+  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
+    //vp_set_dirty();
+  }
+#endif
 }
 
 word_t csrid_read(uint32_t csrid) {
@@ -677,7 +736,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           }else if (cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1)
             longjmp_exception(EX_II);
 #else
-          if (cpu.mode == MODE_S && mstatus->tvm == 1)
+          if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
             longjmp_exception(EX_II);
 #endif // CONFIG_RVH
           mmu_tlb_flush(*src);

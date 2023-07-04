@@ -28,7 +28,11 @@ static const uint32_t img [] = {
 #endif
 
 void init_csr();
-#ifndef CONFIG_SHARE
+#ifdef CONFIG_RVSDTRIG
+void init_trigger();
+#endif
+
+#if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
 #endif
 void init_device();
@@ -80,11 +84,12 @@ void init_isa() {
 
   misa->mxl = 2; // XLEN = 64
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   // vector
+  misa->extensions |= ext('v');
   vl->val = 0;
   vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
   #ifdef CONFIG_USE_XS_ARCH_CSRS
@@ -98,14 +103,19 @@ void init_isa() {
   #endif // CONFIG_USE_XS_ARCH_CSRS
 #endif // CONFIG_RV_ARCH_CSRS
 
+#ifdef CONFIG_RVSDTRIG
+  init_trigger();
+#endif // CONFIG_RVSDTRIG
+
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
   if (cpt_file == NULL) {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
 #endif
-
-  IFNDEF(CONFIG_SHARE, init_clint());
+  #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
+  init_clint();
+  #endif
   IFDEF(CONFIG_SHARE, init_device());
 
 #ifndef CONFIG_SHARE

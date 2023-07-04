@@ -18,9 +18,9 @@
 #define __ISA_RISCV64_H__
 
 #include <common.h>
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #include "../instr/rvv/vreg.h"
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 #define FORCE_RAISE_PF
 
@@ -55,6 +55,8 @@ struct MemEventQueryResult {
 };
 #endif
 
+typedef struct TriggerModule TriggerModule;
+
 typedef struct {
   // Below will be synced by regcpy when run difftest, DO NOT TOUCH
   union {
@@ -80,7 +82,7 @@ typedef struct {
   uint64_t hcounteren, htval, htinst, hgatp, vsstatus;
   uint64_t vstvec, vsepc, vscause, vstval, vsatp, vsscratch;
 #endif
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   //vector
   union {
     uint64_t _64[VENUM64];
@@ -90,8 +92,10 @@ typedef struct {
   } vr[32];
 
   uint64_t vstart;
-  uint64_t vxsat, vxrm, vl, vtype;
-#endif // CONFIG_RVV_010
+  uint64_t vxsat, vxrm, vcsr;
+  uint64_t vl, vtype, vlenb;
+#endif // CONFIG_RVV
+
 
 
   // exec state
@@ -112,6 +116,14 @@ typedef struct {
   struct DebugInfo debug;
 #ifdef CONFIG_QUERY_REF
   struct MemEventQueryResult query_mem_event;
+#endif
+
+#ifdef CONFIG_RVSDEXT
+  bool debug_mode;
+#endif
+
+#ifdef CONFIG_RVSDTRIG
+  TriggerModule *TM;
 #endif
 } riscv64_CPU_state;
 
@@ -184,7 +196,7 @@ typedef struct {
       uint32_t fmt       : 2;
       uint32_t funct5    : 5;
     } fp;
-    #ifdef CONFIG_RVV_010
+    #ifdef CONFIG_RVV
     //vector-OP-V
     struct {
       uint32_t pad16     : 7;
@@ -205,6 +217,12 @@ typedef struct {
       uint32_t pad19     :15;
       uint32_t v_imm5    : 5;
     } v_opv3;
+    struct {
+      uint32_t pad18     :15;
+      uint32_t v_zimm5   : 5;
+      uint32_t v_zimm    :10;
+      uint32_t v_bigbit  : 2;
+    } v_opv4;
     //vector-LOAD-FP
     struct {
       uint32_t pad20     :12;
@@ -228,7 +246,7 @@ typedef struct {
       uint32_t v_wd      : 1;
       uint32_t v_amoop   : 5;
     } vamo;
-    #endif // CONFIG_RVV_010
+    #endif // CONFIG_RVV
 
     uint32_t val;
   } instr;

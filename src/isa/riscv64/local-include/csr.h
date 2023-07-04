@@ -26,6 +26,26 @@
 #define CUSTOM_CSR(f)
 #endif
 
+// Debug Mode ISA CSRs in Sdext ISA extension
+#ifdef CONFIG_RVSDEXT
+  #define CORE_DEBUG_CSRS(f) \
+  f(dcsr       , 0x7b0) f(dpc        , 0x7b1) f(dscratch0  , 0x7b2) f(dscratch1  , 0x7b3) \
+
+#else
+  #define CORE_DEBUG_CSRS(f)
+#endif // CONFIG_RVSDEXT
+
+// Trigger CSRs in Sdtrig ISA extension
+#ifdef CONFIG_RVSDTRIG
+  #define TRIGGER_CSRS(f) \
+  f(scontext   , 0x6a8) \
+  f(tselect    , 0x7a0) f(tdata1     , 0x7a1) f(tdata2     , 0x7a2) f(tdata3     , 0x7a3) \
+  f(tinfo      , 0x7a4) f(tcontrol   , 0x7a5) f(mcontext   , 0x7a8) \
+  
+#else
+  #define TRIGGER_CSRS(f)
+#endif // CONFIG_RVSDTRIG
+
 #define CSRS_HPM(f) \
   f(mhpmcounter3   , 0xB03) f(mhpmcounter4   , 0xB04) f(mhpmcounter5   , 0xB05) f(mhpmcounter6   , 0xB06) \
   f(mhpmcounter7   , 0xB07) f(mhpmcounter8   , 0xB08) f(mhpmcounter9   , 0xB09) f(mhpmcounter10  , 0xB0a) \
@@ -72,7 +92,10 @@
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
-  f(mtime      , 0xc01)
+  f(mtime      , 0xc01) \
+  CORE_DEBUG_CSRS(f) \
+  TRIGGER_CSRS(f) \
+
 #else
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
@@ -88,16 +111,21 @@
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
   CUSTOM_CSR(f) \
-  f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
+  f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
+  CORE_DEBUG_CSRS(f) \
+  TRIGGER_CSRS(f) \
+
 #endif
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   #define VCSRS(f) \
   f(vstart, 0x008) \
   f(vxsat, 0x009) \
   f(vxrm, 0x00a) \
+  f(vcsr, 0x00f) \
   f(vl, 0xc20) \
-  f(vtype, 0xc21)
+  f(vtype, 0xc21) \
+  f(vlenb, 0xc22)
 #endif
 
 #ifdef CONFIG_RV_ARCH_CSRS
@@ -454,13 +482,14 @@ CSR_STRUCT_END(fcsr)
 CSR_STRUCT_START(mtime)
 CSR_STRUCT_END(mtime)
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 // TODO: implement these vcsr
 #define IDXVSTART 0x008
 #define IDXVXSAT  0x009
 #define IDXVXRM   0x00a
 #define IDXVL     0xc20
 #define IDXVTYPE  0xc21
+#define IDXVLENB  0xc22
 
 CSR_STRUCT_START(vstart)
 CSR_STRUCT_END(vstart)
@@ -475,6 +504,12 @@ CSR_STRUCT_START(vxrm)
   uint64_t pad : 62;
 CSR_STRUCT_END(vxrm)
 
+CSR_STRUCT_START(vcsr)
+  uint64_t vxsat :  1;
+  uint64_t vxrm  :  2;
+  uint64_t pad   : 61;
+CSR_STRUCT_END(vcsr)
+
 CSR_STRUCT_START(vl)
 CSR_STRUCT_END(vl)
 
@@ -486,11 +521,14 @@ CSR_STRUCT_START(vtype)
   uint64_t vill  :  1;
 CSR_STRUCT_END(vtype)
 
-rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, bool max_req);
+CSR_STRUCT_START(vlenb)
+CSR_STRUCT_END(vlenb)
+
+rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode);
 rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
 void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
 CSR_STRUCT_START(mvendorid)
@@ -499,9 +537,85 @@ CSR_STRUCT_END(mvendorid)
 CSR_STRUCT_START(marchid)
 CSR_STRUCT_END(marchid)
 
-CSR_STRUCT_START(marchid)
+CSR_STRUCT_START(mimpid)
 CSR_STRUCT_END(mimpid)
 #endif // CONFIG_RV_ARCH_CSRS
+
+#ifdef CONFIG_RVSDEXT
+CSR_STRUCT_START(dcsr)
+  uint64_t prv      : 2 ; // [1:0]
+  uint64_t step     : 1 ; // [2]
+  uint64_t nmip     : 1 ; // [3]
+  uint64_t mprven   : 1 ; // [4]
+  uint64_t v        : 1 ; // [5]
+  uint64_t cause    : 3 ; // [8:6]
+  uint64_t stoptime : 1 ; // [9]
+  uint64_t stopcount: 1 ; // [10]
+  uint64_t stepie   : 1 ; // [11]
+  uint64_t ebreaku  : 1 ; // [12]
+  uint64_t ebreaks  : 1 ; // [13]
+  uint64_t pad0     : 1 ; // [14]
+  uint64_t ebreakm  : 1 ; // [15]
+  uint64_t ebreakvu : 1 ; // [16]
+  uint64_t ebreakvs : 1 ; // [17]
+  uint64_t pad1     : 10; // [27:18]
+  uint64_t debugver : 4 ; // [31:28]
+CSR_STRUCT_END(dcsr)
+
+CSR_STRUCT_START(dpc)
+CSR_STRUCT_END(dpc)
+
+CSR_STRUCT_START(dscratch0)
+CSR_STRUCT_END(dscratch0)
+
+CSR_STRUCT_START(dscratch1)
+CSR_STRUCT_END(dscratch1)
+#endif // CONFIG_RVSDEXT
+
+#ifdef CONFIG_RVSDTRIG
+CSR_STRUCT_START(scontext)  // 0x5a8
+CSR_STRUCT_END(scontext)
+
+CSR_STRUCT_START(tselect)   // 0x7a0
+CSR_STRUCT_END(tselect)
+
+CSR_STRUCT_START(tdata1)    // 0x7a1
+  uint64_t data   : 59;     // [58:0]
+  uint64_t dmode  : 1;      // [59]
+  uint64_t type   : 4;      // [63:60]
+CSR_STRUCT_END(tdata1)
+
+CSR_STRUCT_START(tdata2)    // 0x7a2
+CSR_STRUCT_END(tdata2)
+
+CSR_STRUCT_START(tdata3)    // 0x7a3
+  union {
+    struct {
+      uint64_t sselect    : 2;  // [1:0]
+      uint64_t svalue     : 34; // [35:2]
+      uint64_t sbytemask  : 5;  // [40:36]
+      uint64_t pad0       : 7;  // [47:41]
+      uint64_t mhselect   : 3;  // [50:48]
+      uint64_t mhvalue    : 13; // [63:51]
+    } textra64;
+  };
+CSR_STRUCT_END(tdata3)
+
+CSR_STRUCT_START(tinfo)     // 0x7a4
+  uint64_t info : 16;       // [15:0] 
+CSR_STRUCT_END(tinfo)
+
+CSR_STRUCT_START(tcontrol)  // 0x7a5
+  uint64_t pad0 : 3;        // [2:0] 
+  uint64_t mte  : 1;        // [3]
+  uint64_t pad1 : 3;        // [6:4]
+  uint64_t mpte : 1;        // [7]
+CSR_STRUCT_END(tcontrol)
+
+CSR_STRUCT_START(mcontext)  // 0x7a8
+CSR_STRUCT_END(mcontext)
+
+#endif // CONFIG_RVSDTRIG
 
 #ifdef CONFIG_RVH
 CSR_STRUCT_START(hstatus)
@@ -696,13 +810,13 @@ CSR_STRUCT_START(vsatp)
     }_64;
   }; 
 CSR_STRUCT_END(vsatp)
-#endif
+#endif //CONFIG_RVH
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DECL)
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DECL)
 #endif // CONFIG_RV_ARCH_CSRS

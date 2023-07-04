@@ -24,6 +24,7 @@
 #include <locale.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <generated/autoconf.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -283,11 +284,166 @@ end_of_loop:
 static const void* g_exec_table[TOTAL_INSTR] = {
   MAP(INSTR_LIST, FILL_EXEC_TABLE)
 };
+uint64_t br_count = 0;
+
+#ifdef CONFIG_BR_LOG
+struct br_info br_log[CONFIG_BR_LOG_SIZE];
+#endif // CONFIG_BR_LOG
+
+#ifdef CONFIG_LIGHTQS
+
+uint64_t stable_log_begin, spec_log_begin;
+
+extern int ifetch_mmu_state;
+extern int data_mmu_state;
+struct lightqs_reg_ss reg_ss, spec_reg_ss;
+void csr_writeback();
+void csr_prepare();
+
+void lightqs_take_reg_snapshot() {
+  csr_prepare();
+  reg_ss.br_cnt = br_count;
+  reg_ss.inst_cnt = g_nr_guest_instr;
+  #ifdef CONFIG_LIGHTQS_DEBUG
+  printf("current g instr cnt = %lu\n", g_nr_guest_instr);
+  #endif // CONFIG_LIGHTQS_DEBUG
+  reg_ss.pc = cpu.pc;
+  reg_ss.mstatus = cpu.mstatus;
+  reg_ss.mcause = cpu.mcause;
+  reg_ss.mepc = cpu.mepc;
+  reg_ss.sstatus = cpu.sstatus;
+  reg_ss.scause = cpu.scause;
+  reg_ss.sepc = cpu.sepc;
+  reg_ss.satp = cpu.satp;
+  reg_ss.mip = cpu.mip;
+  reg_ss.mie = cpu.mie;
+  reg_ss.mscratch = cpu.mscratch;
+  reg_ss.sscratch = cpu.sscratch;
+  reg_ss.medeleg = cpu.medeleg;
+  reg_ss.mideleg = cpu.mideleg;
+  reg_ss.mtval = cpu.mtval;
+  reg_ss.stval = cpu.stval;
+  reg_ss.mtvec = cpu.mtvec;
+  reg_ss.stvec = cpu.stvec;
+  reg_ss.mode = cpu.mode;
+  reg_ss.lr_addr = cpu.lr_addr;
+  reg_ss.lr_valid = cpu.lr_valid;
+  reg_ss.ifetch_mmu_state = ifetch_mmu_state;
+  reg_ss.data_mmu_state = data_mmu_state;
+#ifdef CONFIG_RVV_010
+  reg_ss.vtype = cpu.vtype;
+  reg_ss.vstart = cpu.vstart;
+  reg_ss.vxsat = cpu.vxsat;
+  reg_ss.vxrm = cpu.vxrm;
+  reg_ss.vl = cpu.vl;
+#endif // CONFIG_RVV_010
+  for (int i = 0; i < 32; i++) {
+    reg_ss.gpr[i] = cpu.gpr[i]._64;
+    reg_ss.fpr[i] = cpu.fpr[i]._64;
+  }
+}
+
+void lightqs_take_spec_reg_snapshot() {
+  csr_prepare();
+  spec_reg_ss.br_cnt = br_count;
+  spec_reg_ss.inst_cnt = g_nr_guest_instr;
+  spec_reg_ss.pc = cpu.pc;
+  spec_reg_ss.mstatus = cpu.mstatus;
+  spec_reg_ss.mcause = cpu.mcause;
+  spec_reg_ss.mepc = cpu.mepc;
+  spec_reg_ss.sstatus = cpu.sstatus;
+  spec_reg_ss.scause = cpu.scause;
+  spec_reg_ss.sepc = cpu.sepc;
+  spec_reg_ss.satp = cpu.satp;
+  spec_reg_ss.mip = cpu.mip;
+  spec_reg_ss.mie = cpu.mie;
+  spec_reg_ss.mscratch = cpu.mscratch;
+  spec_reg_ss.sscratch = cpu.sscratch;
+  spec_reg_ss.medeleg = cpu.medeleg;
+  spec_reg_ss.mideleg = cpu.mideleg;
+  spec_reg_ss.mtval = cpu.mtval;
+  spec_reg_ss.stval = cpu.stval;
+  spec_reg_ss.mtvec = cpu.mtvec;
+  spec_reg_ss.stvec = cpu.stvec;
+  spec_reg_ss.mode = cpu.mode;
+  spec_reg_ss.lr_addr = cpu.lr_addr;
+  spec_reg_ss.lr_valid = cpu.lr_valid;
+  spec_reg_ss.ifetch_mmu_state = ifetch_mmu_state;
+  spec_reg_ss.data_mmu_state = data_mmu_state;
+#ifdef CONFIG_RVV_010
+  spec_reg_ss.vtype = cpu.vtype;
+  spec_reg_ss.vstart = cpu.vstart;
+  spec_reg_ss.vxsat = cpu.vxsat;
+  spec_reg_ss.vxrm = cpu.vxrm;
+  spec_reg_ss.vl = cpu.vl;
+#endif // CONFIG_RVV_010
+  for (int i = 0; i < 32; i++) {
+    spec_reg_ss.gpr[i] = cpu.gpr[i]._64;
+    spec_reg_ss.fpr[i] = cpu.fpr[i]._64;
+  }
+}
+
+uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
+  #ifdef CONFIG_LIGHTQS_DEBUG
+  printf("lightqs restore reg n = %lu\n", n);
+  printf("lightqs origin reg_ss inst cnt %lu\n", reg_ss.br_cnt);
+  #endif // CONFIG_LIGHTQS_DEBUG
+  if (spec_log_begin <= n) {
+    #ifdef CONFIG_LIGHTQS_DEBUG
+    printf("lightqs using spec snapshot\n");
+    #endif // CONFIG_LIGHTQS_DEBUG
+    memcpy(&reg_ss, &spec_reg_ss, sizeof(reg_ss));
+  }
+  br_count = reg_ss.br_cnt;
+  g_nr_guest_instr = reg_ss.inst_cnt;
+  cpu.pc = reg_ss.pc;
+  cpu.mstatus = reg_ss.mstatus;
+  cpu.mcause = reg_ss.mcause;
+  cpu.mepc = reg_ss.mepc;
+  cpu.sstatus = reg_ss.sstatus;
+  cpu.scause = reg_ss.scause;
+  cpu.sepc = reg_ss.sepc;
+  cpu.satp = reg_ss.satp;
+  cpu.mip = reg_ss.mip;
+  cpu.mie = reg_ss.mie;
+  cpu.mscratch = reg_ss.mscratch;
+  cpu.sscratch = reg_ss.sscratch;
+  cpu.medeleg = reg_ss.medeleg;
+  cpu.mideleg = reg_ss.mideleg;
+  cpu.mtval = reg_ss.mtval;
+  cpu.stval = reg_ss.stval;
+  cpu.mode = reg_ss.mode;
+  cpu.lr_addr = reg_ss.lr_addr;
+  cpu.lr_valid = reg_ss.lr_valid;
+  ifetch_mmu_state = reg_ss.ifetch_mmu_state;
+  data_mmu_state = reg_ss.data_mmu_state;
+#ifdef CONFIG_RVV_010
+  cpu.vtype = reg_ss.vtype;
+  cpu.vstart = reg_ss.vstart;
+  cpu.vxsat = reg_ss.vxsat;
+  cpu.vxrm = reg_ss.vxrm;
+  cpu.vl = reg_ss.vl;
+#endif // CONFIG_RVV_010
+  for (int i = 0; i < 32; i++) {
+    cpu.gpr[i]._64 = reg_ss.gpr[i];
+    cpu.fpr[i]._64 = reg_ss.fpr[i];
+  }
+  csr_writeback();
+  #ifdef CONFIG_LIGHTQS_DEBUG
+  printf("lightqs restore inst_cnt %lu\n", reg_ss.inst_cnt);
+  #endif // CONFIG_LIGHTQS_DEBUG
+  return n - reg_ss.inst_cnt;
+}
+
+#endif // CONFIG_LIGHTQS
 
 static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (;n > 0; n --) {
+#ifdef CONFIG_LIGHTQS_DEBUG
+    printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
+#endif // CONFIG_LIGHTQS_DEBUG
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
@@ -298,6 +454,18 @@ static int execute(int n) {
 #endif
     s.EHelper(&s);
     g_nr_guest_instr ++;
+    #ifdef CONFIG_BR_LOG
+    #ifdef CONFIG_LIGHTQS_DEBUG
+    if (g_nr_guest_instr == 10000) {
+      // print out to file
+      // FILE *f = fopen("/nfs/home/chenguokai/NEMU_ahead/ahead.txt", "w");
+      for (int i = 0; i < 2000; i++) {
+        fprintf(stdout, "%010lx %d %d %010lx\n", br_log[i].pc, br_log[i].taken, br_log[i].type, br_log[i].target);
+      }
+      // fclose(f);
+    }
+    #endif // CONFIG_LIGHTQS_DEBUG
+    #endif // CONFIG_BR_LOG
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
     if(isa_query_intr()){break;}
@@ -328,13 +496,19 @@ static void update_global() {
 }
 #endif
 
+
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+#ifndef CONFIG_LIGHTQS
   IFDEF(CONFIG_SHARE, assert(n <= 1));
+#endif
   g_print_step = (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
     case NEMU_END: case NEMU_ABORT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
+      #ifdef CONFIG_BR_LOG
+      printf("debug: bridx = %ld\n", br_count);
+      #endif // CONFIG_BR_LOG
       return;
     default:
       nemu_state.state = NEMU_RUNNING;
@@ -343,7 +517,7 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_start = get_time();
 
-  n_remain_total = n; // deal with setjmp()
+  n_remain_total = n; // + AHEAD_LENGTH; // deal with setjmp()
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
@@ -361,6 +535,16 @@ void cpu_exec(uint64_t n) {
     extern void device_update();
     device_update();
 #endif
+
+#ifndef CONFIG_SHARE
+#ifdef LIGHTQS
+    extern void pmem_record_reset();
+    extern void clint_take_snapshot();
+    pmem_record_reset();
+    lightqs_take_reg_snapshot();
+    clint_take_snapshot();
+#endif //LIGHTQS
+#endif // CONFIG_SHARE
 
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
@@ -387,8 +571,27 @@ void cpu_exec(uint64_t n) {
     Loge("n_remain_total: %lu", n_remain_total);
 #else
     n_remain_total -= n_batch;
+
+
 #endif
   }
+
+#ifndef CONFIG_SHARE
+#ifdef CONFIG_LIGHTQS
+  // restore to expected point
+  void pmem_record_restore(uint64_t restore_inst_cnt);
+  pmem_record_restore(reg_ss.inst_cnt);
+  uint64_t remain_inst_cnt = lightqs_restore_reg_snapshot(n);
+  extern void clint_restore_snapshot();
+  clint_restore_snapshot();
+  execute(remain_inst_cnt);
+
+  extern void dump_pmem();
+  extern void dump_regs();
+  dump_pmem();
+  dump_regs();
+#endif // CONFIG_LIGHTQS
+#endif // CONFIG_SHARE
 
   // If nemu_state.state is NEMU_RUNNING, n_remain_total should be zero.
   if (nemu_state.state == NEMU_RUNNING) {

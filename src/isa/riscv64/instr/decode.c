@@ -15,6 +15,9 @@
 ***************************************************************************************/
 
 #include "../local-include/rtl.h"
+#include "../local-include/trigger.h"
+#include "../local-include/intr.h"
+#include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include <isa-all-instr.h>
@@ -38,9 +41,9 @@ static inline uint32_t get_instr(Decode *s) {
 #include "rvc/decode.h"
 #include "rvd/decode.h"
 #include "priv/decode.h"
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   #include "rvv/decode.h"
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 
 def_THelper(main) {
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00000 ??", I     , load);
@@ -68,9 +71,9 @@ def_THelper(main) {
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 10011 ??", R4    , fmadd_dispatch);
   def_INSTR_TAB  ("??????? ????? ????? ??? ????? 10100 ??",         op_fp);
 #endif // CONFIG_FPU_NONE
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 10101 ??", OP_V  , OP_V);
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11000 ??", B     , branch);
   def_INSTR_IDTAB("??????? ????? ????? 000 ????? 11001 ??", I     , jalr_dispatch);
   def_INSTR_TAB  ("??????? ????? ????? ??? ????? 11010 ??",         nemu_trap);
@@ -86,6 +89,14 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
+#ifdef CONFIG_RVSDTRIG
+  trig_action_t action = TRIG_ACTION_NONE;
+  if (cpu.TM->check_timings.bf) {
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->snpc, TRIGGER_NO_VALUE);
+  }
+  trigger_handler(action);
+#endif
+
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
     // this is an RVC instruction
@@ -99,6 +110,13 @@ int isa_fetch_decode(Decode *s) {
     s->isa.instr.val |= (hi << 16);
     idx = table_main(s);
   }
+
+#ifdef CONFIG_RVSDTRIG
+  if (cpu.TM->check_timings.af) {
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, s->isa.instr.val);
+  }
+  trigger_handler(action);
+#endif
 
   s->type = INSTR_TYPE_N;
   switch (idx) {

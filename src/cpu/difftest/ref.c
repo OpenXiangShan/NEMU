@@ -77,19 +77,34 @@ void difftest_set_ramsize(size_t ram_size){
   printf("NEMU memory size remain unchanged\n");
 #endif
 }
-
+#ifdef CONFIG_LIGHTQS
+void difftest_regcpy(void *dut, bool direction, bool restore, uint64_t restore_count) {
+  if (restore)
+    #ifdef CONFIG_LIGHTQS_DEBUG
+    printf("regcpy with restore called, dut = %lx restore = %d, restore_count = %lu\n", (uint64_t)dut, restore, restore_count);
+    #endif // CONFIG_LIGHTQS_DEBUG
+  isa_difftest_regcpy(dut, direction, restore, restore_count);
+}
+#else
 void difftest_regcpy(void *dut, bool direction) {
   isa_difftest_regcpy(dut, direction);
 }
+#endif // CONFIG_LIGHTQS
 
 #if defined(RV64_FULL_DIFF) || defined(RV64_FULL_DIFF_H)
 void difftest_csrcpy(void *dut, bool direction) {
   isa_difftest_csrcpy(dut, direction);
 }
 
+#ifdef CONFIG_LIGHTQS
+void difftest_uarchstatus_cpy(void *dut, bool direction, uint64_t restore_count) {
+  isa_difftest_uarchstatus_cpy(dut, direction, restore_count);
+}
+#else
 void difftest_uarchstatus_cpy(void *dut, bool direction) {
   isa_difftest_uarchstatus_cpy(dut, direction);
 }
+#endif // CONFIG_LIGHTQS
 
 int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -103,14 +118,32 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
-
+#ifdef CONFIG_LIGHTQS
+void difftest_guided_exec(void * guide, uint64_t restore_count) {
+#ifdef CONFIG_LIGHTQS_DEBUG
+  printf("guided exec called\n");
+#endif // LIGHTQS_DEBUG
+#ifdef CONFIG_GUIDED_EXEC
+  isa_difftest_guided_exec(guide, restore_count);
+#else // CONFIG_GUIDED_EXEC
+  difftest_exec(1);
+#endif // CONFIG_GUIDED_EXEC
+}
+#else // CONFIG_LIGHTQS
 void difftest_guided_exec(void * guide) {
 #ifdef CONFIG_GUIDED_EXEC
   isa_difftest_guided_exec(guide);
-#else
+#else // CONFIG_GUIDED_EXEC
   difftest_exec(1);
-#endif
+#endif // CONFIG_GUIDED_EXEC
 }
+#endif // CONFIG_LIGHTQS
+
+#ifdef CONFIG_BR_LOG
+void *difftest_query_br_log() {
+  return (void *)isa_difftest_query_br_log();
+}
+#endif // CONFIG_BR_LOG
 
 #ifdef CONFIG_QUERY_REF
 void difftest_query_ref(void * result_buffer, uint64_t type) {
@@ -118,14 +151,38 @@ void difftest_query_ref(void * result_buffer, uint64_t type) {
 }
 #endif
 
+#ifdef CONFIG_LIGHTQS
+void difftest_raise_intr(word_t NO, uint64_t restore_count) {
+  #ifdef CONFIG_LIGHTQS_DEBUG
+  printf("raise intr called\n");
+  #endif // CONFIG_LIGHTQS_DEBUG
+  isa_difftest_raise_intr(NO, restore_count);
+}
+#else // CONFIG_LIGHTQS
 void difftest_raise_intr(word_t NO) {
   isa_difftest_raise_intr(NO);
 }
+#endif // CONFIG_LIGHTQS
 
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE
   dynamic_config.debug_difftest = true;
 #endif
+}
+
+void difftest_runahead_init() {
+#ifdef CONFIG_SHARE
+#ifdef CONFIG_LIGHTQS
+  extern uint64_t stable_log_begin, spec_log_begin;
+  stable_log_begin = 0;
+  spec_log_begin = AHEAD_LENGTH;
+  lightqs_take_reg_snapshot();
+  // clint_take_snapshot();
+  cpu_exec(AHEAD_LENGTH);
+  lightqs_take_spec_reg_snapshot();
+  // clint_take_spec_snapshot();
+#endif // CONFIG_LIGHTQS
+#endif // CONFIG_SHARE
 }
 
 void difftest_init() {
