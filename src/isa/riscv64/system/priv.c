@@ -205,13 +205,14 @@ static inline void update_mstatus_sd() {
   if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
   mstatus->sd = (mstatus->fs == 3);
 }
-
+#ifdef CONFIG_RVH
 static inline void update_vsstatus_sd() {
   if (hstatus->vsxl == 1)
     vsstatus->_32.sd = (vsstatus->_32.fs == 3);
   else
     vsstatus->_64.sd = (vsstatus->_64.fs == 3);
 }
+#endif // CONFIG_RVH
 
 static inline word_t csr_read(word_t *src) {
   if(src == &csr_perf){
