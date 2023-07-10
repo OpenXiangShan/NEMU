@@ -72,5 +72,11 @@ $(BINARY): $(OBJS) $(LIBS)
 	@echo + LD $@
 	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
+staticlib: $(BUILD_DIR)/lib$(NAME).a
+
+$(BUILD_DIR)/lib$(NAME).a: $(OBJS) $(LIBS)
+	@echo + AR $@
+	@ar rcs $(BUILD_DIR)/lib$(NAME).a $(OBJS) $(LIBS)
+
 clean:
 	-rm -rf $(BUILD_DIR)
