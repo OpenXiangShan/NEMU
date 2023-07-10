@@ -186,7 +186,7 @@ def_EHelper(adduw) {
 }
 
 def_EHelper(slliuw) {
-  *ddest = (uint64_t)(uint32_t)*dsrc1 << (id_src2->imm & 0x1f);
+  *ddest = (uint64_t)(uint32_t)*dsrc1 << (id_src2->imm & 0x3f);
 }
 
 def_EHelper(sh1add) {
