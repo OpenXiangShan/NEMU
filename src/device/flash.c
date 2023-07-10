@@ -25,8 +25,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   return;
 }
 
-void init_flash(const char *flash_img) {
-#ifdef CONFIG_HAS_FLASH
+void load_flash_contents(const char *flash_img) {
   // create mmap with zero contents
   flash_base = mmap(NULL, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   if (flash_base == MAP_FAILED) {
@@ -53,7 +52,8 @@ void init_flash(const char *flash_img) {
     ret = fread(flash_base, 1, size, fp);
     fclose(fp);
   }
+}
 
+void init_flash(const char *flash_img) {
   add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
-#endif
 }
