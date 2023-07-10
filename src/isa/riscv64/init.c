@@ -38,6 +38,13 @@ void init_clint();
 void init_device();
 
 void init_isa() {
+  // NEMU has some cached states and some static variables in the source code.
+  // They are assumed to have initialized states every time when the dynamic lib is loaded.
+  // However, if we link NEMU as a static library, we have to manually initialize them.
+  static bool is_second_call = false;
+  if (is_second_call) {
+    memset(csr_array, 0, sizeof(csr_array));
+  }
   init_csr();
 
 #ifndef CONFIG_RESET_FROM_MMIO
@@ -107,12 +114,18 @@ void init_isa() {
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
   }
 #endif
+
   #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
   init_clint();
   #endif
-  IFDEF(CONFIG_SHARE, init_device());
+
+  if (!is_second_call) {
+    IFDEF(CONFIG_SHARE, init_device());
+  }
 
 #ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
 #endif
+
+  is_second_call = true;
 }
