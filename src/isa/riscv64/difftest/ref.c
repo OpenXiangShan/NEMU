@@ -172,6 +172,9 @@ void isa_difftest_regcpy(void *dut, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
     csr_writeback();
+    // need to clear the cached mmu states as well
+    extern void update_mmu_state();
+    update_mmu_state();
   } else {
     csr_prepare();
     memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
