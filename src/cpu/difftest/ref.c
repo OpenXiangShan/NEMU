@@ -91,7 +91,7 @@ void difftest_regcpy(void *dut, bool direction) {
 }
 #endif // CONFIG_LIGHTQS
 
-#if defined(RV64_FULL_DIFF) || defined(RV64_FULL_DIFF_H)
+#ifdef RV64_FULL_DIFF
 void difftest_csrcpy(void *dut, bool direction) {
   isa_difftest_csrcpy(dut, direction);
 }

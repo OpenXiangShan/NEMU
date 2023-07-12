@@ -98,7 +98,7 @@ void init_isa() {
     mimpid->val = 0;
   #else
     mvendorid->val = CONFIG_MVENDORID_VALUE;
-    marchid->val = CONFIG_MARCHID_VALUE;
+    marchid->val = MUXDEF(CONFIG_DIFFTEST_REF_SPIKE, 0x5, CONFIG_MARCHID_VALUE);
     mimpid->val = CONFIG_MIMPID_VALUE;
   #endif // CONFIG_USE_XS_ARCH_CSRS
 #endif // CONFIG_RV_ARCH_CSRS
