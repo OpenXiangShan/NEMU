@@ -66,7 +66,6 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   if (is_detach) return;
 #endif
   skip_dut_nr_instr += nr_dut;
-// printf("skip nr dut %d, nr ref: %d, skip_dut_nr_instr: %d, pc: "FMT_WORD"\n", nr_dut, nr_ref, skip_dut_nr_instr, cpu.pc);
   while (nr_ref -- > 0) {
     ref_difftest_exec(1);
   }

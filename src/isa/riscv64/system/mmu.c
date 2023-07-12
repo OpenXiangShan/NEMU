@@ -143,7 +143,7 @@ bool has_two_stage_translation(){
   return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
 }
 
-void raise_G_ex(paddr_t gpaddr, vaddr_t vaddr, int type){
+void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
   // printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
   if (type == MEM_TYPE_IFETCH){
     if(intr_deleg_S(EX_IGPF)){
@@ -175,11 +175,11 @@ void raise_G_ex(paddr_t gpaddr, vaddr_t vaddr, int type){
   }
 }
 
-paddr_t G_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
-  Logtr("G_stage gpaddr: 0x%lx, vaddr: 0x%lx, type: %d", gpaddr, vaddr, type);
+paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
+  Logtr("gpa_stage gpaddr: 0x%lx, vaddr: 0x%lx, type: %d", gpaddr, vaddr, type);
   if(hgatp->mode == 8){
     if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
-      raise_G_ex(gpaddr, vaddr, type);
+      raise_guest_excep(gpaddr, vaddr, type);
     }
     word_t pg_base = PGBASE(hgatp->ppn);
     int level;
@@ -216,7 +216,7 @@ paddr_t G_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
         return pg_base | (gpaddr & PAGE_MASK);
       }
     }
-    raise_G_ex(gpaddr, vaddr, type);
+    raise_guest_excep(gpaddr, vaddr, type);
   }
   return gpaddr;
 }
@@ -240,7 +240,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if(virt){
-    if(vsatp_mode == 0) return G_stage(vaddr, vaddr, type) & ~PAGE_MASK;
+    if(vsatp_mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp_ppn);
   }
 #endif
@@ -257,7 +257,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #else
   #ifdef CONFIG_RVH
     if(virt){
-      p_pte = G_stage(p_pte, vaddr, type);
+      p_pte = gpa_stage(p_pte, vaddr, type);
     }
   #endif //CONFIG_RVH
     pte.val	= paddr_read(p_pte, PTE_SIZE,
@@ -294,7 +294,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
-    pg_base = G_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
+    pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
   }
   #endif //CONFIG_RVH

@@ -28,12 +28,12 @@ def_EHelper(name) { \
 #endif
 
 #ifdef CONFIG_RVH 
-#define def_ld_template(name) \
+#define def_hld_template(name) \
   def_EHelper(name){ \
     extern int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id); \
     hload(s, ddest, dsrc1, id_src2->imm); \
   } 
-#define def_st_template(name) \
+#define def_hst_template(name) \
 def_EHelper(name){ \
   extern int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2); \
   hstore(s, ddest, dsrc1, dsrc2); \
@@ -46,8 +46,8 @@ def_EHelper(name){ \
   #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma) 
 #endif // CONFIG_RV_SVINVAL
 MAP(RVH_SYS_INST_LIST, def_SYS_EHelper)
-MAP(RVH_LD_INST_LIST, def_ld_template)
-MAP(RVH_ST_INST_LIST, def_st_template)
+MAP(RVH_LD_INST_LIST, def_hld_template)
+MAP(RVH_ST_INST_LIST, def_hst_template)
 #endif // CONFIG_RVH
 
 #ifdef CONFIG_RV_SVINVAL

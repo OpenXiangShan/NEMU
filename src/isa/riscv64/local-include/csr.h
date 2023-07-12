@@ -827,7 +827,14 @@ MAP(CSRS, CSRS_DECL)
   #define vsatp_asid ((hstatus->vsxl == 1)? vsatp->_32.asid : vsatp->_64.asid)
   #define vsatp_ppn  ((hstatus->vsxl == 1)? vsatp->_32.ppn  : vsatp->_64.ppn)
   #define _vsstatus_  ((hstatus->vsxl == 1)? vsstatus->_32  : vsstatus->_64)
-#endif
+#endif // CONFIG_RVH
+
+ #ifdef CONFIG_RVV
+  #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
+#else
+  #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#endif // CONFIG_RVV
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 word_t csrid_read(uint32_t csrid);
 
 // PMP
