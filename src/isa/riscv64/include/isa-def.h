@@ -76,7 +76,12 @@ typedef struct {
   uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
   // Above will be synced by regcpy when run difftest, DO NOT TOUCH
-
+#ifdef CONFIG_RVH
+  uint64_t v; // virtualization mode
+  uint64_t mtval2, mtinst, hstatus, hideleg, hedeleg;
+  uint64_t hcounteren, htval, htinst, hgatp, vsstatus;
+  uint64_t vstvec, vsepc, vscause, vstval, vsatp, vsscratch;
+#endif
 #ifdef CONFIG_RVV
   //vector
   union {
@@ -90,6 +95,8 @@ typedef struct {
   uint64_t vxsat, vxrm, vcsr;
   uint64_t vl, vtype, vlenb;
 #endif // CONFIG_RVV
+
+
 
   // exec state
   bool amo;
@@ -245,11 +252,12 @@ typedef struct {
   } instr;
 } riscv64_ISADecodeInfo;
 
-enum { MODE_U = 0, MODE_S, MODE_H, MODE_M };
+enum { MODE_U = 0, MODE_S, MODE_HS, MODE_M };
 
 int get_data_mmu_state();
 #define isa_mmu_state() get_data_mmu_state()
-
-
+#ifdef CONFIG_RVH
+int get_h_mmu_state();
+#endif
 
 #endif

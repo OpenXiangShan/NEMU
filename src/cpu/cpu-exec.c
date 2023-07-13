@@ -47,7 +47,7 @@ rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  log_write("%s\n", asmbuf);
+  Logti("%s\n", asmbuf);
   if (g_print_step) { puts(asmbuf); }
 
   void scan_watchpoint(vaddr_t pc);
@@ -468,6 +468,7 @@ static int execute(int n) {
     #endif // CONFIG_BR_LOG
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+    if(isa_query_intr()){break;}
     if (nemu_state.state == NEMU_STOP) {
         break;
     }

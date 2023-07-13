@@ -69,6 +69,13 @@ void init_isa() {
 #ifndef CONFIG_FPU_NONE
   misa->extensions |= ext('d') | ext('f');
 #endif // CONFIG_FPU_NONE
+#ifdef CONFIG_RVH
+  misa->extensions |= ext('h');
+  hstatus->vsxl = 2; // equal to max len (spike)
+  vsstatus->val = mstatus->val & SSTATUS_RMASK;
+  mideleg->val |= ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2));
+#endif
+
   misa->mxl = 2; // XLEN = 64
 
 #ifdef CONFIG_RVV
@@ -85,7 +92,7 @@ void init_isa() {
     mimpid->val = 0;
   #else
     mvendorid->val = CONFIG_MVENDORID_VALUE;
-    marchid->val = CONFIG_MARCHID_VALUE;
+    marchid->val = MUXDEF(CONFIG_DIFFTEST_REF_SPIKE, 0x5, CONFIG_MARCHID_VALUE);
     mimpid->val = CONFIG_MIMPID_VALUE;
   #endif // CONFIG_USE_XS_ARCH_CSRS
 #endif // CONFIG_RV_ARCH_CSRS

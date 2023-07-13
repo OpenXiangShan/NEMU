@@ -24,6 +24,10 @@ config RV_DEBUG
   bool "RISC-V Debug Extension"
   default y
 
+config RVH
+  bool "RISC-V Hypervisor Extension v1.0"
+  default n
+
 config RVSDEXT
   bool "(Beta) RISC-V Sdext ISA Extension v1.0"
   depends on RV_DEBUG

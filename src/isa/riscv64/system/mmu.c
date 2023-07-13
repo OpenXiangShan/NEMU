@@ -46,22 +46,38 @@ typedef union PageTableEntry {
 #define PTW_LEVEL 3
 #define PTE_SIZE 8
 #define VPNMASK 0x1ff
+#define GPVPNMASK 0x7ff  
 static inline uintptr_t VPNiSHFT(int i) {
   return (PGSHFT) + 9 * i;
 }
 static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
-
+#ifdef CONFIG_RVH
+static inline uintptr_t GVPNi(vaddr_t va, int i) {
+  return (i == 2)?  (va >> VPNiSHFT(i)) & GPVPNMASK : (va >> VPNiSHFT(i)) & VPNMASK;
+}
+  bool hlvx = 0;
+  bool hld_st = 0;
+#endif
+#ifdef CONFIG_RVH
+static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
+bool ifetch = (type == MEM_TYPE_IFETCH);
+#else
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
+#endif
   assert(mode == MODE_U || mode == MODE_S);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
+#ifdef CONFIG_RVH
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? ((hstatus->vsxl == 1)? vsstatus->_32.sum  : vsstatus->_64.sum): mstatus->sum) || ifetch)));
+  Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
+#else
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12);
-  //ok = ok && !(pte->u && ((mode == MODE_S) && ((!mstatus->sum && mstatus->mprv) || ifetch)));
-  ok = ok && !(pte->u && ((mode == MODE_S) && ((!mstatus->sum) || ifetch)));
+#endif
   if (ifetch) {
     Logtr("Translate for instr reading");
 #ifdef CONFIG_SHARE
@@ -80,7 +96,15 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     }
   } else if (type == MEM_TYPE_READ) {
     Logtr("Translate for memory reading");
-    bool can_load = pte->r || (mstatus->mxr && pte->x);
+#ifdef CONFIG_RVH
+  bool can_load;
+  if(hlvx)
+    can_load = pte->x;
+  else
+    can_load = pte->r || ((mstatus->mxr || (((hstatus->vsxl == 1)? vsstatus->_32.mxr  : vsstatus->_64.mxr) && virt)) && pte->x);
+#else
+  bool can_load = pte->r || (mstatus->mxr && pte->x);
+#endif
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a;
     if (update_ad && ok && can_load)
@@ -114,10 +138,112 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   }
   return true;
 }
+#ifdef CONFIG_RVH
+bool has_two_stage_translation(){
+  return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
+}
+
+void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
+  // printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
+  if (type == MEM_TYPE_IFETCH){
+    if(intr_deleg_S(EX_IGPF)){
+      stval->val = vaddr;
+      htval->val = gpaddr >> 2;
+    }else{
+      mtval->val = vaddr;
+      mtval2->val = gpaddr >> 2;
+    }
+    longjmp_exception(EX_IGPF);
+  }else if (type == MEM_TYPE_READ){
+    if(intr_deleg_S(EX_LGPF)){
+      stval->val = vaddr;
+      htval->val = gpaddr >> 2;
+    }else{
+      mtval->val = vaddr;
+      mtval2->val = gpaddr >> 2;
+    }
+    longjmp_exception(EX_LGPF);
+  }else{
+    if(intr_deleg_S(EX_SGPF)){
+      stval->val = vaddr;
+      htval->val = gpaddr >> 2;
+    }else{
+      mtval->val = vaddr;
+      mtval2->val = gpaddr >> 2;
+    }
+    longjmp_exception(EX_SGPF);
+  }
+}
+
+paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
+  Logtr("gpa_stage gpaddr: 0x%lx, vaddr: 0x%lx, type: %d", gpaddr, vaddr, type);
+  if(hgatp->mode == 8){
+    if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
+      raise_guest_excep(gpaddr, vaddr, type);
+    }
+    word_t pg_base = PGBASE(hgatp->ppn);
+    int level;
+    word_t p_pte;
+    PTE pte;
+    for (level = PTW_LEVEL - 1; level >=0;){
+      p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
+      pte.val	= paddr_read(p_pte, PTE_SIZE,
+      type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
+      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+      pg_base = PGBASE(pte.ppn);
+      Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
+      if(pte.v && !pte.r && !pte.w && !pte.x){
+        level --;
+        if (level < 0) { break; }
+      }else if (!pte.v || (!pte.r && pte.w)) 
+        break;
+      else if(!pte.u) 
+        break;
+      else if(type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
+              type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
+                                                !(pte.r && pte.w))
+        break;
+      else{
+         if (level > 0) {
+          // superpage
+          word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
+          if ((pg_base & pg_mask) != 0) {
+            // missaligned superpage
+            return MEM_RET_FAIL;
+          }
+          pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
+        }
+        return pg_base | (gpaddr & PAGE_MASK);
+      }
+    }
+    raise_guest_excep(gpaddr, vaddr, type);
+  }
+  return gpaddr;
+}
+#endif // CONFIG_RVH
+
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
   Logtr("Page walking for 0x%lx\n", vaddr);
   word_t pg_base = PGBASE(satp->ppn);
+#ifdef CONFIG_RVH
+  int virt = cpu.v;
+  int mode = cpu.mode;
+  if(type != MEM_TYPE_IFETCH){
+    if(mstatus->mprv) {
+      mode = mstatus->mpp;
+      virt = mstatus->mpv && mode != MODE_M;
+    }
+    if(hld_st){
+      virt = 1;
+      mode = hstatus->spvp; // spvp = 0: VU; spvp = 1: VS
+    }
+  }
+  if(virt){
+    if(vsatp_mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
+    pg_base = PGBASE(vsatp_ppn);
+  }
+#endif
   word_t p_pte; // pte pointer
   PTE pte;
   int level;
@@ -129,6 +255,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
 #else
+  #ifdef CONFIG_RVH
+    if(virt){
+      p_pte = gpa_stage(p_pte, vaddr, type);
+    }
+  #endif //CONFIG_RVH
     pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
@@ -147,9 +278,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       if (level < 0) { goto bad; }
     }
   }
-
+#ifdef CONFIG_RVH
+  if (!check_permission(&pte, true, vaddr, type, virt, mode)) return MEM_RET_FAIL;
+#else
   if (!check_permission(&pte, true, vaddr, type)) return MEM_RET_FAIL;
-
+#endif
   if (level > 0) {
     // superpage
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
@@ -159,14 +292,82 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
-
+  #ifdef CONFIG_RVH
+  if(virt){
+    pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
+    if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+  }
+  #endif //CONFIG_RVH
 #ifndef CONFIG_SHARE
   // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
-    pte.a = true;
-    pte.d |= is_write;
-    paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
+    // pte.a = true;
+    // pte.d |= is_write;
+    // paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
+    switch (type)
+    {
+    int ex;
+    case MEM_TYPE_IFETCH:
+#ifdef CONFIG_RVH
+      if(cpu.v){
+        if(intr_deleg_S(EX_IPF)){
+          vstval->val = vaddr;
+        }else{
+          mtval->val = vaddr;
+        }
+        longjmp_exception(EX_IPF);
+      }else{
+        INTR_TVAL_REG(EX_IPF) = vaddr;
+        longjmp_exception(EX_IPF);
+      }
+#else
+      stval->val = vaddr;
+      INTR_TVAL_REG(EX_IPF) = vaddr;
+      longjmp_exception(EX_IPF);
+#endif
+      break;
+    case MEM_TYPE_READ:
+#ifdef CONFIG_RVH
+      if(cpu.v){
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        if(intr_deleg_S(ex)){
+          vstval->val = vaddr;
+        }else{
+          mtval->val = vaddr;
+        }
+      }else{
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        INTR_TVAL_REG(ex) = vaddr;
+      }
+      longjmp_exception(ex);
+#else
+      ex = cpu.amo ? EX_SPF : EX_LPF;
+      INTR_TVAL_REG(ex) = vaddr;
+      longjmp_exception(ex);
+#endif
+      break;
+    case MEM_TYPE_WRITE:
+#ifdef CONFIG_RVH
+      if(cpu.v){
+        if(intr_deleg_S(EX_SPF)){
+          vstval->val = vaddr;
+        }else{
+          mtval->val = vaddr;
+        }
+        longjmp_exception(EX_SPF);
+      }else{
+        INTR_TVAL_REG(EX_SPF) = vaddr;
+        longjmp_exception(EX_SPF);
+      }
+#else
+      INTR_TVAL_REG(EX_SPF) = vaddr;
+      longjmp_exception(EX_SPF);
+#endif
+      break;
+    default:
+      break;
+    }
   }
 #endif
 
@@ -174,12 +375,31 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 
 bad:
   Logtr("Memory translation bad");
+#ifdef CONFIG_RVH
+  check_permission(&pte, false, vaddr, type, virt, mode);
+#else
   check_permission(&pte, false, vaddr, type);
+#endif
   return MEM_RET_FAIL;
 }
 
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
+#ifdef CONFIG_RVH
+static int h_mmu_state = MMU_DIRECT;
+static inline int update_h_mmu_state_internal(bool ifetch) {
+  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
+  if (mode < MODE_M) {
+    assert(vsatp_mode == 0 || vsatp_mode == 8);
+    assert(hgatp->mode == 0 || hgatp->mode == 8);
+    if (vsatp_mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
+  }
+  return MMU_DIRECT;
+}
+int get_h_mmu_state() {
+  return (h_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
+}
+#endif
 
 int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
@@ -198,6 +418,9 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+#ifdef CONFIG_RVH
+  h_mmu_state = update_h_mmu_state_internal(false);
+#endif
   return (data_mmu_state ^ data_mmu_state_old) ? true : false;
 }
 
@@ -207,27 +430,114 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   // riscv-privileged 4.4.1: Addressing and Memory Protection:
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
+#ifdef CONFIG_RVH
+  bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (satp->mode == 8 || (cpu.v && (vsatp_mode == 8 || hgatp->mode == 8)));
+#else
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && satp->mode == 8;
+#endif
   word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
   word_t va_msbs = vaddr >> 38;
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
-
+#ifdef CONFIG_RVH
+  bool gpf = false;
+  if(cpu.v && vsatp_mode == 0){ // don't need bits 63–39 are equal to bit 38
+    word_t maxgpa = ((((word_t)1) << 41) - 1);
+    if((vaddr & ~maxgpa) == 0){
+      va_msbs_ok = 1;
+    }else{
+      gpf = true;
+    }
+  } 
+#endif
   if(!va_msbs_ok){
     if(is_ifetch){
+#ifdef CONFIG_RVH
+      if(hld_st || gpf){
+        if(intr_deleg_S(EX_IGPF)){
+          stval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+        longjmp_exception(EX_IGPF);
+      }else if(cpu.v){
+        if(intr_deleg_S(EX_IPF)){
+          vstval->val = vaddr;
+        }else{
+          mtval->val = vaddr;
+        }
+        longjmp_exception(EX_IPF);
+      }else{
+        INTR_TVAL_REG(EX_IPF) = vaddr;
+        longjmp_exception(EX_IPF);
+      }
+#else
       stval->val = vaddr;
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
+#endif
     } else if(type == MEM_TYPE_READ){
+#ifdef CONFIG_RVH
+      int ex;
+      if(hld_st || gpf){
+        ex = cpu.amo ? EX_SGPF : EX_LGPF;
+        if(intr_deleg_S(ex)){
+          stval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+      }else if(cpu.v){
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        if(intr_deleg_S(ex)){
+          vstval->val = vaddr;
+        }else{
+          mtval->val = vaddr;
+        }
+      }else{
+        ex = cpu.amo ? EX_SPF : EX_LPF;
+        INTR_TVAL_REG(ex) = vaddr;
+      }
+      longjmp_exception(ex);
+#else
       int ex = cpu.amo ? EX_SPF : EX_LPF;
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
+#endif
     } else {
+#ifdef CONFIG_RVH
+      if(hld_st || gpf){
+        if(intr_deleg_S(EX_SGPF)){
+          stval->val = vaddr;
+          htval->val = vaddr >> 2;
+        }else{
+          mtval->val = vaddr;
+          mtval2->val = vaddr >> 2;
+        }
+        longjmp_exception(EX_SGPF);
+      }else if(cpu.v){
+        if(intr_deleg_S(EX_SPF)){
+          vstval->val = vaddr;
+        }else{
+          mtval->val = vaddr;
+        }
+        longjmp_exception(EX_SPF);
+      }else{
+        INTR_TVAL_REG(EX_SPF) = vaddr;
+        longjmp_exception(EX_SPF);
+      }
+#else
       INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
+#endif
     }
     return MEM_RET_FAIL;
   }
-
+#ifdef CONFIG_RVH
+  if (cpu.v && is_ifetch) return h_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
+#endif
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
@@ -237,6 +547,10 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     longjmp_exception(ex);
     return MEM_RET_FAIL;
   }
+#ifdef CONFIG_RVH
+  if(hld_st)
+    return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
+#endif
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
 

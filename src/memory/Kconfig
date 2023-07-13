@@ -11,8 +11,7 @@ config MSIZE
 
 config PADDRBITS
   int "The number of paddr bits"
-  default 36 if SHARE
-  default 40
+  default 36
 
 config STORE_LOG
   bool "Enable store log"

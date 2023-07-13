@@ -38,12 +38,22 @@ void ramcmp() {
 // csr_prepare() & csr_writeback() are used to maintain 
 // a compact mirror of critical CSRs
 // For processor difftest only 
+#ifdef CONFIG_RVH
+#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
+#endif //CONFIG_RVH
+
+#ifdef CONFIG_RVV_010
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
+#else
+#define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
+#endif // CONFIG_RVV_010
+#define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 void csr_prepare() {
   cpu.mstatus = mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = csrid_read(0x100); // sstatus
+  cpu.sstatus = mstatus->val & SSTATUS_RMASK; // sstatus
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 
@@ -67,6 +77,24 @@ void csr_prepare() {
   cpu.vtype   = vtype->val;
   cpu.vlenb   = vlenb->val;
 #endif // CONFIG_RVV
+#ifdef CONFIG_RVH
+  cpu.mtval2  = mtval2->val;
+  cpu.mtinst  = mtinst->val;
+  cpu.hstatus = hstatus->val;
+  cpu.hideleg = hideleg->val;
+  cpu.hedeleg = hedeleg->val;
+  cpu.hcounteren = hcounteren->val;
+  cpu.htval   = htval->val;
+  cpu.htinst  = htinst->val;
+  cpu.hgatp   = hgatp->val;
+  cpu.vsstatus= vsstatus->val;
+  cpu.vstvec  = vstvec->val;
+  cpu.vsepc   = vsepc->val;
+  cpu.vscause = vscause->val;
+  cpu.vstval  = vstval->val;
+  cpu.vsatp   = vsatp->val;
+  cpu.vsscratch = vsscratch->val;
+#endif
 }
 
 void csr_writeback() {
@@ -97,6 +125,24 @@ void csr_writeback() {
   vtype->val   = cpu.vtype;
   vlenb->val   = cpu.vlenb;
 #endif //CONFIG_RVV
+#ifdef CONFIG_RVH
+  mtval2->val  = cpu.mtval2; 
+  mtinst->val  = cpu.mtinst; 
+  hstatus->val = cpu.hstatus;
+  hideleg->val = cpu.hideleg;
+  hedeleg->val = cpu.hedeleg;
+  hcounteren->val = cpu.hcounteren;
+  htval->val   = cpu.htval;  
+  htinst->val  = cpu.htinst;
+  hgatp->val   = cpu.hgatp;   
+  vsstatus->val= cpu.vsstatus;
+  vstvec->val  = cpu.vstvec;
+  vsepc->val   = cpu.vsepc; 
+  vscause->val = cpu.vscause;
+  vstval->val  = cpu.vstval;
+  vsatp->val   = cpu.vsatp;  
+  vsscratch->val = cpu.vsscratch;
+#endif
 }
 #ifdef CONFIG_LIGHTQS
 extern uint64_t stable_log_begin, spec_log_begin;

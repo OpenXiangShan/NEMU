@@ -120,6 +120,12 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
+#ifdef CONFIG_RVH
+  if(type != MEM_TYPE_IFETCH){
+    extern int rvh_hlvx_check(struct Decode *s, int type);
+    rvh_hlvx_check(s, type);
+  }
+#endif
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
 #endif
   return 0;

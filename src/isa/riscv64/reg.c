@@ -52,7 +52,7 @@ void isa_reg_display() {
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
-      "", csrid_read(0x100), scause->val, sepc->val);
+      "", cpu.sstatus, scause->val, sepc->val);
   printf("satp: " FMT_WORD "\n", satp->val);
   printf("mip: " FMT_WORD " mie: " FMT_WORD " mscratch: " FMT_WORD " sscratch: " FMT_WORD "\n",
       mip->val, mie->val, mscratch->val, sscratch->val);
@@ -60,6 +60,17 @@ void isa_reg_display() {
       mideleg->val, medeleg->val);
   printf("mtval: " FMT_WORD " stval: " FMT_WORD " mtvec: " FMT_WORD " stvec: " FMT_WORD "\n",
       mtval->val, stval->val, mtvec->val, stvec->val);
+#ifdef CONFIG_RVH
+  printf("mtval2: " FMT_WORD " mtinst: " FMT_WORD " hstatus: " FMT_WORD " hideleg: " FMT_WORD "\n",
+      mtval2->val, mtinst->val, hstatus->val, hideleg->val);
+  printf("hedeleg: " FMT_WORD " hcounteren: " FMT_WORD " htval: " FMT_WORD " htinst: " FMT_WORD "\n",
+      hedeleg->val, hcounteren->val, htval->val, htinst->val);
+  printf("hgatp: " FMT_WORD " vsscratch: " FMT_WORD " vsstatus: " FMT_WORD " vstvec: " FMT_WORD "\n",
+      hgatp->val, vsscratch->val, vsstatus->val, vstvec->val);
+  printf("vsepc: " FMT_WORD " vscause: " FMT_WORD " vstval: " FMT_WORD " vsatp: " FMT_WORD "\n",
+      vsepc->val, vscause->val, vstval->val, vsatp->val);
+  printf("virtualization mode: %ld\n", cpu.v);
+#endif
 #ifdef CONFIG_RV_PMP_CSR
   printf("privilege mode:%ld  pmp: below\n", cpu.mode);
   for (int i = 0; i < CONFIG_RV_PMP_NUM; i++) {

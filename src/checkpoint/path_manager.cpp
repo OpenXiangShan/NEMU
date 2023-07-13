@@ -30,6 +30,7 @@ using namespace std;
 extern "C" {
 #include <debug.h>
 extern bool log_enable();
+extern void log_flush();
 }
 
 void PathManager::init() {

@@ -48,20 +48,38 @@ uint64_t get_time();
 
 // ----------- log -----------
 
-#define log_write(...) IFDEF(CONFIG_DEBUG, \
+/* #define log_write(...) MUXDEF(CONFIG_DEBUG, \
   do { \
     extern FILE* log_fp; \
-    extern bool log_enable(); \
-    if (log_fp != NULL && log_enable()) { \
+    extern void log_flush(); \
+    if (log_fp != NULL) { \
+      log_flush(); \
       fprintf(log_fp, __VA_ARGS__); \
       fflush(log_fp); \
+    }else{ \
+      printf(__VA_ARGS__); \
     } \
-  } while (0) \
-)
+  } while (0), \
+  do { \
+    printf(__VA_ARGS__); \
+  }while (0)\
+ )*/
+#define log_write(...) \
+  do { \
+    extern FILE* log_fp; \
+    extern char *log_filebuf; \
+    extern uint64_t record_row_number; \
+    extern void log_flush(); \
+    if (log_fp != NULL) { \
+      snprintf(log_filebuf + record_row_number * 300, 300, __VA_ARGS__);\
+      log_flush(); \
+    }else{ \
+      printf(__VA_ARGS__); \
+    } \
+  } while (0)
 
 #define _Log(...) \
   do { \
-    printf(__VA_ARGS__); \
     log_write(__VA_ARGS__); \
   } while (0)
 
