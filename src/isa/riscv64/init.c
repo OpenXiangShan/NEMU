@@ -52,6 +52,7 @@ void init_isa() {
 #else
   cpu.pc = CONFIG_MMIO_RESET_VECTOR;
 #endif
+  cpu.lr_valid = 0;
 
   cpu.gpr[0]._64 = 0;
 
