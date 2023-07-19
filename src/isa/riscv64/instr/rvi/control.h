@@ -41,8 +41,8 @@ def_EHelper(jalr) {
 
 #ifdef CONFIG_RV_DASICS
 def_EHelper(dasicscall_j) {
-  rtl_li(s, ddest, id_src2->imm);
   rtl_set_dretpc(s, id_src2->imm);
+  rtl_li(s, ddest, id_src2->imm);
   rtl_j(s, id_src1->imm);
 }
 
@@ -55,15 +55,15 @@ def_EHelper(dasicscall_jr) {
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
-    rtl_li(s, ddest, cpu.execution_guide.jump_target);
     rtl_set_dretpc(s, cpu.execution_guide.jump_target);
+    rtl_li(s, ddest, cpu.execution_guide.jump_target);
   } else {
-    rtl_li(s, ddest, s->snpc);
     rtl_set_dretpc(s, s->snpc);
+    rtl_li(s, ddest, s->snpc);
   }
 #else
-  rtl_li(s, ddest, s->snpc);
   rtl_set_dretpc(s, s->snpc);
+  rtl_li(s, ddest, s->snpc);
 #endif
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
   rtl_jr(s, s0);
