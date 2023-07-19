@@ -254,14 +254,14 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
   }
 }
 
-void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_dasicsret) {
+void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
   // Check whether this redirect instruction is permitted
   bool src_trusted = dasics_in_trusted_zone(pc);
   bool dst_trusted = dasics_in_trusted_zone(newpc);
   bool src_freezone = dasics_match_djumpbound(pc, JUMPCFG_V);
   bool dst_freezone = dasics_match_djumpbound(newpc, JUMPCFG_V);
 
-  Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d), dasicsret: %d\n", pc, src_trusted, src_freezone, newpc, dst_trusted, dst_freezone, is_dasicsret);
+  Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d)\n", pc, src_trusted, src_freezone, newpc, dst_trusted, dst_freezone);
   Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
 
   bool allow_lib_to_main = !src_trusted && dst_trusted && \
@@ -280,17 +280,22 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc, bool is_d
     longjmp_exception(ex);
   }
 
-  // Set dretpc when redirect from trusted zone to untrusted, if not dasicsret
-  if (src_trusted && !dst_trusted && !is_dasicsret) {
-    //dretpc->val = nextpc;
-  }
-
   // FIXME: This code is only for UCAS-OS test!
   if (!src_trusted && !src_freezone && !dst_trusted && dst_freezone) {
     //dretpcfz->val = nextpc;
   }
 }
 #endif  // CONFIG_RV_DASICS
+
+/* raise exception if not trusted */
+void dasics_check_trusted(vaddr_t pc) {
+  if (!dasics_in_trusted_zone(pc)) {
+    int ex = EX_II;
+    isa_reg_display();
+    Logm("Dasics illegal instruction: pc%lx\n", pc);
+    longjmp_exception(ex);
+  }
+}
 
 uint8_t pmpcfg_from_index(int idx) {
   // for now, nemu only support 16 pmp entries in a XLEN=64 machine

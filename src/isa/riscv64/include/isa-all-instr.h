@@ -163,8 +163,10 @@
 #endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RV_DASICS
-#define DASICS_INSTR_TERNARY(f) f(dasicsret)
+#define DASICS_INSTR_BINARY(f) f(dasicscall_j)
+#define DASICS_INSTR_TERNARY(f) f(dasicscall_jr)
 #else
+#define DASICS_INSTR_BINARY(f)
 #define DASICS_INSTR_TERNARY(f)
 #endif  // CONFIG_RV_DASICS
 
@@ -189,7 +191,8 @@
   SYS_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
-  FLOAT_INSTR_BINARY(f)
+  FLOAT_INSTR_BINARY(f) \
+  DASICS_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \

@@ -188,6 +188,18 @@ typedef struct {
       uint32_t imm10_1   :10;
       int32_t  simm20    : 1;
     } j;
+#ifdef CONFIG_RV_DASICS
+    struct {
+      uint32_t opcode1_0 : 2;
+      uint32_t opcode6_2 : 5;
+      uint32_t imm21     : 1;
+      uint32_t imm14_11  : 4;
+      uint32_t funct3    : 3;
+      uint32_t imm20_15  : 6;
+      uint32_t imm10_1   :10;
+      int32_t  simm22    : 1;
+    } dij;  // DASICSCALL.J
+#endif
     struct {
       uint32_t pad7      :20;
       uint32_t csr       :12;

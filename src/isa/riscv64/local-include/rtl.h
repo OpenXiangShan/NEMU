@@ -57,5 +57,13 @@ static inline def_rtl(sr, int r, const rtlreg_t *src1, int width) {
 
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_DASICS
+
+static inline def_rtl(set_dretpc, vaddr_t value) {
+  dasics_check_trusted(cpu.pc);
+  dretpc->val = value;
+}
+
+#endif // CONFIG_RV_DASICS
 
 #endif
