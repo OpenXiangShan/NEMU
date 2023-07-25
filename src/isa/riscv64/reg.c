@@ -69,7 +69,7 @@ void isa_reg_display() {
   printf("dsmcfg: " FMT_WORD " dsmbound0: " FMT_WORD " dsmbound1: " FMT_WORD "\n",
       dsmcfg->val, dsmbound0->val, dsmbound1->val);
   printf("dumcfg: " FMT_WORD " dumbound0: " FMT_WORD " dumbound1: " FMT_WORD "\n",
-      csrid_read(0x5c0), dumbound0->val, dumbound1->val);
+      dsmcfg->val, dumbound0->val, dumbound1->val);
   printf("dmaincall: " FMT_WORD " dretpc: " FMT_WORD " dretpcfz: " FMT_WORD "\n",
       dmaincall->val, dretpc->val, dretpcfz->val);
   printf("dlcfg0: " FMT_WORD "\n",
