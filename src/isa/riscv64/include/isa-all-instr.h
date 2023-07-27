@@ -33,11 +33,11 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
-#ifdef CONFIG_RV_DEBUG
-  #define RV_D_NULLARY(f) f(ebreak)
-#else
-  #define RV_D_NULLARY(f)
-#endif
+// #ifdef CONFIG_RV_DEBUG
+//   #define RV_D_NULLARY(f) f(ebreak)
+// #else
+//   #define RV_D_NULLARY(f)
+// #endif
 
 #ifdef CONFIG_RVH 
 #ifdef CONFIG_RV_SVINVAL
