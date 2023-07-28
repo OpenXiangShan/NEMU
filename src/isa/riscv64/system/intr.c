@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <cpu/difftest.h>
+#include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
@@ -129,6 +130,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       hstatus->spvp = cpu.mode; 
     }
     cpu.v = 0;
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #else
   if (delegS) {
 #endif
@@ -162,7 +164,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
                     ((v || hld_st_temp) && ((0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF)));
     mstatus->mpv = cpu.v;
-    cpu.v = 0;
+    cpu.v = 0;set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif
     mcause->val = NO;
     mepc->val = epc;

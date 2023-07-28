@@ -640,6 +640,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if (cpu.v == 0){
         cpu.v = hstatus->spv;
         hstatus->spv = 0;
+        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       }else if (cpu.v == 1){
         if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
           longjmp_exception(EX_VI);
@@ -684,6 +685,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RVH
       cpu.v = mstatus->mpv;
       mstatus->mpv = 0;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif // CONFIG_RVH
       if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
       mstatus->mpp = MODE_U;
