@@ -33,12 +33,6 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
-#ifdef CONFIG_RV_DEBUG
-  #define RV_D_NULLARY(f) f(ebreak)
-#else
-  #define RV_D_NULLARY(f)
-#endif
-
 #ifdef CONFIG_RVH 
 #ifdef CONFIG_RV_SVINVAL
   #define RVH_INST_BINARY(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma) \
