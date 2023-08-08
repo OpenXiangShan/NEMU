@@ -278,6 +278,11 @@ CSR_STRUCT_END(mip)
 #define PMP_SHIFT 2
 #define PMP_PLATFORMGARIN 12 // log2(4KB)
 
+#ifdef CONFIG_PMPTABLE_EXTENSION
+#define PMP_T     0x20
+#define PMP_C     0x40
+#endif
+
 #define PMP_TOR   0x08
 #define PMP_NA4   0x10
 #define PMP_NAPOT 0x18
