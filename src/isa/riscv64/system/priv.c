@@ -277,7 +277,7 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
   if (!allow_brjp) {
     int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
     INTR_TVAL_REG(ex) = newpc;
-    isa_reg_display();
+    // isa_reg_display();
     Logm("Dasics jump exception occur: pc%lx  (st:%d, altm:%d, df:%d, aftl:%d)\n",pc,src_trusted,allow_lib_to_main,dst_freezone,allow_freezone_to_lib);
     longjmp_exception(ex);
   }

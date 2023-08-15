@@ -191,9 +191,6 @@ extern void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc);
 #endif  // CONFIG_RV_DASICS
 
 static inline def_rtl(j, vaddr_t target) {
-#ifdef CONFIG_RV_DASICS
-  dasics_redirect_helper(s->pc, target, s->snpc);
-#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     if(cpu.execution_guide.jump_target != target) {
@@ -219,9 +216,6 @@ end_of_rtl_j:
 }
 
 static inline def_rtl(jr, rtlreg_t *target) {
-#ifdef CONFIG_RV_DASICS
-  dasics_redirect_helper(s->pc, *(vaddr_t *)target, s->snpc);
-#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     if(cpu.execution_guide.jump_target != *target) {
@@ -249,6 +243,9 @@ end_of_rtl_jr:
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
+#ifdef CONFIG_RV_DASICS
+  if (is_jmp) dasics_redirect_helper(s->pc, target, s->snpc);
+#endif  // CONFIG_RV_DASICS
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
 

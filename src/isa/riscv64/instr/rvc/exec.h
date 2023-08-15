@@ -32,6 +32,7 @@
 //       C.NOP      (the same as C.ADDI)
 
 def_EHelper(c_j) {
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, id_src1->imm));
   rtl_j(s, id_src1->imm);
 }
 
@@ -39,21 +40,26 @@ def_EHelper(c_jr) {
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, dsrc1, ~1UL);
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, *(vaddr_t *)s0));
   rtl_jr(s, s0);
 #else
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, *(vaddr_t *)dsrc1));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);
 #endif
 }
 
 def_EHelper(c_jalr) {
-  rtl_li(s, &cpu.gpr[1]._64, s->snpc);
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, dsrc1, ~1UL);
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, *(vaddr_t *)s0));
+  rtl_li(s, &cpu.gpr[1]._64, s->snpc);
   rtl_jr(s, s0);
 #else
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, *(vaddr_t *)dsrc1));
+  rtl_li(s, &cpu.gpr[1]._64, s->snpc);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, dsrc1);

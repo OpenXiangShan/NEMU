@@ -134,20 +134,19 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc);
 
 #define rtl_j(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_RV_DASICS, dasics_redirect_helper(s->pc, (vaddr_t)target, s->snpc)); \
   s = s->tnext; \
   goto end_of_bb; \
 } while (0)
 #define rtl_jr(s, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_RV_DASICS, dasics_redirect_helper(s->pc, *(vaddr_t *)target, s->snpc)); \
   s = jr_fetch(s, *(target)); \
   goto end_of_bb; \
 } while (0)
 #define rtl_jrelop(s, relop, src1, src2, target) do { \
   IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb); \
-  IFDEF(CONFIG_RV_DASICS, dasics_redirect_helper(s->pc, (vaddr_t)target, s->snpc)); \
-  if (interpret_relop(relop, *src1, *src2)) s = s->tnext; \
+  bool is_jmp = interpret_relop(relop, *src1, *src2); \
+  IFDEF(CONFIG_RV_DASICS, (is_jmp ? dasics_redirect_helper(s->pc, (vaddr_t)target, s->snpc) : 0)); \
+  if (is_jmp) s = s->tnext; \
   else s = s->ntnext; \
   goto end_of_bb; \
 } while (0)

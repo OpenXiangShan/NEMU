@@ -59,6 +59,7 @@ def_EHelper(p_bgez) {
 }
 
 def_EHelper(p_jal) {
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, id_src1->imm));
   rtl_li(s, &cpu.gpr[1]._64, id_src2->imm);
   rtl_j(s, id_src1->imm);
 }
@@ -67,9 +68,11 @@ def_EHelper(p_ret) {
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, &cpu.gpr[1]._64, ~1UL);
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, *(vaddr_t *)s0));
   rtl_jr(s, s0);
 #else
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1u));
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, (vaddr_t)(cpu.gpr[1]._64)));
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_jr(s, &cpu.gpr[1]._64);
 #endif // CONFIG_SHARE

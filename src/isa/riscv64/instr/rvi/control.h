@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 def_EHelper(jal) {
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, id_src1->imm));
   rtl_li(s, ddest, id_src2->imm);
   rtl_j(s, id_src1->imm);
 }
@@ -26,6 +27,7 @@ def_EHelper(jalr) {
   // then setting the least-significant bit of the result to zero.
   rtl_andi(s, s0, s0, ~1UL);
 //  IFDEF(CONFIG_ENGINE_INTERPRETER, rtl_andi(s, s0, s0, ~0x1lu));
+  IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, *(vaddr_t *)s0));
 #ifdef CONFIG_GUIDED_EXEC
   if(cpu.guided_exec && cpu.execution_guide.force_set_jump_target) {
     rtl_li(s, ddest, cpu.execution_guide.jump_target);
