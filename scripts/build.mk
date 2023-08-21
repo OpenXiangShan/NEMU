@@ -3,7 +3,7 @@
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC -D_SHARE=1
-LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined
+LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined -lz
 endif
 
 WORK_DIR  = $(shell pwd)
@@ -38,7 +38,7 @@ XOBJS = $(XSRCS:%.cpp=$(OBJ_DIR)/%.opp)
 ifndef SHARE
 OBJS = $(COBJS) $(XOBJS)
 else
-OBJS = $(COBJS)
+OBJS = $(COBJS) $(XOBJS)
 endif
 
 # Compilation patterns
@@ -69,7 +69,7 @@ endif
 app: $(BINARY)
 
 $(BINARY): $(OBJS) $(LIBS)
-	@echo + LD $@
+	@echo + $(LD) $@
 	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 clean:

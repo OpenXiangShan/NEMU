@@ -70,7 +70,11 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   paddr_t paddr = va2pa(s, vaddr, len, type);
   if (likely(in_pmem(paddr))) {
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
+    #ifdef CONFIG_USE_SPARSEMM
+    e->offset = (uint8_t *)(paddr - vaddr);
+    #else
     e->offset = guest_to_host(paddr) - vaddr;
+    #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
@@ -82,7 +86,11 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
   if (likely(in_pmem(paddr))) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
+    #ifdef CONFIG_USE_SPARSEMM
+    e->offset = (uint8_t *)(paddr - vaddr);
+    #else
     e->offset = guest_to_host(paddr) - vaddr;
+    #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
   paddr_write(paddr, len, data, MODE_S, vaddr);

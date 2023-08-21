@@ -16,6 +16,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
 
@@ -48,12 +49,18 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
 #endif
 
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
+#ifdef CONFIG_USE_SPARSEMM
+  void *a = (void *)nemu_addr;
+  if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
+  else sparse_mem_copy(dut_buf, a);
+#else
 #ifdef CONFIG_LARGE_COPY
   if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else nemu_large_memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #else
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else memcpy(dut_buf, guest_to_host(nemu_addr), n);
+#endif
 #endif
 }
 

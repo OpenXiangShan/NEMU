@@ -45,13 +45,18 @@ static inline bool in_pmem(paddr_t addr) {
   if (mbase_align && msize_align && msize_inside_mbase) {
     return (addr & ~msize_mask) == CONFIG_MBASE;
   } else {
+    #ifdef CONFIG_USE_SPARSEMM
+    return addr >= CONFIG_MBASE;
+    #else
     return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + MEMORY_SIZE);
+    #endif
   }
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 uint8_t *get_pmem();
+void * get_sparsemm();
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
