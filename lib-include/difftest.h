@@ -34,7 +34,7 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #ifdef RV64_FULL_DIFF
 // GPRs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode + CSRs related to specific extensions
 #define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1 \
-          IFDEF(CONFIG_RVV, + 64 + 7) IFDEF(CONFIG_RVN, + 8) IFDEF(CONFIG_RV_DASICS, + 43)))
+          IFDEF(CONFIG_RVV, + 64 + 7) IFDEF(CONFIG_RVN, + 8) IFDEF(CONFIG_RV_DASICS, + 9)))
 #else
 #define DIFFTEST_REG_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
 #endif

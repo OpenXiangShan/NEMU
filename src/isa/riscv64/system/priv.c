@@ -293,7 +293,7 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
 void dasics_check_trusted(vaddr_t pc) {
   if (!dasics_in_trusted_zone(pc)) {
     int ex = EX_II;
-    isa_reg_display();
+    // isa_reg_display();
     Logm("Dasics illegal instruction: pc%lx\n", pc);
     longjmp_exception(ex);
   }

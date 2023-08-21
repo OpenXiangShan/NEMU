@@ -59,10 +59,11 @@ static void csr_prepare() {
   cpu.dsmbound0 = dsmbound0->val;
   cpu.dsmbound1 = dsmbound1->val;
 
-  cpu.dumcfg    = csrid_read(0x5c0);  // dumcfg
+  cpu.dumcfg    = csrid_read(0x9e0);  // dumcfg
   cpu.dumbound0 = dumbound0->val;
   cpu.dumbound1 = dumbound1->val;
 
+  /* Yet to connect
   cpu.dlcfg0    = dlcfg0->val;
   cpu.dlbound0  = dlbound0->val;
   cpu.dlbound1  = dlbound1->val;
@@ -96,6 +97,7 @@ static void csr_prepare() {
   cpu.dlbound29 = dlbound29->val;
   cpu.dlbound30 = dlbound30->val;
   cpu.dlbound31 = dlbound31->val;
+  */
 
   cpu.dmaincall = dmaincall->val;
   cpu.dretpc    = dretpc->val;
@@ -154,6 +156,7 @@ static void csr_writeback() {
   dumbound0->val = cpu.dumbound0;
   dumbound1->val = cpu.dumbound1;
 
+  /* Yet to connect
   dlcfg0->val    = cpu.dlcfg0;
   dlbound0->val  = cpu.dlbound0;
   dlbound1->val  = cpu.dlbound1;
@@ -187,6 +190,7 @@ static void csr_writeback() {
   dlbound29->val = cpu.dlbound29;
   dlbound30->val = cpu.dlbound30;
   dlbound31->val = cpu.dlbound31;
+  */
 
   dmaincall->val = cpu.dmaincall;
   dretpc->val    = cpu.dretpc;
