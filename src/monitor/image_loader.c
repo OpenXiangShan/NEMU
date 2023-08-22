@@ -106,6 +106,8 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
     int fd = open(loading_img, O_RDONLY);
     char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
     sparse_mem_write(get_sparsemm(), load_start, size, buf);
+    close(fd);
+    munmap(buf, size);
   }
   #else
   int ret = fread(guest_to_host(load_start), size, 1, fp);
