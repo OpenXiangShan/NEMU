@@ -21,7 +21,7 @@ CCACHE := $(if $(shell which ccache),ccache,)
 
 # Compilation flags
 CC := $(CCACHE) $(CC)
-LD := $(CCACHE) $(CC)
+LD := $(CCACHE) $(CXX)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)

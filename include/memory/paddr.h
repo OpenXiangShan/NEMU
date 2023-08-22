@@ -56,7 +56,10 @@ static inline bool in_pmem(paddr_t addr) {
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 uint8_t *get_pmem();
+
+#ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm();
+#endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 

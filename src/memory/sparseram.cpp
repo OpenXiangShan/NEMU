@@ -388,8 +388,13 @@ SparseRam::~SparseRam()
   {
     free(iter->second);
   }
+  for (auto iter = this->big_block.begin(); iter != this->big_block.end(); iter++){
+    free(iter->second->blk);
+    free(iter->second);
+  }
   this->mem.clear();
   this->cache.clear();
+  this->big_block.clear();
 }
 
 void SparseRam::__update_cache(paddr_t index, u_int8_t *m)
@@ -484,6 +489,10 @@ void SparseRam::read(paddr_t addr, size_t len, void *bytes)
   {
     return;
   }
+  if(this->_blk_read(addr, len, bytes)){
+    return;
+  }
+
   auto index_start = addr / this->block_size;
   auto offst_start = addr % this->block_size;
   auto offst_end = offst_start + len;
@@ -530,6 +539,9 @@ void SparseRam::write(paddr_t addr, size_t len, const void *bytes)
   {
     return;
   }
+  if(this->_blk_write(addr, len, bytes)){
+    return;
+  }
 
   auto index_start = addr / this->block_size;
   auto offst_start = addr % this->block_size;
@@ -566,18 +578,91 @@ void SparseRam::write(paddr_t addr, size_t len, const void *bytes)
   }
 }
 
+bool SparseRam::add_blk(char *name, paddr_t start, paddr_t end){
+  vassert(this->mem.empty(), "should first init big_blocks. not write mem");
+  vassert(end > start, "big_block size need > 0");
+  auto blk_name = std::string(name);
+  vassert(!this->big_block.count(blk_name), "big_block is existed");
+  auto blk = new sp_mm_blk{
+    .start = start,
+    .end = end,
+    .blk = (u_int8_t *)calloc(end - start, sizeof(u_int8_t))
+  };
+  this->big_block[blk_name] = blk;
+  return true;
+}
+
+void *SparseRam::blk_host_addr(char *name){
+  auto block_name = std::string(name);
+  if(this->big_block.count(block_name)){
+    return this->big_block[block_name]->blk;
+  }
+  return NULL;
+}
+
+SparseRam::sp_mm_blk *SparseRam::_blk_find(paddr_t addr){
+  if (this->big_block.empty()){
+    return NULL;
+  }
+  for(auto b = this->big_block.begin(); b != this->big_block.end(); b++){
+    auto start = b->second->start;
+    auto end = b->second->end;
+    if (start < addr && addr < end){
+      return b->second;
+    }
+  }
+  return NULL;
+}
+
+bool SparseRam::_blk_read(paddr_t addr, size_t len, void* bytes){
+  auto blk = this->_blk_find(addr);
+  if(blk == NULL){
+    return false;
+  }
+  vassert(blk->end >= addr + len, "read outof blk");
+  memcpy(bytes, blk->blk + (addr - blk->start), len);
+  return true;
+}
+
+bool SparseRam::_blk_write(paddr_t addr, size_t len, const void* bytes){
+  auto blk = this->_blk_find(addr);
+  if(blk == NULL){
+    return false;
+  }
+  vassert(blk->end >= addr + len, "write outof blk");
+  memcpy(blk->blk + (addr - blk->start), bytes, len);
+  return true;
+}
+
 word_t SparseRam::read(paddr_t addr, int len)
 {
   vassert(len <= 8, "len error");
-  word_t ret;
-  this->read(addr, len, (void *)&ret);
-  return ret;
+  u_int8_t buff[8];
+  this->read(addr, 8, (void *)buff);
+
+  switch (len) {
+    case 1: return *(uint8_t  *)buff;
+    case 2: return *(uint16_t *)buff;
+    case 4: return *(uint32_t *)buff;
+    IFDEF(CONFIG_ISA64, case 8: return *(uint64_t *)buff);
+    default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
+  }
+  vassert(0, "size error");
+  return 0;
 }
 
 void SparseRam::write(paddr_t addr, int len, word_t data)
 {
   vassert(len <= 8, "len error");
-  return this->write(addr, len, (const void *)&data);
+  u_int8_t buff[8] = {0};
+  switch (len) {
+    case 1: *(uint8_t  *)buff = data; break;
+    case 2: *(uint16_t *)buff = data; break;
+    case 4: *(uint32_t *)buff = data; break;
+    IFDEF(CONFIG_ISA64, case 8: *(uint64_t *)buff = data; break);
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
+  }
+  return this->write(addr, len, (const void *)buff);
 }
 
 endianness_t SparseRam::get_target_endianness()
@@ -676,6 +761,19 @@ void sparse_mem_info(void *self)
 {
   auto m = (SparseRam *)self;
   m->print_info();
+}
+
+void* sparse_mem_blk_get(void *self, char *name){
+  auto m = (SparseRam *)self;
+  return m->blk_host_addr(name);
+}
+
+int sparse_mem_blk_add(void *self, char *name, paddr_t start, paddr_t end){
+  auto m = (SparseRam *)self;
+  if(m->add_blk(name, start, end)){
+    return true;
+  }
+  return false;
 }
 
 void sparse_mem_copy(void *dst, void *src){

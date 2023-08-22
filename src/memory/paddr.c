@@ -65,9 +65,11 @@ uint8_t *get_pmem()
   return pmem;
 }
 
+#ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm(){
   return sparse_mm;
 }
+#endif
 
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }

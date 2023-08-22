@@ -67,9 +67,17 @@ typedef std::function<void (paddr_t addr, size_t len, void *bytes)> copy_mem_fun
 
 class SparseRam
 {
+    typedef struct 
+    {
+        paddr_t start;
+        paddr_t end;
+        u_int8_t * blk;
+    } sp_mm_blk;
+    
 public:
     unsigned block_size;
     std::map<paddr_t, u_int8_t *> mem;
+    std::map<std::string, sp_mm_blk *> big_block;
 
     ~SparseRam();
     SparseRam(u_int block_count = 4, u_int chunk_size=1024){
@@ -82,6 +90,8 @@ public:
 
     void read(paddr_t addr, size_t len, void* bytes);
     void write(paddr_t addr, size_t len, const void* bytes);
+    bool add_blk(char *name, paddr_t start, paddr_t end);
+    void *blk_host_addr(char *name);
 
     word_t read(paddr_t addr, int len);
     void write(paddr_t addr, int len, word_t data);
@@ -99,6 +109,9 @@ private:
     bool _fast_count(paddr_t index);
     u_int8_t *_fast_mem(paddr_t index);
     void __update_cache(paddr_t index, u_int8_t*m);
+    sp_mm_blk *_blk_find(paddr_t addr);
+    bool _blk_read(paddr_t addr, size_t len, void* bytes);
+    bool _blk_write(paddr_t addr, size_t len, const void* bytes);
 };
 #endif
 
@@ -119,7 +132,9 @@ extern "C"
     word_t sparse_mem_wread(void *self, paddr_t addr, int len);
     void   sparse_mem_info(void* self);
     void   sparse_mem_copy(void *dst, void *src);
-    int file_is_elf(const char *fn);
+    void*  sparse_mem_blk_get(void *self, char *name);
+    int    sparse_mem_blk_add(void *self, char *name, paddr_t start, paddr_t end);
+    int    file_is_elf(const char *fn);
 
 #ifdef __cplusplus
 }
