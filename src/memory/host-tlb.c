@@ -18,6 +18,7 @@
 #include <memory/host.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
@@ -112,7 +113,11 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
+    #ifdef CONFIG_USE_SPARSEMM
+    return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
+    #else
     return host_read(e->offset + vaddr, len);
+    #endif
   }
 }
 
@@ -130,5 +135,9 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
+  #ifdef CONFIG_USE_SPARSEMM
+  sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
+  #else
   host_write(e->offset + vaddr, len, data);
+  #endif
 }
