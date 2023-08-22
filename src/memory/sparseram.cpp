@@ -697,6 +697,20 @@ void SparseRam::copy_nzero_bytes(copy_mem_func copy_handler)
 }
 
 void SparseRam::copy(SparseRam &dst) {
+  // copy big blocks (only copy the blocks with same cfg)
+  for(auto bl=this->big_block.begin(); bl != this->big_block.end(); bl++){
+    auto name = bl->first;
+    auto sbk = bl->second;
+    if(!dst.big_block.count(name)){
+      continue;
+    }
+    auto tbk = dst.big_block[name];
+    if (sbk->start != tbk->start || sbk->end != tbk->end){
+      continue;
+    }
+    memcpy(tbk->blk, sbk->blk, tbk->end - tbk->start);
+  }
+  // copy normal mem blocks
   auto fc = [&](paddr_t addr, size_t len, void* buff){
     dst.write(addr, len, buff);
   };
