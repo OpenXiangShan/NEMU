@@ -32,6 +32,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 
 static char *log_file = NULL;
+bool enable_small_log = false;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int batch_mode = false;
@@ -87,6 +88,9 @@ static inline int parse_args(int argc, char *argv[]) {
     // dump state
     {"dump-mem"           , required_argument, NULL, 'M'},
     {"dump-reg"           , required_argument, NULL, 'R'},
+
+    // small log file
+    {"small-log"          , required_argument, NULL, 8},
 
     {0          , 0                , NULL,  0 },
   };
@@ -153,11 +157,17 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
+      case 8: 
+        log_file = optarg; 
+        enable_small_log = true;
+        break; 
+
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
         printf("\t-I,--max-instr          max number of instructions executed\n");
         printf("\t-l,--log=FILE           output log to FILE\n");
+        printf("\t--small-log=FILE        output log to a limited size FILE, but log is always up to date\n");
         printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
         printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
 
