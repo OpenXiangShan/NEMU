@@ -20,7 +20,7 @@
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
-#include <isa-all-instr.h>
+#include "../include/isa-all-instr.h"
 
 
 def_all_THelper();
@@ -130,25 +130,26 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
+    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:)
       s->type = INSTR_TYPE_I; break;
 
 #ifndef CONFIG_DEBUG
 #ifdef CONFIG_RVH
     case EXEC_ID_priv:
-#else
+#else // CONFIG_RVH
     case EXEC_ID_system:
-#endif
+#endif // CONFIG_RVH
       if (s->isa.instr.i.funct3 == 0) {
         switch (s->isa.instr.csr.csr) {
-          case 0:     // ecall
+          case 0x0:   // ecall
+          case 0x1:   // ebreak
           case 0x102: // sret
           case 0x302: // mret
             s->type = INSTR_TYPE_I;
         }
       }
       break;
-#endif
+#endif // CONFIG_DEBUG
   }
 
   return idx;

@@ -23,9 +23,6 @@ def_EHelper(name) { \
 }
 
 #ifdef CONFIG_DEBUG
-#ifdef CONFIG_RV_DEBUG
-  def_SYS_EHelper(ebreak)
-#endif
 
 #ifdef CONFIG_RVH 
 #define def_hld_template(name) \

@@ -515,7 +515,16 @@ static inline void csr_write(word_t *dest, word_t src) {
     int xlen = 64;
     word_t cfg_data = 0;
     for (int i = 0; i < xlen / 8; i ++ ) {
+#ifndef CONFIG_PMPTABLE_EXTENSION
       word_t cfg = ((src >> (i*8)) & 0xff) & (PMP_R | PMP_W | PMP_X | PMP_A | PMP_L);
+#endif
+#ifdef CONFIG_PMPTABLE_EXTENSION
+      /* 
+       * Consider the T-bit and C-bit of pmptable extension, 
+       * cancel original pmpcfg bit limit. 
+       */
+      word_t cfg = ((src >> (i*8)) & 0xff);
+#endif
       cfg &= ~PMP_W | ((cfg & PMP_R) ? PMP_W : 0); // Disallow R=0 W=1
       if (PMP_PLATFORMGARIN != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
         cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
@@ -640,6 +649,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if (cpu.v == 0){
         cpu.v = hstatus->spv;
         hstatus->spv = 0;
+        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       }else if (cpu.v == 1){
         if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
           longjmp_exception(EX_VI);
@@ -684,6 +694,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RVH
       cpu.v = mstatus->mpv;
       mstatus->mpv = 0;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif // CONFIG_RVH
       if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
       mstatus->mpp = MODE_U;

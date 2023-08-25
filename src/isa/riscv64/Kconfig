@@ -98,4 +98,13 @@ config MIMPID_VALUE
   hex "Value of CSR mimpid"
   default 0x0
 
+config PMPTABLE_EXTENSION
+  # PMPTable covers PMPChecker function, 
+  # close PMPChecker when using PMPTable. 
+  depends on !PERF_OPT
+  depends on !RV_PMP_CHECK
+  depends on RV_PMP_CSR
+  bool "Enable PMPTable extension"
+  default n
+
 endmenu
