@@ -23,11 +23,12 @@
 uint64_t record_row_number = 0;
 FILE *log_fp = NULL;
 char *log_filebuf;
-extern bool enable_small_log;
-void init_log(const char *log_file) {
+bool enable_small_log = false;
+void init_log(const char *log_file, const bool small_log) {
   if (log_file == NULL) return;
   log_fp = fopen(log_file, "w");
   Assert(log_fp, "Can not open '%s'", log_file);
+  enable_small_log = small_log;
   if (enable_small_log)
     log_filebuf = (char *)malloc(sizeof(char) * SMALL_LOG_ROW_NUM * 300);
 }

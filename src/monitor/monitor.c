@@ -24,7 +24,7 @@
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
-void init_log(const char *log_file);
+void init_log(const char *log_file, const bool small_log);
 void init_mem();
 void init_regex();
 void init_wp_pool();
@@ -32,7 +32,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 
 static char *log_file = NULL;
-bool enable_small_log = false;
+bool small_log = false;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int batch_mode = false;
@@ -159,7 +159,7 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 8: 
         log_file = optarg; 
-        enable_small_log = true;
+        small_log = true;
         break; 
 
       default:
@@ -218,7 +218,7 @@ void init_monitor(int argc, char *argv[]) {
   }
 
   /* Open the log file. */
-  init_log(log_file);
+  init_log(log_file, small_log);
 
   /* Initialize memory. */
   init_mem();
