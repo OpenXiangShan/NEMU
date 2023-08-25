@@ -57,6 +57,7 @@ extern void log_flush();
 extern char *log_filebuf; 
 extern uint64_t record_row_number;  
 extern FILE *log_fp;
+extern bool enable_small_log;
 }
 
 SimPoint::SimPoint()
