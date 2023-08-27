@@ -696,15 +696,15 @@ void SparseRam::copy_nzero_bytes(copy_mem_func copy_handler)
   }
 }
 
-void SparseRam::copy(SparseRam &dst) {
+void SparseRam::copy(SparseRam *dst) {
   // copy big blocks (only copy the blocks with same cfg)
   for(auto bl=this->big_block.begin(); bl != this->big_block.end(); bl++){
     auto name = bl->first;
     auto sbk = bl->second;
-    if(!dst.big_block.count(name)){
+    if(!dst->big_block.count(name)){
       continue;
     }
-    auto tbk = dst.big_block[name];
+    auto tbk = dst->big_block[name];
     if (sbk->start != tbk->start || sbk->end != tbk->end){
       continue;
     }
@@ -712,7 +712,7 @@ void SparseRam::copy(SparseRam &dst) {
   }
   // copy normal mem blocks
   auto fc = [&](paddr_t addr, size_t len, void* buff){
-    dst.write(addr, len, buff);
+    dst->write(addr, len, buff);
   };
   this->copy_nzero_bytes(fc);
 }
@@ -791,7 +791,7 @@ int sparse_mem_blk_add(void *self, char *name, paddr_t start, paddr_t end){
 }
 
 void sparse_mem_copy(void *dst, void *src){
-  auto d = *(SparseRam*)dst;
-  auto s = *(SparseRam*)src;
-  s.copy(d);
+  auto d = (SparseRam*)dst;
+  auto s = (SparseRam*)src;
+  s->copy(d);
 }

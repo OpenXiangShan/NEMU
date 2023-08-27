@@ -95,7 +95,7 @@ public:
 
     word_t read(paddr_t addr, int len);
     void write(paddr_t addr, int len, word_t data);
-    void copy(SparseRam &dst);
+    void copy(SparseRam *dst);
 
     endianness_t get_target_endianness();
 
