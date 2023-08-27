@@ -57,6 +57,13 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
           dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
   if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
   else sparse_mem_copy(dut_buf, a);
+
+  printf("\nCoppied Data: ");
+  for (int j = 0; j < 8; j++) {
+    printf("%016lx", sparse_mem_wread(a, nemu_addr + j*sizeof(uint64_t), sizeof(uint64_t)));
+  }
+  printf("...\n");
+
 #else
 #ifdef CONFIG_LARGE_COPY
   if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
