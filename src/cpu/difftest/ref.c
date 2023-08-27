@@ -24,6 +24,7 @@ extern void init_flash();
 
 
 #ifdef CONFIG_LARGE_COPY
+#ifndef CONFIG_USE_SPARSEMM
 static void nemu_large_memcpy(void *dest, void *src, size_t n) {
   uint64_t *_dest = (uint64_t *)dest;
   uint64_t *_src  = (uint64_t *)src;
@@ -47,10 +48,11 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
   }
 }
 #endif
+#endif
 
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
-  void *a = (void *)nemu_addr;
+  void *a = get_sparsemm();
   if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
   else sparse_mem_copy(dut_buf, a);
 #else
