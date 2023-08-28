@@ -5,9 +5,9 @@
 #include <sys/types.h>
 #include <common.h>
 #include <debug.h>
-#include <string>
 
 #ifdef __cplusplus
+#include <string>
 #include <map>
 #include <functional>
 #include <tuple>
