@@ -468,9 +468,11 @@ static int execute(int n) {
     #endif // CONFIG_BR_LOG
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
-    if(isa_query_intr()){break;}
+    if (isa_query_intr() != INTR_EMPTY){
+      break;
+    }
     if (nemu_state.state == NEMU_STOP) {
-        break;
+      break;
     }
   }
   return n;

@@ -18,32 +18,35 @@
 // control when the log is printed, unit: number of instructions
 #define LOG_START (0)
 // restrict the size of log file
-#define LOG_END   (100 * 1024)
-#define LOG_ROW_NUM (LOG_END - LOG_START) // row number
+#define LOG_END   (1024 * 1024 * 50)
+#define SMALL_LOG_ROW_NUM (100 * 1024) // row number
 uint64_t record_row_number = 0;
 FILE *log_fp = NULL;
 char *log_filebuf;
-void init_log(const char *log_file) {
+bool enable_small_log = false;
+void init_log(const char *log_file, const bool small_log) {
   if (log_file == NULL) return;
   log_fp = fopen(log_file, "w");
   Assert(log_fp, "Can not open '%s'", log_file);
-  log_filebuf = (char *)malloc(sizeof(char) * LOG_ROW_NUM * 300);
-  
+  enable_small_log = small_log;
+  if (enable_small_log)
+    log_filebuf = (char *)malloc(sizeof(char) * SMALL_LOG_ROW_NUM * 300);
 }
 
-// bool log_enable() {
-//   extern uint64_t g_nr_guest_instr;
-//   return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
-// }
+bool log_enable() {
+  extern uint64_t g_nr_guest_instr;
+  return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
+}
 
 void log_flush() {
   record_row_number ++;
-  if(record_row_number > LOG_ROW_NUM){
+  if(record_row_number > SMALL_LOG_ROW_NUM){
     // rewind(log_fp);
     record_row_number = 0;
   }
 }
 void log_close(){
+  if (enable_small_log == false) return;
   if (log_fp == NULL) return;
   // fprintf(log_fp, "%s", log_filebuf);
   for (int i = 0; i < record_row_number; i++)
