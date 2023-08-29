@@ -21,7 +21,7 @@
 
 #define ISA_QEMU_BIN "qemu-system-mipsel"
 #define ISA_QEMU_ARGS "-machine", "mipssim",\
-  "-kernel", ne_str(NEMU_HOME) "/resource/mips-elf/mips.dummy",
+  "-kernel", str(NEMU_HOME) "/resource/mips-elf/mips.dummy",
 
 union isa_gdb_regs {
   struct {

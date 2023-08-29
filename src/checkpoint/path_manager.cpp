@@ -19,6 +19,7 @@
 
 #include <checkpoint/path_manager.h>
 #include <checkpoint/cpt_env.h>
+#include <checkpoint/serializer.h>
 #include <profiling/profiling_control.h>
 
 #include <cassert>
@@ -45,10 +46,12 @@ void PathManager::init() {
 
   cptID = -1;
 
+  //set by manual from args
   if (cpt_id != -1) {
     cptID = cpt_id;
   }
 
+  //set 0 means from take checkpoint
   if (profiling_state == SimpointCheckpointing || checkpoint_taking) {
     cptID = 0;
   }
@@ -60,8 +63,9 @@ void PathManager::init() {
     assert(simpoints_dir);
     simpointPath = fs::path(string(simpoints_dir) + "/" + workloadName +"/");
   }
-
-  setOutputDir();
+  if(profiling_state==SimpointProfiling){
+    setOutputDir();
+  }
 }
 
 void PathManager::setOutputDir() {
@@ -79,7 +83,10 @@ void PathManager::setOutputDir() {
 }
 
 void PathManager::incCptID() {
-  cptID++;
+  if (cptID!=-1) {
+    cptID=serializer.next_index();
+  }
+//  cptID++;
 }
 
 std::string PathManager::getOutputPath() const {
@@ -97,6 +104,11 @@ std::string PathManager::getSimpointPath() const {
 PathManager pathManager;
 
 extern "C" {
+
+void reset_path(){
+  pathManager.incCptID();
+  pathManager.setOutputDir();
+}
 
 void init_path_manager()
 {

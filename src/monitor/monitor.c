@@ -16,14 +16,13 @@
 
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
-#include <profiling/betapoint-ext.h>
 #include <profiling/profiling_control.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include<signal.h>
-#include<unistd.h>
+#include <signal.h>
+#include <unistd.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
@@ -42,9 +41,6 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
 
-static char *etrace_inst = NULL;
-static char *etrace_data = NULL;
-
 extern char *mapped_cpt_file;  // defined in paddr.c
 extern bool map_image_as_output_cpt;
 extern char *reg_dump_file;
@@ -59,7 +55,7 @@ static inline void welcome() {
       "If it is not necessary, you can turn it off in include/common.h.")
   );
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", ne_str(__ISA__));
+  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", str(__ISA__));
   printf("For help, type \"help\"\n");
 }
 
@@ -110,9 +106,6 @@ static inline int parse_args(int argc, char *argv[]) {
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"dont-skip-boot"     , no_argument      , NULL, 6},
-    {"etrace-inst"        , required_argument, NULL, 11},
-    {"etrace-data"        , required_argument, NULL, 12},
-
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
 
@@ -186,9 +179,6 @@ static inline int parse_args(int argc, char *argv[]) {
         profiling_state = SimpointProfiling;
         Log("Doing Simpoint Profiling");
         break;
-      case 11: etrace_inst = optarg; break;
-      case 12: etrace_data = optarg; break;
-
       case 6:
         // start profiling/checkpointing right after boot,
         // instead of waiting for the pseudo inst to notify NEMU.
@@ -256,8 +246,6 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--cpt-id                checkpoint id\n");
         printf("\t-M,--dump-mem=DUMP_FILE dump memory into FILE\n");
         printf("\t-R,--dump-reg=DUMP_FILE dump register value into FILE\n");
-        printf("\t--etrace-inst           GEM5 elastic trace inst output file\n");
-        printf("\t--etrace-data           GEM5 elastic trace data output file\n");
         printf("\n");
         exit(0);
     }
@@ -285,17 +273,15 @@ void init_monitor(int argc, char *argv[]) {
   extern void simpoint_init();
   extern void init_serializer();
   extern void unserialize();
+  extern void reset_path();
 
   bool output_features_enabled = checkpoint_taking || profiling_state == SimpointProfiling;
   if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
     init_serializer();
+    reset_path();
   }
-
-  /* betapoint profiler init. */
-  beta_on_start();
-
   /* Open the log file. */
   init_log(log_file, small_log);
 
@@ -371,11 +357,6 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize devices. */
   init_device();
 
-  if (etrace_data || etrace_inst) {
-      assert(ISDEF(CONFIG_GEN_TRACE));
-  }
-  extern void init_tracer(const char *data_file, const char *inst_file);
-  init_tracer(etrace_data, etrace_inst);
 #endif
 
   /* Compile the regular expressions. */

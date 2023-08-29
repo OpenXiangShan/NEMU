@@ -224,6 +224,8 @@ void Serializer::init() {
       assert(weight_id == simpoint_id);
       simpoint2Weights[simpoint_location] = weight;
 
+      simpoint_location_as_index.insert(simpoint_location);
+
       Log("Simpoint %lu: @ %lu, weight: %f", simpoint_id, simpoint_location, weight);
     }
   } else if (checkpoint_taking) {
@@ -268,13 +270,17 @@ void Serializer::notify_taken(uint64_t i) {
   Log("Taking checkpoint @ instruction count %lu", i);
   if (profiling_state == SimpointCheckpointing) {
     Log("simpoint2Weights size: %ld", simpoint2Weights.size());
+    //if not empty erase begin var
     if (!simpoint2Weights.empty()) {
       simpoint2Weights.erase(simpoint2Weights.begin());
     }
+
+    // if after erase ,simpoint2Weights not empty,update path
     if (!simpoint2Weights.empty()) {
         pathManager.incCptID();
     } else {
-      recvd_manual_oneshot_cpt = true;
+        checkpoint_taking=false;
+        recvd_manual_oneshot_cpt = true;
     }
 
   } else if (checkpoint_taking) {
@@ -284,6 +290,15 @@ void Serializer::notify_taken(uint64_t i) {
 }
 
 Serializer serializer;
+int Serializer::next_index(){
+  if (!serializer.simpoint_location_as_index.empty()) {
+    uint32_t index= *serializer.simpoint_location_as_index.begin();
+    serializer.simpoint_location_as_index.erase(serializer.simpoint_location_as_index.begin());
+    return index;
+  }
+  return 0;
+}
+
 
 extern "C" {
 

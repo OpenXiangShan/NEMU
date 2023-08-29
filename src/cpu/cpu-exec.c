@@ -14,7 +14,6 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <profiling/profiling_control.h>
 #include <cpu/cpu.h>
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
@@ -25,6 +24,7 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <generated/autoconf.h>
+#include <profiling/profiling_control.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -291,20 +291,12 @@ end_of_bb:
     // Because every instruction executed goes here, don't put Log here to improve performance
     def_finish();
 
-#ifdef CONFIG_DATAFLOW_PROF
-    Logti("prev pc = 0x%lx, pc = 0x%lx, is_ctrl: %i, prev dst: %u, dst: %u", prev_s->pc, s->pc, is_ctrl,
-      prev_s->dest.flat_reg_id, s->dest.flat_reg_id);
-
-    // dataflow profiling
-    dataflow_profile(prev_s->pc, prev_s->paddr, prev_s->is_store, prev_s->mem_width,
-      prev_s->dest.flat_reg_id, prev_s->src1.flat_reg_id, prev_s->src2.flat_reg_id, prev_s->fsrc3_id, is_ctrl);
-#endif
-
     // clear for recording next inst
     is_ctrl = false;
+    Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
 
     // for betapoint profiling
-    save_globals(s);
+    //save_globals(s);
     debug_difftest(this_s, s);
   }
 
@@ -664,14 +656,10 @@ void cpu_exec(uint64_t n) {
           nemu_state.halt_pc);
       Log("trap code:%d", nemu_state.halt_ret);
       monitor_statistic();
-      if (nemu_state.state == NEMU_END) {
-        beta_on_exit();
-      }
       break;
     case NEMU_QUIT:
 #ifndef CONFIG_SHARE
       monitor_statistic();
-      beta_on_exit();
       extern char *mapped_cpt_file;  // defined in paddr.c
       if (mapped_cpt_file != NULL) {
         extern void serialize_reg_to_mem();

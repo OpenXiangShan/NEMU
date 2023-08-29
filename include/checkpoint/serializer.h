@@ -21,6 +21,7 @@
 #define NEMU_SERIALIZER_H
 
 #include <string>
+#include <set>
 #include <map>
 
 
@@ -42,6 +43,7 @@ class Serializer
 
     void notify_taken(uint64_t i);
 
+    int next_index();
   private:
 
     uint64_t intervalSize{10 * 1000 * 1000};
@@ -59,6 +61,7 @@ class Serializer
 
     std::map<uint64_t, double> simpoint2Weights;
 
+    std::set<int> simpoint_location_as_index;
     uint64_t nextUniformPoint;
 };
 

@@ -35,7 +35,6 @@ typedef struct {
   IFDEF(CONFIG_RVV, rtlreg_t val);
   IFDEF(CONFIG_RVV, uint8_t reg);
   IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
-  IFDEF(CONFIG_DATAFLOW_PROF, uint8_t flat_reg_id);
 } Operand;
 
 enum {
@@ -73,13 +72,6 @@ typedef struct Decode {
   uint32_t src_vmode;
   rtlreg_t tmp_reg[4];
   #endif // CONFIG_RVV
-
-  #ifdef CONFIG_DATAFLOW_PROF
-  uint8_t fsrc3_id;
-  uint8_t mem_width;
-  uint8_t is_store;
-  paddr_t paddr;
-  #endif
 
 } Decode;
 
@@ -177,15 +169,15 @@ finish:
 #endif
 
 #define print_asm_template0(instr) \
-  print_asm(ne_str(instr) "%c", suffix_char(id_dest->width))
+  print_asm(str(instr) "%c", suffix_char(id_dest->width))
 
 #define print_asm_template1(instr) \
-  print_asm(ne_str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
+  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
 
 #define print_asm_template2(instr) \
-  print_asm(ne_str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
+  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
 
 #define print_asm_template3(instr) \
-  print_asm(ne_str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
+  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
 
 #endif
