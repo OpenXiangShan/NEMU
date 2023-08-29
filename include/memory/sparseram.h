@@ -7,6 +7,7 @@
 #include <debug.h>
 
 #ifdef __cplusplus
+#include <string>
 #include <map>
 #include <functional>
 #include <tuple>

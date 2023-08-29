@@ -66,13 +66,20 @@ uint64_t get_time();
  )*/
 #define log_write(...) \
   do { \
+    extern bool enable_small_log; \
     extern FILE* log_fp; \
     extern char *log_filebuf; \
     extern uint64_t record_row_number; \
+    extern bool log_enable(); \
     extern void log_flush(); \
     if (log_fp != NULL) { \
-      snprintf(log_filebuf + record_row_number * 300, 300, __VA_ARGS__);\
-      log_flush(); \
+      if (enable_small_log) { \
+        snprintf(log_filebuf + record_row_number * 300, 300, __VA_ARGS__);\
+        log_flush(); \
+      } else if (log_enable()){ \
+        fprintf(log_fp, __VA_ARGS__); \
+        fflush(log_fp); \
+      } \
     }else{ \
       printf(__VA_ARGS__); \
     } \
