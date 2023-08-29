@@ -295,8 +295,7 @@ end_of_bb:
     is_ctrl = false;
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
 
-    // for betapoint profiling
-    //save_globals(s);
+    save_globals(s);
     debug_difftest(this_s, s);
   }
 

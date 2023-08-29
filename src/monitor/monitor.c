@@ -97,7 +97,7 @@ static inline int parse_args(int argc, char *argv[]) {
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"uniform-cpt"        , no_argument      , NULL, 'u'},
-    {"manual-oneshot-cpt" , no_argument      , NULL, 8},
+    {"manual-oneshot-cpt" , no_argument      , NULL, 11},
     {"manual-uniform-cpt" , no_argument      , NULL, 9},
     {"cpt-interval"       , required_argument, NULL, 5},
     {"cpt-mmode"          , no_argument      , NULL, 7},
@@ -190,7 +190,7 @@ static inline int parse_args(int argc, char *argv[]) {
         force_cpt_mmode = true;
         break;
 
-      case 8:
+      case 11:
         wait_manual_oneshot_cpt = true;
         // fall through
       case 9:
