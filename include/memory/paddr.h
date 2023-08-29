@@ -82,6 +82,9 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   assert(golden_pmem != NULL);
+#ifdef CONFIG_USE_SPARSEMM
+  return sparse_mem_wread((void *)golden_pmem, addr, len)
+#else
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
     case 1: return *(uint8_t  *)p;
@@ -90,6 +93,7 @@ static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode,
     case 8: return *(uint64_t *)p;
     default: assert(0);
   }
+#endif
 }
 #endif
 
