@@ -16,11 +16,14 @@
 
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
-#include <checkpoint/profiling.h>
+#include <profiling/betapoint-ext.h>
+#include <profiling/profiling_control.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include<signal.h>
+#include<unistd.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
@@ -38,6 +41,12 @@ static char *img_file = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
+
+static char *etrace_inst = NULL;
+static char *etrace_data = NULL;
+
+extern char *mapped_cpt_file;  // defined in paddr.c
+extern bool map_image_as_output_cpt;
 extern char *reg_dump_file;
 extern char *mem_dump_file;
 
@@ -50,8 +59,24 @@ static inline void welcome() {
       "If it is not necessary, you can turn it off in include/common.h.")
   );
   Log("Build time: %s, %s", __TIME__, __DATE__);
-  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", str(__ISA__));
+  printf("Welcome to \33[1;41m\33[1;33m%s\33[0m-NEMU!\n", ne_str(__ISA__));
   printf("For help, type \"help\"\n");
+}
+
+void sig_handler(int signum) {
+  if (signum == SIGINT) {
+    Log("received SIGINT, mark manual cpt flag\n");
+    if (wait_manual_oneshot_cpt) {
+      recvd_manual_oneshot_cpt = true;
+    } else if (wait_manual_uniform_cpt) {
+      recvd_manual_uniform_cpt = true;
+      reset_inst_counters();
+    } else {
+      panic("Received SIGINT when not waiting for it");
+    }
+  } else {
+    panic("Unhandled signal: %i\n", signum);
+  }
 }
 
 static inline int parse_args(int argc, char *argv[]) {
@@ -71,16 +96,22 @@ static inline int parse_args(int argc, char *argv[]) {
     // restore cpt
     {"restore"            , no_argument      , NULL, 'c'},
     {"cpt-restorer"       , required_argument, NULL, 'r'},
+    {"map-img-as-outcpt"  , no_argument      , NULL, 13},
 
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
     {"uniform-cpt"        , no_argument      , NULL, 'u'},
+    {"manual-oneshot-cpt" , no_argument      , NULL, 8},
+    {"manual-uniform-cpt" , no_argument      , NULL, 9},
     {"cpt-interval"       , required_argument, NULL, 5},
     {"cpt-mmode"          , no_argument      , NULL, 7},
+    {"map-cpt"            , required_argument, NULL, 10},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"dont-skip-boot"     , no_argument      , NULL, 6},
+    {"etrace-inst"        , required_argument, NULL, 11},
+    {"etrace-data"        , required_argument, NULL, 12},
 
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
@@ -102,7 +133,14 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 1: img_file = optarg; return optind - 1;
+      case 1: {
+        img_file = optarg;
+        if (ISDEF(CONFIG_MODE_USER)) {
+          return optind - 1;
+        } else {
+          break;
+        }
+      }
 
       case 'D': output_base_dir = optarg; break;
       case 'w': workload_name = optarg; break;
@@ -116,6 +154,11 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'r':
         restorer = optarg;
         break;
+      case 13: {
+        extern bool map_image_as_output_cpt;
+        map_image_as_output_cpt = true;
+        break;
+      }
 
       case 'S':
         assert(profiling_state == NoProfiling);
@@ -143,6 +186,8 @@ static inline int parse_args(int argc, char *argv[]) {
         profiling_state = SimpointProfiling;
         Log("Doing Simpoint Profiling");
         break;
+      case 11: etrace_inst = optarg; break;
+      case 12: etrace_data = optarg; break;
 
       case 6:
         // start profiling/checkpointing right after boot,
@@ -154,6 +199,25 @@ static inline int parse_args(int argc, char *argv[]) {
         Log("Force to take checkpoint on m mode. You should know what you are doing!");
         force_cpt_mmode = true;
         break;
+
+      case 8:
+        wait_manual_oneshot_cpt = true;
+        // fall through
+      case 9:
+        if (!wait_manual_oneshot_cpt) {
+          wait_manual_uniform_cpt = true;
+        }
+        Log("Manually take cpt by send signal");
+        checkpoint_taking = true;
+        if (signal(SIGINT, sig_handler) == SIG_ERR) {
+          panic("Cannot catch SIGINT!\n");
+        }
+        break;
+      case 10: { // map-cpt
+        mapped_cpt_file = optarg;
+        Log("Setting mapped_cpt_file to %s", mapped_cpt_file);
+        break;
+      }
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
@@ -177,17 +241,23 @@ static inline int parse_args(int argc, char *argv[]) {
 
         printf("\t-c,--restore            restoring from CPT FILE\n");
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
+        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it\n");
 
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
+        printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
+        printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
+        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n");
 
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--cpt-id                checkpoint id\n");
         printf("\t-M,--dump-mem=DUMP_FILE dump memory into FILE\n");
         printf("\t-R,--dump-reg=DUMP_FILE dump register value into FILE\n");
+        printf("\t--etrace-inst           GEM5 elastic trace inst output file\n");
+        printf("\t--etrace-data           GEM5 elastic trace data output file\n");
         printf("\n");
         exit(0);
     }
@@ -205,6 +275,12 @@ void init_monitor(int argc, char *argv[]) {
   parse_args(argc, argv);
 #endif
 
+  if (map_image_as_output_cpt) {
+    assert(!mapped_cpt_file);
+    mapped_cpt_file = img_file;
+    checkpoint_restoring = true;
+  }
+
   extern void init_path_manager();
   extern void simpoint_init();
   extern void init_serializer();
@@ -216,6 +292,9 @@ void init_monitor(int argc, char *argv[]) {
     simpoint_init();
     init_serializer();
   }
+
+  /* betapoint profiler init. */
+  beta_on_start();
 
   /* Open the log file. */
   init_log(log_file, small_log);
@@ -245,8 +324,14 @@ void init_monitor(int argc, char *argv[]) {
     img_size = MEMORY_SIZE;
     bbl_start = MEMORY_SIZE; // bbl size should never be used, let it crash if used
 
-    load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
-    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+    if (map_image_as_output_cpt) {  // map_cpt is loaded in init_mem
+      Log("Restoring with memory image cpt");
+    } else {
+      load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
+    }
+    if (restorer) {
+      load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+    }
 
   } else if (checkpoint_taking) {
     // boot: jump to restorer --> restorer jump to bbl
@@ -258,6 +343,17 @@ void init_monitor(int argc, char *argv[]) {
     long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
     long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
     img_size = restorer_size + bbl_size;
+
+  } else if (profiling_state == SimpointProfiling) {
+    if (restorer != NULL) {
+      Log("You are providing a gcpt restorer when doing simpoing profiling, "
+          "If you didn't link the program correctly, this will corrupt your memory/program.");
+      bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
+      long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+      long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+      img_size = restorer_size + bbl_size;
+    }
+
   } else {
     if (restorer != NULL) {
       Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! "
@@ -274,6 +370,12 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   init_device();
+
+  if (etrace_data || etrace_inst) {
+      assert(ISDEF(CONFIG_GEN_TRACE));
+  }
+  extern void init_tracer(const char *data_file, const char *inst_file);
+  init_tracer(etrace_data, etrace_inst);
 #endif
 
   /* Compile the regular expressions. */

@@ -57,8 +57,8 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
-DIRS-cpp = src/checkpoint src/base src/iostream3
-DIRS-y += src/checkpoint  # profiling.c
+DIRS-cpp = src/checkpoint src/base src/iostream3 src/inst_trace src/profiling
+DIRS-y += src/profiling src/checkpoint # profiling.c and cpt_env.c
 XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
 
 CC = $(call remove_quote,$(CONFIG_CC))
@@ -73,7 +73,7 @@ LDFLAGS += $(CFLAGS_BUILD)
 NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
-LDFLAGS += -lz
+LDFLAGS += -lz -lprotobuf
 endif
 
 ifndef CONFIG_SHARE
@@ -123,6 +123,31 @@ clean-all: clean-softfloat
 else ifdef CONFIG_FPU_HOST
 LDFLAGS += -lm
 endif
+
+LZ4 = resource/lz4/lib/liblz4.a
+LZ4_REPO_PATH = resource/lz4
+INC_DIR += $(LZ4_REPO_PATH)/lib
+LIBS += $(LZ4)
+
+$(LZ4):
+	$(MAKE) -s -C $(LZ4_REPO_PATH)
+
+ZSTD = resource/zstd/lib/libzstd.a
+ZSTD_REPO_PATH = resource/zstd
+INC_DIR += $(ZSTD_REPO_PATH)/lib
+LIBS += $(ZSTD)
+
+$(ZSTD):
+	$(MAKE) -s -C $(ZSTD_REPO_PATH)
+
+ROARING = resource/CRoaring/build/src/libroaring.a
+ROARING_REPO_PATH = resource/CRoaring
+INC_DIR += $(ROARING_REPO_PATH)/include
+LIBS += $(ROARING)
+
+$(ROARING):
+	mkdir -p $(ROARING_REPO_PATH)/build
+	cd $(ROARING_REPO_PATH)/build && cmake .. && cmake --build .
 
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk

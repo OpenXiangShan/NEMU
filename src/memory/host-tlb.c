@@ -19,6 +19,8 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
+#include <cpu/decode.h>
+#include <profiling/inst_profiling.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -26,6 +28,7 @@
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
+  paddr_t gppbase; // guest physical page number
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 2];
@@ -72,7 +75,16 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
+#ifdef CONFIG_DATAFLOW_PROF
+  if (s != NULL) {
+    s->is_store = false;
+    s->paddr = paddr;
+    s->mem_width = len;
+    recordMem(s->pc, vaddr, paddr, s->is_store);
+  }
+#endif
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return paddr_read(paddr, len, MEM_TYPE_READ, MODE_S, vaddr);
 }
@@ -84,7 +96,14 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    e->gppbase = paddr & (~(uint64_t)PAGE_MASK);
   }
+#ifdef CONFIG_DATAFLOW_PROF
+  s->is_store = true;
+  s->paddr = paddr;
+  s->mem_width = len;
+  recordMem(s->pc, vaddr, paddr, s->is_store);
+#endif
   paddr_write(paddr, len, data, MODE_S, vaddr);
 }
 
@@ -104,6 +123,17 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
+#ifdef CONFIG_DATAFLOW_PROF
+    paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
+    if (s != NULL) { // mem read
+      s->is_store = false;
+      s->paddr = paddr;
+      s->mem_width = len;
+      recordMem(s->pc, vaddr, paddr, s->is_store);
+    } else {
+      recordFetch(vaddr, vaddr, paddr);
+    }
+#endif
     return host_read(e->offset + vaddr, len);
   }
 }
@@ -122,5 +152,12 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
+#ifdef CONFIG_DATAFLOW_PROF
+  paddr_t paddr = e->gppbase | (vaddr & PAGE_MASK);
+  s->is_store = true;
+  s->paddr = paddr;
+  s->mem_width = len;
+  recordMem(s->pc, vaddr, paddr, s->is_store);
+#endif
   host_write(e->offset + vaddr, len, data);
 }

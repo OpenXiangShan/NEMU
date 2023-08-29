@@ -42,6 +42,15 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   s->type = 0;
   s->pc = pc;
   s->EHelper = g_exec_nemu_decode;
+  #ifdef CONFIG_DATAFLOW_PROF
+  if (ISDEF(CONFIG_DATAFLOW_PROF)) {
+    s->src1.flat_reg_id = 0;
+    s->src2.flat_reg_id = 0;
+    s->dest.flat_reg_id = 0;
+    s->fsrc3_id = 0;
+    s->mem_width = 0;
+  }
+  #endif
   return s;
 }
 

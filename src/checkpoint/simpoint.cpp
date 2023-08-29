@@ -44,8 +44,9 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-#include "checkpoint/simpoint.h"
-#include "checkpoint/profiling.h"
+
+#include <checkpoint/simpoint.h>
+#include <profiling/profiling_control.h>
 
 namespace SimPointNS
 {
@@ -95,7 +96,8 @@ SimPoint::init() {
 void
 SimPoint::profile_with_abs_icount(Addr pc, bool is_control, bool is_last_uop, uint64_t abs_icount) {
   unsigned exec_count = abs_icount - lastICount;
-  // Log("0x%lx -> icount = %lu\n", pc, abs_icount);
+  Logsp("PC: 0x%lx , icount: %lu, control: %i", pc, abs_icount, is_control);
+  Logsp("is_control: %i, is_last_uop: %i, exec_count: %u", is_control, is_last_uop, exec_count);
   profile(pc, is_control, is_last_uop, exec_count);
   lastICount = abs_icount;
 }
@@ -106,17 +108,22 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
   if (!is_last_uop)
     return;
 
-  if (!currentBBVInstCount)
-    currentBBV.first = pc;
-
   intervalCount += instr_count;
   currentBBVInstCount += instr_count;
+
+  if (!currentBBVInstCount) {
+    Logsp("Set BB start: 0x%lx", pc);
+    currentBBV.first = pc;
+  }
+
+  Logsp("intervalCount: %lu, currentBBVInstCount: %lu", intervalCount, currentBBVInstCount);
 
   // If inst is control inst, assume end of basic block.
   if (is_control) {
     currentBBV.second = pc;
 
     auto map_itr = bbMap.find(currentBBV);
+    Logsp("Finding BB 0x%lx -> 0x%lx", currentBBV.first, currentBBV.second);
     if (map_itr == bbMap.end()) {
       // If a new (previously unseen) basic block is found,
       // add a new unique id, record num of insts and insert into bbMap.
@@ -157,7 +164,7 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
                                   << ":" << cnt_itr->second << " ";
       }
       *simpointStream->stream() << "\n";
-      Log("Simpoint profilied %lu instrs", intervalCount);
+      Logsp("Simpoint profilied %lu instrs", intervalCount);
 
       intervalDrift = (intervalCount + intervalDrift) - intervalSize;
       intervalCount = 0;

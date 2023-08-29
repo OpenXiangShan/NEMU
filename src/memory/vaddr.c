@@ -15,6 +15,8 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <profiling/betapoint-ext.h>
+#include <profiling/profiling_control.h>
 
 #ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1
@@ -23,6 +25,8 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
+#include <cpu/decode.h>
+#include <profiling/inst_profiling.h>
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
@@ -117,6 +121,17 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
+#ifdef CONFIG_DATAFLOW_PROF
+    if (s != NULL) { // mem read
+      struct Decode *_s = s;
+      _s->is_store = false;
+      _s->paddr = addr;
+      _s->mem_width = len;
+      recordMem(_s->pc, addr, addr, _s->is_store);
+    } else { // ifetch
+      recordFetch(addr, addr, addr);
+    }
+#endif
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
@@ -146,7 +161,16 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
-  if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data, cpu.mode, addr); return; }
+  if (mmu_mode == MMU_DIRECT) {
+#ifdef CONFIG_DATAFLOW_PROF
+    s->is_store = true;
+    s->paddr = addr;
+    s->mem_width = len;
+    recordMem(s->pc, addr, addr, s->is_store);
+#endif
+    paddr_write(addr, len, data, cpu.mode, addr);
+    return;
+  }
 #ifndef __ICS_EXPORT
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 #endif

@@ -208,8 +208,24 @@ config TRACE_INST_DASM
   bool "Enable rich Log for tracing instructions, pc, inst and dasm included"
   default n
 
+config BETA_LOG
+  bool "Enable Log for betapoint profiling"
+  default n
+
 config TRACE_BB
   bool "Enable Log for tracing basic block"
+  default n
+
+config MEMPROF_LOG
+  bool "Enable Log for memory profiling"
+  default n
+
+config CTRLPROF_LOG
+  bool "Enable Log for control profiling"
+  default n
+
+config SIMPOINT_LOG
+  bool "Enable Log for simpoint profiling"
   default n
 
 endmenu
@@ -325,4 +341,13 @@ config ENABLE_INSTR_CNT
   bool "Enable instruction counting"
   default n if DISABLE_INSTR_CNT
   default y
+
+config GEN_TRACE
+  bool "generate gem5 elastic trace"
+  default n
+
+config DATAFLOW_PROF
+  bool "Profiling dataflow dependency"
+  default n
+
 endmenu

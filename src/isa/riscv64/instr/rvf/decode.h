@@ -19,6 +19,7 @@ static int table_op_fp_d(Decode *s);
 static int table_fmadd_d_dispatch(Decode *s);
 
 static inline def_DopHelper(fr){
+  IFDEF(CONFIG_DATAFLOW_PROF, op->flat_reg_id = val + 32);
   op->preg = &fpreg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
 #ifdef CONFIG_RVV
@@ -36,6 +37,7 @@ static inline def_DHelper(R4) {
   decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, false);
   decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, false);
   decode_op_fr(s, id_dest, s->isa.instr.fp.rd,  false);
+  IFDEF(CONFIG_DATAFLOW_PROF, s->fsrc3_id = s->isa.instr.fp.funct5 + 32);
   // rs3 is decoded at exec.h
 }
 

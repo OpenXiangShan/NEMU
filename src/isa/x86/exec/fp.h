@@ -30,9 +30,9 @@ static inline const char* get_387_fomat(int subcode) {
 }
 
 #define print_asm_fpu_template(instr) \
-  print_asm(str(instr) "%s %s", get_387_fomat(s->isa.fpu_MF), id_dest->str)
+  print_asm(ne_str(instr) "%s %s", get_387_fomat(s->isa.fpu_MF), id_dest->str)
 #define print_asm_fpu_template2(instr) \
-  print_asm(str(instr) "%s %s,%s", get_387_fomat(s->isa.fpu_MF), id_src1->str, id_dest->str)
+  print_asm(ne_str(instr) "%s %s,%s", get_387_fomat(s->isa.fpu_MF), id_src1->str, id_dest->str)
 
 // ------------- EHelpers -------------
 

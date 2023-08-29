@@ -18,7 +18,7 @@
 #define __RTL_BASIC_H__
 
 #include "c_op.h"
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 #include <memory/vaddr.h>
 #include <generated/autoconf.h>
 /* RTL basic instructions */

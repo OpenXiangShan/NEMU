@@ -18,7 +18,7 @@
 //
 
 #include <checkpoint/path_manager.h>
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 #include <checkpoint/serializer.h>
 #include <checkpoint/cpt_env.h>
 
@@ -251,6 +251,10 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
           Log("First cpt @ %lu, now: %lu",
                   next_point, num_insts);
       }
+  } else if (checkpoint_taking && recvd_manual_oneshot_cpt){
+    Log("Take manual cpt now: %lu", num_insts);
+    return true;
+
   } else if (checkpoint_taking && profiling_started){
       if (num_insts >= nextUniformPoint) {
           Log("Should take cpt now: %lu", num_insts);
@@ -263,9 +267,14 @@ bool Serializer::shouldTakeCpt(uint64_t num_insts) {
 void Serializer::notify_taken(uint64_t i) {
   Log("Taking checkpoint @ instruction count %lu", i);
   if (profiling_state == SimpointCheckpointing) {
-    simpoint2Weights.erase(simpoint2Weights.begin());
+    Log("simpoint2Weights size: %ld", simpoint2Weights.size());
+    if (!simpoint2Weights.empty()) {
+      simpoint2Weights.erase(simpoint2Weights.begin());
+    }
     if (!simpoint2Weights.empty()) {
         pathManager.incCptID();
+    } else {
+      recvd_manual_oneshot_cpt = true;
     }
 
   } else if (checkpoint_taking) {
@@ -286,9 +295,14 @@ bool try_take_cpt(uint64_t icount) {
   if (serializer.shouldTakeCpt(icount)) {
     serializer.serialize(icount);
     serializer.notify_taken(icount);
+    Log("return true");
     return true;
   }
   return false;
+}
+
+void serialize_reg_to_mem() {
+  serializer.serializeRegs();
 }
 
 }
