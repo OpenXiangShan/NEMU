@@ -7,7 +7,7 @@ enum ProfilingState {
     NoProfiling = 0,
     SimpointProfiling,
     SimpointCheckpointing,
-    BetapointProfiling,
+//    BetapointProfiling,
     UniformCheckpointing
 };
 
