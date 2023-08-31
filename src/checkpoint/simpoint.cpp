@@ -40,7 +40,7 @@
 
 #include "checkpoint/path_manager.h"
 #include <cassert>
-#include <debug.h>
+//#include <debug.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -80,6 +80,7 @@ SimPoint::~SimPoint() {
 void
 SimPoint::init() {
   if (profiling_state == SimpointProfiling) {
+    pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
     Log("Doing simpoint profiling with interval %lu", intervalSize);

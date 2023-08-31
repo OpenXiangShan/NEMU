@@ -59,12 +59,13 @@ static inline void welcome() {
   printf("For help, type \"help\"\n");
 }
 
+//recvd c-c signal then set manual flag
 void sig_handler(int signum) {
   if (signum == SIGINT) {
     Log("received SIGINT, mark manual cpt flag\n");
-    if (wait_manual_oneshot_cpt) {
+    if (checkpoint_state==ManualOneShotCheckpointing) {
       recvd_manual_oneshot_cpt = true;
-    } else if (wait_manual_uniform_cpt) {
+    } else if (checkpoint_state==ManualUniformCheckpointing) {
       recvd_manual_uniform_cpt = true;
       reset_inst_counters();
     } else {
@@ -106,6 +107,7 @@ static inline int parse_args(int argc, char *argv[]) {
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"dont-skip-boot"     , no_argument      , NULL, 6},
+
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
 
@@ -154,15 +156,14 @@ static inline int parse_args(int argc, char *argv[]) {
       }
 
       case 'S':
-        assert(profiling_state == NoProfiling);
+        assert(checkpoint_state == NoCheckpoint);
         simpoints_dir = optarg;
-        profiling_state = SimpointCheckpointing;
-        checkpoint_taking = true;
+        checkpoint_state=SimpointCheckpointing;
         Log("Taking simpoint checkpoints");
         break;
 
       case 'u':
-        checkpoint_taking = true;
+        checkpoint_state=UniformCheckpointing;
         break;
 
       case 'R':
@@ -182,7 +183,7 @@ static inline int parse_args(int argc, char *argv[]) {
       case 6:
         // start profiling/checkpointing right after boot,
         // instead of waiting for the pseudo inst to notify NEMU.
-        profiling_started = true;
+        donot_skip_boot=true;
         break;
 
       case 7:
@@ -191,14 +192,17 @@ static inline int parse_args(int argc, char *argv[]) {
         break;
 
       case 11:
-        wait_manual_oneshot_cpt = true;
+        checkpoint_state=ManualOneShotCheckpointing;
+        recvd_manual_oneshot_cpt=false;
         // fall through
       case 9:
-        if (!wait_manual_oneshot_cpt) {
-          wait_manual_uniform_cpt = true;
+        if (checkpoint_state==NoCheckpoint) {
+
+          recvd_manual_uniform_cpt=false;
+          checkpoint_state=ManualUniformCheckpointing;
         }
         Log("Manually take cpt by send signal");
-        checkpoint_taking = true;
+
         if (signal(SIGINT, sig_handler) == SIG_ERR) {
           panic("Cannot catch SIGINT!\n");
         }
@@ -243,7 +247,7 @@ static inline int parse_args(int argc, char *argv[]) {
 
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
-        printf("\t--cpt-id                checkpoint id\n");
+//        printf("\t--cpt-id                checkpoint id\n");
         printf("\t-M,--dump-mem=DUMP_FILE dump memory into FILE\n");
         printf("\t-R,--dump-reg=DUMP_FILE dump register value into FILE\n");
         printf("\n");
@@ -272,15 +276,13 @@ void init_monitor(int argc, char *argv[]) {
   extern void init_path_manager();
   extern void simpoint_init();
   extern void init_serializer();
-  extern void unserialize();
-  extern void reset_path();
 
-  bool output_features_enabled = checkpoint_taking || profiling_state == SimpointProfiling;
+  //checkpoint and profiling set output
+  bool output_features_enabled = checkpoint_state!=NoCheckpoint || profiling_state == SimpointProfiling;
   if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
     init_serializer();
-    reset_path();
   }
   /* Open the log file. */
   init_log(log_file, small_log);
@@ -319,7 +321,7 @@ void init_monitor(int argc, char *argv[]) {
       load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
     }
 
-  } else if (checkpoint_taking) {
+  } else if (checkpoint_state!=NoCheckpoint) {
     // boot: jump to restorer --> restorer jump to bbl
     assert(img_file != NULL);
     assert(restorer != NULL);

@@ -47,46 +47,53 @@ void PathManager::init() {
   cptID = -1;
 
   //set by manual from args
-  if (cpt_id != -1) {
-    cptID = cpt_id;
-  }
-
-  //set 0 means from take checkpoint
-  if (profiling_state == SimpointCheckpointing || checkpoint_taking) {
-    cptID = 0;
-  }
+  //  if (cpt_id != -1) {
+  //    cptID = cpt_id;
+  //  }
 
   Log("Cpt id: %i", cptID);
+
   workloadPath = statsBaseDir + "/" + configName + "/" + workloadName + "/";
 
-  if (profiling_state == SimpointCheckpointing) {
+  if (checkpoint_state == SimpointCheckpointing) {
     assert(simpoints_dir);
     simpointPath = fs::path(string(simpoints_dir) + "/" + workloadName +"/");
   }
-  if(profiling_state==SimpointProfiling){
-    setOutputDir();
+}
+
+void PathManager::setSimpointProfilingOutputDir() {
+  if (profiling_state==SimpointProfiling) {
+    std::string output_path = workloadPath;
+    outputPath = fs::path(output_path);
+
+    if (!fs::exists(outputPath)) {
+      fs::create_directories(outputPath);
+    }
+    Log("Created %s\n", output_path.c_str());
+  }else{
+    Log("donot set simpoint profiling path without SimpointProfiling mode");
   }
 }
 
-void PathManager::setOutputDir() {
-  std::string output_path = workloadPath;
-  if (cptID != -1) {
+void PathManager::setCheckpointingOutputDir() {
+  //set checkpoint id
+  cptID=serializer.next_index();
+  if (checkpoint_state!=NoCheckpoint) {
+    std::string output_path = workloadPath;
     output_path += to_string(cptID) + "/";
-  }
 
-  outputPath = fs::path(output_path);
-
-  if (!fs::exists(outputPath)) {
-    fs::create_directories(outputPath);
+    outputPath = fs::path(output_path);
+    if (!fs::exists(outputPath)) {
+      fs::create_directories(outputPath);
+    }
+    Log("Created %s\n", output_path.c_str());
+  }else{
+    Log("donot set checkpoint path without Checkpoint mode");
   }
-  Log("Created %s\n", output_path.c_str());
 }
 
 void PathManager::incCptID() {
-  if (cptID!=-1) {
-    cptID=serializer.next_index();
-  }
-//  cptID++;
+  cptID=serializer.next_index();
 }
 
 std::string PathManager::getOutputPath() const {
@@ -104,11 +111,6 @@ std::string PathManager::getSimpointPath() const {
 PathManager pathManager;
 
 extern "C" {
-
-void reset_path(){
-  pathManager.incCptID();
-  pathManager.setOutputDir();
-}
 
 void init_path_manager()
 {
