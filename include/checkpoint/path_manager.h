@@ -51,8 +51,6 @@ class PathManager
 
     std::string getSimpointPath() const;
 
-    void setOutputDir();
-
     void setSimpointProfilingOutputDir();
     void setCheckpointingOutputDir();
 };
