@@ -225,8 +225,6 @@ void Serializer::init() {
       assert(weight_id == simpoint_id);
       simpoint2Weights[simpoint_location] = weight;
 
-      simpoint_location_as_index.insert(simpoint_location);
-
       Log("Simpoint %lu: @ %lu, weight: %f", simpoint_id, simpoint_location, weight);
     }
 
