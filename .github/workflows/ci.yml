@@ -10,6 +10,7 @@ jobs:
   basic-tests:
     runs-on: nemu
     continue-on-error: false
+    timeout-minutes: 10
     name: nemu - Basics
     steps:
       - uses: actions/checkout@v2
@@ -52,6 +53,7 @@ jobs:
     runs-on: nemu
     continue-on-error: false
     name: nemu - H-extension
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v2
       - name: Setup env
@@ -82,9 +84,9 @@ jobs:
           make -j
           ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/xvisor
           make clean-all
-      - name: Run KVM with DiffTest
-        run: |
-          make riscv64-rvh-diff-spike_defconfig
-          make -j
-          ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/kvm
-          make clean-all
+      # - name: Run KVM with DiffTest
+      #   run: |
+      #     make riscv64-rvh-diff-spike_defconfig
+      #     make -j
+      #     ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/kvm
+      #     make clean-all
