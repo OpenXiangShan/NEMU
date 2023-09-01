@@ -72,7 +72,7 @@ LDFLAGS += $(CFLAGS_BUILD)
 NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
-LDFLAGS += -lz -lprotobuf
+LDFLAGS += -lz
 endif
 
 ifndef CONFIG_SHARE
