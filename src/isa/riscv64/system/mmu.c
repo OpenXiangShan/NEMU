@@ -156,14 +156,15 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
     }
     longjmp_exception(EX_IGPF);
   }else if (type == MEM_TYPE_READ){
-    if(intr_deleg_S(EX_LGPF)){
+    int ex = cpu.amo ? EX_SGPF : EX_LGPF;
+    if(intr_deleg_S(ex)){
       stval->val = vaddr;
       htval->val = gpaddr >> 2;
     }else{
       mtval->val = vaddr;
       mtval2->val = gpaddr >> 2;
     }
-    longjmp_exception(EX_LGPF);
+    longjmp_exception(ex);
   }else{
     if(intr_deleg_S(EX_SGPF)){
       stval->val = vaddr;
