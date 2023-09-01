@@ -17,12 +17,13 @@
 #include <stdlib.h>
 #include <macro.h>
 #include <memory/paddr.h>
+
+#include <fcntl.h>
+#include <sys/mman.h>
+
 #ifdef CONFIG_MEM_COMPRESS
 #include <zlib.h>
-#include <sys/mman.h>
-#include <fcntl.h>
 #include <unistd.h>
-
 #endif
 
 #ifndef CONFIG_MODE_USER
