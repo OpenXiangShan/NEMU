@@ -38,9 +38,6 @@ def_EHelper(nemu_trap) {
       extern void disable_time_intr();
       disable_time_intr();
   } else if (cpu.gpr[10]._64 == 0x101) {
-//    if (!profiling_started && !wait_manual_uniform_cpt) {
-//      reset_inst_counters();
-//    }
     if (!workload_loaded) {
       reset_inst_counters();
     }

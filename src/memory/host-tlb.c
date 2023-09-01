@@ -20,7 +20,6 @@
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
-//#include <profiling/inst_profiling.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)

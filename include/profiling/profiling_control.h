@@ -3,14 +3,6 @@
 
 #include <common.h>
 
-//enum ProfilingState {
-//    NoProfiling = 0,
-//    SimpointProfiling,
-//    SimpointCheckpointing,
-////    BetapointProfiling,
-//    UniformCheckpointing
-//};
-
 enum ProfilingState{
     NoProfiling =0,
     SimpointProfiling,
@@ -27,15 +19,11 @@ enum CheckpointState{
 extern int profiling_state;
 extern int checkpoint_state;
 extern bool checkpoint_restoring;
-//extern bool checkpoint_taking;
 extern uint64_t checkpoint_interval;
 
-//extern bool wait_manual_oneshot_cpt;
-//extern bool wait_manual_uniform_cpt;
 extern bool recvd_manual_oneshot_cpt;
 extern bool recvd_manual_uniform_cpt;
 
-//extern bool profiling_started;
 extern bool force_cpt_mmode;
 
 extern bool workload_loaded;

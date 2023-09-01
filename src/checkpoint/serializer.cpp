@@ -82,7 +82,6 @@ void Serializer::serializePMem(uint64_t inst_count) {
   Log("Put gcpt restorer %s to start of pmem", restorer);
 
   string filepath;
-//  if (profiling_state == SimpointCheckpointing) {
   if (checkpoint_state == SimpointCheckpointing) {
       filepath = pathManager.getOutputPath() + "_" + \
                         to_string(simpoint2Weights.begin()->first) + "_" + \
@@ -197,7 +196,6 @@ void Serializer::serializeRegs() {
 }
 
 void Serializer::serialize(uint64_t inst_count) {
-//  pathManager.setOutputDir();
 //  isa_reg_display();
   serializeRegs();
   serializePMem(inst_count);

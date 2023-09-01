@@ -6,12 +6,9 @@ bool checkpoint_taking = false;
 bool checkpoint_restoring = false;
 uint64_t checkpoint_interval = 0;
 
-//bool wait_manual_oneshot_cpt = false;
-//bool wait_manual_uniform_cpt = false;
 bool recvd_manual_oneshot_cpt = false;
 bool recvd_manual_uniform_cpt = false;
 
-//bool profiling_started = false;
 bool force_cpt_mmode = false;
 
 bool donot_skip_boot=false;
