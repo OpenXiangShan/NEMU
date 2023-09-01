@@ -123,22 +123,6 @@ else ifdef CONFIG_FPU_HOST
 LDFLAGS += -lm
 endif
 
-LZ4 = resource/lz4/lib/liblz4.a
-LZ4_REPO_PATH = resource/lz4
-INC_DIR += $(LZ4_REPO_PATH)/lib
-LIBS += $(LZ4)
-
-$(LZ4):
-	$(MAKE) -s -C $(LZ4_REPO_PATH)
-
-ZSTD = resource/zstd/lib/libzstd.a
-ZSTD_REPO_PATH = resource/zstd
-INC_DIR += $(ZSTD_REPO_PATH)/lib
-LIBS += $(ZSTD)
-
-$(ZSTD):
-	$(MAKE) -s -C $(ZSTD_REPO_PATH)
-
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk
