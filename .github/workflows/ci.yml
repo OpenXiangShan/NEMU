@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/H-extension-tests" >> $GITHUB_ENV
-
+          echo "PATH=/nfs/home/share/riscv/bin:$PATH" >> $GITHUB_ENV
       - name: Build NEMU interpreter
         run: |
           make riscv64-xs_defconfig
