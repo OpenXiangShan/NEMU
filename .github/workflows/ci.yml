@@ -6,8 +6,6 @@ on:
   pull_request:
     branches: [ master ]
 
-  workflow_dispatch:
-
 jobs:
   basic-tests:
     runs-on: nemu
