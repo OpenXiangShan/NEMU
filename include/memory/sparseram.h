@@ -101,6 +101,7 @@ public:
     endianness_t get_target_endianness();
 
     void copy_nzero_bytes(copy_mem_func copy_handler);
+    void copy_bytes(copy_mem_func copy_handler);
 
     void print_info();
 

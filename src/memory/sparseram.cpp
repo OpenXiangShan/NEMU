@@ -717,6 +717,23 @@ void SparseRam::copy(SparseRam *dst) {
   this->copy_nzero_bytes(fc);
 }
 
+void SparseRam::copy_bytes(copy_mem_func copy_handler)
+{
+  // copy big blocks (only copy the blocks with same cfg)
+  for(auto bl=this->big_block.begin(); bl != this->big_block.end(); bl++){
+    auto name = bl->first;
+    auto sbk = bl->second;
+    copy_handler(sbk->start, sbk->end - sbk->start, sbk->blk);
+  }
+  // copy norm mem
+  for (auto iter = this->mem.begin(); iter != this->mem.end(); iter++)
+  {
+    auto addr = iter->first * this->block_size;
+    auto buff = iter->second;
+    copy_handler(addr, this->block_size, buff);
+  }
+}
+
 void SparseRam::print_info()
 {
   OUTPUT(stderr, "SpRam blocks: %ld, size: %.2f MB\n", 
