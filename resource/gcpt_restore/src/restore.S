@@ -36,6 +36,8 @@ restore_csr_vector:
 
   li t0, CSR_CPT_ADDR
   CSRS(CSRS_RESTORE)
+  HCSRS(CSRS_RESTORE)
+  #VCSRS(CSRS_RESTORE)
 
   # set MPIE to the value of MIE
   csrr t0, CSR_MSTATUS

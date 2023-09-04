@@ -22,6 +22,7 @@ BINARY ?= $(BUILD_DIR)/$(NAME)
 
 .DEFAULT_GOAL = app
 
+INC_DIR += $(NEMU_HOME)/include/generated
 # Compilation flags
 CROSS_COMPILE = riscv64-linux-gnu-
 CC = $(CROSS_COMPILE)gcc
