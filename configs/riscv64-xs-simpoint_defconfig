@@ -64,8 +64,6 @@ CONFIG_DIFFTEST_REF_NAME="none"
 # CONFIG_EXITLOG is not set
 # CONFIG_TRACE_INST is not set
 # CONFIG_TRACE_BB is not set
-# CONFIG_MEMPROF_LOG is not set
-# CONFIG_CTRLPROF_LOG is not set
 # CONFIG_SIMPOINT_LOG is not set
 # end of Testing and Debugging
 
