@@ -225,6 +225,24 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
 #endif // CONFIG_RVH
 
 
+#ifndef CONFIG_MULTICORE_DIFF
+static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
+#ifdef CONFIG_SHARE
+  extern bool is_in_mmio(paddr_t addr);
+  if (unlikely(is_in_mmio(addr))) {
+    int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
+                type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+    INTR_TVAL_REG(cause) = vaddr;
+    longjmp_exception(cause);
+  }
+#endif
+  int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
+                        type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
+                                                  MEM_TYPE_READ;
+  return paddr_read(addr, PTE_SIZE, paddr_read_type, mode, vaddr);
+}
+#endif // CONFIG_MULTICORE_DIFF
+
 static paddr_t ptw(vaddr_t vaddr, int type) {
   Logtr("Page walking for 0x%lx\n", vaddr);
   word_t pg_base = PGBASE(satp->ppn);
@@ -262,9 +280,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       p_pte = gpa_stage(p_pte, vaddr, type);
     }
   #endif //CONFIG_RVH
-    pte.val	= paddr_read(p_pte, PTE_SIZE,
-      type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
-      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+    pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
