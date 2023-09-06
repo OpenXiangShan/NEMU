@@ -196,7 +196,10 @@ word_t inline pmp_tor_mask() {
 
 static inline void update_mstatus_sd() {
   // mstatus.fs is always dirty or off in QEMU 3.1.0
-  if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
+  // When CONFIG_FS_CLEAN_STATE is set (such as for rocket-chip), mstatus.fs is always dirty or off.
+  if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
+    mstatus->fs = 3;
+  }
   mstatus->sd = (mstatus->fs == 3);
 }
 #ifdef CONFIG_RVH
