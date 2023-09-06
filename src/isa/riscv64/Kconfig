@@ -72,6 +72,10 @@ config XTVEC_VECTORED_MODE
   bool "Support Vectored MODE of mtvec/stvec"
   default y
 
+config TVAL_EX_II
+  bool "Update m/stval on illegal instruction exceptions"
+  default n
+
 config RV_ARCH_CSRS
   bool "Enable mvendorid, marchid, mimpid CSR"
   default y
