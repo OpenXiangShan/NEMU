@@ -33,6 +33,7 @@ void init_audio();
 void init_disk();
 void init_sdcard();
 void init_flash();
+void load_flash_contents(const char *);
 
 void send_key(uint8_t, bool);
 void vga_update_screen();
@@ -93,8 +94,9 @@ void init_device() {
   IFDEF(CONFIG_HAS_AUDIO, init_audio());
   IFDEF(CONFIG_HAS_DISK, init_disk());
   IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
+  IFDEF(CONFIG_HAS_FLASH, init_flash());
 #ifndef CONFIG_SHARE
-  IFDEF(CONFIG_HAS_FLASH, init_flash(CONFIG_FLASH_IMG_PATH));
+  IFDEF(CONFIG_HAS_FLASH, load_flash_contents(CONFIG_FLASH_IMG_PATH));
 #endif
 
 #ifndef CONFIG_SHARE

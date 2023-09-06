@@ -15,37 +15,29 @@
 
 #include <utils.h>
 #include <device/map.h>
+#include <sys/mman.h>
 
-uint8_t *flash_base = NULL;
+static uint8_t *flash_base = NULL;
 static FILE *fp = NULL;
-// static const char *flash_img = CONFIG_FLASH_IMG_PATH;
-static uint32_t preset_flash[3];
-// static uint32_t preset_flash[] = {
-//   0x0010029b,
-//   0x01f29293,
-//   0x00028067
-// };
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
-  // if(!is_write){
-  //   printf("Flash read offset %x len %x\n", offset, len);
-  //   printf("data %lx\n", *(uint64_t*)&flash_base[offset]);
-  // }
   Assert(!is_write, "write to flash is illegal");
   return;
 }
 
-void init_flash(const char *flash_img) {
-  sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", &preset_flash[0], &preset_flash[1], &preset_flash[2]);
-#if CONFIG_HAS_FLASH == 1
-  fp = fopen(flash_img, "r");
-  if (fp == NULL) {
-    // Log("Can not find flash image: %s", img);
-    // Log("Use built-in image instead");
-    printf("[NEMU] Can not find flash image: %s\n", flash_img);
-    printf("[NEMU] Use built-in image instead\n");
-    add_mmio_map("flash", CONFIG_FLASH_START_ADDR, (uint8_t *)preset_flash, CONFIG_FLASH_SIZE, flash_io_handler);
-    return;
+void load_flash_contents(const char *flash_img) {
+  // create mmap with zero contents
+  flash_base = mmap(NULL, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  if (flash_base == MAP_FAILED) {
+    Log("mmap for flash failed");
+    assert(0);
+  }
+
+  if (!flash_img || !(fp = fopen(flash_img, "r"))) {
+    Log("Can not find flash image: %s", flash_img);
+    Log("Use built-in image instead");
+    uint32_t *p = (uint32_t *)flash_base;
+    sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", p, p + 1, p + 2);
   } else {
     __attribute__((unused)) int ret;
     fseek(fp, 0, SEEK_END);
@@ -60,8 +52,8 @@ void init_flash(const char *flash_img) {
     ret = fread(flash_base, 1, size, fp);
     fclose(fp);
   }
-#else
-  flash_base = (uint8_t*) preset_flash;
-#endif  
+}
+
+void init_flash(const char *flash_img) {
   add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
 }
