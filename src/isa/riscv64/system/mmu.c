@@ -225,6 +225,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
 #endif // CONFIG_RVH
 
 
+#ifndef CONFIG_MULTICORE_DIFF
 static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_SHARE
   extern bool is_in_mmio(paddr_t addr);
@@ -240,6 +241,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
                                                   MEM_TYPE_READ;
   return paddr_read(addr, PTE_SIZE, paddr_read_type, mode, vaddr);
 }
+#endif // CONFIG_MULTICORE_DIFF
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
   Logtr("Page walking for 0x%lx\n", vaddr);
