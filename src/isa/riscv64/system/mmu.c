@@ -47,7 +47,7 @@ typedef union PageTableEntry {
 #define PTW_LEVEL 3
 #define PTE_SIZE 8
 #define VPNMASK 0x1ff
-#define GPVPNMASK 0x7ff  
+#define GPVPNMASK 0x7ff
 static inline uintptr_t VPNiSHFT(int i) {
   return (PGSHFT) + 9 * i;
 }
@@ -197,9 +197,9 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       if(pte.v && !pte.r && !pte.w && !pte.x){
         level --;
         if (level < 0) { break; }
-      }else if (!pte.v || (!pte.r && pte.w)) 
+      }else if (!pte.v || (!pte.r && pte.w))
         break;
-      else if(!pte.u) 
+      else if(!pte.u)
         break;
       else if(type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
               type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
@@ -426,9 +426,16 @@ int update_mmu_state() {
   return (data_mmu_state ^ data_mmu_state_old) ? true : false;
 }
 
+void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
+
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
+
+  if (!is_ifetch) {
+    isa_misalign_data_addr_check(vaddr, len, type);
+  }
+
   // riscv-privileged 4.4.1: Addressing and Memory Protection:
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
@@ -449,7 +456,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }else{
       gpf = true;
     }
-  } 
+  }
 #endif
   if(!va_msbs_ok){
     if(is_ifetch){
@@ -541,14 +548,6 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if (cpu.v && is_ifetch) return h_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 #endif
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
-  if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
-    Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
-    // assert(0);
-    int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-    INTR_TVAL_REG(ex) = vaddr;
-    longjmp_exception(ex);
-    return MEM_RET_FAIL;
-  }
 #ifdef CONFIG_RVH
   if(hld_st)
     return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
@@ -556,15 +555,14 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
 
-#ifdef CONFIG_SHARE
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
+    Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
     INTR_TVAL_REG(ex) = vaddr;
     longjmp_exception(ex);
   }
 }
-#endif
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
@@ -712,15 +710,15 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
 
     uint64_t root_pte_addr = root_table_base + (off1 << 3);
     /*
-     * Get root pte: 
-     * Use host_read instead of paddr_read, avoid nested call of isa_pmp_check_permission 
+     * Get root pte:
+     * Use host_read instead of paddr_read, avoid nested call of isa_pmp_check_permission
      */
     uint64_t root_pte = host_read(guest_to_host(root_pte_addr), 8);
 
-    /* 
-     * root_pte case(last 4 bits are 0001): 
+    /*
+     * root_pte case(last 4 bits are 0001):
      * valid(last bit is 1) but no permission bit is set(other bit are all 0),
-     * should check the leaf table to get permission. 
+     * should check the leaf table to get permission.
      */
     if ((root_pte & 0x0f) == 1) {
       bool at_high = page_index % 2;
@@ -728,20 +726,20 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
       uint8_t leaf_pte = host_read(guest_to_host(((root_pte >> 5) << 12) + (off0 << 3)) + idx, 1);
       if (at_high) {
         perm = leaf_pte >> 4;
-      } 
+      }
       else {
         perm = leaf_pte & 0xf;
       }
     }
-    /* 
-     * root_pte case(last 4 bits are xxx1): 
+    /*
+     * root_pte case(last 4 bits are xxx1):
      * valid(last bit is 1) and some permission bits are set(other bit are not all 0),
-     * directly use the root pte to get permission.       
+     * directly use the root pte to get permission.
      */
     else if ((root_pte & 0x1) == 1) {
       perm = (root_pte >> 1) & 0xf;
     }
-    /* 
+    /*
      * root_pte case(last 4 bits are xxx0):
      * invaild(last bit is 0), directly return false.
      */
@@ -768,8 +766,8 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
       return false;
     }
 #undef R_BIT
-#undef W_BIT 
-#undef X_BIT 
+#undef W_BIT
+#undef X_BIT
   }
 }
 #endif
@@ -888,7 +886,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
     if (addr_mode) {
       int match_ret = 0;
       match_ret = pmp_address_match(base, addr, len, pmpaddr, addr_mode);
-      /* 
+      /*
        * When match_ret == 1, means that only a part of addr is in a pmpaddr region
        * and it is illegal.
        */
