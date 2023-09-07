@@ -22,6 +22,15 @@ struct Decode;
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type);
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data);
 void hosttlb_init();
+
+paddr_t hosttlb_lookup(vaddr_t vaddr, int len, int type);
+void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type);
 void hosttlb_flush(vaddr_t vaddr);
+
+#ifdef CONFIG_RVH
+paddr_t hosttlb_guest_lookup(paddr_t gpaddr, int type);
+void hosttlb_guest_insert(paddr_t gpaddr, paddr_t paddr, int type);
+void hosttlb_guest_flush(paddr_t gpaddr);
+#endif
 
 #endif

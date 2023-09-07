@@ -110,6 +110,13 @@ void mmu_tlb_flush(vaddr_t vaddr) {
   if (vaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
+#ifdef CONFIG_RVH
+void mmu_tlb_guest_flush(paddr_t gpaddr) {
+  hosttlb_guest_flush(gpaddr);
+  if (gpaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+#endif
+
 _Noreturn
 void longjmp_exec(int cause) {
   Loge("Longjmp to jbuf_exec with cause: %i", cause);

@@ -624,6 +624,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp) || is_write(hgatp)) { update_mmu_state(); }
+  if (is_write(hgatp)) { mmu_tlb_guest_flush(0); }
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
   }
@@ -795,24 +796,24 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           if(cpu.v) longjmp_exception(EX_VI);
           if(cpu.mode == MODE_U) longjmp_exception(EX_II);
           if(!(cpu.mode == MODE_M || (cpu.mode == MODE_S && !cpu.v))) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
+          mmu_tlb_guest_flush(*src);
           break;
         case 0x31: // hfence.gvma
           if(cpu.v) longjmp_exception(EX_VI);
           if(cpu.mode == MODE_U) longjmp_exception(EX_II);
           if(!(cpu.mode == MODE_M || (cpu.mode == MODE_S && !cpu.v && mstatus->tvm == 0))) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
+          mmu_tlb_guest_flush(*src);
           break;
 #ifdef CONFIG_RV_SVINVAL
         case 0x13: // hinval.vvma
           if(cpu.v) longjmp_exception(EX_VI);
           if(cpu.mode == MODE_U) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
+          mmu_tlb_guest_flush(*src);
           break;
         case 0x33: // hinval.gvma
           if(cpu.v) longjmp_exception(EX_VI);
           if(cpu.mode == MODE_U || (cpu.mode == MODE_S && !cpu.v && mstatus->tvm)) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
+          mmu_tlb_guest_flush(*src);
           break;
 #endif // CONFIG_SVINVAL
 #endif // CONFIG_RVH
