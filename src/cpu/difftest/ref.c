@@ -53,16 +53,16 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
   void *a = get_sparsemm();
-  printf("[Info] ref-so: copy sparse mm: %p -> %p with direction %s\n", 
+  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n", 
           dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
   if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
   else sparse_mem_copy(dut_buf, a);
 
-  printf("Copy Data: ");
+  printf("[sp-mem] copy complete, eg data: ");
   for (int j = 0; j < 8; j++) {
     printf("%016lx", sparse_mem_wread(a, nemu_addr + j*sizeof(uint64_t), sizeof(uint64_t)));
   }
-  printf("...\n");
+  printf("\n");
 
 #else
 #ifdef CONFIG_LARGE_COPY
