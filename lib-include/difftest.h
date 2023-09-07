@@ -31,9 +31,12 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #elif defined(__ISA_riscv32__)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 33) // GRPs + pc
 #elif defined(__ISA_riscv64__)
-
-#if defined RV64_FULL_DIFF
+#ifdef RV64_FULL_DIFF
+#ifdef CONFIG_FPU_NONE
+#define BASE_SIZE (sizeof(uint64_t) * (32 + 1 + 6 + 11 + 1))
+#else
 #define BASE_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1))
+#endif
 // GRPs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode
 #else
 #define BASE_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
@@ -41,13 +44,13 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 
 #if defined (RV64_FULL_DIFF) && defined (CONFIG_RVV)
 #define RVV_EXT_REG_SIZE (sizeof(uint64_t) * (64 + 7))
-#else 
+#else
 #define RVV_EXT_REG_SIZE 0
 #endif //CONFIG_RVV
 
 #if defined (RV64_FULL_DIFF) && defined (CONFIG_RVH)
-#define RVH_EXT_REG_SIZE (sizeof(uint64_t) * (1 + 16)) // v-mode + HCSRS 
-#else 
+#define RVH_EXT_REG_SIZE (sizeof(uint64_t) * (1 + 16)) // v-mode + HCSRS
+#else
 #define RVH_EXT_REG_SIZE 0
 #endif //CONFIG_RVH
 
