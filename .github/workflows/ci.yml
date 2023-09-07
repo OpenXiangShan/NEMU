@@ -104,10 +104,11 @@ jobs:
           make clean-all
       - name: Run Xvisor with DiffTest
         run: |
+          git submodule update --init ready-to-run
           make riscv64-rvh-diff-spike_defconfig
           echo "#define CONFIG_DETERMINISTIC 1" >> ./include/generated/autoconf.h
           make -j
-          ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/xvisor
+          ./build/riscv64-nemu-interpreter -b -d ./ready-to-run/riscv64-spike-H-ext-so $TEST_HOME/xvisor
           make clean-all
       # - name: Run KVM with DiffTest
       #   run: |
