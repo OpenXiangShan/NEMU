@@ -35,14 +35,18 @@ static inline uint32_t get_instr(Decode *s) {
   void concat(decode_op_, name) (Decode *s, Operand *op, word_t val, bool flag)
 
 #include "rvi/decode.h"
+#ifndef CONFIG_FPU_NONE
 #include "rvf/decode.h"
+#endif // CONFIG_FPU_NONE
 #include "rvm/decode.h"
 #include "rva/decode.h"
 #include "rvc/decode.h"
-#include "rvd/decode.h"
 #include "priv/decode.h"
+#ifndef CONFIG_FPU_NONE
+#include "rvd/decode.h"
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVV
-  #include "rvv/decode.h"
+#include "rvv/decode.h"
 #endif // CONFIG_RVV
 
 def_THelper(main) {

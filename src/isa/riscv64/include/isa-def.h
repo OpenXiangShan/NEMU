@@ -63,9 +63,11 @@ typedef struct {
     uint64_t _64;
   } gpr[32];
 
+#ifndef CONFIG_FPU_NONE
   union {
     uint64_t _64;
   } fpr[32];
+#endif // CONFIG_FPU_NONE
 
   // shadow CSRs for difftest
   uint64_t pc;
