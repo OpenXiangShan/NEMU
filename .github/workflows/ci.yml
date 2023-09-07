@@ -12,7 +12,7 @@ jobs:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
-    name: nemu - Basics
+    name: nemu - Basics for XiangShan
     steps:
       - uses: actions/checkout@v2
       - name: Setup env
@@ -53,7 +53,7 @@ jobs:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
-    name: nemu - Basics
+    name: nemu - Basics for NutShell
     steps:
       - uses: actions/checkout@v2
       - name: Setup env
