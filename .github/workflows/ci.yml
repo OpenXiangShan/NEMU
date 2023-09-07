@@ -104,6 +104,7 @@ jobs:
           make clean-all
       - name: Run Xvisor with DiffTest
         run: |
+          git submodule update --init ready-to-run
           make riscv64-rvh-diff-spike_defconfig
           echo "#define CONFIG_DETERMINISTIC 1" >> ./include/generated/autoconf.h
           make -j
