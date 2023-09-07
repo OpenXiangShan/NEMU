@@ -22,14 +22,14 @@ def_EHelper(name) { \
   else rtl_priv_next(s); \
 }
 
-#ifdef CONFIG_DEBUG
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 
-#ifdef CONFIG_RVH 
+#ifdef CONFIG_RVH
 #define def_hld_template(name) \
   def_EHelper(name){ \
     extern int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id); \
     hload(s, ddest, dsrc1, id_src2->imm); \
-  } 
+  }
 #define def_hst_template(name) \
 def_EHelper(name){ \
   extern int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2); \
@@ -38,9 +38,9 @@ def_EHelper(name){ \
 #define RVH_LD_INST_LIST(f) f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d)
 #define RVH_ST_INST_LIST(f)  f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
 #ifdef CONFIG_RV_SVINVAL
-  #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma) 
+  #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma)
 #else
-  #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma) 
+  #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma)
 #endif // CONFIG_RV_SVINVAL
 MAP(RVH_SYS_INST_LIST, def_SYS_EHelper)
 MAP(RVH_LD_INST_LIST, def_hld_template)

@@ -33,7 +33,7 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
-#ifdef CONFIG_RVH 
+#ifdef CONFIG_RVH
 #ifdef CONFIG_RV_SVINVAL
   #define RVH_INST_BINARY(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma) \
     f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d) \
@@ -47,7 +47,7 @@
   #define RVH_INST_BINARY(f)
 #endif // CONFIG_RVH
 
-#ifdef CONFIG_DEBUG
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
   f(ecall) f(ebreak) f(mret) f(sret) f(wfi) \
@@ -63,7 +63,7 @@
 
 #define SYS_INSTR_TERNARY(f) \
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
-#else 
+#else
 #ifdef CONFIG_RVH
 #define SYS_INSTR_NULLARY(f)
 #define SYS_INSTR_BINARY(f)
