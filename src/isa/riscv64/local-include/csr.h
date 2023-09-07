@@ -41,7 +41,7 @@
   f(scontext   , 0x6a8) \
   f(tselect    , 0x7a0) f(tdata1     , 0x7a1) f(tdata2     , 0x7a2) f(tdata3     , 0x7a3) \
   f(tinfo      , 0x7a4) f(tcontrol   , 0x7a5) f(mcontext   , 0x7a8) \
-  
+
 #else
   #define TRIGGER_CSRS(f)
 #endif // CONFIG_RVSDTRIG
@@ -276,7 +276,6 @@ CSR_STRUCT_END(mip)
 #define PMP_A     0x18
 #define PMP_L     0x80
 #define PMP_SHIFT 2
-#define PMP_PLATFORMGARIN 12 // log2(4KB)
 
 #ifdef CONFIG_PMPTABLE_EXTENSION
 #define PMP_T     0x20
@@ -607,11 +606,11 @@ CSR_STRUCT_START(tdata3)    // 0x7a3
 CSR_STRUCT_END(tdata3)
 
 CSR_STRUCT_START(tinfo)     // 0x7a4
-  uint64_t info : 16;       // [15:0] 
+  uint64_t info : 16;       // [15:0]
 CSR_STRUCT_END(tinfo)
 
 CSR_STRUCT_START(tcontrol)  // 0x7a5
-  uint64_t pad0 : 3;        // [2:0] 
+  uint64_t pad0 : 3;        // [2:0]
   uint64_t mte  : 1;        // [3]
   uint64_t pad1 : 3;        // [6:4]
   uint64_t mpte : 1;        // [7]
@@ -813,7 +812,7 @@ CSR_STRUCT_START(vsatp)
       uint64_t asid :16;
       uint64_t mode : 4;
     }_64;
-  }; 
+  };
 CSR_STRUCT_END(vsatp)
 #endif //CONFIG_RVH
 
