@@ -191,7 +191,7 @@ word_t pmpaddr_from_csrid(int id) {
 }
 
 word_t inline pmp_tor_mask() {
-  return -((word_t)1 << (PMP_PLATFORMGARIN - PMP_SHIFT));
+  return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
 }
 
 static inline void update_mstatus_sd() {
@@ -547,7 +547,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       word_t cfg = ((src >> (i*8)) & 0xff);
 #endif
       cfg &= ~PMP_W | ((cfg & PMP_R) ? PMP_W : 0); // Disallow R=0 W=1
-      if (PMP_PLATFORMGARIN != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
+      if (CONFIG_PMP_GRANULARITY != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
         cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
       cfg_data |= (cfg << (i*8));
     }
