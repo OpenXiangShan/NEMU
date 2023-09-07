@@ -96,6 +96,10 @@ void difftest_csrcpy(void *dut, bool direction) {
   isa_difftest_csrcpy(dut, direction);
 }
 
+void difftest_uarchstatus_sync(void *dut) {
+  isa_difftest_uarchstatus_cpy(dut, DIFFTEST_TO_REF);
+}
+
 #ifdef CONFIG_LIGHTQS
 void difftest_uarchstatus_cpy(void *dut, bool direction, uint64_t restore_count) {
   isa_difftest_uarchstatus_cpy(dut, direction, restore_count);
@@ -198,6 +202,10 @@ void difftest_init() {
 #endif
 }
 
+void difftest_display() {
+  isa_reg_display();
+}
+
 #ifdef CONFIG_MULTICORE_DIFF
 uint8_t *golden_pmem = NULL;
 
@@ -210,4 +218,3 @@ void difftest_put_gmaddr(uint8_t* ptr) {
 }
 
 #endif
-
