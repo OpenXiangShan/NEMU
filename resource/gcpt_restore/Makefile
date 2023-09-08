@@ -23,7 +23,7 @@ BINARY ?= $(BUILD_DIR)/$(NAME)
 .DEFAULT_GOAL = app
 
 # Compilation flags
-CROSS_COMPILE = riscv64-linux-gnu-
+CROSS_COMPILE = riscv64-unknown-linux-gnu-
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
 OBJDUMP = $(CROSS_COMPILE)objdump

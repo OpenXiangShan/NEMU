@@ -102,6 +102,9 @@ typedef struct {
   bool amo;
   int mem_exception;
 
+#ifdef CONFIG_TVAL_EX_II
+  uint32_t instr;
+#endif
   // for LR/SC
   uint64_t lr_addr;
   uint64_t lr_valid;

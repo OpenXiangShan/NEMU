@@ -149,6 +149,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
 #endif
         break;
+#ifdef CONFIG_TVAL_EX_II
+      case EX_II: stval->val = cpu.instr; break;
+#endif
       default: stval->val = 0;
 #ifdef CONFIG_RVH
                htval->val = 0;
@@ -181,6 +184,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
 #endif
         break;
+#ifdef CONFIG_TVAL_EX_II
+      case EX_II: mtval->val = cpu.instr; break;
+#endif
       default: mtval->val = 0;
 #ifdef CONFIG_RVH
                mtval2->val = 0;
