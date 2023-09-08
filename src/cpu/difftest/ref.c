@@ -19,6 +19,7 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 
+extern void init_flash();
 extern void load_flash_contents(const char *flash_img);
 
 
@@ -62,6 +63,7 @@ void difftest_load_flash(void *flash_bin, size_t f_size){
   printf("nemu does not enable flash fetch!\n");
 #else
   load_flash_contents((const char *)flash_bin);
+  init_flash();
 #endif
 }
 
