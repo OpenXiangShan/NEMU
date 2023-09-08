@@ -48,6 +48,17 @@ jobs:
           make riscv64-dual-xs-ref_defconfig
           make -j
           make clean-all
+      - name: Build NEMU with RVV
+        run: |
+          make riscv64-rvv_defconfig
+          make -j
+          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          make clean-all
+      - name: Build NEMU as difftest rvv ref
+        run: |
+          make riscv64-rvv-ref_defconfig
+          make -j
+          make clean-all
 
   basic-tests-nutshell:
     runs-on: nemu
