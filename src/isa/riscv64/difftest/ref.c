@@ -221,7 +221,9 @@ void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
 
   if (direction == DIFFTEST_TO_REF) {
     struct SyncState* ms = (struct SyncState*)dut;
-    cpu.lr_valid = ms->lrscValid;
+    if (ms->lrscValid) { // this is actually sc_failed
+      cpu.lr_valid = 0;
+    }
   } else {
     struct SyncState ms;
     ms.lrscValid = cpu.lr_valid;
