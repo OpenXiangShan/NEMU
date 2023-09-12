@@ -42,11 +42,11 @@ void ramcmp() {
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #endif //CONFIG_RVH
 
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 void csr_prepare() {
   cpu.mstatus = mstatus->val;
@@ -221,7 +221,9 @@ void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
 
   if (direction == DIFFTEST_TO_REF) {
     struct SyncState* ms = (struct SyncState*)dut;
-    cpu.lr_valid = ms->lrscValid;
+    if (ms->lrscValid) { // this is actually sc_failed
+      cpu.lr_valid = 0;
+    }
   } else {
     struct SyncState ms;
     ms.lrscValid = cpu.lr_valid;
