@@ -18,6 +18,7 @@
 #include <memory/host.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#include <memory/host-tlb.h>
 #include <cpu/cpu.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
@@ -36,7 +37,7 @@ static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
 #ifdef CONFIG_RVH 
 
 typedef struct {
-  uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
+  paddr_t offset; // offset from the guest virtual address of the data page to the host virtual address
   paddr_t gppn; // guest virtual page number
 } HostVMTLBEntry;
 
@@ -116,7 +117,7 @@ void hosttlb_flush(vaddr_t vaddr) {
 
 #ifdef CONFIG_RVH 
 
-uint8_t *hostvmtlb_lookup(paddr_t gpaddr, int type) {
+paddr_t hostvmtlb_lookup(paddr_t gpaddr, int type) {
   int id = hostvmtlb_idx(gpaddr);
   const HostVMTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvmxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostvmrtlb[id] : &hostvmwtlb[id];
@@ -124,7 +125,7 @@ uint8_t *hostvmtlb_lookup(paddr_t gpaddr, int type) {
   if (e->gppn == hostvmtlb_ppn(gpaddr)) {
     return e->offset + gpaddr; 
   }
-  return NULL;
+  return -1;
 }
 
 void hosttvmlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
@@ -132,7 +133,7 @@ void hosttvmlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
   HostVMTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvmxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostvmrtlb[id] : &hostvmwtlb[id];
 
-  e->offset = guest_to_host(paddr) - gpaddr;
+  e->offset = paddr - gpaddr;
   e->gppn = hostvmtlb_ppn(gpaddr);
 }
 
@@ -186,7 +187,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   }
 #endif
   uint8_t *dst_ptr = hosttlb_lookup(vaddr, type);
-  if (unlikely(dst_ptr == NULL)) {
+  if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     Logm("Host TLB slow path");
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
@@ -204,7 +205,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   }
 #endif
   uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
-  if (unlikely(dst_ptr == NULL)) {
+  if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }

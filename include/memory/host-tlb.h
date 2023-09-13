@@ -18,17 +18,21 @@
 
 #include <common.h>
 
+#define HOSTTLB_VADDR_FAIL_RET (vaddr_t)(-1)
+#define HOSTTLB_PADDR_FAIL_RET (paddr_t)(-1)
+#define HOSTTLB_PTR_FAIL_RET   NULL
+
 struct Decode;
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type);
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data);
 void hosttlb_init();
 
-uint8_t *hosttlb_lookup(vaddr_t vaddr, int len, int type);
+uint8_t *hosttlb_lookup(vaddr_t vaddr, int type);
 void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type);
 void hosttlb_flush(vaddr_t vaddr);
 
 #ifdef CONFIG_RVH
-uint8_t *hostvmtlb_lookup(paddr_t gpaddr, int type);
+paddr_t hostvmtlb_lookup(paddr_t gpaddr, int type);
 void hostvmtlb_insert(paddr_t gpaddr, paddr_t paddr, int type);
 void hostvmtlb_flush(paddr_t gpaddr);
 #endif

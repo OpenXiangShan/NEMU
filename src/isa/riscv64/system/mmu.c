@@ -18,6 +18,7 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
+#include <memory/host-tlb.h>
 #include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -187,7 +188,16 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
     int level;
     word_t p_pte;
     PTE pte;
-    for (level = PTW_LEVEL - 1; level >=0;){
+    paddr_t res_addr;
+
+#ifdef ENABLE_HOSTTLB
+  paddr_t dst = hostvmtlb_lookup(gpaddr, type);
+  if (likely(dst != HOSTTLB_PADDR_FAIL_RET)) {
+    return res_addr;
+  }
+#endif
+
+    for (level = PTW_LEVEL - 1; level >=0;) {
       p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
       pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
@@ -215,7 +225,14 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
           }
           pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
         }
-        return pg_base | (gpaddr & PAGE_MASK);
+
+        res_addr = pg_base | (gpaddr & PAGE_MASK);
+
+#ifdef ENABLE_HOSTTLB
+        hostvmtlb_insert(gpaddr, res_addr, type);
+#endif
+        
+        return res_addr;
       }
     }
     raise_guest_excep(gpaddr, vaddr, type);
