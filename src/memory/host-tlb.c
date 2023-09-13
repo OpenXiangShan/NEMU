@@ -33,12 +33,72 @@ static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
 static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
 
+#ifdef CONFIG_RVH 
+
+typedef struct {
+  uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
+  paddr_t gppn; // guest virtual page number
+} HostVMTLBEntry;
+
+static HostVMTLBEntry hostvmtlb[HOSTTLB_SIZE * 3];
+static HostVMTLBEntry* const hostvmrtlb = &hostvmtlb[0];
+static HostVMTLBEntry* const hostvmwtlb = &hostvmtlb[HOSTTLB_SIZE];
+static HostVMTLBEntry* const hostvmxtlb = &hostvmtlb[HOSTTLB_SIZE * 2];
+
+#endif
+
+
 static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
   return (vaddr >> PAGE_SHIFT);
 }
 
 static inline int hosttlb_idx(vaddr_t vaddr) {
   return (hosttlb_vpn(vaddr) % HOSTTLB_SIZE);
+}
+
+
+#ifdef CONFIG_RVH
+
+static inline paddr_t hostvmtlb_ppn(paddr_t gpaddr) {
+  return (gpaddr >> PAGE_SHIFT);
+}
+
+static inline int hostvmtlb_idx(paddr_t gpaddr) {
+  return (hostvmtlb_ppn(gpaddr) % HOSTTLB_SIZE);
+}
+
+#endif
+
+
+static inline paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
+  if (type != MEM_TYPE_IFETCH) save_globals(s);
+  // int ret = isa_mmu_check(vaddr, len, type);
+  // if (ret == MMU_DIRECT) return vaddr;
+  paddr_t pg_base = isa_mmu_translate(vaddr, len, type);
+  int ret = pg_base & PAGE_MASK;
+  assert(ret == MEM_RET_OK);
+  return pg_base | (vaddr & PAGE_MASK);
+}
+
+
+uint8_t *hosttlb_lookup(vaddr_t vaddr, int type) {
+  int id = hosttlb_idx(vaddr);
+  const HostTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostxtlb[id] : 
+    (type == MEM_TYPE_READ) ? &hostrtlb[id] : &hostwtlb[id];
+
+  if (e->gvpn == hosttlb_vpn(vaddr)) {
+    return e->offset + vaddr; 
+  }
+  return NULL;
+}
+
+void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type) {
+  int id = hosttlb_idx(vaddr);
+  HostTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostxtlb[id] : 
+    (type == MEM_TYPE_READ) ? &hostrtlb[id] : &hostwtlb[id];
+
+  e->offset = guest_to_host(paddr) - vaddr;
+  e->gvpn = hosttlb_vpn(vaddr);
 }
 
 void hosttlb_flush(vaddr_t vaddr) {
@@ -53,18 +113,47 @@ void hosttlb_flush(vaddr_t vaddr) {
   }
 }
 
-void hosttlb_init() {
-  hosttlb_flush(0);
+
+#ifdef CONFIG_RVH 
+
+uint8_t *hostvmtlb_lookup(paddr_t gpaddr, int type) {
+  int id = hostvmtlb_idx(gpaddr);
+  const HostVMTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvmxtlb[id] : 
+    (type == MEM_TYPE_READ) ? &hostvmrtlb[id] : &hostvmwtlb[id];
+
+  if (e->gppn == hostvmtlb_ppn(gpaddr)) {
+    return e->offset + gpaddr; 
+  }
+  return NULL;
 }
 
-static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
-  if (type != MEM_TYPE_IFETCH) save_globals(s);
-  // int ret = isa_mmu_check(vaddr, len, type);
-  // if (ret == MMU_DIRECT) return vaddr;
-  paddr_t pg_base = isa_mmu_translate(vaddr, len, type);
-  int ret = pg_base & PAGE_MASK;
-  assert(ret == MEM_RET_OK);
-  return pg_base | (vaddr & PAGE_MASK);
+void hosttvmlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
+  int id = hostvmtlb_idx(gpaddr);
+  HostVMTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvmxtlb[id] : 
+    (type == MEM_TYPE_READ) ? &hostvmrtlb[id] : &hostvmwtlb[id];
+
+  e->offset = guest_to_host(paddr) - gpaddr;
+  e->gppn = hostvmtlb_ppn(gpaddr);
+}
+
+void hostvmtlb_flush(paddr_t gpaddr) {
+  if (gpaddr == 0) {
+    memset(hostvmtlb, -1, sizeof(hostvmtlb));
+  } else {
+    paddr_t gppn = hostvmtlb_ppn(gpaddr);
+    int idx = hostvmtlb_idx(gpaddr);
+    if (hostvmrtlb[idx].gppn == gppn) hostvmrtlb[idx].gppn = (sword_t)-1;
+    if (hostvmwtlb[idx].gppn == gppn) hostvmwtlb[idx].gppn = (sword_t)-1;
+    if (hostvmxtlb[idx].gppn == gppn) hostvmxtlb[idx].gppn = (sword_t)-1;
+  }
+}
+
+#endif
+
+
+void hosttlb_init() {
+  hosttlb_flush(0);
+  hostvmtlb_flush(0);
 }
 
 __attribute__((noinline))
@@ -72,10 +161,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   paddr_t paddr = va2pa(s, vaddr, len, type);
   word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);
   if (likely(in_pmem(paddr))) {
-    HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
-      &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
-    e->offset = guest_to_host(paddr) - vaddr;
-    e->gvpn = hosttlb_vpn(vaddr);
+    hosttlb_insert(vaddr, paddr, type);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return data;
@@ -86,9 +172,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
   paddr_write(paddr, len, data, cpu.mode, vaddr);
   if (likely(in_pmem(paddr))) {
-    HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
-    e->offset = guest_to_host(paddr) - vaddr;
-    e->gvpn = hosttlb_vpn(vaddr);
+    hosttlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
   }
 }
 
@@ -101,31 +185,28 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return paddr_read(paddr, len, type, cpu.mode, vaddr);
   }
 #endif
-  vaddr_t gvpn = hosttlb_vpn(vaddr);
-  HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
-    &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+  uint8_t *dst_ptr = hosttlb_lookup(vaddr, type);
+  if (unlikely(dst_ptr == NULL)) {
     Logm("Host TLB slow path");
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
-    return host_read(e->offset + vaddr, len);
+    return host_read(dst_ptr, len);
   }
 }
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
-  #ifdef CONFIG_RVH
+#ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
   }
 #endif
-  vaddr_t gvpn = hosttlb_vpn(vaddr);
-  HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+  uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
+  if (unlikely(dst_ptr == NULL)) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
-  host_write(e->offset + vaddr, len, data);
+  host_write(dst_ptr, len, data);
 }
