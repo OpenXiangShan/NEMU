@@ -215,7 +215,6 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     hosttlb_write_slowpath(s, vaddr, len, data);
   } else {
-    host_write(paddr, len, data);
+    host_write(dst_ptr, len, data);
   }
-  host_write(dst_ptr, len, data);
 }
