@@ -133,6 +133,8 @@ void hosttvmlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
   HostVMTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvmxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostvmrtlb[id] : &hostvmwtlb[id];
 
+  // Unlike hosttlb_insert, in order to keep the translation uniform, 
+  // we do not translate the paddr to physical address of NEMU.
   e->offset = paddr - gpaddr;
   e->gppn = hostvmtlb_ppn(gpaddr);
 }
@@ -154,7 +156,9 @@ void hostvmtlb_flush(paddr_t gpaddr) {
 
 void hosttlb_init() {
   hosttlb_flush(0);
+#ifdef CONFIG_RVH
   hostvmtlb_flush(0);
+#endif
 }
 
 __attribute__((noinline))
@@ -199,7 +203,9 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
-  if(has_two_stage_translation()){
+  if (has_two_stage_translation()) { 
+    // For 2-stage translation, we use the HOSTVMTLB in the second stage, 
+    // before which we walk the normal translation path.
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
   }
