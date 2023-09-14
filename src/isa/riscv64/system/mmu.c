@@ -181,7 +181,7 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
   Logtr("gpa_stage gpaddr: 0x%lx, vaddr: 0x%lx, type: %d", gpaddr, vaddr, type);
   if(hgatp->mode == 8){
-    if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
+    if ((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0) {
       raise_guest_excep(gpaddr, vaddr, type);
     }
     word_t pg_base = PGBASE(hgatp->ppn);
@@ -204,18 +204,18 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
       pg_base = PGBASE(pte.ppn);
       Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
-      if(pte.v && !pte.r && !pte.w && !pte.x){
+      if (pte.v && !pte.r && !pte.w && !pte.x) {
         level --;
         if (level < 0) { break; }
-      }else if (!pte.v || (!pte.r && pte.w))
+      } else if (!pte.v || (!pte.r && pte.w))
         break;
-      else if(!pte.u)
+      else if (!pte.u)
         break;
-      else if(type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
+      else if (type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
               type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
                                                 !(pte.r && pte.w))
         break;
-      else{
+      else {
          if (level > 0) {
           // superpage
           word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);

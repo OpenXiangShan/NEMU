@@ -167,6 +167,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);
   if (likely(in_pmem(paddr))) {
     hosttlb_insert(vaddr, paddr, type);
+    hosttlb_insert(vaddr, paddr, type);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return data;
@@ -185,7 +186,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
-  if(has_two_stage_translation()){
+  if (has_two_stage_translation()) {
     paddr_t paddr = va2pa(s, vaddr, len, type);
     return paddr_read(paddr, len, type, cpu.mode, vaddr);
   }
@@ -213,7 +214,8 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
   if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     hosttlb_write_slowpath(s, vaddr, len, data);
-    return;
+  } else {
+    host_write(paddr, len, data);
   }
   host_write(dst_ptr, len, data);
 }
