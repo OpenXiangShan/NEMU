@@ -191,8 +191,8 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
     paddr_t res_addr;
 
 #ifdef ENABLE_HOSTTLB
-  paddr_t dst = hostvmtlb_lookup(gpaddr, type);
-  if (likely(dst != HOSTTLB_PADDR_FAIL_RET)) {
+  res_addr = hostvmtlb_lookup(gpaddr, type);
+  if (likely(res_addr != HOSTTLB_PADDR_FAIL_RET)) {
     return res_addr;
   }
 #endif
