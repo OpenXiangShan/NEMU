@@ -47,7 +47,7 @@ static void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   cpu.vtype   = vtype->val;
   cpu.vstart  = vstart->val;
   cpu.vxsat   = vxsat->val;
