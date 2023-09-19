@@ -48,5 +48,14 @@ static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref
   }
   return true;
 }
+static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *ref, rtlreg_t *dut,size_t n) {
+  /***************ONLY FOR VLEN=128,ELEN=64**********************/
+  if (memcmp(ref, dut, n)) {
+    Log("%s is different after executing instruction at pc = " FMT_WORD
+        ", right =  0x%016lx_%016lx , wrong =  %016lx_%016lx", name, pc, ref[1],ref[0], dut[1], dut[0]);
+    return false;
+  }
+  return true;
+}
 
 #endif

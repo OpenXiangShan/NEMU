@@ -90,7 +90,8 @@ void init_isa() {
   // vector
   misa->extensions |= ext('v');
   vl->val = 0;
-  vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
+  vtype->val = (uint64_t)1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
+  vlenb->val = VLEN >> 3;
 #endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS

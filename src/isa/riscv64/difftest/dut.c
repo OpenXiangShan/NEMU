@@ -53,9 +53,9 @@ static void csr_prepare() {
   cpu.vxsat   = vxsat->val;
   cpu.vxrm    = vxrm->val;
   cpu.vl      = vl->val;
-  // cpu.vcsr    = vcsr->val;
-  // cpu.vlenb   = vlenb->val;
-#endif // CONFIG_RVV_010
+  cpu.vcsr    = vcsr->val;
+  cpu.vlenb   = vlenb->val;
+#endif // CONFIG_RVV
 #ifdef CONFIG_RVH
   cpu.mtval2  = mtval2->val;
   cpu.mtinst  = mtinst->val;
@@ -86,6 +86,9 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._64, cpu.gpr[i]._64);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
+    for(i=0;i < sizeof(cpu.vr)/sizeof(cpu.vr[0]);i++){
+      difftest_check_vreg(vreg_name(i, 8), pc, ref_r->vr[i]._64, cpu.vr[i]._64,VLEN/8);
+    }
     #define check_reg(r) difftest_check_reg(str(r), pc, ref_r->r, cpu.r)
     #ifdef CONFIG_RVV
     check_reg(vtype);
@@ -94,7 +97,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(vxrm);
     check_reg(vl);
     check_reg(vcsr);
-    check_reg(vlend);
+    check_reg(vlenb);
     #endif
     #ifdef CONFIG_RVH
     
