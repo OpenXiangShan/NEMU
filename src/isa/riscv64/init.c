@@ -128,6 +128,6 @@ void init_isa() {
 #ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
 #endif
-
+  csr_prepare();
   is_second_call = true;
 }

@@ -46,6 +46,8 @@
   #define TRIGGER_CSRS(f)
 #endif // CONFIG_RVSDTRIG
 
+void csr_prepare();
+
 #define CSRS_HPM(f) \
   f(mhpmcounter3   , 0xB03) f(mhpmcounter4   , 0xB04) f(mhpmcounter5   , 0xB05) f(mhpmcounter6   , 0xB06) \
   f(mhpmcounter7   , 0xB07) f(mhpmcounter8   , 0xB08) f(mhpmcounter9   , 0xB09) f(mhpmcounter10  , 0xB0a) \
