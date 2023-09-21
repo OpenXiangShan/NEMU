@@ -27,6 +27,53 @@
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
 #endif //CONFIG_RVH
 
+static void csr_prepare() {
+  cpu.mstatus = mstatus->val;
+  cpu.mcause  = mcause->val;
+  cpu.mepc    = mepc->val;
+
+  cpu.sstatus = mstatus->val & SSTATUS_RMASK; // sstatus
+  cpu.scause  = scause->val;
+  cpu.sepc    = sepc->val;
+
+  cpu.satp     = satp->val;
+  cpu.mip      = mip->val;
+  cpu.mie      = mie->val;
+  cpu.mscratch = mscratch->val;
+  cpu.sscratch = sscratch->val;
+  cpu.mideleg  = mideleg->val;
+  cpu.medeleg  = medeleg->val;
+  cpu.mtval    = mtval->val;
+  cpu.stval    = stval->val;
+  cpu.mtvec    = mtvec->val;
+  cpu.stvec    = stvec->val;
+#ifdef CONFIG_RVV_010
+  cpu.vtype   = vtype->val;
+  cpu.vstart  = vstart->val;
+  cpu.vxsat   = vxsat->val;
+  cpu.vxrm    = vxrm->val;
+  cpu.vl      = vl->val;
+#endif // CONFIG_RVV_010
+#ifdef CONFIG_RVH
+  cpu.mtval2  = mtval2->val;
+  cpu.mtinst  = mtinst->val;
+  cpu.hstatus = hstatus->val;
+  cpu.hideleg = hideleg->val;
+  cpu.hedeleg = hedeleg->val;
+  cpu.hcounteren = hcounteren->val;
+  cpu.htval   = htval->val;
+  cpu.htinst  = htinst->val;
+  cpu.hgatp   = hgatp->val;
+  cpu.vsstatus= vsstatus->val;
+  cpu.vstvec  = vstvec->val;
+  cpu.vsepc   = vsepc->val;
+  cpu.vscause = vscause->val;
+  cpu.vstval  = vstval->val;
+  cpu.vsatp   = vsatp->val;
+  cpu.vsscratch = vsscratch->val;
+#endif
+}
+
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
   if(cpu.mip != ref_r->mip) ref_r->mip = cpu.mip; // ignore difftest for mip
