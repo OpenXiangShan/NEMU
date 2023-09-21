@@ -39,7 +39,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
 
     #ifdef CONFIG_RVV
-    for(i=0;i < sizeof(cpu.vr)/sizeof(cpu.vr[0]);i++){
+    for(i=0;i < ARRLEN(cpu.vr); i++){
       difftest_check_vreg(vreg_name(i, 8), pc, ref_r->vr[i]._64, cpu.vr[i]._64,VLEN/8);
     }
     #endif // CONFIG_RVV
