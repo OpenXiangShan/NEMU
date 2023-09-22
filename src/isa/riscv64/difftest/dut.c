@@ -84,8 +84,25 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._64, cpu.gpr[i]._64);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
-    #ifdef CONFIG_RVH
+    #ifdef CONFIG_RVV
+    for(i=0;i < ARRLEN(cpu.vr); i++){
+      difftest_check_vreg(vreg_name(i, 8), pc, ref_r->vr[i]._64, cpu.vr[i]._64,VLEN/8);
+    }
+    #endif // CONFIG_RVV
+
     #define check_reg(r) difftest_check_reg(str(r), pc, ref_r->r, cpu.r)
+
+    #ifdef CONFIG_RVV
+    check_reg(vtype     );
+    check_reg(vstart    );
+    check_reg(vxsat     );
+    check_reg(vxrm      );
+    check_reg(vl        );
+    check_reg(vcsr      );
+    check_reg(vlenb     );
+    #endif // CONFIG_RVV
+
+    #ifdef CONFIG_RVH
     check_reg(v);//virtualization mode
     check_reg(mstatus   );
     check_reg(mcause    );
@@ -120,7 +137,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(vstval    );
     check_reg(vsatp     );
     check_reg(vsscratch );
-    #endif
+    #endif // CONFIG_RVH
     return false;
   }
   return true;
