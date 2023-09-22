@@ -45,18 +45,6 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 
     #define check_reg(r) difftest_check_reg(str(r), pc, ref_r->r, cpu.r)
 
-    #ifdef CONFIG_RVV
-    check_reg(vtype     );
-    check_reg(vstart    );
-    check_reg(vxsat     );
-    check_reg(vxrm      );
-    check_reg(vl        );
-    check_reg(vcsr      );
-    check_reg(vlenb     );
-    #endif // CONFIG_RVV
-
-    #ifdef CONFIG_RVH
-    check_reg(v);//virtualization mode
     check_reg(mstatus   );
     check_reg(mcause    );
     check_reg(mepc      );
@@ -74,6 +62,19 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(stval     );
     check_reg(mtvec     );
     check_reg(stvec     );
+
+    #ifdef CONFIG_RVV
+    check_reg(vtype     );
+    check_reg(vstart    );
+    check_reg(vxsat     );
+    check_reg(vxrm      );
+    check_reg(vl        );
+    check_reg(vcsr      );
+    check_reg(vlenb     );
+    #endif // CONFIG_RVV
+
+    #ifdef CONFIG_RVH
+    check_reg(v);//virtualization mode
     check_reg(mtval2    );
     check_reg(mtinst    );
     check_reg(hstatus   );
