@@ -330,13 +330,13 @@ void lightqs_take_reg_snapshot() {
   reg_ss.lr_valid = cpu.lr_valid;
   reg_ss.ifetch_mmu_state = ifetch_mmu_state;
   reg_ss.data_mmu_state = data_mmu_state;
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   reg_ss.vtype = cpu.vtype;
   reg_ss.vstart = cpu.vstart;
   reg_ss.vxsat = cpu.vxsat;
   reg_ss.vxrm = cpu.vxrm;
   reg_ss.vl = cpu.vl;
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
   for (int i = 0; i < 32; i++) {
     reg_ss.gpr[i] = cpu.gpr[i]._64;
     reg_ss.fpr[i] = cpu.fpr[i]._64;
@@ -370,13 +370,13 @@ void lightqs_take_spec_reg_snapshot() {
   spec_reg_ss.lr_valid = cpu.lr_valid;
   spec_reg_ss.ifetch_mmu_state = ifetch_mmu_state;
   spec_reg_ss.data_mmu_state = data_mmu_state;
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   spec_reg_ss.vtype = cpu.vtype;
   spec_reg_ss.vstart = cpu.vstart;
   spec_reg_ss.vxsat = cpu.vxsat;
   spec_reg_ss.vxrm = cpu.vxrm;
   spec_reg_ss.vl = cpu.vl;
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
   for (int i = 0; i < 32; i++) {
     spec_reg_ss.gpr[i] = cpu.gpr[i]._64;
     spec_reg_ss.fpr[i] = cpu.fpr[i]._64;
@@ -417,13 +417,13 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
   cpu.lr_valid = reg_ss.lr_valid;
   ifetch_mmu_state = reg_ss.ifetch_mmu_state;
   data_mmu_state = reg_ss.data_mmu_state;
-#ifdef CONFIG_RVV_010
+#ifdef CONFIG_RVV
   cpu.vtype = reg_ss.vtype;
   cpu.vstart = reg_ss.vstart;
   cpu.vxsat = reg_ss.vxsat;
   cpu.vxrm = reg_ss.vxrm;
   cpu.vl = reg_ss.vl;
-#endif // CONFIG_RVV_010
+#endif // CONFIG_RVV
   for (int i = 0; i < 32; i++) {
     cpu.gpr[i]._64 = reg_ss.gpr[i];
     cpu.fpr[i]._64 = reg_ss.fpr[i];
