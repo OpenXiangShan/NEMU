@@ -90,7 +90,8 @@ void init_isa() {
   // vector
   misa->extensions |= ext('v');
   vl->val = 0;
-  vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
+  vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
+  vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
@@ -127,6 +128,8 @@ void init_isa() {
 #ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
 #endif
+
+  csr_prepare();
 
   is_second_call = true;
 }
