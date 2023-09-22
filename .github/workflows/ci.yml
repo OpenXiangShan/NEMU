@@ -99,6 +99,7 @@ jobs:
       - name: Build NEMU with H extension as difftest ref
         run: |
           make riscv64-rvh-ref_defconfig
+          make -j
           make clean-all
       - name: Run Xvisor
         run: |
