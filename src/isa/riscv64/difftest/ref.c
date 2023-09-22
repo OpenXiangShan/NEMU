@@ -375,11 +375,11 @@ void dump_regs() {
   fprintf(fp, "mtvec %lx\n", cpu.mtvec);
   fprintf(fp, "stvec %lx\n", cpu.stvec);
 #ifdef CONFIG_RVV
-  fprintf(fp, "vtype %lx\n", vtype);
-  fprintf(fp, "vstart %lx\n", vstart);
-  fprintf(fp, "vxsat %lx\n", vxsat);
-  fprintf(fp, "vxrm %lx\n", vxrm);
-  fprintf(fp, "vl %lx\n", vl);
+  fprintf(fp, "vtype %lx\n", vtype->val);
+  fprintf(fp, "vstart %lx\n", vstart->val);
+  fprintf(fp, "vxsat %lx\n", vxsat->val);
+  fprintf(fp, "vxrm %lx\n", vxrm->val);
+  fprintf(fp, "vl %lx\n", vl->val);
 #endif // CONFIG_RVV
   for (int i = 0; i < 32; i++) {
     fprintf(fp, "gpr %d %lx\n", i, cpu.gpr[i]._64);
