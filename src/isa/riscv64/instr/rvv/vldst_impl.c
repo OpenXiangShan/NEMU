@@ -63,6 +63,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
+  set_mstatus_dirt();
 }
 
 void vst(int mode, Decode *s, int mmu_mode) {
@@ -127,6 +128,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   }
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
+  set_mstatus_dirt();
 }
 
 #endif // CONFIG_RVV

@@ -643,6 +643,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     //vp_set_dirty();
+    set_mstatus_dirt();
   }
 #endif
 }

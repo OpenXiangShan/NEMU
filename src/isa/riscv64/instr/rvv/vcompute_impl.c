@@ -274,6 +274,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   // TODO: the idx larger than vl need reset to zero.
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
+  set_mstatus_dirt();
 }
 
 
@@ -309,6 +310,7 @@ void mask_instr(int opcode, Decode *s) {
     *s1 &= 1; // make sure the LSB
     set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
   }
+  set_mstatus_dirt();
 }
 
 
@@ -344,6 +346,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 
   }
   set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
+  set_mstatus_dirt();
 }
 
 // dirty job here
