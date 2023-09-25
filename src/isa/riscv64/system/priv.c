@@ -119,6 +119,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #ifdef CONFIG_RVH
 #define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
 #define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
+#elif defined(CONFIG_RVV)
+#define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63) | (3UL << 8)
 #else
 #define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63)
 #endif
@@ -644,6 +646,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     //vp_set_dirty();
+    set_mstatus_dirt();
   }
 #endif
 }
