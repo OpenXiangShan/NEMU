@@ -71,6 +71,13 @@ void longjmp_raise_intr(uint32_t foo);
 #define UNSIGNED     0
 #define SIGNED       1
 
+#define set_mstatus_dirt() \
+do{ \
+  if(((mstatus->val >> 9) & 3ull) != 3) {\
+    mstatus->val = mstatus->val | (3ull << 9);\
+  } \
+} while (0) \
+
 void vcsr_write(uint32_t addr,  rtlreg_t *src);
 void vcsr_read(uint32_t addr, rtlreg_t *dest);
 
