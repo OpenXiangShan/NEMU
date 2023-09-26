@@ -62,6 +62,7 @@ enum {
   HOSTCALL_INV,   // invalid opcode
   HOSTCALL_PIO,   // port I/O
   HOSTCALL_FP,    // floating point operation
+  HOSTCALL_VFP,   // vector floating point operation
   HOSTCALL_CSR,   // system registers / control status registers
   HOSTCALL_TRAP,  // trap by interrupts/exceptions
   HOSTCALL_PRIV,  // privilege instructions

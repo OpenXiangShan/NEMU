@@ -79,3 +79,9 @@ void isa_fp_csr_check() {
   }
 #endif // CONFIG_FPU_NONE
 }
+
+uint32_t isa_fp_get_frm() {
+#ifndef CONFIG_FPU_NONE
+  return fcsr->frm;
+#endif // CONFIG_FPU_NONE
+}

@@ -210,50 +210,51 @@ typedef struct {
     #ifdef CONFIG_RVV
     //vector-OP-V
     struct {
-      uint32_t pad16     : 7;
+      uint32_t pad0      : 7;
       uint32_t v_vd      : 5;
-      uint32_t pad17     : 3;
+      uint32_t pad1      : 3;
       uint32_t v_vs1     : 5;
       uint32_t v_vs2     : 5;
       uint32_t v_vm      : 1;
       uint32_t v_funct6  : 6;
     } v_opv1;
     struct {
-      uint32_t pad18     :15;
+      uint32_t pad0      :15;
       int32_t  v_simm5   : 5;
       uint32_t v_zimm    :11;
       uint32_t v_bigbit  : 1;
     } v_opv2;
     struct {
-      uint32_t pad19     :15;
+      uint32_t pad0      :15;
       uint32_t v_imm5    : 5;
     } v_opv3;
     struct {
-      uint32_t pad18     :15;
+      uint32_t pad0      :15;
       uint32_t v_zimm5   : 5;
       uint32_t v_zimm    :10;
       uint32_t v_bigbit  : 2;
     } v_opv4;
     //vector-LOAD-FP
     struct {
-      uint32_t pad20     :12;
+      uint32_t pad0      :12;
       uint32_t v_width   : 3;
-      uint32_t pad21     : 5;
-      uint32_t v_lumop   : 5;
-      uint32_t pad22     : 1;
-      uint32_t v_mop     : 3;
+      uint32_t pad1      : 5;
+      uint32_t v_lsumop  : 5;
+      uint32_t pad2      : 1;
+      uint32_t v_mop     : 2;
+      uint32_t v_mew     : 1;
       uint32_t v_nf      : 3;
     } vldfp;
     //vector-STORE-FP
     struct {
-      uint32_t pad23     : 7;
+      uint32_t pad0      : 7;
       uint32_t v_vs3     : 5;
-      uint32_t pad24     : 8;
+      uint32_t pad1      : 8;
       uint32_t v_sumop   : 5;
     } vstfp;
     //vector-AMO
     struct {
-      uint32_t pad25     :26;
+      uint32_t pad0      :26;
       uint32_t v_wd      : 1;
       uint32_t v_amoop   : 5;
     } vamo;
