@@ -84,4 +84,5 @@ uint32_t isa_fp_get_frm() {
 #ifndef CONFIG_FPU_NONE
   return fcsr->frm;
 #endif // CONFIG_FPU_NONE
+  return 0;
 }
