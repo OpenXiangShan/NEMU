@@ -120,7 +120,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
 #define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
 #elif defined(CONFIG_RVV)
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (3UL << 8)
+#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (3UL << 9)
 #else
 #define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63)
 #endif
