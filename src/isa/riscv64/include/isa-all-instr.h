@@ -85,15 +85,15 @@
   f(vmerge) f(vmseq) f(vmsne) f(vmsltu) \
   f(vmslt) f(vmsleu) f(vmsle) f(vmsgtu) \
   f(vmsgt) f(vsaddu) f(vsadd) f(vssubu) \
-  f(vssub) f(vaadd) f(vsll) f(vasub) \
-  f(vsmul) f(vsrl) f(vsra) \
+  f(vssub) f(vaadd) f(vaaddu) f(vsll) f(vasub) \
+  f(vasubu) f(vsmul) f(vsrl) f(vsra) \
   f(vssra) f(vnsrl) f(vnsra) f(vnclipu) \
   f(vnclip) f(vssrl) f(vwredsumu) f(vwredsum) \
   f(vdotu) f(vdot) f(vwsmaccu) f(vwsmacc) \
   f(vwsmaccsu) f(vwsmaccus) f(vredsum) \
   f(vredand) f(vredor) f(vredxor) f(vredminu) \
   f(vredmin) f(vredmaxu) f(vredmax) f(vmvsx) \
-  f(vmvxs) f(vcpop) f(vfirst) f(vmsbf) f(vmsof) \
+  f(vmvxs) f(vpopc) f(vfirst) f(vmsbf) f(vmsof) \
   f(vmsif) f(viota) f(vid) f(vcompress) f(vmandnot) \
   f(vmand) f(vmor) f(vmxor) f(vmornot) f(vmnand) \
   f(vmnor) f(vmxnor) f(vdivu) f(vdiv) f(vremu) \
@@ -109,7 +109,21 @@
   f(vldus_mmu) f(vldss_mmu) f(vldxs_mmu) f(vstu_mmu) \
   f(vsts_mmu) f(vstx_mmu) f(vstxu_mmu) \
   f(vslideup) f(vslidedown) f(vslide1up) f(vslide1down) f(vmvnr) \
-  f(vzextvf8) f(vsextvf8) f(vzextvf4) f(vsextvf4) f(vzextvf2) f(vsextvf2)
+  f(vzextvf8) f(vsextvf8) f(vzextvf4) f(vsextvf4) f(vzextvf2) f(vsextvf2) \
+  f(vfadd) f(vfredusum) f(vfsub) f(vfredosum) f(vfmin) f(vfredmin) \
+  f(vfmax) f(vfredmax) f(vfsgnj) f(vfsgnjn) f(vfsgnjx) f(vfslide1up) \
+  f(vfslide1down) f(vfmvfs) f(vfmvsf) f(vfcvt_xufv) f(vfcvt_xfv) \
+  f(vfcvt_fxuv) f(vfcvt_fxv) f(vfcvt_rtz_xufv) f(vfcvt_rtz_xfv) \
+  f(vfwcvt_xufv) f(vfwcvt_xfv) f(vfwcvt_fxuv) f(vfwcvt_fxv) \
+  f(vfwcvt_ffv) f(vfwcvt_rtz_xufv) f(vfwcvt_rtz_xfv) f(vfncvt_xufw) \
+  f(vfncvt_xfw) f(vfncvt_fxuw) f(vfncvt_fxw) f(vfncvt_ffw) \
+  f(vfncvt_rod_ffw) f(vfncvt_rtz_xufw) f(vfncvt_rtz_xfw) f(vfsqrt_v) \
+  f(vfrsqrt7_v) f(vfrec7_v) f(vfclass_v) f(vfmerge) \
+  f(vmfeq) f(vmfle) f(vmflt) f(vmfne) f(vmfgt) f(vmfge) f(vfdiv) f(vfrdiv) \
+  f(vfmul) f(vfrsub) f(vfmadd) f(vfnmadd) f(vfmsub) f(vfnmsub) \
+  f(vfmacc) f(vfnmacc) f(vfmsac) f(vfnmsac) f(vfwadd) f(vfwredusum) \
+  f(vfwsub) f(vfwredosum) f(vfwadd_w) f(vfwsub_w) \
+  f(vfwmul) f(vfwmacc) f(vfwnmacc) f(vfwmsac) f(vfwnmsac)
 #else // CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV

@@ -92,6 +92,7 @@ void csr_prepare();
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
+  f(mcycle     , 0xb00) f(minstret   , 0xb02) \
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01) \
@@ -112,6 +113,7 @@ void csr_prepare();
   f(sscratch   , 0x140) f(sepc       , 0x141) f(scause     , 0x142) \
   f(stval      , 0x143) f(sip        , 0x144) \
   f(satp       , 0x180) \
+  f(mcycle     , 0xb00) f(minstret   , 0xb02) \
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   CORE_DEBUG_CSRS(f) \
@@ -463,6 +465,12 @@ CSR_STRUCT_START(srnctl)
 CSR_STRUCT_END(srnctl)
 #endif
 
+CSR_STRUCT_START(mcycle)
+CSR_STRUCT_END(mcycle)
+
+CSR_STRUCT_START(minstret)
+CSR_STRUCT_END(minstret)
+
 CSR_STRUCT_START(fflags)
 CSR_STRUCT_END(fflags)
 
@@ -522,7 +530,8 @@ CSR_STRUCT_END(vl)
 CSR_STRUCT_START(vtype)
   uint64_t vlmul :  3;
   uint64_t vsew  :  3;
-  uint64_t vediv :  2;
+  uint64_t vta   :  1;
+  uint64_t vma   :  1;
   uint64_t pad   : 55;
   uint64_t vill  :  1;
 CSR_STRUCT_END(vtype)
