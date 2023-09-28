@@ -192,6 +192,12 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+      #ifdef CONFIG_SHARE
+          if (unlikely(dynamic_config.debug_difftest)) {
+            fprintf(stderr, "[NEMU] ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
+              level, vaddr, gpaddr, pg_base, p_pte, pte.val);
+          }
+      #endif
       pg_base = PGBASE(pte.ppn);
       Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
       if(pte.v && !pte.r && !pte.w && !pte.x){
