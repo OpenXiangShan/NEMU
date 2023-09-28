@@ -374,7 +374,7 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_DSToF: *dest = i64_to_f32(fsrc1.v).v; break;
       case FPCALL_DFToF: *dest = f64_to_f32(fsrc1).v; break;
       case FPCALL_DFToFR:
-        softfloat_roundingMode = softfloat_round_max;
+        softfloat_roundingMode = softfloat_round_odd;
         *dest = f64_to_f32(fsrc1).v;
         break;
 
