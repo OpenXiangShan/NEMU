@@ -35,14 +35,18 @@ static inline uint32_t get_instr(Decode *s) {
   void concat(decode_op_, name) (Decode *s, Operand *op, word_t val, bool flag)
 
 #include "rvi/decode.h"
+#ifndef CONFIG_FPU_NONE
 #include "rvf/decode.h"
+#endif // CONFIG_FPU_NONE
 #include "rvm/decode.h"
 #include "rva/decode.h"
 #include "rvc/decode.h"
-#include "rvd/decode.h"
 #include "priv/decode.h"
+#ifndef CONFIG_FPU_NONE
+#include "rvd/decode.h"
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVV
-  #include "rvv/decode.h"
+#include "rvv/decode.h"
 #endif // CONFIG_RVV
 
 def_THelper(main) {
@@ -76,7 +80,7 @@ def_THelper(main) {
 #endif // CONFIG_RVV
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11000 ??", B     , branch);
   def_INSTR_IDTAB("??????? ????? ????? 000 ????? 11001 ??", I     , jalr_dispatch);
-  def_INSTR_TAB  ("??????? ????? ????? ??? ????? 11010 ??",         nemu_trap);
+  def_INSTR_TAB  ("??????? ????? ????? 000 ????? 11010 ??",         nemu_trap);
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11011 ??", J     , jal_dispatch);
 #ifdef CONFIG_RVH
   def_INSTR_TAB  ("??????? ????? ????? ??? ????? 11100 ??",         system);
@@ -130,10 +134,12 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:)
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
+    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
+#endif
       s->type = INSTR_TYPE_I; break;
 
-#ifndef CONFIG_DEBUG
+#if !defined(CONFIG_DEBUG) && !defined(CONFIG_SHARE)
 #ifdef CONFIG_RVH
     case EXEC_ID_priv:
 #else // CONFIG_RVH

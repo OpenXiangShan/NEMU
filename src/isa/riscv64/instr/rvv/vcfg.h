@@ -61,7 +61,7 @@ def_EHelper(vsetvl) {
   // previous decode does not load vals for us
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
-
+  set_mstatus_dirt();
   // print_asm_template3(vsetvl);
 }
 
@@ -71,7 +71,7 @@ def_EHelper(vsetvli) {
   // previous decode does not load vals for us
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
-
+  set_mstatus_dirt();
   // print_asm_template3(vsetvl);
 }
 
@@ -79,7 +79,7 @@ def_EHelper(vsetivli) {
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
   set_vtype_vl(s, 0);
-
+  set_mstatus_dirt();
   // print_asm_template3(vsetvl);
 }
 
