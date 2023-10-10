@@ -65,7 +65,7 @@ void init_csr() {
 #ifdef CONFIG_RVSDTRIG
 void init_trigger() {
   cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
-  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) 
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++)
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
 }
 #endif // CONFIG_RVSDTRIG
@@ -117,10 +117,12 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 // WPRI, SXL, UXL cannot be written
 #ifdef CONFIG_RVH
-#define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
+#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
 #define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
+#elif defined(CONFIG_RVV)
+#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (3UL << 9)
 #else
-#define MSTATUS_WMASK (0x7e79bbUL) | (1UL << 63)
+#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63)
 #endif
 
 #ifdef CONFIG_RVH
@@ -144,7 +146,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIP_WMASK VSSIP
 #define HIE_RMASK HS_MASK
 #define HIE_WMASK HS_MASK
-#endif 
+#endif
 
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
@@ -191,12 +193,15 @@ word_t pmpaddr_from_csrid(int id) {
 }
 
 word_t inline pmp_tor_mask() {
-  return -((word_t)1 << (PMP_PLATFORMGARIN - PMP_SHIFT));
+  return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
 }
 
 static inline void update_mstatus_sd() {
   // mstatus.fs is always dirty or off in QEMU 3.1.0
-  if (ISDEF(CONFIG_DIFFTEST_REF_QEMU) && mstatus->fs) { mstatus->fs = 3; }
+  // When CONFIG_FS_CLEAN_STATE is set (such as for rocket-chip), mstatus.fs is always dirty or off.
+  if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
+    mstatus->fs = 3;
+  }
   mstatus->sd = (mstatus->fs == 3);
 }
 #ifdef CONFIG_RVH
@@ -245,7 +250,7 @@ static inline word_t csr_read(word_t *src) {
 
 #ifdef CONFIG_RVH
  if (cpu.v == 1) {
-  
+
   if (is_read(sstatus))      { update_vsstatus_sd(); return vsstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))     { return (mie->val & VS_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
@@ -254,9 +259,9 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
   else if (is_read(sip))     { return (mip->val & VS_MASK) >> 1;}
-  else if (is_read(satp))    { 
-    if (cpu.mode == MODE_S && hstatus->vtvm == 1) { 
-      longjmp_exception(EX_VI); 
+  else if (is_read(satp))    {
+    if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
+      longjmp_exception(EX_VI);
     }else
       return vsatp->val;
   }
@@ -278,14 +283,15 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
   else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
   else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
-  else if (is_read(sip))    { 
+  else if (is_read(sip))    {
 #ifndef CONFIG_RVH
     difftest_skip_ref();
-#endif 
-    return mip->val & SIP_MASK; 
+#endif
+    return mip->val & SIP_MASK;
   }
 #ifdef CONFIG_RVV
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
+  else if (is_read(vlenb))  { return VLEN >> 3; }
 #endif
   else if (is_read(fcsr))   {
 #ifdef CONFIG_FPU_NONE
@@ -345,11 +351,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     return;
   }
   #ifdef CONFIG_RVH
-  if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch) 
-        || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip) 
+  if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch)
+        || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
         || is_write(satp) || is_write(stvec))){
-    if (is_write(sstatus))      { 
-      vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); 
+    if (is_write(sstatus))      {
+      vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
       update_vsstatus_sd();
     }
     else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VS_MASK, src << 1); }
@@ -359,7 +365,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if (is_write(scause))  { vscause->val = src;}
     else if (is_write(stval))   { vstval->val = src;}
     else if (is_write(sip))     { mip->val = mask_bitset(mip->val, VSSIP, src << 1);}
-    else if (is_write(satp))    { 
+    else if (is_write(satp))    {
       if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
         longjmp_exception(EX_VI);
       }
@@ -378,23 +384,23 @@ static inline void csr_write(word_t *dest, word_t src) {
     mip->val = mask_bitset(mip->val, HVIP_MASK, src);
   }else if(is_write(hstatus)){
     hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src);
-  }else if(is_write(vsstatus)){ 
-    vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src); 
-  }else if(is_write(vsie)){ 
-    mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1); 
-  }else if(is_write(vsip)){ 
+  }else if(is_write(vsstatus)){
+    vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
+  }else if(is_write(vsie)){
+    mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
+  }else if(is_write(vsip)){
     mip->val = mask_bitset(mip->val, VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
-  }else if(is_write(vstvec)){ 
-    vstvec->val = src; 
-  }else if(is_write(vsscratch)){ 
+  }else if(is_write(vstvec)){
+    vstvec->val = src;
+  }else if(is_write(vsscratch)){
     vsscratch->val = src;
-  }else if(is_write(vsepc)){ 
+  }else if(is_write(vsepc)){
     vsepc->val = src;
-  }else if(is_write(vscause)){ 
+  }else if(is_write(vscause)){
     vscause->val = src;
-  }else if(is_write(vstval)){ 
+  }else if(is_write(vstval)){
     vstval->val = src;
-  }else if(is_write(vsatp)){ 
+  }else if(is_write(vsatp)){
     if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
       longjmp_exception(EX_VI);
     }
@@ -406,15 +412,33 @@ static inline void csr_write(word_t *dest, word_t src) {
     scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else
-  if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+  if (is_write(mstatus)) {
+#ifndef CONFIG_RVH
+    unsigned prev_mpp = mstatus->mpp;
+#endif // CONFIG_RVH
+    mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
+#ifndef CONFIG_RVH
+    // Need to do an extra check for mstatus.MPP:
+    // xPP fields are WARL fields that can hold only privilege mode x
+    // and any implemented privilege mode lower than x.
+    // M-mode software can determine whether a privilege mode is implemented
+    // by writing that mode to MPP then reading it back. If the machine
+    // provides only U and M modes, then only a single hardware storage bit
+    // is required to represent either 00 or 11 in MPP.
+    if (mstatus->mpp == MODE_HS) {
+      // MODE_H is not implemented. The write will not take effect.
+      mstatus->mpp = prev_mpp;
+    }
+#endif // CONFIG_RVH
+  }
 #endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-  else if (is_write(mip)) {  
+  else if (is_write(mip)) {
 #ifdef CONFIG_RVH
     mip->val = mask_bitset(mip->val, MIP_MASK | VSSIP, src);
 #else
-    mip->val = mask_bitset(mip->val, MIP_MASK, src); 
+    mip->val = mask_bitset(mip->val, MIP_MASK, src);
 #endif // CONFIG_RVH
   }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
@@ -439,7 +463,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_RVV
-  else if (is_write(vcsr)) { vxrm->val = (src >> 1) & 0x3; vxsat->val = src & 0x1; }
+  else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
+  else if (is_write(vxrm)) { *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
+  else if (is_write(vxsat)) { *dest = src & 0b1; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
 #endif
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }
@@ -519,14 +545,14 @@ static inline void csr_write(word_t *dest, word_t src) {
       word_t cfg = ((src >> (i*8)) & 0xff) & (PMP_R | PMP_W | PMP_X | PMP_A | PMP_L);
 #endif
 #ifdef CONFIG_PMPTABLE_EXTENSION
-      /* 
-       * Consider the T-bit and C-bit of pmptable extension, 
-       * cancel original pmpcfg bit limit. 
+      /*
+       * Consider the T-bit and C-bit of pmptable extension,
+       * cancel original pmpcfg bit limit.
        */
       word_t cfg = ((src >> (i*8)) & 0xff);
 #endif
       cfg &= ~PMP_W | ((cfg & PMP_R) ? PMP_W : 0); // Disallow R=0 W=1
-      if (PMP_PLATFORMGARIN != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
+      if (CONFIG_PMP_GRANULARITY != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
         cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
       cfg_data |= (cfg << (i*8));
     }
@@ -582,7 +608,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Only support Sv39, ignore write that sets other mode
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       hgatp->val = MASKED_HGATP(src);
-  } 
+  }
 #endif// CONFIG_RVH
   else { *dest = src; }
 
@@ -620,6 +646,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     //vp_set_dirty();
+    set_mstatus_dirt();
   }
 #endif
 }
@@ -739,8 +766,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RVH
           if(cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1){
             longjmp_exception(EX_VI);
-          }else if (cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1)
+          }
+          else if (cpu.v == 0 && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm == 1))) {
             longjmp_exception(EX_II);
+          }
 #else
           if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
             longjmp_exception(EX_II);
@@ -830,7 +859,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 #ifdef CONFIG_RVH
 int rvh_hlvx_check(struct Decode *s, int type){
   extern bool hlvx;
-  hlvx = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4 
+  hlvx = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4
                   && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683));
   return hlvx;
 }

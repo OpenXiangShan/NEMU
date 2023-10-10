@@ -7,18 +7,18 @@ on:
     branches: [ master ]
 
 jobs:
-  basic-tests:
+
+  basic-tests-xs:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
-    name: nemu - Basics
+    name: nemu - Basics for XiangShan
     steps:
       - uses: actions/checkout@v2
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "TEST_HOME=/nfs/home/share/ci-workloads/H-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU interpreter
+      - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
           make -j
@@ -48,6 +48,43 @@ jobs:
           make riscv64-dual-xs-ref_defconfig
           make -j
           make clean-all
+      - name: Build NEMU with RVV
+        run: |
+          make riscv64-rvv_defconfig
+          make -j
+          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          make clean-all
+      - name: Build NEMU as difftest rvv ref
+        run: |
+          make riscv64-rvv-ref_defconfig
+          make -j
+          make clean-all
+
+  basic-tests-nutshell:
+    runs-on: nemu
+    continue-on-error: false
+    timeout-minutes: 10
+    name: nemu - Basics for NutShell
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup env
+        run: |
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Build NEMU interpreter
+        run: |
+          make riscv64-nutshell_defconfig
+          make -j
+      - name: test boot linux
+        run: |
+          git submodule update --init ready-to-run
+          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          make clean-all
+      - name: Build NEMU as difftest ref
+        run: |
+          make riscv64-nutshell-ref_defconfig
+          make -j
+          make clean-all
+
   H-ext-tests:
     runs-on: nemu
     continue-on-error: false
@@ -60,8 +97,9 @@ jobs:
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/H-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU with H extension as difftest ref
-        run: | 
+        run: |
           make riscv64-rvh-ref_defconfig
+          make -j
           make clean-all
       - name: Run Xvisor
         run: |
@@ -78,10 +116,11 @@ jobs:
           make clean-all
       - name: Run Xvisor with DiffTest
         run: |
+          git submodule update --init ready-to-run
           make riscv64-rvh-diff-spike_defconfig
           echo "#define CONFIG_DETERMINISTIC 1" >> ./include/generated/autoconf.h
           make -j
-          ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/xvisor
+          ./build/riscv64-nemu-interpreter -b -d ./ready-to-run/riscv64-spike-H-ext-so $TEST_HOME/xvisor
           make clean-all
       # - name: Run KVM with DiffTest
       #   run: |

@@ -157,10 +157,10 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
-      case 8: 
-        log_file = optarg; 
+      case 8:
+        log_file = optarg;
         small_log = true;
-        break; 
+        break;
 
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
@@ -260,9 +260,9 @@ void init_monitor(int argc, char *argv[]) {
     img_size = restorer_size + bbl_size;
   } else {
     if (restorer != NULL) {
-      Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! "
-      "If you don't know what you are doing, this will corrupt your memory/program. "
-      "If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
+      Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! ");
+      Log("If you don't know what you are doing, this will corrupt your memory/program.");
+      Log("If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
       panic("Providing cpt restorer without restoring cpt or taking cpt\n");
     }
     bbl_start = RESET_VECTOR;

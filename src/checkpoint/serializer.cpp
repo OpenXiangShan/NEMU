@@ -130,7 +130,7 @@ void Serializer::serializeRegs() {
       IntRegStartAddr, IntRegStartAddr + 32 * 8
       );
 
-
+#ifndef CONFIG_FPU_NONE
   auto *floatRegCpt = (uint64_t *) (get_pmem() + FloatRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
@@ -139,7 +139,7 @@ void Serializer::serializeRegs() {
       FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
       FloatRegStartAddr, FloatRegStartAddr + 32 * 8
       );
-
+#endif // CONFIG_FPU_NONE
 
   auto *pc = (uint64_t *) (get_pmem() + PCAddr);
   *pc = cpu.pc;

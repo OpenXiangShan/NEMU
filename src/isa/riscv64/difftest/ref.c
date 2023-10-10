@@ -35,21 +35,19 @@ void ramcmp() {
   }
 }
 
-// csr_prepare() & csr_writeback() are used to maintain 
+// csr_prepare() & csr_writeback() are used to maintain
 // a compact mirror of critical CSRs
-// For processor difftest only 
+// For processor difftest only
 #ifdef CONFIG_RVH
-#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
+#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #endif //CONFIG_RVH
 
-#ifndef SSTATUS_WMASK
-#ifdef CONFIG_RVV_010
+
+#ifdef CONFIG_RVV
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
-#endif // CONFIG_RVV_010
-#endif
-
+#endif // CONFIG_RVV
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 void csr_prepare() {
   cpu.mstatus = mstatus->val;
@@ -129,21 +127,21 @@ void csr_writeback() {
   vlenb->val   = cpu.vlenb;
 #endif //CONFIG_RVV
 #ifdef CONFIG_RVH
-  mtval2->val  = cpu.mtval2; 
-  mtinst->val  = cpu.mtinst; 
+  mtval2->val  = cpu.mtval2;
+  mtinst->val  = cpu.mtinst;
   hstatus->val = cpu.hstatus;
   hideleg->val = cpu.hideleg;
   hedeleg->val = cpu.hedeleg;
   hcounteren->val = cpu.hcounteren;
-  htval->val   = cpu.htval;  
+  htval->val   = cpu.htval;
   htinst->val  = cpu.htinst;
-  hgatp->val   = cpu.hgatp;   
+  hgatp->val   = cpu.hgatp;
   vsstatus->val= cpu.vsstatus;
   vstvec->val  = cpu.vstvec;
-  vsepc->val   = cpu.vsepc; 
+  vsepc->val   = cpu.vsepc;
   vscause->val = cpu.vscause;
   vstval->val  = cpu.vstval;
-  vsatp->val   = cpu.vsatp;  
+  vsatp->val   = cpu.vsatp;
   vsscratch->val = cpu.vsscratch;
 #endif
 }
@@ -175,6 +173,9 @@ void isa_difftest_regcpy(void *dut, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
     csr_writeback();
+    // need to clear the cached mmu states as well
+    extern void update_mmu_state();
+    update_mmu_state();
   } else {
     csr_prepare();
     memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
@@ -221,7 +222,9 @@ void isa_difftest_uarchstatus_cpy(void *dut, bool direction) {
 
   if (direction == DIFFTEST_TO_REF) {
     struct SyncState* ms = (struct SyncState*)dut;
-    cpu.lr_valid = ms->lrscValid;
+    if (ms->lrscValid) { // this is actually sc_failed
+      cpu.lr_valid = 0;
+    }
   } else {
     struct SyncState ms;
     ms.lrscValid = cpu.lr_valid;
@@ -269,7 +272,7 @@ void isa_difftest_raise_intr(word_t NO) {
   stable_log_begin = restore_count;
   spec_log_begin = restore_count + AHEAD_LENGTH;
   cpu_exec(AHEAD_LENGTH);
-  
+
   lightqs_take_spec_reg_snapshot();
   // clint_take_spec_snapshot();
 #endif // CONFIG_LIGHTQS
@@ -331,7 +334,7 @@ void isa_difftest_query_ref(void *result_buffer, uint64_t type) {
       cpu.query_mem_event.pc = cpu.debug.current_pc; // update pc
       size = sizeof(cpu.query_mem_event);
       memcpy(result_buffer, &cpu.query_mem_event, size);
-      // nemu result buffer will be flushed after query 
+      // nemu result buffer will be flushed after query
       // printf_with_pid("mem_access %x\n", cpu.query_mem_event.mem_access);
       // printf_with_pid("mem_access_is_load %x\n", cpu.query_mem_event.mem_access_is_load);
       // printf_with_pid("mem_access_vaddr %lx\n", cpu.query_mem_event.mem_access_vaddr);
@@ -372,19 +375,21 @@ void dump_regs() {
   fprintf(fp, "stval %lx\n", cpu.stval);
   fprintf(fp, "mtvec %lx\n", cpu.mtvec);
   fprintf(fp, "stvec %lx\n", cpu.stvec);
-#ifdef CONFIG_RVV_010
-  fprintf(fp, "vtype %lx\n", vtype);
-  fprintf(fp, "vstart %lx\n", vstart);
-  fprintf(fp, "vxsat %lx\n", vxsat);
-  fprintf(fp, "vxrm %lx\n", vxrm);
-  fprintf(fp, "vl %lx\n", vl);
-#endif // CONFIG_RVV_010
+#ifdef CONFIG_RVV
+  fprintf(fp, "vtype %lx\n", vtype->val);
+  fprintf(fp, "vstart %lx\n", vstart->val);
+  fprintf(fp, "vxsat %lx\n", vxsat->val);
+  fprintf(fp, "vxrm %lx\n", vxrm->val);
+  fprintf(fp, "vl %lx\n", vl->val);
+#endif // CONFIG_RVV
   for (int i = 0; i < 32; i++) {
     fprintf(fp, "gpr %d %lx\n", i, cpu.gpr[i]._64);
   }
+#ifndef CONFIG_FPU_NONE
   for (int i = 0; i < 32; i++) {
     fprintf(fp, "fpr %d %lx\n", i, cpu.fpr[i]._64);
   }
+#endif // CONFIG_FPU_NONE
 }
 
 #ifdef CONFIG_MULTICORE_DIFF
