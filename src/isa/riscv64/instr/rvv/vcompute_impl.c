@@ -461,7 +461,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
   int idx;
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
     case 0 : panic("f8 not supported"); break;
@@ -484,6 +484,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       }
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -736,7 +737,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);
 
   int idx;
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -754,6 +755,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
       }
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
 
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -786,7 +788,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
 }
 
 void float_reduction_step2(uint64_t src, Decode *s) {
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -794,6 +796,7 @@ void float_reduction_step2(uint64_t src, Decode *s) {
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
 
   int element_num = VLEN >> (3 + vtype->vsew);
@@ -810,7 +813,7 @@ void float_reduction_step2(uint64_t src, Decode *s) {
 }
 
 void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -818,6 +821,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
 
   int element_num = VLEN >> (3 + vtype->vsew);
@@ -831,7 +835,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 }
 
 void float_reduction_computing(Decode *s) {
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
   int idx;
 
   // fpcall type
@@ -880,7 +884,7 @@ void float_reduction_computing(Decode *s) {
       float_reduction_step1(0, 4, s);
       float_reduction_step2(0, s);
       break;
-    default : break;
+    default: panic("other fp type not supported"); break;
   }
 
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);
