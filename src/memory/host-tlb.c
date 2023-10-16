@@ -46,7 +46,7 @@ static HostGTLBEntry* const hostgrtlb = &hostgtlb[0];
 static HostGTLBEntry* const hostgwtlb = &hostgtlb[HOSTTLB_SIZE];
 static HostGTLBEntry* const hostgxtlb = &hostgtlb[HOSTTLB_SIZE * 2];
 
-#endif // CONFIG_RVH
+#endif
 
 
 static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
@@ -92,7 +92,7 @@ uint8_t *hosttlb_lookup(vaddr_t vaddr, int type) {
   if (e->vpn == hosttlb_vpn(vaddr)) {
     return e->offset + vaddr; 
   }
-  return NULL;
+  return HOSTTLB_PTR_FAIL_RET;
 }
 
 void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type) {
@@ -127,10 +127,10 @@ paddr_t hostgtlb_lookup(paddr_t gpaddr, int type) {
   if (e->gppn == hostgtlb_ppn(gpaddr)) {
     return e->offset + gpaddr; 
   }
-  return -1;
+  return HOSTTLB_PADDR_FAIL_RET;
 }
 
-void hosttvmlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
+void hostgtlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
   int id = hostgtlb_idx(gpaddr);
   HostGTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostgxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostgrtlb[id] : &hostgwtlb[id];
@@ -163,20 +163,12 @@ void hosttlb_init() {
 }
 
 __attribute__((noinline))
-static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type, bool s2xlate) {
+static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
   paddr_t paddr = va2pa(s, vaddr, len, type);
   word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);
 
   if (likely(in_pmem(paddr))) {
-#ifdef CONFIG_RVH
-    if (s2xlate) {
-      hostvtlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
-    } else {
-      hosttlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
-    }
-#else // CONFIG_RVH
-    hosttlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
-#endif // CONFIG_RVH
+    hosttlb_insert(vaddr, paddr, type);
   }
 
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
@@ -184,37 +176,30 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
 }
 
 __attribute__((noinline))
-static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data, bool s2xlate) {
+static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
   paddr_write(paddr, len, data, cpu.mode, vaddr);
 
   if (likely(in_pmem(paddr))) {
-#ifdef CONFIG_RVH
-    if (s2xlate) {
-      hostvtlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
-    } else {
-      hosttlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
-    }
-#else // CONFIG_RVH
     hosttlb_insert(vaddr, paddr, MEM_TYPE_WRITE);
-#endif // CONFIG_RVH
   }
 }
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
 
-#ifdef CONFIG_RVH  
-  bool has_s2xlate = has_two_stage_translation();
-  uint8_t *dst_ptr = (has_s2xlate) ? hostvtlb_lookup(vaddr, MEM_TYPE_WRITE) : hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
-#else // CONFIG_RVH
-  bool has_s2xlate = false;
-  uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
-#endif // CONFIG_RVH 
+#ifdef CONFIG_RVH
+  if (has_two_stage_translation()) {
+    Logm("Host TLB slow path for stage-2 translation");
+    paddr_t paddr = va2pa(s, vaddr, len, type);
+    return paddr_read(paddr, len, type, cpu.mode, vaddr);
+  }
+#endif
 
+  uint8_t *dst_ptr = hosttlb_lookup(vaddr, type);
   if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     Logm("Host TLB slow path");
-    return hosttlb_read_slowpath(s, vaddr, len, type, has_s2xlate);
+    return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
     return host_read(dst_ptr, len);
@@ -224,17 +209,19 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   Logm("hosttlb_writing " FMT_WORD, vaddr);
 
-#ifdef CONFIG_RVH  
-  bool has_s2xlate = has_two_stage_translation();
-  uint8_t *dst_ptr = (has_s2xlate) ? hostvtlb_lookup(vaddr, MEM_TYPE_WRITE) : hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
-#else // CONFIG_RVH
-  bool has_s2xlate = false;
-  uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
-#endif // CONFIG_RVH
+#ifdef CONFIG_RVH
+  if (has_two_stage_translation()) { 
+    Logm("Host TLB slow path for stage-2 translation");
+    paddr_t paddr = va2pa(s, vaddr, len, type);
+    word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);hosttlb_write_slowpath(s, vaddr, len, data);
+    return;
+  }
+#endif
 
-  if (has_s2xlate || unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
+  uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
+  if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     Logm("Host TLB slow path");
-    hosttlb_write_slowpath(s, vaddr, len, data, has_s2xlate);
+    hosttlb_write_slowpath(s, vaddr, len, data);
   } else {
     Logm("Host TLB fast path");
     host_write(dst_ptr, len, data);
