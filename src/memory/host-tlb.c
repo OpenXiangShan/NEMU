@@ -189,8 +189,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
 
 #ifdef CONFIG_RVH
-  if (has_two_stage_translation()) {
-    Logm("Host TLB slow path for stage-2 translation");
+  if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, type);
     return paddr_read(paddr, len, type, cpu.mode, vaddr);
   }
@@ -211,9 +210,8 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 
 #ifdef CONFIG_RVH
   if (has_two_stage_translation()) { 
-    Logm("Host TLB slow path for stage-2 translation");
-    paddr_t paddr = va2pa(s, vaddr, len, type);
-    word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);hosttlb_write_slowpath(s, vaddr, len, data);
+    paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    paddr_write(paddr, len, data, cpu.mode, vaddr);
     return;
   }
 #endif
