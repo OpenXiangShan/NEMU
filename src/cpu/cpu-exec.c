@@ -116,7 +116,7 @@ void mmu_vma_tlb_flush(vaddr_t gvaddr) {
 }
 
 void mmu_gma_tlb_flush(paddr_t gpaddr) {
-  hostvmtlb_flush(gpaddr);
+  hostgtlb_flush(gpaddr);
   if (gpaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 #endif
