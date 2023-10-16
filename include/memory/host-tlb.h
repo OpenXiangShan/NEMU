@@ -62,7 +62,7 @@ void hosttlb_flush(vaddr_t vaddr);
 paddr_t hostvmtlb_lookup(paddr_t gpaddr, int type);
 
 /**
- * [H-Ext] In 2-stage translation, add map entry from guest virtual address to host physical address
+ * [H-Ext] In 2-stage translation, add map entry from guest physical address to host physical address
  * 
  * @param gpaddr the guest physical address of VM
  * @param paddr the host physical address of VM
@@ -72,6 +72,7 @@ void hostvmtlb_insert(paddr_t gpaddr, paddr_t paddr, int type);
 /**
  * [H-Ext] In 2-stage translation, flush TLB mapping from guest virtual address to host physical address
  * @param gpaddr if gpaddr == 0, clear the whole TLB, otherwise clear the entry corresponding to gpaddr
+ * @note for now, we have only implemented a TLB for mapping GPA to HPA.
  */
 void hostvmtlb_flush(paddr_t gpaddr);
 
