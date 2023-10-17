@@ -16,6 +16,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include "local-include/csr.h"
 
 #ifndef CONFIG_SHARE
@@ -113,7 +114,11 @@ void init_isa() {
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
   if (cpt_file == NULL) {
+    #ifdef CONFIG_USE_SPARSEMM
+    sparse_mem_write(get_sparsemm(), RESET_VECTOR, sizeof(img), img);
+    #else
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
+    #endif
   }
 #endif
 

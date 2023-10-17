@@ -19,6 +19,7 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <memory/host-tlb.h>
+#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
@@ -117,7 +118,7 @@ void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type) {
   HostTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostrtlb[id] : &hostwtlb[id];
 
-  e->offset = guest_to_host(paddr) - vaddr;
+  e->offset = MUXDEF(CONFIG_USE_SPARSEMM, (uint8_t *)(paddr - vaddr), guest_to_host(paddr) - vaddr);
   e->vpn = hosttlb_vpn(vaddr);
 }
 
@@ -266,7 +267,11 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
+#ifdef CONFIG_USE_SPARSEMM
+    return sparse_mem_wread(get_sparsemm(), (vaddr_t)dst_ptr, len);
+#else
     return host_read(dst_ptr, len);
+#endif
   }
 }
 
@@ -291,8 +296,13 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
     Logm("Host TLB slow path");
     hosttlb_write_slowpath(s, vaddr, len, data);
+    return;
   } else {
     Logm("Host TLB fast path");
+#ifdef CONFIG_USE_SPARSEMM
+    sparse_mem_write(get_sparsemm(), (vaddr_t)dst_ptr, len, data);
+#else
     host_write(dst_ptr, len, data);
+#endif
   }
 }

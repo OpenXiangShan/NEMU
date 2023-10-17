@@ -176,8 +176,10 @@ void simpoint_init() {
   simpoit_obj.init();
 }
 
+#ifndef CONFIG_SHARE
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {
   simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
 }
+#endif
 
 }
