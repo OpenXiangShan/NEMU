@@ -35,7 +35,7 @@
         exit(-1);                           \
     }
 
-#ifndef paddr_t
+#ifndef MUXDEF
 typedef uint64_t paddr_t;
 #endif
 
