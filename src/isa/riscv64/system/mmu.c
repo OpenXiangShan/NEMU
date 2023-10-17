@@ -273,11 +273,8 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 }
 #endif // CONFIG_MULTICORE_DIFF
 
-static paddr_t ptw(vaddr_t vaddr, int type) {
-  Logtr("Page walking for 0x%lx\n", vaddr);
-
-  word_t pg_base = PGBASE(satp->ppn);
 #ifdef CONFIG_RVH
+static inline void ptw_get_virt_mode(int type, int *virt_ptr, int *mode_ptr) {
   int virt = cpu.v;
   int mode = cpu.mode;
   if(type != MEM_TYPE_IFETCH){
@@ -290,6 +287,18 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       mode = hstatus->spvp; // spvp = 0: VU; spvp = 1: VS
     }
   }
+  *virt_ptr = virt;
+  *mode_ptr = mode;
+}
+#endif // CONFIG_RVH
+
+static paddr_t ptw(vaddr_t vaddr, int type) {
+  Logtr("Page walking for 0x%lx\n", vaddr);
+
+  word_t pg_base = PGBASE(satp->ppn);
+#ifdef CONFIG_RVH
+  int virt, mode;
+  ptw_get_virt_mode(type, &virt, &mode);
   if (virt) {
     if(vsatp_mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp_ppn);
@@ -441,6 +450,24 @@ bad:
 #endif
   return MEM_RET_FAIL;
 }
+
+#ifdef CONFIG_RVH
+static paddr_t ptw_only_stage2(paddr_t gpaddr, vaddr_t vaddr, int type) {
+  word_t pg_base = PGBASE(satp->ppn);
+
+  int virt, mode;
+  ptw_get_virt_mode(type, &virt, &mode);
+
+  if (virt) {
+    if (vsatp_mode == 0) return gpa_stage(gpaddr, vaddr, type) & ~PAGE_MASK;
+    pg_base = PGBASE(vsatp_ppn);
+    pg_base = gpa_stage(pg_base | (gpaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
+    if (pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+  }
+
+  return pg_base | MEM_RET_OK;
+}
+#endif // CONFIG_RVH
 
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
@@ -628,6 +655,17 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 #endif
   return ptw_result;
 }
+
+#ifdef CONFIG_RVH
+paddr_t isa_mmu_translate_only_stage2(paddr_t gpaddr, vaddr_t vaddr, int len, int type) {
+  paddr_t ptw_result = ptw_only_stage2(gpaddr, vaddr, type);
+#ifdef FORCE_RAISE_PF
+  if(ptw_result != MEM_RET_FAIL && force_raise_pf(gpaddr, type) != MEM_RET_OK)
+    return MEM_RET_FAIL;
+#endif
+  return ptw_result;
+}
+#endif // CONFIG_RVH
 
 int force_raise_pf_record(vaddr_t vaddr, int type) {
   static vaddr_t last_addr[3] = {0x0};

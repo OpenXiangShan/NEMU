@@ -46,6 +46,16 @@ static HostGTLBEntry* const hostgrtlb = &hostgtlb[0];
 static HostGTLBEntry* const hostgwtlb = &hostgtlb[HOSTTLB_SIZE];
 static HostGTLBEntry* const hostgxtlb = &hostgtlb[HOSTTLB_SIZE * 2];
 
+typedef struct {
+  paddr_t gppn; // guest physical address
+  vaddr_t gvpn; // guest virtual page number
+} HostVSTLBEntry;
+
+static HostVSTLBEntry hostvstlb[HOSTTLB_SIZE * 3];
+static HostVSTLBEntry* const hostvsrtlb = &hostvstlb[0];
+static HostVSTLBEntry* const hostvswtlb = &hostvstlb[HOSTTLB_SIZE];
+static HostVSTLBEntry* const hostvsxtlb = &hostvstlb[HOSTTLB_SIZE * 2];
+
 #endif
 
 
@@ -68,6 +78,14 @@ static inline int hostgtlb_idx(paddr_t gpaddr) {
   return (hostgtlb_ppn(gpaddr) % HOSTTLB_SIZE);
 }
 
+static inline vaddr_t hostvstlb_vpn(vaddr_t gvaddr) {
+  return (gvaddr >> PAGE_SHIFT);
+}
+
+static inline int hostvstlb_idx(vaddr_t gvaddr) {
+  return (hostvstlb_vpn(gvaddr) % HOSTTLB_SIZE);
+}
+
 extern bool has_two_stage_translation();
 
 #endif // CONFIG_RVH
@@ -82,7 +100,6 @@ static inline paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) 
   assert(ret == MEM_RET_OK);
   return pg_base | (vaddr & PAGE_MASK);
 }
-
 
 uint8_t *hosttlb_lookup(vaddr_t vaddr, int type) {
   int id = hosttlb_idx(vaddr);
@@ -119,6 +136,13 @@ void hosttlb_flush(vaddr_t vaddr) {
 
 #ifdef CONFIG_RVH 
 
+static inline paddr_t gpa2pa(paddr_t gpaddr, vaddr_t vaddr, int len, int type) {
+  paddr_t pg_base = isa_mmu_translate_only_stage2(gpaddr, vaddr, len, type);
+  int ret = pg_base & PAGE_MASK;
+  assert(ret == MEM_RET_OK);
+  return pg_base | (gpaddr & PAGE_MASK);
+}
+
 paddr_t hostgtlb_lookup(paddr_t gpaddr, int type) {
   int id = hostgtlb_idx(gpaddr);
   const HostGTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostgxtlb[id] : 
@@ -153,12 +177,46 @@ void hostgtlb_flush(paddr_t gpaddr) {
   }
 }
 
+paddr_t hostvstlb_lookup(vaddr_t gvaddr, int type) {
+  int id = hostvstlb_idx(gvaddr);
+  const HostVSTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvsxtlb[id] : 
+    (type == MEM_TYPE_READ) ? &hostvsrtlb[id] : &hostvswtlb[id];
+  if (e->gvpn == hostvstlb_vpn(gvaddr)) {
+    return e->gppn; 
+  }
+  return HOSTTLB_PADDR_FAIL_RET;
+}
+
+void hostvstlb_insert(vaddr_t gvaddr, paddr_t gpaddr, int type) {
+  int id = hostvstlb_idx(gvaddr);
+  HostVSTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvsxtlb[id] : 
+    (type == MEM_TYPE_READ) ? &hostvsrtlb[id] : &hostvswtlb[id];
+
+  // Unlike hosttlb_insert, in order to keep the translation uniform, 
+  // we do not translate the paddr to physical address of NEMU.
+  e->gppn = gpaddr;
+  e->gvpn = hostvstlb_vpn(gvaddr);
+}
+
+void hostvstlb_flush(vaddr_t gvaddr) {
+  if (gvaddr == 0) {
+    memset(hostvstlb, -1, sizeof(hostvstlb));
+  } else {
+    paddr_t gvpn = hostvstlb_vpn(gvaddr);
+    int idx = hostvstlb_idx(gvaddr);
+    if (hostvsrtlb[idx].gvpn == gvpn) hostvsrtlb[idx].gvpn = (sword_t)-1;
+    if (hostvswtlb[idx].gvpn == gvpn) hostvswtlb[idx].gvpn = (sword_t)-1;
+    if (hostvsxtlb[idx].gvpn == gvpn) hostvsxtlb[idx].gvpn = (sword_t)-1;
+  }
+}
+
 #endif // CONFIG_RVH
 
 void hosttlb_init() {
   hosttlb_flush(0);
 #ifdef CONFIG_RVH
   hostgtlb_flush(0);
+  hostvstlb_flush(0);
 #endif // CONFIG_RVH
 }
 
@@ -190,7 +248,14 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   if(has_two_stage_translation()){
-    paddr_t paddr = va2pa(s, vaddr, len, type);
+    paddr_t gpaddr = hostvstlb_lookup(vaddr, type);
+
+    paddr_t paddr;
+    if (unlikely(gpaddr == HOSTTLB_PADDR_FAIL_RET)) {
+      paddr = va2pa(s, vaddr, len, type);
+    } else {
+      paddr = gpa2pa(gpaddr, vaddr, len, type);
+    }
     return paddr_read(paddr, len, type, cpu.mode, vaddr);
   }
 #endif
@@ -210,7 +275,13 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 
 #ifdef CONFIG_RVH
   if (has_two_stage_translation()) { 
-    paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    paddr_t gpaddr = hostvstlb_lookup(vaddr, MEM_TYPE_WRITE);
+    paddr_t paddr;
+    if (gpaddr == HOSTTLB_PADDR_FAIL_RET) {
+      paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    } else {
+      paddr = gpa2pa(gpaddr, vaddr, len, MEM_TYPE_WRITE);
+    }
     paddr_write(paddr, len, data, cpu.mode, vaddr);
     return;
   }
