@@ -25,6 +25,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   //        2  ->  16           2  ->  32
   //        4  ->  32           3  ->  64
   //        8  ->  64
+  if(check_vstart_ignore(s)) return;
   int index_width = 0;
   if(mode == MODE_INDEXED) {
     switch(s->v_width) {
@@ -114,6 +115,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   //        2  ->  16           2  ->  32
   //        4  ->  32           3  ->  64
   //        8  ->  64
+  if(vstart->val >= vl->val) return;
   int index_width = 0;
   if(mode == MODE_INDEXED) {
     switch(s->v_width) {
