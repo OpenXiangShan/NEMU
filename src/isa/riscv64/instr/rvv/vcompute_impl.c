@@ -679,6 +679,8 @@ void mask_instr(int opcode, Decode *s) {
     *s1 &= 1; // make sure the LSB
     set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
   }
+  rtl_li(s, s0, 0);
+  vcsr_write(IDXVSTART, s0);
   set_mstatus_dirt();
 
   if (AGNOSTIC == 1) {
