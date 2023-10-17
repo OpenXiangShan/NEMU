@@ -95,6 +95,14 @@ static inline void update_vcsr() {
 }
 
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
+  if(vstart->val >= vl->val) {
+    if(vstart->val > 0) {
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      set_mstatus_dirt();
+    }
+    return;
+  }
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   uint64_t carry;
@@ -458,6 +466,14 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
+  if(vstart->val >= vl->val) {
+    if(vstart->val > 0) {
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      set_mstatus_dirt();
+    }
+    return;
+  }
   int idx;
   word_t FPCALL_TYPE;
   // fpcall type
@@ -645,6 +661,14 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 }
 
 void mask_instr(int opcode, Decode *s) {
+  if(vstart->val >= vl->val) {
+    if(vstart->val > 0) {
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      set_mstatus_dirt();
+    }
+    return;
+  }
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -687,6 +711,14 @@ void mask_instr(int opcode, Decode *s) {
 
 
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
+  if(vstart->val >= vl->val) {
+    if(vstart->val > 0) {
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      set_mstatus_dirt();
+    }
+    return;
+  }
   // TODO: check here: does not need align??
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 1);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
@@ -725,6 +757,14 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 }
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
+  if(vstart->val >= vl->val) {
+    if(vstart->val > 0) {
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      set_mstatus_dirt();
+    }
+    return;
+  }
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 1);
   else
@@ -826,6 +866,14 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 }
 
 void float_reduction_computing(Decode *s) {
+  if(vstart->val >= vl->val) {
+    if(vstart->val > 0) {
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      set_mstatus_dirt();
+    }
+    return;
+  }
   word_t FPCALL_TYPE;
   int idx;
 
