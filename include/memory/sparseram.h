@@ -35,7 +35,10 @@
         exit(-1);                           \
     }
 
+#ifndef paddr_t
 typedef uint64_t paddr_t;
+#endif
+
 #ifndef MUXDEF
 #define CHOOSE2nd(a, b, ...) b
 #define MUX_WITH_COMMA(contain_comma, a, b) CHOOSE2nd(contain_comma a, b)
