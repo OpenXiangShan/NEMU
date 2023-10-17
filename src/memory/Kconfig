@@ -5,6 +5,10 @@ config MBASE
   default 0x08048000 if MODE_USER
   default 0x80000000
 
+config USE_SPARSEMM
+  bool "Use sparse memory model"
+  default n
+
 config MSIZE
   hex "Memory size"
   default 0x8000000

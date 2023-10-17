@@ -42,6 +42,7 @@ void ramcmp() {
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
 #endif //CONFIG_RVH
 
+
 #ifdef CONFIG_RVV
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (0x3 << 9) | (1 << 8) | (1 << 5) | (1 << 1))
 #else
