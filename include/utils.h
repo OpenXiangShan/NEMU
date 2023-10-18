@@ -39,6 +39,7 @@ enum {
   dflag_trace_inst,
   dflag_trace_inst_dasm,
   dflag_exit,
+  dflag_simpoint,
 };
 
 

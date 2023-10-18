@@ -212,6 +212,10 @@ config TRACE_BB
   bool "Enable Log for tracing basic block"
   default n
 
+config SIMPOINT_LOG
+  bool "Enable Log for simpoint profiling"
+  default n
+
 endmenu
 
 if !MODE_USER

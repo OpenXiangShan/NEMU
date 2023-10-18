@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #ifdef CONFIG_MEM_COMPRESS
 #include <zlib.h>
+#include <unistd.h>
 #endif
 
 #ifndef CONFIG_MODE_USER
@@ -78,12 +79,14 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
 
   if (is_gz_file(loading_img)) {
 #ifdef CONFIG_MEM_COMPRESS
-      Log("Loading GZ image %s", loading_img);
-      return load_gz_img(loading_img);
+    Log("Loading GZ image %s", loading_img);
+    return load_gz_img(loading_img);
 #else
-      panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
+    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
   }
+
+  // RAW image
 
   FILE *fp = fopen(loading_img, "rb");
   Assert(fp, "Can not open '%s'", loading_img);

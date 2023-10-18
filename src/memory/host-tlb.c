@@ -20,6 +20,7 @@
 #include <memory/paddr.h>
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
+#include <cpu/decode.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
