@@ -55,13 +55,6 @@
 #define HCSRS(f) NOP;
 #endif // CONFIG_RVH
 
-
-#ifdef CONFIG_RVV
-#define VCSRS(f) NOP;
-#else
-#define VCSRS(f) NOP;
-#endif // CONFIG_RVV
-
 #define CSRS_RESTORE(name, addr) \
   li t2, addr; \
   slli t2, t2, 3; \

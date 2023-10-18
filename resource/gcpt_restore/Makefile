@@ -24,7 +24,7 @@ BINARY ?= $(BUILD_DIR)/$(NAME)
 
 INC_DIR += $(NEMU_HOME)/include/generated
 # Compilation flags
-CROSS_COMPILE = riscv64-linux-gnu-
+CROSS_COMPILE = riscv64-unknown-linux-gnu-
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
 OBJDUMP = $(CROSS_COMPILE)objdump
@@ -44,7 +44,6 @@ $(OBJ_DIR)/%.o: %.c
 $(OBJ_DIR)/%.o: %.S
 	@mkdir -p $(dir $@) && echo + AS $<
 	@$(CC) $(CFLAGS) -c -o $@ $<
-
 
 # Dependencies
 -include $(OBJS:.o=.d)
