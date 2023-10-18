@@ -3,7 +3,7 @@
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC -D_SHARE=1
-LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined
+LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined -lz
 endif
 
 WORK_DIR  = $(shell pwd)
@@ -21,7 +21,7 @@ CCACHE := $(if $(shell which ccache),ccache,)
 
 # Compilation flags
 CC := $(CCACHE) $(CC)
-LD := $(CCACHE) $(CC)
+LD := $(CCACHE) $(CXX)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
 CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
@@ -38,7 +38,7 @@ XOBJS = $(XSRCS:%.cpp=$(OBJ_DIR)/%.opp)
 ifndef SHARE
 OBJS = $(COBJS) $(XOBJS)
 else
-OBJS = $(COBJS)
+OBJS = $(COBJS) $(XOBJS)
 endif
 
 # Compilation patterns
@@ -69,8 +69,14 @@ endif
 app: $(BINARY)
 
 $(BINARY): $(OBJS) $(LIBS)
-	@echo + LD $@
+	@echo + $(LD) $@
 	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+
+staticlib: $(BUILD_DIR)/lib$(NAME).a
+
+$(BUILD_DIR)/lib$(NAME).a: $(OBJS) $(LIBS)
+	@echo + AR $@
+	@ar rcs $(BUILD_DIR)/lib$(NAME).a $(OBJS) $(LIBS)
 
 clean:
 	-rm -rf $(BUILD_DIR)

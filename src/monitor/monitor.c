@@ -215,10 +215,10 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
-      case 8: 
-        log_file = optarg; 
+      case 8:
+        log_file = optarg;
         small_log = true;
-        break; 
+        break;
 
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
@@ -235,7 +235,7 @@ static inline int parse_args(int argc, char *argv[]) {
 
         printf("\t-c,--restore            restoring from CPT FILE\n");
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
-        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it\n");
+//        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it.\n"); //comming back soon
 
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
@@ -243,7 +243,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
-        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n");
+//        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
@@ -278,7 +278,7 @@ void init_monitor(int argc, char *argv[]) {
   extern void init_serializer();
 
   //checkpoint and profiling set output
-  bool output_features_enabled = checkpoint_state!=NoCheckpoint || profiling_state == SimpointProfiling;
+  bool output_features_enabled = checkpoint_state != NoCheckpoint || profiling_state == SimpointProfiling;
   if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
@@ -321,7 +321,7 @@ void init_monitor(int argc, char *argv[]) {
       load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
     }
 
-  } else if (checkpoint_state!=NoCheckpoint) {
+  } else if (checkpoint_state != NoCheckpoint) {
     // boot: jump to restorer --> restorer jump to bbl
     assert(img_file != NULL);
     assert(restorer != NULL);
@@ -344,9 +344,9 @@ void init_monitor(int argc, char *argv[]) {
 
   } else {
     if (restorer != NULL) {
-      Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! "
-      "If you don't know what you are doing, this will corrupt your memory/program. "
-      "If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
+      Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! ");
+      Log("If you don't know what you are doing, this will corrupt your memory/program.");
+      Log("If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
       panic("Providing cpt restorer without restoring cpt or taking cpt\n");
     }
     bbl_start = RESET_VECTOR;

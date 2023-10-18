@@ -16,6 +16,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include "local-include/csr.h"
 
 #ifndef CONFIG_SHARE
@@ -38,6 +39,13 @@ void init_clint();
 void init_device();
 
 void init_isa() {
+  // NEMU has some cached states and some static variables in the source code.
+  // They are assumed to have initialized states every time when the dynamic lib is loaded.
+  // However, if we link NEMU as a static library, we have to manually initialize them.
+  static bool is_second_call = false;
+  if (is_second_call) {
+    memset(csr_array, 0, sizeof(csr_array));
+  }
   init_csr();
 
 #ifndef CONFIG_RESET_FROM_MMIO
@@ -45,6 +53,7 @@ void init_isa() {
 #else
   cpu.pc = CONFIG_MMIO_RESET_VECTOR;
 #endif
+  cpu.lr_valid = 0;
 
   cpu.gpr[0]._64 = 0;
 
@@ -82,7 +91,8 @@ void init_isa() {
   // vector
   misa->extensions |= ext('v');
   vl->val = 0;
-  vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
+  vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
+  vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
@@ -105,15 +115,27 @@ void init_isa() {
   extern char *cpt_file;
   extern bool checkpoint_restoring;
   if (cpt_file == NULL && !checkpoint_restoring) {
+    #ifdef CONFIG_USE_SPARSEMM
+    sparse_mem_write(get_sparsemm(), RESET_VECTOR, sizeof(img), img);
+    #else
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
+    #endif
   }
 #endif
+
   #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
   init_clint();
   #endif
-  IFDEF(CONFIG_SHARE, init_device());
+
+  if (!is_second_call) {
+    IFDEF(CONFIG_SHARE, init_device());
+  }
 
 #ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
 #endif
+
+  csr_prepare();
+
+  is_second_call = true;
 }

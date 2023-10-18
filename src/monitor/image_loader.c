@@ -16,11 +16,11 @@
 #include <isa.h>
 #include <stdlib.h>
 #include <macro.h>
+#include <stdio.h>
 #include <memory/paddr.h>
-
-#include <fcntl.h>
+#include <memory/sparseram.h>
 #include <sys/mman.h>
-
+#include <fcntl.h>
 #ifdef CONFIG_MEM_COMPRESS
 #include <zlib.h>
 #include <unistd.h>
@@ -102,39 +102,22 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
     size = img_size;
   }
 
-  if (size < 512UL*1024UL*1024UL) {
-    Log("Fread from file because less than 512MB\n");
-    int ret = fread(guest_to_host(load_start), size, 1, fp);
-    assert(ret == 1);
-    fclose(fp);
-
-  } else {
-    fclose(fp); // we will mmap directly later
-    assert(!ISDEF(CONFIG_SHARE));
-    assert(size % 8 == 0);  // assuming 64 bit aligned
-
-    Log("Mmap and read from file because larger than 512MB\n");
-    extern uint8_t *get_pmem();
-    uint64_t *current = (uint64_t *) get_pmem();
-    int fd = open(img_name, O_RDONLY, (mode_t)0600);
-    if (!fd) {
-      panic("Failed to read file %s", img_name);
-    }
-    uint64_t *img_start = (uint64_t*) mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-    uint64_t *img_end = img_start + (size / sizeof(size_t));
-    uint64_t *img_p = img_start;
-    while(img_p < img_end) { 
-      if (*img_p != 0) {  // Keep COW
-        *current = *img_p;
-      }
-      current++;
-      img_p++;
-    }
-    // clean up mapped and opened file
-    munmap(img_start, size);
+  #ifdef CONFIG_USE_SPARSEMM
+  if(file_is_elf(loading_img)){
+    sparse_mem_elf(get_sparsemm(), loading_img);
+    Log("load elf %s to sparse mem complete", loading_img);
+    sparse_mem_info(get_sparsemm());
+  }else{
+    int fd = open(loading_img, O_RDONLY);
+    char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    sparse_mem_write(get_sparsemm(), load_start, size, buf);
     close(fd);
+    munmap(buf, size);
   }
-
+  #else
+  int ret = fread(guest_to_host(load_start), size, 1, fp);
+  assert(ret == 1);
+  #endif
   Log("Read %lu bytes from file %s to 0x%lx", size, img_name, load_start);
 
   return size;

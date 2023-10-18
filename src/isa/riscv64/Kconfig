@@ -53,6 +53,11 @@ config RV_PMP_NUM
   default 16
   range 0 16
 
+config PMP_GRANULARITY
+  depends on RV_PMP_CSR
+  int "PMP granularity"
+  default 12
+
 config RV_PMP_CHECK
   # todo: pmp check still not work when enable PERF_OPT
   depends on !PERF_OPT
@@ -70,6 +75,14 @@ config MISA_UNCHANGEABLE
 
 config XTVEC_VECTORED_MODE
   bool "Support Vectored MODE of mtvec/stvec"
+  default y
+
+config TVAL_EX_II
+  bool "Update m/stval on illegal instruction exceptions"
+  default n
+
+config FS_CLEAN_STATE
+  bool "XSTATUS.FS has the state of Clean"
   default y
 
 config RV_ARCH_CSRS
@@ -99,8 +112,8 @@ config MIMPID_VALUE
   default 0x0
 
 config PMPTABLE_EXTENSION
-  # PMPTable covers PMPChecker function, 
-  # close PMPChecker when using PMPTable. 
+  # PMPTable covers PMPChecker function,
+  # close PMPChecker when using PMPTable.
   depends on !PERF_OPT
   depends on !RV_PMP_CHECK
   depends on RV_PMP_CSR

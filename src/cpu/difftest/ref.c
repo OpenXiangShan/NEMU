@@ -16,13 +16,16 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
 
 extern void init_flash();
+extern void load_flash_contents(const char *flash_img);
 
 
 #ifdef CONFIG_LARGE_COPY
+#ifndef CONFIG_USE_SPARSEMM
 static void nemu_large_memcpy(void *dest, void *src, size_t n) {
   uint64_t *_dest = (uint64_t *)dest;
   uint64_t *_src  = (uint64_t *)src;
@@ -46,8 +49,23 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
   }
 }
 #endif
+#endif
 
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
+#ifdef CONFIG_USE_SPARSEMM
+  void *a = get_sparsemm();
+  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n", 
+          dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
+  if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
+  else sparse_mem_copy(dut_buf, a);
+
+  printf("[sp-mem] copy complete, eg data: ");
+  for (int j = 0; j < 8; j++) {
+    printf("%016lx", sparse_mem_wread(a, nemu_addr + j*sizeof(uint64_t), sizeof(uint64_t)));
+  }
+  printf("\n");
+
+#else
 #ifdef CONFIG_LARGE_COPY
   if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else nemu_large_memcpy(dut_buf, guest_to_host(nemu_addr), n);
@@ -55,13 +73,15 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #endif
+#endif
 }
 
 void difftest_load_flash(void *flash_bin, size_t f_size){
 #ifndef CONFIG_HAS_FLASH
   printf("nemu does not enable flash fetch!\n");
 #else
-  init_flash((const char *)flash_bin);
+  load_flash_contents((const char *)flash_bin);
+  init_flash();
 #endif
 }
 
@@ -94,6 +114,10 @@ void difftest_regcpy(void *dut, bool direction) {
 #ifdef RV64_FULL_DIFF
 void difftest_csrcpy(void *dut, bool direction) {
   isa_difftest_csrcpy(dut, direction);
+}
+
+void difftest_uarchstatus_sync(void *dut) {
+  isa_difftest_uarchstatus_cpy(dut, DIFFTEST_TO_REF);
 }
 
 #ifdef CONFIG_LIGHTQS
@@ -198,6 +222,10 @@ void difftest_init() {
 #endif
 }
 
+void difftest_display() {
+  isa_reg_display();
+}
+
 #ifdef CONFIG_MULTICORE_DIFF
 uint8_t *golden_pmem = NULL;
 
@@ -210,4 +238,3 @@ void difftest_put_gmaddr(uint8_t* ptr) {
 }
 
 #endif
-

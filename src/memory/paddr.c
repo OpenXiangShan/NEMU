@@ -17,6 +17,7 @@
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -43,6 +44,10 @@ static uint8_t *pmem = (uint8_t *)PMEMBASE;
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
 
+#ifdef CONFIG_USE_SPARSEMM
+void* sparse_mm = NULL;
+#endif
+
 #ifdef CONFIG_STORE_LOG
 struct store_log {
   uint64_t inst_cnt;
@@ -65,18 +70,33 @@ uint8_t *get_pmem()
 char *mapped_cpt_file = NULL;
 bool map_image_as_output_cpt = false;
 
+#ifdef CONFIG_USE_SPARSEMM
+void * get_sparsemm(){
+  return sparse_mm;
+}
+#endif
+
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
 static inline word_t pmem_read(paddr_t addr, int len) {
+  #ifdef CONFIG_USE_SPARSEMM
+  return sparse_mem_wread(sparse_mm, addr, len);
+  #else
   return host_read(guest_to_host(addr), len);
+  #endif
 }
 
 static inline void pmem_write(paddr_t addr, int len, word_t data) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   store_commit_queue_push(addr, data, len);
 #endif
+
+  #ifdef CONFIG_USE_SPARSEMM
+  sparse_mem_wwrite(sparse_mm, addr, len, data);
+  #else
   host_write(guest_to_host(addr), len, data);
+  #endif
 }
 
 static inline void raise_access_fault(int cause, vaddr_t vaddr) {
@@ -97,49 +117,22 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
 void init_mem() {
 #ifdef CONFIG_USE_MMAP
   #ifdef CONFIG_MULTICORE_DIFF
-    panic("Pmem must not use mmap during multi-core difftest");
+  panic("Pmem must not use mmap during multi-core difftest");
   #endif
-  bool named_mmap = mapped_cpt_file != NULL || map_image_as_output_cpt;
-  void *mmap_ret = NULL;
-  if (named_mmap) {
-    Log("mmap memory to named file %s", mapped_cpt_file);
-    if (!map_image_as_output_cpt) {
-      int fd = open(mapped_cpt_file, O_RDWR | O_TRUNC | O_CREAT, (mode_t)0600);
-      if (!fd) {
-        panic("Failed to create file %s", mapped_cpt_file);
-      }
-      int trunc_ret = ftruncate(fd, CONFIG_MSIZE);  // create sparse file
-      if (trunc_ret == -1) {
-        panic("Failed to truncate file %s", mapped_cpt_file);
-      } else {
-        Log("Truncate file %s to 0x%lx Bytes", mapped_cpt_file, CONFIG_MSIZE);
-      }
-      mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
-          MAP_SHARED | MAP_FIXED, fd, 0);
-
-    } else {  // Directly map to image(cpt)
-      if (is_gz_file(mapped_cpt_file)) {
-        panic("Cannot map to gz file\n");
-      }
-      int fd = open(mapped_cpt_file, O_RDWR);
-      if (!fd) {
-        panic("Failed to open(R/W) file %s", mapped_cpt_file);
-      } else {
-        Log("Execute directly on %s", mapped_cpt_file);
-      }
-      mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
-          MAP_SHARED | MAP_FIXED, fd, 0);
-    }
-
-  } else {
-    Log("mmap memory to anonymous file");
-    mmap_ret = mmap((void *)pmem, CONFIG_MSIZE, PROT_READ | PROT_WRITE,
-        MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-  }
-  if (mmap_ret != pmem) {
+  #ifdef CONFIG_USE_SPARSEMM
+  sparse_mm = sparse_mem_new(4, 1024); //4kB
+  #else
+  // Note: we are using MAP_FIXED here, in the SHARED mode, even if
+  // init_mem may be called multiple times, the memory space will be
+  // allocated only once at the first time called.
+  // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
+  void *ret = mmap((void *)pmem, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+  if (ret != pmem) {
     perror("mmap");
     assert(0);
   }
+  #endif
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT

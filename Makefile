@@ -56,8 +56,10 @@ SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
-DIRS-cpp = src/checkpoint src/base src/iostream3 src/profiling
-DIRS-y += src/profiling src/checkpoint # profiling.c and cpt_env.c
+
+DIRS-cpp = src/checkpoint src/base src/iostream3 src/memory src/profiling
+DIRS-y += src/checkpoint src/checkpoint # profiling.c
+
 XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
 
 CC = $(call remove_quote,$(CONFIG_CC))

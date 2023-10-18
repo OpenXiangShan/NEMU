@@ -58,6 +58,7 @@ static inline void invalid_instr(vaddr_t thispc) {
 }
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd);
+def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd);
 
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {
@@ -68,6 +69,7 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       break;
     case HOSTCALL_INV: invalid_instr(s->pc); break;
     case HOSTCALL_FP:  rtl_fpcall(s, dest, src1, src2, imm); break;
+    case HOSTCALL_VFP: rtl_vfpcall(s, dest, src1, src2, imm); break;
 #ifdef CONFIG_DEVICE
     case HOSTCALL_PIO: {
       int width = imm & 0xf;

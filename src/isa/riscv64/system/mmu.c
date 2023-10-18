@@ -47,7 +47,7 @@ typedef union PageTableEntry {
 #define PTW_LEVEL 3
 #define PTE_SIZE 8
 #define VPNMASK 0x1ff
-#define GPVPNMASK 0x7ff  
+#define GPVPNMASK 0x7ff
 static inline uintptr_t VPNiSHFT(int i) {
   return (PGSHFT) + 9 * i;
 }
@@ -89,7 +89,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
     bool update_ad = false;
 #endif
-    if (!(ok && pte->x) || update_ad) {
+    if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
@@ -113,7 +113,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
     bool update_ad = false;
 #endif
-    if (!(ok && can_load) || update_ad) {
+    if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
       INTR_TVAL_REG(ex) = vaddr;
@@ -130,7 +130,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     bool update_ad = false;
 #endif
     Logtr("Translate for memory writing");
-    if (!(ok && pte->w) || update_ad) {
+    if (!(ok && pte->w && !pte->pad) || update_ad) {
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
@@ -156,14 +156,15 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
     }
     longjmp_exception(EX_IGPF);
   }else if (type == MEM_TYPE_READ){
-    if(intr_deleg_S(EX_LGPF)){
+    int ex = cpu.amo ? EX_SGPF : EX_LGPF;
+    if(intr_deleg_S(ex)){
       stval->val = vaddr;
       htval->val = gpaddr >> 2;
     }else{
       mtval->val = vaddr;
       mtval2->val = gpaddr >> 2;
     }
-    longjmp_exception(EX_LGPF);
+    longjmp_exception(ex);
   }else{
     if(intr_deleg_S(EX_SGPF)){
       stval->val = vaddr;
@@ -191,14 +192,20 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+      #ifdef CONFIG_SHARE
+          if (unlikely(dynamic_config.debug_difftest)) {
+            fprintf(stderr, "[NEMU] ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
+              level, vaddr, gpaddr, pg_base, p_pte, pte.val);
+          }
+      #endif
       pg_base = PGBASE(pte.ppn);
       Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
       if(pte.v && !pte.r && !pte.w && !pte.x){
         level --;
         if (level < 0) { break; }
-      }else if (!pte.v || (!pte.r && pte.w)) 
+      }else if (!pte.v || (!pte.r && pte.w))
         break;
-      else if(!pte.u) 
+      else if(!pte.u)
         break;
       else if(type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
               type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
@@ -223,6 +230,24 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
 }
 #endif // CONFIG_RVH
 
+
+#ifndef CONFIG_MULTICORE_DIFF
+static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
+#ifdef CONFIG_SHARE
+  extern bool is_in_mmio(paddr_t addr);
+  if (unlikely(is_in_mmio(addr))) {
+    int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
+                type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+    INTR_TVAL_REG(cause) = vaddr;
+    longjmp_exception(cause);
+  }
+#endif
+  int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
+                        type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
+                                                  MEM_TYPE_READ;
+  return paddr_read(addr, PTE_SIZE, paddr_read_type, mode, vaddr);
+}
+#endif // CONFIG_MULTICORE_DIFF
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
   Logtr("Page walking for 0x%lx\n", vaddr);
@@ -261,9 +286,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       p_pte = gpa_stage(p_pte, vaddr, type);
     }
   #endif //CONFIG_RVH
-    pte.val	= paddr_read(p_pte, PTE_SIZE,
-      type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
-      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+    pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -271,9 +294,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
         level, vaddr, pg_base, p_pte, pte.val);
     }
 #endif
-    pg_base = PGBASE(pte.ppn);
+    pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w)) goto bad;
-    if (pte.r || pte.x) { break; }
+    if (pte.r || pte.x || pte.pad) { break; }
     else {
       level --;
       if (level < 0) { goto bad; }
@@ -425,9 +448,16 @@ int update_mmu_state() {
   return (data_mmu_state ^ data_mmu_state_old) ? true : false;
 }
 
+void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
+
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
+
+  if (!is_ifetch) {
+    isa_misalign_data_addr_check(vaddr, len, type);
+  }
+
   // riscv-privileged 4.4.1: Addressing and Memory Protection:
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
@@ -448,7 +478,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }else{
       gpf = true;
     }
-  } 
+  }
 #endif
   if(!va_msbs_ok){
     if(is_ifetch){
@@ -474,7 +504,6 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         longjmp_exception(EX_IPF);
       }
 #else
-      stval->val = vaddr;
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
 #endif
@@ -540,14 +569,6 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if (cpu.v && is_ifetch) return h_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 #endif
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
-  if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
-    Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
-    // assert(0);
-    int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-    INTR_TVAL_REG(ex) = vaddr;
-    longjmp_exception(ex);
-    return MEM_RET_FAIL;
-  }
 #ifdef CONFIG_RVH
   if(hld_st)
     return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
@@ -555,15 +576,14 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
 
-#ifdef CONFIG_SHARE
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
+    Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
     INTR_TVAL_REG(ex) = vaddr;
     longjmp_exception(ex);
   }
 }
-#endif
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
@@ -711,15 +731,15 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
 
     uint64_t root_pte_addr = root_table_base + (off1 << 3);
     /*
-     * Get root pte: 
-     * Use host_read instead of paddr_read, avoid nested call of isa_pmp_check_permission 
+     * Get root pte:
+     * Use host_read instead of paddr_read, avoid nested call of isa_pmp_check_permission
      */
     uint64_t root_pte = host_read(guest_to_host(root_pte_addr), 8);
 
-    /* 
-     * root_pte case(last 4 bits are 0001): 
+    /*
+     * root_pte case(last 4 bits are 0001):
      * valid(last bit is 1) but no permission bit is set(other bit are all 0),
-     * should check the leaf table to get permission. 
+     * should check the leaf table to get permission.
      */
     if ((root_pte & 0x0f) == 1) {
       bool at_high = page_index % 2;
@@ -727,20 +747,20 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
       uint8_t leaf_pte = host_read(guest_to_host(((root_pte >> 5) << 12) + (off0 << 3)) + idx, 1);
       if (at_high) {
         perm = leaf_pte >> 4;
-      } 
+      }
       else {
         perm = leaf_pte & 0xf;
       }
     }
-    /* 
-     * root_pte case(last 4 bits are xxx1): 
+    /*
+     * root_pte case(last 4 bits are xxx1):
      * valid(last bit is 1) and some permission bits are set(other bit are not all 0),
-     * directly use the root pte to get permission.       
+     * directly use the root pte to get permission.
      */
     else if ((root_pte & 0x1) == 1) {
       perm = (root_pte >> 1) & 0xf;
     }
-    /* 
+    /*
      * root_pte case(last 4 bits are xxx0):
      * invaild(last bit is 0), directly return false.
      */
@@ -767,8 +787,8 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
       return false;
     }
 #undef R_BIT
-#undef W_BIT 
-#undef X_BIT 
+#undef W_BIT
+#undef X_BIT
   }
 }
 #endif
@@ -887,7 +907,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
     if (addr_mode) {
       int match_ret = 0;
       match_ret = pmp_address_match(base, addr, len, pmpaddr, addr_mode);
-      /* 
+      /*
        * When match_ret == 1, means that only a part of addr is in a pmpaddr region
        * and it is illegal.
        */

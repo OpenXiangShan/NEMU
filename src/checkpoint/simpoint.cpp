@@ -55,8 +55,8 @@ extern "C" {
 #include <debug.h>
 extern bool log_enable();
 extern void log_flush();
-extern char *log_filebuf; 
-extern uint64_t record_row_number;  
+extern char *log_filebuf;
+extern uint64_t record_row_number;
 extern FILE *log_fp;
 extern bool enable_small_log;
 }
@@ -67,18 +67,19 @@ SimPoint::SimPoint()
       simpointStream(nullptr),
       currentBBV(0, 0),
       currentBBVInstCount(0) {
-
-  simpointStream = NEMUNS::simout.create("simpoint_bbv", false);
-  if (!simpointStream)
-    xpanic("unable to open SimPoint profile_file");
 }
 
 SimPoint::~SimPoint() {
-  NEMUNS::simout.close(simpointStream);
+  if (simpointStream)
+    NEMUNS::simout.close(simpointStream);
 }
 
 void
 SimPoint::init() {
+  simpointStream = NEMUNS::simout.create("simpoint_bbv", false);
+  if (!simpointStream)
+    xpanic("unable to open SimPoint profile_file");
+
   if (profiling_state == SimpointProfiling) {
     pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
@@ -183,8 +184,10 @@ void simpoint_init() {
   simpoit_obj.init();
 }
 
+#ifndef CONFIG_SHARE
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {
   simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
 }
+#endif
 
 }

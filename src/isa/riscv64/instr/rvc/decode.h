@@ -122,7 +122,13 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
     longjmp_exception(EX_II);
   }
 #endif // CONFIG_SHARE
-  if (is_fp) decode_op_fr(s, id_dest, rd, false);
+  if (is_fp) {
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#else
+    decode_op_fr(s, id_dest, rd, false);
+#endif // CONFIG_FPU_NONE
+  }
   else decode_op_r(s, id_dest, rd, false);
 }
 
@@ -144,7 +150,13 @@ static inline void decode_C_SxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = BITS(s->isa.instr.val, 12, 7);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
-  if (is_fp) decode_op_fr(s, id_dest, rs2, true);
+  if (is_fp) {
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#else
+    decode_op_fr(s, id_dest, rs2, true);
+#endif // CONFIG_FPU_NONE
+  }
   else decode_op_r(s, id_dest, rs2, true);
 }
 
@@ -181,7 +193,13 @@ static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bo
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, false);
-  if (is_fp) decode_op_fr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+  if (is_fp) {
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#else
+    decode_op_fr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+#endif // CONFIG_FPU_NONE
+  }
   else decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
 }
 
