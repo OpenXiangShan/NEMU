@@ -78,8 +78,6 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   }
 
   if (is_gz_file(loading_img)) {
-    extern bool map_image_as_output_cpt;
-    assert (!map_image_as_output_cpt && "Cannot map gz as output cpt");
 #ifdef CONFIG_MEM_COMPRESS
     Log("Loading GZ image %s", loading_img);
     return load_gz_img(loading_img);
@@ -120,6 +118,7 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   #endif
   Log("Read %lu bytes from file %s to 0x%lx", size, img_name, load_start);
 
+  fclose(fp);
   return size;
 }
 

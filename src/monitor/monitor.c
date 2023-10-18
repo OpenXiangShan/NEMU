@@ -301,8 +301,8 @@ void init_monitor(int argc, char *argv[]) {
   init_isa();
 
   // when there is a gcpt[restorer], we put bbl after gcpt[restorer]
-  uint64_t bbl_start;
-  long img_size; // how large we should copy for difftest
+  uint64_t bbl_start = 0;
+  long img_size = 0; // how large we should copy for difftest
 
   if (checkpoint_restoring) {
     // When restoring cpt, gcpt restorer from cmdline is optional,

@@ -132,7 +132,7 @@ void init_sdcard() {
   Assert(C_SIZE < (1 << 12), "should be fit in 12 bits");
 
   const char *img = CONFIG_SDCARD_IMG_PATH;
-  fp = fopen(img, "r");
+  fp = fopen(img, "r+");
   if (fp == NULL) {
       Log("Can not find sdcard image: %s", img);
   } else {
