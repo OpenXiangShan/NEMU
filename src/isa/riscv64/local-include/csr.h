@@ -749,6 +749,7 @@ word_t dasics_jumpbound_low_from_index(int i);
 word_t dasics_jumpbound_high_from_index(int i);
 bool dasics_match_dlib(uint64_t addr, uint8_t cfg);
 void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+void dasics_fetch_helper(vaddr_t pc, vaddr_t prev_pc);
 void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc);
 void dasics_check_trusted(vaddr_t pc);
 #endif  // CONFIG_RV_DASICS

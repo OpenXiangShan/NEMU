@@ -256,6 +256,23 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
   }
 }
 
+void dasics_fetch_helper(vaddr_t pc, vaddr_t prev_pc) {
+  bool src_trusted = dasics_in_trusted_zone(prev_pc);
+  bool dst_freezone = dasics_match_djumpbound(pc, JUMPCFG_V);
+
+  Logm("[Dasics fetch] pc: 0x%lx (F:%d), target:0x%lx (F:%d)\n", prev_pc, src_trusted, pc, dst_freezone);
+  Logm("[Dasics fetch] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
+
+  bool allow_brjp = src_trusted  || dst_freezone;
+
+  if (!allow_brjp) {
+    int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
+    INTR_TVAL_REG(ex) = pc;
+    Logm("Dasics fetch exception occur: pc%lx  (st:%d,df:%d)\n",pc,src_trusted,dst_freezone);
+    longjmp_exception(ex);
+  }
+}
+
 void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
   // Check whether this redirect instruction is permitted
   bool src_trusted = dasics_in_trusted_zone(pc);

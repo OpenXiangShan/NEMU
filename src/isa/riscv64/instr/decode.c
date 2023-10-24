@@ -88,6 +88,11 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
+  //TODO: DASICS fetch check
+  // Logm("fetch instruction from:%lx, last pc is %lx", s->snpc,s->prev_pc);
+  if(s->prev_is_branch)
+    dasics_fetch_helper(s->snpc, s->prev_pc);
+
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
     // this is an RVC instruction
@@ -102,6 +107,7 @@ int isa_fetch_decode(Decode *s) {
     idx = table_main(s);
   }
 
+  s->prev_is_branch = 0;
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
@@ -112,7 +118,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->prev_is_branch = 1; s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_jr:)
