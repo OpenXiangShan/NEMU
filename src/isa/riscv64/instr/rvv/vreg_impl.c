@@ -45,8 +45,8 @@ rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode) {
     }
     if (vl_req <= VLMAX) {
         return vl_req;
-    } else if (vl_req < 2 *VLMAX) {
-        return vl_req / 2 + 1;
+    } else if (vl_req < 2 * VLMAX) {
+        return VLMAX;
     } else {
         return VLMAX;
     }
