@@ -120,4 +120,9 @@ config PMPTABLE_EXTENSION
   bool "Enable PMPTable extension"
   default n
 
+config RVV_AGNOSTIC
+  depends on RVV
+  bool "Enable RVV agnostic policy"
+  default y
+
 endmenu
