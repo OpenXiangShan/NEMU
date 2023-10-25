@@ -95,6 +95,7 @@ static inline void update_vcsr() {
 }
 
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
+  if(check_vstart_ignore(s)) return;
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   uint64_t carry;
@@ -458,6 +459,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
+  if(check_vstart_ignore(s)) return;
   int idx;
   word_t FPCALL_TYPE;
   // fpcall type
@@ -645,6 +647,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 }
 
 void mask_instr(int opcode, Decode *s) {
+  if(check_vstart_ignore(s)) return;
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -676,6 +679,8 @@ void mask_instr(int opcode, Decode *s) {
     *s1 &= 1; // make sure the LSB
     set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
   }
+  rtl_li(s, s0, 0);
+  vcsr_write(IDXVSTART, s0);
   set_mstatus_dirt();
 
   if (AGNOSTIC == 1) {
