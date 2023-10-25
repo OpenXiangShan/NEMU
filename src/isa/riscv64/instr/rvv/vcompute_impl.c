@@ -125,7 +125,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         && opcode != MSBC \
         && opcode != SLIDEUP \
         && mask==0) {
-        if (AGNOSTIC == 1) {
+        if (RVV_AGNOSTIC) {
             if (dest_mask == 1) {
               if (vtype->vma) {
                 set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
@@ -179,7 +179,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 
     if (opcode == SLIDEUP) {
       if(s->vm == 0 && mask == 0 && vtype->vma && (uint64_t)idx >= (uint64_t)*s1) {
-        if (AGNOSTIC == 1) {
+        if (RVV_AGNOSTIC) {
           *s2 = (uint64_t) -1;
           set_vreg(id_dest->reg, idx, *s2, vtype->vsew+widening, vtype->vlmul, 1);
         }
@@ -435,7 +435,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew+widening, vtype->vlmul, 1);
   }
 
-  if (AGNOSTIC == 1) {
+  if (RVV_AGNOSTIC) {
     if(vtype->vta) {
       int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
       for(idx = vl->val; idx < vlmax; idx++) {
@@ -493,7 +493,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       // masked and mask off exec will left dest unmodified.
       if(opcode != FMERGE \
         && mask==0) {
-        if (AGNOSTIC == 1) {
+        if (RVV_AGNOSTIC) {
           if (dest_mask == 1) {
             if (vtype->vma) {
               set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
@@ -621,7 +621,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
   }
 
-  if (AGNOSTIC == 1) {
+  if (RVV_AGNOSTIC) {
     if(vtype->vta) {
       int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
       for(idx = vl->val; idx < vlmax; idx++) {
@@ -683,7 +683,7 @@ void mask_instr(int opcode, Decode *s) {
   vcsr_write(IDXVSTART, s0);
   set_mstatus_dirt();
 
-  if (AGNOSTIC == 1) {
+  if (RVV_AGNOSTIC) {
     for (idx = vl->val; idx < VLEN; idx++) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
@@ -722,7 +722,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
     }
 
   }
-  if (AGNOSTIC == 1) {
+  if (RVV_AGNOSTIC) {
     if(vtype->vta) set_vreg_tail(id_dest->reg);
   }
   set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
@@ -776,7 +776,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     }
 
   }
-  if (AGNOSTIC == 1) {
+  if (RVV_AGNOSTIC) {
     if(vtype->vta) set_vreg_tail(id_dest->reg);
   }
   if (widening)
@@ -887,7 +887,7 @@ void float_reduction_computing(Decode *s) {
   get_tmp_vreg(0, 0, s0, vtype->vsew);
   rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
 
-  if (AGNOSTIC == 1) {
+  if (RVV_AGNOSTIC) {
     if(vtype->vta) set_vreg_tail(id_dest->reg);
   }
   set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);

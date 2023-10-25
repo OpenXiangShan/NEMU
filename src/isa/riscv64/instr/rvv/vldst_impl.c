@@ -82,7 +82,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
 
       set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype->vsew, vtype->vlmul, 1);
     } else if (s->vm == 0 && mask==0) {
-        if (AGNOSTIC == 1 && vtype->vma) {
+        if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype->vsew, vtype->vlmul, 1);
         }
@@ -95,7 +95,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     }
   }
 
-  if (AGNOSTIC == 1 && vtype->vta) {
+  if (RVV_AGNOSTIC && vtype->vta) {
     int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
     for(idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
