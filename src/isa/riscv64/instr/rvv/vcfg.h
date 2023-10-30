@@ -24,6 +24,7 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include <setjmp.h>
+#include "vcommon.h"
 
 int get_mode(Decode *s) {
   rtl_lr(s, &(id_src1->val), id_src1->reg, 4);
@@ -41,13 +42,19 @@ void set_vtype_vl(Decode *s, int mode) {
   rtlreg_t vl_num = check_vsetvl(id_src2->val, id_src1->val, mode);
   rtlreg_t error = 1ul << 63;
   
-  if(vl_num == (uint64_t)-1) {
+  if(vl_num == (uint64_t)-1 || check_vlmul_sew_illegal(id_src2->val)) {
     vtype->val = error;
   }
   else {
     vtype->val = id_src2->val;
   }
-  
+  // if vtype illegal,set vl = 0 ,vd = 0
+  if(check_vlmul_sew_illegal(id_src2->val)){
+    vl->val = 0;
+
+    rtl_sr(s, id_dest->reg, &vl->val, 8/*4*/);
+    return;
+  }
   vl->val = vl_num;
 
   rtl_sr(s, id_dest->reg, &vl_num, 8/*4*/);

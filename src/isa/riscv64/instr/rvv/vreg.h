@@ -29,7 +29,11 @@
 #define VENUM16 (VLEN/16)
 #define VENUM8  (VLEN/8)
 #define SLEN 256
-#define AGNOSTIC 1
+#ifdef CONFIG_RVV_AGNOSTIC
+#define RVV_AGNOSTIC 1
+#else
+#define RVV_AGNOSTIC 0
+#endif
 
 #define RNU 0
 #define RNE 1

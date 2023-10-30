@@ -26,6 +26,7 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include <setjmp.h>
+#include "vcommon.h"
 
 #define id_src (&s->src1)
 #define id_src2 (&s->src2)

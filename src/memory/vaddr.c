@@ -15,6 +15,8 @@
 ***************************************************************************************/
 
 #include <isa.h>
+//#include <profiling/betapoint-ext.h>
+#include <profiling/profiling_control.h>
 
 #ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1
@@ -23,6 +25,7 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
+#include <cpu/decode.h>
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
@@ -146,7 +149,10 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
   if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
-  if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data, cpu.mode, addr); return; }
+  if (mmu_mode == MMU_DIRECT) {
+    paddr_write(addr, len, data, cpu.mode, addr);
+    return;
+  }
 #ifndef __ICS_EXPORT
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 #endif

@@ -19,7 +19,8 @@
 
 #include <checkpoint/path_manager.h>
 #include <checkpoint/cpt_env.h>
-#include <checkpoint/profiling.h>
+#include <checkpoint/serializer.h>
+#include <profiling/profiling_control.h>
 
 #include <cassert>
 #include <iostream>
@@ -45,41 +46,54 @@ void PathManager::init() {
 
   cptID = -1;
 
-  if (cpt_id != -1) {
-    cptID = cpt_id;
-  }
-
-  if (profiling_state == SimpointCheckpointing || checkpoint_taking) {
-    cptID = 0;
-  }
+  //set by manual from args
+  //  if (cpt_id != -1) {
+  //    cptID = cpt_id;
+  //  }
 
   Log("Cpt id: %i", cptID);
+
   workloadPath = statsBaseDir + "/" + configName + "/" + workloadName + "/";
 
-  if (profiling_state == SimpointCheckpointing) {
+  if (checkpoint_state == SimpointCheckpointing) {
     assert(simpoints_dir);
     simpointPath = fs::path(string(simpoints_dir) + "/" + workloadName +"/");
   }
-
-  setOutputDir();
 }
 
-void PathManager::setOutputDir() {
-  std::string output_path = workloadPath;
-  if (cptID != -1) {
+void PathManager::setSimpointProfilingOutputDir() {
+  if (profiling_state==SimpointProfiling) {
+    std::string output_path = workloadPath;
+    outputPath = fs::path(output_path);
+
+    if (!fs::exists(outputPath)) {
+      fs::create_directories(outputPath);
+    }
+    Log("Created %s\n", output_path.c_str());
+  }else{
+    Log("donot set simpoint profiling path without SimpointProfiling mode");
+  }
+}
+
+void PathManager::setCheckpointingOutputDir() {
+  //set checkpoint id
+  cptID=serializer.next_index();
+  if (checkpoint_state!=NoCheckpoint) {
+    std::string output_path = workloadPath;
     output_path += to_string(cptID) + "/";
-  }
 
-  outputPath = fs::path(output_path);
-
-  if (!fs::exists(outputPath)) {
-    fs::create_directories(outputPath);
+    outputPath = fs::path(output_path);
+    if (!fs::exists(outputPath)) {
+      fs::create_directories(outputPath);
+    }
+    Log("Created %s\n", output_path.c_str());
+  }else{
+    Log("donot set checkpoint path without Checkpoint mode");
   }
-  Log("Created %s\n", output_path.c_str());
 }
 
 void PathManager::incCptID() {
-  cptID++;
+  cptID=serializer.next_index();
 }
 
 std::string PathManager::getOutputPath() const {

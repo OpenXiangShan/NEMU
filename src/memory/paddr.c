@@ -37,6 +37,8 @@ unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 static uint8_t *pmem = (uint8_t *)PMEMBASE;
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
@@ -64,6 +66,9 @@ uint8_t *get_pmem()
 {
   return pmem;
 }
+
+char *mapped_cpt_file = NULL;
+bool map_image_as_output_cpt = false;
 
 #ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm(){
@@ -112,9 +117,8 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
 void init_mem() {
 #ifdef CONFIG_USE_MMAP
   #ifdef CONFIG_MULTICORE_DIFF
-    panic("Pmem must not use mmap during multi-core difftest");
+  panic("Pmem must not use mmap during multi-core difftest");
   #endif
-
   #ifdef CONFIG_USE_SPARSEMM
   sparse_mm = sparse_mem_new(4, 1024); //4kB
   #else

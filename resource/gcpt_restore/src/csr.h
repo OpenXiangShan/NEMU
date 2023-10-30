@@ -16,6 +16,8 @@
 #ifndef __CSR_H__
 #define __CSR_H__
 
+#include <autoconf.h>
+
 //no mhartid here
 
 #define CSRS(f) \
@@ -34,8 +36,24 @@
   f(stval      , 0x143) \
   f(satp       , 0x180)
 
+#define NOP \
+  addi x0, x0, 0;
 
+#ifdef CONFIG_RVH
 
+#define HCSRS(f) \
+  f(hstatus    , 0x600) f(hedeleg    , 0x602) f(hideleg    , 0x603) \
+  f(hie        , 0x604) f(hcounteren , 0x606) f(hgeie      , 0x607) \
+  f(htval      , 0x643) f(hip        , 0x644) f(hvip       , 0x645) \
+  f(htinst     , 0x64A) f(hgeip      , 0xE12) f(henvcfg    , 0x60A) \
+  f(hgatp      , 0x680) f(htimedelta , 0x605) \
+  f(vsstatus   , 0x200) f(vsie       , 0x204) f(vstvec     , 0x205) \
+  f(vsscratch  , 0x240) f(vsepc      , 0x241) f(vscause    , 0x242) \
+  f(vstval     , 0x243) f(vsip       , 0x244) f(vsatp      , 0x280) \
+  f(mtval2     , 0x34b) f(mtinst     , 0x34A)
+#else
+#define HCSRS(f) NOP;
+#endif // CONFIG_RVH
 
 #define CSRS_RESTORE(name, addr) \
   li t2, addr; \

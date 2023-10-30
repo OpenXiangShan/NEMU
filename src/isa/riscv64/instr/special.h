@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include "../local-include/intr.h"
+#include <profiling/profiling_control.h>
 
 def_EHelper(inv) {
   save_globals(s);
@@ -37,14 +38,10 @@ def_EHelper(nemu_trap) {
       extern void disable_time_intr();
       disable_time_intr();
   } else if (cpu.gpr[10]._64 == 0x101) {
-      extern uint64_t g_nr_guest_instr;
-      extern bool profiling_started;
+    if (!workload_loaded) {
+      reset_inst_counters();
+    }
 
-      if (!profiling_started) {
-        Log("Start profiling, resetting inst count from %lu to 1, (n_remain_total will not be cleared)\n", g_nr_guest_instr);
-        g_nr_guest_instr = 1;
-        profiling_started = true;
-      }
 
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0

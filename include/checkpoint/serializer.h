@@ -39,9 +39,11 @@ class Serializer
     void init();
 
     bool shouldTakeCpt(uint64_t num_insts);
+    bool instrsCouldTakeCpt(uint64_t num_insts);
 
     void notify_taken(uint64_t i);
 
+    uint64_t next_index();
   private:
 
     uint64_t intervalSize{10 * 1000 * 1000};

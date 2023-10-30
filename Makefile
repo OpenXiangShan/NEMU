@@ -57,8 +57,9 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
-DIRS-cpp = src/checkpoint src/base src/iostream3 src/memory
-DIRS-y += src/checkpoint  # profiling.c
+DIRS-cpp = src/checkpoint src/base src/iostream3 src/memory src/profiling
+DIRS-y += src/checkpoint src/profiling # profiling.c
+
 XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
 
 CC = $(call remove_quote,$(CONFIG_CC))
