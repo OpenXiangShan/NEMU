@@ -23,8 +23,14 @@
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
 
+
 #define HOSTTLB_SIZE_SHIFT 12
+
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
+
+/*
+  Host tlb for address translation from virtual address to physical address
+*/
 
 typedef struct {
   uint8_t *offset; // offset from the virtual address of the data page to the host virtual address
@@ -38,6 +44,10 @@ static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
 
 #ifdef CONFIG_RVH 
 
+/*
+  Host tlb for address translation of G-stage, which help translate guest physical address to host physical address
+*/
+
 typedef struct {
   paddr_t offset; // offset from the guest virtual address of the data page to the host virtual address
   paddr_t gppn; // guest physical page number
@@ -47,6 +57,10 @@ static HostGTLBEntry hostgtlb[HOSTTLB_SIZE * 3];
 static HostGTLBEntry* const hostgrtlb = &hostgtlb[0];
 static HostGTLBEntry* const hostgwtlb = &hostgtlb[HOSTTLB_SIZE];
 static HostGTLBEntry* const hostgxtlb = &hostgtlb[HOSTTLB_SIZE * 2];
+
+/*
+  Host tlb for address translation of VS-Stage，which help translate guest virtual address to guest physical address
+*/
 
 typedef struct {
   paddr_t gppn; // guest physical address

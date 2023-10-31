@@ -110,7 +110,7 @@ static int g_sys_state_flag = 0;
 void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
 
 void mmu_tlb_flush(vaddr_t vaddr) {
-  hosttlb_flush(vaddr);
+  MUXDEF(CONFIG_RVH, (cpu.v) ? hostgtlb_flush(vaddr) : hosttlb_flush(vaddr), hosttlb_flush(vaddr));
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
