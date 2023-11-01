@@ -55,14 +55,13 @@ static inline uintptr_t VPNiSHFT(int i) {
 static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
-
 #ifdef CONFIG_RVH
 static inline uintptr_t GVPNi(vaddr_t va, int i) {
   return (i == 2)?  (va >> VPNiSHFT(i)) & GPVPNMASK : (va >> VPNiSHFT(i)) & VPNMASK;
 }
-bool hlvx = 0;
-bool hld_st = 0;
-#endif // CONFIG_RVH
+  bool hlvx = 0;
+  bool hld_st = 0;
+#endif
 
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
@@ -78,10 +77,10 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #ifdef CONFIG_RVH
   ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? ((hstatus->vsxl == 1)? vsstatus->_32.sum  : vsstatus->_64.sum): mstatus->sum) || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
-#else // CONFIG_RVH
+#else
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12);
-#endif // CONFIG_RVH
+#endif
 
   if (ifetch) {
     Logtr("Translate for instr reading");
@@ -92,7 +91,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       Logtr("raise exception to update ad for ifecth");
 #else // CONFIG_SHARE
     bool update_ad = false;
-#endif // CONFIG_SHARE
+#endif
 
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
@@ -108,17 +107,17 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     can_load = pte->x;
   else
     can_load = pte->r || ((mstatus->mxr || (((hstatus->vsxl == 1)? vsstatus->_32.mxr  : vsstatus->_64.mxr) && virt)) && pte->x);
-#else // CONFIG_RVH
+#else
   bool can_load = pte->r || (mstatus->mxr && pte->x);
-#endif // CONFIG_RVH
+#endif
 
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a;
     if (update_ad && ok && can_load)
       Logtr("raise exception to update ad for load");
-#else // CONFIG_SHARE
+#else
     bool update_ad = false;
-#endif // CONFIG_SHARE
+#endif
 
     if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
@@ -133,9 +132,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a || !pte->d;
    if (update_ad && ok && pte->w) Logtr("raise exception to update ad for store");
-#else // CONFIG_SHARE
+#else
     bool update_ad = false;
-#endif // CONFIG_SHARE
+#endif
     Logtr("Translate for memory writing");
     if (!(ok && pte->w && !pte->pad) || update_ad) {
       INTR_TVAL_REG(EX_SPF) = vaddr;
@@ -273,33 +272,23 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 }
 #endif // CONFIG_MULTICORE_DIFF
 
+static paddr_t ptw(vaddr_t vaddr, int type) {
+  Logtr("Page walking for 0x%lx\n", vaddr);
+  word_t pg_base = PGBASE(satp->ppn);
 #ifdef CONFIG_RVH
-static inline void ptw_get_virt_mode(int type, int *virt_ptr, int *mode_ptr) {
   int virt = cpu.v;
   int mode = cpu.mode;
   if(type != MEM_TYPE_IFETCH){
-    if (mstatus->mprv) {
+    if(mstatus->mprv) {
       mode = mstatus->mpp;
       virt = mstatus->mpv && mode != MODE_M;
     }
-    if (hld_st) {
+    if(hld_st){
       virt = 1;
       mode = hstatus->spvp; // spvp = 0: VU; spvp = 1: VS
     }
   }
-  *virt_ptr = virt;
-  *mode_ptr = mode;
-}
-#endif // CONFIG_RVH
-
-static paddr_t ptw(vaddr_t vaddr, int type) {
-  Logtr("Page walking for 0x%lx\n", vaddr);
-
-  word_t pg_base = PGBASE(satp->ppn);
-#ifdef CONFIG_RVH
-  int virt, mode;
-  ptw_get_virt_mode(type, &virt, &mode);
-  if (virt) {
+  if(virt){
     if(vsatp_mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp_ppn);
   }
