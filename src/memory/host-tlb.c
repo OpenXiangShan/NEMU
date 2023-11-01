@@ -29,12 +29,26 @@
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
 
 /*
-  Host tlb for address translation from virtual address to physical address
+  Host tlb for address translation from (guest) virtual address to physical address
+  Wraning: Reusage of host tlb for both VA->PA and GVA->GPA may lead to unpredictable fault 
+    if we don't flush it when VM Exit or dynamically and transparently change address mapping in application.
 */
 
 typedef struct {
   uint8_t *offset; // offset from the virtual address of the data page to the host virtual address
-  vaddr_t vpn; // virtual page number
+
+  uint64_t tag[0];
+#ifdef CONFIG_RVH
+  struct {
+    // virtual page number, that's fine to use only 63 bits.
+    vaddr_t vpn: 63; 
+    // Denote whether the entry is inserted under virtualization mode or normal mode, which can aslo be effected by hlvx or mstatus.ppv
+    bool virt: 1; 
+  };
+#else
+  vaddr_t vpn;
+#endif
+
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
@@ -49,8 +63,10 @@ static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
 */
 
 typedef struct {
-  paddr_t offset; // offset from the guest virtual address of the data page to the host virtual address
-  paddr_t gppn; // guest physical page number
+  // offset from the guest virtual address of the data page to the host virtual address
+  paddr_t offset; 
+  // guest physical page number
+  paddr_t gppn; 
 } HostGTLBEntry;
 
 static HostGTLBEntry hostgtlb[HOSTTLB_SIZE * 3];
@@ -58,53 +74,13 @@ static HostGTLBEntry* const hostgrtlb = &hostgtlb[0];
 static HostGTLBEntry* const hostgwtlb = &hostgtlb[HOSTTLB_SIZE];
 static HostGTLBEntry* const hostgxtlb = &hostgtlb[HOSTTLB_SIZE * 2];
 
-/*
-  Host tlb for address translation of VS-Stage，which help translate guest virtual address to guest physical address
-*/
-
-typedef struct {
-  paddr_t gppn; // guest physical address
-  vaddr_t gvpn; // guest virtual page number
-} HostVSTLBEntry;
-
-static HostVSTLBEntry hostvstlb[HOSTTLB_SIZE * 3];
-static HostVSTLBEntry* const hostvsrtlb = &hostvstlb[0];
-static HostVSTLBEntry* const hostvswtlb = &hostvstlb[HOSTTLB_SIZE];
-static HostVSTLBEntry* const hostvsxtlb = &hostvstlb[HOSTTLB_SIZE * 2];
-
 #endif
-
-
-static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
-  return (vaddr >> PAGE_SHIFT);
-}
-
-static inline int hosttlb_idx(vaddr_t vaddr) {
-  return (hosttlb_vpn(vaddr) % HOSTTLB_SIZE);
-}
-
-
-#ifdef CONFIG_RVH
-
-static inline paddr_t hostgtlb_ppn(paddr_t gpaddr) {
-  return (gpaddr >> PAGE_SHIFT);
-}
-
-static inline int hostgtlb_idx(paddr_t gpaddr) {
-  return (hostgtlb_ppn(gpaddr) % HOSTTLB_SIZE);
-}
-
-static inline vaddr_t hostvstlb_vpn(vaddr_t gvaddr) {
-  return (gvaddr >> PAGE_SHIFT);
-}
-
-static inline int hostvstlb_idx(vaddr_t gvaddr) {
-  return (hostvstlb_vpn(gvaddr) % HOSTTLB_SIZE);
-}
 
 extern bool has_two_stage_translation();
 
-#endif // CONFIG_RVH
+#define HOSTTLB_ADDR2PN(addr) (addr >> PAGE_SHIFT)
+
+#define HOSTTLB_ADDR2IDX(addr) (HOSTTLB_ADDR2PN(addr) % HOSTTLB_SIZE)
 
 
 static inline paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
@@ -117,113 +93,87 @@ static inline paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) 
   return pg_base | (vaddr & PAGE_MASK);
 }
 
+
 uint8_t *hosttlb_lookup(vaddr_t vaddr, int type) {
-  int id = hosttlb_idx(vaddr);
+  int id = HOSTTLB_ADDR2IDX(vaddr);
   const HostTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostrtlb[id] : &hostwtlb[id];
 
-  if (e->vpn == hosttlb_vpn(vaddr)) {
+  if (e->vpn == HOSTTLB_ADDR2PN(vaddr) 
+      && MUXDEF(CONFIG_RVH, e->virt == has_two_stage_translation(), true)) {
     return e->offset + vaddr; 
   }
   return HOSTTLB_PTR_FAIL_RET;
 }
 
+
 void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type) {
-  int id = hosttlb_idx(vaddr);
+  int id = HOSTTLB_ADDR2IDX(vaddr);
   HostTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostrtlb[id] : &hostwtlb[id];
 
   e->offset = MUXDEF(CONFIG_USE_SPARSEMM, (uint8_t *)(paddr - vaddr), guest_to_host(paddr) - vaddr);
-  e->vpn = hosttlb_vpn(vaddr);
+  e->vpn = HOSTTLB_ADDR2PN(vaddr);
+  IFDEF(CONFIG_RVH, e->virt = has_two_stage_translation());
 }
+
 
 void hosttlb_flush(vaddr_t vaddr) {
   if (vaddr == 0) {
     memset(hosttlb, -1, sizeof(hosttlb));
   } else {
-    vaddr_t vpn = hosttlb_vpn(vaddr);
-    int idx = hosttlb_idx(vaddr);
-    if (hostrtlb[idx].vpn == vpn) hostrtlb[idx].vpn = (sword_t)-1;
-    if (hostwtlb[idx].vpn == vpn) hostwtlb[idx].vpn = (sword_t)-1;
-    if (hostxtlb[idx].vpn == vpn) hostxtlb[idx].vpn = (sword_t)-1;
+    vaddr_t vpn = HOSTTLB_ADDR2PN(vaddr);
+    int idx = HOSTTLB_ADDR2IDX(vaddr);
+    if (hostrtlb[idx].vpn == vpn) *(hostrtlb[idx].tag) = -1;
+    if (hostwtlb[idx].vpn == vpn) *(hostwtlb[idx].tag) = -1;
+    if (hostxtlb[idx].vpn == vpn) *(hostxtlb[idx].tag) = -1;
   }
 }
 
 
 #ifdef CONFIG_RVH 
 
-static inline paddr_t gpa2pa(paddr_t gpaddr, vaddr_t vaddr, int len, int type) {
-  paddr_t pg_base = isa_mmu_translate_only_stage2(gpaddr, vaddr, len, type);
-  int ret = pg_base & PAGE_MASK;
-  assert(ret == MEM_RET_OK);
-  return pg_base | (gpaddr & PAGE_MASK);
-}
-
 paddr_t hostgtlb_lookup(paddr_t gpaddr, int type) {
-  int id = hostgtlb_idx(gpaddr);
+  int id = HOSTTLB_ADDR2IDX(gpaddr);
   const HostGTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostgxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostgrtlb[id] : &hostgwtlb[id];
 
-  if (e->gppn == hostgtlb_ppn(gpaddr)) {
+  if (e->gppn == HOSTTLB_ADDR2PN(gpaddr)) {
     return e->offset + gpaddr; 
   }
   return HOSTTLB_PADDR_FAIL_RET;
 }
 
+
 void hostgtlb_insert(paddr_t gpaddr, paddr_t paddr, int type) {
-  int id = hostgtlb_idx(gpaddr);
+  int id = HOSTTLB_ADDR2IDX(gpaddr);
   HostGTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostgxtlb[id] : 
     (type == MEM_TYPE_READ) ? &hostgrtlb[id] : &hostgwtlb[id];
 
   // Unlike hosttlb_insert, in order to keep the translation uniform, 
   // we do not translate the paddr to physical address of NEMU.
   e->offset = paddr - gpaddr;
-  e->gppn = hostgtlb_ppn(gpaddr);
+  e->gppn = HOSTTLB_ADDR2PN(gpaddr);
 }
+
 
 void hostgtlb_flush(paddr_t gpaddr) {
   if (gpaddr == 0) {
     memset(hostgtlb, -1, sizeof(hostgtlb));
   } else {
-    paddr_t gppn = hostgtlb_ppn(gpaddr);
-    int idx = hostgtlb_idx(gpaddr);
+    paddr_t gppn = HOSTTLB_ADDR2PN(gpaddr);
+    int idx = HOSTTLB_ADDR2IDX(gpaddr);
     if (hostgrtlb[idx].gppn == gppn) hostgrtlb[idx].gppn = (sword_t)-1;
     if (hostgwtlb[idx].gppn == gppn) hostgwtlb[idx].gppn = (sword_t)-1;
     if (hostgxtlb[idx].gppn == gppn) hostgxtlb[idx].gppn = (sword_t)-1;
   }
-}
 
-paddr_t hostvstlb_lookup(vaddr_t gvaddr, int type) {
-  int id = hostvstlb_idx(gvaddr);
-  const HostVSTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvsxtlb[id] : 
-    (type == MEM_TYPE_READ) ? &hostvsrtlb[id] : &hostvswtlb[id];
-  if (e->gvpn == hostvstlb_vpn(gvaddr)) {
-    return e->gppn; 
-  }
-  return HOSTTLB_PADDR_FAIL_RET;
-}
+  /*
+    When changing mapping from GPA to PA, it is quite embarrassed that the corresponding mapping from GVA to PA become invalid.
+    It is both wasteful to find the entry corresponding to PA and to flush the whole TLB. Maybe the last one will be faster as SIMD exists.
+  */ 
 
-void hostvstlb_insert(vaddr_t gvaddr, paddr_t gpaddr, int type) {
-  int id = hostvstlb_idx(gvaddr);
-  HostVSTLBEntry *e = (type == MEM_TYPE_IFETCH) ?  &hostvsxtlb[id] : 
-    (type == MEM_TYPE_READ) ? &hostvsrtlb[id] : &hostvswtlb[id];
-
-  // Unlike hosttlb_insert, in order to keep the translation uniform, 
-  // we do not translate the paddr to physical address of NEMU.
-  e->gppn = gpaddr;
-  e->gvpn = hostvstlb_vpn(gvaddr);
-}
-
-void hostvstlb_flush(vaddr_t gvaddr) {
-  if (gvaddr == 0) {
-    memset(hostvstlb, -1, sizeof(hostvstlb));
-  } else {
-    paddr_t gvpn = hostvstlb_vpn(gvaddr);
-    int idx = hostvstlb_idx(gvaddr);
-    if (hostvsrtlb[idx].gvpn == gvpn) hostvsrtlb[idx].gvpn = (sword_t)-1;
-    if (hostvswtlb[idx].gvpn == gvpn) hostvswtlb[idx].gvpn = (sword_t)-1;
-    if (hostvsxtlb[idx].gvpn == gvpn) hostvsxtlb[idx].gvpn = (sword_t)-1;
-  }
+  hosttlb_flush(0);
 }
 
 #endif // CONFIG_RVH
@@ -232,9 +182,9 @@ void hosttlb_init() {
   hosttlb_flush(0);
 #ifdef CONFIG_RVH
   hostgtlb_flush(0);
-  hostvstlb_flush(0);
 #endif // CONFIG_RVH
 }
+
 
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
@@ -249,6 +199,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   return data;
 }
 
+
 __attribute__((noinline))
 static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
@@ -259,22 +210,9 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   }
 }
 
+
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
-
-#ifdef CONFIG_RVH
-  if(has_two_stage_translation()){
-    paddr_t gpaddr = hostvstlb_lookup(vaddr, type);
-
-    paddr_t paddr;
-    if (unlikely(gpaddr == HOSTTLB_PADDR_FAIL_RET)) {
-      paddr = va2pa(s, vaddr, len, type);
-    } else {
-      paddr = gpa2pa(gpaddr, vaddr, len, type);
-    }
-    return paddr_read(paddr, len, type, cpu.mode, vaddr);
-  }
-#endif
 
   uint8_t *dst_ptr = hosttlb_lookup(vaddr, type);
   if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {
@@ -290,22 +228,9 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   }
 }
 
+
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   Logm("hosttlb_writing " FMT_WORD, vaddr);
-
-#ifdef CONFIG_RVH
-  if (has_two_stage_translation()) { 
-    paddr_t gpaddr = hostvstlb_lookup(vaddr, MEM_TYPE_WRITE);
-    paddr_t paddr;
-    if (gpaddr == HOSTTLB_PADDR_FAIL_RET) {
-      paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
-    } else {
-      paddr = gpa2pa(gpaddr, vaddr, len, MEM_TYPE_WRITE);
-    }
-    paddr_write(paddr, len, data, cpu.mode, vaddr);
-    return;
-  }
-#endif
 
   uint8_t *dst_ptr = hosttlb_lookup(vaddr, MEM_TYPE_WRITE);
   if (unlikely(dst_ptr == HOSTTLB_PTR_FAIL_RET)) {

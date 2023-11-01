@@ -117,8 +117,9 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 
 #ifdef CONFIG_RVH
 void mmu_vma_tlb_flush(vaddr_t gvaddr) {
-  hostvstlb_flush(gvaddr);
-  if (gvaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  hosttlb_flush(gvaddr);
+  if (gvaddr == 0)
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
 void mmu_gma_tlb_flush(paddr_t gpaddr) {

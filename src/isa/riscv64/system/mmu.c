@@ -451,24 +451,6 @@ bad:
   return MEM_RET_FAIL;
 }
 
-#ifdef CONFIG_RVH
-static paddr_t ptw_only_stage2(paddr_t gpaddr, vaddr_t vaddr, int type) {
-  word_t pg_base = PGBASE(satp->ppn);
-
-  int virt, mode;
-  ptw_get_virt_mode(type, &virt, &mode);
-
-  if (virt) {
-    if (vsatp_mode == 0) return gpa_stage(gpaddr, vaddr, type) & ~PAGE_MASK;
-    pg_base = PGBASE(vsatp_ppn);
-    pg_base = gpa_stage(pg_base | (gpaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
-    if (pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
-  }
-
-  return pg_base | MEM_RET_OK;
-}
-#endif // CONFIG_RVH
-
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
 #ifdef CONFIG_RVH
@@ -655,17 +637,6 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 #endif
   return ptw_result;
 }
-
-#ifdef CONFIG_RVH
-paddr_t isa_mmu_translate_only_stage2(paddr_t gpaddr, vaddr_t vaddr, int len, int type) {
-  paddr_t ptw_result = ptw_only_stage2(gpaddr, vaddr, type);
-#ifdef FORCE_RAISE_PF
-  if(ptw_result != MEM_RET_FAIL && force_raise_pf(gpaddr, type) != MEM_RET_OK)
-    return MEM_RET_FAIL;
-#endif
-  return ptw_result;
-}
-#endif // CONFIG_RVH
 
 int force_raise_pf_record(vaddr_t vaddr, int type) {
   static vaddr_t last_addr[3] = {0x0};

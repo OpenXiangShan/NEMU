@@ -29,6 +29,7 @@ void hosttlb_init();
 
 /**
  * Look up the entry in the TLB that corresponds to the guest virtual address.
+ * [H-Ext] In 2-stage translation, look up the entry in the TLB that corresponds to the guest virtual address.
  * 
  * @param vaddr virtual address to be translated
  * @param type the type of memory access (MEM_TYPE_(READ/WRITE/IFETCH/...))
@@ -38,7 +39,8 @@ uint8_t *hosttlb_lookup(vaddr_t vaddr, int type);
 
 /**
  * Add map entry from guest virtual address to host physical address
- * 
+ * [H-Ext] In 2-stage translation, add map entry from guest physical address to host virtual address
+ *
  * @param vaddr the guest virtual address
  * @param paddr the guest physical address
  */
@@ -46,6 +48,8 @@ void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type);
 
 /**
  * Flush TLB mapping from guest virtual address to host physical address
+ * [H-Ext] In 2-stage translation, flush TLB mapping from guest physical address to host virtual address
+ *
  * @param vaddr if vaddr == 0, clear the whole TLB, otherwise clear the entry corresponding to vaddr
  */
 void hosttlb_flush(vaddr_t vaddr);
@@ -75,30 +79,6 @@ void hostgtlb_insert(paddr_t gpaddr, paddr_t paddr, int type);
  * @note for now, we have only implemented a TLB for mapping GPA to HPA.
  */
 void hostgtlb_flush(paddr_t gpaddr);
-
-/**
- * [H-Ext] In 2-stage translation, look up the entry in the TLB that corresponds to the guest virtual address.
- * 
- * @param gvaddr the VM's guest virtual address to be translated
- * @param type the type of memory access (MEM_TYPE_(READ/WRITE/IFETCH/...))
- * @return the host physical address if TLB hits, otherwise HOSTTLB_PADDR_FAIL_RET
- */
-paddr_t hostvstlb_lookup(vaddr_t gvaddr, int type);
-
-/**
- * [H-Ext] In 2-stage translation, add map entry from guest physical address to host virtual address
- * 
- * @param gvaddr the guest virtual address of VM
- * @param gpaddr the guest physical address of VM
- */
-void hostvstlb_insert(vaddr_t gvaddr, paddr_t gpaddr, int type);
-
-/**
- * [H-Ext] In 2-stage translation, flush TLB mapping from guest physical address to host virtual address
- * @param gvaddr if gvaddr == 0, clear the whole TLB, otherwise clear the entry corresponding to gvaddr
- * @note for now, we have only implemented a TLB for mapping GVA to GPA.
- */
-void hostvstlb_flush(vaddr_t gvaddr);
 
 #endif // CONFIG_RVH
 
