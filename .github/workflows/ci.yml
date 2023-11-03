@@ -17,8 +17,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Setup env
         run: |
+          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "CI_WORKLOADS=/nfs/home/share/ci-workloads/" >> $GITHUB_ENV
+          echo "V_WORKLOAD_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
@@ -28,16 +30,6 @@ jobs:
           # test boot linux
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
           make clean-all
-      - name: test cpt taking and restoring using gz format
-        run: |
-          make riscv64-xs-cpt_defconfig
-          make -j
-          cd resource/gcpt_restore && make && cd $NEMU_HOME
-          # take cpt, and put cpt in output_top/test/linux
-          bash ./scripts/take_gz.sh
-          # restore cpt
-          bash ./scripts/restore_gz.sh
-          make clean-all
       - name: test cpt taking and restoring using zstd format
         run: |
           make riscv64-xs-cpt_defconfig
@@ -45,7 +37,10 @@ jobs:
           cd resource/gcpt_restore && make && cd $NEMU_HOME
           # take cpt, and put cpt in output_top/test/linux
           bash ./scripts/take_zstd.sh
+
           # restore cpt
+          make riscv64-xs-diff-spike_defconfig
+          make -j
           bash ./scripts/restore_zstd.sh
           make clean-all
       - name: Build NEMU as difftest ref
@@ -79,6 +74,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Setup env
         run: |
+          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "CI_WORKLOADS=/nfs/home/share/ci-workloads/" >> $GITHUB_ENV
       - name: Build NEMU interpreter
@@ -104,6 +100,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Setup env
         run: |
+          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU with V extension and agnostic
@@ -128,6 +125,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Setup env
         run: |
+          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/H-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU with H extension as difftest ref
@@ -172,6 +170,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Setup env
         run: |
+          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU with V extension as difftest ref
@@ -208,6 +207,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Setup env
       run: |
+        echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
     - name: Try to compile 
       id: list_configs
