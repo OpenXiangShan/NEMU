@@ -75,7 +75,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
   if (!fp) {
     xpanic("Cannot open restorer %s\n", restorer);
   }
-  uint32_t restorer_size = 0x400;
+  uint32_t restorer_size = 0xf00;
   fseek(fp, 0, SEEK_SET);
   assert(restorer_size == fread(pmem, 1, restorer_size, fp));
   fclose(fp);
