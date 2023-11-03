@@ -49,7 +49,7 @@ class Serializer
     uint64_t intervalSize{10 * 1000 * 1000};
     uint64_t warmupIntervalSize{10 * 1000 * 1000};
 
-    int cptID;
+    uint64_t cptID;
     std::string weightIndicator;
 
     const uint32_t IntRegStartAddr;
