@@ -315,8 +315,15 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
 #endif // CONFIG_FPU_NONE
   }
 #ifndef CONFIG_SHARE
-  else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
-#endif
+  else if (is_read(mtime)) { 
+#ifdef CONFIG_USE_XS_ARCH_CSRS
+    longjmp_exception(EX_II);
+#else // CONFIG_USE_XS_ARCH_CSRS
+    difftest_skip_ref(); 
+    return clint_uptime(); 
+#endif // CONFIG_USE_XS_ARCH_CSRS
+  }
+#endif // CONFIG_SHARE
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
 #endif
