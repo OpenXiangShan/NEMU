@@ -136,7 +136,7 @@ void init_mem() {
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-  for (int i = 0; i < STORE_QUEUE_SIZE; i++) {
+  for (int i = 0; i < CONFIG_DIFFTEST_STORE_QUEUE_SIZE; i++) {
     store_commit_queue[i].valid = 0;
   }
 #endif
@@ -275,7 +275,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
+store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
@@ -313,7 +313,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
     default:
       assert(0);
   }
-  tail = (tail + 1) % STORE_QUEUE_SIZE;
+  tail = (tail + 1) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
 }
 
 store_commit_t *store_commit_queue_pop() {
@@ -322,7 +322,7 @@ store_commit_t *store_commit_queue_pop() {
     return NULL;
   }
   result->valid = 0;
-  head = (head + 1) % STORE_QUEUE_SIZE;
+  head = (head + 1) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
   return result;
 }
 
