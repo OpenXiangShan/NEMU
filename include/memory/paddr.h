@@ -63,14 +63,16 @@ void * get_sparsemm();
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
-#define STORE_QUEUE_SIZE 64
+#ifndef CONFIG_DIFFTEST_STORE_QUEUE_SIZE
+#define CONFIG_DIFFTEST_STORE_QUEUE_SIZE 64
+#endif
 typedef struct {
     uint64_t addr;
     uint64_t data;
     uint8_t  mask;
     uint8_t  valid;
 } store_commit_t;
-extern store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
+extern store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len);
 store_commit_t *store_commit_queue_pop();
