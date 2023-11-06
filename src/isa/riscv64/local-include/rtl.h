@@ -60,7 +60,7 @@ static inline def_rtl(sr, int r, const rtlreg_t *src1, int width) {
 #ifdef CONFIG_RV_DASICS
 
 static inline def_rtl(dasics_jcheck, vaddr_t target) {
-  dasics_redirect_helper(s->pc, target, s->snpc);
+  //dasics_redirect_helper(s->pc, target, s->snpc);
 }
 
 static inline def_rtl(set_dretpc, vaddr_t value) {
