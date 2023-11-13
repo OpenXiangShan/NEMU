@@ -102,12 +102,11 @@
   f(vwadd) f(vwsub) f(vwsubu) f(vwaddu_w) f(vwadd_w) \
   f(vwsubu_w) f(vwsub_w) f(vwmulu) f(vwmulsu) \
   f(vwmul) f(vwmaccu) f(vwmacc) f(vwmaccsu) \
-  f(vwmaccus) f(vlduu) f(vldsu) f(vldxu) \
-  f(vldus) f(vldss) f(vldxs) f(vstu) \
-  f(vsts) f(vstx) f(vstxu) f(vsetvl) f(vsetvli) f(vsetivli) \
-  f(vlduu_mmu) f(vldsu_mmu) f(vldxu_mmu) \
-  f(vldus_mmu) f(vldss_mmu) f(vldxs_mmu) f(vstu_mmu) \
-  f(vsts_mmu) f(vstx_mmu) f(vstxu_mmu) \
+  f(vwmaccus) f(vle) f(vlse) f(vlxe) \
+  f(vse) f(vlr) f(vlm) f(vsr) f(vsm) \
+  f(vlr_mmu) f(vlm_mmu) f(vsr_mmu) f(vsm_mmu) \
+  f(vsse) f(vsxe) f(vsetvl) f(vsetvli) f(vsetivli) \
+  f(vle_mmu) f(vlse_mmu) f(vlxe_mmu) f(vse_mmu) f(vsse_mmu) f(vsxe_mmu) \
   f(vslideup) f(vslidedown) f(vslide1up) f(vslide1down) f(vmvnr) \
   f(vzextvf8) f(vsextvf8) f(vzextvf4) f(vsextvf4) f(vzextvf2) f(vsextvf2) \
   f(vfadd) f(vfredusum) f(vfsub) f(vfredosum) f(vfmin) f(vfredmin) \
