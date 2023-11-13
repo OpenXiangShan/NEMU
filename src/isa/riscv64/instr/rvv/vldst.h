@@ -32,6 +32,14 @@ def_EHelper(vlduu) { //unit-strided
   //print_asm_template3(vlduu);
 }
 
+def_EHelper(vldm) { //mask
+  VLM(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+}
+
+def_EHelper(vldr) { //register
+  VLR(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+}
+
 def_EHelper(vldsu) { //strided unsigned
   /*
   switch (s->v_width) {
@@ -56,7 +64,7 @@ def_EHelper(vldxu) {
   } */
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLD(MODE_INDEXED, UNSIGNED, s, MMU_DIRECT)
+  VLDX(MODE_INDEXED, UNSIGNED, s, MMU_DIRECT)
   //print_asm_template3(vldxu);
 }
 
@@ -96,7 +104,7 @@ def_EHelper(vldxs) {
   }*/
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLD(MODE_INDEXED, SIGNED, s, MMU_DIRECT)
+  VLDX(MODE_INDEXED, SIGNED, s, MMU_DIRECT)
   //print_asm_template3(vldxs);
 }
 
@@ -113,6 +121,14 @@ def_EHelper(vstu) {
   }*/
   VST(MODE_UNIT, MMU_DIRECT)
   //print_asm_template3(vstu);
+}
+
+def_EHelper(vstm) {
+  VSM(MODE_UNIT, MMU_DIRECT)
+}
+
+def_EHelper(vstr) {
+  VSR(MODE_UNIT, MMU_DIRECT)
 }
 
 def_EHelper(vsts) {
@@ -139,7 +155,7 @@ def_EHelper(vstx) {
   }*/
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VST(MODE_INDEXED, MMU_DIRECT)
+  VSTX(MODE_INDEXED, MMU_DIRECT)
   //print_asm_template3(vstx);
 }
 
@@ -153,7 +169,7 @@ def_EHelper(vstxu) {
   }*/
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VST(MODE_INDEXED, MMU_DIRECT)
+  VSTX(MODE_INDEXED, MMU_DIRECT)
   //print_asm_template3(vstxu);
 }
 
@@ -168,6 +184,14 @@ def_EHelper(vlduu_mmu) { //unit-strided
   */
   VLD(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
   //print_asm_template3(vlduu);
+}
+
+def_EHelper(vldm_mmu) { //mask
+  VLM(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
+}
+
+def_EHelper(vldr_mmu) { //register
+  VLR(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
 }
 
 def_EHelper(vldsu_mmu) { //strided unsigned
@@ -194,7 +218,7 @@ def_EHelper(vldxu_mmu) {
   } */
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLD(MODE_INDEXED, UNSIGNED, s, MMU_TRANSLATE)
+  VLDX(MODE_INDEXED, UNSIGNED, s, MMU_TRANSLATE)
   //print_asm_template3(vldxu);
 }
 
@@ -232,7 +256,7 @@ def_EHelper(vldxs_mmu) {
   }*/
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLD(MODE_INDEXED, SIGNED, s, MMU_TRANSLATE)
+  VLDX(MODE_INDEXED, SIGNED, s, MMU_TRANSLATE)
   //print_asm_template3(vldxs);
 }
 
@@ -249,6 +273,14 @@ def_EHelper(vstu_mmu) {
   }*/
   VST(MODE_UNIT, MMU_TRANSLATE)
   //print_asm_template3(vstu);
+}
+
+def_EHelper(vstm_mmu) {
+  VSM(MODE_UNIT, MMU_TRANSLATE)
+}
+
+def_EHelper(vstr_mmu) {
+  VSR(MODE_UNIT, MMU_TRANSLATE)
 }
 
 def_EHelper(vsts_mmu) {
@@ -273,7 +305,7 @@ def_EHelper(vstx_mmu) {
   }*/
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VST(MODE_INDEXED, MMU_TRANSLATE)
+  VSTX(MODE_INDEXED, MMU_TRANSLATE)
   //print_asm_template3(vstx);
 }
 
@@ -287,7 +319,7 @@ def_EHelper(vstxu_mmu) {
   }*/
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VST(MODE_INDEXED, MMU_TRANSLATE)
+  VSTX(MODE_INDEXED, MMU_TRANSLATE)
   //print_asm_template3(vstxu);
 }
 

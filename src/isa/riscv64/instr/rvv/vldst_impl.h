@@ -38,11 +38,25 @@
 #define MODE_INDEXED 2
 
 #define VLD(mode, is_signed, s, mmu_mode) vld(mode, is_signed, s, mmu_mode);
+#define VLDX(mode, is_signed, s, mmu_mode) vldx(mode, is_signed, s, mmu_mode);
+#define VLM(mode, is_signed, s, mmu_mode) vlm(mode, is_signed, s, mmu_mode);
+#define VLR(mode, is_signed, s, mmu_mode) vlr(mode, is_signed, s, mmu_mode);
 
 void vld(int mode, int is_signed, Decode *s, int mmu_mode);
+void vldx(int mode, int is_signed, Decode *s, int mmu_mode);
+void vlm(int mode, int is_signed, Decode *s, int mmu_mode);
+void vlr(int mode, int is_signed, Decode *s, int mmu_mode);
+
 // vector store
 #define VST(mode, mmu_mode) vst(mode, s, mmu_mode);
+#define VSTX(mode, mmu_mode) vstx(mode, s, mmu_mode);
+#define VSM(mode, mmu_mode) vsm(mode, s, mmu_mode);
+#define VSR(mode, mmu_mode) vsr(mode, s, mmu_mode);
+
 void vst(int mode, Decode *s, int mmu_mode);
+void vstx(int mode, Decode *s, int mmu_mode);
+void vsm(int mode, Decode *s, int mmu_mode);
+void vsr(int mode, Decode *s, int mmu_mode);
 
 #endif // __RISCV64_VLDST_IMPL_H__
 

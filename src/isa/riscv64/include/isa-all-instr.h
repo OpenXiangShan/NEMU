@@ -104,6 +104,8 @@
   f(vwmul) f(vwmaccu) f(vwmacc) f(vwmaccsu) \
   f(vwmaccus) f(vlduu) f(vldsu) f(vldxu) \
   f(vldus) f(vldss) f(vldxs) f(vstu) \
+  f(vldr) f(vldm) f(vstr) f(vstm) \
+  f(vldr_mmu) f(vldm_mmu) f(vstr_mmu) f(vstm_mmu) \
   f(vsts) f(vstx) f(vstxu) f(vsetvl) f(vsetvli) f(vsetivli) \
   f(vlduu_mmu) f(vldsu_mmu) f(vldxu_mmu) \
   f(vldus_mmu) f(vldss_mmu) f(vldxs_mmu) f(vstu_mmu) \
