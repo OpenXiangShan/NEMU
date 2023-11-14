@@ -36,6 +36,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   }
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
   emul = emul < 0 ? 0 : emul;
+  emul = 1 << emul;
 
   if (mode == MODE_STRIDED) {
     stride = id_src2->val;
@@ -200,6 +201,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   }
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
   emul = emul < 0 ? 0 : emul;
+  emul = 1 << emul;
 
   if (mode == MODE_STRIDED) {
     stride = id_src2->val;
