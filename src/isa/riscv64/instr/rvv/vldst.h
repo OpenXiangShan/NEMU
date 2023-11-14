@@ -33,7 +33,7 @@ def_EHelper(vlduu) { //unit-strided
 }
 
 def_EHelper(vldm) { //mask
-  VLM(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+  VLD(MODE_MASKED, UNSIGNED, s, MMU_DIRECT)
 }
 
 def_EHelper(vldr) { //register
@@ -124,7 +124,7 @@ def_EHelper(vstu) {
 }
 
 def_EHelper(vstm) {
-  VSM(MODE_UNIT, MMU_DIRECT)
+  VST(MODE_MASKED, MMU_DIRECT)
 }
 
 def_EHelper(vstr) {
@@ -187,7 +187,7 @@ def_EHelper(vlduu_mmu) { //unit-strided
 }
 
 def_EHelper(vldm_mmu) { //mask
-  VLM(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
+  VLD(MODE_MASKED, UNSIGNED, s, MMU_TRANSLATE)
 }
 
 def_EHelper(vldr_mmu) { //register
@@ -276,7 +276,7 @@ def_EHelper(vstu_mmu) {
 }
 
 def_EHelper(vstm_mmu) {
-  VSM(MODE_UNIT, MMU_TRANSLATE)
+  VST(MODE_MASKED, MMU_TRANSLATE)
 }
 
 def_EHelper(vstr_mmu) {
