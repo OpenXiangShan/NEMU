@@ -36,7 +36,7 @@
 #define MODE_UNIT    0
 #define MODE_STRIDED 1
 #define MODE_INDEXED 2
-#define MODE_MASKED  3
+#define MODE_MASK    3
 
 #define VLD(mode, is_signed, s, mmu_mode) vld(mode, is_signed, s, mmu_mode);
 #define VLDX(mode, is_signed, s, mmu_mode) vldx(mode, is_signed, s, mmu_mode);

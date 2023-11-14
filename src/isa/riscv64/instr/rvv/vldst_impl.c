@@ -50,7 +50,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
   nf = s->v_nf + 1;
-  vl_val = mode == MODE_MASKED ? (vl->val + 7) / 8 : vl->val;
+  vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++) {
@@ -59,7 +59,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * emul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
+          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
         }
       }
       continue;
@@ -67,16 +67,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     for (fn = 0; fn < nf; fn++) {
       addr = base_addr + idx * stride + (idx * nf * is_stride + fn) * s->v_width;
       rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-      set_vreg(vd + fn * emul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
-    }
-  }
-
-  if (RVV_AGNOSTIC) {   // set start of vector register to 1
-    for (idx = 0; idx < vstart->val; idx++) {
-      tmp_reg[1] = (uint64_t) -1;
-      for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
-      }
+      set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
     }
   }
 
@@ -85,7 +76,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     for(idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
+        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
       }
     }
   }
@@ -140,7 +131,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * lmul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
+          set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
         }
       }
       continue;
@@ -153,16 +144,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
       // read data in memory
       addr = base_addr + index + fn * s->v_width;
       rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-      set_vreg(vd + fn * lmul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
-    }
-  }
-
-  if (RVV_AGNOSTIC) {   // set start of vector register to 1
-    for (idx = 0; idx < vstart->val; idx++) {
-      tmp_reg[1] = (uint64_t) -1;
-      for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * lmul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
-      }
+      set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
     }
   }
 
@@ -171,7 +153,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
     for(idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * lmul, idx, *&tmp_reg[1], eew, vtype->vlmul, 1);
+        set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
       }
     }
   }
@@ -261,7 +243,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
   nf = s->v_nf + 1;
-  vl_val = mode == MODE_MASKED ? (vl->val + 7) / 8 : vl->val;
+  vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++) {
@@ -287,102 +269,99 @@ void vstx(int mode, Decode *s, int mmu_mode) {
 }
 
 void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
-  //TODO: raise instr when decinfo.v_width > SEW
-  //v_width   0  -> none    SEW   0  ->  8
-  //        1  ->  8            1  ->  16
-  //        2  ->  16           2  ->  32
-  //        4  ->  32           3  ->  64
-  //        8  ->  64
-  int vtype_vsew = 0;
+  if(check_vstart_ignore(s)) return;
+  word_t idx, vreg_idx, offset, pos;
+  uint64_t len, base_addr, vd, addr, elt_per_reg, size;
+  int eew;
+
+  eew = 0;
   switch(s->v_width) {
-    case 1: vtype_vsew = 0; break;
-    case 2: vtype_vsew = 1; break;
-    case 4: vtype_vsew = 2; break;
-    case 8: vtype_vsew = 3; break;
+    case 1: eew = 0; break;
+    case 2: eew = 1; break;
+    case 4: eew = 2; break;
+    case 8: eew = 3; break;
     default: break;
   }
-  // previous decode does not load vals for us 
-  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
 
-  word_t idx;
+  // previous decode does not load vals for us
+  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
-  uint64_t load_vl = VLEN / (8*s->v_width) * (s->v_nf+1);
+  len = s->v_nf + 1;
+  elt_per_reg = VLEN / (8*s->v_width);
+  size = len * elt_per_reg;
+  base_addr = tmp_reg[0];
+  vd = id_dest->reg;
+  idx = vstart->val;
 
-  for(idx = vstart->val; idx < load_vl; idx ++) {
-    //TODO: SEW now only supports LE 64bit
-    //TODO: need special rtl function, but here ignore it
-    
-    // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    
-    // op
-    if(s->vm != 0 || mask != 0) {
-      rtl_lm(s, &tmp_reg[1], &tmp_reg[0], 0, s->v_width, mmu_mode);
-      if (is_signed) rtl_sext(s, &tmp_reg[1], &tmp_reg[1], s->v_width);
-
-      set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype_vsew, vtype->vlmul, 1);
-    } else if (s->vm == 0 && mask==0) {
-        if (RVV_AGNOSTIC == 1 && vtype->vma) {
-          tmp_reg[1] = (uint64_t) -1;
-          set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype_vsew, vtype->vlmul, 1);
-        }
+  if (vstart->val < size) {
+    vreg_idx = vstart->val / elt_per_reg;
+    offset = vstart->val % elt_per_reg;
+    if (offset) {
+      // first vreg
+      for (pos = offset; pos < elt_per_reg; pos++) {
+        addr = base_addr + idx * s->v_width;
+        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
+        idx++;
+      }
+      vreg_idx++;
     }
-    
-    rtl_addi(s, &tmp_reg[0], &tmp_reg[0], s->v_width);
-  }
-
-  if (RVV_AGNOSTIC == 1 && vtype->vta) {
-    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
-    for(idx = vl->val; idx < vlmax; idx++) {
-      tmp_reg[1] = (uint64_t) -1;
-      set_vreg(id_dest->reg, idx, *&tmp_reg[1], vtype_vsew, vtype->vlmul, 1);
+    for (; vreg_idx < len; vreg_idx++) {
+      for (pos = 0; pos < elt_per_reg; pos++) {
+        addr = base_addr + idx * s->v_width;
+        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
+        idx++;
+      }
     }
   }
 
-  // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   set_mstatus_dirt();
 }
 
 void vsr(int mode, Decode *s, int mmu_mode) {
-  //TODO: raise instr when decinfo.v_width > SEW
-  //v_width   0  -> none    SEW   0  ->  8
-  //        1  ->  8            1  ->  16
-  //        2  ->  16           2  ->  32
-  //        4  ->  32           3  ->  64
-  //        8  ->  64
-  int vtype_vsew = 0;
-  switch(s->v_width) {
-    case 1: vtype_vsew = 0; break;
-    case 2: vtype_vsew = 1; break;
-    case 4: vtype_vsew = 2; break;
-    case 8: vtype_vsew = 3; break;
-    default: break;
-  }
-  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
+  if(check_vstart_ignore(s)) return;
+  word_t idx, vreg_idx, offset, pos;
+  uint64_t len, base_addr, vd, addr, elt_per_reg, size;
 
-  word_t idx;
+  // previous decode does not load vals for us
+  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
-  uint64_t store_vl = VLEN / (8*s->v_width) * (s->v_nf+1);
+  len = s->v_nf + 1;
+  elt_per_reg = vlenb->val;
+  size = len * elt_per_reg;
+  base_addr = tmp_reg[0];
+  vd = id_dest->reg;
+  idx = vstart->val;
 
-  for(idx = vstart->val; idx < store_vl; idx ++) {
-    //TODO: SEW now only supports LE 64bit
-    //TODO: need special rtl function, but here ignore it
-    
-    // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-
-    // op
-    if(s->vm != 0 || mask != 0) {
-      get_vreg(id_dest->reg, idx, &tmp_reg[1], vtype_vsew, vtype->vlmul, 0, 1);
-      rtl_sm(s, &tmp_reg[1], &tmp_reg[0], 0, s->v_width, mmu_mode);
+  if (vstart->val < size) {
+    vreg_idx = vstart->val / elt_per_reg;
+    offset = vstart->val % elt_per_reg;
+    if (offset) {
+      // first vreg
+      for (pos = offset; pos < elt_per_reg; pos++) {
+        // read 1 byte and store 1 byte to memory
+        get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
+        addr = base_addr + idx;
+        rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
+        idx++;
+      }
+      vreg_idx++;
     }
-
-    rtl_addi(s, &tmp_reg[0], &tmp_reg[0], s->v_width);
+    for (; vreg_idx < len; vreg_idx++) {
+      for (pos = 0; pos < elt_per_reg; pos++) {
+        // read 1 byte and store 1 byte to memory
+        get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
+        addr = base_addr + idx;
+        rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
+        idx++;
+      }
+    }
   }
-  // TODO: the idx larger than vl need reset to zero.
+
   vstart->val = 0;
   set_mstatus_dirt();
 }
