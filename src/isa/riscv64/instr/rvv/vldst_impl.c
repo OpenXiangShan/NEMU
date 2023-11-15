@@ -269,7 +269,6 @@ void vstx(int mode, Decode *s, int mmu_mode) {
 }
 
 void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
-  if(check_vstart_ignore(s)) return;
   word_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
   int eew;
@@ -322,7 +321,6 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
 }
 
 void vsr(int mode, Decode *s, int mmu_mode) {
-  if(check_vstart_ignore(s)) return;
   word_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
 
