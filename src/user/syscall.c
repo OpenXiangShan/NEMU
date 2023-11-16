@@ -259,7 +259,7 @@ uintptr_t host_syscall(uintptr_t id, uintptr_t arg1, uintptr_t arg2, uintptr_t a
     IFDEF(CONFIG_ISA_x86, case USER_SYS_set_thread_area:
         ret = user_set_thread_area(user_to_host(arg1)); break);
     case USER_SYS_exit_group:
-    case USER_SYS_exit: user_sys_exit(arg1); break;
+    case USER_SYS_exit:Log("[syscall exit]"); user_sys_exit(arg1); break;
     case USER_SYS_brk: ret = user_sys_brk(arg1); break;
     case USER_SYS_write: ret = write(user_fd(arg1), user_to_host(arg2), arg3); break;
     case USER_SYS_uname: ret = uname((struct utsname *) user_to_host(arg1)); break;
