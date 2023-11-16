@@ -41,6 +41,7 @@ enum {
   EX_VI,  // virtual instruction, H-extention
   EX_SGPF // store/amo guest-page fault, H-extention
 };
+extern const char *EX_NAME[];
 
 // now NEMU does not support EX_IAM,
 // so it may ok to use EX_IAM to indicate a successful memory access

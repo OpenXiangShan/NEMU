@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
-
+#include "../isa/riscv64/local-include/intr.h"
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -47,8 +47,17 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
+  // restrict the trace to those near the error instruction
+  #define TRACE_START (1214000)
+  // trace of width
+  #define TRACE_END   (1024 * 5)
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  Logti("%s\n", asmbuf);
+#ifdef CONFIG_TRACE_INST
+  uint64_t abs_instr_count = get_abs_instr_count();
+  if ((TRACE_START < abs_instr_count) && (abs_instr_count < TRACE_START + TRACE_END)) {
+    Logti("%s\n", asmbuf);
+  }
+#endif //CONFIG_TRACE_INST
   if (g_print_step) {
     puts(asmbuf);
   }
@@ -125,7 +134,7 @@ _Noreturn void longjmp_exception(int ex_cause) {
   cpu.guided_exec = false;
 #endif
   g_ex_cause = ex_cause;
-  Loge("longjmp_exec(NEMU_EXEC_EXCEPTION)");
+  Loge("longjmp_exec(NEMU_EXEC_EXCEPTION),EX_NAME=%s",EX_NAME[ex_cause]);
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
 
@@ -711,7 +720,7 @@ void cpu_exec(uint64_t n) {
              : (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP"
                                          : "\33[1;31mHIT BAD TRAP")),
         nemu_state.halt_pc);
-    Log("trap code:%d", nemu_state.halt_ret);
+    Log("trap code:%d ,guest_instr = %ld ", nemu_state.halt_ret , get_abs_instr_count());
     monitor_statistic();
     break;
   case NEMU_QUIT:
