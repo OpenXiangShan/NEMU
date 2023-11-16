@@ -170,7 +170,12 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
       case SRC_VI :
         if(is_signed) rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
-        else          rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5 );
+        else {
+          if ( (opcode == MSLTU) || (opcode == MSLEU) || (opcode == MSGTU) )
+            rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
+          else
+            rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5);
+        }       
         break;
     }
 
