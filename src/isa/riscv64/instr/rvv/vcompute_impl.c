@@ -170,7 +170,12 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
       case SRC_VI :
         if(is_signed) rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
-        else          rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5 );
+        else {
+          if ( (opcode == MSLTU) || (opcode == MSLEU) || (opcode == MSGTU) )
+            rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
+          else
+            rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5);
+        }       
         break;
     }
 
@@ -694,11 +699,12 @@ void mask_instr(int opcode, Decode *s) {
 
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   // TODO: check here: does not need align??
+  // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 1);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
-
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
+    // get mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask==0) {
       continue;
@@ -706,7 +712,6 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
     if(is_signed) rtl_sext(s, s0, s0, 1 << vtype->vsew);
-
 
     // op
     switch (opcode) {
@@ -726,7 +731,10 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   if (RVV_AGNOSTIC) {
     if(vtype->vta) set_vreg_tail(id_dest->reg);
   }
-  set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
+  // No write when vl is 0
+  if ( vl->val != 0 ) {
+    set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
+  }
   set_mstatus_dirt();
 }
 
