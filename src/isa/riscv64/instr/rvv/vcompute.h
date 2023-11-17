@@ -398,7 +398,7 @@ def_EHelper(vfirst) {
   // longjmp_raise_intr(EX_II);
   if(vstart->val != 0)
     longjmp_raise_intr(EX_II);
-  
+
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
@@ -420,12 +420,12 @@ def_EHelper(vmsbf) {
   for(int idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask == 0) {
-      if (vtype->vma) {
-        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
-      }
+      //if (vtype->vma) {
+        //set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      //}
       continue;
     }
-    
+
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
     *s0 &= 1;
 
@@ -436,6 +436,13 @@ def_EHelper(vmsbf) {
     if(first_one) {
       set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
     } else{
+      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+    }
+  }
+  // If there is no set bit in the active element of the source vector,
+  // all active elements in the target are written to 1.
+  if (!first_one) {
+    for(int idx = vstart->val; idx < vl->val; idx ++) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
   }
