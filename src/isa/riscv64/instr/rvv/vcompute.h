@@ -401,11 +401,13 @@ def_EHelper(vfirst) {
 
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
-    *s0 &= 1;
-    if(*s0 == 1) {
+    if (s->vm || (cpu.vr[0]._64[idx/64] & (1lu << (idx % 64))) ) {
+      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 &= 1;
+      if(*s0 == 1) {
         pos = idx;
         break;
+      }
     }
   }
   rtl_li(s, s1, pos);
@@ -562,7 +564,7 @@ def_EHelper(viota) {
 
 def_EHelper(vid) {
   for(int idx = 0; idx < vl->val; idx ++) {
-        // mask
+    // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     // Masking does not change the index value written to active elements.
     if(s->vm == 0 && mask == 0) {
@@ -885,7 +887,8 @@ def_EHelper(vfslide1down) {
 }
 
 def_EHelper(vfmvfs) {
-  if (vstart->val < vl->val) {
+  // vfmv.f.s performs its action even if vstart≥vl or vl=0
+  if (vstart->val < vl->val || vl->val == 0) {
     get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
     if (vtype->vsew < 3) {
         *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
