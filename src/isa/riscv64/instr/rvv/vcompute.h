@@ -401,7 +401,8 @@ def_EHelper(vfirst) {
 
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
-    if (s->vm || (cpu.vr[0]._64[idx/64] & (1lu << (idx % 64))) ) {
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if (s->vm || mask) {
       *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
       *s0 &= 1;
       if(*s0 == 1) {
@@ -422,9 +423,11 @@ def_EHelper(vmsbf) {
   for(int idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask == 0) {
-      //if (vtype->vma) {
-        //set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
-      //}
+      if (RVV_AGNOSTIC) {
+        if (vtype->vma) {
+          set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+        }
+      }
       continue;
     }
 
