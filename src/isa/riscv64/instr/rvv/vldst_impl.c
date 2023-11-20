@@ -193,7 +193,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
   nf = s->v_nf + 1;
-  vl_val = vl->val;
+  vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++) {
