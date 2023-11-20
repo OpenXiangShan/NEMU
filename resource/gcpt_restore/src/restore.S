@@ -27,6 +27,8 @@ boot_decide_vector:
   li t2, CPT_MAGIC_BUMBER
   beq t1, t2,1f
   j RESET_VECTOR
+#  li t3, RESET_VECTOR
+#  jalr x0, 0(t3)
 
 1:
 restore_csr_vector:
@@ -63,13 +65,13 @@ restore_csr_vector:
   csrs  CSR_MSTATUS, t0
 
   # set mtime (inaccurate) and mtimecmp
-  li t0, CLINT_MMIO+CLINT_MTIMECMP
-  ld t1, 24(s0)
-  sd t1, (t0)
-
-  li t0, CLINT_MMIO+CLINT_MTIME
-  ld t1, 16(s0)
-  sd t1, (t0)
+#  li t0, CLINT_MMIO+CLINT_MTIMECMP
+#  ld t1, 24(s0)
+#  sd t1, (t0)
+#
+#  li t0, CLINT_MMIO+CLINT_MTIME
+#  ld t1, 16(s0)
+#  sd t1, (t0)
 
   # li t0, MIE_MTIE
   # csrs CSR_MIE, t0
