@@ -841,8 +841,8 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
-  // FREDUCTION(FREDUSUM)
-  float_reduction_computing(s);
+  FREDUCTION(FREDUSUM)
+  //float_reduction_computing(s);
 }
 
 def_EHelper(vfsub) {
