@@ -54,7 +54,7 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
   void *a = get_sparsemm();
-  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n", 
+  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n",
           dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
   if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
   else sparse_mem_copy(dut_buf, a);
@@ -142,6 +142,18 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
+
+#ifdef CONFIG_REF_STATUS
+int difftest_status() {
+  switch (nemu_state.state) {
+    case NEMU_RUNNING: case NEMU_QUIT:
+      return 0;
+    default:
+      return 1;
+  }
+}
+#endif
+
 #ifdef CONFIG_LIGHTQS
 void difftest_guided_exec(void * guide, uint64_t restore_count) {
 #ifdef CONFIG_LIGHTQS_DEBUG
