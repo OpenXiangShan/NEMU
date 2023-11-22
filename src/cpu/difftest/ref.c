@@ -148,6 +148,8 @@ int difftest_status() {
   switch (nemu_state.state) {
     case NEMU_RUNNING: case NEMU_QUIT:
       return 0;
+    case NEMU_END:
+      return (nemu_state.halt_ret == 0) ? 6 : 1;
     default:
       return 1;
   }
