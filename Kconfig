@@ -285,6 +285,11 @@ config PANIC_ON_UNIMP_CSR
   bool "Panic if an unimplemented CSR is being accessed"
   default n
 
+config REF_STATUS
+  depends on SHARE
+  bool "Enable ref status API"
+  default n
+
 endmenu
 
 menu "Miscellaneous"
