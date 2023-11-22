@@ -192,6 +192,12 @@ void Serializer::serializeRegs() {
   *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS+24);
 
+#ifdef CONFIG_RVH
+  auto *mode_flag_v = (uint64_t *) (get_pmem() + CptFlagAddr + 32);
+  *mode_flag_v = cpu.v;
+  Log("Record virtualization mode: 0x%lx at addr 0x%x", cpu.v, BOOT_FLAGS + 32);
+#endif
+
   regDumped = true;
 }
 

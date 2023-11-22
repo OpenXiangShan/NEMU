@@ -49,9 +49,17 @@ restore_csr_vector:
   csrc CSR_MSTATUS, t1
 
 
-  li t0, MSTATUS_MPP # MPP is M
-  ld s2, 8(s0) #load mode flag into s2
-  slli t1, s2, 11 # mode flag shift to MPP
+  li t0, MSTATUS_MPP  # MPP is M
+  ld s2, 8(s0)        # load mode flag into s2
+  slli t1, s2, 11     # mode flag shift to MPP
+
+#ifdef CONFIG_RVH
+  ld s2, 32(s0)       # load v flag into s2 
+  slli s2, s2, 39     # mode flag shift to MPV
+
+  or t1, t1, s2
+#endif // CONFIG_RVH
+
 2:
   beq t0, t1, 2b #stuck if mode flag is M
   # set MPP to mode flag (U or S), clear and set
