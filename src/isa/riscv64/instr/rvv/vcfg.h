@@ -27,7 +27,6 @@
 #include "vcommon.h"
 
 int get_mode(Decode *s) {
-  rtl_lr(s, &(id_src1->val), id_src1->reg, 4);
   int mode = 0;
   if (id_src1->reg == 0 && id_dest->reg != 0) {
     mode = 1;
@@ -66,6 +65,8 @@ def_EHelper(vsetvl) {
 
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
+  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
   set_mstatus_dirt();
@@ -76,6 +77,8 @@ def_EHelper(vsetvli) {
 
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
+  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
+  rtl_li(s, &(s->src2.val), s->isa.instr.v_opv2.v_zimm);
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
   set_mstatus_dirt();
@@ -85,6 +88,8 @@ def_EHelper(vsetvli) {
 def_EHelper(vsetivli) {
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
+  rtl_li(s, &(s->src1.val), s->isa.instr.v_opv4.v_zimm5);
+  rtl_li(s, &(s->src2.val), s->isa.instr.v_opv4.v_zimm);
   set_vtype_vl(s, 0);
   set_mstatus_dirt();
   // print_asm_template3(vsetvl);
