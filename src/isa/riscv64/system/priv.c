@@ -197,9 +197,19 @@ word_t inline pmp_tor_mask() {
 }
 
 static inline void update_mstatus_sd() {
+  #if !defined (CONFIG_FPU_SOFT) && (CONFIG_RVV)
+    mstatus->sd = 0;
+    return ;
+  #endif
+
+  // If mstatus.VS is "dirty", mstatus.SD is 1
+  if (ISDEF(CONFIG_RVV) && mstatus->vs==3) {
+    mstatus->sd = 1;
+    return ;
+  }
   // mstatus.fs is always dirty or off in QEMU 3.1.0
   // When CONFIG_FS_CLEAN_STATE is set (such as for rocket-chip), mstatus.fs is always dirty or off.
-  if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
+  else if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
     mstatus->fs = 3;
   }
   mstatus->sd = (mstatus->fs == 3);
@@ -624,7 +634,13 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_FPU_NONE
 
   }
-
+#ifdef CONFIG_RVV
+  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
+    //vp_set_dirty();
+    set_mstatus_dirt();
+    need_update_mstatus_sd = true;
+  }
+#endif //CONFIG_RVV
   if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
     update_mstatus_sd();
   }
@@ -644,12 +660,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
-#ifdef CONFIG_RVV
-  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
-    //vp_set_dirty();
-    set_mstatus_dirt();
-  }
-#endif
 }
 
 word_t csrid_read(uint32_t csrid) {

@@ -79,7 +79,7 @@ static inline const char * vreg_name(int index, int width) {
 }
 
 int get_vlmax(int vsew, int vlmul);
-int get_vlen_max(int vsew, int vlmul);
+int get_vlen_max(int vsew, int vlmul, int widening);
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign);
 void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul, int needAlgin);
 
@@ -100,10 +100,12 @@ void longjmp_raise_intr(uint32_t foo);
 #define UNSIGNED     0
 #define SIGNED       1
 
+// set vp dirty
 #define set_mstatus_dirt() \
 do{ \
   if(((mstatus->val >> 9) & 3ull) != 3) {\
     mstatus->val = mstatus->val | (3ull << 9);\
+    mstatus->sd  = 1;\
   } \
 } while (0) \
 

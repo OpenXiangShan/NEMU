@@ -114,7 +114,11 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     isa_misalign_data_addr_check(addr, len, type);
   }
 #endif
+#ifdef CONFIG_RVV
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
+#else
   if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+#endif
     Logm("Checking mmu when MMU_DYN");
     mmu_mode = isa_mmu_check(addr, len, type);
   }
@@ -148,7 +152,13 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+#ifdef CONFIG_RVV
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && (s->v_is_vx == 0)))) {
+#else
+  if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+#endif
+    mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+  }
   if (mmu_mode == MMU_DIRECT) {
     paddr_write(addr, len, data, cpu.mode, addr);
     return;

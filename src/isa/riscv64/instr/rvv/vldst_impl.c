@@ -72,7 +72,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   }
 
   if (RVV_AGNOSTIC && vtype->vta) {   // set tail of vector register to 1
-    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+    int vlmax = get_vlen_max(eew, vtype->vlmul, 0);
     for(idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
@@ -143,13 +143,15 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
 
       // read data in memory
       addr = base_addr + index + fn * s->v_width;
+      s->v_is_vx = 1;
       rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      s->v_is_vx = 0;
       set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
     }
   }
 
   if (RVV_AGNOSTIC && vtype->vta) {   // set tail of vector register to 1
-    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+    int vlmax = get_vlen_max(eew, vtype->vlmul, 0);
     for(idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
@@ -193,7 +195,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
   nf = s->v_nf + 1;
-  vl_val = vl->val;
+  vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++) {
@@ -243,7 +245,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
   nf = s->v_nf + 1;
-  vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
+  vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++) {
@@ -259,7 +261,9 @@ void vstx(int mode, Decode *s, int mmu_mode) {
       // read data in vector register
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, 1);
       addr = base_addr + index + fn * s->v_width;
+      s->v_is_vx = 1;
       rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      s->v_is_vx = 0;
     }
   }
 
