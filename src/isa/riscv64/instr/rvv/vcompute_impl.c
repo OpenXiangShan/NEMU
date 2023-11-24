@@ -345,8 +345,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
       case SLIDEDOWN :// idx + s1 should be prevented from overflowing and thus failing the judgment
         // Data manipulation is forbidden when vl is 0
-        if (vtype->val != 0) {
-          if ((uint64_t)idx + (uint64_t)*s1 < (uint64_t)vlmax && (uint64_t)*s1 < (uint64_t)vlmax) 
+        if (vl->val != 0) {
+          if ((uint128_t)idx + (uint128_t)(uint64_t)*s1 < (uint128_t)vlmax)
             get_vreg(id_src2->reg, idx + *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
           else
             rtl_li(s, s1, 0);
@@ -746,7 +746,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
     if(vtype->vta) set_vreg_tail(id_dest->reg);
   }
   // No write when vl is 0
-  if ( vl->val != 0 ) {
+  if (vl->val != 0) {
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
   }
   set_mstatus_dirt();
