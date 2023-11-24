@@ -191,8 +191,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     narrow_shift = *s1 & (sew * 2 - 1);
 
     if (opcode == SLIDEUP) {
-      if(s->vm == 0 && mask == 0 && vtype->vma && (uint64_t)idx >= (uint64_t)*s1) {
-        if (RVV_AGNOSTIC) {
+      if(s->vm == 0 && mask == 0 && (uint64_t)idx >= (uint64_t)*s1) {
+        if (RVV_AGNOSTIC && vtype->vma) {
           *s2 = (uint64_t) -1;
           set_vreg(id_dest->reg, idx, *s2, vtype->vsew+widening, vtype->vlmul, 1);
         }
