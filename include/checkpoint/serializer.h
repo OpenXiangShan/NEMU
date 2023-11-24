@@ -53,10 +53,19 @@ class Serializer
     std::string weightIndicator;
 
     const uint32_t IntRegStartAddr;
+    const uint32_t IntRegDoneFlag;
     const uint32_t FloatRegStartAddr;
+    const uint32_t FloatRegDoneFlag;
     const uint32_t CSRStartAddr;
-    const uint32_t PCAddr;
+    const uint32_t CSRSDoneFlag;
+    const uint32_t VecRegStartAddr;
+    const uint32_t VecRegDoneFlag;
     const uint32_t CptFlagAddr;
+    const uint32_t PCAddr;
+    const uint32_t MODEAddr;
+    const uint32_t MTIMEAddr;
+    const uint32_t MTIMECMPAddr;
+    const uint32_t MISCDoneFlag;
 
     bool regDumped{false};
 

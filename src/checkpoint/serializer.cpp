@@ -46,12 +46,21 @@ using std::numeric_limits;
 using std::string;
 using std::to_string;
 
-Serializer::Serializer()
-  : IntRegStartAddr(INT_REG_CPT_ADDR - BOOT_CODE),
-    FloatRegStartAddr(FLOAT_REG_CPT_ADDR - BOOT_CODE),
-    CSRStartAddr(CSR_CPT_ADDR - BOOT_CODE),
-    PCAddr(PC_CPT_ADDR - BOOT_CODE),
-    CptFlagAddr(BOOT_FLAGS - BOOT_CODE)
+Serializer::Serializer() :
+    IntRegStartAddr(INT_REG_CPT_ADDR-BOOT_CODE),
+    IntRegDoneFlag(INT_REG_DONE-BOOT_CODE),
+    FloatRegStartAddr(FLOAT_REG_CPT_ADDR-BOOT_CODE),
+    FloatRegDoneFlag(FLOAT_REG_DONE-BOOT_CODE),
+    CSRStartAddr(CSR_REG_CPT_ADDR-BOOT_CODE),
+    CSRSDoneFlag(CSR_REG_DONE-BOOT_CODE),
+    VecRegStartAddr(VECTOR_REG_CPT_ADDR-BOOT_CODE),
+    VecRegDoneFlag(VECTOR_REG_DONE-BOOT_CODE),
+    CptFlagAddr(BOOT_FLAG_ADDR-BOOT_CODE),
+    PCAddr(PC_CPT_ADDR-BOOT_CODE),
+    MODEAddr(MODE_CPT_ADDR-BOOT_CODE),
+    MTIMEAddr(MTIME_CPT_ADDR-BOOT_CODE),
+    MTIMECMPAddr(MTIME_CMP_CPT_ADDR-BOOT_CODE),
+    MISCDoneFlag(MISC_DONE_CPT_ADDR-BOOT_CODE)
 {
 }
 
@@ -175,7 +184,21 @@ void Serializer::serializeRegs() {
       FLOAT_REG_CPT_ADDR + 32 * 8, FloatRegStartAddr, FloatRegStartAddr + 32 * 8);
 #endif  // CONFIG_FPU_NONE
 
-  auto *pc = (uint64_t *)(get_pmem() + PCAddr);
+#ifdef CONFIG_RVV
+  auto *vectorRegCpt = (uint64_t *) (get_pmem() + VecRegStartAddr);
+  for (unsigned i = 0; i < 32; i++) {
+    for (unsigned j = 0; j < VENUM64; j++) {
+      *(vectorRegCpt + (i * VENUM64) + j)=cpu.vr[i]._64[j];
+    }
+  }
+  Log("Writing Vector registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+      FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
+      VecRegStartAddr, VecRegStartAddr + 32 * 8 * VENUM64
+      );
+#endif // CONFIG_RVV
+
+
+  auto *pc = (uint64_t *) (get_pmem() + PCAddr);
   *pc = cpu.pc;
   Log("Writing PC: 0x%lx at addr 0x%x", cpu.pc, PC_CPT_ADDR);
 
@@ -203,26 +226,39 @@ void Serializer::serializeRegs() {
       Log("CSR 0x%x: 0x%lx", i, *(csrCpt + i));
     }
   }
-  Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)", CSR_CPT_ADDR, CSR_CPT_ADDR + 4096 * 8,
-      CSRStartAddr, CSRStartAddr + 4096 * 8);
+
+  //prepare mstatus
+  mstatus_t *mstatus_prepare=(mstatus_t *)&csrCpt[0x300];
+  mstatus_prepare->mpie=mstatus_prepare->mie;
+  mstatus_prepare->mie=0;
+  mstatus_prepare->mpp=cpu.mode;
+
+  //prepare mepc
+  mepc_t *mepc_prepare=(mepc_t*)&csrCpt[0x341];
+  mepc_prepare->val=cpu.pc;
+
+  Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
+      CSR_REG_CPT_ADDR, CSR_REG_CPT_ADDR + 4096 * 8,
+      CSRStartAddr, CSRStartAddr + 4096 * 8
+      );
 
 
   auto *flag = (uint64_t *)(get_pmem() + CptFlagAddr);
   *flag = CPT_MAGIC_BUMBER;
-  Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAGS);
+  Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAG_ADDR);
 
-  auto *mode_flag = (uint64_t *)(get_pmem() + CptFlagAddr + 8);
+  auto *mode_flag = (uint64_t *) (get_pmem() + MODEAddr);
   *mode_flag = cpu.mode;
-  Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS + 8);
+  Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, MODE_CPT_ADDR);
 
-  auto *mtime = (uint64_t *)(get_pmem() + CptFlagAddr + 16);
+  auto *mtime = (uint64_t *) (get_pmem() + MTIMEAddr);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
-  *mtime = ::paddr_read(CLINT_MMIO + 0xBFF8, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO + 0xBFF8);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS + 16);
+  *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
+  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CPT_ADDR);
 
-  auto *mtime_cmp = (uint64_t *)(get_pmem() + CptFlagAddr + 24);
-  *mtime_cmp = ::paddr_read(CLINT_MMIO + 0x4000, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO + 0x4000);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, BOOT_FLAGS + 24);
+  auto *mtime_cmp = (uint64_t *) (get_pmem() + MTIMECMPAddr);
+  *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
+  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CMP_CPT_ADDR);
 
   regDumped = true;
 }

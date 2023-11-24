@@ -55,6 +55,19 @@
 #define HCSRS(f) NOP;
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RVV
+  #define VCSRS(f) \
+  f(vstart, 0x008) \
+  f(vxsat, 0x009) \
+  f(vxrm, 0x00a) \
+  f(vcsr, 0x00f) \
+  f(vl, 0xc20) \
+  f(vtype, 0xc21) \
+  f(vlenb, 0xc22)
+#else
+#define VCSRS(f) NOP;
+#endif // CONFIG_RVV
+
 #define CSRS_RESTORE(name, addr) \
   li t2, addr; \
   slli t2, t2, 3; \

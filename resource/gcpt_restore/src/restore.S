@@ -22,47 +22,31 @@
   .globl boot_decide_vector
 
 boot_decide_vector:
-  li s0, BOOT_FLAGS  
+  li s0, BOOT_FLAG_ADDR
   ld t1, (s0) #load boot flag
   li t2, CPT_MAGIC_BUMBER
-  beq t1, t2,1f
+  beq t1, t2, restore_csr_vector
   j RESET_VECTOR
-#  li t3, RESET_VECTOR
-#  jalr x0, 0(t3)
 
-1:
+mode_bad:
+  li a0, RESTORE_MODE_BAD
+  j restore_trap_handler
+
+restore_trap_handler:
+  .insn r 0x6B, 0, 0, x0, x0, x0
+
 restore_csr_vector:
-  # set fs
-  li t0, MSTATUS_FS
-  csrs  CSR_MSTATUS, t0
 
-  li t0, CSR_CPT_ADDR
+  li t0, CSR_REG_CPT_ADDR
   CSRS(CSRS_RESTORE)
   HCSRS(CSRS_RESTORE)
-
-  # set MPIE to the value of MIE
-  csrr t0, CSR_MSTATUS
-  li t1, MSTATUS_MIE
-  and t2, t1, t0
-  slli t2, t2, 4 # shift to MPIE
-  csrs CSR_MSTATUS, t2
-
-  # clear MIE
-  csrc CSR_MSTATUS, t1
-
+  VCSRS(CSRS_RESTORE)
 
   li t0, MSTATUS_MPP # MPP is M
-  ld s2, 8(s0) #load mode flag into s2
+  li s2, MODE_CPT_ADDR
+  ld s2, (s2) #load mode flag into s2
   slli t1, s2, 11 # mode flag shift to MPP
-2:
-  beq t0, t1, 2b #stuck if mode flag is M
-  # set MPP to mode flag (U or S), clear and set
-  csrc CSR_MSTATUS, t0
-  csrs CSR_MSTATUS, t1
-
-  # set fs
-  li t0, MSTATUS_FS
-  csrs  CSR_MSTATUS, t0
+  beq t0, t1, mode_bad #bad trap if mode flag is M
 
   # set mtime (inaccurate) and mtimecmp
 #  li t0, CLINT_MMIO+CLINT_MTIMECMP
@@ -81,8 +65,12 @@ restore_csr_vector:
   # beqz t0, restore_pc_vector
 
 restore_float_vector:
+  # set fs
+  li t0, MSTATUS_FS
+  csrs  CSR_MSTATUS, t0
+
   li sp, FLOAT_REG_CPT_ADDR # load float section addr
-  
+
   fld f0, (0*8)(sp)
   fld f1, (1*8)(sp)
   fld f2, (2*8)(sp)
@@ -115,11 +103,6 @@ restore_float_vector:
   fld f29, (29*8)(sp)
   fld f30, (30*8)(sp)
   fld f31, (31*8)(sp)
-
-restore_pc_vector:
-  li t0, PC_CPT_ADDR
-  ld t0, (t0)
-  csrw CSR_MEPC, t0
 
 restore_int_vector:
   li sp, INT_REG_CPT_ADDR # load int section addr
@@ -157,9 +140,6 @@ restore_int_vector:
   mret
 
   .align 3
-  .section ".restore.flag","a",@progbits
-  .word 0xdead
-
   .align 3
   .section ".restore.data","a",@progbits
   .8byte 0x0
@@ -194,4 +174,3 @@ restore_int_vector:
   .8byte 0x1d
   .8byte 0x1e
   .8byte 0x1f
-  

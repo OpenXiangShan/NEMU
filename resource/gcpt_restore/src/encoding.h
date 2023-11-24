@@ -18,6 +18,9 @@
 #ifndef RISCV_CSR_ENCODING_H
 #define RISCV_CSR_ENCODING_H
 
+#define RESTORE_GOOD        0x0
+#define RESTORE_MODE_BAD    0x1
+
 #define MSTATUS_UIE         0x00000001
 #define MSTATUS_SIE         0x00000002
 #define MSTATUS_HIE         0x00000004

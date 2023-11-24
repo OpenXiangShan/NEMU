@@ -19,12 +19,8 @@ SECTIONS
   {
     *(.restore.code)
   }
-  . = 0x80000f00;
-  .restore.flag :
-  {
-    *(.restore.flag)
-  }
-  . = 0x80001000;
+
+  . = ALIGN(0x1000);
   .restore.data :
   {
     *(.restore.data)
