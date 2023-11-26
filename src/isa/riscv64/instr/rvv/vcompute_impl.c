@@ -236,43 +236,43 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_li(s, s1, carry);
         break;
       case SLL :
-        rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW) is valid
+        rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW) is valid
         //rtl_sext(s0, s0, 8 - (1 << vtype->vsew)); //sext first
         rtl_shl(s, s1, s0, s1); break;
       case SRL :
         if (narrow)
-            rtl_andi(s, s1, s1, s->v_width*16-1); //low lg2(SEW)
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW)
         else
-            rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
+            rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW)
         rtl_shr(s, s1, s0, s1); break;
       case SRA :
         if (narrow) {
-            rtl_andi(s, s1, s1, s->v_width*16-1); //low lg2(SEW)
-            rtl_sext(s, s0, s0, s->v_width*2);
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW)
+            rtl_sext(s, s0, s0, 2 << vtype->vsew);
         }
         else {
-            rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
-            rtl_sext(s, s0, s0, s->v_width);
+            rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW)
+            rtl_sext(s, s0, s0, 1 << vtype->vsew);
         }
         rtl_sar(s, s1, s0, s1); break;
       case MULHU : 
-        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(8 << vtype->vsew));
         break;
       case MUL : rtl_mulu_lo(s, s1, s0, s1); break;
       case MULSU : 
         rtl_sext(s, s0, s0, 1 << vtype->vsew);
         rtl_mulu_lo(s, s1, s0, s1); break;
       case MULHSU :
-        rtl_sext(s, t0, s0, s->v_width);
-        rtl_sari(s, t0, t0, s->v_width*8-1);
+        rtl_sext(s, t0, s0, 1 << vtype->vsew);
+        rtl_sari(s, t0, t0, (8 << vtype->vsew)-1);
         rtl_and(s, t0, s1, t0);
-        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(8 << vtype->vsew));
         rtl_sub(s, s1, s1, t0);
         break;
       case MULH :
-        rtl_sext(s, s0, s0, s->v_width);
-        rtl_sext(s, s1, s1, s->v_width);
-        *s1 = (uint64_t)(((__int128_t)(sword_t)(*s0) * (__int128_t)(sword_t)(*s1))>>(s->v_width*8));
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
+        *s1 = (uint64_t)(((__int128_t)(sword_t)(*s0) * (__int128_t)(sword_t)(*s1))>>(8 << vtype->vsew));
         break;
       case MACC : 
         rtl_mulu_lo(s, s1, s0, s1);
@@ -311,8 +311,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         else rtl_divu_q(s, s1, s0, s1);
         break;
       case DIV :
-        rtl_sext(s, s0, s0, s->v_width);
-        rtl_sext(s, s1, s1, s->v_width);
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
         if(*s1 == 0) rtl_li(s, s1, ~0lu);
         else if(*s0 == 0x8000000000000000LL && *s1 == -1) //may be error
           rtl_mv(s, s1, s0);
@@ -323,8 +323,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         else rtl_divu_r(s, s1, s0, s1);
         break;
       case REM :
-        rtl_sext(s, s0, s0, s->v_width);
-        rtl_sext(s, s1, s1, s->v_width);
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
         if(*s1 == 0) rtl_mv(s, s1, s0);
         else if(*s1 == 0x8000000000000000LL && *s1 == -1) //may be error
           rtl_li(s, s1, 0);
