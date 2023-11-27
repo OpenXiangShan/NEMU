@@ -201,6 +201,11 @@ static inline void update_mstatus_sd() {
   // When CONFIG_FS_CLEAN_STATE is set (such as for rocket-chip), mstatus.fs is always dirty or off.
   if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
     mstatus->fs = 3;
+  } 
+  // If mstatus.VS is "dirty", mstatus.SD is 1
+  else if (ISDEF(CONFIG_RVV) && mstatus->vs==3) {
+    mstatus->sd = 1;
+    return ;
   }
   mstatus->sd = (mstatus->fs == 3);
 }
@@ -709,6 +714,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
       mstatus->spp = MODE_U;
       update_mmu_state();
+      Log("Executing sret sepc=%lx ",sepc->val);
       return sepc->val;
     case 0x302: // mret
       if (cpu.mode < MODE_M) {
