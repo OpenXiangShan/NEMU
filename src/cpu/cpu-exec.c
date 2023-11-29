@@ -26,7 +26,9 @@
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
+#ifdef CONFIG_ISA_riscv64
 #include "../isa/riscv64/local-include/intr.h"
+#endif
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -41,23 +43,17 @@
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
+uint64_t g_nr_guest_instr_old = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
-  // restrict the trace to those near the error instruction
-  #define TRACE_START (1214000)
-  // trace of width
-  #define TRACE_END   (1024 * 5)
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-#ifdef CONFIG_TRACE_INST
-  uint64_t abs_instr_count = get_abs_instr_count();
-  if ((TRACE_START < abs_instr_count) && (abs_instr_count < TRACE_START + TRACE_END)) {
-    Logti("%s\n", asmbuf);
-  }
-#endif //CONFIG_TRACE_INST
+  IFDEF(CONFIG_ISA_riscv64,
+        Logti("nemu S-interrupt %d  mstatus: %lx", mstatus->sie, cpu.mstatus));
+  Logti("%s\n", asmbuf);
   if (g_print_step) {
     puts(asmbuf);
   }
@@ -104,7 +100,7 @@ void monitor_statistic() {
   Log("total guest instructions = %'ld", g_nr_guest_instr);
   if (g_timer > 0)
     Log("simulation frequency = %'ld instr/s",
-        g_nr_guest_instr * 1000000 / g_timer);
+        (get_abs_instr_count() + g_nr_guest_instr_old) * 1000000 / g_timer);
   else
     Log("Finish running in less than 1 us and can not calculate the simulation "
         "frequency");
@@ -134,7 +130,12 @@ _Noreturn void longjmp_exception(int ex_cause) {
   cpu.guided_exec = false;
 #endif
   g_ex_cause = ex_cause;
+#ifdef CONFIG_ISA_riscv64
   Loge("longjmp_exec(NEMU_EXEC_EXCEPTION),EX_NAME=%s",EX_NAME[ex_cause]);
+#else
+  Loge("longjmp_exec(NEMU_EXEC_EXCEPTION)");
+#endif
+
   longjmp_exec(NEMU_EXEC_EXCEPTION);
 }
 
@@ -720,7 +721,8 @@ void cpu_exec(uint64_t n) {
              : (nemu_state.halt_ret == 0 ? "\33[1;32mHIT GOOD TRAP"
                                          : "\33[1;31mHIT BAD TRAP")),
         nemu_state.halt_pc);
-    Log("trap code:%d ,guest_instr = %ld ", nemu_state.halt_ret , get_abs_instr_count());
+    Log("trap code:%d ,abs guest_instr = %ld ",
+        nemu_state.halt_ret , get_abs_instr_count());
     monitor_statistic();
     break;
   case NEMU_QUIT:
