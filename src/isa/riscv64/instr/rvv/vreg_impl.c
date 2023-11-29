@@ -102,9 +102,9 @@ void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmu
   int new_reg = get_reg(reg, idx, vsew);
   int new_idx = get_idx(reg, idx, vsew);
   switch (vsew) {
-    case 0 : *dst = is_signed ? (char)vreg_b(new_reg, new_idx) : vreg_b(new_reg, new_idx); break;
-    case 1 : *dst = is_signed ? (short)vreg_s(new_reg, new_idx) : vreg_s(new_reg, new_idx); break;
-    case 2 : *dst = is_signed ? (int)vreg_i(new_reg, new_idx) : vreg_i(new_reg, new_idx); break;
+    case 0 : *dst = is_signed ? (long)(char)vreg_b(new_reg, new_idx) : vreg_b(new_reg, new_idx); break;
+    case 1 : *dst = is_signed ? (long)(short)vreg_s(new_reg, new_idx) : vreg_s(new_reg, new_idx); break;
+    case 2 : *dst = is_signed ? (long)(int)vreg_i(new_reg, new_idx) : vreg_i(new_reg, new_idx); break;
     case 3 : *dst = is_signed ? (long)vreg_l(new_reg, new_idx) : vreg_l(new_reg, new_idx); break;
   }
   // printf("get_reg: %lu idx: %d new_reg: %d new_idx: %d src: %lx\n", reg, idx, new_reg, new_idx, *dst);

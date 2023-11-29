@@ -340,22 +340,9 @@ def_EHelper(vmvsx) {
 }
 
 def_EHelper(vmvxs) {
-  if (vstart->val < vl->val) {
     get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
-    rtl_sext(s, s0, s0, (vl->val>4) ? 4 : vl->val);
+    rtl_sext(s, s0, s0, 8);
     rtl_sr(s, id_dest->reg, s0, 8);
-  }
-  else if(vl->val < vstart->val) {
-    get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
-    *s0 = *s0 << ((vstart->val - vl->val) * 8);
-    *s0 = *s0 >> ((vstart->val - vl->val) * 8);//The higher SEW-XLEN bits are ignored
-    rtl_sr(s, id_dest->reg, s0, 8);
-  }
-  else {
-    get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
-    rtl_sext(s, s0, s0, 4);
-    rtl_sr(s, id_dest->reg, s0, 8);
-  }
 }
 
 def_EHelper(vmvnr) {
