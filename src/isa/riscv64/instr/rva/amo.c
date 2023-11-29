@@ -18,7 +18,7 @@
 #include <memory/paddr.h>
 #include <rtl/rtl.h>
 #include "../local-include/intr.h"
-
+#include "cpu/difftest.h"
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
@@ -29,6 +29,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     cpu.lr_addr = *src1;
     cpu.lr_valid = 1;
     rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
+    Logti("set lr vaild");
     return;
   } else if (funct5 == 0b00011) { // sc
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -38,11 +39,16 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     cpu.amo = true;
 #endif
     // should check overlapping instead of equality
-    int success = cpu.lr_addr == *src1 && cpu.lr_valid;
+    int success = (cpu.lr_addr == *src1) && cpu.lr_valid;
+    Logti("cpu sc addr=%lx scr1=%lx vaild=%ld success=%d", cpu.lr_addr,*src1, cpu.lr_valid,success);
     cpu.lr_valid = 0;
     if (success) {
       rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
     } else {
+    // Because spike skipped some exception or interrupt
+    // the atomic operation would fail after handling the exception
+    // so we need to make spike fail as well
+      IFDEF(CONFIG_DIFFTEST_REF_SPIKE,difftest_skip_ref());
       cpu.lr_valid = 0;
       // Even if scInvalid, SPF (if raised) also needs to be reported
       uint64_t paddr = *dsrc1;
