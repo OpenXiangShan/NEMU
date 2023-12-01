@@ -471,7 +471,6 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     }
   }
 
-  // TODO: the idx larger than vl need reset to zero.
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
   set_mstatus_dirt();
@@ -661,7 +660,6 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     }
   }
 
-  // TODO: the idx larger than vl need reset to zero.
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
 }
@@ -750,6 +748,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
   }
   set_mstatus_dirt();
+  vstart->val = 0;
 }
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
@@ -809,6 +808,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     else
       set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
   }
+  vstart->val = 0;
 }
 
 void float_reduction_step2(uint64_t src, Decode *s) {
@@ -919,6 +919,7 @@ void float_reduction_computing(Decode *s) {
     if(vtype->vta) set_vreg_tail(id_dest->reg);
   }
   set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+  vstart->val = 0;
 }
 
 // dirty job here

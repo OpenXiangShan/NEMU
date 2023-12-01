@@ -337,12 +337,14 @@ def_EHelper(vmvsx) {
       }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vmvxs) {
     get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
     rtl_sext(s, s0, s0, 8);
     rtl_sr(s, id_dest->reg, s0, 8);
+    vstart->val = 0;
 }
 
 def_EHelper(vmvnr) {
@@ -358,6 +360,7 @@ def_EHelper(vmvnr) {
       get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
       set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
     }
+    vstart->val = 0;
 }
 
 def_EHelper(vpopc) {
@@ -379,6 +382,7 @@ def_EHelper(vpopc) {
       rtl_addi(s, s1, s1, 1);
   }
   rtl_sr(s, id_dest->reg, s1, 4);
+  vstart->val = 0;
 }
 
 def_EHelper(vfirst) {
@@ -400,6 +404,7 @@ def_EHelper(vfirst) {
   }
   rtl_li(s, s1, pos);
   rtl_sr(s, id_dest->reg, s1, 4);
+  vstart->val = 0;
 }
 
 def_EHelper(vmsbf) {
@@ -580,6 +585,7 @@ def_EHelper(vid) {
       }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vzextvf8) {
@@ -877,18 +883,16 @@ def_EHelper(vfslide1down) {
 }
 
 def_EHelper(vfmvfs) {
-  // vfmv.f.s performs its action even if vstart≥vl or vl=0
-  if (vstart->val < vl->val || vl->val == 0) {
-    get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
-    if (vtype->vsew < 3) {
-        *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
-    }
-    rtl_mv(s, &fpreg_l(id_dest->reg), s0);
+  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
+  if (vtype->vsew < 3) {
+      *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
   }
+  rtl_mv(s, &fpreg_l(id_dest->reg), s0);
+  vstart->val = 0;
 }
 
 def_EHelper(vfmvsf) {
-  if (vstart->val < vl->val) {
+  if (vl->val > 0 && vstart->val < vl->val) {
     rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
     if (RVV_AGNOSTIC) {
@@ -899,6 +903,7 @@ def_EHelper(vfmvsf) {
       }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vfcvt_xufv) {
