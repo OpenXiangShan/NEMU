@@ -22,7 +22,6 @@ static inline def_DHelper(OP_V) { // 10_101, same to R
   decode_op_r(s, id_src1, s->isa.instr.r.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rs2, true);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
-  // decode_op_r(id_dest, decinfo.isa.instr.v_vd, false);
 }
 
 def_THelper(vrwxunary0_dispatch) {
