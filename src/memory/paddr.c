@@ -162,7 +162,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     raise_read_access_fault(type, vaddr);
     return 0;
   }
-#if true
+#ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
@@ -188,7 +188,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     raise_read_access_fault(type, vaddr);
   }
   return 0;
-#endif
+#endif // CONFIG_SHARE
 }
 
 #ifdef CONFIG_LIGHTQS
@@ -242,18 +242,17 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     raise_access_fault(EX_SAF, vaddr);
     return ;
   }
-#ifdef CONFIG_SHARE
-  if (likely(in_pmem(addr))) {
-    #ifdef CONFIG_LIGHTQS
-    pmem_record_store(addr);
-    #endif // CONFIG_LIGHTQS
-    pmem_write(addr, len, data);
-  } else {
+#ifndef CONFIG_SHARE
+  if (likely(in_pmem(addr))) pmem_write(addr, len, data);
+  else {
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
     else raise_access_fault(EX_SAF, vaddr);
   }
 #else
   if (likely(in_pmem(addr))) {
+#ifdef CONFIG_LIGHTQS
+    pmem_record_store(addr);
+#endif // CONFIG_LIGHTQS
     if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
         addr, data, len, mode);
@@ -269,7 +268,6 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
       return;
     }
   }
-  
 #endif
 }
 
