@@ -42,7 +42,7 @@ extern void (*ref_difftest_raise_intr)(uint64_t NO);
 
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
-    Log("%s is different after executing instruction at pc = " FMT_WORD
+    Log("\n\t,%s is different after executing instruction at pc = " FMT_WORD
         ", right = " FMT_WORD ", wrong = " FMT_WORD, name, pc, ref, dut);
     return false;
   }
@@ -51,7 +51,7 @@ static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref
 static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *ref, rtlreg_t *dut,size_t n) {
   /***************ONLY FOR VLEN=128,ELEN=64**********************/
   if (memcmp(ref, dut, n)) {
-    Log("%s is different after executing instruction at pc = " FMT_WORD
+    Log("\n\t,%s is different after executing instruction at pc = " FMT_WORD
         ", right =  0x%016lx_%016lx , wrong =  %016lx_%016lx", name, pc, ref[1], ref[0], dut[1], dut[0]);
     return false;
   }
