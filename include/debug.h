@@ -28,22 +28,25 @@
 
 #define Logf(flag, ...) \
   do { \
-    if (flag == dflag_mem && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && ISDEF(CONFIG_TRANSLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst && ISDEF(CONFIG_TRACE_INST)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst_dasm && ISDEF(CONFIG_TRACE_INST_DASM)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
-    if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
+    extern bool log_enable();\
+    if (ISDEF(CONFIG_MEMLOG) && flag == dflag_mem && log_enable()) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_TRANSLOG) && flag == dflag_translate && log_enable()) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_TRACE_INST) && flag == dflag_trace_inst && log_enable()) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_TRACE_INST_DASM) && flag == dflag_trace_inst_dasm && log_enable()) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_TRACE_CALL_RET) && flag == dflag_trace_call_ret && log_enable()) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_TRACE_BB) && flag == dflag_trace_bb && log_enable()) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_EXITLOG) && flag == dflag_exit) Log(__VA_ARGS__); \
+    if (ISDEF(CONFIG_SIMPOINT_LOG) && flag == dflag_simpoint) Log(__VA_ARGS__); \
   } while (0)
 
-#define Logm(...) Logf(dflag_mem, __VA_ARGS__)
-#define Logtr(...) Logf(dflag_translate, __VA_ARGS__)
-#define Logtb(...) Logf(dflag_trace_bb, __VA_ARGS__)
-#define Logti(...) Logf(dflag_trace_inst, __VA_ARGS__)
-#define Logtid(...) Logf(dflag_trace_inst_dasm, __VA_ARGS__)
-#define Loge(...) Logf(dflag_exit, __VA_ARGS__)
-#define Logsp(...) Logf(dflag_simpoint, __VA_ARGS__)
+#define Logm(...) IFDEF(CONFIG_MEMLOG,Logf(dflag_mem, __VA_ARGS__))
+#define Logtr(...) IFDEF(CONFIG_TRANSLOG,Logf(dflag_translate, __VA_ARGS__))
+#define Logtb(...) IFDEF(CONFIG_TRACE_BB,Logf(dflag_trace_bb, __VA_ARGS__))
+#define Logti(...) IFDEF(CONFIG_TRACE_INST,Logf(dflag_trace_inst, __VA_ARGS__))
+#define Logtid(...) IFDEF(CONFIG_TRACE_INST_DASM,Logf(dflag_trace_inst_dasm, __VA_ARGS__))
+#define Loge(...) IFDEF(CONFIG_EXITLOG,Logf(dflag_exit, __VA_ARGS__))
+#define Logc(...) IFDEF(CONFIG_TRACE_CSR,Logf(dflag_trace_call_ret, __VA_ARGS__))
+#define Logsp(...) IFDEF(CONFIG_SIMPOINT_LOG,Logf(dflag_simpoint, __VA_ARGS__))
 
 #define Assert(cond, ...) \
   do { \
