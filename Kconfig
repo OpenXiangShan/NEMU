@@ -199,6 +199,10 @@ config EXITLOG
   bool "Enable Log for exiting reasons"
   default n
 
+config TRACE_CSR
+  bool "Enable Log for csr operation"
+  default n
+
 config TRACE_INST
   bool "Enable Log for tracing instructions"
   default n
@@ -216,6 +220,9 @@ config SIMPOINT_LOG
   bool "Enable Log for simpoint profiling"
   default n
 
+config DEBUG_WATCHDOG
+  bool "Enable Watchdog of instruct"
+  default n
 endmenu
 
 if !MODE_USER

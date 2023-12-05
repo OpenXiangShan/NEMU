@@ -26,6 +26,10 @@
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
+
+#ifdef CONFIG_DEBUG_WATCHDOG
+#include <signal.h>
+#endif
 #ifdef CONFIG_ISA_riscv64
 #include "../isa/riscv64/local-include/intr.h"
 #endif
@@ -51,9 +55,12 @@ rtlreg_t tmp_reg[4];
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  IFDEF(CONFIG_ISA_riscv64,
-        Logti("nemu S-interrupt %d  mstatus: %lx", mstatus->sie, cpu.mstatus));
-  Logti("%s\n", asmbuf);
+#if defined CONFIG_ISA_riscv64 && CONFIG_TRACE_CSR
+  if((mip !=0 || mcause->val != 0))
+    Logc("%s  mip: %lx, mcause: %lx", (mcause->val >> 63) ? "interrupt" : "exception",
+         mip->val ,mcause->val);
+#endif
+  Logti("%s ,instcount: %ld\n", asmbuf, g_nr_guest_instr);
   if (g_print_step) {
     puts(asmbuf);
   }
@@ -67,9 +74,14 @@ static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
 static int n_remain;
 static Decode *prev_s;
-
+void monitor_statistic();
 void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
-
+void watchdog_callback(int signo) {
+    Log("Watchdog timer timeout! No activity detected.\n");
+    monitor_statistic();
+    nemu_state.state = NEMU_ABORT;
+    assert(0);
+}
 uint64_t get_abs_instr_count() {
 #if defined(CONFIG_ENABLE_INSTR_CNT)
   int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
@@ -97,7 +109,7 @@ void monitor_statistic() {
   setlocale(LC_NUMERIC, "");
   Log("host time spent = %'ld us", g_timer);
 #ifdef CONFIG_ENABLE_INSTR_CNT
-  Log("total guest instructions = %'ld", g_nr_guest_instr);
+  Log("total guest instructions = %'ld ", g_nr_guest_instr);
   if (g_timer > 0)
     Log("simulation frequency = %'ld instr/s",
         (get_abs_instr_count() + g_nr_guest_instr_old) * 1000000 / g_timer);
@@ -533,6 +545,7 @@ static int execute(int n) {
   static Decode s;
   prev_s = &s;
   for (; n > 0; n--) {
+    IFDEF(CONFIG_DEBUG_WATCHDOG,alarm(300));
 #ifdef CONFIG_LIGHTQS_DEBUG
     printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
 #endif // CONFIG_LIGHTQS_DEBUG
@@ -564,6 +577,7 @@ static int execute(int n) {
     }
 #endif // CONFIG_LIGHTQS_DEBUG
 #endif // CONFIG_BR_LOG
+    IFDEF(CONFIG_DEBUG_WATCHDOG,alarm(0));
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
     if (isa_query_intr() != INTR_EMPTY) {
@@ -619,7 +633,10 @@ void cpu_exec(uint64_t n) {
   }
 
   uint64_t timer_start = get_time();
-
+#ifdef DEBUG_WATCHDOG
+  // set alarm
+  signal(SIGALRM, watchdog_callback);
+#endif
   n_remain_total = n; // + AHEAD_LENGTH; // deal with setjmp()
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
@@ -629,8 +646,8 @@ void cpu_exec(uint64_t n) {
 #ifdef CONFIG_PERF_OPT
     update_global();
 #endif
-    Loge("After update_global, n_remain: %i, n_remain_total: %li", n_remain,
-         n_remain_total);
+    Loge("After update_global, n_remain: %i, n_remain_total: %li, guest_instr: %ld", n_remain,
+         n_remain_total,g_nr_guest_instr);
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
@@ -722,7 +739,7 @@ void cpu_exec(uint64_t n) {
                                          : "\33[1;31mHIT BAD TRAP")),
         nemu_state.halt_pc);
     Log("trap code:%d ,abs guest_instr = %ld ",
-        nemu_state.halt_ret , get_abs_instr_count());
+        nemu_state.halt_ret , get_abs_instr_count() + g_nr_guest_instr_old);
     monitor_statistic();
     break;
   case NEMU_QUIT:

@@ -38,6 +38,7 @@ enum {
   dflag_trace_bb,
   dflag_trace_inst,
   dflag_trace_inst_dasm,
+  dflag_trace_call_ret,
   dflag_exit,
   dflag_simpoint,
 };
@@ -71,13 +72,12 @@ uint64_t get_time();
     extern FILE* log_fp; \
     extern char *log_filebuf; \
     extern uint64_t record_row_number; \
-    extern bool log_enable(); \
     extern void log_flush(); \
     if (log_fp != NULL) { \
       if (enable_small_log) { \
         snprintf(log_filebuf + record_row_number * 300, 300, __VA_ARGS__);\
         log_flush(); \
-      } else if (log_enable()){ \
+      } else { \
         fprintf(log_fp, __VA_ARGS__); \
         fflush(log_fp); \
       } \
