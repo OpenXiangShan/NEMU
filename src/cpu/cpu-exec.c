@@ -577,7 +577,12 @@ static int execute(int n) {
     }
 #endif // CONFIG_LIGHTQS_DEBUG
 #endif // CONFIG_BR_LOG
-    IFDEF(CONFIG_DEBUG_WATCHDOG,alarm(0));
+#ifdef CONFIG_DEBUG_WATCHDOG
+    alarm(0);
+    if ((g_nr_guest_instr % 100000000) == 0) {
+      Log("NEMU run instr 1 million count, sum count %'ld",g_nr_guest_instr);
+    }
+#endif
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
     if (isa_query_intr() != INTR_EMPTY) {
