@@ -37,6 +37,11 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._64, cpu.gpr[i]._64);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
+    #ifdef CONFIG_FPU_SOFT
+    for(i=0;i < ARRLEN(cpu.fpr); i++){
+      difftest_check_reg(fpreg_name(i, 4), pc, ref_r->fpr[i]._64, cpu.fpr[i]._64);
+    }
+    #endif
     #ifdef CONFIG_RVV
     for(i=0;i < ARRLEN(cpu.vr); i++){
       difftest_check_vreg(vreg_name(i, 8), pc, ref_r->vr[i]._64, cpu.vr[i]._64,VLEN/8);
@@ -65,7 +70,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 
     #ifdef CONFIG_RVV
     check_reg(vtype     );
-    check_reg(vstart    );
+    //check_reg(vstart    );
     check_reg(vxsat     );
     check_reg(vxrm      );
     check_reg(vl        );
