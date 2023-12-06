@@ -51,6 +51,7 @@ typedef struct {
 
 } HostTLBEntry;
 
+static bool hosttlb_dirt; // Dirt flag for accelerating program using onlyStage2 translation
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
 static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
@@ -115,12 +116,17 @@ void hosttlb_insert(vaddr_t vaddr, paddr_t paddr, int type) {
   e->offset = MUXDEF(CONFIG_USE_SPARSEMM, (uint8_t *)(paddr - vaddr), guest_to_host(paddr) - vaddr);
   e->vpn = HOSTTLB_ADDR2PN(vaddr);
   IFDEF(CONFIG_RVH, e->virt = has_two_stage_translation());
+
+  hosttlb_dirt = true;
 }
 
 
 void hosttlb_flush(vaddr_t vaddr) {
   if (vaddr == 0) {
-    memset(hosttlb, -1, sizeof(hosttlb));
+    if (hosttlb_dirt) {
+      hosttlb_dirt = false;
+      memset(hosttlb, -1, sizeof(hosttlb));
+    }
   } else {
     vaddr_t vpn = HOSTTLB_ADDR2PN(vaddr);
     int idx = HOSTTLB_ADDR2IDX(vaddr);
@@ -179,6 +185,7 @@ void hostgtlb_flush(paddr_t gpaddr) {
 #endif // CONFIG_RVH
 
 void hosttlb_init() {
+  hosttlb_dirt = true;
   hosttlb_flush(0);
 #ifdef CONFIG_RVH
   hostgtlb_flush(0);

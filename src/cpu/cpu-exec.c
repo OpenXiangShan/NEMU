@@ -110,7 +110,7 @@ static int g_sys_state_flag = 0;
 void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
 
 void mmu_tlb_flush(vaddr_t vaddr) {
-  MUXDEF(CONFIG_RVH, (cpu.v) ? hostgtlb_flush(vaddr) : hosttlb_flush(vaddr), hosttlb_flush(vaddr));
+  hosttlb_flush(vaddr);
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
@@ -118,12 +118,13 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 #ifdef CONFIG_RVH
 void mmu_vma_tlb_flush(vaddr_t gvaddr) {
   hosttlb_flush(gvaddr);
-  if (gvaddr == 0)
-    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  if (gvaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
 void mmu_gma_tlb_flush(paddr_t gpaddr) {
   hostgtlb_flush(gpaddr);
+  // According to priv manual, tlb mapping from gva to hpa should be flushed as well
+  hosttlb_flush(0); 
   if (gpaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 #endif
