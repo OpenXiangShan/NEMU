@@ -76,10 +76,6 @@ SimPoint::~SimPoint() {
 
 void
 SimPoint::init() {
-  simpointStream = NEMUNS::simout.create("simpoint_bbv", false);
-  if (!simpointStream)
-    xpanic("unable to open SimPoint profile_file");
-
   if (profiling_state == SimpointProfiling) {
     pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
