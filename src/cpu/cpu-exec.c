@@ -339,6 +339,7 @@ static int execute(int n) {
     // Here is per bb action
     if (is_ctrl) {
       uint64_t abs_inst_count = per_bb_profile(prev_s, s, br_taken);
+      (void) abs_inst_count;
       Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
       Logtb("Executed %ld instructions in total, pc: 0x%lx\n",
             (int64_t)abs_inst_count, prev_s->pc);
