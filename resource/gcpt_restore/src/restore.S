@@ -26,7 +26,7 @@ boot_decide_vector:
   ld t1, (s0) #load boot flag
   li t2, CPT_MAGIC_BUMBER
   beq t1, t2, restore_csr_vector
-  j RESET_VECTOR
+  j payload_bin
 
 mode_bad:
   li a0, RESTORE_MODE_BAD
@@ -50,15 +50,17 @@ restore_csr_vector:
 
   # set mtime (inaccurate) and mtimecmp
 #  li t0, CLINT_MMIO+CLINT_MTIMECMP
-#  ld t1, 24(s0)
+#  li t1, MTIME_CMP_CPT_ADDR
+#  ld t1, (t1)
 #  sd t1, (t0)
-#
+##
 #  li t0, CLINT_MMIO+CLINT_MTIME
-#  ld t1, 16(s0)
+#  li t1, MTIME_CPT_ADDR
+#  ld t1, (t1)
 #  sd t1, (t0)
 
-  # li t0, MIE_MTIE
-  # csrs CSR_MIE, t0
+ # li t0, MIE_MTIE
+ # csrs CSR_MIE, t0
 
   # csrr t1, CSR_MSTATUS
   # srli t0, t1, 63
@@ -139,38 +141,13 @@ restore_int_vector:
   ld sp, (2*8)(sp)
   mret
 
-  .align 3
-  .align 3
-  .section ".restore.data","a",@progbits
-  .8byte 0x0
-  .8byte 0x1
-  .8byte 0x2
-  .8byte 0x3
-  .8byte 0x4
-  .8byte 0x5
-  .8byte 0x6
-  .8byte 0x7
-  .8byte 0x8
-  .8byte 0x9
-  .8byte 0xa
-  .8byte 0xb
-  .8byte 0xc
-  .8byte 0xd
-  .8byte 0xe
-  .8byte 0xf
-  .8byte 0x10
-  .8byte 0x11
-  .8byte 0x12
-  .8byte 0x13
-  .8byte 0x14
-  .8byte 0x15
-  .8byte 0x16
-  .8byte 0x17
-  .8byte 0x18
-  .8byte 0x19
-  .8byte 0x1a
-  .8byte 0x1b
-  .8byte 0x1c
-  .8byte 0x1d
-  .8byte 0x1e
-  .8byte 0x1f
+  .section ".payload", "ax", %progbits
+  .align 4
+  .global payload_bin
+payload_bin:
+#ifndef FW_PAYLOAD_PATH
+	wfi
+	j	payload_bin
+#else
+	.incbin	FW_PAYLOAD_PATH
+#endif

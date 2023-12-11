@@ -25,4 +25,13 @@ SECTIONS
   {
     *(.restore.data)
   }
+
+  . = 0x80100000;
+  .payload :
+  {
+    PROVIDE(_payload_start = .);
+    *(.payload)
+    . = ALIGN(8);
+    PROVIDE(_payload_end = .);
+  }
 }

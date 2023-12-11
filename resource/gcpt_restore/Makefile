@@ -32,6 +32,10 @@ OBJCOPY = $(CROSS_COMPILE)objcopy
 INCLUDES  = $(addprefix -I, $(INC_DIR))
 CFLAGS   += -fno-PIE -mcmodel=medany -O2 -MMD -Wall -Werror $(INCLUDES)
 
+ifdef FW_PAYLOAD_PATH
+CFLAGS += -DFW_PAYLOAD_PATH=\"$(FW_PAYLOAD_PATH)\"
+endif
+
 # Files to be compiled
 SRCS = $(shell find src/ -name "*.[cS]")
 OBJS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
