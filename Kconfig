@@ -261,6 +261,11 @@ config DIFFTEST_STORE_COMMIT
   bool "Maintain a committed store queue for processor ref"
   default y
 
+config DIFFTEST_REF_FOR_GEM5
+  depends on SHARE
+  bool "Always copy lrsc valid to lr valid for GEM5"
+  default n
+
 config DIFFTEST_STORE_COMMIT_AMO
   depends on DIFFTEST_STORE_COMMIT
   bool "Also record store requests by AMO instructions"
