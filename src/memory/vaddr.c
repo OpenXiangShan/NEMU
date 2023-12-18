@@ -72,6 +72,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
     word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len, type, cpu.mode, vaddr);
 #else
     word_t rdata = paddr_read(addr, len, type, cpu.mode, vaddr);
+    Logtr("mmu_read: %lx  addr %lx", rdata, addr);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -81,6 +82,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
 #endif
     return rdata;
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
+    Logtr("load mmu cross page");
     return vaddr_read_cross_page(addr, len, type);
   }
   return 0;
@@ -100,7 +102,9 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
     }
 #endif
     paddr_write(addr, len, data, cpu.mode, vaddr);
+    Logtr("mmu_write: %lx addr: %lx", data, addr);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
+    Logtr("write mmu cross page");
     vaddr_write_cross_page(addr, len, data);
   }
 }
@@ -114,12 +118,12 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     isa_misalign_data_addr_check(addr, len, type);
   }
 #endif
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0))) {
     Logm("Checking mmu when MMU_DYN");
     mmu_mode = isa_mmu_check(addr, len, type);
   }
   if (mmu_mode == MMU_DIRECT) {
-    Logm("Paddr reading directly");
+    Logm("Vaddr read direct %lx",addr);
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
@@ -148,7 +152,9 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+  Logm("Write vaddr %lx ", addr);
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && s->v_is_vx == 0 ))) 
+    mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   if (mmu_mode == MMU_DIRECT) {
     paddr_write(addr, len, data, cpu.mode, addr);
     return;
