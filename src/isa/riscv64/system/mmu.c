@@ -77,7 +77,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
 #else
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
-  Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12);
+  Logtr("ok: %i, mode: %s, pte->u: %i, a: %i d: %i, ppn: %lx ", ok,
+        mode == MODE_U ? "U" : MODE_S ? "S" : MODE_M ? "M" : "NOTYPE",
+        pte->u, pte->a, pte->d, (uint64_t)pte->ppn << 12);
 #endif
   if (ifetch) {
     Logtr("Translate for instr reading");
@@ -122,14 +124,14 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       longjmp_exception(ex);
       return false;
     }
-  } else {
+  } else { // MEM_TYPE_WRITE
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a || !pte->d;
    if (update_ad && ok && pte->w) Logtr("raise exception to update ad for store");
 #else
     bool update_ad = false;
 #endif
-    Logtr("Translate for memory writing");
+    Logtr("Translate for memory writing v: %d w: %d", pte->v, pte->w);
     if (!(ok && pte->w && !pte->pad) || update_ad) {
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
@@ -305,7 +307,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_RVH
   if (!check_permission(&pte, true, vaddr, type, virt, mode)) return MEM_RET_FAIL;
 #else
-  if (!check_permission(&pte, true, vaddr, type)) return MEM_RET_FAIL;
+  if (!check_permission(&pte, true, vaddr, type)) {
+    Loge("check_permission MEM_RET_FAIL\n");
+    return MEM_RET_FAIL;
+  }
 #endif
   if (level > 0) {
     // superpage

@@ -136,7 +136,9 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
 
       // read data in memory
       addr = base_addr + index + fn * s->v_width;
+      s->v_is_vx = 1;
       rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      s->v_is_vx = 0;
       set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
     }
   }
@@ -220,13 +222,6 @@ void vstx(int mode, Decode *s, int mmu_mode) {
     case 8: index_width = 3; break;
     default: break;
   }
-  switch (vtype->vsew) {
-    case 0: s->v_width = 1; break;
-    case 1: s->v_width = 2; break;
-    case 2: s->v_width = 4; break;
-    case 3: s->v_width = 8; break;
-    default: break;
-  }
   lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
   lmul = lmul < 0 ? 0 : lmul;
   lmul = 1 << lmul;
@@ -252,7 +247,9 @@ void vstx(int mode, Decode *s, int mmu_mode) {
       // read data in vector register
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, 1);
       addr = base_addr + index + fn * s->v_width;
+      s->v_is_vx = 1;
       rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      s->v_is_vx = 0;
     }
   }
 
