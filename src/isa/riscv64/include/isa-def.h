@@ -253,11 +253,6 @@ typedef struct {
       uint32_t v_sumop   : 5;
     } vstfp;
     //vector-AMO
-    struct {
-      uint32_t pad0      :26;
-      uint32_t v_wd      : 1;
-      uint32_t v_amoop   : 5;
-    } vamo;
     #endif // CONFIG_RVV
 
     uint32_t val;
