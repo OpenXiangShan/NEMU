@@ -41,6 +41,10 @@ boot_decide_vector:
   beq t1, t2, restore_csr_vector
   j payload_bin # not found restore flag, goto payload
 
+#version_not_match:
+#  li a0, VERSION_NOT_MATCH
+#  j restore_trap_handler
+
 read_incomplete:
   li a0, GCPT_INCOMPLETE
   j restore_trap_handler
@@ -52,6 +56,12 @@ mode_bad:
 restore_trap_handler:
   .insn r 0x6B, 0, 0, x0, x0, x0
 
+#gcp_checkpoint_version_check:
+#  li t0, GCPT_CHECKPOINT_VERSION
+#  ld t1, (t0)
+#  li t0, GCPT_VERSION
+#  bne t1, t0, version_not_match
+#
 restore_csr_vector:
 
   li t0, CSR_REG_CPT_ADDR

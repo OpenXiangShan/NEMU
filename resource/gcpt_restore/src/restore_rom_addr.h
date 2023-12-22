@@ -40,6 +40,8 @@
 #define VECTOR_REG_CPT_ADDR     0x800FDFF8
 #define VECTOR_REG_DONE         0x800FFFF8
 
+#define GCPT_CHECKPOINT_VERSION 0x800fFFFC
+
 #ifndef RESET_VECTOR
     #define RESET_VECTOR        0x80100000
 #endif
@@ -48,10 +50,12 @@
 #define CLINT_MTIMECMP          0x4000
 #define CLINT_MTIME             0xBFF8
 
-#define RESTORE_GOOD        0x0
-#define RESTORE_MODE_BAD    0x1
-#define GCPT_INCOMPLETE     0x2
-#define COMPLETE_FLAG       0xcaff
+#define RESTORE_GOOD            0x0
+#define RESTORE_MODE_BAD        0x1
+#define GCPT_INCOMPLETE         0x2
+#define VERSION_NOT_MATCH       0x3
 
+#define COMPLETE_FLAG           0xcaff
+#define GCPT_VERSION            0x20231222
 
 #endif //__RESTORE_ROM_ADDR__
