@@ -40,6 +40,8 @@ restore_csr_vector:
   li t0, CSR_REG_CPT_ADDR
   CSRS(CSRS_RESTORE)
   HCSRS(CSRS_RESTORE)
+  RESTORE_VECTORS(CSRS_RESTORE)
+  li t0, CSR_REG_CPT_ADDR
   VCSRS(CSRS_RESTORE)
 
   li t0, MSTATUS_MPP # MPP is M
@@ -53,14 +55,14 @@ restore_csr_vector:
 #  li t1, MTIME_CMP_CPT_ADDR
 #  ld t1, (t1)
 #  sd t1, (t0)
-##
+###
 #  li t0, CLINT_MMIO+CLINT_MTIME
 #  li t1, MTIME_CPT_ADDR
 #  ld t1, (t1)
 #  sd t1, (t0)
 
- # li t0, MIE_MTIE
- # csrs CSR_MIE, t0
+  # li t0, MIE_MTIE
+  # csrs CSR_MIE, t0
 
   # csrr t1, CSR_MSTATUS
   # srli t0, t1, 63
@@ -145,9 +147,9 @@ restore_int_vector:
   .align 4
   .global payload_bin
 payload_bin:
-#ifndef FW_PAYLOAD_PATH
-	wfi
-	j	payload_bin
+#ifndef GCPT_PAYLOAD_PATH
+  wfi
+  j payload_bin
 #else
-	.incbin	FW_PAYLOAD_PATH
+  .incbin GCPT_PAYLOAD_PATH
 #endif

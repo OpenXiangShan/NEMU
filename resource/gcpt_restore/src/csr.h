@@ -21,7 +21,6 @@
 //no mhartid here
 
 #define CSRS(f) \
-  f(fcsr       , 0x003) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
@@ -55,17 +54,101 @@
 #define HCSRS(f) NOP;
 #endif // CONFIG_RVH
 
+
 #ifdef CONFIG_RVV
-  #define VCSRS(f) \
-  f(vstart, 0x008) \
-  f(vxsat, 0x009) \
-  f(vxrm, 0x00a) \
-  f(vcsr, 0x00f) \
-  f(vl, 0xc20) \
-  f(vtype, 0xc21) \
-  f(vlenb, 0xc22)
+
+#define VL_ID (0xc20)
+#define VTYPE_ID (0xc21)
+#define VLENB_ID (0xc22)
+
+#define VCSRS(f) \
+f(vcsr, 0x00f) \
+f(vstart, 0x008)
+
+#define VTYPE_VL_RESTORE \
+  li t0, CSR_REG_CPT_ADDR; \
+  li t2,VTYPE_ID;\
+  slli t2,t2,3; \
+  add t2,t0,t2; \
+  ld t1,(t2);\
+  li t2,VL_ID;\
+  slli t2,t2,3; \
+  add t2,t0,t2; \
+  ld t2,(t2);\
+  vsetvl t2, t2, t1; \
+
+#define RESTORE_VECTORS(f) \
+  VTYPE_VL_RESTORE;\
+  li sp, VECTOR_REG_CPT_ADDR; \
+  addi sp,sp,0;\
+  vl1re64.v v0, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v1, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v2, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v3, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v4, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v5, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v6, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v7, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v8, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v9, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v10, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v11, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v12, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v13, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v14, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v15, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v16, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v17, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v18, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v19, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v20, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v21, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v22, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v23, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v24, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v25, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v26, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v27, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v28, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v29, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v30, (sp); \
+  addi sp,sp,16;\
+  vl1re64.v v31, (sp); \
+  VTYPE_VL_RESTORE ; \
+
 #else
 #define VCSRS(f) NOP;
+#define RESTORE_VECTORS(f) NOP;
 #endif // CONFIG_RVV
 
 #define CSRS_RESTORE(name, addr) \
