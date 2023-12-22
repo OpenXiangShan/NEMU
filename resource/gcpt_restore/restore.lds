@@ -13,6 +13,12 @@ SECTIONS
 
   /* Beginning of code and text segment */
   . = 0x80000000;
+  gcpt_begin = .;
+
+  .restore.size :
+  {
+    *(.restore.size)
+  }
 
   /* restore: Restore Program code section */
   .restore.code :
@@ -20,11 +26,13 @@ SECTIONS
     *(.restore.code)
   }
 
-  . = ALIGN(0x1000);
-  .restore.data :
+  . = ALIGN(0x400);
+  .restore.flag :
   {
-    *(.restore.data)
+    *(.restore.flag)
   }
+
+  gcpt_end = .;
 
   . = 0x80100000;
   .payload :

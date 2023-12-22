@@ -48,4 +48,10 @@
 #define CLINT_MTIMECMP          0x4000
 #define CLINT_MTIME             0xBFF8
 
+#define RESTORE_GOOD        0x0
+#define RESTORE_MODE_BAD    0x1
+#define GCPT_INCOMPLETE     0x2
+#define COMPLETE_FLAG       0xcaff
+
+
 #endif //__RESTORE_ROM_ADDR__

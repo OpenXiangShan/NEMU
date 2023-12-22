@@ -17,16 +17,33 @@
 #include "encoding.h"
 #include "csr.h"
 
+
+
   .option norvc
+
+  .section ".restore.size","ax",@progbits
+  .globl place_of_restore_size
+place_of_restore_size:
+  j boot_decide_vector
+  .word gcpt_end-gcpt_begin
+
   .section ".restore.code","ax",@progbits
   .globl boot_decide_vector
-
 boot_decide_vector:
+  la s0, read_complete_flag #load read complete flag address
+  ld t1, (s0)
+  li t2, COMPLETE_FLAG
+  bne t1, t2, read_incomplete # read incomplete goto bad_trap
+
   li s0, BOOT_FLAG_ADDR
   ld t1, (s0) #load boot flag
   li t2, CPT_MAGIC_BUMBER
   beq t1, t2, restore_csr_vector
-  j payload_bin
+  j payload_bin # not found restore flag, goto payload
+
+read_incomplete:
+  li a0, GCPT_INCOMPLETE
+  j restore_trap_handler
 
 mode_bad:
   li a0, RESTORE_MODE_BAD
@@ -51,15 +68,15 @@ restore_csr_vector:
   beq t0, t1, mode_bad #bad trap if mode flag is M
 
   # set mtime (inaccurate) and mtimecmp
-#  li t0, CLINT_MMIO+CLINT_MTIMECMP
-#  li t1, MTIME_CMP_CPT_ADDR
-#  ld t1, (t1)
-#  sd t1, (t0)
+  li t0, CLINT_MMIO+CLINT_MTIMECMP
+  li t1, MTIME_CMP_CPT_ADDR
+  ld t1, (t1)
+  sd t1, (t0)
 ###
-#  li t0, CLINT_MMIO+CLINT_MTIME
-#  li t1, MTIME_CPT_ADDR
-#  ld t1, (t1)
-#  sd t1, (t0)
+  li t0, CLINT_MMIO+CLINT_MTIME
+  li t1, MTIME_CPT_ADDR
+  ld t1, (t1)
+  sd t1, (t0)
 
   # li t0, MIE_MTIE
   # csrs CSR_MIE, t0
@@ -142,6 +159,12 @@ restore_int_vector:
   ld x31, (31*8)(sp)
   ld sp, (2*8)(sp)
   mret
+
+  .section ".restore.flag" ,"a", %progbits
+  .align 4
+  .global read_complete_flag
+read_complete_flag:
+  .word COMPLETE_FLAG
 
   .section ".payload", "ax", %progbits
   .align 4
