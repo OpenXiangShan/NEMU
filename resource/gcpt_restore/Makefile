@@ -30,10 +30,11 @@ LD = $(CROSS_COMPILE)ld
 OBJDUMP = $(CROSS_COMPILE)objdump
 OBJCOPY = $(CROSS_COMPILE)objcopy
 INCLUDES  = $(addprefix -I, $(INC_DIR))
-CFLAGS   += -fno-PIE -mcmodel=medany -O2 -MMD -Wall -Werror $(INCLUDES)
+CFLAGS   += -fno-PIE -mcmodel=medany -O2 -MMD -Wall -Werror $(INCLUDES) -march=rv64gcv
 
-ifdef FW_PAYLOAD_PATH
-CFLAGS += -DFW_PAYLOAD_PATH=\"$(FW_PAYLOAD_PATH)\"
+
+ifdef GCPT_PAYLOAD_PATH
+CFLAGS += -DGCPT_PAYLOAD_PATH=\"$(GCPT_PAYLOAD_PATH)\"
 endif
 
 # Files to be compiled
