@@ -2,7 +2,7 @@
 
 OUTPUT_ARCH( "riscv" )
 
-ENTRY( boot_decide_vector )
+ENTRY( place_of_restore_size )
 
 SECTIONS
 {
