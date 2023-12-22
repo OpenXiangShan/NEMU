@@ -79,7 +79,7 @@ static inline const char * vreg_name(int index, int width) {
 }
 
 int get_vlmax(int vsew, int vlmul);
-int get_vlen_max(int vsew, int vlmul);
+int get_vlen_max(int vsew, int vlmul, int widening);
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign);
 void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul, int needAlgin);
 

@@ -456,7 +456,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, widening);
       for(idx = vl->val; idx < vlmax; idx++) {
         if (dest_mask == 1)
           continue;
@@ -642,7 +642,11 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = 0;
+      if (widening == vsdWidening || widening == vdWidening || widening == vsWidening)
+        vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 1);
+      else
+        vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
       for(idx = vl->val; idx < vlmax; idx++) {
         if (dest_mask == 1)
           continue;

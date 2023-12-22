@@ -548,7 +548,7 @@ def_EHelper(viota) {
   }
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
       for(int idx = vl->val; idx < vlmax; idx++) {
         *s1 = (uint64_t) -1;
         set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
@@ -578,7 +578,7 @@ def_EHelper(vid) {
   }
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
       for(int idx = vl->val; idx < vlmax; idx++) {
         *s1 = (uint64_t) -1;
         set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
@@ -632,7 +632,7 @@ def_EHelper(vcompress) {
   }
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
       for(int idx = *s1; idx < vlmax; idx++) {
         *s1 = (uint64_t) -1;
         set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);

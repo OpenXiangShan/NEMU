@@ -77,7 +77,10 @@ int get_vlmax(int vsew, int vlmul) {
   return VLEN >> (3 + vsew - vlmul);
 }
 
-int get_vlen_max(int vsew, int vlmul) {
+int get_vlen_max(int vsew, int vlmul, int widening) {
+  if (vlmul > 4 && widening) {
+    return VLEN >> (4 + vsew);
+  }
   if (vlmul > 4) vlmul = 0;
   return VLEN >> (3 + vsew - vlmul);
 }
