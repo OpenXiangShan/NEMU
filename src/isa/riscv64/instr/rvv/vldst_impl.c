@@ -16,9 +16,31 @@
 #include <common.h>
 #ifdef CONFIG_RVV
 
+#include <cpu/cpu.h>
 #include "vldst_impl.h"
+#include "../local-include/intr.h"
 
 // reference: v_ext_macros.h in riscv-isa-sim
+
+void isa_emul_check(int emul, int nfields) {
+  if (emul > 3) {
+    Log("vector EMUL > 8 happen: EMUL:%d\n", (1 << emul));
+    longjmp_exception(EX_II);
+  }
+  if (emul < -3) {
+    Log("vector EMUL < 1/8 happen: EMUL:1/%d\n", 1 << (-emul));
+    longjmp_exception(EX_II);
+  }
+  int real_emul = 1 << (emul < 0 ? 0 : emul);
+  if (real_emul * nfields > 8) {
+    Log("vector EMUL * NFIELDS > 8 happen: EMUL:%s%d NFIELDS:%d\n",
+      emul > 0 ? "" : "1/",
+      emul > 0 ? real_emul : (1 << (-emul)),
+      nfields
+    );
+    longjmp_exception(EX_II);
+  }
+}
 
 void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
@@ -35,6 +57,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     default: break;
   }
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
+  isa_emul_check(emul, 1);
   emul = emul < 0 ? 0 : emul;
   emul = 1 << emul;
 
@@ -94,7 +117,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   //        8  ->  64
   if(check_vstart_ignore(s)) return;
   word_t idx;
-  uint64_t nf, fn, vl_val, base_addr, vd, index, addr;
+  uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width;
 
   index_width = 0;
@@ -114,6 +137,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
     default: break;
   }
   lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
+  isa_emul_check(lmul, nf);
   lmul = lmul < 0 ? 0 : lmul;
   lmul = 1 << lmul;
 
@@ -121,7 +145,6 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
-  nf = s->v_nf + 1;
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
@@ -180,6 +203,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
     default: break;
   }
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
+  isa_emul_check(emul, 1);
   emul = emul < 0 ? 0 : emul;
   emul = 1 << emul;
 
@@ -217,7 +241,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
 void vstx(int mode, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
   word_t idx;
-  uint64_t nf, fn, vl_val, base_addr, vd, index, addr;
+  uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width;
 
   index_width = 0;
@@ -237,6 +261,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
     default: break;
   }
   lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
+  isa_emul_check(lmul, nf);
   lmul = lmul < 0 ? 0 : lmul;
   lmul = 1 << lmul;
 
@@ -244,7 +269,6 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
-  nf = s->v_nf + 1;
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
@@ -272,6 +296,18 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   set_mstatus_dirt();
 }
 
+void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
+  if (nfields != 1 && nfields != 2 && nfields != 4 && nfields != 8) {
+    Log("illegal NFIELDS for whole register instrs: NFIELDS:%lu", nfields);
+    longjmp_exception(EX_II);
+  }
+  if (vd % nfields) {
+    Log("vector register group misaligned for whole register instrs: NFIELDS:%lu vd:%lu",
+      nfields, vd);
+    longjmp_exception(EX_II);
+  }
+}
+
 void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
   word_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
@@ -296,6 +332,8 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   idx = vstart->val;
+
+  isa_whole_reg_check(vd, len);
 
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
@@ -338,6 +376,8 @@ void vsr(int mode, Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   idx = vstart->val;
+
+  isa_whole_reg_check(vd, len);
 
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
