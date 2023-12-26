@@ -5,6 +5,7 @@
 #include "vcommon.h"
 uint8_t check_vstart_ignore(Decode *s) {
   if(vstart->val >= vl->val) {
+    Log("vstart=%lu vl=%lu", vstart->val, vl->val);
     if(vstart->val > 0) {
       rtl_li(s, s0, 0);
       vcsr_write(IDXVSTART, s0);
