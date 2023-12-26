@@ -18,7 +18,9 @@
 
 #include "vreg.h"
 #include "../local-include/csr.h"
+#include "../local-include/intr.h"
 #include <stdio.h>
+#include <cpu/cpu.h>
 #include "isa.h"
 
 const char * vregsl[] = {
@@ -97,11 +99,21 @@ int get_idx(uint64_t reg, int idx, uint64_t vsew) {
   return elem_idx;
 }
 
+void isa_misalign_vreg_check(uint64_t reg, uint64_t vlmul, int needAlign) {
+  if (needAlign && vlmul < 4) {
+    if (reg % (1 << vlmul) != 0) {
+      Log("vector register group misaligned happen: reg:x%lu vlmul:0x%lx needAlign:%d", reg, vlmul, needAlign);
+      longjmp_exception(EX_II);
+    }
+  }
+}
+
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign) {
   // printf("get_vreg: reg = %lu, idx = %d, vsew = %lu, vlmul = %lu, is_signed = %d, needAlign = %d\n", reg, idx, vsew, vlmul, is_signed, needAlign);
   Assert(vlmul != 4, "vlmul = 4 is reserved\n");
   Assert(vsew <= 3, "vsew should be less than 4\n");
-  if(needAlign && vlmul < 4) Assert(reg % (1 << vlmul) == 0, "vreg is not aligned\n");
+  // if(needAlign && vlmul < 4) Assert(reg % (1 << vlmul) == 0, "vreg is not aligned\n");
+  isa_misalign_vreg_check(reg, vlmul, needAlign);
   int new_reg = get_reg(reg, idx, vsew);
   int new_idx = get_idx(reg, idx, vsew);
   switch (vsew) {
@@ -117,7 +129,8 @@ void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul
   // printf("set_vreg: reg = %lu, idx = %d, vsew = %lu, vlmul = %lu, needAlign = %d\n", reg, idx, vsew, vlmul, needAlign);
   Assert(vlmul != 4, "vlmul = 4 is reserved\n");
   Assert(vsew <= 3, "vsew should be less than 4\n");
-  if(needAlign && vlmul < 4) Assert(reg % (1 << vlmul) == 0, "vreg is not aligned\n");
+  // if(needAlign && vlmul < 4) Assert(reg % (1 << vlmul) == 0, "vreg is not aligned\n");
+  isa_misalign_vreg_check(reg, vlmul, needAlign);
   int new_reg = get_reg(reg, idx, vsew);
   int new_idx = get_idx(reg, idx, vsew);
 
