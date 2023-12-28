@@ -66,11 +66,25 @@ restore_csr_vector:
 
   li t0, CSR_REG_CPT_ADDR
   CSRS(CSRS_RESTORE)
+
+hext_csr_restore:
+  csrr t0, misa
+  li t1, MISA_H
+  and t0, t0, t1
+  bne t0,t1,vext_restore
+  li t0, CSR_REG_CPT_ADDR
   HCSRS(CSRS_RESTORE)
+
+vext_restore:
+  csrr t0, misa
+  li t1, MISA_V
+  and t0, t0, t1
+  bne t0,t1,normal_csr_restore
   RESTORE_VECTORS(CSRS_RESTORE)
   li t0, CSR_REG_CPT_ADDR
   VCSRS(CSRS_RESTORE)
 
+normal_csr_restore:
   li t0, MSTATUS_MPP # MPP is M
   li s2, MODE_CPT_ADDR
   ld s2, (s2) #load mode flag into s2

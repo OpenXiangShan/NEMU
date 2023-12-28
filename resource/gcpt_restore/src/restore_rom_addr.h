@@ -58,4 +58,7 @@
 #define COMPLETE_FLAG           0xcaff
 #define GCPT_VERSION            0x20231222
 
+#define MISA_V 0x200000
+#define MISA_H 0x80
+
 #endif //__RESTORE_ROM_ADDR__

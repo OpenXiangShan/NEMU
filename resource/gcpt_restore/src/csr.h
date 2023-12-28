@@ -38,7 +38,8 @@
 #define NOP \
   addi x0, x0, 0;
 
-#ifdef CONFIG_RVH
+//#define CONFIG_RVH
+//#ifdef CONFIG_RVH
 
 #define HCSRS(f) \
   f(hstatus    , 0x600) f(hedeleg    , 0x602) f(hideleg    , 0x603) \
@@ -50,12 +51,13 @@
   f(vsscratch  , 0x240) f(vsepc      , 0x241) f(vscause    , 0x242) \
   f(vstval     , 0x243) f(vsip       , 0x244) f(vsatp      , 0x280) \
   f(mtval2     , 0x34b) f(mtinst     , 0x34A)
-#else
-#define HCSRS(f) NOP;
-#endif // CONFIG_RVH
+//#else
+//#define HCSRS(f) NOP;
+//#endif // CONFIG_RVH
 
 
-#ifdef CONFIG_RVV
+//#define CONFIG_RVV
+//#ifdef CONFIG_RVV
 
 #define VL_ID (0xc20)
 #define VTYPE_ID (0xc21)
@@ -146,10 +148,10 @@ f(vstart, 0x008)
   vl1re64.v v31, (sp); \
   VTYPE_VL_RESTORE ; \
 
-#else
-#define VCSRS(f) NOP;
-#define RESTORE_VECTORS(f) NOP;
-#endif // CONFIG_RVV
+//#else
+//#define VCSRS(f) NOP;
+//#define RESTORE_VECTORS(f) NOP;
+//#endif // CONFIG_RVV
 
 #define CSRS_RESTORE(name, addr) \
   li t2, addr; \
