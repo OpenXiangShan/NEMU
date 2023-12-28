@@ -714,7 +714,7 @@ void mask_instr(int opcode, Decode *s) {
 
 
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
-  // TODO: check here: does not need align??
+  if(check_vstart_ignore(s)) return;
   // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 1);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
@@ -756,6 +756,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 }
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
+  if(check_vstart_ignore(s)) return;
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 1);
   else
