@@ -102,7 +102,11 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     #endif // CONFIG_RVH
     return false;
   }
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  return difftest_check_store(pc);
+#else
   return true;
+#endif
 }
 
 void isa_difftest_attach() {
