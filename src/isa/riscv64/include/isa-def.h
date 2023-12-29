@@ -227,6 +227,8 @@ typedef struct {
     struct {
       uint32_t pad0      :15;
       uint32_t v_imm5    : 5;
+      uint32_t v_zimm    :11;
+      uint32_t v_bigbit  : 1;
     } v_opv3;
     struct {
       uint32_t pad0      :15;

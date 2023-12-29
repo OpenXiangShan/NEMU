@@ -171,14 +171,13 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       case SRC_VI :
         if(is_signed) rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
         else {
-          if ( (opcode == MSLTU) || (opcode == MSLEU) || (opcode == MSGTU) )
+          if (opcode == MSLEU || opcode == MSGTU || opcode == SADDU) {
             rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
-          else if (opcode == SADDU) {
             switch (vtype->vsew) {
-              case 0 : *s1 = s->isa.instr.v_opv2.v_simm5 & 0xff; break;
-              case 1 : *s1 = s->isa.instr.v_opv2.v_simm5 & 0xffff; break;
-              case 2 : *s1 = s->isa.instr.v_opv2.v_simm5 & 0xffffffff; break;
-              case 3 : *s1 = s->isa.instr.v_opv2.v_simm5 & 0xffffffffffffffff; break;
+              case 0 : *s1 = *s1 & 0xff; break;
+              case 1 : *s1 = *s1 & 0xffff; break;
+              case 2 : *s1 = *s1 & 0xffffffff; break;
+              case 3 : *s1 = *s1 & 0xffffffffffffffff; break;
             }
           }
           else
@@ -623,7 +622,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       case FNCVT_FXU : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DUToF, FPCALL_TYPE)); break;
       case FNCVT_FX : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DSToF, FPCALL_TYPE)); break;
       case FNCVT_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF, FPCALL_TYPE)); break;
-      case FNCVT_ROD_FF :rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToFR, FPCALL_TYPE)); break;
+      case FNCVT_ROD_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToFR, FPCALL_TYPE)); break;
       case FSLIDE1UP :
         if (idx > 0) get_vreg(id_src2->reg, idx - 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
         break;
