@@ -158,6 +158,12 @@ config DIFFTEST_REF_SPIKE
   bool "SPIKE"
 endchoice
 
+config DIFFTEST_STORE_COMMIT
+  depends on DIFFTEST_REF_SPIKE
+  bool "Check the data of the store class instruction"
+  default n
+
+
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
   bool

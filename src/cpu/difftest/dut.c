@@ -25,7 +25,7 @@ void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) =
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
-
+int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask) = NULL;
 #ifdef CONFIG_DIFFTEST
 
 IFDEF(CONFIG_DIFFTEST_REF_QEMU_DL, __thread uint8_t resereve_for_qemu_tls[4096]);
@@ -98,6 +98,11 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  ref_difftest_store_commit = dlsym(handle, "difftest_store_commit");
+  assert(ref_difftest_store_commit);
+#endif
+
   Log("Differential testing: \33[1;32m%s\33[0m", "ON");
   Log("The result of every instruction will be compared with %s. "
       "This will help you a lot for debugging, but also significantly reduce the performance. "
@@ -139,7 +144,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   if (is_skip_ref) {
-    // Log("is_skip_ref\n");
+    // Logti("is_skip_ref\n");
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
