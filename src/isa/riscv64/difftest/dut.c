@@ -29,6 +29,9 @@
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  cpu.mip &= 0xffffff4f; // ignore difftest for mip
+#endif
   if(cpu.mip != ref_r->mip) ref_r->mip = cpu.mip; // ignore difftest for mip
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
     int i;
