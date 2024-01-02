@@ -33,9 +33,7 @@ def_EHelper(flw_mmu) {
 }
 
 def_EHelper(fsw_mmu) {
-  rtl_funbox(s, s0, ddest);
-  if (*s0 == defaultNaNF32UI) *s0 = 0x0;
-  rtl_sm(s, s0, dsrc1, id_src2->imm, 4, MMU_TRANSLATE);
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 4, MMU_TRANSLATE);
 }
 
 #define def_fop_template(name, op, w) \
