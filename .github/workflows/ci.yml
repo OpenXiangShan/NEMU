@@ -128,3 +128,26 @@ jobs:
       #     make -j
       #     ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/kvm
       #     make clean-all
+  
+  V-ext-tests:
+    runs-on: nemu
+    continue-on-error: false
+    name: nemu - V-extension
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup env
+        run: |
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
+      - name: Build NEMU with V extension as difftest ref
+        run: |
+          make riscv64-rvv-diff-spike_defconfig
+          make -j
+          make clean-all
+      - name: Run Vector-hmmer with Spike DiffTest
+        run: |
+          make riscv64-rvv-diff-spike_defconfig
+          make -j
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro-gcpt-pk-linux-spec.bin -I 4000000000
+          make clean-all
