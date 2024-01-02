@@ -721,7 +721,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
       mstatus->spp = MODE_U;
       update_mmu_state();
-      Log("Executing sret sepc=%lx ",sepc->val);
+      Logc("Executing sret sepc=%lx ",sepc->val);
       return sepc->val;
     case 0x302: // mret
       if (cpu.mode < MODE_M) {
@@ -739,7 +739,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
       mstatus->mpp = MODE_U;
       update_mmu_state();
-      Loge("Executing mret to 0x%lx", mepc->val);
+      Logc("Executing mret to 0x%lx", mepc->val);
       return mepc->val;
       break;
 #ifdef CONFIG_RV_SVINVAL
@@ -788,6 +788,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
             longjmp_exception(EX_II);
 #endif // CONFIG_RVH
           mmu_tlb_flush(*src);
+          Logtr("sfence.vma, addr %lx, tvm %x", *src, mstatus->tvm);
           break;
 #ifdef CONFIG_RV_SVINVAL
         case 0x0b: // sinval.vma
