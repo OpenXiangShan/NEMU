@@ -149,5 +149,5 @@ jobs:
         run: |
           make riscv64-rvv-diff-spike_defconfig
           make -j
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro-gcpt-pk-linux-spec.bin -I 3500000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro-gcpt-pk-linux-spec.bin -I 4000000000
           make clean-all
