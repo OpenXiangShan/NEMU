@@ -276,7 +276,7 @@ config DIFFTEST_STORE_COMMIT_AMO
 config DIFFTEST_STORE_QUEUE_SIZE
   depends on DIFFTEST_STORE_COMMIT
   int "Size of committed store queue"
-  default 512
+  default 256
 
 config GUIDED_EXEC
   depends on SHARE

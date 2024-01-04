@@ -83,6 +83,7 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread(sparse_mm, addr, len);
   #else
+  Logm("pmpm read %lx, len %d", addr, len);
   return host_read(guest_to_host(addr), len);
   #endif
 }
@@ -91,7 +92,7 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   store_commit_queue_push(addr, data, len);
 #endif
-
+  Logm("pmpm write %lx, len %d, data %lx", addr, len, data);
   #ifdef CONFIG_USE_SPARSEMM
   sparse_mem_wwrite(sparse_mm, addr, len, data);
   #else
@@ -167,6 +168,8 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   else {
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
     else raise_read_access_fault(type, vaddr);
+    Log("read_access_fault");
+    raise_access_fault(EX_LAF, vaddr);
     return 0;
   }
 #else
@@ -264,7 +267,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     else {
       if(dynamic_config.ignore_illegal_mem_access)
         return;
-      printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+      Log("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
       raise_access_fault(EX_SAF, vaddr);
       return;
     }
@@ -343,6 +346,12 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   return result;
 }
 
+inline uint64_t store_read_step() {
+  if (tail >= head) 
+    return tail - head;
+  else 
+    return (CONFIG_DIFFTEST_STORE_QUEUE_SIZE - head + tail);
+}
 #endif
 
 char *mem_dump_file = NULL;
