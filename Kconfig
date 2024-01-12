@@ -205,6 +205,10 @@ config EXITLOG
   bool "Enable Log for exiting reasons"
   default n
 
+config TRACE_VECTOR
+  bool "Enable Log for vector insts"
+  default n
+
 config TRACE_INST
   bool "Enable Log for tracing instructions"
   default n

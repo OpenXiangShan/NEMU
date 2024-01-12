@@ -35,6 +35,7 @@
     if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
     if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
     if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_vector && ISDEF(CONFIG_TRACE_VECTOR)) Log(__VA_ARGS__); \
   } while (0)
 
 #define Logm(...) Logf(dflag_mem, __VA_ARGS__)
@@ -44,7 +45,7 @@
 #define Logtid(...) Logf(dflag_trace_inst_dasm, __VA_ARGS__)
 #define Loge(...) Logf(dflag_exit, __VA_ARGS__)
 #define Logsp(...) Logf(dflag_simpoint, __VA_ARGS__)
-
+#define Logv(...) Logf(dflag_trace_vector, __VA_ARGS__)
 #define Assert(cond, ...) \
   do { \
     if (!(cond)) { \
