@@ -69,7 +69,7 @@ def_EHelper(vsetvl) {
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
-  set_mstatus_dirt();
+  vp_set_dirty();
   // print_asm_template3(vsetvl);
 }
 
@@ -81,7 +81,7 @@ def_EHelper(vsetvli) {
   rtl_li(s, &(s->src2.val), s->isa.instr.v_opv2.v_zimm);
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
-  set_mstatus_dirt();
+  vp_set_dirty();
   // print_asm_template3(vsetvl);
 }
 
@@ -91,7 +91,7 @@ def_EHelper(vsetivli) {
   rtl_li(s, &(s->src1.val), s->isa.instr.v_opv4.v_zimm5);
   rtl_li(s, &(s->src2.val), s->isa.instr.v_opv4.v_zimm);
   set_vtype_vl(s, 0);
-  set_mstatus_dirt();
+  vp_set_dirty();
   // print_asm_template3(vsetvl);
 }
 

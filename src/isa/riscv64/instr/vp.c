@@ -27,5 +27,6 @@ bool vp_enable() {
 void vp_set_dirty() {
   // lazily update
   mstatus->vs = 3;
+  mstatus->sd = 1;
 }
 #endif // CONFIG_RVV

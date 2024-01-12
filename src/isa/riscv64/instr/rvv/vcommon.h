@@ -10,6 +10,6 @@
 
 uint8_t check_vstart_ignore(Decode *s);
 bool check_vlmul_sew_illegal(rtlreg_t vtype_req);
-
+void vp_set_dirty();
 #endif
 #endif

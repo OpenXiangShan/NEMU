@@ -15,7 +15,6 @@
 
 #ifdef CONFIG_RVV
 
-void vp_set_dirty();
 
 // vector
 static inline def_DHelper(OP_V) { // 10_101, same to R
