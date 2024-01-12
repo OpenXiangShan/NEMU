@@ -71,7 +71,6 @@ enum fp_wop_t {
   vdNarrow
 };
 
-void vp_set_dirty();
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s);
 void mask_instr(int opcode, Decode *s);

@@ -105,7 +105,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
@@ -185,7 +185,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void vst(int mode, Decode *s, int mmu_mode) {
@@ -235,7 +235,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void vstx(int mode, Decode *s, int mmu_mode) {
@@ -293,7 +293,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
@@ -359,7 +359,7 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void vsr(int mode, Decode *s, int mmu_mode) {
@@ -405,7 +405,7 @@ void vsr(int mode, Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 #endif // CONFIG_RVV

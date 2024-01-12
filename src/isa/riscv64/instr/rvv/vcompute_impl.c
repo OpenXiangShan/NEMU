@@ -472,7 +472,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
@@ -702,7 +702,7 @@ void mask_instr(int opcode, Decode *s) {
   }
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  set_mstatus_dirt();
+  vp_set_dirty();
 
   if (RVV_AGNOSTIC) {
     for (idx = vl->val; idx < VLEN; idx++) {
@@ -750,7 +750,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   if (vl->val != 0) {
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
   }
-  set_mstatus_dirt();
+  vp_set_dirty();
   vstart->val = 0;
 }
 
