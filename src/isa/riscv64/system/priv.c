@@ -588,6 +588,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     case TRIG_TYPE_NONE: // write type 0 to disable this trigger
     case TRIG_TYPE_DISABLE:
       tdata1_reg->type = TRIG_TYPE_DISABLE;
+      tdata1_reg->data = 0;
       break;
     case TRIG_TYPE_MCONTROL:
       mcontrol_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol, &src, cpu.TM);
