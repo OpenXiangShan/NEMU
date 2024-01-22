@@ -96,7 +96,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
 
   if (RVV_AGNOSTIC && vtype->vta) {   // set tail of vector register to 1
     int vlmax = get_vlen_max(eew, vtype->vlmul, 0);
-    for(idx = vl->val; idx < vlmax; idx++) {
+    for(idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
