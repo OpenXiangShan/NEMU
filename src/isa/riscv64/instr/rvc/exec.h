@@ -67,6 +67,14 @@ def_EHelper(c_jalr) {
 #endif
 }
 
+#ifdef CONFIG_SHARE
+def_EHelper(c_ebreak) {
+  rtl_trap(s, s->pc, 3);
+  rtl_mv(s, s0, t0);
+  rtl_priv_jr(s, s0);
+}
+#endif
+
 def_EHelper(c_beqz) {
   rtl_jrelop(s, RELOP_EQ, dsrc1, rz, id_dest->imm);
 }

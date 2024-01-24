@@ -50,13 +50,13 @@
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(mret) f(sret) f(wfi) \
+  f(ecall) f(ebreak) f(c_ebreak) f(mret) f(sret) f(wfi) \
   f(sfence_w_inval) f(sfence_inval_ir)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) f(sinval_vma) RVH_INST_BINARY(f)
 #else
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(mret) f(sret) f(wfi)
+  f(ecall) f(ebreak) f(c_ebreak) f(mret) f(sret) f(wfi)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) RVH_INST_BINARY(f)
 #endif
