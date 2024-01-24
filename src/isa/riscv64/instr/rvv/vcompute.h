@@ -348,7 +348,7 @@ def_EHelper(vmvxs) {
 }
 
 def_EHelper(vmvnr) {
-  rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5);
+  rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
   int NREG = (*s1) + 1;
   int len = (VLEN >> 6) * NREG;
   int vlmul = 0;
@@ -838,8 +838,11 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
-  FREDUCTION(FREDUSUM)
-  //float_reduction_computing(s);
+#ifdef CONFIG_DIFFTEST
+  FREDUCTION(FREDUSUM)    // use ordered reduction
+#else
+  float_reduction_computing(s);   // when NEMU is ref, use unordered reduction which is same as XiangShan
+#endif
 }
 
 def_EHelper(vfsub) {
