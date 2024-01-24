@@ -109,27 +109,22 @@ void isa_misalign_vreg_check(uint64_t reg, uint64_t vlmul, int needAlign) {
 }
 
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign) {
-  // printf("get_vreg: reg = %lu, idx = %d, vsew = %lu, vlmul = %lu, is_signed = %d, needAlign = %d\n", reg, idx, vsew, vlmul, is_signed, needAlign);
   Assert(vlmul != 4, "vlmul = 4 is reserved\n");
   Assert(vsew <= 3, "vsew should be less than 4\n");
-  // if(needAlign && vlmul < 4) Assert(reg % (1 << vlmul) == 0, "vreg is not aligned\n");
   isa_misalign_vreg_check(reg, vlmul, needAlign);
   int new_reg = get_reg(reg, idx, vsew);
   int new_idx = get_idx(reg, idx, vsew);
   switch (vsew) {
-    case 0 : *dst = is_signed ? (long)(char)vreg_b(new_reg, new_idx) : vreg_b(new_reg, new_idx); break;
-    case 1 : *dst = is_signed ? (long)(short)vreg_s(new_reg, new_idx) : vreg_s(new_reg, new_idx); break;
-    case 2 : *dst = is_signed ? (long)(int)vreg_i(new_reg, new_idx) : vreg_i(new_reg, new_idx); break;
-    case 3 : *dst = is_signed ? (long)vreg_l(new_reg, new_idx) : vreg_l(new_reg, new_idx); break;
+    case 0 : *dst = is_signed ? (int64_t)(int8_t )vreg_b(new_reg, new_idx) : vreg_b(new_reg, new_idx); break;
+    case 1 : *dst = is_signed ? (int64_t)(int16_t)vreg_s(new_reg, new_idx) : vreg_s(new_reg, new_idx); break;
+    case 2 : *dst = is_signed ? (int64_t)(int32_t)vreg_i(new_reg, new_idx) : vreg_i(new_reg, new_idx); break;
+    case 3 : *dst = is_signed ? (int64_t)         vreg_l(new_reg, new_idx) : vreg_l(new_reg, new_idx); break;
   }
-  // printf("get_reg: %lu idx: %d new_reg: %d new_idx: %d src: %lx\n", reg, idx, new_reg, new_idx, *dst);
 }
 
 void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul, int needAlign) {
-  // printf("set_vreg: reg = %lu, idx = %d, vsew = %lu, vlmul = %lu, needAlign = %d\n", reg, idx, vsew, vlmul, needAlign);
   Assert(vlmul != 4, "vlmul = 4 is reserved\n");
   Assert(vsew <= 3, "vsew should be less than 4\n");
-  // if(needAlign && vlmul < 4) Assert(reg % (1 << vlmul) == 0, "vreg is not aligned\n");
   isa_misalign_vreg_check(reg, vlmul, needAlign);
   int new_reg = get_reg(reg, idx, vsew);
   int new_idx = get_idx(reg, idx, vsew);
@@ -140,7 +135,6 @@ void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul
     case 2 : src = src & 0xffffffff; break;
     case 3 : src = src & 0xffffffffffffffff; break;
   }
-  //printf("set_reg: %lu idx: %d new_reg: %d new_idx: %d src: %lx vsew: %lu\n", reg, idx, new_reg, new_idx, src, vsew);
   switch (vsew) {
     case 0 : vreg_b(new_reg, new_idx) = (uint8_t  )src; break;
     case 1 : vreg_s(new_reg, new_idx) = (uint16_t )src; break;
@@ -158,7 +152,6 @@ void init_tmp_vreg() {
 }
 
 void get_tmp_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew) {
-  // printf("get_vreg: reg = %lu, idx = %d, vsew = %lu\n", reg, idx, vsew);
   Assert(vsew <= 3, "vsew should be less than 4\n");
   switch (vsew) {
     case 0 : *dst = tmp_vreg[reg]._8[idx];  break;
@@ -166,11 +159,9 @@ void get_tmp_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew) {
     case 2 : *dst = tmp_vreg[reg]._32[idx]; break;
     case 3 : *dst = tmp_vreg[reg]._64[idx]; break;
   }
-  //printf("get_reg: %lu idx: %d new_reg: %d new_idx: %d src: %lx\n", reg, idx, new_reg, new_idx, *dst);
 }
 
 void set_tmp_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew) {
-  // printf("set_vreg: reg = %lu, idx = %d, vsew = %lu\n", reg, idx, vsew);
   Assert(vsew <= 3, "vsew should be less than 4\n");
 
   switch (vsew) {
@@ -179,7 +170,6 @@ void set_tmp_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew) {
     case 2 : src = src & 0xffffffff; break;
     case 3 : src = src & 0xffffffffffffffff; break;
   }
-  //printf("set_reg: %lu idx: %d new_reg: %d new_idx: %d src: %lx vsew: %lu\n", reg, idx, new_reg, new_idx, src, vsew);
   switch (vsew) {
     case 0 : tmp_vreg[reg]._8[idx]  = (uint8_t  )src; break;
     case 1 : tmp_vreg[reg]._16[idx] = (uint16_t )src; break;

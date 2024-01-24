@@ -307,9 +307,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_RVH
   if (!check_permission(&pte, true, vaddr, type, virt, mode)) return MEM_RET_FAIL;
 #else
-  if (!check_permission(&pte, true, vaddr, type)) {
-    return MEM_RET_FAIL;
-  }
+  if (!check_permission(&pte, true, vaddr, type)) return MEM_RET_FAIL;
 #endif
   if (level > 0) {
     // superpage

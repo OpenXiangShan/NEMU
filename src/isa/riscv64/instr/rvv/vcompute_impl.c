@@ -169,10 +169,10 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         }
         break;
       case SRC_VI :
-        if(is_signed) rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
+        if(is_signed) rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
         else {
           if (opcode == MSLEU || opcode == MSGTU || opcode == SADDU) {
-            rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
+            rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
             switch (vtype->vsew) {
               case 0 : *s1 = *s1 & 0xff; break;
               case 1 : *s1 = *s1 & 0xffff; break;
@@ -181,7 +181,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
             }
           }
           else
-            rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5);
+            rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
         }       
         break;
     }
@@ -236,7 +236,6 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
       case SLL :
         rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW) is valid
-        //rtl_sext(s0, s0, 8 - (1 << vtype->vsew)); //sext first
         rtl_shl(s, s1, s0, s1); break;
       case SRL :
         if (narrow)
@@ -472,7 +471,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
@@ -622,7 +621,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       case FNCVT_FXU : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DUToF, FPCALL_TYPE)); break;
       case FNCVT_FX : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DSToF, FPCALL_TYPE)); break;
       case FNCVT_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF, FPCALL_TYPE)); break;
-      case FNCVT_ROD_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToFR, FPCALL_TYPE)); break;
+      case FNCVT_ROD_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF_ODD, FPCALL_TYPE)); break;
       case FSLIDE1UP :
         if (idx > 0) get_vreg(id_src2->reg, idx - 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
         break;
@@ -702,7 +701,7 @@ void mask_instr(int opcode, Decode *s) {
   }
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  set_mstatus_dirt();
+  vp_set_dirty();
 
   if (RVV_AGNOSTIC) {
     for (idx = vl->val; idx < VLEN; idx++) {
@@ -744,13 +743,13 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 
   }
   if (RVV_AGNOSTIC) {
-    if(vtype->vta) set_vreg_tail(id_dest->reg);
+    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
   // No write when vl is 0
   if (vl->val != 0) {
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
   }
-  set_mstatus_dirt();
+  vp_set_dirty();
   vstart->val = 0;
 }
 
@@ -803,7 +802,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
 
   }
   if (RVV_AGNOSTIC) {
-    if(vtype->vta) set_vreg_tail(id_dest->reg);
+    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
   // No write when vl is 0
   if (vl->val != 0) {
@@ -830,7 +829,7 @@ void float_reduction_step2(uint64_t src, Decode *s) {
   int element_num = VLEN >> (3 + vtype->vsew);
 
   while (element_num != 1) {
-    for (int i = 0; i < element_num / 2; i += 2) {
+    for (int i = 0; i < element_num / 2; i++) {
       get_tmp_vreg(src, i, s1, vtype->vsew);
       get_tmp_vreg(src, i + element_num / 2, s0, vtype->vsew);
       rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
@@ -863,6 +862,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 }
 
 void float_reduction_computing(Decode *s) {
+  if(check_vstart_ignore(s)) return;
   word_t FPCALL_TYPE = FPCALL_W64;
   int idx;
 
@@ -920,9 +920,13 @@ void float_reduction_computing(Decode *s) {
   rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
 
   if (RVV_AGNOSTIC) {
-    if(vtype->vta) set_vreg_tail(id_dest->reg);
+    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
-  set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+
+  // No write when vl is 0
+  if (vl->val != 0) {
+    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+  }
   vstart->val = 0;
 }
 
