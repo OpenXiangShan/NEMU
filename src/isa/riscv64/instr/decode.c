@@ -141,6 +141,9 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_jr:)
     IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
+    case EXEC_ID_ebreak: case EXEC_ID_c_ebreak:
+#endif
       s->type = INSTR_TYPE_I; break;
 
 #if !defined(CONFIG_DEBUG) && !defined(CONFIG_SHARE)
