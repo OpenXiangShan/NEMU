@@ -341,6 +341,12 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   return result;
 }
 
+inline uint64_t store_read_step() {
+  if (tail >= head) 
+    return tail - head;
+  else 
+    return (CONFIG_DIFFTEST_STORE_QUEUE_SIZE - head + tail);
+}
 #endif
 
 char *mem_dump_file = NULL;

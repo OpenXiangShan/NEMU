@@ -41,9 +41,7 @@ extern void (*ref_difftest_exec)(uint64_t n);
 extern void (*ref_difftest_raise_intr)(uint64_t NO);
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 extern int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask);
-extern void store_commit_queue_push(uint64_t addr, uint64_t data, int len);
 extern store_commit_t *store_commit_queue_pop();
-extern int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 #endif
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
@@ -64,17 +62,24 @@ static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *r
 }
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 static inline bool difftest_check_store(vaddr_t pc) {
-  store_commit_t *dut =  store_commit_queue_pop();
-  if (dut == NULL) return true;
-  uint64_t dut_data = dut->data;
-  uint64_t dut_addr = dut->addr;
+#ifdef CONFIG_RVV
+  uint64_t step = store_read_step();
+  for (int i = 0; i < step ;i ++) {
+#endif
+    store_commit_t *dut =  store_commit_queue_pop();
+    if (dut == NULL) return true;
+    uint64_t dut_data = dut->data;
+    uint64_t dut_addr = dut->addr;
 
-  if (ref_difftest_store_commit(&dut->addr, &dut->data, &dut->mask)) {
-    Log("\n\t,is different memory executing instruction at pc = " FMT_WORD,pc);
-    Log(",ref addr = " FMT_WORD ", data = " FMT_WORD "\n\t dut addr = " FMT_WORD ", data = " FMT_WORD 
-        ,dut->addr, dut->data, dut_addr, dut_data);  
-    return false;
+    if (ref_difftest_store_commit(&dut->addr, &dut->data, &dut->mask)) {
+      Log("\n\t,is different memory executing instruction at pc = " FMT_WORD,pc);
+      Log(",ref addr = " FMT_WORD ", data = " FMT_WORD "\n\t dut addr = " FMT_WORD ", data = " FMT_WORD
+          ,dut->addr, dut->data, dut_addr, dut_data);  
+      return false;
+    }
+#ifdef CONFIG_RVV
   }
+#endif
   return true;
 }
 #endif // CONFIG_DIFFTEST_STORE_COMMIT

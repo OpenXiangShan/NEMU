@@ -77,6 +77,7 @@ extern store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len);
 store_commit_t *store_commit_queue_pop();
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
+uint64_t store_read_step();
 #endif
 
 #ifdef CONFIG_MULTICORE_DIFF
