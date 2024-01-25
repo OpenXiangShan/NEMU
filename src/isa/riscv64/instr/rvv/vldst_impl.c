@@ -57,7 +57,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     default: break;
   }
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
-  isa_emul_check(emul, 1);
+  isa_emul_check(mode == MODE_MASK ? 1 : emul, 1);
   emul = emul < 0 ? 0 : emul;
   emul = 1 << emul;
 
@@ -82,7 +82,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
+          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, mode == MODE_MASK ? 0 : 1);
         }
       }
       continue;
@@ -90,7 +90,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     for (fn = 0; fn < nf; fn++) {
       addr = base_addr + idx * stride + (idx * nf * is_stride + fn) * s->v_width;
       rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-      set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
+      set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, mode == MODE_MASK ? 0 : 1);
     }
   }
 
@@ -99,7 +99,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     for(idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
+        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, vtype->vlmul, mode == MODE_MASK ? 0 : 1);
       }
     }
   }
@@ -203,7 +203,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
     default: break;
   }
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
-  isa_emul_check(emul, 1);
+  isa_emul_check(mode == MODE_MASK ? 1 : emul, 1);
   emul = emul < 0 ? 0 : emul;
   emul = 1 << emul;
 
@@ -228,7 +228,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
       continue;
     }
     for (fn = 0; fn < nf; fn++) {
-      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, 1);
+      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, mode == MODE_MASK ? 0 : 1);
       addr = base_addr + idx * stride + (idx * nf * is_stride + fn) * s->v_width;
       rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
     }
