@@ -93,6 +93,8 @@ click linux "./#build-a-linux-image"
 To validate the correctness of Xiangshan processor or XS-GEM5,
 NEMU can also used as a reference design of Xiangshan processor.
 
+TODO: Link to difftest doc
+
 ### What is NOT supported
 
 - Cannot directly run an ELF.
@@ -107,6 +109,8 @@ NEMU can also used as a reference design of Xiangshan processor.
 - Please don't running SimPoint bbv.gz with NEMU, XS-GEM5, or Xiangshan processor, because it is not bootable.
 - Please don't make a new issue without reading the doc
 - Please don't make a new issue without searching in issue list
+- Please don't make a new issue about building Linux in NEMU's issue list,
+plz head to [Xiangshan doc](https://github.com/OpenXiangShan/XiangShan-doc/issues?q=is%3Aissue).
 
 ## Howto
 
@@ -187,3 +191,13 @@ For example, when studying cache's temporal locality, it is better to use a larg
 The simulation time depends on IPC of the application and the complexity of the CPU model.
 For Verilator simulation of Xiangshan processor, the simulation time varies **from hours to days**.
 For XS-GEM5, the simulation time varies typically ranges **from 6 minutes to 1 hour**.
+
+### Error when building Linux, riscv-pk, or OpenSBI
+
+First, check [FAQs of building Linux kernel for Xiangshan](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/linux-kernel-for-xs/)
+
+Then, try to search solution in [issue list of NEMU](https://github.com/OpenXiangShan/NEMU/issues?q=is%3Aissue) and
+[issue list of Xiangshan doc](https://github.com/OpenXiangShan/XiangShan-doc/issues?q=is%3Aissue).
+
+Finally, if you cannot find a solution, please make a new issue in
+[Xiangshan doc](https://github.com/OpenXiangShan/XiangShan-doc/issues?q=is%3Aissue).
