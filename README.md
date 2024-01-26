@@ -144,3 +144,46 @@ Run a checkpoint with Xiangshan processor
 ```
 
 Run checkpoints with XS-GEM5: [the doc to run XS-GEM5](https://github.com/OpenXiangShan/GEM5?tab=readme-ov-file#run-gem5)
+
+
+## FAQ
+
+### Why cannot produce a checkpoint in M-mode?
+
+Read the source code of [GCPT restorer](https://github.com/OpenXiangShan/NEMU/blob/master/resource/gcpt_restore/src/restore.S)
+
+Because we restore checkpoint in M mode, and the PC of returning to user mode is stored in EPC register.
+This recovery method will break the architecture state (EPC) if the checkpoint is produced in M mode.
+In contrast, if the checkpoint is produced in S mode or U mode,
+the return process is just like a normal interrupt return, which will not break the architecture state.
+
+<!-- 因为我们在M mode恢复checkpoint，并且最后跳回用户态的 PC用EPC寄存器存储。
+这种恢复手段如果在M mode产生checkpoint会破坏体系结构状态（EPC）。
+而如果在S mode和 U mode产生checkpoint，返回过程就像一次普通的中断返回一样，不会破坏体系结构状态。 -->
+
+### Cannot build/run NEMU on cpt-bk or tracing branch
+
+Please use master branch. The checkpoint related code is not merged from tracing branch into master
+
+### How to run a checkpoint with Xiangshan processor?
+
+First, make sure you have obtained a checkpoint.gz, not a bbv.gz.
+Then, see [the doc to run checkpoints](#run-a-checkpoint-with-xs-gem5-or-xiangshan-processor).
+
+### bbv.gz is empty
+
+First, make sure interval size is smaller than total instruction counter of the application.
+Second, it is not necessary to produce checkpoints for small applications with few intervals.
+
+### How to pick an interval size for SimPoint?
+
+Typical sampling interval size used in architecture research is 10M-200M,
+while typical warmup interval size is 20M-100M.
+It depends on your cache size and use case.
+For example, when studying cache's temporal locality, it is better to use a larger interval size (>=50M).
+
+### How long does a 40M simulation take?
+
+The simulation time depends on IPC of the application and the complexity of the CPU model.
+For Verilator simulation of Xiangshan processor, the simulation time varies **from hours to days**.
+For XS-GEM5, the simulation time varies typically ranges **from 6 minutes to 1 hour**.
