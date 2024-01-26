@@ -202,7 +202,7 @@ static inline void update_mstatus_sd() {
   if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
     mstatus->fs = 3;
   }
-  mstatus->sd = (mstatus->fs == 3);
+  mstatus->sd = (mstatus->fs == 3) || (mstatus->vs == 3);
 }
 #ifdef CONFIG_RVH
 static inline void update_vsstatus_sd() {
