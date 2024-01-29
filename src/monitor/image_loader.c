@@ -36,7 +36,6 @@ long load_gz_img(const char *filename) {
   const uint32_t chunk_size = 16384;
   uint8_t *temp_page = (uint8_t *)calloc(chunk_size, sizeof(long));
   uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
-  uint8_t *pmem_current;
 
   // load file byte by byte to pmem
   uint64_t curr_size = 0;
@@ -45,13 +44,8 @@ long load_gz_img(const char *filename) {
     if (bytes_read == 0) {
       break;
     }
-    for (uint32_t x = 0; x < bytes_read; x++) {
-      pmem_current = pmem_start + curr_size + x;
-      uint8_t read_data = *(temp_page + x);
-      if (read_data != 0 || *pmem_current != 0) {
-        *pmem_current = read_data;
-      }
-    }
+    uint32_t copy_size = (bytes_read < (MEMORY_SIZE - curr_size)) ? bytes_read : (MEMORY_SIZE - curr_size);
+    memcpy(pmem_start + curr_size, temp_page, copy_size);
     curr_size += bytes_read;
   }
 
