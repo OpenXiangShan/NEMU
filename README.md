@@ -171,24 +171,16 @@ To test Xiangshan processor against NEMU, run
 ```
 Details can be found in [the tutorial of Xiangshan](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tutorials/rvsc23/).
 
-### Run baremetal app
+### Workloads
 
-[ready-to-run](https://github.com/OpenXiangShan/ready-to-run/) provides prebuilt baremetal apps.
-To use them, run
-```
-git submodule update --init ready-to-run
-./build/riscv64-nemu-interpreter -b ./ready-to-run/coremark-2-iteration.bin
-```
+As described in [the workflow](#run-in-standalone-mode-without-checkpoint), NEMU either takes a baremetal app or
+an operating system image as input.
 
-### Build baremetal app with Abstract Machine
-
-[Abstract Machine](https://github.com/OpenXiangShan/nexus-am) is a light-weight baremetal library.
+For baremetal app, [Abstract Machine](https://github.com/OpenXiangShan/nexus-am) is a light-weight baremetal library.
 Common simple apps like coremark and dhrystone can be built with Abstract Machine.
-The README of Abstract Machine contains instructions for building apps.
 
-### Build a Linux image
-
-Please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/linux-kernel-for-xs/).
+For build operating system image,
+please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/linux-kernel-for-xs/).
 
 ### Boot image with NEMU with SimPoint profiling
 
