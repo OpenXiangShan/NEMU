@@ -1,8 +1,10 @@
 # NEMU
 
+## Abort NEMU
+
 NEMU(NJU Emulator) is a simple but complete full-system emulator designed for teaching purpose.
-Currently it supports x86, mips32, and riscv32.
-To build programs run above NEMU, refer to the [AM project](https://github.com/NJU-ProjectN/abstract-machine).
+Originally it supports x86, mips32, riscv64, and riscv32.
+**This repo only guarantees the support for riscv64**.
 
 The main features of NEMU include
 * a small monitor with a simple debugger
@@ -10,9 +12,9 @@ The main features of NEMU include
   * register/memory examination
   * expression evaluation without the support of symbols
   * watch point
-  * differential testing with reference design (e.g. QEMU)
+  * differential testing against reference design (e.g. QEMU)
   * snapshot
-* CPU core with support of most common used instructions
+* CPU core with support of most common ISAs
   * x86
     * real mode is not supported
     * x87 floating point instructions are not supported
@@ -20,10 +22,13 @@ The main features of NEMU include
     * CP1 floating point instructions are not supported
   * riscv32
     * only RV32IM
+  * riscv64
+    * rv64gcbh currently
+    * rv64gcbhv in the near future
 * memory
 * paging
   * TLB is optional (but necessary for mips32)
-  * protection is not supported
+  * protection is not supported for most ISAs, but PMP is supported for riscv64
 * interrupt and exception
   * protection is not supported
 * 5 devices
@@ -32,15 +37,60 @@ The main features of NEMU include
 * 2 types of I/O
   * port-mapped I/O and memory-mapped I/O
 
-## Typical flow for running workloads
+### What is NOT supported
 
-### Run without checkpoint
+- Cannot directly run an ELF
+  * GEM5's System call emulation is not supported.([What is system call emulation](https://stackoverflow.com/questions/48986597/when-to-use-full-system-fs-vs-syscall-emulation-se-with-userland-programs-in-gem))
+  * QEMU's User space emulation is not supported.([What is user space emulation](https://www.qemu.org/docs/master/user/main.html))
+- Checkpoint is not compatible with GEM5's SE checkpoints or m5 checkpoints.
+  * Cannot produce GEM5's SE checkpoints or m5 checkpoints
+  * Cannot run GEM5's SE checkpoints or m5 checkpoints
+- Recommend NOT to produce a checkpoint in M-mode
+
+### Please DO NOT
+
+- Please don't running SimPoint bbv.gz with NEMU, XS-GEM5, or Xiangshan processor, because it is not bootable
+- Please don't make a new issue without reading the doc
+- Please don't make a new issue without searching in issue list
+- Please don't make a new issue about building Linux in NEMU's issue list,
+plz head to [Xiangshan doc](https://github.com/OpenXiangShan/XiangShan-doc/issues?q=is%3Aissue)
+
+
+## The role of NEMU in Xiangshan ecosystem
+
+NEMU plays the following roles in Xiangshan ecosystem:
+- In reference mode, NEMU is the golden model of Xiangshan processor (paper:
+[MINJIE](https://ieeexplore.ieee.org/document/9923860/),
+code to adapt NEMU with Xiangshan:[Difftest](https://github.com/OpenXiangShan/difftest))
+- In standalone mode, NEMU is able to produce SimPoint BBVs and checkpoints for XS-GEM5 and Xiangshan processor.
+- In standalone mode, NEMU can also be used as a profiler for large programs.
+
+
+## Workflows: How to use NEMU in Xiangshan
+
+### Run in reference mode
+NEMU can be used as a reference design
+to validate the correctness of Xiangshan processor or XS-GEM5.
+Typical workflow is as follows.
+Concrete instructions are described in Section [build-NEMU-as-ref](#build-nemu-as-reference-design).
+
+```mermaid
+graph TD;
+build["Build NEMU in reference mode"]
+so[/"./build/riscv64-nemu-interpreter-so"/]
+cosim["Run XS-GEM5 or Xiangshan processor, turn on difftest, specify riscv64-nemu-interpreter-so as reference design"]
+
+build-->so
+so-->cosim
+```
+
+### Run in standalone mode without checkpoint
 
 The typical flow for running workloads is similar for [NEMU](https://github.com/OpenXiangShan/NEMU/),
 [XS-GEM5](https://github.com/OpenXiangShan/GEM5),
 and [Xiangshan processor](https://github.com/OpenXiangShan/XiangShan).
 All of them only support full-system simulation.
-To prepare workloads for full-system simulation, you need to either build a [baremetal app](#run-baremetal-app) or
+To prepare workloads for full-system simulation, users need to either build a [baremetal app](#run-baremetal-app) or
 [running user programs in an operating system](#run-opensbi-and-linux).
 
 ```mermaid
@@ -56,11 +106,11 @@ baremetal-->run
 ```
 
 
-### Produce and run checkpoints
+### Run in standalone to produce checkpoints
 
 Because most of the enterprise users and researchers are more interested in running larger workloads,
 like SPECCPU, on XS-GEM5 or Xiangshan processor.
-To reduce the simulation time of detailed simulation, NEMU also serves as a checkpoint producer.
+To reduce the simulation time of detailed simulation, NEMU serves as a checkpoint producer.
 The flow for producing and running checkpoints is as follows.
 The detailed instructions for each step is described in Section [Howto](#howto).
 
@@ -85,34 +135,41 @@ points-->take_cpt
 take_cpt-->checkpoints
 checkpoints-->run
 
-click linux "./#build-a-linux-image"
 ```
 
-### Run as reference design
-
-To validate the correctness of Xiangshan processor or XS-GEM5,
-NEMU can also used as a reference design of Xiangshan processor.
-
-TODO: Link to difftest doc
-
-### What is NOT supported
-
-- Cannot directly run an ELF.
-- System call emulation is not supported.([What is system call emulation](https://stackoverflow.com/questions/48986597/when-to-use-full-system-fs-vs-syscall-emulation-se-with-userland-programs-in-gem))
-- User space emulation is not supported.([What is user space emulation](https://www.qemu.org/docs/master/user/main.html))
-- Cannot produce GEM5's SE checkpoints or m5 checkpoints
-- Cannot run GEM5's SE checkpoints or m5 checkpoints
-- Recommend NOT to produce a checkpoint in M-mode.
-
-### Please DO NOT
-
-- Please don't running SimPoint bbv.gz with NEMU, XS-GEM5, or Xiangshan processor, because it is not bootable.
-- Please don't make a new issue without reading the doc
-- Please don't make a new issue without searching in issue list
-- Please don't make a new issue about building Linux in NEMU's issue list,
-plz head to [Xiangshan doc](https://github.com/OpenXiangShan/XiangShan-doc/issues?q=is%3Aissue).
-
 ## Howto
+
+### Use NEMU as reference design
+
+#### Build reference.so
+
+To build NEMU as reference design, run
+``` bash
+make xxx-ref_defconfig
+make menuconfig  # save
+make -j
+```
+`./build/riscv64-nemu-interpreter-so` is the reference design.
+
+Specifically, xxx-ref_defconfig varies for different ISA extensions.
+
+| rv64gcb | rv64gcbh | rv64gcbv |
+| :-----: | :------: | :-------: |
+|  riscv64-xs-ref_defconfig | riscv64-rvh-ref_defconfig | riscv64-rvv-ref_defconfig |
+
+
+#### Cosimulation
+
+To test XS-GEM5 against NEMU, refer to [the doc of XS-GEM5 Difftest](https://github.com/OpenXiangShan/GEM5?tab=readme-ov-file#difftest-with-nemu).
+
+To test Xiangshan processor against NEMU, run
+``` bash
+./emu \
+  -i test_workload.bin \
+  --diff $NEMU_HOME/build/riscv64-nemu-interpreter-so \
+  2> perf.out
+```
+Details can be found in [the tutorial of Xiangshan](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tutorials/rvsc23/).
 
 ### Run baremetal app
 
