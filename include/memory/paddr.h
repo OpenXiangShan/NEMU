@@ -80,6 +80,18 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 uint64_t store_read_step();
 #endif
 
+//#define CONFIG_MEMORY_REGION_ANALYSIS
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+#include <math.h>
+#define PROGRAM_MEMORY_SIZE (CONFIG_MSIZE /1024 /1024) // MB
+#define PROGRAM_ANALYSIS_PAGES (PROGRAM_MEMORY_SIZE / CONFIG_MEMORY_REGION_ANALYSIS_SIZE)
+#define ALIGNMENT_SIZE ((int)log2(CONFIG_MEMORY_REGION_ANALYSIS_SIZE * 1024 * 1024))// set MB alig
+
+void analysis_memory_commit(uint64_t addr);
+void analysis_use_addr_display();
+bool analysis_memory_isuse(uint64_t page);
+#endif
+
 #ifdef CONFIG_MULTICORE_DIFF
 extern uint8_t* golden_pmem;
 

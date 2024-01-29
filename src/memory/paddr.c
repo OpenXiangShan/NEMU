@@ -80,6 +80,9 @@ uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
 static inline word_t pmem_read(paddr_t addr, int len) {
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+  analysis_memory_commit(addr);
+#endif
   #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread(sparse_mm, addr, len);
   #else
@@ -91,7 +94,9 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   store_commit_queue_push(addr, data, len);
 #endif
-
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+  analysis_memory_commit(addr);
+#endif
   #ifdef CONFIG_USE_SPARSEMM
   sparse_mem_wwrite(sparse_mm, addr, len, data);
   #else
@@ -271,6 +276,55 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #endif
 }
 
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+bool mem_addr_use[PROGRAM_ANALYSIS_PAGES];
+char *memory_region_record_file = NULL;
+uint64_t get_byte_alignment(uint64_t addr) {
+  addr = (addr - CONFIG_MBASE) >> ALIGNMENT_SIZE;
+  return addr;
+}
+
+void analysis_memory_commit(uint64_t addr) {
+  uint64_t alignment_addr = get_byte_alignment(addr);
+  Assert(alignment_addr < PROGRAM_ANALYSIS_PAGES,
+      "alignment set memory size is addr %lx %lx", addr, alignment_addr);
+  mem_addr_use[alignment_addr] = true;
+}
+
+void analysis_use_addr_display() {
+  bool display_file = false;
+  if (memory_region_record_file != NULL) {
+    display_file = true;
+  }
+
+  if (display_file == true) {
+    FILE* fp = fopen(memory_region_record_file,"wr");
+    for (int i = 0; i < PROGRAM_ANALYSIS_PAGES; i++) {
+      if (mem_addr_use[i]) {
+        char result[32];
+        if (display_file) {
+          sprintf(result, "%d\n", i);
+          fputs(result,fp);
+        }
+      }
+    }
+    fclose(fp);
+  } else {
+    for (int i = 0; i < PROGRAM_ANALYSIS_PAGES; i++) {
+      if (mem_addr_use[i]) {
+        uint64_t uaddr = i << ALIGNMENT_SIZE;
+        Log("use memory page%4d %lx - %lx", i, uaddr , uaddr + (1 << ALIGNMENT_SIZE) - 1);
+      }
+    }
+  }
+
+}
+
+bool analysis_memory_isuse(uint64_t page) {
+  assert(page < PROGRAM_ANALYSIS_PAGES);
+  return mem_addr_use[page];
+}
+#endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
