@@ -12,6 +12,7 @@
 !Kconfig
 !.github/workflows/ci.yml
 !scripts/checkpoint_example/*
+!docs/*
 include/config
 include/generated
 build

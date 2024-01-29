@@ -180,7 +180,7 @@ For baremetal app, [Abstract Machine](https://github.com/OpenXiangShan/nexus-am)
 Common simple apps like coremark and dhrystone can be built with Abstract Machine.
 
 For build operating system image,
-please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/linux-kernel-for-xs/).
+Please read [the doc to build Linux](./docs/prepare_image_for_checkpoint.md)
 
 ### Boot image with NEMU with SimPoint profiling
 
