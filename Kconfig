@@ -308,6 +308,16 @@ config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
 
+config MEMORY_REGION_ANALYSIS
+  bool "Enable Program memory segment analysis"
+  default n
+
+if MEMORY_REGION_ANALYSIS
+config MEMORY_REGION_ANALYSIS_SIZE
+  int "Analysis block MB size"
+  default 32
+endif
+
 config REPORT_ILLEGAL_INSTR
   bool "Let NEMU report illegal instruction"
   default y
