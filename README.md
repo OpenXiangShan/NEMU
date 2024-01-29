@@ -184,9 +184,27 @@ please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/
 
 ### Boot image with NEMU with SimPoint profiling
 
+[profiling example](./scripts/checkpoint_example/profiling.sh)
+
 ### Build SimPoint and cluster BBV with SimPoint
 
-### Boot image with NEMU to produce checkpoints
+[cluster example](./scripts/checkpoint_example/cluster.sh)
+
+### Boot image with NEMU to produce "SimPoint checkpoints"
+
+[checkpoint example](./scripts/checkpoint_example/checkpoint.sh)
+
+### Boot image with NEMU to produce "manual one shot checkpoint"
+
+[manual oneshot checkpoint example](./scripts/checkpoint_example/manual_oneshot_cpt.sh)
+
+### Boot image with NEMU to produce "manual one uniform checkpoint"
+
+[manual uniform checkpoint example](./scripts/checkpoint_example/manual_uniform_cpt.sh)
+
+### Boot image with NEMU to produce "uniform checkpoint"
+
+[uniform checkpoint example](./scripts/checkpoint_example/uniform_cpt.sh)
 
 ### Run a checkpoint with XS-GEM5 or Xiangshan processor
 
