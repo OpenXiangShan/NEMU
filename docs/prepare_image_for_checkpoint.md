@@ -54,4 +54,5 @@
 - Compile prompt: 'multiple definition of yylloc'
    - cause: Wrong version of GCC
    - solution: Add `HOSTCFLAGS += -fcommon` to the `Makefile` in the top-level directory of `riscv-linux`
-   - screenshot: ![faq_yylloc](./pictures/faq_yyalloc.PNG)
+   - screenshot: ![faq_yylloc](./pictures/faq_yylloc.PNG)
+   - screenshot: ![faq_yylloc_solution](./pictures/faq_yylloc_solution.PNG)
