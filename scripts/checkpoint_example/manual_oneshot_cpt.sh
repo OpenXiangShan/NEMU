@@ -1,14 +1,10 @@
 #!/bin/bash
 
-export NEMU_HOME=
-export BBL_PATH=
-export LOG_PATH=
-export RESULT=
-export NEMU=$NEMU_HOME/build/riscv64-nemu-interpreter
-export GCPT=$NEMU_HOME/resource/gcpt_restore/build/gcpt.bin
+source checkpoint_env.sh
 
-export interval=$((20*1000*1000))
 
+
+# can not generate checkpoint when exec in shell script
 manual_oneshot_cpt(){
     set -x
     workload=$1

@@ -1,13 +1,6 @@
 #!/bin/bash
 
-export NEMU_HOME=
-export BBL_PATH=
-export LOG_PATH=
-export RESULT=
-export NEMU=$NEMU_HOME/build/riscv64-nemu-interpreter
-export GCPT=$NEMU_HOME/resource/gcpt_restore/build/gcpt.bin
-
-export interval=$((20*1000*1000))
+source checkpoint_env.sh
 
 uniform_cpt(){
     set -x
@@ -16,8 +9,12 @@ uniform_cpt(){
     mkdir -p $log
     name="uniform"
 
-    $NEMU ${BBL_PATH}/${workload}-bbl-linux-spec.bin \
+    $NEMU ${BBL_PATH}/${workload}.bin \
         -D $RESULT -w $workload -C $name      \
         -b -u --cpt-interval ${interval}   --dont-skip-boot         \
         -r $GCPT > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
 }
+
+export -f uniform_cpt
+
+uniform_cpt bbl

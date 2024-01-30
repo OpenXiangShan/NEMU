@@ -1,15 +1,6 @@
 #!/bin/bash
 
-export NEMU_HOME=
-export BBL_PATH=
-export LOG_PATH=
-export RESULT=
-export NEMU=$NEMU_HOME/build/riscv64-nemu-interpreter
-export profiling_result_name=simpoint-profiling
-export PROFILING_RES=$RESULT/$profiling_result_name
-export GCPT=$NEMU_HOME/resource/gcpt_restore/build/gcpt.bin
-
-export interval=$((20*1000*1000))
+source checkpoint_env.sh
 
 profiling(){
     set -x
@@ -17,10 +8,12 @@ profiling(){
     log=$LOG_PATH/profiling_logs
     mkdir -p $log
 
-    $NEMU ${BBL_PATH}/${workload}-bbl-linux-spec.bin \
+    $NEMU ${BBL_PATH}/${workload}.bin \
         -D $RESULT -w $workload -C $profiling_result_name    \
         -b --simpoint-profile --cpt-interval ${interval}            \
         -r $GCPT > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
 }
 
+export -f profiling
 
+profiling bbl

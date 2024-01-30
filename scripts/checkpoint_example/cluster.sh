@@ -1,13 +1,11 @@
 #!/bin/bash
 
-export NEMU_HOME=
-export LOG_PATH=
-export PROFILING_RES=
-export SIMPOINT=$NEMU_HOME/resource/simpoint/simpoint_repo/bin/simpoint
+source checkpoint_env.sh
 
 cluster(){
     set -x
     workload=$1
+
     export CLUSTER=$RESULT/cluster/${workload}
     mkdir -p $CLUSTER
 
@@ -23,3 +21,7 @@ cluster(){
         -inputVectorsGzipped -maxK 30 -numInitSeeds 2 -iters 1000 -seedkm ${random1} -seedproj ${random2} \
         > $log/${workload}-out.txt 2> $log/${workload}-err.txt
 }
+
+export -f cluster
+
+cluster bbl
