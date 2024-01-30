@@ -1,5 +1,5 @@
 ## Prepare image
-- Please prepare the riscv64 toolchains in advance，Possible prefix include `riscv64-linux-gnu-` `riscv64-unknown-linux-gnu-` `riscv64-unknown-elf-`
+- Please prepare the riscv64 toolchains in advance, Possible prefix include `riscv64-linux-gnu-` `riscv64-unknown-linux-gnu-` `riscv64-unknown-elf-`
 - Clone riscv-pk, riscv-linux, riscv-rootfs from XiangShan project. Please put the three repositories in the same directory.
    - https://github.com/OpenXiangShan/riscv-pk noop branch
    - https://github.com/OpenXiangShan/riscv-linux nanshan branch
@@ -26,7 +26,7 @@
       ```
 
       - Apply this [commit](https://github.com/riscv-software-src/riscv-pk/commit/4ae5a8876fc2c31776b1777405ab14f764cc0f36)
-      - NEMU needs to add a section of recovery program when generating checkpoint. So you need to avoid this space when generating checkpoint. So you need to avoid this space when generating the workload In `riscv-pk/bbl/bbl.lds`, change `.` address to `MEM_START + 0xa0000` i.e. `. = MEM_START + 0xa0000`
+      - NEMU needs to add a section of recovery program when generating checkpoint. So you need to avoid this space when generating checkpoint. So you need to avoid this space when generating the workload In `riscv-pk/bbl/bbl.lds`, change `.` address to `MEM_START + 0xa0000` i.e. `. = MEM_START + 0xa0000` ![bbl.lds](./pictures/bbl.lds.PNG)
    - Build NEMU
       - Using command `git submodule update --init` sync sub modules
       - Execute make in the `NEMU/resource/simpoint/simpoint_repo` directory to get the executable file `NEMU/resource/simpoint/simpoint_repo/bin/simpoint`
@@ -43,15 +43,15 @@
 
 - Compile prompt: "Error: unrecognized opcode csr*, extension 'zicsr' required"
    - cause: Wrong version of GCC
-   - solution: Add `_zicsr_zifencei` in arch/riscv/Makefile
-   - screenshot:
+   - solution: Add `_zicsr_zifencei` in `arch/riscv/Makefile`
+   - screenshot: ![faq_zicsr](./pictures/faq_zicsr.PNG)
 
 - Compile prompt: "busybox not found"
    - cause: Error while pulling busybox
    - solution: Go to the `$(RISCV_ROOTFS_HOME)/apps/busybox` directory and delete `repo` directory in it, then manually execute make in `$(RISCV_ROOTFS_HOME)/apps/busybox`, and if everything works, you will see busybox start to compile and eventually generate a soft link to `repo/busybox` in the build directory.
-   - screenshot:
+   - screenshot: ![faq_busybox](./pictures/faq_busybox.PNG)
 
 - Compile prompt: 'multiple definition of yylloc'
    - cause: Wrong version of GCC
    - solution: Add `HOSTCFLAGS += -fcommon` to the `Makefile` in the top-level directory of `riscv-linux`
-   - screenshot:
+   - screenshot: ![faq_yylloc](./pictures/faq_yyalloc.PNG)
