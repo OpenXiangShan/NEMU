@@ -182,6 +182,8 @@ Common simple apps like coremark and dhrystone can be built with Abstract Machin
 For build operating system image,
 Please read [the doc to build Linux](./docs/prepare_image_for_checkpoint.md)
 
+Then modify `NEMU_HOME` and `BBL_PATH` in checkpoint_env.sh and the workload parameter passed to the function in each example script to get started.
+
 ### Boot image with NEMU with SimPoint profiling
 
 [profiling example](./scripts/checkpoint_example/profiling.sh)
