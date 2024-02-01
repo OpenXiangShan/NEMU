@@ -28,6 +28,10 @@ sudo mount /dev/loop0p1 /mnt
 sudo apt-get install debootstrap qemu-user-static binfmt-support debian-ports-archive-keyring
 sudo debootstrap --arch=riscv64 --keyring /usr/share/keyrings/debian-ports-archive-keyring.gpg --include=debian-ports-archive-keyring unstable /mnt http://deb.debian.org/debian-ports
 ```
+若debootstrap命令出错，可以尝试
+```
+sudo debootstrap --arch=riscv64 --keyring /usr/share/keyrings/debian-archive-keyring.gpg --include=debian-archive-keyring unstable /mnt http://deb.debian.org/debian
+```
 若要安装x86系统, 则输入
 ```
 sudo debootstrap --arch=i386 --keyring /usr/share/keyrings/debian-archive-keyring.gpg --include=debian-archive-keyring stable /mnt http://deb.debian.org/debian
@@ -53,7 +57,7 @@ apt-get install tmux libreadline-dev
 apt-get install net-tools openssh-server
 # fix long delay of openssh server
 apt-get install haveged
-agt-get install sbt
+apt-get install sbt
 ```
 
 * 在`/etc/fstab`中添加swap分区
