@@ -184,29 +184,10 @@ Please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/
 
 Then modify `NEMU_HOME` and `BBL_PATH` in `$NEMU_HOME/scripts/checkpoint_example/checkpoint_env.sh` and the workload parameter passed to the function in each example script to get started.
 
-### Boot image with NEMU with SimPoint profiling
 
-[profiling example](scripts/checkpoint_example/profiling.sh)
+### SimPoint profiling and checkpoint
 
-### Build SimPoint and cluster BBV with SimPoint
-
-[cluster example](scripts/checkpoint_example/cluster.sh)
-
-### Boot image with NEMU to produce "SimPoint checkpoints"
-
-[checkpoint example](scripts/checkpoint_example/checkpoint.sh)
-
-### Boot image with NEMU to produce "manual one shot checkpoint"
-
-[manual oneshot checkpoint example](scripts/checkpoint_example/manual_oneshot_cpt.sh)
-
-### Boot image with NEMU to produce "manual one uniform checkpoint"
-
-[manual uniform checkpoint example](scripts/checkpoint_example/manual_uniform_cpt.sh)
-
-### Boot image with NEMU to produce "uniform checkpoint"
-
-[uniform checkpoint example](scripts/checkpoint_example/uniform_cpt.sh)
+Please read [the doc to generate checkpoint](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/simpoint/)
 
 ### Run a checkpoint with XS-GEM5 or Xiangshan processor
 
@@ -217,7 +198,6 @@ Run a checkpoint with Xiangshan processor
 ```
 
 Run checkpoints with XS-GEM5: [the doc to run XS-GEM5](https://github.com/OpenXiangShan/GEM5?tab=readme-ov-file#run-gem5)
-
 
 ## FAQ
 
