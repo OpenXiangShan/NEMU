@@ -180,33 +180,33 @@ For baremetal app, [Abstract Machine](https://github.com/OpenXiangShan/nexus-am)
 Common simple apps like coremark and dhrystone can be built with Abstract Machine.
 
 For build operating system image,
-Please read [the doc to build Linux](./docs/prepare_image_for_checkpoint.md)
+Please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/linux-kernel-for-xs/).
 
-Then modify `NEMU_HOME` and `BBL_PATH` in checkpoint_env.sh and the workload parameter passed to the function in each example script to get started.
+Then modify `NEMU_HOME` and `BBL_PATH` in `$NEMU_HOME/scripts/checkpoint_example/checkpoint_env.sh` and the workload parameter passed to the function in each example script to get started.
 
 ### Boot image with NEMU with SimPoint profiling
 
-[profiling example](./scripts/checkpoint_example/profiling.sh)
+[profiling example](scripts/checkpoint_example/profiling.sh)
 
 ### Build SimPoint and cluster BBV with SimPoint
 
-[cluster example](./scripts/checkpoint_example/cluster.sh)
+[cluster example](scripts/checkpoint_example/cluster.sh)
 
 ### Boot image with NEMU to produce "SimPoint checkpoints"
 
-[checkpoint example](./scripts/checkpoint_example/checkpoint.sh)
+[checkpoint example](scripts/checkpoint_example/checkpoint.sh)
 
 ### Boot image with NEMU to produce "manual one shot checkpoint"
 
-[manual oneshot checkpoint example](./scripts/checkpoint_example/manual_oneshot_cpt.sh)
+[manual oneshot checkpoint example](scripts/checkpoint_example/manual_oneshot_cpt.sh)
 
 ### Boot image with NEMU to produce "manual one uniform checkpoint"
 
-[manual uniform checkpoint example](./scripts/checkpoint_example/manual_uniform_cpt.sh)
+[manual uniform checkpoint example](scripts/checkpoint_example/manual_uniform_cpt.sh)
 
 ### Boot image with NEMU to produce "uniform checkpoint"
 
-[uniform checkpoint example](./scripts/checkpoint_example/uniform_cpt.sh)
+[uniform checkpoint example](scripts/checkpoint_example/uniform_cpt.sh)
 
 ### Run a checkpoint with XS-GEM5 or Xiangshan processor
 
