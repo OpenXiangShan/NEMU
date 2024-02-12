@@ -46,7 +46,9 @@ void clint_take_snapshot();
 void lightqs_take_spec_reg_snapshot();
 void clint_take_spec_snapshot();
 uint64_t lightqs_restore_reg_snapshot(uint64_t n);
+#ifdef CONFIG_LIGHTQS
 void pmem_record_restore(uint64_t restore_inst_cnt);
+#endif
 void clint_restore_snapshot(uint64_t restore_inst_cnt);
 
 struct lightqs_reg_ss {

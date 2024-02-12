@@ -252,3 +252,15 @@ void difftest_put_gmaddr(uint8_t* ptr) {
 }
 
 #endif
+
+#ifdef CONFIG_STORE_LOG
+void difftest_store_log_reset() {
+  extern void pmem_record_reset();
+  pmem_record_reset();
+}
+
+void difftest_store_log_restore() {
+  extern void pmem_record_restore();
+  pmem_record_restore();
+}
+#endif // CONFIG_STORE_LOG
