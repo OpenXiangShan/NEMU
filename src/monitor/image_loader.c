@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <assert.h>
 #include <isa.h>
 #include <stdlib.h>
 #include <macro.h>
@@ -24,6 +25,7 @@
 #ifdef CONFIG_MEM_COMPRESS
 #include <zlib.h>
 #include <unistd.h>
+#include <zstd.h>
 #endif
 
 #ifndef CONFIG_MODE_USER
@@ -63,6 +65,131 @@ long load_gz_img(const char *filename) {
   Assert(!gzclose(compressed_mem), "Error closing '%s'\n", filename);
   return curr_size;
 }
+
+long load_zstd_img(const char *filename){
+  assert(filename);
+
+  int fd = -1;
+  int file_size = 0;
+  int compressed_file_buffer_size = 0;
+  uint8_t * compress_file_buffer = NULL;
+
+  fd = open(filename, O_RDONLY);
+  if (fd < 0) {
+    printf("Cannot open compressed file %s\n", filename);
+    return -1;
+  }
+
+  file_size = lseek(fd, 0, SEEK_END);
+  if (file_size == 0) {
+    printf("File size is zero\n");
+    return -1;
+  }
+
+  lseek(fd, 0, SEEK_SET);
+
+  compress_file_buffer = malloc(file_size);
+  if (!compress_file_buffer) {
+    printf("Compress file buffer create failed\n");
+    close(fd);
+    return -1;
+  }
+
+  // read compressed file
+  compressed_file_buffer_size = read(fd, compress_file_buffer, file_size);
+  printf("read file size %d\n", compressed_file_buffer_size);
+  if (compressed_file_buffer_size != file_size) {
+    printf("Compress file read failed\n");
+    free(compress_file_buffer);
+    close(fd);
+    return -1;
+  }
+
+  close(fd);
+
+  // create decompress input buffer
+  ZSTD_inBuffer input = { compress_file_buffer, compressed_file_buffer_size, 0 };
+
+  // alloc decompress buffer
+  const uint32_t decompress_file_buffer_size = 16384;
+  uint8_t *decompress_file_buffer = (uint8_t*)calloc(decompress_file_buffer_size, sizeof(long));
+  if (!decompress_file_buffer) {
+    printf("Decompress file read failed\n");
+    free(compress_file_buffer);
+    return -1;
+  }
+
+  // def phymem
+  uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
+  uint8_t *pmem_current;
+
+  // create and init decompress stream object
+  ZSTD_DStream *dstream = ZSTD_createDStream();
+  if (!dstream) {
+    printf("Cannot create zstd dstream object\n");
+    free(compress_file_buffer);
+    free(decompress_file_buffer);
+    return -1;
+  }
+
+  size_t init_result = ZSTD_initDStream(dstream);
+  if (ZSTD_isError(init_result)) {
+    printf("Cannot init dstream object: %s\n", ZSTD_getErrorName(init_result));
+    ZSTD_freeDStream(dstream);
+    free(compress_file_buffer);
+    free(decompress_file_buffer);
+    return -1;
+  }
+
+  // decompress and write in memory
+  uint64_t total_write_size = 0;
+  while (total_write_size < MEMORY_SIZE) {
+
+    ZSTD_outBuffer output = { decompress_file_buffer, decompress_file_buffer_size * sizeof(long), 0 };
+
+    size_t result = ZSTD_decompressStream(dstream, &output, &input);
+
+    if (ZSTD_isError(result)) {
+      printf("Decompress failed: %s\n", ZSTD_getErrorName(result));
+      ZSTD_freeDStream(dstream);
+      free(compress_file_buffer);
+      free(decompress_file_buffer);
+
+      return -1;
+    }
+
+    if (output.pos == 0) {
+      break;
+    }
+
+    for (uint64_t x = 0; x < output.pos; x++) {
+      pmem_current = pmem_start + total_write_size + x;
+      uint8_t read_data = *(decompress_file_buffer + x);
+      if (read_data != 0 || *pmem_current != 0) {
+        *pmem_current = read_data;
+      }
+    }
+    total_write_size += output.pos;
+  }
+
+  ZSTD_outBuffer output = { decompress_file_buffer, decompress_file_buffer_size * sizeof(long), 0 };
+  size_t result = ZSTD_decompressStream(dstream, &output, &input);
+  if (ZSTD_isError(result) || output.pos!=0) {
+    printf("Decompress failed: %s\n", ZSTD_getErrorName(result));
+    printf("Binary size larger than memory\n");
+    ZSTD_freeDStream(dstream);
+    free(compress_file_buffer);
+    free(decompress_file_buffer);
+    return -1;
+  }
+
+  ZSTD_freeDStream(dstream);
+  free(compress_file_buffer);
+  free(decompress_file_buffer);
+
+  return total_write_size;
+}
+
 #endif //  CONFIG_MEM_COMPRESS
 
 // Return whether a file is a gz file, determined by its name.
@@ -81,6 +208,15 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
 #ifdef CONFIG_MEM_COMPRESS
     Log("Loading GZ image %s", loading_img);
     return load_gz_img(loading_img);
+#else
+    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
+#endif
+  }
+
+  if (is_zstd_file(loading_img)) {
+#ifdef CONFIG_MEM_COMPRESS
+    Log("Loading Zstd image %s", loading_img);
+    return load_zstd_img(loading_img);
 #else
     panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
 #endif

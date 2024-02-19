@@ -14,10 +14,18 @@
 ***************************************************************************************/
 
 #include <common.h>
+#include <string.h>
 
 bool is_gz_file(const char *filename) {
   if (filename == NULL || strlen(filename) < 3) {
     return false;
   }
   return !strcmp(filename + (strlen(filename) - 3), ".gz");
+}
+
+bool is_zstd_file(const char *filename){
+  if (filename == NULL || strlen(filename) < 5) {
+    return false;
+  }
+  return !strcmp(filename + (strlen(filename) - 5), ".zstd");
 }
