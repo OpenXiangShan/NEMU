@@ -50,14 +50,19 @@ void* sparse_mm = NULL;
 
 #ifdef CONFIG_STORE_LOG
 struct store_log {
+#ifdef CONFIG_LIGHTQS
   uint64_t inst_cnt;
+#endif // CONFIG_LIGHTQS
   paddr_t addr;
   word_t orig_data;
   // new value and write length makes no sense for restore
-} store_log_buf[CONFIG_STORE_LOG_SIZE], spec_store_log_buf[CONFIG_STORE_LOG_SIZE];
+} store_log_buf[CONFIG_STORE_LOG_SIZE];
 
-uint64_t store_log_ptr = 0, spec_store_log_ptr = CONFIG_SPEC_GAP;
-
+uint64_t store_log_ptr = 0;
+#ifdef CONFIG_LIGHTQS
+struct store_log spec_store_log_buf[CONFIG_STORE_LOG_SIZE];
+uint64_t spec_store_log_ptr = CONFIG_SPEC_GAP;
+#endif // CONFIG_LIGHTQS
 #endif // CONFIG_STORE_LOG
 
 #define HOST_PMEM_OFFSET (uint8_t *)(pmem - CONFIG_MBASE)
@@ -196,6 +201,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 #endif // CONFIG_SHARE
 }
 
+#ifdef CONFIG_STORE_LOG
 #ifdef CONFIG_LIGHTQS
 
 extern uint64_t g_nr_guest_instr;
@@ -235,12 +241,31 @@ void pmem_record_restore(uint64_t restore_inst_cnt) {
     }
   }
 }
+#else
+void pmem_record_store(paddr_t addr) {
+  if(dynamic_config.enable_store_log) {
+    // align to 8 byte
+    addr = (addr >> 3) << 3;
+    uint64_t rdata = pmem_read(addr, 8);
+    store_log_buf[store_log_ptr].addr = addr;
+    store_log_buf[store_log_ptr].orig_data = rdata;
+    ++store_log_ptr;
+  }
+}
+
+void pmem_record_restore() {
+  for (int i = store_log_ptr - 1; i >= 0; i--) {
+    pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data);
+  }
+}
+#endif // CONFIG_LIGHTQS
+
 
 void pmem_record_reset() {
   store_log_ptr = 0;
 }
 
-#endif // CONFIG_LIGHTQS
+#endif // CONFIG_STORE_LOG
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
@@ -255,9 +280,9 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   }
 #else
   if (likely(in_pmem(addr))) {
-#ifdef CONFIG_LIGHTQS
+#ifdef CONFIG_STORE_LOG
     pmem_record_store(addr);
-#endif // CONFIG_LIGHTQS
+#endif // CONFIG_STORE_LOG
     if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
         addr, data, len, mode);
