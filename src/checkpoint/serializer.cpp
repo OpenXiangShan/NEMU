@@ -35,6 +35,8 @@
 
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
+#include <zstd.h>
+#include <fcntl.h>
 
 using std::cout;
 using std::cerr;
@@ -71,49 +73,80 @@ void Serializer::serializePMem(uint64_t inst_count) {
   uint8_t *pmem = get_pmem();
 
   assert(restorer);
-  FILE *fp = fopen(restorer, "rb");
-  if (!fp) {
+  FILE *restore_fp = fopen(restorer, "rb");
+  if (!restore_fp) {
     xpanic("Cannot open restorer %s\n", restorer);
   }
   uint32_t restorer_size = 0x400;
-  fseek(fp, 0, SEEK_SET);
-  assert(restorer_size == fread(pmem, 1, restorer_size, fp));
-  fclose(fp);
+  fseek(restore_fp, 0, SEEK_SET);
+  assert(restorer_size == fread(pmem, 1, restorer_size, restore_fp));
+  fclose(restore_fp);
   Log("Put gcpt restorer %s to start of pmem", restorer);
 
   string filepath;
+
   if (checkpoint_state == SimpointCheckpointing) {
       filepath = pathManager.getOutputPath() + "_" + \
                         to_string(simpoint2Weights.begin()->first) + "_" + \
-                        to_string(simpoint2Weights.begin()->second) + "_.gz";
+                        to_string(simpoint2Weights.begin()->second);
   } else {
       filepath = pathManager.getOutputPath() + "_" + \
-                        to_string(inst_count) + "_.gz";
+                        to_string(inst_count);
   }
 
-  gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
-  if (compressed_mem == nullptr) {
-    cerr << "Failed to open " << filepath << endl;
-    xpanic("Can't open physical memory checkpoint file!\n");
-  } else {
-    cout << "Opening " << filepath << " as checkpoint output file" << endl;
-  }
-
-  uint64_t pass_size = 0;
-
-  for (uint64_t written = 0; written < PMEM_SIZE; written += pass_size) {
-    pass_size = numeric_limits<int>::max() < ((int64_t) PMEM_SIZE - (int64_t) written) ?
-                numeric_limits<int>::max() : ((int64_t) PMEM_SIZE - (int64_t) written);
-
-    if (gzwrite(compressed_mem, pmem + written, (uint32_t) pass_size) != (int) pass_size) {
-      xpanic("Write failed on physical memory checkpoint file\n");
+  if (compress_file_format == GZ_FORMAT) {
+    filepath += "_.gz";
+    gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
+    if (compressed_mem == nullptr) {
+      cerr << "Failed to open " << filepath << endl;
+      xpanic("Can't open physical memory checkpoint file!\n");
+    } else {
+      cout << "Opening " << filepath << " as checkpoint output file" << endl;
     }
-    Log("Written 0x%lx bytes\n", pass_size);
+
+    uint64_t pass_size = 0;
+
+    for (uint64_t written = 0; written < PMEM_SIZE; written += pass_size) {
+      pass_size = numeric_limits<int>::max() < ((int64_t) PMEM_SIZE - (int64_t) written) ?
+                  numeric_limits<int>::max() : ((int64_t) PMEM_SIZE - (int64_t) written);
+
+      if (gzwrite(compressed_mem, pmem + written, (uint32_t) pass_size) != (int) pass_size) {
+        xpanic("Write failed on physical memory checkpoint file\n");
+      }
+      Log("Written 0x%lx bytes\n", pass_size);
+    }
+
+    if (gzclose(compressed_mem)){
+      xpanic("Close failed on physical memory checkpoint file\n");
+    }
+  }else if (compress_file_format == ZSTD_FORMAT) {
+    filepath += "_.zstd";
+    //zstd compress
+    size_t const compress_buffer_size = ZSTD_compressBound(PMEM_SIZE);
+    void* const compress_buffer = malloc(compress_buffer_size);
+    assert(compress_buffer);
+
+    size_t const compress_size = ZSTD_compress(compress_buffer, compress_buffer_size, pmem, PMEM_SIZE, 1);
+    assert(compress_size <= compress_buffer_size && compress_size != 0);
+
+    FILE *compress_file=fopen(filepath.c_str(), "wb");
+    size_t fw_size = fwrite(compress_buffer, 1, compress_size, compress_file);
+
+    if (fw_size != (size_t)compress_size) {
+      free(compress_buffer);
+      xpanic("file write error: %s : %s \n", filepath.c_str(), strerror(errno));
+    }
+
+    if (fclose(compress_file)) {
+      free(compress_buffer);
+      xpanic("file close error: %s : %s \n", filepath.c_str(), strerror(errno));
+    }
+
+    free(compress_buffer);
+  }else {
+    xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
 
-  if (gzclose(compressed_mem)){
-    xpanic("Close failed on physical memory checkpoint file\n");
-  }
   Log("Checkpoint done!\n");
   regDumped = false;
 }
