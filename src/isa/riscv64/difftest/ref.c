@@ -63,30 +63,6 @@ static void csr_prepare() {
   cpu.dlbound5  = dlbound5->val;
   cpu.dlbound6  = dlbound6->val;
   cpu.dlbound7  = dlbound7->val;
-  cpu.dlbound8  = dlbound8->val;
-  cpu.dlbound9  = dlbound9->val;
-  cpu.dlbound10 = dlbound10->val;
-  cpu.dlbound11 = dlbound11->val;
-  cpu.dlbound12 = dlbound12->val;
-  cpu.dlbound13 = dlbound13->val;
-  cpu.dlbound14 = dlbound14->val;
-  cpu.dlbound15 = dlbound15->val;
-  cpu.dlbound16 = dlbound16->val;
-  cpu.dlbound17 = dlbound17->val;
-  cpu.dlbound18 = dlbound18->val;
-  cpu.dlbound19 = dlbound19->val;
-  cpu.dlbound20 = dlbound20->val;
-  cpu.dlbound21 = dlbound21->val;
-  cpu.dlbound22 = dlbound22->val;
-  cpu.dlbound23 = dlbound23->val;
-  cpu.dlbound24 = dlbound24->val;
-  cpu.dlbound25 = dlbound25->val;
-  cpu.dlbound26 = dlbound26->val;
-  cpu.dlbound27 = dlbound27->val;
-  cpu.dlbound28 = dlbound28->val;
-  cpu.dlbound29 = dlbound29->val;
-  cpu.dlbound30 = dlbound30->val;
-  cpu.dlbound31 = dlbound31->val;
   */
 
   cpu.dmaincall = dmaincall->val;
@@ -144,30 +120,6 @@ static void csr_writeback() {
   dlbound5->val  = cpu.dlbound5;
   dlbound6->val  = cpu.dlbound6;
   dlbound7->val  = cpu.dlbound7;
-  dlbound8->val  = cpu.dlbound8;
-  dlbound9->val  = cpu.dlbound9;
-  dlbound10->val = cpu.dlbound10;
-  dlbound11->val = cpu.dlbound11;
-  dlbound12->val = cpu.dlbound12;
-  dlbound13->val = cpu.dlbound13;
-  dlbound14->val = cpu.dlbound14;
-  dlbound15->val = cpu.dlbound15;
-  dlbound16->val = cpu.dlbound16;
-  dlbound17->val = cpu.dlbound17;
-  dlbound18->val = cpu.dlbound18;
-  dlbound19->val = cpu.dlbound19;
-  dlbound20->val = cpu.dlbound20;
-  dlbound21->val = cpu.dlbound21;
-  dlbound22->val = cpu.dlbound22;
-  dlbound23->val = cpu.dlbound23;
-  dlbound24->val = cpu.dlbound24;
-  dlbound25->val = cpu.dlbound25;
-  dlbound26->val = cpu.dlbound26;
-  dlbound27->val = cpu.dlbound27;
-  dlbound28->val = cpu.dlbound28;
-  dlbound29->val = cpu.dlbound29;
-  dlbound30->val = cpu.dlbound30;
-  dlbound31->val = cpu.dlbound31;
   */
 
   dmaincall->val = cpu.dmaincall;

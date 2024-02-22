@@ -574,9 +574,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
 
     if (val_scls || val_ucls) {
-      for (int i = 0; i < (MAX_DASICS_LIBBOUNDS >> 3); ++i) {
-        csr_array[CSR_DLCFG0 + i] = 0;
-      }
+      csr_array[CSR_DLCFG0] = 0;
       for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
         csr_array[CSR_DLBOUND0 + (i << 1)] = 0;
         csr_array[CSR_DLBOUND1 + (i << 1)] = 0;

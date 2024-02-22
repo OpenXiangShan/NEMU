@@ -46,15 +46,8 @@
   f(dlcfg0,      0x880) \
   f(dlbound0,    0x890) f(dlbound1,    0x891) f(dlbound2,    0x892) f(dlbound3,    0x893) \
   f(dlbound4,    0x894) f(dlbound5,    0x895) f(dlbound6,    0x896) f(dlbound7,    0x897) \
-  f(dlbound8,    0x898) f(dlbound9,    0x899) f(dlbound10,   0x89a) f(dlbound11,   0x89b) \
-  f(dlbound12,   0x89c) f(dlbound13,   0x89d) f(dlbound14,   0x89e) f(dlbound15,   0x89f) \
-  f(dlbound16,   0x8a0) f(dlbound17,   0x8a1) f(dlbound18,   0x8a2) f(dlbound19,   0x8a3) \
-  f(dlbound20,   0x8a4) f(dlbound21,   0x8a5) f(dlbound22,   0x8a6) f(dlbound23,   0x8a7) \
-  f(dlbound24,   0x8a8) f(dlbound25,   0x8a9) f(dlbound26,   0x8aa) f(dlbound27,   0x8ab) \
-  f(dlbound28,   0x8ac) f(dlbound29,   0x8ad) f(dlbound30,   0x8ae) f(dlbound31,   0x8af) \
   f(dmaincall,   0x8b0) f(dretpc,      0x8b1) f(dretpcfz,    0x8b2) \
-  f(djbound0lo,  0x8c0) f(djbound0hi,  0x8c1) f(djbound1lo,  0x8c2) f(djbound1hi,  0x8c3) \
-  f(djbound2lo,  0x8c4) f(djbound2hi,  0x8c5) f(djbound3lo,  0x8c6) f(djbound3hi,  0x8c7) \
+  f(djbound0lo,  0x8c0) f(djbound0hi,  0x8c1) \
   f(djcfg,       0x8c8)
 #else  // CONFIG_RV_DASICS
 #define DASICS_CSRS(f)
@@ -520,8 +513,8 @@ CSR_STRUCT_END(dumbound1)
 #define JUMPCFG_MASK 0xfffful
 #define JUMPCFG_V 0x1ul
 
-#define MAX_DASICS_LIBBOUNDS 16
-#define MAX_DASICS_JUMPBOUNDS 4
+#define MAX_DASICS_LIBBOUNDS  4
+#define MAX_DASICS_JUMPBOUNDS 1
 
 CSR_STRUCT_START(dlcfg0)
 CSR_STRUCT_END(dlcfg0)
@@ -550,78 +543,6 @@ CSR_STRUCT_END(dlbound6)
 CSR_STRUCT_START(dlbound7)
 CSR_STRUCT_END(dlbound7)
 
-CSR_STRUCT_START(dlbound8)
-CSR_STRUCT_END(dlbound8)
-
-CSR_STRUCT_START(dlbound9)
-CSR_STRUCT_END(dlbound9)
-
-CSR_STRUCT_START(dlbound10)
-CSR_STRUCT_END(dlbound10)
-
-CSR_STRUCT_START(dlbound11)
-CSR_STRUCT_END(dlbound11)
-
-CSR_STRUCT_START(dlbound12)
-CSR_STRUCT_END(dlbound12)
-
-CSR_STRUCT_START(dlbound13)
-CSR_STRUCT_END(dlbound13)
-
-CSR_STRUCT_START(dlbound14)
-CSR_STRUCT_END(dlbound14)
-
-CSR_STRUCT_START(dlbound15)
-CSR_STRUCT_END(dlbound15)
-
-CSR_STRUCT_START(dlbound16)
-CSR_STRUCT_END(dlbound16)
-
-CSR_STRUCT_START(dlbound17)
-CSR_STRUCT_END(dlbound17)
-
-CSR_STRUCT_START(dlbound18)
-CSR_STRUCT_END(dlbound18)
-
-CSR_STRUCT_START(dlbound19)
-CSR_STRUCT_END(dlbound19)
-
-CSR_STRUCT_START(dlbound20)
-CSR_STRUCT_END(dlbound20)
-
-CSR_STRUCT_START(dlbound21)
-CSR_STRUCT_END(dlbound21)
-
-CSR_STRUCT_START(dlbound22)
-CSR_STRUCT_END(dlbound22)
-
-CSR_STRUCT_START(dlbound23)
-CSR_STRUCT_END(dlbound23)
-
-CSR_STRUCT_START(dlbound24)
-CSR_STRUCT_END(dlbound24)
-
-CSR_STRUCT_START(dlbound25)
-CSR_STRUCT_END(dlbound25)
-
-CSR_STRUCT_START(dlbound26)
-CSR_STRUCT_END(dlbound26)
-
-CSR_STRUCT_START(dlbound27)
-CSR_STRUCT_END(dlbound27)
-
-CSR_STRUCT_START(dlbound28)
-CSR_STRUCT_END(dlbound28)
-
-CSR_STRUCT_START(dlbound29)
-CSR_STRUCT_END(dlbound29)
-
-CSR_STRUCT_START(dlbound30)
-CSR_STRUCT_END(dlbound30)
-
-CSR_STRUCT_START(dlbound31)
-CSR_STRUCT_END(dlbound31)
-
 CSR_STRUCT_START(dmaincall)
 CSR_STRUCT_END(dmaincall)
 
@@ -636,24 +557,6 @@ CSR_STRUCT_END(djbound0lo)
 
 CSR_STRUCT_START(djbound0hi)
 CSR_STRUCT_END(djbound0hi)
-
-CSR_STRUCT_START(djbound1lo)
-CSR_STRUCT_END(djbound1lo)
-
-CSR_STRUCT_START(djbound1hi)
-CSR_STRUCT_END(djbound1hi)
-
-CSR_STRUCT_START(djbound2lo)
-CSR_STRUCT_END(djbound2lo)
-
-CSR_STRUCT_START(djbound2hi)
-CSR_STRUCT_END(djbound2hi)
-
-CSR_STRUCT_START(djbound3lo)
-CSR_STRUCT_END(djbound3lo)
-
-CSR_STRUCT_START(djbound3hi)
-CSR_STRUCT_END(djbound3hi)
 
 CSR_STRUCT_START(djcfg)
 CSR_STRUCT_END(djcfg)
