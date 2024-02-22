@@ -66,6 +66,7 @@ extern void log_flush();
 extern unsigned long MEMORY_SIZE;
 }
 
+#ifdef CONFIG_MEM_COMPRESS
 void Serializer::serializePMem(uint64_t inst_count) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
@@ -150,7 +151,11 @@ void Serializer::serializePMem(uint64_t inst_count) {
   Log("Checkpoint done!\n");
   regDumped = false;
 }
+#else
+void Serializer::serializePMem(uint64_t inst_count) {}
+#endif
 
+#ifdef CONFIG_MEM_COMPRESS
 extern void csr_writeback();
 
 void Serializer::serializeRegs() {
@@ -227,13 +232,19 @@ void Serializer::serializeRegs() {
 
   regDumped = true;
 }
+#else
+void Serializer::serializeRegs() {}
+#endif
 
 void Serializer::serialize(uint64_t inst_count) {
-//  isa_reg_display();
+
+#ifdef CONFIG_MEM_COMPRESS
   serializeRegs();
   serializePMem(inst_count);
+#else
+  xpanic("You should enable CONFIG_MEM_COMPRESS in maenuconfig\n");
+#endif
 
-//  isa_reg_display();
 }
 
 void Serializer::init() {
