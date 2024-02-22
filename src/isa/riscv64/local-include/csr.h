@@ -41,7 +41,6 @@
 // CSRs for DASICS protection mechanism
 #ifdef CONFIG_RV_DASICS
 #define DASICS_CSRS(f) \
-  f(dsmcfg,      0xbc0) f(dsmbound0,   0xbc2) f(dsmbound1,   0xbc3) \
   f(dumcfg,      0x9e0) f(dumbound0,   0x9e2) f(dumbound1,   0x9e3) \
   f(dlcfg0,      0x880) \
   f(dlbound0,    0x890) f(dlbound1,    0x891) f(dlbound2,    0x892) f(dlbound3,    0x893) \
@@ -469,22 +468,7 @@ CSR_STRUCT_END(mimpid)
 #ifdef CONFIG_RV_DASICS
 
 #define MCFG_UCLS   0x8ul
-#define MCFG_SCLS   0x4ul
 #define MCFG_UENA   0X2ul
-#define MCFG_SENA   0x1ul
-
-CSR_STRUCT_START(dsmcfg)
-  uint64_t mcfg_sena:1;
-  uint64_t mcfg_uena:1;
-  uint64_t mcfg_scls:1;
-  uint64_t mcfg_ucls:1;
-CSR_STRUCT_END(dsmcfg)
-
-CSR_STRUCT_START(dsmbound0)
-CSR_STRUCT_END(dsmbound0)
-
-CSR_STRUCT_START(dsmbound1)
-CSR_STRUCT_END(dsmbound1)
 
 CSR_STRUCT_START(dumcfg)
   uint64_t pad0     :1;

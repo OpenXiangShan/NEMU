@@ -71,9 +71,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
 #ifdef CONFIG_RV_DASICS
-      case EX_DUIAF: case EX_DSIAF:
-      case EX_DULAF: case EX_DSLAF:
-      case EX_DUSAF: case EX_DSSAF:
+      case EX_DUIAF: case EX_DULAF: case EX_DUSAF:
 #endif  // CONFIG_RV_DASICS
         break;
       default: stval->val = 0;
@@ -94,9 +92,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
 #ifdef CONFIG_RV_DASICS
-      case EX_DUIAF: case EX_DSIAF:
-      case EX_DULAF: case EX_DSLAF:
-      case EX_DUSAF: case EX_DSSAF:
+      case EX_DUIAF: case EX_DULAF: case EX_DUSAF:
 #endif  // CONFIG_RV_DASICS
         break;
       default: mtval->val = 0;

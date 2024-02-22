@@ -39,13 +39,9 @@ enum {
   EX_SPF, // store/amo page fault
 #ifdef CONFIG_RV_DASICS
   EX_DUIAF=24,  // DASICS user instruction access fault
-  EX_DSIAF,     // DASICS supervisor instruction access fault
   EX_DULAF,     // DASICS user load access fault
-  EX_DSLAF,     // DASICS supervisor load access fault
   EX_DUSAF,     // DASICS user store access fault
-  EX_DSSAF,     // DASICS supervisor store access fault
   EX_DUEF,      // DASICS user ecall fault
-  EX_DSEF,      // DASICS supervisor ecall fault
 #endif  // CONFIG_RV_DASICS
 };
 

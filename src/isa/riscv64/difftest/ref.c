@@ -45,11 +45,7 @@ static void csr_prepare() {
   cpu.stvec    = stvec->val;
 
 #ifdef CONFIG_RV_DASICS
-  cpu.dsmcfg    = dsmcfg->val;
-  cpu.dsmbound0 = dsmbound0->val;
-  cpu.dsmbound1 = dsmbound1->val;
-
-  cpu.dumcfg    = csrid_read(0x9e0);  // dumcfg
+  cpu.dumcfg    = dumcfg->val;  // dumcfg
   cpu.dumbound0 = dumbound0->val;
   cpu.dumbound1 = dumbound1->val;
 
@@ -102,11 +98,7 @@ static void csr_writeback() {
   stvec->val    = cpu.stvec;
 
 #ifdef CONFIG_RV_DASICS
-  dsmcfg->val    = cpu.dsmcfg;
-  dsmbound0->val = cpu.dsmbound0;
-  dsmbound1->val = cpu.dsmbound1;
-
-  // dumcfg->val    = cpu.dumcfg;  // dumcfg is a shadow of dsmcfg
+  dumcfg->val    = cpu.dumcfg;
   dumbound0->val = cpu.dumbound0;
   dumbound1->val = cpu.dumbound1;
 

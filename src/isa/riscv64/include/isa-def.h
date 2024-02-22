@@ -79,7 +79,6 @@ typedef struct {
   uint64_t pc;
 
 #ifdef CONFIG_RV_DASICS
-  uint64_t dsmcfg, dsmbound0, dsmbound1;
   uint64_t dumcfg, dumbound0, dumbound1;
   /* Yet to connect
   uint64_t dlcfg0;

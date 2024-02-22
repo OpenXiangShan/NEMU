@@ -367,8 +367,8 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
-      vaddr_t temp_epc = (g_ex_cause == EX_DUIAF || g_ex_cause == EX_DSIAF)? prev_s->prev_pc : prev_s->pc;
-      if(g_ex_cause == EX_DUIAF || g_ex_cause == EX_DSIAF){
+      vaddr_t temp_epc = (g_ex_cause == EX_DUIAF)? prev_s->prev_pc : prev_s->pc;
+      if(g_ex_cause == EX_DUIAF){
         prev_s->prev_is_cfi = 0;
         prev_s->prev_type = CFI_NONE;
       }
