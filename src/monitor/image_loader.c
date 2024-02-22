@@ -62,7 +62,7 @@ long load_gz_img(const char *filename) {
   Assert(left_bytes == 0, "File size is larger than buf_size!\n");
 
   free(temp_page);
-  Assert(!gzclose(compressed_mem), "Error closing '%s'\n", filename);
+  Assert(gzclose(compressed_mem) == Z_OK, "Error closing '%s'\n", filename);
   return curr_size;
 }
 
