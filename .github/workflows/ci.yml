@@ -38,6 +38,13 @@ jobs:
           # restore cpt
           bash ./scripts/restore.sh
           make clean-all
+      - name: test zstd restore
+        run: |
+          make riscv64-xs-cpt-restore_defconfig
+          make -j
+          cd resource/gcpt_restore && make && cd $NEMU_HOME
+          bash ./scripts/restore_zstd.sh
+          make clean-all
       - name: Build NEMU as difftest ref
         run: |
           make riscv64-xs-ref_defconfig
