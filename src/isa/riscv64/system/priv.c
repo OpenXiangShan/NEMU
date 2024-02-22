@@ -695,19 +695,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       break;
 #else
     case HOSTCALL_TRAP: 
-#ifdef CONFIG_RV_DASICS
-      bool hostcall_trusted = dasics_in_trusted_zone(pc);
-
-      if (!hostcall_trusted && cpu.mode == MODE_U) {
-        ret = raise_intr(EX_DUEF, *src1);
-      }
-      else {
-        ret = raise_intr(imm, *src1);
-      }
-      break;
-#else
       ret = raise_intr(imm, *src1); break;
-#endif  // CONFIG_RV_DASICS
 #endif
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
