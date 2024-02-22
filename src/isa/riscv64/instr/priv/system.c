@@ -39,11 +39,8 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
     }
-    // is_jmp: ecall, ebreak, mret, sret, uret(if RVN is enabled)
+    // is_jmp: ecall, ebreak, mret, sret
     int is_jmp = (id == 0) || (id == 1) || (id == 0x102) || (id == 0x302);
-#ifdef CONFIG_RVN
-    is_jmp = is_jmp || (id == 0x002);  // uret
-#endif  // CONFIG_RVN
     return is_jmp;
   }
 

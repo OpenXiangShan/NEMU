@@ -37,9 +37,6 @@ MAP(CSRS, CSRS_DEF)
 #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DEF)
 #endif // CONFIG_RVV
-#ifdef CONFIG_RVN
-  MAP(NCSRS, CSRS_DEF)
-#endif // CONFIG_RVN
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DEF)
 #endif // CONFIG_RV_ARCH_CSRS
@@ -51,9 +48,6 @@ MAP(CSRS, CSRS_DEF)
 static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
-  #ifdef CONFIG_RVN
-  MAP(NCSRS, CSRS_EXIST)
-  #endif  // CONFIG_RVN
   #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_EXIST)
   #endif // CONFIG_RVV
@@ -117,22 +111,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_WMASK ((1 << 19) | (1 << 18) | (0x3 << 13) | (1 << 8) | (1 << 5) | (1 << 1))
 #endif // CONFIG_RVV
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
-#ifdef CONFIG_RVN
-#define USTATUS_WMASK ((1 << 4) | 0x1)
-#define USTATUS_RMASK USTATUS_WMASK
-#endif  // CONFIG_RVN
-
 #define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 #define SIP_WMASK_S 0x2
 #define MTIE_MASK (1 << 7)
-#ifdef CONFIG_RVN
-#define UIE_MASK (0x111 & sideleg->val)
-#define UIP_MASK (0x111 & sideleg->val)
-#define UIP_WMASK_U 0x1
-#endif  // CONFIG_RVN
-
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
 #define FCSR_MASK 0xff
@@ -400,22 +383,10 @@ static inline word_t csr_read(word_t *src) {
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
-#ifdef CONFIG_RVN
-  else if (is_read(ustatus)) { return mstatus->val & USTATUS_RMASK; }
-#endif  // CONFIG_RVN
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
-#ifdef CONFIG_RVN
-  else if (is_read(uie))    { return mie->val & UIE_MASK; }
-#endif  // CONFIG_RVN
   else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
   else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
-#ifdef CONFIG_RVN
-  else if (is_read(utvec))  { return utvec->val & ~(0x2UL); }
-#endif  // CONFIG_RVN
   else if (is_read(sip))    { difftest_skip_ref(); return mip->val & SIP_MASK; }
-#ifdef CONFIG_RVN
-  else if (is_read(uip))    { difftest_skip_ref(); return mip->val & UIP_MASK; }
-#endif  // CONFIG_RVN
 #ifdef CONFIG_RV_DASICS
   else if (is_read(dsmcfg)) { return dsmcfg->val & DSMCFG_MASK; }
   else if (is_read(dumcfg)) { return dsmcfg->val & DUMCFG_MASK; }
@@ -473,18 +444,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 
   if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
-#ifdef CONFIG_RVN
-  else if (is_write(ustatus)) { mstatus->val = mask_bitset(mstatus->val, USTATUS_WMASK, src); }
-#endif  // CONFIG_RVN
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-#ifdef CONFIG_RVN
-  else if (is_write(uie)) { mie->val = mask_bitset(mie->val, UIE_MASK, src); }
-#endif  // CONFIG_RVN
   else if (is_write(mip)) { mip->val = mask_bitset(mip->val, MIP_MASK, src); }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
-#ifdef CONFIG_RVN
-  else if (is_write(uip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_U) ? UIP_WMASK_U : UIP_MASK), src); }
-#endif  // CONFIG_RVN
   else if (is_write(mtvec)) {
 #ifdef XTVEC_VECTORED_MODE
     *dest = src & ~(0x2UL);
@@ -499,27 +461,12 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = src & ~(0x3UL);
 #endif // XTVEC_VECTORED_MODE
 }
-#ifdef CONFIG_RVN
-  else if (is_write(utvec)) {
-#ifdef XTVEC_VECTORED_MODE
-    *dest = src & ~(0x2UL);
-#else
-    *dest = src & ~(0x3UL);
-#endif // XTVEC_VECTORED_MODE
-  }
-#endif  // CONFIG_RVN
 #ifdef CONFIG_RV_DASICS
   else if (is_write(medeleg)) { *dest = src & 0xff00b3ff; }
 #else
   else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
 #endif  // CONFIG_RV_DASICS
-#ifdef CONFIG_RVN
-  else if (is_write(mideleg)) { *dest = src & 0x333; }
-  else if (is_write(sedeleg)) { *dest = src & medeleg->val; }
-  else if (is_write(sideleg)) { *dest = src & mideleg->val; }
-#else
   else if (is_write(mideleg)) { *dest = src & 0x222; }
-#endif  // CONFIG_RVN
 #ifdef CONFIG_RVV
   else if (is_write(vcsr)) { vxrm->val = (src >> 1) & 0x3; vxsat->val = src & 0x1; }
 #endif
@@ -528,9 +475,6 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
   else if (is_write(mepc)) { *dest = src & (~0x1UL); }
   else if (is_write(sepc)) { *dest = src & (~0x1UL); }
-#ifdef CONFIG_RVN
-  else if (is_write(uepc)) { *dest = src & (~0x1UL); }
-#endif  // CONFIG_RVN
   else if (is_write(fflags)) {
 #ifdef CONFIG_FPU_NONE
   longjmp_exception(EX_II);
@@ -682,11 +626,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
-#ifdef CONFIG_RVN
-  if (is_write(ustatus) || is_write(uie) || is_write(uip)) {
-    set_sys_state_flag(SYS_STATE_UPDATE);
-  }
-#endif  // CONFIG_RVN
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     //vp_set_dirty();
@@ -714,16 +653,6 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, vaddr_t p
 static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
 #ifndef CONFIG_MODE_USER
-#ifdef CONFIG_RVN
-    case 0x002: // uret
-      mstatus->uie = mstatus->upie;
-      mstatus->upie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
-          : 1);
-      cpu.mode = MODE_U;
-      mstatus->mprv = 0;
-      update_mmu_state();
-      return uepc->val;
-#endif  // CONFIG_RVN
     case 0x102: // sret
       if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
         longjmp_exception(EX_II);

@@ -66,19 +66,17 @@ typedef struct {
   } fpr[32];
 
   // shadow CSRs for difftest
-  uint64_t pc;
-  uint64_t mstatus, mcause, mepc;
-  uint64_t sstatus, scause, sepc;
-
-  uint64_t satp, mip, mie, mscratch, sscratch, mideleg, medeleg;
-  uint64_t mtval, stval, mtvec, stvec;
   uint64_t mode;
-
-#ifdef CONFIG_RVN
-  uint64_t ustatus, ucause, uepc;
-  uint64_t uscratch, utval, utvec;
-  uint64_t sedeleg, sideleg;
-#endif  // CONFIG_RVN
+  uint64_t mstatus, sstatus;
+  uint64_t mepc, sepc;
+  uint64_t mtval, stval;
+  uint64_t mtvec, stvec;
+  uint64_t mcause, scause;
+  uint64_t satp;
+  uint64_t mip, mie;
+  uint64_t mscratch, sscratch;
+  uint64_t mideleg, medeleg;
+  uint64_t pc;
 
 #ifdef CONFIG_RV_DASICS
   uint64_t dsmcfg, dsmbound0, dsmbound1;

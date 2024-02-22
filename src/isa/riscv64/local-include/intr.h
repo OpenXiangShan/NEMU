@@ -56,13 +56,6 @@ enum {
 word_t raise_intr(word_t NO, vaddr_t epc);
 #define return_on_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
 bool intr_deleg_S(word_t exceptionNO);
-#ifdef CONFIG_RVN
-bool intr_deleg_U(word_t exceptionNO);
-#define INTR_TVAL_REG(ex) (*((intr_deleg_U(ex)) ? (word_t *)utval : \
-                            ((intr_deleg_S(ex)) ? (word_t *)stval : \
-                                                  (word_t *)mtval)))
-#else
 #define INTR_TVAL_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
-#endif  // CONFIG_RVN
 
 #endif

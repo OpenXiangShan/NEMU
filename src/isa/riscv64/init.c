@@ -67,11 +67,6 @@ void init_isa() {
 #endif // CONFIG_FPU_NONE
   misa->mxl = 2; // XLEN = 64
 
-#ifdef CONFIG_RVN
-  // user-level interrupts
-  misa->extensions |= ext('n');
-#endif  // CONFIG_RVN
-
 #ifdef CONFIG_RVV
   // vector
   misa->extensions |= ext('v');

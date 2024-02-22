@@ -59,12 +59,6 @@ void isa_reg_display() {
       mideleg->val, medeleg->val);
   printf("mtval: " FMT_WORD " stval: " FMT_WORD " mtvec: " FMT_WORD " stvec: " FMT_WORD "\n",
       mtval->val, stval->val, mtvec->val, stvec->val);
-#ifdef CONFIG_RVN
-  printf("ustatus: " FMT_WORD " utvec: " FMT_WORD " utval: " FMT_WORD " uscratch: " FMT_WORD "\n",
-      csrid_read(0x000), utvec->val, utval->val, uscratch->val);
-  printf("uepc: " FMT_WORD " ucause: " FMT_WORD " sedeleg: " FMT_WORD " sideleg: " FMT_WORD "\n",
-      uepc->val, ucause->val, sedeleg->val, sideleg->val);
-#endif  // CONFIG_RVN
 #ifdef CONFIG_RV_DASICS
   printf("dsmcfg: " FMT_WORD " dsmbound0: " FMT_WORD " dsmbound1: " FMT_WORD "\n",
       dsmcfg->val, dsmbound0->val, dsmbound1->val);

@@ -43,16 +43,6 @@ static void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
-#ifdef CONFIG_RVN
-  cpu.ustatus  = csrid_read(0x000);  // ustatus
-  cpu.ucause   = ucause->val;
-  cpu.uepc     = uepc->val;
-  cpu.uscratch = uscratch->val;
-  cpu.sedeleg  = sedeleg->val;
-  cpu.sideleg  = sideleg->val;
-  cpu.utval    = utval->val;
-  cpu.utvec    = utvec->val;
-#endif  // CONFIG_RVN
 
 #ifdef CONFIG_RV_DASICS
   cpu.dsmcfg    = dsmcfg->val;
@@ -122,11 +112,6 @@ static void csr_writeback() {
   //sstatus->val = cpu.sstatus;  // sstatus is a shadow of mstatus
   scause ->val = cpu.scause ;
   sepc   ->val = cpu.sepc   ;
-#ifdef CONFIG_RVN
-  //ustatus->val = cpu.ustatus;  // ustatus is a shadow of mstatus
-  ucause->val  = cpu.ucause;
-  uepc->val    = cpu.uepc;
-#endif  // CONFIG_RVN
 
   satp->val     = cpu.satp;
   mip->val      = cpu.mip;
@@ -139,13 +124,6 @@ static void csr_writeback() {
   stval->val    = cpu.stval;
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
-#ifdef CONFIG_RVN
-  uscratch->val = cpu.uscratch;
-  sideleg->val  = cpu.sideleg;
-  sedeleg->val  = cpu.sedeleg;
-  utval->val    = cpu.utval;
-  utvec->val    = cpu.utvec;
-#endif  // CONFIG_RVN
 
 #ifdef CONFIG_RV_DASICS
   dsmcfg->val    = cpu.dsmcfg;

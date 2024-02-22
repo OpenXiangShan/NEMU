@@ -33,12 +33,6 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
-#if (defined(CONFIG_DEBUG) && defined(CONFIG_RVN))
-#define RVN_INSTR_NULLARY(f) //f(uret)
-#else
-#define RVN_INSTR_NULLARY(f)
-#endif  // CONFIG_RVN
-
 #ifdef CONFIG_DEBUG
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
@@ -174,8 +168,7 @@
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f) \
-  f(p_ret) \
-  RVN_INSTR_NULLARY(f)
+  f(p_ret)
 
 #define INSTR_UNARY(f) \
   f(p_li_0) f(p_li_1)

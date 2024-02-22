@@ -93,14 +93,6 @@
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
 #endif
 
-#ifdef CONFIG_RVN
-#define NCSRS(f) \
-  f(ustatus,     0x000) f(uie,         0x004) f(utvec,       0x005) \
-  f(uscratch,    0x040) f(uepc,        0x041) f(ucause,      0x042) \
-  f(utval,       0x043) f(uip,         0x044) \
-  f(sedeleg,     0x102) f(sideleg,     0x103)
-#endif
-
 #ifdef CONFIG_RVV
   #define VCSRS(f) \
   f(vstart, 0x008) \
@@ -422,54 +414,6 @@ CSR_STRUCT_END(fcsr)
 CSR_STRUCT_START(mtime)
 CSR_STRUCT_END(mtime)
 
-#ifdef CONFIG_RVN
-CSR_STRUCT_START(ustatus)
-  uint64_t uie :1;
-  uint64_t pad :3;
-  uint64_t upie:1;
-CSR_STRUCT_END(ustatus)
-
-CSR_STRUCT_START(uie)
-  uint64_t usie:1;
-  uint64_t pad0:3;
-  uint64_t utie:1;
-  uint64_t pad1:3;
-  uint64_t ueie:1;
-  uint64_t pad2:3;
-CSR_STRUCT_END(uie)
-
-CSR_STRUCT_START(utvec)
-CSR_STRUCT_END(utvec)
-
-CSR_STRUCT_START(uscratch)
-CSR_STRUCT_END(uscratch)
-
-CSR_STRUCT_START(uepc)
-CSR_STRUCT_END(uepc)
-
-CSR_STRUCT_START(ucause)
-CSR_STRUCT_END(ucause)
-
-CSR_STRUCT_START(utval)
-CSR_STRUCT_END(utval)
-
-CSR_STRUCT_START(uip)
-  uint64_t usip:1;
-  uint64_t pad0:3;
-  uint64_t utip:1;
-  uint64_t pad1:3;
-  uint64_t ueip:1;
-  uint64_t pad2:3;
-CSR_STRUCT_END(uip)
-
-CSR_STRUCT_START(sedeleg)
-CSR_STRUCT_END(sedeleg)
-
-CSR_STRUCT_START(sideleg)
-CSR_STRUCT_END(sideleg)
-
-#endif  // CONFIG_RVN
-
 #ifdef CONFIG_RVV
 // TODO: implement these vcsr
 #define IDXVSTART 0x008
@@ -718,9 +662,6 @@ CSR_STRUCT_END(djcfg)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
-#ifdef CONFIG_RVN
-  MAP(NCSRS, CSRS_DECL)
-#endif
 #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DECL)
 #endif // CONFIG_RVV
