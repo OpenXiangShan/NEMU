@@ -13,7 +13,8 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
-cpt=/nfs/home/share/ci-workloads/nemu_restore/gcc_scilab_checkpoint.zstd
-./build/riscv64-nemu-interpreter -b \
-  -r resource/gcpt_restore/build/gcpt.bin \
-  --restore $cpt -I 99000000
+cpt=`find output_top/test/linux/10000000 -name "*.zstd"`
+./build/riscv64-nemu-interpreter -b\
+    -r resource/gcpt_restore/build/gcpt.bin \
+    --restore -I 99000000\
+    $cpt

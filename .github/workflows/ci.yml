@@ -28,21 +28,24 @@ jobs:
           # test boot linux
           ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
           make clean-all
-      - name: test cpt taking and restoring
+      - name: test cpt taking and restoring using gz format
         run: |
-          make riscv64-xs-novga_defconfig
+          make riscv64-xs-cpt_defconfig
           make -j
           cd resource/gcpt_restore && make && cd $NEMU_HOME
           # take cpt, and put cpt in output_top/test/linux
-          bash ./scripts/take.sh
+          bash ./scripts/take_gz.sh
           # restore cpt
-          bash ./scripts/restore.sh
+          bash ./scripts/restore_gz.sh
           make clean-all
-      - name: test zstd restore
+      - name: test cpt taking and restoring using zstd format
         run: |
-          make riscv64-xs-cpt-restore_defconfig
+          make riscv64-xs-cpt_defconfig
           make -j
           cd resource/gcpt_restore && make && cd $NEMU_HOME
+          # take cpt, and put cpt in output_top/test/linux
+          bash ./scripts/take_zstd.sh
+          # restore cpt
           bash ./scripts/restore_zstd.sh
           make clean-all
       - name: Build NEMU as difftest ref

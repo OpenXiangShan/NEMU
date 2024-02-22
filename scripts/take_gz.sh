@@ -20,4 +20,5 @@
     -w linux \
     -r ./resource/gcpt_restore/build/gcpt.bin \
     --dont-skip-boot\
-    -I 11000000 ./ready-to-run/linux-0xa0000.bin
+    -I 11000000 ./ready-to-run/linux-0xa0000.bin \
+    --checkpoint-format gz
