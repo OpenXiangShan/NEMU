@@ -242,7 +242,7 @@ void Serializer::serialize(uint64_t inst_count) {
   serializeRegs();
   serializePMem(inst_count);
 #else
-  xpanic("You should enable CONFIG_MEM_COMPRESS in maenuconfig\n");
+  xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
 
 }
