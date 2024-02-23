@@ -51,7 +51,7 @@ void PathManager::init() {
   //    cptID = cpt_id;
   //  }
 
-  Log("Cpt id: %i", cptID);
+  Log("Cpt id: %li", cptID);
 
   workloadPath = statsBaseDir + "/" + configName + "/" + workloadName + "/";
 
@@ -77,7 +77,7 @@ void PathManager::setSimpointProfilingOutputDir() {
 
 void PathManager::setCheckpointingOutputDir() {
   //set checkpoint id
-  cptID=serializer.next_index();
+  cptID = serializer.next_index();
   if (checkpoint_state!=NoCheckpoint) {
     std::string output_path = workloadPath;
     output_path += to_string(cptID) + "/";
@@ -93,7 +93,7 @@ void PathManager::setCheckpointingOutputDir() {
 }
 
 void PathManager::incCptID() {
-  cptID=serializer.next_index();
+  cptID = serializer.next_index();
 }
 
 std::string PathManager::getOutputPath() const {

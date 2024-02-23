@@ -32,7 +32,7 @@ class PathManager
     std::string configName;
     std::string workloadName;
 
-    int cptID;
+    uint64_t cptID;
 
     std::string workloadPath;
     fs::path outputPath;
@@ -43,7 +43,7 @@ class PathManager
 
     void incCptID();
 
-    int getCptID() const {return cptID;}
+    uint64_t getCptID() const {return cptID;}
 
     std::string getOutputPath() const;
 
