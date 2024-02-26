@@ -45,7 +45,7 @@
   f(dlcfg0,      0x880) \
   f(dlbound0,    0x890) f(dlbound1,    0x891) f(dlbound2,    0x892) f(dlbound3,    0x893) \
   f(dlbound4,    0x894) f(dlbound5,    0x895) f(dlbound6,    0x896) f(dlbound7,    0x897) \
-  f(dmaincall,   0x8b0) f(dretpc,      0x8b1) f(dretpcfz,    0x8b2) \
+  f(dmaincall,   0x8b0) f(dretpc,      0x8b1) \
   f(djbound0lo,  0x8c0) f(djbound0hi,  0x8c1) \
   f(djcfg,       0x8c8)
 #else  // CONFIG_RV_DASICS
@@ -529,9 +529,6 @@ CSR_STRUCT_END(dmaincall)
 
 CSR_STRUCT_START(dretpc)
 CSR_STRUCT_END(dretpc)
-
-CSR_STRUCT_START(dretpcfz)
-CSR_STRUCT_END(dretpcfz)
 
 CSR_STRUCT_START(djbound0lo)
 CSR_STRUCT_END(djbound0lo)

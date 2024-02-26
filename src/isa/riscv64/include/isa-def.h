@@ -85,7 +85,7 @@ typedef struct {
   uint64_t dlbound0, dlbound1, dlbound2, dlbound3, dlbound4, dlbound5;
   uint64_t dlbound6, dlbound7;
   */
-  uint64_t dmaincall, dretpc, dretpcfz;
+  uint64_t dmaincall, dretpc;
   /* Yet to connect
   uint64_t djbound0lo, djbound0hi;
   uint64_t djcfg;

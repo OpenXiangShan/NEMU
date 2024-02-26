@@ -234,26 +234,25 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
 void dasics_fetch_helper(vaddr_t pc, vaddr_t prev_pc, uint8_t cfi_type) {
   bool src_trusted = dasics_in_trusted_zone(prev_pc);
   bool dst_trusted = dasics_in_trusted_zone(pc);
-  bool src_freezone = dasics_match_djumpbound(prev_pc, JUMPCFG_V);
-  bool dst_freezone = dasics_match_djumpbound(pc, JUMPCFG_V);
+  bool src_lib = !src_trusted && dasics_match_djumpbound(prev_pc, JUMPCFG_V);
+  bool dst_lib = !dst_trusted && dasics_match_djumpbound(pc, JUMPCFG_V);
 
-  Logm("[Dasics Fetch] prev_pc: 0x%lx (T:%d F:%d), pc:0x%lx (T:%d F:%d)\n", prev_pc, src_trusted, src_freezone, pc, dst_trusted, dst_freezone);
-  Logm("[Dasics Fetch] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
+  Logm("[Dasics Fetch] prev_pc: 0x%lx (T:%d F:%d), pc:0x%lx (T:%d F:%d)\n", prev_pc, src_trusted, src_lib, pc, dst_trusted, dst_lib);
+  Logm("[Dasics Fetch] dretpc: 0x%lx dretmaincall: 0x%lx\n", dretpc->val, dmaincall->val);
 
   bool allow_lib_to_main = !src_trusted && dst_trusted && \
     (pc == dretpc->val || pc == dmaincall->val);
-  bool allow_freezone_to_lib = src_freezone && !dst_trusted && \
-    !dst_freezone && (pc == dretpcfz->val);
+  bool allow_lib_to_lib = src_lib && dst_lib;
 
-  bool allow_br   = src_trusted  || dst_freezone;
+  bool allow_br   = src_trusted  || dst_lib;
   bool allow_jump = src_trusted  || allow_lib_to_main || \
-                    dst_freezone || allow_freezone_to_lib;
+                    dst_lib || allow_lib_to_lib;
 
   bool allow_cfi = (cfi_type == CFI_BRANCH && allow_br) || (cfi_type == CFI_JUMP && allow_jump);
 
   if (!allow_cfi) {
     INTR_TVAL_REG(EX_DUIAF) = pc;
-    Logm("Dasics fetch exception occur: pc%lx  (st:%d,df:%d)\n",pc,src_trusted,dst_freezone);
+    Logm("Dasics fetch exception occur: pc%lx  (st:%d,dl:%d)\n",pc,src_trusted,dst_lib);
     longjmp_exception(EX_DUIAF);
   }
 }

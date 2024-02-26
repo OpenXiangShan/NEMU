@@ -62,8 +62,8 @@ void isa_reg_display() {
 #ifdef CONFIG_RV_DASICS
   printf("dumcfg: " FMT_WORD " dumbound0: " FMT_WORD " dumbound1: " FMT_WORD "\n",
       dumcfg->val, dumbound0->val, dumbound1->val);
-  printf("dmaincall: " FMT_WORD " dretpc: " FMT_WORD " dretpcfz: " FMT_WORD "\n",
-      dmaincall->val, dretpc->val, dretpcfz->val);
+  printf("dmaincall: " FMT_WORD " dretpc: " FMT_WORD "\n",
+      dmaincall->val, dretpc->val);
   printf("dlcfg0: " FMT_WORD "\n",
       dlcfg0->val);
   for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
