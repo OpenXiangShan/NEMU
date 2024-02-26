@@ -221,10 +221,10 @@ static inline int parse_args(int argc, char *argv[]) {
       case 12:
         if (!strcmp(optarg, "gz")) {
           compress_file_format = GZ_FORMAT;
-        }else if (!strcmp(optarg, "zstd")) {
+        } else if (!strcmp(optarg, "zstd")) {
           compress_file_format = ZSTD_FORMAT;
-        }else {
-          xpanic("Not support '%s' format\n",optarg);
+        } else {
+          xpanic("Not support '%s' format\n", optarg);
         }
         break;
       case 8:

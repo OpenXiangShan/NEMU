@@ -16,10 +16,7 @@
 #ifndef __CHECKPOINT_CPT_ENV__
 #define __CHECKPOINT_CPT_ENV__
 
-enum{
-  GZ_FORMAT,
-  ZSTD_FORMAT
-};
+enum { GZ_FORMAT, ZSTD_FORMAT };
 
 extern char *output_base_dir;
 extern char *config_name;

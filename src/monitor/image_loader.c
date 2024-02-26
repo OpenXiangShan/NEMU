@@ -14,17 +14,17 @@
 ***************************************************************************************/
 
 #include <assert.h>
+#include <fcntl.h>
 #include <isa.h>
-#include <stdlib.h>
 #include <macro.h>
-#include <stdio.h>
 #include <memory/paddr.h>
 #include <memory/sparseram.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/mman.h>
-#include <fcntl.h>
 #ifdef CONFIG_MEM_COMPRESS
-#include <zlib.h>
 #include <unistd.h>
+#include <zlib.h>
 #include <zstd.h>
 #endif
 
@@ -72,7 +72,7 @@ long load_zstd_img(const char *filename){
   int fd = -1;
   int file_size = 0;
   int compressed_file_buffer_size = 0;
-  uint8_t * compress_file_buffer = NULL;
+  uint8_t *compress_file_buffer = NULL;
 
   fd = open(filename, O_RDONLY);
   if (fd < 0) {
@@ -108,11 +108,11 @@ long load_zstd_img(const char *filename){
   close(fd);
 
   // create decompress input buffer
-  ZSTD_inBuffer input = { compress_file_buffer, compressed_file_buffer_size, 0 };
+  ZSTD_inBuffer input = {compress_file_buffer, compressed_file_buffer_size, 0};
 
   // alloc decompress buffer
   const uint64_t decompress_file_buffer_size = 16384;
-  uint64_t *decompress_file_buffer = (uint64_t*)calloc(decompress_file_buffer_size, sizeof(uint64_t));
+  uint64_t *decompress_file_buffer = (uint64_t *)calloc(decompress_file_buffer_size, sizeof(uint64_t));
   if (!decompress_file_buffer) {
     printf("Decompress file read failed\n");
     free(compress_file_buffer);
@@ -145,7 +145,7 @@ long load_zstd_img(const char *filename){
   uint64_t total_write_size = 0;
   while (total_write_size < MEMORY_SIZE) {
 
-    ZSTD_outBuffer output = { decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0 };
+    ZSTD_outBuffer output = {decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0};
 
     size_t result = ZSTD_decompressStream(dstream, &output, &input);
 
@@ -165,7 +165,7 @@ long load_zstd_img(const char *filename){
     assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
 
     for (uint64_t x = 0; x < decompress_file_buffer_size; x++) {
-      pmem_current = (uint64_t*)(pmem_start + total_write_size) + x;
+      pmem_current = (uint64_t *)(pmem_start + total_write_size) + x;
       uint64_t read_data = *(decompress_file_buffer + x);
       if (read_data != 0 || *pmem_current != 0) {
         *pmem_current = read_data;
@@ -174,7 +174,7 @@ long load_zstd_img(const char *filename){
     total_write_size += output.pos;
   }
 
-  ZSTD_outBuffer output = { decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0 };
+  ZSTD_outBuffer output = {decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0};
   size_t result = ZSTD_decompressStream(dstream, &output, &input);
   if (ZSTD_isError(result) || output.pos != 0) {
     printf("Decompress failed: %s\n", ZSTD_getErrorName(result));
@@ -192,7 +192,7 @@ long load_zstd_img(const char *filename){
   return total_write_size;
 }
 
-#endif //  CONFIG_MEM_COMPRESS
+#endif  //  CONFIG_MEM_COMPRESS
 
 // Return whether a file is a gz file, determined by its name.
 // If the filename ends with ".gz", we treat it as a gz file.
@@ -203,7 +203,7 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   Log("Loading %s: %s\n", which_img, img_name);
   if (img_name == NULL) {
     Log("No image is given. Use the default built-in image/restorer.");
-    return 4096; // built-in image size
+    return 4096;  // built-in image size
   }
 
   if (is_gz_file(loading_img)) {
@@ -234,30 +234,31 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   if (img_size != 0 && (size > img_size)) {
-    Log("Warning: size is larger than img_size(upper limit), please check if code is missing. size:%lx img_size:%lx", size, img_size);
+    Log("Warning: size is larger than img_size(upper limit), please check if code is missing. size:%lx img_size:%lx",
+        size, img_size);
     size = img_size;
   }
 
-  #ifdef CONFIG_USE_SPARSEMM
-  if(file_is_elf(loading_img)){
+#ifdef CONFIG_USE_SPARSEMM
+  if (file_is_elf(loading_img)) {
     sparse_mem_elf(get_sparsemm(), loading_img);
     Log("load elf %s to sparse mem complete", loading_img);
     sparse_mem_info(get_sparsemm());
-  }else{
+  } else {
     int fd = open(loading_img, O_RDONLY);
     char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
     sparse_mem_write(get_sparsemm(), load_start, size, buf);
     close(fd);
     munmap(buf, size);
   }
-  #else
+#else
   int ret = fread(guest_to_host(load_start), size, 1, fp);
   assert(ret == 1);
-  #endif
+#endif
   Log("Read %lu bytes from file %s to 0x%lx", size, img_name, load_start);
 
   fclose(fp);
   return size;
 }
 
-#endif // CONFIG_MODE_USER
+#endif  // CONFIG_MODE_USER
