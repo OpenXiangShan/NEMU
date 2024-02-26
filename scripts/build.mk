@@ -41,6 +41,10 @@ else
 OBJS = $(COBJS) $(XOBJS)
 endif
 
+ifdef CONFIG_MEM_COMPRESS
+LDFLAGS += -lzstd
+endif
+
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<

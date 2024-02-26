@@ -106,6 +106,7 @@ void iqueue_dump();
 extern "C" {
 #endif
 bool is_gz_file(const char *filename);
+bool is_zstd_file(const char *filename);
 #ifdef __cplusplus
 }
 #endif
