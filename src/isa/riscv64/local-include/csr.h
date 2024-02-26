@@ -467,14 +467,11 @@ CSR_STRUCT_END(mimpid)
 
 #ifdef CONFIG_RV_DASICS
 
-#define MCFG_UCLS   0x8ul
 #define MCFG_UENA   0X2ul
 
 CSR_STRUCT_START(dumcfg)
   uint64_t pad0     :1;
   uint64_t mcfg_uena:1;
-  uint64_t pad1     :1;
-  uint64_t mcfg_ucls:1;
 CSR_STRUCT_END(dumcfg)
 
 CSR_STRUCT_START(dumbound0)

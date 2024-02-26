@@ -131,7 +131,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
 #ifdef CONFIG_RV_DASICS
-#define DUMCFG_MASK (MCFG_UENA | MCFG_UCLS)
+#define DUMCFG_MASK MCFG_UENA
 #define BOUND_ADDR_ALGIN 0x7
 bool dasics_in_trusted_zone(uint64_t pc)
 {
@@ -522,23 +522,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
 #ifdef CONFIG_RV_DASICS
   else if (is_write(dumcfg)) {
-    // Perform CLS logic of dumcfg first
-    bool val_ucls = (src & MCFG_UCLS) != 0;
-
-    if (val_ucls) {
-      csr_array[CSR_DLCFG0] = 0;
-      for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
-        csr_array[CSR_DLBOUND0 + (i << 1)] = 0;
-        csr_array[CSR_DLBOUND1 + (i << 1)] = 0;
-      }
-
-      dmaincall->val = 0;
-      dretpc->val = 0;
-      dretpcfz->val = 0;
-    }
-
-    // Then update dumcfg itself. CLS bit has already taken effect, thus set it to zero
-    dumcfg->val = (dumcfg->val & ~DUMCFG_MASK) | (src & ~MCFG_UCLS & DUMCFG_MASK);
+    dumcfg->val = mask_bitset(dumcfg->val, DUMCFG_MASK, src);
   } else if (is_write_dasics_mem_bound || is_write_dasics_jump_bound) {
     *dest = src & ~BOUND_ADDR_ALGIN; 
     if(is_write_dasics_jump_bound) Logm("[write jump bound]: write addr %016lx src: %lx\n",*dest,src );
