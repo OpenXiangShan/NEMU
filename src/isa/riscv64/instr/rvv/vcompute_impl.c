@@ -94,6 +94,22 @@ static inline void update_vcsr() {
   vcsr->val = (vxrm->val) << 1 | vxsat->val;
 }
 
+static inline void reverse_btye_bits(uint64_t *val) {
+  uint64_t tmp = *val;
+  tmp = ((tmp & 0xaaaaaaaaaaaaaaaaLLU) >> 1) | ((tmp & 0x5555555555555555LLU) << 1);
+  tmp = ((tmp & 0xccccccccccccccccLLU) >> 2) | ((tmp & 0x3333333333333333LLU) << 2);
+  tmp = ((tmp & 0xf0f0f0f0f0f0f0f0LLU) >> 4) | ((tmp & 0x0f0f0f0f0f0f0f0fLLU) << 4);
+  *val = tmp;
+}
+
+static inline void reverse_nbytes(uint64_t *val, int sew) {
+  uint64_t tmp = *val;
+  if (sew >= 1) tmp = ((tmp & 0xff00ff00ff00ff00LLU) >> 8) | ((tmp & 0x00ff00ff00ff00ffLLU) << 8);
+  if (sew >= 2) tmp = ((tmp & 0xffff0000ffff0000LLU) >> 16) | ((tmp & 0x0000ffff0000ffffLLU) << 16);
+  if (sew >= 3) tmp = ((tmp & 0xffffffff00000000LLU) >> 32) | ((tmp & 0x00000000ffffffffLLU) << 32);
+  *val = tmp;
+}
+
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
@@ -110,6 +126,9 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   int64_t int_min = ((int64_t) INT64_MIN) >> (64 - sew);
   uint64_t uint_max = ((uint64_t) UINT64_MAX) >> (64 - sew);
   uint64_t sign_mask = ((uint64_t) UINT64_MAX) << sew;
+  uint64_t lshift = 0;
+  uint64_t rshift = 0;
+  int i = 0;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -179,6 +198,11 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
               case 2 : *s1 = *s1 & 0xffffffff; break;
               case 3 : *s1 = *s1 & 0xffffffffffffffff; break;
             }
+          } else if (opcode == ROR) {
+            // imm for vror_v.vi has 6 bits
+            rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
+            rtl_li(s, s2, s->isa.instr.v_opimm.v_i);
+            * s1 |= *s2 << 5;
           }
           else
             rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
@@ -188,6 +212,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 
     shift = *s1 & (sew - 1);
     narrow_shift = *s1 & (sew * 2 - 1);
+    lshift = *s1 & (sew - 1);
+    rshift = (-lshift) & (sew - 1);
 
     if (opcode == SLIDEUP) {
       if(s->vm == 0 && mask == 0 && (uint64_t)idx >= (uint64_t)*s1) {
@@ -221,31 +247,34 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_li(s, s2, mask);
         rtl_sub(s, s1, s1, s2); break;
       case MADC:
-        for (int i = 0; i < (8 << vtype->vsew); i++) {
+        for (i = 0; i < (8 << vtype->vsew); i++) {
             carry = (((*s0 >> i) & 1) + ((*s1 >> i) & 1) + carry) >> 1;
             carry &= 1;
         }
         rtl_li(s, s1, carry);
         break;
       case MSBC:
-        for (int i = 0; i < (8 << vtype->vsew); i++) {
+        for (i = 0; i < (8 << vtype->vsew); i++) {
           carry = ((~(*s0 >> i) & 1) + ((*s1 >> i) & 1) + carry) >> 1;
           carry &= 1;
         }
         rtl_li(s, s1, carry);
         break;
       case SLL :
-        rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW) is valid
+        if (widening)
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW*2)
+        else
+            rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW)
         rtl_shl(s, s1, s0, s1); break;
       case SRL :
         if (narrow)
-            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW)
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW*2)
         else
             rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW)
         rtl_shr(s, s1, s0, s1); break;
       case SRA :
         if (narrow) {
-            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW)
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW*2)
             rtl_sext(s, s0, s0, 2 << vtype->vsew);
         }
         else {
@@ -371,7 +400,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_add(s, s1, s0, s1);
         sat = 0;
         carry = 0;
-        for (int i = 0; i < (8 << vtype->vsew); i++) {
+        for (i = 0; i < (8 << vtype->vsew); i++) {
             carry = (((*s0 >> i) & 1) + ((*s2 >> i) & 1) + carry) >> 1;
             carry &= 1;
         }
@@ -442,6 +471,49 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
           vxsat->val |= 1;
         }
         *s1 = (uint64_t) u128_result;
+        break;
+      case ANDN :
+        rtl_not(s, s1, s1);
+        rtl_and(s, s1, s0, s1);
+        break;
+      case BREV_V :
+        reverse_btye_bits(s0);
+        reverse_nbytes(s0, vtype->vsew);
+        *s1 = *s0;
+        break;
+      case BREV8_V :
+        reverse_btye_bits(s0);
+        *s1 = *s0;
+        break;
+      case REV8_V :
+        reverse_nbytes(s0, vtype->vsew);
+        *s1 = *s0;
+        break;
+      case CLZ_V :
+        i = 0;
+        for (; i < sew; i++) {
+          if ((*s0 >> (sew - 1 - i)) & 1) break;
+        }
+        *s1 = i;
+        break;
+      case CTZ_V :
+        i = 0;
+        for (; i < sew; i++) {
+          if ((*s0 >> i) & 1) break;
+        }
+        *s1 = i;
+        break;
+      case CPOP_V :
+        *s1 = 0;
+        for (i = 0; i < sew; i++) {
+          if ((*s0 >> i) & 1) (*s1)++;
+        }
+        break;
+      case ROL :
+        *s1 = (*s0 << lshift) | (*s0 >> rshift);
+        break;
+      case ROR :
+        *s1 = (*s0 >> lshift) | (*s0 << rshift);
         break;
     }
     update_vcsr();
