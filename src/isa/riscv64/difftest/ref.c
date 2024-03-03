@@ -45,11 +45,10 @@ static void csr_prepare() {
   cpu.stvec    = stvec->val;
 
 #ifdef CONFIG_RV_DASICS
-  cpu.dumcfg    = dumcfg->val;  // dumcfg
+  cpu.dumcfg    = dumcfg->val;
   cpu.dumbound0 = dumbound0->val;
   cpu.dumbound1 = dumbound1->val;
 
-  /* Yet to connect
   cpu.dlcfg0    = dlcfg0->val;
   cpu.dlbound0  = dlbound0->val;
   cpu.dlbound1  = dlbound1->val;
@@ -59,7 +58,10 @@ static void csr_prepare() {
   cpu.dlbound5  = dlbound5->val;
   cpu.dlbound6  = dlbound6->val;
   cpu.dlbound7  = dlbound7->val;
-  */
+
+  cpu.djcfg     = djcfg->val;
+  cpu.djbound0lo= djbound0lo->val;
+  cpu.djbound0hi= djbound0hi->val;
 
   cpu.dmaincall = dmaincall->val;
   cpu.dretpc    = dretpc->val;
@@ -101,7 +103,6 @@ static void csr_writeback() {
   dumbound0->val = cpu.dumbound0;
   dumbound1->val = cpu.dumbound1;
 
-  /* Yet to connect
   dlcfg0->val    = cpu.dlcfg0;
   dlbound0->val  = cpu.dlbound0;
   dlbound1->val  = cpu.dlbound1;
@@ -111,7 +112,10 @@ static void csr_writeback() {
   dlbound5->val  = cpu.dlbound5;
   dlbound6->val  = cpu.dlbound6;
   dlbound7->val  = cpu.dlbound7;
-  */
+
+  djcfg->val     = cpu.djcfg;
+  djbound0lo->val= cpu.djbound0lo;
+  djbound0hi->val= cpu.djbound0hi;
 
   dmaincall->val = cpu.dmaincall;
   dretpc->val    = cpu.dretpc;

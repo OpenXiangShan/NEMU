@@ -80,16 +80,11 @@ typedef struct {
 
 #ifdef CONFIG_RV_DASICS
   uint64_t dumcfg, dumbound0, dumbound1;
-  /* Yet to connect
   uint64_t dlcfg0;
-  uint64_t dlbound0, dlbound1, dlbound2, dlbound3, dlbound4, dlbound5;
-  uint64_t dlbound6, dlbound7;
-  */
+  uint64_t dlbound0, dlbound1, dlbound2, dlbound3;
+  uint64_t dlbound4, dlbound5, dlbound6, dlbound7;
   uint64_t dmaincall, dretpc;
-  /* Yet to connect
-  uint64_t djbound0lo, djbound0hi;
-  uint64_t djcfg;
-  */
+  uint64_t djcfg, djbound0lo, djbound0hi;
 #endif  // CONFIG_RV_DASICS
 
   // Above will be synced by regcpy when run difftest, DO NOT TOUCH
