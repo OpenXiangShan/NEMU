@@ -97,12 +97,6 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
-  //TODO: DASICS fetch check
-  // Logm("fetch instruction from:%lx, last pc is %lx", s->snpc,s->prev_pc);
-#ifdef CONFIG_RV_DASICS
-  if(s->prev_is_cfi)
-    dasics_fetch_helper(s->snpc, s->prev_pc, s->prev_type);
-#endif
 #ifdef CONFIG_RVSDTRIG
   trig_action_t action = TRIG_ACTION_NONE;
   if (cpu.TM->check_timings.bf) {
@@ -110,6 +104,11 @@ int isa_fetch_decode(Decode *s) {
   }
   trigger_handler(action);
 #endif
+#ifdef CONFIG_RV_DASICS
+  if(s->prev_is_branch) {
+    dasics_fetch_helper(s->snpc, s->prev_pc);
+  }
+#endif  // CONFIG_RV_DASICS
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
@@ -125,9 +124,6 @@ int isa_fetch_decode(Decode *s) {
     idx = table_main(s);
   }
 
-  s->prev_is_cfi = 0;
-  s->prev_type   = CFI_NONE;
-
 #ifdef CONFIG_RVSDTRIG
   if (cpu.TM->check_timings.af) {
     action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, s->isa.instr.val);
@@ -135,32 +131,22 @@ int isa_fetch_decode(Decode *s) {
   trigger_handler(action);
 #endif
 
+  s->prev_is_branch = 0;
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
-#ifdef CONFIG_RV_DASICS
-    case EXEC_ID_dasicscall_j:
-      s->prev_is_cfi = 1; s->prev_type  = CFI_JUMP;
-#endif  // CONFIG_RV_DASICS
+    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_j:)
       s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-#ifdef CONFIG_RV_DASICS
-      s->prev_is_cfi = 1; s->prev_type  = CFI_BRANCH;
-#endif  // CONFIG_RV_DASICS
-      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->prev_is_branch = 1; s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-#ifdef CONFIG_RV_DASICS
-    case EXEC_ID_dasicscall_jr:
-      s->prev_is_cfi = 1; s->prev_type  = CFI_JUMP;
-#endif  // CONFIG_RV_DASICS
-#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
-    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
-#endif
+    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_jr:)
+    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
       s->type = INSTR_TYPE_I; break;
 
 #if !defined(CONFIG_DEBUG) && !defined(CONFIG_SHARE)
