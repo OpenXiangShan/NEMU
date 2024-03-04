@@ -16,10 +16,23 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <cpu/difftest.h>
+#include "../local-include/csr.h"
 #include "../local-include/reg.h"
 #include <difftest.h>
 
+// csr_prepare() & csr_writeback() are used to maintain 
+// a compact mirror of critical CSRs
+// For processor difftest only 
+#ifdef CONFIG_RVH
+#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
+#endif //CONFIG_RVH
+
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
+  csr_prepare();
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  cpu.mip &= 0xffffff4f; // ignore difftest for mip
+#endif
+  if(cpu.mip != ref_r->mip) ref_r->mip = cpu.mip; // ignore difftest for mip
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
     int i;
     // do not check $0
@@ -27,12 +40,78 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_reg(reg_name(i, 4), pc, ref_r->gpr[i]._64, cpu.gpr[i]._64);
     }
     difftest_check_reg("pc", pc, ref_r->pc, cpu.pc);
+    #ifdef CONFIG_RVV
+    for(i=0;i < ARRLEN(cpu.vr); i++){
+      difftest_check_vreg(vreg_name(i, 8), pc, ref_r->vr[i]._64, cpu.vr[i]._64,VLEN/8);
+    }
+    #endif // CONFIG_RVV
+    #ifdef CONFIG_FPU_SOFT
+    for(i = 0; i < ARRLEN(cpu.fpr); i++) {
+      difftest_check_reg(fpreg_name(i, 4), pc, ref_r->fpr[i]._64, cpu.fpr[i]._64);
+    }
+    #endif
+
+    #define check_reg(r) difftest_check_reg(str(r), pc, ref_r->r, cpu.r)
+
+    check_reg(mstatus   );
+    check_reg(mcause    );
+    check_reg(mepc      );
+    check_reg(sstatus   );
+    check_reg(scause    );
+    check_reg(sepc      );
+    check_reg(satp      );
+    check_reg(mip       );
+    check_reg(mie       );
+    check_reg(mscratch  );
+    check_reg(sscratch  );
+    check_reg(mideleg   );
+    check_reg(medeleg   );
+    check_reg(mtval     );
+    check_reg(stval     );
+    check_reg(mtvec     );
+    check_reg(stvec     );
+
+    #ifdef CONFIG_RVV
+    check_reg(vtype     );
+    check_reg(vstart    );
+    check_reg(vxsat     );
+    check_reg(vxrm      );
+    check_reg(vl        );
+    check_reg(vcsr      );
+    check_reg(vlenb     );
+    #endif // CONFIG_RVV
+
+    #ifdef CONFIG_RVH
+    check_reg(v);//virtualization mode
+    check_reg(mtval2    );
+    check_reg(mtinst    );
+    check_reg(hstatus   );
+    check_reg(hideleg   );
+    check_reg(hedeleg   );
+    check_reg(hcounteren);
+    check_reg(htval     );
+    check_reg(htinst    );
+    check_reg(hgatp     );
+    check_reg(vsstatus  );
+    check_reg(vstvec    );
+    check_reg(vsepc     );
+    check_reg(vscause   );
+    check_reg(vstval    );
+    check_reg(vsatp     );
+    check_reg(vsscratch );
+    #endif // CONFIG_RVH
     return false;
   }
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  return difftest_check_store(pc);
+#else
   return true;
+#endif
 }
 
 void isa_difftest_attach() {
+  csr_prepare();
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), MEMORY_SIZE, DIFFTEST_TO_REF);
+  assert(0); //FIXME
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }

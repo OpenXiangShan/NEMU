@@ -30,9 +30,16 @@
 // (5) redundant from the aspect of EHelper
 //       C.ADDI16SP (the same as C.ADDI)
 //       C.NOP      (the same as C.ADDI)
-
+#include <generated/autoconf.h>
 def_EHelper(c_j) {
   IFDEF(CONFIG_RV_DASICS, rtl_dasics_jcheck(s, id_src1->imm));
+#ifdef CONFIG_BR_LOG
+  br_log[br_count].pc = s->pc; // cpu.pc - 4;
+  br_log[br_count].target = id_src1->imm;
+  br_log[br_count].taken = 1;
+  br_log[br_count].type = 1;
+  br_count++;
+#endif // CONFIG_BR_LOG
   rtl_j(s, id_src1->imm);
 }
 

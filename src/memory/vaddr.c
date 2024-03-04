@@ -16,6 +16,8 @@
 
 #include <isa.h>
 #include <cpu/decode.h>
+//#include <profiling/betapoint-ext.h>
+#include <profiling/profiling_control.h>
 
 #ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1
@@ -24,6 +26,7 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
+#include <cpu/decode.h>
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
@@ -118,7 +121,11 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     dasics_ldst_helper(((struct Decode *)s)->pc, addr, len, type);    
   }
 #endif  // CONFIG_RV_DASICS
+#ifdef CONFIG_RVV
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
+#else
   if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+#endif
     Logm("Checking mmu when MMU_DYN");
     mmu_mode = isa_mmu_check(addr, len, type);
   }
@@ -127,6 +134,12 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
+#ifdef CONFIG_RVH
+  if(type != MEM_TYPE_IFETCH){
+    extern int rvh_hlvx_check(struct Decode *s, int type);
+    rvh_hlvx_check(s, type);
+  }
+#endif
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
 #endif
   return 0;
@@ -153,8 +166,17 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
   dasics_ldst_helper(s->pc, addr, len, MEM_TYPE_WRITE);
 #endif  // CONFIG_RV_DASICS
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
-  if (mmu_mode == MMU_DIRECT) { paddr_write(addr, len, data, cpu.mode, addr); return; }
+#ifdef CONFIG_RVV
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && (s->v_is_vx == 0)))) {
+#else
+  if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+#endif
+    mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+  }
+  if (mmu_mode == MMU_DIRECT) {
+    paddr_write(addr, len, data, cpu.mode, addr);
+    return;
+  }
 #ifndef __ICS_EXPORT
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 #endif

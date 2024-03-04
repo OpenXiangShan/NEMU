@@ -24,9 +24,14 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include <setjmp.h>
+#include "vcommon.h"
 
 int get_mode(Decode *s) {
-  rtl_lr(s, &(id_src1->val), id_src1->reg, 4);
+  /*
+   * mode 0: rs1 != 0, Normal stripmining
+   * mode 1: rd != 0, rs1 == 0, Set vl to VLMAX
+   * mode 2: rd == 0, rs1 == 0, Keep existing vl
+   */
   int mode = 0;
   if (id_src1->reg == 0 && id_dest->reg != 0) {
     mode = 1;
@@ -41,13 +46,19 @@ void set_vtype_vl(Decode *s, int mode) {
   rtlreg_t vl_num = check_vsetvl(id_src2->val, id_src1->val, mode);
   rtlreg_t error = 1ul << 63;
   
-  if(vl_num == (uint64_t)-1) {
+  if(vl_num == (uint64_t)-1 || check_vlmul_sew_illegal(id_src2->val)) {
     vtype->val = error;
   }
   else {
     vtype->val = id_src2->val;
   }
-  
+  // if vtype illegal,set vl = 0 ,vd = 0
+  if(check_vlmul_sew_illegal(id_src2->val)){
+    vl->val = 0;
+
+    rtl_sr(s, id_dest->reg, &vl->val, 8/*4*/);
+    return;
+  }
   vl->val = vl_num;
 
   rtl_sr(s, id_dest->reg, &vl_num, 8/*4*/);
@@ -59,28 +70,31 @@ def_EHelper(vsetvl) {
 
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
+  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
-
-  // print_asm_template3(vsetvl);
+  vp_set_dirty();
 }
 
 def_EHelper(vsetvli) {
 
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
+  rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
+  rtl_li(s, &(s->src2.val), s->isa.instr.v_opsimm.v_zimm);
   int mode = get_mode(s);
   set_vtype_vl(s, mode);
-
-  // print_asm_template3(vsetvl);
+  vp_set_dirty();
 }
 
 def_EHelper(vsetivli) {
   //vlmul+lg2(VLEN) <= vsew + vl
   // previous decode does not load vals for us
+  rtl_li(s, &(s->src1.val), s->isa.instr.v_vseti.v_zimm5);
+  rtl_li(s, &(s->src2.val), s->isa.instr.v_vseti.v_zimm);
   set_vtype_vl(s, 0);
-
-  // print_asm_template3(vsetvl);
+  vp_set_dirty();
 }
 
 #endif // CONFIG_RVV

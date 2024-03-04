@@ -154,7 +154,15 @@ config DIFFTEST_REF_KVM
   bool "KVM"
 config DIFFTEST_REF_NEMU
   bool "NEMU"
+config DIFFTEST_REF_SPIKE
+  bool "SPIKE"
 endchoice
+
+config DIFFTEST_STORE_COMMIT
+  depends on DIFFTEST_REF_SPIKE
+  bool "Check the data of the store class instruction"
+  default n
+
 
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
@@ -210,6 +218,10 @@ config TRACE_BB
   bool "Enable Log for tracing basic block"
   default n
 
+config SIMPOINT_LOG
+  bool "Enable Log for simpoint profiling"
+  default n
+
 endmenu
 
 if !MODE_USER
@@ -254,6 +266,11 @@ config DIFFTEST_STORE_COMMIT_AMO
   bool "Also record store requests by AMO instructions"
   default n
 
+config DIFFTEST_STORE_QUEUE_SIZE
+  depends on DIFFTEST_STORE_COMMIT
+  int "Size of committed store queue"
+  default 64
+
 config GUIDED_EXEC
   depends on SHARE
   bool "Enable DUT guided execution"
@@ -274,6 +291,11 @@ config PANIC_ON_UNIMP_CSR
   bool "Panic if an unimplemented CSR is being accessed"
   default n
 
+config REF_STATUS
+  depends on SHARE
+  bool "Enable ref status API"
+  default n
+
 endmenu
 
 menu "Miscellaneous"
@@ -285,6 +307,16 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+
+config MEMORY_REGION_ANALYSIS
+  bool "Enable Program memory segment analysis"
+  default n
+
+if MEMORY_REGION_ANALYSIS
+config MEMORY_REGION_ANALYSIS_SIZE
+  int "Analysis block MB size"
+  default 32
+endif
 
 config REPORT_ILLEGAL_INSTR
   bool "Let NEMU report illegal instruction"
@@ -320,7 +352,7 @@ endif
 endif
 
 config ENABLE_INSTR_CNT
-  bool
+  bool "Enable instruction counting"
   default n if DISABLE_INSTR_CNT
   default y
 endmenu

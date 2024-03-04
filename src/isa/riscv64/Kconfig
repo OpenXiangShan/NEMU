@@ -28,6 +28,25 @@ config RV_DASICS
   bool "Enable DASICS Protection Mechanism for RV64"
   default y
 
+config RVH
+  bool "RISC-V Hypervisor Extension v1.0"
+  default n
+
+config RVSDEXT
+  bool "(Beta) RISC-V Sdext ISA Extension v1.0"
+  depends on RV_DEBUG
+  default n
+
+config RVSDTRIG
+  bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
+  depends on RV_DEBUG
+  default n
+
+config TRIGGER_NUM
+  int "Number of supported triggers"
+  depends on RVSDTRIG
+  default 10
+
 config RV_PMP_CSR
   bool "Enable PMP CSR Read & Write"
   default y
@@ -37,6 +56,11 @@ config RV_PMP_NUM
   int "Number of PMP CSR registers"
   default 16
   range 0 16
+
+config PMP_GRANULARITY
+  depends on RV_PMP_CSR
+  int "PMP granularity"
+  default 12
 
 config RV_PMP_CHECK
   # todo: pmp check still not work when enable PERF_OPT
@@ -55,6 +79,14 @@ config MISA_UNCHANGEABLE
 
 config XTVEC_VECTORED_MODE
   bool "Support Vectored MODE of mtvec/stvec"
+  default y
+
+config TVAL_EX_II
+  bool "Update m/stval on illegal instruction exceptions"
+  default n
+
+config FS_CLEAN_STATE
+  bool "XSTATUS.FS has the state of Clean"
   default y
 
 config RV_ARCH_CSRS
@@ -82,5 +114,24 @@ config MIMPID_VALUE
   depends on !USE_XS_ARCH_CSRS
   hex "Value of CSR mimpid"
   default 0x0
+
+config PMPTABLE_EXTENSION
+  # PMPTable covers PMPChecker function,
+  # close PMPChecker when using PMPTable.
+  depends on !PERF_OPT
+  depends on !RV_PMP_CHECK
+  depends on RV_PMP_CSR
+  bool "Enable PMPTable extension"
+  default n
+
+config RVV_AGNOSTIC
+  depends on RVV
+  bool "Enable RVV agnostic policy"
+  default y
+
+config EBREAK_AS_TRAP
+  depends on !RV_DEBUG
+  bool "Treat ebreak same as nemu_trap"
+  default n
 
 endmenu

@@ -15,7 +15,11 @@
 
 #include <utils.h>
 
+#ifdef CONFIG_SHARE
+NEMUState nemu_state = { .state = NEMU_RUNNING };
+#else
 NEMUState nemu_state = { .state = NEMU_STOP };
+#endif // CONFIG_SHARE
 
 int is_exit_status_bad() {
   int good = (nemu_state.state == NEMU_END && nemu_state.halt_ret == 0) ||
@@ -25,5 +29,7 @@ int is_exit_status_bad() {
   } else {
     Log("NEMU exit with good state: %i, halt ret: %i", nemu_state.state, nemu_state.halt_ret);
   }
+  extern void log_close();
+  log_close();
   return !good;
 }

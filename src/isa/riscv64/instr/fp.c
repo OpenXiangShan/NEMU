@@ -37,9 +37,10 @@ bool fp_enable() {
 
 void fp_set_dirty() {
   // lazily update mstatus->sd when reading mstatus
-#ifdef CONFIG_SHARE
+#if defined (CONFIG_SHARE) || defined (CONFIG_DIFFTEST_REF_SPIKE)
   mstatus->sd = 1;
 #endif
+// Spike update fs and sd in the meantime
   mstatus->fs = 3;
 }
 
@@ -77,4 +78,11 @@ void isa_fp_csr_check() {
     assert(0);
   }
 #endif // CONFIG_FPU_NONE
+}
+
+uint32_t isa_fp_get_frm() {
+#ifndef CONFIG_FPU_NONE
+  return fcsr->frm;
+#endif // CONFIG_FPU_NONE
+  return 0;
 }

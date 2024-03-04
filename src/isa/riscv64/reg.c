@@ -18,6 +18,7 @@
 //#include <monitor/difftest.h>
 #include "local-include/reg.h"
 #include "local-include/csr.h"
+#include "local-include/trigger.h"
 //#include "local-include/intr.h"
 
 const char *regsl[] = {
@@ -42,16 +43,18 @@ void isa_reg_display() {
       printf("\n");
     }
   }
+#ifndef CONFIG_FPU_NONE
   for (i = 0; i < 32; i ++) {
     printf("%4s: " FMT_WORD " ", fpregsl[i], cpu.fpr[i]._64);
     if (i % 4 == 3) {
       printf("\n");
     }
   }
+#endif // CONFIG_FPU_NONE
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, mstatus->val, mcause->val, mepc->val);
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
-      "", csrid_read(0x100), scause->val, sepc->val);
+      "", cpu.sstatus, scause->val, sepc->val);
   printf("satp: " FMT_WORD "\n", satp->val);
   printf("mip: " FMT_WORD " mie: " FMT_WORD " mscratch: " FMT_WORD " sscratch: " FMT_WORD "\n",
       mip->val, mie->val, mscratch->val, sscratch->val);
@@ -80,6 +83,17 @@ void isa_reg_display() {
     else printf("|");
   }
 #endif  // CONFIG_RV_DASICS
+#ifdef CONFIG_RVH
+  printf("mtval2: " FMT_WORD " mtinst: " FMT_WORD " hstatus: " FMT_WORD " hideleg: " FMT_WORD "\n",
+      mtval2->val, mtinst->val, hstatus->val, hideleg->val);
+  printf("hedeleg: " FMT_WORD " hcounteren: " FMT_WORD " htval: " FMT_WORD " htinst: " FMT_WORD "\n",
+      hedeleg->val, hcounteren->val, htval->val, htinst->val);
+  printf("hgatp: " FMT_WORD " vsscratch: " FMT_WORD " vsstatus: " FMT_WORD " vstvec: " FMT_WORD "\n",
+      hgatp->val, vsscratch->val, vsstatus->val, vstvec->val);
+  printf("vsepc: " FMT_WORD " vscause: " FMT_WORD " vstval: " FMT_WORD " vsatp: " FMT_WORD "\n",
+      vsepc->val, vscause->val, vstval->val, vsatp->val);
+  printf("virtualization mode: %ld\n", cpu.v);
+#endif
 #ifdef CONFIG_RV_PMP_CSR
   printf("privilege mode:%ld  pmp: below\n", cpu.mode);
   for (int i = 0; i < CONFIG_RV_PMP_NUM; i++) {
@@ -106,6 +120,13 @@ void isa_reg_display() {
   printf("vtype: " FMT_WORD " vstart: " FMT_WORD " vxsat: " FMT_WORD "\n", vtype->val, vstart->val, vxsat->val);
   printf("vxrm: " FMT_WORD " vl: " FMT_WORD " vcsr: " FMT_WORD "\n", vxrm->val, vl->val, vcsr->val);
 #endif // CONFIG_RVV
+
+#ifdef CONFIG_RVSDTRIG
+  printf("tselect: " FMT_WORD "\n", tselect->val);
+  for(i = 0; i < CONFIG_TRIGGER_NUM + 1; i++) {
+    printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
+  }
+#endif
   fflush(stdout);
 }
 

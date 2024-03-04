@@ -40,12 +40,13 @@
 
 #include "checkpoint/path_manager.h"
 #include <cassert>
-#include <debug.h>
+//#include <debug.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
-#include "checkpoint/simpoint.h"
-#include "checkpoint/profiling.h"
+
+#include <checkpoint/simpoint.h>
+#include <profiling/profiling_control.h>
 
 namespace SimPointNS
 {
@@ -53,7 +54,11 @@ namespace SimPointNS
 extern "C" {
 #include <debug.h>
 extern bool log_enable();
+extern void log_flush();
+extern char *log_filebuf;
+extern uint64_t record_row_number;
 extern FILE *log_fp;
+extern bool enable_small_log;
 }
 
 SimPoint::SimPoint()
@@ -62,19 +67,17 @@ SimPoint::SimPoint()
       simpointStream(nullptr),
       currentBBV(0, 0),
       currentBBVInstCount(0) {
-
-  simpointStream = NEMUNS::simout.create("simpoint_bbv", false);
-  if (!simpointStream)
-    xpanic("unable to open SimPoint profile_file");
 }
 
 SimPoint::~SimPoint() {
-  NEMUNS::simout.close(simpointStream);
+  if (simpointStream)
+    NEMUNS::simout.close(simpointStream);
 }
 
 void
 SimPoint::init() {
   if (profiling_state == SimpointProfiling) {
+    pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
     Log("Doing simpoint profiling with interval %lu", intervalSize);
@@ -91,7 +94,8 @@ SimPoint::init() {
 void
 SimPoint::profile_with_abs_icount(Addr pc, bool is_control, bool is_last_uop, uint64_t abs_icount) {
   unsigned exec_count = abs_icount - lastICount;
-  // Log("0x%lx -> icount = %lu\n", pc, abs_icount);
+  Logsp("PC: 0x%lx , icount: %lu, control: %i", pc, abs_icount, is_control);
+  Logsp("is_control: %i, is_last_uop: %i, exec_count: %u", is_control, is_last_uop, exec_count);
   profile(pc, is_control, is_last_uop, exec_count);
   lastICount = abs_icount;
 }
@@ -102,17 +106,22 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
   if (!is_last_uop)
     return;
 
-  if (!currentBBVInstCount)
-    currentBBV.first = pc;
-
   intervalCount += instr_count;
   currentBBVInstCount += instr_count;
+
+  if (!currentBBVInstCount) {
+    Logsp("Set BB start: 0x%lx", pc);
+    currentBBV.first = pc;
+  }
+
+  Logsp("intervalCount: %lu, currentBBVInstCount: %lu", intervalCount, currentBBVInstCount);
 
   // If inst is control inst, assume end of basic block.
   if (is_control) {
     currentBBV.second = pc;
 
     auto map_itr = bbMap.find(currentBBV);
+    Logsp("Finding BB 0x%lx -> 0x%lx", currentBBV.first, currentBBV.second);
     if (map_itr == bbMap.end()) {
       // If a new (previously unseen) basic block is found,
       // add a new unique id, record num of insts and insert into bbMap.
@@ -153,7 +162,7 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
                                   << ":" << cnt_itr->second << " ";
       }
       *simpointStream->stream() << "\n";
-      Log("Simpoint profilied %lu instrs", intervalCount);
+      Logsp("Simpoint profilied %lu instrs", intervalCount);
 
       intervalDrift = (intervalCount + intervalDrift) - intervalSize;
       intervalCount = 0;
@@ -171,8 +180,10 @@ void simpoint_init() {
   simpoit_obj.init();
 }
 
+#ifndef CONFIG_SHARE
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {
   simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
 }
+#endif
 
 }

@@ -79,6 +79,9 @@ typedef struct Decode {
   #ifdef CONFIG_RVV
   // for vector
   int v_width;
+  int v_nf;
+  int v_lsumop;
+  int v_is_vx;    // 1: vector indexed load/store instruction; 0: other vector load/store instruction
   uint32_t vm;
   uint32_t src_vmode;
   rtlreg_t tmp_reg[4];
@@ -129,8 +132,8 @@ static inline def_DHelper(empty) {}
 
 __attribute__((always_inline))
 static inline void pattern_decode(const char *str, int len,
-    uint32_t *key, uint32_t *mask, uint32_t *shift) {
-  uint32_t __key = 0, __mask = 0, __shift = 0;
+    uint64_t *key, uint64_t *mask, uint64_t *shift) {
+  uint64_t __key = 0, __mask = 0, __shift = 0;
 #define macro(i) \
   if ((i) >= len) goto finish; \
   else { \
@@ -159,9 +162,9 @@ finish:
 }
 
 #define def_INSTR_raw(pattern, body) do { \
-  uint32_t key, mask, shift; \
+  uint64_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
-  if (((get_instr(s) >> shift) & mask) == key) { body; } \
+  if ((((uint64_t)get_instr(s) >> shift) & mask) == key) { body; } \
 } while (0)
 
 #define def_INSTR_IDTABW(pattern, id, tab, width) \

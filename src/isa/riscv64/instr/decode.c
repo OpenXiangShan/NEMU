@@ -15,9 +15,12 @@
 ***************************************************************************************/
 
 #include "../local-include/rtl.h"
+#include "../local-include/trigger.h"
+#include "../local-include/intr.h"
+#include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
-#include <isa-all-instr.h>
+#include "../include/isa-all-instr.h"
 
 
 def_all_THelper();
@@ -34,14 +37,16 @@ static inline uint32_t get_instr(Decode *s) {
 #include "rvi/decode.h"
 #ifndef CONFIG_FPU_NONE
 #include "rvf/decode.h"
-#include "rvd/decode.h"
-#endif  // CONFIG_FPU_NONE
+#endif // CONFIG_FPU_NONE
 #include "rvm/decode.h"
 #include "rva/decode.h"
 #include "rvc/decode.h"
 #include "priv/decode.h"
+#ifndef CONFIG_FPU_NONE
+#include "rvd/decode.h"
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVV
-  #include "rvv/decode.h"
+#include "rvv/decode.h"
 #endif // CONFIG_RVV
 
 def_THelper(main) {
@@ -79,9 +84,13 @@ def_THelper(main) {
 #endif // CONFIG_RVV
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11000 ??", B     , branch);
   def_INSTR_IDTAB("??????? ????? ????? 000 ????? 11001 ??", I     , jalr_dispatch);
-  def_INSTR_TAB  ("??????? ????? ????? ??? ????? 11010 ??",         nemu_trap);
+  def_INSTR_TAB  ("??????? ????? ????? 000 ????? 11010 ??",         nemu_trap);
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11011 ??", J     , jal_dispatch);
+#ifdef CONFIG_RVH
+  def_INSTR_TAB  ("??????? ????? ????? ??? ????? 11100 ??",         system);
+#else
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11100 ??", csr   , system);
+#endif
   return table_inv(s);
 };
 
@@ -93,6 +102,13 @@ int isa_fetch_decode(Decode *s) {
 #ifdef CONFIG_RV_DASICS
   if(s->prev_is_cfi)
     dasics_fetch_helper(s->snpc, s->prev_pc, s->prev_type);
+#endif
+#ifdef CONFIG_RVSDTRIG
+  trig_action_t action = TRIG_ACTION_NONE;
+  if (cpu.TM->check_timings.bf) {
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->snpc, TRIGGER_NO_VALUE);
+  }
+  trigger_handler(action);
 #endif
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
@@ -111,36 +127,59 @@ int isa_fetch_decode(Decode *s) {
 
   s->prev_is_cfi = 0;
   s->prev_type   = CFI_NONE;
+
+#ifdef CONFIG_RVSDTRIG
+  if (cpu.TM->check_timings.af) {
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, s->isa.instr.val);
+  }
+  trigger_handler(action);
+#endif
+
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
-    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_j:)
-      s->prev_is_cfi = 1; s->prev_type  = CFI_JUMP; s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
+#ifdef CONFIG_RV_DASICS
+    case EXEC_ID_dasicscall_j:
+      s->prev_is_cfi = 1; s->prev_type  = CFI_JUMP;
+#endif  // CONFIG_RV_DASICS
+      s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-      s->prev_is_cfi = 1; s->prev_type  = CFI_BRANCH; s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+#ifdef CONFIG_RV_DASICS
+      s->prev_is_cfi = 1; s->prev_type  = CFI_BRANCH;
+#endif  // CONFIG_RV_DASICS
+      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_jr:)
+#ifdef CONFIG_RV_DASICS
+    case EXEC_ID_dasicscall_jr:
       s->prev_is_cfi = 1; s->prev_type  = CFI_JUMP;
-    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
+#endif  // CONFIG_RV_DASICS
+#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
+    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
+#endif
       s->type = INSTR_TYPE_I; break;
 
-#ifndef CONFIG_DEBUG
+#if !defined(CONFIG_DEBUG) && !defined(CONFIG_SHARE)
+#ifdef CONFIG_RVH
+    case EXEC_ID_priv:
+#else // CONFIG_RVH
     case EXEC_ID_system:
+#endif // CONFIG_RVH
       if (s->isa.instr.i.funct3 == 0) {
         switch (s->isa.instr.csr.csr) {
-          case 0:     // ecall
+          case 0x0:   // ecall
+          case 0x1:   // ebreak
           case 0x102: // sret
           case 0x302: // mret
             s->type = INSTR_TYPE_I;
         }
       }
       break;
-#endif
+#endif // CONFIG_DEBUG
   }
 
   return idx;

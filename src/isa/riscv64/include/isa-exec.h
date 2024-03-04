@@ -21,7 +21,7 @@
 #ifndef CONFIG_FPU_NONE
 #include "../instr/rvf/exec.h"
 #include "../instr/rvd/exec.h"
-#endif
+#endif // CONFIG_FPU_NONE
 #include "../instr/rva/exec.h"
 #include "../instr/priv/exec.h"
 #ifdef CONFIG_RVB

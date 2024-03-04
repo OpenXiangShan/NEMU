@@ -19,7 +19,6 @@
 
 #include <cpu/decode.h>
 #include "csr.h"
-
 enum {
   EX_IAM, // instruction address misaligned
   EX_IAF, // instruction address fault
@@ -29,14 +28,18 @@ enum {
   EX_LAF, // load address fault
   EX_SAM, // store/amo address misaligned
   EX_SAF, // store/amo address fault
-  EX_ECU, // ecall from U-mode
-  EX_ECS, // ecall from S-mode
-  EX_RS0, // reserved
+  EX_ECU, // ecall from U-mode or VU-mode
+  EX_ECS, // ecall from HS-mode 
+  EX_ECVS,// ecall from VS-mode, H-extention
   EX_ECM, // ecall from M-mode
   EX_IPF, // instruction page fault
   EX_LPF, // load page fault
-  EX_RS1, // reserved
+  EX_RS0, // reserved
   EX_SPF, // store/amo page fault
+  EX_IGPF = 20,// instruction guest-page fault, H-extention
+  EX_LGPF,// load guest-page fault, H-extention
+  EX_VI,  // virtual instruction, H-extention
+  EX_SGPF, // store/amo guest-page fault, H-extention
 #ifdef CONFIG_RV_DASICS
   EX_DUIAF=24,  // DASICS user instruction access fault
   EX_DULAF,     // DASICS user load access fault
@@ -51,6 +54,10 @@ enum {
 word_t raise_intr(word_t NO, vaddr_t epc);
 #define return_on_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
 bool intr_deleg_S(word_t exceptionNO);
+bool intr_deleg_VS(word_t exceptionNO);
+#ifdef CONFIG_RVH
+#define INTR_TVAL_REG(ex) (*((intr_deleg_VS(ex)) ? (word_t *)vstval :(intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
+#else
 #define INTR_TVAL_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
-
+#endif
 #endif

@@ -1,4 +1,6 @@
 [submodule "ready-to-run"]
 	path = ready-to-run
-	url = https://gitee.com/dasics/ready-to-run.git
-	branch = dev-nemu-difftest
+	url = https://github.com/OpenXiangShan/ready-to-run.git
+[submodule "resource/simpoint/simpoint_repo"]
+	path = resource/simpoint/simpoint_repo
+	url = https://github.com/shinezyy/SimPoint.3.2-fix.git

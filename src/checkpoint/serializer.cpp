@@ -18,7 +18,7 @@
 //
 
 #include <checkpoint/path_manager.h>
-#include <checkpoint/profiling.h>
+#include <profiling/profiling_control.h>
 #include <checkpoint/serializer.h>
 #include <checkpoint/cpt_env.h>
 
@@ -60,6 +60,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 uint8_t* guest_to_host(paddr_t paddr);
 #include <debug.h>
 extern bool log_enable();
+extern void log_flush();
 extern unsigned long MEMORY_SIZE;
 }
 
@@ -81,7 +82,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
   Log("Put gcpt restorer %s to start of pmem", restorer);
 
   string filepath;
-  if (profiling_state == SimpointCheckpointing) {
+  if (checkpoint_state == SimpointCheckpointing) {
       filepath = pathManager.getOutputPath() + "_" + \
                         to_string(simpoint2Weights.begin()->first) + "_" + \
                         to_string(simpoint2Weights.begin()->second) + "_.gz";
@@ -129,7 +130,7 @@ void Serializer::serializeRegs() {
       IntRegStartAddr, IntRegStartAddr + 32 * 8
       );
 
-
+#ifndef CONFIG_FPU_NONE
   auto *floatRegCpt = (uint64_t *) (get_pmem() + FloatRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
@@ -138,7 +139,7 @@ void Serializer::serializeRegs() {
       FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
       FloatRegStartAddr, FloatRegStartAddr + 32 * 8
       );
-
+#endif // CONFIG_FPU_NONE
 
   auto *pc = (uint64_t *) (get_pmem() + PCAddr);
   *pc = cpu.pc;
@@ -195,7 +196,6 @@ void Serializer::serializeRegs() {
 }
 
 void Serializer::serialize(uint64_t inst_count) {
-  pathManager.setOutputDir();
 //  isa_reg_display();
   serializeRegs();
   serializePMem(inst_count);
@@ -204,7 +204,7 @@ void Serializer::serialize(uint64_t inst_count) {
 }
 
 void Serializer::init() {
-  if  (profiling_state == SimpointCheckpointing) {
+  if  (checkpoint_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
     Log("Taking simpoint checkpionts with profiling interval %lu",
@@ -225,55 +225,82 @@ void Serializer::init() {
 
       Log("Simpoint %lu: @ %lu, weight: %f", simpoint_id, simpoint_location, weight);
     }
-  } else if (checkpoint_taking) {
+
+  } else if (checkpoint_state==UniformCheckpointing||checkpoint_state==ManualUniformCheckpointing) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
     Log("Taking uniform checkpionts with interval %lu", checkpoint_interval);
     nextUniformPoint = intervalSize;
   }
+  pathManager.setCheckpointingOutputDir();
 }
 
-bool Serializer::shouldTakeCpt(uint64_t num_insts) {
-  if ((profiling_state != SimpointCheckpointing ||
-      simpoint2Weights.empty())
-          && !checkpoint_taking) {
-    return false;
-  }
-  extern bool profiling_started;
-
-  if (profiling_state == SimpointCheckpointing) {
-      uint64_t next_point = simpoint2Weights.begin()->first * intervalSize + 100000;
-      if (num_insts >= next_point) {
+bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
+  switch (checkpoint_state) {
+    case SimpointCheckpointing:
+      if (simpoint2Weights.empty()) {
+        break;
+      }else{
+        uint64_t next_point = simpoint2Weights.begin()->first * intervalSize + 100000;
+        if (num_insts >= next_point) {
           Log("Should take cpt now: %lu", num_insts);
           return true;
-      } else if (num_insts % intervalSize == 0) {
+        } else if (num_insts % intervalSize == 0) {
           Log("First cpt @ %lu, now: %lu",
-                  next_point, num_insts);
+          next_point, num_insts);
+          break;
+        }else{
+          break;
+        }
       }
-  } else if (checkpoint_taking && profiling_started){
+    case ManualOneShotCheckpointing:
+      return true;
+    case ManualUniformCheckpointing:
+    case UniformCheckpointing:
       if (num_insts >= nextUniformPoint) {
           Log("Should take cpt now: %lu", num_insts);
           return true;
       }
+      break;
+    case NoCheckpoint:
+      break;
+    default:
+      break;
   }
   return false;
 }
 
 void Serializer::notify_taken(uint64_t i) {
   Log("Taking checkpoint @ instruction count %lu", i);
-  if (profiling_state == SimpointCheckpointing) {
-    simpoint2Weights.erase(simpoint2Weights.begin());
+  if (checkpoint_state == SimpointCheckpointing) {
+    Log("simpoint2Weights size: %ld", simpoint2Weights.size());
+
     if (!simpoint2Weights.empty()) {
-        pathManager.incCptID();
+      simpoint2Weights.erase(simpoint2Weights.begin());
     }
 
-  } else if (checkpoint_taking) {
+    if (!simpoint2Weights.empty()) {
+        pathManager.setCheckpointingOutputDir();
+    } 
+
+  } else if (checkpoint_state==ManualUniformCheckpointing||checkpoint_state==UniformCheckpointing) {
     nextUniformPoint += intervalSize;
-    pathManager.incCptID();
+    pathManager.setCheckpointingOutputDir();
   }
 }
 
 Serializer serializer;
+uint64_t Serializer::next_index(){
+  uint64_t index=0;
+  if (checkpoint_state==SimpointCheckpointing&&!serializer.simpoint2Weights.empty()) {
+    index=serializer.simpoint2Weights.begin()->first;
+  }else if(checkpoint_state==UniformCheckpointing||checkpoint_state==ManualUniformCheckpointing){
+    index=nextUniformPoint;
+  }
+  Log("set next index %ld",index);
+  return index;
+}
+
 
 extern "C" {
 
@@ -282,12 +309,17 @@ void init_serializer() {
 }
 
 bool try_take_cpt(uint64_t icount) {
-  if (serializer.shouldTakeCpt(icount)) {
+  if (serializer.instrsCouldTakeCpt(icount)) {
     serializer.serialize(icount);
     serializer.notify_taken(icount);
+    Log("return true");
     return true;
   }
   return false;
+}
+
+void serialize_reg_to_mem() {
+  serializer.serializeRegs();
 }
 
 }

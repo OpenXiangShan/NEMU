@@ -19,6 +19,7 @@
 
 // Located at src/isa/$(ISA)/include/isa-def.h
 #include <isa-def.h>
+#include <generated/autoconf.h>
 
 // The macro `__ISA__` is defined in $(CFLAGS).
 // It will be expanded as "x86" or "mips32" ...
@@ -65,12 +66,23 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach();
 
   // for ref
-void isa_difftest_regcpy(void *dut, bool direction);
 void isa_difftest_csrcpy(void *dut, bool direction);
-void isa_difftest_raise_intr(word_t NO);
+#ifdef CONFIG_LIGHTQS
+void isa_difftest_regcpy(void *dut, bool direction, bool restore, uint64_t restore_count);
+void isa_difftest_uarchstatus_cpy(void *dut, bool direction, uint64_t restore_count);
+void isa_difftest_raise_intr(word_t NO, uint64_t restore_count);
+void isa_difftest_guided_exec(void *guide, uint64_t restore_count);
+#else
+void isa_difftest_regcpy(void *dut, bool direction);
 void isa_difftest_uarchstatus_cpy(void *dut, bool direction);
+void isa_difftest_raise_intr(word_t NO);
 void isa_difftest_guided_exec(void *guide);
+#endif
+
 void isa_difftest_query_ref(void *result_buffer, uint64_t type);
+#ifdef CONFIG_BR_LOG
+void *isa_difftest_query_br_log(void);
+#endif // CONFIG_BR_LOG
 #ifdef CONFIG_MULTICORE_DIFF
 void isa_difftest_set_mhartid(int n);
 #endif

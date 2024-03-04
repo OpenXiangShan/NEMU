@@ -16,6 +16,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include "local-include/csr.h"
 
 #ifndef CONFIG_SHARE
@@ -28,12 +29,23 @@ static const uint32_t img [] = {
 #endif
 
 void init_csr();
-#ifndef CONFIG_SHARE
+#ifdef CONFIG_RVSDTRIG
+void init_trigger();
+#endif
+
+#if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
 #endif
 void init_device();
 
 void init_isa() {
+  // NEMU has some cached states and some static variables in the source code.
+  // They are assumed to have initialized states every time when the dynamic lib is loaded.
+  // However, if we link NEMU as a static library, we have to manually initialize them.
+  static bool is_second_call = false;
+  if (is_second_call) {
+    memset(csr_array, 0, sizeof(csr_array));
+  }
   init_csr();
 
 #ifndef CONFIG_RESET_FROM_MMIO
@@ -41,6 +53,7 @@ void init_isa() {
 #else
   cpu.pc = CONFIG_MMIO_RESET_VECTOR;
 #endif
+  cpu.lr_valid = 0;
 
   cpu.gpr[0]._64 = 0;
 
@@ -65,13 +78,21 @@ void init_isa() {
 #ifndef CONFIG_FPU_NONE
   misa->extensions |= ext('d') | ext('f');
 #endif // CONFIG_FPU_NONE
+#ifdef CONFIG_RVH
+  misa->extensions |= ext('h');
+  hstatus->vsxl = 2; // equal to max len (spike)
+  vsstatus->val = mstatus->val & SSTATUS_RMASK;
+  mideleg->val |= ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2));
+#endif
+
   misa->mxl = 2; // XLEN = 64
 
 #ifdef CONFIG_RVV
   // vector
   misa->extensions |= ext('v');
   vl->val = 0;
-  vtype->val = 0; // actually should be 1 << 63 (set vill bit to forbidd)
+  vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
+  vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ARCH_CSRS
@@ -81,22 +102,40 @@ void init_isa() {
     mimpid->val = 0;
   #else
     mvendorid->val = CONFIG_MVENDORID_VALUE;
-    marchid->val = CONFIG_MARCHID_VALUE;
+    marchid->val = MUXDEF(CONFIG_DIFFTEST_REF_SPIKE, 0x5, CONFIG_MARCHID_VALUE);
     mimpid->val = CONFIG_MIMPID_VALUE;
   #endif // CONFIG_USE_XS_ARCH_CSRS
 #endif // CONFIG_RV_ARCH_CSRS
 
+#ifdef CONFIG_RVSDTRIG
+  init_trigger();
+#endif // CONFIG_RVSDTRIG
+
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
-  if (cpt_file == NULL) {
+  extern bool checkpoint_restoring;
+  if (cpt_file == NULL && !checkpoint_restoring) {
+    #ifdef CONFIG_USE_SPARSEMM
+    sparse_mem_write(get_sparsemm(), RESET_VECTOR, sizeof(img), img);
+    #else
     memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
+    #endif
   }
 #endif
 
-  IFNDEF(CONFIG_SHARE, init_clint());
-  IFDEF(CONFIG_SHARE, init_device());
+  #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
+  init_clint();
+  #endif
+
+  if (!is_second_call) {
+    IFDEF(CONFIG_SHARE, init_device());
+  }
 
 #ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
 #endif
+
+  csr_prepare();
+
+  is_second_call = true;
 }

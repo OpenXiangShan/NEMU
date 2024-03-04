@@ -123,11 +123,11 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   }
 #endif // CONFIG_SHARE
   if (is_fp) {
-#ifndef CONFIG_FPU_NONE
-    decode_op_fr(s, id_dest, rd, false);
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
 #else
-    Assert(0, "Float extension is not implemented yet!");
-#endif
+    decode_op_fr(s, id_dest, rd, false);
+#endif // CONFIG_FPU_NONE
   }
   else decode_op_r(s, id_dest, rd, false);
 }
@@ -151,11 +151,11 @@ static inline void decode_C_SxSP(Decode *s, int rotate, bool is_fp) {
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rs2 = BITS(s->isa.instr.val, 6, 2);
   if (is_fp) {
-#ifndef CONFIG_FPU_NONE
-    decode_op_fr(s, id_dest, rs2, true);
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
 #else
-    Assert(0, "Float Extension is not implemented yet!");
-#endif
+    decode_op_fr(s, id_dest, rs2, true);
+#endif // CONFIG_FPU_NONE
   }
   else decode_op_r(s, id_dest, rs2, true);
 }
@@ -194,11 +194,11 @@ static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bo
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, false);
   if (is_fp) {
-#ifndef CONFIG_FPU_NONE
-    decode_op_fr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+#ifdef CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
 #else
-    Assert(0, "Float Extension is not implemented yet!");
-#endif
+    decode_op_fr(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
+#endif // CONFIG_FPU_NONE
   }
   else decode_op_r(s, id_dest, creg2reg(BITS(instr, 4, 2)), is_store);
 }

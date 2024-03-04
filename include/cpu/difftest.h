@@ -18,7 +18,7 @@
 
 #include <common.h>
 #include <difftest.h>
-
+#include "../memory/paddr.h"
 #ifdef CONFIG_DIFFTEST
 void difftest_skip_ref();
 void difftest_skip_dut(int nr_ref, int nr_dut);
@@ -39,7 +39,10 @@ extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool direc
 extern void (*ref_difftest_regcpy)(void *c, bool direction);
 extern void (*ref_difftest_exec)(uint64_t n);
 extern void (*ref_difftest_raise_intr)(uint64_t NO);
-
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+extern int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask);
+extern store_commit_t *store_commit_queue_pop();
+#endif
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
     Log("%s is different after executing instruction at pc = " FMT_WORD
@@ -48,5 +51,36 @@ static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref
   }
   return true;
 }
+static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *ref, rtlreg_t *dut,size_t n) {
+  /***************ONLY FOR VLEN=128,ELEN=64**********************/
+  if (memcmp(ref, dut, n)) {
+    Log("%s is different after executing instruction at pc = " FMT_WORD
+        ", right =  0x%016lx_%016lx , wrong =  %016lx_%016lx", name, pc, ref[1], ref[0], dut[1], dut[0]);
+    return false;
+  }
+  return true;
+}
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+static inline bool difftest_check_store(vaddr_t pc) {
+#ifdef CONFIG_RVV
+  uint64_t step = store_read_step();
+  for (int i = 0; i < step ;i ++) {
+#endif
+    store_commit_t *dut =  store_commit_queue_pop();
+    if (dut == NULL) return true;
+    uint64_t dut_data = dut->data;
+    uint64_t dut_addr = dut->addr;
 
+    if (ref_difftest_store_commit(&dut->addr, &dut->data, &dut->mask)) {
+      Log("\n\t,is different memory executing instruction at pc = " FMT_WORD,pc);
+      Log(",ref addr = " FMT_WORD ", data = " FMT_WORD "\n\t dut addr = " FMT_WORD ", data = " FMT_WORD
+          ,dut->addr, dut->data, dut_addr, dut_data);  
+      return false;
+    }
+#ifdef CONFIG_RVV
+  }
+#endif
+  return true;
+}
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
 #endif

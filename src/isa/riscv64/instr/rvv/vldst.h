@@ -19,252 +19,98 @@
 #include "vldst_impl.h"
 
 
-def_EHelper(vlduu) { //unit-strided
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vle.v);
-    case 1 : print_asm_template3(vlbu.v);
-    case 2 : print_asm_template3(vlhu.v);
-    case 4 : print_asm_template3(vlwu.v);
-  }
-  */
+def_EHelper(vle) { //unit-strided
   VLD(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
-  //print_asm_template3(vlduu);
 }
 
-def_EHelper(vldsu) { //strided unsigned
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlse.v);
-    case 1 : print_asm_template3(vlsbu.v);
-    case 2 : print_asm_template3(vlshu.v);
-    case 4 : print_asm_template3(vlswu.v);
-  }*/
+def_EHelper(vlm) { //mask
+  VLD(MODE_MASK, UNSIGNED, s, MMU_DIRECT)
+}
+
+def_EHelper(vlr) { // whole register
+  VLR(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+}
+
+def_EHelper(vlse) { //strided unsigned
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   VLD(MODE_STRIDED, UNSIGNED, s, MMU_DIRECT)
-  //print_asm_template3(vldsu);
 }
 
-def_EHelper(vldxu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlxe.v);
-    case 1 : print_asm_template3(vlxbu.v);
-    case 2 : print_asm_template3(vlxhu.v);
-    case 4 : print_asm_template3(vlxwu.v);
-  } */
-  VLD(MODE_INDEXED, UNSIGNED, s, MMU_DIRECT)
-  //print_asm_template3(vldxu);
+def_EHelper(vlxe) {
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
+  VLDX(MODE_INDEXED, UNSIGNED, s, MMU_DIRECT)
 }
 
-def_EHelper(vldus) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vle.v);
-    case 1 : print_asm_template3(vlb.v);
-    case 2 : print_asm_template3(vlh.v);
-    case 4 : print_asm_template3(vlw.v);
-  }*/
-  VLD(MODE_UNIT, SIGNED, s, MMU_DIRECT)
-  //print_asm_template3(vldus);
-}
-
-def_EHelper(vldss) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlse.v);
-    case 1 : print_asm_template3(vlsb.v);
-    case 2 : print_asm_template3(vlsh.v);
-    case 4 : print_asm_template3(vlsw.v);
-  }*/
-  VLD(MODE_STRIDED, SIGNED, s, MMU_DIRECT)
-  //print_asm_template3(vldss);
-}
-
-def_EHelper(vldxs) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlxe.v);
-    case 1 : print_asm_template3(vlxb.v);
-    case 2 : print_asm_template3(vlxh.v);
-    case 4 : print_asm_template3(vlxw.v);
-  }*/
-  VLD(MODE_INDEXED, SIGNED, s, MMU_DIRECT)
-  //print_asm_template3(vldxs);
-}
-
-
-
-
-def_EHelper(vstu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vse.v);
-    case 1 : print_asm_template3(vsb.v);
-    case 2 : print_asm_template3(vsh.v);
-    case 4 : print_asm_template3(vsw.v);
-  }*/
+def_EHelper(vse) {
   VST(MODE_UNIT, MMU_DIRECT)
-  //print_asm_template3(vstu);
 }
 
-def_EHelper(vsts) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vsse.v);
-    case 1 : print_asm_template3(vssb.v);
-    case 2 : print_asm_template3(vssh.v);
-    case 4 : print_asm_template3(vssw.v);
-  }*/
+def_EHelper(vsm) {
+  VST(MODE_MASK, MMU_DIRECT)
+}
+
+def_EHelper(vsr) {
+  VSR(MODE_UNIT, MMU_DIRECT)
+}
+
+def_EHelper(vsse) {
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   VST(MODE_STRIDED, MMU_DIRECT)
-  //print_asm_template3(vsts);
 }
 
-def_EHelper(vstx) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vsxe.v);
-    case 1 : print_asm_template3(vsxb.v);
-    case 2 : print_asm_template3(vsxh.v);
-    case 4 : print_asm_template3(vsxw.v);
-  }*/
-  VST(MODE_INDEXED, MMU_DIRECT)
-  //print_asm_template3(vstx);
+def_EHelper(vsxe) {
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
+  VSTX(MODE_INDEXED, MMU_DIRECT)
 }
 
-def_EHelper(vstxu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vsuxe.v);
-    case 1 : print_asm_template3(vsuxb.v);
-    case 2 : print_asm_template3(vsuxh.v);
-    case 4 : print_asm_template3(vsuxw.v);
-  }*/
-  VST(MODE_INDEXED, MMU_DIRECT)
-  //print_asm_template3(vstxu);
-}
-
-def_EHelper(vlduu_mmu) { //unit-strided
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vle.v);
-    case 1 : print_asm_template3(vlbu.v);
-    case 2 : print_asm_template3(vlhu.v);
-    case 4 : print_asm_template3(vlwu.v);
-  }
-  */
+def_EHelper(vle_mmu) { //unit-strided
   VLD(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
-  //print_asm_template3(vlduu);
 }
 
-def_EHelper(vldsu_mmu) { //strided unsigned
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlse.v);
-    case 1 : print_asm_template3(vlsbu.v);
-    case 2 : print_asm_template3(vlshu.v);
-    case 4 : print_asm_template3(vlswu.v);
-  }*/
+def_EHelper(vlm_mmu) { //mask
+  VLD(MODE_MASK, UNSIGNED, s, MMU_TRANSLATE)
+}
+
+def_EHelper(vlr_mmu) { //whple register
+  VLR(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
+}
+
+def_EHelper(vlse_mmu) { //strided unsigned
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   VLD(MODE_STRIDED, UNSIGNED, s, MMU_TRANSLATE)
-  //print_asm_template3(vldsu);
 }
 
-def_EHelper(vldxu_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlxe.v);
-    case 1 : print_asm_template3(vlxbu.v);
-    case 2 : print_asm_template3(vlxhu.v);
-    case 4 : print_asm_template3(vlxwu.v);
-  } */
-  VLD(MODE_INDEXED, UNSIGNED, s, MMU_TRANSLATE)
-  //print_asm_template3(vldxu);
+def_EHelper(vlxe_mmu) {
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
+  VLDX(MODE_INDEXED, UNSIGNED, s, MMU_TRANSLATE)
 }
 
-def_EHelper(vldus_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vle.v);
-    case 1 : print_asm_template3(vlb.v);
-    case 2 : print_asm_template3(vlh.v);
-    case 4 : print_asm_template3(vlw.v);
-  }*/
-  VLD(MODE_UNIT, SIGNED, s, MMU_TRANSLATE)
-  //print_asm_template3(vldus);
-}
-
-def_EHelper(vldss_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlse.v);
-    case 1 : print_asm_template3(vlsb.v);
-    case 2 : print_asm_template3(vlsh.v);
-    case 4 : print_asm_template3(vlsw.v);
-  }*/
-  VLD(MODE_STRIDED, SIGNED, s, MMU_TRANSLATE)
-  //print_asm_template3(vldss);
-}
-
-def_EHelper(vldxs_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vlxe.v);
-    case 1 : print_asm_template3(vlxb.v);
-    case 2 : print_asm_template3(vlxh.v);
-    case 4 : print_asm_template3(vlxw.v);
-  }*/
-  VLD(MODE_INDEXED, SIGNED, s, MMU_TRANSLATE)
-  //print_asm_template3(vldxs);
-}
-
-
-
-
-def_EHelper(vstu_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vse.v);
-    case 1 : print_asm_template3(vsb.v);
-    case 2 : print_asm_template3(vsh.v);
-    case 4 : print_asm_template3(vsw.v);
-  }*/
+def_EHelper(vse_mmu) {
   VST(MODE_UNIT, MMU_TRANSLATE)
-  //print_asm_template3(vstu);
 }
 
-def_EHelper(vsts_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vsse.v);
-    case 1 : print_asm_template3(vssb.v);
-    case 2 : print_asm_template3(vssh.v);
-    case 4 : print_asm_template3(vssw.v);
-  }*/
+def_EHelper(vsm_mmu) {
+  VST(MODE_MASK, MMU_TRANSLATE)
+}
+
+def_EHelper(vsr_mmu) {
+  VSR(MODE_UNIT, MMU_TRANSLATE)
+}
+
+def_EHelper(vsse_mmu) {
   VST(MODE_STRIDED, MMU_TRANSLATE)
-  //print_asm_template3(vsts);
 }
 
-def_EHelper(vstx_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vsxe.v);
-    case 1 : print_asm_template3(vsxb.v);
-    case 2 : print_asm_template3(vsxh.v);
-    case 4 : print_asm_template3(vsxw.v);
-  }*/
-  VST(MODE_INDEXED, MMU_TRANSLATE)
-  //print_asm_template3(vstx);
-}
-
-def_EHelper(vstxu_mmu) {
-  /*
-  switch (s->v_width) {
-    case 0 : print_asm_template3(vsuxe.v);
-    case 1 : print_asm_template3(vsuxb.v);
-    case 2 : print_asm_template3(vsuxh.v);
-    case 4 : print_asm_template3(vsuxw.v);
-  }*/
-  VST(MODE_INDEXED, MMU_TRANSLATE)
-  //print_asm_template3(vstxu);
+def_EHelper(vsxe_mmu) {
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
+  VSTX(MODE_INDEXED, MMU_TRANSLATE)
 }
 
 #endif // CONFIG_RVV

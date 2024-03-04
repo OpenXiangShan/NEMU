@@ -18,7 +18,9 @@
 #include <memory/host.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
 #include <cpu/cpu.h>
+#include <cpu/decode.h>
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -28,9 +30,10 @@ typedef struct {
   vaddr_t gvpn; // guest virtual page number
 } HostTLBEntry;
 
-static HostTLBEntry hosttlb[HOSTTLB_SIZE * 2];
+static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
 static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
+static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
 
 static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
   return (vaddr >> PAGE_SHIFT);
@@ -48,6 +51,7 @@ void hosttlb_flush(vaddr_t vaddr) {
     int idx = hosttlb_idx(vaddr);
     if (hostrtlb[idx].gvpn == gvpn) hostrtlb[idx].gvpn = (sword_t)-1;
     if (hostwtlb[idx].gvpn == gvpn) hostwtlb[idx].gvpn = (sword_t)-1;
+    if (hostxtlb[idx].gvpn == gvpn) hostxtlb[idx].gvpn = (sword_t)-1;
   }
 }
 
@@ -57,10 +61,10 @@ void hosttlb_init() {
 
 static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
   if (type != MEM_TYPE_IFETCH) save_globals(s);
-  int ret = isa_mmu_check(vaddr, len, type);
-  if (ret == MMU_DIRECT) return vaddr;
+  // int ret = isa_mmu_check(vaddr, len, type);
+  // if (ret == MMU_DIRECT) return vaddr;
   paddr_t pg_base = isa_mmu_translate(vaddr, len, type);
-  ret = pg_base & PAGE_MASK;
+  int ret = pg_base & PAGE_MASK;
   assert(ret == MEM_RET_OK);
   return pg_base | (vaddr & PAGE_MASK);
 }
@@ -68,45 +72,78 @@ static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
   paddr_t paddr = va2pa(s, vaddr, len, type);
+  word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);
   if (likely(in_pmem(paddr))) {
-    HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
+    HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
+      &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
+    #ifdef CONFIG_USE_SPARSEMM
+    e->offset = (uint8_t *)(paddr - vaddr);
+    #else
     e->offset = guest_to_host(paddr) - vaddr;
+    #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
-  return paddr_read(paddr, len, MEM_TYPE_READ, MODE_S, vaddr);
+  return data;
 }
 
 __attribute__((noinline))
 static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+  paddr_write(paddr, len, data, cpu.mode, vaddr);
   if (likely(in_pmem(paddr))) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
+    #ifdef CONFIG_USE_SPARSEMM
+    e->offset = (uint8_t *)(paddr - vaddr);
+    #else
     e->offset = guest_to_host(paddr) - vaddr;
+    #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
-  paddr_write(paddr, len, data, MODE_S, vaddr);
 }
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
+#ifdef CONFIG_RVH
+  extern bool has_two_stage_translation();
+  if(has_two_stage_translation()){
+    paddr_t paddr = va2pa(s, vaddr, len, type);
+    return paddr_read(paddr, len, type, cpu.mode, vaddr);
+  }
+#endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
-  HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
+  HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
+    &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
   if (unlikely(e->gvpn != gvpn)) {
     Logm("Host TLB slow path");
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
+    #ifdef CONFIG_USE_SPARSEMM
+    return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
+    #else
     return host_read(e->offset + vaddr, len);
+    #endif
   }
 }
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
+  #ifdef CONFIG_RVH
+  extern bool has_two_stage_translation();
+  if(has_two_stage_translation()){
+    paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    return paddr_write(paddr, len, data, cpu.mode, vaddr);
+  }
+#endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
   if (unlikely(e->gvpn != gvpn)) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
+  #ifdef CONFIG_USE_SPARSEMM
+  sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
+  #else
   host_write(e->offset + vaddr, len, data);
+  #endif
 }

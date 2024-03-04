@@ -15,6 +15,8 @@
 ***************************************************************************************/
 
 #include "../local-include/intr.h"
+#include <profiling/profiling_control.h>
+#include "cpu/difftest.h"
 
 def_EHelper(inv) {
   save_globals(s);
@@ -33,19 +35,17 @@ def_EHelper(rt_inv) {
 
 def_EHelper(nemu_trap) {
   save_globals(s);
+  Log("nemu_trap case %lx",cpu.gpr[10]._64);
   if (cpu.gpr[10]._64 == 0x100) {
       extern void disable_time_intr();
       disable_time_intr();
+      cpu.mie = mie->val;
+      difftest_skip_ref();
   } else if (cpu.gpr[10]._64 == 0x101) {
-      extern uint64_t g_nr_guest_instr;
-      extern bool profiling_started;
-
-      if (!profiling_started) {
-        Log("Start profiling, resetting inst count from %lu to 1, (n_remain_total will not be cleared)\n", g_nr_guest_instr);
-        g_nr_guest_instr = 1;
-        profiling_started = true;
-      }
-
+    if (!workload_loaded) {
+      reset_inst_counters();
+      difftest_skip_ref();
+    }
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
       longjmp_exec(NEMU_EXEC_END);

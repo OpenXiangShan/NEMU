@@ -16,9 +16,14 @@
 #include <isa.h>
 #include <stdlib.h>
 #include <macro.h>
+#include <stdio.h>
 #include <memory/paddr.h>
+#include <memory/sparseram.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 #ifdef CONFIG_MEM_COMPRESS
 #include <zlib.h>
+#include <unistd.h>
 #endif
 
 #ifndef CONFIG_MODE_USER
@@ -74,12 +79,14 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
 
   if (is_gz_file(loading_img)) {
 #ifdef CONFIG_MEM_COMPRESS
-      Log("Loading GZ image %s", loading_img);
-      return load_gz_img(loading_img);
+    Log("Loading GZ image %s", loading_img);
+    return load_gz_img(loading_img);
 #else
-      panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
+    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
   }
+
+  // RAW image
 
   FILE *fp = fopen(loading_img, "rb");
   Assert(fp, "Can not open '%s'", loading_img);
@@ -93,8 +100,22 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
     size = img_size;
   }
 
+  #ifdef CONFIG_USE_SPARSEMM
+  if(file_is_elf(loading_img)){
+    sparse_mem_elf(get_sparsemm(), loading_img);
+    Log("load elf %s to sparse mem complete", loading_img);
+    sparse_mem_info(get_sparsemm());
+  }else{
+    int fd = open(loading_img, O_RDONLY);
+    char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    sparse_mem_write(get_sparsemm(), load_start, size, buf);
+    close(fd);
+    munmap(buf, size);
+  }
+  #else
   int ret = fread(guest_to_host(load_start), size, 1, fp);
   assert(ret == 1);
+  #endif
   Log("Read %lu bytes from file %s to 0x%lx", size, img_name, load_start);
 
   fclose(fp);
