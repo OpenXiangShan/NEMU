@@ -188,7 +188,6 @@ extern uint64_t get_abs_instr_count();
 
 #ifdef CONFIG_RV_DASICS
 extern void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc);
-extern void dasics_fetch_helper(vaddr_t pc, vaddr_t prev_pc);
 #endif  // CONFIG_RV_DASICS
 extern uint64_t br_count;
 
@@ -278,8 +277,7 @@ static inline def_rtl(jrelop, uint32_t relop,
   br_count++;
 #endif // CONFIG_BR_LOG
 #ifdef CONFIG_RV_DASICS
-  bool is_branch = s->type == INSTR_TYPE_B;
-  if (is_jmp && !is_branch) dasics_redirect_helper(s->pc, target, s->snpc);
+  if (is_jmp) dasics_redirect_helper(s->pc, target, s->snpc);
 #endif  // CONFIG_RV_DASICS
   rtl_j(s, (is_jmp ? target : s->snpc));
 }

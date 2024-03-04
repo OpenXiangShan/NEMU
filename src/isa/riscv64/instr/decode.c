@@ -104,11 +104,6 @@ int isa_fetch_decode(Decode *s) {
   }
   trigger_handler(action);
 #endif
-#ifdef CONFIG_RV_DASICS
-  if(s->prev_is_branch) {
-    dasics_fetch_helper(s->snpc, s->prev_pc);
-  }
-#endif  // CONFIG_RV_DASICS
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
@@ -131,7 +126,6 @@ int isa_fetch_decode(Decode *s) {
   trigger_handler(action);
 #endif
 
-  s->prev_is_branch = 0;
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
@@ -142,7 +136,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_bltu: case EXEC_ID_bgeu:
     case EXEC_ID_c_beqz: case EXEC_ID_c_bnez:
     case EXEC_ID_p_bltz: case EXEC_ID_p_bgez: case EXEC_ID_p_blez: case EXEC_ID_p_bgtz:
-      s->prev_is_branch = 1; s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
+      s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_jr:)

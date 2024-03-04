@@ -285,52 +285,26 @@ void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
   }
 }
 
-void dasics_fetch_helper(vaddr_t pc, vaddr_t prev_pc) {
-  bool src_trusted = dasics_in_trusted_zone(prev_pc);
-  bool dst_freezone = dasics_match_djumpbound(pc, JUMPCFG_V);
-
-  Logm("[Dasics fetch] pc: 0x%lx (F:%d), target:0x%lx (F:%d)\n", prev_pc, src_trusted, pc, dst_freezone);
-  Logm("[Dasics fetch] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
-
-  bool allow_brjp = src_trusted  || dst_freezone;
-
-  if (!allow_brjp) {
-    int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
-    INTR_TVAL_REG(ex) = pc;
-    Logm("Dasics fetch exception occur: pc%lx  (st:%d,df:%d)\n",pc,src_trusted,dst_freezone);
-    longjmp_exception(ex);
-  }
-}
-
 void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
   // Check whether this redirect instruction is permitted
   bool src_trusted = dasics_in_trusted_zone(pc);
   bool dst_trusted = dasics_in_trusted_zone(newpc);
-  bool src_freezone = dasics_match_djumpbound(pc, JUMPCFG_V);
-  bool dst_freezone = dasics_match_djumpbound(newpc, JUMPCFG_V);
+  bool src_activezone = dasics_match_djumpbound(pc, JUMPCFG_V);
+  bool dst_activezone = dasics_match_djumpbound(newpc, JUMPCFG_V);
 
-  Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d)\n", pc, src_trusted, src_freezone, newpc, dst_trusted, dst_freezone);
-  Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx dretpcfz: 0x%lx\n", dretpc->val, dmaincall->val, dretpcfz->val);
+  Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d)\n", pc, src_trusted, src_activezone, newpc, dst_trusted, dst_activezone);
+  Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx\n", dretpc->val, dmaincall->val);
 
   bool allow_lib_to_main = !src_trusted && dst_trusted && \
     (newpc == dretpc->val || newpc == dmaincall->val);
-  bool allow_freezone_to_lib = src_freezone && !dst_trusted && \
-    !dst_freezone && (newpc == dretpcfz->val);
-  
-  bool allow_brjp = src_trusted  || allow_lib_to_main || \
-                    dst_freezone || allow_freezone_to_lib;
+  bool allow_activezone_jump = src_activezone && dst_activezone;
 
-  if (!allow_brjp) {
-    int ex = (cpu.mode == MODE_U) ? EX_DUIAF : EX_DSIAF;
-    INTR_TVAL_REG(ex) = newpc;
-    // isa_reg_display();
-    Logm("Dasics jump exception occur: pc%lx  (st:%d, altm:%d, df:%d, aftl:%d)\n",pc,src_trusted,allow_lib_to_main,dst_freezone,allow_freezone_to_lib);
-    longjmp_exception(ex);
-  }
+  bool allow_jump = src_trusted  || allow_lib_to_main || allow_activezone_jump;
 
-  // FIXME: This code is only for UCAS-OS test!
-  if (!src_trusted && !src_freezone && !dst_trusted && dst_freezone) {
-    //dretpcfz->val = nextpc;
+  if (!allow_jump) {
+    INTR_TVAL_REG(EX_DUIAF) = newpc;
+    Logm("Dasics jump exception occur: pc%lx  (st:%d, altm:%d, df:%d, aftl:%d)\n",pc,src_trusted,allow_lib_to_main,dst_activezone,allow_activezone_jump);
+    longjmp_exception(EX_DUIAF);
   }
 }
 #endif  // CONFIG_RV_DASICS
