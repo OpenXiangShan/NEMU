@@ -80,8 +80,6 @@ typedef struct {
   uint64_t mip, mie;
   uint64_t mscratch, sscratch;
   uint64_t mideleg, medeleg;
-  uint64_t pc;
-
 #ifdef CONFIG_RV_DASICS
   uint64_t dumcfg, dumbound0, dumbound1;
   uint64_t dlcfg0;
@@ -91,6 +89,7 @@ typedef struct {
   uint64_t djcfg, djbound0lo, djbound0hi;
 #endif  // CONFIG_RV_DASICS
 
+  uint64_t pc;
   // Above will be synced by regcpy when run difftest, DO NOT TOUCH
 
 #ifdef CONFIG_RVH
