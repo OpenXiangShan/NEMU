@@ -141,7 +141,7 @@ void init_serial() {
   // to avoid unused-function warning
   (void)serial_io_handler;
 #else
-  printf("init_serial\n");
+  //printf("init_serial\n");
   serial_base = new_space(8);
   add_pio_map ("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
   add_mmio_map("serial", CONFIG_SERIAL_MMIO, serial_base, 8, serial_io_handler);

@@ -84,6 +84,27 @@ void * get_sparsemm(){
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
+
+typedef uint64_t (*read_ptr)(uint64_t, int);
+typedef void (*write_ptr)(uint64_t, int, uint64_t);
+
+read_ptr gem5_ifetch;
+read_ptr gem5_read;
+write_ptr gem5_write;
+
+void set_gi(read_ptr func)
+{
+  gem5_ifetch = func;
+}
+void set_gr(read_ptr func)
+{
+  gem5_read = func;
+}
+void set_gw(write_ptr func)
+{
+  gem5_write = func;
+}
+
 static inline word_t pmem_read(paddr_t addr, int len) {
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
@@ -181,7 +202,12 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   }
 #else
   if (likely(in_pmem(addr))) {
-    uint64_t rdata = pmem_read(addr, len);
+    uint64_t rdata;
+    if(type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ){
+      rdata = gem5_ifetch(addr, len);
+    }else{
+      rdata = gem5_read(addr, len);
+    }
     if (dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d\n",
         addr, rdata, len, type, mode);
@@ -190,7 +216,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   }
   else {
 #ifdef CONFIG_HAS_FLASH
-    if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
+    if (likely(is_in_mmio(addr))) return gem5_read(addr, len);
 #endif
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
@@ -287,9 +313,9 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
       fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
         addr, data, len, mode);
     }
-    return pmem_write(addr, len, data);
+    return gem5_write(addr, len, data);
   } else {
-    if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
+    if (likely(is_in_mmio(addr))) gem5_write(addr, len, data);
     else {
       if(dynamic_config.ignore_illegal_mem_access)
         return;

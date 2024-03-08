@@ -27,7 +27,7 @@ enum {
   NEMU_EXEC_EXCEPTION
 };
 
-void cpu_exec(uint64_t n);
+int cpu_exec(uint64_t n);
 __attribute__((noreturn)) void longjmp_exec(int cause);
 __attribute__((noreturn)) void longjmp_exception(int ex_cause);
 
