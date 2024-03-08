@@ -31,7 +31,7 @@ bool is_gz_file(const char *filename)
   size_t sz = read(fd, buf, 2);
   if (sz != 2) {
     close(fd);
-    xpanic("Couldn't read magic bytes from object file");
+    xpanic("Couldn't read magic bytes from object file %s", filename);
   }
 
   close(fd);
@@ -51,7 +51,7 @@ bool is_zstd_file(const char *filename){
   size_t sz = read(fd, buf, 4);
   if (sz != 4) {
     close(fd);
-    xpanic("Couldn't read magic bytes from object file");
+    xpanic("Couldn't read magic bytes from object file %s", filename);
   }
 
   close(fd);
