@@ -36,6 +36,7 @@ void init_disk();
 void init_sdcard();
 void init_flash();
 void load_flash_contents(const char *);
+void init_gcpt();
 
 void send_key(uint8_t, bool);
 void vga_update_screen();
@@ -105,5 +106,6 @@ void init_device() {
   IFDEF(CONFIG_HAS_FLASH, load_flash_contents(CONFIG_FLASH_IMG_PATH));
   add_alarm_handle(set_device_update_flag);
   init_alarm();
-#endif // CONFIG_SHARE
+  init_gcpt();
+#endif
 }

@@ -23,16 +23,19 @@
 #include <string>
 #include <map>
 
+extern "C" {
+#include "checkpoint/checkpoint.pb.h"
+}
 
 class Serializer
 {
 
   public:
-    void serialize(uint64_t inst_count);
+    void serialize(uint64_t inst_count, bool using_gcpt_mmio);
 
     void serializePMem(uint64_t inst_count);
 
-    void serializeRegs();
+    void serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
 
     explicit Serializer();
 
