@@ -113,6 +113,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"cpt-mmode"          , no_argument      , NULL, 7},
     {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
+    {"using-gcpt-device"  , no_argument      , NULL, 14},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -224,6 +225,12 @@ static inline int parse_args(int argc, char *argv[]) {
       case 10: { // map-cpt
         mapped_cpt_file = optarg;
         Log("Setting mapped_cpt_file to %s", mapped_cpt_file);
+        break;
+      }
+
+      case 14: {
+        extern void set_using_gcpt_mmio();
+        set_using_gcpt_mmio();
         break;
       }
 
