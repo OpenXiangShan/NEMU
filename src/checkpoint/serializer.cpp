@@ -71,6 +71,10 @@ uint8_t *guest_to_host(paddr_t paddr);
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
+extern uint8_t* get_gcpt_mmio_base();
+void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
+#include <checkpoint/fill_protobuf.h>
+#include <checkpoint/checkpoint.pb.h>
 }
 
 #ifdef CONFIG_MEM_COMPRESS
@@ -167,47 +171,50 @@ void Serializer::serializePMem(uint64_t inst_count) {}
 #ifdef CONFIG_MEM_COMPRESS
 extern void csr_writeback();
 
-void Serializer::serializeRegs() {
-  auto *intRegCpt = (uint64_t *) (get_pmem() + IntRegStartAddr);
+void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout) {
+  uint64_t buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->int_reg_cpt_addr;
+  auto *intRegCpt = (uint64_t *) (buffer_start);
   for (unsigned i = 0; i < 32; i++) {
     *(intRegCpt + i) = cpu.gpr[i]._64;
   }
-  Log("Writing int registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)", INT_REG_CPT_ADDR,
-      INT_REG_CPT_ADDR + 32 * 8, IntRegStartAddr, IntRegStartAddr + 32 * 8);
+  Log("Writing int registers to checkpoint memory @[0x%lx, 0x%lx) [0x%lx, 0x%lx)",
+      buffer_start, buffer_start + 32 * 8,
+      cpt_percpu_layout->int_reg_cpt_addr, cpt_percpu_layout->int_reg_cpt_addr + 32 * 8
+      );
 
 #ifndef CONFIG_FPU_NONE
-  auto *floatRegCpt = (uint64_t *)(get_pmem() + FloatRegStartAddr);
+  buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->float_reg_cpt_addr;
+  auto *floatRegCpt = (uint64_t *) (buffer_start);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
   }
-  Log("Writing float registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)", FLOAT_REG_CPT_ADDR,
-      FLOAT_REG_CPT_ADDR + 32 * 8, FloatRegStartAddr, FloatRegStartAddr + 32 * 8);
-#endif  // CONFIG_FPU_NONE
+  Log("Writing float registers to checkpoint memory @[0x%lx, 0x%lx) [0x%lx, 0x%lx)",
+      buffer_start, buffer_start + 32 * 8,
+      cpt_percpu_layout->float_reg_cpt_addr, cpt_percpu_layout->float_reg_cpt_addr + 32 * 8
+      );
+#endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RVV
-  auto *vectorRegCpt = (uint64_t *) (get_pmem() + VecRegStartAddr);
+  buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->vector_reg_cpt_addr;
+  auto *vectorRegCpt = (uint64_t *) (buffer_start);
   for (unsigned i = 0; i < 32; i++) {
     for (unsigned j = 0; j < VENUM64; j++) {
       *(vectorRegCpt + (i * VENUM64) + j)=cpu.vr[i]._64[j];
     }
   }
   Log("Writing Vector registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
-      FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
-      VecRegStartAddr, VecRegStartAddr + 32 * 8 * VENUM64
+      buffer_start, buffer_start + 32 * 8 * VENUM64,
+      cpt_percpu_layout->vector_reg_cpt_addr, cpt_percpu_layout->vector_reg_cpt_addr + 32 * 8 * VENUM64
       );
 #endif // CONFIG_RVV
 
-
-  auto *pc = (uint64_t *) (get_pmem() + PCAddr);
+  buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->pc_cpt_addr;
+  auto *pc = (uint64_t *) (buffer_start);
   *pc = cpu.pc;
-  Log("Writing PC: 0x%lx at addr 0x%x", cpu.pc, PC_CPT_ADDR);
+  Log("Writing PC: 0x%lx at addr 0x%lx", cpu.pc, buffer_start);
 
-
-  //  csr_writeback();
-  auto *csrCpt = (uint64_t *)(get_pmem() + CSRStartAddr);
-  //  Log("csrCpt: %p\n",csrCpt);
-  //  Log("Mstatus: 0x%x", mstatus->val);
-  //  Log("CSR array mstatus: 0x%x", csr_array[0x300]);
+  buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->csr_reg_cpt_addr;
+  auto *csrCpt = (uint64_t *) (buffer_start);
   for (unsigned i = 0; i < 4096; i++) {
     rtlreg_t val = csr_array[i];
 
@@ -216,7 +223,6 @@ void Serializer::serializeRegs() {
       if (mip_tmp.mtip) {
         mip_tmp.mtip = 0;
       }
-      //      Log("Saving mip: 0x%x", mip_tmp.val);
       val = mip_tmp.val;
     }
 
@@ -228,10 +234,10 @@ void Serializer::serializeRegs() {
   }
 
   //prepare mstatus
-  mstatus_t *mstatus_prepare=(mstatus_t *)&csrCpt[0x300];
-  mstatus_prepare->mpie=mstatus_prepare->mie;
-  mstatus_prepare->mie=0;
-  mstatus_prepare->mpp=cpu.mode;
+  mstatus_t *mstatus_for_cpt=(mstatus_t *)&csrCpt[0x300];
+  mstatus_for_cpt->mpie=mstatus_for_cpt->mie;
+  mstatus_for_cpt->mie=0;
+  mstatus_for_cpt->mpp=cpu.mode;
 
 #ifdef CONFIG_RVH
   // checkpoint ub: mpp = 3, mpv = 1
@@ -239,24 +245,19 @@ void Serializer::serializeRegs() {
 #endif
 
   //prepare mepc
-  mepc_t *mepc_prepare=(mepc_t*)&csrCpt[0x341];
-  mepc_prepare->val=cpu.pc;
+  mepc_t *mepc_for_cpt=(mepc_t*)&csrCpt[0x341];
+  mepc_for_cpt->val=cpu.pc;
 
-  Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
-      CSR_REG_CPT_ADDR, CSR_REG_CPT_ADDR + 4096 * 8,
-      CSRStartAddr, CSRStartAddr + 4096 * 8
+  Log("Writing CSR to checkpoint memory @[0x%lx, 0x%lx) [0x%lx, 0x%lx)",
+      buffer_start, buffer_start + 4096 * 8,
+      cpt_percpu_layout->csr_reg_cpt_addr, cpt_percpu_layout->csr_reg_cpt_addr + 4096 * 8
       );
 
-
-  auto *flag = (uint64_t *)(get_pmem() + CptFlagAddr);
-  *flag = CPT_MAGIC_BUMBER;
-  Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAG_ADDR);
-
-  auto *mode_flag = (uint64_t *) (get_pmem() + MODEAddr);
+  auto *mode_flag = (uint64_t *) (serialize_base_addr + cpt_percpu_layout->mode_cpt_addr);
   *mode_flag = cpu.mode;
-  Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, MODE_CPT_ADDR);
+  Log("Record mode flag: 0x%lx at addr 0x%lx", cpu.mode, cpt_percpu_layout->mode_cpt_addr);
 
-  auto *mtime = (uint64_t *) (get_pmem() + MTIMEAddr);
+  auto *mtime = (uint64_t *) (serialize_base_addr + cpt_percpu_layout->mtime_cpt_addr);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
   *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CPT_ADDR);
@@ -271,10 +272,20 @@ void Serializer::serializeRegs() {
 void Serializer::serializeRegs() {}
 #endif
 
-void Serializer::serialize(uint64_t inst_count) {
-
+void Serializer::serialize(uint64_t inst_count, bool using_gcpt_mmio) {
 #ifdef CONFIG_MEM_COMPRESS
-  serializeRegs();
+  checkpoint_header cpt_header = default_cpt_header;
+  single_core_rvgc_rvv_rvh_memlayout cpt_percpu_layout = default_cpt_percpu_layout;
+  uint64_t serialize_reg_base_addr;
+  encode_cpt_header(&cpt_header, &cpt_percpu_layout);
+
+  if (using_gcpt_mmio) {
+    serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_gcpt_mmio_base();
+  }else {
+    serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_pmem();
+  }
+
+  serializeRegs(using_gcpt_mmio, (uint8_t*)serialize_reg_base_addr, &cpt_percpu_layout);
   serializePMem(inst_count);
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
@@ -378,25 +389,28 @@ uint64_t Serializer::next_index(){
   return index;
 }
 
-
 extern "C" {
+
+void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout){
+  assert(cpt_header_encode(get_gcpt_mmio_base(), cpt_header, cpt_percpu_layout));
+}
 
 void init_serializer() {
   serializer.init();
 }
 
-bool try_take_cpt(uint64_t icount) {
+bool try_take_cpt(uint64_t icount, bool using_gcpt_mmio) {
   if (serializer.instrsCouldTakeCpt(icount)) {
-    serializer.serialize(icount);
+    serializer.serialize(icount, using_gcpt_mmio);
     serializer.notify_taken(icount);
-    Log("return true");
     return true;
   }
   return false;
 }
 
-void serialize_reg_to_mem() {
-  serializer.serializeRegs();
+void serialize_reg_to_mem(bool using_gcpt_mmio) {
+//  delete for now
+//  serializer.serializeRegs(using_gcpt_mmio, serialize_base_addr, cpt_percpu_layout);
 }
 
 }

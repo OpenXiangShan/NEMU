@@ -65,6 +65,12 @@ static uint64_t n_remain_total;
 static int n_remain;
 Decode *prev_s;
 
+static bool using_gcpt_mmio = false;
+
+void set_using_gcpt_mmio(){
+  using_gcpt_mmio = true;
+}
+
 void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 
 uint64_t get_abs_instr_count() {
@@ -274,8 +280,8 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
 
   cpu.pc = s->pc;
 
-  extern bool try_take_cpt(uint64_t icount);
-  bool taken = try_take_cpt(abs_inst_count);
+  extern bool try_take_cpt(uint64_t icount, bool using_gcpt_mmio);
+  bool taken = try_take_cpt(abs_inst_count, using_gcpt_mmio);
   if (taken) {
     Log("Have taken checkpoint on pc 0x%lx", s->pc);
     if (recvd_manual_oneshot_cpt) {
@@ -733,8 +739,8 @@ void cpu_exec(uint64_t n) {
     monitor_statistic();
     extern char *mapped_cpt_file; // defined in paddr.c
     if (mapped_cpt_file != NULL) {
-      extern void serialize_reg_to_mem();
-      serialize_reg_to_mem();
+      extern void serialize_reg_to_mem(bool using_gcpt_mmio);
+      serialize_reg_to_mem(using_gcpt_mmio);
     }
 #else
     break;
