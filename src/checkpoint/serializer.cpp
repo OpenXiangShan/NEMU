@@ -27,7 +27,6 @@
 #include <common.h>
 #include <isa.h>
 
-#include <cinttypes>
 #include <iostream>
 #include <limits>
 #include <string>
