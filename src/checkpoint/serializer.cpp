@@ -29,6 +29,7 @@
 
 #include <iostream>
 #include <limits>
+#include <stdint.h>
 #include <string>
 #include <zlib.h>
 
@@ -75,14 +76,17 @@ extern uint8_t* get_gcpt_mmio_base();
 void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
 #include <checkpoint/fill_protobuf.h>
 #include <checkpoint/checkpoint.pb.h>
+extern uint64_t get_gcpt_mmio_size();
 }
 
 #ifdef CONFIG_MEM_COMPRESS
-void Serializer::serializePMem(uint64_t inst_count) {
+void Serializer::serializePMem(uint64_t inst_count, bool using_gcpt_mmio, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
   const size_t PMEM_SIZE = MEMORY_SIZE;
-  uint8_t *pmem = get_pmem();
+  const size_t GCPT_MMIO_SIZE = get_gcpt_mmio_size();
+  uint8_t *pmem = pmem_addr;
+  uint8_t *gcpt = gcpt_mmio_addr;
 
   if (restorer) {
   FILE *restore_fp = fopen(restorer, "rb");
@@ -118,6 +122,19 @@ void Serializer::serializePMem(uint64_t inst_count) {
     }
 
     uint64_t pass_size = 0;
+    if (using_gcpt_mmio) {
+      for (uint64_t gcpt_written = 0; gcpt_written < GCPT_MMIO_SIZE; gcpt_written += pass_size) {
+        pass_size = numeric_limits<int>::max() < ((int64_t)GCPT_MMIO_SIZE - (int64_t)gcpt_written)
+                      ? numeric_limits<int>::max()
+                      : ((int64_t)GCPT_MMIO_SIZE - (int64_t)gcpt_written);
+        if (gzwrite(compressed_mem, gcpt + gcpt_written, (uint32_t)pass_size) != (int)pass_size) {
+          xpanic("Write failed on physical memory checkpoint file\n");
+        }
+        Log("Written 0x%lx bytes\n", pass_size);
+      }
+
+      pass_size = 0;
+    }
 
     for (uint64_t written = 0; written < PMEM_SIZE; written += pass_size) {
       pass_size = numeric_limits<int>::max() < ((int64_t)PMEM_SIZE - (int64_t)written)
@@ -136,17 +153,31 @@ void Serializer::serializePMem(uint64_t inst_count) {
   } else if (compress_file_format == ZSTD_FORMAT) {
     filepath += "_.zstd";
     // zstd compress
-    size_t const compress_buffer_size = ZSTD_compressBound(PMEM_SIZE);
-    void *const compress_buffer = malloc(compress_buffer_size);
+    size_t all_write_size;
+    if (using_gcpt_mmio) {
+      all_write_size = PMEM_SIZE + GCPT_MMIO_SIZE;
+    }else {
+      all_write_size = PMEM_SIZE;
+    }
+
+    size_t const compress_buffer_size = ZSTD_compressBound(all_write_size);
+    uint8_t *const compress_buffer = (uint8_t*)malloc(compress_buffer_size);
     assert(compress_buffer);
 
-    size_t const compress_size = ZSTD_compress(compress_buffer, compress_buffer_size, pmem, PMEM_SIZE, 1);
-    assert(compress_size <= compress_buffer_size && compress_size != 0);
+    size_t gcpt_compress_size = 0;
+    if (using_gcpt_mmio) {
+      gcpt_compress_size = ZSTD_compress(compress_buffer, compress_buffer_size, gcpt, GCPT_MMIO_SIZE, 1);
+      assert(gcpt_compress_size <= compress_buffer_size && gcpt_compress_size != 0);
+    }
+
+    size_t pmem_compress_size = ZSTD_compress(compress_buffer + gcpt_compress_size, compress_buffer_size, pmem, PMEM_SIZE, 1);
+    assert(pmem_compress_size + gcpt_compress_size <= compress_buffer_size && pmem_compress_size != 0);
 
     FILE *compress_file = fopen(filepath.c_str(), "wb");
-    size_t fw_size = fwrite(compress_buffer, 1, compress_size, compress_file);
+    size_t fw_size = fwrite(compress_buffer, 1, pmem_compress_size + gcpt_compress_size, compress_file);
 
-    if (fw_size != (size_t)compress_size) {
+    if (fw_size != (size_t)pmem_compress_size + (size_t)gcpt_compress_size) {
+      fclose(compress_file);
       free(compress_buffer);
       xpanic("file write error: %s : %s \n", filepath.c_str(), strerror(errno));
     }
@@ -286,7 +317,7 @@ void Serializer::serialize(uint64_t inst_count, bool using_gcpt_mmio) {
   }
 
   serializeRegs(using_gcpt_mmio, (uint8_t*)serialize_reg_base_addr, &cpt_percpu_layout);
-  serializePMem(inst_count);
+  serializePMem(inst_count, using_gcpt_mmio, get_pmem(), get_gcpt_mmio_base());
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
