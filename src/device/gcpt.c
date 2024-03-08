@@ -23,6 +23,10 @@ uint8_t *get_gcpt_mmio_base() {
   return gcpt_info.host_address;
 }
 
+uint64_t get_gcpt_mmio_size(){
+  return gcpt_info.size;
+}
+
 void init_gcpt() {
   gcpt_host_address = new_space(gcpt_info.size);
   gcpt_info.host_address=gcpt_host_address;
