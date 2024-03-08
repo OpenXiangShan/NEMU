@@ -41,6 +41,9 @@ ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
 DIRS-y += src/engine/$(ENGINE)
 
+INC_DIR += $(NEMU_HOME)/include/checkpoint
+DIRS-y += src/checkpoint src/profiling # profiling.c
+
 DIRS-$(CONFIG_MODE_USER) += src/user
 
 SRCS-y += src/nemu-main.c
@@ -57,6 +60,7 @@ SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
 SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
+SRCS-y += src/device/gcpt.c
 
 DIRS-y += src/profiling
 
@@ -65,6 +69,11 @@ DIRS-y += src/checkpoint
 endif
 
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
+SRCS-y += resource/nanopb/pb_common.c
+SRCS-y += resource/nanopb/pb_decode.c
+SRCS-y += resource/nanopb/pb_encode.c
+INC_DIR += resource/nanopb
+SRCS-y += $(patsub %.proto,%.pb.c,(shell find $(DIRS-y) -name "*.proto"))
 
 SRCS = $(SRCS-y)
 
