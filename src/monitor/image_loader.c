@@ -13,12 +13,15 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "checkpoint.pb.h"
+#include "debug.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <isa.h>
 #include <macro.h>
 #include <memory/paddr.h>
 #include <memory/sparseram.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -42,11 +45,26 @@ long load_gz_img(const char *filename) {
 
   // load file byte by byte to pmem
   uint64_t curr_size = 0;
+  
+  uint64_t cpt_offset = 0;
+  extern uint8_t *get_gcpt_mmio_base();
+  extern uint64_t get_gcpt_mmio_size();
+
   while (curr_size < MEMORY_SIZE) {
     uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
     if (bytes_read == 0) {
       break;
     }
+    
+    // restore checkpoint hardware status to device
+    if (cpt_offset < get_gcpt_mmio_size()) {
+      assert(get_gcpt_mmio_base());
+      memcpy(get_gcpt_mmio_base() + cpt_offset, temp_page, chunk_size);
+
+      cpt_offset += chunk_size;
+      continue;
+    }
+
     for (uint32_t x = 0; x < bytes_read; x++) {
       pmem_current = pmem_start + curr_size + x;
       uint8_t read_data = *(temp_page + x);
@@ -66,7 +84,7 @@ long load_gz_img(const char *filename) {
   return curr_size;
 }
 
-long load_zstd_img(const char *filename){
+long load_zstd_img(const char *filename) {
   assert(filename);
 
   int fd = -1;
@@ -141,8 +159,14 @@ long load_zstd_img(const char *filename){
   uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
   uint64_t *pmem_current;
 
+  // def checkpoint restore size
+  int64_t cpt_offset = 0;
+  extern uint8_t *get_gcpt_mmio_base();
+  extern uint64_t get_gcpt_mmio_size();
+
   // decompress and write in memory
   uint64_t total_write_size = 0;
+
   while (total_write_size < MEMORY_SIZE) {
 
     ZSTD_outBuffer output = {decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0};
@@ -163,6 +187,14 @@ long load_zstd_img(const char *filename){
     }
 
     assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
+
+    if (cpt_offset < get_gcpt_mmio_size()) {
+      assert(get_gcpt_mmio_base());
+      memcpy(get_gcpt_mmio_base() + cpt_offset, decompress_file_buffer, output.pos);
+
+      cpt_offset += output.pos;
+      continue;
+    }
 
     for (uint64_t x = 0; x < decompress_file_buffer_size; x++) {
       pmem_current = (uint64_t *)(pmem_start + total_write_size) + x;

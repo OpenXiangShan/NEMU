@@ -229,6 +229,7 @@ static inline int parse_args(int argc, char *argv[]) {
       }
 
       case 14: {
+        // --using-gcpt-device
         extern void set_using_gcpt_mmio();
         set_using_gcpt_mmio();
         break;
@@ -278,6 +279,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
         printf("\t--checkpoint-format     Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
+        printf("\t--using-gcpt-device     Specify using device store hardware status or not\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--simpoint-profile      simpoint profiling\n");
@@ -345,7 +347,12 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
-  int64_t img_size = 0;
+  /* Initialize devices. */
+  init_device();
+
+  // when there is a gcpt[restorer], we put bbl after gcpt[restorer]
+  uint64_t bbl_start = 0;
+  long img_size = 0; // how large we should copy for difftest
 
   assert(img_file);
   uint64_t bbl_start = RESET_VECTOR;
@@ -376,9 +383,6 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
-
-  /* Initialize devices. */
-  init_device();
 
 #endif
 
