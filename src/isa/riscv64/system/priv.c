@@ -289,15 +289,14 @@ void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
   // Check whether this redirect instruction is permitted
   bool src_trusted = dasics_in_trusted_zone(pc);
   bool dst_trusted = dasics_in_trusted_zone(newpc);
-  bool src_activezone = dasics_match_djumpbound(pc, JUMPCFG_V);
   bool dst_activezone = dasics_match_djumpbound(newpc, JUMPCFG_V);
 
-  Logm("[Dasics Redirect] pc: 0x%lx (T:%d F:%d), target:0x%lx (T:%d F:%d)\n", pc, src_trusted, src_activezone, newpc, dst_trusted, dst_activezone);
+  Logm("[Dasics Redirect] pc: 0x%lx (T:%d), target:0x%lx (T:%d F:%d)\n", pc, src_trusted, newpc, dst_trusted, dst_activezone);
   Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx\n", dretpc->val, dmaincall->val);
 
   bool allow_lib_to_main = !src_trusted && dst_trusted && \
     (newpc == dretpc->val || newpc == dmaincall->val);
-  bool allow_activezone_jump = src_activezone && dst_activezone;
+  bool allow_activezone_jump = dst_activezone;
 
   bool allow_jump = src_trusted  || allow_lib_to_main || allow_activezone_jump;
 
