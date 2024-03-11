@@ -597,9 +597,14 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
+#ifdef CONFIG_RVH
   if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
     return MEM_RET_FAIL;
-#endif
+#else 
+  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
+    return MEM_RET_FAIL;
+#endif // CONFIG_RVH
+#endif // FORCE_RAISE_PF
   return ptw_result;
 }
 
