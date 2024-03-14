@@ -119,6 +119,7 @@ $(SOFTFLOAT):
 clean-softfloat:
 	$(MAKE) -s -C $(SOFTFLOAT_BUILD_PATH) clean
 clean-all: clean-softfloat
+clean: clean-softfloat
 
 .PHONY: $(SOFTFLOAT) clean-softfloat
 else ifdef CONFIG_FPU_HOST
