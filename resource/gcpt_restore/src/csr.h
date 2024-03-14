@@ -45,7 +45,7 @@
   f(hstatus    , 0x600) f(hedeleg    , 0x602) f(hideleg    , 0x603) \
   f(hie        , 0x604) f(hcounteren , 0x606) f(hgeie      , 0x607) \
   f(htval      , 0x643) f(hip        , 0x644) f(hvip       , 0x645) \
-  f(htinst     , 0x64A) f(hgeip      , 0xE12) f(henvcfg    , 0x60A) \
+  f(htinst     , 0x64A) f(henvcfg    , 0x60A) \
   f(hgatp      , 0x680) f(htimedelta , 0x605) \
   f(vsstatus   , 0x200) f(vsie       , 0x204) f(vstvec     , 0x205) \
   f(vsscratch  , 0x240) f(vsepc      , 0x241) f(vscause    , 0x242) \
