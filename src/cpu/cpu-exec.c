@@ -207,6 +207,7 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, next->pc));
 }
 
+#ifndef CONFIG_SHARE
 uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   uint64_t abs_inst_count = get_abs_instr_count();
   // workload_loaded set from nemu_trap
@@ -267,6 +268,7 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   }
   return abs_inst_count;
 }
+#endif // CONFIG_SHARE
 
 static int execute(int n) {
   Logtb("Will execute %i instrs\n", n);
