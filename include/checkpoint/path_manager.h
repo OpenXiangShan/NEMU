@@ -17,6 +17,7 @@
 // Created by zyy on 2020/11/21.
 //
 
+#ifndef CONFIG_SHARE
 #ifndef NEMU_PATH_MANAGER_H
 #define NEMU_PATH_MANAGER_H
 
@@ -58,3 +59,4 @@ class PathManager
 extern PathManager pathManager;
 
 #endif //NEMU_PATH_MANAGER_H
+#endif //CONFIG_SHARE

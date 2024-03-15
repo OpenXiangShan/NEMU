@@ -17,6 +17,7 @@
 // Created by zyy on 2020/11/16.
 //
 
+#ifdef CONFIG_SHARE
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
@@ -356,3 +357,4 @@ void serialize_reg_to_mem() {
 }
 
 }
+#endif // CONFIG_SHARE

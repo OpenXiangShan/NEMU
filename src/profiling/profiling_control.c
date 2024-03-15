@@ -22,7 +22,7 @@ void reset_inst_counters() {
   workload_loaded=true;
 }
 
-#ifdef CONFIG_SHARE
+#ifndef CONFIG_SHARE
 // empty definition on share
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {}
 #endif 

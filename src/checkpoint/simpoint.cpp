@@ -38,6 +38,7 @@
  *          Curtis Dunham
  */
 
+#ifdef CONFIG_SHARE
 #include "checkpoint/path_manager.h"
 #include <cassert>
 // #include <debug.h>
@@ -187,3 +188,4 @@ void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) 
 }
 #endif
 }
+#endif // CONFIG_SHARE

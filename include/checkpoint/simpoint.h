@@ -38,6 +38,7 @@
  *          Curtis Dunham
  */
 
+#ifndef CONFIG_SHARE
 #ifndef __CPU_SIMPLE_PROBES_SIMPOINT_HH__
 #define __CPU_SIMPLE_PROBES_SIMPOINT_HH__
 
@@ -127,3 +128,4 @@ class SimPoint
 }
 
 #endif // __CPU_SIMPLE_PROBES_SIMPOINT_HH__
+#endif // CONFIG_SHARE

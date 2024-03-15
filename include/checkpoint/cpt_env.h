@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#ifndef CONFIG_SHARE
 #ifndef __CHECKPOINT_CPT_ENV__
 #define __CHECKPOINT_CPT_ENV__
 
@@ -28,3 +29,4 @@ extern char *restorer;
 extern char compress_file_format;
 
 #endif
+#endif // CONFIG_SHARE

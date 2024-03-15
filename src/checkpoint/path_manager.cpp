@@ -17,6 +17,7 @@
 // Created by zyy on 2020/11/21.
 //
 
+#ifdef CONFIG_SHARE
 #include <checkpoint/path_manager.h>
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/serializer.h>
@@ -118,3 +119,4 @@ void init_path_manager()
 }
 
 }
+#endif // CONFIG_SHARE

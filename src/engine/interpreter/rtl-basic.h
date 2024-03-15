@@ -183,7 +183,9 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 }
 
 // control
+#ifndef CONFIG_SHARE
 extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count);
+#endif // CONFIG_SHARE
 extern uint64_t get_abs_instr_count();
 
 extern uint64_t br_count;
@@ -210,9 +212,11 @@ static inline def_rtl(j, vaddr_t target) {
   cpu.pc = target;
   // real_target = target;
 
+#ifndef CONFIG_SHARE
   if (profiling_state == SimpointProfiling && workload_loaded) {
     simpoint_profiling(cpu.pc, true, get_abs_instr_count());
   }
+#endif // CONFIG_SHARE
 
 #ifdef CONFIG_GUIDED_EXEC
 end_of_rtl_j:
@@ -244,9 +248,11 @@ static inline def_rtl(jr, rtlreg_t *target) {
   real_target = *target;
   #endif // CONFIG_BR_LOG
 
+#ifndef CONFIG_SHARE
   if (profiling_state == SimpointProfiling && workload_loaded) {
     simpoint_profiling(cpu.pc, true, get_abs_instr_count());
   }
+#endif // CONFIG_SHARE
 
 #ifdef CONFIG_GUIDED_EXEC
 end_of_rtl_jr:

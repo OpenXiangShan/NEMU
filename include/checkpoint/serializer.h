@@ -17,6 +17,7 @@
 // Created by zyy on 2020/11/16.
 //
 
+#ifndef CONFIG_SHARE
 #ifndef NEMU_SERIALIZER_H
 #define NEMU_SERIALIZER_H
 
@@ -70,3 +71,4 @@ extern Serializer serializer;
 #define MAX_RESTORER_SIZE 0xa000
 
 #endif //NEMU_SERIALIZER_H
+#endif //CONFIG_SHARE
