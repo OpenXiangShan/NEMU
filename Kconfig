@@ -158,6 +158,12 @@ config DIFFTEST_REF_SPIKE
   bool "SPIKE"
 endchoice
 
+config DIFFTEST_STORE_COMMIT
+  depends on DIFFTEST_REF_SPIKE
+  bool "Check the data of the store class instruction"
+  default n
+
+
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
   bool
@@ -255,6 +261,11 @@ config DIFFTEST_STORE_COMMIT
   bool "Maintain a committed store queue for processor ref"
   default y
 
+config DIFFTEST_REF_FOR_GEM5
+  depends on SHARE
+  bool "Always copy lrsc valid to lr valid for GEM5"
+  default n
+
 config DIFFTEST_STORE_COMMIT_AMO
   depends on DIFFTEST_STORE_COMMIT
   bool "Also record store requests by AMO instructions"
@@ -301,6 +312,16 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+
+config MEMORY_REGION_ANALYSIS
+  bool "Enable Program memory segment analysis"
+  default n
+
+if MEMORY_REGION_ANALYSIS
+config MEMORY_REGION_ANALYSIS_SIZE
+  int "Analysis block MB size"
+  default 32
+endif
 
 config REPORT_ILLEGAL_INSTR
   bool "Let NEMU report illegal instruction"

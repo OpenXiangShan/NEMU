@@ -202,7 +202,7 @@ static inline void update_mstatus_sd() {
   if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
     mstatus->fs = 3;
   }
-  mstatus->sd = (mstatus->fs == 3);
+  mstatus->sd = (mstatus->fs == 3) || (mstatus->vs == 3);
 }
 #ifdef CONFIG_RVH
 static inline void update_vsstatus_sd() {
@@ -273,6 +273,7 @@ if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(vsstatus))       { return vsstatus->val & SSTATUS_RMASK; }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
 if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
 #endif
@@ -587,6 +588,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     case TRIG_TYPE_NONE: // write type 0 to disable this trigger
     case TRIG_TYPE_DISABLE:
       tdata1_reg->type = TRIG_TYPE_DISABLE;
+      tdata1_reg->data = 0;
       break;
     case TRIG_TYPE_MCONTROL:
       mcontrol_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol, &src, cpu.TM);
@@ -623,7 +625,12 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_FPU_NONE
 
   }
-
+#ifdef CONFIG_RVV
+  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
+    vp_set_dirty();
+    need_update_mstatus_sd = true;
+  }
+#endif //CONFIG_RVV
   if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
     update_mstatus_sd();
   }
@@ -643,12 +650,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
-#ifdef CONFIG_RVV
-  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
-    //vp_set_dirty();
-    set_mstatus_dirt();
-  }
-#endif
 }
 
 word_t csrid_read(uint32_t csrid) {

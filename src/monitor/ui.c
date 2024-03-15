@@ -276,6 +276,10 @@ void ui_mainloop() {
   if (is_batch_mode()) {
     extern char *max_instr;
     cmd_c(max_instr);
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+    extern void analysis_use_addr_display();
+    analysis_use_addr_display();
+#endif
     return;
   }
 

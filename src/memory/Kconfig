@@ -80,7 +80,7 @@ config MEM_RANDOM
     This may help to find undefined behaviors.
 
 config MEM_COMPRESS
-  depends on MODE_SYSTEM && !DIFFTEST
+  depends on MODE_SYSTEM && !SHARE
   bool "Initialize the memory with a compressed gz file"
   default n
   help

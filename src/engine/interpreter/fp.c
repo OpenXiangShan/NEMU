@@ -296,7 +296,7 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_DUToF: *dest = ui32_to_f16(fsrc1.v).v; break;
       case FPCALL_DSToF: *dest = i32_to_f16(fsrc1.v).v; break;
       case FPCALL_DFToF: *dest = f32_to_f16(fsrc1).v; break;
-      case FPCALL_DFToFR:
+      case FPCALL_DFToF_ODD:
         softfloat_roundingMode = softfloat_round_odd;
         *dest = f32_to_f16(fsrc1).v;
         break;
@@ -373,8 +373,8 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_DUToF: *dest = ui64_to_f32(fsrc1.v).v; break;
       case FPCALL_DSToF: *dest = i64_to_f32(fsrc1.v).v; break;
       case FPCALL_DFToF: *dest = f64_to_f32(fsrc1).v; break;
-      case FPCALL_DFToFR:
-        softfloat_roundingMode = softfloat_round_max;
+      case FPCALL_DFToF_ODD:
+        softfloat_roundingMode = softfloat_round_odd;
         *dest = f64_to_f32(fsrc1).v;
         break;
 
