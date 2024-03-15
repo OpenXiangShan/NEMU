@@ -171,6 +171,17 @@ void isa_difftest_regcpy(void *dut, bool direction) {
 #endif // CONFIG_LIGHTQS
   //ramcmp();
   if (direction == DIFFTEST_TO_REF) {
+#ifdef CONFIG_REF_SKIP_INFO
+    if (((CPU_state *)dut)->pc != 0 && (cpu.mcause != ((CPU_state *)dut)->mcause || cpu.scause != ((CPU_state *)dut)->scause)) {
+      printf("NEMU ref csr-cause skip info start\n");
+      printf("ref pc %lx\n", cpu.pc);
+      printf("update mcause %lx to %lx, scause %lx to %lx\n",
+        cpu.mcause, ((CPU_state *)dut)->mcause, cpu.scause, ((CPU_state *)dut)->scause);
+      printf("dut mepc %lx sepc %lx\n",((CPU_state *)dut)->mepc, ((CPU_state *)dut)->sepc);
+      iqueue_dump();
+      printf("NEMU ref skip info end\n\n");
+    }
+#endif // CONFIG_REF_SKIP_INFO
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
     csr_writeback();
     // need to clear the cached mmu states as well

@@ -534,6 +534,8 @@ static int execute(int n) {
     cpu.instr = s.isa.instr.val;
 #endif
 #ifdef CONFIG_SHARE
+    IFDEF(CONFIG_REF_SKIP_INFO, iqueue_commit(cpu.pc, (void *)&s.isa.instr.val,
+                s.snpc - s.pc));
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
               s.isa.instr.val);
