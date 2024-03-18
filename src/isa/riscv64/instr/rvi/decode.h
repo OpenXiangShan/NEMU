@@ -304,6 +304,17 @@ def_THelper(jalr_dispatch) {
   return EXEC_ID_inv;
 }
 
+#ifdef CONFIG_RV_DASICS
+static inline def_DHelper(dasicscall_j) {
+  sword_t offset = (s->isa.instr.dij.simm22 << 22) | (s->isa.instr.dij.imm21 << 21) |
+    (s->isa.instr.dij.imm20_15 << 15) | (s->isa.instr.dij.imm14_11 << 11) |
+    (s->isa.instr.dij.imm10_1 << 1);
+  decode_op_i(s, id_src1, s->pc + offset, true);
+  decode_op_r(s, id_dest, 1, false);  // link to ra
+  id_src2->imm = s->snpc;
+}
+#endif  // CONFIG_RV_DASICS
+
 def_THelper(mem_fence) {
   def_INSTR_TAB("??????? ????? ????? 000 ????? ????? ??", fence);
   def_INSTR_TAB("??????? ????? ????? 001 ????? ????? ??", fence_i);

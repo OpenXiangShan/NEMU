@@ -80,6 +80,15 @@ typedef struct {
   uint64_t mip, mie;
   uint64_t mscratch, sscratch;
   uint64_t mideleg, medeleg;
+#ifdef CONFIG_RV_DASICS
+  uint64_t dumcfg, dumbound0, dumbound1;
+  uint64_t dlcfg0;
+  uint64_t dlbound0, dlbound1, dlbound2, dlbound3;
+  uint64_t dlbound4, dlbound5, dlbound6, dlbound7;
+  uint64_t dmaincall, dretpc;
+  uint64_t djcfg, djbound0lo, djbound0hi;
+#endif  // CONFIG_RV_DASICS
+
   uint64_t pc;
   // Above will be synced by regcpy when run difftest, DO NOT TOUCH
 
@@ -193,6 +202,18 @@ typedef struct {
       uint32_t imm10_1   :10;
       int32_t  simm20    : 1;
     } j;
+#ifdef CONFIG_RV_DASICS
+    struct {
+      uint32_t opcode1_0 : 2;
+      uint32_t opcode6_2 : 5;
+      uint32_t imm21     : 1;
+      uint32_t imm14_11  : 4;
+      uint32_t funct3    : 3;
+      uint32_t imm20_15  : 6;
+      uint32_t imm10_1   :10;
+      int32_t  simm22    : 1;
+    } dij;  // DASICSCALL.J
+#endif
     struct {
       uint32_t pad7      :20;
       uint32_t csr       :12;

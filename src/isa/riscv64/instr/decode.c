@@ -54,6 +54,10 @@ def_THelper(main) {
 #ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00001 ??", fload , fload);
 #endif // CONFIG_FPU_NONE
+#ifdef CONFIG_RV_DASICS
+  def_INSTR_IDTAB("??????? ????? ????? 000 ????? 00010 ??", dasicscall_j, dasicscall_j);
+  def_INSTR_IDTAB("??????? ????? ????? 001 ????? 00010 ??", I     , dasicscall_jr);
+#endif  // CONFIG_RV_DASICS
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00011 ??", I     , mem_fence);
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00100 ??", I     , op_imm);
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00101 ??", auipc , auipc);
@@ -125,6 +129,7 @@ int isa_fetch_decode(Decode *s) {
   s->type = INSTR_TYPE_N;
   switch (idx) {
     case EXEC_ID_c_j: case EXEC_ID_p_jal: case EXEC_ID_jal:
+    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_j:)
       s->jnpc = id_src1->imm; s->type = INSTR_TYPE_J; break;
 
     case EXEC_ID_beq: case EXEC_ID_bne: case EXEC_ID_blt: case EXEC_ID_bge:
@@ -134,9 +139,8 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
-#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
-    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
-#endif
+    IFDEF(CONFIG_RV_DASICS, case EXEC_ID_dasicscall_jr:)
+    IFDEF(CONFIG_DEBUG, case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall:)
       s->type = INSTR_TYPE_I; break;
 
 #if !defined(CONFIG_DEBUG) && !defined(CONFIG_SHARE)

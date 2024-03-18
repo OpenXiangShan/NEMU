@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
+#include <../local-include/intr.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -133,6 +134,10 @@ _Noreturn void longjmp_exception(int ex_cause) {
 static bool manual_cpt_quit = false;
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
+#ifdef CONFIG_RV_DASICS
+void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc);
+#endif  // CONFIG_RV_DASICS
+
 #define rtl_j(s, target)                                                       \
   do {                                                                         \
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb);                         \
@@ -153,7 +158,11 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb);                         \
     is_ctrl = true;                                                            \
-    if (interpret_relop(relop, *src1, *src2)) {                                \
+    bool is_jmp = interpret_relop(relop, *src1, *src2);                        \
+    bool is_branch = s->type == INSTR_TYPE_B;                                  \
+    IFDEF(CONFIG_RV_DASICS, (is_jmp && !is_branch ?                            \
+      dasics_redirect_helper(s->pc, (vaddr_t)target, s->snpc) : 0));           \
+    if (is_jmp) {                                                              \
       s = s->tnext;                                                            \
       br_taken = true;                                                         \
     } else                                                                     \
@@ -361,7 +370,7 @@ end_of_loop:
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 
 #define rtl_priv_next(s)
-#define rtl_priv_jr(s, target) rtl_jr(s, target)
+// NOTE: 'rtl_priv_jr' is implemented in rtl_basic.h without using rtl_jr
 
 #include "isa-exec.h"
 static const void *g_exec_table[TOTAL_INSTR] = {

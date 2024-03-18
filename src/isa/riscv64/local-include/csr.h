@@ -78,6 +78,18 @@ void csr_prepare();
 #define CSRS_PMP(f)
 #endif // CONFIG_RV_PMP_CSR
 
+// CSRs for DASICS protection mechanism
+#ifdef CONFIG_RV_DASICS
+#define DASICS_CSRS(f) \
+  f(dumcfg,      0x9e0) f(dumbound0,   0x9e2) f(dumbound1,   0x9e3) \
+  f(dlcfg0,      0x880) \
+  f(dlbound0,    0x890) f(dlbound1,    0x891) f(dlbound2,    0x892) f(dlbound3,    0x893) \
+  f(dlbound4,    0x894) f(dlbound5,    0x895) f(dlbound6,    0x896) f(dlbound7,    0x897) \
+  f(dmaincall,   0x8b0) f(dretpc,      0x8b1) \
+  f(djbound0lo,  0x8c0) f(djbound0hi,  0x8c1) \
+  f(djcfg,       0x8c8)
+#endif  // CONFIG_RV_DASICS
+
 #ifndef CONFIG_SHARE
 #define CSRS(f) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
@@ -556,6 +568,82 @@ CSR_STRUCT_START(mimpid)
 CSR_STRUCT_END(mimpid)
 #endif // CONFIG_RV_ARCH_CSRS
 
+#ifdef CONFIG_RV_DASICS
+
+#define MCFG_UENA   0X2ul
+
+CSR_STRUCT_START(dumcfg)
+  uint64_t pad0     :1;
+  uint64_t mcfg_uena:1;
+CSR_STRUCT_END(dumcfg)
+
+CSR_STRUCT_START(dumbound0)
+CSR_STRUCT_END(dumbound0)
+
+CSR_STRUCT_START(dumbound1)
+CSR_STRUCT_END(dumbound1)
+
+#define CSR_DLCFG0   0x880
+#define CSR_DLBOUND0 0x890
+#define CSR_DLBOUND1 0x891
+#define CSR_DJBOUND0 0x8c0
+#define CSR_DJCFG    0x8c8
+
+#define LIBCFG_MASK 0xful
+#define LIBCFG_V    0x8ul
+#define LIBCFG_R    0x2ul
+#define LIBCFG_W    0x1ul
+
+#define JUMPCFG_MASK 0xfffful
+#define JUMPCFG_V 0x1ul
+
+#define MAX_DASICS_LIBBOUNDS  4
+#define MAX_DASICS_JUMPBOUNDS 1
+
+CSR_STRUCT_START(dlcfg0)
+CSR_STRUCT_END(dlcfg0)
+
+CSR_STRUCT_START(dlbound0)
+CSR_STRUCT_END(dlbound0)
+
+CSR_STRUCT_START(dlbound1)
+CSR_STRUCT_END(dlbound1)
+
+CSR_STRUCT_START(dlbound2)
+CSR_STRUCT_END(dlbound2)
+
+CSR_STRUCT_START(dlbound3)
+CSR_STRUCT_END(dlbound3)
+
+CSR_STRUCT_START(dlbound4)
+CSR_STRUCT_END(dlbound4)
+
+CSR_STRUCT_START(dlbound5)
+CSR_STRUCT_END(dlbound5)
+
+CSR_STRUCT_START(dlbound6)
+CSR_STRUCT_END(dlbound6)
+
+CSR_STRUCT_START(dlbound7)
+CSR_STRUCT_END(dlbound7)
+
+CSR_STRUCT_START(dmaincall)
+CSR_STRUCT_END(dmaincall)
+
+CSR_STRUCT_START(dretpc)
+CSR_STRUCT_END(dretpc)
+
+CSR_STRUCT_START(djbound0lo)
+CSR_STRUCT_END(djbound0lo)
+
+CSR_STRUCT_START(djbound0hi)
+CSR_STRUCT_END(djbound0hi)
+
+CSR_STRUCT_START(djcfg)
+CSR_STRUCT_END(djcfg)
+
+#endif  // CONFIG_RV_DASICS
+
 #ifdef CONFIG_RVSDEXT
 CSR_STRUCT_START(dcsr)
   uint64_t prv      : 2 ; // [1:0]
@@ -835,6 +923,9 @@ MAP(CSRS, CSRS_DECL)
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DECL)
 #endif // CONFIG_RV_ARCH_CSRS
+#ifdef CONFIG_RV_DASICS
+  MAP(DASICS_CSRS, CSRS_DECL)
+#endif // CONFIG_RV_DASICS
 #ifdef CONFIG_RVH
   extern bool v; // virtualization mode
   MAP(HCSRS, CSRS_DECL)
@@ -857,5 +948,19 @@ uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmpaddr_from_csrid(int id);
 word_t pmp_tor_mask();
+
+// DASICS
+#ifdef CONFIG_RV_DASICS
+bool dasics_in_trusted_zone(uint64_t pc);
+uint8_t dasics_libcfg_from_index(int i);
+word_t dasics_libbound_from_index(int i);
+uint16_t dasics_jumpcfg_from_index(int i);
+word_t dasics_jumpbound_low_from_index(int i);
+word_t dasics_jumpbound_high_from_index(int i);
+bool dasics_match_dlib(uint64_t addr, uint8_t cfg);
+void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc);
+void dasics_check_trusted(vaddr_t pc);
+#endif  // CONFIG_RV_DASICS
 
 #endif

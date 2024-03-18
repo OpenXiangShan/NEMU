@@ -39,7 +39,12 @@ enum {
   EX_IGPF = 20,// instruction guest-page fault, H-extention
   EX_LGPF,// load guest-page fault, H-extention
   EX_VI,  // virtual instruction, H-extention
-  EX_SGPF // store/amo guest-page fault, H-extention
+  EX_SGPF, // store/amo guest-page fault, H-extention
+#ifdef CONFIG_RV_DASICS
+  EX_DUIAF=24,  // DASICS user instruction access fault
+  EX_DULAF,     // DASICS user load access fault
+  EX_DUSAF,     // DASICS user store access fault
+#endif  // CONFIG_RV_DASICS
 };
 
 // now NEMU does not support EX_IAM,

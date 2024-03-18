@@ -69,6 +69,30 @@ void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
+
+#ifdef CONFIG_RV_DASICS
+  cpu.dumcfg    = dumcfg->val;
+  cpu.dumbound0 = dumbound0->val;
+  cpu.dumbound1 = dumbound1->val;
+
+  cpu.dlcfg0    = dlcfg0->val;
+  cpu.dlbound0  = dlbound0->val;
+  cpu.dlbound1  = dlbound1->val;
+  cpu.dlbound2  = dlbound2->val;
+  cpu.dlbound3  = dlbound3->val;
+  cpu.dlbound4  = dlbound4->val;
+  cpu.dlbound5  = dlbound5->val;
+  cpu.dlbound6  = dlbound6->val;
+  cpu.dlbound7  = dlbound7->val;
+
+  cpu.djcfg     = djcfg->val;
+  cpu.djbound0lo= djbound0lo->val;
+  cpu.djbound0hi= djbound0hi->val;
+
+  cpu.dmaincall = dmaincall->val;
+  cpu.dretpc    = dretpc->val;
+#endif  // CONFIG_RV_DASICS
+
 #ifdef CONFIG_RVV
   cpu.vstart  = vstart->val;
   cpu.vxsat   = vxsat->val;
@@ -117,6 +141,30 @@ void csr_writeback() {
   stval->val    = cpu.stval;
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
+
+#ifdef CONFIG_RV_DASICS
+  dumcfg->val    = cpu.dumcfg;
+  dumbound0->val = cpu.dumbound0;
+  dumbound1->val = cpu.dumbound1;
+
+  dlcfg0->val    = cpu.dlcfg0;
+  dlbound0->val  = cpu.dlbound0;
+  dlbound1->val  = cpu.dlbound1;
+  dlbound2->val  = cpu.dlbound2;
+  dlbound3->val  = cpu.dlbound3;
+  dlbound4->val  = cpu.dlbound4;
+  dlbound5->val  = cpu.dlbound5;
+  dlbound6->val  = cpu.dlbound6;
+  dlbound7->val  = cpu.dlbound7;
+
+  djcfg->val     = cpu.djcfg;
+  djbound0lo->val= cpu.djbound0lo;
+  djbound0hi->val= cpu.djbound0hi;
+
+  dmaincall->val = cpu.dmaincall;
+  dretpc->val    = cpu.dretpc;
+#endif  // CONFIG_RV_DASICS
+
 #ifdef CONFIG_RVV
   vstart->val  = cpu.vstart;
   vxsat->val   = cpu.vxsat;

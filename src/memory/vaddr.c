@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <cpu/decode.h>
 //#include <profiling/betapoint-ext.h>
 #include <profiling/profiling_control.h>
 
@@ -114,6 +115,12 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     isa_misalign_data_addr_check(addr, len, type);
   }
 #endif
+#ifdef CONFIG_RV_DASICS
+  void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+  if (s != NULL) {
+    dasics_ldst_helper(((struct Decode *)s)->pc, addr, len, type);    
+  }
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RVV
   if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
 #else
@@ -139,19 +146,26 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
 }
 
 word_t vaddr_ifetch(vaddr_t addr, int len) {
+  Logm("Fetching vaddr %lx", addr);
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
 }
 
 word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
-  Logm("Reading vaddr %lx", addr);
-  return vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode);
+  word_t read_data = vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode); 
+  Logm("Reading vaddr %lx  data  %lx", addr, read_data);
+  return read_data;
 }
 
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+  Logm("Writing vaddr %lx, data :%lx\n", addr, data);
 #ifdef CONFIG_SHARE
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
 #endif
+#ifdef CONFIG_RV_DASICS
+  void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type);
+  dasics_ldst_helper(s->pc, addr, len, MEM_TYPE_WRITE);
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RVV
   if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && (s->v_is_vx == 0)))) {
 #else

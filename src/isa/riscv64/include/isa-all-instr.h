@@ -50,13 +50,13 @@
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(mret) f(sret) f(wfi) \
+  f(ecall) f(ebreak) f(mret) f(sret) f(uret) f(wfi) \
   f(sfence_w_inval) f(sfence_inval_ir)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) f(sinval_vma) RVH_INST_BINARY(f)
 #else
 #define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(mret) f(sret) f(wfi)
+  f(ecall) f(ebreak) f(mret) f(sret) f(uret) f(wfi)
 #define SYS_INSTR_BINARY(f) \
   f(sfence_vma) RVH_INST_BINARY(f)
 #endif
@@ -189,6 +189,14 @@
   f(fmadds) f(fmsubs) f(fnmsubs) f(fnmadds) f(fmaddd) f(fmsubd) f(fnmsubd) f(fnmaddd)
 #endif // CONFIG_FPU_NONE
 
+#ifdef CONFIG_RV_DASICS
+#define DASICS_INSTR_BINARY(f) f(dasicscall_j)
+#define DASICS_INSTR_TERNARY(f) f(dasicscall_jr)
+#else
+#define DASICS_INSTR_BINARY(f)
+#define DASICS_INSTR_TERNARY(f)
+#endif  // CONFIG_RV_DASICS
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
@@ -209,7 +217,8 @@
   SYS_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
-  FLOAT_INSTR_BINARY(f)
+  FLOAT_INSTR_BINARY(f) \
+  DASICS_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -228,7 +237,8 @@
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
-  VECTOR_INSTR_TERNARY(f)
+  VECTOR_INSTR_TERNARY(f) \
+  DASICS_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
 

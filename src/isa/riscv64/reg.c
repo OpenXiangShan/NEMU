@@ -62,6 +62,27 @@ void isa_reg_display() {
       mideleg->val, medeleg->val);
   printf("mtval: " FMT_WORD " stval: " FMT_WORD " mtvec: " FMT_WORD " stvec: " FMT_WORD "\n",
       mtval->val, stval->val, mtvec->val, stvec->val);
+#ifdef CONFIG_RV_DASICS
+  printf("dumcfg: " FMT_WORD " dumbound0: " FMT_WORD " dumbound1: " FMT_WORD "\n",
+      dumcfg->val, dumbound0->val, dumbound1->val);
+  printf("dmaincall: " FMT_WORD " dretpc: " FMT_WORD "\n",
+      dmaincall->val, dretpc->val);
+  printf("dlcfg0: " FMT_WORD "\n",
+      dlcfg0->val);
+  for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
+    printf("%2d: cfg:0x%02x boundlo:0x%016lx boundhi :0x%016lx", i, dasics_libcfg_from_index(i), \
+      dasics_libbound_from_index(i << 1), dasics_libbound_from_index((i << 1) + 1));
+    if (i % 2 == 1) printf("\n");
+    else printf("|");
+  }
+  printf("djcfg: " FMT_WORD "\n", djcfg->val);
+  for (int i = 0; i < MAX_DASICS_JUMPBOUNDS; ++i) {
+    printf("%2d: cfg:0x%02x boundlo: 0x%016lx boundhi: 0x%016lx", i, dasics_jumpcfg_from_index(i), \
+      dasics_jumpbound_low_from_index(i), dasics_jumpbound_high_from_index(i));
+    if (i % 2 == 1) printf("\n");
+    else printf("|");
+  }
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RVH
   printf("mtval2: " FMT_WORD " mtinst: " FMT_WORD " hstatus: " FMT_WORD " hideleg: " FMT_WORD "\n",
       mtval2->val, mtinst->val, hstatus->val, hideleg->val);

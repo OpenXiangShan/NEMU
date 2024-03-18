@@ -21,6 +21,7 @@
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
+#include <isa.h>
 #include <stdlib.h>
 
 int update_mmu_state();
@@ -41,6 +42,9 @@ MAP(CSRS, CSRS_DEF)
 #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_DEF)
 #endif // CONFIG_RV_ARCH_CSRS
+#ifdef CONFIG_RV_DASICS
+  MAP(DASICS_CSRS, CSRS_DEF)
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RVH
   MAP(HCSRS, CSRS_DEF)
 #endif //CONFIG_RVH
@@ -56,6 +60,9 @@ void init_csr() {
   #ifdef CONFIG_RV_ARCH_CSRS
   MAP(ARCH_CSRS, CSRS_EXIST)
   #endif // CONFIG_RV_ARCH_CSRS
+  #ifdef CONFIG_RV_DASICS
+  MAP(DASICS_CSRS, CSRS_EXIST)
+  #endif  // CONFIG_RV_DASICS
   #ifdef CONFIG_RVH
   cpu.v = 0;
   MAP(HCSRS, CSRS_EXIST)
@@ -72,7 +79,7 @@ void init_trigger() {
 
 rtlreg_t csr_perf;
 
-static inline bool csr_is_legal(uint32_t addr, bool need_write) {
+static inline bool csr_is_legal(uint32_t addr, bool need_write, vaddr_t pc) {
   assert(addr < 4096);
   // Attempts to access a non-existent CSR raise an illegal instruction exception.
   if(!csr_exist[addr]) {
@@ -83,6 +90,17 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   }
   // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
+#ifdef CONFIG_RV_DASICS
+  if (!(cpu.mode >= lowest_access_priv_level && dasics_in_trusted_zone(pc))) {
+    panic("[NEMU] illegal csr access for dasics:0x%x mode: %ld pc: %lx", addr,cpu.mode,pc);
+    return false;
+  }
+#else
+  if (!(cpu.mode >= lowest_access_priv_level)) {
+    panic("[NEMU] illegal csr access for dasics:0x%x mode:%ld", addr,cpu.mode);
+    return false;
+  }
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RVH
   int priv = cpu.mode == MODE_S ? MODE_HS : cpu.mode;
   if(priv < lowest_access_priv_level){
@@ -152,7 +170,6 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIP_MASK (0x222 & mideleg->val)
 #define SIP_WMASK_S 0x2
 #define MTIE_MASK (1 << 7)
-
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
 #define FCSR_MASK 0xff
@@ -163,7 +180,143 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR0]) && src < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
 #define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
 #define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
+#define is_write_dasics_mem_bound (dest >= &(csr_array[CSR_DLBOUND0]) && dest < (&(csr_array[CSR_DLBOUND0]) + MAX_DASICS_LIBBOUNDS*2))
+#define is_write_dasics_jump_bound (dest >= &(csr_array[CSR_DJBOUND0]) && dest < (&(csr_array[CSR_DJBOUND0]) + MAX_DASICS_JUMPBOUNDS*2))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
+
+#ifdef CONFIG_RV_DASICS
+#define DUMCFG_MASK MCFG_UENA
+#define BOUND_ADDR_ALGIN 0x7
+bool dasics_in_trusted_zone(uint64_t pc)
+{
+  bool is_umain_enable = dumcfg->mcfg_uena;
+  bool in_umain_zone = pc >= dumbound0->val && pc < dumbound1->val && cpu.mode == MODE_U && is_umain_enable;
+  bool in_u_trusted_zone = in_umain_zone || (cpu.mode == MODE_U && !is_umain_enable);
+
+  return cpu.mode >= MODE_S || in_u_trusted_zone;
+}
+
+uint8_t dasics_libcfg_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_LIBBOUNDS);
+  return (csr_array[CSR_DLCFG0] >> (i << 2)) & LIBCFG_MASK;
+}
+
+word_t dasics_libbound_from_index(int i) {
+  assert(0 <= i && i < (MAX_DASICS_LIBBOUNDS << 1));
+  return csr_array[CSR_DLBOUND0 + i];
+}
+
+uint16_t dasics_jumpcfg_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_JUMPBOUNDS);
+  return (csr_array[CSR_DJCFG] >> (i << 4)) & JUMPCFG_MASK;
+}
+
+word_t dasics_jumpbound_low_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_JUMPBOUNDS);
+  return csr_array[CSR_DJBOUND0 + 2*i];
+}
+
+word_t dasics_jumpbound_high_from_index(int i) {
+  assert(0 <= i && i < MAX_DASICS_JUMPBOUNDS);
+  return csr_array[CSR_DJBOUND0 + 2*i + 1];
+}
+
+bool dasics_match_dlib(uint64_t addr, uint8_t cfg)
+{
+  // Check whether the addr is within dlbounds which is marked as cfg
+  bool within_range = false;
+  for (int i = 0; i < MAX_DASICS_LIBBOUNDS; ++i) {
+    uint8_t cfgval = dasics_libcfg_from_index(i);
+    word_t boundlo = dasics_libbound_from_index(i << 1);
+    word_t boundhi = dasics_libbound_from_index((i << 1) + 1);
+
+    if (!((cfgval & cfg) ^ cfg) && boundlo <= addr && addr < boundhi) {
+      within_range = true;
+      break;
+    }
+  }
+
+  return within_range;
+}
+
+bool dasics_match_djumpbound(uint64_t addr, uint8_t cfg) {
+  bool within_range = false;
+  for (int i = 0; i < MAX_DASICS_JUMPBOUNDS; ++i) {
+    uint16_t cfgval = dasics_jumpcfg_from_index(i);
+    word_t boundlo = dasics_jumpbound_low_from_index(i);
+    word_t boundhi = dasics_jumpbound_high_from_index(i);
+    Logm("[free zone check] cfgval:%d,  boundlo:%lx  boundhi:%lx\n",cfgval,boundlo,boundhi);
+
+    if (!((cfgval & cfg) ^ cfg) && boundlo <= addr && addr < boundhi) {
+      within_range = true;
+      break;
+    }
+  }
+  return within_range;
+}
+
+void dasics_ldst_helper(vaddr_t pc, vaddr_t vaddr, int len, int type) {
+  // TODO: What about MEM_TYPE_IFETCH ???
+  if (dasics_in_trusted_zone(pc)) {
+    return;
+  }
+
+  if (type == MEM_TYPE_READ) {
+    for (int i = 0; i < len; i++) {
+      if (!dasics_match_dlib(vaddr + i, LIBCFG_V | LIBCFG_R)) {
+        INTR_TVAL_REG(EX_DULAF) = vaddr + i;  // To avoid load inst that crosses libzone
+        Logm("Dasics load exception occur %lx", vaddr);
+        //isa_reg_display();
+        longjmp_exception(EX_DULAF);
+        break;
+      }
+    }
+  }
+  else if (type == MEM_TYPE_WRITE) {
+    for (int i = 0; i < len; ++i) {
+      if (!dasics_match_dlib(vaddr + i, LIBCFG_V | LIBCFG_W)) {
+        INTR_TVAL_REG(EX_DUSAF) = vaddr + i;  // To avoid store inst that crosses libzone
+        Logm("Dasics store exception occur %lx", vaddr);
+        //isa_reg_display();
+        longjmp_exception(EX_DUSAF);
+        break;
+      }
+    }
+  }
+}
+
+void dasics_redirect_helper(vaddr_t pc, vaddr_t newpc, vaddr_t nextpc) {
+  // Check whether this redirect instruction is permitted
+  bool src_trusted = dasics_in_trusted_zone(pc);
+  bool dst_trusted = dasics_in_trusted_zone(newpc);
+  bool dst_activezone = dasics_match_djumpbound(newpc, JUMPCFG_V);
+
+  Logm("[Dasics Redirect] pc: 0x%lx (T:%d), target:0x%lx (T:%d F:%d)\n", pc, src_trusted, newpc, dst_trusted, dst_activezone);
+  Logm("[Dasics Redirect] dretpc: 0x%lx dretmaincall: 0x%lx\n", dretpc->val, dmaincall->val);
+
+  bool allow_lib_to_main = !src_trusted && dst_trusted && \
+    (newpc == dretpc->val || newpc == dmaincall->val);
+  bool allow_activezone_jump = dst_activezone;
+
+  bool allow_jump = src_trusted  || allow_lib_to_main || allow_activezone_jump;
+
+  if (!allow_jump) {
+    INTR_TVAL_REG(EX_DUIAF) = newpc;
+    Logm("Dasics jump exception occur: pc%lx  (st:%d, altm:%d, df:%d, aftl:%d)\n",pc,src_trusted,allow_lib_to_main,dst_activezone,allow_activezone_jump);
+    longjmp_exception(EX_DUIAF);
+  }
+}
+#endif  // CONFIG_RV_DASICS
+
+/* raise exception if not trusted */
+void dasics_check_trusted(vaddr_t pc) {
+  if (!dasics_in_trusted_zone(pc)) {
+    int ex = EX_II;
+    // isa_reg_display();
+    Logm("Dasics illegal instruction: pc%lx\n", pc);
+    longjmp_exception(ex);
+  }
+}
 
 uint8_t pmpcfg_from_index(int idx) {
   // for now, nemu only support 16 pmp entries in a XLEN=64 machine
@@ -290,6 +443,9 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
 #endif
     return mip->val & SIP_MASK;
   }
+#ifdef CONFIG_RV_DASICS
+  else if (is_read(dumcfg)) { return dumcfg->val & DUMCFG_MASK; }
+#endif  // CONFIG_RV_DASICS
 #ifdef CONFIG_RVV
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
   else if (is_read(vlenb))  { return VLEN >> 3; }
@@ -457,11 +613,20 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = src & ~(0x3UL);
 #endif // CONFIG_XTVEC_VECTORED_MODE
 }
+  else if (is_write(medeleg)) {
+    word_t mask = 0xb3ff;
 #ifdef CONFIG_RVH
-  else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
+    mask = MEDELEG_MASK;
+#endif  // CONFIG_RVH
+#ifdef CONFIG_RV_DASICS
+    mask |= 0x7000000;
+#endif  // CONFIG_RV_DASICS
+#ifdef CONFIG_RVH
+    medeleg->val = mask_bitset(medeleg->val, mask, src);
 #else
-  else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
-#endif
+    *dest = src & mask;
+#endif  // CONFIG_RVH
+  }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_RVV
   else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
@@ -569,6 +734,14 @@ static inline void csr_write(word_t *dest, word_t src) {
     mmu_tlb_flush(0);
   }
 #endif
+#ifdef CONFIG_RV_DASICS
+  else if (is_write(dumcfg)) {
+    dumcfg->val = mask_bitset(dumcfg->val, DUMCFG_MASK, src);
+  } else if (is_write_dasics_mem_bound || is_write_dasics_jump_bound) {
+    *dest = src & ~BOUND_ADDR_ALGIN; 
+    if(is_write_dasics_jump_bound) Logm("[write jump bound]: write addr %016lx src: %lx\n",*dest,src );
+  }
+#endif  // CONFIG_RV_DASICS
   else if (is_write(satp)) {
     if (cpu.mode == MODE_S && mstatus->tvm == 1) {
       longjmp_exception(EX_II);
@@ -656,8 +829,8 @@ word_t csrid_read(uint32_t csrid) {
   return csr_read(csr_decode(csrid));
 }
 
-static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
-  if (!csr_is_legal(csrid, src != NULL)) {
+static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, vaddr_t pc) {
+  if (!csr_is_legal(csrid, src != NULL, pc)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
@@ -835,10 +1008,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 }
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
-    const rtlreg_t *src2, word_t imm) {
+    const rtlreg_t *src2, word_t imm, vaddr_t pc) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+    case HOSTCALL_CSR: csrrw(dest, src1, imm, pc); return;
 #ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
       Assert(imm == 0x8, "Unsupported exception = %ld", imm);
@@ -849,7 +1022,8 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       ret = *src1 + 4;
       break;
 #else
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_TRAP: 
+      ret = raise_intr(imm, *src1); break;
 #endif
     case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
