@@ -57,10 +57,13 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
+DIRS-y += src/profiling
+ifndef CONFIG_SHARE
 DIRS-cpp = src/checkpoint src/base src/iostream3 src/memory src/profiling
-DIRS-y += src/checkpoint src/profiling # profiling.c
+DIRS-y += src/checkpoint
 
 XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
+endif
 
 CC = $(call remove_quote,$(CONFIG_CC))
 CXX = $(call remove_quote,$(CONFIG_CXX))
