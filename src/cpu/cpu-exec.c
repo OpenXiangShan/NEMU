@@ -620,7 +620,9 @@ int cpu_exec(uint64_t n) {
     n_remain -= prev_s->idx_in_bb - 1;
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT
+    #ifndef CONFIG_SHARE
     update_global();
+    #endif
 #endif
     Loge("After update_global, n_remain: %i, n_remain_total: %li", n_remain,
          n_remain_total);
@@ -729,5 +731,13 @@ int cpu_exec(uint64_t n) {
     break;
 #endif
   }
-  return n;
+  if(cpu.pc == 0) {
+    printf("ERROR: current pc change to 0x%016lx\n", cpu.pc);
+    assert(0);
+  }
+  #ifdef CONFIG_PERF_OPT
+    return g_nr_guest_instr;
+  #else 
+    return n;
+  #endif
 }
