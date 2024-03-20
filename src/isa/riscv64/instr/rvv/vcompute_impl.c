@@ -480,7 +480,11 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
-    case 0 : panic("f8 not supported"); break;
+    case 0 :
+      switch (widening) {
+        case vdNarrow : FPCALL_TYPE = FPCALL_W16; break;
+      }
+      break;
     case 1 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W16_to_32; break;
