@@ -582,7 +582,12 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+#ifdef CONFIG_USE_XS_ARCH_CSRS
+    vaddr = vaddr & (vaddr_t)0x7FFFFFFFFF;
+    INTR_TVAL_REG(ex) = SEXT(vaddr, 39); // USE SV39 VADDR
+#else
     INTR_TVAL_REG(ex) = vaddr;
+#endif // CONFIG_USE_XS_ARCH_CSRS
     longjmp_exception(ex);
   }
 }
