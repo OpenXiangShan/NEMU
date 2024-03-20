@@ -14,9 +14,11 @@
 ***************************************************************************************/
 
 #include <common.h>
-
+#ifdef CONFIG_REF_SKIP_INFO
+#define INSTR_QUEUE_SIZE (1 << 3)
+#else
 #define INSTR_QUEUE_SIZE (1 << 5)
-
+#endif // CONFIG_REF_SKIP_INFO
 static struct {
   vaddr_t pc;
   uint8_t instr[20];

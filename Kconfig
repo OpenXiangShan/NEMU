@@ -301,6 +301,11 @@ config REF_STATUS
   bool "Enable ref status API"
   default n
 
+config REF_SKIP_INFO 
+  depends on SHARE
+  bool "Enable dump debug information when forcing sync"
+  default n
+
 endmenu
 
 menu "Miscellaneous"
