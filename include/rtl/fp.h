@@ -17,6 +17,7 @@
 #define __RTL_FP_H__
 
 enum {
+  FPCALL_W8,
   FPCALL_W16,
   FPCALL_W32,
   FPCALL_W64,

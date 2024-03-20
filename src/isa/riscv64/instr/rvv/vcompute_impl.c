@@ -483,6 +483,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     case 0 :
       switch (widening) {
         case vdNarrow : FPCALL_TYPE = FPCALL_W16; break;
+        case vdWidening : FPCALL_TYPE = FPCALL_W8; break;
       }
       break;
     case 1 : 
