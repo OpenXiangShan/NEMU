@@ -91,13 +91,13 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write, vaddr_t pc) {
   // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
 #ifdef CONFIG_RV_DASICS
-  if (!(cpu.mode >= lowest_access_priv_level && dasics_in_trusted_zone(pc))) {
+  if (!(cpu.mode >= lowest_access_priv_level || dasics_in_trusted_zone(pc))) {
     panic("[NEMU] illegal csr access for dasics:0x%x mode: %ld pc: %lx", addr,cpu.mode,pc);
     return false;
   }
 #else
   if (!(cpu.mode >= lowest_access_priv_level)) {
-    panic("[NEMU] illegal csr access for dasics:0x%x mode:%ld", addr,cpu.mode);
+    //panic("[NEMU] illegal csr access for dasics:0x%x mode:%ld", addr,cpu.mode);
     return false;
   }
 #endif  // CONFIG_RV_DASICS
