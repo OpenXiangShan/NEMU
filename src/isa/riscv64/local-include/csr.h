@@ -96,6 +96,7 @@ void csr_prepare();
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   f(mtime      , 0xc01) \
+  f(sfetchctl  , 0x9e0) f(sbpctl     , 0x5c0) f(spfctl     , 0x5c1) \
   CORE_DEBUG_CSRS(f) \
   TRIGGER_CSRS(f) \
 
@@ -117,6 +118,7 @@ void csr_prepare();
   CUSTOM_CSR(f) \
   f(fflags     , 0x001) f(frm        , 0x002) f(fcsr       , 0x003) \
   CORE_DEBUG_CSRS(f) \
+  f(sfetchctl  , 0x9e0) f(sbpctl     , 0x5c0) f(spfctl     , 0x5c1) \
   TRIGGER_CSRS(f) \
 
 #endif
@@ -464,6 +466,15 @@ CSR_STRUCT_START(srnctl)
   uint64_t reserve :63;
 CSR_STRUCT_END(srnctl)
 #endif
+
+CSR_STRUCT_START(sfetchctl)
+CSR_STRUCT_END(sfetchctl)
+
+CSR_STRUCT_START(sbpctl)
+CSR_STRUCT_END(sbpctl)
+
+CSR_STRUCT_START(spfctl)
+CSR_STRUCT_END(spfctl)
 
 CSR_STRUCT_START(mcycle)
 CSR_STRUCT_END(mcycle)
