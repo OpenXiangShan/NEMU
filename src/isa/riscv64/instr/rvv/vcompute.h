@@ -406,13 +406,16 @@ def_EHelper(vfirst) {
 }
 
 def_EHelper(vmsbf) {
+  // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero.
   if(vstart->val != 0)
-    check_vstart_ignore(s);
+    longjmp_exception(EX_II);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask == 0) {
+      // it need v0 mask, but this element is not choosed by v0
+      // if vma, set 1; others, continue
       if (RVV_AGNOSTIC) {
         if (vtype->vma) {
           set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
@@ -421,6 +424,10 @@ def_EHelper(vmsbf) {
       continue;
     }
 
+    // s->vm == 1: donot need v0 mask
+    // or
+    // s->vm == 0 && mask == 1: this element is choosed by v0
+    
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
     *s0 &= 1;
 
@@ -434,13 +441,7 @@ def_EHelper(vmsbf) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
   }
-  // If there is no set bit in the active element of the source vector,
-  // all active elements in the target are written to 1.
-  if (!first_one) {
-    for(int idx = vstart->val; idx < vl->val; idx ++) {
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
-    }
-  }
+  /* The tail elements in the destination mask register are updated under a tail-agnostic policy. */
   if (RVV_AGNOSTIC) {
     for (int idx = vl->val; idx < VLEN; idx++) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
