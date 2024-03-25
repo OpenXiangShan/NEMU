@@ -93,6 +93,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
       return false;
@@ -118,6 +119,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       cpu.amo = false;
       Logtr("Memory read translation exception!");
@@ -133,6 +135,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     Logtr("Translate for memory writing v: %d w: %d", pte->v, pte->w);
     if (!(ok && pte->w && !pte->pad) || update_ad) {
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
@@ -240,6 +243,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   if (unlikely(is_in_mmio(addr))) {
     int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                 type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
     INTR_TVAL_REG(cause) = vaddr;
     longjmp_exception(cause);
   }
@@ -506,6 +510,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         longjmp_exception(EX_IPF);
       }
 #else
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
 #endif
@@ -530,11 +535,13 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         }
       }else{
         ex = cpu.amo ? EX_SPF : EX_LPF;
+        IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
         INTR_TVAL_REG(ex) = vaddr;
       }
       longjmp_exception(ex);
 #else
       int ex = cpu.amo ? EX_SPF : EX_LPF;
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
 #endif
@@ -557,10 +564,12 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         }
         longjmp_exception(EX_SPF);
       }else{
+        IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
         INTR_TVAL_REG(EX_SPF) = vaddr;
         longjmp_exception(EX_SPF);
       }
 #else
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
 #endif
@@ -582,12 +591,8 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-#ifdef CONFIG_USE_XS_ARCH_CSRS
-    vaddr = vaddr & (vaddr_t)0x7FFFFFFFFF;
-    INTR_TVAL_REG(ex) = SEXT(vaddr, 39); // USE SV39 VADDR
-#else
+    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
     INTR_TVAL_REG(ex) = vaddr;
-#endif // CONFIG_USE_XS_ARCH_CSRS
     longjmp_exception(ex);
   }
 }
@@ -652,6 +657,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_LPF) = vaddr;
       printf("force raise LPF\n");
       longjmp_exception(EX_LPF);
@@ -660,6 +666,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       printf("force raise SPF\n");
       longjmp_exception(EX_SPF);

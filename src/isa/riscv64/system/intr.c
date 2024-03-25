@@ -239,3 +239,10 @@ word_t isa_query_intr() {
   }
   return INTR_EMPTY;
 }
+
+#ifdef CONFIG_USE_XS_ARCH_CSRS
+word_t INTR_TVAL_SV39_SEXT(word_t vaddr) {
+  vaddr = vaddr & (vaddr_t)0x7FFFFFFFFF;
+  return SEXT(vaddr, 39); // USE SV39 VADDR
+}
+#endif
