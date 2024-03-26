@@ -111,33 +111,26 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
 }
 
 void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
-  //TODO: raise instr when decinfo.v_width > SEW
-  //v_width   0  -> none    SEW   0  ->  8
-  //        1  ->  8            1  ->  16
-  //        2  ->  16           2  ->  32
-  //        4  ->  32           3  ->  64
-  //        8  ->  64
+  //v_width 0  ->  8    SEW   0  ->  8
+  //        5  ->  16         1  ->  16
+  //        6  ->  32         2  ->  32
+  //        7  ->  64         3  ->  64
   if(check_vstart_ignore(s)) return;
   word_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
-  int eew, lmul, index_width;
+  int eew, lmul, index_width, data_length;
 
   index_width = 0;
   eew = vtype->vsew;
+  s->v_width = s->isa.instr.vldfp.v_width;
   switch(s->v_width) {
-    case 1: index_width = 0; break;
-    case 2: index_width = 1; break;
-    case 4: index_width = 2; break;
-    case 8: index_width = 3; break;
+    case 0: index_width = 0; break;
+    case 5: index_width = 1; break;
+    case 6: index_width = 2; break;
+    case 7: index_width = 3; break;
     default: break;
   }
-  switch (vtype->vsew) {
-    case 0: s->v_width = 1; break;
-    case 1: s->v_width = 2; break;
-    case 2: s->v_width = 4; break;
-    case 3: s->v_width = 8; break;
-    default: break;
-  }
+  data_length = 1 << eew;
   lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
   isa_emul_check(lmul, nf);
   lmul = lmul < 0 ? 0 : lmul;
@@ -167,9 +160,9 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
       index = tmp_reg[2];
 
       // read data in memory
-      addr = base_addr + index + fn * s->v_width;
+      addr = base_addr + index + fn * data_length;
       s->v_is_vx = 1;
-      rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      rtl_lm(s, &tmp_reg[1], &addr, 0, data_length, mmu_mode);
       s->v_is_vx = 0;
       set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
     }
