@@ -237,24 +237,19 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
   word_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
-  int eew, lmul, index_width;
+  int eew, lmul, index_width, data_length;
 
   index_width = 0;
   eew = vtype->vsew;
+  s->v_width = s->isa.instr.vldfp.v_width;
   switch(s->v_width) {
-    case 1: index_width = 0; break;
-    case 2: index_width = 1; break;
-    case 4: index_width = 2; break;
-    case 8: index_width = 3; break;
+    case 0: index_width = 0; break;
+    case 5: index_width = 1; break;
+    case 6: index_width = 2; break;
+    case 7: index_width = 3; break;
     default: break;
   }
-  switch (vtype->vsew) {
-    case 0: s->v_width = 1; break;
-    case 1: s->v_width = 2; break;
-    case 2: s->v_width = 4; break;
-    case 3: s->v_width = 8; break;
-    default: break;
-  }
+  data_length = 1 << eew;
   lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
   isa_emul_check(lmul, nf);
   lmul = lmul < 0 ? 0 : lmul;
@@ -279,9 +274,9 @@ void vstx(int mode, Decode *s, int mmu_mode) {
 
       // read data in vector register
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, 1);
-      addr = base_addr + index + fn * s->v_width;
+      addr = base_addr + index + fn * data_length;
       s->v_is_vx = 1;
-      rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      rtl_sm(s, &tmp_reg[1], &addr, 0, data_length, mmu_mode);
       s->v_is_vx = 0;
     }
   }
