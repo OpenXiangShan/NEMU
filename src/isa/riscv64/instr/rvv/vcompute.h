@@ -1134,4 +1134,44 @@ def_EHelper(vfwnmsac) {
   FLOAT_ARTHI_SDWIDE(FNMSAC)
 }
 
+def_EHelper(vandn) {
+  ARTHI(ANDN, SIGNED)
+}
+
+def_EHelper(vbrev_v) {
+  ARTHI(BREV_V, UNSIGNED)
+}
+
+def_EHelper(vbrev8_v) {
+  ARTHI(BREV8_V, UNSIGNED)
+}
+
+def_EHelper(vrev8_v) {
+  ARTHI(REV8_V, UNSIGNED)
+}
+
+def_EHelper(vclz_v) {
+  ARTHI(CLZ_V, UNSIGNED)
+}
+
+def_EHelper(vctz_v) {
+  ARTHI(CTZ_V, UNSIGNED)
+}
+
+def_EHelper(vcpop_v) {
+  ARTHI(CPOP_V, UNSIGNED)
+}
+
+def_EHelper(vrol) {
+  ARTHI(ROL, UNSIGNED)
+}
+
+def_EHelper(vror) {
+  ARTHI(ROR, UNSIGNED)
+}
+
+def_EHelper(vwsll) {
+  ARTHI_WIDE(SLL, UNSIGNED)
+}
+
 #endif // CONFIG_RVV
