@@ -94,7 +94,7 @@ static inline void update_vcsr() {
   vcsr->val = (vxrm->val) << 1 | vxsat->val;
 }
 
-static inline void reverse_btye_bits(uint64_t *val) {
+static inline void reverse_byte_bits(uint64_t *val) {
   uint64_t tmp = *val;
   tmp = ((tmp & 0xaaaaaaaaaaaaaaaaLLU) >> 1) | ((tmp & 0x5555555555555555LLU) << 1);
   tmp = ((tmp & 0xccccccccccccccccLLU) >> 2) | ((tmp & 0x3333333333333333LLU) << 2);
@@ -477,12 +477,12 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_and(s, s1, s0, s1);
         break;
       case BREV_V :
-        reverse_btye_bits(s0);
+        reverse_byte_bits(s0);
         reverse_nbytes(s0, vtype->vsew);
         *s1 = *s0;
         break;
       case BREV8_V :
-        reverse_btye_bits(s0);
+        reverse_byte_bits(s0);
         *s1 = *s0;
         break;
       case REV8_V :
