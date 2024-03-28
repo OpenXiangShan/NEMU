@@ -11,6 +11,7 @@
 !scripts/runall.sh
 !Kconfig
 !.github/workflows/ci.yml
+!scripts/checkpoint_example/*
 include/config
 include/generated
 build
