@@ -292,4 +292,8 @@ config EBREAK_AS_TRAP
   bool "Treat ebreak same as nemu_trap"
   default n
 
+config RV_ZCMOP
+  bool "Enable Zcmop extension"
+  default n
+
 endmenu
