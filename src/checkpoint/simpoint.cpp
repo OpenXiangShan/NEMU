@@ -40,10 +40,10 @@
 
 #include "checkpoint/path_manager.h"
 #include <cassert>
-//#include <debug.h>
-#include <vector>
+// #include <debug.h>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 #include <checkpoint/simpoint.h>
 #include <profiling/profiling_control.h>
@@ -76,10 +76,6 @@ SimPoint::~SimPoint() {
 
 void
 SimPoint::init() {
-  simpointStream = NEMUNS::simout.create("simpoint_bbv", false);
-  if (!simpointStream)
-    xpanic("unable to open SimPoint profile_file");
-
   if (profiling_state == SimpointProfiling) {
     pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
@@ -148,8 +144,7 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
     if (intervalCount + intervalDrift >= intervalSize) {
       // summarize interval and display BBV info
       std::vector<std::pair<uint64_t, uint64_t> > counts;
-      for (auto map_itr = bbMap.begin(); map_itr != bbMap.end();
-           ++map_itr) {
+      for (auto map_itr = bbMap.begin(); map_itr != bbMap.end(); ++map_itr) {
         BBInfo &info = map_itr->second;
         if (info.count != 0) {
           counts.push_back(std::make_pair(info.id, info.count));
@@ -160,10 +155,8 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
 
       // Print output BBV info
       *simpointStream->stream() << "T";
-      for (auto cnt_itr = counts.begin(); cnt_itr != counts.end();
-           ++cnt_itr) {
-        *simpointStream->stream() << ":" << cnt_itr->first
-                                  << ":" << cnt_itr->second << " ";
+      for (auto cnt_itr = counts.begin(); cnt_itr != counts.end(); ++cnt_itr) {
+        *simpointStream->stream() << ":" << cnt_itr->first << ":" << cnt_itr->second << " ";
       }
       *simpointStream->stream() << "\n";
       Logsp("Simpoint profilied %lu instrs", intervalCount);
@@ -186,8 +179,11 @@ void simpoint_init() {
 
 #ifndef CONFIG_SHARE
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {
+#ifdef CONFIG_MEM_COMPRESS
   simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
+#else
+  xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
+#endif
 }
 #endif
-
 }

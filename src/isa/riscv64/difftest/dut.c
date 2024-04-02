@@ -29,6 +29,9 @@
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  cpu.mip &= 0xffffff4f; // ignore difftest for mip
+#endif
   if(cpu.mip != ref_r->mip) ref_r->mip = cpu.mip; // ignore difftest for mip
   if (memcmp(&cpu.gpr[1], &ref_r->gpr[1], DIFFTEST_REG_SIZE - sizeof(cpu.gpr[0]))) {
     int i;
@@ -42,6 +45,11 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       difftest_check_vreg(vreg_name(i, 8), pc, ref_r->vr[i]._64, cpu.vr[i]._64,VLEN/8);
     }
     #endif // CONFIG_RVV
+    #ifdef CONFIG_FPU_SOFT
+    for(i = 0; i < ARRLEN(cpu.fpr); i++) {
+      difftest_check_reg(fpreg_name(i, 4), pc, ref_r->fpr[i]._64, cpu.fpr[i]._64);
+    }
+    #endif
 
     #define check_reg(r) difftest_check_reg(str(r), pc, ref_r->r, cpu.r)
 
@@ -94,7 +102,11 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     #endif // CONFIG_RVH
     return false;
   }
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  return difftest_check_store(pc);
+#else
   return true;
+#endif
 }
 
 void isa_difftest_attach() {

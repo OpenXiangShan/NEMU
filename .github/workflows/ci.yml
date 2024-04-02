@@ -28,15 +28,25 @@ jobs:
           # test boot linux
           ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
           make clean-all
-      - name: test cpt taking and restoring
+      - name: test cpt taking and restoring using gz format
         run: |
-          make riscv64-xs-novga_defconfig
+          make riscv64-xs-cpt_defconfig
           make -j
           cd resource/gcpt_restore && make && cd $NEMU_HOME
           # take cpt, and put cpt in output_top/test/linux
-          bash ./scripts/take.sh
+          bash ./scripts/take_gz.sh
           # restore cpt
-          bash ./scripts/restore.sh
+          bash ./scripts/restore_gz.sh
+          make clean-all
+      - name: test cpt taking and restoring using zstd format
+        run: |
+          make riscv64-xs-cpt_defconfig
+          make -j
+          cd resource/gcpt_restore && make && cd $NEMU_HOME
+          # take cpt, and put cpt in output_top/test/linux
+          bash ./scripts/take_zstd.sh
+          # restore cpt
+          bash ./scripts/restore_zstd.sh
           make clean-all
       - name: Build NEMU as difftest ref
         run: |
@@ -128,3 +138,26 @@ jobs:
       #     make -j
       #     ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/kvm
       #     make clean-all
+  
+  V-ext-tests:
+    runs-on: nemu
+    continue-on-error: false
+    name: nemu - V-extension
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup env
+        run: |
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
+      - name: Build NEMU with V extension as difftest ref
+        run: |
+          make riscv64-rvv-diff-spike_defconfig
+          make -j
+          make clean-all
+      - name: Run Vector-hmmer with Spike DiffTest
+        run: |
+          make riscv64-rvv-diff-spike_defconfig
+          make -j
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro-gcpt-pk-linux-spec.bin -I 4000000000
+          make clean-all

@@ -337,35 +337,35 @@ def_EHelper(vmvsx) {
       }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vmvxs) {
-  if (vstart->val < vl->val) {
-    get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
-    rtl_sext(s, s0, s0, 1 << 3);
-    rtl_sr(s, id_dest->reg, s0, 4);
-  }
+  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
+  rtl_sext(s, s0, s0, 8);
+  rtl_sr(s, id_dest->reg, s0, 8);
+  vstart->val = 0;
 }
 
 def_EHelper(vmvnr) {
-    rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5);
-    int NREG = (*s1) + 1;
-    int len = (VLEN >> 6) * NREG;
-    int vlmul = 0;
-    while (NREG > 1) {
-      NREG = NREG >> 1;
-      vlmul++;
-    }
-    for (int i = 0; i < len; i++) {
-      get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
-      set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
-    }
+  rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
+  int NREG = (*s1) + 1;
+  int len = (VLEN >> 6) * NREG;
+  int vlmul = 0;
+  while (NREG > 1) {
+    NREG = NREG >> 1;
+    vlmul++;
+  }
+  for (int i = 0; i < len; i++) {
+    get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
+    set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
+  }
+  vstart->val = 0;
 }
 
 def_EHelper(vpopc) {
-  // longjmp_raise_intr(EX_II);
   if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
+    check_vstart_ignore(s);
   
   rtl_li(s, s1, 0);
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -381,39 +381,52 @@ def_EHelper(vpopc) {
       rtl_addi(s, s1, s1, 1);
   }
   rtl_sr(s, id_dest->reg, s1, 4);
+  vstart->val = 0;
 }
 
 def_EHelper(vfirst) {
-  // longjmp_raise_intr(EX_II);
   if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
-  
+    check_vstart_ignore(s);
+
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
-    *s0 &= 1;
-    if(*s0 == 1) {
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if (s->vm || mask) {
+      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 &= 1;
+      if(*s0 == 1) {
         pos = idx;
         break;
+      }
     }
   }
   rtl_li(s, s1, pos);
   rtl_sr(s, id_dest->reg, s1, 4);
+  vstart->val = 0;
 }
 
 def_EHelper(vmsbf) {
+  // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero.
   if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
+    longjmp_exception(EX_II);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask == 0) {
-      if (vtype->vma) {
-        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      // it need v0 mask, but this element is not choosed by v0
+      // if vma, set 1; others, continue
+      if (RVV_AGNOSTIC) {
+        if (vtype->vma) {
+          set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+        }
       }
       continue;
     }
+
+    // s->vm == 1: donot need v0 mask
+    // or
+    // s->vm == 0 && mask == 1: this element is choosed by v0
     
     *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
     *s0 &= 1;
@@ -428,16 +441,18 @@ def_EHelper(vmsbf) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
   }
+  /* The tail elements in the destination mask register are updated under a tail-agnostic policy. */
   if (RVV_AGNOSTIC) {
     for (int idx = vl->val; idx < VLEN; idx++) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vmsof) {
   if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
+    check_vstart_ignore(s);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -466,11 +481,12 @@ def_EHelper(vmsof) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vmsif) {
   if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
+    check_vstart_ignore(s);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -502,74 +518,78 @@ def_EHelper(vmsif) {
       set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(viota) {
-  if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
+  if(!check_vstart_ignore(s)) {
+    rtl_li(s, s1, 0);
+    for(int idx = vstart->val; idx < vl->val; idx ++) {
+      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      if(s->vm == 0 && mask == 0) {
+        if (RVV_AGNOSTIC) {
+          if (vtype->vma) {
+            *s2 = (uint64_t) -1;
+            set_vreg(id_dest->reg, idx, *s2, vtype->vsew, vtype->vlmul, 1);
+            continue;
+          }
+        }
+        continue;
+      }
 
-  rtl_li(s, s1, 0);
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if(s->vm == 0 && mask == 0) {
-      if (RVV_AGNOSTIC) {
-        if (vtype->vma) {
-          *s2 = (uint64_t) -1;
-          set_vreg(id_dest->reg, idx, *s2, vtype->vsew, vtype->vlmul, 1);
-          continue;
+      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 &= 1;
+
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+
+      if(*s0 == 1) {
+        rtl_addi(s, s1, s1, 1);
+      }
+    }
+    if (RVV_AGNOSTIC) {
+      if(vtype->vta) {
+        int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+        for(int idx = vl->val; idx < vlmax; idx++) {
+          *s1 = (uint64_t) -1;
+          set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
         }
       }
-      continue;
-    }
-    
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
-    *s0 &= 1;
-
-    set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
-    
-    if(*s0 == 1) {
-      rtl_addi(s, s1, s1, 1);
     }
   }
-  if (RVV_AGNOSTIC) {
-    if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
-      for(int idx = vl->val; idx < vlmax; idx++) {
-        *s1 = (uint64_t) -1;
-        set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
-      }
-    }
-  }
+  vstart->val = 0;
 }
 
 def_EHelper(vid) {
-  for(int idx = 0; idx < vl->val; idx ++) {
-        // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    // Masking does not change the index value written to active elements.
-    if(s->vm == 0 && mask == 0) {
-      if (RVV_AGNOSTIC) {
-        if (vtype->vma) {
-          *s2 = (uint64_t) -1;
-          set_vreg(id_dest->reg, idx, *s2, vtype->vsew, vtype->vlmul, 1);
-          continue;
+  if(!check_vstart_ignore(s)) {
+    for(int idx = 0; idx < vl->val; idx ++) {
+      // mask
+      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      // Masking does not change the index value written to active elements.
+      if(s->vm == 0 && mask == 0) {
+        if (RVV_AGNOSTIC) {
+          if (vtype->vma) {
+            *s2 = (uint64_t) -1;
+            set_vreg(id_dest->reg, idx, *s2, vtype->vsew, vtype->vlmul, 1);
+            continue;
+          }
+        }
+        continue;
+      }
+
+      rtl_li(s, s1, idx);
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+    if (RVV_AGNOSTIC) {
+      if(vtype->vta) {
+        int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+        for(int idx = vl->val; idx < vlmax; idx++) {
+          *s1 = (uint64_t) -1;
+          set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
         }
       }
-      continue;
-    }
-
-    rtl_li(s, s1, idx);
-    set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
-  }
-  if (RVV_AGNOSTIC) {
-    if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
-      for(int idx = vl->val; idx < vlmax; idx++) {
-        *s1 = (uint64_t) -1;
-        set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
-      }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vzextvf8) {
@@ -597,32 +617,33 @@ def_EHelper(vsextvf2) {
 }
 
 def_EHelper(vcompress) {
-  if(vstart->val != 0)
-    longjmp_raise_intr(EX_II);
+  if(!check_vstart_ignore(s)) {
 
-  rtl_li(s, s1, 0);
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(id_src1->reg, idx, vtype->vsew, vtype->vlmul);
-    
-    if (mask == 0) {
-        continue;
+    rtl_li(s, s1, 0);
+    for(int idx = vstart->val; idx < vl->val; idx ++) {
+      rtlreg_t mask = get_mask(id_src1->reg, idx, vtype->vsew, vtype->vlmul);
+
+      if (mask == 0) {
+          continue;
+      }
+
+      get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, 1, 1);
+
+      set_vreg(id_dest->reg, *s1, *s0, vtype->vsew, vtype->vlmul, 1);
+
+      rtl_addi(s, s1, s1, 1);
     }
-
-    get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, 1, 1);
-
-    set_vreg(id_dest->reg, *s1, *s0, vtype->vsew, vtype->vlmul, 1);
-    
-    rtl_addi(s, s1, s1, 1);
-  }
-  if (RVV_AGNOSTIC) {
-    if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
-      for(int idx = *s1; idx < vlmax; idx++) {
-        *s1 = (uint64_t) -1;
-        set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    if (RVV_AGNOSTIC) {
+      if(vtype->vta) {
+        int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+        for(int idx = *s1; idx < vlmax; idx++) {
+          *s1 = (uint64_t) -1;
+          set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+        }
       }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vmandnot) {
@@ -818,8 +839,11 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
-  // FREDUCTION(FREDUSUM)
-  float_reduction_computing(s);
+#ifdef CONFIG_DIFFTEST
+  FREDUCTION(FREDUSUM)    // use ordered reduction
+#else
+  float_reduction_computing(s);   // when NEMU is ref, use unordered reduction which is same as XiangShan
+#endif
 }
 
 def_EHelper(vfsub) {
@@ -867,17 +891,16 @@ def_EHelper(vfslide1down) {
 }
 
 def_EHelper(vfmvfs) {
-  if (vstart->val < vl->val) {
-    get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
-    if (vtype->vsew < 3) {
-        *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
-    }
-    rtl_mv(s, &fpreg_l(id_dest->reg), s0);
+  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
+  if (vtype->vsew < 3) {
+      *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
   }
+  rtl_mv(s, &fpreg_l(id_dest->reg), s0);
+  vstart->val = 0;
 }
 
 def_EHelper(vfmvsf) {
-  if (vstart->val < vl->val) {
+  if (vl->val > 0 && vstart->val < vl->val) {
     rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
     if (RVV_AGNOSTIC) {
@@ -888,6 +911,7 @@ def_EHelper(vfmvsf) {
       }
     }
   }
+  vstart->val = 0;
 }
 
 def_EHelper(vfcvt_xufv) {

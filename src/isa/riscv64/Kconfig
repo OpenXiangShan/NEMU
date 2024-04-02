@@ -125,4 +125,9 @@ config RVV_AGNOSTIC
   bool "Enable RVV agnostic policy"
   default y
 
+config EBREAK_AS_TRAP
+  depends on !RV_DEBUG
+  bool "Treat ebreak same as nemu_trap"
+  default n
+
 endmenu

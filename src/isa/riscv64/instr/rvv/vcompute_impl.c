@@ -169,8 +169,20 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         }
         break;
       case SRC_VI :
-        if(is_signed) rtl_li(s, s1, s->isa.instr.v_opv2.v_simm5);
-        else          rtl_li(s, s1, s->isa.instr.v_opv3.v_imm5 );
+        if(is_signed) rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
+        else {
+          if (opcode == MSLEU || opcode == MSGTU || opcode == SADDU) {
+            rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
+            switch (vtype->vsew) {
+              case 0 : *s1 = *s1 & 0xff; break;
+              case 1 : *s1 = *s1 & 0xffff; break;
+              case 2 : *s1 = *s1 & 0xffffffff; break;
+              case 3 : *s1 = *s1 & 0xffffffffffffffff; break;
+            }
+          }
+          else
+            rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
+        }       
         break;
     }
 
@@ -178,8 +190,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     narrow_shift = *s1 & (sew * 2 - 1);
 
     if (opcode == SLIDEUP) {
-      if(s->vm == 0 && mask == 0 && vtype->vma && (uint64_t)idx >= (uint64_t)*s1) {
-        if (RVV_AGNOSTIC) {
+      if(s->vm == 0 && mask == 0 && (uint64_t)idx >= (uint64_t)*s1) {
+        if (RVV_AGNOSTIC && vtype->vma) {
           *s2 = (uint64_t) -1;
           set_vreg(id_dest->reg, idx, *s2, vtype->vsew+widening, vtype->vlmul, 1);
         }
@@ -223,43 +235,42 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_li(s, s1, carry);
         break;
       case SLL :
-        rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW) is valid
-        //rtl_sext(s0, s0, 8 - (1 << vtype->vsew)); //sext first
+        rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW) is valid
         rtl_shl(s, s1, s0, s1); break;
       case SRL :
         if (narrow)
-            rtl_andi(s, s1, s1, s->v_width*16-1); //low lg2(SEW)
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW)
         else
-            rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
+            rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW)
         rtl_shr(s, s1, s0, s1); break;
       case SRA :
         if (narrow) {
-            rtl_andi(s, s1, s1, s->v_width*16-1); //low lg2(SEW)
-            rtl_sext(s, s0, s0, s->v_width*2);
+            rtl_andi(s, s1, s1, (16 << vtype->vsew)-1); //low lg2(SEW)
+            rtl_sext(s, s0, s0, 2 << vtype->vsew);
         }
         else {
-            rtl_andi(s, s1, s1, s->v_width*8-1); //low lg2(SEW)
-            rtl_sext(s, s0, s0, s->v_width);
+            rtl_andi(s, s1, s1, (8 << vtype->vsew)-1); //low lg2(SEW)
+            rtl_sext(s, s0, s0, 1 << vtype->vsew);
         }
         rtl_sar(s, s1, s0, s1); break;
       case MULHU : 
-        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(8 << vtype->vsew));
         break;
       case MUL : rtl_mulu_lo(s, s1, s0, s1); break;
       case MULSU : 
         rtl_sext(s, s0, s0, 1 << vtype->vsew);
         rtl_mulu_lo(s, s1, s0, s1); break;
       case MULHSU :
-        rtl_sext(s, t0, s0, s->v_width);
-        rtl_sari(s, t0, t0, s->v_width*8-1);
+        rtl_sext(s, t0, s0, 1 << vtype->vsew);
+        rtl_sari(s, t0, t0, (8 << vtype->vsew)-1);
         rtl_and(s, t0, s1, t0);
-        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(s->v_width*8));
+        *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(8 << vtype->vsew));
         rtl_sub(s, s1, s1, t0);
         break;
       case MULH :
-        rtl_sext(s, s0, s0, s->v_width);
-        rtl_sext(s, s1, s1, s->v_width);
-        *s1 = (uint64_t)(((__int128_t)(sword_t)(*s0) * (__int128_t)(sword_t)(*s1))>>(s->v_width*8));
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
+        *s1 = (uint64_t)(((__int128_t)(sword_t)(*s0) * (__int128_t)(sword_t)(*s1))>>(8 << vtype->vsew));
         break;
       case MACC : 
         rtl_mulu_lo(s, s1, s0, s1);
@@ -298,8 +309,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         else rtl_divu_q(s, s1, s0, s1);
         break;
       case DIV :
-        rtl_sext(s, s0, s0, s->v_width);
-        rtl_sext(s, s1, s1, s->v_width);
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
         if(*s1 == 0) rtl_li(s, s1, ~0lu);
         else if(*s0 == 0x8000000000000000LL && *s1 == -1) //may be error
           rtl_mv(s, s1, s0);
@@ -310,8 +321,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         else rtl_divu_r(s, s1, s0, s1);
         break;
       case REM :
-        rtl_sext(s, s0, s0, s->v_width);
-        rtl_sext(s, s1, s1, s->v_width);
+        rtl_sext(s, s0, s0, 1 << vtype->vsew);
+        rtl_sext(s, s1, s1, 1 << vtype->vsew);
         if(*s1 == 0) rtl_mv(s, s1, s0);
         else if(*s1 == 0x8000000000000000LL && *s1 == -1) //may be error
           rtl_li(s, s1, 0);
@@ -330,9 +341,14 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         if ((uint64_t)idx >= (uint64_t)*s1) get_vreg(id_src2->reg, idx - *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
         else get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
         break;
-      case SLIDEDOWN :
-        if ((uint64_t)idx + (uint64_t)*s1 < (uint64_t)vlmax) get_vreg(id_src2->reg, idx + *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
-        else rtl_li(s, s1, 0);
+      case SLIDEDOWN :// idx + s1 should be prevented from overflowing and thus failing the judgment
+        // Data manipulation is forbidden when vl is 0
+        if (vl->val != 0) {
+          if ((uint128_t)idx + (uint128_t)(uint64_t)*s1 < (uint128_t)vlmax)
+            get_vreg(id_src2->reg, idx + *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+          else
+            rtl_li(s, s1, 0);
+        }
         break;
       case SLIDE1UP :
         if (idx > 0) get_vreg(id_src2->reg, idx - 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
@@ -354,6 +370,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         *s2 = *s1;
         rtl_add(s, s1, s0, s1);
         sat = 0;
+        carry = 0;
         for (int i = 0; i < (8 << vtype->vsew); i++) {
             carry = (((*s0 >> i) & 1) + ((*s2 >> i) & 1) + carry) >> 1;
             carry &= 1;
@@ -437,7 +454,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, widening);
       for(idx = vl->val; idx < vlmax; idx++) {
         if (dest_mask == 1)
           continue;
@@ -452,19 +469,23 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     }
   }
 
-  // TODO: the idx larger than vl need reset to zero.
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  set_mstatus_dirt();
+  vp_set_dirty();
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
   int idx;
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
-    case 0 : panic("f8 not supported"); break;
+    case 0 :
+      switch (widening) {
+        case vdNarrow : FPCALL_TYPE = FPCALL_W16; break;
+        case vdWidening : FPCALL_TYPE = FPCALL_W8; break;
+      }
+      break;
     case 1 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W16_to_32; break;
@@ -484,6 +505,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       }
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -604,7 +626,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       case FNCVT_FXU : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DUToF, FPCALL_TYPE)); break;
       case FNCVT_FX : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DSToF, FPCALL_TYPE)); break;
       case FNCVT_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF, FPCALL_TYPE)); break;
-      case FNCVT_ROD_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToFR, FPCALL_TYPE)); break;
+      case FNCVT_ROD_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF_ODD, FPCALL_TYPE)); break;
       case FSLIDE1UP :
         if (idx > 0) get_vreg(id_src2->reg, idx - 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
         break;
@@ -623,7 +645,11 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
   if (RVV_AGNOSTIC) {
     if(vtype->vta) {
-      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul);
+      int vlmax = 0;
+      if (widening == vsdWidening || widening == vdWidening || widening == vsWidening)
+        vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 1);
+      else
+        vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
       for(idx = vl->val; idx < vlmax; idx++) {
         if (dest_mask == 1)
           continue;
@@ -641,7 +667,6 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     }
   }
 
-  // TODO: the idx larger than vl need reset to zero.
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
 }
@@ -681,7 +706,7 @@ void mask_instr(int opcode, Decode *s) {
   }
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  set_mstatus_dirt();
+  vp_set_dirty();
 
   if (RVV_AGNOSTIC) {
     for (idx = vl->val; idx < VLEN; idx++) {
@@ -692,12 +717,13 @@ void mask_instr(int opcode, Decode *s) {
 
 
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
-  // TODO: check here: does not need align??
+  if(check_vstart_ignore(s)) return;
+  // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 1);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
-
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
+    // get mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask==0) {
       continue;
@@ -705,7 +731,6 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
     if(is_signed) rtl_sext(s, s0, s0, 1 << vtype->vsew);
-
 
     // op
     switch (opcode) {
@@ -723,20 +748,25 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 
   }
   if (RVV_AGNOSTIC) {
-    if(vtype->vta) set_vreg_tail(id_dest->reg);
+    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
-  set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
-  set_mstatus_dirt();
+  // No write when vl is 0
+  if (vl->val != 0) {
+    set_vreg(id_dest->reg, 0, *s1, vtype->vsew+wide, vtype->vlmul, 0);
+  }
+  vp_set_dirty();
+  vstart->val = 0;
 }
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
+  if(check_vstart_ignore(s)) return;
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 1);
   else
     get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);
 
   int idx;
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -754,6 +784,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
       }
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
 
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -763,7 +794,6 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     }
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, 0, 1);
-
 
     // op
     switch (opcode) {
@@ -777,16 +807,20 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
 
   }
   if (RVV_AGNOSTIC) {
-    if(vtype->vta) set_vreg_tail(id_dest->reg);
+    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
-  if (widening)
-    set_vreg(id_dest->reg, 0, *s1, vtype->vsew+1, vtype->vlmul, 0);
-  else
-    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+  // No write when vl is 0
+  if (vl->val != 0) {
+    if (widening)
+      set_vreg(id_dest->reg, 0, *s1, vtype->vsew+1, vtype->vlmul, 0);
+    else
+      set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+  }
+  vstart->val = 0;
 }
 
 void float_reduction_step2(uint64_t src, Decode *s) {
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -794,12 +828,13 @@ void float_reduction_step2(uint64_t src, Decode *s) {
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
 
   int element_num = VLEN >> (3 + vtype->vsew);
 
   while (element_num != 1) {
-    for (int i = 0; i < element_num / 2; i += 2) {
+    for (int i = 0; i < element_num / 2; i++) {
       get_tmp_vreg(src, i, s1, vtype->vsew);
       get_tmp_vreg(src, i + element_num / 2, s0, vtype->vsew);
       rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
@@ -810,7 +845,7 @@ void float_reduction_step2(uint64_t src, Decode *s) {
 }
 
 void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
-  word_t FPCALL_TYPE;
+  word_t FPCALL_TYPE = FPCALL_W64;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -818,6 +853,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: panic("other fp type not supported"); break;
   }
 
   int element_num = VLEN >> (3 + vtype->vsew);
@@ -831,7 +867,8 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 }
 
 void float_reduction_computing(Decode *s) {
-  word_t FPCALL_TYPE;
+  if(check_vstart_ignore(s)) return;
+  word_t FPCALL_TYPE = FPCALL_W64;
   int idx;
 
   // fpcall type
@@ -880,7 +917,7 @@ void float_reduction_computing(Decode *s) {
       float_reduction_step1(0, 4, s);
       float_reduction_step2(0, s);
       break;
-    default : break;
+    default: panic("other fp type not supported"); break;
   }
 
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);
@@ -888,9 +925,14 @@ void float_reduction_computing(Decode *s) {
   rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
 
   if (RVV_AGNOSTIC) {
-    if(vtype->vta) set_vreg_tail(id_dest->reg);
+    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
-  set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+
+  // No write when vl is 0
+  if (vl->val != 0) {
+    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+  }
+  vstart->val = 0;
 }
 
 // dirty job here

@@ -57,10 +57,13 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
+DIRS-y += src/profiling
+ifndef CONFIG_SHARE
 DIRS-cpp = src/checkpoint src/base src/iostream3 src/memory src/profiling
-DIRS-y += src/checkpoint src/profiling # profiling.c
+DIRS-y += src/checkpoint
 
 XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
+endif
 
 CC = $(call remove_quote,$(CONFIG_CC))
 CXX = $(call remove_quote,$(CONFIG_CXX))
@@ -97,7 +100,7 @@ else
 SPECIALIZE_TYPE = 8086-SSE
 endif
 ifdef CONFIG_SHARE
-SOFTFLOAT_OPTS_DEFAULT = -DINLINE_LEVEL=5 \
+SOFTFLOAT_OPTS_DEFAULT = -DSOFTFLOAT_ROUND_ODD -DINLINE_LEVEL=5 \
   -DSOFTFLOAT_FAST_DIV32TO16 -DSOFTFLOAT_FAST_DIV64TO32
 SOFTFLOAT_OPTS_OVERRIDE = SOFTFLOAT_OPTS="$(SOFTFLOAT_OPTS_DEFAULT) -fPIC"
 endif

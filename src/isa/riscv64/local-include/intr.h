@@ -56,3 +56,7 @@ bool intr_deleg_VS(word_t exceptionNO);
 #define INTR_TVAL_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
 #endif
 #endif
+
+#ifdef CONFIG_USE_XS_ARCH_CSRS
+word_t INTR_TVAL_SV39_SEXT(word_t vaddr);
+#endif
