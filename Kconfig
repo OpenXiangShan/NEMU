@@ -332,7 +332,6 @@ config RT_CHECK
   default y
 
 config PERF_OPT
-  depends on !SHARE
   bool "Performance optimization"
   default y
 

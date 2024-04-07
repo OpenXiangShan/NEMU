@@ -33,10 +33,9 @@ void init_csr();
 void init_trigger();
 #endif
 
-#if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
-void init_clint();
-#endif
 void init_device();
+
+void init_clint();
 
 void init_isa() {
   // NEMU has some cached states and some static variables in the source code.
@@ -124,17 +123,13 @@ void init_isa() {
   }
 #endif
 
-  #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
   init_clint();
-  #endif
 
   if (!is_second_call) {
     IFDEF(CONFIG_SHARE, init_device());
   }
 
-#ifndef CONFIG_SHARE
   Log("NEMU will start from pc 0x%lx", cpu.pc);
-#endif
 
   csr_prepare();
 

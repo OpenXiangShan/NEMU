@@ -591,20 +591,23 @@ static void update_global() {
 #endif
 
 /* Simulate how the CPU works. */
-void cpu_exec(uint64_t n) {
+int cpu_exec(uint64_t n) {
 #ifndef CONFIG_LIGHTQS
   IFDEF(CONFIG_SHARE, assert(n <= 1));
 #endif
   g_print_step = (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
   case NEMU_END:
-  case NEMU_ABORT:
     printf("Program execution has ended. To restart the program, exit NEMU and "
            "run again.\n");
+    return 0;
+  case NEMU_ABORT:
+    printf("Program execution has aborted. To restart the program, exit NEMU and "
+           "run again.\n");
+    return -1;
 #ifdef CONFIG_BR_LOG
     printf("debug: bridx = %ld\n", br_count);
 #endif // CONFIG_BR_LOG
-    return;
   default:
     nemu_state.state = NEMU_RUNNING;
     Loge("Setting NEMU state to RUNNING");
@@ -619,7 +622,9 @@ void cpu_exec(uint64_t n) {
     n_remain -= prev_s->idx_in_bb - 1;
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT
+    #ifndef CONFIG_SHARE
     update_global();
+    #endif
 #endif
     Loge("After update_global, n_remain: %i, n_remain_total: %li", n_remain,
          n_remain_total);
@@ -728,4 +733,13 @@ void cpu_exec(uint64_t n) {
     break;
 #endif
   }
+  if(cpu.pc == 0) {
+    printf("ERROR: current pc change to 0x%016lx\n", cpu.pc);
+    assert(0);
+  }
+  #ifdef CONFIG_PERF_OPT
+    return g_nr_guest_instr;
+  #else 
+    return n;
+  #endif
 }

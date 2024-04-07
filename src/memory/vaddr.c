@@ -18,9 +18,9 @@
 //#include <profiling/betapoint-ext.h>
 #include <profiling/profiling_control.h>
 
-#ifdef CONFIG_PERF_OPT
-#define ENABLE_HOSTTLB 1
-#endif
+// #ifdef CONFIG_PERF_OPT
+// #define ENABLE_HOSTTLB 1
+// #endif
 
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
