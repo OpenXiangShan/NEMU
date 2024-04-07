@@ -16,8 +16,6 @@
 #ifndef __CSR_H__
 #define __CSR_H__
 
-#include <autoconf.h>
-
 //no mhartid here
 
 #define CSRS(f) \
