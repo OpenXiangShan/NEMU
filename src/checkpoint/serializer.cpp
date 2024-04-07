@@ -233,6 +233,11 @@ void Serializer::serializeRegs() {
   mstatus_prepare->mie=0;
   mstatus_prepare->mpp=cpu.mode;
 
+#ifdef CONFIG_RVH
+  // checkpoint ub: mpp = 3, mpv = 1
+  mstatus_prepare->mpv=cpu.v;
+#endif
+
   //prepare mepc
   mepc_t *mepc_prepare=(mepc_t*)&csrCpt[0x341];
   mepc_prepare->val=cpu.pc;
