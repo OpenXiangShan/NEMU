@@ -89,6 +89,7 @@ void init_isa() {
 
 #ifdef CONFIG_RVV
   // vector
+  mstatus->val |= 0x1UL << 9; // set mstatus.vs to initial.
   misa->extensions |= ext('v');
   vl->val = 0;
   vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
