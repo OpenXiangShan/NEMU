@@ -336,7 +336,23 @@ void init_monitor(int argc, char *argv[]) {
   img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", RESET_VECTOR, 0);
 
   if (restorer) {
-      load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 1 * 1024 * 1024);
+      FILE *restore_fp = fopen(restorer, "rb");
+      Assert(restore_fp, "Can not open '%s'", restorer);
+
+      int restore_size = 0;
+      int restore_jmp_inst = 0;
+
+      int ret = fread(&restore_jmp_inst, sizeof(int), 1, restore_fp);
+      assert(ret == 1);
+      assert(restore_jmp_inst != 0);
+
+      ret = fread(&restore_size, sizeof(int), 1, restore_fp);
+      assert(ret == 1);
+      assert(restore_size != 0);
+
+      fclose(restore_fp);
+
+      load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, restore_size);
   }
 
   /* Initialize differential testing. */
