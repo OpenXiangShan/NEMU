@@ -780,17 +780,23 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RV_SVINVAL
         case 0x0b: // sinval.vma
 #ifdef CONFIG_RVH
-          if(cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_VI);
-          if((cpu.v && cpu.mode == MODE_S && hstatus->vtvm == 1) ||
-            !srnctl->svinval){
+          if (!srnctl->svinval) { // srnctl contrl extension enable or not
+            longjmp_exception(EX_II);
+          } else if (cpu.v == 0 && cpu.mode == MODE_U) {
+            longjmp_exception(EX_II);
+          } else if (cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1){
+            longjmp_exception(EX_II);
+          } else if (cpu.v == 1 && cpu.mode == MODE_U) {
             longjmp_exception(EX_VI);
-          }else if ((cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1) ||
-            !srnctl->svinval){
-              longjmp_exception(EX_II);
-            }
+          } else if (cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1) {
+            longjmp_exception(EX_VI);
+          } 
 #else
-          if ((cpu.mode == MODE_S && mstatus->tvm == 1) ||
-            !srnctl->svinval) { // srnctl contrl extension enable or not
+          if (!srnctl->svinval) { // srnctl contrl extension enable or not
+            longjmp_exception(EX_II);
+          } else if (cpu.mode == MODE_U) {
+            longjmp_exception(EX_II);
+          } else if (cpu.mode == MODE_S && mstatus->tvm == 1) {
             longjmp_exception(EX_II);
           }
 #endif // CONFIG_RVH
