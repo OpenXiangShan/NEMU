@@ -133,14 +133,6 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_serial() {
-#ifdef CONFIG_SERIAL_UARTLITE
-  void init_uartlite();
-  init_uartlite();
-  void init_uart_snps();
-  init_uart_snps();
-  // to avoid unused-function warning
-  (void)serial_io_handler;
-#else
   printf("init_serial\n");
   serial_base = new_space(8);
   add_pio_map ("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
@@ -150,5 +142,4 @@ void init_serial() {
   init_fifo();
   preset_input();
 #endif
-#endif // CONFIG_SERIAL_UARTLITE
 }

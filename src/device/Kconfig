@@ -30,9 +30,6 @@ config SERIAL_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
 
-config SERIAL_UARTLITE
-  bool "Use uartlite as the serial (default: 16550)"
-  default n
 endif # HAS_SERIAL
 
 menuconfig HAS_UARTLITE
