@@ -16,20 +16,6 @@ menuconfig HAS_SERIAL
   bool "Enable serial"
   default y
 
-menuconfig HAS_UARTLITE
-  bool "Enable uartlite"
-  default n
-
-menuconfig HAS_UART_SNPS
-  depends on !SHARE
-  bool "Enable uart_snps"
-  default n
-
-menuconfig HAS_PLIC
-  depends on !SHARE
-  bool "Enable PLIC"
-  default n
-
 if HAS_SERIAL
 config SERIAL_PORT
   depends on HAS_PORT_IO
@@ -49,6 +35,10 @@ config SERIAL_UARTLITE
   default n
 endif # HAS_SERIAL
 
+menuconfig HAS_UARTLITE
+  bool "Enable uartlite"
+  default n
+
 if HAS_UARTLITE
 config UARTLITE_PORT
   depends on HAS_PORT_IO
@@ -66,6 +56,11 @@ config UARTLITE_ASSERT_FOUR
   bool "Allow 4 byte write to allow community drivers"
 endif # HAS_UARTLITE
 
+menuconfig HAS_UART_SNPS
+  depends on !SHARE
+  bool "Enable uart_snps"
+  default n
+
 if HAS_UART_SNPS
 # config UARTLITE_PORT
 #   depends on HAS_PORT_IO
@@ -73,13 +68,18 @@ if HAS_UART_SNPS
 ##   default 0x3f8
 
 config UART_SNPS_MMIO
-  hex "MMIO address of uartlite controller"
+  hex "MMIO address of uart-snps controller"
   default 0x310b0000
 
 config UAR_SNPS_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
 endif # HAS_UART_SNPS
+
+menuconfig HAS_PLIC
+  depends on !SHARE
+  bool "Enable PLIC"
+  default n
 
 if HAS_PLIC
 config PLIC_ADDRESS
