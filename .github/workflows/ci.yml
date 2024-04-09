@@ -18,15 +18,15 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "CI_WORKLOADS=/nfs/home/share/ci-workloads/" >> $GITHUB_ENV
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
           make -j
       - name: test boot linux
         run: |
-          git submodule update --init ready-to-run
           # test boot linux
-          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
           make clean-all
       - name: test cpt taking and restoring using gz format
         run: |
@@ -62,7 +62,7 @@ jobs:
         run: |
           make riscv64-rvv_defconfig
           make -j
-          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
           make clean-all
       - name: Build NEMU as difftest rvv ref
         run: |
@@ -80,14 +80,14 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "CI_WORKLOADS=/nfs/home/share/ci-workloads/" >> $GITHUB_ENV
       - name: Build NEMU interpreter
         run: |
           make riscv64-nutshell_defconfig
           make -j
       - name: test boot linux
         run: |
-          git submodule update --init ready-to-run
-          ./build/riscv64-nemu-interpreter -b ./ready-to-run/linux.bin
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello/bbl.bin
           make clean-all
       - name: Build NEMU as difftest ref
         run: |
