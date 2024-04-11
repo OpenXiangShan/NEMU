@@ -57,6 +57,15 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 uint8_t *get_pmem();
 
+#if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
+/** Currently, when enable mmap, memory allocation is done by NEMU itself.
+  * If one wants to control when is memory allocated,
+  * he/she can disable default alloction in NEMU and call set_pmem(fales, NULL) from outside.
+  */
+void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
+#endif
+
+
 #ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm();
 #endif

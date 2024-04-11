@@ -51,6 +51,14 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
 #endif
 #endif
 
+void difftest_get_backed_memory(void *backed_pmem, size_t n) {
+#if CONFIG_ENABLE_MEM_DEDUP
+  // set pmem to backed_pmem, then nothing
+  assert(n == CONFIG_MSIZE);
+  set_pmem(true, backed_pmem);
+#endif
+}
+
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
   void *a = get_sparsemm();
@@ -67,9 +75,11 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
 
 #else
 #ifdef CONFIG_LARGE_COPY
+  assert(guest_to_host(nemu_addr) != NULL);
   if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else nemu_large_memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #else
+  assert(guest_to_host(nemu_addr) != NULL);
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #endif

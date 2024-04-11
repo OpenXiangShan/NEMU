@@ -39,7 +39,10 @@ unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
-static uint8_t *pmem = (uint8_t *)PMEMBASE;
+static uint8_t *pmem = NULL;
+#elif CONFIG_ENABLE_MEM_DEDUP
+// When memory deduplication is enabled, the pmem is allocated by DUT
+static uint8_t *pmem = NULL;
 #else
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
@@ -124,7 +127,8 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   raise_access_fault(cause, vaddr);
 }
 
-void init_mem() {
+void allocate_memory_with_mmap()
+{
 #ifdef CONFIG_USE_MMAP
   #ifdef CONFIG_MULTICORE_DIFF
   panic("Pmem must not use mmap during multi-core difftest");
@@ -136,15 +140,19 @@ void init_mem() {
   // init_mem may be called multiple times, the memory space will be
   // allocated only once at the first time called.
   // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
-  void *ret = mmap((void *)pmem, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+  void *ret = mmap((void *)PMEMBASE, MEMORY_SIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-  if (ret != pmem) {
+  if (ret != (void *)PMEMBASE) {
     perror("mmap");
     assert(0);
   }
+  pmem = ret;
   #endif
-#endif
+#endif // CONFIG_USE_MMAP
+}
 
+void init_mem() {
+  allocate_memory_with_mmap();
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   for (int i = 0; i < CONFIG_DIFFTEST_STORE_QUEUE_SIZE; i++) {
     store_commit_queue[i].valid = 0;
@@ -160,6 +168,18 @@ void init_mem() {
   }
 #endif
 }
+
+#if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
+void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
+{
+  if (pass_pmem_from_dut) {
+    Log("Set pmem start to %p", _pmem);
+    pmem = _pmem;
+  } else {
+    allocate_memory_with_mmap();
+  }
+}
+#endif
 
 /* Memory accessing interfaces */
 

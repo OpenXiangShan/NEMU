@@ -72,6 +72,12 @@ config USE_MMAP
   bool "Allocate guest physical memory with mmap()"
   default y
 
+config ENABLE_MEM_DEDUP
+  depends on SHARE
+  depends on !USE_MMAP
+  bool "When used as reference, use memory provided by DUT"
+  default n
+
 config MEM_RANDOM
   depends on MODE_SYSTEM && !DIFFTEST
   bool "Initialize the memory with random values"
