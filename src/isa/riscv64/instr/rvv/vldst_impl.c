@@ -78,7 +78,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++) {
+  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
@@ -143,7 +143,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++) {
+  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
@@ -217,7 +217,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++) {
+  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       continue;
@@ -262,7 +262,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++) {
+  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       continue;
@@ -330,7 +330,7 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
     offset = vstart->val % elt_per_reg;
     if (offset) {
       // first vreg
-      for (pos = offset; pos < elt_per_reg; pos++) {
+      for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
@@ -339,7 +339,7 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
       vreg_idx++;
     }
     for (; vreg_idx < len; vreg_idx++) {
-      for (pos = 0; pos < elt_per_reg; pos++) {
+      for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
@@ -374,7 +374,7 @@ void vsr(int mode, Decode *s, int mmu_mode) {
     offset = vstart->val % elt_per_reg;
     if (offset) {
       // first vreg
-      for (pos = offset; pos < elt_per_reg; pos++) {
+      for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
@@ -384,7 +384,7 @@ void vsr(int mode, Decode *s, int mmu_mode) {
       vreg_idx++;
     }
     for (; vreg_idx < len; vreg_idx++) {
-      for (pos = 0; pos < elt_per_reg; pos++) {
+      for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
