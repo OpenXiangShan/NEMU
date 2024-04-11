@@ -155,9 +155,17 @@ jobs:
           make riscv64-rvv-diff-spike_defconfig
           make -j
           make clean-all
-      - name: Run Vector-hmmer with Spike DiffTest
+      - name: Run Vector-spec06-checkpoint with Spike DiffTest
+        run: |
+          make riscv64-rvv-diff-spike-ckpt_defconfig
+          make -j
+          ./build/riscv64-nemu-interpreter -b --diff --restore $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff --restore $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro_6200_0.0378585.gz  -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff --restore $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          make clean-all
+      - name: Run Vector-liunx-initramfs with Spike DiffTest
         run: |
           make riscv64-rvv-diff-spike_defconfig
           make -j
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro-gcpt-pk-linux-spec.bin -I 4000000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so $TEST_HOME/hmmer_retro-gcpt-pk-linux-spec.bin -I 100000000
           make clean-all
