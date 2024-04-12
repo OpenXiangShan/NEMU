@@ -116,13 +116,32 @@ static inline word_t* csr_decode(uint32_t addr) {
 }
 
 // WPRI, SXL, UXL cannot be written
-#ifdef CONFIG_RVH
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
-#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
-#elif defined(CONFIG_RVV)
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (3UL << 9)
+
+// base mstatus wmask
+#define MSTATUS_WMASK_BASE (0x7e79aaUL) | (1UL << 63)
+
+// rvh fields of mstatus
+#if defined(CONFIG_RVH)
+#define MSTATUS_WMASK_RVH (3UL << 38)
 #else
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63)
+#define MSTATUS_WMASK_RVH 0
+#endif
+
+// rvv fields of mstatus
+#if defined(CONFIG_RVV)
+#define MSTATUS_WMASK_RVV (3UL << 9)
+#else
+#define MSTATUS_WMASK_RVV 0
+#endif
+
+// final mstatus wmask
+#define MSTATUS_WMASK (MSTATUS_WMASK_BASE | MSTATUS_WMASK_RVH | MSTATUS_WMASK_RVV)
+
+// hstatus wmask
+#if defined(CONFIG_RVH)
+#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
+#else
+#define HSTATUS_WMASK 0
 #endif
 
 #ifdef CONFIG_RVH
