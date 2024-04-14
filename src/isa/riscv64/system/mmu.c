@@ -18,6 +18,7 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
+#include <memory/host-tlb.h>
 #include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -61,6 +62,7 @@ static inline uintptr_t GVPNi(vaddr_t va, int i) {
   bool hlvx = 0;
   bool hld_st = 0;
 #endif
+
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -81,6 +83,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
         mode == MODE_U ? "U" : MODE_S ? "S" : MODE_M ? "M" : "NOTYPE",
         pte->u, pte->a, pte->d, (uint64_t)pte->ppn << 12);
 #endif
+
   if (ifetch) {
     Logtr("Translate for instr reading");
 #ifdef CONFIG_SHARE
@@ -88,9 +91,10 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     bool update_ad = !pte->a;
     if (update_ad && ok && pte->x)
       Logtr("raise exception to update ad for ifecth");
-#else
+#else // CONFIG_SHARE
     bool update_ad = false;
 #endif
+
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
       IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
@@ -109,6 +113,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
   bool can_load = pte->r || (mstatus->mxr && pte->x);
 #endif
+
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a;
     if (update_ad && ok && can_load)
@@ -116,6 +121,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
     bool update_ad = false;
 #endif
+
     if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
@@ -144,8 +150,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   }
   return true;
 }
+
 #ifdef CONFIG_RVH
-bool has_two_stage_translation(){
+bool has_two_stage_translation() {
   return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
 }
 
@@ -185,14 +192,23 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
   Logtr("gpa_stage gpaddr: 0x%lx, vaddr: 0x%lx, type: %d", gpaddr, vaddr, type);
   if(hgatp->mode == 8){
-    if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
+    if ((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0) {
       raise_guest_excep(gpaddr, vaddr, type);
     }
     word_t pg_base = PGBASE(hgatp->ppn);
     int level;
     word_t p_pte;
     PTE pte;
-    for (level = PTW_LEVEL - 1; level >=0;){
+    paddr_t res_addr;
+
+#ifdef ENABLE_HOSTTLB
+  res_addr = hostgtlb_lookup(gpaddr, type);
+  if (likely(res_addr != HOSTTLB_PADDR_FAIL_RET)) {
+    return res_addr;
+  }
+#endif // ENABLE_HOSTTLB
+
+    for (level = PTW_LEVEL - 1; level >=0;) {
       p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
       pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
@@ -205,18 +221,18 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       #endif
       pg_base = PGBASE(pte.ppn);
       Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
-      if(pte.v && !pte.r && !pte.w && !pte.x){
+      if (pte.v && !pte.r && !pte.w && !pte.x) {
         level --;
         if (level < 0) { break; }
-      }else if (!pte.v || (!pte.r && pte.w))
+      } else if (!pte.v || (!pte.r && pte.w))
         break;
-      else if(!pte.u)
+      else if (!pte.u)
         break;
-      else if(type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
+      else if (type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
               type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
                                                 !(pte.r && pte.w))
         break;
-      else{
+      else {
          if (level > 0) {
           // superpage
           word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
@@ -226,7 +242,14 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
           }
           pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
         }
-        return pg_base | (gpaddr & PAGE_MASK);
+
+        res_addr = pg_base | (gpaddr & PAGE_MASK);
+
+#ifdef ENABLE_HOSTTLB
+        hostgtlb_insert(gpaddr, res_addr, type);
+#endif // ENABLE_HOSTTLB
+        
+        return res_addr;
       }
     }
     raise_guest_excep(gpaddr, vaddr, type);
@@ -276,6 +299,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = PGBASE(vsatp_ppn);
   }
 #endif
+
   word_t p_pte; // pte pointer
   PTE pte;
   int level;
@@ -284,16 +308,19 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if ((uint64_t)vaddr39 != vaddr) goto bad;
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+
+#ifdef CONFIG_RVH
+    if (virt) {
+      p_pte = gpa_stage(p_pte, vaddr, type);
+    }
+#endif //CONFIG_RVH
+
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
 #else
-  #ifdef CONFIG_RVH
-    if(virt){
-      p_pte = gpa_stage(p_pte, vaddr, type);
-    }
-  #endif //CONFIG_RVH
     pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
 #endif
+
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
@@ -322,12 +349,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
-  #ifdef CONFIG_RVH
-  if(virt){
+
+#ifdef CONFIG_RVH
+  if (virt) {
     pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
-    if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+    if (pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
   }
-  #endif //CONFIG_RVH
+#endif //CONFIG_RVH
+
 #ifndef CONFIG_SHARE
   // update a/d by hardware
   bool is_write = (type == MEM_TYPE_WRITE);
@@ -335,71 +364,75 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     // pte.a = true;
     // pte.d |= is_write;
     // paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
-    switch (type)
-    {
     int ex;
-    case MEM_TYPE_IFETCH:
 #ifdef CONFIG_RVH
-      if(cpu.v){
+    switch (type) {
+    case MEM_TYPE_IFETCH:
+      if (cpu.v) {
         if(intr_deleg_S(EX_IPF)){
           vstval->val = vaddr;
         }else{
           mtval->val = vaddr;
         }
         longjmp_exception(EX_IPF);
-      }else{
+      } else {
         INTR_TVAL_REG(EX_IPF) = vaddr;
         longjmp_exception(EX_IPF);
       }
-#else
-      stval->val = vaddr;
-      INTR_TVAL_REG(EX_IPF) = vaddr;
-      longjmp_exception(EX_IPF);
-#endif
       break;
     case MEM_TYPE_READ:
-#ifdef CONFIG_RVH
-      if(cpu.v){
+      if (cpu.v) {
         ex = cpu.amo ? EX_SPF : EX_LPF;
-        if(intr_deleg_S(ex)){
+        if (intr_deleg_S(ex)) {
           vstval->val = vaddr;
-        }else{
+        } else {
           mtval->val = vaddr;
         }
-      }else{
+      } else {
         ex = cpu.amo ? EX_SPF : EX_LPF;
         INTR_TVAL_REG(ex) = vaddr;
       }
       longjmp_exception(ex);
-#else
-      ex = cpu.amo ? EX_SPF : EX_LPF;
-      INTR_TVAL_REG(ex) = vaddr;
-      longjmp_exception(ex);
-#endif
       break;
     case MEM_TYPE_WRITE:
-#ifdef CONFIG_RVH
-      if(cpu.v){
-        if(intr_deleg_S(EX_SPF)){
+      if (cpu.v) {
+        if (intr_deleg_S(EX_SPF)) {
           vstval->val = vaddr;
-        }else{
+        } else {
           mtval->val = vaddr;
         }
         longjmp_exception(EX_SPF);
-      }else{
+      } else {
         INTR_TVAL_REG(EX_SPF) = vaddr;
         longjmp_exception(EX_SPF);
       }
-#else
-      INTR_TVAL_REG(EX_SPF) = vaddr;
-      longjmp_exception(EX_SPF);
-#endif
       break;
     default:
       break;
     }
+#else // CONFIG_RVH
+    switch (type) {
+    case MEM_TYPE_IFETCH:
+      stval->val = vaddr;
+      INTR_TVAL_REG(EX_IPF) = vaddr;
+      longjmp_exception(EX_IPF);
+      break;
+    case MEM_TYPE_READ:
+      ex = cpu.amo ? EX_SPF : EX_LPF;
+      INTR_TVAL_REG(ex) = vaddr;
+      longjmp_exception(ex);
+      break;
+    case MEM_TYPE_WRITE:
+      INTR_TVAL_REG(EX_SPF) = vaddr;
+      longjmp_exception(EX_SPF);
+      break;
+    default:
+      break;
+    }
+#endif // CONFIG_RVH
   }
-#endif
+
+#endif // CONFIG_SHARE
 
   return pg_base | MEM_RET_OK;
 

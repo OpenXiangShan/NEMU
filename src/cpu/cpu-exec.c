@@ -115,6 +115,20 @@ void mmu_tlb_flush(vaddr_t vaddr) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
+#ifdef CONFIG_RVH
+void mmu_vma_tlb_flush(vaddr_t gvaddr) {
+  hosttlb_flush(gvaddr);
+  if (gvaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+
+void mmu_gma_tlb_flush(paddr_t gpaddr) {
+  hostgtlb_flush(gpaddr);
+  // According to priv manual, tlb mapping from gva to hpa should be flushed as well
+  hosttlb_flush(0); 
+  if (gpaddr == 0) set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+#endif
+
 _Noreturn void longjmp_exec(int cause) {
   Loge("Longjmp to jbuf_exec with cause: %i", cause);
   longjmp(jbuf_exec, cause);
@@ -626,7 +640,7 @@ void cpu_exec(uint64_t n) {
   }
 
   while (nemu_state.state == NEMU_RUNNING &&
-         MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
+           MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
 #ifdef CONFIG_DEVICE
     extern void device_update();
     device_update();
