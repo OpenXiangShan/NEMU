@@ -323,12 +323,17 @@ def_EHelper(vredmax) {
   REDUCTION(REDMAX, SIGNED);
 }
 
+/*
+The integer scalar read/write instructions transfer a single value between a
+scalar x register and element 0 of a vector register. The instructions ignore
+LMUL and vector register groups.
+*/
 def_EHelper(vmvsx) {
   if (vstart->val < vl->val) {
     rtl_lr(s, &(id_src->val), id_src1->reg, 4);
     rtl_mv(s, s1, &id_src->val); 
     rtl_sext(s, s1, s1, 1 << vtype->vsew);
-    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
+    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
     if (RVV_AGNOSTIC) {
       if(vtype->vta) {
         for (int idx = 8 << vtype->vsew; idx < VLEN; idx++) {
@@ -341,7 +346,7 @@ def_EHelper(vmvsx) {
 }
 
 def_EHelper(vmvxs) {
-  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
+  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 0);
   rtl_sext(s, s0, s0, 8);
   rtl_sr(s, id_dest->reg, s0, 8);
   vstart->val = 0;
