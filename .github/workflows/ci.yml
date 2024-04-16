@@ -161,6 +161,9 @@ jobs:
           make -j
           ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
           ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
           ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
           ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-V-ext-so-vstart --restore $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
           make clean-all
