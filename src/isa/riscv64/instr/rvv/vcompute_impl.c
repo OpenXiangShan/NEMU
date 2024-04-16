@@ -164,14 +164,48 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
     }
 
+    int eew;
+    int emul;
+    /*
+    The vector integer extension instructions zero- or sign-extend a source vector
+    integer operand with EEW less than SEW to ll SEW-sized elements in the
+    destination. The EEW of the source is 1/2, 1/4, or 1/8 of SEW, while EMUL of the
+    source is (EEW/SEW)*LMUL. The destination has EEW equal to SEW and EMUL equal to
+    LMUL.
+    */
+    switch (opcode) {
+      case VEXT:
+        eew = vtype->vsew + narrow;
+        emul = vtype->vlmul - ((vtype->vsew) - (vtype->vsew + narrow));
+        break;
+      default:
+        eew = vtype->vsew + narrow;
+        emul = vtype->vlmul;
+        break;
+    }
     // operand - vs2
-    get_vreg(id_src2->reg, idx, s0, vtype->vsew+narrow, vtype->vlmul, is_signed, 1);
+    get_vreg(id_src2->reg, idx, s0, eew, emul, is_signed, 1);
     if(is_signed) rtl_sext(s, s0, s0, 1 << (vtype->vsew+narrow));
 
     // operand - s1 / rs1 / imm
     switch (s->src_vmode) {
-      case SRC_VV : 
-        get_vreg(id_src->reg, idx, s1, vtype->vsew, vtype->vlmul, is_signed, 1);
+      case SRC_VV :
+        /*
+        The vrgather.vv form uses SEW/LMUL for both the data and indices. The
+        vrgatherei16.vv form uses SEW/LMUL for the data in vs2 but EEW=16 and EMUL =
+        (16/SEW)*LMUL for the indices in vs1.
+        */
+        switch (opcode) {
+          case RGATHEREI16:
+            eew = 1;
+            emul = vtype->vlmul - (vtype->vsew - 1);
+            break;
+          default:
+            eew = vtype->vsew;
+            emul = vtype->vlmul;
+            break;
+        }
+        get_vreg(id_src->reg, idx, s1, eew, emul, is_signed, 1);
         if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
         break;
       case SRC_VX :   
@@ -390,7 +424,14 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         else rtl_li(s, s1, 0);
         break;
       case RGATHEREI16 :
-        get_vreg(id_src1->reg, idx, s1, 1, vtype->vlmul, 0, 1);
+        /*
+        The vrgather.vv form uses SEW/LMUL for both the data and indices. The
+        vrgatherei16.vv form uses SEW/LMUL for the data in vs2 but EEW=16 and EMUL =
+        (16/SEW)*LMUL for the indices in vs1.
+        */
+        eew = 1;
+        emul = vtype->vlmul-(vtype->vsew-1);
+        get_vreg(id_src1->reg, idx, s1, eew, emul, 0, 1);
         *s1 = *s1 & 0xffff;
         if ((uint64_t)*s1 < (uint64_t)vlmax) get_vreg(id_src2->reg, *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
         else rtl_li(s, s1, 0);
@@ -788,10 +829,18 @@ void mask_instr(int opcode, Decode *s) {
 }
 
 
+/*
+Vector reduction operations take a vector register group of elements and a
+scalar held in element 0 of a vector register, and perform a reduction using
+some binary operator, to produce a scalar result in element 0 of a vector
+register.The scalar input and output operands are held in element 0 of a single
+vector register, not a vector register group, so any vector register can be the
+scalar source or destination of a vector reduction regardless of LMUL setting.
+*/
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   if(check_vstart_ignore(s)) return;
   // operand - vs1
-  get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 1);
+  get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -801,7 +850,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
       continue;
     }
     // operand - vs2
-    get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
+    get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 0);
     if(is_signed) rtl_sext(s, s0, s0, 1 << vtype->vsew);
 
     // op
