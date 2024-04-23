@@ -144,9 +144,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATUS_WMASK 0
 #endif
 
+#define MIE_MASK_BASE 0xaaa
 #ifdef CONFIG_RVH
 #define MIP_MASK ((1 << 9) | (1 << 5) | (1 << 1))
-#define MIE_MASK ((1 << 9) | (1 << 5) | (1 << 1))
+#define MIE_MASK ((1 << 2) | (1 << 6) | (1 << 10) | (1 << 12))
 #else
 #define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
 #define MIE_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
@@ -454,6 +455,13 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
+  else if (is_write(mie)) { 
+#ifdef CONFIG_RVH
+    mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK, src);
+#else
+    mie->val = mask_bitset(mie->val, MIP_MASK, src);
+#endif
+}
   else if (is_write(mip)) {
 #ifdef CONFIG_RVH
     mip->val = mask_bitset(mip->val, MIP_MASK | VSSIP, src);
