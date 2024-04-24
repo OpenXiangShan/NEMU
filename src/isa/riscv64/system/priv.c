@@ -117,8 +117,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 // WPRI, SXL, UXL cannot be written
 
-// base mstatus wmask
-#define MSTATUS_WMASK_BASE (0x7e79aaUL) | (1UL << 63)
+// base mstatus wmask, the most significant bit is SD which cannot be written
+#define MSTATUS_WMASK_BASE (0x7e79aaUL)
 
 // rvh fields of mstatus
 #if defined(CONFIG_RVH)
@@ -232,6 +232,23 @@ static inline void update_vsstatus_sd() {
 }
 #endif // CONFIG_RVH
 
+inline uint64_t read_mstatus_sd() {
+  bool mstatus_fs_dirty = mstatus->fs == 3;
+  bool mstatus_vs_dirty = false;
+#ifdef CONFIG_RVV
+  // check vs is dirty when V extension is enabled
+  mstatus_vs_dirty = mstatus->vs == 3;
+#endif
+  return mstatus_fs_dirty || mstatus_vs_dirty ? (1ull << 63) : 0;
+}
+
+#ifdef CONFIG_RVH
+inline uint64_t read_vsstatus_sd() {
+  bool vsstatus_fs_dirty = vsstatus->_64.fs == 3;
+  return vsstatus_fs_dirty ? (1ull << 63) : 0;
+}
+#endif // CONFIG_RVH
+
 static inline word_t csr_read(word_t *src) {
   if(src == &csr_perf){
     return 0;
@@ -270,7 +287,7 @@ static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RVH
  if (cpu.v == 1) {
 
-  if (is_read(sstatus))      { update_vsstatus_sd(); return vsstatus->val & SSTATUS_RMASK; }
+  if (is_read(sstatus))      { return (vsstatus->val | read_vsstatus_sd()) & SSTATUS_RMASK; }
   else if (is_read(sie))     { return (mie->val & VS_MASK) >> 1;}
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
@@ -296,8 +313,6 @@ if (is_read(vsstatus))       { return vsstatus->val & SSTATUS_RMASK; }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
 if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
 #endif
-
-  if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_sd(); }
 
   if (is_read(sstatus))     { return mstatus->val & SSTATUS_RMASK; }
   else if (is_read(sie))    { return mie->val & SIE_MASK; }
@@ -376,7 +391,6 @@ static inline void csr_write(word_t *dest, word_t src) {
         || is_write(satp) || is_write(stvec))){
     if (is_write(sstatus))      {
       vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
-      update_vsstatus_sd();
     }
     else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VS_MASK, src << 1); }
     else if (is_write(stvec))   { vstvec->val = src; }
@@ -633,33 +647,24 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif// CONFIG_RVH
   else { *dest = src; }
 
-  bool need_update_mstatus_sd = false;
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
 #ifdef CONFIG_FPU_NONE
   longjmp_exception(EX_II);
 #else
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
-    need_update_mstatus_sd = true;
 #endif // CONFIG_FPU_NONE
 
   }
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     vp_set_dirty();
-    need_update_mstatus_sd = true;
   }
 #endif //CONFIG_RVV
-  if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
-    update_mstatus_sd();
-  }
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp) || is_write(hgatp)) { update_mmu_state(); }
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
-  }
-  if (is_write(vsstatus)){
-    update_vsstatus_sd();
   }
 #else
   if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }

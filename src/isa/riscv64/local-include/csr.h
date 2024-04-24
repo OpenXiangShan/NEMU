@@ -858,4 +858,8 @@ word_t pmpaddr_from_index(int idx);
 word_t pmpaddr_from_csrid(int id);
 word_t pmp_tor_mask();
 
+// mstatus sd
+uint64_t read_mstatus_sd();
+uint64_t read_vsstatus_sd();
+
 #endif

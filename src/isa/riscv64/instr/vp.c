@@ -25,10 +25,6 @@ bool vp_enable() {
 }
 
 void vp_set_dirty() {
-  // lazily update mstatus->sd when reading mstatus
-#if defined (CONFIG_SHARE) || defined (CONFIG_DIFFTEST_REF_SPIKE)
-  mstatus->sd = 1;
-#endif
 // Spike update vs and sd in the meantime
   mstatus->vs = 3;
 }

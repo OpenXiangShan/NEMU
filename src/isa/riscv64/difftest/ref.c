@@ -50,11 +50,11 @@ void ramcmp() {
 #endif // CONFIG_RVV
 #define SSTATUS_RMASK (SSTATUS_WMASK | (0x3 << 15) | (1ull << 63) | (3ull << 32))
 void csr_prepare() {
-  cpu.mstatus = mstatus->val;
+  cpu.mstatus = mstatus->val | read_mstatus_sd();
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = mstatus->val & SSTATUS_RMASK; // sstatus
+  cpu.sstatus = (mstatus->val | read_mstatus_sd()) & SSTATUS_RMASK; // sstatus
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 
@@ -88,7 +88,7 @@ void csr_prepare() {
   cpu.htval   = htval->val;
   cpu.htinst  = htinst->val;
   cpu.hgatp   = hgatp->val;
-  cpu.vsstatus= vsstatus->val;
+  cpu.vsstatus= vsstatus->val | read_vsstatus_sd();
   cpu.vstvec  = vstvec->val;
   cpu.vsepc   = vsepc->val;
   cpu.vscause = vscause->val;
@@ -100,6 +100,7 @@ void csr_prepare() {
 
 void csr_writeback() {
   mstatus->val = cpu.mstatus;
+  mstatus->val &= ~(read_mstatus_sd());
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;
   //sstatus->val = cpu.sstatus;  // sstatus is a shadow of mstatus
@@ -137,6 +138,7 @@ void csr_writeback() {
   htinst->val  = cpu.htinst;
   hgatp->val   = cpu.hgatp;
   vsstatus->val= cpu.vsstatus;
+  vsstatus->val &= ~(read_vsstatus_sd());
   vstvec->val  = cpu.vstvec;
   vsepc->val   = cpu.vsepc;
   vscause->val = cpu.vscause;
