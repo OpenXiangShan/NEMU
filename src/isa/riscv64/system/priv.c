@@ -145,12 +145,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif
 
 #define MIE_MASK_BASE 0xaaa
+#define MIP_MASK_BASE ((1 << 9) | (1 << 5) | (1 << 1))
 #ifdef CONFIG_RVH
-#define MIP_MASK ((1 << 9) | (1 << 5) | (1 << 1))
 #define MIE_MASK ((1 << 2) | (1 << 6) | (1 << 10) | (1 << 12))
 #else
-#define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
-#define MIE_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
+#define MIE_MASK 0
 #endif
 #ifdef CONFIG_RVH
 #define COUNTEREN_MASK 0
@@ -459,14 +458,14 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVH
     mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK, src);
 #else
-    mie->val = mask_bitset(mie->val, MIP_MASK, src);
+    mie->val = mask_bitset(mie->val, MIP_MASK_BASE, src);
 #endif
 }
   else if (is_write(mip)) {
 #ifdef CONFIG_RVH
-    mip->val = mask_bitset(mip->val, MIP_MASK | VSSIP, src);
+    mip->val = mask_bitset(mip->val, MIP_MASK_BASE | VSSIP, src);
 #else
-    mip->val = mask_bitset(mip->val, MIP_MASK, src);
+    mip->val = mask_bitset(mip->val, MIP_MASK_BASE, src);
 #endif // CONFIG_RVH
   }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
