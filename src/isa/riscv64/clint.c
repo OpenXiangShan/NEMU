@@ -20,8 +20,8 @@
 
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
-#define CLOCK_FREQ 1000000ul
-#define US_PERCYCLE (1000000 / CLOCK_FREQ)
+#define TIMEBASE 1000000ul
+#define US_PERCYCLE (1000000 / TIMEBASE)
 
 static uint64_t *clint_base = NULL;
 static uint64_t boot_time = 0;
