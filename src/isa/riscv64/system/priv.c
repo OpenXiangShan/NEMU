@@ -118,7 +118,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 // WPRI, SXL, UXL cannot be written
 
 // base mstatus wmask
-#define MSTATUS_WMASK_BASE (0x7e79aaUL) | (1UL << 63)
+#define MSTATUS_WMASK_BASE (0x7e79aaUL) | (1UL << 63) | (3UL << 36)
 
 // rvh fields of mstatus
 #if defined(CONFIG_RVH)
