@@ -458,7 +458,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVH
     mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK, src);
 #else
-    mie->val = mask_bitset(mie->val, MIP_MASK_BASE, src);
+    mie->val = mask_bitset(mie->val, MIE_MASK_BASE, src);
 #endif
 }
   else if (is_write(mip)) {
