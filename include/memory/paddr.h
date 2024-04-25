@@ -57,24 +57,48 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 uint8_t *get_pmem();
 
+#if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
+/** Currently, when enable mmap, memory allocation is done by NEMU itself.
+  * If one wants to control when is memory allocated,
+  * he/she can disable default alloction in NEMU and call set_pmem(fales, NULL) from outside.
+  */
+void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
+#endif
+
+
 #ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm();
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
-#define STORE_QUEUE_SIZE 64
+#ifndef CONFIG_DIFFTEST_STORE_QUEUE_SIZE
+#define CONFIG_DIFFTEST_STORE_QUEUE_SIZE 64
+#endif
 typedef struct {
     uint64_t addr;
     uint64_t data;
     uint8_t  mask;
     uint8_t  valid;
 } store_commit_t;
-extern store_commit_t store_commit_queue[STORE_QUEUE_SIZE];
+extern store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len);
 store_commit_t *store_commit_queue_pop();
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
+uint64_t store_read_step();
+#endif
+
+//#define CONFIG_MEMORY_REGION_ANALYSIS
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+#include <math.h>
+#define PROGRAM_MEMORY_SIZE (CONFIG_MSIZE /1024 /1024) // MB
+#define PROGRAM_ANALYSIS_PAGES (PROGRAM_MEMORY_SIZE / CONFIG_MEMORY_REGION_ANALYSIS_SIZE)
+#define ALIGNMENT_SIZE ((int)log2(CONFIG_MEMORY_REGION_ANALYSIS_SIZE * 1024 * 1024))// set MB alig
+
+void analysis_memory_commit(uint64_t addr);
+void analysis_use_addr_display();
+bool analysis_memory_isuse(uint64_t page);
 #endif
 
 #ifdef CONFIG_MULTICORE_DIFF

@@ -77,7 +77,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
 #else
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
-  Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12);
+  Logtr("ok: %i, mode: %s, pte->u: %i, a: %i d: %i, ppn: %lx ", ok,
+        mode == MODE_U ? "U" : MODE_S ? "S" : MODE_M ? "M" : "NOTYPE",
+        pte->u, pte->a, pte->d, (uint64_t)pte->ppn << 12);
 #endif
   if (ifetch) {
     Logtr("Translate for instr reading");
@@ -91,6 +93,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
       return false;
@@ -116,21 +119,23 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       cpu.amo = false;
       Logtr("Memory read translation exception!");
       longjmp_exception(ex);
       return false;
     }
-  } else {
+  } else { // MEM_TYPE_WRITE
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a || !pte->d;
    if (update_ad && ok && pte->w) Logtr("raise exception to update ad for store");
 #else
     bool update_ad = false;
 #endif
-    Logtr("Translate for memory writing");
+    Logtr("Translate for memory writing v: %d w: %d", pte->v, pte->w);
     if (!(ok && pte->w && !pte->pad) || update_ad) {
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
@@ -146,6 +151,13 @@ bool has_two_stage_translation(){
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
   // printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
+#ifdef FORCE_RAISE_PF
+   if (cpu.guided_exec && cpu.execution_guide.force_raise_exception && 
+        (cpu.execution_guide.exception_num == EX_IPF ||
+         cpu.execution_guide.exception_num == EX_LPF ||
+         cpu.execution_guide.exception_num == EX_SPF))
+          force_raise_pf(vaddr, type);
+#endif // FORCE_RAISE_PF
   if (type == MEM_TYPE_IFETCH){
     if(intr_deleg_S(EX_IGPF)){
       stval->val = vaddr;
@@ -238,6 +250,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   if (unlikely(is_in_mmio(addr))) {
     int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                 type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
     INTR_TVAL_REG(cause) = vaddr;
     longjmp_exception(cause);
   }
@@ -349,7 +362,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       stval->val = vaddr;
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
-#endif
+#endif // CONFIG_RVH
       break;
     case MEM_TYPE_READ:
 #ifdef CONFIG_RVH
@@ -369,7 +382,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       ex = cpu.amo ? EX_SPF : EX_LPF;
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
-#endif
+#endif //CONFIG_RVH
       break;
     case MEM_TYPE_WRITE:
 #ifdef CONFIG_RVH
@@ -387,13 +400,13 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #else
       INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
-#endif
+#endif //CONFIG_RVH
       break;
     default:
       break;
     }
   }
-#endif
+#endif // CONFIG_SHARE
 
   return pg_base | MEM_RET_OK;
 
@@ -504,6 +517,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         longjmp_exception(EX_IPF);
       }
 #else
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
 #endif
@@ -528,11 +542,13 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         }
       }else{
         ex = cpu.amo ? EX_SPF : EX_LPF;
+        IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
         INTR_TVAL_REG(ex) = vaddr;
       }
       longjmp_exception(ex);
 #else
       int ex = cpu.amo ? EX_SPF : EX_LPF;
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
 #endif
@@ -555,10 +571,12 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         }
         longjmp_exception(EX_SPF);
       }else{
+        IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
         INTR_TVAL_REG(EX_SPF) = vaddr;
         longjmp_exception(EX_SPF);
       }
 #else
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
 #endif
@@ -580,6 +598,7 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
     Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
     INTR_TVAL_REG(ex) = vaddr;
     longjmp_exception(ex);
   }
@@ -588,9 +607,14 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
+#ifdef CONFIG_RVH
+  if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
+    return MEM_RET_FAIL;
+#else 
   if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
     return MEM_RET_FAIL;
-#endif
+#endif // CONFIG_RVH
+#endif // FORCE_RAISE_PF
   return ptw_result;
 }
 
@@ -613,19 +637,23 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
-      if (!intr_deleg_S(EX_IPF)) {
-        mtval->val = cpu.execution_guide.mtval;
+#ifdef CONFIG_RVH
+      if (intr_deleg_VS(EX_IPF)) {
+        vstval->val = cpu.execution_guide.vstval;
         if(
-          vaddr != cpu.execution_guide.mtval &&
+          vaddr != cpu.execution_guide.vstval &&
           // cross page ipf caused mismatch is legal
-          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.mtval & 0xfff) == 0x000)
+          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.vstval & 0xfff) == 0x000)
         ){
-          printf("[WARNING] nemu mtval %lx does not match core mtval %lx\n",
+          printf("[WARNING] nemu vstval %lx does not match core vstval %lx\n",
             vaddr,
-            cpu.execution_guide.mtval
+            cpu.execution_guide.vstval
           );
         }
-      } else {
+      } else if (intr_deleg_S(EX_IPF)) {
+#else
+      if(intr_deleg_S(EX_IPF)) {
+#endif // CONFIG_RVH
         stval->val = cpu.execution_guide.stval;
         if(
           vaddr != cpu.execution_guide.stval &&
@@ -637,6 +665,18 @@ int force_raise_pf(vaddr_t vaddr, int type){
             cpu.execution_guide.stval
           );
         }
+      } else {
+        mtval->val = cpu.execution_guide.mtval;
+        if(
+          vaddr != cpu.execution_guide.mtval &&
+          // cross page ipf caused mismatch is legal
+          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.mtval & 0xfff) == 0x000)
+        ){
+          printf("[WARNING] nemu mtval %lx does not match core mtval %lx\n",
+            vaddr,
+            cpu.execution_guide.mtval
+          );
+        }
       }
       printf("force raise IPF\n");
       longjmp_exception(EX_IPF);
@@ -645,6 +685,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_LPF) = vaddr;
       printf("force raise LPF\n");
       longjmp_exception(EX_LPF);
@@ -653,6 +694,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       printf("force raise SPF\n");
       longjmp_exception(EX_SPF);
@@ -661,6 +703,83 @@ int force_raise_pf(vaddr_t vaddr, int type){
   }
   return MEM_RET_OK;
 }
+
+#ifdef CONFIG_RVH
+int force_raise_gpf_record(vaddr_t vaddr, int type) {
+  static vaddr_t g_last_addr[3] = {0x0};
+  static int g_force_count[3] = {0};
+  if (vaddr != g_last_addr[type]) {
+    g_last_addr[type] = vaddr;
+    g_force_count[type] = 0;
+  }
+  g_force_count[type]++;
+  return g_force_count[type] == 5;
+}
+
+int force_raise_gpf(vaddr_t vaddr, int type){
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+
+  if(cpu.guided_exec && cpu.execution_guide.force_raise_exception){
+    if(ifetch && cpu.execution_guide.exception_num == EX_IGPF){
+      if (force_raise_gpf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
+      if (intr_deleg_S(EX_IGPF)) {
+        stval->val = cpu.execution_guide.stval;
+        htval->val = cpu.execution_guide.htval;
+        if(
+          vaddr != cpu.execution_guide.stval &&
+          // cross page ipf caused mismatch is legal
+          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.stval & 0xfff) == 0x000)
+        ){
+          printf("[WARNING] nemu stval %lx does not match core stval %lx\n",
+            vaddr,
+            cpu.execution_guide.stval
+          );
+        }
+      } else {
+        mtval->val = cpu.execution_guide.mtval;
+        mtval2->val = cpu.execution_guide.mtval2;
+        if(
+          vaddr != cpu.execution_guide.mtval &&
+          // cross page ipf caused mismatch is legal
+          !((vaddr & 0xfff) == 0xffe && (cpu.execution_guide.mtval & 0xfff) == 0x000)
+        ){
+          printf("[WARNING] nemu mtval %lx does not match core mtval %lx\n",
+            vaddr,
+            cpu.execution_guide.mtval
+          );
+        }
+      }
+      printf("force raise IGPF\n");
+      longjmp_exception(EX_IGPF);
+      return MEM_RET_FAIL;
+    } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LGPF){
+      if (force_raise_gpf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
+      INTR_TVAL_REG(EX_LGPF) = vaddr;
+      htval->val = cpu.execution_guide.htval;
+      mtval2->val = cpu.execution_guide.mtval2;
+      printf("force raise LGPF\n");
+      longjmp_exception(EX_LGPF);
+      return MEM_RET_FAIL;
+    } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SGPF){
+      if (force_raise_gpf_record(vaddr, type)) {
+        return MEM_RET_OK;
+      }
+      INTR_TVAL_REG(EX_SPF) = vaddr;
+      htval->val = cpu.execution_guide.htval;
+      mtval2->val = cpu.execution_guide.mtval2;
+      printf("force raise SGPF\n");
+      longjmp_exception(EX_SGPF);
+      return MEM_RET_FAIL;
+    }
+  }
+  return MEM_RET_OK;
+}
+
+#endif // CONFIG_RVH
 
 #ifdef CONFIG_PMPTABLE_EXTENSION
 static bool napot_decode(paddr_t addr, word_t pmpaddr) {

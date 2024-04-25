@@ -43,6 +43,7 @@ typedef uint16_t ioaddr_t;
 struct DynamicConfig {
   bool ignore_illegal_mem_access;
   bool debug_difftest;
+  bool enable_store_log;
 };
 extern struct DynamicConfig dynamic_config;
 void update_dynamic_config(void* config);

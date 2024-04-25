@@ -115,6 +115,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
         break;
+      case EX_BP : vstval->val = epc;
+        break;
       default: vstval->val = 0;
     }
     cpu.v = 1;
@@ -152,6 +154,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_TVAL_EX_II
       case EX_II: stval->val = cpu.instr; break;
 #endif
+      case EX_BP : 
+        stval->val = epc; break;
       default: stval->val = 0;
 #ifdef CONFIG_RVH
                htval->val = 0;
@@ -187,6 +191,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_TVAL_EX_II
       case EX_II: mtval->val = cpu.instr; break;
 #endif
+      case EX_BP : mtval->val = epc; break;
       default: mtval->val = 0;
 #ifdef CONFIG_RVH
                mtval2->val = 0;
@@ -239,3 +244,10 @@ word_t isa_query_intr() {
   }
   return INTR_EMPTY;
 }
+
+#ifdef CONFIG_USE_XS_ARCH_CSRS
+word_t INTR_TVAL_SV39_SEXT(word_t vaddr) {
+  vaddr = vaddr & (vaddr_t)0x7FFFFFFFFF;
+  return SEXT(vaddr, 39); // USE SV39 VADDR
+}
+#endif

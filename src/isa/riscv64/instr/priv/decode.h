@@ -24,7 +24,7 @@ static inline def_DHelper(csr) {
 #ifdef CONFIG_RVH
 def_THelper(system) {
   def_INSTR_IDTAB("000000000000 00000 000 00000 ????? ??", csr, ecall);
-#ifdef CONFIG_RV_DEBUG
+#if defined(CONFIG_RV_DEBUG) || defined(CONFIG_EBREAK_AS_TRAP)
   def_INSTR_IDTAB("000000000001 00000 000 00000 ????? ??", csr, ebreak);
 #endif
   def_INSTR_IDTAB("000100000010 00000 000 00000 ????? ??", csr, sret);
@@ -64,7 +64,7 @@ def_THelper(system) {
 #else
 def_THelper(system) {
   def_INSTR_TAB("000000000000 00000 000 00000 ????? ??", ecall);
-#ifdef CONFIG_RV_DEBUG
+#if defined(CONFIG_RV_DEBUG) || defined(CONFIG_EBREAK_AS_TRAP)
   def_INSTR_TAB("000000000001 00000 000 00000 ????? ??", ebreak);
 #endif //CONFIG_RV_DEBUG
   def_INSTR_TAB("000100000010 00000 000 00000 ????? ??", sret);

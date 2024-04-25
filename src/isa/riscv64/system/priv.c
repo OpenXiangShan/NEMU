@@ -116,26 +116,38 @@ static inline word_t* csr_decode(uint32_t addr) {
 }
 
 // WPRI, SXL, UXL cannot be written
-#ifdef CONFIG_RVH
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (1UL << 39) | (1UL << 38)
-#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
-#elif defined(CONFIG_RVV)
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63) | (3UL << 9)
+
+// base mstatus wmask
+#define MSTATUS_WMASK_BASE (0x7e79aaUL) | (1UL << 63) | (3UL << 36)
+
+// rvh fields of mstatus
+#if defined(CONFIG_RVH)
+#define MSTATUS_WMASK_RVH (3UL << 38)
 #else
-#define MSTATUS_WMASK (0x7e79aaUL) | (1UL << 63)
+#define MSTATUS_WMASK_RVH 0
+#endif
+
+// rvv fields of mstatus
+#if defined(CONFIG_RVV)
+#define MSTATUS_WMASK_RVV (3UL << 9)
+#else
+#define MSTATUS_WMASK_RVV 0
+#endif
+
+// final mstatus wmask
+#define MSTATUS_WMASK (MSTATUS_WMASK_BASE | MSTATUS_WMASK_RVH | MSTATUS_WMASK_RVV)
+
+// hstatus wmask
+#if defined(CONFIG_RVH)
+#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
+#else
+#define HSTATUS_WMASK 0
 #endif
 
 #ifdef CONFIG_RVH
-#define MIP_MASK ((1 << 9) | (1 << 5) | (1 << 1))
-#define MIE_MASK ((1 << 9) | (1 << 5) | (1 << 1))
-#else
-#define MIP_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
-#define MIE_MASK ((1 << 9) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 1) | (1 << 0))
-#endif
-#ifdef CONFIG_RVH
 #define COUNTEREN_MASK 0
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
-#define MEDELEG_MASK ((1 << 23) | (1 << 22) | (1 << 21) | (1 << 20) | (1 << 15) | (1 << 13) | (1 << 12) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 3) | (1 << 0))
+#define MEDELEG_MASK (0xf0b7ff)
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
 #define VS_MASK ((1 << 10) | (1 << 6) | (1 << 2))
 #define VSSIP (1 << 2)
@@ -147,6 +159,16 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIE_RMASK HS_MASK
 #define HIE_WMASK HS_MASK
 #endif
+
+#define MIE_MASK_BASE 0xaaa
+#define MIP_MASK_BASE ((1 << 9) | (1 << 5) | (1 << 1))
+#ifdef CONFIG_RVH
+#define MIE_MASK_H ((1 << 2) | (1 << 6) | (1 << 10) | (1 << 12))
+#define MIP_MASK_H VSSIP
+#else
+#define MIE_MASK_H 0
+#define MIP_MASK_H 0
+#endif // CONFIG_RVH
 
 #define SIE_MASK (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
@@ -202,7 +224,7 @@ static inline void update_mstatus_sd() {
   if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
     mstatus->fs = 3;
   }
-  mstatus->sd = (mstatus->fs == 3);
+  mstatus->sd = (mstatus->fs == 3) || (mstatus->vs == 3);
 }
 #ifdef CONFIG_RVH
 static inline void update_vsstatus_sd() {
@@ -273,6 +295,7 @@ if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(vsstatus))       { return vsstatus->val & SSTATUS_RMASK; }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
 if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
 #endif
@@ -441,12 +464,11 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
+  else if (is_write(mie)) { 
+    mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H, src);
+  }
   else if (is_write(mip)) {
-#ifdef CONFIG_RVH
-    mip->val = mask_bitset(mip->val, MIP_MASK | VSSIP, src);
-#else
-    mip->val = mask_bitset(mip->val, MIP_MASK, src);
-#endif // CONFIG_RVH
+    mip->val = mask_bitset(mip->val, MIP_MASK_BASE | MIP_MASK_H, src);
   }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
   else if (is_write(mtvec)) {
@@ -594,6 +616,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     case TRIG_TYPE_NONE: // write type 0 to disable this trigger
     case TRIG_TYPE_DISABLE:
       tdata1_reg->type = TRIG_TYPE_DISABLE;
+      tdata1_reg->data = 0;
       break;
     case TRIG_TYPE_MCONTROL:
       mcontrol_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol, &src, cpu.TM);
@@ -630,7 +653,12 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_FPU_NONE
 
   }
-
+#ifdef CONFIG_RVV
+  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
+    vp_set_dirty();
+    need_update_mstatus_sd = true;
+  }
+#endif //CONFIG_RVV
   if (is_write(sstatus) || is_write(mstatus) || need_update_mstatus_sd) {
     update_mstatus_sd();
   }
@@ -650,12 +678,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
-#ifdef CONFIG_RVV
-  if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
-    //vp_set_dirty();
-    set_mstatus_dirt();
-  }
-#endif
 }
 
 word_t csrid_read(uint32_t csrid) {
@@ -786,17 +808,23 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RV_SVINVAL
         case 0x0b: // sinval.vma
 #ifdef CONFIG_RVH
-          if(cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_VI);
-          if((cpu.v && cpu.mode == MODE_S && hstatus->vtvm == 1) ||
-            !srnctl->svinval){
+          if (!srnctl->svinval) { // srnctl contrl extension enable or not
+            longjmp_exception(EX_II);
+          } else if (cpu.v == 0 && cpu.mode == MODE_U) {
+            longjmp_exception(EX_II);
+          } else if (cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1){
+            longjmp_exception(EX_II);
+          } else if (cpu.v == 1 && cpu.mode == MODE_U) {
             longjmp_exception(EX_VI);
-          }else if ((cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1) ||
-            !srnctl->svinval){
-              longjmp_exception(EX_II);
-            }
+          } else if (cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1) {
+            longjmp_exception(EX_VI);
+          } 
 #else
-          if ((cpu.mode == MODE_S && mstatus->tvm == 1) ||
-            !srnctl->svinval) { // srnctl contrl extension enable or not
+          if (!srnctl->svinval) { // srnctl contrl extension enable or not
+            longjmp_exception(EX_II);
+          } else if (cpu.mode == MODE_U) {
+            longjmp_exception(EX_II);
+          } else if (cpu.mode == MODE_S && mstatus->tvm == 1) {
             longjmp_exception(EX_II);
           }
 #endif // CONFIG_RVH

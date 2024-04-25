@@ -17,6 +17,7 @@
 #define __RTL_FP_H__
 
 enum {
+  FPCALL_W8,
   FPCALL_W16,
   FPCALL_W32,
   FPCALL_W64,
@@ -118,7 +119,7 @@ enum {
   FPCALL_DUToF,
   FPCALL_DSToF,
   FPCALL_DFToF,
-  FPCALL_DFToFR
+  FPCALL_DFToF_ODD,    // round odd
 };
 
 #define FPCALL_CMD(op, w) (((op) << 16) | (w))

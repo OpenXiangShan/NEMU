@@ -26,7 +26,7 @@ config RV_DEBUG
 
 config RVH
   bool "RISC-V Hypervisor Extension v1.0"
-  default n
+  default y
 
 config RVSDEXT
   bool "(Beta) RISC-V Sdext ISA Extension v1.0"
@@ -124,5 +124,10 @@ config RVV_AGNOSTIC
   depends on RVV
   bool "Enable RVV agnostic policy"
   default y
+
+config EBREAK_AS_TRAP
+  depends on !RV_DEBUG
+  bool "Treat ebreak same as nemu_trap"
+  default n
 
 endmenu

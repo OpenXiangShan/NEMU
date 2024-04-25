@@ -31,6 +31,11 @@ struct ExecutionGuide {
   uint64_t exception_num;
   uint64_t mtval;
   uint64_t stval;
+#ifdef CONFIG_RVH
+  uint64_t mtval2;
+  uint64_t htval;
+  uint64_t vstval;
+#endif // CONFIG_RVH
   // force set jump target
   bool force_set_jump_target;
   uint64_t jump_target;
@@ -217,23 +222,27 @@ typedef struct {
       uint32_t v_vs2     : 5;
       uint32_t v_vm      : 1;
       uint32_t v_funct6  : 6;
-    } v_opv1;
+    } v_opv;
     struct {
       uint32_t pad0      :15;
       int32_t  v_simm5   : 5;
       uint32_t v_zimm    :11;
       uint32_t v_bigbit  : 1;
-    } v_opv2;
+    } v_opsimm;
     struct {
       uint32_t pad0      :15;
       uint32_t v_imm5    : 5;
-    } v_opv3;
+      uint32_t v_vs2     : 5;
+      uint32_t v_vm      : 1;
+      uint32_t v_i       : 1;
+      uint32_t pad1      : 5;
+    } v_opimm;
     struct {
       uint32_t pad0      :15;
       uint32_t v_zimm5   : 5;
       uint32_t v_zimm    :10;
       uint32_t v_bigbit  : 2;
-    } v_opv4;
+    } v_vseti;
     //vector-LOAD-FP
     struct {
       uint32_t pad0      :12;

@@ -8,7 +8,7 @@ uint8_t check_vstart_ignore(Decode *s) {
     if(vstart->val > 0) {
       rtl_li(s, s0, 0);
       vcsr_write(IDXVSTART, s0);
-      set_mstatus_dirt();
+      vp_set_dirty();
     }
     return 1;
   }

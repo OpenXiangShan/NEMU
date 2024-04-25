@@ -41,6 +41,10 @@ else
 OBJS = $(COBJS) $(XOBJS)
 endif
 
+ifdef CONFIG_MEM_COMPRESS
+LDFLAGS += -lzstd
+endif
+
 # Compilation patterns
 $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
@@ -78,5 +82,6 @@ $(BUILD_DIR)/lib$(NAME).a: $(OBJS) $(LIBS)
 	@echo + AR $@
 	@ar rcs $(BUILD_DIR)/lib$(NAME).a $(OBJS) $(LIBS)
 
-clean:
+.PHONY: clean-softfloat
+clean: clean-softfloat
 	-rm -rf $(BUILD_DIR)

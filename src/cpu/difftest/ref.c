@@ -51,10 +51,18 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
 #endif
 #endif
 
+void difftest_get_backed_memory(void *backed_pmem, size_t n) {
+#if CONFIG_ENABLE_MEM_DEDUP
+  // set pmem to backed_pmem, then nothing
+  assert(n == CONFIG_MSIZE);
+  set_pmem(true, backed_pmem);
+#endif
+}
+
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
   void *a = get_sparsemm();
-  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n", 
+  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n",
           dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
   if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
   else sparse_mem_copy(dut_buf, a);
@@ -67,9 +75,11 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
 
 #else
 #ifdef CONFIG_LARGE_COPY
+  assert(guest_to_host(nemu_addr) != NULL);
   if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else nemu_large_memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #else
+  assert(guest_to_host(nemu_addr) != NULL);
   if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
   else memcpy(dut_buf, guest_to_host(nemu_addr), n);
 #endif
@@ -142,6 +152,20 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
+
+#ifdef CONFIG_REF_STATUS
+int difftest_status() {
+  switch (nemu_state.state) {
+    case NEMU_RUNNING: case NEMU_QUIT:
+      return 0;
+    case NEMU_END:
+      return (nemu_state.halt_ret == 0) ? 6 : 1;
+    default:
+      return 1;
+  }
+}
+#endif
+
 #ifdef CONFIG_LIGHTQS
 void difftest_guided_exec(void * guide, uint64_t restore_count) {
 #ifdef CONFIG_LIGHTQS_DEBUG
@@ -238,3 +262,15 @@ void difftest_put_gmaddr(uint8_t* ptr) {
 }
 
 #endif
+
+#ifdef CONFIG_STORE_LOG
+void difftest_store_log_reset() {
+  extern void pmem_record_reset();
+  pmem_record_reset();
+}
+
+void difftest_store_log_restore() {
+  extern void pmem_record_restore();
+  pmem_record_restore();
+}
+#endif // CONFIG_STORE_LOG
