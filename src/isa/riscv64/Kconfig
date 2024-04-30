@@ -16,6 +16,10 @@ config RVK
   bool "RISC-V Cryptography Extension v1.0"
   default y
 
+config RVZICOND
+  bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
+  default y
+
 config RVV
   bool "RISC-V Vector Extension v1.0"
   default y

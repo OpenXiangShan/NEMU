@@ -1,6 +1,5 @@
 /***************************************************************************************
-* Copyright (c) 2014-2021 Zihao Yu, Nanjing University
-* Copyright (c) 2020-2022 Institute of Computing Technology, Chinese Academy of Sciences
+* Copyright (c) 2024 Beijing Institute of Open Source Chip
 *
 * NEMU is licensed under Mulan PSL v2.
 * You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -14,26 +13,14 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "../instr/pseudo.h"
-#include "../instr/rvi/exec.h"
-#include "../instr/rvc/exec.h"
-#include "../instr/rvm/exec.h"
-#ifndef CONFIG_FPU_NONE
-#include "../instr/rvf/exec.h"
-#include "../instr/rvd/exec.h"
-#endif // CONFIG_FPU_NONE
-#include "../instr/rva/exec.h"
-#include "../instr/priv/exec.h"
-#ifdef CONFIG_RVB
-#include "../instr/rvb/exec.h"
-#endif
-#ifdef CONFIG_RVK
-#include "../instr/rvk/exec.h"
-#endif
-#ifdef CONFIG_RVV
-#include "../instr/rvv/exec.h"
-#endif
 #ifdef CONFIG_RVZICOND
-#include "../instr/rvzicond/exec.h"
+
+def_EHelper(czero_eqz) {
+  *ddest = *dsrc2 == 0 ? 0 : *dsrc1;
+}
+
+def_EHelper(czero_nez) {
+  *ddest = *dsrc2 != 0 ? 0 : *dsrc1;
+}
+
 #endif
-#include "../instr/special.h"
