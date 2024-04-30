@@ -28,6 +28,7 @@
 bool is_in_mmio(paddr_t addr);
 
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
+unsigned int PMEM_HARTID = 0;
 
 #ifdef CONFIG_LIGHTQS
 #define PMEMBASE 0x1100000000ul
@@ -130,9 +131,6 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
 void allocate_memory_with_mmap()
 {
 #ifdef CONFIG_USE_MMAP
-  #ifdef CONFIG_MULTICORE_DIFF
-  panic("Pmem must not use mmap during multi-core difftest");
-  #endif
   #ifdef CONFIG_USE_SPARSEMM
   sparse_mm = sparse_mem_new(4, 1024); //4kB
   #else
@@ -140,9 +138,10 @@ void allocate_memory_with_mmap()
   // init_mem may be called multiple times, the memory space will be
   // allocated only once at the first time called.
   // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
-  void *ret = mmap((void *)PMEMBASE, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+  void *pmem_base = (void *)(PMEMBASE + PMEM_HARTID * MEMORY_SIZE);
+  void *ret = mmap(pmem_base, MEMORY_SIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
-  if (ret != (void *)PMEMBASE) {
+  if (ret != pmem_base) {
     perror("mmap");
     assert(0);
   }
@@ -441,9 +440,9 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
 }
 
 inline uint64_t store_read_step() {
-  if (tail >= head) 
+  if (tail >= head)
     return tail - head;
-  else 
+  else
     return (CONFIG_DIFFTEST_STORE_QUEUE_SIZE - head + tail);
 }
 #endif
