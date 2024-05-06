@@ -20,9 +20,11 @@
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifndef CONFIG_SHARE
@@ -39,6 +41,7 @@ bool small_log = false;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int batch_mode = false;
+static int run_bbl = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
 char compress_file_format = 0; // default is gz
@@ -51,6 +54,10 @@ extern char *mem_dump_file;
 extern char *memory_region_record_file;
 #endif
 int is_batch_mode() { return batch_mode; }
+
+// measure the time taken for the load process
+clock_t load_start, load_end;
+double load_time;
 
 static inline void welcome() {
   Log("Debug: \33[1;32m%s\33[0m", MUXDEF(CONFIG_DEBUG, "ON","OFF"));
@@ -84,6 +91,7 @@ static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
     {"max-instr", required_argument, NULL, 'I'},
+    {"run-bbl"  , no_argument,       NULL, 'x'},
     {"log"      , required_argument, NULL, 'l'},
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
@@ -126,10 +134,11 @@ static inline int parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
-  while ( (o = getopt_long(argc, argv, "-bI:hl:d:p:D:w:C:cr:S:u", table, NULL)) != -1) {
+  while ( (o = getopt_long(argc, argv, "-bxI:hl:d:p:D:w:C:cr:S:u", table, NULL)) != -1) {
     switch (o) {
       case 'b': batch_mode = true; break;
       case 'I': max_instr = optarg; break;
+      case 'x': run_bbl = true; break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
@@ -245,6 +254,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
         printf("\t-I,--max-instr          max number of instructions executed\n");
+        printf("\t-x,--run-bbl            run bbl.bin\n");
         printf("\t-l,--log=FILE           output log to FILE\n");
         printf("\t--small-log=FILE        output log to a limited size FILE, but log is always up to date\n");
         printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
@@ -335,6 +345,7 @@ void init_monitor(int argc, char *argv[]) {
     img_size = MEMORY_SIZE;
     bbl_start = MEMORY_SIZE; // bbl size should never be used, let it crash if used
 
+    load_start = clock();
     if (map_image_as_output_cpt) {  // map_cpt is loaded in init_mem
       Log("Restoring with memory image cpt");
     } else {
@@ -343,6 +354,9 @@ void init_monitor(int argc, char *argv[]) {
     if (restorer) {
       load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
     }
+    load_end = clock();
+    load_time = (double)(load_end - load_start) / CLOCKS_PER_SEC;
+    printf("Time consumed during the load process ==> %.6fs\n", load_time);
 
   } else if (checkpoint_state != NoCheckpoint) {
     // boot: jump to restorer --> restorer jump to bbl
@@ -366,14 +380,22 @@ void init_monitor(int argc, char *argv[]) {
     }
 
   } else {
-    if (restorer != NULL) {
+    if(run_bbl == false) {
+      if (restorer != NULL) {
       Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! ");
       Log("If you don't know what you are doing, this will corrupt your memory/program.");
       Log("If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
       panic("Providing cpt restorer without restoring cpt or taking cpt\n");
+      }
+      bbl_start = RESET_VECTOR;
+      img_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+    } else {
+      assert(restorer);
+      bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
+      long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+      long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+      img_size = restorer_size + bbl_size;
     }
-    bbl_start = RESET_VECTOR;
-    img_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
   }
 
   /* Initialize differential testing. */
