@@ -255,6 +255,7 @@ uint8_t *golden_pmem = NULL;
 
 void difftest_set_mhartid(int n) {
   isa_difftest_set_mhartid(n);
+  PMEM_HARTID = n;
 }
 
 void difftest_put_gmaddr(uint8_t* ptr) {
