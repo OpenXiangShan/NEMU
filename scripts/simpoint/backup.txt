@@ -1,0 +1,15 @@
+# checkpoint_list.txt
+bwaves parallel_result/checkpoint/bwaves/10/_10_0.000199_.gz
+bzip2_chicken parallel_result/checkpoint/bzip2_chicken/512/_512_0.010066_.gz
+gamess_cytosine parallel_result/checkpoint/gamess_cytosine/28/_28_0.000664_.gz
+gcc_166 parallel_result/checkpoint/gcc_166/701/_701_0.094207_.gz
+milc parallel_result/checkpoint/milc/120/_120_0.029863_.gz
+perlbench_checkspam parallel_result/checkpoint/perlbench_checkspam/245/_245_0.002572_.gz
+# test use checkpoint_list.txt
+games parallel_result/checkpoint/gamess_cytosine//36939/_36939_0.047520_.gz
+milc parallel_result/checkpoint/milc/29429/_29429_0.016524_.gz
+perlbench parallel_result/checkpoint/perlbench_checkspam/40477/_40477_0.005017_.gz
+# test 
+games TEST/load/checkpoint/games-30m
+milc TEST/load/checkpoint/milc-600m
+perlbench TEST/load/checkpoint/perlbench-100m

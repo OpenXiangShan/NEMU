@@ -1,0 +1,6 @@
+perlbench_checkspam
+bzip2_chicken
+gcc_166
+bwaves
+gamess_cytosine
+milc

@@ -1,0 +1,3 @@
+games TEST/load/checkpoint/games-30m
+milc TEST/load/checkpoint/milc-600m
+perlbench TEST/load/checkpoint/perlbench-100m
