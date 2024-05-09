@@ -61,11 +61,12 @@ checkpoint(){
     workload=$1
 
     export CLUSTER=$RESULT/cluster/
-    log=$LOG_PATH/checkpoint_logs/${workload}
+    log=$LOG_PATH/checkpoint_logs/${workload}/raw
     mkdir -p $log
     $NEMU ${WORKLOAD_ROOT_PATH}/${workload}-bbl-linux-spec.bin  \
          -D $RESULT -w ${workload} -C checkpoint   \
          -b -S $CLUSTER --cpt-interval $interval \
+         --checkpoint-format raw \
          -r $GCPT > $log/${workload}-out.txt 2>$log/${workload}-err.txt 
 }
 export -f checkpoint
@@ -79,7 +80,7 @@ restore(){
     workload=${args[0]}
     ckpt=${args[1]}
 
-    log=$LOG_PATH/restore_logs/${workload}
+    log=$LOG_PATH/restore_logs/${workload}/raw
     mkdir -p $log
     $NEMU --restore ${NEMU_HOME}/${ckpt} \
           -b  -I ${interval} \
@@ -91,7 +92,7 @@ export -f restore
 run(){
     set -x
     workload=$1
-    log=$LOG_PATH/run_logs/${workload}
+    log=$LOG_PATH/run_logs/${workload}/on
     mkdir -p $log
 
     $NEMU ${WORKLOAD_ROOT_PATH}/${workload}-bbl-linux-spec.bin \
@@ -103,29 +104,29 @@ export -f run
 export workload_list=$NEMU_HOME/scripts/simpoint/workload_list.txt
 export checkpoint_list=$NEMU_HOME/scripts/simpoint/checkpoint_list.txt
 
-paralell_profiling(){
+parallel_profiling(){
 	export num_threads=20
     cat $workload_list | parallel -a - -j $num_threads profiling {}
 }
-export -f paralell_profiling
+export -f parallel_profiling
 
-paralell_cluster(){
+parallel_cluster(){
     export num_threads=20
     cat $workload_list | parallel -a - -j $num_threads time cluster {}
 }
-export -f paralell_cluster
+export -f parallel_cluster
 
-paralell_checkpoint(){
+parallel_checkpoint(){
     export num_threads=20
     cat $workload_list | parallel -a - -j $num_threads checkpoint {}
 }
-export -f paralell_checkpoint
+export -f parallel_checkpoint
 
-paralell_restore(){
+parallel_restore(){
     export num_threads=20
     cat $checkpoint_list | parallel -a - -j $num_threads  restore {}
 }
-export -f paralell_restore
+export -f parallel_restore
 
 parallel_run(){
     export num_threads=20
@@ -133,10 +134,12 @@ parallel_run(){
 }
 export -f parallel_run
 
-# paralell_profiling
+# parallel_profiling
 
-# paralell_cluster
+# parallel_cluster
 
-# paralell_checkpoint
+# parallel_checkpoint
 
-paralell_restore
+# parallel_restore
+
+# parallel_run
