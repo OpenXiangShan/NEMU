@@ -15,8 +15,12 @@
 
 #ifndef __CHECKPOINT_CPT_ENV__
 #define __CHECKPOINT_CPT_ENV__
+#include <stdint.h>
+#include <stddef.h>
+#include <time.h>
+#include <sys/stat.h>
 
-enum { GZ_FORMAT, ZSTD_FORMAT };
+enum { GZ_FORMAT, ZSTD_FORMAT, RAW_FORMAT};
 
 extern char *output_base_dir;
 extern char *config_name;
@@ -26,5 +30,26 @@ extern int cpt_id;
 extern char *cpt_file;
 extern char *restorer;
 extern char compress_file_format;
+
+extern unsigned char page_vec[0x200000];
+
+typedef struct{
+	uint32_t l;
+	uint32_t r;
+}seg;
+extern seg segs[0x100000];
+extern size_t seg_num;
+
+extern double dump_gz_time, dump_raw_time, dump_raw_gz_time;
+extern size_t total_gz_size, total_raw_size, total_raw_gz_size;
+
+extern clock_t start, end;
+extern double time_cost;
+
+extern struct stat file_stat;
+
+extern size_t ckpt_num;
+
+#define INDEX(addr) ((addr - 0x100000000) / 0x1000)
 
 #endif

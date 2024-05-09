@@ -241,6 +241,8 @@ static inline int parse_args(int argc, char *argv[]) {
           compress_file_format = GZ_FORMAT;
         } else if (!strcmp(optarg, "zstd")) {
           compress_file_format = ZSTD_FORMAT;
+        }else if (!strcmp(optarg, "raw")) {
+          compress_file_format = RAW_FORMAT;
         } else {
           xpanic("Not support '%s' format\n", optarg);
         }
@@ -274,7 +276,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
-        printf("\t--checkpoint-format     Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
+        printf("\t--checkpoint-format     Specify the checkpoint format('gz'、'zstd' or 'raw'), default: 'gz'.\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--simpoint-profile      simpoint profiling\n");
@@ -368,6 +370,12 @@ void init_monitor(int argc, char *argv[]) {
     long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
     long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
     img_size = restorer_size + bbl_size;
+
+
+    uint64_t load_size = bbl_start + bbl_size - RESET_VECTOR;
+    for(size_t i = 0; i < load_size; i += 0x1000) {
+      page_vec[i / 0x1000] = 1;
+    }
 
   } else if (profiling_state == SimpointProfiling) {
     if (restorer != NULL) {

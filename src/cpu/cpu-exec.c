@@ -46,6 +46,8 @@ static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
+extern void dump_ckpt_info();
+
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
   Logti("%s\n", asmbuf);
@@ -102,6 +104,7 @@ void monitor_statistic() {
 #else
   Log("CONFIG_ENABLE_INSTR_CNT is not defined");
 #endif
+  dump_ckpt_info();
 }
 
 static word_t g_ex_cause = 0;

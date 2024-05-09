@@ -17,9 +17,12 @@
 // Created by zyy on 2020/11/16.
 //
 
+#include <cassert>
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
+#include <cstddef>
+#include <ctime>
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
@@ -62,6 +65,7 @@ uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 extern bool log_enable();
 extern void log_flush();
+extern void init_segs();
 extern unsigned long MEMORY_SIZE;
 }
 
@@ -104,6 +108,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
 
     uint64_t pass_size = 0;
 
+    start = clock();
     for (uint64_t written = 0; written < PMEM_SIZE; written += pass_size) {
       pass_size = numeric_limits<int>::max() < ((int64_t)PMEM_SIZE - (int64_t)written)
                     ? numeric_limits<int>::max()
@@ -113,6 +118,15 @@ void Serializer::serializePMem(uint64_t inst_count) {
         xpanic("Write failed on physical memory checkpoint file\n");
       }
       Log("Written 0x%lx bytes\n", pass_size);
+    }
+    end = clock();
+    time_cost = (double)(end - start) / CLOCKS_PER_SEC;
+    dump_gz_time += time_cost;
+
+    if (stat(filepath.c_str(), &file_stat) == 0) {
+      total_gz_size += file_stat.st_size;
+    } else {
+      xpanic("Unable to get file size of %s\n", filepath.c_str());
     }
 
     if (gzclose(compressed_mem)) {
@@ -142,6 +156,78 @@ void Serializer::serializePMem(uint64_t inst_count) {
     }
 
     free(compress_buffer);
+  } else if(compress_file_format == RAW_FORMAT) {
+    init_segs();
+    filepath += "_.raw";
+
+    size_t written = 0, ret = 0;
+    FILE* rp = fopen(filepath.c_str(), "wb");
+
+    start = clock();
+    // write seg_num;
+    ret = fwrite(&seg_num, 1, sizeof(seg_num), rp);
+    assert(ret == sizeof(seg_num));
+    written += ret;
+
+    // write segs;
+    ret = fwrite(segs, sizeof(seg), seg_num, rp);
+    assert(ret == seg_num);
+    written += ret * sizeof(seg);
+
+    // dump memory segment
+    for(size_t i = 0; i < seg_num; i++) {
+      void* addr = pmem + segs[i].l * 0x1000;
+      size_t len = (segs[i].r - segs[i].l + 1) * 0x1000;
+      ret = fwrite(addr, 1, len, rp);
+      assert(ret == len);
+      written += ret;
+    }
+    end = clock();
+    time_cost = (double)(end - start) / CLOCKS_PER_SEC;
+    dump_raw_time  += time_cost;
+    total_raw_size += written;
+    printf("===== write 0x%lx bytes to raw file! =====\n", written);
+
+
+
+    filepath += "_.gz";
+    gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
+    if (compressed_mem == nullptr) {
+      cerr << "Failed to open " << filepath << endl;
+      xpanic("Can't open physical memory checkpoint file!\n");
+    } else {
+      cout << "Opening " << filepath << " as checkpoint output file" << endl;
+    }
+
+    start = clock();
+    // write seg_num;
+    ret = gzwrite(compressed_mem, &seg_num, sizeof(seg_num));
+    assert(ret == sizeof(seg_num));
+    // write segs
+    ret = gzwrite(compressed_mem, segs, sizeof(seg) * seg_num);
+    assert(ret == sizeof(seg) * seg_num);
+    // dump memory segment
+    for(size_t i = 0; i < seg_num; i++) {
+      void* addr = pmem + segs[i].l * 0x1000;
+      size_t len = (segs[i].r - segs[i].l + 1) * 0x1000;
+      ret = gzwrite(compressed_mem, addr, len);
+      assert(ret == len);
+    }
+    end = clock();
+    time_cost = (double)(end - start) / CLOCKS_PER_SEC;
+    dump_raw_gz_time += time_cost;
+
+    if (stat(filepath.c_str(), &file_stat) == 0) {
+      total_raw_gz_size += file_stat.st_size;
+    } else {
+      xpanic("Unable to get file size of %s\n", filepath.c_str());
+    }
+
+    if (gzclose(compressed_mem)) {
+      xpanic("Close failed on physical memory checkpoint file\n");
+    }
+
+
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
@@ -259,6 +345,8 @@ void Serializer::init() {
 
       Log("Simpoint %lu: @ %lu, weight: %f", simpoint_id, simpoint_location, weight);
     }
+
+    ckpt_num = simpoint2Weights.size();
 
   } else if (checkpoint_state == UniformCheckpointing || checkpoint_state == ManualUniformCheckpointing) {
     assert(checkpoint_interval);
