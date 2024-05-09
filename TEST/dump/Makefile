@@ -17,6 +17,9 @@ $(BUILD_DIR):
 page: $(BUILD_DIR)/page.o
 	$(CC)  $^ -o $(BUILD_DIR)/$@  $(CFLAGS)
 
+rw_vec: $(BUILD_DIR)/rw_vec.o 
+	$(CXX) $^ -o $(BUILD_DIR)/$@  $(CXXFLAGS)
+
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC)  $< -o $@ -c $(CFLAGS)
 
