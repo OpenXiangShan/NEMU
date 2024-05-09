@@ -1,3 +1,6 @@
-games TEST/load/checkpoint/games-30m
-milc TEST/load/checkpoint/milc-600m
-perlbench TEST/load/checkpoint/perlbench-100m
+perlbench parallel_result/checkpoint/perlbench_checkspam/26012/_26012_0.091173_.raw
+bzip2_chicken parallel_result/checkpoint/bzip2_chicken/6810/_6810_0.064602_.raw
+gcc_166 parallel_result/checkpoint/gcc_166/1079/_1079_0.035192_.raw
+bwaves parallel_result/checkpoint/bwaves/52107/_52107_0.009942_.raw
+games parallel_result/checkpoint/gamess_cytosine/2635/_2635_0.079559_.raw
+milc parallel_result/checkpoint/milc/3200/_3200_0.038062_.raw
