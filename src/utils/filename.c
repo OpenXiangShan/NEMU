@@ -59,3 +59,13 @@ bool is_zstd_file(const char *filename){
   const uint8_t zstd_magic[4] = {0x28, 0xB5, 0x2F, 0xFD};
   return memcmp(buf, zstd_magic, 4) == 0;
 }
+
+bool is_raw_file(const char* filename) {
+  size_t len = strlen(filename);
+  assert(len >= 4);
+  if (strcmp(filename + len - 4, ".raw") == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}

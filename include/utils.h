@@ -107,6 +107,7 @@ extern "C" {
 #endif
 bool is_gz_file(const char *filename);
 bool is_zstd_file(const char *filename);
+bool is_raw_file(const char* filename);
 #ifdef __cplusplus
 }
 #endif

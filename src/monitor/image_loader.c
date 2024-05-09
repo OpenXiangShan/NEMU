@@ -14,11 +14,13 @@
 ***************************************************************************************/
 
 #include <assert.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <isa.h>
 #include <macro.h>
 #include <memory/paddr.h>
 #include <memory/sparseram.h>
+#include <checkpoint/cpt_env.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -194,6 +196,44 @@ long load_zstd_img(const char *filename){
 
 #endif  //  CONFIG_MEM_COMPRESS
 
+long load_raw_img(const char* filename) {
+  FILE* fp = fopen(filename, "rb");
+  assert(fp != NULL);
+
+  size_t rbytes = 0, ret = 0;
+
+  uint8_t* pmem = get_pmem();
+  // load gcpt_restorer.bin regs etc.
+  // ret = fread(pmem, 1, 0xa0000, fp);
+  // assert(ret == 0xa0000);
+  // rbytes += ret;
+  // ret = fseek(fp, 0xa0000, SEEK_SET);
+  // assert(ret == 0);
+
+  // read seg_num
+  size_t seg_num;
+  ret = fread(&seg_num, 1, sizeof(seg_num), fp);
+  assert(ret == sizeof(seg_num));
+  rbytes += ret;
+  
+  // read segs
+  seg segs[seg_num];
+  ret = fread(segs, sizeof(seg), seg_num, fp);
+  assert(ret == seg_num);
+  rbytes += ret * sizeof(seg);
+
+  // load memory segement
+  for (size_t i = 0; i < seg_num; i++) {
+    uint8_t* addr = pmem + segs[i].l * 0x1000;
+    size_t len = (segs[i].r - segs[i].l + 1) * 0x1000;
+    ret = fread(addr, 1, len, fp);
+    assert(ret == len);
+    rbytes += ret;
+  }
+
+  return rbytes;
+}
+
 // Return whether a file is a gz file, determined by its name.
 // If the filename ends with ".gz", we treat it as a gz file.
 
@@ -222,6 +262,11 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
 #else
     panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
+  }
+
+  if (is_raw_file(loading_img)) {
+    Log("Loading RAW image %s", loading_img);
+    return load_raw_img(loading_img);
   }
 
   // RAW image
