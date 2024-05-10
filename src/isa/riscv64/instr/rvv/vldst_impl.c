@@ -78,7 +78,8 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+  cpu.vector_exception = false;
+  for (idx = vstart->val; idx < vl_val; idx++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
@@ -92,8 +93,10 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
     for (fn = 0; fn < nf; fn++) {
       addr = base_addr + idx * stride + (idx * nf * is_stride + fn) * s->v_width;
       rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      if (cpu.vector_exception) break;
       set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, emul_coding, mode == MODE_MASK ? 0 : 1);
     }
+    if (cpu.vector_exception) break;
   }
 
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
@@ -143,7 +146,8 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+  cpu.vector_exception = false;
+  for (idx = vstart->val; idx < vl_val; idx++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
@@ -163,9 +167,11 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
       addr = base_addr + index + fn * data_length;
       s->v_is_vx = 1;
       rtl_lm(s, &tmp_reg[1], &addr, 0, data_length, mmu_mode);
+      if (cpu.vector_exception) break;
       s->v_is_vx = 0;
       set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
     }
+    if (cpu.vector_exception) break;
   }
 
   if (RVV_AGNOSTIC && vtype->vta) {   // set tail of vector register to 1
@@ -217,16 +223,37 @@ void vst(int mode, Decode *s, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if (s->vm == 0 && mask == 0) {
-      continue;
+  cpu.vector_exception = false;
+  int data_width = 1 << eew;
+  int uop_store_num = VLEN / data_width;
+  for (idx = vstart->val; idx < vl_val; idx++) {
+    int idx_start = idx;
+    int idx_end = (idx / uop_store_num + 1) * uop_store_num;
+    for (int store_idx = idx_start; store_idx < idx_end && store_idx < vl_val; store_idx++) {
+      rtlreg_t mask = get_mask(0, store_idx, vtype->vsew, vtype->vlmul);
+      if (s->vm == 0 && mask == 0) {
+        continue;
+      }
+      for (fn = 0; fn < nf; fn++) {
+        addr = base_addr + store_idx * stride + (store_idx * nf * is_stride + fn) * s->v_width;
+        get_vreg(vd + fn * emul, store_idx, &tmp_reg[1], eew, vtype->vlmul, 0, mode == MODE_MASK ? 0 : 1);
+        rtl_sm_check(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      }
+      if (cpu.vector_exception) break;
     }
-    for (fn = 0; fn < nf; fn++) {
-      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, mode == MODE_MASK ? 0 : 1);
-      addr = base_addr + idx * stride + (idx * nf * is_stride + fn) * s->v_width;
-      rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+    for (int store_idx = idx_start; store_idx < idx_end && store_idx < vl_val; store_idx++) {
+      rtlreg_t mask = get_mask(0, store_idx, vtype->vsew, vtype->vlmul);
+      if (s->vm == 0 && mask == 0) {
+        continue;
+      }
+      for (fn = 0; fn < nf; fn++) {
+        addr = base_addr + store_idx * stride + (store_idx * nf * is_stride + fn) * s->v_width;
+        get_vreg(vd + fn * emul, store_idx, &tmp_reg[1], eew, vtype->vlmul, 0, mode == MODE_MASK ? 0 : 1);
+        rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+      }
     }
+    if (cpu.vector_exception) break;
+    idx = idx_end - 1;
   }
 
   vstart->val = 0;
@@ -262,7 +289,8 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+  cpu.vector_exception = false;
+  for (idx = vstart->val; idx < vl_val; idx++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if (s->vm == 0 && mask == 0) {
       continue;
@@ -277,8 +305,10 @@ void vstx(int mode, Decode *s, int mmu_mode) {
       addr = base_addr + index + fn * data_length;
       s->v_is_vx = 1;
       rtl_sm(s, &tmp_reg[1], &addr, 0, data_length, mmu_mode);
+      if (cpu.vector_exception) break;
       s->v_is_vx = 0;
     }
+    if (cpu.vector_exception) break;
   }
 
   // TODO: the idx larger than vl need reset to zero.
@@ -324,24 +354,28 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
   idx = vstart->val;
 
   isa_whole_reg_check(vd, len);
+  cpu.vector_exception = false;
 
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
     offset = vstart->val % elt_per_reg;
     if (offset) {
       // first vreg
-      for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
+      for (pos = offset; pos < elt_per_reg; pos++) {
         addr = base_addr + idx * s->v_width;
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        if (cpu.vector_exception) break;
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         idx++;
       }
       vreg_idx++;
     }
     for (; vreg_idx < len; vreg_idx++) {
-      for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
+      if (cpu.vector_exception) break;
+      for (pos = 0; pos < elt_per_reg; pos++) {
         addr = base_addr + idx * s->v_width;
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        if (cpu.vector_exception) break;
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         idx++;
       }
@@ -369,26 +403,30 @@ void vsr(int mode, Decode *s, int mmu_mode) {
 
   isa_whole_reg_check(vd, len);
 
+  cpu.vector_exception = false;
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
     offset = vstart->val % elt_per_reg;
     if (offset) {
       // first vreg
-      for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
+      for (pos = offset; pos < elt_per_reg; pos++) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
+        if (cpu.vector_exception) break;
         idx++;
       }
       vreg_idx++;
     }
     for (; vreg_idx < len; vreg_idx++) {
-      for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
+      if (cpu.vector_exception) break;
+      for (pos = 0; pos < elt_per_reg; pos++) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
+        if (cpu.vector_exception) break;
         idx++;
       }
     }

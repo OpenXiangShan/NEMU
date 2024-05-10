@@ -107,6 +107,7 @@ typedef struct {
   uint64_t vstart;
   uint64_t vxsat, vxrm, vcsr;
   uint64_t vl, vtype, vlenb;
+  bool vector_exception;
 #endif // CONFIG_RVV
 
 

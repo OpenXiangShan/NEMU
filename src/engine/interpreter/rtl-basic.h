@@ -144,6 +144,11 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 #endif
 }
 
+static inline def_rtl(sm_check, const rtlreg_t *src1, const rtlreg_t* addr,
+    word_t offset, int len, int mmu_mode) {
+  vaddr_write_check(s, *addr + offset, len, *src1, mmu_mode);
+}
+
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);

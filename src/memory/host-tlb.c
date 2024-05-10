@@ -102,6 +102,11 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   }
 }
 
+static void hosttlb_write_slowpath_check(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
+  paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+  paddr_write_check(paddr, len, data, cpu.mode, vaddr);
+}
+
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
 #ifdef CONFIG_RVH
@@ -146,4 +151,20 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   #else
   host_write(e->offset + vaddr, len, data);
   #endif
+}
+
+void hosttlb_write_check(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
+  #ifdef CONFIG_RVH
+  extern bool has_two_stage_translation();
+  if(has_two_stage_translation()){
+    paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    return paddr_write_check(paddr, len, data, cpu.mode, vaddr);
+  }
+#endif
+  vaddr_t gvpn = hosttlb_vpn(vaddr);
+  HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
+  if (unlikely(e->gvpn != gvpn)) {
+    hosttlb_write_slowpath_check(s, vaddr, len, data);
+    return;
+  }
 }

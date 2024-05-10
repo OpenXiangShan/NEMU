@@ -320,6 +320,34 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #endif
 }
 
+void paddr_write_check(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
+  if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
+    raise_access_fault(EX_SAF, vaddr);
+    return ;
+  }
+#ifndef CONFIG_SHARE
+  if (!likely(in_pmem(addr))) {
+    if (!likely(is_in_mmio(addr))) raise_access_fault(EX_SAF, vaddr);
+  }
+#else
+  if (likely(in_pmem(addr))) {
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
+        addr, data, len, mode);
+    }
+    return;
+  } else {
+    if (!likely(is_in_mmio(addr))) {
+      if(dynamic_config.ignore_illegal_mem_access)
+        return;
+      printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+      raise_access_fault(EX_SAF, vaddr);
+      return;
+    }
+  }
+#endif
+}
+
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 bool mem_addr_use[PROGRAM_ANALYSIS_PAGES];
 char *memory_region_record_file = NULL;

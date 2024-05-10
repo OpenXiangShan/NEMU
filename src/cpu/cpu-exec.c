@@ -124,6 +124,9 @@ _Noreturn void longjmp_exception(int ex_cause) {
 #ifdef CONFIG_GUIDED_EXEC
   cpu.guided_exec = false;
 #endif
+#ifdef CONFIG_RVV
+  cpu.vector_exception = true;
+#endif
   g_ex_cause = ex_cause;
   Loge("longjmp_exec(NEMU_EXEC_EXCEPTION)");
   longjmp_exec(NEMU_EXEC_EXCEPTION);
