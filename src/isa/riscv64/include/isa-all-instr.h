@@ -65,11 +65,11 @@
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 #else
 #ifdef CONFIG_RVH
-#define SYS_INSTR_NULLARY(f)
+#define SYS_INSTR_NULLARY(f) f(c_ebreak)
 #define SYS_INSTR_BINARY(f)
 #define SYS_INSTR_TERNARY(f) f(priv) f(hload) f(hstore)
 #else
-#define SYS_INSTR_NULLARY(f)
+#define SYS_INSTR_NULLARY(f) f(c_ebreak)
 #define SYS_INSTR_BINARY(f)
 #define SYS_INSTR_TERNARY(f) f(system)
 #endif // CONFIG_RVH

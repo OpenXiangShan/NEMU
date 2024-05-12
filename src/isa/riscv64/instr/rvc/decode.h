@@ -411,7 +411,9 @@ def_THelper(rvc_Q2_jr_mov) {
 }
 
 def_THelper(rvc_Q2_jalr_add) {
+#if defined(CONFIG_RV_DEBUG) || defined(CONFIG_EBREAK_AS_TRAP)
   def_INSTR_IDTAB("??? ? 00000 00000 ??", C_EBREAK , c_ebreak);  // ebreak
+#endif
   def_INSTR_IDTAB("??? ? 00001 00000 ??", C_JALR , jalr); // c_jalr can not handle correctly when rs1 == ra
   def_INSTR_IDTAB("??? ? ????? 00000 ??", C_JALR , c_jalr);
   def_INSTR_IDTAB("??? ? ????? ????? ??", C_ADD  , c_add);

@@ -134,8 +134,9 @@ int isa_fetch_decode(Decode *s) {
       s->jnpc = id_dest->imm; s->type = INSTR_TYPE_B; break;
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
+    case EXEC_ID_c_ebreak:
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
-    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak: case EXEC_ID_c_ebreak:
+    case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
 #endif
       s->type = INSTR_TYPE_I; break;
 
