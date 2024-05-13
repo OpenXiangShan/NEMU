@@ -39,9 +39,25 @@ void fp_set_dirty() {
   // lazily update mstatus->sd when reading mstatus
 #if defined (CONFIG_SHARE) || defined (CONFIG_DIFFTEST_REF_SPIKE)
   mstatus->sd = 1;
+#ifdef CONFIG_RVH
+  if (cpu.v == 1) {
+    if (hstatus->vsxl == 1)
+      vsstatus->_32.sd = 1;
+    else
+      vsstatus->_64.sd = 1;
+  }
+#endif //CONFIG_RVH
 #endif
 // Spike update fs and sd in the meantime
   mstatus->fs = 3;
+#ifdef CONFIG_RVH
+  if (cpu.v == 1) {
+    if (hstatus->vsxl == 1)
+      vsstatus->_32.fs = 3;
+    else
+      vsstatus->_64.fs = 3;
+  }
+#endif //CONFIG_RVH
 }
 
 uint32_t isa_fp_get_rm(Decode *s) {
