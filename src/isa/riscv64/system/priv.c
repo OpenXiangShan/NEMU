@@ -118,7 +118,14 @@ static inline word_t* csr_decode(uint32_t addr) {
 // WPRI, SXL, UXL cannot be written
 
 // base mstatus wmask
-#define MSTATUS_WMASK_BASE (0x7e79aaUL) | (1UL << 63) | (3UL << 36)
+#define MSTATUS_WMASK_BASE (0x7e19aaUL) | (1UL << 63) | (3UL << 36)
+
+// FS
+#ifndef CONFIG_FPU_NONE
+#define MSTATUS_WMASK_FS (0x3UL << 13)
+#else
+#define MSTATUS_WMASK_FS 0x0
+#endif
 
 // rvh fields of mstatus
 #if defined(CONFIG_RVH)
@@ -135,7 +142,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif
 
 // final mstatus wmask
-#define MSTATUS_WMASK (MSTATUS_WMASK_BASE | MSTATUS_WMASK_RVH | MSTATUS_WMASK_RVV)
+#define MSTATUS_WMASK (MSTATUS_WMASK_BASE | MSTATUS_WMASK_FS | MSTATUS_WMASK_RVH | MSTATUS_WMASK_RVV)
 
 // hstatus wmask
 #if defined(CONFIG_RVH)
