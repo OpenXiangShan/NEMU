@@ -141,8 +141,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_RVV 0
 #endif
 
-// final mstatus wmask
+// final mstatus wmask: dependent of the ISA extensions
 #define MSTATUS_WMASK (MSTATUS_WMASK_BASE | MSTATUS_WMASK_FS | MSTATUS_WMASK_RVH | MSTATUS_WMASK_RVV)
+
+// wmask of sstatus is given by masking the valid fields in sstatus
+#define SSTATUS_WMASK (MSTATUS_WMASK & SSTATUS_RMASK)
 
 // hstatus wmask
 #if defined(CONFIG_RVH)
@@ -464,7 +467,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-  else if (is_write(mie)) { 
+  else if (is_write(mie)) {
     mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H, src);
   }
   else if (is_write(mip)) {
@@ -818,7 +821,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
             longjmp_exception(EX_VI);
           } else if (cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1) {
             longjmp_exception(EX_VI);
-          } 
+          }
 #else
           if (!srnctl->svinval) { // srnctl contrl extension enable or not
             longjmp_exception(EX_II);
