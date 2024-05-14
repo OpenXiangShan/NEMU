@@ -545,7 +545,6 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RV_ARCH_CSRS
 CSR_STRUCT_START(mvendorid)
 CSR_STRUCT_END(mvendorid)
 
@@ -554,7 +553,6 @@ CSR_STRUCT_END(marchid)
 
 CSR_STRUCT_START(mimpid)
 CSR_STRUCT_END(mimpid)
-#endif // CONFIG_RV_ARCH_CSRS
 
 #ifdef CONFIG_RVSDEXT
 CSR_STRUCT_START(dcsr)
