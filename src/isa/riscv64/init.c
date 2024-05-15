@@ -65,6 +65,9 @@ void init_isa() {
   // For RV64 systems, if S-mode is not supported, then SXL is hardwired to zero.
   // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
   mstatus->val = 0xaUL << 32;
+  // initialize the value fs and vs to 0
+  mstatus->fs = 0;
+  mstatus->vs = 0;
 
 #ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;
@@ -101,7 +104,6 @@ void init_isa() {
 
 #ifdef CONFIG_RVV
   // vector
-  mstatus->val |= 0x1UL << 9; // set mstatus.vs to initial.
   misa->extensions |= ext('v');
   vl->val = 0;
   vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
