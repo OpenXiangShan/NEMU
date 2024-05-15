@@ -121,7 +121,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_BASE (0x7e19aaUL) | (1UL << 63) | (3UL << 36)
 
 // FS
-#ifndef CONFIG_FPU_NONE
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
 #define MSTATUS_WMASK_FS (0x3UL << 13)
 #else
 #define MSTATUS_WMASK_FS 0x0
