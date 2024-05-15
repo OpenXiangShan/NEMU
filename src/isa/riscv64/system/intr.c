@@ -155,6 +155,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_II: stval->val = cpu.instr; break;
 #endif
       case EX_BP : 
+#ifdef CONFIG_RVH
+        htval->val = 0;
+#endif
         stval->val = epc; break;
       default: stval->val = 0;
 #ifdef CONFIG_RVH
@@ -191,7 +194,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_TVAL_EX_II
       case EX_II: mtval->val = cpu.instr; break;
 #endif
-      case EX_BP : mtval->val = epc; break;
+      case EX_BP : 
+#ifdef CONFIG_RVH
+        mtval2->val = 0;
+#endif      
+        mtval->val = epc; break;
       default: mtval->val = 0;
 #ifdef CONFIG_RVH
                mtval2->val = 0;
