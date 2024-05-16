@@ -64,10 +64,20 @@ void init_isa() {
   // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
   mstatus->val = 0xaUL << 32;
 
-#ifdef CONFIG_RV_PMP_CSR
+#ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;
   pmpcfg2->val = 0;
-#endif // CONFIG_RV_PMP_CSR
+#endif // CONFIG_RV_PMP_ENTRY_16
+#ifdef CONFIG_RV_PMP_ENTRY_64
+  pmpcfg0->val = 0;
+  pmpcfg2->val = 0;
+  pmpcfg4->val = 0;
+  pmpcfg6->val = 0;
+  pmpcfg8->val = 0;
+  pmpcfg10->val = 0;
+  pmpcfg12->val = 0;
+  pmpcfg14->val = 0;
+#endif // CONFIG_RV_PMP_ENTRY_64
 
 #ifdef CONFIG_RV_SVINVAL
   srnctl->val = 3; // enable extension 'svinval' [1]

@@ -35,30 +35,13 @@ rtlreg_t csr_array[4096] = {};
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 
 MAP(CSRS, CSRS_DEF)
-#ifdef CONFIG_RVV
-  MAP(VCSRS, CSRS_DEF)
-#endif // CONFIG_RVV
-#ifdef CONFIG_RV_ARCH_CSRS
-  MAP(ARCH_CSRS, CSRS_DEF)
-#endif // CONFIG_RV_ARCH_CSRS
-#ifdef CONFIG_RVH
-  MAP(HCSRS, CSRS_DEF)
-#endif //CONFIG_RVH
 
 #define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
 static bool csr_exist[4096] = {};
 void init_csr() {
   MAP(CSRS, CSRS_EXIST)
-  MAP(CSRS_HPM, CSRS_EXIST)
-  #ifdef CONFIG_RVV
-  MAP(VCSRS, CSRS_EXIST)
-  #endif // CONFIG_RVV
-  #ifdef CONFIG_RV_ARCH_CSRS
-  MAP(ARCH_CSRS, CSRS_EXIST)
-  #endif // CONFIG_RV_ARCH_CSRS
   #ifdef CONFIG_RVH
   cpu.v = 0;
-  MAP(HCSRS, CSRS_EXIST)
   #endif
 };
 
@@ -347,8 +330,8 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     return fcsr->frm & FRM_MASK;
 #endif // CONFIG_FPU_NONE
   }
-#ifndef CONFIG_SHARE
-  else if (is_read(mtime))  { difftest_skip_ref(); return clint_uptime(); }
+#ifdef CONFIG_RV_Zicntr
+  else if (is_read(time))  { difftest_skip_ref(); return clint_uptime(); }
 #endif
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
