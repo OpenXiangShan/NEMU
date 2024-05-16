@@ -43,11 +43,11 @@ void ramcmp() {
 #endif //CONFIG_RVH
 
 void csr_prepare() {
-  cpu.mstatus = mstatus->val;
+  cpu.mstatus = gen_status_sd(mstatus->val) | mstatus->val;
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = mstatus->val & SSTATUS_RMASK; // sstatus
+  cpu.sstatus = gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); // sstatus
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 
@@ -81,7 +81,7 @@ void csr_prepare() {
   cpu.htval   = htval->val;
   cpu.htinst  = htinst->val;
   cpu.hgatp   = hgatp->val;
-  cpu.vsstatus= vsstatus->val;
+  cpu.vsstatus= gen_status_sd(vsstatus->val) | vsstatus->val;
   cpu.vstvec  = vstvec->val;
   cpu.vsepc   = vsepc->val;
   cpu.vscause = vscause->val;
@@ -93,6 +93,9 @@ void csr_prepare() {
 
 void csr_writeback() {
   mstatus->val = cpu.mstatus;
+  // Keep the value of mstatus->sd always zero
+  // The value used to diff with REF/DUT will set mstatus->sd with fs or vs is dirty.
+  mstatus->sd  = 0;
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;
   //sstatus->val = cpu.sstatus;  // sstatus is a shadow of mstatus
@@ -130,6 +133,9 @@ void csr_writeback() {
   htinst->val  = cpu.htinst;
   hgatp->val   = cpu.hgatp;
   vsstatus->val= cpu.vsstatus;
+  // Keep the value of vsstatus->sd always zero
+  // The value used to diff with REF/DUT will set vsstatus->sd with fs or vs is dirty.
+  vsstatus->_64.sd = 0;
   vstvec->val  = cpu.vstvec;
   vsepc->val   = cpu.vsepc;
   vscause->val = cpu.vscause;

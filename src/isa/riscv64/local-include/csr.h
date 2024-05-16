@@ -436,6 +436,13 @@ CSR_STRUCT_START(mstatus)
   uint64_t sd  : 1;
 CSR_STRUCT_END(mstatus)
 
+typedef enum ExtContextStatus {
+  EXT_CONTEXT_DISABLED = 0,
+  EXT_CONTEXT_INITIAL,
+  EXT_CONTEXT_CLEAN,
+  EXT_CONTEXT_DIRTY,
+} ExtContextStatus;
+
 CSR_STRUCT_START(mtvec)
 CSR_STRUCT_END(mtvec)
 
@@ -1083,6 +1090,9 @@ MAP(CSRS, CSRS_DECL)
 
 /** General **/
 void csr_prepare();
+
+word_t gen_status_sd(word_t status);
+
 word_t csrid_read(uint32_t csrid);
 
 /** PMP **/
