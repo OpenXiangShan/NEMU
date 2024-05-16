@@ -73,6 +73,11 @@ config RV_SVINVAL
   bool "Enable VM Extension Svinval"
   default y
 
+config RV_MSTATUS_FS_WRITABLE
+  depends on FPU_NONE
+  bool "make mstatus.fs writable; required for software FPU emulation"
+  default y
+
 config MISA_UNCHANGEABLE
   bool "Make misa cannot be changed by CSR write instructions like XS"
   default y
