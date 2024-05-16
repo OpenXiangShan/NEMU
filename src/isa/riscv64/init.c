@@ -96,17 +96,15 @@ void init_isa() {
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RV_ARCH_CSRS
-  #ifdef CONFIG_USE_XS_ARCH_CSRS
-    mvendorid->val = 0;
-    marchid->val = 25;
-    mimpid->val = 0;
-  #else
-    mvendorid->val = CONFIG_MVENDORID_VALUE;
-    marchid->val = MUXDEF(CONFIG_DIFFTEST_REF_SPIKE, 0x5, CONFIG_MARCHID_VALUE);
-    mimpid->val = CONFIG_MIMPID_VALUE;
-  #endif // CONFIG_USE_XS_ARCH_CSRS
-#endif // CONFIG_RV_ARCH_CSRS
+#ifdef CONFIG_USE_XS_ARCH_CSRS
+  mvendorid->val = 0;
+  marchid->val = 25;
+  mimpid->val = 0;
+#else
+  mvendorid->val = CONFIG_MVENDORID_VALUE;
+  marchid->val = CONFIG_MARCHID_VALUE;
+  mimpid->val = CONFIG_MIMPID_VALUE;
+#endif // CONFIG_USE_XS_ARCH_CSRS
 
 #ifdef CONFIG_RVSDTRIG
   init_trigger();

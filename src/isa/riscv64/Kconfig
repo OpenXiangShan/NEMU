@@ -94,28 +94,20 @@ config FS_CLEAN_STATE
   bool "XSTATUS.FS has the state of Clean"
   default y
 
-config RV_ARCH_CSRS
-  bool "Enable mvendorid, marchid, mimpid CSR"
-  default y
-
 config USE_XS_ARCH_CSRS
-  depends on RV_ARCH_CSRS
   bool "Use the same arch CSRS values as the implementation of XiangShan"
 
 config MVENDORID_VALUE
-  depends on RV_ARCH_CSRS
   depends on !USE_XS_ARCH_CSRS
   hex "Value of CSR mvendorid"
   default 0x0
 
 config MARCHID_VALUE
-  depends on RV_ARCH_CSRS
   depends on !USE_XS_ARCH_CSRS
   hex "Value of CSR marchid"
   default 0x0
 
 config MIMPID_VALUE
-  depends on RV_ARCH_CSRS
   depends on !USE_XS_ARCH_CSRS
   hex "Value of CSR mimpid"
   default 0x0

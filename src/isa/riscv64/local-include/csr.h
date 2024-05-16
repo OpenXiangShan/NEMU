@@ -132,10 +132,8 @@ void csr_prepare();
   f(vlenb, 0xc22)
 #endif
 
-#ifdef CONFIG_RV_ARCH_CSRS
-  #define ARCH_CSRS(f) \
-  f(mvendorid  , 0xf11) f(marchid    , 0xf12) f(mimpid     , 0xf13)
-#endif
+#define ARCH_CSRS(f) \
+f(mvendorid  , 0xf11) f(marchid    , 0xf12) f(mimpid     , 0xf13)
 
 #ifdef CONFIG_RVH
   #define HCSRS(f) \
@@ -545,7 +543,6 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RV_ARCH_CSRS
 CSR_STRUCT_START(mvendorid)
 CSR_STRUCT_END(mvendorid)
 
@@ -554,7 +551,6 @@ CSR_STRUCT_END(marchid)
 
 CSR_STRUCT_START(mimpid)
 CSR_STRUCT_END(mimpid)
-#endif // CONFIG_RV_ARCH_CSRS
 
 #ifdef CONFIG_RVSDEXT
 CSR_STRUCT_START(dcsr)
@@ -832,9 +828,7 @@ MAP(CSRS, CSRS_DECL)
 #ifdef CONFIG_RVV
   MAP(VCSRS, CSRS_DECL)
 #endif // CONFIG_RVV
-#ifdef CONFIG_RV_ARCH_CSRS
-  MAP(ARCH_CSRS, CSRS_DECL)
-#endif // CONFIG_RV_ARCH_CSRS
+MAP(ARCH_CSRS, CSRS_DECL)
 #ifdef CONFIG_RVH
   extern bool v; // virtualization mode
   MAP(HCSRS, CSRS_DECL)
