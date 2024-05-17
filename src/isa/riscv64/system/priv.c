@@ -309,27 +309,17 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
   else if (is_read(vlenb))  { return VLEN >> 3; }
 #endif
+#ifndef CONFIG_FPU_NONE
   else if (is_read(fcsr))   {
-#ifdef CONFIG_FPU_NONE
-    longjmp_exception(EX_II);
-#else
     return fcsr->val & FCSR_MASK;
-#endif // CONFIG_FPU_NONE
   }
   else if (is_read(fflags)) {
-#ifdef CONFIG_FPU_NONE
-    longjmp_exception(EX_II);
-#else
     return fcsr->fflags.val & FFLAGS_MASK;
-#endif // CONFIG_FPU_NONE
   }
   else if (is_read(frm))    {
-#ifdef CONFIG_FPU_NONE
-    longjmp_exception(EX_II);
-#else
     return fcsr->frm & FRM_MASK;
-#endif // CONFIG_FPU_NONE
   }
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RV_Zicntr
   else if (is_read(time))  { difftest_skip_ref(); return clint_uptime(); }
 #endif
@@ -487,34 +477,24 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
   else if (is_write(mepc)) { *dest = src & (~0x1UL); }
   else if (is_write(sepc)) { *dest = src & (~0x1UL); }
+#ifndef CONFIG_FPU_NONE
   else if (is_write(fflags)) {
-#ifdef CONFIG_FPU_NONE
-  longjmp_exception(EX_II);
-#else
     *dest = src & FFLAGS_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
     // fcsr->fflags.val = src;
-#endif // CONFIG_FPU_NONE
   }
   else if (is_write(frm)) {
-#ifdef CONFIG_FPU_NONE
-  longjmp_exception(EX_II);
-#else
     *dest = src & FRM_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
     // fcsr->frm = src;
-#endif // CONFIG_FPU_NONE
   }
   else if (is_write(fcsr)) {
-#ifdef CONFIG_FPU_NONE
-  longjmp_exception(EX_II);
-#else
     *dest = src & FCSR_MASK;
     fflags->val = src & FFLAGS_MASK;
     frm->val = ((src)>>5) & FRM_MASK;
     // *dest = src & FCSR_MASK;
-#endif // CONFIG_FPU_NONE
   }
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RV_PMP_CSR
   else if (is_write_pmpaddr) {
     Logtr("Writing pmp addr");
@@ -629,16 +609,13 @@ static inline void csr_write(word_t *dest, word_t src) {
   else { *dest = src; }
 
   bool need_update_mstatus_sd = false;
+#ifndef CONFIG_FPU_NONE
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
-#ifdef CONFIG_FPU_NONE
-  longjmp_exception(EX_II);
-#else
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
     need_update_mstatus_sd = true;
-#endif // CONFIG_FPU_NONE
-
   }
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     vp_set_dirty();
