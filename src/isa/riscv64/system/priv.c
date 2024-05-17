@@ -174,37 +174,29 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SATP_SV39_MASK 0xf000000000000000ULL
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
-#define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG0]) && src < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
-#define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR0]) && src < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
-#define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG0]) && dest < (&(csr_array[CSR_PMPCFG0]) + (MAX_NUM_PMP/4)))
-#define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR0]) && dest < (&(csr_array[CSR_PMPADDR0]) + MAX_NUM_PMP))
+#define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG_BASE]) && src < (&(csr_array[CSR_PMPCFG_BASE]) + CSR_PMPCFG_MAX_NUM))
+#define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR_BASE]) && src < (&(csr_array[CSR_PMPADDR_BASE]) + CSR_PMPADDR_MAX_NUM))
+#define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG_BASE]) && dest < (&(csr_array[CSR_PMPCFG_BASE]) + CSR_PMPCFG_MAX_NUM))
+#define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR_BASE]) && dest < (&(csr_array[CSR_PMPADDR_BASE]) + CSR_PMPADDR_MAX_NUM))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
+// get 8-bit config of one PMP entries by index.
 uint8_t pmpcfg_from_index(int idx) {
-  // for now, nemu only support 16 pmp entries in a XLEN=64 machine
+  // Nemu support up to 64 pmp entries in a XLEN=64 machine.
   int xlen = 64;
-  assert(idx < CONFIG_RV_PMP_NUM);
-  assert(CONFIG_RV_PMP_NUM <= 16);
-  int cfgPerCSR = xlen / 8;
-  // no black magic, just get CSR addr from idx
-  int cfg_csr_addr;
-  switch (idx / cfgPerCSR) {
-    case 0: cfg_csr_addr = CSR_PMPCFG0; break;
-    case 1: cfg_csr_addr = CSR_PMPCFG2; break;
-    // case 2: cfg_csr_addr = CSR_PMPCFG4; break;
-    // case 3: cfg_csr_addr = CSR_PMPCFG8; break;
-    default: assert(0);
-  }
-  uint8_t *cfg_reg = (uint8_t *)&csr_array[cfg_csr_addr];
-  return *(cfg_reg + (idx % cfgPerCSR));
+  // Configuration register of one entry is 8-bit.
+  int bits_per_cfg = 8;
+  // For RV64, one pmpcfg CSR contains configuration of 8 entries (64 / 8 = 8).
+  int cfgs_per_csr = xlen / bits_per_cfg;
+  // For RV64, only 8 even-numbered pmpcfg CSRs hold the configuration.
+  int pmpcfg_csr_addr = CSR_PMPCFG_BASE + idx / cfgs_per_csr * 2;
+
+  uint8_t *cfg_reg = (uint8_t *)&csr_array[pmpcfg_csr_addr];
+  return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
 word_t pmpaddr_from_index(int idx) {
-  return csr_array[CSR_PMPADDR0 + idx];
-}
-
-word_t pmpaddr_from_csrid(int id) {
-  return csr_array[id];
+  return csr_array[CSR_PMPADDR_BASE + idx];
 }
 
 word_t inline pmp_tor_mask() {
@@ -234,18 +226,9 @@ static inline word_t csr_read(word_t *src) {
   }
 #ifdef CONFIG_RV_PMP_CSR
   if (is_read_pmpaddr) {
-    // If n_pmp is zero, that means pmp is not implemented hence raise trap if it tries to access the csr
-    if (CONFIG_RV_PMP_NUM == 0) {
-      Loge("pmp number is 0, raise illegal instr exception when read pmpaddr");
-      longjmp_exception(EX_II);
-      return 0;
-    }
-
-    int idx = (src - &csr_array[CSR_PMPADDR0]);
-    // Check whether the PMP register is out of bound.
-    if (idx >= CONFIG_RV_PMP_NUM) {
-      Loge("pmp number is smaller than the index, raise illegal instr exception when read pmpaddr");
-      longjmp_exception(EX_II);
+    int idx = (src - &csr_array[CSR_PMPADDR_BASE]);
+    if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
+      // CSRs of inactive pmp entries are read-only zero.
       return 0;
     }
 
@@ -255,12 +238,16 @@ static inline word_t csr_read(word_t *src) {
       fprintf(stderr, "[NEMU] pmp addr read %d : 0x%016lx\n", idx,
         (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
     }
-#endif
+#endif // CONFIG_SHARE
     if ((cfg & PMP_A) >= PMP_NAPOT)
       return *src | (~pmp_tor_mask() >> 1);
     else
       return *src & pmp_tor_mask();
   }
+  
+  // No need to handle read pmpcfg specifically, because
+  // - pmpcfg CSRs are all initialized to zero.
+  // - writing to inactive pmpcfg CSRs is handled.
 #endif // CONFIG_RV_PMP_CSR
 
 #ifdef CONFIG_RVH
@@ -498,54 +485,52 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_PMP_CSR
   else if (is_write_pmpaddr) {
     Logtr("Writing pmp addr");
-    // If no PMPs are configured, disallow access to all.  Otherwise, allow
-    // access to all, but unimplemented ones are hardwired to zero.
-    if (CONFIG_RV_PMP_NUM == 0)
-      return;
-
-    Logtr("PMP updated\n");
-    int idx = dest - &csr_array[CSR_PMPADDR0];
-    // Check whether the PMP register is out of bound.
-    if (idx >= CONFIG_RV_PMP_NUM) {
-      Loge("pmp number is smaller than the index, raise illegal instr exception when read pmpaddr");
-      longjmp_exception(EX_II);
+    
+    int idx = dest - &csr_array[CSR_PMPADDR_BASE];
+    if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
+      // CSRs of inactive pmp entries are read-only zero.
       return;
     }
 
     word_t cfg = pmpcfg_from_index(idx);
     bool locked = cfg & PMP_L;
     // Note that the last pmp cfg do not have next_locked or next_tor
-    bool next_locked = idx == (CONFIG_RV_PMP_NUM-1) ? false : idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_L);
-    bool next_tor = idx == (CONFIG_RV_PMP_NUM-1) ? false : idx < CONFIG_RV_PMP_NUM && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
-    if (idx < CONFIG_RV_PMP_NUM && !locked && !(next_locked && next_tor)) {
+    bool next_locked = idx < (CONFIG_RV_PMP_ACTIVE_NUM - 1) && (pmpcfg_from_index(idx+1) & PMP_L);
+    bool next_tor = idx < (CONFIG_RV_PMP_ACTIVE_NUM - 1) && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
+    if (idx < CONFIG_RV_PMP_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
       *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
     }
 #ifdef CONFIG_SHARE
     if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
     }
-#endif
+#endif // CONFIG_SHARE
 
     mmu_tlb_flush(0);
   }
   else if (is_write_pmpcfg) {
-    // Log("Writing pmp config");
-    if (CONFIG_RV_PMP_NUM == 0)
-      return;
+    // Logtr("Writing pmp config");
+
+    int idx_base = (dest - &csr_array[CSR_PMPCFG_BASE]) * 4;
 
     int xlen = 64;
     word_t cfg_data = 0;
     for (int i = 0; i < xlen / 8; i ++ ) {
+      if (idx_base + i >= CONFIG_RV_PMP_ACTIVE_NUM) {
+        // CSRs of inactive pmp entries are read-only zero.
+        break;
+      }
+
 #ifndef CONFIG_PMPTABLE_EXTENSION
       word_t cfg = ((src >> (i*8)) & 0xff) & (PMP_R | PMP_W | PMP_X | PMP_A | PMP_L);
-#endif
+#endif // CONFIG_PMPTABLE_EXTENSION
 #ifdef CONFIG_PMPTABLE_EXTENSION
       /*
        * Consider the T-bit and C-bit of pmptable extension,
        * cancel original pmpcfg bit limit.
        */
       word_t cfg = ((src >> (i*8)) & 0xff);
-#endif
+#endif // CONFIG_PMPTABLE_EXTENSION
       cfg &= ~PMP_W | ((cfg & PMP_R) ? PMP_W : 0); // Disallow R=0 W=1
       if (CONFIG_PMP_GRANULARITY != PMP_SHIFT && (cfg & PMP_A) == PMP_NA4)
         cfg |= PMP_NAPOT; // Disallow A=NA4 when granularity > 4
@@ -553,16 +538,16 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
 #ifdef CONFIG_SHARE
     if(dynamic_config.debug_difftest) {
-      int idx = dest - &csr_array[CSR_PMPCFG0];
-      fprintf(stderr, "[NEMU] write pmp cfg%d to %016lx\n",idx, cfg_data);
+      int idx = dest - &csr_array[CSR_PMPCFG_BASE];
+      Logtr("[NEMU] write pmpcfg%d to %016lx\n", idx, cfg_data);
     }
-#endif
+#endif // CONFIG_SHARE
 
     *dest = cfg_data;
 
     mmu_tlb_flush(0);
   }
-#endif
+#endif // CONFIG_RV_PMP_CSR
   else if (is_write(satp)) {
     if (cpu.mode == MODE_S && mstatus->tvm == 1) {
       longjmp_exception(EX_II);

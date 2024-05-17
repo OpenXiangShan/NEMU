@@ -73,8 +73,9 @@ void isa_reg_display() {
       vsepc->val, vscause->val, vstval->val, vsatp->val);
   printf("virtualization mode: %ld\n", cpu.v);
 #endif
+  printf("privilege mode:%ld\n", cpu.mode);
 #ifdef CONFIG_RV_PMP_CSR
-  printf("privilege mode:%ld  pmp: below\n", cpu.mode);
+  printf("pmp: %d entries active, details:\n", CONFIG_RV_PMP_ACTIVE_NUM);
   for (int i = 0; i < CONFIG_RV_PMP_NUM; i++) {
     printf("%2d: cfg:0x%02x addr:0x%016lx", i, pmpcfg_from_index(i), pmpaddr_from_index(i));
     if (i % 2 == 1) printf("\n");
@@ -83,9 +84,7 @@ void isa_reg_display() {
 #ifndef CONFIG_RV_PMP_CHECK
   printf("pmp csr rw: enable, pmp check: disable\n");
 #endif
-#else
-  printf("privilege mode:%ld\n", cpu.mode);
-#endif
+#endif // CONFIG_RV_PMP_CSR
 
 #ifdef CONFIG_RVV
   //vector register

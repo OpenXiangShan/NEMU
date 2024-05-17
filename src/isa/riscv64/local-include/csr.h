@@ -224,16 +224,38 @@
   f(menvcfg    , 0x30A)
 
 /** Machine Memory Protection (PMP) **/
-#ifdef CONFIG_RV_PMP_CSR
+#ifdef CONFIG_RV_PMP_ENTRY_0
+  #define CSRS_M_MEMORY_PROTECTION(f)
+#endif // CONFIG_RV_PMP_ENTRY_0
+#ifdef CONFIG_RV_PMP_ENTRY_16
   #define CSRS_M_MEMORY_PROTECTION(f) \
     f(pmpcfg0    , 0x3A0) f(pmpcfg2    , 0x3A2) \
     f(pmpaddr0   , 0x3B0) f(pmpaddr1   , 0x3B1) f(pmpaddr2   , 0x3B2) f(pmpaddr3   , 0x3B3) \
     f(pmpaddr4   , 0x3B4) f(pmpaddr5   , 0x3B5) f(pmpaddr6   , 0x3B6) f(pmpaddr7   , 0x3B7) \
     f(pmpaddr8   , 0x3B8) f(pmpaddr9   , 0x3B9) f(pmpaddr10  , 0x3BA) f(pmpaddr11  , 0x3BB) \
     f(pmpaddr12  , 0x3BC) f(pmpaddr13  , 0x3BD) f(pmpaddr14  , 0x3BE) f(pmpaddr15  , 0x3BF)
-#else // CONFIG_RV_PMP_CSR
-  #define CSRS_M_MEMORY_PROTECTION(f)
-#endif // CONFIG_RV_PMP_CSR
+#endif // CONFIG_RV_PMP_ENTRY_16
+#ifdef CONFIG_RV_PMP_ENTRY_64
+  #define CSRS_M_MEMORY_PROTECTION(f) \
+    f(pmpcfg0    , 0x3A0) f(pmpcfg2    , 0x3A2) f(pmpcfg4    , 0x3A4) f(pmpcfg6    , 0x3A6)\
+    f(pmpcfg8    , 0x3A8) f(pmpcfg10   , 0x3AA) f(pmpcfg12   , 0x3AC) f(pmpcfg14   , 0x3AE)\
+    f(pmpaddr0   , 0x3B0) f(pmpaddr1   , 0x3B1) f(pmpaddr2   , 0x3B2) f(pmpaddr3   , 0x3B3) \
+    f(pmpaddr4   , 0x3B4) f(pmpaddr5   , 0x3B5) f(pmpaddr6   , 0x3B6) f(pmpaddr7   , 0x3B7) \
+    f(pmpaddr8   , 0x3B8) f(pmpaddr9   , 0x3B9) f(pmpaddr10  , 0x3BA) f(pmpaddr11  , 0x3BB) \
+    f(pmpaddr12  , 0x3BC) f(pmpaddr13  , 0x3BD) f(pmpaddr14  , 0x3BE) f(pmpaddr15  , 0x3BF) \
+    f(pmpaddr16  , 0x3C0) f(pmpaddr17  , 0x3C1) f(pmpaddr18  , 0x3C2) f(pmpaddr19  , 0x3C3) \
+    f(pmpaddr20  , 0x3C4) f(pmpaddr21  , 0x3C5) f(pmpaddr22  , 0x3C6) f(pmpaddr23  , 0x3C7) \
+    f(pmpaddr24  , 0x3C8) f(pmpaddr25  , 0x3C9) f(pmpaddr26  , 0x3CA) f(pmpaddr27  , 0x3CB) \
+    f(pmpaddr28  , 0x3CC) f(pmpaddr29  , 0x3CD) f(pmpaddr30  , 0x3CE) f(pmpaddr31  , 0x3CF) \
+    f(pmpaddr32  , 0x3D0) f(pmpaddr33  , 0x3D1) f(pmpaddr34  , 0x3D2) f(pmpaddr35  , 0x3D3) \
+    f(pmpaddr36  , 0x3D4) f(pmpaddr37  , 0x3D5) f(pmpaddr38  , 0x3D6) f(pmpaddr39  , 0x3D7) \
+    f(pmpaddr40  , 0x3D8) f(pmpaddr41  , 0x3D9) f(pmpaddr42  , 0x3DA) f(pmpaddr43  , 0x3DB) \
+    f(pmpaddr44  , 0x3DC) f(pmpaddr45  , 0x3DD) f(pmpaddr46  , 0x3DE) f(pmpaddr47  , 0x3DF) \
+    f(pmpaddr48  , 0x3E0) f(pmpaddr49  , 0x3E1) f(pmpaddr50  , 0x3E2) f(pmpaddr51  , 0x3E3) \
+    f(pmpaddr52  , 0x3E4) f(pmpaddr53  , 0x3E5) f(pmpaddr54  , 0x3E6) f(pmpaddr55  , 0x3E7) \
+    f(pmpaddr56  , 0x3E8) f(pmpaddr57  , 0x3E9) f(pmpaddr58  , 0x3EA) f(pmpaddr59  , 0x3EB) \
+    f(pmpaddr60  , 0x3EC) f(pmpaddr61  , 0x3ED) f(pmpaddr62  , 0x3EE) f(pmpaddr63  , 0x3EF)
+#endif // CONFIG_RV_PMP_ENTRY_64
 
 /** Machine State Enable Registers **/
 #define CSRS_M_STATE_ENABLE(f)
@@ -953,13 +975,10 @@ MAP(CSRS, CSRS_DECL)
 #define PMP_NA4   0x10
 #define PMP_NAPOT 0x18
 
-#define CSR_PMPCFG0 0x3a0
-#define CSR_PMPCFG2 0x3a2
-#define CSR_PMPADDR0 0x3b0
-// This is the maximum PMP register allowed.
-// If you need to change the number of actual PMP registers,
-// please set CONFIG_RV_PMP_NUM in the config file.
-#define MAX_NUM_PMP 16
+#define CSR_PMPCFG_BASE     0x3a0
+#define CSR_PMPADDR_BASE    0x3b0
+#define CSR_PMPCFG_MAX_NUM  16
+#define CSR_PMPADDR_MAX_NUM 64
 
 /** Vector **/
 #define IDXVSTART 0x008
@@ -1024,7 +1043,6 @@ word_t csrid_read(uint32_t csrid);
 /** PMP **/
 uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
-word_t pmpaddr_from_csrid(int id);
 word_t pmp_tor_mask();
 
 #endif // __CSR_H__
