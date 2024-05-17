@@ -403,38 +403,38 @@ CSR_STRUCT_START(mhartid)
 CSR_STRUCT_END(mhartid)
 
 CSR_STRUCT_START(mstatus)
-  uint64_t uie : 1;
-  uint64_t sie : 1;
-  uint64_t pad0: 1;
-  uint64_t mie : 1;
-  uint64_t upie: 1;
-  uint64_t spie: 1;
-  uint64_t pad1: 1;
-  uint64_t mpie: 1;
-  uint64_t spp : 1;
-  uint64_t vs  : 2;
-  uint64_t mpp : 2;
-  uint64_t fs  : 2;
-  uint64_t xs  : 2;
-  uint64_t mprv: 1;
-  uint64_t sum : 1;
-  uint64_t mxr : 1;
-  uint64_t tvm : 1;
-  uint64_t tw  : 1;
-  uint64_t tsr : 1;
-  uint64_t pad3: 9;
-  uint64_t uxl : 2;
-  uint64_t sxl : 2;
-  uint64_t sbe : 1;
-  uint64_t mbe : 1;
+  uint64_t pad0: 1; // [0]
+  uint64_t sie : 1; // [1]
+  uint64_t pad1: 1; // [2]
+  uint64_t mie : 1; // [3]
+  uint64_t pad2: 1; // [4]
+  uint64_t spie: 1; // [5]
+  uint64_t ube : 1; // [6]
+  uint64_t mpie: 1; // [7]
+  uint64_t spp : 1; // [8]
+  uint64_t vs  : 2; // [10:9]
+  uint64_t mpp : 2; // [12:11]
+  uint64_t fs  : 2; // [14:13]
+  uint64_t xs  : 2; // [16:15]
+  uint64_t mprv: 1; // [17]
+  uint64_t sum : 1; // [18]
+  uint64_t mxr : 1; // [19]
+  uint64_t tvm : 1; // [20]
+  uint64_t tw  : 1; // [21]
+  uint64_t tsr : 1; // [22]
+  uint64_t pad3: 9; // [31:23]
+  uint64_t uxl : 2; // [33:32]
+  uint64_t sxl : 2; // [35:34]
+  uint64_t sbe : 1; // [36]
+  uint64_t mbe : 1; // [37]
 #ifdef CONFIG_RVH
-  uint64_t gva : 1;
-  uint64_t mpv : 1;
-  uint64_t pad4:23;
+  uint64_t gva : 1; // [38]
+  uint64_t mpv : 1; // [39]
+  uint64_t pad4:23; // [62:40]
 #else
-  uint64_t pad4:25;
+  uint64_t pad4:25; // [62:38]
 #endif
-  uint64_t sd  : 1;
+  uint64_t sd  : 1; // [63]
 CSR_STRUCT_END(mstatus)
 
 typedef enum ExtContextStatus {
