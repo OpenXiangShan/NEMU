@@ -927,12 +927,12 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
 
 #ifdef CONFIG_RV_PMP_CHECK
-  if (CONFIG_RV_PMP_NUM == 0) {
+  if (CONFIG_RV_PMP_ACTIVE_NUM == 0) {
     return true;
   }
 
   word_t base = 0;
-  for (int i = 0; i < CONFIG_RV_PMP_NUM; i++) {
+  for (int i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
     word_t pmpaddr = pmpaddr_from_index(i);
     word_t tor = (pmpaddr & pmp_tor_mask()) << PMP_SHIFT;
     uint8_t cfg = pmpcfg_from_index(i);
@@ -1014,12 +1014,12 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
 
 #ifdef CONFIG_PMPTABLE_EXTENSION
-  if (CONFIG_RV_PMP_NUM == 0) {
+  if (CONFIG_RV_PMP_ACTIVE_NUM == 0) {
     return true;
   }
   int i = 0;
   word_t base = 0;
-  for (i = 0; i < CONFIG_RV_PMP_NUM; i++) {
+  for (i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
     uint8_t pmpcfg = pmpcfg_from_index(i);
     word_t pmpaddr = pmpaddr_from_index(i);
     uint8_t addr_mode = pmpcfg & PMP_A;
