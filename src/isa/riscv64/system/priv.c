@@ -401,6 +401,8 @@ static inline void csr_write(word_t *dest, word_t src) {
       vsatp->val = MASKED_SATP(src);
   }else if(is_write(hcounteren)){
     hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src);
+  }else if(is_write(mcounteren)){
+    mcounteren->val = mask_bitset(mcounteren->val, COUNTEREN_MASK, src);
   }else if(is_write(scounteren)){
     scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
