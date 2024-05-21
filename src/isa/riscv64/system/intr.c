@@ -21,12 +21,6 @@
 
 void update_mmu_state();
 
-#define INTR_BIT (1ULL << 63)
-enum {
-  IRQ_USIP, IRQ_SSIP, IRQ_VSSIP, IRQ_MSIP,
-  IRQ_UTIP, IRQ_STIP, IRQ_VSTIP, IRQ_MTIP,
-  IRQ_UEIP, IRQ_SEIP, IRQ_VSEIP, IRQ_MEIP, IRQ_SGEI
-};
 
 #ifdef CONFIG_RVH
 bool intr_deleg_S(word_t exceptionNO) {

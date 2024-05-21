@@ -29,7 +29,7 @@ enum {
   EX_SAM, // store/amo address misaligned
   EX_SAF, // store/amo address fault
   EX_ECU, // ecall from U-mode or VU-mode
-  EX_ECS, // ecall from HS-mode 
+  EX_ECS, // ecall from HS-mode
   EX_ECVS,// ecall from VS-mode, H-extention
   EX_ECM, // ecall from M-mode
   EX_IPF, // instruction page fault
@@ -41,6 +41,24 @@ enum {
   EX_VI,  // virtual instruction, H-extention
   EX_SGPF // store/amo guest-page fault, H-extention
 };
+
+enum {
+  IRQ_USIP,  // reserved yet
+  IRQ_SSIP,
+  IRQ_VSSIP,
+  IRQ_MSIP,
+  IRQ_UTIP,  // reserved yet
+  IRQ_STIP,
+  IRQ_VSTIP,
+  IRQ_MTIP,
+  IRQ_UEIP,  // reserved yet
+  IRQ_SEIP,
+  IRQ_VSEIP,
+  IRQ_MEIP,
+  IRQ_SGEI,  // Supervisor guest external interrupt
+};
+
+#define INTR_BIT (1ULL << 63)
 
 // now NEMU does not support EX_IAM,
 // so it may ok to use EX_IAM to indicate a successful memory access
