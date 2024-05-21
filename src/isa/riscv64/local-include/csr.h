@@ -127,6 +127,14 @@
 /** Supervisor State Enable Registers **/
 #define CSRS_S_STATE_ENABLE(f)
 
+#ifdef CONFIG_RV_SSCOFPMF
+  #define CSRS_S_SCOFPMF(f) \
+    f(scountovf, 0xDA0)
+#else
+  #define CSRS_S_SCOFPMF(f)
+#endif // CONFIG_RV_SSCOFPMF
+
+
 /** Supervisor Custom 1 **/
 #ifdef CONFIG_RV_SVINVAL
   #define CSRS_S_XIANGSHAN_SRNCTL(f) \
@@ -150,6 +158,7 @@
   CSRS_S_PROTECTION_TRANSLATION(f) \
   CSRS_S_DEBUG_TRACE(f) \
   CSRS_S_STATE_ENABLE(f) \
+  CSRS_S_SCOFPMF(f) \
   CSRS_S_CUSTOM_1(f)
 
 
@@ -686,6 +695,11 @@ CSR_STRUCT_START(satp)
   uint64_t asid:16;
   uint64_t mode: 4;
 CSR_STRUCT_END(satp)
+
+#ifdef CONFIG_RV_SSCOFPMF
+CSR_STRUCT_START(scountovf)
+CSR_STRUCT_END(scountovf)
+#endif
 
 /** Supervisor Custom CSRs **/
 
