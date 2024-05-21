@@ -56,6 +56,7 @@ enum {
   IRQ_VSEIP,
   IRQ_MEIP,
   IRQ_SGEI,  // Supervisor guest external interrupt
+  IRQ_LCOFI, // Local counter overflow interrupt
 };
 
 #define INTR_BIT (1ULL << 63)
