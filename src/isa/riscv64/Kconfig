@@ -199,6 +199,9 @@ config RV_SVINVAL
 config RV_MSTATUS_FS_WRITABLE
   depends on FPU_NONE
   bool "make mstatus.fs writable; required for software FPU emulation"
+
+config RV_SSCOFPMF
+  bool "(Beta)Enable Sscofpmf extension(Supervisor-level Count OverFlow and Privilege Mode Filtering)"
   default y
 
 config MISA_UNCHANGEABLE
