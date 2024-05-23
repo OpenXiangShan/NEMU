@@ -66,7 +66,7 @@ SRCS = $(SRCS-y)
 XSRCS-$(CONFIG_USE_SPARSEMM) += src/memory/sparseram.cpp
 
 ifndef CONFIG_SHARE
-XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling
+XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling src/trace
 XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
 endif
 

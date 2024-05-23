@@ -522,6 +522,7 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 #endif // CONFIG_LIGHTQS
 
 static int execute(int n) {
+
   static Decode s;
   prev_s = &s;
   for (; n > 0; n--) {
@@ -535,6 +536,16 @@ static int execute(int n) {
 #ifdef CONFIG_TVAL_EX_II
     cpu.instr = s.isa.instr.val;
 #endif
+
+    // extern void pc_map_count_log(uint64_t pc);
+    // pc_map_count_log(s.pc);
+    // fprintf(stderr, "PCInstr,%lx,%x\n", s.pc,
+              // s.isa.instr.val);
+    // fflush(stderr);
+
+    extern void trace_write(uint64_t pc, uint32_t instr);
+    trace_write(s.pc, s.isa.instr.val);
+
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
@@ -728,4 +739,10 @@ void cpu_exec(uint64_t n) {
     break;
 #endif
   }
+
+  // extern void pc_map_count_print();
+  // pc_map_count_print();
+  extern void trace_end();
+  trace_end();
+
 }
