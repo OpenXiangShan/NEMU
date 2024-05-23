@@ -307,6 +307,18 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     return fcsr->frm & FRM_MASK;
   }
 #endif // CONFIG_FPU_NONE
+  else if (is_read(mcycle)) {
+    // NEMU emulates a hart with CPI = 1.
+    difftest_skip_ref();
+    uint64_t get_abs_instr_count();
+    return get_abs_instr_count();
+  }
+  else if (is_read(minstret)) {
+    // The number of retired instruction should be the same between dut and ref.
+    // So there is no need to skip it.
+    uint64_t get_abs_instr_count();
+    return get_abs_instr_count();
+  }
 #ifdef CONFIG_RV_Zicntr
   else if (is_read(time))  { difftest_skip_ref(); return clint_uptime(); }
 #endif
