@@ -38,6 +38,8 @@ void init_clint();
 #endif
 void init_device();
 
+#define CSR_ZERO_INIT(name, addr) name->val = 0;
+
 void init_isa() {
   // NEMU has some cached states and some static variables in the source code.
   // They are assumed to have initialized states every time when the dynamic lib is loaded.
@@ -105,6 +107,11 @@ void init_isa() {
   vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
+
+  // All hpm counters are read-only zero in NEMU
+  MAP(CSRS_UNPRIV_HPMCOUNTER, CSR_ZERO_INIT);
+  MAP(CSRS_M_HPMCOUNTER, CSR_ZERO_INIT);
+  MAP(CSRS_M_HPMEVENT, CSR_ZERO_INIT);
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
   mvendorid->val = 0;
