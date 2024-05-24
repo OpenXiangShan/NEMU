@@ -42,9 +42,10 @@ trig_action_t tm_check_hit(
   memset(timing_ok, true, sizeof(chain_ok));
 
   for (int i = 0; i < trigger_num; i++) {
-    if (TM->triggers[i].tdata1.common.type != TRIG_TYPE_MCONTROL)
-      continue;
-    bool match = trigger_match(&TM->triggers[i], op, addr, data);
+    bool match = false;
+    if (TM->triggers[i].tdata1.common.type == TRIG_TYPE_MCONTROL){
+      match = trigger_match(&TM->triggers[i], op, addr, data);
+    }
     TM->triggers[i].tdata1.mcontrol.hit = match;
   }
 
