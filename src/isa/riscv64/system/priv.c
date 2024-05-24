@@ -53,8 +53,6 @@ void init_trigger() {
 }
 #endif // CONFIG_RVSDTRIG
 
-rtlreg_t csr_perf;
-
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
 static inline void csr_counter_enable_check(uint32_t addr) {
   int count_bit = 1 << (addr - 0xC00);
@@ -129,11 +127,6 @@ static inline word_t* csr_decode(uint32_t addr) {
   // Now we check if CSR is implemented / legal to access in csr_is_legal()
   // Assert(csr_exist[addr], "unimplemented CSR 0x%x at pc = " FMT_WORD, addr, cpu.pc);
 
-  // Skip CSR for perfcnt
-  // TODO: dirty implementation
-  if ((addr >= 0xb00 && addr <= 0xb1f) || (addr >= 0x320 && addr <= 0x33f)) {
-    return &csr_perf;
-  }
   return &csr_array[addr];
 }
 
@@ -226,11 +219,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SATP_SV39_MASK 0xf000000000000000ULL
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
-#define is_read_pmpcfg (src >= &(csr_array[CSR_PMPCFG_BASE]) && src < (&(csr_array[CSR_PMPCFG_BASE]) + CSR_PMPCFG_MAX_NUM))
-#define is_read_pmpaddr (src >= &(csr_array[CSR_PMPADDR_BASE]) && src < (&(csr_array[CSR_PMPADDR_BASE]) + CSR_PMPADDR_MAX_NUM))
-#define is_write_pmpcfg (dest >= &(csr_array[CSR_PMPCFG_BASE]) && dest < (&(csr_array[CSR_PMPCFG_BASE]) + CSR_PMPCFG_MAX_NUM))
-#define is_write_pmpaddr (dest >= &(csr_array[CSR_PMPADDR_BASE]) && dest < (&(csr_array[CSR_PMPADDR_BASE]) + CSR_PMPADDR_MAX_NUM))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
+
+#define is_pmpcfg(p) (p >= &(csr_array[CSR_PMPCFG_BASE]) && p < &(csr_array[CSR_PMPCFG_BASE + CSR_PMPCFG_MAX_NUM]))
+#define is_pmpaddr(p) (p >= &(csr_array[CSR_PMPADDR_BASE]) && p < &(csr_array[CSR_PMPADDR_BASE + CSR_PMPADDR_MAX_NUM]))
+#define is_hpmcounter(p) (p >= &(csr_array[CSR_HPMCOUNTER_BASE]) && p < &(csr_array[CSR_HPMCOUNTER_BASE + CSR_HPMCOUNTER_NUM]))
+#define is_mhpmcounter(p) (p >= &(csr_array[CSR_MHPMCOUNTER_BASE]) && p < &(csr_array[CSR_MHPMCOUNTER_BASE + CSR_MHPMCOUNTER_NUM]))
+#define is_mhpmevent(p) (p >= &(csr_array[CSR_MHPMEVENT_BASE]) && p < &(csr_array[CSR_MHPMEVENT_BASE + CSR_MHPMEVENT_NUM]))
 
 // get 8-bit config of one PMP entries by index.
 uint8_t pmpcfg_from_index(int idx) {
@@ -273,11 +268,8 @@ static inline void update_vsstatus_sd() {
 #endif // CONFIG_RVH
 
 static inline word_t csr_read(word_t *src) {
-  if(src == &csr_perf){
-    return 0;
-  }
 #ifdef CONFIG_RV_PMP_CSR
-  if (is_read_pmpaddr) {
+  if (is_pmpaddr(src)) {
     int idx = (src - &csr_array[CSR_PMPADDR_BASE]);
     if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
       // CSRs of inactive pmp entries are read-only zero.
@@ -419,9 +411,6 @@ void disable_time_intr() {
 }
 
 static inline void csr_write(word_t *dest, word_t src) {
-  if((dest == &csr_perf)){
-    return;
-  }
   #ifdef CONFIG_RVH
   if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch)
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
@@ -569,7 +558,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 #endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RV_PMP_CSR
-  else if (is_write_pmpaddr) {
+  else if (is_pmpaddr(dest)) {
     Logtr("Writing pmp addr");
     
     int idx = dest - &csr_array[CSR_PMPADDR_BASE];
@@ -594,7 +583,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 
     mmu_tlb_flush(0);
   }
-  else if (is_write_pmpcfg) {
+  else if (is_pmpcfg(dest)) {
     // Logtr("Writing pmp config");
 
     int idx_base = (dest - &csr_array[CSR_PMPCFG_BASE]) * 4;
@@ -677,6 +666,10 @@ static inline void csr_write(word_t *dest, word_t src) {
       hgatp->val = MASKED_HGATP(src);
   }
 #endif// CONFIG_RVH
+  else if (is_mhpmcounter(dest) || is_mhpmevent(dest)) {
+    // read-only zero in NEMU
+    return;
+  }
   else { *dest = src; }
 
   bool need_update_mstatus_sd = false;

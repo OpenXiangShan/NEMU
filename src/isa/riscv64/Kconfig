@@ -58,6 +58,16 @@ config RV_Zicntr
 
     INFO: the CPI (cycles per instruction) of NEMU is set to 1.
 
+config RV_Zihpm
+  bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0" 
+  default n
+  help
+    The Zihpm extension comprises up to 29 additional unprivileged 64-bit
+    hardware performance counters, hpmcounter3-hpmcounter31.
+
+    Because mhpmcountern and mhpmeventn are all read-only zero on NEMU,
+    hpmcountern are also read-only zero.
+
 choice
   prompt "Number of implemented PMP entries"
   default RV_PMP_ENTRY_16

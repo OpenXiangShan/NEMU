@@ -975,6 +975,14 @@ MAP(CSRS, CSRS_DECL)
  * Useful Defines
 */
 
+/** Counters/Timers **/
+#define CSR_HPMCOUNTER_BASE     0xC03
+#define CSR_HPMCOUNTER_NUM      29
+#define CSR_MHPMCOUNTER_BASE    0xB03
+#define CSR_MHPMCOUNTER_NUM     29
+#define CSR_MHPMEVENT_BASE      0x323
+#define CSR_MHPMEVENT_NUM       29
+
 /** Machine Memory Protection (PMP) **/
 #define PMP_R     0x01
 #define PMP_W     0x02
