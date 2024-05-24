@@ -48,6 +48,16 @@ config TRIGGER_NUM
   depends on RVSDTRIG
   default 10
 
+config RV_Zicntr
+  bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
+  default n
+  help
+    The Zicntr standard extension comprises the unprivileged Base counters and
+    timers (CYCLE, TIME, and INSTRET), which have dedicated functions (cycle
+    count, real-time clock, and instructions retired, respectively).
+
+    INFO: the CPI (cycles per instruction) of NEMU is set to 1.
+
 choice
   prompt "Number of implemented PMP entries"
   default RV_PMP_ENTRY_16

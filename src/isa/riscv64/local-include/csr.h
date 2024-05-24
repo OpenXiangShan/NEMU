@@ -37,7 +37,9 @@
 /** Unprivileged Counter/Timers **/
 #ifdef CONFIG_RV_Zicntr
   #define CSRS_UNPRIV_CNTR(f) \
-    f(cycle      , 0xC00) f(time       , 0xC01) f(instret    , 0xC02)
+    f(cycle      , 0xC00) f(csr_time   , 0xC01) f(instret    , 0xC02)
+    // There is `time_t` type in the C programming language.
+    // So We have to use another name for CSR time.
 #else // CONFIG_RV_Zicntr
   #define CSRS_UNPRIV_CNTR(f)
 #endif // CONFIG_RV_Zicntr
@@ -944,6 +946,21 @@ rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
 void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
 #endif // CONFIG_RVV
+
+#ifdef CONFIG_RV_Zicntr
+CSR_STRUCT_START(cycle)
+CSR_STRUCT_END(cycle)
+
+CSR_STRUCT_START(csr_time)
+CSR_STRUCT_END(csr_time)
+
+CSR_STRUCT_START(instret)
+CSR_STRUCT_END(instret)
+#endif // CONFIG_RV_Zicntr
+
+#ifdef CONFIG_RV_Zihpm
+CSR_STRUCT_DUMMY_LIST(CSRS_UNPRIV_HPMCOUNTER)
+#endif // CONFIG_RV_Zihpm
 
 
 /**

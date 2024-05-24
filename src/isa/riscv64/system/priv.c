@@ -55,6 +55,39 @@ void init_trigger() {
 
 rtlreg_t csr_perf;
 
+// check s/h/mcounteren for counters, throw exception if counter is not enabled.
+static inline void csr_counter_enable_check(uint32_t addr) {
+  int count_bit = 1 << (addr - 0xC00);
+
+  // priv-mode & counter-enable -> exception-type
+  // | MODE         | VU    | VS    | U     | S/HS  | M     |
+  // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    |
+  // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    |
+  // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    |
+
+  if (cpu.mode < MODE_M && !(count_bit & mcounteren->val)) {
+    Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
+    longjmp_exception(EX_II);
+  }
+
+  #ifdef CONFIG_RVH
+    if (cpu.v && !(count_bit & hcounteren->val)) {
+      Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
+      longjmp_exception(EX_VI);
+    }
+  #endif // CONFIG_RVH
+  
+  if (cpu.mode < MODE_S && !(count_bit & scounteren->val)) {
+    Logti("Illegal CSR accessing (0x%X): the bit in scounteren is not set", addr);
+    #ifdef CONFIG_RVH
+      if (cpu.v) {
+        longjmp_exception(EX_VI);
+      }
+    #endif // CONFIG_RVH
+    longjmp_exception(EX_II);
+  }
+}
+
 static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   assert(addr < 4096);
   // Attempts to access a non-existent CSR raise an illegal instruction exception.
@@ -82,6 +115,12 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   if (need_write && (addr >> 10) == 0x3) {
     return false;
   }
+
+  // Attempts to access unprivileged counters without s/h/mcounteren
+  if (addr >= 0xC00 && addr <= 0xC1F) {
+    csr_counter_enable_check(addr);
+  }
+
   return true;
 }
 
@@ -137,8 +176,21 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATUS_WMASK 0
 #endif
 
+#ifdef CONFIG_RV_Zicntr
+  #define ZICNTR_MASK (0x7UL)
+#else // CONFIG_RV_Zicntr
+  #define ZICNTR_MASK (0x0)
+#endif // CONFIG_RV_Zicntr
+
+#ifdef CONFIG_RV_Zihpm
+  #define ZIHPM_MASK (0xfffffff8UL)
+#else // CONFIG_RV_Zihpm
+  #define ZIHPM_MASK (0x0)
+#endif // CONFIG_RV_Zihpm
+
+#define COUNTEREN_MASK (ZICNTR_MASK | ZIHPM_MASK)
+
 #ifdef CONFIG_RVH
-#define COUNTEREN_MASK 0
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
 #define MEDELEG_MASK (0xf0b7ff)
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
@@ -320,8 +372,23 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     return get_abs_instr_count();
   }
 #ifdef CONFIG_RV_Zicntr
-  else if (is_read(time))  { difftest_skip_ref(); return clint_uptime(); }
-#endif
+  else if (is_read(cycle)) {
+    // NEMU emulates a hart with CPI = 1.
+    difftest_skip_ref();
+    uint64_t get_abs_instr_count();
+    return get_abs_instr_count();
+  }
+  else if (is_read(csr_time)) {
+    difftest_skip_ref();
+    return clint_uptime();
+  }
+  else if (is_read(instret)) {
+    // The number of retired instruction should be the same between dut and ref.
+    // So there is no need to skip it.
+    uint64_t get_abs_instr_count();
+    return get_abs_instr_count();
+  }
+#endif // CONFIG_RV_Zicntr
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
 #endif
@@ -411,10 +478,6 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       vsatp->val = MASKED_SATP(src);
-  }else if(is_write(hcounteren)){
-    hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src);
-  }else if(is_write(scounteren)){
-    scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else
   if (is_write(mstatus)) {
@@ -437,6 +500,17 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   }
 #endif // CONFIG_RVH
+#ifdef CONFIG_RVH
+  else if(is_write(hcounteren)){
+    hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src);
+  }
+#endif // CONFIG_RVH
+  else if(is_write(scounteren)){
+    scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src);
+  }
+  else if(is_write(mcounteren)){
+    mcounteren->val = mask_bitset(mcounteren->val, COUNTEREN_MASK, src);
+  }
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
   else if (is_write(mie)) {
