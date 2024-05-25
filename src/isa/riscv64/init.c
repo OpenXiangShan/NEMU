@@ -108,6 +108,16 @@ void init_isa() {
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
+  // mcycle and minstret record :
+  // - the difference between the absolute number and the write value, when the bit of mcountinhibit is clear;
+  // - the inhibited number, when the bit of mcountinhibit is set.
+  mcycle->val = 0;
+  minstret->val = 0;
+
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
+  mcountinhibit->val = 0; 
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+
   // All hpm counters are read-only zero in NEMU
   MAP(CSRS_UNPRIV_HPMCOUNTER, CSR_ZERO_INIT);
   MAP(CSRS_M_HPMCOUNTER, CSR_ZERO_INIT);

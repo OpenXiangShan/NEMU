@@ -68,6 +68,33 @@ config RV_Zihpm
     Because mhpmcountern and mhpmeventn are all read-only zero on NEMU,
     hpmcountern are also read-only zero.
 
+menuconfig RV_CSR_MCOUNTINHIBIT
+  bool "Machine Counter-Inhibit CSR (mcountinhibit)"
+  default y
+  help
+    This decides whether CSR mcountinhibit is implemented.
+
+if RV_CSR_MCOUNTINHIBIT
+config RV_CSR_MCOUNTINHIBIT_CNTR
+  bool "Support inhibit mcycle and minstret"
+  default y
+  help
+    This enables writing to CY and IR bits in the mcountinhibit and support
+    for inhibiting mcycle and minstret. Otherwise, these bits will be read-only
+    zero.
+
+config RV_CSR_MCOUNTINHIBIT_HPM
+  bool "Support inhibit mhpmcounter3 - mhpmcounter31"
+  default y
+  help
+    This enables writing to HPMn bits in the mcountinhibit. Otherwise, these
+    bits will be read-only zero.
+
+    Besides, mhpmcountern and mhpmeventn are all read-only zero on NEMU, 
+    regardless of how HPMn bits are set in mcountinhibit.
+
+endif
+
 choice
   prompt "Number of implemented PMP entries"
   default RV_PMP_ENTRY_16
