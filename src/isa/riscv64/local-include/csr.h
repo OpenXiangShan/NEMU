@@ -294,8 +294,15 @@
   f(mhpmevent24    , 0x338) f(mhpmevent25    , 0x339) f(mhpmevent26    , 0x33A) f(mhpmevent27    , 0x33B) \
   f(mhpmevent28    , 0x33C) f(mhpmevent29    , 0x33D) f(mhpmevent30    , 0x33E) f(mhpmeven31     , 0x33F)
 
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
+  #define CSRS_M_MCOUNTINHIBIT(f) \
+  f(mcountinhibit  , 0x320)
+#else // CONFIG_RV_CSR_MCOUNTINHIBIT
+  #define CSRS_M_MCOUNTINHIBIT(f)
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+
 #define CSRS_M_COUNTER_SETUP(f) \
-  f(mcountinhibit  , 0x320) \
+  CSRS_M_MCOUNTINHIBIT(f) \
   CSRS_M_HPMEVENT(f)
   
 /** Debug/Trace Registers (Trigger Module Registers) **/
@@ -473,8 +480,10 @@ CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMEVENT)
 CSR_STRUCT_START(mcounteren)
 CSR_STRUCT_END(mcounteren)
 
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
 CSR_STRUCT_START(mcountinhibit)
 CSR_STRUCT_END(mcountinhibit)
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
 CSR_STRUCT_START(mscratch)
 CSR_STRUCT_END(mscratch)

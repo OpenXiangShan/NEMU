@@ -29,6 +29,8 @@ void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
 
+uint64_t get_abs_instr_count();
+
 rtlreg_t csr_array[4096] = {};
 
 #define CSRS_DEF(name, addr) \
@@ -170,18 +172,33 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif
 
 #ifdef CONFIG_RV_Zicntr
-  #define ZICNTR_MASK (0x7UL)
+  #define COUNTEREN_ZICNTR_MASK (0x7UL)
 #else // CONFIG_RV_Zicntr
-  #define ZICNTR_MASK (0x0)
+  #define COUNTEREN_ZICNTR_MASK (0x0)
 #endif // CONFIG_RV_Zicntr
 
 #ifdef CONFIG_RV_Zihpm
-  #define ZIHPM_MASK (0xfffffff8UL)
+  #define COUNTEREN_ZIHPM_MASK (0xfffffff8UL)
 #else // CONFIG_RV_Zihpm
-  #define ZIHPM_MASK (0x0)
+  #define COUNTEREN_ZIHPM_MASK (0x0)
 #endif // CONFIG_RV_Zihpm
 
-#define COUNTEREN_MASK (ZICNTR_MASK | ZIHPM_MASK)
+#define COUNTEREN_MASK (COUNTEREN_ZICNTR_MASK | COUNTEREN_ZIHPM_MASK)
+
+
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  #define MCOUNTINHIBIT_CNTR_MASK (0x5UL)
+#else // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  #define MCOUNTINHIBIT_CNTR_MASK (0x0)
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_HPM
+  #define MCOUNTINHIBIT_HPM_MASK (0xFFFFFFF8UL)
+#else // CONFIG_RV_CSR_MCOUNTINHIBIT_HPM
+  #define MCOUNTINHIBIT_HPM_MASK (0x0)
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+
+#define MCOUNTINHIBIT_MASK (MCOUNTINHIBIT_CNTR_MASK | MCOUNTINHIBIT_HPM_MASK)
 
 #ifdef CONFIG_RVH
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
@@ -266,6 +283,64 @@ static inline void update_vsstatus_sd() {
     vsstatus->_64.sd = (vsstatus->_64.fs == 3);
 }
 #endif // CONFIG_RVH
+
+static inline word_t get_mcycle() {
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x1) {
+      return mcycle->val;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  return mcycle->val + get_abs_instr_count();
+}
+
+static inline word_t get_minstret() {
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x4) {
+      return minstret->val;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  return minstret->val + get_abs_instr_count();
+}
+
+static inline word_t set_mcycle(word_t src) {
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x1) {
+      return src;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  return src - get_abs_instr_count();
+}
+
+static inline word_t set_minstret(word_t src) {
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x4) {
+      return src;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  return src - get_abs_instr_count();
+}
+
+static inline void update_counter_mcountinhibit(word_t old, word_t new) {
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    bool old_cy = old & 0x1;
+    bool old_ir = old & 0x4;
+    bool new_cy = new & 0x1;
+    bool new_ir = new & 0x4;
+
+    if (old_cy && !new_cy) { // CY: 1 -> 0
+      mcycle->val = mcycle->val - get_abs_instr_count();
+    }
+    if (!old_cy && new_cy) { // CY: 0 -> 1
+      mcycle->val = mcycle->val + get_abs_instr_count();
+    }
+    if (old_ir && !new_ir) { // IR: 1 -> 0
+      minstret->val = minstret->val - get_abs_instr_count();
+    }
+    if (!old_ir && new_ir) { // IR: 0 -> 1
+      minstret->val = minstret->val + get_abs_instr_count();
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+}
 
 static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RV_PMP_CSR
@@ -354,21 +429,18 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   else if (is_read(mcycle)) {
     // NEMU emulates a hart with CPI = 1.
     difftest_skip_ref();
-    uint64_t get_abs_instr_count();
-    return get_abs_instr_count();
+    return get_mcycle();
   }
   else if (is_read(minstret)) {
     // The number of retired instruction should be the same between dut and ref.
     // So there is no need to skip it.
-    uint64_t get_abs_instr_count();
-    return get_abs_instr_count();
+    return get_minstret();
   }
 #ifdef CONFIG_RV_Zicntr
   else if (is_read(cycle)) {
     // NEMU emulates a hart with CPI = 1.
     difftest_skip_ref();
-    uint64_t get_abs_instr_count();
-    return get_abs_instr_count();
+    return get_mcycle();
   }
   else if (is_read(csr_time)) {
     difftest_skip_ref();
@@ -377,8 +449,7 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   else if (is_read(instret)) {
     // The number of retired instruction should be the same between dut and ref.
     // So there is no need to skip it.
-    uint64_t get_abs_instr_count();
-    return get_abs_instr_count();
+    return get_minstret();
   }
 #endif // CONFIG_RV_Zicntr
 #ifndef CONFIG_RVH
@@ -499,6 +570,18 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else if(is_write(mcounteren)){
     mcounteren->val = mask_bitset(mcounteren->val, COUNTEREN_MASK, src);
+  }
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
+  else if (is_write(mcountinhibit)) {
+    update_counter_mcountinhibit(mcountinhibit->val, src & MCOUNTINHIBIT_MASK);
+    mcountinhibit->val = mask_bitset(mcountinhibit->val, MCOUNTINHIBIT_MASK, src);
+  }
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+  else if (is_write(mcycle)) {
+    mcycle->val = set_mcycle(src);
+  }
+  else if (is_write(minstret)) {
+    minstret->val = set_minstret(src);
   }
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
