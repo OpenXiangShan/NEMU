@@ -411,116 +411,133 @@ def_EHelper(vfirst) {
 }
 
 def_EHelper(vmsbf) {
-  // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero.
-  check_vstart_ignore(s);
+  if (vstart->val != 0) {
+    // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero
+    longjmp_raise_intr(EX_II);
+  }
 
-  bool first_one = false;
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if(s->vm == 0 && mask == 0) {
-      // it need v0 mask, but this element is not choosed by v0
-      // if vma, set 1; others, continue
-      if (RVV_AGNOSTIC) {
-        if (vtype->vma) {
-          set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+  if (vl->val != 0) {
+    // when vl = 0, do nothing
+    bool first_one = false;
+    for(int idx = vstart->val; idx < vl->val; idx ++) {
+      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      if(s->vm == 0 && mask == 0) {
+        // it need v0 mask, but this element is not choosed by v0
+        // if vma, set 1; others, continue
+        if (RVV_AGNOSTIC) {
+          if (vtype->vma) {
+            set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+          }
         }
+        continue;
       }
-      continue;
-    }
 
-    // s->vm == 1: donot need v0 mask
-    // or
-    // s->vm == 0 && mask == 1: this element is choosed by v0
-    
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
-    *s0 &= 1;
+      // s->vm == 1: donot need v0 mask
+      // or
+      // s->vm == 0 && mask == 1: this element is choosed by v0
 
-    if(!first_one && *s0 == 1) {
-      first_one = true;
-    }
+      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 &= 1;
 
-    if(first_one) {
-      set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
-    } else{
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      if(!first_one && *s0 == 1) {
+        first_one = true;
+      }
+
+      if(first_one) {
+        set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
+      } else{
+        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      }
     }
+    /* The tail elements in the destination mask register are updated under a tail-agnostic policy. */
+    if (RVV_AGNOSTIC) {
+      for (int idx = vl->val; idx < VLEN; idx++) {
+        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      }
+    }
+    vstart->val = 0;
   }
-  /* The tail elements in the destination mask register are updated under a tail-agnostic policy. */
-  if (RVV_AGNOSTIC) {
-    for (int idx = vl->val; idx < VLEN; idx++) {
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
-    }
-  }
-  vstart->val = 0;
 }
 
 def_EHelper(vmsof) {
-  check_vstart_ignore(s);
+  if (vstart->val != 0) {
+    // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
+    longjmp_raise_intr(EX_II);
+  }
 
-  bool first_one = false;
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if(s->vm == 0 && mask == 0) {
-      if (RVV_AGNOSTIC) {
-        if (vtype->vma) {
-          set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+  if (vl->val != 0) {
+    // when vl = 0, do nothing
+    bool first_one = false;
+    for(int idx = vstart->val; idx < vl->val; idx ++) {
+      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      if(s->vm == 0 && mask == 0) {
+        if (RVV_AGNOSTIC) {
+          if (vtype->vma) {
+            set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+          }
         }
+        continue;
       }
-      continue;
-    }
-    
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
-    *s0 &= 1;
 
-    if(!first_one && *s0 == 1) {
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
-      first_one = true;
-      continue;
+      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 &= 1;
+
+      if(!first_one && *s0 == 1) {
+        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+        first_one = true;
+        continue;
+      }
+      set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
     }
-    set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
-  }
-  if (RVV_AGNOSTIC) {
-    for (int idx = vl->val; idx < VLEN; idx++) {
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+    if (RVV_AGNOSTIC) {
+      for (int idx = vl->val; idx < VLEN; idx++) {
+        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      }
     }
+    vstart->val = 0;
   }
-  vstart->val = 0;
 }
 
 def_EHelper(vmsif) {
-  check_vstart_ignore(s);
+  if (vstart->val != 0) {
+    // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
+    longjmp_raise_intr(EX_II);
+  }
 
-  bool first_one = false;
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if(s->vm == 0 && mask == 0) {
-      if (RVV_AGNOSTIC) {
-        if (vtype->vma) {
-          set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+  if (vl->val != 0) {
+    // when vl = 0, do nothing
+    bool first_one = false;
+    for(int idx = vstart->val; idx < vl->val; idx ++) {
+      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      if(s->vm == 0 && mask == 0) {
+        if (RVV_AGNOSTIC) {
+          if (vtype->vma) {
+            set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+          }
         }
+        continue;
       }
-      continue;
-    }
-    
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
-    *s0 &= 1;
 
-    if(first_one) {
-      set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
-    } else{
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
-    }
+      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 &= 1;
 
-    if(!first_one && *s0 == 1) {
-      first_one = true;
+      if(first_one) {
+        set_mask(id_dest->reg, idx, 0, vtype->vsew, vtype->vlmul);
+      } else{
+        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      }
+
+      if(!first_one && *s0 == 1) {
+        first_one = true;
+      }
     }
-  }
-  if (RVV_AGNOSTIC) {
-    for (int idx = vl->val; idx < VLEN; idx++) {
-      set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+    if (RVV_AGNOSTIC) {
+      for (int idx = vl->val; idx < VLEN; idx++) {
+        set_mask(id_dest->reg, idx, 1, vtype->vsew, vtype->vlmul);
+      }
     }
+    vstart->val = 0;
   }
-  vstart->val = 0;
 }
 
 def_EHelper(viota) {
