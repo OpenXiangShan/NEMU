@@ -412,8 +412,7 @@ def_EHelper(vfirst) {
 
 def_EHelper(vmsbf) {
   // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero.
-  if(vstart->val != 0)
-    longjmp_exception(EX_II);
+  check_vstart_ignore(s);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -456,8 +455,7 @@ def_EHelper(vmsbf) {
 }
 
 def_EHelper(vmsof) {
-  if(vstart->val != 0)
-    check_vstart_ignore(s);
+  check_vstart_ignore(s);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -490,8 +488,7 @@ def_EHelper(vmsof) {
 }
 
 def_EHelper(vmsif) {
-  if(vstart->val != 0)
-    check_vstart_ignore(s);
+  check_vstart_ignore(s);
 
   bool first_one = false;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
