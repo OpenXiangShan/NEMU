@@ -76,7 +76,7 @@ bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data) {
       ((op & TRIG_OP_LOAD)    && !trig->tdata1.mcontrol.load) ||
       ((op & TRIG_OP_STORE)   && !trig->tdata1.mcontrol.store) ||
       ((op & TRIG_OP_TIMING)  && !trig->tdata1.mcontrol.timing) ||
-      (cpu.mode == MODE_M     && !trig->tdata1.mcontrol.m) ||
+      (cpu.mode == MODE_M     && !(trig->tdata1.mcontrol.m && tcontrol->mte)) ||
       (cpu.mode == MODE_S     && !trig->tdata1.mcontrol.s) ||
       (cpu.mode == MODE_U     && !trig->tdata1.mcontrol.u)) {
     return false;
