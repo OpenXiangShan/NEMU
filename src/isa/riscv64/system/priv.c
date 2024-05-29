@@ -97,6 +97,11 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
 #endif
     return false;
   }
+#ifdef CONFIG_RVSDTRIG
+  bool isDebugReg = ((addr >> 4) & 0xff) == 0x7b; // addr(11,4)
+  if(isDebugReg)
+    return false;
+#endif
   // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
 #ifdef CONFIG_RVH
