@@ -207,7 +207,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #ifdef CONFIG_RVH
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
-#define MEDELEG_MASK (0xf0b7ff)
+#define MEDELEG_MASK (0xf0b7f7)
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
 #define VS_MASK ((1 << 10) | (1 << 6) | (1 << 2))
 #define VSSIP (1 << 2)
@@ -646,7 +646,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVH
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
 #else
-  else if (is_write(medeleg)) { *dest = src & 0xb3ff; }
+  else if (is_write(medeleg)) { *dest = src & 0xb3f7; }
 #endif
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_RVV
@@ -894,8 +894,11 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       }
       mstatus->mie = mstatus->mpie;
       mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
-          : 1);
+          : 1);        
       cpu.mode = mstatus->mpp;
+#ifdef CONFIG_RVSDTRIG
+      tcontrol->mte = tcontrol->mpte;
+#endif  
 #ifdef CONFIG_RVH
       cpu.v = mstatus->mpv;
       mstatus->mpv = 0;

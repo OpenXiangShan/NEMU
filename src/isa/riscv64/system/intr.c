@@ -171,6 +171,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpv = cpu.v;
     cpu.v = 0;set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif
+#ifdef CONFIG_RVSDTRIG
+    tcontrol->mpte = tcontrol->mte;
+    tcontrol->mte = 0;
+#endif
     mcause->val = NO;
     mepc->val = epc;
     mstatus->mpp = cpu.mode;
