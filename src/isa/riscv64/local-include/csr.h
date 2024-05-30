@@ -35,9 +35,18 @@
 #endif // CONFIG_FPU_NONE
 
 /** Unprivileged Counter/Timers **/
+#ifdef CONFIG_RV_CSR_TIME
+  #define CSRS_UNPRIV_TIME(f) \
+    f(csr_time   , 0xC01)
+#else // CONFIG_RV_CSR_TIME
+  #define CSRS_UNPRIV_TIME(f)
+#endif // CONFIG_RV_CSR_TIME
+
 #ifdef CONFIG_RV_Zicntr
   #define CSRS_UNPRIV_CNTR(f) \
-    f(cycle      , 0xC00) f(csr_time   , 0xC01) f(instret    , 0xC02)
+    f(cycle      , 0xC00) \
+    CSRS_UNPRIV_TIME(f) \
+    f(instret    , 0xC02)
     // There is `time_t` type in the C programming language.
     // So We have to use another name for CSR time.
 #else // CONFIG_RV_Zicntr
@@ -960,8 +969,10 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 CSR_STRUCT_START(cycle)
 CSR_STRUCT_END(cycle)
 
+#ifdef CONFIG_RV_CSR_TIME
 CSR_STRUCT_START(csr_time)
 CSR_STRUCT_END(csr_time)
+#endif // CONFIG_RV_CSR_TIME
 
 CSR_STRUCT_START(instret)
 CSR_STRUCT_END(instret)

@@ -442,10 +442,12 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     difftest_skip_ref();
     return get_mcycle();
   }
-  else if (is_read(csr_time)) {
-    difftest_skip_ref();
-    return clint_uptime();
-  }
+  #ifdef CONFIG_RV_CSR_TIME
+    else if (is_read(csr_time)) {
+      difftest_skip_ref();
+      return clint_uptime();
+    }
+  #endif // CONFIG_RV_CSR_TIME
   else if (is_read(instret)) {
     // The number of retired instruction should be the same between dut and ref.
     // So there is no need to skip it.
