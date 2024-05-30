@@ -48,9 +48,9 @@ config TRIGGER_NUM
   depends on RVSDTRIG
   default 10
 
-config RV_Zicntr
+menuconfig RV_Zicntr
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
-  default n
+  default y
   help
     The Zicntr standard extension comprises the unprivileged Base counters and
     timers (CYCLE, TIME, and INSTRET), which have dedicated functions (cycle
@@ -58,9 +58,22 @@ config RV_Zicntr
 
     INFO: the CPI (cycles per instruction) of NEMU is set to 1.
 
+if RV_Zicntr
+config RV_CSR_TIME
+  bool "Implement CSR time (0xc01)"
+  default n
+  help
+    If n, accessing to CSR time will raise illegal instruction exception.
+
+    Regardless of how this option is set, the TM bit of m/h/scounteren is
+    always writable to allow machine programs to simulate reading the time
+    register.
+
+endif # RV_Zicntr
+
 config RV_Zihpm
   bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0" 
-  default n
+  default y
   help
     The Zihpm extension comprises up to 29 additional unprivileged 64-bit
     hardware performance counters, hpmcounter3-hpmcounter31.
