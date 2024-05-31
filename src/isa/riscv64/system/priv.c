@@ -433,7 +433,8 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   }
   else if (is_read(minstret)) {
     // The number of retired instruction should be the same between dut and ref.
-    // So there is no need to skip it.
+    // But instruction counter of NEMU is not accurate when enabling Performance optimization.
+    difftest_skip_ref();
     return get_minstret();
   }
 #ifdef CONFIG_RV_Zicntr
@@ -450,7 +451,8 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   #endif // CONFIG_RV_CSR_TIME
   else if (is_read(instret)) {
     // The number of retired instruction should be the same between dut and ref.
-    // So there is no need to skip it.
+    // But instruction counter of NEMU is not accurate when enabling Performance optimization.
+    difftest_skip_ref();
     return get_minstret();
   }
 #endif // CONFIG_RV_Zicntr
