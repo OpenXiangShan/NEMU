@@ -909,12 +909,13 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       break;
 #ifdef CONFIG_RV_SVINVAL
     case 0x180: // sfence.w.inval
-      if (!srnctl->svinval) {
-        longjmp_exception(EX_II);
-      }
-      break;
     case 0x181: // sfence.inval.ir
-      if (!srnctl->svinval) {
+      // in VU mode
+      if (MUXDEF(CONFIG_RVH, cpu.v, false) && cpu.mode == MODE_U) {
+        longjmp_exception(EX_VI);
+      }
+      // in U mode
+      else if (cpu.mode == MODE_U) {
         longjmp_exception(EX_II);
       }
       break;
@@ -942,10 +943,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           // while executing in S-mode will raise an illegal instruction exception.
 
 #ifdef CONFIG_RVH
-          if(cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1){
+          if(cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && hstatus->vtvm))) {
             longjmp_exception(EX_VI);
           }
-          else if (cpu.v == 0 && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm == 1))) {
+          else if (!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) {
             longjmp_exception(EX_II);
           }
 #else
@@ -957,25 +958,14 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RV_SVINVAL
         case 0x0b: // sinval.vma
 #ifdef CONFIG_RVH
-          if (!srnctl->svinval) { // srnctl contrl extension enable or not
+          if (!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) {
             longjmp_exception(EX_II);
-          } else if (cpu.v == 0 && cpu.mode == MODE_U) {
-            longjmp_exception(EX_II);
-          } else if (cpu.v == 0 && cpu.mode == MODE_S && mstatus->tvm == 1){
-            longjmp_exception(EX_II);
-          } else if (cpu.v == 1 && cpu.mode == MODE_U) {
-            longjmp_exception(EX_VI);
-          } else if (cpu.v == 1 && cpu.mode == MODE_S && hstatus->vtvm == 1) {
+          } else if (cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && hstatus->vtvm))) {
             longjmp_exception(EX_VI);
           }
 #else
-          if (!srnctl->svinval) { // srnctl contrl extension enable or not
+          if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
             longjmp_exception(EX_II);
-          } else if (cpu.mode == MODE_U) {
-            longjmp_exception(EX_II);
-          } else if (cpu.mode == MODE_S && mstatus->tvm == 1) {
-            longjmp_exception(EX_II);
-          }
 #endif // CONFIG_RVH
           mmu_tlb_flush(*src);
           break;
@@ -983,25 +973,23 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifdef CONFIG_RVH
         case 0x11: // hfence.vvma
           if(cpu.v) longjmp_exception(EX_VI);
-          if(cpu.mode == MODE_U) longjmp_exception(EX_II);
-          if(!(cpu.mode == MODE_M || (cpu.mode == MODE_S && !cpu.v))) longjmp_exception(EX_II);
+          if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
           mmu_tlb_flush(*src);
           break;
         case 0x31: // hfence.gvma
           if(cpu.v) longjmp_exception(EX_VI);
-          if(cpu.mode == MODE_U) longjmp_exception(EX_II);
-          if(!(cpu.mode == MODE_M || (cpu.mode == MODE_S && !cpu.v && mstatus->tvm == 0))) longjmp_exception(EX_II);
+          if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
           mmu_tlb_flush(*src);
           break;
 #ifdef CONFIG_RV_SVINVAL
         case 0x13: // hinval.vvma
           if(cpu.v) longjmp_exception(EX_VI);
-          if(cpu.mode == MODE_U) longjmp_exception(EX_II);
+          if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
           mmu_tlb_flush(*src);
           break;
         case 0x33: // hinval.gvma
           if(cpu.v) longjmp_exception(EX_VI);
-          if(cpu.mode == MODE_U || (cpu.mode == MODE_S && !cpu.v && mstatus->tvm)) longjmp_exception(EX_II);
+          if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
           mmu_tlb_flush(*src);
           break;
 #endif // CONFIG_SVINVAL
