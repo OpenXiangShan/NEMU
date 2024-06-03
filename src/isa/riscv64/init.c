@@ -84,10 +84,6 @@ void init_isa() {
   pmpcfg14->val = 0;
 #endif // CONFIG_RV_PMP_ENTRY_64
 
-#ifdef CONFIG_RV_SVINVAL
-  srnctl->val = 3; // enable extension 'svinval' [1]
-#endif
-
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
 #ifndef CONFIG_FPU_NONE
