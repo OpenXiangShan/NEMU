@@ -811,7 +811,7 @@ void mask_instr(int opcode, Decode *s) {
                      rtl_or(s, s1, s0, s1); break;
       case MXNOR   : rtl_xor(s, s1, s0, s1);
                      *s1 = !(*s1); break;
-      default      : longjmp_raise_intr(EX_II);
+      default      : assert(0);
     }
     // store to vrf
     *s1 &= 1; // make sure the LSB
