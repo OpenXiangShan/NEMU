@@ -90,8 +90,6 @@ void vreg_to_tmp_vreg(uint64_t reg, int idx, uint64_t vsew);
 
 void set_vreg_tail(uint64_t reg);
 
-void longjmp_raise_intr(uint32_t foo);
-
 #define SRC_VV  0
 #define SRC_VI  1
 #define SRC_VX  2

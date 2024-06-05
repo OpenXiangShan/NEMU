@@ -61,20 +61,14 @@ def_EHelper(vmax) {
 
 def_EHelper(vand) {
   ARTHI(AND, SIGNED)
-  // print_asm_template3(vand);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vor) {
   ARTHI(OR, SIGNED)
-  // print_asm_template3(vor);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vxor) {
   ARTHI(XOR, SIGNED)
-  // print_asm_template3(vxor);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vrgather) {
@@ -119,60 +113,42 @@ def_EHelper(vmsbc) {
 
 def_EHelper(vmerge) {
   ARTHI(MERGE, SIGNED)
-  // print_asm_template3(vmerge);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmseq) {
   ARTHI_MASK(MSEQ, SIGNED)
-  // print_asm_template3(vmseq);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsne) {
   ARTHI_MASK(MSNE, SIGNED)
-  // print_asm_template3(vmsne);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsltu) {
   Assert(s->src_vmode != SRC_VI, "vmsltu not supprt SRC_VI\n");
   ARTHI_MASK(MSLTU, UNSIGNED)
-  // print_asm_template3(vmsltu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmslt) {
   Assert(s->src_vmode != SRC_VI, "vmslt not supprt SRC_VI\n");
   ARTHI_MASK(MSLT, SIGNED)
-  // print_asm_template3(vmslt);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsleu) {
   ARTHI_MASK(MSLEU, UNSIGNED)
-  // print_asm_template3(vmsleu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsle) {
   ARTHI_MASK(MSLE, SIGNED);
-  // print_asm_template3(vmsle);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsgtu) {
   Assert(s->src_vmode != SRC_VV, "vmsgtu not support SRC_VV\n");
   ARTHI_MASK(MSGTU, UNSIGNED)
-  // print_asm_template3(vmsgtu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmsgt) {
   Assert(s->src_vmode != SRC_VV, "vmsgt not support SRC_VV\n");
   ARTHI_MASK(MSGT, SIGNED)
-  // print_asm_template3(vmsgt);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vsaddu) {
@@ -201,8 +177,6 @@ def_EHelper(vaaddu) {
 
 def_EHelper(vsll) {
   ARTHI(SLL, UNSIGNED)
-  // print_asm_template3(vsll);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vasub) {
@@ -219,14 +193,10 @@ def_EHelper(vsmul) {
 
 def_EHelper(vsrl) {
   ARTHI(SRL, UNSIGNED)
-  // print_asm_template3(vsrl);
-  //longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vsra) {
   ARTHI(SRA, UNSIGNED)
-  // print_asm_template3(vsra);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vssrl) {
@@ -262,49 +232,45 @@ def_EHelper(vwredsum) {
 }
 
 def_EHelper(vdotu) {
-  longjmp_raise_intr(EX_II);
+  longjmp_exception(EX_II);
 }
 
 def_EHelper(vdot) {
-  longjmp_raise_intr(EX_II);
+  longjmp_exception(EX_II);
 }
 
 def_EHelper(vwsmaccu) {
-  longjmp_raise_intr(EX_II);
+  longjmp_exception(EX_II);
 }
 
 def_EHelper(vwsmacc) {
-  longjmp_raise_intr(EX_II);
+  longjmp_exception(EX_II);
 }
 
 def_EHelper(vwsmaccsu) {
-  longjmp_raise_intr(EX_II);
+  longjmp_exception(EX_II);
 }
 
 def_EHelper(vwsmaccus) {
-  longjmp_raise_intr(EX_II);
+  longjmp_exception(EX_II);
 }
 
 
 //op-m
 def_EHelper(vredsum) {
   REDUCTION(REDSUM, SIGNED);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vredand) {
   REDUCTION(REDAND, UNSIGNED);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vredor) {
   REDUCTION(REDOR, UNSIGNED);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vredxor) {
   REDUCTION(REDXOR, UNSIGNED);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vredminu) {
@@ -413,7 +379,7 @@ def_EHelper(vfirst) {
 def_EHelper(vmsbf) {
   if (vstart->val != 0) {
     // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero
-    longjmp_raise_intr(EX_II);
+    longjmp_exception(EX_II);
   }
 
   if (vl->val != 0) {
@@ -462,7 +428,7 @@ def_EHelper(vmsbf) {
 def_EHelper(vmsof) {
   if (vstart->val != 0) {
     // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
-    longjmp_raise_intr(EX_II);
+    longjmp_exception(EX_II);
   }
 
   if (vl->val != 0) {
@@ -501,7 +467,7 @@ def_EHelper(vmsof) {
 def_EHelper(vmsif) {
   if (vstart->val != 0) {
     // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
-    longjmp_raise_intr(EX_II);
+    longjmp_exception(EX_II);
   }
 
   if (vl->val != 0) {
@@ -667,130 +633,90 @@ def_EHelper(vcompress) {
 
 def_EHelper(vmandnot) {
   MASKINSTR(MANDNOT)
-  // print_asm_template3(vmandnot);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmand) {
   MASKINSTR(MAND)
-  // print_asm_template3(vmand);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmor) {
   MASKINSTR(MOR)
-  // print_asm_template3(vmor);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmxor) {
   MASKINSTR(MXOR)
-  // print_asm_template3(vmxor);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmornot) {
   MASKINSTR(MORNOT)
-  // print_asm_template3(vmornot);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmnand) {
   MASKINSTR(MNAND)
-  // print_asm_template3(vmnand);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmnor) {
   MASKINSTR(MNOR)
-  // print_asm_template3(vmnor);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmxnor) {
   MASKINSTR(MXNOR);
-  // print_asm_template3(vmnor);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vdivu) {
   Assert(s->src_vmode != SRC_VI, "vdivu does not support SRC_VI\n");
   ARTHI(DIVU, UNSIGNED)
-  // print_asm_template3(vdivu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vdiv) {
   Assert(s->src_vmode != SRC_VI, "vdiv does not support SRC_VI\n");
   ARTHI(DIV, SIGNED)
-  // print_asm_template3(vdiv);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vremu) {
   Assert(s->src_vmode != SRC_VI, "vremu does not support SRC_VI\n");
   ARTHI(REMU, UNSIGNED)
-  // print_asm_template3(vremu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vrem) {
   Assert(s->src_vmode != SRC_VI, "vrem does not support SRC_VI\n");
   ARTHI(REM, SIGNED)
-  // print_asm_template3(vrem);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmulhu) {
   Assert(s->src_vmode != SRC_VI, "vmulhu does not support SRC_VI\n");
   ARTHI(MULHU, UNSIGNED)
-  // print_asm_template3(vmulhu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmul) {
   Assert(s->src_vmode != SRC_VI, "vmul does not support SRC_VI\n");
   ARTHI(MUL, SIGNED)
-  // print_asm_template3(vmul);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmulhsu) {
   Assert(s->src_vmode != SRC_VI, "vmulhsu does not support SRC_VI\n");
   ARTHI(MULHSU, UNSIGNED)
-  // print_asm_template3(vmulshu);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmulh) {
   Assert(s->src_vmode != SRC_VI, "vmulh does not support SRC_VI\n");
   ARTHI(MULH, SIGNED)
-  // print_asm_template3(vmulh);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmadd) {
   ARTHI(MADD, SIGNED)
-  // print_asm_template3(vmadd);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vnmsub) {
   ARTHI(NMSUB, SIGNED)
-  // print_asm_template3(vnmsub);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vmacc) {
   ARTHI(MACC, SIGNED)
-  // print_asm_template3(vmacc);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vnmsac) {
   ARTHI(NMSAC, SIGNED)
-  // print_asm_template3(vmacc);
-  // longjmp_raise_intr(EX_II);
 }
 
 def_EHelper(vwaddu) {

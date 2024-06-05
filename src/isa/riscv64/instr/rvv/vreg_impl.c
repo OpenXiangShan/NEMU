@@ -196,8 +196,4 @@ void set_vreg_tail(uint64_t reg) {
   }
 }
 
-void longjmp_raise_intr(uint32_t foo) {
-    assert(0);
-}
-
 #endif // CONFIG_RVV
