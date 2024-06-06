@@ -25,6 +25,7 @@
 #include "../local-include/rtl.h"
 #include <setjmp.h>
 #include "vcommon.h"
+#include "vcompute_impl.h"
 
 int get_mode(Decode *s) {
   /*
@@ -68,8 +69,7 @@ void set_vtype_vl(Decode *s, int mode) {
 
 def_EHelper(vsetvl) {
 
-  //vlmul+lg2(VLEN) <= vsew + vl
-  // previous decode does not load vals for us
+  require_vector(false);
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   int mode = get_mode(s);
@@ -79,8 +79,7 @@ def_EHelper(vsetvl) {
 
 def_EHelper(vsetvli) {
 
-  //vlmul+lg2(VLEN) <= vsew + vl
-  // previous decode does not load vals for us
+  require_vector(false);
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_li(s, &(s->src2.val), s->isa.instr.v_opsimm.v_zimm);
   int mode = get_mode(s);
@@ -89,8 +88,8 @@ def_EHelper(vsetvli) {
 }
 
 def_EHelper(vsetivli) {
-  //vlmul+lg2(VLEN) <= vsew + vl
-  // previous decode does not load vals for us
+
+  require_vector(false);
   rtl_li(s, &(s->src1.val), s->isa.instr.v_vseti.v_zimm5);
   rtl_li(s, &(s->src2.val), s->isa.instr.v_vseti.v_zimm);
   set_vtype_vl(s, 0);
