@@ -17,6 +17,7 @@
 #ifdef CONFIG_RVV
 
 #include "vcompute_impl.h"
+#include <cpu/cpu.h>
 
 #undef s0
 #undef s1
@@ -110,6 +111,211 @@ static inline void reverse_nbytes(uint64_t *val, int sew) {
   *val = tmp;
 }
 
+static inline void require_vector_vs() {
+  if (mstatus->vs == 0) {
+    longjmp_exception(EX_II);
+  }
+}
+
+static inline bool is_overlapped(const int astart, int asize, const int bstart, int bsize) {
+  asize = asize == 0 ? 1 : asize;
+  bsize = bsize == 0 ? 1 : bsize;
+
+  const int aend = astart + asize;
+  const int bend = bstart + bsize;
+
+  const int min_start = astart < bstart ? astart : bstart;
+  const int max_end = aend > bend ? aend : bend;
+
+  return max_end - min_start < asize + bsize;
+}
+
+static inline bool is_overlapped_widen(const int astart, int asize, const int bstart, int bsize) {
+  asize = asize == 0 ? 1 : asize;
+  bsize = bsize == 0 ? 1 : bsize;
+
+  const int aend = astart + asize;
+  const int bend = bstart + bsize;
+
+  const int min_start = astart < bstart ? astart : bstart;
+  const int max_end = aend > bend ? aend : bend;
+
+  if (astart < bstart &&
+      is_overlapped(astart, asize, bstart, bsize) &&
+      !is_overlapped(astart, asize, bstart + bsize, bsize)) {
+    return false;
+  } else  {
+    return max_end - min_start < asize + bsize;
+  }
+}
+
+void require_noover(const int astart, int asize, const int bstart, int bsize) {
+  if (is_overlapped(astart, asize, bstart, bsize)) {
+    longjmp_exception(EX_II);
+  }
+}
+
+void require_noover_widen(const int astart, int asize, const int bstart, int bsize) {
+  if (is_overlapped_widen(astart, asize, bstart, bsize)) {
+    longjmp_exception(EX_II);
+  }
+}
+
+void require_vm(Decode *s) {
+  if (s->vm == 0 && id_dest->reg == 0) {
+    longjmp_exception(EX_II);
+  }
+}
+
+static inline bool is_aligned(const unsigned val, const unsigned pos) {
+  return pos ? (val & (pos - 1)) == 0 : true;
+}
+
+void require_aligned(const unsigned val, const unsigned pos) {
+  if (!is_aligned(val, pos)) {
+    longjmp_exception(EX_II);
+  }
+}
+
+double compute_vflmul() {
+  double vflmul = 1.0;
+  if (vtype->vlmul < 4) {
+    vflmul = 1.0 * (1 << vtype->vlmul);
+  } else if (vtype->vlmul > 4) {
+    vflmul = 1.0 / (1 << (8 - vtype->vlmul));
+  }
+  return vflmul;
+}
+
+void require_vector(bool is_require_vtype) {
+  require_vector_vs();
+  if (is_require_vtype && vtype->vill != 0) {
+    longjmp_exception(EX_II);
+  }
+}
+
+void vector_narrow_check(Decode *s) {
+  require_vector(true);
+  double vflmul = compute_vflmul();
+  if (vflmul > 4) {
+    longjmp_exception(EX_II);
+  }
+  if (vtype->vsew > 2) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_src2->reg, vflmul * 2);
+  require_aligned(id_dest->reg, vflmul);
+  require_vm(s);
+}
+
+void vector_wide_check(Decode *s) {
+  require_vector(true);
+  double vflmul = compute_vflmul();
+  if (vflmul > 4) {
+    longjmp_exception(EX_II);
+  }
+  if (vtype->vsew > 2) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul * 2);
+  require_vm(s);
+}
+
+void vector_mvv_check(Decode *s, bool is_vs1) {
+  require_vector(true);
+  double vflmul = compute_vflmul();
+  if (id_dest->reg != id_src2->reg) {
+    require_noover(id_dest->reg, 1, id_src2->reg, vflmul);
+  }
+  require_aligned(id_src2->reg, vflmul);
+  if (is_vs1) {
+    if (id_dest->reg != id_src->reg) {
+      require_noover(id_dest->reg, 1, id_src->reg, vflmul);
+    }
+    require_aligned(id_src->reg, vflmul);
+  }
+}
+
+void vector_vvv_check(Decode *s, bool is_vs1) {
+  require_vector(true);
+  require_vm(s);
+  double vflmul = compute_vflmul();
+  if (vflmul > 1) {
+    require_aligned(id_dest->reg, vflmul);
+    require_aligned(id_src2->reg, vflmul);
+    if (is_vs1) {
+      require_aligned(id_src->reg, vflmul);
+    }
+  }
+}
+
+void vector_wvv_check(Decode *s, bool is_vs1) {
+  vector_wide_check(s);
+  double vflmul = compute_vflmul();
+  require_aligned(id_src2->reg, vflmul);
+  if (vflmul < 1) {
+    require_noover(id_dest->reg, vflmul * 2, id_src2->reg, vflmul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul * 2, id_src2->reg, vflmul);
+  }
+  if (is_vs1) {
+    require_aligned(id_src->reg, vflmul);
+    if (vflmul < 1) {
+      require_noover(id_dest->reg, vflmul * 2, id_src->reg, vflmul);
+    } else {
+      require_noover_widen(id_dest->reg, vflmul * 2, id_src->reg, vflmul);
+    }
+  }
+}
+
+void vector_wwv_check(Decode *s, bool is_vs1) {
+  vector_wide_check(s);
+  double vflmul = compute_vflmul();
+  require_aligned(id_src2->reg, vflmul * 2);
+  if (is_vs1) {
+    require_aligned(id_src->reg, vflmul);
+    if (vflmul < 1) {
+      require_noover(id_dest->reg, vflmul * 2, id_src->reg, vflmul);
+    } else {
+      require_noover_widen(id_dest->reg, vflmul * 2, id_src->reg, vflmul);
+    }
+  }
+}
+
+void vector_vwv_check(Decode *s, bool is_vs1) {
+  vector_narrow_check(s);
+  double vflmul = compute_vflmul();
+  if (id_dest->reg != id_src2->reg) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vflmul * 2);
+  }
+  if (is_vs1) {
+    require_aligned(id_src->reg, vflmul);
+  }
+}
+
+void vector_reduction_check(Decode *s, bool is_wide) {
+  require_vector(true);
+  if (is_wide) {
+    if (vtype->vsew > 2) {
+      longjmp_exception(EX_II);
+    }
+  }
+  double vflmul = compute_vflmul();
+  require_aligned(id_src2->reg, vflmul);
+}
+
+void vector_slide_check(Decode *s, bool is_over) {
+  double vflmul = compute_vflmul();
+  require_aligned(id_src2->reg, vflmul);
+  require_aligned(id_dest->reg, vflmul);
+  require_vm(s);
+  if (is_over) {
+    if (id_dest->reg == id_src2->reg) {
+      longjmp_exception(EX_II);
+    }
+  }
+}
+
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
@@ -129,6 +335,39 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   uint64_t lshift = 0;
   uint64_t rshift = 0;
   int i = 0;
+  if (widening == 0 && narrow == 0 && dest_mask == 0) {
+    if (s->src_vmode == SRC_VV) {
+      vector_vvv_check(s, true);
+    } else {
+      vector_vvv_check(s, false);
+    }
+  } else if (dest_mask == 1) {
+    if (s->src_vmode == SRC_VV) {
+      vector_mvv_check(s, true);
+    } else {
+      vector_mvv_check(s, false);
+    }
+  } else if (widening == 1 && narrow == 1) {
+    // e.g. vwadd_wv
+    if (s->src_vmode == SRC_VV) {
+      vector_wwv_check(s, true);
+    } else {
+      vector_wwv_check(s, false);
+    }
+  } else if (widening == 1) {
+    // e.g. vwadd_vv
+    if (s->src_vmode == SRC_VV) {
+      vector_wvv_check(s, true);
+    } else {
+      vector_wvv_check(s, false);
+    }
+  } else if (narrow == 1) {
+    if (s->src_vmode == SRC_VV) {
+      vector_vwv_check(s, true);
+    } else {
+      vector_vwv_check(s, false);
+    }
+  }
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -587,8 +826,189 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   vp_set_dirty();
 }
 
+/**
+ * this function only handle vrgather and vslide instruction, other instructions are handled in arthimetic_instr
+ * because the illegal instruction exception is handled in vcompute.h for vrgather and vslide instruction
+ */
+void permutaion_instr(int opcode, Decode *s) {
+  if(check_vstart_ignore(s)) return;
+  int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
+  int idx;
+  for(idx = vstart->val; idx < vl->val; idx ++) {
+    // mask
+    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    if(s->vm == 0) {
+      // merge instr will exec no matter mask or not
+      // masked and mask off exec will left dest unmodified.
+      if(opcode != SLIDEUP \
+        && mask==0) {
+        if (RVV_AGNOSTIC) {
+            if (vtype->vma) {
+              *s1 = (uint64_t) -1;
+              set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+            }
+          }
+          continue;
+        }
+
+    }
+    if(s->vm == 1 && opcode == MERGE) {
+      mask = 1; // merge(mv) get the first operand (s1, rs1, imm);
+    }
+
+    int eew;
+    int emul;
+    /*
+    The vector integer extension instructions zero- or sign-extend a source vector
+    integer operand with EEW less than SEW to ll SEW-sized elements in the
+    destination. The EEW of the source is 1/2, 1/4, or 1/8 of SEW, while EMUL of the
+    source is (EEW/SEW)*LMUL. The destination has EEW equal to SEW and EMUL equal to
+    LMUL.
+    */
+    eew = vtype->vsew;
+    emul = vtype->vlmul;
+    // operand - vs2
+    get_vreg(id_src2->reg, idx, s0, eew, emul, 0, 1);
+
+    // operand - s1 / rs1 / imm
+    switch (s->src_vmode) {
+      case SRC_VV :
+        /*
+        The vrgather.vv form uses SEW/LMUL for both the data and indices. The
+        vrgatherei16.vv form uses SEW/LMUL for the data in vs2 but EEW=16 and EMUL =
+        (16/SEW)*LMUL for the indices in vs1.
+        */
+        switch (opcode) {
+          case RGATHEREI16:
+            eew = 1;
+            emul = vtype->vlmul - (vtype->vsew - 1);
+            break;
+          default:
+            eew = vtype->vsew;
+            emul = vtype->vlmul;
+            break;
+        }
+        get_vreg(id_src->reg, idx, s1, eew, emul, 0, 1);
+        break;
+      case SRC_VX :   
+        rtl_lr(s, &(id_src->val), id_src1->reg, 4);
+        rtl_mv(s, s1, &id_src->val); 
+        if(opcode != RGATHER && opcode != RGATHEREI16 && opcode != SLIDEUP && opcode != SLIDEDOWN) {
+          switch (vtype->vsew) {
+            case 0 : *s1 = *s1 & 0xff; break;
+            case 1 : *s1 = *s1 & 0xffff; break;
+            case 2 : *s1 = *s1 & 0xffffffff; break;
+            case 3 : *s1 = *s1 & 0xffffffffffffffff; break;
+          }
+        }
+        break;
+      case SRC_VI :
+        rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);       
+        break;
+    }
+
+    if (opcode == SLIDEUP) {
+      if(s->vm == 0 && mask == 0 && (uint64_t)idx >= (uint64_t)*s1) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          *s2 = (uint64_t) -1;
+          set_vreg(id_dest->reg, idx, *s2, vtype->vsew, vtype->vlmul, 1);
+        }
+        continue;
+      }
+    }
+
+    // op
+    switch (opcode) {
+      case SLIDEUP :
+        if ((uint64_t)idx >= (uint64_t)*s1) get_vreg(id_src2->reg, idx - *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else get_vreg(id_dest->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case SLIDEDOWN :// idx + s1 should be prevented from overflowing and thus failing the judgment
+        // Data manipulation is forbidden when vl is 0
+        if (vl->val != 0) {
+          if ((uint128_t)idx + (uint128_t)(uint64_t)*s1 < (uint128_t)vlmax)
+            get_vreg(id_src2->reg, idx + *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+          else
+            rtl_li(s, s1, 0);
+        }
+        break;
+      case SLIDE1UP :
+        if (idx > 0) get_vreg(id_src2->reg, idx - 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case SLIDE1DOWN :
+        if (idx < vl->val - 1) get_vreg(id_src2->reg, idx + 1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case RGATHER :
+        if ((uint64_t)*s1 < (uint64_t)vlmax) get_vreg(id_src2->reg, *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else rtl_li(s, s1, 0);
+        break;
+      case RGATHEREI16 :
+        /*
+        The vrgather.vv form uses SEW/LMUL for both the data and indices. The
+        vrgatherei16.vv form uses SEW/LMUL for the data in vs2 but EEW=16 and EMUL =
+        (16/SEW)*LMUL for the indices in vs1.
+        */
+        eew = 1;
+        emul = vtype->vlmul-(vtype->vsew-1);
+        get_vreg(id_src1->reg, idx, s1, eew, emul, 0, 1);
+        *s1 = *s1 & 0xffff;
+        if ((uint64_t)*s1 < (uint64_t)vlmax) get_vreg(id_src2->reg, *s1, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        else rtl_li(s, s1, 0);
+        break;
+    }
+    set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+  }
+
+  if (RVV_AGNOSTIC) {
+    if(vtype->vta) {
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+      for(idx = vl->val; idx < vlmax; idx++) {
+        *s1 = (uint64_t) -1;
+        set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+      }
+    }
+  }
+
+  rtl_li(s, s0, 0);
+  vcsr_write(IDXVSTART, s0);
+  vp_set_dirty();
+}
+
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
+  if (dest_mask) {
+    if (s->src_vmode == SRC_VV) {
+      vector_mvv_check(s, true);
+    } else {
+      vector_mvv_check(s, false);
+    }
+  } else if (widening == noWidening) {
+    if (s->src_vmode == SRC_VV) {
+      vector_vvv_check(s, true);
+    } else {
+      vector_vvv_check(s, false);
+    }
+  } else if (widening == noCheck) {
+    widening = noWidening;
+  } else if (widening == vdWidening || widening == vsdWidening) {
+    if (s->src_vmode == SRC_VV) {
+      vector_wvv_check(s, true);
+    } else {
+      vector_wvv_check(s, false);
+    }
+  } else if (widening == vdNarrow) {
+    if (s->src_vmode == SRC_VV) {
+      vector_vwv_check(s, true);
+    } else {
+      vector_vwv_check(s, false);
+    }
+  } else if (widening == vsWidening) {
+    if (s->src_vmode == SRC_VV) {
+      vector_wwv_check(s, true);
+    } else {
+      vector_wwv_check(s, false);
+    }
+  }
   int idx;
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
@@ -785,6 +1205,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 }
 
 void mask_instr(int opcode, Decode *s) {
+  require_vector(true);
   if(check_vstart_ignore(s)) return;
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
@@ -839,6 +1260,7 @@ scalar source or destination of a vector reduction regardless of LMUL setting.
 */
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   if(check_vstart_ignore(s)) return;
+  vector_reduction_check(s, wide);
   // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
@@ -881,6 +1303,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
   if(check_vstart_ignore(s)) return;
+  vector_reduction_check(s, widening);
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 1);
   else
@@ -989,6 +1412,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 
 void float_reduction_computing(Decode *s) {
   if(check_vstart_ignore(s)) return;
+  vector_reduction_check(s, false);
   word_t FPCALL_TYPE = FPCALL_W64;
   int idx;
 

@@ -70,11 +70,13 @@ enum fp_wop_t {
   vsdWidening,
   vsWidening,
   vdWidening,
-  vdNarrow
+  vdNarrow,
+  noCheck,
 };
 
 void vp_set_dirty();
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
+void permutaion_instr(int opcode, Decode *s);
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s);
 void mask_instr(int opcode, Decode *s);
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s);
@@ -87,6 +89,7 @@ void float_reduction_computing(Decode *s);
 #define ARTHI_WIDE(opcode, is_signed) arthimetic_instr(opcode, is_signed, 1, 0, 0, s);
 #define ARTHI_MASK(opcode, is_signed) arthimetic_instr(opcode, is_signed, 0, 0, 1, s);
 #define ARTHI_NARROW(opcode, is_signed, narrow) arthimetic_instr(opcode, is_signed, 0, narrow, 0, s);
+#define PERM(opcode) permutaion_instr(opcode, s);
 
 #define FLOAT_ARTHI(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, noWidening, 0, s);
 #define FLOAT_ARTHI_DWIDE(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdWidening, 0, s);
@@ -94,6 +97,7 @@ void float_reduction_computing(Decode *s);
 #define FLOAT_ARTHI_SWIDE(opcode) floating_arthimetic_instr(opcode, 0, vsWidening, 0, s);
 #define FLOAT_ARTHI_DNARROW(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdNarrow, 0, s);
 #define FLOAT_ARTHI_MASK(opcode) floating_arthimetic_instr(opcode, 0, noWidening, 1, s);
+#define FLOAT_ARTHI_NOCHECK(opcode) floating_arthimetic_instr(opcode, 0, noCheck, 0, s);
 
 #define MASKINSTR(opcode) mask_instr(opcode, s);
 
@@ -102,6 +106,23 @@ void float_reduction_computing(Decode *s);
 
 #define FREDUCTION(opcode) float_reduction_instr(opcode, 0, s);
 #define FWREDUCTION(opcode) float_reduction_instr(opcode, vsWidening, s);
+
+// vector illegal check, refer to the riscv-isa-sim
+void require_vector(bool is_require_vtype);
+void require_vm(Decode *s);
+double compute_vflmul();
+void require_aligned(const unsigned val, const unsigned pos);
+void require_noover(const int astart, int asize, const int bstart, int bsize);
+void require_noover_widen(const int astart, int asize, const int bstart, int bsize);
+void vector_narrow_check(Decode *s);
+void vector_wide_check(Decode *s);
+void vector_mvv_check(Decode *s, bool is_vs1);
+void vector_vvv_check(Decode *s, bool is_vs1);
+void vector_wvv_check(Decode *s, bool is_vs1);
+void vector_wwv_check(Decode *s, bool is_vs1);
+void vector_vwv_check(Decode *s, bool is_vs1);
+void vector_reduction_check(Decode *s, bool is_wide);
+void vector_slide_check(Decode *s, bool is_over);
 
 #endif // __RISCV64_VCOMPUTE_IMPL_H__
 

@@ -18,17 +18,8 @@
 
 #include "vcompute_impl.h"
 
-// #define PERMInstr(opcode) permutation_instr(opcode, pc);
-// static void permutation_instr(int opcode, vaddr_t* pc) {
-//   // only move/ext here, no slide
-//   switch (opcode) {
-//     case EXT_X_V : 
-//   }
-// }
-
 def_EHelper(vadd) {
   ARTHI(ADD, SIGNED)
-  // print_asm_template3(vadd);
 }
 
 def_EHelper(vsub) {
@@ -72,27 +63,60 @@ def_EHelper(vxor) {
 }
 
 def_EHelper(vrgather) {
-  ARTHI(RGATHER, UNSIGNED)
+  require_vector(true);
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  if (s->src_vmode == SRC_VV) {
+    require_aligned(id_src->reg, vflmul);
+    if (id_dest->reg == id_src->reg) {
+      longjmp_exception(EX_II);
+    }
+  }
+  require_vm(s);
+  PERM(RGATHER)
 }
 
 def_EHelper(vrgatherei16) {
-  ARTHI(RGATHEREI16, UNSIGNED)
+  require_vector(true);
+  int vsew = 8 << vtype->vsew;
+  double vflmul = compute_vflmul();
+  double vemul = 16.0 / vsew * vflmul;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+  require_aligned(id_src->reg, vemul);
+  require_noover(id_dest->reg, vflmul, id_src->reg, vemul);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  require_vm(s);
+  PERM(RGATHEREI16)
 }
 
 def_EHelper(vslideup) {
-  ARTHI(SLIDEUP, UNSIGNED)
+  vector_slide_check(s, true);
+  PERM(SLIDEUP)
 }
 
 def_EHelper(vslidedown) {
-  ARTHI(SLIDEDOWN, UNSIGNED)
+  vector_slide_check(s, false);
+  PERM(SLIDEDOWN)
 }
 
 def_EHelper(vslide1up) {
-  ARTHI(SLIDE1UP, UNSIGNED)
+  vector_slide_check(s, true);
+  PERM(SLIDE1UP)
 }
 
 def_EHelper(vslide1down) {
-  ARTHI(SLIDE1DOWN, UNSIGNED)
+  vector_slide_check(s, false);
+  PERM(SLIDE1DOWN)
 }
 
 def_EHelper(vadc) {
@@ -295,6 +319,10 @@ scalar x register and element 0 of a vector register. The instructions ignore
 LMUL and vector register groups.
 */
 def_EHelper(vmvsx) {
+  require_vector(true);
+  if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
   if (vstart->val < vl->val) {
     rtl_lr(s, &(id_src->val), id_src1->reg, 4);
     rtl_mv(s, s1, &id_src->val); 
@@ -312,6 +340,10 @@ def_EHelper(vmvsx) {
 }
 
 def_EHelper(vmvxs) {
+  require_vector(true);
+  if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
   get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 0);
   rtl_sext(s, s0, s0, 8);
   rtl_sr(s, id_dest->reg, s0, 8);
@@ -319,6 +351,7 @@ def_EHelper(vmvxs) {
 }
 
 def_EHelper(vmvnr) {
+  require_vector(true);
   rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
   int NREG = (*s1) + 1;
   int len = (VLEN >> 6) * NREG;
@@ -335,6 +368,7 @@ def_EHelper(vmvnr) {
 }
 
 def_EHelper(vpopc) {
+  require_vector(true);
   if(vstart->val != 0)
     check_vstart_ignore(s);
   
@@ -356,6 +390,7 @@ def_EHelper(vpopc) {
 }
 
 def_EHelper(vfirst) {
+  require_vector(true);
   if(vstart->val != 0)
     check_vstart_ignore(s);
 
@@ -377,6 +412,11 @@ def_EHelper(vfirst) {
 }
 
 def_EHelper(vmsbf) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
   if (vstart->val != 0) {
     // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero
     longjmp_exception(EX_II);
@@ -426,6 +466,11 @@ def_EHelper(vmsbf) {
 }
 
 def_EHelper(vmsof) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
   if (vstart->val != 0) {
     // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
     longjmp_exception(EX_II);
@@ -465,6 +510,11 @@ def_EHelper(vmsof) {
 }
 
 def_EHelper(vmsif) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
   if (vstart->val != 0) {
     // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
     longjmp_exception(EX_II);
@@ -507,6 +557,12 @@ def_EHelper(vmsif) {
 }
 
 def_EHelper(viota) {
+  require_vector(true);
+  require_vm(s);
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_noover(id_dest->reg, vflmul, id_src2->reg, 1);
+
   if(!check_vstart_ignore(s)) {
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -545,6 +601,11 @@ def_EHelper(viota) {
 }
 
 def_EHelper(vid) {
+  require_vector(true);
+  require_vm(s);
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+
   if(!check_vstart_ignore(s)) {
     for(int idx = 0; idx < vl->val; idx ++) {
       // mask
@@ -578,30 +639,140 @@ def_EHelper(vid) {
 }
 
 def_EHelper(vzextvf8) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  double vflmul = compute_vflmul();
+  double vemul = vflmul / 8;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vemul);
+  if (vemul < 1) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vemul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
+  }
   ARTHI_NARROW(VEXT, UNSIGNED, -3);
 }
 
 def_EHelper(vsextvf8) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  double vflmul = compute_vflmul();
+  double vemul = vflmul / 8;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vemul);
+  if (vemul < 1) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vemul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
+  }
   ARTHI_NARROW(VEXT, SIGNED, -3);
 }
 
 def_EHelper(vzextvf4) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  double vflmul = compute_vflmul();
+  double vemul = vflmul / 4;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vemul);
+  if (vemul < 1) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vemul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
+  }
   ARTHI_NARROW(VEXT, UNSIGNED, -2);
 }
 
 def_EHelper(vsextvf4) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  double vflmul = compute_vflmul();
+  double vemul = vflmul / 4;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vemul);
+  if (vemul < 1) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vemul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
+  }
   ARTHI_NARROW(VEXT, SIGNED, -2);
 }
 
 def_EHelper(vzextvf2) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  double vflmul = compute_vflmul();
+  double vemul = vflmul / 2;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vemul);
+  if (vemul < 1) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vemul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
+  }
   ARTHI_NARROW(VEXT, UNSIGNED, -1);
 }
 
 def_EHelper(vsextvf2) {
+  require_vector(true);
+  require_vm(s);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  double vflmul = compute_vflmul();
+  double vemul = vflmul / 2;
+  if (vemul < 0.125 || vemul > 8) {
+    longjmp_exception(EX_II);
+  }
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vemul);
+  if (vemul < 1) {
+    require_noover(id_dest->reg, vflmul, id_src2->reg, vemul);
+  } else {
+    require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
+  }
   ARTHI_NARROW(VEXT, SIGNED, -1);
 }
 
 def_EHelper(vcompress) {
+  require_vector(true);
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+  if (id_dest->reg == id_src2->reg) {
+    longjmp_exception(EX_II);
+  }
+  require_noover(id_dest->reg, vflmul, id_src->reg, 1);
   if(!check_vstart_ignore(s)) {
 
     rtl_li(s, s1, 0);
@@ -828,14 +999,17 @@ def_EHelper(vfsgnjx) {
 }
 
 def_EHelper(vfslide1up) {
-  FLOAT_ARTHI(FSLIDE1UP, UNSIGNED)
+  vector_slide_check(s, true);
+  FLOAT_ARTHI_NOCHECK(FSLIDE1UP)
 }
 
 def_EHelper(vfslide1down) {
-  FLOAT_ARTHI(FSLIDE1DOWN, UNSIGNED)
+  vector_slide_check(s, false);
+  FLOAT_ARTHI_NOCHECK(FSLIDE1DOWN)
 }
 
 def_EHelper(vfmvfs) {
+  require_vector(true);
   get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
   if (vtype->vsew < 3) {
       *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
@@ -845,6 +1019,7 @@ def_EHelper(vfmvfs) {
 }
 
 def_EHelper(vfmvsf) {
+  require_vector(true);
   if (vl->val > 0 && vstart->val < vl->val) {
     rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
