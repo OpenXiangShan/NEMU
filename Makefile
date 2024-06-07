@@ -157,7 +157,9 @@ override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
 override ARGS += $(ARGS_DIFF)
 
 # Command to execute NEMU
-IMG ?=
+IMG_DIR = $(NEMU_HOME)/ready-to-run
+img ?= microbench
+IMG ?= $(IMG_DIR)/$(img).bin
 NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
 
 run-env: $(BINARY) $(DIFF_REF_SO)
@@ -165,6 +167,12 @@ run-env: $(BINARY) $(DIFF_REF_SO)
 run: run-env
 	$(call git_commit, "run")
 	$(NEMU_EXEC)
+
+batch:
+	./build/riscv64-nemu-interpreter -b $(IMG)
+
+step:
+	./build/riscv64-nemu-interpreter $(IMG)
 
 gdb: run-env
 	$(call git_commit, "gdb")
