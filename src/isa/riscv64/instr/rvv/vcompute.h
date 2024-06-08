@@ -17,6 +17,7 @@
 #ifdef CONFIG_RVV
 
 #include "vcompute_impl.h"
+#include "vcommon.h"
 
 def_EHelper(vadd) {
   ARTHI(ADD, SIGNED)
@@ -1014,6 +1015,7 @@ def_EHelper(vfmvfs) {
   if (vtype->vsew < 3) {
       *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
   }
+  check_isFpCanonicalNAN(s0, vtype->vsew);
   rtl_mv(s, &fpreg_l(id_dest->reg), s0);
   vstart->val = 0;
 }
@@ -1022,6 +1024,7 @@ def_EHelper(vfmvsf) {
   require_vector(true);
   if (vl->val > 0 && vstart->val < vl->val) {
     rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
+    check_isFpCanonicalNAN(s1, vtype->vsew);
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
     if (RVV_AGNOSTIC) {
       if(vtype->vta) {
