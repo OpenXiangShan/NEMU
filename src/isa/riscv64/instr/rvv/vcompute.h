@@ -1015,7 +1015,6 @@ def_EHelper(vfmvfs) {
   if (vtype->vsew < 3) {
       *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
   }
-  check_isFpCanonicalNAN(s0, vtype->vsew);
   rtl_mv(s, &fpreg_l(id_dest->reg), s0);
   vstart->val = 0;
 }
