@@ -24,4 +24,45 @@ bool check_vlmul_sew_illegal(rtlreg_t vtype_req){
   return false;
 }
 
+void set_NAN(rtlreg_t* fpreg, uint64_t vsew){
+  switch (vsew) {
+    case 0:
+      *fpreg = (*fpreg & 0xffffffffffffff00) | 0x78;
+      break;
+    case 1:
+      *fpreg = (*fpreg & 0xffffffffffff0000) | 0x7e00;
+      break;
+    case 2:
+      *fpreg = (*fpreg & 0xffffffff00000000) | 0x7fc00000;
+      break;
+    case 3:
+      break;
+    default:
+      break;
+  }
+}
+
+bool check_isFpCanonicalNAN(rtlreg_t* fpreg, uint64_t vsew){
+  int isFpCanonicalNAN = 0;
+  switch (vsew) {
+    case 0:
+      isFpCanonicalNAN = ~(*fpreg | 0xff) != 0;
+      if(isFpCanonicalNAN) set_NAN(fpreg, vsew);
+      break;
+    case 1:
+      isFpCanonicalNAN = ~(*fpreg | 0xffff) != 0;
+      if(isFpCanonicalNAN) set_NAN(fpreg, vsew);
+      break;
+    case 2:
+      isFpCanonicalNAN = ~(*fpreg | 0xffffffff) != 0;
+      if(isFpCanonicalNAN) set_NAN(fpreg, vsew);
+      break;
+    case 3:
+      break;
+    default:
+      break;
+  }
+  return isFpCanonicalNAN;
+}
+
 #endif

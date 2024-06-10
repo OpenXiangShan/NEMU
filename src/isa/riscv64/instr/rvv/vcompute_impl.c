@@ -18,6 +18,7 @@
 
 #include "vcompute_impl.h"
 #include <cpu/cpu.h>
+#include "vcommon.h"
 
 #undef s0
 #undef s1
@@ -1084,6 +1085,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
         break;
       case SRC_VF :   
         rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
+        check_isFpCanonicalNAN(s1, vtype->vsew);
         switch (vtype->vsew) {
           case 0 : *s1 = *s1 & 0xff; break;
           case 1 : *s1 = *s1 & 0xffff; break;
