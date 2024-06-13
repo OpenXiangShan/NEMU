@@ -118,7 +118,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     cpu.mode = MODE_S;
     update_mmu_state();
     return get_trap_pc(vstvec->val, vscause->val);
-  }else if(delegS){
+  }
+  else if(delegS){
     int v = (mstatus->mprv)? mstatus->mpv : cpu.v;
     hstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
                     ((v || hld_st_temp) && ((0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF)));
@@ -159,6 +160,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
                htval->val = 0;
 #endif
     }
+    // When a trap is taken into HS-mode, htinst is written with 0.
+    // Todo: support tinst encoding descriped in section 
+    // 18.6.3. Transformed Instruction or Pseudoinstruction for mtinst or htinst.
+    htinst->val = 0;
     cpu.mode = MODE_S;
     update_mmu_state();
     return get_trap_pc(stvec->val, scause->val);
