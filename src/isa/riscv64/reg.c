@@ -52,7 +52,7 @@ void isa_reg_display() {
   }
 #endif // CONFIG_FPU_NONE
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
-      cpu.pc, mstatus->val, mcause->val, mepc->val);
+      cpu.pc, cpu.mstatus, mcause->val, mepc->val);
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
       "", cpu.sstatus, scause->val, sepc->val);
   printf("satp: " FMT_WORD "\n", satp->val);
@@ -68,7 +68,7 @@ void isa_reg_display() {
   printf("hedeleg: " FMT_WORD " hcounteren: " FMT_WORD " htval: " FMT_WORD " htinst: " FMT_WORD "\n",
       hedeleg->val, hcounteren->val, htval->val, htinst->val);
   printf("hgatp: " FMT_WORD " vsscratch: " FMT_WORD " vsstatus: " FMT_WORD " vstvec: " FMT_WORD "\n",
-      hgatp->val, vsscratch->val, vsstatus->val, vstvec->val);
+      hgatp->val, vsscratch->val, cpu.vsstatus, vstvec->val);
   printf("vsepc: " FMT_WORD " vscause: " FMT_WORD " vstval: " FMT_WORD " vsatp: " FMT_WORD "\n",
       vsepc->val, vscause->val, vstval->val, vsatp->val);
   printf("virtualization mode: %ld\n", cpu.v);

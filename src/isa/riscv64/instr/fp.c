@@ -36,26 +36,13 @@ bool fp_enable() {
 }
 
 void fp_set_dirty() {
-  // lazily update mstatus->sd when reading mstatus
-#if defined (CONFIG_SHARE) || defined (CONFIG_DIFFTEST_REF_SPIKE)
-  mstatus->sd = 1;
+  mstatus->fs = EXT_CONTEXT_DIRTY;
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {
     if (hstatus->vsxl == 1)
-      vsstatus->_32.sd = 1;
+      vsstatus->_32.fs = EXT_CONTEXT_DIRTY;
     else
-      vsstatus->_64.sd = 1;
-  }
-#endif //CONFIG_RVH
-#endif
-// Spike update fs and sd in the meantime
-  mstatus->fs = 3;
-#ifdef CONFIG_RVH
-  if (cpu.v == 1) {
-    if (hstatus->vsxl == 1)
-      vsstatus->_32.fs = 3;
-    else
-      vsstatus->_64.fs = 3;
+      vsstatus->_64.fs = EXT_CONTEXT_DIRTY;
   }
 #endif //CONFIG_RVH
 }
