@@ -1016,30 +1016,31 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   switch (vtype->vsew) {
     case 0 :
       switch (widening) {
-        case vdNarrow : FPCALL_TYPE = FPCALL_W16; break;
+        case vdNarrow   : FPCALL_TYPE = FPCALL_W16; break;
         case vdWidening : FPCALL_TYPE = FPCALL_W8; break;
+        default         : Loge("f8 not supported"); longjmp_exception(EX_II); break;
       }
       break;
     case 1 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W16_to_32; break;
-        case vsWidening : FPCALL_TYPE = FPCALL_SRC2_W16_to_32; break;
-        case vdNarrow : FPCALL_TYPE = FPCALL_W32; break;
-        case vdWidening :
-        case noWidening : FPCALL_TYPE = FPCALL_W16; break;
+        case vsWidening  : FPCALL_TYPE = FPCALL_SRC2_W16_to_32; break;
+        case vdNarrow    : FPCALL_TYPE = FPCALL_W32; break;
+        case vdWidening  :
+        case noWidening  : FPCALL_TYPE = FPCALL_W16; break;
       }
       break;
     case 2 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W32_to_64; break;
-        case vsWidening : FPCALL_TYPE = FPCALL_SRC2_W32_to_64; break;
-        case vdNarrow : FPCALL_TYPE = FPCALL_W64; break;
-        case vdWidening :
-        case noWidening : FPCALL_TYPE = FPCALL_W32; break;
+        case vsWidening  : FPCALL_TYPE = FPCALL_SRC2_W32_to_64; break;
+        case vdNarrow    : FPCALL_TYPE = FPCALL_W64; break;
+        case vdWidening  :
+        case noWidening  : FPCALL_TYPE = FPCALL_W32; break;
       }
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: panic("other fp type not supported"); break;
+    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -1208,6 +1209,9 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
 void mask_instr(int opcode, Decode *s) {
   require_vector(true);
+  if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
   if(check_vstart_ignore(s)) return;
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
@@ -1316,7 +1320,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
 
   // fpcall type
   switch (vtype->vsew) {
-    case 0 : panic("f8 not supported"); break;
+    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
     case 1 : 
       switch (widening) {
         case vsWidening : FPCALL_TYPE = FPCALL_SRC1_W16_to_32; break;
@@ -1330,7 +1334,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
       }
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: panic("other fp type not supported"); break;
+    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
 
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -1370,11 +1374,11 @@ void float_reduction_step2(uint64_t src, Decode *s) {
 
   // fpcall type
   switch (vtype->vsew) {
-    case 0 : panic("f8 not supported"); break;
+    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: panic("other fp type not supported"); break;
+    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
 
   int element_num = VLEN >> (3 + vtype->vsew);
@@ -1395,11 +1399,11 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 
   // fpcall type
   switch (vtype->vsew) {
-    case 0 : panic("f8 not supported"); break;
+    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: panic("other fp type not supported"); break;
+    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
 
   int element_num = VLEN >> (3 + vtype->vsew);
@@ -1420,10 +1424,11 @@ void float_reduction_computing(Decode *s) {
 
   // fpcall type
   switch (vtype->vsew) {
-    case 0 : panic("f8 not supported"); break;
+    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
     case 1 : FPCALL_TYPE = FPCALL_W16; break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
+    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
 
   // copy the vector register to the temp register
@@ -1464,7 +1469,7 @@ void float_reduction_computing(Decode *s) {
       float_reduction_step1(0, 4, s);
       float_reduction_step2(0, s);
       break;
-    default: panic("other fp type not supported"); break;
+    default: Loge("lmul = 4 is reserved"); longjmp_exception(EX_II); break;
   }
 
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);

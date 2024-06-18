@@ -137,6 +137,13 @@ def_EHelper(vmsbc) {
 }
 
 def_EHelper(vmerge) {
+  if (s->vm == 1) {
+    // when vm is 1, it's a vmv instruction
+    if (id_src2->reg != 0) {
+      // The first operand specifier (vs2) must contain v0
+      longjmp_exception(EX_II);
+    }
+  }
   ARTHI(MERGE, SIGNED)
 }
 
@@ -604,6 +611,9 @@ def_EHelper(viota) {
 def_EHelper(vid) {
   require_vector(true);
   require_vm(s);
+  if (id_src2->reg != 0) {
+    longjmp_exception(EX_II);
+  }
   double vflmul = compute_vflmul();
   require_aligned(id_dest->reg, vflmul);
 
@@ -767,6 +777,9 @@ def_EHelper(vsextvf2) {
 
 def_EHelper(vcompress) {
   require_vector(true);
+  if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
   double vflmul = compute_vflmul();
   require_aligned(id_dest->reg, vflmul);
   require_aligned(id_src2->reg, vflmul);
@@ -1011,7 +1024,10 @@ def_EHelper(vfslide1down) {
 
 def_EHelper(vfmvfs) {
   require_vector(true);
-  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 1);
+  if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
+  get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 0);
   if (vtype->vsew < 3) {
       *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
   }
@@ -1021,10 +1037,13 @@ def_EHelper(vfmvfs) {
 
 def_EHelper(vfmvsf) {
   require_vector(true);
+  if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
   if (vl->val > 0 && vstart->val < vl->val) {
     rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
     check_isFpCanonicalNAN(s1, vtype->vsew);
-    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 1);
+    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
     if (RVV_AGNOSTIC) {
       if(vtype->vta) {
         for (int idx = 8 << vtype->vsew; idx < VLEN; idx++) {
@@ -1137,6 +1156,13 @@ def_EHelper(vfclass_v) {
 }
 
 def_EHelper(vfmerge) {
+  if (s->vm == 1) {
+    // when vm is 1, it's a vfmv instruction
+    if (id_src2->reg != 0) {
+      // The first operand specifier (vs2) must contain v0
+      longjmp_exception(EX_II);
+    }
+  }
   FLOAT_ARTHI(FMERGE, UNSIGNED)
 }
 
