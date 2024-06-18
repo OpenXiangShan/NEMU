@@ -484,8 +484,26 @@ void disable_time_intr() {
     mie->val = mask_bitset(mie->val, MTIE_MASK, 0);
 }
 
+#ifdef CONFIG_RVH
+void update_vsatp(const vsatp_t new_val) {
+  vsatp->_64.mode = new_val._64.mode;
+  vsatp->_64.asid = new_val._64.asid;
+  switch (hgatp->mode) {
+    case HGATP_MODE_BARE:
+      vsatp->_64.ppn = new_val._64.ppn & VSATP_PPN_HGATP_BARE_MASK;
+      break;
+    case HGATP_MODE_Sv39x4:
+      vsatp->_64.ppn = new_val._64.ppn & VSATP_PPN_HGATP_Sv39x4_MASK;
+      break;
+    default:
+      panic("HGATP.mode is illegal value(%lx), when write vsatp\n", (uint64_t)hgatp->mode);
+      break;
+  }
+}
+#endif
+
 static inline void csr_write(word_t *dest, word_t src) {
-  #ifdef CONFIG_RVH
+#ifdef CONFIG_RVH
   if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch)
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
         || is_write(satp) || is_write(stvec))){
@@ -503,9 +521,13 @@ static inline void csr_write(word_t *dest, word_t src) {
       if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
         longjmp_exception(EX_VI);
       }
-      if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
-        vsatp->val = MASKED_SATP(src);
-    }else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
+      vsatp_t new_val = (vsatp_t)src;
+      // legal mode
+      if (new_val._64.mode == SATP_MODE_BARE || new_val._64.mode == SATP_MODE_Sv39) {
+        update_vsatp(new_val);
+      }
+    }
+    else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
   }else if (is_write(mideleg)){
     *dest = (src & 0x222) | MIDELEG_FORCED_MASK;
   }else if (is_write(hideleg)){
@@ -538,8 +560,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
       longjmp_exception(EX_VI);
     }
-    if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
-      vsatp->val = MASKED_SATP(src);
+    vsatp_t new_val = (vsatp_t)src;
+    // legal mode
+    if (new_val._64.mode == SATP_MODE_BARE || new_val._64.mode == SATP_MODE_Sv39) {
+      update_vsatp(new_val);
+    }
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else
   if (is_write(mstatus)) {

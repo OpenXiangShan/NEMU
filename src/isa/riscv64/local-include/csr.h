@@ -18,6 +18,7 @@
 #define __CSR_H__
 
 #include <common.h>
+#include <memory/vaddr.h>
 
 /**
  * Mapping between CSR name and addr
@@ -1041,6 +1042,8 @@ MAP(CSRS, CSRS_DECL)
 #define IDXVLENB  0xc22
 
 /** CSR satp **/
+#define SATP_MODE_BARE 0
+#define SATP_MODE_Sv39 8
 #define SATP_ASID_LEN 16 // max is 16
 #define SATP_PADDR_LEN (CONFIG_PADDRBITS-12) // max is 44
 #define SATP_ASID_MAX_LEN 16
@@ -1067,6 +1070,13 @@ MAP(CSRS, CSRS_DECL)
 #define HGATP_PADDR_MASK ((1L << HGATP_PADDR_MAX_LEN)-1)
 
 #define HGATP_MASK (HGATP_MODE_MASK | HGATP_VMID_MASK | HGATP_PADDR_MASK)
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_RVH
+#define HGATP_Bare_GPADDR_LEN CONFIG_PADDRBITS
+#define HGATP_Sv39x4_GPADDR_LEN 41
+#define VSATP_PPN_HGATP_BARE_MASK BITMASK(HGATP_Bare_GPADDR_LEN - PAGE_SHIFT)
+#define VSATP_PPN_HGATP_Sv39x4_MASK BITMASK(HGATP_Sv39x4_GPADDR_LEN - PAGE_SHIFT)
 #endif // CONFIG_RVH
 
 /** RVH **/
