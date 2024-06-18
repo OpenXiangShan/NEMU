@@ -275,7 +275,7 @@ bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
       if (simpoint2Weights.empty()) {
         break;
       } else {
-        uint64_t next_point = simpoint2Weights.begin()->first * intervalSize + 100000;
+        uint64_t next_point = ((simpoint2Weights.begin()->first - 1) < 0 ? 0 : (simpoint2Weights.begin()->first - 1)) * intervalSize;
         if (num_insts >= next_point) {
           Log("Should take cpt now: %lu", num_insts);
           return true;
