@@ -746,9 +746,16 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 #ifdef CONFIG_RVH
   else if (is_write(hgatp)) {
-    // Only support Sv39, ignore write that sets other mode
-    if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
-      hgatp->val = MASKED_HGATP(src);
+    hgatp_t new_val = (hgatp_t)src;
+    // vmid and ppn WARL in the normal way, regardless of new_val.mode
+    hgatp->vmid = new_val.vmid;
+    // Make PPN[1:0] read only zero
+    hgatp->ppn = new_val.ppn & ~(rtlreg_t)3 & BITMASK(CONFIG_PADDRBITS - PAGE_SHIFT);
+
+    // Only support Sv39x4, ignore write that sets other mode
+    if (new_val.mode == HGATP_MODE_Sv39x4 || new_val.mode == HGATP_MODE_BARE)
+      hgatp->mode = new_val.mode;
+    // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
   }
 #endif// CONFIG_RVH
   else if (is_mhpmcounter(dest) || is_mhpmevent(dest)) {

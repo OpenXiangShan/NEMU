@@ -1055,6 +1055,8 @@ MAP(CSRS, CSRS_DECL)
 
 /** CSR hgatp **/
 #ifdef CONFIG_RVH
+#define HGATP_MODE_BARE   0
+#define HGATP_MODE_Sv39x4 8
 #define HGATP_VMID_LEN 14 // max is 14
 #define HGATP_PADDR_LEN 44 // max is 44
 #define HGATP_VMID_MAX_LEN 16
@@ -1065,7 +1067,6 @@ MAP(CSRS, CSRS_DECL)
 #define HGATP_PADDR_MASK ((1L << HGATP_PADDR_MAX_LEN)-1)
 
 #define HGATP_MASK (HGATP_MODE_MASK | HGATP_VMID_MASK | HGATP_PADDR_MASK)
-#define MASKED_HGATP(x) (HGATP_MASK & x)
 #endif // CONFIG_RVH
 
 /** RVH **/
