@@ -101,6 +101,7 @@ void isa_reg_display() {
 
 #ifdef CONFIG_RV_SDTRIG
   printf("tselect: " FMT_WORD "\n", tselect->val);
+  printf("tcontrol: " FMT_WORD "\n", tcontrol->val);
   for(i = 0; i < CONFIG_TRIGGER_NUM + 1; i++) {
     printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
   }
