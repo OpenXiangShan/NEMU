@@ -276,10 +276,9 @@ static inline void update_mstatus_fs() {
 }
 
 inline word_t gen_status_sd(word_t status) {
-  __attribute_maybe_unused__
   mstatus_t xstatus = (mstatus_t)status;
-  bool fs_dirty = MUXNDEF(CONFIG_FPU_NONE, xstatus.fs == EXT_CONTEXT_DIRTY, false);
-  bool vs_dirty = MUXDEF(CONFIG_RVV, xstatus.vs == EXT_CONTEXT_DIRTY, false);
+  bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
+  bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
   return ((word_t)(fs_dirty || vs_dirty)) << 63;
 }
 
