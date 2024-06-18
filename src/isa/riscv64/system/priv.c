@@ -758,10 +758,13 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else { *dest = src; }
 
+#ifndef CONFIG_FPU_NONE
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
   }
+#endif
+
 #ifdef CONFIG_RVV
   if (is_write(vcsr) || is_write(vstart) || is_write(vxsat) || is_write(vxrm)) {
     vp_set_dirty();
