@@ -26,5 +26,13 @@ bool vp_enable() {
 
 void vp_set_dirty() {
   mstatus->vs = EXT_CONTEXT_DIRTY;
+#ifdef CONFIG_RVH
+  if (cpu.v == 1) {
+    if (hstatus->vsxl == 1)
+      vsstatus->_32.vs = EXT_CONTEXT_DIRTY;
+    else
+      vsstatus->_64.vs = EXT_CONTEXT_DIRTY;
+  }
+#endif //CONFIG_RVH
 }
 #endif // CONFIG_RVV

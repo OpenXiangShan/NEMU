@@ -36,13 +36,13 @@ bool fp_enable() {
 }
 
 void fp_set_dirty() {
-  mstatus->fs = 3;
+  mstatus->fs = EXT_CONTEXT_DIRTY;
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {
     if (hstatus->vsxl == 1)
-      vsstatus->_32.fs = 3;
+      vsstatus->_32.fs = EXT_CONTEXT_DIRTY;
     else
-      vsstatus->_64.fs = 3;
+      vsstatus->_64.fs = EXT_CONTEXT_DIRTY;
   }
 #endif //CONFIG_RVH
 }
