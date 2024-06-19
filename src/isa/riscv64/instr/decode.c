@@ -93,7 +93,7 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   trig_action_t action = TRIG_ACTION_NONE;
   if (cpu.TM->check_timings.bf) {
     action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->snpc, TRIGGER_NO_VALUE);
@@ -115,7 +115,7 @@ int isa_fetch_decode(Decode *s) {
     idx = table_main(s);
   }
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   if (cpu.TM->check_timings.af) {
     action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, s->isa.instr.val);
   }

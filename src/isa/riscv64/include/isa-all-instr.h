@@ -167,12 +167,12 @@
 #define CRYPTO_INSTR_BINARY(f)
 #endif // CONFIG_RVK
 
-#ifdef CONFIG_RVZICOND
+#ifdef CONFIG_RV_ZICOND
 #define ZICOND_INSTR_TERNARY(f) \
   f(czero_eqz) f(czero_nez)
-#else // CONFIG_RVZICOND
+#else // CONFIG_RV_ZICOND
 #define ZICOND_INSTR_TERNARY(f)
-#endif // CONFIG_RVZICOND
+#endif // CONFIG_RV_ZICOND
 
 #ifdef CONFIG_FPU_NONE
 #define FLOAT_INSTR_BINARY(f)

@@ -13,7 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifdef CONFIG_RVZICOND
+#ifdef CONFIG_RV_ZICOND
 
 def_EHelper(czero_eqz) {
   *ddest = *dsrc2 == 0 ? 0 : *dsrc1;

@@ -132,15 +132,15 @@ typedef struct {
   struct DebugInfo debug;
 #ifdef CONFIG_QUERY_REF
   struct MemEventQueryResult query_mem_event;
-#endif
+#endif // CONFIG_QUERY_REF
 
-#ifdef CONFIG_RVSDEXT
+#ifdef CONFIG_RV_SDEXT
   bool debug_mode;
-#endif
+#endif // CONFIG_RV_SDEXT
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   TriggerModule *TM;
-#endif
+#endif // CONFIG_RV_SDTRIG
 } riscv64_CPU_state;
 
 // decode

@@ -33,7 +33,7 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/exec.h"
 #endif
-#ifdef CONFIG_RVZICOND
+#ifdef CONFIG_RV_ZICOND
 #include "../instr/rvzicond/exec.h"
 #endif
 #include "../instr/special.h"

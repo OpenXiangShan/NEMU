@@ -47,13 +47,13 @@ void init_csr() {
   #endif
 };
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
 void init_trigger() {
   cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
   for (int i = 0; i < CONFIG_TRIGGER_NUM; i++)
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
 }
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
 
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
 static inline void csr_counter_enable_check(uint32_t addr) {
@@ -171,17 +171,17 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATUS_WMASK 0
 #endif
 
-#ifdef CONFIG_RV_Zicntr
+#ifdef CONFIG_RV_ZICNTR
   #define COUNTEREN_ZICNTR_MASK (0x7UL)
-#else // CONFIG_RV_Zicntr
+#else // CONFIG_RV_ZICNTR
   #define COUNTEREN_ZICNTR_MASK (0x0)
-#endif // CONFIG_RV_Zicntr
+#endif // CONFIG_RV_ZICNTR
 
-#ifdef CONFIG_RV_Zihpm
+#ifdef CONFIG_RV_ZIHPM
   #define COUNTEREN_ZIHPM_MASK (0xfffffff8UL)
-#else // CONFIG_RV_Zihpm
+#else // CONFIG_RV_ZIHPM
   #define COUNTEREN_ZIHPM_MASK (0x0)
-#endif // CONFIG_RV_Zihpm
+#endif // CONFIG_RV_ZIHPM
 
 #define COUNTEREN_MASK (COUNTEREN_ZICNTR_MASK | COUNTEREN_ZIHPM_MASK)
 
@@ -436,7 +436,7 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     difftest_skip_ref();
     return get_minstret();
   }
-#ifdef CONFIG_RV_Zicntr
+#ifdef CONFIG_RV_ZICNTR
   else if (is_read(cycle)) {
     // NEMU emulates a hart with CPI = 1.
     difftest_skip_ref();
@@ -454,17 +454,17 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     difftest_skip_ref();
     return get_minstret();
   }
-#endif // CONFIG_RV_Zicntr
+#endif // CONFIG_RV_ZICNTR
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
 #endif
   if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val ^
     (cpu.TM->triggers[tselect->val].tdata1.mcontrol.hit << 20); }
   if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
   if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
   return *src;
 }
 
@@ -740,7 +740,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Only support Sv39, ignore write that sets other mode
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       *dest = MASKED_SATP(src);
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   } else if (is_write(tselect)) {
     *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
   } else if (is_write(tdata1)) {
@@ -767,7 +767,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
     tdata2_t wdata = *(tdata2_t*)&src;
     tdata2_reg->val = wdata.val;
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
   }
 #ifdef CONFIG_RVH
   else if (is_write(hgatp)) {
