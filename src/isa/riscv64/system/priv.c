@@ -486,7 +486,8 @@ void disable_time_intr() {
 
 #ifdef CONFIG_RVH
 void update_vsatp(const vsatp_t new_val) {
-  vsatp->_64.mode = new_val._64.mode;
+  if (new_val._64.mode == SATP_MODE_BARE || new_val._64.mode == SATP_MODE_Sv39)
+    vsatp->_64.mode = new_val._64.mode;
   vsatp->_64.asid = new_val._64.asid;
   switch (hgatp->mode) {
     case HGATP_MODE_BARE:
@@ -561,10 +562,8 @@ static inline void csr_write(word_t *dest, word_t src) {
       longjmp_exception(EX_VI);
     }
     vsatp_t new_val = (vsatp_t)src;
-    // legal mode
-    if (new_val._64.mode == SATP_MODE_BARE || new_val._64.mode == SATP_MODE_Sv39) {
-      update_vsatp(new_val);
-    }
+    // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
+    update_vsatp(new_val);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
 #else
   if (is_write(mstatus)) {
