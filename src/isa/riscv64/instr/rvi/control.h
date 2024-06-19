@@ -33,6 +33,7 @@ def_EHelper(jal) {
 def_EHelper(jalr) {
   // Described at 2.5 Control Transter Instructions
   // The target address is obtained by adding the sign-extended 12-bit I-immediate to the register rs1
+
   rtl_addi(s, s0, dsrc1, id_src2->imm);
   // then setting the least-significant bit of the result to zero.
   rtl_andi(s, s0, s0, ~1UL);

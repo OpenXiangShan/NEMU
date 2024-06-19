@@ -542,10 +542,6 @@ static int execute(int n) {
     // fprintf(stderr, "PCInstr,%lx,%x\n", s.pc,
               // s.isa.instr.val);
     // fflush(stderr);
-
-    extern void trace_write(uint64_t pc, uint32_t instr);
-    trace_write(s.pc, s.isa.instr.val);
-
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
@@ -553,6 +549,10 @@ static int execute(int n) {
     }
 #endif
     s.EHelper(&s);
+
+    extern void trace_inst_over();
+    trace_inst_over();
+
     g_nr_guest_instr++;
 #ifdef CONFIG_BR_LOG
 #ifdef CONFIG_LIGHTQS_DEBUG
@@ -584,7 +584,12 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
+
+  extern void trace_write_base(uint64_t pc);
+  trace_write_base(s->pc);
+
   int idx = isa_fetch_decode(s);
+  // TODO: add trace tlb va-pa. may be need add a no-side-effect ptw
   Logtid(FMT_WORD ":   %s%*.s%s", s->pc, log_bytebuf,
          40 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf);
   IFDEF(CONFIG_DEBUG,
@@ -592,6 +597,9 @@ void fetch_decode(Decode *s, vaddr_t pc) {
                  log_bytebuf, 40 - (12 + 3 * (int)(s->snpc - s->pc)), "",
                  log_asmbuf));
   s->EHelper = g_exec_table[idx];
+
+  extern void trace_write_inst(uint32_t inst);
+  trace_write_inst(s->isa.instr.val);
 }
 
 #ifdef CONFIG_PERF_OPT
@@ -603,6 +611,7 @@ static void update_global() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+
 #ifndef CONFIG_LIGHTQS
   IFDEF(CONFIG_SHARE, assert(n <= 1));
 #endif
@@ -656,6 +665,7 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
+      // TODO: Trace the exception
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
@@ -664,6 +674,7 @@ void cpu_exec(uint64_t n) {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
+      // TODO: Trace the intr
         cpu.pc = raise_intr(intr, cpu.pc);
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));

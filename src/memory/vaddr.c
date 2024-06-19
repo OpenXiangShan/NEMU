@@ -38,6 +38,15 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
     int ret = mmu_ret & PAGE_MASK;
     if (ret != MEM_RET_OK) return 0;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
+
+    extern void trace_write_pc_pa(uint64_t pa);
+    extern void trace_write_mem_pa(uint64_t pa);
+    if (type == MEM_TYPE_IFETCH) {
+      trace_write_pc_pa(addr);
+    } else {
+      trace_write_mem_pa(addr);
+    }
+
 #ifdef CONFIG_MULTICORE_DIFF
     word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1, type, cpu.mode, vaddr);
 #else
@@ -56,6 +65,10 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
     int ret = mmu_ret & PAGE_MASK;
     if (ret != MEM_RET_OK) return;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
+
+    extern void trace_write_mem_pa(uint64_t pa);
+    trace_write_mem_pa(addr);
+
     paddr_write(paddr, 1, data & 0xff, cpu.mode, vaddr);
     data >>= 8;
   }
@@ -68,6 +81,15 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+
+    extern void trace_write_pc_pa(uint64_t pa);
+    extern void trace_write_mem_pa(uint64_t pa);
+    if (type == MEM_TYPE_IFETCH) {
+      trace_write_pc_pa(addr);
+    } else {
+      trace_write_mem_pa(addr);
+    }
+
 #ifdef CONFIG_MULTICORE_DIFF
     word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len, type, cpu.mode, vaddr);
 #else
@@ -93,6 +115,10 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+
+    extern void trace_write_mem_pa(uint64_t pa);
+    trace_write_mem_pa(addr);
+
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "[NEMU] mmu_write: vaddr 0x%lx, paddr 0x%lx, len %d, data 0x%lx\n",

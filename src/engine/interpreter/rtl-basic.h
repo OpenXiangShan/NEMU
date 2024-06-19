@@ -124,6 +124,10 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+
+  extern void trace_write_memory(uint64_t va, uint8_t size, uint8_t is_write);
+  trace_write_memory(*addr + offset, len, 0);
+
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
@@ -135,6 +139,10 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+
+  extern void trace_write_memory(uint64_t va, uint8_t size, uint8_t is_write);
+  trace_write_memory(*addr + offset, len, 1);
+
   vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
@@ -146,6 +154,10 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+
+  extern void trace_write_memory(uint64_t va, uint8_t size, uint8_t is_write);
+  trace_write_memory(*addr + offset, len, 0);
+
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
@@ -212,6 +224,9 @@ static inline def_rtl(j, vaddr_t target) {
   cpu.pc = target;
   // real_target = target;
 
+  extern void trace_write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken);
+  trace_write_branch(target, 3, 1);
+
 #ifndef CONFIG_SHARE
   if (profiling_state == SimpointProfiling && workload_loaded) {
     simpoint_profiling(cpu.pc, true, get_abs_instr_count());
@@ -244,6 +259,9 @@ static inline def_rtl(jr, rtlreg_t *target) {
 #endif
 
   cpu.pc = *target;
+  extern void trace_write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken);
+  trace_write_branch(*target, 4, 1);
+
   #ifdef CONFIG_BR_LOG
   real_target = *target;
   #endif // CONFIG_BR_LOG
@@ -271,6 +289,10 @@ end_of_rtl_jr:
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
+
+  extern void trace_write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken);
+  trace_write_branch(target, 1, is_jmp);
+
   // printf("%lx,%lx,%d,%d,%lx\n", br_count, cpu.pc, is_jmp, 0, target);
 #ifdef CONFIG_BR_LOG
   br_log[br_count].pc = s->pc; // cpu.pc - 4;

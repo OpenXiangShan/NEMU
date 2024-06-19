@@ -16,9 +16,13 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <cstring>
 #include <map>
 #include <iostream>
 #include <trace/trace_writer.h>
+
+// #define TraceLog(...) printf(__VA_ARGS__); fflush(stdout)
+#define TraceLog(...)
 
 TraceWriter::TraceWriter(std::string trace_file_name) {
   trace_stream = new std::ofstream(trace_file_name, std::ios_base::out);
@@ -39,38 +43,136 @@ bool TraceWriter::write(Instruction &inst) {
   return true;
 }
 
-bool TraceWriter::write(uint64_t pc, uint32_t instr) {
-  if (trace_stream == NULL) {
-    throw std::runtime_error("[TraceWriter.write] empty trace_stream.");
-    return false;
-  }
-
-  Instruction inst;
-  inst.instr_pc = pc;
-  inst.instr = instr;
-  inst.padding = 0;
-  // inst.memory_size = 0;
-  // inst.memory_address = 0;
-
-  trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
-  return true;
-}
-
 bool TraceWriter::write(Control &ctrl) {
   if (trace_stream == NULL) {
     throw std::runtime_error("[TraceWriter.write] empty trace_stream.");
     return false;
   }
 
+  TraceLog("TraceWriter::write\n");
   trace_stream->write(reinterpret_cast<char *> (&ctrl), sizeof(Control));
   return true;
 }
+
+void TraceWriter::inst_start() {
+  if (trace_stream == NULL) {
+    throw std::runtime_error("[TraceWriter.inst_start] empty trace_stream.");
+    return;
+  }
+  if (inst_valid) {
+    throw std::runtime_error("[TraceWriter.inst_start] inst_valid already true.");
+    return;
+  }
+
+  TraceLog("TraceWriter::inst_start\n");
+  inst_valid = true;
+  return;
+}
+
+void TraceWriter::inst_over() {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.inst_over] inst_valid already false.");
+    return;
+  }
+
+  trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
+  inst_list.push_back(inst);
+
+  TraceLog("TraceWriter::inst_over\n");
+  inst_valid = false;
+  return;
+}
+
+void TraceWriter::inst_reset() {
+  TraceLog("TraceWriter::inst_reset\n");
+  memset(reinterpret_cast<void*>(&inst), 0, sizeof(Instruction));
+}
+
+void TraceWriter::write_pc(uint64_t pc) {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.write_pc] inst_valid false.");
+    return;
+  }
+  TraceLog("TraceWriter::write_pc\n");
+  inst.instr_pc_va = pc;
+  return;
+}
+
+void TraceWriter::write_inst(uint32_t instr) {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.write_inst] inst_valid false.");
+    return;
+  }
+
+  TraceLog("TraceWriter::write_inst\n");
+  inst.instr = instr;
+  return;
+}
+
+void TraceWriter::write_memory(uint64_t va, uint8_t size, uint8_t is_write) {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.write_mem] inst_valid false.");
+    return;
+  }
+
+  TraceLog("TraceWriter::write_memory\n");
+  inst.memory_address_va = va;
+  inst.memory_size = size;
+  inst.memory_type = is_write ? MEM_TYPE_Store : MEM_TYPE_Load;
+  return;
+}
+
+void TraceWriter::write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken) {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.write_branch] inst_valid false.");
+    return;
+  }
+
+  if (inst.branch_type == BRANCH_None) {
+    TraceLog("TraceWriter::write_branch/jump target\n");
+    inst.target = target;
+    inst.branch_type = branch_type;
+    inst.taken = is_taken;
+  } else {
+    TraceLog("TraceWriter::write_branch target(nested call rtl_j)\n");
+  }
+  return;
+}
+
+void TraceWriter::write_pc_pa(uint64_t pa) {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.write_pc_pa] inst_valid false.");
+    return;
+  }
+
+  TraceLog("TraceWriter::write_pc_pa\n");
+  inst.instr_pc_pa = pa;
+  return;
+}
+
+void TraceWriter::write_mem_pa(uint64_t pa) {
+  if (!inst_valid) {
+    throw std::runtime_error("[TraceWriter.write_mem_pa] inst_valid false.");
+    return;
+  }
+
+  TraceLog("TraceWriter::write_mem_pa\n");
+  inst.memory_address_pa = pa;
+  return;
+}
+
 
 void TraceWriter::traceOver() {
   if (trace_stream == NULL) {
     throw std::runtime_error("[TraceWriter.traceOver] empty trace_stream.");
     return;
   }
+
+  TraceLog("TraceWriter::traceOver\n");
+
+  // for (auto it = inst_list.begin(); it != inst_list.end(); it++) {
+  //   it->dump();
+  // }
 
   trace_stream->close();
 }
@@ -99,16 +201,34 @@ TraceWriter *trace_writer = new TraceWriter("Im-A-TraceName");
 
 extern "C"  {
 
-// void init_trace_writer(std::string trace_file_name) {
-//   trace_writer = new TraceWriter(trace_file_name);
-// }
+void trace_write_base(uint64_t pc) {
+  trace_writer->inst_reset();
+  trace_writer->inst_start();
+  trace_writer->write_pc(pc);
+}
 
-void trace_write(uint64_t pc, uint32_t instr) {
-  Instruction inst;
-  inst.instr_pc = pc;
-  inst.instr = instr;
-  inst.padding = 0;
-  trace_writer->write(inst);
+void trace_write_pc_pa(uint64_t pa) {
+  trace_writer->write_pc_pa(pa);
+}
+
+void trace_write_inst(uint32_t instr) {
+  trace_writer->write_inst(instr);
+}
+
+void trace_write_memory(uint64_t va, uint8_t size, uint8_t is_write) {
+  trace_writer->write_memory(va, size, is_write);
+}
+
+void trace_write_mem_pa(uint64_t pa) {
+  trace_writer->write_mem_pa(pa);
+}
+
+void trace_write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken) {
+  trace_writer->write_branch(target, branch_type, is_taken);
+}
+
+void trace_inst_over() {
+  trace_writer->inst_over();
 }
 
 void trace_end() {

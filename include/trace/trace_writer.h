@@ -17,10 +17,14 @@
 #define __TRACE_WRITER_H__
 
 #include <fstream>
+#include <deque>
 #include "trace_format.h"
 
 class TraceWriter {
   std::ofstream *trace_stream;
+  Instruction inst;
+  std::deque<Instruction> inst_list;
+  bool inst_valid = false;
 
 public:
   TraceWriter(std::string trace_file_name);
@@ -30,10 +34,18 @@ public:
 
   /* write an instruction */
   bool write(Instruction &inst);
-  /* write an bare instruction */
-  bool write(uint64_t pc, uint32_t instr);
   /* write an control */
   bool write(Control &ctrl);
+
+  void inst_start();
+  void write_pc(uint64_t pc);
+  void write_inst(uint32_t instr);
+  void write_pc_pa(uint64_t pa);
+  void write_memory(uint64_t va, uint8_t size, uint8_t is_write);
+  void write_mem_pa(uint64_t pa);
+  void write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken);
+  void inst_over();
+  void inst_reset();
 
   void traceOver();
 };
