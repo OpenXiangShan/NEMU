@@ -17,14 +17,14 @@ CONFIG_CLINT_MMIO=0x38000000
 # CONFIG_MULTICORE_DIFF is not set
 CONFIG_RVB=y
 CONFIG_RVK=y
-CONFIG_RVZICOND=y
+CONFIG_RV_ZICOND=y
 # CONFIG_RVV is not set
 CONFIG_RV_DEBUG=y
 CONFIG_RVH=y
-# CONFIG_RVSDEXT is not set
-# CONFIG_RVSDTRIG is not set
-# CONFIG_RV_Zicntr is not set
-# CONFIG_RV_Zihpm is not set
+# CONFIG_RV_SDEXT is not set
+# CONFIG_RV_SDTRIG is not set
+# CONFIG_RV_ZICNTR is not set
+# CONFIG_RV_ZIHPM is not set
 CONFIG_RV_CSR_mcountinhibit=y
 # CONFIG_RV_CSR_mcountinhibit_cntr is not set
 # CONFIG_RV_CSR_mcountinhibit_hpm is not set

@@ -1,4 +1,4 @@
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
 
 #ifndef __TRIGGER_H__
 #define __TRIGGER_H__
@@ -192,4 +192,4 @@ void trigger_handler(const trig_action_t action);
 #define TRIGGER_NO_VALUE (0)
 
 #endif // __TRIGGER_H__
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG

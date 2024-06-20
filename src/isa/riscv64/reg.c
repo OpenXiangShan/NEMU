@@ -99,12 +99,12 @@ void isa_reg_display() {
   printf("vxrm: " FMT_WORD " vl: " FMT_WORD " vcsr: " FMT_WORD "\n", vxrm->val, vl->val, vcsr->val);
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   printf("tselect: " FMT_WORD "\n", tselect->val);
   for(i = 0; i < CONFIG_TRIGGER_NUM + 1; i++) {
     printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
   }
-#endif
+#endif // CONFIG_RV_SDTRIG
   fflush(stdout);
 }
 

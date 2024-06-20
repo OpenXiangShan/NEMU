@@ -29,9 +29,9 @@ static const uint32_t img [] = {
 #endif
 
 void init_csr();
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
 void init_trigger();
-#endif
+#endif // CONFIG_RV_SDTRIG
 
 #if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
@@ -135,9 +135,9 @@ void init_isa() {
   mimpid->val = CONFIG_MIMPID_VALUE;
 #endif // CONFIG_USE_XS_ARCH_CSRS
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   init_trigger();
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
 
 #ifndef CONFIG_SHARE
   extern char *cpt_file;

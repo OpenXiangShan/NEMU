@@ -20,8 +20,8 @@ CONFIG_RVK=y
 CONFIG_RVV=y
 CONFIG_RV_DEBUG=y
 # CONFIG_RVH is not set
-# CONFIG_RVSDEXT is not set
-# CONFIG_RVSDTRIG is not set
+# CONFIG_RV_SDEXT is not set
+# CONFIG_RV_SDTRIG is not set
 # CONFIG_RV_PMP_ENTRY_0 is not set
 CONFIG_RV_PMP_ENTRY_16=y
 # CONFIG_RV_PMP_ENTRY_64 is not set

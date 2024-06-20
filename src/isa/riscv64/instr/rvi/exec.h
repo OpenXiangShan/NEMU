@@ -15,7 +15,7 @@
 
 #include "compute.h"
 
-#ifndef CONFIG_RVSDTRIG
+#ifndef CONFIG_RV_SDTRIG
 #include "ldst.h"
 #else
 #include "ldst_trig.h"

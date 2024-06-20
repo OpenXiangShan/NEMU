@@ -43,18 +43,18 @@
   #define CSRS_UNPRIV_TIME(f)
 #endif // CONFIG_RV_CSR_TIME
 
-#ifdef CONFIG_RV_Zicntr
+#ifdef CONFIG_RV_ZICNTR
   #define CSRS_UNPRIV_CNTR(f) \
     f(cycle      , 0xC00) \
     CSRS_UNPRIV_TIME(f) \
     f(instret    , 0xC02)
     // There is `time_t` type in the C programming language.
     // So We have to use another name for CSR time.
-#else // CONFIG_RV_Zicntr
+#else // CONFIG_RV_ZICNTR
   #define CSRS_UNPRIV_CNTR(f)
-#endif // CONFIG_RV_Zicntr
+#endif // CONFIG_RV_ZICNTR
 
-#ifdef CONFIG_RV_Zihpm
+#ifdef CONFIG_RV_ZIHPM
   #define CSRS_UNPRIV_HPMCOUNTER(f) \
     f(hpmcounter3    , 0xC03) \
     f(hpmcounter4    , 0xC04) f(hpmcounter5    , 0xC05) f(hpmcounter6    , 0xC06) f(hpmcounter7    , 0xC07) \
@@ -64,9 +64,9 @@
     f(hpmcounter20   , 0xC14) f(hpmcounter21   , 0xC15) f(hpmcounter22   , 0xC16) f(hpmcounter23   , 0xC17) \
     f(hpmcounter24   , 0xC18) f(hpmcounter25   , 0xC19) f(hpmcounter26   , 0xC1A) f(hpmcounter27   , 0xC1B) \
     f(hpmcounter28   , 0xC1C) f(hpmcounter29   , 0xC1D) f(hpmcounter30   , 0xC1E) f(hpmcounter31   , 0xC1F)
-#else // CONFIG_RV_Zihpm
+#else // CONFIG_RV_ZIHPM
   #define CSRS_UNPRIV_HPMCOUNTER(f)
-#endif // CONFIG_RV_Zihpm
+#endif // CONFIG_RV_ZIHPM
 
 #define CSRS_UNPRIV_COUNTER_TIMERS(f) \
   CSRS_UNPRIV_CNTR(f) \
@@ -117,12 +117,12 @@
   f(satp       , 0x180)
 
 /** Debug/Trace Registers (Trigger Module Registers) **/
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   #define CSRS_S_DEBUG_TRACE(f) \
     f(scontext   , 0x6A8)
-#else // CONFIG_RVSDTRIG
+#else // CONFIG_RV_SDTRIG
   #define CSRS_S_DEBUG_TRACE(f)
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
 
 /** Supervisor State Enable Registers **/
 #define CSRS_S_STATE_ENABLE(f)
@@ -174,12 +174,12 @@
     f(hgatp      , 0x680)
 
   /** Debug/Trace Registers (Trigger Module Registers) **/
-  #ifdef CONFIG_RVSDTRIG
+  #ifdef CONFIG_RV_SDTRIG
     #define CSRS_H_DEBUG_TRACE(f) \
       f(hcontext   , 0x6A8)
-  #else // CONFIG_RVSDTRIG
+  #else // CONFIG_RV_SDTRIG
     #define CSRS_H_DEBUG_TRACE(f)
-  #endif // CONFIG_RVSDTRIG
+  #endif // CONFIG_RV_SDTRIG
 
   /** Hypervisor Counter/Timer Virtualization Registers **/
   #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
@@ -316,24 +316,24 @@
   CSRS_M_HPMEVENT(f)
   
 /** Debug/Trace Registers (Trigger Module Registers) **/
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f) \
     f(tselect    , 0x7A0) \
     f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) f(tdata3     , 0x7A3) \
     f(tinfo      , 0x7A4) f(tcontrol   , 0x7A5) \
     f(mcontext   , 0x7A8)
-#else // CONFIG_RVSDTRIG
+#else // CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f)
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
 
 /** Debug Mode Registers (Core Debug Registers) **/
-#ifdef CONFIG_RVSDEXT
+#ifdef CONFIG_RV_SDEXT
   #define CSRS_DEBUG_MODE(f) \
     f(dcsr       , 0x7b0) f(dpc        , 0x7b1) \
     f(dscratch0  , 0x7b2) f(dscratch1  , 0x7b3)
-#else // CONFIG_RVSDEXT
+#else // CONFIG_RV_SDEXT
   #define CSRS_DEBUG_MODE(f)
-#endif // CONFIG_RVSDEXT
+#endif // CONFIG_RV_SDEXT
 
 /** ALL **/
 #define CSRS_M(f) \
@@ -538,7 +538,7 @@ CSR_STRUCT_DUMMY_LIST(CSRS_M_MEMORY_PROTECTION)
 
 /** Debug Mode Registers (Core Debug Registers) **/
 
-#ifdef CONFIG_RVSDEXT
+#ifdef CONFIG_RV_SDEXT
 CSR_STRUCT_START(dcsr)
   uint64_t prv      : 2 ; // [1:0]
   uint64_t step     : 1 ; // [2]
@@ -567,11 +567,11 @@ CSR_STRUCT_END(dscratch0)
 
 CSR_STRUCT_START(dscratch1)
 CSR_STRUCT_END(dscratch1)
-#endif // CONFIG_RVSDEXT
+#endif // CONFIG_RV_SDEXT
 
 /** Debug/Trace Registers (Trigger Module Registers) **/
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
 CSR_STRUCT_START(scontext)  // 0x5a8
 CSR_STRUCT_END(scontext)
 
@@ -619,7 +619,7 @@ CSR_STRUCT_END(tcontrol)
 CSR_STRUCT_START(mcontext)  // 0x7a8
 CSR_STRUCT_END(mcontext)
 
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
 
 /* Supervisor-level CSR */
 
@@ -973,7 +973,7 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RV_Zicntr
+#ifdef CONFIG_RV_ZICNTR
 CSR_STRUCT_START(cycle)
 CSR_STRUCT_END(cycle)
 
@@ -984,11 +984,11 @@ CSR_STRUCT_END(csr_time)
 
 CSR_STRUCT_START(instret)
 CSR_STRUCT_END(instret)
-#endif // CONFIG_RV_Zicntr
+#endif // CONFIG_RV_ZICNTR
 
-#ifdef CONFIG_RV_Zihpm
+#ifdef CONFIG_RV_ZIHPM
 CSR_STRUCT_DUMMY_LIST(CSRS_UNPRIV_HPMCOUNTER)
-#endif // CONFIG_RV_Zihpm
+#endif // CONFIG_RV_ZIHPM
 
 
 /**

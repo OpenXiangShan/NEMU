@@ -4,7 +4,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
 
 void tm_update_timings(struct TriggerModule* TM) {
   TM->check_timings.val = 0;
@@ -27,7 +27,7 @@ trig_action_t tm_check_hit(
   vaddr_t addr,
   word_t data
 ) {
-#ifdef CONFIG_RVSDEXT
+#ifdef CONFIG_RV_SDEXT
   // do nothing in debug mode
   if (cpu.debug_mode)
     return TRIG_ACTION_NONE;
@@ -171,4 +171,4 @@ void trigger_handler(const trig_action_t action) {
   }
 }
 
-#endif //CONFIG_RVSDTRIG
+#endif //CONFIG_RV_SDTRIG

@@ -16,7 +16,7 @@ config RVK
   bool "RISC-V Cryptography Extension v1.0"
   default y
 
-config RVZICOND
+config RV_ZICOND
   bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
   default y
 
@@ -33,22 +33,22 @@ config RVH
   bool "RISC-V Hypervisor Extension v1.0"
   default y
 
-config RVSDEXT
+config RV_SDEXT
   bool "(Beta) RISC-V Sdext ISA Extension v1.0"
   depends on RV_DEBUG
   default n
 
-config RVSDTRIG
+config RV_SDTRIG
   bool "(Beta) RISC-V Sdtrig ISA Extension v1.0"
   depends on RV_DEBUG
   default n
 
 config TRIGGER_NUM
   int "Number of supported triggers"
-  depends on RVSDTRIG
+  depends on RV_SDTRIG
   default 10
 
-menuconfig RV_Zicntr
+menuconfig RV_ZICNTR
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
   default y
   help
@@ -58,7 +58,7 @@ menuconfig RV_Zicntr
 
     INFO: the CPI (cycles per instruction) of NEMU is set to 1.
 
-if RV_Zicntr
+if RV_ZICNTR
 config RV_CSR_TIME
   bool "Implement CSR time (0xc01)"
   default n
@@ -69,9 +69,9 @@ config RV_CSR_TIME
     always writable to allow machine programs to simulate reading the time
     register.
 
-endif # RV_Zicntr
+endif # RV_ZICNTR
 
-config RV_Zihpm
+config RV_ZIHPM
   bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0" 
   default y
   help
