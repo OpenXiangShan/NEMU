@@ -242,6 +242,7 @@ void Serializer::init() {
   if  (checkpoint_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
+    warmupIntervalSize = warmup_interval;
     Log("Taking simpoint checkpionts with profiling interval %lu", checkpoint_interval);
 
     auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0");
@@ -275,9 +276,9 @@ bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
       if (simpoint2Weights.empty()) {
         break;
       } else {
-        uint64_t next_point = ((simpoint2Weights.begin()->first - 1) < 0 ? 0 : (simpoint2Weights.begin()->first - 1)) * intervalSize;
+        uint64_t next_point = (simpoint2Weights.begin()->first * intervalSize) <= warmupIntervalSize ? 0 : (simpoint2Weights.begin()->first * intervalSize) - warmupIntervalSize;
         if (num_insts >= next_point) {
-          Log("Should take cpt now: %lu", num_insts);
+          Log("Should take cpt now: %lu next point %lu", num_insts, next_point);
           return true;
         } else if (num_insts % intervalSize == 0) {
           Log("First cpt @ %lu, now: %lu", next_point, num_insts);

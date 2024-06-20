@@ -20,6 +20,7 @@ extern int profiling_state;
 extern int checkpoint_state;
 extern bool checkpoint_restoring;
 extern uint64_t checkpoint_interval;
+extern uint64_t warmup_interval;
 
 extern bool recvd_manual_oneshot_cpt;
 extern bool recvd_manual_uniform_cpt;

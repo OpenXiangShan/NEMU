@@ -5,6 +5,7 @@ int checkpoint_state = NoCheckpoint;
 bool checkpoint_taking = false;
 bool checkpoint_restoring = false;
 uint64_t checkpoint_interval = 0;
+uint64_t warmup_interval = 0;
 
 bool recvd_manual_oneshot_cpt = false;
 bool recvd_manual_uniform_cpt = false;
