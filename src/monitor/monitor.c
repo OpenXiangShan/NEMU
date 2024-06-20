@@ -105,6 +105,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"manual-oneshot-cpt" , no_argument      , NULL, 11},
     {"manual-uniform-cpt" , no_argument      , NULL, 9},
     {"cpt-interval"       , required_argument, NULL, 5},
+    {"warmup-interval"    , required_argument, NULL, 14},
     {"cpt-mmode"          , no_argument      , NULL, 7},
     {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
@@ -240,6 +241,7 @@ static inline int parse_args(int argc, char *argv[]) {
         log_file = optarg;
         small_log = true;
         break;
+      case 14: sscanf(optarg, "%lu", &warmup_interval); break;
 
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
@@ -261,6 +263,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
+        printf("\t--warmup-interval=INTERVAL warmup interval: the warmup interval for SimPoint cpt\n");
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
@@ -289,6 +292,10 @@ void init_monitor(int argc, char *argv[]) {
 #else
   parse_args(argc, argv);
 #endif
+
+  if (warmup_interval == 0) {
+    warmup_interval = checkpoint_interval;
+  }
 
   if (map_image_as_output_cpt) {
     assert(!mapped_cpt_file);
