@@ -127,7 +127,13 @@ void difftest_csrcpy(void *dut, bool direction) {
 }
 
 void difftest_uarchstatus_sync(void *dut) {
+#ifdef CONFIG_LIGHTQS
+  // This just fixes compilation error for lightqs.
+  // No guarantee given for functional correctness.
+  isa_difftest_uarchstatus_cpy(dut, DIFFTEST_TO_REF, 0);
+#else
   isa_difftest_uarchstatus_cpy(dut, DIFFTEST_TO_REF);
+#endif // CONFIG_LIGHTQS
 }
 
 #ifdef CONFIG_LIGHTQS
@@ -265,6 +271,9 @@ void difftest_put_gmaddr(uint8_t* ptr) {
 #endif
 
 #ifdef CONFIG_STORE_LOG
+// This just fixes compilation error for lightqs.
+// No guarantee given for functional correctness.
+#ifndef CONFIG_LIGHTQS
 void difftest_store_log_reset() {
   extern void pmem_record_reset();
   pmem_record_reset();
@@ -274,4 +283,5 @@ void difftest_store_log_restore() {
   extern void pmem_record_restore();
   pmem_record_restore();
 }
+#endif
 #endif // CONFIG_STORE_LOG
