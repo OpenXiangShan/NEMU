@@ -150,7 +150,7 @@ bool has_two_stage_translation(){
 }
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
-  // printf("gpaddr: %lx, vaddr: %lx\n", gpaddr, vaddr);
+  // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
 #ifdef FORCE_RAISE_PF
    if (cpu.guided_exec && cpu.execution_guide.force_raise_exception && 
         (cpu.execution_guide.exception_num == EX_IPF ||
@@ -190,7 +190,7 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
 }
 
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
-  Logtr("gpa_stage gpaddr: 0x%lx, vaddr: 0x%lx, type: %d", gpaddr, vaddr, type);
+  Logtr("gpa_stage gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD ", type: %d", gpaddr, vaddr, type);
   if(hgatp->mode == 8){
     if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
       raise_guest_excep(gpaddr, vaddr, type);
