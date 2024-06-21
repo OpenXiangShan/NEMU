@@ -53,17 +53,24 @@ SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
 
+DIRS-y += src/profiling
+
+ifndef CONFIG_SHARE
+DIRS-y += src/checkpoint
+endif
+
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
-DIRS-y += src/profiling
-ifndef CONFIG_SHARE
-DIRS-cpp = src/checkpoint src/base src/iostream3 src/memory src/profiling
-DIRS-y += src/checkpoint
+XSRCS-$(CONFIG_USE_SPARSEMM) += src/memory/sparseram.cpp
 
-XSRCS = $(shell find $(DIRS-cpp) -name "*.cpp")
+ifndef CONFIG_SHARE
+XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling
+XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
 endif
+
+XSRCS = $(XSRCS-y)
 
 CC = $(call remove_quote,$(CONFIG_CC))
 CXX = $(call remove_quote,$(CONFIG_CXX))
