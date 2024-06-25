@@ -137,6 +137,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
+#ifdef CONFIG_RVH
+    htval->val = 0;
+#endif
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
