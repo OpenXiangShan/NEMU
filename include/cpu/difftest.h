@@ -55,7 +55,7 @@ static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *r
   /***************ONLY FOR VLEN=128,ELEN=64**********************/
   if (memcmp(ref, dut, n)) {
     Log("%s is different after executing instruction at pc = " FMT_WORD
-        ", right =  0x%016lx_%016lx , wrong =  %016lx_%016lx", name, pc, ref[1], ref[0], dut[1], dut[0]);
+        ", right =  " FMT_WORD "_" FMT_WORD ", wrong = " FMT_WORD "_" FMT_WORD, name, pc, (sword_t)ref[1], (sword_t)ref[0], (sword_t)dut[1], (sword_t)dut[0]);
     return false;
   }
   return true;
@@ -68,13 +68,13 @@ static inline bool difftest_check_store(vaddr_t pc) {
 #endif
     store_commit_t *dut =  store_commit_queue_pop();
     if (dut == NULL) return true;
-    uint64_t dut_data = dut->data;
-    uint64_t dut_addr = dut->addr;
+    sword_t dut_data = dut->data;
+    sword_t dut_addr = dut->addr;
 
     if (ref_difftest_store_commit(&dut->addr, &dut->data, &dut->mask)) {
       Log("\n\t,is different memory executing instruction at pc = " FMT_WORD,pc);
       Log(",ref addr = " FMT_WORD ", data = " FMT_WORD "\n\t dut addr = " FMT_WORD ", data = " FMT_WORD
-          ,dut->addr, dut->data, dut_addr, dut_data);  
+          ,(sword_t)dut->addr, (sword_t)dut->data, dut_addr, dut_data);  
       return false;
     }
 #ifdef CONFIG_RVV

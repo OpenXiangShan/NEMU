@@ -29,6 +29,11 @@ config RV_DEBUG
   bool "RISC-V Debug Extension"
   default y
 
+config SIM32
+  bool "use riscv64 to sim riscv32"
+  default n
+
+
 config RVH
   bool "RISC-V Hypervisor Extension v1.0"
   default y

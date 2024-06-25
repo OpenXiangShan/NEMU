@@ -62,19 +62,30 @@
 #define c_divs_r(a, b)  ((sword_t)(a) % (sword_t)(b))
 
 static inline bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2) {
+  word_t sc1 = src1, sc2 = src2;
+#ifdef CONFIG_SIM32
+  if (src1 & 0x80000000) {
+    sc1 = src1 | 0xffffffff00000000;
+  }
+  if (src2 & 0x80000000) {
+    sc2 = src2 | 0xffffffff00000000;
+  }
+#else
+  sc1 = src1;
+  sc2 = src2;
+#endif
   switch (relop) {
     case RELOP_FALSE: return false;
     case RELOP_TRUE: return true;
-    case RELOP_EQ: return src1 == src2;
-    case RELOP_NE: return src1 != src2;
-    case RELOP_LT: return (sword_t)src1 <  (sword_t)src2;
-    case RELOP_LE: return (sword_t)src1 <= (sword_t)src2;
-    case RELOP_GT: return (sword_t)src1 >  (sword_t)src2;
-    case RELOP_GE: return (sword_t)src1 >= (sword_t)src2;
-    case RELOP_LTU: return src1 < src2;
-    case RELOP_LEU: return src1 <= src2;
-    case RELOP_GTU: return src1 > src2;
-    case RELOP_GEU: return src1 >= src2;
+    case RELOP_EQ: return sc1 == sc2;
+    case RELOP_NE: return sc1 != sc2;
+    case RELOP_LT: return (sword_t)sc1 <  (sword_t)sc2;
+    case RELOP_LE: return (sword_t)sc1 <= (sword_t)sc2;
+    case RELOP_GT: return (sword_t)sc1 >  (sword_t)sc2;
+    case RELOP_GE: return (sword_t)sc1 >= (sword_t)sc2;
+    case RELOP_LTU: return sc1 < sc2;
+    case RELOP_GTU: return sc1 > sc2;
+    case RELOP_GEU: return sc1 >= sc2;
     default: panic("unsupported relop = %d", relop);
   }
 }

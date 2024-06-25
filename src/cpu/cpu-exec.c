@@ -528,17 +528,26 @@ static int execute(int n) {
 #ifdef CONFIG_LIGHTQS_DEBUG
     printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
 #endif // CONFIG_LIGHTQS_DEBUG
+#ifdef CONFIG_ISA64
     cpu.amo = false;
+#endif
     fetch_decode(&s, cpu.pc);
+#ifdef CONFIG_ISA64
     cpu.debug.current_pc = s.pc;
+#endif
     cpu.pc = s.snpc;
 #ifdef CONFIG_TVAL_EX_II
     cpu.instr = s.isa.instr.val;
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
+#ifdef CONFIG_ISA64
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
               s.isa.instr.val);
+#else
+      fprintf(stderr, "(%d) [NEMU] pc = 0x%x inst %x\n", getpid(), s.pc,
+              s.isa.instr.val);
+#endif
     }
 #endif
     s.EHelper(&s);
@@ -646,7 +655,9 @@ void cpu_exec(uint64_t n) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
+#ifdef CONFIG_ISA64
       cpu.amo = false; // clean up
+#endif
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       IFDEF(CONFIG_SHARE, break);
     } else {
