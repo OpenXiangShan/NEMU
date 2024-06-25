@@ -246,8 +246,15 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define SCOUNTOVF_WMASK 0xfffffff8ULL
 
+// Smcsrind/Sscsrind is not implemented. bit 60(CSRIND) read-only 1.
+#define STATEEN0_CSRIND  0x1000000000000000ULL
+#define MSTATEEN0_WMASK  0xdc00000000000001ULL
+#define HSTATEEN0_WMASK  0xdc00000000000001ULL
+#define SSTATEEN0_WMASK  0x0000000000000001ULL // 32 bits
+
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
+#define is_access(csr) (src != NULL)?(is_read(csr)):(is_write(csr))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
 #define is_pmpcfg(p) (p >= &(csr_array[CSR_PMPCFG_BASE]) && p < &(csr_array[CSR_PMPCFG_BASE + CSR_PMPCFG_MAX_NUM]))
@@ -477,6 +484,18 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
   if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
 #endif // CONFIG_RV_SDTRIG
+
+#ifdef CONFIG_RV_SMSTATEEN
+if (is_read(mstateen0))   { return mstateen0->val; }
+if (is_read(sstateen0))   { return sstateen0->val & mstateen0->val; }
+#ifdef CONFIG_RVH
+  if (cpu.v == 1) {
+  if (is_read(sstateen0)) { return sstateen0->val & hstateen0->val & mstateen0->val; }
+}
+if (is_read(hstateen0))   { return hstateen0->val & mstateen0->val; }
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SMSTATEEN
+
   return *src;
 }
 
@@ -780,6 +799,15 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_SSCOFPMF
   else if (is_write(scountovf)) { *dest = src & SCOUNTOVF_WMASK; }
 #endif // CONFIG_RV_SSCOFPMF
+
+#ifdef CONFIG_RV_SMSTATEEN
+  else if (is_write(mstateen0))   { *dest = ((src & MSTATEEN0_WMASK) | STATEEN0_CSRIND); }
+  else if (is_write(sstateen0))   { *dest = (src & SSTATEEN0_WMASK); }
+#ifdef CONFIG_RVH
+    else if (is_write(hstateen0)) { *dest = ((src & HSTATEEN0_WMASK) | STATEEN0_CSRIND); }
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SMSTATEEN
+
 #ifdef CONFIG_RVH
   else if (is_write(hgatp)) {
     hgatp_t new_val = (hgatp_t)src;
@@ -834,7 +862,30 @@ word_t csrid_read(uint32_t csrid) {
   return csr_read(csr_decode(csrid));
 }
 
+// VS/VU access statenen should be EX_II when mstateen0->se0 is false. 
+// If sstateen check after csr_is_legal, the exception type will be wrong.
+// todo: should finish all csr read/write exception checking before read/write.
+#ifdef CONFIG_RV_SMSTATEEN
+static inline void smstateen_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
+  if (is_access(sstateen0)) {
+    if((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
+#ifdef CONFIG_RVH
+    else if (cpu.v && mstateen0->se0 && !hstateen0->se0) { longjmp_exception(EX_VI); }
+#endif // CONFIG_RVH
+  }
+#ifdef CONFIG_RVH
+  else if(is_access(hstateen0)) {
+    if((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
+    else if (cpu.v && mstateen0->se0) { longjmp_exception(EX_VI); }
+  }
+#endif // CONFIG_RVH
+}
+#endif
+
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+#ifdef CONFIG_RV_SMSTATEEN
+  smstateen_extension_permit_check(dest, src, csrid);
+#endif // CONFIG_RV_SMSTATEEN
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
