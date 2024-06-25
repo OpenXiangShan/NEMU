@@ -942,8 +942,6 @@ static inline void smstateen_extension_permit_check(word_t *dest, const word_t *
 #endif
 
 // AIA extension check
-#ifdef CONFIG_RVH
-#ifdef CONFIG_RV_AIA
 #ifdef CONFIG_IMSIC
 static inline void aia_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
   if (is_access(stopei)) {
@@ -1009,18 +1007,16 @@ static inline void aia_extension_permit_check(word_t *dest, const word_t *src, u
   }
 }
 #endif
-#endif
-#endif
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifdef CONFIG_RV_SMSTATEEN
   smstateen_extension_permit_check(dest, src, csrid);
 #endif // CONFIG_RV_SMSTATEEN
-#ifdef CONFIG_RV_AIA
+
 #ifdef CONFIG_IMSIC
   aia_extension_permit_check(dest, src, csrid);
 #endif
-#endif
+
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
