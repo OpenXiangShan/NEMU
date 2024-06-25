@@ -155,6 +155,15 @@ void init_isa() {
   init_trigger();
 #endif // CONFIG_RV_SDTRIG
 
+#define MSTATEEN0_RESET  0xdc00000000000001ULL
+#define HSTATEEN0_RESET  0xdc00000000000001ULL
+#define SSTATEEN0_RESET  0x0000000000000001ULL
+#ifdef CONFIG_RV_SMSTATEEN
+  mstateen0->val = MSTATEEN0_RESET;
+  hstateen0->val = HSTATEEN0_RESET;
+  sstateen0->val = SSTATEEN0_RESET;
+#endif // CONFIG_RV_SMSTATEEN
+
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
   extern bool checkpoint_restoring;
