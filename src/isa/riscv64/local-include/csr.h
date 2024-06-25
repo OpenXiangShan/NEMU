@@ -125,8 +125,14 @@
 #endif // CONFIG_RV_SDTRIG
 
 /** Supervisor State Enable Registers **/
-#define CSRS_S_STATE_ENABLE(f)
+#ifdef CONFIG_RV_SMSTATEEN
+  #define CSRS_S_STATE_ENABLE(f) \
+    f(sstateen0 , 0x10C) 
+#else
+  #define CSRS_S_STATE_ENABLE(f)
+#endif // CONFIG_RV_SMSTATEEN
 
+/** Supervisor Counter Overflow Register **/
 #ifdef CONFIG_RV_SSCOFPMF
   #define CSRS_S_SCOFPMF(f) \
     f(scountovf, 0xDA0)
@@ -194,6 +200,14 @@
   #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
     f(htimedelta , 0x605)
 
+  /** Hypervisor State Enable Registers **/
+  #ifdef CONFIG_RV_SMSTATEEN
+    #define CSRS_H_STATE_ENABLE(f) \
+      f(hstateen0 , 0x60C) 
+  #else
+    #define CSRS_H_STATE_ENABLE(f)
+  #endif // CONFIG_RV_SMSTATEEN
+
   /** Virtual Supervisor Registers **/
   #define CSRS_VS(f) \
     f(vsstatus   , 0x200) f(vsie       , 0x204) f(vstvec     , 0x205) \
@@ -208,6 +222,8 @@
     CSRS_H_PROTECTION_TRANSLATION(f) \
     CSRS_H_DEBUG_TRACE(f) \
     CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
+    CSRS_H_STATE_ENABLE(f) \
+    CSRS_H_VS_AIA(f) \
     CSRS_VS(f)
 
 #else // CONFIG_RVH
@@ -279,7 +295,12 @@
 #endif // CONFIG_RV_PMP_ENTRY_64
 
 /** Machine State Enable Registers **/
-#define CSRS_M_STATE_ENABLE(f)
+#ifdef CONFIG_RV_SMSTATEEN
+  #define CSRS_M_STATE_ENABLE(f) \
+    f(mstateen0, 0x30C)
+#else
+  #define CSRS_M_STATE_ENABLE(f)
+#endif // CONFIG_RV_SMSTATEEN
 
 /** Machine Non-Maskable Interrupt Handling **/
 #define CSRS_M_NON_MASKABLE_INTERRUPT_HANDLING(f)
@@ -530,6 +551,47 @@ CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
 CSR_STRUCT_END(menvcfg)
+
+#ifdef CONFIG_RV_SMSTATEEN
+  CSR_STRUCT_START(mstateen0)
+  uint64_t c      : 1; // [0]
+  uint64_t fcsr   : 1; // [1]
+  uint64_t jvt    : 1; // [2]
+  uint64_t pad0   :53; // [55:3]
+  uint64_t p1p13  : 1; // [56]
+  uint64_t context: 1; // [57]
+  uint64_t imsic  : 1; // [58]
+  uint64_t aia    : 1; // [59]
+  uint64_t csrind : 1; // [60]
+  uint64_t pad2   : 1; // [61]
+  uint64_t envcfg : 1; // [62]
+  uint64_t se0    : 1; // [63]
+  CSR_STRUCT_END(mstateen0)
+
+  CSR_STRUCT_START(sstateen0)
+  uint64_t c      : 1; // [0]
+  uint64_t fcsr   : 1; // [1]
+  uint64_t jvt    : 1; // [2]
+  uint64_t pad0   :29; // [31:3]
+  CSR_STRUCT_END(sstateen0)
+  
+#ifdef CONFIG_RVH
+  CSR_STRUCT_START(hstateen0)
+  uint64_t c      : 1; // [0]
+  uint64_t fcsr   : 1; // [1]
+  uint64_t jvt    : 1; // [2]
+  uint64_t pad0   :53; // [55:3]
+  uint64_t pad1   : 1; // [56]
+  uint64_t context: 1; // [57]
+  uint64_t imsic  : 1; // [58]
+  uint64_t aia    : 1; // [59]
+  uint64_t csrind : 1; // [60]
+  uint64_t pad2   : 1; // [61]
+  uint64_t envcfg : 1; // [62]
+  uint64_t se0    : 1; // [63]
+  CSR_STRUCT_END(hstateen0)
+#endif
+#endif
 
 /** "H" Hypervisor Extension CSRs **/
 
