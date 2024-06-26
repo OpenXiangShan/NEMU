@@ -319,6 +319,7 @@ void vector_slide_check(Decode *s, bool is_over) {
 
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
+  require_vector(true);
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   uint64_t carry;
@@ -833,6 +834,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
  */
 void permutaion_instr(int opcode, Decode *s) {
   if(check_vstart_ignore(s)) return;
+  require_vector(true);
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -977,6 +979,7 @@ void permutaion_instr(int opcode, Decode *s) {
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
   if(check_vstart_ignore(s)) return;
+  require_vector(true);
   if (dest_mask) {
     if (s->src_vmode == SRC_VV) {
       vector_mvv_check(s, true);

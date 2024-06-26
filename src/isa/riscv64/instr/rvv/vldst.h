@@ -31,7 +31,7 @@ def_EHelper(vlm) { //mask
 }
 
 def_EHelper(vlr) { // whole register
-  require_vector(true);
+  require_vector(false);
   VLR(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
 }
 
@@ -60,7 +60,7 @@ def_EHelper(vsm) {
 }
 
 def_EHelper(vsr) {
-  require_vector(true);
+  require_vector(false);
   VSR(MODE_UNIT, MMU_DIRECT)
 }
 
@@ -89,7 +89,7 @@ def_EHelper(vlm_mmu) { //mask
 }
 
 def_EHelper(vlr_mmu) { //whple register
-  require_vector(true);
+  require_vector(false);
   VLR(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
 }
 
@@ -118,7 +118,7 @@ def_EHelper(vsm_mmu) {
 }
 
 def_EHelper(vsr_mmu) {
-  require_vector(true);
+  require_vector(false);
   VSR(MODE_UNIT, MMU_TRANSLATE)
 }
 
