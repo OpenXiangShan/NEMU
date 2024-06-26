@@ -120,6 +120,8 @@ enum {
   FPCALL_DSToF,
   FPCALL_DFToF,
   FPCALL_DFToF_ODD,    // round odd
+
+  FPCALL_GenNegZero,
 };
 
 #define FPCALL_CMD(op, w) (((op) << 16) | (w))

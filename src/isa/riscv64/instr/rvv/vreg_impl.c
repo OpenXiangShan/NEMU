@@ -143,14 +143,6 @@ void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul
   }
 }
 
-void init_tmp_vreg() {
-  for (int i = 0; i < 8; i++) {
-    for (int j = 0; j < VLEN / 64; j++) {
-      tmp_vreg[i]._64[j] = 0;
-    }
-  }
-}
-
 void get_tmp_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew) {
   Assert(vsew <= 3, "vsew should be less than 4\n");
   switch (vsew) {
