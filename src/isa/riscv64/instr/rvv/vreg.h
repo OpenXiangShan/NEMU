@@ -83,7 +83,6 @@ int get_vlen_max(int vsew, int vlmul, int widening);
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign);
 void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul, int needAlgin);
 
-void init_tmp_vreg();
 void get_tmp_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew);
 void set_tmp_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew);
 void vreg_to_tmp_vreg(uint64_t reg, int idx, uint64_t vsew);

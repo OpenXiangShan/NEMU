@@ -1369,6 +1369,34 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
   vstart->val = 0;
 }
 
+static void init_tmp_vreg(Decode *s, int vsew) {
+  *s0 = 0;
+  // init each element with negative zero
+  for (int i = 0; i < 8; i++) {
+    switch (vtype->vsew) {
+      case 1 :
+        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W16));
+        for (int j = 0; j < VLEN / 16; j++) {
+          tmp_vreg[i]._16[j] = *s0;
+        }
+        break;
+      case 2 :
+        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W32));
+        for (int j = 0; j < VLEN / 32; j++) {
+          tmp_vreg[i]._32[j] = *s0;
+        }
+        break;
+      case 3 :
+        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W64));
+        for (int j = 0; j < VLEN / 64; j++) {
+          tmp_vreg[i]._64[j] = *s0;
+        }
+        break;
+      default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
+    }
+  }
+}
+
 void float_reduction_step2(uint64_t src, Decode *s) {
   word_t FPCALL_TYPE = FPCALL_W64;
 
@@ -1432,7 +1460,7 @@ void float_reduction_computing(Decode *s) {
   }
 
   // copy the vector register to the temp register
-  init_tmp_vreg();
+  init_tmp_vreg(s, vtype->vsew);
   for(idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
     if(s->vm == 0 && mask==0) {
