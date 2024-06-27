@@ -623,72 +623,34 @@ static inline void csr_write(word_t *dest, word_t src) {
     update_vsatp(new_val);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
 #ifdef CONFIG_RV_AIA
-  }else if (is_write(miselect)) { miselect->val = src;
-  }else if (is_write(siselect)) { siselect->val = src;
-  }else if (is_write(vsiselect)) { vsiselect->val = src;
-  }else if (is_write(mireg)) {
-    if ((miselect->val <= ISELECT_2F_MASK) | ((miselect->val > ISELECT_3F_MASK) & (miselect->val <= ISELECT_6F_MASK)) | (miselect->val > ISELECT_MAX_MASK)) {
-      longjmp_exception(EX_II);
+  }else if (is_write(miselect)) {
+    if (src <= 0xFF) {
+      miselect->val = src;
     }
-#ifndef CONFIG_IMSIC
-    if ((miselect->val > ISELECT_6F_MASK) && (miselect->val < ISELECT_MAX_MASK)) {
-      longjmp_exception(EX_II);
+  }else if (is_write(siselect)) {
+    if (src <= 0xFF) {
+      siselect->val = src;
     }
-#endif
-    mireg->val = src;
-  }else if (is_write(sireg)) {
-    if (((vsiselect->val <= ISELECT_2F_MASK) ||
-        ((vsiselect->val > ISELECT_3F_MASK) && (vsiselect->val <= ISELECT_6F_MASK)) ||
-        ((vsiselect->val > ISELECT_MAX_MASK) && (vsiselect->val <= VSISELECT_MAX_MASK))) && cpu.v & (cpu.mode == MODE_S)) {
-      longjmp_exception(EX_II);
+  }else if (is_write(vsiselect)) {
+    if (src <= 0x1FF) {
+      vsiselect->val = src;
     }
-    if ((siselect->val <= ISELECT_2F_MASK) || ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) || (siselect->val > ISELECT_MAX_MASK)) {
-      longjmp_exception(EX_II);
-    }
-#ifndef CONFIG_IMSIC
-    if ((siselect->val > ISELECT_6F_MASK) && (siselect->val < ISELECT_MAX_MASK)) {
-      longjmp_exception(EX_II);
-    }
-    if ((vsiselect->val >= ISELECT_6F_MASK) && (vsiselect->val < ISELECT_MAX_MASK) & cpu.v & (cpu.mode == MODE_S)) {
-      longjmp_exception(EX_VI);
-    }
-#endif
-    if (cpu.v && (cpu.mode == MODE_U)) {
-      longjmp_exception(EX_VI);
-    }
-    if ((vsiselect->val >= ISELECT_2F_MASK) && (vsiselect->val < ISELECT_3F_MASK) && cpu.v && (cpu.mode == MODE_S)) {
-      longjmp_exception(EX_VI);
-    }
-    sireg->val = src;
-  }else if (is_write(vsireg)) {
-    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
-      if ((vsiselect->val <= ISELECT_6F_MASK) || (vsiselect->val > ISELECT_MAX_MASK)) {
-        longjmp_exception(EX_II);
-      }
-    }
-#ifndef CONFIG_IMSIC
-    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
-      if ((vsiselect->val > ISELECT_6F_MASK) && (vsiselect->val <= ISELECT_MAX_MASK)) {
-        longjmp_exception(EX_II);
-      }
-    }
-#endif
-    if (cpu.v) {
-      longjmp_exception(EX_VI);
-    }
-    vsireg->val = src;
-  }else if (is_write(mtopi)) { /* do nothing */ }
-  else if (is_write(stopi)) { /* do nothing */ }
-  else if (is_write(mvien)) { mvien->val = src; }
-  else if (is_write(mvip)) { mvip->val = src; }
-  else if (is_write(hvien)) { hvien->val = src; }
-  else if (is_write(hvictl)) { hvictl->val = src; }
-  else if (is_write(hviprio1)) { hviprio1->val = src; }
-  else if (is_write(hviprio2)) { hviprio2->val = src; }
+  }else if (is_write(mireg)) { mireg->val = src;
+  }else if (is_write(sireg)) { sireg->val = src;
+  }else if (is_write(vsireg)) { vsireg->val = src;
+  }else if (is_write(mtopi)) { /* do nothing */ 
+  }else if (is_write(stopi)) { /* do nothing */ 
+  }else if (is_write(vstopi)) { /* do nothing */ 
+  }else if (is_write(mvien)) { mvien->val = src; 
+  }else if (is_write(mvip)) { mvip->val = src; 
+  }else if (is_write(hvien)) { hvien->val = src; 
+  }else if (is_write(hvictl)) { hvictl->val = src; 
+  }else if (is_write(hviprio1)) { hviprio1->val = src; 
+  }else if (is_write(hviprio2)) { hviprio2->val = src; }
 #ifdef CONFIG_IMSIC
-  else if (is_write(mtopei)) { mtopei->val = src; }
-  else if (is_write(stopei)) { stopei->val = src; }
-  else if (is_write(vstopei)) { vstopei->val = src; }
+  else if (is_write(mtopei)) { mtopei->val = src; 
+  }else if (is_write(stopei)) { stopei->val = src; 
+  }else if (is_write(vstopei)) { vstopei->val = src; }
 #endif
 #else
   }
@@ -979,10 +941,86 @@ static inline void smstateen_extension_permit_check(word_t *dest, const word_t *
 }
 #endif
 
+// AIA extension check
+#ifdef CONFIG_RVH
+#ifdef CONFIG_RV_AIA
+#ifdef CONFIG_IMSIC
+static inline void aia_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
+  if (is_access(stopei)) {
+    if ((!cpu.v && (cpu.mode == MODE_S) && mvien->seie)) {
+      longjmp_exception(EX_II);
+    }
+  }
+  if (is_access(mireg)) {
+    if (cpu.mode == MODE_M) {
+      if ((miselect->val <= ISELECT_2F_MASK) ||
+          ((miselect->val > ISELECT_3F_MASK) && (miselect->val <= ISELECT_6F_MASK)) ||
+          (miselect->val >  ISELECT_MAX_MASK) ||
+          (miselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+  }
+  if (is_access(sireg)) {
+    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
+      if ((siselect->val > ISELECT_6F_MASK) && (siselect->val <= ISELECT_MAX_MASK)) {
+        longjmp_exception(EX_II);
+      }
+    }
+    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
+      if ((siselect->val <= ISELECT_2F_MASK) ||
+          ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) ||
+          (siselect->val >  ISELECT_MAX_MASK) ||
+          (siselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+    if (cpu.v && (cpu.mode == MODE_S)) {
+      if (vsiselect->val > VSISELECT_MAX_MASK) {
+        longjmp_exception(EX_II);
+      }
+      if (((vsiselect->val > ISELECT_2F_MASK) && (vsiselect->val <= ISELECT_3F_MASK)) ||
+          ((vsiselect->val > 0x80) && (vsiselect->val <= ISELECT_MAX_MASK) && (vsiselect->val & 0x1))) {
+            longjmp_exception(EX_VI);
+      }
+    }
+    if (cpu.v && (cpu.mode == MODE_U)) {
+      longjmp_exception(EX_VI);
+    }
+  }
+  if (is_access(vsireg)) {
+    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
+      if ((vsiselect->val <= ISELECT_6F_MASK) ||
+          (vsiselect->val >  ISELECT_MAX_MASK) ||
+          (vsiselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+    if (cpu.v) {
+      longjmp_exception(EX_VI);
+    }
+  }
+  if (is_access(sip) || is_access(sie)) {
+    if (cpu.v && (cpu.mode == MODE_S)) {
+      if (hvictl->vti) {
+        longjmp_exception(EX_VI);
+      }
+    }
+  }
+}
+#endif
+#endif
+#endif
+
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifdef CONFIG_RV_SMSTATEEN
   smstateen_extension_permit_check(dest, src, csrid);
 #endif // CONFIG_RV_SMSTATEEN
+#ifdef CONFIG_RV_AIA
+#ifdef CONFIG_IMSIC
+  aia_extension_permit_check(dest, src, csrid);
+#endif
+#endif
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
