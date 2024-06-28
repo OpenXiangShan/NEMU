@@ -76,7 +76,7 @@ static inline void csr_counter_enable_check(uint32_t addr) {
       longjmp_exception(EX_VI);
     }
   #endif // CONFIG_RVH
-  
+
   if (cpu.mode < MODE_S && !(count_bit & scounteren->val)) {
     Logti("Illegal CSR accessing (0x%X): the bit in scounteren is not set", addr);
     #ifdef CONFIG_RVH
@@ -207,7 +207,6 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #ifdef CONFIG_RVH
 #define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
-#define MEDELEG_MASK (0xf0b7f7)
 #define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
 #define VS_MASK ((1 << 10) | (1 << 6) | (1 << 2))
 #define VSSIP (1 << 2)
@@ -219,6 +218,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIE_RMASK HS_MASK
 #define HIE_WMASK HS_MASK
 #endif
+
+#define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, 0xf0b7f7, 0xf0b7ff), MUXDEF(CONFIG_RVH, 0xb3f7, 0xb3ff))
 
 #define MIDELEG_WMASK_BASE 0x222
 #define MIDELEG_WMASK MUXDEF(CONFIG_RV_SSCOFPMF, (MIDELEG_WMASK_BASE | 1 << IRQ_LCOFI), MIDELEG_WMASK_BASE)
@@ -372,7 +373,7 @@ static inline word_t csr_read(word_t *src) {
     else
       return *src & pmp_tor_mask();
   }
-  
+
   // No need to handle read pmpcfg specifically, because
   // - pmpcfg CSRs are all initialized to zero.
   // - writing to inactive pmpcfg CSRs is handled.
@@ -408,7 +409,7 @@ if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val 
 if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
 #endif
 
-  if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_fs(); } 
+  if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_fs(); }
 
   if (is_read(mstatus))     { return gen_status_sd(mstatus->val) | mstatus->val; }
   if (is_read(sstatus))     { return gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); }
@@ -643,11 +644,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = src & ~(0x3UL);
 #endif // CONFIG_XTVEC_VECTORED_MODE
 }
-#ifdef CONFIG_RVH
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
-#else
-  else if (is_write(medeleg)) { *dest = src & 0xb3f7; }
-#endif
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_RVV
   else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
@@ -680,7 +677,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_PMP_CSR
   else if (is_pmpaddr(dest)) {
     Logtr("Writing pmp addr");
-    
+
     int idx = dest - &csr_array[CSR_PMPADDR_BASE];
     if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
       // CSRs of inactive pmp entries are read-only zero.
@@ -894,11 +891,11 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       }
       mstatus->mie = mstatus->mpie;
       mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
-          : 1);        
+          : 1);
       cpu.mode = mstatus->mpp;
 #ifdef CONFIG_RVSDTRIG
       tcontrol->mte = tcontrol->mpte;
-#endif  
+#endif
 #ifdef CONFIG_RVH
       cpu.v = mstatus->mpv;
       mstatus->mpv = 0;
