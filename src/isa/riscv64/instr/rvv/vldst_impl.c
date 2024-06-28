@@ -118,7 +118,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
   word_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
-  int eew, lmul, index_width, data_length;
+  int eew, emul, emul_coding, index_width, data_length;
 
   index_width = 0;
   eew = vtype->vsew;
@@ -131,10 +131,10 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
     default: break;
   }
   data_length = 1 << eew;
-  lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
-  isa_emul_check(lmul, nf);
-  lmul = lmul < 0 ? 0 : lmul;
-  lmul = 1 << lmul;
+  emul_coding = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
+  isa_emul_check(emul_coding, nf);
+  emul_coding = emul_coding < 0 ? 0 : emul_coding;
+  emul = 1 << emul_coding;
 
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
@@ -149,14 +149,14 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
+          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, emul_coding, 1);
         }
       }
       continue;
     }
     for (fn = 0; fn < nf; fn++) {
       // read index
-      get_vreg(id_src2->reg, idx, &tmp_reg[2], index_width, vtype->vlmul, 0, 1);
+      get_vreg(id_src2->reg, idx, &tmp_reg[2], index_width, emul_coding, 0, 1);
       index = tmp_reg[2];
 
       // read data in memory
@@ -164,16 +164,16 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
       s->v_is_vx = 1;
       rtl_lm(s, &tmp_reg[1], &addr, 0, data_length, mmu_mode);
       s->v_is_vx = 0;
-      set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
+      set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, emul_coding, 1);
     }
   }
 
   if (RVV_AGNOSTIC && vtype->vta) {   // set tail of vector register to 1
-    int vlmax = get_vlen_max(eew, vtype->vlmul, 0);
+    int vlmax = get_vlen_max(eew, emul_coding, 0);
     for(idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, vtype->vlmul, 1);
+        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, emul_coding, 1);
       }
     }
   }
@@ -237,7 +237,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
   word_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
-  int eew, lmul, index_width, data_length;
+  int eew, emul, emul_coding, index_width, data_length;
 
   index_width = 0;
   eew = vtype->vsew;
@@ -250,10 +250,10 @@ void vstx(int mode, Decode *s, int mmu_mode) {
     default: break;
   }
   data_length = 1 << eew;
-  lmul = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
-  isa_emul_check(lmul, nf);
-  lmul = lmul < 0 ? 0 : lmul;
-  lmul = 1 << lmul;
+  emul_coding = vtype->vlmul > 4 ? vtype->vlmul - 8 : vtype->vlmul;
+  isa_emul_check(emul_coding, nf);
+  emul_coding = emul_coding < 0 ? 0 : emul_coding;
+  emul = 1 << emul_coding;
 
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
@@ -269,11 +269,11 @@ void vstx(int mode, Decode *s, int mmu_mode) {
     }
     for (fn = 0; fn < nf; fn++) {
       // read index
-      get_vreg(id_src2->reg, idx, &tmp_reg[2], index_width, vtype->vlmul, 0, 1);
+      get_vreg(id_src2->reg, idx, &tmp_reg[2], index_width, emul_coding, 0, 1);
       index = tmp_reg[2];
 
       // read data in vector register
-      get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, 1);
+      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, emul_coding, 0, 1);
       addr = base_addr + index + fn * data_length;
       s->v_is_vx = 1;
       rtl_sm(s, &tmp_reg[1], &addr, 0, data_length, mmu_mode);
