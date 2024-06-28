@@ -187,7 +187,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
   word_t idx;
   uint64_t nf, fn, vl_val, base_addr, vd, addr;
-  int eew, emul, stride, is_stride;
+  int eew, emul, emul_coding, stride, is_stride;
 
   eew = 0;
   switch(s->v_width) {
@@ -197,10 +197,10 @@ void vst(int mode, Decode *s, int mmu_mode) {
     case 8: eew = 3; break;
     default: break;
   }
-  emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
-  isa_emul_check(mode == MODE_MASK ? 1 : emul, 1);
-  emul = emul < 0 ? 0 : emul;
-  emul = 1 << emul;
+  emul_coding = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
+  isa_emul_check(mode == MODE_MASK ? 1 : emul_coding, 1);
+  emul_coding = emul_coding < 0 ? 0 : emul_coding;
+  emul = 1 << emul_coding;
 
   if (mode == MODE_STRIDED) {
     stride = id_src2->val;
@@ -223,7 +223,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
       continue;
     }
     for (fn = 0; fn < nf; fn++) {
-      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, vtype->vlmul, 0, mode == MODE_MASK ? 0 : 1);
+      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, emul_coding, 0, mode == MODE_MASK ? 0 : 1);
       addr = base_addr + idx * stride + (idx * nf * is_stride + fn) * s->v_width;
       rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
     }
