@@ -1095,6 +1095,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       break;
 #ifdef CONFIG_RV_SVINVAL
     case 0x180: // sfence.w.inval
+#ifdef CONFIG_RVH
       if (!cpu.v && cpu.mode == MODE_U) {
         longjmp_exception(EX_II);
       }
@@ -1110,6 +1111,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         longjmp_exception(EX_VI); 
       }
       break;
+#endif
 #endif // CONFIG_RV_SVINVAL
     case 0x105: // wfi
 #ifdef CONFIG_RVH
