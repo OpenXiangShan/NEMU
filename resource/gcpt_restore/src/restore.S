@@ -183,12 +183,9 @@ restore_int_vector:
   ld x31, (31*8)(sp)
   ld sp, (2*8)(sp)
   mret
-
-  .section ".restore.flag" ,"a", %progbits
-  .align 4
-  .global read_complete_flag
 read_complete_flag:
   .word COMPLETE_FLAG
+  .word 0x0
 
   .section ".payload", "ax", %progbits
   .align 4
