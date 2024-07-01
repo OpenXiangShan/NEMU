@@ -97,7 +97,7 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
 #endif
     return false;
   }
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   bool isDebugReg = ((addr >> 4) & 0xff) == 0x7b; // addr(11,4)
   if(isDebugReg)
     return false;
@@ -748,7 +748,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
       *dest = MASKED_SATP(src);
   }
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
   else if (is_write(tselect)) {
     *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
   } else if (is_write(tdata1)) {
@@ -776,7 +776,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     tdata2_t wdata = *(tdata2_t*)&src;
     tdata2_reg->val = wdata.val;
   }
-#endif // CONFIG_RVSDTRIG
+#endif // CONFIG_RV_SDTRIG
 #ifdef CONFIG_RV_SSCOFPMF
   else if (is_write(scountovf)) { *dest = src & SCOUNTOVF_WMASK; }
 #endif // CONFIG_RV_SSCOFPMF
@@ -893,7 +893,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
           : 1);
       cpu.mode = mstatus->mpp;
-#ifdef CONFIG_RVSDTRIG
+#ifdef CONFIG_RV_SDTRIG
       tcontrol->mte = tcontrol->mpte;
 #endif
 #ifdef CONFIG_RVH
