@@ -114,10 +114,12 @@ void TraceWriter::write_memory(uint64_t va, uint8_t size, uint8_t is_write) {
     throw std::runtime_error("[TraceWriter.write_mem] inst_valid false.");
     return;
   }
+  // 1, 2, 4, 8, manual log2
+  uint8_t size_map[] = {0, 0, 1, 0, 2, 0, 0, 0, 3};
 
   TraceLog("TraceWriter::write_memory\n");
   inst.memory_address_va = va;
-  inst.memory_size = size;
+  inst.memory_size = size_map[size];
   inst.memory_type = is_write ? MEM_TYPE_Store : MEM_TYPE_Load;
   return;
 }
