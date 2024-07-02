@@ -26,13 +26,11 @@ def_EHelper(vadd) {
 def_EHelper(vsub) {
   Assert(s->src_vmode != SRC_VI, "vsub.vi not supported\n");
   ARTHI(SUB, SIGNED)
-  // print_asm_template3(vsub);
 }
 
 def_EHelper(vrsub) {
   Assert(s->src_vmode != SRC_VV, "vrsub.vv not supported\n");
   ARTHI(RSUB, SIGNED)
-  // print_asm_template3(vrsub);
 }
 
 def_EHelper(vminu) {
@@ -378,7 +376,7 @@ def_EHelper(vmvnr) {
 def_EHelper(vpopc) {
   require_vector(true);
   if(vstart->val != 0)
-    check_vstart_ignore(s);
+    check_vstart_exception(s);
   
   rtl_li(s, s1, 0);
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -400,7 +398,7 @@ def_EHelper(vpopc) {
 def_EHelper(vfirst) {
   require_vector(true);
   if(vstart->val != 0)
-    check_vstart_ignore(s);
+    check_vstart_exception(s);
 
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -571,7 +569,7 @@ def_EHelper(viota) {
   require_aligned(id_dest->reg, vflmul);
   require_noover(id_dest->reg, vflmul, id_src2->reg, 1);
 
-  if(!check_vstart_ignore(s)) {
+  if(!check_vstart_exception(s)) {
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -617,7 +615,7 @@ def_EHelper(vid) {
   double vflmul = compute_vflmul();
   require_aligned(id_dest->reg, vflmul);
 
-  if(!check_vstart_ignore(s)) {
+  if(!check_vstart_exception(s)) {
     for(int idx = 0; idx < vl->val; idx ++) {
       // mask
       rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -787,7 +785,7 @@ def_EHelper(vcompress) {
     longjmp_exception(EX_II);
   }
   require_noover(id_dest->reg, vflmul, id_src->reg, 1);
-  if(!check_vstart_ignore(s)) {
+  if(!check_vstart_exception(s)) {
 
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
