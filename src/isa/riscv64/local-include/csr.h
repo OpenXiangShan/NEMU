@@ -707,10 +707,8 @@ CSR_STRUCT_END(scountovf)
 // NOTE: srcctl is a supervisor custom read/write csr
 // to fix xiangshan that:
 // rnctl: move elimination,
-// svinval: one vm extension
 CSR_STRUCT_START(srnctl)
   uint64_t rnctrl  : 1;
-  uint64_t svinval : 1;
   uint64_t reserve :63;
 CSR_STRUCT_END(srnctl)
 #endif
