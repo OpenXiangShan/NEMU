@@ -218,7 +218,7 @@ config XTVEC_VECTORED_MODE
   default y
 
 config TVAL_EX_II
-  bool "Update m/stval on illegal instruction exceptions"
+  bool "Update m/s/vstval on illegal instruction exceptions"
   default n
 
 config FS_CLEAN_STATE
