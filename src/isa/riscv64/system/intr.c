@@ -110,6 +110,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
         break;
+    #ifdef CONFIG_TVAL_EX_II
+      case EX_II: vstval->val = cpu.instr; break;
+    #endif
       case EX_BP : vstval->val = epc;
         break;
       default: vstval->val = 0;
@@ -137,9 +140,6 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
-#ifdef CONFIG_RVH
-    htval->val = 0;
-#endif
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
@@ -151,7 +151,12 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #endif
         break;
 #ifdef CONFIG_TVAL_EX_II
-      case EX_II: stval->val = cpu.instr; break;
+      case EX_II: 
+        stval->val = cpu.instr; 
+#ifdef CONFIG_RVH
+        htval->val = 0; 
+#endif
+        break;
 #endif
       case EX_BP : 
 #ifdef CONFIG_RVH
