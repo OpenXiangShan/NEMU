@@ -40,7 +40,7 @@ rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode) {
   if (mode == 1) {
     return VLMAX;
   } else if (mode == 2) {
-    return old_vl;
+    return old_vl < VLMAX ? old_vl : VLMAX;
   } else {
     if (vt.vsew > 3) { //check if max-len supported
       return (uint64_t)-1; //return 0 means error, including vl_req is 0, for vl_req should not be 0.
@@ -102,7 +102,7 @@ int get_idx(uint64_t reg, int idx, uint64_t vsew) {
 void isa_misalign_vreg_check(uint64_t reg, uint64_t vlmul, int needAlign) {
   if (needAlign && vlmul < 4) {
     if (reg % (1 << vlmul) != 0) {
-      Log("vector register group misaligned happen: reg:x%lu vlmul:0x%lx needAlign:%d", reg, vlmul, needAlign);
+      Loge("vector register group misaligned happen: reg:x%lu vlmul:0x%lx needAlign:%d", reg, vlmul, needAlign);
       longjmp_exception(EX_II);
     }
   }

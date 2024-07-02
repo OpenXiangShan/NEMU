@@ -3,6 +3,8 @@
 
 #include <math.h>
 #include "vcommon.h"
+#include <cpu/cpu.h>
+
 uint8_t check_vstart_ignore(Decode *s) {
   if(vstart->val >= vl->val) {
     if(vstart->val > 0) {
@@ -15,13 +17,28 @@ uint8_t check_vstart_ignore(Decode *s) {
   return 0;
 }
 
-bool check_vlmul_sew_illegal(rtlreg_t vtype_req){
-  vtype_t vt = (vtype_t )vtype_req;
+uint8_t check_vstart_exception(Decode *s) {
+  if(vstart->val > 0) {
+    longjmp_exception(EX_II);
+  }
+  if (vl->val == 0) {
+    return 1;
+  }
+  return 0;
+}
+
+bool check_vlmul_sew_illegal(rtlreg_t vtype_req) {
+  vtype_t vt = (vtype_t) vtype_req;
   int vlmul = vt.vlmul;
-  int vsew = vt.vsew;
   if (vlmul > 4) vlmul -= 8;
-  if((vlmul < vsew + 3 - log2(MAXELEN)) || vlmul == 4) return true; // vmul < sew/ELEN || vlmul == 100
-  return false;
+  int vsew = 8 << vt.vsew;
+  float vflmul = vlmul >= 0 ? 1 << vlmul : 1.0 / (1 << -vlmul);
+  float min_vflmul = vflmul < 1.0f ? vflmul : 1.0f;
+  int vill = !(vflmul >= 0.125 && vflmul <= 8)
+           || vsew > min_vflmul * 64
+           || (vtype_req >> 8) != 0
+           || vsew > 64;
+  return vill == 1;
 }
 
 void set_NAN(rtlreg_t* fpreg, uint64_t vsew){
