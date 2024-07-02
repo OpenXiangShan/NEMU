@@ -650,6 +650,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
   else if (is_write(vxrm)) { *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
   else if (is_write(vxsat)) { *dest = src & 0b1; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
+  else if (is_write(vstart)) { *dest = src & (VLEN - 1); }
 #endif
 #ifdef CONFIG_MISA_UNCHANGEABLE
   else if (is_write(misa)) { /* do nothing */ }

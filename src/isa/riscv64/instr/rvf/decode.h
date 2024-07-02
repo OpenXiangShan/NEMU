@@ -115,14 +115,6 @@ def_THelper(vstore_mmu) {
 def_THelper(fload) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
 
-  #ifdef CONFIG_RVV
-  const int table [8] = {1, 0, 0, 0, 0, 2, 4, 8};
-  s->vm = s->isa.instr.v_opv.v_vm; //1 for without mask; 0 for with mask
-  s->v_width = table[s->isa.instr.vldfp.v_width];
-  s->v_nf = s->isa.instr.vldfp.v_nf;
-  s->v_lsumop = s->isa.instr.vldfp.v_lsumop;
-  #endif // CONFIG_RVV
-
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     if (fp_enable()) {
@@ -162,14 +154,6 @@ def_THelper(fload) {
 
 def_THelper(fstore) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
-
-  #ifdef CONFIG_RVV
-  const int table [8] = {1, 0, 0, 0, 0, 2, 4, 8};
-  s->vm = s->isa.instr.v_opv.v_vm; //1 for without mask; 0 for with mask
-  s->v_width = table[s->isa.instr.vldfp.v_width];
-  s->v_nf = s->isa.instr.vldfp.v_nf;
-  s->v_lsumop = s->isa.instr.vldfp.v_lsumop;
-  #endif // CONFIG_RVV
 
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {

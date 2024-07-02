@@ -318,7 +318,6 @@ void vector_slide_check(Decode *s, bool is_over) {
 }
 
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
-  if(check_vstart_ignore(s)) return;
   require_vector(true);
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
@@ -369,7 +368,12 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     } else {
       vector_vwv_check(s, false);
     }
+  } else if (narrow < 0) {
+    if (vtype->vsew + narrow < 0) {
+      longjmp_exception(EX_II);
+    }
   }
+  if(check_vstart_exception(s)) return;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -417,7 +421,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     switch (opcode) {
       case VEXT:
         eew = vtype->vsew + narrow;
-        emul = vtype->vlmul - ((vtype->vsew) - (vtype->vsew + narrow));
+        emul = vtype->vlmul + narrow;
         break;
       default:
         eew = vtype->vsew + narrow;
@@ -833,8 +837,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
  * because the illegal instruction exception is handled in vcompute.h for vrgather and vslide instruction
  */
 void permutaion_instr(int opcode, Decode *s) {
-  if(check_vstart_ignore(s)) return;
-  require_vector(true);
+  if(check_vstart_exception(s)) return;
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -978,7 +981,6 @@ void permutaion_instr(int opcode, Decode *s) {
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
-  if(check_vstart_ignore(s)) return;
   require_vector(true);
   if (dest_mask) {
     if (s->src_vmode == SRC_VV) {
@@ -1013,17 +1015,13 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       vector_wwv_check(s, false);
     }
   }
+  if(check_vstart_exception(s)) return;
   int idx;
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
     case 0 :
-      switch (widening) {
-        case vdNarrow   : FPCALL_TYPE = FPCALL_W16; break;
-        case vdWidening : FPCALL_TYPE = FPCALL_W8; break;
-        default         : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-      }
-      break;
+      Loge("f8 not supported"); longjmp_exception(EX_II); break;
     case 1 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W16_to_32; break;
@@ -1215,7 +1213,7 @@ void mask_instr(int opcode, Decode *s) {
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_exception(s)) return;
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -1268,8 +1266,8 @@ vector register, not a vector register group, so any vector register can be the
 scalar source or destination of a vector reduction regardless of LMUL setting.
 */
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
-  if(check_vstart_ignore(s)) return;
   vector_reduction_check(s, wide);
+  if(check_vstart_exception(s)) return;
   // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
@@ -1311,8 +1309,8 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 }
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
-  if(check_vstart_ignore(s)) return;
   vector_reduction_check(s, widening);
+  if(check_vstart_exception(s)) return;
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 1);
   else
@@ -1448,8 +1446,8 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 }
 
 void float_reduction_computing(Decode *s) {
-  if(check_vstart_ignore(s)) return;
   vector_reduction_check(s, false);
+  if(check_vstart_exception(s)) return;
   word_t FPCALL_TYPE = FPCALL_W64;
   int idx;
 
