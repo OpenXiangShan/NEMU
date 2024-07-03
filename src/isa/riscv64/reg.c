@@ -36,6 +36,7 @@ const char *fpregsl[] = {
 };
 
 void isa_reg_display() {
+  csr_prepare();
   int i;
   for (i = 0; i < 32; i ++) {
     printf("%4s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
