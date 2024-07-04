@@ -419,6 +419,11 @@ if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(hgatp))          {
+  if (cpu.mode == MODE_S && mstatus->tvm == 1) {
+      longjmp_exception(EX_II);
+  }
+}
 if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
 if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
@@ -877,6 +882,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 
 #ifdef CONFIG_RVH
   else if (is_write(hgatp)) {
+    if(cpu.mode == MODE_S && mstatus->tvm == 1) {
+      longjmp_exception(EX_II);
+    }
     hgatp_t new_val = (hgatp_t)src;
     // vmid and ppn WARL in the normal way, regardless of new_val.mode
     hgatp->vmid = new_val.vmid;
