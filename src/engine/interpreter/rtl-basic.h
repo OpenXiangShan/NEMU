@@ -25,8 +25,8 @@
 #ifdef CONFIG_SIM32
 #define def_rtl_compute_reg(name) \
   static inline def_rtl(name, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { \
-  int32_t sc1 = *src1; \
-  int32_t sc2 = *src2; \
+  uint32_t sc1 = *src1; \
+  uint32_t sc2 = *src2; \
   uint32_t res = concat(c_, name) (sc1, sc2); \
   *dest = res; \
   }
@@ -40,8 +40,8 @@
 #ifdef CONFIG_SIM32
 #define def_rtl_compute_imm(name) \
   static inline def_rtl(name ## i, rtlreg_t* dest, const rtlreg_t* src1, const sword_t imm) { \
-  int32_t sc1 = *src1; \
-  int32_t sc2 = imm; \
+  uint32_t sc1 = *src1; \
+  uint32_t sc2 = imm; \
   uint32_t res = concat(c_, name) (sc1, sc2); \
   *dest = res; \
   }

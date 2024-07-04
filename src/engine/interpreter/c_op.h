@@ -17,8 +17,11 @@
 #define __C_OP_H__
 
 #include <common.h>
-
+#ifdef CONFIG_SIM32
+#define c_shift_mask 0x1f
+#else
 #define c_shift_mask MUXDEF(CONFIG_ISA64, 0x3f, 0x1f)
+#endif
 
 #define c_add(a, b) ((a) + (b))
 #define c_sub(a, b) ((a) - (b))
