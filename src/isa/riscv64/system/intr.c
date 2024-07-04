@@ -111,7 +111,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IAF: case EX_LAF: case EX_SAF:
         break;
     #ifdef CONFIG_TVAL_EX_II
-      case EX_II: vstval->val = cpu.instr; break;
+    case EX_II: case EX_VI: vstval->val = cpu.instr; break;
     #endif
       case EX_BP : vstval->val = epc;
         break;
@@ -151,7 +151,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #endif
         break;
 #ifdef CONFIG_TVAL_EX_II
-      case EX_II: 
+      case EX_II: case EX_VI:
         stval->val = cpu.instr; 
 #ifdef CONFIG_RVH
         htval->val = 0; 
@@ -201,11 +201,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
         break;
-      case EX_II:
+      case EX_II: case EX_VI:
         mtval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
         break;
-      case EX_BP:
+      case EX_BP :
         mtval->val = epc; break;
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
       default:
