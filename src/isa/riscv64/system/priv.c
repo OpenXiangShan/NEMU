@@ -414,7 +414,7 @@ if (is_read(hvip))           { return mip->val & HVIP_MASK;}
 if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
 if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
-#endif
+#endif // CONFIG_RVH
 
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_fs(); }
 
@@ -426,13 +426,13 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   else if (is_read(sip))    {
 #ifndef CONFIG_RVH
     difftest_skip_ref();
-#endif
+#endif // CONFIG_RVH
     return mip->val & SIP_MASK;
   }
 #ifdef CONFIG_RVV
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
   else if (is_read(vlenb))  { return VLEN >> 3; }
-#endif
+#endif // CONFIG_RVV
 #ifndef CONFIG_FPU_NONE
   else if (is_read(fcsr))   {
     return fcsr->val & FCSR_MASK;
@@ -560,42 +560,68 @@ static inline void csr_write(word_t *dest, word_t src) {
       }
     }
     else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
-  }else if (is_write(mideleg)){
+  }
+  else if (is_write(mideleg)){
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
-  }else if (is_write(hideleg)){
+  }
+  else if (is_write(hideleg)){
     hideleg->val = mask_bitset(hideleg->val, VS_MASK, src);
-  }else if (is_write(hie)){
+  }
+  else if (is_write(hie)){
     mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
-  }else if(is_write(hip)){
+  }
+  else if(is_write(hip)){
     mip->val = mask_bitset(mip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
-  }else if(is_write(hvip)){
+  }
+  else if(is_write(hvip)){
     mip->val = mask_bitset(mip->val, HVIP_MASK, src);
-  }else if(is_write(hstatus)){
+  }
+  else if(is_write(hstatus)){
     hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src);
-  }else if(is_write(vsstatus)){
+  }
+  else if(is_write(vsstatus)){
     vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
-  }else if(is_write(vsie)){
+  }
+  else if(is_write(vsie)){
     mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
-  }else if(is_write(vsip)){
+  }
+  else if(is_write(vsip)){
     mip->val = mask_bitset(mip->val, VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
-  }else if(is_write(vstvec)){
-    vstvec->val = src;
-  }else if(is_write(vsscratch)){
-    vsscratch->val = src;
-  }else if(is_write(vsepc)){
-    vsepc->val = src;
-  }else if(is_write(vscause)){
-    vscause->val = src;
-  }else if(is_write(vstval)){
-    vstval->val = src;
-  }else if(is_write(vsatp)){
+  }
+  else if(is_write(vstvec)){ vstvec->val = src;}
+  else if(is_write(vsscratch)){ vsscratch->val = src;}
+  else if(is_write(vsepc)){ vsepc->val = src;}
+  else if(is_write(vscause)){ vscause->val = src;}
+  else if(is_write(vstval)){ vstval->val = src;}
+  else if(is_write(vsatp)){
     if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
       longjmp_exception(EX_VI);
     }
     vsatp_t new_val = (vsatp_t)src;
     // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
     update_vsatp(new_val);
-  }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+  }
+  else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);}
+#if defined CONFIG_RV_AIA && defined CONFIG_RV_IMSIC
+  else if (is_write(miselect)) { miselect->val = src;}
+  else if (is_write(siselect)) { siselect->val = src;}
+  else if (is_write(vsiselect)) { vsiselect->val = src;}
+  else if (is_write(mireg)) { mireg->val = src;}
+  else if (is_write(sireg)) { sireg->val = src;}
+  else if (is_write(vsireg)) { vsireg->val = src;}
+  else if (is_write(mtopi)) { /* do nothing */}
+  else if (is_write(stopi)) { /* do nothing */}
+  else if (is_write(vstopi)) { /* do nothing */}
+  else if (is_write(mvien)) { mvien->val = src;}
+  else if (is_write(mvip)) { mvip->val = src;}
+  else if (is_write(hvien)) { hvien->val = src;}
+  else if (is_write(hvictl)) { hvictl->val = src;}
+  else if (is_write(hviprio1)) { hviprio1->val = src;}
+  else if (is_write(hviprio2)) { hviprio2->val = src;}
+  else if (is_write(mtopei)) { mtopei->val = src;}
+  else if (is_write(stopei)) { stopei->val = src;}
+  else if (is_write(vstopei)) { vstopei->val = src;}
+#endif // CONFIG_RV_AIA && CONFIG_RV_IMSIC
 #else
   if (is_write(mstatus)) {
 #ifndef CONFIG_RVH
@@ -655,14 +681,14 @@ static inline void csr_write(word_t *dest, word_t src) {
 #else
     *dest = src & ~(0x3UL);
 #endif // CONFIG_XTVEC_VECTORED_MODE
-}
+  }
   else if (is_write(stvec)) {
 #ifdef CONFIG_XTVEC_VECTORED_MODE
     *dest = src & ~(0x2UL);
 #else
     *dest = src & ~(0x3UL);
 #endif // CONFIG_XTVEC_VECTORED_MODE
-}
+  }
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_RVV
@@ -882,10 +908,84 @@ static inline void smstateen_extension_permit_check(word_t *dest, const word_t *
 }
 #endif
 
+// AIA extension check
+#ifdef CONFIG_RVH
+#if defined CONFIG_RV_AIA && defined CONFIG_RV_IMSIC
+static void aia_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
+  if (is_access(stopei)) {
+    if ((!cpu.v && (cpu.mode == MODE_S) && mvien->seie)) {
+      longjmp_exception(EX_II);
+    }
+  }
+  if (is_access(mireg)) {
+    if (cpu.mode == MODE_M) {
+      if ((miselect->val <= ISELECT_2F_MASK) ||
+          ((miselect->val > ISELECT_3F_MASK) && (miselect->val <= ISELECT_6F_MASK)) ||
+          (miselect->val >  ISELECT_MAX_MASK) ||
+          (miselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+  }
+  if (is_access(sireg)) {
+    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
+      if ((siselect->val > ISELECT_6F_MASK) && (siselect->val <= ISELECT_MAX_MASK)) {
+        longjmp_exception(EX_II);
+      }
+    }
+    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
+      if ((siselect->val <= ISELECT_2F_MASK) ||
+          ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) ||
+          (siselect->val >  ISELECT_MAX_MASK) ||
+          (siselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+    if (cpu.v && (cpu.mode == MODE_S)) {
+      if (vsiselect->val > VSISELECT_MAX_MASK) {
+        longjmp_exception(EX_II);
+      }
+      if (((vsiselect->val > ISELECT_2F_MASK) && (vsiselect->val <= ISELECT_3F_MASK)) ||
+          ((vsiselect->val > 0x80) && (vsiselect->val <= ISELECT_MAX_MASK) && (vsiselect->val & 0x1))) {
+            longjmp_exception(EX_VI);
+      }
+    }
+    if (cpu.v && (cpu.mode == MODE_U)) {
+      longjmp_exception(EX_VI);
+    }
+  }
+  if (is_access(vsireg)) {
+    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
+      if ((vsiselect->val <= ISELECT_6F_MASK) ||
+          (vsiselect->val >  ISELECT_MAX_MASK) ||
+          (vsiselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+    if (cpu.v) {
+      longjmp_exception(EX_VI);
+    }
+  }
+  if (is_access(sip) || is_access(sie)) {
+    if (cpu.v && (cpu.mode == MODE_S)) {
+      if (hvictl->vti) {
+        longjmp_exception(EX_VI);
+      }
+    }
+  }
+}
+#endif // CONFIG_RV_AIA && CONFIG_RV_IMSIC
+#endif // CONFIG_RVH
+
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifdef CONFIG_RV_SMSTATEEN
   smstateen_extension_permit_check(dest, src, csrid);
 #endif // CONFIG_RV_SMSTATEEN
+#ifdef CONFIG_RVH
+#if defined CONFIG_RV_AIA && defined CONFIG_RV_IMSIC
+  aia_extension_permit_check(dest, src, csrid);
+#endif // CONFIG_RV_AIA && CONFIG_RV_IMSIC
+#endif // CONFIG_RVH
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
