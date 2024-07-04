@@ -155,6 +155,13 @@
 #define CSRS_S_CUSTOM_1(f) \
   CSRS_S_XIANGSHAN_CTRL(f)
 
+/** Supervisor Timer Register **/
+#ifdef CONFIG_RV_SSTC
+  #define CSRS_S_SSTC(f) \
+    f(stimecmp, 0x14D)
+#endif
+
+
 /** Supervisor Advanced Interrupt Architecture Registers **/
 #ifdef CONFIG_RV_IMSIC
   #define CSRS_S_AIA(f) \
@@ -175,6 +182,7 @@
   CSRS_S_STATE_ENABLE(f) \
   CSRS_S_SCOFPMF(f) \
   CSRS_S_AIA(f) \
+  CSRS_S_SSTC(f) \
   CSRS_S_CUSTOM_1(f)
 
 
@@ -235,6 +243,13 @@
     #define CSRS_H_VS_AIA(f)
   #endif // CONFIG_RV_IMSIC
 
+  #ifdef CONFIG_RV_SSTC
+    #define CSRS_VS_SSTC(f) \
+      f(vstimecmp , 0x24D)
+  #else
+    #define CSRS_VS_SSTC(f)
+  #endif
+
   /** ALL **/
   #define CSRS_H_VS(f) \
     CSRS_H_TRAP_SETUP(f) \
@@ -245,6 +260,7 @@
     CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
     CSRS_H_STATE_ENABLE(f) \
     CSRS_H_VS_AIA(f) \
+    CSRS_VS_SSTC(f) \
     CSRS_VS(f)
 
 #else // CONFIG_RVH
@@ -582,7 +598,20 @@ CSR_STRUCT_START(mconfigptr)
 CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
+  uint64_t fiom   : 1; // [0]
+  uint64_t pad0   : 3; // [1:3]
+  uint64_t cbie   : 2; // [4:5]
+  uint64_t cbcfe  : 1; // [6:6]
+  uint64_t cbze   : 1; // [7:7]
+  uint64_t pad1   : 24;// [8:31]
+  uint64_t pmm    : 2; // [32:33]
+  uint64_t pad3   : 26;// [34:59]
+  uint64_t cde    : 1; // [60]
+  uint64_t adue   : 1; // [61]
+  uint64_t pbmte  : 1; // [62]
+  uint64_t stce   : 1; // [63]
 CSR_STRUCT_END(menvcfg)
+
 
 #ifdef CONFIG_RV_SMSTATEEN
   CSR_STRUCT_START(mstateen0)
@@ -843,6 +872,12 @@ CSR_STRUCT_START(srnctl)
 CSR_STRUCT_END(srnctl)
 #endif
 
+/** Supervisor Timer Register**/
+#ifdef CONFIG_RV_SSTC
+CSR_STRUCT_START(stimecmp)
+CSR_STRUCT_END(stimecmp)
+#endif
+
 /** Supervisor Advanced Interrupt Architecture CSRs **/
 #ifdef CONFIG_RV_IMSIC
 CSR_STRUCT_START(siselect)
@@ -928,14 +963,17 @@ CSR_STRUCT_START(hgeie)
 CSR_STRUCT_END(hgeie)
 
 CSR_STRUCT_START(henvcfg)
-  uint64_t fiom   : 1;
-  uint64_t pad0   : 3;
-  uint64_t cbie   : 2;
-  uint64_t cbcfe  : 1;
-  uint64_t cbze   : 1;
-  uint64_t pad1   :54;
-  uint64_t pbmte  : 1;
-  uint64_t vstce  : 1;
+  uint64_t fiom   : 1;  // [0]
+  uint64_t pad0   : 3;  // [1:3]
+  uint64_t cbie   : 2;  // [4:5]
+  uint64_t cbcfe  : 1;  // [6]
+  uint64_t cbze   : 1;  // [7]
+  uint64_t pad1   : 24; // [8:31]
+  uint64_t pmm    : 2;  // [32:33]
+  uint64_t pad2   : 27; // [34:60]
+  uint64_t adue   : 1;  // [61]
+  uint64_t pbmte  : 1;  // [62]
+  uint64_t stce   : 1;  // [63]
 CSR_STRUCT_END(henvcfg)
 
 CSR_STRUCT_START(hcounteren)
@@ -1044,6 +1082,12 @@ CSR_STRUCT_START(vsip)
   uint64_t pad2 : 3;
   uint64_t seip : 1;
 CSR_STRUCT_END(vsip)
+
+/** Virtual Supervisor Timer Register **/
+#ifdef CONFIG_RV_SSTC
+CSR_STRUCT_START(vstimecmp)
+CSR_STRUCT_END(vstimecmp)
+#endif
 
 CSR_STRUCT_START(vsatp)
   union{
