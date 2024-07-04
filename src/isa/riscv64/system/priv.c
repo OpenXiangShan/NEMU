@@ -56,28 +56,32 @@ void init_trigger() {
 #endif // CONFIG_RV_SDTRIG
 
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
-static inline void csr_counter_enable_check(uint32_t addr) {
+// also check h/mcounteren h/menvcfg for sstc
+static inline void csr_counter_enable_check(uint32_t addr, bool sstc) {
   int count_bit = 1 << (addr - 0xC00);
+  if (sstc) {
+      count_bit = 1 << 1; // counteren.TM
+  }
 
   // priv-mode & counter-enable -> exception-type
   // | MODE         | VU    | VS    | U     | S/HS  | M     |
-  // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    |
-  // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    |
-  // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    |
-
-  if (cpu.mode < MODE_M && !(count_bit & mcounteren->val)) {
+  // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    | (counters & s/vstimecmp)
+  // | ~menvccfg    | EX_II | EX_II | EX_II | EX_II | OK    | (s/vstimecmp)
+  // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    | (counters & stimecmp)
+  // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    | (counters)
+  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (sstc && !menvcfg->stce))) {
     Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
     longjmp_exception(EX_II);
   }
 
   #ifdef CONFIG_RVH
-    if (cpu.v && !(count_bit & hcounteren->val)) {
+    if (cpu.v && (!(count_bit & hcounteren->val) || (sstc && !henvcfg->stce))) {
       Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
       longjmp_exception(EX_VI);
     }
   #endif // CONFIG_RVH
 
-  if (cpu.mode < MODE_S && !(count_bit & scounteren->val)) {
+  if (cpu.mode < MODE_S && !(count_bit & scounteren->val) && !sstc) {
     Logti("Illegal CSR accessing (0x%X): the bit in scounteren is not set", addr);
     #ifdef CONFIG_RVH
       if (cpu.v) {
@@ -120,10 +124,14 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   if (need_write && (addr >> 10) == 0x3) {
     return false;
   }
-
+#ifdef  CONFIG_RV_SSTC
+  bool sstc = (addr == 0x14D) || (addr == 0x24D);
+#else
+  bool sstc = false;
+#endif
   // Attempts to access unprivileged counters without s/h/mcounteren
-  if (addr >= 0xC00 && addr <= 0xC1F) {
-    csr_counter_enable_check(addr);
+  if ((addr >= 0xC00 && addr <= 0xC1F) || sstc) {
+    csr_counter_enable_check(addr, sstc);
   }
 
   return true;

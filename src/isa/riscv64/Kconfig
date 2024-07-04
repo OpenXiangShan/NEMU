@@ -57,6 +57,10 @@ config IMSIC
   depends on RV_AIA
   default n
 
+config RV_SSTC
+  bool "RISC-V time-compare for Privileged arch and Supervisor-level extensions"
+  default n
+
 menuconfig RV_ZICNTR
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
   default y
