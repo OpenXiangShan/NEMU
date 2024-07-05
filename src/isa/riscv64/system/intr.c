@@ -189,30 +189,25 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
-#ifdef CONFIG_RVH
-        mtval2->val = 0;
+        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
-#endif
         break;
-#ifdef CONFIG_TVAL_EX_II
-      case EX_II: mtval->val = cpu.instr; break;
-#endif
-      case EX_BP : 
-#ifdef CONFIG_RVH
-        mtval2->val = 0;
-#endif      
+      case EX_II:
+        mtval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
+        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+        break;
+      case EX_BP:
         mtval->val = epc; break;
-      default: mtval->val = 0;
-#ifdef CONFIG_RVH
-               mtval2->val = 0;
-#endif
+        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+      default:
+        mtval->val = 0;
+        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
     }
     MUXDEF(CONFIG_RVH, mtinst->val = 0;,);
     cpu.mode = MODE_M;
     update_mmu_state();
     return get_trap_pc(mtvec->val, mcause->val);
-    // return mtvec->val;
   }
 }
 
