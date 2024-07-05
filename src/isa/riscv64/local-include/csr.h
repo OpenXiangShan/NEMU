@@ -159,6 +159,8 @@
 #ifdef CONFIG_RV_SSTC
   #define CSRS_S_SSTC(f) \
     f(stimecmp, 0x14D)
+#else
+  #define CSRS_S_SSTC(f)
 #endif
 
 

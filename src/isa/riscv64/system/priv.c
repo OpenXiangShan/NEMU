@@ -225,6 +225,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIP_WMASK VSSIP
 #define HIE_RMASK HS_MASK
 #define HIE_WMASK HS_MASK
+#define HEDELEG_WMASK 0xcb1ff
 #endif
 
 #define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, 0xf0b7f7, 0xf0b7ff), MUXDEF(CONFIG_RVH, 0xb3f7, 0xb3ff))
@@ -601,6 +602,8 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
   }else if (is_write(mideleg)){
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
+  }else if(is_write(hedeleg)){
+    hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_WMASK, src);
   }else if (is_write(hideleg)){
     hideleg->val = mask_bitset(hideleg->val, VS_MASK, src);
   }else if (is_write(hie)){
