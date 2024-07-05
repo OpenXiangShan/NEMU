@@ -94,7 +94,27 @@ void init_isa() {
   hstatus->vsxl = 2; // equal to max len (spike)
   vsstatus->val = mstatus->val & SSTATUS_RMASK;
   mideleg->val |= ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2));
-#endif
+#endif // CONFIG_RVH
+#ifdef CONFIG_RV_IMSIC
+  miselect->val = 0;
+  siselect->val = 0;
+  vsiselect->val = 0;
+  mireg->val = 0;
+  sireg->val = 0;
+  vsireg->val = 0;
+  mtopi->val = 0;
+  stopi->val = 0;
+  vstopi->val = 0;
+  mvien->val = 0;
+  mvip->val = 0;
+  hvien->val = 0;
+  hvictl->val = 0;
+  hviprio1->val = 0;
+  hviprio2->val = 0;
+  mtopei->val = 0;
+  stopei->val = 0;
+  vstopei->val = 0;
+#endif // CONFIG_RV_IMSIC
 
   misa->mxl = 2; // XLEN = 64
 

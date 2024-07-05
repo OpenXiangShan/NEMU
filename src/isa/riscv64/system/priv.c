@@ -596,6 +596,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
     update_vsatp(new_val);
   }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+#ifdef CONFIG_RV_IMSIC
+  else if (is_write(mtopi)) { return; }
+  else if (is_write(stopi)) { return; }
+  else if (is_write(vstopi)) { return; }
+#endif // CONFIG_RV_IMSIC
 #else
   if (is_write(mstatus)) {
 #ifndef CONFIG_RVH
@@ -882,10 +887,81 @@ static inline void smstateen_extension_permit_check(word_t *dest, const word_t *
 }
 #endif // CONFIG_RV_SMSTATEEN
 
+// AIA extension check
+// !!! Only support in RVH
+#ifdef CONFIG_RV_IMSIC
+static void aia_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
+  if (is_access(stopei)) {
+    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
+      longjmp_exception(EX_II);
+    }
+  }
+  if (is_access(mireg)) {
+    if (cpu.mode == MODE_M) {
+      if ((miselect->val <= ISELECT_2F_MASK) ||
+          ((miselect->val > ISELECT_3F_MASK) && (miselect->val <= ISELECT_6F_MASK)) ||
+          (miselect->val >  ISELECT_MAX_MASK) ||
+          (miselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+  }
+  if (is_access(sireg)) {
+    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
+      if ((siselect->val > ISELECT_6F_MASK) && (siselect->val <= ISELECT_MAX_MASK)) {
+        longjmp_exception(EX_II);
+      }
+    }
+    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
+      if ((siselect->val <= ISELECT_2F_MASK) ||
+          ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) ||
+          (siselect->val >  ISELECT_MAX_MASK) ||
+          (siselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+    if (cpu.v && (cpu.mode == MODE_S)) {
+      if (vsiselect->val > VSISELECT_MAX_MASK) {
+        longjmp_exception(EX_II);
+      }
+      if (((vsiselect->val > ISELECT_2F_MASK) && (vsiselect->val <= ISELECT_3F_MASK)) ||
+          ((vsiselect->val > 0x80) && (vsiselect->val <= ISELECT_MAX_MASK) && (vsiselect->val & 0x1))) {
+            longjmp_exception(EX_VI);
+      }
+    }
+    if (cpu.v && (cpu.mode == MODE_U)) {
+      longjmp_exception(EX_VI);
+    }
+  }
+  if (is_access(vsireg)) {
+    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
+      if ((vsiselect->val <= ISELECT_6F_MASK) ||
+          (vsiselect->val >  ISELECT_MAX_MASK) ||
+          (vsiselect->val & 0x1)) {
+            longjmp_exception(EX_II);
+      }
+    }
+    if (cpu.v) {
+      longjmp_exception(EX_VI);
+    }
+  }
+  if (is_access(sip) || is_access(sie)) {
+    if (cpu.v && (cpu.mode == MODE_S)) {
+      if (hvictl->vti) {
+        longjmp_exception(EX_VI);
+      }
+    }
+  }
+}
+#endif // CONFIG_RV_IMSIC
+
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifdef CONFIG_RV_SMSTATEEN
   smstateen_extension_permit_check(dest, src, csrid);
 #endif // CONFIG_RV_SMSTATEEN
+#ifdef CONFIG_RV_IMSIC
+  aia_extension_permit_check(dest, src, csrid);
+#endif // CONFIG_RV_IMSIC
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
