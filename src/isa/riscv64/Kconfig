@@ -48,6 +48,16 @@ config TRIGGER_NUM
   depends on RV_SDTRIG
   default 10
 
+config RV_AIA
+  bool "(Beta) RISC-V Advanced Interrupt Architecture v1.0"
+  depends on RVH
+  default n
+
+config RV_IMSIC
+  bool "Incoming MSI Controller"
+  depends on RV_AIA
+  default n
+
 menuconfig RV_ZICNTR
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
   default y
