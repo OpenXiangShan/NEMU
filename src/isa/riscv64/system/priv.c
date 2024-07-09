@@ -263,7 +263,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
-#define is_access(csr) (src != NULL)?(is_read(csr)):(is_write(csr))
+#define is_access(csr) (dest_access == (void *)(csr))
 #define mask_bitset(old, mask, new) (((old) & ~(mask)) | ((new) & (mask)))
 
 #define is_pmpcfg(p) (p >= &(csr_array[CSR_PMPCFG_BASE]) && p < &(csr_array[CSR_PMPCFG_BASE + CSR_PMPCFG_MAX_NUM]))
@@ -944,7 +944,7 @@ word_t csrid_read(uint32_t csrid) {
 // If sstateen check after csr_is_legal, the exception type will be wrong.
 // todo: should finish all csr read/write exception checking before read/write.
 #ifdef CONFIG_RV_SMSTATEEN
-static inline void smstateen_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
+static inline void smstateen_extension_permit_check(word_t *dest_access) {
   if (is_access(sstateen0)) {
     if((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
 #ifdef CONFIG_RVH
@@ -961,8 +961,9 @@ static inline void smstateen_extension_permit_check(word_t *dest, const word_t *
 #endif
 
 // AIA extension check
-#ifdef CONFIG_IMSIC
-static inline void aia_extension_permit_check(word_t *dest, const word_t *src, uint32_t csrid) {
+// !!! Only support in RVH
+#ifdef CONFIG_RV_IMSIC
+static void aia_extension_permit_check(word_t *dest_access) {
   if (is_access(stopei)) {
     if ((!cpu.v && (cpu.mode == MODE_S) && mvien->seie)) {
       longjmp_exception(EX_II);
@@ -1028,20 +1029,19 @@ static inline void aia_extension_permit_check(word_t *dest, const word_t *src, u
 #endif
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+  word_t *csr = csr_decode(csrid);
 #ifdef CONFIG_RV_SMSTATEEN
-  smstateen_extension_permit_check(dest, src, csrid);
+  smstateen_extension_permit_check(csr);
 #endif // CONFIG_RV_SMSTATEEN
 
-#ifdef CONFIG_IMSIC
-  aia_extension_permit_check(dest, src, csrid);
-#endif
-
+#ifdef CONFIG_RV_IMSIC
+  aia_extension_permit_check(csr);
+#endif // CONFIG_RV_IMSIC
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
   }
-  word_t *csr = csr_decode(csrid);
   // Log("Decoding csr id %u to %p", csrid, csr);
   word_t tmp = (src != NULL ? *src : 0);
   if (dest != NULL) { *dest = csr_read(csr); }
