@@ -28,12 +28,12 @@
 
 /* Unprivileged CSR */
 /** Unprivileged Floating-Point CSRs **/
-#ifndef CONFIG_FPU_NONE
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
   #define CSRS_UNPRIV_FLOAT(f) \
     f(fflags       , 0x001) f(frm        , 0x002) f(fcsr       , 0x003)
-#else // CONFIG_FPU_NONE
+#else // CONFIG_FPU_NONE || CONFIG_RV_MSTATUS_FS_WRITABLE
   #define CSRS_UNPRIV_FLOAT(f)
-#endif // CONFIG_FPU_NONE
+#endif // CONFIG_FPU_NONE || CONFIG_RV_MSTATUS_FS_WRITABLE
 
 /** Unprivileged Counter/Timers **/
 #ifdef CONFIG_RV_CSR_TIME
@@ -1152,7 +1152,7 @@ CSR_STRUCT_END(vstopi)
 
 /** Unprivileged Floating-Point CSRs **/
 
-#ifndef CONFIG_FPU_NONE
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
 CSR_STRUCT_START(fflags)
 CSR_STRUCT_END(fflags)
 
@@ -1175,7 +1175,7 @@ CSR_STRUCT_START(fcsr)
   };
 CSR_STRUCT_END(fcsr)
 
-#endif // CONFIG_FPU_NONE
+#endif // CONFIG_FPU_NONE || CONFIG_RV_MSTATUS_FS_WRITABLE
 
 /** Unprivileged Vector CSRs **/
 

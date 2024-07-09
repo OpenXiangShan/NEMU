@@ -303,6 +303,34 @@ static inline void update_mstatus_fs() {
   }
 }
 
+static inline bool require_fs() {
+  #if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
+    if ((mstatus->val & MSTATUS_WMASK_FS) != 0) {
+    #ifdef CONFIG_RVH
+      if (!cpu.v || (vsstatus->val & MSTATUS_WMASK_FS) != 0) {
+        return true;
+      }
+    #endif // CONFIG_RVH
+      return true;
+    }
+  #endif // CONFIG_FPU_NONE || CONFIG_RV_MSTATUS_FS_WRITABLE
+  return false;
+}
+
+static inline bool require_vs() {
+  #ifdef CONFIG_RVV
+    if ((mstatus->val & MSTATUS_WMASK_RVV) != 0) {
+    #ifdef CONFIG_RVH
+      if (!cpu.v || (vsstatus->val & MSTATUS_WMASK_RVV) != 0) {
+        return true;
+      }
+    #endif // CONFIG_RVH
+      return true;
+    }
+  #endif // CONFIG_RVV
+  return false;
+}
+
 inline word_t gen_status_sd(word_t status) {
   mstatus_t xstatus = (mstatus_t)status;
   bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
@@ -473,7 +501,7 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
   else if (is_read(vlenb))  { return VLEN >> 3; }
 #endif
-#ifndef CONFIG_FPU_NONE
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
   else if (is_read(fcsr))   {
     return fcsr->val & FCSR_MASK;
   }
@@ -750,7 +778,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif
   else if (is_write(mepc)) { *dest = src & (~0x1UL); }
   else if (is_write(sepc)) { *dest = src & (~0x1UL); }
-#ifndef CONFIG_FPU_NONE
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
   else if (is_write(fflags)) {
     *dest = src & FFLAGS_MASK;
     fcsr->val = (frm->val)<<5 | fflags->val;
@@ -906,7 +934,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else { *dest = src; }
 
-#ifndef CONFIG_FPU_NONE
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     fp_set_dirty();
     fp_update_rm_cache(fcsr->frm);
@@ -1028,6 +1056,31 @@ static void aia_extension_permit_check(word_t *dest_access) {
 }
 #endif
 
+// Fp Vec CSR check
+/**
+ * Fp CSRs: fflags, frm, fcsr
+ * Access fp CSRs raise EX_II
+ *          1. when mstatus.FS is OFF in non Virt Mode
+ *          2. when mstatus.FS or vsstatus.FS is OFF in Virt Mode
+ * 
+ * Vec CSRs: vstart, vxsat, vxrm, vcsr, vl, vtype, vlenb
+ * Access Vec CSRs raise EX_II
+ *          1. when mstatus.VS is OFF in non Virt Mode
+ *          2. when mstatus.VS or vsstatus.VS is OFF in Virt Mode
+*/
+static inline void fp_vec_permit_check(word_t *dest_access) {
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
+  if (is_access(fcsr) || is_access(fflags) || is_access(frm)) {
+    if (!require_fs()) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_FPU_NONE || CONFIG_RV_MSTATUS_FS_WRITABLE
+#ifdef CONFIG_RVV
+  if (is_access(vcsr) || is_access(vlenb) || is_access(vstart) || is_access(vxsat) || is_access(vxrm) || is_access(vl) || is_access(vtype)) {
+    if (!require_vs()) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RVV
+}
+
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
   word_t *csr = csr_decode(csrid);
 #ifdef CONFIG_RV_SMSTATEEN
@@ -1037,6 +1090,9 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifdef CONFIG_RV_IMSIC
   aia_extension_permit_check(csr);
 #endif // CONFIG_RV_IMSIC
+#if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE) || defined(CONFIG_RVV)
+  fp_vec_permit_check(csr);
+#endif // CONFIG_FPU_NONE || CONFIG_RV_MSTATUS_FS_WRITABLE || CONFIG_RVV
   if (!csr_is_legal(csrid, src != NULL)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
