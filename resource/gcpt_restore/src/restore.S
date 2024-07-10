@@ -183,6 +183,8 @@ restore_int_vector:
   ld x31, (31*8)(sp)
   ld sp, (2*8)(sp)
   mret
+
+  .align 3
 read_complete_flag:
   .word COMPLETE_FLAG
   .word 0x0

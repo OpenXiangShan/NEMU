@@ -19,6 +19,7 @@
 //no mhartid here
 
 #define CSRS(f) \
+  f(fcsr       , 0x003) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
@@ -66,6 +67,8 @@ f(vcsr, 0x00f) \
 f(vstart, 0x008)
 
 #define VTYPE_VL_RESTORE \
+  li t0, MSTATUS_VS; \
+  csrs  CSR_MSTATUS, t0; \
   li t0, CSR_REG_CPT_ADDR; \
   li t2,VTYPE_ID;\
   slli t2,t2,3; \
@@ -78,7 +81,7 @@ f(vstart, 0x008)
   vsetvl t2, t2, t1; \
 
 #define RESTORE_VECTORS(f) \
-  VTYPE_VL_RESTORE;\
+  VTYPE_VL_RESTORE; \
   li sp, VECTOR_REG_CPT_ADDR; \
   addi sp,sp,0;\
   vl1re64.v v0, (sp); \
