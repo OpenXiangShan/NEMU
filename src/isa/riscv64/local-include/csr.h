@@ -36,6 +36,13 @@
 #endif // CONFIG_FPU_NONE
 
 /** Unprivileged Counter/Timers **/
+#ifdef CONFIG_RV_CSR_CYCLE
+  #define CSRS_UNPRIV_CYCLE(f) \
+    f(cycle      , 0xC00)
+#else // CONFIG_RV_CSR_CYCLE
+  #define CSRS_UNPRIV_CYCLE(f)
+#endif // CONFIG_RV_CSR_CYCLE
+
 #ifdef CONFIG_RV_CSR_TIME
   #define CSRS_UNPRIV_TIME(f) \
     f(csr_time   , 0xC01)
@@ -43,11 +50,18 @@
   #define CSRS_UNPRIV_TIME(f)
 #endif // CONFIG_RV_CSR_TIME
 
+#ifdef CONFIG_RV_CSR_INSTRET
+  #define CSRS_UNPRIV_INSTRET(f) \
+    f(instret    , 0xC02)
+#else // CONFIG_RV_CSR_INSTRET
+  #define CSRS_UNPRIV_INSTRET(f)
+#endif // CONFIG_RV_CSR_INSTRET
+
 #ifdef CONFIG_RV_ZICNTR
   #define CSRS_UNPRIV_CNTR(f) \
-    f(cycle      , 0xC00) \
+    CSRS_UNPRIV_CYCLE(f) \
     CSRS_UNPRIV_TIME(f) \
-    f(instret    , 0xC02)
+    CSRS_UNPRIV_INSTRET(f)
     // There is `time_t` type in the C programming language.
     // So We have to use another name for CSR time.
 #else // CONFIG_RV_ZICNTR
@@ -207,8 +221,12 @@
   #endif // CONFIG_RV_SDTRIG
 
   /** Hypervisor Counter/Timer Virtualization Registers **/
-  #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
-    f(htimedelta , 0x605)
+  #ifdef CONFIG_RV_CSR_TIME
+    #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
+      f(htimedelta , 0x605)
+  #else // CONFIG_RV_CSR_TIME
+    #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f)
+  #endif
 
   /** Hypervisor State Enable Registers **/
   #ifdef CONFIG_RV_SMSTATEEN
@@ -1176,16 +1194,20 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 #endif // CONFIG_RVV
 
 #ifdef CONFIG_RV_ZICNTR
+#ifdef CONFIG_RV_CSR_CYCLE
 CSR_STRUCT_START(cycle)
 CSR_STRUCT_END(cycle)
+#endif // CONFIG_RV_CSR_CYCLE
 
 #ifdef CONFIG_RV_CSR_TIME
 CSR_STRUCT_START(csr_time)
 CSR_STRUCT_END(csr_time)
 #endif // CONFIG_RV_CSR_TIME
 
+#ifdef CONFIG_RV_CSR_INSTRET
 CSR_STRUCT_START(instret)
 CSR_STRUCT_END(instret)
+#endif // CONFIG_RV_CSR_INSTRET
 #endif // CONFIG_RV_ZICNTR
 
 #ifdef CONFIG_RV_ZIHPM

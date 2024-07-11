@@ -456,23 +456,27 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
     return get_minstret();
   }
 #ifdef CONFIG_RV_ZICNTR
-  else if (is_read(cycle)) {
-    // NEMU emulates a hart with CPI = 1.
-    difftest_skip_ref();
-    return get_mcycle();
-  }
+  #ifdef CONFIG_RV_CSR_CYCLE
+    else if (is_read(cycle)) {
+      // NEMU emulates a hart with CPI = 1.
+      difftest_skip_ref();
+      return get_mcycle();
+    }
+  #endif // CONFIG_RV_CSR_CYCLE
   #ifdef CONFIG_RV_CSR_TIME
     else if (is_read(csr_time)) {
       difftest_skip_ref();
       return clint_uptime();
     }
   #endif // CONFIG_RV_CSR_TIME
+  #ifdef CONFIG_RV_CSR_INSTRET
   else if (is_read(instret)) {
     // The number of retired instruction should be the same between dut and ref.
     // But instruction counter of NEMU is not accurate when enabling Performance optimization.
     difftest_skip_ref();
     return get_minstret();
   }
+  #endif // CONFIG_RV_CSR_INSTRET
 #endif // CONFIG_RV_ZICNTR
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
