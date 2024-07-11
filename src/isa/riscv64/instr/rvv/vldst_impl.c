@@ -144,7 +144,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   if(check_vstart_ignore(s)) return;
   word_t idx;
   uint64_t nf, fn, vl_val, base_addr, vd, addr;
-  int eew, emul, stride, is_unit_stride;
+  int eew, emul, vemul, stride, is_unit_stride;
 
   // s->v_width is the bytes of a unit
   // eew is the coding like vsew
@@ -159,6 +159,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   emul = vtype->vlmul > 4 ? vtype->vlmul - 8 + eew - vtype->vsew : vtype->vlmul + eew - vtype->vsew;
   isa_emul_check(mode == MODE_MASK ? 1 : emul, 1);
   emul = emul < 0 ? 0 : emul;
+  vemul = emul;
   emul = 1 << emul;
 
   if (mode == MODE_STRIDED) {
@@ -195,7 +196,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   }
 
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
-    int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
     for(idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
