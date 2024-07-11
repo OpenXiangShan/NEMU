@@ -142,9 +142,10 @@ static void index_vload_check(int mode, Decode *s) {
 void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  word_t idx;
-  uint64_t nf, fn, vl_val, base_addr, vd, addr;
-  int eew, emul, vemul, stride, is_unit_stride;
+  uint64_t idx;
+  uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
+  int64_t stride;
+  int eew, emul, vemul;
 
   // s->v_width is the bytes of a unit
   // eew is the coding like vsew
@@ -216,7 +217,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   //        7  ->  64         3  ->  64
   index_vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  word_t idx;
+  uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
@@ -285,9 +286,10 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
 void vst(int mode, Decode *s, int mmu_mode) {
   vstore_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  word_t idx;
-  uint64_t nf, fn, vl_val, base_addr, vd, addr;
-  int eew, emul, stride, is_unit_stride;
+  uint64_t idx;
+  uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
+  int64_t stride;
+  int eew, emul;
 
   eew = 0;
   switch(s->v_width) {
@@ -336,7 +338,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
 void vstx(int mode, Decode *s, int mmu_mode) {
   index_vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  word_t idx;
+  uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
@@ -399,7 +401,7 @@ static void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
 }
 
 void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
-  word_t idx, vreg_idx, offset, pos;
+  uint64_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
   int eew;
 
@@ -453,7 +455,7 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
 }
 
 void vsr(int mode, Decode *s, int mmu_mode) {
-  word_t idx, vreg_idx, offset, pos;
+  uint64_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
 
   // previous decode does not load vals for us
