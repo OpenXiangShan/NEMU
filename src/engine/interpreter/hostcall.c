@@ -79,6 +79,6 @@ def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       break;
     }
 #endif
-    default: isa_hostcall(id, dest, src1, src2, imm); break;
+    default: isa_hostcall(id, dest, src1, src2, imm, &s->isa); break;
   }
 }

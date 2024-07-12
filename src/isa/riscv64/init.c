@@ -68,6 +68,7 @@ void init_isa() {
   // initialize the value fs and vs to 0
   mstatus->fs = 0;
   mstatus->vs = 0;
+  menvcfg->stce = 1;
 
 #ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;
