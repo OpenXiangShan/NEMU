@@ -354,23 +354,26 @@ void init_monitor(int argc, char *argv[]) {
   } else if (checkpoint_state != NoCheckpoint) {
     // boot: jump to restorer --> restorer jump to bbl
     assert(img_file != NULL);
-    assert(restorer != NULL);
 
-    bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
+    bbl_start = RESET_VECTOR;
 
-    long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+    long restorer_size = 0;
+    if (restorer != NULL) {
+      restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+      bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
+    }
     long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
     img_size = restorer_size + bbl_size;
 
   } else if (profiling_state == SimpointProfiling) {
+    bbl_start = RESET_VECTOR;
+    long restorer_size = 0;
     if (restorer != NULL) {
-      Log("You are providing a gcpt restorer when doing simpoing profiling, "
-          "If you didn't link the program correctly, this will corrupt your memory/program.");
-      bbl_start = RESET_VECTOR + CONFIG_BBL_OFFSET_WITH_CPT;
-      long restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
-      long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
-      img_size = restorer_size + bbl_size;
+      restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
+      bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
     }
+    long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+    img_size = restorer_size + bbl_size;
 
   } else {
     if (restorer != NULL) {

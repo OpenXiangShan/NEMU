@@ -72,7 +72,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
   const size_t PMEM_SIZE = MEMORY_SIZE;
   uint8_t *pmem = get_pmem();
 
-  assert(restorer);
+  if (restorer) {
   FILE *restore_fp = fopen(restorer, "rb");
   if (!restore_fp) {
     xpanic("Cannot open restorer %s\n", restorer);
@@ -82,6 +82,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
   assert(restorer_size == fread(pmem, 1, restorer_size, restore_fp));
   fclose(restore_fp);
   Log("Put gcpt restorer %s to start of pmem", restorer);
+  }
 
   string filepath;
 
