@@ -700,6 +700,10 @@ static inline void csr_write(word_t *dest, word_t src) {
 }
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
+#ifdef CONFIG_RVH
+  else if (is_write(hedeleg)) { *dest = src & 0xb1ff; }
+  else if (is_write(hideleg)) { *dest = src & 0x2555; }
+#endif
 #ifdef CONFIG_RVV
   else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
   else if (is_write(vxrm)) { *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
