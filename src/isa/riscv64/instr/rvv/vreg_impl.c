@@ -75,14 +75,6 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 }
 
 int get_vlmax(int vsew, int vlmul) {
-  if (vlmul > 4) vlmul -= 8;
-  return VLEN >> (3 + vsew - vlmul);
-}
-
-int get_vlen_max(int vsew, int vlmul, int widening) {
-  if (vlmul > 4 && widening) {
-    return VLEN >> (4 + vsew);
-  }
   if (vlmul > 4) {
     int sew = 8 << vsew;
     switch(vlmul) {
@@ -103,6 +95,14 @@ int get_vlen_max(int vsew, int vlmul, int widening) {
   } else {
     panic("vlmul = 4 is reserved\n");
   }
+}
+
+int get_vlen_max(int vsew, int vlmul, int widening) {
+  if (vlmul > 4 && widening) {
+    return VLEN >> (4 + vsew);
+  }
+  if (vlmul > 4) vlmul = 0;
+  return VLEN >> (3 + vsew - vlmul);
 }
 
 int get_reg(uint64_t reg, int idx, uint64_t vsew) {
