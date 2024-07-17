@@ -89,7 +89,6 @@ typedef __int128_t int128_t;
         uint128_t res = signed ? ((int128_t)(int64_t)vs2) op ((int128_t)(int64_t)vs1) : (uint128_t)(vs2) op (uint128_t)(vs1); \
         INT_ROUNDING(res, vxrm->val, 1); \
         vd = res >> 1; \
-        if (signed && vd == 0x8000000000000000) vd = 0; \
     })
 
 static inline void update_vcsr() {
@@ -336,6 +335,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   uint64_t sign_mask = ((uint64_t) UINT64_MAX) << sew;
   uint64_t lshift = 0;
   uint64_t rshift = 0;
+  uint64_t shift_mask = -1;
   int i = 0;
   if (widening == 0 && narrow == 0 && dest_mask == 0) {
     if (s->src_vmode == SRC_VV) {
@@ -468,6 +468,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         }
         break;
       case SRC_VI :
+        shift_mask = 0x1f;
         if(is_signed) rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
         else {
           if (opcode == MSLEU || opcode == MSGTU || opcode == SADDU) {
@@ -490,7 +491,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
     }
 
-    shift = *s1 & (sew - 1);
+    shift = *s1 & (sew - 1) & shift_mask;
     narrow_shift = *s1 & (sew * 2 - 1);
     lshift = *s1 & (sew - 1);
     rshift = (-lshift) & (sew - 1);
