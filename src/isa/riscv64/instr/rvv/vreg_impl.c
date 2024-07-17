@@ -93,7 +93,8 @@ int get_vlmax(int vsew, int vlmul) {
       default: panic("Unexpected vlmul\n");
     }
   } else {
-    panic("vlmul = 4 is reserved\n");
+    Loge("vlmul = 4 is reserved\n");
+    return -1;
   }
 }
 
