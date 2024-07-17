@@ -306,6 +306,7 @@ void vector_reduction_check(Decode *s, bool is_wide) {
 }
 
 void vector_slide_check(Decode *s, bool is_over) {
+  require_vector(true);
   double vflmul = compute_vflmul();
   require_aligned(id_src2->reg, vflmul);
   require_aligned(id_dest->reg, vflmul);
