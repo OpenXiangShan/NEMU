@@ -306,6 +306,7 @@ void vector_reduction_check(Decode *s, bool is_wide) {
 }
 
 void vector_slide_check(Decode *s, bool is_over) {
+  require_vector(true);
   double vflmul = compute_vflmul();
   require_aligned(id_src2->reg, vflmul);
   require_aligned(id_dest->reg, vflmul);
@@ -1303,9 +1304,9 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
   vector_reduction_check(s, widening);
   if(check_vstart_exception(s)) return;
   if (widening)
-    get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 1);
+    get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 0);
   else
-    get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);
+    get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 0);
 
   int idx;
   word_t FPCALL_TYPE = FPCALL_W64;
@@ -1487,7 +1488,7 @@ void float_reduction_computing(Decode *s) {
     default: Loge("lmul = 4 is reserved"); longjmp_exception(EX_II); break;
   }
 
-  get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 1);
+  get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 0);
   get_tmp_vreg(0, 0, s0, vtype->vsew);
   rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
 
