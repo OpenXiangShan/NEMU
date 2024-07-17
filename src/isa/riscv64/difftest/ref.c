@@ -89,6 +89,12 @@ void csr_prepare() {
   cpu.vsatp   = vsatp->val;
   cpu.vsscratch = vsscratch->val;
 #endif
+#ifdef CONFIG_RV_SDTRIG
+  cpu.tselect  = tselect->val;
+  cpu.tdata1   = tdata1->val;
+  cpu.tinfo    = tinfo->val;
+  cpu.tcontrol = tcontrol->val;
+#endif // CONFIG_RV_SDTRIG
 }
 
 void csr_writeback() {
@@ -143,6 +149,12 @@ void csr_writeback() {
   vsatp->val   = cpu.vsatp;
   vsscratch->val = cpu.vsscratch;
 #endif
+#ifdef CONFIG_RV_SDTRIG
+  tselect->val  = cpu.tselect;
+  tdata1->val   = cpu.tdata1;
+  tinfo->val    = cpu.tinfo;
+  tcontrol->val = cpu.tcontrol;
+#endif // CONFIG_RV_SDTRIG
 }
 #ifdef CONFIG_LIGHTQS
 extern uint64_t stable_log_begin, spec_log_begin;

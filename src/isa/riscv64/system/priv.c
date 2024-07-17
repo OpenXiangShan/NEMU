@@ -50,8 +50,10 @@ void init_csr() {
 #ifdef CONFIG_RV_SDTRIG
 void init_trigger() {
   cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
-  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++)
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++){
+    cpu.TM->triggers[i].tdata1.val = 0;
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
+  }
 }
 #endif // CONFIG_RV_SDTRIG
 
@@ -806,6 +808,7 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_SDTRIG
   else if (is_write(tselect)) {
     *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
+    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata1)) {
     // not write to dest
     tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
@@ -825,6 +828,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       // do nothing for not supported trigger type
       break;
     }
+    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata2)) {
     // not write to dest
     tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
