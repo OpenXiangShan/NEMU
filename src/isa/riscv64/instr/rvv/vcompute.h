@@ -1025,6 +1025,10 @@ def_EHelper(vfmvfs) {
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
+  if (vtype->vsew <= 1) {
+    Loge("ZVFH not supported");
+    longjmp_exception(EX_II);
+  }
   get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 0);
   if (vtype->vsew < 3) {
       *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
@@ -1036,6 +1040,10 @@ def_EHelper(vfmvfs) {
 def_EHelper(vfmvsf) {
   require_vector(true);
   if (s->vm == 0) {
+    longjmp_exception(EX_II);
+  }
+  if (vtype->vsew <= 1) {
+    Loge("ZVFH not supported");
     longjmp_exception(EX_II);
   }
   if (vl->val > 0 && vstart->val < vl->val) {
@@ -1086,11 +1094,11 @@ def_EHelper(vfwcvt_xfv) {
 }
 
 def_EHelper(vfwcvt_fxuv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_FXU, UNSIGNED)
+  FLOAT_ARTHI_DWIDE_X2F(FWCVT_FXU, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_fxv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_FX, SIGNED)
+  FLOAT_ARTHI_DWIDE_X2F(FWCVT_FX, SIGNED)
 }
 
 def_EHelper(vfwcvt_ffv) {
@@ -1106,11 +1114,11 @@ def_EHelper(vfwcvt_rtz_xfv) {
 }
 
 def_EHelper(vfncvt_xufw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_XUF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW_F2X(FNCVT_XUF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_xfw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_XF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW_F2X(FNCVT_XF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_fxuw) {
@@ -1130,11 +1138,11 @@ def_EHelper(vfncvt_rod_ffw) {
 }
 
 def_EHelper(vfncvt_rtz_xufw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_RTZ_XUF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW_F2X(FNCVT_RTZ_XUF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_rtz_xfw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_RTZ_XF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW_F2X(FNCVT_RTZ_XF, UNSIGNED)
 }
 
 def_EHelper(vfsqrt_v) {

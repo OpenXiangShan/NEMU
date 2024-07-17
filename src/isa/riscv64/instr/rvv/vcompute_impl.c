@@ -997,13 +997,13 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     }
   } else if (widening == noCheck) {
     widening = noWidening;
-  } else if (widening == vdWidening || widening == vsdWidening) {
+  } else if (widening == vdWidening || widening == vsdWidening || widening == vdWideningX2F) {
     if (s->src_vmode == SRC_VV) {
       vector_wvv_check(s, true);
     } else {
       vector_wvv_check(s, false);
     }
-  } else if (widening == vdNarrow) {
+  } else if (widening == vdNarrow || widening == vdNarrowF2X) {
     if (s->src_vmode == SRC_VV) {
       vector_vwv_check(s, true);
     } else {
@@ -1022,12 +1022,20 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   // fpcall type
   switch (vtype->vsew) {
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-    case 1 : Loge("f16 not supported"); longjmp_exception(EX_II); break;
+    case 1 :
+      switch (widening) {
+        case vdWideningX2F : FPCALL_TYPE = FPCALL_W16; break;
+        case vdNarrowF2X   : FPCALL_TYPE = FPCALL_W32; break;
+        default : Loge("ZVFH not supported"); longjmp_exception(EX_II); break;
+      }
+      break;
     case 2 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W32_to_64; break;
         case vsWidening  : FPCALL_TYPE = FPCALL_SRC2_W32_to_64; break;
+        case vdNarrowF2X :
         case vdNarrow    : FPCALL_TYPE = FPCALL_W64; break;
+        case vdWideningX2F :
         case vdWidening  :
         case noWidening  : FPCALL_TYPE = FPCALL_W32; break;
       }
@@ -1035,6 +1043,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
+  if (widening == vdWideningX2F) widening = vdWidening;
+  else if (widening == vdNarrowF2X) widening = vdNarrow;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -1314,7 +1324,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
   // fpcall type
   switch (vtype->vsew) {
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-    case 1 : Loge("f16 not supported"); longjmp_exception(EX_II); break;
+    case 1 : Loge("ZVFH not supported"); longjmp_exception(EX_II); break;
     case 2 : 
       switch (widening) {
         case vsWidening : FPCALL_TYPE = FPCALL_SRC1_W32_to_64; break;
@@ -1391,7 +1401,7 @@ void float_reduction_step2(uint64_t src, Decode *s) {
   // fpcall type
   switch (vtype->vsew) {
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-    case 1 : Loge("f16 not supported"); longjmp_exception(EX_II); break;
+    case 1 : Loge("ZVFH not supported"); longjmp_exception(EX_II); break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
@@ -1416,7 +1426,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
   // fpcall type
   switch (vtype->vsew) {
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-    case 1 : Loge("f16 not supported"); longjmp_exception(EX_II); break;
+    case 1 : Loge("ZVFH not supported"); longjmp_exception(EX_II); break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
@@ -1441,7 +1451,7 @@ void float_reduction_computing(Decode *s) {
   // fpcall type
   switch (vtype->vsew) {
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-    case 1 : Loge("f16 not supported"); longjmp_exception(EX_II); break;
+    case 1 : Loge("ZVFH not supported"); longjmp_exception(EX_II); break;
     case 2 : FPCALL_TYPE = FPCALL_W32; break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
