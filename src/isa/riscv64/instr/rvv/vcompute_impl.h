@@ -70,7 +70,9 @@ enum fp_wop_t {
   vsdWidening,
   vsWidening,
   vdWidening,
+  vdWideningX2F,
   vdNarrow,
+  vdNarrowF2X,
   noCheck,
 };
 
@@ -93,9 +95,11 @@ void float_reduction_computing(Decode *s);
 
 #define FLOAT_ARTHI(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, noWidening, 0, s);
 #define FLOAT_ARTHI_DWIDE(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdWidening, 0, s);
+#define FLOAT_ARTHI_DWIDE_X2F(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdWideningX2F, 0, s);
 #define FLOAT_ARTHI_SDWIDE(opcode) floating_arthimetic_instr(opcode, 0, vsdWidening, 0, s);
 #define FLOAT_ARTHI_SWIDE(opcode) floating_arthimetic_instr(opcode, 0, vsWidening, 0, s);
 #define FLOAT_ARTHI_DNARROW(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdNarrow, 0, s);
+#define FLOAT_ARTHI_DNARROW_F2X(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdNarrowF2X, 0, s);
 #define FLOAT_ARTHI_MASK(opcode) floating_arthimetic_instr(opcode, 0, noWidening, 1, s);
 #define FLOAT_ARTHI_NOCHECK(opcode) floating_arthimetic_instr(opcode, 0, noCheck, 0, s);
 
