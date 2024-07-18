@@ -108,6 +108,9 @@ typedef struct {
   uint64_t vxsat, vxrm, vcsr;
   uint64_t vl, vtype, vlenb;
 #endif // CONFIG_RVV
+#ifndef CONFIG_FPU_NONE
+  uint64_t fcsr;
+#endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RV_SDTRIG
   uint64_t tselect;
