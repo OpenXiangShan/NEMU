@@ -35,9 +35,9 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #ifdef CONFIG_FPU_NONE
 #define BASE_SIZE (sizeof(uint64_t) * (32 + 1 + 6 + 11 + 1))
 #else
-#define BASE_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1))
+#define BASE_SIZE (sizeof(uint64_t) * (32 + 32 + 1 + 6 + 11 + 1 + 1 ))
 #endif
-// GRPs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode
+// GRPs + FPRs + pc + [m|s][status|cause|epc] + other necessary CSRs + mode + fcsr
 #else
 #define BASE_SIZE (sizeof(uint64_t) * (32 + 1)) // GRPs + pc
 #endif //RV64_FULL_DIFF
