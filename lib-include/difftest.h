@@ -54,7 +54,13 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #define RVH_EXT_REG_SIZE 0
 #endif //CONFIG_RVH
 
-#define DIFFTEST_REG_SIZE (BASE_SIZE + RVH_EXT_REG_SIZE + RVV_EXT_REG_SIZE)
+#if defined (RV64_FULL_DIFF) && defined (CONFIG_RV_SDTRIG)
+#define TRIGGER_REG_SIZE (sizeof(uint64_t) * 4) // tselect tdata1Selected tinfo tcontrol
+#else
+#define TRIGGER_REG_SIZE 0
+#endif //CONFIG_RV_SDTRIG
+
+#define DIFFTEST_REG_SIZE (BASE_SIZE + RVH_EXT_REG_SIZE + RVV_EXT_REG_SIZE + TRIGGER_REG_SIZE)
 
 #else
 # error Unsupported ISA

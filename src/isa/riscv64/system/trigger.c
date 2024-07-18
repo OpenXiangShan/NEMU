@@ -37,6 +37,7 @@ trig_action_t tm_check_hit(
   const int trigger_num = CONFIG_TRIGGER_NUM;
   bool chain_ok[trigger_num];
   bool timing_ok[trigger_num];
+  bool hit[trigger_num];
   bool can_fire[trigger_num];
   memset(chain_ok, true, sizeof(chain_ok));
   memset(timing_ok, true, sizeof(chain_ok));
@@ -46,12 +47,12 @@ trig_action_t tm_check_hit(
     if (TM->triggers[i].tdata1.common.type == TRIG_TYPE_MCONTROL){
       match = trigger_match(&TM->triggers[i], op, addr, data);
     }
-    TM->triggers[i].tdata1.mcontrol.hit = match;
+    hit[i] = match;
   }
 
   bool last_timing =  TM->triggers[0].tdata1.mcontrol.timing;
   for (int i = 1; i < trigger_num; i++) {
-    bool last_hit = TM->triggers[i - 1].tdata1.mcontrol.hit;
+    bool last_hit = hit[i-1];
     bool last_chain = TM->triggers[i - 1].tdata1.mcontrol.chain;
     bool this_timing = TM->triggers[i].tdata1.mcontrol.timing;
     chain_ok[i] = last_hit || (!last_hit && !last_chain);
@@ -61,7 +62,7 @@ trig_action_t tm_check_hit(
 
   for (int i = 0; i < trigger_num; i++) {
     bool this_chain = TM->triggers[i].tdata1.mcontrol.chain;
-    bool this_hit = TM->triggers[i].tdata1.mcontrol.hit;
+    bool this_hit = hit[i];
     can_fire[i] = chain_ok[i] && timing_ok[i] && this_hit && !this_chain;
     if (can_fire[i])
       return TM->triggers[i].tdata1.mcontrol.action;
