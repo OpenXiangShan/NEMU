@@ -17,14 +17,10 @@ uint8_t check_vstart_ignore(Decode *s) {
   return 0;
 }
 
-uint8_t check_vstart_exception(Decode *s) {
+void check_vstart_exception(Decode *s) {
   if(vstart->val > 0) {
     longjmp_exception(EX_II);
   }
-  if (vl->val == 0) {
-    return 1;
-  }
-  return 0;
 }
 
 bool check_vlmul_sew_illegal(rtlreg_t vtype_req) {

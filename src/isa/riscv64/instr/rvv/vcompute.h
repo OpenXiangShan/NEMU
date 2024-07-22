@@ -375,8 +375,7 @@ def_EHelper(vmvnr) {
 
 def_EHelper(vpopc) {
   require_vector(true);
-  if(vstart->val != 0)
-    check_vstart_exception(s);
+  check_vstart_exception(s);
   
   rtl_li(s, s1, 0);
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -397,8 +396,7 @@ def_EHelper(vpopc) {
 
 def_EHelper(vfirst) {
   require_vector(true);
-  if(vstart->val != 0)
-    check_vstart_exception(s);
+  check_vstart_exception(s);
 
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
@@ -423,10 +421,7 @@ def_EHelper(vmsbf) {
   if (id_dest->reg == id_src2->reg) {
     longjmp_exception(EX_II);
   }
-  if (vstart->val != 0) {
-    // The vmsbf instruction will raise an illegal instruction exception if vstart is non-zero
-    longjmp_exception(EX_II);
-  }
+  check_vstart_exception(s);
 
   if (vl->val != 0) {
     // when vl = 0, do nothing
@@ -477,10 +472,7 @@ def_EHelper(vmsof) {
   if (id_dest->reg == id_src2->reg) {
     longjmp_exception(EX_II);
   }
-  if (vstart->val != 0) {
-    // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
-    longjmp_exception(EX_II);
-  }
+  check_vstart_exception(s);
 
   if (vl->val != 0) {
     // when vl = 0, do nothing
@@ -521,10 +513,7 @@ def_EHelper(vmsif) {
   if (id_dest->reg == id_src2->reg) {
     longjmp_exception(EX_II);
   }
-  if (vstart->val != 0) {
-    // The vmsof instruction will raise an illegal instruction exception if vstart is non-zero
-    longjmp_exception(EX_II);
-  }
+  check_vstart_exception(s);
 
   if (vl->val != 0) {
     // when vl = 0, do nothing
@@ -569,7 +558,8 @@ def_EHelper(viota) {
   require_aligned(id_dest->reg, vflmul);
   require_noover(id_dest->reg, vflmul, id_src2->reg, 1);
 
-  if(!check_vstart_exception(s)) {
+  check_vstart_exception(s);
+  if(!check_vstart_ignore(s)) {
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -615,7 +605,8 @@ def_EHelper(vid) {
   double vflmul = compute_vflmul();
   require_aligned(id_dest->reg, vflmul);
 
-  if(!check_vstart_exception(s)) {
+  check_vstart_exception(s);
+  if(!check_vstart_ignore(s)) {
     for(int idx = 0; idx < vl->val; idx ++) {
       // mask
       rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -785,7 +776,8 @@ def_EHelper(vcompress) {
     longjmp_exception(EX_II);
   }
   require_noover(id_dest->reg, vflmul, id_src->reg, 1);
-  if(!check_vstart_exception(s)) {
+  check_vstart_exception(s);
+  if(!check_vstart_ignore(s)) {
 
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
