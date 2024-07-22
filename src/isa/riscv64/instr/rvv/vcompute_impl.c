@@ -374,7 +374,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       longjmp_exception(EX_II);
     }
   }
-  if(check_vstart_exception(s)) return;
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -839,7 +840,8 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
  * because the illegal instruction exception is handled in vcompute.h for vrgather and vslide instruction
  */
 void permutaion_instr(int opcode, Decode *s) {
-  if(check_vstart_exception(s)) return;
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
@@ -1017,7 +1019,6 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       vector_wwv_check(s, false);
     }
   }
-  if(check_vstart_exception(s)) return;
   int idx;
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
@@ -1046,6 +1047,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   }
   if (widening == vdWideningX2F) widening = vdWidening;
   else if (widening == vdNarrowF2X) widening = vdNarrow;
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -1216,7 +1219,8 @@ void mask_instr(int opcode, Decode *s) {
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
-  if(check_vstart_exception(s)) return;
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
@@ -1270,7 +1274,8 @@ scalar source or destination of a vector reduction regardless of LMUL setting.
 */
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   vector_reduction_check(s, wide);
-  if(check_vstart_exception(s)) return;
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
   // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
@@ -1313,7 +1318,6 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
   vector_reduction_check(s, widening);
-  if(check_vstart_exception(s)) return;
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 0);
   else
@@ -1335,6 +1339,9 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
+
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
 
   for(idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
@@ -1445,7 +1452,6 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 
 void float_reduction_computing(Decode *s) {
   vector_reduction_check(s, false);
-  if(check_vstart_exception(s)) return;
   word_t FPCALL_TYPE = FPCALL_W64;
   int idx;
 
@@ -1457,6 +1463,9 @@ void float_reduction_computing(Decode *s) {
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
+
+  check_vstart_exception(s);
+  if(check_vstart_ignore(s)) return;
 
   // copy the vector register to the temp register
   init_tmp_vreg(s, vtype->vsew);
