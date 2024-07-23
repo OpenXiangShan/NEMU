@@ -49,18 +49,15 @@ void set_vtype_vl(Decode *s, int mode) {
   
   if(vl_num == (uint64_t)-1 || check_vlmul_sew_illegal(id_src2->val)) {
     vtype->val = error;
-
     // if vtype illegal, set vl = 0, vd = 0
     vl->val = 0;
-    rtl_sr(s, id_dest->reg, &vl->val, 8);
-    return;
   }
   else {
     vtype->val = id_src2->val;
+    vl->val = vl_num;
   }
-  vl->val = vl_num;
 
-  rtl_sr(s, id_dest->reg, &vl_num, 8);
+  rtl_sr(s, id_dest->reg, &vl->val, 8);
 
   vstart->val = 0;
 }
