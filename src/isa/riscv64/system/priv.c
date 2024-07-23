@@ -1048,14 +1048,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #ifndef CONFIG_MODE_USER
     case 0x102: // sret
 #ifdef CONFIG_RVH
-      if (cpu.v == 0){
-        if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
-          longjmp_exception(EX_II);
-        }
-        cpu.v = hstatus->spv;
-        hstatus->spv = 0;
-        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-      }else if (cpu.v == 1){
+      if (cpu.v == 1){
         if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
           longjmp_exception(EX_VI);
         }
@@ -1072,6 +1065,14 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         }
         return vsepc->val;
       }
+      
+      // cpu.v == 0
+      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
+        longjmp_exception(EX_II);
+      }
+      cpu.v = hstatus->spv;
+      hstatus->spv = 0;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #else
       if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
         longjmp_exception(EX_II);
