@@ -63,6 +63,14 @@ restore_trap_handler:
 #  bne t1, t0, version_not_match
 #
 restore_csr_vector:
+  li t0, CSR_REG_CPT_ADDR
+  li t2, 0x003
+  slli t2, t2, 3
+  add t2, t0, t2
+  ld t1, (t2)
+  li t0, MSTATUS_FS
+  csrs  CSR_MSTATUS, t0
+  csrw 0x003, t1
 
   li t0, CSR_REG_CPT_ADDR
   CSRS(CSRS_RESTORE)
@@ -110,11 +118,11 @@ normal_csr_restore:
   # beqz t0, restore_pc_vector
 
 restore_float_vector:
+  li sp, FLOAT_REG_CPT_ADDR # load float section addr
+
   # set fs
   li t0, MSTATUS_FS
   csrs  CSR_MSTATUS, t0
-
-  li sp, FLOAT_REG_CPT_ADDR # load float section addr
 
   fld f0, (0*8)(sp)
   fld f1, (1*8)(sp)
