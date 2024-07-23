@@ -142,7 +142,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 // WPRI, SXL, UXL cannot be written
 
 // base mstatus wmask
-#define MSTATUS_WMASK_BASE (0x7e19aaUL) | (3UL << 36)
+#define MSTATUS_WMASK_BASE (0x7e19aaUL)
 
 // FS
 #if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
