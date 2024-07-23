@@ -1047,6 +1047,9 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
 #ifndef CONFIG_MODE_USER
     case 0x102: // sret
+      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
+        longjmp_exception(EX_II);
+      }
 #ifdef CONFIG_RVH
       if (cpu.v == 0){
         cpu.v = hstatus->spv;
@@ -1070,9 +1073,6 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         return vsepc->val;
       }
 #endif // CONFIG_RVH
-      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
-        longjmp_exception(EX_II);
-      }
       mstatus->sie = mstatus->spie;
       mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
           : 1);
