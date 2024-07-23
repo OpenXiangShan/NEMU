@@ -1047,11 +1047,11 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
 #ifndef CONFIG_MODE_USER
     case 0x102: // sret
-      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
-        longjmp_exception(EX_II);
-      }
 #ifdef CONFIG_RVH
       if (cpu.v == 0){
+        if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
+          longjmp_exception(EX_II);
+        }
         cpu.v = hstatus->spv;
         hstatus->spv = 0;
         set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
@@ -1071,6 +1071,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           vsstatus->_64.spie = 1;
         }
         return vsepc->val;
+      }
+#else
+      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
+        longjmp_exception(EX_II);
       }
 #endif // CONFIG_RVH
       mstatus->sie = mstatus->spie;
