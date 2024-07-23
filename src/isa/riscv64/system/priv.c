@@ -142,7 +142,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 // WPRI, SXL, UXL cannot be written
 
 // base mstatus wmask
-#define MSTATUS_WMASK_BASE (0x7e19aaUL) | (3UL << 36)
+#define MSTATUS_WMASK_BASE (0x7e19aaUL)
 
 // FS
 #if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
@@ -808,7 +808,6 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_SDTRIG
   else if (is_write(tselect)) {
     *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
-    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata1)) {
     // not write to dest
     tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
@@ -828,7 +827,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       // do nothing for not supported trigger type
       break;
     }
-    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata2)) {
     // not write to dest
     tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
