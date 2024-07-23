@@ -1065,19 +1065,16 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         }
         return vsepc->val;
       }
-      
-      // cpu.v == 0
+#endif // CONFIG_RVH
+      // cpu.v = 0
       if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
         longjmp_exception(EX_II);
       }
+#ifdef CONFIG_RVH
       cpu.v = hstatus->spv;
       hstatus->spv = 0;
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-#else
-      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
-        longjmp_exception(EX_II);
-      }
-#endif // CONFIG_RVH
+#endif //CONFIG_RVH
       mstatus->sie = mstatus->spie;
       mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
           : 1);
