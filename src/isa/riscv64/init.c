@@ -95,6 +95,9 @@ void init_isa() {
   vsstatus->val = mstatus->val & SSTATUS_RMASK;
   mideleg->val |= ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2));
 #endif // CONFIG_RVH
+#ifdef CONFIG_RVB
+  misa->extensions |= ext('b');
+#endif // CONFIG_RVB
 #ifdef CONFIG_RV_IMSIC
   miselect->val = 0;
   siselect->val = 0;
