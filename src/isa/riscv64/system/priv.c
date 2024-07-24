@@ -54,6 +54,10 @@ void init_trigger() {
     cpu.TM->triggers[i].tdata1.val = 0;
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
   }
+  tselect->val = 0;
+  tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
+  tinfo->val = (1 << TRIG_TYPE_MCONTROL);
+  tcontrol->val = 0;
 }
 #endif // CONFIG_RV_SDTRIG
 
@@ -1063,7 +1067,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 #ifdef CONFIG_RV_SDTRIG
   else if (is_write(tselect)) {
-    *dest = src < CONFIG_TRIGGER_NUM ? src : CONFIG_TRIGGER_NUM;
+    *dest = src < CONFIG_TRIGGER_NUM ? src : tselect->val;
     tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata1)) {
     // not write to dest
