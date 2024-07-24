@@ -69,15 +69,39 @@ menuconfig RV_ZICNTR
     INFO: the CPI (cycles per instruction) of NEMU is set to 1.
 
 if RV_ZICNTR
+config RV_CSR_CYCLE
+  bool "Implement CSR cycle (0xc00)"
+  default n
+  help
+    If n, accessing to CSR cycle will raise illegal instruction exception.
+
+    Regardless of how this option is set, the TM bit of m/h/scounteren is
+    always writable to allow machine-level programs to simulate reading the
+    cycle register.
+
 config RV_CSR_TIME
   bool "Implement CSR time (0xc01)"
   default n
   help
     If n, accessing to CSR time will raise illegal instruction exception.
 
+    If n, accessing to CSR htimedelta will also raise illegal instruction.
+    Either both time and htimedelta are implemented by hardware, or access
+    to both time and htimedelta traps into M-mode for emulation.
+
     Regardless of how this option is set, the TM bit of m/h/scounteren is
-    always writable to allow machine programs to simulate reading the time
-    register.
+    always writable to allow machine-level programs to simulate reading the
+    time register.
+
+config RV_CSR_INSTRET
+  bool "Implement CSR instret (0xc02)"
+  default n
+  help
+    If n, accessing to CSR instret will raise illegal instruction exception.
+
+    Regardless of how this option is set, the TM bit of m/h/scounteren is
+    always writable to allow machine-level programs to simulate reading the
+    instret register.
 
 endif # RV_ZICNTR
 
