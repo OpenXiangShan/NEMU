@@ -58,12 +58,6 @@ jobs:
           make riscv64-dual-xs-ref_defconfig
           make -j
           make clean-all
-      - name: Build NEMU with RVV
-        run: |
-          make riscv64-rvv_defconfig
-          make -j
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
-          make clean-all
       - name: Build NEMU as difftest rvv ref
         run: |
           make riscv64-rvv-ref_defconfig
@@ -106,7 +100,7 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU with V extension and agnostic
+      - name: Run NEMU with V extension + agnostic, difftest against Spike ref
         run: |
           make clean-all
           make riscv64-xs-diff-spike-agnostic_defconfig
@@ -174,11 +168,6 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU with V extension as difftest ref
-        run: |
-          make riscv64-rvv-diff-spike_defconfig
-          make -j
-          make clean-all
       - name: Run Vector-spec06-checkpoint with Spike DiffTest
         run: |
           make riscv64-xs-diff-spike_defconfig
