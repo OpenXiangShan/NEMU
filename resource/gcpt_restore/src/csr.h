@@ -19,6 +19,7 @@
 //no mhartid here
 
 #define CSRS(f) \
+  f(frm        , 0x002) \
   f(mstatus    , 0x300) f(misa       , 0x301) f(medeleg    , 0x302) f(mideleg    , 0x303) \
   f(mie        , 0x304) f(mtvec      , 0x305) f(mcounteren , 0x306) \
   f(mscratch   , 0x340) f(mepc       , 0x341) f(mcause     , 0x342) \
