@@ -59,7 +59,7 @@ config RV_IMSIC
   default n
 
 config RV_SSTC
-  bool "RISC-V time-compare for Privileged arch and Supervisor-level extensions"
+  bool "RISC-V Sstc Extension for Supervisor-mode Timer Interrupts"
   default n
 
 menuconfig RV_ZICNTR

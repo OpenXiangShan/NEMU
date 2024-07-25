@@ -159,6 +159,8 @@
 #ifdef CONFIG_RV_SSTC
   #define CSRS_S_SSTC(f) \
     f(stimecmp, 0x14D)
+#else
+  #define CSRS_S_SSTC(f)
 #endif
 
 
@@ -599,13 +601,13 @@ CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
   uint64_t fiom   : 1; // [0]
-  uint64_t pad0   : 3; // [1:3]
-  uint64_t cbie   : 2; // [4:5]
-  uint64_t cbcfe  : 1; // [6:6]
-  uint64_t cbze   : 1; // [7:7]
-  uint64_t pad1   : 24;// [8:31]
-  uint64_t pmm    : 2; // [32:33]
-  uint64_t pad3   : 26;// [34:59]
+  uint64_t pad0   : 3; // [3:1]
+  uint64_t cbie   : 2; // [5:4]
+  uint64_t cbcfe  : 1; // [6]
+  uint64_t cbze   : 1; // [7]
+  uint64_t pad1   : 24;// [31:8]
+  uint64_t pmm    : 2; // [33:32]
+  uint64_t pad3   : 26;// [59:34]
   uint64_t cde    : 1; // [60]
   uint64_t adue   : 1; // [61]
   uint64_t pbmte  : 1; // [62]
@@ -964,13 +966,13 @@ CSR_STRUCT_END(hgeie)
 
 CSR_STRUCT_START(henvcfg)
   uint64_t fiom   : 1;  // [0]
-  uint64_t pad0   : 3;  // [1:3]
-  uint64_t cbie   : 2;  // [4:5]
+  uint64_t pad0   : 3;  // [3:1]
+  uint64_t cbie   : 2;  // [5:4]
   uint64_t cbcfe  : 1;  // [6]
   uint64_t cbze   : 1;  // [7]
-  uint64_t pad1   : 24; // [8:31]
-  uint64_t pmm    : 2;  // [32:33]
-  uint64_t pad2   : 27; // [34:60]
+  uint64_t pad1   : 24; // [31:8]
+  uint64_t pmm    : 2;  // [33:32]
+  uint64_t pad2   : 27; // [60:34]
   uint64_t adue   : 1;  // [61]
   uint64_t pbmte  : 1;  // [62]
   uint64_t stce   : 1;  // [63]
