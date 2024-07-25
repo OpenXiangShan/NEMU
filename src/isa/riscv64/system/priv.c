@@ -224,6 +224,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIP_WMASK VSSIP
 #define HIE_RMASK HS_MASK
 #define HIE_WMASK HS_MASK
+#define HIDELEG_MASK MUXDEF(CONFIG_RV_SSCOFPMF, 0x2444, 0x444)
+#define HEDELEG_MASK 0xb1ff
 #endif
 
 #define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, 0xf0b7f7, 0xf0b7ff), MUXDEF(CONFIG_RV_SDTRIG, 0xb3f7, 0xb3ff))
@@ -442,7 +444,8 @@ static inline word_t csr_read(word_t *src) {
   }
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
-if (is_read(hideleg))        { return hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK);}
+if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK & (mideleg->val | MIDELEG_FORCED_MASK);}
+if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK & (medeleg->val | MEDELEG_MASK); }
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
 if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
@@ -599,9 +602,10 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
   }else if (is_write(mideleg)){
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
-  }else if (is_write(hideleg)){
-    hideleg->val = mask_bitset(hideleg->val, VS_MASK, src);
-  }else if (is_write(hie)){
+  }
+  else if (is_write(hideleg)) { hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); }
+  else if (is_write(hedeleg)) { hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); }
+  else if (is_write(hie)){
     mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
   }else if(is_write(hip)){
     mip->val = mask_bitset(mip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
