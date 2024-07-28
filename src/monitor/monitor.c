@@ -20,6 +20,7 @@
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -330,60 +331,33 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
-  // when there is a gcpt[restorer], we put bbl after gcpt[restorer]
-  uint64_t bbl_start = 0;
-  long img_size = 0; // how large we should copy for difftest
+  int64_t img_size = 0;
 
-  if (checkpoint_restoring) {
-    // When restoring cpt, gcpt restorer from cmdline is optional,
-    // because a gcpt already ships a restorer
-    assert(img_file != NULL);
+  assert(img_file);
+  uint64_t bbl_start = RESET_VECTOR;
+  if (restorer) {
+    bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
+  }
+  img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
 
-    img_size = MEMORY_SIZE;
-    bbl_start = MEMORY_SIZE; // bbl size should never be used, let it crash if used
+  if (restorer) {
+    FILE *restore_fp = fopen(restorer, "rb");
+    Assert(restore_fp, "Can not open '%s'", restorer);
 
-    if (map_image_as_output_cpt) {  // map_cpt is loaded in init_mem
-      Log("Restoring with memory image cpt");
-    } else {
-      load_img(img_file, "Gcpt file form cmdline", RESET_VECTOR, 0);
-    }
-    if (restorer) {
-      load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
-    }
+    int restore_size = 0;
+    int restore_jmp_inst = 0;
 
-  } else if (checkpoint_state != NoCheckpoint) {
-    // boot: jump to restorer --> restorer jump to bbl
-    assert(img_file != NULL);
+    int ret = fread(&restore_jmp_inst, sizeof(int), 1, restore_fp);
+    assert(ret == 1);
+    assert(restore_jmp_inst != 0);
 
-    bbl_start = RESET_VECTOR;
+    ret = fread(&restore_size, sizeof(int), 1, restore_fp);
+    assert(ret == 1);
+    assert(restore_size != 0);
 
-    long restorer_size = 0;
-    if (restorer != NULL) {
-      restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
-      bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
-    }
-    long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
-    img_size = restorer_size + bbl_size;
+    fclose(restore_fp);
 
-  } else if (profiling_state == SimpointProfiling) {
-    bbl_start = RESET_VECTOR;
-    long restorer_size = 0;
-    if (restorer != NULL) {
-      restorer_size = load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, 0xf00);
-      bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
-    }
-    long bbl_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
-    img_size = restorer_size + bbl_size;
-
-  } else {
-    if (restorer != NULL) {
-      Log("You are providing a gcpt restorer without specify ``restoring cpt'' or ``taking cpt''! ");
-      Log("If you don't know what you are doing, this will corrupt your memory/program.");
-      Log("If you want to take cpt or restore cpt, you must EXPLICITLY add corresponding options");
-      panic("Providing cpt restorer without restoring cpt or taking cpt\n");
-    }
-    bbl_start = RESET_VECTOR;
-    img_size = load_img(img_file, "image (bbl/bare metal app) from cmdline", bbl_start, 0);
+    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, restore_size);
   }
 
   /* Initialize differential testing. */

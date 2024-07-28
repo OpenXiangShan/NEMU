@@ -49,14 +49,23 @@ class Serializer
     uint64_t intervalSize{10 * 1000 * 1000};
     uint64_t warmupIntervalSize{10 * 1000 * 1000};
 
-    int cptID;
+    uint64_t cptID;
     std::string weightIndicator;
 
     const uint32_t IntRegStartAddr;
+    const uint32_t IntRegDoneFlag;
     const uint32_t FloatRegStartAddr;
+    const uint32_t FloatRegDoneFlag;
     const uint32_t CSRStartAddr;
-    const uint32_t PCAddr;
+    const uint32_t CSRSDoneFlag;
+    const uint32_t VecRegStartAddr;
+    const uint32_t VecRegDoneFlag;
     const uint32_t CptFlagAddr;
+    const uint32_t PCAddr;
+    const uint32_t MODEAddr;
+    const uint32_t MTIMEAddr;
+    const uint32_t MTIMECMPAddr;
+    const uint32_t MISCDoneFlag;
 
     bool regDumped{false};
 
