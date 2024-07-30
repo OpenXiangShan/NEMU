@@ -220,9 +220,16 @@ word_t isa_query_intr() {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
     IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
     IRQ_UEIP, IRQ_USIP, IRQ_UTIP,
-    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP, IRQ_SGEI
+    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP, IRQ_SGEI,
+#ifdef CONFIG_RV_SSCOFPMF
+    IRQ_LCOFI
+#endif
   };
+#ifdef CONFIG_RV_SSCOFPMF
+  intr_num = 14;
+#else 
   intr_num = 13;
+#endif
 #else
   const int priority [] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
