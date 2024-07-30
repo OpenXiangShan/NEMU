@@ -213,19 +213,14 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MCOUNTINHIBIT_MASK (MCOUNTINHIBIT_CNTR_MASK | MCOUNTINHIBIT_HPM_MASK)
 
 #ifdef CONFIG_RVH
-#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) // mideleg bits 2、6、10、12 are read_only one
-#define VSI_MASK (((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) & hideleg->val)
-#define VS_MASK ((1 << 10) | (1 << 6) | (1 << 2))
-#define VSSIP (1 << 2)
-#define SSIP (1 << 1)
-#define HVIP_MASK ((1 << 10) | (1 << 6) | (1 << 2))
-#define HS_MASK   ((1 << 12) | VS_MASK)
-#define HIP_RMASK HS_MASK
-#define HIP_WMASK VSSIP
-#define HIE_RMASK HS_MASK
-#define HIE_WMASK HS_MASK
-#define HIDELEG_MASK MUXDEF(CONFIG_RV_SSCOFPMF, 0x2444, 0x444)
-#define HEDELEG_MASK 0xb1ff
+#define MIDELEG_FORCED_MASK HSI_MASK // mideleg bits 2、6、10、12 are read_only one
+#define HVIP_MASK     VSI_MASK       // ((1 << 10) | (1 << 6) | (1 << 2))
+#define HIP_RMASK     HSI_MASK
+#define HIP_WMASK     MIP_VSSIP
+#define HIE_RMASK     HSI_MASK
+#define HIE_WMASK     HSI_MASK
+#define HIDELEG_MASK  (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0))
+#define HEDELEG_MASK  0xb1ff
 #endif
 
 #define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, 0xf0b7f7, 0xf0b7ff), MUXDEF(CONFIG_RV_SDTRIG, 0xb3f7, 0xb3ff))
@@ -237,7 +232,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MIP_MASK_BASE ((1 << 9) | (1 << 5) | (1 << 1))
 #ifdef CONFIG_RVH
 #define MIE_MASK_H ((1 << 2) | (1 << 6) | (1 << 10) | (1 << 12))
-#define MIP_MASK_H VSSIP
+#define MIP_MASK_H MIP_VSSIP
 #else
 #define MIE_MASK_H 0
 #define MIP_MASK_H 0
@@ -524,7 +519,7 @@ static inline word_t get_v_sie() {
   }
 #endif
 #else
-  tmp = (mie->val & VS_MASK) >> 1;
+  tmp = (mie->val & VSI_MASK) >> 1;
 #ifdef CONFIG_RV_SSCOFPMF
   if (mideleg->lcofi) {
     tmp |= mie->lcofie << 13;
@@ -564,9 +559,9 @@ static inline void set_v_sie(word_t src) {
 #endif
 #else
 #ifdef CONFIG_RV_SSCOFPMF
-  mie->val = mask_bitset(mie->val, VS_MASK, src << 1) | mask_bitset(mie->val, LCOFI, src);
+  mie->val = mask_bitset(mie->val, VSI_MASK, src << 1) | mask_bitset(mie->val, LCOFI, src);
 #else
-  mie->val = mask_bitset(mie->val, VS_MASK, src << 1);
+  mie->val = mask_bitset(mie->val, VSI_MASK, src << 1);
 #endif
 #endif
 }
@@ -575,7 +570,7 @@ static inline void set_v_sie(word_t src) {
 #ifdef CONFIG_RVH
 static inline word_t get_vsie() {
   word_t tmp;
-  tmp = (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;
+  tmp = (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
 #ifdef CONFIG_RV_SSCOFPMF
 #ifdef CONFIG_RV_IMSIC
   if (hideleg->lcofi & mideleg->lcofi) {
@@ -601,7 +596,7 @@ static inline word_t get_vsie() {
 
 #ifdef CONFIG_RVH
 static inline void set_vsie(word_t src) {
-  mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
+  mie->val = mask_bitset(mie->val, VSI_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
 #ifdef CONFIG_RV_SSCOFPMF
   if (hideleg->lcofi & mideleg->lcofi) {
     mie->lcofie = (src & (1 << 13)) >> 13;
@@ -673,7 +668,7 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(sepc))    { return vsepc->val;}
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
-  else if (is_read(sip))     { return (mip->val & VS_MASK) >> 1;}
+  else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
   else if (is_read(satp))    {
     if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
       longjmp_exception(EX_VI);
@@ -693,7 +688,7 @@ if (is_read(hvip))           { return mip->val & HVIP_MASK;}
 if (is_read(hvien))          { return hvien->val & LCOFI; }
 #endif
 if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
-if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
+if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1; }
 if (is_read(vsie))           { return get_vsie(); }
 #endif
 
@@ -832,7 +827,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if (is_write(sepc))    { vsepc->val = src;}
     else if (is_write(scause))  { vscause->val = src;}
     else if (is_write(stval))   { vstval->val = src;}
-    else if (is_write(sip))     { mip->val = mask_bitset(mip->val, VSSIP, src << 1);}
+    else if (is_write(sip))     { mip->val = mask_bitset(mip->val, MIP_VSSIP, src << 1);}
     else if (is_write(satp))    {
       if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
         longjmp_exception(EX_VI);
@@ -844,16 +839,19 @@ static inline void csr_write(word_t *dest, word_t src) {
       }
     }
     else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
-  }else if (is_write(mideleg)){
+  }
+  else if (is_write(mideleg)){
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
   }
   else if (is_write(hideleg)) { hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); }
   else if (is_write(hedeleg)) { hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); }
   else if (is_write(hie)){
     mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
-  }else if(is_write(hip)){
+  }
+  else if(is_write(hip)){
     mip->val = mask_bitset(mip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
-  }else if(is_write(hvip)){
+  }
+  else if(is_write(hvip)){
     mip->val = mask_bitset(mip->val, HVIP_MASK, src);
   }
   #ifdef CONFIG_RV_IMSIC
@@ -866,7 +864,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
   else if(is_write(vsie)){ set_vsie(src); }
   else if(is_write(vsip)){
-    mip->val = mask_bitset(mip->val, VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
+    mip->val = mask_bitset(mip->val, MIP_VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
   }else if(is_write(vstvec)){
     vstvec->val = src;
   }else if(is_write(vsscratch)){
@@ -1254,7 +1252,7 @@ static void aia_extension_permit_check(word_t *dest_access) {
  * Access fp CSRs raise EX_II
  *          1. when mstatus.FS is OFF in non Virt Mode
  *          2. when mstatus.FS or vsstatus.FS is OFF in Virt Mode
- * 
+ *
  * Vec CSRs: vstart, vxsat, vxrm, vcsr, vl, vtype, vlenb
  * Access Vec CSRs raise EX_II
  *          1. when mstatus.VS is OFF in non Virt Mode
