@@ -115,14 +115,6 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
   if (!isa_difftest_checkregs(ref, pc)) {
-    // Second chance when ref model falls one step behind. For example, spike on misaligned load.
-    CPU_state second_ref_r;
-    ref_difftest_exec(1);
-    ref_difftest_regcpy(&second_ref_r, DIFFTEST_TO_DUT);
-    if (isa_difftest_checkregs(&second_ref_r, pc)) {
-      Log("REF and DUT matched after another step, continue");
-      return;
-    }
     isa_reg_display();
     IFDEF(CONFIG_IQUEUE, iqueue_dump());
     nemu_state.state = NEMU_ABORT;
