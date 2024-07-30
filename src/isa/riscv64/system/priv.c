@@ -1493,11 +1493,11 @@ int rvh_hlvx_check(struct Decode *s, int type){
 }
 extern bool hld_st;
 int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
-  hld_st = true;
+  if(cpu.v) longjmp_exception(EX_VI);
   if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
     longjmp_exception(EX_II);
   }
-  if(cpu.v) longjmp_exception(EX_VI);
+  hld_st = true;
   int mmu_mode = get_h_mmu_state();
   switch (id) {
     case 0x600: // hlv.b
@@ -1539,11 +1539,11 @@ int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
 }
 
 int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2){
-  hld_st = true;
+  if(cpu.v) longjmp_exception(EX_VI);
   if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
     longjmp_exception(EX_II);
   }
-  if(cpu.v) longjmp_exception(EX_VI);
+  hld_st = true;
   uint32_t op = s->isa.instr.r.funct7;
   int mmu_mode = get_h_mmu_state();
   int len;
