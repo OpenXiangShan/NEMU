@@ -243,10 +243,44 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MIP_MASK_H 0
 #endif // CONFIG_RVH
 
-#define SIE_MASK (0x222 & mideleg->val)
+#define SIE_MASK_BASE (0x222 & mideleg->val)
 #define SIP_MASK (0x222 & mideleg->val)
 #define SIP_WMASK_S 0x2
 #define MTIE_MASK (1 << 7)
+
+#define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
+
+// sie
+#define SIE_SSI_MASK_MIE (mideleg->val & (1 << 1))
+#define SIE_STI_MASK_MIE (mideleg->val & (1 << 5))
+#define SIE_SEI_MSAK_MIE (mideleg->val & (1 << 9))
+#define SIE_LCOFI_MASK_MIE (mideleg->val & LCOFI)
+
+#ifdef CONFIG_RV_IMSIC
+#define SIE_SSI_MASK_MVIE (~mideleg->val & mvien->val & (1 << 1))
+#define SIE_SEI_MASK_MVIE (~mideleg->val & mvien->val & (1 << 9))
+#define SIE_LCOFI_MASK_MVIE (~mideleg->val & mvien->val & LCOFI)
+#else
+#define SIE_SSI_MASK_MVIE 0
+#define SIE_SEI_MASK_MVIE 0
+#define SIE_LCOFI_MASK_MVIE 0
+#endif
+
+#define SIE_MASK_MIE (SIE_SSI_MASK_MIE  | SIE_STI_MASK_MIE  | SIE_SEI_MSAK_MIE | SIE_LCOFI_MASK_MIE)
+#define SIE_MASK (SIE_SSI_MASK_MVIE | SIE_SEI_MASK_MVIE | SIE_LCOFI_MASK_MVIE)
+
+// vsie
+#ifdef CONFIG_RV_IMSIC
+#define VSIE_LCOFI_MASK (~hideleg->val & hvien->val & LCOFI)
+#define VSIE_LCOFI_MASK_SIE (~mideleg->val & hideleg->val & mvien->val & LCOFI)
+#define VSIE_LCOFI_MASK_MIE (mideleg->val & hideleg->val & LCOFI)
+#else
+#define VSIE_LCOFI_MASK 0
+#define VSIE_LCOFI_MASK_SIE 0
+#define VSIE_LCOFI_MASK_MIE 0
+#endif
+// mvien
+#define MVIEN_MASK (LCOFI | (1 << 9) | (1 << 1))
 
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
@@ -376,6 +410,210 @@ static inline word_t set_minstret(word_t src) {
   return src - get_abs_instr_count();
 }
 
+static inline word_t get_sie() {
+  word_t tmp = 0;
+#ifdef CONFIG_RV_IMSIC
+  if (mideleg->ssi) {
+    tmp |= mie->ssie << 1;
+  } else if (~mideleg->ssi & mvien->ssie) {
+    tmp |= sie->ssie << 1;
+  } else {
+    tmp |= 0;
+  }
+  if (mideleg->sti) {
+    tmp |= mie->stie << 5;
+  } else {
+    tmp |= 0;
+  }
+  if (mideleg->sei) {
+    tmp |= mie->seie << 9;
+  } else if (~mideleg->sei & mvien->seie) {
+    tmp |= sie->seie << 9;
+  } else {
+    tmp |= 0;
+  }
+#ifdef CONFIG_RV_SSCOFPMF
+  if (mideleg->lcofi) {
+    tmp |= mie->lcofie << 13;
+  } else if (~mideleg->lcofi & mvien->lcofie) {
+    tmp |= sie->lcofie << 13;
+  } else {
+    tmp |= 0;
+  }
+#endif
+#else
+  tmp = mie->val & SIE_MASK_BASE;
+#ifdef CONFIG_RV_SSCOFPMF
+  if (mideleg->lcofi) {
+    tmp |= mie->lcofie << 13;
+  } else {
+    tmp |= 0;
+  }
+#endif
+#endif
+  return tmp;
+}
+
+static inline void set_sie(word_t src) {
+#ifdef CONFIG_RV_IMSIC
+  if (mideleg->ssi) {
+    mie->ssie = (src & (1 << 1)) >> 1;
+  } else if (~mideleg->ssi & mvien->ssie) {
+    sie->ssie = (src & (1 << 1)) >> 1;
+  }
+
+  if (mideleg->sti) {
+    mie->stie = (src & (1 << 5)) >> 5;
+  }
+
+  if (mideleg->sei) {
+    mie->seie = (src & (1 << 9)) >> 9;
+  } else if (~mideleg->sei & mvien->seie) {
+    sie->seie = (src & (1 << 9)) >> 9;
+  }
+
+#ifdef CONFIG_RV_SSCOFPMF
+  if (mideleg->lcofi) {
+    mie->lcofie = (src & (1 << 13)) >> 13;
+  } else if (~mideleg->lcofi & mvien->lcofie) {
+    sie->lcofie = (src & (1 << 13)) >> 13;
+  }
+#endif
+#else
+#ifdef CONFIG_RV_SSCOFPMF
+  mie->val = mask_bitset(mie->val, (SIE_MASK_BASE | SIE_LCOFI_MASK_MIE), src);
+#else
+  mie->val = mask_bitset(mie->val, SIE_MASK_BASE, src);
+#endif
+#endif
+}
+
+#ifdef CONFIG_RVH
+static inline word_t get_v_sie() {
+  word_t tmp = 0;
+#ifdef CONFIG_RV_IMSIC
+  if (mideleg->ssi) {
+    tmp |= mie->vssie << 1;
+  } else if (~mideleg->ssi & mvien->ssie) {
+    tmp |= sie->ssie << 1;
+  } else {
+    tmp |= 0;
+  }
+
+  if (mideleg->sti) {
+    tmp |= mie->vstie << 5;
+  } else {
+    tmp |= 0;
+  }
+
+  if (mideleg->sei) {
+    tmp |= mie->vseie << 9;
+  } else if (~mideleg->sei & mvien->seie) {
+    tmp |= sie->seie << 9;
+  } else {
+    tmp |= 0;
+  }
+
+#ifdef CONFIG_RV_SSCOFPMF
+  if (mideleg->lcofi) {
+    tmp |= mie->lcofie << 13;
+  } else if (~mideleg->lcofi & mvien->lcofie) {
+    tmp |= sie->lcofie << 13;
+  } else {
+    tmp |= 0;
+  }
+#endif
+#else
+  tmp = (mie->val & VS_MASK) >> 1;
+#ifdef CONFIG_RV_SSCOFPMF
+  if (mideleg->lcofi) {
+    tmp |= mie->lcofie << 13;
+  } else {
+    tmp |= 0;
+  }
+#endif
+#endif
+  return tmp;
+}
+#endif
+
+#ifdef CONFIG_RVH
+static inline void set_v_sie(word_t src) {
+#ifdef CONFIG_RV_IMSIC
+  if (mideleg->ssi) {
+    mie->vssie = (src & (1 << 1)) >> 1;
+  } else if (~mideleg->ssi & mvien->ssie) {
+    sie->ssie = (src & (1 << 1)) >> 1;
+  }
+
+  if (mideleg->sti) {
+    mie->vstie = (src & (1 << 5)) >> 5;
+  }
+
+  if (mideleg->sei) {
+    mie->vseie = (src & (1 << 9)) >> 9;
+  } else if (~mideleg->sei & mvien->seie) {
+    sie->seie = (src & (1 << 9)) >> 9;
+  }
+#ifdef CONFIG_RV_SSCOFPMF
+  if (mideleg->lcofi) {
+    mie->lcofie = (src & (1 << 13)) >> 13;
+  } else if (~mideleg->lcofi & mvien->lcofie) {
+    sie->lcofie = (src & (1 << 13)) >> 13;
+  }
+#endif
+#else
+#ifdef CONFIG_RV_SSCOFPMF
+  mie->val = mask_bitset(mie->val, VS_MASK, src << 1) | mask_bitset(mie->val, LCOFI, src);
+#else
+  mie->val = mask_bitset(mie->val, VS_MASK, src << 1);
+#endif
+#endif
+}
+#endif
+
+#ifdef CONFIG_RVH
+static inline word_t get_vsie() {
+  word_t tmp;
+  tmp = (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;
+#ifdef CONFIG_RV_SSCOFPMF
+#ifdef CONFIG_RV_IMSIC
+  if (hideleg->lcofi & mideleg->lcofi) {
+    tmp |= mie->lcofie << 13;
+  } else if (hideleg->lcofi & ~mideleg->lcofi & mvien->lcofie) {
+    tmp |= sie->lcofie << 13;
+  } else if (~hideleg->lcofi & hvien->lcofie) {
+    tmp |= vsie->lcofie << 13;
+  } else {
+    tmp |= 0;
+  }
+#else
+  if (hideleg->lcofi & mideleg->lcofi) {
+    tmp |= mie->lcofie << 13;
+  } else {
+    tmp |= 0;
+  }
+#endif
+#endif
+  return tmp;
+}
+#endif
+
+#ifdef CONFIG_RVH
+static inline void set_vsie(word_t src) {
+  mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
+#ifdef CONFIG_RV_SSCOFPMF
+  if (hideleg->lcofi & mideleg->lcofi) {
+    mie->lcofie = (src & (1 << 13)) >> 13;
+  } else if (hideleg->lcofi & !mideleg->lcofi & mvien->lcofie) {
+    sie->lcofie = (src & (1 << 13)) >> 13;
+  } else if (~hideleg->lcofi & hvien->lcofie) {
+    vsie->lcofie = (src & (1 << 13)) >> 13;
+  }
+#endif
+}
+#endif
+
 static inline void update_counter_mcountinhibit(word_t old, word_t new) {
   #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
     bool old_cy = old & 0x1;
@@ -429,7 +667,7 @@ static inline word_t csr_read(word_t *src) {
  if (cpu.v == 1) {
 
   if (is_read(sstatus))      { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
-  else if (is_read(sie))     { return (mie->val & VS_MASK) >> 1;}
+  else if (is_read(sie))     { return get_v_sie(); }
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
   else if (is_read(sepc))    { return vsepc->val;}
@@ -451,16 +689,19 @@ if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+#ifdef CONFIG_RV_IMSIC
+if (is_read(hvien))          { return hvien->val & LCOFI; }
+#endif
 if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1; }
-if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VS_MASK) >> 1;}
+if (is_read(vsie))           { return get_vsie(); }
 #endif
 
   if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_fs(); }
 
   if (is_read(mstatus))     { return gen_status_sd(mstatus->val) | mstatus->val; }
   if (is_read(sstatus))     { return gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); }
-  else if (is_read(sie))    { return mie->val & SIE_MASK; }
+  else if (is_read(sie))    { return get_sie(); }
   else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
   else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
   else if (is_read(sip))    {
@@ -469,6 +710,9 @@ if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val 
 #endif
     return mip->val & SIP_MASK;
   }
+#ifdef CONFIG_RV_IMSIC
+  else if (is_read(mvien))  { return mvien->val & MVIEN_MASK; }
+#endif
 #ifdef CONFIG_RVV
   else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
   else if (is_read(vlenb))  { return VLEN >> 3; }
@@ -582,7 +826,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (is_write(sstatus))      {
       vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
     }
-    else if (is_write(sie))     { mie->val = mask_bitset(mie->val, VS_MASK, src << 1); }
+    else if (is_write(sie))     { set_v_sie(src); }
     else if (is_write(stvec))   { vstvec->val = src; }
     else if (is_write(sscratch)){ vsscratch->val = src;}
     else if (is_write(sepc))    { vsepc->val = src;}
@@ -611,13 +855,17 @@ static inline void csr_write(word_t *dest, word_t src) {
     mip->val = mask_bitset(mip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
   }else if(is_write(hvip)){
     mip->val = mask_bitset(mip->val, HVIP_MASK, src);
-  }else if(is_write(hstatus)){
+  }
+  #ifdef CONFIG_RV_IMSIC
+  else if (is_write(hvien)) { hvien->val = mask_bitset(hvien->val, LCOFI, src); }
+  #endif
+  else if(is_write(hstatus)){
     hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src);
   }else if(is_write(vsstatus)){
     vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
-  }else if(is_write(vsie)){
-    mie->val = mask_bitset(mie->val, VS_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
-  }else if(is_write(vsip)){
+  }
+  else if(is_write(vsie)){ set_vsie(src); }
+  else if(is_write(vsip)){
     mip->val = mask_bitset(mip->val, VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
   }else if(is_write(vstvec)){
     vstvec->val = src;
@@ -687,14 +935,15 @@ static inline void csr_write(word_t *dest, word_t src) {
     minstret->val = set_minstret(src);
   }
   else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
-  else if (is_write(sie)) { mie->val = mask_bitset(mie->val, SIE_MASK, src); }
-  else if (is_write(mie)) {
-    mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H, src);
-  }
+  else if (is_write(sie)) { set_sie(src); }
+  else if (is_write(mie)) { mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H | LCOFI, src); }
   else if (is_write(mip)) {
     mip->val = mask_bitset(mip->val, MIP_MASK_BASE | MIP_MASK_H, src);
   }
   else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
+#ifdef CONFIG_RV_IMSIC
+  else if (is_write(mvien)) { mvien->val = mask_bitset(mvien->val, MVIEN_MASK, src); }
+#endif
   else if (is_write(mtvec)) {
 #ifdef CONFIG_XTVEC_VECTORED_MODE
     *dest = src & ~(0x2UL);
