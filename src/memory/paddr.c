@@ -374,6 +374,45 @@ bool analysis_memory_isuse(uint64_t page) {
 store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 static uint64_t head = 0, tail = 0;
 
+void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
+  // align with dut
+  static int overflow = 0;
+  uint8_t inside_16bytes_bound = ((addr >> 4) & 1ULL) == (((addr + len - 1) >> 4) & 1ULL);
+  uint64_t split_num = inside_16bytes_bound ? 1 : 2;
+  uint64_t st_mask = (len == 1) ? 0x1ULL : (len == 2) ? 0x3ULL : (len == 4) ? 0xfULL : (len == 8) ? 0xffULL : 0xdeadbeefULL;
+  uint64_t st_data_mask = (len == 1) ? 0xffULL : (len == 2) ? 0xffffULL : (len == 4) ? 0xffffffffULL : (len == 8) ? 0xffffffffffffffffULL : 0xdeadbeefULL;
+  store_commit_t *low_addr_st = store_commit_queue + tail;
+  store_commit_t *high_addr_st = store_commit_queue + tail + (split_num - 1);
+
+  if (high_addr_st->valid && !overflow) { // store commit queue overflow
+    overflow = 1;
+    printf("[WARNING] difftest store queue overflow\n");
+  };
+
+  if (inside_16bytes_bound) {
+    low_addr_st->valid = 1;
+    low_addr_st->addr = addr - (addr % 16ULL);
+    low_addr_st->data = ((data & st_data_mask) << ((addr % 16ULL) << 3)) & 0xffffffffffffffffULL;
+    low_addr_st->mask = (st_mask << (addr % 16ULL)) & 0xffULL;
+    // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
+  } else {
+    low_addr_st->valid = 1;
+    low_addr_st->addr = addr - (addr % 8ULL);
+    low_addr_st->data = (data & (st_data_mask >> ((addr % len) << 3))) << ((8 - len + (addr % len)) << 3);
+    low_addr_st->mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
+
+    high_addr_st->valid = 1;
+    high_addr_st->addr = addr - (addr % 16ULL) + 16ULL;
+    high_addr_st->data = (data >> ((len - (addr % len)) << 3)) & (st_data_mask >> ((len - (addr % len)) << 3));
+    high_addr_st->mask = st_mask >> (len - (addr % len));
+
+    // printf("[DEBUG] split low addr store addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
+    // printf("[DEBUG] split high addr store addr: %lx, data: %lx, mask: %lx\n", high_addr_st->addr, high_addr_st->data, (uint64_t)(high_addr_st->mask));
+  }
+
+  tail = (tail + split_num) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
+}
+
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
@@ -382,6 +421,13 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
 #endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
   static int overflow = 0;
   store_commit_t *commit = store_commit_queue + tail;
+#ifdef CONFIG_AC_NONE
+  uint8_t store_miss_align = (addr & (len - 1)) != 0;
+  if (unlikely(store_miss_align)) {
+    miss_align_store_commit_queue_push(addr, data, len);
+    return;
+  }
+#endif // CONFIG_AC_NONE
   if (commit->valid && !overflow) { // store commit queue overflow
     overflow = 1;
     printf("[WARNING] difftest store queue overflow\n");
