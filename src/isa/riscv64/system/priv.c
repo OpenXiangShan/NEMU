@@ -1355,7 +1355,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       tcontrol->mte = tcontrol->mpte;
 #endif
 #ifdef CONFIG_RVH
-      cpu.v = mstatus->mpv;
+      cpu.v = (mstatus->mpp == MODE_M ? 0 : mstatus->mpv);
       mstatus->mpv = 0;
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif // CONFIG_RVH
