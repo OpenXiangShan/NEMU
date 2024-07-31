@@ -117,6 +117,17 @@ static inline void require_vector_vs() {
   }
 }
 
+void require_float() {
+  if (mstatus->fs == 0) {
+    longjmp_exception(EX_II);
+  }
+#ifdef CONFIG_RVH
+  if (cpu.v & ((vsstatus->val & (0x3UL << 13)) == 0)) {
+    longjmp_exception(EX_II);
+  }
+#endif
+}
+
 static inline bool is_overlapped(const int astart, int asize, const int bstart, int bsize) {
   asize = asize == 0 ? 1 : asize;
   bsize = bsize == 0 ? 1 : bsize;

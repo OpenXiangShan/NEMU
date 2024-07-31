@@ -113,6 +113,7 @@ void float_reduction_computing(Decode *s);
 
 // vector illegal check, refer to the riscv-isa-sim
 void require_vector(bool is_require_vtype);
+void require_float();
 void require_vm(Decode *s);
 double compute_vflmul();
 void require_aligned(const unsigned val, const unsigned pos);
