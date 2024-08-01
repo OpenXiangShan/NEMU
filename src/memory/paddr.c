@@ -118,6 +118,9 @@ static inline void raise_access_fault(int cause, vaddr_t vaddr) {
   // cpu.amo flag must be reset to false before longjmp_exception,
   // including longjmp_exception(access fault), longjmp_exception(page fault)
   cpu.amo = false;
+#ifdef CONFIG_RVV
+  vstart->val = 0;
+#endif
   longjmp_exception(cause);
 }
 
