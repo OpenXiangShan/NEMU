@@ -392,7 +392,11 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   if (inside_16bytes_bound) {
     low_addr_st->valid = 1;
     low_addr_st->addr = addr - (addr % 16ULL);
-    low_addr_st->data = ((data & st_data_mask) << ((addr % 16ULL) << 3)) & 0xffffffffffffffffULL;
+    if ((addr % 16ULL) > 8) {
+      low_addr_st->data = 0;
+    } else {
+      low_addr_st->data = (data & st_data_mask) << ((addr % 16ULL) << 3);
+    }
     low_addr_st->mask = (st_mask << (addr % 16ULL)) & 0xffULL;
     // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
   } else {
