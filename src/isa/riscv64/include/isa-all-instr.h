@@ -233,12 +233,14 @@
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
   f(p_inc) f(p_dec) \
   AMO_INSTR_TERNARY(f) \
-  SYS_INSTR_TERNARY(f) \
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f)
+
+#define INSTR_TERNARY_CSR(f) \
+  SYS_INSTR_TERNARY(f) 
 
 def_all_EXEC_ID();
 
