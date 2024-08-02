@@ -20,6 +20,16 @@ config RV_ZICOND
   bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
   default y
 
+config RV_ZFH
+  bool "RISC-V Zfh Extensions V1.0"
+  depends on RV_ZFH_MIN
+  default y
+
+config RV_ZFH_MIN
+  bool "RISC-V Zfhmin Extensions V1.0"
+  depends on !FPU_NONE
+  default y
+
 config RVV
   depends on !FPU_NONE
   bool "RISC-V Vector Extension v1.0"

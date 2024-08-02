@@ -34,6 +34,7 @@
 #define fsgnj64(a, b, n, x) \
   (uint64_t) ((a.v & ~F64_SIGN) | ((((x) ? a.v : (n) ? F64_SIGN : 0) ^ b.v) & F64_SIGN))
 
+
 static inline float16_t rtlToF16(rtlreg_t r);
 static inline float32_t rtlToF32(rtlreg_t r);
 static inline float32_t rtlToVF32(rtlreg_t r);
@@ -99,6 +100,44 @@ static inline float64_t f64_max(float64_t a, float64_t b){
   else return(greater || isNaNF64UI(b.v) ? a : b);
 }
 
+static inline float16_t  my_f32_to_f16 (float32_t a) {
+  return f32_to_f16(a);
+}
+static inline float32_t  my_f16_to_f32 (float16_t a) {
+  return f16_to_f32(a);
+}
+static inline float64_t  my_f16_to_f64 (float16_t a) {
+  return f16_to_f64(a);
+}
+static inline float16_t  my_f64_to_f16 (float64_t a) {
+  return f64_to_f16(a);
+}
+
+static inline float16_t  my_i32_to_f16 (int32_t a) {
+  return i32_to_f16(a);
+}
+static inline float16_t  my_ui32_to_f16 (uint32_t a) {
+  return ui32_to_f16(a);
+}
+static inline float16_t  my_i64_to_f16 (int64_t a) {
+  return i64_to_f16(a);
+}
+static inline float16_t  my_ui64_to_f16 (uint64_t a) {
+  return ui64_to_f16(a);
+}
+
+static inline int32_t  my_f16_to_i32 (float16_t a) {
+  return f16_to_i32 (a, softfloat_roundingMode, true);
+}
+static inline uint32_t my_f16_to_ui32(float16_t a) {
+  return f16_to_ui32(a, softfloat_roundingMode, true);
+}
+static inline int64_t  my_f16_to_i64 (float16_t a) {
+  return f16_to_i64 (a, softfloat_roundingMode, true);
+}
+static inline uint64_t my_f16_to_ui64(float16_t a) {
+  return f16_to_ui64(a, softfloat_roundingMode, true);
+}
 static inline int32_t  my_f32_to_i32 (float32_t a) {
   return f32_to_i32 (a, softfloat_roundingMode, true);
 }
