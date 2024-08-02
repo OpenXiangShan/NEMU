@@ -524,8 +524,12 @@ typedef enum ExtContextStatus {
   EXT_CONTEXT_DIRTY,
 } ExtContextStatus;
 
-CSR_STRUCT_START(mtvec)
-CSR_STRUCT_END(mtvec)
+CSR_STRUCT_START(tvec)
+  uint64_t mode  : 2;
+  uint64_t base  :62;
+CSR_STRUCT_END(tvec)
+
+typedef tvec_t mtvec_t;
 
 CSR_STRUCT_START(medeleg)
 CSR_STRUCT_END(medeleg)
@@ -827,8 +831,7 @@ CSR_STRUCT_START(sstatus)
   uint64_t pad2: 4;
 CSR_STRUCT_END(sstatus)
 
-CSR_STRUCT_START(stvec)
-CSR_STRUCT_END(stvec)
+typedef tvec_t stvec_t;
 
 CSR_STRUCT_START(sip)
   uint64_t usip : 1;
@@ -1095,10 +1098,7 @@ CSR_STRUCT_START(vsie)
 #endif
 CSR_STRUCT_END(vsie)
 
-CSR_STRUCT_START(vstvec)
-  uint64_t mode  : 2;
-  uint64_t base  :62;
-CSR_STRUCT_END(vstvec)
+typedef tvec_t vstvec_t;
 
 CSR_STRUCT_START(vsscratch)
 CSR_STRUCT_END(vsscratch)

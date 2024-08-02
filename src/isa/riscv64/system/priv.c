@@ -487,6 +487,19 @@ static inline void set_sie(word_t src) {
 #endif
 }
 
+static inline void set_tvec(word_t* dest, word_t src) {
+  tvec_t newVal = (tvec_t)src;
+  tvec_t* destPtr = (tvec_t*)dest;
+#ifdef CONFIG_XTVEC_VECTORED_MODE
+  if (newVal.mode < 2) {
+    destPtr->mode = newVal.mode;
+  }
+#else
+  destPtr->mode = 0; // only DIRECT mode is supported
+#endif // CONFIG_XTVEC_VECTORED_MODE
+  destPtr->base = newVal.base;
+}
+
 #ifdef CONFIG_RVH
 static inline word_t get_v_sie() {
   word_t tmp = 0;
@@ -701,8 +714,8 @@ if (is_read(vsie))           { return get_vsie(); }
   if (is_read(mstatus))     { return gen_status_sd(mstatus->val) | mstatus->val; }
   if (is_read(sstatus))     { return gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); }
   else if (is_read(sie))    { return get_sie(); }
-  else if (is_read(mtvec))  { return mtvec->val & ~(0x2UL); }
-  else if (is_read(stvec))  { return stvec->val & ~(0x2UL); }
+  else if (is_read(mtvec))  { return mtvec->val; }
+  else if (is_read(stvec))  { return stvec->val; }
   else if (is_read(sip))    {
 #ifndef CONFIG_RVH
     difftest_skip_ref();
@@ -826,7 +839,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
     }
     else if (is_write(sie))     { set_v_sie(src); }
-    else if (is_write(stvec))   { vstvec->val = src; }
+    else if (is_write(stvec))   { set_tvec((word_t*)vstvec, src); }
     else if (is_write(sscratch)){ vsscratch->val = src;}
     else if (is_write(sepc))    { vsepc->val = src;}
     else if (is_write(scause))  { vscause->val = src;}
@@ -842,7 +855,6 @@ static inline void csr_write(word_t *dest, word_t src) {
         update_vsatp(new_val);
       }
     }
-    else if( is_write(stvec))  {vstvec->val = src & ~(0x2UL);}
   }
   else if (is_write(mideleg)){
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
@@ -869,9 +881,11 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if(is_write(vsie)){ set_vsie(src); }
   else if(is_write(vsip)){
     mip->val = mask_bitset(mip->val, MIP_VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
-  }else if(is_write(vstvec)){
-    vstvec->val = src;
-  }else if(is_write(vsscratch)){
+  }
+  else if(is_write(vstvec)){
+    set_tvec(dest, src);
+  }
+  else if(is_write(vsscratch)){
     vsscratch->val = src;
   }else if(is_write(vsepc)){
     vsepc->val = src;
@@ -946,20 +960,8 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_IMSIC
   else if (is_write(mvien)) { mvien->val = mask_bitset(mvien->val, MVIEN_MASK, src); }
 #endif
-  else if (is_write(mtvec)) {
-#ifdef CONFIG_XTVEC_VECTORED_MODE
-    *dest = src & ~(0x2UL);
-#else
-    *dest = src & ~(0x3UL);
-#endif // CONFIG_XTVEC_VECTORED_MODE
-}
-  else if (is_write(stvec)) {
-#ifdef CONFIG_XTVEC_VECTORED_MODE
-    *dest = src & ~(0x2UL);
-#else
-    *dest = src & ~(0x3UL);
-#endif // CONFIG_XTVEC_VECTORED_MODE
-}
+  else if (is_write(mtvec)) { set_tvec(dest, src); }
+  else if (is_write(stvec)) { set_tvec(dest, src); }
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
   else if (is_write(mideleg)) { *dest = src & 0x222; }
 #ifdef CONFIG_RVV
