@@ -174,6 +174,23 @@
 #define ZICOND_INSTR_TERNARY(f)
 #endif // CONFIG_RV_ZICOND
 
+#ifdef CONFIG_RV_ZFH
+#define ZFH_INSTR_BINARY(f) \
+  f(flh) f(fsh) \
+  f(fsqrth) f(fsgnjh) f(fsgnjnh) f(fsgnjxh) \
+  f(fcvt_s_h) f(fcvt_h_s) f(fcvt_d_h) f(fcvt_h_d) \
+  f(feqh) f(flth) f(fleh) f(fclassh) \
+  f(fcvt_w_h) f(fcvt_wu_h) f(fcvt_h_w) f(fcvt_h_wu) \
+  f(fmv_x_h) f(fmv_h_x) f(fcvt_l_h) f(fcvt_lu_h) \
+  f(fcvt_h_l) f(fcvt_h_lu)
+#define ZFH_INSTR_TERNARY(f) \
+  f(faddh) f(fsubh) f(fmulh) f(fdivh) \
+  f(fminh) f(fmaxh)
+#else //CONFIG_RV_ZFH
+#define ZFH_INSTR_BINARY(f)
+#define ZFH_INSTR_TERNARY(f)
+#endif //CONFIG_RV_ZFH
+
 #ifdef CONFIG_FPU_NONE
 #define FLOAT_INSTR_BINARY(f)
 #define FLOAT_INSTR_TERNARY(f)
@@ -218,7 +235,8 @@
   SYS_INSTR_BINARY(f) \
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
-  FLOAT_INSTR_BINARY(f)
+  FLOAT_INSTR_BINARY(f) \
+  ZFH_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -238,7 +256,8 @@
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
-  VECTOR_INSTR_TERNARY(f)
+  VECTOR_INSTR_TERNARY(f) \
+  ZFH_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
 

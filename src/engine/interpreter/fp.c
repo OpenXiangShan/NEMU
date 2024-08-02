@@ -64,8 +64,38 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       last_rm = rm;
     }
   }
+  if (w == FPCALL_W16) {
+    float16_t fsrc1 = rtlToF16(*src1);
+    float16_t fsrc2 = rtlToF16(*src2);
+    switch(op){
+      case FPCALL_ADD: *dest = f16_add(fsrc1, fsrc2).v; break;
+      case FPCALL_SUB: *dest = f16_sub(fsrc1, fsrc2).v; break;
+      case FPCALL_MUL: *dest = f16_mul(fsrc1, fsrc2).v; break;
+      case FPCALL_DIV: *dest = f16_div(fsrc1, fsrc2).v; break;
+      case FPCALL_MIN: *dest = f16_min(fsrc1, fsrc2).v; break;
+      case FPCALL_MAX: *dest = f16_max(fsrc1, fsrc2).v; break;
 
-  if (w == FPCALL_W32) {
+      case FPCALL_SQRT: *dest = f16_sqrt(fsrc1).v; break;
+
+      case FPCALL_LE: *dest = f16_le(fsrc1, fsrc2); break;
+      case FPCALL_LT: *dest = f16_lt(fsrc1, fsrc2); break;
+      case FPCALL_EQ: *dest = f16_eq(fsrc1, fsrc2); break;
+
+      case FPCALL_I32ToF: *dest = i32_to_f16 (*src1).v; break;
+      case FPCALL_U32ToF: *dest = ui32_to_f16(*src1).v; break;
+      case FPCALL_I64ToF: *dest = i64_to_f16 (*src1).v; break;
+      case FPCALL_U64ToF: *dest = ui64_to_f16(*src1).v; break;
+
+      case FPCALL_FToI32: *dest = my_f16_to_i32 (fsrc1); break;
+      case FPCALL_FToU32: *dest = my_f16_to_ui32(fsrc1); break;
+      case FPCALL_FToI64: *dest = my_f16_to_i64 (fsrc1); break;
+      case FPCALL_FToU64: *dest = my_f16_to_ui64(fsrc1); break;
+
+      case FPCALL_F16ToF32: *dest = f16_to_f32(rtlToF16(*src1)).v; break;
+      case FPCALL_F16ToF64: *dest = f16_to_f64(rtlToF16(*src1)).v; break;
+      default: panic("op = %d not supported", op);
+    }
+  }else if (w == FPCALL_W32) {
     float32_t fsrc1 = rtlToF32(*src1);
     float32_t fsrc2 = rtlToF32(*src2);
     switch (op) {
@@ -126,6 +156,9 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
 
       case FPCALL_F32ToF64: *dest = f32_to_f64(rtlToF32(*src1)).v; break;
       case FPCALL_F64ToF32: *dest = f64_to_f32(fsrc1).v; break;
+
+      case FPCALL_F32ToF16: *dest = f32_to_f16(rtlToF32(*src1)).v; break;
+      case FPCALL_F64ToF16: *dest = f64_to_f16(fsrc1).v; break;
       default: panic("op = %d not supported", op);
     }
   }
