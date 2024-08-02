@@ -205,7 +205,7 @@
   f(p_ret)
 
 #define INSTR_UNARY(f) \
-  f(p_li_0) f(p_li_1)
+  f(p_li_0) f(p_li_1) f(zcmop)
 
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
