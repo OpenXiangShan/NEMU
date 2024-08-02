@@ -682,7 +682,7 @@ static inline word_t csr_read(word_t *src) {
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
 if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK & (mideleg->val | MIDELEG_FORCED_MASK);}
-if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK & (medeleg->val | MEDELEG_MASK); }
+if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK; }
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
 if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
