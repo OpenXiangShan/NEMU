@@ -76,6 +76,7 @@ enum fp_wop_t {
   noCheck,
 };
 
+void fp_set_dirty();
 void vp_set_dirty();
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
 void permutaion_instr(int opcode, Decode *s);
