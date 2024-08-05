@@ -1067,7 +1067,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   }
 #ifdef CONFIG_RV_SDTRIG
   else if (is_write(tselect)) {
-    *dest = src < CONFIG_TRIGGER_NUM ? src : tselect->val;
+    *dest = src & 0x3UL;
     tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata1)) {
     // not write to dest
