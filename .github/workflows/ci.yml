@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     name: nemu - Basics for XiangShan
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -71,7 +71,7 @@ jobs:
     timeout-minutes: 10
     name: nemu - Basics for NutShell
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -97,7 +97,7 @@ jobs:
     name: NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -122,7 +122,7 @@ jobs:
     name: nemu - H-extension
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -167,7 +167,7 @@ jobs:
     name: nemu - V-extension
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -204,7 +204,7 @@ jobs:
     timeout-minutes: 60
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup env
       run: |
         echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -213,3 +213,21 @@ jobs:
       id: list_configs
       run: |
         bash ./scripts/compilation-test.sh
+
+  compile-difftest-so:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    name: Compile difftest-so
+    timeout-minutes: 10
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: compile in CentOS 7 docker
+      run: |
+        bash ./scripts/generate_so_from_docker.sh
+    - name: archive difftest-so artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: difftest-so
+        path: |
+          artifact
