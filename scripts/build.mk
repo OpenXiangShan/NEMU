@@ -32,9 +32,9 @@ CC := $(CCACHE) $(CC)
 LD := $(CCACHE) $(CXX)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
-CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
+CFLAGS  := -O2 -flto -ftree-vectorize -march=native -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
 CXXFLAGS  := --std=c++17 $(XINCLUDES) $(CFLAGS)
-LDFLAGS := -O2 $(LDFLAGS) $(PGO_FLAGS)
+LDFLAGS := -O2 -flto $(LDFLAGS) $(PGO_FLAGS)
 # filesystem
 ifndef SHARE
 LDFLAGS += -lstdc++fs -lstdc++ -lm

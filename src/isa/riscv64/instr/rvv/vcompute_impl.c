@@ -389,7 +389,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   if(check_vstart_ignore(s)) return;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     carry = 0;
     if(s->vm == 0) {
       carry = mask;
@@ -857,7 +857,7 @@ void permutaion_instr(int opcode, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0) {
       // merge instr will exec no matter mask or not
       // masked and mask off exec will left dest unmodified.
@@ -1063,7 +1063,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   if(check_vstart_ignore(s)) return;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0) {
       // merge instr will exec no matter mask or not
       // masked and mask off exec will left dest unmodified.
@@ -1238,11 +1238,11 @@ void mask_instr(int opcode, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul); // unproper usage of s0
+    *s0 = get_mask(id_src2->reg, idx); // unproper usage of s0
     *s0 &= 1; // only LSB
 
     // operand - s1
-    *s1 = get_mask(id_src->reg, idx, vtype->vsew, vtype->vlmul); // unproper usage of s1
+    *s1 = get_mask(id_src->reg, idx); // unproper usage of s1
     *s1 &= 1; // only LSB
 
     // op
@@ -1296,7 +1296,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   int idx;
   for(idx = vstart->val; idx < vl->val; idx ++) {
     // get mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0 && mask==0) {
       continue;
     }
@@ -1358,7 +1358,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
   if(check_vstart_ignore(s)) return;
 
   for(idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0 && mask==0) {
       continue;
     }
@@ -1484,7 +1484,7 @@ void float_reduction_computing(Decode *s) {
   // copy the vector register to the temp register
   init_tmp_vreg(s, vtype->vsew);
   for(idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0 && mask==0) {
       continue;
     }

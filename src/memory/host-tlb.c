@@ -31,6 +31,7 @@ typedef struct {
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
+// dummy_hosttlb_translate assumes that write tlb is right after read tlb by 1*HOSTTLB_SIZE
 static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
 static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
@@ -44,6 +45,7 @@ static inline int hosttlb_idx(vaddr_t vaddr) {
 }
 
 void hosttlb_flush(vaddr_t vaddr) {
+  Logm("hosttlb_flush " FMT_WORD, vaddr);
   if (vaddr == 0) {
     memset(hosttlb, -1, sizeof(hosttlb));
   } else {
@@ -126,10 +128,34 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     #endif
   }
 }
+extern bool has_two_stage_translation();
+
+#ifdef CONFIG_RVV
+void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_write) {
+#ifdef CONFIG_RVH
+  if(has_two_stage_translation()){
+    // Fast path for guest is not implemented yet
+    return;
+  }
+#endif
+  vaddr_t gvpn = hosttlb_vpn(vaddr);
+
+  // Following loc assumes write tlb is right after read tlb by HOSTTLB_SIZE
+  HostTLBEntry *used_tlb = &hosttlb[is_write * HOSTTLB_SIZE];
+  HostTLBEntry *e = &used_tlb[hosttlb_idx(vaddr)];
+  if (unlikely(e->gvpn != gvpn)) {
+    // TLB miss, fall back to slow path
+    return;
+  } else {
+    // last_access_host_addr is used to indicate TLB hit and fast path is possible
+    s->last_access_host_addr = e->offset + vaddr;
+    return;
+  }
+}
+#endif // CONFIG_RVV
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
-  #ifdef CONFIG_RVH
-  extern bool has_two_stage_translation();
+#ifdef CONFIG_RVH
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
@@ -141,9 +167,14 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
-  #ifdef CONFIG_USE_SPARSEMM
+#ifdef CONFIG_USE_SPARSEMM
   sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
-  #else
-  host_write(e->offset + vaddr, len, data);
-  #endif
+#else // NOT CONFIG_USE_SPARSEMM
+  uint8_t *host_addr = e->offset + vaddr;
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  // Also do store commit check with performance optimization enlabled
+  store_commit_queue_push(host_to_guest(host_addr), data, len);
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
+  host_write(host_addr, len, data);
+#endif // NOT CONFIG_USE_SPARSEMM
 }
