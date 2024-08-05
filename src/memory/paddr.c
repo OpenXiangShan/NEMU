@@ -382,12 +382,12 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   uint64_t st_mask = (len == 1) ? 0x1ULL : (len == 2) ? 0x3ULL : (len == 4) ? 0xfULL : (len == 8) ? 0xffULL : 0xdeadbeefULL;
   uint64_t st_data_mask = (len == 1) ? 0xffULL : (len == 2) ? 0xffffULL : (len == 4) ? 0xffffffffULL : (len == 8) ? 0xffffffffffffffffULL : 0xdeadbeefULL;
   store_commit_t *low_addr_st = store_commit_queue + tail;
-  store_commit_t *high_addr_st = store_commit_queue + tail + (split_num - 1);
+  store_commit_t *high_addr_st = store_commit_queue + ((tail + (split_num - 1)) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE);
 
   if (high_addr_st->valid && !overflow) { // store commit queue overflow
     overflow = 1;
     printf("[WARNING] difftest store queue overflow\n");
-  };
+  }
 
   if (inside_16bytes_bound) {
     low_addr_st->valid = 1;
@@ -435,7 +435,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   if (commit->valid && !overflow) { // store commit queue overflow
     overflow = 1;
     printf("[WARNING] difftest store queue overflow\n");
-  };
+  }
   uint64_t offset = addr % 8ULL;
   commit->addr = addr - offset;
   commit->valid = 1;
