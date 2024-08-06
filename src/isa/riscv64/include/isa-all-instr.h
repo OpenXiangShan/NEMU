@@ -174,22 +174,14 @@
 #define ZICOND_INSTR_TERNARY(f)
 #endif // CONFIG_RV_ZICOND
 
-#ifdef CONFIG_RV_ZFH
+#ifdef CONFIG_RV_ZFH_MIN
 #define ZFH_INSTR_BINARY(f) \
   f(flh) f(fsh) \
-  f(fsqrth) f(fsgnjh) f(fsgnjnh) f(fsgnjxh) \
-  f(fcvt_s_h) f(fcvt_h_s) f(fcvt_d_h) f(fcvt_h_d) \
-  f(feqh) f(flth) f(fleh) f(fclassh) \
-  f(fcvt_w_h) f(fcvt_wu_h) f(fcvt_h_w) f(fcvt_h_wu) \
-  f(fmv_x_h) f(fmv_h_x) f(fcvt_l_h) f(fcvt_lu_h) \
-  f(fcvt_h_l) f(fcvt_h_lu)
-#define ZFH_INSTR_TERNARY(f) \
-  f(faddh) f(fsubh) f(fmulh) f(fdivh) \
-  f(fminh) f(fmaxh)
-#else //CONFIG_RV_ZFH
+  f(fmv_x_h) f(fmv_h_x)  \
+  f(fcvt_s_h) f(fcvt_h_s) f(fcvt_d_h) f(fcvt_h_d) 
+#else //CONFIG_RV_ZFH_MIN
 #define ZFH_INSTR_BINARY(f)
-#define ZFH_INSTR_TERNARY(f)
-#endif //CONFIG_RV_ZFH
+#endif //CONFIG_RV_ZFH_MIN
 
 #ifdef CONFIG_FPU_NONE
 #define FLOAT_INSTR_BINARY(f)
@@ -257,7 +249,6 @@
   CRYPTO_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
-  ZFH_INSTR_TERNARY(f)
 
 def_all_EXEC_ID();
 

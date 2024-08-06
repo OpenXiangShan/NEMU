@@ -99,6 +99,22 @@ static inline float64_t f64_max(float64_t a, float64_t b){
   else return(greater || isNaNF64UI(b.v) ? a : b);
 }
 
+static inline float16_t  my_f32_to_f16 (float32_t a) {
+  return f32_to_f16(a);
+}
+
+static inline float32_t  my_f16_to_f32 (float16_t a) {
+  return f16_to_f32(a);
+}
+
+static inline float64_t  my_f16_to_f64 (float16_t a) {
+  return f16_to_f64(a);
+}
+
+static inline float16_t  my_f64_to_f16 (float64_t a) {
+  return f64_to_f16(a);
+}
+
 static inline int32_t  my_f16_to_i32 (float16_t a) {
   return f16_to_i32 (a, softfloat_roundingMode, true);
 }

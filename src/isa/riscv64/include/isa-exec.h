@@ -36,7 +36,7 @@
 #ifdef CONFIG_RV_ZICOND
 #include "../instr/rvzicond/exec.h"
 #endif
-#ifdef CONFIG_RV_ZFH
-#include "../instr/rvzfh/exec.h"
+#ifdef CONFIG_RV_ZFH_MIN
+#include "../instr/rvzfh_min/exec.h"
 #endif
 #include "../instr/special.h"

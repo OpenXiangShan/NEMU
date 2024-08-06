@@ -15,8 +15,10 @@
 ***************************************************************************************/
 
 bool fp_enable();
+static int table_op_zfh(Decode *s);
 static int table_op_fp_d(Decode *s);
 static int table_fmadd_d_dispatch(Decode *s);
+static int table_fmadd_h_dispatch(Decode *s);
 
 static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
@@ -114,7 +116,6 @@ def_THelper(vstore_mmu) {
 
 def_THelper(fload) {
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
-
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     if (fp_enable()) {
@@ -197,7 +198,12 @@ def_THelper(fstore) {
 def_THelper(op_fp) {
 #ifndef CONFIG_FPU_NONE
   if (!fp_enable()) return table_rt_inv(s);
-
+  #ifdef CONFIG_RV_ZFH_MIN
+  if ((s->isa.instr.fp.fmt == 0b00 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
+      (s->isa.instr.fp.fmt == 0b01 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
+      (s->isa.instr.fp.fmt == 0b11 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
+      s->isa.instr.fp.fmt == 0b10 ) return table_op_zfh(s);
+  #endif//CONFIG_RV_ZFH_MIN
   if ((s->isa.instr.fp.fmt == 0b00 && s->isa.instr.fp.funct5 == 0b01000) ||
       s->isa.instr.fp.fmt == 0b01) return table_op_fp_d(s);
 
@@ -237,7 +243,9 @@ def_THelper(fmadd_dispatch) {
 #ifndef CONFIG_FPU_NONE
   if (!fp_enable()) return table_rt_inv(s);
   def_INSTR_TAB("????? 01 ????? ????? ??? ????? ????? ??", fmadd_d_dispatch);
-
+  #ifdef CONFIG_RV_ZFH
+    def_INSTR_TAB("????? 10 ????? ????? ??? ????? ????? ??", fmadd_h_dispatch);
+  #endif //CONFIG_RV_ZFH
   def_INSTR_TAB("????? 00 ????? ????? ??? ????? 10000 ??", fmadds);
   def_INSTR_TAB("????? 00 ????? ????? ??? ????? 10001 ??", fmsubs);
   def_INSTR_TAB("????? 00 ????? ????? ??? ????? 10010 ??", fnmsubs);
