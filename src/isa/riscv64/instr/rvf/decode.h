@@ -198,12 +198,12 @@ def_THelper(fstore) {
 def_THelper(op_fp) {
 #ifndef CONFIG_FPU_NONE
   if (!fp_enable()) return table_rt_inv(s);
-  #ifdef CONFIG_RV_ZFH_MIN
+  #if defined(CONFIG_RV_ZFH_MIN) || defined(CONFIG_RV_ZFH)
   if ((s->isa.instr.fp.fmt == 0b00 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
       (s->isa.instr.fp.fmt == 0b01 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
       (s->isa.instr.fp.fmt == 0b11 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
       s->isa.instr.fp.fmt == 0b10 ) return table_op_zfh(s);
-  #endif//CONFIG_RV_ZFH_MIN
+  #endif//CONFIG_RV_ZFH_MIN || CONFIG_RV_ZFH
   if ((s->isa.instr.fp.fmt == 0b00 && s->isa.instr.fp.funct5 == 0b01000) ||
       s->isa.instr.fp.fmt == 0b01) return table_op_fp_d(s);
 

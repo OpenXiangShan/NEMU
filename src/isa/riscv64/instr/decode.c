@@ -37,9 +37,9 @@ static inline uint32_t get_instr(Decode *s) {
 #include "rvi/decode.h"
 #ifndef CONFIG_FPU_NONE
 #include "rvf/decode.h"
-#ifdef CONFIG_RV_ZFH_MIN
-#include "rvzfh_min/decode.h"
-#endif // CONFIG_RV_ZFH_MIN
+#if defined(CONFIG_RV_ZFH_MIN) || defined(CONFIG_RV_ZFH)
+#include "rvzfh/decode.h"
+#endif // CONFIG_RV_ZFH_MIN || CONFIG_RV_ZFH
 #endif // CONFIG_FPU_NONE
 #include "rvm/decode.h"
 #include "rva/decode.h"

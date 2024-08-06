@@ -25,6 +25,11 @@ config RV_ZFH_MIN
   depends on !FPU_NONE
   default y
 
+config RV_ZFH
+  bool "RISC-V Zfh Extensions V1.0"
+  depends on !FPU_NONE
+  default y
+
 config RVV
   depends on !FPU_NONE
   bool "RISC-V Vector Extension v1.0"

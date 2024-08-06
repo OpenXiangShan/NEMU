@@ -82,15 +82,16 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_MAX: *dest = f16_max(fsrc1, fsrc2).v; break;
 
       case FPCALL_SQRT: *dest = f16_sqrt(fsrc1).v; break;
+      case FPCALL_MADD: *dest = f16_mulAdd(fsrc1, fsrc2, rtlToF16(*dest)).v; break;
 
       case FPCALL_LE: *dest = f16_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f16_lt(fsrc1, fsrc2); break;
       case FPCALL_EQ: *dest = f16_eq(fsrc1, fsrc2); break;
 
-      case FPCALL_I32ToF: *dest = i32_to_f16 (*src1).v; break;
-      case FPCALL_U32ToF: *dest = ui32_to_f16(*src1).v; break;
-      case FPCALL_I64ToF: *dest = i64_to_f16 (*src1).v; break;
-      case FPCALL_U64ToF: *dest = ui64_to_f16(*src1).v; break;
+      case FPCALL_I32ToF: *dest = my_i32_to_f16 (*src1).v; break;
+      case FPCALL_U32ToF: *dest = my_ui32_to_f16(*src1).v; break;
+      case FPCALL_I64ToF: *dest = my_i64_to_f16 (*src1).v; break;
+      case FPCALL_U64ToF: *dest = my_ui64_to_f16(*src1).v; break;
 
       case FPCALL_FToI32: *dest = my_f16_to_i32 (fsrc1); break;
       case FPCALL_FToU32: *dest = my_f16_to_ui32(fsrc1); break;

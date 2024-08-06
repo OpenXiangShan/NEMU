@@ -55,8 +55,8 @@ def_EHelper(fsqrth) {
 }
 def_EHelper(fmaddh) {
   rtl_mv(s, s0, &fpreg_l(s->isa.instr.fp.funct5)); // rs3
-  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W32));
-  rtl_fsr(s, ddest, s0, FPCALL_W32);
+  rtl_hostcall(s, HOSTCALL_FP, s0, dsrc1, dsrc2, FPCALL_CMD(FPCALL_MADD, FPCALL_W16));
+  rtl_fsr(s, ddest, s0, FPCALL_W16);
 }
 
 def_EHelper(fmsubh) {
@@ -125,10 +125,12 @@ def_EHelper(fcvt_wu_h) {
 
 def_EHelper(fcvt_l_h) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI64, FPCALL_W16));
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 def_EHelper(fcvt_lu_h) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU64, FPCALL_W16));
+  rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
 
 
