@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     name: nemu - Basics for XiangShan
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -71,7 +71,7 @@ jobs:
     timeout-minutes: 10
     name: nemu - Basics for NutShell
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -97,7 +97,7 @@ jobs:
     name: NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -109,7 +109,7 @@ jobs:
           make riscv64-xs-diff-spike-agnostic_defconfig
           make -j
           set -x
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 2000000 > crash.log  || exit_code=$?
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 2000000 > crash.log  || exit_code=$?
           if [ ${exit_code} -eq 0 ]; then echo "Difftest is broken, it should report error!" exit 1; fi
           match=$(grep "wrong.*=.*ffff" crash.log -c)
           if [ ${match} -eq 0 ]; then echo "Difftest is broken, it should report at least one agnostic related difference!" exit 1; fi
@@ -122,7 +122,7 @@ jobs:
     name: nemu - H-extension
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -149,10 +149,10 @@ jobs:
       - name: Run Xvisor with DiffTest
         run: |
           git submodule update --init ready-to-run
-          make riscv64-rvh-diff-spike_defconfig
+          make riscv64-xs-diff-spike_defconfig
           echo "#define CONFIG_DETERMINISTIC 1" >> ./include/generated/autoconf.h
           make -j
-          ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-GCBVH-ref-so $TEST_HOME/xvisor
+          ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-so $TEST_HOME/xvisor
           make clean-all
       # - name: Run KVM with DiffTest
       #   run: |
@@ -167,7 +167,7 @@ jobs:
     name: nemu - V-extension
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -182,19 +182,19 @@ jobs:
         run: |
           make riscv64-xs-diff-spike_defconfig
           make -j
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so --restore $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
           make clean-all
       - name: Run OpenSBI+Linux+Vectorized_h264 with Spike DiffTest
         run: |
           make riscv64-xs-diff-spike_defconfig
           make -j
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-GCBVH-ref-so $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
+          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
           make clean-all
 
   compilation-test:
@@ -204,7 +204,7 @@ jobs:
     timeout-minutes: 60
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup env
       run: |
         echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
@@ -213,3 +213,21 @@ jobs:
       id: list_configs
       run: |
         bash ./scripts/compilation-test.sh
+
+  compile-difftest-so:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    name: Compile difftest-so
+    timeout-minutes: 10
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: compile in CentOS 7 docker
+      run: |
+        bash ./scripts/generate_so_from_docker.sh
+    - name: archive difftest-so artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: difftest-so
+        path: |
+          artifact

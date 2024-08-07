@@ -71,6 +71,9 @@ void isa_reg_display() {
   printf("mtopei: " FMT_WORD " stopei: " FMT_WORD "\n",
       mtopei->val, stopei->val);
 #endif // CONFIG_RV_IMSIC
+#ifndef CONFIG_FPU_NONE
+  printf("fcsr: " FMT_WORD "\n", cpu.fcsr);
+#endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVH
   printf("mtval2: " FMT_WORD " mtinst: " FMT_WORD " hstatus: " FMT_WORD " hideleg: " FMT_WORD "\n",
       mtval2->val, mtinst->val, hstatus->val, hideleg->val);

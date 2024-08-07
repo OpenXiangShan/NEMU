@@ -95,6 +95,9 @@ void csr_prepare() {
   cpu.tinfo    = tinfo->val;
   cpu.tcontrol = tcontrol->val;
 #endif // CONFIG_RV_SDTRIG
+#ifndef CONFIG_FPU_NONE
+  cpu.fcsr     = fcsr->val;
+#endif // CONFIG_FPU_NONE
 }
 
 void csr_writeback() {
@@ -155,6 +158,9 @@ void csr_writeback() {
   tinfo->val    = cpu.tinfo;
   tcontrol->val = cpu.tcontrol;
 #endif // CONFIG_RV_SDTRIG
+#ifndef CONFIG_FPU_NONE
+  fcsr->val     = cpu.fcsr;
+#endif // CONFIG_FPU_NONE
 }
 #ifdef CONFIG_LIGHTQS
 extern uint64_t stable_log_begin, spec_log_begin;

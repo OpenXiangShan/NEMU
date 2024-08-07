@@ -7,6 +7,7 @@
 !*.cpp
 !*.lds
 !.gitignore
+!Dockerfile
 !README.md
 !Kconfig
 !.github/workflows/ci.yml

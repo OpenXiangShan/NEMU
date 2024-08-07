@@ -336,7 +336,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
 }
 
 void vstx(int mode, Decode *s, int mmu_mode) {
-  index_vload_check(mode, s);
+  index_vstore_check(mode, s);
   if(check_vstart_ignore(s)) return;
   uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;

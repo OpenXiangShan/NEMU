@@ -117,7 +117,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
 #ifdef CONFIG_RVV
   if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
 #else
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+  if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
 #endif
     Logm("Checking mmu when MMU_DYN");
     mmu_mode = isa_mmu_check(addr, len, type);
@@ -155,7 +155,7 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
 #ifdef CONFIG_RVV
   if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && (s->v_is_vx == 0)))) {
 #else
-  if (unlikely(mmu_mode == MMU_DYNAMIC)) {
+  if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
 #endif
     mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   }

@@ -61,6 +61,23 @@ enum {
 
 #define INTR_BIT (1ULL << 63)
 
+#define MIP_SSIP   (1ULL << IRQ_SSIP)
+#define MIP_VSSIP  (1ULL << IRQ_VSSIP)
+#define MIP_MSIP   (1ULL << IRQ_MSIP)
+#define MIP_STIP   (1ULL << IRQ_STIP)
+#define MIP_VSTIP  (1ULL << IRQ_VSTIP)
+#define MIP_MTIP   (1ULL << IRQ_MTIP)
+#define MIP_SEIP   (1ULL << IRQ_SEIP)
+#define MIP_VSEIP  (1ULL << IRQ_VSEIP)
+#define MIP_MEIP   (1ULL << IRQ_MEIP)
+#define MIP_SGEIP  (1ULL << IRQ_SGEI)
+#define MIP_LCOFIP (1ULL << IRQ_LCOFI)
+
+#define VSI_MASK   (MIP_VSSIP | MIP_VSTIP | MIP_VSEIP)
+#define HSI_MASK   (VSI_MASK | MIP_SGEIP)
+#define SI_MASK    (MIP_SSIP | MIP_STIP | MIP_SEIP)
+#define LCI_MASK   (~0x1FFFULL)
+
 // now NEMU does not support EX_IAM,
 // so it may ok to use EX_IAM to indicate a successful memory access
 #define MEM_OK 0

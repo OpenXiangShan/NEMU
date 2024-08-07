@@ -524,13 +524,33 @@ typedef enum ExtContextStatus {
   EXT_CONTEXT_DIRTY,
 } ExtContextStatus;
 
-CSR_STRUCT_START(mtvec)
-CSR_STRUCT_END(mtvec)
+CSR_STRUCT_START(tvec)
+  uint64_t mode  : 2;
+  uint64_t base  :62;
+CSR_STRUCT_END(tvec)
+
+typedef tvec_t mtvec_t;
 
 CSR_STRUCT_START(medeleg)
 CSR_STRUCT_END(medeleg)
 
 CSR_STRUCT_START(mideleg)
+  uint64_t usi  : 1;
+  uint64_t ssi  : 1;
+  uint64_t vssi : 1;
+  uint64_t msi  : 1;
+  uint64_t uti  : 1;
+  uint64_t sti  : 1;
+  uint64_t vsti : 1;
+  uint64_t mti  : 1;
+  uint64_t uei  : 1;
+  uint64_t sei  : 1;
+  uint64_t vsei : 1;
+  uint64_t mei  : 1;
+  uint64_t sgei : 1;
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofi : 1;
+#endif
 CSR_STRUCT_END(mideleg)
 
 CSR_STRUCT_START(mip)
@@ -563,6 +583,9 @@ CSR_STRUCT_START(mie)
   uint64_t vseie: 1;
   uint64_t meie : 1;
   uint64_t sgeie: 1;
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofie : 1;
+#endif
 CSR_STRUCT_END(mie)
 
 CSR_STRUCT_START(mcycle)
@@ -779,6 +802,10 @@ CSR_STRUCT_START(mvien)
   uint64_t ssie : 1; // [1]
   uint64_t pad1 : 7; // [8:2]
   uint64_t seie : 1; // [9]
+  uint64_t pad2 : 3; // [12:10]
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofie : 1; // [13]
+#endif
 CSR_STRUCT_END(mvien)
 
 CSR_STRUCT_START(mvip)
@@ -804,8 +831,7 @@ CSR_STRUCT_START(sstatus)
   uint64_t pad2: 4;
 CSR_STRUCT_END(sstatus)
 
-CSR_STRUCT_START(stvec)
-CSR_STRUCT_END(stvec)
+typedef tvec_t stvec_t;
 
 CSR_STRUCT_START(sip)
   uint64_t usip : 1;
@@ -828,7 +854,10 @@ CSR_STRUCT_START(sie)
   uint64_t pad1 : 2;
   uint64_t ueie : 1;
   uint64_t seie : 1;
-  uint64_t pad2 : 2;
+  uint64_t pad2 : 3;
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofie : 1;
+#endif
 CSR_STRUCT_END(sie)
 
 CSR_STRUCT_START(scounteren)
@@ -925,6 +954,22 @@ CSR_STRUCT_START(hedeleg)
 CSR_STRUCT_END(hedeleg)
 
 CSR_STRUCT_START(hideleg)
+  uint64_t usi  : 1;
+  uint64_t ssi  : 1;
+  uint64_t vssi : 1;
+  uint64_t msi  : 1;
+  uint64_t uti  : 1;
+  uint64_t sti  : 1;
+  uint64_t vsti : 1;
+  uint64_t mti  : 1;
+  uint64_t uei  : 1;
+  uint64_t sei  : 1;
+  uint64_t vsei : 1;
+  uint64_t mei  : 1;
+  uint64_t sgei : 1;
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofi : 1;
+#endif
 CSR_STRUCT_END(hideleg)
 
 CSR_STRUCT_START(hvip)
@@ -1047,12 +1092,13 @@ CSR_STRUCT_START(vsie)
   uint64_t stie : 1;
   uint64_t pad2 : 3;
   uint64_t seie : 1;
+  uint64_t pad3 : 3;
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofie : 1;
+#endif
 CSR_STRUCT_END(vsie)
 
-CSR_STRUCT_START(vstvec)
-  uint64_t mode  : 2;
-  uint64_t base  :62;
-CSR_STRUCT_END(vstvec)
+typedef tvec_t vstvec_t;
 
 CSR_STRUCT_START(vsscratch)
 CSR_STRUCT_END(vsscratch)
@@ -1111,6 +1157,10 @@ CSR_STRUCT_END(vsatp)
 /** Hypervisor and VS AIA CSRs **/
 #ifdef CONFIG_RV_IMSIC
 CSR_STRUCT_START(hvien)
+  uint64_t pad    : 13;
+#ifdef CONFIG_RV_SSCOFPMF
+  uint64_t lcofie : 1;
+#endif
 CSR_STRUCT_END(hvien)
 
 CSR_STRUCT_START(hvictl)

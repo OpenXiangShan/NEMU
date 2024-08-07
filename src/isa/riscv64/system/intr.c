@@ -59,13 +59,25 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   Logti("raise intr cause NO: %ld, epc: %lx\n", NO, epc);
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   switch (NO) {
+    // ecall and ebreak are handled normally
 #ifdef CONFIG_RVH
-    case EX_VI:
+    // case EX_ECVS:
     case EX_IGPF:
     case EX_LGPF:
+    case EX_VI:
     case EX_SGPF:
 #endif
+    case EX_IAM:
+    case EX_IAF:
     case EX_II:
+    // case EX_BP:
+    case EX_LAM:
+    case EX_LAF:
+    case EX_SAM:
+    case EX_SAF:
+    // case EX_ECU:
+    // case EX_ECS:
+    // case EX_ECM:
     case EX_IPF:
     case EX_LPF:
     case EX_SPF: difftest_skip_dut(1, 0); break;
@@ -220,9 +232,16 @@ word_t isa_query_intr() {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
     IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
     IRQ_UEIP, IRQ_USIP, IRQ_UTIP,
-    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP, IRQ_SGEI
+    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP, IRQ_SGEI,
+#ifdef CONFIG_RV_SSCOFPMF
+    IRQ_LCOFI
+#endif
   };
+#ifdef CONFIG_RV_SSCOFPMF
+  intr_num = 14;
+#else 
   intr_num = 13;
+#endif
 #else
   const int priority [] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
