@@ -996,6 +996,7 @@ void permutaion_instr(int opcode, Decode *s) {
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
+  require_float();
   require_vector(true);
   if (dest_mask) {
     if (s->src_vmode == SRC_VV) {
@@ -1223,6 +1224,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
+  fp_set_dirty();
+  vp_set_dirty();
 }
 
 void mask_instr(int opcode, Decode *s) {
