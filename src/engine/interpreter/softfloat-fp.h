@@ -601,7 +601,7 @@ static inline void fp_set_rm(int rm) {
     case FPCALL_RM_RDN: softfloat_roundingMode = softfloat_round_min; break;
     case FPCALL_RM_RUP: softfloat_roundingMode = softfloat_round_max; break;
     case FPCALL_RM_RMM: softfloat_roundingMode = softfloat_round_near_maxMag; break;
-    default: assert(0);
+    default: softfloat_roundingMode = rm;
   }
 }
 
