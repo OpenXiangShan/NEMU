@@ -156,6 +156,8 @@ def_EHelper(vsr_mmu) {
 def_EHelper(vsse_mmu) {
   predecode_vls(s);
   require_vector(true);
+  s->src2.reg = s->isa.instr.fp.rs2;
+  rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   VST(MODE_STRIDED, MMU_TRANSLATE)
 }
 
