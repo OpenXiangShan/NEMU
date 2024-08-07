@@ -27,7 +27,7 @@ void fp_update_rm_cache(uint32_t rm) {
     case 2: nemu_rm_cache = FPCALL_RM_RDN; return;
     case 3: nemu_rm_cache = FPCALL_RM_RUP; return;
     case 4: nemu_rm_cache = FPCALL_RM_RMM; return;
-    default: assert(0);
+    default: nemu_rm_cache = rm;
   }
 }
 
@@ -53,7 +53,7 @@ uint32_t isa_fp_get_rm(Decode *s) {
     case 2: return FPCALL_RM_RDN;
     case 3: return FPCALL_RM_RUP;
     case 4: return FPCALL_RM_RMM;
-    default: save_globals(s); longjmp_exception(EX_II);
+    default: return rm;
   }
 }
 
@@ -76,6 +76,14 @@ void isa_fp_csr_check() {
   if(unlikely(mstatus->fs == 0)){
     longjmp_exception(EX_II);
     assert(0);
+  }
+#endif // CONFIG_FPU_NONE
+}
+
+void isa_fp_rm_check(uint32_t rm) {
+#ifndef CONFIG_FPU_NONE
+  if (rm > 4) {
+    longjmp_exception(EX_II);
   }
 #endif // CONFIG_FPU_NONE
 }

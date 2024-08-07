@@ -1015,6 +1015,8 @@ def_EHelper(vfslide1down) {
 def_EHelper(vfmvfs) {
   require_float();
   require_vector(true);
+  uint32_t rm = isa_fp_get_frm();
+  isa_fp_rm_check(rm);
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
@@ -1033,6 +1035,8 @@ def_EHelper(vfmvfs) {
 def_EHelper(vfmvsf) {
   require_float();
   require_vector(true);
+  uint32_t rm = isa_fp_get_frm();
+  isa_fp_rm_check(rm);
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
