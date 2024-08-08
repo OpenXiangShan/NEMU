@@ -17,4 +17,4 @@ include/config
 include/generated
 build
 .vscode
-
+.idea

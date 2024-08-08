@@ -85,16 +85,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #else
   switch (NO) {
 #ifdef CONFIG_RVH
-    case EX_VI:
-    case EX_IGPF:
-    case EX_LGPF:
-    case EX_SGPF:
+    case EX_VI: case EX_IGPF: case EX_LGPF: case EX_SGPF:
 #endif
-    case EX_II:
-    case EX_IPF:
-    case EX_LPF:
-    case EX_SPF: difftest_skip_dut(1, 2); break;
+    case EX_II: case EX_IPF: case EX_LPF: case EX_SPF:
+      difftest_skip_dut(1, 2); break;
   }
+  bool fetch_addr_insane = (NO == EX_IPF || NO == EX_IAF || NO == EX_IGPF) && INTR_TVAL_REG(NO) == 1UL << 63;
+  if (unlikely(fetch_addr_insane)) epc = 1UL << 63;
 #endif
   bool delegS = intr_deleg_S(NO);
 #ifdef CONFIG_RVH
@@ -273,7 +270,7 @@ word_t isa_query_intr() {
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
 word_t INTR_TVAL_SV39_SEXT(word_t vaddr) {
-  vaddr = vaddr & (vaddr_t)0x7FFFFFFFFF;
+  vaddr = vaddr & (vaddr_t)SV39_MASK;
   return SEXT(vaddr, 39); // USE SV39 VADDR
 }
 #endif

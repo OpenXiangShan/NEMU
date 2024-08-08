@@ -1401,6 +1401,10 @@ MAP(CSRS, CSRS_DECL)
   #define VSISELECT_MAX_MASK 0x1FF
 #endif // CONFIG_RV_IMSIC
 
+/** Virtual Memory Mask **/
+#define SV39_MASK 0x7FFFFFFFFFUL
+#define SV48_MASK 0xFFFFFFFFFFFFUL
+
 /**
  * Function declaration
 */

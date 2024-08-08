@@ -209,6 +209,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
     printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+    if (type == MEM_TYPE_IFETCH) vaddr = 1UL << 63;
     raise_read_access_fault(type, vaddr);
   }
   return 0;

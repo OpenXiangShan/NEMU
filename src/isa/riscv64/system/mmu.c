@@ -93,7 +93,6 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
       return false;
@@ -161,10 +160,10 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
   if (type == MEM_TYPE_IFETCH){
     if(intr_deleg_S(EX_IGPF)){
       stval->val = vaddr;
-      htval->val = gpaddr >> 2;
+      htval->val = (gpaddr >> 2) & SV39_MASK;
     }else{
       mtval->val = vaddr;
-      mtval2->val = gpaddr >> 2;
+      mtval2->val = (gpaddr >> 2) & SV39_MASK;
     }
     longjmp_exception(EX_IGPF);
   }else if (type == MEM_TYPE_READ){
@@ -199,7 +198,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
     int level;
     word_t p_pte;
     PTE pte;
-    for (level = PTW_LEVEL - 1; level >=0;){
+    for (level = PTW_LEVEL - 1; level >= 0;){
       p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
       pte.val	= paddr_read(p_pte, PTE_SIZE,
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
@@ -279,7 +278,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if(virt){
-    if(vsatp_mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
+    if(vsatp_mode == 0) {
+      paddr_t gpaddr = vaddr;
+      bool inst_gpaddr_insane = type == MEM_TYPE_IFETCH &&
+                                hgatp->mode == 8 &&
+                                ((gpaddr >> 2) & SV39_MASK) != (gpaddr >> 2);
+      if (unlikely(inst_gpaddr_insane)) vaddr = 1UL << 63;
+      return gpa_stage(gpaddr, vaddr, type) & ~PAGE_MASK;
+    }
     pg_base = PGBASE(vsatp_ppn);
   }
 #endif
@@ -288,7 +294,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   int level;
   int64_t vaddr39 = vaddr << (64 - 39);
   vaddr39 >>= (64 - 39);
-  if ((uint64_t)vaddr39 != vaddr) goto bad;
+  if (unlikely((uint64_t)vaddr39 != vaddr)) {
+    if (type == MEM_TYPE_IFETCH) vaddr = 1UL << 63;
+    goto bad;
+  }
   for (level = PTW_LEVEL - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
@@ -498,22 +507,22 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #ifdef CONFIG_RVH
       if(hld_st || gpf){
         if(intr_deleg_S(EX_IGPF)){
-          stval->val = vaddr;
-          htval->val = vaddr >> 2;
+          stval->val = 1UL << 63;
+          htval->val = (vaddr >> 2) & SV39_MASK;
         }else{
-          mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
+          mtval->val = 1UL << 63;
+          mtval2->val = (vaddr >> 2) & SV39_MASK;
         }
         longjmp_exception(EX_IGPF);
       }else if(cpu.v){
         if(intr_deleg_S(EX_IPF)){
-          vstval->val = vaddr;
+          vstval->val = 1UL << 63;
         }else{
-          mtval->val = vaddr;
+          mtval->val = 1UL << 63;
         }
         longjmp_exception(EX_IPF);
       }else{
-        INTR_TVAL_REG(EX_IPF) = vaddr;
+        INTR_TVAL_REG(EX_IPF) = 1UL << 63;
         longjmp_exception(EX_IPF);
       }
 #else
