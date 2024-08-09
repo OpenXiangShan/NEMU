@@ -23,11 +23,16 @@
 #include "trigger.h"
 
 #define FBOX_MASK 0xFFFFFFFF00000000ull
+#define HFBOX_MASK 0xFFFFFFFFFFFF0000ull
 // The bit pattern for a default generated 32-bit floating-point NaN
 #define defaultNaNF32UI 0x7FC00000
 
 static inline def_rtl(fbox, rtlreg_t *dest, rtlreg_t *src) {
   rtl_ori(s, dest, src, FBOX_MASK);
+}
+
+static inline def_rtl(hfbox, rtlreg_t *dest, rtlreg_t *src) {
+  rtl_ori(s, dest, src, HFBOX_MASK);
 }
 
 static inline def_rtl(funbox, rtlreg_t *dest, rtlreg_t *src) {
@@ -39,7 +44,8 @@ static inline def_rtl(funbox, rtlreg_t *dest, rtlreg_t *src) {
 }
 
 static inline def_rtl(fsr, rtlreg_t *fdest, rtlreg_t *src, int width) {
-  if (width == FPCALL_W32) rtl_fbox(s, fdest, src);
+  if (width == FPCALL_W32 ) rtl_fbox(s, fdest, src);
+  else if(width == FPCALL_W16 ) rtl_hfbox(s, fdest, src);
   else if (width == FPCALL_W64) rtl_mv(s, fdest, src);
   else assert(0);
   void fp_set_dirty();

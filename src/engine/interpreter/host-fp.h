@@ -20,6 +20,23 @@
 
 #define defaultNaNF32UI 0x7FC00000
 
+typedef union { uint16_t v; float16_t  f; } float16_t;
+static inline float16_t float16(float16_t f) { float16_t r = { .f = f }; return r; }
+
+static inline float16_t f16_add(float16_t a, float16_t b) { return float16(a.f + b.f); }
+static inline float16_t f16_sub(float16_t a, float16_t b) { return float16(a.f - b.f); }
+static inline float16_t f16_mul(float16_t a, float16_t b) { return float16(a.f * b.f); }
+static inline float16_t f16_div(float16_t a, float16_t b) { return float16(a.f / b.f); }
+static inline float16_t f16_sqrt(float16_t a) { return float16(f16_sqrt(a.f)); }
+static inline float16_t f16_mulAdd(float16_t a, float16_t b,
+    float16_t c) { return float16(f16_mulAdd(a.f, b.f, c.f)); }
+static inline bool f16_le(float16_t a, float16_t b) { return a.f <= b.f; }
+static inline bool f16_lt(float16_t a, float16_t b) { return a.f <  b.f; }
+static inline bool f16_eq(float16_t a, float16_t b) { return a.f == b.f; }
+static inline float16_t f16_min(float16_t a, float16_t b) { return float16(a.f < b.f ? a.f : b.f); }
+static inline float16_t f16_max(float16_t a, float16_t b) { return float16(a.f > b.f ? a.f : b.f); }
+
+
 typedef union { uint32_t v; float  f; } float32_t;
 static inline float32_t float32(float f) { float32_t r = { .f = f }; return r; }
 
