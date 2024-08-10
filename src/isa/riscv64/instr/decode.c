@@ -104,6 +104,9 @@ int isa_fetch_decode(Decode *s) {
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
     // this is an RVC instruction
+    extern void trace_write_inst(uint32_t inst);
+    trace_write_inst(s->isa.instr.val);
+
     idx = table_rvc(s);
   } else {
     // this is a 4-byte instruction, should fetch the MSB part
@@ -112,6 +115,10 @@ int isa_fetch_decode(Decode *s) {
     // Refer to `mtval` in the privileged manual for more details.
     uint32_t hi = instr_fetch(&s->snpc, 2);
     s->isa.instr.val |= (hi << 16);
+
+    extern void trace_write_inst(uint32_t inst);
+    trace_write_inst(s->isa.instr.val);
+
     idx = table_main(s);
   }
 

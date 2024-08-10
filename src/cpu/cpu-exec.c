@@ -551,6 +551,7 @@ static int execute(int n) {
     s.EHelper(&s);
 
     extern void trace_inst_over();
+    // printf("%s:%d\n", __FILE__, __LINE__); fflush(stdout);
     trace_inst_over();
 
     g_nr_guest_instr++;
@@ -598,8 +599,6 @@ void fetch_decode(Decode *s, vaddr_t pc) {
                  log_asmbuf));
   s->EHelper = g_exec_table[idx];
 
-  extern void trace_write_inst(uint32_t inst);
-  trace_write_inst(s->isa.instr.val);
 }
 
 #ifdef CONFIG_PERF_OPT
@@ -662,12 +661,17 @@ void cpu_exec(uint64_t n) {
 #endif // LIGHTQS
 #endif // CONFIG_SHARE
 
+    extern void trace_inst_over();
+    extern void trace_write_exception(uint8_t NO, uint64_t target);
+    extern void trace_write_interrupt(uint8_t NO, uint64_t target);
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
-      // TODO: Trace the exception
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
+      trace_write_exception(g_ex_cause, cpu.pc);
+      trace_inst_over();
+
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       IFDEF(CONFIG_SHARE, break);
     } else {
@@ -676,6 +680,9 @@ void cpu_exec(uint64_t n) {
         Loge("NEMU raise intr");
       // TODO: Trace the intr
         cpu.pc = raise_intr(intr, cpu.pc);
+        trace_write_interrupt(intr, cpu.pc);
+        trace_inst_over();
+
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
         IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }

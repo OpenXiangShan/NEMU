@@ -18,13 +18,33 @@
 
 #include <fstream>
 #include <deque>
+#include <string>
 #include "trace_format.h"
+
+// struct {
+//   bool valid;
+//   bool pc_va; // get pc va
+//   bool pc_pa; // get pc pa
+//   bool fetched; // get instruction code
+//   bool decoded; // decoded
+//   bool branched; // get the branch result
+//   // bool executed; // arthimetic/float/branch executed. not record.
+//   bool memory_va; // get memory va
+//   bool memory_pa; // get memory pa
+//   bool memory_accessed; // memory access
+//   bool over; // instruction over
+// } InstrStatus;
 
 class TraceWriter {
   std::ofstream *trace_stream;
-  Instruction inst;
-  std::deque<Instruction> inst_list;
+
+  uint64_t instCounter = 0;
   bool inst_valid = false;
+  Instruction inst;
+  uint64_t tmp_priv_target = 0;
+
+  const uint32_t instListSize = 16;
+  std::deque<Instruction> inst_list;
 
 public:
   TraceWriter(std::string trace_file_name);
@@ -37,6 +57,8 @@ public:
   /* write an control */
   bool write(Control &ctrl);
 
+  // InstStatus instStatus;
+
   void inst_start();
   void write_pc(uint64_t pc);
   void write_inst(uint32_t instr);
@@ -44,8 +66,12 @@ public:
   void write_memory(uint64_t va, uint8_t size, uint8_t is_write);
   void write_mem_pa(uint64_t pa);
   void write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken);
+  void write_exception(uint8_t NO, uint64_t target);
+  void write_interrupt(uint8_t NO, uint64_t target);
   void inst_over();
   void inst_reset();
+
+  void error_dump();
 
   void traceOver();
 };

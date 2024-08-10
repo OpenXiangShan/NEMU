@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <stdio.h>
+#include <trace/spikedasm.h>
 
 // #define Log() printf("file: %s, line: %d\n", __FILE__, __LINE__); fflush(stdout)
 
@@ -48,9 +49,10 @@ enum BranchType {
   BRANCH_Return = 4
 };
 
-enum BrachTaken {
-  BRANCH_NotTaken = 0,
-  BRANCH_Taken = 1
+enum CFIResult {
+  Sequence = 0,
+  BRANCH_Taken = 1,
+  EXCEPTION = 2,
 };
 
 struct TraceInstruction {
@@ -60,22 +62,32 @@ struct TraceInstruction {
   uint64_t memory_address_pa = 0;
   uint64_t target = 0;
   uint32_t instr = 0;
-  uint8_t memory_type = 0;
-  uint8_t memory_size = 0;
+
+  uint8_t memory_type:4; // lsb
+  uint8_t memory_size:4; // msb
+
   uint8_t branch_type = 0;
   uint8_t taken = 0;
+  uint8_t exception = 0;
   // uint8_t padding = 0xff;
 
   void dump() {
     // printf("Instr: TraceSize %ld memSize %02x PC 0x%016lx instr 0x%04x memAddr 0x%016lx\n", sizeof(TraceInstruction), memory_size, instr_pc, instr, memory_address);
-    printf("Instr: size %ld PC 0x%08lx|%08lx instr 0x%08x", sizeof(TraceInstruction), instr_pc_va, instr_pc_pa, instr);
+    printf("PC 0x%08lx|%08lx instr 0x%08x(%s)", instr_pc_va, instr_pc_pa, instr, spike_dasm(instr));
     if (memory_type != MEM_TYPE_None) {
       printf(" is_mem %d addr %08lx|%08lx", memory_type, memory_address_va, memory_address_pa);
     }
     if (branch_type != BRANCH_None) {
       printf(" is_branch %d taken %d target %08lx", branch_type, taken, target);
     }
+    if (exception != 0) {
+      printf(" excep %d target %08lx", exception, target);
+    }
     printf("\n");
+  }
+  void dumpWithID(uint64_t id) {
+    printf("[%08lx] ", id);
+    dump();
   }
 };
 

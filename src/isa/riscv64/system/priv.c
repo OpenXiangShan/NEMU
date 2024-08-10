@@ -992,7 +992,7 @@ static void aia_extension_permit_check(word_t *dest_access) {
  * Access fp CSRs raise EX_II
  *          1. when mstatus.FS is OFF in non Virt Mode
  *          2. when mstatus.FS or vsstatus.FS is OFF in Virt Mode
- * 
+ *
  * Vec CSRs: vstart, vxsat, vxrm, vcsr, vl, vtype, vlenb
  * Access Vec CSRs raise EX_II
  *          1. when mstatus.VS is OFF in non Virt Mode

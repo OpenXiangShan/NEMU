@@ -124,6 +124,9 @@ static inline int parse_args(int argc, char *argv[]) {
     // small log file
     {"small-log"          , required_argument, NULL, 8},
 
+    // trace rtl
+    {"tracefile"          , required_argument, NULL, 15},
+
     {0          , 0                , NULL,  0 },
   };
   int o;
@@ -178,7 +181,7 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'M':
           mem_dump_file = optarg;
           break;
-      case 'A': 
+      case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
           memory_region_record_file = optarg;
@@ -243,6 +246,11 @@ static inline int parse_args(int argc, char *argv[]) {
         break;
       case 14: sscanf(optarg, "%lu", &warmup_interval); break;
 
+      case 15:
+        extern void set_trace_writer_file(char *name);
+        set_trace_writer_file(optarg);
+        break;
+
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
@@ -276,6 +284,7 @@ static inline int parse_args(int argc, char *argv[]) {
 //        printf("\t--cpt-id                checkpoint id\n");
         printf("\t-M,--dump-mem=DUMP_FILE dump memory into FILE\n");
         printf("\t-R,--dump-reg=DUMP_FILE dump register value into FILE\n");
+        printf("\t--tracefile=FILE, generate trace to FILE for tracertl\n");
         printf("\n");
         exit(0);
     }
@@ -292,6 +301,9 @@ void init_monitor(int argc, char *argv[]) {
 #else
   parse_args(argc, argv);
 #endif
+
+  extern void init_trace_writer();
+  init_trace_writer();
 
   if (warmup_interval == 0) {
     warmup_interval = checkpoint_interval;

@@ -20,9 +20,71 @@
 #include <map>
 #include <iostream>
 #include <trace/trace_writer.h>
+#include <boost/stacktrace.hpp>
 
-// #define TraceLog(...) printf(__VA_ARGS__); fflush(stdout)
+// #define VERBOSE
+#define LogBuffer
+#define MORECHECK
+
+#ifdef LogBuffer
+
+#define TraceLogEntryNum 16
+#define TraceLogEntrySize 256
+char trace_log_buf[TraceLogEntryNum][TraceLogEntrySize];
+uint8_t trace_log_ptr = 0;
+
+uint8_t trace_log_ptr_pop() {
+  return (trace_log_ptr ++) % TraceLogEntrySize;
+}
+// uint8_t trace_log_ptr_get() {
+//   return trace_log_ptr % TraceLogEntrySize;
+// }
+#endif
+
+#ifdef LogBuffer
+#define WHEREAMI snprintf(trace_log_buf[trace_log_ptr_pop()], TraceLogEntrySize, "FromBuf:%s:%d\n", __FILE__, __LINE__);
+#else
+#define WHEREAMI printf("%s:%d\n", __FILE__, __LINE__); fflush(stdout);
+#endif
+
+#define WHEREAMIDirect printf("Direct:%s:%d\n", __FILE__, __LINE__); fflush(stdout);
+
+#ifdef VERBOSE
+#define TraceSimpleLog WHEREAMI
+
+#ifdef LogBuffer
+#define TraceLog(...) snprintf(trace_log_buf[trace_log_ptr_pop()], TraceLogEntrySize, __VA_ARGS__);
+#else
+#define TraceLog(...) printf(__VA_ARGS__); fflush(stdout);
+#endif
+
+#else
+#define TraceSimpleLog
 #define TraceLog(...)
+#endif
+
+#ifdef MORECHECK
+#define TraceRequireInvalid                     \
+  do {                                       \
+    if (inst_valid) {                        \
+      error_dump();                          \
+      WHEREAMIDirect;                        \
+      exit(1);                               \
+    }                                        \
+  } while(0);
+
+#define TraceRequireValid                   \
+  do {                                       \
+    if (!inst_valid) {                       \
+      error_dump();                          \
+      WHEREAMIDirect;                        \
+      exit(1);                               \
+    }                                        \
+  } while(0);
+#else
+#define TraceRequireInvalid
+#define TraceRequireValid
+#endif
 
 TraceWriter::TraceWriter(std::string trace_file_name) {
   trace_stream = new std::ofstream(trace_file_name, std::ios_base::out);
@@ -34,149 +96,163 @@ TraceWriter::TraceWriter(std::string trace_file_name) {
 }
 
 bool TraceWriter::write(Instruction &inst) {
-  if (trace_stream == NULL) {
-    throw std::runtime_error("[TraceWriter.write] empty trace_stream.");
-    return false;
-  }
-
+  TraceSimpleLog;
+  TraceRequireValid;
   trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
   return true;
 }
 
 bool TraceWriter::write(Control &ctrl) {
-  if (trace_stream == NULL) {
-    throw std::runtime_error("[TraceWriter.write] empty trace_stream.");
-    return false;
-  }
-
-  TraceLog("TraceWriter::write\n");
+  TraceSimpleLog;
+  TraceRequireValid;
   trace_stream->write(reinterpret_cast<char *> (&ctrl), sizeof(Control));
   return true;
 }
 
 void TraceWriter::inst_start() {
-  if (trace_stream == NULL) {
-    throw std::runtime_error("[TraceWriter.inst_start] empty trace_stream.");
-    return;
-  }
-  if (inst_valid) {
-    throw std::runtime_error("[TraceWriter.inst_start] inst_valid already true.");
-    return;
-  }
-
-  TraceLog("TraceWriter::inst_start\n");
+  TraceSimpleLog;
+  TraceRequireInvalid;
   inst_valid = true;
   return;
 }
 
 void TraceWriter::inst_over() {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.inst_over] inst_valid already false.");
-    return;
-  }
+  TraceSimpleLog;
+  TraceRequireValid;
 
   trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
+  if (instListSize <= inst_list.size()) {
+    inst_list.pop_front();
+  }
   inst_list.push_back(inst);
 
-  TraceLog("TraceWriter::inst_over\n");
+  instCounter++;
+
   inst_valid = false;
   return;
 }
 
 void TraceWriter::inst_reset() {
-  TraceLog("TraceWriter::inst_reset\n");
+  TraceSimpleLog;
+  TraceRequireInvalid;
   memset(reinterpret_cast<void*>(&inst), 0, sizeof(Instruction));
 }
 
 void TraceWriter::write_pc(uint64_t pc) {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.write_pc] inst_valid false.");
-    return;
-  }
-  TraceLog("TraceWriter::write_pc\n");
+  TraceSimpleLog;
+  TraceRequireValid;
   inst.instr_pc_va = pc;
   return;
 }
 
-void TraceWriter::write_inst(uint32_t instr) {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.write_inst] inst_valid false.");
-    return;
-  }
+void TraceWriter::write_pc_pa(uint64_t pa) {
+  TraceSimpleLog;
+  TraceRequireValid;
 
-  TraceLog("TraceWriter::write_inst\n");
+  inst.instr_pc_pa = pa;
+  return;
+}
+
+void TraceWriter::write_inst(uint32_t instr) {
+  TraceSimpleLog;
+  TraceRequireValid;
   inst.instr = instr;
   return;
 }
 
 void TraceWriter::write_memory(uint64_t va, uint8_t size, uint8_t is_write) {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.write_mem] inst_valid false.");
-    return;
-  }
+  TraceSimpleLog;
+  TraceRequireValid;
+
   // 1, 2, 4, 8, manual log2
   uint8_t size_map[] = {0, 0, 1, 0, 2, 0, 0, 0, 3};
 
-  TraceLog("TraceWriter::write_memory\n");
   inst.memory_address_va = va;
   inst.memory_size = size_map[size];
   inst.memory_type = is_write ? MEM_TYPE_Store : MEM_TYPE_Load;
   return;
 }
 
+void TraceWriter::write_mem_pa(uint64_t pa) {
+  TraceSimpleLog;
+  TraceRequireValid;
+
+  inst.memory_address_pa = pa;
+  return;
+}
+
 void TraceWriter::write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken) {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.write_branch] inst_valid false.");
-    return;
-  }
+  TraceSimpleLog;
+  TraceRequireValid;
 
   if (inst.branch_type == BRANCH_None) {
-    TraceLog("TraceWriter::write_branch/jump target\n");
+    TraceSimpleLog;
     inst.target = target;
     inst.branch_type = branch_type;
     inst.taken = is_taken;
   } else {
-    TraceLog("TraceWriter::write_branch target(nested call rtl_j)\n");
+    TraceSimpleLog;
   }
   return;
 }
 
-void TraceWriter::write_pc_pa(uint64_t pa) {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.write_pc_pa] inst_valid false.");
-    return;
-  }
+void TraceWriter::write_exception(uint8_t NO, uint64_t target) {
+  TraceSimpleLog;
+  TraceRequireValid;
 
-  TraceLog("TraceWriter::write_pc_pa\n");
-  inst.instr_pc_pa = pa;
-  return;
+  inst.exception = NO;
+  inst.target = target;
 }
 
-void TraceWriter::write_mem_pa(uint64_t pa) {
-  if (!inst_valid) {
-    throw std::runtime_error("[TraceWriter.write_mem_pa] inst_valid false.");
-    return;
-  }
+void TraceWriter::write_interrupt(uint8_t NO, uint64_t target) {
+  TraceSimpleLog;
+  TraceRequireInvalid;
 
-  TraceLog("TraceWriter::write_mem_pa\n");
-  inst.memory_address_pa = pa;
-  return;
+  // NEMU's interrupt doest "rely" on a instruction. So we can not get the inst info.
+  // Make an interrupt a arbitrary jump
+  inst_reset();
+  inst_start();
+  inst.exception = 0x80 | NO;
+  inst.target = target;
 }
 
 
 void TraceWriter::traceOver() {
   if (trace_stream == NULL) {
+    error_dump();
     throw std::runtime_error("[TraceWriter.traceOver] empty trace_stream.");
     return;
   }
 
-  TraceLog("TraceWriter::traceOver\n");
-
   // for (auto it = inst_list.begin(); it != inst_list.end(); it++) {
   //   it->dump();
   // }
+  printf("Traced Inst Count: 0d%ld\n", instCounter);
 
   trace_stream->close();
+}
+
+void TraceWriter::error_dump() {
+  printf("Lastest not finished inst:\n");
+  inst.dumpWithID(instCounter);
+
+  printf("TraceWriter::error_dump, recent inst:\n");
+  uint64_t num = 0;
+  for (auto instIT : inst_list) {
+    uint64_t currID = instCounter - inst_list.size() + num++;
+    instIT.dumpWithID(currID);
+  }
+
+#if defined VERBOSE && defined LogBuffer
+  printf("Trace Write Trace:\n");
+  for (int i = 0; i < TraceLogEntryNum; i++) {
+    printf("%s", trace_log_buf[trace_log_ptr_pop()]);
+  }
+#endif
+
+  // printf("Call Stack Trace:\n");
+  // std::cout << boost::stacktrace::stacktrace();
+  // fflush(stdout);
 }
 
 std::map<uint64_t, uint64_t> pc_map_count;
@@ -199,9 +275,22 @@ void pcMapCountPrint() {
 }
 
 
-TraceWriter *trace_writer = new TraceWriter("Im-A-TraceName");
+char *trace_filename = NULL;
+TraceWriter *trace_writer = NULL;
 
 extern "C"  {
+
+void set_trace_writer_file(char *name) {
+  trace_filename = name;
+}
+
+void init_trace_writer() {
+  if (trace_filename == NULL) {
+    printf("TraceFile is NULL. please set --tracefile.\n");
+    exit(1);
+  }
+  trace_writer = new TraceWriter(trace_filename);
+}
 
 void trace_write_base(uint64_t pc) {
   trace_writer->inst_reset();
@@ -227,6 +316,14 @@ void trace_write_mem_pa(uint64_t pa) {
 
 void trace_write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken) {
   trace_writer->write_branch(target, branch_type, is_taken);
+}
+
+void trace_write_exception(uint8_t NO, uint64_t target) {
+  trace_writer->write_exception(NO, target);
+}
+
+void trace_write_interrupt(uint8_t NO, uint64_t target) {
+  trace_writer->write_interrupt(NO, target);
 }
 
 void trace_inst_over() {
