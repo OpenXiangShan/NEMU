@@ -17,6 +17,7 @@
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
+#include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
 #include <device/mmio.h>
 #include <stdlib.h>
@@ -168,12 +169,6 @@ void allocate_memory_with_mmap()
 
 void init_mem() {
   allocate_memory_with_mmap();
-#ifdef CONFIG_DIFFTEST_STORE_COMMIT
-  for (int i = 0; i < CONFIG_DIFFTEST_STORE_QUEUE_SIZE; i++) {
-    store_commit_queue[i].valid = 0;
-  }
-#endif
-
 #ifdef CONFIG_MEM_RANDOM
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
@@ -401,50 +396,43 @@ bool analysis_memory_isuse(uint64_t page) {
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
-static uint64_t head = 0, tail = 0;
 
 void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   // align with dut
-  static int overflow = 0;
   uint8_t inside_16bytes_bound = ((addr >> 4) & 1ULL) == (((addr + len - 1) >> 4) & 1ULL);
-  uint64_t split_num = inside_16bytes_bound ? 1 : 2;
   uint64_t st_mask = (len == 1) ? 0x1ULL : (len == 2) ? 0x3ULL : (len == 4) ? 0xfULL : (len == 8) ? 0xffULL : 0xdeadbeefULL;
   uint64_t st_data_mask = (len == 1) ? 0xffULL : (len == 2) ? 0xffffULL : (len == 4) ? 0xffffffffULL : (len == 8) ? 0xffffffffffffffffULL : 0xdeadbeefULL;
-  store_commit_t *low_addr_st = store_commit_queue + tail;
-  store_commit_t *high_addr_st = store_commit_queue + ((tail + (split_num - 1)) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE);
-
-  if (high_addr_st->valid && !overflow) { // store commit queue overflow
-    overflow = 1;
-    printf("[WARNING] difftest store queue overflow\n");
-  }
+  store_commit_t low_addr_st;
+  store_commit_t high_addr_st;
 
   if (inside_16bytes_bound) {
-    low_addr_st->valid = 1;
-    low_addr_st->addr = addr - (addr % 16ULL);
+    low_addr_st.addr = addr - (addr % 16ULL);
     if ((addr % 16ULL) > 8) {
-      low_addr_st->data = 0;
+      low_addr_st.data = 0;
     } else {
-      low_addr_st->data = (data & st_data_mask) << ((addr % 16ULL) << 3);
+      low_addr_st.data = (data & st_data_mask) << ((addr % 16ULL) << 3);
     }
-    low_addr_st->mask = (st_mask << (addr % 16ULL)) & 0xffULL;
+    low_addr_st.mask = (st_mask << (addr % 16ULL)) & 0xffULL;
+
+    store_queue_push(low_addr_st);
+
     // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
   } else {
-    low_addr_st->valid = 1;
-    low_addr_st->addr = addr - (addr % 8ULL);
-    low_addr_st->data = (data & (st_data_mask >> ((addr % len) << 3))) << ((8 - len + (addr % len)) << 3);
-    low_addr_st->mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
+    low_addr_st.addr = addr - (addr % 8ULL);
+    low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << ((8 - len + (addr % len)) << 3);
+    low_addr_st.mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
 
-    high_addr_st->valid = 1;
-    high_addr_st->addr = addr - (addr % 16ULL) + 16ULL;
-    high_addr_st->data = (data >> ((len - (addr % len)) << 3)) & (st_data_mask >> ((len - (addr % len)) << 3));
-    high_addr_st->mask = st_mask >> (len - (addr % len));
+    high_addr_st.addr = addr - (addr % 16ULL) + 16ULL;
+    high_addr_st.data = (data >> ((len - (addr % len)) << 3)) & (st_data_mask >> ((len - (addr % len)) << 3));
+    high_addr_st.mask = st_mask >> (len - (addr % len));
+
+    store_queue_push(low_addr_st);
+    store_queue_push(high_addr_st);
 
     // printf("[DEBUG] split low addr store addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
     // printf("[DEBUG] split high addr store addr: %lx, data: %lx, mask: %lx\n", high_addr_st->addr, high_addr_st->data, (uint64_t)(high_addr_st->mask));
   }
 
-  tail = (tail + split_num) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
 }
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
@@ -453,8 +441,6 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
     return;
   }
 #endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
-  static int overflow = 0;
-  store_commit_t *commit = store_commit_queue + tail;
 #ifdef CONFIG_AC_NONE
   uint8_t store_miss_align = (addr & (len - 1)) != 0;
   if (unlikely(store_miss_align)) {
@@ -464,29 +450,25 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
     }
   }
 #endif // CONFIG_AC_NONE
-  if (commit->valid && !overflow) { // store commit queue overflow
-    overflow = 1;
-    printf("[WARNING] difftest store queue overflow\n");
-  }
+ store_commit_t store_commit;
   uint64_t offset = addr % 8ULL;
-  commit->addr = addr - offset;
-  commit->valid = 1;
+  store_commit.addr = addr - offset;
   switch (len) {
     case 1:
-      commit->data = (data & 0xffULL) << (offset << 3);
-      commit->mask = 0x1 << offset;
+      store_commit.data = (data & 0xffULL) << (offset << 3);
+      store_commit.mask = 0x1 << offset;
       break;
     case 2:
-      commit->data = (data & 0xffffULL) << (offset << 3);
-      commit->mask = 0x3 << offset;
+      store_commit.data = (data & 0xffffULL) << (offset << 3);
+      store_commit.mask = 0x3 << offset;
       break;
     case 4:
-      commit->data = (data & 0xffffffffULL) << (offset << 3);
-      commit->mask = 0xf << offset;
+      store_commit.data = (data & 0xffffffffULL) << (offset << 3);
+      store_commit.mask = 0xf << offset;
       break;
     case 8:
-      commit->data = data;
-      commit->mask = 0xff;
+      store_commit.data = data;
+      store_commit.mask = 0xff;
       break;
     default:
 #ifdef CONFIG_AC_NONE
@@ -499,8 +481,8 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
           _data_mask = (_data_mask << 8) | 0xffUL;
           _mask = (_mask << 1) | 0x1UL;
         }
-        commit->data = (data & _data_mask) << (offset << 3);
-        commit->mask = _mask << offset;
+        store_commit.data = (data & _data_mask) << (offset << 3);
+        store_commit.mask = _mask << offset;
       } else {
         assert(0);
       }
@@ -508,42 +490,40 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
       assert(0);
 #endif // CONFIG_AC_NONE
   }
-  tail = (tail + 1) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
+  store_queue_push(store_commit);
 }
 
-store_commit_t *store_commit_queue_pop() {
-  store_commit_t *result = store_commit_queue + head;
-  if (!result->valid) {
-    return NULL;
+store_commit_t store_commit_queue_pop(int *flag) {
+  *flag = 1;
+  store_commit_t result;
+  if (store_queue_empty()) {
+    *flag = 0;
+    return result;
   }
-  result->valid = 0;
-  head = (head + 1) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
+  result = store_queue_fornt();
+  store_queue_pop();
   return result;
 }
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
-  *addr = *addr - (*addr % 0x8ULL);
-  store_commit_t *commit = store_commit_queue_pop();
   int result = 0;
-  if (!commit) {
+  if (store_queue_empty()) {
     printf("NEMU does not commit any store instruction.\n");
     result = 1;
   }
-  else if (*addr != commit->addr || *data != commit->data || *mask != commit->mask) {
-    *addr = commit->addr;
-    *data = commit->data;
-    *mask = commit->mask;
-    result = 1;
+  else {
+    store_commit_t commit = store_queue_fornt();
+    store_queue_pop();
+    if (*addr != commit.addr || *data != commit.data || *mask != commit.mask) {
+      *addr = commit.addr;
+      *data = commit.data;
+      *mask = commit.mask;
+      result = 1;
+    }
   }
   return result;
 }
 
-inline uint64_t store_read_step() {
-  if (tail >= head)
-    return tail - head;
-  else
-    return (CONFIG_DIFFTEST_STORE_QUEUE_SIZE - head + tail);
-}
 #endif
 
 char *mem_dump_file = NULL;

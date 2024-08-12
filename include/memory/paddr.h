@@ -78,21 +78,26 @@ void * get_sparsemm();
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
-#ifndef CONFIG_DIFFTEST_STORE_QUEUE_SIZE
-#define CONFIG_DIFFTEST_STORE_QUEUE_SIZE 64
-#endif
 typedef struct {
     uint64_t addr;
     uint64_t data;
     uint8_t  mask;
-    uint8_t  valid;
 } store_commit_t;
-extern store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 
+/**
+ * In the implementation, CPP queue is used for store commit maintenance.
+ * */
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store);
-store_commit_t *store_commit_queue_pop();
+
+/**
+ * Check whether there are valid entries.
+ * If there are valid entries, the queue exits normally and returns.
+ * The return result is not guaranteed when there are no valid entries.
+ * @param flag Returns a result valid flag, where 1 is valid.
+ * @return store_commit_t struct
+ */
+store_commit_t store_commit_queue_pop(int *flag);
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
-uint64_t store_read_step();
 #endif
 
 //#define CONFIG_MEMORY_REGION_ANALYSIS

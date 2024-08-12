@@ -83,8 +83,11 @@ typedef struct Decode {
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
 
-
+#if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
+#define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f) INSTR_TERNARY_CSR(f)
+#else
 #define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f)
+#endif
 
 #define def_EXEC_ID(name) \
   enum { concat(EXEC_ID_, name) = __COUNTER__ };
@@ -102,12 +105,24 @@ typedef struct Decode {
 #define def_THelper_unary(name)   def_THelper_arity(name, 1)
 #define def_THelper_binary(name)  def_THelper_arity(name, 2)
 #define def_THelper_ternary(name) def_THelper_arity(name, 3)
+#if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
+#define def_THelper_ternary_csr(name)   def_THelper_arity(name, concat(3, _csr))
+#endif
 
+#if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
+#define def_all_THelper() \
+  MAP(INSTR_NULLARY,      def_THelper_nullary) \
+  MAP(INSTR_UNARY,        def_THelper_unary  ) \
+  MAP(INSTR_BINARY,       def_THelper_binary ) \
+  MAP(INSTR_TERNARY,      def_THelper_ternary) \
+  MAP(INSTR_TERNARY_CSR,  def_THelper_ternary_csr) 
+#else
 #define def_all_THelper() \
   MAP(INSTR_NULLARY, def_THelper_nullary) \
   MAP(INSTR_UNARY,   def_THelper_unary  ) \
   MAP(INSTR_BINARY,  def_THelper_binary ) \
   MAP(INSTR_TERNARY, def_THelper_ternary)
+#endif
 
 
 #define def_DHelper(name) void concat(decode_, name) (Decode *s, int width)
@@ -178,9 +193,14 @@ finish:
   print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
 
 #define print_asm_template2(instr) \
-  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_src1->str, id_dest->str)
+  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_dest->str, id_src1->str)
 
 #define print_asm_template3(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_src1->str, id_src2->str, id_dest->str)
+  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_dest->str, id_src1->str, id_src2->str)
+
+#if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
+#define print_asm_template3_csr(instr) \
+  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_dest->str, id_src2->str, id_src1->str)
+#endif
 
 #endif

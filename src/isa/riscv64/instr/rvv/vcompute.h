@@ -1013,6 +1013,7 @@ def_EHelper(vfslide1down) {
 }
 
 def_EHelper(vfmvfs) {
+  require_float();
   require_vector(true);
   if (s->vm == 0) {
     longjmp_exception(EX_II);
@@ -1030,6 +1031,7 @@ def_EHelper(vfmvfs) {
 }
 
 def_EHelper(vfmvsf) {
+  require_float();
   require_vector(true);
   if (s->vm == 0) {
     longjmp_exception(EX_II);
@@ -1154,6 +1156,8 @@ def_EHelper(vfclass_v) {
 }
 
 def_EHelper(vfmerge) {
+  require_float();
+  require_vector(true);
   if (s->vm == 1) {
     // when vm is 1, it's a vfmv instruction
     if (id_src2->reg != 0) {

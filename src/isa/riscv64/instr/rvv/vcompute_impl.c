@@ -117,6 +117,17 @@ static inline void require_vector_vs() {
   }
 }
 
+void require_float() {
+  if (mstatus->fs == 0) {
+    longjmp_exception(EX_II);
+  }
+#ifdef CONFIG_RVH
+  if (cpu.v & ((vsstatus->val & (0x3UL << 13)) == 0)) {
+    longjmp_exception(EX_II);
+  }
+#endif
+}
+
 static inline bool is_overlapped(const int astart, int asize, const int bstart, int bsize) {
   asize = asize == 0 ? 1 : asize;
   bsize = bsize == 0 ? 1 : bsize;
@@ -985,6 +996,7 @@ void permutaion_instr(int opcode, Decode *s) {
 }
 
 void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
+  require_float();
   require_vector(true);
   if (dest_mask) {
     if (s->src_vmode == SRC_VV) {
@@ -1212,6 +1224,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
+  fp_set_dirty();
+  vp_set_dirty();
 }
 
 void mask_instr(int opcode, Decode *s) {

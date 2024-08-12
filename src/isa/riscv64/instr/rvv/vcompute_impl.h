@@ -76,6 +76,7 @@ enum fp_wop_t {
   noCheck,
 };
 
+void fp_set_dirty();
 void vp_set_dirty();
 void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
 void permutaion_instr(int opcode, Decode *s);
@@ -113,6 +114,7 @@ void float_reduction_computing(Decode *s);
 
 // vector illegal check, refer to the riscv-isa-sim
 void require_vector(bool is_require_vtype);
+void require_float();
 void require_vm(Decode *s);
 double compute_vflmul();
 void require_aligned(const unsigned val, const unsigned pos);
