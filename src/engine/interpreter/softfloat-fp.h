@@ -34,7 +34,6 @@
 #define fsgnj64(a, b, n, x) \
   (uint64_t) ((a.v & ~F64_SIGN) | ((((x) ? a.v : (n) ? F64_SIGN : 0) ^ b.v) & F64_SIGN))
 
-
 static inline float16_t rtlToF16(rtlreg_t r);
 static inline float32_t rtlToF32(rtlreg_t r);
 static inline float32_t rtlToVF32(rtlreg_t r);

@@ -15,7 +15,6 @@
 ***************************************************************************************/
 
 bool fp_enable();
-
 static int table_op_fp_d(Decode *s);
 static int table_fmadd_d_dispatch(Decode *s);
 #ifdef CONFIG_RV_ZFH
