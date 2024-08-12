@@ -99,9 +99,9 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   #endif
 }
 
-static inline void pmem_write(paddr_t addr, int len, word_t data) {
+static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-  store_commit_queue_push(addr, data, len);
+  store_commit_queue_push(addr, data, len, cross_page_store);
 #endif
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
@@ -109,7 +109,23 @@ static inline void pmem_write(paddr_t addr, int len, word_t data) {
   #ifdef CONFIG_USE_SPARSEMM
   sparse_mem_wwrite(sparse_mm, addr, len, data);
   #else
-  host_write(guest_to_host(addr), len, data);
+  switch (len) {
+    case 1: case 2: case 4:
+    IFDEF(CONFIG_ISA64, case 8:)
+      host_write(guest_to_host(addr), len, data); break;
+    // strange length, only valid from cross page write
+    case 3:
+    IFDEF(CONFIG_ISA64, case 5: case 6: case 7:)
+      if (cross_page_store) {
+        int i = 0;
+        for (; i < len; i++, addr++) {
+          host_write(guest_to_host(addr), 1, data & 0xffUL);
+          data >>= 8;
+        }
+        break;
+      }
+    IFDEF(CONFIG_RT_CHECK, default: assert(0));
+  }
   #endif
 }
 
@@ -182,13 +198,25 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 
 /* Memory accessing interfaces */
 
+bool check_paddr(paddr_t addr, int len, int type, int mode) {
+  if (!isa_pmp_check_permission(addr, len, type, mode)) {
+    if (type == MEM_TYPE_WRITE) {
+      raise_access_fault(EX_SAF, addr);
+    }else {
+      Log("isa pmp check failed");
+      raise_read_access_fault(type, addr);
+    }
+    return false;
+  } else {
+    return true;
+  }
+}
+
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
-  if (!isa_pmp_check_permission(addr, len, type, mode)) {
-    Log("isa pmp check failed");
-    raise_read_access_fault(type, vaddr);
+  if (!check_paddr(addr, len, type, mode)) {
     return 0;
   }
 #ifndef CONFIG_SHARE
@@ -254,7 +282,7 @@ void pmem_record_restore(uint64_t restore_inst_cnt) {
   }
   for (int i = store_log_ptr - 1; i >= 0; i--) {
     if (store_log_buf[i].inst_cnt > restore_inst_cnt) {
-      pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data);
+      pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data, 0);
     } else {
       break;
     }
@@ -274,7 +302,7 @@ void pmem_record_store(paddr_t addr) {
 
 void pmem_record_restore() {
   for (int i = store_log_ptr - 1; i >= 0; i--) {
-    pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data);
+    pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data, 0);
   }
 }
 #endif // CONFIG_LIGHTQS
@@ -287,12 +315,14 @@ void pmem_record_reset() {
 #endif // CONFIG_STORE_LOG
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
-  if (!isa_pmp_check_permission(addr, len, MEM_TYPE_WRITE, mode)) {
-    raise_access_fault(EX_SAF, vaddr);
-    return ;
+  int cross_page_store = (mode & CROSS_PAGE_ST_FLAG) != 0;
+  // get mode's original value
+  mode = mode & ~CROSS_PAGE_ST_FLAG;
+  if (!check_paddr(addr, len, MEM_TYPE_WRITE, mode)) {
+    return;
   }
 #ifndef CONFIG_SHARE
-  if (likely(in_pmem(addr))) pmem_write(addr, len, data);
+  if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
   else {
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
     else raise_access_fault(EX_SAF, vaddr);
@@ -306,7 +336,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
       fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
         addr, data, len, mode);
     }
-    return pmem_write(addr, len, data);
+    return pmem_write(addr, len, data, cross_page_store);
   } else {
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
     else {
@@ -417,7 +447,7 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   tail = (tail + split_num) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
 }
 
-void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
+void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
     return;
@@ -428,8 +458,10 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
 #ifdef CONFIG_AC_NONE
   uint8_t store_miss_align = (addr & (len - 1)) != 0;
   if (unlikely(store_miss_align)) {
-    miss_align_store_commit_queue_push(addr, data, len);
-    return;
+    if (!cross_page_store) {
+      miss_align_store_commit_queue_push(addr, data, len);
+      return;
+    }
   }
 #endif // CONFIG_AC_NONE
   if (commit->valid && !overflow) { // store commit queue overflow
@@ -457,7 +489,24 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
       commit->mask = 0xff;
       break;
     default:
+#ifdef CONFIG_AC_NONE
+      // strange length, only valid from cross page write
+      if (cross_page_store) {
+        int i = 0;
+        uint64_t _data_mask = 0;
+        uint64_t _mask = 0;
+        for (; i < len; i++) {
+          _data_mask = (_data_mask << 8) | 0xffUL;
+          _mask = (_mask << 1) | 0x1UL;
+        }
+        commit->data = (data & _data_mask) << (offset << 3);
+        commit->mask = _mask << offset;
+      } else {
+        assert(0);
+      }
+#else
       assert(0);
+#endif // CONFIG_AC_NONE
   }
   tail = (tail + 1) % CONFIG_DIFFTEST_STORE_QUEUE_SIZE;
 }

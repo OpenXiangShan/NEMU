@@ -28,6 +28,10 @@ extern unsigned int PMEM_HARTID;
 #define CONFIG_PC_RESET_OFFSET 0
 #endif
 
+/* Used to indicate whether the write is non-aligned across pages write. Reuse this flag inside mode*/
+#define CROSS_PAGE_ST_SHIFT 12
+#define CROSS_PAGE_ST_FLAG  (1u << CROSS_PAGE_ST_SHIFT)
+
 #define RESET_VECTOR (CONFIG_MBASE + CONFIG_PC_RESET_OFFSET)
 
 void init_mem();
@@ -56,6 +60,7 @@ static inline bool in_pmem(paddr_t addr) {
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
+bool check_paddr(paddr_t addr, int len, int type, int mode);
 uint8_t *get_pmem();
 
 #if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
@@ -84,7 +89,7 @@ typedef struct {
 } store_commit_t;
 extern store_commit_t store_commit_queue[CONFIG_DIFFTEST_STORE_QUEUE_SIZE];
 
-void store_commit_queue_push(uint64_t addr, uint64_t data, int len);
+void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store);
 store_commit_t *store_commit_queue_pop();
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 uint64_t store_read_step();
