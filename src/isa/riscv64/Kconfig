@@ -23,12 +23,12 @@ config RV_ZICOND
 config RV_ZFH
   bool "RISC-V Zfh Extensions V1.0"
   depends on RV_ZFH_MIN
-  default y
+  default n
 
 config RV_ZFH_MIN
   bool "RISC-V Zfhmin Extensions V1.0"
   depends on !FPU_NONE
-  default y
+  default n
 
 config RVV
   depends on !FPU_NONE
