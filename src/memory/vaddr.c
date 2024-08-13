@@ -30,14 +30,14 @@
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
 
-static paddr_t vaddr_trans_and_check_exception(vaddr_t addr, int len, int type, bool* exp) {
-  paddr_t mmu_ret = isa_mmu_translate(addr & ~PAGE_MASK, len, type);
+static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
+  paddr_t mmu_ret = isa_mmu_translate(vaddr & ~PAGE_MASK, len, type);
   *exp = (mmu_ret & PAGE_MASK) != MEM_RET_OK;
-  paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
+  paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
   if (*exp) {
     return 0;
   }
-  *exp = !check_paddr(paddr, len, type, cpu.mode);
+  *exp = !check_paddr(paddr, len, type, cpu.mode, vaddr);
   return paddr;
 }
 

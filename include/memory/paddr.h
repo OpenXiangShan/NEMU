@@ -60,7 +60,7 @@ static inline bool in_pmem(paddr_t addr) {
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
-bool check_paddr(paddr_t addr, int len, int type, int mode);
+bool check_paddr(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
 uint8_t *get_pmem();
 
 #if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP

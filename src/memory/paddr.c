@@ -193,13 +193,13 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 
 /* Memory accessing interfaces */
 
-bool check_paddr(paddr_t addr, int len, int type, int mode) {
+bool check_paddr(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
     if (type == MEM_TYPE_WRITE) {
-      raise_access_fault(EX_SAF, addr);
+      raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pmp check failed");
-      raise_read_access_fault(type, addr);
+      raise_read_access_fault(type, vaddr);
     }
     return false;
   } else {
@@ -211,7 +211,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
-  if (!check_paddr(addr, len, type, mode)) {
+  if (!check_paddr(addr, len, type, mode, vaddr)) {
     return 0;
   }
 #ifndef CONFIG_SHARE
@@ -313,7 +313,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   int cross_page_store = (mode & CROSS_PAGE_ST_FLAG) != 0;
   // get mode's original value
   mode = mode & ~CROSS_PAGE_ST_FLAG;
-  if (!check_paddr(addr, len, MEM_TYPE_WRITE, mode)) {
+  if (!check_paddr(addr, len, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }
 #ifndef CONFIG_SHARE
