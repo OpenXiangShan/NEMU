@@ -1266,7 +1266,7 @@ CSR_STRUCT_START(vlenb)
 CSR_STRUCT_END(vlenb)
 
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode);
-rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
+rtlreg_t get_mask(int reg, int idx);
 void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
 #endif // CONFIG_RVV

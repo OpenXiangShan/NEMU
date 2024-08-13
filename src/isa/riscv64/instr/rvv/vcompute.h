@@ -380,11 +380,11 @@ def_EHelper(vpopc) {
   rtl_li(s, s1, 0);
   for(int idx = vstart->val; idx < vl->val; idx ++) {
         // mask
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0 && mask == 0)
       continue;
 
-    *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+    *s0 = get_mask(id_src2->reg, idx);
     *s0 &= 1;
 
     if(*s0 == 1)
@@ -400,9 +400,9 @@ def_EHelper(vfirst) {
 
   int pos = -1;
   for(int idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if (s->vm || mask) {
-      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 = get_mask(id_src2->reg, idx);
       *s0 &= 1;
       if(*s0 == 1) {
         pos = idx;
@@ -427,7 +427,7 @@ def_EHelper(vmsbf) {
     // when vl = 0, do nothing
     bool first_one = false;
     for(int idx = vstart->val; idx < vl->val; idx ++) {
-      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         // it need v0 mask, but this element is not choosed by v0
         // if vma, set 1; others, continue
@@ -443,7 +443,7 @@ def_EHelper(vmsbf) {
       // or
       // s->vm == 0 && mask == 1: this element is choosed by v0
 
-      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 = get_mask(id_src2->reg, idx);
       *s0 &= 1;
 
       if(!first_one && *s0 == 1) {
@@ -478,7 +478,7 @@ def_EHelper(vmsof) {
     // when vl = 0, do nothing
     bool first_one = false;
     for(int idx = vstart->val; idx < vl->val; idx ++) {
-      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
           if (vtype->vma) {
@@ -488,7 +488,7 @@ def_EHelper(vmsof) {
         continue;
       }
 
-      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 = get_mask(id_src2->reg, idx);
       *s0 &= 1;
 
       if(!first_one && *s0 == 1) {
@@ -519,7 +519,7 @@ def_EHelper(vmsif) {
     // when vl = 0, do nothing
     bool first_one = false;
     for(int idx = vstart->val; idx < vl->val; idx ++) {
-      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
           if (vtype->vma) {
@@ -529,7 +529,7 @@ def_EHelper(vmsif) {
         continue;
       }
 
-      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 = get_mask(id_src2->reg, idx);
       *s0 &= 1;
 
       if(first_one) {
@@ -562,7 +562,7 @@ def_EHelper(viota) {
   if(!check_vstart_ignore(s)) {
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
-      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
           if (vtype->vma) {
@@ -574,7 +574,7 @@ def_EHelper(viota) {
         continue;
       }
 
-      *s0 = get_mask(id_src2->reg, idx, vtype->vsew, vtype->vlmul);
+      *s0 = get_mask(id_src2->reg, idx);
       *s0 &= 1;
 
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
@@ -609,7 +609,7 @@ def_EHelper(vid) {
   if(!check_vstart_ignore(s)) {
     for(int idx = 0; idx < vl->val; idx ++) {
       // mask
-      rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+      rtlreg_t mask = get_mask(0, idx);
       // Masking does not change the index value written to active elements.
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
@@ -781,7 +781,7 @@ def_EHelper(vcompress) {
 
     rtl_li(s, s1, 0);
     for(int idx = vstart->val; idx < vl->val; idx ++) {
-      rtlreg_t mask = get_mask(id_src1->reg, idx, vtype->vsew, vtype->vlmul);
+      rtlreg_t mask = get_mask(id_src1->reg, idx);
 
       if (mask == 0) {
           continue;

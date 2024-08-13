@@ -13,7 +13,15 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "cpu/decode.h"
+#include "debug.h"
+#include "macro.h"
+#include "memory/paddr.h"
+#include "rtl/rtl.h"
 #include <common.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/cdefs.h>
 #ifdef CONFIG_RVV
 
 #include <cpu/cpu.h>
@@ -139,6 +147,61 @@ static void index_vload_check(int mode, Decode *s) {
   require_vm(s);
 }
 
+#ifndef CONFIG_SHARE
+static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vstart, uint64_t vl_val,
+    uint8_t * restrict masks) {
+  unsigned count = 0;
+  switch (eew) {
+  case 0: {
+    for (int i = vstart->val; i < vl_val; i++) {
+      masks[i] = get_mask(0, i) ? 0xff : 0;
+      Logm("masks[%d] = %x", i, masks[i]);
+      masks[i] |= s->vm != 0 ? 0xff : 0;
+      count += masks[i] != 0;
+    };
+    break;
+  }
+  case 1: {
+    uint16_t *x_masks = (uint16_t *)masks;
+    for (int i = vstart->val; i < vl_val; i++) {
+      Assert(vl_val <= 64, "vl_val > 64");
+      x_masks[i] = get_mask(0, i) ? 0xffff : 0;
+      Logm("xmasks[%d] = %x", i, x_masks[i]);
+      x_masks[i] |= s->vm != 0 ? 0xffff : 0;
+      count += x_masks[i] != 0;
+    };
+    break;
+  }
+  case 2: {
+    uint32_t *x_masks = (uint32_t *)masks;
+    for (int i = vstart->val; i < vl_val; i++) {
+      Assert(vl_val <= 32, "vl_val > 32");
+      x_masks[i] = get_mask(0, i) ? ~0U : 0;
+      Logm("xmasks[%d] = %x", i, x_masks[i]);
+      x_masks[i] |= s->vm != 0 ? ~0U : 0;
+      count += x_masks[i] != 0;
+    };
+    break;
+  }
+  case 3: {
+    uint64_t *x_masks = (uint64_t *)masks;
+    for (int i = vstart->val; i < vl_val; i++) {
+      Assert(vl_val <= 16, "vl_val > 16");
+      x_masks[i] = get_mask(0, i) ? ~(0UL) : 0;
+      Logm("xmasks[%d] = %lx", i, x_masks[i]);
+      x_masks[i] |= s->vm != 0 ? ~(0UL) : 0;
+      count += x_masks[i] != 0;
+    }
+    break;
+  }
+  default:
+    Assert(0, "eew >= 4 is reserved");
+  }
+  return count;
+}
+
+#endif // CONFIG_SHARE
+
 void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
@@ -178,24 +241,111 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if (s->vm == 0 && mask == 0) {
-      if (RVV_AGNOSTIC && vtype->vma) {
-        tmp_reg[1] = (uint64_t) -1;
-        for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
-        }
+
+  bool fast_vle = false;
+
+#ifndef CONFIG_SHARE
+  uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
+  uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
+  uint64_t vle_size = last_addr - start_addr + s->v_width;
+  __attribute_maybe_unused__ bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
+  uint8_t masks[VLMAX_8] = {0};
+
+  Logm("vld start_addr: %#lx, v_width: %u, vl_val: %lu, vle size=%lu, vstart->val: %lu, nf=%lu",
+      base_addr, s->v_width, vl_val, vle_size, vstart->val, nf);
+
+  if (is_unit_stride && nf == 1 && vl_val > vstart->val && vtype->vlmul < 4 && !cross_page) {
+    s->last_access_host_addr = NULL;
+    extern void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+    dummy_vaddr_data_read(s, start_addr, s->v_width, mmu_mode);
+    // Now we have the host address of first element in Decode *s->last_access_host_addr
+    if (s->last_access_host_addr != NULL) {
+
+      // get address of first element in register file
+      void *reg_file_addr = NULL;
+      get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
+      Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
+      uint8_t * restrict reg_file_addr_8 = reg_file_addr;
+
+      __attribute_maybe_unused__ unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+
+      uint8_t invert_masks[VLMAX_8] = {0};
+      uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
+      
+#ifdef DEBUG_FAST_VLE
+      switch (s->v_width) {
+        case 1: for (int i = 0; i < vle_size; i++) {
+            Logm("Element %i, mask = %x, inv mask = %x, reg = %x, mem = %x", i,
+                 masks[i], invert_masks[i], reg_file_addr_8[i],
+                 last_access_host_addr[i]);
+          }
+          break;
+        case 2:
+          for (int i = 0; i < vle_size; i += 2) {
+            Logm("Element %i, mask = %x, inv mask = %x, reg = %x, mem = %x", i,
+                 *(uint16_t *)&masks[i], *(uint16_t *)&invert_masks[i],
+                 *(uint16_t *)&reg_file_addr_8[i],
+                 *(uint16_t *)&last_access_host_addr[i]);
+          }
+          break;
+        case 4:
+          for (int i = 0; i < vle_size; i += 4) {
+            Logm("Element %i, mask = %x, inv mask = %x, reg = %x, mem = %x", i,
+                 *(uint32_t *)&masks[i], *(uint32_t *)&invert_masks[i],
+                 *(uint32_t *)&reg_file_addr_8[i],
+                 *(uint32_t *)&last_access_host_addr[i]);
+          }
+          break;
+        case 8:
+          for (int i = 0; i < vle_size; i += 8) {
+            Logm("Element %i, mask = %lx, inv mask = %lx, reg = %lx, mem = %lx",
+                 i, *(uint64_t *)&masks[i], *(uint64_t *)&invert_masks[i],
+                 *(uint64_t *)&reg_file_addr_8[i],
+                 *(uint64_t *)&last_access_host_addr[i]);
+          }
+          break;
+        default:
+                panic("Unexpected vwidth = %d", s->v_width);
       }
-      continue;
+# endif // DEBUG_FAST_VLE
+
+      for (int i = 0; i < VLMAX_8; i++) {
+        invert_masks[i] = ~masks[i];
+        masks[i] &= last_access_host_addr_u8[i];
+        if (RVV_AGNOSTIC && vtype->vma) {
+          invert_masks[i] = 0xff;
+        } else {
+          invert_masks[i] &= reg_file_addr_8[i];
+        }
+        masks[i] |= invert_masks[i];
+      }
+      memcpy(reg_file_addr, masks, vle_size);
+      fast_vle = true;
     }
-    for (fn = 0; fn < nf; fn++) {
-      addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
-      rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-      set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+  }
+#endif // CONFIG_SHARE
+
+  if (!fast_vle) {  // this block is the original slow path
+    for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+      rtlreg_t mask = get_mask(0, idx);
+      if (s->vm == 0 && mask == 0) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          tmp_reg[1] = (uint64_t) -1;
+          for (fn = 0; fn < nf; fn++) {
+            set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+          }
+        }
+        continue;
+      }
+      for (fn = 0; fn < nf; fn++) {
+        addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
+        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+      }
     }
   }
 
+  // Tail agnostic is not handled in fast path
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
     for(idx = vl_val; idx < vlmax; idx++) {
@@ -244,7 +394,7 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if (s->vm == 0 && mask == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
@@ -283,11 +433,14 @@ void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
   vp_set_dirty();
 }
 
+extern uint64_t g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized;
+
 void vst(int mode, Decode *s, int mmu_mode) {
   vstore_check(mode, s);
   if(check_vstart_ignore(s)) return;
+  g_nr_vst += 1;
   uint64_t idx;
-  uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
+  uint64_t nf, vl_val, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul;
 
@@ -310,6 +463,7 @@ void vst(int mode, Decode *s, int mmu_mode) {
   } else {
     stride = 0;
     is_unit_stride = 1;
+    g_nr_vst_unit += 1;
   }
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
@@ -319,15 +473,118 @@ void vst(int mode, Decode *s, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
-    if (s->vm == 0 && mask == 0) {
-      continue;
+
+  bool fast_vse = false;
+
+#ifndef CONFIG_SHARE
+  uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
+  uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
+  uint64_t vse_size = last_addr - start_addr + s->v_width;
+  __attribute_maybe_unused__ bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
+  uint8_t masks[VLMAX_8] = {0};
+
+  if (is_unit_stride && nf == 1 && vl_val > vstart->val && vtype->vlmul < 4 && !cross_page) {
+    assert(vl_val <= VLEN);
+    uint8_t invert_masks[VLMAX_8] = {0};
+
+    // get address of first element in memory; manually trigger isa_mmu_check.
+    // if exception happens, it will goto the exception handler.
+    s->last_access_host_addr = NULL;
+    extern void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+    dummy_vaddr_write(s, start_addr, s->v_width, mmu_mode);
+    // Now we have the host address of first element in Decode *s->last_access_host_addr
+    if (s->last_access_host_addr != NULL) {
+
+      // get address of first element in register file
+      void *reg_file_addr = NULL;
+      get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
+      Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
+      uint8_t * restrict reg_file_addr_8 = reg_file_addr;
+
+      unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+
+      Logm("vst start_addr: %#lx, last_addr: %#lx, v_width: %u, vl_val: %lu, "
+          "vstart->val: %lu, v0: %016lx_%016lx, nf=%lu",
+          start_addr, last_addr, s->v_width, vl_val, vstart->val, cpu.vr[0]._64[1], cpu.vr[0]._64[0],
+          nf);
+      Logm("vse size = %lu, valid mask count = %u", vse_size, count);
+      Logm("mem base host addr = %p, reg file base host addr = %p", s->last_access_host_addr, reg_file_addr);
+
+      uint8_t * restrict last_access_addr_8 = s->last_access_host_addr;
+      for (int i = 0; i < VLMAX_8; i++) {
+        invert_masks[i] = ~masks[i];
+        masks[i] &= reg_file_addr_8[i];
+        invert_masks[i] &= last_access_addr_8[i];
+        masks[i] |= invert_masks[i];
+      }
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+      extern void store_commit_queue_push(uint64_t addr, uint64_t data,
+                                          int len);
+      for (int i = 0; i < vse_size; i += s->v_width) {
+        // store_commit_queue_push((uint8_t *)s->last_access_host_addr), data, len);
+        switch (s->v_width) {
+          case 1: store_commit_queue_push(
+              host_to_guest((uint8_t *)s->last_access_host_addr + i),
+              masks[i], s->v_width); break;
+          case 2: store_commit_queue_push(
+              host_to_guest((uint8_t *)s->last_access_host_addr + i),
+              *(uint16_t *)&masks[i], s->v_width); break;
+          case 4: store_commit_queue_push(
+              host_to_guest((uint8_t *)s->last_access_host_addr + i),
+              *(uint32_t *)&masks[i], s->v_width); break;
+          case 8: store_commit_queue_push(
+              host_to_guest((uint8_t *)s->last_access_host_addr + i),
+              *(uint64_t *)&masks[i], s->v_width); break;
+          default: panic("Unexpected vwidth = %d", s->v_width);
+        }
+      }
+#endif
+      memcpy(s->last_access_host_addr, masks, vse_size);
+      fast_vse = true; // skip all operations
     }
-    for (fn = 0; fn < nf; fn++) {
-      get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, 0, 0, 0);
-      addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
-      rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+  }
+
+  g_nr_vst_unit_optimized += fast_vse;
+#endif // CONFIG_SHARE
+
+  // We enter this block if we are not able to optimize the store or we are debugging fast VSE
+  if (!fast_vse || ISDEF(DEBUG_FAST_VSE)) {  // this block is the original slow path
+    for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+      rtlreg_t mask = get_mask(0, idx);
+      if (s->vm == 0 && mask == 0) {
+#ifdef DEBUG_FAST_VSE
+        if (ISNDEF(CONFIG_SHARE) && ISDEF(CONFIG_DIFFTEST_STORE_COMMIT) && simple_vse) {
+          uint64_t offset = idx * stride + (idx * nf * is_unit_stride + 0) * s->v_width;
+          switch (s->v_width) {
+            case 1: assert(masks[offset] == 0); break;
+            case 2: assert(*(uint16_t *)&masks[offset] == 0); break;
+            case 4: assert(*(uint32_t *)&masks[offset] == 0); break;
+            case 8: assert(*(uint64_t *)&masks[offset] == 0); break;
+            default: panic("Unexpected vwidth = %d", s->v_width);
+          }
+        }
+#endif
+        continue;
+      }
+      for (unsigned fn = 0; fn < nf; fn++) {
+        get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, 0, 0, 0);
+        uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
+        addr = base_addr + offset;
+        if (!fast_vse) {
+          rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        }
+#ifdef DEBUG_FAST_VSE
+        if (simple_vse) {
+          bool match = memcmp(&tmp_reg[1], &masks[offset], s->v_width) == 0;
+          if (!match) {
+            Logm("Mismatch at idx = %lu, fn = %u, offset = %lu, addr = %lx, "
+                "slow version = %lx, fast version = %lx", idx, fn, offset, addr,
+                tmp_reg[1], *(uint64_t *)&masks[offset]);
+            Assert(false, "Fast and slow version mismatch");
+          }
+        }
+#endif
+      }
     }
   }
 
@@ -365,7 +622,7 @@ void vstx(int mode, Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx, vtype->vsew, vtype->vlmul);
+    rtlreg_t mask = get_mask(0, idx);
     if (s->vm == 0 && mask == 0) {
       continue;
     }
