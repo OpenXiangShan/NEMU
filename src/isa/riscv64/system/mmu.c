@@ -73,7 +73,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
 #ifdef CONFIG_RVH
-  ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? ((hstatus->vsxl == 1)? vsstatus->_32.sum  : vsstatus->_64.sum): mstatus->sum) || ifetch)));
+  ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? vsstatus->sum: mstatus->sum) || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
 #else
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
@@ -105,7 +105,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   if(hlvx)
     can_load = pte->x;
   else
-    can_load = pte->r || ((mstatus->mxr || (((hstatus->vsxl == 1)? vsstatus->_32.mxr  : vsstatus->_64.mxr) && virt)) && pte->x);
+    can_load = pte->r || ((mstatus->mxr || (vsstatus->mxr && virt)) && pte->x);
 #else
   bool can_load = pte->r || (mstatus->mxr && pte->x);
 #endif
@@ -279,8 +279,8 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if(virt){
-    if(vsatp_mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
-    pg_base = PGBASE(vsatp_ppn);
+    if(vsatp->mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
+    pg_base = PGBASE(vsatp->ppn);
   }
 #endif
   word_t p_pte; // pte pointer
@@ -427,9 +427,9 @@ static int h_mmu_state = MMU_DIRECT;
 static inline int update_h_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
-    assert(vsatp_mode == 0 || vsatp_mode == 8);
+    assert(vsatp->mode == 0 || vsatp->mode == 8);
     assert(hgatp->mode == 0 || hgatp->mode == 8);
-    if (vsatp_mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
+    if (vsatp->mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
   }
   return MMU_DIRECT;
 }
@@ -475,7 +475,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
 #ifdef CONFIG_RVH
-  bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (satp->mode == 8 || (cpu.v && (vsatp_mode == 8 || hgatp->mode == 8)));
+  bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (satp->mode == 8 || (cpu.v && (vsatp->mode == 8 || hgatp->mode == 8)));
 #else
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && satp->mode == 8;
 #endif
@@ -484,7 +484,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   bool va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0 || !vm_enable;
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if(cpu.v && vsatp_mode == 0){ // don't need bits 63–39 are equal to bit 38
+  if(cpu.v && vsatp->mode == 0){ // don't need bits 63–39 are equal to bit 38
     word_t maxgpa = ((((word_t)1) << 41) - 1);
     if((vaddr & ~maxgpa) == 0){
       va_msbs_ok = 1;

@@ -1043,46 +1043,24 @@ CSR_STRUCT_START(hgatp)
 CSR_STRUCT_END(hgatp)
 
 CSR_STRUCT_START(vsstatus)
-  union{
-    struct{
-      uint64_t pad0: 1;
-      uint64_t sie : 1;
-      uint64_t pad1: 3;
-      uint64_t spie: 1;
-      uint64_t ube : 1;
-      uint64_t pad2: 1;
-      uint64_t spp : 1;
-      uint64_t vs  : 2;
-      uint64_t pad3: 2;
-      uint64_t fs  : 2;
-      uint64_t xs  : 2;
-      uint64_t pad4: 1;
-      uint64_t sum : 1;
-      uint64_t mxr : 1;
-      uint64_t pad5:11;
-      uint64_t sd  : 1;
-    }_32;
-    struct{
-      uint64_t pad0: 1;
-      uint64_t sie : 1;
-      uint64_t pad1: 3;
-      uint64_t spie: 1;
-      uint64_t ube : 1;
-      uint64_t pad2: 1;
-      uint64_t spp : 1;
-      uint64_t vs  : 2;
-      uint64_t pad3: 2;
-      uint64_t fs  : 2;
-      uint64_t xs  : 2;
-      uint64_t pad4: 1;
-      uint64_t sum : 1;
-      uint64_t mxr : 1;
-      uint64_t pad5:12;
-      uint64_t uxl : 2;
-      uint64_t pad6:29;
-      uint64_t sd  : 1;
-    }_64;
-  };
+  uint64_t pad0   : 1;
+  uint64_t sie    : 1;
+  uint64_t pad1   : 3;
+  uint64_t spie   : 1;
+  uint64_t ube    : 1;
+  uint64_t pad2   : 1;
+  uint64_t spp    : 1;
+  uint64_t vs     : 2;
+  uint64_t pad3   : 2;
+  uint64_t fs     : 2;
+  uint64_t xs     : 2;
+  uint64_t pad4   : 1;
+  uint64_t sum    : 1;
+  uint64_t mxr    : 1;
+  uint64_t pad5   :12;
+  uint64_t uxl    : 2;
+  uint64_t pad6   :29;
+  uint64_t sd     : 1;
 CSR_STRUCT_END(vsstatus)
 
 CSR_STRUCT_START(vsie)
@@ -1107,16 +1085,8 @@ CSR_STRUCT_START(vsepc)
 CSR_STRUCT_END(vsepc)
 
 CSR_STRUCT_START(vscause)
-  union{
-    struct{
-      uint64_t code:31;
-      uint64_t intr: 1;
-    }_32;
-    struct{
-      uint64_t code:63;
-      uint64_t intr: 1;
-    }_64;
-  };
+  uint64_t code :63;
+  uint64_t intr : 1;
 CSR_STRUCT_END(vscause)
 
 CSR_STRUCT_START(vstval)
@@ -1138,18 +1108,9 @@ CSR_STRUCT_END(vstimecmp)
 #endif
 
 CSR_STRUCT_START(vsatp)
-  union{
-    struct{
-      uint64_t ppn  :22;
-      uint64_t asid : 9;
-      uint64_t mode : 1;
-    }_32;
-    struct{
-      uint64_t ppn  :44;
-      uint64_t asid :16;
-      uint64_t mode : 4;
-    }_64;
-  };
+  uint64_t ppn  :44;
+  uint64_t asid :16;
+  uint64_t mode : 4;
 CSR_STRUCT_END(vsatp)
 
 #endif // CONFIG_RVH
@@ -1380,10 +1341,6 @@ MAP(CSRS, CSRS_DECL)
 /** RVH **/
 #ifdef CONFIG_RVH
   extern bool v; // virtualization mode
-  #define vsatp_mode ((hstatus->vsxl == 1)? vsatp->_32.mode : vsatp->_64.mode)
-  #define vsatp_asid ((hstatus->vsxl == 1)? vsatp->_32.asid : vsatp->_64.asid)
-  #define vsatp_ppn  ((hstatus->vsxl == 1)? vsatp->_32.ppn  : vsatp->_64.ppn)
-  #define _vsstatus_  ((hstatus->vsxl == 1)? vsstatus->_32  : vsstatus->_64)
 #endif // CONFIG_RVH
 
 /** SSTATUS **/

@@ -39,10 +39,7 @@ void fp_set_dirty() {
   mstatus->fs = EXT_CONTEXT_DIRTY;
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {
-    if (hstatus->vsxl == 1)
-      vsstatus->_32.fs = EXT_CONTEXT_DIRTY;
-    else
-      vsstatus->_64.fs = EXT_CONTEXT_DIRTY;
+    vsstatus->fs = EXT_CONTEXT_DIRTY;
   }
 #endif //CONFIG_RVH
 }
