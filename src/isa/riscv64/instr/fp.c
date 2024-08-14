@@ -36,6 +36,7 @@ bool fp_enable() {
 }
 
 void fp_set_dirty() {
+  printf("pc:%lx, fs set dirty\n", cpu.pc);
   mstatus->fs = EXT_CONTEXT_DIRTY;
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {

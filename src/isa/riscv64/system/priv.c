@@ -840,7 +840,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     unsigned prev_mpp = mstatus->mpp;
 #endif // CONFIG_RVH
   if(mstatus->fs != 0){
-    printf("write mstatus, fs valid, mstatus: %lx, write: %lx, mask: %lx\n", mstatus->val, src, MSTATUS_WMASK);
+    printf("pc: %lx, write mstatus, fs valid, mstatus: %lx, write: %lx, mask: %lx\n", cpu.pc, mstatus->val, src, MSTATUS_WMASK);
     mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
     printf("after write, mstatus: %lx\n", mstatus->val);
   }else
@@ -884,7 +884,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     minstret->val = set_minstret(src);
   }
   else if (is_write(sstatus)) { if(mstatus->fs != 0){
-    printf("write sstatus, fs valid, mstatus: %lx, write: %lx, mask: %lx\n", mstatus->val, src, SSTATUS_WMASK);
+    printf("pc: %lx, write sstatus, fs valid, mstatus: %lx, write: %lx, mask: %lx\n", cpu.pc, mstatus->val, src, SSTATUS_WMASK);
     mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src);
     printf("after write, mstatus: %lx\n", mstatus->val);
   }else
