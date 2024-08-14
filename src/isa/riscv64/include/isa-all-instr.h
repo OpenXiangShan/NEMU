@@ -223,14 +223,72 @@
   f(fmadds) f(fmsubs) f(fnmsubs) f(fnmadds) f(fmaddd) f(fmsubd) f(fnmsubd) f(fnmaddd)
 #endif // CONFIG_FPU_NONE
 
+#ifdef CONFIG_RV_ZIMOP
+#define ZIMOP_INSTR_BINARY(f) \
+  f(mop_r_0) \
+  f(mop_r_1) \
+  f(mop_r_2) \
+  f(mop_r_3) \
+  f(mop_r_4) \
+  f(mop_r_5) \
+  f(mop_r_6) \
+  f(mop_r_7) \
+  f(mop_r_8) \
+  f(mop_r_9) \
+  f(mop_r_10) \
+  f(mop_r_11) \
+  f(mop_r_12) \
+  f(mop_r_13) \
+  f(mop_r_14) \
+  f(mop_r_15) \
+  f(mop_r_16) \
+  f(mop_r_17) \
+  f(mop_r_18) \
+  f(mop_r_19) \
+  f(mop_r_20) \
+  f(mop_r_21) \
+  f(mop_r_22) \
+  f(mop_r_23) \
+  f(mop_r_24) \
+  f(mop_r_25) \
+  f(mop_r_26) \
+  f(mop_r_27) \
+  f(mop_r_28) \
+  f(mop_r_29) \
+  f(mop_r_30) \
+  f(mop_r_31)
+
+#define ZIMOP_INSTR_TERNARY(f) \
+  f(mop_rr_0) \
+  f(mop_rr_1) \
+  f(mop_rr_2) \
+  f(mop_rr_3) \
+  f(mop_rr_4) \
+  f(mop_rr_5) \
+  f(mop_rr_6) \
+  f(mop_rr_7)
+
+#else
+#define ZIMOP_INSTR_BINARY(f)
+#define ZIMOP_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZIMOP
+
+#ifdef CONFIG_RV_ZCMOP
+#define ZCMOP_INSTR_NULLARY(f) \
+  f(c_mop)
+#else
+#define ZCMOP_INSTR_NULLARY(f)
+#endif
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f) \
-  f(p_ret)
+  f(p_ret) \
+  ZCMOP_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
-  f(p_li_0) f(p_li_1) f(c_mop)
+  f(p_li_0) f(p_li_1)
 
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
@@ -244,6 +302,7 @@
   f(ld_mmu) f(lw_mmu) f(lh_mmu) f(lb_mmu) f(lwu_mmu) f(lhu_mmu) f(lbu_mmu) \
   f(sd_mmu) f(sw_mmu) f(sh_mmu) f(sb_mmu) \
   FLOAT_INSTR_BINARY(f) \
+  ZIMOP_INSTR_BINARY(f) \
   ZFH_MIN_INSTR_BINARY(f) \
   ZFH_INSTR_BINARY(f)
 
@@ -265,6 +324,7 @@
   CRYPTO_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
+  ZIMOP_INSTR_TERNARY(f) \
   ZFH_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \

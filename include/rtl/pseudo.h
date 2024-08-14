@@ -114,9 +114,4 @@ static inline def_rtl(mux, rtlreg_t* dest, const rtlreg_t* cond, const rtlreg_t*
   rtl_or(s, dest, t0, s2);
 }
 
-static inline def_rtl(zcmop, rtlreg_t *dest) {
-  // currently do nothing
-  return ;
-}
-
 #endif
