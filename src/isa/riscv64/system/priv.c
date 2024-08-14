@@ -305,14 +305,6 @@ word_t inline pmp_tor_mask() {
   return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
 }
 
-static inline void update_mstatus_fs() {
-  // mstatus.fs is always dirty or off in QEMU 3.1.0
-  // When CONFIG_FS_CLEAN_STATE is set (such as for rocket-chip), mstatus.fs is always dirty or off.
-  if ((ISDEF(CONFIG_DIFFTEST_REF_QEMU) || ISNDEF(CONFIG_FS_CLEAN_STATE)) && mstatus->fs) {
-    mstatus->fs = 3;
-  }
-}
-
 #ifndef CONFIG_FPU_NONE
 static inline bool require_fs() {
   if ((mstatus->val & MSTATUS_WMASK_FS) != 0) {
@@ -647,8 +639,6 @@ if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val 
 if (is_read(vsie))           { return get_vsie(); }
 #endif
 
-  if (is_read(mstatus) || is_read(sstatus)) { update_mstatus_fs(); }
-
   if (is_read(mstatus))     { return gen_status_sd(mstatus->val) | mstatus->val; }
   if (is_read(sstatus))     { return gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); }
   else if (is_read(sie))    { return get_sie(); }
@@ -751,15 +741,15 @@ void disable_time_intr() {
 
 #ifdef CONFIG_RVH
 void update_vsatp(const vsatp_t new_val) {
-  if (new_val._64.mode == SATP_MODE_BARE || new_val._64.mode == SATP_MODE_Sv39)
-    vsatp->_64.mode = new_val._64.mode;
-  vsatp->_64.asid = new_val._64.asid;
+  if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39)
+    vsatp->mode = new_val.mode;
+  vsatp->asid = new_val.asid;
   switch (hgatp->mode) {
     case HGATP_MODE_BARE:
-      vsatp->_64.ppn = new_val._64.ppn & VSATP_PPN_HGATP_BARE_MASK;
+      vsatp->ppn = new_val.ppn & VSATP_PPN_HGATP_BARE_MASK;
       break;
     case HGATP_MODE_Sv39x4:
-      vsatp->_64.ppn = new_val._64.ppn & VSATP_PPN_HGATP_Sv39x4_MASK;
+      vsatp->ppn = new_val.ppn & VSATP_PPN_HGATP_Sv39x4_MASK;
       break;
     default:
       panic("HGATP.mode is illegal value(%lx), when write vsatp\n", (uint64_t)hgatp->mode);
@@ -789,7 +779,7 @@ static inline void csr_write(word_t *dest, word_t src) {
       }
       vsatp_t new_val = (vsatp_t)src;
       // legal mode
-      if (new_val._64.mode == SATP_MODE_BARE || new_val._64.mode == SATP_MODE_Sv39) {
+      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39) {
         update_vsatp(new_val);
       }
     }
@@ -1084,9 +1074,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     vp_set_dirty();
   }
 #endif //CONFIG_RVV
-  if (is_write(sstatus) || is_write(mstatus)) {
-    update_mstatus_fs();
-  }
+
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp) || is_write(hgatp)) { update_mmu_state(); }
   if (is_write(hstatus)) {
@@ -1256,17 +1244,10 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
         if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
           longjmp_exception(EX_VI);
         }
-        if (hstatus->vsxl == 1){
-          cpu.mode = vsstatus->_32.spp;
-          vsstatus->_32.spp = MODE_U;
-          vsstatus->_32.sie = vsstatus->_32.spie;
-          vsstatus->_32.spie = 1;
-        }else{
-          cpu.mode = vsstatus->_64.spp;
-          vsstatus->_64.spp = MODE_U;
-          vsstatus->_64.sie = vsstatus->_64.spie;
-          vsstatus->_64.spie = 1;
-        }
+        cpu.mode = vsstatus->spp;
+        vsstatus->spp = MODE_U;
+        vsstatus->sie = vsstatus->spie;
+        vsstatus->spie = 1;
         return vsepc->val;
       }
 #endif // CONFIG_RVH

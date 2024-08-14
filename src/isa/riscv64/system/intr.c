@@ -105,15 +105,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   if (delegVS){
     vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
     vsepc->val = epc;
-    if (hstatus->vsxl == 1){
-      vsstatus->_32.spp = cpu.mode;
-      vsstatus->_32.spie = vsstatus->_32.sie;
-      vsstatus->_32.sie = 0;
-    }else{
-      vsstatus->_64.spp = cpu.mode;
-      vsstatus->_64.spie = vsstatus->_64.sie;
-      vsstatus->_64.sie = 0;
-    }
+    vsstatus->spp = cpu.mode;
+    vsstatus->spie = vsstatus->sie;
+    vsstatus->sie = 0;
     // vsstatus->spp = cpu.mode;
     // vsstatus->spie = vsstatus->sie;
     // vsstatus->sie = 0;
@@ -258,7 +252,7 @@ word_t isa_query_intr() {
       bool deleg = (mideleg->val & (1 << irq)) != 0;
 #ifdef CONFIG_RVH
       bool hdeleg = (hideleg->val & (1 << irq)) != 0;
-      bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && ((hstatus->vsxl == 1)? vsstatus->_32.sie: vsstatus->_64.sie)) || (cpu.v && cpu.mode < MODE_S):
+      bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && vsstatus->sie) || (cpu.v && cpu.mode < MODE_S):
                            (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v:
                            ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M);  
 #else
