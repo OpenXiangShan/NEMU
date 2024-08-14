@@ -299,4 +299,10 @@ config RV_ZCMOP
     This adds C.MOP.n instructions without any function. Executing C.MOP.n just
     does nothing.
 
+config RV_ZIMOP
+  bool "RISC-V Extension for May-Be-Operations, Version 1.0"
+  default n
+  help
+    This extension adds MOP.R.n and MOP.RR.n instructions which just write rd with 0s.
+
 endmenu
