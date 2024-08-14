@@ -293,7 +293,10 @@ config EBREAK_AS_TRAP
   default n
 
 config RV_ZCMOP
-  bool "Enable Zcmop extension"
+  bool "RISC-V Zcmop Extension for Compressed May-Be-Operations (non-functional), v1.0"
   default n
+  help
+    This adds C.MOP.n instructions without any function. Executing C.MOP.n just
+    does nothing.
 
 endmenu
