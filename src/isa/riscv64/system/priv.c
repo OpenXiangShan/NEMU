@@ -839,6 +839,11 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifndef CONFIG_RVH
     unsigned prev_mpp = mstatus->mpp;
 #endif // CONFIG_RVH
+  if(mstatus->fs != 0){
+    printf("write mstatus, fs valid, mstatus: %lx, write: %lx, mask: %lx\n", mstatus->val, src, MSTATUS_WMASK);
+    mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
+    printf("after write, mstatus: %lx\n", mstatus->val);
+  }else
     mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
 #ifndef CONFIG_RVH
     // Need to do an extra check for mstatus.MPP:
@@ -878,7 +883,12 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(minstret)) {
     minstret->val = set_minstret(src);
   }
-  else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
+  else if (is_write(sstatus)) { if(mstatus->fs != 0){
+    printf("write sstatus, fs valid, mstatus: %lx, write: %lx, mask: %lx\n", mstatus->val, src, SSTATUS_WMASK);
+    mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src);
+    printf("after write, mstatus: %lx\n", mstatus->val);
+  }else
+    mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
   else if (is_write(sie)) { set_sie(src); }
   else if (is_write(mie)) { mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H | LCOFI, src); }
   else if (is_write(mip)) {
