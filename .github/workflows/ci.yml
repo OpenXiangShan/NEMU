@@ -7,6 +7,21 @@ on:
     branches: [ master ]
 
 jobs:
+  compilation-test:
+    runs-on: nemu
+    continue-on-error: false
+    name: Compilation test
+    timeout-minutes: 60
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Setup env
+      run: |
+        echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+    - name: Try to compile 
+      id: list_configs
+      run: |
+        bash ./scripts/compilation-test.sh
 
   basic-tests-xs:
     runs-on: nemu
@@ -43,26 +58,11 @@ jobs:
           make -j
           bash ./scripts/restore_zstd.sh
           make clean-all
-      - name: Build NEMU as difftest ref
-        run: |
-          make riscv64-xs-ref_defconfig
-          make -j
-          make clean-all
-      - name: Build NEMU as difftest dual ref
-        run: |
-          make riscv64-dual-xs-ref_defconfig
-          make -j
-          make clean-all
       - name: Build NEMU with RVV
         run: |
           make riscv64-rvv_defconfig
           make -j
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
-          make clean-all
-      - name: Build NEMU as difftest rvv ref
-        run: |
-          make riscv64-rvv-ref_defconfig
-          make -j
           make clean-all
 
   basic-tests-nutshell:
@@ -84,11 +84,6 @@ jobs:
       - name: test boot linux
         run: |
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello/bbl.bin
-          make clean-all
-      - name: Build NEMU as difftest ref
-        run: |
-          make riscv64-nutshell-ref_defconfig
-          make -j
           make clean-all
 
   Guard-for-NEMU-as-DUT:
@@ -128,11 +123,6 @@ jobs:
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/H-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU with H extension as difftest ref
-        run: |
-          make riscv64-rvh-ref_defconfig
-          make -j
-          make clean-all
       - name: Run Xvisor
         run: |
           make riscv64-rvh_defconfig
@@ -173,11 +163,6 @@ jobs:
           echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU with V extension as difftest ref
-        run: |
-          make riscv64-rvv-diff-spike_defconfig
-          make -j
-          make clean-all
       - name: Run Vector-spec06-checkpoint with Spike DiffTest
         run: |
           make riscv64-xs-diff-spike_defconfig
@@ -196,23 +181,6 @@ jobs:
           make -j
           ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
           make clean-all
-
-  compilation-test:
-    runs-on: nemu
-    continue-on-error: false
-    name: Compilation test
-    timeout-minutes: 60
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Setup env
-      run: |
-        echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
-        echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-    - name: Try to compile 
-      id: list_configs
-      run: |
-        bash ./scripts/compilation-test.sh
 
   compile-difftest-so:
     runs-on: ubuntu-latest
