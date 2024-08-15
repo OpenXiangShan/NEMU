@@ -15,6 +15,6 @@
 
 cpt=`find output_top/test/linux/50000000 -name "*.zstd"`
 ./build/riscv64-nemu-interpreter -b\
-    --diff $V_WORKLOAD_HOME/riscv64-spike-so\
+    --diff ${SPIKE_SO}\
     --restore -I 100000000 \
     $cpt
