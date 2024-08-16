@@ -293,6 +293,7 @@ static int execute(int n) {
   __attribute__((unused)) Decode *this_s = NULL;
   __attribute__((unused)) bool br_taken = false;
   __attribute__((unused)) bool is_ctrl = false;
+  
   while (true) {
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
@@ -349,7 +350,9 @@ static int execute(int n) {
     IFDEF(CONFIG_DEBUG, g_nr_guest_instr += 1);
 
     save_globals(s);
+    cpu.pc = s->pc;
     debug_difftest(this_s, s);
+    if (nemu_state.state == NEMU_STOP) break;
   }
 
 end_of_loop:
@@ -595,6 +598,7 @@ static void update_global() {
   cpu.pc = prev_s->pc;
 }
 #endif
+
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
