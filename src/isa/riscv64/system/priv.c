@@ -625,7 +625,9 @@ static inline word_t csr_read(word_t *src) {
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
 if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK & (mideleg->val | MIDELEG_FORCED_MASK);}
-if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK; }
+if (is_read(hedeleg))        { 
+  printf("pc:%lx, hedeleg: %lx, read val: %lx, cpu.hedeleg: %lx\n",cpu.pc, hedeleg->val, hedeleg->val & HEDELEG_MASK, cpu.hedeleg);
+  return hedeleg->val & HEDELEG_MASK; }
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
 if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
@@ -788,7 +790,9 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
   }
   else if (is_write(hideleg)) { hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); }
-  else if (is_write(hedeleg)) { hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); }
+  else if (is_write(hedeleg)) { 
+    printf("pc: %lx, write val: %lx, hedeleg: %lx, cpu.hedeleg: %lx\n", cpu.pc, hedeleg->val & HEDELEG_MASK, hedeleg->val, cpu.hedeleg);
+    hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); }
   else if (is_write(hie)){
     mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
   }
