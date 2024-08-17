@@ -212,6 +212,7 @@ jobs:
             pmp/pmp.riscv.bin
             pmp/pmp-am/amtest-riscv64-xs.bin
             pmp/hugepage-pmp-atom/amtest-riscv64-xs.bin
+            isa_misc/satp_ppn.bin
             H-extension-tests/riscv-hyp-tests/rvh_test.bin
         run: |
           readarray -t skip_tests_array <<< "$skip_tests"
