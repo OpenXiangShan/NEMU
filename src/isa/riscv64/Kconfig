@@ -220,6 +220,10 @@ config RV_SVINVAL
   bool "Enable VM Extension Svinval"
   default y
 
+config RV_SV48
+  bool "Enable Sv48 Page-Based 48-bit Virtual-Memory System"
+  default n
+
 config RV_MSTATUS_FS_WRITABLE
   depends on FPU_NONE
   bool "make mstatus.fs writable; required for software FPU emulation"
