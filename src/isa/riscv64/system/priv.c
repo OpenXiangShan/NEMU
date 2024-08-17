@@ -282,6 +282,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define is_mhpmcounter(p) (p >= &(csr_array[CSR_MHPMCOUNTER_BASE]) && p < &(csr_array[CSR_MHPMCOUNTER_BASE + CSR_MHPMCOUNTER_NUM]))
 #define is_mhpmevent(p) (p >= &(csr_array[CSR_MHPMEVENT_BASE]) && p < &(csr_array[CSR_MHPMEVENT_BASE + CSR_MHPMEVENT_NUM]))
 
+#ifdef CONFIG_RV_PMP_CSR
 // get 8-bit config of one PMP entries by index.
 uint8_t pmpcfg_from_index(int idx) {
   // Nemu support up to 64 pmp entries in a XLEN=64 machine.
@@ -304,6 +305,7 @@ word_t pmpaddr_from_index(int idx) {
 word_t inline pmp_tor_mask() {
   return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
 }
+#endif // CONFIG_RV_PMP_CSR
 
 #ifndef CONFIG_FPU_NONE
 static inline bool require_fs() {
