@@ -596,7 +596,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   if (unlikely((vaddr & (len - 1)) != 0)) {
-    Log("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
+    Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
       IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV39_SEXT(vaddr));

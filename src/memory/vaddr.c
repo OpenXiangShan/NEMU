@@ -61,7 +61,7 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
 }
 
 static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
-  printf("vaddr_write_cross_page!\n");
+  Log("vaddr_write_cross_page!");
   // (unaligned & cross page) store, align with dut(xs)
   //                  4KB|
   // +---+---+---+---+---+---+---+---+---+---+---+---+
