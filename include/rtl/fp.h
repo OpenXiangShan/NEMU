@@ -125,7 +125,10 @@ enum {
   FPCALL_DUToF,
   FPCALL_DSToF,
   FPCALL_DFToF,
+
   FPCALL_DFToF_ODD,    // round odd
+
+  FPCALL_VP_NEED_RM,  // separator
 
   FPCALL_GenNegZero,
 };
