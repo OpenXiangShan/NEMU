@@ -646,16 +646,21 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 }
 
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
-  if (ISDEF(CONFIG_AC_SOFT) && unlikely((vaddr & (len - 1)) != 0)) {
+  if (unlikely((vaddr & (len - 1)) != 0)) {
     Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
-    int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
-    INTR_TVAL_REG(ex) = vaddr;
-    longjmp_exception(ex);
+    if (ISDEF(CONFIG_AC_SOFT)) {
+      int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
+      INTR_TVAL_REG(ex) = vaddr;
+      longjmp_exception(ex);
+    }
   }
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
+  bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
+  if (is_cross_page) return MEM_RET_CROSS_PAGE;
+  
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
 #ifdef CONFIG_RVH

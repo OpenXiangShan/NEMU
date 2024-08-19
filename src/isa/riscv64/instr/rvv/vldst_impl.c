@@ -525,16 +525,16 @@ void vst(int mode, Decode *s, int mmu_mode) {
         switch (s->v_width) {
           case 1: store_commit_queue_push(
               host_to_guest((uint8_t *)s->last_access_host_addr + i),
-              masks[i], s->v_width); break;
+              masks[i], s->v_width, 0); break;
           case 2: store_commit_queue_push(
               host_to_guest((uint8_t *)s->last_access_host_addr + i),
-              *(uint16_t *)&masks[i], s->v_width); break;
+              *(uint16_t *)&masks[i], s->v_width, 0); break;
           case 4: store_commit_queue_push(
               host_to_guest((uint8_t *)s->last_access_host_addr + i),
-              *(uint32_t *)&masks[i], s->v_width); break;
+              *(uint32_t *)&masks[i], s->v_width, 0); break;
           case 8: store_commit_queue_push(
               host_to_guest((uint8_t *)s->last_access_host_addr + i),
-              *(uint64_t *)&masks[i], s->v_width); break;
+              *(uint64_t *)&masks[i], s->v_width, 0); break;
           default: panic("Unexpected vwidth = %d", s->v_width);
         }
       }

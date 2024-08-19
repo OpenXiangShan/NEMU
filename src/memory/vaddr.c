@@ -30,6 +30,18 @@
 
 #ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
+
+static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
+  paddr_t mmu_ret = isa_mmu_translate(vaddr & ~PAGE_MASK, len, type);
+  *exp = (mmu_ret & PAGE_MASK) != MEM_RET_OK;
+  paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
+  if (*exp) {
+    return 0;
+  }
+  *exp = !check_paddr(paddr, len, type, cpu.mode, vaddr);
+  return paddr;
+}
+
 static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
   vaddr_t vaddr = addr;
   word_t data = 0;
@@ -50,15 +62,41 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
 }
 
 static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
-  vaddr_t vaddr = addr;
-  int i;
-  for (i = 0; i < len; i ++, addr ++) {
-    paddr_t mmu_ret = isa_mmu_translate(addr, 1, MEM_TYPE_WRITE);
-    int ret = mmu_ret & PAGE_MASK;
-    if (ret != MEM_RET_OK) return;
-    paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
-    paddr_write(paddr, 1, data & 0xff, cpu.mode, vaddr);
-    data >>= 8;
+  Log("vaddr_write_cross_page!");
+  // (unaligned & cross page) store, align with dut(xs)
+  //                  4KB|
+  // +---+---+---+---+---+---+---+---+---+---+---+---+
+  // |   sd    *   *   *   *   *   *   *   *         |
+  // +---+---+---+---+---+---+---+---+---+---+---+---+
+  //  split to:
+  //                  4KB|
+  // +---+---+---+---+---+---+---+---+---+---+---+---+
+  // | store1              *   *   *   *   *         | current page
+  // +---+---+---+---+---+---+---+---+---+---+---+---+
+  // +---+---+---+---+---+---+---+---+---+---+---+---+
+  // | store2  *   *   *                             | next page
+  // +---+---+---+---+---+---+---+---+---+---+---+---+
+
+  vaddr_t cur_pg_st_vaddr = addr;
+  vaddr_t next_pg_st_vaddr = (addr & ~PAGE_MASK) + PAGE_SIZE;
+  int cur_pg_st_len = next_pg_st_vaddr - cur_pg_st_vaddr;
+  int next_pg_st_len = len - cur_pg_st_len;
+  word_t cur_pg_st_mask = 0;
+  int i = 0;
+  for (; i < cur_pg_st_len; i++) {
+    cur_pg_st_mask = (cur_pg_st_mask << 8) | 0xffUL;
+  }
+  word_t cur_pg_st_data = data & cur_pg_st_mask;
+  word_t next_pg_st_data = data >> (cur_pg_st_len << 3);
+  // make sure no page fault or access fault before real write
+  bool cur_pg_st_exp = false;
+  bool next_pg_st_exp = false;
+  paddr_t cur_pg_st_paddr = vaddr_trans_and_check_exception(cur_pg_st_vaddr, cur_pg_st_len, MEM_TYPE_WRITE, &cur_pg_st_exp);
+  paddr_t next_pg_st_paddr = vaddr_trans_and_check_exception(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, &next_pg_st_exp);
+  
+  if (!cur_pg_st_exp && !next_pg_st_exp) {
+    paddr_write(cur_pg_st_paddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+    paddr_write(next_pg_st_paddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
   }
 }
 
