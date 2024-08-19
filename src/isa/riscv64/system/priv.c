@@ -743,7 +743,11 @@ void disable_time_intr() {
 
 #ifdef CONFIG_RVH
 void update_vsatp(const vsatp_t new_val) {
+#ifdef CONFIG_RV_SV48
+  if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48)
+#else
   if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39)
+#endif // CONFIG_RV_SV48
     vsatp->mode = new_val.mode;
   vsatp->asid = new_val.asid;
   switch (hgatp->mode) {
@@ -753,6 +757,11 @@ void update_vsatp(const vsatp_t new_val) {
     case HGATP_MODE_Sv39x4:
       vsatp->ppn = new_val.ppn & VSATP_PPN_HGATP_Sv39x4_MASK;
       break;
+#ifdef CONFIG_RV_SV48
+    case HGATP_MODE_Sv48x4:
+      vsatp->ppn = new_val.ppn & VSATP_PPN_HGATP_Sv48x4_MASK;
+      break;
+#endif // CONFIG_RV_SV48
     default:
       panic("HGATP.mode is illegal value(%lx), when write vsatp\n", (uint64_t)hgatp->mode);
       break;
@@ -781,7 +790,11 @@ static inline void csr_write(word_t *dest, word_t src) {
       }
       vsatp_t new_val = (vsatp_t)src;
       // legal mode
+#ifdef CONFIG_RV_SV48
+      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48) {
+#else
       if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39) {
+#endif // CONFIG_RV_SV48
         update_vsatp(new_val);
       }
     }
@@ -997,8 +1010,12 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (cpu.mode == MODE_S && mstatus->tvm == 1) {
       longjmp_exception(EX_II);
     }
-    // Only support Sv39, ignore write that sets other mode
+    // Only support Sv39 && Sv48(can configure), ignore write that sets other mode
+#ifdef CONFIG_RV_SV48
+    if ((src & SATP_SV39_MASK) >> 60 == 9 || (src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+#else
     if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+#endif // CONFIG_RV_SV48
       *dest = MASKED_SATP(src);
   }
 #ifdef CONFIG_RV_SDTRIG
@@ -1052,8 +1069,12 @@ static inline void csr_write(word_t *dest, word_t src) {
     // Make PPN[1:0] read only zero
     hgatp->ppn = new_val.ppn & ~(rtlreg_t)3 & BITMASK(CONFIG_PADDRBITS - PAGE_SHIFT);
 
-    // Only support Sv39x4, ignore write that sets other mode
+    // Only support Sv39x4 && Sv48x4(can configure), ignore write that sets other mode
+#ifdef CONFIG_RV_SV48
+    if (new_val.mode == HGATP_MODE_Sv48x4 || new_val.mode == HGATP_MODE_Sv39x4 || new_val.mode == HGATP_MODE_BARE)
+#else
     if (new_val.mode == HGATP_MODE_Sv39x4 || new_val.mode == HGATP_MODE_BARE)
+#endif // CONFIG_RV_SV48
       hgatp->mode = new_val.mode;
     // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
   }

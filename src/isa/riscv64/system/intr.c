@@ -266,8 +266,14 @@ word_t isa_query_intr() {
 }
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
-word_t INTR_TVAL_SV39_SEXT(word_t vaddr) {
+// Should be fixed later
+word_t INTR_TVAL_SV48_SEXT(word_t vaddr) {
+#ifdef CONFIG_RV_SV48
+  vaddr = vaddr & (vaddr_t)0xFFFFFFFFFFFF;
+  return SEXT(vaddr, 48); // USE SV48 VADDR
+#else
   vaddr = vaddr & (vaddr_t)0x7FFFFFFFFF;
   return SEXT(vaddr, 39); // USE SV39 VADDR
+#endif // CONFIG_RV_SV48
 }
 #endif
