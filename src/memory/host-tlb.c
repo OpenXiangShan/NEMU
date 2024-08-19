@@ -173,7 +173,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   uint8_t *host_addr = e->offset + vaddr;
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
-  store_commit_queue_push(host_to_guest(host_addr), data, len);
+  store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
   host_write(host_addr, len, data);
 #endif // NOT CONFIG_USE_SPARSEMM
