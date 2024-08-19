@@ -220,6 +220,44 @@ config RV_SVINVAL
   bool "Enable VM Extension Svinval"
   default y
 
+choice
+  prompt "Page-Based Virtual-Memory System Capability"
+  default RV_SV39
+  help
+    This config decides the capability of Page-Based Virtual-Memory System,
+    which affects the MODE field of CSR satp, vsatp and hgatp.
+    
+    According to RISC-V Privileged ISA, Virtual memory systems for RV64 are
+    backward compatible. So this config specifies the highest supported
+    virtual-memory system.
+
+config RV_SV39
+  bool "Sv39"
+  help
+    Support Sv39. 
+    
+    The MODE field of CSR satp and vsatp could be set to Bare or Sv39, and
+    the MODE field of CSR hgatp could be set to Bare or Sv39x4.
+  
+config RV_SV48
+  bool "Sv48"
+  help
+    Support Sv39 and Sv48.
+    
+    The MODE field of CSR satp and vsatp could be set to Bare, Sv39 or Sv48,
+    and the MODE field of CSR hgatp could be set to Bare, Sv39x4 or Sv48x4.
+
+# config RV_SV57
+#   bool "Sv57"
+#   help
+#     Support Sv39, Sv48 and Sv57.
+    
+#     The MODE field of CSR satp and vsatp could be set to Bare, Sv39, Sv48 or
+#     Sv47, and the MODE field of CSR hgatp could be set to Bare, Sv39x4, Sv48x4
+#     or Sv57x4.
+
+endchoice
+
 config RV_MSTATUS_FS_WRITABLE
   depends on FPU_NONE
   bool "make mstatus.fs writable; required for software FPU emulation"
@@ -291,5 +329,18 @@ config EBREAK_AS_TRAP
   depends on !RV_DEBUG
   bool "Treat ebreak same as nemu_trap"
   default n
+
+config RV_ZCMOP
+  bool "RISC-V Zcmop Extension for Compressed May-Be-Operations (non-functional), v1.0"
+  default n
+  help
+    This adds C.MOP.n instructions without any function. Executing C.MOP.n just
+    does nothing.
+
+config RV_ZIMOP
+  bool "RISC-V Extension for May-Be-Operations, Version 1.0"
+  default n
+  help
+    This extension adds MOP.R.n and MOP.RR.n instructions which just write rd with 0s.
 
 endmenu

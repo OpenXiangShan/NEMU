@@ -74,6 +74,7 @@ typedef struct Decode {
   uint32_t vm;
   uint32_t src_vmode;
   rtlreg_t tmp_reg[4];
+  void *last_access_host_addr;
   #endif // CONFIG_RVV
 
 } Decode;

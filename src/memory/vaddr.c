@@ -14,6 +14,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "common.h"
 #include <isa.h>
 //#include <profiling/betapoint-ext.h>
 #include <profiling/profiling_control.h>
@@ -176,6 +177,29 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   return 0;
 }
 
+#ifdef CONFIG_RVV
+extern void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_write);
+
+void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+  assert(!ISDEF(CONFIG_SHARE));
+#ifdef CONFIG_RVV
+  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
+#else
+  if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
+#endif
+    Logm("Checking mmu when MMU_DYN for dummy read");
+    mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_READ);
+  }
+
+  if (mmu_mode == MMU_DIRECT) {
+    return;
+  }
+  if (ISDEF(ENABLE_HOSTTLB)) {
+    dummy_hosttlb_translate(s, addr, len, false);
+  }
+}
+#endif // CONFIG_RVV
+
 word_t vaddr_ifetch(vaddr_t addr, int len) {
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
 }
@@ -184,6 +208,21 @@ word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
   Logm("Reading vaddr %lx", addr);
   return vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode);
 }
+
+#ifdef CONFIG_RVV
+void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+  assert(!ISDEF(CONFIG_SHARE));
+  if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
+    mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+  }
+  if (mmu_mode == MMU_DIRECT) {
+    return;
+  }
+  if (ISDEF(ENABLE_HOSTTLB)) {
+    dummy_hosttlb_translate(s, addr, len, true);
+  }
+}
+#endif // CONFIG_RVV
 
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
 #ifdef CONFIG_SHARE

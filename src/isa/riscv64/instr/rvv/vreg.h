@@ -28,6 +28,7 @@
 #define VENUM32 (VLEN/32)
 #define VENUM16 (VLEN/16)
 #define VENUM8  (VLEN/8)
+#define VLMAX_8 (VENUM8 * 8)  // The maximum number of elements when sew = 8 && lmul = 8
 #define SLEN 256
 #ifdef CONFIG_RVV_AGNOSTIC
 #define RVV_AGNOSTIC 1
@@ -70,7 +71,7 @@ static inline int check_reg_index2(int index2, int elen) {
 #define vreg_s(index1, index2) (cpu.vr[check_reg_index1(index1)]._16[check_reg_index2(index2, 16)])
 #define vreg_b(index1, index2) (cpu.vr[check_reg_index1(index1)]._8[check_reg_index2(index2,   8)])
 
-rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
+rtlreg_t get_mask(int reg, int idx);
 
 static inline const char * vreg_name(int index, int width) {
   extern const char * vregsl[];
@@ -81,6 +82,7 @@ static inline const char * vreg_name(int index, int width) {
 int get_vlmax(int vsew, int vlmul);
 int get_vlen_max(int vsew, int vlmul, int widening);
 void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign);
+void get_vreg_with_addr(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign, void **reg_file_addr);
 void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul, int needAlgin);
 
 void get_tmp_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew);

@@ -6,77 +6,77 @@ on:
   pull_request:
     branches: [ master ]
 
-jobs:
+env:
+  CI_WORKLOADS: /nfs/home/share/ci-workloads
+  SPIKE_SO: ./ready-to-run/riscv64-spike-so
 
-  basic-tests-xs:
+jobs:
+  compilation-all:
+    runs-on: nemu
+    continue-on-error: false
+    name: Compilation - all configs
+    timeout-minutes: 60
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Setup env
+      run: |
+        echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+    - name: Try to compile 
+      id: list_configs
+      run: |
+        bash ./scripts/compilation-test.sh
+
+  basic-xiangshan:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
-    name: nemu - Basics for XiangShan
+    name: Basic - XiangShan
     steps:
       - uses: actions/checkout@v4
       - name: Setup env
         run: |
-          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "CI_WORKLOADS=/nfs/home/share/ci-workloads/" >> $GITHUB_ENV
           echo "V_WORKLOAD_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
           make -j
-      - name: test boot linux
+      - name: System - linux-hello-opensbi
         run: |
-          # test boot linux
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
-          make clean-all
+      - name: System - Xvisor
+        run: |
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/H-extension-tests/xvisor-linux-minimal/payload.bin
+      - name: System - KVM
+        run: |
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/H-extension-tests/kvm
       - name: test cpt taking and restoring using zstd format
         run: |
+          make clean-all
           make riscv64-xs-cpt_defconfig
           make -j
-          cd resource/gcpt_restore && make && cd $NEMU_HOME
+          make -C resource/gcpt_restore
           # take cpt, and put cpt in output_top/test/linux
           bash ./scripts/take_zstd.sh
 
           # restore cpt
+          git submodule update --init --depth=1 ready-to-run
           make riscv64-xs-diff-spike_defconfig
           make -j
           bash ./scripts/restore_zstd.sh
           make clean-all
-      - name: Build NEMU as difftest ref
-        run: |
-          make riscv64-xs-ref_defconfig
-          make -j
-          make clean-all
-      - name: Build NEMU as difftest dual ref
-        run: |
-          make riscv64-dual-xs-ref_defconfig
-          make -j
-          make clean-all
-      - name: Build NEMU with RVV
-        run: |
-          make riscv64-rvv_defconfig
-          make -j
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
-          make clean-all
-      - name: Build NEMU as difftest rvv ref
-        run: |
-          make riscv64-rvv-ref_defconfig
-          make -j
-          make clean-all
 
-  basic-tests-nutshell:
+  basic-nutshell:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
-    name: nemu - Basics for NutShell
+    name: Basic - NutShell
     steps:
       - uses: actions/checkout@v4
       - name: Setup env
         run: |
-          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "CI_WORKLOADS=/nfs/home/share/ci-workloads/" >> $GITHUB_ENV
       - name: Build NEMU interpreter
         run: |
           make riscv64-nutshell_defconfig
@@ -84,135 +84,192 @@ jobs:
       - name: test boot linux
         run: |
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello/bbl.bin
-          make clean-all
-      - name: Build NEMU as difftest ref
+      - name: Build NEMU interpreter for diff with spike
         run: |
-          make riscv64-nutshell-ref_defconfig
-          make -j
           make clean-all
+          make riscv64-nutshell-diff-spike_defconfig
+          make -j
+      - name: test boot linux with difftest
+        run: |
+          ./build/riscv64-nemu-interpreter -b --diff ${CI_WORKLOADS}/nutshell/riscv64-spike-so ${CI_WORKLOADS}/linux-hello/bbl.bin
 
-  Guard-for-NEMU-as-DUT:
+  diff-spike-guard:
+    # NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
     runs-on: nemu
     continue-on-error: false
-    name: NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
+    name: Diff with Spike - Guard
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Setup env
         run: |
-          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU with V extension and agnostic
         run: |
+          git submodule update --init --depth=1 ready-to-run
           make clean-all
           make riscv64-xs-diff-spike-agnostic_defconfig
           make -j
           set -x
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 2000000 > crash.log  || exit_code=$?
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 2000000 > crash.log  || exit_code=$?
           if [ ${exit_code} -eq 0 ]; then echo "Difftest is broken, it should report error!" exit 1; fi
           match=$(grep "wrong.*=.*ffff" crash.log -c)
           if [ ${match} -eq 0 ]; then echo "Difftest is broken, it should report at least one agnostic related difference!" exit 1; fi
           make clean-all
           set +x
 
-  H-ext-tests:
+  diff-spike-basic:
     runs-on: nemu
     continue-on-error: false
-    name: nemu - H-extension
+    name: Diff with Spike - Basic & System
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup env
         run: |
-          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "TEST_HOME=/nfs/home/share/ci-workloads/H-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU with H extension as difftest ref
+
+      - name: Build NEMU interpreter for diff with spike
         run: |
-          make riscv64-rvh-ref_defconfig
-          make -j
-          make clean-all
-      - name: Run Xvisor
-        run: |
-          make riscv64-rvh_defconfig
-          echo "#define CONFIG_DETERMINISTIC 1" >> ./include/generated/autoconf.h
-          make -j
-          ./build/riscv64-nemu-interpreter -b $TEST_HOME/xvisor
-          make clean-all
-      - name: Run KVM
-        run: |
-          make riscv64-rvh_defconfig
-          make -j
-          ./build/riscv64-nemu-interpreter -b $TEST_HOME/kvm
-          make clean-all
-      - name: Run Xvisor with DiffTest
-        run: |
-          git submodule update --init ready-to-run
+          git submodule update --init --depth=1 ready-to-run
           make riscv64-xs-diff-spike_defconfig
-          echo "#define CONFIG_DETERMINISTIC 1" >> ./include/generated/autoconf.h
           make -j
-          ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-so $TEST_HOME/xvisor
-          make clean-all
-      # - name: Run KVM with DiffTest
+
+      - name: Basic - cputest
+        env: 
+          dir_tests: ${{ env.CI_WORKLOADS }}/nexus-am/tests/cputest/build/
+        run: |
+          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
+            echo ::group::$(basename $test_bin)
+            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
+            echo "::endgroup::"
+          done
+
+      - name: Basic - riscv-tests
+        # failed at rv64mi-p-sd-misaligned.bin 
+        env: 
+          dir_tests: ${{ env.CI_WORKLOADS }}/riscv-tests/isa/build/
+          skip_tests: |
+            rv64mi-p-ld-hd-misaligned.bin
+            rv64mi-p-ld-misaligned.bin
+            rv64mi-p-lh-hd-misaligned.bin
+            rv64mi-p-lh-misaligned.bin
+            rv64mi-p-lw-hd-misaligned.bin
+            rv64mi-p-lw-misaligned.bin
+            rv64mi-p-sd-hd-misaligned.bin
+            rv64mi-p-sd-misaligned.bin
+            rv64mi-p-sh-hd-misaligned.bin
+            rv64mi-p-sh-misaligned.bin
+            rv64mi-p-sw-hd-misaligned.bin
+            rv64mi-p-sw-misaligned.bin
+        run: |
+          readarray -t skip_tests_array <<< "$skip_tests"
+          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
+            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
+              echo "$test_bin skiped."
+              continue;
+            fi
+            echo ::group::$(basename $test_bin)
+            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
+            echo "::endgroup::"
+          done
+
+      - name: Basic - rvv-test
+        env: 
+          dir_tests: ${{ env.CI_WORKLOADS }}/V-extension-tests/rvv-test/
+        run: |
+          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
+            echo ::group::$(basename $test_bin)
+            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
+            echo "::endgroup::"
+          done
+
+      - name: Basic - misc-tests
+        # if: false
+        env:
+          tests: |
+            bitmanip/bitMisc.bin
+            coremark_rv64gc_o2/coremark-riscv64-xs.bin
+            coremark_rv64gc_o3/coremark-riscv64-xs.bin
+            coremark_rv64gcb_o3/coremark-riscv64-xs.bin
+            ext_intr/amtest-riscv64-xs.bin
+            cache-alias/aliastest-riscv64-xs.bin
+            Svinval/rv64mi-p-svinval.bin
+            pmp/pmp.riscv.bin
+            pmp/pmp-am/amtest-riscv64-xs.bin
+            pmp/hugepage-pmp-atom/amtest-riscv64-xs.bin
+            asid/asid.bin
+            isa_misc/xret_clear_mprv.bin
+            isa_misc/satp_ppn.bin
+            cache-management/softprefetchtest-riscv64-xs.bin
+            H-extension-tests/riscv-hyp-tests/rvh_test.bin
+          skip_tests: |
+            crypto/crypto-riscv64-noop.bin
+            ext_intr/amtest-riscv64-xs.bin
+            Svinval/rv64mi-p-svinval.bin
+            pmp/pmp.riscv.bin
+            pmp/pmp-am/amtest-riscv64-xs.bin
+            pmp/hugepage-pmp-atom/amtest-riscv64-xs.bin
+            isa_misc/satp_ppn.bin
+            H-extension-tests/riscv-hyp-tests/rvh_test.bin
+        run: |
+          readarray -t skip_tests_array <<< "$skip_tests"
+          for test_bin in $tests; do
+            if [[ " ${skip_tests_array[@]} " =~ " ${test_bin} " ]]; then
+              echo "$test_bin skiped."
+              continue;
+            fi
+            echo ::group::$test_bin
+            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/${test_bin}
+            echo "::endgroup::"
+          done
+
+      - name: System - linux
+        run: |
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
+
+      - name: System - Xvisor
+        run: |
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/xvisor-linux-minimal/payload.bin
+
+      # - name: System - KVM 
       #   run: |
-      #     make riscv64-rvh-diff-spike_defconfig
-      #     make -j
-      #     ./build/riscv64-nemu-interpreter -b -d $TEST_HOME/riscv64-spike-H-ext-so $TEST_HOME/kvm
-      #     make clean-all
+      #     ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/kvm
   
-  V-ext-tests:
+  diff-spike-checkpoint:
     runs-on: nemu
     continue-on-error: false
-    name: nemu - V-extension
+    name: Diff with Spike - Checkpoints
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup env
         run: |
-          echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
-      - name: Build NEMU with V extension as difftest ref
+
+      - name: Build NEMU interpreter for diff with spike
         run: |
-          make riscv64-rvv-diff-spike_defconfig
+          git submodule update --init --depth=1 ready-to-run
+          make riscv64-xs-diff-spike_defconfig
           make -j
-          make clean-all
+
       - name: Run Vector-spec06-checkpoint with Spike DiffTest
         run: |
-          make riscv64-xs-diff-spike_defconfig
-          make -j
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so --restore $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          make clean-all
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+
       - name: Run OpenSBI+Linux+Vectorized_h264 with Spike DiffTest
         run: |
-          make riscv64-xs-diff-spike_defconfig
-          make -j
-          ./build/riscv64-nemu-interpreter -b --diff $TEST_HOME/riscv64-spike-so $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
-          make clean-all
-
-  compilation-test:
-    runs-on: nemu
-    continue-on-error: false
-    name: Compilation test
-    timeout-minutes: 60
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Setup env
-      run: |
-        echo "PATH=/nfs/home/share/riscv-toolchain-20230425/bin:$PATH" >> $GITHUB_ENV
-        echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-    - name: Try to compile 
-      id: list_configs
-      run: |
-        bash ./scripts/compilation-test.sh
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
 
   compile-difftest-so:
     runs-on: ubuntu-latest

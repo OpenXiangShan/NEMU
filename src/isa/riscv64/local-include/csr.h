@@ -1043,46 +1043,24 @@ CSR_STRUCT_START(hgatp)
 CSR_STRUCT_END(hgatp)
 
 CSR_STRUCT_START(vsstatus)
-  union{
-    struct{
-      uint64_t pad0: 1;
-      uint64_t sie : 1;
-      uint64_t pad1: 3;
-      uint64_t spie: 1;
-      uint64_t ube : 1;
-      uint64_t pad2: 1;
-      uint64_t spp : 1;
-      uint64_t vs  : 2;
-      uint64_t pad3: 2;
-      uint64_t fs  : 2;
-      uint64_t xs  : 2;
-      uint64_t pad4: 1;
-      uint64_t sum : 1;
-      uint64_t mxr : 1;
-      uint64_t pad5:11;
-      uint64_t sd  : 1;
-    }_32;
-    struct{
-      uint64_t pad0: 1;
-      uint64_t sie : 1;
-      uint64_t pad1: 3;
-      uint64_t spie: 1;
-      uint64_t ube : 1;
-      uint64_t pad2: 1;
-      uint64_t spp : 1;
-      uint64_t vs  : 2;
-      uint64_t pad3: 2;
-      uint64_t fs  : 2;
-      uint64_t xs  : 2;
-      uint64_t pad4: 1;
-      uint64_t sum : 1;
-      uint64_t mxr : 1;
-      uint64_t pad5:12;
-      uint64_t uxl : 2;
-      uint64_t pad6:29;
-      uint64_t sd  : 1;
-    }_64;
-  };
+  uint64_t pad0   : 1;
+  uint64_t sie    : 1;
+  uint64_t pad1   : 3;
+  uint64_t spie   : 1;
+  uint64_t ube    : 1;
+  uint64_t pad2   : 1;
+  uint64_t spp    : 1;
+  uint64_t vs     : 2;
+  uint64_t pad3   : 2;
+  uint64_t fs     : 2;
+  uint64_t xs     : 2;
+  uint64_t pad4   : 1;
+  uint64_t sum    : 1;
+  uint64_t mxr    : 1;
+  uint64_t pad5   :12;
+  uint64_t uxl    : 2;
+  uint64_t pad6   :29;
+  uint64_t sd     : 1;
 CSR_STRUCT_END(vsstatus)
 
 CSR_STRUCT_START(vsie)
@@ -1107,16 +1085,8 @@ CSR_STRUCT_START(vsepc)
 CSR_STRUCT_END(vsepc)
 
 CSR_STRUCT_START(vscause)
-  union{
-    struct{
-      uint64_t code:31;
-      uint64_t intr: 1;
-    }_32;
-    struct{
-      uint64_t code:63;
-      uint64_t intr: 1;
-    }_64;
-  };
+  uint64_t code :63;
+  uint64_t intr : 1;
 CSR_STRUCT_END(vscause)
 
 CSR_STRUCT_START(vstval)
@@ -1138,18 +1108,9 @@ CSR_STRUCT_END(vstimecmp)
 #endif
 
 CSR_STRUCT_START(vsatp)
-  union{
-    struct{
-      uint64_t ppn  :22;
-      uint64_t asid : 9;
-      uint64_t mode : 1;
-    }_32;
-    struct{
-      uint64_t ppn  :44;
-      uint64_t asid :16;
-      uint64_t mode : 4;
-    }_64;
-  };
+  uint64_t ppn  :44;
+  uint64_t asid :16;
+  uint64_t mode : 4;
 CSR_STRUCT_END(vsatp)
 
 #endif // CONFIG_RVH
@@ -1266,7 +1227,7 @@ CSR_STRUCT_START(vlenb)
 CSR_STRUCT_END(vlenb)
 
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode);
-rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul);
+rtlreg_t get_mask(int reg, int idx);
 void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
 #endif // CONFIG_RVV
@@ -1342,22 +1303,29 @@ MAP(CSRS, CSRS_DECL)
 /** CSR satp **/
 #define SATP_MODE_BARE 0
 #define SATP_MODE_Sv39 8
+#define SATP_MODE_Sv48 9
 #define SATP_ASID_LEN 16 // max is 16
 #define SATP_PADDR_LEN (CONFIG_PADDRBITS-12) // max is 44
 #define SATP_ASID_MAX_LEN 16
 #define SATP_PADDR_MAX_LEN 44
 
-#define SATP_MODE_MASK (8UL << (SATP_ASID_MAX_LEN + SATP_PADDR_MAX_LEN))
+#define SATP_MODE39_MASK (8UL << (SATP_ASID_MAX_LEN + SATP_PADDR_MAX_LEN))
+#define SATP_MODE48_MASK (9UL << (SATP_ASID_MAX_LEN + SATP_PADDR_MAX_LEN))
 #define SATP_ASID_MASK (((1L << SATP_ASID_LEN)-1) << SATP_PADDR_MAX_LEN)
 #define SATP_PADDR_MASK ((1L << SATP_PADDR_LEN)-1)
 
-#define SATP_MASK (SATP_MODE_MASK | SATP_ASID_MASK | SATP_PADDR_MASK)
+#ifdef CONFIG_RV_SV48
+#define SATP_MASK (SATP_MODE39_MASK | SATP_MODE48_MASK | SATP_ASID_MASK | SATP_PADDR_MASK)
+#else
+#define SATP_MASK (SATP_MODE39_MASK | SATP_ASID_MASK | SATP_PADDR_MASK)
+#endif // CONFIG_RV_SV48
 #define MASKED_SATP(x) (SATP_MASK & x)
 
 /** CSR hgatp **/
 #ifdef CONFIG_RVH
 #define HGATP_MODE_BARE   0
 #define HGATP_MODE_Sv39x4 8
+#define HGATP_MODE_Sv48x4 9
 #define HGATP_VMID_LEN 14 // max is 14
 #define HGATP_PADDR_LEN 44 // max is 44
 #define HGATP_VMID_MAX_LEN 16
@@ -1373,17 +1341,15 @@ MAP(CSRS, CSRS_DECL)
 #ifdef CONFIG_RVH
 #define HGATP_Bare_GPADDR_LEN CONFIG_PADDRBITS
 #define HGATP_Sv39x4_GPADDR_LEN 41
+#define HGATP_Sv48x4_GPADDR_LEN 50
 #define VSATP_PPN_HGATP_BARE_MASK BITMASK(HGATP_Bare_GPADDR_LEN - PAGE_SHIFT)
 #define VSATP_PPN_HGATP_Sv39x4_MASK BITMASK(HGATP_Sv39x4_GPADDR_LEN - PAGE_SHIFT)
+#define VSATP_PPN_HGATP_Sv48x4_MASK BITMASK(HGATP_Sv48x4_GPADDR_LEN - PAGE_SHIFT)
 #endif // CONFIG_RVH
 
 /** RVH **/
 #ifdef CONFIG_RVH
   extern bool v; // virtualization mode
-  #define vsatp_mode ((hstatus->vsxl == 1)? vsatp->_32.mode : vsatp->_64.mode)
-  #define vsatp_asid ((hstatus->vsxl == 1)? vsatp->_32.asid : vsatp->_64.asid)
-  #define vsatp_ppn  ((hstatus->vsxl == 1)? vsatp->_32.ppn  : vsatp->_64.ppn)
-  #define _vsstatus_  ((hstatus->vsxl == 1)? vsstatus->_32  : vsstatus->_64)
 #endif // CONFIG_RVH
 
 /** SSTATUS **/

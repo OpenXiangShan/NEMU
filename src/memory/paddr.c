@@ -450,6 +450,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
     }
   }
 #endif // CONFIG_AC_NONE
+  Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", len = %d", addr, data, len);
  store_commit_t store_commit;
   uint64_t offset = addr % 8ULL;
   store_commit.addr = addr - offset;

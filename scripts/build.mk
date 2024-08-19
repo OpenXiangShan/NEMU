@@ -17,6 +17,14 @@ BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 CC ?= gcc
 CXX = g++
 
+ifdef PGO_PROF
+PGO_FLAGS = -fprofile-generate -fprofile-dir=$(NEMU_HOME)/profile
+else ifdef PGO_USE
+PGO_FLAGS = -fprofile-use -fprofile-dir=$(NEMU_HOME)/profile
+else
+PGO_FLAGS =
+endif
+
 CCACHE := $(if $(shell which ccache),ccache,)
 
 # Compilation flags
@@ -24,9 +32,9 @@ CC := $(CCACHE) $(CC)
 LD := $(CCACHE) $(CXX)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
-CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
-CXXFLAGS  := -O2 -MMD -Wall -Werror --std=c++17 $(XINCLUDES) $(CFLAGS)
-LDFLAGS := -O2 $(LDFLAGS)
+CFLAGS  := -O2 -flto -ftree-vectorize -march=native -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
+CXXFLAGS  := --std=c++17 $(XINCLUDES) $(CFLAGS)
+LDFLAGS := -O2 -flto $(LDFLAGS) $(PGO_FLAGS)
 # filesystem
 ifndef SHARE
 LDFLAGS += -lstdc++fs -lstdc++ -lm
