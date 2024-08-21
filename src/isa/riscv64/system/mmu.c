@@ -511,17 +511,20 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   bool enable_48 = satp->mode == 9;
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
 #endif
-  bool va_msbs_ok;
-  if (!vm_enable) {
-    va_msbs_ok = 1;
-  } else if (enable_48) {
-    word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
-    word_t va_msbs = vaddr >> 47;
-    va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
-  } else if (enable_39) {
-    word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
-    word_t va_msbs = vaddr >> 38;
-    va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+
+  bool va_msbs_ok = true;
+  if (vm_enable) {
+    if (enable_48) {
+      word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
+      word_t va_msbs = vaddr >> 47;
+      va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+    } else if (enable_39) {
+      word_t va_mask = ((((word_t)1) << (63 - 38 + 1)) - 1);
+      word_t va_msbs = vaddr >> 38;
+      va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
+    } else {
+      Assert(0, "Invalid satp mode %d", satp->mode);
+    }
   }
 
 #ifdef CONFIG_RVH
