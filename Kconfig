@@ -112,6 +112,10 @@ config CC_OPT
   default "-O3" if CC_O3
   default "none"
 
+config CC_NATIVE_ARCH
+  bool "Enable march=native"
+  default n
+
 config CC_LTO
   bool "Enable link-time optimization"
   default y

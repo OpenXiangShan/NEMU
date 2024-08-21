@@ -86,6 +86,9 @@ LDFLAGS += $(CFLAGS_BUILD)
 NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
+ifdef CONFIG_CC_NATIVE_ARCH
+CFLAGS  += -march=native
+endif
 LDFLAGS += -lz
 endif
 
