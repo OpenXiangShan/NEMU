@@ -144,7 +144,7 @@ void csr_writeback() {
   vsstatus->val= cpu.vsstatus;
   // Keep the value of vsstatus->sd always zero
   // The value used to diff with REF/DUT will set vsstatus->sd with fs or vs is dirty.
-  vsstatus->_64.sd = 0;
+  vsstatus->sd = 0;
   vstvec->val  = cpu.vstvec;
   vsepc->val   = cpu.vsepc;
   vscause->val = cpu.vscause;

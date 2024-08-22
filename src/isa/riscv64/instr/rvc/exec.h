@@ -146,3 +146,9 @@ def_EHelper(c_addw) {
 def_EHelper(c_subw) {
   rtl_subw(s, ddest, ddest, dsrc2);
 }
+
+#ifdef CONFIG_RV_ZCMOP
+def_EHelper(c_mop) {
+  rtl_c_mop(s, ddest);
+}
+#endif // CONFIG_RV_ZCMOP

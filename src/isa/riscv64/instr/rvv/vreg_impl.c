@@ -55,7 +55,7 @@ rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode) {
   }
 }
 
-rtlreg_t get_mask(int reg, int idx, uint64_t vsew, uint64_t vlmul) {
+rtlreg_t get_mask(int reg, int idx) {
   int idx1 = idx / 64;
   int idx2 = idx % 64;
   
@@ -138,6 +138,35 @@ void get_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmu
     case 1 : *dst = is_signed ? (int64_t)(int16_t)vreg_s(new_reg, new_idx) : vreg_s(new_reg, new_idx); break;
     case 2 : *dst = is_signed ? (int64_t)(int32_t)vreg_i(new_reg, new_idx) : vreg_i(new_reg, new_idx); break;
     case 3 : *dst = is_signed ? (int64_t)         vreg_l(new_reg, new_idx) : vreg_l(new_reg, new_idx); break;
+  }
+}
+
+void get_vreg_with_addr(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew, uint64_t vlmul, int is_signed, int needAlign, void **addr) {
+  Assert(vlmul != 4, "vlmul = 4 is reserved\n");
+  Assert(vsew <= 3, "vsew should be less than 4\n");
+  isa_misalign_vreg_check(reg, vlmul, needAlign);
+  int new_reg = get_reg(reg, idx, vsew);
+  int new_idx = get_idx(reg, idx, vsew);
+  switch (vsew) {
+    case 0 :
+    *dst = is_signed ? (int64_t)(int8_t )vreg_b(new_reg, new_idx) : vreg_b(new_reg, new_idx);
+    *addr = (void *) &vreg_b(new_reg, new_idx);
+    break;
+
+    case 1 :
+    *dst = is_signed ? (int64_t)(int16_t)vreg_s(new_reg, new_idx) : vreg_s(new_reg, new_idx);
+    *addr = (void *) &vreg_s(new_reg, new_idx);
+    break;
+
+    case 2 :
+    *dst = is_signed ? (int64_t)(int32_t)vreg_i(new_reg, new_idx) : vreg_i(new_reg, new_idx);
+    *addr = (void *) &vreg_i(new_reg, new_idx);
+    break;
+
+    case 3 :
+    *dst = is_signed ? (int64_t)         vreg_l(new_reg, new_idx) : vreg_l(new_reg, new_idx);
+    *addr = (void *) &vreg_l(new_reg, new_idx);
+    break;
   }
 }
 

@@ -64,5 +64,22 @@ static inline def_rtl(sr, int r, const rtlreg_t *src1, int width) {
 
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_ZCMOP
+
+static inline def_rtl(c_mop, rtlreg_t *dest) {
+  // currently do nothing
+  return ;
+}
+
+#endif // CONFIG_RV_ZCMOP
+
+#ifdef CONFIG_RV_ZIMOP
+
+static inline def_rtl(i_mop, rtlreg_t *dest) {
+  // Just set rd as zero
+  rtl_li(s, dest, 0);
+}
+
+#endif // CONFIG_RV_ZIMOP
 
 #endif

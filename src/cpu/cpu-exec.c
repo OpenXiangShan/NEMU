@@ -41,6 +41,7 @@
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_instr = 0;
+uint64_t g_nr_vst = 0, g_nr_vst_unit = 0, g_nr_vst_unit_optimized = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
@@ -93,6 +94,8 @@ void monitor_statistic() {
   Log("host time spent = %'ld us", g_timer);
 #ifdef CONFIG_ENABLE_INSTR_CNT
   Log("total guest instructions = %'ld", g_nr_guest_instr);
+  Log("vst count = %'ld, vst unit count = %'ld, vst unit optimized count = %'ld",
+      g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized);
   if (g_timer > 0)
     Log("simulation frequency = %'ld instr/s",
         g_nr_guest_instr * 1000000 / g_timer);
@@ -102,6 +105,7 @@ void monitor_statistic() {
 #else
   Log("CONFIG_ENABLE_INSTR_CNT is not defined");
 #endif
+  fflush(stdout);
 }
 
 static word_t g_ex_cause = 0;
@@ -341,6 +345,8 @@ static int execute(int n) {
     // clear for recording next inst
     is_ctrl = false;
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
+
+    IFDEF(CONFIG_DEBUG, g_nr_guest_instr += 1);
 
     save_globals(s);
     debug_difftest(this_s, s);

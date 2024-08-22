@@ -94,5 +94,5 @@ bool intr_deleg_VS(word_t exceptionNO);
 #endif
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
-word_t INTR_TVAL_SV39_SEXT(word_t vaddr);
+word_t INTR_TVAL_SV48_SEXT(word_t vaddr);
 #endif
