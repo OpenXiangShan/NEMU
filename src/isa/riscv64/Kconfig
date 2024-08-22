@@ -14,7 +14,7 @@ config RVB
 
 config CBO
   bool "RISC-V Zicbom & Zicboz Extension"
-  default y
+  default n
 
 config RVK
   bool "RISC-V Cryptography Extension v1.0"
