@@ -20,7 +20,8 @@
 #include <map>
 #include <iostream>
 #include <trace/trace_writer.h>
-#include <boost/stacktrace.hpp>
+// #include <boost/stacktrace.hpp>
+#include <zstd.h>
 
 // #define VERBOSE
 #define LogBuffer
@@ -93,20 +94,12 @@ TraceWriter::TraceWriter(std::string trace_file_name) {
     oss << "[TraceWriter.TraceWriter] Could not open file: " << trace_file_name;
     // throw std::runtime_error(oss.str());
   }
-}
 
-bool TraceWriter::write(Instruction &inst) {
-  TraceSimpleLog;
-  TraceRequireValid;
-  trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
-  return true;
-}
-
-bool TraceWriter::write(Control &ctrl) {
-  TraceSimpleLog;
-  TraceRequireValid;
-  trace_stream->write(reinterpret_cast<char *> (&ctrl), sizeof(Control));
-  return true;
+  instBuffer = (Instruction *)  malloc(sizeof(Instruction)* MAX_INSTRUCTION_NUM);
+  if (instBuffer == NULL) {
+    printf("Error: malloc instBuffer(%lx)\n", sizeof(Instruction)* MAX_INSTRUCTION_NUM);
+    exit(0);
+  }
 }
 
 void TraceWriter::inst_start() {
@@ -120,15 +113,21 @@ void TraceWriter::inst_over() {
   TraceSimpleLog;
   TraceRequireValid;
 
-  trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
+  instBuffer[instBufferPtr++] = inst;
+  // trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
+
   if (instListSize <= inst_list.size()) {
     inst_list.pop_front();
   }
   inst_list.push_back(inst);
 
-  instCounter++;
-
   inst_valid = false;
+
+  if (instBufferPtr >= MAX_INSTRUCTION_NUM) {
+    printf("Traced Instructin Number enough(%ld), exit.", instBufferPtr);
+    traceOver();
+    exit(0);
+  }
   return;
 }
 
@@ -224,22 +223,45 @@ void TraceWriter::traceOver() {
     return;
   }
 
+  uint64_t instBufferSize = sizeof(Instruction) * instBufferPtr;
+  char *compressedBuffer = (char *)malloc(instBufferSize);
+
+  uint64_t compressedSize = compressZSTD(compressedBuffer, sizeof(Instruction) * instBufferPtr, (char *)instBuffer, instBufferSize);
+
+  trace_stream->write(compressedBuffer, compressedSize);
+  // for (uint64_t idx = 0; idx < instBufferPtr; idx++) {
+  //   trace_stream->write((char *)&instBuffer[idx], sizeof(instBuffer[idx]));
+  // }
+
   // for (auto it = inst_list.begin(); it != inst_list.end(); it++) {
   //   it->dump();
   // }
-  printf("Traced Inst Count: 0d%ld\n", instCounter);
+  printf("Traced Inst Count: 0d%ld\n", instBufferPtr);
 
   trace_stream->close();
 }
 
+uint64_t TraceWriter::compressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len) {
+
+  ZSTD_CCtx* cctx = ZSTD_createCCtx();
+  size_t compressedSize = ZSTD_compressCCtx(cctx, dst, dst_len, src, src_len, 1);
+  if (ZSTD_isError(compressedSize)) {
+    std::cout << "Compress Error " << ZSTD_getErrorName(compressedSize) << std::endl;
+    exit(0);
+    return -1;
+  }
+  std::cout << "Compress Success " << src_len / 1024 / 1024 << "MB -> " << compressedSize / 1024 / 1024 << "MB" << std::endl;
+  return compressedSize;
+}
+
 void TraceWriter::error_dump() {
   printf("Lastest not finished inst:\n");
-  inst.dumpWithID(instCounter);
+  inst.dumpWithID(instBufferPtr);
 
   printf("TraceWriter::error_dump, recent inst:\n");
   uint64_t num = 0;
   for (auto instIT : inst_list) {
-    uint64_t currID = instCounter - inst_list.size() + num++;
+    uint64_t currID = instBufferPtr - inst_list.size() + num++;
     instIT.dumpWithID(currID);
   }
 

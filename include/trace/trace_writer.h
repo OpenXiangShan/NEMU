@@ -35,16 +35,24 @@
 //   bool over; // instruction over
 // } InstrStatus;
 
+#define MAX_INSTRUCTION_NUM (40*1000*1000 + 1000)
+
 class TraceWriter {
   std::ofstream *trace_stream;
 
-  uint64_t instCounter = 0;
+  // inst collcection
+  // uint64_t instCounter = 0;
   bool inst_valid = false;
   Instruction inst;
   uint64_t tmp_priv_target = 0;
 
+  // debug
   const uint32_t instListSize = 16;
   std::deque<Instruction> inst_list;
+
+  // uncompressed inst buffer
+  uint64_t instBufferPtr = 0;
+  Instruction *instBuffer;
 
 public:
   TraceWriter(std::string trace_file_name);
@@ -52,13 +60,7 @@ public:
     delete trace_stream;
   }
 
-  /* write an instruction */
-  bool write(Instruction &inst);
-  /* write an control */
-  bool write(Control &ctrl);
-
   // InstStatus instStatus;
-
   void inst_start();
   void write_pc(uint64_t pc);
   void write_inst(uint32_t instr);
@@ -74,6 +76,7 @@ public:
   void error_dump();
 
   void traceOver();
+  uint64_t compressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len);
 };
 
 extern TraceWriter *trace_writer;
