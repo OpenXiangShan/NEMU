@@ -161,6 +161,14 @@ int isa_fetch_decode(Decode *s) {
           case 0x302: // mret
             s->type = INSTR_TYPE_I;
         }
+        extern void trace_write_exception(uint8_t NO, uint64_t target);
+        // only set exception here. target will be set at execution stage.
+        switch (s->isa.instr.csr.csr) {
+          case 0x0:   // ecall
+            trace_write_exception(8, 0); break;
+          case 0x1:   // ebreak
+            trace_write_exception(3, 0); break;
+        }
       }
       break;
 #endif // CONFIG_DEBUG
