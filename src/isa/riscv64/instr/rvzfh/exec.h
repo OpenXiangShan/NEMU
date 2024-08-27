@@ -1,5 +1,6 @@
 #define F16_SIGN ((uint64_t)1 << 15)
 // CONFIG_RV_ZFH_MIN
+#ifdef CONFIG_RV_ZFH_MIN
 def_EHelper(flh) {
   rtl_lm(s, ddest, dsrc1, id_src2->imm, 2, MMU_DIRECT);
   rtl_fsr(s, ddest, ddest, FPCALL_W16);
@@ -36,7 +37,8 @@ def_EHelper(fcvt_d_h) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_F16ToF64, FPCALL_W16));
   rtl_fsr(s, ddest, ddest, FPCALL_W64);
 }
-
+#endif
+#ifdef CONFIG_RV_ZFH
 #define def_fop_template(name, op, w) \
   def_EHelper(name) { \
     rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(op, w)); \
@@ -161,3 +163,4 @@ def_EHelper(fsgnjxh) {
 def_EHelper(fclassh) {
   rtl_fclass(s, ddest, dsrc1, FPCALL_W16);
 }
+#endif
