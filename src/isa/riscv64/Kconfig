@@ -28,7 +28,7 @@ config RV_ZFH
 config RV_ZFH_MIN
   bool "RISC-V Zfhmin Extensions V1.0"
   depends on !FPU_NONE
-  default n
+  default y
 
 config RVV
   depends on !FPU_NONE
