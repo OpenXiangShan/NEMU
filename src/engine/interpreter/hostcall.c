@@ -31,7 +31,7 @@ void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
 }
 
 static inline void invalid_instr(vaddr_t thispc) {
-#ifdef CONFIG_SHARE
+#if defined(CONFIG_SHARE) || !defined(CONFIG_REPORT_ILLEGAL_INSTR) 
   longjmp_exception(EX_II);
 #else
   uint32_t temp[2];
@@ -54,7 +54,7 @@ static inline void invalid_instr(vaddr_t thispc) {
       "* Every line of untested code is always wrong!\33[0m\n\n", isa_logo);
 
   set_nemu_state(NEMU_ABORT, thispc, -1);
-#endif // CONFIG_SHARE
+#endif // CONFIG_SHARE || !CONFIG_REPORT_ILLEGAL_INSTR
 }
 
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd);
