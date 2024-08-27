@@ -117,7 +117,7 @@ static inline bool csr_is_legal(uint32_t addr, bool need_write) {
   // Attempts to access a CSR without appropriate privilege level
   int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
 #ifdef CONFIG_RVH
-  int priv = cpu.mode == MODE_S ? MODE_HS : cpu.mode;
+  int priv = cpu.mode == MODE_S && !cpu.v ? MODE_HS : cpu.mode;
   if(priv < lowest_access_priv_level){
     if(cpu.v && lowest_access_priv_level <= MODE_HS)
       longjmp_exception(EX_VI);
