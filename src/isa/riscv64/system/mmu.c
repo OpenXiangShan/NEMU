@@ -325,9 +325,13 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
 #endif
     pg_base = PGBASE((uint64_t)pte.ppn);
-    if (!pte.v || (!pte.r && pte.w)) goto bad;
-    if (pte.r || pte.x || pte.pad) { break; }
-    else {
+    if (!pte.v || (!pte.r && pte.w) || pte.pad) {
+      goto bad;
+    }
+    if (pte.r || pte.x) { // is leaf
+      break;
+    } else { // not leaf
+      if (pte.a || pte.d || pte.u) { goto bad; }
       level --;
       if (level < 0) { goto bad; }
     }
