@@ -206,7 +206,6 @@ jobs:
             cache-management/softprefetchtest-riscv64-xs.bin
             H-extension-tests/riscv-hyp-tests/rvh_test.bin
           skip_tests: |
-            crypto/crypto-riscv64-noop.bin
             ext_intr/amtest-riscv64-xs.bin
             Svinval/rv64mi-p-svinval.bin
             pmp/pmp.riscv.bin
