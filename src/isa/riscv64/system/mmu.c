@@ -642,7 +642,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 #ifdef CONFIG_RVH
-  if(hld_st)
+  if(hld_st || cpu.v)
     return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
 #endif
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
