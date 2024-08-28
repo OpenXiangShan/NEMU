@@ -83,7 +83,7 @@ static void vload_check(int mode, Decode *s) {
   require_vm(s);
 }
 
-static void index_vstore_check(int mode, Decode *s) {
+static void index_vstore_check(Decode *s) {
   int eew = vtype->vsew;
   int elt_width = 0;
   switch(s->v_width) {
@@ -112,8 +112,8 @@ static void index_vstore_check(int mode, Decode *s) {
   }
 }
 
-static void index_vload_check(int mode, Decode *s) {
-  index_vstore_check(mode, s);
+static void index_vload_check(Decode *s) {
+  index_vstore_check(s);
   int eew = vtype->vsew;
   int elt_width = 0;
   switch(s->v_width) {
@@ -360,12 +360,12 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vp_set_dirty();
 }
 
-void vldx(int mode, int is_signed, Decode *s, int mmu_mode) {
+void vldx(int is_signed, Decode *s, int mmu_mode) {
   //v_width 0  ->  8    SEW   0  ->  8
   //        5  ->  16         1  ->  16
   //        6  ->  32         2  ->  32
   //        7  ->  64         3  ->  64
-  index_vload_check(mode, s);
+  index_vload_check(s);
   if(check_vstart_ignore(s)) return;
   uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
@@ -592,8 +592,8 @@ void vst(int mode, Decode *s, int mmu_mode) {
   vp_set_dirty();
 }
 
-void vstx(int mode, Decode *s, int mmu_mode) {
-  index_vstore_check(mode, s);
+void vstx(Decode *s, int mmu_mode) {
+  index_vstore_check(s);
   if(check_vstart_ignore(s)) return;
   uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
@@ -657,7 +657,7 @@ static void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
   }
 }
 
-void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
+void vlr(int is_signed, Decode *s, int mmu_mode) {
   uint64_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
   int eew;
@@ -711,7 +711,7 @@ void vlr(int mode, int is_signed, Decode *s, int mmu_mode) {
   vp_set_dirty();
 }
 
-void vsr(int mode, Decode *s, int mmu_mode) {
+void vsr(Decode *s, int mmu_mode) {
   uint64_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
 

@@ -48,7 +48,7 @@ def_EHelper(vlm) { //mask
 def_EHelper(vlr) { // whole register
   predecode_vls(s);
   require_vector(false);
-  VLR(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+  VLR(UNSIGNED, s, MMU_DIRECT)
 }
 
 def_EHelper(vlse) { //strided unsigned
@@ -64,7 +64,7 @@ def_EHelper(vlxe) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLDX(MODE_INDEXED, UNSIGNED, s, MMU_DIRECT)
+  VLDX(UNSIGNED, s, MMU_DIRECT)
 }
 
 def_EHelper(vse) {
@@ -82,7 +82,7 @@ def_EHelper(vsm) {
 def_EHelper(vsr) {
   predecode_vls(s);
   require_vector(false);
-  VSR(MODE_UNIT, MMU_DIRECT)
+  VSR(MMU_DIRECT)
 }
 
 def_EHelper(vsse) {
@@ -98,7 +98,7 @@ def_EHelper(vsxe) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VSTX(MODE_INDEXED, MMU_DIRECT)
+  VSTX(MMU_DIRECT)
 }
 
 def_EHelper(vle_mmu) { //unit-strided
@@ -116,7 +116,7 @@ def_EHelper(vlm_mmu) { //mask
 def_EHelper(vlr_mmu) { //whple register
   predecode_vls(s);
   require_vector(false);
-  VLR(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
+  VLR(UNSIGNED, s, MMU_TRANSLATE)
 }
 
 def_EHelper(vlse_mmu) { //strided unsigned
@@ -132,7 +132,7 @@ def_EHelper(vlxe_mmu) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLDX(MODE_INDEXED, UNSIGNED, s, MMU_TRANSLATE)
+  VLDX(UNSIGNED, s, MMU_TRANSLATE)
 }
 
 def_EHelper(vse_mmu) {
@@ -150,7 +150,7 @@ def_EHelper(vsm_mmu) {
 def_EHelper(vsr_mmu) {
   predecode_vls(s);
   require_vector(false);
-  VSR(MODE_UNIT, MMU_TRANSLATE)
+  VSR(MMU_TRANSLATE)
 }
 
 def_EHelper(vsse_mmu) {
@@ -166,7 +166,7 @@ def_EHelper(vsxe_mmu) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VSTX(MODE_INDEXED, MMU_TRANSLATE)
+  VSTX(MMU_TRANSLATE)
 }
 
 #endif // CONFIG_RVV
