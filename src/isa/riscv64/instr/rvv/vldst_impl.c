@@ -216,7 +216,7 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
 
 #endif // CONFIG_SHARE
 
-void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
+void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
   uint64_t idx;
@@ -377,7 +377,7 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
   vp_set_dirty();
 }
 
-void vldx(int is_signed, Decode *s, int mmu_mode) {
+void vldx(Decode *s, int mmu_mode) {
   //v_width 0  ->  8    SEW   0  ->  8
   //        5  ->  16         1  ->  16
   //        6  ->  32         2  ->  32
@@ -428,12 +428,10 @@ void vldx(int is_signed, Decode *s, int mmu_mode) {
 
       // read data in memory
       addr = base_addr + index + fn * data_width;
-      s->v_is_vx = 1;
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
       rtl_lm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
-      s->v_is_vx = 0;
       set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
     }
   }
@@ -455,7 +453,7 @@ void vldx(int is_signed, Decode *s, int mmu_mode) {
 
 extern uint64_t g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized;
 
-void vst(int mode, Decode *s, int mmu_mode) {
+void vst(Decode *s, int mode, int mmu_mode) {
   vstore_check(mode, s);
   if(check_vstart_ignore(s)) return;
   g_nr_vst += 1;
@@ -656,12 +654,10 @@ void vstx(Decode *s, int mmu_mode) {
       // read data in vector register
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
       addr = base_addr + index + fn * data_width;
-      s->v_is_vx = 1;
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
       rtl_sm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
-      s->v_is_vx = 0;
     }
   }
 
@@ -682,7 +678,7 @@ static void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
   }
 }
 
-void vlr(int is_signed, Decode *s, int mmu_mode) {
+void vlr(Decode *s, int mmu_mode) {
   uint64_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
   int eew;
@@ -795,7 +791,7 @@ void vsr(Decode *s, int mmu_mode) {
 }
 
 
-void vldff(int mode, int is_signed, Decode *s, int mmu_mode) {
+void vldff(Decode *s, int mode, int mmu_mode) {
   fofvl = 0;
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
