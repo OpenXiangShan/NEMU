@@ -93,6 +93,7 @@ LDFLAGS += -lz
 endif
 
 ifndef CONFIG_SHARE
+CFLAGS += -fPIC
 LDFLAGS += -lreadline -ldl -pie
 else
 SHARE = 1
