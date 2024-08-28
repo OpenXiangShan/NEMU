@@ -39,21 +39,21 @@
 #define MODE_MASK    3
 
 #define VLD(mode, is_signed, s, mmu_mode) vld(mode, is_signed, s, mmu_mode);
-#define VLDX(mode, is_signed, s, mmu_mode) vldx(mode, is_signed, s, mmu_mode);
-#define VLR(mode, is_signed, s, mmu_mode) vlr(mode, is_signed, s, mmu_mode);
+#define VLDX(is_signed, s, mmu_mode) vldx(is_signed, s, mmu_mode);
+#define VLR(is_signed, s, mmu_mode) vlr(is_signed, s, mmu_mode);
 
 void vld(int mode, int is_signed, Decode *s, int mmu_mode);
-void vldx(int mode, int is_signed, Decode *s, int mmu_mode);
-void vlr(int mode, int is_signed, Decode *s, int mmu_mode);
+void vldx(int is_signed, Decode *s, int mmu_mode);
+void vlr(int is_signed, Decode *s, int mmu_mode);
 
 // vector store
 #define VST(mode, mmu_mode) vst(mode, s, mmu_mode);
-#define VSTX(mode, mmu_mode) vstx(mode, s, mmu_mode);
-#define VSR(mode, mmu_mode) vsr(mode, s, mmu_mode);
+#define VSTX(mmu_mode) vstx(s, mmu_mode);
+#define VSR(mmu_mode) vsr(s, mmu_mode);
 
 void vst(int mode, Decode *s, int mmu_mode);
-void vstx(int mode, Decode *s, int mmu_mode);
-void vsr(int mode, Decode *s, int mmu_mode);
+void vstx(Decode *s, int mmu_mode);
+void vsr(Decode *s, int mmu_mode);
 
 #endif // __RISCV64_VLDST_IMPL_H__
 
