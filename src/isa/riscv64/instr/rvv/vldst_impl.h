@@ -41,10 +41,12 @@
 #define VLD(mode, is_signed, s, mmu_mode) vld(mode, is_signed, s, mmu_mode);
 #define VLDX(is_signed, s, mmu_mode) vldx(is_signed, s, mmu_mode);
 #define VLR(is_signed, s, mmu_mode) vlr(is_signed, s, mmu_mode);
+#define VLDFF(mode, is_signed, s, mmu_mode) vldff(mode, is_signed, s, mmu_mode);
 
 void vld(int mode, int is_signed, Decode *s, int mmu_mode);
 void vldx(int is_signed, Decode *s, int mmu_mode);
 void vlr(int is_signed, Decode *s, int mmu_mode);
+void vldff(int mode, int is_signed, Decode *s, int mmu_mode);
 
 // vector store
 #define VST(mode, mmu_mode) vst(mode, s, mmu_mode);
