@@ -622,6 +622,12 @@ void cpu_exec(uint64_t n) {
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
+#ifdef CONFIG_RVV
+    //The processing logic when the fof instruction is abnormal but not trap.
+    //TODO Rewrite him in a better way
+    void set_fofNoExceptionState(int* cause);
+    set_fofNoExceptionState(&cause);
+#endif
     n_remain -= prev_s->idx_in_bb - 1;
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT

@@ -67,6 +67,13 @@ def_EHelper(vlxe) {
   VLDX(UNSIGNED, s, MMU_DIRECT)
 }
 
+def_EHelper(vleff) {
+  predecode_vls(s);
+  require_vector(true);
+  VLDFF(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+}
+
+
 def_EHelper(vse) {
   predecode_vls(s);
   require_vector(true);
@@ -133,6 +140,12 @@ def_EHelper(vlxe_mmu) {
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
   VLDX(UNSIGNED, s, MMU_TRANSLATE)
+}
+
+def_EHelper(vleff_mmu) {
+  predecode_vls(s);
+  require_vector(true);
+  VLDFF(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
 }
 
 def_EHelper(vse_mmu) {
