@@ -12,7 +12,7 @@ config RVB
   bool "RISC-V Bitmanip Extension v1.0"
   default y
 
-config CBO
+config RV_CBO
   bool "RISC-V Zicbom & Zicboz Extension"
   default n
 

@@ -39,7 +39,7 @@
 #ifdef CONFIG_RV_ZFH_MIN
 #include "../instr/rvzfh/exec.h"
 #endif
-#ifdef CONFIG_CBO
+#ifdef CONFIG_RV_CBO
 #include "../instr/rvcbo/exec.h"
 #endif
 #include "../instr/special.h"

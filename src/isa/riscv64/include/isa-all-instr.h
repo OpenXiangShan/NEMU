@@ -129,12 +129,12 @@
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_CBO
+#ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \
   f(cbo_zero) f(cbo_zero_mmu) f(cbo_inval) f(cbo_flush) f(cbo_clean)
-#else // CONFIG_CBO
+#else // CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f)
-#endif // CONFIG_CBO
+#endif // CONFIG_RV_CBO
 
 #ifdef CONFIG_RVB
 #define BITMANIP_INSTR_TERNARY(f) \
