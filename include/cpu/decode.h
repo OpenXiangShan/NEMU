@@ -70,7 +70,6 @@ typedef struct Decode {
   int v_width;
   int v_nf;
   int v_lsumop;
-  int v_is_vx;    // 1: vector indexed load/store instruction; 0: other vector load/store instruction
   uint32_t vm;
   uint32_t src_vmode;
   rtlreg_t tmp_reg[4];

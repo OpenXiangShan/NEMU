@@ -27,6 +27,10 @@ void predecode_vls(Decode *s) {
   const int table [8] = {1, 0, 0, 0, 0, 2, 4, 8};
   s->vm = s->isa.instr.v_opv.v_vm; //1 for without mask; 0 for with mask
   s->v_width = table[s->isa.instr.vldfp.v_width];
+  if (s->v_width == 0) {
+    // reserved
+    longjmp_exception(EX_II);
+  }
   s->v_nf = s->isa.instr.vldfp.v_nf;
   s->v_lsumop = s->isa.instr.vldfp.v_lsumop;
 #endif
@@ -36,19 +40,19 @@ void predecode_vls(Decode *s) {
 def_EHelper(vle) { //unit-strided
   predecode_vls(s);
   require_vector(true);
-  VLD(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+  vld(s, MODE_UNIT, MMU_DIRECT);
 }
 
 def_EHelper(vlm) { //mask
   predecode_vls(s);
   require_vector(true);
-  VLD(MODE_MASK, UNSIGNED, s, MMU_DIRECT)
+  vld(s, MODE_MASK, MMU_DIRECT);
 }
 
 def_EHelper(vlr) { // whole register
   predecode_vls(s);
   require_vector(false);
-  VLR(UNSIGNED, s, MMU_DIRECT)
+  vlr(s, MMU_DIRECT);
 }
 
 def_EHelper(vlse) { //strided unsigned
@@ -56,7 +60,7 @@ def_EHelper(vlse) { //strided unsigned
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLD(MODE_STRIDED, UNSIGNED, s, MMU_DIRECT)
+  vld(s, MODE_STRIDED, MMU_DIRECT);
 }
 
 def_EHelper(vlxe) {
@@ -64,32 +68,32 @@ def_EHelper(vlxe) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLDX(UNSIGNED, s, MMU_DIRECT)
+  vldx(s, MMU_DIRECT);
 }
 
 def_EHelper(vleff) {
   predecode_vls(s);
   require_vector(true);
-  VLDFF(MODE_UNIT, UNSIGNED, s, MMU_DIRECT)
+  vldff(s, MODE_UNIT, MMU_DIRECT);
 }
 
 
 def_EHelper(vse) {
   predecode_vls(s);
   require_vector(true);
-  VST(MODE_UNIT, MMU_DIRECT)
+  vst(s, MODE_UNIT, MMU_DIRECT);
 }
 
 def_EHelper(vsm) {
   predecode_vls(s);
   require_vector(true);
-  VST(MODE_MASK, MMU_DIRECT)
+  vst(s, MODE_MASK, MMU_DIRECT);
 }
 
 def_EHelper(vsr) {
   predecode_vls(s);
   require_vector(false);
-  VSR(MMU_DIRECT)
+  vsr(s, MMU_DIRECT);
 }
 
 def_EHelper(vsse) {
@@ -97,7 +101,7 @@ def_EHelper(vsse) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VST(MODE_STRIDED, MMU_DIRECT)
+  vst(s, MODE_STRIDED, MMU_DIRECT);
 }
 
 def_EHelper(vsxe) {
@@ -105,25 +109,25 @@ def_EHelper(vsxe) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VSTX(MMU_DIRECT)
+  vstx(s, MMU_DIRECT);
 }
 
 def_EHelper(vle_mmu) { //unit-strided
   predecode_vls(s);
   require_vector(true);
-  VLD(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
+  vld(s, MODE_UNIT, MMU_TRANSLATE);
 }
 
 def_EHelper(vlm_mmu) { //mask
   predecode_vls(s);
   require_vector(true);
-  VLD(MODE_MASK, UNSIGNED, s, MMU_TRANSLATE)
+  vld(s, MODE_MASK, MMU_TRANSLATE);
 }
 
 def_EHelper(vlr_mmu) { //whple register
   predecode_vls(s);
   require_vector(false);
-  VLR(UNSIGNED, s, MMU_TRANSLATE)
+  vlr(s, MMU_TRANSLATE);
 }
 
 def_EHelper(vlse_mmu) { //strided unsigned
@@ -131,7 +135,7 @@ def_EHelper(vlse_mmu) { //strided unsigned
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLD(MODE_STRIDED, UNSIGNED, s, MMU_TRANSLATE)
+  vld(s, MODE_STRIDED, MMU_TRANSLATE);
 }
 
 def_EHelper(vlxe_mmu) {
@@ -139,31 +143,31 @@ def_EHelper(vlxe_mmu) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VLDX(UNSIGNED, s, MMU_TRANSLATE)
+  vldx(s, MMU_TRANSLATE);
 }
 
 def_EHelper(vleff_mmu) {
   predecode_vls(s);
   require_vector(true);
-  VLDFF(MODE_UNIT, UNSIGNED, s, MMU_TRANSLATE)
+  vldff(s, MODE_UNIT, MMU_TRANSLATE);
 }
 
 def_EHelper(vse_mmu) {
   predecode_vls(s);
   require_vector(true);
-  VST(MODE_UNIT, MMU_TRANSLATE)
+  vst(s, MODE_UNIT, MMU_TRANSLATE);
 }
 
 def_EHelper(vsm_mmu) {
   predecode_vls(s);
   require_vector(true);
-  VST(MODE_MASK, MMU_TRANSLATE)
+  vst(s, MODE_MASK, MMU_TRANSLATE);
 }
 
 def_EHelper(vsr_mmu) {
   predecode_vls(s);
   require_vector(false);
-  VSR(MMU_TRANSLATE)
+  vsr(s, MMU_TRANSLATE);
 }
 
 def_EHelper(vsse_mmu) {
@@ -171,7 +175,7 @@ def_EHelper(vsse_mmu) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VST(MODE_STRIDED, MMU_TRANSLATE)
+  vst(s, MODE_STRIDED, MMU_TRANSLATE);
 }
 
 def_EHelper(vsxe_mmu) {
@@ -179,7 +183,7 @@ def_EHelper(vsxe_mmu) {
   require_vector(true);
   s->src2.reg = s->isa.instr.fp.rs2;
   rtl_lr(s, &(s->src2.val), s->src2.reg, 4);
-  VSTX(MMU_TRANSLATE)
+  vstx(s, MMU_TRANSLATE);
 }
 
 #endif // CONFIG_RVV

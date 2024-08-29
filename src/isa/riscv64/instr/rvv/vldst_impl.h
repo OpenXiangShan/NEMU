@@ -38,22 +38,14 @@
 #define MODE_INDEXED 2
 #define MODE_MASK    3
 
-#define VLD(mode, is_signed, s, mmu_mode) vld(mode, is_signed, s, mmu_mode);
-#define VLDX(is_signed, s, mmu_mode) vldx(is_signed, s, mmu_mode);
-#define VLR(is_signed, s, mmu_mode) vlr(is_signed, s, mmu_mode);
-#define VLDFF(mode, is_signed, s, mmu_mode) vldff(mode, is_signed, s, mmu_mode);
-
-void vld(int mode, int is_signed, Decode *s, int mmu_mode);
-void vldx(int is_signed, Decode *s, int mmu_mode);
-void vlr(int is_signed, Decode *s, int mmu_mode);
-void vldff(int mode, int is_signed, Decode *s, int mmu_mode);
+// vector load
+void vld(Decode *s, int mode, int mmu_mode);
+void vldx(Decode *s, int mmu_mode);
+void vlr(Decode *s, int mmu_mode);
+void vldff(Decode *s, int mode, int mmu_mode);
 
 // vector store
-#define VST(mode, mmu_mode) vst(mode, s, mmu_mode);
-#define VSTX(mmu_mode) vstx(s, mmu_mode);
-#define VSR(mmu_mode) vsr(s, mmu_mode);
-
-void vst(int mode, Decode *s, int mmu_mode);
+void vst(Decode *s, int mode, int mmu_mode);
 void vstx(Decode *s, int mmu_mode);
 void vsr(Decode *s, int mmu_mode);
 

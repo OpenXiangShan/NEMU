@@ -151,11 +151,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   if (type != MEM_TYPE_IFETCH) {
     isa_misalign_data_addr_check(addr, len, type);
   }
-#ifdef CONFIG_RVV
-  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
-#else
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
-#endif
     Logm("Checking mmu when MMU_DYN");
     mmu_mode = isa_mmu_check(addr, len, type);
   }
@@ -180,11 +176,7 @@ extern void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bo
 
 void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
   assert(!ISDEF(CONFIG_SHARE));
-#ifdef CONFIG_RVV
-  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && ((struct Decode*)s)->v_is_vx == 0) )) {
-#else
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
-#endif
     Logm("Checking mmu when MMU_DYN for dummy read");
     mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_READ);
   }
@@ -225,11 +217,7 @@ void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
-#ifdef CONFIG_RVV
-  if (unlikely(mmu_mode == MMU_DYNAMIC || (mmu_mode == MMU_TRANSLATE && (s->v_is_vx == 0)))) {
-#else
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
-#endif
     mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
   }
   if (mmu_mode == MMU_DIRECT) {

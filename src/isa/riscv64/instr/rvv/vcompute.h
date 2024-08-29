@@ -358,6 +358,8 @@ def_EHelper(vmvxs) {
 
 def_EHelper(vmvnr) {
   require_vector(true);
+  check_vstart_exception(s);
+
   rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
   int NREG = (*s1) + 1;
   int len = (VLEN >> 6) * NREG;
