@@ -29,6 +29,7 @@
 #include "vcompute_impl.h"
 #include "../local-include/intr.h"
 
+void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 // reference: v_ext_macros.h in riscv-isa-sim
 
 static void isa_emul_check(int emul, int nfields) {
@@ -339,6 +340,9 @@ void vld(int mode, int is_signed, Decode *s, int mmu_mode) {
       }
       for (fn = 0; fn < nf; fn++) {
         addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
+
+        isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
+
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
       }
@@ -412,6 +416,9 @@ void vldx(int is_signed, Decode *s, int mmu_mode) {
       // read data in memory
       addr = base_addr + index + fn * data_width;
       s->v_is_vx = 1;
+
+      isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
+
       rtl_lm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
       s->v_is_vx = 0;
       set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
@@ -571,6 +578,8 @@ void vst(int mode, Decode *s, int mmu_mode) {
         uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
         addr = base_addr + offset;
         if (!fast_vse) {
+          isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
+
           rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         }
 #ifdef DEBUG_FAST_VSE
@@ -635,6 +644,9 @@ void vstx(Decode *s, int mmu_mode) {
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
       addr = base_addr + index + fn * data_width;
       s->v_is_vx = 1;
+
+      isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
+
       rtl_sm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
       s->v_is_vx = 0;
     }
@@ -691,6 +703,9 @@ void vlr(int is_signed, Decode *s, int mmu_mode) {
       // first vreg
       for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
+
+        isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
+
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         idx++;
@@ -700,6 +715,9 @@ void vlr(int is_signed, Decode *s, int mmu_mode) {
     for (; vreg_idx < len; vreg_idx++) {
       for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
+
+        isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
+
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         idx++;
@@ -737,6 +755,9 @@ void vsr(Decode *s, int mmu_mode) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
+
+        isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
+
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
         idx++;
       }
@@ -747,6 +768,9 @@ void vsr(Decode *s, int mmu_mode) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
+
+        isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
+
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
         idx++;
       }
