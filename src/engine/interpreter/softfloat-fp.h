@@ -81,10 +81,34 @@ static inline float32_t f32_min(float32_t a, float32_t b){
   else return(less || isNaNF32UI(b.v) ? a : b);
 }
 
+static inline float16_t f16_minm(float16_t a, float16_t b) {
+  bool less = f16_lt_quiet(a, b) || (f16_eq(a, b) && (a.v & F16_SIGN));
+  if (isNaNF16UI(a.v) || isNaNF16UI(b.v)) return rtlToF16(defaultNaNF16UI);
+  else return (less ? a : b);
+}
+
+static inline float32_t f32_minm(float32_t a, float32_t b) {
+  bool less = f32_lt_quiet(a, b) || (f32_eq(a, b) && (a.v & F32_SIGN));
+  if (isNaNF32UI(a.v) || isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
+  else return (less ? a : b);
+}
+
 static inline float32_t f32_max(float32_t a, float32_t b){
   bool greater = f32_lt_quiet(b, a) || (f32_eq(b, a) && (b.v & F32_SIGN));
   if(isNaNF32UI(a.v) && isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
   else return(greater || isNaNF32UI(b.v) ? a : b);
+}
+
+static inline float16_t f16_maxm(float16_t a, float16_t b) {
+  bool greater = f16_lt_quiet(b, a) || (f16_eq(b, a) && (b.v & F16_SIGN));
+  if (isNaNF16UI(a.v) || isNaNF16UI(b.v)) return rtlToF16(defaultNaNF16UI);
+  else return (greater ? a : b);
+}
+
+static inline float32_t f32_maxm(float32_t a, float32_t b) {
+  bool greater = f32_lt_quiet(b, a) || (f32_eq(b, a) && (b.v & F32_SIGN));
+  if (isNaNF32UI(a.v) || isNaNF32UI(b.v)) return rtlToF32(defaultNaNF32UI);
+  else return (greater ? a : b);
 }
 
 static inline float64_t f64_min(float64_t a, float64_t b){
@@ -93,10 +117,205 @@ static inline float64_t f64_min(float64_t a, float64_t b){
   else return(less || isNaNF64UI(b.v) ? a : b);
 }
 
+static inline float64_t f64_minm(float64_t a, float64_t b) {
+  bool less = f64_lt_quiet(a, b) || (f64_eq(a, b) && (a.v & F64_SIGN));
+  if (isNaNF64UI(a.v) || isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
+  else return (less ? a : b);
+}
+
 static inline float64_t f64_max(float64_t a, float64_t b){
   bool greater = f64_lt_quiet(b, a) || (f64_eq(b, a) && (b.v & F64_SIGN));
   if(isNaNF64UI(a.v) && isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
   else return(greater || isNaNF64UI(b.v) ? a : b);
+}
+
+static inline float64_t f64_maxm(float64_t a, float64_t b) {
+  bool greater = f64_lt_quiet(b, a) || (f64_eq(b, a) && (b.v & F64_SIGN));
+  if (isNaNF64UI(a.v) || isNaNF64UI(b.v)) return rtlToF64(defaultNaNF64UI);
+  else return (greater ? a : b);
+}
+
+static inline float16_t f16_fli(uint16_t a) {
+  const uint64_t bits[32] = {
+    [0b00000] = 0xFFFFFFFFFFFFBC00, /* -1.0 */
+    [0b00001] = 0xFFFFFFFFFFFF0400, /* minimum positive normal */
+    [0b00010] = 0xFFFFFFFFFFFF0100, /* 1.0 * 2^-16 */
+    [0b00011] = 0xFFFFFFFFFFFF0200, /* 1.0 * 2^-15 */
+    [0b00100] = 0xFFFFFFFFFFFF1C00, /* 1.0 * 2^-8 */
+    [0b00101] = 0xFFFFFFFFFFFF2000, /* 1.0 * 2^-7 */
+    [0b00110] = 0xFFFFFFFFFFFF2C00, /* 1.0 * 2^-4 */
+    [0b00111] = 0xFFFFFFFFFFFF3000, /* 1.0 * 2^-3 */
+    [0b01000] = 0xFFFFFFFFFFFF3400, /* 0.25 */
+    [0b01001] = 0xFFFFFFFFFFFF3500, /* 0.3125 */
+    [0b01010] = 0xFFFFFFFFFFFF3600, /* 0.375 */
+    [0b01011] = 0xFFFFFFFFFFFF3700, /* 0.4375 */
+    [0b01100] = 0xFFFFFFFFFFFF3800, /* 0.5 */
+    [0b01101] = 0xFFFFFFFFFFFF3900, /* 0.625 */
+    [0b01110] = 0xFFFFFFFFFFFF3A00, /* 0.75 */
+    [0b01111] = 0xFFFFFFFFFFFF3B00, /* 0.875 */
+    [0b10000] = 0xFFFFFFFFFFFF3C00, /* 1.0 */
+    [0b10001] = 0xFFFFFFFFFFFF3D00, /* 1.25 */
+    [0b10010] = 0xFFFFFFFFFFFF3E00, /* 1.5 */
+    [0b10011] = 0xFFFFFFFFFFFF3F00, /* 1.75 */
+    [0b10100] = 0xFFFFFFFFFFFF4000, /* 2.0 */
+    [0b10101] = 0xFFFFFFFFFFFF4100, /* 2.5 */
+    [0b10110] = 0xFFFFFFFFFFFF4200, /* 3 */
+    [0b10111] = 0xFFFFFFFFFFFF4400, /* 4 */
+    [0b11000] = 0xFFFFFFFFFFFF4800, /* 8 */
+    [0b11001] = 0xFFFFFFFFFFFF4C00, /* 16 */
+    [0b11010] = 0xFFFFFFFFFFFF5800, /* 2^7 */
+    [0b11011] = 0xFFFFFFFFFFFF5C00, /* 2^8 */
+    [0b11100] = 0xFFFFFFFFFFFF7800, /* 2^15 */
+    [0b11101] = 0xFFFFFFFFFFFF7C00, /* +inf (2^16 is not expressible) */
+    [0b11110] = 0xFFFFFFFFFFFF7C00, /* +inf */
+    [0b11111] = 0xFFFFFFFFFFFF7E00
+  };
+  return rtlToF16(bits[a]);
+}
+
+static inline float32_t f32_fli(uint32_t a) {
+  const uint64_t bits[32] = {
+    [0b00000] = 0xFFFFFFFFbf800000,  /* -1.0 */
+    [0b00001] = 0xFFFFFFFF00800000,  /* minimum positive normal */
+    [0b00010] = 0xFFFFFFFF37800000,  /* 1.0 * 2^-16 */
+    [0b00011] = 0xFFFFFFFF38000000,  /* 1.0 * 2^-15 */
+    [0b00100] = 0xFFFFFFFF3b800000,  /* 1.0 * 2^-8  */
+    [0b00101] = 0xFFFFFFFF3c000000,  /* 1.0 * 2^-7  */
+    [0b00110] = 0xFFFFFFFF3d800000,  /* 1.0 * 2^-4  */
+    [0b00111] = 0xFFFFFFFF3e000000,  /* 1.0 * 2^-3  */
+    [0b01000] = 0xFFFFFFFF3e800000,  /* 0.25 */
+    [0b01001] = 0xFFFFFFFF3ea00000,  /* 0.3125 */
+    [0b01010] = 0xFFFFFFFF3ec00000,  /* 0.375 */
+    [0b01011] = 0xFFFFFFFF3ee00000,  /* 0.4375 */
+    [0b01100] = 0xFFFFFFFF3f000000,  /* 0.5 */
+    [0b01101] = 0xFFFFFFFF3f200000,  /* 0.625 */
+    [0b01110] = 0xFFFFFFFF3f400000,  /* 0.75 */
+    [0b01111] = 0xFFFFFFFF3f600000,  /* 0.875 */
+    [0b10000] = 0xFFFFFFFF3f800000,  /* 1.0 */
+    [0b10001] = 0xFFFFFFFF3fa00000,  /* 1.25 */
+    [0b10010] = 0xFFFFFFFF3fc00000,  /* 1.5 */
+    [0b10011] = 0xFFFFFFFF3fe00000,  /* 1.75 */
+    [0b10100] = 0xFFFFFFFF40000000,  /* 2.0 */
+    [0b10101] = 0xFFFFFFFF40200000,  /* 2.5 */
+    [0b10110] = 0xFFFFFFFF40400000,  /* 3 */
+    [0b10111] = 0xFFFFFFFF40800000,  /* 4 */
+    [0b11000] = 0xFFFFFFFF41000000,  /* 8 */
+    [0b11001] = 0xFFFFFFFF41800000,  /* 16 */
+    [0b11010] = 0xFFFFFFFF43000000,  /* 2^7 */
+    [0b11011] = 0xFFFFFFFF43800000,  /* 2^8 */
+    [0b11100] = 0xFFFFFFFF47000000,  /* 2^15 */
+    [0b11101] = 0xFFFFFFFF47800000,  /* 2^16 */
+    [0b11110] = 0xFFFFFFFF7f800000,  /* +inf */
+    [0b11111] = 0xFFFFFFFF7fc00000
+  };
+
+  return rtlToF32(bits[a]);
+}
+
+static inline float64_t f64_fli(uint64_t a) {
+  const uint64_t bits[32] = {
+    [0b00000] = 0xbff0000000000000ull,  /* -1.0 */
+    [0b00001] = 0x0010000000000000ull,  /* minimum positive normal */
+    [0b00010] = 0x3ef0000000000000ull,  /* 1.0 * 2^-16 */
+    [0b00011] = 0x3f00000000000000ull,  /* 1.0 * 2^-15 */
+    [0b00100] = 0x3f70000000000000ull,  /* 1.0 * 2^-8  */
+    [0b00101] = 0x3f80000000000000ull,  /* 1.0 * 2^-7  */
+    [0b00110] = 0x3fb0000000000000ull,  /* 1.0 * 2^-4  */
+    [0b00111] = 0x3fc0000000000000ull,  /* 1.0 * 2^-3  */
+    [0b01000] = 0x3fd0000000000000ull,  /* 0.25 */
+    [0b01001] = 0x3fd4000000000000ull,  /* 0.3125 */
+    [0b01010] = 0x3fd8000000000000ull,  /* 0.375 */
+    [0b01011] = 0x3fdc000000000000ull,  /* 0.4375 */
+    [0b01100] = 0x3fe0000000000000ull,  /* 0.5 */
+    [0b01101] = 0x3fe4000000000000ull,  /* 0.625 */
+    [0b01110] = 0x3fe8000000000000ull,  /* 0.75 */
+    [0b01111] = 0x3fec000000000000ull,  /* 0.875 */
+    [0b10000] = 0x3ff0000000000000ull,  /* 1.0 */
+    [0b10001] = 0x3ff4000000000000ull,  /* 1.25 */
+    [0b10010] = 0x3ff8000000000000ull,  /* 1.5 */
+    [0b10011] = 0x3ffc000000000000ull,  /* 1.75 */
+    [0b10100] = 0x4000000000000000ull,  /* 2.0 */
+    [0b10101] = 0x4004000000000000ull,  /* 2.5 */
+    [0b10110] = 0x4008000000000000ull,  /* 3 */
+    [0b10111] = 0x4010000000000000ull,  /* 4 */
+    [0b11000] = 0x4020000000000000ull,  /* 8 */
+    [0b11001] = 0x4030000000000000ull,  /* 16 */
+    [0b11010] = 0x4060000000000000ull,  /* 2^7 */
+    [0b11011] = 0x4070000000000000ull,  /* 2^8 */
+    [0b11100] = 0x40e0000000000000ull,  /* 2^15 */
+    [0b11101] = 0x40f0000000000000ull,  /* 2^16 */
+    [0b11110] = 0x7ff0000000000000ull,  /* +inf */
+    [0b11111] = defaultNaNF64UI
+  };
+  return rtlToF64(bits[a]);
+}
+
+static inline int64_t f64_fcvtmod(float64_t a) {
+  union ui64_f64 uA;
+  uint_fast64_t uiA;
+  uA.f = a;
+  uiA = uA.ui;
+
+  uint32_t sign = signF64UI(uiA);
+  uint32_t exp  = expF64UI(uiA);
+  uint64_t frac = fracF64UI(uiA);
+
+  bool inexact = false;
+  bool invalid = false;
+
+  if (exp == 0) {
+    inexact = (frac != 0);
+    frac = 0;
+  } else if (exp == 0x7ff) {
+    /* inf of NaN */
+    invalid = true;
+    frac = 0;
+  } else {
+    int true_exp = exp - 1023;
+    int shift = true_exp - 52;
+
+    /* Restore inplicit bit */
+    frac |= 1ull << 52;
+
+    /* Shift the fraction into place. */
+    if (shift >= 64) {
+      /* The fraction is shifted out entirelu. */
+      frac = 0;
+    } else if ((shift >= 0) && (shift < 64)) {
+      /* The number is so large we must shift the fraction left. */
+      frac <<= shift;
+    } else if ((shift > -64) && (shift < 0)) {
+      /* Normal case -- shift right and notice if bits shift out. */
+      inexact = (frac << (64 + shift)) != 0;
+      frac >>= -shift;
+    } else {
+      /* The fraction is shifted out entirely. */
+      frac = 0;
+      inexact = true;
+    }
+
+    /* Handle overflows */
+    if  (true_exp > 31 || frac > (sign ? 0x80000000ull : 0x7fffffff)) {
+      /* Overflow, for which this operation raises invalid. */
+      invalid = true;
+      inexact = false; /* invalid takes precedence */
+    }
+
+    /* Honor the sign. */
+    if (sign) {
+      frac = -frac;
+    }
+  }
+  
+  if (inexact) {
+    softfloat_exceptionFlags |= softfloat_flag_inexact;
+  }
+  
+  if (invalid) {
+    softfloat_exceptionFlags |= softfloat_flag_invalid;
+  }
+
+  return SEXT(frac, 32);
 }
 
 static inline float16_t  my_f32_to_f16 (float32_t a) {

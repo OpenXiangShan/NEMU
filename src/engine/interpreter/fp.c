@@ -79,6 +79,14 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_MIN: *dest = f16_min(fsrc1, fsrc2).v; break;
       case FPCALL_MAX: *dest = f16_max(fsrc1, fsrc2).v; break;
 
+      case FPCALL_FLI:  *dest = f16_fli(*src1).v; break;
+      case FPCALL_MINM: *dest = f16_minm(fsrc1, fsrc2).v; break;
+      case FPCALL_MAXM: *dest = f16_maxm(fsrc1, fsrc2).v; break;
+      case FPCALL_FROUND:   *dest = f16_roundToInt(fsrc1, softfloat_roundingMode, false).v; break;
+      case FPCALL_FROUNDNX: *dest = f16_roundToInt(fsrc1, softfloat_roundingMode,  true).v; break;
+      case FPCALL_FLEQ: *dest = f16_le_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FLTQ: *dest = f16_lt_quiet(fsrc1, fsrc2); break; 
+
       case FPCALL_SQRT: *dest = f16_sqrt(fsrc1).v; break;
       case FPCALL_MADD: *dest = f16_mulAdd(fsrc1, fsrc2, rtlToF16(*dest)).v; break;
 
@@ -111,6 +119,14 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_MIN: *dest = f32_min(fsrc1, fsrc2).v; break;
       case FPCALL_MAX: *dest = f32_max(fsrc1, fsrc2).v; break;
 
+      case FPCALL_FLI:  *dest = f32_fli(*src1).v; break;
+      case FPCALL_MINM: *dest = f32_minm(fsrc1, fsrc2).v; break;
+      case FPCALL_MAXM: *dest = f32_maxm(fsrc1, fsrc2).v; break;
+      case FPCALL_FROUND:   *dest = f32_roundToInt(fsrc1, softfloat_roundingMode, false).v; break;
+      case FPCALL_FROUNDNX: *dest = f32_roundToInt(fsrc1, softfloat_roundingMode,  true).v; break;
+      case FPCALL_FLEQ: *dest = f32_le_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FLTQ: *dest = f32_lt_quiet(fsrc1, fsrc2); break;
+
       case FPCALL_SQRT: *dest = f32_sqrt(fsrc1).v; break;
 
       case FPCALL_MADD: *dest = f32_mulAdd(fsrc1, fsrc2, rtlToF32(*dest)).v; break;
@@ -142,6 +158,15 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_DIV: *dest = f64_div(fsrc1, fsrc2).v; break;
       case FPCALL_MAX: *dest = f64_max(fsrc1, fsrc2).v; break;
       case FPCALL_MIN: *dest = f64_min(fsrc1, fsrc2).v; break;
+
+      case FPCALL_FLI:  *dest = f64_fli(*src1).v; break;
+      case FPCALL_MINM: *dest = f64_minm(fsrc1, fsrc2).v; break;
+      case FPCALL_MAXM: *dest = f64_maxm(fsrc1, fsrc2).v; break;
+      case FPCALL_FROUND:   *dest = f64_roundToInt(fsrc1, softfloat_roundingMode, false).v; break;
+      case FPCALL_FROUNDNX: *dest = f64_roundToInt(fsrc1, softfloat_roundingMode,  true).v; break;
+      case FPCALL_FLEQ: *dest = f64_le_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FLTQ: *dest = f64_lt_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FCVTMOD: *dest = f64_fcvtmod(fsrc1); break;
 
       case FPCALL_SQRT: *dest = f64_sqrt(fsrc1).v; break;
 
