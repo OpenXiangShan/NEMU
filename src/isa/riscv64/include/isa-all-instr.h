@@ -129,6 +129,13 @@
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_CBO
+#define CBO_INSTR_TERNARY(f) \
+  f(cbo_zero) f(cbo_zero_mmu) f(cbo_inval) f(cbo_flush) f(cbo_clean)
+#else // CONFIG_RV_CBO
+#define CBO_INSTR_TERNARY(f)
+#endif // CONFIG_RV_CBO
+
 #ifdef CONFIG_RVB
 #define BITMANIP_INSTR_TERNARY(f) \
   f(andn) f(orn) f(xnor) \
@@ -324,6 +331,7 @@
   CRYPTO_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
+  CBO_INSTR_TERNARY(f) \
   ZIMOP_INSTR_TERNARY(f) \
   ZFH_INSTR_TERNARY(f)
 
