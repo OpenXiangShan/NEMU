@@ -42,4 +42,7 @@
 #ifdef CONFIG_RV_CBO
 #include "../instr/rvcbo/exec.h"
 #endif
+#ifdef CONFIG_RV_ZFA
+#include "../instr/rvzfa/exec.h"
+#endif
 #include "../instr/special.h"

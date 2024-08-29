@@ -23,6 +23,9 @@ static int table_fmadd_h_dispatch(Decode *s);
 #ifdef CONFIG_RV_ZFH_MIN
 static int table_op_zfh(Decode *s);
 #endif
+#ifdef CONFIG_RV_ZFA
+static int table_op_zfa(Decode *s);
+#endif
 static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
@@ -217,6 +220,13 @@ def_THelper(fstore) {
 def_THelper(op_fp) {
 #ifndef CONFIG_FPU_NONE
   if (!fp_enable()) return table_rt_inv(s);
+  #ifdef CONFIG_RV_ZFA
+    if ((s->isa.instr.fp.funct5 == 0b11110 && s->isa.instr.fp.rs2 == 0b00001) ||
+        (s->isa.instr.fp.funct5 == 0b00101 && (s->isa.instr.fp.rm & 0x2)) ||
+        (s->isa.instr.fp.funct5 == 0b01000 && ((s->isa.instr.fp.rs2 == 0b00100) || (s->isa.instr.fp.rs2 == 0b00101))) ||
+        (s->isa.instr.fp.funct5 == 0b11000 && s->isa.instr.fp.rs2 == 0b01000 && s->isa.instr.fp.rm == 0b001) ||
+        (s->isa.instr.fp.funct5 == 0b10100 && (s->isa.instr.fp.rm & 0x4))) return table_op_zfa(s);
+  #endif
   #ifdef CONFIG_RV_ZFH_MIN
     if ((s->isa.instr.fp.fmt == 0b00 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
         (s->isa.instr.fp.fmt == 0b01 && s->isa.instr.fp.funct5 == 0b01000 && s->isa.instr.fp.rs2 == 0b00010) ||
