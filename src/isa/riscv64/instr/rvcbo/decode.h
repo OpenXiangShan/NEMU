@@ -1,5 +1,5 @@
 /***************************************************************************************
-* Copyright (c) 2014-2021 Zihao Yu, Nanjing University
+* Copyright (c) 2020-2024 Institute of Computing Technology, Chinese Academy of Sciences
 *
 * NEMU is licensed under Mulan PSL v2.
 * You can use this software according to the terms and conditions of the Mulan PSL v2.
