@@ -257,8 +257,8 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
         // superpage
         word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
         if ((pg_base & pg_mask) != 0) {
-          // missaligned superpage
-          return MEM_RET_FAIL;
+          // misaligned superpage
+          break;
         }
         pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
       }
