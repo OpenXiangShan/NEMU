@@ -57,32 +57,9 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
   // IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
 
   // funct3 != 0: CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI
-
-  // read the CSR
-  rtl_hostcall(s, HOSTCALL_CSR, s0, NULL, NULL, id);
-
-  // write the CSR
-  // According to RISC-V spec, CSRRS[I], CSRRC[I] will not write to the CSRs.
-  // (1) For both CSRRS and CSRRC, if rs1=x0, then the instruction will not
-  // write to the CSR at all, and so shall not cause any of the side effects
-  // that might otherwise occur on a CSR write, such as raising illegal
-  // instruction exceptions on accesses to read-only CSRs.
-  // (2) For CSRRSI and CSRRCI, if the uimm[4:0] field is zero, then these
-  // instructions will not write to the CSR, and shall not cause any of the
-  // side effects that might otherwise occur on a CSR write.
-  uint32_t is_csrrs_or_csrrc = funct3 & 0x2;
-  if (!is_csrrs_or_csrrc || s->isa.instr.i.rs1 != 0) {
-    int imm = funct3 & 0x4;
-    int op  = funct3 & 0x3;
-    if (imm) rtl_li(s, s1, s->isa.instr.i.rs1);
-    else rtl_mv(s, s1, src1);
-    switch (op) {
-      case 2: rtl_or(s, s1, s0, s1); break;
-      case 3: rtl_not(s, s1, s1); rtl_and(s, s1, s0, s1); break;
-    }
-    rtl_hostcall(s, HOSTCALL_CSR, NULL, s1, NULL, id);
-  }
-
+  rtl_li(s, s1, BITS(funct3, 2, 2) ? s->isa.instr.i.rs1 : *src1);
+  rtl_li(s, s2, id);
+  rtl_hostcall(s, HOSTCALL_CSR, s0, s1, s2, s->isa.instr.val);
   // update dest register
   rtl_mv(s, dest, s0);
 

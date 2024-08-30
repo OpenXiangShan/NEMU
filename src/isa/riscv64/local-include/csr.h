@@ -20,6 +20,13 @@
 #include <common.h>
 #include <memory/vaddr.h>
 
+#define FUNCT3_CSRRW  1
+#define FUNCT3_CSRRS  2
+#define FUNCT3_CSRRC  3
+#define FUNCT3_CSRRWI 5
+#define FUNCT3_CSRRSI 6
+#define FUNCT3_CSRRCI 7
+
 /**
  * Mapping between CSR name and addr
  * 
