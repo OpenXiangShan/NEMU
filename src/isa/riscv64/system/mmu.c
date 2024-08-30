@@ -34,7 +34,9 @@ typedef union PageTableEntry {
     uint32_t d   : 1;
     uint32_t rsw : 2;
     uint64_t ppn :44;
-    uint32_t pad :10;
+    uint32_t pad : 7;
+    uint32_t pbmt: 2;
+    uint32_t n   : 1;
   };
   uint64_t val;
 } PTE;
@@ -327,11 +329,19 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
       goto bad;
+    } else if (ISNDEF(CONFIG_RV_SVPBMT) && pte.pbmt) {
+      goto bad;
+    } else if (pte.pbmt == 3) {
+      goto bad;
+    } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
+      goto bad;
     }
     if (pte.r || pte.x) { // is leaf
       break;
     } else { // not leaf
-      if (pte.a || pte.d || pte.u) { goto bad; }
+      if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
+        goto bad; 
+      }
       level --;
       if (level < 0) { goto bad; }
     }
