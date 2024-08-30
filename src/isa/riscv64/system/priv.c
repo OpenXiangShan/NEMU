@@ -149,6 +149,16 @@ static inline uint8_t csr_normal_permit_check(uint32_t addr) {
     MUXDEF(CONFIG_PANIC_ON_UNIMP_CSR, panic("[NEMU] unimplemented CSR 0x%x", addr), ex.ex.ii = 1);
   }
 
+  // VS access Custom csr will cause EX_II
+  #ifdef CONFIG_RVH
+  bool is_custom_csr =  (addr >= 0x5c0 && addr <= 0x5ff) ||
+                        (addr >= 0x9c0 && addr <= 0x9ff) ||
+                        (addr >= 0xdc0 && addr <= 0xdff);
+  if(cpu.v && cpu.mode == MODE_S && is_custom_csr){
+    ex.ex.ii = 1;
+  }
+  #endif // CONFIG_RVH
+
   // M/HS/VS/HU/VU access debug csr will cause EX_II
   bool isDebugReg = BITS(addr, 11, 4) == 0x7b; // addr(11,4)
   if(isDebugReg)
