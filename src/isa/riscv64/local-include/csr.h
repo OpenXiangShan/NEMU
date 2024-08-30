@@ -157,7 +157,12 @@
 #endif
 
 #define CSRS_S_XIANGSHAN_CTRL(f) \
-  CSRS_S_XIANGSHAN_SRNCTL(f)
+  CSRS_S_XIANGSHAN_SRNCTL(f) \
+  f(sbpctl  ,   0x5c0) \
+  f(spfctl  ,   0x5c1) \
+  f(slvpredctl, 0x5c2) \
+  f(smblockctl, 0x5c3) \
+  f(sfetchctl,  0x9e0)    
 
 #define CSRS_S_CUSTOM_1(f) \
   CSRS_S_XIANGSHAN_CTRL(f)
@@ -932,7 +937,7 @@ CSR_STRUCT_END(scountovf)
 /** Supervisor Custom CSRs **/
 
 #ifdef CONFIG_RV_SVINVAL
-// NOTE: srcctl is a supervisor custom read/write csr
+// NOTE: srnctl is a supervisor custom read/write csr
 // to fix xiangshan that:
 // rnctl: move elimination,
 CSR_STRUCT_START(srnctl)
@@ -940,6 +945,21 @@ CSR_STRUCT_START(srnctl)
   uint64_t reserve :63;
 CSR_STRUCT_END(srnctl)
 #endif
+
+CSR_STRUCT_START(sbpctl)
+CSR_STRUCT_END(sbpctl)
+
+CSR_STRUCT_START(spfctl)
+CSR_STRUCT_END(spfctl)
+
+CSR_STRUCT_START(slvpredctl)
+CSR_STRUCT_END(slvpredctl)
+
+CSR_STRUCT_START(smblockctl)
+CSR_STRUCT_END(smblockctl)
+
+CSR_STRUCT_START(sfetchctl)
+CSR_STRUCT_END(sfetchctl)
 
 /** Supervisor Timer Register**/
 #ifdef CONFIG_RV_SSTC
