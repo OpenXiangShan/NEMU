@@ -1233,7 +1233,12 @@ static inline void vec_permit_check(word_t *dest_access) {
 }
 #endif // CONFIG_RVV
 
-static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
+static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
+  ISADecodeInfo isa;
+  isa.instr.val = instr;
+  uint32_t rs1    = isa.instr.i.rs1; // uimm field and rs1 field are the same one
+  uint32_t rd     = isa.instr.i.rd;
+  uint32_t funct3 = isa.instr.i.funct3;
   word_t *csr = csr_decode(csrid);
 #ifdef CONFIG_RV_SMSTATEEN
   smstateen_extension_permit_check(csr);
@@ -1247,15 +1252,36 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid) {
 #ifdef CONFIG_RVV
   vec_permit_check(csr);
 #endif // CONFIG_RVV
-  if (!csr_is_legal(csrid, src != NULL)) {
+  bool is_write = !( BITS(funct3, 1, 1) && (rs1 == 0) );
+  if (!csr_is_legal(csrid, is_write)) {
     Logti("Illegal csr id %u", csrid);
     longjmp_exception(EX_II);
     return;
   }
-  // Log("Decoding csr id %u to %p", csrid, csr);
-  word_t tmp = (src != NULL ? *src : 0);
-  if (dest != NULL) { *dest = csr_read(csr); }
-  if (src != NULL) { csr_write(csr, tmp); }
+  switch (funct3) {
+    case FUNCT3_CSRRW:
+    case FUNCT3_CSRRWI:
+      if (rd) {
+        *dest = csr_read(csr);
+      }
+      csr_write(csr, *src);
+      break;
+    case FUNCT3_CSRRS:
+    case FUNCT3_CSRRSI:
+      *dest = csr_read(csr);
+      if (rs1) {
+        csr_write(csr, *src | *dest);
+      }
+      break;
+    case FUNCT3_CSRRC:
+    case FUNCT3_CSRRCI:
+      *dest = csr_read(csr);
+      if (rs1) {
+        csr_write(csr, (~*src) & *dest);
+      }
+      break;
+    default: panic("funct3 = %d is not supported for csrrw instruction\n", funct3);
+  }
 }
 
 static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
@@ -1415,7 +1441,7 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src1, imm); return;
+    case HOSTCALL_CSR: csrrw(dest, src1, *src2, imm); return;
 #ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
       Assert(imm == 0x8, "Unsupported exception = %ld", imm);
