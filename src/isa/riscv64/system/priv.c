@@ -636,6 +636,7 @@ if (is_read(hvip))           { return mip->val & HVIP_MASK;}
 #ifdef CONFIG_RV_AIA
 if (is_read(hvien))          { return hvien->val & HVIEN_MSAK; }
 #endif
+if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longjmp_exception(EX_II); }
 if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
 if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1; }
 if (is_read(vsie))           { return get_vsie(); }
@@ -1063,6 +1064,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 
 #ifdef CONFIG_RVH
   else if (is_write(hgatp)) {
+    if ( mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) {
+      longjmp_exception(EX_II);
+    }
     hgatp_t new_val = (hgatp_t)src;
     // vmid and ppn WARL in the normal way, regardless of new_val.mode
     hgatp->vmid = new_val.vmid;
