@@ -1571,10 +1571,19 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           ||(cpu.v && cpu.mode == MODE_U && mstatus->tw == 0)){
         longjmp_exception(EX_VI);
       }
-#endif
-      if ((cpu.mode < MODE_M && mstatus->tw == 1) || (cpu.mode == MODE_U)){
+      // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+      if (!cpu.v && cpu.mode == MODE_U) {
         longjmp_exception(EX_II);
-      } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+      }
+#else // CONFIG_RVH
+      // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+      if (cpu.mode == MODE_U) {
+        longjmp_exception(EX_II);
+      }
+#endif // CONFIG_RVH
+      if (cpu.mode < MODE_M && mstatus->tw){
+        longjmp_exception(EX_II);
+      }
     break;
 #endif // CONFIG_MODE_USER
     case -1: // fence.i
