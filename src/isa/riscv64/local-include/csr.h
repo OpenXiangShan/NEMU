@@ -160,7 +160,13 @@
   CSRS_S_XIANGSHAN_SRNCTL(f)
 
 #define CSRS_S_CUSTOM_1(f) \
-  CSRS_S_XIANGSHAN_CTRL(f)
+  CSRS_S_XIANGSHAN_CTRL(f) \
+  f(sbpctl  ,   0x5c0) \
+  f(spfctl  ,   0x5c1) \
+  f(slvpredctl, 0x5c2) \
+  f(smblockctl, 0x5c3) \
+  f(sfetchctl,  0x9e0)    
+
 
 /** Supervisor Timer Register **/
 #ifdef CONFIG_RV_SSTC
@@ -828,14 +834,28 @@ CSR_STRUCT_END(mvip)
 /* Supervisor-level CSR */
 
 CSR_STRUCT_START(sstatus)
-  uint64_t uie : 1;
-  uint64_t sie : 1;
-  uint64_t pad0: 2;
-  uint64_t upie: 1;
-  uint64_t spie: 1;
-  uint64_t pad1: 2;
-  uint64_t spp : 1;
-  uint64_t pad2: 4;
+  uint64_t uie : 1; // [0]
+  uint64_t sie : 1; // [1]
+  uint64_t     : 2; // [3:2]
+  uint64_t upie: 1; // [4]
+  uint64_t spie: 1; // [5]
+  uint64_t ube : 1; // [6]
+  uint64_t     : 1; // [7]
+  uint64_t spp : 1; // [8]
+  uint64_t vs  : 2; // [10:9]
+  uint64_t     : 2; // [12:11]
+  uint64_t fs  : 2; // [14:13]
+  uint64_t xs  : 2; // [16:15]
+  uint64_t     : 1; // [17]
+  uint64_t sum : 1; // [18]
+  uint64_t mxr : 1; // [19]
+  uint64_t     : 3; // [22:20]
+  uint64_t spelp:1; // [23]
+  uint64_t sdt : 1; // [24]
+  uint64_t     : 7; // [31:25]
+  uint64_t uxl : 2; // [33:32]
+  uint64_t     : 29;// [62:34]
+  uint64_t sd  : 1; // [63] 
 CSR_STRUCT_END(sstatus)
 
 typedef tvec_t stvec_t;
@@ -901,7 +921,7 @@ CSR_STRUCT_END(scountovf)
 /** Supervisor Custom CSRs **/
 
 #ifdef CONFIG_RV_SVINVAL
-// NOTE: srcctl is a supervisor custom read/write csr
+// NOTE: srnctl is a supervisor custom read/write csr
 // to fix xiangshan that:
 // rnctl: move elimination,
 CSR_STRUCT_START(srnctl)
@@ -909,6 +929,21 @@ CSR_STRUCT_START(srnctl)
   uint64_t reserve :63;
 CSR_STRUCT_END(srnctl)
 #endif
+
+CSR_STRUCT_START(sbpctl)
+CSR_STRUCT_END(sbpctl)
+
+CSR_STRUCT_START(spfctl)
+CSR_STRUCT_END(spfctl)
+
+CSR_STRUCT_START(slvpredctl)
+CSR_STRUCT_END(slvpredctl)
+
+CSR_STRUCT_START(smblockctl)
+CSR_STRUCT_END(smblockctl)
+
+CSR_STRUCT_START(sfetchctl)
+CSR_STRUCT_END(sfetchctl)
 
 /** Supervisor Timer Register**/
 #ifdef CONFIG_RV_SSTC
@@ -1370,6 +1405,7 @@ MAP(CSRS, CSRS_DECL)
   #define ISELECT_2F_MASK 0x2F
   #define ISELECT_3F_MASK 0x3F
   #define ISELECT_6F_MASK 0x6F
+  #define ISELECT_7F_MASK 0x7F
   #define ISELECT_MAX_MASK 0xFF
   #define VSISELECT_MAX_MASK 0x1FF
 #endif // CONFIG_RV_IMSIC

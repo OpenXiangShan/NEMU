@@ -33,6 +33,36 @@ uint64_t get_abs_instr_count();
 
 rtlreg_t csr_array[4096] = {};
 
+#define T true
+#define F false
+#ifdef CONFIG_RVH
+// [cpu.v][cpu.priv][csr priv]
+bool access_table[2][4][4] = {
+  {
+    {T, F, F, F},
+    {T, T, T, F},
+    {F, F, F, F},
+    {T, T, T, T}
+  },
+  {
+    {T, F, F, F},
+    {T, T, F, F},
+    {F, F, F, F},
+    {T, T, T, T},
+  }
+};
+#else
+// [cpu.priv][csr priv]
+bool access_table[4][4] = {
+  {T, F, F, F},
+  {T, T, F, F},
+  {F, F, F, F},
+  {T, T, T, T}
+};
+#endif
+#undef T
+#undef F
+
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
 
@@ -61,84 +91,6 @@ void init_trigger() {
 }
 #endif // CONFIG_RV_SDTRIG
 
-// check s/h/mcounteren for counters, throw exception if counter is not enabled.
-// also check h/mcounteren h/menvcfg for sstc
-static inline void csr_counter_enable_check(uint32_t addr) {
-  int count_bit = 1 << (addr - 0xC00);
-  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == 0x14D) || (addr == 0x24D), 0);
-
-  if (is_sstc_csr) {
-      count_bit = 1 << 1; // counteren.TM
-  }
-
-  // priv-mode & counter-enable -> exception-type
-  // | MODE         | VU    | VS    | U     | S/HS  | M     |
-  // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    | (counters & s/vstimecmp)
-  // | ~menvccfg    | EX_II | EX_II | EX_II | EX_II | OK    | (s/vstimecmp)
-  // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    | (counters & stimecmp)
-  // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    | (counters)
-  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (is_sstc_csr && !menvcfg->stce))) {
-    Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
-    longjmp_exception(EX_II);
-  }
-
-  #ifdef CONFIG_RVH
-    if (cpu.v && (!(count_bit & hcounteren->val) || (is_sstc_csr && !henvcfg->stce))) {
-      Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
-      longjmp_exception(EX_VI);
-    }
-  #endif // CONFIG_RVH
-
-  if (cpu.mode < MODE_S && !(count_bit & scounteren->val) && !is_sstc_csr) {
-    Logti("Illegal CSR accessing (0x%X): the bit in scounteren is not set", addr);
-    #ifdef CONFIG_RVH
-      if (cpu.v) {
-        longjmp_exception(EX_VI);
-      }
-    #endif // CONFIG_RVH
-    longjmp_exception(EX_II);
-  }
-}
-
-static inline bool csr_is_legal(uint32_t addr, bool need_write) {
-  assert(addr < 4096);
-  // Attempts to access a non-existent CSR raise an illegal instruction exception.
-  if(!csr_exist[addr]) {
-#ifdef CONFIG_PANIC_ON_UNIMP_CSR
-    panic("[NEMU] unimplemented CSR 0x%x", addr);
-#endif
-    return false;
-  }
-#ifdef CONFIG_RV_SDTRIG
-  bool isDebugReg = ((addr >> 4) & 0xff) == 0x7b; // addr(11,4)
-  if(isDebugReg)
-    return false;
-#endif
-  // Attempts to access a CSR without appropriate privilege level
-  int lowest_access_priv_level = (addr & 0b11 << 8) >> 8; // addr(9,8)
-#ifdef CONFIG_RVH
-  int priv = cpu.mode == MODE_S && !cpu.v ? MODE_HS : cpu.mode;
-  if(priv < lowest_access_priv_level){
-    if(cpu.v && lowest_access_priv_level <= MODE_HS)
-      longjmp_exception(EX_VI);
-    return false;
-  }
-#else
-  if (!(cpu.mode >= lowest_access_priv_level)) {
-    return false;
-  }
-#endif
-  // or to write a read-only register also raise illegal instruction exceptions.
-  if (need_write && (addr >> 10) == 0x3) {
-    return false;
-  }
-  // Attempts to access unprivileged counters without s/h/mcounteren
-  if ((addr >= 0xC00 && addr <= 0xC1F) || (addr == 0x14D) || (addr == 0x24D)) {
-    csr_counter_enable_check(addr);
-  }
-
-  return true;
-}
 
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
@@ -619,9 +571,6 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(stval))   { return vstval->val;}
   else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
   else if (is_read(satp))    {
-    if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
-      longjmp_exception(EX_VI);
-    }else
       return vsatp->val;
   }
 }
@@ -633,6 +582,9 @@ if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
+if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1; }
+if (is_read(vsie))           { return (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;}
 #ifdef CONFIG_RV_AIA
 if (is_read(hvien))          { return hvien->val & HVIEN_MSAK; }
 #endif
@@ -703,7 +655,7 @@ if (is_read(vsie))           { return get_vsie(); }
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
 #endif
-  if (is_read(satp) && cpu.mode == MODE_S && mstatus->tvm == 1) { longjmp_exception(EX_II); }
+
 #ifdef CONFIG_RV_SDTRIG
   if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val ^
     (cpu.TM->triggers[tselect->val].tdata1.mcontrol.hit << 20); }
@@ -785,9 +737,6 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if (is_write(stval))   { vstval->val = src;}
     else if (is_write(sip))     { mip->val = mask_bitset(mip->val, MIP_VSSIP, src << 1);}
     else if (is_write(satp))    {
-      if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
-        longjmp_exception(EX_VI);
-      }
       vsatp_t new_val = (vsatp_t)src;
       // legal mode
 #ifdef CONFIG_RV_SV48
@@ -837,9 +786,6 @@ static inline void csr_write(word_t *dest, word_t src) {
   }else if(is_write(vstval)){
     vstval->val = src;
   }else if(is_write(vsatp)){
-    if (cpu.mode == MODE_S && hstatus->vtvm == 1) {
-      longjmp_exception(EX_VI);
-    }
     vsatp_t new_val = (vsatp_t)src;
     // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
     update_vsatp(new_val);
@@ -1117,21 +1063,160 @@ word_t csrid_read(uint32_t csrid) {
   return csr_read(csr_decode(csrid));
 }
 
-// VS/VU access stateen should be EX_II when mstateen0->se0 is false.
-// If smstateen check after csr_is_legal, the exception type will be wrong.
-// todo: should finish all csr read/write exception checking before read/write.
-#ifdef CONFIG_RV_SMSTATEEN
-static inline void smstateen_extension_permit_check(word_t *dest_access) {
-  if (is_access(sstateen0)) {
-    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
+static inline void csr_is_legal(uint32_t addr, const word_t *dest_access, bool need_write, bool exception_buffer[]) {
+  assert(addr < 4096);
+
+  // Attempts to access a non-existent CSR raise an illegal instruction exception.
+  if(!csr_exist[addr]) {
+    MUXDEF(CONFIG_PANIC_ON_UNIMP_CSR, panic("[NEMU] unimplemented CSR 0x%x", addr), );
+    exception_buffer[EX_II] = true;
+  }
+
+  // VS access Custom csr will cause EX_II
+  #ifdef CONFIG_RVH
+  bool is_access_custom_csr = is_access(srnctl) || 
+                              is_access(sbpctl) || 
+                              is_access(spfctl) || 
+                              is_access(slvpredctl) || 
+                              is_access(smblockctl) || 
+                              is_access(sfetchctl);
+  if(cpu.v && cpu.mode == MODE_S && is_access_custom_csr){
+    exception_buffer[EX_II] = true;
+  }
+  #endif // CONFIG_RVH
+
+  // M/HS/VS/HU/VU access debug csr will cause EX_II
+  bool isDebugReg = BITS(addr, 11, 4) == 0x7b; // addr(11,4)
+  if(isDebugReg)
+    exception_buffer[EX_II] = true;
+
+  // Attempts to access a CSR without appropriate privilege level
+  int csr_priv = BITS(addr, 9, 8); // get csr priv from csr addr
 #ifdef CONFIG_RVH
-    else if (cpu.v && mstateen0->se0 && !hstateen0->se0) { longjmp_exception(EX_VI); }
+  bool check_pass = access_table[cpu.v][cpu.mode][csr_priv];
+#else
+  bool check_pass = access_table[cpu.mode][csr_priv];
+#endif  // CONFIG_RVH
+  if (!check_pass) {
+#ifdef CONFIG_RVH
+    // VS/VU access VS csr will cause EX_VI
+    if (cpu.v && cpu.mode < MODE_M && (csr_priv == MODE_HS)) 
+      exception_buffer[EX_VI] = true;
+    else
+      exception_buffer[EX_II] = true;
+#else
+    exception_buffer[EX_II] = true;
+#endif  // CONFIG_RVH
+  }
+}
+
+static inline void csr_readonly_permit_check(uint32_t addr, bool need_write, bool exception_buffer[]) {
+  // any mode write read-only csr will cause EX_II
+  if (need_write && (addr >> 10) == 0x3) {
+    exception_buffer[EX_II] = true;
+  }
+}
+
+static inline void stimecmp_permit_check(uint32_t addr, bool need_write, bool exception_buffer[]) {
+  bool sstc = (addr == 0x14D) || (addr == 0x24D);
+  if (sstc) {
+    switch (addr) {
+    case 0x14D: // stimecmp
+      // HS/VS access stimcmp when mcounteren.TM = 0 will cause EX_II
+      if (cpu.mode == MODE_S && (mcounteren->val & 0x2) == 0) {
+        exception_buffer[EX_II] = true;
+      }
+      // HS/HU/VS/VU access stimcmp when menvcfg.stce = 0 will cause EX_II
+      if (cpu.mode < MODE_M && !menvcfg->stce) {
+        exception_buffer[EX_II] = true;
+      }
+      #ifdef CONFIG_RVH
+      // VS access stimecmp when mcounteren.TM = 1, and hcounteren.TM = 0 will cause EX_VI
+      if (cpu.v && cpu.mode == MODE_S && (mcounteren->val & 0x2) && (hcounteren->val & 0x2) == 0) {
+        exception_buffer[EX_VI] = true;
+      } 
+      // VS access stimcmp when menvcfg.stce = 1, and henvcfg.stce = 0 will cause EX_II
+      if (cpu.v && cpu.mode == MODE_S && menvcfg->stce && !henvcfg->stce) {
+        exception_buffer[EX_VI] = true;
+      } 
+      #ifdef CONFIG_RV_IMSIC
+      // VS write stimecmp when hvictl.vti = 1 will cause EX_VI
+      if (cpu.v && (cpu.mode == MODE_S) && need_write && hvictl->vti) {
+        exception_buffer[EX_VI] = true;
+      }
+      #endif // CONFIG_RV_IMSIC
+      #endif // CONFIG_RVH
+      break;
+    #ifdef CONFIG_RVH
+    case 0x24D: // vstimecmp
+      // HS access vstimecmp when mcounteren.TM = 0 will cause EX_II
+      if (!cpu.v && cpu.mode == MODE_S && (mcounteren->val & 0x2) == 0) {
+        exception_buffer[EX_II] = true;
+      }
+      // HS/HU/VS/VU access vstimcmp when menvcfg.stce = 0 will cause EX_II
+      if (cpu.mode < MODE_M && !menvcfg->stce) {
+        exception_buffer[EX_II] = true;
+      }
+      break;
+    #endif // CONFIG_RVH
+    }
+  }
+}
+
+static inline void hpmc_permit_check(uint32_t addr, bool need_write, bool exception_buffer[]) {
+  if (addr >= 0xC00 && addr <= 0xC1F) {
+    int count_bit = 1 << (addr - 0xC00);
+    // HS/HU/VS/VU access cycle/time/instret/hpmc when mcounteren.xx = 0 will cause EX_II
+    if (cpu.mode < MODE_M && ((mcounteren->val & count_bit) == 0)) {
+      exception_buffer[EX_II] = true;
+    }
+    #ifdef CONFIG_RVH
+    // HU access cycle/time/instret/hpmc when scounteren.xx = 0 will cause EX_II
+    if (!cpu.v && cpu.mode == MODE_U && ((scounteren->val & count_bit) == 0)) {
+      exception_buffer[EX_II] = true;
+    }
+    if (cpu.v) {
+      // VS access cycle/time/instret/hpmc when mcounteren.xx = 1, and hcounteren.xx = 0 will cause EX_VI
+      if (cpu.mode == MODE_S && (mcounteren->val & count_bit) && ((hcounteren->val & count_bit) == 0)) {
+        exception_buffer[EX_VI] = true;
+      }
+      // VU access cycle/time/instret/hpmc when mcounteren.xx = 1, and hcounteren/scounteren.xx = 0 will cause EX_VI
+      if (cpu.mode == MODE_U && (mcounteren->val & count_bit) && (((scounteren->val & count_bit) == 0) || ((hcounteren->val & count_bit) == 0))) {
+        exception_buffer[EX_VI] = true;
+      }
+    }
+    #else // CONFIG_RVH
+    // U access cycle/time/instret/hpmc when scounteren.xx = 0 will cause EX_II
+    if (cpu.mode == MODE_U && ((scounteren->val & count_bit) == 0)) {
+      exception_buffer[EX_II] = true;
+    }
+    #endif // CONFIG_RVH
+  }
+}
+
+static inline void pmpcfg_permit_check(const word_t *dest_access, bool exception_buffer[]) {
+  // any mode access odd number pmpcfg will cause EX_II
+  if (is_pmpcfg(dest_access)) {
+    int idx = (dest_access - &csr_array[CSR_PMPCFG_BASE]);
+    if (idx & 0x1) {
+      exception_buffer[EX_II] = true;
+    }
+  }
+}
+
+// VS/VU access statenen should be EX_II when mstateen0->se0 is false. 
+#ifdef CONFIG_RV_SMSTATEEN
+static inline void smstateen_extension_permit_check(const word_t *dest_access, bool exception_buffer[]) {
+  if (is_access(sstateen0)) {
+    if((cpu.mode < MODE_M) && (!mstateen0->se0)) { exception_buffer[EX_II] = true; }
+#ifdef CONFIG_RVH
+    else if (cpu.v && mstateen0->se0 && !hstateen0->se0) { exception_buffer[EX_VI] = true; }
 #endif // CONFIG_RVH
   }
 #ifdef CONFIG_RVH
-  else if (is_access(hstateen0)) {
-    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
-    else if (cpu.v && mstateen0->se0) { longjmp_exception(EX_VI); }
+  else if(is_access(hstateen0)) {
+    if((cpu.mode < MODE_M) && (!mstateen0->se0)) { exception_buffer[EX_II] = true; }
+    else if (cpu.v && mstateen0->se0) { exception_buffer[EX_VI] = true; }
   }
 #endif // CONFIG_RVH
 }
@@ -1139,66 +1224,77 @@ static inline void smstateen_extension_permit_check(word_t *dest_access) {
 
 // AIA extension check
 // !!! Only support in RVH
-#ifdef CONFIG_RV_IMSIC
-static void aia_extension_permit_check(word_t *dest_access) {
+#ifdef CONFIG_IMSIC
+static void aia_extension_permit_check(const word_t *dest_access, bool exception_buffer[]) {
   if (is_access(stopei)) {
-    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
-      longjmp_exception(EX_II);
+    // HS access stopei when mvien.seie = 1, 
+    // 0x70 <= siselect <= 0xFF
+    // will cause EX_II
+    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie && \
+      (siselect->val > ISELECT_6F_MASK && siselect->val <= ISELECT_MAX_MASK)) {
+      exception_buffer[EX_II] = true;
     }
   }
   if (is_access(mireg)) {
+    // M access mireg when 
+    // ! ((0x30 <= miselect <= 0x3f || 0x70 <= miselect <= 0xff) && miselect is even number)
+    // will cause EX_II
     if (cpu.mode == MODE_M) {
-      if ((miselect->val <= ISELECT_2F_MASK) ||
-          ((miselect->val > ISELECT_3F_MASK) && (miselect->val <= ISELECT_6F_MASK)) ||
-          (miselect->val >  ISELECT_MAX_MASK) ||
-          (miselect->val & 0x1)) {
-            longjmp_exception(EX_II);
-      }
+      if (! (((miselect->val > ISELECT_2F_MASK && miselect->val <= ISELECT_3F_MASK) ||
+          (miselect->val > ISELECT_6F_MASK && miselect->val <= ISELECT_MAX_MASK)) &&
+          ((miselect->val & 0x1) == 0))) {
+            exception_buffer[EX_II] = true;
+      } 
     }
   }
   if (is_access(sireg)) {
-    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
-      if ((siselect->val > ISELECT_6F_MASK) && (siselect->val <= ISELECT_MAX_MASK)) {
-        longjmp_exception(EX_II);
-      }
+    // HS access sireg when mvien.seie = 1, 
+    // 0x70 <= siselect <= 0xFF
+    // will cause EX_II
+    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie && 
+      (siselect->val > ISELECT_6F_MASK && siselect->val <= ISELECT_MAX_MASK)) {
+      exception_buffer[EX_II] = true;
     }
+    // M/HS access sireg when 
+    // ! ((0x30 <= siselect <= 0x3f || 0x70 <= siselect <= 0xff) && siselect is even number)
+    // will cause EX_II
     if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
-      if ((siselect->val <= ISELECT_2F_MASK) ||
-          ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) ||
-          (siselect->val >  ISELECT_MAX_MASK) ||
-          (siselect->val & 0x1)) {
-            longjmp_exception(EX_II);
-      }
+      if (! (((siselect->val > ISELECT_2F_MASK && siselect->val <= ISELECT_3F_MASK) ||
+              (siselect->val > ISELECT_6F_MASK && siselect->val <= ISELECT_MAX_MASK)) &&
+            (siselect->val & 0x1) == 0)) {
+            exception_buffer[EX_II] = true;
+      } 
     }
     if (cpu.v && (cpu.mode == MODE_S)) {
       if (vsiselect->val > VSISELECT_MAX_MASK) {
-        longjmp_exception(EX_II);
+        exception_buffer[EX_II] = true;
       }
-      if (((vsiselect->val > ISELECT_2F_MASK) && (vsiselect->val <= ISELECT_3F_MASK)) ||
-          ((vsiselect->val > 0x80) && (vsiselect->val <= ISELECT_MAX_MASK) && (vsiselect->val & 0x1))) {
-            longjmp_exception(EX_VI);
+      // VS access sireg when 0x30 <= vsiselect <= 0x3f will cause EX_VI
+      if (vsiselect->val > ISELECT_2F_MASK && vsiselect->val <= ISELECT_3F_MASK) {
+            exception_buffer[EX_VI] = true;
       }
     }
     if (cpu.v && (cpu.mode == MODE_U)) {
-      longjmp_exception(EX_VI);
+      exception_buffer[EX_VI] = true;
     }
   }
   if (is_access(vsireg)) {
+    // M/HS access vsireg when
+    // ! ( 0x70 <= vsiselect <= 0xff  && vsiselect is even number)
+    // will cause EX_II
     if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
-      if ((vsiselect->val <= ISELECT_6F_MASK) ||
-          (vsiselect->val >  ISELECT_MAX_MASK) ||
-          (vsiselect->val & 0x1)) {
-            longjmp_exception(EX_II);
+      if (! (vsiselect->val >= ISELECT_6F_MASK && vsiselect->val <= ISELECT_MAX_MASK && ((vsiselect->val & 0x1) == 0))){
+        exception_buffer[EX_II] = true;
       }
     }
     if (cpu.v) {
-      longjmp_exception(EX_VI);
+      exception_buffer[EX_VI] = true;
     }
   }
   if (is_access(sip) || is_access(sie)) {
     if (cpu.v && (cpu.mode == MODE_S)) {
       if (hvictl->vti) {
-        longjmp_exception(EX_VI);
+        exception_buffer[EX_VI] = true;
       }
     }
   }
@@ -1218,21 +1314,89 @@ static void aia_extension_permit_check(word_t *dest_access) {
  *          2. when mstatus.VS or vsstatus.VS is OFF in Virt Mode
 */
 #ifndef CONFIG_FPU_NONE
-static inline void fp_permit_check(word_t *dest_access) {
+static inline void fp_permit_check(const word_t *dest_access, bool exception_buffer[]) {
   if (is_access(fcsr) || is_access(fflags) || is_access(frm)) {
-    if (!require_fs()) { longjmp_exception(EX_II); }
+    if (!require_fs()) { exception_buffer[EX_II] = true; }
   }
 }
 #endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RVV
-static inline void vec_permit_check(word_t *dest_access) {
+static inline void vec_permit_check(const word_t *dest_access, bool exception_buffer[]) {
   if (is_access(vcsr) || is_access(vlenb) || is_access(vstart) || is_access(vxsat) || is_access(vxrm) || is_access(vl) || is_access(vtype)) {
-    if (!require_vs()) { longjmp_exception(EX_II); }
+    if (!require_vs()) { exception_buffer[EX_II] = true; }
   }
 }
 #endif // CONFIG_RVV
+static inline void satp_permit_check(const word_t *dest_access, bool exception_buffer[]){
+  if (is_access(satp)){
+    #ifdef CONFIG_RVH
+    // HS access satp when mstatus.tvm = 1 will cause EX_II
+    if (!cpu.v && cpu.mode == MODE_S && mstatus->tvm) {
+      exception_buffer[EX_II] = true;
+    }
+    // VS access satp when hstatus.vtvm = 1 will cause EX_VI
+    if (cpu.v && cpu.mode == MODE_S && hstatus->vtvm) {
+      exception_buffer[EX_VI] = true;
+    }
+    #else // CONFIG_RVH
+    // HS access satp when mstatus.tvm = 1 will cause EX_II
+    if (cpu.mode == MODE_S && mstatus->tvm) {
+      exception_buffer[EX_II] = true;
+    }
+    #endif // CONFIG_RVH
+  }
+  #ifdef CONFIG_RVH
+  else if (is_access(hgatp)) {
+    // HS access hgatp when mstatus.tvm = 1 will cause EX_II
+    if(!cpu.v && cpu.mode == MODE_S && mstatus->tvm) {
+      exception_buffer[EX_II] = true;
+    }
+  }
+  #endif // CONFIG_RVH
+}
 
+static inline void csr_permit_check(uint32_t addr, bool need_write) {
+  bool exception_buffer[24] = {false};
+  word_t *dest_access = csr_decode(addr);
+  // check csr_exit, priv
+  csr_is_legal(addr, dest_access, need_write, exception_buffer);
+
+  // check csr_readonly
+  csr_readonly_permit_check(addr, need_write, exception_buffer);
+
+  // check HPMC
+  MUXDEF(CONFIG_RV_SMSTATEEN, hpmc_permit_check(addr, need_write, exception_buffer), );
+
+  // check STIMECMP
+  MUXDEF(CONFIG_RV_SSTC, stimecmp_permit_check(addr, need_write, exception_buffer), );
+
+  // check smstateen
+  MUXDEF(CONFIG_RV_SMSTATEEN, smstateen_extension_permit_check(dest_access, exception_buffer), );
+
+  // check aia
+  MUXDEF(CONFIG_IMSIC, aia_extension_permit_check(dest_access, exception_buffer), );
+
+  // check pmpcfg
+  MUXDEF(CONFIG_RV_PMP_CSR, pmpcfg_permit_check(dest_access, exception_buffer), );
+
+  //check satp(satp & hgatp)
+  satp_permit_check(dest_access, exception_buffer);
+
+  //check fp
+  MUXNDEF(CONFIG_FPU_NONE, fp_permit_check(dest_access, exception_buffer), );
+  MUXDEF(CONFIG_RVV, vec_permit_check(dest_access, exception_buffer), );
+
+
+  // send exception
+  // Final aggregate exceptions, ensuring they are issued according to priority
+  if (exception_buffer[EX_II]) {
+    longjmp_exception(EX_II);
+  } else if (exception_buffer[EX_VI]) {
+    longjmp_exception(EX_VI);
+  }
+
+}
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
   ISADecodeInfo isa;
   isa.instr.val = instr;
@@ -1240,24 +1404,10 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
   uint32_t rd     = isa.instr.i.rd;
   uint32_t funct3 = isa.instr.i.funct3;
   word_t *csr = csr_decode(csrid);
-#ifdef CONFIG_RV_SMSTATEEN
-  smstateen_extension_permit_check(csr);
-#endif // CONFIG_RV_SMSTATEEN
-#ifdef CONFIG_RV_IMSIC
-  aia_extension_permit_check(csr);
-#endif // CONFIG_RV_IMSIC
-#ifndef CONFIG_FPU_NONE
-  fp_permit_check(csr);
-#endif // CONFIG_FPU_NONE
-#ifdef CONFIG_RVV
-  vec_permit_check(csr);
-#endif // CONFIG_RVV
+
   bool is_write = !( BITS(funct3, 1, 1) && (rs1 == 0) );
-  if (!csr_is_legal(csrid, is_write)) {
-    Logti("Illegal csr id %u", csrid);
-    longjmp_exception(EX_II);
-    return;
-  }
+  csr_permit_check(csrid,  is_write);
+
   switch (funct3) {
     case FUNCT3_CSRRW:
     case FUNCT3_CSRRWI:
@@ -1354,14 +1504,28 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #endif // CONFIG_RV_SVINVAL
     case 0x105: // wfi
 #ifdef CONFIG_RVH
-      if((cpu.v && cpu.mode == MODE_S && hstatus->vtw == 1 && mstatus->tw == 0)
-          ||(cpu.v && cpu.mode == MODE_U && mstatus->tw == 0)){
+      // VS execute wfi instruction when mstatus.tw = 0, hstatus.vtw = 1 will cause EX_VI
+      // VU execute wfi instruction when mstatus.tw = 0 will cause EX_VI
+      if ((cpu.v && cpu.mode == MODE_S && hstatus->vtw && !mstatus->tw)
+          ||(cpu.v && cpu.mode == MODE_U && !mstatus->tw)){
         longjmp_exception(EX_VI);
       }
-#endif
-      if ((cpu.mode < MODE_M && mstatus->tw == 1) || (cpu.mode == MODE_U)){
+      // HU execute wfi instruction will cause EX_II
+      // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+      if (!cpu.v && cpu.mode == MODE_U) {
         longjmp_exception(EX_II);
-      } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+      }
+#else // CONFIG_RVH
+      // HU execute wfi instruction will cause EX_II
+      // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+      if (cpu.mode == MODE_U) {
+        longjmp_exception(EX_II);
+      }
+#endif // CONFIG_RVH
+      // HS/HU/VS/VU execute wfi instruction when mstatus.tw = 1 will cause EX_II
+      if (cpu.mode < MODE_M && mstatus->tw){
+        longjmp_exception(EX_II);
+      }
     break;
 #endif // CONFIG_MODE_USER
     case -1: // fence.i

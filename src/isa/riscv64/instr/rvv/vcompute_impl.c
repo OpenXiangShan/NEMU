@@ -112,9 +112,17 @@ static inline void reverse_nbytes(uint64_t *val, int sew) {
 }
 
 static inline void require_vector_vs() {
+  // any mode execute vector instruction when mstatus.vs = 0 will cause EX_II
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);
   }
+  #ifdef CONFIG_RVH
+  // VS/VU execute vector instruction when sstatus.vs = 0/vsststus.vs = 0 will cause EX_II
+  if (cpu.v && cpu.mode < MODE_M && \
+    (sstatus->vs == 0 || vsstatus->vs == 0)) {
+    longjmp_exception(EX_II);
+  }
+  #endif
 }
 
 void require_float() {
