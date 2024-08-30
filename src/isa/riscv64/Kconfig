@@ -273,6 +273,21 @@ config RV_SV48
 
 endchoice
 
+config RV_SVNAPOT
+  bool "RISC-V Svnapot extension for NAPOT Translation Contiguity (alpha)"
+  default n
+  help
+    This allows the N bit of the leaf PTEs to be set. Beyond this, this option
+    DOES NOT SUPPORT other requirements of the Svnapot extension.
+
+config RV_SVPBMT
+  bool "RISC-V Svpbmt extension for Page-Based Memory Types (alpha)"
+  default n
+  help
+    This allows the PBMT bits of the leaf PTEs to be non-zero (except for the
+    value 3) without raising a page-fault exception. Beyond this, this option
+    DOES NOT SUPPORT other requirements of the Svpbmt extension.
+
 config RV_MSTATUS_FS_WRITABLE
   depends on FPU_NONE
   bool "make mstatus.fs writable; required for software FPU emulation"
