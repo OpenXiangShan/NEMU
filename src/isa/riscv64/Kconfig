@@ -87,6 +87,20 @@ config RV_SSTC
   bool "RISC-V Sstc Extension for Supervisor-mode Timer Interrupts"
   default n
 
+config RV_SMRNMI
+  bool "RISC-V Resumable NonMaskable Interrupts Extension"
+  default n
+
+config RV_SMDBLTRP
+  bool "RISC-V M-mode Double Trap Extension"
+  depends on RV_SMRNMI
+  default n
+
+config RV_SSDBLTRP
+  bool "RISC-V S-Mode Double Trap Extension"
+  depends on RV_SMRNMI
+  default n
+
 menuconfig RV_ZICNTR
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
   default y

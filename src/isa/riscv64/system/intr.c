@@ -24,21 +24,24 @@ void update_mmu_state();
 
 #ifdef CONFIG_RVH
 bool intr_deleg_S(word_t exceptionNO) {
+  bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M);
+  bool delegS = ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M) && !isNMI;
   return delegS;
 }
 bool intr_deleg_VS(word_t exceptionNO){
+  bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   bool delegS = intr_deleg_S(exceptionNO);
   word_t deleg = (exceptionNO & INTR_BIT ? hideleg->val : hedeleg->val);
-  bool delegVS = cpu.v && ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M);
+  bool delegVS = cpu.v && ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M) && !isNMI;
   return delegS && delegVS;
 }
 
 #else
 bool intr_deleg_S(word_t exceptionNO) {
+  bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (exceptionNO & 0xf))) != 0) && (cpu.mode < MODE_M);
+  bool delegS = ((deleg & (1 << (exceptionNO & 0xf))) != 0) && (cpu.mode < MODE_M) && !isNMI;
   return delegS;
 }
 #endif
@@ -96,13 +99,20 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 #endif
+  bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (NO & INTR_BIT), false);
   bool delegS = intr_deleg_S(NO);
+  bool delegM = !delegS && !isNMI;
+  bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegS && mstatus->sdt, false);
+  bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
 #ifdef CONFIG_RVH
   extern bool hld_st;
   int hld_st_temp = hld_st;
   hld_st = 0;
   bool delegVS = intr_deleg_VS(NO);
-  if (delegVS){
+  delegM = !delegS && !delegVS && !isNMI;
+  bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && vsstatus->sdt, false);
+  m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
+  if (delegVS && !vs_EX_DT){
     vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
@@ -128,7 +138,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     update_mmu_state();
     return get_trap_pc(vstvec->val, vscause->val);
   }
-  else if(delegS){
+  else if(delegS && !s_EX_DT){
     int v = (mstatus->mprv)? mstatus->mpv : cpu.v;
     hstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
                     ((v || hld_st_temp) && ((0 <= NO && NO <= 7 && NO != 2) || NO == EX_IPF || NO == EX_LPF || NO == EX_SPF)));
@@ -139,7 +149,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     cpu.v = 0;
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #else
-  if (delegS) {
+  bool vs_EX_DT = false;
+  if (delegS && !s_EX_DT) {
 #endif
     scause->val = NO;
     sepc->val = epc;
@@ -178,7 +189,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     update_mmu_state();
     return get_trap_pc(stvec->val, scause->val);
     // return stvec->val;
-  } else {
+  } else if((delegM || vs_EX_DT || s_EX_DT) && !m_EX_DT){
 #ifdef CONFIG_RVH
     int v = (mstatus->mprv)? mstatus->mpv : cpu.v;
     mstatus->gva = (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF ||
@@ -215,10 +226,33 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         mtval->val = 0;
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
     }
+#ifdef CONFIG_RV_SSDBLTRP
+    bool hasEX_DT = vs_EX_DT || s_EX_DT;
+    mstatus->mdt = 1;
+    mcause->val = (hasEX_DT ? EX_DT : mcause->val);
+    mtval2->val = (hasEX_DT ? NO : mtval2->val);
+#endif //CONFIG_RV_SSDBLTRP
     MUXDEF(CONFIG_RVH, mtinst->val = 0;,);
     cpu.mode = MODE_M;
     update_mmu_state();
     return get_trap_pc(mtvec->val, mcause->val);
+  }
+#ifdef CONFIG_RV_SMRNMI
+  else if ((m_EX_DT || isNMI) && mnstatus->nmie) {
+    mnstatus->mnpp = cpu.mode;
+#ifdef CONFIG_RVH
+    mnstatus->mnpv = cpu.v;
+#endif //CONFIG_RVH
+    mnstatus->nmie = 0;
+    mnepc->val = epc;
+    mncause->val = NO;
+    cpu.mode = MODE_M;
+    update_mmu_state();
+    return get_trap_pc(mtvec->val, mncause->val);
+  }
+#endif //CONFIG_RV_SMRNMI
+  else {
+    return 0;
   }
 }
 

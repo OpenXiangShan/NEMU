@@ -149,6 +149,7 @@ int isa_fetch_decode(Decode *s) {
     case EXEC_ID_c_ebreak:
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
     case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
+    IFDEF(CONFIG_RV_SMRNMI, case EXEC_ID_mnret:)
 #endif
       s->type = INSTR_TYPE_I; break;
 
@@ -164,6 +165,7 @@ int isa_fetch_decode(Decode *s) {
           case 0x1:   // ebreak
           case 0x102: // sret
           case 0x302: // mret
+          MUXDEF(CONFIG_RV_SMRNMI, case 0x702: ,)// mnret
             s->type = INSTR_TYPE_I;
         }
       }

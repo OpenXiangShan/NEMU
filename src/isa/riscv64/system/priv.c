@@ -174,8 +174,22 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_RVV 0
 #endif
 
+#define MSTATUS_WMASK_SMDBLTRP MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
+
+#define MSTATUS_WMASK_SSDBLTRP MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
+
+#define MSTATUS_MIE (0x1UL << 3)
+#define MSTATUS_SIE (0x1UL << 1)
+
 // final mstatus wmask: dependent of the ISA extensions
-#define MSTATUS_WMASK (MSTATUS_WMASK_BASE | MSTATUS_WMASK_FS | MSTATUS_WMASK_RVH | MSTATUS_WMASK_RVV)
+#define MSTATUS_WMASK (    \
+  MSTATUS_WMASK_BASE     | \
+  MSTATUS_WMASK_FS       | \
+  MSTATUS_WMASK_RVH      | \
+  MSTATUS_WMASK_RVV      | \
+  MSTATUS_WMASK_SMDBLTRP | \
+  MSTATUS_WMASK_SSDBLTRP   \
+)
 
 // wmask of sstatus is given by masking the valid fields in sstatus
 #define SSTATUS_WMASK (MSTATUS_WMASK & SSTATUS_RMASK)
@@ -186,6 +200,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #else
 #define HSTATUS_WMASK 0
 #endif
+
+#define HENVCFG_STCE 63
+#define HENVCFG_DTE 59
+#define HENVCFG_WMASK 0xE8000003000000F1ULL
+#define MENVCFG_WMASK 0xF8000003000000F1ULL
 
 #ifdef CONFIG_RV_ZICNTR
   #define COUNTEREN_ZICNTR_MASK (0x7UL)
@@ -579,6 +598,12 @@ static inline void update_counter_mcountinhibit(word_t old, word_t new) {
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
 }
+// dest[bit_position] &= operand
+static inline uint64_t apply_bit_mask(uint64_t dest, uint64_t operand, uint64_t bit_position){
+  uint64_t mask = ~(!operand << bit_position);
+  dest &= mask;
+  return dest;
+}
 
 static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RV_PMP_CSR
@@ -610,7 +635,13 @@ static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RVH
  if (cpu.v == 1) {
 
-  if (is_read(sstatus))      { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
+  if (is_read(sstatus))      {
+    uint64_t vsstatus_out = vsstatus->val;
+  #ifdef CONFIG_RV_SSDBLTRP
+    vsstatus_out = apply_bit_mask(vsstatus_out, menvcfg->dte & henvcfg->dte, MSTATUS_WMASK_SSDBLTRP);
+  #endif // CONFIG_RV_SSDBLTRP
+    return gen_status_sd(vsstatus_out) | (vsstatus_out & SSTATUS_RMASK);
+  }
   else if (is_read(sie))     { return get_v_sie(); }
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
@@ -633,17 +664,42 @@ if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
 if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
 if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(henvcfg))     {
+  uint64_t henvcfg_out = henvcfg->val;
+  #ifdef CONFIG_RV_SSDBLTRP
+  henvcfg_out = apply_bit_mask(henvcfg_out, menvcfg->stce, HENVCFG_STCE);
+  henvcfg_out = apply_bit_mask(henvcfg_out, menvcfg->dte, HENVCFG_DTE);
+  #endif //CONFIG_RV_SSDBLTRP
+  return henvcfg_out & HENVCFG_WMASK;
+}
 #ifdef CONFIG_RV_AIA
 if (is_read(hvien))          { return hvien->val & HVIEN_MSAK; }
 #endif
 if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longjmp_exception(EX_II); }
-if (is_read(vsstatus))       { return gen_status_sd(vsstatus->val) | (vsstatus->val & SSTATUS_RMASK); }
-if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1; }
-if (is_read(vsie))           { return get_vsie(); }
+  if (is_read(vsstatus))       {
+    uint64_t vsstatus_out = vsstatus->val;
+  #ifdef CONFIG_RV_SSDBLTRP
+    vsstatus_out = apply_bit_mask(vsstatus_out, menvcfg->dte & henvcfg->dte, MSTATUS_WMASK_SSDBLTRP);
+  #endif //CONFIG_RV_SSDBLTRP
+    return gen_status_sd(vsstatus_out) | (vsstatus_out & SSTATUS_RMASK);
+  }
+  if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1; }
+  if (is_read(vsie))           { return get_vsie(); }
 #endif
-
-  if (is_read(mstatus))     { return gen_status_sd(mstatus->val) | mstatus->val; }
-  if (is_read(sstatus))     { return gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); }
+  if (is_read(mstatus))     {
+    uint64_t mstatus_out = mstatus->val;
+  #ifdef CONFIG_RV_SSDBLTRP
+    mstatus_out = apply_bit_mask(mstatus_out, menvcfg->dte, MSTATUS_WMASK_SSDBLTRP);
+  #endif //CONFIG_RV_SSDBLTRP
+    return gen_status_sd(mstatus_out) | mstatus_out;
+  }
+  if (is_read(sstatus))     {
+    uint64_t mstatus_out = mstatus->val;
+  #ifdef CONFIG_RV_SSDBLTRP
+    mstatus_out = apply_bit_mask(mstatus_out, menvcfg->dte, MSTATUS_WMASK_SSDBLTRP);
+  #endif //CONFIG_RV_SSDBLTRP
+    return gen_status_sd(mstatus->val) | (mstatus_out & SSTATUS_RMASK);
+  }
   else if (is_read(sie))    { return get_sie(); }
   else if (is_read(mtvec))  { return mtvec->val; }
   else if (is_read(stvec))  { return stvec->val; }
@@ -717,11 +773,18 @@ if (is_read(vsie))           { return get_vsie(); }
   if (is_read(sstateen0))   { return sstateen0->val & mstateen0->val; }
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {
-  if (is_read(sstateen0)) { return sstateen0->val & hstateen0->val & mstateen0->val; }
-}
+    if (is_read(sstateen0)) { return sstateen0->val & hstateen0->val & mstateen0->val; }
+  }
   if (is_read(hstateen0))   { return hstateen0->val & mstateen0->val; }
 #endif // CONFIG_RVH
 #endif // CONFIG_RV_SMSTATEEN
+
+#ifdef CONFIG_RV_SMRNMI
+  if (is_read(mnepc)) { return mnepc->val & (~0x1UL) ; }
+  if (is_read(mnstatus)) { return mnstatus->val & MNSTATUS_MASK; }
+  if (is_read(mnscratch)) { return mnscratch->val; }
+  if (is_read(mncause)) { return mncause->val; }
+#endif // CONFIG_RV_SMRNMI
 
   return *src;
 }
@@ -776,7 +839,24 @@ static inline void csr_write(word_t *dest, word_t src) {
         || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
         || is_write(satp) || is_write(stvec))){
     if (is_write(sstatus))      {
-      vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
+      uint64_t sstatus_wmask = SSTATUS_WMASK;
+    #ifdef CONFIG_RV_SSDBLTRP
+      // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
+      if (menvcfg->dte == 0 || henvcfg->dte == 0) {
+        src &= sstatus_wmask & (~MSTATUS_WMASK_SSDBLTRP);
+      }
+      // the same as mstatus SIE
+      if (src & MSTATUS_SIE) {
+        sstatus_wmask &= ~MSTATUS_SIE;
+        if (((src & MSTATUS_WMASK_SSDBLTRP) == 0) || ( vsstatus->sdt == 0)) {
+          sstatus_wmask |= MSTATUS_SIE;
+        }
+      }
+    #endif //CONFIG_RV_SSDBLTRP
+      vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
+    #ifdef CONFIG_RV_SSDBLTRP
+      if (src & MSTATUS_WMASK_SSDBLTRP) { vsstatus->sie = 0; }
+    #endif //CONFIG_RV_SSDBLTRP
     }
     else if (is_write(sie))     { set_v_sie(src); }
     else if (is_write(stvec))   { set_tvec((word_t*)vstvec, src); }
@@ -814,13 +894,39 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if(is_write(hvip)){
     mip->val = mask_bitset(mip->val, HVIP_MASK, src);
   }
-  #ifdef CONFIG_RV_AIA
+  else if(is_write(henvcfg)){
+    henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK, src);
+  #ifdef CONFIG_RV_SSDBLTRP
+    if(henvcfg->dte == 0) {
+      vsstatus->sdt = 0;
+    }
+  #endif // CONFIG_RV_SSDBLTRP
+
+  }
+#ifdef CONFIG_RV_AIA
   else if (is_write(hvien)) { hvien->val = mask_bitset(hvien->val, HVIEN_MSAK, src); }
-  #endif
+#endif
   else if(is_write(hstatus)){
     hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src);
   }else if(is_write(vsstatus)){
-    vsstatus->val = mask_bitset(vsstatus->val, SSTATUS_WMASK, src);
+    uint64_t sstatus_wmask = SSTATUS_WMASK;
+  #ifdef CONFIG_RV_SSDBLTRP
+    // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
+    if (menvcfg->dte == 0 || henvcfg->dte == 0) {
+      src &= sstatus_wmask & (~MSTATUS_WMASK_SSDBLTRP);
+    }
+    // the same as mstatus SIE
+    if (src & MSTATUS_SIE) {
+      sstatus_wmask &= ~MSTATUS_SIE;
+      if (((src & MSTATUS_WMASK_SSDBLTRP) == 0) || ( vsstatus->sdt == 0)) {
+        sstatus_wmask |= MSTATUS_SIE;
+      }
+    }
+  #endif //CONFIG_RV_SSDBLTRP
+    vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
+  #ifdef CONFIG_RV_SSDBLTRP
+    if (src & MSTATUS_WMASK_SSDBLTRP) { vsstatus->sie = 0; }
+  #endif //CONFIG_RV_SSDBLTRP
   }
   else if(is_write(vsie)){ set_vsie(src); }
   else if(is_write(vsip)){
@@ -844,7 +950,46 @@ static inline void csr_write(word_t *dest, word_t src) {
     vsatp_t new_val = (vsatp_t)src;
     // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
     update_vsatp(new_val);
-  }else if (is_write(mstatus)) { mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src); }
+  }else if (is_write(mstatus)) {
+    uint64_t mstatus_wmask = MSTATUS_WMASK;
+    // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
+  #ifdef CONFIG_RV_SMDBLTRP
+    if (src & MSTATUS_MIE) {
+      mstatus_wmask &= ~MSTATUS_MIE;
+      if (((src & MSTATUS_WMASK_SMDBLTRP) == 0) || ( mstatus->mdt == 0)) {
+        mstatus_wmask |= MSTATUS_MIE;
+      }
+    }
+  #endif //CONFIG_RV_SMDBLTRP
+  #ifdef CONFIG_RV_SSDBLTRP
+  // when menvcfg->DTE is zero, SDT field is read-only zero
+    if (menvcfg->dte == 0 ) {
+      src &= mstatus_wmask & (~MSTATUS_WMASK_SSDBLTRP);
+    }
+    if (src & MSTATUS_SIE) {
+      mstatus_wmask &= ~MSTATUS_SIE;
+      if (((src & MSTATUS_WMASK_SSDBLTRP) == 0) || ( mstatus->sdt == 0)) {
+        mstatus_wmask |= MSTATUS_SIE;
+      }
+    }
+  #endif //CONFIG_RV_SSDBLTRP
+    mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
+  #ifdef CONFIG_RV_SMDBLTRP
+    // when MDT is explicitly written by 1, clear MIE
+    if (src & MSTATUS_WMASK_SMDBLTRP) { mstatus->mie = 0; }
+  #endif // CONFIG_RV_SMDBLTRP
+  #ifdef CONFIG_RV_SSDBLTRP
+    if (src & MSTATUS_WMASK_SSDBLTRP) { mstatus->sie = 0; }
+  #endif //CONFIG_RV_SSDBLTRP
+  }else if(is_write(menvcfg)) {
+    menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK, src);
+#ifdef CONFIG_RV_SSDBLTRP
+    if(menvcfg->dte == 0) {
+      mstatus->sdt = 0;
+      vsstatus->sdt = 0;
+    }
+#endif // CONFIG_RV_SSDBLTRP
+  }
 #ifdef CONFIG_RV_IMSIC
   else if (is_write(mtopi)) { return; }
   else if (is_write(stopi)) { return; }
@@ -871,6 +1016,18 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   }
 #endif // CONFIG_RVH
+#ifdef CONFIG_RV_SMRNMI
+  else if (is_write(mnepc)) { *dest = src & (~0x1UL); }
+  else if (is_write(mncause)) { *dest = src; }
+  else if (is_write(mnscratch)) { *dest = src; }
+  else if (is_write(mnstatus)) {
+    word_t mnstatus_mask = MNSTATUS_MASK;
+    if ((src & MNSTATUS_NMIE) == 0) {
+      mnstatus_mask &= ~MNSTATUS_NMIE;
+    }
+    mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
+  }
+#endif //CONFIG_RV_SMRNMI
 #ifdef CONFIG_RVH
   else if(is_write(hcounteren)){
     hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src);
@@ -894,7 +1051,26 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(minstret)) {
     minstret->val = set_minstret(src);
   }
-  else if (is_write(sstatus)) { mstatus->val = mask_bitset(mstatus->val, SSTATUS_WMASK, src); }
+  else if (is_write(sstatus)) {
+    uint64_t sstatus_wmask = SSTATUS_WMASK;
+  #ifdef CONFIG_RV_SSDBLTRP
+    // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
+    if (menvcfg->dte == 0 ) {
+      src &= sstatus_wmask & (~MSTATUS_WMASK_SSDBLTRP);
+    }
+    // the same as mstatus SIE
+    if (src & MSTATUS_SIE) {
+      sstatus_wmask &= ~MSTATUS_SIE;
+      if (((src & MSTATUS_WMASK_SSDBLTRP) == 0) || ( mstatus->sdt == 0)) {
+        sstatus_wmask |= MSTATUS_SIE;
+      }
+    }
+  #endif //CONFIG_RV_SSDBLTRP
+    mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, src); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
+  #ifdef CONFIG_RV_SSDBLTRP
+    if (src & MSTATUS_WMASK_SSDBLTRP) { mstatus->sie = 0; }
+  #endif //CONFIG_RV_SSDBLTRP
+  }
   else if (is_write(sie)) { set_sie(src); }
   else if (is_write(mie)) { mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H | LCOFI, src); }
   else if (is_write(mip)) {
@@ -1103,12 +1279,13 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif //CONFIG_RVV
 
 #ifdef CONFIG_RVH
-  if (is_write(mstatus) || is_write(satp) || is_write(vsatp) || is_write(hgatp)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(satp) || is_write(vsatp)
+      || is_write(hgatp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
   }
 #else
-  if (is_write(mstatus) || is_write(satp)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(satp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
 #endif
   if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
@@ -1298,8 +1475,9 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           longjmp_exception(EX_VI);
         }
         cpu.mode = vsstatus->spp;
-        vsstatus->spp = MODE_U;
-        vsstatus->sie = vsstatus->spie;
+        vsstatus->sdt  = MUXDEF(CONFIG_RV_SSDBLTRP, (vsstatus->spp == MODE_U ? 0 : vsstatus->sdt), 0);
+        vsstatus->spp  = MODE_U;
+        vsstatus->sie  = vsstatus->spie;
         vsstatus->spie = 1;
         return vsepc->val;
       }
@@ -1318,6 +1496,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           : 1);
       cpu.mode = mstatus->spp;
       if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
+      mstatus->mdt = MUXDEF(CONFIG_RV_SMDBLTRP, (mstatus->spp == MODE_M ? 0 : mstatus->mdt), 0);
       mstatus->spp = MODE_U;
       update_mmu_state();
       return sepc->val;
@@ -1334,15 +1513,45 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #endif
 #ifdef CONFIG_RVH
       cpu.v = (mstatus->mpp == MODE_M ? 0 : mstatus->mpv);
+      vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, (mstatus->mpp == MODE_U && mstatus->mpv == 1 ? 0 : vsstatus->sdt), 0);
       mstatus->mpv = 0;
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif // CONFIG_RVH
       if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
+      mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, (mstatus->mpp == MODE_M ? mstatus->sdt : 0), 0);
       mstatus->mpp = MODE_U;
+      mstatus->mdt = 0;
       update_mmu_state();
       Loge("Executing mret to 0x%lx", mepc->val);
       return mepc->val;
       break;
+#ifdef CONFIG_RV_SMRNMI
+    case 0x702: // mnret
+      if (cpu.mode < MODE_M) {
+        longjmp_exception(EX_II);
+      }
+      if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
+      cpu.mode = mnstatus->mnpp;
+#ifdef CONFIG_RVH
+      cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
+      mnstatus->mnpv = 0;
+      // clear vsstatus.SDT when return to VU
+      vsstatus->sdt = (mnstatus->mnpp == MODE_U && mnstatus->mnpv == 1 ? 0 : vsstatus->sdt);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+#endif // config_RVH
+      // clear MDT when mnret to below M
+      mstatus->mdt = (mnstatus->mnpp == MODE_M ? mstatus->mdt: 0);
+      mstatus->sdt = (mnstatus->mnpp == MODE_M ? mstatus->sdt: 0);
+      mnstatus->mnpp = MODE_U;
+      mnstatus->nmie = 1;
+
+
+      update_mmu_state();
+      Loge("Executing mnret to 0x%lx", mnepc->val);
+      return mnepc->val;
+      break;
+
+#endif //CONFIG_RV_SMRNMI
 #ifdef CONFIG_RV_SVINVAL
     case 0x180: // sfence.w.inval
     case 0x181: // sfence.inval.ir

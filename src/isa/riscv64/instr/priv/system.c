@@ -48,8 +48,8 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
     }
-    // is_jmp: ecall, ebreak, mret, sret
-    int is_jmp = (id == 0) || (id == 1) || (id == 0x102) || (id == 0x302);
+    // is_jmp: ecall, ebreak, mret, sret, mnret
+    int is_jmp = (id == 0) || (id == 1) || (id == 0x102) || (id == 0x302) ||  MUXDEF(CONFIG_RV_SMRNMI, (id == 0x702), false);
     return is_jmp;
   }
 

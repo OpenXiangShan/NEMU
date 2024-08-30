@@ -218,6 +218,12 @@ void difftest_raise_intr(word_t NO) {
 }
 #endif // CONFIG_LIGHTQS
 
+void difftest_raise_nmi_intr(bool hasNMI) {
+#ifdef CONFIG_RV_SMRNMI
+  cpu.hasNMI = hasNMI;
+#endif //CONFIG_RV_SMRNMI
+}
+
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE
   dynamic_config.debug_difftest = true;
