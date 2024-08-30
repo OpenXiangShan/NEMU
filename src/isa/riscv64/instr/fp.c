@@ -77,6 +77,11 @@ void isa_fp_csr_check() {
     longjmp_exception(EX_II);
     assert(0);
   }
+  #ifdef CONFIG_RVH
+  if (cpu.v && vsstatus->fs == 0){
+    longjmp_exception(EX_II);
+  }
+  #endif
 #endif // CONFIG_FPU_NONE
 }
 

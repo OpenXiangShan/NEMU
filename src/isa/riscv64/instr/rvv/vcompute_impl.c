@@ -115,6 +115,11 @@ static inline void require_vector_vs() {
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);
   }
+  #ifdef CONFIG_RVH
+  if (cpu.v && vsstatus->vs == 0) {
+    longjmp_exception(EX_II);
+  }
+  #endif
 }
 
 void require_float() {
