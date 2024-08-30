@@ -48,6 +48,12 @@
 #endif // CONFIG_RVH
 
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
+#ifdef CONFIG_RV_SMRNMI
+#define SYS_NMI_NULLARY(f) \
+  f(mnret)
+#else
+#define SYS_NMI_NULLARY(f)
+#endif
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_NULLARY(f) \
   f(ecall) f(ebreak) f(c_ebreak) f(mret) f(sret) f(wfi) \
@@ -65,10 +71,12 @@
   f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 #else
 #ifdef CONFIG_RVH
+#define SYS_NMI_NULLARY(f)
 #define SYS_INSTR_NULLARY(f) f(c_ebreak)
 #define SYS_INSTR_BINARY(f)
 #define SYS_INSTR_TERNARY(f) f(priv) f(hload) f(hstore)
 #else
+#define SYS_NMI_NULLARY(f)
 #define SYS_INSTR_NULLARY(f) f(c_ebreak)
 #define SYS_INSTR_BINARY(f)
 #define SYS_INSTR_TERNARY(f) f(system)
@@ -313,7 +321,8 @@
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
-  SYS_INSTR_NULLARY(f) \
+  SYS_INSTR_NULLARY(f)   \
+  SYS_NMI_NULLARY(f) \
   f(p_ret) \
   ZCMOP_INSTR_NULLARY(f)
 

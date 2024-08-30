@@ -68,6 +68,20 @@ void init_isa() {
   // initialize the value fs and vs to 0
   mstatus->fs = 0;
   mstatus->vs = 0;
+  // initialize SDT, MDT
+#ifdef CONFIG_RV_SMDBLTRP
+  mstatus->mdt = 1;
+#endif //CONFIG_RV_SMDBLTRP
+#ifdef CONFIG_RV_SSDBLTRP
+  mstatus->sdt = 1;
+  vsstatus->sdt = 1;
+  menvcfg->dte = 1;
+  henvcfg->dte = 1;
+#endif //CONFIG_RV_SSDBLTRP
+  // initialize nmie
+#ifdef CONFIG_RV_SMRNMI
+  mnstatus->nmie = 0;
+#endif //CONFIG_RV_SMRNMI
 
 #ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;

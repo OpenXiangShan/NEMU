@@ -132,7 +132,6 @@ typedef struct {
   uint64_t lr_valid;
 
   bool INTR;
-
   // Guided exec
   bool guided_exec;
   struct ExecutionGuide execution_guide;
@@ -150,6 +149,9 @@ typedef struct {
 #ifdef CONFIG_RV_SDTRIG
   TriggerModule *TM;
 #endif // CONFIG_RV_SDTRIG
+#ifdef CONFIG_RV_SMRNMI
+  bool hasNMI;
+#endif
 } riscv64_CPU_state;
 
 // decode

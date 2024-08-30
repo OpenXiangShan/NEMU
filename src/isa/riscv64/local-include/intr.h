@@ -36,6 +36,7 @@ enum {
   EX_LPF, // load page fault
   EX_RS0, // reserved
   EX_SPF, // store/amo page fault
+  EX_DT,  // double trap
   EX_IGPF = 20,// instruction guest-page fault, H-extention
   EX_LGPF,// load guest-page fault, H-extention
   EX_VI,  // virtual instruction, H-extention

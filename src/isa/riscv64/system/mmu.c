@@ -498,7 +498,8 @@ int get_data_mmu_state() {
 }
 
 static inline int update_mmu_state_internal(bool ifetch) {
-  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
+  uint32_t mode = (mstatus->mprv && (!ifetch) && MUXDEF(CONFIG_RV_SMRNMI, mnstatus->nmie, true)
+    ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
 #ifdef CONFIG_RV_SV48
     assert(satp->mode == 0 || satp->mode == 8 || satp->mode == 9);
