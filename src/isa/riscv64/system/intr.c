@@ -208,8 +208,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
         break;
       case EX_BP:
-        mtval->val = epc; break;
+        mtval->val = epc;
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+        break;
       default:
         mtval->val = 0;
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
