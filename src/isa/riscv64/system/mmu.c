@@ -210,7 +210,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
   int level;
   word_t p_pte;
   PTE pte;
-  for (level = max_level - 1; level >=0;){
+  for (level = max_level - 1; level >= 0; ) {
     p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE,
     type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
@@ -222,20 +222,38 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
         }
     #endif
     pg_base = PGBASE(pte.ppn);
-    Logtr("g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w: %d, x: %d", p_pte, pg_base, pte.v, pte.r, pte.w, pte.x);
-    if(pte.v && !pte.r && !pte.w && !pte.x){
+    Logtr(
+      "g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w:%d, x:%d, u:%d, g:%d, a:%d, d:%d", 
+      p_pte, pg_base, pte.v, pte.r, pte.w, pte.x, pte.u, pte.g, pte.a, pte.d
+    );
+    if (pte.v && !pte.r && !pte.w && !pte.x) {
+      // not leaf
+      if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
+        break;
+      }
       level --;
       if (level < 0) { break; }
-    }else if (!pte.v || (!pte.r && pte.w))
+    } else if (!pte.v || (!pte.r && pte.w) || pte.pad) {
       break;
-    else if(!pte.u)
+    } else if (ISNDEF(CONFIG_RV_SVPBMT) && pte.pbmt) {
       break;
-    else if(type == MEM_TYPE_IFETCH || hlvx ? !pte.x:
-            type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
-                                              !(pte.r && pte.w))
+    } else if (pte.pbmt == 3) {
       break;
-    else{
-       if (level > 0) {
+    } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
+      break;
+    } else if (!pte.u) {
+      break;
+    } else if (
+      type == MEM_TYPE_IFETCH || hlvx ? !pte.x: 
+      type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
+                                        !(pte.r && pte.w)
+    ) {
+      break;
+    } else if (!pte.a || (!pte.d && type == MEM_TYPE_WRITE)) {
+      // TODO: support hardware a/d update.
+      break;
+    } else {
+      if (level > 0) {
         // superpage
         word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
         if ((pg_base & pg_mask) != 0) {
@@ -273,7 +291,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 #endif // CONFIG_MULTICORE_DIFF
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
-  Logtr("Page walking for 0x%lx\n", vaddr);
+  Logtr("Page walking for 0x%lx", vaddr);
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
   max_level = satp->mode == 8 ? 3 : 4;
