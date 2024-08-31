@@ -472,7 +472,7 @@ bad:
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
 #ifdef CONFIG_RVH
-static int h_mmu_state = MMU_DIRECT;
+static int h_mmu_state = MMU_DIRECT; // for load/store instruction
 static inline int update_h_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
@@ -491,6 +491,25 @@ static inline int update_h_mmu_state_internal(bool ifetch) {
 int get_h_mmu_state() {
   return (h_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
 }
+
+static int hyperinst_mmu_state = MMU_DIRECT; // for virtual-machine load/store instructions, HLV, HLVX, and HSV
+static inline int update_hyperinst_mmu_state_internal() {
+#ifdef CONFIG_RV_SV48
+    assert(vsatp->mode == 0 || vsatp->mode == 8 || vsatp->mode == 9);
+    assert(hgatp->mode == 0 || hgatp->mode == 8 || hgatp->mode == 9);
+    if (vsatp->mode == 8 || vsatp->mode == 9 || hgatp->mode == 8 || hgatp->mode == 9) return MMU_TRANSLATE;
+#else
+    assert(vsatp->mode == 0 || vsatp->mode == 8);
+    assert(hgatp->mode == 0 || hgatp->mode == 8);
+    if (vsatp->mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
+#endif // CONFIG_RV_SV48
+  return MMU_DIRECT;
+}
+
+int get_hyperinst_mmu_state() {
+  return (hyperinst_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
+}
+
 #endif
 
 int get_data_mmu_state() {
@@ -518,6 +537,7 @@ int update_mmu_state() {
   data_mmu_state = update_mmu_state_internal(false);
 #ifdef CONFIG_RVH
   h_mmu_state = update_h_mmu_state_internal(false);
+  hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
   return (data_mmu_state ^ data_mmu_state_old) ? true : false;
 }
@@ -536,9 +556,10 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
 #ifdef CONFIG_RVH
-  bool enable_39 = satp->mode == 8 || (cpu.v && (vsatp->mode == 8 || hgatp->mode == 8));
-  bool enable_48 = satp->mode == 9 || (cpu.v && (vsatp->mode == 9 || hgatp->mode == 9));
+  bool enable_39 = satp->mode == 8 || ((cpu.v || hld_st) && (vsatp->mode == 8 || hgatp->mode == 8));
+  bool enable_48 = satp->mode == 9 || ((cpu.v || hld_st) && (vsatp->mode == 9 || hgatp->mode == 9));
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
+  bool hyperinst_vm_enable = hld_st && (vsatp->mode == 8 || hgatp->mode == 8);
 #else
   bool enable_39 = satp->mode == 8;
   bool enable_48 = satp->mode == 9;
@@ -546,7 +567,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
 
   bool va_msbs_ok = true;
-  if (vm_enable) {
+  if (vm_enable || hyperinst_vm_enable) {
     if (enable_48) {
       word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
       word_t va_msbs = vaddr >> 47;
@@ -562,7 +583,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if(cpu.v && vsatp->mode == 0){ // don't need bits 63–39 are equal to bit 38
+  if((cpu.v || hld_st) && vsatp->mode == 0){ // don't need bits 63–39 are equal to bit 38
     if (enable_48) {
       word_t maxgpa = ((((word_t)1) << 50) - 1);
       if((vaddr & ~maxgpa) == 0){
@@ -675,8 +696,10 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 #ifdef CONFIG_RVH
-  if (hld_st || cpu.v)
+  if (cpu.v)
     return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
+  if (hld_st)
+    return hyperinst_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
 #endif
   return data_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 }
