@@ -59,6 +59,7 @@ jobs:
           make -C resource/gcpt_restore
           # take cpt, and put cpt in output_top/test/linux
           bash ./scripts/take_zstd.sh
+          make clean-all
 
           # restore cpt
           git submodule update --init --depth=1 ready-to-run
