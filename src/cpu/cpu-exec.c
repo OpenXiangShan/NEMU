@@ -593,6 +593,9 @@ void fetch_decode(Decode *s, vaddr_t pc) {
 static void update_global() {
   update_instr_cnt();
   cpu.pc = prev_s->pc;
+  #ifdef CONFIG_TVAL_EX_II
+    cpu.instr = prev_s->isa.instr.val;
+  #endif // CONFIG_TVAL_EX_II
 }
 #endif
 
