@@ -129,7 +129,9 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
           putc(serial_base[UARTLITE_TX_FIFO], stderr);
           #endif // CONFIG_SHARE
       }
-      else panic("Cannot read UARTLITE_TX_FIFO");
+      else {
+        Assert(1, "Cannot read UARTLITE_TX_FIFO: %x %d\n", offset, len);
+      }
       break;
     case UARTLITE_STAT_REG:
       if (!is_write) serial_base[UARTLITE_STAT_REG] = 0x0;

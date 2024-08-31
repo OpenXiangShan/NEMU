@@ -100,8 +100,41 @@ def_rtl_compute_reg(mulu_hi)
 def_rtl_compute_reg(muls_hi)
 def_rtl_compute_reg(divu_q)
 def_rtl_compute_reg(divu_r)
+
+#ifdef CONFIG_SIM32
+static inline def_rtl(divs_q, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { 
+  uint32_t sc1 = *src1; 
+  uint32_t sc2 = *src2;
+  if (sc2 == 0) {
+    *dest = 0xffffffff;
+  }
+  else if (sc1 == 0x80000000 && sc2 == 0xffffffff) {
+    *dest = sc1;
+  }
+  else {
+    uint32_t res = (int32_t)sc1 / (int32_t)sc2;
+    *dest = res; 
+  }
+}
+static inline def_rtl(divs_r, rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) { 
+  uint32_t sc1 = *src1; 
+  uint32_t sc2 = *src2; 
+  if (sc2 == 0) {
+    *dest = sc1;
+  }
+  else if (sc1 == 0x80000000 && sc2 == 0xffffffff) {
+    *dest = 0;
+  }
+  else {
+    uint32_t res = (int32_t)sc1 % (int32_t)sc2; 
+    *dest = res; 
+  }
+
+}
+#else
 def_rtl_compute_reg(divs_q)
 def_rtl_compute_reg(divs_r)
+#endif
 
 #ifdef CONFIG_ISA64
 def_rtl_compute_reg(mulw)
@@ -154,7 +187,12 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-  vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  vaddr_t waddr = *addr + offset;
+#ifdef CONFIG_SIM32
+  waddr = waddr & 0xffffffff;
+#endif
+  // printf("write: %lx %d %lx\n", waddr, len, *src1);
+  vaddr_write(s, waddr, len, *src1, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -165,7 +203,11 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-  word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
+  vaddr_t raddr = *addr + offset;
+#ifdef CONFIG_SIM32
+  raddr = raddr & 0xffffffff;
+#endif
+  word_t val = vaddr_read(s, raddr, len, mmu_mode);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;

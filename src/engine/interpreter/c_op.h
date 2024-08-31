@@ -30,11 +30,20 @@
 #define c_xor(a, b) ((a) ^ (b))
 #define c_shl(a, b) ((a) << ((b) & c_shift_mask))
 #define c_shr(a, b) ((a) >> ((b) & c_shift_mask))
-#define c_sar(a, b) ((sword_t)(a) >> ((b) & c_shift_mask))
+
+#ifdef CONFIG_SIM32
+#define c_min(a, b) ((int32_t)(a) < (int32_t)(b) ? (a) : (b))
+#define c_max(a, b) ((int32_t)(a) > (int32_t)(b) ? (a) : (b))
+#define c_minu(a, b) ((uint32_t)(a) < (uint32_t)(b) ? (a) : (b))
+#define c_maxu(a, b) ((uint32_t)(a) > (uint32_t)(b) ? (a) : (b))
+#define c_sar(a, b) ((int32_t)(a) >> ((b) & c_shift_mask))
+#else
 #define c_min(a, b) ((int64_t)(a) < (int64_t)(b) ? (a) : (b))
 #define c_max(a, b) ((int64_t)(a) > (int64_t)(b) ? (a) : (b))
 #define c_minu(a, b) ((uint64_t)(a) < (uint64_t)(b) ? (a) : (b))
 #define c_maxu(a, b) ((uint64_t)(a) > (uint64_t)(b) ? (a) : (b))
+#define c_sar(a, b) ((sword_t)(a) >> ((b) & c_shift_mask))
+#endif
 
 #ifdef CONFIG_ISA64
 #define c_sext32to64(a) ((int64_t)(int32_t)(a))
@@ -47,8 +56,13 @@
 
 #define c_mulu_lo(a, b) ((a) * (b))
 #ifdef CONFIG_ISA64
+#ifdef CONFIG_SIM32
+#define c_mulu_hi(a, b) (((uint64_t)(a) * (uint64_t)(b)) >> 32)
+#define c_muls_hi(a, b) (((int64_t)(int32_t)(a) * (int64_t)(int32_t)(b)) >> 32)
+#else
 # define c_mulu_hi(a, b) (((__uint128_t)(a) * (__uint128_t)(b)) >> 64)
 # define c_muls_hi(a, b) (((__int128_t)(sword_t)(a) * (__int128_t)(sword_t)(b)) >> 64)
+#endif
 # define c_mulw(a, b) c_sext32to64((a) * (b))
 # define c_divw(a, b)  c_sext32to64(( int32_t)(a) / ( int32_t)(b))
 # define c_divuw(a, b) c_sext32to64((uint32_t)(a) / (uint32_t)(b))
@@ -65,15 +79,11 @@
 #define c_divs_r(a, b)  ((sword_t)(a) % (sword_t)(b))
 
 static inline bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rtlreg_t src2) {
-  word_t sc1 = src1, sc2 = src2;
+  
 #ifdef CONFIG_SIM32
-  if (src1 & 0x80000000) {
-    sc1 = src1 | 0xffffffff00000000;
-  }
-  if (src2 & 0x80000000) {
-    sc2 = src2 | 0xffffffff00000000;
-  }
+  uint32_t sc1 = src1, sc2 = src2;
 #else
+  word_t sc1, sc2;
   sc1 = src1;
   sc2 = src2;
 #endif
@@ -82,10 +92,17 @@ static inline bool interpret_relop(uint32_t relop, const rtlreg_t src1, const rt
     case RELOP_TRUE: return true;
     case RELOP_EQ: return sc1 == sc2;
     case RELOP_NE: return sc1 != sc2;
+#ifdef CONFIG_SIM32
+    case RELOP_LT: return (int32_t)sc1 <  (int32_t)sc2;
+    case RELOP_LE: return (int32_t)sc1 <= (int32_t)sc2;
+    case RELOP_GT: return (int32_t)sc1 >  (int32_t)sc2;
+    case RELOP_GE: return (int32_t)sc1 >= (int32_t)sc2;
+#else
     case RELOP_LT: return (sword_t)sc1 <  (sword_t)sc2;
     case RELOP_LE: return (sword_t)sc1 <= (sword_t)sc2;
     case RELOP_GT: return (sword_t)sc1 >  (sword_t)sc2;
     case RELOP_GE: return (sword_t)sc1 >= (sword_t)sc2;
+#endif
     case RELOP_LTU: return sc1 < sc2;
     case RELOP_GTU: return sc1 > sc2;
     case RELOP_GEU: return sc1 >= sc2;
