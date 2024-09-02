@@ -80,7 +80,9 @@ void init_isa() {
 #endif //CONFIG_RV_SSDBLTRP
   // initialize nmie
 #ifdef CONFIG_RV_SMRNMI
-  mnstatus->nmie = 0;
+//  mnstatus->nmie = 0;
+// as opensbi and linux not support smrnmi, so we init nmie = 1 to pass ci
+  mnstatus->nmie = 1;
 #endif //CONFIG_RV_SMRNMI
 
 #ifdef CONFIG_RV_PMP_ENTRY_16

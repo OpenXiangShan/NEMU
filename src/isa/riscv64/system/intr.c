@@ -258,7 +258,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 
 word_t isa_query_intr() {
   word_t intr_vec = mie->val & mip->val;
-  if (!intr_vec) return INTR_EMPTY;
+  if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
   int intr_num;
 #ifdef CONFIG_RVH
   const int priority [] = {
