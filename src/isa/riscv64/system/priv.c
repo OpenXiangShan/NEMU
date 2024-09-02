@@ -184,6 +184,17 @@ static inline uint8_t csr_readonly_permit_check(uint32_t addr, bool is_write) {
   return ex.val;
 }
 
+static inline uint8_t pmpcfg_permit_check(uint32_t addr) {
+  EX ex = {.val = 0};
+  // any mode access odd number pmpcfg will cause EX_II
+  if(addr >= CSR_PMPCFG_BASE && addr < CSR_PMPCFG_BASE + CSR_PMPCFG_MAX_NUM){
+    if(addr & 0x1) {
+      ex.ex.ii = 1;
+    }
+  }
+  return ex.val;
+}
+
 static inline word_t* csr_decode(uint32_t addr) {
   assert(addr < 4096);
   // Now we check if CSR is implemented / legal to access in csr_normal_permit_check()
@@ -1504,6 +1515,10 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   if ((addr >= 0xC00 && addr <= 0xC1F) || (addr == 0x14D) || (addr == 0x24D)) {
     ex.val |= csr_counter_enable_check(addr);
   }
+
+  // check pmpcfg
+  IFDEF(CONFIG_RV_PMP_CSR, ex.val |= pmpcfg_permit_check(addr);)
+
   // check smstateen
   MUXDEF(CONFIG_RV_SMSTATEEN, ex.val |= smstateen_extension_permit_check(dest_access), );
 
