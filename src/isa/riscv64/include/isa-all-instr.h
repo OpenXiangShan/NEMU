@@ -222,12 +222,7 @@
 #define ZFA_INSTR_TERNARY(f) \
   f(fminm_s) f(fminm_d) f(fmaxm_s) f(fmaxm_d) \
   f(fleq_s) f(fleq_d) f(fltq_s) f(fltq_d)
-#else 
-#define ZFA_INSTR_BINARY(f)
-#define ZFA_INSTR_TERNARY(f)
-#endif // CONFIG_RV_ZFA
-
-#ifdef CONFIG_RV_ZFH_ZFA
+#ifdef CONFIG_RV_ZFH
 #define ZFH_ZFA_INSTR_BINARY(f) \
   f(fli_h) f(fround_h) f(froundnx_h)
 #define ZFH_ZFA_INSTR_TERNARY(f) \
@@ -235,7 +230,13 @@
 #else
 #define ZFH_ZFA_INSTR_BINARY(f)
 #define ZFH_ZFA_INSTR_TERNARY(f)
-#endif // CONFIG_RV_ZFH_ZFA
+#endif // CONFIG_RV_ZFH
+#else 
+#define ZFA_INSTR_BINARY(f)
+#define ZFA_INSTR_TERNARY(f)
+#define ZFH_ZFA_INSTR_BINARY(f)
+#define ZFH_ZFA_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZFA
 
 #ifdef CONFIG_FPU_NONE
 #define FLOAT_INSTR_BINARY(f)
