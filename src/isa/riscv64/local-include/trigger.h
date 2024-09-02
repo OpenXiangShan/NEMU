@@ -158,7 +158,7 @@ typedef struct {
     uint64_t            val;
   } tdata1;
   tdata2_t tdata2;
-  tdata3_t tdata3;
+  IFDEF(CONFIG_SDTRIG_EXTRA, tdata3_t tdata3;)
 } Trigger;
 
 typedef struct TriggerModule {

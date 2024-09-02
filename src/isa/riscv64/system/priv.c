@@ -765,7 +765,9 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
   if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val ^
     (cpu.TM->triggers[tselect->val].tdata1.mcontrol.hit << 20); }
   if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
+#ifdef CONFIG_SDTRIG_EXTRA
   if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
+#endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 
 #ifdef CONFIG_RV_SMSTATEEN
@@ -1225,6 +1227,13 @@ static inline void csr_write(word_t *dest, word_t src) {
     tdata2_t wdata = *(tdata2_t*)&src;
     tdata2_reg->val = wdata.val;
   }
+#ifdef CONFIG_SDTRIG_EXTRA
+  else if (is_write(tdata3)) {
+    tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
+    tdata3_t wdata = *(tdata3_t*)&src;
+    tdata3_reg->val = wdata.val;
+  }
+#endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 #ifdef CONFIG_RV_SSCOFPMF
   else if (is_write(scountovf)) { *dest = src & SCOUNTOVF_WMASK; }

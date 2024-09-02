@@ -73,6 +73,14 @@ config TRIGGER_NUM
   depends on RV_SDTRIG
   default 10
 
+config SDTRIG_EXTRA
+  bool "Trigger extra part"
+  depends on RV_SDTRIG
+  default n
+  help
+    This includes the following optional CSRs in Sdtrig extension:
+    tdata3, mcontext.
+
 config RV_AIA
   bool "(Beta) RISC-V Advanced Interrupt Architecture v1.0"
   depends on RVH

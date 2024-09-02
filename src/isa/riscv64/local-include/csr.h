@@ -395,9 +395,10 @@
 #ifdef CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f) \
     f(tselect    , 0x7A0) \
-    f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) f(tdata3     , 0x7A3) \
+    f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) \
     f(tinfo      , 0x7A4) f(tcontrol   , 0x7A5) \
-    f(mcontext   , 0x7A8)
+    IFDEF(CONFIG_SDTRIG_EXTRA, f(tdata3  , 0x7A3)) \
+    IFDEF(CONFIG_SDTRIG_EXTRA, f(mcontext, 0x7A8))
 #else // CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f)
 #endif // CONFIG_RV_SDTRIG
