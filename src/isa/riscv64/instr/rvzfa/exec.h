@@ -72,9 +72,7 @@ def_EHelper(fltq_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLTQ, FPCALL_W64));
 }
 
-#endif // CONFIG_RV_ZFA
-
-#ifdef CONFIG_RV_ZFH_ZFA
+#ifdef CONFIG_RV_ZFH
 def_EHelper(fli_h) {
   rtl_li(s, s0, s->isa.instr.i.rs1);
   rtl_hostcall(s, HOSTCALL_FP, ddest, s0, rz, FPCALL_CMD(FPCALL_FLI, FPCALL_W16));
@@ -108,5 +106,5 @@ def_EHelper(fleq_h) {
 def_EHelper(fltq_h) {
     rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLTQ, FPCALL_W16));
 }
-
-#endif // CONFIG_RV_ZFH_ZFA
+#endif // CONFIG_RV_ZFH
+#endif // CONFIG_RV_ZFA

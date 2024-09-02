@@ -39,12 +39,6 @@ config RV_ZFA
   depends on !FPU_NONE
   default n
 
-config RV_ZFH_ZFA
-  bool "RISC-V Zfa Extensions V1.0 (enabled Zfh Extensions)"
-  depends on RV_ZFH
-  depends on RV_ZFA
-  default n
-
 config RVV
   depends on !FPU_NONE
   bool "RISC-V Vector Extension v1.0"
