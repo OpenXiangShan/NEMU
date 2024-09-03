@@ -122,7 +122,7 @@ void require_float() {
     longjmp_exception(EX_II);
   }
 #ifdef CONFIG_RVH
-  if (cpu.v & ((vsstatus->val & (0x3UL << 13)) == 0)) {
+  if (cpu.v && vsstatus->fs == 0) {
     longjmp_exception(EX_II);
   }
 #endif
