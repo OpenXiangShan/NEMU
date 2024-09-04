@@ -224,6 +224,12 @@ void difftest_raise_nmi_intr(bool hasNMI) {
 #endif //CONFIG_RV_SMRNMI
 }
 
+void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlInject) {
+#ifdef CONFIG_RV_IMSIC
+  cpu.virtualInterruptIsHvictlInject = virtualInterruptIsHvictlInject;
+#endif
+}
+
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE
   dynamic_config.debug_difftest = true;

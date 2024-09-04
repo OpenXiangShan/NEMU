@@ -105,6 +105,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegS && mstatus->sdt, false);
   bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
 #ifdef CONFIG_RVH
+  bool virtualInterruptIsHvictlInject = MUXDEF(CONFIG_RV_IMSIC, cpu.virtualInterruptIsHvictlInject, false);
   extern bool hld_st;
   int hld_st_temp = hld_st;
   hld_st = 0;
@@ -112,8 +113,15 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   delegM = !delegS && !delegVS && !isNMI;
   bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && vsstatus->sdt, false);
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
-  if (delegVS && !vs_EX_DT){
-    vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
+  if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
+    if (virtualInterruptIsHvictlInject) {
+      vscause->val = NO | INTR_BIT;
+#ifdef CONFIG_RV_IMSIC
+      cpu.virtualInterruptIsHvictlInject = 0;
+#endif
+    } else {
+      vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
+    }
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
