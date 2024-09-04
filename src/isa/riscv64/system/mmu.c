@@ -193,14 +193,14 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
   Logtr("gpa_stage gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD ", type: %d", gpaddr, vaddr, type);
   int max_level = 0;
-  if (hgatp->mode == 0) {
+  if (hgatp->mode == HGATP_MODE_BARE) {
     return gpaddr;
-  } else if (hgatp->mode == 9){
+  } else if (hgatp->mode == HGATP_MODE_Sv48x4){
     if((gpaddr & ~(((int64_t)1 << 50) - 1)) != 0){
       raise_guest_excep(gpaddr, vaddr, type);
     }
     max_level = 4;
-  } else if (hgatp->mode == 8){
+  } else if (hgatp->mode == HGATP_MODE_Sv39x4){
     if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
       raise_guest_excep(gpaddr, vaddr, type);
     }
@@ -294,7 +294,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   Logtr("Page walking for 0x%lx", vaddr);
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
-  max_level = satp->mode == 8 ? 3 : 4;
+  max_level = satp->mode == SATP_MODE_Sv39 ? 3 : 4;
 #ifdef CONFIG_RVH
   int virt = cpu.v;
   int mode = cpu.mode;
@@ -309,9 +309,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if(virt){
-    if(vsatp->mode == 0) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
+    if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp->ppn);
-    max_level = vsatp->mode == 8 ? 3 : 4;
+    max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
   }
 #endif
   word_t p_pte; // pte pointer
@@ -477,13 +477,13 @@ static inline int update_h_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
 #ifdef CONFIG_RV_SV48
-    assert(vsatp->mode == 0 || vsatp->mode == 8 || vsatp->mode == 9);
-    assert(hgatp->mode == 0 || hgatp->mode == 8 || hgatp->mode == 9);
-    if (vsatp->mode == 8 || vsatp->mode == 9 || hgatp->mode == 8 || hgatp->mode == 9) return MMU_TRANSLATE;
+    assert(vsatp->mode == SATP_MODE_BARE || vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48);
+    assert(hgatp->mode == HGATP_MODE_BARE || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4);
+    if (vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4) return MMU_TRANSLATE;
 #else
-    assert(vsatp->mode == 0 || vsatp->mode == 8);
-    assert(hgatp->mode == 0 || hgatp->mode == 8);
-    if (vsatp->mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
+    assert(vsatp->mode == SATP_MODE_BARE || vsatp->mode == SATP_MODE_Sv39);
+    assert(hgatp->mode == HGATP_MODE_BARE || hgatp->mode == HGATP_MODE_Sv39x4);
+    if (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4) return MMU_TRANSLATE;
 #endif // CONFIG_RV_SV48
   }
   return MMU_DIRECT;
@@ -495,13 +495,13 @@ int get_h_mmu_state() {
 static int hyperinst_mmu_state = MMU_DIRECT; // for virtual-machine load/store instructions, HLV, HLVX, and HSV
 static inline int update_hyperinst_mmu_state_internal() {
 #ifdef CONFIG_RV_SV48
-    assert(vsatp->mode == 0 || vsatp->mode == 8 || vsatp->mode == 9);
-    assert(hgatp->mode == 0 || hgatp->mode == 8 || hgatp->mode == 9);
-    if (vsatp->mode == 8 || vsatp->mode == 9 || hgatp->mode == 8 || hgatp->mode == 9) return MMU_TRANSLATE;
+    assert(vsatp->mode == SATP_MODE_BARE || vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48);
+    assert(hgatp->mode == HGATP_MODE_BARE || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4);
+    if (vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4) return MMU_TRANSLATE;
 #else
-    assert(vsatp->mode == 0 || vsatp->mode == 8);
-    assert(hgatp->mode == 0 || hgatp->mode == 8);
-    if (vsatp->mode == 8 || hgatp->mode == 8) return MMU_TRANSLATE;
+    assert(vsatp->mode == SATP_MODE_BARE || vsatp->mode == SATP_MODE_Sv39);
+    assert(hgatp->mode == HGATP_MODE_BARE || hgatp->mode == HGATP_MODE_Sv39x4);
+    if (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4) return MMU_TRANSLATE;
 #endif // CONFIG_RV_SV48
   return MMU_DIRECT;
 }
@@ -521,11 +521,11 @@ static inline int update_mmu_state_internal(bool ifetch) {
     ? mstatus->mpp : cpu.mode);
   if (mode < MODE_M) {
 #ifdef CONFIG_RV_SV48
-    assert(satp->mode == 0 || satp->mode == 8 || satp->mode == 9);
-    if (satp->mode == 8 || satp->mode == 9) return MMU_TRANSLATE;
+    assert(satp->mode == SATP_MODE_BARE || satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48);
+    if (satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48) return MMU_TRANSLATE;
 #else
-    assert(satp->mode == 0 || satp->mode == 8);
-    if (satp->mode == 8) return MMU_TRANSLATE;
+    assert(satp->mode == SATP_MODE_BARE || satp->mode == SATP_MODE_Sv39);
+    if (satp->mode == SATP_MODE_Sv39) return MMU_TRANSLATE;
 #endif // CONFIG_RV_SV48
   }
   return MMU_DIRECT;
@@ -556,18 +556,18 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
 #ifdef CONFIG_RVH
-  bool enable_39 = satp->mode == 8 || ((cpu.v || hld_st) && (vsatp->mode == 8 || hgatp->mode == 8));
-  bool enable_48 = satp->mode == 9 || ((cpu.v || hld_st) && (vsatp->mode == 9 || hgatp->mode == 9));
+  bool enable_39 = satp->mode == SATP_MODE_Sv39 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4));
+  bool enable_48 = satp->mode == SATP_MODE_Sv48 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv48x4));
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
-  bool hyperinst_vm_enable = hld_st && (vsatp->mode == 8 || hgatp->mode == 8);
+  bool hyperinst_vm_enable = hld_st && (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4);
 #else
-  bool enable_39 = satp->mode == 8;
-  bool enable_48 = satp->mode == 9;
+  bool enable_39 = satp->mode == SATP_MODE_Sv39;
+  bool enable_48 = satp->mode == SATP_MODE_Sv48;
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
 #endif
 
   bool va_msbs_ok = true;
-  if (vm_enable || hyperinst_vm_enable) {
+  if (vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false)) {
     if (enable_48) {
       word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
       word_t va_msbs = vaddr >> 47;
@@ -583,7 +583,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if((cpu.v || hld_st) && vsatp->mode == 0){ // don't need bits 63–39 are equal to bit 38
+  if((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE){ // don't need bits 63–39 are equal to bit 38
     if (enable_48) {
       word_t maxgpa = ((((word_t)1) << 50) - 1);
       if((vaddr & ~maxgpa) == 0){
