@@ -1785,7 +1785,6 @@ int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
     longjmp_exception(EX_II);
   }
   hld_st = true;
-  fprintf(stderr, "get_hyperinst_mmu_state(): %d\n", get_hyperinst_mmu_state());
   int mmu_mode = get_hyperinst_mmu_state();
   switch (id) {
     case 0x600: // hlv.b
