@@ -52,9 +52,9 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
     if (ret != MEM_RET_OK) return 0;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1, type, cpu.mode, vaddr);
+    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
 #else
-    word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1, type, cpu.mode, vaddr);
+    word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
 #endif
     data |= byte << (i << 3);
   }

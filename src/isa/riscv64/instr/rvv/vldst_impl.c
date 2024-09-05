@@ -47,16 +47,16 @@ void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 
 static void isa_emul_check(int emul, int nfields) {
   if (emul > 3) {
-    Log("vector EMUL > 8 happen: EMUL:%d\n", (1 << emul));
+    Loge("vector EMUL > 8 happen: EMUL:%d\n", (1 << emul));
     longjmp_exception(EX_II);
   }
   if (emul < -3) {
-    Log("vector EMUL < 1/8 happen: EMUL:1/%d\n", 1 << (-emul));
+    Loge("vector EMUL < 1/8 happen: EMUL:1/%d\n", 1 << (-emul));
     longjmp_exception(EX_II);
   }
   int real_emul = 1 << (emul < 0 ? 0 : emul);
   if (real_emul * nfields > 8) {
-    Log("vector EMUL * NFIELDS > 8 happen: EMUL:%s%d NFIELDS:%d\n",
+    Loge("vector EMUL * NFIELDS > 8 happen: EMUL:%s%d NFIELDS:%d\n",
       emul > 0 ? "" : "1/",
       emul > 0 ? real_emul : (1 << (-emul)),
       nfields
@@ -668,11 +668,11 @@ void vstx(Decode *s, int mmu_mode) {
 
 static void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
   if (nfields != 1 && nfields != 2 && nfields != 4 && nfields != 8) {
-    Log("illegal NFIELDS for whole register instrs: NFIELDS:%lu", nfields);
+    Loge("illegal NFIELDS for whole register instrs: NFIELDS:%lu", nfields);
     longjmp_exception(EX_II);
   }
   if (vd % nfields) {
-    Log("vector register group misaligned for whole register instrs: NFIELDS:%lu vd:%lu",
+    Loge("vector register group misaligned for whole register instrs: NFIELDS:%lu vd:%lu",
       nfields, vd);
     longjmp_exception(EX_II);
   }
