@@ -172,15 +172,12 @@ static inline uint8_t csr_normal_permit_check(uint32_t addr) {
   bool check_pass = access_table[cpu.mode][csr_priv];
 #endif  // CONFIG_RVH
   if (!check_pass) {
-#ifdef CONFIG_RVH
-    // VS/VU access VS csr will cause EX_VI
-    if (cpu.v && cpu.mode < MODE_M && (csr_priv == MODE_HS)) 
-      ex.ex.vi = 1;
-    else
+    if (MUXDEF(CONFIG_RVH, cpu.v, 0)) {
+      ex.ex.ii |= csr_priv == MODE_M;
+      ex.ex.vi |= csr_priv != MODE_M;
+    } else {
       ex.ex.ii = 1;
-#else
-    ex.ex.ii = 1;
-#endif  // CONFIG_RVH
+    }
   }
   return ex.val;
 }
