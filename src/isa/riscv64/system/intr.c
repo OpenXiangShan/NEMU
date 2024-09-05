@@ -111,6 +111,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   hld_st = 0;
   bool delegVS = intr_deleg_VS(NO);
   delegM = !delegS && !delegVS && !isNMI;
+  delegS &= !delegVS;
   bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && vsstatus->sdt, false);
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
@@ -126,6 +127,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
     vsstatus->sie = 0;
+    vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, henvcfg->dte && menvcfg->dte, 0);
     // vsstatus->spp = cpu.mode;
     // vsstatus->spie = vsstatus->sie;
     // vsstatus->sie = 0;
@@ -165,6 +167,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
+    mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:

@@ -69,16 +69,13 @@ void init_isa() {
   mstatus->fs = 0;
   mstatus->vs = 0;
   // initialize SDT, MDT
-#ifdef CONFIG_RV_SMDBLTRP
-  mstatus->mdt = 1;
-#endif //CONFIG_RV_SMDBLTRP
+  mstatus->mdt = ISDEF(CONFIG_RV_SMDBLTRP);
 #ifdef CONFIG_RV_SSDBLTRP
-  mstatus->sdt = 1;
-  vsstatus->sdt = 1;
+  mstatus->sdt = 0;
+  vsstatus->sdt = 0;
   menvcfg->dte = 1;
   henvcfg->dte = 1;
 #endif //CONFIG_RV_SSDBLTRP
-  // initialize nmie
 #ifdef CONFIG_RV_SMRNMI
 //  mnstatus->nmie = 0;
 // as opensbi and linux not support smrnmi, so we init nmie = 1 to pass ci

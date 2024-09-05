@@ -1462,8 +1462,11 @@ MAP(CSRS, CSRS_DECL)
 
 /** Double Trap**/
 #ifdef CONFIG_RV_SMRNMI
-  #define MNSTATUS_MASK 0x1A88
-  #define MNSTATUS_NMIE 0x8
+  #define MNSTATUS_NMIE   0x1UL << 3
+  #define MNSTATUS_MNPV   0X1UL << 7
+  #define MNSTATUS_MNPELP 0X1UL << 9
+  #define MNSTATUS_MNPP   0X3UL << 11
+  #define MNSTATUS_MASK (MNSTATUS_NMIE | MNSTATUS_MNPV | MNSTATUS_MNPP)
 #endif
 
 /**
