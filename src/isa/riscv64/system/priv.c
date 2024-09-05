@@ -1011,6 +1011,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
   #endif //CONFIG_RV_SSDBLTRP
     mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
+    update_mmu_state(); // maybe this write update mprv, mpp or mpv
   #ifdef CONFIG_RV_SMDBLTRP
     // when MDT is explicitly written by 1, clear MIE
     if (src & MSTATUS_WMASK_SMDBLTRP) { mstatus->mie = 0; }

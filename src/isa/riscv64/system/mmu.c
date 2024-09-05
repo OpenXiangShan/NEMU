@@ -472,26 +472,6 @@ bad:
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
 #ifdef CONFIG_RVH
-static int h_mmu_state = MMU_DIRECT; // for load/store instruction
-static inline int update_h_mmu_state_internal(bool ifetch) {
-  uint32_t mode = (mstatus->mprv && (!ifetch) ? mstatus->mpp : cpu.mode);
-  if (mode < MODE_M) {
-#ifdef CONFIG_RV_SV48
-    assert(vsatp->mode == SATP_MODE_BARE || vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48);
-    assert(hgatp->mode == HGATP_MODE_BARE || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4);
-    if (vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4) return MMU_TRANSLATE;
-#else
-    assert(vsatp->mode == SATP_MODE_BARE || vsatp->mode == SATP_MODE_Sv39);
-    assert(hgatp->mode == HGATP_MODE_BARE || hgatp->mode == HGATP_MODE_Sv39x4);
-    if (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4) return MMU_TRANSLATE;
-#endif // CONFIG_RV_SV48
-  }
-  return MMU_DIRECT;
-}
-int get_h_mmu_state() {
-  return (h_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
-}
-
 static int hyperinst_mmu_state = MMU_DIRECT; // for virtual-machine load/store instructions, HLV, HLVX, and HSV
 static inline int update_hyperinst_mmu_state_internal() {
 #ifdef CONFIG_RV_SV48
@@ -519,14 +499,26 @@ int get_data_mmu_state() {
 static inline int update_mmu_state_internal(bool ifetch) {
   uint32_t mode = (mstatus->mprv && (!ifetch) && MUXDEF(CONFIG_RV_SMRNMI, mnstatus->nmie, true)
     ? mstatus->mpp : cpu.mode);
+#ifdef CONFIG_RVH
+  bool virt = mstatus->mprv && (!ifetch) ? mstatus->mpv && mode != MODE_M : cpu.v;
   if (mode < MODE_M) {
-#ifdef CONFIG_RV_SV48
-    assert(satp->mode == SATP_MODE_BARE || satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48);
-    if (satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48) return MMU_TRANSLATE;
+  #ifdef CONFIG_RV_SV48
+    if (virt ? vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4 
+              : satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48) 
+      return MMU_TRANSLATE;
+  #else
+    if (virt ? vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4
+              : satp->mode == SATP_MODE_Sv39) 
+      return MMU_TRANSLATE;
+  #endif // CONFIG_RV_SV48
 #else
-    assert(satp->mode == SATP_MODE_BARE || satp->mode == SATP_MODE_Sv39);
+  if (mode < MODE_M) {
+  #ifdef CONFIG_RV_SV48
+    if (satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48) return MMU_TRANSLATE;
+  #else
     if (satp->mode == SATP_MODE_Sv39) return MMU_TRANSLATE;
-#endif // CONFIG_RV_SV48
+  #endif // CONFIG_RV_SV48
+#endif // CONFIG_RVH
   }
   return MMU_DIRECT;
 }
@@ -536,7 +528,6 @@ int update_mmu_state() {
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
 #ifdef CONFIG_RVH
-  h_mmu_state = update_h_mmu_state_internal(false);
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
   return (data_mmu_state ^ data_mmu_state_old) ? true : false;
@@ -691,13 +682,9 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }
     return MEM_RET_FAIL;
   }
-#ifdef CONFIG_RVH
-  if (cpu.v && is_ifetch) return h_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
-#endif
+
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 #ifdef CONFIG_RVH
-  if (cpu.v)
-    return h_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
   if (hld_st)
     return hyperinst_mmu_state  ? MMU_TRANSLATE : MMU_DIRECT;
 #endif
