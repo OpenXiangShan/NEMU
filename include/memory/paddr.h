@@ -31,6 +31,8 @@ extern unsigned int PMEM_HARTID;
 /* Used to indicate whether the write is non-aligned across pages write. Reuse this flag inside mode*/
 #define CROSS_PAGE_ST_SHIFT 12
 #define CROSS_PAGE_ST_FLAG  (1u << CROSS_PAGE_ST_SHIFT)
+#define CROSS_PAGE_LD_SHIFT 12
+#define CROSS_PAGE_LD_FLAG  (1u << CROSS_PAGE_LD_SHIFT)
 
 #define RESET_VECTOR (CONFIG_MBASE + CONFIG_PC_RESET_OFFSET)
 
@@ -117,6 +119,7 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   assert(golden_pmem != NULL);
+  mode &= ~CROSS_PAGE_LD_FLAG;
 #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread((void *)golden_pmem, addr, len)
 #else

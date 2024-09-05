@@ -145,6 +145,16 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   raise_access_fault(cause, vaddr);
 }
 
+static inline void isa_mmio_misalign_data_addr_check(vaddr_t vaddr, int len, int type, int is_cross_page) {
+  if (unlikely((vaddr & (len - 1)) != 0) || is_cross_page) {
+    Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
+    int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
+    INTR_TVAL_REG(ex) = vaddr;
+    longjmp_exception(ex);
+  }
+}
+
 void allocate_memory_with_mmap()
 {
 #ifdef CONFIG_USE_MMAP
@@ -209,6 +219,9 @@ bool check_paddr(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 
 word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+  (void)cross_page_load;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!check_paddr(addr, len, type, mode, vaddr)) {
@@ -231,12 +244,14 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     return rdata;
   }
   else {
+    // check if the address is misaligned
+    isa_mmio_misalign_data_addr_check(vaddr, len, MEM_TYPE_READ, cross_page_load);
 #ifdef CONFIG_HAS_FLASH
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
 #endif
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
-    printf("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
+    Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
     raise_read_access_fault(type, vaddr);
   }
   return 0;
@@ -333,6 +348,8 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     }
     return pmem_write(addr, len, data, cross_page_store);
   } else {
+    // check if the address is misaligned
+    isa_mmio_misalign_data_addr_check(vaddr, len, MEM_TYPE_WRITE, cross_page_store);
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
     else {
       if(dynamic_config.ignore_illegal_mem_access)
