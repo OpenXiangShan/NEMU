@@ -77,14 +77,6 @@ void init_csr() {
   #endif
 };
 
-typedef union EX{
-  struct {
-    uint8_t ii: 1; // illegal instruction
-    uint8_t vi: 1; // virtual instruction
-  } ex;
-  uint8_t val;
-} EX;
-
 #ifdef CONFIG_RV_SDTRIG
 void init_trigger() {
   cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
@@ -101,8 +93,8 @@ void init_trigger() {
 
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
 // also check h/mcounteren h/menvcfg for sstc
-static inline uint8_t csr_counter_enable_check(uint32_t addr) {
-  EX ex = {.val = 0};
+static inline bool csr_counter_enable_check(uint32_t addr) {
+  bool has_vi = false;
   int count_bit = 1 << (addr - 0xC00);
   bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == 0x14D) || (addr == 0x24D), 0);
 
@@ -118,35 +110,30 @@ static inline uint8_t csr_counter_enable_check(uint32_t addr) {
   // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    | (counters)
   if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (is_sstc_csr && !menvcfg->stce))) {
     Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
-    ex.ex.ii = 1;
+    longjmp_exception(EX_II);
   }
 
   #ifdef CONFIG_RVH
     if (cpu.v && (!(count_bit & hcounteren->val) || (is_sstc_csr && !henvcfg->stce))) {
       Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
-      ex.ex.vi = 1;
+      has_vi = true;
     }
   #endif // CONFIG_RVH
 
   if (cpu.mode < MODE_S && !(count_bit & scounteren->val) && !is_sstc_csr) {
     Logti("Illegal CSR accessing (0x%X): the bit in scounteren is not set", addr);
-    #ifdef CONFIG_RVH
-      if (cpu.v) {
-        ex.ex.vi = 1;
-      }
-    #endif // CONFIG_RVH
-    ex.ex.ii = 1;
+    longjmp_exception(EX_II);
   }
 
-  return ex.val;
+  return has_vi;
 }
 
-static inline uint8_t csr_normal_permit_check(uint32_t addr) {
-  EX ex = {.val = 0};
+static inline bool csr_normal_permit_check(uint32_t addr) {
+  bool has_vi = false;
   assert(addr < 4096);
   // Attempts to access a non-existent CSR raise an illegal instruction exception.
   if(!csr_exist[addr]) {
-    MUXDEF(CONFIG_PANIC_ON_UNIMP_CSR, panic("[NEMU] unimplemented CSR 0x%x", addr), ex.ex.ii = 1);
+    MUXDEF(CONFIG_PANIC_ON_UNIMP_CSR, panic("[NEMU] unimplemented CSR 0x%x", addr), longjmp_exception(EX_II));
   }
 
   // VS access Custom csr will cause EX_II
@@ -155,14 +142,14 @@ static inline uint8_t csr_normal_permit_check(uint32_t addr) {
                         (addr >= 0x9c0 && addr <= 0x9ff) ||
                         (addr >= 0xdc0 && addr <= 0xdff);
   if(cpu.v && cpu.mode == MODE_S && is_custom_csr){
-    ex.ex.ii = 1;
+    longjmp_exception(EX_II);
   }
   #endif // CONFIG_RVH
 
   // M/HS/VS/HU/VU access debug csr will cause EX_II
   bool isDebugReg = BITS(addr, 11, 4) == 0x7b; // addr(11,4)
   if(isDebugReg)
-    ex.ex.ii = 1;
+    longjmp_exception(EX_II);
 
   // Attempts to access a CSR without appropriate privilege level
   int csr_priv = BITS(addr, 9, 8); // get csr priv from csr addr
@@ -172,23 +159,21 @@ static inline uint8_t csr_normal_permit_check(uint32_t addr) {
   bool check_pass = access_table[cpu.mode][csr_priv];
 #endif  // CONFIG_RVH
   if (!check_pass) {
-    if (MUXDEF(CONFIG_RVH, cpu.v, 0)) {
-      ex.ex.ii |= csr_priv == MODE_M;
-      ex.ex.vi |= csr_priv != MODE_M;
+    if (MUXDEF(CONFIG_RVH, cpu.v && csr_priv != MODE_M, 0)) {
+        has_vi = true;
     } else {
-      ex.ex.ii = 1;
+      longjmp_exception(EX_II);
     }
   }
-  return ex.val;
+  return has_vi;
 }
 
-static inline uint8_t csr_readonly_permit_check(uint32_t addr, bool is_write) {
-  EX ex = {.val = 0};
+static inline bool csr_readonly_permit_check(uint32_t addr, bool is_write) {
   // any mode write read-only csr will cause EX_II
   if (is_write && BITS(addr, 11, 10) == 0x3) {
-    ex.ex.ii = 1;
+    longjmp_exception(EX_II);
   }
-  return ex.val;
+  return false;
 }
 
 static inline word_t* csr_decode(uint32_t addr) {
@@ -1347,22 +1332,22 @@ word_t csrid_read(uint32_t csrid) {
   return csr_read(csr_decode(csrid));
 }
 
-static inline uint8_t satp_permit_check(const word_t *dest_access){
-  EX ex = {.val = 0};
+static inline bool satp_permit_check(const word_t *dest_access){
+  bool has_vi = false;
   if (is_access(satp)){
     #ifdef CONFIG_RVH
     // HS access satp when mstatus.tvm = 1 will cause EX_II
     if (!cpu.v && cpu.mode == MODE_S && mstatus->tvm) {
-      ex.ex.ii = 1;
+      longjmp_exception(EX_II);
     }
     // VS access satp when hstatus.vtvm = 1 will cause EX_VI
     if (cpu.v && cpu.mode == MODE_S && hstatus->vtvm) {
-      ex.ex.vi = 1;
+      has_vi = true;
     }
     #else // CONFIG_RVH
     // HS access satp when mstatus.tvm = 1 will cause EX_II
     if (cpu.mode == MODE_S && mstatus->tvm) {
-      ex.ex.ii = 1;
+      longjmp_exception(EX_II);
     }
     #endif // CONFIG_RVH
   }
@@ -1370,41 +1355,41 @@ static inline uint8_t satp_permit_check(const word_t *dest_access){
   else if (is_access(hgatp)) {
     // HS access hgatp when mstatus.tvm = 1 will cause EX_II
     if(!cpu.v && cpu.mode == MODE_S && mstatus->tvm) {
-      ex.ex.ii = 1;
+      longjmp_exception(EX_II);
     }
   }
   #endif // CONFIG_RVH
-  return ex.val;
+  return has_vi;
 }
 
 // VS/VU access stateen should be EX_II when mstateen0->se0 is false.
 #ifdef CONFIG_RV_SMSTATEEN
-static inline uint8_t smstateen_extension_permit_check(const word_t *dest_access) {
-  EX ex = {.val = 0};
+static inline bool smstateen_extension_permit_check(const word_t *dest_access) {
+  bool has_vi = false;
   if (is_access(sstateen0)) {
-    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { ex.ex.ii = 1; }
+    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
 #ifdef CONFIG_RVH
-    else if (cpu.v && mstateen0->se0 && !hstateen0->se0) { ex.ex.vi = 1; }
+    else if (cpu.v && mstateen0->se0 && !hstateen0->se0) { has_vi = true; }
 #endif // CONFIG_RVH
   }
 #ifdef CONFIG_RVH
   else if (is_access(hstateen0)) {
-    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { ex.ex.ii = 1; }
-    else if (cpu.v && mstateen0->se0) { ex.ex.vi = 1; }
+    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
+    else if (cpu.v && mstateen0->se0) { has_vi = true;}
   }
 #endif // CONFIG_RVH
-  return ex.val;
+  return has_vi;
 }
 #endif // CONFIG_RV_SMSTATEEN
 
 // AIA extension check
 // !!! Only support in RVH
 #ifdef CONFIG_RV_IMSIC
-static uint8_t aia_extension_permit_check(const word_t *dest_access) {
-  EX ex = {.val = 0};
+static bool aia_extension_permit_check(const word_t *dest_access) {
+  bool has_vi = false;
   if (is_access(stopei)) {
     if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
-      ex.ex.ii = 1;
+      longjmp_exception(EX_II);
     }
   }
   if (is_access(mireg)) {
@@ -1413,14 +1398,14 @@ static uint8_t aia_extension_permit_check(const word_t *dest_access) {
           ((miselect->val > ISELECT_3F_MASK) && (miselect->val <= ISELECT_6F_MASK)) ||
           (miselect->val >  ISELECT_MAX_MASK) ||
           (miselect->val & 0x1)) {
-            ex.ex.ii = 1;
+            longjmp_exception(EX_II);
       }
     }
   }
   if (is_access(sireg)) {
     if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
       if ((siselect->val > ISELECT_6F_MASK) && (siselect->val <= ISELECT_MAX_MASK)) {
-        ex.ex.ii = 1;
+        longjmp_exception(EX_II);
       }
     }
     if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
@@ -1428,20 +1413,20 @@ static uint8_t aia_extension_permit_check(const word_t *dest_access) {
           ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) ||
           (siselect->val >  ISELECT_MAX_MASK) ||
           (siselect->val & 0x1)) {
-            ex.ex.ii = 1;
+            longjmp_exception(EX_II);
       }
     }
     if (cpu.v && (cpu.mode == MODE_S)) {
       if (vsiselect->val > VSISELECT_MAX_MASK) {
-        ex.ex.ii = 1;
+        longjmp_exception(EX_II);
       }
       if (((vsiselect->val > ISELECT_2F_MASK) && (vsiselect->val <= ISELECT_3F_MASK)) ||
           ((vsiselect->val > 0x80) && (vsiselect->val <= ISELECT_MAX_MASK) && (vsiselect->val & 0x1))) {
-            ex.ex.vi = 1;
+            has_vi = true;
       }
     }
     if (cpu.v && (cpu.mode == MODE_U)) {
-      ex.ex.vi = 1;
+      has_vi = true;
     }
   }
   if (is_access(vsireg)) {
@@ -1449,21 +1434,21 @@ static uint8_t aia_extension_permit_check(const word_t *dest_access) {
       if ((vsiselect->val <= ISELECT_6F_MASK) ||
           (vsiselect->val >  ISELECT_MAX_MASK) ||
           (vsiselect->val & 0x1)) {
-            ex.ex.ii = 1;
+            longjmp_exception(EX_II);
       }
     }
     if (cpu.v) {
-      ex.ex.vi = 1;
+      has_vi = true;
     }
   }
   if (is_access(sip) || is_access(sie)) {
     if (cpu.v && (cpu.mode == MODE_S)) {
       if (hvictl->vti) {
-        ex.ex.vi = 1;
+        has_vi = true;
       }
     }
   }
-  return ex.val;
+  return has_vi;
 }
 #endif // CONFIG_RV_IMSIC
 
@@ -1480,60 +1465,51 @@ static uint8_t aia_extension_permit_check(const word_t *dest_access) {
  *          2. when mstatus.VS or vsstatus.VS is OFF in Virt Mode
 */
 #ifndef CONFIG_FPU_NONE
-static inline uint8_t fp_permit_check(const word_t *dest_access) {
-  EX ex = {.val = 0};
+static inline bool fp_permit_check(const word_t *dest_access) {
   if (is_access(fcsr) || is_access(fflags) || is_access(frm)) {
-    if (!require_fs()) { ex.ex.ii = 1; }
+    if (!require_fs()) { longjmp_exception(EX_II); }
   }
-  return ex.val;
+  return false;
 }
 #endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RVV
-static inline uint8_t vec_permit_check(const word_t *dest_access) {
-  EX ex = {.val = 0};
+static inline bool vec_permit_check(const word_t *dest_access) {
   if (is_access(vcsr) || is_access(vlenb) || is_access(vstart) || is_access(vxsat) || is_access(vxrm) || is_access(vl) || is_access(vtype)) {
-    if (!require_vs()) { ex.ex.ii = 1; }
+    if (!require_vs()) { longjmp_exception(EX_II); }
   }
-  return ex.val;
+  return false;
 }
 #endif // CONFIG_RVV
 
 static inline void csr_permit_check(uint32_t addr, bool is_write) {
-  EX ex = {.val = 0};
+  bool has_vi = false; // virtual instruction
   word_t *dest_access = csr_decode(addr);
   // check csr_exit, priv
-  ex.val |= csr_normal_permit_check(addr);
+  has_vi |= csr_normal_permit_check(addr);
 
   // check csr_readonly
-  ex.val |= csr_readonly_permit_check(addr, is_write);
+  has_vi |= csr_readonly_permit_check(addr, is_write);
 
   // Attempts to access unprivileged counters without s/h/mcounteren
   if ((addr >= 0xC00 && addr <= 0xC1F) || (addr == 0x14D) || (addr == 0x24D)) {
-    ex.val |= csr_counter_enable_check(addr);
+    has_vi |= csr_counter_enable_check(addr);
   }
   // check smstateen
-  MUXDEF(CONFIG_RV_SMSTATEEN, ex.val |= smstateen_extension_permit_check(dest_access), );
+  MUXDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(dest_access), );
 
   // check aia
-  MUXDEF(CONFIG_RV_IMSIC, ex.val |= aia_extension_permit_check(dest_access), );
+  MUXDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access), );
 
   //check satp(satp & hgatp)
-  ex.val |= satp_permit_check(dest_access);
+  has_vi |= satp_permit_check(dest_access);
 
   //check fp
-  MUXNDEF(CONFIG_FPU_NONE, ex.val |= fp_permit_check(dest_access), );
+  MUXNDEF(CONFIG_FPU_NONE, has_vi |= fp_permit_check(dest_access), );
   //check vec
-  MUXDEF(CONFIG_RVV, ex.val |= vec_permit_check(dest_access), );
+  MUXDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access), );
 
-
-  // send exception
-  // Final aggregate exceptions, ensuring they are issued according to priority
-  if (ex.ex.ii) {
-    longjmp_exception(EX_II);
-  } else if (ex.ex.vi) {
-    longjmp_exception(EX_VI);
-  }
+  if (has_vi) longjmp_exception(EX_VI);
 
 }
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
