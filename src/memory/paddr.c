@@ -221,7 +221,6 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 
   int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
-  (void)cross_page_load;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (!check_paddr(addr, len, type, mode, vaddr)) {
@@ -230,6 +229,8 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
+    // check if the address is misaligned
+    isa_mmio_misalign_data_addr_check(vaddr, len, MEM_TYPE_READ, cross_page_load);
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
     else raise_read_access_fault(type, vaddr);
     return 0;
@@ -334,6 +335,8 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
   else {
+    // check if the address is misaligned
+    isa_mmio_misalign_data_addr_check(vaddr, len, MEM_TYPE_WRITE, cross_page_store);
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
     else raise_access_fault(EX_SAF, vaddr);
   }
