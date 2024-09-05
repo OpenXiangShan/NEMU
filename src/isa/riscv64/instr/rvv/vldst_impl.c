@@ -262,7 +262,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vle_size = last_addr - start_addr + s->v_width;
-  __attribute_maybe_unused__ bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
+  __attribute__((unused)) bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
   uint8_t masks[VLMAX_8] = {0};
 
   Logm("vld start_addr: %#lx, v_width: %u, vl_val: %lu, vle size=%lu, vstart->val: %lu, nf=%lu",
@@ -281,7 +281,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-      __attribute_maybe_unused__ unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+      __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
@@ -498,7 +498,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vse_size = last_addr - start_addr + s->v_width;
-  __attribute_maybe_unused__ bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
+  __attribute__((unused)) bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
   uint8_t masks[VLMAX_8] = {0};
 
   if (is_unit_stride && nf == 1 && vl_val > vstart->val && vtype->vlmul < 4 && !cross_page) {
@@ -838,7 +838,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vle_size = last_addr - start_addr + s->v_width;
-  __attribute_maybe_unused__ bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
+  __attribute__((unused)) bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
   uint8_t masks[VLMAX_8] = {0};
 
   Logm("vld start_addr: %#lx, v_width: %u, vl_val: %lu, vle size=%lu, vstart->val: %lu, nf=%lu",
@@ -857,7 +857,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-      __attribute_maybe_unused__ unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+      __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
