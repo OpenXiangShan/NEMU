@@ -357,7 +357,7 @@ def_EHelper(vmvxs) {
 }
 
 def_EHelper(vmvnr) {
-  require_vector(true);
+  require_vector(false);
   check_vstart_exception(s);
 
   rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
