@@ -203,13 +203,13 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 
 /* Memory accessing interfaces */
 
-bool check_paddr(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
+bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
-    if (type == MEM_TYPE_WRITE) {
+    if (trap_type == MEM_TYPE_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pmp check failed");
-      raise_read_access_fault(type, vaddr);
+      raise_read_access_fault(trap_type, vaddr);
     }
     return false;
   } else {
@@ -217,13 +217,13 @@ bool check_paddr(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
   }
 }
 
-word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
+word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
 
   int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
-  if (!check_paddr(addr, len, type, mode, vaddr)) {
+  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
     return 0;
   }
 #ifndef CONFIG_SHARE
@@ -232,7 +232,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     // check if the address is misaligned
     isa_mmio_misalign_data_addr_check(vaddr, len, MEM_TYPE_READ, cross_page_load);
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
-    else raise_read_access_fault(type, vaddr);
+    else raise_read_access_fault(trap_type, vaddr);
     return 0;
   }
 #else
@@ -253,7 +253,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
     Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
-    raise_read_access_fault(type, vaddr);
+    raise_read_access_fault(trap_type, vaddr);
   }
   return 0;
 #endif // CONFIG_SHARE
@@ -329,7 +329,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   int cross_page_store = (mode & CROSS_PAGE_ST_FLAG) != 0;
   // get mode's original value
   mode = mode & ~CROSS_PAGE_ST_FLAG;
-  if (!check_paddr(addr, len, MEM_TYPE_WRITE, mode, vaddr)) {
+  if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }
 #ifndef CONFIG_SHARE
