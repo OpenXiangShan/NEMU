@@ -685,9 +685,10 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
   else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
-  else if (is_read(satp))    {
-      return vsatp->val;
-  }
+  else if (is_read(satp))    { return vsatp->val; }
+#ifdef CONFIG_RV_SSTC
+  else if (is_read(stimecmp)){ return vstimecmp->val; }
+#endif
 }
 if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
 if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK & (mideleg->val | MIDELEG_FORCED_MASK);}
@@ -870,9 +871,7 @@ void update_vsatp(const vsatp_t new_val) {
 
 static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVH
-  if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch)
-        || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
-        || is_write(satp) || is_write(stvec))){
+  if(cpu.v == 1){
     if (is_write(sstatus))      {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
     #ifdef CONFIG_RV_SSDBLTRP
@@ -911,6 +910,9 @@ static inline void csr_write(word_t *dest, word_t src) {
         update_vsatp(new_val);
       }
     }
+#ifdef CONFIG_RV_SSTC
+    else if (is_write(stimecmp)) { vstimecmp->val = src; }
+#endif
   }
   else if (is_write(mideleg)){
     *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;

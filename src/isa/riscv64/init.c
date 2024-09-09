@@ -183,6 +183,15 @@ void init_isa() {
   sstateen0->val = SSTATEEN0_RESET;
 #endif // CONFIG_RV_SMSTATEEN
 
+#ifdef CONFIG_RV_SSTC
+  menvcfg->stce = 1;
+  stimecmp->val = 0xffffffffffffffffULL;
+#ifdef CONFIG_RVH
+  henvcfg->stce = 1;
+  vstimecmp->val = 0xffffffffffffffffULL;
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SSTC
+
 #ifndef CONFIG_SHARE
   extern char *cpt_file;
   extern bool checkpoint_restoring;
