@@ -225,9 +225,9 @@ void difftest_raise_nmi_intr(bool hasNMI) {
 }
 
 void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlInject) {
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   cpu.virtualInterruptIsHvictlInject = virtualInterruptIsHvictlInject;
-#endif
+#endif // CONFIG_RV_AIA
 }
 
 void difftest_enable_debug() {

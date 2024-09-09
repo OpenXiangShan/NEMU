@@ -114,7 +114,7 @@ void init_isa() {
 #ifdef CONFIG_RVB
   misa->extensions |= ext('b');
 #endif // CONFIG_RVB
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   miselect->val = 0;
   siselect->val = 0;
   vsiselect->val = 0;
@@ -133,7 +133,7 @@ void init_isa() {
   mtopei->val = 0;
   stopei->val = 0;
   vstopei->val = 0;
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
   misa->mxl = 2; // XLEN = 64
 

@@ -80,11 +80,6 @@ config RV_AIA
   depends on RVH
   default n
 
-config RV_IMSIC
-  bool "Incoming MSI Controller"
-  depends on RV_AIA
-  default n
-
 config RV_SSTC
   bool "RISC-V Sstc Extension for Supervisor-mode Timer Interrupts"
   default n

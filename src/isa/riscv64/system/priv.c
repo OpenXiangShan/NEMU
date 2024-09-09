@@ -1020,11 +1020,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
 #endif // CONFIG_RV_SSDBLTRP
   }
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   else if (is_write(mtopi)) { return; }
   else if (is_write(stopi)) { return; }
   else if (is_write(vstopi)) { return; }
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 #else
   if (is_write(mstatus)) {
 #ifndef CONFIG_RVH
@@ -1384,7 +1384,7 @@ static inline bool smstateen_extension_permit_check(const word_t *dest_access) {
 
 // AIA extension check
 // !!! Only support in RVH
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
 static bool aia_extension_permit_check(const word_t *dest_access) {
   bool has_vi = false;
   if (is_access(stopei)) {
@@ -1450,7 +1450,7 @@ static bool aia_extension_permit_check(const word_t *dest_access) {
   }
   return has_vi;
 }
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 // Fp Vec CSR check
 /**
@@ -1499,7 +1499,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   MUXDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(dest_access), );
 
   // check aia
-  MUXDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access), );
+  MUXDEF(CONFIG_RV_AIA, has_vi |= aia_extension_permit_check(dest_access), );
 
   //check satp(satp & hgatp)
   has_vi |= satp_permit_check(dest_access);

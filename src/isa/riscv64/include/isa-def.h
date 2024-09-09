@@ -152,9 +152,9 @@ typedef struct {
 #ifdef CONFIG_RV_SMRNMI
   bool hasNMI;
 #endif
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   bool virtualInterruptIsHvictlInject;
-#endif
+#endif // CONFIG_RV_AIA
 
 } riscv64_CPU_state;
 

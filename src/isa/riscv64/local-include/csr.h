@@ -177,13 +177,13 @@
 
 
 /** Supervisor Advanced Interrupt Architecture Registers **/
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   #define CSRS_S_AIA(f) \
     f(siselect , 0x150) f(sireg   , 0x151) \
     f(stopei   , 0x15C) f(stopi   , 0xDB0)
 #else
   #define CSRS_S_AIA(f)
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 /** ALL **/
 #define CSRS_S(f) \
@@ -247,7 +247,7 @@
     f(vstval     , 0x243) f(vsip       , 0x244) f(vsatp      , 0x280)
 
   /** Hypervisor and VS AIA Registers **/
-  #ifdef CONFIG_RV_IMSIC
+  #ifdef CONFIG_RV_AIA
     #define CSRS_H_VS_AIA(f) \
       f(vsiselect  , 0x250) f(vsireg     , 0x251) \
       f(vstopei    , 0x25C) f(hvien      , 0x608) \
@@ -255,7 +255,7 @@
       f(hviprio2   , 0x647) f(vstopi     , 0xEB0)
   #else
     #define CSRS_H_VS_AIA(f)
-  #endif // CONFIG_RV_IMSIC
+  #endif // CONFIG_RV_AIA
 
   #ifdef CONFIG_RV_SSTC
     #define CSRS_VS_SSTC(f) \
@@ -418,14 +418,14 @@
 #endif // CONFIG_RV_SDEXT
 
 /** Machine AIA Registers **/
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   #define CSRS_M_AIA(f) \
   f(mvien      , 0x308) f(mvip       , 0x309) \
   f(miselect   , 0x350) f(mireg      , 0x351) \
   f(mtopei     , 0x35C) f(mtopi      , 0xFB0)
 #else
   #define CSRS_M_AIA(f)
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 /**  Machine Non-Maskable Interrupt Handling **/
 #ifdef CONFIG_RV_SMRNMI
@@ -806,7 +806,7 @@ CSR_STRUCT_END(mcontext)
 
 #endif // CONFIG_RV_SDTRIG
 
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
 CSR_STRUCT_START(miselect)
 CSR_STRUCT_END(miselect)
 
@@ -844,7 +844,7 @@ CSR_STRUCT_START(mvip)
   uint64_t pad2 : 3; // [8:6]
   uint64_t seip : 1; // [9]
 CSR_STRUCT_END(mvip)
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 /* Supervisor-level CSR */
 
@@ -968,7 +968,7 @@ CSR_STRUCT_END(stimecmp)
 #endif
 
 /** Supervisor Advanced Interrupt Architecture CSRs **/
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
 CSR_STRUCT_START(siselect)
 CSR_STRUCT_END(siselect)
   
@@ -986,7 +986,7 @@ CSR_STRUCT_START(stopi)
   uint64_t pad   : 8;  // [15: 8]
   uint64_t iid   : 12; // [27:16] 
 CSR_STRUCT_END(stopi)
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 /* hypervisor and Virtual Supervisor CSR */
 
@@ -1178,7 +1178,7 @@ CSR_STRUCT_END(vsatp)
 #endif // CONFIG_RVH
 
 /** Hypervisor and VS AIA CSRs **/
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
 CSR_STRUCT_START(hvien)
   uint64_t pad    : 13;
 #ifdef CONFIG_RV_SSCOFPMF
@@ -1219,7 +1219,7 @@ CSR_STRUCT_START(vstopi)
   uint64_t pad   : 8;  // [15: 8]
   uint64_t iid   : 12; // [27:16] 
 CSR_STRUCT_END(vstopi)
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 /* Unprivileged CSR */
 
@@ -1451,13 +1451,13 @@ MAP(CSRS, CSRS_DECL)
 #define SSTATUS_RMASK (SSTATUS_BASE | SSTATUS_SDT)
 
 /** AIA **/
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   #define ISELECT_2F_MASK 0x2F
   #define ISELECT_3F_MASK 0x3F
   #define ISELECT_6F_MASK 0x6F
   #define ISELECT_MAX_MASK 0xFF
   #define VSISELECT_MAX_MASK 0x1FF
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 
 /** Double Trap**/
 #ifdef CONFIG_RV_SMRNMI

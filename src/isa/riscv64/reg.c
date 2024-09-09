@@ -63,14 +63,14 @@ void isa_reg_display() {
       mideleg->val, medeleg->val);
   printf("mtval: " FMT_WORD " stval: " FMT_WORD " mtvec: " FMT_WORD " stvec: " FMT_WORD "\n",
       mtval->val, stval->val, mtvec->val, stvec->val);
-#ifdef CONFIG_RV_IMSIC 
+#ifdef CONFIG_RV_AIA 
   printf("miselect: " FMT_WORD " siselect: " FMT_WORD " mireg: " FMT_WORD " sireg: " FMT_WORD "\n",
       miselect->val, siselect->val, mireg->val, sireg->val);
   printf("mtopi: " FMT_WORD " stopi: " FMT_WORD " mvien: " FMT_WORD " mvip: " FMT_WORD "\n",
       mtopi->val, stopi->val, mvien->val, mvip->val);
   printf("mtopei: " FMT_WORD " stopei: " FMT_WORD "\n",
       mtopei->val, stopei->val);
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
 #ifndef CONFIG_FPU_NONE
   printf("fcsr: " FMT_WORD "\n", cpu.fcsr);
 #endif // CONFIG_FPU_NONE
@@ -83,13 +83,13 @@ void isa_reg_display() {
       hgatp->val, vsscratch->val, cpu.vsstatus, vstvec->val);
   printf("vsepc: " FMT_WORD " vscause: " FMT_WORD " vstval: " FMT_WORD " vsatp: " FMT_WORD "\n",
       vsepc->val, vscause->val, vstval->val, vsatp->val);
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_AIA
   printf("hvien: " FMT_WORD " hvictl: " FMT_WORD " hviprio1: " FMT_WORD " hviprio2: " FMT_WORD "\n",
       hvien->val, hvictl->val, hviprio1->val, hviprio2->val);
   printf("vsiselect: " FMT_WORD " vsireg: " FMT_WORD " vstopi: " FMT_WORD "\n",
       vsiselect->val, vsireg->val, vstopi->val);
   printf("vstopei: " FMT_WORD "\n", vstopei->val);
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_AIA
   printf("virtualization mode: %ld\n", cpu.v);
 #endif
   printf("privilege mode:%ld\n", cpu.mode);
