@@ -38,7 +38,7 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
   if (*exp) {
     return 0;
   }
-  *exp = !check_paddr(paddr, len, type, cpu.mode, vaddr);
+  *exp = !check_paddr(paddr, len, type, type, cpu.mode, vaddr);
   return paddr;
 }
 
@@ -52,9 +52,9 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type) {
     if (ret != MEM_RET_OK) return 0;
     paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(paddr, 1, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
+    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read(paddr, 1, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr) : paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr));
 #else
-    word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
+    word_t byte = (type == MEM_TYPE_IFETCH ? paddr_read : paddr_read)(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
 #endif
     data |= byte << (i << 3);
   }
@@ -108,9 +108,9 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read : paddr_read)(addr, len, type, cpu.mode, vaddr);
+    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len, type, cpu.mode, vaddr) : paddr_read(addr, len, type, type, cpu.mode, vaddr));
 #else
-    word_t rdata = paddr_read(addr, len, type, cpu.mode, vaddr);
+    word_t rdata = paddr_read(addr, len, type, type, cpu.mode, vaddr);
 #endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
@@ -157,7 +157,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
-    return paddr_read(addr, len, type, cpu.mode, addr);
+    return paddr_read(addr, len, type, type, cpu.mode, addr);
   }
 #ifndef __ICS_EXPORT
 #ifdef CONFIG_RVH

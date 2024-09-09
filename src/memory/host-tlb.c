@@ -74,7 +74,7 @@ static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
   paddr_t paddr = va2pa(s, vaddr, len, type);
-  word_t data = paddr_read(paddr, len, type, cpu.mode, vaddr);
+  word_t data = paddr_read(paddr, len, type, type, cpu.mode, vaddr);
   if (likely(in_pmem(paddr))) {
     HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
       &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
@@ -110,7 +110,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, type);
-    return paddr_read(paddr, len, type, cpu.mode, vaddr);
+    return paddr_read(paddr, len, type, type, cpu.mode, vaddr);
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);

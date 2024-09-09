@@ -66,7 +66,7 @@ Serializer::Serializer() :
 
 extern "C" {
 uint8_t *get_pmem();
-word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
+word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
 uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 extern bool log_enable();
@@ -259,11 +259,11 @@ void Serializer::serializeRegs() {
 
   auto *mtime = (uint64_t *) (get_pmem() + MTIMEAddr);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
-  *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
+  *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CPT_ADDR);
 
   auto *mtime_cmp = (uint64_t *) (get_pmem() + MTIMECMPAddr);
-  *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
+  *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CMP_CPT_ADDR);
 
   regDumped = true;

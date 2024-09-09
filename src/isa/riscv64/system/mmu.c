@@ -59,8 +59,8 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
 static inline uintptr_t GVPNi(vaddr_t va, int i) {
   return (i == 2)?  (va >> VPNiSHFT(i)) & GPVPNMASK : (va >> VPNiSHFT(i)) & VPNMASK;
 }
-  bool hlvx = 0;
-  bool hld_st = 0;
+bool hlvx = 0;
+bool hld_st = 0;
 #endif
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
@@ -189,19 +189,19 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
   }
 }
 
-paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
+paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool ishlvx){
   Logtr("gpa_stage gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD ", type: %d", gpaddr, vaddr, type);
   int max_level = 0;
   if (hgatp->mode == HGATP_MODE_BARE) {
     return gpaddr;
   } else if (hgatp->mode == HGATP_MODE_Sv48x4){
     if((gpaddr & ~(((int64_t)1 << 50) - 1)) != 0){
-      raise_guest_excep(gpaddr, vaddr, type);
+      raise_guest_excep(gpaddr, vaddr, trap_type);
     }
     max_level = 4;
   } else if (hgatp->mode == HGATP_MODE_Sv39x4){
     if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
-      raise_guest_excep(gpaddr, vaddr, type);
+      raise_guest_excep(gpaddr, vaddr, trap_type);
     }
     max_level = 3;
   }
@@ -213,7 +213,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
     p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE,
     type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
-    type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, MODE_S, vaddr);
+    type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, trap_type, MODE_S, vaddr);
     #ifdef CONFIG_SHARE
         if (unlikely(dynamic_config.debug_difftest)) {
           fprintf(stderr, "[NEMU] ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
@@ -243,7 +243,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
     } else if (!pte.u) {
       break;
     } else if (
-      type == MEM_TYPE_IFETCH || hlvx ? !pte.x: 
+      type == MEM_TYPE_IFETCH || ishlvx ? !pte.x: 
       type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
                                         !(pte.r && pte.w)
     ) {
@@ -264,7 +264,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type){
       return pg_base | (gpaddr & PAGE_MASK);
     }
   }
-  raise_guest_excep(gpaddr, vaddr, type);
+  raise_guest_excep(gpaddr, vaddr, trap_type);
   return gpaddr;
 }
 #endif // CONFIG_RVH
@@ -285,7 +285,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
                         type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
                                                   MEM_TYPE_READ;
-  return paddr_read(addr, PTE_SIZE, paddr_read_type, mode, vaddr);
+  return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type, mode, vaddr);
 }
 #endif // CONFIG_MULTICORE_DIFF
 
@@ -308,7 +308,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if(virt){
-    if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type) & ~PAGE_MASK;
+    if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp->ppn);
     max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
   }
@@ -332,7 +332,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #else
   #ifdef CONFIG_RVH
     if(virt){
-      p_pte = gpa_stage(p_pte, vaddr, type);
+      p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false);
     }
   #endif //CONFIG_RVH
     pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
@@ -379,7 +379,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
-    pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type) & ~PAGE_MASK;
+    pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
   }
   #endif //CONFIG_RVH
