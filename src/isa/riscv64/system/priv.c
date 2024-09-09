@@ -1389,7 +1389,7 @@ static inline bool smstateen_extension_permit_check(const word_t *dest_access) {
 // AIA extension check
 // !!! Only support in RVH
 #ifdef CONFIG_RV_IMSIC
-static bool aia_extension_permit_check(const word_t *dest_access) {
+static bool aia_extension_permit_check(const word_t *dest_access, bool is_write) {
   bool has_vi = false;
   if (is_access(stopei)) {
     if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
@@ -1397,52 +1397,52 @@ static bool aia_extension_permit_check(const word_t *dest_access) {
     }
   }
   if (is_access(mireg)) {
-    if (cpu.mode == MODE_M) {
-      if ((miselect->val <= ISELECT_2F_MASK) ||
-          ((miselect->val > ISELECT_3F_MASK) && (miselect->val <= ISELECT_6F_MASK)) ||
-          (miselect->val >  ISELECT_MAX_MASK) ||
-          (miselect->val & 0x1)) {
-            longjmp_exception(EX_II);
-      }
+    if (
+      (miselect->val <= ISELECT_2F_MASK) ||
+      (miselect->val > ISELECT_2F_MASK && miselect->val <= ISELECT_3F_MASK && miselect->val & 0x1) ||
+      (miselect->val > ISELECT_3F_MASK && miselect->val <= ISELECT_6F_MASK) || 
+      (miselect->val > ISELECT_7F_MASK && miselect->val <= ISELECT_MAX_MASK && miselect->val & 0x1) ||
+      (miselect->val > ISELECT_MAX_MASK)
+    ) {
+      longjmp_exception(EX_II);
     }
   }
   if (is_access(sireg)) {
-    if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
-      if ((siselect->val > ISELECT_6F_MASK) && (siselect->val <= ISELECT_MAX_MASK)) {
+    if (!cpu.v) {
+      if (
+        (siselect->val <= ISELECT_2F_MASK) ||
+        (siselect->val > ISELECT_2F_MASK && siselect->val <= ISELECT_3F_MASK && siselect->val & 0x1) ||
+        (siselect->val > ISELECT_3F_MASK && siselect->val <= ISELECT_6F_MASK) ||
+        (cpu.mode == MODE_S && mvien->seie && siselect->val > ISELECT_6F_MASK && siselect->val <= ISELECT_MAX_MASK) ||
+        (siselect->val > ISELECT_7F_MASK && siselect->val <= ISELECT_MAX_MASK && siselect->val & 0x1) ||
+        (siselect->val > ISELECT_MAX_MASK)
+      ) {
         longjmp_exception(EX_II);
-      }
-    }
-    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
-      if ((siselect->val <= ISELECT_2F_MASK) ||
-          ((siselect->val > ISELECT_3F_MASK) && (siselect->val <= ISELECT_6F_MASK)) ||
-          (siselect->val >  ISELECT_MAX_MASK) ||
-          (siselect->val & 0x1)) {
-            longjmp_exception(EX_II);
-      }
-    }
-    if (cpu.v && (cpu.mode == MODE_S)) {
-      if (vsiselect->val > VSISELECT_MAX_MASK) {
-        longjmp_exception(EX_II);
-      }
-      if (((vsiselect->val > ISELECT_2F_MASK) && (vsiselect->val <= ISELECT_3F_MASK)) ||
-          ((vsiselect->val > 0x80) && (vsiselect->val <= ISELECT_MAX_MASK) && (vsiselect->val & 0x1))) {
-            has_vi = true;
-      }
-    }
-    if (cpu.v && (cpu.mode == MODE_U)) {
-      has_vi = true;
-    }
-  }
-  if (is_access(vsireg)) {
-    if ((cpu.mode == MODE_M) || (!cpu.v && (cpu.mode == MODE_S))) {
-      if ((vsiselect->val <= ISELECT_6F_MASK) ||
-          (vsiselect->val >  ISELECT_MAX_MASK) ||
-          (vsiselect->val & 0x1)) {
-            longjmp_exception(EX_II);
       }
     }
     if (cpu.v) {
-      has_vi = true;
+      if (
+        (vsiselect->val <= ISELECT_2F_MASK) ||
+        (vsiselect->val > ISELECT_3F_MASK && vsiselect->val <= ISELECT_6F_MASK) ||
+        (vsiselect->val > ISELECT_MAX_MASK)
+      ) {
+        longjmp_exception(EX_II);
+      }
+      if (
+        (vsiselect->val > ISELECT_2F_MASK && vsiselect->val <= ISELECT_3F_MASK) ||
+        (vsiselect->val > ISELECT_7F_MASK && vsiselect->val <= ISELECT_MAX_MASK && vsiselect->val & 0x1)
+      ) {
+        has_vi = true;
+      }
+    }
+  }
+  if (is_access(vsireg)) {
+    if (
+      (vsiselect->val <= ISELECT_6F_MASK) ||
+      (vsiselect->val > ISELECT_7F_MASK && vsiselect->val <= ISELECT_MAX_MASK && vsiselect->val & 0x1) ||
+      (vsiselect->val > ISELECT_MAX_MASK)
+    ) {
+      longjmp_exception(EX_II);
     }
   }
   if (is_access(sip) || is_access(sie)) {
@@ -1450,6 +1450,11 @@ static bool aia_extension_permit_check(const word_t *dest_access) {
       if (hvictl->vti) {
         has_vi = true;
       }
+    }
+  }
+  if (is_access(stimecmp)) {
+    if (cpu.v && (cpu.mode == MODE_S) && hvictl->vti && is_write) {
+      has_vi = 1;
     }
   }
   return has_vi;
@@ -1503,7 +1508,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   MUXDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(dest_access), );
 
   // check aia
-  MUXDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access), );
+  MUXDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access, is_write), );
 
   //check satp(satp & hgatp)
   has_vi |= satp_permit_check(dest_access);
