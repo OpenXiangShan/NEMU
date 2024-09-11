@@ -122,7 +122,11 @@ static inline bool csr_counter_enable_check(uint32_t addr) {
 
   if (cpu.mode < MODE_S && !(count_bit & scounteren->val) && !is_sstc_csr) {
     Logti("Illegal CSR accessing (0x%X): the bit in scounteren is not set", addr);
-    longjmp_exception(EX_II);
+    if (MUXDEF(CONFIG_RVH, cpu.v, 0)) {
+       has_vi = true;
+    } else {
+      longjmp_exception(EX_II);
+    }
   }
 
   return has_vi;
