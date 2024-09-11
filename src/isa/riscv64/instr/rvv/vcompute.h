@@ -329,6 +329,7 @@ def_EHelper(vmvsx) {
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
+  check_vstart_exception(s);
   if (vstart->val < vl->val) {
     rtl_lr(s, &(id_src->val), id_src1->reg, 4);
     rtl_mv(s, s1, &id_src->val); 
@@ -350,6 +351,7 @@ def_EHelper(vmvxs) {
   if (s->vm == 0) {
     longjmp_exception(EX_II);
   }
+  check_vstart_exception(s);
   get_vreg(id_src2->reg, 0, s0, vtype->vsew, vtype->vlmul, 1, 0);
   rtl_sext(s, s0, s0, 8);
   rtl_sr(s, id_dest->reg, s0, 8);
@@ -1017,6 +1019,7 @@ def_EHelper(vfslide1down) {
 def_EHelper(vfmvfs) {
   require_float();
   require_vector(true);
+  check_vstart_exception(s);
   uint32_t rm = isa_fp_get_frm();
   isa_fp_rm_check(rm);
   if (s->vm == 0) {
@@ -1037,6 +1040,7 @@ def_EHelper(vfmvfs) {
 def_EHelper(vfmvsf) {
   require_float();
   require_vector(true);
+  check_vstart_exception(s);
   uint32_t rm = isa_fp_get_frm();
   isa_fp_rm_check(rm);
   if (s->vm == 0) {
