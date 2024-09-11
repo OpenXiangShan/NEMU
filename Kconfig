@@ -255,6 +255,10 @@ config AC_NONE
   bool "Disable"
 endchoice
 
+config VECTOR_AC_SOFT
+  bool "Detecting misaligned vector memory accessing"
+  default y
+
 menu "Processor difftest reference config"
 config SHARE
   bool "Build shared library as processor difftest reference"

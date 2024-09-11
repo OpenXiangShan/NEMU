@@ -136,6 +136,7 @@ CONFIG_FPU_SOFT=y
 # CONFIG_AC_HOST is not set
 # CONFIG_AC_SOFT is not set
 CONFIG_AC_NONE=y
+CONFIG_VECTOR_AC_SOFT=y
 
 #
 # Processor difftest reference config
