@@ -167,7 +167,7 @@ void allocate_memory_with_mmap()
   // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
   void *pmem_base = (void *)(PMEMBASE + PMEM_HARTID * MEMORY_SIZE);
   void *ret = mmap(pmem_base, MEMORY_SIZE, PROT_READ | PROT_WRITE,
-      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED | MAP_NORESERVE, -1, 0);
   if (ret != pmem_base) {
     perror("mmap");
     assert(0);
