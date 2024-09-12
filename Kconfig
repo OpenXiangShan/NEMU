@@ -259,6 +259,10 @@ config VECTOR_AC_SOFT
   bool "Detecting misaligned vector memory accessing"
   default y
 
+config MMIO_AC_SOFT
+  bool "Detecting misaligned mmio memory accessing"
+  default y
+
 menu "Processor difftest reference config"
 config SHARE
   bool "Build shared library as processor difftest reference"
