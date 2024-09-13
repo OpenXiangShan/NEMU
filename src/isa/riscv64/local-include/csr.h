@@ -921,6 +921,19 @@ CSR_STRUCT_START(stval)
 CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(senvcfg)
+  uint64_t fiom   : 1; // [0]
+  uint64_t pad0   : 3; // [3:1]
+  uint64_t cbie   : 2; // [5:4]
+  uint64_t cbcfe  : 1; // [6]
+  uint64_t cbze   : 1; // [7]
+  uint64_t pad1   : 24;// [31:8]
+  uint64_t pmm    : 2; // [33:32]
+  uint64_t pad3   : 25;// [58:34]
+  uint64_t dte    : 1; // [59]
+  uint64_t cde    : 1; // [60]
+  uint64_t adue   : 1; // [61]
+  uint64_t pbmte  : 1; // [62]
+  uint64_t stce   : 1; // [63]
 CSR_STRUCT_END(senvcfg)
 
 CSR_STRUCT_START(satp)
