@@ -43,7 +43,7 @@ typedef union PageTableEntry {
 
 #define PGSHFT 12
 #define PGMASK ((1ull << PGSHFT) - 1)
-#define PGBASE(pn) (pn << PGSHFT)
+#define PGBASE(pn) ((uint64_t) pn << PGSHFT)
 
 // Sv39 & Sv48 page walk
 #define PTE_SIZE 8
