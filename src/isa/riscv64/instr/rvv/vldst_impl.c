@@ -275,7 +275,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   bool fast_vle = false;
 
-#ifndef CONFIG_SHARE
+#if !defined(CONFIG_SHARE) && !defined(CONFIG_RV_SDTRIG)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vle_size = last_addr - start_addr + s->v_width;
@@ -354,7 +354,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
       fast_vle = true;
     }
   }
-#endif // CONFIG_SHARE
+#endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
 
   if (!fast_vle) {  // this block is the original slow path
     for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
@@ -370,6 +370,8 @@ void vld(Decode *s, int mode, int mmu_mode) {
       }
       for (fn = 0; fn < nf; fn++) {
         addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
+
+        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -445,6 +447,8 @@ void vldx(Decode *s, int mmu_mode) {
       // read data in memory
       addr = base_addr + index + fn * data_width;
 
+      IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
+
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
       rtl_lm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
@@ -510,7 +514,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
   bool fast_vse = false;
 
-#ifndef CONFIG_SHARE
+#if !defined(CONFIG_SHARE) && !defined(CONFIG_RV_SDTRIG)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vse_size = last_addr - start_addr + s->v_width;
@@ -579,7 +583,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   }
 
   g_nr_vst_unit_optimized += fast_vse;
-#endif // CONFIG_SHARE
+#endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
 
   // We enter this block if we are not able to optimize the store or we are debugging fast VSE
   if (!fast_vse || ISDEF(DEBUG_FAST_VSE)) {  // this block is the original slow path
@@ -605,6 +609,8 @@ void vst(Decode *s, int mode, int mmu_mode) {
         uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
         addr = base_addr + offset;
         if (!fast_vse) {
+          IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
 
           rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
@@ -671,6 +677,8 @@ void vstx(Decode *s, int mmu_mode) {
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
       addr = base_addr + index + fn * data_width;
 
+      IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
       rtl_sm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
@@ -729,6 +737,8 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
+        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
+
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
@@ -740,6 +750,8 @@ void vlr(Decode *s, int mmu_mode) {
     for (; vreg_idx < len; vreg_idx++) {
       for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
+
+        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -781,6 +793,8 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
+        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
@@ -793,6 +807,8 @@ void vsr(Decode *s, int mmu_mode) {
         // read 1 byte and store 1 byte to memory
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
+
+        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -849,7 +865,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
   bool fast_vle = false;
 
-#ifndef CONFIG_SHARE
+#if !defined(CONFIG_SHARE) && !defined(CONFIG_RV_SDTRIG)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vle_size = last_addr - start_addr + s->v_width;
@@ -928,7 +944,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
       fast_vle = true;
     }
   }
-#endif // CONFIG_SHARE
+#endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
 
   if (!fast_vle) {  // this block is the original slow path
     for (uint64_t idx = vstart->val; idx < vl_val; idx++) {
@@ -954,6 +970,8 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           stvaltmp  = *(word_t *)stval;
           mtvaltmp  = *(word_t *)mtval;
         }
+
+        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);

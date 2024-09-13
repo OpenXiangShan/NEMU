@@ -190,6 +190,8 @@ void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const s
 
 void trigger_handler(const trig_action_t action);
 
+void trigger_check(uint64_t check_timings, struct TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
+
 // Used to avoid magic number
 #define TRIGGER_NO_VALUE (0)
 
