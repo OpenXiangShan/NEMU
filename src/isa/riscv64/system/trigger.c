@@ -198,4 +198,17 @@ void trigger_handler(const trig_action_t action) {
   }
 }
 
+void trigger_check(
+  uint64_t check_timings,
+  struct TriggerModule* TM,
+  trig_op_t op,
+  vaddr_t addr,
+  word_t data
+) {
+  if (check_timings) {
+    trig_action_t action = tm_check_hit(TM, op, addr, data);
+    trigger_handler(action);
+  }
+}
+
 #endif //CONFIG_RV_SDTRIG
