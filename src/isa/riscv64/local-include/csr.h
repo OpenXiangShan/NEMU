@@ -309,7 +309,7 @@
 
 /** Machine Configuration **/
 #define CSRS_M_CONFIGURATION(f) \
-  f(menvcfg    , 0x30A)
+  f(menvcfg    , 0x30A) f(mseccfg    , 0x747)
 
 /** Machine Memory Protection (PMP) **/
 #ifdef CONFIG_RV_PMP_ENTRY_0
@@ -665,6 +665,16 @@ CSR_STRUCT_START(menvcfg)
   uint64_t stce   : 1; // [63]
 CSR_STRUCT_END(menvcfg)
 
+CSR_STRUCT_START(mseccfg)
+  uint64_t mml   : 1; // [0]
+  uint64_t mmwp  : 1; // [1]
+  uint64_t rlb   : 1; // [2]
+  uint64_t pad0  : 5; // [7:3]
+  uint64_t useed : 1; // [8]
+  uint64_t sseed : 1; // [9]
+  uint64_t mlpe  : 1; // [10]
+  uint64_t pad1  :53; // [63:11]
+CSR_STRUCT_END(mseccfg)
 
 #ifdef CONFIG_RV_SMSTATEEN
   CSR_STRUCT_START(mstateen0)
