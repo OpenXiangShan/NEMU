@@ -62,7 +62,7 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
 static int n_remain;
-static Decode *prev_s;
+Decode *prev_s;
 
 void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 
@@ -541,6 +541,7 @@ static int execute(int n) {
 #ifdef CONFIG_TVAL_EX_II
     cpu.instr = s.isa.instr.val;
 #endif
+    printf("NEMU execute, pc: 0x%lx, instr: 0x%x\n", s.pc, s.isa.instr.val);
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,

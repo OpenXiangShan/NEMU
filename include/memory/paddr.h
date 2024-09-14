@@ -83,6 +83,7 @@ void * get_sparsemm();
 typedef struct {
     uint64_t addr;
     uint64_t data;
+    uint64_t pc;
     uint8_t  mask;
 } store_commit_t;
 

@@ -30,6 +30,7 @@ bool is_in_mmio(paddr_t addr);
 
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 unsigned int PMEM_HARTID = 0;
+extern Decode *prev_s;
 
 #ifdef CONFIG_LIGHTQS
 #define PMEMBASE 0x1100000000ul
@@ -513,6 +514,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
       assert(0);
 #endif // CONFIG_AC_NONE
   }
+  store_commit.pc = prev_s->pc;
   store_queue_push(store_commit);
 }
 
@@ -531,8 +533,7 @@ store_commit_t store_commit_queue_pop(int *flag) {
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
   if (store_queue_empty()) {
-    printf("NEMU does not commit any store instruction.\n");
-    result = 1;
+    result = 2;
   }
   else {
     store_commit_t commit = store_queue_fornt();
@@ -541,6 +542,7 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
       *addr = commit.addr;
       *data = commit.data;
       *mask = commit.mask;
+      printf("Mismatch for store event, NEMU mismatch pc: 0x%lx\n", commit.pc);
       result = 1;
     }
   }
