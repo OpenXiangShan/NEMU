@@ -149,59 +149,70 @@ bool has_two_stage_translation(){
   return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
 }
 
-void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
+void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
   // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
 #ifdef FORCE_RAISE_PF
-   if (cpu.guided_exec && cpu.execution_guide.force_raise_exception && 
-        (cpu.execution_guide.exception_num == EX_IPF ||
-         cpu.execution_guide.exception_num == EX_LPF ||
-         cpu.execution_guide.exception_num == EX_SPF))
-          force_raise_pf(vaddr, type);
+  if (
+    cpu.guided_exec && cpu.execution_guide.force_raise_exception && 
+    (cpu.execution_guide.exception_num == EX_IPF ||
+    cpu.execution_guide.exception_num == EX_LPF ||
+    cpu.execution_guide.exception_num == EX_SPF)
+  ) {
+    force_raise_pf(vaddr, type);
+  }
 #endif // FORCE_RAISE_PF
-  if (type == MEM_TYPE_IFETCH){
+  uint64_t tinst = 0;
+  tinst |= is_support_vs ? 0x3000 : 0;
+  if (type == MEM_TYPE_IFETCH) {
     if(intr_deleg_S(EX_IGPF)){
       stval->val = vaddr;
       htval->val = gpaddr >> 2;
+      htinst->val = tinst;
     }else{
       mtval->val = vaddr;
       mtval2->val = gpaddr >> 2;
+      mtinst->val = tinst;
     }
     longjmp_exception(EX_IGPF);
-  }else if (type == MEM_TYPE_READ){
+  } else if (type == MEM_TYPE_READ) {
     int ex = cpu.amo ? EX_SGPF : EX_LGPF;
-    if(intr_deleg_S(ex)){
+    if (intr_deleg_S(ex)) {
       stval->val = vaddr;
       htval->val = gpaddr >> 2;
-    }else{
+      htinst->val = tinst;
+    } else {
       mtval->val = vaddr;
       mtval2->val = gpaddr >> 2;
+      mtinst->val = tinst;
     }
     longjmp_exception(ex);
-  }else{
-    if(intr_deleg_S(EX_SGPF)){
+  } else {
+    if (intr_deleg_S(EX_SGPF)) {
       stval->val = vaddr;
       htval->val = gpaddr >> 2;
-    }else{
+      htinst->val = tinst;
+    } else {
       mtval->val = vaddr;
       mtval2->val = gpaddr >> 2;
+      mtinst->val = tinst;
     }
     longjmp_exception(EX_SGPF);
   }
 }
 
-paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool ishlvx){
+paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool ishlvx, bool is_support_vs){
   Logtr("gpa_stage gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD ", type: %d", gpaddr, vaddr, type);
   int max_level = 0;
   if (hgatp->mode == HGATP_MODE_BARE) {
     return gpaddr;
   } else if (hgatp->mode == HGATP_MODE_Sv48x4){
     if((gpaddr & ~(((int64_t)1 << 50) - 1)) != 0){
-      raise_guest_excep(gpaddr, vaddr, trap_type);
+      raise_guest_excep(gpaddr, vaddr, trap_type, is_support_vs);
     }
     max_level = 4;
   } else if (hgatp->mode == HGATP_MODE_Sv39x4){
     if((gpaddr & ~(((int64_t)1 << 41) - 1)) != 0){
-      raise_guest_excep(gpaddr, vaddr, trap_type);
+      raise_guest_excep(gpaddr, vaddr, trap_type, is_support_vs);
     }
     max_level = 3;
   }
@@ -264,7 +275,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       return pg_base | (gpaddr & PAGE_MASK);
     }
   }
-  raise_guest_excep(gpaddr, vaddr, trap_type);
+  raise_guest_excep(gpaddr, vaddr, trap_type, is_support_vs);
   return gpaddr;
 }
 #endif // CONFIG_RVH
@@ -308,7 +319,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if(virt){
-    if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx) & ~PAGE_MASK;
+    if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp->ppn);
     max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
   }
@@ -332,7 +343,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #else
   #ifdef CONFIG_RVH
     if(virt){
-      p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false);
+      p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false, true);
     }
   #endif //CONFIG_RVH
     pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
@@ -379,7 +390,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
-    pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx) & ~PAGE_MASK;
+    pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
   }
   #endif //CONFIG_RVH

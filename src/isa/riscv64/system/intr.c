@@ -172,30 +172,29 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
-#ifdef CONFIG_RVH
-        htval->val = 0;
+        MUXDEF(CONFIG_RVH, htval->val = 0, );
+        MUXDEF(CONFIG_RVH, htinst->val = 0, );
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
-#endif
         break;
       case EX_II: case EX_VI:
         stval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         MUXDEF(CONFIG_RVH, htval->val = 0, );
+        MUXDEF(CONFIG_RVH, htinst->val = 0, );
         break;
       case EX_BP : 
-#ifdef CONFIG_RVH
-        htval->val = 0;
-#endif
-        stval->val = epc; break;
-      default: stval->val = 0;
-#ifdef CONFIG_RVH
-               htval->val = 0;
-#endif
+        stval->val = epc; 
+        MUXDEF(CONFIG_RVH, htval->val = 0, );
+        MUXDEF(CONFIG_RVH, htinst->val = 0, );
+        break;
+      default: 
+        stval->val = 0;
+        MUXDEF(CONFIG_RVH, htval->val = 0, );
+        MUXDEF(CONFIG_RVH, htinst->val = 0, );
     }
-    // When a trap is taken into HS-mode, htinst is written with 0.
+    // When a trap (except GPF) is taken into HS-mode, htinst is written with 0.
     // Todo: support tinst encoding descriped in section 
     // 18.6.3. Transformed Instruction or Pseudoinstruction for mtinst or htinst.
-    MUXDEF(CONFIG_RVH, htinst->val = 0;,);
     cpu.mode = MODE_S;
     update_mmu_state();
     return get_trap_pc(stvec->val, scause->val);
@@ -222,20 +221,24 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
         break;
       case EX_II: case EX_VI:
         mtval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
         break;
       case EX_BP:
         mtval->val = epc;
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
         break;
       default:
         mtval->val = 0;
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
+        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
     }
 #ifdef CONFIG_RV_SSDBLTRP
     bool hasEX_DT = vs_EX_DT || s_EX_DT;
@@ -243,7 +246,6 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mcause->val = (hasEX_DT ? EX_DT : mcause->val);
     mtval2->val = (hasEX_DT ? NO : mtval2->val);
 #endif //CONFIG_RV_SSDBLTRP
-    MUXDEF(CONFIG_RVH, mtinst->val = 0;,);
     cpu.mode = MODE_M;
     update_mmu_state();
     return get_trap_pc(mtvec->val, mcause->val);
