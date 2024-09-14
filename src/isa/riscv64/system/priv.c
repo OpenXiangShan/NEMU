@@ -259,9 +259,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif
 
 #define MENVCFG_WMASK_STCE MUXDEF(CONFIG_RV_SSTC, (0x1UL << 63), 0)
+#define MENVCFG_WMASK_PBMTE MUXDEF(CONFIG_RV_SVPBMT, (0x1UL << 62), 0)
 #define MENVCFG_WMASK_DTE  MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 59), 0)
 #define MENVCFG_WMASK (    \
   MENVCFG_WMASK_STCE     | \
+  MENVCFG_WMASK_PBMTE    | \
   MENVCFG_WMASK_DTE        \
 )
 #define HENVCFG_WMASK MENVCFG_WMASK
@@ -295,10 +297,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MCOUNTINHIBIT_MASK (MCOUNTINHIBIT_CNTR_MASK | MCOUNTINHIBIT_HPM_MASK)
 
+#define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
+#define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
+
 #ifdef CONFIG_RVH
-#define MIDELEG_FORCED_MASK HSI_MASK // mideleg bits 2、6、10、12 are read_only one
-#define HVIP_MASK     VSI_MASK       // ((1 << 10) | (1 << 6) | (1 << 2))
-#define HIP_RMASK     HSI_MASK
+#define MIDELEG_FORCED_MASK HSI_MASK  // mideleg bits 2、6、10、12 are read_only one
+#define HVIP_MASK     (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0) | LCI)
+#define HIP_RMASK     (MIP_VSTIP | MIP_VSEIP | MIP_SGEIP)
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
 #define HIE_WMASK     HSI_MASK
@@ -312,7 +317,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MIDELEG_WMASK MUXDEF(CONFIG_RV_SSCOFPMF, (MIDELEG_WMASK_BASE | 1 << IRQ_LCOFI), MIDELEG_WMASK_BASE)
 
 #define MIE_MASK_BASE 0xaaa
-#define MIP_MASK_BASE ((1 << 9) | (1 << 5) | (1 << 1))
+#define MIP_MASK_BASE (1 << 1)
 #ifdef CONFIG_RVH
 #define MIE_MASK_H ((1 << 2) | (1 << 6) | (1 << 10) | (1 << 12))
 #define MIP_MASK_H MIP_VSSIP
@@ -322,12 +327,9 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif // CONFIG_RVH
 
 #define SIE_MASK_BASE (0x222 & mideleg->val)
-#define SIP_MASK (0x222 & mideleg->val)
+#define SIP_MASK ((0x222 | LCOFI) & mideleg->val)
 #define SIP_WMASK_S 0x2
 #define MTIE_MASK (1 << 7)
-
-#define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
-#define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
 
 // sie
 #define SIE_LCOFI_MASK_MIE (mideleg->val & LCOFI)
@@ -336,6 +338,9 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MVIEN_MASK (LCI | LCOFI | (1 << 9) | (1 << 1))
 // hvien
 #define HVIEN_MSAK (LCI | LCOFI)
+
+// mvip
+#define MVIP_MASK MUXDEF(CONFIG_RV_AIA, (LCOFI | LCI), 0)
 
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
@@ -467,104 +472,115 @@ static inline word_t set_minstret(word_t src) {
   return src - get_abs_instr_count();
 }
 
+static inline word_t gen_mask(word_t begin, word_t end) {
+  word_t tmp_mask = 0;
+
+  tmp_mask = ((1 << (end - begin + 1)) - 1) << begin;
+
+  return tmp_mask;
+}
+
 #ifdef CONFIG_RV_AIA
-static inline word_t get_ie(word_t old_value, word_t begin, word_t end, bool v_sie) {
-  if (v_sie) {
-    for (int i=begin; i<=end; i++) {
-      if (((hideleg->val & (1 << i)) >> i) & ((mideleg->val & (1 << i)) >> i)) {
-        old_value |= mie->val & (1 << i);
-      } else if (((hideleg->val & (1 << i)) >> i) & ~((mideleg->val & (1 << i)) >> i) & ((mvien->val & (1 << i)) >> i)) {
-        old_value |= sie->val & (1 << i);
-      } else if (~((hideleg->val & (1 << i)) >> i) & ((hvien->val & (1 << i)) >> i)) {
-        old_value |= vsie->val & (1 << i);
-      } else {
-        old_value |= 0;
-      }
-    }
-  } else {
-    for (int i=begin; i<=end; i++) {
-      if ((mideleg->val & (1 << i)) >> i) {
-        old_value |= mie->val & (1 << i);
-      } else if (~((mideleg->val & (1 << i)) >> i) & ((mvien->val & (1 << i)) >> i)) {
-        old_value |= sie->val & (1 << i);
-      }
-    }
-  }
+static inline word_t vmode_get_ie(word_t old_value, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+
+  old_value |= mask & ((mie->val & mideleg->val & hideleg->val) |
+                      (sie->val & (~mideleg->val & hideleg->val & mvien->val)) |
+                      (vsie->val & (~hideleg->val & hvien->val)));
+
   return old_value;
 }
-#endif
+#endif // CONFIG_RV_AIA
 
 #ifdef CONFIG_RV_AIA
-static inline void set_ie(word_t src, word_t begin, word_t end, bool v_sie) {
-  if (v_sie) {
-    for (int i=begin; i<=end; i++) {
-      if (((hideleg->val & (1 << i)) >> i) & ((mideleg->val & (1 << i)) >> i)) {
-        mie->val = mask_bitset(mie->val, (1 << i), src);
-      } else if (((hideleg->val & (1 << i)) >> i) & ~((mideleg->val & (1 << i)) >> i) & ((mvien->val & (1 << i)) >> i)) {
-        sie->val = mask_bitset(sie->val, (1 << i), src);
-      } else if (~((hideleg->val & (1 << i)) >> i) & ((hvien->val & (1 << i)) >> i)) {
-        vsie->val = mask_bitset(vsie->val, (1 << i), src);
-      }
-    }
-  } else {
-    for (int i=begin; i<=end; i++) {
-      if ((mideleg->val & (1 << i)) >> i) {
-        mie->val = mask_bitset(mie->val, (1 << i), src);
-      } else if (~((mideleg->val & (1 << i)) >> i) & ((mvien->val & (1 << i)) >> i)) {
-        sie->val = mask_bitset(sie->val, (1 << i), src);
-      }
-    }
-  }
+static inline void vmode_set_ie(word_t src, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+  sie->val = mask_bitset(sie->val, mask & (~mideleg->val & hideleg->val & mvien->val), src);
+  vsie->val = mask_bitset(vsie->val, mask & (~hideleg->val & hvien->val), src);
 }
-#endif
+#endif // CONFIG_RV_AIA
 
-static inline word_t get_sie() {
+#ifdef CONFIG_RV_AIA
+static inline word_t non_vmode_get_ie(word_t old_value, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+
+  old_value |= mask & ((mie->val & mideleg->val) |
+                       (sie->val & (~mideleg->val & mvien->val)));
+
+  return old_value;
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_AIA
+static inline void non_vmode_set_ie(word_t src, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+  sie->val = mask_bitset(sie->val, mask & (~mideleg->val & mvien->val), src);
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_AIA
+static inline word_t vmode_get_ip(word_t old_value, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+
+  old_value |= mask & ((mip->val & (mideleg->val  & hideleg->val)) |
+                      (mvip->val & (~mideleg->val & hideleg->val & mvien->val)) |
+                      (hvip->val & (~hideleg->val & hvien->val)));
+  
+  return old_value;
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_AIA
+static inline void vmode_set_ip(word_t src, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+  mvip->val = mask_bitset(mvip->val, mask & (~mideleg->val & hideleg->val & mvien->val), src);
+  hvip->val = mask_bitset(hvip->val, mask & (~hideleg->val & hvien->val), src);
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_AIA
+static inline word_t non_vmode_get_ip(word_t old_value, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+
+  old_value |= mask & ((mip->val & mideleg->val) |
+                      (mvip->val & (~mideleg->val & mvien->val)));
+
+  return old_value;
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_AIA
+static inline void non_vmode_set_ip(word_t src, word_t begin, word_t end) {
+  word_t mask = gen_mask(begin, end);
+  mvip->val = mask_bitset(mvip->val, mask & (~mideleg->val & mvien->val), src);
+}
+#endif // CONFIG_RV_AIA
+
+static inline word_t non_vmode_get_sie() {
   word_t tmp = 0;
 #ifdef CONFIG_RV_AIA
-  tmp |= get_ie(tmp, 1, 1, false);
-  if (mideleg->sti) {
-    tmp |= mie->stie << 5;
-  } else {
-    tmp |= 0;
-  }
-  tmp |= get_ie(tmp, 9, 9, false);
-  tmp |= get_ie(tmp, 13, 63, false);
-#ifdef CONFIG_RV_SSCOFPMF
-  tmp |= get_ie(tmp, 13, 13, false);
-#endif
+  tmp |= mie->val & (MIP_SSIP | MIP_STIP | MIP_SEIP) & mideleg->val;
+  tmp |= non_vmode_get_ie(tmp, 13, 63);
 #else
   tmp = mie->val & SIE_MASK_BASE;
-#ifdef CONFIG_RV_SSCOFPMF
-  if (mideleg->lcofi) {
-    tmp |= mie->lcofie << 13;
-  } else {
-    tmp |= 0;
-  }
-#endif
-#endif
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mie->val & mideleg->val & MIP_LCOFIP);
+#endif // CONFIG_RV_AIA
+
   return tmp;
 }
 
-static inline void set_sie(word_t src) {
+static inline void non_vmode_set_sie(word_t src) {
 #ifdef CONFIG_RV_AIA
-  set_ie(src, 1, 1, false);
-
-  if (mideleg->sti) {
-    mie->stie = (src & (1 << 5)) >> 5;
-  }
-
-  set_ie(src, 9, 9, false);
-  set_ie(src, 13, 63, false);
-#ifdef CONFIG_RV_SSCOFPMF
-  set_ie(src, 13, 13, false);
-#endif
+  mie->val = mask_bitset(mie->val, (MIP_SSIP | MIP_STIP | MIP_SEIP | MIP_LCOFIP) & mideleg->val, src);
+  sie->val = mask_bitset(sie->val, (MIP_SSIP | MIP_SEIP | MIP_LCOFIP) & (~mideleg->val & mvien->val), src);
+  non_vmode_set_ie(src, 14, 63);
 #else
 #ifdef CONFIG_RV_SSCOFPMF
   mie->val = mask_bitset(mie->val, (SIE_MASK_BASE | SIE_LCOFI_MASK_MIE), src);
 #else
   mie->val = mask_bitset(mie->val, SIE_MASK_BASE, src);
-#endif
-#endif
+#endif // CONFIG_RV_SSCOFPMF
+#endif // CONFIG_RV_AIA
 }
 
 static inline void set_tvec(word_t* dest, word_t src) {
@@ -581,69 +597,242 @@ static inline void set_tvec(word_t* dest, word_t src) {
 }
 
 #ifdef CONFIG_RVH
-static inline word_t get_v_sie() {
+static inline word_t vmode_get_sie() {
   word_t tmp = 0;
+
+  tmp = (mie->val & VSI_MASK) >> 1;
+
 #ifdef CONFIG_RV_AIA
-  tmp = (mie->val & VSI_MASK) >> 1;
-  tmp |= get_ie(tmp, 13, 63, true);
-#ifdef CONFIG_RV_SSCOFPMF
-  tmp |= get_ie(tmp, 13, 13, true);
-#endif
+  tmp |= vmode_get_ie(tmp, 13, 63);
 #else
-  tmp = (mie->val & VSI_MASK) >> 1;
-#ifdef CONFIG_RV_SSCOFPMF
-  if (mideleg->lcofi & hideleg->lcofi) {
-    tmp |= mie->lcofie << 13;
-  } else {
-    tmp |= 0;
-  }
-#endif
-#endif
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mie->val & mideleg->val & hideleg->val & MIP_LCOFIP);
+#endif // CONFIG_RV_AIA
+
   return tmp;
 }
-#endif
+#endif // CONFIG_RVH
 
 #ifdef CONFIG_RVH
-static inline void set_v_sie(word_t src) {
+static inline void vmode_set_sie(word_t src) {
+  mie->val = mask_bitset(mie->val, VSI_MASK, src << 1);
 #ifdef CONFIG_RV_AIA
-  mie->val = mask_bitset(mie->val, VSI_MASK, src << 1);
-  set_ie(src, 13, 63, true);
+  mie->val = mask_bitset(mie->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
+  sie->val = mask_bitset(sie->val, MIP_LCOFIP & (~mideleg->val & hideleg->val & mvien->val), src);
+  vsie->val = mask_bitset(vsie->val, MIP_LCOFIP & (~hideleg->val & hvien->val), src);
+  vmode_set_ie(src, 14, 63);
 #else
-  mie->val = mask_bitset(mie->val, VSI_MASK, src << 1);
-#endif
-#ifdef CONFIG_RV_SSCOFPMF
-  if (mideleg->lcofi & hideleg->lcofi) {
-    mie->val = mask_bitset(mie->val, LCOFI, src);
-  }
-#endif
+  IFDEF(CONFIG_RV_SSCOFPMF, mie->val = mask_bitset(mie->val, MIP_LCOFIP & mideleg->val & hideleg->val, src));
+#endif // CONFIG_RV_AIA
 }
-#endif
+#endif // CONFIG_RVH
 
 #ifdef CONFIG_RVH
 static inline word_t get_vsie() {
   word_t tmp;
   tmp = (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
+
 #ifdef CONFIG_RV_AIA
-  tmp |= get_ie(tmp, 13, 63, true);
-#ifdef CONFIG_RV_SSCOFPMF
-  tmp |= get_ie(tmp, 13, 13, true);
-#endif
-#endif
+  tmp |= vmode_get_ie(tmp, 13, 63);
+#else
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mie->val & mideleg->val & hideleg->val & MIP_LCOFIP);
+#endif // CONFIG_RV_AIA
+
   return tmp;
 }
-#endif
+#endif // CONFIG_RVH
 
 #ifdef CONFIG_RVH
 static inline void set_vsie(word_t src) {
   mie->val = mask_bitset(mie->val, VSI_MASK & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
 #ifdef CONFIG_RV_AIA
-  set_ie(src, 13, 63, true);
-#ifdef CONFIG_RV_SSCOFPMF
-  set_ie(src, 13, 13, true);
-#endif
-#endif
+  mie->val = mask_bitset(mie->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
+  sie->val = mask_bitset(sie->val, MIP_LCOFIP & (~mideleg->val & hideleg->val & mvien->val), src);
+  vsie->val = mask_bitset(vsie->val, MIP_LCOFIP & (~hideleg->val & hvien->val), src);
+  vmode_set_ie(src, 14, 63);
+#else
+  IFDEF(CONFIG_RV_SSCOFPMF, mie->val = mask_bitset(mie->val, MIP_LCOFIP & mideleg->val & hideleg->val, src));
+#endif // CONFIG_RV_AIA
 }
-#endif
+#endif // CONFIG_RVH
+
+inline word_t get_mip() {
+  word_t tmp = 0;
+
+  tmp = mip->val & (MIP_MASK_BASE | MIP_LCOFIP);
+
+  IFDEF(CONFIG_RVH, tmp |= hvip->val & (MIP_VSSIP));
+
+  tmp |= cpu.non_reg_interrupt_pending.platform_irp_msip << 3;
+
+#ifdef CONFIG_RV_SSTC
+  if (menvcfg->stce) {
+    tmp |= cpu.non_reg_interrupt_pending.platform_irp_stip << 5;
+  } else {
+    tmp |= mip->val & MIP_STIP;
+  }
+#else
+  tmp |= mip->val & MIP_STIP;
+#endif // CONFIG_RV_SSTC
+
+  IFDEF(CONFIG_RVH, tmp |= (hvip->vstip | cpu.non_reg_interrupt_pending.platform_irp_vstip) << 6);
+
+  tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << 7;
+
+#ifdef CONFIG_RV_AIA
+  if (mvien->seie) {
+    tmp |= cpu.non_reg_interrupt_pending.platform_irp_seip << 9;
+  } else {
+    tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip) << 9;
+  }
+#else
+  tmp |= mip->val & MIP_SEIP;
+#endif // CONFIG_RV_AIA
+
+  IFDEF(CONFIG_RVH, tmp |= (hvip->vseip | cpu.non_reg_interrupt_pending.platform_irp_vseip) << 10);
+
+  tmp |= cpu.non_reg_interrupt_pending.platform_irp_meip << 11;
+
+  IFDEF(CONFIG_RVH, tmp |= ((hgeip->val & hgeie->val) != 0) << 12);
+
+  return tmp;
+}
+
+static inline void set_mip(word_t src) {
+  mip->val = mask_bitset(mip->val, MIP_MASK_BASE | LCOFI, src);
+
+  IFDEF(CONFIG_RVH, hvip->val = mask_bitset(hvip->val, MIP_MASK_H, src));
+
+#ifdef CONFIG_RV_SSTC
+  if (!menvcfg->stce) {
+    mip->val = mask_bitset(mip->val, MIP_STIP, src);
+  }
+#else
+  mip->val = mask_bitset(mip->val, MIP_STIP, src);
+#endif // CONFIG_RV_SSTC
+
+#ifdef CONFIG_RV_AIA
+  mvip->val = mask_bitset(mvip->val, MIP_SEIP & (~mvien->val), src);
+#else
+  mip->val = mask_bitset(mip->val, MIP_SEIP, src);
+#endif // CONFIG_RV_AIA
+}
+
+static inline word_t non_vmode_get_sip() {
+  word_t tmp = 0;
+#ifdef CONFIG_RV_AIA
+  tmp |= mip->val & (MIP_SSIP | MIP_STIP | MIP_SEIP) & mideleg->val;
+  tmp |= mvip->val & (MIP_SSIP | MIP_SEIP) & (~mideleg->val & mvien->val);
+  tmp |= non_vmode_get_ip(tmp, 13, 63);
+#else
+  tmp = mip->val & SIP_MASK;
+#endif // CONFIG_RV_AIA
+  return tmp;
+}
+
+static inline void non_vmode_set_sip(word_t src) {
+#ifdef CONFIG_RV_AIA
+  mip->val = mask_bitset(mip->val, (MIP_SSIP | MIP_LCOFIP) & mideleg->val, src);
+  mvip->val = mask_bitset(mvip->val, (MIP_SSIP | MIP_LCOFIP) & (~mideleg->val & mvien->val), src);
+  non_vmode_set_ip(src, 14, 63);
+#else
+  mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src);
+#endif // CONFIG_RV_AIA
+}
+
+#ifdef CONFIG_RV_AIA
+static inline word_t get_mvip() {
+  word_t tmp = 0;
+
+  tmp = mvip->val & MVIP_MASK;
+
+  tmp |= mvien->ssie ? mvip->val & MIP_SSIP : mip->val & MIP_SSIP;
+
+  if (!menvcfg->stce) {
+    tmp |= mip->val & MIP_STIP;
+  }
+
+  tmp |= mvip->val & MIP_SEIP;
+
+  return tmp;
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_AIA
+static inline void set_mvip(word_t src) {
+  mvip->val = mask_bitset(mvip->val, MVIP_MASK, src);
+
+  mvip->val = mask_bitset(mvip->val, MIP_SSIP & mvien->val, src);
+
+  mip->val = mask_bitset(mip->val, MIP_SSIP & (~mvien->val), src);
+
+  if (!menvcfg->stce) {
+    mip->val = mask_bitset(mip->val, MIP_STIP, src);
+  }
+
+  mvip->val = mask_bitset(mvip->val, MIP_SEIP, src);
+}
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RVH
+static inline word_t vmode_get_sip() {
+  word_t tmp = 0;
+
+  tmp = (mip->val & VSI_MASK) >> 1;
+
+#ifdef CONFIG_RV_AIA
+  tmp |= vmode_get_ip(tmp, 13, 63);
+#else
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mip->val & mideleg->val & hideleg->val & MIP_LCOFIP);
+#endif // CONFIG_RV_AIA
+
+  return tmp;
+}
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_RVH
+static inline void vmode_set_sip(word_t src) {
+  mip->val = mask_bitset(mip->val, MIP_VSSIP, src << 1);
+
+#ifdef CONFIG_RV_AIA
+  mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
+  mvip->val = mask_bitset(mvip->val, MIP_LCOFIP & (~mideleg->val & hideleg->val & mvien->val), src);
+  hvip->val = mask_bitset(hvip->val, MIP_LCOFIP & (~hideleg->val & hvien->val), src);
+  vmode_set_ip(src, 14, 63);
+#else
+  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src));
+#endif // CONFIG_RV_AIA
+}
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_RVH
+static inline word_t get_vsip() {
+  word_t tmp = 0;
+
+  tmp = (hvip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
+
+#ifdef CONFIG_RV_AIA
+  tmp |= vmode_get_ip(tmp, 13, 63);
+#else
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mip->val & MIP_LCOFIP & mideleg->val & hideleg->val);
+#endif // CONFIG_RV_AIA
+
+  return tmp;
+}
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_RVH
+static inline void set_vsip(word_t src) {
+  hvip->val = mask_bitset(hvip->val, MIP_VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
+#ifdef CONFIG_RV_AIA
+  mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
+  mvip->val = mask_bitset(mvip->val, MIP_LCOFIP & (~mideleg->val & hideleg->val & mvien->val), src);
+  hvip->val = mask_bitset(hvip->val, MIP_LCOFIP & (~hideleg->val & hvien->val), src);
+  vmode_set_ip(src, 14, 63);
+#else
+  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src));
+#endif // CONFIG_RV_AIA
+}
+#endif // CONFIG_RVH
 
 static inline void update_counter_mcountinhibit(word_t old, word_t new) {
   #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
@@ -704,28 +893,29 @@ static inline word_t csr_read(word_t *src) {
   #endif // CONFIG_RV_SSDBLTRP
     return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
   }
-  else if (is_read(sie))     { return get_v_sie(); }
+  else if (is_read(sie))     { return vmode_get_sie(); }
   else if (is_read(stvec))   { return vstvec->val; }
   else if (is_read(sscratch)){ return vsscratch->val;}
   else if (is_read(sepc))    { return vsepc->val;}
   else if (is_read(scause))  { return vscause->val;}
   else if (is_read(stval))   { return vstval->val;}
-  else if (is_read(sip))     { return (mip->val & VSI_MASK) >> 1;}
-  else if (is_read(satp))    {
-      return vsatp->val;
-  }
+  else if (is_read(sip))     { return vmode_get_sip(); }
+  else if (is_read(satp))    { return vsatp->val; }
+#ifdef CONFIG_RV_SSTC
+  else if (is_read(stimecmp)){ return vstimecmp->val; }
+#endif
 }
-if (is_read(mideleg))        { return mideleg->val | MIDELEG_FORCED_MASK;}
-if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK & (mideleg->val | MIDELEG_FORCED_MASK);}
+if (is_read(mideleg))        { return (mideleg->val | MIDELEG_FORCED_MASK) | (mideleg->val & LCOFI); }
+if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK; }
 if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK; }
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
 if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
-if (is_read(hip))            { return mip->val & HIP_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
+if (is_read(hip))            { return ((get_mip() & HIP_RMASK) | (hvip->val & MIP_VSSIP)) & (mideleg->val | MIDELEG_FORCED_MASK); }
 if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
-if (is_read(hvip))           { return mip->val & HVIP_MASK;}
+if (is_read(hvip))           { return hvip->val & HVIP_MASK;}
 if (is_read(henvcfg))     {
   uint64_t henvcfg_out = henvcfg->val;
-  henvcfg_out &= menvcfg->val & (MENVCFG_WMASK_STCE | MENVCFG_WMASK_DTE);
+  henvcfg_out &= menvcfg->val & MENVCFG_WMASK;
   return henvcfg_out & HENVCFG_WMASK;
 }
 #ifdef CONFIG_RV_AIA
@@ -739,7 +929,7 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
   #endif //CONFIG_RV_SSDBLTRP
     return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
   }
-  if (is_read(vsip))           { return (mip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1; }
+  if (is_read(vsip))           { return get_vsip(); }
   if (is_read(vsie))           { return get_vsie(); }
 #endif
   if (is_read(mstatus))     {
@@ -756,16 +946,17 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
   #endif //CONFIG_RV_SSDBLTRP
     return gen_status_sd(mstatus->val) | (mstatus->val & sstatus_rmask);
   }
-  else if (is_read(sie))    { return get_sie(); }
+  else if (is_read(sie))    { return non_vmode_get_sie(); }
   else if (is_read(mtvec))  { return mtvec->val; }
   else if (is_read(stvec))  { return stvec->val; }
   else if (is_read(sip))    {
 #ifndef CONFIG_RVH
     difftest_skip_ref();
 #endif
-    return mip->val & SIP_MASK;
+    return non_vmode_get_sip();
   }
 #ifdef CONFIG_RV_AIA
+  else if (is_read(mvip))   { return get_mvip(); }
   else if (is_read(mvien))  { return mvien->val & MVIEN_MASK; }
 #endif
 #ifdef CONFIG_RVV
@@ -815,6 +1006,8 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
 #endif // CONFIG_RV_ZICNTR
 #ifndef CONFIG_RVH
   if (is_read(mip)) { difftest_skip_ref(); }
+#else 
+  if (is_read(mip)) { return get_mip(); }
 #endif
 
 #ifdef CONFIG_RV_SDTRIG
@@ -893,9 +1086,7 @@ void update_vsatp(const vsatp_t new_val) {
 
 static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVH
-  if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch)
-        || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
-        || is_write(satp) || is_write(stvec))){
+  if(cpu.v == 1){
     if (is_write(sstatus))      {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
     #ifdef CONFIG_RV_SSDBLTRP
@@ -916,13 +1107,16 @@ static inline void csr_write(word_t *dest, word_t src) {
       if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
     #endif //CONFIG_RV_SSDBLTRP
     }
-    else if (is_write(sie))     { set_v_sie(src); }
+    else if (is_write(sie))     { vmode_set_sie(src); }
     else if (is_write(stvec))   { set_tvec((word_t*)vstvec, src); }
     else if (is_write(sscratch)){ vsscratch->val = src;}
     else if (is_write(sepc))    { vsepc->val = src;}
     else if (is_write(scause))  { vscause->val = src;}
     else if (is_write(stval))   { vstval->val = src;}
-    else if (is_write(sip))     { mip->val = mask_bitset(mip->val, MIP_VSSIP, src << 1);}
+    else if (is_write(sip))     { vmode_set_sip(src); }
+#ifdef CONFIG_RV_SSTC
+    else if (is_write(stimecmp)) { vstimecmp->val = src; }
+#endif
     else if (is_write(satp))    {
       vsatp_t new_val = (vsatp_t)src;
       // legal mode
@@ -943,12 +1137,8 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(hie)){
     mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
   }
-  else if(is_write(hip)){
-    mip->val = mask_bitset(mip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
-  }
-  else if(is_write(hvip)){
-    mip->val = mask_bitset(mip->val, HVIP_MASK, src);
-  }
+  else if(is_write(hip)) { hvip->val = mask_bitset(hvip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); }
+  else if(is_write(hvip)) { hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); }
   else if(is_write(henvcfg)){
     henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK, src);
   #ifdef CONFIG_RV_SSDBLTRP
@@ -984,9 +1174,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   #endif //CONFIG_RV_SSDBLTRP
   }
   else if(is_write(vsie)){ set_vsie(src); }
-  else if(is_write(vsip)){
-    mip->val = mask_bitset(mip->val, MIP_VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
-  }
+  else if(is_write(vsip)){ set_vsip(src); }
   else if(is_write(vstvec)){
     set_tvec(dest, src);
   }
@@ -1124,13 +1312,12 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
   #endif //CONFIG_RV_SSDBLTRP
   }
-  else if (is_write(sie)) { set_sie(src); }
+  else if (is_write(sie)) { non_vmode_set_sie(src); }
   else if (is_write(mie)) { mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H | LCOFI, src); }
-  else if (is_write(mip)) {
-    mip->val = mask_bitset(mip->val, MIP_MASK_BASE | MIP_MASK_H, src);
-  }
-  else if (is_write(sip)) { mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src); }
+  else if (is_write(mip)) { set_mip(src); }
+  else if (is_write(sip)) { non_vmode_set_sip(src); }
 #ifdef CONFIG_RV_AIA
+  else if (is_write(mvip)) { set_mvip(src); }
   else if (is_write(mvien)) { mvien->val = mask_bitset(mvien->val, MVIEN_MASK, src); }
 #endif
   else if (is_write(mtvec)) { set_tvec(dest, src); }

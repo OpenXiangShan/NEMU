@@ -82,6 +82,15 @@ void init_isa() {
   mnstatus->nmie = 1;
 #endif //CONFIG_RV_SMRNMI
 
+#ifdef CONFIG_RV_SSTC
+  menvcfg->stce = 1;
+  stimecmp->val = 0xffffffffffffffffULL;
+#ifdef CONFIG_RVH
+  henvcfg->stce = 1;
+  vstimecmp->val = 0xffffffffffffffffULL;
+#endif
+#endif
+
 #ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;
   pmpcfg2->val = 0;

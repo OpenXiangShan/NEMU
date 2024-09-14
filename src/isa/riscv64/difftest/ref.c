@@ -52,7 +52,7 @@ void csr_prepare() {
   cpu.sepc    = sepc->val;
 
   cpu.satp     = satp->val;
-  cpu.mip      = mip->val;
+  cpu.mip      = get_mip();
   cpu.mie      = mie->val;
   cpu.mscratch = mscratch->val;
   cpu.sscratch = sscratch->val;
