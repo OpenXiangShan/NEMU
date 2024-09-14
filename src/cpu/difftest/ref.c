@@ -230,6 +230,10 @@ void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlIn
 #endif
 }
 
+void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
+  memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
+}
+
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE
   dynamic_config.debug_difftest = true;

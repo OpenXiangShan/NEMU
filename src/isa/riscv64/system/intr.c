@@ -270,7 +270,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_query_intr() {
-  word_t intr_vec = mie->val & mip->val;
+  word_t intr_vec = mie->val & (get_mip() | (mip->mtip << 7)); // In xs-diff-spike_defconfig, mip.mtip may be 1, while get_mip().mtip come from XiangShan, which is 0.
   if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
   int intr_num;
 #ifdef CONFIG_RVH

@@ -41,6 +41,17 @@ struct ExecutionGuide {
   uint64_t jump_target;
 };
 
+struct NonRegInterruptPending {
+  bool platform_irp_meip;
+  bool platform_irp_mtip;
+  bool platform_irp_msip;
+  bool platform_irp_seip;
+  bool platform_irp_stip;
+  bool platform_irp_vseip;
+  bool platform_irp_vstip;
+  bool lcofi_req;
+};
+
 struct DebugInfo {
   uint64_t current_pc;
 };
@@ -135,6 +146,8 @@ typedef struct {
   // Guided exec
   bool guided_exec;
   struct ExecutionGuide execution_guide;
+
+  struct NonRegInterruptPending non_reg_interrupt_pending;
 
   // User defined debug info
   struct DebugInfo debug;
