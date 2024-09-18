@@ -793,23 +793,33 @@ int force_raise_pf(vaddr_t vaddr, int type){
           );
         }
       }
-      printf("force raise IPF\n");
+      printf("[NEMU]: force raise IPF\n");
       longjmp_exception(EX_IPF);
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+
+#ifdef CONFIG_GUIDED_TVAL
+      if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_LPF)) return MEM_RET_OK;
+#endif
+      printf("[NEMU]: force raise LPF\n");
+
       INTR_TVAL_REG(EX_LPF) = vaddr;
-      printf("force raise LPF\n");
       longjmp_exception(EX_LPF);
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SPF){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+
+#ifdef CONFIG_GUIDED_TVAL
+      if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_SPF)) return MEM_RET_OK;
+#endif
+      printf("[NEMU]: force raise SPF\n");
+
       INTR_TVAL_REG(EX_SPF) = vaddr;
-      printf("force raise SPF\n");
       longjmp_exception(EX_SPF);
       return MEM_RET_FAIL;
     }
@@ -864,27 +874,37 @@ int force_raise_gpf(vaddr_t vaddr, int type){
           );
         }
       }
-      printf("force raise IGPF\n");
+      printf("[NEMU]: force raise IGPF\n");
       longjmp_exception(EX_IGPF);
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LGPF){
       if (force_raise_gpf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+
+#ifdef CONFIG_GUIDED_TVAL
+      if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_LGPF)) return MEM_RET_OK;
+#endif
+      printf("[NEMU]: force raise LGPF\n");
+
       INTR_TVAL_REG(EX_LGPF) = vaddr;
       htval->val = cpu.execution_guide.htval;
       mtval2->val = cpu.execution_guide.mtval2;
-      printf("force raise LGPF\n");
       longjmp_exception(EX_LGPF);
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SGPF){
       if (force_raise_gpf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
+
+#ifdef CONFIG_GUIDED_TVAL
+      if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_SGPF)) return MEM_RET_OK;
+#endif
+      printf("[NEMU]: force raise SGPF\n");
+
       INTR_TVAL_REG(EX_SPF) = vaddr;
       htval->val = cpu.execution_guide.htval;
       mtval2->val = cpu.execution_guide.mtval2;
-      printf("force raise SGPF\n");
       longjmp_exception(EX_SGPF);
       return MEM_RET_FAIL;
     }
