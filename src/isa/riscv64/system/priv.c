@@ -1449,6 +1449,7 @@ static bool aia_extension_permit_check(const word_t *dest_access, bool is_write)
       }
       if (
         (vsiselect->val > ISELECT_2F_MASK && vsiselect->val <= ISELECT_3F_MASK) ||
+        ((hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) && vsiselect->val > ISELECT_6F_MASK && vsiselect->val <= ISELECT_MAX_MASK) ||
         (vsiselect->val > ISELECT_7F_MASK && vsiselect->val <= ISELECT_MAX_MASK && vsiselect->val & 0x1)
       ) {
         has_vi = true;
@@ -1458,6 +1459,7 @@ static bool aia_extension_permit_check(const word_t *dest_access, bool is_write)
   if (is_access(vsireg)) {
     if (
       (vsiselect->val <= ISELECT_6F_MASK) ||
+      ((hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) && vsiselect->val > ISELECT_6F_MASK && vsiselect->val <= ISELECT_MAX_MASK) ||
       (vsiselect->val > ISELECT_7F_MASK && vsiselect->val <= ISELECT_MAX_MASK && vsiselect->val & 0x1) ||
       (vsiselect->val > ISELECT_MAX_MASK)
     ) {

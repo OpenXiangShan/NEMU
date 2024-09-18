@@ -85,6 +85,11 @@ config RV_IMSIC
   depends on RV_AIA
   default n
 
+config GEILEN
+  int "Maximum guest external interrupt number"
+  depends on RV_IMSIC
+  default 0
+
 config RV_SSTC
   bool "RISC-V Sstc Extension for Supervisor-mode Timer Interrupts"
   default n
