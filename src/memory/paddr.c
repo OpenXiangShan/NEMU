@@ -31,6 +31,8 @@ bool is_in_mmio(paddr_t addr);
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 unsigned int PMEM_HARTID = 0;
 
+extern Decode *prev_s;
+
 #ifdef CONFIG_LIGHTQS
 #define PMEMBASE 0x1100000000ul
 #else
@@ -435,6 +437,7 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
       low_addr_st.data = (data & st_data_mask) << ((addr % 16ULL) << 3);
     }
     low_addr_st.mask = (st_mask << (addr % 16ULL)) & 0xffULL;
+    low_addr_st.pc   = prev_s->pc;
 
     store_queue_push(low_addr_st);
 
@@ -443,10 +446,12 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
     low_addr_st.addr = addr - (addr % 8ULL);
     low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << ((8 - len + (addr % len)) << 3);
     low_addr_st.mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
+    low_addr_st.pc   = prev_s->pc;
 
     high_addr_st.addr = addr - (addr % 16ULL) + 16ULL;
     high_addr_st.data = (data >> ((len - (addr % len)) << 3)) & (st_data_mask >> ((len - (addr % len)) << 3));
     high_addr_st.mask = st_mask >> (len - (addr % len));
+    high_addr_st.pc   = prev_s->pc;
 
     store_queue_push(low_addr_st);
     store_queue_push(high_addr_st);
@@ -513,6 +518,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
       assert(0);
 #endif // CONFIG_AC_NONE
   }
+  store_commit.pc = prev_s->pc;
   store_queue_push(store_commit);
 }
 
@@ -528,7 +534,7 @@ store_commit_t store_commit_queue_pop(int *flag) {
   return result;
 }
 
-int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
+int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask, uint64_t *pc) {
   int result = 0;
   if (store_queue_empty()) {
     printf("NEMU does not commit any store instruction.\n");
@@ -541,6 +547,7 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
       *addr = commit.addr;
       *data = commit.data;
       *mask = commit.mask;
+      *pc   = commit.pc;
       result = 1;
     }
   }

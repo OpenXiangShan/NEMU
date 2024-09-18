@@ -146,9 +146,9 @@ void difftest_uarchstatus_cpy(void *dut, bool direction) {
 }
 #endif // CONFIG_LIGHTQS
 
-int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
+int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask, uint64_t *spc) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-  return check_store_commit(saddr, sdata, smask);
+  return check_store_commit(saddr, sdata, smask, spc);
 #else
   return 0;
 #endif

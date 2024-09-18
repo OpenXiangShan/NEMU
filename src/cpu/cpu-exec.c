@@ -62,7 +62,7 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
 static int n_remain;
-static Decode *prev_s;
+Decode *prev_s;
 
 void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 
