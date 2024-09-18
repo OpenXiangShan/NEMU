@@ -293,6 +293,15 @@ config GUIDED_EXEC
   bool "Enable DUT guided execution"
   default y
 
+config GUIDED_TVAL
+  bool "When page fault is present, use DUT's tval"
+  depends on GUIDED_EXEC
+  default n
+  help
+    This will use the dut's tval as the tval when triggering page fault, but be careful, this may synchronize the wrong data.
+    This is mainly for vector access, which causes NEMU to trigger pf when vector access actually triggers an pf.
+    If this option is not enabled, NEMU fires the vector pf on the first element.
+
 config QUERY_REF
   depends on SHARE
   bool "Enable event query support when used as difftest ref"
