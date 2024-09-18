@@ -84,6 +84,7 @@ typedef struct {
     uint64_t addr;
     uint64_t data;
     uint8_t  mask;
+    uint64_t pc;
 } store_commit_t;
 
 /**
@@ -99,7 +100,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
  * @return store_commit_t struct
  */
 store_commit_t store_commit_queue_pop(int *flag);
-int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
+int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask, uint64_t *pc);
 #endif
 
 //#define CONFIG_MEMORY_REGION_ANALYSIS
