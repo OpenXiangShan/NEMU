@@ -119,7 +119,6 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       cpu.amo = false;
       Logtr("Memory read translation exception!");
@@ -135,7 +134,6 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     Logtr("Translate for memory writing v: %d w: %d", pte->v, pte->w);
     if (!(ok && pte->w && !pte->pad) || update_ad) {
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
@@ -153,7 +151,7 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_
   // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
 #ifdef FORCE_RAISE_PF
   if (
-    cpu.guided_exec && cpu.execution_guide.force_raise_exception && 
+    cpu.guided_exec && cpu.execution_guide.force_raise_exception &&
     (cpu.execution_guide.exception_num == EX_IPF ||
     cpu.execution_guide.exception_num == EX_LPF ||
     cpu.execution_guide.exception_num == EX_SPF)
@@ -233,7 +231,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     #endif
     pg_base = PGBASE(pte.ppn);
     Logtr(
-      "g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w:%d, x:%d, u:%d, g:%d, a:%d, d:%d", 
+      "g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w:%d, x:%d, u:%d, g:%d, a:%d, d:%d",
       p_pte, pg_base, pte.v, pte.r, pte.w, pte.x, pte.u, pte.g, pte.a, pte.d
     );
     if (pte.v && !pte.r && !pte.w && !pte.x) {
@@ -254,7 +252,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     } else if (!pte.u) {
       break;
     } else if (
-      type == MEM_TYPE_IFETCH || ishlvx ? !pte.x: 
+      type == MEM_TYPE_IFETCH || ishlvx ? !pte.x:
       type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
                                         !(pte.r && pte.w)
     ) {
@@ -288,7 +286,6 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   if (unlikely(is_in_mmio(addr))) {
     int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                 type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
-    IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
     INTR_TVAL_REG(cause) = vaddr;
     longjmp_exception(cause);
   }
@@ -368,7 +365,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       break;
     } else { // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
-        goto bad; 
+        goto bad;
       }
       level --;
       if (level < 0) { goto bad; }
@@ -513,12 +510,12 @@ static inline int update_mmu_state_internal(bool ifetch) {
   bool virt = mstatus->mprv && (!ifetch) ? mstatus->mpv && mode != MODE_M : cpu.v;
   if (mode < MODE_M) {
   #ifdef CONFIG_RV_SV48
-    if (virt ? vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4 
-              : satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48) 
+    if (virt ? vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4
+              : satp->mode == SATP_MODE_Sv39 || satp->mode == SATP_MODE_Sv48)
       return MMU_TRANSLATE;
   #else
     if (virt ? vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4
-              : satp->mode == SATP_MODE_Sv39) 
+              : satp->mode == SATP_MODE_Sv39)
       return MMU_TRANSLATE;
   #endif // CONFIG_RV_SV48
 #else
@@ -650,13 +647,11 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         }
       }else{
         ex = cpu.amo ? EX_SPF : EX_LPF;
-        IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
         INTR_TVAL_REG(ex) = vaddr;
       }
       longjmp_exception(ex);
 #else
       int ex = cpu.amo ? EX_SPF : EX_LPF;
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
 #endif
@@ -679,12 +674,10 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
         }
         longjmp_exception(EX_SPF);
       }else{
-        IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
         INTR_TVAL_REG(EX_SPF) = vaddr;
         longjmp_exception(EX_SPF);
       }
 #else
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
 #endif
@@ -705,7 +698,6 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
     Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
     }
@@ -718,7 +710,6 @@ void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
     Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_VECTOR_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
     }
@@ -728,13 +719,13 @@ void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
-  
+
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
 #ifdef CONFIG_RVH
   if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
     return MEM_RET_FAIL;
-#else 
+#else
   if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
     return MEM_RET_FAIL;
 #endif // CONFIG_RVH
@@ -809,7 +800,6 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(EX_LPF) = vaddr;
       printf("force raise LPF\n");
       longjmp_exception(EX_LPF);
@@ -818,7 +808,6 @@ int force_raise_pf(vaddr_t vaddr, int type){
       if (force_raise_pf_record(vaddr, type)) {
         return MEM_RET_OK;
       }
-      IFDEF(CONFIG_USE_XS_ARCH_CSRS, vaddr = INTR_TVAL_SV48_SEXT(vaddr));
       INTR_TVAL_REG(EX_SPF) = vaddr;
       printf("force raise SPF\n");
       longjmp_exception(EX_SPF);
