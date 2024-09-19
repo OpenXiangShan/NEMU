@@ -15,46 +15,70 @@
 
 #include <utils.h>
 #include <malloc.h>
-// control when the log is printed, unit: number of instructions
-#define LOG_START (0)
-// restrict the size of log file
-#define LOG_END   (1024 * 1024 * 50)
-#define SMALL_LOG_ROW_NUM (100 * 1024) // row number
+
 uint64_t record_row_number = 0;
 FILE *log_fp = NULL;
-char *log_filebuf;
+char *log_filebuf = NULL;
+int loop_index = 0;
+bool enable_fast_log = false;
 bool enable_small_log = false;
-void init_log(const char *log_file, const bool small_log) {
+
+void init_log(const char *log_file, const bool fast_log, const bool small_log) {
   if (log_file == NULL) return;
   log_fp = fopen(log_file, "w");
   Assert(log_fp, "Can not open '%s'", log_file);
+
+  if(fast_log || small_log){
+    log_filebuf = (void*)malloc(sizeof(char) * SMALL_LOG_ROW_NUM * SMALL_LOG_ROW_BYTES);
+    Assert(log_filebuf, "Can not alloc memory for log_filebuf");
+    memset(log_filebuf, 0, sizeof(char) * SMALL_LOG_ROW_NUM * SMALL_LOG_ROW_BYTES);
+  }
+
+  enable_fast_log = fast_log;
   enable_small_log = small_log;
-  if (enable_small_log)
-    log_filebuf = (char *)malloc(sizeof(char) * SMALL_LOG_ROW_NUM * 300);
 }
 
-bool log_enable() {
-  extern uint64_t g_nr_guest_instr;
-  return (g_nr_guest_instr >= LOG_START) && (g_nr_guest_instr <= LOG_END);
+void log_file_flush(bool log_close) {
+  if (!enable_small_log) {
+    for (int i = 0;
+         i < (SMALL_LOG_ROW_NUM < record_row_number ? SMALL_LOG_ROW_NUM
+                                                    : record_row_number);
+         i++) {
+      fprintf(log_fp, "%s", log_filebuf + i * SMALL_LOG_ROW_BYTES);
+    }
+    fflush(log_fp);
+  } else if (log_close) {
+    int loop_start_index = record_row_number;
+    for (int i = loop_start_index; i < SMALL_LOG_ROW_NUM; i++) {
+      if (*(log_filebuf + i * SMALL_LOG_ROW_BYTES) != 0) {
+        fprintf(log_fp, "%s", log_filebuf + i * SMALL_LOG_ROW_BYTES);
+      }
+    }
+    for (int i = 0; i < record_row_number; i++) {
+      fprintf(log_fp, "%s", log_filebuf + i * SMALL_LOG_ROW_BYTES);
+    }
+  }
 }
 
-void log_flush() {
-  record_row_number ++;
-  if(record_row_number > SMALL_LOG_ROW_NUM){
-    // rewind(log_fp);
+void log_buffer_flush() {
+  record_row_number++;
+  if (record_row_number > SMALL_LOG_ROW_NUM) {
+    log_file_flush(false);
     record_row_number = 0;
   }
 }
-void log_close(){
-  if (enable_small_log == false) return;
-  if (log_fp == NULL) return;
-  // fprintf(log_fp, "%s", log_filebuf);
-  for (int i = 0; i < record_row_number; i++)
-  {
-    fprintf(log_fp, "%s", log_filebuf + i * 300);
+
+void log_close() {
+  if (!log_fp && !log_filebuf) {
+    return;
   }
-  fclose(log_fp);
-  free(log_filebuf);
+
+  if (log_filebuf) {
+    log_file_flush(true);
+    free(log_filebuf);
+  }
+
+  if (log_fp) {
+    fclose(log_fp);
+  }
 }
-char log_bytebuf[80] = {};
-char log_asmbuf[80] = {};

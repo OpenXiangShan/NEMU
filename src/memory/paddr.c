@@ -518,7 +518,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
 
 store_commit_t store_commit_queue_pop(int *flag) {
   *flag = 1;
-  store_commit_t result;
+  store_commit_t result = {.addr=0, .data=0, .mask=0};
   if (store_queue_empty()) {
     *flag = 0;
     return result;

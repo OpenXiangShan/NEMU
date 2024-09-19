@@ -49,6 +49,13 @@ uint64_t get_time();
 
 // ----------- log -----------
 
+// control when the log is printed, unit: number of instructions
+#define LOG_START (0)
+#define LOG_END   (1024 * 1024 * 50)
+
+#define SMALL_LOG_ROW_NUM (50 * 1024 * 1024) // row number, 50M instructions
+#define SMALL_LOG_ROW_BYTES 512
+
 /* #define log_write(...) MUXDEF(CONFIG_DEBUG, \
   do { \
     extern FILE* log_fp; \
@@ -67,17 +74,17 @@ uint64_t get_time();
  )*/
 #define log_write(...) \
   do { \
+    extern bool enable_fast_log; \
     extern bool enable_small_log; \
-    extern FILE* log_fp; \
+    extern FILE *log_fp; \
     extern char *log_filebuf; \
     extern uint64_t record_row_number; \
-    extern bool log_enable(); \
-    extern void log_flush(); \
+    extern void log_buffer_flush(); \
     if (log_fp != NULL) { \
-      if (enable_small_log) { \
-        snprintf(log_filebuf + record_row_number * 300, 300, __VA_ARGS__);\
-        log_flush(); \
-      } else if (log_enable()){ \
+      if (enable_fast_log || enable_small_log) { \
+        snprintf(log_filebuf + record_row_number * SMALL_LOG_ROW_BYTES, SMALL_LOG_ROW_BYTES, __VA_ARGS__);\
+        log_buffer_flush(); \
+      } else { \
         fprintf(log_fp, __VA_ARGS__); \
         fflush(log_fp); \
       } \
@@ -90,9 +97,6 @@ uint64_t get_time();
   do { \
     log_write(__VA_ARGS__); \
   } while (0)
-
-extern char log_bytebuf[80];
-extern char log_asmbuf[80];
 
 // ----------- expr -----------
 
