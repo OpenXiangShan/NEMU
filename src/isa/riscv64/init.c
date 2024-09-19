@@ -91,6 +91,11 @@ void init_isa() {
 #endif
 #endif
 
+#ifdef CONFIG_RV_SVPBMT
+  menvcfg->pbmte = 1;
+  henvcfg->pbmte = 1;
+#endif //CONFIG_RV_SVPBMT
+
 #ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;
   pmpcfg2->val = 0;
