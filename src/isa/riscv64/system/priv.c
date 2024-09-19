@@ -258,14 +258,16 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATUS_WMASK 0
 #endif
 
-#define MENVCFG_STCE        (0x1UL << 63)
-#define MENVCFG_DTE         (0x1UL << 59)
-#define MENVCFG_PBMTE       (0x1UL << 62)
-
+#define MENVCFG_RMASK_STCE    (0x1UL << 63)
+#define MENVCFG_RMASK_DTE     (0x1UL << 59)
+#define MENVCFG_RMASK_PBMTE   (0x1UL << 62)
+#define MENVCFG_WMASK_STCE    MUXDEF(CONFIG_RV_SSTC, (0x1UL << 63), 0)
+#define MENVCFG_WMASK_DTE     MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 59), 0)
+#define MENVCFG_WMASK_PBMTE   MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 62), 0)
 #define MENVCFG_WMASK (    \
-  MUXDEF(CONFIG_RV_SSTC, MENVCFG_STCE, 0)     | \
-  MUXDEF(CONFIG_RV_SSDBLTRP, MENVCFG_DTE, 0)  | \
-  MUXDEF(CONFIG_RV_SVPBMT, MENVCFG_PBMTE, 0)    \
+  MENVCFG_WMASK_STCE     | \
+  MENVCFG_WMASK_PBMTE    | \
+  MENVCFG_WMASK_DTE        \
 )
 #define HENVCFG_WMASK MENVCFG_WMASK
 
@@ -918,7 +920,7 @@ if (is_read(henvcfg))     {
   uint64_t henvcfg_out = henvcfg->val;
   henvcfg_out &= menvcfg->val & MENVCFG_WMASK;
   /* henvcfg.stce/dte/pbmte is read_only 0 when menvcfg.stce/dte/pbmte = 0 */
-  henvcfg_out &= menvcfg->val | ~(MENVCFG_STCE | MENVCFG_DTE | MENVCFG_PBMTE);
+  henvcfg_out &= menvcfg->val | ~(MENVCFG_RMASK_STCE | MENVCFG_RMASK_DTE | MENVCFG_RMASK_PBMTE);
   return henvcfg_out & HENVCFG_WMASK;
 }
 #ifdef CONFIG_RV_AIA
@@ -1143,9 +1145,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if(is_write(hip)) { hvip->val = mask_bitset(hvip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); }
   else if(is_write(hvip)) { hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); }
   else if(is_write(henvcfg)){
-    /* ignore writes to the henvcfg fields when read-only 0 */
-    const uint64_t mask = menvcfg->val | ~(MENVCFG_STCE | MENVCFG_DTE | MENVCFG_PBMTE);
-    henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & mask, src);
+    henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK, src);
   #ifdef CONFIG_RV_SSDBLTRP
     if(henvcfg->dte == 0) {
       vsstatus->sdt = 0;
