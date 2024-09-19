@@ -44,6 +44,10 @@ enum {
   INSTR_TYPE_I, // indirect
 };
 
+IFDEF(CONFIG_DEBUG, extern char log_bytebuf[80];)
+// max size is (strlen(str(instr)) + strlen(suffix_char(id_dest->width)) + sizeof(id_dest->str) + sizeof(id_src2->str) + sizeof(id_src1->str))
+IFDEF(CONFIG_DEBUG, extern char log_asmbuf[80 + (sizeof(((Operand*)0)->str) * 3)]);
+
 typedef struct Decode {
   union {
     struct {
@@ -64,7 +68,7 @@ typedef struct Decode {
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
   uint8_t type;
   ISADecodeInfo isa;
-  IFDEF(CONFIG_DEBUG, char logbuf[80]);
+  IFDEF(CONFIG_DEBUG, char logbuf[80 + sizeof(log_asmbuf) + sizeof(log_bytebuf)]);
   #ifdef CONFIG_RVV
   // for vector
   int v_width;
@@ -178,7 +182,6 @@ finish:
 #define def_INSTR_TABW(pattern, tab, width) def_INSTR_IDTABW(pattern, empty, tab, width)
 #define def_INSTR_TAB(pattern, tab)         def_INSTR_IDTABW(pattern, empty, tab, 0)
 
-
 #define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
 #define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
 
@@ -187,20 +190,20 @@ finish:
 #endif
 
 #define print_asm_template0(instr) \
-  print_asm(str(instr) "%c", suffix_char(id_dest->width))
+  print_asm("%s %c", str(instr), suffix_char(id_dest->width))
 
 #define print_asm_template1(instr) \
-  print_asm(str(instr) "%c %s", suffix_char(id_dest->width), id_dest->str)
+  print_asm("%s %c %s", str(instr), suffix_char(id_dest->width), id_dest->str)
 
 #define print_asm_template2(instr) \
-  print_asm(str(instr) "%c %s,%s", suffix_char(id_dest->width), id_dest->str, id_src1->str)
+  print_asm("%s %c %s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src1->str)
 
 #define print_asm_template3(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_dest->str, id_src1->str, id_src2->str)
+  print_asm("%s %c %s,%s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src1->str, id_src2->str)
 
 #if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
 #define print_asm_template3_csr(instr) \
-  print_asm(str(instr) "%c %s,%s,%s", suffix_char(id_dest->width), id_dest->str, id_src2->str, id_src1->str)
+  print_asm("%s %c %s,%s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src2->str, id_src1->str)
 #endif
 
 #endif

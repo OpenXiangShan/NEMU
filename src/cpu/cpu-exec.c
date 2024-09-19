@@ -575,13 +575,17 @@ static int execute(int n) {
 }
 #endif
 
+IFDEF(CONFIG_DEBUG, char log_bytebuf[80] = {};)
+// max size is (strlen(str(instr)) + strlen(suffix_char(id_dest->width)) + sizeof(id_dest->str) + sizeof(id_src2->str) + sizeof(id_src1->str))
+IFDEF(CONFIG_DEBUG, char log_asmbuf[80 + (sizeof(((Operand*)0)->str) * 3)] = {};)
+
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
-  Logtid(FMT_WORD ":   %s%*.s%s", s->pc, log_bytebuf,
-         40 - (12 + 3 * (int)(s->snpc - s->pc)), "", log_asmbuf);
+  Logtid(FMT_WORD ":   %s%*.s%s", s->pc, MUXDEF(CONFIG_DEBUG, log_bytebuf, ""),
+         40 - (12 + 3 * (int)(s->snpc - s->pc)), "", MUXDEF(CONFIG_DEBUG, log_asmbuf, ""));
   IFDEF(CONFIG_DEBUG,
         snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s", s->pc,
                  log_bytebuf, 40 - (12 + 3 * (int)(s->snpc - s->pc)), "",

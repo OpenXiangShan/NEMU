@@ -31,7 +31,8 @@ using namespace std;
 extern "C" {
 #include <debug.h>
 extern bool log_enable();
-extern void log_flush();
+extern void log_buffer_flush();
+extern void log_file_flush();
 }
 
 void PathManager::init() {

@@ -28,7 +28,7 @@
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
-void init_log(const char *log_file, const bool small_log);
+void init_log(const char *log_file, const bool fast_log, const bool small_log);
 void init_mem();
 void init_regex();
 void init_wp_pool();
@@ -37,6 +37,7 @@ void init_device();
 
 static char *log_file = NULL;
 bool small_log = false;
+bool fast_log = false;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int batch_mode = false;
@@ -86,6 +87,8 @@ static inline int parse_args(int argc, char *argv[]) {
     {"batch"    , no_argument      , NULL, 'b'},
     {"max-instr", required_argument, NULL, 'I'},
     {"log"      , required_argument, NULL, 'l'},
+    {"log-fast" , no_argument      , NULL,  8 },
+    {"log-small", no_argument      , NULL,  15},
     {"diff"     , required_argument, NULL, 'd'},
     {"port"     , required_argument, NULL, 'p'},
     {"help"     , no_argument      , NULL, 'h'},
@@ -121,9 +124,6 @@ static inline int parse_args(int argc, char *argv[]) {
     // dump state
     {"dump-mem"           , required_argument, NULL, 'M'},
     {"dump-reg"           , required_argument, NULL, 'R'},
-
-    // small log file
-    {"small-log"          , required_argument, NULL, 8},
 
     {0          , 0                , NULL,  0 },
   };
@@ -239,7 +239,9 @@ static inline int parse_args(int argc, char *argv[]) {
         }
         break;
       case 8:
-        log_file = optarg;
+        fast_log = true;
+        break;
+      case 15:
         small_log = true;
         break;
       case 14: sscanf(optarg, "%lu", &warmup_interval); break;
@@ -274,6 +276,10 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
+
+        printf("\t--log-fast              output log to file by buffer\n");
+        printf("\t--log-small             keep the last 50M instruction log\n");
+
 //        printf("\t--cpt-id                checkpoint id\n");
         printf("\t-M,--dump-mem=DUMP_FILE dump memory into FILE\n");
         printf("\t-R,--dump-reg=DUMP_FILE dump register value into FILE\n");
@@ -293,6 +299,9 @@ void init_monitor(int argc, char *argv[]) {
 #else
   parse_args(argc, argv);
 #endif
+
+  /* Open the log file. */
+  init_log(log_file, fast_log, small_log);
 
   if (warmup_interval == 0) {
     warmup_interval = checkpoint_interval;
@@ -315,8 +324,6 @@ void init_monitor(int argc, char *argv[]) {
     simpoint_init();
     init_serializer();
   }
-  /* Open the log file. */
-  init_log(log_file, small_log);
 
   /* Initialize memory. */
   init_mem();

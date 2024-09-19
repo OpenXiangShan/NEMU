@@ -53,11 +53,12 @@ namespace SimPointNS
 
 extern "C" {
 #include <debug.h>
-extern bool log_enable();
-extern void log_flush();
-extern char *log_filebuf;
 extern uint64_t record_row_number;
 extern FILE *log_fp;
+extern char *log_filebuf;
+extern void log_buffer_flush();
+extern void log_file_flush();
+extern bool enable_fast_log;
 extern bool enable_small_log;
 }
 
