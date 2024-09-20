@@ -533,7 +533,7 @@ store_commit_t store_commit_queue_pop(int *flag) {
   return result;
 }
 
-int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask, uint64_t *pc) {
+int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
   if (store_queue_empty()) {
     printf("NEMU does not commit any store instruction.\n");
@@ -546,7 +546,6 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask, uint64_t *
       *addr = commit.addr;
       *data = commit.data;
       *mask = commit.mask;
-      *pc   = commit.pc;
       result = 1;
     }
   }
