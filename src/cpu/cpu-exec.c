@@ -629,6 +629,7 @@ void cpu_exec(uint64_t n) {
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
   if ((cause = setjmp(jbuf_exec))) {
+    printf("raise exception, pc: 0x%lx, instr: 0x%x, cause: %d\n", prev_s->pc, prev_s->isa.instr.val, cause);
 #ifdef CONFIG_RVV
     //The processing logic when the fof instruction is abnormal but not trap.
     //TODO Rewrite him in a better way

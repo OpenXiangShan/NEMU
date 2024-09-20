@@ -33,6 +33,9 @@
 uint64_t fofvl = 0;
 uint64_t mtvaltmp = 0;
 
+uint64_t  vld_flag = 0;
+uint64_t  vst_flag = 0;
+
 void set_fofNoExceptionState(int* cause){
   if (fofvl != 0){
     *cause = 0;
@@ -224,6 +227,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   int64_t stride;
   int eew, emul, vemul;
 
+  vld_flag = 1;
   // s->v_width is the bytes of a unit
   // eew is the coding like vsew
   eew = 0;
@@ -373,6 +377,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
     }
   }
 
+  vld_flag = 0;
   vstart->val = 0;
   vp_set_dirty();
 }
@@ -388,6 +393,7 @@ void vldx(Decode *s, int mmu_mode) {
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
+  vld_flag = 1;
   index_width = 0;
   eew = vtype->vsew;
   switch(s->v_width) {
@@ -446,6 +452,7 @@ void vldx(Decode *s, int mmu_mode) {
     }
   }
 
+  vld_flag = 0;
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   vp_set_dirty();
@@ -461,6 +468,8 @@ void vst(Decode *s, int mode, int mmu_mode) {
   uint64_t nf, vl_val, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul;
+
+  vst_flag = 1;
 
   eew = 0;
   switch(s->v_width) {
@@ -608,6 +617,8 @@ void vst(Decode *s, int mode, int mmu_mode) {
     }
   }
 
+
+  vst_flag = 0;
   vstart->val = 0;
   vp_set_dirty();
 }
@@ -619,6 +630,7 @@ void vstx(Decode *s, int mmu_mode) {
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
+  vst_flag = 1;
   index_width = 0;
   eew = vtype->vsew;
   switch(s->v_width) {
@@ -661,6 +673,7 @@ void vstx(Decode *s, int mmu_mode) {
     }
   }
 
+  vst_flag = 0;
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   vp_set_dirty();
@@ -683,6 +696,7 @@ void vlr(Decode *s, int mmu_mode) {
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
   int eew;
 
+  vld_flag = 1;
   eew = 0;
   switch(s->v_width) {
     case 1: eew = 0; break;
@@ -734,6 +748,8 @@ void vlr(Decode *s, int mmu_mode) {
     }
   }
 
+  vld_flag = 0;
+
   vstart->val = 0;
   vp_set_dirty();
 }
@@ -742,6 +758,7 @@ void vsr(Decode *s, int mmu_mode) {
   uint64_t idx, vreg_idx, offset, pos;
   uint64_t len, base_addr, vd, addr, elt_per_reg, size;
 
+  vst_flag = 1;
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
@@ -786,6 +803,7 @@ void vsr(Decode *s, int mmu_mode) {
     }
   }
 
+  vst_flag = 0;
   vstart->val = 0;
   vp_set_dirty();
 }
@@ -802,6 +820,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
   // s->v_width is the bytes of a unit
   // eew is the coding like vsew
+  printf("[NEMU] first only fault! There are problems with the RTL implementation\n");
   eew = 0;
   switch(s->v_width) {
     case 1: eew = 0; break;

@@ -220,6 +220,9 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
   }
 }
 
+extern uint64_t  vld_flag;
+extern uint64_t  vst_flag;
+
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
 
   int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
@@ -241,6 +244,9 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #else
   if (likely(in_pmem(addr))) {
     uint64_t rdata = pmem_read(addr, len);
+    if (vld_flag == 1){
+      printf("[NEMU] pc: 0x%lx, instr: 0x%x, paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d\n",prev_s->pc, prev_s->isa.instr.val, addr, rdata, len, type, mode);
+    }
     if (dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d\n",
         addr, rdata, len, type, mode);
@@ -348,6 +354,11 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_STORE_LOG
     pmem_record_store(addr);
 #endif // CONFIG_STORE_LOG
+
+    if (vst_flag == 1){
+      printf("[NEMU] pc: 0x%lx, instr: 0x%x, paddr write addr:" FMT_PADDR ", data: %016lx, len:%d, mode:%d\n",prev_s->pc, prev_s->isa.instr.val, addr, data, len, mode);
+    }
+
     if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d\n",
         addr, data, len, mode);

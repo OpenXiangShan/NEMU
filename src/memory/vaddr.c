@@ -190,12 +190,20 @@ void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode
 }
 #endif // CONFIG_RVV
 
+extern uint64_t  vld_flag;
+extern uint64_t  vst_flag;
+
+extern Decode *prev_s;
+
 word_t vaddr_ifetch(vaddr_t addr, int len) {
   return vaddr_read_internal(NULL, addr, len, MEM_TYPE_IFETCH, MMU_DYNAMIC);
 }
 
 word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
   Logm("Reading vaddr %lx", addr);
+  if (vld_flag == 1){
+    printf("[NEMU] pc: 0x%lx, instr: 0x%x, vaddr read addr:" FMT_PADDR ", len:%d\n",prev_s->pc, prev_s->isa.instr.val, addr, len);
+  }
   return vaddr_read_internal(s, addr, len, MEM_TYPE_READ, mmu_mode);
 }
 
@@ -215,6 +223,9 @@ void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 #endif // CONFIG_RVV
 
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+  if (vst_flag == 1){
+    printf("[NEMU] pc: 0x%lx, instr: 0x%x, vaddr write addr:" FMT_PADDR ", data: %016lx, len:%d\n",prev_s->pc, prev_s->isa.instr.val, addr, data, len);
+  }
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
