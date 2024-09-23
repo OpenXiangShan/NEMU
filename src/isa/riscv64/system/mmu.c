@@ -21,6 +21,7 @@
 #include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
+#include "../local-include/rtl.h"
 
 typedef union PageTableEntry {
   struct {
@@ -214,6 +215,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     }
     max_level = 3;
   }
+  bool pbmte = menvcfg->pbmte;
   word_t pg_base = PGBASE(hgatp->ppn);
   int level;
   word_t p_pte;
@@ -243,7 +245,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       if (level < 0) { break; }
     } else if (!pte.v || (!pte.r && pte.w) || pte.pad) {
       break;
-    } else if (ISNDEF(CONFIG_RV_SVPBMT) && pte.pbmt) {
+    } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
       break;
     } else if (pte.pbmt == 3) {
       break;
@@ -321,6 +323,13 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
   }
 #endif
+  bool pbmte = menvcfg->pbmte;
+#ifdef CONFIG_RVH
+  if(virt){
+    // henvcfg.pbmte is read_only 0 when menvcfg.pbmte = 0
+    pbmte = henvcfg->pbmte & menvcfg->pbmte;
+  }
+#endif
   word_t p_pte; // pte pointer
   PTE pte;
   int level;
@@ -338,11 +347,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
 #else
-  #ifdef CONFIG_RVH
+#ifdef CONFIG_RVH
     if(virt){
       p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false, true);
     }
-  #endif //CONFIG_RVH
+#endif //CONFIG_RVH
     pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
 #endif
 #ifdef CONFIG_SHARE
@@ -354,7 +363,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
       goto bad;
-    } else if (ISNDEF(CONFIG_RV_SVPBMT) && pte.pbmt) {
+    } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
       goto bad;
     } else if (pte.pbmt == 3) {
       goto bad;

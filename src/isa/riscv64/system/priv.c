@@ -258,9 +258,12 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATUS_WMASK 0
 #endif
 
-#define MENVCFG_WMASK_STCE MUXDEF(CONFIG_RV_SSTC, (0x1UL << 63), 0)
-#define MENVCFG_WMASK_PBMTE MUXDEF(CONFIG_RV_SVPBMT, (0x1UL << 62), 0)
-#define MENVCFG_WMASK_DTE  MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 59), 0)
+#define MENVCFG_RMASK_STCE    (0x1UL << 63)
+#define MENVCFG_RMASK_DTE     (0x1UL << 59)
+#define MENVCFG_RMASK_PBMTE   (0x1UL << 62)
+#define MENVCFG_WMASK_STCE    MUXDEF(CONFIG_RV_SSTC, (0x1UL << 63), 0)
+#define MENVCFG_WMASK_DTE     MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 59), 0)
+#define MENVCFG_WMASK_PBMTE   MUXDEF(CONFIG_RV_SVPBMT, (0x1UL << 62), 0)
 #define MENVCFG_WMASK (    \
   MENVCFG_WMASK_STCE     | \
   MENVCFG_WMASK_PBMTE    | \
@@ -916,6 +919,8 @@ if (is_read(hvip))           { return hvip->val & HVIP_MASK;}
 if (is_read(henvcfg))     {
   uint64_t henvcfg_out = henvcfg->val;
   henvcfg_out &= menvcfg->val & MENVCFG_WMASK;
+  /* henvcfg.stce/dte/pbmte is read_only 0 when menvcfg.stce/dte/pbmte = 0 */
+  henvcfg_out &= menvcfg->val | ~(MENVCFG_RMASK_STCE | MENVCFG_RMASK_DTE | MENVCFG_RMASK_PBMTE);
   return henvcfg_out & HENVCFG_WMASK;
 }
 #ifdef CONFIG_RV_AIA
