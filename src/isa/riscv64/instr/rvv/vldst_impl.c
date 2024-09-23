@@ -31,15 +31,23 @@
 #include "../local-include/intr.h"
 
 uint64_t fofvl = 0;
-uint64_t mtvaltmp = 0;
+uint64_t tvaltmp = 0;
 
-void set_fofNoExceptionState(int* cause){
+bool set_fofNoExceptionState(){
   if (fofvl != 0){
-    *cause = 0;
     vl->val = fofvl;
-    INTR_TVAL_REG(EX_LAF) = mtvaltmp;
+    INTR_TVAL_REG(EX_LAF) = tvaltmp;
+
+    fofvl = 0;
+    tvaltmp = 0;
+
+#ifndef CONFIG_SHARE
     difftest_skip_dut(1,0);
+#endif
+    return true;
   }
+
+  return false;
 }
 
 void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
@@ -932,7 +940,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
         if (idx != 0) {
           fofvl = idx;
-          mtvaltmp = INTR_TVAL_REG(EX_LAF);
+          tvaltmp = INTR_TVAL_REG(EX_LAF);
         }
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
