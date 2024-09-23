@@ -301,9 +301,15 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
   Logtr("Page walking for 0x%lx", vaddr);
+  if (vaddr == 0x80200664) {
+    printf("Attention:\n");
+  }
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
   max_level = satp->mode == SATP_MODE_Sv39 ? 3 : 4;
+  if (vaddr == 0x80200664) {
+    printf("max level: %d\n", max_level);
+  }
 #ifdef CONFIG_RVH
   int virt = cpu.v;
   int mode = cpu.mode;
@@ -360,6 +366,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
         level, vaddr, pg_base, p_pte, pte.val);
     }
 #endif
+  if (vaddr == 0x80200664) {
+    printf("[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n", level, vaddr, pg_base, p_pte, pte.val);
+  }
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
       goto bad;
