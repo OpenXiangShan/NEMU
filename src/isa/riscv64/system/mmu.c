@@ -377,22 +377,45 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
+      if (vaddr == 0x80200664) {
+        printf("1\n");
+      }
       goto bad;
     } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
+      if (vaddr == 0x80200664) {
+        printf("2\n");
+      }
       goto bad;
     } else if (pte.pbmt == 3) {
+      if (vaddr == 0x80200664) {
+        printf("3\n");
+      }
       goto bad;
     } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
+      if (vaddr == 0x80200664) {
+        printf("4\n");
+      }
       goto bad;
     }
     if (pte.r || pte.x) { // is leaf
+      if (vaddr == 0x80200664) {
+        printf("5\n");
+      }
       break;
     } else { // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
+        if (vaddr == 0x80200664) {
+          printf("6\n");
+        }
         goto bad;
       }
       level --;
-      if (level < 0) { goto bad; }
+      if (level < 0) { 
+        if (vaddr == 0x80200664) {
+          printf("7\n");
+        }
+        goto bad;
+      }
     }
   }
 #ifdef CONFIG_RVH
@@ -405,6 +428,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
+      if (vaddr == 0x80200664) {
+        printf("8\n");
+      }
       goto bad;
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
