@@ -216,24 +216,35 @@ static inline def_DHelper(C_FLD) {
 }
 
 // Zcb Extension
-static inline void decode_C_ldst_zcb_load(Decode *s) {
+static inline void decode_C_ldst_zcb(Decode *s, bool is_store, bool need_uimm0) {
   uint32_t instr = s->isa.instr.val;
   uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
-  uint32_t rd = creg2reg(BITS(instr, 4, 2));
+  uint32_t rd_rs2 = creg2reg(BITS(instr, 4, 2)); // load:rd  store:rs2
+  uint32_t uimm1 = (instr >> 5) & UINT32_C(1);
+
+  uint32_t imm;
+  if (need_uimm0) {
+    uint32_t uimm0 = (instr >> 6) & UINT32_C(1);
+    imm = (uimm1 << 1) | uimm0;
+  } else {
+    imm = uimm1;
+  }
+
+  decode_op_i(s, id_src2, imm, false);
   decode_op_r(s, id_src1, rs1, true);
-  decode_op_r(s, id_dest, rd, false);
+  decode_op_r(s, id_dest, rd_rs2, is_store);
 }
 
 static inline def_DHelper(C_LBU) {
-  decode_C_ldst_zcb_load(s);
+  decode_C_ldst_zcb(s, false, true);
 }
 
 static inline def_DHelper(C_LHU) {
-  decode_C_ldst_zcb_load(s);
+  decode_C_ldst_zcb(s, false, false);
 }
 
 static inline def_DHelper(C_LH) {
-  decode_C_ldst_zcb_load(s);
+  decode_C_ldst_zcb(s, false, false);
 }
 
 // ---------- CS ----------
@@ -256,21 +267,12 @@ static inline def_DHelper(CS) {
   decode_op_r(s, id_src2, rs2, true);
 }
 
-// Zcb Extension
-static inline void decode_C_ldst_zcb_store(Decode *s) {
-  uint32_t instr = s->isa.instr.val;
-  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
-  uint32_t rs2 = creg2reg(BITS(instr, 4, 2));
-  decode_op_r(s, id_src1, rs1, true);
-  decode_op_r(s, id_src2, rs2, true);
-}
-
 static inline def_DHelper(C_SB) {
-  decode_C_ldst_zcb_store(s);
+  decode_C_ldst_zcb(s, true, true);
 }
 
 static inline def_DHelper(C_SH) {
-  decode_C_ldst_zcb_store(s);
+  decode_C_ldst_zcb(s, true, false);
 }
 
 // ---------- CB ----------
@@ -488,16 +490,16 @@ def_THelper(rvc_Q0) {
 #endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("010 ??? ??? ?? ??? ??", C_LW , c_ldst);
   def_INSTR_IDTAB("011 ??? ??? ?? ??? ??", C_LD , c_ldst);
-  def_INSTR_IDTAB("100 ??? ??? ?? ??? ??", C_LBU , c_ldst);
-  def_INSTR_IDTAB("100 ??? ??? ?? ??? ??", C_LHU , c_ldst);
-  def_INSTR_IDTAB("100 ??? ??? ?? ??? ??", C_LH , c_ldst);
+  def_INSTR_IDTAB("100 000 ??? ?? ??? ??", C_LBU , c_ldst);
+  def_INSTR_IDTAB("100 001 ??? 0? ??? ??", C_LHU , c_ldst);
+  def_INSTR_IDTAB("100 001 ??? 1? ??? ??", C_LH , c_ldst);
 #ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("101 ??? ??? ?? ??? ??", C_FSD, c_fldst);
 #endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("110 ??? ??? ?? ??? ??", C_SW , c_ldst);
   def_INSTR_IDTAB("111 ??? ??? ?? ??? ??", C_SD , c_ldst);
-  def_INSTR_IDTAB("100 ??? ??? ?? ??? ??", C_SB , c_ldst);
-  def_INSTR_IDTAB("100 ??? ??? ?? ??? ??", C_SH , c_ldst);
+  def_INSTR_IDTAB("100 010 ??? ?? ??? ??", C_SB , c_ldst);
+  def_INSTR_IDTAB("100 011 ??? 0? ??? ??", C_SH , c_ldst);
   return EXEC_ID_inv;
 }
 
