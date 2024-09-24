@@ -93,7 +93,7 @@ void isa_fp_rm_check(uint32_t rm) {
 #endif // CONFIG_FPU_NONE
 }
 
-uint32_t isa_fp_get_frm() {
+uint32_t isa_fp_get_frm(void) {
 #ifndef CONFIG_FPU_NONE
   return fcsr->frm;
 #endif // CONFIG_FPU_NONE

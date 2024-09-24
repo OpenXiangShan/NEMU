@@ -175,7 +175,7 @@ void allocate_memory_with_mmap()
     perror("mmap");
     assert(0);
   }
-  pmem = ret;
+  pmem = (uint8_t*)ret;
   #endif
 #endif // CONFIG_USE_MMAP
 }

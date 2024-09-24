@@ -2097,7 +2097,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
     break;
 #endif // CONFIG_MODE_USER
-    case -1: // fence.i
+    case (uint32_t)-1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     default:

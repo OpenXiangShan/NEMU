@@ -382,7 +382,7 @@ def_EHelper(vpopc) {
   check_vstart_exception(s);
   
   rtl_li(s, s1, 0);
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
+  for(word_t idx = vstart->val; idx < vl->val; idx ++) {
         // mask
     rtlreg_t mask = get_mask(0, idx);
     if(s->vm == 0 && mask == 0)
@@ -403,7 +403,7 @@ def_EHelper(vfirst) {
   check_vstart_exception(s);
 
   int pos = -1;
-  for(int idx = vstart->val; idx < vl->val; idx ++) {
+  for(word_t idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx);
     if (s->vm || mask) {
       *s0 = get_mask(id_src2->reg, idx);
@@ -430,7 +430,7 @@ def_EHelper(vmsbf) {
   if (vl->val != 0) {
     // when vl = 0, do nothing
     bool first_one = false;
-    for(int idx = vstart->val; idx < vl->val; idx ++) {
+    for(word_t idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         // it need v0 mask, but this element is not choosed by v0
@@ -481,7 +481,7 @@ def_EHelper(vmsof) {
   if (vl->val != 0) {
     // when vl = 0, do nothing
     bool first_one = false;
-    for(int idx = vstart->val; idx < vl->val; idx ++) {
+    for(word_t idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
@@ -522,7 +522,7 @@ def_EHelper(vmsif) {
   if (vl->val != 0) {
     // when vl = 0, do nothing
     bool first_one = false;
-    for(int idx = vstart->val; idx < vl->val; idx ++) {
+    for(word_t idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
@@ -565,7 +565,7 @@ def_EHelper(viota) {
   check_vstart_exception(s);
   if(!check_vstart_ignore(s)) {
     rtl_li(s, s1, 0);
-    for(int idx = vstart->val; idx < vl->val; idx ++) {
+    for(word_t idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(0, idx);
       if(s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC) {
@@ -611,7 +611,7 @@ def_EHelper(vid) {
 
   check_vstart_exception(s);
   if(!check_vstart_ignore(s)) {
-    for(int idx = 0; idx < vl->val; idx ++) {
+    for(word_t idx = 0; idx < vl->val; idx ++) {
       // mask
       rtlreg_t mask = get_mask(0, idx);
       // Masking does not change the index value written to active elements.
@@ -784,7 +784,7 @@ def_EHelper(vcompress) {
   if(!check_vstart_ignore(s)) {
 
     rtl_li(s, s1, 0);
-    for(int idx = vstart->val; idx < vl->val; idx ++) {
+    for(word_t idx = vstart->val; idx < vl->val; idx ++) {
       rtlreg_t mask = get_mask(id_src1->reg, idx);
 
       if (mask == 0) {

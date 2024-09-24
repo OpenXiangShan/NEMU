@@ -65,7 +65,7 @@ trig_action_t tm_check_hit(
     bool this_hit = hit[i];
     can_fire[i] = chain_ok[i] && timing_ok[i] && this_hit && !this_chain;
     if (can_fire[i])
-      return TM->triggers[i].tdata1.mcontrol.action;
+      return (trig_action_t)TM->triggers[i].tdata1.mcontrol.action;
   }
 
   return TRIG_ACTION_NONE;

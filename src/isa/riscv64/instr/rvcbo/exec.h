@@ -25,7 +25,7 @@
 def_EHelper(cbo_zero) {
   rtlreg_t* addr_p = dsrc1;
   rtlreg_t  block_addr = *addr_p & ~CACHE_BLOCK_MASK;
-  for (int i = 0; i < CACHE_BLOCK_OPS; i++) {
+  for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
     // write zero to block_addr
     rtl_sm(s, rz, &block_addr, 0, CACHE_OP_SPLIT_SIZE, MMU_DIRECT);
     block_addr += CACHE_OP_SPLIT_SIZE;
@@ -35,7 +35,7 @@ def_EHelper(cbo_zero) {
 def_EHelper(cbo_zero_mmu) {
   rtlreg_t* addr_p = dsrc1;
   rtlreg_t  block_addr = *addr_p & ~CACHE_BLOCK_MASK;
-  for (int i = 0; i < CACHE_BLOCK_OPS; i++) {
+  for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
     // write zero to block_addr
     rtl_sm(s, rz, &block_addr, 0, CACHE_OP_SPLIT_SIZE, MMU_TRANSLATE);
     block_addr += CACHE_OP_SPLIT_SIZE;
