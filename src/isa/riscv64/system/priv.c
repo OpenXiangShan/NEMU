@@ -519,7 +519,8 @@ static inline bool require_vs() {
 #endif // CONFIG_RVV
 
 inline word_t gen_status_sd(word_t status) {
-  mstatus_t xstatus = (mstatus_t)status;
+  mstatus_t xstatus;
+  xstatus.val = status;
   bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
   bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
   return ((word_t)(fs_dirty || vs_dirty)) << 63;
@@ -673,7 +674,8 @@ static inline void non_vmode_set_sie(word_t src) {
 }
 
 static inline void set_tvec(word_t* dest, word_t src) {
-  tvec_t newVal = (tvec_t)src;
+  tvec_t newVal;
+  newVal.val = src;
   tvec_t* destPtr = (tvec_t*)dest;
 #ifdef CONFIG_XTVEC_VECTORED_MODE
   if (newVal.mode < 2) {
@@ -1209,7 +1211,8 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if (is_write(stimecmp)) { vstimecmp->val = src; }
 #endif
     else if (is_write(satp))    {
-      vsatp_t new_val = (vsatp_t)src;
+      vsatp_t new_val;
+      new_val.val = src;
       // legal mode
 #ifdef CONFIG_RV_SV48
       if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48) {
@@ -1278,7 +1281,8 @@ static inline void csr_write(word_t *dest, word_t src) {
   }else if(is_write(vstval)){
     vstval->val = src;
   }else if(is_write(vsatp)){
-    vsatp_t new_val = (vsatp_t)src;
+    vsatp_t new_val;
+    new_val.val = src;
     // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
     update_vsatp(new_val);
   }else if (is_write(mstatus)) {
@@ -1578,7 +1582,8 @@ static inline void csr_write(word_t *dest, word_t src) {
     if ( mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) {
       longjmp_exception(EX_II);
     }
-    hgatp_t new_val = (hgatp_t)src;
+    hgatp_t new_val;
+    new_val.val = src;
     // vmid and ppn WARL in the normal way, regardless of new_val.mode
     hgatp->vmid = new_val.vmid;
     // Make PPN[1:0] read only zero

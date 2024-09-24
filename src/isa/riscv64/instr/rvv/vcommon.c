@@ -24,7 +24,8 @@ void check_vstart_exception(Decode *s) {
 }
 
 bool check_vlmul_sew_illegal(rtlreg_t vtype_req) {
-  vtype_t vt = (vtype_t) vtype_req;
+  vtype_t vt;
+  vt.val = vtype_req;
   int vlmul = vt.vlmul;
   if (vlmul > 4) vlmul -= 8;
   int vsew = 8 << vt.vsew;
