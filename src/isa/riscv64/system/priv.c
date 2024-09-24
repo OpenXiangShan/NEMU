@@ -1115,7 +1115,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     else if (is_write(sie))     { vmode_set_sie(src); }
     else if (is_write(stvec))   { set_tvec((word_t*)vstvec, src); }
     else if (is_write(sscratch)){ vsscratch->val = src;}
-    else if (is_write(sepc))    { vsepc->val = src;}
+    else if (is_write(sepc))    { vsepc->val = src & (~0x1UL);}
     else if (is_write(scause))  { vscause->val = src;}
     else if (is_write(stval))   { vstval->val = src;}
     else if (is_write(sip))     { vmode_set_sip(src); }
@@ -1186,7 +1186,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if(is_write(vsscratch)){
     vsscratch->val = src;
   }else if(is_write(vsepc)){
-    vsepc->val = src;
+    vsepc->val = src & (~0x1UL);
   }else if(is_write(vscause)){
     vscause->val = src;
   }else if(is_write(vstval)){
