@@ -77,6 +77,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #ifdef CONFIG_RVH
   ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? vsstatus->sum: mstatus->sum) || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
+  if (vaddr == 0x80200664) {
+    printf("ok: %i, mode: %d, pte->u: %i, ppn: %lx, virt: %d\n", ok, mode, pte->u, (uint64_t)pte->ppn << 12, virt);
+  }
 #else
   ok = ok && !(pte->u && ((mode == MODE_S) && (!mstatus->sum || ifetch)));
   Logtr("ok: %i, mode: %s, pte->u: %i, a: %i d: %i, ppn: %lx ", ok,
@@ -96,6 +99,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
       INTR_TVAL_REG(EX_IPF) = vaddr;
+      if (vaddr == 0x80200664) {
+        printf("raise ipf ok: %d, pte->x: %d, pte->pad: %x, update_ad: %d\n", ok, pte->x, pte->pad, update_ad);
+      }
       longjmp_exception(EX_IPF);
       return false;
     }
@@ -421,6 +427,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     int ex;
     case MEM_TYPE_IFETCH:
 #ifdef CONFIG_RVH
+      if (vaddr == 0x80200664) {
+        printf("ad bit\n");
+      }
       if(cpu.v){
         if(intr_deleg_S(EX_IPF)){
           vstval->val = vaddr;
@@ -485,6 +494,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   return pg_base | MEM_RET_OK;
 
 bad:
+if (vaddr == 0x80200664) {
+  printf("Memory translation bad\n");
+}
   Logtr("Memory translation bad");
 #ifdef CONFIG_RVH
   check_permission(&pte, false, vaddr, type, virt, mode);
