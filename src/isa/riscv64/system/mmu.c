@@ -304,6 +304,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
   max_level = satp->mode == SATP_MODE_Sv39 ? 3 : 4;
+  __attribute__ ((unused)) bool is_write = false;
 #ifdef CONFIG_RVH
   int virt = cpu.v;
   int mode = cpu.mode;
@@ -402,7 +403,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   #endif //CONFIG_RVH
 #ifndef CONFIG_SHARE
   // update a/d by hardware
-  bool is_write = (type == MEM_TYPE_WRITE);
+  is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
     // pte.a = true;
     // pte.d |= is_write;
