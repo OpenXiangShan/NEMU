@@ -687,7 +687,7 @@ void cpu_exec(uint64_t n) {
     n_remain = execute(n_batch);
 #ifdef CONFIG_PERF_OPT
     // return from execute
-    update_global(cpu.pc);
+    update_global();
     Loge("n_remain_total: %lu", n_remain_total);
 #else
     n_remain_total -= n_batch;
