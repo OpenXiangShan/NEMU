@@ -289,8 +289,8 @@ void Serializer::init() {
     warmupIntervalSize = warmup_interval;
     Log("Taking simpoint checkpionts with profiling interval %lu", checkpoint_interval);
 
-    auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0");
-    auto weights_file = fstream(pathManager.getSimpointPath() + "weights0");
+    auto simpoints_file = fstream(pathManager.getSimpointPath() + "simpoints0", std::ios::in);
+    auto weights_file = fstream(pathManager.getSimpointPath() + "weights0", std::ios::in);
     assert(!simpoints_file.bad());
     assert(!weights_file.bad());
 
