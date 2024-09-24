@@ -252,7 +252,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 // hstatus wmask
 #if defined(CONFIG_RVH)
-#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 5))
+#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6))
 #else
 #define HSTATUS_WMASK 0
 #endif
