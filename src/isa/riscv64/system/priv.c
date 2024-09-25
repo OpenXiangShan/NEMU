@@ -311,10 +311,96 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIE_RMASK     HSI_MASK
 #define HIE_WMASK     HSI_MASK
 #define HIDELEG_MASK  (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0))
-#define HEDELEG_MASK  0xb1ff
+#define HEDELEG_MASK  ((1 << EX_IAM) | \
+                       (1 << EX_IAF) | \
+                       (1 << EX_II ) | \
+                       (1 << EX_BP ) | \
+                       (1 << EX_LAM) | \
+                       (1 << EX_LAF) | \
+                       (1 << EX_SAM) | \
+                       (1 << EX_SAF) | \
+                       (1 << EX_ECU) | \
+                       (1 << EX_IPF) | \
+                       (1 << EX_LPF) | \
+                       (1 << EX_SPF) | \
+                       (1 << EX_SWC) | \
+                       (1 << EX_HWE))
 #endif
 
-#define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, 0xf0b7f7, 0xf0b7ff), MUXDEF(CONFIG_RV_SDTRIG, 0xb3f7, 0xb3ff))
+#define MEDELEG_RVH_SDTRIG ((1 << EX_IAM ) | \
+                            (1 << EX_IAF ) | \
+                            (1 << EX_II  ) | \
+                            (1 << EX_LAM ) | \
+                            (1 << EX_LAF ) | \
+                            (1 << EX_SAM ) | \
+                            (1 << EX_SAF ) | \
+                            (1 << EX_ECU ) | \
+                            (1 << EX_ECS ) | \
+                            (1 << EX_ECVS) | \
+                            (1 << EX_IPF ) | \
+                            (1 << EX_LPF ) | \
+                            (1 << EX_SPF ) | \
+                            (1 << EX_SWC ) | \
+                            (1 << EX_HWE ) | \
+                            (1 << EX_IGPF) | \
+                            (1 << EX_LGPF) | \
+                            (1 << EX_VI  ) | \
+                            (1 << EX_SGPF))
+
+#define MEDELEG_RVH_NONSDTRIG ( (1 << EX_IAM ) | \
+                                (1 << EX_IAF ) | \
+                                (1 << EX_II  ) | \
+                                (1 << EX_BP  ) | \
+                                (1 << EX_LAM ) | \
+                                (1 << EX_LAF ) | \
+                                (1 << EX_SAM ) | \
+                                (1 << EX_SAF ) | \
+                                (1 << EX_ECU ) | \
+                                (1 << EX_ECS ) | \
+                                (1 << EX_ECVS) | \
+                                (1 << EX_IPF ) | \
+                                (1 << EX_LPF ) | \
+                                (1 << EX_SPF ) | \
+                                (1 << EX_SWC ) | \
+                                (1 << EX_HWE ) | \
+                                (1 << EX_IGPF) | \
+                                (1 << EX_LGPF) | \
+                                (1 << EX_VI  ) | \
+                                (1 << EX_SGPF))
+
+#define MEDELEG_NONRVH_SDTRIG ((1 << EX_IAM) | \
+                               (1 << EX_IAF) | \
+                               (1 << EX_II ) | \
+                               (1 << EX_LAM) | \
+                               (1 << EX_LAF) | \
+                               (1 << EX_SAM) | \
+                               (1 << EX_SAF) | \
+                               (1 << EX_ECU) | \
+                               (1 << EX_ECS) | \
+                               (1 << EX_IPF) | \
+                               (1 << EX_LPF) | \
+                               (1 << EX_SPF) | \
+                               (1 << EX_SWC) | \
+                               (1 << EX_HWE))
+
+#define MEDELEG_NONRVH_NONSDTRIG ((1 << EX_IAM) | \
+                                  (1 << EX_IAF) | \
+                                  (1 << EX_II ) | \
+                                  (1 << EX_BP ) | \
+                                  (1 << EX_LAM) | \
+                                  (1 << EX_LAF) | \
+                                  (1 << EX_SAM) | \
+                                  (1 << EX_SAF) | \
+                                  (1 << EX_ECU) | \
+                                  (1 << EX_ECS) | \
+                                  (1 << EX_IPF) | \
+                                  (1 << EX_LPF) | \
+                                  (1 << EX_SPF) | \
+                                  (1 << EX_SWC) | \
+                                  (1 << EX_HWE))
+
+#define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, MEDELEG_RVH_SDTRIG, MEDELEG_RVH_NONSDTRIG), \
+                                        MUXDEF(CONFIG_RV_SDTRIG, MEDELEG_NONRVH_SDTRIG, MEDELEG_NONRVH_NONSDTRIG))
 
 #define MIDELEG_WMASK_BASE 0x222
 #define MIDELEG_WMASK MUXDEF(CONFIG_RV_SSCOFPMF, (MIDELEG_WMASK_BASE | 1 << IRQ_LCOFI), MIDELEG_WMASK_BASE)
