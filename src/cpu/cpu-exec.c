@@ -68,8 +68,8 @@ void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 
 uint64_t get_abs_instr_count() {
 #if defined(CONFIG_ENABLE_INSTR_CNT)
-  uint64_t n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
-  uint64_t n_executed = n_batch - n_remain;
+  int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+  uint32_t n_executed = n_batch - n_remain;
   return n_executed + g_nr_guest_instr;
 #endif
   return 0;
@@ -77,8 +77,8 @@ uint64_t get_abs_instr_count() {
 
 static void update_instr_cnt() {
 #if defined(CONFIG_ENABLE_INSTR_CNT)
-  uint64_t n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
-  uint64_t n_executed = n_batch - n_remain;
+  int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+  uint32_t n_executed = n_batch - n_remain;
   n_remain_total -= (n_remain_total > n_executed) ? n_executed : n_remain_total;
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
 
@@ -683,7 +683,7 @@ void cpu_exec(uint64_t n) {
       }
     }
 
-    uint64_t n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
+    int n_batch = n_remain_total >= BATCH_SIZE ? BATCH_SIZE : n_remain_total;
     n_remain = execute(n_batch);
 #ifdef CONFIG_PERF_OPT
     // return from execute
