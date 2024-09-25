@@ -259,15 +259,39 @@ static inline word_t* csr_decode(uint32_t addr) {
 #endif
 
 #define MENVCFG_RMASK_STCE    (0x1UL << 63)
-#define MENVCFG_RMASK_DTE     (0x1UL << 59)
 #define MENVCFG_RMASK_PBMTE   (0x1UL << 62)
-#define MENVCFG_WMASK_STCE    MUXDEF(CONFIG_RV_SSTC, (0x1UL << 63), 0)
-#define MENVCFG_WMASK_DTE     MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 59), 0)
-#define MENVCFG_WMASK_PBMTE   MUXDEF(CONFIG_RV_SVPBMT, (0x1UL << 62), 0)
+#define MENVCFG_RMASK_DTE     (0x1UL << 59)
+#define MENVCFG_RMASK_CBZE    (0x1UL << 7)
+#define MENVCFG_RMASK_CBCFE   (0x1UL << 6)
+#define MENVCFG_RMASK_CBIE    (0x3UL << 4)
+#define MENVCFG_RMASK (   \
+  MENVCFG_RMASK_STCE    | \
+  MENVCFG_RMASK_PBMTE   | \
+  MENVCFG_RMASK_DTE     | \
+  MENVCFG_RMASK_CBZE    | \
+  MENVCFG_RMASK_CBCFE   | \
+  MENVCFG_RMASK_CBIE      \
+)
+
+#define MENVCFG_WMASK_STCE    MUXDEF(CONFIG_RV_SSTC, MENVCFG_RMASK_STCE, 0)
+#define MENVCFG_WMASK_PBMTE   MUXDEF(CONFIG_RV_SVPBMT, MENVCFG_RMASK_PBMTE, 0)
+#define MENVCFG_WMASK_DTE     MUXDEF(CONFIG_RV_SSDBLTRP, MENVCFG_RMASK_DTE, 0)
+#define MENVCFG_WMASK_CBZE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBZE, 0)
+#define MENVCFG_WMASK_CBCFE   MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBCFE, 0)
+#define MENVCFG_WMASK_CBIE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBIE, 0)
 #define MENVCFG_WMASK (    \
   MENVCFG_WMASK_STCE     | \
   MENVCFG_WMASK_PBMTE    | \
-  MENVCFG_WMASK_DTE        \
+  MENVCFG_WMASK_DTE      | \
+  MENVCFG_WMASK_CBZE     | \
+  MENVCFG_WMASK_CBCFE    | \
+  MENVCFG_WMASK_CBIE       \
+)
+
+#define SENVCFG_WMASK (    \
+  MENVCFG_WMASK_CBZE     | \
+  MENVCFG_WMASK_CBCFE    | \
+  MENVCFG_WMASK_CBIE       \
 )
 #define HENVCFG_WMASK MENVCFG_WMASK
 
@@ -1231,7 +1255,10 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if(is_write(hip)) { hvip->val = mask_bitset(hvip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); }
   else if(is_write(hvip)) { hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); }
   else if(is_write(henvcfg)){
-    henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK, src);
+    henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
+      henvcfg->val = mask_bitset(henvcfg->val, MENVCFG_WMASK_CBIE, src);
+    }
   #ifdef CONFIG_RV_SSDBLTRP
     if(henvcfg->dte == 0) {
       vsstatus->sdt = 0;
@@ -1314,13 +1341,22 @@ static inline void csr_write(word_t *dest, word_t src) {
     if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
   #endif //CONFIG_RV_SSDBLTRP
   }else if(is_write(menvcfg)) {
-    menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK, src);
+    menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
+      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
+    }
 #ifdef CONFIG_RV_SSDBLTRP
     if(menvcfg->dte == 0) {
       mstatus->sdt = 0;
       vsstatus->sdt = 0;
     }
 #endif // CONFIG_RV_SSDBLTRP
+  }
+  else if (is_write(senvcfg)) {
+    senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
+      senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
+    }
   }
 #ifdef CONFIG_RV_IMSIC
   else if (is_write(mtopi)) { return; }
