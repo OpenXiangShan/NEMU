@@ -26,7 +26,7 @@ extern void load_flash_contents(const char *flash_img);
 
 #ifdef CONFIG_LARGE_COPY
 #ifndef CONFIG_USE_SPARSEMM
-static void nemu_large_memcpy(void *dest, void *src, size_t n) {
+static void* nemu_large_memcpy(void *dest, const void *src, size_t n) {
   uint64_t *_dest = (uint64_t *)dest;
   uint64_t *_src  = (uint64_t *)src;
   while (n >= sizeof(uint64_t)) {
@@ -47,20 +47,13 @@ static void nemu_large_memcpy(void *dest, void *src, size_t n) {
       n--;
     }
   }
+  return dest;
 }
 #endif
 #endif
 
-void difftest_get_backed_memory(void *backed_pmem, size_t n) {
-#if CONFIG_ENABLE_MEM_DEDUP
-  // set pmem to backed_pmem, then nothing
-  assert(n == CONFIG_MSIZE);
-  set_pmem(true, backed_pmem);
-#endif
-}
-
-void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
+void nemu_sparse_mem_copy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
   void *a = get_sparsemm();
   printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n",
           dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
@@ -72,17 +65,40 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
     printf("%016lx", sparse_mem_wread(a, nemu_addr + j*sizeof(uint64_t), sizeof(uint64_t)));
   }
   printf("\n");
+}
+#endif
 
+void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction, void* (*cpy_func)(void*, const void*, size_t)) {
+  assert(guest_to_host(nemu_addr) != NULL);
+  if (direction == DIFFTEST_TO_REF) cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+  else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
+}
+
+void difftest_get_backed_memory(void *backed_pmem, size_t n) {
+#if CONFIG_ENABLE_MEM_DEDUP
+  // set pmem to backed_pmem, then nothing
+  assert(n == CONFIG_MSIZE);
+  set_pmem(true, backed_pmem);
+#endif
+}
+
+void difftest_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
+#ifdef CONFIG_USE_SPARSEMM
+  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
 #else
 #ifdef CONFIG_LARGE_COPY
-  assert(guest_to_host(nemu_addr) != NULL);
-  if (direction == DIFFTEST_TO_REF) nemu_large_memcpy(guest_to_host(nemu_addr), dut_buf, n);
-  else nemu_large_memcpy(dut_buf, guest_to_host(nemu_addr), n);
+  nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, nemu_large_memcpy);
 #else
-  assert(guest_to_host(nemu_addr) != NULL);
-  if (direction == DIFFTEST_TO_REF) memcpy(guest_to_host(nemu_addr), dut_buf, n);
-  else memcpy(dut_buf, guest_to_host(nemu_addr), n);
+  nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
 #endif
+#endif
+}
+
+void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
+#ifdef CONFIG_USE_SPARSEMM
+  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
+#else
+  nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
 #endif
 }
 
