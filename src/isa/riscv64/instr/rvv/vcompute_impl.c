@@ -16,9 +16,9 @@
 #include <common.h>
 #ifdef CONFIG_RVV
 
-#include "vcompute_impl.h"
+#include <isa/riscv64/instr/rvv/vcompute_impl.h>
 #include <cpu/cpu.h>
-#include "vcommon.h"
+#include <isa/riscv64/instr/rvv/vcommon.h>
 
 #undef s0
 #undef s1

@@ -20,6 +20,7 @@
 #include "aes_common.h"
 #include "sm4_common.h"
 
+extern const uint8_t AES_ENC_SBOX[];
 
 int32_t sha256sum0 (int32_t rs1) { return _rv32_ror(rs1, 2)  ^ _rv32_ror(rs1, 13) ^ _rv32_ror(rs1, 22); }
 int32_t sha256sum1 (int32_t rs1) { return _rv32_ror(rs1, 6)  ^ _rv32_ror(rs1, 11) ^ _rv32_ror(rs1, 25); }
@@ -59,6 +60,7 @@ int64_t aes64esm (int64_t rs1, int64_t rs2)
 
 int64_t aes64ds (int64_t rs1, int64_t rs2)
 {
+    extern const uint8_t AES_DEC_SBOX[];
     uint64_t temp = AES_INVSHIFROWS_LO(rs1,rs2);
     return  ((uint64_t)AES_DEC_SBOX[(temp >>  0) & 0xFF] <<  0) |
             ((uint64_t)AES_DEC_SBOX[(temp >>  8) & 0xFF] <<  8) |

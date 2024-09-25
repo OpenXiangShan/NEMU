@@ -15,8 +15,6 @@
 
 #ifdef CONFIG_RVK
 
-#include "crypto_impl.h"
-
 def_EHelper(aes64es) {
   *ddest = aes64es(*dsrc1, *dsrc2);
 }

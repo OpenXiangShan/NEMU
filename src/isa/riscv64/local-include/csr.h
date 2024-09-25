@@ -467,6 +467,14 @@
 
 /* Macros */
 
+#define CSR_STRUCT(name, ...) \
+  typedef union { \
+    struct { \
+      __VA_ARGS__ \
+    }; \
+    word_t val; \
+  } concat(name, _t);
+
 #define CSR_STRUCT_START(name) \
   typedef union { \
     struct {

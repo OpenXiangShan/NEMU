@@ -14,35 +14,35 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "../instr/pseudo.h"
-#include "../instr/rvi/exec.h"
-#include "../instr/rvc/exec.h"
-#include "../instr/rvm/exec.h"
+#include <isa/riscv64/instr/pseudo.h>
+#include <isa/riscv64/instr/rvi/exec.h>
+#include <isa/riscv64/instr/rvc/exec.h>
+#include <isa/riscv64/instr/rvm/exec.h>
 #ifndef CONFIG_FPU_NONE
-#include "../instr/rvf/exec.h"
-#include "../instr/rvd/exec.h"
+#include <isa/riscv64/instr/rvf/exec.h>
+#include <isa/riscv64/instr/rvd/exec.h>
 #endif // CONFIG_FPU_NONE
-#include "../instr/rva/exec.h"
-#include "../instr/priv/exec.h"
+#include <isa/riscv64/instr/rva/exec.h>
+#include <isa/riscv64/instr/priv/exec.h>
 #ifdef CONFIG_RVB
-#include "../instr/rvb/exec.h"
+#include <isa/riscv64/instr/rvb/exec.h>
 #endif
 #ifdef CONFIG_RVK
-#include "../instr/rvk/exec.h"
+#include <isa/riscv64/instr/rvk/exec.h>
 #endif
 #ifdef CONFIG_RVV
-#include "../instr/rvv/exec.h"
+#include <isa/riscv64/instr/rvv/exec.h>
 #endif
 #ifdef CONFIG_RV_ZICOND
-#include "../instr/rvzicond/exec.h"
+#include <isa/riscv64/instr/rvzicond/exec.h>
 #endif
 #ifdef CONFIG_RV_ZFH_MIN
-#include "../instr/rvzfh/exec.h"
+#include <isa/riscv64/instr/rvzfh/exec.h>
 #endif
 #ifdef CONFIG_RV_CBO
-#include "../instr/rvcbo/exec.h"
+#include <isa/riscv64/instr/rvcbo/exec.h>
 #endif
 #ifdef CONFIG_RV_ZFA
-#include "../instr/rvzfa/exec.h"
+#include <isa/riscv64/instr/rvzfa/exec.h>
 #endif
-#include "../instr/special.h"
+#include <isa/riscv64/instr/special.h>

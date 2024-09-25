@@ -19,23 +19,6 @@
 #include "vldst_impl.h"
 #include "vcompute_impl.h"
 
-// if we decode some information in decode stage
-// when running in opt mode, these information will not be generated because
-// it only runs the exec functions
-void predecode_vls(Decode *s) {
-#ifdef CONFIG_RVV
-  const int table [8] = {1, 0, 0, 0, 0, 2, 4, 8};
-  s->vm = s->isa.instr.v_opv.v_vm; //1 for without mask; 0 for with mask
-  s->v_width = table[s->isa.instr.vldfp.v_width];
-  if (s->v_width == 0) {
-    // reserved
-    longjmp_exception(EX_II);
-  }
-  s->v_nf = s->isa.instr.vldfp.v_nf;
-  s->v_lsumop = s->isa.instr.vldfp.v_lsumop;
-#endif
-}
-
 
 def_EHelper(vle) { //unit-strided
   predecode_vls(s);

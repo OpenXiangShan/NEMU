@@ -925,12 +925,12 @@ static inline void set_vsip(word_t src) {
 }
 #endif // CONFIG_RVH
 
-static inline void update_counter_mcountinhibit(word_t old, word_t new) {
+static inline void update_counter_mcountinhibit(word_t old_val, word_t new_val) {
   #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-    bool old_cy = old & 0x1;
-    bool old_ir = old & 0x4;
-    bool new_cy = new & 0x1;
-    bool new_ir = new & 0x4;
+    bool old_cy = old_val & 0x1;
+    bool old_ir = old_val & 0x4;
+    bool new_cy = new_val & 0x1;
+    bool new_ir = new_val & 0x4;
 
     if (old_cy && !new_cy) { // CY: 1 -> 0
       mcycle->val = mcycle->val - get_abs_instr_count();

@@ -17,13 +17,13 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
 
 #include <generated/autoconf.h>
 #include <macro.h>
+#include <stdint.h>
 
 #if CONFIG_MBASE + CONFIG_MSIZE > 0x100000000ul || defined(CONFIG_SHARE)
 #define PMEM64 1

@@ -2,7 +2,7 @@
 #ifdef CONFIG_RVV
 
 #include <math.h>
-#include "vcommon.h"
+#include <isa/riscv64/instr/rvv/vcommon.h>
 #include <cpu/cpu.h>
 
 uint8_t check_vstart_ignore(Decode *s) {

@@ -27,6 +27,18 @@
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
 
+#ifdef CONFIG_RVB
+#include <isa/riscv64/instr/rvb/rvintrin.h>
+#endif
+
+#ifdef CONFIG_RVK
+#include <isa/riscv64/instr/rvk/crypto_impl.h>
+#endif
+
+#ifdef CONFIG_RVV
+#include <isa/riscv64/instr/rvv/vhelper.h>
+#endif
+
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -119,12 +131,14 @@ void mmu_tlb_flush(vaddr_t vaddr) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
-_Noreturn void longjmp_exec(int cause) {
+__attribute__ ((noreturn))
+void longjmp_exec(int cause) {
   Loge("Longjmp to jbuf_exec with cause: %i", cause);
   longjmp(jbuf_exec, cause);
 }
 
-_Noreturn void longjmp_exception(int ex_cause) {
+__attribute__ ((noreturn))
+void longjmp_exception(int ex_cause) {
 #ifdef CONFIG_GUIDED_EXEC
   cpu.guided_exec = false;
 #endif

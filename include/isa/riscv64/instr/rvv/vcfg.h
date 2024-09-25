@@ -20,47 +20,9 @@
 #include "cpu/exec.h"
 #include "../local-include/vreg.h"
 #include "../local-include/csr.h"
-#include <stdio.h>
-#include "../local-include/intr.h"
 #include "../local-include/rtl.h"
-#include <setjmp.h>
 #include "vcommon.h"
 #include "vcompute_impl.h"
-
-int get_mode(Decode *s) {
-  /*
-   * mode 0: rs1 != 0, Normal stripmining
-   * mode 1: rd != 0, rs1 == 0, Set vl to VLMAX
-   * mode 2: rd == 0, rs1 == 0, Keep existing vl
-   */
-  int mode = 0;
-  if (id_src1->reg == 0 && id_dest->reg != 0) {
-    mode = 1;
-  }
-  else if (id_src1->reg == 0 && id_dest->reg == 0) {
-    mode = 2;
-  }
-  return mode;
-}
-
-void set_vtype_vl(Decode *s, int mode) {
-  rtlreg_t vl_num = check_vsetvl(id_src2->val, id_src1->val, mode);
-  rtlreg_t error = 1ul << 63;
-  
-  if(vl_num == (uint64_t)-1 || check_vlmul_sew_illegal(id_src2->val)) {
-    vtype->val = error;
-    // if vtype illegal, set vl = 0, vd = 0
-    vl->val = 0;
-  }
-  else {
-    vtype->val = id_src2->val;
-    vl->val = vl_num;
-  }
-
-  rtl_sr(s, id_dest->reg, &vl->val, 8);
-
-  vstart->val = 0;
-}
 
 def_EHelper(vsetvl) {
 

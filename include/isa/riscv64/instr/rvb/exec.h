@@ -14,7 +14,6 @@
 ***************************************************************************************/
 
 #ifdef CONFIG_RVB
-#include "rvintrin.h"
 
 def_EHelper(clz) {
   *ddest = _rv_clz(*dsrc1);

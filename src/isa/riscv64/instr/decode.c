@@ -34,28 +34,28 @@ static inline uint32_t get_instr(Decode *s) {
 #define def_DopHelper(name) \
   void concat(decode_op_, name) (Decode *s, Operand *op, word_t val, bool flag)
 
-#include "rvi/decode.h"
+#include <isa/riscv64/instr/rvi/decode.h>
 #ifndef CONFIG_FPU_NONE
-#include "rvf/decode.h"
+#include <isa/riscv64/instr/rvf/decode.h>
 #ifdef CONFIG_RV_ZFH_MIN
-#include "rvzfh/decode.h"
+#include <isa/riscv64/instr/rvzfh/decode.h>
 #endif // CONFIG_RV_ZFH_MIN
 #ifdef CONFIG_RV_ZFA
-#include "rvzfa/decode.h"
+#include <isa/riscv64/instr/rvzfa/decode.h>
 #endif
 #endif // CONFIG_FPU_NONE
-#include "rvm/decode.h"
-#include "rva/decode.h"
-#include "rvc/decode.h"
-#include "priv/decode.h"
+#include <isa/riscv64/instr/rvm/decode.h>
+#include <isa/riscv64/instr/rva/decode.h>
+#include <isa/riscv64/instr/rvc/decode.h>
+#include <isa/riscv64/instr/priv/decode.h>
 #ifndef CONFIG_FPU_NONE
-#include "rvd/decode.h"
+#include <isa/riscv64/instr/rvd/decode.h>
 #endif // CONFIG_FPU_NONE
 #ifdef CONFIG_RVV
-#include "rvv/decode.h"
+#include <isa/riscv64/instr/rvv/decode.h>
 #endif // CONFIG_RVV
 #ifdef CONFIG_RV_CBO
-#include "rvcbo/decode.h"
+#include <isa/riscv64/instr/rvcbo/decode.h>
 #endif// CONFIG_RV_CBO
 
 def_THelper(main) {

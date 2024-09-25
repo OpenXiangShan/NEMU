@@ -26,8 +26,8 @@
 
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
-#include "vldst_impl.h"
-#include "vcompute_impl.h"
+#include <isa/riscv64/instr/rvv/vldst_impl.h>
+#include <isa/riscv64/instr/rvv/vcompute_impl.h>
 #include "../local-include/intr.h"
 
 uint64_t fofvl = 0;
@@ -170,8 +170,7 @@ static void index_vload_check(Decode *s) {
 }
 
 #ifndef CONFIG_SHARE
-static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vstart, uint64_t vl_val,
-    uint8_t * restrict masks) {
+static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vstart, uint64_t vl_val, uint8_t * __restrict masks) {
   unsigned count = 0;
   switch (eew) {
   case 0: {
@@ -286,13 +285,13 @@ void vld(Decode *s, int mode, int mmu_mode) {
       void *reg_file_addr = NULL;
       get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
-      uint8_t * restrict reg_file_addr_8 = reg_file_addr;
+      uint8_t * __restrict reg_file_addr_8 = (uint8_t*)reg_file_addr;
 
       __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
       uint8_t invert_masks[VLMAX_8] = {0};
-      uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
-      
+      uint8_t * __restrict last_access_host_addr_u8 = (uint8_t*)s->last_access_host_addr;
+
 #ifdef DEBUG_FAST_VLE
       switch (s->v_width) {
         case 1: for (int i = 0; i < vle_size; i++) {
@@ -523,7 +522,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
       void *reg_file_addr = NULL;
       get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
-      uint8_t * restrict reg_file_addr_8 = reg_file_addr;
+      uint8_t * __restrict reg_file_addr_8 = (uint8_t*)reg_file_addr;
 
       unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
@@ -534,7 +533,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
       Logm("vse size = %lu, valid mask count = %u", vse_size, count);
       Logm("mem base host addr = %p, reg file base host addr = %p", s->last_access_host_addr, reg_file_addr);
 
-      uint8_t * restrict last_access_addr_8 = s->last_access_host_addr;
+      uint8_t * __restrict last_access_addr_8 = (uint8_t*)s->last_access_host_addr;
       for (int i = 0; i < VLMAX_8; i++) {
         invert_masks[i] = ~masks[i];
         masks[i] &= reg_file_addr_8[i];
@@ -860,12 +859,12 @@ void vldff(Decode *s, int mode, int mmu_mode) {
       void *reg_file_addr = NULL;
       get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
-      uint8_t * restrict reg_file_addr_8 = reg_file_addr;
+      uint8_t * __restrict reg_file_addr_8 = (uint8_t*)reg_file_addr;
 
       __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
       uint8_t invert_masks[VLMAX_8] = {0};
-      uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
+      uint8_t * __restrict last_access_host_addr_u8 = (uint8_t*)s->last_access_host_addr;
 
 #ifdef DEBUG_FAST_VLE
       switch (s->v_width) {

@@ -16,7 +16,7 @@
 #include <common.h>
 #ifdef CONFIG_RVV
 
-#include "vreg.h"
+#include <isa/riscv64/instr/rvv/vreg.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include <stdio.h>

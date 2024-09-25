@@ -13,10 +13,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#ifdef CONFIG_RVK
 #include <stdint.h>
-
-extern const uint8_t AES_ENC_SBOX[];
-extern const uint8_t AES_DEC_SBOX[];
 
 #define AES_UNPACK_BYTES(b0,b1,b2,b3) \
     uint8_t  b0 = (RS1 >>  0) & 0xFF; \
@@ -103,3 +101,4 @@ extern const uint8_t AES_DEC_SBOX[];
     AES_INVMIXBYTE(COL,0,1,2,3) <<  0   \
 )
 
+#endif

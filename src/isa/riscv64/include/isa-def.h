@@ -19,7 +19,7 @@
 
 #include <common.h>
 #ifdef CONFIG_RVV
-#include "../instr/rvv/vreg.h"
+#include <isa/riscv64/instr/rvv/vreg.h>
 #endif // CONFIG_RVV
 
 #define FORCE_RAISE_PF
