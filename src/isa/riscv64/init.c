@@ -96,6 +96,20 @@ void init_isa() {
   henvcfg->pbmte = 0;
 #endif //CONFIG_RV_SVPBMT
 
+#ifdef CONFIG_RV_CBO
+  menvcfg->cbze = 1;
+  menvcfg->cbcfe = 1;
+  menvcfg->cbie = 3;
+  senvcfg->cbze = 1;
+  senvcfg->cbcfe = 1;
+  senvcfg->cbie = 3;
+#ifdef CONFIG_RVH
+  henvcfg->cbze = 1;
+  henvcfg->cbcfe = 1;
+  henvcfg->cbie = 3;
+#endif
+#endif
+
 #ifdef CONFIG_RV_PMP_ENTRY_16
   pmpcfg0->val = 0;
   pmpcfg2->val = 0;
