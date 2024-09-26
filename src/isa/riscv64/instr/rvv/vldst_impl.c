@@ -30,16 +30,26 @@
 #include "vcompute_impl.h"
 #include "../local-include/intr.h"
 
-uint64_t fofvl = 0;
-uint64_t tvaltmp = 0;
+word_t fofvl = 0;
+word_t vstvaltmp = 0;
+word_t stvaltmp  = 0;
+word_t mtvaltmp  = 0;
 
 bool set_fofNoExceptionState(void){
   if (fofvl != 0){
-    vl->val = fofvl;
-    INTR_TVAL_REG(EX_LAF) = tvaltmp;
+    vl->val     = fofvl;
 
-    fofvl = 0;
-    tvaltmp = 0;
+#ifdef CONFIG_RVH
+    *(word_t *)vstval = vstvaltmp;
+#endif // CONFIG_RVH
+    *(word_t *)stval  = stvaltmp;
+    *(word_t *)mtval  = mtvaltmp;
+
+    vstart->val = 0;
+    fofvl       = 0;
+    vstvaltmp   = 0;
+    stvaltmp    = 0;
+    mtvaltmp    = 0;
 
 #ifndef CONFIG_SHARE
     difftest_skip_dut(1,0);
@@ -937,7 +947,12 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
         if (idx != 0) {
           fofvl = idx;
-          tvaltmp = INTR_TVAL_REG(EX_LAF);
+
+#ifdef CONFIG_RVH
+          vstvaltmp = *(word_t *)vstval;
+#endif // CONFIG_RVH
+          stvaltmp  = *(word_t *)stval;
+          mtvaltmp  = *(word_t *)mtval;
         }
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
