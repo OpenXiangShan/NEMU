@@ -36,6 +36,11 @@ static inline float16_t rtlToF16(rtlreg_t r) {
   return f;
 }
 
+static inline float16_t rtlToVF16(rtlreg_t r) {
+  float16_t f = { .v = r };
+  return f;
+}
+
 static inline float32_t rtlToVF32(rtlreg_t r) {
   float32_t f = { .v = r };
   return f;
@@ -220,8 +225,8 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_SToDF: *dest = i32_to_f16((int32_t)(int8_t)*src1).v; break;
     }
   } else if (w == FPCALL_W16) {
-    float16_t fsrc1 = rtlToF16(*src1);
-    float16_t fsrc2 = rtlToF16(*src2);
+    float16_t fsrc1 = rtlToVF16(*src1);
+    float16_t fsrc2 = rtlToVF16(*src2);
     switch (op) {
       case FPCALL_ADD: *dest = f16_add(fsrc1, fsrc2).v; break;
       case FPCALL_SUB: *dest = f16_sub(fsrc1, fsrc2).v; break;

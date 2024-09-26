@@ -1098,11 +1098,11 @@ def_EHelper(vfwcvt_xfv) {
 }
 
 def_EHelper(vfwcvt_fxuv) {
-  FLOAT_ARTHI_DWIDE_X2F(FWCVT_FXU, UNSIGNED)
+  FLOAT_ARTHI_DWIDE(FWCVT_FXU, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_fxv) {
-  FLOAT_ARTHI_DWIDE_X2F(FWCVT_FX, SIGNED)
+  FLOAT_ARTHI_DWIDE(FWCVT_FX, SIGNED)
 }
 
 def_EHelper(vfwcvt_ffv) {
@@ -1118,11 +1118,11 @@ def_EHelper(vfwcvt_rtz_xfv) {
 }
 
 def_EHelper(vfncvt_xufw) {
-  FLOAT_ARTHI_DNARROW_F2X(FNCVT_XUF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW(FNCVT_XUF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_xfw) {
-  FLOAT_ARTHI_DNARROW_F2X(FNCVT_XF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW(FNCVT_XF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_fxuw) {
@@ -1142,11 +1142,11 @@ def_EHelper(vfncvt_rod_ffw) {
 }
 
 def_EHelper(vfncvt_rtz_xufw) {
-  FLOAT_ARTHI_DNARROW_F2X(FNCVT_RTZ_XUF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW(FNCVT_RTZ_XUF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_rtz_xfw) {
-  FLOAT_ARTHI_DNARROW_F2X(FNCVT_RTZ_XF, UNSIGNED)
+  FLOAT_ARTHI_DNARROW(FNCVT_RTZ_XF, UNSIGNED)
 }
 
 def_EHelper(vfsqrt_v) {

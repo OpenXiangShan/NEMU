@@ -91,6 +91,30 @@ typedef __int128_t int128_t;
         vd = res >> 1; \
     })
 
+uint32_t vf_allowed_e16[] = {
+  FWCVT_FXU,      // vfwcvt_fxuv
+  FWCVT_FX,       // vfwcvt_fxv
+  FNCVT_XUF,      // vfncvt_xufw
+  FNCVT_XF,       // vfncvt_xfw
+  FNCVT_RTZ_XUF,  // vfncvt_rtz_xufw
+  FNCVT_RTZ_XF,   // vfncvt_rtz_xfw
+
+#ifdef CONFIG_RV_ZVFH_MIN
+  FWCVT_FF,       // vfwcvt_ffv
+  FNCVT_FF,       // vfncvt_ffw
+#endif
+};
+
+static bool is_vf_allowed_e16(uint32_t opcode) {
+  int len = sizeof(vf_allowed_e16) / sizeof(vf_allowed_e16[0]);
+  for (int i = 0; i < len; i++) {
+    if (vf_allowed_e16[i] == opcode) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static inline void update_vcsr() {
   vcsr->val = (vxrm->val) << 1 | vxsat->val;
 }
@@ -1018,13 +1042,13 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     }
   } else if (widening == noCheck) {
     widening = noWidening;
-  } else if (widening == vdWidening || widening == vsdWidening || widening == vdWideningX2F) {
+  } else if (widening == vdWidening || widening == vsdWidening) {
     if (s->src_vmode == SRC_VV) {
       vector_wvv_check(s, true);
     } else {
       vector_wvv_check(s, false);
     }
-  } else if (widening == vdNarrow || widening == vdNarrowF2X) {
+  } else if (widening == vdNarrow) {
     if (s->src_vmode == SRC_VV) {
       vector_vwv_check(s, true);
     } else {
@@ -1037,6 +1061,13 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
       vector_wwv_check(s, false);
     }
   }
+
+  // check whether the fp16 instruction is supported
+  if (vtype->vsew == 1 && !is_vf_allowed_e16(opcode)) {
+    Loge("zvh extension not supported");
+    longjmp_exception(EX_II);
+  }
+
   int idx;
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
@@ -1044,18 +1075,15 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
     case 1 :
       switch (widening) {
-        case vdWideningX2F : FPCALL_TYPE = FPCALL_W16; break;
-        case vdNarrowF2X   : FPCALL_TYPE = FPCALL_W32; break;
-        default : Loge("ZVFH not supported"); longjmp_exception(EX_II); break;
+        case vdWidening  : FPCALL_TYPE = FPCALL_W16; break;
+        case vdNarrow    : FPCALL_TYPE = FPCALL_W32; break;
       }
       break;
     case 2 : 
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W32_to_64; break;
         case vsWidening  : FPCALL_TYPE = FPCALL_SRC2_W32_to_64; break;
-        case vdNarrowF2X :
         case vdNarrow    : FPCALL_TYPE = FPCALL_W64; break;
-        case vdWideningX2F :
         case vdWidening  :
         case noWidening  : FPCALL_TYPE = FPCALL_W32; break;
       }
@@ -1063,8 +1091,6 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
-  if (widening == vdWideningX2F) widening = vdWidening;
-  else if (widening == vdNarrowF2X) widening = vdNarrow;
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) return;
   for(idx = vstart->val; idx < vl->val; idx ++) {
