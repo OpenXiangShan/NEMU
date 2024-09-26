@@ -178,6 +178,9 @@ typedef struct TriggerModule {
   Trigger triggers[CONFIG_TRIGGER_NUM + 1];
 } TriggerModule;
 
+extern trig_action_t trigger_action;
+extern vaddr_t triggered_addr;
+
 void tm_update_timings(struct TriggerModule* TM);
 
 trig_action_t tm_check_hit(struct TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
@@ -188,7 +191,7 @@ bool trigger_value_match(Trigger* trig, word_t value);
 
 void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const struct TriggerModule* TM);
 
-void trigger_handler(const trig_action_t action);
+void trigger_handler(const trig_action_t action, vaddr_t addr);
 
 void trigger_check(uint64_t check_timings, struct TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
 

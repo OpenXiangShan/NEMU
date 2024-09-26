@@ -6,6 +6,9 @@
 
 #ifdef CONFIG_RV_SDTRIG
 
+trig_action_t trigger_action = TRIG_ACTION_NONE;
+vaddr_t triggered_addr;
+
 void tm_update_timings(struct TriggerModule* TM) {
   TM->check_timings.val = 0;
   for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
@@ -190,10 +193,10 @@ void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const s
   mcontrol6->chain = trigger_check_chain_legal(TM, 2) && wdata_mcontrol6->chain;
 }
 
-void trigger_handler(const trig_action_t action) {
+void trigger_handler(const trig_action_t action, vaddr_t addr) {
   switch (action) {
     case TRIG_ACTION_NONE: /* no trigger hit, do nothing */; break;
-    case TRIG_ACTION_BKPT_EXCPT: longjmp_exception(EX_BP); break;
+    case TRIG_ACTION_BKPT_EXCPT: trigger_action = action; triggered_addr = addr; longjmp_exception(EX_BP); break;
     default: panic("Unsupported trigger action %d", action);  break;
   }
 }
@@ -207,7 +210,7 @@ void trigger_check(
 ) {
   if (check_timings) {
     trig_action_t action = tm_check_hit(TM, op, addr, data);
-    trigger_handler(action);
+    trigger_handler(action, addr);
   }
 }
 

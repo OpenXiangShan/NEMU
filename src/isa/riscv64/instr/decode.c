@@ -110,7 +110,7 @@ int isa_fetch_decode(Decode *s) {
   if (cpu.TM->check_timings.bf) {
     action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->snpc, TRIGGER_NO_VALUE);
   }
-  trigger_handler(action);
+  trigger_handler(action, s->snpc);
 #endif
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
@@ -131,7 +131,7 @@ int isa_fetch_decode(Decode *s) {
   if (cpu.TM->check_timings.af) {
     action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_EXECUTE | TRIG_OP_TIMING), s->snpc, s->isa.instr.val);
   }
-  trigger_handler(action);
+  trigger_handler(action, s->snpc);
 #endif
 
   s->type = INSTR_TYPE_N;

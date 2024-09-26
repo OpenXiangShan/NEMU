@@ -16,6 +16,7 @@
 
 #include <cpu/difftest.h>
 #include <cpu/cpu.h>
+#include "../local-include/trigger.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
@@ -136,7 +137,19 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
         break;
-      case EX_BP : vstval->val = epc;
+      case EX_BP :
+#ifdef CONFIG_RV_SDTRIG
+        switch (trigger_action) {
+          case TRIG_ACTION_NONE: vstval->val = epc; break;
+          case TRIG_ACTION_BKPT_EXCPT:
+            vstval->val = triggered_addr;
+            trigger_action = TRIG_ACTION_NONE;
+            break;
+          default: panic("Unsupported trigger action %d", trigger_action);  break;
+        }
+#else
+        vstval->val = epc;
+#endif // CONFIG_RV_SDTRIG
         break;
       case EX_II:
         vstval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
@@ -183,7 +196,18 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         MUXDEF(CONFIG_RVH, htinst->val = 0, );
         break;
       case EX_BP :
+#ifdef CONFIG_RV_SDTRIG
+        switch (trigger_action) {
+          case TRIG_ACTION_NONE: stval->val = epc; break;
+          case TRIG_ACTION_BKPT_EXCPT:
+            stval->val = triggered_addr;
+            trigger_action = TRIG_ACTION_NONE;
+            break;
+          default: panic("Unsupported trigger action %d", trigger_action);  break;
+        }
+#else
         stval->val = epc;
+#endif // CONFIG_RV_SDTRIG
         MUXDEF(CONFIG_RVH, htval->val = 0, );
         MUXDEF(CONFIG_RVH, htinst->val = 0, );
         break;
@@ -227,7 +251,18 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
         break;
       case EX_BP:
+#ifdef CONFIG_RV_SDTRIG
+        switch (trigger_action) {
+          case TRIG_ACTION_NONE: mtval->val = epc; break;
+          case TRIG_ACTION_BKPT_EXCPT:
+            mtval->val = triggered_addr;
+            trigger_action = TRIG_ACTION_NONE;
+            break;
+          default: panic("Unsupported trigger action %d", trigger_action);  break;
+        }
+#else
         mtval->val = epc;
+#endif // CONFIG_RV_SDTRIG
         MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
         MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
         break;
