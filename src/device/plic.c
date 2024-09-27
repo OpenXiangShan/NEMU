@@ -1,5 +1,6 @@
 #include <utils.h>
 #include <device/map.h>
+#include <device/plic.h>
 
 uint8_t *plic_base = NULL;
 #define PLIC_SIZE (0x4000000)
