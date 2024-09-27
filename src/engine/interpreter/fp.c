@@ -42,7 +42,7 @@ static inline float16_t rtlToVF16(rtlreg_t r) {
 }
 
 static inline float32_t rtlToVF32(rtlreg_t r) {
-  float32_t f = { .v = r };
+  float32_t f = { .v = (uint32_t)r };
   return f;
 }
 

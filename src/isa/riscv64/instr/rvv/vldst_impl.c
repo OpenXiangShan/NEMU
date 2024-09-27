@@ -33,7 +33,7 @@
 uint64_t fofvl = 0;
 uint64_t tvaltmp = 0;
 
-bool set_fofNoExceptionState(){
+bool set_fofNoExceptionState(void){
   if (fofvl != 0){
     vl->val = fofvl;
     INTR_TVAL_REG(EX_LAF) = tvaltmp;
@@ -175,9 +175,9 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
   unsigned count = 0;
   switch (eew) {
   case 0: {
-    for (int i = vstart->val; i < vl_val; i++) {
+    for (word_t i = vstart->val; i < vl_val; i++) {
       masks[i] = get_mask(0, i) ? 0xff : 0;
-      Logm("masks[%d] = %x", i, masks[i]);
+      Logm("masks[%ld] = %x", i, masks[i]);
       masks[i] |= s->vm != 0 ? 0xff : 0;
       count += masks[i] != 0;
     };
@@ -185,10 +185,10 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
   }
   case 1: {
     uint16_t *x_masks = (uint16_t *)masks;
-    for (int i = vstart->val; i < vl_val; i++) {
+    for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 64, "vl_val > 64");
       x_masks[i] = get_mask(0, i) ? 0xffff : 0;
-      Logm("xmasks[%d] = %x", i, x_masks[i]);
+      Logm("xmasks[%ld] = %x", i, x_masks[i]);
       x_masks[i] |= s->vm != 0 ? 0xffff : 0;
       count += x_masks[i] != 0;
     };
@@ -196,10 +196,10 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
   }
   case 2: {
     uint32_t *x_masks = (uint32_t *)masks;
-    for (int i = vstart->val; i < vl_val; i++) {
+    for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 32, "vl_val > 32");
       x_masks[i] = get_mask(0, i) ? ~0U : 0;
-      Logm("xmasks[%d] = %x", i, x_masks[i]);
+      Logm("xmasks[%ld] = %x", i, x_masks[i]);
       x_masks[i] |= s->vm != 0 ? ~0U : 0;
       count += x_masks[i] != 0;
     };
@@ -207,10 +207,10 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
   }
   case 3: {
     uint64_t *x_masks = (uint64_t *)masks;
-    for (int i = vstart->val; i < vl_val; i++) {
+    for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 16, "vl_val > 16");
       x_masks[i] = get_mask(0, i) ? ~(0UL) : 0;
-      Logm("xmasks[%d] = %lx", i, x_masks[i]);
+      Logm("xmasks[%ld] = %lx", i, x_masks[i]);
       x_masks[i] |= s->vm != 0 ? ~(0UL) : 0;
       count += x_masks[i] != 0;
     }
@@ -227,7 +227,6 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  uint64_t idx;
   uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
@@ -348,7 +347,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 #endif // CONFIG_SHARE
 
   if (!fast_vle) {  // this block is the original slow path
-    for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+    for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
       rtlreg_t mask = get_mask(0, idx);
       if (s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC && vtype->vma) {
@@ -373,7 +372,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   // Tail agnostic is not handled in fast path
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
-    for(idx = vl_val; idx < vlmax; idx++) {
+    for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
@@ -392,7 +391,6 @@ void vldx(Decode *s, int mmu_mode) {
   //        7  ->  64         3  ->  64
   index_vload_check(s);
   if(check_vstart_ignore(s)) return;
-  uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
@@ -418,7 +416,7 @@ void vldx(Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
+  for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx);
     if (s->vm == 0 && mask == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
@@ -446,7 +444,7 @@ void vldx(Decode *s, int mmu_mode) {
 
   if (RVV_AGNOSTIC && vtype->vta) {   // set tail of vector register to 1
     int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
-    for(idx = vl->val; idx < vlmax; idx++) {
+    for(int idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
@@ -803,7 +801,6 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   fofvl = 0;
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  uint64_t idx;
   uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
@@ -924,7 +921,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 #endif // CONFIG_SHARE
 
   if (!fast_vle) {  // this block is the original slow path
-    for (idx = vstart->val; idx < vl_val; idx++) {
+    for (uint64_t idx = vstart->val; idx < vl_val; idx++) {
       rtlreg_t mask = get_mask(0, idx);
       if (s->vm == 0 && mask == 0) {
         if (RVV_AGNOSTIC && vtype->vma) {
@@ -953,7 +950,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   // Tail agnostic is not handled in fast path
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
-    for(idx = vl_val; idx < vlmax; idx++) {
+    for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);

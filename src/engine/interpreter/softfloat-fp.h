@@ -40,11 +40,11 @@ static inline float32_t rtlToVF32(rtlreg_t r);
 static inline float64_t rtlToF64(rtlreg_t r);
 
 static inline float16_t f16_neg(float16_t a) {
-  return (float16_t){.v = a.v ^ F16_SIGN};
+  return (float16_t){.v = (uint16_t)(a.v ^ F16_SIGN)};
 }
 
 static inline float32_t f32_neg(float32_t a) {
-  return (float32_t){.v = a.v ^ F32_SIGN};
+  return (float32_t){.v = (uint32_t)(a.v ^ F32_SIGN)};
 }
 
 static inline float64_t f64_neg(float64_t a) {

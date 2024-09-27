@@ -34,7 +34,8 @@ const char * vregsl[] = {
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode) {
   rtlreg_t old_vl;
   vcsr_read(IDXVL, &old_vl);
-  vtype_t vt = (vtype_t )vtype_req;
+  vtype_t vt;
+  vt.val = vtype_req;
   rtlreg_t VLMAX = get_vlmax(vt.vsew, vt.vlmul);
 
   if (mode == 1) {

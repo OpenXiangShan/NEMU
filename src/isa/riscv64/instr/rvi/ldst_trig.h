@@ -9,7 +9,7 @@
     concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); \
     const rtlreg_t data = *ddest; \
     if (cpu.TM->check_timings.ar) { \
-      action = tm_check_hit(cpu.TM, TRIG_OP_LOAD | TRIG_OP_TIMING, vaddr, data); \
+      action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_LOAD | TRIG_OP_TIMING), vaddr, data); \
     } \
     trigger_handler(action); \
   }

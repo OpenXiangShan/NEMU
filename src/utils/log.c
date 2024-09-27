@@ -29,7 +29,7 @@ void init_log(const char *log_file, const bool fast_log, const bool small_log) {
   Assert(log_fp, "Can not open '%s'", log_file);
 
   if(fast_log || small_log){
-    log_filebuf = (void*)malloc(sizeof(char) * SMALL_LOG_ROW_NUM * SMALL_LOG_ROW_BYTES);
+    log_filebuf = (char*)malloc(sizeof(char) * SMALL_LOG_ROW_NUM * SMALL_LOG_ROW_BYTES);
     Assert(log_filebuf, "Can not alloc memory for log_filebuf");
     memset(log_filebuf, 0, sizeof(char) * SMALL_LOG_ROW_NUM * SMALL_LOG_ROW_BYTES);
   }
@@ -40,7 +40,7 @@ void init_log(const char *log_file, const bool fast_log, const bool small_log) {
 
 void log_file_flush(bool log_close) {
   if (!enable_small_log) {
-    for (int i = 0;
+    for (uint64_t i = 0;
          i < (SMALL_LOG_ROW_NUM < record_row_number ? SMALL_LOG_ROW_NUM
                                                     : record_row_number);
          i++) {
@@ -54,7 +54,7 @@ void log_file_flush(bool log_close) {
         fprintf(log_fp, "%s", log_filebuf + i * SMALL_LOG_ROW_BYTES);
       }
     }
-    for (int i = 0; i < record_row_number; i++) {
+    for (uint64_t i = 0; i < record_row_number; i++) {
       fprintf(log_fp, "%s", log_filebuf + i * SMALL_LOG_ROW_BYTES);
     }
   }

@@ -129,7 +129,7 @@ int isa_fetch_decode(Decode *s) {
 
 #ifdef CONFIG_RV_SDTRIG
   if (cpu.TM->check_timings.af) {
-    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE | TRIG_OP_TIMING, s->snpc, s->isa.instr.val);
+    action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_EXECUTE | TRIG_OP_TIMING), s->snpc, s->isa.instr.val);
   }
   trigger_handler(action);
 #endif

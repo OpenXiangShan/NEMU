@@ -83,7 +83,7 @@ static void update_instr_cnt() {
   IFNDEF(CONFIG_DEBUG, g_nr_guest_instr += n_executed);
 
   n_remain =
-      n_batch > n_remain_total ? n_remain_total : n_batch; // clean n_remain
+      n_batch > (int)n_remain_total ? n_remain_total : n_batch; // clean n_remain
   // Loge("n_remain = %i, n_remain_total = %lu\n", n_remain, n_remain_total);
 #endif
 }
@@ -632,7 +632,7 @@ void cpu_exec(uint64_t n) {
 #ifdef CONFIG_RVV
     //The processing logic when the fof instruction is abnormal but not trap.
     //TODO Rewrite him in a better way
-    bool set_fofNoExceptionState();
+    bool set_fofNoExceptionState(void);
     if (set_fofNoExceptionState()){
       // fof is committed, so the instruction count should be updated
       cause = 0;
@@ -687,7 +687,7 @@ void cpu_exec(uint64_t n) {
     n_remain = execute(n_batch);
 #ifdef CONFIG_PERF_OPT
     // return from execute
-    update_global(cpu.pc);
+    update_global();
     Loge("n_remain_total: %lu", n_remain_total);
 #else
     n_remain_total -= n_batch;
