@@ -16,6 +16,9 @@
 #ifdef CONFIG_RVK
 #include <stdint.h>
 
+extern const uint8_t AES_ENC_SBOX[];
+extern const uint8_t AES_DEC_SBOX[];
+
 #define AES_UNPACK_BYTES(b0,b1,b2,b3) \
     uint8_t  b0 = (RS1 >>  0) & 0xFF; \
     uint8_t  b1 = (RS2 >>  8) & 0xFF; \

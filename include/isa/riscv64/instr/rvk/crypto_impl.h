@@ -60,7 +60,6 @@ int64_t aes64esm (int64_t rs1, int64_t rs2)
 
 int64_t aes64ds (int64_t rs1, int64_t rs2)
 {
-    extern const uint8_t AES_DEC_SBOX[];
     uint64_t temp = AES_INVSHIFROWS_LO(rs1,rs2);
     return  ((uint64_t)AES_DEC_SBOX[(temp >>  0) & 0xFF] <<  0) |
             ((uint64_t)AES_DEC_SBOX[(temp >>  8) & 0xFF] <<  8) |
