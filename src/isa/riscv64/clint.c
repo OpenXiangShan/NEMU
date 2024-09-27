@@ -53,6 +53,11 @@ void update_clint() {
   clint_base[CLINT_MTIME] = uptime / US_PERCYCLE;
 #endif
   mip->mtip = (clint_base[CLINT_MTIME] >= clint_base[CLINT_MTIMECMP]);
+
+#ifdef CONFIG_RV_SSTC
+  mip->stip = (clint_base[CLINT_MTIME] >= stimecmp->val);
+  IFDEF(CONFIG_RVH, mip->vstip = (clint_base[CLINT_MTIME] + htimedelta->val >= vstimecmp->val));
+#endif
 }
 
 uint64_t clint_uptime() {

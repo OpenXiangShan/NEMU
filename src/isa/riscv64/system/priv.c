@@ -758,16 +758,15 @@ inline word_t get_mip() {
 #ifdef CONFIG_RV_SSTC
   if (menvcfg->stce) {
     tmp |= cpu.non_reg_interrupt_pending.platform_irp_stip << 5;
-  } else {
-    tmp |= mip->val & MIP_STIP;
   }
-#else
-  tmp |= mip->val & MIP_STIP;
 #endif // CONFIG_RV_SSTC
+  tmp |= mip->val & MIP_STIP;
 
   IFDEF(CONFIG_RVH, tmp |= (hvip->vstip | cpu.non_reg_interrupt_pending.platform_irp_vstip) << 6);
+  tmp |= mip->val & MIP_VSTIP;
 
   tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << 7;
+  tmp |= mip->val & MIP_MTIP;
 
 #ifdef CONFIG_RV_AIA
   if (mvien->seie) {
@@ -1145,8 +1144,10 @@ void vcsr_read(uint32_t addr,  rtlreg_t *dest) {
 #endif // CONFIG_RVV
 
 void disable_time_intr() {
-    Log("Disabled machine time interruption\n");
-    mie->val = mask_bitset(mie->val, MTIE_MASK, 0);
+    Log("Disabled machine/supervisor/virtualized-supervisor time interruption\n");
+    mie->mtie = 0;
+    mie->stie = 0;
+    mie->vstie = 0;
 }
 
 #ifdef CONFIG_RVH
