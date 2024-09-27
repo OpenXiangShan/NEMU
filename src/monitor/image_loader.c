@@ -199,7 +199,7 @@ long load_zstd_img(const char *filename){
 // If the filename ends with ".gz", we treat it as a gz file.
 
 
-long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_size) {
+long load_img(char* img_name, const char *which_img, uint64_t load_start, size_t img_size) {
   char *loading_img = img_name;
   Log("Loading %s: %s\n", which_img, img_name);
   if (img_name == NULL) {
