@@ -518,14 +518,6 @@ static inline bool require_vs() {
 }
 #endif // CONFIG_RVV
 
-inline word_t gen_status_sd(word_t status) {
-  mstatus_t xstatus;
-  xstatus.val = status;
-  bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
-  bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
-  return ((word_t)(fs_dirty || vs_dirty)) << 63;
-}
-
 static inline word_t get_mcycle() {
   #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
     if (mcountinhibit->val & 0x1) {

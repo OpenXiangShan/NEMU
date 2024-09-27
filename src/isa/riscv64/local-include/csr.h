@@ -1494,7 +1494,14 @@ MAP(CSRS, CSRS_DECL)
 /** General **/
 void csr_prepare();
 
-word_t gen_status_sd(word_t status);
+inline word_t gen_status_sd(word_t status) {
+  mstatus_t xstatus;
+  xstatus.val = status;
+  bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
+  bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
+  return ((word_t)(fs_dirty || vs_dirty)) << 63;
+}
+
 word_t get_mip();
 
 word_t csrid_read(uint32_t csrid);

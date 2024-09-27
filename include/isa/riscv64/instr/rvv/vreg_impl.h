@@ -1,3 +1,5 @@
+#ifndef __VREG_IMPL_H__
+#define __VREG_IMPL_H__
 #include "common.h"
 
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode);
@@ -17,3 +19,4 @@ void set_vreg_tail(uint64_t reg);
 void isa_misalign_vreg_check(uint64_t reg, uint64_t vlmul, int needAlign);
 
 
+#endif

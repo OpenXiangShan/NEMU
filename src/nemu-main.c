@@ -14,6 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
+#include <monitor/monitor.h>
 #ifndef CONFIG_SHARE
 void init_monitor(int, char *[]);
 void engine_start();

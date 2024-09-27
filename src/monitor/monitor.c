@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <monitor/monitor.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();

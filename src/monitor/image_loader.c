@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <monitor/monitor.h>
 #ifdef CONFIG_MEM_COMPRESS
 #include <unistd.h>
 #include <zlib.h>

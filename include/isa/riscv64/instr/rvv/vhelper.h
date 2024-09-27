@@ -1,3 +1,6 @@
+#ifndef __VHELPER_H__
+#define __VHELPER_H__
+
 #include "cpu/cpu.h"
 #include "cpu/decode.h"
 
@@ -56,3 +59,4 @@ void set_vtype_vl(Decode *s, int mode) {
 
   vstart->val = 0;
 }
+#endif
