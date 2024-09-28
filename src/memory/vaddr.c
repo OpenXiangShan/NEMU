@@ -152,13 +152,13 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     Logm("Paddr reading directly");
 
     // TODO: add info of mmu-mode
-    extern void trace_write_pc_pa(uint64_t pa);
-    extern void trace_write_mem_pa(uint64_t pa);
-    if (type == MEM_TYPE_IFETCH) {
-      trace_write_pc_pa(0);
-    } else {
-      trace_write_mem_pa(0);
-    }
+    // extern void trace_write_pc_pa(uint64_t pa);
+    // extern void trace_write_mem_pa(uint64_t pa);
+    // if (type == MEM_TYPE_IFETCH) {
+    //   trace_write_pc_pa(0);
+    // } else {
+    //   trace_write_mem_pa(0);
+    // }
 
     return paddr_read(addr, len, type, cpu.mode, addr);
   }
@@ -197,8 +197,8 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   }
   if (mmu_mode == MMU_DIRECT) {
 
-    extern void trace_write_mem_pa(uint64_t pa);
-    trace_write_mem_pa(0);
+    // extern void trace_write_mem_pa(uint64_t pa);
+    // trace_write_mem_pa(0);
 
     paddr_write(addr, len, data, cpu.mode, addr);
     return;
