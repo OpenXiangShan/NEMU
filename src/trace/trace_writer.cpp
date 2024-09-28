@@ -118,14 +118,14 @@ void TraceWriter::inst_over() {
 
   // inst.dumpWithID(instBufferPtr);
 
-  if (instListSize <= inst_list.size()) {
+  if (trace_likely(instListSize <= inst_list.size())) {
     inst_list.pop_front();
   }
   inst_list.push_back(inst);
 
   inst_valid = false;
 
-  if (instBufferPtr >= MAX_INSTRUCTION_NUM) {
+  if (trace_unlikely(instBufferPtr >= MAX_INSTRUCTION_NUM)) {
     printf("Traced Instructin Number enough(%ld), exit.", instBufferPtr);
     traceOver();
     exit(0);
@@ -150,7 +150,14 @@ void TraceWriter::write_pc_pa(uint64_t pa) {
   TraceSimpleLog;
   TraceRequireValid;
 
-  inst.instr_pc_pa = pa;
+  if (trace_likely(inst.instr_pc_pa == 0)) {
+    inst.instr_pc_pa = pa;
+  }
+  if (trace_unlikely((inst.instr_pc_pa & 0xfff) != (inst.instr_pc_va & 0xfff))) {
+    printf("pc va pa not match: %lx %lx\n", inst.instr_pc_va, inst.instr_pc_pa);
+    error_dump();
+    exit(1);
+  }
   return;
 }
 
@@ -180,9 +187,15 @@ void TraceWriter::write_mem_pa(uint64_t pa) {
   TraceSimpleLog;
   TraceRequireValid;
 
-  // printf("write_mem_pa: pa=%lx\n", pa);
+  if (trace_likely(inst.exu_data.memory_address.pa == 0)) {
+    inst.exu_data.memory_address.pa = pa;
+  }
 
-  inst.exu_data.memory_address.pa = pa;
+  if (trace_unlikely((inst.exu_data.memory_address.pa & 0xfff) != (inst.exu_data.memory_address.va & 0xfff))) {
+    printf("mem va pa not match: %lx %lx\n", inst.exu_data.memory_address.va, inst.exu_data.memory_address.pa);
+    error_dump();
+    exit(1);
+  }
   return;
 }
 
@@ -201,7 +214,7 @@ void TraceWriter::write_branch(uint64_t target, uint8_t branch_type, uint8_t is_
   TraceSimpleLog;
   TraceRequireValid;
 
-  if (inst.branch_type == BRANCH_None) {
+  if (trace_likely(inst.branch_type == BRANCH_None)) {
     TraceSimpleLog;
     inst.target = target;
     inst.branch_type = branch_type;
@@ -328,7 +341,7 @@ void set_trace_writer_file(char *name) {
 }
 
 void init_trace_writer() {
-  if (trace_filename == NULL) {
+  if (trace_unlikely(trace_filename == NULL)) {
     printf("TraceFile is NULL. please set --tracefile.\n");
     exit(1);
   }

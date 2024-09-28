@@ -20,6 +20,14 @@
 #include <stdio.h>
 #include <trace/spikedasm.h>
 
+#if 1
+#define trace_likely(cond)   __builtin_expect(cond, 1)
+#define trace_unlikely(cond) __builtin_expect(cond, 0)
+#else
+#define trace_likely(cond)   (cond)
+#define trace_unlikely(cond) (cond)
+#endif
+
 // #define Log() printf("file: %s, line: %d\n", __FILE__, __LINE__); fflush(stdout)
 
 // TODO : pack it
