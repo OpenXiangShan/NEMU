@@ -47,6 +47,9 @@ def_EHelper(mulhsu) {
 }
 
 def_EHelper(div) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   if (*dsrc2 == 0) {
     rtl_li(s, ddest, ~0lu);
@@ -58,6 +61,9 @@ def_EHelper(div) {
 }
 
 def_EHelper(divu) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   if (*dsrc2 == 0) {
     rtl_li(s, ddest, ~0lu);
@@ -67,6 +73,9 @@ def_EHelper(divu) {
 }
 
 def_EHelper(rem) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
@@ -78,6 +87,9 @@ def_EHelper(rem) {
 }
 
 def_EHelper(remu) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   if (*dsrc2 == 0) {
     rtl_mv(s, ddest, dsrc1);
@@ -91,6 +103,9 @@ def_EHelper(mulw) {
 }
 
 def_EHelper(divw) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   rtl_sext(s, s0, dsrc1, 4);
   rtl_sext(s, s1, dsrc2, 4);
@@ -108,6 +123,9 @@ def_EHelper(divw) {
 }
 
 def_EHelper(remw) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   rtl_sext(s, s0, dsrc1, 4);
   rtl_sext(s, s1, dsrc2, 4);
@@ -125,6 +143,9 @@ def_EHelper(remw) {
 }
 
 def_EHelper(divuw) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   rtl_zext(s, s0, dsrc1, 4);
   rtl_zext(s, s1, dsrc2, 4);
@@ -140,6 +161,9 @@ def_EHelper(divuw) {
 }
 
 def_EHelper(remuw) {
+  extern void trace_write_arthi_src(uint64_t, uint64_t);
+  trace_write_arthi_src(*dsrc1, *dsrc2);
+
 #ifdef CONFIG_ENGINE_INTERPRETER
   rtl_zext(s, s0, dsrc1, 4);
   rtl_zext(s, s1, dsrc2, 4);

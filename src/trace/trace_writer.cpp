@@ -24,7 +24,7 @@
 #include <zstd.h>
 
 // #define VERBOSE
-#define LogBuffer
+// #define LogBuffer
 #define MORECHECK
 
 #ifdef LogBuffer
@@ -45,10 +45,10 @@ uint8_t trace_log_ptr_pop() {
 #ifdef LogBuffer
 #define WHEREAMI snprintf(trace_log_buf[trace_log_ptr_pop()], TraceLogEntrySize, "FromBuf:%s:%d\n", __FILE__, __LINE__);
 #else
-#define WHEREAMI printf("%s:%d\n", __FILE__, __LINE__); fflush(stdout);
+#define WHEREAMI printf("%s:%d:%s\n", __FILE__, __LINE__, __func__); fflush(stdout);
 #endif
 
-#define WHEREAMIDirect printf("Direct:%s:%d\n", __FILE__, __LINE__); fflush(stdout);
+#define WHEREAMIDirect printf("Direct:%s:%d:%s\n", __FILE__, __LINE__, __func__); fflush(stdout);
 
 #ifdef VERBOSE
 #define TraceSimpleLog WHEREAMI
@@ -116,6 +116,8 @@ void TraceWriter::inst_over() {
   instBuffer[instBufferPtr++] = inst;
   // trace_stream->write(reinterpret_cast<char *> (&inst), sizeof(Instruction));
 
+  // inst.dumpWithID(instBufferPtr);
+
   if (instListSize <= inst_list.size()) {
     inst_list.pop_front();
   }
@@ -166,7 +168,9 @@ void TraceWriter::write_memory(uint64_t va, uint8_t size, uint8_t is_write) {
   // 1, 2, 4, 8, manual log2
   uint8_t size_map[] = {0, 0, 1, 0, 2, 0, 0, 0, 3};
 
-  inst.memory_address_va = va;
+  // printf("write_memory: va=%lx, size=%d, is_write=%d\n", va, size, is_write);
+
+  inst.exu_data.memory_address.va = va;
   inst.memory_size = size_map[size];
   inst.memory_type = is_write ? MEM_TYPE_Store : MEM_TYPE_Load;
   return;
@@ -176,7 +180,20 @@ void TraceWriter::write_mem_pa(uint64_t pa) {
   TraceSimpleLog;
   TraceRequireValid;
 
-  inst.memory_address_pa = pa;
+  // printf("write_mem_pa: pa=%lx\n", pa);
+
+  inst.exu_data.memory_address.pa = pa;
+  return;
+}
+
+void TraceWriter::write_arthi_src(uint64_t src0, uint64_t src1) {
+  TraceSimpleLog;
+  TraceRequireValid;
+
+  // printf("write_arthi_src: src0=%lx, src1=%lx\n", src0, src1);
+
+  inst.exu_data.arthi_src.src0 = src0;
+  inst.exu_data.arthi_src.src1 = src1;
   return;
 }
 
@@ -231,6 +248,10 @@ void TraceWriter::traceOver() {
   trace_stream->write(compressedBuffer, compressedSize);
   // for (uint64_t idx = 0; idx < instBufferPtr; idx++) {
   //   trace_stream->write((char *)&instBuffer[idx], sizeof(instBuffer[idx]));
+  // }
+
+  // for (uint64_t i = 0; i < instBufferPtr; i++) {
+  //   instBuffer[i].dump();
   // }
 
   // for (auto it = inst_list.begin(); it != inst_list.end(); it++) {
@@ -334,6 +355,10 @@ void trace_write_memory(uint64_t va, uint8_t size, uint8_t is_write) {
 
 void trace_write_mem_pa(uint64_t pa) {
   trace_writer->write_mem_pa(pa);
+}
+
+void trace_write_arthi_src(uint64_t src0, uint64_t src1) {
+  trace_writer->write_arthi_src(src0, src1);
 }
 
 void trace_write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken) {

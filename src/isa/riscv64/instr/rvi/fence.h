@@ -14,11 +14,17 @@
 ***************************************************************************************/
 
 def_EHelper(fence_i) {
+  // extern void trace_write_arthi_src(uint64_t, uint64_t);
+  // trace_write_arthi_src(*dsrc1, *dsrc2);
+
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, -1);
   rtl_priv_next(s);
 }
 
 def_EHelper(fence) {
+  // extern void trace_write_arthi_src(uint64_t, uint64_t);
+  // trace_write_arthi_src(*dsrc1, *dsrc2);
+
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }

@@ -67,6 +67,7 @@ public:
   void write_pc_pa(uint64_t pa);
   void write_memory(uint64_t va, uint8_t size, uint8_t is_write);
   void write_mem_pa(uint64_t pa);
+  void write_arthi_src(uint64_t src0, uint64_t src1);
   void write_branch(uint64_t target, uint8_t branch_type, uint8_t is_taken);
   void write_exception(uint8_t NO, uint64_t target);
   void write_interrupt(uint8_t NO, uint64_t target);
