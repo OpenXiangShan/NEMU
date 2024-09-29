@@ -17,6 +17,7 @@
 #define __CPU_CPU_H__
 
 #include <common.h>
+#include <setjmp.h>
 
 #define AHEAD_LENGTH 500
 
@@ -28,7 +29,21 @@ enum {
 };
 
 void cpu_exec(uint64_t n);
-__attribute__((noreturn)) void longjmp_exec(int cause);
+
+#define CONTEXT_STACK_SIZE 5
+extern int context_idx;
+extern jmp_buf context_stack[CONTEXT_STACK_SIZE];
+#define PUSH_CONTEXT(cause) \
+do{ \
+  if (context_idx + 1 >= CONTEXT_STACK_SIZE) { \
+    panic("Unexcepted exeception context idx = %d", context_idx); \
+  } \
+  context_idx++; \
+  *cause = setjmp(context_stack[context_idx]); \
+} while (0)
+
+void pop_context();
+__attribute__((noreturn)) void longjmp_context(int cause);
 __attribute__((noreturn)) void longjmp_exception(int ex_cause);
 
 enum {

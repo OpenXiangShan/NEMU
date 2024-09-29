@@ -22,7 +22,7 @@ def_EHelper(inv) {
   save_globals(s);
 #ifdef CONFIG_REPORT_ILLEGAL_INSTR
   rtl_hostcall(s, HOSTCALL_INV, NULL, NULL, NULL, 0);
-  longjmp_exec(NEMU_EXEC_END);
+  longjmp_context(NEMU_EXEC_END);
 #else
   longjmp_exception(EX_II);
 #endif
@@ -48,6 +48,6 @@ def_EHelper(nemu_trap) {
     }
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
-      longjmp_exec(NEMU_EXEC_END);
+      longjmp_context(NEMU_EXEC_END);
   }
 }
