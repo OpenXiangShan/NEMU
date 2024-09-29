@@ -779,18 +779,23 @@ inline word_t get_mip() {
 
   tmp |= cpu.non_reg_interrupt_pending.platform_irp_msip << 3;
 
+#ifdef CONFIG_SHARE
 #ifdef CONFIG_RV_SSTC
   if (menvcfg->stce) {
     tmp |= cpu.non_reg_interrupt_pending.platform_irp_stip << 5;
+  } else {
+    tmp |= mip->val & MIP_STIP;
   }
-#endif // CONFIG_RV_SSTC
+#else
   tmp |= mip->val & MIP_STIP;
+#endif // CONFIG_RV_SSTC
+#else
+  tmp |= mip->val & (MIP_STIP | MIP_VSTIP | MIP_MTIP);
+#endif
 
   IFDEF(CONFIG_RVH, tmp |= (hvip->vstip | cpu.non_reg_interrupt_pending.platform_irp_vstip) << 6);
-  tmp |= mip->val & MIP_VSTIP;
 
   tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << 7;
-  tmp |= mip->val & MIP_MTIP;
 
 #ifdef CONFIG_RV_AIA
   if (mvien->seie) {
