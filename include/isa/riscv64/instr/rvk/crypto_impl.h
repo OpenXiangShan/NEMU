@@ -15,12 +15,13 @@
 
 #ifdef CONFIG_RVK
 
+#ifndef __CRYPTO_IMPL_H__
+#define __CRYPTO_IMPL_H__
+
 #include <stdint.h>
 #include <limits.h>
 #include "aes_common.h"
 #include "sm4_common.h"
-
-extern const uint8_t AES_ENC_SBOX[];
 
 int32_t sha256sum0 (int32_t rs1) { return _rv32_ror(rs1, 2)  ^ _rv32_ror(rs1, 13) ^ _rv32_ror(rs1, 22); }
 int32_t sha256sum1 (int32_t rs1) { return _rv32_ror(rs1, 6)  ^ _rv32_ror(rs1, 11) ^ _rv32_ror(rs1, 25); }
@@ -154,4 +155,5 @@ int32_t sm4ks (int32_t rs1, int32_t rs2, uint8_t funct7)
     return rotl ^ rs1;
 }
 
+#endif
 #endif
