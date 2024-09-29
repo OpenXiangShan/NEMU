@@ -37,7 +37,7 @@ static inline float16_t rtlToF16(rtlreg_t r) {
 }
 
 static inline float16_t rtlToVF16(rtlreg_t r) {
-  float16_t f = { .v = r };
+  float16_t f = { .v = (uint16_t)r };
   return f;
 }
 
