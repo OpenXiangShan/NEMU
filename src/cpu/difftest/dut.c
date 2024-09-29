@@ -119,7 +119,7 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     IFDEF(CONFIG_IQUEUE, iqueue_dump());
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
-    longjmp_exec(NEMU_EXEC_END);
+    longjmp_context(NEMU_EXEC_END);
   }
 }
 
