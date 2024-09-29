@@ -236,7 +236,7 @@ full:
   save_globals(s);
   bb_now = bb_now_record = NULL;
   tcache_state = TCACHE_RUNNING;
-  longjmp_exec(NEMU_EXEC_AGAIN);
+  longjmp_context(NEMU_EXEC_AGAIN);
 }
 
 static Decode ex = {};

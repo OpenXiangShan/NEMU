@@ -75,7 +75,7 @@ def_EHelper(c_ebreak) {
 #elif defined(CONFIG_EBREAK_AS_TRAP)
   // Please keep the following lines same as in src/isa/riscv64/instr/special.h.
   rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
-  longjmp_exec(NEMU_EXEC_END);
+  longjmp_context(NEMU_EXEC_END);
 #endif
 }
 
