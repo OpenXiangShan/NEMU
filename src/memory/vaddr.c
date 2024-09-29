@@ -32,9 +32,12 @@
 #ifndef ENABLE_HOSTTLB
 
 static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
+  Log("vaddr_trans_and_check_exception!");
   paddr_t mmu_ret = isa_mmu_translate(vaddr & ~PAGE_MASK, len, type);
+  Log("mmu_ret = 0x%lx", mmu_ret);
   *exp = (mmu_ret & PAGE_MASK) != MEM_RET_OK;
   paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
+  Log("paddr = 0x%lx", paddr);
   if (*exp) {
     return 0;
   }
@@ -78,26 +81,43 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data) {
   // +---+---+---+---+---+---+---+---+---+---+---+---+
 
   vaddr_t cur_pg_st_vaddr = addr;
+  Log("cur_pg_st_vaddr = 0x%lx", cur_pg_st_vaddr);
   vaddr_t next_pg_st_vaddr = (addr & ~PAGE_MASK) + PAGE_SIZE;
+  Log("next_pg_st_vaddr = 0x%lx", next_pg_st_vaddr);
   int cur_pg_st_len = next_pg_st_vaddr - cur_pg_st_vaddr;
+  Log("cur_pg_st_len = %d", cur_pg_st_len);
   int next_pg_st_len = len - cur_pg_st_len;
+  Log("next_pg_st_len = %d", next_pg_st_len);
   word_t cur_pg_st_mask = 0;
   int i = 0;
   for (; i < cur_pg_st_len; i++) {
     cur_pg_st_mask = (cur_pg_st_mask << 8) | 0xffUL;
+    Log("cur_pg_st_mask = 0x%ld", cur_pg_st_mask);
   }
+  Log("vaddr_write_cross_page check 1...");
   word_t cur_pg_st_data = data & cur_pg_st_mask;
+  Log("cur_pg_st_data = 0x%ld", cur_pg_st_data);
   word_t next_pg_st_data = data >> (cur_pg_st_len << 3);
+  Log("next_pg_st_data = 0x%ld", next_pg_st_data);
   // make sure no page fault or access fault before real write
   bool cur_pg_st_exp = false;
   bool next_pg_st_exp = false;
+  Log("vaddr_write_cross_page check 2...");
   paddr_t cur_pg_st_paddr = vaddr_trans_and_check_exception(cur_pg_st_vaddr, cur_pg_st_len, MEM_TYPE_WRITE, &cur_pg_st_exp);
+  Log("cur_pg_st_paddr = 0x%ld", cur_pg_st_paddr);
+  Log("vaddr_write_cross_page check 3...");
   paddr_t next_pg_st_paddr = vaddr_trans_and_check_exception(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, &next_pg_st_exp);
-  
+  Log("next_pg_st_paddr = 0x%ld", next_pg_st_paddr);
+  Log("vaddr_write_cross_page check 4...");
+
   if (!cur_pg_st_exp && !next_pg_st_exp) {
+    Log("vaddr_write_cross_page check 5...");
     paddr_write(cur_pg_st_paddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+    Log("vaddr_write_cross_page check 6...");
     paddr_write(next_pg_st_paddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
+    Log("vaddr_write_cross_page check 7...");
   }
+  Log("vaddr_write_cross_page check 8...");
 }
 
 __attribute__((noinline))
@@ -140,7 +160,9 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 #endif
     paddr_write(addr, len, data, cpu.mode, vaddr);
   } else if (len != 1 && ret == MEM_RET_CROSS_PAGE) {
+    Log("Before vaddr_write_cross_page...");
     vaddr_write_cross_page(addr, len, data);
+    Log("After vaddr_write_cross_page...");
   }
 }
 #endif
