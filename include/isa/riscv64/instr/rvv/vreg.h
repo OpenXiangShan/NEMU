@@ -13,13 +13,13 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <assert.h>
 #include <common.h>
 #ifdef CONFIG_RVV
 
 #ifndef __RISCV64_VREG_H__
 #define __RISCV64_VREG_H__
 
-#include "common.h"
 
 #define VLEN 128
 #define VLENLG 8

@@ -14,7 +14,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <utils.h>
+#include <utils/utils.h>
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <rtl/rtl.h>

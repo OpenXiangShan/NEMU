@@ -14,6 +14,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <debug.h>
 #ifndef __ICS_EXPORT
 #include <memory/vaddr.h>
 #include <stdlib.h>

@@ -13,7 +13,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <utils.h>
+#include <debug.h>
+#include <utils/utils.h>
 #include <malloc.h>
 
 uint64_t record_row_number = 0;
@@ -22,6 +23,7 @@ char *log_filebuf = NULL;
 int loop_index = 0;
 bool enable_fast_log = false;
 bool enable_small_log = false;
+
 
 void init_log(const char *log_file, const bool fast_log, const bool small_log) {
   if (log_file == NULL) return;

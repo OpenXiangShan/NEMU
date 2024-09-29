@@ -18,8 +18,6 @@
 #define __COMMON_H__
 
 #include <stdbool.h>
-#include <assert.h>
-#include <string.h>
 
 #include <generated/autoconf.h>
 #include <macro.h>
@@ -53,6 +51,5 @@ struct br_info {
   int taken;
   int type; // 0: branch 1: jmp
 };
-#include <debug.h>
 
 #endif

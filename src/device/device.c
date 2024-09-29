@@ -15,7 +15,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#include <utils.h>
+#include <utils/utils.h>
 #ifndef CONFIG_SHARE
 #include <device/alarm.h>
 #include <device/plic.h>

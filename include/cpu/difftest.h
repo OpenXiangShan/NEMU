@@ -19,6 +19,7 @@
 #include <common.h>
 #include <difftest.h>
 #include <memory/store_queue_wrapper.h>
+#include <debug.h>
 #include "../memory/paddr.h"
 #ifdef CONFIG_DIFFTEST
 void difftest_skip_ref();

@@ -64,15 +64,23 @@ Serializer::Serializer() :
 {
 }
 
+#ifndef CONFIG_CC_GPP
 extern "C" {
 uint8_t *get_pmem();
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
 uint8_t *guest_to_host(paddr_t paddr);
-#include <debug.h>
-extern void log_buffer_flush();
-extern void log_file_flush();
-extern unsigned long MEMORY_SIZE;
 }
+#endif
+
+#ifndef CONFIG_CC_GPP
+extern "C" {
+#endif
+
+#include <debug.h>
+
+#ifndef CONFIG_CC_GPP
+}
+#endif
 
 #ifdef CONFIG_MEM_COMPRESS
 void Serializer::serializePMem(uint64_t inst_count) {
@@ -380,7 +388,13 @@ uint64_t Serializer::next_index(){
 }
 
 
+#ifndef CONFIG_CC_GPP
 extern "C" {
+#endif
+
+void serialize_reg_to_mem() {
+  serializer.serializeRegs();
+}
 
 void init_serializer() {
   serializer.init();
@@ -396,8 +410,6 @@ bool try_take_cpt(uint64_t icount) {
   return false;
 }
 
-void serialize_reg_to_mem() {
-  serializer.serializeRegs();
+#ifndef CONFIG_CC_GPP
 }
-
-}
+#endif

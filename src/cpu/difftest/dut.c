@@ -18,7 +18,7 @@
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <memory/paddr.h>
-#include <utils.h>
+#include <utils/utils.h>
 #include <difftest.h>
 
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;

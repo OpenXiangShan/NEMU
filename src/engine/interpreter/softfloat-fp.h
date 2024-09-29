@@ -1,6 +1,10 @@
 #ifndef __SOFTFLOAT_FP_H__
 #define __SOFTFLOAT_FP_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <softfloat.h>
 #include <specialize.h>
 #include <internals.h>
@@ -931,4 +935,7 @@ static inline int_fast16_t f32_to_i16( float32_t a, uint_fast8_t roundingMode, b
 static inline void fp_clear_exception() {
   softfloat_exceptionFlags = 0;
 }
+#ifdef __cplusplus
+}
+#endif
 #endif

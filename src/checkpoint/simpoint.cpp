@@ -40,7 +40,6 @@
 
 #include "checkpoint/path_manager.h"
 #include <cassert>
-// #include <debug.h>
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -51,16 +50,13 @@
 namespace SimPointNS
 {
 
+#ifndef CONFIG_CC_GPP
 extern "C" {
+#endif
 #include <debug.h>
-extern uint64_t record_row_number;
-extern FILE *log_fp;
-extern char *log_filebuf;
-extern void log_buffer_flush();
-extern void log_file_flush();
-extern bool enable_fast_log;
-extern bool enable_small_log;
+#ifndef CONFIG_CC_GPP
 }
+#endif
 
 SimPoint::SimPoint()
     : intervalCount(0),
@@ -172,7 +168,10 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
 
 SimPointNS::SimPoint simpoit_obj;
 
+
+#ifndef CONFIG_CC_GPP
 extern "C" {
+#endif
 
 void simpoint_init() {
   simpoit_obj.init();
@@ -187,4 +186,7 @@ void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) 
 #endif
 }
 #endif
+
+#ifndef CONFIG_CC_GPP
 }
+#endif

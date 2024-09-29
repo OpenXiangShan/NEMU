@@ -13,8 +13,9 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <utils.h>
+#include <utils/utils.h>
 #include <device/map.h>
+#include <stdio.h>
 
 #define CH_OFFSET 0
 #define UARTLITE_RX_FIFO  0x0

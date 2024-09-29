@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <device/map.h>
-#include <utils.h>
+#include <utils/utils.h>
 #include <SDL2/SDL.h>
 
 static uint32_t *i8042_data_port_base = NULL;

@@ -13,7 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <utils.h>
+#include <utils/utils.h>
 #include <device/alarm.h>
 #include <device/map.h>
 #include "local-include/csr.h"

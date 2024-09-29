@@ -13,10 +13,12 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <assert.h>
 #include <common.h>
 #include "device/alarm.h"
 #include <sys/time.h>
 #include <signal.h>
+#include <debug.h>
 
 #define TIMER_HZ 60
 #define MAX_HANDLER 8

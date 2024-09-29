@@ -13,7 +13,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <utils.h>
+#include <utils/utils.h>
+#include <debug.h>
 
 #ifdef CONFIG_SHARE
 NEMUState nemu_state = { .state = NEMU_RUNNING };

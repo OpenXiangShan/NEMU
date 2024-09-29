@@ -15,11 +15,10 @@
 ***************************************************************************************/
 
 #include <isa.h>
-//#include <monitor/difftest.h>
 #include "local-include/reg.h"
 #include "local-include/csr.h"
 #include "local-include/trigger.h"
-//#include "local-include/intr.h"
+#include <debug.h>
 
 const char *regsl[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",

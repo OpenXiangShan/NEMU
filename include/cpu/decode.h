@@ -18,6 +18,7 @@
 #define __CPU_DECODE_H__
 
 #include <isa.h>
+#include <debug.h>
 
 #define OP_STR_SIZE 40
 

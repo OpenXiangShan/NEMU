@@ -1,4 +1,5 @@
 #include <profiling/profiling_control.h>
+#include <debug.h>
 
 int profiling_state = NoProfiling;
 int checkpoint_state = NoCheckpoint;

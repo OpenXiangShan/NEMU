@@ -15,7 +15,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
-#include <utils.h>
+#include <utils/utils.h>
 #include <cpu/cpu.h>
 #ifndef __ICS_EXPORT
 #include <memory/paddr.h>

@@ -14,6 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
+#include <debug.h>
 #ifndef __ICS_EXPORT
 #include <stdlib.h>
 #endif

@@ -19,8 +19,56 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include <utils.h>
+#include <utils/utils.h>
 #include <unistd.h>
+#include <utils/log.h>
+
+// ----------- log -----------
+
+/* #define log_write(...) MUXDEF(CONFIG_DEBUG, \
+  do { \
+    extern FILE* log_fp; \
+    extern void log_flush(); \
+    if (log_fp != NULL) { \
+      log_flush(); \
+      fprintf(log_fp, __VA_ARGS__); \
+      fflush(log_fp); \
+    }else{ \
+      printf(__VA_ARGS__); \
+    } \
+  } while (0), \
+  do { \
+    printf(__VA_ARGS__); \
+  }while (0)\
+ )*/
+
+// control when the log is printed, unit: number of instructions
+
+#define LOG_START (0)
+#define LOG_END   (1024 * 1024 * 50)
+
+#define SMALL_LOG_ROW_NUM (50 * 1024 * 1024) // row number, 50M instructions
+#define SMALL_LOG_ROW_BYTES 512
+
+#define log_write(...) \
+  do { \
+    if (log_fp != NULL) { \
+      if (enable_fast_log || enable_small_log) { \
+        snprintf(log_filebuf + record_row_number * SMALL_LOG_ROW_BYTES, SMALL_LOG_ROW_BYTES, __VA_ARGS__);\
+        log_buffer_flush(); \
+      } else { \
+        fprintf(log_fp, __VA_ARGS__); \
+        fflush(log_fp); \
+      } \
+    }else{ \
+      printf(__VA_ARGS__); \
+    } \
+  } while (0)
+
+#define _Log(...) \
+  do { \
+    log_write(__VA_ARGS__); \
+  } while (0)
 
 #define Log(format, ...) \
     _Log("\33[1;34m[%s:%d,%s] " format "\33[0m\n", \

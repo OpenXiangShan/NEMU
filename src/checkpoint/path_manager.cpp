@@ -28,12 +28,13 @@
 
 using namespace std;
 
+#ifndef CONFIG_CC_GPP
 extern "C" {
+#endif
 #include <debug.h>
-extern bool log_enable();
-extern void log_buffer_flush();
-extern void log_file_flush();
+#ifndef CONFIG_CC_GPP
 }
+#endif
 
 void PathManager::init() {
   assert(output_base_dir);
@@ -111,11 +112,15 @@ std::string PathManager::getSimpointPath() const {
 
 PathManager pathManager;
 
+#ifndef CONFIG_CC_GPP
 extern "C" {
+#endif
 
 void init_path_manager()
 {
   pathManager.init();
 }
 
+#ifndef CONFIG_CC_GPP
 }
+#endif

@@ -17,6 +17,7 @@
 #define __MEMORY_HOST_H__
 
 #include <common.h>
+#include <debug.h>
 
 static inline word_t host_read(void *addr, int len) {
   switch (len) {
