@@ -43,7 +43,7 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     } else if (id == 1) { // ebreak
       // Please keep the following lines same as in src/isa/riscv64/instr/special.h.
       rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
-      longjmp_exec(NEMU_EXEC_END);
+      longjmp_context(NEMU_EXEC_END);
 #endif
     } else {
       rtl_hostcall(s, HOSTCALL_PRIV, jpc, src1, NULL, id);
