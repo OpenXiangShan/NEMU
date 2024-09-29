@@ -648,17 +648,6 @@ void cpu_exec(uint64_t n) {
   int cause;
   PUSH_CONTEXT(cause);
   if (cause) {
-#ifdef CONFIG_RVV
-    //The processing logic when the fof instruction is abnormal but not trap.
-    //TODO Rewrite him in a better way
-    bool set_fofNoExceptionState(void);
-    if (set_fofNoExceptionState()){
-      // fof is committed, so the instruction count should be updated
-      cause = 0;
-      n_remain_total -= 1;
-      n_remain -= 1;
-    }
-#endif
     n_remain -= prev_s->idx_in_bb - 1;
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT
