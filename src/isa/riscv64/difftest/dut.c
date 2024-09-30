@@ -108,7 +108,6 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(tselect );
     check_reg(tdata1  );
     check_reg(tinfo   );
-    check_reg(tcontrol);
     #endif // CONFIG_RV_SDTRIG
     return false;
   }

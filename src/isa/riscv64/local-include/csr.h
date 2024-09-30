@@ -401,7 +401,7 @@
   #define CSRS_M_DEBUG_TRACE(f) \
     f(tselect    , 0x7A0) \
     f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) \
-    f(tinfo      , 0x7A4) f(tcontrol   , 0x7A5) \
+    f(tinfo      , 0x7A4) \
     IFDEF(CONFIG_SDTRIG_EXTRA, f(tdata3  , 0x7A3)) \
     IFDEF(CONFIG_SDTRIG_EXTRA, f(mcontext, 0x7A8))
 #else // CONFIG_RV_SDTRIG
@@ -803,13 +803,6 @@ CSR_STRUCT_END(tdata3)
 CSR_STRUCT_START(tinfo)     // 0x7a4
   uint64_t info : 16;       // [15:0]
 CSR_STRUCT_END(tinfo)
-
-CSR_STRUCT_START(tcontrol)  // 0x7a5
-  uint64_t pad0 : 3;        // [2:0]
-  uint64_t mte  : 1;        // [3]
-  uint64_t pad1 : 3;        // [6:4]
-  uint64_t mpte : 1;        // [7]
-CSR_STRUCT_END(tcontrol)
 
 CSR_STRUCT_START(mcontext)  // 0x7a8
 CSR_STRUCT_END(mcontext)
