@@ -65,30 +65,32 @@ typedef struct {
   uint64_t sizehi : 2;  // [22:21]
   uint64_t pad1   : 30; // [52:23]
   uint64_t maskmax: 6;  // [58:53]
-  uint64_t dmode  : 1;  // [59] 
+  uint64_t dmode  : 1;  // [59]
   uint64_t type   : 4;  // [63:60]
 } trig_mcontrol_t;
 
 typedef struct {
-  uint64_t load   : 1;  // [0]
-  uint64_t store  : 1;  // [1]
-  uint64_t execute: 1;  // [2]
-  uint64_t u      : 1;  // [3]
-  uint64_t s      : 1;  // [4]
-  uint64_t pad0   : 1;  // [5]
-  uint64_t m      : 1;  // [6]
-  uint64_t match  : 4;  // [10:7]
-  uint64_t chain  : 1;  // [11]
-  uint64_t action : 4;  // [15:12]
-  uint64_t size   : 4;  // [19:16]
-  uint64_t timing : 1;  // [20]
-  uint64_t select : 1;  // [21]
-  uint64_t hit    : 1;  // [22]
-  uint64_t vu     : 1;  // [23]
-  uint64_t vs     : 1;  // [24]
-  uint64_t pad1   : 34; // [58:25]
-  uint64_t dmode  : 1;  // [59] 
-  uint64_t type   : 4;  // [63:60]
+  uint64_t load         : 1;  // [0]
+  uint64_t store        : 1;  // [1]
+  uint64_t execute      : 1;  // [2]
+  uint64_t u            : 1;  // [3]
+  uint64_t s            : 1;  // [4]
+  uint64_t uncertainen  : 1;  // [5]
+  uint64_t m            : 1;  // [6]
+  uint64_t match        : 4;  // [10:7]
+  uint64_t chain        : 1;  // [11]
+  uint64_t action       : 4;  // [15:12]
+  uint64_t size         : 3;  // [18:16]
+  uint64_t pad0         : 2;  // [20:19]
+  uint64_t select       : 1;  // [21]
+  uint64_t hit0         : 1;  // [22]
+  uint64_t vu           : 1;  // [23]
+  uint64_t vs           : 1;  // [24]
+  uint64_t hit1         : 1;  // [25]
+  uint64_t uncertain    : 1;  // [26]
+  uint64_t pad1         : 32; // [58:27]
+  uint64_t dmode        : 1;  // [59]
+  uint64_t type         : 4;  // [63:60]
 } trig_mcontrol6_t;
 
 typedef struct {
@@ -102,7 +104,7 @@ typedef struct {
   uint64_t vu     : 1;  // [25]
   uint64_t vs     : 1;  // [26]
   uint64_t pad    : 32; // [58:27]
-  uint64_t dmode  : 1;  // [59] 
+  uint64_t dmode  : 1;  // [59]
   uint64_t type   : 4;  // [63:60]
 } trig_icount_t;
 
@@ -117,7 +119,7 @@ typedef struct {
   uint64_t vs     : 1;  // [12]
   uint64_t pad1   : 45; // [57:13]
   uint64_t hit    : 1;  // [58]
-  uint64_t dmode  : 1;  // [59] 
+  uint64_t dmode  : 1;  // [59]
   uint64_t type   : 4;  // [63:60]
 } trig_itrigger_t;
 
@@ -132,7 +134,7 @@ typedef struct {
   uint64_t vs     : 1;  // [12]
   uint64_t pad2   : 45; // [57:13]
   uint64_t hit    : 1;  // [58]
-  uint64_t dmode  : 1;  // [59] 
+  uint64_t dmode  : 1;  // [59]
   uint64_t type   : 4;  // [63:60]
 } trig_etrigger_t;
 
@@ -142,7 +144,7 @@ typedef struct {
   uint64_t intctl : 1;  // [22]
   uint64_t pad    : 35; // [57:23]
   uint64_t hit    : 1;  // [58]
-  uint64_t dmode  : 1;  // [59] 
+  uint64_t dmode  : 1;  // [59]
   uint64_t type   : 4;  // [63:60]
 } trig_tmexttrigger_t;
 
@@ -184,7 +186,7 @@ bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data);
 
 bool trigger_value_match(Trigger* trig, word_t value);
 
-void mcontrol_checked_write(trig_mcontrol_t* mcontrol, word_t* wdata, const struct TriggerModule* TM);
+void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const struct TriggerModule* TM);
 
 void trigger_handler(const trig_action_t action);
 
