@@ -127,7 +127,6 @@ typedef struct {
   uint64_t tselect;
   uint64_t tdata1;
   uint64_t tinfo;
-  uint64_t tcontrol;
 #endif // CONFIG_RV_SDTRIG
 
 

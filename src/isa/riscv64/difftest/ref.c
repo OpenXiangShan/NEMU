@@ -93,7 +93,6 @@ void csr_prepare() {
   cpu.tselect  = tselect->val;
   cpu.tdata1   = tdata1->val;
   cpu.tinfo    = tinfo->val;
-  cpu.tcontrol = tcontrol->val;
 #endif // CONFIG_RV_SDTRIG
 #ifndef CONFIG_FPU_NONE
   cpu.fcsr     = fcsr->val;
@@ -156,7 +155,6 @@ void csr_writeback() {
   tselect->val  = cpu.tselect;
   tdata1->val   = cpu.tdata1;
   tinfo->val    = cpu.tinfo;
-  tcontrol->val = cpu.tcontrol;
 #endif // CONFIG_RV_SDTRIG
 #ifndef CONFIG_FPU_NONE
   fcsr->val     = cpu.fcsr;

@@ -87,7 +87,6 @@ void init_trigger() {
   tselect->val = 0;
   tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   tinfo->val = (1 << TRIG_TYPE_MCONTROL6);
-  tcontrol->val = 0;
 }
 #endif // CONFIG_RV_SDTRIG
 
@@ -351,80 +350,44 @@ static inline word_t* csr_decode(uint32_t addr) {
                        (1 << EX_HWE))
 #endif
 
-#define MEDELEG_RVH_SDTRIG ((1 << EX_IAM ) | \
-                            (1 << EX_IAF ) | \
-                            (1 << EX_II  ) | \
-                            (1 << EX_LAM ) | \
-                            (1 << EX_LAF ) | \
-                            (1 << EX_SAM ) | \
-                            (1 << EX_SAF ) | \
-                            (1 << EX_ECU ) | \
-                            (1 << EX_ECS ) | \
-                            (1 << EX_ECVS) | \
-                            (1 << EX_IPF ) | \
-                            (1 << EX_LPF ) | \
-                            (1 << EX_SPF ) | \
-                            (1 << EX_SWC ) | \
-                            (1 << EX_HWE ) | \
-                            (1 << EX_IGPF) | \
-                            (1 << EX_LGPF) | \
-                            (1 << EX_VI  ) | \
-                            (1 << EX_SGPF))
+#define MEDELEG_RVH ((1 << EX_IAM ) | \
+                     (1 << EX_IAF ) | \
+                     (1 << EX_II  ) | \
+                     (1 << EX_BP  ) | \
+                     (1 << EX_LAM ) | \
+                     (1 << EX_LAF ) | \
+                     (1 << EX_SAM ) | \
+                     (1 << EX_SAF ) | \
+                     (1 << EX_ECU ) | \
+                     (1 << EX_ECS ) | \
+                     (1 << EX_ECVS) | \
+                     (1 << EX_IPF ) | \
+                     (1 << EX_LPF ) | \
+                     (1 << EX_SPF ) | \
+                     (1 << EX_SWC ) | \
+                     (1 << EX_HWE ) | \
+                     (1 << EX_IGPF) | \
+                     (1 << EX_LGPF) | \
+                     (1 << EX_VI  ) | \
+                     (1 << EX_SGPF))
 
-#define MEDELEG_RVH_NONSDTRIG ( (1 << EX_IAM ) | \
-                                (1 << EX_IAF ) | \
-                                (1 << EX_II  ) | \
-                                (1 << EX_BP  ) | \
-                                (1 << EX_LAM ) | \
-                                (1 << EX_LAF ) | \
-                                (1 << EX_SAM ) | \
-                                (1 << EX_SAF ) | \
-                                (1 << EX_ECU ) | \
-                                (1 << EX_ECS ) | \
-                                (1 << EX_ECVS) | \
-                                (1 << EX_IPF ) | \
-                                (1 << EX_LPF ) | \
-                                (1 << EX_SPF ) | \
-                                (1 << EX_SWC ) | \
-                                (1 << EX_HWE ) | \
-                                (1 << EX_IGPF) | \
-                                (1 << EX_LGPF) | \
-                                (1 << EX_VI  ) | \
-                                (1 << EX_SGPF))
+#define MEDELEG_NONRVH ((1 << EX_IAM) | \
+                        (1 << EX_IAF) | \
+                        (1 << EX_II ) | \
+                        (1 << EX_BP ) | \
+                        (1 << EX_LAM) | \
+                        (1 << EX_LAF) | \
+                        (1 << EX_SAM) | \
+                        (1 << EX_SAF) | \
+                        (1 << EX_ECU) | \
+                        (1 << EX_ECS) | \
+                        (1 << EX_IPF) | \
+                        (1 << EX_LPF) | \
+                        (1 << EX_SPF) | \
+                        (1 << EX_SWC) | \
+                        (1 << EX_HWE))
 
-#define MEDELEG_NONRVH_SDTRIG ((1 << EX_IAM) | \
-                               (1 << EX_IAF) | \
-                               (1 << EX_II ) | \
-                               (1 << EX_LAM) | \
-                               (1 << EX_LAF) | \
-                               (1 << EX_SAM) | \
-                               (1 << EX_SAF) | \
-                               (1 << EX_ECU) | \
-                               (1 << EX_ECS) | \
-                               (1 << EX_IPF) | \
-                               (1 << EX_LPF) | \
-                               (1 << EX_SPF) | \
-                               (1 << EX_SWC) | \
-                               (1 << EX_HWE))
-
-#define MEDELEG_NONRVH_NONSDTRIG ((1 << EX_IAM) | \
-                                  (1 << EX_IAF) | \
-                                  (1 << EX_II ) | \
-                                  (1 << EX_BP ) | \
-                                  (1 << EX_LAM) | \
-                                  (1 << EX_LAF) | \
-                                  (1 << EX_SAM) | \
-                                  (1 << EX_SAF) | \
-                                  (1 << EX_ECU) | \
-                                  (1 << EX_ECS) | \
-                                  (1 << EX_IPF) | \
-                                  (1 << EX_LPF) | \
-                                  (1 << EX_SPF) | \
-                                  (1 << EX_SWC) | \
-                                  (1 << EX_HWE))
-
-#define MEDELEG_MASK MUXDEF(CONFIG_RVH, MUXDEF(CONFIG_RV_SDTRIG, MEDELEG_RVH_SDTRIG, MEDELEG_RVH_NONSDTRIG), \
-                                        MUXDEF(CONFIG_RV_SDTRIG, MEDELEG_NONRVH_SDTRIG, MEDELEG_NONRVH_NONSDTRIG))
+#define MEDELEG_MASK MUXDEF(CONFIG_RVH,  MEDELEG_RVH, MEDELEG_NONRVH)
 
 #define MIDELEG_WMASK_BASE 0x222
 #define MIDELEG_WMASK MUXDEF(CONFIG_RV_SSCOFPMF, (MIDELEG_WMASK_BASE | 1 << IRQ_LCOFI), MIDELEG_WMASK_BASE)
@@ -2063,9 +2026,6 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
           mstatus->mdt = 0;
         }
       }
-#ifdef CONFIG_RV_SDTRIG
-      tcontrol->mte = tcontrol->mpte;
-#endif
 #ifdef CONFIG_RVH
       cpu.v = (mstatus->mpp == MODE_M ? 0 : mstatus->mpv);
       mstatus->mpv = 0;

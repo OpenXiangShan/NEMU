@@ -55,7 +55,7 @@ enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 #endif //CONFIG_RVH
 
 #if defined (RV64_FULL_DIFF) && defined (CONFIG_RV_SDTRIG)
-#define TRIGGER_REG_SIZE (sizeof(uint64_t) * 4) // tselect tdata1Selected tinfo tcontrol
+#define TRIGGER_REG_SIZE (sizeof(uint64_t) * 3) // tselect tdata1Selected tinfo
 #else
 #define TRIGGER_REG_SIZE 0
 #endif //CONFIG_RV_SDTRIG

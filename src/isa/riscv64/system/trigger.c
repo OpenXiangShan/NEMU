@@ -15,7 +15,7 @@ void tm_update_timings(struct TriggerModule* TM) {
     trig_mcontrol6_t* mcontrol6 = (trig_mcontrol6_t*)tdata1;
 
 
-    /* Table 15. Suggested Trigger Timing in debug specification. Don't care data(select = true) match. 
+    /* Table 15. Suggested Trigger Timing in debug specification. Don't care data(select = true) match.
     *  | Match   | Type Suggested Trigger Timing |
     *  | Execute | Address Before                |
     *  | Execute | Instruction Before            |
@@ -26,7 +26,7 @@ void tm_update_timings(struct TriggerModule* TM) {
     *  | Store   | Address Before                |
     *  | Store   | Data Before                   |
     *  | Store   | Address + Data Before         |
-    * 
+    *
     * For mcontrol6 you can't request a timing. Default to before since that's
     * most useful to the user.
     */
@@ -85,17 +85,23 @@ trig_action_t tm_check_hit(
 }
 
 bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data) {
+  uint64_t BP_MASK = 1 << EX_BP;
+  bool medeleg_bp = medeleg->val & BP_MASK;
+  bool hedeleg_bp = hedeleg->val & BP_MASK;
   // not meet trigger condition
-  if (((op & TRIG_OP_EXECUTE)       && !trig->tdata1.mcontrol6.execute) ||
-      ((op & TRIG_OP_LOAD)          && !trig->tdata1.mcontrol6.load) ||
-      ((op & TRIG_OP_STORE)         && !trig->tdata1.mcontrol6.store) ||
-      ((op & TRIG_OP_TIMING)        && !false) ||
-      (cpu.mode == MODE_M           && !(trig->tdata1.mcontrol6.m && tcontrol->mte)) ||
-      (cpu.mode == MODE_S           && !trig->tdata1.mcontrol6.s) ||
-      (cpu.mode == MODE_U           && !trig->tdata1.mcontrol6.u) ||
+  if (((op & TRIG_OP_EXECUTE) && !trig->tdata1.mcontrol6.execute) ||
+      ((op & TRIG_OP_LOAD)    && !trig->tdata1.mcontrol6.load)    ||
+      ((op & TRIG_OP_STORE)   && !trig->tdata1.mcontrol6.store)   ||
+      ((op & TRIG_OP_TIMING))                                     ||
+      (cpu.mode == MODE_M     && (!trig->tdata1.mcontrol6.m || (!mstatus->mie))) ||
 #ifdef CONFIG_RVH
-      (cpu.mode == MODE_S && cpu.v  && !trig->tdata1.mcontrol6.vs) ||
-      (cpu.mode == MODE_U && cpu.v  && !trig->tdata1.mcontrol6.vu)
+      (cpu.mode == MODE_S && cpu.v  && (!trig->tdata1.mcontrol6.vs || (medeleg_bp && hedeleg_bp && !vsstatus->sie))) ||
+      (cpu.mode == MODE_U && cpu.v  && !trig->tdata1.mcontrol6.vu)                                                   ||
+      (cpu.mode == MODE_S && !cpu.v && (!trig->tdata1.mcontrol6.s || (medeleg_bp && !sstatus->sie)))                 ||
+      (cpu.mode == MODE_U && !cpu.v && !trig->tdata1.mcontrol6.u)
+#else
+      (cpu.mode == MODE_S && (!trig->tdata1.mcontrol6.s || (medeleg_bp && !sstatus->sie))) ||
+      (cpu.mode == MODE_U && !trig->tdata1.mcontrol6.u)
 #endif // CONFIG_RVH
       ) {
     return false;
