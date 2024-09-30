@@ -674,6 +674,7 @@ static inline word_t non_vmode_get_sie() {
   word_t tmp = 0;
 #ifdef CONFIG_RV_AIA
   tmp |= mie->val & (MIP_SSIP | MIP_STIP | MIP_SEIP) & mideleg->val;
+  tmp |= sie->val & (MIP_SSIP | MIP_SEIP) & (~mideleg->val & mvien->val);
   tmp |= non_vmode_get_ie(tmp, 13, 63);
 #else
   tmp = mie->val & SIE_MASK_BASE;
@@ -910,7 +911,7 @@ static inline word_t vmode_get_sip() {
 
 #ifdef CONFIG_RVH
 static inline void vmode_set_sip(word_t src) {
-  mip->val = mask_bitset(mip->val, MIP_VSSIP, src << 1);
+  hvip->val = mask_bitset(hvip->val, MIP_VSSIP, src << 1);
 
 #ifdef CONFIG_RV_AIA
   mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
