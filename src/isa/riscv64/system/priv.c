@@ -86,7 +86,7 @@ void init_trigger() {
   }
   tselect->val = 0;
   tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
-  tinfo->val = (1 << TRIG_TYPE_MCONTROL);
+  tinfo->val = (1 << TRIG_TYPE_MCONTROL6);
   tcontrol->val = 0;
 }
 #endif // CONFIG_RV_SDTRIG
@@ -1133,8 +1133,7 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
 #endif
 
 #ifdef CONFIG_RV_SDTRIG
-  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val ^
-    (cpu.TM->triggers[tselect->val].tdata1.mcontrol.hit << 20); }
+  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val; }
   if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
 #ifdef CONFIG_SDTRIG_EXTRA
   if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
@@ -1585,8 +1584,8 @@ static inline void csr_write(word_t *dest, word_t src) {
       tdata1_reg->type = TRIG_TYPE_DISABLE;
       tdata1_reg->data = 0;
       break;
-    case TRIG_TYPE_MCONTROL:
-      mcontrol_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol, &src, cpu.TM);
+    case TRIG_TYPE_MCONTROL6:
+      mcontrol6_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol6, &src, cpu.TM);
       tm_update_timings(cpu.TM);
       break;
     default:
