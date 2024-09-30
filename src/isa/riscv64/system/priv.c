@@ -910,7 +910,7 @@ static inline word_t vmode_get_sip() {
 
 #ifdef CONFIG_RVH
 static inline void vmode_set_sip(word_t src) {
-  mip->val = mask_bitset(mip->val, MIP_VSSIP, src << 1);
+  hvip->val = mask_bitset(hvip->val, MIP_VSSIP, src << 1);
 
 #ifdef CONFIG_RV_AIA
   mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
