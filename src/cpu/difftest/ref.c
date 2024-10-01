@@ -248,6 +248,16 @@ void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlIn
 
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
+  printf("Attention: difftest_non_reg_interrupt_pending\n");
+  printf("platform_irp_meip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_meip);
+  printf("platform_irp_mtip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_mtip);
+  printf("platform_irp_msip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_msip);
+  printf("platform_irp_seip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_seip);
+  printf("platform_irp_stip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_stip);
+  printf("platform_irp_vseip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_vseip);
+  printf("platform_irp_vstip: %d\n", cpu.non_reg_interrupt_pending.platform_irp_vstip);
+  printf("lcofi_req: %d\n", cpu.non_reg_interrupt_pending.lcofi_req);
+  printf("Attention finish\n");
 }
 
 void difftest_enable_debug() {
