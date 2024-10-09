@@ -623,7 +623,29 @@ CSR_STRUCT_START(minstret)
 CSR_STRUCT_END(minstret)
 
 CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMCOUNTER)
-CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMEVENT)
+
+#define CSRS_M_HPMEVENTS_STRUCT(name, addr) \
+  typedef union {                   \
+    struct {                        \
+      uint64_t event0   : 10;       \
+      uint64_t event1   : 10;       \
+      uint64_t event2   : 10;       \
+      uint64_t event3   : 10;       \
+      uint64_t optype0  : 5;        \
+      uint64_t optype1  : 5;        \
+      uint64_t optype2  : 5;        \
+      uint64_t pad0     : 3;        \
+      uint64_t vuinh    : 1;        \
+      uint64_t vsinh    : 1;        \
+      uint64_t uinh     : 1;        \
+      uint64_t sinh     : 1;        \
+      uint64_t minh     : 1;        \
+      uint64_t of       : 1;        \
+    };                              \
+    word_t val;                     \
+  } concat(name, _t);
+
+MAP(CSRS_M_HPMEVENT, CSRS_M_HPMEVENTS_STRUCT)
 
 CSR_STRUCT_START(mcounteren)
 CSR_STRUCT_END(mcounteren)
