@@ -108,9 +108,9 @@ int isa_fetch_decode(Decode *s) {
 #ifdef CONFIG_RV_SDTRIG
   trig_action_t action = TRIG_ACTION_NONE;
   if (cpu.TM->check_timings.bf) {
-    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->snpc, TRIGGER_NO_VALUE);
+    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
   }
-  trigger_handler(action, s->snpc);
+  trigger_handler(action, s->pc);
 #endif
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
@@ -129,9 +129,9 @@ int isa_fetch_decode(Decode *s) {
 
 #ifdef CONFIG_RV_SDTRIG
   if (cpu.TM->check_timings.af) {
-    action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_EXECUTE | TRIG_OP_TIMING), s->snpc, s->isa.instr.val);
+    action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_EXECUTE | TRIG_OP_TIMING), s->pc, s->isa.instr.val);
   }
-  trigger_handler(action, s->snpc);
+  trigger_handler(action, s->pc);
 #endif
 
   s->type = INSTR_TYPE_N;
