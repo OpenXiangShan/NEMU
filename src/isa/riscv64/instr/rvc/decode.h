@@ -215,6 +215,38 @@ static inline def_DHelper(C_FLD) {
   decode_C_ldst_common(s, 2, false, true);
 }
 
+// Zcb Extension
+static inline void decode_C_ldst_zcb(Decode *s, bool is_store, bool need_uimm0) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
+  uint32_t rd_rs2 = creg2reg(BITS(instr, 4, 2)); // load:rd  store:rs2
+  uint32_t uimm1 = (instr >> 5) & UINT32_C(1);
+
+  uint32_t imm;
+  if (need_uimm0) {
+    uint32_t uimm0 = (instr >> 6) & UINT32_C(1);
+    imm = (uimm1 << 1) | uimm0;
+  } else {
+    imm = (uimm1 << 1) | UINT32_C(0);
+  }
+
+  decode_op_i(s, id_src2, imm, false);
+  decode_op_r(s, id_src1, rs1, true);
+  decode_op_r(s, id_dest, rd_rs2, is_store);
+}
+
+static inline def_DHelper(C_LBU) {
+  decode_C_ldst_zcb(s, false, true);
+}
+
+static inline def_DHelper(C_LHU) {
+  decode_C_ldst_zcb(s, false, false);
+}
+
+static inline def_DHelper(C_LH) {
+  decode_C_ldst_zcb(s, false, false);
+}
+
 // ---------- CS ----------
 
 static inline def_DHelper(C_SW) {
@@ -233,6 +265,14 @@ static inline def_DHelper(CS) {
   decode_op_C_rd_rs1(s, true);
   uint32_t rs2 = creg2reg(BITS(s->isa.instr.val, 4, 2));
   decode_op_r(s, id_src2, rs2, true);
+}
+
+static inline def_DHelper(C_SB) {
+  decode_C_ldst_zcb(s, true, true);
+}
+
+static inline def_DHelper(C_SH) {
+  decode_C_ldst_zcb(s, true, false);
 }
 
 // ---------- CB ----------
@@ -337,13 +377,23 @@ def_THelper(c_ldst) {
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("010 ??? ??? ?? ??? ??", lw);
     def_INSTR_TAB("011 ??? ??? ?? ??? ??", ld);
+    def_INSTR_TAB("100 000 ??? ?? ??? ??", lbu);
+    def_INSTR_TAB("100 001 ??? 0? ??? ??", lhu);
+    def_INSTR_TAB("100 001 ??? 1? ??? ??", lh);
     def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw);
     def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd);
+    def_INSTR_TAB("100 010 ??? ?? ??? ??", sb);
+    def_INSTR_TAB("100 011 ??? 0? ??? ??", sh);
   } else if (mmu_mode == MMU_TRANSLATE) {
     def_INSTR_TAB("010 ??? ??? ?? ??? ??", lw_mmu);
     def_INSTR_TAB("011 ??? ??? ?? ??? ??", ld_mmu);
+    def_INSTR_TAB("100 000 ??? ?? ??? ??", lbu_mmu);
+    def_INSTR_TAB("100 001 ??? 0? ??? ??", lhu_mmu);
+    def_INSTR_TAB("100 001 ??? 1? ??? ??", lh_mmu);
     def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw_mmu);
     def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd_mmu);
+    def_INSTR_TAB("100 010 ??? ?? ??? ??", sb_mmu);
+    def_INSTR_TAB("100 011 ??? 0? ??? ??", sh_mmu);
   } else assert(0);
   return EXEC_ID_inv;
 }
@@ -440,11 +490,16 @@ def_THelper(rvc_Q0) {
 #endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("010 ??? ??? ?? ??? ??", C_LW , c_ldst);
   def_INSTR_IDTAB("011 ??? ??? ?? ??? ??", C_LD , c_ldst);
+  def_INSTR_IDTAB("100 000 ??? ?? ??? ??", C_LBU , c_ldst);
+  def_INSTR_IDTAB("100 001 ??? 0? ??? ??", C_LHU , c_ldst);
+  def_INSTR_IDTAB("100 001 ??? 1? ??? ??", C_LH , c_ldst);
 #ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("101 ??? ??? ?? ??? ??", C_FSD, c_fldst);
 #endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("110 ??? ??? ?? ??? ??", C_SW , c_ldst);
   def_INSTR_IDTAB("111 ??? ??? ?? ??? ??", C_SD , c_ldst);
+  def_INSTR_IDTAB("100 010 ??? ?? ??? ??", C_SB , c_ldst);
+  def_INSTR_IDTAB("100 011 ??? 0? ??? ??", C_SH , c_ldst);
   return EXEC_ID_inv;
 }
 
