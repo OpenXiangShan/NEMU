@@ -1627,7 +1627,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
   }
 #endif// CONFIG_RVH
-  else if (is_mhpmcounter(dest) || is_mhpmevent(dest)) {
+  else if (is_mhpmcounter(dest)) {
     // read-only zero in NEMU
     return;
   }
