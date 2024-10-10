@@ -571,6 +571,15 @@ static inline word_t gen_mask(word_t begin, word_t end) {
   return tmp_mask;
 }
 
+static inline bool check_hpmevent_op(unsigned new_val ) {
+  switch (new_val) {
+    case OP_OR: case OP_AND: case OP_XOR: case OP_ADD:
+      return true;
+    default:
+      return false;
+  }
+}
+
 #ifdef CONFIG_RV_AIA
 static inline word_t vmode_get_ie(word_t old_value, word_t begin, word_t end) {
   word_t mask = gen_mask(begin, end);
@@ -1297,6 +1306,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     update_vsatp(new_val);
   }else if (is_write(mstatus)) {
     uint64_t mstatus_wmask = MSTATUS_WMASK;
+    unsigned prev_mpp = mstatus->mpp;
     // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
   #ifdef CONFIG_RV_SMDBLTRP
     if (src & MSTATUS_MIE) {
@@ -1319,7 +1329,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
   #endif //CONFIG_RV_SSDBLTRP
     mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
-    update_mmu_state(); // maybe this write update mprv, mpp or mpv
+    if (mstatus->mpp == MODE_HS) {
+      // MODE_H is not implemented. write will not take effect.
+      mstatus->mpp = prev_mpp;
+    }
+    update_mmu_state(); // maybe write update mprv, mpp or mpv
   #ifdef CONFIG_RV_SMDBLTRP
     // when MDT is explicitly written by 1, clear MIE
     if (src & MSTATUS_WMASK_MDT) { mstatus->mie = 0; }
@@ -1377,10 +1391,14 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(mnscratch)) { *dest = src; }
   else if (is_write(mnstatus)) {
     word_t mnstatus_mask = MNSTATUS_MASK;
+    unsigned pre_mnpp = mnstatus->mnpp;
     if ((src & MNSTATUS_NMIE) == 0) {
       mnstatus_mask &= ~MNSTATUS_NMIE;
     }
     mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
+    if (mnstatus->mnpp == MODE_HS) {
+      mnstatus->mnpp = pre_mnpp;
+    }
   }
 #endif //CONFIG_RV_SMRNMI
 #ifdef CONFIG_RVH
@@ -1618,6 +1636,26 @@ static inline void csr_write(word_t *dest, word_t src) {
     // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
   }
 #endif// CONFIG_RVH
+  else if (is_mhpmevent(dest)) {
+    mhpmevent3_t *mhpmevent = (mhpmevent3_t *)dest;
+    unsigned pre_op0 = mhpmevent->optype0;
+    unsigned pre_op1 = mhpmevent->optype1;
+    unsigned pre_op2 = mhpmevent->optype2;
+
+    mhpmevent3_t new_val;
+    new_val.val = src;
+    *mhpmevent = new_val;
+
+    if (!check_hpmevent_op(new_val.optype0)) {
+      mhpmevent->optype0 = pre_op0;
+    }
+    if (!check_hpmevent_op(new_val.optype1)) {
+      mhpmevent->optype1 = pre_op1;
+    }
+    if (!check_hpmevent_op(new_val.optype2)) {
+      mhpmevent->optype2 = pre_op2;
+    }
+  }
   else if (is_mhpmcounter(dest)) {
     // read-only zero in NEMU
     return;
