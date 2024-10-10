@@ -100,7 +100,7 @@ static inline int32_t search_ppn(vaddr_t addr, int type) {
       if (!tlb[i].lo[a.lo_idx].V) {
         cpu.entryhi.VPN2 = a.vpn;
 //        Log("tlb[%d] invalid at cpu.pc = 0x%08x, badaddr = 0x%08x", i, cpu.pc, addr);
-        longjmp_exec(type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD);
+        longjmp_context(type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD);
       }
       //Assert(tlb[i].lo[a.lo_idx].V, "cpu.pc = 0x%08x, addr = 0x%08x, lo0 = 0x%08x, lo1 = 0x%08x",
       //    cpu.pc, addr, tlb[i].lo[0].val, tlb[i].lo[1].val);
@@ -109,7 +109,7 @@ static inline int32_t search_ppn(vaddr_t addr, int type) {
   }
   cpu.entryhi.VPN2 = a.vpn;
 //  Log("tlb refill at cpu.pc = 0x%08x, badaddr = 0x%08x", cpu.pc, addr);
-  longjmp_exec(TLB_REFILL | (type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD));
+  longjmp_context(TLB_REFILL | (type == MEM_TYPE_WRITE ? EX_TLB_ST : EX_TLB_LD));
   return -1;
 }
 #endif
