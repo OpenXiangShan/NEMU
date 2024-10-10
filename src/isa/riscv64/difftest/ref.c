@@ -420,10 +420,11 @@ void isa_difftest_set_mhartid(int n) {
 void isa_update_mip(unsigned lcofip) {
   mip->lcofip = lcofip;
 }
+
 void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec) {
 #ifdef CONFIG_RV_SSCOFPMF
   for (int i = 0; i < 29; i++) {
-    mhpmevent3_t * current_hpm = (mhpmevent3_t *)&csr_array[CSR_MHPMEVENT_BASE + i];
+    mhpmevent3_t* current_hpm = (mhpmevent3_t*)&csr_array[CSR_MHPMEVENT_BASE + i];
     current_hpm->of = (mhpmeventOverflowVec >> i) & 0x1;
   }
 #endif

@@ -452,6 +452,36 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATEEN0_WMASK  0xdc00000000000001ULL
 #define SSTATEEN0_WMASK  0x0000000000000001ULL // 32 bits
 
+#define MHPMEVENT_WMASK_OF      (0x1UL   << 63)
+#define MHPMEVENT_WMASK_MINH    (0x1UL   << 62)
+#define MHPMEVENT_WMASK_SINH    (0x1UL   << 61)
+#define MHPMEVENT_WMASK_UINH    (0x1UL   << 60)
+#define MHPMEVENT_WMASK_VSINH   (0x1UL   << 59)
+#define MHPMEVENT_WMASK_VUINH   (0x1UL   << 58)
+#define MHPMEVENT_WMASK_OPTYPE2 (0X1FUL  << 50)
+#define MHPMEVENT_WMASK_OPTYPE1 (0X1FUL  << 45)
+#define MHPMEVENT_WMASK_OPTYPE0 (0X1FUL  << 40)
+#define MHPMEVENT_WMASK_EVENT3  (0X3FFUL << 30)
+#define MHPMEVENT_WMASK_EVENT2  (0X3FFUL << 20)
+#define MHPMEVENT_WMASK_EVENT1  (0X3FFUL << 10)
+#define MHPMEVENT_WMASK_EVENT0  (0X3FFUL <<  0)
+
+#define MHPMEVENT_WMASK (   \
+  MHPMEVENT_WMASK_OF      | \
+  MHPMEVENT_WMASK_MINH    | \
+  MHPMEVENT_WMASK_SINH    | \
+  MHPMEVENT_WMASK_UINH    | \
+  MHPMEVENT_WMASK_VSINH   | \
+  MHPMEVENT_WMASK_VUINH   | \
+  MHPMEVENT_WMASK_OPTYPE2 | \
+  MHPMEVENT_WMASK_OPTYPE1 | \
+  MHPMEVENT_WMASK_OPTYPE0 | \
+  MHPMEVENT_WMASK_EVENT3  | \
+  MHPMEVENT_WMASK_EVENT2  | \
+  MHPMEVENT_WMASK_EVENT1  | \
+  MHPMEVENT_WMASK_EVENT0    \
+)
+
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
 #define is_access(csr) (dest_access == (void *)(csr))
@@ -576,6 +606,15 @@ static inline word_t gen_mask(word_t begin, word_t end) {
   tmp_mask = ((1 << (end - begin + 1)) - 1) << begin;
 
   return tmp_mask;
+}
+
+static inline bool hpmevent_op_islegal(unsigned new_val) {
+  switch (new_val) {
+    case OP_OR: case OP_AND: case OP_XOR: case OP_ADD:
+      return true;
+    default:
+      return false;
+  }
 }
 
 #ifdef CONFIG_RV_AIA
@@ -1305,6 +1344,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     update_vsatp(new_val);
   }else if (is_write(mstatus)) {
     uint64_t mstatus_wmask = MSTATUS_WMASK;
+    unsigned prev_mpp = mstatus->mpp;
     // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
   #ifdef CONFIG_RV_SMDBLTRP
     if (src & MSTATUS_MIE) {
@@ -1327,7 +1367,11 @@ static inline void csr_write(word_t *dest, word_t src) {
     }
   #endif //CONFIG_RV_SSDBLTRP
     mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
-    update_mmu_state(); // maybe this write update mprv, mpp or mpv
+    if (mstatus->mpp == MODE_RS) {
+      // MODE_RS is reserved. write will not take effect.
+      mstatus->mpp = prev_mpp;
+    }
+    update_mmu_state(); // maybe write update mprv, mpp or mpv
   #ifdef CONFIG_RV_SMDBLTRP
     // when MDT is explicitly written by 1, clear MIE
     if (src & MSTATUS_WMASK_MDT) { mstatus->mie = 0; }
@@ -1355,8 +1399,8 @@ static inline void csr_write(word_t *dest, word_t src) {
     // by writing that mode to MPP then reading it back. If the machine
     // provides only U and M modes, then only a single hardware storage bit
     // is required to represent either 00 or 11 in MPP.
-    if (mstatus->mpp == MODE_HS) {
-      // MODE_H is not implemented. The write will not take effect.
+    if (mstatus->mpp == MODE_RS) {
+      // MODE_RS is reserved. The write will not take effect.
       mstatus->mpp = prev_mpp;
     }
 #endif // CONFIG_RVH
@@ -1386,10 +1430,14 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(mnscratch)) { *dest = src; }
   else if (is_write(mnstatus)) {
     word_t mnstatus_mask = MNSTATUS_MASK;
+    unsigned pre_mnpp = mnstatus->mnpp;
 //    if ((src & MNSTATUS_NMIE) == 0) {
 //      mnstatus_mask &= ~MNSTATUS_NMIE;
 //    }
     mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
+    if (mnstatus->mnpp == MODE_RS) {
+      mnstatus->mnpp = pre_mnpp;
+    }
   }
 #endif //CONFIG_RV_SMRNMI
 #ifdef CONFIG_RVH
@@ -1627,6 +1675,26 @@ static inline void csr_write(word_t *dest, word_t src) {
     // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
   }
 #endif// CONFIG_RVH
+  else if (is_mhpmevent(dest)) {
+    mhpmevent3_t *mhpmevent = (mhpmevent3_t *)dest;
+    unsigned pre_op0 = mhpmevent->optype0;
+    unsigned pre_op1 = mhpmevent->optype1;
+    unsigned pre_op2 = mhpmevent->optype2;
+    mhpmevent3_t new_val;
+    new_val.val = src;
+
+    *dest = src & MHPMEVENT_WMASK;
+
+    if (!hpmevent_op_islegal(new_val.optype0)) {
+      mhpmevent->optype0 = pre_op0;
+    }
+    if (!hpmevent_op_islegal(new_val.optype1)) {
+      mhpmevent->optype1 = pre_op1;
+    }
+    if (!hpmevent_op_islegal(new_val.optype2)) {
+      mhpmevent->optype2 = pre_op2;
+    }
+  }
   else if (is_mhpmcounter(dest)) {
     // read-only zero in NEMU
     return;
