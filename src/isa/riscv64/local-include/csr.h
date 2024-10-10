@@ -1525,8 +1525,6 @@ void csr_prepare();
 word_t gen_status_sd(word_t status);
 word_t get_mip();
 
-word_t csrid_read(uint32_t csrid);
-
 /** PMP **/
 uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
