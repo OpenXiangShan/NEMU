@@ -383,7 +383,7 @@
   f(mhpmevent16    , 0x330) f(mhpmevent17    , 0x331) f(mhpmevent18    , 0x332) f(mhpmevent19    , 0x333) \
   f(mhpmevent20    , 0x334) f(mhpmevent21    , 0x335) f(mhpmevent22    , 0x336) f(mhpmevent23    , 0x337) \
   f(mhpmevent24    , 0x338) f(mhpmevent25    , 0x339) f(mhpmevent26    , 0x33A) f(mhpmevent27    , 0x33B) \
-  f(mhpmevent28    , 0x33C) f(mhpmevent29    , 0x33D) f(mhpmevent30    , 0x33E) f(mhpmeven31     , 0x33F)
+  f(mhpmevent28    , 0x33C) f(mhpmevent29    , 0x33D) f(mhpmevent30    , 0x33E) f(mhpmevent31    , 0x33F)
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
   #define CSRS_M_MCOUNTINHIBIT(f) \
