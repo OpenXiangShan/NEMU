@@ -37,6 +37,13 @@ CPT_BIN = $(LIB_CPT_PATH)/build/gcpt.bin
 CPT_LAYOUT_HEADER = $(LIB_CPT_PATH)/src/restore_rom_addr.h
 
 CPT_CROSS_COMPILE ?= riscv64-unknown-linux-gnu-
+ifeq ($(shell which $(CPT_CROSS_COMPILE)gcc 2>/dev/null),)
+    CPT_CROSS_COMPILE := riscv64-unknown-elf-
+    ifeq ($(shell which $(CPT_CROSS_COMPILE)gcc 2>/dev/null),)
+        $(error Neither riscv64-unknown-linux-gnu-gcc nor riscv64-unknown-elf-gcc could be found in your PATH)
+    endif
+endif
+$(info Using cross compiler prefix: $(CPT_CROSS_COMPILE))
 
 $(CPT_LAYOUT_HEADER):
 	$(shell git clone https://github.com/OpenXiangShan/LibCheckpointAlpha.git $(LIB_CPT_PATH))
