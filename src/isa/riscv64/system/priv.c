@@ -251,11 +251,25 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SSTATUS_WMASK (MSTATUS_WMASK & SSTATUS_RMASK)
 
 // hstatus wmask
-#if defined(CONFIG_RVH)
-#define HSTATUS_WMASK ((1 << 22) | (1 << 21) | (1 << 20) | (1 << 18) | (0x3f << 12) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6))
-#else
-#define HSTATUS_WMASK 0
-#endif
+#define HSTATUS_WMASK_GVA     (0x1UL << 6)
+#define HSTATUS_WMASK_SPV     (0x1UL << 7)
+#define HSTATUS_WMASK_SPVP    (0x1UL << 8)
+#define HSTATUS_WMASK_HU      (0x1UL << 9)
+#define HSTATUS_WMASK_VGEIN   (0x3fUL << 12)
+#define HSTATUS_WMASK_VTVM    (0x1UL << 20)
+#define HSTATUS_WMASK_VTM     (0x1UL << 21)
+#define HSTATUS_WMASK_VTSR    (0x1UL << 22)
+
+#define HSTATUS_WMASK (   \
+  HSTATUS_WMASK_GVA     | \
+  HSTATUS_WMASK_SPV     | \
+  HSTATUS_WMASK_SPVP    | \
+  HSTATUS_WMASK_HU      | \
+  HSTATUS_WMASK_VGEIN   | \
+  HSTATUS_WMASK_VTVM    | \
+  HSTATUS_WMASK_VTM     | \
+  HSTATUS_WMASK_VTSR      \
+)
 
 #define MENVCFG_RMASK_STCE    (0x1UL << 63)
 #define MENVCFG_RMASK_PBMTE   (0x1UL << 62)
