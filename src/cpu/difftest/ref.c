@@ -246,6 +246,12 @@ void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlIn
 #endif
 }
 
+void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
+#ifdef CONFIG_RV_SSCOFPMF
+  isa_update_mhpmcounter_overflow(mhpmeventOverflowVec);
+#endif
+}
+
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
