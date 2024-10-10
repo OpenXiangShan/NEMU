@@ -248,6 +248,7 @@ void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlIn
 
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
+  isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 }
 
 void difftest_enable_debug() {

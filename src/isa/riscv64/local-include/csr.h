@@ -581,19 +581,20 @@ CSR_STRUCT_START(mideleg)
 CSR_STRUCT_END(mideleg)
 
 CSR_STRUCT_START(mip)
-  uint64_t usip : 1;
-  uint64_t ssip : 1;
-  uint64_t vssip: 1;
-  uint64_t msip : 1;
-  uint64_t utip : 1;
-  uint64_t stip : 1;
-  uint64_t vstip: 1;
-  uint64_t mtip : 1;
-  uint64_t ueip : 1;
-  uint64_t seip : 1;
-  uint64_t vseip: 1;
-  uint64_t meip : 1;
-  uint64_t sgeip: 1;
+  uint64_t usip  : 1;  // [0]
+  uint64_t ssip  : 1;  // [1]
+  uint64_t vssip : 1;  // [2]
+  uint64_t msip  : 1;  // [3]
+  uint64_t utip  : 1;  // [4]
+  uint64_t stip  : 1;  // [5]
+  uint64_t vstip : 1;  // [6]
+  uint64_t mtip  : 1;  // [7]
+  uint64_t ueip  : 1;  // [8]
+  uint64_t seip  : 1;  // [9]
+  uint64_t vseip : 1;  // [10]
+  uint64_t meip  : 1;  // [11]
+  uint64_t sgeip : 1;  // [12]
+  uint64_t lcofip: 1;  // [13]
 CSR_STRUCT_END(mip)
 
 CSR_STRUCT_START(mie)
