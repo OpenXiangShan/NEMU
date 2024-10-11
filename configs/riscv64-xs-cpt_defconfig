@@ -164,6 +164,7 @@ CONFIG_FPU_SOFT=y
 CONFIG_AC_NONE=y
 CONFIG_VECTOR_AC_SOFT=y
 CONFIG_MMIO_AC_SOFT=y
+CONFIG_AMO_AC_SOFT=y
 
 #
 # Processor difftest reference config

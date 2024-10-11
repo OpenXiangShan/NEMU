@@ -24,6 +24,11 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
   int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
 
+  // AMO does not support misalign operation
+  // So check misalign before real memory access
+  void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
+  isa_amo_misalign_data_addr_check(*src1, width, (funct5 == 0b00010) ? MEM_TYPE_READ : MEM_TYPE_WRITE);
+
   if (funct5 == 0b00010) { // lr
     assert(!cpu.amo);
     cpu.lr_addr = *src1;

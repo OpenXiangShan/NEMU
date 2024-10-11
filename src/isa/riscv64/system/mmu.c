@@ -726,6 +726,18 @@ void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
   }
 }
 
+// AMO access currently does not support hardware misalignment.
+void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
+  if (unlikely((vaddr & (len - 1)) != 0)) {
+    Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
+    if (ISDEF(CONFIG_AMO_AC_SOFT)) {
+      int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+      INTR_TVAL_REG(ex) = vaddr;
+      longjmp_exception(ex);
+    }
+  }
+}
+
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   bool is_cross_page = ((vaddr & PAGE_MASK) + len) > PAGE_SIZE;
   if (is_cross_page) return MEM_RET_CROSS_PAGE;
