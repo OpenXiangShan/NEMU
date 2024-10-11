@@ -1824,7 +1824,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   has_vi |= csr_readonly_permit_check(addr, is_write);
 
   // Attempts to access unprivileged counters without s/h/mcounteren
-  if (!has_vi && ((addr >= 0xC00 && addr <= 0xC1F) || (addr == 0x14D) || (addr == 0x24D))) {
+  if ((addr >= 0xC00 && addr <= 0xC1F) || (addr == 0x14D) || (addr == 0x24D)) {
     has_vi |= csr_counter_enable_check(addr);
   }
   // check smstateen
