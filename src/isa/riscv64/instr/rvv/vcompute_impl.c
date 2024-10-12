@@ -1365,8 +1365,11 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 0);
   else
     get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 0);
+  // store vs1's value
+  *s2 = *s1;
 
   word_t FPCALL_TYPE = FPCALL_W64;
+  uint64_t active_num = 0;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -1390,6 +1393,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     if(s->vm == 0 && mask==0) {
       continue;
     }
+    active_num++;
     // operand - vs2
     get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, 0, 1);
 
@@ -1404,6 +1408,13 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     }
 
   }
+
+  if (active_num == 0) {
+    // If no elements are active, no operations are performed, so the scalar in vs1[0] is simply copied to the destination register, without
+    // canonicalizing NaN values and without setting any exception flags
+    *s1 = *s2;
+  }
+
   if (RVV_AGNOSTIC) {
     if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
@@ -1495,6 +1506,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 void float_reduction_computing(Decode *s) {
   vector_reduction_check(s, false);
   word_t FPCALL_TYPE = FPCALL_W64;
+  uint64_t active_num = 0;
 
   // fpcall type
   switch (vtype->vsew) {
@@ -1515,6 +1527,7 @@ void float_reduction_computing(Decode *s) {
     if(s->vm == 0 && mask==0) {
       continue;
     }
+    active_num++;
     vreg_to_tmp_vreg(id_src2->reg, idx, vtype->vsew);
   }
 
@@ -1551,7 +1564,12 @@ void float_reduction_computing(Decode *s) {
 
   get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 0);
   get_tmp_vreg(0, 0, s0, vtype->vsew);
-  rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
+
+  if (active_num != 0) {
+    // If no elements are active, no operations are performed, so the scalar in vs1[0] is simply copied to the destination register, without
+    // canonicalizing NaN values and without setting any exception flags
+    rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
+  }
 
   if (RVV_AGNOSTIC) {
     if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
