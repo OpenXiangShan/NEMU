@@ -952,190 +952,206 @@ static inline void update_counter_mcountinhibit(word_t old, word_t new) {
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
 }
-
-static inline word_t csr_read(word_t *src) {
-#ifdef CONFIG_RV_PMP_CSR
-  if (is_pmpaddr(src)) {
-    int idx = (src - &csr_array[CSR_PMPADDR_BASE]);
-    if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
-      // CSRs of inactive pmp entries are read-only zero.
-      return 0;
-    }
-
-    uint8_t cfg = pmpcfg_from_index(idx);
-#ifdef CONFIG_SHARE
-    if(dynamic_config.debug_difftest) {
-      fprintf(stderr, "[NEMU] pmp addr read %d : 0x%016lx\n", idx,
-        (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
-    }
-#endif // CONFIG_SHARE
-    if ((cfg & PMP_A) >= PMP_NAPOT)
-      return *src | (~pmp_tor_mask() >> 1);
-    else
-      return *src & pmp_tor_mask();
-  }
-
-  // No need to handle read pmpcfg specifically, because
-  // - pmpcfg CSRs are all initialized to zero.
-  // - writing to inactive pmpcfg CSRs is handled.
-#endif // CONFIG_RV_PMP_CSR
-
-#ifdef CONFIG_RVH
- if (cpu.v == 1) {
-
-  if (is_read(sstatus))      {
-    uint64_t vsstatus_rmask = SSTATUS_RMASK;
-  #ifdef CONFIG_RV_SSDBLTRP
-    vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
-  #endif // CONFIG_RV_SSDBLTRP
-    return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
-  }
-  else if (is_read(sie))     { return vmode_get_sie(); }
-  else if (is_read(stvec))   { return vstvec->val; }
-  else if (is_read(sscratch)){ return vsscratch->val;}
-  else if (is_read(sepc))    { return vsepc->val;}
-  else if (is_read(scause))  { return vscause->val;}
-  else if (is_read(stval))   { return vstval->val;}
-  else if (is_read(sip))     { return vmode_get_sip(); }
-  else if (is_read(satp))    { return vsatp->val; }
-#ifdef CONFIG_RV_SSTC
-  else if (is_read(stimecmp)){ return vstimecmp->val; }
-#endif
-}
-if (is_read(mideleg))        { return (mideleg->val | MIDELEG_FORCED_MASK) | (mideleg->val & LCOFI); }
-if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK; }
-if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK; }
-if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
-if (is_read(hgeie))          { return hgeie->val & ~(0x1UL);}
-if (is_read(hip))            { return ((get_mip() & HIP_RMASK) | (hvip->val & MIP_VSSIP)) & (mideleg->val | MIDELEG_FORCED_MASK); }
-if (is_read(hie))            { return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);}
-if (is_read(hvip))           { return hvip->val & HVIP_MASK;}
-if (is_read(henvcfg))     {
-  uint64_t henvcfg_out = henvcfg->val;
-  henvcfg_out &= menvcfg->val & MENVCFG_WMASK;
-  /* henvcfg.stce/dte/pbmte is read_only 0 when menvcfg.stce/dte/pbmte = 0 */
-  henvcfg_out &= menvcfg->val | ~(MENVCFG_RMASK_STCE | MENVCFG_RMASK_DTE | MENVCFG_RMASK_PBMTE);
-  return henvcfg_out & HENVCFG_WMASK;
-}
-#ifdef CONFIG_RV_AIA
-if (is_read(hvien))          { return hvien->val & HVIEN_MSAK; }
-#endif
-if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longjmp_exception(EX_II); }
-  if (is_read(vsstatus))       {
-    uint64_t vsstatus_rmask = SSTATUS_RMASK;
-  #ifdef CONFIG_RV_SSDBLTRP
-    vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
-  #endif //CONFIG_RV_SSDBLTRP
-    return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
-  }
-  if (is_read(vsip))           { return get_vsip(); }
-  if (is_read(vsie))           { return get_vsie(); }
-#endif
-  if (is_read(mstatus))     {
-    uint64_t mstatus_rmask = MSTATUS_RMASK;
-  #ifdef CONFIG_RV_SSDBLTRP
-    mstatus_rmask &= (menvcfg->dte ? mstatus_rmask : ~MSTATUS_WMASK_SDT);
-  #endif //CONFIG_RV_SSDBLTRP
-    return gen_status_sd(mstatus->val) | (mstatus->val & mstatus_rmask);
-  }
-  if (is_read(sstatus))     {
-    uint64_t sstatus_rmask = SSTATUS_RMASK;
-  #ifdef CONFIG_RV_SSDBLTRP
-    sstatus_rmask &= (menvcfg->dte ? sstatus_rmask : ~MSTATUS_WMASK_SDT);
-  #endif //CONFIG_RV_SSDBLTRP
-    return gen_status_sd(mstatus->val) | (mstatus->val & sstatus_rmask);
-  }
-  else if (is_read(sie))    { return non_vmode_get_sie(); }
-  else if (is_read(mtvec))  { return mtvec->val; }
-  else if (is_read(stvec))  { return stvec->val; }
-  else if (is_read(sip))    {
-#ifndef CONFIG_RVH
-    difftest_skip_ref();
-#endif
-    return non_vmode_get_sip();
-  }
-#ifdef CONFIG_RV_AIA
-  else if (is_read(mvip))   { return get_mvip(); }
-  else if (is_read(mvien))  { return mvien->val & MVIEN_MASK; }
-#endif
-#ifdef CONFIG_RVV
-  else if (is_read(vcsr))   { return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1); }
-  else if (is_read(vlenb))  { return VLEN >> 3; }
-#endif
+static word_t csr_read(uint32_t csrid) {
+  word_t *src = csr_decode(csrid);
+  switch (csrid) {
+    /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
-  else if (is_read(fcsr))   {
-    return fcsr->val & FCSR_MASK;
-  }
-  else if (is_read(fflags)) {
-    return fcsr->fflags.val & FFLAGS_MASK;
-  }
-  else if (is_read(frm))    {
-    return fcsr->frm & FRM_MASK;
-  }
+    case CSR_FFLAGS: return fcsr->fflags.val & FFLAGS_MASK;
+    case CSR_FRM: return fcsr->frm & FRM_MASK;
+    case CSR_FCSR: return fcsr->val & FCSR_MASK;
 #endif // CONFIG_FPU_NONE
-  else if (is_read(mcycle)) {
-    // NEMU emulates a hart with CPI = 1.
-    difftest_skip_ref();
-    return get_mcycle();
-  }
-  else if (is_read(minstret)) {
-    // The number of retired instruction should be the same between dut and ref.
-    // But instruction counter of NEMU is not accurate when enabling Performance optimization.
-    difftest_skip_ref();
-    return get_minstret();
-  }
+
+#ifdef CONFIG_RVV
+    case CSR_VCSR: return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1);
+#endif // CONFIG_RVV
+
 #ifdef CONFIG_RV_ZICNTR
-  else if (is_read(cycle)) {
-    // NEMU emulates a hart with CPI = 1.
-    difftest_skip_ref();
-    return get_mcycle();
-  }
-  #ifdef CONFIG_RV_CSR_TIME
-    else if (is_read(csr_time)) {
+    case CSR_CYCLE:
+      // NEMU emulates a hart with CPI = 1.
+      difftest_skip_ref();
+      return get_mcycle();
+#ifdef CONFIG_RV_CSR_TIME
+    case CSR_CSR_TIME:
       difftest_skip_ref();
       return clint_uptime();
-    }
-  #endif // CONFIG_RV_CSR_TIME
-  else if (is_read(instret)) {
-    // The number of retired instruction should be the same between dut and ref.
-    // But instruction counter of NEMU is not accurate when enabling Performance optimization.
-    difftest_skip_ref();
-    return get_minstret();
-  }
+#endif // CONFIG_RV_CSR_TIME
+    case CSR_INSTRET:
+      // The number of retired instruction should be the same between dut and ref.
+      // But instruction counter of NEMU is not accurate when enabling Performance optimization.
+      difftest_skip_ref();
+      return get_minstret();
 #endif // CONFIG_RV_ZICNTR
+
+#ifdef CONFIG_RVV
+    case CSR_VLENB: return VLEN >> 3;
+#endif // CONFIG_RVV
+
+    /************************* Supervisor-Level CSRs *************************/
+    case CSR_SSTATUS:
+#ifdef CONFIG_RVH
+      if (cpu.v) {
+        uint64_t vsstatus_rmask = SSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+        vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif // CONFIG_RV_SSDBLTRP
+        return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
+      }
+#endif // CONFIG_RVH
+
+      uint64_t sstatus_rmask = SSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+      sstatus_rmask &= (menvcfg->dte ? sstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif //CONFIG_RV_SSDBLTRP
+      return gen_status_sd(mstatus->val) | (mstatus->val & sstatus_rmask);
+
+#ifdef CONFIG_RV_SMSTATEEN
+    case CSR_SSTATEEN0:
+      IFDEF(CONFIG_RVH, if (cpu.v) return sstateen0->val & hstateen0->val & mstateen0->val);
+      return sstateen0->val & mstateen0->val;
+#endif // CONFIG_RV_SMSTATEEN
+
+    case CSR_SIE:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vmode_get_sie());
+      return non_vmode_get_sie();
+    case CSR_STVEC: 
+      IFDEF(CONFIG_RVH, if (cpu.v) return vstvec->val);
+      return stvec->val;
+    case CSR_SSCRATCH:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vsscratch->val);
+      return sscratch->val;
+    case CSR_SEPC:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vsepc->val);
+      return sepc->val;
+    case CSR_SCAUSE:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vscause->val);
+      return scause->val;
+    case CSR_STVAL:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vstval->val);
+      return stval->val;
+    case CSR_SIP:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vmode_get_sip());
+      IFNDEF(CONFIG_RVH, difftest_skip_ref());
+      return non_vmode_get_sip();
+#ifdef CONFIG_RV_SSTC
+    case CSR_STIMECMP:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vstimecmp->val);
+      return stimecmp->val;
+#endif // CONFIG_RV_SSTC
+    case CSR_SATP:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vsatp->val);
+      return satp->val;
+
+    /************************* Hypervisor and VS CSRs *************************/
+#ifdef CONFIG_RVH
+    case CSR_VSSTATUS:
+      uint64_t vsstatus_rmask = SSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+      vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif //CONFIG_RV_SSDBLTRP
+      return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
+
+    case CSR_VSIE: return get_vsie();
+    case CSR_VSIP: return get_vsip();
+    case CSR_HEDELEG: return hedeleg->val & HEDELEG_MASK;
+    case CSR_HIDELEG: return hideleg->val & HIDELEG_MASK;
+    case CSR_HIE: return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);
+    case CSR_HGEIE: return hgeie->val & ~(0x1UL);
+#ifdef CONFIG_RV_AIA
+    case CSR_HVIEN: return hvien->val & HVIEN_MSAK;
+#endif
+    case CSR_HENVCFG:
+      uint64_t henvcfg_out = henvcfg->val;
+      henvcfg_out &= menvcfg->val & MENVCFG_WMASK;
+      /* henvcfg.stce/dte/pbmte is read_only 0 when menvcfg.stce/dte/pbmte = 0 */
+      henvcfg_out &= menvcfg->val | ~(MENVCFG_RMASK_STCE | MENVCFG_RMASK_DTE | MENVCFG_RMASK_PBMTE);
+      return henvcfg_out & HENVCFG_WMASK;
+
+#ifdef CONFIG_RV_SMSTATEEN
+    case CSR_HSTATEEN0: return hstateen0->val & mstateen0->val;
+#endif // CONFIG_RV_SMSTATEEN
+
+    case CSR_HIP: return ((get_mip() & HIP_RMASK) | (hvip->val & MIP_VSSIP)) & (mideleg->val | MIDELEG_FORCED_MASK);
+    case CSR_HVIP: return hvip->val & HVIP_MASK;
+    case CSR_HGEIP: return hgeip->val & ~(0x1UL);
+#endif // CONFIG_RVH
+
+    /************************* Machine-Level CSRs *************************/
+    case CSR_MSTATUS:
+      uint64_t mstatus_rmask = MSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+      mstatus_rmask &= (menvcfg->dte ? mstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif //CONFIG_RV_SSDBLTRP
+      return gen_status_sd(mstatus->val) | (mstatus->val & mstatus_rmask);
+
+    case CSR_MIDELEG:
+      IFDEF(CONFIG_RVH, return (mideleg->val | MIDELEG_FORCED_MASK) | (mideleg->val & LCOFI));
+      return mideleg->val;
+
+#ifdef CONFIG_RV_AIA
+    case CSR_MVIEN: return mvien->val & MVIEN_MASK;
+    case CSR_MVIP: return get_mvip();
+#endif // CONFIG_RV_AIA
+
+    case CSR_MIP:
 #ifndef CONFIG_RVH
-  if (is_read(mip)) { difftest_skip_ref(); }
+        difftest_skip_ref();
+        return mip->val;
 #else 
-  if (is_read(mip)) { return get_mip(); }
+        return get_mip();
 #endif
 
+#ifdef CONFIG_RV_PMP_CSR
+    case CSR_PMPADDR_BASE ... CSR_PMPADDR_BASE+CSR_PMPADDR_MAX_NUM-1:
+      int idx = (src - &csr_array[CSR_PMPADDR_BASE]);
+      if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
+        // CSRs of inactive pmp entries are read-only zero.
+        return 0;
+      }
+
+      uint8_t cfg = pmpcfg_from_index(idx);
+#ifdef CONFIG_SHARE
+      if(dynamic_config.debug_difftest) {
+        fprintf(stderr, "[NEMU] pmp addr read %d : 0x%016lx\n", idx,
+          (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
+      }
+#endif // CONFIG_SHARE
+      if ((cfg & PMP_A) >= PMP_NAPOT)
+        return *src | (~pmp_tor_mask() >> 1);
+      else
+        return *src & pmp_tor_mask();
+
+
+    // No need to handle read pmpcfg specifically, because
+    // - pmpcfg CSRs are all initialized to zero.
+    // - writing to inactive pmpcfg CSRs is handled.
+#endif // CONFIG_RV_PMP_CSR
+
+#ifdef CONFIG_RV_SMRNMI
+    case CSR_MNEPC: return mnepc->val & (~0x1UL) ;
+    case CSR_MNSTATUS: return mnstatus->val & MNSTATUS_MASK;
+#endif // CONFIG_RV_SMRNMI
+
 #ifdef CONFIG_RV_SDTRIG
-  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val; }
-  if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
+    case CSR_TDATA1: return cpu.TM->triggers[tselect->val].tdata1.val;
+    case CSR_TDATA2: return cpu.TM->triggers[tselect->val].tdata2.val;
 #ifdef CONFIG_SDTRIG_EXTRA
-  if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
+    case CSR_TDATA3: return cpu.TM->triggers[tselect->val].tdata3.val;
 #endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 
-#ifdef CONFIG_RV_SMSTATEEN
-  if (is_read(mstateen0))   { return mstateen0->val; }
-  if (is_read(sstateen0))   { return sstateen0->val & mstateen0->val; }
-#ifdef CONFIG_RVH
-  if (cpu.v == 1) {
-    if (is_read(sstateen0)) { return sstateen0->val & hstateen0->val & mstateen0->val; }
+    case CSR_MCYCLE: 
+      // NEMU emulates a hart with CPI = 1.
+      difftest_skip_ref();
+      return get_mcycle();
+    case CSR_MINSTRET:
+      // The number of retired instruction should be the same between dut and ref.
+      // But instruction counter of NEMU is not accurate when enabling Performance optimization.
+      difftest_skip_ref();
+      return get_minstret();
+    /************************* All Others Normal CSRs *************************/
+    default: return *src;
   }
-  if (is_read(hstateen0))   { return hstateen0->val & mstateen0->val; }
-#endif // CONFIG_RVH
-#endif // CONFIG_RV_SMSTATEEN
-
-#ifdef CONFIG_RV_SMRNMI
-  if (is_read(mnepc)) { return mnepc->val & (~0x1UL) ; }
-  if (is_read(mnstatus)) { return mnstatus->val & MNSTATUS_MASK; }
-  if (is_read(mnscratch)) { return mnscratch->val; }
-  if (is_read(mncause)) { return mncause->val; }
-#endif // CONFIG_RV_SMRNMI
-
-  return *src;
 }
 
 #ifdef CONFIG_RVV
@@ -1184,316 +1200,360 @@ void update_vsatp(const vsatp_t new_val) {
 }
 #endif
 
-static inline void csr_write(word_t *dest, word_t src) {
+static void csr_write(uint32_t csrid, word_t src) {
+  word_t *dest = csr_decode(csrid);
+  switch (csrid) {
+    /************************* Unprivileged and User-Level CSRs *************************/
+#ifndef CONFIG_FPU_NONE
+    case CSR_FFLAGS:
+      *dest = src & FFLAGS_MASK;
+      fcsr->val = (frm->val)<<5 | fflags->val;
+      break;
+    case CSR_FRM:
+      *dest = src & FRM_MASK;
+      fcsr->val = (frm->val)<<5 | fflags->val;
+      break;
+    case CSR_FCSR:
+      *dest = src & FCSR_MASK;
+      fflags->val = src & FFLAGS_MASK;
+      frm->val = ((src)>>5) & FRM_MASK;
+      break;
+#endif // CONFIG_FPU_NONE
+
+#ifdef CONFIG_RVV
+    case CSR_VXSTART: *dest = src & (VLEN - 1); break;
+    case CSR_VXSAT: *dest = src & 0b1; vcsr->val = (vxrm->val) << 1 | vxsat->val; break;
+    case CSR_VXRM: *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; break;
+    case CSR_VCSR: *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; break;
+#endif // CONFIG_RVV
+
+    /************************* Supervisor-Level CSRs *************************/
+    case CSR_SSTATUS:
 #ifdef CONFIG_RVH
-  if(cpu.v == 1){
-    if (is_write(sstatus))      {
+      if (cpu.v) {
+        uint64_t sstatus_wmask = SSTATUS_WMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+        // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
+        if (menvcfg->dte == 0 || henvcfg->dte == 0) {
+          src &= sstatus_wmask & (~MSTATUS_WMASK_SDT);
+        }
+        // the same as mstatus SIE
+        if (src & MSTATUS_SIE) {
+          sstatus_wmask &= ~MSTATUS_SIE;
+          if (((src & MSTATUS_WMASK_SDT) == 0) || ( vsstatus->sdt == 0)) {
+            sstatus_wmask |= MSTATUS_SIE;
+          }
+        }
+#endif //CONFIG_RV_SSDBLTRP
+        vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
+#ifdef CONFIG_RV_SSDBLTRP
+        if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
+#endif //CONFIG_RV_SSDBLTRP
+        break;
+      }
+#endif // CONFIG_RVH
       uint64_t sstatus_wmask = SSTATUS_WMASK;
-    #ifdef CONFIG_RV_SSDBLTRP
+#ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-      if (menvcfg->dte == 0 || henvcfg->dte == 0) {
+      if (menvcfg->dte == 0 ) {
         src &= sstatus_wmask & (~MSTATUS_WMASK_SDT);
       }
       // the same as mstatus SIE
       if (src & MSTATUS_SIE) {
         sstatus_wmask &= ~MSTATUS_SIE;
-        if (((src & MSTATUS_WMASK_SDT) == 0) || ( vsstatus->sdt == 0)) {
+        if (((src & MSTATUS_WMASK_SDT) == 0) || ( mstatus->sdt == 0)) {
           sstatus_wmask |= MSTATUS_SIE;
         }
       }
-    #endif //CONFIG_RV_SSDBLTRP
-      vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
-    #ifdef CONFIG_RV_SSDBLTRP
-      if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
-    #endif //CONFIG_RV_SSDBLTRP
-    }
-    else if (is_write(sie))     { vmode_set_sie(src); }
-    else if (is_write(stvec))   { set_tvec((word_t*)vstvec, src); }
-    else if (is_write(sscratch)){ vsscratch->val = src;}
-    else if (is_write(sepc))    { vsepc->val = src & (~0x1UL);}
-    else if (is_write(scause))  { vscause->val = src;}
-    else if (is_write(stval))   { vstval->val = src;}
-    else if (is_write(sip))     { vmode_set_sip(src); }
-#ifdef CONFIG_RV_SSTC
-    else if (is_write(stimecmp)) { vstimecmp->val = src; }
-#endif
-    else if (is_write(satp))    {
-      vsatp_t new_val;
-      new_val.val = src;
-      // legal mode
-#ifdef CONFIG_RV_SV48
-      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48) {
-#else
-      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39) {
-#endif // CONFIG_RV_SV48
-        update_vsatp(new_val);
-      }
-    }
-  }
-  else if (is_write(mideleg)){
-    *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
-  }
-  else if (is_write(hideleg)) { hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); }
-  else if (is_write(hedeleg)) { hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); }
-  else if (is_write(hie)){
-    mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src);
-  }
-  else if(is_write(hip)) { hvip->val = mask_bitset(hvip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); }
-  else if(is_write(hvip)) { hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); }
-  else if(is_write(henvcfg)){
-    henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
-    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
-      henvcfg->val = mask_bitset(henvcfg->val, MENVCFG_WMASK_CBIE, src);
-    }
-  #ifdef CONFIG_RV_SSDBLTRP
-    if(henvcfg->dte == 0) {
-      vsstatus->sdt = 0;
-    }
-  #endif // CONFIG_RV_SSDBLTRP
-
-  }
-#ifdef CONFIG_RV_AIA
-  else if (is_write(hvien)) { hvien->val = mask_bitset(hvien->val, HVIEN_MSAK, src); }
-#endif
-  else if(is_write(hstatus)){
-    hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src);
-  }else if(is_write(vsstatus)){
-    uint64_t sstatus_wmask = SSTATUS_WMASK;
-  #ifdef CONFIG_RV_SSDBLTRP
-    // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-    if (menvcfg->dte == 0 || henvcfg->dte == 0) {
-      src &= sstatus_wmask & (~MSTATUS_WMASK_SDT);
-    }
-    // the same as mstatus SIE
-    if (src & MSTATUS_SIE) {
-      sstatus_wmask &= ~MSTATUS_SIE;
-      if (((src & MSTATUS_WMASK_SDT) == 0) || ( vsstatus->sdt == 0)) {
-        sstatus_wmask |= MSTATUS_SIE;
-      }
-    }
-  #endif //CONFIG_RV_SSDBLTRP
-    vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
-  #ifdef CONFIG_RV_SSDBLTRP
-    if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
-  #endif //CONFIG_RV_SSDBLTRP
-  }
-  else if(is_write(vsie)){ set_vsie(src); }
-  else if(is_write(vsip)){ set_vsip(src); }
-  else if(is_write(vstvec)){
-    set_tvec(dest, src);
-  }
-  else if(is_write(vsscratch)){
-    vsscratch->val = src;
-  }else if(is_write(vsepc)){
-    vsepc->val = src & (~0x1UL);
-  }else if(is_write(vscause)){
-    vscause->val = src;
-  }else if(is_write(vstval)){
-    vstval->val = src;
-  }else if(is_write(vsatp)){
-    vsatp_t new_val;
-    new_val.val = src;
-    // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
-    update_vsatp(new_val);
-  }else if (is_write(mstatus)) {
-    uint64_t mstatus_wmask = MSTATUS_WMASK;
-    // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
-  #ifdef CONFIG_RV_SMDBLTRP
-    if (src & MSTATUS_MIE) {
-      mstatus_wmask &= ~MSTATUS_MIE;
-      if (((src & MSTATUS_WMASK_MDT) == 0) || ( mstatus->mdt == 0)) {
-        mstatus_wmask |= MSTATUS_MIE;
-      }
-    }
-  #endif //CONFIG_RV_SMDBLTRP
-  #ifdef CONFIG_RV_SSDBLTRP
-  // when menvcfg->DTE is zero, SDT field is read-only zero
-    if (menvcfg->dte == 0 ) {
-      src &= mstatus_wmask & (~MSTATUS_WMASK_SDT);
-    }
-    if (src & MSTATUS_SIE) {
-      mstatus_wmask &= ~MSTATUS_SIE;
-      if (((src & MSTATUS_WMASK_SDT) == 0) || ( mstatus->sdt == 0)) {
-        mstatus_wmask |= MSTATUS_SIE;
-      }
-    }
-  #endif //CONFIG_RV_SSDBLTRP
-    mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
-    update_mmu_state(); // maybe this write update mprv, mpp or mpv
-  #ifdef CONFIG_RV_SMDBLTRP
-    // when MDT is explicitly written by 1, clear MIE
-    if (src & MSTATUS_WMASK_MDT) { mstatus->mie = 0; }
-  #endif // CONFIG_RV_SMDBLTRP
-  #ifdef CONFIG_RV_SSDBLTRP
-    if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
-  #endif //CONFIG_RV_SSDBLTRP
-  }else if(is_write(menvcfg)) {
-    menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
-    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
-      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
-    }
+#endif //CONFIG_RV_SSDBLTRP
+      mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, src); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
 #ifdef CONFIG_RV_SSDBLTRP
-    if(menvcfg->dte == 0) {
-      mstatus->sdt = 0;
-      vsstatus->sdt = 0;
-    }
-#endif // CONFIG_RV_SSDBLTRP
-  }
-  else if (is_write(senvcfg)) {
-    senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
-    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
-      senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
-    }
-  }
-#ifdef CONFIG_RV_IMSIC
-  else if (is_write(mtopi)) { return; }
-  else if (is_write(stopi)) { return; }
-  else if (is_write(vstopi)) { return; }
-#endif // CONFIG_RV_IMSIC
-#else
-  if (is_write(mstatus)) {
-#ifndef CONFIG_RVH
-    unsigned prev_mpp = mstatus->mpp;
-#endif // CONFIG_RVH
-    mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
-#ifndef CONFIG_RVH
-    // Need to do an extra check for mstatus.MPP:
-    // xPP fields are WARL fields that can hold only privilege mode x
-    // and any implemented privilege mode lower than x.
-    // M-mode software can determine whether a privilege mode is implemented
-    // by writing that mode to MPP then reading it back. If the machine
-    // provides only U and M modes, then only a single hardware storage bit
-    // is required to represent either 00 or 11 in MPP.
-    if (mstatus->mpp == MODE_HS) {
-      // MODE_H is not implemented. The write will not take effect.
-      mstatus->mpp = prev_mpp;
-    }
-#endif // CONFIG_RVH
-  }
-#endif // CONFIG_RVH
-#ifdef CONFIG_RV_SMRNMI
-  else if (is_write(mnepc)) { *dest = src & (~0x1UL); }
-  else if (is_write(mncause)) { *dest = src; }
-  else if (is_write(mnscratch)) { *dest = src; }
-  else if (is_write(mnstatus)) {
-    word_t mnstatus_mask = MNSTATUS_MASK;
-    if ((src & MNSTATUS_NMIE) == 0) {
-      mnstatus_mask &= ~MNSTATUS_NMIE;
-    }
-    mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
-  }
-#endif //CONFIG_RV_SMRNMI
-#ifdef CONFIG_RVH
-  else if(is_write(hcounteren)){
-    hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src);
-  }
-#endif // CONFIG_RVH
-  else if(is_write(scounteren)){
-    scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src);
-  }
-  else if(is_write(mcounteren)){
-    mcounteren->val = mask_bitset(mcounteren->val, COUNTEREN_MASK, src);
-  }
-#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
-  else if (is_write(mcountinhibit)) {
-    update_counter_mcountinhibit(mcountinhibit->val, src & MCOUNTINHIBIT_MASK);
-    mcountinhibit->val = mask_bitset(mcountinhibit->val, MCOUNTINHIBIT_MASK, src);
-  }
-#endif // CONFIG_RV_CSR_MCOUNTINHIBIT
-  else if (is_write(mcycle)) {
-    mcycle->val = set_mcycle(src);
-  }
-  else if (is_write(minstret)) {
-    minstret->val = set_minstret(src);
-  }
-  else if (is_write(sstatus)) {
-    uint64_t sstatus_wmask = SSTATUS_WMASK;
-  #ifdef CONFIG_RV_SSDBLTRP
-    // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-    if (menvcfg->dte == 0 ) {
-      src &= sstatus_wmask & (~MSTATUS_WMASK_SDT);
-    }
-    // the same as mstatus SIE
-    if (src & MSTATUS_SIE) {
-      sstatus_wmask &= ~MSTATUS_SIE;
-      if (((src & MSTATUS_WMASK_SDT) == 0) || ( mstatus->sdt == 0)) {
-        sstatus_wmask |= MSTATUS_SIE;
+      if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
+#endif //CONFIG_RV_SSDBLTRP
+      break;
+
+    case CSR_SCOUNTEREN: scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src); break;
+
+    case CSR_SENVCFG:
+      senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+      if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
+        senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
       }
-    }
-  #endif //CONFIG_RV_SSDBLTRP
-    mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, src); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
-  #ifdef CONFIG_RV_SSDBLTRP
-    if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
-  #endif //CONFIG_RV_SSDBLTRP
-  }
-  else if (is_write(sie)) { non_vmode_set_sie(src); }
-  else if (is_write(mie)) { mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H | LCOFI, src); }
-  else if (is_write(mip)) { set_mip(src); }
-  else if (is_write(sip)) { non_vmode_set_sip(src); }
+      break;
+
+#ifdef CONFIG_RV_SMSTATEEN
+    case CSR_SSTATEEN0: *dest = (src & SSTATEEN0_WMASK); break;
+#endif // CONFIG_RV_SMSTATEEN
+
+    case CSR_SIE:
+      IFDEF(CONFIG_RVH, if (cpu.v) {vmode_set_sie(src); break;});
+      non_vmode_set_sie(src);
+      break;
+
+    case CSR_STVEC:
+      IFDEF(CONFIG_RVH, if (cpu.v) {set_tvec((word_t*)vstvec, src); break;});
+      set_tvec(dest, src);
+      break;
+
+    case CSR_SSCRATCH:
+      IFDEF(CONFIG_RVH, if (cpu.v) {vsscratch->val = src; break;});
+      sscratch->val = src;
+      break;
+
+    case CSR_SEPC:
+      IFDEF(CONFIG_RVH, if(cpu.v) {vsepc->val = src & (~0x1UL); break;});
+      sepc->val = src & (~0x1UL);
+      break;
+
+    case CSR_SCAUSE:
+      IFDEF(CONFIG_RVH, if (cpu.v) {vscause->val = src; break;});
+      scause->val = src;
+      break;
+
+    case CSR_STVAL:
+      IFDEF(CONFIG_RVH, if (cpu.v) {vstval->val = src; break;});
+      stval->val = src;
+      break;
+
+    case CSR_SIP:
+      IFDEF(CONFIG_RVH, if (cpu.v) {vmode_set_sip(src); break;});
+      non_vmode_set_sip(src);
+      break;
+
+#ifdef CONFIG_RV_SSTC
+    case CSR_STIMECMP:
+      IFDEF(CONFIG_RVH, if (cpu.v) {vstimecmp->val = src; break;});
+      stimecmp->val = src;
+      break;
+#endif // CONFIG_RV_SSTC
+
+
+    case CSR_SATP:
+#ifdef CONFIG_RVH
+      if (cpu.v) {
+        vsatp_t new_val;
+        new_val.val = src;
+        // legal mode
+#ifdef CONFIG_RV_SV48
+        if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48)
+#else
+        if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39)
+#endif // CONFIG_RV_SV48
+        {
+          update_vsatp(new_val);
+        }
+        break;
+      }
+#endif // CONFIG_RVH
+
+      // Only support Sv39 && Sv48(can configure), ignore write that sets other mode
+#ifdef CONFIG_RV_SV48
+      if ((src & SATP_SV39_MASK) >> 60 == 9 || (src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+#else
+      if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
+#endif // CONFIG_RV_SV48
+        *dest = MASKED_SATP(src);
+      break;
+
+#ifdef CONFIG_RV_SSCOFPMF
+    case CSR_SCOUNTOVF: *dest = src & SCOUNTOVF_WMASK; break;
+#endif // CONFIG_RV_SSCOFPMF
+
+#ifdef CONFIG_RV_IMSIC
+    case CSR_STOPI: return;
+#endif // CONFIG_RV_IMSIC
+
+
+    /************************* Hypervisor and VS CSRs *************************/
+#ifdef CONFIG_RVH
+
+    case CSR_VSSTATUS:
+      uint64_t vsstatus_wmask = SSTATUS_WMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+      // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
+      if (menvcfg->dte == 0 || henvcfg->dte == 0) {
+        src &= vsstatus_wmask & (~MSTATUS_WMASK_SDT);
+      }
+      // the same as mstatus SIE
+      if (src & MSTATUS_SIE) {
+        vsstatus_wmask &= ~MSTATUS_SIE;
+        if (((src & MSTATUS_WMASK_SDT) == 0) || ( vsstatus->sdt == 0)) {
+          vsstatus_wmask |= MSTATUS_SIE;
+        }
+      }
+#endif //CONFIG_RV_SSDBLTRP
+      vsstatus->val = mask_bitset(vsstatus->val, vsstatus_wmask, src);
+#ifdef CONFIG_RV_SSDBLTRP
+      if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
+#endif //CONFIG_RV_SSDBLTRP
+      break;
+
+    case CSR_VSIE: set_vsie(src); break;
+    case CSR_VSTVEC: set_tvec(dest, src); break;
+    case CSR_VSEPC: vsepc->val = src & (~0x1UL); break;
+    case CSR_VSIP: set_vsip(src); break;
+    case CSR_VSATP:
+      vsatp_t vsatp_new_val;
+      vsatp_new_val.val = src;
+      // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
+      update_vsatp(vsatp_new_val);
+      break;
+    case CSR_HEDELEG: hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); break;
+    case CSR_HIDELEG: hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); break;
+    case CSR_HSTATUS: hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src); break;
+    case CSR_HIE: mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); break;
+    case CSR_HCOUNTEREN: hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src); break;
+
 #ifdef CONFIG_RV_AIA
-  else if (is_write(mvip)) { set_mvip(src); }
-  else if (is_write(mvien)) { mvien->val = mask_bitset(mvien->val, MVIEN_MASK, src); }
-#endif
-  else if (is_write(mtvec)) { set_tvec(dest, src); }
-  else if (is_write(stvec)) { set_tvec(dest, src); }
-  else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
-  else if (is_write(mideleg)) { *dest = src & 0x222; }
-#ifdef CONFIG_RVV
-  else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
-  else if (is_write(vxrm)) { *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
-  else if (is_write(vxsat)) { *dest = src & 0b1; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
-  else if (is_write(vstart)) { *dest = src & (VLEN - 1); }
-#endif
+    case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MSAK, src); break;
+#endif // CONFIG_RV_AIA
+
+    case CSR_HENVCFG:
+      henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+      if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
+        henvcfg->val = mask_bitset(henvcfg->val, MENVCFG_WMASK_CBIE, src);
+      }
+#ifdef CONFIG_RV_SSDBLTRP
+      if(henvcfg->dte == 0) {
+        vsstatus->sdt = 0;
+      }
+#endif // CONFIG_RV_SSDBLTRP
+      break;
+
+#ifdef CONFIG_RV_SMSTATEEN
+    case CSR_HSTATEEN0:
+      *dest = ((src & HSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
+#endif // CONFIG_RV_SMSTATEEN
+
+    case CSR_HGATP:
+      hgatp_t hgatp_new_val;
+      hgatp_new_val.val = src;
+      // vmid and ppn WARL in the normal way, regardless of hgatp_new_val.mode
+      hgatp->vmid = hgatp_new_val.vmid;
+      // Make PPN[1:0] read only zero
+      hgatp->ppn = hgatp_new_val.ppn & ~(rtlreg_t)3 & BITMASK(CONFIG_PADDRBITS - PAGE_SHIFT);
+
+      // Only support Sv39x4 && Sv48x4(can configure), ignore write that sets other mode
+#ifdef CONFIG_RV_SV48
+      if (hgatp_new_val.mode == HGATP_MODE_Sv48x4 || hgatp_new_val.mode == HGATP_MODE_Sv39x4 || hgatp_new_val.mode == HGATP_MODE_BARE)
+#else
+      if (hgatp_new_val.mode == HGATP_MODE_Sv39x4 || hgatp_new_val.mode == HGATP_MODE_BARE)
+#endif // CONFIG_RV_SV48
+        hgatp->mode = hgatp_new_val.mode;
+      // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
+      break;
+
+    case CSR_HIP: hvip->val = mask_bitset(hvip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); break;
+    case CSR_HVIP: hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); break;
+
+
+
+#ifdef CONFIG_RV_IMSIC
+    case CSR_VSTOPI: return;
+#endif // CONFIG_RV_IMSIC
+
+#endif // CONFIG_RVH
+
+    /************************* Machine-Level CSRs *************************/
+    case CSR_MSTATUS:
+#ifdef CONFIG_RVH
+      uint64_t mstatus_wmask = MSTATUS_WMASK;
+      // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
+#ifdef CONFIG_RV_SMDBLTRP
+      if (src & MSTATUS_MIE) {
+        mstatus_wmask &= ~MSTATUS_MIE;
+        if (((src & MSTATUS_WMASK_MDT) == 0) || ( mstatus->mdt == 0)) {
+          mstatus_wmask |= MSTATUS_MIE;
+        }
+      }
+#endif //CONFIG_RV_SMDBLTRP
+#ifdef CONFIG_RV_SSDBLTRP
+      // when menvcfg->DTE is zero, SDT field is read-only zero
+      if (menvcfg->dte == 0 ) {
+        src &= mstatus_wmask & (~MSTATUS_WMASK_SDT);
+      }
+      if (src & MSTATUS_SIE) {
+        mstatus_wmask &= ~MSTATUS_SIE;
+        if (((src & MSTATUS_WMASK_SDT) == 0) || ( mstatus->sdt == 0)) {
+          mstatus_wmask |= MSTATUS_SIE;
+        }
+      }
+#endif //CONFIG_RV_SSDBLTRP
+      mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
+      update_mmu_state(); // maybe this write update mprv, mpp or mpv
+#ifdef CONFIG_RV_SMDBLTRP
+      // when MDT is explicitly written by 1, clear MIE
+      if (src & MSTATUS_WMASK_MDT) { mstatus->mie = 0; }
+#endif // CONFIG_RV_SMDBLTRP
+#ifdef CONFIG_RV_SSDBLTRP
+      if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
+#endif // CONFIG_RV_SSDBLTRP
+#else // !CONFIG_RVH
+      unsigned prev_mpp = mstatus->mpp;
+      mstatus->val = mask_bitset(mstatus->val, MSTATUS_WMASK, src);
+      // Need to do an extra check for mstatus.MPP:
+      // xPP fields are WARL fields that can hold only privilege mode x
+      // and any implemented privilege mode lower than x.
+      // M-mode software can determine whether a privilege mode is implemented
+      // by writing that mode to MPP then reading it back. If the machine
+      // provides only U and M modes, then only a single hardware storage bit
+      // is required to represent either 00 or 11 in MPP.
+      if (mstatus->mpp == MODE_HS) {
+        // MODE_H is not implemented. The write will not take effect.
+        mstatus->mpp = prev_mpp;
+      }
+#endif // CONFIG_RVH
+      break;
+
 #ifdef CONFIG_MISA_UNCHANGEABLE
-  else if (is_write(misa)) { /* do nothing */ }
-#endif
-  else if (is_write(mepc)) { *dest = src & (~0x1UL); }
-  else if (is_write(sepc)) { *dest = src & (~0x1UL); }
-#ifndef CONFIG_FPU_NONE
-  else if (is_write(fflags)) {
-    *dest = src & FFLAGS_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-    // fcsr->fflags.val = src;
-  }
-  else if (is_write(frm)) {
-    *dest = src & FRM_MASK;
-    fcsr->val = (frm->val)<<5 | fflags->val;
-    // fcsr->frm = src;
-  }
-  else if (is_write(fcsr)) {
-    *dest = src & FCSR_MASK;
-    fflags->val = src & FFLAGS_MASK;
-    frm->val = ((src)>>5) & FRM_MASK;
-    // *dest = src & FCSR_MASK;
-  }
-#endif // CONFIG_FPU_NONE
+    case CSR_MISA: break;
+#endif // CONFIG_MISA_UNCHANGEABLE
+
+    case CSR_MEDELEG: medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); break;
+    case CSR_MIDELEG:
+      IFDEF(CONFIG_RVH, *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK; break;);
+      *dest = src & 0x222;
+      break;
+    case CSR_MIE: mie->val = mask_bitset(mie->val, MIE_MASK_BASE | MIE_MASK_H | LCOFI, src); break;
+    case CSR_MTVEC: set_tvec(dest, src); break;
+    case CSR_MCOUNTEREN: mcounteren->val = mask_bitset(mcounteren->val, COUNTEREN_MASK, src); break;
+
+#ifdef CONFIG_RV_AIA
+    case CSR_MVIEN: mvien->val = mask_bitset(mvien->val, MVIEN_MASK, src); break;
+    case CSR_MVIP: set_mvip(src); break;
+#endif // CONFIG_RV_AIA
+
+    case CSR_MENVCFG:
+      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+      if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
+        menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
+      }
+#ifdef CONFIG_RV_SSDBLTRP
+      if(menvcfg->dte == 0) {
+        mstatus->sdt = 0;
+        vsstatus->sdt = 0;
+      }
+#endif // CONFIG_RV_SSDBLTRP
+      break;
+
+#ifdef CONFIG_RV_SMSTATEEN
+    case CSR_MSTATEEN0: *dest = ((src & MSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
+#endif // CONFIG_RV_SMSTATEEN
+
+#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
+    case CSR_MCOUNTINHIBIT:
+      update_counter_mcountinhibit(mcountinhibit->val, src & MCOUNTINHIBIT_MASK);
+      mcountinhibit->val = mask_bitset(mcountinhibit->val, MCOUNTINHIBIT_MASK, src);
+      break;
+#endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+
+    case CSR_MHPMEVENT_BASE ... CSR_MHPMEVENT_BASE+CSR_MHPMEVENT_NUM-1: break;
+
+    case CSR_MEPC: *dest = src & (~0x1UL); break;
+    case CSR_MIP: set_mip(src); break;
+
 #ifdef CONFIG_RV_PMP_CSR
-  else if (is_pmpaddr(dest)) {
-    Logtr("Writing pmp addr");
-
-    int idx = dest - &csr_array[CSR_PMPADDR_BASE];
-    if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
-      // CSRs of inactive pmp entries are read-only zero.
-      return;
-    }
-
-    word_t cfg = pmpcfg_from_index(idx);
-    bool locked = cfg & PMP_L;
-    // Note that the last pmp cfg do not have next_locked or next_tor
-    bool next_locked = idx < (CONFIG_RV_PMP_ACTIVE_NUM - 1) && (pmpcfg_from_index(idx+1) & PMP_L);
-    bool next_tor = idx < (CONFIG_RV_PMP_ACTIVE_NUM - 1) && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
-    if (idx < CONFIG_RV_PMP_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
-      *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
-    }
-#ifdef CONFIG_SHARE
-    if(dynamic_config.debug_difftest) {
-      fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
-    }
-#endif // CONFIG_SHARE
-
-    mmu_tlb_flush(0);
-  }
-  else if (is_pmpcfg(dest)) {
+    case CSR_PMPCFG_BASE ... CSR_PMPCFG_BASE+CSR_PMPCFG_MAX_NUM-1:
     // Logtr("Writing pmp config");
 
     int idx_base = (dest - &csr_array[CSR_PMPCFG_BASE]) * 4;
@@ -1535,95 +1595,101 @@ static inline void csr_write(word_t *dest, word_t src) {
     *dest = cfg_data;
 
     mmu_tlb_flush(0);
-  }
+    break;
+
+    case CSR_PMPADDR_BASE ... CSR_PMPADDR_BASE+CSR_PMPADDR_MAX_NUM-1:
+      Logtr("Writing pmp addr");
+
+      int idx = dest - &csr_array[CSR_PMPADDR_BASE];
+      if (idx >= CONFIG_RV_PMP_ACTIVE_NUM) {
+        // CSRs of inactive pmp entries are read-only zero.
+        return;
+      }
+
+      word_t cfg = pmpcfg_from_index(idx);
+      bool locked = cfg & PMP_L;
+      // Note that the last pmp cfg do not have next_locked or next_tor
+      bool next_locked = idx < (CONFIG_RV_PMP_ACTIVE_NUM - 1) && (pmpcfg_from_index(idx+1) & PMP_L);
+      bool next_tor = idx < (CONFIG_RV_PMP_ACTIVE_NUM - 1) && (pmpcfg_from_index(idx+1) & PMP_A) == PMP_TOR;
+      if (idx < CONFIG_RV_PMP_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
+        *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
+      }
+#ifdef CONFIG_SHARE
+      if(dynamic_config.debug_difftest) {
+        fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
+      }
+#endif // CONFIG_SHARE
+      mmu_tlb_flush(0);
+      break;
+
 #endif // CONFIG_RV_PMP_CSR
-  else if (is_write(satp)) {
-    // Only support Sv39 && Sv48(can configure), ignore write that sets other mode
-#ifdef CONFIG_RV_SV48
-    if ((src & SATP_SV39_MASK) >> 60 == 9 || (src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
-#else
-    if ((src & SATP_SV39_MASK) >> 60 == 8 || (src & SATP_SV39_MASK) >> 60 == 0)
-#endif // CONFIG_RV_SV48
-      *dest = MASKED_SATP(src);
-  }
+
+#ifdef CONFIG_RV_SMRNMI
+    case CSR_MNEPC: *dest = src & (~0x1UL); break;
+    case CSR_MNSTATUS:
+      word_t mnstatus_mask = MNSTATUS_MASK;
+      if ((src & MNSTATUS_NMIE) == 0) {
+        mnstatus_mask &= ~MNSTATUS_NMIE;
+      }
+      mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
+      break;
+#endif //CONFIG_RV_SMRNMI
+
 #ifdef CONFIG_RV_SDTRIG
-  else if (is_write(tselect)) {
-    *dest = src < CONFIG_TRIGGER_NUM ? src : tselect->val;
-    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
-  } else if (is_write(tdata1)) {
-    // not write to dest
-    tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
-    tdata1_t wdata = *(tdata1_t*)&src;
-    switch (wdata.type)
-    {
-    case TRIG_TYPE_NONE: // write type 0 to disable this trigger
-    case TRIG_TYPE_DISABLE:
-      tdata1_reg->type = TRIG_TYPE_DISABLE;
-      tdata1_reg->data = 0;
+    case CSR_TSELECT:
+      *dest = src < CONFIG_TRIGGER_NUM ? src : tselect->val;
+      tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
       break;
-    case TRIG_TYPE_MCONTROL6:
-      mcontrol6_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol6, &src, cpu.TM);
-      tm_update_timings(cpu.TM);
+    case CSR_TDATA1:
+      // not write to dest
+      tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
+      tdata1_t tdata1_wdata = *(tdata1_t*)&src;
+      switch (tdata1_wdata.type)
+      {
+      case TRIG_TYPE_NONE: // write type 0 to disable this trigger
+      case TRIG_TYPE_DISABLE:
+        tdata1_reg->type = TRIG_TYPE_DISABLE;
+        tdata1_reg->data = 0;
+        break;
+      case TRIG_TYPE_MCONTROL6:
+        mcontrol6_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol6, &src, cpu.TM);
+        tm_update_timings(cpu.TM);
+        break;
+      default:
+        // do nothing for not supported trigger type
+        break;
+      }
+      tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
       break;
-    default:
-      // do nothing for not supported trigger type
+    case CSR_TDATA2:
+      // not write to dest
+      tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
+      tdata2_t tdata2_wdata = *(tdata2_t*)&src;
+      tdata2_reg->val = tdata2_wdata.val;
       break;
-    }
-    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
-  } else if (is_write(tdata2)) {
-    // not write to dest
-    tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
-    tdata2_t wdata = *(tdata2_t*)&src;
-    tdata2_reg->val = wdata.val;
-  }
 #ifdef CONFIG_SDTRIG_EXTRA
-  else if (is_write(tdata3)) {
-    tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
-    tdata3_t wdata = *(tdata3_t*)&src;
-    tdata3_reg->val = wdata.val;
-  }
+    case CSR_TDATA3:
+      tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
+      tdata3_t tdata3_wdata = *(tdata3_t*)&src;
+      tdata3_reg->val = tdata3_wdata.val;
+      break;
 #endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
-#ifdef CONFIG_RV_SSCOFPMF
-  else if (is_write(scountovf)) { *dest = src & SCOUNTOVF_WMASK; }
-#endif // CONFIG_RV_SSCOFPMF
 
-#ifdef CONFIG_RV_SMSTATEEN
-  else if (is_write(mstateen0))   { *dest = ((src & MSTATEEN0_WMASK) | STATEEN0_CSRIND); }
-  else if (is_write(sstateen0))   { *dest = (src & SSTATEEN0_WMASK); }
-#ifdef CONFIG_RVH
-    else if (is_write(hstateen0)) { *dest = ((src & HSTATEEN0_WMASK) | STATEEN0_CSRIND); }
-#endif // CONFIG_RVH
-#endif // CONFIG_RV_SMSTATEEN
+    case CSR_MCYCLE:  mcycle->val = set_mcycle(src); break;
+    case CSR_MINSTRET: minstret->val = set_minstret(src); break;
 
-#ifdef CONFIG_RVH
-  else if (is_write(hgatp)) {
-    if ( mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) {
-      longjmp_exception(EX_II);
-    }
-    hgatp_t new_val;
-    new_val.val = src;
-    // vmid and ppn WARL in the normal way, regardless of new_val.mode
-    hgatp->vmid = new_val.vmid;
-    // Make PPN[1:0] read only zero
-    hgatp->ppn = new_val.ppn & ~(rtlreg_t)3 & BITMASK(CONFIG_PADDRBITS - PAGE_SHIFT);
+    case CSR_MHPMCOUNTER_BASE ... CSR_MHPMCOUNTER_BASE+CSR_MHPMCOUNTER_NUM-1: break;
 
-    // Only support Sv39x4 && Sv48x4(can configure), ignore write that sets other mode
-#ifdef CONFIG_RV_SV48
-    if (new_val.mode == HGATP_MODE_Sv48x4 || new_val.mode == HGATP_MODE_Sv39x4 || new_val.mode == HGATP_MODE_BARE)
-#else
-    if (new_val.mode == HGATP_MODE_Sv39x4 || new_val.mode == HGATP_MODE_BARE)
-#endif // CONFIG_RV_SV48
-      hgatp->mode = new_val.mode;
-    // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
+#ifdef CONFIG_RV_IMSIC
+    case CSR_MTOPI: return;
+#endif // CONFIG_RV_IMSIC
+
+    /************************* All Others Normal CSRs *************************/
+    default: *dest = src;
   }
-#endif// CONFIG_RVH
-  else if (is_mhpmcounter(dest) || is_mhpmevent(dest)) {
-    // read-only zero in NEMU
-    return;
-  }
-  else { *dest = src; }
 
+ // Next is the side effect of writing CSRs
 #ifndef CONFIG_FPU_NONE
   if (is_write(fflags) || is_write(frm) || is_write(fcsr)) {
     fp_set_dirty();
@@ -1651,10 +1717,6 @@ static inline void csr_write(word_t *dest, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
-}
-
-word_t csrid_read(uint32_t csrid) {
-  return csr_read(csr_decode(csrid));
 }
 
 static inline bool satp_permit_check(const word_t *dest_access){
@@ -1850,29 +1912,28 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
   uint32_t rs1    = isa.instr.i.rs1; // uimm field and rs1 field are the same one
   uint32_t rd     = isa.instr.i.rd;
   uint32_t funct3 = isa.instr.i.funct3;
-  word_t *csr = csr_decode(csrid);
   bool is_write = !( BITS(funct3, 1, 1) && (rs1 == 0) );
   csr_permit_check(csrid, is_write);
   switch (funct3) {
     case FUNCT3_CSRRW:
     case FUNCT3_CSRRWI:
       if (rd) {
-        *dest = csr_read(csr);
+        *dest = csr_read(csrid);
       }
-      csr_write(csr, *src);
+      csr_write(csrid, *src);
       break;
     case FUNCT3_CSRRS:
     case FUNCT3_CSRRSI:
-      *dest = csr_read(csr);
+      *dest = csr_read(csrid);
       if (rs1) {
-        csr_write(csr, *src | *dest);
+        csr_write(csrid, *src | *dest);
       }
       break;
     case FUNCT3_CSRRC:
     case FUNCT3_CSRRCI:
-      *dest = csr_read(csr);
+      *dest = csr_read(csrid);
       if (rs1) {
-        csr_write(csr, (~*src) & *dest);
+        csr_write(csrid, (~*src) & *dest);
       }
       break;
     default: panic("funct3 = %d is not supported for csrrw instruction\n", funct3);

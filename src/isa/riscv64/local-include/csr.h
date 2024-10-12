@@ -1496,11 +1496,91 @@ void csr_prepare();
 word_t gen_status_sd(word_t status);
 word_t get_mip();
 
-word_t csrid_read(uint32_t csrid);
-
 /** PMP **/
 uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmp_tor_mask();
+
+#ifndef CSR_ENCODING_H
+#define CSR_ENCODING_H
+// Unprivileged and User-Level CSRs
+#define CSR_FFLAGS 0x1
+#define CSR_FRM 0x2
+#define CSR_FCSR 0x3
+#define CSR_VXSTART 0x8
+#define CSR_VXSAT 0x9
+#define CSR_VXRM 0xa
+#define CSR_VCSR 0xf
+#define CSR_CYCLE 0xc00
+#define CSR_CSR_TIME 0xc01
+#define CSR_INSTRET 0xc02
+#define CSR_VLENB 0xc22
+// Supervisor-Level CSRs
+#define CSR_SSTATUS 0x100
+#define CSR_SCOUNTEREN 0x106
+#define CSR_SENVCFG 0x10a
+#define CSR_SSTATEEN0 0x10c
+#define CSR_SIE 0x104
+#define CSR_STVEC 0x105
+#define CSR_SSCRATCH 0x140
+#define CSR_SEPC 0x141
+#define CSR_SCAUSE 0x142
+#define CSR_STVAL 0x143
+#define CSR_SIP 0x144
+#define CSR_STIMECMP 0x14d
+#define CSR_SATP 0x180
+#define CSR_SCOUNTOVF 0xda0
+#define CSR_STOPI 0xdb0
+// Hypervisor and VS CSRs
+#define CSR_VSSTATUS 0x200
+#define CSR_VSIE 0x204
+#define CSR_VSTVEC 0x205
+#define CSR_VSSCRATCH 0x240
+#define CSR_VSEPC 0x241
+#define CSR_VSCAUSE 0x242
+#define CSR_VSTVAL 0x243
+#define CSR_VSIP 0x244
+#define CSR_VSATP 0x280
+#define CSR_HSTATUS 0x600
+#define CSR_HEDELEG 0x602
+#define CSR_HIDELEG 0x603
+#define CSR_HIE 0x604
+#define CSR_HCOUNTEREN 0x606
+#define CSR_HGEIE 0x607
+#define CSR_HVIEN 0x608
+#define CSR_HENVCFG 0x60a
+#define CSR_HSTATEEN0 0x60c
+#define CSR_HGATP 0x680
+#define CSR_HIP 0x644
+#define CSR_HVIP 0x645
+#define CSR_HGEIP 0xe12
+#define CSR_VSTOPI 0xeb0
+// Machine-Level CSRs
+#define CSR_MSTATUS 0x300
+#define CSR_MISA 0x301
+#define CSR_MEDELEG 0x302
+#define CSR_MIDELEG 0x303
+#define CSR_MIE 0x304
+#define CSR_MTVEC 0x305
+#define CSR_MCOUNTEREN 0x306
+#define CSR_MVIEN 0x308
+#define CSR_MVIP 0x309
+#define CSR_MENVCFG 0x30a
+#define CSR_MSTATEEN0 0x30c
+#define CSR_MCOUNTINHIBIT 0x320
+#define CSR_MEPC 0x341
+#define CSR_MIP 0x344
+#define CSR_MNSCRATCH 0x740
+#define CSR_MNEPC 0x741
+#define CSR_MNCAUSE 0x742
+#define CSR_MNSTATUS 0x744
+#define CSR_TSELECT 0x7a0
+#define CSR_TDATA1 0x7a1
+#define CSR_TDATA2 0x7a2
+#define CSR_TDATA3 0x7a3
+#define CSR_MCYCLE 0xb00
+#define CSR_MINSTRET 0xb02
+#define CSR_MTOPI 0xfb0
+#endif // CSR_ENCODING_H
 
 #endif // __CSR_H__
