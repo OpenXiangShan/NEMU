@@ -142,8 +142,11 @@ static inline void raise_access_fault(int cause, vaddr_t vaddr) {
 
 static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   int cause = EX_LAF;
-  if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) { cause = EX_IAF; }
-  else if (cpu.amo || type == MEM_TYPE_WRITE_READ)             { cause = EX_SAF; }
+  if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
+    cause = EX_IAF;
+  } else if (cpu.amo || type == MEM_TYPE_WRITE || type == MEM_TYPE_WRITE_READ) {
+    cause = EX_SAF; 
+  }
   raise_access_fault(cause, vaddr);
 }
 
