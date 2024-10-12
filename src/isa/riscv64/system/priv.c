@@ -403,8 +403,15 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MEDELEG_MASK MUXDEF(CONFIG_RVH,  MEDELEG_RVH, MEDELEG_NONRVH)
 
-#define MIDELEG_WMASK_BASE 0x222
-#define MIDELEG_WMASK MUXDEF(CONFIG_RV_SSCOFPMF, (MIDELEG_WMASK_BASE | 1 << IRQ_LCOFI), MIDELEG_WMASK_BASE)
+
+#define MIDELEG_WMASK_SSI (1 << 1)
+#define MIDELEG_WMASK_STI (1 << 5)
+#define MIDELEG_WMASK_SEI (1 << 9)
+#define MIDELEG_WMASK_LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
+#define MIDELEG_WMASK ( MIDELEG_WMASK_SSI | \
+                        MIDELEG_WMASK_STI | \
+                        MIDELEG_WMASK_SEI | \
+                        MIDELEG_WMASK_LCOFI)
 
 #define MIE_MASK_BASE 0xaaa
 #define MIP_MASK_BASE (1 << 1)
@@ -1002,7 +1009,6 @@ static inline word_t csr_read(word_t *src) {
   else if (is_read(stimecmp)){ return vstimecmp->val; }
 #endif
 }
-if (is_read(mideleg))        { return (mideleg->val | MIDELEG_FORCED_MASK) | (mideleg->val & LCOFI); }
 if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK; }
 if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK; }
 if (is_read(hgeip))          { return hgeip->val & ~(0x1UL);}
@@ -1030,7 +1036,7 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
   }
   if (is_read(vsip))           { return get_vsip(); }
   if (is_read(vsie))           { return get_vsie(); }
-#endif
+#endif // CONFIG_RVH
   if (is_read(mstatus))     {
     uint64_t mstatus_rmask = MSTATUS_RMASK;
   #ifdef CONFIG_RV_SSDBLTRP
@@ -1119,13 +1125,13 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
 
 #ifdef CONFIG_RV_SMSTATEEN
   if (is_read(mstateen0))   { return mstateen0->val; }
-  if (is_read(sstateen0))   { return sstateen0->val & mstateen0->val; }
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {
     if (is_read(sstateen0)) { return sstateen0->val & hstateen0->val & mstateen0->val; }
   }
   if (is_read(hstateen0))   { return hstateen0->val & mstateen0->val; }
 #endif // CONFIG_RVH
+  if (is_read(sstateen0))   { return sstateen0->val & mstateen0->val; }
 #endif // CONFIG_RV_SMSTATEEN
 
 #ifdef CONFIG_RV_SMRNMI
@@ -1186,7 +1192,13 @@ void update_vsatp(const vsatp_t new_val) {
 
 static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RVH
-  if(cpu.v == 1){
+  if(cpu.v == 1 && (is_write(sstatus) || is_write(sie) || is_write(stvec) || is_write(sscratch)
+        || is_write(sepc) || is_write(scause) || is_write(stval) || is_write(sip)
+        || is_write(satp)
+#ifdef CONFIG_RV_SSTC
+        || is_write(stimecmp)
+#endif // CONFIG_RV_SSTC
+        )){
     if (is_write(sstatus))      {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
     #ifdef CONFIG_RV_SSDBLTRP
@@ -1222,16 +1234,12 @@ static inline void csr_write(word_t *dest, word_t src) {
       new_val.val = src;
       // legal mode
 #ifdef CONFIG_RV_SV48
-      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48) {
+      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39 || new_val.mode == SATP_MODE_Sv48)
 #else
-      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39) {
+      if (new_val.mode == SATP_MODE_BARE || new_val.mode == SATP_MODE_Sv39)
 #endif // CONFIG_RV_SV48
-        update_vsatp(new_val);
-      }
+      { update_vsatp(new_val);}
     }
-  }
-  else if (is_write(mideleg)){
-    *dest = (src & MIDELEG_WMASK) | MIDELEG_FORCED_MASK;
   }
   else if (is_write(hideleg)) { hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); }
   else if (is_write(hedeleg)) { hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); }
@@ -1327,23 +1335,6 @@ static inline void csr_write(word_t *dest, word_t src) {
   #ifdef CONFIG_RV_SSDBLTRP
     if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
   #endif //CONFIG_RV_SSDBLTRP
-  }else if(is_write(menvcfg)) {
-    menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
-    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
-      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
-    }
-#ifdef CONFIG_RV_SSDBLTRP
-    if(menvcfg->dte == 0) {
-      mstatus->sdt = 0;
-      vsstatus->sdt = 0;
-    }
-#endif // CONFIG_RV_SSDBLTRP
-  }
-  else if (is_write(senvcfg)) {
-    senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
-    if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
-      senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
-    }
   }
 #ifdef CONFIG_RV_IMSIC
   else if (is_write(mtopi)) { return; }
@@ -1371,6 +1362,24 @@ static inline void csr_write(word_t *dest, word_t src) {
 #endif // CONFIG_RVH
   }
 #endif // CONFIG_RVH
+  else if(is_write(menvcfg)) {
+    menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+    if (((menvcfg_t)src).cbie != 0b10) { // 0b10 is reserved
+      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
+    }
+#ifdef CONFIG_RV_SSDBLTRP
+    if(menvcfg->dte == 0) {
+      mstatus->sdt = 0;
+      vsstatus->sdt = 0;
+    }
+#endif // CONFIG_RV_SSDBLTRP
+  }
+  else if (is_write(senvcfg)) {
+    senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+    if (((senvcfg_t)src).cbie != 0b10) { // 0b10 is reserved
+      senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
+    }
+  }
 #ifdef CONFIG_RV_SMRNMI
   else if (is_write(mnepc)) { *dest = src & (~0x1UL); }
   else if (is_write(mncause)) { *dest = src; }
@@ -1437,7 +1446,7 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(mtvec)) { set_tvec(dest, src); }
   else if (is_write(stvec)) { set_tvec(dest, src); }
   else if (is_write(medeleg)) { medeleg->val = mask_bitset(medeleg->val, MEDELEG_MASK, src); }
-  else if (is_write(mideleg)) { *dest = src & 0x222; }
+  else if (is_write(mideleg)) { mideleg->val = mask_bitset(mideleg->val, MIDELEG_WMASK, src); }
 #ifdef CONFIG_RVV
   else if (is_write(vcsr)) { *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; }
   else if (is_write(vxrm)) { *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; }
