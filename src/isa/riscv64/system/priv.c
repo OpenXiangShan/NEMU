@@ -192,6 +192,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 // base mstatus wmask
 #define MSTATUS_WMASK_BASE (0x7e19aaUL)
 
+// mstatus.mpp mask
+#define MSTATUS_OFFSET_MPP 11
+#define MSTATUS_MASK_MPP (0x3UL << MSTATUS_OFFSET_MPP)
+
 // FS
 #if !defined(CONFIG_FPU_NONE) || defined(CONFIG_RV_MSTATUS_FS_WRITABLE)
 #define MSTATUS_WMASK_FS (0x3UL << 13)
@@ -1326,6 +1330,10 @@ static inline void csr_write(word_t *dest, word_t src) {
       }
     }
   #endif //CONFIG_RV_SSDBLTRP
+    // mstatus.MPP cannot hold MODE_HS=2
+    if ((src & MSTATUS_MASK_MPP) == (MODE_HS << MSTATUS_OFFSET_MPP)) {
+      mstatus_wmask &= ~MSTATUS_MASK_MPP;
+    }
     mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
     update_mmu_state(); // maybe this write update mprv, mpp or mpv
   #ifdef CONFIG_RV_SMDBLTRP
