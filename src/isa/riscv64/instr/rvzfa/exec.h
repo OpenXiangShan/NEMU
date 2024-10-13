@@ -58,18 +58,26 @@ def_EHelper(fcvtmod_w_d) {
 
 def_EHelper(fleq_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLEQ, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fleq_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLEQ, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fltq_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLTQ, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fltq_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLTQ, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 #ifdef CONFIG_RV_ZFH
@@ -101,10 +109,14 @@ def_EHelper(froundnx_h) {
 
 def_EHelper(fleq_h) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLEQ, FPCALL_W16));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fltq_h) {
-    rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLTQ, FPCALL_W16));
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_FLTQ, FPCALL_W16));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 #endif // CONFIG_RV_ZFH
 #endif // CONFIG_RV_ZFA

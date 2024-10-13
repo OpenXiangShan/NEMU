@@ -76,14 +76,20 @@ def_EHelper(fnmaddd) {
 
 def_EHelper(fled) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LE, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fltd) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LT, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(feqd) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_EQ, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_d_w) {
