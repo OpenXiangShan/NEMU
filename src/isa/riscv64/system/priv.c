@@ -1330,8 +1330,8 @@ static inline void csr_write(word_t *dest, word_t src) {
       }
     }
   #endif //CONFIG_RV_SSDBLTRP
-    // mstatus.MPP cannot hold MODE_HS=2
-    if ((src & MSTATUS_MASK_MPP) == (MODE_HS << MSTATUS_OFFSET_MPP)) {
+    // mstatus.MPP cannot hold 2
+    if (((mstatus_t *) &src)->mpp == MODE_RESERVED) {
       mstatus_wmask &= ~MSTATUS_MASK_MPP;
     }
     mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
@@ -1363,7 +1363,7 @@ static inline void csr_write(word_t *dest, word_t src) {
     // by writing that mode to MPP then reading it back. If the machine
     // provides only U and M modes, then only a single hardware storage bit
     // is required to represent either 00 or 11 in MPP.
-    if (mstatus->mpp == MODE_HS) {
+    if (mstatus->mpp == MODE_RESERVED) {
       // MODE_H is not implemented. The write will not take effect.
       mstatus->mpp = prev_mpp;
     }

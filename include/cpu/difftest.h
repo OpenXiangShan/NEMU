@@ -64,7 +64,7 @@ static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *r
 static inline bool difftest_check_store(vaddr_t pc) {
 #ifdef CONFIG_RVV
   size_t step = store_queue_size();
-  for (int i = 0; i < step ;i ++) {
+  for (size_t i = 0; i < step ;i ++) {
 #endif
     if (store_queue_empty()) return true;
     store_commit_t dut = store_queue_fornt();
