@@ -19,16 +19,8 @@
 #include <cstdint>
 #include <stdio.h>
 #include <trace/spikedasm.h>
+#include <trace/trace_common.h>
 
-#if 1
-#define trace_likely(cond)   __builtin_expect(cond, 1)
-#define trace_unlikely(cond) __builtin_expect(cond, 0)
-#else
-#define trace_likely(cond)   (cond)
-#define trace_unlikely(cond) (cond)
-#endif
-
-// #define Log() printf("file: %s, line: %d\n", __FILE__, __LINE__); fflush(stdout)
 
 // TODO : pack it
 // TODO : mv instr and instr_pc to map(or more ca, icache)
@@ -122,5 +114,29 @@ struct Control {
   uint8_t data;
   // TODO: placeholder, not implemented
 };
+
+struct TracePageEntry {
+  uint64_t paddr;
+  uint64_t pte;
+};
+
+typedef union TracePageTableEntry {
+  struct  {
+    uint8_t v : 1;
+    uint8_t r : 1;
+    uint8_t w : 1;
+    uint8_t x : 1;
+    uint8_t u : 1;
+    uint8_t g : 1;
+    uint8_t a : 1;
+    uint8_t d : 1;
+    uint8_t rsw : 2;
+    uint64_t ppn : 44;
+    uint8_t reserved : 7;
+    uint8_t pbmt : 2;
+    uint8_t n : 1;
+  };
+  uint64_t val;
+} TracePTE;
 
 #endif

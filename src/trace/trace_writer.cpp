@@ -20,79 +20,28 @@
 #include <map>
 #include <iostream>
 #include <trace/trace_writer.h>
+// #include <memory/paddr.h>
 // #include <boost/stacktrace.hpp>
 #include <zstd.h>
+#include <vector>
 
-// #define VERBOSE
-// #define LogBuffer
-#define MORECHECK
-
-#ifdef LogBuffer
-
-#define TraceLogEntryNum 16
-#define TraceLogEntrySize 256
-char trace_log_buf[TraceLogEntryNum][TraceLogEntrySize];
-uint8_t trace_log_ptr = 0;
-
-uint8_t trace_log_ptr_pop() {
-  return (trace_log_ptr ++) % TraceLogEntrySize;
+extern "C" {
+uint64_t pmem_read(uint64_t addr, int len);
 }
-// uint8_t trace_log_ptr_get() {
-//   return trace_log_ptr % TraceLogEntrySize;
-// }
-#endif
-
-#ifdef LogBuffer
-#define WHEREAMI snprintf(trace_log_buf[trace_log_ptr_pop()], TraceLogEntrySize, "FromBuf:%s:%d\n", __FILE__, __LINE__);
-#else
-#define WHEREAMI printf("%s:%d:%s\n", __FILE__, __LINE__, __func__); fflush(stdout);
-#endif
-
-#define WHEREAMIDirect printf("Direct:%s:%d:%s\n", __FILE__, __LINE__, __func__); fflush(stdout);
-
-#ifdef VERBOSE
-#define TraceSimpleLog WHEREAMI
-
-#ifdef LogBuffer
-#define TraceLog(...) snprintf(trace_log_buf[trace_log_ptr_pop()], TraceLogEntrySize, __VA_ARGS__);
-#else
-#define TraceLog(...) printf(__VA_ARGS__); fflush(stdout);
-#endif
-
-#else
-#define TraceSimpleLog
-#define TraceLog(...)
-#endif
-
-#ifdef MORECHECK
-#define TraceRequireInvalid                     \
-  do {                                       \
-    if (inst_valid) {                        \
-      error_dump();                          \
-      WHEREAMIDirect;                        \
-      exit(1);                               \
-    }                                        \
-  } while(0);
-
-#define TraceRequireValid                   \
-  do {                                       \
-    if (!inst_valid) {                       \
-      error_dump();                          \
-      WHEREAMIDirect;                        \
-      exit(1);                               \
-    }                                        \
-  } while(0);
-#else
-#define TraceRequireInvalid
-#define TraceRequireValid
-#endif
 
 TraceWriter::TraceWriter(std::string trace_file_name) {
-  trace_stream = new std::ofstream(trace_file_name, std::ios_base::out);
+  std::string tracertl_name = trace_file_name + ".trace.zstd";
+  std::string tracertl_page_table_name = trace_file_name + ".pagetable.zstd";
+
+  trace_stream = new std::ofstream(tracertl_name, std::ios_base::out);
+  trace_page_table_stream = new std::ofstream(tracertl_page_table_name, std::ios_base::out);
   if ((!trace_stream->is_open())) {
     std::ostringstream oss;
-    oss << "[TraceWriter.TraceWriter] Could not open file: " << trace_file_name;
-    // throw std::runtime_error(oss.str());
+    oss << "[TraceWriter.TraceWriter] Could not open file: " << tracertl_name;
+  }
+  if ((!trace_page_table_stream->is_open())) {
+    std::ostringstream oss;
+    oss << "[TraceWriter.TraceWriter] Could not open file: " << trace_page_table_stream;
   }
 
   instBuffer = (Instruction *)  malloc(sizeof(Instruction)* MAX_INSTRUCTION_NUM);
@@ -256,6 +205,7 @@ void TraceWriter::traceOver() {
   uint64_t instBufferSize = sizeof(Instruction) * instBufferPtr;
   char *compressedBuffer = (char *)malloc(instBufferSize);
 
+  printf("Compress Trace file...\n");
   uint64_t compressedSize = compressZSTD(compressedBuffer, sizeof(Instruction) * instBufferPtr, (char *)instBuffer, instBufferSize);
 
   trace_stream->write(compressedBuffer, compressedSize);
@@ -272,6 +222,33 @@ void TraceWriter::traceOver() {
   // }
   printf("Traced Inst Count: 0d%ld\n", instBufferPtr);
 
+#ifdef TRACE_DUMP_PAGE_TABLE
+  if (satp == 0) {
+    printf("Satp not setted\n");
+    exit(1);
+  }
+  dumpPageTable();
+  // test
+  uint64_t tested_trans_num = 0;
+  for (size_t i = 2000; i < instBufferPtr; i++) {
+    if (instBuffer[i].exception == 0) {
+      uint64_t va = instBuffer[i].exu_data.memory_address.va;
+      uint64_t pa = instBuffer[i].exu_data.memory_address.pa;
+
+      if (va != pa) {
+        uint64_t dumpPage_ppn = trans(va >> 12);
+        tested_trans_num++;
+        if (dumpPage_ppn != (pa >> 12)) {
+          printf("Error: trans error. va: 0x%lx, pa: 0x%lx, dumpPage_ppn: 0x%lx\n", va, pa, dumpPage_ppn);
+          instBuffer[i].dump();
+          exit(1);
+        }
+      }
+    }
+  }
+  printf("Trans tested num: %ld\n", tested_trans_num);
+#endif
+
   trace_stream->close();
 }
 
@@ -286,6 +263,106 @@ uint64_t TraceWriter::compressZSTD(char *dst, uint64_t dst_len, const char *src,
   }
   std::cout << "Compress Success " << src_len / 1024 / 1024 << "MB -> " << compressedSize / 1024 / 1024 << "MB" << std::endl;
   return compressedSize;
+}
+
+void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
+  if (base_paddr < 0x80000000L) {
+    printf("Error: base_paddr: 0x%lx less than 0x80000000L. Level:%d\n", base_paddr, level);
+    exit(1);
+  }
+  if (level <  0) return;
+
+  // extern uint64_t pmem_read(uint64_t addr, int len);
+  // printf("level: %d, base_paddr: 0x%lx\n", level, base_paddr);
+  for (size_t idx = 0; idx < TRACE_PAGE_ENTRY_NUM; idx++) {
+    uint64_t paddr = base_paddr + idx * TRACE_PAGE_ENTRY_SIZE;
+    uint64_t pte_val = pmem_read(paddr, 8);
+    TracePTE pte;
+    pte.val = pte_val;
+    // printf("  Idx:%ld, paddr: 0x%lx, pte: 0x%lx, ppn: 0x%lx level:%d base_paddr:%lx\n", idx, paddr, pte_val, pte.ppn, level, base_paddr);
+    fflush(stdout);
+    if (pte.v == 0) {
+      // printf("    invalid pte: 0x%lx v:%d\n", pte_val, pte.v);
+      continue;
+    }
+    if ((level == 0) && !(pte.r || pte.w || pte.x)) {
+      printf("    Wrong PTE %lx(vpn:%lx) level: %d. invalid perm\n", pte.val, pte.ppn, level);
+      fflush(stdout);
+      exit(1);
+    }
+
+    TracePageEntry entry;
+    entry.paddr = paddr;
+    entry.pte = pte_val;
+    pageTable.push_back(entry);
+    pageTableMap[paddr] = pte_val;
+    // printf("    pageTableMap[0x%lx] = 0x%lx\n", paddr, pte_val);
+    // fflush(stdout);
+
+    bool is_leaf = (level == 0) || (pte.v && (pte.r || pte.w || pte.x));
+    if (!is_leaf) {
+      uint64_t next_base_paddr = pte.ppn << TRACE_PAGE_SHIFT;
+      dfs_dump_entry(next_base_paddr, level - 1);
+    }
+  }
+}
+
+uint64_t TraceWriter::trans(uint64_t vpn) {
+  uint64_t pgBase = (satp & TRACE_SATP64_PPN) << TRACE_PAGE_SHIFT;
+  int level = 2;
+  for (; level >= 0; level--) {
+    uint64_t pteAddr = GetPteAddr(vpn, level, pgBase);
+    uint64_t pteVal = pageTableMap[pteAddr];
+    TracePTE pte;
+    pte.val = pteVal;
+
+    if (!pte.v) {
+      printf("Error: vpn: %lx, level: %d, pte: %lx, pteAddr:%lx\n", vpn, level, pteVal, pteAddr);
+      exit(1);
+    } else if (!(pte.r || pte.w || pte.x)) {
+      pgBase = pte.ppn << TRACE_PAGE_SHIFT;
+    } else {
+      return pte.ppn;
+    }
+  }
+  return pgBase >> 12;
+}
+
+bool TraceWriter::dumpPageTable() {
+
+  uint64_t base_paddr = (satp & TRACE_SATP64_PPN) << TRACE_PAGE_SHIFT;
+  // printf("dumPageTable: satp:%lx base_paddr: 0x%lx\n", satp, base_paddr);
+  fflush(stdout);
+  dfs_dump_entry(base_paddr, 2);
+
+  uint64_t pageTableNum = pageTable.size() + 1;
+  uint64_t pageTableMemSize = pageTableNum * sizeof(TracePageEntry);
+  TracePageEntry *pageTableBuffer = (TracePageEntry *)malloc(pageTableMemSize);
+  // use the first entry to store the satp
+  pageTableBuffer[0].paddr = pageTableNum;
+  pageTableBuffer[0].pte = satp;
+  for (size_t i = 0; i < pageTable.size(); i++) {
+    pageTableBuffer[i + 1] = pageTable[i];
+  }
+
+  printf("Compress Page Table...\n");
+  char *pageTableCompressedBuffer = (char *)malloc(pageTableMemSize);
+  uint64_t compressedSize = compressZSTD(
+    (char *)pageTableCompressedBuffer, pageTableMemSize,
+    (char *)pageTableBuffer, pageTableMemSize);
+
+  trace_page_table_stream->write(pageTableCompressedBuffer, compressedSize);
+
+  trace_page_table_stream->close();
+
+  free(pageTableBuffer);
+  free(pageTableCompressedBuffer);
+  return true;
+}
+
+inline void TraceWriter::setSatp(uint64_t outer_satp) {
+  printf("Set satp: from %lx to %lx\n", satp, outer_satp);
+  satp = outer_satp;
 }
 
 void TraceWriter::error_dump() {
@@ -386,11 +463,17 @@ void trace_write_interrupt(uint8_t NO, uint64_t target) {
   trace_writer->write_interrupt(NO, target);
 }
 
+
+void trace_write_setSatp(uint64_t satp) {
+  trace_writer->setSatp(satp);
+}
+
 void trace_inst_over() {
   trace_writer->inst_over();
 }
 
 void trace_end() {
+  printf("Trace end for execution end.\n");
   trace_writer->traceOver();
   delete trace_writer;
 }

@@ -19,6 +19,7 @@
 #include <fstream>
 #include <deque>
 #include <string>
+#include <vector>
 #include "trace_format.h"
 
 // struct {
@@ -39,6 +40,7 @@
 
 class TraceWriter {
   std::ofstream *trace_stream;
+  std::ofstream *trace_page_table_stream;
 
   // inst collcection
   // uint64_t instCounter = 0;
@@ -54,10 +56,15 @@ class TraceWriter {
   uint64_t instBufferPtr = 0;
   Instruction *instBuffer;
 
+  std::vector<TracePageEntry> pageTable;
+  std::map<uint64_t, uint64_t> pageTableMap;
+  uint64_t satp = 0;
+
 public:
   TraceWriter(std::string trace_file_name);
   ~TraceWriter() {
     delete trace_stream;
+    delete trace_page_table_stream;
   }
 
   // InstStatus instStatus;
@@ -78,6 +85,11 @@ public:
 
   void traceOver();
   uint64_t compressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len);
+
+  bool dumpPageTable();
+  void setSatp(uint64_t satp);
+  uint64_t trans(uint64_t vpn);
+  void dfs_dump_entry(uint64_t base_paddr, int level);
 };
 
 extern TraceWriter *trace_writer;

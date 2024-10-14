@@ -88,7 +88,7 @@ void * get_sparsemm(){
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
-static inline word_t pmem_read(paddr_t addr, int len) {
+word_t pmem_read(paddr_t addr, int len) {
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif
