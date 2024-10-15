@@ -32,7 +32,7 @@
 #ifndef ENABLE_HOSTTLB
 
 static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
-  paddr_t mmu_ret = isa_mmu_translate(vaddr & ~PAGE_MASK, len, type);
+  paddr_t mmu_ret = isa_mmu_translate(vaddr, len, type);
   *exp = (mmu_ret & PAGE_MASK) != MEM_RET_OK;
   paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
   if (*exp) {
