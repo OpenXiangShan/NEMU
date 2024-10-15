@@ -294,6 +294,7 @@ void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
     TracePageEntry entry;
     entry.paddr = paddr;
     entry.pte = pte_val;
+    entry.level = (uint64_t)level;
     pageTable.push_back(entry);
     pageTableMap[paddr] = pte_val;
     // printf("    pageTableMap[0x%lx] = 0x%lx\n", paddr, pte_val);
@@ -341,6 +342,7 @@ bool TraceWriter::dumpPageTable() {
   // use the first entry to store the satp
   pageTableBuffer[0].paddr = pageTableNum;
   pageTableBuffer[0].pte = satp;
+  pageTableBuffer[0].level = 0;
   for (size_t i = 0; i < pageTable.size(); i++) {
     pageTableBuffer[i + 1] = pageTable[i];
   }

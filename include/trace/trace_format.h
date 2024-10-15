@@ -118,6 +118,7 @@ struct Control {
 struct TracePageEntry {
   uint64_t paddr;
   uint64_t pte;
+  uint64_t level; // use uint64_t for align
 };
 
 typedef union TracePageTableEntry {
