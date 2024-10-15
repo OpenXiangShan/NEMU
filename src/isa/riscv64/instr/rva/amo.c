@@ -17,6 +17,7 @@
 #include <cpu/cpu.h>
 #include <memory/paddr.h>
 #include <rtl/rtl.h>
+#include "../local-include/trigger.h"
 #include "../local-include/intr.h"
 #include "../local-include/trapinfo.h"
 #include "cpu/difftest.h"
@@ -24,6 +25,15 @@ __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
   int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
+
+  if (funct5 == 0b00010) { // lr
+    IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE));
+  } else if(funct5 == 0b00011) { // sc
+    IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE));
+  } else{ // amo
+    IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE));
+    IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE));
+  }
 
   // AMO does not support misalign operation
   // So check misalign before real memory access
