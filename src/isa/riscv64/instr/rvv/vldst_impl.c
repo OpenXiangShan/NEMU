@@ -356,6 +356,9 @@ void vld(Decode *s, int mode, int mmu_mode) {
   }
 #endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
 
+  // Store all seg8 intermediate data
+  uint64_t vloadBuf[8];
+
   if (!fast_vle) {  // this block is the original slow path
     for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
       rtlreg_t mask = get_mask(0, idx);
@@ -375,8 +378,11 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
-        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+        rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+      }
+      // set vreg after all segment done with no exception
+      for (fn = 0; fn < nf; fn++) {
+        set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
       }
     }
   }
@@ -428,6 +434,10 @@ void vldx(Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+
+  // Store all seg8 intermediate data
+  uint64_t vloadBuf[8];
+
   for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx);
     if (s->vm == 0 && mask == 0) {
@@ -451,8 +461,12 @@ void vldx(Decode *s, int mmu_mode) {
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
-      rtl_lm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
-      set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
+      rtl_lm(s, &vloadBuf[fn], &addr, 0, data_width, mmu_mode);
+    }
+
+    // set vreg after all segment done with no exception
+    for (fn = 0; fn < nf; fn++) {
+      set_vreg(vd + fn * lmul, idx, vloadBuf[fn], eew, 0, 0);
     }
   }
 
@@ -946,6 +960,9 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   }
 #endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
 
+  // Store all seg8 intermediate data
+  uint64_t vloadBuf[8];
+
   if (!fast_vle) {  // this block is the original slow path
     for (uint64_t idx = vstart->val; idx < vl_val; idx++) {
       rtlreg_t mask = get_mask(0, idx);
@@ -974,8 +991,10 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
-        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+        rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+      }
+      for (fn = 0; fn < nf; fn++) {
+        set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
       }
     }
   }
