@@ -115,19 +115,27 @@ def_EHelper(fcvt_d_lu) {
 def_EHelper(fcvt_w_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI32, FPCALL_W64));
   rtl_sext(s, ddest, ddest, 4);
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_wu_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU32, FPCALL_W64));
   rtl_sext(s, ddest, ddest, 4);
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_l_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI64, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_lu_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU64, FPCALL_W64));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_d_s) {
