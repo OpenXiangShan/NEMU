@@ -162,41 +162,18 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_
 #endif // FORCE_RAISE_PF
   uint64_t tinst = 0;
   tinst |= is_support_vs ? 0x3000 : 0;
+  int ex = EX_LGPF;
   if (type == MEM_TYPE_IFETCH) {
-    if(intr_deleg_S(EX_IGPF)){
-      stval->val = vaddr;
-      htval->val = gpaddr >> 2;
-      htinst->val = tinst;
-    }else{
-      mtval->val = vaddr;
-      mtval2->val = gpaddr >> 2;
-      mtinst->val = tinst;
-    }
-    longjmp_exception(EX_IGPF);
-  } else if (type == MEM_TYPE_READ) {
-    int ex = cpu.amo ? EX_SGPF : EX_LGPF;
-    if (intr_deleg_S(ex)) {
-      stval->val = vaddr;
-      htval->val = gpaddr >> 2;
-      htinst->val = tinst;
-    } else {
-      mtval->val = vaddr;
-      mtval2->val = gpaddr >> 2;
-      mtinst->val = tinst;
-    }
-    longjmp_exception(ex);
+    ex = EX_IGPF;
+  } else if (type == MEM_TYPE_WRITE || cpu.amo) {
+    ex = EX_SGPF;
   } else {
-    if (intr_deleg_S(EX_SGPF)) {
-      stval->val = vaddr;
-      htval->val = gpaddr >> 2;
-      htinst->val = tinst;
-    } else {
-      mtval->val = vaddr;
-      mtval2->val = gpaddr >> 2;
-      mtinst->val = tinst;
-    }
-    longjmp_exception(EX_SGPF);
+    ex = EX_LGPF;
   }
+  INTR_TVAL_REG(ex) = vaddr;
+  INTR_TVAL2_REG(ex) = gpaddr >> 2;
+  INTR_TINST_REG(ex) = tinst;
+  longjmp_exception(ex);
 }
 
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool ishlvx, bool is_support_vs){
@@ -408,65 +385,20 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     // pte.a = true;
     // pte.d |= is_write;
     // paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
-    switch (type)
-    {
+    switch (type) {
     int ex;
     case MEM_TYPE_IFETCH:
-#ifdef CONFIG_RVH
-      if(cpu.v){
-        if(intr_deleg_S(EX_IPF)){
-          vstval->val = vaddr;
-        }else{
-          mtval->val = vaddr;
-        }
-        longjmp_exception(EX_IPF);
-      }else{
-        INTR_TVAL_REG(EX_IPF) = vaddr;
-        longjmp_exception(EX_IPF);
-      }
-#else
-      stval->val = vaddr;
       INTR_TVAL_REG(EX_IPF) = vaddr;
       longjmp_exception(EX_IPF);
-#endif // CONFIG_RVH
       break;
     case MEM_TYPE_READ:
-#ifdef CONFIG_RVH
-      if(cpu.v){
-        ex = cpu.amo ? EX_SPF : EX_LPF;
-        if(intr_deleg_S(ex)){
-          vstval->val = vaddr;
-        }else{
-          mtval->val = vaddr;
-        }
-      }else{
-        ex = cpu.amo ? EX_SPF : EX_LPF;
-        INTR_TVAL_REG(ex) = vaddr;
-      }
-      longjmp_exception(ex);
-#else
       ex = cpu.amo ? EX_SPF : EX_LPF;
       INTR_TVAL_REG(ex) = vaddr;
       longjmp_exception(ex);
-#endif //CONFIG_RVH
       break;
     case MEM_TYPE_WRITE:
-#ifdef CONFIG_RVH
-      if(cpu.v){
-        if(intr_deleg_S(EX_SPF)){
-          vstval->val = vaddr;
-        }else{
-          mtval->val = vaddr;
-        }
-        longjmp_exception(EX_SPF);
-      }else{
-        INTR_TVAL_REG(EX_SPF) = vaddr;
-        longjmp_exception(EX_SPF);
-      }
-#else
       INTR_TVAL_REG(EX_SPF) = vaddr;
       longjmp_exception(EX_SPF);
-#endif //CONFIG_RVH
       break;
     default:
       break;
@@ -612,23 +544,11 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   if(!va_msbs_ok){
     if(is_ifetch){
 #ifdef CONFIG_RVH
-      if(hld_st || gpf){
-        if(intr_deleg_S(EX_IGPF)){
-          stval->val = vaddr;
-          htval->val = vaddr >> 2;
-        }else{
-          mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
-        }
+      if (hld_st || gpf) {
+        INTR_TVAL_REG(EX_IGPF) = vaddr;
+        INTR_TVAL2_REG(EX_IGPF) = vaddr >> 2;
         longjmp_exception(EX_IGPF);
-      }else if(cpu.v){
-        if(intr_deleg_S(EX_IPF)){
-          vstval->val = vaddr;
-        }else{
-          mtval->val = vaddr;
-        }
-        longjmp_exception(EX_IPF);
-      }else{
+      } else {
         INTR_TVAL_REG(EX_IPF) = vaddr;
         longjmp_exception(EX_IPF);
       }
@@ -641,21 +561,9 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
       int ex;
       if(hld_st || gpf){
         ex = cpu.amo ? EX_SGPF : EX_LGPF;
-        if(intr_deleg_S(ex)){
-          stval->val = vaddr;
-          htval->val = vaddr >> 2;
-        }else{
-          mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
-        }
-      }else if(cpu.v){
-        ex = cpu.amo ? EX_SPF : EX_LPF;
-        if(intr_deleg_S(ex)){
-          vstval->val = vaddr;
-        }else{
-          mtval->val = vaddr;
-        }
-      }else{
+        INTR_TVAL_REG(ex) = vaddr;
+        INTR_TVAL2_REG(ex) = vaddr >> 2;
+      } else {
         ex = cpu.amo ? EX_SPF : EX_LPF;
         INTR_TVAL_REG(ex) = vaddr;
       }
@@ -667,23 +575,11 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
     } else {
 #ifdef CONFIG_RVH
-      if(hld_st || gpf){
-        if(intr_deleg_S(EX_SGPF)){
-          stval->val = vaddr;
-          htval->val = vaddr >> 2;
-        }else{
-          mtval->val = vaddr;
-          mtval2->val = vaddr >> 2;
-        }
+      if (hld_st || gpf) {
+        INTR_TVAL_REG(EX_SGPF) = vaddr;
+        INTR_TVAL2_REG(EX_SGPF) = vaddr >> 2;
         longjmp_exception(EX_SGPF);
-      }else if(cpu.v){
-        if(intr_deleg_S(EX_SPF)){
-          vstval->val = vaddr;
-        }else{
-          mtval->val = vaddr;
-        }
-        longjmp_exception(EX_SPF);
-      }else{
+      } else {
         INTR_TVAL_REG(EX_SPF) = vaddr;
         longjmp_exception(EX_SPF);
       }

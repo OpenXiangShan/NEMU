@@ -92,6 +92,8 @@ bool intr_deleg_S(word_t exceptionNO);
 bool intr_deleg_VS(word_t exceptionNO);
 #ifdef CONFIG_RVH
 #define INTR_TVAL_REG(ex) (*((intr_deleg_VS(ex)) ? (word_t *)vstval :(intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
+#define INTR_TVAL2_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)htval : (word_t *)mtval2))
+#define INTR_TINST_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)htinst : (word_t *)mtinst))
 #else
 #define INTR_TVAL_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
 #endif
