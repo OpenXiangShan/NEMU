@@ -54,6 +54,8 @@ def_EHelper(froundnx_d) {
 def_EHelper(fcvtmod_w_d) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FCVTMOD, FPCALL_W64));
   rtl_sext(s, ddest, ddest, 4);
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fleq_s) {

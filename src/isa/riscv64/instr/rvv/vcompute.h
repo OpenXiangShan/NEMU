@@ -1180,38 +1180,26 @@ def_EHelper(vfmerge) {
 
 def_EHelper(vmfeq) {
   FLOAT_ARTHI_MASK(MFEQ)
-  void fp_set_dirty();
-  fp_set_dirty();
 }
 
 def_EHelper(vmfle) {
   FLOAT_ARTHI_MASK(MFLE)
-  void fp_set_dirty();
-  fp_set_dirty();
 }
 
 def_EHelper(vmflt) {
   FLOAT_ARTHI_MASK(MFLT)
-  void fp_set_dirty();
-  fp_set_dirty();
 }
 
 def_EHelper(vmfne) {
   FLOAT_ARTHI_MASK(MFNE)
-  void fp_set_dirty();
-  fp_set_dirty();
 }
 
 def_EHelper(vmfgt) {
   FLOAT_ARTHI_MASK(MFGT)
-  void fp_set_dirty();
-  fp_set_dirty();
 }
 
 def_EHelper(vmfge) {
   FLOAT_ARTHI_MASK(MFGE)
-  void fp_set_dirty();
-  fp_set_dirty();
 }
 
 def_EHelper(vfdiv) {
