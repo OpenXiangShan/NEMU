@@ -150,6 +150,7 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   raise_access_fault(cause, vaddr);
 }
 
+// MMIO access currently does not support hardware misalignment.
 static inline void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page) {
   if (unlikely((paddr & (len - 1)) != 0) || is_cross_page) {
     Logm("addr misaligned happened: paddr:" FMT_PADDR " vaddr:" FMT_WORD " len:%d type:%d pc:%lx", paddr, vaddr, len, type, cpu.pc);
