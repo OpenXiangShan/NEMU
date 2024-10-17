@@ -272,7 +272,7 @@ void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
     TracePTE pte;
     pte.val = pte_val;
     // printf("  Idx:%ld, paddr: 0x%lx, pte: 0x%lx, ppn: 0x%lx level:%d base_paddr:%lx\n", idx, paddr, pte_val, pte.ppn, level, base_paddr);
-    fflush(stdout);
+    // fflush(stdout);
     if (pte.v == 0) {
       // printf("    invalid pte: 0x%lx v:%d\n", pte_val, pte.v);
       continue;
@@ -289,16 +289,15 @@ void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
     entry.level = (uint64_t)level;
     pageTable.push_back(entry);
     pageTableMap[paddr] = pte_val;
-    // printf("    pageTableMap[0x%lx] = 0x%lx\n", paddr, pte_val);
-    // fflush(stdout);
 
     bool is_leaf = (level == 0) || (pte.v && (pte.r || pte.w || pte.x));
+    // printf("    pageTableMap[0x%lx] = 0x%lx level %d leaf %d\n", paddr, pte_val, level, is_leaf);
+    // fflush(stdout);
     if (!is_leaf) {
       uint64_t next_base_paddr = pte.ppn << TRACE_PAGE_SHIFT;
       dfs_dump_entry(next_base_paddr, level - 1);
     }
   }
-
 }
 
 uint64_t TraceWriter::trans(uint64_t vpn, bool &hit, bool verbose) {
@@ -368,70 +367,73 @@ void TraceWriter::modifyPageTable() {
   // std::map<TracePageTrans, TracePageTransTo> match_map;
   std::map<uint64_t, TracePageTransTo> unmatch_map;
   std::map<uint64_t, TracePageTransTo> match_map;
+
+  uint64_t count_num = 0;
   for (size_t i = 0; i < instBufferPtr; i++) {
     if (instBuffer[i].exception == 0) {
       uint64_t pc_va = instBuffer[i].instr_pc_va;
       uint64_t pc_pa = instBuffer[i].instr_pc_pa;
 
       bool unmatched = false;
-
       if (pc_va != pc_pa && pc_pa != 0) {
         tested_trans_num++;
-        // bool verbose = tested_trans_num == 10579098;
-        // bool verbose = (tested_trans_num > 10000 && tested_trans_num < 10100);
-        bool verbose = false;
+        bool verbose = tested_trans_num == 37;
+        // bool verbose = (tested_trans_num > 10000 && tested_trans_num < 10010);
+        // bool verbose = false;
+        // bool verbose = true;
         bool hit;
+        uint64_t pc_vpn = (pc_va >> 12);
+        uint64_t pc_ppn = (pc_pa >> 12);
         if (verbose) {
-          printf("Tested trans %ld: pc_va: 0x%lx, pc_pa: 0x%lx\n", tested_trans_num, pc_va, pc_pa);
+          printf("Tested trans %ld: pc_vpn: 0x%lx, pc_ppn: 0x%lx\n", tested_trans_num, pc_vpn, pc_ppn);
         }
-        uint64_t dumpPage_ppn_pc = trans(pc_va >> 12, hit, verbose);
-        if (!hit || dumpPage_ppn_pc != (pc_pa >> 12)) {
-          printf("Error: %ld trans error. pc_va: 0x%lx, pc_pa: 0x%lx, dumpPage_ppn_pc: 0x%lx\n", tested_trans_num, pc_va, pc_pa, dumpPage_ppn_pc);
-          instBuffer[i].dump();
-          unmatched = true;
-          uint64_t trans = pc_va >> 12;
-          if (unmatch_map.find(trans) == unmatch_map.end()) {
-            unmatch_map[trans] = {pc_pa >> 12, 1};
-          } else {
-            unmatch_map[trans].num++;
+        uint64_t dumpPage_ppn_pc = trans(pc_vpn, hit, verbose);
+        if (!hit || dumpPage_ppn_pc != (pc_ppn)) {
+          if (count_num++ < 10) {
+            printf("Error: %ld trans error. pc_vpn: 0x%lx, pc_pn: 0x%lx, hit: %d, dumpPage_ppn_pc: 0x%lx\n", tested_trans_num, pc_vpn, pc_ppn, hit, dumpPage_ppn_pc);
+            instBuffer[i].dump();
           }
-          // exit(1);
-
-          // u
-        } else {
-          uint64_t trans = pc_va >> 12;
-          if (match_map.find(trans) == match_map.end()) {
-            match_map[trans] = {dumpPage_ppn_pc, 1};
+          unmatched = true;
+          // verbose = true;
+          if (unmatch_map.find(pc_vpn) == unmatch_map.end()) {
+            unmatch_map[pc_vpn] = {dumpPage_ppn_pc, pc_ppn, 1};
           } else {
-            match_map[trans].num++;
+            unmatch_map[pc_vpn].num++;
+          }
+          exit(1);
+        } else {
+          if (match_map.find(pc_vpn) == match_map.end()) {
+            match_map[pc_vpn] = {dumpPage_ppn_pc, pc_ppn, 1};
+          } else {
+            match_map[pc_vpn].num++;
           }
         }
 
         if (instBuffer[i].memory_type != MEM_TYPE_None) {
-          uint64_t va = instBuffer[i].exu_data.memory_address.va;
-          uint64_t pa = instBuffer[i].exu_data.memory_address.pa;
+          uint64_t mem_vpn = instBuffer[i].exu_data.memory_address.va >> 12;
+          uint64_t mem_ppn = instBuffer[i].exu_data.memory_address.pa >> 12;
           bool hit;
           if (verbose) {
-            printf("Tested trans %ld: mem_va: 0x%lx, mem_pa: 0x%lx\n", tested_trans_num, va, pa);
+            printf("Tested trans %ld: mem_vpn: 0x%lx, mem_ppn: 0x%lx\n", tested_trans_num, mem_vpn, mem_ppn);
           }
-          uint64_t dumpPage_ppn = trans(va >> 12, hit, verbose);
-          if (!hit || dumpPage_ppn != (pa >> 12)) {
-            printf("Error: %ld trans error. va: 0x%lx, pa: 0x%lx, dumpPage_ppn: 0x%lx\n", tested_trans_num, va, pa, dumpPage_ppn);
-            instBuffer[i].dump();
+          uint64_t dumpPage_ppn_mem = trans(mem_vpn, hit, verbose);
+          if (!hit || dumpPage_ppn_mem != mem_ppn) {
+            if (count_num++ < 10) {
+              printf("Error: %ld trans error. vpn: 0x%lx, ppn: 0x%lx, hit:%d, dumpPage_ppn: 0x%lx\n", tested_trans_num, mem_vpn, mem_ppn, hit, dumpPage_ppn_mem);
+              instBuffer[i].dump();
+            }
             unmatched = true;
-            uint64_t trans = pc_va >> 12;
-            if (unmatch_map.find(trans) == unmatch_map.end()) {
-              unmatch_map[trans] = {pc_pa >> 12, 1};
+            if (unmatch_map.find(mem_vpn) == unmatch_map.end()) {
+              unmatch_map[mem_vpn] = {dumpPage_ppn_mem, mem_ppn, 1};
             } else {
-              unmatch_map[trans].num++;
+              unmatch_map[mem_vpn].num++;
             }
             // exit(1);
           } else {
-            uint64_t trans = pc_va >> 12;
-            if (match_map.find(trans) == match_map.end()) {
-              match_map[trans] = {dumpPage_ppn, 1};
+            if (match_map.find(mem_vpn) == match_map.end()) {
+              match_map[mem_vpn] = {dumpPage_ppn_mem, mem_ppn, 1};
             } else {
-              match_map[trans].num++;
+              match_map[mem_vpn].num++;
             }
           }
         }
@@ -446,30 +448,33 @@ void TraceWriter::modifyPageTable() {
 
   for (auto it = unmatch_map.begin(); it != unmatch_map.end(); it++) {
     uint64_t vpn = it->first;
-    uint64_t ppn = it->second.ppn;
+    uint64_t pt_ppn = it->second.pt_ppn;
+    uint64_t wantted_ppn = it->second.wantted_ppn;
     uint64_t unmatch_num = it->second.num;
     uint64_t match_num = 0;
-    uint64_t match_ppn = 0;
-    if (match_map.find(it->first) != match_map.end()) {
-      match_num = match_map[it->first].num;
-      match_ppn = match_map[it->first].ppn;
+    if (match_map.find(vpn) != match_map.end()) {
+      match_num = match_map[vpn].num;
     }
-    printf("Unmatched trans: vpn: 0x%lx, um_ppn: 0x%lx, m_ppn:0x%lx, unmatched num: %ld matched num:%ld \n", vpn, ppn, match_ppn, unmatch_num, match_num);
+    printf("Unmatched trans: vpn: 0x%lx, um_ppn: 0x%lx, m_ppn:0x%lx, unmatched num: %ld matched num:%ld \n", vpn, pt_ppn, wantted_ppn, unmatch_num, match_num);
   }
 
   for (auto it = unmatch_map.begin(); it != unmatch_map.end(); it++) {
-    printf("Matched trans: vpn: 0x%lx, ppn: 0x%lx, num: %ld \n", it->first, it->second.ppn, it->second.num);
     uint64_t vpn = it->first;
-    if (vpn >> (6*4) == 0xffffffeL) {
+    // if (vpn >> (6*4) == 0xffffffeL) {
+      uint64_t pt_ppn = it->second.pt_ppn;
+      uint64_t wantted_ppn = it->second.wantted_ppn;
+      uint64_t num = it->second.num;
+
       if ((match_map.find(vpn) == match_map.end()) ||
-          (unmatch_map[vpn].num > match_map[vpn].num)) {
-        if (!overridePageMap(vpn, unmatch_map[vpn].ppn, false)) {
+          (num > match_map[vpn].num)) {
+        if (!overridePageMap(vpn, wantted_ppn, false)) {
           printf("Failed to override page map\n");
-          printf("vpn: 0x%lx, ppn: 0x%lx\n", vpn, unmatch_map[vpn].ppn);
+          printf("vpn: 0x%lx, ppn: 0x%lx\n", vpn, wantted_ppn);
           exit(1);
+        } else {
+          printf("Override vpn 0x%lx: ppn 0x%lx -> 0x%lx\n", vpn, pt_ppn, wantted_ppn);
         }
       }
-    }
   }
 }
 

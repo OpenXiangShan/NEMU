@@ -122,7 +122,8 @@ struct TracePageEntry {
 };
 
 struct TracePageTransTo {
-  uint64_t ppn;
+  uint64_t pt_ppn;
+  uint64_t wantted_ppn;
   uint64_t num;
 };
 
