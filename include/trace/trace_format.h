@@ -121,6 +121,11 @@ struct TracePageEntry {
   uint64_t level; // use uint64_t for align
 };
 
+struct TracePageTransTo {
+  uint64_t ppn;
+  uint64_t num;
+};
+
 typedef union TracePageTableEntry {
   struct  {
     uint8_t v : 1;

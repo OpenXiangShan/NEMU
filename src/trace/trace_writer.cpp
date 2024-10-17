@@ -209,47 +209,40 @@ void TraceWriter::traceOver() {
   uint64_t compressedSize = compressZSTD(compressedBuffer, sizeof(Instruction) * instBufferPtr, (char *)instBuffer, instBufferSize);
 
   trace_stream->write(compressedBuffer, compressedSize);
-  // for (uint64_t idx = 0; idx < instBufferPtr; idx++) {
-  //   trace_stream->write((char *)&instBuffer[idx], sizeof(instBuffer[idx]));
-  // }
-
   // for (uint64_t i = 0; i < instBufferPtr; i++) {
   //   instBuffer[i].dump();
   // }
 
-  // for (auto it = inst_list.begin(); it != inst_list.end(); it++) {
-  //   it->dump();
-  // }
   printf("Traced Inst Count: 0d%ld\n", instBufferPtr);
 
 #ifdef TRACE_DUMP_PAGE_TABLE
+  chooseSatp();
   if (satp == 0) {
     printf("Satp not setted\n");
     exit(1);
   }
-  dumpPageTable();
-  // test
-  uint64_t tested_trans_num = 0;
-  for (size_t i = 2000; i < instBufferPtr; i++) {
-    if (instBuffer[i].exception == 0) {
-      uint64_t va = instBuffer[i].exu_data.memory_address.va;
-      uint64_t pa = instBuffer[i].exu_data.memory_address.pa;
 
-      if (va != pa) {
-        uint64_t dumpPage_ppn = trans(va >> 12);
-        tested_trans_num++;
-        if (dumpPage_ppn != (pa >> 12)) {
-          printf("Error: trans error. va: 0x%lx, pa: 0x%lx, dumpPage_ppn: 0x%lx\n", va, pa, dumpPage_ppn);
-          instBuffer[i].dump();
-          exit(1);
-        }
-      }
+  readPageTable();
+  setFreePageFrameAddr();
+  modifyPageTable();
+  dumpPageTable();
+
+#endif
+  trace_stream->close();
+}
+
+void TraceWriter::chooseSatp() {
+  printf("Choose Satp...\n");
+  satp = 0;
+  uint64_t num = 0;
+  for (auto it = satp_list.begin(); it != satp_list.end(); it++) {
+    printf("   Satp: 0x%lx Num:%ld\n", it->first, it->second);
+    if (it->second > num) {
+      num = it->second;
+      satp = it->first;
     }
   }
-  printf("Trans tested num: %ld\n", tested_trans_num);
-#endif
-
-  trace_stream->close();
+  printf("  Final Satp: 0x%lx number:%ld\n", satp, num);
 }
 
 uint64_t TraceWriter::compressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len) {
@@ -272,7 +265,6 @@ void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
   }
   if (level <  0) return;
 
-  // extern uint64_t pmem_read(uint64_t addr, int len);
   // printf("level: %d, base_paddr: 0x%lx\n", level, base_paddr);
   for (size_t idx = 0; idx < TRACE_PAGE_ENTRY_NUM; idx++) {
     uint64_t paddr = base_paddr + idx * TRACE_PAGE_ENTRY_SIZE;
@@ -306,36 +298,254 @@ void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
       dfs_dump_entry(next_base_paddr, level - 1);
     }
   }
+
 }
 
-uint64_t TraceWriter::trans(uint64_t vpn) {
+uint64_t TraceWriter::trans(uint64_t vpn, bool &hit, bool verbose) {
+  hit = false;
+
   uint64_t pgBase = (satp & TRACE_SATP64_PPN) << TRACE_PAGE_SHIFT;
   int level = 2;
+  if (verbose) {
+    printf("vpn: %lx, pgBase: %lx initLevel:%d\n", vpn, pgBase, level);
+  }
   for (; level >= 0; level--) {
     uint64_t pteAddr = GetPteAddr(vpn, level, pgBase);
     uint64_t pteVal = pageTableMap[pteAddr];
     TracePTE pte;
     pte.val = pteVal;
 
+    if( verbose) {
+      printf("  level: %d, pteAddr: %lx, pteVal: %lx(%lx)\n", level, pteAddr, pteVal, pte.ppn);
+    }
+
     if (!pte.v) {
-      printf("Error: vpn: %lx, level: %d, pte: %lx, pteAddr:%lx\n", vpn, level, pteVal, pteAddr);
-      exit(1);
+      if (verbose) {
+        printf("Error: vpn: %lx, level: %d, pte: %lx, pteAddr:%lx\n", vpn, level, pteVal, pteAddr);
+      }
+      break;
+      // exit(1);
     } else if (!(pte.r || pte.w || pte.x)) {
+      if (verbose) {
+        printf("    non-leaf pte, go to next level\n");
+      }
       pgBase = pte.ppn << TRACE_PAGE_SHIFT;
     } else {
-      return pte.ppn;
+      hit = true;
+      uint64_t ppn = 0;
+      switch (level) {
+        case 0: ppn = pte.ppn; break;
+        case 1: ppn = pte.ppn | (vpn & 0x1ff); break;
+        case 2: ppn = pte.ppn | (vpn & 0x3ffff); break;
+        default: printf("Error: level: %d\n", level); break;
+      }
+      if (verbose) {
+        printf("    leaf pte, return ppn: %lx\n", ppn);
+      }
+      return ppn;
     }
+  }
+  if (verbose) {
+    printf("  Should not be here: no entry match for vpn: %lx\n", vpn);
   }
   return pgBase >> 12;
 }
 
-bool TraceWriter::dumpPageTable() {
+void TraceWriter::setFreePageFrameAddr() {
+  uint64_t freePageFrameAddr = 0;
+  for (auto it = pageTable.begin(); it != pageTable.end(); it++) {
+    freePageFrameAddr = (freePageFrameAddr > it->paddr) ? freePageFrameAddr : it->paddr;
+  }
+  freePageFramePPN = (freePageFrameAddr >> 12) + 1;
+}
 
+void TraceWriter::modifyPageTable() {
+  // test
+  uint64_t tested_trans_num = 0;
+  uint64_t unmatched_trans_num = 0;
+
+  // std::map<TracePageTrans, TracePageTransTo> unmatch_map;
+  // std::map<TracePageTrans, TracePageTransTo> match_map;
+  std::map<uint64_t, TracePageTransTo> unmatch_map;
+  std::map<uint64_t, TracePageTransTo> match_map;
+  for (size_t i = 0; i < instBufferPtr; i++) {
+    if (instBuffer[i].exception == 0) {
+      uint64_t pc_va = instBuffer[i].instr_pc_va;
+      uint64_t pc_pa = instBuffer[i].instr_pc_pa;
+
+      bool unmatched = false;
+
+      if (pc_va != pc_pa && pc_pa != 0) {
+        tested_trans_num++;
+        // bool verbose = tested_trans_num == 10579098;
+        // bool verbose = (tested_trans_num > 10000 && tested_trans_num < 10100);
+        bool verbose = false;
+        bool hit;
+        if (verbose) {
+          printf("Tested trans %ld: pc_va: 0x%lx, pc_pa: 0x%lx\n", tested_trans_num, pc_va, pc_pa);
+        }
+        uint64_t dumpPage_ppn_pc = trans(pc_va >> 12, hit, verbose);
+        if (!hit || dumpPage_ppn_pc != (pc_pa >> 12)) {
+          printf("Error: %ld trans error. pc_va: 0x%lx, pc_pa: 0x%lx, dumpPage_ppn_pc: 0x%lx\n", tested_trans_num, pc_va, pc_pa, dumpPage_ppn_pc);
+          instBuffer[i].dump();
+          unmatched = true;
+          uint64_t trans = pc_va >> 12;
+          if (unmatch_map.find(trans) == unmatch_map.end()) {
+            unmatch_map[trans] = {pc_pa >> 12, 1};
+          } else {
+            unmatch_map[trans].num++;
+          }
+          // exit(1);
+
+          // u
+        } else {
+          uint64_t trans = pc_va >> 12;
+          if (match_map.find(trans) == match_map.end()) {
+            match_map[trans] = {dumpPage_ppn_pc, 1};
+          } else {
+            match_map[trans].num++;
+          }
+        }
+
+        if (instBuffer[i].memory_type != MEM_TYPE_None) {
+          uint64_t va = instBuffer[i].exu_data.memory_address.va;
+          uint64_t pa = instBuffer[i].exu_data.memory_address.pa;
+          bool hit;
+          if (verbose) {
+            printf("Tested trans %ld: mem_va: 0x%lx, mem_pa: 0x%lx\n", tested_trans_num, va, pa);
+          }
+          uint64_t dumpPage_ppn = trans(va >> 12, hit, verbose);
+          if (!hit || dumpPage_ppn != (pa >> 12)) {
+            printf("Error: %ld trans error. va: 0x%lx, pa: 0x%lx, dumpPage_ppn: 0x%lx\n", tested_trans_num, va, pa, dumpPage_ppn);
+            instBuffer[i].dump();
+            unmatched = true;
+            uint64_t trans = pc_va >> 12;
+            if (unmatch_map.find(trans) == unmatch_map.end()) {
+              unmatch_map[trans] = {pc_pa >> 12, 1};
+            } else {
+              unmatch_map[trans].num++;
+            }
+            // exit(1);
+          } else {
+            uint64_t trans = pc_va >> 12;
+            if (match_map.find(trans) == match_map.end()) {
+              match_map[trans] = {dumpPage_ppn, 1};
+            } else {
+              match_map[trans].num++;
+            }
+          }
+        }
+      }
+
+      if (unmatched) {
+        unmatched_trans_num++;
+      }
+    }
+  }
+  printf("Trans tested num: %ld unmatched %ld\n", tested_trans_num, unmatched_trans_num);
+
+  for (auto it = unmatch_map.begin(); it != unmatch_map.end(); it++) {
+    uint64_t vpn = it->first;
+    uint64_t ppn = it->second.ppn;
+    uint64_t unmatch_num = it->second.num;
+    uint64_t match_num = 0;
+    uint64_t match_ppn = 0;
+    if (match_map.find(it->first) != match_map.end()) {
+      match_num = match_map[it->first].num;
+      match_ppn = match_map[it->first].ppn;
+    }
+    printf("Unmatched trans: vpn: 0x%lx, um_ppn: 0x%lx, m_ppn:0x%lx, unmatched num: %ld matched num:%ld \n", vpn, ppn, match_ppn, unmatch_num, match_num);
+  }
+
+  for (auto it = unmatch_map.begin(); it != unmatch_map.end(); it++) {
+    printf("Matched trans: vpn: 0x%lx, ppn: 0x%lx, num: %ld \n", it->first, it->second.ppn, it->second.num);
+    uint64_t vpn = it->first;
+    if (vpn >> (6*4) == 0xffffffeL) {
+      if ((match_map.find(vpn) == match_map.end()) ||
+          (unmatch_map[vpn].num > match_map[vpn].num)) {
+        if (!overridePageMap(vpn, unmatch_map[vpn].ppn, false)) {
+          printf("Failed to override page map\n");
+          printf("vpn: 0x%lx, ppn: 0x%lx\n", vpn, unmatch_map[vpn].ppn);
+          exit(1);
+        }
+      }
+    }
+  }
+}
+
+bool TraceWriter::overridePageMap(uint64_t vpn, uint64_t ppn, bool verbose) {
+  if (verbose) {
+    printf("OverridePageMap: vpn: 0x%lx, ppn: 0x%lx\n", vpn, ppn);
+  }
+  uint64_t pgBase = (satp & TRACE_SATP64_PPN) << TRACE_PAGE_SHIFT;
+  int level = 2;
+
+  // get free PageFrame
+  for (; level >= 0; level--) {
+    uint64_t pteAddr = GetPteAddr(vpn, level, pgBase);
+    uint64_t pteVal = pageTableMap[pteAddr];
+    TracePTE pte;
+    pte.val = pteVal;
+
+    if (verbose) {
+      printf("  level: %d, pteAddr: %lx, pteVal: %lx(%lx)\n", level, pteAddr, pteVal, pte.ppn);
+    }
+
+    if (pte.v && !(pte.r || pte.w || pte.x)) {
+      if (verbose) printf("  level %d non-leaf pte, go to next level\n", level);
+    } else {
+      TracePTE newPte = (level == 0) ? genLeafPte(ppn) : genNonLeafPte(freePageFramePPN++);
+      if (verbose) printf("  level %d leaf pte override: %lx -> %lx\n", level, pte.val, newPte.val);
+      pte.val = newPte.val;
+      if (level == 0) return true;
+    }
+    pgBase = pte.ppn << TRACE_PAGE_SHIFT;
+  }
+
+  return false;
+}
+
+inline TracePTE TraceWriter::genLeafPte(uint64_t ppn) {
+  TracePTE pte;
+  pte.val = 0;
+  pte.v = 1;
+  pte.r = 1;
+  pte.w = 1;
+  pte.x = 1;
+  pte.u = 1;
+  pte.a = 1;
+  pte.d = 1;
+  pte.ppn = ppn;
+  return pte;
+}
+
+inline TracePTE TraceWriter::genNonLeafPte(uint64_t ppn) {
+  TracePTE pte;
+  pte.val = 0;
+  pte.v = 1;
+  pte.ppn = ppn;
+  return pte;
+}
+
+void TraceWriter::readPageTable() {
   uint64_t base_paddr = (satp & TRACE_SATP64_PPN) << TRACE_PAGE_SHIFT;
-  // printf("dumPageTable: satp:%lx base_paddr: 0x%lx\n", satp, base_paddr);
+  printf("dumPageTable: satp:%lx base_paddr: 0x%lx\n", satp, base_paddr);
   fflush(stdout);
   dfs_dump_entry(base_paddr, 2);
 
+  // uint64_t count = 0;
+  // for (auto &entry : pageTableMap) {
+  //   printf("Page Table %ld: paddr %lx pte %lx\n", count++, entry.first, entry.second);
+  // }
+
+  if (pageTableMap.size() < 100) {
+    printf("Page Table size: %ld < 100. Maybe wrong. Check it\n", pageTableMap.size());
+    fflush(stdout);
+    exit(1);
+  }
+}
+
+void TraceWriter::dumpPageTable() {
   uint64_t pageTableNum = pageTable.size() + 1;
   uint64_t pageTableMemSize = pageTableNum * sizeof(TracePageEntry);
   TracePageEntry *pageTableBuffer = (TracePageEntry *)malloc(pageTableMemSize);
@@ -359,12 +569,16 @@ bool TraceWriter::dumpPageTable() {
 
   free(pageTableBuffer);
   free(pageTableCompressedBuffer);
-  return true;
 }
 
-inline void TraceWriter::setSatp(uint64_t outer_satp) {
-  printf("Set satp: from %lx to %lx\n", satp, outer_satp);
-  satp = outer_satp;
+inline void TraceWriter::insertSatp(uint64_t outer_satp) {
+  // printf("Set satp: from %lx to %lx\n", satp, outer_satp);
+  // satp = outer_satp;
+  if (satp_list.find(outer_satp) == satp_list.end()) {
+    satp_list[outer_satp] = 1;
+  } else {
+    satp_list[outer_satp]++;
+  }
 }
 
 void TraceWriter::error_dump() {
@@ -467,7 +681,7 @@ void trace_write_interrupt(uint8_t NO, uint64_t target) {
 
 
 void trace_write_setSatp(uint64_t satp) {
-  trace_writer->setSatp(satp);
+  trace_writer->insertSatp(satp);
 }
 
 void trace_inst_over() {

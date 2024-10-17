@@ -58,6 +58,8 @@ class TraceWriter {
 
   std::vector<TracePageEntry> pageTable;
   std::map<uint64_t, uint64_t> pageTableMap;
+
+  std::map<uint64_t, uint64_t> satp_list;
   uint64_t satp = 0;
 
 public:
@@ -86,10 +88,19 @@ public:
   void traceOver();
   uint64_t compressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len);
 
-  bool dumpPageTable();
-  void setSatp(uint64_t satp);
-  uint64_t trans(uint64_t vpn);
+  uint64_t freePageFramePPN;
+  void insertSatp(uint64_t satp);
+  void chooseSatp();
+  void readPageTable();
+  void dumpPageTable();
+  void modifyPageTable();
+  void setFreePageFrameAddr();
+  bool overridePageMap(uint64_t vpn, uint64_t paddr, bool verbose);
+  uint64_t trans(uint64_t vpn, bool &hit, bool verbose);
   void dfs_dump_entry(uint64_t base_paddr, int level);
+
+  TracePTE genLeafPte(uint64_t ppn);
+  TracePTE genNonLeafPte(uint64_t ppn);
 };
 
 extern TraceWriter *trace_writer;
