@@ -1033,7 +1033,7 @@ def_EHelper(vfmvfs) {
   if (vtype->vsew < 3) {
       *s0 = *s0 | (UINT64_MAX << (8 << vtype->vsew));
   }
-  rtl_mv(s, &fpreg_l(id_dest->reg), s0);
+  rtl_fsr(s, &fpreg_l(id_dest->reg), s0, FPCALL_W64);
   vstart->val = 0;
 }
 
@@ -1062,6 +1062,7 @@ def_EHelper(vfmvsf) {
       }
     }
   }
+  vp_set_dirty();
   vstart->val = 0;
 }
 
