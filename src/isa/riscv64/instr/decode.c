@@ -109,7 +109,7 @@ int isa_fetch_decode(Decode *s) {
      (satp->mode == 8) /*SATP_MODE_SV39*/) {
     extern void trace_write_setSatp(uint64_t satp);
     trace_write_setSatp(satp->val);
-    satpSetted = true;
+    // satpSetted = true;
   }
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
