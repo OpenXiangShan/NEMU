@@ -152,7 +152,7 @@ bool has_two_stage_translation(){
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type){
   // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
 #ifdef FORCE_RAISE_PF
-   if (cpu.guided_exec && cpu.execution_guide.force_raise_exception && 
+   if (cpu.guided_exec && cpu.execution_guide.force_raise_exception &&
         (cpu.execution_guide.exception_num == EX_IPF ||
          cpu.execution_guide.exception_num == EX_LPF ||
          cpu.execution_guide.exception_num == EX_SPF))
@@ -610,7 +610,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 #ifdef CONFIG_RVH
   if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
     return MEM_RET_FAIL;
-#else 
+#else
   if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
     return MEM_RET_FAIL;
 #endif // CONFIG_RVH

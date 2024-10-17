@@ -209,6 +209,7 @@ void TraceWriter::traceOver() {
   uint64_t compressedSize = compressZSTD(compressedBuffer, sizeof(Instruction) * instBufferPtr, (char *)instBuffer, instBufferSize);
 
   trace_stream->write(compressedBuffer, compressedSize);
+  trace_stream->close();
   // for (uint64_t i = 0; i < instBufferPtr; i++) {
   //   instBuffer[i].dump();
   // }
@@ -228,7 +229,6 @@ void TraceWriter::traceOver() {
   dumpPageTable();
 
 #endif
-  trace_stream->close();
 }
 
 void TraceWriter::chooseSatp() {
@@ -368,7 +368,7 @@ void TraceWriter::modifyPageTable() {
   std::map<uint64_t, TracePageTransTo> unmatch_map;
   std::map<uint64_t, TracePageTransTo> match_map;
 
-  uint64_t count_num = 0;
+  // uint64_t count_num = 0;
   for (size_t i = 0; i < instBufferPtr; i++) {
     if (instBuffer[i].exception == 0) {
       uint64_t pc_va = instBuffer[i].instr_pc_va;
@@ -389,10 +389,10 @@ void TraceWriter::modifyPageTable() {
         }
         uint64_t dumpPage_ppn_pc = trans(pc_vpn, hit, verbose);
         if (!hit || dumpPage_ppn_pc != (pc_ppn)) {
-          if (count_num++ < 10) {
-            printf("Error: %ld trans error. pc_vpn: 0x%lx, pc_pn: 0x%lx, hit: %d, dumpPage_ppn_pc: 0x%lx\n", tested_trans_num, pc_vpn, pc_ppn, hit, dumpPage_ppn_pc);
-            instBuffer[i].dump();
-          }
+          // if (count_num++ < 10) {
+          //   printf("Error: %ld trans error. pc_vpn: 0x%lx, pc_ppn: 0x%lx, hit: %d, dumpPage_ppn_pc: 0x%lx\n", tested_trans_num, pc_vpn, pc_ppn, hit, dumpPage_ppn_pc);
+          //   instBuffer[i].dump();
+          // }
           unmatched = true;
           // verbose = true;
           if (unmatch_map.find(pc_vpn) == unmatch_map.end()) {
@@ -400,7 +400,6 @@ void TraceWriter::modifyPageTable() {
           } else {
             unmatch_map[pc_vpn].num++;
           }
-          exit(1);
         } else {
           if (match_map.find(pc_vpn) == match_map.end()) {
             match_map[pc_vpn] = {dumpPage_ppn_pc, pc_ppn, 1};
@@ -418,17 +417,16 @@ void TraceWriter::modifyPageTable() {
           }
           uint64_t dumpPage_ppn_mem = trans(mem_vpn, hit, verbose);
           if (!hit || dumpPage_ppn_mem != mem_ppn) {
-            if (count_num++ < 10) {
-              printf("Error: %ld trans error. vpn: 0x%lx, ppn: 0x%lx, hit:%d, dumpPage_ppn: 0x%lx\n", tested_trans_num, mem_vpn, mem_ppn, hit, dumpPage_ppn_mem);
-              instBuffer[i].dump();
-            }
+            // if (count_num++ < 10) {
+            //   printf("Error: %ld trans error. vpn: 0x%lx, ppn: 0x%lx, hit:%d, dumpPage_ppn: 0x%lx\n", tested_trans_num, mem_vpn, mem_ppn, hit, dumpPage_ppn_mem);
+            //   instBuffer[i].dump();
+            // }
             unmatched = true;
             if (unmatch_map.find(mem_vpn) == unmatch_map.end()) {
               unmatch_map[mem_vpn] = {dumpPage_ppn_mem, mem_ppn, 1};
             } else {
               unmatch_map[mem_vpn].num++;
             }
-            // exit(1);
           } else {
             if (match_map.find(mem_vpn) == match_map.end()) {
               match_map[mem_vpn] = {dumpPage_ppn_mem, mem_ppn, 1};
@@ -534,7 +532,7 @@ inline TracePTE TraceWriter::genNonLeafPte(uint64_t ppn) {
 
 void TraceWriter::readPageTable() {
   uint64_t base_paddr = (satp & TRACE_SATP64_PPN) << TRACE_PAGE_SHIFT;
-  printf("dumPageTable: satp:%lx base_paddr: 0x%lx\n", satp, base_paddr);
+  printf("readPageTable: satp:%lx base_paddr: 0x%lx\n", satp, base_paddr);
   fflush(stdout);
   dfs_dump_entry(base_paddr, 2);
 
@@ -544,7 +542,7 @@ void TraceWriter::readPageTable() {
   // }
 
   if (pageTableMap.size() < 100) {
-    printf("Page Table size: %ld < 100. Maybe wrong. Check it\n", pageTableMap.size());
+    printf("Error: Page Table size: %ld < 100. Maybe wrong. Check it\n", pageTableMap.size());
     fflush(stdout);
     exit(1);
   }
