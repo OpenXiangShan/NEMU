@@ -215,38 +215,6 @@ static inline def_DHelper(C_FLD) {
   decode_C_ldst_common(s, 2, false, true);
 }
 
-// Zcb Extension
-static inline void decode_C_ldst_zcb(Decode *s, bool is_store, bool need_uimm0) {
-  uint32_t instr = s->isa.instr.val;
-  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
-  uint32_t rd_rs2 = creg2reg(BITS(instr, 4, 2)); // load:rd  store:rs2
-  uint32_t uimm1 = (instr >> 5) & UINT32_C(1);
-
-  uint32_t imm;
-  if (need_uimm0) {
-    uint32_t uimm0 = (instr >> 6) & UINT32_C(1);
-    imm = (uimm1 << 1) | uimm0;
-  } else {
-    imm = (uimm1 << 1) | UINT32_C(0);
-  }
-
-  decode_op_i(s, id_src2, imm, false);
-  decode_op_r(s, id_src1, rs1, true);
-  decode_op_r(s, id_dest, rd_rs2, is_store);
-}
-
-static inline def_DHelper(C_LBU) {
-  decode_C_ldst_zcb(s, false, true);
-}
-
-static inline def_DHelper(C_LHU) {
-  decode_C_ldst_zcb(s, false, false);
-}
-
-static inline def_DHelper(C_LH) {
-  decode_C_ldst_zcb(s, false, false);
-}
-
 // ---------- CS ----------
 
 static inline def_DHelper(C_SW) {
@@ -267,12 +235,13 @@ static inline def_DHelper(CS) {
   decode_op_r(s, id_src2, rs2, true);
 }
 
-static inline def_DHelper(C_SB) {
-  decode_C_ldst_zcb(s, true, true);
-}
+// ---------- CA ----------
 
-static inline def_DHelper(C_SH) {
-  decode_C_ldst_zcb(s, true, false);
+static inline def_DHelper(CA) {
+  uint32_t instr = s->isa.instr.val;
+  decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
+  decode_op_r(s, id_src2, creg2reg(BITS(instr, 4, 2)), true);
+  decode_op_r(s, id_dest, creg2reg(BITS(instr, 9, 7)), false);
 }
 
 // ---------- CB ----------
@@ -372,28 +341,98 @@ def_THelper(c_addiw_dispatch) {
   return table_c_addiw(s);
 }
 
+// Zc* instruction formats
+
+// ---------- CLB ----------
+
+static inline def_DHelper(CLB) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
+  uint32_t rd = creg2reg(BITS(instr, 4, 2));
+  uint32_t uimm1 = (instr >> 5) & 1;
+  uint32_t uimm0 = (instr >> 6) & 1;
+  uint32_t imm = (uimm1 << 1) | uimm0;
+
+  decode_op_i(s, id_src2, imm, false);
+  decode_op_r(s, id_src1, rs1, true);
+  decode_op_r(s, id_dest, rd, false);
+}
+
+// ---------- CSB ----------
+
+static inline def_DHelper(CSB) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
+  uint32_t rs2 = creg2reg(BITS(instr, 4, 2));
+  uint32_t uimm1 = (instr >> 5) & 1;
+  uint32_t uimm0 = (instr >> 6) & 1;
+  uint32_t imm = (uimm1 << 1) | uimm0;
+
+  decode_op_i(s, id_src2, imm, false);
+  decode_op_r(s, id_src1, rs1, true);
+  decode_op_r(s, id_dest, rs2, true);
+}
+
+// ---------- CLH ----------
+
+static inline def_DHelper(CLH) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
+  uint32_t rd = creg2reg(BITS(instr, 4, 2));
+  uint32_t uimm1 = (instr >> 5) & 1;
+
+  decode_op_i(s, id_src2, uimm1, false);
+  decode_op_r(s, id_src1, rs1, true);
+  decode_op_r(s, id_dest, rd, false);
+}
+
+// ---------- CSH ----------
+
+static inline def_DHelper(CSH) {
+  uint32_t instr = s->isa.instr.val;
+  uint32_t rs1 = creg2reg(BITS(instr, 9, 7));
+  uint32_t rs2 = creg2reg(BITS(instr, 4, 2));
+  uint32_t uimm1 = (instr >> 5) & 1;
+
+  decode_op_i(s, id_src2, uimm1, false);
+  decode_op_r(s, id_src1, rs1, true);
+  decode_op_r(s, id_dest, rs2, true);
+}
+
+// ---------- CU ----------
+
+static inline def_DHelper(CU) {
+  uint32_t instr = s->isa.instr.val;
+  decode_op_r(s, id_src1, creg2reg(BITS(instr, 9, 7)), true);
+  decode_op_r(s, id_dest, creg2reg(BITS(instr, 9, 7)), false);
+}
+
 def_THelper(c_ldst) {
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("010 ??? ??? ?? ??? ??", lw);
     def_INSTR_TAB("011 ??? ??? ?? ??? ??", ld);
+    def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw);
+    def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd);
+#ifdef CONFIG_RV_ZCB
     def_INSTR_TAB("100 000 ??? ?? ??? ??", lbu);
     def_INSTR_TAB("100 001 ??? 0? ??? ??", lhu);
     def_INSTR_TAB("100 001 ??? 1? ??? ??", lh);
-    def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw);
-    def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd);
     def_INSTR_TAB("100 010 ??? ?? ??? ??", sb);
     def_INSTR_TAB("100 011 ??? 0? ??? ??", sh);
+#endif // CONFIG_RV_ZCB
   } else if (mmu_mode == MMU_TRANSLATE) {
     def_INSTR_TAB("010 ??? ??? ?? ??? ??", lw_mmu);
     def_INSTR_TAB("011 ??? ??? ?? ??? ??", ld_mmu);
+    def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw_mmu);
+    def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd_mmu);
+#ifdef CONFIG_RV_ZCB
     def_INSTR_TAB("100 000 ??? ?? ??? ??", lbu_mmu);
     def_INSTR_TAB("100 001 ??? 0? ??? ??", lhu_mmu);
     def_INSTR_TAB("100 001 ??? 1? ??? ??", lh_mmu);
-    def_INSTR_TAB("110 ??? ??? ?? ??? ??", sw_mmu);
-    def_INSTR_TAB("111 ??? ??? ?? ??? ??", sd_mmu);
     def_INSTR_TAB("100 010 ??? ?? ??? ??", sb_mmu);
     def_INSTR_TAB("100 011 ??? 0? ??? ??", sh_mmu);
+#endif // CONFIG_RV_ZCB
   } else assert(0);
   return EXEC_ID_inv;
 }
@@ -431,7 +470,7 @@ def_THelper(rvc_Q1_lui_addi16sp) {
   return EXEC_ID_inv;
 }
 
-def_THelper(rvc_Q1_compute_more64) {
+def_THelper(rvc_Q1_compute_format_CA) {
   def_INSTR_TAB("??? ? ????? 00??? ??", c_sub);
   def_INSTR_TAB("??? ? ????? 01??? ??", c_xor);
   def_INSTR_TAB("??? ? ????? 10??? ??", c_or);
@@ -439,15 +478,15 @@ def_THelper(rvc_Q1_compute_more64) {
   return EXEC_ID_inv;
 }
 
-def_THelper(rvc_Q1_compute_more32) {
-  def_INSTR_TAB("??? ? ????? 00??? ??", c_subw);
-  def_INSTR_TAB("??? ? ????? 01??? ??", c_addw);
-  return EXEC_ID_inv;
-}
-
-def_THelper(rvc_Q1_compute_more) {
-  def_INSTR_TAB("??? 0 ????? ????? ??", rvc_Q1_compute_more64);
-  def_INSTR_TAB("??? 1 ????? ????? ??", rvc_Q1_compute_more32);
+def_THelper(rvc_Q1_compute_format_CU) {
+#ifdef CONFIG_RV_ZCB
+  def_INSTR_TAB("??? ? ????? ??000 ??", c_zext_b);
+  def_INSTR_TAB("??? ? ????? ??001 ??", c_sext_b);
+  def_INSTR_TAB("??? ? ????? ??010 ??", c_zext_h);
+  def_INSTR_TAB("??? ? ????? ??011 ??", c_sext_h);
+  def_INSTR_TAB("??? ? ????? ??100 ??", c_zext_w);
+  def_INSTR_TAB("??? ? ????? ??101 ??", c_not);
+#endif // CONFIG_RV_ZCB
   return EXEC_ID_inv;
 }
 
@@ -455,7 +494,13 @@ def_THelper(rvc_Q1_compute) {
   def_INSTR_IDTAB("??? ? 00??? ????? ??", CB_shift, c_srli);
   def_INSTR_IDTAB("??? ? 01??? ????? ??", CB_shift, c_srai);
   def_INSTR_IDTAB("??? ? 10??? ????? ??", CB_andi , c_andi);
-  def_INSTR_IDTAB("??? ? 11??? ????? ??", CS      , rvc_Q1_compute_more);
+  def_INSTR_IDTAB("??? 0 11??? ????? ??", CA      , rvc_Q1_compute_format_CA);
+  def_INSTR_IDTAB("??? 1 11??? 00??? ??", CA      , c_subw);
+  def_INSTR_IDTAB("??? 1 11??? 01??? ??", CA      , c_addw);
+#ifdef CONFIG_RV_ZCB
+  def_INSTR_IDTAB("??? 1 11??? 10??? ??", CA      , c_mul);
+#endif // CONFIG_RV_ZCB
+  def_INSTR_IDTAB("??? 1 11??? 11??? ??", CU      , rvc_Q1_compute_format_CU);
   return EXEC_ID_inv;
 }
 
@@ -490,16 +535,20 @@ def_THelper(rvc_Q0) {
 #endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("010 ??? ??? ?? ??? ??", C_LW , c_ldst);
   def_INSTR_IDTAB("011 ??? ??? ?? ??? ??", C_LD , c_ldst);
-  def_INSTR_IDTAB("100 000 ??? ?? ??? ??", C_LBU , c_ldst);
-  def_INSTR_IDTAB("100 001 ??? 0? ??? ??", C_LHU , c_ldst);
-  def_INSTR_IDTAB("100 001 ??? 1? ??? ??", C_LH , c_ldst);
+#ifdef CONFIG_RV_ZCB
+  def_INSTR_IDTAB("100 000 ??? ?? ??? ??", CLB , c_ldst);
+  def_INSTR_IDTAB("100 001 ??? 0? ??? ??", CLH , c_ldst);
+  def_INSTR_IDTAB("100 001 ??? 1? ??? ??", CLH , c_ldst);
+#endif // CONFIG_RV_ZCB
 #ifndef CONFIG_FPU_NONE
   def_INSTR_IDTAB("101 ??? ??? ?? ??? ??", C_FSD, c_fldst);
 #endif // CONFIG_FPU_NONE
   def_INSTR_IDTAB("110 ??? ??? ?? ??? ??", C_SW , c_ldst);
   def_INSTR_IDTAB("111 ??? ??? ?? ??? ??", C_SD , c_ldst);
-  def_INSTR_IDTAB("100 010 ??? ?? ??? ??", C_SB , c_ldst);
-  def_INSTR_IDTAB("100 011 ??? 0? ??? ??", C_SH , c_ldst);
+#ifdef CONFIG_RV_ZCB
+  def_INSTR_IDTAB("100 010 ??? ?? ??? ??", CSB , c_ldst);
+  def_INSTR_IDTAB("100 011 ??? 0? ??? ??", CSH , c_ldst);
+#endif // CONFIG_RV_ZCB
   return EXEC_ID_inv;
 }
 
