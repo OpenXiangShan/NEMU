@@ -87,5 +87,6 @@ void *isa_difftest_query_br_log(void);
 void isa_difftest_set_mhartid(int n);
 #endif
 void isa_update_mip(unsigned lcofip);
+void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec);
 
 #endif
