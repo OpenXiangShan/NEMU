@@ -18,6 +18,7 @@
 #include <memory/paddr.h>
 #include <rtl/rtl.h>
 #include "../local-include/intr.h"
+#include "../local-include/trapinfo.h"
 #include "cpu/difftest.h"
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
@@ -64,7 +65,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       // Even if scInvalid, SAF (if raised) also needs to be reported
       // Check address space range and pmp
       if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)) {
-        INTR_TVAL_REG(EX_SAF) = *src1;
+        trapInfo.tval = *src1;
         longjmp_exception(EX_SAF);
       }
     }

@@ -22,6 +22,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
+#include "../local-include/trapinfo.h"
 
 typedef union PageTableEntry {
   struct {
@@ -95,7 +96,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     if (!(ok && pte->x && !pte->pad) || update_ad) {
       assert(!cpu.amo);
-      INTR_TVAL_REG(EX_IPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_IPF);
       return false;
     }
@@ -120,7 +121,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     if (!(ok && can_load && !pte->pad) || update_ad) {
       if (cpu.amo) Logtr("redirect to AMO page fault exception at pc = " FMT_WORD, cpu.pc);
       int ex = (cpu.amo ? EX_SPF : EX_LPF);
-      INTR_TVAL_REG(ex) = vaddr;
+      trapInfo.tval = vaddr;
       cpu.amo = false;
       Logtr("Memory read translation exception!");
       longjmp_exception(ex);
@@ -135,7 +136,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
     Logtr("Translate for memory writing v: %d w: %d", pte->v, pte->w);
     if (!(ok && pte->w && !pte->pad) || update_ad) {
-      INTR_TVAL_REG(EX_SPF) = vaddr;
+      trapInfo.tval = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SPF);
       return false;
@@ -170,9 +171,9 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_
   } else {
     ex = EX_LGPF;
   }
-  INTR_TVAL_REG(ex) = vaddr;
-  INTR_TVAL2_REG(ex) = gpaddr >> 2;
-  INTR_TINST_REG(ex) = tinst;
+  trapInfo.tval  = vaddr;
+  trapInfo.tval2 = gpaddr >> 2;
+  trapInfo.tinst = tinst;
   longjmp_exception(ex);
 }
 
@@ -265,7 +266,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   if (unlikely(is_in_mmio(addr))) {
     int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                 type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
-    INTR_TVAL_REG(cause) = vaddr;
+    trapInfo.tval = vaddr;
     longjmp_exception(cause);
   }
 #endif
@@ -382,22 +383,20 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   // update a/d by hardware
   is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
-    // pte.a = true;
-    // pte.d |= is_write;
-    // paddr_write(p_pte, PTE_SIZE, pte.val, cpu.mode, vaddr);
-    switch (type) {
+    switch (type)
+    {
     int ex;
     case MEM_TYPE_IFETCH:
-      INTR_TVAL_REG(EX_IPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_IPF);
       break;
     case MEM_TYPE_READ:
       ex = cpu.amo ? EX_SPF : EX_LPF;
-      INTR_TVAL_REG(ex) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(ex);
       break;
     case MEM_TYPE_WRITE:
-      INTR_TVAL_REG(EX_SPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_SPF);
       break;
     default:
@@ -545,15 +544,15 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     if(is_ifetch){
 #ifdef CONFIG_RVH
       if (hld_st || gpf) {
-        INTR_TVAL_REG(EX_IGPF) = vaddr;
-        INTR_TVAL2_REG(EX_IGPF) = vaddr >> 2;
+        trapInfo.tval = vaddr;
+        trapInfo.tval2 = vaddr >> 2;
         longjmp_exception(EX_IGPF);
       } else {
-        INTR_TVAL_REG(EX_IPF) = vaddr;
+        trapInfo.tval = vaddr;
         longjmp_exception(EX_IPF);
       }
 #else
-      INTR_TVAL_REG(EX_IPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_IPF);
 #endif
     } else if(type == MEM_TYPE_READ){
@@ -561,30 +560,30 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
       int ex;
       if(hld_st || gpf){
         ex = cpu.amo ? EX_SGPF : EX_LGPF;
-        INTR_TVAL_REG(ex) = vaddr;
-        INTR_TVAL2_REG(ex) = vaddr >> 2;
+        trapInfo.tval = vaddr;
+        trapInfo.tval2 = vaddr >> 2;
       } else {
         ex = cpu.amo ? EX_SPF : EX_LPF;
-        INTR_TVAL_REG(ex) = vaddr;
+        trapInfo.tval = vaddr;
       }
       longjmp_exception(ex);
 #else
       int ex = cpu.amo ? EX_SPF : EX_LPF;
-      INTR_TVAL_REG(ex) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(ex);
 #endif
     } else {
 #ifdef CONFIG_RVH
       if (hld_st || gpf) {
-        INTR_TVAL_REG(EX_SGPF) = vaddr;
-        INTR_TVAL2_REG(EX_SGPF) = vaddr >> 2;
+        trapInfo.tval = vaddr;
+        trapInfo.tval2 = vaddr >> 2;
         longjmp_exception(EX_SGPF);
       } else {
-        INTR_TVAL_REG(EX_SPF) = vaddr;
+        trapInfo.tval = vaddr;
         longjmp_exception(EX_SPF);
       }
 #else
-      INTR_TVAL_REG(EX_SPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_SPF);
 #endif
     }
@@ -604,7 +603,7 @@ void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
     Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-      INTR_TVAL_REG(ex) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(ex);
     }
   }
@@ -616,7 +615,7 @@ void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
     Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_VECTOR_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-      INTR_TVAL_REG(ex) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(ex);
     }
   }
@@ -628,7 +627,7 @@ void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
     Logm("addr misaligned happened: vaddr:%lx len:%d type:%d pc:%lx", vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_AMO_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-      INTR_TVAL_REG(ex) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(ex);
     }
   }
@@ -672,7 +671,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       }
 #ifdef CONFIG_RVH
       if (intr_deleg_VS(EX_IPF)) {
-        vstval->val = cpu.execution_guide.vstval;
+        trapInfo.tval = cpu.execution_guide.vstval;
         if(
           vaddr != cpu.execution_guide.vstval &&
           // cross page ipf caused mismatch is legal
@@ -687,7 +686,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
 #else
       if(intr_deleg_S(EX_IPF)) {
 #endif // CONFIG_RVH
-        stval->val = cpu.execution_guide.stval;
+        trapInfo.tval = cpu.execution_guide.stval;
         if(
           vaddr != cpu.execution_guide.stval &&
           // cross page ipf caused mismatch is legal
@@ -699,7 +698,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
           );
         }
       } else {
-        mtval->val = cpu.execution_guide.mtval;
+        trapInfo.tval = cpu.execution_guide.mtval;
         if(
           vaddr != cpu.execution_guide.mtval &&
           // cross page ipf caused mismatch is legal
@@ -724,7 +723,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
 #endif
       printf("[NEMU]: force raise LPF\n");
 
-      INTR_TVAL_REG(EX_LPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_LPF);
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SPF){
@@ -737,7 +736,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
 #endif
       printf("[NEMU]: force raise SPF\n");
 
-      INTR_TVAL_REG(EX_SPF) = vaddr;
+      trapInfo.tval = vaddr;
       longjmp_exception(EX_SPF);
       return MEM_RET_FAIL;
     }
@@ -766,8 +765,8 @@ int force_raise_gpf(vaddr_t vaddr, int type){
         return MEM_RET_OK;
       }
       if (intr_deleg_S(EX_IGPF)) {
-        stval->val = cpu.execution_guide.stval;
-        htval->val = cpu.execution_guide.htval;
+        trapInfo.tval = cpu.execution_guide.stval;
+        trapInfo.tval2 = cpu.execution_guide.htval;
         if(
           vaddr != cpu.execution_guide.stval &&
           // cross page ipf caused mismatch is legal
@@ -779,8 +778,8 @@ int force_raise_gpf(vaddr_t vaddr, int type){
           );
         }
       } else {
-        mtval->val = cpu.execution_guide.mtval;
-        mtval2->val = cpu.execution_guide.mtval2;
+        trapInfo.tval = cpu.execution_guide.mtval;
+        trapInfo.tval2 = cpu.execution_guide.mtval2;
         if(
           vaddr != cpu.execution_guide.mtval &&
           // cross page ipf caused mismatch is legal
@@ -805,9 +804,8 @@ int force_raise_gpf(vaddr_t vaddr, int type){
 #endif
       printf("[NEMU]: force raise LGPF\n");
 
-      INTR_TVAL_REG(EX_LGPF) = vaddr;
-      htval->val = cpu.execution_guide.htval;
-      mtval2->val = cpu.execution_guide.mtval2;
+      trapInfo.tval = vaddr;
+      trapInfo.tval2 = intr_deleg_S(EX_LGPF) ? cpu.execution_guide.htval: cpu.execution_guide.mtval2;
       longjmp_exception(EX_LGPF);
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SGPF){
@@ -820,9 +818,8 @@ int force_raise_gpf(vaddr_t vaddr, int type){
 #endif
       printf("[NEMU]: force raise SGPF\n");
 
-      INTR_TVAL_REG(EX_SPF) = vaddr;
-      htval->val = cpu.execution_guide.htval;
-      mtval2->val = cpu.execution_guide.mtval2;
+      trapInfo.tval = vaddr;
+      trapInfo.tval2 = intr_deleg_S(EX_SGPF) ? cpu.execution_guide.htval: cpu.execution_guide.mtval2;
       longjmp_exception(EX_SGPF);
       return MEM_RET_FAIL;
     }

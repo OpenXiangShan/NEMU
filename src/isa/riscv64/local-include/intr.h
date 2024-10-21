@@ -90,13 +90,7 @@ word_t raise_intr(word_t NO, vaddr_t epc);
 #define return_on_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
 bool intr_deleg_S(word_t exceptionNO);
 bool intr_deleg_VS(word_t exceptionNO);
-#ifdef CONFIG_RVH
-#define INTR_TVAL_REG(ex) (*((intr_deleg_VS(ex)) ? (word_t *)vstval :(intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
-#define INTR_TVAL2_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)htval : (word_t *)mtval2))
-#define INTR_TINST_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)htinst : (word_t *)mtinst))
-#else
-#define INTR_TVAL_REG(ex) (*((intr_deleg_S(ex)) ? (word_t *)stval : (word_t *)mtval))
-#endif
+
 
 #ifdef CONFIG_RVH
 #define SELECT_DUT_INTR_TVAL_REG(ex) ((intr_deleg_VS(ex)) ? (word_t)cpu.execution_guide.vstval :(intr_deleg_S(ex)) ? (word_t)cpu.execution_guide.stval : (word_t)cpu.execution_guide.mtval)

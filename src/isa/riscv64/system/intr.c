@@ -19,9 +19,11 @@
 #include "../local-include/trigger.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
+#include "../local-include/trapinfo.h"
 
 void update_mmu_state();
 
+trap_info_t trapInfo = {};
 
 #ifdef CONFIG_RVH
 bool intr_deleg_S(word_t exceptionNO) {
@@ -46,6 +48,10 @@ bool intr_deleg_S(word_t exceptionNO) {
   return delegS;
 }
 #endif
+
+void clear_trapinfo(){
+  memset(&trapInfo, 0, sizeof(trap_info_t));
+}
 
 static word_t get_trap_pc(word_t xtvec, word_t xcause) {
   word_t base = (xtvec >> 2) << 2;
@@ -100,6 +106,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 #endif
+  MUXDEF(CONFIG_RV_SMRNMI,Assert( mnstatus->nmie, "critical error: trap when nmie close"), );
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (NO & INTR_BIT), false);
   bool delegS = intr_deleg_S(NO);
   bool delegM = !delegS && !isNMI;
@@ -129,6 +136,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     vsstatus->spie = vsstatus->sie;
     vsstatus->sie = 0;
     vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, henvcfg->dte && menvcfg->dte, 0);
+    vstval->val = trapInfo.tval;
     // vsstatus->spp = cpu.mode;
     // vsstatus->spie = vsstatus->sie;
     // vsstatus->sie = 0;
@@ -159,6 +167,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     cpu.v = 1;
     cpu.mode = MODE_S;
     update_mmu_state();
+    clear_trapinfo();
     return get_trap_pc(vstvec->val, vscause->val);
   }
   else if(delegS && !s_EX_DT){
@@ -181,6 +190,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
     mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
+    MUXDEF(CONFIG_RVH, htval->val = trapInfo.tval2;, )
+    MUXDEF(CONFIG_RVH, htinst->val = trapInfo.tinst;, )
+    stval->val = trapInfo.tval;
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
@@ -221,6 +233,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     // 18.6.3. Transformed Instruction or Pseudoinstruction for mtinst or htinst.
     cpu.mode = MODE_S;
     update_mmu_state();
+    clear_trapinfo();
     return get_trap_pc(stvec->val, scause->val);
     // return stvec->val;
   } else if((delegM || vs_EX_DT || s_EX_DT) && !m_EX_DT){
@@ -236,6 +249,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
+    mtval->val = trapInfo.tval;
+    MUXDEF(CONFIG_RVH, mtval2->val = trapInfo.tval2;, )
+    MUXDEF(CONFIG_RVH, mtinst->val = trapInfo.tinst;, )
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
@@ -279,6 +295,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #endif //CONFIG_RV_SSDBLTRP
     cpu.mode = MODE_M;
     update_mmu_state();
+    clear_trapinfo();
     return get_trap_pc(mtvec->val, mcause->val);
   }
 #ifdef CONFIG_RV_SMRNMI
@@ -292,6 +309,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mncause->val = NO;
     cpu.mode = MODE_M;
     update_mmu_state();
+    clear_trapinfo();
     return get_trap_pc(mtvec->val, mncause->val);
   }
 #endif //CONFIG_RV_SMRNMI
