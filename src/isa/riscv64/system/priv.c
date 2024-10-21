@@ -1386,9 +1386,9 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(mnscratch)) { *dest = src; }
   else if (is_write(mnstatus)) {
     word_t mnstatus_mask = MNSTATUS_MASK;
-    if ((src & MNSTATUS_NMIE) == 0) {
-      mnstatus_mask &= ~MNSTATUS_NMIE;
-    }
+//    if ((src & MNSTATUS_NMIE) == 0) {
+//      mnstatus_mask &= ~MNSTATUS_NMIE;
+//    }
     mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
   }
 #endif //CONFIG_RV_SMRNMI
