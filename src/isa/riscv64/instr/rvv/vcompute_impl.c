@@ -1092,8 +1092,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   if(check_vstart_ignore(s)) {
     if (opcode != FCLASS) {
       fp_set_dirty();
-      vp_set_dirty();
     }
+    vp_set_dirty();
     return;
   }
   for(word_t idx = vstart->val; idx < vl->val; idx ++) {
@@ -1263,8 +1263,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   vcsr_write(IDXVSTART, s0);
   if (opcode != FCLASS) {
     fp_set_dirty();
-    vp_set_dirty();
   }
+  vp_set_dirty();
 }
 
 void mask_instr(int opcode, Decode *s) {
