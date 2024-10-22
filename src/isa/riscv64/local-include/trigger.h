@@ -164,36 +164,39 @@ typedef struct {
 } Trigger;
 
 typedef struct TriggerModule {
-  union {
-    struct {
-      uint64_t bf : 1; // before fetch
-      uint64_t af : 1; // after fetch
-      uint64_t br : 1; // before read
-      uint64_t ar : 1; // after read
-      uint64_t bw : 1; // before write
-    };
-    uint8_t val;
-  } check_timings;
   // the last trigger is used to check maximum number of supported triggers
   Trigger triggers[CONFIG_TRIGGER_NUM + 1];
 } TriggerModule;
 
 extern trig_action_t trigger_action;
-extern vaddr_t triggered_addr;
+extern vaddr_t triggered_tval;
 
-void tm_update_timings(struct TriggerModule* TM);
+trig_action_t check_triggers_mcontrol6(TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
+bool mcontrol6_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data);
+bool mcontrol6_value_match(Trigger* trig, word_t value);
+bool mcontrol6_check_chain_legal(const TriggerModule* TM, const int max_chain_len);
+void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const TriggerModule* TM);
 
-trig_action_t tm_check_hit(struct TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
+trig_action_t check_triggers_etrigger(TriggerModule* TM, uint64_t cause);
+bool etrigger_match(Trigger* trig, uint64_t cause);
+void etrigger_checked_write(trig_etrigger_t* etrigger, word_t* wdata);
 
-bool trigger_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data);
+trig_action_t check_triggers_itrigger(TriggerModule* TM, uint64_t cause);
+bool itrigger_match(Trigger* trig, uint64_t cause);
+void itrigger_checked_write(trig_itrigger_t* itrigger, word_t* wdata);
 
-bool trigger_value_match(Trigger* trig, word_t value);
+trig_action_t check_triggers_icount(TriggerModule* TM);
+bool icount_match(Trigger* trig);
+void icount_checked_write(trig_icount_t* icount, word_t* wdata);
 
-void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const struct TriggerModule* TM);
+bool trigger_reentrancy_check(); 
+void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
 
-void trigger_handler(const trig_action_t action, vaddr_t addr);
-
-void trigger_check(uint64_t check_timings, struct TriggerModule* TM, trig_op_t op, vaddr_t addr, word_t data);
+inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
+inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
+#ifdef CONFIG_SDTRIG_EXTRA
+inline word_t get_tdata3(TriggerModule* TM) {return TM->triggers[tselect->val].tdata3.val;}
+#endif //CONFIG_SDTRIG_EXTRA
 
 // Used to avoid magic number
 #define TRIGGER_NO_VALUE (0)

@@ -20,6 +20,7 @@
 #include <difftest.h>
 #include "../local-include/intr.h"
 #include "../local-include/csr.h"
+#include "../local-include/trigger.h"
 #include <generated/autoconf.h>
 #include <stdlib.h>
 
@@ -91,7 +92,7 @@ void csr_prepare() {
 #endif
 #ifdef CONFIG_RV_SDTRIG
   cpu.tselect  = tselect->val;
-  cpu.tdata1   = tdata1->val;
+  cpu.tdata1   = get_tdata1(cpu.TM);
   cpu.tinfo    = tinfo->val;
 #endif // CONFIG_RV_SDTRIG
 #ifndef CONFIG_FPU_NONE
@@ -153,7 +154,7 @@ void csr_writeback() {
 #endif
 #ifdef CONFIG_RV_SDTRIG
   tselect->val  = cpu.tselect;
-  tdata1->val   = cpu.tdata1;
+  cpu.TM->triggers[tselect->val].tdata1.val = cpu.tdata1; // update alias tdata1 to trigger module
   tinfo->val    = cpu.tinfo;
 #endif // CONFIG_RV_SDTRIG
 #ifndef CONFIG_FPU_NONE
@@ -280,7 +281,15 @@ void isa_difftest_raise_intr(word_t NO, uint64_t restore_count) {
 void isa_difftest_raise_intr(word_t NO) {
 #endif // CONFIG_LIGHTQS
   //ramcmp();
+#ifdef CONFIG_TDATA1_ICOUNT
+  trig_action_t icount_action = check_triggers_icount(cpu.TM);
+  trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
+#endif // CONFIG_TDATA1_ICOUNT
+  IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, NO));
+
   cpu.pc = raise_intr(NO, cpu.pc);
+
+  IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
 
 #ifdef CONFIG_LIGHTQS
   // after processing, take another snapshot

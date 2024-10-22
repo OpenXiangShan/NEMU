@@ -29,6 +29,7 @@
 #include "vldst_impl.h"
 #include "vcompute_impl.h"
 #include "../local-include/intr.h"
+#include "../local-include/trigger.h"
 
 word_t fofvl = 0;
 word_t vstvaltmp = 0;
@@ -250,7 +251,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   bool fast_vle = false;
 
-#if !defined(CONFIG_SHARE) && !defined(CONFIG_RV_SDTRIG)
+#if !defined(CONFIG_SHARE) && !defined(CONFIG_TDATA1_MCONTROL6)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vle_size = last_addr - start_addr + s->v_width;
@@ -329,7 +330,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
       fast_vle = true;
     }
   }
-#endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
+#endif // !CONFIG_SHARE && !CONFIG_TDATA1_MCONTROL6
 
   // Store all seg8 intermediate data
   uint64_t vloadBuf[8];
@@ -349,7 +350,8 @@ void vld(Decode *s, int mode, int mmu_mode) {
       for (fn = 0; fn < nf; fn++) {
         addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
 
-        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -432,7 +434,8 @@ void vldx(Decode *s, int mmu_mode) {
       // read data in memory
       addr = base_addr + index + fn * data_width;
 
-      IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
+      IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                              trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
@@ -503,7 +506,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
   bool fast_vse = false;
 
-#if !defined(CONFIG_SHARE) && !defined(CONFIG_RV_SDTRIG)
+#if !defined(CONFIG_SHARE) && !defined(CONFIG_TDATA1_MCONTROL6)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vse_size = last_addr - start_addr + s->v_width;
@@ -572,7 +575,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   }
 
   g_nr_vst_unit_optimized += fast_vse;
-#endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
+#endif // !CONFIG_SHARE && !CONFIG_TDATA1_MCONTROL6
 
   // We enter this block if we are not able to optimize the store or we are debugging fast VSE
   if (!fast_vse || ISDEF(DEBUG_FAST_VSE)) {  // this block is the original slow path
@@ -598,7 +601,8 @@ void vst(Decode *s, int mode, int mmu_mode) {
         uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
         addr = base_addr + offset;
         if (!fast_vse) {
-          IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+          IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                  trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
 
@@ -666,7 +670,8 @@ void vstx(Decode *s, int mmu_mode) {
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
       addr = base_addr + index + fn * data_width;
 
-      IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+      IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                              trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
@@ -726,7 +731,8 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
-        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -740,7 +746,8 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
-        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -782,7 +789,8 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
-        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -797,7 +805,8 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
-        IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.bw, cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -869,7 +878,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
       longjmp_exception(cause);
     }
   } else {
-  #if !defined(CONFIG_SHARE) && !defined(CONFIG_RV_SDTRIG)
+  #if !defined(CONFIG_SHARE) && !defined(CONFIG_TDATA1_MCONTROL6)
     uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
     uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
     uint64_t vle_size = last_addr - start_addr + s->v_width;
@@ -948,7 +957,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         fast_vle = true;
       }
     }
-  #endif // !CONFIG_SHARE && !CONFIG_RV_SDTRIG
+  #endif // !CONFIG_SHARE && !CONFIG_TDATA1_MCONTROL6
 
     // Store all seg8 intermediate data
     uint64_t vloadBuf[8];
@@ -975,8 +984,8 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         for (fn = 0; fn < nf; fn++) {
           addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
 
-          IFDEF(CONFIG_RV_SDTRIG, trigger_check(cpu.TM->check_timings.br, cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE));
-
+          IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                  trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
           rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
         }
