@@ -17,11 +17,9 @@
 #include <isa.h>
 #include <utils.h>
 #include <cpu/cpu.h>
-#ifndef __ICS_EXPORT
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include <cpu/difftest.h>
-#endif
 
 #ifndef CONFIG_SHARE
 #include <stdlib.h>
@@ -56,7 +54,6 @@ static int cmd_c(char *args) {
   return 0;
 }
 
-#ifndef __ICS_EXPORT
 static int cmd_si(char *args) {
   /* extract the first argument */
   char *arg = strtok(NULL, " ");
@@ -212,8 +209,6 @@ static int cmd_load(char *args) {
 #else
 #endif
 
-#endif
-
 static int cmd_q(char *args) {
   return -1;
 }
@@ -227,7 +222,6 @@ static struct {
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
-#ifndef __ICS_EXPORT
   { "si", "step", cmd_si },
   { "info", "info r - print register values; info w - show watch point state", cmd_info },
   { "x", "Examine memory", cmd_x },
@@ -239,7 +233,6 @@ static struct {
   { "attach", "attach diff test", cmd_attach },
   { "save", "save snapshot", cmd_save },
   { "load", "load snapshot", cmd_load },
-#endif
 #endif
   { "q", "Exit NEMU", cmd_q },
 

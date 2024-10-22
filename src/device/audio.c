@@ -29,12 +29,9 @@ enum {
 
 static uint8_t *sbuf = NULL;
 static uint32_t *audio_base = NULL;
-#ifndef __ICS_EXPORT
 static int tail = 0;
-#endif
 
 static inline void audio_play(void *userdata, uint8_t *stream, int len) {
-#ifndef __ICS_EXPORT
   int nread = len;
   int count = audio_base[reg_count];
   if (count < len) nread = count;
@@ -50,11 +47,9 @@ static inline void audio_play(void *userdata, uint8_t *stream, int len) {
   }
   audio_base[reg_count] -= nread;
   if (len > nread) memset(stream + nread, 0, len - nread);
-#endif
 }
 
 static void audio_io_handler(uint32_t offset, int len, bool is_write) {
-#ifndef __ICS_EXPORT
   if (offset == reg_init * sizeof(uint32_t) && len == 4 && is_write) {
     SDL_AudioSpec s = {};
     s.freq = audio_base[reg_freq];
@@ -70,7 +65,6 @@ static void audio_io_handler(uint32_t offset, int len, bool is_write) {
     SDL_OpenAudio(&s, NULL);
     SDL_PauseAudio(0);
   }
-#endif
 }
 
 void init_audio() {
@@ -78,9 +72,7 @@ void init_audio() {
   audio_base = (uint32_t *)new_space(space_size);
   add_pio_map ("audio", CONFIG_AUDIO_CTL_PORT, audio_base, space_size, audio_io_handler);
   add_mmio_map("audio", CONFIG_AUDIO_CTL_MMIO, audio_base, space_size, audio_io_handler);
-#ifndef __ICS_EXPORT
   audio_base[reg_sbuf_size] = CONFIG_SB_SIZE;
-#endif
 
   sbuf = (uint8_t *)new_space(CONFIG_SB_SIZE);
   add_mmio_map("audio-sbuf", CONFIG_SB_ADDR, sbuf, CONFIG_SB_SIZE, NULL);

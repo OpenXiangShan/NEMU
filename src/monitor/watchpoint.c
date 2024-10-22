@@ -14,9 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifndef __ICS_EXPORT
 #include <stdlib.h>
-#endif
 
 #define NR_WP 32
 
@@ -26,10 +24,8 @@ typedef struct watchpoint {
 
   /* TODO: Add more members if necessary */
 
-#ifndef __ICS_EXPORT
   char *expr;
   word_t old_val;
-#endif
 } WP;
 
 static WP wp_pool[NR_WP] = {};
@@ -49,7 +45,6 @@ void init_wp_pool() {
 
 /* TODO: Implement the functionality of watchpoint */
 
-#ifndef __ICS_EXPORT
 static WP* new_WP() {
   assert(free_ != NULL);
   WP *p = free_;
@@ -120,4 +115,3 @@ void scan_watchpoint(vaddr_t pc) {
     }
   }
 }
-#endif

@@ -34,16 +34,12 @@ static bool is_skip_ref = false;
 static int skip_dut_nr_instr = 0;
 void (*patch_fn)(void *arg) = NULL;
 static void* patch_arg = NULL;
-#ifndef __ICS_EXPORT
 static bool is_detach = false;
-#endif
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
 void difftest_skip_ref() {
-#ifndef __ICS_EXPORT
   if (is_detach) return;
-#endif
   is_skip_ref = true;
   // If such an instruction is one of the instruction packing in QEMU
   // (see below), we end the process of catching up with QEMU's pc to
@@ -62,9 +58,7 @@ void difftest_skip_ref() {
 //   Let REF run `nr_ref` instructions first.
 //   We expect that DUT will catch up with REF within `nr_dut` instructions.
 void difftest_skip_dut(int nr_ref, int nr_dut) {
-#ifndef __ICS_EXPORT
   if (is_detach) return;
-#endif
   skip_dut_nr_instr += nr_dut;
   while (nr_ref -- > 0) {
     ref_difftest_exec(1);
@@ -126,10 +120,8 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
 void difftest_step(vaddr_t pc, vaddr_t npc) {
   CPU_state ref_r;
 
-#ifndef __ICS_EXPORT
   if (is_detach) return;
 
-#endif
   if (skip_dut_nr_instr > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == npc) {
@@ -162,7 +154,6 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   // Log("run ref %lx, %lx, %ld", pc, ref_r.pc, cpu.v);
   checkregs(&ref_r, pc);
 }
-#ifndef __ICS_EXPORT
 void difftest_detach() {
   is_detach = true;
 }
@@ -174,7 +165,6 @@ void difftest_attach() {
 
   isa_difftest_attach();
 }
-#endif
 
 #else
 void init_difftest(char *ref_so_file, long img_size, int port) { }

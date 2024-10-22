@@ -31,11 +31,6 @@ static char *code_format =
 "  return 0; "
 "}";
 
-#ifdef __ICS_EXPORT
-static inline void gen_rand_expr() {
-  buf[0] = '\0';
-}
-#else
 static char *pbuf;
 
 #define format_buf(fmt, ...) pbuf += sprintf(pbuf, fmt, ##__VA_ARGS__)
@@ -100,7 +95,6 @@ void remove_u(char *p) {
     strcpy(q, code_buf);
   }
 }
-#endif
 
 int main(int argc, char *argv[]) {
   int seed = time(0);
@@ -111,10 +105,8 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
-#ifndef __ICS_EXPORT
     nr_op = 0;
     pbuf = buf;
-#endif
     gen_rand_expr();
 
     sprintf(code_buf, code_format, buf);
@@ -132,14 +124,10 @@ int main(int argc, char *argv[]) {
 
     int result;
     fscanf(fp, "%d", &result);
-#ifndef __ICS_EXPORT
     ret = pclose(fp);
     if (ret != 0) continue;
 
     remove_u(buf);
-#else
-    pclose(fp);
-#endif
 
     printf("%u %s\n", result, buf);
   }

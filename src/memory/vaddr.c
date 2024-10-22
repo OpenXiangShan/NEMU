@@ -28,7 +28,6 @@
 #include <memory/host-tlb.h>
 #include <cpu/decode.h>
 
-#ifndef __ICS_EXPORT
 #ifndef ENABLE_HOSTTLB
 
 static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
@@ -144,7 +143,6 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   }
 }
 #endif
-#endif
 
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
@@ -159,7 +157,6 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     Logm("Paddr reading directly");
     return paddr_read(addr, len, type, type, cpu.mode, addr);
   }
-#ifndef __ICS_EXPORT
 #ifdef CONFIG_RVH
   if(type != MEM_TYPE_IFETCH){
     extern int rvh_hlvx_check(struct Decode *s, int type);
@@ -167,7 +164,6 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
 #endif
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
-#endif
   return 0;
 }
 
@@ -224,9 +220,7 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
     paddr_write(addr, len, data, cpu.mode, addr);
     return;
   }
-#ifndef __ICS_EXPORT
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
-#endif
 }
 
 word_t vaddr_read_safe(vaddr_t addr, int len) {
