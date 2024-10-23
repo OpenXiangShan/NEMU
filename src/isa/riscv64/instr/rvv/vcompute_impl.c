@@ -1327,7 +1327,10 @@ scalar source or destination of a vector reduction regardless of LMUL setting.
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
   vector_reduction_check(s, wide);
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
   // operand - vs1
   get_vreg(id_src->reg, 0, s1, vtype->vsew+wide, vtype->vlmul, is_signed, 0);
   if(is_signed) rtl_sext(s, s1, s1, 1 << (vtype->vsew+wide));
@@ -1394,7 +1397,11 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
   }
 
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    fp_set_dirty();
+    vp_set_dirty();
+    return;
+  }
 
   for(word_t idx = vstart->val; idx < vl->val; idx ++) {
     rtlreg_t mask = get_mask(0, idx);
@@ -1433,6 +1440,8 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
     else
       set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
   }
+  fp_set_dirty();
+  vp_set_dirty();
   vstart->val = 0;
 }
 
