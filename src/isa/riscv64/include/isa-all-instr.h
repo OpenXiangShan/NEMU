@@ -319,6 +319,16 @@
 #define ZCMOP_INSTR_NULLARY(f)
 #endif
 
+#ifdef CONFIG_RV_ZCB
+#define ZCB_INSTR_BINARY(f) \
+  f(c_zext_b) f(c_sext_b) f(c_zext_h) f(c_sext_h) f(c_zext_w) f(c_not)
+#define ZCB_INSTR_TERNARY(f) \
+  f(c_mul)
+#else
+#define ZCB_INSTR_BINARY(f)
+#define ZCB_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZCB
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   f(fence_i) f(fence) \
@@ -346,7 +356,8 @@
   ZFH_MIN_INSTR_BINARY(f) \
   ZFH_INSTR_BINARY(f) \
   ZFA_INSTR_BINARY(f) \
-  ZFH_ZFA_INSTR_BINARY(f)
+  ZFH_ZFA_INSTR_BINARY(f) \
+  ZCB_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -370,7 +381,8 @@
   ZIMOP_INSTR_TERNARY(f) \
   ZFH_INSTR_TERNARY(f) \
   ZFA_INSTR_TERNARY(f) \
-  ZFH_ZFA_INSTR_TERNARY(f)
+  ZFH_ZFA_INSTR_TERNARY(f) \
+  ZCB_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \
   SYS_INSTR_TERNARY(f) 
