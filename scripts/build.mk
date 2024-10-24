@@ -32,7 +32,7 @@ CC := $(CCACHE) $(CC)
 LD := $(CCACHE) $(CXX)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
-CFLAGS  := -O2 -ftree-vectorize -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
+CFLAGS  := -O2 -ftree-vectorize -MMD -Wall -Werror -fno-strict-aliasing $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
 CXXFLAGS  := --std=c++17 $(XINCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS) $(PGO_FLAGS)
 # filesystem
