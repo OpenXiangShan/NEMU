@@ -1051,6 +1051,9 @@ static inline word_t csr_read(word_t *src) {
 #ifdef CONFIG_RV_SSTC
   else if (is_read(stimecmp)){ return vstimecmp->val; }
 #endif
+#ifdef CONFIG_RV_IMSIC
+  else if (is_read(siselect)) { return vsiselect->val; }
+#endif // CONFIG_RV_IMSIC
 }
 if (is_read(hideleg))        { return hideleg->val & HIDELEG_MASK; }
 if (is_read(hedeleg))        { return hedeleg->val & HEDELEG_MASK; }
@@ -1241,6 +1244,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_SSTC
         || is_write(stimecmp)
 #endif // CONFIG_RV_SSTC
+#ifdef CONFIG_RV_IMSIC
+        || is_write(siselect)
+#endif // CONFIG_RV_IMSIC
         )){
     if (is_write(sstatus))      {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
@@ -1272,6 +1278,9 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_SSTC
     else if (is_write(stimecmp)) { vstimecmp->val = src; }
 #endif
+#ifdef CONFIG_RV_IMSIC
+    else if (is_write(siselect)) { vsiselect->val = src; }
+#endif // CONFIG_RV_IMSIC
     else if (is_write(satp))    {
       vsatp_t new_val;
       new_val.val = src;
