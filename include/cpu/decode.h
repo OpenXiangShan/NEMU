@@ -130,6 +130,13 @@ typedef struct Decode {
 
 
 #define def_DHelper(name) void concat(decode_, name) (Decode *s, int width)
+#define def_SubDHelper(name, parent, body) \
+void concat(decode_, name) (Decode *s, int width) { \
+  concat(decode_, parent)(s, width); \
+  do { \
+    body \
+  } while(0) ;\
+}
 // empty decode helper
 static inline def_DHelper(empty) {}
 
