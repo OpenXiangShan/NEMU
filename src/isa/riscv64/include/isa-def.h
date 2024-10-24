@@ -300,7 +300,7 @@ typedef struct {
   } instr;
 } riscv64_ISADecodeInfo;
 
-enum { MODE_U = 0, MODE_S, MODE_HS, MODE_M };
+enum { MODE_U = 0, MODE_S, MODE_RESERVED, MODE_M };
 
 int get_data_mmu_state();
 #ifdef CONFIG_RVH
