@@ -94,14 +94,10 @@ static inline def_DHelper(C_ADDI16SP) {
   uint32_t instr = s->isa.instr.val;
   sword_t simm = (SEXT(BITS(instr, 12, 12), 1) << 9) | (BITS(instr, 4, 3) << 7) |
     (BITS(instr, 5, 5) << 6) | (BITS(instr, 2, 2) << 5) | (BITS(instr, 6, 6) << 4);
-#ifdef CONFIG_SHARE
   // C.ADDI16SP is only valid when nzimm!=0; the code point with nzimm=0 is reserved.
   if (unlikely(simm == 0)) {
     longjmp_exception(EX_II);
   }
-#else
-  assert(simm != 0);
-#endif // CONFIG_SHARE
   decode_op_i(s, id_src2, simm, false);
   decode_op_r(s, id_dest, 2, false);
 }
@@ -116,12 +112,10 @@ static inline void decode_C_LxSP(Decode *s, int rotate, bool is_fp) {
   uint32_t imm6 = (BITS(s->isa.instr.val, 12, 12) << 5) | BITS(s->isa.instr.val, 6, 2);
   decode_C_xxSP(s, imm6, rotate);
   uint32_t rd = BITS(s->isa.instr.val, 11, 7);
-#ifdef CONFIG_SHARE
   // C.LxSP is only valid when rd!=x0; the code points with rd=x0 are reserved.
   if (unlikely(rd == 0 && !is_fp)) {
     longjmp_exception(EX_II);
   }
-#endif // CONFIG_SHARE
   if (is_fp) {
 #ifdef CONFIG_FPU_NONE
     longjmp_exception(EX_II);
@@ -323,12 +317,10 @@ static inline void decode_C_rs1_rs2_rd(Decode *s, bool is_rs1_zero, bool is_rs2_
 }
 
 static inline def_DHelper(C_JR) {
-  #ifdef CONFIG_SHARE
   // C.JR is only valid when rs1!=x0; the code point with rs1=x0 is reserved.
   if (unlikely(BITS(s->isa.instr.val, 11, 7) == 0)) {
     longjmp_exception(EX_II);
   }
-#endif // CONFIG_SHARE
   decode_op_r(s, id_src1, BITS(s->isa.instr.val, 11, 7), true);
 }
 

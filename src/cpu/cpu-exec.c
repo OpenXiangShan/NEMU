@@ -556,9 +556,6 @@ static int execute(int n) {
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
-#ifdef CONFIG_TVAL_EX_II
-    cpu.instr = s.isa.instr.val;
-#endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
@@ -615,9 +612,6 @@ void fetch_decode(Decode *s, vaddr_t pc) {
 static void update_global() {
   update_instr_cnt();
   cpu.pc = prev_s->pc;
-  #ifdef CONFIG_TVAL_EX_II
-    cpu.instr = prev_s->isa.instr.val;
-  #endif // CONFIG_TVAL_EX_II
 }
 #endif
 
@@ -649,6 +643,7 @@ void cpu_exec(uint64_t n) {
   PUSH_CONTEXT(&cause);
   if (cause) {
     n_remain -= prev_s->idx_in_bb - 1;
+    MUXDEF(CONFIG_TVAL_EX_II, cpu.instr = prev_s->isa.instr.val, );
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT
     update_global();
