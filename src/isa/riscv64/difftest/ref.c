@@ -416,3 +416,7 @@ void isa_difftest_set_mhartid(int n) {
   mhartid->val = n;
 }
 #endif
+
+void isa_update_mip(unsigned lcofip) {
+  mip->lcofip = lcofip;
+}

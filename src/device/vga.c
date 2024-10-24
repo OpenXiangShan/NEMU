@@ -51,15 +51,12 @@ static inline void update_screen() {
 #endif
 
 void vga_update_screen() {
-#ifdef __ICS_EXPORT
-  // TODO: call `update_screen()` when the sync register is non-zero,
+  // call `update_screen()` when the sync register is non-zero,
   // then zero out the sync register
-#else
   if (vgactl_port_base[1]) {
     IFDEF(CONFIG_VGA_SHOW_SCREEN, update_screen());
     vgactl_port_base[1] = 0;
   }
-#endif
 }
 
 void init_vga() {

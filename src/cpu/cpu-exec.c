@@ -59,7 +59,6 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
-static jmp_buf jbuf_exec = {};
 static uint64_t n_remain_total;
 static int n_remain;
 Decode *prev_s;
@@ -119,18 +118,37 @@ void mmu_tlb_flush(vaddr_t vaddr) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
-_Noreturn void longjmp_exec(int cause) {
+jmp_buf context_stack[CONTEXT_STACK_SIZE] = {};
+int context_idx = -1;
+
+void pop_context() {
+  if (context_idx < 0) {
+    panic("Unexcepted exeception context idx = %d", context_idx);
+  }
+  context_idx--;
+}
+
+_Noreturn void longjmp_context(int cause) {
   Loge("Longjmp to jbuf_exec with cause: %i", cause);
-  longjmp(jbuf_exec, cause);
+  if (context_idx < 0) {
+    panic("Unexcepted exeception context idx = %d", context_idx);
+  }
+  longjmp(context_stack[context_idx], cause);
 }
 
 _Noreturn void longjmp_exception(int ex_cause) {
-#ifdef CONFIG_GUIDED_EXEC
-  cpu.guided_exec = false;
-#endif
-  g_ex_cause = ex_cause;
-  Loge("longjmp_exec(NEMU_EXEC_EXCEPTION)");
-  longjmp_exec(NEMU_EXEC_EXCEPTION);
+  if (context_idx == 0) {
+    // context_idx == 0 means only the execute loop context saved.
+  #ifdef CONFIG_GUIDED_EXEC
+    cpu.guided_exec = false;
+  #endif
+    g_ex_cause = ex_cause;
+    Loge("longjmp_context(NEMU_EXEC_EXCEPTION)");
+    longjmp_context(NEMU_EXEC_EXCEPTION);
+  } else {
+    // For other condition, we should pass parameter ex_cause to longjmp
+    longjmp_context(ex_cause);
+  }
 }
 
 #ifdef CONFIG_PERF_OPT
@@ -538,9 +556,6 @@ static int execute(int n) {
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
-#ifdef CONFIG_TVAL_EX_II
-    cpu.instr = s.isa.instr.val;
-#endif
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
@@ -597,9 +612,6 @@ void fetch_decode(Decode *s, vaddr_t pc) {
 static void update_global() {
   update_instr_cnt();
   cpu.pc = prev_s->pc;
-  #ifdef CONFIG_TVAL_EX_II
-    cpu.instr = prev_s->isa.instr.val;
-  #endif // CONFIG_TVAL_EX_II
 }
 #endif
 
@@ -628,19 +640,10 @@ void cpu_exec(uint64_t n) {
   n_remain_total = n; // + AHEAD_LENGTH; // deal with setjmp()
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
   int cause;
-  if ((cause = setjmp(jbuf_exec))) {
-#ifdef CONFIG_RVV
-    //The processing logic when the fof instruction is abnormal but not trap.
-    //TODO Rewrite him in a better way
-    bool set_fofNoExceptionState(void);
-    if (set_fofNoExceptionState()){
-      // fof is committed, so the instruction count should be updated
-      cause = 0;
-      n_remain_total -= 1;
-      n_remain -= 1;
-    }
-#endif
+  PUSH_CONTEXT(&cause);
+  if (cause) {
     n_remain -= prev_s->idx_in_bb - 1;
+    MUXDEF(CONFIG_TVAL_EX_II, cpu.instr = prev_s->isa.instr.val, );
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT
     update_global();
@@ -752,4 +755,5 @@ void cpu_exec(uint64_t n) {
     break;
 #endif
   }
+  pop_context();
 }

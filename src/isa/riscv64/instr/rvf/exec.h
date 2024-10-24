@@ -84,16 +84,20 @@ def_EHelper(fnmadds) {
 
 def_EHelper(fles) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LE, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(flts) {
-  rtl_mv(s, ddest, dsrc1);
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_LT, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(feqs) {
-  rtl_mv(s, ddest, dsrc1);
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_EQ, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_s_w) {
@@ -119,19 +123,27 @@ def_EHelper(fcvt_s_lu) {
 def_EHelper(fcvt_w_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI32, FPCALL_W32));
   rtl_sext(s, ddest, ddest, 4);
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_wu_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU32, FPCALL_W32));
   rtl_sext(s, ddest, ddest, 4);
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_l_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToI64, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fcvt_lu_s) {
   rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_FToU64, FPCALL_W32));
+  void fp_set_dirty();
+  fp_set_dirty();
 }
 
 def_EHelper(fsgnjs) {
