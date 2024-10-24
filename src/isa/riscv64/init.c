@@ -68,7 +68,6 @@ void init_isa() {
   // initialize the value fs and vs to 0
   mstatus->fs = 0;
   mstatus->vs = 0;
-  // initialize SDT, MDT
   mstatus->mdt = ISDEF(CONFIG_RV_SMDBLTRP);
 #ifdef CONFIG_RV_SSDBLTRP
   mstatus->sdt = 0;
