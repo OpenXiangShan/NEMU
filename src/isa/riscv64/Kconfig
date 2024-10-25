@@ -113,6 +113,11 @@ config RV_SSDBLTRP
   depends on RV_SMRNMI
   default n
 
+config NMIE_INIT
+  bool "Init mnstatus.nmie to 1 and allow software to clear"
+  depends on RV_SMRNMI
+  default y
+
 menuconfig RV_ZICNTR
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
   default y

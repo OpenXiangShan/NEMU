@@ -383,20 +383,18 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   // update a/d by hardware
   is_write = (type == MEM_TYPE_WRITE);
   if (!pte.a || (!pte.d && is_write)) {
+    trapInfo.tval = vaddr;
     switch (type)
     {
     int ex;
     case MEM_TYPE_IFETCH:
-      trapInfo.tval = vaddr;
       longjmp_exception(EX_IPF);
       break;
     case MEM_TYPE_READ:
       ex = cpu.amo ? EX_SPF : EX_LPF;
-      trapInfo.tval = vaddr;
       longjmp_exception(ex);
       break;
     case MEM_TYPE_WRITE:
-      trapInfo.tval = vaddr;
       longjmp_exception(EX_SPF);
       break;
     default:
@@ -542,48 +540,42 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
   if(!va_msbs_ok){
     if(is_ifetch){
+      trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
       if (hld_st || gpf) {
-        trapInfo.tval = vaddr;
         trapInfo.tval2 = vaddr >> 2;
         longjmp_exception(EX_IGPF);
       } else {
-        trapInfo.tval = vaddr;
         longjmp_exception(EX_IPF);
       }
 #else
-      trapInfo.tval = vaddr;
       longjmp_exception(EX_IPF);
 #endif
     } else if(type == MEM_TYPE_READ){
+      trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
       int ex;
       if(hld_st || gpf){
         ex = cpu.amo ? EX_SGPF : EX_LGPF;
-        trapInfo.tval = vaddr;
         trapInfo.tval2 = vaddr >> 2;
       } else {
         ex = cpu.amo ? EX_SPF : EX_LPF;
-        trapInfo.tval = vaddr;
       }
       longjmp_exception(ex);
 #else
       int ex = cpu.amo ? EX_SPF : EX_LPF;
-      trapInfo.tval = vaddr;
       longjmp_exception(ex);
 #endif
     } else {
+      trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
       if (hld_st || gpf) {
-        trapInfo.tval = vaddr;
         trapInfo.tval2 = vaddr >> 2;
         longjmp_exception(EX_SGPF);
       } else {
-        trapInfo.tval = vaddr;
         longjmp_exception(EX_SPF);
       }
 #else
-      trapInfo.tval = vaddr;
       longjmp_exception(EX_SPF);
 #endif
     }

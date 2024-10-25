@@ -112,6 +112,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool delegM = !delegS && !isNMI;
   bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegS && mstatus->sdt, false);
   bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
+  word_t trap_pc = 0;
 #ifdef CONFIG_RVH
   bool virtualInterruptIsHvictlInject = MUXDEF(CONFIG_RV_IMSIC, cpu.virtualInterruptIsHvictlInject, false);
   extern bool hld_st;
@@ -137,9 +138,6 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     vsstatus->sie = 0;
     vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, henvcfg->dte && menvcfg->dte, 0);
     vstval->val = trapInfo.tval;
-    // vsstatus->spp = cpu.mode;
-    // vsstatus->spie = vsstatus->sie;
-    // vsstatus->sie = 0;
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
@@ -166,9 +164,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     }
     cpu.v = 1;
     cpu.mode = MODE_S;
-    update_mmu_state();
-    clear_trapinfo();
-    return get_trap_pc(vstvec->val, vscause->val);
+    trap_pc = get_trap_pc(vstvec->val, vscause->val);
   }
   else if(delegS && !s_EX_DT){
     int v = (mstatus->mprv)? mstatus->mpv : cpu.v;
@@ -190,22 +186,22 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
     mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
-    MUXDEF(CONFIG_RVH, htval->val = trapInfo.tval2;, )
-    MUXDEF(CONFIG_RVH, htinst->val = trapInfo.tinst;, )
+    IFDEF(CONFIG_RVH, htval->val = trapInfo.tval2);
+    IFDEF(CONFIG_RVH, htinst->val = trapInfo.tinst);
     stval->val = trapInfo.tval;
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
-        MUXDEF(CONFIG_RVH, htval->val = 0, );
-        MUXDEF(CONFIG_RVH, htinst->val = 0, );
+        IFDEF(CONFIG_RVH, htval->val = 0);
+        IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
         break;
       case EX_II: case EX_VI:
         stval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
-        MUXDEF(CONFIG_RVH, htval->val = 0, );
-        MUXDEF(CONFIG_RVH, htinst->val = 0, );
+        IFDEF(CONFIG_RVH, htval->val = 0);
+        IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
       case EX_BP :
 #ifdef CONFIG_RV_SDTRIG
@@ -220,22 +216,19 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #else
         stval->val = epc;
 #endif // CONFIG_RV_SDTRIG
-        MUXDEF(CONFIG_RVH, htval->val = 0, );
-        MUXDEF(CONFIG_RVH, htinst->val = 0, );
+        IFDEF(CONFIG_RVH, htval->val = 0);
+        IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
       default:
         stval->val = 0;
-        MUXDEF(CONFIG_RVH, htval->val = 0, );
-        MUXDEF(CONFIG_RVH, htinst->val = 0, );
+        IFDEF(CONFIG_RVH, htval->val = 0);
+        IFDEF(CONFIG_RVH, htinst->val = 0);
     }
     // When a trap (except GPF) is taken into HS-mode, htinst is written with 0.
     // Todo: support tinst encoding descriped in section
     // 18.6.3. Transformed Instruction or Pseudoinstruction for mtinst or htinst.
     cpu.mode = MODE_S;
-    update_mmu_state();
-    clear_trapinfo();
-    return get_trap_pc(stvec->val, scause->val);
-    // return stvec->val;
+    trap_pc = get_trap_pc(stvec->val, scause->val);
   } else if((delegM || vs_EX_DT || s_EX_DT) && !m_EX_DT){
 #ifdef CONFIG_RVH
     int v = (mstatus->mprv)? mstatus->mpv : cpu.v;
@@ -250,21 +243,21 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
     mtval->val = trapInfo.tval;
-    MUXDEF(CONFIG_RVH, mtval2->val = trapInfo.tval2;, )
-    MUXDEF(CONFIG_RVH, mtinst->val = trapInfo.tinst;, )
+    IFDEF(CONFIG_RVH, mtval2->val = trapInfo.tval2);
+    IFDEF(CONFIG_RVH, mtinst->val = trapInfo.tinst);
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
-        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
-        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
+        IFDEF(CONFIG_RVH, mtval2->val = 0);
+        IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
       case EX_IGPF: case EX_LGPF: case EX_SGPF:
         break;
       case EX_II: case EX_VI:
         mtval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
-        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
-        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
+        IFDEF(CONFIG_RVH, mtval2->val = 0);
+        IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
       case EX_BP:
 #ifdef CONFIG_RV_SDTRIG
@@ -279,13 +272,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #else
         mtval->val = epc;
 #endif // CONFIG_RV_SDTRIG
-        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
-        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
+        IFDEF(CONFIG_RVH, mtval2->val = 0);
+        IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
       default:
         mtval->val = 0;
-        MUXDEF(CONFIG_RVH, mtval2->val = 0;, ;);
-        MUXDEF(CONFIG_RVH, mtinst->val = 0;, ;);
+        IFDEF(CONFIG_RVH, mtval2->val = 0);
+        IFDEF(CONFIG_RVH, mtinst->val = 0);
     }
 #ifdef CONFIG_RV_SSDBLTRP
     bool hasEX_DT = vs_EX_DT || s_EX_DT;
@@ -294,9 +287,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mtval2->val = (hasEX_DT ? NO : mtval2->val);
 #endif //CONFIG_RV_SSDBLTRP
     cpu.mode = MODE_M;
-    update_mmu_state();
-    clear_trapinfo();
-    return get_trap_pc(mtvec->val, mcause->val);
+    trap_pc = get_trap_pc(mtvec->val, mcause->val);
   }
 #ifdef CONFIG_RV_SMRNMI
   else if ((m_EX_DT || isNMI) && mnstatus->nmie) {
@@ -308,14 +299,12 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mnepc->val = epc;
     mncause->val = NO;
     cpu.mode = MODE_M;
-    update_mmu_state();
-    clear_trapinfo();
-    return get_trap_pc(mtvec->val, mncause->val);
+    trap_pc = get_trap_pc(mtvec->val, mncause->val);
   }
 #endif //CONFIG_RV_SMRNMI
-  else {
-    return 0;
-  }
+  update_mmu_state();
+  clear_trapinfo();
+  return trap_pc;
 }
 
 word_t isa_query_intr() {

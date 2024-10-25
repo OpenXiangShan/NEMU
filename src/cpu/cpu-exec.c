@@ -643,7 +643,7 @@ void cpu_exec(uint64_t n) {
   PUSH_CONTEXT(&cause);
   if (cause) {
     n_remain -= prev_s->idx_in_bb - 1;
-    MUXDEF(CONFIG_TVAL_EX_II, cpu.instr = prev_s->isa.instr.val, );
+    IFDEF(CONFIG_TVAL_EX_II, cpu.instr = prev_s->isa.instr.val);
     // Here is exception handle
 #ifdef CONFIG_PERF_OPT
     update_global();
