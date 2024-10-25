@@ -1431,9 +1431,10 @@ static inline void csr_write(word_t *dest, word_t src) {
   else if (is_write(mnstatus)) {
     word_t mnstatus_mask = MNSTATUS_MASK;
     unsigned pre_mnpp = mnstatus->mnpp;
-//    if ((src & MNSTATUS_NMIE) == 0) {
-//      mnstatus_mask &= ~MNSTATUS_NMIE;
-//    }
+// as opensbi and linux not support smrnmi, so we default init nmie = 1 and allow nmie set to 0 by software for test
+    if ((src & MNSTATUS_NMIE) == 0 && !ISDEF(CONFIG_NMIE_INIT)) {
+      mnstatus_mask &= ~MNSTATUS_NMIE;
+    }
     mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
     if (mnstatus->mnpp == MODE_RS) {
       mnstatus->mnpp = pre_mnpp;
@@ -1905,18 +1906,18 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
     has_vi |= csr_counter_enable_check(addr);
   }
   // check smstateen
-  MUXDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(dest_access), );
+  IFDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(dest_access));
 
   // check aia
-  MUXDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access, is_write), );
+  IFDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access, is_write));
 
   //check satp(satp & hgatp)
   has_vi |= satp_permit_check(dest_access);
 
   //check fp
-  MUXNDEF(CONFIG_FPU_NONE, has_vi |= fp_permit_check(dest_access), );
+  IFNDEF(CONFIG_FPU_NONE, has_vi |= fp_permit_check(dest_access));
   //check vec
-  MUXDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access), );
+  IFDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access));
 
   if (has_vi) longjmp_exception(EX_VI);
 

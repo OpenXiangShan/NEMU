@@ -77,9 +77,8 @@ void init_isa() {
   henvcfg->dte = 1;
 #endif //CONFIG_RV_SSDBLTRP
 #ifdef CONFIG_RV_SMRNMI
-//  mnstatus->nmie = 0;
-// as opensbi and linux not support smrnmi, so we init nmie = 1 to pass ci
-  mnstatus->nmie = 1;
+// as opensbi and linux not support smrnmi, so we default init nmie = 1 to pass ci
+  mnstatus->nmie = ISDEF(CONFIG_NMIE_INIT);
 #endif //CONFIG_RV_SMRNMI
 
 #ifdef CONFIG_RV_SSTC
