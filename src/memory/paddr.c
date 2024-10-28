@@ -569,10 +569,12 @@ store_commit_t store_commit_queue_pop(int *flag) {
     *flag = 0;
     return result;
   }
-  result = store_queue_fornt();
+  result = store_queue_front();
   store_queue_pop();
   return result;
 }
+
+store_commit_t store_commit_data;
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
@@ -581,16 +583,20 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
     result = 1;
   }
   else {
-    store_commit_t commit = store_queue_fornt();
+    store_commit_data = store_queue_front();
     store_queue_pop();
-    if (*addr != commit.addr || *data != commit.data || *mask != commit.mask) {
-      *addr = commit.addr;
-      *data = commit.data;
-      *mask = commit.mask;
+    if (*addr != store_commit_data.addr || *data != store_commit_data.data || *mask != store_commit_data.mask) {
+      *addr = store_commit_data.addr;
+      *data = store_commit_data.data;
+      *mask = store_commit_data.mask;
       result = 1;
     }
   }
   return result;
+}
+
+store_commit_t get_store_commit_info() {
+  return store_commit_data;
 }
 
 #endif

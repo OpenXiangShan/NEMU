@@ -18,7 +18,7 @@ void store_queue_pop() {
   cpp_store_event_queue.pop();
 }
 
-store_commit_t store_queue_fornt() {
+store_commit_t store_queue_front() {
   auto store_commit = cpp_store_event_queue.front();
   return store_commit;
 }
