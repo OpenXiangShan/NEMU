@@ -108,6 +108,11 @@ config RV_SMDBLTRP
   depends on RV_SMRNMI
   default n
 
+config MDT_INIT
+  bool "Init mstatus.mdt to 1"
+  depends on RV_SMDBLTRP
+  default n
+
 config RV_SSDBLTRP
   bool "RISC-V S-Mode Double Trap Extension"
   depends on RV_SMRNMI
