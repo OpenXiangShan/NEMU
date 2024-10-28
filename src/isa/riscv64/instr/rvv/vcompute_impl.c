@@ -1090,7 +1090,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   }
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) {
-    if (opcode != FCLASS) {
+    if (opcode != FCLASS && opcode != FMERGE && opcode != FSLIDE1UP && opcode != FSLIDE1DOWN) {
       fp_set_dirty();
     }
     vp_set_dirty();
@@ -1261,7 +1261,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
   rtl_li(s, s0, 0);
   vcsr_write(IDXVSTART, s0);
-  if (opcode != FCLASS) {
+  if (opcode != FCLASS && opcode != FMERGE && opcode != FSLIDE1UP && opcode != FSLIDE1DOWN) {
     fp_set_dirty();
   }
   vp_set_dirty();
