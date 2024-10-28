@@ -67,7 +67,7 @@ static inline bool difftest_check_store(vaddr_t pc) {
   for (int i = 0; i < step ;i ++) {
 #endif
     if (store_queue_empty()) return true;
-    store_commit_t dut = store_queue_fornt();
+    store_commit_t dut = store_queue_front();
     store_queue_pop();
 
     uint64_t dut_data = dut.data;

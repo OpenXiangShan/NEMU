@@ -16,6 +16,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
@@ -258,6 +259,14 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 }
+
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+void difftest_get_store_event_other_info(void *info) {
+  *(uint64_t*)info = get_store_commit_info().pc;
+}
+#endif //CONFIG_DIFFTEST_STORE_COMMIT
+
+
 
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE

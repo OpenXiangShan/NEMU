@@ -101,6 +101,8 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
  */
 store_commit_t store_commit_queue_pop(int *flag);
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
+
+store_commit_t get_store_commit_info();
 #endif
 
 //#define CONFIG_MEMORY_REGION_ANALYSIS

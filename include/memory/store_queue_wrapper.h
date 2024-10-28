@@ -13,7 +13,7 @@ extern "C" {
 void store_queue_reset();
 void store_queue_push(store_commit_t store_commit);
 void store_queue_pop();
-store_commit_t store_queue_fornt();
+store_commit_t store_queue_front();
 store_commit_t store_queue_back();
 size_t store_queue_size();
 bool store_queue_empty();
