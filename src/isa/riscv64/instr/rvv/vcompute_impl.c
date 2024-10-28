@@ -1535,7 +1535,11 @@ void float_reduction_computing(Decode *s) {
   }
 
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    fp_set_dirty();
+    vp_set_dirty();
+    return;
+  }
 
   // copy the vector register to the temp register
   init_tmp_vreg(s, vtype->vsew);
@@ -1596,6 +1600,8 @@ void float_reduction_computing(Decode *s) {
   if (vl->val != 0) {
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
   }
+  fp_set_dirty();
+  vp_set_dirty();
   vstart->val = 0;
 }
 
