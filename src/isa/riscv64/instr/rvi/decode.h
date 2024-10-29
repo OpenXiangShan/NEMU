@@ -77,8 +77,15 @@ static inline def_DHelper(S) {
   decode_op_r(s, id_dest, s->isa.instr.s.rs2, true);
 }
 
-def_THelper(load) {
+static inline def_SubDHelper(load, I, {
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
+})
+
+static inline def_SubDHelper(store, S, {
+  print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
+})
+
+def_THelper(load) {
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("??????? ????? ????? 000 ????? ????? ??", lb);
@@ -101,7 +108,6 @@ def_THelper(load) {
 }
 
 def_THelper(store) {
-  print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("??????? ????? ????? 000 ????? ????? ??", sb);
