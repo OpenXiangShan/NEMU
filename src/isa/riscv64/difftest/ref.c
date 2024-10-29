@@ -27,9 +27,9 @@ void ramcmp() {
   printf("ram cmp called\n");
   uint64_t *ahead_ram = (uint64_t *)(0x1100000000ul);
   uint64_t *normal_ram = (uint64_t *)(0x100000000ul);
-  for (int i = 0; i < CONFIG_MSIZE / 8; i++) {
+  for (uint64_t i = 0; i < CONFIG_MSIZE / 8; i++) {
     if (ahead_ram[i] != normal_ram[i]) {
-      printf("Memory diff at 0x%x\n", i);
+      printf("Memory diff at 0x%lx\n", i);
       exit(1);
     }
   }
