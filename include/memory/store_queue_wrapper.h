@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+void store_queue_reset();
 void store_queue_push(store_commit_t store_commit);
 void store_queue_pop();
 store_commit_t store_queue_fornt();

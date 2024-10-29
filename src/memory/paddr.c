@@ -146,7 +146,7 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
     cause = EX_IAF;
   } else if (cpu.amo || type == MEM_TYPE_WRITE || type == MEM_TYPE_WRITE_READ) {
-    cause = EX_SAF; 
+    cause = EX_SAF;
   }
   raise_access_fault(cause, vaddr);
 }
@@ -187,6 +187,11 @@ void allocate_memory_with_mmap()
 
 void init_mem() {
   allocate_memory_with_mmap();
+
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  store_queue_reset();
+#endif
+
 #ifdef CONFIG_MEM_RANDOM
   srand(time(0));
   uint32_t *p = (uint32_t *)pmem;
@@ -572,5 +577,3 @@ void dump_pmem() {
   }
   fwrite(pmem, sizeof(char), MEMORY_SIZE, fp);
 }
-
-
