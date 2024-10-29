@@ -82,9 +82,16 @@ $(BINARY): $(OBJS) $(LIBS)
 
 staticlib: $(BUILD_DIR)/lib$(NAME).a
 
+TEMP_EXTRACT_DIR = $(BUILD_DIR)/build-lib$(NAME)-tmp
 $(BUILD_DIR)/lib$(NAME).a: $(OBJS) $(LIBS)
+	@mkdir -p $(TEMP_EXTRACT_DIR)
+	@echo Extracting object files from libraries...
+	@for lib in $(LIBS); do \
+	    ar x $$lib --output=$(TEMP_EXTRACT_DIR); \
+	done
 	@echo + AR $@
-	@ar rcs $(BUILD_DIR)/lib$(NAME).a $(OBJS) $(LIBS)
+	@ar rcs $@ $(TEMP_EXTRACT_DIR)/*.o $(OBJS)
+	@rm -rf $(TEMP_EXTRACT_DIR)
 
 .PHONY: clean-softfloat
 clean: clean-softfloat
