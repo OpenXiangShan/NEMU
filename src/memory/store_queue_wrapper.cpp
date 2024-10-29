@@ -6,6 +6,10 @@
 
 std::queue<store_commit_t> cpp_store_event_queue;
 
+void store_queue_reset() {
+  cpp_store_event_queue = {};
+}
+
 void store_queue_push(store_commit_t store_commit) {
   cpp_store_event_queue.push(store_commit);
 }
