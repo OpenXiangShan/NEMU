@@ -152,3 +152,33 @@ def_EHelper(c_mop) {
   rtl_c_mop(s, ddest);
 }
 #endif // CONFIG_RV_ZCMOP
+
+#ifdef CONFIG_RV_ZCB
+def_EHelper(c_mul) {
+  rtl_mulu_lo(s, ddest, dsrc1, dsrc2);
+}
+
+def_EHelper(c_zext_b) {
+  rtl_zext(s, ddest, dsrc1, 1);
+}
+
+def_EHelper(c_sext_b) {
+  rtl_sext(s, ddest, dsrc1, 1);
+}
+
+def_EHelper(c_zext_h) {
+  rtl_zext(s, ddest, dsrc1, 2);
+}
+
+def_EHelper(c_sext_h) {
+  rtl_sext(s, ddest, dsrc1, 2);
+}
+
+def_EHelper(c_zext_w) {
+  rtl_zext(s, ddest, dsrc1, 4);
+}
+
+def_EHelper(c_not) {
+  rtl_not(s, ddest, dsrc1);
+}
+#endif // CONFIG_RV_ZCB
