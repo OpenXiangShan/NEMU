@@ -431,6 +431,7 @@ def_THelper(c_ldst) {
 
 def_THelper(c_fldst) {
 #ifndef CONFIG_FPU_NONE
+  if (!fp_enable()) return table_rt_inv(s);
   int mmu_mode = isa_mmu_state();
   if (mmu_mode == MMU_DIRECT) {
     def_INSTR_TAB("001 ??? ??? ?? ??? ??", fld);

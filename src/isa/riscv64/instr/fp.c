@@ -32,7 +32,19 @@ void fp_update_rm_cache(uint32_t rm) {
 }
 
 bool fp_enable() {
-  return MUXDEF(CONFIG_MODE_USER, true, mstatus->fs != 0);
+#ifdef CONFIG_MODE_USER
+  return true;
+#else // !CONFIG_MODE_USER
+  if (mstatus->fs == 0) {
+    return false;
+  }
+#ifdef CONFIG_RVH
+  if (cpu.v && vsstatus->fs == 0) {
+    return false;
+  }
+#endif // CONFIG_RVH
+  return true;
+#endif // CONFIG_MODE_USER
 }
 
 void fp_set_dirty() {
