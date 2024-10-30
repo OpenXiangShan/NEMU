@@ -409,4 +409,8 @@ config RV_ZIMOP
   help
     This extension adds MOP.R.n and MOP.RR.n instructions which just write rd with 0s.
 
+config RV_ZCB
+  bool "RISC-V Zcb Extension, Version 1.0.0"
+  default n
+
 endmenu
