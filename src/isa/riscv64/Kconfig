@@ -112,6 +112,11 @@ config MDT_INIT
   bool "Init mstatus.mdt to 1"
   depends on RV_SMDBLTRP
   default n
+  help
+    This config control the init value of mstatus.mdt. As software not support
+    Smdbltrp yet, the default value of this config is set to n. After software
+    support, this config should be open.
+
 
 config RV_SSDBLTRP
   bool "RISC-V S-Mode Double Trap Extension"
@@ -122,6 +127,10 @@ config NMIE_INIT
   bool "Init mnstatus.nmie to 1 and allow software to clear"
   depends on RV_SMRNMI
   default y
+  help
+    This config control the init value of mnstatus.nmie and whether allow software
+    to clear. As software not support Smrnmi yet, the default value of this config
+    is set to y. After software support, this config should be close.
 
 menuconfig RV_ZICNTR
   bool "RISC-V Zicntr Extensions for Base Counters and Timers, v2.0"
@@ -145,6 +154,10 @@ config RV_CSR_TIME
     register.
 
 endif # RV_ZICNTR
+
+config RV_ZIHINTPAUSE
+    bool "RISC-V Zihintpause for Pause Hint, v2.0"
+    default y
 
 config RV_ZIHPM
   bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0" 

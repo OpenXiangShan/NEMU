@@ -64,7 +64,7 @@ MAP(RVH_ST_INST_LIST, def_hst_template)
 #define SYS_INSTR_LIST(f) \
   f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
   SYS_MNINSTR_LIST(f)       \
-  f(ecall)  f(ebreak) f(mret)  f(mnret) f(sret)  f(sfence_vma) f(wfi)
+  f(ecall)  f(ebreak) f(mret)  f(sret)  f(sfence_vma) f(wfi)
 #endif
 
 MAP(SYS_INSTR_LIST, def_SYS_EHelper)

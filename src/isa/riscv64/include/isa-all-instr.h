@@ -329,8 +329,16 @@
 #define ZCB_INSTR_TERNARY(f)
 #endif // CONFIG_RV_ZCB
 
+#ifdef CONFIG_RV_ZIHINTPAUSE
+#define ZIHINTPAUSE_INSTR_NULLARY(f) \
+  f(pause)
+#else
+#define ZIHINTPAUSE_INSTR_NULLARY(f)
+#endif //CONFIG_RV_ZIHINTPAUSE
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
+  ZIHINTPAUSE_INSTR_NULLARY(f) \
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f)   \
   SYS_NMI_NULLARY(f) \
