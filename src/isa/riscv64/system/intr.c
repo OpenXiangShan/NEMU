@@ -106,7 +106,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     case EX_SPF: difftest_skip_dut(1, 2); break;
   }
 #endif
-  MUXDEF(CONFIG_RV_SMRNMI,Assert( mnstatus->nmie, "critical error: trap when nmie close"), );
+#ifdef CONFIG_RV_SMRNMI
+#ifdef CONFIG_SHARE
+  if (!mnstatus->nmie){return 0; } // this will assert in difftest
+#else
+  Assert(mnstatus->nmie, "critical error: trap when nmie close");
+#endif // CONFIG_SHARE
+#endif // CONFIG_RV_SMRNMI
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (NO & INTR_BIT), false);
   bool delegS = intr_deleg_S(NO);
   bool delegM = !delegS && !isNMI;
