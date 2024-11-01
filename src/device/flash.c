@@ -52,7 +52,6 @@ void load_flash_contents(const char *flash_img) {
       "img size %d is larger than flash size %d",
       size, CONFIG_FLASH_SIZE
     );
-    flash_base = new_space(CONFIG_FLASH_SIZE);
     ret = fread(flash_base, 1, size, fp);
     fclose(fp);
   }
