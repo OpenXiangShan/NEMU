@@ -107,11 +107,17 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 #endif
 #ifdef CONFIG_RV_SMRNMI
+  if (!mnstatus->nmie){
 #ifdef CONFIG_SHARE
-  if (!mnstatus->nmie){return 0; } // this will assert in difftest
+    IFDEF(CONFIG_RV_SMDBLTRP,cpu.critical_error = true);// this will compare in difftest
 #else
-  Assert(mnstatus->nmie, "critical error: trap when nmie close");
+    printf("\33[1;31mHIT CRITICAL ERROR\33[0m: trap when mnstatus.nmie close, please check if software cause a double trap.\n");
+    nemu_state.state = NEMU_END;
+    nemu_state.halt_pc = epc;
+    nemu_state.halt_ret = 0;
 #endif // CONFIG_SHARE
+    return 0;
+  }
 #endif // CONFIG_RV_SMRNMI
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (NO & INTR_BIT), false);
   bool delegS = intr_deleg_S(NO);
