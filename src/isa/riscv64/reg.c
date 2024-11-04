@@ -54,6 +54,10 @@ void isa_reg_display() {
 #endif // CONFIG_FPU_NONE
   printf("pc: " FMT_WORD " mstatus: " FMT_WORD " mcause: " FMT_WORD " mepc: " FMT_WORD "\n",
       cpu.pc, cpu.mstatus, mcause->val, mepc->val);
+#ifdef CONFIG_RV_SMRNMI
+  printf("%22s mnstatus: " FMT_WORD " mncause: " FMT_WORD " mnepc: " FMT_WORD "\n",
+      "", mnstatus->val, mncause->val, mnepc->val);
+#endif // CONFIG_RV_SMRNMI
   printf("%22s sstatus: " FMT_WORD " scause: " FMT_WORD " sepc: " FMT_WORD "\n",
       "", cpu.sstatus, scause->val, sepc->val);
   printf("satp: " FMT_WORD "\n", satp->val);
