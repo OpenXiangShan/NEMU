@@ -30,6 +30,7 @@ void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
 
 uint64_t get_abs_instr_count();
+inline word_t get_mip();
 
 rtlreg_t csr_array[4096] = {};
 
@@ -659,7 +660,7 @@ static inline void non_vmode_set_ie(word_t src, word_t begin, word_t end) {
 static inline word_t vmode_get_ip(word_t old_value, word_t begin, word_t end) {
   word_t mask = gen_mask(begin, end);
 
-  old_value |= mask & ((mip->val & (mideleg->val  & hideleg->val)) |
+  old_value |= mask & ((get_mip() & (mideleg->val  & hideleg->val)) |
                       (mvip->val & (~mideleg->val & hideleg->val & mvien->val)) |
                       (hvip->val & (~hideleg->val & hvien->val)));
   
@@ -679,7 +680,7 @@ static inline void vmode_set_ip(word_t src, word_t begin, word_t end) {
 static inline word_t non_vmode_get_ip(word_t old_value, word_t begin, word_t end) {
   word_t mask = gen_mask(begin, end);
 
-  old_value |= mask & ((mip->val & mideleg->val) |
+  old_value |= mask & ((get_mip() & mideleg->val) |
                       (mvip->val & (~mideleg->val & mvien->val)));
 
   return old_value;
@@ -863,22 +864,22 @@ static inline void set_mip(word_t src) {
 static inline word_t non_vmode_get_sip() {
   word_t tmp = 0;
 #ifdef CONFIG_RV_AIA
-  tmp |= mip->val & (MIP_SSIP | MIP_STIP | MIP_SEIP) & mideleg->val;
+  tmp |= get_mip() & (MIP_SSIP | MIP_STIP | MIP_SEIP) & mideleg->val;
   tmp |= mvip->val & (MIP_SSIP | MIP_SEIP) & (~mideleg->val & mvien->val);
   tmp |= non_vmode_get_ip(tmp, 13, 63);
 #else
-  tmp = mip->val & SIP_MASK;
+  tmp = get_mip() & SIP_MASK;
 #endif // CONFIG_RV_AIA
   return tmp;
 }
 
 static inline void non_vmode_set_sip(word_t src) {
 #ifdef CONFIG_RV_AIA
-  mip->val = mask_bitset(mip->val, (MIP_SSIP | MIP_LCOFIP) & mideleg->val, src);
+  mip->val = mask_bitset(get_mip(), (MIP_SSIP | MIP_LCOFIP) & mideleg->val, src);
   mvip->val = mask_bitset(mvip->val, (MIP_SSIP | MIP_LCOFIP) & (~mideleg->val & mvien->val), src);
   non_vmode_set_ip(src, 14, 63);
 #else
-  mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src);
+  mip->val = mask_bitset(get_mip(), ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src);
 #endif // CONFIG_RV_AIA
 }
 
@@ -888,10 +889,10 @@ static inline word_t get_mvip() {
 
   tmp = mvip->val & MVIP_MASK;
 
-  tmp |= mvien->ssie ? mvip->val & MIP_SSIP : mip->val & MIP_SSIP;
+  tmp |= mvien->ssie ? mvip->val & MIP_SSIP : get_mip() & MIP_SSIP;
 
   if (!menvcfg->stce) {
-    tmp |= mip->val & MIP_STIP;
+    tmp |= get_mip() & MIP_STIP;
   }
 
   tmp |= mvip->val & MIP_SEIP;
@@ -906,10 +907,10 @@ static inline void set_mvip(word_t src) {
 
   mvip->val = mask_bitset(mvip->val, MIP_SSIP & mvien->val, src);
 
-  mip->val = mask_bitset(mip->val, MIP_SSIP & (~mvien->val), src);
+  mip->val = mask_bitset(get_mip(), MIP_SSIP & (~mvien->val), src);
 
   if (!menvcfg->stce) {
-    mip->val = mask_bitset(mip->val, MIP_STIP, src);
+    mip->val = mask_bitset(get_mip(), MIP_STIP, src);
   }
 
   mvip->val = mask_bitset(mvip->val, MIP_SEIP, src);
@@ -920,12 +921,12 @@ static inline void set_mvip(word_t src) {
 static inline word_t vmode_get_sip() {
   word_t tmp = 0;
 
-  tmp = (mip->val & VSI_MASK) >> 1;
+  tmp = (get_mip() & VSI_MASK) >> 1;
 
 #ifdef CONFIG_RV_AIA
   tmp |= vmode_get_ip(tmp, 13, 63);
 #else
-  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mip->val & mideleg->val & hideleg->val & MIP_LCOFIP);
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= get_mip() & mideleg->val & hideleg->val & MIP_LCOFIP);
 #endif // CONFIG_RV_AIA
 
   return tmp;
@@ -937,12 +938,12 @@ static inline void vmode_set_sip(word_t src) {
   hvip->val = mask_bitset(hvip->val, MIP_VSSIP, src << 1);
 
 #ifdef CONFIG_RV_AIA
-  mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
+  mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & hideleg->val, src);
   mvip->val = mask_bitset(mvip->val, MIP_LCOFIP & (~mideleg->val & hideleg->val & mvien->val), src);
   hvip->val = mask_bitset(hvip->val, MIP_LCOFIP & (~hideleg->val & hvien->val), src);
   vmode_set_ip(src, 14, 63);
 #else
-  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src));
+  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & hideleg->val, src));
 #endif // CONFIG_RV_AIA
 }
 #endif // CONFIG_RVH
@@ -956,7 +957,7 @@ static inline word_t get_vsip() {
 #ifdef CONFIG_RV_AIA
   tmp |= vmode_get_ip(tmp, 13, 63);
 #else
-  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mip->val & MIP_LCOFIP & mideleg->val & hideleg->val);
+  IFDEF(CONFIG_RV_SSCOFPMF, tmp |= get_mip() & MIP_LCOFIP & mideleg->val & hideleg->val);
 #endif // CONFIG_RV_AIA
 
   return tmp;
@@ -967,12 +968,12 @@ static inline word_t get_vsip() {
 static inline void set_vsip(word_t src) {
   hvip->val = mask_bitset(hvip->val, MIP_VSSIP & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
 #ifdef CONFIG_RV_AIA
-  mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src);
+  mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & hideleg->val, src);
   mvip->val = mask_bitset(mvip->val, MIP_LCOFIP & (~mideleg->val & hideleg->val & mvien->val), src);
   hvip->val = mask_bitset(hvip->val, MIP_LCOFIP & (~hideleg->val & hvien->val), src);
   vmode_set_ip(src, 14, 63);
 #else
-  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & hideleg->val, src));
+  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & hideleg->val, src));
 #endif // CONFIG_RV_AIA
 }
 #endif // CONFIG_RVH
