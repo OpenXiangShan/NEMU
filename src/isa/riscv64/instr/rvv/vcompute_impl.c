@@ -414,7 +414,10 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     }
   }
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
   for(word_t idx = vstart->val; idx < vl->val; idx ++) {
     // mask
     rtlreg_t mask = get_mask(0, idx);
