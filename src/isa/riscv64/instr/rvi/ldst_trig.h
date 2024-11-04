@@ -2,16 +2,9 @@
   def_EHelper(name) { \
     trig_action_t action = TRIG_ACTION_NONE; \
     const vaddr_t vaddr = *dsrc1 + id_src2->imm; \
-    if (cpu.TM->check_timings.br) { \
-      action = tm_check_hit(cpu.TM, TRIG_OP_LOAD, vaddr, TRIGGER_NO_VALUE); \
-    } \
-    trigger_handler(action, vaddr); \
+    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, vaddr, TRIGGER_NO_VALUE); \
+    trigger_handler(TRIG_TYPE_MCONTROL6, action, vaddr); \
     concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); \
-    const rtlreg_t data = *ddest; \
-    if (cpu.TM->check_timings.ar) { \
-      action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_LOAD | TRIG_OP_TIMING), vaddr, data); \
-    } \
-    trigger_handler(action, vaddr); \
   }
 
 #define def_st_template_with_trigger(name, rtl_instr, width, mmu_mode) \
@@ -19,10 +12,8 @@
     trig_action_t action = TRIG_ACTION_NONE; \
     const vaddr_t vaddr = *dsrc1 + id_src2->imm; \
     const word_t data = *ddest; \
-    if (cpu.TM->check_timings.bw) { \
-      action = tm_check_hit(cpu.TM, TRIG_OP_STORE, vaddr, data); \
-    } \
-    trigger_handler(action, vaddr); \
+    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, vaddr, data); \
+    trigger_handler(TRIG_TYPE_MCONTROL6, action, vaddr); \
     concat(rtl_, rtl_instr) (s, ddest, dsrc1, id_src2->imm, width, mmu_mode); \
   }
 

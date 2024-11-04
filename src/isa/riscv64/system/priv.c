@@ -85,8 +85,12 @@ void init_trigger() {
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
   }
   tselect->val = 0;
-  tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   tinfo->val = (1 << TRIG_TYPE_MCONTROL6);
+  tinfo->val = 0
+    IFDEF(CONFIG_TDATA1_ICOUNT, | (1 << TRIG_TYPE_ICOUNT))
+    IFDEF(CONFIG_TDATA1_ITRIGGER, | (1 << TRIG_TYPE_ITRIG))
+    IFDEF(CONFIG_TDATA1_ETRIGGER, | (1 << TRIG_TYPE_ETRIG))
+    IFDEF(CONFIG_TDATA1_MCONTROL6, | (1 << TRIG_TYPE_MCONTROL6));
 }
 #endif // CONFIG_RV_SDTRIG
 
@@ -1155,10 +1159,10 @@ if (is_read(hgatp) && mstatus->tvm == 1 && !cpu.v && cpu.mode == MODE_S) { longj
 #endif
 
 #ifdef CONFIG_RV_SDTRIG
-  if (is_read(tdata1)) { return cpu.TM->triggers[tselect->val].tdata1.val; }
-  if (is_read(tdata2)) { return cpu.TM->triggers[tselect->val].tdata2.val; }
+  if (is_read(tdata1)) { return get_tdata1(cpu.TM); }
+  if (is_read(tdata2)) { return get_tdata2(cpu.TM); }
 #ifdef CONFIG_SDTRIG_EXTRA
-  if (is_read(tdata3)) { return cpu.TM->triggers[tselect->val].tdata3.val; }
+  if (is_read(tdata3)) { return get_tdata3(cpu.TM); }
 #endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 
@@ -1607,7 +1611,6 @@ static inline void csr_write(word_t *dest, word_t src) {
 #ifdef CONFIG_RV_SDTRIG
   else if (is_write(tselect)) {
     *dest = src < CONFIG_TRIGGER_NUM ? src : tselect->val;
-    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata1)) {
     // not write to dest
     tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
@@ -1619,15 +1622,22 @@ static inline void csr_write(word_t *dest, word_t src) {
       tdata1_reg->type = TRIG_TYPE_DISABLE;
       tdata1_reg->data = 0;
       break;
+    case TRIG_TYPE_ICOUNT:
+      icount_checked_write(&cpu.TM->triggers[tselect->val].tdata1.icount, &src);
+      break;
+    case TRIG_TYPE_ITRIG:
+      itrigger_checked_write(&cpu.TM->triggers[tselect->val].tdata1.itrigger, &src);
+      break;
+    case TRIG_TYPE_ETRIG:
+      etrigger_checked_write(&cpu.TM->triggers[tselect->val].tdata1.etrigger, &src);
+      break;
     case TRIG_TYPE_MCONTROL6:
       mcontrol6_checked_write(&cpu.TM->triggers[tselect->val].tdata1.mcontrol6, &src, cpu.TM);
-      tm_update_timings(cpu.TM);
       break;
     default:
       // do nothing for not supported trigger type
       break;
     }
-    tdata1->val = cpu.TM->triggers[tselect->val].tdata1.val;
   } else if (is_write(tdata2)) {
     // not write to dest
     tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;

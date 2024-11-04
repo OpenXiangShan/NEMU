@@ -105,13 +105,14 @@ def_THelper(main) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
-#ifdef CONFIG_RV_SDTRIG
-  trig_action_t action = TRIG_ACTION_NONE;
-  if (cpu.TM->check_timings.bf) {
-    action = tm_check_hit(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
-  }
-  trigger_handler(action, s->pc);
-#endif
+#ifdef CONFIG_TDATA1_ICOUNT
+  trig_action_t icount_action = check_triggers_icount(cpu.TM);
+  trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
+#endif // CONFIG_TDATA1_ICOUNT
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t mcontrol6_action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
+  trigger_handler(TRIG_TYPE_MCONTROL6, mcontrol6_action, s->pc);
+#endif // CONFIG_TDATA1_MCONTROL6
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
   if (s->isa.instr.r.opcode1_0 != 0x3) {
@@ -126,13 +127,6 @@ int isa_fetch_decode(Decode *s) {
     s->isa.instr.val |= (hi << 16);
     idx = table_main(s);
   }
-
-#ifdef CONFIG_RV_SDTRIG
-  if (cpu.TM->check_timings.af) {
-    action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_EXECUTE | TRIG_OP_TIMING), s->pc, s->isa.instr.val);
-  }
-  trigger_handler(action, s->pc);
-#endif
 
   s->type = INSTR_TYPE_N;
   switch (idx) {

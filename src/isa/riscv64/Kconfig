@@ -67,6 +67,26 @@ config RV_SDTRIG
   depends on RV_DEBUG
   default n
 
+config TDATA1_MCONTROL6
+  bool "TDATA1 Support mcontrol6 Type of Trigger"
+  depends on RV_SDTRIG
+  default n
+
+config TDATA1_ICOUNT
+  bool "TDATA1 Support icount Type of Trigger"
+  depends on RV_SDTRIG
+  default n
+
+config TDATA1_ITRIGGER
+  bool "TDATA1 Support itrigger Type of Trigger"
+  depends on RV_SDTRIG
+  default n
+
+config TDATA1_ETRIGGER
+  bool "TDATA1 Support etrigger Type of Trigger"
+  depends on RV_SDTRIG
+  default n
+
 config TRIGGER_NUM
   int "Number of supported triggers"
   depends on RV_SDTRIG

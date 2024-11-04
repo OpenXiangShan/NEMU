@@ -824,7 +824,19 @@ CSR_STRUCT_START(tdata3)    // 0x7a3
 CSR_STRUCT_END(tdata3)
 
 CSR_STRUCT_START(tinfo)     // 0x7a4
-  uint64_t info : 16;       // [15:0]
+  uint64_t none        : 1; // [0]
+  uint64_t legacy      : 1; // [1]
+  uint64_t mcontrol    : 1; // [2]
+  uint64_t icount      : 1; // [3]
+  uint64_t itrigger    : 1; // [4]
+  uint64_t etrigger    : 1; // [5]
+  uint64_t mcontrol6   : 1; // [6]
+  uint64_t tmexttrigger: 1; // [7]
+  uint64_t             : 4; // [11:8]
+  uint64_t             : 3; // [14:12]
+  uint64_t disabled    : 1; // [15]
+  uint64_t             : 8; // [23:16]
+  uint64_t version     : 8; // [31:24]
 CSR_STRUCT_END(tinfo)
 
 CSR_STRUCT_START(mcontext)  // 0x7a8

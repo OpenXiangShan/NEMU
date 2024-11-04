@@ -154,7 +154,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         switch (trigger_action) {
           case TRIG_ACTION_NONE: vstval->val = epc; break;
           case TRIG_ACTION_BKPT_EXCPT:
-            vstval->val = triggered_addr;
+            vstval->val = triggered_tval;
             trigger_action = TRIG_ACTION_NONE;
             break;
           default: panic("Unsupported trigger action %d", trigger_action);  break;
@@ -214,7 +214,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         switch (trigger_action) {
           case TRIG_ACTION_NONE: stval->val = epc; break;
           case TRIG_ACTION_BKPT_EXCPT:
-            stval->val = triggered_addr;
+            stval->val = triggered_tval;
             trigger_action = TRIG_ACTION_NONE;
             break;
           default: panic("Unsupported trigger action %d", trigger_action);  break;
@@ -270,7 +270,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         switch (trigger_action) {
           case TRIG_ACTION_NONE: mtval->val = epc; break;
           case TRIG_ACTION_BKPT_EXCPT:
-            mtval->val = triggered_addr;
+            mtval->val = triggered_tval;
             trigger_action = TRIG_ACTION_NONE;
             break;
           default: panic("Unsupported trigger action %d", trigger_action);  break;
