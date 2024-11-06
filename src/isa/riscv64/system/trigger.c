@@ -324,9 +324,10 @@ void trigger_handler(const trig_type_t type, const trig_action_t action, word_t 
           if (!trigger_reentrancy_check()) {
             break;
           }
-        case TRIG_TYPE_ICOUNT:
+        case TRIG_TYPE_ICOUNT: {
           extern Decode *prev_s;
           prev_s->pc = cpu.pc;
+        }
         case TRIG_TYPE_MCONTROL:
         case TRIG_TYPE_MCONTROL6:
           trigger_action = action;
