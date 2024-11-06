@@ -167,6 +167,11 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 #endif
 }
 #endif
+#ifdef CONFIG_RV_SMDBLTRP
+bool difftest_raise_critical_error() {
+  return cpu.critical_error;
+}
+#endif
 
 void difftest_exec(uint64_t n) {
   cpu_exec(n);
