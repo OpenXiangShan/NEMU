@@ -167,6 +167,9 @@ typedef struct {
 #ifdef CONFIG_RV_IMSIC
   bool virtualInterruptIsHvictlInject;
 #endif
+#ifdef CONFIG_RV_SMDBLTRP
+  bool critical_error;
+#endif
 
 } riscv64_CPU_state;
 
