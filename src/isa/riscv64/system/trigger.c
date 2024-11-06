@@ -315,6 +315,7 @@ bool trigger_reentrancy_check() {
 }
 
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval) {
+  extern Decode *prev_s;
   switch (action) {
     case TRIG_ACTION_NONE: /* no trigger hit, do nothing */; break;
     case TRIG_ACTION_BKPT_EXCPT:
@@ -325,7 +326,6 @@ void trigger_handler(const trig_type_t type, const trig_action_t action, word_t 
             break;
           }
         case TRIG_TYPE_ICOUNT:
-          extern Decode *prev_s;
           prev_s->pc = cpu.pc;
         case TRIG_TYPE_MCONTROL:
         case TRIG_TYPE_MCONTROL6:
