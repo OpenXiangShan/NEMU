@@ -20,14 +20,34 @@
 static IOMap maps[NR_MAP] = {};
 static int nr_map = 0;
 
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+
+static const uint64_t mmio_spec_bound[] = {__MMIO_SPECE_RANGE__};
+#define MMIO_SPEC_NUM (sizeof(mmio_spec_bound) / sizeof(uint64_t))
+#define MMIO_SPEC_PAIR_NUM MMIO_SPEC_NUM / 2
+static_assert(MMIO_SPEC_NUM % 2 == 0, "The address space of mmio needs to be specified in pairs.");
+
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+
 static inline IOMap* fetch_mmio_map(paddr_t addr) {
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
   return (mapid == -1 ? NULL : &maps[mapid]);
 }
 
 bool is_in_mmio(paddr_t addr) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+  for (int i = 0; i < MMIO_SPEC_PAIR_NUM; ++i) {
+    if (mmio_spec_bound[i] <= addr && addr <= mmio_spec_bound[i + 1]) {
+      Log("is in mmio: " FMT_PADDR, addr);
+      return true;
+    }
+  }
+  return false;
+#else
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
   return (mapid == -1 ? false : true);
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+
 }
 
 /* device interface */
@@ -41,6 +61,12 @@ void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, io_
 
   nr_map ++;
 }
+
+bool mmio_is_real_device(paddr_t addr) {
+  IOMap *map = fetch_mmio_map(addr);
+  return map != NULL && addr <= map->high && addr >= map->low;
+}
+
 
 /* bus interface */
 __attribute__((noinline))
