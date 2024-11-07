@@ -28,6 +28,11 @@ remove_quote = $(patsubst "%",%,$(1))
 
 ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
 CFLAGS += -D__ISA__=$(ISA)
+
+ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+CFLAGS += -D__MMIO_SPECE_RANGE__=$(call remove_quote,$(CONFIG_MMIO_SPACE_RANGE))
+endif
+
 # CFLAGS += -g
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)

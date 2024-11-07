@@ -92,4 +92,19 @@ config MEM_COMPRESS
   help
     Must have zlib installed.
 
+config ENABLE_CONFIG_MMIO_SPACE
+  bool "Configure the MMIO space"
+  default y
+  help
+    The MMIO space can be freely configured without the need to actually specify device.
+
+config MMIO_SPACE_RANGE
+  string "MMIO address space range"
+  default "0x0, 0x7FFFFFFF"
+  depends on ENABLE_CONFIG_MMIO_SPACE
+  help
+    Please use the upper and lower boundary pairing for configuration, the specified upper and lower boundary addresses are included. For example: 0x0, 0x7FFFFFFF, 0x100000000, 0x100001000
+    This will specify the MMIO address space area as [0x0, 0x7FFFFFFF] and [0x100000000, 0x100001000].
+    Specifying the MMIO address space is not the same as specifying the peripherals, this is just to ensure PMA for RISC-V.
+
 endmenu #MEMORY
