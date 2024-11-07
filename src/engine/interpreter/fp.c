@@ -240,14 +240,14 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_REC7:   *dest = f16_recip7(fsrc1).v; break;
       case FPCALL_CLASS:  *dest = f16_classify(fsrc1); break;
 
-      case FPCALL_MADD:  *dest = f16_mulAdd(rtlToF16(*dest), fsrc1, fsrc2).v; break;
-      case FPCALL_NMADD: *dest = f16_mulAdd(f16_neg(rtlToF16(*dest)), fsrc1, f16_neg(fsrc2)).v; break;
-      case FPCALL_MSUB:  *dest = f16_mulAdd(rtlToF16(*dest), fsrc1, f16_neg(fsrc2)).v; break;
-      case FPCALL_NMSUB: *dest = f16_mulAdd(f16_neg(rtlToF16(*dest)), fsrc1, fsrc2).v; break;
-      case FPCALL_MACC:  *dest = f16_mulAdd(fsrc1, fsrc2, rtlToF16(*dest)).v; break;
-      case FPCALL_NMACC: *dest = f16_mulAdd(f16_neg(fsrc2), fsrc1, f16_neg(rtlToF16(*dest))).v; break;
-      case FPCALL_MSAC:  *dest = f16_mulAdd(fsrc1, fsrc2, f16_neg(rtlToF16(*dest))).v; break;
-      case FPCALL_NMSAC: *dest = f16_mulAdd(f16_neg(fsrc1), fsrc2, rtlToF16(*dest)).v; break;
+      case FPCALL_MADD:  *dest = f16_mulAdd(rtlToVF16(*dest), fsrc1, fsrc2).v; break;
+      case FPCALL_NMADD: *dest = f16_mulAdd(f16_neg(rtlToVF16(*dest)), fsrc1, f16_neg(fsrc2)).v; break;
+      case FPCALL_MSUB:  *dest = f16_mulAdd(rtlToVF16(*dest), fsrc1, f16_neg(fsrc2)).v; break;
+      case FPCALL_NMSUB: *dest = f16_mulAdd(f16_neg(rtlToVF16(*dest)), fsrc1, fsrc2).v; break;
+      case FPCALL_MACC:  *dest = f16_mulAdd(fsrc1, fsrc2, rtlToVF16(*dest)).v; break;
+      case FPCALL_NMACC: *dest = f16_mulAdd(f16_neg(fsrc2), fsrc1, f16_neg(rtlToVF16(*dest))).v; break;
+      case FPCALL_MSAC:  *dest = f16_mulAdd(fsrc1, fsrc2, f16_neg(rtlToVF16(*dest))).v; break;
+      case FPCALL_NMSAC: *dest = f16_mulAdd(f16_neg(fsrc1), fsrc2, rtlToVF16(*dest)).v; break;
       
       case FPCALL_LE: *dest = f16_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f16_lt(fsrc1, fsrc2); break;
@@ -291,14 +291,14 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       fsrc1 = rtlToVF32(*src1);
       fsrc2 = rtlToVF32(*src2);
     } else if (w == FPCALL_SRC1_W16_to_32) {
-      fsrc1 = f16_to_f32(rtlToF16(*src1));
+      fsrc1 = f16_to_f32(rtlToVF16(*src1));
       fsrc2 = rtlToVF32(*src2);
     } else if (w == FPCALL_SRC2_W16_to_32) {
       fsrc1 = rtlToVF32(*src1);
-      fsrc2 = f16_to_f32(rtlToF16(*src2));
+      fsrc2 = f16_to_f32(rtlToVF16(*src2));
     } else {
-      fsrc1 = f16_to_f32(rtlToF16(*src1));
-      fsrc2 = f16_to_f32(rtlToF16(*src2));
+      fsrc1 = f16_to_f32(rtlToVF16(*src1));
+      fsrc2 = f16_to_f32(rtlToVF16(*src2));
     }
 
     switch (op) {
