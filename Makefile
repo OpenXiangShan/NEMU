@@ -20,21 +20,21 @@ endif
 
 -include $(NEMU_HOME)/include/config/auto.conf
 -include $(NEMU_HOME)/include/config/auto.conf.cmd
-
-DIRS-y = src/cpu src/monitor src/utils
-DIRS-$(CONFIG_MODE_SYSTEM) += src/memory
-
-remove_quote = $(patsubst "%",%,$(1))
-
-ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
-CFLAGS += -D__ISA__=$(ISA)
-# CFLAGS += -g
-INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
-DIRS-y += src/isa/$(ISA)
+include $(NEMU_HOME)/scripts/utils.mk
 
 ENGINE ?= $(call remove_quote,$(CONFIG_ENGINE))
 INC_DIR += $(NEMU_HOME)/src/engine/$(ENGINE)
-DIRS-y += src/engine/$(ENGINE)
+DIRS-y = src/engine/$(ENGINE)
+NAME = nemu-$(ENGINE)
+
+include $(NEMU_HOME)/scripts/isa.mk
+
+DIRS-y += src/cpu src/monitor src/utils
+DIRS-$(CONFIG_MODE_SYSTEM) += src/memory
+
+# CFLAGS += -g
+INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
+DIRS-y += src/isa/$(ISA)
 
 DIRS-$(CONFIG_MODE_USER) += src/user
 
@@ -82,8 +82,6 @@ CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
-
-NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
 ifdef CONFIG_CC_NATIVE_ARCH
@@ -142,7 +140,6 @@ endif
 
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
-include $(NEMU_HOME)/scripts/isa.mk
 include $(NEMU_HOME)/scripts/build.mk
 
 ifdef CONFIG_DIFFTEST

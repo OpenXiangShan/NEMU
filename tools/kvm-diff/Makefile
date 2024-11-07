@@ -17,8 +17,12 @@ NAME  = kvm
 SRCS  = $(shell find src/ -name "*.c")
 
 SHARE = 1
-INC_DIR += $(NEMU_HOME)/include $(NEMU_HOME)/src/isa/x86/include
-ISA = x86
 
+include $(NEMU_HOME)/include/config/auto.conf
+include $(NEMU_HOME)/include/config/auto.conf.cmd
+include $(NEMU_HOME)/scripts/utils.mk
 include $(NEMU_HOME)/scripts/isa.mk
+
+INC_DIR += $(NEMU_HOME)/include $(NEMU_HOME)/src/isa/$(ISA)/include
+
 include $(NEMU_HOME)/scripts/build.mk
