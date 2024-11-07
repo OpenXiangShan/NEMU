@@ -49,6 +49,11 @@ config RV_ZVFH_MIN
   depends on RVV
   default y
 
+config RV_ZVFH
+  bool "RISC-V Zvfh Extension V1.0"
+  depends on RV_ZVFH_MIN
+  default y
+
 config RV_DEBUG
   bool "RISC-V Debug Extension"
   default y
