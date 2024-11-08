@@ -25,7 +25,6 @@ typedef struct {
     word_t tinst;
 } trap_info_t;
 
-extern trap_info_t trapInfo;
 void clear_trapinfo();
 
 

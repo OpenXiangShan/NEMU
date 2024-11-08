@@ -60,6 +60,7 @@ void init_isa() {
   cpu.gpr[0]._64 = 0;
 
   cpu.mode = MODE_M;
+  clear_trapinfo();
   IFDEF(CONFIG_RV_SMDBLTRP, cpu.critical_error = 0);
   // For RV64 systems, the SXL and UXL fields are WARL fields that
   // control the value of XLEN for S-mode and U-mode, respectively.

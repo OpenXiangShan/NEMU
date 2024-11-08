@@ -25,7 +25,6 @@
 #include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
-#include "../local-include/trapinfo.h"
 
 bool is_in_mmio(paddr_t addr);
 
@@ -134,7 +133,7 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
 }
 
 static inline void raise_access_fault(int cause, vaddr_t vaddr) {
-  trapInfo.tval = vaddr;
+  cpu.trapInfo.tval = vaddr;
   // cpu.amo flag must be reset to false before longjmp_exception,
   // including longjmp_exception(access fault), longjmp_exception(page fault)
   cpu.amo = false;
@@ -157,7 +156,7 @@ static inline void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vadd
     Logm("addr misaligned happened: paddr:" FMT_PADDR " vaddr:" FMT_WORD " len:%d type:%d pc:%lx", paddr, vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_MMIO_AC_SOFT)) {
       int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
-      trapInfo.tval = vaddr;
+      cpu.trapInfo.tval = vaddr;
       longjmp_exception(ex);
     }
   }
