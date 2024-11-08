@@ -19,11 +19,9 @@
 #include "../local-include/trigger.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
-#include "../local-include/trapinfo.h"
 
 void update_mmu_state();
 
-trap_info_t trapInfo = {};
 
 #ifdef CONFIG_RVH
 bool intr_deleg_S(word_t exceptionNO) {
@@ -50,7 +48,7 @@ bool intr_deleg_S(word_t exceptionNO) {
 #endif
 
 void clear_trapinfo(){
-  memset(&trapInfo, 0, sizeof(trap_info_t));
+  memset(&cpu.trapInfo, 0, sizeof(trap_info_t));
 }
 
 static word_t get_trap_pc(word_t xtvec, word_t xcause) {
@@ -109,7 +107,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_RV_SMRNMI
   if (!mnstatus->nmie){
 #ifdef CONFIG_SHARE
-    IFDEF(CONFIG_RV_SMDBLTRP,cpu.critical_error = true);// this will compare in difftest
+    IFDEF(CONFIG_RV_SMDBLTRP, cpu.critical_error = true);// this will compare in difftest
 #else
     printf("\33[1;31mHIT CRITICAL ERROR\33[0m: trap when mnstatus.nmie close, please check if software cause a double trap.\n");
     nemu_state.state = NEMU_END;
@@ -149,7 +147,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     vsstatus->spie = vsstatus->sie;
     vsstatus->sie = 0;
     vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, henvcfg->dte && menvcfg->dte, 0);
-    vstval->val = trapInfo.tval;
+    vstval->val = cpu.trapInfo.tval;
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
@@ -198,9 +196,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
     mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
-    IFDEF(CONFIG_RVH, htval->val = trapInfo.tval2);
-    IFDEF(CONFIG_RVH, htinst->val = trapInfo.tinst);
-    stval->val = trapInfo.tval;
+    IFDEF(CONFIG_RVH, htval->val = cpu.trapInfo.tval2);
+    IFDEF(CONFIG_RVH, htinst->val = cpu.trapInfo.tinst);
+    stval->val = cpu.trapInfo.tval;
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
@@ -254,9 +252,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
-    mtval->val = trapInfo.tval;
-    IFDEF(CONFIG_RVH, mtval2->val = trapInfo.tval2);
-    IFDEF(CONFIG_RVH, mtinst->val = trapInfo.tinst);
+    mtval->val = cpu.trapInfo.tval;
+    IFDEF(CONFIG_RVH, mtval2->val = cpu.trapInfo.tval2);
+    IFDEF(CONFIG_RVH, mtinst->val = cpu.trapInfo.tinst);
     switch (NO) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:

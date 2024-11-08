@@ -21,6 +21,7 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/vreg.h"
 #endif // CONFIG_RVV
+#include "../local-include/trapinfo.h"
 
 #define FORCE_RAISE_PF
 
@@ -170,6 +171,8 @@ typedef struct {
 #ifdef CONFIG_RV_SMDBLTRP
   bool critical_error;
 #endif
+
+  trap_info_t trapInfo;
 
 } riscv64_CPU_state;
 
