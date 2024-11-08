@@ -19,7 +19,7 @@
 #include <limits.h>
 #include "aes_common.h"
 #include "sm4_common.h"
-
+#include "../local-include/intr.h"
 
 int32_t sha256sum0 (int32_t rs1) { return _rv32_ror(rs1, 2)  ^ _rv32_ror(rs1, 13) ^ _rv32_ror(rs1, 22); }
 int32_t sha256sum1 (int32_t rs1) { return _rv32_ror(rs1, 6)  ^ _rv32_ror(rs1, 11) ^ _rv32_ror(rs1, 25); }
@@ -91,6 +91,10 @@ int64_t aes64im (int64_t rs1)
 
 int64_t aes64ks1i (int64_t rs1, int64_t rs2)
 {
+    if (!(rs2 >= 0x0 && rs2 <= 0xA)) {
+        // Note that rnum must be in the range 0x0..0xA. The values 0xB..0xF are reserved.
+        longjmp_exception(EX_II);
+    }
     uint8_t     round_consts [10] = {
         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
     };
