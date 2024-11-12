@@ -368,7 +368,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
       if (!mmio_is_real_device(addr)) {
-        raise_read_access_fault(EX_SAF, vaddr);
+        raise_access_fault(EX_SAF, vaddr);
         return;
       }
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
@@ -392,7 +392,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
       if (!mmio_is_real_device(addr)) {
-        raise_read_access_fault(EX_SAF, vaddr);
+        raise_access_fault(EX_SAF, vaddr);
         return;
       }
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
