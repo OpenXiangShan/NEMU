@@ -451,4 +451,8 @@ config RV_ZCB
   bool "RISC-V Zcb Extension, Version 1.0.0"
   default n
 
+config RESERVATION_SET_WIDTH
+  int "The Width of the Reservation Set Size"
+  default 0
+
 endmenu
