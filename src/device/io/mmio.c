@@ -38,7 +38,7 @@ bool is_in_mmio(paddr_t addr) {
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
   for (int i = 0; i < MMIO_SPEC_PAIR_NUM; ++i) {
     if (mmio_spec_bound[i] <= addr && addr <= mmio_spec_bound[i + 1]) {
-      Log("is in mmio: " FMT_PADDR, addr);
+      Logm("is in mmio: " FMT_PADDR, addr);
       return true;
     }
   }
