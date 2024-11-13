@@ -88,6 +88,7 @@ enum {
 
 word_t raise_intr(word_t NO, vaddr_t epc);
 #define return_on_mem_ex() do { if (cpu.mem_exception != MEM_OK) return; } while (0)
+word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual);
 bool intr_deleg_S(word_t exceptionNO);
 bool intr_deleg_VS(word_t exceptionNO);
 
