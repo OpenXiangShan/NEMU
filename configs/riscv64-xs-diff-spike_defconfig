@@ -169,6 +169,7 @@ CONFIG_AC_NONE=y
 # CONFIG_VECTOR_AC_SOFT is not set
 # CONFIG_MMIO_AC_SOFT is not set
 # CONFIG_AMO_AC_SOFT is not set
+CONFIG_RESERVATION_SET_WIDTH=6
 
 #
 # Processor difftest reference config

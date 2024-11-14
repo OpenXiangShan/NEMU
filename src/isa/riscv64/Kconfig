@@ -404,4 +404,8 @@ config RV_ZIMOP
   help
     This extension adds MOP.R.n and MOP.RR.n instructions which just write rd with 0s.
 
+config RESERVATION_SET_WIDTH
+  int "The Width of the Reservation Set Size"
+  default 0
+
 endmenu
