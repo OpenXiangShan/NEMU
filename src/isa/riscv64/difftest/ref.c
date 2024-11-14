@@ -39,9 +39,6 @@ void ramcmp() {
 // csr_prepare() & csr_writeback() are used to maintain
 // a compact mirror of critical CSRs
 // For processor difftest only
-#ifdef CONFIG_RVH
-#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2))
-#endif //CONFIG_RVH
 
 void csr_prepare() {
   cpu.mstatus = gen_status_sd(mstatus->val) | mstatus->val;

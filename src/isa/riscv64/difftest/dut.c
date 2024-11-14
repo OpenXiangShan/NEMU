@@ -23,9 +23,6 @@
 // csr_prepare() & csr_writeback() are used to maintain 
 // a compact mirror of critical CSRs
 // For processor difftest only 
-#ifdef CONFIG_RVH
-#define MIDELEG_FORCED_MASK ((1 << 12) | (1 << 10) | (1 << 6) | (1 << 2)) 
-#endif //CONFIG_RVH
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
