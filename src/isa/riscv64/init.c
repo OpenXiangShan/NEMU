@@ -37,13 +37,14 @@ void init_clint();
 #endif
 void init_device();
 
-void init_isa() {
+void init_isa(uint64_t reset_vector) {
+// void init_isa() {
   init_csr();
 
 #ifndef CONFIG_RESET_FROM_MMIO
-  cpu.pc = RESET_VECTOR;
+  cpu.pc = reset_vector;
 #else
-  cpu.pc = CONFIG_MMIO_RESET_VECTOR;
+  cpu.pc = reset_vector;
 #endif
 
   cpu.gpr[0]._64 = 0;
