@@ -19,6 +19,7 @@
 
 #include <common.h>
 #include <memory/vaddr.h>
+#include "../local-include/encoding.h"
 
 #define FUNCT3_CSRRW  1
 #define FUNCT3_CSRRS  2
@@ -1497,9 +1498,7 @@ MAP(CSRS, CSRS_DECL)
 // SD, SDT, UXL, MXR, SUM, XS, FS, VS, SPP, UBE, SPIE, SIE
 #define SSTATUS_BASE 0x80000003000de762UL
 
-#define SSTATUS_SDT MUXDEF(CONFIG_RV_SMRNMI, 0x1000000, 0)
-
-#define SSTATUS_RMASK (SSTATUS_BASE | SSTATUS_SDT)
+#define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0))
 
 /** AIA **/
 #ifdef CONFIG_RV_IMSIC
@@ -1513,10 +1512,6 @@ MAP(CSRS, CSRS_DECL)
 
 /** Double Trap**/
 #ifdef CONFIG_RV_SMRNMI
-  #define MNSTATUS_NMIE   0x1UL << 3
-  #define MNSTATUS_MNPV   0X1UL << 7
-  #define MNSTATUS_MNPELP 0X1UL << 9
-  #define MNSTATUS_MNPP   0X3UL << 11
   #define MNSTATUS_MASK (MNSTATUS_NMIE | MNSTATUS_MNPV | MNSTATUS_MNPP)
 #endif
 

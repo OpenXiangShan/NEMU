@@ -221,9 +221,6 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_MDT MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
 #define MSTATUS_WMASK_SDT MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
 
-#define MSTATUS_MIE (0x1UL << 3)
-#define MSTATUS_SIE (0x1UL << 1)
-
 // final mstatus wmask: dependent of the ISA extensions
 #define MSTATUS_WMASK (    \
   MSTATUS_WMASK_BASE     | \
@@ -346,7 +343,6 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
 
 #ifdef CONFIG_RVH
-#define MIDELEG_FORCED_MASK HSI_MASK  // mideleg bits 2、6、10、12 are read_only one
 #define HVIP_MASK     (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0) | LCI)
 #define HIP_RMASK     (MIP_VSTIP | MIP_VSEIP | MIP_SGEIP)
 #define HIP_WMASK     MIP_VSSIP
