@@ -258,6 +258,11 @@ void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
+#ifdef CONFIG_RV_IMSIC
+  isa_update_mtopi();
+  isa_update_stopi();
+  isa_update_vstopi();
+#endif
 }
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -267,6 +272,13 @@ void difftest_get_store_event_other_info(void *info) {
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 
+
+void difftest_aia_xtopei(void *xtopei) {
+#ifdef CONFIG_RV_IMSIC
+  memcpy(&cpu.xtopei, xtopei, sizeof(struct Xtopei));
+  isa_update_vstopi();
+#endif
+}
 
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE

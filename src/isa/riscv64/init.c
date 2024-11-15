@@ -32,6 +32,9 @@ void init_csr();
 #ifdef CONFIG_RV_SDTRIG
 void init_trigger();
 #endif // CONFIG_RV_SDTRIG
+#ifdef CONFIG_RV_IMSIC
+void init_iprio();
+#endif
 
 #if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
@@ -201,6 +204,10 @@ void init_isa() {
 #ifdef CONFIG_RV_SDTRIG
   init_trigger();
 #endif // CONFIG_RV_SDTRIG
+
+#ifdef CONFIG_RV_IMSIC
+  init_iprio();
+#endif
 
 #define MSTATEEN0_RESET  0xdc00000000000001ULL
 #define HSTATEEN0_RESET  0xdc00000000000001ULL

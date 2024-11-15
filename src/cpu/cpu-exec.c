@@ -27,6 +27,7 @@
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
 #include "../local-include/trigger.h"
+#include "../local-include/aia.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.

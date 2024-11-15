@@ -53,6 +53,12 @@ struct NonRegInterruptPending {
   bool lcofi_req;
 };
 
+struct Xtopei {
+  uint64_t mtopei;
+  uint64_t stopei;
+  uint64_t vstopei;
+};
+
 struct DebugInfo {
   uint64_t current_pc;
 };
@@ -73,6 +79,9 @@ struct MemEventQueryResult {
 #endif
 
 typedef struct TriggerModule TriggerModule;
+typedef struct IpriosModule IpriosModule;
+typedef struct IpriosSort IpriosSort;
+typedef struct HighestPrioIntr HighestPrioIntr;
 
 typedef struct {
   // Below will be synced by regcpy when run difftest, DO NOT TOUCH
@@ -173,6 +182,17 @@ typedef struct {
 #endif
 
   trap_info_t trapInfo;
+
+#ifdef CONFIG_RV_IMSIC
+  struct Xtopei xtopei;
+  IpriosModule*  MIprios;
+  IpriosModule*  SIprios;
+  IpriosModule* VSIprios;
+  IpriosSort*    MIpriosSort;
+  IpriosSort*    SIpriosSort;
+  IpriosSort*   VSIpriosSort;
+  HighestPrioIntr* HighestPrioIntr;
+#endif
 
 } riscv64_CPU_state;
 
