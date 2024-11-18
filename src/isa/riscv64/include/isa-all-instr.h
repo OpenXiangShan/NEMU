@@ -28,8 +28,15 @@
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
   f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
+#ifdef CONFIG_RV_ZACAS
+#define AMO_CAS_INSTR(f) \
+  f(amocas_w) f(amocas_d) f(amocas_q)
+#else // CONFIG_RV_ZACAS
+#define AMO_CAS_INSTR(f)
+#endif // CONFIG_RV_ZACAS
 #else
 #define AMO_INSTR_BINARY(f)
+#define AMO_CAS_INSTR(f)
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
@@ -380,6 +387,7 @@
   f(p_blez) f(p_bgez) f(p_bltz) f(p_bgtz) \
   f(p_inc) f(p_dec) \
   AMO_INSTR_TERNARY(f) \
+  AMO_CAS_INSTR(f) \
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \

@@ -76,6 +76,7 @@ CONFIG_USE_XS_ARCH_CSRS=y
 # CONFIG_RV_ZCMOP is not set
 # CONFIG_RV_ZIMOP is not set
 # CONFIG_RV_ZCB is not set
+# CONFIG_RV_ZACAS is not set
 # end of ISA-dependent Options for riscv64
 
 CONFIG_ENGINE_INTERPRETER=y
