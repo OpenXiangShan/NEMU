@@ -88,6 +88,54 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     return;
   }
 
+#ifdef CONFIG_RV_ZACAS
+  if (funct5 == 0b00101) { // amocas
+    width = BITS(s->isa.instr.r.funct3, 2, 2) == 0 ? width : 16;
+    int rd = s->isa.instr.r.rd;
+    int rs2 = s->isa.instr.r.rs2;
+    if (width == 16 && ((rd % 2 == 1) || (rs2 % 2 == 1))) {
+      longjmp_exception(EX_II);
+    }
+    cpu.amo = true;
+    switch (width) {
+      case 4:
+        rtl_lms(s, s0, src1, 0, 4, MMU_DYNAMIC);
+        if ((int32_t)*dest == (int32_t)*s0) {
+          *s1 = *src2;
+          rtl_sm(s, s1, src1, 0, 4, MMU_DYNAMIC);
+        }
+        rtl_mv(s, dest, s0);
+        break;
+      case 8:
+        rtl_lms(s, s0, src1, 0, 8, MMU_DYNAMIC);
+        if ((int64_t)*dest == (int64_t)*s0) {
+          *s1 = *src2;
+          rtl_sm(s, s1, src1, 0, 8, MMU_DYNAMIC);
+        }
+        rtl_mv(s, dest, s0);
+        break;
+      case 16:
+        rtl_lms(s, s0, src1, 0, 8, MMU_DYNAMIC);
+        rtl_lms(s, s1, src1, 8, 8, MMU_DYNAMIC);
+        *t0 = rd == 0 ? 0 : *(dest + 1);
+        if ((int64_t)*dest == (int64_t)*s0 && (int64_t)*t0 == (int64_t)*s1) {
+          *s2 = *src2;
+          *t0 = rs2 == 0 ? 0 : *(src2 + 1);
+          rtl_sm(s, s2, src1, 0, 8, MMU_DYNAMIC);
+          rtl_sm(s, t0, src1, 8, 8, MMU_DYNAMIC);
+        }
+        if (rd) {
+          rtl_mv(s, dest, s0);
+          rtl_mv(s, dest + 1, s1);
+        }
+        break;
+      default : assert(0);
+    }
+    cpu.amo = false;
+    return ;
+  }
+#endif // CONFIG_RV_ZACAS
+
   cpu.amo = true;
   rtl_lms(s, s0, src1, 0, width, MMU_DYNAMIC);
   switch (funct5) {

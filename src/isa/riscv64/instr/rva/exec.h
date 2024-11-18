@@ -33,8 +33,16 @@ def_EHelper(name) { \
   f(concat3(amominu, _, s)) \
   f(concat3(amomin , _, s))
 
+#define AMO_CAS_LIST(f) \
+  f(concat3(amocas , _, w)) \
+  f(concat3(amocas , _, d)) \
+  f(concat3(amocas , _, q))
+
 AMO_LIST(def_AMO_EHelper, d)
 AMO_LIST(def_AMO_EHelper, w)
+#ifdef CONFIG_RV_ZACAS
+AMO_CAS_LIST(def_AMO_EHelper)
+#endif // CONFIG_RV_ZACAS
 #else
 def_AMO_EHelper(atomic)
 #endif

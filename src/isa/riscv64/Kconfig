@@ -455,4 +455,8 @@ config RESERVATION_SET_WIDTH
   int "The Width of the Reservation Set Size"
   default 0
 
+config RV_ZACAS
+  bool "RISC-V Extension for Atomic Compare-and-Swap(CAS) Instructions, Version 1.0.0"
+  default n
+
 endmenu
