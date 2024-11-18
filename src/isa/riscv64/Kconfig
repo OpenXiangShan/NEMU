@@ -103,7 +103,7 @@ config SDTRIG_EXTRA
   default n
   help
     This includes the following optional CSRs in Sdtrig extension:
-    tdata3, mcontext.
+    tdata3, mcontext, hcontext, scontext.
 
 config RV_AIA
   bool "(Beta) RISC-V Advanced Interrupt Architecture v1.0"
