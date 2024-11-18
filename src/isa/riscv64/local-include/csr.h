@@ -127,7 +127,7 @@
 /** Debug/Trace Registers (Trigger Module Registers) **/
 #ifdef CONFIG_RV_SDTRIG_EXTRA
   #define CSRS_S_DEBUG_TRACE(f) \
-    f(scontext   , 0x6A8)
+    f(scontext   , 0x5A8)
 #else // CONFIG_RV_SDTRIG_EXTRA
   #define CSRS_S_DEBUG_TRACE(f)
 #endif // CONFIG_RV_SDTRIG_EXTRA
