@@ -2046,6 +2046,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
     }
 #endif // CONFIG_SDTRIG_EXTRA
+    case CSR_TINFO: break;
 #endif // CONFIG_RV_SDTRIG
 
     case CSR_MCYCLE:  mcycle->val = set_mcycle(src); break;
