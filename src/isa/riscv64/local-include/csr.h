@@ -125,12 +125,12 @@
   f(satp       , 0x180)
 
 /** Debug/Trace Registers (Trigger Module Registers) **/
-#ifdef CONFIG_RV_SDTRIG
+#ifdef CONFIG_RV_SDTRIG_EXTRA
   #define CSRS_S_DEBUG_TRACE(f) \
     f(scontext   , 0x6A8)
-#else // CONFIG_RV_SDTRIG
+#else // CONFIG_RV_SDTRIG_EXTRA
   #define CSRS_S_DEBUG_TRACE(f)
-#endif // CONFIG_RV_SDTRIG
+#endif // CONFIG_RV_SDTRIG_EXTRA
 
 /** Supervisor State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
@@ -222,12 +222,12 @@
     f(hgatp      , 0x680)
 
   /** Debug/Trace Registers (Trigger Module Registers) **/
-  #ifdef CONFIG_RV_SDTRIG
+  #ifdef CONFIG_RV_SDTRIG_EXTRA
     #define CSRS_H_DEBUG_TRACE(f) \
       f(hcontext   , 0x6A8)
-  #else // CONFIG_RV_SDTRIG
+  #else // CONFIG_RV_SDTRIG_EXTRA
     #define CSRS_H_DEBUG_TRACE(f)
-  #endif // CONFIG_RV_SDTRIG
+  #endif // CONFIG_RV_SDTRIG_EXTRA
 
   /** Hypervisor Counter/Timer Virtualization Registers **/
   #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
