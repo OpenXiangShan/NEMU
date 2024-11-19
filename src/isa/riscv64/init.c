@@ -35,6 +35,7 @@ void init_trigger();
 #ifdef CONFIG_RV_IMSIC
 void init_iprio();
 #endif
+void init_custom_csr();
 
 #if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
 void init_clint();
@@ -52,6 +53,8 @@ void init_isa() {
     memset(csr_array, 0, sizeof(csr_array));
   }
   init_csr();
+
+  init_custom_csr();
 
 #ifndef CONFIG_RESET_FROM_MMIO
   cpu.pc = RESET_VECTOR;

@@ -122,6 +122,48 @@ void init_iprio() {
 }
 #endif
 
+void init_custom_csr() {
+  sbpctl->ubtb_enable = 1;
+  sbpctl->btb_enable = 1;
+  sbpctl->bim_enable = 1;
+  sbpctl->tage_enable = 1;
+  sbpctl->sc_enable = 1;
+  sbpctl->ras_enable = 1;
+  sbpctl->loop_enable = 1;
+
+  spfctl->l1i_pf_enable = 1;
+  spfctl->l2_pf_enable = 1;
+  spfctl->l1d_pf_enable = 1;
+  spfctl->l1d_pf_train_on_hit = 0;
+  spfctl->l1d_pf_enable_agt = 1;
+  spfctl->l1d_pf_enable_pht = 1;
+  spfctl->l1d_pf_active_threshold = 12;
+  spfctl->l1d_pf_active_stride = 30;
+  spfctl->l1d_pf_enable_stride = 1;
+  spfctl->l2_pf_store_only = 0;
+
+  slvpredctl->lvpred_disable = 0;
+  slvpredctl->no_spec_load = 0;
+  slvpredctl->storeset_wait_store = 0;
+  slvpredctl->storeset_no_fast_wakeup = 0;
+  slvpredctl->lvpred_timeout = 3;
+
+  smblockctl->sbuffer_threshold = 7;
+  smblockctl->ldld_vio_check_enable = 1;
+  smblockctl->soft_prefetch_enable = 1;
+  smblockctl->cache_error_enable = 1;
+  smblockctl->uncache_write_outstanding_enable = 0;
+  smblockctl->hd_misalign_st_enable = 1;
+  smblockctl->hd_misalign_ld_enable = 1;
+
+#ifdef CONFIG_RV_SVINVAL
+  srnctl->fusion_enable = 1;
+  srnctl->wfi_enable = 1;
+#endif // CONFIG_RV_SVINVAL
+
+  sfetchctl->icache_parity_enable = 0;
+}
+
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
 // also check h/mcounteren h/menvcfg for sstc
 static inline bool csr_counter_enable_check(uint32_t addr) {
@@ -1663,6 +1705,13 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_SV48
         *dest = MASKED_SATP(src);
       break;
+
+    case CUSTOM_CSR_SBPCTL: *dest = src & CUSTOM_CSR_SBPCTL_WMASK; break;
+    case CUSTOM_CSR_SPFCTL: *dest = src & CUSTOM_CSR_SPFCTL_WMASK; break;
+    case CUSTOM_CSR_SLVPREDCTL: *dest = src & CUSTOM_CSR_SLVPREDCTL_WMASK; break;
+    case CUSTOM_CSR_SMBLOCKCTL: *dest = src & CUSTOM_CSR_SMBLOCKCTL_WMASK; break;
+    IFDEF(CONFIG_RV_SVINVAL, case CUSTOM_CSR_SRNCTL: *dest = src & CUSTOM_CSR_SRNCTL_WMASK; break;)
+    case CUSTOM_CSR_SFETCHCTL: *dest = src & CUSTOM_CSR_SFETCHCTL_WMASK; break;
 
 #ifdef CONFIG_RV_SSCOFPMF
     case CSR_SCOUNTOVF: *dest = src & SCOUNTOVF_WMASK; break;
