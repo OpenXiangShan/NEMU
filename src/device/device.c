@@ -18,7 +18,9 @@
 #include <utils.h>
 #ifndef CONFIG_SHARE
 #include <device/alarm.h>
+#if defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
 #include <SDL2/SDL.h>
+#endif // defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
 #endif // CONFIG_SHARE
 
 void init_serial();
@@ -54,6 +56,7 @@ void device_update() {
   IFDEF(CONFIG_HAS_VGA, vga_update_screen());
 
 #ifndef CONFIG_SHARE
+#if defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
@@ -69,18 +72,21 @@ void device_update() {
         send_key(k, is_keydown);
         break;
       }
-#endif
+#endif // CONFIG_HAS_KEYBOARD
       default: break;
     }
   }
-#endif
+#endif // defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
+#endif // CONFIG_SHARE
 }
 
 void sdl_clear_event_queue() {
 #ifndef CONFIG_SHARE
+#if defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
   SDL_Event event;
   while (SDL_PollEvent(&event));
-#endif
+#endif // defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
+#endif // CONFIG_SHARE
 }
 
 void init_device() {
@@ -97,10 +103,7 @@ void init_device() {
   IFDEF(CONFIG_HAS_FLASH, init_flash());
 #ifndef CONFIG_SHARE
   IFDEF(CONFIG_HAS_FLASH, load_flash_contents(CONFIG_FLASH_IMG_PATH));
-#endif
-
-#ifndef CONFIG_SHARE
   add_alarm_handle(set_device_update_flag);
   init_alarm();
-#endif
+#endif // CONFIG_SHARE
 }
