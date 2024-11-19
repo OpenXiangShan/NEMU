@@ -28,6 +28,20 @@
 #define FUNCT3_CSRRSI 6
 #define FUNCT3_CSRRCI 7
 
+#define CUSTOM_CSR_SBPCTL     0x5c0
+#define CUSTOM_CSR_SPFCTL     0x5c1
+#define CUSTOM_CSR_SLVPREDCTL 0x5c2
+#define CUSTOM_CSR_SMBLOCKCTL 0x5c3
+#define CUSTOM_CSR_SRNCTL     0x5c4
+#define CUSTOM_CSR_SFETCHCTL  0x9e0
+
+#define CUSTOM_CSR_SBPCTL_WMASK     0x7f
+#define CUSTOM_CSR_SPFCTL_WMASK     0x3ffff
+#define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
+#define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x3ff
+#define CUSTOM_CSR_SRNCTL_WMASK     0x5
+#define CUSTOM_CSR_SFETCHCTL_WMASK  0x1
+
 /**
  * Mapping between CSR name and addr
  * 
@@ -993,24 +1007,55 @@ CSR_STRUCT_END(scountovf)
 // to fix xiangshan that:
 // rnctl: move elimination,
 CSR_STRUCT_START(srnctl)
-  uint64_t rnctrl  : 1;
-  uint64_t reserve :63;
+  uint64_t fusion_enable : 1;  // [0]
+  uint64_t               : 1;  // [1]
+  uint64_t wfi_enable    : 1;  // [2]
 CSR_STRUCT_END(srnctl)
 #endif
 
 CSR_STRUCT_START(sbpctl)
+  uint64_t ubtb_enable : 1; // [0]
+  uint64_t btb_enable  : 1; // [1]
+  uint64_t bim_enable  : 1; // [2]
+  uint64_t tage_enable : 1; // [3]
+  uint64_t sc_enable   : 1; // [4]
+  uint64_t ras_enable  : 1; // [5]
+  uint64_t loop_enable : 1; // [6]
 CSR_STRUCT_END(sbpctl)
 
 CSR_STRUCT_START(spfctl)
+  uint64_t l1i_pf_enable            : 1; // [0] L1I Cache Prefetcher Enable
+  uint64_t l2_pf_enable             : 1; // [1] L2  Cache Prefetcher Enable
+  uint64_t l1d_pf_enable            : 1; // [2] L1D Cache Prefetcher Enable
+  uint64_t l1d_pf_train_on_hit      : 1; // [3] L1D train prefetch on hit
+  uint64_t l1d_pf_enable_agt        : 1; // [4] L1D prefetch enable agt
+  uint64_t l1d_pf_enable_pht        : 1; // [5] L1D prefetch enable pht
+  uint64_t l1d_pf_active_threshold  : 4; // [9:6] L1D prefetch active page threshold
+  uint64_t l1d_pf_active_stride     : 6; // [15:10] L1D prefetch active page stride
+  uint64_t l1d_pf_enable_stride     : 1; // [16] L1D prefetch enable stride
+  uint64_t l2_pf_store_only         : 1; // [17] L2 pf store only
 CSR_STRUCT_END(spfctl)
 
 CSR_STRUCT_START(slvpredctl)
+  uint64_t lvpred_disable           : 1; // [0]
+  uint64_t no_spec_load             : 1; // [1]
+  uint64_t storeset_wait_store      : 1; // [2]
+  uint64_t storeset_no_fast_wakeup  : 1; // [3]
+  uint64_t lvpred_timeout           : 5; // [8:4]
 CSR_STRUCT_END(slvpredctl)
 
 CSR_STRUCT_START(smblockctl)
+  uint64_t sbuffer_threshold                : 4; // [3:0] Store buffer flush threshold (Th).
+  uint64_t ldld_vio_check_enable            : 1; // [4] Enable load load violation check after reset (LVC).
+  uint64_t soft_prefetch_enable             : 1; // [5] Enable soft-prefetch after reset (SP).
+  uint64_t cache_error_enable               : 1; // [6] Enable cache error after reset (CE).
+  uint64_t uncache_write_outstanding_enable : 1; // [7] Enable uncache write outstanding (0).
+  uint64_t hd_misalign_st_enable            : 1; // [8] Enable hardware store misalign.
+  uint64_t hd_misalign_ld_enable            : 1; // [9] Enable hardware load misalign.
 CSR_STRUCT_END(smblockctl)
 
 CSR_STRUCT_START(sfetchctl)
+  uint64_t icache_parity_enable : 1; // [0]
 CSR_STRUCT_END(sfetchctl)
 
 /** Supervisor Timer Register**/
