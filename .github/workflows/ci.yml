@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ kunminghu-v2r2-930 ]
   pull_request:
-    branches: [ master ]
+    branches: [ kunminghu-v2r2-930 ]
 
 env:
   CI_WORKLOADS: /nfs/home/share/ci-workloads
