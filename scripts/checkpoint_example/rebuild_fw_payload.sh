@@ -31,6 +31,7 @@ export RESULT=extract_fw_payload
 
 mkdir $RESULT
 
+# note: default payload offset in opensbi is 2M, if you have modified FW_PAYLOAD_OFFSET, modify the next line of command to match this value
 dd if=$FW_PAYLOAD of=$RESULT/kernel.Image bs=1M skip=2
 
 kernel_list=extrack_fw_payload/kernel.Image
