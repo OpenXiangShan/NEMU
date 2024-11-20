@@ -229,4 +229,14 @@ config FLASH_IMG_PATH
   default ""
 endif # HAS_FLASH
 
+menuconfig HAS_L1DCACHE_CTL
+  bool "Enable L1DCache Ctl"
+  default n
+
+if HAS_L1DCACHE_CTL
+config L1DCACHE_CTL_SPACE_RANGE
+  string "The space range of l1dcache ctl"
+  default "0x38022000,0x3802207F"
+endif # HAS_L1DCACHE_CTL
+
 endif # DEVICE

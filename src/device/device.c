@@ -33,6 +33,7 @@ void init_audio();
 void init_disk();
 void init_sdcard();
 void init_flash();
+void init_l1dcache_ctl();
 void load_flash_contents(const char *);
 
 void send_key(uint8_t, bool);
@@ -95,6 +96,7 @@ void init_device() {
   IFDEF(CONFIG_HAS_DISK, init_disk());
   IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
   IFDEF(CONFIG_HAS_FLASH, init_flash());
+  IFDEF(CONFIG_HAS_L1DCACHE_CTL, init_l1dcache_ctl());
 #ifndef CONFIG_SHARE
   IFDEF(CONFIG_HAS_FLASH, load_flash_contents(CONFIG_FLASH_IMG_PATH));
 #endif

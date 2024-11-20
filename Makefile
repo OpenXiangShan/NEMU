@@ -33,6 +33,10 @@ ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
 CFLAGS += -D__MMIO_SPECE_RANGE__=$(call remove_quote,$(CONFIG_MMIO_SPACE_RANGE))
 endif
 
+ifdef CONFIG_HAS_L1DCACHE_CTL
+CFLAGS += -D__L1DCACHE_CTL_SPACE_RANGE__=$(call remove_quote,$(CONFIG_L1DCACHE_CTL_SPACE_RANGE))
+endif
+
 # CFLAGS += -g
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
@@ -57,6 +61,7 @@ SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
 SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
+SRCS-$(CONFIG_HAS_L1DCACHE_CTL) += src/device/l1dcache_ctl.c
 
 DIRS-y += src/profiling
 
