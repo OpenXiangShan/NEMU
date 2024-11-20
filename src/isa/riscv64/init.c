@@ -16,6 +16,8 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <utils.h>
+#include <device/map.h>
 #include <memory/sparseram.h>
 #include "local-include/csr.h"
 
@@ -37,6 +39,8 @@ void init_trigger();
 void init_clint();
 #endif
 void init_device();
+void init_l1dcachectl();
+void init_l3cachectl();
 
 #define CSR_ZERO_INIT(name, addr) name->val = 0;
 
@@ -180,7 +184,7 @@ void init_isa() {
   minstret->val = 0;
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
-  mcountinhibit->val = 0; 
+  mcountinhibit->val = 0;
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
   // All hpm counters are read-only zero in NEMU
@@ -229,6 +233,8 @@ void init_isa() {
 
   if (!is_second_call) {
     IFDEF(CONFIG_SHARE, init_device());
+    init_l1dcachectl();
+    init_l3cachectl();
   }
 
 #ifndef CONFIG_SHARE

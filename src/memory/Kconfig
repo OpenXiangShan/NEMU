@@ -107,4 +107,14 @@ config MMIO_SPACE_RANGE
     This will specify the MMIO address space area as [0x0, 0x7FFFFFFF] and [0x100000000, 0x100001000].
     Specifying the MMIO address space is not the same as specifying the peripherals, this is just to ensure PMA for RISC-V.
 
+config L1DCACHECTL_SPACE_RANGE
+string "L1 DCache controller address space range"
+default "0x38022000, 0x3802207F"
+depends on ENABLE_CONFIG_MMIO_SPACE
+
+config L3CACHECTL_SPACE_RANGE
+string "L3Cache controller address space range"
+default "0x39000000, 0x39000FFF"
+depends on ENABLE_CONFIG_MMIO_SPACE
+
 endmenu #MEMORY

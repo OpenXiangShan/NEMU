@@ -179,7 +179,7 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'M':
           mem_dump_file = optarg;
           break;
-      case 'A': 
+      case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
           memory_region_record_file = optarg;
