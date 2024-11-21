@@ -31,5 +31,6 @@ void init_l1dcache_ctl() {
   uint32_t lower_bound = l1dcache_ctl_space_bound[0];
   uint32_t space_size = upper_bound - lower_bound + 1;
   uint32_t *base_addr = (uint32_t *)new_space(space_size);
+  assert(lower_bound < upper_bound);
   add_mmio_map("L1CacheCtl", lower_bound, base_addr, space_size, l1dcache_ctl_io_handler);
 }
