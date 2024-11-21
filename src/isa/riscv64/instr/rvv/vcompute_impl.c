@@ -584,8 +584,14 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
       case SRC_VI :
         shift_mask = 0x1f;
-        if(is_signed) rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
-        else {
+        if(is_signed) {
+          if (opcode == NCLIP) {
+            // vnclip use unsigned imm, signed vs2
+            rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
+          } else {
+            rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
+          }
+        } else {
           if (opcode == MSLEU || opcode == MSGTU || opcode == SADDU) {
             rtl_li(s, s1, s->isa.instr.v_opsimm.v_simm5);
             switch (vtype->vsew) {
