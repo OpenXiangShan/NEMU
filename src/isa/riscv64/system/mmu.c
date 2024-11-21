@@ -57,8 +57,8 @@ static inline uintptr_t VPNi(vaddr_t va, int i) {
   return (va >> VPNiSHFT(i)) & VPNMASK;
 }
 #ifdef CONFIG_RVH
-static inline uintptr_t GVPNi(vaddr_t va, int i) {
-  return (i == 2)?  (va >> VPNiSHFT(i)) & GPVPNMASK : (va >> VPNiSHFT(i)) & VPNMASK;
+static inline uintptr_t GVPNi(vaddr_t va, int i, int max_level) {
+  return (i == max_level - 1)?  (va >> VPNiSHFT(i)) & GPVPNMASK : (va >> VPNiSHFT(i)) & VPNMASK;
 }
 bool hlvx = 0;
 bool hld_st = 0;
@@ -198,7 +198,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
   word_t p_pte;
   PTE pte;
   for (level = max_level - 1; level >= 0; ) {
-    p_pte = pg_base + GVPNi(gpaddr, level) * PTE_SIZE;
+    p_pte = pg_base + GVPNi(gpaddr, level, max_level) * PTE_SIZE;
     pte.val	= paddr_read(p_pte, PTE_SIZE,
     type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
     type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, trap_type, MODE_S, vaddr);
