@@ -18,6 +18,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/intr.h"
 #include "../local-include/trigger.h"
+#include "../local-include/aia.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
@@ -93,6 +94,33 @@ void init_trigger() {
     IFDEF(CONFIG_TDATA1_MCONTROL6, | (1 << TRIG_TYPE_MCONTROL6));
 }
 #endif // CONFIG_RV_SDTRIG
+
+#ifdef CONFIG_RV_IMSIC
+void init_iprio() {
+  cpu.MIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
+  cpu.SIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
+  cpu.VSIprios = (IpriosModule*) malloc(sizeof (IpriosModule));
+  cpu.MIpriosSort  = (IpriosSort*) malloc(sizeof (IpriosSort));
+  cpu.SIpriosSort  = (IpriosSort*) malloc(sizeof (IpriosSort));
+  cpu.VSIpriosSort = (IpriosSort*) malloc(sizeof (IpriosSort));
+  cpu.HighestPrioIntr = (HighestPrioIntr*) malloc(sizeof (HighestPrioIntr));
+  cpu.HighestPrioIntr->idx = 0;
+  cpu.HighestPrioIntr->priority = 0;
+  for (int i = 0; i < IPRIO_NUM; i++) {
+    cpu.MIprios->iprios[i].val = 0;
+    cpu.SIprios->iprios[i].val = 0;
+    cpu.VSIprios->iprios[i].val = 0;
+  }
+  for (int i = 0; i < IPRIO_ENABLE_NUM; i++) {
+    cpu.MIpriosSort->ipriosEnable[i].enable = false;
+    cpu.SIpriosSort->ipriosEnable[i].enable = false;
+    cpu.VSIpriosSort->ipriosEnable[i].enable = false;
+    cpu.MIpriosSort->ipriosEnable[i].priority = 0;
+    cpu.SIpriosSort->ipriosEnable[i].priority = 0;
+    cpu.VSIpriosSort->ipriosEnable[i].priority = 0;
+  }
+}
+#endif
 
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
 // also check h/mcounteren h/menvcfg for sstc
@@ -794,6 +822,16 @@ static inline void set_vsie(word_t src) {
 }
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RVH
+static inline word_t get_hie() {
+  word_t tmp = 0;
+
+  tmp = mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);
+
+  return tmp;
+}
+#endif
+
 inline word_t get_mip() {
   word_t tmp = 0;
 
@@ -977,6 +1015,16 @@ static inline void set_vsip(word_t src) {
 }
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RVH
+static inline word_t get_hip() {
+  word_t tmp = 0;
+
+  tmp = ((get_mip() & HIP_RMASK) | (hvip->val & MIP_VSSIP)) & (mideleg->val | MIDELEG_FORCED_MASK);
+
+  return tmp;
+}
+#endif
+
 static inline void update_counter_mcountinhibit(word_t old, word_t new) {
   #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
     bool old_cy = old & 0x1;
@@ -998,6 +1046,169 @@ static inline void update_counter_mcountinhibit(word_t old, word_t new) {
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
 }
+
+#ifdef CONFIG_RV_IMSIC
+inline void update_mtopi() {
+  bool miprios_is_zero = iprio_is_zero(cpu.MIprios);
+  uint64_t mtopi_gather = get_mip() & mie->val & (~(mideleg->val));
+  bool mtopi_is_not_zero = mtopi_gather != 0;
+  
+  set_iprios_sort(mtopi_gather, cpu.MIpriosSort, cpu.MIprios);
+  uint8_t m_iid_idx = high_iprio(cpu.MIpriosSort, IRQ_MEIP);
+  uint8_t m_iid_num = interrupt_default_prio[m_iid_idx];
+  uint8_t m_prio_num = cpu.MIpriosSort->ipriosEnable[m_iid_idx].priority;
+
+  bool m_iid_default_prio_high_MEI = m_iid_idx < get_prio_idx_in_group(IRQ_MEIP);
+  bool m_iid_default_prio_low_MEI = m_iid_idx > get_prio_idx_in_group(IRQ_MEIP);
+
+  if (mtopi_is_not_zero) {
+    mtopi->iid = m_iid_num;
+    if (miprios_is_zero) {
+      mtopi->iprio = 1;
+    } else {
+      if ((m_prio_num >= 1) && (m_prio_num <= 255)) {
+        mtopi->iprio = m_prio_num;
+      } else if ((m_prio_num > 255) || ((m_prio_num == 0) && (m_iid_default_prio_low_MEI))) {
+        mtopi->iprio = 255;
+      } else if ((m_prio_num == 0) && m_iid_default_prio_high_MEI) {
+        mtopi->iprio = 0;
+      }
+    } 
+  } else {
+    mtopi->val = 0;
+  }
+}
+#endif
+
+#ifdef CONFIG_RV_IMSIC
+inline void update_stopi() {
+  bool siprios_is_zero = iprio_is_zero(cpu.SIprios);
+  hip_t read_hip = (hip_t)get_hip();
+  sip_t read_sip = (sip_t)non_vmode_get_sip();
+  hie_t read_hie = (hie_t)get_hie();
+  sie_t read_sie = (sie_t)non_vmode_get_sie();
+
+  uint64_t stopi_gather = (read_hip.val | read_sip.val) & (read_hie.val | read_sie.val) & (~(hideleg->val));
+  bool stopi_is_not_zero = stopi_gather != 0;
+  set_iprios_sort(stopi_gather, cpu.SIpriosSort, cpu.SIprios);
+
+  uint8_t s_iid_idx = high_iprio(cpu.SIpriosSort, IRQ_SEIP);
+  uint8_t s_iid_num = interrupt_default_prio[s_iid_idx];
+  uint8_t s_prio_num = cpu.SIpriosSort->ipriosEnable[s_iid_idx].priority;
+
+  bool s_iid_default_prio_high_SEI = s_iid_idx < get_prio_idx_in_group(IRQ_SEIP);
+  bool s_iid_default_prio_low_SEI = s_iid_idx > get_prio_idx_in_group(IRQ_SEIP);
+
+  if (stopi_is_not_zero) {
+    stopi->iid = s_iid_num;
+    if (siprios_is_zero) {
+      stopi->iprio = 1;
+    } else {
+      if ((s_prio_num >= 1) && (s_prio_num <= 255)) {
+        stopi->iprio = s_prio_num;
+      } else if ((s_prio_num > 255) || ((s_prio_num == 0) && (s_iid_default_prio_low_SEI))) {
+        stopi->iprio = 255;
+      } else if ((s_prio_num == 0) && s_iid_default_prio_high_SEI) {
+        stopi->iprio = 0;
+      }
+    }
+  } else {
+    stopi->val = 0;
+  }
+}
+#endif
+
+#ifdef CONFIG_RV_IMSIC
+inline void update_vstopi() {
+  vsip_t read_vsip = (vsip_t)get_vsip();
+  vsie_t read_vsie = (vsie_t)get_vsie();
+
+  bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.xtopei.vstopei != 0);
+  bool candidate2 = read_vsip.seip && read_vsie.seie && (hstatus->vgein == 0) && (hvictl->iid == 9) && (hvictl->iprio != 0);
+  bool candidate3 = read_vsip.seip && read_vsie.seie && !candidate1 && !candidate2;
+  bool candidate4 = !hvictl->vti && (read_vsie.val & read_vsip.val & 0xfffffffffffffdff);
+  bool candidate5 = hvictl->vti && (hvictl->iid != 9);
+  bool candidate_no_valid = !candidate1 && !candidate2 && !candidate3 && !candidate4 && !candidate5;
+
+  uint64_t vstopi_gather = get_vsip() & get_vsie();
+  set_iprios_sort(vstopi_gather, cpu.VSIpriosSort, cpu.VSIprios);
+  set_viprios_sort(vstopi_gather);
+
+  uint8_t vs_iid_idx = high_iprio(cpu.VSIpriosSort, IRQ_VSEIP);
+  uint8_t vs_iid_num = interrupt_default_prio[vs_iid_idx];
+  uint8_t vs_prio_num = cpu.VSIpriosSort->ipriosEnable[vs_iid_idx].priority;
+
+  uint8_t iid_candidate123 = IRQ_SEIP;
+  uint8_t iid_candidate45 = 0;
+  uint16_t iprio_candidate123 = 0;
+  uint16_t iprio_candidate45 = 0;
+
+  if (candidate1) {
+    vstopei_t* vstopei_tmp = (vstopei_t*)cpu.xtopei.vstopei;
+    iprio_candidate123 = vstopei_tmp->iprio;
+  } else if (candidate2) {
+    iprio_candidate123 = hvictl->iprio;
+  } else if (candidate3) {
+    iprio_candidate123 = 256;
+  }
+
+  if (candidate4) {
+    iid_candidate45 = vs_iid_num;
+    iprio_candidate45 = vs_prio_num;
+  } else if (candidate5) {
+    iid_candidate45 = hvictl->iid;
+    iprio_candidate45 = hvictl->iprio;
+  }
+
+  bool candidate123 = candidate1 || candidate2 || candidate3;
+  bool candidate45 = candidate4 || candidate5;
+  bool candidate123_high_candidate45 = false;
+  bool candidate123_low_candidate45 = false;
+
+  if (candidate123 && candidate4) {
+    candidate123_high_candidate45 = (iprio_candidate123 < iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && (get_prio_idx_in_group(iid_candidate123) <= get_prio_idx_in_group(iid_candidate45)));
+    candidate123_low_candidate45  = (iprio_candidate123 > iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && (get_prio_idx_in_group(iid_candidate123) > get_prio_idx_in_group(iid_candidate45)));
+  } else if (candidate123 && candidate5) {
+    candidate123_high_candidate45 = (iprio_candidate123 < iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && hvictl->dpr);
+    candidate123_low_candidate45  = (iprio_candidate123 > iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && !hvictl->dpr);
+  } else if (candidate123 && !candidate45) {
+    candidate123_high_candidate45 = true;
+  } else if (!candidate123 && candidate45) {
+    candidate123_low_candidate45 = true;
+  }
+
+  uint8_t iid_candidate = 0;
+  uint16_t iprio_candidate = 0;
+
+  if (candidate123_high_candidate45) {
+    iid_candidate = iid_candidate123;
+    iprio_candidate = iprio_candidate123;
+  } else if (candidate123_low_candidate45) {
+    iid_candidate = iid_candidate45;
+    iprio_candidate = iprio_candidate45;
+  }
+
+  if (candidate_no_valid) {
+    vstopi->val = 0;
+  } else {
+    vstopi->iid = iid_candidate;
+    if (iprio_candidate > 255) {
+      vstopi->iprio = 255;
+    } else if (candidate123_low_candidate45 && candidate5 && !hvictl->ipriom) {
+      vstopi->iprio = 1;
+    } else if ((candidate123_high_candidate45 && (iprio_candidate <= 255)) || (candidate123_low_candidate45 && candidate4) || (candidate123_low_candidate45 && candidate5 && hvictl->ipriom)) {
+      vstopi->iprio = iprio_candidate & 0xff;
+    }
+  }
+}
+#endif
+
+#ifdef CONFIG_RV_IMSIC
+bool iselect_is_major_ip(uint64_t iselect) {
+  return (iselect > ISELECT_2F_MASK) && (iselect <= ISELECT_3F_MASK) && !(iselect & 0x1);
+}
+#endif
+
 static word_t csr_read(uint32_t csrid) {
   word_t *src = csr_decode(csrid);
   switch (csrid) {
@@ -1088,6 +1299,20 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_SISELECT:
       IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
       return siselect->val;
+    case CSR_STOPI:
+      if (cpu.v) return vstopi->val;
+      return stopi->val;
+    case CSR_STOPEI:
+      if (cpu.v) return cpu.xtopei.vstopei;
+      return cpu.xtopei.stopei;
+    case CSR_SIREG:
+    {
+      bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
+      if (siselect_is_major_ip) {
+        return cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
+      }
+      return 0;
+    }
 #endif // CONFIG_RV_IMSIC
     case CSR_SATP:
       IFDEF(CONFIG_RVH, if (cpu.v) return vsatp->val);
@@ -1108,7 +1333,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_VSIP: return get_vsip();
     case CSR_HEDELEG: return hedeleg->val & HEDELEG_MASK;
     case CSR_HIDELEG: return hideleg->val & HIDELEG_MASK;
-    case CSR_HIE: return mie->val & HIE_RMASK & (mideleg->val | MIDELEG_FORCED_MASK);
+    case CSR_HIE: return get_hie();
     case CSR_HGEIE: return hgeie->val & ~(0x1UL);
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: return hvien->val & HVIEN_MSAK;
@@ -1126,9 +1351,20 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HSTATEEN0: return hstateen0->val & mstateen0->val;
 #endif // CONFIG_RV_SMSTATEEN
 
-    case CSR_HIP: return ((get_mip() & HIP_RMASK) | (hvip->val & MIP_VSSIP)) & (mideleg->val | MIDELEG_FORCED_MASK);
+    case CSR_HIP: return get_hip();
     case CSR_HVIP: return hvip->val & HVIP_MASK;
     case CSR_HGEIP: return hgeip->val & ~(0x1UL);
+#ifdef CONFIG_RV_IMSIC
+    case CSR_VSTOPEI: return cpu.xtopei.vstopei;
+    case CSR_VSIREG:
+    {
+      bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
+      if (vsiselect_is_major_ip) {
+        return cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
+      }
+      return 0;
+    }
+#endif
 #endif // CONFIG_RVH
 
     /************************* Machine-Level CSRs *************************/
@@ -1144,6 +1380,17 @@ static word_t csr_read(uint32_t csrid) {
 #ifdef CONFIG_RV_AIA
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
+#ifdef CONFIG_RV_IMSIC
+    case CSR_MTOPEI: return cpu.xtopei.mtopei;
+    case CSR_MIREG:
+    {
+      bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
+      if (miselect_is_major_ip) {
+        return cpu.MIprios->iprios[(miselect->val - ISELECT_2F_MASK - 1) >> 1].val;
+      }
+      return 0;
+    }
+#endif
 #endif // CONFIG_RV_AIA
 
     case CSR_MIP:
@@ -1423,6 +1670,15 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_STOPI: return;
+    case CSR_STOPEI: return;
+    case CSR_SIREG:
+    {
+      if (cpu.v) { break; }
+      if (iselect_is_major_ip(siselect->val)) {
+        cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val = src;
+      }
+      break;
+    }
 #endif // CONFIG_RV_IMSIC
 
 
@@ -1520,6 +1776,8 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_VSTOPI: return;
+    case CSR_VSTOPEI: return;
+    case CSR_VSIREG: return;
 #endif // CONFIG_RV_IMSIC
 
 #endif // CONFIG_RVH
@@ -1797,6 +2055,14 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_MTOPI: return;
+    case CSR_MTOPEI: return;
+    case CSR_MIREG:
+    {
+      if (iselect_is_major_ip(miselect->val)) {
+        cpu.MIprios->iprios[(miselect->val - ISELECT_2F_MASK - 1) >> 1].val = src;
+      }
+      break;
+    }
 #endif // CONFIG_RV_IMSIC
 
     /************************* All Others Normal CSRs *************************/
@@ -1831,6 +2097,17 @@ static void csr_write(uint32_t csrid, word_t src) {
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
   }
+
+#ifdef CONFIG_RV_IMSIC
+  if (is_write(mideleg) || is_write(hideleg) || is_write(hstatus) || is_write(hvictl) ||
+      is_write(mip) || is_write(mvip) || is_write(hvip) || is_write(hip) || is_write(sip) || is_write(vsip) ||
+      is_write(mie) || is_write(mvien) || is_write(hvien) || is_write(hie) || is_write(sie) || is_write(vsie) ||
+      is_write(mireg) || is_write(sireg)) {
+    update_mtopi();
+    update_stopi();
+    update_vstopi();
+  }
+#endif
 }
 
 static inline bool satp_permit_check(const word_t *dest_access){

@@ -19,6 +19,7 @@
 #include "../local-include/trigger.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
+#include "../local-include/aia.h"
 
 void update_mmu_state();
 
@@ -137,9 +138,23 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool delegVS = intr_deleg_VS(NO);
   delegM = !delegS && !delegVS && !isNMI;
   delegS &= !delegVS;
+#ifdef CONFIG_RV_IMSIC
+  if (NO & INTR_BIT) {
+    delegS  =  no_mtopi() && !no_stopi() && !isNMI;
+    delegVS =  no_mtopi() &&  no_stopi() && !no_vstopi() && !isNMI;
+    delegM = !delegS && !delegVS && !isNMI;
+  }
+#endif
   bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && vsstatus->sdt, false);
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
+#ifdef CONFIG_RV_IMSIC
+    if ((NO & INTR_BIT) && (NO & (MIP_SSIP | MIP_STIP | MIP_SEIP))) {
+      vscause->val = ((NO & (~INTR_BIT)) - 1) | INTR_BIT;
+    } else {
+      vscause->val = NO;
+    }
+#else
     if (virtualInterruptIsHvictlInject) {
       vscause->val = NO | INTR_BIT;
 #ifdef CONFIG_RV_IMSIC
@@ -148,6 +163,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     } else {
       vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
     }
+#endif // CONFIG_RV_IMSIC
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;

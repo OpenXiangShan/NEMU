@@ -435,3 +435,17 @@ void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec) {
   }
 #endif
 }
+
+#ifdef CONFIG_RV_IMSIC
+void isa_update_mtopi() {
+  update_mtopi();
+}
+
+void isa_update_stopi() {
+  update_stopi();
+}
+
+void isa_update_vstopi() {
+  update_vstopi();
+}
+#endif

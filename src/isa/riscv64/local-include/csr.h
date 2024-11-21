@@ -1249,6 +1249,14 @@ CSR_STRUCT_START(hvictl)
 CSR_STRUCT_END(hvictl)
 
 CSR_STRUCT_START(hviprio1)
+  uint64_t intr0  : 8; // [7 : 0] reserved
+  uint64_t ssi    : 8; // [16: 8]
+  uint64_t intr4  : 8; // [23:16] reserved
+  uint64_t sti    : 8; // [31:24]
+  uint64_t intr8  : 8; // [39:32] reserved
+  uint64_t coi    : 8; // [47:40]
+  uint64_t intr14 : 8; // [55:48]
+  uint64_t intr15 : 8; // [63:56]
 CSR_STRUCT_END(hviprio1)
 
 CSR_STRUCT_START(hviprio2)
@@ -1524,6 +1532,11 @@ void csr_prepare();
 
 word_t gen_status_sd(word_t status);
 word_t get_mip();
+#ifdef CONFIG_RV_IMSIC
+void update_mtopi();
+void update_stopi();
+void update_vstopi();
+#endif
 
 /** PMP **/
 uint8_t pmpcfg_from_index(int idx);
