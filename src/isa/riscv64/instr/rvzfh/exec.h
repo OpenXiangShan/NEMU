@@ -151,25 +151,17 @@ def_EHelper(fcvt_lu_h) {
 
 
 def_EHelper(fsgnjh) {
-  rtl_andi(s, s0, dsrc1, ~F16_SIGN);
-  rtl_andi(s, ddest, dsrc2, F16_SIGN);
-  rtl_or(s, ddest, s0, ddest);
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_SGNJ, FPCALL_W16));
   rtl_fsr(s, ddest, ddest, FPCALL_W16);
 }
 
 def_EHelper(fsgnjnh) {
-  rtl_andi(s, s0, dsrc1, ~F16_SIGN);
-  rtl_xori(s, ddest, dsrc2, F16_SIGN);
-  rtl_andi(s, ddest, ddest, F16_SIGN);
-  rtl_or(s, ddest, s0, ddest);
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_SGNJN, FPCALL_W16));
   rtl_fsr(s, ddest, ddest, FPCALL_W16);
 }
 
 def_EHelper(fsgnjxh) {
-  rtl_andi(s, s0, dsrc1, ~F16_SIGN);
-  rtl_xor(s, ddest, dsrc1, dsrc2);
-  rtl_andi(s, ddest, ddest, F16_SIGN);
-  rtl_or(s, ddest, s0, ddest);
+  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, dsrc2, FPCALL_CMD(FPCALL_SGNJX, FPCALL_W16));
   rtl_fsr(s, ddest, ddest, FPCALL_W16);
 }
 
