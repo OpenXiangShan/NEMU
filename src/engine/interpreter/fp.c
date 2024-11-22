@@ -99,6 +99,10 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_LT: *dest = f16_lt(fsrc1, fsrc2); break;
       case FPCALL_EQ: *dest = f16_eq(fsrc1, fsrc2); break;
 
+      case FPCALL_SGNJ:  *dest = fsgnj16(fsrc1, fsrc2, false, false); break;
+      case FPCALL_SGNJN: *dest = fsgnj16(fsrc1, fsrc2, true, false); break;
+      case FPCALL_SGNJX: *dest = fsgnj16(fsrc1, fsrc2, false, true); break;
+
       case FPCALL_I32ToF: *dest = my_i32_to_f16 (*src1).v; break;
       case FPCALL_U32ToF: *dest = my_ui32_to_f16(*src1).v; break;
       case FPCALL_I64ToF: *dest = my_i64_to_f16 (*src1).v; break;
