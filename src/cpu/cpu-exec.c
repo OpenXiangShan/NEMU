@@ -579,6 +579,7 @@ static int execute(int n) {
     }
 #endif // CONFIG_LIGHTQS_DEBUG
 #endif // CONFIG_BR_LOG
+    IFDEF(CONFIG_IQUEUE, iqueue_commit(s.pc, (void *)&s.isa.instr.val, s.snpc - s.pc));
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
     if (isa_query_intr() != INTR_EMPTY) {
