@@ -52,6 +52,9 @@ int isa_mmu_state();
 #ifndef isa_mmu_check
 int isa_mmu_check(vaddr_t vaddr, int len, int type);
 #endif
+#ifndef get_effective_address
+vaddr_t get_effective_address(vaddr_t vaddr, int type);
+#endif
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode);
 

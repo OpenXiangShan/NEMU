@@ -340,12 +340,33 @@ config RV_SV48
 #   bool "Sv57"
 #   help
 #     Support Sv39, Sv48 and Sv57.
-    
+
 #     The MODE field of CSR satp and vsatp could be set to Bare, Sv39, Sv48 or
 #     Sv47, and the MODE field of CSR hgatp could be set to Bare, Sv39x4, Sv48x4
 #     or Sv57x4.
 
 endchoice
+
+config RV_SSNPM
+  bool "RISC-V Ssnpm extension (part of RISC-V pointer masking extension)"
+  default n
+  help
+    A supervisor-level extension that provides pointer masking for the next
+    lower privilege mode (U-mode), and for VS- and VU-modes if the H extension
+    is present.
+
+config RV_SMNPM
+  bool "RISC-V Smnpm extension (part of RISC-V pointer masking extension)"
+  default n
+  help
+    A machine-level extension that provides pointer masking for the next lower
+    privilege mode (S/HS if S-mode is implemented, or U-mode otherwise).
+
+config RV_SMMPM
+  bool "RISC-V Smmpm extension (part of RISC-V pointer masking extension)"
+  default n
+  help
+    A machine-level extension that provides pointer masking for M-mode.
 
 config RV_SVNAPOT
   bool "RISC-V Svnapot extension for NAPOT Translation Contiguity (alpha)"

@@ -145,6 +145,16 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 #endif
 
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
+
+#ifdef CONFIG_RVH
+  if(type != MEM_TYPE_IFETCH){
+    extern int rvh_hlvx_check(struct Decode *s, int type);
+    rvh_hlvx_check((Decode*)s, type);
+  }
+#endif
+
+  addr = get_effective_address(addr, type);
+
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   if (type != MEM_TYPE_IFETCH) {
     isa_misalign_data_addr_check(addr, len, type);
@@ -157,12 +167,6 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     Logm("Paddr reading directly");
     return paddr_read(addr, len, type, type, cpu.mode, addr);
   }
-#ifdef CONFIG_RVH
-  if(type != MEM_TYPE_IFETCH){
-    extern int rvh_hlvx_check(struct Decode *s, int type);
-    rvh_hlvx_check((Decode*)s, type);
-  }
-#endif
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
   return 0;
 }
@@ -171,6 +175,9 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
 extern void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_write);
 
 void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+
+  addr = get_effective_address(addr, MEM_TYPE_READ);
+
   assert(!ISDEF(CONFIG_SHARE));
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
     Logm("Checking mmu when MMU_DYN for dummy read");
@@ -197,6 +204,9 @@ word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 
 #ifdef CONFIG_RVV
 void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
+
+  addr = get_effective_address(addr, MEM_TYPE_WRITE);
+
   assert(!ISDEF(CONFIG_SHARE));
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
     mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
@@ -211,6 +221,9 @@ void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 #endif // CONFIG_RVV
 
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
+
+  addr = get_effective_address(addr, MEM_TYPE_WRITE);
+
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
   isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {

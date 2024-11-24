@@ -143,6 +143,13 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   }
   return true;
 }
+
+#ifndef CONFIG_RVH
+vaddr_t get_effective_address(vaddr_t vaddr, int type) {
+  return vaddr;
+}
+#endif
+
 #ifdef CONFIG_RVH
 bool has_two_stage_translation(){
   return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
@@ -174,6 +181,59 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_
   cpu.trapInfo.tval2 = gpaddr >> 2;
   cpu.trapInfo.tinst = tinst;
   longjmp_exception(ex);
+}
+
+vaddr_t get_effective_address(vaddr_t vaddr, int type) {
+  if (type == MEM_TYPE_IFETCH || hlvx) {
+    return vaddr;
+  }
+
+  bool virt = cpu.v;
+  int mode = cpu.mode;
+  int pmm = 0;
+  int masked_width = 0;
+
+  if (hld_st) {
+    mode = hstatus->spvp;
+    virt = true;
+  } else if (mstatus->mprv) {
+    mode = mstatus->mpp;
+    virt = mstatus->mpv && mode != MODE_M;
+  }
+
+  if (mode == MODE_M) {
+    pmm = mseccfg->pmm;
+  } else if (!virt && mode == MODE_S) {
+    pmm = menvcfg->pmm;
+  } else if (virt && mode == MODE_S) {
+    pmm = henvcfg->pmm;
+    // Is cpu.mode here
+  } else if (hld_st && cpu.mode == MODE_U) {
+    pmm = hstatus->hupmm;
+  } else if (mode == MODE_U) {
+    pmm = senvcfg->pmm;
+  } else {
+    assert(0);
+  }
+
+  switch (pmm) {
+    case 2:
+      masked_width = 7;
+      break;
+    case 3:
+      masked_width = 16;
+      break;
+  }
+
+  bool isBare = mode == MODE_M;
+  bool isPaddr = !virt && satp->mode == SATP_MODE_BARE;
+  bool isGpaddr = virt && vsatp->mode == SATP_MODE_BARE;
+
+  if (isBare || isPaddr || isGpaddr) {
+    return ((uint64_t)vaddr << masked_width) >> masked_width;
+  } else {
+    return ((int64_t)vaddr << masked_width) >> masked_width;
+  }
 }
 
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool ishlvx, bool is_support_vs){
@@ -495,7 +555,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   bool enable_39 = satp->mode == SATP_MODE_Sv39 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4));
   bool enable_48 = satp->mode == SATP_MODE_Sv48 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv48x4));
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
-  bool hyperinst_vm_enable = hld_st && (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4);
+  bool hyperinst_vm_enable = hld_st && (vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4);
 #else
   bool enable_39 = satp->mode == SATP_MODE_Sv39;
   bool enable_48 = satp->mode == SATP_MODE_Sv48;
@@ -541,7 +601,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     if(is_ifetch){
       cpu.trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
-      if (hld_st || gpf) {
+      if (gpf) {
         cpu.trapInfo.tval2 = vaddr >> 2;
         longjmp_exception(EX_IGPF);
       } else {
@@ -554,7 +614,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
       cpu.trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
       int ex;
-      if(hld_st || gpf){
+      if(gpf){
         ex = cpu.amo ? EX_SGPF : EX_LGPF;
         cpu.trapInfo.tval2 = vaddr >> 2;
       } else {
@@ -568,7 +628,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     } else {
       cpu.trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
-      if (hld_st || gpf) {
+      if (gpf) {
         cpu.trapInfo.tval2 = vaddr >> 2;
         longjmp_exception(EX_SGPF);
       } else {

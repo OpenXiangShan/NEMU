@@ -711,7 +711,9 @@ CSR_STRUCT_START(mseccfg)
   uint64_t useed : 1; // [8]
   uint64_t sseed : 1; // [9]
   uint64_t mlpe  : 1; // [10]
-  uint64_t pad1  :53; // [63:11]
+  uint64_t pad1  :21; // [31:11]
+  uint64_t pmm   : 2; // [33:32]
+  uint64_t pad2  :30; // [63:34]
 CSR_STRUCT_END(mseccfg)
 
 #ifdef CONFIG_RV_SMSTATEEN
@@ -1089,20 +1091,23 @@ CSR_STRUCT_END(stopi)
 
 #ifdef CONFIG_RVH
 CSR_STRUCT_START(hstatus)
-  uint64_t pad0  : 5;
-  uint64_t vsbe  : 1;
-  uint64_t gva   : 1;
-  uint64_t spv   : 1;
-  uint64_t spvp  : 1;
-  uint64_t hu    : 1;
-  uint64_t pad1  : 2;
-  uint64_t vgein : 6;
-  uint64_t pad2  : 2;
-  uint64_t vtvm  : 1;
-  uint64_t vtw   : 1;
-  uint64_t vtsr  : 1;
-  uint64_t pad3  : 9;
-  uint64_t vsxl  : 2;
+  uint64_t pad0  : 5;  // [4:0]
+  uint64_t vsbe  : 1;  // [5]
+  uint64_t gva   : 1;  // [6]
+  uint64_t spv   : 1;  // [7]
+  uint64_t spvp  : 1;  // [8]
+  uint64_t hu    : 1;  // [9]
+  uint64_t pad1  : 2;  // [11:10]
+  uint64_t vgein : 6;  // [17:12]
+  uint64_t pad2  : 2;  // [19:18]
+  uint64_t vtvm  : 1;  // [20]
+  uint64_t vtw   : 1;  // [21]
+  uint64_t vtsr  : 1;  // [22]
+  uint64_t pad3  : 9;  // [31:23]
+  uint64_t vsxl  : 2;  // [33:32]
+  uint64_t pad4  : 14; // [47:34]
+  uint64_t hupmm : 2;  // [49:48]
+  uint64_t pad5  : 14; // [63:50]
 CSR_STRUCT_END(hstatus)
 
 CSR_STRUCT_START(hedeleg)
