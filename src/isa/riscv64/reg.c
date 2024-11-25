@@ -138,6 +138,20 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
     if (strcmp(regsl[i], s) == 0) return reg_l(i);
   }
 
+#ifndef CONFIG_FPU_NONE
+  for (i = 0; i < 32; i ++) {
+    if (strcmp(fpregsl[i], s) == 0) return fpreg_l(i);
+  }
+#endif // CONFIG_FPU_NONE
+
+#ifdef CONFIG_RVV
+  //vector register
+  extern const char * vregsl[];
+  for (i = 0; i < 32; i ++) {
+    if (strcmp(vregsl[i], s) == 0) return cpu.vr[i]._64[0];
+  }
+#endif // CONFIG_RVV
+
   if (strcmp("pc", s) == 0) return cpu.pc;
 
   *success = false;
