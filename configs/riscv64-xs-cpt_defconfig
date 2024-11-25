@@ -69,8 +69,9 @@ CONFIG_TVAL_EX_II=y
 CONFIG_FS_CLEAN_STATE=y
 CONFIG_USE_XS_ARCH_CSRS=y
 # CONFIG_RVV_AGNOSTIC is not set
-# CONFIG_RV_ZCMOP is not set
-# CONFIG_RV_ZIMOP is not set
+CONFIG_RV_ZCMOP=y
+CONFIG_RV_ZIMOP=y
+CONFIG_RV_ZCB=y
 # CONFIG_RV_ZACAS is not set
 # end of ISA-dependent Options for riscv64
 
