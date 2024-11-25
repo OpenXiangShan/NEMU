@@ -987,11 +987,20 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
                                   trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
-          rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+          if (fofvl == 0) {
+            rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+          } else {
+            rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+            set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+          }
+
         }
-        for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+        if (fofvl == 0) {
+          for (fn = 0; fn < nf; fn++) {
+            set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+          }
         }
+
       }
     }
 
