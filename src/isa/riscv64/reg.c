@@ -14,11 +14,13 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <stdlib.h>
 #include <isa.h>
 //#include <monitor/difftest.h>
 #include "local-include/reg.h"
 #include "local-include/csr.h"
 #include "local-include/trigger.h"
+#include "instr/rvv/vreg.h"
 //#include "local-include/intr.h"
 
 const char *regsl[] = {
@@ -146,9 +148,14 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
 
 #ifdef CONFIG_RVV
   //vector register
-  extern const char * vregsl[];
-  for (i = 0; i < 32; i ++) {
-    if (strcmp(vregsl[i], s) == 0) return cpu.vr[i]._64[0];
+  const char *underscore_pos = strchr(s, '_');
+  if (underscore_pos != NULL) {
+    size_t prefix_len = underscore_pos - s;
+    int offset = atoi(underscore_pos + 1);
+    extern const char * vregsl[];
+    for (i = 0; i < 32; i ++) {
+      if (strncmp(vregsl[i], s, prefix_len) == 0) return vreg_l(i, offset);
+    }
   }
 #endif // CONFIG_RVV
 
