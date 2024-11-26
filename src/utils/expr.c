@@ -44,6 +44,7 @@ static struct rule {
   {"==", TK_EQ},        // equal
   {"0x[0-9a-fA-F]{1,16}", TK_NUM},  // hex
   {"[0-9]{1,10}", TK_NUM},         // dec
+  {"\\$v[0-9]{1,2}_[0-9]{1,10}", TK_REG},   // vector register, e.g. $v0_0 represents first 64 bits of v0 in RVV
   {"\\$[a-z0-9]{1,31}", TK_REG},   // register names
   {"\\+", '+'},
   {"-", '-'},
