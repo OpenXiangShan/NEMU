@@ -32,6 +32,8 @@ void vp_set_dirty();
 
 uint64_t get_abs_instr_count();
 inline word_t get_mip();
+inline word_t mstatus_read();
+inline word_t sstatus_read(bool vsreg_read, bool bare_read);
 
 rtlreg_t csr_array[4096] = {};
 
@@ -570,6 +572,34 @@ typedef enum {
   CPU_MODE_VS,
   CPU_MODE_M
 } cpu_mode_t;
+
+inline word_t mstatus_read() {
+  uint64_t mstatus_rmask = MSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+  mstatus_rmask &= (menvcfg->dte ? mstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif //CONFIG_RV_SSDBLTRP
+  return gen_status_sd(mstatus->val) | (mstatus->val & mstatus_rmask);
+}
+
+// vsreg_read : read vsstatus
+// bare_read : direct read sstatus(used for difftest) regardless of cpu.v
+inline word_t sstatus_read(bool vsreg_read, bool bare_read) {
+#ifdef CONFIG_RVH
+  if ((cpu.v || vsreg_read) && !bare_read) {
+    uint64_t vsstatus_rmask = SSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+    vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif // CONFIG_RV_SSDBLTRP
+    return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
+  }
+#endif // CONFIG_RVH
+
+  uint64_t sstatus_rmask = SSTATUS_RMASK;
+#ifdef CONFIG_RV_SSDBLTRP
+  sstatus_rmask &= (menvcfg->dte ? sstatus_rmask : ~MSTATUS_WMASK_SDT);
+#endif //CONFIG_RV_SSDBLTRP
+  return gen_status_sd(mstatus->val) | (mstatus->val & sstatus_rmask);
+}
 
 #ifdef CONFIG_RV_PMP_CSR
 // get 8-bit config of one PMP entries by index.
@@ -1287,22 +1317,7 @@ static word_t csr_read(uint32_t csrid) {
 #endif // CONFIG_RVV
 
     /************************* Supervisor-Level CSRs *************************/
-    case CSR_SSTATUS:
-#ifdef CONFIG_RVH
-      if (cpu.v) {
-        uint64_t vsstatus_rmask = SSTATUS_RMASK;
-#ifdef CONFIG_RV_SSDBLTRP
-        vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
-#endif // CONFIG_RV_SSDBLTRP
-        return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
-      }
-#endif // CONFIG_RVH
-
-      uint64_t sstatus_rmask = SSTATUS_RMASK;
-#ifdef CONFIG_RV_SSDBLTRP
-      sstatus_rmask &= (menvcfg->dte ? sstatus_rmask : ~MSTATUS_WMASK_SDT);
-#endif //CONFIG_RV_SSDBLTRP
-      return gen_status_sd(mstatus->val) | (mstatus->val & sstatus_rmask);
+    case CSR_SSTATUS: return sstatus_read(false, false);
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_SSTATEEN0:
@@ -1362,14 +1377,7 @@ static word_t csr_read(uint32_t csrid) {
 
     /************************* Hypervisor and VS CSRs *************************/
 #ifdef CONFIG_RVH
-    case CSR_VSSTATUS:
-    {
-      uint64_t vsstatus_rmask = SSTATUS_RMASK;
-#ifdef CONFIG_RV_SSDBLTRP
-      vsstatus_rmask &= ((menvcfg->dte & henvcfg->dte) ? vsstatus_rmask : ~MSTATUS_WMASK_SDT);
-#endif //CONFIG_RV_SSDBLTRP
-      return gen_status_sd(vsstatus->val) | (vsstatus->val & vsstatus_rmask);
-    }
+    case CSR_VSSTATUS: return sstatus_read(true, false);
 
     case CSR_VSIE: return get_vsie();
     case CSR_VSIP: return get_vsip();
@@ -1410,14 +1418,7 @@ static word_t csr_read(uint32_t csrid) {
 #endif // CONFIG_RVH
 
     /************************* Machine-Level CSRs *************************/
-    case CSR_MSTATUS:
-    {
-      uint64_t mstatus_rmask = MSTATUS_RMASK;
-#ifdef CONFIG_RV_SSDBLTRP
-      mstatus_rmask &= (menvcfg->dte ? mstatus_rmask : ~MSTATUS_WMASK_SDT);
-#endif //CONFIG_RV_SSDBLTRP
-      return gen_status_sd(mstatus->val) | (mstatus->val & mstatus_rmask);
-    }
+    case CSR_MSTATUS: return mstatus_read();
 
 #ifdef CONFIG_RV_AIA
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
@@ -1573,25 +1574,25 @@ static void csr_write(uint32_t csrid, word_t src) {
 
     /************************* Supervisor-Level CSRs *************************/
     case CSR_SSTATUS:
+    {
+      IFDEF(CONFIG_RV_SSDBLTRP, bool write_sdt = false);
 #ifdef CONFIG_RVH
       if (cpu.v) {
         uint64_t sstatus_wmask = SSTATUS_WMASK;
 #ifdef CONFIG_RV_SSDBLTRP
         // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-        if (menvcfg->dte == 0 || henvcfg->dte == 0) {
-          src &= sstatus_wmask & (~MSTATUS_WMASK_SDT);
-        }
+        write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte && henvcfg->dte;
         // the same as mstatus SIE
         if (src & MSTATUS_SIE) {
           sstatus_wmask &= ~MSTATUS_SIE;
-          if (((src & MSTATUS_WMASK_SDT) == 0) || ( vsstatus->sdt == 0)) {
+          if (!write_sdt || ( vsstatus->sdt == 0)) {
             sstatus_wmask |= MSTATUS_SIE;
           }
         }
 #endif //CONFIG_RV_SSDBLTRP
         vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
 #ifdef CONFIG_RV_SSDBLTRP
-        if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
+        if (write_sdt) { vsstatus->sie = 0; }
 #endif //CONFIG_RV_SSDBLTRP
         break;
       }
@@ -1599,22 +1600,21 @@ static void csr_write(uint32_t csrid, word_t src) {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-      if (menvcfg->dte == 0 ) {
-        src &= sstatus_wmask & (~MSTATUS_WMASK_SDT);
-      }
+      write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte;
       // the same as mstatus SIE
       if (src & MSTATUS_SIE) {
         sstatus_wmask &= ~MSTATUS_SIE;
-        if (((src & MSTATUS_WMASK_SDT) == 0) || ( mstatus->sdt == 0)) {
+        if (!write_sdt || ( mstatus->sdt == 0)) {
           sstatus_wmask |= MSTATUS_SIE;
         }
       }
 #endif //CONFIG_RV_SSDBLTRP
       mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, src); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
 #ifdef CONFIG_RV_SSDBLTRP
-      if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
+      if (write_sdt) { mstatus->sie = 0; }
 #endif //CONFIG_RV_SSDBLTRP
       break;
+    }
 
     case CSR_SCOUNTEREN: scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src); break;
 
@@ -1739,20 +1739,21 @@ static void csr_write(uint32_t csrid, word_t src) {
       uint64_t vsstatus_wmask = SSTATUS_WMASK;
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
+      bool write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte && henvcfg->dte;
       if (menvcfg->dte == 0 || henvcfg->dte == 0) {
         src &= vsstatus_wmask & (~MSTATUS_WMASK_SDT);
       }
       // the same as mstatus SIE
       if (src & MSTATUS_SIE) {
         vsstatus_wmask &= ~MSTATUS_SIE;
-        if (((src & MSTATUS_WMASK_SDT) == 0) || ( vsstatus->sdt == 0)) {
+        if (!write_sdt || ( vsstatus->sdt == 0)) {
           vsstatus_wmask |= MSTATUS_SIE;
         }
       }
 #endif //CONFIG_RV_SSDBLTRP
       vsstatus->val = mask_bitset(vsstatus->val, vsstatus_wmask, src);
 #ifdef CONFIG_RV_SSDBLTRP
-      if (src & MSTATUS_WMASK_SDT) { vsstatus->sie = 0; }
+      if (write_sdt) { vsstatus->sie = 0; }
 #endif //CONFIG_RV_SSDBLTRP
       break;
     }
@@ -1839,21 +1840,23 @@ static void csr_write(uint32_t csrid, word_t src) {
       unsigned prev_mpp = mstatus->mpp;
       // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
 #ifdef CONFIG_RV_SMDBLTRP
+      bool write_mdt = src & MSTATUS_WMASK_MDT;
       if (src & MSTATUS_MIE) {
         mstatus_wmask &= ~MSTATUS_MIE;
-        if (((src & MSTATUS_WMASK_MDT) == 0) || ( mstatus->mdt == 0)) {
+        if (!write_mdt || ( mstatus->mdt == 0)) {
           mstatus_wmask |= MSTATUS_MIE;
         }
       }
 #endif //CONFIG_RV_SMDBLTRP
 #ifdef CONFIG_RV_SSDBLTRP
-      // when menvcfg->DTE is zero, SDT field is read-only zero
+      // when menvcfg->DTE is zero, SDT field is read-only zero(allow write but read 0)
+      bool write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte;
       if (menvcfg->dte == 0 ) {
         src &= mstatus_wmask & (~MSTATUS_WMASK_SDT);
       }
       if (src & MSTATUS_SIE) {
         mstatus_wmask &= ~MSTATUS_SIE;
-        if (((src & MSTATUS_WMASK_SDT) == 0) || ( mstatus->sdt == 0)) {
+        if (!write_sdt || ( mstatus->sdt == 0)) {
           mstatus_wmask |= MSTATUS_SIE;
         }
       }
@@ -1866,10 +1869,10 @@ static void csr_write(uint32_t csrid, word_t src) {
       update_mmu_state(); // maybe write update mprv, mpp or mpv
 #ifdef CONFIG_RV_SMDBLTRP
       // when MDT is explicitly written by 1, clear MIE
-      if (src & MSTATUS_WMASK_MDT) { mstatus->mie = 0; }
+      if (write_sdt) { mstatus->mie = 0; }
 #endif // CONFIG_RV_SMDBLTRP
 #ifdef CONFIG_RV_SSDBLTRP
-      if (src & MSTATUS_WMASK_SDT) { mstatus->sie = 0; }
+      if (write_sdt) { mstatus->sie = 0; }
 #endif // CONFIG_RV_SSDBLTRP
 #else // !CONFIG_RVH
       unsigned prev_mpp = mstatus->mpp;
