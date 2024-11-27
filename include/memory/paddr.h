@@ -55,7 +55,7 @@ uint8_t *get_pmem();
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
-#define STORE_QUEUE_SIZE 64
+#define STORE_QUEUE_SIZE 256
 typedef struct {
     uint64_t addr;
     uint64_t data;
