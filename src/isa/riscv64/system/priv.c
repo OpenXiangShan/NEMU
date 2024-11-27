@@ -1383,7 +1383,6 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HENVCFG:
     {
       uint64_t henvcfg_out = henvcfg->val;
-      henvcfg_out &= menvcfg->val & MENVCFG_WMASK;
       /* henvcfg.stce/dte/pbmte is read_only 0 when menvcfg.stce/dte/pbmte = 0 */
       henvcfg_out &= menvcfg->val | ~(MENVCFG_RMASK_STCE | MENVCFG_RMASK_DTE | MENVCFG_RMASK_PBMTE);
       return henvcfg_out & HENVCFG_WMASK;
