@@ -574,11 +574,7 @@ typedef enum {
 } cpu_mode_t;
 
 inline word_t mstatus_read() {
-  uint64_t mstatus_rmask = MSTATUS_RMASK;
-#ifdef CONFIG_RV_SSDBLTRP
-  mstatus_rmask &= (menvcfg->dte ? mstatus_rmask : ~MSTATUS_WMASK_SDT);
-#endif //CONFIG_RV_SSDBLTRP
-  return gen_status_sd(mstatus->val) | (mstatus->val & mstatus_rmask);
+  return gen_status_sd(mstatus->val) | (mstatus->val & MSTATUS_RMASK);
 }
 
 // vsreg_read : read vsstatus
@@ -1575,21 +1571,15 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_SSTATUS:
     {
       IFDEF(CONFIG_RV_SSDBLTRP, bool write_sdt = false);
+      sstatus_t new_val = (sstatus_t)src;
 #ifdef CONFIG_RVH
       if (cpu.v) {
         uint64_t sstatus_wmask = SSTATUS_WMASK;
 #ifdef CONFIG_RV_SSDBLTRP
         // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-        write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte && henvcfg->dte;
-        // the same as mstatus SIE
-        if (src & MSTATUS_SIE) {
-          sstatus_wmask &= ~MSTATUS_SIE;
-          if (!write_sdt || ( vsstatus->sdt == 0)) {
-            sstatus_wmask |= MSTATUS_SIE;
-          }
-        }
+        write_sdt = new_val.sdt && menvcfg->dte && henvcfg->dte;
 #endif //CONFIG_RV_SSDBLTRP
-        vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, src);
+        vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, new_val.val);
 #ifdef CONFIG_RV_SSDBLTRP
         if (write_sdt) { vsstatus->sie = 0; }
 #endif //CONFIG_RV_SSDBLTRP
@@ -1599,16 +1589,12 @@ static void csr_write(uint32_t csrid, word_t src) {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-      write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte;
-      // the same as mstatus SIE
-      if (src & MSTATUS_SIE) {
-        sstatus_wmask &= ~MSTATUS_SIE;
-        if (!write_sdt || ( mstatus->sdt == 0)) {
-          sstatus_wmask |= MSTATUS_SIE;
-        }
+      if (menvcfg->dte == 0 ) {
+        new_val.sdt = 0;
       }
+      write_sdt = new_val.sdt;
 #endif //CONFIG_RV_SSDBLTRP
-      mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, src); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
+      mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, new_val.val); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
 #ifdef CONFIG_RV_SSDBLTRP
       if (write_sdt) { mstatus->sie = 0; }
 #endif //CONFIG_RV_SSDBLTRP
@@ -1736,21 +1722,12 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_VSSTATUS:
     {
       uint64_t vsstatus_wmask = SSTATUS_WMASK;
+      vsstatus_t new_val = (vsstatus_t)src;
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-      bool write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte && henvcfg->dte;
-      if (menvcfg->dte == 0 || henvcfg->dte == 0) {
-        src &= vsstatus_wmask & (~MSTATUS_WMASK_SDT);
-      }
-      // the same as mstatus SIE
-      if (src & MSTATUS_SIE) {
-        vsstatus_wmask &= ~MSTATUS_SIE;
-        if (!write_sdt || ( vsstatus->sdt == 0)) {
-          vsstatus_wmask |= MSTATUS_SIE;
-        }
-      }
+      bool write_sdt = new_val.sdt && menvcfg->dte && henvcfg->dte;
 #endif //CONFIG_RV_SSDBLTRP
-      vsstatus->val = mask_bitset(vsstatus->val, vsstatus_wmask, src);
+      vsstatus->val = mask_bitset(vsstatus->val, vsstatus_wmask, new_val.val);
 #ifdef CONFIG_RV_SSDBLTRP
       if (write_sdt) { vsstatus->sie = 0; }
 #endif //CONFIG_RV_SSDBLTRP
@@ -1836,31 +1813,17 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
 #ifdef CONFIG_RVH
       uint64_t mstatus_wmask = MSTATUS_WMASK;
+      mstatus_t new_val = (mstatus_t) src;
       unsigned prev_mpp = mstatus->mpp;
       // only when reg.MDT is zero or wdata.MDT is zero , MIE can be explicitly written by 1
 #ifdef CONFIG_RV_SMDBLTRP
-      bool write_mdt = src & MSTATUS_WMASK_MDT;
-      if (src & MSTATUS_MIE) {
-        mstatus_wmask &= ~MSTATUS_MIE;
-        if (!write_mdt || ( mstatus->mdt == 0)) {
-          mstatus_wmask |= MSTATUS_MIE;
-        }
-      }
+      bool write_mdt = new_val.mdt;
 #endif //CONFIG_RV_SMDBLTRP
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg->DTE is zero, SDT field is read-only zero(allow write but read 0)
-      bool write_sdt = (src & MSTATUS_WMASK_SDT) && menvcfg->dte;
-      if (menvcfg->dte == 0 ) {
-        src &= mstatus_wmask & (~MSTATUS_WMASK_SDT);
-      }
-      if (src & MSTATUS_SIE) {
-        mstatus_wmask &= ~MSTATUS_SIE;
-        if (!write_sdt || ( mstatus->sdt == 0)) {
-          mstatus_wmask |= MSTATUS_SIE;
-        }
-      }
+      bool write_sdt = new_val.sdt;
 #endif //CONFIG_RV_SSDBLTRP
-      mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, src);
+      mstatus->val = mask_bitset(mstatus->val, mstatus_wmask, new_val.val);
       if (mstatus->mpp == MODE_RS) {
         // MODE_RS is reserved. write will not take effect.
         mstatus->mpp = prev_mpp;
@@ -1868,7 +1831,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       update_mmu_state(); // maybe write update mprv, mpp or mpv
 #ifdef CONFIG_RV_SMDBLTRP
       // when MDT is explicitly written by 1, clear MIE
-      if (write_sdt) { mstatus->mie = 0; }
+      if (write_mdt) { mstatus->mie = 0; }
 #endif // CONFIG_RV_SMDBLTRP
 #ifdef CONFIG_RV_SSDBLTRP
       if (write_sdt) { mstatus->sie = 0; }
@@ -1911,12 +1874,6 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (((menvcfg_t*)&src)->cbie != 0b10) { // 0b10 is reserved
         menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
       }
-#ifdef CONFIG_RV_SSDBLTRP
-      if(menvcfg->dte == 0) {
-        mstatus->sdt = 0;
-        vsstatus->sdt = 0;
-      }
-#endif // CONFIG_RV_SSDBLTRP
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
