@@ -1577,6 +1577,8 @@ void csr_prepare();
 
 word_t gen_status_sd(word_t status);
 word_t get_mip();
+word_t mstatus_read();
+word_t sstatus_read(bool vsreg_read, bool bare_read);
 #ifdef CONFIG_RV_IMSIC
 void update_mtopi();
 void update_stopi();

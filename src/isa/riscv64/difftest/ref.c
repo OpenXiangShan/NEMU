@@ -41,11 +41,11 @@ void ramcmp() {
 // For processor difftest only
 
 void csr_prepare() {
-  cpu.mstatus = gen_status_sd(mstatus->val) | mstatus->val;
+  cpu.mstatus = mstatus_read();
   cpu.mcause  = mcause->val;
   cpu.mepc    = mepc->val;
 
-  cpu.sstatus = gen_status_sd(mstatus->val) | (mstatus->val & SSTATUS_RMASK); // sstatus
+  cpu.sstatus = sstatus_read(false, true);
   cpu.scause  = scause->val;
   cpu.sepc    = sepc->val;
 
@@ -79,7 +79,7 @@ void csr_prepare() {
   cpu.htval   = htval->val;
   cpu.htinst  = htinst->val;
   cpu.hgatp   = hgatp->val;
-  cpu.vsstatus= gen_status_sd(vsstatus->val) | vsstatus->val;
+  cpu.vsstatus= sstatus_read(true, false);
   cpu.vstvec  = vstvec->val;
   cpu.vsepc   = vsepc->val;
   cpu.vscause = vscause->val;
