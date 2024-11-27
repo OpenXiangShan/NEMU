@@ -412,7 +412,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
 
 #ifdef CONFIG_RVH
-#define HVIP_MASK     (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0) | LCI)
+#define HVIP_MASK     (VSI_MASK | LCOFI | LCI)
 #define HIP_RMASK     (MIP_VSTIP | MIP_VSEIP | MIP_SGEIP)
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
