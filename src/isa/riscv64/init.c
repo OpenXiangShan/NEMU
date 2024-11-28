@@ -184,6 +184,19 @@ void init_isa() {
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RVMATRIX
+  // matrix
+  // misa->extensions |= ext('m');
+  mlenb->val = MLEN/8;
+  mrlenb->val = MRLEN/8;
+  mamul->val = MAMUL;
+  
+  mtype->val = 0xC;
+  mtilem->val = TMMAX;
+  mtilek->val = TKMAX;
+  mtilen->val = TNMAX;
+#endif // CONFIG_RVMATRIX
+
   // mcycle and minstret record :
   // - the difference between the absolute number and the write value, when the bit of mcountinhibit is clear;
   // - the inhibited number, when the bit of mcountinhibit is set.
