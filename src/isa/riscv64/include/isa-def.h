@@ -21,6 +21,9 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/vreg.h"
 #endif // CONFIG_RVV
+#ifdef CONFIG_RVMATRIX
+#include "../instr/rvmatrix/mreg.h"
+#endif // CONFIG_RVMATRIX
 #include "../local-include/trapinfo.h"
 
 #define FORCE_RAISE_PF
@@ -137,6 +140,20 @@ typedef struct {
   uint64_t vxsat, vxrm, vcsr;
   uint64_t vl, vtype, vlenb;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
+
+#ifdef CONFIG_RVMATRIX
+  // void *tr_file;
+  // void *acc_file;
+  union {
+    uint64_t _64[MRENUM64];
+    uint32_t _32[MRENUM32];
+    uint16_t _16[MRENUM16];
+    uint8_t  _8[MRENUM8];
+  } mtr[8][MRNUM];
+  
+  uint64_t mtype, mtilem, mtilen, mtilek, mlenb, mrlenb, mamul;
+  uint64_t mstart, mcsr;
+#endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR
   uint64_t fcsr;
@@ -349,6 +366,45 @@ typedef struct {
       uint32_t v_amoop   : 5;
     } vamo;
     #endif // CONFIG_RVV
+    #ifdef CONFIG_RVMATRIX
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t rd        : 5;
+      uint32_t funct3    : 3;
+      uint32_t imm13     :13;
+      uint32_t funct4    : 4;       
+    } mcfgi;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t rd        : 5;
+      uint32_t funct3    : 3;
+      uint32_t rs1       : 5;
+      uint32_t pad0      : 8;
+      uint32_t funct4    : 4;       
+    } mcfg;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t td        : 3;
+      uint32_t lmul      : 2;
+      uint32_t eew       : 3;
+      uint32_t rs1       : 5;
+      uint32_t rs2       : 5;
+      uint32_t ls        : 1;
+      uint32_t funct6    : 6;      
+    } mldst;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t td        : 3;
+      uint32_t lmul      : 2;
+      uint32_t funct3    : 3;
+      uint32_t ts1       : 3;
+      uint32_t sa        : 1;
+      uint32_t sn        : 1;
+      uint32_t ts2_rs2   : 5;
+      uint32_t fp        : 1;
+      uint32_t funct6    : 6;
+    } mcompute;
+    #endif // CONFIG_RVMATRIX
 
     #ifdef CONFIG_CUSTOM_TENSOR
     struct {

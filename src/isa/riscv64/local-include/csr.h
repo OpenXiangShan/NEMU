@@ -112,11 +112,22 @@
   #define CSRS_UNPRIV_VECTOR(f)
 #endif // CONFIG_RVV
 
+/** Unprivileged Matrix CSRs **/
+#ifdef CONFIG_RVMATRIX
+  #define CSRS_UNPRIV_MATRIX(f) \
+    f(mtype      , 0xC40) f(mtilem     , 0xC41) f(mtilen     , 0xC42) f(mtilek       , 0xC43) \
+    f(mlenb      , 0xC44) f(mrlenb     , 0xC45) f(mamul      , 0xC46) \
+    f(mstart     , 0x040) f(mcsr       , 0x041) 
+#else // CONFIG_RVMATRIX
+  #define CSRS_UNPRIV_MATRIX(f)
+#endif // CONFIG_RVMATRIX
+
 /** ALL **/
 #define CSRS_UNPRIV(f) \
   CSRS_UNPRIV_FLOAT(f) \
   CSRS_UNPRIV_COUNTER_TIMERS(f) \
-  CSRS_UNPRIV_VECTOR(f)
+  CSRS_UNPRIV_VECTOR(f) \
+  CSRS_UNPRIV_MATRIX(f)
 
 
 /* Supervisor-level CSR */
@@ -1709,6 +1720,64 @@ rtlreg_t get_mask(int reg, int idx);
 void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmul);
 
 #endif // CONFIG_RVV
+
+/** Unprivileged Matrix CSRs **/  
+
+#ifdef CONFIG_RVMATRIX
+
+/*CSR_STRUCT_START(mtype)
+  uint64_t msew   :  3;
+  uint64_t mint4  :  1;
+  uint64_t mint8  :  1;
+  uint64_t mint16 :  1;
+  uint64_t mint32 :  1;
+  uint64_t mint64 :  1;
+  uint64_t mfp8   :  2;
+  uint64_t mfp16  :  2;
+  uint64_t mfp32  :  2;
+  uint64_t mfp64  :  1;
+  uint64_t mba    :  1;
+  uint64_t mma    :  1;
+  uint64_t pad    : 46;
+  uint64_t mill   :  1;
+CSR_STRUCT_END(mtype)*/
+CSR_STRUCT_START(mtype)
+  uint64_t mlmul  :  2;
+  uint64_t msew   :  3;
+  uint64_t mba    :  1;
+  uint64_t mfp64  :  1;
+  uint64_t pad    : 56;
+  uint64_t mill   :  1;
+CSR_STRUCT_END(mtype)
+
+CSR_STRUCT_START(mtilem)
+CSR_STRUCT_END(mtilem)
+
+CSR_STRUCT_START(mtilen)
+CSR_STRUCT_END(mtilen)
+
+CSR_STRUCT_START(mtilek)
+CSR_STRUCT_END(mtilek)
+
+CSR_STRUCT_START(mlenb)
+CSR_STRUCT_END(mlenb) 
+
+CSR_STRUCT_START(mrlenb)
+CSR_STRUCT_END(mrlenb)
+
+CSR_STRUCT_START(mamul)
+CSR_STRUCT_END(mamul)
+
+CSR_STRUCT_START(mstart)
+CSR_STRUCT_END(mstart)
+
+CSR_STRUCT_START(mcsr)
+  uint64_t msat  :  1;
+  uint64_t mmode :  2;
+  uint64_t pad   : 61;
+CSR_STRUCT_END(mcsr)
+
+#endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_RV_ZICNTR
 CSR_STRUCT_START(cycle)

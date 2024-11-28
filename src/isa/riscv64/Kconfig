@@ -98,6 +98,10 @@ config CUSTOM_TENSOR
   bool "RISC-V Tensor Extension (Internal Spec)"
   default n
 
+config RVMATRIX
+  bool "RISC-V Matrix Extension v0.3"
+  default n
+
 config DIFFTEST_DIRTY_FS_VS
   depends on RVV
   depends on DIFFTEST_REF_SPIKE

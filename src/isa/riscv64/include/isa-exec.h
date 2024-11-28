@@ -33,6 +33,9 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/exec.h"
 #endif
+#ifdef CONFIG_RVMATRIX
+#include "../instr/rvmatrix/exec.h"
+#endif
 #ifdef CONFIG_RV_ZICOND
 #include "../instr/rvzicond/exec.h"
 #endif
