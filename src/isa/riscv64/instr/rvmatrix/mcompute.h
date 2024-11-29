@@ -13,6 +13,73 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "mcfg.h"
-#include "mldst.h"
-#include "mcompute.h"
+#include <common.h>
+
+#ifdef CONFIG_RVMATRIX
+
+#include "cpu/exec.h"
+#include "mreg.h"
+#include "../local-include/csr.h"
+#include <stdio.h>
+#include "../local-include/intr.h"
+#include "../local-include/rtl.h"
+#include "../local-include/reg.h"
+
+
+def_EHelper(mmau) {
+  
+}
+
+def_EHelper(mwmau) {
+  
+}
+
+def_EHelper(mqmau) {
+  
+}
+
+def_EHelper(msmau) {
+  
+}
+
+def_EHelper(mswmau) {
+  
+}
+
+def_EHelper(msqmau) {
+  
+}
+
+def_EHelper(mma) {
+  
+}
+
+def_EHelper(mwma) {
+  
+}
+
+def_EHelper(mqma) {
+  
+}
+
+def_EHelper(msma) {
+  
+}
+
+def_EHelper(mswma) {
+  
+}
+
+def_EHelper(msqma) {
+  
+}
+
+def_EHelper(mfma) {
+  
+}
+
+def_EHelper(mfwma) {
+  
+}
+
+#endif // CONFIG_RVMATRIX
