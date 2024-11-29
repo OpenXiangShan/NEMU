@@ -25,268 +25,135 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 
-void set_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew) {
-  Assert(msew <= 3, "msew >= 4 is reserved\n");
-  // TODO: optimize for speed here
-  switch (msew) {
-    case 0 : src_data = src_data & 0xff; break;
-    case 1 : src_data = src_data & 0xffff; break;
-    case 2 : src_data = src_data & 0xffffffff; break;
-    case 3 : src_data = src_data & 0xffffffffffffffff; break;
-  }
-  switch (msew) {
-    case 0 : mtreg_l8(mtr_num, mtr_row, mtr_idx)  = (uint8_t  )src_data; break;
-    case 1 : mtreg_l16(mtr_num, mtr_row, mtr_idx) = (uint16_t )src_data; break;
-    case 2 : mtreg_l32(mtr_num, mtr_row, mtr_idx) = (uint32_t )src_data; break;
-    case 3 : mtreg_l64(mtr_num, mtr_row, mtr_idx) = (uint64_t )src_data; break;
-  }
-}
-
-void get_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew) {
-  Assert(msew <= 3, "msew >= 4 is reserved\n");
-  // TODO: optimize for speed here
-  switch (msew) {
-    case 0 : *dst = mtreg_l8(mtr_num, mtr_row, mtr_idx) ; break;
-    case 1 : *dst = mtreg_l16(mtr_num, mtr_row, mtr_idx); break;
-    case 2 : *dst = mtreg_l32(mtr_num, mtr_row, mtr_idx); break;
-    case 3 : *dst = mtreg_l64(mtr_num, mtr_row, mtr_idx); break;
-  }
-}
-
 // TODO: only support group_size=1 now
 // TODO: not consider mstart now
-def_EHelper(mla) {
+void mld(bool is_trans, char m_name) {
   uint64_t base_addr = s->src1.val;
   int64_t row_byte_stride = s->src2.val;
   uint64_t td = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilek = mtilek->val;
+  int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
+  switch (m_name) {
+    case 'a':
+      rmax_mreg  = mtilem->val;
+      cmax_mreg  = mtilek->val;
+      break;
+    case 'b':
+      rmax_mreg  = mtilek->val;
+      cmax_mreg  = mtilen->val;
+      break;
+    case 'c':
+      rmax_mreg  = mtilem->val;
+      cmax_mreg  = mtilen->val;
+      break;
+    default:
+      break;
+  }
+  rmax_mem = is_trans ? cmax_mreg : rmax_mreg;
+  cmax_mem = is_trans ? rmax_mreg : cmax_mreg;
 
-  Assert((tilem <= MRNUM) && (tilek <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
+  Assert((rmax_mreg <= MRNUM) && (cmax_mreg <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
   Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
-  
+
   uint64_t addr = base_addr;
-  for (int row = 0; row < tilem; row++) {
-    for (int idx = 0; idx < tilek; idx++) {
+  for (int row = 0; row < rmax_mem; row++) {
+    for (int idx = 0; idx < cmax_mem; idx++) {
       addr = base_addr + idx * (s->m_width);
       rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-      set_mtreg(td, row, idx, tmp_reg[0], s->m_eew);
+      int row_tr = is_trans ? idx : row;
+      int idx_tr = is_trans ? row : idx;
+      set_mtreg(td, row_tr, idx_tr, tmp_reg[0], s->m_eew);
     }
     base_addr += row_byte_stride;
   }
+}
+
+void mst(bool is_trans, char m_name) {
+  uint64_t base_addr = s->src1.val;
+  int64_t row_byte_stride = s->src2.val;
+  uint64_t ts3 = s->dest.reg;
+  int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
+  switch (m_name) {
+    case 'a':
+      rmax_mreg  = mtilem->val;
+      cmax_mreg  = mtilek->val;
+      break;
+    case 'b':
+      rmax_mreg  = mtilek->val;
+      cmax_mreg  = mtilen->val;
+      break;
+    case 'c':
+      rmax_mreg  = mtilem->val;
+      cmax_mreg  = mtilen->val;
+      break;
+    default:
+      break;
+  }
+  rmax_mem = is_trans ? cmax_mreg : rmax_mreg;
+  cmax_mem = is_trans ? rmax_mreg : cmax_mreg;
+
+  Assert((rmax_mreg <= MRNUM) && (cmax_mreg <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
+  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
+  
+  uint64_t addr = base_addr;
+  for (int row = 0; row < rmax_mem; row++) {
+    for (int idx = 0; idx < cmax_mem; idx++) {
+      int row_tr = is_trans ? idx : row;
+      int idx_tr = is_trans ? row : idx;
+      get_mtreg(ts3, row_tr, idx_tr, &tmp_reg[0], s->m_eew);
+      addr = base_addr + idx * (s->m_width);
+      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
+    }
+    base_addr += row_byte_stride;
+  }
+}
+
+
+def_EHelper(mla) {
+  mld(false, 'a');
 }
 
 def_EHelper(mlb) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t td = s->dest.reg;
-  uint64_t tilek = mtilek->val;
-  uint64_t tilen = mtilen->val;
-
-  Assert((tilek <= MRNUM) && (tilen <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilek; row++) {
-    for (int idx = 0; idx < tilen; idx++) {
-      addr = base_addr + idx * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-      set_mtreg(td, row, idx, tmp_reg[0], s->m_eew);
-    }
-    base_addr += row_byte_stride;
-  }
+  mld(false, 'b');
 }
 
 def_EHelper(mlc) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t td = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilen = mtilen->val;
-
-  Assert((tilem <= MRNUM) && (tilen <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilem; row++) {
-    for (int idx = 0; idx < tilen; idx++) {
-      addr = base_addr + idx * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-      set_mtreg(td, row, idx, tmp_reg[0], s->m_eew);
-    }
-    base_addr += row_byte_stride;
-  }
+  mld(false, 'c');
 }
 
 def_EHelper(mlat) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t td = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilek = mtilek->val;
-
-  Assert((tilem <= MRNUM) && (tilek <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
-  
-  uint64_t addr = base_addr;
-  for (int row_mem = 0; row_mem < tilek; row_mem++) {
-    for (int idx_mem = 0; idx_mem < tilem; idx_mem++) {
-      addr = base_addr + idx_mem * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-      set_mtreg(td, idx_mem, row_mem, tmp_reg[0], s->m_eew);
-    }
-    base_addr += row_byte_stride;
-  }
+  mld(true, 'a');
 }
 
 def_EHelper(mlbt) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t td = s->dest.reg;
-  uint64_t tilek = mtilek->val;
-  uint64_t tilen = mtilen->val;
-
-  Assert((tilek <= MRNUM) && (tilen <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
-  
-  uint64_t addr = base_addr;
-  for (int row_mem = 0; row_mem < tilen; row_mem++) {
-    for (int idx_mem = 0; idx_mem < tilek; idx_mem++) {
-      addr = base_addr + idx_mem * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-      set_mtreg(td, idx_mem, row_mem, tmp_reg[0], s->m_eew);
-    }
-    base_addr += row_byte_stride;
-  }
+  mld(true, 'b');
 }
 
 def_EHelper(mlct) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t td = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilen = mtilen->val;
-
-  Assert((tilem <= MRNUM) && (tilen <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
-  
-  uint64_t addr = base_addr;
-  for (int row_mem = 0; row_mem < tilen; row_mem++) {
-    for (int idx_mem = 0; idx_mem < tilem; idx_mem++) {
-      addr = base_addr + idx_mem * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-      set_mtreg(td, idx_mem, row_mem, tmp_reg[0], s->m_eew);
-    }
-    base_addr += row_byte_stride;
-  }
+  mld(true, 'c');
 }
 
 def_EHelper(msa) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t ts3 = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilek = mtilek->val;
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilem; row++) {
-    for (int idx = 0; idx < tilek; idx++) {
-      get_mtreg(ts3, row, idx, &tmp_reg[0], s->m_eew);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-    }
-    base_addr += row_byte_stride;
-  }
+  mst(false, 'a');
 }
 
 def_EHelper(msb) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t ts3 = s->dest.reg;
-  uint64_t tilek = mtilek->val;
-  uint64_t tilen = mtilen->val;
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilek; row++) {
-    for (int idx = 0; idx < tilen; idx++) {
-      get_mtreg(ts3, row, idx, &tmp_reg[0], s->m_eew);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-    }
-    base_addr += row_byte_stride;
-  }
+  mst(false, 'b');
 }
 
 def_EHelper(msc) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t ts3 = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilen = mtilen->val;
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilem; row++) {
-    for (int idx = 0; idx < tilen; idx++) {
-      get_mtreg(ts3, row, idx, &tmp_reg[0], s->m_eew);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-    }
-    base_addr += row_byte_stride;
-  }
+  mst(false, 'c');
 }
 
 def_EHelper(msat) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t ts3 = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilek = mtilek->val;
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilek; row++) {
-    for (int idx = 0; idx < tilem; idx++) {
-      get_mtreg(ts3, idx, row, &tmp_reg[0], s->m_eew);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-    }
-    base_addr += row_byte_stride;
-  }
+  mst(true, 'a');
 }
 
 def_EHelper(msbt) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t ts3 = s->dest.reg;
-  uint64_t tilek = mtilek->val;
-  uint64_t tilen = mtilen->val;
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilen; row++) {
-    for (int idx = 0; idx < tilek; idx++) {
-      get_mtreg(ts3, idx, row, &tmp_reg[0], s->m_eew);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-    }
-    base_addr += row_byte_stride;
-  }
+  mst(true, 'b');
 }
 
 def_EHelper(msct) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
-  uint64_t ts3 = s->dest.reg;
-  uint64_t tilem = mtilem->val;
-  uint64_t tilen = mtilen->val;
-  
-  uint64_t addr = base_addr;
-  for (int row = 0; row < tilen; row++) {
-    for (int idx = 0; idx < tilem; idx++) {
-      get_mtreg(ts3, idx, row, &tmp_reg[0], s->m_eew);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
-    }
-    base_addr += row_byte_stride;
-  }
+  mst(true, 'c');
 }
 
 #endif // CONFIG_RVMATRIX
