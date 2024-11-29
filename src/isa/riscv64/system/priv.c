@@ -207,6 +207,29 @@ static inline bool csr_counter_enable_check(uint32_t addr) {
   return has_vi;
 }
 
+static inline bool is_U_custom_csr(uint32_t addr) {
+  return (addr >= 0x800 && addr <= 0x8ff) ||
+         (addr >= 0xcc0 && addr <= 0xcff);
+}
+
+static inline bool is_S_custom_csr(uint32_t addr) {
+  return (addr >= 0x5c0 && addr <= 0x5ff) ||
+         (addr >= 0x9c0 && addr <= 0x9ff) ||
+         (addr >= 0xdc0 && addr <= 0xdff);
+}
+
+static inline bool is_H_custom_csr(uint32_t addr) {
+  return (addr >= 0x6c0 && addr <= 0x6ff) ||
+         (addr >= 0xac0 && addr <= 0xaff) ||
+         (addr >= 0xec0 && addr <= 0xeff);
+}
+
+static inline bool is_M_custom_csr(uint32_t addr) {
+  return (addr >= 0x7c0 && addr <= 0x7ff) ||
+         (addr >= 0xbc0 && addr <= 0xbff) ||
+         (addr >= 0xfc0 && addr <= 0xfff);
+}
+
 static inline bool csr_normal_permit_check(uint32_t addr) {
   bool has_vi = false;
   assert(addr < 4096);
@@ -215,15 +238,15 @@ static inline bool csr_normal_permit_check(uint32_t addr) {
     MUXDEF(CONFIG_PANIC_ON_UNIMP_CSR, panic("[NEMU] unimplemented CSR 0x%x", addr), longjmp_exception(EX_II));
   }
 
-  // VS access Custom csr will cause EX_II
+  // We currently only support S-mode CSRs
+  // VS access Custom csr will cause EX_II when Smstateen is not supported
+  #ifndef CONFIG_RV_SMSTATEEN
   #ifdef CONFIG_RVH
-  bool is_custom_csr =  (addr >= 0x5c0 && addr <= 0x5ff) ||
-                        (addr >= 0x9c0 && addr <= 0x9ff) ||
-                        (addr >= 0xdc0 && addr <= 0xdff);
-  if(cpu.v && cpu.mode == MODE_S && is_custom_csr){
+  if(cpu.v && cpu.mode == MODE_S && is_S_custom_csr(addr)){
     longjmp_exception(EX_II);
   }
   #endif // CONFIG_RVH
+  #endif // CONFIG_RV_SMSTATEEN
 
   // M/HS/VS/HU/VU access debug csr will cause EX_II
   bool isDebugReg = BITS(addr, 11, 4) == 0x7b; // addr(11,4)
@@ -2196,20 +2219,74 @@ static inline bool satp_permit_check(const word_t *dest_access){
 
 // VS/VU access stateen should be EX_II when mstateen0->se0 is false.
 #ifdef CONFIG_RV_SMSTATEEN
-static inline bool smstateen_extension_permit_check(const word_t *dest_access) {
+static inline bool smstateen_extension_permit_check(const uint32_t addr) {
+  word_t *dest_access = csr_decode(addr);
   bool has_vi = false;
+
+  // SE0 bit 63
   if (is_access(sstateen0)) {
     if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
-#ifdef CONFIG_RVH
-    else if (cpu.v && mstateen0->se0 && !hstateen0->se0) { has_vi = true; }
-#endif // CONFIG_RVH
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->se0) { has_vi = true; })
   }
 #ifdef CONFIG_RVH
   else if (is_access(hstateen0)) {
     if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
-    else if (cpu.v && mstateen0->se0) { has_vi = true;}
   }
 #endif // CONFIG_RVH
+
+  // ENVCFG bit 62
+  else if (is_access(senvcfg)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->envcfg)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->envcfg) { has_vi = true; })
+  }
+#ifdef CONFIG_RVH
+  else if (is_access(henvcfg)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->envcfg)) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_RV_AIA
+  // AIA bit 59
+  else if (is_access(stopi)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->aia)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->aia) { has_vi = true; })
+  }
+  else if (is_access(vstopi) || is_access(hvien) || is_access(hvictl) || is_access(hviprio1) || is_access(hviprio2)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->aia)) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RV_AIA
+
+#ifdef CONFIG_RV_IMSIC
+  // IMISC bit 58
+  else if (is_access(stopei)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->imsic)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->imsic) { has_vi = true; })
+  }
+  else if (is_access(vstopei)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->imsic)) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RV_IMSIC
+
+  // Custom bit 0
+  else if (is_S_custom_csr(addr)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->c)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->c) { has_vi = true; })
+  }
+#ifdef CONFIG_RVH
+  else if (is_H_custom_csr(addr)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->c)) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RVH
+  else if (is_U_custom_csr(addr)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->c)) { longjmp_exception(EX_II); }
+#ifdef CONFIG_RVH
+    else if (cpu.v && (!hstateen0->c)) { has_vi = true; }
+    else if (cpu.v && (cpu.mode == MODE_U) && (!sstateen0->c)) { has_vi = true; }
+#else // !CONFIG_RVH
+    else if ((cpu.mode == MODE_U) && (!sstateen0->c)) { longjmp_exception(EX_II); }
+#endif // CONFIG_RVH
+  }
+
   return has_vi;
 }
 #endif // CONFIG_RV_SMSTATEEN
@@ -2335,7 +2412,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
     has_vi |= csr_counter_enable_check(addr);
   }
   // check smstateen
-  IFDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(dest_access));
+  IFDEF(CONFIG_RV_SMSTATEEN, has_vi |= smstateen_extension_permit_check(addr));
 
   // check aia
   IFDEF(CONFIG_RV_IMSIC, has_vi |= aia_extension_permit_check(dest_access, is_write));
