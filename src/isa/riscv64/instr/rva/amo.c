@@ -23,7 +23,16 @@
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
+  int rd = s->isa.instr.r.rd;
+  int rs2 = s->isa.instr.r.rs2;
   int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
+  width = BITS(s->isa.instr.r.funct3, 2, 2) == 0 ? width : 16;
+
+  if (funct5 == 0b00101) { // amocas
+    if (width == 16 && ((rd % 2 == 1) || (rs2 % 2 == 1))) { // amocas.q 128-bit
+      longjmp_exception(EX_II);
+    }
+  }
 
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = TRIG_ACTION_NONE;
@@ -90,13 +99,16 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
 #ifdef CONFIG_RV_ZACAS
   if (funct5 == 0b00101) { // amocas
-    width = BITS(s->isa.instr.r.funct3, 2, 2) == 0 ? width : 16;
-    int rd = s->isa.instr.r.rd;
-    int rs2 = s->isa.instr.r.rs2;
-    if (width == 16 && ((rd % 2 == 1) || (rs2 % 2 == 1))) {
-      longjmp_exception(EX_II);
-    }
     cpu.amo = true;
+    // check store behavior before actually load or store
+    uint64_t paddr = *dsrc1;
+    if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
+      paddr = isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
+    }
+    if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)) {
+      cpu.trapInfo.tval = *src1;
+      longjmp_exception(EX_SAF);
+    }
     switch (width) {
       case 4:
         rtl_lms(s, s0, src1, 0, 4, MMU_DYNAMIC);
