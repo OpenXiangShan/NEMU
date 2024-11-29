@@ -194,7 +194,12 @@
   f(mla) f(mlb) f(mlc) \
   f(mlat) f(mlbt) f(mlct) \
   f(msa) f(msb) f(msc) \
-  f(msat) f(msbt) f(msct)
+  f(msat) f(msbt) f(msct) \
+  f(mmau) f(mwmau) f(mqmau) \
+  f(msmau) f(mswmau) f(msqmau) \
+  f(mma) f(mwma) f(mqma) \
+  f(msma) f(mswma) f(msqma) \
+  f(mfma) f(mfwma)
 #else
 #define MATRIX_INSTR_BINARY(f)
 #define MATRIX_INSTR_TERNARY(f)
