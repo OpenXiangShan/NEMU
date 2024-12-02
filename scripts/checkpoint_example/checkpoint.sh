@@ -12,7 +12,7 @@ checkpoint(){
     $NEMU ${BBL_PATH}/${workload}.bin \
          -D $RESULT -w ${workload} -C spec-cpt${cluster_times}         \
          -b -S $CLUSTER --cpt-interval $interval \
-         -r $GCPT > $log/${workload}-out.txt 2>$log/${workload}-err.txt 
+         --checkpoint-format zstd > $log/${workload}-out.txt 2>$log/${workload}-err.txt 
 }
 
 export -f checkpoint

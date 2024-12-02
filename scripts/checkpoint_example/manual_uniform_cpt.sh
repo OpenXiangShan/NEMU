@@ -13,7 +13,6 @@ manual_uniform_cpt(){
     $NEMU ${BBL_PATH}/${workload}-bbl-linux-spec.bin \
         -D $RESULT -w $workload -C $name      \
         -b --cpt-interval ${interval}            \
-        --manual-uniform-cpt \
-        -r $GCPT > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
+        --manual-uniform-cpt --checkpoint-format zstd > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
 
 }
