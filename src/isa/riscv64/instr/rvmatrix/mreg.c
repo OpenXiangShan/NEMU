@@ -24,7 +24,6 @@
 
 void set_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew) {
   Assert(msew <= 3, "msew >= 4 is reserved\n");
-  // TODO: optimize for speed here
   switch (msew) {
     case 0 : src_data = src_data & 0xff; break;
     case 1 : src_data = src_data & 0xffff; break;
@@ -32,21 +31,21 @@ void set_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_
     case 3 : src_data = src_data & 0xffffffffffffffff; break;
   }
   switch (msew) {
-    case 0 : mtreg_l8(mtr_num, mtr_row, mtr_idx)  = (uint8_t  )src_data; break;
-    case 1 : mtreg_l16(mtr_num, mtr_row, mtr_idx) = (uint16_t )src_data; break;
-    case 2 : mtreg_l32(mtr_num, mtr_row, mtr_idx) = (uint32_t )src_data; break;
-    case 3 : mtreg_l64(mtr_num, mtr_row, mtr_idx) = (uint64_t )src_data; break;
+    case 0 : mtreg_l8(mtr_num, mtr_row, mtr_idx)  = (uint8_t )src_data; break;
+    case 1 : mtreg_l16(mtr_num, mtr_row, mtr_idx) = (uint16_t)src_data; break;
+    case 2 : mtreg_l32(mtr_num, mtr_row, mtr_idx) = (uint32_t)src_data; break;
+    case 3 : mtreg_l64(mtr_num, mtr_row, mtr_idx) = (uint64_t)src_data; break;
   }
 }
 
-void get_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew) {
+void get_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed) {
   Assert(msew <= 3, "msew >= 4 is reserved\n");
-  // TODO: optimize for speed here
+  // TODO: check index size not larger than mtreg size here
   switch (msew) {
-    case 0 : *dst = mtreg_l8(mtr_num, mtr_row, mtr_idx) ; break;
-    case 1 : *dst = mtreg_l16(mtr_num, mtr_row, mtr_idx); break;
-    case 2 : *dst = mtreg_l32(mtr_num, mtr_row, mtr_idx); break;
-    case 3 : *dst = mtreg_l64(mtr_num, mtr_row, mtr_idx); break;
+    case 0 : *dst = is_signed ? (int64_t)(int8_t )mtreg_l8(mtr_num, mtr_row, mtr_idx)  : mtreg_l8(mtr_num, mtr_row, mtr_idx) ; break;
+    case 1 : *dst = is_signed ? (int64_t)(int16_t)mtreg_l16(mtr_num, mtr_row, mtr_idx) : mtreg_l16(mtr_num, mtr_row, mtr_idx); break;
+    case 2 : *dst = is_signed ? (int64_t)(int32_t)mtreg_l32(mtr_num, mtr_row, mtr_idx) : mtreg_l32(mtr_num, mtr_row, mtr_idx); break;
+    case 3 : *dst = is_signed ? (int64_t)(int64_t)mtreg_l64(mtr_num, mtr_row, mtr_idx) : mtreg_l64(mtr_num, mtr_row, mtr_idx); break;
   }
 }
 

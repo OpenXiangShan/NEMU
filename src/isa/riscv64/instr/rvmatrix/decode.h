@@ -46,6 +46,9 @@ static inline def_DHelper(mcompute) {
   s->src1.reg = s->isa.instr.mcompute.ts1;
   s->src2.reg = s->isa.instr.mcompute.ts2_rs2;
   s->dest.reg = s->isa.instr.mcompute.td;
+  s->m_eew = mtype->msew;
+  s->m_width = 1 << s->m_eew;
+  Log("mcompute inst: mtype->msew = %x", mtype->msew);
 }
 
 
