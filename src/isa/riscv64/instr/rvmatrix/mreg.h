@@ -57,7 +57,7 @@ static inline int check_mtreg_idx(int idx, int elen) {
 #define mtreg_l8(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._8[check_mtreg_idx(idx, 8)])
 
 void set_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
-void get_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew);
+void get_mtreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
 
 #endif //__RISCV64_MREG_H__
 
