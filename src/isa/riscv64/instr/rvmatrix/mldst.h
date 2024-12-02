@@ -99,7 +99,7 @@ void mst(bool is_trans, char m_name) {
     for (int idx = 0; idx < cmax_mem; idx++) {
       int row_tr = is_trans ? idx : row;
       int idx_tr = is_trans ? row : idx;
-      get_mtreg(ts3, row_tr, idx_tr, &tmp_reg[0], s->m_eew);
+      get_mtreg(ts3, row_tr, idx_tr, &tmp_reg[0], s->m_eew, false);
       addr = base_addr + idx * (s->m_width);
       rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
     }
