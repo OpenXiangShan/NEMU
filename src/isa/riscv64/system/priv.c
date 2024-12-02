@@ -1589,10 +1589,11 @@ static void csr_write(uint32_t csrid, word_t src) {
       uint64_t sstatus_wmask = SSTATUS_WMASK;
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
-      if (menvcfg->dte == 0 ) {
-        new_val.sdt = 0;
-      }
       write_sdt = new_val.sdt;
+      if (menvcfg->dte == 0 ) {
+        sstatus_wmask &= ~SSTATUS_SDT;
+        write_sdt = 0;
+      }
 #endif //CONFIG_RV_SSDBLTRP
       mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, new_val.val); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
 #ifdef CONFIG_RV_SSDBLTRP
