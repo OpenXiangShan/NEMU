@@ -499,7 +499,6 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
     // printf("[DEBUG] split low addr store addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
     // printf("[DEBUG] split high addr store addr: %lx, data: %lx, mask: %lx\n", high_addr_st->addr, high_addr_st->data, (uint64_t)(high_addr_st->mask));
   }
-
 }
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
