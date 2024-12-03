@@ -176,8 +176,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   if (delegS && !s_EX_DT) {
 #endif
     scause->val = NO;
+    uint64_t oldsepc = sepc->val;
     sepc->val = epc;
     mstatus->spp = cpu.mode;
+    Logti("[NEMU] delegS, epc: 0x%lx, oldsepc: 0x%lx, newsepc: 0x%lx", epc, oldsepc, sepc->val);
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
     mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);

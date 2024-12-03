@@ -46,7 +46,7 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
-
+bool log_bool = false;
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
   Logti("%s\n", asmbuf);
@@ -565,8 +565,12 @@ static int execute(int n) {
               s.isa.instr.val);
     }
 #endif
+    Logti("[NEMU] exec epc: 0x%lx, pc: 0x%lx", cpu.sepc, cpu.pc);
     s.EHelper(&s);
     g_nr_guest_instr++;
+    if ( g_nr_guest_instr >= 0x58CF9880ULL){
+      log_bool =true;
+    }
 #ifdef CONFIG_BR_LOG
 #ifdef CONFIG_LIGHTQS_DEBUG
     if (g_nr_guest_instr == 10000) {
