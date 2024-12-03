@@ -332,6 +332,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATUS_WMASK_VTVM    (0x1UL << 20)
 #define HSTATUS_WMASK_VTM     (0x1UL << 21)
 #define HSTATUS_WMASK_VTSR    (0x1UL << 22)
+#define HSTATUS_WMASK_HUPMM   MUXDEF(CONFIG_RV_SSNPM, HSTATUS_HUPMM, 0)
 
 #define HSTATUS_WMASK (   \
   HSTATUS_WMASK_GVA     | \
@@ -341,7 +342,8 @@ static inline word_t* csr_decode(uint32_t addr) {
   HSTATUS_WMASK_VGEIN   | \
   HSTATUS_WMASK_VTVM    | \
   HSTATUS_WMASK_VTM     | \
-  HSTATUS_WMASK_VTSR      \
+  HSTATUS_WMASK_VTSR    | \
+  HSTATUS_WMASK_HUPMM     \
 )
 
 #define MENVCFG_RMASK_STCE    (0x1UL << 63)
@@ -350,13 +352,15 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MENVCFG_RMASK_CBZE    (0x1UL << 7)
 #define MENVCFG_RMASK_CBCFE   (0x1UL << 6)
 #define MENVCFG_RMASK_CBIE    (0x3UL << 4)
+#define MENVCFG_RMASK_PMM     MENVCFG_PMM
 #define MENVCFG_RMASK (   \
   MENVCFG_RMASK_STCE    | \
   MENVCFG_RMASK_PBMTE   | \
   MENVCFG_RMASK_DTE     | \
   MENVCFG_RMASK_CBZE    | \
   MENVCFG_RMASK_CBCFE   | \
-  MENVCFG_RMASK_CBIE      \
+  MENVCFG_RMASK_CBIE    | \
+  MENVCFG_RMASK_PMM       \
 )
 
 #define MENVCFG_WMASK_STCE    MUXDEF(CONFIG_RV_SSTC, MENVCFG_RMASK_STCE, 0)
@@ -365,21 +369,40 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MENVCFG_WMASK_CBZE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBZE, 0)
 #define MENVCFG_WMASK_CBCFE   MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBCFE, 0)
 #define MENVCFG_WMASK_CBIE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBIE, 0)
+#define MENVCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SMNPM, MENVCFG_RMASK_PMM, 0)
 #define MENVCFG_WMASK (    \
   MENVCFG_WMASK_STCE     | \
   MENVCFG_WMASK_PBMTE    | \
   MENVCFG_WMASK_DTE      | \
   MENVCFG_WMASK_CBZE     | \
   MENVCFG_WMASK_CBCFE    | \
-  MENVCFG_WMASK_CBIE       \
+  MENVCFG_WMASK_CBIE     | \
+  MENVCFG_WMASK_PMM        \
 )
 
+#define SENVCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SSNPM, SENVCFG_PMM, 0)
 #define SENVCFG_WMASK (    \
   MENVCFG_WMASK_CBZE     | \
   MENVCFG_WMASK_CBCFE    | \
-  MENVCFG_WMASK_CBIE       \
+  MENVCFG_WMASK_CBIE     | \
+  SENVCFG_WMASK_PMM        \
 )
-#define HENVCFG_WMASK MENVCFG_WMASK
+
+#define HENVCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SSNPM, HENVCFG_PMM, 0)
+#define HENVCFG_WMASK (    \
+  MENVCFG_WMASK_STCE     | \
+  MENVCFG_WMASK_PBMTE    | \
+  MENVCFG_WMASK_DTE      | \
+  MENVCFG_WMASK_CBZE     | \
+  MENVCFG_WMASK_CBCFE    | \
+  MENVCFG_WMASK_CBIE     | \
+  HENVCFG_WMASK_PMM        \
+)
+
+#define MSECCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SMMPM, MSECCFG_PMM, 0)
+#define MSECCFG_WMASK (    \
+  MSECCFG_WMASK_PMM        \
+)
 
 #ifdef CONFIG_RV_ZICNTR
   #define COUNTEREN_ZICNTR_MASK (0x7UL)
@@ -758,7 +781,7 @@ static inline word_t vmode_get_ip(word_t old_value, word_t begin, word_t end) {
   old_value |= mask & ((get_mip() & (mideleg->val  & hideleg->val)) |
                       (mvip->val & (~mideleg->val & hideleg->val & mvien->val)) |
                       (hvip->val & (~hideleg->val & hvien->val)));
-  
+
   return old_value;
 }
 #endif // CONFIG_RV_AIA
@@ -1120,7 +1143,7 @@ inline void update_mtopi() {
   bool miprios_is_zero = iprio_is_zero(cpu.MIprios);
   uint64_t mtopi_gather = get_mip() & mie->val & (~(mideleg->val));
   bool mtopi_is_not_zero = mtopi_gather != 0;
-  
+
   set_iprios_sort(mtopi_gather, cpu.MIpriosSort, cpu.MIprios);
   uint8_t m_iid_idx = high_iprio(cpu.MIpriosSort, IRQ_MEIP);
   uint8_t m_iid_num = interrupt_default_prio[m_iid_idx];
@@ -1141,7 +1164,7 @@ inline void update_mtopi() {
       } else if ((m_prio_num == 0) && m_iid_default_prio_high_MEI) {
         mtopi->iprio = 0;
       }
-    } 
+    }
   } else {
     mtopi->val = 0;
   }
@@ -1324,7 +1347,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_SIE:
       IFDEF(CONFIG_RVH, if (cpu.v) return vmode_get_sie());
       return non_vmode_get_sie();
-    case CSR_STVEC: 
+    case CSR_STVEC:
       IFDEF(CONFIG_RVH, if (cpu.v) return vstvec->val);
       return stvec->val;
     case CSR_SSCRATCH:
@@ -1435,7 +1458,7 @@ static word_t csr_read(uint32_t csrid) {
 #ifndef CONFIG_RVH
         difftest_skip_ref();
         return mip->val;
-#else 
+#else
         return get_mip();
 #endif
 
@@ -1480,7 +1503,7 @@ static word_t csr_read(uint32_t csrid) {
 #endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 
-    case CSR_MCYCLE: 
+    case CSR_MCYCLE:
       // NEMU emulates a hart with CPI = 1.
       difftest_skip_ref();
       return get_mcycle();
@@ -1605,9 +1628,12 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_SCOUNTEREN: scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src); break;
 
     case CSR_SENVCFG:
-      senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+      senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~SENVCFG_WMASK_PMM), src);
       if (((senvcfg_t*)&src)->cbie != 0b10) { // 0b10 is reserved
         senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
+      }
+      if (((senvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
+        senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK_PMM, src);
       }
       break;
 
@@ -1749,7 +1775,12 @@ static void csr_write(uint32_t csrid, word_t src) {
     }
     case CSR_HEDELEG: hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); break;
     case CSR_HIDELEG: hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src); break;
-    case CSR_HSTATUS: hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK, src); break;
+    case CSR_HSTATUS:
+      hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK & (~HSTATUS_WMASK_HUPMM), src);
+      if (((hstatus_t*)&src)->hupmm != 0b01) { // 0b01 is reserved
+        hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK_HUPMM, src);
+      }
+      break;
     case CSR_HIE: mie->val = mask_bitset(mie->val, HIE_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); break;
     case CSR_HCOUNTEREN: hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src); break;
 
@@ -1758,9 +1789,12 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_AIA
 
     case CSR_HENVCFG:
-      henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+      henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~HENVCFG_WMASK_PMM), src);
       if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
         henvcfg->val = mask_bitset(henvcfg->val, MENVCFG_WMASK_CBIE, src);
+      }
+      if (((henvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
+        henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK_PMM, src);
       }
 #ifdef CONFIG_RV_SSDBLTRP
       if(henvcfg->dte == 0) {
@@ -1871,9 +1905,19 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_AIA
 
     case CSR_MENVCFG:
-      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE), src);
+      menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~MENVCFG_WMASK_PMM), src);
       if (((menvcfg_t*)&src)->cbie != 0b10) { // 0b10 is reserved
         menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_CBIE, src);
+      }
+      if (((menvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
+        menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_PMM, src);
+      }
+      break;
+
+    case CSR_MSECCFG:
+      mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK & (~MSECCFG_WMASK_PMM), src);
+      if (((mseccfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
+        mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK_PMM, src);
       }
       break;
 
@@ -2184,7 +2228,7 @@ static bool aia_extension_permit_check(const word_t *dest_access, bool is_write)
     if (
       (miselect->val <= ISELECT_2F_MASK) ||
       (miselect->val > ISELECT_2F_MASK && miselect->val <= ISELECT_3F_MASK && miselect->val & 0x1) ||
-      (miselect->val > ISELECT_3F_MASK && miselect->val <= ISELECT_6F_MASK) || 
+      (miselect->val > ISELECT_3F_MASK && miselect->val <= ISELECT_6F_MASK) ||
       (miselect->val > ISELECT_7F_MASK && miselect->val <= ISELECT_MAX_MASK && miselect->val & 0x1) ||
       (miselect->val > ISELECT_MAX_MASK)
     ) {
@@ -2343,12 +2387,12 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
 
 static bool execIn (cpu_mode_t mode) {
   switch (mode) {
-    case CPU_MODE_M:  
+    case CPU_MODE_M:
       return cpu.mode == MODE_M;
-    case CPU_MODE_S:  
-      return cpu.mode == MODE_S && MUXDEF(CONFIG_RVH, !cpu.v, 1); 
+    case CPU_MODE_S:
+      return cpu.mode == MODE_S && MUXDEF(CONFIG_RVH, !cpu.v, 1);
   #ifdef CONFIG_RVH
-    case CPU_MODE_VS: 
+    case CPU_MODE_VS:
       return cpu.mode == MODE_S && cpu.v;
     case CPU_MODE_VU:
       return cpu.mode == MODE_U && cpu.v;
@@ -2367,11 +2411,11 @@ static bool mretTo (cpu_mode_t mode) {
     case CPU_MODE_S:
       return mstatus->mpp == MODE_S && MUXDEF(CONFIG_RVH, !mstatus->mpv, 1);
   #ifdef CONFIG_RVH
-    case CPU_MODE_VS: 
+    case CPU_MODE_VS:
       return mstatus->mpp == MODE_S && mstatus->mpv;
     case CPU_MODE_VU:
       return mstatus->mpp == MODE_U && mstatus->mpv;
-  #endif  
+  #endif
     case CPU_MODE_U:
       return mstatus->mpp == MODE_U && MUXDEF(CONFIG_RVH, !mstatus->mpv, 1);
     default:
@@ -2387,11 +2431,11 @@ static bool mnretTo (cpu_mode_t mode) {
     case CPU_MODE_S:
       return mnstatus->mnpp == MODE_S && MUXDEF(CONFIG_RVH, !mnstatus->mnpv, 1);
   #ifdef CONFIG_RVH
-    case CPU_MODE_VS: 
+    case CPU_MODE_VS:
       return mnstatus->mnpp == MODE_S && mnstatus->mnpv;
     case CPU_MODE_VU:
       return mnstatus->mnpp == MODE_U && mnstatus->mnpv;
-  #endif  
+  #endif
     case CPU_MODE_U:
       return mnstatus->mnpp == MODE_U &&  MUXDEF(CONFIG_RVH, !mnstatus->mnpv, 1);
     default:
@@ -2406,11 +2450,11 @@ static bool sretTo (cpu_mode_t mode) {
     case CPU_MODE_S:
       return mstatus->spp == MODE_S && MUXDEF(CONFIG_RVH, !hstatus->spv, 1);
   #ifdef CONFIG_RVH
-    case CPU_MODE_VS: 
+    case CPU_MODE_VS:
       return mstatus->spp == MODE_S && hstatus->spv;
     case CPU_MODE_VU:
       return mstatus->spp == MODE_U && hstatus->spv;
-  #endif  
+  #endif
     case CPU_MODE_U:
       return mstatus->spp == MODE_U && MUXDEF(CONFIG_RVH, !hstatus->spv, 1);
     default:
@@ -2543,7 +2587,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       }
       cpu.mode = mnstatus->mnpp;
       mnstatus->mnpp = MODE_U;
-      mnstatus->nmie = 1; 
+      mnstatus->nmie = 1;
       update_mmu_state();
       Loge("Executing mnret to 0x%lx", mnepc->val);
       return mnepc->val;

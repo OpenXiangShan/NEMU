@@ -127,3 +127,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 bool isa_pmp_check_permission(paddr_t paddr, int len, int type, int mode) {
   return true; // TODO: complete it
 }
+
+vaddr_t get_effective_address(vaddr_t vaddr, int type) {
+  return vaddr;
+}
