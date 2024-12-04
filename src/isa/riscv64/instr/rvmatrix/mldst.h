@@ -25,25 +25,25 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 
-// TODO: only support group_size=1 now
 // TODO: not consider mstart now
 void mld(bool is_trans, char m_name) {
   uint64_t base_addr = s->src1.val;
   int64_t row_byte_stride = s->src2.val;
   uint64_t td = s->dest.reg;
+  int lmul = s->m_groupsize;
   int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
   switch (m_name) {
     case 'a':
       rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilek->val;
+      cmax_mreg  = (mtilek->val)/lmul;
       break;
     case 'b':
       rmax_mreg  = mtilek->val;
-      cmax_mreg  = mtilen->val;
+      cmax_mreg  = (mtilen->val)/lmul;
       break;
     case 'c':
       rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilen->val;
+      cmax_mreg  = (mtilen->val)/lmul;
       break;
     default:
       break;
@@ -51,17 +51,19 @@ void mld(bool is_trans, char m_name) {
   rmax_mem = is_trans ? cmax_mreg : rmax_mreg;
   cmax_mem = is_trans ? rmax_mreg : cmax_mreg;
 
-  Assert((rmax_mreg <= MRNUM) && (cmax_mreg <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
+  Assert((rmax_mreg <= MRNUM) && (cmax_mreg <= MRENUM8/(s->m_width)), "mtile config should not larger than lmul*tile_reg size!\n");
 
   uint64_t addr = base_addr;
   for (int row = 0; row < rmax_mem; row++) {
-    for (int idx = 0; idx < cmax_mem; idx++) {
-      addr = base_addr + idx * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
-      int row_tr = is_trans ? idx : row;
-      int idx_tr = is_trans ? row : idx;
-      set_mtreg(td, row_tr, idx_tr, tmp_reg[0], s->m_eew);
+    for (int m = 0; m < lmul; m++) {
+      addr = base_addr + m * cmax_mem * (s->m_width);
+      for (int idx = 0; idx < cmax_mem; idx++) {
+        rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
+        int row_tr = is_trans ? idx : row;
+        int idx_tr = is_trans ? row : idx;
+        set_mtreg(td+m, row_tr, idx_tr, tmp_reg[0], s->m_eew);
+        addr += s->m_width;
+      }
     }
     base_addr += row_byte_stride;
   }
@@ -71,19 +73,20 @@ void mst(bool is_trans, char m_name) {
   uint64_t base_addr = s->src1.val;
   int64_t row_byte_stride = s->src2.val;
   uint64_t ts3 = s->dest.reg;
+  int lmul = s->m_groupsize;
   int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
   switch (m_name) {
     case 'a':
       rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilek->val;
+      cmax_mreg  = (mtilek->val)/lmul;
       break;
     case 'b':
       rmax_mreg  = mtilek->val;
-      cmax_mreg  = mtilen->val;
+      cmax_mreg  = (mtilen->val)/lmul;
       break;
     case 'c':
       rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilen->val;
+      cmax_mreg  = (mtilen->val)/lmul;
       break;
     default:
       break;
@@ -91,17 +94,19 @@ void mst(bool is_trans, char m_name) {
   rmax_mem = is_trans ? cmax_mreg : rmax_mreg;
   cmax_mem = is_trans ? rmax_mreg : cmax_mreg;
 
-  Assert((rmax_mreg <= MRNUM) && (cmax_mreg <= MRENUM8/(s->m_width)), "mtile config should not larger than tile_reg size!\n");
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n");
+  Assert((rmax_mreg <= MRNUM) && (cmax_mreg <= MRENUM8/(s->m_width)), "mtile config should not larger than lmul*tile_reg size!\n");
   
   uint64_t addr = base_addr;
   for (int row = 0; row < rmax_mem; row++) {
-    for (int idx = 0; idx < cmax_mem; idx++) {
-      int row_tr = is_trans ? idx : row;
-      int idx_tr = is_trans ? row : idx;
-      get_mtreg(ts3, row_tr, idx_tr, &tmp_reg[0], s->m_eew, false);
-      addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
+    for (int m = 0; m < lmul; m++) {
+      addr = base_addr + m * cmax_mem * (s->m_width);
+      for (int idx = 0; idx < cmax_mem; idx++) {
+        int row_tr = is_trans ? idx : row;
+        int idx_tr = is_trans ? row : idx;
+        get_mtreg(ts3+m, row_tr, idx_tr, &tmp_reg[0], s->m_eew, false);
+        rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
+        addr += s->m_width;
+      }
     }
     base_addr += row_byte_stride;
   }
