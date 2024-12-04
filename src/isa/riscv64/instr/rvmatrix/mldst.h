@@ -58,7 +58,7 @@ void mld(bool is_trans, char m_name) {
   for (int row = 0; row < rmax_mem; row++) {
     for (int idx = 0; idx < cmax_mem; idx++) {
       addr = base_addr + idx * (s->m_width);
-      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
+      rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
       int row_tr = is_trans ? idx : row;
       int idx_tr = is_trans ? row : idx;
       set_mtreg(td, row_tr, idx_tr, tmp_reg[0], s->m_eew);
@@ -101,7 +101,7 @@ void mst(bool is_trans, char m_name) {
       int idx_tr = is_trans ? row : idx;
       get_mtreg(ts3, row_tr, idx_tr, &tmp_reg[0], s->m_eew, false);
       addr = base_addr + idx * (s->m_width);
-      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_DIRECT);
+      rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
     }
     base_addr += row_byte_stride;
   }

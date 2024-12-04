@@ -69,7 +69,7 @@ void init_isa() {
   // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
   mstatus->val = 0xaUL << 32;
   // initialize the value fs and vs to 0
-  mstatus->fs = 0;
+  mstatus->fs = 1;
   mstatus->vs = 0;
   // initialize SDT, MDT
   mstatus->mdt = ISDEF(CONFIG_MDT_INIT);
