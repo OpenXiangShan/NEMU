@@ -214,7 +214,7 @@ void difftest_guided_exec(void * guide) {
 
 #ifdef CONFIG_BR_LOG
 void *difftest_query_br_log() {
-  return (void *)isa_difftest_query_br_log();
+  return br_log_query();
 }
 #endif // CONFIG_BR_LOG
 

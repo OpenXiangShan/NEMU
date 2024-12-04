@@ -188,11 +188,6 @@ extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_
 #endif // CONFIG_SHARE
 extern uint64_t get_abs_instr_count();
 
-extern uint64_t br_count;
-
-#ifdef CONFIG_BR_LOG
-extern struct br_info br_log[];
-#endif // CONFIG_BR_LOG
 
 static inline def_rtl(j, vaddr_t target) {
   // uint64_t orig_pc = cpu.pc, real_target;
@@ -211,6 +206,7 @@ static inline def_rtl(j, vaddr_t target) {
 
   cpu.pc = target;
   // real_target = target;
+  // CONFIG_BR_LOG: We cannot commit br_log here, because rtl_j is used by all jump and branch.
 
 #ifndef CONFIG_SHARE
   if (profiling_state == SimpointProfiling && workload_loaded) {
@@ -259,26 +255,13 @@ end_of_rtl_jr:
 ; // make compiler happy
 #endif
 
-#ifdef CONFIG_BR_LOG
-  br_log[br_count].pc = s->pc; // orig_pc - 4;
-  br_log[br_count].target = real_target;
-  br_log[br_count].taken = 1;
-  br_log[br_count].type = 1;
-  br_count++;
-#endif // CONFIG_BR_LOG
+  IFDEF(CONFIG_BR_LOG, br_log_commit(s->pc, real_target, 1, BR_JUMP));
 }
 
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
-  // printf("%lx,%lx,%d,%d,%lx\n", br_count, cpu.pc, is_jmp, 0, target);
-#ifdef CONFIG_BR_LOG
-  br_log[br_count].pc = s->pc; // cpu.pc - 4;
-  br_log[br_count].target = target;
-  br_log[br_count].taken = is_jmp;
-  br_log[br_count].type = 0;
-  br_count++;
-#endif // CONFIG_BR_LOG
+  IFDEF(CONFIG_BR_LOG, br_log_commit(s->pc, target, is_jmp, BR_BRANCH));
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
 

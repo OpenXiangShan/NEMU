@@ -226,6 +226,27 @@ config SIMPOINT_LOG
   bool "Enable Log for simpoint profiling"
   default n
 
+config BR_LOG
+  bool "Enable branch log"
+  default n
+  help
+    Branch Log (br_log) is mainly used for lightssss (LightQS) to run ahead of
+    DUT. But it could also used for debugging.
+
+config BR_LOG_SIZE
+  int "The size of branch log"
+  depends on BR_LOG
+  default 50000000
+  help
+    When br_log is overflow, it will overwrite from beginning.
+
+config BR_LOG_OUTPUT
+  bool "Enable branch log output"
+  default n
+  help
+    Enable br_log output when NEMU exits. As a reference, You could use
+    br_log_dump() to dump br_log whenever you want.
+
 endmenu
 
 if !MODE_USER

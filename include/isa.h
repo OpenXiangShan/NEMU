@@ -83,9 +83,6 @@ void isa_difftest_guided_exec(void *guide);
 #endif
 
 void isa_difftest_query_ref(void *result_buffer, uint64_t type);
-#ifdef CONFIG_BR_LOG
-void *isa_difftest_query_br_log(void);
-#endif // CONFIG_BR_LOG
 #ifdef CONFIG_MULTICORE_DIFF
 void isa_difftest_set_mhartid(int n);
 #endif

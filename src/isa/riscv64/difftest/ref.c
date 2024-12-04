@@ -344,13 +344,6 @@ void isa_difftest_guided_exec(void * guide) {
 }
 #endif
 
-#ifdef CONFIG_BR_LOG
-extern struct br_info br_log[];
-void * isa_difftest_query_br_log() {
-  return (void *)br_log;
-}
-#endif // CONFIG_BR_LOG
-
 #ifdef CONFIG_QUERY_REF
 void isa_difftest_query_ref(void *result_buffer, uint64_t type) {
   size_t size;

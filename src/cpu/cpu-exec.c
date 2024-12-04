@@ -394,11 +394,6 @@ end_of_loop:
 #include "isa-exec.h"
 static const void *g_exec_table[TOTAL_INSTR] = {
     MAP(INSTR_LIST, FILL_EXEC_TABLE)};
-uint64_t br_count = 0;
-
-#ifdef CONFIG_BR_LOG
-struct br_info br_log[CONFIG_BR_LOG_SIZE];
-#endif // CONFIG_BR_LOG
 
 #ifdef CONFIG_LIGHTQS
 
@@ -412,7 +407,7 @@ void csr_prepare();
 
 void lightqs_take_reg_snapshot() {
   csr_prepare();
-  reg_ss.br_cnt = br_count;
+  reg_ss.br_cnt = br_log_get_count();
   reg_ss.inst_cnt = g_nr_guest_instr;
 #ifdef CONFIG_LIGHTQS_DEBUG
   printf("current g instr cnt = %lu\n", g_nr_guest_instr);
@@ -455,7 +450,7 @@ void lightqs_take_reg_snapshot() {
 
 void lightqs_take_spec_reg_snapshot() {
   csr_prepare();
-  spec_reg_ss.br_cnt = br_count;
+  spec_reg_ss.br_cnt = br_log_get_count();
   spec_reg_ss.inst_cnt = g_nr_guest_instr;
   spec_reg_ss.pc = cpu.pc;
   spec_reg_ss.mstatus = cpu.mstatus;
@@ -504,7 +499,7 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 #endif // CONFIG_LIGHTQS_DEBUG
     memcpy(&reg_ss, &spec_reg_ss, sizeof(reg_ss));
   }
-  br_count = reg_ss.br_cnt;
+  br_log_set_count(reg_ss.br_cnt);
   g_nr_guest_instr = reg_ss.inst_cnt;
   cpu.pc = reg_ss.pc;
   cpu.mstatus = reg_ss.mstatus;
@@ -566,19 +561,7 @@ static int execute(int n) {
 #endif
     s.EHelper(&s);
     g_nr_guest_instr++;
-#ifdef CONFIG_BR_LOG
-#ifdef CONFIG_LIGHTQS_DEBUG
-    if (g_nr_guest_instr == 10000) {
-      // print out to file
-      // FILE *f = fopen("/nfs/home/chenguokai/NEMU_ahead/ahead.txt", "w");
-      for (int i = 0; i < 2000; i++) {
-        fprintf(stdout, "%010lx %d %d %010lx\n", br_log[i].pc, br_log[i].taken,
-                br_log[i].type, br_log[i].target);
-      }
-      // fclose(f);
-    }
-#endif // CONFIG_LIGHTQS_DEBUG
-#endif // CONFIG_BR_LOG
+
     IFDEF(CONFIG_IQUEUE, iqueue_commit(s.pc, (void *)&s.isa.instr.val, s.snpc - s.pc));
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
@@ -627,11 +610,7 @@ void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
   case NEMU_END:
   case NEMU_ABORT:
-    printf("Program execution has ended. To restart the program, exit NEMU and "
-           "run again.\n");
-#ifdef CONFIG_BR_LOG
-    printf("debug: bridx = %ld\n", br_count);
-#endif // CONFIG_BR_LOG
+    printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
     return;
   default:
     nemu_state.state = NEMU_RUNNING;
@@ -745,6 +724,7 @@ void cpu_exec(uint64_t n) {
 
   case NEMU_END:
   case NEMU_ABORT:
+    IFDEF(CONFIG_BR_LOG_OUTPUT, br_log_dump());
     Log("nemu: %s\33[0m at pc = " FMT_WORD,
         (nemu_state.state == NEMU_ABORT
              ? "\33[1;31mABORT"
