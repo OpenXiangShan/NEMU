@@ -10,6 +10,15 @@ def_EHelper(fsh) {
   rtl_sm(s, ddest, dsrc1, id_src2->imm, 2, MMU_DIRECT);
 }
 
+def_EHelper(flh_mmu) {
+  rtl_lm(s, ddest, dsrc1, id_src2->imm, 2, MMU_TRANSLATE);
+  rtl_fsr(s, ddest, ddest, FPCALL_W16);
+}
+
+def_EHelper(fsh_mmu) {
+  rtl_sm(s, ddest, dsrc1, id_src2->imm, 2, MMU_TRANSLATE);
+}
+
 def_EHelper(fmv_x_h) {
   rtl_sext(s, ddest, dsrc1, 2);
 }

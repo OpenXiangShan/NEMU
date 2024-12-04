@@ -200,6 +200,7 @@
 #ifdef CONFIG_RV_ZFH_MIN
 #define ZFH_MIN_INSTR_BINARY(f) \
   f(flh) f(fsh) \
+  f(flh_mmu) f(fsh_mmu) \
   f(fmv_x_h) f(fmv_h_x)  \
   f(fcvt_s_h) f(fcvt_h_s) f(fcvt_d_h) f(fcvt_h_d) 
 #else //CONFIG_RV_ZFH_MIN
