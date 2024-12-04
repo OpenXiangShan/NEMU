@@ -39,34 +39,34 @@ def_EHelper(msettypei) {
 
 def_EHelper(msettilem) {
   s->src1.val = reg_l(s->src1.reg);
-  mtype->val = s->src1.val;
+  mtilem->val = s->src1.val;
   reg_l(s->dest.reg) = s->src1.val;
 }
 
 def_EHelper(msettilemi) {
-  mtype->val = s->src2.imm;
+  mtilem->val = s->src2.imm;
   reg_l(s->dest.reg) = s->src2.imm;
 }
 
 def_EHelper(msettilek) {
   s->src1.val = reg_l(s->src1.reg);
-  mtype->val = s->src1.val;
+  mtilek->val = s->src1.val;
   reg_l(s->dest.reg) = s->src1.val;
 }
 
 def_EHelper(msettileki) {
-  mtype->val = s->src2.imm;
+  mtilek->val = s->src2.imm;
   reg_l(s->dest.reg) = s->src2.imm;
 }
 
 def_EHelper(msettilen) {
   s->src1.val = reg_l(s->src1.reg);
-  mtype->val = s->src1.val;
+  mtilen->val = s->src1.val;
   reg_l(s->dest.reg) = s->src1.val;
 }
 
 def_EHelper(msettileni) {
-  mtype->val = s->src2.imm;
+  mtilen->val = s->src2.imm;
   reg_l(s->dest.reg) = s->src2.imm;
 }
 
