@@ -41,15 +41,6 @@ config LIGHTQS_DEBUG
   depends on LIGHTQS
   default n
 
-config BR_LOG
-  bool "Enable branch log"
-  default n
-
-config BR_LOG_SIZE
-  int "The size of branch log"
-  depends on BR_LOG
-  default 50000000
-
 config BBL_OFFSET_WITH_CPT
   hex "The offset of bbl / baremetal app with using gcpt"
   default 0x100000

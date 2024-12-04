@@ -106,6 +106,15 @@ word_t expr(char *e, bool *success);
 void iqueue_commit(vaddr_t pc, uint8_t *instr_buf, uint8_t ilen);
 void iqueue_dump();
 
+// ----------- br_log -----------
+enum {
+  BR_BRANCH = 0,
+  BR_JUMP = 1,
+};
+void br_log_commit(vaddr_t pc, vaddr_t target, int taken, int type);
+void br_log_dump();
+void * br_log_query();
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -14,19 +14,10 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 #include <generated/autoconf.h>
-#ifdef CONFIG_BR_LOG
-extern uint64_t br_count;
-#endif // CONFIG_BR_LOG
+
 def_EHelper(jal) {
   rtl_li(s, ddest, id_src2->imm);
-  // printf("%lx,%lx.%d,%d,%lx\n", br_count, cpu.pc, 1, 1, id_src1->imm);
-#ifdef CONFIG_BR_LOG
-  br_log[br_count].pc = s->pc; // cpu.pc - 4;
-  br_log[br_count].target = id_src1->imm;
-  br_log[br_count].taken = 1;
-  br_log[br_count].type = 1;
-  br_count++;
-#endif // CONFIG_BR_LOG
+  IFDEF(CONFIG_BR_LOG, br_log_commit(s->pc, id_src1->imm, 1, BR_JUMP));
   rtl_j(s, id_src1->imm);
 }
 
@@ -48,7 +39,6 @@ def_EHelper(jalr) {
 #endif
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
   rtl_jr(s, s0);
-  //printf("%lx,%lx,%d,%d,%lx\n", br_count, cpu.pc, 1, 1, *s0);
 }
 
 def_EHelper(beq) {
