@@ -69,3 +69,11 @@ void br_log_dump() {
 void * br_log_query() {
   return (void *) br_log;
 }
+
+uint64_t br_log_get_count() {
+  return br_count;
+}
+
+void br_log_set_count(uint64_t val) {
+  br_count = val;
+}

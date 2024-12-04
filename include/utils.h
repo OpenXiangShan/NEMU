@@ -114,6 +114,8 @@ enum {
 void br_log_commit(vaddr_t pc, vaddr_t target, int taken, int type);
 void br_log_dump();
 void * br_log_query();
+uint64_t br_log_get_count();
+void br_log_set_count(uint64_t val);
 
 #ifdef __cplusplus
 extern "C" {

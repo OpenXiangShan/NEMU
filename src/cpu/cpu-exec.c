@@ -407,7 +407,7 @@ void csr_prepare();
 
 void lightqs_take_reg_snapshot() {
   csr_prepare();
-  reg_ss.br_cnt = br_count;
+  reg_ss.br_cnt = br_log_get_count();
   reg_ss.inst_cnt = g_nr_guest_instr;
 #ifdef CONFIG_LIGHTQS_DEBUG
   printf("current g instr cnt = %lu\n", g_nr_guest_instr);
@@ -450,7 +450,7 @@ void lightqs_take_reg_snapshot() {
 
 void lightqs_take_spec_reg_snapshot() {
   csr_prepare();
-  spec_reg_ss.br_cnt = br_count;
+  spec_reg_ss.br_cnt = br_log_get_count();
   spec_reg_ss.inst_cnt = g_nr_guest_instr;
   spec_reg_ss.pc = cpu.pc;
   spec_reg_ss.mstatus = cpu.mstatus;
@@ -499,7 +499,7 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 #endif // CONFIG_LIGHTQS_DEBUG
     memcpy(&reg_ss, &spec_reg_ss, sizeof(reg_ss));
   }
-  br_count = reg_ss.br_cnt;
+  br_log_set_count(reg_ss.br_cnt);
   g_nr_guest_instr = reg_ss.inst_cnt;
   cpu.pc = reg_ss.pc;
   cpu.mstatus = reg_ss.mstatus;
