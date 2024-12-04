@@ -46,9 +46,7 @@ using std::numeric_limits;
 using std::string;
 using std::to_string;
 
-Serializer::Serializer()
-  : IntRegAddr(0){}
-
+Serializer Serializer();
 
 extern "C" {
 uint8_t *get_pmem();
@@ -67,57 +65,52 @@ extern uint64_t get_gcpt_mmio_size();
 }
 
 #ifdef CONFIG_MEM_COMPRESS
-void Serializer::serializePMem(uint64_t inst_count, bool using_gcpt_mmio, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr) {
+void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
   const size_t PMEM_SIZE = MEMORY_SIZE;
   const size_t GCPT_MMIO_SIZE = get_gcpt_mmio_size();
-  uint8_t *pmem = pmem_addr;
-  uint8_t *gcpt = gcpt_mmio_addr;
-  Log("Host physical address: %p size: %lx", pmem, PMEM_SIZE);
-  Log("Host gcpt address: %p size: %lx", gcpt, GCPT_MMIO_SIZE);
+  Log("Host physical address: %p size: %lx", pmem_addr, PMEM_SIZE);
+  Log("Host gcpt address: %p size: %lx", gcpt_mmio_addr, GCPT_MMIO_SIZE);
 
-  if (restorer) {
-  FILE *restore_fp = fopen(restorer, "rb");
-  if (!restore_fp) {
-    xpanic("Cannot open restorer %s\n", restorer);
-  }
-
-  uint32_t restorer_size = 0xa000;
-  fseek(restore_fp, 0, SEEK_SET);
-  assert(restorer_size == fread(pmem, 1, restorer_size, restore_fp));
-  fclose(restore_fp);
-
-  Log("Put gcpt restorer %s to start of pmem", restorer);
-  }
-
-  string filepath;
+  string base_file_path;
+  string flash_file_path;
+  string memory_file_path;
 
   if (checkpoint_state == SimpointCheckpointing) {
-    filepath = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->first) + "_" +
+    base_file_path = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->first) + "_" +
                to_string(simpoint2Weights.begin()->second);
   } else {
-    filepath = pathManager.getOutputPath() + "_" + to_string(inst_count);
+    base_file_path = pathManager.getOutputPath() + "_" + to_string(inst_count);
   }
 
   if (compress_file_format == GZ_FORMAT) {
     Log("Using GZ format generate checkpoint");
-    filepath += "_.gz";
-    gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
-    if (compressed_mem == nullptr) {
-      cerr << "Failed to open " << filepath << endl;
+    flash_file_path += "_flash_.gz";
+    memory_file_path += "_memory_.gz";
+    gzFile flash_compressed_mem = gzopen(flash_file_path.c_str(), "wb");
+    gzFile memory_compressed_mem = gzopen(memory_file_path.c_str(), "wb");
+    if (flash_compressed_mem == nullptr) {
+      cerr << "Failed to open " << flash_file_path << endl;
       xpanic("Can't open physical memory checkpoint file!\n");
     } else {
-      cout << "Opening " << filepath << " as checkpoint output file" << endl;
+      cout << "Opening " << flash_file_path << " as checkpoint output file" << endl;
+    }
+
+    if (memory_compressed_mem == nullptr) {
+      cerr << "Failed to open " << memory_file_path << endl;
+      xpanic("Can't open physical memory checkpoint file!\n");
+    } else {
+      cout << "Opening " << memory_file_path << " as checkpoint output file" << endl;
     }
 
     uint64_t pass_size = 0;
-    if (using_gcpt_mmio) {
+    if (write_to_flash) {
       for (uint64_t gcpt_written = 0; gcpt_written < GCPT_MMIO_SIZE; gcpt_written += pass_size) {
         pass_size = numeric_limits<int>::max() < ((int64_t)GCPT_MMIO_SIZE - (int64_t)gcpt_written)
                       ? numeric_limits<int>::max()
                       : ((int64_t)GCPT_MMIO_SIZE - (int64_t)gcpt_written);
-        if (gzwrite(compressed_mem, gcpt + gcpt_written, (uint32_t)pass_size) != (int)pass_size) {
+        if (gzwrite(flash_compressed_mem, gcpt_mmio_addr + gcpt_written, (uint32_t)pass_size) != (int)pass_size) {
           xpanic("Write failed on physical memory checkpoint file\n");
         }
         Log("Written 0x%lx bytes\n", pass_size);
@@ -131,61 +124,77 @@ void Serializer::serializePMem(uint64_t inst_count, bool using_gcpt_mmio, uint8_
                     ? numeric_limits<int>::max()
                     : ((int64_t)PMEM_SIZE - (int64_t)written);
 
-      if (gzwrite(compressed_mem, pmem + written, (uint32_t)pass_size) != (int)pass_size) {
+      if (gzwrite(memory_compressed_mem, pmem_addr + written, (uint32_t)pass_size) != (int)pass_size) {
         xpanic("Write failed on physical memory checkpoint file\n");
       }
       Log("Written 0x%lx bytes\n", pass_size);
     }
 
-    if (gzclose(compressed_mem)) {
-      xpanic("Close failed on physical memory checkpoint file\n");
+    if (gzclose(flash_compressed_mem)) {
+      xpanic("Close failed on physical checkpoint file\n");
     }
+    if (gzclose(memory_compressed_mem)) {
+      xpanic("Close failed on physical checkpoint file\n");
+    }
+
   } else if (compress_file_format == ZSTD_FORMAT) {
     Log("Using ZSTD format generate checkpoint");
 
-    filepath += "_.zstd";
-    Log("Opening %s as checkpoint output file", filepath.c_str());
+    flash_file_path += "_flash_.zstd";
+    memory_file_path += "_memory_.zstd";
+ 
+    Log("Opening %s as checkpoint output file", flash_file_path.c_str());
+    Log("Opening %s as memory output file", memory_file_path.c_str());
 
     // zstd compress
-    size_t gcpt_and_pmem_size;
-    if (using_gcpt_mmio) {
-      gcpt_and_pmem_size = PMEM_SIZE + GCPT_MMIO_SIZE;
-    }else {
-      gcpt_and_pmem_size = PMEM_SIZE;
-    }
-    Log("Gcpt and pmem size 0x%lx", gcpt_and_pmem_size);
+    size_t flash_size = GCPT_MMIO_SIZE;
+    size_t memory_size = PMEM_SIZE;
 
-    size_t const compress_buffer_size = ZSTD_compressBound(gcpt_and_pmem_size);
-    uint8_t *const compress_buffer = (uint8_t*)malloc(compress_buffer_size);
-    assert(compress_buffer);
+    size_t const flash_compress_buffer_size = ZSTD_compressBound(flash_size);
+    size_t const memory_compress_buffer_size = ZSTD_compressBound(memory_size);
+    uint8_t *const flash_compress_buffer = (uint8_t*)malloc(flash_compress_buffer_size);
+    uint8_t *const memory_compress_buffer = (uint8_t*)malloc(memory_compress_buffer_size);
+    assert(flash_compress_buffer);
+    assert(memory_compress_buffer);
 
     // compress gcpt device memory
-    size_t gcpt_compress_size = 0;
-    if (using_gcpt_mmio) {
-      gcpt_compress_size = ZSTD_compress(compress_buffer, compress_buffer_size, gcpt, GCPT_MMIO_SIZE, 1);
-      assert(gcpt_compress_size <= compress_buffer_size && gcpt_compress_size != 0);
-      Log("compress gcpt success, compress size %ld", gcpt_compress_size);
+    size_t flash_compress_size = 0;
+    if (write_to_flash) {
+      flash_compress_size = ZSTD_compress(flash_compress_buffer, flash_compress_buffer_size, gcpt_mmio_addr, GCPT_MMIO_SIZE, 1);
+      assert(flash_compress_size <= flash_compress_buffer_size && flash_compress_size != 0);
+      Log("compress gcpt success, compress size %ld", flash_compress_size);
     }
 
-    size_t pmem_compress_size = ZSTD_compress(compress_buffer + gcpt_compress_size, compress_buffer_size, pmem, PMEM_SIZE, 1);
-    assert(pmem_compress_size + gcpt_compress_size <= compress_buffer_size && pmem_compress_size != 0);
-    Log("pmem compress success, compress size %ld",pmem_compress_size);
+    size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem_addr, PMEM_SIZE, 1);
+    assert(memory_compress_size <= memory_compress_buffer_size && memory_compress_size != 0);
+    Log("pmem compress success, compress size %ld", memory_compress_size);
 
-    FILE *compress_file = fopen(filepath.c_str(), "wb");
-    size_t fw_size = fwrite(compress_buffer, 1, pmem_compress_size + gcpt_compress_size, compress_file);
+    FILE *flash_compress_file = fopen(flash_file_path.c_str(), "wb");
+    size_t flash_fw_size = fwrite(flash_compress_buffer, 1, flash_compress_size, flash_compress_file);
 
-    if (fw_size != (size_t)pmem_compress_size + (size_t)gcpt_compress_size) {
-      fclose(compress_file);
-      free(compress_buffer);
-      xpanic("file write error: %s : %s \n", filepath.c_str(), strerror(errno));
+    FILE *memory_compress_file = fopen(memory_file_path.c_str(), "wb");
+    size_t memory_fw_size = fwrite(memory_compress_buffer, 1, memory_compress_size, memory_compress_file);
+
+    if (flash_fw_size != flash_compress_size || flash_fw_size != memory_fw_size) {
+      fclose(flash_compress_file);
+      fclose(memory_compress_file);
+      free(flash_compress_buffer);
+      free(memory_compress_buffer);
+      xpanic("file write error: %s : %s, %s : %s \n", flash_file_path.c_str(), strerror(errno), memory_file_path.c_str(), strerror(errno));
     }
 
-    if (fclose(compress_file)) {
-      free(compress_buffer);
-      xpanic("file close error: %s : %s \n", filepath.c_str(), strerror(errno));
+    if (fclose(flash_compress_file)) {
+      free(flash_compress_buffer);
+      xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
     }
 
-    free(compress_buffer);
+    if (fclose(memory_compress_file)) {
+      free(memory_compress_buffer);
+      xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
+    }
+
+    free(flash_compress_buffer);
+    free(memory_compress_buffer);
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
@@ -200,7 +209,8 @@ void Serializer::serializePMem(uint64_t inst_count) {}
 #ifdef CONFIG_MEM_COMPRESS
 extern void csr_writeback();
 
-void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout) {
+void Serializer::serializeRegs(bool write_to_flash, uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout) {
+  // int reg
   uint64_t buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->int_reg_cpt_addr;
   auto *intRegCpt = (uint64_t *)(buffer_start);
   for (unsigned i = 0; i < 32; i++) {
@@ -210,6 +220,7 @@ void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_add
       buffer_start, buffer_start + 32 * 8, cpt_percpu_layout->int_reg_cpt_addr,
       cpt_percpu_layout->int_reg_cpt_addr + 32 * 8);
 
+  // fp reg
 #ifndef CONFIG_FPU_NONE
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->float_reg_cpt_addr;
   auto *floatRegCpt = (uint64_t *)(buffer_start);
@@ -221,6 +232,7 @@ void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_add
       cpt_percpu_layout->float_reg_cpt_addr + 32 * 8);
 #endif  // CONFIG_FPU_NONE
 
+  // rvv reg
 #ifdef CONFIG_RVV
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->vector_reg_cpt_addr;
   auto *vectorRegCpt = (uint64_t *)(buffer_start);
@@ -234,50 +246,25 @@ void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_add
       cpt_percpu_layout->vector_reg_cpt_addr + 32 * 8 * VENUM64);
 #endif  // CONFIG_RVV
 
+  // pc
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->pc_cpt_addr;
   auto *pc = (uint64_t *)(buffer_start);
   *pc = cpu.pc;
   Log("Writing PC: 0x%lx to checkpoint memory @host_paddr [0x%lx, 0x%lx) @mem_layout_addr: [0x%lx, 0x%lx)", cpu.pc,
       buffer_start, buffer_start + 8, cpt_percpu_layout->pc_cpt_addr, cpt_percpu_layout->pc_cpt_addr + 8);
 
+  // csr reg
+  // donot need reset mip.x
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->csr_reg_cpt_addr;
   auto *csrCpt = (uint64_t *)(buffer_start);
   for (unsigned i = 0; i < 4096; i++) {
-    rtlreg_t val = csr_array[i];
-
-    if ((void *)mip == (void *)&csr_array[i]) {
-      mip_t mip_tmp = *mip;
-      if (mip_tmp.mtip) {
-        mip_tmp.mtip = 0;
-      }
-      val = mip_tmp.val;
-    }
-
-    *(csrCpt + i) = val;
-
+    *(csrCpt + i) = csr_array[i];
     if (csr_array[i] != 0) {
       Log("CSR id: 0x%x, value: 0x%lx", i, *(csrCpt + i));
     }
   }
 
-  // prepare mstatus
-  mstatus_t *mstatus_for_cpt = (mstatus_t *)&csrCpt[0x300];
-  mstatus_for_cpt->mpie = mstatus_for_cpt->mie;
-  mstatus_for_cpt->mie = 0;
-  mstatus_for_cpt->mpp = cpu.mode;
-
-#ifdef CONFIG_RVH
-  // checkpoint ub: mpp = 3, mpv = 1
-  mstatus_prepare->mpv=cpu.v;
-#endif
-
-  // prepare mepc
-  mepc_t *mepc_for_cpt = (mepc_t *)&csrCpt[0x341];
-  mepc_for_cpt->val = cpu.pc;
-
-  Log("Writing CSR to checkpoint memory @host_paddr [0x%lx, 0x%lx) @mem_layout_addr [0x%lx, 0x%lx)", buffer_start,
-      buffer_start + 4096 * 8, cpt_percpu_layout->csr_reg_cpt_addr, cpt_percpu_layout->csr_reg_cpt_addr + 4096 * 8);
-
+  // priv mode
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->mode_cpt_addr;
   auto *mode_flag = (uint64_t *)(buffer_start);
   *mode_flag = cpu.mode;
@@ -285,6 +272,31 @@ void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_add
       cpu.mode, buffer_start, buffer_start + 8, cpt_percpu_layout->mode_cpt_addr,
       cpt_percpu_layout->mode_cpt_addr + 8);
 
+  if (*mode_flag == PRV_M) {
+    Log("Generate this checkpoint from M mode !!!!!!!!!!!!!!");
+  }
+
+  if (*mode_flag != PRV_M) {
+    // prepare mstatus
+    mstatus_t *tmp_mstatus = (mstatus_t *)&csrCpt[0x300];
+    tmp_mstatus->mpie = tmp_mstatus->mie;
+    tmp_mstatus->mie = 0;
+    tmp_mstatus->mpp = cpu.mode;
+#ifdef CONFIG_RVH
+    // checkpoint ub: mpp = 3, mpv = 1
+    tmp_mstatus->mpv = cpu.v;
+#endif
+
+    // prepare mepc
+    mepc_t *mepc_for_cpt = (mepc_t *)&csrCpt[0x341];
+    mepc_for_cpt->val = cpu.pc;
+
+  }
+
+  Log("Writing CSR to checkpoint memory @host_paddr [0x%lx, 0x%lx) @mem_layout_addr [0x%lx, 0x%lx)", buffer_start,
+      buffer_start + 4096 * 8, cpt_percpu_layout->csr_reg_cpt_addr, cpt_percpu_layout->csr_reg_cpt_addr + 4096 * 8);
+
+  // time
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->mtime_cpt_addr;
   auto *mtime = (uint64_t *)(buffer_start);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
@@ -293,7 +305,7 @@ void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_add
       buffer_start, buffer_start + 8, cpt_percpu_layout->mtime_cpt_addr, cpt_percpu_layout->mtime_cpt_addr + 8);
 
   buffer_start = (uint64_t)serialize_base_addr + cpt_percpu_layout->mtime_cmp_cpt_addr;
-  auto *mtime_cmp = (uint64_t *) (get_pmem() + MTIMECMPAddr);
+  auto *mtime_cmp = (uint64_t *)(buffer_start) + (0 * 8);
   *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
   Log("Record time_cmp flag: 0x%lx to checkpoint memory @host_paddr [0x%lx, 0x%lx) @mem_layout_addr: [0x%lx, 0x%lx)",
       *mtime_cmp, buffer_start, buffer_start + 8, cpt_percpu_layout->mtime_cmp_cpt_addr,
@@ -305,21 +317,21 @@ void Serializer::serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_add
 void Serializer::serializeRegs() {}
 #endif
 
-void Serializer::serialize(uint64_t inst_count, bool using_gcpt_mmio) {
+void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
 #ifdef CONFIG_MEM_COMPRESS
   checkpoint_header cpt_header = default_cpt_header;
   single_core_rvgc_rvv_rvh_memlayout cpt_percpu_layout = default_cpt_percpu_layout;
   uint64_t serialize_reg_base_addr;
   encode_cpt_header(&cpt_header, &cpt_percpu_layout);
 
-  if (using_gcpt_mmio) {
+  if (write_to_flash) {
     serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_gcpt_mmio_base();
   } else {
     serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_pmem();
   }
 
-  serializeRegs(using_gcpt_mmio, (uint8_t *)serialize_reg_base_addr, &cpt_percpu_layout);
-  serializePMem(inst_count, using_gcpt_mmio, get_pmem(), get_gcpt_mmio_base());
+  serializeRegs(write_to_flash, (uint8_t *)serialize_reg_base_addr, &cpt_percpu_layout);
+  serializePMem(inst_count, write_to_flash, get_pmem(), get_gcpt_mmio_base());
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
@@ -410,7 +422,6 @@ void Serializer::notify_taken(uint64_t i) {
   }
 }
 
-Serializer serializer;
 uint64_t Serializer::next_index(){
   uint64_t index=0;
   if (checkpoint_state==SimpointCheckpointing&&!serializer.simpoint2Weights.empty()) {
