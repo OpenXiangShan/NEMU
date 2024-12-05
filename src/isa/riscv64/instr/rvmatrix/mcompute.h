@@ -71,10 +71,13 @@ def_EHelper(mwmau) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, false);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
 
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, false);
+          // TODO: temp use 2 output treg for all double widen mma
+          int widen_idx = j / (tile_n/2);
+          int j_offset = j - widen_idx*(tile_n/2);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, false);
           rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
           rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
-          set_mtreg(td + m, i, j, tmp_reg[0], msew + 1);
+          set_mtreg(td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 }
 
@@ -85,10 +88,13 @@ def_EHelper(mqmau) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, false);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
 
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 2, false);
+          // TODO: temp use 4 output treg for all quadruple widen mma
+          int widen_idx = j / (tile_n/4);
+          int j_offset = j - widen_idx*(tile_n/4);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, false);
           rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
           rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
-          set_mtreg(td + m, i, j, tmp_reg[0], msew + 2);
+          set_mtreg(td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 2);
   MMA_LOOP_END
 }
 
@@ -119,7 +125,10 @@ def_EHelper(mswmau) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, false);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
 
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, false);
+          // TODO: temp use 2 output treg for all double widen mma
+          int widen_idx = j / (tile_n/2);
+          int j_offset = j - widen_idx*(tile_n/2);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, false);
           uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
           bool overflow = false;  
           if (result > uint_max) overflow = true;
@@ -127,7 +136,7 @@ def_EHelper(mswmau) {
             result = uint_max;
             mcsr->msat = 1;
           }
-          set_mtreg(td + m, i, j, result, msew + 1);
+          set_mtreg(td + m + widen_idx, i, j_offset, result, msew + 1);
   MMA_LOOP_END
 }
 
@@ -139,7 +148,10 @@ def_EHelper(msqmau) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, false);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
 
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 2, false);
+          // TODO: temp use 4 output treg for all quadruple widen mma
+          int widen_idx = j / (tile_n/4);
+          int j_offset = j - widen_idx*(tile_n/4);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, false);
           uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
           bool overflow = false;  
           if (result > uint_max) overflow = true;
@@ -147,18 +159,18 @@ def_EHelper(msqmau) {
             result = uint_max;
             mcsr->msat = 1;
           }
-          set_mtreg(td + m, i, j, result, msew + 2);
+          set_mtreg(td + m + widen_idx, i, j_offset, result, msew + 2);
   MMA_LOOP_END
 }
 
 def_EHelper(mma) {
   MMA_LOOP_BEGIN
-            get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
-            get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
+          get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
+          get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
-            get_mtreg(td + m, i, j, &tmp_reg[0], msew, true);
-            tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-            set_mtreg(td + m, i, j, tmp_reg[0], msew);
+          get_mtreg(td + m, i, j, &tmp_reg[0], msew, true);
+          tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
+          set_mtreg(td + m, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
 }
 
@@ -166,12 +178,15 @@ def_EHelper(mwma) {
   Assert(mtype->msew <= 2, "e64 not support double widen compute!\n");
 
   MMA_LOOP_BEGIN
-            get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
-            get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
+          get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
+          get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
-            get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, true);
-            tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-            set_mtreg(td + m, i, j, tmp_reg[0], msew + 1);
+          // TODO: temp use 2 output treg for all double widen mma
+          int widen_idx = j / (tile_n/2);
+          int j_offset = j - widen_idx*(tile_n/2);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, true);
+          tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
+          set_mtreg(td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 }
 
@@ -179,12 +194,15 @@ def_EHelper(mqma) {
   Assert(mtype->msew <= 1, "e32/e64 not support quadruple widen compute!\n");
 
   MMA_LOOP_BEGIN
-            get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
-            get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
+          get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
+          get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
-            get_mtreg(td + m, i, j, &tmp_reg[0], msew + 2, true);
-            tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-            set_mtreg(td + m, i, j, tmp_reg[0], msew + 2);
+          // TODO: temp use 4 output treg for all quadruple widen mma
+          int widen_idx = j / (tile_n/4);
+          int j_offset = j - widen_idx*(tile_n/4);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, true);
+          tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
+          set_mtreg(td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 2);
   MMA_LOOP_END
 }
 
@@ -220,7 +238,10 @@ def_EHelper(mswma) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, true);
+          // TODO: temp use 2 output treg for all double widen mma
+          int widen_idx = j / (tile_n/2);
+          int j_offset = j - widen_idx*(tile_n/2);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, true);
           int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
           bool overflow = false;
           if (result > int_max){
@@ -231,7 +252,7 @@ def_EHelper(mswma) {
             overflow = true;
           }
           if (overflow) mcsr->msat = 1;
-          set_mtreg(td + m, i, j, result, msew + 1);
+          set_mtreg(td + m + widen_idx, i, j_offset, result, msew + 1);
   MMA_LOOP_END
 }
 
@@ -244,7 +265,10 @@ def_EHelper(msqma) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 2, true);
+          // TODO: temp use 4 output treg for all quadruple widen mma
+          int widen_idx = j / (tile_n/4);
+          int j_offset = j - widen_idx*(tile_n/4);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, true);
           int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
           bool overflow = false;
           if (result > int_max){
@@ -255,7 +279,7 @@ def_EHelper(msqma) {
             overflow = true;
           }
           if (overflow) mcsr->msat = 1;
-          set_mtreg(td + m, i, j, result, msew + 2);
+          set_mtreg(td + m + widen_idx, i, j_offset, result, msew + 2);
   MMA_LOOP_END
 }
 
@@ -308,9 +332,12 @@ def_EHelper(mfwma) {
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, false);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
           
-          get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, false);
+          // TODO: temp use 2 output treg for all double widen mma
+          int widen_idx = j / (tile_n/2);
+          int j_offset = j - widen_idx*(tile_n/2);
+          get_mtreg(td + m + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, false);
           rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
-          set_mtreg(td + m, i, j, tmp_reg[0], msew + 1);
+          set_mtreg(td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 }
 
