@@ -34,16 +34,16 @@ void mld(bool is_trans, char m_name) {
   int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
   switch (m_name) {
     case 'a':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = (mtilek->val)/lmul;
+      rmax_mreg  = is_trans ? (mtilem->val)/lmul : mtilem->val;
+      cmax_mreg  = is_trans ? mtilek->val : (mtilek->val)/lmul;
       break;
     case 'b':
-      rmax_mreg  = mtilek->val;
-      cmax_mreg  = (mtilen->val)/lmul;
+      rmax_mreg  = is_trans ? (mtilek->val)/lmul : mtilek->val;
+      cmax_mreg  = is_trans ? mtilen->val : (mtilen->val)/lmul;
       break;
     case 'c':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = (mtilen->val)/lmul;
+      rmax_mreg  = is_trans ? (mtilem->val)/lmul : mtilem->val;
+      cmax_mreg  = is_trans ? mtilen->val : (mtilen->val)/lmul;
       break;
     default:
       break;
@@ -56,16 +56,15 @@ void mld(bool is_trans, char m_name) {
   uint64_t addr = base_addr;
   for (int row = 0; row < rmax_mem; row++) {
     for (int m = 0; m < lmul; m++) {
-      addr = base_addr + m * cmax_mem * (s->m_width);
       for (int idx = 0; idx < cmax_mem; idx++) {
+        addr = base_addr + row * row_byte_stride + m * cmax_mem * (s->m_width) + idx * (s->m_width);
         rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
         int row_tr = is_trans ? idx : row;
         int idx_tr = is_trans ? row : idx;
         set_mtreg(td+m, row_tr, idx_tr, tmp_reg[0], s->m_eew);
-        addr += s->m_width;
+        Log("mload: addr=%lx, td[%d](%d, %d)=%d", addr, m,row_tr,idx_tr, (int8_t)tmp_reg[0]);
       }
     }
-    base_addr += row_byte_stride;
   }
 }
 
@@ -77,16 +76,16 @@ void mst(bool is_trans, char m_name) {
   int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
   switch (m_name) {
     case 'a':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = (mtilek->val)/lmul;
+      rmax_mreg  = is_trans ? (mtilem->val)/lmul : mtilem->val;
+      cmax_mreg  = is_trans ? mtilek->val : (mtilek->val)/lmul;
       break;
     case 'b':
-      rmax_mreg  = mtilek->val;
-      cmax_mreg  = (mtilen->val)/lmul;
+      rmax_mreg  = is_trans ? (mtilek->val)/lmul : mtilek->val;
+      cmax_mreg  = is_trans ? mtilen->val : (mtilen->val)/lmul;
       break;
     case 'c':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = (mtilen->val)/lmul;
+      rmax_mreg  = is_trans ? (mtilem->val)/lmul : mtilem->val;
+      cmax_mreg  = is_trans ? mtilen->val : (mtilen->val)/lmul;
       break;
     default:
       break;
@@ -99,16 +98,15 @@ void mst(bool is_trans, char m_name) {
   uint64_t addr = base_addr;
   for (int row = 0; row < rmax_mem; row++) {
     for (int m = 0; m < lmul; m++) {
-      addr = base_addr + m * cmax_mem * (s->m_width);
       for (int idx = 0; idx < cmax_mem; idx++) {
         int row_tr = is_trans ? idx : row;
         int idx_tr = is_trans ? row : idx;
         get_mtreg(ts3+m, row_tr, idx_tr, &tmp_reg[0], s->m_eew, false);
+        addr = base_addr + row * row_byte_stride + m * cmax_mem * (s->m_width) + idx * (s->m_width);
         rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
-        addr += s->m_width;
+        Log("mstore: addr=%lx, td[%d](%d, %d)=%d", addr, m,row_tr,idx_tr, (int8_t)tmp_reg[0]);
       }
     }
-    base_addr += row_byte_stride;
   }
 }
 
