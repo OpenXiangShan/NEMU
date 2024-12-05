@@ -189,26 +189,31 @@ def_EHelper(mqma) {
 }
 
 def_EHelper(msma) {
-  uint64_t int_max = ((int64_t) INT64_MAX) >> (64 - 8 * s->m_width);
+  int64_t int_max = INT64_MAX >> (64 - 8 * s->m_width);
+  int64_t int_min = INT64_MIN >> (64 - 8 * s->m_width);
 
   MMA_LOOP_BEGIN
           get_mtreg(ts1 + m, i, k, &tmp_reg[1], msew, true);
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
           get_mtreg(td + m, i, j, &tmp_reg[0], msew, true);
-          int128_t result = (int128_t)tmp_reg[1] * (int128_t)tmp_reg[2] + (int128_t)tmp_reg[0];
-          bool overflow = false;  
-          if (result > int_max) overflow = true;
-          if (overflow) {
+          int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
+          bool overflow = false;
+          if (result > int_max){
             result = int_max;
-            mcsr->msat = 1;
+            overflow = true;
+          } else if (result < int_min){
+            result = int_min;
+            overflow = true;
           }
+          if (overflow) mcsr->msat = 1;
           set_mtreg(td + m, i, j, result, msew);
   MMA_LOOP_END
 }
 
 def_EHelper(mswma) {
-  uint64_t int_max = ((int64_t) INT64_MAX) >> (64 - 2 * 8 * s->m_width);
+  int64_t int_max = INT64_MAX >> (64 - 2 * 8 * s->m_width);
+  int64_t int_min = INT64_MIN >> (64 - 2 * 8 * s->m_width);
   Assert(mtype->msew <= 2, "e64 not support double widen compute!\n");
 
   MMA_LOOP_BEGIN
@@ -216,19 +221,23 @@ def_EHelper(mswma) {
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
           get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, true);
-          int128_t result = (int128_t)tmp_reg[1] * (int128_t)tmp_reg[2] + (int128_t)tmp_reg[0];
-          bool overflow = false;  
-          if (result > int_max) overflow = true;
-          if (overflow) {
+          int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
+          bool overflow = false;
+          if (result > int_max){
             result = int_max;
-            mcsr->msat = 1;
+            overflow = true;
+          } else if (result < int_min){
+            result = int_min;
+            overflow = true;
           }
+          if (overflow) mcsr->msat = 1;
           set_mtreg(td + m, i, j, result, msew + 1);
   MMA_LOOP_END
 }
 
 def_EHelper(msqma) {
-  uint64_t int_max = ((int64_t) INT64_MAX) >> (64 - 4 * 8 * s->m_width);
+  int64_t int_max = INT64_MAX >> (64 - 4 * 8 * s->m_width);
+  int64_t int_min = INT64_MIN >> (64 - 4 * 8 * s->m_width);
   Assert(mtype->msew <= 1, "e32/e64 not support double widen compute!\n");
 
   MMA_LOOP_BEGIN
@@ -236,13 +245,16 @@ def_EHelper(msqma) {
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, true);
 
           get_mtreg(td + m, i, j, &tmp_reg[0], msew + 2, true);
-          int128_t result = (int128_t)tmp_reg[1] * (int128_t)tmp_reg[2] + (int128_t)tmp_reg[0];
-          bool overflow = false;  
-          if (result > int_max) overflow = true;
-          if (overflow) {
+          int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
+          bool overflow = false;
+          if (result > int_max){
             result = int_max;
-            mcsr->msat = 1;
+            overflow = true;
+          } else if (result < int_min){
+            result = int_min;
+            overflow = true;
           }
+          if (overflow) mcsr->msat = 1;
           set_mtreg(td + m, i, j, result, msew + 2);
   MMA_LOOP_END
 }
