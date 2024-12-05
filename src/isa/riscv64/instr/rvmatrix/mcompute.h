@@ -271,7 +271,7 @@ def_EHelper(mfma) {
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
 
           get_mtreg(td + m, i, j, &tmp_reg[0], msew, false);
-          rtl_hostcall(s, HOSTCALL_FP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
+          rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
           set_mtreg(td + m, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
 }
@@ -297,7 +297,7 @@ def_EHelper(mfwma) {
           get_mtreg(ts2 + m, k, j, &tmp_reg[2], msew, false);
           
           get_mtreg(td + m, i, j, &tmp_reg[0], msew + 1, false);
-          rtl_hostcall(s, HOSTCALL_FP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
+          rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
           set_mtreg(td + m, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 }

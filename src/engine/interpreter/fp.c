@@ -446,6 +446,147 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
 #endif // CONFIG_FPU_NONE
 }
 
+// fpcall for matrix extension
+def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
+#ifndef CONFIG_FPU_NONE
+  uint32_t w = FPCALL_W(cmd);
+  uint32_t op = FPCALL_OP(cmd);
+  isa_fp_csr_check();
+  
+  if (w == FPCALL_W16) {
+    float16_t fsrc1 = rtlToF16(*src1);
+    float16_t fsrc2 = rtlToF16(*src2);
+    switch(op){
+      case FPCALL_ADD: *dest = f16_add(fsrc1, fsrc2).v; break;
+      case FPCALL_SUB: *dest = f16_sub(fsrc1, fsrc2).v; break;
+      case FPCALL_MUL: *dest = f16_mul(fsrc1, fsrc2).v; break;
+      case FPCALL_DIV: *dest = f16_div(fsrc1, fsrc2).v; break;
+      case FPCALL_MIN: *dest = f16_min(fsrc1, fsrc2).v; break;
+      case FPCALL_MAX: *dest = f16_max(fsrc1, fsrc2).v; break;
+
+      case FPCALL_FLI:  *dest = f16_fli(*src1).v; break;
+      case FPCALL_MINM: *dest = f16_minm(fsrc1, fsrc2).v; break;
+      case FPCALL_MAXM: *dest = f16_maxm(fsrc1, fsrc2).v; break;
+      case FPCALL_FROUND:   *dest = f16_roundToInt(fsrc1, softfloat_roundingMode, false).v; break;
+      case FPCALL_FROUNDNX: *dest = f16_roundToInt(fsrc1, softfloat_roundingMode,  true).v; break;
+      case FPCALL_FLEQ: *dest = f16_le_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FLTQ: *dest = f16_lt_quiet(fsrc1, fsrc2); break; 
+
+      case FPCALL_SQRT: *dest = f16_sqrt(fsrc1).v; break;
+      case FPCALL_MADD: *dest = f16_mulAdd(fsrc1, fsrc2, rtlToF16(*dest)).v; break;
+
+      case FPCALL_LE: *dest = f16_le(fsrc1, fsrc2); break;
+      case FPCALL_LT: *dest = f16_lt(fsrc1, fsrc2); break;
+      case FPCALL_EQ: *dest = f16_eq(fsrc1, fsrc2); break;
+
+      case FPCALL_I32ToF: *dest = my_i32_to_f16 (*src1).v; break;
+      case FPCALL_U32ToF: *dest = my_ui32_to_f16(*src1).v; break;
+      case FPCALL_I64ToF: *dest = my_i64_to_f16 (*src1).v; break;
+      case FPCALL_U64ToF: *dest = my_ui64_to_f16(*src1).v; break;
+
+      case FPCALL_FToI32: *dest = my_f16_to_i32 (fsrc1); break;
+      case FPCALL_FToU32: *dest = my_f16_to_ui32(fsrc1); break;
+      case FPCALL_FToI64: *dest = my_f16_to_i64 (fsrc1); break;
+      case FPCALL_FToU64: *dest = my_f16_to_ui64(fsrc1); break;
+
+      case FPCALL_F16ToF32: *dest = my_f16_to_f32(rtlToF16(*src1)).v; break;
+      case FPCALL_F16ToF64: *dest = my_f16_to_f64(rtlToF16(*src1)).v; break;
+      default: panic("op = %d not supported", op);
+    }
+  }else if (w == FPCALL_W32) {
+    float32_t fsrc1 = rtlToF32(*src1);
+    float32_t fsrc2 = rtlToF32(*src2);
+    switch (op) {
+      case FPCALL_ADD: *dest = f32_add(fsrc1, fsrc2).v; break;
+      case FPCALL_SUB: *dest = f32_sub(fsrc1, fsrc2).v; break;
+      case FPCALL_MUL: *dest = f32_mul(fsrc1, fsrc2).v; break;
+      case FPCALL_DIV: *dest = f32_div(fsrc1, fsrc2).v; break;
+      case FPCALL_MIN: *dest = f32_min(fsrc1, fsrc2).v; break;
+      case FPCALL_MAX: *dest = f32_max(fsrc1, fsrc2).v; break;
+
+      case FPCALL_FLI:  *dest = f32_fli(*src1).v; break;
+      case FPCALL_MINM: *dest = f32_minm(fsrc1, fsrc2).v; break;
+      case FPCALL_MAXM: *dest = f32_maxm(fsrc1, fsrc2).v; break;
+      case FPCALL_FROUND:   *dest = f32_roundToInt(fsrc1, softfloat_roundingMode, false).v; break;
+      case FPCALL_FROUNDNX: *dest = f32_roundToInt(fsrc1, softfloat_roundingMode,  true).v; break;
+      case FPCALL_FLEQ: *dest = f32_le_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FLTQ: *dest = f32_lt_quiet(fsrc1, fsrc2); break;
+
+      case FPCALL_SQRT: *dest = f32_sqrt(fsrc1).v; break;
+
+      case FPCALL_MADD: *dest = f32_mulAdd(fsrc1, fsrc2, rtlToF32(*dest)).v; break;
+
+      case FPCALL_LE: *dest = f32_le(fsrc1, fsrc2); break;
+      case FPCALL_LT: *dest = f32_lt(fsrc1, fsrc2); break;
+      case FPCALL_EQ: *dest = f32_eq(fsrc1, fsrc2); break;
+
+      case FPCALL_I32ToF: *dest = i32_to_f32 (*src1).v; break;
+      case FPCALL_U32ToF: *dest = ui32_to_f32(*src1).v; break;
+      case FPCALL_I64ToF: *dest = i64_to_f32 (*src1).v; break;
+      case FPCALL_U64ToF: *dest = ui64_to_f32(*src1).v; break;
+
+      case FPCALL_FToI32: *dest = my_f32_to_i32 (fsrc1); break;
+      case FPCALL_FToU32: *dest = my_f32_to_ui32(fsrc1); break;
+      case FPCALL_FToI64: *dest = my_f32_to_i64 (fsrc1); break;
+      case FPCALL_FToU64: *dest = my_f32_to_ui64(fsrc1); break;
+
+      case FPCALL_F32ToF16: *dest = my_f32_to_f16(rtlToF32(*src1)).v; break;
+      default: panic("op = %d not supported", op);
+    }
+  } else if (w == FPCALL_W64) {
+    float64_t fsrc1 = rtlToF64(*src1);
+    float64_t fsrc2 = rtlToF64(*src2);
+    switch (op) {
+      case FPCALL_ADD: *dest = f64_add(fsrc1, fsrc2).v; break;
+      case FPCALL_SUB: *dest = f64_sub(fsrc1, fsrc2).v; break;
+      case FPCALL_MUL: *dest = f64_mul(fsrc1, fsrc2).v; break;
+      case FPCALL_DIV: *dest = f64_div(fsrc1, fsrc2).v; break;
+      case FPCALL_MAX: *dest = f64_max(fsrc1, fsrc2).v; break;
+      case FPCALL_MIN: *dest = f64_min(fsrc1, fsrc2).v; break;
+
+      case FPCALL_FLI:  *dest = f64_fli(*src1).v; break;
+      case FPCALL_MINM: *dest = f64_minm(fsrc1, fsrc2).v; break;
+      case FPCALL_MAXM: *dest = f64_maxm(fsrc1, fsrc2).v; break;
+      case FPCALL_FROUND:   *dest = f64_roundToInt(fsrc1, softfloat_roundingMode, false).v; break;
+      case FPCALL_FROUNDNX: *dest = f64_roundToInt(fsrc1, softfloat_roundingMode,  true).v; break;
+      case FPCALL_FLEQ: *dest = f64_le_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FLTQ: *dest = f64_lt_quiet(fsrc1, fsrc2); break;
+      case FPCALL_FCVTMOD: *dest = f64_fcvtmod(fsrc1); break;
+
+      case FPCALL_SQRT: *dest = f64_sqrt(fsrc1).v; break;
+
+      case FPCALL_MADD: *dest = f64_mulAdd(fsrc1, fsrc2, rtlToF64(*dest)).v; break;
+
+      case FPCALL_LE: *dest = f64_le(fsrc1, fsrc2); break;
+      case FPCALL_LT: *dest = f64_lt(fsrc1, fsrc2); break;
+      case FPCALL_EQ: *dest = f64_eq(fsrc1, fsrc2); break;
+
+      case FPCALL_I32ToF: *dest = i32_to_f64 (*src1).v; break;
+      case FPCALL_U32ToF: *dest = ui32_to_f64(*src1).v; break;
+      case FPCALL_I64ToF: *dest = i64_to_f64 (*src1).v; break;
+      case FPCALL_U64ToF: *dest = ui64_to_f64(*src1).v; break;
+
+      case FPCALL_FToI32: *dest = my_f64_to_i32 (fsrc1); break;
+      case FPCALL_FToU32: *dest = my_f64_to_ui32(fsrc1); break;
+      case FPCALL_FToI64: *dest = my_f64_to_i64 (fsrc1); break;
+      case FPCALL_FToU64: *dest = my_f64_to_ui64(fsrc1); break;
+
+      case FPCALL_F32ToF64: *dest = f32_to_f64(rtlToF32(*src1)).v; break;
+      case FPCALL_F64ToF32: *dest = f64_to_f32(fsrc1).v; break;
+
+      case FPCALL_F64ToF16: *dest = my_f64_to_f16(fsrc1).v; break;
+      default: panic("op = %d not supported", op);
+    }
+  }
+
+  uint32_t ex = fp_get_exception();
+  if (ex) {
+    isa_fp_set_ex(ex);
+    fp_clear_exception();
+  }
+#endif // CONFIG_FPU_NONE
+}
+
 def_rtl(fclass, rtlreg_t *fdest, rtlreg_t *src, int width) {
 #ifndef CONFIG_FPU_NONE
   if(width == FPCALL_W16){
