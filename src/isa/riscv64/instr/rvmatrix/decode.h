@@ -49,6 +49,16 @@ static inline def_DHelper(mcompute) {
   s->m_eew = mtype->msew;
   s->m_width = 1 << s->m_eew;
   Log("mcompute inst: mtype->msew = %x", mtype->msew);
+  int m_lmul = s->isa.instr.mcompute.lmul;
+  if (m_lmul == 3){
+    Log("Warning: Use mtype.mlmul");
+    m_lmul = mtype->mlmul;
+  }
+  switch (m_lmul) {
+    case 0 : s->m_groupsize  = 1; break;
+    case 1 : s->m_groupsize  = 2; break;
+    case 2 : s->m_groupsize  = 4; break;
+  }
 }
 
 

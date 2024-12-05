@@ -38,7 +38,7 @@ typedef __int128_t int128_t;
   uint64_t ts2 = s->src2.reg; \
   uint64_t td = s->dest.reg; \
   uint64_t lmul = 1; \
-  Assert(s->m_groupsize == 1, "TODO: only support groupsize=1 now!\n"); \
+  Assert(s->m_groupsize == 1, "Only support groupsize=1!\n"); \
   uint64_t msew = mtype->msew; \
   \
   for (int i = 0; i < tile_m; i++) { \
