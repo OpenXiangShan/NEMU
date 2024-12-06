@@ -22,6 +22,14 @@
 static uint8_t *flash_base  = (uint8_t *)0xf0000000ul;
 static FILE *fp = NULL;
 
+uint8_t* get_flash_base(){
+  return flash_base;
+}
+
+uint64_t get_flash_size(){
+  return CONFIG_FLASH_SIZE;
+}
+
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   Assert(!is_write, "write to flash is illegal");
   return;
