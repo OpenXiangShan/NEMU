@@ -493,9 +493,16 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_F16ToF64: *dest = my_f16_to_f64(rtlToF16(*src1)).v; break;
       default: panic("op = %d not supported", op);
     }
-  }else if (w == FPCALL_W32) {
-    float32_t fsrc1 = rtlToF32(*src1);
-    float32_t fsrc2 = rtlToF32(*src2);
+  } else if (w == FPCALL_W32 || w == FPCALL_W16_to_32) {
+    float32_t fsrc1;
+    float32_t fsrc2;
+    if (w == FPCALL_W16_to_32) {
+      fsrc1 = f16_to_f32(rtlToVF16(*src1));
+      fsrc2 = f16_to_f32(rtlToVF16(*src2));
+    } else {
+      fsrc1 = rtlToVF32(*src1);
+      fsrc2 = rtlToVF32(*src2);
+    }
     switch (op) {
       case FPCALL_ADD: *dest = f32_add(fsrc1, fsrc2).v; break;
       case FPCALL_SUB: *dest = f32_sub(fsrc1, fsrc2).v; break;
@@ -533,9 +540,16 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_F32ToF16: *dest = my_f32_to_f16(rtlToF32(*src1)).v; break;
       default: panic("op = %d not supported", op);
     }
-  } else if (w == FPCALL_W64) {
-    float64_t fsrc1 = rtlToF64(*src1);
-    float64_t fsrc2 = rtlToF64(*src2);
+  } else if (w == FPCALL_W64 || w == FPCALL_W32_to_64) {
+    float64_t fsrc1;
+    float64_t fsrc2;
+    if (w == FPCALL_W32_to_64) {
+      fsrc1 = f32_to_f64(rtlToVF32(*src1));
+      fsrc2 = f32_to_f64(rtlToVF32(*src2));
+    } else {
+      fsrc1 = rtlToF64(*src1);
+      fsrc2 = rtlToF64(*src2);
+    }
     switch (op) {
       case FPCALL_ADD: *dest = f64_add(fsrc1, fsrc2).v; break;
       case FPCALL_SUB: *dest = f64_sub(fsrc1, fsrc2).v; break;

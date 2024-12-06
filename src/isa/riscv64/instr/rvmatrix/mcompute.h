@@ -316,13 +316,13 @@ def_EHelper(mfwma) {
   word_t FPCALL_TYPE = FPCALL_W64;
   switch (mtype->msew) {
     case 0:
-      FPCALL_TYPE = FPCALL_W16;
+      Loge("fp8 mma not supported"); longjmp_exception(EX_II);
       break;
     case 1:
-      FPCALL_TYPE = FPCALL_W32;
+      FPCALL_TYPE = FPCALL_W16_to_32;
       break;
     case 2:
-      FPCALL_TYPE = FPCALL_W64;
+      FPCALL_TYPE = FPCALL_W32_to_64;
       break;
     default:
       Loge("other fp type not supported"); longjmp_exception(EX_II);
