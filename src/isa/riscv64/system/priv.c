@@ -880,12 +880,13 @@ static inline void set_tvec(word_t* dest, word_t src) {
 #ifdef CONFIG_RVH
 static inline word_t vmode_get_sie() {
   word_t tmp = 0;
-
-  tmp = (mie->val & VSI_MASK) >> 1;
-
 #ifdef CONFIG_RV_AIA
+  word_t originIE = mie->val;
+
+  tmp = (originIE & ~0x1fff) | ((originIE & VSI_MASK) >> 1);
   tmp |= vmode_get_ie(tmp, 13, 63);
 #else
+  tmp = (mie->val & VSI_MASK) >> 1;
   IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mie->val & mideleg->val & hideleg->val & MIP_LCOFIP);
 #endif // CONFIG_RV_AIA
 
@@ -909,12 +910,16 @@ static inline void vmode_set_sie(word_t src) {
 
 #ifdef CONFIG_RVH
 static inline word_t get_vsie() {
-  word_t tmp;
-  tmp = (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
-
+  word_t tmp = 0;
 #ifdef CONFIG_RV_AIA
+  word_t originIE = (hideleg->val & mideleg->val & mie->val) |
+    (hideleg->val & ~mideleg->val & mvien->val & sie->val) |
+    (~hideleg->val & hvien->val & vsie->val);
+
+  tmp = (originIE & ~0x1fff) | ((originIE & VSI_MASK) >> 1);
   tmp |= vmode_get_ie(tmp, 13, 63);
 #else
+  tmp = (mie->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
   IFDEF(CONFIG_RV_SSCOFPMF, tmp |= mie->val & mideleg->val & hideleg->val & MIP_LCOFIP);
 #endif // CONFIG_RV_AIA
 
@@ -1071,12 +1076,13 @@ static inline void set_mvip(word_t src) {
 #ifdef CONFIG_RVH
 static inline word_t vmode_get_sip() {
   word_t tmp = 0;
-
-  tmp = (get_mip() & VSI_MASK) >> 1;
-
 #ifdef CONFIG_RV_AIA
+  word_t originIP = get_mip();
+
+  tmp = (originIP & ~0x1fff) | ((originIP & VSI_MASK) >> 1);
   tmp |= vmode_get_ip(tmp, 13, 63);
 #else
+  tmp = (get_mip() & VSI_MASK) >> 1;
   IFDEF(CONFIG_RV_SSCOFPMF, tmp |= get_mip() & mideleg->val & hideleg->val & MIP_LCOFIP);
 #endif // CONFIG_RV_AIA
 
@@ -1102,12 +1108,15 @@ static inline void vmode_set_sip(word_t src) {
 #ifdef CONFIG_RVH
 static inline word_t get_vsip() {
   word_t tmp = 0;
-
-  tmp = (hvip->val & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
-
 #ifdef CONFIG_RV_AIA
+  word_t originIP = (mideleg->val & hideleg->val & get_mip()) |
+    (~mideleg->val & hideleg->val & mvien->val & mvip->val) |
+    (~hideleg->val & hvien->val & hvip->val);
+
+  tmp = (originIP & ~0x1fff) | ((originIP & VSI_MASK) >> 1);
   tmp |= vmode_get_ip(tmp, 13, 63);
 #else
+  tmp = (get_mip() & (hideleg->val & (mideleg->val | MIDELEG_FORCED_MASK)) & VSI_MASK) >> 1;
   IFDEF(CONFIG_RV_SSCOFPMF, tmp |= get_mip() & MIP_LCOFIP & mideleg->val & hideleg->val);
 #endif // CONFIG_RV_AIA
 
@@ -2176,7 +2185,8 @@ static void csr_write(uint32_t csrid, word_t src) {
   }
 
 #ifdef CONFIG_RV_IMSIC
-  if (is_write(mideleg) || is_write(hideleg) || is_write(hstatus) || is_write(hvictl) ||
+  if (is_write(mideleg) || is_write(hideleg) ||
+      is_write(mstatus) || is_write(sstatus) || is_write(vsstatus) || is_write(hstatus) || is_write(hvictl) ||
       is_write(mip) || is_write(mvip) || is_write(hvip) || is_write(hip) || is_write(sip) || is_write(vsip) ||
       is_write(mie) || is_write(mvien) || is_write(hvien) || is_write(hie) || is_write(sie) || is_write(vsie) ||
       is_write(mireg) || is_write(sireg)) {
