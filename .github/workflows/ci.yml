@@ -206,6 +206,7 @@ jobs:
             isa_misc/satp_ppn.bin
             cache-management/softprefetchtest-riscv64-xs.bin
             H-extension-tests/riscv-hyp-tests/rvh_test.bin
+            zacas/zacas-riscv64-xs.bin
           skip_tests: |
             ext_intr/amtest-riscv64-xs.bin
             Svinval/rv64mi-p-svinval.bin
