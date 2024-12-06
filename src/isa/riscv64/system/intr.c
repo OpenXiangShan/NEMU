@@ -149,7 +149,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
 #ifdef CONFIG_RV_IMSIC
-    if ((NO & INTR_BIT) && (NO & (MIP_SSIP | MIP_STIP | MIP_SEIP))) {
+    int vs_guest_no = NO & 0xff;
+    bool vs_host_no = (vs_guest_no == IRQ_VSSIP) || (vs_guest_no == IRQ_VSTIP) || (vs_guest_no == IRQ_VSEIP);
+    if ((NO & INTR_BIT) && vs_host_no) {
       vscause->val = ((NO & (~INTR_BIT)) - 1) | INTR_BIT;
     } else {
       vscause->val = NO;
