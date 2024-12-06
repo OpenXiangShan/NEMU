@@ -37,8 +37,6 @@ class Serializer
 
     void serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
 
-    explicit Serializer();
-
     void init();
 
     bool shouldTakeCpt(uint64_t num_insts);
@@ -54,8 +52,6 @@ class Serializer
 
     uint64_t cptID;
     std::string weightIndicator;
-
-    const int IntRegAddr;
 
     bool regDumped{false};
 

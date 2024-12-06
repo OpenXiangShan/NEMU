@@ -46,8 +46,6 @@ using std::numeric_limits;
 using std::string;
 using std::to_string;
 
-Serializer Serializer();
-
 extern "C" {
 uint8_t *get_pmem();
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
@@ -56,9 +54,9 @@ uint8_t *guest_to_host(paddr_t paddr);
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
-extern uint8_t* get_gcpt_mmio_base();
+extern uint8_t* get_flash_base();
 void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
-extern uint64_t get_gcpt_mmio_size();
+extern uint64_t get_flash_size();
 #include <debug.h>
 #include <checkpoint/fill_protobuf.h>
 #include <checkpoint/checkpoint.pb.h>
@@ -69,7 +67,7 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
   const size_t PMEM_SIZE = MEMORY_SIZE;
-  const size_t GCPT_MMIO_SIZE = get_gcpt_mmio_size();
+  const size_t GCPT_MMIO_SIZE = get_flash_size();
   Log("Host physical address: %p size: %lx", pmem_addr, PMEM_SIZE);
   Log("Host gcpt address: %p size: %lx", gcpt_mmio_addr, GCPT_MMIO_SIZE);
 
@@ -325,13 +323,13 @@ void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
   encode_cpt_header(&cpt_header, &cpt_percpu_layout);
 
   if (write_to_flash) {
-    serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_gcpt_mmio_base();
+    serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_flash_base();
   } else {
     serialize_reg_base_addr = cpt_header.cpt_offset + (uint64_t)get_pmem();
   }
 
   serializeRegs(write_to_flash, (uint8_t *)serialize_reg_base_addr, &cpt_percpu_layout);
-  serializePMem(inst_count, write_to_flash, get_pmem(), get_gcpt_mmio_base());
+  serializePMem(inst_count, write_to_flash, get_pmem(), get_flash_base());
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
@@ -422,6 +420,8 @@ void Serializer::notify_taken(uint64_t i) {
   }
 }
 
+Serializer serializer;
+
 uint64_t Serializer::next_index(){
   uint64_t index=0;
   if (checkpoint_state==SimpointCheckpointing&&!serializer.simpoint2Weights.empty()) {
@@ -436,7 +436,7 @@ uint64_t Serializer::next_index(){
 extern "C" {
 
 void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout){
-  assert(cpt_header_encode(get_gcpt_mmio_base(), cpt_header, cpt_percpu_layout));
+  assert(cpt_header_encode(get_flash_base(), cpt_header, cpt_percpu_layout));
 }
 
 void init_serializer() {

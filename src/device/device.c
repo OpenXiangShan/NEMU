@@ -36,7 +36,6 @@ void init_disk();
 void init_sdcard();
 void init_flash();
 void load_flash_contents(const char *);
-void init_gcpt();
 
 void send_key(uint8_t, bool);
 void vga_update_screen();
