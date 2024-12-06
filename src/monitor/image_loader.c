@@ -13,7 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "checkpoint.pb.h"
+#include "checkpoint/checkpoint.pb.h"
 #include "debug.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -47,8 +47,8 @@ long load_gz_img(const char *filename) {
   uint64_t curr_size = 0;
   
   uint64_t cpt_offset = 0;
-  extern uint8_t *get_gcpt_mmio_base();
-  extern uint64_t get_gcpt_mmio_size();
+  extern uint8_t *get_flash_base();
+  extern uint64_t get_flash_size();
 
   while (curr_size < MEMORY_SIZE) {
     uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
@@ -57,9 +57,9 @@ long load_gz_img(const char *filename) {
     }
     
     // restore checkpoint hardware status to device
-    if (cpt_offset < get_gcpt_mmio_size()) {
-      assert(get_gcpt_mmio_base());
-      memcpy(get_gcpt_mmio_base() + cpt_offset, temp_page, chunk_size);
+    if (cpt_offset < get_flash_size()) {
+      assert(get_flash_base());
+      memcpy(get_flash_base() + cpt_offset, temp_page, chunk_size);
 
       cpt_offset += chunk_size;
       continue;
@@ -161,8 +161,8 @@ long load_zstd_img(const char *filename) {
 
   // def checkpoint restore size
   int64_t cpt_offset = 0;
-  extern uint8_t *get_gcpt_mmio_base();
-  extern uint64_t get_gcpt_mmio_size();
+  extern uint8_t *get_flash_base();
+  extern uint64_t get_flash_size();
 
   // decompress and write in memory
   uint64_t total_write_size = 0;
@@ -188,9 +188,9 @@ long load_zstd_img(const char *filename) {
 
     assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
 
-    if (cpt_offset < get_gcpt_mmio_size()) {
-      assert(get_gcpt_mmio_base());
-      memcpy(get_gcpt_mmio_base() + cpt_offset, decompress_file_buffer, output.pos);
+    if (cpt_offset < get_flash_size()) {
+      assert(get_flash_base());
+      memcpy(get_flash_base() + cpt_offset, decompress_file_buffer, output.pos);
 
       cpt_offset += output.pos;
       continue;
