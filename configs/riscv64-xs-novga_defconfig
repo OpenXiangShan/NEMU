@@ -26,7 +26,7 @@ CONFIG_RV_PMP_ACTIVE_NUM=16
 # CONFIG_RV_PMP_CHECK is not set
 # CONFIG_RVV is not set
 CONFIG_RV_SVINVAL=y
-# CONFIG_RV_ZACAS is not set
+CONFIG_RV_ZACAS=y
 # end of ISA-dependent Options for riscv64
 
 CONFIG_ENGINE_INTERPRETER=y
