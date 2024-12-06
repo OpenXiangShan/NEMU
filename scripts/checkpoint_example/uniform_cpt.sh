@@ -12,7 +12,7 @@ uniform_cpt(){
     $NEMU ${BBL_PATH}/${workload}.bin \
         -D $RESULT -w $workload -C $name      \
         -b -u --cpt-interval ${interval}   --dont-skip-boot         \
-        -r $GCPT > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
+        --checkpoint-format zstd > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
 }
 
 export -f uniform_cpt

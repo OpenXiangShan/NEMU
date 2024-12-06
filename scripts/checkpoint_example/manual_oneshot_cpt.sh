@@ -16,7 +16,6 @@ manual_oneshot_cpt(){
     $NEMU ${BBL_PATH}/${workload}-bbl-linux-spec.bin \
         -D $RESULT -w $workload -C $name      \
         -b --cpt-interval ${interval}            \
-        --manual-oneshot-cpt \
-        -r $GCPT > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
+        --manual-oneshot-cpt --checkpoint-format zstd > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
 
 }
