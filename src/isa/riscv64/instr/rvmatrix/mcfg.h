@@ -29,45 +29,73 @@ def_EHelper(msettype) {
   s->src1.val = reg_l(s->src1.reg);
   // write mtype value to mtype_csr_reg and rd
   mtype->val = s->src1.val;
-  reg_l(s->dest.reg) = s->src1.val;
+  reg_l(s->dest.reg) = mtype->val;
 }
 
 def_EHelper(msettypei) {
   mtype->val = s->src2.imm;
-  reg_l(s->dest.reg) = s->src2.imm;
+  reg_l(s->dest.reg) = mtype->val;
 }
 
 def_EHelper(msettilem) {
   s->src1.val = reg_l(s->src1.reg);
-  mtilem->val = s->src1.val;
-  reg_l(s->dest.reg) = s->src1.val;
+  if(s->src1.val <= TMMAX) {
+    mtilem->val = s->src1.val;
+  } else {
+    mtilem->val = TMMAX;
+  }
+  reg_l(s->dest.reg) = mtilem->val;
 }
 
 def_EHelper(msettilemi) {
-  mtilem->val = s->src2.imm;
-  reg_l(s->dest.reg) = s->src2.imm;
+  if(s->src2.imm <= TMMAX) {
+    mtilem->val = s->src2.imm;
+  } else {
+    mtilem->val = TMMAX;
+  }
+  reg_l(s->dest.reg) = mtilem->val;
 }
 
 def_EHelper(msettilek) {
   s->src1.val = reg_l(s->src1.reg);
-  mtilek->val = s->src1.val;
-  reg_l(s->dest.reg) = s->src1.val;
+  int SEW = s->m_width * 8;
+  if(s->src1.val <= TKMAX(SEW)) {
+    mtilek->val = s->src1.val;
+  } else {
+    mtilek->val = TKMAX(SEW);
+  }
+  reg_l(s->dest.reg) = mtilek->val;
 }
 
 def_EHelper(msettileki) {
-  mtilek->val = s->src2.imm;
-  reg_l(s->dest.reg) = s->src2.imm;
+  int SEW = s->m_width * 8;
+  if(s->src2.imm <= TKMAX(SEW)) {
+    mtilek->val = s->src2.imm;
+  } else {
+    mtilek->val = TKMAX(SEW);
+  }
+  reg_l(s->dest.reg) = mtilek->val;
 }
 
 def_EHelper(msettilen) {
   s->src1.val = reg_l(s->src1.reg);
-  mtilen->val = s->src1.val;
-  reg_l(s->dest.reg) = s->src1.val;
+  int SEW = s->m_width * 8;
+  if(s->src1.val <= TNMAX(SEW)) {
+    mtilen->val = s->src1.val;
+  } else {
+    mtilen->val = TNMAX(SEW);
+  }
+  reg_l(s->dest.reg) = mtilen->val;
 }
 
 def_EHelper(msettileni) {
-  mtilen->val = s->src2.imm;
-  reg_l(s->dest.reg) = s->src2.imm;
+  int SEW = s->m_width * 8;
+  if(s->src2.imm <= TNMAX(SEW)) {
+    mtilen->val = s->src2.imm;
+  } else {
+    mtilen->val = TNMAX(SEW);
+  }
+  reg_l(s->dest.reg) = mtilen->val;
 }
 
 #endif // CONFIG_RVMATRIX
