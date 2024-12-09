@@ -96,9 +96,9 @@ void isa_reg_display() {
 
   DISPLAY_HR("Privileged CSRs");
 
-  printf("pc: " FMT_WORD "  privilege mode: %s (mode: %ld  v: %ld  debug: %ld)\n",
+  printf("pc: " FMT_WORD "  privilege mode: %s (mode: %ld  v: %ld  debug: %d)\n",
       cpu.pc, get_privilege_mode_str(),
-      cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, (uint64_t)0), MUXDEF(CONFIG_RV_SDEXT, cpu.debug_mode, (uint64_t)0));
+      cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, (uint64_t)0), MUXDEF(CONFIG_RV_SDEXT, cpu.debug_mode, 0));
 
   #undef FMT_CSR_NAME
   #define FMT_CSR_NAME "%9s"
