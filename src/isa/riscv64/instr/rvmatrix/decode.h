@@ -20,6 +20,8 @@ static inline def_DHelper(mopcfg) {
   s->src1.reg = s->isa.instr.mcfg.rs1;
   s->src2.imm = (sword_t)s->isa.instr.mcfgi.imm13;
   s->dest.reg = s->isa.instr.mcfg.rd;
+  s->m_eew = mtype->msew;
+  s->m_width = 1 << s->m_eew;
 }
 
 static inline def_DHelper(mldst) {
@@ -48,7 +50,6 @@ static inline def_DHelper(mcompute) {
   s->dest.reg = s->isa.instr.mcompute.td;
   s->m_eew = mtype->msew;
   s->m_width = 1 << s->m_eew;
-  Log("mcompute inst: mtype->msew = %x", mtype->msew);
   int m_lmul = s->isa.instr.mcompute.lmul;
   if (m_lmul == 3){
     Log("Warning: Use mtype.mlmul");
