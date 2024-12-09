@@ -32,9 +32,10 @@
 #define MRENUM16 (MRLEN/16)
 #define MRENUM8  (MRLEN/8)
 
-#define TMMAX 8   // MLEN/RLEN=8
-#define TKMAX 2   // min{MLEN/RLEN, RLEN/SEW}, SEW=8/16/32/64, init_SEW=ELEN
-#define TNMAX 2   // RLEN/SEW
+#define TMMAX      (MLEN/MRLEN)    // 8
+#define TNMAX(sew) (MRLEN/sew)  // 16/8/4/2
+#define TKMAX(sew) (TMMAX < TNMAX(sew) ? TMMAX : TNMAX(sew))   // min{MLEN/RLEN, RLEN/SEW}, SEW=8/16/32/64, init_SEW=MELEN
+
 
 static inline int check_mtreg_num(int num) {
   assert(num >= 0 && num < 8);
