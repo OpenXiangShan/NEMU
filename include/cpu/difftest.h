@@ -72,11 +72,12 @@ static inline bool difftest_check_store(vaddr_t pc) {
 
     uint64_t dut_data = dut.data;
     uint64_t dut_addr = dut.addr;
+    uint8_t  dut_mask = dut.mask;
 
     if (ref_difftest_store_commit(&dut.addr, &dut.data, &dut.mask)) {
       Log("\n\t,is different memory executing instruction at pc = " FMT_WORD,pc);
-      Log(",ref addr = " FMT_WORD ", data = " FMT_WORD "\n\t dut addr = " FMT_WORD ", data = " FMT_WORD
-          ,dut.addr, dut.data, dut_addr, dut_data);
+      Log(",ref addr = " FMT_WORD ", data = " FMT_WORD ", mask = 0x%x" "\n\t dut addr = " FMT_WORD ", data = " FMT_WORD ", mask = 0x%x"
+          ,dut.addr, dut.data, dut.mask, dut_addr, dut_data, dut_mask);
       return false;
     }
 #ifdef CONFIG_RVV
