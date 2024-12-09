@@ -460,7 +460,7 @@ bool analysis_memory_isuse(uint64_t page) {
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-
+#define LIMITING_SHIFT(x) (((uint64_t)(x)) < ((uint64_t)63ULL) ? ((uint64_t)(x)) : ((uint64_t)63ULL))
 void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   // align with dut
   uint8_t inside_16bytes_bound = ((addr >> 4) & 1ULL) == (((addr + len - 1) >> 4) & 1ULL);
@@ -474,7 +474,7 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
     if ((addr % 16ULL) > 8) {
       low_addr_st.data = 0;
     } else {
-      low_addr_st.data = (data & st_data_mask) << ((addr % 16ULL) << 3);
+      low_addr_st.data = (data & st_data_mask) << LIMITING_SHIFT((addr % 16ULL) << 3);
     }
     low_addr_st.mask = (st_mask << (addr % 16ULL)) & 0xffULL;
     low_addr_st.pc   = prev_s->pc;
@@ -484,12 +484,12 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
     // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
   } else {
     low_addr_st.addr = addr - (addr % 8ULL);
-    low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << ((8 - len + (addr % len)) << 3);
+    low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << LIMITING_SHIFT((8 - len + (addr % len)) << 3);
     low_addr_st.mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
     low_addr_st.pc   = prev_s->pc;
 
     high_addr_st.addr = addr - (addr % 16ULL) + 16ULL;
-    high_addr_st.data = (data >> ((len - (addr % len)) << 3)) & (st_data_mask >> ((len - (addr % len)) << 3));
+    high_addr_st.data = (data >> LIMITING_SHIFT((len - (addr % len)) << 3)) & (st_data_mask >> LIMITING_SHIFT((len - (addr % len)) << 3));
     high_addr_st.mask = st_mask >> (len - (addr % len));
     high_addr_st.pc   = prev_s->pc;
 
