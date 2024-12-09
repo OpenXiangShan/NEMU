@@ -193,8 +193,8 @@ void init_isa() {
   
   mtype->val = 0xC;
   mtilem->val = TMMAX;
-  mtilek->val = TKMAX;
-  mtilen->val = TNMAX;
+  mtilek->val = TKMAX(MELEN);
+  mtilen->val = TNMAX(MELEN);
 #endif // CONFIG_RVMATRIX
 
   // mcycle and minstret record :
