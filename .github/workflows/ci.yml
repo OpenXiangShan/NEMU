@@ -40,6 +40,7 @@ jobs:
           echo "V_WORKLOAD_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU interpreter for XS
         run: |
+          git submodule update --init --depth=1
           make riscv64-xs_defconfig
           make -j
       - name: System - linux-hello-opensbi
@@ -62,7 +63,6 @@ jobs:
           make clean-all
 
           # restore cpt
-          git submodule update --init --depth=1 ready-to-run
           make riscv64-xs-diff-spike_defconfig
           make -j
           bash ./scripts/restore_zstd.sh
@@ -80,6 +80,7 @@ jobs:
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: Build NEMU interpreter
         run: |
+          git submodule update --init --depth=1
           make riscv64-nutshell_defconfig
           make -j
       - name: test boot linux
@@ -108,7 +109,7 @@ jobs:
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU with V extension and agnostic
         run: |
-          git submodule update --init --depth=1 ready-to-run
+          git submodule update --init --depth=1
           make clean-all
           make riscv64-xs-diff-spike-agnostic_defconfig
           make -j
@@ -134,7 +135,7 @@ jobs:
 
       - name: Build NEMU interpreter for diff with spike
         run: |
-          git submodule update --init --depth=1 ready-to-run
+          git submodule update --init --depth=1
           make riscv64-xs-diff-spike_defconfig
           make -j
 
@@ -254,7 +255,7 @@ jobs:
 
       - name: Build NEMU interpreter for diff with spike
         run: |
-          git submodule update --init --depth=1 ready-to-run
+          git submodule update --init --depth=1
           make riscv64-xs-diff-spike_defconfig
           make -j
 
