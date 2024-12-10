@@ -195,6 +195,7 @@
   f(mlat) f(mlbt) f(mlct) \
   f(msa) f(msb) f(msc) \
   f(msat) f(msbt) f(msct) \
+  f(mlr) f(msr) \
   f(mmau) f(mwmau) f(mqmau) \
   f(msmau) f(mswmau) f(msqmau) \
   f(mma) f(mwma) f(mqma) \

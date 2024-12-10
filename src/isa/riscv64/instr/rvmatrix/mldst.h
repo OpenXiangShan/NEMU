@@ -27,8 +27,8 @@
 
 // TODO: not consider mstart now
 void mld(bool is_trans, char m_name) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
+  uint64_t base_addr = reg_l(s->src1.reg);
+  int64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t td = s->dest.reg;
   int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
   /*switch (m_name) {
@@ -95,8 +95,8 @@ void mld(bool is_trans, char m_name) {
 }
 
 void mst(bool is_trans, char m_name) {
-  uint64_t base_addr = s->src1.val;
-  int64_t row_byte_stride = s->src2.val;
+  uint64_t base_addr = reg_l(s->src1.reg);
+  int64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t ts3 = s->dest.reg;
   int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
   /*switch (m_name) {
@@ -209,6 +209,11 @@ def_EHelper(msbt) {
 
 def_EHelper(msct) {
   mst(true, 'c');
+}
+
+def_EHelper(mlr) {
+}
+def_EHelper(msr) {
 }
 
 #endif // CONFIG_RVMATRIX
