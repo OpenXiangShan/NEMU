@@ -12,6 +12,7 @@ touch $(pwd)/resource/gcpt_restore/build/gcpt.bin
 # indentation of Makefile, causing make failure after fetching the
 # berkeley-softfloat-3. This dry run fixed this by fetching the
 # dependencies for the first time.
+git submodule update --init
 make riscv64-xs-ref_defconfig && \
 (make -j `nproc` || true)
 
