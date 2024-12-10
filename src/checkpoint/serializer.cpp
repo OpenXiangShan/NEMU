@@ -54,15 +54,16 @@ uint8_t *guest_to_host(paddr_t paddr);
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
-extern uint8_t* get_flash_base();
 void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
-extern uint64_t get_flash_size();
 #include <debug.h>
 #include <checkpoint/fill_protobuf.h>
 #include <checkpoint/checkpoint.pb.h>
 }
 
+Serializer serializer;
+
 #ifdef CONFIG_MEM_COMPRESS
+#include <device/flash.h>
 void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
@@ -212,7 +213,7 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
   regDumped = false;
 }
 #else
-void Serializer::serializePMem(uint64_t inst_count) {}
+void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr) {}
 #endif
 
 #ifdef CONFIG_MEM_COMPRESS
@@ -325,7 +326,7 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr, single_core_rvgc_rv
   regDumped = true;
 }
 #else
-void Serializer::serializeRegs() {}
+void Serializer::serializeRegs(uint8_t* serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout) {}
 #endif
 
 void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
@@ -336,7 +337,7 @@ void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
   //encode_cpt_header(&cpt_header, &cpt_percpu_layout);
 
   if (write_to_flash) {
-    serialize_reg_base_addr = get_flash_base();
+    serialize_reg_base_addr = flash_base;
   } else {
     serialize_reg_base_addr = get_pmem();
   }
@@ -344,7 +345,7 @@ void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
   assert(serialize_reg_base_addr);
 
   serializeRegs((uint8_t *)serialize_reg_base_addr, &cpt_percpu_layout);
-  serializePMem(inst_count, write_to_flash, get_pmem(), get_flash_base());
+  serializePMem(inst_count, write_to_flash, get_pmem(), flash_base);
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
@@ -435,7 +436,6 @@ void Serializer::notify_taken(uint64_t i) {
   }
 }
 
-Serializer serializer;
 
 uint64_t Serializer::next_index(){
   uint64_t index=0;

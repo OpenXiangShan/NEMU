@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <device/flash.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
@@ -360,16 +361,19 @@ void init_monitor(int argc, char *argv[]) {
 
   assert(img_file);
   uint64_t bbl_start = (uint64_t)get_pmem();
-  extern uint8_t* get_flash_base();
-  uint64_t gcpt_start = (uint64_t)get_flash_base();
+#ifdef CONFIG_HAS_FLASH
+  uint64_t gcpt_start = (uint64_t)flash_base;
+#endif
 
   // memory image or binary could load directly
   img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
 
+#ifdef CONFIG_HAS_FLASH
   // provide checkpoint flash file
   if (checkpoint_restoring){
     img_size = load_img(checkpoint_flash_path, "checkpoint from cmdline", gcpt_start, 0);
   }
+#endif
 
   // provide gcpt restore
   if (restorer) {
@@ -389,7 +393,11 @@ void init_monitor(int argc, char *argv[]) {
 
     fclose(restore_fp);
 
+#ifdef CONFIG_HAS_FLASH
     load_img(restorer, "Gcpt restorer form cmdline", gcpt_start, restore_size);
+#else
+    load_img(restorer, "Gcpt restorer form cmdline", bbl_start, restore_size);
+#endif
   }
 
   /* Initialize differential testing. */
