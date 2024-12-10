@@ -15,17 +15,13 @@
 
 #include <utils.h>
 #include <device/map.h>
+#include <device/flash.h>
 #include <sys/mman.h>
 #include <stdlib.h>
 
 // put flash below the physical memory and allow a max size of 256MB.
 // See the notes at paddr.c:79 for why we fix the address here.
-static uint8_t *flash_base  = (uint8_t *)0xf0000000ul;
-static FILE *fp = NULL;
-
-uint8_t* get_flash_base(){
-  return flash_base;
-}
+uint8_t *flash_base  = (uint8_t *)0xf0000000ul;
 
 uint64_t get_flash_size(){
   return CONFIG_FLASH_SIZE;
@@ -84,6 +80,7 @@ void convert_to_absolute_path(const char *input_path, char *output_path) {
 void load_flash_contents(const char *flash_img) {
   // create mmap with zero contents
   assert(CONFIG_FLASH_SIZE <= 0x10000000UL);
+  FILE *fp = NULL;
   void *ret = mmap((void *)flash_base, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE,
     MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != flash_base) {
