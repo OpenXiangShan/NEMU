@@ -24,7 +24,7 @@ static const uint32_t img [] = {
   0x0002a503,  // lw  a0,0(t0)
   0x0000006b,  // nemu_trap
 };
-//RESET_VECTOR
+
 static void restart() {
   /* Set the initial program counter. */
   cpu.pc = RESET_VECTOR;
