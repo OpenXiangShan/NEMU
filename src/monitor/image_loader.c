@@ -34,37 +34,23 @@
 #ifndef CONFIG_MODE_USER
 
 #ifdef CONFIG_MEM_COMPRESS
-long load_gz_img(const char *filename) {
+long load_gz_img(const char *filename, uint64_t load_start, size_t img_size) {
   gzFile compressed_mem = gzopen(filename, "rb");
   Assert(compressed_mem, "Can not open '%s'", filename);
 
   const uint32_t chunk_size = 16384;
   uint8_t *temp_page = (uint8_t *)calloc(chunk_size, sizeof(long));
-  uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
+  uint8_t *pmem_start = (uint8_t *)(load_start);
   uint8_t *pmem_current;
 
   // load file byte by byte to pmem
+  size_t load_size = img_size == 0 ? MEMORY_SIZE : img_size;
   uint64_t curr_size = 0;
-  
-  uint64_t cpt_offset = 0;
-  extern uint8_t *get_flash_base();
-  extern uint64_t get_flash_size();
-
-  while (curr_size < MEMORY_SIZE) {
+  while (curr_size < load_size) {
     uint32_t bytes_read = gzread(compressed_mem, temp_page, chunk_size);
     if (bytes_read == 0) {
       break;
     }
-    
-    // restore checkpoint hardware status to device
-    if (cpt_offset < get_flash_size()) {
-      assert(get_flash_base());
-      memcpy(get_flash_base() + cpt_offset, temp_page, chunk_size);
-
-      cpt_offset += chunk_size;
-      continue;
-    }
-
     for (uint32_t x = 0; x < bytes_read; x++) {
       pmem_current = pmem_start + curr_size + x;
       uint8_t read_data = *(temp_page + x);
@@ -84,7 +70,7 @@ long load_gz_img(const char *filename) {
   return curr_size;
 }
 
-long load_zstd_img(const char *filename) {
+long load_zstd_img(const char *filename, uint64_t load_start, size_t img_size) {
   assert(filename);
 
   int fd = -1;
@@ -156,18 +142,14 @@ long load_zstd_img(const char *filename) {
   }
 
   // def phymem
-  uint8_t *pmem_start = (uint8_t *)guest_to_host(RESET_VECTOR);
+  uint8_t *pmem_start = (uint8_t *)(load_start);
   uint64_t *pmem_current;
 
-  // def checkpoint restore size
-  int64_t cpt_offset = 0;
-  extern uint8_t *get_flash_base();
-  extern uint64_t get_flash_size();
-
   // decompress and write in memory
-  uint64_t total_write_size = 0;
+  size_t total_write_size = 0;
+  size_t load_size = img_size == 0 ? MEMORY_SIZE : img_size;
 
-  while (total_write_size < MEMORY_SIZE) {
+  while (total_write_size < load_size) {
 
     ZSTD_outBuffer output = {decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0};
 
@@ -187,14 +169,6 @@ long load_zstd_img(const char *filename) {
     }
 
     assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
-
-    if (cpt_offset < get_flash_size()) {
-      assert(get_flash_base());
-      memcpy(get_flash_base() + cpt_offset, decompress_file_buffer, output.pos);
-
-      cpt_offset += output.pos;
-      continue;
-    }
 
     for (uint64_t x = 0; x < decompress_file_buffer_size; x++) {
       pmem_current = (uint64_t *)(pmem_start + total_write_size) + x;
@@ -241,7 +215,7 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   if (is_gz_file(loading_img)) {
 #ifdef CONFIG_MEM_COMPRESS
     Log("Loading GZ image %s", loading_img);
-    return load_gz_img(loading_img);
+    return load_gz_img(loading_img, load_start, img_size);
 #else
     panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
@@ -250,7 +224,7 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
   if (is_zstd_file(loading_img)) {
 #ifdef CONFIG_MEM_COMPRESS
     Log("Loading Zstd image %s", loading_img);
-    return load_zstd_img(loading_img);
+    return load_zstd_img(loading_img, load_start, img_size);
 #else
     panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
@@ -284,7 +258,7 @@ long load_img(char* img_name, char *which_img, uint64_t load_start, size_t img_s
     munmap(buf, size);
   }
 #else
-  int ret = fread(guest_to_host(load_start), size, 1, fp);
+  int ret = fread((uint8_t*)load_start, size, 1, fp);
   assert(ret == 1);
 #endif
   Log("Read %lu bytes from file %s to 0x%lx", size, img_name, load_start);

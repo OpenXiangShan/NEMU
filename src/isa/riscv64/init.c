@@ -19,15 +19,6 @@
 #include <memory/sparseram.h>
 #include "local-include/csr.h"
 
-#ifndef CONFIG_SHARE
-static const uint32_t img [] = {
-  0x800002b7,  // lui t0,0x80000
-  0x0002a023,  // sw  zero,0(t0)
-  0x0002a503,  // lw  a0,0(t0)
-  0x0000006b,  // nemu_trap
-};
-#endif
-
 void init_csr();
 #ifdef CONFIG_RV_SDTRIG
 void init_trigger();
@@ -55,7 +46,11 @@ void init_isa() {
   init_custom_csr();
 
 #ifndef CONFIG_RESET_FROM_MMIO
+#ifdef CONFIG_HAS_FLASH
+  cpu.pc = CONFIG_FLASH_START_ADDR;
+#else
   cpu.pc = RESET_VECTOR;
+#endif
 #else
   cpu.pc = CONFIG_MMIO_RESET_VECTOR;
 #endif
@@ -218,18 +213,6 @@ void init_isa() {
   hstateen0->val = HSTATEEN0_RESET;
   sstateen0->val = SSTATEEN0_RESET;
 #endif // CONFIG_RV_SMSTATEEN
-
-#ifndef CONFIG_SHARE
-  extern char *cpt_file;
-  extern bool checkpoint_restoring;
-  if (cpt_file == NULL && !checkpoint_restoring) {
-    #ifdef CONFIG_USE_SPARSEMM
-    sparse_mem_write(get_sparsemm(), RESET_VECTOR, sizeof(img), img);
-    #else
-    memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
-    #endif
-  }
-#endif
 
   init_riscv_timer();
 

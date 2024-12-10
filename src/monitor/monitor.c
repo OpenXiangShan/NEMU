@@ -101,8 +101,9 @@ static inline int parse_args(int argc, char *argv[]) {
     {"workload-name"               , required_argument, NULL, 'w'},
     {"config-name"                 , required_argument, NULL, 'C'},
 
-    // restore cpt
+    // checkpoint
     {"restore"                     , required_argument, NULL, 'c'},
+    // gcpt-restore
     {"cpt-restorer"                , required_argument, NULL, 'r'},
     {"map-img-as-outcpt"           , no_argument      , NULL, 13},
 
@@ -358,16 +359,19 @@ void init_monitor(int argc, char *argv[]) {
   long img_size = 0; // how large we should copy for difftest
 
   assert(img_file);
-  uint64_t bbl_start = RESET_VECTOR;
-#define RESET_FLASH 0x1000
-  uint64_t gcpt_start = RESET_FLASH;
+  uint64_t bbl_start = (uint64_t)get_pmem();
+  extern uint8_t* get_flash_base();
+  uint64_t gcpt_start = (uint64_t)get_flash_base();
 
+  // memory image or binary could load directly
   img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
 
+  // provide checkpoint flash file
   if (checkpoint_restoring){
     img_size = load_img(checkpoint_flash_path, "checkpoint from cmdline", gcpt_start, 0);
   }
 
+  // provide gcpt restore
   if (restorer) {
     FILE *restore_fp = fopen(restorer, "rb");
     Assert(restore_fp, "Can not open '%s'", restorer);
