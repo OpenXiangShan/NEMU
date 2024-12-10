@@ -35,7 +35,7 @@ class Serializer
 
     void serializePMem(uint64_t inst_count, bool using_gcpt_mmio, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr);
 
-    void serializeRegs(bool using_gcpt_mmio, uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
+    void serializeRegs(uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
 
     void init();
 
