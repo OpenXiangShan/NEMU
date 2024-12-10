@@ -194,6 +194,10 @@ void init_isa() {
   MAP(CSRS_M_HPMCOUNTER, CSR_ZERO_INIT);
   MAP(CSRS_M_HPMEVENT, CSR_ZERO_INIT);
 
+#ifdef CONFIG_RV_SMCNTRPMF
+  MAP(CSRS_M_SMCNTRPMF, CSR_ZERO_INIT);
+#endif // CONFIG_RV_SMCNTRPMF
+
 #ifdef CONFIG_USE_XS_ARCH_CSRS
   mvendorid->val = 0;
   marchid->val = 25;

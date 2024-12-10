@@ -400,6 +400,14 @@
   f(mhpmevent24    , 0x338) f(mhpmevent25    , 0x339) f(mhpmevent26    , 0x33A) f(mhpmevent27    , 0x33B) \
   f(mhpmevent28    , 0x33C) f(mhpmevent29    , 0x33D) f(mhpmevent30    , 0x33E) f(mhpmevent31    , 0x33F)
 
+/** Smcntrpmf Registers **/ 
+#ifdef CONFIG_RV_SMCNTRPMF
+  #define CSRS_M_SMCNTRPMF(f) \
+    f(mcyclecfg      , 0x321) f(minstretcfg    , 0x322)
+#else // CONFIG_RV_SMCNTRPMF
+  #define CSRS_M_SMCNTRPMF(f)
+#endif // CONFIG_RV_SMCNTRPMF
+
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
   #define CSRS_M_MCOUNTINHIBIT(f) \
   f(mcountinhibit  , 0x320)
@@ -465,7 +473,8 @@
   CSRS_M_DEBUG_TRACE(f) \
   CSRS_M_AIA(f) \
   CSRS_M_SMRNMI(f) \
-  CSRS_DEBUG_MODE(f)
+  CSRS_DEBUG_MODE(f) \
+  CSRS_M_SMCNTRPMF(f)
 
 
 /* ALL CSRs */
@@ -669,6 +678,26 @@ CSR_STRUCT_END(mcounteren)
 CSR_STRUCT_START(mcountinhibit)
 CSR_STRUCT_END(mcountinhibit)
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+
+#ifdef CONFIG_RV_SMCNTRPMF
+
+#define CSRS_M_SMCNTRPMF_STRUCT(name, addr) \
+  typedef union {                   \
+    struct {                        \
+      uint64_t pad0     : 58;       \
+      uint64_t vuinh    : 1;        \
+      uint64_t vsinh    : 1;        \
+      uint64_t uinh     : 1;        \
+      uint64_t sinh     : 1;        \
+      uint64_t minh     : 1;        \
+      uint64_t pad1     : 1;        \
+    };                              \
+    word_t val;                     \
+  } concat(name, _t);
+
+MAP(CSRS_M_SMCNTRPMF, CSRS_M_SMCNTRPMF_STRUCT)
+
+#endif //CONFIG_RV_SMCNTRPMF
 
 CSR_STRUCT_START(mscratch)
 CSR_STRUCT_END(mscratch)

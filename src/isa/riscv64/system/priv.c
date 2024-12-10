@@ -600,6 +600,16 @@ static inline word_t* csr_decode(uint32_t addr) {
   MHPMEVENT_WMASK_EVENT0    \
 )
 
+#ifdef CONFIG_RV_SMCNTRPMF
+#define SMCNTRPMF_WMASK (   \
+  MHPMEVENT_WMASK_MINH    | \
+  MHPMEVENT_WMASK_SINH    | \
+  MHPMEVENT_WMASK_UINH    | \
+  MHPMEVENT_WMASK_VSINH   | \
+  MHPMEVENT_WMASK_VUINH     \
+)
+#endif // CONFIG_RV_SMCNTRPMF
+
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
 #define is_access(csr) (dest_access == (void *)(csr))
@@ -1984,6 +1994,11 @@ static void csr_write(uint32_t csrid, word_t src) {
       }
       break;
     }
+
+#ifdef CONFIG_RV_SMCNTRPMF
+    case CSR_MCYCLECFG:   *dest = src & SMCNTRPMF_WMASK;
+    case CSR_MINSTRETCFG: *dest = src & SMCNTRPMF_WMASK;
+#endif // CONFIG_RV_SMCNTRPMF
 
     case CSR_MEPC: *dest = src & (~0x1UL); break;
     case CSR_MIP: set_mip(src); break;

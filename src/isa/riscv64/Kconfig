@@ -221,6 +221,10 @@ config RV_CSR_MCOUNTINHIBIT_HPM
 
 endif
 
+config RV_SMCNTRPMF
+  bool "Enable Smcntrpmf extension(Cycle and Instret Privilege Mode Filtering)"
+  default y
+
 choice
   prompt "Number of implemented PMP entries"
   default RV_PMP_ENTRY_16
