@@ -65,6 +65,12 @@ DIRS-y += src/checkpoint
 endif
 
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
+SRCS-y += resource/nanopb/pb_common.c
+SRCS-y += resource/nanopb/pb_decode.c
+SRCS-y += resource/nanopb/pb_encode.c
+INC_DIR += resource/nanopb
+INC_DIR += include/checkpoint
+SRCS-y += $(patsub %.proto,%.pb.c,(shell find $(DIRS-y) -name "*.proto"))
 
 SRCS = $(SRCS-y)
 
