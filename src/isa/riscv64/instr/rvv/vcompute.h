@@ -344,6 +344,7 @@ def_EHelper(vmvsx) {
     }
   }
   vstart->val = 0;
+  vp_set_dirty();
 }
 
 def_EHelper(vmvxs) {
@@ -375,6 +376,7 @@ def_EHelper(vmvnr) {
     set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
   }
   vstart->val = 0;
+  vp_set_dirty();
 }
 
 def_EHelper(vpopc) {
@@ -468,6 +470,7 @@ def_EHelper(vmsbf) {
     }
     vstart->val = 0;
   }
+  vp_set_dirty();
 }
 
 def_EHelper(vmsof) {
@@ -509,6 +512,7 @@ def_EHelper(vmsof) {
     }
     vstart->val = 0;
   }
+  vp_set_dirty();
 }
 
 def_EHelper(vmsif) {
@@ -553,6 +557,7 @@ def_EHelper(vmsif) {
     }
     vstart->val = 0;
   }
+  vp_set_dirty();
 }
 
 def_EHelper(viota) {
@@ -598,6 +603,7 @@ def_EHelper(viota) {
     }
   }
   vstart->val = 0;
+  vp_set_dirty();
 }
 
 def_EHelper(vid) {
@@ -640,6 +646,7 @@ def_EHelper(vid) {
     }
   }
   vstart->val = 0;
+  vp_set_dirty();
 }
 
 def_EHelper(vzextvf8) {
@@ -808,6 +815,7 @@ def_EHelper(vcompress) {
     }
   }
   vstart->val = 0;
+  vp_set_dirty();
 }
 
 def_EHelper(vmandnot) {
