@@ -53,6 +53,9 @@ uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 extern void log_buffer_flush();
 extern void log_file_flush();
+#ifdef CONFIG_HAS_FLASH
+#include <device/flash.h>
+#endif
 extern unsigned long MEMORY_SIZE;
 void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
 #include <debug.h>
@@ -63,17 +66,19 @@ void encode_cpt_header(checkpoint_header *cpt_header, single_core_rvgc_rvv_rvh_m
 Serializer serializer;
 
 #ifdef CONFIG_MEM_COMPRESS
-#include <device/flash.h>
 void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
   const size_t PMEM_SIZE = MEMORY_SIZE;
-  const size_t GCPT_MMIO_SIZE = get_flash_size();
   Log("Host physical address: %p size: %lx", pmem_addr, PMEM_SIZE);
+
+#ifdef CONFIG_HAS_FLASH
+  const size_t GCPT_MMIO_SIZE = get_flash_size();
   Log("Host gcpt address: %p size: %lx", gcpt_mmio_addr, GCPT_MMIO_SIZE);
+  string flash_file_path;
+#endif
 
   string base_file_path;
-  string flash_file_path;
   string memory_file_path;
 
   if (checkpoint_state == SimpointCheckpointing) {
@@ -85,10 +90,12 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
 
   if (compress_file_format == GZ_FORMAT) {
     Log("Using GZ format generate checkpoint");
+#ifdef CONFIG_HAS_FLASH
     flash_file_path = base_file_path + "_flash_.gz";
+    gzFile flash_compressed_mem;
+#endif
     memory_file_path = base_file_path + "_memory_.gz";
     gzFile memory_compressed_mem = gzopen(memory_file_path.c_str(), "wb");
-    gzFile flash_compressed_mem;
     if (memory_compressed_mem == nullptr) {
       cerr << "Failed to open " << memory_file_path << endl;
       xpanic("Can't open physical memory checkpoint file!\n");
@@ -98,6 +105,7 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
 
     uint64_t pass_size = 0;
     if (write_to_flash) {
+#ifdef CONFIG_HAS_FLASH
       flash_compressed_mem = gzopen(flash_file_path.c_str(), "wb");
       if (flash_compressed_mem == nullptr) {
         cerr << "Failed to open " << flash_file_path << endl;
@@ -117,6 +125,7 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
       }
 
       pass_size = 0;
+#endif
     }
 
     for (uint64_t written = 0; written < PMEM_SIZE; written += pass_size) {
@@ -131,9 +140,11 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
     }
 
     if(write_to_flash){
+#ifdef CONFIG_HAS_FLASH
       if (gzclose(flash_compressed_mem)) {
         xpanic("Close failed on physical checkpoint file\n");
       }
+#endif
     }
     if (gzclose(memory_compressed_mem)) {
       xpanic("Close failed on physical checkpoint file\n");
@@ -142,28 +153,32 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
   } else if (compress_file_format == ZSTD_FORMAT) {
     Log("Using ZSTD format generate checkpoint");
 
-    flash_file_path += base_file_path + "_flash_.zstd";
     memory_file_path += base_file_path + "_memory_.zstd";
- 
-    Log("Opening %s as checkpoint output file", flash_file_path.c_str());
     Log("Opening %s as memory output file", memory_file_path.c_str());
 
     // zstd compress
-    size_t flash_size = GCPT_MMIO_SIZE;
     size_t memory_size = PMEM_SIZE;
-
-    size_t const flash_compress_buffer_size = ZSTD_compressBound(flash_size);
     size_t const memory_compress_buffer_size = ZSTD_compressBound(memory_size);
     uint8_t *const memory_compress_buffer = (uint8_t*)malloc(memory_compress_buffer_size);
-    uint8_t *const flash_compress_buffer = (uint8_t*)malloc(flash_compress_buffer_size);
-
-    assert(flash_compress_buffer);
     assert(memory_compress_buffer);
 
-    // compress gcpt device memory
+    __attribute__((unused))
     size_t flash_compress_size = 0;
+    __attribute__((unused))
     FILE *flash_compress_file = NULL;
+    __attribute__((unused))
     size_t flash_fw_size = 0;
+
+#ifdef CONFIG_HAS_FLASH
+    flash_file_path += base_file_path + "_flash_.zstd";
+    Log("Opening %s as checkpoint output file", flash_file_path.c_str());
+
+    size_t flash_size = GCPT_MMIO_SIZE;
+    size_t const flash_compress_buffer_size = ZSTD_compressBound(flash_size);
+    uint8_t *const flash_compress_buffer = (uint8_t*)malloc(flash_compress_buffer_size);
+    assert(flash_compress_buffer);
+
+    // compress gcpt device memory
     if (write_to_flash) {
       flash_compress_size = ZSTD_compress(flash_compress_buffer, flash_compress_buffer_size, gcpt_mmio_addr, GCPT_MMIO_SIZE, 1);
       assert(flash_compress_size <= flash_compress_buffer_size && flash_compress_size != 0);
@@ -172,6 +187,7 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
       flash_compress_file = fopen(flash_file_path.c_str(), "wb");
       flash_fw_size = fwrite(flash_compress_buffer, 1, flash_compress_size, flash_compress_file);
     }
+#endif
 
     size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem_addr, PMEM_SIZE, 1);
     assert(memory_compress_size <= memory_compress_buffer_size && memory_compress_size != 0);
@@ -182,19 +198,28 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
 
     if (flash_fw_size != flash_compress_size || memory_fw_size != memory_compress_size) {
       if(write_to_flash){
+#ifdef CONFIG_HAS_FLASH
         fclose(flash_compress_file);
+#endif
       }
       fclose(memory_compress_file);
+#ifdef CONFIG_HAS_FLASH
       free(flash_compress_buffer);
+#endif
       free(memory_compress_buffer);
-      xpanic("file write error: %s : %s, %s : %s \n", flash_file_path.c_str(), strerror(errno), memory_file_path.c_str(), strerror(errno));
+#ifdef CONFIG_HAS_FLASH
+      printf("file write error: %s : %s\n", flash_file_path.c_str(), strerror(errno));
+#endif
+      xpanic("file write error: %s : %s\n", memory_file_path.c_str(), strerror(errno));
     }
 
     if(write_to_flash){
+#ifdef CONFIG_HAS_FLASH
       if (fclose(flash_compress_file)) {
         free(flash_compress_buffer);
         xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
       }
+#endif
     }
 
     if (fclose(memory_compress_file)) {
@@ -202,7 +227,9 @@ void Serializer::serializePMem(uint64_t inst_count, bool write_to_flash, uint8_t
       xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
     }
 
+#ifdef CONFIG_HAS_FLASH
     free(flash_compress_buffer);
+#endif
     free(memory_compress_buffer);
 
   } else {
@@ -337,7 +364,11 @@ void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
   //encode_cpt_header(&cpt_header, &cpt_percpu_layout);
 
   if (write_to_flash) {
+#ifdef CONFIG_HAS_FLASH
     serialize_reg_base_addr = flash_base;
+#else
+    serialize_reg_base_addr = get_pmem();
+#endif
   } else {
     serialize_reg_base_addr = get_pmem();
   }
@@ -345,7 +376,11 @@ void Serializer::serialize(uint64_t inst_count, bool write_to_flash) {
   assert(serialize_reg_base_addr);
 
   serializeRegs((uint8_t *)serialize_reg_base_addr, &cpt_percpu_layout);
+#ifdef CONFIG_HAS_FLASH
   serializePMem(inst_count, write_to_flash, get_pmem(), flash_base);
+#else
+  serializePMem(inst_count, write_to_flash, get_pmem(), NULL);
+#endif
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif

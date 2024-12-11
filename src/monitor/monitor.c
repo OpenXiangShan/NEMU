@@ -51,6 +51,8 @@ extern char *mapped_cpt_file;  // defined in paddr.c
 extern bool map_image_as_output_cpt;
 extern char *reg_dump_file;
 extern char *mem_dump_file;
+static bool using_generation_checkpoint;
+
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 extern char *memory_region_record_file;
 #endif
@@ -236,8 +238,9 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 16: {
         // --next-generation-checkpoint
-        extern void set_using_gcpt_mmio();
-        set_using_gcpt_mmio();
+        using_generation_checkpoint = true;
+        extern void set_using_gcpt_mmio(bool value);
+        set_using_gcpt_mmio(using_generation_checkpoint);
         break;
       }
 
