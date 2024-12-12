@@ -18,6 +18,7 @@
 #include "../local-include/intr.h"
 #include <rtl/fp.h>
 #include <cpu/cpu.h>
+#include <cpu/difftest.h>
 
 static uint32_t nemu_rm_cache = 0;
 void fp_update_rm_cache(uint32_t rm) {
@@ -54,6 +55,7 @@ void fp_set_dirty() {
     vsstatus->fs = EXT_CONTEXT_DIRTY;
   }
 #endif //CONFIG_RVH
+  IFDEF(CONFIG_DIFFTEST_DIRTY_FS_VS, ref_difftest_dirty_fsvs(SSTATUS_FS));
 }
 
 uint32_t isa_fp_get_rm(Decode *s) {

@@ -44,6 +44,12 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config DIFFTEST_DIRTY_FS_VS
+  depends on RVV
+  depends on DIFFTEST_REF_SPIKE
+  bool "Sync dirty FS and VS to Spike"
+  default n
+
 config RV_ZVFH_MIN
   bool "RISC-V Zvfhmin Extension V1.0"
   depends on RVV

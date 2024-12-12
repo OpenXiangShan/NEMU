@@ -40,6 +40,7 @@ extern void (*ref_difftest_memcpy)(paddr_t dest, void *src, size_t n, bool direc
 extern void (*ref_difftest_regcpy)(void *c, bool direction);
 extern void (*ref_difftest_exec)(uint64_t n);
 extern void (*ref_difftest_raise_intr)(uint64_t NO);
+extern void (*ref_difftest_dirty_fsvs)(const uint64_t dirties);
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 extern int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask);
 #endif

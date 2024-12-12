@@ -18,6 +18,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include <cpu/cpu.h>
+#include <cpu/difftest.h>
 
 bool vp_enable() {
 #ifdef CONFIG_MODE_USER
@@ -42,5 +43,6 @@ void vp_set_dirty() {
     vsstatus->vs = EXT_CONTEXT_DIRTY;
   }
 #endif //CONFIG_RVH
+  IFDEF(CONFIG_DIFFTEST_DIRTY_FS_VS, ref_difftest_dirty_fsvs(SSTATUS_VS));
 }
 #endif // CONFIG_RVV
