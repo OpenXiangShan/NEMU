@@ -216,12 +216,7 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
   uint32_t w = FPCALL_W(cmd);
   uint32_t op = FPCALL_OP(cmd);
   isa_fp_csr_check();
-
-  if (op < FPCALL_VP_NEED_RM) {
-    // all vector instructions need to read and check rounding mode
-    softfloat_roundingMode = isa_fp_get_frm();
-    isa_fp_rm_check(softfloat_roundingMode);
-  }
+  softfloat_roundingMode = isa_fp_get_frm();
 
   if (w == FPCALL_W8) {
     // w8 only can hold int/uint

@@ -1107,6 +1107,8 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   require_float();
   require_vector(true);
   uint32_t rm = isa_fp_get_frm();
+  isa_fp_rm_check(rm);
+
   if (dest_mask) {
     if (s->src_vmode == SRC_VV) {
       vector_mvv_check(s, true);
@@ -1470,6 +1472,8 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 }
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
+  isa_fp_rm_check(isa_fp_get_frm());
+
   vector_reduction_check(s, widening);
   if (widening)
     get_vreg(id_src->reg, 0, s1, vtype->vsew+1, vtype->vlmul, 0, 0);
@@ -1637,6 +1641,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 }
 
 void float_reduction_computing(Decode *s) {
+  isa_fp_rm_check(isa_fp_get_frm());
   vector_reduction_check(s, false);
   word_t FPCALL_TYPE = FPCALL_W64;
   uint64_t active_num = 0;
