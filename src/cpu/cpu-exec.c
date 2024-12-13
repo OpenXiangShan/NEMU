@@ -199,6 +199,7 @@ static bool manual_cpt_quit = false;
 #define rtl_priv_jr(s, target)                                                 \
   do {                                                                         \
     IFDEF(CONFIG_ENABLE_INSTR_CNT, n -= s->idx_in_bb);                         \
+    is_ctrl = true;                                                            \
     s = jr_fetch(s, *(target));                                                \
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                           \
       s = tcache_handle_flush(s->pc);                                          \
@@ -378,7 +379,12 @@ end_of_loop:
       "end_of_loop: prev pc = 0x%lx, pc = 0x%lx, total insts: %lu, remain: %lu",
       prev_s->pc, s->pc, get_abs_instr_count(), n_remain_total);
   if (is_ctrl) {
-    per_bb_profile(prev_s, s, br_taken); // TODO: this should be true for mret
+    per_bb_profile(prev_s, s, br_taken);
+  }
+
+  if (manual_cpt_quit) {
+    Log("unlikely(manual_cpt_quit)=%ld, manual_cpt_quit=%d",
+        unlikely(manual_cpt_quit), manual_cpt_quit);
   }
 
   debug_difftest(this_s, s);
