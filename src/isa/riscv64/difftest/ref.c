@@ -189,16 +189,6 @@ void isa_difftest_regcpy(void *dut, bool direction) {
       printf("DUT mepc %lx mcause %lx mtvec %lx mstatus %lx mie %lx\n", ((riscv64_CPU_state*)dut)->mepc, ((riscv64_CPU_state*)dut)->mcause, ((riscv64_CPU_state*)dut)->mtvec, ((riscv64_CPU_state*)dut)->mstatus, ((riscv64_CPU_state*)dut)->mie);
       printf("REF mepc %lx mcause %lx mtvec %lx mstatus %lx mie %lx\n", cpu.mepc, cpu.mcause, cpu.mtvec, cpu.mstatus, cpu.mie);
     }
-    if(cpu.mcause != ((riscv64_CPU_state*)dut)-> mcause) {
-      printf("REGCPY Warning, dut M mode exception inject !!!!!! dut mcause %lx, ref mcause %lx\n", ((riscv64_CPU_state*)dut)->mcause, cpu.mcause);
-      printf("DUT mepc %lx mcause %lx mtvec %lx mstatus %lx\n", ((riscv64_CPU_state*)dut)->mepc, ((riscv64_CPU_state*)dut)->mcause, ((riscv64_CPU_state*)dut)->mtvec, ((riscv64_CPU_state*)dut)->mstatus);
-      printf("REF mepc %lx mcause %lx mtvec %lx mstatus %lx\n", cpu.mepc, cpu.mcause, cpu.mtvec, cpu.mstatus);
-    }
-    if (cpu.scause != ((riscv64_CPU_state*)dut)->scause) {
-      printf("REGCPY Warning, dut S mode exception inject !!!!!! dut scause %lx, ref scause %lx\n", ((riscv64_CPU_state*)dut)->scause, cpu.scause);
-      printf("DUT sepc %lx scause %lx stvec %lx sstatus %lx\n", ((riscv64_CPU_state*)dut)->sepc, ((riscv64_CPU_state*)dut)->scause, ((riscv64_CPU_state*)dut)->stvec, ((riscv64_CPU_state*)dut)->sstatus);
-      printf("REF sepc %lx scause %lx stvec %lx sstatus %lx\n", cpu.sepc, cpu.scause, cpu.stvec, cpu.sstatus);
-    }
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
     csr_writeback();
     // need to clear the cached mmu states as well
@@ -236,16 +226,6 @@ void isa_difftest_csrcpy(void *dut, bool direction) {
       printf("CSRCPY Warning, dut interrupt inject !!!!!! dut sip %lx, ref sip %lx, different %lx\n", ((rtlreg_t*)dut)[CSR_SIP], csr_array[CSR_SIP], ((rtlreg_t*)dut)[CSR_SIP] ^ csr_array[CSR_SIP]);
       printf("DUT sepc %lx scause %lx stvec %lx sstatus %lx sie %lx\n", ((rtlreg_t*)dut)[CSR_SEPC], ((rtlreg_t*)dut)[CSR_SCAUSE], ((rtlreg_t*)dut)[CSR_STVEC], ((rtlreg_t*)dut)[CSR_SSTATUS], ((rtlreg_t*)dut)[CSR_SIE]);
       printf("REF sepc %lx scause %lx stvec %lx sstatus %lx sie %lx\n", csr_array[CSR_SEPC], csr_array[CSR_SCAUSE], csr_array[CSR_STVEC], csr_array[CSR_SSTATUS], csr_array[CSR_SIE]);
-    }
-    if(csr_array[CSR_MCAUSE] != ((rtlreg_t*)dut)[CSR_MCAUSE]) {
-      printf("CSRCPY Warning, dut M mode exception inject !!!!!! dut mcause %lx, ref mcause %lx\n", ((rtlreg_t*)dut)[CSR_MCAUSE], csr_array[CSR_MCAUSE]);
-      printf("DUT mepc %lx mcause %lx mtvec %lx mstatus %lx\n", ((rtlreg_t*)dut)[CSR_MEPC], ((rtlreg_t*)dut)[CSR_MCAUSE], ((rtlreg_t*)dut)[CSR_MTVEC], ((rtlreg_t*)dut)[CSR_MSTATUS]);
-      printf("REF mepc %lx mcause %lx mtvec %lx mstatus %lx\n", csr_array[CSR_MEPC], csr_array[CSR_MCAUSE], csr_array[CSR_MTVEC], csr_array[CSR_MSTATUS]);
-    }
-    if(csr_array[CSR_SCAUSE] != ((rtlreg_t*)dut)[CSR_SCAUSE]) {
-      printf("CSRCPY Warning, dut S mode exception inject !!!!!! dut scause %lx, ref scause %lx\n", ((rtlreg_t*)dut)[CSR_SCAUSE], csr_array[CSR_SCAUSE]);
-      printf("DUT sepc %lx scause %lx stvec %lx sstatus %lx\n", ((rtlreg_t*)dut)[CSR_SEPC], ((rtlreg_t*)dut)[CSR_SCAUSE], ((rtlreg_t*)dut)[CSR_STVEC], ((rtlreg_t*)dut)[CSR_SSTATUS]);
-      printf("REF sepc %lx scause %lx stvec %lx sstatus %lx\n", csr_array[CSR_SEPC], csr_array[CSR_SCAUSE], csr_array[CSR_STVEC], csr_array[CSR_SSTATUS]);
     }
     memcpy(csr_array, dut, 4096 * sizeof(rtlreg_t));
   } else {
@@ -355,6 +335,9 @@ void isa_difftest_guided_exec(void * guide, uint64_t restore_count) {
 #else
 void isa_difftest_guided_exec(void * guide) {
 #endif // CONFIG_LIGHTQS
+  printf("GUIDED Exec Warning, dut exception inject !!!!!!\n");
+  printf("DUT htval %lx, mtval %lx, stval %lx, mtval2 %lx, vstval %lx, jump_target %lx, exception_num %lx, force_set_jump_target %d, force_raise_exception %d", cpu.execution_guide.htval, cpu.execution_guide.mtval, cpu.execution_guide.stval, cpu.execution_guide.mtval2, cpu.execution_guide.vstval, cpu.execution_guide.jump_target, cpu.execution_guide.exception_num, cpu.execution_guide.force_set_jump_target, cpu.execution_guide.force_raise_exception);
+
   memcpy(&cpu.execution_guide, guide, sizeof(struct ExecutionGuide));
 
   cpu.guided_exec = true;
