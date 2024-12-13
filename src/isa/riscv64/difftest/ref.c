@@ -299,6 +299,8 @@ void isa_difftest_raise_intr(word_t NO) {
 #endif // CONFIG_TDATA1_ICOUNT
   IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, NO));
 
+  printf("RAISE INTR Warning, dut interrupt inject !!!!!! interrupt NO 0x%lx\n", NO);
+
   cpu.pc = raise_intr(NO, cpu.pc);
 
   IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
