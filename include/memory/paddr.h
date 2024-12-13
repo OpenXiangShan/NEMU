@@ -78,6 +78,17 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
 void * get_sparsemm();
 #endif
 
+#ifdef CONFIG_STORE_LOG
+typedef struct {
+#ifdef CONFIG_LIGHTQS
+  uint64_t inst_cnt;
+#endif // CONFIG_LIGHTQS
+  paddr_t addr;
+  word_t orig_data;
+  // new value and write length makes no sense for restore
+} store_log_t;
+#endif // CONFIG_STORE_LOG
+
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
 typedef struct {
