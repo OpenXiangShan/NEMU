@@ -6,6 +6,7 @@ bool checkpoint_taking = false;
 bool checkpoint_restoring = false;
 uint64_t checkpoint_interval = 0;
 uint64_t warmup_interval = 0;
+uint64_t checkpoint_icount_base = 0;
 
 bool recvd_manual_oneshot_cpt = false;
 bool recvd_manual_uniform_cpt = false;
@@ -15,12 +16,11 @@ bool force_cpt_mmode = false;
 bool donot_skip_boot=false;
 bool workload_loaded=false;
 
-void reset_inst_counters() {
-  extern uint64_t g_nr_guest_instr;
-  extern bool workload_loaded;
-  Log("Start profiling, resetting inst count from %lu to 1, (n_remain_total will not be cleared)\n", g_nr_guest_instr);
-  g_nr_guest_instr = 1;
+void start_profiling() {
   workload_loaded=true;
+  uint64_t get_abs_instr_count();
+  checkpoint_icount_base = get_abs_instr_count();
+  Log("Start profiling. Setting inst count base to Current inst count %lu.", checkpoint_icount_base);
 }
 
 #ifdef CONFIG_SHARE

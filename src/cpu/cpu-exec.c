@@ -234,7 +234,9 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 
 #ifndef CONFIG_SHARE
 uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
-  uint64_t abs_inst_count = get_abs_instr_count();
+  // checkpoint_icount_base is set from nemu_trap.
+  // Profiling and checkpointing use this as the starting point for instruction counting.
+  uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
   // workload_loaded set from nemu_trap
   if (profiling_state == SimpointProfiling && (workload_loaded||donot_skip_boot)) {
     simpoint_profiling(prev_s->pc, true, abs_inst_count);

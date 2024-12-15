@@ -43,7 +43,7 @@ def_EHelper(nemu_trap) {
       difftest_skip_ref();
   } else if (cpu.gpr[10]._64 == 0x101) {
     if (!workload_loaded) {
-      reset_inst_counters();
+      start_profiling();
       difftest_skip_ref();
     }
   } else {

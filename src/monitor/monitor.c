@@ -73,7 +73,7 @@ void sig_handler(int signum) {
       recvd_manual_oneshot_cpt = true;
     } else if (checkpoint_state==ManualUniformCheckpointing) {
       recvd_manual_uniform_cpt = true;
-      reset_inst_counters();
+      start_profiling();
     } else {
       panic("Received SIGINT when not waiting for it");
     }
