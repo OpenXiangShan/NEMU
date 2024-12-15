@@ -55,23 +55,6 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 void* sparse_mm = NULL;
 #endif
 
-#ifdef CONFIG_STORE_LOG
-struct store_log {
-#ifdef CONFIG_LIGHTQS
-  uint64_t inst_cnt;
-#endif // CONFIG_LIGHTQS
-  paddr_t addr;
-  word_t orig_data;
-  // new value and write length makes no sense for restore
-} store_log_buf[CONFIG_STORE_LOG_SIZE];
-
-uint64_t store_log_ptr = 0;
-#ifdef CONFIG_LIGHTQS
-struct store_log spec_store_log_buf[CONFIG_STORE_LOG_SIZE];
-uint64_t spec_store_log_ptr = CONFIG_SPEC_GAP;
-#endif // CONFIG_LIGHTQS
-#endif // CONFIG_STORE_LOG
-
 #define HOST_PMEM_OFFSET (uint8_t *)(pmem - CONFIG_MBASE)
 
 uint8_t *get_pmem()
@@ -299,15 +282,14 @@ void pmem_record_store(paddr_t addr) {
   addr = (addr >> 3) << 3;
   uint64_t rdata = pmem_read(addr, 8);
   //assert(g_nr_guest_instr >= stable_log_begin);
-  store_log_buf[store_log_ptr].inst_cnt = g_nr_guest_instr;
-  store_log_buf[store_log_ptr].addr = addr;
-  store_log_buf[store_log_ptr].orig_data = rdata;
-  ++store_log_ptr;
+  store_log_t log = {
+    .inst_cnt = g_nr_guest_instr,
+    .addr = addr,
+    .orig_data = rdata
+  };
+  store_log_stack_push(log);
   if (g_nr_guest_instr >= spec_log_begin) {
-    spec_store_log_buf[spec_store_log_ptr].inst_cnt = g_nr_guest_instr;
-    spec_store_log_buf[spec_store_log_ptr].addr = addr;
-    spec_store_log_buf[spec_store_log_ptr].orig_data = rdata;
-    ++spec_store_log_ptr;
+    spec_store_log_stack_push(log);
   }
 }
 
@@ -316,12 +298,14 @@ void pmem_record_store(paddr_t addr) {
 void pmem_record_restore(uint64_t restore_inst_cnt) {
   if (spec_log_begin <= restore_inst_cnt) {
     // use speculative rather than old stable
-    memcpy(store_log_buf, spec_store_log_buf, sizeof(store_log_buf));
-    store_log_ptr = spec_store_log_ptr;
+    spec_store_log_stack_copy();
   }
-  for (int i = store_log_ptr - 1; i >= 0; i--) {
-    if (store_log_buf[i].inst_cnt > restore_inst_cnt) {
-      pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data, 0);
+  while(!store_log_stack_empty()) {
+    store_log_t log = store_log_stack_top();
+    pmem_write(log.addr, 8, log.orig_data, 0);
+    if (log.inst_cnt > restore_inst_cnt) {
+      pmem_write(log.addr, 8, log.orig_data, 0);
+      store_log_stack_pop();
     } else {
       break;
     }
@@ -333,22 +317,26 @@ void pmem_record_store(paddr_t addr) {
     // align to 8 byte
     addr = (addr >> 3) << 3;
     uint64_t rdata = pmem_read(addr, 8);
-    store_log_buf[store_log_ptr].addr = addr;
-    store_log_buf[store_log_ptr].orig_data = rdata;
-    ++store_log_ptr;
+    store_log_t log = {
+      .addr = addr,
+      .orig_data = rdata
+    };
+    store_log_stack_push(log);
   }
 }
 
 void pmem_record_restore() {
-  for (int i = store_log_ptr - 1; i >= 0; i--) {
-    pmem_write(store_log_buf[i].addr, 8, store_log_buf[i].orig_data, 0);
+  while(!store_log_stack_empty()) {
+    store_log_t log = store_log_stack_top();
+    pmem_write(log.addr, 8, log.orig_data, 0);
+    store_log_stack_pop();
   }
 }
 #endif // CONFIG_LIGHTQS
 
 
 void pmem_record_reset() {
-  store_log_ptr = 0;
+  store_log_stack_reset();
 }
 
 #endif // CONFIG_STORE_LOG
