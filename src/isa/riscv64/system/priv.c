@@ -1647,7 +1647,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       write_sdt = new_val.sdt;
       if (menvcfg->dte == 0 ) {
         sstatus_wmask &= ~SSTATUS_SDT;
-        write_sdt = 0;
+        write_sdt = mstatus->sdt;
       }
 #endif //CONFIG_RV_SSDBLTRP
       mstatus->val = mask_bitset(mstatus->val, sstatus_wmask, new_val.val); // xiangshan pass mstatus.rdata ,so clear mstatus->sdt
