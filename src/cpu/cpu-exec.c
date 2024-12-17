@@ -665,7 +665,8 @@ void cpu_exec(uint64_t n) {
       IFDEF(CONFIG_TDATA1_ETRIGGER, trig_action_t action = check_triggers_etrigger(cpu.TM, g_ex_cause));
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
-      IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
+      // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
+      IFDEF(CONFIG_PERF_OPT, tcache_handle_flush(cpu.pc));
       IFDEF(CONFIG_TDATA1_ETRIGGER, trigger_handler(TRIG_TYPE_ETRIG, action, 0));
       IFDEF(CONFIG_SHARE, break);
     } else {
@@ -678,9 +679,10 @@ void cpu_exec(uint64_t n) {
 #endif // CONFIG_TDATA1_ICOUNT
         IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, intr));
         cpu.pc = raise_intr(intr, cpu.pc);
+        // It's necessary to flush tcache for interrupt: addr space may conflict in different priv/mmu mode.
+        IFDEF(CONFIG_PERF_OPT, tcache_handle_flush(cpu.pc));
         IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
-        IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       }
     }
 

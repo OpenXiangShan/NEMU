@@ -15,7 +15,6 @@
 ***************************************************************************************/
 
 #include <cpu/difftest.h>
-#include <cpu/cpu.h>
 #include "../local-include/trigger.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -207,7 +206,6 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       hstatus->spvp = cpu.mode;
     }
     cpu.v = 0;
-    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #else
   bool vs_EX_DT = false;
   if (delegS && !s_EX_DT) {
@@ -266,7 +264,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     bool is_mem_access_virtual = mstatus->mprv && mstatus->mpv && (mstatus->mpp != MODE_M);
     mstatus->gva = gen_gva(NO, hld_st_temp, is_mem_access_virtual);
     mstatus->mpv = cpu.v;
-    cpu.v = 0;set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+    cpu.v = 0;
 #endif
     mcause->val = NO;
     mepc->val = epc;
