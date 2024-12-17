@@ -208,12 +208,6 @@ static inline def_rtl(j, vaddr_t target) {
   // real_target = target;
   // CONFIG_BR_LOG: We cannot commit br_log here, because rtl_j is used by all jump and branch.
 
-#ifndef CONFIG_SHARE
-  if (profiling_state == SimpointProfiling && workload_loaded) {
-    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
-  }
-#endif // CONFIG_SHARE
-
 #ifdef CONFIG_GUIDED_EXEC
 end_of_rtl_j:
 ; // make compiler happy
@@ -243,12 +237,6 @@ static inline def_rtl(jr, rtlreg_t *target) {
   #ifdef CONFIG_BR_LOG
   real_target = *target;
   #endif // CONFIG_BR_LOG
-
-#ifndef CONFIG_SHARE
-  if (profiling_state == SimpointProfiling && workload_loaded) {
-    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
-  }
-#endif // CONFIG_SHARE
 
 #ifdef CONFIG_GUIDED_EXEC
 end_of_rtl_jr:
