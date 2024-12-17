@@ -21,6 +21,7 @@ extern int checkpoint_state;
 extern bool checkpoint_restoring;
 extern uint64_t checkpoint_interval;
 extern uint64_t warmup_interval;
+extern uint64_t checkpoint_icount_base;
 
 extern bool recvd_manual_oneshot_cpt;
 extern bool recvd_manual_uniform_cpt;
@@ -30,6 +31,6 @@ extern bool force_cpt_mmode;
 extern bool workload_loaded;
 extern bool donot_skip_boot;
 
-void reset_inst_counters();
+void start_profiling();
 
 #endif // __PROFILING_CONTROL_H__
