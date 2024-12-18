@@ -395,15 +395,40 @@ config BB_POOL_SIZE
   int "Number of entries in basic block metadata pool"
   default 1024
 
-if !DEBUG && !SHARE
-config DISABLE_INSTR_CNT
-  bool "Disable instruction counting (single step is also disabled)"
-  default y
-endif
 endif
 
+choice
+  prompt "Instruction counting accuracy"
+  default INSTR_CNT_BY_BB if PERF_OPT
+  default INSTR_CNT_BY_INSTR_NORMAL if !PERF_OPT
+
+config INSTR_CNT_DISABLED
+  bool "Disabled"
+  depends on !DEBUG && !SHARE
+
+config INSTR_CNT_BY_BB
+  bool "By Basic Block (BB)"
+  depends on PERF_OPT
+
+config INSTR_CNT_BY_INSTR_PERF_OPT
+  bool "By Instruction"
+  depends on PERF_OPT
+  select INSTR_CNT_BY_INSTR
+
+config INSTR_CNT_BY_INSTR_NORMAL
+  bool "By Instruction"
+  depends on !PERF_OPT
+  select INSTR_CNT_BY_INSTR
+
+endchoice
+
+config INSTR_CNT_BY_INSTR
+  bool
+  default n
+
 config ENABLE_INSTR_CNT
-  bool "Enable instruction counting"
-  default n if DISABLE_INSTR_CNT
-  default y
+  bool
+  default y if INSTR_CNT_BY_INSTR || INSTR_CNT_BY_BB
+  default n
+
 endmenu
