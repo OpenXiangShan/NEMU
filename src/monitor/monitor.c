@@ -406,6 +406,13 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
 
+#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_HAS_FLASH
+  extern void difftest_detach();
+  difftest_detach();
+#endif
+#endif
+
 #endif
 
   /* Compile the regular expressions. */
