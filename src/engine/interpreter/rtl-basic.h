@@ -210,7 +210,7 @@ static inline def_rtl(j, vaddr_t target) {
 
 #ifndef CONFIG_SHARE
   if (profiling_state == SimpointProfiling && workload_loaded) {
-    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
+    simpoint_profiling(cpu.pc, true, get_abs_instr_count() - checkpoint_icount_base);
   }
 #endif // CONFIG_SHARE
 
@@ -246,7 +246,7 @@ static inline def_rtl(jr, rtlreg_t *target) {
 
 #ifndef CONFIG_SHARE
   if (profiling_state == SimpointProfiling && workload_loaded) {
-    simpoint_profiling(cpu.pc, true, get_abs_instr_count());
+    simpoint_profiling(cpu.pc, true, get_abs_instr_count() - checkpoint_icount_base);
   }
 #endif // CONFIG_SHARE
 
