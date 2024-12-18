@@ -90,6 +90,9 @@
 #define ROUNDUP(a, sz)   ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 #define ROUNDDOWN(a, sz) ((((uintptr_t)a)) & ~((sz) - 1))
 
+#define MAX_OF(x, y) ((x) > (y) ? (x) : (y))
+#define MIN_OF(x, y) ((x) < (y) ? (x) : (y))
+
 #define PG_ALIGN __attribute((aligned(4096)))
 
 #if 1

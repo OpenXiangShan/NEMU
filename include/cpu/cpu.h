@@ -28,6 +28,8 @@ enum {
   NEMU_EXEC_EXCEPTION
 };
 
+uint64_t get_abs_instr_count();
+
 void cpu_exec(uint64_t n);
 
 #define CONTEXT_STACK_SIZE 5
