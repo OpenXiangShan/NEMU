@@ -17,6 +17,7 @@
 
 def_EHelper(syscall) {
   rtl_trap(s, s->pc, EX_SYSCALL);
+  rtl_priv_jr(s, t0);
 }
 
 def_EHelper(eret) {
