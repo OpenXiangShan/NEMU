@@ -171,11 +171,13 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   checkregs(&ref_r, pc);
 }
 void difftest_detach() {
+  Log("Difftest detach now!");
   is_detach = true;
 }
 
 void difftest_attach() {
 #ifdef CONFIG_HAS_FLASH
+  Log("Difftest attach now!");
   is_detach = false;
   is_skip_ref = false;
   skip_dut_nr_instr = 0;
