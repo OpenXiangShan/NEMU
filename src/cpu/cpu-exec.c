@@ -248,8 +248,10 @@ static bool manual_cpt_quit = false;
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     is_ctrl = true;                                                            \
     s = jr_fetch(s, *(target));                                                \
-    if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                           \
-      s = tcache_handle_flush(s->pc);                                          \
+    if (g_sys_state_flag) {                                                    \
+      if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
+        s = tcache_handle_flush(s->pc);                                        \
+      }                                                                        \
       g_sys_state_flag = 0;                                                    \
     }                                                                          \
     goto end_of_loop;                                                          \
