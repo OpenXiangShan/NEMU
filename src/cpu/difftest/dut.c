@@ -101,11 +101,13 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
+#ifdef CONFIG_HAS_FLASH
   ref_difftest_pmpcpy = dlsym(handle, "difftest_pmpcpy");
   assert(ref_difftest_pmpcpy);
 
   ref_difftest_pmp_cfg_cpy = dlsym(handle, "difftest_pmp_cfg_cpy");
   assert(ref_difftest_pmp_cfg_cpy);
+#endif
 
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   ref_difftest_store_commit = dlsym(handle, "difftest_store_commit");
@@ -173,11 +175,15 @@ void difftest_detach() {
 }
 
 void difftest_attach() {
+#ifdef CONFIG_HAS_FLASH
   is_detach = false;
   is_skip_ref = false;
   skip_dut_nr_instr = 0;
 
   isa_difftest_attach();
+#else
+  assert(0); // fix me
+#endif
 }
 
 #else
