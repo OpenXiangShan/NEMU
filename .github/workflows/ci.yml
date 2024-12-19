@@ -68,6 +68,19 @@ jobs:
           bash ./scripts/restore_zstd.sh
           make clean-all
 
+          #take cpt with flash
+          make clean-all
+          make riscv64-xs-cpt-flash_defconfig
+          make -j
+          bash ./scripts/take_zstd_from_flash.sh
+          make clean-all
+
+          #restore cpt from flash, with difftest
+          make riscv64-xs-diff-spike-withflash_defconfig
+          make -j
+          bash ./scripts/restore_zstd_from_flash.sh
+          make clean-all
+
   basic-nutshell:
     runs-on: nemu
     continue-on-error: false
