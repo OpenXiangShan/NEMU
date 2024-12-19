@@ -13,8 +13,9 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
-cpt=`find output_top/test/linux/50000000 -name "*.zstd"`
+mem_cpt=`find output_top/test/linux/50000000 -name "*_memory_.zstd"`
+
 ./build/riscv64-nemu-interpreter -b\
     --diff ${SPIKE_SO}\
-    --restore -I 100000000 \
-    $cpt
+    -I 100000000 \
+    $mem_cpt
