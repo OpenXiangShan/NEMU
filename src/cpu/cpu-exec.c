@@ -54,6 +54,12 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
+#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_HAS_FLASH
+static bool not_attach = true;
+static bool could_attach = false;
+#endif
+#endif
 
 static uint64_t n_remain_total; // instructions remaining in cpu_exec()
 static int n_remain;            // instructions remaining in execute()
@@ -85,6 +91,12 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 }
 #endif
 
+
+static bool using_next_generation_checkpoint = false;
+
+void set_using_gcpt_mmio(bool value){
+  using_next_generation_checkpoint = value;
+}
 
 void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 
@@ -188,13 +200,27 @@ _Noreturn void longjmp_exception(int ex_cause) {
 static bool manual_cpt_quit = false;
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
+#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_HAS_FLASH
+#define CHECK_DIFFTEST_ATTACH(target) \
+if(not_attach) {if(prev_s->pc >= CONFIG_FLASH_START_ADDR && prev_s->pc < CONFIG_FLASH_START_ADDR + CONFIG_FLASH_SIZE) {if (!(target >= CONFIG_FLASH_START_ADDR && target < CONFIG_FLASH_START_ADDR + CONFIG_FLASH_SIZE)) {not_attach = false; could_attach = true;}}}
+#else
+#define CHECK_DIFFTEST_ATTACH(target) \
+if(false) {}
+#endif
+#else
+#define CHECK_DIFFTEST_ATTACH(target) \
+if(false) {}
+#endif
+
 // this rtl_j() is only used in PERF_OPT
 #define rtl_j(s, target)                                                       \
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    s = s->tnext;                                                              \
+    CHECK_DIFFTEST_ATTACH(s->tnext->pc)                                        \
     is_ctrl = true;                                                            \
+    s = s->tnext;                                                              \
     br_taken = true;                                                           \
     goto end_of_bb;                                                            \
   } while (0)
@@ -204,8 +230,9 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    s = jr_fetch(s, *(target));                                                \
+    CHECK_DIFFTEST_ATTACH(*target)                                             \
     is_ctrl = true;                                                            \
+    s = jr_fetch(s, *(target));                                                \
     br_taken = true;                                                           \
     goto end_of_bb;                                                            \
   } while (0)
@@ -217,6 +244,7 @@ static bool manual_cpt_quit = false;
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     is_ctrl = true;                                                            \
     if (interpret_relop(relop, *src1, *src2)) {                                \
+      CHECK_DIFFTEST_ATTACH(s->tnext->pc)                                      \
       s = s->tnext;                                                            \
       br_taken = true;                                                         \
     } else                                                                     \
@@ -242,10 +270,12 @@ static bool manual_cpt_quit = false;
     }                                                                          \
   } while (0)
 
+
 #define rtl_priv_jr(s, target)                                                 \
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
+    CHECK_DIFFTEST_ATTACH(*target)                                             \
     is_ctrl = true;                                                            \
     s = jr_fetch(s, *(target));                                                \
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                           \
@@ -290,11 +320,6 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
     simpoint_profiling(s->pc, false, abs_inst_count);
   }
 
-    //  if (checkpoint_taking && able_to_take &&
-    //      ((recvd_manual_oneshot_cpt && !manual_cpt_quit) ||
-    //      profiling_started)) {
-    //    // update cpu pc to point to next pc
-
   //umod or not set force m mod
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
@@ -302,7 +327,6 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
     return abs_inst_count;
   }
 
-  //
   if (!(workload_loaded||donot_skip_boot)) {
     return abs_inst_count;
   }
@@ -330,8 +354,8 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
 
   cpu.pc = s->pc;
 
-  extern bool try_take_cpt(uint64_t icount);
-  bool taken = try_take_cpt(abs_inst_count);
+  extern bool try_take_cpt(uint64_t icount, bool using_gcpt_mmio);
+  bool taken = try_take_cpt(abs_inst_count, using_next_generation_checkpoint);
   if (taken) {
     Log("Have taken checkpoint on pc 0x%lx", s->pc);
     if (recvd_manual_oneshot_cpt) {
@@ -372,6 +396,7 @@ static void execute(int n) {
 
   // main loop
   while (true) {
+
 #if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
     this_s = s;
 #endif
@@ -434,7 +459,19 @@ static void execute(int n) {
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, n_remain -= 1);
 
     save_globals(s);
+
     debug_difftest(this_s, s);
+
+#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_HAS_FLASH
+    if(could_attach) {
+      difftest_attach();
+      could_attach = false;
+    }
+#endif
+#endif
+
+
   }
 
 end_of_loop:
@@ -463,6 +500,15 @@ end_of_loop:
 
   debug_difftest(this_s, s);
   save_globals(s);
+#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_HAS_FLASH
+  if(could_attach) {
+    difftest_attach();
+    could_attach = false;
+  }
+#endif
+#endif
+
 }
 #else
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
@@ -853,17 +899,16 @@ void cpu_exec(uint64_t n) {
     break;
 
   case NEMU_QUIT:
-    #ifndef CONFIG_SHARE
-      monitor_statistic();
-      extern char *mapped_cpt_file; // defined in paddr.c
-      if (mapped_cpt_file != NULL) {
-        extern void serialize_reg_to_mem();
-        serialize_reg_to_mem();
-      }
-      break;
-    #else // CONFIG_SHARE
-      break;
-    #endif // CONFIG_SHARE
+#ifndef CONFIG_SHARE
+    monitor_statistic();
+    extern char *mapped_cpt_file; // defined in paddr.c
+    if (mapped_cpt_file != NULL) {
+      extern void serialize_reg_to_mem(bool using_gcpt_mmio);
+      serialize_reg_to_mem(using_next_generation_checkpoint);
+    }
+#else
+    break;
+#endif
   }
   pop_context();
 }

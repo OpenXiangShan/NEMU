@@ -23,18 +23,19 @@
 #include <string>
 #include <map>
 
+extern "C" {
+#include "checkpoint/checkpoint.pb.h"
+}
 
 class Serializer
 {
 
   public:
-    void serialize(uint64_t inst_count);
+    void serialize(uint64_t inst_count, bool using_gcpt_mmio);
 
-    void serializePMem(uint64_t inst_count);
+    void serializePMem(uint64_t inst_count, bool using_gcpt_mmio, uint8_t *pmem_addr, uint8_t *gcpt_mmio_addr);
 
-    void serializeRegs();
-
-    explicit Serializer();
+    void serializeRegs(uint8_t *serialize_base_addr, single_core_rvgc_rvv_rvh_memlayout *cpt_percpu_layout);
 
     void init();
 
@@ -51,21 +52,6 @@ class Serializer
 
     uint64_t cptID;
     std::string weightIndicator;
-
-    const uint32_t IntRegStartAddr;
-    const uint32_t IntRegDoneFlag;
-    const uint32_t FloatRegStartAddr;
-    const uint32_t FloatRegDoneFlag;
-    const uint32_t CSRStartAddr;
-    const uint32_t CSRSDoneFlag;
-    const uint32_t VecRegStartAddr;
-    const uint32_t VecRegDoneFlag;
-    const uint32_t CptFlagAddr;
-    const uint32_t PCAddr;
-    const uint32_t MODEAddr;
-    const uint32_t MTIMEAddr;
-    const uint32_t MTIMECMPAddr;
-    const uint32_t MISCDoneFlag;
 
     bool regDumped{false};
 

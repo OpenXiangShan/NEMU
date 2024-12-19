@@ -1,5 +1,5 @@
 /***************************************************************************************
-* Copyright (c) 2020-2022 Institute of Computing Technology, Chinese Academy of Sciences
+* Copyright (c) 2014-2021 Zihao Yu, Nanjing University
 *
 * NEMU is licensed under Mulan PSL v2.
 * You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -13,16 +13,10 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __IMAGE_LOADER_H__
-#define __IMAGE_LOADER_H__
+#ifndef __DEVICE_FLASH_H__
+#define __DEVICE_FLASH_H__
 
-#include <stddef.h>
+extern uint8_t* flash_base;
+uint64_t get_flash_size();
 
-
-long load_gz_img(const char *filename, uint64_t load_start, size_t img_size);
-
-long load_zstd_img(const char *filename, uint64_t load_start, size_t img_size);
-
-long load_img(char *img_name, const char *which_img, uint64_t load_start, size_t img_size);
-
-#endif //  __IMAGE_LOADER_H__
+#endif
