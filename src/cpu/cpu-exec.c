@@ -271,6 +271,7 @@ if(false) {}
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     is_ctrl = true;                                                            \
     if (interpret_relop(relop, *src1, *src2)) {                                \
+      CHECK_DIFFTEST_ATTACH(s->tnext->pc)                                      \
       s = s->tnext;                                                            \
       br_taken = true;                                                         \
     } else                                                                     \
