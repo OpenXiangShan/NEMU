@@ -68,6 +68,7 @@ jobs:
           make -j
           bash ./scripts/restore_zstd.sh
           make clean-all
+          rm -rf output_top
 
           #take cpt with flash
           make clean-all
