@@ -1,8 +1,45 @@
 menu "ISA-dependent Options for riscv64"
 
+config HAS_CLINT
+  bool
+  default y
+  help
+    NEMU's Core Local Interrupt (CLINT) provides MMIO ports for M-mode timer.
+
+    NEMU's CLINT defines two MMIO register mapping: 
+    - mtimecmp at 0x4000
+    - mtime at 0xBFF8.
+
+    NEMU does not support multicore and M-mode inter-processor interrupts. So
+    there is no register mapping for this feature.
+
+if HAS_CLINT
+
 config CLINT_MMIO
   hex "MMIO address of CLINT"
   default 0xa2000000
+  help
+    This option controls the base address of CLINT MMIO.
+
+endif # HAS_CLINT
+
+config TIMER_CYCLE_PER_TICK
+  int "The number of cycles per clint tick"
+  default 128
+  help
+    This option controls the ratio between the RTC (mtime) frequency and the
+    main frequency.
+
+    As NEMU works as a hart with CPI (cycles per instruction) of 1, this
+    describes how many instructions are executed for each increment of mtime
+    by 1.
+
+config WFI_TIMEOUT_TICKS
+  int "The number of ticks for instruction wfi timeout"
+  default 8192
+  help
+    This option controls the maximum number of ticks that WFI (Wait for
+    interrupt) instructions can wait. If set to 0, WFI acts as NOP.
 
 config MULTICORE_DIFF
   bool "(Beta) Enable multi-core difftest APIs for RISC-V"

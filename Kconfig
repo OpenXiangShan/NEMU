@@ -189,10 +189,6 @@ config DIFFTEST_REF_NAME
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
   default "none"
 
-config DETERMINISTIC
-  bool "Make the behavior of NEMU deterministic"
-  default n
-
 config IQUEUE
   bool "Record the last instrucitons executed"
   default n
@@ -358,6 +354,23 @@ config TIMER_GETTIMEOFDAY
 config TIMER_CLOCK_GETTIME
   bool "clock_gettime"
 endchoice
+
+config DETERMINISTIC
+  bool "Make the behavior of NEMU deterministic"
+  default y
+  help
+    If enabled, NEMU's execution will be fully deterministic, ensuring that
+    running same workload multiple times produces identical instruction trace
+    and results.
+
+    If enabled, the udpate of timer and devices will no longer depend on host
+    alarm. Also, the value of timer (RTC) will depend on instruction counting,
+    rather than host real time.
+
+config DISABLE_HOST_ALARM
+  bool
+  default y if SHARE || DETERMINISTIC
+  default n
 
 config MEMORY_REGION_ANALYSIS
   bool "Enable Program memory segment analysis"

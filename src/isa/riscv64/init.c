@@ -37,9 +37,7 @@ void init_iprio();
 #endif
 void init_custom_csr();
 
-#if !defined(CONFIG_SHARE) || defined(CONFIG_LIGHTQS)
-void init_clint();
-#endif
+void init_riscv_timer();
 void init_device();
 
 #define CSR_ZERO_INIT(name, addr) name->val = 0;
@@ -233,9 +231,7 @@ void init_isa() {
   }
 #endif
 
-  #if defined(CONFIG_LIGHTQS) || !defined(CONFIG_SHARE)
-  init_clint();
-  #endif
+  init_riscv_timer();
 
   if (!is_second_call) {
     IFDEF(CONFIG_SHARE, init_device());

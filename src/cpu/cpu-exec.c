@@ -648,6 +648,13 @@ static void execute(int n) {
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
 
+    #ifdef CONFIG_ISA_riscv64
+      #ifdef CONFIG_DETERMINISTIC
+        void update_riscv_timer();
+        update_riscv_timer();
+      #endif // CONFIG_DETERMINISTIC
+    #endif // CONFIG_ISA_riscv64
+
     if (MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr()) != INTR_EMPTY) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
@@ -736,6 +743,11 @@ void cpu_exec(uint64_t n) {
       extern void device_update();
       device_update();
     #endif
+
+    #ifdef CONFIG_ISA_riscv64
+      void update_riscv_timer();
+      update_riscv_timer();
+    #endif // CONFIG_ISA_riscv64
 
     #ifndef CONFIG_SHARE
       #ifdef LIGHTQS
