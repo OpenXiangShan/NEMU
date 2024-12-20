@@ -76,6 +76,7 @@ jobs:
           make -j
           bash ./scripts/take_zstd_from_flash.sh
           make clean-all
+          cp output_top /nfs/home/share/jxy_output_top -r
 
           #restore cpt from flash, with difftest
           make riscv64-xs-diff-spike-withflash_defconfig
