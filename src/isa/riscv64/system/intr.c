@@ -39,7 +39,7 @@ bool intr_deleg_S(word_t exceptionNO) {
 bool intr_deleg_VS(word_t exceptionNO){
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   bool delegS = intr_deleg_S(exceptionNO);
-  word_t deleg = (exceptionNO & INTR_BIT ? hideleg->val : hedeleg->val);
+  word_t deleg = (exceptionNO & INTR_BIT ? get_hideleg() : hedeleg->val);
   bool delegVS = cpu.v && ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M) && !isNMI;
   return delegS && delegVS;
 }
@@ -371,7 +371,7 @@ word_t isa_query_intr() {
     if (intr_vec & (1 << irq)) {
       bool deleg = (mideleg->val & (1 << irq)) != 0;
 #ifdef CONFIG_RVH
-      bool hdeleg = (hideleg->val & (1 << irq)) != 0;
+      bool hdeleg = (get_hideleg() & (1 << irq)) != 0;
       bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && vsstatus->sie) || (cpu.v && cpu.mode < MODE_S):
                            (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v:
                            ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M);

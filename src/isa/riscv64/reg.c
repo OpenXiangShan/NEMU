@@ -164,7 +164,7 @@ void isa_reg_display() {
   printf("\n");
 
   #ifdef CONFIG_RVH
-    DISPLAY_CSR("hideleg", hideleg->val);
+    DISPLAY_CSR("hideleg", get_hideleg());
     DISPLAY_CSR("hedeleg", hedeleg->val);
     printf("\n");
   #endif // CONFIG_RVH
