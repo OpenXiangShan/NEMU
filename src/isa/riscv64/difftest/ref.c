@@ -73,7 +73,7 @@ void csr_prepare() {
   cpu.mtval2  = mtval2->val;
   cpu.mtinst  = mtinst->val;
   cpu.hstatus = hstatus->val;
-  cpu.hideleg = hideleg->val;
+  cpu.hideleg = get_hideleg();
   cpu.hedeleg = hedeleg->val;
   cpu.hcounteren = hcounteren->val;
   cpu.htval   = htval->val;

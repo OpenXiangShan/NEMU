@@ -19,6 +19,7 @@
 #include "../local-include/intr.h"
 #include "../local-include/trigger.h"
 #include "../local-include/aia.h"
+#include "common.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
@@ -1146,7 +1147,10 @@ static inline word_t get_hip() {
 
   return tmp;
 }
-#endif
+inline word_t get_hideleg() {
+  return hideleg->val & HIDELEG_MASK & mideleg->val;
+}
+#endif // CONFIG_RVH
 
 static inline void update_counter_mcountinhibit(word_t old, word_t new) {
   #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
@@ -1433,7 +1437,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_VSIE: return get_vsie();
     case CSR_VSIP: return get_vsip();
     case CSR_HEDELEG: return hedeleg->val & HEDELEG_MASK;
-    case CSR_HIDELEG: return hideleg->val & HIDELEG_MASK;
+    case CSR_HIDELEG: return get_hideleg();
     case CSR_HIE: return get_hie();
     case CSR_HGEIE: return hgeie->val & ~(0x1UL);
 #ifdef CONFIG_RV_AIA
