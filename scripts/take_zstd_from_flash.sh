@@ -13,9 +13,11 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
-mem_cpt=`find output_top/test/linux/50000000 -name "*_memory_.zstd"`
-
-./build/riscv64-nemu-interpreter -b\
-    --diff ${SPIKE_SO}\
-    -I 100000000 \
-    $mem_cpt
+./build/riscv64-nemu-interpreter \
+    --cpt-interval 50000000 -u -b \
+    -D output_top \
+    -C test \
+    -w linux \
+    -I 350000000 $V_WORKLOAD_HOME/OpenSBI_Linux6.6_h264ref_sss_vectorized \
+    --next-generation-checkpoint \
+    --checkpoint-format zstd
