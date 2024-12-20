@@ -25,7 +25,8 @@
 #include <stdlib.h>
 
 int update_mmu_state();
-uint64_t clint_uptime();
+uint64_t get_htime();
+uint64_t get_mtime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
@@ -978,6 +979,10 @@ inline word_t get_mip() {
 
   tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << 7;
 
+  // clint time interrupt
+  word_t get_riscv_timer_interrupt();
+  tmp |= get_riscv_timer_interrupt();
+
 #ifdef CONFIG_RV_AIA
   if (mvien->seie) {
     tmp |= cpu.non_reg_interrupt_pending.platform_irp_seip << 9;
@@ -1354,7 +1359,8 @@ static word_t csr_read(uint32_t csrid) {
 #ifdef CONFIG_RV_CSR_TIME
     case CSR_TIME:
       difftest_skip_ref();
-      return clint_uptime();
+      IFDEF(CONFIG_RVH, if (cpu.v) return get_htime());
+      return get_mtime();
 #endif // CONFIG_RV_CSR_TIME
     case CSR_INSTRET:
       // The number of retired instruction should be the same between dut and ref.
@@ -2704,6 +2710,17 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       if ((cpu.mode < MODE_M && mstatus->tw == 1) || (cpu.mode == MODE_U)){
         longjmp_exception(EX_II);
       } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+
+      #ifdef CONFIG_HAS_CLINT
+        void update_riscv_timer();
+        update_riscv_timer();
+        if (isa_query_intr() == INTR_EMPTY) {
+          void timer_wait_for_interrupt();
+          timer_wait_for_interrupt();
+        }
+      #endif // CONFIG_HAS_CLINT
+
+      set_sys_state_flag(SYS_STATE_UPDATE);
     break;
 #endif // CONFIG_MODE_USER
     case (uint32_t)-1: // fence.i

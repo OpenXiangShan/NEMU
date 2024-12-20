@@ -14,21 +14,20 @@
 ***************************************************************************************/
 
 #include <utils.h>
-#include <device/alarm.h>
 #include <device/map.h>
 #include "local-include/csr.h"
 
 #define CLINT_MTIMECMP (0x4000 / sizeof(clint_base[0]))
 #define CLINT_MTIME    (0xBFF8 / sizeof(clint_base[0]))
-#define TIMEBASE 1000000ul
-#define US_PERCYCLE (1000000 / TIMEBASE)
 
 static uint64_t *clint_base = NULL;
-static uint64_t boot_time = 0;
-uint64_t clint_snapshot, spec_clint_snapshot;
 
-extern uint64_t g_nr_guest_instr;
-extern uint64_t stable_log_begin, spec_log_begin;
+void set_mtime(uint64_t new_value);
+void update_riscv_timer();
+void init_mtimer_regs(void * p_mtime, void * p_mtimecmp);
+
+#ifdef CONFIG_LIGHTQS
+uint64_t clint_snapshot, spec_clint_snapshot;
 
 void clint_take_snapshot() {
   clint_snapshot = clint_base[CLINT_MTIME];
@@ -44,40 +43,21 @@ void clint_restore_snapshot(uint64_t restore_inst_cnt) {
   }
   clint_base[CLINT_MTIME] = clint_snapshot;
 }
-
-void update_clint() {
-#ifdef CONFIG_DETERMINISTIC
-  clint_base[CLINT_MTIME] += TIMEBASE / 10000;
-#else
-  uint64_t uptime = get_time();
-  clint_base[CLINT_MTIME] = uptime / US_PERCYCLE;
-#endif
-#ifndef CONFIG_SHARE
-  mip->mtip = (clint_base[CLINT_MTIME] >= clint_base[CLINT_MTIMECMP]);
-
-#ifdef CONFIG_RV_SSTC
-  mip->stip = (clint_base[CLINT_MTIME] >= stimecmp->val);
-  IFDEF(CONFIG_RVH, mip->vstip = (clint_base[CLINT_MTIME] + htimedelta->val >= vstimecmp->val));
-#endif
-#endif
-}
-
-uint64_t clint_uptime() {
-  update_clint();
-  return clint_base[CLINT_MTIME];
-}
+#endif // CONFIG_LIGHTQS
 
 static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 #ifdef CONFIG_LIGHTQS_DEBUG
   printf("clint op write %d addr %x\n", is_write, offset);
 #endif // CONFIG_LIGHTQS_DEBUG
-  update_clint();
+  if (is_write && offset == CLINT_MTIME) {
+    set_mtime(clint_base[CLINT_MTIME]);
+  } else {
+    update_riscv_timer();
+  }
 }
 
 void init_clint() {
   clint_base = (uint64_t *)new_space(0x10000);
+  init_mtimer_regs(&clint_base[CLINT_MTIME], &clint_base[CLINT_MTIMECMP]);
   add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
-  IFNDEF(CONFIG_DETERMINISTIC, add_alarm_handle(update_clint));
-  boot_time = get_time();
 }
-
