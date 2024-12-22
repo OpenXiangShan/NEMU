@@ -363,7 +363,7 @@ config DETERMINISTIC
     running same workload multiple times produces identical instruction trace
     and results.
 
-    If enabled, the udpate of timer and devices will no longer depend on host
+    If enabled, the update of timer and devices will no longer depend on host
     alarm. Also, the value of timer (RTC) will depend on instruction counting,
     rather than host real time.
 
