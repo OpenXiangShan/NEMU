@@ -58,7 +58,7 @@ void update_riscv_timer() {
   #ifndef CONFIG_SHARE
     #ifdef CONFIG_DETERMINISTIC
       uint64_t get_abs_instr_count();
-      mtime->val = (get_abs_instr_count() / CONFIG_TIMER_CYCLE_PER_TICK) + clint_mtime_correction;
+      mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
     #else // CONFIG_DETERMINISTIC
       uint64_t uptime = get_time();
       mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;

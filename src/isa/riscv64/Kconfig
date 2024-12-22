@@ -23,16 +23,21 @@ config CLINT_MMIO
 
 endif # HAS_CLINT
 
-config TIMER_CYCLE_PER_TICK
-  int "The number of cycles per clint tick"
+config CYCLES_PER_MTIME_TICK
+  int "The number of cycles per mtime tick"
+  depends on DETERMINISTIC
   default 128
   help
-    This option controls the ratio between the RTC (mtime) frequency and the
-    main frequency.
+    This option controls the ratio between the the main frequency and RTC
+    (mtime) frequency.
 
     As NEMU works as a hart with CPI (cycles per instruction) of 1, this
     describes how many instructions are executed for each increment of mtime
     by 1.
+
+    For linux workload, mtime frequency is specified via "timebase-frequency"
+    option in device tree (dts). Ensure that "timebase-frequency" is aligned
+    with this option.
 
 config WFI_TIMEOUT_TICKS
   int "The number of ticks for instruction wfi timeout"
