@@ -53,6 +53,7 @@ int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t 
     return is_jmp;
   }
 
+  // This is important for get accuracy instruction counts for csrrw.
   save_globals(s);
   // IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 3));
 

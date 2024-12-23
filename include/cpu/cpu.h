@@ -29,6 +29,7 @@ enum {
 };
 
 uint64_t get_abs_instr_count();
+uint64_t get_abs_instr_count_csr();
 
 void cpu_exec(uint64_t n);
 

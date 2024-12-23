@@ -88,13 +88,40 @@ static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
 
 void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 
-// This function returns the number of executed instructions.
-// The accuracy depens on config.
+// Get the number of executed instructions:
+// Two function is provided: get_abs_instr_count() and get_abs_instr_count_csr()
+// For INSTR-level (INSTR_CNT_BY_INSTR), there is no different between two function.
+// For BB-level (INSTR_CNT_BY_BB):
+//  - get_abs_instr_count() returns bb-level instruction counts, and can be used everywhere.
+//  - get_abs_instr_count_csr() returns instr-level instruction counts, and should only be used during instrcution execution.
+
+// The integration of these two functions is challenging due to the following issue:
+//   After one basic block ends, idx_in_bb is settled into n_remain, but s->idx_in_bb could not be clear.
+//   As a result, get_abs_instr_count_csr() will return an incorrect value with a duplicate size of bb.
+
+// This function returns the number of executed instructions. The accuracy depens on config.
+// This is widely used for profiling, timer and so on.
+// Refer to the comment above for more technical details.
 uint64_t get_abs_instr_count() {
 #if defined(CONFIG_INSTR_CNT_BY_BB)
   // BB-level
   uint32_t n_executed = n_batch - n_remain;
   return n_executed + g_nr_guest_instr;
+#elif defined(CONFIG_INSTR_CNT_BY_INSTR)
+  // INSTR-level
+  return g_nr_guest_instr;
+#else // CONFIG_INSTR_CNT_DISABLED
+  return 0;
+#endif
+}
+
+// This function returns the number of executed instructions. The accuracy is always instruction. 
+// This is only used in CSR read & write, for basic counters (mcycle, minstret, cycle, instret)
+// Refer to the comment above for more technical details.
+uint64_t get_abs_instr_count_csr() {
+#if defined(CONFIG_INSTR_CNT_BY_BB)
+  return get_abs_instr_count() + prev_s->idx_in_bb - 1;
+  // s of this instruction is saved into prev_s, before csrrw() in rtl_sys_slow_path().
 #elif defined(CONFIG_INSTR_CNT_BY_INSTR)
   // INSTR-level
   return g_nr_guest_instr;
