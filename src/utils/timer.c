@@ -36,8 +36,12 @@ static uint64_t get_time_internal() {
   return us;
 }
 
+void init_time() {
+  boot_time = get_time_internal();
+}
+
 uint64_t get_time() {
-  if (boot_time == 0) boot_time = get_time_internal();
+  if (boot_time == 0) init_time();
   uint64_t now = get_time_internal();
   return now - boot_time;
 }

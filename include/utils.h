@@ -45,6 +45,7 @@ enum {
 
 // ----------- timer -----------
 
+void init_time();
 uint64_t get_time();
 
 // ----------- log -----------
