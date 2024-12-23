@@ -31,7 +31,6 @@ void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
 
-uint64_t get_abs_instr_count();
 inline word_t get_mip();
 inline word_t mstatus_read();
 inline word_t sstatus_read(bool vsreg_read, bool bare_read);
@@ -713,7 +712,7 @@ static inline word_t get_mcycle() {
       return mcycle->val;
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-  return mcycle->val + get_abs_instr_count();
+  return mcycle->val + get_abs_instr_count_csr();
 }
 
 static inline word_t get_minstret() {
@@ -722,7 +721,7 @@ static inline word_t get_minstret() {
       return minstret->val;
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-  return minstret->val + get_abs_instr_count();
+  return minstret->val + get_abs_instr_count_csr();
 }
 
 static inline word_t set_mcycle(word_t src) {
@@ -731,7 +730,7 @@ static inline word_t set_mcycle(word_t src) {
       return src;
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-  return src - get_abs_instr_count();
+  return src - get_abs_instr_count_csr();
 }
 
 static inline word_t set_minstret(word_t src) {
@@ -740,7 +739,7 @@ static inline word_t set_minstret(word_t src) {
       return src;
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-  return src - get_abs_instr_count();
+  return src - get_abs_instr_count_csr();
 }
 
 static inline word_t gen_mask(word_t begin, word_t end) {
@@ -1160,17 +1159,20 @@ static inline void update_counter_mcountinhibit(word_t old, word_t new) {
     bool new_cy = new & 0x1;
     bool new_ir = new & 0x4;
 
+
+    uint64_t abs_instr_count = get_abs_instr_count_csr();
+
     if (old_cy && !new_cy) { // CY: 1 -> 0
-      mcycle->val = mcycle->val - get_abs_instr_count();
+      mcycle->val = mcycle->val - abs_instr_count;
     }
     if (!old_cy && new_cy) { // CY: 0 -> 1
-      mcycle->val = mcycle->val + get_abs_instr_count();
+      mcycle->val = mcycle->val + abs_instr_count;
     }
     if (old_ir && !new_ir) { // IR: 1 -> 0
-      minstret->val = minstret->val - get_abs_instr_count();
+      minstret->val = minstret->val - abs_instr_count;
     }
     if (!old_ir && new_ir) { // IR: 0 -> 1
-      minstret->val = minstret->val + get_abs_instr_count();
+      minstret->val = minstret->val + abs_instr_count;
     }
   #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
 }
