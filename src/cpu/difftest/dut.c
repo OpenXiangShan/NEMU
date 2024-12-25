@@ -126,7 +126,7 @@ void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) 
   ref_difftest_init(port);
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
 #ifdef CONFIG_HAS_FLASH
-  ref_difftest_flash_cpy(flash_base, flash_size);
+  ref_difftest_flash_cpy(flash_base, flash_size ? flash_size : CONFIG_FLASH_SIZE);
 #endif
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }

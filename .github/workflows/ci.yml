@@ -23,6 +23,7 @@ jobs:
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+        git submodule update --init --depth=1
     - name: Try to compile 
       id: list_configs
       run: |

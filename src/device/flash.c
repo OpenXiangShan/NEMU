@@ -80,6 +80,7 @@ void convert_to_absolute_path(const char *input_path, char *output_path) {
 void load_flash_contents(const char *flash_img) {
   // create mmap with zero contents
   assert(CONFIG_FLASH_SIZE <= 0x10000000UL);
+  Log("Flash load img from %s\n", flash_img);
   FILE *fp = NULL;
   void *ret = mmap((void *)flash_base, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE,
     MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
@@ -95,8 +96,8 @@ void load_flash_contents(const char *flash_img) {
   }
 
   if (!flash_img || !(fp = fopen(real_flash_img, "r"))) {
-    // Log("Can not find flash image: %s", flash_img);
-    // Log("Use built-in image instead");
+    Log("Can not find flash image: %s", flash_img);
+    Log("Use built-in image instead");
     uint32_t *p = (uint32_t *)flash_base;
     sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", p, p + 1, p + 2);
   } else {
