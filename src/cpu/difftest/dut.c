@@ -45,7 +45,6 @@ static bool is_detach = false;
 // can not produce consistent behavior with NEMU
 void difftest_skip_ref() {
   if (is_detach) return;
-  printf("skip ref\n");
   is_skip_ref = true;
   // If such an instruction is one of the instruction packing in QEMU
   // (see below), we end the process of catching up with QEMU's pc to
