@@ -490,6 +490,15 @@ config RV_SMMPM
   help
     A machine-level extension that provides pointer masking for M-mode.
 
+config RV_SMCSRIND
+  bool "RISC-V Smcsrind/Sscsrind Indirect CSR Access, Version 1.0"
+  default n
+
+config RV_SMCSRIND_SUB
+  bool "Control whether to implement xireg2 through xireg6 in Smcsrind/Sscsrind."
+  depends on RV_SMCSRIND
+  default n
+
 config RV_SVNAPOT
   bool "RISC-V Svnapot extension for NAPOT Translation Contiguity (beta)"
   default n
