@@ -54,12 +54,6 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
-#ifdef CONFIG_DIFFTEST
-#ifdef CONFIG_HAS_FLASH
-static bool not_attach = true;
-static bool could_attach = false;
-#endif
-#endif
 
 static uint64_t n_remain_total; // instructions remaining in cpu_exec()
 static int n_remain;            // instructions remaining in execute()
@@ -227,25 +221,11 @@ _Noreturn void longjmp_exception(int ex_cause) {
 static bool manual_cpt_quit = false;
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
 
-#ifdef CONFIG_DIFFTEST
-#ifdef CONFIG_HAS_FLASH
-#define CHECK_DIFFTEST_ATTACH(target) \
-if(not_attach) {if(prev_s->pc >= CONFIG_FLASH_START_ADDR && prev_s->pc < CONFIG_FLASH_START_ADDR + CONFIG_FLASH_SIZE) {if (!(target >= CONFIG_FLASH_START_ADDR && target < CONFIG_FLASH_START_ADDR + CONFIG_FLASH_SIZE)) {not_attach = false; could_attach = true;}}}
-#else
-#define CHECK_DIFFTEST_ATTACH(target) \
-if(false) {}
-#endif
-#else
-#define CHECK_DIFFTEST_ATTACH(target) \
-if(false) {}
-#endif
-
 // this rtl_j() is only used in PERF_OPT
 #define rtl_j(s, target)                                                       \
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    CHECK_DIFFTEST_ATTACH(s->tnext->pc)                                        \
     is_ctrl = true;                                                            \
     s = s->tnext;                                                              \
     br_taken = true;                                                           \
@@ -257,7 +237,6 @@ if(false) {}
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    CHECK_DIFFTEST_ATTACH(*target)                                             \
     is_ctrl = true;                                                            \
     s = jr_fetch(s, *(target));                                                \
     br_taken = true;                                                           \
@@ -271,7 +250,6 @@ if(false) {}
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     is_ctrl = true;                                                            \
     if (interpret_relop(relop, *src1, *src2)) {                                \
-      CHECK_DIFFTEST_ATTACH(s->tnext->pc)                                      \
       s = s->tnext;                                                            \
       br_taken = true;                                                         \
     } else                                                                     \
@@ -302,7 +280,6 @@ if(false) {}
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    CHECK_DIFFTEST_ATTACH(*target)                                             \
     is_ctrl = true;                                                            \
     s = jr_fetch(s, *(target));                                                \
     if (g_sys_state_flag) {                                                    \
@@ -491,16 +468,6 @@ static void execute(int n) {
 
     debug_difftest(this_s, s);
 
-#ifdef CONFIG_DIFFTEST
-#ifdef CONFIG_HAS_FLASH
-    if(could_attach) {
-      difftest_attach();
-      could_attach = false;
-    }
-#endif
-#endif
-
-
   }
 
 end_of_loop:
@@ -529,15 +496,6 @@ end_of_loop:
 
   debug_difftest(this_s, s);
   save_globals(s);
-#ifdef CONFIG_DIFFTEST
-#ifdef CONFIG_HAS_FLASH
-  if(could_attach) {
-    difftest_attach();
-    could_attach = false;
-  }
-#endif
-#endif
-
 }
 #else
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),

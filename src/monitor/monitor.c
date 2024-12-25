@@ -33,7 +33,7 @@ void init_log(const char *log_file, const bool fast_log, const bool small_log);
 void init_mem();
 void init_regex();
 void init_wp_pool();
-void init_difftest(char *ref_so_file, long img_size, int port);
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port);
 void init_device();
 
 static char *log_file = NULL;
@@ -361,6 +361,7 @@ void init_monitor(int argc, char *argv[]) {
 
   // when there is a gcpt[restorer], we put bbl after gcpt[restorer]
   long img_size = 0; // how large we should copy for difftest
+  long flash_size = 0; // how large we should copy flash for difftest
 
   assert(img_file);
   uint64_t bbl_start = (uint64_t)get_pmem();
@@ -374,7 +375,7 @@ void init_monitor(int argc, char *argv[]) {
 #ifdef CONFIG_HAS_FLASH
   // provide checkpoint flash file
   if (checkpoint_restoring){
-    img_size = load_img(checkpoint_flash_path, "checkpoint from cmdline", gcpt_start, 0);
+    flash_size = load_img(checkpoint_flash_path, "checkpoint from cmdline", gcpt_start, 0);
   }
 #endif
 
@@ -404,14 +405,7 @@ void init_monitor(int argc, char *argv[]) {
   }
 
   /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
-
-#ifdef CONFIG_DIFFTEST
-#ifdef CONFIG_HAS_FLASH
-  extern void difftest_detach();
-  difftest_detach();
-#endif
-#endif
+  init_difftest(diff_so_file, img_size, flash_size, difftest_port);
 
 #endif
 

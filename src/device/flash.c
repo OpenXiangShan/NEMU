@@ -118,5 +118,5 @@ void init_flash() {
 #ifndef CONFIG_SHARE
   load_flash_contents(CONFIG_FLASH_IMG_PATH);
 #endif
-  add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
+  add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, SKIP_FREE, flash_io_handler);
 }
