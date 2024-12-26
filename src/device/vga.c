@@ -65,9 +65,9 @@ void init_vga() {
   vgactl_port_base = (uint32_t *)new_space(8);
   vgactl_port_base[0] = ((SCREEN_W) << 16) | (SCREEN_H);
   #ifndef CONFIG_SHARE
-  add_pio_map ("screen", CONFIG_VGA_CTL_PORT, vgactl_port_base, MMIO_READ|MMIO_WRITE|MMIO_EXEC, 8, NULL);
+  add_pio_map ("screen", CONFIG_VGA_CTL_PORT, vgactl_port_base, 8, MMIO_READ|MMIO_WRITE|MMIO_EXEC, NULL);
   #endif
-  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, vgactl_port_base, MMIO_READ|MMIO_WRITE|MMIO_EXEC, 8, NULL);
+  add_mmio_map("screen", CONFIG_VGA_CTL_MMIO, vgactl_port_base, 8, MMIO_READ|MMIO_WRITE|MMIO_EXEC, NULL);
 
   vmem = (uint32_t (*)[SCREEN_W])new_space(SCREEN_SIZE);
   add_mmio_map("vmem", CONFIG_FB_ADDR, vmem, SCREEN_SIZE, MMIO_READ|MMIO_WRITE|MMIO_EXEC, NULL);
