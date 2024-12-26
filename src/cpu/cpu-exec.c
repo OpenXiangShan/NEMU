@@ -319,11 +319,6 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
     simpoint_profiling(s->pc, false, abs_inst_count);
   }
 
-    //  if (checkpoint_taking && able_to_take &&
-    //      ((recvd_manual_oneshot_cpt && !manual_cpt_quit) ||
-    //      profiling_started)) {
-    //    // update cpu pc to point to next pc
-
   //umod or not set force m mod
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
