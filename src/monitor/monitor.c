@@ -341,10 +341,8 @@ void init_monitor(int argc, char *argv[]) {
   int64_t img_size = 0;
 
   assert(img_file);
-  uint64_t bbl_start = RESET_VECTOR;
-  if (restorer) {
-    bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
-  }
+
+  uint8_t* bbl_start = (uint8_t*)get_pmem();
   img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
 
   if (restorer) {
@@ -364,7 +362,7 @@ void init_monitor(int argc, char *argv[]) {
 
     fclose(restore_fp);
 
-    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, restore_size);
+    load_img(restorer, "Gcpt restorer form cmdline", bbl_start, restore_size);
   }
 
   /* Initialize differential testing. */
