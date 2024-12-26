@@ -19,6 +19,7 @@
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
+#include <device/map.h>
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -26,7 +27,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
-bool is_in_mmio(paddr_t addr);
+bool is_in_mmio(paddr_t addr, int type);
 
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 unsigned int PMEM_HARTID = 0;
@@ -224,11 +225,11 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
-    if (likely(is_in_mmio(addr))) {
+    if (likely(is_in_mmio(addr, MMIO_READ))) {
       // check if the address is misaligned
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
+      if (!mmio_is_real_device(addr, MMIO_READ)) {
         raise_read_access_fault(trap_type, vaddr);
         return 0;
       }
@@ -249,11 +250,11 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   }
   else {
 #ifdef CONFIG_HAS_FLASH
-    if (likely(is_in_mmio(addr))) {
+    if (likely(is_in_mmio(addr, MMIO_READ))) {
       // check if the address is misaligned
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
+      if (!mmio_is_real_device(addr, MMIO_READ)) {
         raise_read_access_fault(trap_type, vaddr);
         return 0;
       }
@@ -351,11 +352,11 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
   else {
-    if (likely(is_in_mmio(addr))) {
+    if (likely(is_in_mmio(addr, MMIO_WRITE))) {
       // check if the address is misaligned
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
+      if (!mmio_is_real_device(addr, MMIO_WRITE)) {
         raise_access_fault(EX_SAF, vaddr);
         return;
       }
@@ -375,11 +376,11 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     }
     return pmem_write(addr, len, data, cross_page_store);
   } else {
-    if (likely(is_in_mmio(addr))) {
+    if (likely(is_in_mmio(addr, MMIO_WRITE))) {
       // check if the address is misaligned
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
+      if (!mmio_is_real_device(addr, MMIO_WRITE)) {
         raise_access_fault(EX_SAF, vaddr);
         return;
       }

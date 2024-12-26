@@ -15,6 +15,7 @@
 
 #include <utils.h>
 #include <device/map.h>
+#include <device/flash.h>
 #include <sys/mman.h>
 
 // put flash below the physical memory and allow a max size of 256MB.
@@ -57,6 +58,14 @@ void load_flash_contents(const char *flash_img) {
   }
 }
 
+uint8_t* get_flash_base() {
+  return flash_base;
+}
+
+uint64_t get_flash_size() {
+  return CONFIG_FLASH_SIZE;
+}
+
 void init_flash() {
-  add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, flash_io_handler);
+  add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, SKIP_FREE, flash_io_handler);
 }

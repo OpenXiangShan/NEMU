@@ -59,5 +59,5 @@ static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 void init_clint() {
   clint_base = (uint64_t *)new_space(0x10000);
   init_mtimer_regs(&clint_base[CLINT_MTIME], &clint_base[CLINT_MTIMECMP]);
-  add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
+  add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, MMIO_READ|MMIO_WRITE|MMIO_EXEC, clint_io_handler);
 }
