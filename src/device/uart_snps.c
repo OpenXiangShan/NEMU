@@ -172,7 +172,7 @@ void init_uart_snps() {
   serial_base = new_space(0x100);
   serial_base[LSR] = 0x60;
   serial_base[USR] = 0x0;
-  add_mmio_map("uart_snps", UART0_BASE, serial_base, 0x100, serial_io_handler);
+  add_mmio_map("uart_snps", UART0_BASE, serial_base, 0x100, MMIO_READ|MMIO_WRITE|MMIO_EXEC, serial_io_handler);
 
 #ifdef CONFIG_UART_SNPS_INPUT_FIFO
   init_fifo();

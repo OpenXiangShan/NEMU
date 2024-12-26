@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <device/flash.h>
 
 #ifndef CONFIG_SHARE
 void init_aligncheck();
@@ -32,7 +33,7 @@ void init_log(const char *log_file, const bool fast_log, const bool small_log);
 void init_mem();
 void init_regex();
 void init_wp_pool();
-void init_difftest(char *ref_so_file, long img_size, int port);
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port);
 void init_device();
 
 static char *log_file = NULL;
@@ -44,11 +45,14 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
 char compress_file_format = 0; // default is gz
+static char* checkpoint_flash_path = NULL;
 
 extern char *mapped_cpt_file;  // defined in paddr.c
 extern bool map_image_as_output_cpt;
 extern char *reg_dump_file;
 extern char *mem_dump_file;
+static bool using_generation_checkpoint;
+
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 extern char *memory_region_record_file;
 #endif
@@ -82,6 +86,8 @@ void sig_handler(int signum) {
   }
 }
 
+
+
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -94,25 +100,27 @@ static inline int parse_args(int argc, char *argv[]) {
     {"help"     , no_argument      , NULL, 'h'},
 
     // path setting
-    {"output-base-dir"    , required_argument, NULL, 'D'},
-    {"workload-name"      , required_argument, NULL, 'w'},
-    {"config-name"        , required_argument, NULL, 'C'},
+    {"output-base-dir"             , required_argument, NULL, 'D'},
+    {"workload-name"               , required_argument, NULL, 'w'},
+    {"config-name"                 , required_argument, NULL, 'C'},
 
-    // restore cpt
-    {"restore"            , no_argument      , NULL, 'c'},
-    {"cpt-restorer"       , required_argument, NULL, 'r'},
-    {"map-img-as-outcpt"  , no_argument      , NULL, 13},
+    // checkpoint
+    {"restore"                     , required_argument, NULL, 'c'},
+    // gcpt-restore
+    {"cpt-restorer"                , required_argument, NULL, 'r'},
+    {"map-img-as-outcpt"           , no_argument      , NULL, 13},
 
     // take cpt
-    {"simpoint-dir"       , required_argument, NULL, 'S'},
-    {"uniform-cpt"        , no_argument      , NULL, 'u'},
-    {"manual-oneshot-cpt" , no_argument      , NULL, 11},
-    {"manual-uniform-cpt" , no_argument      , NULL, 9},
-    {"cpt-interval"       , required_argument, NULL, 5},
-    {"warmup-interval"    , required_argument, NULL, 14},
-    {"cpt-mmode"          , no_argument      , NULL, 7},
-    {"map-cpt"            , required_argument, NULL, 10},
-    {"checkpoint-format"  , required_argument, NULL, 12},
+    {"simpoint-dir"                , required_argument, NULL, 'S'},
+    {"uniform-cpt"                 , no_argument      , NULL, 'u'},
+    {"manual-oneshot-cpt"          , no_argument      , NULL, 11},
+    {"manual-uniform-cpt"          , no_argument      , NULL, 9},
+    {"cpt-interval"                , required_argument, NULL, 5},
+    {"warmup-interval"             , required_argument, NULL, 14},
+    {"cpt-mmode"                   , no_argument      , NULL, 7},
+    {"map-cpt"                     , required_argument, NULL, 10},
+    {"checkpoint-format"           , required_argument, NULL, 12},
+    {"next-generation-checkpoint"  , no_argument      , NULL, 16},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -150,6 +158,7 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 'c':
         checkpoint_restoring = true;
+        checkpoint_flash_path = optarg;
         Log("Restoring from checkpoint");
         break;
 
@@ -227,6 +236,14 @@ static inline int parse_args(int argc, char *argv[]) {
         break;
       }
 
+      case 16: {
+        // --next-generation-checkpoint
+        using_generation_checkpoint = true;
+        extern void set_using_gcpt_mmio(bool value);
+        set_using_gcpt_mmio(using_generation_checkpoint);
+        break;
+      }
+
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
       case 12:
@@ -271,6 +288,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
         printf("\t--checkpoint-format     Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
+        printf("\t--next-generation-checkpoint   Specify using flash store hardware status or not\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--simpoint-profile      simpoint profiling\n");
@@ -338,15 +356,30 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
-  int64_t img_size = 0;
+  /* Initialize devices. */
+  init_device();
+
+  // when there is a gcpt[restorer], we put bbl after gcpt[restorer]
+  long img_size = 0; // how large we should copy for difftest
+  long flash_size = 0; // how large we should copy flash for difftest
 
   assert(img_file);
-  uint64_t bbl_start = RESET_VECTOR;
-  if (restorer) {
-    bbl_start += CONFIG_BBL_OFFSET_WITH_CPT;
-  }
+  uint64_t bbl_start = (uint64_t)get_pmem();
+#ifdef CONFIG_HAS_FLASH
+  uint64_t gcpt_start = (uint64_t)flash_base;
+#endif
+
+  // memory image or binary could load directly
   img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
 
+#ifdef CONFIG_HAS_FLASH
+  // provide checkpoint flash file
+  if (checkpoint_restoring){
+    flash_size = load_img(checkpoint_flash_path, "checkpoint from cmdline", gcpt_start, 0);
+  }
+#endif
+
+  // provide gcpt restore
   if (restorer) {
     FILE *restore_fp = fopen(restorer, "rb");
     Assert(restore_fp, "Can not open '%s'", restorer);
@@ -364,14 +397,15 @@ void init_monitor(int argc, char *argv[]) {
 
     fclose(restore_fp);
 
-    load_img(restorer, "Gcpt restorer form cmdline", RESET_VECTOR, restore_size);
+#ifdef CONFIG_HAS_FLASH
+    load_img(restorer, "Gcpt restorer form cmdline", gcpt_start, restore_size);
+#else
+    load_img(restorer, "Gcpt restorer form cmdline", bbl_start, restore_size);
+#endif
   }
 
   /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
-
-  /* Initialize devices. */
-  init_device();
+  init_difftest(diff_so_file, img_size, flash_size, difftest_port);
 
 #endif
 

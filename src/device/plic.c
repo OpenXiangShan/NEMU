@@ -11,5 +11,5 @@ static void plic_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_plic(const char *flash_img) {
   plic_base = new_space(PLIC_SIZE); // TOO MUCH
-  add_mmio_map("plic", CONFIG_PLIC_ADDRESS, plic_base, PLIC_SIZE, plic_io_handler);
+  add_mmio_map("plic", CONFIG_PLIC_ADDRESS, plic_base, PLIC_SIZE, MMIO_READ|MMIO_WRITE|MMIO_EXEC, plic_io_handler);
 }

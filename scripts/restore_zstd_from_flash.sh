@@ -14,8 +14,9 @@
 #**************************************************************************************/
 
 mem_cpt=`find output_top/test/linux/50000000 -name "*_memory_.zstd"`
+flash_cpt=`find output_top/test/linux/50000000 -name "*_flash_.zstd"`
 
-./build/riscv64-nemu-interpreter -b\
-    --diff ${SPIKE_SO}\
-    -I 100000000 \
+./build/riscv64-nemu-interpreter -b \
+    --diff ${SPIKE_SO} \
+    --restore $flash_cpt -I 100000000 \
     $mem_cpt

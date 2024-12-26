@@ -4,3 +4,6 @@
 [submodule "resource/simpoint/simpoint_repo"]
 	path = resource/simpoint/simpoint_repo
 	url = https://github.com/shinezyy/SimPoint.3.2-fix.git
+[submodule "resource/nanopb"]
+	path = resource/nanopb
+	url = https://github.com/nanopb/nanopb

@@ -19,7 +19,7 @@
 #include <memory/vaddr.h>
 #include <device/map.h>
 
-#define IO_SPACE_MAX (128 * 1024 * 1024)
+#define IO_SPACE_MAX (256 * 1024 * 1024)
 
 static uint8_t io_space[IO_SPACE_MAX] PG_ALIGN = {};
 static uint8_t *p_space = io_space;

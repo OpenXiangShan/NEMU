@@ -20,10 +20,14 @@
 #include <memory/paddr.h>
 #include <utils.h>
 #include <difftest.h>
+#include <device/flash.h>
 
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
+void (*ref_difftest_pmpcpy)(void *dut, bool direction) = NULL;
+void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
+void (*ref_difftest_flash_cpy)(uint8_t* flash_bin, size_t size) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 void (*ref_difftest_dirty_fsvs)(const uint64_t dirties) = NULL;
 int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask) = NULL;
@@ -71,7 +75,7 @@ void difftest_set_patch(void (*fn)(void *arg), void *arg) {
   patch_arg = arg;
 }
 
-void init_difftest(char *ref_so_file, long img_size, int port) {
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) {
   assert(ref_so_file != NULL);
 
   void *handle;
@@ -98,6 +102,17 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
+#ifdef CONFIG_HAS_FLASH
+  ref_difftest_pmpcpy = dlsym(handle, "difftest_pmpcpy");
+  assert(ref_difftest_pmpcpy);
+
+  ref_difftest_pmp_cfg_cpy = dlsym(handle, "difftest_pmp_cfg_cpy");
+  assert(ref_difftest_pmp_cfg_cpy);
+
+  ref_difftest_flash_cpy = dlsym(handle, "difftest_load_flash");
+  assert(ref_difftest_flash_cpy);
+#endif
+
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   ref_difftest_store_commit = dlsym(handle, "difftest_store_commit");
   assert(ref_difftest_store_commit);
@@ -110,6 +125,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   ref_difftest_init(port);
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
+#ifdef CONFIG_HAS_FLASH
+  ref_difftest_flash_cpy(flash_base, flash_size ? flash_size : CONFIG_FLASH_SIZE);
+#endif
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
@@ -161,15 +179,22 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   checkregs(&ref_r, pc);
 }
 void difftest_detach() {
+  Log("Difftest detach now!");
   is_detach = true;
 }
 
 void difftest_attach() {
+  Log("Difftest attach now!");
   is_detach = false;
   is_skip_ref = false;
   skip_dut_nr_instr = 0;
-
   isa_difftest_attach();
+
+  // There are multiple non-register states for spike,
+  // and entering attach from any execution phase requires
+  // the ability to correctly implement the settings for
+  // these states, and the expected repair effort would be enormous
+  assert(0); // fix me
 }
 
 #else
