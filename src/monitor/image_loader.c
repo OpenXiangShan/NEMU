@@ -256,7 +256,7 @@ long load_img(char* img_name, char *which_img, uint8_t* load_start, size_t img_s
   int ret = fread((uint8_t*)(load_start), size, 1, fp);
   assert(ret == 1);
 #endif
-  Log("Read %lu bytes from file %s to 0x%lx", size, img_name, load_start);
+  Log("Read %lu bytes from file %s to 0x%p", size, img_name, load_start);
 
   fclose(fp);
   return size;
