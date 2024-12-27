@@ -183,7 +183,7 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_
   longjmp_exception(ex);
 }
 
-vaddr_t get_effective_address(vaddr_t vaddr, int type) {
+inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   if (type == MEM_TYPE_IFETCH || hlvx) {
     return vaddr;
   }
@@ -192,6 +192,11 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   int mode = cpu.mode;
   int pmm = 0;
   int masked_width = 0;
+
+  // Early out
+  if (likely(!hld_st && !mstatus->mprv && mode == MODE_U && senvcfg->pmm == 0)) {
+    return vaddr;
+  }
 
   if (hld_st) {
     mode = hstatus->spvp;
@@ -540,7 +545,7 @@ int update_mmu_state() {
 
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 
-int isa_mmu_check(vaddr_t vaddr, int len, int type) {
+inline int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
 
@@ -563,8 +568,8 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
 
   bool va_msbs_ok = true;
-  if (vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false)) {
-    if (enable_48) {
+  if (likely(vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false))) {
+    if (likely(enable_48)) {
       word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
       word_t va_msbs = vaddr >> 47;
       va_msbs_ok = (va_msbs == va_mask) || va_msbs == 0;
@@ -579,7 +584,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE){ // don't need bits 63–39 are equal to bit 38
+  if(unlikely((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE)) { // don't need bits 63–39 are equal to bit 38
     if (enable_48) {
       word_t maxgpa = ((((word_t)1) << 50) - 1);
       if((vaddr & ~maxgpa) == 0){
@@ -597,7 +602,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }
   }
 #endif
-  if(!va_msbs_ok){
+  if(unlikely(!va_msbs_ok)) {
     if(is_ifetch){
       cpu.trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH

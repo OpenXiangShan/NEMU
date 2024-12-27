@@ -33,7 +33,7 @@ ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
 CFLAGS += -D__MMIO_SPECE_RANGE__=$(call remove_quote,$(CONFIG_MMIO_SPACE_RANGE))
 endif
 
-# CFLAGS += -g
+CFLAGS += -g
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
 
@@ -85,6 +85,9 @@ CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto=auto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
+#CFLAGS_BUILD += -fprofile-generate=./gcc_profile
+#CFLAGS_BUILD += -fprofile-use=./gcc_profile -fprofile-correction -Wno-error=coverage-mismatch
+CFLAGS_BUILD += --param max-inline-insns-single=256 -falign-labels=32:9:64:15
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 
@@ -98,7 +101,7 @@ LDFLAGS += -lz
 endif
 
 ifndef CONFIG_SHARE
-LDFLAGS += -lreadline -ldl -pie
+LDFLAGS += -lreadline -ldl
 else
 SHARE = 1
 endif
