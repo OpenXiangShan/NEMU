@@ -321,8 +321,8 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
 #ifndef CONFIG_MULTICORE_DIFF
 static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_SHARE
-  extern bool is_in_mmio(paddr_t addr, int type);
-  if (unlikely(is_in_mmio(addr, MMIO_READ))) {
+  extern bool is_in_mmio(paddr_t addr);
+  if (unlikely(is_in_mmio(addr))) {
     int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                 type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
     cpu.trapInfo.tval = vaddr;
