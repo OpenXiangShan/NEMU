@@ -51,10 +51,10 @@ bool is_in_mmio(paddr_t addr) {
 }
 
 /* device interface */
-void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, int skip_ref_flag, io_callback_t callback) {
+void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, int mmio_diff_flag, io_callback_t callback) {
   assert(nr_map < NR_MAP);
   maps[nr_map] = (IOMap){ .name = name, .low = addr, .high = addr + len - 1,
-    .space = space, .skip_ref_flag = skip_ref_flag, .callback = callback };
+    .space = space, .mmio_diff_flag = mmio_diff_flag, .callback = callback };
   // Log("Add mmio map '%s' at [" FMT_PADDR ", " FMT_PADDR "]",
   //     maps[nr_map].name, maps[nr_map].low, maps[nr_map].high);
   // fflush(stdout);
