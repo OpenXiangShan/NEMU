@@ -22,11 +22,11 @@ static IOMap maps[NR_MAP] = {};
 static int nr_map = 0;
 
 /* device interface */
-void add_pio_map(const char *name, ioaddr_t addr, void *space, uint32_t len, int mmio_diff_flag, io_callback_t callback) {
+void add_pio_map(const char *name, ioaddr_t addr, void *space, uint32_t len, int mmio_diff_type, io_callback_t callback) {
   assert(nr_map < NR_MAP);
   assert(addr + len <= PORT_IO_SPACE_MAX);
   maps[nr_map] = (IOMap){ .name = name, .low = addr, .high = addr + len - 1,
-    .space = space, .mmio_diff_flag = mmio_diff_flag, .callback = callback };
+    .space = space, .mmio_diff_type = mmio_diff_type, .callback = callback };
   Log("Add port-io map '%s' at [" FMT_PADDR ", " FMT_PADDR "]",
       maps[nr_map].name, maps[nr_map].low, maps[nr_map].high);
 
