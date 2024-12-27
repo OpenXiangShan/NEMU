@@ -196,8 +196,8 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
 
 #endif  //  CONFIG_MEM_COMPRESS
 
-// Return whether a file is a gz file, determined by its name.
-// If the filename ends with ".gz", we treat it as a gz file.
+// Will check the magic number in file, if not gz or zstd archive,
+// will read in as a raw image
 long load_img(char* img_name, char *which_img, uint8_t* load_start, size_t img_size) {
   char *loading_img = img_name;
   Log("Loading %s: %s\n", which_img, img_name);
