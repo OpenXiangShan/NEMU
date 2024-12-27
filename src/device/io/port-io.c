@@ -36,7 +36,7 @@ void add_pio_map(const char *name, ioaddr_t addr, void *space, uint32_t len, int
 /* CPU interface */
 uint32_t pio_read(ioaddr_t addr, int len) {
   assert(addr + len - 1 < PORT_IO_SPACE_MAX);
-  int mapid = find_mapid_by_addr(maps, nr_map, addr, MMIO_READ);
+  int mapid = find_mapid_by_addr(maps, nr_map, addr);
 #ifdef CONFIG_PA
   assert(mapid != -1);
 #else
@@ -47,7 +47,7 @@ uint32_t pio_read(ioaddr_t addr, int len) {
 
 void pio_write(ioaddr_t addr, int len, uint32_t data) {
   assert(addr + len - 1 < PORT_IO_SPACE_MAX);
-  int mapid = find_mapid_by_addr(maps, nr_map, addr, MMIO_WRITE);
+  int mapid = find_mapid_by_addr(maps, nr_map, addr);
 #ifdef CONFIG_PA
   assert(mapid != -1);
 #else

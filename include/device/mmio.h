@@ -18,7 +18,7 @@
 
 #include <common.h>
 
-bool mmio_is_real_device(paddr_t addr, int type);
+bool mmio_is_real_device(paddr_t addr);
 word_t mmio_read(paddr_t addr, int len);
 void mmio_write(paddr_t addr, int len, word_t data);
 

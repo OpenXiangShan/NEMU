@@ -29,12 +29,12 @@ static_assert(MMIO_SPEC_NUM % 2 == 0, "The address space of mmio needs to be spe
 
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
 
-static inline IOMap* fetch_mmio_map(paddr_t addr, int type) {
-  int mapid = find_mapid_by_addr(maps, nr_map, addr, type);
+static inline IOMap* fetch_mmio_map(paddr_t addr) {
+  int mapid = find_mapid_by_addr(maps, nr_map, addr);
   return (mapid == -1 ? NULL : &maps[mapid]);
 }
 
-bool is_in_mmio(paddr_t addr, int type) {
+bool is_in_mmio(paddr_t addr) {
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
   for (int i = 0; i < MMIO_SPEC_PAIR_NUM; ++i) {
     if (mmio_spec_bound[i] <= addr && addr <= mmio_spec_bound[i + 1]) {
@@ -44,7 +44,7 @@ bool is_in_mmio(paddr_t addr, int type) {
   }
   return false;
 #else
-  int mapid = find_mapid_by_addr(maps, nr_map, addr, type);
+  int mapid = find_mapid_by_addr(maps, nr_map, addr);
   return (mapid == -1 ? false : true);
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
 
@@ -62,8 +62,8 @@ void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, int
   nr_map ++;
 }
 
-bool mmio_is_real_device(paddr_t addr, int type) {
-  IOMap *map = fetch_mmio_map(addr, type);
+bool mmio_is_real_device(paddr_t addr) {
+  IOMap *map = fetch_mmio_map(addr);
   return map != NULL && addr <= map->high && addr >= map->low;
 }
 
@@ -71,10 +71,10 @@ bool mmio_is_real_device(paddr_t addr, int type) {
 /* bus interface */
 __attribute__((noinline))
 word_t mmio_read(paddr_t addr, int len) {
-  return map_read(addr, len, fetch_mmio_map(addr, MMIO_READ));
+  return map_read(addr, len, fetch_mmio_map(addr));
 }
 
 __attribute__((noinline))
 void mmio_write(paddr_t addr, int len, word_t data) {
-  map_write(addr, len, data, fetch_mmio_map(addr, MMIO_WRITE));
+  map_write(addr, len, data, fetch_mmio_map(addr));
 }

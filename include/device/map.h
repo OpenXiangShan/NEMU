@@ -42,13 +42,10 @@ static inline bool map_inside(IOMap *map, paddr_t addr) {
   return (addr >= map->low && addr <= map->high);
 }
 
-static inline int find_mapid_by_addr(IOMap *maps, int size, paddr_t addr, int type) {
+static inline int find_mapid_by_addr(IOMap *maps, int size, paddr_t addr) {
   int i;
   for (i = 0; i < size; i ++) {
     if (map_inside(maps + i, addr)) {
-      if((type & (maps + i)->skip_ref_flag) != 0) {
-        difftest_skip_ref();
-      }
       return i;
     }
   }
