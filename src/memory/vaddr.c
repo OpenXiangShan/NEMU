@@ -89,7 +89,7 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
   word_t cur_pg_st_data = data & cur_pg_st_mask;
   word_t next_pg_st_data = data >> (cur_pg_st_len << 3);
   if (needTranslate) {
-    Log("vaddr_write_cross_page!");
+    Logm("vaddr_write_cross_page!");
     // make sure no page fault or access fault before real write
     bool cur_pg_st_exp = false;
     bool next_pg_st_exp = false;
