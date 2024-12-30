@@ -24,5 +24,5 @@ static void rtc_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_mc146818rtc() {
   rtc_base = (void *)new_space(2);
-  add_pio_map("mc146818rtc", RTC_PORT, rtc_base, 2, MMIO_READ|MMIO_WRITE|MMIO_EXEC, rtc_io_handler);
+  add_pio_map("mc146818rtc", RTC_PORT, rtc_base, 2, rtc_io_handler);
 }

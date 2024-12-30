@@ -51,14 +51,22 @@ bool is_in_mmio(paddr_t addr) {
 }
 
 /* device interface */
-void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, int mmio_diff_type, io_callback_t callback) {
+void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, io_callback_t callback) {
   assert(nr_map < NR_MAP);
   maps[nr_map] = (IOMap){ .name = name, .low = addr, .high = addr + len - 1,
-    .space = space, .mmio_diff_type = mmio_diff_type, .callback = callback };
+    .space = space, .mmio_diff_type = MMIO_READ|MMIO_WRITE|MMIO_EXEC, .callback = callback };
   // Log("Add mmio map '%s' at [" FMT_PADDR ", " FMT_PADDR "]",
   //     maps[nr_map].name, maps[nr_map].low, maps[nr_map].high);
   // fflush(stdout);
 
+  nr_map ++;
+}
+
+/* device interface */
+void add_mmio_map_with_diff(const char *name, paddr_t addr, void *space, uint32_t len, int mmio_diff_type, io_callback_t callback) {
+  assert(nr_map < NR_MAP);
+  maps[nr_map] = (IOMap){ .name = name, .low = addr, .high = addr + len - 1,
+    .space = space, .mmio_diff_type = mmio_diff_type, .callback = callback };
   nr_map ++;
 }
 

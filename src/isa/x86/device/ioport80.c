@@ -25,5 +25,5 @@ static void ioport80_io_handler(uint32_t offset, int len, bool is_write) {
 
 void init_ioport80() {
   ioport80_base = (void *)new_space(1);
-  add_pio_map("ioport80", IOPORT80_PORT, ioport80_base, 1, MMIO_READ|MMIO_WRITE|MMIO_EXEC, ioport80_io_handler);
+  add_pio_map("ioport80", IOPORT80_PORT, ioport80_base, 1, ioport80_io_handler);
 }

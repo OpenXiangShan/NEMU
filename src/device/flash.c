@@ -67,5 +67,5 @@ uint64_t get_flash_size() {
 }
 
 void init_flash() {
-  add_mmio_map("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, SKIP_FREE, flash_io_handler);
+  add_mmio_map_with_diff("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, SKIP_FREE, flash_io_handler);
 }
