@@ -113,7 +113,7 @@ jobs:
           make riscv64-xs-diff-spike-agnostic_defconfig
           make -j
           set -x
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 2000000 > crash.log  || exit_code=$?
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 2000000 > crash.log  || exit_code=$?
           if [ ${exit_code} -eq 0 ]; then echo "Difftest is broken, it should report error!" exit 1; fi
           match=$(grep "wrong.*=.*ffff" crash.log -c)
           if [ ${match} -eq 0 ]; then echo "Difftest is broken, it should report at least one agnostic related difference!" exit 1; fi
@@ -260,13 +260,13 @@ jobs:
 
       - name: Run Vector-spec06-checkpoint with Spike DiffTest
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} --restore $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
 
       - name: Run OpenSBI+Linux+Vectorized_h264 with Spike DiffTest
         run: |
