@@ -19,7 +19,6 @@
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
-#include <device/map.h>
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
