@@ -32,7 +32,7 @@ void init_log(const char *log_file, const bool fast_log, const bool small_log);
 void init_mem();
 void init_regex();
 void init_wp_pool();
-void init_difftest(char *ref_so_file, long img_size, int port);
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port);
 void init_device();
 
 static char *log_file = NULL;
@@ -40,6 +40,7 @@ bool small_log = false;
 bool fast_log = false;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
+static char *flash_image = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
@@ -99,7 +100,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"config-name"        , required_argument, NULL, 'C'},
 
     // restore cpt
-    {"restore"            , no_argument      , NULL, 'c'},
+    {"flash-image"        , no_argument      , NULL, 16},
     {"cpt-restorer"       , required_argument, NULL, 'r'},
     {"map-img-as-outcpt"  , no_argument      , NULL, 13},
 
@@ -148,14 +149,14 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'w': workload_name = optarg; break;
       case 'C': config_name = optarg; break;
 
-      case 'c':
-        checkpoint_restoring = true;
-        Log("Restoring from checkpoint");
+      case 16:
+        flash_image = optarg;
         break;
 
       case 'r':
         restorer = optarg;
         break;
+
       case 13: {
         extern bool map_image_as_output_cpt;
         map_image_as_output_cpt = true;
@@ -179,7 +180,7 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'M':
           mem_dump_file = optarg;
           break;
-      case 'A': 
+      case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
           memory_region_record_file = optarg;
@@ -310,7 +311,6 @@ void init_monitor(int argc, char *argv[]) {
   if (map_image_as_output_cpt) {
     assert(!mapped_cpt_file);
     mapped_cpt_file = img_file;
-    checkpoint_restoring = true;
   }
 
   extern void init_path_manager();
@@ -338,38 +338,15 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
-  int64_t img_size = 0;
-
-  assert(img_file);
-
-  uint8_t* bbl_start = (uint8_t*)get_pmem();
-  img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
-
-  if (restorer) {
-    FILE *restore_fp = fopen(restorer, "rb");
-    Assert(restore_fp, "Can not open '%s'", restorer);
-
-    int restore_size = 0;
-    int restore_jmp_inst = 0;
-
-    int ret = fread(&restore_jmp_inst, sizeof(int), 1, restore_fp);
-    assert(ret == 1);
-    assert(restore_jmp_inst != 0);
-
-    ret = fread(&restore_size, sizeof(int), 1, restore_fp);
-    assert(ret == 1);
-    assert(restore_size != 0);
-
-    fclose(restore_fp);
-
-    load_img(restorer, "Gcpt restorer form cmdline", bbl_start, restore_size);
-  }
-
-  /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
-
   /* Initialize devices. */
   init_device();
+
+  int64_t img_size = 0;
+  int64_t flash_size = 0;
+  fill_memory(img_file, flash_image, restorer, &img_size, &flash_size);
+
+  /* Initialize differential testing. */
+  init_difftest(diff_so_file, img_size, flash_size, difftest_port);
 
 #endif
 

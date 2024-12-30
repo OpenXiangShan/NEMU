@@ -18,6 +18,7 @@
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <memory/paddr.h>
+#include <device/flash.h>
 #include <utils.h>
 #include <difftest.h>
 
@@ -74,7 +75,7 @@ void difftest_set_patch(void (*fn)(void *arg), void *arg) {
   patch_arg = arg;
 }
 
-void init_difftest(char *ref_so_file, long img_size, int port) {
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) {
   assert(ref_so_file != NULL);
 
   void *handle;
@@ -178,6 +179,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   // Log("run ref %lx, %lx, %ld", pc, ref_r.pc, cpu.v);
   checkregs(&ref_r, pc);
 }
+
 void difftest_detach() {
   Log("Difftest detach now!");
   is_detach = true;
@@ -199,5 +201,6 @@ void difftest_attach() {
 }
 
 #else
-void init_difftest(char *ref_so_file, long img_size, int port) { }
+
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) { }
 #endif
