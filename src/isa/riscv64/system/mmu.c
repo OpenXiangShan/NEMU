@@ -791,7 +791,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
   }
   return MEM_RET_OK;
 }
-
+  int LGPF_flag = 0;
 #ifdef CONFIG_RVH
 int force_raise_gpf_record(vaddr_t vaddr, int type) {
   static vaddr_t g_last_addr[3] = {0x0};
@@ -850,10 +850,11 @@ int force_raise_gpf(vaddr_t vaddr, int type){
 #ifdef CONFIG_GUIDED_TVAL
       if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_LGPF)) return MEM_RET_OK;
 #endif
-      printf("[NEMU]: force raise LGPF\n");
 
       cpu.trapInfo.tval = vaddr;
       cpu.trapInfo.tval2 = intr_deleg_S(EX_LGPF) ? cpu.execution_guide.htval: cpu.execution_guide.mtval2;
+      printf("[NEMU]: force raise LGPF, pc: 0x%lx, tval: 0x%lx, tval2: 0x%lx, deleg_s: 0x%d\n", cpu.pc, cpu.trapInfo.tval, cpu.trapInfo.tval2, intr_deleg_S(EX_LGPF));
+      LGPF_flag = 1;
       longjmp_exception(EX_LGPF);
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SGPF){

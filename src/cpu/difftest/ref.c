@@ -22,6 +22,7 @@
 #include <difftest.h>
 
 extern void load_flash_contents(const char *flash_img);
+extern int LGPF_flag;
 
 #ifdef CONFIG_LARGE_COPY
 #ifndef CONFIG_USE_SPARSEMM
@@ -271,6 +272,9 @@ void difftest_get_store_event_other_info(void *info) {
 }
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
+int difftest_check_LGPF() {
+  return LGPF_flag;
+}
 
 
 void difftest_aia_xtopei(void *xtopei) {
