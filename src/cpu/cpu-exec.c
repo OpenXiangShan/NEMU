@@ -197,6 +197,7 @@ _Noreturn void longjmp_context(int cause) {
 }
 
 _Noreturn void longjmp_exception(int ex_cause) {
+  Logtr("tval: " FMT_PADDR ", tval2: " FMT_WORD , cpu.trapInfo.tval, cpu.trapInfo.tval2);
   if (context_idx == 0) {
     // context_idx == 0 means only the execute loop context saved.
   #ifdef CONFIG_GUIDED_EXEC

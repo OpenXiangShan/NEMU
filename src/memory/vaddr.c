@@ -38,9 +38,23 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
   *exp = !check_paddr(paddr, len, type, type, cpu.mode, vaddr);
   return paddr;
 }
-
+extern Decode *prev_s;
+bool p_flag = false;
+int p_count = 0;
+uint64_t get_abs_instr_count_csr();
 static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTranslate) {
   vaddr_t vaddr = addr;
+  printf("pc:0x%lx instr: 0x%x, read cross page vaddr: 0x%lx, instrCount: 0x%lx\n", prev_s->pc, prev_s->isa.instr.val, addr, get_abs_instr_count_csr());
+  if (addr == 0xffffaf80019baffb) {
+    p_count++;
+    if (p_count == 3) {
+      printf("ABORT\n");
+      nemu_state.state = NEMU_ABORT;
+    }
+  }
+  if (!p_flag && addr == 0xffffaf80019baffb) {
+    p_flag = true;
+  }
   word_t data = 0;
   int i;
   for (i = 0; i < len; i ++, vaddr ++) {
@@ -89,7 +103,7 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
   word_t cur_pg_st_data = data & cur_pg_st_mask;
   word_t next_pg_st_data = data >> (cur_pg_st_len << 3);
   if (needTranslate) {
-    Log("vaddr_write_cross_page!");
+    Logm("vaddr_write_cross_page!");
     // make sure no page fault or access fault before real write
     bool cur_pg_st_exp = false;
     bool next_pg_st_exp = false;

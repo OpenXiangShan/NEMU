@@ -154,9 +154,11 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
 bool has_two_stage_translation(){
   return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
 }
-
+extern bool p_flag;
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
-  // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
+  if (p_flag) {
+    printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
+  }
 #ifdef FORCE_RAISE_PF
   if (
     cpu.guided_exec && cpu.execution_guide.force_raise_exception &&
