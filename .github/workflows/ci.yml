@@ -9,6 +9,7 @@ on:
 env:
   CI_WORKLOADS: /nfs/home/share/ci-workloads
   SPIKE_SO: ./ready-to-run/riscv64-spike-so
+  NUTSHELL_SPIKE_SO: ./ready-to-run/riscv64-nutshell-spike-so
 
 jobs:
   compilation-all:
@@ -92,7 +93,7 @@ jobs:
           make -j
       - name: test boot linux with difftest
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${CI_WORKLOADS}/nutshell/riscv64-spike-so ${CI_WORKLOADS}/linux-hello/bbl.bin
+          ./build/riscv64-nemu-interpreter -b --diff ${NUTSHELL_SPIKE_SO} ${CI_WORKLOADS}/linux-hello/bbl.bin
 
   diff-spike-guard:
     # NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
