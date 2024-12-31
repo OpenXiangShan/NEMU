@@ -23,14 +23,7 @@ static int nr_map = 0;
 
 /* device interface */
 void add_pio_map(const char *name, ioaddr_t addr, void *space, uint32_t len, io_callback_t callback) {
-  assert(nr_map < NR_MAP);
-  assert(addr + len <= PORT_IO_SPACE_MAX);
-  maps[nr_map] = (IOMap){ .name = name, .low = addr, .high = addr + len - 1,
-    .space = space, .mmio_diff_type = MMIO_READ|MMIO_WRITE|MMIO_EXEC, .callback = callback };
-  Log("Add port-io map '%s' at [" FMT_PADDR ", " FMT_PADDR "]",
-      maps[nr_map].name, maps[nr_map].low, maps[nr_map].high);
-
-  nr_map ++;
+  add_pio_map_with_diff(name, addr, space, len, MMIO_READ|MMIO_WRITE|MMIO_EXEC, callback);
 }
 
 /* device interface */

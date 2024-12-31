@@ -53,7 +53,7 @@ static inline int find_mapid_by_addr(IOMap *maps, int size, paddr_t addr) {
 }
 
 void add_pio_map(const char *name, ioaddr_t addr,
-        void *space, uint32_t len,  io_callback_t callback);
+        void *space, uint32_t len, io_callback_t callback);
 void add_pio_map_with_diff(const char *name, ioaddr_t addr,
         void *space, uint32_t len, int mmio_diff_type, io_callback_t callback);
 
