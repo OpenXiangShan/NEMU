@@ -18,6 +18,13 @@
 
 #include <cpu/difftest.h>
 
+typedef enum {
+  SKIP_FREE = 0,
+  MMIO_READ = 1,
+  MMIO_WRITE = 2,
+  MMIO_EXEC = 4
+} MMIO_DIFF_FLAG;
+
 typedef void(*io_callback_t)(uint32_t, int, bool);
 uint8_t* new_space(int size);
 
@@ -27,6 +34,7 @@ typedef struct {
   paddr_t low;
   paddr_t high;
   void *space;
+  int mmio_diff_type;
   io_callback_t callback;
 } IOMap;
 
@@ -38,7 +46,6 @@ static inline int find_mapid_by_addr(IOMap *maps, int size, paddr_t addr) {
   int i;
   for (i = 0; i < size; i ++) {
     if (map_inside(maps + i, addr)) {
-      difftest_skip_ref();
       return i;
     }
   }
@@ -47,8 +54,13 @@ static inline int find_mapid_by_addr(IOMap *maps, int size, paddr_t addr) {
 
 void add_pio_map(const char *name, ioaddr_t addr,
         void *space, uint32_t len, io_callback_t callback);
+void add_pio_map_with_diff(const char *name, ioaddr_t addr,
+        void *space, uint32_t len, int mmio_diff_type, io_callback_t callback);
+
 void add_mmio_map(const char *name, paddr_t addr,
         void *space, uint32_t len, io_callback_t callback);
+void add_mmio_map_with_diff(const char *name, paddr_t addr,
+        void *space, uint32_t len, int mmio_diff_type, io_callback_t callback);
 
 word_t map_read(paddr_t addr, int len, IOMap *map);
 void map_write(paddr_t addr, int len, word_t data, IOMap *map);

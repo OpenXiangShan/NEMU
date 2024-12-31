@@ -46,6 +46,9 @@ static inline void invoke_callback(io_callback_t c, paddr_t offset, int len, boo
 word_t map_read(paddr_t addr, int len, IOMap *map) {
   assert(len >= 1 && len <= 8);
   check_bound(map, addr);
+  if((MMIO_READ & map->mmio_diff_type) != SKIP_FREE) {
+    difftest_skip_ref();
+  }
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
   return host_read((void*)((uint64_t)map->space + offset), len);
@@ -54,6 +57,9 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
 void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   assert(len >= 1 && len <= 8);
   check_bound(map, addr);
+  if((MMIO_WRITE & map->mmio_diff_type) != SKIP_FREE) {
+    difftest_skip_ref();
+  }
   paddr_t offset = addr - map->low;
   host_write((void*)((uint64_t)map->space + offset), len, data);
   invoke_callback(map->callback, offset, len, true);
