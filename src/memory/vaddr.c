@@ -46,6 +46,7 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
   vaddr_t vaddr = addr;
   printf("pc:0x%lx instr: 0x%x, read cross page vaddr: 0x%lx, instrCount: 0x%lx\n", prev_s->pc, prev_s->isa.instr.val, addr, get_abs_instr_count_csr());
   if (!p_flag && addr == 0xffffaf80019baffb) {
+    printf("[NEMU] Anzo flag!\n");
     p_flag = true;
   }
   word_t data = 0;

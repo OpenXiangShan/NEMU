@@ -29,12 +29,12 @@ extern bool p_flag;
 
 #define Logf(flag, ...) \
   do { \
-    if (flag == dflag_mem && p_flag && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && p_flag && ISDEF(CONFIG_TRANSLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst && p_flag && ISDEF(CONFIG_TRACE_INST)) Log(__VA_ARGS__); \
+    if (flag == dflag_mem && p_flag) Log(__VA_ARGS__); \
+    if (flag == dflag_translate && p_flag) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst && p_flag) Log(__VA_ARGS__); \
     if (flag == dflag_trace_inst_dasm && p_flag && ISDEF(CONFIG_TRACE_INST_DASM)) Log(__VA_ARGS__); \
     if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
-    if (flag == dflag_exit && p_flag && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
+    if (flag == dflag_exit && p_flag) Log(__VA_ARGS__); \
     if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
   } while (0)
 
