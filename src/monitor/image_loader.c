@@ -266,7 +266,7 @@ long load_img(const char* img_name, char *which_img, uint8_t* load_start, size_t
 void fill_memory(const char* img_file, const char* flash_image, const char* cpt_image, int64_t* img_size, int64_t* flash_size) {
   assert(img_file);
   uint8_t* bbl_start = (uint8_t*)get_pmem();
-  *img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, CONFIG_MBASE);
+  *img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
 
 #ifdef CONFIG_HAS_FLASH
   uint8_t* flash_start = get_flash_base();
