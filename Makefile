@@ -42,7 +42,6 @@ CFLAGS += -D__FLASH_IMG_PATH__=\"$(FLASH_IMG_PATH)\"
 endif
 endif
 
-# CFLAGS += -g
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
 
@@ -101,13 +100,14 @@ NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
 ifdef CONFIG_CC_NATIVE_ARCH
-CFLAGS  += -march=native
+CFLAGS  += -march=native -mtune=native
+CFLAGS	+= -ftree-vectorize # vector unit stride fast path
 endif
 LDFLAGS += -lz
 endif
 
 ifndef CONFIG_SHARE
-LDFLAGS += -lreadline -ldl -pie
+LDFLAGS += -lreadline -ldl
 else
 SHARE = 1
 endif
