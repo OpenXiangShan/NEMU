@@ -87,7 +87,7 @@ CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
 #CFLAGS_BUILD += -fprofile-generate=./gcc_profile
 #CFLAGS_BUILD += -fprofile-use=./gcc_profile -fprofile-correction -Wno-error=coverage-mismatch
-CFLAGS_BUILD += --param max-inline-insns-single=256 -falign-labels=32:9:64:15
+CFLAGS_BUILD += --param max-inline-insns-single=256 -falign-labels=32:9:64:15 -frecord-gcc-switches
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 
@@ -95,7 +95,7 @@ NAME  = nemu-$(ENGINE)
 
 ifndef CONFIG_SHARE
 ifdef CONFIG_CC_NATIVE_ARCH
-CFLAGS  += -march=native
+CFLAGS  += -march=native -mtune=native
 endif
 LDFLAGS += -lz
 endif
