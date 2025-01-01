@@ -193,6 +193,11 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   int pmm = 0;
   int masked_width = 0;
 
+  // Early out fastpath for non-H & non-pmm applications
+  if (likely(!hld_st && !mstatus->mprv && mode == MODE_U && senvcfg->pmm == 0)) {
+    return vaddr;
+  }
+
   if (hld_st) {
     mode = hstatus->spvp;
     virt = true;
