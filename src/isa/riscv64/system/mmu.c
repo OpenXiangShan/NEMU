@@ -584,7 +584,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
 
   bool va_msbs_ok = true;
-  if (vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false)) {
+  if (likely(vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false))) {
     if (enable_48) {
       word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
       word_t va_msbs = vaddr >> 47;
@@ -600,7 +600,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE){ // don't need bits 63–39 are equal to bit 38
+  if (unlikely((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE)) { // don't need bits 63–39 are equal to bit 38
     if (enable_48) {
       word_t maxgpa = ((((word_t)1) << 50) - 1);
       if((vaddr & ~maxgpa) == 0){
@@ -618,7 +618,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }
   }
 #endif
-  if(!va_msbs_ok){
+  if (unlikely(!va_msbs_ok)) {
     if(is_ifetch){
       cpu.trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
