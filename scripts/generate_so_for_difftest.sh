@@ -20,8 +20,19 @@ mkdir -p $artifact_dir
 make clean
 make riscv64-xs-ref_defconfig
 make -j
-cp build/riscv64-nemu-interpreter-so ${artifact_dir}
+cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-so
+
+make clean
+make riscv64-xs-ref-debug_defconfig
+make -j
+cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-debug-so
+
 make clean
 make riscv64-dual-xs-ref_defconfig
 make -j
 cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-dual-so
+
+make clean
+make riscv64-dual-xs-ref-debug_defconfig
+make -j
+cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-dual-debug-so
