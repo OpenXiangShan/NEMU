@@ -99,7 +99,6 @@ static inline int parse_args(int argc, char *argv[]) {
     {"config-name"        , required_argument, NULL, 'C'},
 
     // restore cpt
-    {"restore"            , no_argument      , NULL, 'c'},
     {"cpt-restorer"       , required_argument, NULL, 'r'},
     {"map-img-as-outcpt"  , no_argument      , NULL, 13},
 
@@ -147,11 +146,6 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'D': output_base_dir = optarg; break;
       case 'w': workload_name = optarg; break;
       case 'C': config_name = optarg; break;
-
-      case 'c':
-        checkpoint_restoring = true;
-        Log("Restoring from checkpoint");
-        break;
 
       case 'r':
         restorer = optarg;
@@ -259,7 +253,6 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-w,--workload=WORKLOAD  the name of sub_dir of this run in STAT_DIR\n");
         printf("\t-C,--config=CONFIG      running configuration\n");
 
-        printf("\t-c,--restore            restoring from CPT FILE\n");
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
 //        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it.\n"); //comming back soon
 
@@ -310,7 +303,6 @@ void init_monitor(int argc, char *argv[]) {
   if (map_image_as_output_cpt) {
     assert(!mapped_cpt_file);
     mapped_cpt_file = img_file;
-    checkpoint_restoring = true;
   }
 
   extern void init_path_manager();
