@@ -138,6 +138,16 @@ config DEBUG
     Enable debug features, which include instruction tracing and watchpoint.
     Add -l <logfile path> to enable instruction tracing and log dump.
 
+config SHARE_OUTPUT_LOG_TO_FILE
+  bool "Output log to file"
+  depends on SHARE
+  default n
+  help
+    If y, NEMU will output log to files named "nemu-hart-*.log".
+
+    Note: This option is only effective in SHARE mode. For standalone mode, 
+    use the corresponding command option.
+
 config DIFFTEST
   depends on !SHARE
   bool "Enable differential testing"

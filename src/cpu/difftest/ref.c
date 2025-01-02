@@ -302,6 +302,13 @@ void difftest_runahead_init() {
 }
 
 void difftest_init() {
+#ifdef CONFIG_SHARE_OUTPUT_LOG_TO_FILE
+  char log_file_name[20];
+  sprintf(log_file_name, "nemu-hart-%d.log", PMEM_HARTID);
+  void init_log(const char *log_file, const bool fast_log, const bool small_log);
+  init_log(log_file_name, false, false);
+#endif // CONFIG_SHARE_OUTPUT_LOG_TO_FILE
+
   init_mem();
 
   /* Perform ISA dependent initialization. */
