@@ -21,6 +21,7 @@
 #include <memory/sparseram.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <device/flash.h>
 #include <sys/mman.h>
 #ifdef CONFIG_MEM_COMPRESS
 #include <unistd.h>
@@ -198,8 +199,8 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
 
 // Will check the magic number in file, if not gz or zstd archive,
 // will read in as a raw image
-long load_img(char* img_name, char *which_img, uint8_t* load_start, size_t img_size) {
-  char *loading_img = img_name;
+long load_img(const char* img_name, const char *which_img, uint8_t* load_start, size_t img_size) {
+  const char *loading_img = img_name;
   Log("Loading %s: %s\n", which_img, img_name);
   if (img_name == NULL) {
     Log("No image is given. Use the default built-in image/restorer.");
@@ -260,6 +261,56 @@ long load_img(char* img_name, char *which_img, uint8_t* load_start, size_t img_s
 
   fclose(fp);
   return size;
+}
+
+
+// Notes:
+//
+// |                      | enable flash device | disable flash device |
+// |  cpt_image not null  |    override flash   |   override memory    |
+// | flash_image not null |   write into flash  |  undefined behavior  |
+//
+// img_file used to fill memory, flash_image used to fill flash, cpt_image used to override memory or flash
+//
+void fill_memory(const char* img_file, const char* flash_image, const char* cpt_image, int64_t* img_size, int64_t* flash_size) {
+  assert(img_file);
+  uint8_t* bbl_start = (uint8_t*)get_pmem();
+  *img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
+
+#ifdef CONFIG_HAS_FLASH
+  uint8_t* flash_start = get_flash_base();
+  if(flash_image) {
+    *flash_size = load_img(flash_image, "flash image from cmdline", flash_start, get_flash_size());
+  }
+#else
+  if(flash_image) {
+    Log("The flash image %s will not load into flash", flash_image);
+  }
+#endif
+
+  if (cpt_image) {
+    FILE *restore_fp = fopen(cpt_image, "rb");
+    Assert(restore_fp, "Can not open '%s'", cpt_image);
+
+    int restore_size = 0;
+    int restore_jmp_inst = 0;
+
+    int ret = fread(&restore_jmp_inst, sizeof(int), 1, restore_fp);
+    assert(ret == 1);
+    assert(restore_jmp_inst != 0);
+
+    ret = fread(&restore_size, sizeof(int), 1, restore_fp);
+    assert(ret == 1);
+    assert(restore_size != 0);
+
+    fclose(restore_fp);
+
+#ifdef CONFIG_HAS_FLASH
+    load_img(cpt_image, "Gcpt restorer form cmdline", flash_start, restore_size);
+#else
+    load_img(cpt_image, "Gcpt restorer form cmdline", bbl_start, restore_size);
+#endif
+  }
 }
 
 #endif  // CONFIG_MODE_USER
