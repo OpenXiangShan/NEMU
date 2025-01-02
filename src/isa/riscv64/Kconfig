@@ -417,11 +417,16 @@ config RV_SMMPM
     A machine-level extension that provides pointer masking for M-mode.
 
 config RV_SVNAPOT
-  bool "RISC-V Svnapot extension for NAPOT Translation Contiguity (alpha)"
+  bool "RISC-V Svnapot extension for NAPOT Translation Contiguity (beta)"
   default n
   help
-    This allows the N bit of the leaf PTEs to be set. Beyond this, this option
-    DOES NOT SUPPORT other requirements of the Svnapot extension.
+    This supports RISC-V Svnapot extension.
+
+    If y, when a PTE has N=1, the PTE represents a translation that is part of
+    a range of contiguous virtual-to-physical translations with the same values
+    for PTE bits 5–0.
+
+    If n, when a PTE has N=1, Page Fault or Guest Page Fault will occur.
 
 config RV_SVPBMT
   bool "RISC-V Svpbmt extension for Page-Based Memory Types (alpha)"
