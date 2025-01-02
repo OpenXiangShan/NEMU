@@ -28,6 +28,7 @@
 #include <profiling/profiling_control.h>
 #include "../local-include/trigger.h"
 #include "../local-include/aia.h"
+#include "macro.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -75,7 +76,7 @@ Decode *prev_s;
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  Logti("%s\n", asmbuf);
+  Logti("%s", asmbuf);
   if (g_print_step) {
     puts(asmbuf);
   }
@@ -719,7 +720,7 @@ void cpu_exec(uint64_t n) {
   #ifndef CONFIG_LIGHTQS
     IFDEF(CONFIG_SHARE, assert(n <= 1));
   #endif
-  g_print_step = (n < MAX_INSTR_TO_PRINT);
+  g_print_step = ISNDEF(CONFIG_SHARE) && (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
   case NEMU_END:
   case NEMU_ABORT:
