@@ -32,7 +32,7 @@ void init_log(const char *log_file, const bool fast_log, const bool small_log);
 void init_mem();
 void init_regex();
 void init_wp_pool();
-void init_difftest(char *ref_so_file, long img_size, int port);
+void init_difftest(char *ref_so_file, long img_size, long flash_size, int port);
 void init_device();
 
 static char *log_file = NULL;
@@ -346,7 +346,7 @@ void init_monitor(int argc, char *argv[]) {
   fill_memory(img_file, flash_image, restorer, &img_size, &flash_size);
 
   /* Initialize differential testing. */
-  init_difftest(diff_so_file, img_size, difftest_port);
+  init_difftest(diff_so_file, img_size, flash_size, difftest_port);
 
 #endif
 
