@@ -2315,69 +2315,18 @@ static bool aia_extension_permit_check(const word_t *dest_access, bool is_write)
       longjmp_exception(EX_II);
     }
   }
-  if (is_access(mireg)) {
-    if (
-      (miselect->val <= ISELECT_2F_MASK) ||
-      (miselect->val > ISELECT_2F_MASK && miselect->val <= ISELECT_3F_MASK && miselect->val & 0x1) ||
-      (miselect->val > ISELECT_3F_MASK && miselect->val <= ISELECT_6F_MASK) ||
-      (miselect->val > ISELECT_7F_MASK && miselect->val <= ISELECT_MAX_MASK && miselect->val & 0x1) ||
-      (miselect->val > ISELECT_MAX_MASK)
-    ) {
-      longjmp_exception(EX_II);
-    }
-  }
-  if (is_access(sireg)) {
-    if (!cpu.v) {
-      if (
-        (siselect->val <= ISELECT_2F_MASK) ||
-        (siselect->val > ISELECT_2F_MASK && siselect->val <= ISELECT_3F_MASK && siselect->val & 0x1) ||
-        (siselect->val > ISELECT_3F_MASK && siselect->val <= ISELECT_6F_MASK) ||
-        (cpu.mode == MODE_S && mvien->seie && siselect->val > ISELECT_6F_MASK && siselect->val <= ISELECT_MAX_MASK) ||
-        (siselect->val > ISELECT_7F_MASK && siselect->val <= ISELECT_MAX_MASK && siselect->val & 0x1) ||
-        (siselect->val > ISELECT_MAX_MASK)
-      ) {
-        longjmp_exception(EX_II);
-      }
-    }
-    if (cpu.v) {
-      if (
-        (vsiselect->val <= ISELECT_2F_MASK) ||
-        (vsiselect->val > ISELECT_3F_MASK && vsiselect->val <= ISELECT_6F_MASK) ||
-        (vsiselect->val > ISELECT_MAX_MASK)
-      ) {
-        longjmp_exception(EX_II);
-      }
-      if (
-        (vsiselect->val > ISELECT_2F_MASK && vsiselect->val <= ISELECT_3F_MASK) ||
-        ((hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) && vsiselect->val > ISELECT_6F_MASK && vsiselect->val <= ISELECT_MAX_MASK) ||
-        (vsiselect->val > ISELECT_7F_MASK && vsiselect->val <= ISELECT_MAX_MASK && vsiselect->val & 0x1)
-      ) {
-        has_vi = true;
-      }
-    }
-  }
-  if (is_access(vsireg)) {
-    if (
-      (vsiselect->val <= ISELECT_6F_MASK) ||
-      ((hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) && vsiselect->val > ISELECT_6F_MASK && vsiselect->val <= ISELECT_MAX_MASK) ||
-      (vsiselect->val > ISELECT_7F_MASK && vsiselect->val <= ISELECT_MAX_MASK && vsiselect->val & 0x1) ||
-      (vsiselect->val > ISELECT_MAX_MASK)
-    ) {
-      longjmp_exception(EX_II);
-    }
-  }
   if (is_access(sip) || is_access(sie)) {
-    if (cpu.v && (cpu.mode == MODE_S)) {
-      if (hvictl->vti) {
-        has_vi = true;
-      }
+    if (cpu.v && (cpu.mode == MODE_S) && hvictl->vti) {
+      has_vi = true;
     }
   }
+#ifdef CONFIG_RV_SSTC
   if (is_access(stimecmp)) {
     if (cpu.v && (cpu.mode == MODE_S) && hvictl->vti && is_write) {
-      has_vi = 1;
+      has_vi = true;
     }
   }
+#endif // CONFIG_RV_SSTC
   return has_vi;
 }
 #endif // CONFIG_RV_IMSIC
@@ -2412,6 +2361,172 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 }
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_IMSIC
+static inline bool csrind_permit_check(const word_t *dest_access) {
+  bool has_vi = false;
+  // mireg
+  if (is_access(mireg)) {
+    if (miselect->val <= ISELECT_2F_MASK) {
+      // 0x00-0x2f reserved
+      longjmp_exception(EX_II);
+    }
+    else if (miselect->val <= ISELECT_3F_MASK) {
+      // 0x30-0x3f major interrupt priorities
+      #ifdef CONFIG_RV_AIA
+        if (miselect->val & 0x1) {
+          longjmp_exception(EX_II);
+        }
+      #else
+        // unimplemented iselect value
+        longjmp_exception(EX_II);
+      #endif // CONFIG_RV_AIA
+    }
+    else if (miselect->val <= ISELECT_6F_MASK) {
+      // 0x40-0x6f reserved
+      longjmp_exception(EX_II);
+    }
+    else if (miselect->val <= ISELECT_MAX_MASK) {
+      // 0x70-0xff external interrupts(only with an IMSIC)
+      #ifdef CONFIG_RV_IMSIC
+        if (miselect->val > ISELECT_7F_MASK && (miselect->val & 0x1)) {
+          longjmp_exception(EX_II);
+        }
+      #else
+        // unimplemented iselect value
+        longjmp_exception(EX_II);
+      #endif // CONFIG_RV_IMSIC
+    }
+    else {
+      // 0x100- reserved
+      longjmp_exception(EX_II);
+    }
+  }
+  // sireg
+  if (is_access(sireg)) {
+    if (MUXDEF(CONFIG_RVH, !cpu.v, 1)) {
+      if (siselect->val <= ISELECT_2F_MASK) {
+        // 0x00-0x2f reserved
+        longjmp_exception(EX_II);
+      }
+      else if (siselect->val <= ISELECT_3F_MASK) {
+        // 0x30-0x3f major interrupt priorities
+        #ifdef CONFIG_RV_AIA
+          if (siselect->val & 0x1) {
+            longjmp_exception(EX_II);
+          }
+        #else
+          // unimplemented iselect value
+          longjmp_exception(EX_II);
+        #endif // CONFIG_RV_AIA
+      }
+      else if (siselect->val <= ISELECT_6F_MASK) {
+        // 0x40-0x6f reserved
+        longjmp_exception(EX_II);
+      }
+      else if (siselect->val <= ISELECT_MAX_MASK) {
+        // 0x70-0xff external interrupts(only with an IMSIC)
+        #ifdef CONFIG_RV_IMSIC
+          if ((cpu.mode == MODE_S) && mvien->seie) {
+            longjmp_exception(EX_II);
+          }
+          if (siselect->val > ISELECT_7F_MASK && siselect->val & 0x1) {
+            longjmp_exception(EX_II);
+          }
+        #else
+          // unimplemented iselect value
+          longjmp_exception(EX_II);
+        #endif // CONFIG_RV_IMSIC
+      }
+      else {
+        // 0x100- reserved
+        longjmp_exception(EX_II);
+      }
+    }
+#ifdef CONFIG_RVH
+    if (cpu.v) {
+      if (vsiselect->val <= ISELECT_2F_MASK) {
+        // 0x00-0x2f reserved
+        longjmp_exception(EX_II);
+      }
+      else if (vsiselect->val <= ISELECT_3F_MASK) {
+        // 0x30-0x3f inaccessible for aia
+        #ifdef CONFIG_RV_AIA
+          has_vi = true;
+        #else
+          // unimplemented iselect value
+          longjmp_exception(EX_II);
+        #endif // CONFIG_RV_AIA
+      }
+      else if (vsiselect->val <= ISELECT_6F_MASK) {
+        // 0x40-0x6f reserverd
+        longjmp_exception(EX_II);
+      }
+      else if (vsiselect->val <= ISELECT_MAX_MASK) {
+        // 0x70-0xff
+        #ifdef CONFIG_RV_AIA
+          #ifdef CONFIG_RV_IMSIC
+            if (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) {
+              longjmp_exception(EX_VI);
+            }
+            if (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1)) {
+              longjmp_exception(EX_VI);
+            }
+          #else // !CONFIG_RV_IMSIC
+            // inaccessible
+            longjmp_exception(EX_VI);
+          #endif // CONFIG_RV_IMSIC
+        #else // !CONFIG_RV_AIA
+          // unimplemented iselect value
+          longjmp_exception(EX_II);
+        #endif // CONFIG_RV_AIA
+      }
+      else {
+        // 0x100- reserved for future use
+        longjmp_exception(EX_II);
+      }
+    }
+#endif // CONFIG_RVH
+  }
+  // vsireg
+#ifdef CONFIG_RVH
+  if (is_access(vsireg)) {
+    if (vsiselect->val <= ISELECT_2F_MASK) {
+      // 0x00-0x2f reserved
+      longjmp_exception(EX_II);
+    }
+    else if (vsiselect->val <= ISELECT_3F_MASK) {
+      // 0x30-0x3f
+      // unimplemented iselect value OR inaccessible for aia
+      longjmp_exception(EX_II);
+    }
+    else if (vsiselect->val <= ISELECT_6F_MASK) {
+      // reserved
+      longjmp_exception(EX_II);
+    }
+    else if (vsiselect->val <= ISELECT_MAX_MASK) {
+      #ifdef CONFIG_RV_IMSIC
+        // external interrupts(IMSIC only)
+        if (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) {
+          longjmp_exception(EX_II);
+        }
+        if (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1)) {
+          longjmp_exception(EX_II);
+        }
+      #else
+        // unimplemented iselect value OR inaccessible for aia
+        longjmp_exception(EX_II);
+      #endif // CONFIG_RV_IMSIC
+    }
+    else {
+      // 0x100- reserved
+      longjmp_exception(EX_II);
+    }
+  }
+#endif // CONFIG_RVH
+  return has_vi;
+}
+#endif // CONFIG_RV_IMSIC
+
 static inline void csr_permit_check(uint32_t addr, bool is_write) {
   bool has_vi = false; // virtual instruction
   word_t *dest_access = csr_decode(addr);
@@ -2441,6 +2556,10 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
 
   if (has_vi) longjmp_exception(EX_VI);
 
+  // We should first check whether the CSR exists, is read-only, has proper permissions, and is enabled/disabled
+  // before proceeding to check indirect CSR accesses.
+  IFDEF(CONFIG_RV_IMSIC, has_vi |= csrind_permit_check(dest_access));
+  if (has_vi) longjmp_exception(EX_VI);
 }
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
   ISADecodeInfo isa;
