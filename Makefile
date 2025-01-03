@@ -34,7 +34,12 @@ CFLAGS += -D__MMIO_SPECE_RANGE__=$(call remove_quote,$(CONFIG_MMIO_SPACE_RANGE))
 endif
 
 ifdef CONFIG_HAS_FLASH
-CFLAGS += -D__FLASH_IMG_PATH__=$(shell realpath $(CONFIG_FLASH_IMG_PATH))
+FLASH_IMG_PATH=$(shell realpath $(CONFIG_FLASH_IMG_PATH) 2>/dev/null)
+ifeq ($(FLASH_IMG_PATH),)
+CFLAGS += -D__FLASH_IMG_PATH__=\"\"
+else
+CFLAGS += -D__FLASH_IMG_PATH__=\"$(FLASH_IMG_PATH)\"
+endif
 endif
 
 # CFLAGS += -g
