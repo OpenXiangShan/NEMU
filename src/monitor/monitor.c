@@ -40,6 +40,7 @@ bool small_log = false;
 bool fast_log = false;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
+static char *flash_image = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
@@ -98,6 +99,8 @@ static inline int parse_args(int argc, char *argv[]) {
     {"workload-name"      , required_argument, NULL, 'w'},
     {"config-name"        , required_argument, NULL, 'C'},
 
+    {"flash-image"        , required_argument, NULL, 16},
+
     // restore cpt
     {"cpt-restorer"       , required_argument, NULL, 'r'},
     {"map-img-as-outcpt"  , no_argument      , NULL, 13},
@@ -146,6 +149,10 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'D': output_base_dir = optarg; break;
       case 'w': workload_name = optarg; break;
       case 'C': config_name = optarg; break;
+
+      case 16:
+        flash_image = optarg;
+        break;
 
       case 'r':
         restorer = optarg;
@@ -266,6 +273,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--checkpoint-format     Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
+        printf("\t--flash-img             image of flash\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
@@ -330,38 +338,15 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform ISA dependent initialization. */
   init_isa();
 
+  /* Initialize devices. */
+  init_device();
+
   int64_t img_size = 0;
-
-  assert(img_file);
-
-  uint8_t* bbl_start = (uint8_t*)get_pmem();
-  img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
-
-  if (restorer) {
-    FILE *restore_fp = fopen(restorer, "rb");
-    Assert(restore_fp, "Can not open '%s'", restorer);
-
-    int restore_size = 0;
-    int restore_jmp_inst = 0;
-
-    int ret = fread(&restore_jmp_inst, sizeof(int), 1, restore_fp);
-    assert(ret == 1);
-    assert(restore_jmp_inst != 0);
-
-    ret = fread(&restore_size, sizeof(int), 1, restore_fp);
-    assert(ret == 1);
-    assert(restore_size != 0);
-
-    fclose(restore_fp);
-
-    load_img(restorer, "Gcpt restorer form cmdline", bbl_start, restore_size);
-  }
+  int64_t flash_size = 0;
+  fill_memory(img_file, flash_image, restorer, &img_size, &flash_size);
 
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
-
-  /* Initialize devices. */
-  init_device();
 
 #endif
 

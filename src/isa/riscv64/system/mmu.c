@@ -50,6 +50,8 @@ typedef union PageTableEntry {
 #define PTE_SIZE 8
 #define VPNMASK 0x1ff
 #define GPVPNMASK 0x7ff
+#define SVNAPOTMASK 0b1111 // only suppoprt 64 KiB contiguous region
+#define SVNAPOTSHFT ((PGSHFT) + 4)
 static inline uintptr_t VPNiSHFT(int i) {
   return (PGSHFT) + 9 * i;
 }
@@ -74,6 +76,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   assert(mode == MODE_U || mode == MODE_S);
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
+  ok = ok && (!pte->n || (pte->ppn & SVNAPOTMASK) == 0b1000);
 #ifdef CONFIG_RVH
   ok = ok && !(pte->u && ((mode == MODE_S) && (!(virt? vsstatus->sum: mstatus->sum) || ifetch)));
   Logtr("ok: %i, mode == U: %i, pte->u: %i, ppn: %lx, virt: %d", ok, mode == MODE_U, pte->u, (uint64_t)pte->ppn << 12, virt);
@@ -306,7 +309,16 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
         if ((pg_base & pg_mask) != 0) {
           // misaligned superpage
           break;
+        } else if (pte.n) {
+          // superpage but napot
+          break;
         }
+        pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
+      } else if (pte.n) {
+        if ((pte.ppn & SVNAPOTMASK) != 0b1000) {
+          break;
+        }
+        word_t pg_mask = ((1ull << SVNAPOTSHFT) - 1);
         pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
       }
       return pg_base | (gpaddr & PAGE_MASK);
@@ -429,7 +441,16 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
       goto bad;
+    } else if (pte.n) {
+      // superpage but napot
+      goto bad;
     }
+    pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
+  } else if (pte.n) {
+    if ((pte.ppn & SVNAPOTMASK) != 0b1000) {
+      goto bad;
+    }
+    word_t pg_mask = ((1ull << SVNAPOTSHFT) - 1);
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   }
   #ifdef CONFIG_RVH
@@ -563,7 +584,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 #endif
 
   bool va_msbs_ok = true;
-  if (vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false)) {
+  if (likely(vm_enable || MUXDEF(CONFIG_RVH, hyperinst_vm_enable, false))) {
     if (enable_48) {
       word_t va_mask = ((((word_t)1) << (63 - 47 + 1)) - 1);
       word_t va_msbs = vaddr >> 47;
@@ -579,7 +600,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE){ // don't need bits 63–39 are equal to bit 38
+  if (unlikely((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE)) { // don't need bits 63–39 are equal to bit 38
     if (enable_48) {
       word_t maxgpa = ((((word_t)1) << 50) - 1);
       if((vaddr & ~maxgpa) == 0){
@@ -597,7 +618,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }
   }
 #endif
-  if(!va_msbs_ok){
+  if (unlikely(!va_msbs_ok)) {
     if(is_ifetch){
       cpu.trapInfo.tval = vaddr;
 #ifdef CONFIG_RVH
