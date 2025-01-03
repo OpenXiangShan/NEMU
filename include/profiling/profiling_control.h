@@ -18,7 +18,6 @@ enum CheckpointState{
 
 extern int profiling_state;
 extern int checkpoint_state;
-extern bool checkpoint_restoring;
 extern uint64_t checkpoint_interval;
 extern uint64_t warmup_interval;
 extern uint64_t checkpoint_icount_base;
