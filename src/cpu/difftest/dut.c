@@ -29,6 +29,8 @@ void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 void (*ref_difftest_dirty_fsvs)(const uint64_t dirties) = NULL;
 int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask) = NULL;
 void (*ref_difftest_flash_cpy)(uint8_t* flash_bin, size_t size) = NULL;
+void (*ref_difftest_pmpcpy)(void *dut, bool direction) = NULL;
+void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction) = NULL;
 #ifdef CONFIG_DIFFTEST
 
 IFDEF(CONFIG_DIFFTEST_REF_QEMU_DL, __thread uint8_t resereve_for_qemu_tls[4096]);
@@ -109,6 +111,12 @@ void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) 
   ref_difftest_flash_cpy = dlsym(handle, "difftest_load_flash_v2");
   assert(ref_difftest_flash_cpy);
 #endif
+
+  ref_difftest_pmpcpy = dlsym(handle, "difftest_pmpcpy");
+  assert(ref_difftest_pmpcpy);
+  ref_difftest_pmp_cfg_cpy = dlsym(handle, "difftest_pmp_cfg_cpy");
+  assert(ref_difftest_pmp_cfg_cpy);
+
   Log("Differential testing: \33[1;32m%s\33[0m", "ON");
   Log("The result of every instruction will be compared with %s. "
       "This will help you a lot for debugging, but also significantly reduce the performance. "
@@ -179,6 +187,12 @@ void difftest_attach() {
   skip_dut_nr_instr = 0;
 
   isa_difftest_attach();
+
+  // There are multiple non-register states for spike,
+  // and entering attach from any execution phase requires
+  // the ability to correctly implement the settings for
+  // these states, and the expected repair effort would be enormous
+  assert(0); // fix me
 }
 
 #else
