@@ -34,6 +34,8 @@
 #define CUSTOM_CSR_SMBLOCKCTL 0x5c3
 #define CUSTOM_CSR_SRNCTL     0x5c4
 #define CUSTOM_CSR_SFETCHCTL  0x9e0
+#define CUSTOM_CSR_MCOREPWR   0xbc0
+#define CUSTOM_CSR_MFLUSHPWR  0xbc1
 
 #define CUSTOM_CSR_SBPCTL_WMASK     0x7f
 #define CUSTOM_CSR_SPFCTL_WMASK     0x3ffff
@@ -41,6 +43,8 @@
 #define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x3ff
 #define CUSTOM_CSR_SRNCTL_WMASK     0x5
 #define CUSTOM_CSR_SFETCHCTL_WMASK  0x1
+#define CUSTOM_CSR_MCOREPWR_WMASK   0x1
+#define CUSTOM_CSR_MFLUSHPWR_WMASK  0x1
 
 /**
  * Mapping between CSR name and addr
@@ -432,6 +436,9 @@
   #define CSRS_DEBUG_MODE(f)
 #endif // CONFIG_RV_SDEXT
 
+#define CSRS_M_CUSTOM(f) \
+  f(mcorepwr   , 0xBC0) f(mflushpwr  , 0xBC1)
+
 /** Machine AIA Registers **/
 #ifdef CONFIG_RV_IMSIC
   #define CSRS_M_AIA(f) \
@@ -465,7 +472,8 @@
   CSRS_M_DEBUG_TRACE(f) \
   CSRS_M_AIA(f) \
   CSRS_M_SMRNMI(f) \
-  CSRS_DEBUG_MODE(f)
+  CSRS_DEBUG_MODE(f) \
+  CSRS_M_CUSTOM(f)
 
 
 /* ALL CSRs */
@@ -860,6 +868,15 @@ CSR_STRUCT_START(mcontext)  // 0x7a8
 CSR_STRUCT_END(mcontext)
 
 #endif // CONFIG_RV_SDTRIG
+
+CSR_STRUCT_START(mcorepwr)
+  uint64_t powerdown  : 1; // [0] core want to power down when core is in WFI state
+CSR_STRUCT_END(mcorepwr)
+
+CSR_STRUCT_START(mflushpwr)
+  uint64_t flushl2    : 1; // [0] core want to flush L2 and exit coherency
+  uint64_t l2flushed  : 1; // [1] L2 flush is done and L2 exit coherency
+CSR_STRUCT_END(mflushpwr)
 
 #ifdef CONFIG_RV_IMSIC
 CSR_STRUCT_START(miselect)
