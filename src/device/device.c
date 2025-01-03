@@ -99,9 +99,6 @@ void init_device() {
   IFDEF(CONFIG_HAS_DISK, init_disk());
   IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
   IFDEF(CONFIG_HAS_FLASH, init_flash());
-#ifndef CONFIG_SHARE
-  IFDEF(CONFIG_HAS_FLASH, load_flash_contents(CONFIG_FLASH_IMG_PATH));
-#endif // CONFIG_SHARE
 
   // host alarm for device and timer update.
   add_alarm_handle(set_device_update_flag);
