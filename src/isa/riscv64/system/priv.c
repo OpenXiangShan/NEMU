@@ -165,6 +165,11 @@ void init_custom_csr() {
 #endif // CONFIG_RV_SVINVAL
 
   sfetchctl->icache_parity_enable = 0;
+
+  mcorepwr->powerdown = 0;
+
+  mflushpwr->flushl2 = 0;
+  mflushpwr->l2flushed = 0;
 }
 
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
@@ -2142,6 +2147,9 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_MINSTRET: minstret->val = set_minstret(src); break;
 
     case CSR_MHPMCOUNTER_BASE ... CSR_MHPMCOUNTER_BASE+CSR_MHPMCOUNTER_NUM-1: break;
+
+    case CUSTOM_CSR_MCOREPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MCOREPWR_WMASK, src); break;
+    case CUSTOM_CSR_MFLUSHPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MFLUSHPWR_WMASK, src); break;
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_MTOPI: return;
