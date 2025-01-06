@@ -1208,6 +1208,7 @@ inline void update_mtopi() {
 
 #ifdef CONFIG_RV_IMSIC
 inline void update_stopi() {
+  printf("begin update, stopi=%lx\n", stopi->val);
   bool siprios_is_zero = iprio_is_zero(cpu.SIprios);
   hip_t read_hip = (hip_t)get_hip();
   sip_t read_sip = (sip_t)non_vmode_get_sip();
@@ -1241,6 +1242,7 @@ inline void update_stopi() {
   } else {
     stopi->val = 0;
   }
+  printf("begin update, stopi=%lx\n", stopi->val);
 }
 #endif
 
@@ -2194,6 +2196,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       is_write(mip) || is_write(mvip) || is_write(hvip) || is_write(hip) || is_write(sip) || is_write(vsip) ||
       is_write(mie) || is_write(mvien) || is_write(hvien) || is_write(hie) || is_write(sie) || is_write(vsie) ||
       is_write(mireg) || is_write(sireg)) {
+    printf("from csrrw, addr=%x\n", csrid);
     update_mtopi();
     update_stopi();
     update_vstopi();

@@ -260,6 +260,7 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
   isa_update_mtopi();
+  printf("from DifftestChange\n");
   isa_update_stopi();
   isa_update_vstopi();
 #endif
