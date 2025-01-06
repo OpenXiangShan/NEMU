@@ -30,6 +30,7 @@ jobs:
 
   download_spike_so:
     runs-on: nemu
+    name: Download spike-sp from CI
     outputs:
       spike-so: ${{ steps.save-spike-so.outputs.SPIKE_SO }}
       nutshell-spike-so: ${{ steps.save-nutshell-spike-so.outputs.NUTSHELL_SPIKE_SO }}
