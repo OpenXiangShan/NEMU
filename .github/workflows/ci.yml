@@ -41,7 +41,7 @@ jobs:
           chmod +x ./jq
           ./jq --version
 
-    # Step 1: 获取目标仓库最新运行的 workflow ID
+    # Step 1: get target repo latest workflow ID
     - name: Get latest workflow run ID
       id: get_workflow_run
       run: |
@@ -62,7 +62,7 @@ jobs:
         echo "WORKFLOW_RUN_ID=$WORKFLOW_RUN_ID" >> $GITHUB_ENV
         echo "REPO=$REPO" >> $GITHUB_ENV
 
-    # Step 2: 列出可用的工件
+    # Step 2: list artifacts
     - name: List artifacts
       id: list_artifacts
       run: |
@@ -74,7 +74,7 @@ jobs:
         echo "Artifacts list saved to artifacts.json"
         cat artifacts.json
 
-    # Step 3: 下载特定工件
+    # Step 3: download spike-so and nutshell-spike-so artifacts
     - name: Download artifact
       run: |
         ARTIFACTS_API="https://api.github.com/repos/$REPO/actions/runs/$WORKFLOW_RUN_ID/artifacts"
@@ -116,7 +116,7 @@ jobs:
         echo "XIANGSHAN_ARTIFACT_NAME=$XIANGSHAN_ARTIFACT_NAME" >> $GITHUB_ENV
         echo "NUTSHELL_ARTIFACT_NAME=$NUTSHELL_ARTIFACT_NAME" >> $GITHUB_ENV
 
-    # Step 4: 解压工件
+    # Step 4: extract artifacts
     - name: Extract artifact
       run: |
         TIMESTAMP=$(date +"%Y%m%d%H%M%S")
