@@ -273,7 +273,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--checkpoint-format     Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
-        printf("\t--flash-img             image of flash\n");
+        printf("\t--flash-image           image of flash\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
