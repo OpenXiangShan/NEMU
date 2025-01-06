@@ -8,7 +8,8 @@ on:
 
 env:
   CI_WORKLOADS: /nfs/home/share/ci-workloads
-  SPIKE_SO: ./ready-to-run/riscv64-spike-so
+  TMP_READY_TO_RUN: /nfs/home/share/ci-workloads/tmp_ready_to_run
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   compilation-all:
@@ -27,10 +28,124 @@ jobs:
       run: |
         bash ./scripts/compilation-test.sh
 
+  download_spike_so:
+    runs-on: nemu
+    outputs:
+      spike-so: ${{ steps.save-spike-so.outputs.SPIKE_SO }}
+      nutshell-spike-so: ${{ steps.save-nutshell-spike-so.outputs.NUTSHELL_SPIKE_SO }}
+    steps:
+    - name: Install jq
+      run: |
+          proxychains curl -L -o jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+          chmod +x ./jq
+          ./jq --version
+
+    # Step 1: 获取目标仓库最新运行的 workflow ID
+    - name: Get latest workflow run ID
+      id: get_workflow_run
+      run: |
+        REPO="OpenXiangShan/riscv-isa-sim"
+        WORKFLOW_NAME="build-difftest-so.yml"
+        RUNS_API="https://api.github.com/repos/$REPO/actions/workflows/$WORKFLOW_NAME/runs"
+
+        echo "Fetching latest workflow run ID from $RUNS_API..."
+        WORKFLOW_RUN_ID=$(curl -s $RUNS_API \
+          | ./jq -r '.workflow_runs[0].id')
+
+        if [ "$WORKFLOW_RUN_ID" == "null" ]; then
+          echo "Error: No workflow runs found for $WORKFLOW_NAME in $REPO"
+          exit 1
+        fi
+
+        echo "Latest workflow run ID: $WORKFLOW_RUN_ID"
+        echo "WORKFLOW_RUN_ID=$WORKFLOW_RUN_ID" >> $GITHUB_ENV
+        echo "REPO=$REPO" >> $GITHUB_ENV
+
+    # Step 2: 列出可用的工件
+    - name: List artifacts
+      id: list_artifacts
+      run: |
+        ARTIFACTS_API="https://api.github.com/repos/$REPO/actions/runs/$WORKFLOW_RUN_ID/artifacts"
+
+        echo "Fetching artifact list from $ARTIFACTS_API..."
+        curl -s $ARTIFACTS_API > artifacts.json
+
+        echo "Artifacts list saved to artifacts.json"
+        cat artifacts.json
+
+    # Step 3: 下载特定工件
+    - name: Download artifact
+      run: |
+        ARTIFACTS_API="https://api.github.com/repos/$REPO/actions/runs/$WORKFLOW_RUN_ID/artifacts"
+
+        XIANGSHAN_ARTIFACT_NAME="riscv64-xiangshan-spike-so-ubuntu-20.04-clang"
+        NUTSHELL_ARTIFACT_NAME="riscv64-nutshell-spike-so-ubuntu-20.04-clang"
+
+        XIANGSHAN_ARTIFACT_URL=$(./jq -r ".artifacts[] | select(.name==\"$XIANGSHAN_ARTIFACT_NAME\") | .archive_download_url" artifacts.json)
+        NUTSHELL_ARTIFACT_URL=$(./jq -r ".artifacts[] | select(.name==\"$NUTSHELL_ARTIFACT_NAME\") | .archive_download_url" artifacts.json)
+
+        if [ -z "$XIANGSHAN_ARTIFACT_URL" ]; then
+          echo "Error: Artifact $XIANGSHAN_ARTIFACT_NAME not found"
+          exit 1
+        fi
+
+        if [ -z "$NUTSHELL_ARTIFACT_URL" ]; then
+          echo "Error: Artifact $NUTSHELL_ARTIFACT_NAME not found"
+          exit 1
+        fi
+
+        echo "Downloading artifact from $XIANGSHAN_ARTIFACT_URL..."
+        curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          $XIANGSHAN_ARTIFACT_URL --output $XIANGSHAN_ARTIFACT_NAME
+
+        echo "Downloading artifact from $NUTSHELL_ARTIFACT_URL..."
+        curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          $NUTSHELL_ARTIFACT_URL --output $NUTSHELL_ARTIFACT_NAME
+
+        echo "Artifact $GITHUB_WORKSPACE/$XIANGSHAN_ARTIFACT_NAME downloaded successfully"
+        echo "Artifact $GITHUB_WORKSPACE/$NUTSHELL_ARTIFACT_NAME downloaded successfully"
+        ls -l $GITHUB_WORKSPACE/$XIANGSHAN_ARTIFACT_NAME
+        ls -l $GITHUB_WORKSPACE/$NUTSHELL_ARTIFACT_NAME
+        echo "XIANGSHAN_ARTIFACT_NAME=$XIANGSHAN_ARTIFACT_NAME" >> $GITHUB_ENV
+        echo "NUTSHELL_ARTIFACT_NAME=$NUTSHELL_ARTIFACT_NAME" >> $GITHUB_ENV
+
+    # Step 4: 解压工件
+    - name: Extract artifact
+      run: |
+        TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+        mkdir -p $TMP_READY_TO_RUN
+
+        unzip $GITHUB_WORKSPACE/$XIANGSHAN_ARTIFACT_NAME -d $TMP_READY_TO_RUN/riscv64-spike-so-$TIMESTAMP
+        unzip $GITHUB_WORKSPACE/$NUTSHELL_ARTIFACT_NAME -d $TMP_READY_TO_RUN/riscv64-nutshell-spike-so-$TIMESTAMP
+
+        echo "SPIKE_SO=$TMP_READY_TO_RUN/riscv64-spike-so-$TIMESTAMP/riscv64-spike-so" >> "$GITHUB_ENV"
+        echo "NUTSHELL_SPIKE_SO=$TMP_READY_TO_RUN/riscv64-nutshell-spike-so-$TIMESTAMP/riscv64-spike-so" >> "$GITHUB_ENV"
+
+    - name: Save Output
+      id: save-spike-so
+      run: |
+        echo "Extracted artifact contents: $SPIKE_SO"
+        ls -l $SPIKE_SO
+        echo "SPIKE_SO=$SPIKE_SO" >> "$GITHUB_OUTPUT"
+
+    - name: Save Output
+      id: save-nutshell-spike-so
+      run: |
+        echo "Extracted artifact contents: $NUTSHELL_SPIKE_SO"
+        ls -l $NUTSHELL_SPIKE_SO
+        echo "NUTSHELL_SPIKE_SO=$NUTSHELL_SPIKE_SO" >> "$GITHUB_OUTPUT"
+
   basic-xiangshan:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
+    needs: download_spike_so
     name: Basic - XiangShan
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +153,9 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "V_WORKLOAD_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
+          echo "SPIKE_SO=${{ needs.download_spike_so.outputs.spike-so }}" >> $GITHUB_ENV
+          echo "NUTSHELL_SPIKE_SO=${{ needs.download_spike_so.outputs.nutshell-spike-so }}" >> $GITHUB_ENV
+
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
@@ -72,12 +190,16 @@ jobs:
     runs-on: nemu
     continue-on-error: false
     timeout-minutes: 10
+    needs: download_spike_so
     name: Basic - NutShell
     steps:
       - uses: actions/checkout@v4
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "SPIKE_SO=${{ needs.download_spike_so.outputs.spike-so }}" >> $GITHUB_ENV
+          echo "NUTSHELL_SPIKE_SO=${{ needs.download_spike_so.outputs.nutshell-spike-so }}" >> $GITHUB_ENV
+
       - name: Build NEMU interpreter
         run: |
           make riscv64-nutshell_defconfig
@@ -98,6 +220,7 @@ jobs:
     # NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
     runs-on: nemu
     continue-on-error: false
+    needs: download_spike_so
     name: Diff with Spike - Guard
     timeout-minutes: 20
     steps:
@@ -106,6 +229,9 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
+          echo "SPIKE_SO=${{ needs.download_spike_so.outputs.spike-so }}" >> $GITHUB_ENV
+          echo "NUTSHELL_SPIKE_SO=${{ needs.download_spike_so.outputs.nutshell-spike-so }}" >> $GITHUB_ENV
+
       - name: Build NEMU with V extension and agnostic
         run: |
           git submodule update --init --depth=1 ready-to-run
@@ -123,6 +249,7 @@ jobs:
   diff-spike-basic:
     runs-on: nemu
     continue-on-error: false
+    needs: download_spike_so
     name: Diff with Spike - Basic & System
     timeout-minutes: 60
     steps:
@@ -131,6 +258,8 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "SPIKE_SO=${{ needs.download_spike_so.outputs.spike-so }}" >> $GITHUB_ENV
+          echo "NUTSHELL_SPIKE_SO=${{ needs.download_spike_so.outputs.nutshell-spike-so }}" >> $GITHUB_ENV
 
       - name: Build NEMU interpreter for diff with spike
         run: |
@@ -242,6 +371,7 @@ jobs:
   diff-spike-checkpoint:
     runs-on: nemu
     continue-on-error: false
+    needs: download_spike_so
     name: Diff with Spike - Checkpoints
     timeout-minutes: 60
     steps:
@@ -251,6 +381,8 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
+          echo "SPIKE_SO=${{ needs.download_spike_so.outputs.spike-so }}" >> $GITHUB_ENV
+          echo "NUTSHELL_SPIKE_SO=${{ needs.download_spike_so.outputs.nutshell-spike-so }}" >> $GITHUB_ENV
 
       - name: Build NEMU interpreter for diff with spike
         run: |
@@ -289,3 +421,28 @@ jobs:
         name: difftest-so
         path: |
           artifact
+
+  clean-spike-so:
+    runs-on: ubuntu-latest
+    needs:
+       - compile-difftest-so
+       - diff-spike-checkpoint
+       - diff-spike-basic
+       - diff-spike-guard
+       - basic-nutshell
+       - basic-xiangshan
+       - download_spike_so
+       - compilation-all
+    name: Clean up
+    if: always()
+    steps:
+    - name: Setup env
+      run: |
+        echo "SPIKE_SO=${{ needs.download_spike_so.outputs.spike-so }}" >> $GITHUB_ENV
+        echo "NUTSHELL_SPIKE_SO=${{ needs.download_spike_so.outputs.nutshell-spike-so }}" >> $GITHUB_ENV
+    - name: Clean up
+      run: |
+        echo $(dirname $SPIKE_SO)
+        echo $(dirname $NUTSHELL_SPIKE_SO)
+        rm -rf $(dirname $SPIKE_SO)
+        rm -rf $(dirname $NUTSHELL_SPIKE_SO)
