@@ -263,17 +263,17 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
 //        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it.\n"); //comming back soon
 
-        printf("\t-S,--simpoint-dir=SIMPOINT_DIR   simpoints dir\n");
+        printf("\t-S,--simpoint-dir=SIMPOINT_DIR        simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
         printf("\t--cpt-interval=INTERVAL cpt interval: the profiling period for simpoint; the checkpoint interval for uniform cpt\n");
         printf("\t--warmup-interval=INTERVAL warmup interval: the warmup interval for SimPoint cpt\n");
         printf("\t--cpt-mmode             force to take cpt in mmode, which might not work.\n");
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
-        printf("\t--checkpoint-format     Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
+        printf("\t--checkpoint-format=FORMAT            Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
-        printf("\t--flash-image           image of flash\n");
+        printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
