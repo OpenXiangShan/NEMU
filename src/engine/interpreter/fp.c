@@ -222,6 +222,7 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
     // w8 only can hold int/uint
     switch (op) {
       case FPCALL_SToDF: *dest = i32_to_f16((int32_t)(int8_t)*src1).v; break;
+      case FPCALL_UToDF: *dest = ui32_to_f16(*src1).v; break;
     }
   } else if (w == FPCALL_W16) {
     float16_t fsrc1 = rtlToVF16(*src1);

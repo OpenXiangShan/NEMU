@@ -15,6 +15,7 @@
 
 #include "rtl/fp.h"
 #include <common.h>
+#include <stdint.h>
 #ifdef CONFIG_RVV
 
 #include "vcompute_impl.h"
@@ -177,10 +178,32 @@ uint32_t vf_allowed_e16[] = {
 #endif
 };
 
+# ifdef CONFIG_RV_ZVFH
+
+uint32_t vf_allowed_e8[] = {
+  FWCVT_FXU,
+  FWCVT_FX,
+  FNCVT_XUF,
+  FNCVT_XF,
+  FNCVT_RTZ_XUF,
+  FNCVT_RTZ_XF,
+};
+#endif
+
 static bool is_vf_allowed_e16(uint32_t opcode) {
   int len = sizeof(vf_allowed_e16) / sizeof(vf_allowed_e16[0]);
   for (int i = 0; i < len; i++) {
     if (vf_allowed_e16[i] == opcode) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool is_vf_allowed_e8(uint32_t opcode) {
+  int len = sizeof(vf_allowed_e8) / sizeof(vf_allowed_e8[0]);
+  for (int i = 0; i < len; i++) {
+    if (vf_allowed_e8[i] == opcode) {
       return true;
     }
   }
@@ -1145,7 +1168,7 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
 
   // check whether the fp16 instruction is supported
 #ifdef CONFIG_RV_ZVFH
-  if (vtype->vsew == 1 && !is_vf_allowed_e16(opcode)) {
+  if ((vtype->vsew == 1 && !is_vf_allowed_e16(opcode)) || (vtype->vsew == 0 && !is_vf_allowed_e8(opcode))) {
     longjmp_exception(EX_II);
   }
 #else
@@ -1157,7 +1180,17 @@ void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
+#ifdef CONFIG_RV_ZVFH
+    case 0 :
+      switch (widening) {
+        case vdWidening  : FPCALL_TYPE = FPCALL_W8; break;
+        case vdNarrow    : FPCALL_TYPE = FPCALL_W16; break;
+      }
+      break;   
+#else
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
+#endif
+
 #ifdef CONFIG_RV_ZVFH
     case 1 :
       switch (widening) {
