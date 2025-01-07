@@ -442,3 +442,7 @@ void isa_update_vstopi() {
   update_vstopi();
 }
 #endif
+
+void isa_sync_custom_mflushpwr(bool l2FlushDone) {
+  mflushpwr->l2flushed = l2FlushDone;
+}

@@ -280,6 +280,10 @@ void difftest_aia_xtopei(void *xtopei) {
 #endif
 }
 
+void difftest_sync_custom_mflushpwr(bool l2FlushDone) {
+  isa_sync_custom_mflushpwr(l2FlushDone);
+}
+
 void difftest_enable_debug() {
 #ifdef CONFIG_SHARE
   dynamic_config.debug_difftest = true;
