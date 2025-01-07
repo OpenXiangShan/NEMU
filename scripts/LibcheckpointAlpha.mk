@@ -10,3 +10,7 @@ $(CPT_LAYOUT_HEADER):
 $(CPT_BIN): $(CPT_LAYOUT_HEADER)
 	$(Q)$(MAKE) $(silent) -C $(LIB_CPT_PATH) CROSS_COMPILE=$(CPT_CROSS_COMPILE)
 
+clean-libcheckpointalpha:
+	$(Q)$(MAKE) -s -C $(LIB_CPT_PATH) clean
+
+.PHONY: clean-libcheckpointalpha

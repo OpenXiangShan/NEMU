@@ -118,22 +118,7 @@ LDFLAGS += -lSDL2
 endif
 endif
 
-ifdef CONFIG_FPU_SOFT
-SOFTFLOAT = resource/softfloat/build/softfloat.a
-ifeq ($(ISA),riscv64)
-SPECIALIZE_TYPE = RISCV
-else
-SPECIALIZE_TYPE = 8086-SSE
-endif
-ifdef CONFIG_SHARE
-SOFTFLOAT_OPTS_DEFAULT = -DSOFTFLOAT_ROUND_ODD -DINLINE_LEVEL=5 \
-  -DSOFTFLOAT_FAST_DIV32TO16 -DSOFTFLOAT_FAST_DIV64TO32
-SOFTFLOAT_OPTS_OVERRIDE = SOFTFLOAT_OPTS="$(SOFTFLOAT_OPTS_DEFAULT) -fPIC"
-endif
-
-clean-all: clean-repos
-
-else ifdef CONFIG_FPU_HOST
+ifdef CONFIG_FPU_HOST
 LDFLAGS += -lm
 endif
 
@@ -184,6 +169,6 @@ clean-tools = $(dir $(shell find ./tools -name "Makefile"))
 $(clean-tools):
 	-@$(MAKE) -s -C $@ clean
 clean-tools: $(clean-tools)
-clean-all: clean distclean clean-tools
+clean-all: clean distclean clean-tools clean-repos
 
 .PHONY: run gdb run-env clean-tools clean-all $(clean-tools)
