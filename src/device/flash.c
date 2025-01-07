@@ -30,7 +30,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
 
 void load_flash_contents(const char *flash_img) {
   // create mmap with zero contents
-  assert(CONFIG_FLASH_SIZE < 0x10000000UL);
+  assert(CONFIG_FLASH_SIZE <= 0x20000000UL);
   void *ret = mmap((void *)flash_base, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE,
     MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   if (ret != flash_base) {
