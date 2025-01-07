@@ -131,29 +131,13 @@ SOFTFLOAT_OPTS_DEFAULT = -DSOFTFLOAT_ROUND_ODD -DINLINE_LEVEL=5 \
 SOFTFLOAT_OPTS_OVERRIDE = SOFTFLOAT_OPTS="$(SOFTFLOAT_OPTS_DEFAULT) -fPIC"
 endif
 
-SOFTFLOAT_REPO_PATH = resource/softfloat/repo
-ifeq ($(wildcard $(SOFTFLOAT_REPO_PATH)/COPYING.txt),)
-  $(shell git clone --depth=1 https://github.com/ucb-bar/berkeley-softfloat-3 $(SOFTFLOAT_REPO_PATH))
-endif
-SOFTFLOAT_BUILD_PATH = $(abspath $(SOFTFLOAT_REPO_PATH)/build/Linux-x86_64-GCC)
+clean-all: clean-repos
 
-INC_DIR += $(SOFTFLOAT_REPO_PATH)/source/include
-INC_DIR += $(SOFTFLOAT_REPO_PATH)/source/$(SPECIALIZE_TYPE)
-LIBS += $(SOFTFLOAT)
-$(SOFTFLOAT):
-	SPECIALIZE_TYPE=$(SPECIALIZE_TYPE) $(SOFTFLOAT_OPTS_OVERRIDE) $(MAKE) -s -C $(SOFTFLOAT_BUILD_PATH) all
-	mkdir -p $(@D)
-	ln -sf $(SOFTFLOAT_BUILD_PATH)/softfloat.a $@
-
-clean-softfloat:
-	$(MAKE) -s -C $(SOFTFLOAT_BUILD_PATH) clean
-clean-all: clean-softfloat
-
-.PHONY: $(SOFTFLOAT) clean-softfloat
 else ifdef CONFIG_FPU_HOST
 LDFLAGS += -lm
 endif
 
+include $(NEMU_HOME)/scripts/repos.mk
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk
