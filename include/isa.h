@@ -93,5 +93,6 @@ void isa_update_mtopi();
 void isa_update_stopi();
 void isa_update_vstopi();
 #endif
+void isa_sync_custom_mflushpwr(bool l2FlushDone);
 
 #endif
