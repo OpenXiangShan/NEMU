@@ -87,6 +87,11 @@ void sig_handler(int signum) {
   }
 }
 
+// print monitor log when recv ctrl-c signal
+void sigint_handler(int signo) {
+  nemu_state.state = NEMU_QUIT;
+}
+
 static inline int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
@@ -332,6 +337,11 @@ void init_monitor(int argc, char *argv[]) {
 #else
   parse_args(argc, argv);
 #endif
+
+  /* set up SIGINT handler */
+  if (signal(SIGINT, sigint_handler) == SIG_ERR) {
+    printf("can't catch SIGINT\n");
+  }
 
   /* Open the log file. */
   init_log(log_file, fast_log, small_log);
