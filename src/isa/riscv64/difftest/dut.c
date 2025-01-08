@@ -118,6 +118,8 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 void isa_difftest_attach() {
   csr_prepare();
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), MEMORY_SIZE, DIFFTEST_TO_REF);
+  ref_difftest_pmpcpy(&csr_array[CSR_PMPADDR_BASE], DIFFTEST_TO_REF);
+  ref_difftest_pmp_cfg_cpy(csr_array, DIFFTEST_TO_REF);
   assert(0); //FIXME
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
