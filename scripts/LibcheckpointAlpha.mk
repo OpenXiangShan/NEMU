@@ -1,16 +1,19 @@
-LIB_CPT_PATH = resource/gcpt_restore
-CPT_BIN = $(LIB_CPT_PATH)/build/gcpt.bin
-CPT_LAYOUT_HEADER = $(LIB_CPT_PATH)/src/restore_rom_addr.h
-
 CPT_CROSS_COMPILE ?= riscv64-unknown-linux-gnu-
 
-$(CPT_LAYOUT_HEADER):
-	$(shell git clone https://github.com/OpenXiangShan/LibCheckpointAlpha.git $(LIB_CPT_PATH))
+CPT_REPO = $(RESOURCE_PATH)/gcpt_restore
+CPT_BIN = $(CPT_REPO)/build/gcpt.bin
+CPT_MEMLAYOUT_HEADER = $(CPT_REPO)/src/restore_rom_addr.h
 
-$(CPT_BIN): $(CPT_LAYOUT_HEADER)
-	$(Q)$(MAKE) $(silent) -C $(LIB_CPT_PATH) CROSS_COMPILE=$(CPT_CROSS_COMPILE)
+ifeq ($(wildcard $(CPT_MEMLAYOUT_HEADER)),)
+  $(shell git clone --depth=1 https://github.com/OpenXiangShan/LibCheckpointAlpha.git $(CPT_REPO))
+endif
 
-clean-libcheckpointalpha: $(CPT_LAYOUT_HEADER)
-	$(Q)$(MAKE) -s -C $(LIB_CPT_PATH) clean
+$(CPT_BIN):
+ifdef CONFIG_HAS_FLASH
+	$(Q)$(MAKE) $(silent) -C $(CPT_REPO) CROSS_COMPILE=$(CPT_CROSS_COMPILE)
+endif
+
+clean-libcheckpointalpha:
+	$(Q)$(MAKE) -s -C $(CPT_REPO) clean
 
 .PHONY: clean-libcheckpointalpha
