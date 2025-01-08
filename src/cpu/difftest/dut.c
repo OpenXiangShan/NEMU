@@ -188,10 +188,10 @@ void difftest_attach() {
 
   isa_difftest_attach();
 
-  // There are multiple non-register states for spike,
-  // and entering attach from any execution phase requires
-  // the ability to correctly implement the settings for
-  // these states, and the expected repair effort would be enormous
+  // This function remains non-functional even after applying this patch, so we assert it.
+  // Spike has multiple non-register states, and to ensure correctness when attaching
+  // from any execution phase, all these non-register states need to be synchronized.
+  // Addressing this properly in the future could require significant effort.
   assert(0); // fix me
 }
 
