@@ -93,6 +93,6 @@ $(BUILD_DIR)/lib$(NAME).a: $(OBJS) $(LIBS)
 	@ar rcs $@ $(TEMP_EXTRACT_DIR)/*.o $(OBJS)
 	@rm -rf $(TEMP_EXTRACT_DIR)
 
-.PHONY: clean-softfloat
-clean: clean-softfloat
+.PHONY:
+clean:
 	-rm -rf $(BUILD_DIR)
