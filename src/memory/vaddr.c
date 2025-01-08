@@ -155,7 +155,9 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
 
 #ifdef CONFIG_RVH
-  if(type != MEM_TYPE_IFETCH){
+  // check whether here is a hlvx instruction
+  // when inst fetch or vaddr_read_safe (for examine memory), s is NULL
+  if (s != NULL) {
     extern int rvh_hlvx_check(struct Decode *s, int type);
     rvh_hlvx_check((Decode*)s, type);
   }
