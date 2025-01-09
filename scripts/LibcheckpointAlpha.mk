@@ -8,6 +8,8 @@ ifeq ($(wildcard $(CPT_MEMLAYOUT_HEADER)),)
   $(shell git clone --depth=1 https://github.com/OpenXiangShan/LibCheckpointAlpha.git $(CPT_REPO))
 endif
 
+gcpt_restore_bin: $(CPT_BIN)
+
 $(CPT_BIN):
 ifdef CONFIG_HAS_FLASH
 	$(Q)$(MAKE) $(silent) -C $(CPT_REPO) CROSS_COMPILE=$(CPT_CROSS_COMPILE)
@@ -16,4 +18,4 @@ endif
 clean-libcheckpointalpha:
 	$(Q)$(MAKE) -s -C $(CPT_REPO) clean
 
-.PHONY: clean-libcheckpointalpha
+.PHONY: gcpt_restore_bin clean-libcheckpointalpha
