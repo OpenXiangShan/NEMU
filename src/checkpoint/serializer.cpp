@@ -378,7 +378,7 @@ void Serializer::serialize(uint64_t inst_count) {
   assert(serialize_reg_base_addr);
 
   serializeRegs(serialize_reg_base_addr);
-  serializePMem(inst_count);
+  serializePMem(inst_count, get_pmem(), get_flash_base());
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
@@ -501,7 +501,8 @@ bool try_take_cpt(uint64_t icount) {
 }
 
 void serialize_reg_to_mem() {
-  serializer.serializeRegs();
+//  will delete in future
+//  serializer.serializeRegs();
 }
 
 }
