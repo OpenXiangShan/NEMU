@@ -182,5 +182,5 @@ void difftest_attach() {
 }
 
 #else
-void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) { }
+void init_difftest(char *ref_so_file, long img_size, int port) { }
 #endif
