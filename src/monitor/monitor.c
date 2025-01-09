@@ -44,6 +44,7 @@ static char *flash_image = NULL;
 static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
+static bool flash_store_checkpoint = false;
 char compress_file_format = 0; // default is gz
 
 extern char *mapped_cpt_file;  // defined in paddr.c
@@ -115,6 +116,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"cpt-mmode"          , no_argument      , NULL, 7},
     {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
+    {"using-flash-store-checkpoint", no_argument, NULL, 17},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -152,6 +154,14 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 16:
         flash_image = optarg;
+        break;
+
+      case 17:
+      #ifdef CONFIG_HAS_FLASH
+        flash_store_checkpoint = true;
+      #else
+        assert(0);
+      #endif
         break;
 
       case 'r':
@@ -315,14 +325,14 @@ void init_monitor(int argc, char *argv[]) {
 
   extern void init_path_manager();
   extern void simpoint_init();
-  extern void init_serializer();
+  extern void init_serializer(bool flash_store_checkpoint);
 
   //checkpoint and profiling set output
   bool output_features_enabled = checkpoint_state != NoCheckpoint || profiling_state == SimpointProfiling;
   if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
-    init_serializer();
+    init_serializer(flash_store_checkpoint);
   }
 
   /* Initialize memory. */
