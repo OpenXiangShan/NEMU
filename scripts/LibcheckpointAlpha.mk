@@ -11,9 +11,7 @@ endif
 gcpt_restore_bin: $(CPT_BIN)
 
 $(CPT_BIN):
-ifdef CONFIG_HAS_FLASH
 	$(Q)$(MAKE) $(silent) -C $(CPT_REPO) CROSS_COMPILE=$(CPT_CROSS_COMPILE)
-endif
 
 clean-libcheckpointalpha:
 	$(Q)$(MAKE) -s -C $(CPT_REPO) clean

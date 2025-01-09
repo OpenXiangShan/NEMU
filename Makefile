@@ -34,15 +34,13 @@ CFLAGS += -D__MMIO_SPECE_RANGE__=$(call remove_quote,$(CONFIG_MMIO_SPACE_RANGE))
 endif
 
 ifdef CONFIG_HAS_FLASH
-
 FLASH_IMG_PATH=$(shell realpath $(CONFIG_FLASH_IMG_PATH) 2>/dev/null)
 ifeq ($(FLASH_IMG_PATH),)
 CFLAGS += -D__FLASH_IMG_PATH__=\"\"
 else
 CFLAGS += -D__FLASH_IMG_PATH__=\"$(FLASH_IMG_PATH)\"
-endif
-
-endif
+endif # ($(FLASH_IMG_PATH),)
+endif # CONFIG_HAS_FLASH
 
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
