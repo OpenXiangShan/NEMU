@@ -39,8 +39,8 @@ ifeq ($(FLASH_IMG_PATH),)
 CFLAGS += -D__FLASH_IMG_PATH__=\"\"
 else
 CFLAGS += -D__FLASH_IMG_PATH__=\"$(FLASH_IMG_PATH)\"
-endif
-endif
+endif # ($(FLASH_IMG_PATH),)
+endif # CONFIG_HAS_FLASH
 
 INC_DIR += $(NEMU_HOME)/src/isa/$(ISA)/include
 DIRS-y += src/isa/$(ISA)
