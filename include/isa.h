@@ -35,6 +35,7 @@ extern CPU_state cpu;
 extern rtlreg_t csr_array[4096];
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
+const char * isa_get_privilege_mode_str();
 
 // exec
 struct Decode;

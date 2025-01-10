@@ -197,20 +197,20 @@ finish:
 #endif
 
 #define print_asm_template0(instr) \
-  print_asm("%s %c", str(instr), suffix_char(id_dest->width))
+  print_asm("%-8s %c", str(instr), suffix_char(id_dest->width))
 
 #define print_asm_template1(instr) \
-  print_asm("%s %c %s", str(instr), suffix_char(id_dest->width), id_dest->str)
+  print_asm("%-8s %c %s", str(instr), suffix_char(id_dest->width), id_dest->str)
 
 #define print_asm_template2(instr) \
-  print_asm("%s %c %s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src1->str)
+  print_asm("%-8s %c %s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src1->str)
 
 #define print_asm_template3(instr) \
-  print_asm("%s %c %s,%s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src1->str, id_src2->str)
+  print_asm("%-8s %c %s,%s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src1->str, id_src2->str)
 
 #if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
 #define print_asm_template3_csr(instr) \
-  print_asm("%s %c %s,%s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src2->str, id_src1->str)
+  print_asm("%-8s %c %s,%s,%s", str(instr), suffix_char(id_dest->width), id_dest->str, id_src2->str, id_src1->str)
 #endif
 
 #endif
