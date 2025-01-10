@@ -22,9 +22,14 @@
 #include <utils.h>
 #include <unistd.h>
 
+#ifdef CONFIG_SIMPLE_LOG
+#define Log(format, ...) \
+    _Log("[%s] " format "\n", __func__, ## __VA_ARGS__)
+#else // CONFIG_SIMPLE_LOG
 #define Log(format, ...) \
     _Log("\33[1;34m[%s:%d,%s] " format "\33[0m\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+#endif // CONFIG_SIMPLE_LOG
 
 #define Logf(flag, ...) \
   do { \
