@@ -138,6 +138,12 @@ config DEBUG
     Enable debug features, which include instruction tracing and watchpoint.
     Add -l <logfile path> to enable instruction tracing and log dump.
 
+config SIMPLE_LOG
+  bool "Make log output simpler"
+  default n
+  help
+    Make the log output simpler, without color, file path and line number.
+
 config SHARE_OUTPUT_LOG_TO_FILE
   bool "Output log to file"
   depends on SHARE
