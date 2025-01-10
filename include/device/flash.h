@@ -16,7 +16,9 @@
 #ifndef __DEVICE_FLASH_H__
 #define __DEVICE_FLASH_H__
 
+#ifdef CONFIG_HAS_FLASH
 uint8_t* get_flash_base();
 uint64_t get_flash_size();
+#endif
 
 #endif
