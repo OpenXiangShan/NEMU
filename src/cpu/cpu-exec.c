@@ -116,7 +116,7 @@ uint64_t get_abs_instr_count() {
 #endif
 }
 
-// This function returns the number of executed instructions. The accuracy is always instruction. 
+// This function returns the number of executed instructions. The accuracy is always instruction.
 // This is only used in CSR read & write, for basic counters (mcycle, minstret, cycle, instret)
 // Refer to the comment above for more technical details.
 uint64_t get_abs_instr_count_csr() {
@@ -700,12 +700,21 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
-  Logtid(FMT_WORD ":   %s%*.s%s", s->pc, MUXDEF(CONFIG_DEBUG, log_bytebuf, ""),
-         40 - (12 + 3 * (int)(s->snpc - s->pc)), "", MUXDEF(CONFIG_DEBUG, log_asmbuf, ""));
-  IFDEF(CONFIG_DEBUG,
-        snprintf(s->logbuf, sizeof(s->logbuf), FMT_WORD ":   %s%*.s%s", s->pc,
-                 log_bytebuf, 40 - (12 + 3 * (int)(s->snpc - s->pc)), "",
-                 log_asmbuf));
+  Logtid(
+    "(%s) " FMT_WORD ":   %s%*.s%s",
+    isa_get_privilege_mode_str(),
+    s->pc, MUXDEF(CONFIG_DEBUG, log_bytebuf, ""),
+    16 - (3 * (int)(s->snpc - s->pc)), "",
+    MUXDEF(CONFIG_DEBUG, log_asmbuf, "")
+  );
+  IFDEF(CONFIG_DEBUG, snprintf(
+    s->logbuf, sizeof(s->logbuf),
+    "(%s)" FMT_WORD ":   %s%*.s%s",
+    isa_get_privilege_mode_str(),
+    s->pc, log_bytebuf,
+    16 - (3 * (int)(s->snpc - s->pc)), "",
+    log_asmbuf
+  ));
   s->EHelper = g_exec_table[idx];
 }
 
