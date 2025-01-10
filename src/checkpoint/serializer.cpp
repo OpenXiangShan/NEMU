@@ -21,6 +21,7 @@
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
 #include <profiling/profiling_control.h>
+#include <device/flash.h>
 
 #include "../isa/riscv64/local-include/csr.h"
 
@@ -378,7 +379,12 @@ void Serializer::serialize(uint64_t inst_count) {
   assert(serialize_reg_base_addr);
 
   serializeRegs(serialize_reg_base_addr);
+#ifdef CONFIG_HAS_FLASH
   serializePMem(inst_count, get_pmem(), get_flash_base());
+#else
+  serializePMem(inst_count, get_pmem(), NULL);
+#endif
+
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
