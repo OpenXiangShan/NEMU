@@ -471,6 +471,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
 #define HIE_WMASK     HSI_MASK
+#define HGEIE_MASK    ((1ULL << (1 + MUXDEF(CONFIG_GEILEN, CONFIG_GEILEN, 0))) - 2) // bit 0 is read-only zero
+#define HGEIP_MASK    HGEIE_MASK
 #define HIDELEG_MASK  (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0))
 #define HEDELEG_MASK  ((1 << EX_IAM) | \
                        (1 << EX_IAF) | \
@@ -1444,7 +1446,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HEDELEG: return hedeleg->val & HEDELEG_MASK;
     case CSR_HIDELEG: return get_hideleg();
     case CSR_HIE: return get_hie();
-    case CSR_HGEIE: return hgeie->val & ~(0x1UL);
+    case CSR_HGEIE: return hgeie->val & HGEIE_MASK;
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: return hvien->val & HVIEN_MSAK;
 #endif
@@ -1462,7 +1464,7 @@ static word_t csr_read(uint32_t csrid) {
 
     case CSR_HIP: return get_hip();
     case CSR_HVIP: return hvip->val & HVIP_MASK;
-    case CSR_HGEIP: return hgeip->val & ~(0x1UL);
+    case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
     case CSR_VSTOPEI: return cpu.xtopei.vstopei;
     case CSR_VSIREG:
@@ -2320,6 +2322,14 @@ static bool aia_extension_permit_check(const word_t *dest_access, bool is_write)
   bool has_vi = false;
   if (is_access(stopei)) {
     if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
+      longjmp_exception(EX_II);
+    }
+    else if (cpu.v && (cpu.mode == MODE_S) && (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN)) {
+      has_vi = true;
+    }
+  }
+  if (is_access(vstopei)) {
+    if ((cpu.mode == MODE_M || (!cpu.v && cpu.mode == MODE_S)) && (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN)) {
       longjmp_exception(EX_II);
     }
   }
