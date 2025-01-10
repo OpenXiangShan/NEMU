@@ -21,7 +21,6 @@
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
 #include <profiling/profiling_control.h>
-#include <device/flash.h>
 
 #include "../isa/riscv64/local-include/csr.h"
 
