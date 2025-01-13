@@ -53,10 +53,11 @@ struct NonRegInterruptPending {
   bool lcofi_req;
 };
 
-struct Xtopei {
+struct FromAIA {
   uint64_t mtopei;
   uint64_t stopei;
   uint64_t vstopei;
+  uint64_t hgeip;
 };
 
 struct DebugInfo {
@@ -184,7 +185,7 @@ typedef struct {
   trap_info_t trapInfo;
 
 #ifdef CONFIG_RV_IMSIC
-  struct Xtopei xtopei;
+  struct FromAIA fromaia;
   IpriosModule*  MIprios;
   IpriosModule*  SIprios;
   IpriosModule* VSIprios;

@@ -273,10 +273,11 @@ void difftest_get_store_event_other_info(void *info) {
 
 
 
-void difftest_aia_xtopei(void *xtopei) {
+void difftest_sync_aia(void *src) {
 #ifdef CONFIG_RV_IMSIC
-  memcpy(&cpu.xtopei, xtopei, sizeof(struct Xtopei));
+  memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
   isa_update_vstopi();
+  isa_update_hgeip();
 #endif
 }
 

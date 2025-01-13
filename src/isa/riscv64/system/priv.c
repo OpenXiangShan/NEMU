@@ -1256,7 +1256,7 @@ inline void update_vstopi() {
   vsip_t read_vsip = (vsip_t)get_vsip();
   vsie_t read_vsie = (vsie_t)get_vsie();
 
-  bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.xtopei.vstopei != 0);
+  bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.fromaia.vstopei != 0);
   bool candidate2 = read_vsip.seip && read_vsie.seie && (hstatus->vgein == 0) && (hvictl->iid == 9) && (hvictl->iprio != 0);
   bool candidate3 = read_vsip.seip && read_vsie.seie && !candidate1 && !candidate2;
   bool candidate4 = !hvictl->vti && (read_vsie.val & read_vsip.val & 0xfffffffffffffdff);
@@ -1277,7 +1277,7 @@ inline void update_vstopi() {
   uint16_t iprio_candidate45 = 0;
 
   if (candidate1) {
-    vstopei_t* vstopei_tmp = (vstopei_t*)cpu.xtopei.vstopei;
+    vstopei_t* vstopei_tmp = (vstopei_t*)cpu.fromaia.vstopei;
     iprio_candidate123 = vstopei_tmp->iprio;
   } else if (candidate2) {
     iprio_candidate123 = hvictl->iprio;
@@ -1422,8 +1422,8 @@ static word_t csr_read(uint32_t csrid) {
       if (cpu.v) return vstopi->val;
       return stopi->val;
     case CSR_STOPEI:
-      if (cpu.v) return cpu.xtopei.vstopei;
-      return cpu.xtopei.stopei;
+      if (cpu.v) return cpu.fromaia.vstopei;
+      return cpu.fromaia.stopei;
     case CSR_SIREG:
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1466,7 +1466,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HVIP: return hvip->val & HVIP_MASK;
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
-    case CSR_VSTOPEI: return cpu.xtopei.vstopei;
+    case CSR_VSTOPEI: return cpu.fromaia.vstopei;
     case CSR_VSIREG:
     {
       bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1485,7 +1485,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPEI: return cpu.xtopei.mtopei;
+    case CSR_MTOPEI: return cpu.fromaia.mtopei;
     case CSR_MIREG:
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
