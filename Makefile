@@ -59,6 +59,10 @@ ifndef CONFIG_SHARE
 DIRS-y += src/checkpoint
 endif
 
+ifdef CONFIG_ENABLE_IDEAL_MODEL
+DIRS-y += src/ideal_model
+endif
+
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
@@ -67,6 +71,13 @@ XSRCS-$(CONFIG_USE_SPARSEMM) += src/memory/sparseram.cpp
 
 ifndef CONFIG_SHARE
 XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling
+endif
+
+ifdef CONFIG_ENABLE_IDEAL_MODEL
+XDIRS-y += src/ideal_model
+endif
+
+ifneq ($(XDIRS-y),)
 XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
 endif
 

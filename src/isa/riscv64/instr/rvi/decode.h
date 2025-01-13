@@ -36,12 +36,18 @@ static inline def_DHelper(I) {
   decode_op_r(s, id_src1, s->isa.instr.i.rs1, true);
   decode_op_i(s, id_src2, (sword_t)s->isa.instr.i.simm11_0, false);
   decode_op_r(s, id_dest, s->isa.instr.i.rd, false);
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // cpu.im_helper.mem_access_vaddr = *id_src1->preg + id_src2->simm;
+#endif  
 }
 
 static inline def_DHelper(R) {
   decode_op_r(s, id_src1, s->isa.instr.r.rs1, true);
   decode_op_r(s, id_src2, s->isa.instr.r.rs2, true);
   decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // cpu.im_helper.mem_access_vaddr = *id_src1->preg;
+#endif  
 }
 
 static inline def_DHelper(U) {
@@ -75,6 +81,9 @@ static inline def_DHelper(S) {
   sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
   decode_op_i(s, id_src2, simm, false);
   decode_op_r(s, id_dest, s->isa.instr.s.rs2, true);
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // cpu.im_helper.mem_access_vaddr = *id_src1->preg + id_src2->simm;
+#endif  
 }
 
 def_THelper(load) {

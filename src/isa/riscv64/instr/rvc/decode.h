@@ -193,6 +193,11 @@ static inline void decode_C_ldst_common(Decode *s, int rotate, bool is_store, bo
   uint32_t imm5 = (BITS(instr, 12, 10) << 2) | BITS(instr, 6, 5);
   uint32_t imm = ror_imm(imm5, 5, rotate) << 1;
   decode_op_i(s, id_src2, imm, false);
+
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // cpu.im_helper.mem_access_vaddr = *id_src1->preg + id_src2->simm;
+#endif
+
   if (is_fp) {
 #ifdef CONFIG_FPU_NONE
     longjmp_exception(EX_II);
@@ -232,6 +237,11 @@ static inline void decode_C_ldst_zcb(Decode *s, bool is_store, bool need_uimm0) 
 
   decode_op_i(s, id_src2, imm, false);
   decode_op_r(s, id_src1, rs1, true);
+  
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // cpu.im_helper.mem_access_vaddr = *id_src1->preg + id_src2->simm;
+#endif
+
   decode_op_r(s, id_dest, rd_rs2, is_store);
 }
 

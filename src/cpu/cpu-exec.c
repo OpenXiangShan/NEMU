@@ -47,6 +47,12 @@ static bool g_print_step = false;
 const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+// static inline bool is_in_mmio(vaddr_t vaddr){
+//   return vaddr < 0x80000000u;
+// }
+#endif
+
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
   Logti("%s\n", asmbuf);
@@ -546,6 +552,17 @@ static int execute(int n) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
               s.isa.instr.val);
     }
+      //fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
+      //        s.isa.instr.val);
+#endif
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+    // if load is mmio, we dont want it execute 
+    // if((cpu.im_helper.mem_access_is_load || cpu.im_helper.mem_access_is_store) && 
+    //     is_in_mmio(cpu.im_helper.mem_access_vaddr)){
+    //   cpu.im_helper.mem_is_mmio = true;
+    //   break;
+    // }
+
 #endif
     s.EHelper(&s);
     g_nr_guest_instr++;
@@ -668,11 +685,19 @@ void cpu_exec(uint64_t n) {
 
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+      cause = 0;
+      // also tell ideal model stop
+      cpu.im_helper.runtime_exception_happen = true;      
+      cpu.im_helper.ex_cause_copy = g_ex_cause;
+      break;
+#else
       cause = 0;
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       IFDEF(CONFIG_PERF_OPT, tcache_handle_exception(cpu.pc));
       IFDEF(CONFIG_SHARE, break);
+#endif
     } else {
       word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
       if (intr != INTR_EMPTY) {

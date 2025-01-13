@@ -127,6 +127,8 @@ int isa_fetch_decode(Decode *s) {
     idx = table_main(s);
   }
 
+  // after table main we have decode result
+
 #ifdef CONFIG_RV_SDTRIG
   if (cpu.TM->check_timings.af) {
     action = tm_check_hit(cpu.TM, (trig_op_t)(TRIG_OP_EXECUTE | TRIG_OP_TIMING), s->pc, s->isa.instr.val);

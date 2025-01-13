@@ -26,8 +26,12 @@ static inline IOMap* fetch_mmio_map(paddr_t addr) {
 }
 
 bool is_in_mmio(paddr_t addr) {
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  return addr < 0x80000000u;
+#else
   int mapid = find_mapid_by_addr(maps, nr_map, addr);
   return (mapid == -1 ? false : true);
+#endif
 }
 
 /* device interface */
