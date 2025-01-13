@@ -72,9 +72,25 @@ $(OBJ_DIR)/%.opp: %.cpp
 
 # Some convenient rules
 
-.PHONY: app clean
+.PHONY: app clean install-im
 
 app: $(BINARY)
+
+ifdef CONFIG_ENABLE_IDEAL_MODEL
+install-im: $(BINARY)
+	@if [ -z "$(IDEAL_REF_HOME)" ]; then \
+    echo "Environment variable IDEAL_REF_HOME is not set. Skipping installation."; \
+  else \
+    if [ -d "$(IDEAL_REF_HOME)" ]; then \
+      echo "IDEAL_REF_HOME exists: $(IDEAL_REF_HOME)"; \
+      echo "Copying $(BINARY) to $(IDEAL_REF_HOME) ..."; \
+      cp -f $(BINARY) $(IDEAL_REF_HOME)/ideal-ref.test; \
+      echo "Copy successful."; \
+    else \
+      echo "IDEAL_REF_HOME does not exist: $(IDEAL_REF_HOME). Skipping installation."; \
+    fi; \
+  fi
+endif
 
 $(BINARY): $(OBJS) $(LIBS)
 	@echo + $(LD) $@

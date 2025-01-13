@@ -35,6 +35,8 @@ extern Decode *prev_s;
 
 #ifdef CONFIG_LIGHTQS
 #define PMEMBASE 0x1100000000ul
+#elif CONFIG_ENABLE_IDEAL_MODEL
+#define PMEMBASE 0x3000000000ul
 #else
 #define PMEMBASE 0x100000000ul
 #endif // CONFIG_LIGHTQS
@@ -103,6 +105,11 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 }
 
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  extern void mark_memtrace_to_fm(paddr_t addr, int len, word_t data, int cross_page_store);
+  word_t old_data = pmem_read(addr, len);
+  mark_memtrace_to_fm(addr, len, old_data, cross_page_store);
+#endif 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   store_commit_queue_push(addr, data, len, cross_page_store);
 #endif
@@ -164,22 +171,31 @@ static inline void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vadd
 void allocate_memory_with_mmap()
 {
 #ifdef CONFIG_USE_MMAP
-  #ifdef CONFIG_USE_SPARSEMM
+#ifdef CONFIG_USE_SPARSEMM
   sparse_mm = sparse_mem_new(4, 1024); //4kB
-  #else
+#else
   // Note: we are using MAP_FIXED here, in the SHARED mode, even if
   // init_mem may be called multiple times, the memory space will be
   // allocated only once at the first time called.
   // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
+  // config ideal model in this
   void *pmem_base = (void *)(PMEMBASE + PMEM_HARTID * MEMORY_SIZE);
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // kernel version >= 4.17
+  // use MAP_FIXED_NOREPLACE, because we dont want ideal model
+  // demage the vm-space already available to the process. 
+  void *ret = mmap(pmem_base, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED_NOREPLACE | MAP_NORESERVE, -1, 0);
+#else
   void *ret = mmap(pmem_base, MEMORY_SIZE, PROT_READ | PROT_WRITE,
       MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED | MAP_NORESERVE, -1, 0);
+#endif
   if (ret != pmem_base) {
     perror("mmap");
     assert(0);
   }
   pmem = (uint8_t*)ret;
-  #endif
+#endif
 #endif // CONFIG_USE_MMAP
 }
 
@@ -215,6 +231,7 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
       raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pmp check failed");
+      assert(0);
       raise_read_access_fault(trap_type, vaddr);
     }
     return false;
@@ -224,6 +241,13 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  cpu.im_helper.mem_access_paddr = addr;
+  cpu.im_helper.mem_is_mmio = is_in_mmio(addr);
+#ifdef CONFIG_DEBUG_IDEAL_MODEL
+  // Logim("paddr: %lx mmio: %s", addr, cpu.im_helper.mem_is_mmio? "true" : "false");
+#endif
+#endif
 
   int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
@@ -254,7 +278,15 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
     // check if the address is misaligned
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
 #ifdef CONFIG_HAS_FLASH
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+    if (likely(is_in_mmio(addr))) {
+      /*do nothing*/
+      Logm("ideal model read paddr " FMT_PADDR " mmio do nothing\n", addr);
+      return 0u;
+    }
+#else
     if (likely(is_in_mmio(addr))) return mmio_read(addr, len);
+#endif
 #endif
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
@@ -332,6 +364,14 @@ void pmem_record_reset() {
 #endif // CONFIG_STORE_LOG
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  cpu.im_helper.mem_access_paddr = addr;
+  cpu.im_helper.mem_is_mmio = is_in_mmio(addr);
+#ifdef CONFIG_DEBUG_IDEAL_MODEL
+  // Logim("paddr: %lx mmio: %s", addr, cpu.im_helper.mem_is_mmio? "true" : "false");
+#endif
+#endif
+
   int cross_page_store = (mode & CROSS_PAGE_ST_FLAG) != 0;
   // get mode's original value
   mode = mode & ~CROSS_PAGE_ST_FLAG;
@@ -359,7 +399,14 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   } else {
     // check if the address is misaligned
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+    if (likely(is_in_mmio(addr))) {
+      /*do nothing*/
+      return;
+    }
+#else
     if (likely(is_in_mmio(addr))) mmio_write(addr, len, data);
+#endif
     else {
       if(dynamic_config.ignore_illegal_mem_access)
         return;
@@ -571,4 +618,10 @@ void dump_pmem() {
   fwrite(pmem, sizeof(char), MEMORY_SIZE, fp);
 }
 
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
 
+void fm_recover_pmem_write(paddr_t addr, int len, word_t data, int cross_page_store){
+  pmem_write(addr, len, data, cross_page_store);
+}
+
+#endif

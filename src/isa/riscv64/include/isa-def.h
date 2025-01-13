@@ -71,6 +71,18 @@ struct MemEventQueryResult {
 };
 #endif
 
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+struct IdealModelAnswerHelper{
+  bool mem_access_is_load;
+  bool mem_access_is_store;
+  bool mem_is_mmio;
+  bool runtime_exception_happen;
+  uint64_t mem_access_vaddr;
+  uint64_t mem_access_paddr;
+  word_t ex_cause_copy; 
+};
+#endif
+
 typedef struct TriggerModule TriggerModule;
 
 typedef struct {
@@ -166,6 +178,10 @@ typedef struct {
 #endif
 #ifdef CONFIG_RV_IMSIC
   bool virtualInterruptIsHvictlInject;
+#endif
+
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  struct IdealModelAnswerHelper im_helper;
 #endif
 
 } riscv64_CPU_state;

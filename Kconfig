@@ -382,3 +382,14 @@ config ENABLE_INSTR_CNT
   default n if DISABLE_INSTR_CNT
   default y
 endmenu
+
+menu "ideal-model"
+config ENABLE_IDEAL_MODEL
+  depends on SHARE
+  bool "ideal model for gem5 DSE"
+  default n
+config DEBUG_IDEAL_MODEL
+  depends on ENABLE_IDEAL_MODEL
+  bool "enable log for ideal_model"
+  default n
+endmenu

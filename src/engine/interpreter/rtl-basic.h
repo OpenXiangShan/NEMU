@@ -131,6 +131,11 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
   cpu.query_mem_event.mem_access_is_load = true;
   cpu.query_mem_event.mem_access_vaddr = *addr + offset;
 #endif
+
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // Assert(cpu.im_helper.mem_access_is_load, "instruction type error, want load\n");
+  cpu.im_helper.mem_access_vaddr = *addr + offset;
+#endif
 }
 
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
@@ -141,6 +146,11 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = false;
   cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+#endif
+
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // Assert(cpu.im_helper.mem_access_is_store, "instruction type error, want store\n");
+  cpu.im_helper.mem_access_vaddr = *addr + offset;
 #endif
 }
 
@@ -159,6 +169,11 @@ static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = true;
   cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+#endif
+
+#ifdef CONFIG_ENABLE_IDEAL_MODEL
+  // Assert(cpu.im_helper.mem_access_is_load, "instruction type error, want load\n");
+  cpu.im_helper.mem_access_vaddr = *addr + offset;
 #endif
 }
 
