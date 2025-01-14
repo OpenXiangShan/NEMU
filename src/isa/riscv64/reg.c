@@ -210,6 +210,11 @@ void isa_reg_display() {
     #endif // CONFIG_RVH
   #endif // CONFIG_RV_IMSIC
 
+   #ifdef CONFIG_RV_MBMC
+     DISPLAY_CSR("mbmc", mbmc->val);
+     printf("\n");
+   #endif
+
   #ifdef CONFIG_RV_PMP_CSR
     DISPLAY_HR("PMP CSRs");
     printf("pmp: %d entries active, details:\n", CONFIG_RV_PMP_ACTIVE_NUM);

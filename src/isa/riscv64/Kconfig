@@ -50,6 +50,13 @@ config MULTICORE_DIFF
   bool "(Beta) Enable multi-core difftest APIs for RISC-V"
   default false
 
+config RV_MBMC
+  bool "RISC-V MBMC (Memory-isolation BitMap Check) Register"
+  default n
+  help
+    This option enables the MBMC register, which is used to verify the memory
+    isolation of the Confidential Virtual Machine(CVM) using a bitmap.
+
 config RVB
   bool "RISC-V Bitmanip Extension v1.0"
   default y

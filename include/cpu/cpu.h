@@ -76,6 +76,9 @@ struct lightqs_reg_ss {
   uint64_t mstatus, mcause, mepc, sstatus, scause, sepc,
   satp, mip, mie, mscratch, sscratch, mideleg, medeleg,
   mtval, stval, mtvec, stvec;
+#ifdef CONFIG_RV_MBMC
+  uint64_t mbmc;
+#endif
 #ifdef CONFIG_RVV
   uint64_t vtype, vstart, vxsat, vxrm, vl;
 #endif // CONFIG_RVV
