@@ -282,8 +282,8 @@ void Serializer::serialize(uint64_t inst_count) {
 #endif
 }
 
-void Serializer::init(bool flash_store_checkpoint) {
-  this->flash_store_checkpoint = flash_store_checkpoint;
+void Serializer::init(bool store_cpt_in_flash) {
+  this->store_cpt_in_flash = store_cpt_in_flash;
 
   if  (checkpoint_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
@@ -384,8 +384,8 @@ uint64_t Serializer::next_index(){
 
 extern "C" {
 
-void init_serializer(bool flash_store_checkpoint) {
-  serializer.init(flash_store_checkpoint);
+void init_serializer(bool store_cpt_in_flash) {
+  serializer.init(store_cpt_in_flash);
 }
 
 bool try_take_cpt(uint64_t icount) {
