@@ -36,7 +36,7 @@ class Serializer
 
     explicit Serializer();
 
-    void init();
+    void init(bool store_cpt_in_flash);
 
     bool shouldTakeCpt(uint64_t num_insts);
     bool instrsCouldTakeCpt(uint64_t num_insts);
@@ -68,6 +68,7 @@ class Serializer
     const uint32_t MISCDoneFlag;
 
     bool regDumped{false};
+    bool store_cpt_in_flash{false};
 
     std::map<uint64_t, double> simpoint2Weights;
 
