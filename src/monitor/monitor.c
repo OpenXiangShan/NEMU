@@ -257,7 +257,6 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t-C,--config=CONFIG      running configuration\n");
 
         printf("\t-r,--cpt-restorer=R     binary of gcpt restorer\n");
-//        printf("\t--map-img-as-outcpt     map to image as output checkpoint, do not truncate it.\n"); //comming back soon
 
         printf("\t-S,--simpoint-dir=SIMPOINT_DIR        simpoints dir\n");
         printf("\t-u,--uniform-cpt        uniformly take cpt with fixed interval\n");
@@ -268,7 +267,6 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
         printf("\t--checkpoint-format=FORMAT            Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
         printf("\t--store-cpt-in-flash    Use this option to save the checkpoint to flash storage.\n");
-//        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
