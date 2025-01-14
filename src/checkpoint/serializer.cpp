@@ -278,7 +278,15 @@ void Serializer::serialize(uint64_t inst_count) {
 #ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
 
-  serialize_reg_base_addr = get_pmem();
+  if (store_cpt_in_flash) {
+#ifdef CONFIG_HAS_FLASH
+    serialize_reg_base_addr = get_flash_base();
+#else
+    assert(0);
+#endif
+  } else {
+    serialize_reg_base_addr = get_pmem();
+  }
   assert(serialize_reg_base_addr);
 
   serializeRegs(serialize_reg_base_addr);
