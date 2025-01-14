@@ -279,11 +279,8 @@ void Serializer::serialize(uint64_t inst_count) {
   uint8_t* serialize_reg_base_addr = NULL;
 
   if (store_cpt_in_flash) {
-#ifdef CONFIG_HAS_FLASH
-    serialize_reg_base_addr = get_flash_base();
-#else
-    assert(0);
-#endif
+    IFDEF(CONFIG_HAS_FLASH, serialize_reg_base_addr = get_flash_base());
+    IFNDEF(CONFIG_HAS_FLASH, Log("Please enable the flash device to activate the functionality of saving checkpoints to flash."); assert(0));
   } else {
     serialize_reg_base_addr = get_pmem();
   }
