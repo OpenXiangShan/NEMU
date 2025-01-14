@@ -69,6 +69,7 @@ uint8_t *get_pmem();
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
 uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
+#include <device/flash.h>
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
@@ -168,8 +169,8 @@ void Serializer::serializePMem(uint64_t inst_count) {}
 #ifdef CONFIG_MEM_COMPRESS
 extern void csr_writeback();
 
-void Serializer::serializeRegs() {
-  auto *intRegCpt = (uint64_t *) (get_pmem() + IntRegStartAddr);
+void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
+  auto *intRegCpt = (uint64_t *) (serialize_base_addr + IntRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(intRegCpt + i) = cpu.gpr[i]._64;
   }
@@ -177,7 +178,7 @@ void Serializer::serializeRegs() {
       INT_REG_CPT_ADDR + 32 * 8, IntRegStartAddr, IntRegStartAddr + 32 * 8);
 
 #ifndef CONFIG_FPU_NONE
-  auto *floatRegCpt = (uint64_t *)(get_pmem() + FloatRegStartAddr);
+  auto *floatRegCpt = (uint64_t *)(serialize_base_addr + FloatRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
   }
@@ -186,7 +187,7 @@ void Serializer::serializeRegs() {
 #endif  // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RVV
-  auto *vectorRegCpt = (uint64_t *) (get_pmem() + VecRegStartAddr);
+  auto *vectorRegCpt = (uint64_t *) (serialize_base_addr + VecRegStartAddr);
   for (unsigned i = 0; i < 32; i++) {
     for (unsigned j = 0; j < VENUM64; j++) {
       *(vectorRegCpt + (i * VENUM64) + j)=cpu.vr[i]._64[j];
@@ -199,13 +200,13 @@ void Serializer::serializeRegs() {
 #endif // CONFIG_RVV
 
 
-  auto *pc = (uint64_t *) (get_pmem() + PCAddr);
+  auto *pc = (uint64_t *) (serialize_base_addr + PCAddr);
   *pc = cpu.pc;
   Log("Writing PC: 0x%lx at addr 0x%x", cpu.pc, PC_CPT_ADDR);
 
 
   //  csr_writeback();
-  auto *csrCpt = (uint64_t *)(get_pmem() + CSRStartAddr);
+  auto *csrCpt = (uint64_t *)(serialize_base_addr + CSRStartAddr);
   //  Log("csrCpt: %p\n",csrCpt);
   //  Log("Mstatus: 0x%x", mstatus->val);
   //  Log("CSR array mstatus: 0x%x", csr_array[0x300]);
@@ -249,34 +250,40 @@ void Serializer::serializeRegs() {
       );
 
 
-  auto *flag = (uint64_t *)(get_pmem() + CptFlagAddr);
+  auto *flag = (uint64_t *)(serialize_base_addr + CptFlagAddr);
   *flag = CPT_MAGIC_BUMBER;
   Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAG_ADDR);
 
-  auto *mode_flag = (uint64_t *) (get_pmem() + MODEAddr);
+  auto *mode_flag = (uint64_t *) (serialize_base_addr + MODEAddr);
   *mode_flag = cpu.mode;
   Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, MODE_CPT_ADDR);
 
-  auto *mtime = (uint64_t *) (get_pmem() + MTIMEAddr);
+  auto *mtime = (uint64_t *) (serialize_base_addr + MTIMEAddr);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
   *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CPT_ADDR);
 
-  auto *mtime_cmp = (uint64_t *) (get_pmem() + MTIMECMPAddr);
+  auto *mtime_cmp = (uint64_t *) (serialize_base_addr + MTIMECMPAddr);
   *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CMP_CPT_ADDR);
 
   regDumped = true;
 }
 #else
-void Serializer::serializeRegs() {}
+void Serializer::serializeRegs(uint8_t* serialize_base_addr) { }
 #endif
 
 void Serializer::serialize(uint64_t inst_count) {
 
 #ifdef CONFIG_MEM_COMPRESS
-  serializeRegs();
+  uint8_t* serialize_reg_base_addr = NULL;
+
+  serialize_reg_base_addr = get_pmem();
+  assert(serialize_reg_base_addr);
+
+  serializeRegs(serialize_reg_base_addr);
   serializePMem(inst_count);
+
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
@@ -399,7 +406,7 @@ bool try_take_cpt(uint64_t icount) {
 }
 
 void serialize_reg_to_mem() {
-  serializer.serializeRegs();
+  serializer.serializeRegs(get_pmem());
 }
 
 }
