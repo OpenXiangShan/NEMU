@@ -62,8 +62,6 @@ uint8_t *get_pmem()
   return pmem;
 }
 
-char *mapped_cpt_file = NULL;
-
 #ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm(){
   return sparse_mm;

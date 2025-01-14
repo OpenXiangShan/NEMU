@@ -47,8 +47,6 @@ char *max_instr = NULL;
 static bool store_cpt_in_flash = false;
 char compress_file_format = 0; // default is gz
 
-extern char *mapped_cpt_file;  // defined in paddr.c
-extern bool map_image_as_output_cpt;
 extern char *reg_dump_file;
 extern char *mem_dump_file;
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
@@ -167,11 +165,6 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'r':
         restorer = optarg;
         break;
-      case 13: {
-        extern bool map_image_as_output_cpt;
-        map_image_as_output_cpt = true;
-        break;
-      }
 
       case 'S':
         assert(checkpoint_state == NoCheckpoint);
@@ -232,11 +225,6 @@ static inline int parse_args(int argc, char *argv[]) {
           panic("Cannot catch SIGINT!\n");
         }
         break;
-      case 10: { // map-cpt
-        mapped_cpt_file = optarg;
-        Log("Setting mapped_cpt_file to %s", mapped_cpt_file);
-        break;
-      }
 
       case 4: sscanf(optarg, "%d", &cpt_id); break;
 
@@ -317,11 +305,6 @@ void init_monitor(int argc, char *argv[]) {
 
   if (warmup_interval == 0) {
     warmup_interval = checkpoint_interval;
-  }
-
-  if (map_image_as_output_cpt) {
-    assert(!mapped_cpt_file);
-    mapped_cpt_file = img_file;
   }
 
   extern void init_path_manager();
