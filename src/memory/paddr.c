@@ -63,7 +63,6 @@ uint8_t *get_pmem()
 }
 
 char *mapped_cpt_file = NULL;
-bool map_image_as_output_cpt = false;
 
 #ifdef CONFIG_USE_SPARSEMM
 void * get_sparsemm(){
