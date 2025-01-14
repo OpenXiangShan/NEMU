@@ -281,6 +281,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--manual-oneshot-cpt    Manually take one-shot cpt by send signal.\n");
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
         printf("\t--checkpoint-format=FORMAT            Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
+        printf("\t--using-flash-store-checkpoint        Use this option to save the checkpoint to flash storage.\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
