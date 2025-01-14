@@ -102,7 +102,6 @@ static inline int parse_args(int argc, char *argv[]) {
 
     // restore cpt
     {"cpt-restorer"       , required_argument, NULL, 'r'},
-    {"map-img-as-outcpt"  , no_argument      , NULL, 13},
 
     // take cpt
     {"simpoint-dir"       , required_argument, NULL, 'S'},
@@ -112,7 +111,6 @@ static inline int parse_args(int argc, char *argv[]) {
     {"cpt-interval"       , required_argument, NULL, 5},
     {"warmup-interval"    , required_argument, NULL, 14},
     {"cpt-mmode"          , no_argument      , NULL, 7},
-    {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
     {"store-cpt-in-flash", no_argument, NULL, 17},
 
