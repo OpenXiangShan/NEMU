@@ -32,7 +32,7 @@ class Serializer
 
     void serializePMem(uint64_t inst_count);
 
-    void serializeRegs();
+    void serializeRegs(uint8_t* serialize_base_addr);
 
     explicit Serializer();
 
