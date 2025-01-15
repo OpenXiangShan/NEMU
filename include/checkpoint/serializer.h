@@ -30,7 +30,7 @@ class Serializer
   public:
     void serialize(uint64_t inst_count);
 
-    void serializePMem(uint64_t inst_count);
+    void serializePMem(uint64_t inst_count, uint8_t* pmem_addr, uint8_t* flash_addr);
 
     void serializeRegs(uint8_t* serialize_base_addr);
 
