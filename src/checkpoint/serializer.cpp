@@ -109,8 +109,8 @@ void Serializer::serializePMem(uint64_t inst_count) {
   if (compress_file_format == GZ_FORMAT) {
     Log("Using GZ format generate checkpoint");
     memory_file_path = base_file_path + "_memory_.gz";
-    gzFile memory_compressed_mem = gzopen(memory_file_path.c_str(), "wb");
-    if (memory_compressed_mem == nullptr) {
+    gzFile memory_compressed_file = gzopen(memory_file_path.c_str(), "wb");
+    if (memory_compressed_file == nullptr) {
       cerr << "Failed to open " << memory_file_path << endl;
       xpanic("Can't open physical memory checkpoint file!\n");
     } else {
@@ -124,13 +124,13 @@ void Serializer::serializePMem(uint64_t inst_count) {
                     ? numeric_limits<int>::max()
                     : ((int64_t)PMEM_SIZE - (int64_t)written);
 
-      if (gzwrite(memory_compressed_mem, pmem + written, (uint32_t)pass_size) != (int)pass_size) {
+      if (gzwrite(memory_compressed_file, pmem + written, (uint32_t)pass_size) != (int)pass_size) {
         xpanic("Write failed on physical memory checkpoint file\n");
       }
       Log("Written 0x%lx bytes\n", pass_size);
     }
 
-    if (gzclose(memory_compressed_mem)) {
+    if (gzclose(memory_compressed_file)) {
       xpanic("Close failed on physical checkpoint file\n");
     }
 
