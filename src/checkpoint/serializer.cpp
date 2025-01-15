@@ -124,7 +124,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
                     ? numeric_limits<int>::max()
                     : ((int64_t)PMEM_SIZE - (int64_t)written);
 
-      if (gzwrite(memory_compressed_mem, pmem_addr + written, (uint32_t)pass_size) != (int)pass_size) {
+      if (gzwrite(memory_compressed_mem, pmem + written, (uint32_t)pass_size) != (int)pass_size) {
         xpanic("Write failed on physical memory checkpoint file\n");
       }
       Log("Written 0x%lx bytes\n", pass_size);
@@ -150,7 +150,7 @@ void Serializer::serializePMem(uint64_t inst_count) {
 
 
     // compress flash device memory
-    size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem_addr, PMEM_SIZE, 1);
+    size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem, PMEM_SIZE, 1);
     assert(memory_compress_size <= memory_compress_buffer_size && memory_compress_size != 0);
     Log("pmem compress success, compress size %ld", memory_compress_size);
 
