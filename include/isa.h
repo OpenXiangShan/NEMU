@@ -93,6 +93,7 @@ void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec);
 void isa_update_mtopi();
 void isa_update_stopi();
 void isa_update_vstopi();
+void isa_update_hgeip();
 #endif
 void isa_sync_custom_mflushpwr(bool l2FlushDone);
 

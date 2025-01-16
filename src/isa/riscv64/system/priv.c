@@ -471,6 +471,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
 #define HIE_WMASK     HSI_MASK
+#define HGEIE_MASK    ((1ULL << (1 + MUXDEF(CONFIG_GEILEN, CONFIG_GEILEN, 0))) - 2) // bit 0 is read-only zero
+#define HGEIP_MASK    HGEIE_MASK
 #define HIDELEG_MASK  (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0))
 #define HEDELEG_MASK  ((1 << EX_IAM) | \
                        (1 << EX_IAF) | \
@@ -1254,7 +1256,7 @@ inline void update_vstopi() {
   vsip_t read_vsip = (vsip_t)get_vsip();
   vsie_t read_vsie = (vsie_t)get_vsie();
 
-  bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.xtopei.vstopei != 0);
+  bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.fromaia.vstopei != 0);
   bool candidate2 = read_vsip.seip && read_vsie.seie && (hstatus->vgein == 0) && (hvictl->iid == 9) && (hvictl->iprio != 0);
   bool candidate3 = read_vsip.seip && read_vsie.seie && !candidate1 && !candidate2;
   bool candidate4 = !hvictl->vti && (read_vsie.val & read_vsip.val & 0xfffffffffffffdff);
@@ -1275,7 +1277,7 @@ inline void update_vstopi() {
   uint16_t iprio_candidate45 = 0;
 
   if (candidate1) {
-    vstopei_t* vstopei_tmp = (vstopei_t*)cpu.xtopei.vstopei;
+    vstopei_t* vstopei_tmp = (vstopei_t*)cpu.fromaia.vstopei;
     iprio_candidate123 = vstopei_tmp->iprio;
   } else if (candidate2) {
     iprio_candidate123 = hvictl->iprio;
@@ -1420,8 +1422,8 @@ static word_t csr_read(uint32_t csrid) {
       if (cpu.v) return vstopi->val;
       return stopi->val;
     case CSR_STOPEI:
-      if (cpu.v) return cpu.xtopei.vstopei;
-      return cpu.xtopei.stopei;
+      if (cpu.v) return cpu.fromaia.vstopei;
+      return cpu.fromaia.stopei;
     case CSR_SIREG:
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1444,7 +1446,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HEDELEG: return hedeleg->val & HEDELEG_MASK;
     case CSR_HIDELEG: return get_hideleg();
     case CSR_HIE: return get_hie();
-    case CSR_HGEIE: return hgeie->val & ~(0x1UL);
+    case CSR_HGEIE: return hgeie->val & HGEIE_MASK;
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: return hvien->val & HVIEN_MSAK;
 #endif
@@ -1462,9 +1464,9 @@ static word_t csr_read(uint32_t csrid) {
 
     case CSR_HIP: return get_hip();
     case CSR_HVIP: return hvip->val & HVIP_MASK;
-    case CSR_HGEIP: return hgeip->val & ~(0x1UL);
+    case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
-    case CSR_VSTOPEI: return cpu.xtopei.vstopei;
+    case CSR_VSTOPEI: return cpu.fromaia.vstopei;
     case CSR_VSIREG:
     {
       bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1483,7 +1485,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPEI: return cpu.xtopei.mtopei;
+    case CSR_MTOPEI: return cpu.fromaia.mtopei;
     case CSR_MIREG:
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
@@ -2320,6 +2322,14 @@ static bool aia_extension_permit_check(const word_t *dest_access, bool is_write)
   bool has_vi = false;
   if (is_access(stopei)) {
     if (!cpu.v && (cpu.mode == MODE_S) && mvien->seie) {
+      longjmp_exception(EX_II);
+    }
+    else if (cpu.v && (cpu.mode == MODE_S) && (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN)) {
+      has_vi = true;
+    }
+  }
+  if (is_access(vstopei)) {
+    if ((cpu.mode == MODE_M || (!cpu.v && cpu.mode == MODE_S)) && (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN)) {
       longjmp_exception(EX_II);
     }
   }

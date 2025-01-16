@@ -441,6 +441,10 @@ void isa_update_stopi() {
 void isa_update_vstopi() {
   update_vstopi();
 }
+
+void isa_update_hgeip() {
+  hgeip->val = cpu.fromaia.hgeip;
+}
 #endif
 
 void isa_sync_custom_mflushpwr(bool l2FlushDone) {
