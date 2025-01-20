@@ -1,5 +1,5 @@
 /***************************************************************************************
-* Copyright (c) 2014-2021 Zihao Yu, Nanjing University
+* Copyright (c) 2020-2025 Institute of Computing Technology, Chinese Academy of Sciences
 *
 * NEMU is licensed under Mulan PSL v2.
 * You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -13,14 +13,14 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifndef __DEVICE_MMIO_H__
-#define __DEVICE_MMIO_H__
+#include "cpu/decode.h"
 
-#include <common.h>
+void cbo_zero(Decode *s);
+void cbo_inval(Decode *s);
+void cbo_flush(Decode *s);
+void cbo_clean(Decode *s);
 
-bool mmio_is_real_device(paddr_t addr);
-word_t mmio_read(paddr_t addr, int len);
-void mmio_write(paddr_t addr, int len, word_t data);
-bool is_in_mmio(paddr_t addr);
-
-#endif
+void cbo_zero_mmu(Decode *s);
+void cbo_inval_mmu(Decode *s);
+void cbo_flush_mmu(Decode *s);
+void cbo_clean_mmu(Decode *s);
