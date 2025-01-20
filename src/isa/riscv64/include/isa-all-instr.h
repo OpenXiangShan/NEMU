@@ -147,7 +147,8 @@
 
 #ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \
-  f(cbo_zero) f(cbo_zero_mmu) f(cbo_inval) f(cbo_flush) f(cbo_clean)
+  f(cbo_zero) f(cbo_inval) f(cbo_flush) f(cbo_clean) \
+  f(cbo_zero_mmu) f(cbo_inval_mmu) f(cbo_flush_mmu) f(cbo_clean_mmu)
 #else // CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f)
 #endif // CONFIG_RV_CBO

@@ -13,14 +13,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "cbo_impl.h"
 #include <common.h>
-
-#define CACHE_BLOCK_SHIFT        6
-#define CACHE_BLOCK_SIZE         (1UL << CACHE_BLOCK_SHIFT)
-#define CACHE_BLOCK_MASK         (CACHE_BLOCK_SIZE - 1)
-
-#define CACHE_OP_SPLIT_SIZE      8
-#define CACHE_BLOCK_OPS          (CACHE_BLOCK_SIZE / CACHE_OP_SPLIT_SIZE)
 
 def_EHelper(cbo_zero) {
   // check illegal instruction exception
@@ -30,30 +24,7 @@ def_EHelper(cbo_zero) {
     longjmp_exception(EX_VI);
   }
 
-  rtlreg_t* addr_p = dsrc1;
-  rtlreg_t  block_addr = *addr_p & ~CACHE_BLOCK_MASK;
-  for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
-    // write zero to block_addr
-    rtl_sm(s, rz, &block_addr, 0, CACHE_OP_SPLIT_SIZE, MMU_DIRECT);
-    block_addr += CACHE_OP_SPLIT_SIZE;
-  }
-}
-
-def_EHelper(cbo_zero_mmu) {
-  // check illegal instruction exception
-  if((cpu.mode != MODE_M && !menvcfg->cbze) || (!cpu.v && cpu.mode == MODE_U && !senvcfg->cbze)){
-    longjmp_exception(EX_II);
-  } else if(cpu.v && ((cpu.mode == MODE_S && !henvcfg->cbze) || (cpu.mode == MODE_U && !(henvcfg->cbze && senvcfg->cbze)))){
-    longjmp_exception(EX_VI);
-  }
-  
-  rtlreg_t* addr_p = dsrc1;
-  rtlreg_t  block_addr = *addr_p & ~CACHE_BLOCK_MASK;
-  for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
-    // write zero to block_addr
-    rtl_sm(s, rz, &block_addr, 0, CACHE_OP_SPLIT_SIZE, MMU_TRANSLATE);
-    block_addr += CACHE_OP_SPLIT_SIZE;
-  }
+  cbo_zero(s);
 }
 
 def_EHelper(cbo_inval) {
@@ -63,8 +34,8 @@ def_EHelper(cbo_inval) {
   } else if(cpu.v && ((cpu.mode == MODE_S && henvcfg->cbie == 0) || (cpu.mode == MODE_U && (henvcfg->cbie == 0 || senvcfg->cbie == 0)))){
     longjmp_exception(EX_VI);
   }
-  // do nothing
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+
+  cbo_inval(s);
 }
 
 def_EHelper(cbo_flush) {
@@ -74,8 +45,8 @@ def_EHelper(cbo_flush) {
   } else if(cpu.v && ((cpu.mode == MODE_S && !henvcfg->cbcfe) || (cpu.mode == MODE_U && !(henvcfg->cbcfe && senvcfg->cbcfe)))){
     longjmp_exception(EX_VI);
   }
-  // do nothing
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+
+  cbo_flush(s);
 }
 
 def_EHelper(cbo_clean) {
@@ -85,6 +56,54 @@ def_EHelper(cbo_clean) {
   } else if(cpu.v && ((cpu.mode == MODE_S && !henvcfg->cbcfe) || (cpu.mode == MODE_U && !(henvcfg->cbcfe && senvcfg->cbcfe)))){
     longjmp_exception(EX_VI);
   }
-  // do nothing
-  IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
+
+  cbo_clean(s);
+}
+
+/*
+ * MMU Pattern
+ */
+
+def_EHelper(cbo_zero_mmu) {
+  // check illegal instruction exception
+  if((cpu.mode != MODE_M && !menvcfg->cbze) || (!cpu.v && cpu.mode == MODE_U && !senvcfg->cbze)){
+    longjmp_exception(EX_II);
+  } else if(cpu.v && ((cpu.mode == MODE_S && !henvcfg->cbze) || (cpu.mode == MODE_U && !(henvcfg->cbze && senvcfg->cbze)))){
+    longjmp_exception(EX_VI);
+  }
+
+  cbo_zero_mmu(s);
+}
+
+def_EHelper(cbo_inval_mmu) {
+  // check illegal instruction exception
+  if((cpu.mode != MODE_M && menvcfg->cbie == 0) || (!cpu.v && cpu.mode == MODE_U && senvcfg->cbie == 0)){
+    longjmp_exception(EX_II);
+  } else if(cpu.v && ((cpu.mode == MODE_S && henvcfg->cbie == 0) || (cpu.mode == MODE_U && (henvcfg->cbie == 0 || senvcfg->cbie == 0)))){
+    longjmp_exception(EX_VI);
+  }
+
+  cbo_inval_mmu(s);
+}
+
+def_EHelper(cbo_flush_mmu) {
+  // check illegal instruction exception
+  if((cpu.mode != MODE_M && !menvcfg->cbcfe) || (!cpu.v && cpu.mode == MODE_U && !senvcfg->cbcfe)){
+    longjmp_exception(EX_II);
+  } else if(cpu.v && ((cpu.mode == MODE_S && !henvcfg->cbcfe) || (cpu.mode == MODE_U && !(henvcfg->cbcfe && senvcfg->cbcfe)))){
+    longjmp_exception(EX_VI);
+  }
+
+  cbo_flush_mmu(s);
+}
+
+def_EHelper(cbo_clean_mmu) {
+  // check illegal instruction exception
+  if((cpu.mode != MODE_M && !menvcfg->cbcfe) || (!cpu.v && cpu.mode == MODE_U && !senvcfg->cbcfe)){
+    longjmp_exception(EX_II);
+  } else if(cpu.v && ((cpu.mode == MODE_S && !henvcfg->cbcfe) || (cpu.mode == MODE_U && !(henvcfg->cbcfe && senvcfg->cbcfe)))){
+    longjmp_exception(EX_VI);
+  }
+
+  cbo_clean_mmu(s);
 }

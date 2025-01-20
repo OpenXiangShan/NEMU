@@ -26,8 +26,6 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
-bool is_in_mmio(paddr_t addr);
-
 unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 unsigned int PMEM_HARTID = 0;
 
