@@ -53,17 +53,25 @@ MAP(RVH_ST_INST_LIST, def_hst_template)
 #else
 #define SYS_MNINSTR_LIST(f)
 #endif
+#ifdef CONFIG_RV_ZAWRS
+#define SYS_ZAWRS_LIST(f) \
+  f(wrs_nto) f(wrs_sto)
+#else
+#define SYS_ZAWRS_LIST(f)
+#endif
 
 #ifdef CONFIG_RV_SVINVAL
 #define SYS_INSTR_LIST(f) \
   f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
   f(ecall)  f(ebreak) f(mret)  f(sret)  f(sfence_vma) f(wfi) \
   SYS_MNINSTR_LIST(f)   \
+  SYS_ZAWRS_LIST(f) \
   f(sfence_w_inval) f(sfence_inval_ir) f(sinval_vma)
 #else
 #define SYS_INSTR_LIST(f) \
   f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
   SYS_MNINSTR_LIST(f)       \
+  SYS_ZAWRS_LIST(f) \
   f(ecall)  f(ebreak) f(mret)  f(sret)  f(sfence_vma) f(wfi)
 #endif
 
