@@ -100,24 +100,32 @@ void init_trigger() {
 
 #ifdef CONFIG_RV_IMSIC
 void init_iprio() {
+  cpu.external_interrupt_select = false;
   cpu.MIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
   cpu.SIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
   cpu.VSIprios = (IpriosModule*) malloc(sizeof (IpriosModule));
+  cpu.MIprios_rdata  = (IpriosModule*) malloc(sizeof (IpriosModule));
+  cpu.SIprios_rdata  = (IpriosModule*) malloc(sizeof (IpriosModule));
   cpu.MIpriosSort  = (IpriosSort*) malloc(sizeof (IpriosSort));
   cpu.SIpriosSort  = (IpriosSort*) malloc(sizeof (IpriosSort));
   cpu.VSIpriosSort = (IpriosSort*) malloc(sizeof (IpriosSort));
-  cpu.HighestPrioIntr = (HighestPrioIntr*) malloc(sizeof (HighestPrioIntr));
-  cpu.HighestPrioIntr->idx = 0;
-  cpu.HighestPrioIntr->priority = 0;
   for (int i = 0; i < IPRIO_NUM; i++) {
     cpu.MIprios->iprios[i].val = 0;
     cpu.SIprios->iprios[i].val = 0;
     cpu.VSIprios->iprios[i].val = 0;
+    cpu.MIprios_rdata->iprios[i].val = 0;
+    cpu.SIprios_rdata->iprios[i].val = 0;
   }
   for (int i = 0; i < IPRIO_ENABLE_NUM; i++) {
     cpu.MIpriosSort->ipriosEnable[i].enable = false;
     cpu.SIpriosSort->ipriosEnable[i].enable = false;
     cpu.VSIpriosSort->ipriosEnable[i].enable = false;
+    cpu.MIpriosSort->ipriosEnable[i].isZero = false;
+    cpu.SIpriosSort->ipriosEnable[i].isZero = false;
+    cpu.VSIpriosSort->ipriosEnable[i].isZero = false;
+    cpu.MIpriosSort->ipriosEnable[i].greaterThan255 = false;
+    cpu.SIpriosSort->ipriosEnable[i].greaterThan255 = false;
+    cpu.VSIpriosSort->ipriosEnable[i].greaterThan255 = false;
     cpu.MIpriosSort->ipriosEnable[i].priority = 0;
     cpu.SIpriosSort->ipriosEnable[i].priority = 0;
     cpu.VSIpriosSort->ipriosEnable[i].priority = 0;
@@ -984,9 +992,9 @@ inline word_t get_mip() {
 
 #ifdef CONFIG_RV_AIA
   if (mvien->seie) {
-    tmp |= cpu.non_reg_interrupt_pending.platform_irp_seip << 9;
+    tmp |= (cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
   } else {
-    tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip) << 9;
+    tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
   }
 #else
   tmp |= mip->val & MIP_SEIP;
@@ -994,7 +1002,7 @@ inline word_t get_mip() {
 
   IFDEF(CONFIG_RVH, tmp |= (hvip->vseip | cpu.non_reg_interrupt_pending.platform_irp_vseip) << 10);
 
-  tmp |= cpu.non_reg_interrupt_pending.platform_irp_meip << 11;
+  tmp |= (cpu.non_reg_interrupt_pending.platform_irp_meip | cpu.non_reg_interrupt_pending.from_aia_meip) << 11;
 
   IFDEF(CONFIG_RVH, tmp |= ((hgeip->val & hgeie->val) != 0) << 12);
 
@@ -1181,15 +1189,55 @@ static inline void update_counter_mcountinhibit(word_t old, word_t new) {
 }
 
 #ifdef CONFIG_RV_IMSIC
+static inline void update_miprios() {
+  // For a given interrupt number, if the corresponding bit in mie is read-only zero,
+  // then the interrupt’s priority number in the iprio array must be read-only zero as well.
+  // The priority number for a machine-level external interrupt (bits 31:24 of register iprio2) must also be read-only zero.
+  cpu.MIprios->iprios[1].val = cpu.MIprios->iprios[1].val & 0xffffffff00ffffff;
+  for (int i = 0; i < IPRIO_NUM; i++) {
+    uint64_t mask = 0;
+    for (int j = 0; j < 8; j++) {
+      uint64_t tmp = BITS(mie->val, 8*i+j, 8*i+j);
+      mask |= (tmp * 0xffULL) << (8*j);
+    }
+    cpu.MIprios_rdata->iprios[i].val = cpu.MIprios->iprios[i].val & mask;
+  }
+}
+#endif
+
+#ifdef CONFIG_RV_IMSIC
+static inline void update_siprios() {
+  // For a given interrupt number, if the corresponding bit in sie is read-only zero,
+  // then the interrupt’s priority number in the supervisor-level iprio array must be read-only zero as well.
+  // The priority number for a supervisor-level external interrupt (bits 15:8 of iprio2) must also be read-only zero.
+  cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff00ff;
+  for (int i = 0; i < IPRIO_NUM; i++) {
+    uint64_t mask = 0;
+    for (int j = 0; j < 8; j++) {
+      uint64_t read_sie = non_vmode_get_sie();
+      uint64_t tmp = BITS(read_sie, 8*i+j, 8*i+j);
+      mask |= (tmp * 0xff) << (8*j);
+    }
+    cpu.SIprios_rdata->iprios[i].val = cpu.SIprios->iprios[i].val & mask;
+  }
+}
+#endif
+
+#ifdef CONFIG_RV_IMSIC
 inline void update_mtopi() {
-  bool miprios_is_zero = iprio_is_zero(cpu.MIprios);
+  update_miprios();
+
+  bool miprios_is_zero = iprio_is_zero(cpu.MIprios_rdata);
   uint64_t mtopi_gather = get_mip() & mie->val & (~(mideleg->val));
   bool mtopi_is_not_zero = mtopi_gather != 0;
 
-  set_iprios_sort(mtopi_gather, cpu.MIpriosSort, cpu.MIprios);
+  set_iprios_sort(mtopi_gather, cpu.MIpriosSort, cpu.MIprios_rdata, IRQ_MEIP, (mtopei_t*)&cpu.fromaia.mtopei);
+
   uint8_t m_iid_idx = high_iprio(cpu.MIpriosSort, IRQ_MEIP);
   uint8_t m_iid_num = interrupt_default_prio[m_iid_idx];
   uint8_t m_prio_num = cpu.MIpriosSort->ipriosEnable[m_iid_idx].priority;
+  bool m_prio_greater_255 = cpu.MIpriosSort->ipriosEnable[m_iid_idx].greaterThan255;
+  bool m_prio_is_zero = cpu.MIpriosSort->ipriosEnable[m_iid_idx].isZero;
 
   bool m_iid_default_prio_high_MEI = m_iid_idx < get_prio_idx_in_group(IRQ_MEIP);
   bool m_iid_default_prio_low_MEI = m_iid_idx > get_prio_idx_in_group(IRQ_MEIP);
@@ -1199,12 +1247,12 @@ inline void update_mtopi() {
     if (miprios_is_zero) {
       mtopi->iprio = 1;
     } else {
-      if ((m_prio_num >= 1) && (m_prio_num <= 255)) {
-        mtopi->iprio = m_prio_num;
-      } else if ((m_prio_num > 255) || ((m_prio_num == 0) && (m_iid_default_prio_low_MEI))) {
+      if (m_prio_greater_255 || (m_prio_is_zero && m_iid_default_prio_low_MEI)) {
         mtopi->iprio = 255;
-      } else if ((m_prio_num == 0) && m_iid_default_prio_high_MEI) {
+      } else if (m_prio_is_zero && m_iid_default_prio_high_MEI) {
         mtopi->iprio = 0;
+      } else if ((m_prio_num >= 1) && (m_prio_num <= 255)) {
+        mtopi->iprio = m_prio_num;
       }
     }
   } else {
@@ -1215,7 +1263,9 @@ inline void update_mtopi() {
 
 #ifdef CONFIG_RV_IMSIC
 inline void update_stopi() {
-  bool siprios_is_zero = iprio_is_zero(cpu.SIprios);
+  update_siprios();
+
+  bool siprios_is_zero = iprio_is_zero(cpu.SIprios_rdata);
   hip_t read_hip = (hip_t)get_hip();
   sip_t read_sip = (sip_t)non_vmode_get_sip();
   hie_t read_hie = (hie_t)get_hie();
@@ -1223,11 +1273,14 @@ inline void update_stopi() {
 
   uint64_t stopi_gather = (read_hip.val | read_sip.val) & (read_hie.val | read_sie.val) & (~(get_hideleg()));
   bool stopi_is_not_zero = stopi_gather != 0;
-  set_iprios_sort(stopi_gather, cpu.SIpriosSort, cpu.SIprios);
+
+  set_iprios_sort(stopi_gather, cpu.SIpriosSort, cpu.SIprios_rdata, IRQ_SEIP, (mtopei_t*)&cpu.fromaia.stopei);
 
   uint8_t s_iid_idx = high_iprio(cpu.SIpriosSort, IRQ_SEIP);
   uint8_t s_iid_num = interrupt_default_prio[s_iid_idx];
   uint8_t s_prio_num = cpu.SIpriosSort->ipriosEnable[s_iid_idx].priority;
+  bool s_prio_greater_255 = cpu.SIpriosSort->ipriosEnable[s_iid_idx].greaterThan255;
+  bool s_prio_is_zero = cpu.SIpriosSort->ipriosEnable[s_iid_idx].isZero;
 
   bool s_iid_default_prio_high_SEI = s_iid_idx < get_prio_idx_in_group(IRQ_SEIP);
   bool s_iid_default_prio_low_SEI = s_iid_idx > get_prio_idx_in_group(IRQ_SEIP);
@@ -1237,12 +1290,12 @@ inline void update_stopi() {
     if (siprios_is_zero) {
       stopi->iprio = 1;
     } else {
-      if ((s_prio_num >= 1) && (s_prio_num <= 255)) {
-        stopi->iprio = s_prio_num;
-      } else if ((s_prio_num > 255) || ((s_prio_num == 0) && (s_iid_default_prio_low_SEI))) {
+      if (s_prio_greater_255 || (s_prio_is_zero && s_iid_default_prio_low_SEI)) {
         stopi->iprio = 255;
-      } else if ((s_prio_num == 0) && s_iid_default_prio_high_SEI) {
+      } else if (s_prio_is_zero && s_iid_default_prio_high_SEI) {
         stopi->iprio = 0;
+      } else if ((s_prio_num >= 1) && (s_prio_num <= 255)) {
+        stopi->iprio = s_prio_num;
       }
     }
   } else {
@@ -1264,7 +1317,6 @@ inline void update_vstopi() {
   bool candidate_no_valid = !candidate1 && !candidate2 && !candidate3 && !candidate4 && !candidate5;
 
   uint64_t vstopi_gather = get_vsip() & get_vsie();
-  set_iprios_sort(vstopi_gather, cpu.VSIpriosSort, cpu.VSIprios);
   set_viprios_sort(vstopi_gather);
 
   uint8_t vs_iid_idx = high_iprio(cpu.VSIpriosSort, IRQ_VSEIP);
@@ -1428,7 +1480,7 @@ static word_t csr_read(uint32_t csrid) {
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
       if (siselect_is_major_ip) {
-        return cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
+        return cpu.SIprios_rdata->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
       }
       return 0;
     }
@@ -1471,7 +1523,7 @@ static word_t csr_read(uint32_t csrid) {
     {
       bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
       if (vsiselect_is_major_ip) {
-        return cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
+        return cpu.SIprios_rdata->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
       }
       return 0;
     }
@@ -1490,7 +1542,7 @@ static word_t csr_read(uint32_t csrid) {
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
       if (miselect_is_major_ip) {
-        return cpu.MIprios->iprios[(miselect->val - ISELECT_2F_MASK - 1) >> 1].val;
+        return cpu.MIprios_rdata->iprios[(miselect->val - ISELECT_2F_MASK - 1) >> 1].val;
       }
       return 0;
     }
@@ -1780,6 +1832,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (cpu.v) { break; }
       if (iselect_is_major_ip(siselect->val)) {
         cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val = src;
+        update_siprios();
       }
       break;
     }
@@ -2160,6 +2213,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       if (iselect_is_major_ip(miselect->val)) {
         cpu.MIprios->iprios[(miselect->val - ISELECT_2F_MASK - 1) >> 1].val = src;
+        update_miprios();
       }
       break;
     }
@@ -2207,6 +2261,10 @@ static void csr_write(uint32_t csrid, word_t src) {
     update_mtopi();
     update_stopi();
     update_vstopi();
+  }
+  if (is_write(mie) || is_write(sie) || is_write(vsie)) {
+    update_miprios();
+    update_siprios();
   }
 #endif
 }

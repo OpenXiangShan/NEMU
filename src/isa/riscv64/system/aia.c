@@ -57,13 +57,23 @@ bool intr_enable(uint64_t topi_gather, uint64_t idx) {
   return (topi_gather >> interrupt_default_prio[idx]) & 0x1;
 }
 
-void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule* iprios) {
+void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule* iprios, uint8_t xei, mtopei_t* xtopei) {
   for (int i = 0; i < IPRIO_ENABLE_NUM; i++) {
     if (intr_enable(topi_gather, i)) {
       iprios_sort->ipriosEnable[i].enable = true;
-      iprios_sort->ipriosEnable[i].priority = (iprios->iprios[interrupt_default_prio[i]/8].val >> (8 * (interrupt_default_prio[i]%8))) & 0xff;
+      if (interrupt_default_prio[i] == xei) {
+        iprios_sort->ipriosEnable[i].isZero = !cpu.external_interrupt_select;
+        iprios_sort->ipriosEnable[i].greaterThan255 = xtopei->iprio > 255;
+        iprios_sort->ipriosEnable[i].priority = xtopei->iprio & 0xff;
+      } else {
+        iprios_sort->ipriosEnable[i].isZero = ((iprios->iprios[interrupt_default_prio[i]/8].val >> (8 * (interrupt_default_prio[i]%8))) & 0xff) == 0;
+        iprios_sort->ipriosEnable[i].greaterThan255 = false;
+        iprios_sort->ipriosEnable[i].priority = (iprios->iprios[interrupt_default_prio[i]/8].val >> (8 * (interrupt_default_prio[i]%8))) & 0xff;
+      }
     } else {
       iprios_sort->ipriosEnable[i].enable = false;
+      iprios_sort->ipriosEnable[i].isZero = false;
+      iprios_sort->ipriosEnable[i].greaterThan255 = false;
       iprios_sort->ipriosEnable[i].priority = 0;
     }
   }
@@ -72,7 +82,7 @@ void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule
 void handle_irq_hviprio(uint8_t irq, uint64_t topi, uint8_t priority) {
   word_t idx = get_prio_idx_in_group(irq);
   if (intr_enable(topi, idx)) {
-    cpu.VSIpriosSort->ipriosEnable[idx].enable = true;
+    cpu.VSIpriosSort->ipriosEnable[idx].isZero = priority == 0;
     cpu.VSIpriosSort->ipriosEnable[idx].priority = priority;
   }
 }
@@ -93,6 +103,15 @@ void set_hviprios(Hviprios hprios) {
 }
 
 void set_viprios_sort(uint64_t topi_gather) {
+  for (int i = 0; i < IPRIO_ENABLE_NUM; i++) {
+    if (intr_enable(topi_gather, i)) {
+      cpu.VSIpriosSort->ipriosEnable[i].enable = true;
+      cpu.VSIpriosSort->ipriosEnable[i].isZero = true;
+    } else {
+      cpu.VSIpriosSort->ipriosEnable[i].enable = false;
+    }
+  }
+
   Hviprios hviprios;
   for (int i = 0; i < 24; i++) {
     hviprios.hviprios[i] = 0;
@@ -105,47 +124,57 @@ void set_viprios_sort(uint64_t topi_gather) {
 }
 
 uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei) {
-  uint8_t high_prio_idx = cpu.HighestPrioIntr->idx;
+  uint8_t high_prio_idx = 0;
 
   for (int i = 1; i < IPRIO_ENABLE_NUM; i ++) {
+    // enable
     bool left_enable  = ipriosSort->ipriosEnable[high_prio_idx].enable;
     bool right_enable = ipriosSort->ipriosEnable[i].enable;
 
     bool left_disenable = !left_enable;
 
-    uint8_t left_priority = ipriosSort->ipriosEnable[high_prio_idx].priority;
-    uint8_t right_priority = ipriosSort->ipriosEnable[i].priority;
+    // zero
+    bool left_prio_is_zero = ipriosSort->ipriosEnable[high_prio_idx].isZero;
+    bool right_prio_is_zero = ipriosSort->ipriosEnable[i].isZero;
 
-    bool left_priority_is_zero = left_priority == 0;
-    bool right_priority_is_zero = right_priority == 0;
+    bool left_prio_is_not_zero = !left_prio_is_zero;
+    bool right_prio_is_not_zero = !right_prio_is_zero;
 
-    bool left_priority_is_not_zero = !left_priority_is_zero;
-    bool right_priority_is_not_zero = !right_priority_is_zero;
+    // idx
+    bool left_idx_leq_xei = high_prio_idx <= get_prio_idx_in_group(xei);
+    bool right_idx_leq_xei = i <= get_prio_idx_in_group(xei);
 
-    bool left_leq_xei = high_prio_idx <= get_prio_idx_in_group(xei);
-    bool right_leq_xei = i <= get_prio_idx_in_group(xei);
+    bool left_idx_greater_xei = !left_idx_leq_xei;
 
-    bool left_great_xei = !left_leq_xei;
+    // greater than 255
+    bool left_prio_greater_255 = ipriosSort->ipriosEnable[high_prio_idx].greaterThan255;
+    bool right_prio_greater_255 = ipriosSort->ipriosEnable[i].greaterThan255;
 
-    bool left_leq_right = left_priority <= right_priority;
-    bool left_great_right = !left_leq_right;
+    bool left_prio_leq_255 = !left_prio_greater_255;
+    bool right_prio_leq_255 = !right_prio_greater_255;
 
-    if (left_disenable && right_enable) {
+    // priority
+    uint8_t left_prio = ipriosSort->ipriosEnable[high_prio_idx].priority;
+    uint8_t right_prio = ipriosSort->ipriosEnable[i].priority;
+
+    bool left_prio_leq_right_prio = left_prio <= right_prio;
+    bool left_prio_greater_right_prio = !left_prio_leq_right_prio;
+
+    if ((left_disenable && right_enable) ||
+      (left_enable && right_enable &&
+        (
+          (left_prio_is_zero && right_prio_is_not_zero && left_idx_greater_xei) ||
+          (left_prio_is_not_zero && right_prio_is_zero && right_idx_leq_xei) ||
+          (left_prio_is_not_zero && right_prio_is_not_zero &&
+            (
+              (left_prio_greater_255 && right_prio_leq_255) ||
+              (left_prio_leq_255 && right_prio_leq_255 && left_prio_greater_right_prio)
+            )
+          )
+        )
+      )
+    ) {
       high_prio_idx = i;
-    } else if (left_enable && right_enable) {
-      if (left_priority_is_zero && right_priority_is_not_zero) {
-        if (left_great_xei || right_leq_xei) {
-          high_prio_idx = i;
-        }
-      } else if (left_priority_is_not_zero && right_priority_is_zero) {
-        if (left_great_xei && right_leq_xei) {
-          high_prio_idx = i;
-        }
-      } else if (left_priority_is_not_zero && right_priority_is_not_zero) {
-        if (left_great_right) {
-          high_prio_idx = i;
-        }
-      }
     }
   }
 
