@@ -259,6 +259,10 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
+  if (cpu.non_reg_interrupt_pending.platform_irp_meip || cpu.non_reg_interrupt_pending.from_aia_meip ||
+      cpu.non_reg_interrupt_pending.platform_irp_seip || cpu.non_reg_interrupt_pending.from_aia_seip) {
+    isa_update_external_interrupt_select();
+  }
   isa_update_mtopi();
   isa_update_stopi();
   isa_update_vstopi();

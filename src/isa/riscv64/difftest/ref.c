@@ -430,6 +430,14 @@ void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec) {
 }
 
 #ifdef CONFIG_RV_IMSIC
+void isa_update_external_interrupt_select() {
+  if (cpu.non_reg_interrupt_pending.from_aia_meip || cpu.non_reg_interrupt_pending.from_aia_seip) {
+    cpu.external_interrupt_select = true;
+  } else {
+    cpu.external_interrupt_select = false;
+  }
+}
+
 void isa_update_mtopi() {
   update_mtopi();
 }

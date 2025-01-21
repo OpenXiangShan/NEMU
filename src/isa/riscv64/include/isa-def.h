@@ -50,6 +50,8 @@ struct NonRegInterruptPending {
   bool platform_irp_stip;
   bool platform_irp_vseip;
   bool platform_irp_vstip;
+  bool from_aia_meip;
+  bool from_aia_seip;
   bool lcofi_req;
 };
 
@@ -82,7 +84,6 @@ struct MemEventQueryResult {
 typedef struct TriggerModule TriggerModule;
 typedef struct IpriosModule IpriosModule;
 typedef struct IpriosSort IpriosSort;
-typedef struct HighestPrioIntr HighestPrioIntr;
 
 typedef struct {
   // Below will be synced by regcpy when run difftest, DO NOT TOUCH
@@ -187,12 +188,14 @@ typedef struct {
 #ifdef CONFIG_RV_IMSIC
   struct FromAIA fromaia;
   IpriosModule*  MIprios;
+  IpriosModule*  MIprios_rdata;
   IpriosModule*  SIprios;
+  IpriosModule*  SIprios_rdata;
   IpriosModule* VSIprios;
   IpriosSort*    MIpriosSort;
   IpriosSort*    SIpriosSort;
   IpriosSort*   VSIpriosSort;
-  HighestPrioIntr* HighestPrioIntr;
+  bool external_interrupt_select;
 #endif
 
 } riscv64_CPU_state;
