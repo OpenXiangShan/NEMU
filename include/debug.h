@@ -26,15 +26,16 @@
     _Log("\33[1;34m[%s:%d,%s] " format "\33[0m\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
+extern bool debug_flag;
 #define Logf(flag, ...) \
   do { \
-    if (flag == dflag_mem && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && ISDEF(CONFIG_TRANSLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst && ISDEF(CONFIG_TRACE_INST)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst_dasm && ISDEF(CONFIG_TRACE_INST_DASM)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
-    if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
+    if (flag == dflag_mem             && ISDEF(CONFIG_MEMLOG)           ) Log(__VA_ARGS__); \
+    if (flag == dflag_translate       && ISDEF(CONFIG_TRANSLOG)         ) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst      && ISDEF(CONFIG_TRACE_INST)       ) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst_dasm && ISDEF(CONFIG_TRACE_INST_DASM)  ) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_bb        && ISDEF(CONFIG_TRACE_BB)         ) Log(__VA_ARGS__); \
+    if (flag == dflag_exit            && ISDEF(CONFIG_EXITLOG)          ) Log(__VA_ARGS__); \
+    if (flag == dflag_simpoint        && ISDEF(CONFIG_SIMPOINT_LOG)     ) Log(__VA_ARGS__); \
   } while (0)
 
 #define Logm(...) Logf(dflag_mem, __VA_ARGS__)

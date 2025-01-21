@@ -209,7 +209,7 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
 }
 
 #endif // CONFIG_SHARE
-
+bool debug_flag = false;
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
@@ -248,6 +248,10 @@ void vld(Decode *s, int mode, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+  if(base_addr == 0xffffaf80048c6000 && !debug_flag) {
+    printf("[NEMU] test base addr: 0x%lx\n", base_addr);
+    debug_flag = true;
+  }
 
   bool fast_vle = false;
 
@@ -410,6 +414,8 @@ void vldx(Decode *s, int mmu_mode) {
 
   vl_val = vl->val;
   base_addr = tmp_reg[0];
+
+
   vd = id_dest->reg;
 
   // Store all seg8 intermediate data
