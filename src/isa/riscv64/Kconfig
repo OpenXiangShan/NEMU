@@ -533,4 +533,11 @@ config RV_ZACAS
   bool "RISC-V Extension for Atomic Compare-and-Swap(CAS) Instructions, Version 1.0.0"
   default n
 
+config RV_ZAWRS
+  bool "RISC-V Extension for Wait-on-Reservation-Set instructions, Version 1.01"
+  default n
+  help
+    This extension adds the WRS instruction which waits until the reservation set is empty.
+    In NEMU, WRS instruction currently acts as nop.
+
 endmenu

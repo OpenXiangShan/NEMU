@@ -2794,6 +2794,20 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
     case (uint32_t)-1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
+#ifdef CONFIG_RV_ZAWRS
+    case 0x0d: // wrs.nto
+      if (cpu.mode != MODE_M && mstatus->tw) {
+        longjmp_exception(EX_II);
+      }
+#ifdef CONFIG_RVH
+      if (cpu.v && !mstatus->tw && hstatus->vtw) {
+        longjmp_exception(EX_VI);
+      }
+#endif
+      break;
+    case 0x1d: // wrs.sto
+      break;
+#endif // CONFIG_RV_ZAWRS
     default:
       switch (op >> 5) { // instr[31:25]
         case 0x09: // sfence.vma

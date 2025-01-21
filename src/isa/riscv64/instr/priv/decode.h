@@ -94,6 +94,10 @@ def_THelper(system) {
 #endif
   def_INSTR_IDTAB("000100000010 00000 000 00000 ????? ??", csr, sret);
   def_INSTR_IDTAB("000100000101 00000 000 00000 ????? ??", csr, wfi);
+#ifdef CONFIG_RV_ZAWRS
+  def_INSTR_IDTAB("000000001101 00000 000 00000 ????? ??", csr, wrs_nto);
+  def_INSTR_IDTAB("000000011101 00000 000 00000 ????? ??", csr, wrs_sto);
+#endif
   def_INSTR_IDTAB("0001001????? ????? 000 00000 11100 11", csr, sfence_vma);
 #ifdef CONFIG_RV_SVINVAL
   def_INSTR_IDTAB("0001011????? ????? 000 00000 11100 11", csr, sinval_vma);
@@ -141,6 +145,10 @@ def_THelper(system) {
 #endif //CONFIG_RV_DEBUG
   def_INSTR_TAB("000100000010 00000 000 00000 ????? ??", sret);
   def_INSTR_TAB("000100000101 00000 000 00000 ????? ??", wfi);
+#ifdef CONFIG_RV_ZAWRS
+  def_INSTR_TAB("000000001101 00000 000 00000 ????? ??", wrs_nto);
+  def_INSTR_TAB("000000011101 00000 000 00000 ????? ??", wrs_sto);
+#endif //CONFIG_RV_ZAWRS
   def_INSTR_TAB("0001001????? ????? 000 00000 11100 11", sfence_vma);
 #ifdef CONFIG_RV_SVINVAL
   def_INSTR_TAB("0001011????? ????? 000 00000 11100 11", sinval_vma);
