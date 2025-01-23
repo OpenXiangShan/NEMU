@@ -19,5 +19,5 @@
     -C test \
     -w linux \
     -I 350000000 $V_WORKLOAD_HOME/OpenSBI_Linux6.6_h264ref_sss_vectorized \
-    --using-flash-store-checkpoint \
+    --store-cpt-in-flash \
     --checkpoint-format zstd
