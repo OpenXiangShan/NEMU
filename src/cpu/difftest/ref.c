@@ -255,7 +255,8 @@ void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 #endif
 }
 
-void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
+void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {\
+  printf("non reg intr\n");
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
@@ -278,6 +279,7 @@ void difftest_get_store_event_other_info(void *info) {
 
 
 void difftest_sync_aia(void *src) {
+  printf("sync aia\n");
 #ifdef CONFIG_RV_IMSIC
   memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
   isa_update_vstopi();
@@ -330,7 +332,9 @@ void difftest_init() {
 #endif
 }
 
+extern bool tt;
 void difftest_display() {
+  tt = true;
   isa_reg_display();
 }
 

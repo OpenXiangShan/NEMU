@@ -958,16 +958,18 @@ static inline word_t get_hie() {
   return tmp;
 }
 #endif
+bool tt = false;
 
 inline word_t get_mip() {
   word_t tmp = 0;
-
+  if (tt) {printf("ori tmp: 0x%lx\n", mip->val);}
   tmp = mip->val & (MIP_MASK_BASE | MIP_LCOFIP);
 
+  if (tt) {printf("A0 tmp: 0x%lx\n", tmp);}
   IFDEF(CONFIG_RVH, tmp |= hvip->val & (MIP_VSSIP));
-
+  if (tt) {printf("A1 tmp: 0x%lx\n", tmp);}
   tmp |= cpu.non_reg_interrupt_pending.platform_irp_msip << 3;
-
+  if (tt) {printf("A2 tmp: 0x%lx\n", tmp);}
 #ifdef CONFIG_SHARE
 #ifdef CONFIG_RV_SSTC
   if (menvcfg->stce) {
@@ -975,6 +977,7 @@ inline word_t get_mip() {
   } else {
     tmp |= mip->val & MIP_STIP;
   }
+  if (tt) {printf("A3 tmp: 0x%lx\n", tmp);}
 #else
   tmp |= mip->val & MIP_STIP;
 #endif // CONFIG_RV_SSTC
@@ -983,34 +986,49 @@ inline word_t get_mip() {
 #endif
 
   IFDEF(CONFIG_RVH, tmp |= (hvip->vstip | cpu.non_reg_interrupt_pending.platform_irp_vstip) << 6);
-
+  if (tt) {printf("A4 tmp: 0x%lx\n", tmp);}
   tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << 7;
-
+  if (tt) {printf("A5 tmp: 0x%lx\n", tmp);}
   // clint time interrupt
   word_t get_riscv_timer_interrupt();
   tmp |= get_riscv_timer_interrupt();
-
+  if (tt) {printf("A6 tmp: 0x%lx\n", tmp);}
 #ifdef CONFIG_RV_AIA
   if (mvien->seie) {
     tmp |= (cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
+    uint64_t  tm1 = (cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
+    if (tt) {printf("F0 m0: 0x%d, m1: 0x%d, m2: 0x%d, tm1: 0x%lx\n",
+                    cpu.non_reg_interrupt_pending.platform_irp_seip,
+                    cpu.non_reg_interrupt_pending.from_aia_seip,
+                    cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip,
+                    tm1);}
   } else {
     tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
+    uint64_t tm2 = (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
+    if (tt) {printf("F0 m0: 0x%d, m1: 0x%d, m2: 0x%d, m3: 0x%d, tm1: 0x%lx\n",
+                    mvip->seip,
+                    cpu.non_reg_interrupt_pending.platform_irp_seip,
+                    cpu.non_reg_interrupt_pending.from_aia_seip,
+                    (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip),
+                    tm2);}
   }
 #else
   tmp |= mip->val & MIP_SEIP;
 #endif // CONFIG_RV_AIA
-
+  if (tt) {printf("A7 tmp: 0x%lx\n", tmp);}
   IFDEF(CONFIG_RVH, tmp |= (hvip->vseip | cpu.non_reg_interrupt_pending.platform_irp_vseip) << 10);
-
+  if (tt) {printf("A8 tmp: 0x%lx\n", tmp);}
   tmp |= (cpu.non_reg_interrupt_pending.platform_irp_meip | cpu.non_reg_interrupt_pending.from_aia_meip) << 11;
-
+  if (tt) {printf("A9 tmp: 0x%lx\n", tmp);}
   IFDEF(CONFIG_RVH, tmp |= ((hgeip->val & hgeie->val) != 0) << 12);
-
+  if (tt) {printf("AX tmp: 0x%lx\n", tmp);}
   return tmp;
 }
 
 static inline void set_mip(word_t src) {
+  printf("S0 tmp: 0x%lx\n", mip->val);
   mip->val = mask_bitset(mip->val, MIP_MASK_BASE | LCOFI, src);
+  printf("S1 tmp: 0x%lx\n", mip->val);
 
   IFDEF(CONFIG_RVH, hvip->val = mask_bitset(hvip->val, MIP_MASK_H, src));
 
@@ -1018,6 +1036,8 @@ static inline void set_mip(word_t src) {
   if (!menvcfg->stce) {
     mip->val = mask_bitset(mip->val, MIP_STIP, src);
   }
+  printf("S2 tmp: 0x%lx\n", mip->val);
+
 #else
   mip->val = mask_bitset(mip->val, MIP_STIP, src);
 #endif // CONFIG_RV_SSTC
@@ -1027,6 +1047,8 @@ static inline void set_mip(word_t src) {
 #else
   mip->val = mask_bitset(mip->val, MIP_SEIP, src);
 #endif // CONFIG_RV_AIA
+  printf("S3 tmp: 0x%lx\n", mip->val);
+
 }
 
 static inline word_t non_vmode_get_sip() {
