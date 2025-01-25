@@ -646,6 +646,23 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 
 #endif // CONFIG_LIGHTQS
 
+extern uint8_t* golden_pmem;
+
+static inline word_t debug_golden_pmem_read(paddr_t addr, int len) {
+  assert(golden_pmem != NULL);
+
+  void *p = &golden_pmem[addr - 0x80000000];
+  switch (len) {
+    case 1: return *(uint8_t  *)p;
+    case 2: return *(uint16_t *)p;
+    case 4: return *(uint32_t *)p;
+    case 8: return *(uint64_t *)p;
+    default: assert(0);
+  }
+}
+
+
+bool debug_flag = false;
 static void execute(int n) {
   static Decode s;
   prev_s = &s;
@@ -657,6 +674,12 @@ static void execute(int n) {
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
+    if (g_nr_guest_instr > 0x5928785) {
+      debug_flag = true;
+      Logm("[NEMU] mem test addr: 0x81919fd0, data: 0x%lx, pc: 0x%lx, instr: 0x%x",
+           debug_golden_pmem_read(0x81919fd0, 8),
+           s.pc, s.isa.instr.val);
+    }
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,

@@ -161,7 +161,8 @@ void allocate_memory_with_mmap()
     assert(0);
   }
   pmem = (uint8_t*)ret;
-  #endif
+  Log("Set pmem start to %p", pmem);
+#endif
 #endif // CONFIG_USE_MMAP
 }
 
@@ -211,7 +212,8 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
-
+  Logm("[NEMU] paddr read addr:" FMT_PADDR ", len:%d, type:%d, mode:%d\n",
+          addr, len, type, mode);
   __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
 

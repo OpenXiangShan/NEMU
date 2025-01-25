@@ -341,6 +341,7 @@ void difftest_set_mhartid(int n) {
 
 void difftest_put_gmaddr(uint8_t* ptr) {
   golden_pmem = ptr;
+  printf("[NEMU] golden pmem: %p\n", ptr);
 }
 
 #endif

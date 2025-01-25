@@ -391,19 +391,28 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if (max_level == 4) {
     int64_t vaddr48 = vaddr << (64 - 48);
     vaddr48 >>= (64 - 48);
-    if ((uint64_t)vaddr48 != vaddr) goto bad;
+    if ((uint64_t)vaddr48 != vaddr) {
+      Logm("[NEMU] 0");
+      goto bad;
+    }
+
   } else if (max_level == 3) {
     int64_t vaddr39 = vaddr << (64 - 39);
     vaddr39 >>= (64 - 39);
-    if ((uint64_t)vaddr39 != vaddr) goto bad;
+    if ((uint64_t)vaddr39 != vaddr) {
+      Logm("[NEMU] 1");
+      goto bad;
+    }
   }
   for (level = max_level - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
+    Logm("[NEMU]: pte val: 0x%lx", pte.val);
 #else
 #ifdef CONFIG_RVH
     if(virt){
+      Logm("[NEMU] virt");
       p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false, true);
     }
 #endif //CONFIG_RVH
@@ -417,22 +426,29 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #endif
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
+      Logm("[NEMU] 2");
       goto bad;
     } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
+      Logm("[NEMU] 3");
       goto bad;
     } else if (pte.pbmt == 3) {
+      Logm("[NEMU] 4");
       goto bad;
     } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
+      Logm("[NEMU] 5");
       goto bad;
     }
     if (pte.r || pte.x) { // is leaf
       break;
     } else { // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
+        Logm("[NEMU] 6");
         goto bad;
       }
       level --;
-      if (level < 0) { goto bad; }
+      if (level < 0) {
+        Logm("[NEMU] 7");
+        goto bad; }
     }
   }
 #ifdef CONFIG_RVH
@@ -444,15 +460,18 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     // superpage
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
+      Logm("[NEMU] 8");
       // missaligned superpage
       goto bad;
     } else if (pte.n) {
+      Logm("[NEMU] 9");
       // superpage but napot
       goto bad;
     }
     pg_base = (pg_base & ~pg_mask) | (vaddr & pg_mask & ~PGMASK);
   } else if (pte.n) {
     if ((pte.ppn & SVNAPOTMASK) != 0b1000) {
+      Logm("[NEMU] X");
       goto bad;
     }
     word_t pg_mask = ((1ull << SVNAPOTSHFT) - 1);

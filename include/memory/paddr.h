@@ -132,6 +132,8 @@ bool analysis_memory_isuse(uint64_t page);
 extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
+  Logm("[NEMU] paddr read addr:" FMT_PADDR ", len:%d, type:%d, mode:%d, vaddr: 0x%lx\n",
+       addr, len, type, mode, vaddr);
   assert(golden_pmem != NULL);
   mode &= ~CROSS_PAGE_LD_FLAG;
 #ifdef CONFIG_USE_SPARSEMM
