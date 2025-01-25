@@ -327,6 +327,7 @@ void difftest_init() {
 }
 
 void difftest_display() {
+  printf("[NEMU] instr count: 0x%lx\n", get_abs_instr_count());
   isa_reg_display();
 }
 
