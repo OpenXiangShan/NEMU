@@ -96,25 +96,23 @@ void Serializer::serializePMem(uint64_t inst_count) {
   Log("Put gcpt restorer %s to start of pmem", restorer);
   }
 
-  string base_file_path;
-  string memory_file_path;
+  string filepath;
 
   if (checkpoint_state == SimpointCheckpointing) {
-    base_file_path = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->first) + "_" +
+    filepath = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->first) + "_" +
                to_string(simpoint2Weights.begin()->second);
   } else {
-    base_file_path = pathManager.getOutputPath() + "_" + to_string(inst_count);
+    filepath = pathManager.getOutputPath() + "_" + to_string(inst_count);
   }
 
   if (compress_file_format == GZ_FORMAT) {
-    Log("Using GZ format generate checkpoint");
-    memory_file_path = base_file_path + "_memory_.gz";
-    gzFile memory_compressed_file = gzopen(memory_file_path.c_str(), "wb");
-    if (memory_compressed_file == nullptr) {
-      cerr << "Failed to open " << memory_file_path << endl;
+    filepath += "_.gz";
+    gzFile compressed_mem = gzopen(filepath.c_str(), "wb");
+    if (compressed_mem == nullptr) {
+      cerr << "Failed to open " << filepath << endl;
       xpanic("Can't open physical memory checkpoint file!\n");
     } else {
-      cout << "Opening " << memory_file_path << " as checkpoint output file" << endl;
+      cout << "Opening " << filepath << " as checkpoint output file" << endl;
     }
 
     uint64_t pass_size = 0;
@@ -124,52 +122,39 @@ void Serializer::serializePMem(uint64_t inst_count) {
                     ? numeric_limits<int>::max()
                     : ((int64_t)PMEM_SIZE - (int64_t)written);
 
-      if (gzwrite(memory_compressed_file, pmem + written, (uint32_t)pass_size) != (int)pass_size) {
+      if (gzwrite(compressed_mem, pmem + written, (uint32_t)pass_size) != (int)pass_size) {
         xpanic("Write failed on physical memory checkpoint file\n");
       }
       Log("Written 0x%lx bytes\n", pass_size);
     }
 
-    if (gzclose(memory_compressed_file)) {
-      xpanic("Close failed on physical checkpoint file\n");
+    if (gzclose(compressed_mem)) {
+      xpanic("Close failed on physical memory checkpoint file\n");
     }
-
   } else if (compress_file_format == ZSTD_FORMAT) {
-    Log("Using ZSTD format generate checkpoint");
-
-    memory_file_path += base_file_path + "_memory_.zstd";
-    Log("Opening %s as memory output file", memory_file_path.c_str());
-
+    filepath += "_.zstd";
     // zstd compress
-    size_t memory_size = PMEM_SIZE;
-    size_t const memory_compress_buffer_size = ZSTD_compressBound(memory_size);
-    uint8_t *const memory_compress_buffer = (uint8_t*)malloc(memory_compress_buffer_size);
-    assert(memory_compress_buffer);
+    size_t const compress_buffer_size = ZSTD_compressBound(PMEM_SIZE);
+    void *const compress_buffer = malloc(compress_buffer_size);
+    assert(compress_buffer);
 
+    size_t const compress_size = ZSTD_compress(compress_buffer, compress_buffer_size, pmem, PMEM_SIZE, 1);
+    assert(compress_size <= compress_buffer_size && compress_size != 0);
 
+    FILE *compress_file = fopen(filepath.c_str(), "wb");
+    size_t fw_size = fwrite(compress_buffer, 1, compress_size, compress_file);
 
-
-    // compress flash device memory
-    size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem, PMEM_SIZE, 1);
-    assert(memory_compress_size <= memory_compress_buffer_size && memory_compress_size != 0);
-    Log("pmem compress success, compress size %ld", memory_compress_size);
-
-    FILE *memory_compress_file = fopen(memory_file_path.c_str(), "wb");
-    size_t memory_fw_size = fwrite(memory_compress_buffer, 1, memory_compress_size, memory_compress_file);
-
-    if (memory_fw_size != memory_compress_size) {
-      fclose(memory_compress_file);
-      free(memory_compress_buffer);
-      xpanic("file write error: %s : %s\n", memory_file_path.c_str(), strerror(errno));
+    if (fw_size != (size_t)compress_size) {
+      free(compress_buffer);
+      xpanic("file write error: %s : %s \n", filepath.c_str(), strerror(errno));
     }
 
-    if (fclose(memory_compress_file)) {
-      free(memory_compress_buffer);
-      xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
+    if (fclose(compress_file)) {
+      free(compress_buffer);
+      xpanic("file close error: %s : %s \n", filepath.c_str(), strerror(errno));
     }
 
-    free(memory_compress_buffer);
-
+    free(compress_buffer);
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
