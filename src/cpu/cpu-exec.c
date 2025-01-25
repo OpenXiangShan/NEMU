@@ -646,6 +646,7 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 
 #endif // CONFIG_LIGHTQS
 
+bool debug_flag = false;
 static void execute(int n) {
   static Decode s;
   prev_s = &s;
@@ -657,6 +658,9 @@ static void execute(int n) {
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
+    if (g_nr_guest_instr > 0x460af300) {
+      debug_flag = true;
+    }
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
