@@ -479,7 +479,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
 #define HIE_WMASK     HSI_MASK
-#define HGEIE_MASK    ((1ULL << (1 + MUXDEF(CONFIG_GEILEN, CONFIG_GEILEN, 0))) - 2) // bit 0 is read-only zero
+#define HGEIE_MASK    ((1ULL << (1 + MUXDEF(CONFIG_RV_IMSIC, CONFIG_GEILEN, 0))) - 2) // bit 0 is read-only zero
 #define HGEIP_MASK    HGEIE_MASK
 #define HIDELEG_MASK  (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0))
 #define HEDELEG_MASK  ((1 << EX_IAM) | \
