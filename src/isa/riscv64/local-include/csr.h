@@ -36,6 +36,7 @@
 #define CUSTOM_CSR_SFETCHCTL  0x9e0
 #define CUSTOM_CSR_MCOREPWR   0xbc0
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
+#define CUSTOM_CSR_MBMC       0xbC2
 
 #define CUSTOM_CSR_SBPCTL_WMASK     0x7f
 #define CUSTOM_CSR_SPFCTL_WMASK     0x3ffff
@@ -436,8 +437,17 @@
   #define CSRS_DEBUG_MODE(f)
 #endif // CONFIG_RV_SDEXT
 
+/** Bitmap registers **/
+#ifdef CONFIG_RV_MBMC
+  #define CSRS_M_MBMC(f) \
+    f(mbmc       , 0xBC2)
+#else // CONFIG_RV_MBMC
+  #define CSRS_M_MBMC(f)
+#endif // CONFIG_RV_MBMC
+
 #define CSRS_M_CUSTOM(f) \
-  f(mcorepwr   , 0xBC0) f(mflushpwr  , 0xBC1)
+  f(mcorepwr   , 0xBC0) f(mflushpwr  , 0xBC1) \
+  CSRS_M_MBMC(f)
 
 /** Machine AIA Registers **/
 #ifdef CONFIG_RV_IMSIC
@@ -1013,6 +1023,16 @@ CSR_STRUCT_START(satp)
   uint64_t asid:16;
   uint64_t mode: 4;
 CSR_STRUCT_END(satp)
+
+#ifdef CONFIG_RV_MBMC
+CSR_STRUCT_START(mbmc)
+  uint64_t CMODE:   1;
+  uint64_t BCLEAR:  1;
+  uint64_t BME  :   1;
+  uint64_t RSV  :   3;
+  uint64_t BMA  :  58;
+CSR_STRUCT_END(mbmc)
+#endif
 
 #ifdef CONFIG_RV_SSCOFPMF
 CSR_STRUCT_START(scountovf)

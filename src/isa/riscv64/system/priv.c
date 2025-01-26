@@ -455,6 +455,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define COUNTEREN_MASK (COUNTEREN_ZICNTR_MASK | COUNTEREN_ZIHPM_MASK)
 
+#ifdef CONFIG_RV_MBMC
+#define MBMC_BME_SHIFT 2
+#define MBMC_BME (1UL << MBMC_BME_SHIFT)
+#endif
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
   #define MCOUNTINHIBIT_CNTR_MASK (0x5UL)
@@ -2206,6 +2210,19 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CUSTOM_CSR_MCOREPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MCOREPWR_WMASK, src); break;
     case CUSTOM_CSR_MFLUSHPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MFLUSHPWR_WMASK, src); break;
 
+#ifdef CONFIG_RV_MBMC
+    case CUSTOM_CSR_MBMC:
+      bool BME_dest = mbmc->val & MBMC_BME;
+      uint64_t mbmc_mask;
+      if (BME_dest == 1) {
+        mbmc_mask = 0x1;
+      } else {
+        mbmc_mask = 0xffffffffffffffc5ULL;
+      }
+      mbmc->val = mask_bitset(mbmc->val, mbmc_mask, src);
+      break;
+#endif
+
 #ifdef CONFIG_RV_IMSIC
     case CSR_MTOPI: return;
     case CSR_MTOPEI: return;
@@ -2578,6 +2595,7 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
   uint32_t funct3 = isa.instr.i.funct3;
   bool is_write = !( BITS(funct3, 1, 1) && (rs1 == 0) );
   csr_permit_check(csrid, is_write);
+
   switch (funct3) {
     case FUNCT3_CSRRW:
     case FUNCT3_CSRRWI:
