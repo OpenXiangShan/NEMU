@@ -21,10 +21,13 @@ typedef struct IpriosModule {
 
 typedef struct {
   bool enable;
-  bool isZero;
-  bool greaterThan255;
   uint8_t priority;
 } IpriosEnable;
+
+typedef struct HighestPrioIntr {
+  uint8_t idx;
+  uint8_t priority;
+} HighestPrioIntr;
 
 typedef struct IpriosSort {
   IpriosEnable ipriosEnable[IPRIO_ENABLE_NUM];
@@ -35,7 +38,7 @@ typedef struct {
 } Hviprios;
 
 bool iprio_is_zero(IpriosModule* iprios);
-void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule* iprios, uint8_t xei, mtopei_t* xtopei);
+void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule* iprios);
 void set_viprios_sort(uint64_t topi_gather);
 uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei);
 uint8_t get_prio_idx_in_group(uint8_t irq);
