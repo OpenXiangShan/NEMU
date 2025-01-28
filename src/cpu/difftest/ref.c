@@ -259,10 +259,6 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
-  if (cpu.non_reg_interrupt_pending.platform_irp_meip || cpu.non_reg_interrupt_pending.from_aia_meip ||
-      cpu.non_reg_interrupt_pending.platform_irp_seip || cpu.non_reg_interrupt_pending.from_aia_seip) {
-    isa_update_external_interrupt_select();
-  }
   isa_update_mtopi();
   isa_update_stopi();
   isa_update_vstopi();
@@ -331,6 +327,7 @@ void difftest_init() {
 }
 
 void difftest_display() {
+  printf("[NEMU] instr count: 0x%lx\n", get_abs_instr_count());
   isa_reg_display();
 }
 
@@ -344,6 +341,7 @@ void difftest_set_mhartid(int n) {
 
 void difftest_put_gmaddr(uint8_t* ptr) {
   golden_pmem = ptr;
+  printf("[NEMU] golden pmem: %p\n", ptr);
 }
 
 #endif
