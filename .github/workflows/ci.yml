@@ -69,6 +69,19 @@ jobs:
           bash ./scripts/restore_zstd.sh
           make clean-all
 
+          make riscv64-xs-cpt-with-flash_defconfig
+          make -j
+          bash ./scripts/take_zstd_into_flash.sh
+          make clean-all
+
+          # restore cpt
+          git submodule update --init --depth=1 ready-to-run
+          make riscv64-xs-diff-spike-withflash_defconfig
+          make gcpt_restore_bin
+          make -j
+          bash ./scripts/restore_zstd_into_flash.sh
+          make clean-all
+
   basic-nutshell:
     runs-on: nemu
     continue-on-error: false
