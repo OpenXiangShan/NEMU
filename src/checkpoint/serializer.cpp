@@ -110,9 +110,9 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     gzFile memory_compressed_file = gzopen(memory_file_path.c_str(), "wb");
     if (memory_compressed_file == nullptr) {
       cerr << "Failed to open " << memory_file_path << endl;
-      xpanic("Can't open physical memory checkpoint file!\n");
+      xpanic("Can't open file %s!\n", memory_file_path.c_str());
     } else {
-      cout << "Opening " << memory_file_path << " as checkpoint output file" << endl;
+      cout << "Opening " << memory_file_path << " as memory checkpoint output file" << endl;
     }
 
     uint64_t pass_size = 0;
@@ -121,9 +121,9 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
       flash_compressed_mem = gzopen(flash_file_path.c_str(), "wb");
       if (flash_compressed_mem == nullptr) {
         cerr << "Failed to open " << flash_file_path << endl;
-        xpanic("Can't open physical memory checkpoint file!\n");
+        xpanic("Can't open file %s!\n", flash_file_path.c_str());
       } else {
-        cout << "Opening " << flash_file_path << " as checkpoint output file" << endl;
+        cout << "Opening " << flash_file_path << " as flash checkpoint output file" << endl;
       }
 
       for (uint64_t flash_written = 0; flash_written < FLASH_SIZE; flash_written += pass_size) {
@@ -131,7 +131,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
                       ? numeric_limits<int>::max()
                       : ((int64_t)FLASH_SIZE - (int64_t)flash_written);
         if (gzwrite(flash_compressed_mem, flash_addr + flash_written, (uint32_t)pass_size) != (int)pass_size) {
-          xpanic("Write failed on physical memory checkpoint file\n");
+          xpanic("Write failed on file: %s\n", flash_file_path.c_str());
         }
         Log("Written 0x%lx bytes\n", pass_size);
       }
@@ -146,7 +146,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
                     : ((int64_t)PMEM_SIZE - (int64_t)written);
 
       if (gzwrite(memory_compressed_file, pmem_addr + written, (uint32_t)pass_size) != (int)pass_size) {
-        xpanic("Write failed on physical memory checkpoint file\n");
+        xpanic("Write failed on file %s\n", memory_file_path.c_str());
       }
       Log("Written 0x%lx bytes\n", pass_size);
     }
@@ -154,7 +154,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     if(store_cpt_in_flash){
 #ifdef CONFIG_HAS_FLASH
       if (gzclose(flash_compressed_mem)) {
-        xpanic("Close failed on physical checkpoint file\n");
+        xpanic("Close failed on file %s\n", flash_file_path.c_str());
       }
 #endif
     }
@@ -228,14 +228,14 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
 #ifdef CONFIG_HAS_FLASH
       if (fclose(flash_compress_file)) {
         free(flash_compress_buffer);
-        xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
+        xpanic("file close error: %s : %s \n", flash_file_path.c_str(), strerror(errno));
       }
 #endif
     }
 
     if (fclose(memory_compress_file)) {
       free(memory_compress_buffer);
-      xpanic("file close error: %s : %s \n", base_file_path.c_str(), strerror(errno));
+      xpanic("file close error: %s : %s \n", memory_file_path.c_str(), strerror(errno));
     }
 
 #ifdef CONFIG_HAS_FLASH
