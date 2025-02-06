@@ -24,6 +24,7 @@
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
 #include <stdlib.h>
+#include <math.h>
 
 int update_mmu_state();
 uint64_t get_htime();
@@ -65,8 +66,6 @@ bool access_table[4][4] = {
   {T, T, T, T}
 };
 #endif
-#undef T
-#undef F
 
 #define CSRS_DEF(name, addr) \
   concat(name, _t)* const name = (concat(name, _t) *)&csr_array[addr];
@@ -181,6 +180,82 @@ void init_custom_csr() {
   mflushpwr->flushl2 = 0;
   mflushpwr->l2flushed = 0;
 }
+
+#ifdef CONFIG_RV_PMA_CSR
+void init_pma() {
+  unsigned long long pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM][9] = {
+    // base_addr,       range,             l, c, t, a, x, w, r
+    {0,                0x1000000000000ULL, F, F, F, 3, F, F, F},
+    {0x80000000000ULL, 0,                  F, T, T, 1, T, T, T},
+    {0x80000000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x3A000000ULL,    0,                  F, F, F, 1, F, F, F},
+    {0x39002000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x39000000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x38022000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x38021000ULL,    0,                  F, F, F, 1, T, T, T},
+    {0x38020000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x30050000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x30010000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0x20000000ULL,    0,                  F, F, F, 1, T, T, T},
+    {0x10000000ULL,    0,                  F, F, F, 1, F, T, T},
+    {0},
+    {0},
+    {0},
+  };
+  
+  PMAConfigModule* pmaconfigs = (PMAConfigModule *)malloc(sizeof (PMAConfigModule));
+  for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    pmaconfigs->pmaconfigs[i].base_addr = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][0];
+    pmaconfigs->pmaconfigs[i].range = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][1];
+    pmaconfigs->pmaconfigs[i].l = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][2];
+    pmaconfigs->pmaconfigs[i].c = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][3];
+    pmaconfigs->pmaconfigs[i].t = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][4];
+    pmaconfigs->pmaconfigs[i].a = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][5];
+    pmaconfigs->pmaconfigs[i].x = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][6];
+    pmaconfigs->pmaconfigs[i].w = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][7];
+    pmaconfigs->pmaconfigs[i].r = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][8];
+  }
+
+  // set pmacfg init value
+  for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    int pmaCfgIdx = CSR_PMACFG_BASE + i/8*2;
+    uint64_t pmaCfgOld = *(uint64_t *)&csr_array[pmaCfgIdx];
+
+    pmaCfgOld |= ((pmaconfigs->pmaconfigs[i].l & 0x1) << (8*(i%8) + 7)) |
+                 ((pmaconfigs->pmaconfigs[i].c & 0x1) << (8*(i%8) + 6)) |
+                 ((pmaconfigs->pmaconfigs[i].t & 0x1) << (8*(i%8) + 5)) |
+                 ((pmaconfigs->pmaconfigs[i].a & 0x3) << (8*(i%8) + 3)) |
+                 ((pmaconfigs->pmaconfigs[i].x & 0x1) << (8*(i%8) + 2)) |
+                 ((pmaconfigs->pmaconfigs[i].w & 0x1) << (8*(i%8) + 1)) |
+                 ((pmaconfigs->pmaconfigs[i].r & 0x1) << (8*(i%8)));
+
+    word_t *pmaCfg = &csr_array[pmaCfgIdx];
+    *pmaCfg = pmaCfgOld;
+  }
+
+  // set pmaaddr init value
+  for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    int pmaAddrIdx = CSR_PMAADDR_BASE + i;
+    uint64_t addr = 0;
+    uint64_t baseAddr = pmaconfigs->pmaconfigs[i].base_addr;
+    uint64_t range = pmaconfigs->pmaconfigs[i].range;
+    uint64_t a = pmaconfigs->pmaconfigs[i].a & 0x3;
+    if (a < 2) {
+      addr = baseAddr >> 2;
+    } else {
+      int platformGrainBytes = 1 << (int)ceil(log2(4*1024)); // 4KB, a normal page
+      Assert(baseAddr % platformGrainBytes == 0, "base=%lx", baseAddr);
+      Assert(range    % platformGrainBytes == 0, "range=%lx", range);
+      addr = (baseAddr + ((range >> 1) - 1)) >> PMA_SHIFT;
+    }
+
+    word_t *pmaCfg = &csr_array[pmaAddrIdx];
+    *pmaCfg = addr;
+  }
+}
+#endif // CONFIG_RV_PMA_CSR
+#undef T
+#undef F
 
 // check s/h/mcounteren for counters, throw exception if counter is not enabled.
 // also check h/mcounteren h/menvcfg for sstc
@@ -689,6 +764,30 @@ word_t inline pmp_tor_mask() {
   return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
 }
 #endif // CONFIG_RV_PMP_CSR
+
+#ifdef CONFIG_RV_PMA_CSR
+// get 8-bit config of one PMA entries by index.
+uint8_t pmacfg_from_index(int idx) {
+  int xlen = 64;
+  // Configuration register of one entry is 8-bit.
+  int bits_per_cfg = 8;
+  // For RV64, one pmacfg CSR contains configuration of 8 entries (64 / 8 = 8).
+  int cfgs_per_csr = xlen / bits_per_cfg;
+  // For RV64, only 8 even-numbered pmacfg CSRs hold the configuration.
+  int pmacfg_csr_addr = CSR_PMACFG_BASE + idx / cfgs_per_csr * 2;
+
+  uint8_t *cfg_reg = (uint8_t *)&csr_array[pmacfg_csr_addr];
+  return *(cfg_reg + (idx % cfgs_per_csr));
+}
+
+word_t pmaaddr_from_index(int idx) {
+  return csr_array[CSR_PMAADDR_BASE + idx];
+}
+
+word_t inline pma_tor_mask() {
+  return -((word_t)1 << (CONFIG_PMA_GRANULARITY - PMA_SHIFT));
+}
+#endif // CONFIG_RV_PMA_CSR
 
 #ifndef CONFIG_FPU_NONE
 static inline bool require_fs() {
@@ -1597,6 +1696,32 @@ static word_t csr_read(uint32_t csrid) {
     }
 #endif // CONFIG_RV_PMP_CSR
 
+#ifdef CONFIG_RV_PMA_CSR
+    case CSR_PMAADDR_BASE ... CSR_PMAADDR_BASE+CSR_PMAADDR_MAX_NUM-1:
+    {
+      int idx = (src - &csr_array[CSR_PMAADDR_BASE]);
+      if (idx >= CONFIG_RV_PMA_ACTIVE_NUM) {
+        return 0;
+      }
+
+      uint8_t cfg = pmacfg_from_index(idx);
+#ifdef CONFIG_SHARE
+      if (dynamic_config.debug_difftest) {
+        fprintf(stderr, "[NEMU] pma addr read %d : 0x%016lx\n", idx,
+          (cfg & PMA_A) >= PMA_NAPOT ? *src | (~pma_tor_mask() >> 1) : *src & pma_tor_mask());
+      }
+#endif // CONFIG_SHARE
+      if ((cfg & PMA_A) >= PMA_NAPOT)
+        return *src | (~pma_tor_mask() >> 1);
+      else
+        return *src & pma_tor_mask();
+
+      // No need to handle read pmacfg specifically, because
+      // - pmacfg CSRs are all initialized in init_pma().
+      // - writing to inactive pmacfg CSRs is handled.
+    }
+#endif // CONFIG_RV_PMA_CSR
+
 #ifdef CONFIG_RV_SMRNMI
     case CSR_MNEPC: return mnepc->val & (~0x1UL) ;
     case CSR_MNSTATUS: return mnstatus->val & MNSTATUS_MASK;
@@ -2110,6 +2235,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     }
 
     case CSR_PMPADDR_BASE ... CSR_PMPADDR_BASE+CSR_PMPADDR_MAX_NUM-1:
+    {
       Logtr("Writing pmp addr");
 
       int idx = dest - &csr_array[CSR_PMPADDR_BASE];
@@ -2133,8 +2259,72 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_SHARE
       mmu_tlb_flush(0);
       break;
-
+    }
 #endif // CONFIG_RV_PMP_CSR
+
+#ifdef CONFIG_RV_PMA_CSR
+    case CSR_PMACFG_BASE ... CSR_PMACFG_BASE+CSR_PMACFG_MAX_NUM-1:
+    {
+      // Logtr("Writing pma config");
+
+      int idx_base = (dest - &csr_array[CSR_PMACFG_BASE]) * 4;
+
+      int xlen = 64;
+      word_t cfg_data = 0;
+      for (int i = 0; i < xlen / 8; i++) {
+        if (idx_base + i >= CONFIG_RV_PMA_ACTIVE_NUM) {
+          break;
+        }
+        word_t oldCfg = pmacfg_from_index(idx_base + i);    
+        word_t cfg = ((src >> (i*8)) & 0xff);
+        if ((oldCfg & PMA_L) == 0) {
+          cfg &= ~PMA_W | ((cfg & PMA_R) ? PMA_W : 0);
+          if (CONFIG_PMA_GRANULARITY != PMA_SHIFT && (cfg & PMA_A) == PMA_NA4)
+            cfg |= PMA_NAPOT;
+          cfg_data |= (cfg << (i*8));
+        } else {
+          cfg_data |= (oldCfg << (i*8));
+        }
+      }
+#ifdef CONFIG_SHARE
+      if (dynamic_config.debug_difftest) {
+        int idx = dest - &csr_array[CSR_PMACFG_BASE];
+        Logtr("[NEMU] write pmacfg%d to %016lx\n", idx, cfg_data);
+      }
+#endif // CONFIG_SHARE
+
+      *dest = cfg_data;
+
+      mmu_tlb_flush(0);
+      break;
+    }
+
+    case CSR_PMAADDR_BASE ... CSR_PMAADDR_BASE+CSR_PMAADDR_MAX_NUM-1:
+    {
+      Logtr("Writing pma addr");
+
+      int idx = dest - &csr_array[CSR_PMAADDR_BASE];
+      if (idx >= CONFIG_RV_PMA_ACTIVE_NUM) {
+        return;
+      }
+
+      word_t cfg = pmacfg_from_index(idx);
+      bool locked = cfg & PMA_L;
+      // Note that the last pma cfg do not have next_locked or next_tor
+      bool next_locked = idx < (CONFIG_RV_PMA_ACTIVE_NUM - 1) && (pmacfg_from_index(idx+1) & PMA_L);
+      bool next_tor = idx < (CONFIG_RV_PMA_ACTIVE_NUM - 1) && (pmacfg_from_index(idx+1) & PMA_A) == PMA_TOR;
+      if (idx < CONFIG_RV_PMA_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
+        *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
+      }
+#ifdef CONFIG_SHARE
+      if (dynamic_config.debug_difftest) {
+        fprintf(stderr, "[NEMU] write pma addr%d to %016lx\n", idx, *dest);
+      }
+#endif // CONFIG_SHARE
+      mmu_tlb_flush(0);
+      break;
+    }
+#endif // CONFIG_RV_PMA_CSR
 
 #ifdef CONFIG_RV_SMRNMI
     case CSR_MNEPC: *dest = src & (~0x1UL); break;
