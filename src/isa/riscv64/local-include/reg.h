@@ -41,4 +41,21 @@ static inline const char* fpreg_name(int index, int width){
   return fpregsl[index];
 }
 
+#ifdef CONFIG_RV_PMA_CSR
+typedef struct {
+  uint64_t base_addr;
+  uint64_t range;
+  uint64_t l;
+  uint64_t c;
+  uint64_t t; // atomic
+  uint64_t a;
+  uint64_t x;
+  uint64_t w;
+  uint64_t r;
+} PMAConfig;
+
+typedef struct PMAConfigModule {
+  PMAConfig pmaconfigs[CONFIG_RV_PMA_ACTIVE_NUM];
+} PMAConfigModule;
+#endif
 #endif

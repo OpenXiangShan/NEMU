@@ -84,8 +84,9 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       }
       return_on_mem_ex();
       // Even if scInvalid, SAF (if raised) also needs to be reported
-      // Check address space range and pmp
-      if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)) {
+      // Check address space range and pmp and pma
+      if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)
+                          || !isa_pma_check_permission(paddr, width, MEM_TYPE_WRITE)) {
         cpu.trapInfo.tval = *src1;
         longjmp_exception(EX_SAF);
       }
@@ -105,7 +106,8 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
       paddr = isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
     }
-    if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)) {
+    if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)
+                        || !isa_pma_check_permission(paddr, width, MEM_TYPE_WRITE)) {
       cpu.trapInfo.tval = *src1;
       longjmp_exception(EX_SAF);
     }
