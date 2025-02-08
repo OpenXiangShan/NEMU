@@ -28,7 +28,14 @@ void store_queue_reset() {
   cpp_store_event_queue = {};
 }
 
+extern uint64_t tmp_cnt;
+
 void store_queue_push(store_commit_t store_commit) {
+  tmp_cnt ++;
+  if (store_commit.addr >= 0x880051d80 && store_commit.addr <= 0x880051e00) {
+    printf("[NEMU]: store push addr: 0x%lx, data: 0x%lx, pc: 0x%lx\n",
+           store_commit.addr, store_commit.data, store_commit.pc);
+  }
   cpp_store_event_queue.push(store_commit);
 }
 
