@@ -27,6 +27,7 @@ void init_trigger();
 void init_iprio();
 #endif
 void init_custom_csr();
+void init_pma();
 
 void init_riscv_timer();
 void init_device();
@@ -122,6 +123,10 @@ void init_isa() {
   pmpcfg12->val = 0;
   pmpcfg14->val = 0;
 #endif // CONFIG_RV_PMP_ENTRY_64
+
+#ifdef CONFIG_RV_PMA_ENTRY_16
+  init_pma();
+#endif // CONFIG_RV_PMA_ENRTY_16
 
 #define ext(e) (1 << ((e) - 'a'))
   misa->extensions = ext('i') | ext('m') | ext('a') | ext('c') | ext('s') | ext('u');
