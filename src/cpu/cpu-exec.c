@@ -645,7 +645,9 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 }
 
 #endif // CONFIG_LIGHTQS
-
+uint64_t tmp_cnt = 0;
+bool tmp_flag = false;
+extern word_t pmem_read(paddr_t addr, int len);
 static void execute(int n) {
   static Decode s;
   prev_s = &s;
@@ -678,6 +680,37 @@ static void execute(int n) {
       #endif // CONFIG_DETERMINISTIC
     #endif // CONFIG_ISA_riscv64
 
+    if (tmp_cnt >= 10000) {
+      printf("[NEMU] ==================\n");
+
+      printf("[NEMU] PM 0x880051dc0, data: 0x%lx\n", pmem_read(0x880051dc0, 8));
+      printf("[NEMU] PM 0x880051dc8, data: 0x%lx\n", pmem_read(0x880051dc8, 8));
+
+      printf("[NEMU] PM 0x880051dd0, data: 0x%lx\n", pmem_read(0x880051dd0, 8));
+      printf("[NEMU] PM 0x880051dd8, data: 0x%lx\n", pmem_read(0x880051dd8, 8));
+
+      printf("[NEMU] PM 0x880051de0, data: 0x%lx\n", pmem_read(0x880051de0, 8));
+      printf("[NEMU] PM 0x880051de8, data: 0x%lx\n", pmem_read(0x880051de8, 8));
+
+      printf("[NEMU] PM 0x880051df0, data: 0x%lx\n", pmem_read(0x880051df0, 8));
+      printf("[NEMU] PM 0x880051df8, data: 0x%lx\n", pmem_read(0x880051df8, 8));
+
+#ifdef CONFIG_MULTICORE_DIFF
+      printf("[NEMU] GM 0x880051dc0, data: 0x%lx\n", GM_read(0x880051dc0, 8));
+      printf("[NEMU] GM 0x880051dc8, data: 0x%lx\n", GM_read(0x880051dc8, 8));
+
+      printf("[NEMU] GM 0x880051dd0, data: 0x%lx\n", GM_read(0x880051dd0, 8));
+      printf("[NEMU] GM 0x880051dd8, data: 0x%lx\n", GM_read(0x880051dd8, 8));
+
+      printf("[NEMU] GM 0x880051de0, data: 0x%lx\n", GM_read(0x880051de0, 8));
+      printf("[NEMU] GM 0x880051de8, data: 0x%lx\n", GM_read(0x880051de8, 8));
+
+      printf("[NEMU] GM 0x880051df0, data: 0x%lx\n", GM_read(0x880051df0, 8));
+      printf("[NEMU] GM 0x880051df8, data: 0x%lx\n", GM_read(0x880051df8, 8));
+#endif
+      printf("[NEMU] ==================\n");
+      tmp_cnt = 0;
+    }
     if (MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr()) != INTR_EMPTY) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;

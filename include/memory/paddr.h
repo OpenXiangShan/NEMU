@@ -149,4 +149,19 @@ static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode,
 }
 #endif
 
+static inline word_t GM_read(paddr_t addr, int len) {
+#ifdef CONFIG_MULTICORE_DIFF
+  void *p = &golden_pmem[addr - 0x80000000];
+  switch (len) {
+    case 1: return *(uint8_t  *)p;
+    case 2: return *(uint16_t *)p;
+    case 4: return *(uint32_t *)p;
+    case 8: return *(uint64_t *)p;
+    default: assert(0);
+  }
+#else
+  return 0;
+#endif
+}
+
 #endif
