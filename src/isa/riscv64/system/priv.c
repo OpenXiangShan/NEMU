@@ -2944,7 +2944,7 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
 #endif // CONFIG_SVINVAL
 #endif // CONFIG_RVH
         default:
-#ifdef CONFIG_SHARE
+#if defined(CONFIG_SHARE) || !defined(CONFIG_REPORT_ILLEGAL_INSTR)
           longjmp_exception(EX_II);
 #else
           panic("Unsupported privilege operation = %d", op);
