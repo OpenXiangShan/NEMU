@@ -20,7 +20,7 @@
 // http://www.files.e-shop.co.il/pdastore/Tech-mmc-samsung/SEC%20MMC%20SPEC%20ver09.pdf
 
 // see page 26 of the manual above
-#define MEMORY_SIZE (16ull * 1024 * 1024 * 1024)  // 16GB
+#define MEMORY_SIZE (32ull * 1024 * 1024 * 1024)  // 32GB
 #define READ_BL_LEN 15
 #define BLOCK_LEN (1 << READ_BL_LEN)
 #define NR_BLOCK (MEMORY_SIZE / BLOCK_LEN)

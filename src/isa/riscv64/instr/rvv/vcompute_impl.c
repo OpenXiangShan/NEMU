@@ -323,7 +323,7 @@ double compute_vflmul() {
 }
 
 void require_vector(bool is_require_vtype) {
-  require_vector_vs();
+  //require_vector_vs();
   if (is_require_vtype && vtype->vill != 0) {
     longjmp_exception(EX_II);
   }

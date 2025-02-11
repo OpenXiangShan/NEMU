@@ -154,6 +154,19 @@ void Serializer::serializePMem(uint64_t inst_count) {
     }
 
     free(compress_buffer);
+  } else if (compress_file_format == BIN_FORMAT) {
+    filepath += "_.bin";
+    FILE *compress_file = fopen(filepath.c_str(), "wb");
+    Log("Writing 0x%lx bytes:\n", PMEM_SIZE);
+    size_t fw_size = fwrite(pmem, 1, PMEM_SIZE, compress_file);
+
+    if (fw_size != (size_t)PMEM_SIZE) {
+      xpanic("file write error: %s : %s \n", filepath.c_str(), strerror(errno));
+    }
+
+    if (fclose(compress_file)) {
+      xpanic("file close error: %s : %s \n", filepath.c_str(), strerror(errno));
+    }
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
