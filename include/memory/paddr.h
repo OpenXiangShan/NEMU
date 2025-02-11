@@ -140,14 +140,18 @@ static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode,
 #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread((void *)golden_pmem, addr, len)
 #else
+
+  word_t tmp = 0;
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
-    case 1: return *(uint8_t  *)p;
-    case 2: return *(uint16_t *)p;
-    case 4: return *(uint32_t *)p;
-    case 8: return *(uint64_t *)p;
-    default: assert(0);
+    case 1: tmp =  *(uint8_t  *)p; break;
+    case 2: tmp =  *(uint16_t *)p; break;
+    case 4: tmp =  *(uint32_t *)p; break;
+    case 8: tmp =  *(uint64_t *)p; break;
+    default: tmp = 0; assert(0); break;
   }
+  Logm("GM read: addr: 0x%lx, data: 0x%lx", addr, tmp);
+  return tmp;
 #endif
 }
 #endif

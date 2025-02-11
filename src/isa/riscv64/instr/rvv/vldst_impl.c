@@ -248,7 +248,8 @@ void vld(Decode *s, int mode, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  if(base_addr == 0xffffaf80048c6000 && !debug_flag) {
+  bool tri = (base_addr >= 0xffffaf8003ee2000) && (base_addr <= 0xffffaf8003ee2100);
+  if(tri && !debug_flag) {
     printf("[NEMU] test base addr: 0x%lx\n", base_addr);
     debug_flag = true;
   }

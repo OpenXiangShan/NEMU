@@ -68,7 +68,7 @@ void * get_sparsemm(){
   return sparse_mm;
 }
 #endif
-
+extern bool debug_flag;
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
@@ -79,8 +79,16 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread(sparse_mm, addr, len);
   #else
+  Logm("pmem read: " FMT_PADDR, addr);
+#ifdef CONFIG_MULTICORE_DIFF
+  if (debug_flag) {
+    word_t gm_read_result = golden_pmem_read(addr, len, 0, 0, 0);
+    Logm("check GM read: 0x%lx", gm_read_result);
+  }
+#endif
   return host_read(guest_to_host(addr), len);
-  #endif
+
+#endif
 }
 
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
