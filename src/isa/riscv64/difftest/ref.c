@@ -422,6 +422,8 @@ void isa_update_mip(unsigned lcofip) {
 
 void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec) {
 #ifdef CONFIG_RV_SSCOFPMF
+  scountovf_t* scountovf = (scountovf_t*)&csr_array[CSR_SCOUNTOVF];
+  scountovf->ofvec = mhpmeventOverflowVec;
   for (int i = 0; i < 29; i++) {
     mhpmevent3_t* current_hpm = (mhpmevent3_t*)&csr_array[CSR_MHPMEVENT_BASE + i];
     current_hpm->of = (mhpmeventOverflowVec >> i) & 0x1;

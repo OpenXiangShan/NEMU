@@ -1470,6 +1470,12 @@ static word_t csr_read(uint32_t csrid) {
       IFDEF(CONFIG_RVH, if (cpu.v) return vstimecmp->val);
       return stimecmp->val;
 #endif // CONFIG_RV_SSTC
+#ifdef CONFIG_RV_SSCOFPMF
+    case CSR_SCOUNTOVF:
+      if (cpu.mode == MODE_M) return scountovf->val; 
+      IFDEF(CONFIG_RVH, else if (cpu.v && cpu.mode == MODE_S) return (mcounteren->val & hcounteren->val & scountovf->val));
+      else if (cpu.mode == MODE_S) return (mcounteren->val & scountovf->val);
+#endif // CONFIG_RV_SSCOFPMF
 #ifdef CONFIG_RV_IMSIC
     case CSR_SISELECT:
       IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
@@ -1824,10 +1830,6 @@ static void csr_write(uint32_t csrid, word_t src) {
     IFDEF(CONFIG_RV_SVINVAL, case CUSTOM_CSR_SRNCTL: *dest = src & CUSTOM_CSR_SRNCTL_WMASK; break;)
     case CUSTOM_CSR_SFETCHCTL: *dest = src & CUSTOM_CSR_SFETCHCTL_WMASK; break;
 
-#ifdef CONFIG_RV_SSCOFPMF
-    case CSR_SCOUNTOVF: *dest = src & SCOUNTOVF_WMASK; break;
-#endif // CONFIG_RV_SSCOFPMF
-
 #ifdef CONFIG_RV_IMSIC
     case CSR_STOPI: return;
     case CSR_STOPEI: return;
@@ -2050,6 +2052,9 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (!hpmevent_op_islegal(new_val.optype2)) {
         mhpmevent->optype2 = pre_op2;
       }
+#ifdef CONFIG_RV_SSCOFPMF
+      scountovf->ofvec = (scountovf->ofvec & ~(1 << (csrid - CSR_MHPMEVENT_BASE))) | (new_val.of << (csrid - CSR_MHPMEVENT_BASE));
+#endif // CONFIG_RV_SSCOFPMF 
       break;
     }
 

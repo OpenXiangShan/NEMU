@@ -1036,6 +1036,8 @@ CSR_STRUCT_END(mbmc)
 
 #ifdef CONFIG_RV_SSCOFPMF
 CSR_STRUCT_START(scountovf)
+  uint64_t pad    :   3;
+  uint64_t ofvec  :  29;
 CSR_STRUCT_END(scountovf)
 #endif
 
