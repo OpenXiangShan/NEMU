@@ -66,7 +66,7 @@ static inline def_DHelper(CI_simm) {
 
 static inline def_DHelper(CI_simm_lui) {
   decode_CI_simm(s, width);
-#ifdef CONFIG_SHARE
+
   // C.LUI is only valid when rd != {x0, x2}, and when the immediate is not
   // equal to zero. The code points with nzimm=0 are reserved; the remaining
   // code points with rd=x0 are HINTs; and the remaining code points with rd=x2
@@ -74,7 +74,7 @@ static inline def_DHelper(CI_simm_lui) {
   if (unlikely(id_src2->imm == 0)) {
     longjmp_exception(EX_II);
   }
-#endif // CONFIG_SHARE
+
   // the immediate of LUI is placed at id_src1->imm
   id_src1->imm = id_src2->imm << 12;
 }
@@ -322,14 +322,12 @@ def_THelper(c_addi_dispatch) {
 }
 
 def_THelper(c_addiw_dispatch) {
-#ifdef CONFIG_SHARE
   // C.ADDIW is only valid when rd != x0; the code points with rd=x0 are reserved.
   uint32_t instr = s->isa.instr.val;
   uint32_t rd  = BITS(instr, 11, 7);
   if (unlikely(rd == 0)) {
     return EXEC_ID_inv;
   }
-#endif // CONFIG_SHARE
   return table_c_addiw(s);
 }
 
