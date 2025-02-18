@@ -726,39 +726,46 @@ inline word_t gen_status_sd(word_t status) {
   return ((word_t)(fs_dirty || vs_dirty)) << 63;
 }
 
+#ifdef CONFIG_RV_SMCNTRPMF
+static inline bool inbibit_smcntrpmf(word_t current_cfg) {
+  bool inbibit = false;
+  mcyclecfg_t* cfg = (mcyclecfg_t*)&current_cfg;
+  inbibit = (cpu.mode == MODE_M && cfg->minh) 
+    || (cpu.mode == MODE_S && cfg->sinh) 
+    || (cpu.mode == MODE_U && cfg->uinh) 
+#ifdef CONFIG_RVH
+    || (cpu.mode == MODE_S && cpu.v && cfg->vsinh) 
+    || (cpu.mode == MODE_U && cpu.v && cfg->vuinh); 
+#endif // CONFIG_RVH
+  return inbibit;
+}
+#endif // CONFIG_RV_SMCNTRPMF
+
 static inline word_t get_mcycle() {
-  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-    if (mcountinhibit->val & 0x1) {
-      return mcycle->val;
-    }
-  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  bool inbibit = MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->val & 0x1, false) 
+  || MUXDEF(CONFIG_RV_SMCNTRPMF, inbibit_smcntrpmf(mcyclecfg->val), false);
+  if (inbibit) return mcycle->val;
   return mcycle->val + get_abs_instr_count_csr();
 }
 
 static inline word_t get_minstret() {
-  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-    if (mcountinhibit->val & 0x4) {
-      return minstret->val;
-    }
-  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  bool inbibit = MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->val & 0x4, false) 
+  || MUXDEF(CONFIG_RV_SMCNTRPMF, inbibit_smcntrpmf(minstretcfg->val), false);
+  if (inbibit) return minstret->val;
   return minstret->val + get_abs_instr_count_csr();
 }
 
 static inline word_t set_mcycle(word_t src) {
-  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-    if (mcountinhibit->val & 0x1) {
-      return src;
-    }
-  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  bool inbibit = MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->val & 0x1, false) 
+  || MUXDEF(CONFIG_RV_SMCNTRPMF, inbibit_smcntrpmf(mcyclecfg->val), false);
+  if (inbibit) return src;
   return src - get_abs_instr_count_csr();
 }
 
 static inline word_t set_minstret(word_t src) {
-  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-    if (mcountinhibit->val & 0x4) {
-      return src;
-    }
-  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+  bool inbibit = MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->val & 0x4, false) 
+  || MUXDEF(CONFIG_RV_SMCNTRPMF, inbibit_smcntrpmf(minstretcfg->val), false);
+    if (inbibit) return src;
   return src - get_abs_instr_count_csr();
 }
 
