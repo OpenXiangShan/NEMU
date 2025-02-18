@@ -36,6 +36,10 @@ void init_disk();
 void init_sdcard();
 void init_flash();
 void load_flash_contents(const char *);
+void init_imsic_m();
+void init_imsic_s();
+void init_aplic_m();
+void init_aplic_s();
 
 void send_key(uint8_t, bool);
 void vga_update_screen();
@@ -99,6 +103,10 @@ void init_device() {
   IFDEF(CONFIG_HAS_DISK, init_disk());
   IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
   IFDEF(CONFIG_HAS_FLASH, init_flash());
+  IFDEF(CONFIG_HAS_IMSIC_M, init_imsic_m());
+  IFDEF(CONFIG_HAS_IMSIC_S, init_imsic_s());
+  IFDEF(CONFIG_HAS_APLIC_M, init_aplic_m());
+  IFDEF(CONFIG_HAS_APLIC_S, init_aplic_s());
 
   // host alarm for device and timer update.
   add_alarm_handle(set_device_update_flag);

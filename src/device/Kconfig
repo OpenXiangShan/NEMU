@@ -84,6 +84,50 @@ config PLIC_ADDRESS
   default 0x3c000000
 endif
 
+menuconfig HAS_IMSIC_M
+  depends on !SHARE
+  bool "Enable IMSIC_M"
+  default n
+
+if HAS_IMSIC_M
+config IMSIC_M_ADDRESS
+  hex "base address of IMSIC_M"
+  default 0x3a800000
+endif
+
+menuconfig HAS_IMSIC_S
+  depends on !SHARE
+  bool "Enable IMSIC_S"
+  default n
+
+if HAS_IMSIC_S
+config IMSIC_S_ADDRESS
+  hex "base address of IMSIC_S"
+  default 0x3b000000
+endif
+
+menuconfig HAS_APLIC_M
+  depends on !SHARE
+  bool "Enable APLIC_M"
+  default n
+
+if HAS_APLIC_M
+config APLIC_M_ADDRESS
+  hex "base address of APLIC_M"
+  default 0x31100000
+endif
+
+menuconfig HAS_APLIC_S
+  depends on !SHARE
+  bool "Enable APLIC_S"
+  default n
+
+if HAS_APLIC_S
+config APLIC_S_ADDRESS
+  hex "base address of APLIC_S"
+  default 0x31120000
+endif
+
 menuconfig HAS_TIMER
   depends on !SHARE
   bool "Enable timer"
