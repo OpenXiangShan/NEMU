@@ -42,6 +42,8 @@ typedef union PageTableEntry {
   uint64_t val;
 } PTE;
 
+int log_it = 0;
+
 #define PGSHFT 12
 #ifdef CONFIG_RV_MBMC
 #define BMSHFT 32
@@ -168,6 +170,7 @@ bool has_two_stage_translation(){
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
   // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
+  Logtr("raise_guest_excep type %d, is_support_vs %d", type, is_support_vs);
 #ifdef FORCE_RAISE_PF
   if (
     cpu.guided_exec && cpu.execution_guide.force_raise_exception &&
@@ -253,7 +256,9 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
 }
 
 paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool ishlvx, bool is_support_vs){
-  Logtr("gpa_stage gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD ", type: %d", gpaddr, vaddr, type);
+  Logtr("G-stage Page walking for gpaddr " FMT_PADDR ", vaddr: " FMT_WORD ", type: %d, is_support_vs %d", gpaddr, vaddr, type, is_support_vs);
+  Logtr("hgatp 0x%lx: mode %x, ppn %lx", hgatp->val, hgatp->mode, (uint64_t)hgatp->ppn);
+  Logtr("trap_type %d", trap_type);
   int max_level = 0;
   #ifdef CONFIG_RV_MBMC
   pt_level = 0;
@@ -278,6 +283,11 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
   PTE pte;
   for (level = max_level - 1; level >= 0; ) {
     p_pte = pg_base + GVPNi(gpaddr, level, max_level) * PTE_SIZE;
+    Logtr(
+      "g ptw: level %d, paddr of pte 0x%lx",
+      level, p_pte
+    );
+    Logtr("trap_type %d", trap_type);
     pte.val	= paddr_read(p_pte, PTE_SIZE,
     type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
     type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, trap_type, MODE_S, vaddr);
@@ -288,35 +298,51 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
         }
     #endif
     pg_base = PGBASE(pte.ppn);
+
     Logtr(
-      "g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w:%d, x:%d, u:%d, g:%d, a:%d, d:%d",
-      p_pte, pg_base, pte.v, pte.r, pte.w, pte.x, pte.u, pte.g, pte.a, pte.d
+      "g ptw: level %d, paddr of pte 0x%lx, pte.val 0x%lx",
+      level, p_pte, pte.val
+    );
+    Logtr(
+      "g pte.ppn 0x%lx, pte.v %d, r %d, w %d, x %d, u %d, g %d, a %d, d %d, pbmt %d",
+      (uint64_t)pte.ppn, pte.v, pte.r, pte.w, pte.x, pte.u, pte.g, pte.a, pte.d, pte.pbmt
     );
     if (pte.v && !pte.r && !pte.w && !pte.x) {
       // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
+        Logtr("bad1");
         break;
       }
       level --;
-      if (level < 0) { break; }
+      if (level < 0) {
+        Logtr("bad2");
+        break;
+      }
     } else if (!pte.v || (!pte.r && pte.w) || pte.pad) {
+      Logtr("bad3");
       break;
     } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
+      Logtr("bad4");
       break;
     } else if (pte.pbmt == 3) {
+      Logtr("bad5");
       break;
     } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
+      Logtr("bad6");
       break;
     } else if (!pte.u) {
+      Logtr("bad7");
       break;
     } else if (
       type == MEM_TYPE_IFETCH || ishlvx ? !pte.x:
       type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
                                         !(pte.r && pte.w)
     ) {
+      Logtr("bad8");
       break;
     } else if (!pte.a || (!pte.d && type == MEM_TYPE_WRITE)) {
       // TODO: support hardware a/d update.
+      Logtr("bad9");
       break;
     } else {
       if (level > 0) {
@@ -324,6 +350,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
         word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
         if ((pg_base & pg_mask) != 0) {
           // misaligned superpage
+          Logtr("bad10");
           break;
         } else if (pte.n) {
           // superpage but napot
@@ -337,6 +364,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
         word_t pg_mask = ((1ull << SVNAPOTSHFT) - 1);
         pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
       }
+      Logtr("G-stage finished: gpaddr %lx, paddr %lx", gpaddr, pg_base | (gpaddr & PAGE_MASK));
       return pg_base | (gpaddr & PAGE_MASK);
     }
   }
@@ -387,6 +415,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp->ppn);
     max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
+    Logtr("vsatp %lx: mode %x, ppn %lx", vsatp->val, vsatp->mode, (uint64_t)vsatp->ppn);
+  } else {
+    Logtr("satp %lx: mode %x, ppn %lx", satp->val, satp->mode, (uint64_t)satp->ppn);
   }
 #endif
   bool pbmte = menvcfg->pbmte;
@@ -410,6 +441,9 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   for (level = max_level - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
+    Logtr("ptw: level %d, vaddr 0x%lx, addr of pte 0x%lx",
+      level, vaddr, p_pte);
+
 #ifdef CONFIG_MULTICORE_DIFF
     pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
 #else
@@ -420,6 +454,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #endif //CONFIG_RVH
     pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
 #endif
+      Logtr(
+        "ptw: level %d, vaddr 0x%lx, addr of pte 0x%lx, pte.val 0x%lx",
+        level, vaddr, p_pte, pte.val
+      );
+      Logtr(
+        "pte.ppn 0x%lx, pte.v %d, r %d, w %d, x %d, u %d, g %d, a %d, d %d, pbmt %d",
+        (uint64_t)pte.ppn, pte.v, pte.r, pte.w, pte.x, pte.u, pte.g, pte.a, pte.d, pte.pbmt
+      );
 #ifdef CONFIG_SHARE
     if (unlikely(dynamic_config.debug_difftest)) {
       fprintf(stderr, "[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
@@ -428,22 +470,31 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #endif
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
+      Logtr("bad1");
       goto bad;
     } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
+      Logtr("bad2 pbmte %d, pte.pbmt %d, menvcfg.pbmte %d, henvcfg.pbmte %d", pbmte, pte.pbmt, menvcfg->pbmte, henvcfg->pbmte);
       goto bad;
     } else if (pte.pbmt == 3) {
+      Logtr("bad3");
       goto bad;
     } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
+      Logtr("bad4");
       goto bad;
     }
     if (pte.r || pte.x) { // is leaf
+      Logtr("good5");
       break;
     } else { // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
+        Logtr("bad6");
         goto bad;
       }
+      Logtr("notleaf9");
       level --;
-      if (level < 0) { goto bad; }
+      if (level < 0) {
+      Logtr("bad7");
+        goto bad; }
     }
   }
 #ifdef CONFIG_RVH
@@ -456,9 +507,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   #endif
   if (level > 0) {
     // superpage
+    Logtr("Superpage");
     word_t pg_mask = ((1ull << VPNiSHFT(level)) - 1);
     if ((pg_base & pg_mask) != 0) {
       // missaligned superpage
+      Logtr("bad8");
       goto bad;
     } else if (pte.n) {
       // superpage but napot
@@ -474,6 +527,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
+    Logtr("VS-stage finished: vaddr %lx, gpaddr %lx", vaddr, pg_base | (vaddr & PAGE_MASK));
     pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
   }
@@ -581,7 +635,7 @@ int update_mmu_state() {
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 
 int isa_mmu_check(vaddr_t vaddr, int len, int type) {
-  Logtr("MMU checking addr %lx", vaddr);
+  // Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
 
   if (!is_ifetch) {
