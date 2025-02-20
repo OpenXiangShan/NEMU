@@ -42,10 +42,27 @@
     if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
   } while (0)
 
+extern int log_it;
+
 #define Logm(...) Logf(dflag_mem, __VA_ARGS__)
-#define Logtr(...) Logf(dflag_translate, __VA_ARGS__)
+// #define Logtr(...) Logf(dflag_translate, __VA_ARGS__)
+#define Logtr(...) \
+  do { \
+    if (1) { \
+      Logf(dflag_translate, __VA_ARGS__); \
+    } \
+  } while (0)
+
 #define Logtb(...) Logf(dflag_trace_bb, __VA_ARGS__)
-#define Logti(...) Logf(dflag_trace_inst, __VA_ARGS__)
+
+// #define Logti(...) Logf(dflag_trace_inst, __VA_ARGS__)
+#define Logti(...) \
+  do { \
+    if (1) { \
+      Logf(dflag_trace_inst, __VA_ARGS__); \
+    } \
+  } while (0)
+
 #define Logtid(...) Logf(dflag_trace_inst_dasm, __VA_ARGS__)
 #define Loge(...) Logf(dflag_exit, __VA_ARGS__)
 #define Logsp(...) Logf(dflag_simpoint, __VA_ARGS__)
