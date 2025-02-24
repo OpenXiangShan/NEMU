@@ -210,6 +210,38 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
 
 #endif // CONFIG_SHARE
 
+#ifdef CONFIG_MULTICORE_DIFF
+extern bool need_read_golden_mem;
+
+uint32_t vec_laod_mul = 0;
+uint64_t vec_read_golden_mem_addr = 0;
+uint64_t vec_read_golden_mem_data = 0;
+
+uint64_t vec_load_diffteset_buf[8] = {0};
+
+uint64_t vec_load_difftest_addr_queue[128] = {0};
+uint64_t vec_load_difftest_data_queue[128] = {0};
+uint8_t  vec_load_difftest_len_queue[128]  = {0};
+uint32_t vec_load_difftest_info_queue_cnt = 0;
+
+void init_vec_load_difftest_info(int mul, int vd) {
+  vec_laod_mul = mul;
+  for (int i = 0; i < mul; i++) {
+    set_vec_dual_difftest_reg(i, 0, cpu.vr[vd+i]._64[0], 3);
+    set_vec_dual_difftest_reg(i, 1, cpu.vr[vd+i]._64[1], 3);
+  }
+  vec_load_difftest_info_queue_cnt = 0;
+}
+
+void set_vec_load_difftest_info(int fn, int len) {
+  vec_load_diffteset_buf[fn] = vec_read_golden_mem_data;
+  vec_load_difftest_addr_queue[vec_load_difftest_info_queue_cnt] = vec_read_golden_mem_addr;
+  vec_load_difftest_data_queue[vec_load_difftest_info_queue_cnt] = vec_read_golden_mem_data;
+  vec_load_difftest_len_queue[vec_load_difftest_info_queue_cnt]  = len;
+  vec_load_difftest_info_queue_cnt ++;
+}
+#endif // CONFIG_MULTICORE_DIFF
+
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
@@ -248,6 +280,8 @@ void vld(Decode *s, int mode, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+
+  IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(emul, vd));
 
   bool fast_vle = false;
 
@@ -343,6 +377,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {
             set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+            IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
           }
         }
         continue;
@@ -355,11 +390,14 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
+        IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
         rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
       }
       // set vreg after all segment done with no exception
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
       }
     }
   }
@@ -371,6 +409,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
       }
     }
   }
@@ -412,6 +451,8 @@ void vldx(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
 
+  IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(lmul, vd));
+
   // Store all seg8 intermediate data
   uint64_t vloadBuf[8];
 
@@ -422,6 +463,7 @@ void vldx(Decode *s, int mmu_mode) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
           set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
+          IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * lmul, idx, tmp_reg[1], eew));
         }
       }
       continue;
@@ -439,12 +481,15 @@ void vldx(Decode *s, int mmu_mode) {
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
+      IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
       rtl_lm(s, &vloadBuf[fn], &addr, 0, data_width, mmu_mode);
+      IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, data_width));
     }
 
     // set vreg after all segment done with no exception
     for (fn = 0; fn < nf; fn++) {
       set_vreg(vd + fn * lmul, idx, vloadBuf[fn], eew, 0, 0);
+      IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * lmul, idx, vec_load_diffteset_buf[fn], eew));
     }
   }
 
@@ -454,6 +499,7 @@ void vldx(Decode *s, int mmu_mode) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
         set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * lmul, idx, tmp_reg[1], eew));
       }
     }
   }
@@ -721,6 +767,7 @@ void vlr(Decode *s, int mmu_mode) {
   vd = id_dest->reg;
   idx = vstart->val;
 
+  IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(len, vd));
   isa_whole_reg_check(vd, len);
 
   if (vstart->val < size) {
@@ -736,8 +783,12 @@ void vlr(Decode *s, int mmu_mode) {
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
+        IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
+
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(0, s->v_width));
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(vreg_idx, pos, vec_load_diffteset_buf[0], eew));
         idx++;
       }
       vreg_idx++;
@@ -751,8 +802,12 @@ void vlr(Decode *s, int mmu_mode) {
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
+        IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
+
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(0, s->v_width));
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(vreg_idx, pos, vec_load_diffteset_buf[0], eew));
         idx++;
       }
     }
@@ -860,6 +915,8 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+
+  IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(emul, vd));
 
   bool fast_vle = false;
 
@@ -977,6 +1034,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
             tmp_reg[1] = (uint64_t) -1;
             for (fn = 0; fn < nf; fn++) {
               set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+              IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
             }
           }
           continue;
@@ -987,17 +1045,23 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
                                   trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
+
+          IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
           if (fofvl == 0) {
             rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+            IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
           } else {
             rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+            IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
             set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+            IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
           }
 
         }
         if (fofvl == 0) {
           for (fn = 0; fn < nf; fn++) {
             set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+            IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
           }
         }
 
@@ -1011,6 +1075,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
           set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+          IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
         }
       }
     }

@@ -16,6 +16,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
@@ -275,6 +276,28 @@ void difftest_get_store_event_other_info(void *info) {
 }
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
+
+
+#if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
+extern uint32_t vec_laod_mul;
+int difftest_get_vec_load_vdNum() {
+  return vec_laod_mul;
+}
+
+void *difftest_get_vec_load_dual_goldenmem_reg(void *regPtr) {
+  return get_vec_dual_reg();
+}
+
+extern uint64_t vec_load_difftest_addr_queue[128];
+extern uint64_t vec_load_difftest_data_queue[128];
+extern uint8_t  vec_load_difftest_len_queue[128];
+extern uint32_t vec_load_difftest_info_queue_cnt;
+void difftest_update_vec_load_pmem() {
+  for (uint32_t i = 0; i < vec_load_difftest_info_queue_cnt; i++) {
+    host_write(guest_to_host(vec_load_difftest_addr_queue[i]), vec_load_difftest_len_queue[i], vec_load_difftest_data_queue[i]);
+  }
+}
+#endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 
 
 void difftest_sync_aia(void *src) {
