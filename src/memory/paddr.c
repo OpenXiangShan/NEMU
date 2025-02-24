@@ -31,6 +31,12 @@ unsigned int PMEM_HARTID = 0;
 
 extern Decode *prev_s;
 
+#if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
+extern uint64_t vec_read_golden_mem_addr;
+extern uint64_t vec_read_golden_mem_data;
+bool need_read_golden_mem = false;
+#endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
+
 #ifdef CONFIG_LIGHTQS
 #define PMEMBASE 0x1100000000ul
 #else
@@ -73,6 +79,14 @@ uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - HOST_PMEM_OFFSET; }
 
 static inline word_t pmem_read(paddr_t addr, int len) {
+#if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
+  if (need_read_golden_mem) {
+    need_read_golden_mem = false;
+    vec_read_golden_mem_addr = addr;
+    vec_read_golden_mem_data = golden_pmem_read(addr, len, 0, 0, 0);
+  }
+#endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
+
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif

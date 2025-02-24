@@ -192,6 +192,54 @@ void set_vreg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew, uint64_t vlmul
   }
 }
 
+#ifdef CONFIG_MULTICORE_DIFF
+union {
+  uint64_t _64[VENUM64];
+  uint32_t _32[VENUM32];
+  uint16_t _16[VENUM16];
+  uint8_t  _8[VENUM8];
+} vec_dual_difftest_reg[8];
+
+void set_vec_dual_difftest_reg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew) {
+  Assert(vsew <= 3, "vsew should be less than 4\n");
+  switch (vsew) {
+    case 0 : src = src & 0xff; break;
+    case 1 : src = src & 0xffff; break;
+    case 2 : src = src & 0xffffffff; break;
+    case 3 : src = src & 0xffffffffffffffff; break;
+  }
+  switch (vsew) {
+    case 0 : vec_dual_difftest_reg[reg]._8 [idx] = (uint8_t  )src; break;
+    case 1 : vec_dual_difftest_reg[reg]._16[idx] = (uint16_t )src; break;
+    case 2 : vec_dual_difftest_reg[reg]._32[idx] = (uint32_t )src; break;
+    case 3 : vec_dual_difftest_reg[reg]._64[idx] = (uint64_t )src; break;
+  }
+}
+
+void set_vec_dual_difftest_reg_idx(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew) {
+  Assert(vsew <= 3, "vsew should be less than 4\n");
+  int new_reg = get_reg(reg, idx, vsew);
+  int new_idx = get_idx(reg, idx, vsew);
+
+  switch (vsew) {
+    case 0 : src = src & 0xff; break;
+    case 1 : src = src & 0xffff; break;
+    case 2 : src = src & 0xffffffff; break;
+    case 3 : src = src & 0xffffffffffffffff; break;
+  }
+  switch (vsew) {
+    case 0 : vec_difftest_reg_b(new_reg, new_idx) = (uint8_t  )src; break;
+    case 1 : vec_difftest_reg_s(new_reg, new_idx) = (uint16_t )src; break;
+    case 2 : vec_difftest_reg_i(new_reg, new_idx) = (uint32_t )src; break;
+    case 3 : vec_difftest_reg_l(new_reg, new_idx) = (uint64_t )src; break;
+  }
+}
+
+void  *get_vec_dual_reg() {
+  return vec_dual_difftest_reg;
+}
+#endif // CONFIG_MULTICORE_DIFF
+
 void get_tmp_vreg(uint64_t reg, int idx, rtlreg_t *dst, uint64_t vsew) {
   Assert(vsew <= 3, "vsew should be less than 4\n");
   switch (vsew) {

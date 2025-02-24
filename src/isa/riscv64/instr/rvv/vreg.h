@@ -71,6 +71,18 @@ static inline int check_reg_index2(int index2, int elen) {
 #define vreg_s(index1, index2) (cpu.vr[check_reg_index1(index1)]._16[check_reg_index2(index2, 16)])
 #define vreg_b(index1, index2) (cpu.vr[check_reg_index1(index1)]._8[check_reg_index2(index2,   8)])
 
+#ifdef CONFIG_MULTICORE_DIFF
+
+#define vec_difftest_reg_l(index1, index2) (vec_dual_difftest_reg[index1]._64[index2])
+#define vec_difftest_reg_i(index1, index2) (vec_dual_difftest_reg[index1]._32[index2])
+#define vec_difftest_reg_s(index1, index2) (vec_dual_difftest_reg[index1]._16[index2])
+#define vec_difftest_reg_b(index1, index2) (vec_dual_difftest_reg[index1]._8 [index2])
+
+void set_vec_dual_difftest_reg(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew);
+void set_vec_dual_difftest_reg_idx(uint64_t reg, int idx, rtlreg_t src, uint64_t vsew);
+void *get_vec_dual_reg();
+#endif // CONFIG_MULTICORE_DIFF
+
 rtlreg_t get_mask(int reg, int idx);
 
 static inline const char * vreg_name(int index, int width) {
