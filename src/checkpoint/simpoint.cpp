@@ -143,6 +143,13 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
     // (intervalCount) and the excessive inst count from the previous
     // interval (intervalDrift) is greater than/equal to the interval size.
     if (intervalCount + intervalDrift >= intervalSize) {
+#ifdef CONFIG_PROFILING_DETAIL_MODEL
+      *simpointStream->stream() << "T";
+      for (auto map_itr = bbMap.begin(); map_itr != bbMap.end(); ++map_itr) {
+        *simpointStream->stream() << ":" << map_itr->first.first << ":" << map_itr->first.second << ":"
+          << map_itr->second.id << ":" << map_itr->second.count << " ";
+      }
+#else
       // summarize interval and display BBV info
       std::vector<std::pair<uint64_t, uint64_t> > counts;
       for (auto map_itr = bbMap.begin(); map_itr != bbMap.end(); ++map_itr) {
@@ -159,6 +166,7 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
       for (auto cnt_itr = counts.begin(); cnt_itr != counts.end(); ++cnt_itr) {
         *simpointStream->stream() << ":" << cnt_itr->first << ":" << cnt_itr->second << " ";
       }
+#endif
       *simpointStream->stream() << "\n";
       Logsp("Simpoint profilied %lu instrs", intervalCount);
 
