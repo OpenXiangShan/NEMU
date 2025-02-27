@@ -52,6 +52,21 @@ config ENGINE_INTERPRETER
     Interpreter guest instructions one by one.
 endchoice
 
+choice
+  prompt "NEMU profiling config"
+  default PROFILING_SIMPLIFIED_MODEL
+
+config PROFILING_SIMPLIFIED_MODEL
+  bool "Simplified model"
+  help
+    NEMU profiling output T:block_id:block_count, for cluster.
+
+config PROFILING_DETAIL_MODEL
+  bool "Detail model"
+  help
+    NEMU profiling output T:first_pc:second_pc:block_id:block_count, for parser simpoint_bbv file.
+endchoice
+
 config ENGINE
   string
   default "interpreter" if ENGINE_INTERPRETER
