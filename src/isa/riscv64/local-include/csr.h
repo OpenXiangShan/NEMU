@@ -39,7 +39,7 @@
 #define CUSTOM_CSR_MBMC       0xbC2
 
 #define CUSTOM_CSR_SBPCTL_WMASK     0x7f
-#define CUSTOM_CSR_SPFCTL_WMASK     0x3ffff
+#define CUSTOM_CSR_SPFCTL_WMASK     0x3fffff
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
 #define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x3ff
 #define CUSTOM_CSR_SRNCTL_WMASK     0x5
@@ -1075,6 +1075,10 @@ CSR_STRUCT_START(spfctl)
   uint64_t l1d_pf_active_stride     : 6; // [15:10] L1D prefetch active page stride
   uint64_t l1d_pf_enable_stride     : 1; // [16] L1D prefetch enable stride
   uint64_t l2_pf_store_only         : 1; // [17] L2 pf store only
+  uint64_t l2_pf_recv_enable        : 1; // [18] (Train L1, Prefetch L2) receive from sms
+  uint64_t l2_pf_pbop_enable        : 1; // [19] (Train L1, Prefetch L2) PBOP
+  uint64_t l2_pf_vbop_enable        : 1; // [20] (Train L1, Prefetch L2) VBOP
+  uint64_t l2_pf_tp_enable          : 1; // [21] (Train L1, Prefetch L2) TP
 CSR_STRUCT_END(spfctl)
 
 CSR_STRUCT_START(slvpredctl)
@@ -1094,10 +1098,6 @@ CSR_STRUCT_START(smblockctl)
   uint64_t hd_misalign_st_enable            : 1; // [8] Enable hardware store misalign.
   uint64_t hd_misalign_ld_enable            : 1; // [9] Enable hardware load misalign.
 CSR_STRUCT_END(smblockctl)
-
-CSR_STRUCT_START(sfetchctl)
-  uint64_t icache_parity_enable : 1; // [0]
-CSR_STRUCT_END(sfetchctl)
 
 /** Supervisor Timer Register**/
 #ifdef CONFIG_RV_SSTC
