@@ -152,6 +152,10 @@ void init_custom_csr() {
   spfctl->l1d_pf_active_stride = 30;
   spfctl->l1d_pf_enable_stride = 1;
   spfctl->l2_pf_store_only = 0;
+  spfctl->l2_pf_recv_enable = 1;
+  spfctl->l2_pf_pbop_enable = 1;
+  spfctl->l2_pf_vbop_enable = 1;
+  spfctl->l2_pf_tp_enable = 1;
 
   slvpredctl->lvpred_disable = 0;
   slvpredctl->no_spec_load = 0;
