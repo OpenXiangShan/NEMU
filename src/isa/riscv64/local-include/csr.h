@@ -33,7 +33,6 @@
 #define CUSTOM_CSR_SLVPREDCTL 0x5c2
 #define CUSTOM_CSR_SMBLOCKCTL 0x5c3
 #define CUSTOM_CSR_SRNCTL     0x5c4
-#define CUSTOM_CSR_SFETCHCTL  0x9e0
 #define CUSTOM_CSR_MCOREPWR   0xbc0
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
 #define CUSTOM_CSR_MBMC       0xbC2
@@ -43,7 +42,6 @@
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
 #define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x3ff
 #define CUSTOM_CSR_SRNCTL_WMASK     0x5
-#define CUSTOM_CSR_SFETCHCTL_WMASK  0x1
 #define CUSTOM_CSR_MCOREPWR_WMASK   0x1
 #define CUSTOM_CSR_MFLUSHPWR_WMASK  0x1
 
@@ -181,8 +179,7 @@
   f(sbpctl  ,   0x5c0) \
   f(spfctl  ,   0x5c1) \
   f(slvpredctl, 0x5c2) \
-  f(smblockctl, 0x5c3) \
-  f(sfetchctl,  0x9e0)    
+  f(smblockctl, 0x5c3)
 
 #define CSRS_S_CUSTOM_1(f) \
   CSRS_S_XIANGSHAN_CTRL(f)

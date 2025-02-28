@@ -176,8 +176,6 @@ void init_custom_csr() {
   srnctl->wfi_enable = 1;
 #endif // CONFIG_RV_SVINVAL
 
-  sfetchctl->icache_parity_enable = 0;
-
   mcorepwr->powerdown = 0;
 
   mflushpwr->flushl2 = 0;
@@ -1832,7 +1830,6 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CUSTOM_CSR_SLVPREDCTL: *dest = src & CUSTOM_CSR_SLVPREDCTL_WMASK; break;
     case CUSTOM_CSR_SMBLOCKCTL: *dest = src & CUSTOM_CSR_SMBLOCKCTL_WMASK; break;
     IFDEF(CONFIG_RV_SVINVAL, case CUSTOM_CSR_SRNCTL: *dest = src & CUSTOM_CSR_SRNCTL_WMASK; break;)
-    case CUSTOM_CSR_SFETCHCTL: *dest = src & CUSTOM_CSR_SFETCHCTL_WMASK; break;
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_STOPI: return;
