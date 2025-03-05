@@ -76,9 +76,9 @@ enum fp_wop_t {
 
 void fp_set_dirty();
 void vp_set_dirty();
-void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
+void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
 void permutaion_instr(int opcode, Decode *s);
-void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s);
+void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s);
 void mask_instr(int opcode, Decode *s);
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s);
 void float_reduction_instr(int opcode, int widening, Decode *s);
@@ -88,19 +88,19 @@ void float_reduction_computing(Decode *s);
 void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm(void);
 
-#define ARTHI(opcode, is_signed) arthimetic_instr(opcode, is_signed, 0, 0, 0, s);
-#define ARTHI_WIDE(opcode, is_signed) arthimetic_instr(opcode, is_signed, 1, 0, 0, s);
-#define ARTHI_MASK(opcode, is_signed) arthimetic_instr(opcode, is_signed, 0, 0, 1, s);
-#define ARTHI_NARROW(opcode, is_signed, narrow) arthimetic_instr(opcode, is_signed, 0, narrow, 0, s);
+#define ARITH(opcode, is_signed) arithmetic_instr(opcode, is_signed, 0, 0, 0, s);
+#define ARITH_WIDE(opcode, is_signed) arithmetic_instr(opcode, is_signed, 1, 0, 0, s);
+#define ARITH_MASK(opcode, is_signed) arithmetic_instr(opcode, is_signed, 0, 0, 1, s);
+#define ARITH_NARROW(opcode, is_signed, narrow) arithmetic_instr(opcode, is_signed, 0, narrow, 0, s);
 #define PERM(opcode) permutaion_instr(opcode, s);
 
-#define FLOAT_ARTHI(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, noWidening, 0, s);
-#define FLOAT_ARTHI_DWIDE(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdWidening, 0, s);
-#define FLOAT_ARTHI_SDWIDE(opcode) floating_arthimetic_instr(opcode, 0, vsdWidening, 0, s);
-#define FLOAT_ARTHI_SWIDE(opcode) floating_arthimetic_instr(opcode, 0, vsWidening, 0, s);
-#define FLOAT_ARTHI_DNARROW(opcode, is_signed) floating_arthimetic_instr(opcode, is_signed, vdNarrow, 0, s);
-#define FLOAT_ARTHI_MASK(opcode) floating_arthimetic_instr(opcode, 0, noWidening, 1, s);
-#define FLOAT_ARTHI_NOCHECK(opcode) floating_arthimetic_instr(opcode, 0, noCheck, 0, s);
+#define FLOAT_ARITH(opcode, is_signed) floating_arithmetic_instr(opcode, is_signed, noWidening, 0, s);
+#define FLOAT_ARITH_DWIDE(opcode, is_signed) floating_arithmetic_instr(opcode, is_signed, vdWidening, 0, s);
+#define FLOAT_ARITH_SDWIDE(opcode) floating_arithmetic_instr(opcode, 0, vsdWidening, 0, s);
+#define FLOAT_ARITH_SWIDE(opcode) floating_arithmetic_instr(opcode, 0, vsWidening, 0, s);
+#define FLOAT_ARITH_DNARROW(opcode, is_signed) floating_arithmetic_instr(opcode, is_signed, vdNarrow, 0, s);
+#define FLOAT_ARITH_MASK(opcode) floating_arithmetic_instr(opcode, 0, noWidening, 1, s);
+#define FLOAT_ARITH_NOCHECK(opcode) floating_arithmetic_instr(opcode, 0, noCheck, 0, s);
 
 #define MASKINSTR(opcode) mask_instr(opcode, s);
 
