@@ -452,7 +452,7 @@ void vector_slide_check(Decode *s, bool is_over) {
   }
 }
 
-void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
+void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
   require_vector(true);
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   uint64_t carry;
@@ -979,7 +979,7 @@ void arthimetic_instr(int opcode, int is_signed, int widening, int narrow, int d
 }
 
 /**
- * this function only handle vrgather and vslide instruction, other instructions are handled in arthimetic_instr
+ * this function only handle vrgather and vslide instruction, other instructions are handled in arithmetic_instr
  * because the illegal instruction exception is handled in vcompute.h for vrgather and vslide instruction
  */
 void permutaion_instr(int opcode, Decode *s) {
@@ -1126,7 +1126,7 @@ void permutaion_instr(int opcode, Decode *s) {
   vp_set_dirty();
 }
 
-void floating_arthimetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
+void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
   require_float();
   require_vector(true);
   uint32_t rm = isa_fp_get_frm();

@@ -20,45 +20,45 @@
 #include "vcommon.h"
 
 def_EHelper(vadd) {
-  ARTHI(ADD, SIGNED)
+  ARITH(ADD, SIGNED)
 }
 
 def_EHelper(vsub) {
   Assert(s->src_vmode != SRC_VI, "vsub.vi not supported\n");
-  ARTHI(SUB, SIGNED)
+  ARITH(SUB, SIGNED)
 }
 
 def_EHelper(vrsub) {
   Assert(s->src_vmode != SRC_VV, "vrsub.vv not supported\n");
-  ARTHI(RSUB, SIGNED)
+  ARITH(RSUB, SIGNED)
 }
 
 def_EHelper(vminu) {
-  ARTHI(MINU, UNSIGNED)
+  ARITH(MINU, UNSIGNED)
 }
 
 def_EHelper(vmin) {
-  ARTHI(MIN, SIGNED)
+  ARITH(MIN, SIGNED)
 }
 
 def_EHelper(vmaxu) {
-  ARTHI(MAXU, UNSIGNED)
+  ARITH(MAXU, UNSIGNED)
 }
 
 def_EHelper(vmax) {
-  ARTHI(MAX, SIGNED)
+  ARITH(MAX, SIGNED)
 }
 
 def_EHelper(vand) {
-  ARTHI(AND, SIGNED)
+  ARITH(AND, SIGNED)
 }
 
 def_EHelper(vor) {
-  ARTHI(OR, SIGNED)
+  ARITH(OR, SIGNED)
 }
 
 def_EHelper(vxor) {
-  ARTHI(XOR, SIGNED)
+  ARITH(XOR, SIGNED)
 }
 
 def_EHelper(vrgather) {
@@ -119,19 +119,19 @@ def_EHelper(vslide1down) {
 }
 
 def_EHelper(vadc) {
-  ARTHI(ADC, SIGNED)
+  ARITH(ADC, SIGNED)
 }
 
 def_EHelper(vmadc) {
-  ARTHI_MASK(MADC, SIGNED)
+  ARITH_MASK(MADC, SIGNED)
 }
 
 def_EHelper(vsbc) {
-  ARTHI(SBC, SIGNED)
+  ARITH(SBC, SIGNED)
 }
 
 def_EHelper(vmsbc) {
-  ARTHI_MASK(MSBC, SIGNED)
+  ARITH_MASK(MSBC, SIGNED)
 }
 
 def_EHelper(vmerge) {
@@ -142,115 +142,115 @@ def_EHelper(vmerge) {
       longjmp_exception(EX_II);
     }
   }
-  ARTHI(MERGE, SIGNED)
+  ARITH(MERGE, SIGNED)
 }
 
 def_EHelper(vmseq) {
-  ARTHI_MASK(MSEQ, SIGNED)
+  ARITH_MASK(MSEQ, SIGNED)
 }
 
 def_EHelper(vmsne) {
-  ARTHI_MASK(MSNE, SIGNED)
+  ARITH_MASK(MSNE, SIGNED)
 }
 
 def_EHelper(vmsltu) {
   Assert(s->src_vmode != SRC_VI, "vmsltu not supprt SRC_VI\n");
-  ARTHI_MASK(MSLTU, UNSIGNED)
+  ARITH_MASK(MSLTU, UNSIGNED)
 }
 
 def_EHelper(vmslt) {
   Assert(s->src_vmode != SRC_VI, "vmslt not supprt SRC_VI\n");
-  ARTHI_MASK(MSLT, SIGNED)
+  ARITH_MASK(MSLT, SIGNED)
 }
 
 def_EHelper(vmsleu) {
-  ARTHI_MASK(MSLEU, UNSIGNED)
+  ARITH_MASK(MSLEU, UNSIGNED)
 }
 
 def_EHelper(vmsle) {
-  ARTHI_MASK(MSLE, SIGNED);
+  ARITH_MASK(MSLE, SIGNED);
 }
 
 def_EHelper(vmsgtu) {
   Assert(s->src_vmode != SRC_VV, "vmsgtu not support SRC_VV\n");
-  ARTHI_MASK(MSGTU, UNSIGNED)
+  ARITH_MASK(MSGTU, UNSIGNED)
 }
 
 def_EHelper(vmsgt) {
   Assert(s->src_vmode != SRC_VV, "vmsgt not support SRC_VV\n");
-  ARTHI_MASK(MSGT, SIGNED)
+  ARITH_MASK(MSGT, SIGNED)
 }
 
 def_EHelper(vsaddu) {
-  ARTHI(SADDU, UNSIGNED)
+  ARITH(SADDU, UNSIGNED)
 }
 
 def_EHelper(vsadd) {
-  ARTHI(SADD, SIGNED)
+  ARITH(SADD, SIGNED)
 }
 
 def_EHelper(vssubu) {
-  ARTHI(SSUBU, UNSIGNED)
+  ARITH(SSUBU, UNSIGNED)
 }
 
 def_EHelper(vssub) {
-  ARTHI(SSUB, SIGNED)
+  ARITH(SSUB, SIGNED)
 }
 
 def_EHelper(vaadd) {
-  ARTHI(AADD, SIGNED)
+  ARITH(AADD, SIGNED)
 }
 
 def_EHelper(vaaddu) {
-  ARTHI(AADD, UNSIGNED)
+  ARITH(AADD, UNSIGNED)
 }
 
 def_EHelper(vsll) {
-  ARTHI(SLL, UNSIGNED)
+  ARITH(SLL, UNSIGNED)
 }
 
 def_EHelper(vasub) {
-  ARTHI(ASUB, SIGNED)
+  ARITH(ASUB, SIGNED)
 }
 
 def_EHelper(vasubu) {
-  ARTHI(ASUB, UNSIGNED)
+  ARITH(ASUB, UNSIGNED)
 }
 
 def_EHelper(vsmul) {
-  ARTHI(SMUL, SIGNED)
+  ARITH(SMUL, SIGNED)
 }
 
 def_EHelper(vsrl) {
-  ARTHI(SRL, UNSIGNED)
+  ARITH(SRL, UNSIGNED)
 }
 
 def_EHelper(vsra) {
-  ARTHI(SRA, UNSIGNED)
+  ARITH(SRA, UNSIGNED)
 }
 
 def_EHelper(vssrl) {
-  ARTHI(SSRL, UNSIGNED)
+  ARITH(SSRL, UNSIGNED)
 }
 
 def_EHelper(vssra) {
-  ARTHI(SSRA, SIGNED)
+  ARITH(SSRA, SIGNED)
 }
 
 def_EHelper(vnsrl) {
-  ARTHI_NARROW(SRL, UNSIGNED, 1)
+  ARITH_NARROW(SRL, UNSIGNED, 1)
 }
 
 def_EHelper(vnsra) {
-  ARTHI_NARROW(SRA, UNSIGNED, 1)
+  ARITH_NARROW(SRA, UNSIGNED, 1)
 }
 
 def_EHelper(vnclipu) {
-  ARTHI_NARROW(NCLIPU, UNSIGNED, 1)
+  ARITH_NARROW(NCLIPU, UNSIGNED, 1)
 }
 
 def_EHelper(vnclip) {
-  ARTHI_NARROW(NCLIP, SIGNED, 1)
+  ARITH_NARROW(NCLIP, SIGNED, 1)
 }
 
 def_EHelper(vwredsumu) {
@@ -667,7 +667,7 @@ def_EHelper(vzextvf8) {
   } else {
     require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
   }
-  ARTHI_NARROW(VEXT, UNSIGNED, -3);
+  ARITH_NARROW(VEXT, UNSIGNED, -3);
 }
 
 def_EHelper(vsextvf8) {
@@ -688,7 +688,7 @@ def_EHelper(vsextvf8) {
   } else {
     require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
   }
-  ARTHI_NARROW(VEXT, SIGNED, -3);
+  ARITH_NARROW(VEXT, SIGNED, -3);
 }
 
 def_EHelper(vzextvf4) {
@@ -709,7 +709,7 @@ def_EHelper(vzextvf4) {
   } else {
     require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
   }
-  ARTHI_NARROW(VEXT, UNSIGNED, -2);
+  ARITH_NARROW(VEXT, UNSIGNED, -2);
 }
 
 def_EHelper(vsextvf4) {
@@ -730,7 +730,7 @@ def_EHelper(vsextvf4) {
   } else {
     require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
   }
-  ARTHI_NARROW(VEXT, SIGNED, -2);
+  ARITH_NARROW(VEXT, SIGNED, -2);
 }
 
 def_EHelper(vzextvf2) {
@@ -751,7 +751,7 @@ def_EHelper(vzextvf2) {
   } else {
     require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
   }
-  ARTHI_NARROW(VEXT, UNSIGNED, -1);
+  ARITH_NARROW(VEXT, UNSIGNED, -1);
 }
 
 def_EHelper(vsextvf2) {
@@ -772,7 +772,7 @@ def_EHelper(vsextvf2) {
   } else {
     require_noover_widen(id_dest->reg, vflmul, id_src2->reg, vemul);
   }
-  ARTHI_NARROW(VEXT, SIGNED, -1);
+  ARITH_NARROW(VEXT, SIGNED, -1);
 }
 
 def_EHelper(vcompress) {
@@ -852,122 +852,122 @@ def_EHelper(vmxnor) {
 
 def_EHelper(vdivu) {
   Assert(s->src_vmode != SRC_VI, "vdivu does not support SRC_VI\n");
-  ARTHI(DIVU, UNSIGNED)
+  ARITH(DIVU, UNSIGNED)
 }
 
 def_EHelper(vdiv) {
   Assert(s->src_vmode != SRC_VI, "vdiv does not support SRC_VI\n");
-  ARTHI(DIV, SIGNED)
+  ARITH(DIV, SIGNED)
 }
 
 def_EHelper(vremu) {
   Assert(s->src_vmode != SRC_VI, "vremu does not support SRC_VI\n");
-  ARTHI(REMU, UNSIGNED)
+  ARITH(REMU, UNSIGNED)
 }
 
 def_EHelper(vrem) {
   Assert(s->src_vmode != SRC_VI, "vrem does not support SRC_VI\n");
-  ARTHI(REM, SIGNED)
+  ARITH(REM, SIGNED)
 }
 
 def_EHelper(vmulhu) {
   Assert(s->src_vmode != SRC_VI, "vmulhu does not support SRC_VI\n");
-  ARTHI(MULHU, UNSIGNED)
+  ARITH(MULHU, UNSIGNED)
 }
 
 def_EHelper(vmul) {
   Assert(s->src_vmode != SRC_VI, "vmul does not support SRC_VI\n");
-  ARTHI(MUL, SIGNED)
+  ARITH(MUL, SIGNED)
 }
 
 def_EHelper(vmulhsu) {
   Assert(s->src_vmode != SRC_VI, "vmulhsu does not support SRC_VI\n");
-  ARTHI(MULHSU, UNSIGNED)
+  ARITH(MULHSU, UNSIGNED)
 }
 
 def_EHelper(vmulh) {
   Assert(s->src_vmode != SRC_VI, "vmulh does not support SRC_VI\n");
-  ARTHI(MULH, SIGNED)
+  ARITH(MULH, SIGNED)
 }
 
 def_EHelper(vmadd) {
-  ARTHI(MADD, SIGNED)
+  ARITH(MADD, SIGNED)
 }
 
 def_EHelper(vnmsub) {
-  ARTHI(NMSUB, SIGNED)
+  ARITH(NMSUB, SIGNED)
 }
 
 def_EHelper(vmacc) {
-  ARTHI(MACC, SIGNED)
+  ARITH(MACC, SIGNED)
 }
 
 def_EHelper(vnmsac) {
-  ARTHI(NMSAC, SIGNED)
+  ARITH(NMSAC, SIGNED)
 }
 
 def_EHelper(vwaddu) {
-  ARTHI_WIDE(ADD, UNSIGNED)
+  ARITH_WIDE(ADD, UNSIGNED)
 }
 
 def_EHelper(vwadd) {
-  ARTHI_WIDE(ADD, SIGNED)
+  ARITH_WIDE(ADD, SIGNED)
 }
 
 def_EHelper(vwsubu) {
-  ARTHI_WIDE(SUB, UNSIGNED)
+  ARITH_WIDE(SUB, UNSIGNED)
 }
 
 def_EHelper(vwsub) {
-  ARTHI_WIDE(SUB, SIGNED)
+  ARITH_WIDE(SUB, SIGNED)
 }
 
 def_EHelper(vwaddu_w) {
-  arthimetic_instr(ADD, UNSIGNED, 1, 1, 0, s);
+  arithmetic_instr(ADD, UNSIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwadd_w) {
-  arthimetic_instr(ADD, SIGNED, 1, 1, 0, s);
+  arithmetic_instr(ADD, SIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwsubu_w) {
-  arthimetic_instr(SUB, UNSIGNED, 1, 1, 0, s);
+  arithmetic_instr(SUB, UNSIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwsub_w) {
-  arthimetic_instr(SUB, SIGNED, 1, 1, 0, s);
+  arithmetic_instr(SUB, SIGNED, 1, 1, 0, s);
 }
 
 def_EHelper(vwmulu) {
-  ARTHI_WIDE(MUL, UNSIGNED)
+  ARITH_WIDE(MUL, UNSIGNED)
 }
 
 def_EHelper(vwmulsu) {
-  ARTHI_WIDE(MULSU, UNSIGNED)
+  ARITH_WIDE(MULSU, UNSIGNED)
 }
 
 def_EHelper(vwmul) {
-  ARTHI_WIDE(MUL, SIGNED)
+  ARITH_WIDE(MUL, SIGNED)
 }
 
 def_EHelper(vwmaccu) {
-  ARTHI_WIDE(MACC, UNSIGNED)
+  ARITH_WIDE(MACC, UNSIGNED)
 }
 
 def_EHelper(vwmacc) {
-  ARTHI_WIDE(MACC, SIGNED)
+  ARITH_WIDE(MACC, SIGNED)
 }
 
 def_EHelper(vwmaccsu) {
-  ARTHI_WIDE(MACCSU, UNSIGNED)
+  ARITH_WIDE(MACCSU, UNSIGNED)
 }
 
 def_EHelper(vwmaccus) {
-  ARTHI_WIDE(MACCUS, UNSIGNED)
+  ARITH_WIDE(MACCUS, UNSIGNED)
 }
 
 def_EHelper(vfadd) {
-  FLOAT_ARTHI(FADD, UNSIGNED)
+  FLOAT_ARITH(FADD, UNSIGNED)
 }
 
 def_EHelper(vfredusum) {
@@ -979,7 +979,7 @@ def_EHelper(vfredusum) {
 }
 
 def_EHelper(vfsub) {
-  FLOAT_ARTHI(FSUB, UNSIGNED)
+  FLOAT_ARITH(FSUB, UNSIGNED)
 }
 
 def_EHelper(vfredosum) {
@@ -987,7 +987,7 @@ def_EHelper(vfredosum) {
 }
 
 def_EHelper(vfmin) {
-  FLOAT_ARTHI(FMIN, UNSIGNED)
+  FLOAT_ARITH(FMIN, UNSIGNED)
 }
 
 def_EHelper(vfredmin) {
@@ -995,7 +995,7 @@ def_EHelper(vfredmin) {
 }
 
 def_EHelper(vfmax) {
-  FLOAT_ARTHI(FMAX, UNSIGNED)
+  FLOAT_ARITH(FMAX, UNSIGNED)
 }
 
 def_EHelper(vfredmax) {
@@ -1003,25 +1003,25 @@ def_EHelper(vfredmax) {
 }
 
 def_EHelper(vfsgnj) {
-  FLOAT_ARTHI(FSGNJ, UNSIGNED)
+  FLOAT_ARITH(FSGNJ, UNSIGNED)
 }
 
 def_EHelper(vfsgnjn) {
-  FLOAT_ARTHI(FSGNJN, UNSIGNED)
+  FLOAT_ARITH(FSGNJN, UNSIGNED)
 }
 
 def_EHelper(vfsgnjx) {
-  FLOAT_ARTHI(FSGNJX, UNSIGNED)
+  FLOAT_ARITH(FSGNJX, UNSIGNED)
 }
 
 def_EHelper(vfslide1up) {
   vector_slide_check(s, true);
-  FLOAT_ARTHI_NOCHECK(FSLIDE1UP)
+  FLOAT_ARITH_NOCHECK(FSLIDE1UP)
 }
 
 def_EHelper(vfslide1down) {
   vector_slide_check(s, false);
-  FLOAT_ARTHI_NOCHECK(FSLIDE1DOWN)
+  FLOAT_ARITH_NOCHECK(FSLIDE1DOWN)
 }
 
 def_EHelper(vfmvfs) {
@@ -1087,103 +1087,103 @@ def_EHelper(vfmvsf) {
 }
 
 def_EHelper(vfcvt_xufv) {
-  FLOAT_ARTHI(FCVT_XUF, UNSIGNED)
+  FLOAT_ARITH(FCVT_XUF, UNSIGNED)
 }
 
 def_EHelper(vfcvt_xfv) {
-  FLOAT_ARTHI(FCVT_XF, UNSIGNED)
+  FLOAT_ARITH(FCVT_XF, UNSIGNED)
 }
 
 def_EHelper(vfcvt_fxuv) {
-  FLOAT_ARTHI(FCVT_FXU, UNSIGNED)
+  FLOAT_ARITH(FCVT_FXU, UNSIGNED)
 }
 
 def_EHelper(vfcvt_fxv) {
-  FLOAT_ARTHI(FCVT_FX, SIGNED)
+  FLOAT_ARITH(FCVT_FX, SIGNED)
 }
 
 def_EHelper(vfcvt_rtz_xufv) {
-  FLOAT_ARTHI(FCVT_RTZ_XUF, UNSIGNED)
+  FLOAT_ARITH(FCVT_RTZ_XUF, UNSIGNED)
 }
 
 def_EHelper(vfcvt_rtz_xfv) {
-  FLOAT_ARTHI(FCVT_RTZ_XF, UNSIGNED)
+  FLOAT_ARITH(FCVT_RTZ_XF, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_xufv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_XUF, UNSIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_XUF, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_xfv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_XF, UNSIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_XF, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_fxuv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_FXU, UNSIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_FXU, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_fxv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_FX, SIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_FX, SIGNED)
 }
 
 def_EHelper(vfwcvt_ffv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_FF, UNSIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_FF, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_rtz_xufv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_RTZ_XUF, UNSIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_RTZ_XUF, UNSIGNED)
 }
 
 def_EHelper(vfwcvt_rtz_xfv) {
-  FLOAT_ARTHI_DWIDE(FWCVT_RTZ_XF, UNSIGNED)
+  FLOAT_ARITH_DWIDE(FWCVT_RTZ_XF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_xufw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_XUF, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_XUF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_xfw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_XF, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_XF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_fxuw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_FXU, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_FXU, UNSIGNED)
 }
 
 def_EHelper(vfncvt_fxw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_FX, SIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_FX, SIGNED)
 }
 
 def_EHelper(vfncvt_ffw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_FF, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_FF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_rod_ffw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_ROD_FF, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_ROD_FF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_rtz_xufw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_RTZ_XUF, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_RTZ_XUF, UNSIGNED)
 }
 
 def_EHelper(vfncvt_rtz_xfw) {
-  FLOAT_ARTHI_DNARROW(FNCVT_RTZ_XF, UNSIGNED)
+  FLOAT_ARITH_DNARROW(FNCVT_RTZ_XF, UNSIGNED)
 }
 
 def_EHelper(vfsqrt_v) {
-  FLOAT_ARTHI(FSQRT, UNSIGNED)
+  FLOAT_ARITH(FSQRT, UNSIGNED)
 }
 
 def_EHelper(vfrsqrt7_v) {
-  FLOAT_ARTHI(FRSQRT7, UNSIGNED)
+  FLOAT_ARITH(FRSQRT7, UNSIGNED)
 }
 
 def_EHelper(vfrec7_v) {
-  FLOAT_ARTHI(FREC7, UNSIGNED)
+  FLOAT_ARITH(FREC7, UNSIGNED)
 }
 
 def_EHelper(vfclass_v) {
-  FLOAT_ARTHI(FCLASS, UNSIGNED)
+  FLOAT_ARITH(FCLASS, UNSIGNED)
 }
 
 def_EHelper(vfmerge) {
@@ -1196,83 +1196,83 @@ def_EHelper(vfmerge) {
       longjmp_exception(EX_II);
     }
   }
-  FLOAT_ARTHI(FMERGE, UNSIGNED)
+  FLOAT_ARITH(FMERGE, UNSIGNED)
 }
 
 def_EHelper(vmfeq) {
-  FLOAT_ARTHI_MASK(MFEQ)
+  FLOAT_ARITH_MASK(MFEQ)
 }
 
 def_EHelper(vmfle) {
-  FLOAT_ARTHI_MASK(MFLE)
+  FLOAT_ARITH_MASK(MFLE)
 }
 
 def_EHelper(vmflt) {
-  FLOAT_ARTHI_MASK(MFLT)
+  FLOAT_ARITH_MASK(MFLT)
 }
 
 def_EHelper(vmfne) {
-  FLOAT_ARTHI_MASK(MFNE)
+  FLOAT_ARITH_MASK(MFNE)
 }
 
 def_EHelper(vmfgt) {
-  FLOAT_ARTHI_MASK(MFGT)
+  FLOAT_ARITH_MASK(MFGT)
 }
 
 def_EHelper(vmfge) {
-  FLOAT_ARTHI_MASK(MFGE)
+  FLOAT_ARITH_MASK(MFGE)
 }
 
 def_EHelper(vfdiv) {
-  FLOAT_ARTHI(FDIV, UNSIGNED)
+  FLOAT_ARITH(FDIV, UNSIGNED)
 }
 
 def_EHelper(vfrdiv) {
-  FLOAT_ARTHI(FRDIV, UNSIGNED)
+  FLOAT_ARITH(FRDIV, UNSIGNED)
 }
 
 def_EHelper(vfmul) {
-  FLOAT_ARTHI(FMUL, UNSIGNED)
+  FLOAT_ARITH(FMUL, UNSIGNED)
 }
 
 def_EHelper(vfrsub) {
-  FLOAT_ARTHI(FRSUB, UNSIGNED)
+  FLOAT_ARITH(FRSUB, UNSIGNED)
 }
 
 def_EHelper(vfmadd) {
-  FLOAT_ARTHI(FMADD, UNSIGNED)
+  FLOAT_ARITH(FMADD, UNSIGNED)
 }
 
 def_EHelper(vfnmadd) {
-  FLOAT_ARTHI(FNMADD, UNSIGNED)
+  FLOAT_ARITH(FNMADD, UNSIGNED)
 }
 
 def_EHelper(vfmsub) {
-  FLOAT_ARTHI(FMSUB, UNSIGNED)
+  FLOAT_ARITH(FMSUB, UNSIGNED)
 }
 
 def_EHelper(vfnmsub) {
-  FLOAT_ARTHI(FNMSUB, UNSIGNED)
+  FLOAT_ARITH(FNMSUB, UNSIGNED)
 }
 
 def_EHelper(vfmacc) {
-  FLOAT_ARTHI(FMACC, UNSIGNED)
+  FLOAT_ARITH(FMACC, UNSIGNED)
 }
 
 def_EHelper(vfnmacc) {
-  FLOAT_ARTHI(FNMACC, UNSIGNED)
+  FLOAT_ARITH(FNMACC, UNSIGNED)
 }
 
 def_EHelper(vfmsac) {
-  FLOAT_ARTHI(FMSAC, UNSIGNED)
+  FLOAT_ARITH(FMSAC, UNSIGNED)
 }
 
 def_EHelper(vfnmsac) {
-  FLOAT_ARTHI(FNMSAC, UNSIGNED)
+  FLOAT_ARITH(FNMSAC, UNSIGNED)
 }
 
 def_EHelper(vfwadd) {
-  FLOAT_ARTHI_SDWIDE(FADD)
+  FLOAT_ARITH_SDWIDE(FADD)
 }
 
 def_EHelper(vfwredusum) {
@@ -1280,7 +1280,7 @@ def_EHelper(vfwredusum) {
 }
 
 def_EHelper(vfwsub) {
-  FLOAT_ARTHI_SDWIDE(FSUB)
+  FLOAT_ARITH_SDWIDE(FSUB)
 }
 
 def_EHelper(vfwredosum) {
@@ -1288,71 +1288,71 @@ def_EHelper(vfwredosum) {
 }
 
 def_EHelper(vfwadd_w) {
-  FLOAT_ARTHI_SWIDE(FADD)
+  FLOAT_ARITH_SWIDE(FADD)
 }
 
 def_EHelper(vfwsub_w) {
-  FLOAT_ARTHI_SWIDE(FSUB)
+  FLOAT_ARITH_SWIDE(FSUB)
 }
 
 def_EHelper(vfwmul) {
-  FLOAT_ARTHI_SDWIDE(FMUL)
+  FLOAT_ARITH_SDWIDE(FMUL)
 }
 
 def_EHelper(vfwmacc) {
-  FLOAT_ARTHI_SDWIDE(FMACC)
+  FLOAT_ARITH_SDWIDE(FMACC)
 }
 
 def_EHelper(vfwnmacc) {
-  FLOAT_ARTHI_SDWIDE(FNMACC)
+  FLOAT_ARITH_SDWIDE(FNMACC)
 }
 
 def_EHelper(vfwmsac) {
-  FLOAT_ARTHI_SDWIDE(FMSAC)
+  FLOAT_ARITH_SDWIDE(FMSAC)
 }
 
 def_EHelper(vfwnmsac) {
-  FLOAT_ARTHI_SDWIDE(FNMSAC)
+  FLOAT_ARITH_SDWIDE(FNMSAC)
 }
 
 def_EHelper(vandn) {
-  ARTHI(ANDN, SIGNED)
+  ARITH(ANDN, SIGNED)
 }
 
 def_EHelper(vbrev_v) {
-  ARTHI(BREV_V, UNSIGNED)
+  ARITH(BREV_V, UNSIGNED)
 }
 
 def_EHelper(vbrev8_v) {
-  ARTHI(BREV8_V, UNSIGNED)
+  ARITH(BREV8_V, UNSIGNED)
 }
 
 def_EHelper(vrev8_v) {
-  ARTHI(REV8_V, UNSIGNED)
+  ARITH(REV8_V, UNSIGNED)
 }
 
 def_EHelper(vclz_v) {
-  ARTHI(CLZ_V, UNSIGNED)
+  ARITH(CLZ_V, UNSIGNED)
 }
 
 def_EHelper(vctz_v) {
-  ARTHI(CTZ_V, UNSIGNED)
+  ARITH(CTZ_V, UNSIGNED)
 }
 
 def_EHelper(vcpop_v) {
-  ARTHI(CPOP_V, UNSIGNED)
+  ARITH(CPOP_V, UNSIGNED)
 }
 
 def_EHelper(vrol) {
-  ARTHI(ROL, UNSIGNED)
+  ARITH(ROL, UNSIGNED)
 }
 
 def_EHelper(vror) {
-  ARTHI(ROR, UNSIGNED)
+  ARITH(ROR, UNSIGNED)
 }
 
 def_EHelper(vwsll) {
-  ARTHI_WIDE(SLL, UNSIGNED)
+  ARITH_WIDE(SLL, UNSIGNED)
 }
 
 #endif // CONFIG_RVV
