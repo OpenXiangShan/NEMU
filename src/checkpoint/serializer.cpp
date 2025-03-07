@@ -70,6 +70,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 #include <device/flash.h>
+#include <checkpoint/sematic_point.h>
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
@@ -447,6 +448,8 @@ bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
         return true;
       }
       break;
+    case SematicCheckpointing:
+      return check_sematic_point();
     case NoCheckpoint:
       break;
     default:

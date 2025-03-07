@@ -17,6 +17,7 @@
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
 #include <profiling/profiling_control.h>
+#include <checkpoint/sematic_point.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
@@ -343,6 +344,8 @@ void init_monitor(int argc, char *argv[]) {
     simpoint_init();
     init_serializer(store_cpt_in_flash);
   }
+
+  sematic_point_init(sematic_cpt_path);
 
   /* Initialize memory. */
   init_mem();
