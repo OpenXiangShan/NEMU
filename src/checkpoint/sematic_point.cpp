@@ -36,8 +36,6 @@ class SematicPoint{
   private:
     ::std::unordered_map<BasicBlockRange, uint64_t, BasicBlockRangeHash> sematic_info;
     ::std::unordered_map<BasicBlockRange, uint64_t, BasicBlockRangeHash> counter;
-    ::std::vector<std::pair<BasicBlockRange, uint64_t>> vector_sematic_info;
-    ::std::vector<std::pair<BasicBlockRange, uint64_t>> vector_counter;
 
     BasicBlockRange currentBBV;
     uint64_t lastICount{0};
