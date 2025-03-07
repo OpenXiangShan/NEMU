@@ -8,7 +8,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 namespace SematicPointNS{
 
@@ -81,9 +80,6 @@ void SematicPoint::init(const char* sematic_point_path){
 
       uint64_t value = std::stoull(val_str, nullptr, 10);
       BasicBlockRange temp = {first_pc, second_pc};
-
-      vector_sematic_info.push_back({temp, value});
-      vector_counter.push_back({temp, value});
 
       sematic_info[temp] = value;
       counter[temp] = 0;
