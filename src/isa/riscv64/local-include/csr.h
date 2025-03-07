@@ -362,6 +362,19 @@
     f(pmpaddr60  , 0x3EC) f(pmpaddr61  , 0x3ED) f(pmpaddr62  , 0x3EE) f(pmpaddr63  , 0x3EF)
 #endif // CONFIG_RV_PMP_ENTRY_64
 
+/** Machine Memory Attributes (PMA) **/
+#ifdef CONFIG_RV_PMA_ENTRY_0
+  #define CSRS_M_MEMORY_ATTRIBUTE(f)
+#endif // CONFIG_RV_PMA_ENTRY_0
+#ifdef CONFIG_RV_PMA_ENTRY_16
+  #define CSRS_M_MEMORY_ATTRIBUTE(f) \
+    f(pmacfg0   , 0x7C0) f(pmacfg2    , 0x7C2) \
+    f(pmaaddr0  , 0x7C8) f(pmaaddr1   , 0x7C9) f(pmaaddr2   , 0x7CA) f(pmaaddr3   , 0x7CB) \
+    f(pmaaddr4  , 0x7CC) f(pmaaddr5   , 0x7CD) f(pmaaddr6   , 0x7CE) f(pmaaddr7   , 0x7CF) \
+    f(pmaaddr8  , 0x7D0) f(pmaaddr9   , 0x7D1) f(pmaaddr10  , 0x7D2) f(pmaaddr11  , 0x7D3) \
+    f(pmaaddr12 , 0x7D4) f(pmaaddr13  , 0x7D5) f(pmaaddr14  , 0x7D6) f(pmaaddr15  , 0x7D7)
+#endif // CONFIG_RV_PMA_ENTRY_16
+
 /** Machine State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
   #define CSRS_M_STATE_ENABLE(f) \
@@ -472,6 +485,7 @@
   CSRS_M_TRAP_HANDLING(f) \
   CSRS_M_CONFIGURATION(f) \
   CSRS_M_MEMORY_PROTECTION(f) \
+  CSRS_M_MEMORY_ATTRIBUTE(f) \
   CSRS_M_STATE_ENABLE(f) \
   CSRS_M_NON_MASKABLE_INTERRUPT_HANDLING(f) \
   CSRS_M_COUNTER_TIMERS(f) \
@@ -785,6 +799,10 @@ CSR_STRUCT_END(mtinst)
 /** Physical Memory Protection CSRs */
 
 CSR_STRUCT_DUMMY_LIST(CSRS_M_MEMORY_PROTECTION)
+
+/** Physical Memory Attributes CSRs */
+
+CSR_STRUCT_DUMMY_LIST(CSRS_M_MEMORY_ATTRIBUTE)
 
 /** Debug Mode Registers (Core Debug Registers) **/
 
@@ -1524,6 +1542,25 @@ MAP(CSRS, CSRS_DECL)
 #define CSR_PMPCFG_MAX_NUM  16
 #define CSR_PMPADDR_MAX_NUM 64
 
+/** Machine Memory Attributes (PMA) **/
+#define PMA_R     PMP_R
+#define PMA_W     PMP_W
+#define PMA_X     PMP_X
+#define PMA_A     PMP_A
+#define PMA_T     0x20
+#define PMA_C     0x40
+#define PMA_L     PMP_L
+#define PMA_SHIFT PMP_SHIFT
+
+#define PMA_TOR   PMP_TOR
+#define PMA_NA4   PMP_NA4
+#define PMA_NAPOT PMP_NAPOT
+
+#define CSR_PMACFG_BASE     0x7c0
+#define CSR_PMAADDR_BASE    0x7c8
+#define CSR_PMACFG_MAX_NUM  4
+#define CSR_PMAADDR_MAX_NUM 16
+
 /** Vector **/
 #define IDXVSTART 0x008
 #define IDXVXSAT  0x009
@@ -1631,5 +1668,10 @@ void update_vstopi();
 uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmp_tor_mask();
+
+/** PMA */
+uint8_t pmacfg_from_index(int idx);
+word_t pmaaddr_from_index(int idx);
+word_t pma_tor_mask();
 
 #endif // __CSR_H__
