@@ -36,3 +36,8 @@ make clean
 make riscv64-dual-xs-ref-debug_defconfig
 make -j
 cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-dual-debug-so
+
+make clean
+make riscv64-xs-ref_bitmap_defconfig
+make -j
+cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-bitmap-so
