@@ -333,6 +333,8 @@ void init_monitor(int argc, char *argv[]) {
     mapped_cpt_file = img_file;
   }
 
+  sematic_point_init(sematic_cpt_path);
+
   extern void init_path_manager();
   extern void simpoint_init();
   extern void init_serializer(bool store_cpt_in_flash);
@@ -344,8 +346,6 @@ void init_monitor(int argc, char *argv[]) {
     simpoint_init();
     init_serializer(store_cpt_in_flash);
   }
-
-  sematic_point_init(sematic_cpt_path);
 
   /* Initialize memory. */
   init_mem();
