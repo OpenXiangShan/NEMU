@@ -3,19 +3,19 @@
 source checkpoint_env.sh
 
 
-sematic_cpt(){
+semantic_cpt(){
   set -x
   workload=$1
-  sematic_cpt_profiling_file=$2
-  log=$LOG_PATH/sematic_cpt/${workload}
+  semantic_cpt_profiling_file=$2
+  log=$LOG_PATH/semantic_cpt/${workload}
   mkdir -p $log
-  name="sematic_cpt"
+  name="semantic_cpt"
   $NEMU ${BBL_PATH}/${workload} \
       -D $RESULT -w $workload -C $name      \
       -b --checkpoint-format zstd \
-      --sematic-cpt ${sematic_cpt_profiling_file} \
+      --semantic-cpt ${semantic_cpt_profiling_file} \
       > $log/${workload}-out.txt 2>${log}/${workload}-err.txt
 }
 
-export -f sematic_cpt
-sematic_cpt astar_rivers
+export -f semantic_cpt
+semantic_cpt astar_rivers
