@@ -1,5 +1,5 @@
-#ifndef __SEMATIC_POINT__
-#define __SEMATIC_POINT__
+#ifndef __SEMANTIC_POINT__
+#define __SEMANTIC_POINT__
 
 #include "common.h"
 
