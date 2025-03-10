@@ -17,7 +17,7 @@
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
 #include <profiling/profiling_control.h>
-#include <checkpoint/sematic_point.h>
+#include <checkpoint/semantic_point.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <getopt.h>
@@ -47,7 +47,7 @@ static int difftest_port = 1234;
 char *max_instr = NULL;
 static bool store_cpt_in_flash = false;
 char compress_file_format = 0; // default is gz
-static char* sematic_cpt_path = NULL;
+static char* semantic_cpt_path = NULL;
 
 extern char *mapped_cpt_file;  // defined in paddr.c
 extern bool map_image_as_output_cpt;
@@ -119,7 +119,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
     {"store-cpt-in-flash" , no_argument, NULL, 17},
-    {"sematic-cpt"        , required_argument, NULL,  18},
+    {"semantic-cpt"       , required_argument, NULL,  18},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -168,7 +168,7 @@ static inline int parse_args(int argc, char *argv[]) {
         break;
 
       case 18:
-        sematic_cpt_path = optarg;
+        semantic_cpt_path = optarg;
         break;
 
       case 'r':
@@ -290,7 +290,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--checkpoint-format=FORMAT            Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
         printf("\t--store-cpt-in-flash    Use this option to save the checkpoint to flash storage.\n");
 
-        printf("\t--sematic-cpt           Use this option to allow NEMU generate checkpoint from sematic-cpt profiling file");
+        printf("\t--semantic-cpt           Use this option to allow NEMU generate checkpoint from semantic-cpt profiling file");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
@@ -333,7 +333,7 @@ void init_monitor(int argc, char *argv[]) {
     mapped_cpt_file = img_file;
   }
 
-  sematic_point_init(sematic_cpt_path);
+  semantic_point_init(semantic_cpt_path);
 
   extern void init_path_manager();
   extern void simpoint_init();

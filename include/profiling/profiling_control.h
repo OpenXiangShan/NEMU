@@ -11,7 +11,7 @@ enum ProfilingState{
 enum CheckpointState{
     NoCheckpoint=0,
     SimpointCheckpointing,
-    SematicCheckpointing,
+    SemanticCheckpointing,
     UniformCheckpointing,
     ManualOneShotCheckpointing,
     ManualUniformCheckpointing,

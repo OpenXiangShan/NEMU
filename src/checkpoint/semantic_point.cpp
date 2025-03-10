@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace SematicPointNS{
+namespace SemanticPointNS{
 
 typedef std::pair<vaddr_t, vaddr_t> BasicBlockRange;
 
@@ -19,11 +19,11 @@ struct BasicBlockRangeHash {
   }
 };
 
-class SematicPoint{
+class SemanticPoint{
   public:
-    SematicPoint();
+    SemanticPoint();
 
-    virtual void init(const char* sematic_point_path);
+    virtual void init(const char* semantic_point_path);
 
 
     void before_profile(vaddr_t pc, bool is_control, uint64_t abs_icount);
@@ -33,22 +33,22 @@ class SematicPoint{
     bool enable{false};
 
   private:
-    ::std::unordered_map<BasicBlockRange, uint64_t, BasicBlockRangeHash> sematic_info;
+    ::std::unordered_map<BasicBlockRange, uint64_t, BasicBlockRangeHash> semantic_info;
     ::std::unordered_map<BasicBlockRange, uint64_t, BasicBlockRangeHash> counter;
 
     BasicBlockRange currentBBV;
     uint64_t lastICount{0};
 };
 
-SematicPoint::SematicPoint()
+SemanticPoint::SemanticPoint()
   : lastICount(0) {}
 
-void SematicPoint::init(const char* sematic_point_path){
-  if (sematic_point_path == NULL) {
+void SemanticPoint::init(const char* semantic_point_path){
+  if (semantic_point_path == NULL) {
     return;
   }
 
-  std::ifstream file(sematic_point_path);
+  std::ifstream file(semantic_point_path);
   if (!file) {
     std::cerr << "Failed to open file\n";
     return;
@@ -81,17 +81,17 @@ void SematicPoint::init(const char* sematic_point_path){
       uint64_t value = std::stoull(val_str, nullptr, 10);
       BasicBlockRange temp = {first_pc, second_pc};
 
-      sematic_info[temp] = value;
+      semantic_info[temp] = value;
       counter[temp] = 0;
     } catch (const std::exception& e){
       std::cerr << "Conversion error: " << e.what() << " in line: " << line << std::endl;
     }
   }
 
-  if (!sematic_info.empty()) {
+  if (!semantic_info.empty()) {
     std::cout << "\nSample entries (max 5):\n";
     size_t count = 0;
-    for (const auto& [range, value] : sematic_info) {
+    for (const auto& [range, value] : semantic_info) {
       std::cout << std::hex << "[0x" << range.first
                 << ", 0x" << range.second << "] => "
                 << std::dec << value << "\n";
@@ -101,11 +101,11 @@ void SematicPoint::init(const char* sematic_point_path){
   file.close();
 
   enable = true;
-  checkpoint_state = SematicCheckpointing;
+  checkpoint_state = SemanticCheckpointing;
   return;
 }
 
-void SematicPoint::profile(vaddr_t pc, bool is_control, uint64_t instr_count){
+void SemanticPoint::profile(vaddr_t pc, bool is_control, uint64_t instr_count){
   if (!instr_count) {
     currentBBV.first = pc;
   }
@@ -124,13 +124,13 @@ void SematicPoint::profile(vaddr_t pc, bool is_control, uint64_t instr_count){
   }
 }
 
-void SematicPoint::before_profile(vaddr_t pc, bool is_control, uint64_t abs_icount) {
+void SemanticPoint::before_profile(vaddr_t pc, bool is_control, uint64_t abs_icount) {
   profile(pc, is_control, abs_icount - lastICount);
   lastICount = abs_icount;
 }
 
-bool SematicPoint::check_counter() {
-  for (const auto& [bb_range, value] : sematic_info) {
+bool SemanticPoint::check_counter() {
+  for (const auto& [bb_range, value] : semantic_info) {
     auto it = counter.find(bb_range);
 
     if (it == counter.end()) {
@@ -147,22 +147,22 @@ bool SematicPoint::check_counter() {
 };
 
 
-SematicPointNS::SematicPoint sematic_point;
+SemanticPointNS::SemanticPoint semantic_point;
 
 extern "C" {
-  void sematic_point_init(const char* sematic_point_path) {
-    sematic_point.init(sematic_point_path);
+  void semantic_point_init(const char* semantic_point_path) {
+    semantic_point.init(semantic_point_path);
   }
 
-  void sematic_point_profile(vaddr_t pc, bool is_control, uint64_t instr_count) {
-    sematic_point.before_profile(pc, is_control, instr_count);
+  void semantic_point_profile(vaddr_t pc, bool is_control, uint64_t instr_count) {
+    semantic_point.before_profile(pc, is_control, instr_count);
   }
 
-  bool check_sematic_point() {
-    return sematic_point.check_counter();
+  bool check_semantic_point() {
+    return semantic_point.check_counter();
   }
 
-  bool enable_sematic_point_cpt() {
-    return sematic_point.enable;
+  bool enable_semantic_point_cpt() {
+    return semantic_point.enable;
   }
 }

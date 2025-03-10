@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
-#include <checkpoint/sematic_point.h>
+#include <checkpoint/semantic_point.h>
 #include "../local-include/trigger.h"
 #include "../local-include/aia.h"
 #include "macro.h"
@@ -319,9 +319,9 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
   // workload_loaded set from nemu_trap
   //
-  if (enable_sematic_point_cpt() && (workload_loaded || donot_skip_boot)) {
-    sematic_point_profile(prev_s->pc, true, abs_inst_count);
-    sematic_point_profile(s->pc, false, abs_inst_count);
+  if (enable_semantic_point_cpt() && (workload_loaded || donot_skip_boot)) {
+    semantic_point_profile(prev_s->pc, true, abs_inst_count);
+    semantic_point_profile(s->pc, false, abs_inst_count);
   }
 
   if (profiling_state == SimpointProfiling && (workload_loaded||donot_skip_boot)) {
