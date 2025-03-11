@@ -274,6 +274,10 @@ config BR_LOG_OUTPUT
     Enable br_log output when NEMU exits. As a reference, You could use
     br_log_dump() to dump br_log whenever you want.
 
+config REPORT_ILLEGAL_INSTR
+  bool "Let NEMU report illegal instruction"
+  default n
+
 endmenu
 
 if !MODE_USER
@@ -412,10 +416,6 @@ config MEMORY_REGION_ANALYSIS_SIZE
   int "Analysis block MB size"
   default 32
 endif
-
-config REPORT_ILLEGAL_INSTR
-  bool "Let NEMU report illegal instruction"
-  default y
 
 config RT_CHECK
   bool "Enable runtime checking"
