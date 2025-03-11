@@ -274,7 +274,7 @@ typedef struct {
     struct {
       uint32_t pad0      : 7;
       uint32_t v_vd      : 5;
-      uint32_t pad1      : 3;
+      uint32_t v_funct3  : 3;
       uint32_t v_vs1     : 5;
       uint32_t v_vs2     : 5;
       uint32_t v_vm      : 1;
