@@ -15,14 +15,18 @@
 
 #ifdef CONFIG_RVV
 
+#ifndef __RISCV64_VREG_H__
+#include "vreg.h"
+#endif
+
 void vp_set_dirty();
 
 // vector
 static inline def_DHelper(OP_V) { // 10_101, same to R
-  decode_op_r(s, id_src1, s->isa.instr.r.rs1, true);
-  decode_op_r(s, id_src2, s->isa.instr.r.rs2, true);
-  decode_op_r(s, id_dest, s->isa.instr.r.rd, false);
-  switch (s->isa.instr.i.funct3) {
+  decode_op_r(s, id_src1, s->isa.instr.v_opv.v_vs1, true);
+  decode_op_r(s, id_src2, s->isa.instr.v_opv.v_vs2, true);
+  decode_op_r(s, id_dest, s->isa.instr.v_opv.v_vd, false);
+  switch (s->isa.instr.v_opv.v_funct3) {
     case 0 : s->src_vmode = SRC_VV; break;
     case 1 : s->src_vmode = SRC_VV; break;
     case 2 : s->src_vmode = SRC_VV; break;
