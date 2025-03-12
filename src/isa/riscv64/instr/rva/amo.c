@@ -46,16 +46,36 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   }
 #endif // CONFIG_TDATA1_MCONTROL6
 
+  int type = (funct5 == 0b00010) ? MEM_TYPE_READ : MEM_TYPE_WRITE;
+
   // AMO does not support misalign operation
   // So check misalign before real memory access
   void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
-  isa_amo_misalign_data_addr_check(*src1, width, (funct5 == 0b00010) ? MEM_TYPE_READ : MEM_TYPE_WRITE);
+  isa_amo_misalign_data_addr_check(*src1, width, type);
+
+  // AMO/lr/sc do not support access MMIO space
+  // So check MMIO before real access
+  extern bool is_in_mmio(paddr_t addr);
+
+  // check behavior before actually load or store
+  uint64_t paddr = *dsrc1;
+  if (isa_mmu_check(*dsrc1, width, type) == MMU_TRANSLATE) {
+    paddr = isa_mmu_translate(*dsrc1, width, type);
+  }
+  if (is_in_mmio(paddr) || !in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, type, cpu.mode)) {
+    int ex = (type == MEM_TYPE_WRITE) ? EX_SAF : EX_LAF;
+    cpu.trapInfo.tval = *src1;
+    if (funct5 == 0b00011) {
+      cpu.lr_valid = 0;
+    }
+    longjmp_exception(ex);
+  }
 
   if (funct5 == 0b00010) { // lr
     assert(!cpu.amo);
+    rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     cpu.lr_addr = *src1;
     cpu.lr_valid = 1;
-    rtl_lms(s, dest, src1, 0, width, MMU_DYNAMIC);
     Logti("set lr vaild");
     return;
   } else if (funct5 == 0b00011) { // sc
@@ -72,23 +92,10 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     if (success) {
       rtl_sm(s, src2, src1, 0, width, MMU_DYNAMIC);
     } else {
-    // Because spike skipped some exception or interrupt
-    // the atomic operation would fail after handling the exception
-    // so we need to make spike fail as well
+      // Because spike skipped some exception or interrupt
+      // the atomic operation would fail after handling the exception
+      // so we need to make spike fail as well
       IFDEF(CONFIG_DIFFTEST_REF_SPIKE,difftest_skip_ref());
-      cpu.lr_valid = 0;
-      // Even if scInvalid, SPF (if raised) also needs to be reported
-      uint64_t paddr = *dsrc1;
-      if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
-        paddr = isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
-      }
-      return_on_mem_ex();
-      // Even if scInvalid, SAF (if raised) also needs to be reported
-      // Check address space range and pmp
-      if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)) {
-        cpu.trapInfo.tval = *src1;
-        longjmp_exception(EX_SAF);
-      }
     }
     rtl_li(s, dest, !success);
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -100,15 +107,6 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 #ifdef CONFIG_RV_ZACAS
   if (funct5 == 0b00101) { // amocas
     cpu.amo = true;
-    // check store behavior before actually load or store
-    uint64_t paddr = *dsrc1;
-    if (isa_mmu_check(*dsrc1, width, MEM_TYPE_WRITE) == MMU_TRANSLATE) {
-      paddr = isa_mmu_translate(*dsrc1, width, MEM_TYPE_WRITE);
-    }
-    if (!in_pmem(paddr) || !isa_pmp_check_permission(paddr, width, MEM_TYPE_WRITE, cpu.mode)) {
-      cpu.trapInfo.tval = *src1;
-      longjmp_exception(EX_SAF);
-    }
     switch (width) {
       case 4:
         rtl_lms(s, s0, src1, 0, 4, MMU_DYNAMIC);
