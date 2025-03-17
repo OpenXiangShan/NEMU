@@ -70,6 +70,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 #include <device/flash.h>
+#include <checkpoint/semantic_point.h>
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
@@ -321,6 +322,8 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
   mstatus_t *mstatus_prepare=(mstatus_t *)&csrCpt[0x300];
   mstatus_prepare->mpie=mstatus_prepare->mie;
   mstatus_prepare->mie=0;
+  mstatus_prepare->spie=mstatus_prepare->sie;
+  mstatus_prepare->sie=0;
   mstatus_prepare->mpp=cpu.mode;
 
 #ifdef CONFIG_RVH
@@ -447,6 +450,8 @@ bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
         return true;
       }
       break;
+    case SemanticCheckpointing:
+      return check_semantic_point();
     case NoCheckpoint:
       break;
     default:
