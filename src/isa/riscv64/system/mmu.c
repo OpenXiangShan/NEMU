@@ -337,6 +337,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
         word_t pg_mask = ((1ull << SVNAPOTSHFT) - 1);
         pg_base = (pg_base & ~pg_mask) | (gpaddr & pg_mask & ~PGMASK);
       }
+      cpu.pbmt = pte.pbmt;
       return pg_base | (gpaddr & PAGE_MASK);
     }
   }
@@ -502,6 +503,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
 #endif // CONFIG_SHARE
 
+  cpu.pbmt = pte.pbmt;
   return pg_base | MEM_RET_OK;
 
 bad:

@@ -243,6 +243,9 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
     return 0;
   }
+  if (cpu.pbmt != 0) {
+    isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
+  }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {

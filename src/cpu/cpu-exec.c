@@ -663,6 +663,7 @@ static void execute(int n) {
     printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
 #endif // CONFIG_LIGHTQS_DEBUG
     cpu.amo = false;
+    cpu.pbmt = 0;
     fetch_decode(&s, cpu.pc);
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
@@ -807,6 +808,7 @@ void cpu_exec(uint64_t n) {
 
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
+      cpu.pbmt = 0;
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
