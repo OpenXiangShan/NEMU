@@ -45,6 +45,7 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
 static bool store_cpt_in_flash = false;
+static bool enable_libcheckpoint = false;
 char compress_file_format = 0; // default is gz
 
 extern char *mapped_cpt_file;  // defined in paddr.c
@@ -116,7 +117,8 @@ static inline int parse_args(int argc, char *argv[]) {
     {"cpt-mmode"          , no_argument      , NULL, 7},
     {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
-    {"store-cpt-in-flash", no_argument, NULL, 17},
+    {"store-cpt-in-flash" , no_argument, NULL, 17},
+    {"enable-libcheckpoint", no_argument, NULL, 18},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -162,6 +164,10 @@ static inline int parse_args(int argc, char *argv[]) {
       #else
         assert(0);
       #endif
+        break;
+
+      case 18:
+        enable_libcheckpoint = true;
         break;
 
       case 'r':
@@ -282,6 +288,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
         printf("\t--checkpoint-format=FORMAT            Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
         printf("\t--store-cpt-in-flash    Use this option to save the checkpoint to flash storage.\n");
+        printf("\t--enable-libcheckpoint  Use this option to enable Libcheckpoint-supported ckpt.\n");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
