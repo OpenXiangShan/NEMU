@@ -9,7 +9,6 @@ ifeq ($(wildcard $(LIBCHECKPOINT_MEMLAYOUT_HEADER)),)
   $(shell cd $(LIBCHECKPOINT_REPO) && git submodule update --init && cd - )
 endif
 
-LIBCHECKPOINT_INC_FILE = $(LIBCHECKPOINT_REPO)/include/checkpoint.pb.h $(LIBCHECKPOINT_REPO)/resource/nanopb/pb.h
 CFLAGS += -I$(NANOPB_REPO)
 CFLAGS += -I$(LIBCHECKPOINT_REPO)/export_include/
 SRCS-y += $(LIBCHECKPOINT_REPO)/src/checkpoint.pb.c
