@@ -22,7 +22,23 @@
 
 #include <string>
 #include <map>
+#include <checkpoint.pb.h>
 
+class CheckpointMetaData
+{
+public:
+  explicit CheckpointMetaData();
+  checkpoint_header get_default_header();
+  single_core_rvgc_rvv_rvh_memlayout get_default_memlayout();
+  bool encode(uint8_t* mem_buffer, uint64_t buffer_size);
+  uint8_t* get_checkpoint_data_address(uint64_t memory_start_address);
+private:
+  checkpoint_header default_header;
+  single_core_rvgc_rvv_rvh_memlayout default_single_core_memlayout;
+
+  bool header_encode(pb_ostream_t *output_stream, checkpoint_header *default_header);
+  bool memlayout_encode(pb_ostream_t *output_stream, single_core_rvgc_rvv_rvh_memlayout *default_memlayout);
+};
 
 class Serializer
 {

@@ -17,12 +17,17 @@
 // Created by zyy on 2020/11/16.
 //
 
+#include <cassert>
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
+#include <cstdio>
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
+#include "checkpoint.pb.h"
+#include "pb.h"
+#include "pb_encode.h"
 
 #include <common.h>
 #include <isa.h>
@@ -31,12 +36,14 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <sys/cdefs.h>
 #include <zlib.h>
 
 #include <fcntl.h>
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
 #include <zstd.h>
+#include <cpt_default_values.h>
 
 using std::cerr;
 using std::cout;
@@ -45,6 +52,58 @@ using std::fstream;
 using std::numeric_limits;
 using std::string;
 using std::to_string;
+
+CheckpointMetaData::CheckpointMetaData():
+  default_header(multicore_default_header),
+  default_single_core_memlayout(default_qemu_memlayout)
+{
+}
+
+checkpoint_header CheckpointMetaData::get_default_header(){
+  return default_header;
+}
+
+single_core_rvgc_rvv_rvh_memlayout CheckpointMetaData::get_default_memlayout(){
+  return default_single_core_memlayout;
+}
+
+bool CheckpointMetaData::header_encode(pb_ostream_t *output_stream, checkpoint_header *default_header){
+  bool state = true;
+  state = pb_encode_ex(output_stream, checkpoint_header_fields, default_header, PB_ENCODE_NULLTERMINATED);
+
+  if (!state) {
+    printf("Log: header encode error %s\n", output_stream->errmsg);
+  }
+
+  return state;
+}
+
+bool CheckpointMetaData::memlayout_encode(pb_ostream_t *output_stream, single_core_rvgc_rvv_rvh_memlayout * default_memlayout){
+  bool state = true;
+  state = pb_encode_ex(output_stream, single_core_rvgc_rvv_rvh_memlayout_fields, default_memlayout, PB_ENCODE_NULLTERMINATED);
+
+  if (!state) {
+    printf("Log: memlayout encode error %s\n", output_stream->errmsg);
+  }
+
+  return state;
+}
+
+bool CheckpointMetaData::encode(uint8_t *mem_buffer, uint64_t buffer_size) {
+
+  bool state = true;
+  pb_ostream_t output_stream = pb_ostream_from_buffer(mem_buffer, buffer_size);
+  state = header_encode(&output_stream, &default_header);
+  assert(state);
+  memlayout_encode(&output_stream, &default_single_core_memlayout);
+  assert(state);
+
+  return state;
+}
+
+uint8_t* CheckpointMetaData::get_checkpoint_data_address(uint64_t memory_start_address){
+  return (uint8_t*)(default_header.cpt_offset + memory_start_address);
+}
 
 Serializer::Serializer() :
     IntRegStartAddr(INT_REG_CPT_ADDR-BOOT_CODE),
