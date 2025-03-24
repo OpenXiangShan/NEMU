@@ -52,7 +52,7 @@ class Serializer
 
     explicit Serializer();
 
-    void init(bool store_cpt_in_flash);
+    void init(bool store_cpt_in_flash, bool enable_libcheckpoint);
 
     bool shouldTakeCpt(uint64_t num_insts);
     bool instrsCouldTakeCpt(uint64_t num_insts);
@@ -68,23 +68,24 @@ class Serializer
     uint64_t cptID;
     std::string weightIndicator;
 
-    const uint32_t IntRegStartAddr;
-    const uint32_t IntRegDoneFlag;
-    const uint32_t FloatRegStartAddr;
-    const uint32_t FloatRegDoneFlag;
-    const uint32_t CSRStartAddr;
-    const uint32_t CSRSDoneFlag;
-    const uint32_t VecRegStartAddr;
-    const uint32_t VecRegDoneFlag;
-    const uint32_t CptFlagAddr;
-    const uint32_t PCAddr;
-    const uint32_t MODEAddr;
-    const uint32_t MTIMEAddr;
-    const uint32_t MTIMECMPAddr;
-    const uint32_t MISCDoneFlag;
+    uint32_t IntRegStartAddr;
+    uint32_t IntRegDoneFlag;
+    uint32_t FloatRegStartAddr;
+    uint32_t FloatRegDoneFlag;
+    uint32_t CSRStartAddr;
+    uint32_t CSRSDoneFlag;
+    uint32_t VecRegStartAddr;
+    uint32_t VecRegDoneFlag;
+    uint32_t CptFlagAddr;
+    uint32_t PCAddr;
+    uint32_t MODEAddr;
+    uint32_t MTIMEAddr;
+    uint32_t MTIMECMPAddr;
+    uint32_t MISCDoneFlag;
 
     bool regDumped{false};
     bool store_cpt_in_flash{false};
+    bool enable_libcheckpoint{false};
 
     std::map<uint64_t, double> simpoint2Weights;
 

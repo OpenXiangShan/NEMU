@@ -105,6 +105,8 @@ uint8_t* CheckpointMetaData::get_checkpoint_data_address(uint64_t memory_start_a
   return (uint8_t*)(default_header.cpt_offset + memory_start_address);
 }
 
+CheckpointMetaData checkpoint_meta_data;
+
 Serializer::Serializer() :
     IntRegStartAddr(INT_REG_CPT_ADDR-BOOT_CODE),
     IntRegDoneFlag(INT_REG_DONE-BOOT_CODE),
@@ -424,15 +426,21 @@ void Serializer::serialize(uint64_t inst_count) {
 
 #ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
+  uint64_t serialize_buffer_size;
 
   if (store_cpt_in_flash) {
-    IFDEF(CONFIG_HAS_FLASH, serialize_reg_base_addr = get_flash_base(); assert(get_flash_size() >= 1000000U));
+    IFDEF(CONFIG_HAS_FLASH, serialize_reg_base_addr = get_flash_base(); assert(get_flash_size() >= 1000000U); serialize_buffer_size = get_flash_size(););
     IFNDEF(CONFIG_HAS_FLASH, Log("Please enable the flash device to activate the functionality of saving checkpoints to flash."); assert(0));
   } else {
     serialize_reg_base_addr = get_pmem();
     assert(MEMORY_SIZE >= 1000000U);
+    serialize_buffer_size = MEMORY_SIZE;
   }
   assert(serialize_reg_base_addr);
+
+  assert(checkpoint_meta_data.encode(serialize_reg_base_addr, serialize_buffer_size));
+
+  serialize_reg_base_addr = checkpoint_meta_data.get_checkpoint_data_address((uint64_t)serialize_reg_base_addr);
 
   serializeRegs(serialize_reg_base_addr);
 #ifdef CONFIG_HAS_FLASH
@@ -446,8 +454,26 @@ void Serializer::serialize(uint64_t inst_count) {
 #endif
 }
 
-void Serializer::init(bool store_cpt_in_flash) {
+void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
   this->store_cpt_in_flash = store_cpt_in_flash;
+  this->enable_libcheckpoint = enable_libcheckpoint;
+
+  if (this->enable_libcheckpoint) {
+    this->IntRegStartAddr = checkpoint_meta_data.get_default_memlayout().int_reg_cpt_addr;
+    this->IntRegDoneFlag = checkpoint_meta_data.get_default_memlayout().int_reg_done;
+    this->FloatRegStartAddr = checkpoint_meta_data.get_default_memlayout().float_reg_cpt_addr;
+    this->FloatRegDoneFlag = checkpoint_meta_data.get_default_memlayout().float_reg_done;
+    this->CSRStartAddr = checkpoint_meta_data.get_default_memlayout().csr_reg_cpt_addr;
+    this->CSRSDoneFlag = checkpoint_meta_data.get_default_memlayout().csr_reg_done;
+    this->VecRegStartAddr = checkpoint_meta_data.get_default_memlayout().vector_reg_cpt_addr;
+    this->VecRegDoneFlag = checkpoint_meta_data.get_default_memlayout().vector_reg_done;
+  //  this->CptFlagAddr = checkpoint_meta_data.get_default_memlayout().magic_number_cpt_addr;
+    this->PCAddr = checkpoint_meta_data.get_default_memlayout().pc_cpt_addr;
+    this->MODEAddr = checkpoint_meta_data.get_default_memlayout().mode_cpt_addr;
+    this->MTIMEAddr = checkpoint_meta_data.get_default_memlayout().mtime_cpt_addr;
+    this->MTIMECMPAddr = checkpoint_meta_data.get_default_memlayout().mtime_cmp_cpt_addr;
+    this->MISCDoneFlag = checkpoint_meta_data.get_default_memlayout().misc_done_cpt_addr;
+  }
 
   if  (checkpoint_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
@@ -548,8 +574,8 @@ uint64_t Serializer::next_index(){
 
 extern "C" {
 
-void init_serializer(bool store_cpt_in_flash) {
-  serializer.init(store_cpt_in_flash);
+void init_serializer(bool store_cpt_in_flash, bool enable_libcheckpoint) {
+  serializer.init(store_cpt_in_flash, enable_libcheckpoint);
 }
 
 bool try_take_cpt(uint64_t icount) {
