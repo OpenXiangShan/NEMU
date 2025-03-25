@@ -22,7 +22,9 @@
 
 #include <string>
 #include <map>
+extern "C" {
 #include <checkpoint.pb.h>
+}
 
 class CheckpointMetaData
 {
