@@ -83,7 +83,7 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   if (need_read_golden_mem) {
     need_read_golden_mem = false;
     vec_read_golden_mem_addr = addr;
-    vec_read_golden_mem_data = golden_pmem_read(addr, len, 0, 0, 0);
+    vec_read_golden_mem_data = golden_pmem_read(addr, len);
   }
 #endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 

@@ -53,7 +53,7 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
     }
 
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read(paddr, 1, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr) : paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr));
+    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read(paddr, 1) : paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr));
 #else
     word_t byte = paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
 #endif
@@ -118,7 +118,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len, type, cpu.mode, vaddr) : paddr_read(addr, len, type, type, cpu.mode, vaddr));
+    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len) : paddr_read(addr, len, type, type, cpu.mode, vaddr));
 #else
     word_t rdata = paddr_read(addr, len, type, type, cpu.mode, vaddr);
 #endif // CONFIG_MULTICORE_DIFF
