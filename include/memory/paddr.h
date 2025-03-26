@@ -134,9 +134,8 @@ bool analysis_memory_isuse(uint64_t page);
 #ifdef CONFIG_MULTICORE_DIFF
 extern uint8_t* golden_pmem;
 
-static inline word_t golden_pmem_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr) {
+static inline word_t golden_pmem_read(paddr_t addr, int len) {
   assert(golden_pmem != NULL);
-  mode &= ~CROSS_PAGE_LD_FLAG;
 #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread((void *)golden_pmem, addr, len)
 #else

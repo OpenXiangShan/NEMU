@@ -278,9 +278,14 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
   PTE pte;
   for (level = max_level - 1; level >= 0; ) {
     p_pte = pg_base + GVPNi(gpaddr, level, max_level) * PTE_SIZE;
+#ifdef CONFIG_MULTICORE_DIFF
+    pte.val = golden_pmem_read(p_pte, PTE_SIZE);
+#else
     pte.val	= paddr_read(p_pte, PTE_SIZE,
     type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
     type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, trap_type, MODE_S, vaddr);
+#endif
+
     #ifdef CONFIG_SHARE
         if (unlikely(dynamic_config.debug_difftest)) {
           fprintf(stderr, "[NEMU] ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
@@ -412,7 +417,12 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   for (level = max_level - 1; level >= 0;) {
     p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
-    pte.val = golden_pmem_read(p_pte, PTE_SIZE, 0, 0, 0);
+#ifdef CONFIG_RVH
+    if(virt){
+      p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false, true);
+    }
+#endif //CONFIG_RVH
+    pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
 #ifdef CONFIG_RVH
     if(virt){
