@@ -22,6 +22,9 @@
 
 #include <string>
 #include <map>
+#include "generated/autoconf.h"
+
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
 extern "C" {
 #include <checkpoint.pb.h>
 }
@@ -42,6 +45,8 @@ private:
   bool memlayout_encode(pb_ostream_t *output_stream, single_core_rvgc_rvv_rvh_memlayout *default_memlayout);
 };
 
+#endif
+
 class Serializer
 {
 
@@ -53,8 +58,11 @@ class Serializer
     void serializeRegs(uint8_t* serialize_base_addr);
 
     explicit Serializer();
-
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
     void init(bool store_cpt_in_flash, bool enable_libcheckpoint);
+#else
+    void init(bool store_cpt_in_flash);
+#endif
 
     bool shouldTakeCpt(uint64_t num_insts);
     bool instrsCouldTakeCpt(uint64_t num_insts);

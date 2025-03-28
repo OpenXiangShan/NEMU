@@ -16,8 +16,10 @@ SRCS-y += $(NANOPB_REPO)/pb_common.c
 SRCS-y += $(NANOPB_REPO)/pb_decode.c
 SRCS-y += $(NANOPB_REPO)/pb_encode.c
 
+ifdef CONFIG_LIBCHECKPOINT_RESTORER
 src/checkpoint/path_manager.cpp: $(LIBCHECKPOINT_REPO)/src/checkpoint.pb.c
 src/checkpoint/serializer.cpp: $(LIBCHECKPOINT_REPO)/src/checkpoint.pb.c
+endif
 
 $(LIBCHECKPOINT_REPO)/src/checkpoint.pb.c: $(LIBCHECKPOINT_BIN)
 

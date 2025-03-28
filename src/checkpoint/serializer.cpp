@@ -25,7 +25,6 @@
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
-#include "checkpoint.pb.h"
 #include "pb.h"
 #include "pb_encode.h"
 
@@ -43,7 +42,9 @@
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
 #include <zstd.h>
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
 #include <cpt_default_values.h>
+#endif
 
 using std::cerr;
 using std::cout;
@@ -52,7 +53,7 @@ using std::fstream;
 using std::numeric_limits;
 using std::string;
 using std::to_string;
-
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
 CheckpointMetaData::CheckpointMetaData():
   default_header(multicore_default_header),
   default_single_core_memlayout(default_qemu_memlayout)
@@ -106,6 +107,8 @@ uint8_t* CheckpointMetaData::get_checkpoint_data_address(uint64_t memory_start_a
 }
 
 CheckpointMetaData checkpoint_meta_data;
+
+#endif
 
 Serializer::Serializer() :
     IntRegStartAddr(INT_REG_CPT_ADDR-BOOT_CODE),
@@ -426,6 +429,8 @@ void Serializer::serialize(uint64_t inst_count) {
 
 #ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
+
+  __attribute__((unused))
   uint64_t serialize_buffer_size;
 
   if (store_cpt_in_flash) {
@@ -437,11 +442,12 @@ void Serializer::serialize(uint64_t inst_count) {
     serialize_buffer_size = MEMORY_SIZE;
   }
   assert(serialize_reg_base_addr);
-
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
   assert(checkpoint_meta_data.encode(serialize_reg_base_addr, serialize_buffer_size));
 
   serialize_reg_base_addr = checkpoint_meta_data.get_checkpoint_data_address((uint64_t)serialize_reg_base_addr);
 
+#endif
   serializeRegs(serialize_reg_base_addr);
 #ifdef CONFIG_HAS_FLASH
   serializePMem(inst_count, get_pmem(), get_flash_base());
@@ -454,8 +460,14 @@ void Serializer::serialize(uint64_t inst_count) {
 #endif
 }
 
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
 void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
+#else
+void Serializer::init(bool store_cpt_in_flash) {
+#endif
   this->store_cpt_in_flash = store_cpt_in_flash;
+
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
   this->enable_libcheckpoint = enable_libcheckpoint;
 
   if (this->enable_libcheckpoint) {
@@ -475,6 +487,7 @@ void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
     this->MISCDoneFlag = checkpoint_meta_data.get_default_memlayout().misc_done_cpt_addr;
   }
 
+#endif
   if  (checkpoint_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
@@ -573,10 +586,15 @@ uint64_t Serializer::next_index(){
 
 
 extern "C" {
-
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
 void init_serializer(bool store_cpt_in_flash, bool enable_libcheckpoint) {
   serializer.init(store_cpt_in_flash, enable_libcheckpoint);
 }
+#else
+void init_serializer(bool store_cpt_in_flash) {
+  serializer.init(store_cpt_in_flash);
+}
+#endif
 
 bool try_take_cpt(uint64_t icount) {
   if (serializer.instrsCouldTakeCpt(icount)) {

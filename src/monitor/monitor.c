@@ -333,14 +333,22 @@ void init_monitor(int argc, char *argv[]) {
 
   extern void init_path_manager();
   extern void simpoint_init();
+  #ifdef CONFIG_LIBCHECKPOINT_RESTORER
   extern void init_serializer(bool store_cpt_in_flash, bool enable_libcheckpoint);
+  #else
+  extern void init_serializer(bool store_cpt_in_flash);
+  #endif
 
   //checkpoint and profiling set output
   bool output_features_enabled = checkpoint_state != NoCheckpoint || profiling_state == SimpointProfiling;
   if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
+    #ifdef CONFIG_LIBCHECKPOINT_RESTORER
     init_serializer(store_cpt_in_flash, enable_libcheckpoint);
+    #else
+    init_serializer(store_cpt_in_flash);
+    #endif
   }
 
   /* Initialize memory. */
