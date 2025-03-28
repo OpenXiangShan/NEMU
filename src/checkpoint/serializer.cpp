@@ -25,9 +25,6 @@
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
-#include "pb.h"
-#include "pb_encode.h"
-
 #include <common.h>
 #include <isa.h>
 
@@ -43,6 +40,8 @@
 #include <gcpt_restore/src/restore_rom_addr.h>
 #include <zstd.h>
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
+#include "pb.h"
+#include "pb_encode.h"
 #include <cpt_default_values.h>
 #endif
 
