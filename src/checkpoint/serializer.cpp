@@ -17,13 +17,14 @@
 // Created by zyy on 2020/11/16.
 //
 
+#include <cassert>
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
+#include <cstdio>
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
-
 #include <common.h>
 #include <isa.h>
 
@@ -31,12 +32,18 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <sys/cdefs.h>
 #include <zlib.h>
 
 #include <fcntl.h>
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
 #include <zstd.h>
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+#include "pb.h"
+#include "pb_encode.h"
+#include <cpt_default_values.h>
+#endif
 
 using std::cerr;
 using std::cout;
@@ -45,6 +52,62 @@ using std::fstream;
 using std::numeric_limits;
 using std::string;
 using std::to_string;
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+CheckpointMetaData::CheckpointMetaData():
+  default_header(multicore_default_header),
+  default_single_core_memlayout(default_qemu_memlayout)
+{
+}
+
+checkpoint_header CheckpointMetaData::get_default_header(){
+  return default_header;
+}
+
+single_core_rvgc_rvv_rvh_memlayout CheckpointMetaData::get_default_memlayout(){
+  return default_single_core_memlayout;
+}
+
+bool CheckpointMetaData::header_encode(pb_ostream_t *output_stream, checkpoint_header *default_header){
+  bool state = true;
+  state = pb_encode_ex(output_stream, checkpoint_header_fields, default_header, PB_ENCODE_NULLTERMINATED);
+
+  if (!state) {
+    printf("Log: header encode error %s\n", output_stream->errmsg);
+  }
+
+  return state;
+}
+
+bool CheckpointMetaData::memlayout_encode(pb_ostream_t *output_stream, single_core_rvgc_rvv_rvh_memlayout * default_memlayout){
+  bool state = true;
+  state = pb_encode_ex(output_stream, single_core_rvgc_rvv_rvh_memlayout_fields, default_memlayout, PB_ENCODE_NULLTERMINATED);
+
+  if (!state) {
+    printf("Log: memlayout encode error %s\n", output_stream->errmsg);
+  }
+
+  return state;
+}
+
+bool CheckpointMetaData::encode(uint8_t *mem_buffer, uint64_t buffer_size) {
+
+  bool state = true;
+  pb_ostream_t output_stream = pb_ostream_from_buffer(mem_buffer, buffer_size);
+  state = header_encode(&output_stream, &default_header);
+  assert(state);
+  memlayout_encode(&output_stream, &default_single_core_memlayout);
+  assert(state);
+
+  return state;
+}
+
+uint8_t* CheckpointMetaData::get_checkpoint_data_address(uint64_t memory_start_address){
+  return (uint8_t*)(default_header.cpt_offset + memory_start_address);
+}
+
+CheckpointMetaData checkpoint_meta_data;
+
+#endif
 
 Serializer::Serializer() :
     IntRegStartAddr(INT_REG_CPT_ADDR-BOOT_CODE),
@@ -366,15 +429,24 @@ void Serializer::serialize(uint64_t inst_count) {
 #ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
 
+  __attribute__((unused))
+  uint64_t serialize_buffer_size;
+
   if (store_cpt_in_flash) {
-    IFDEF(CONFIG_HAS_FLASH, serialize_reg_base_addr = get_flash_base(); assert(get_flash_size() >= 1000000U));
+    IFDEF(CONFIG_HAS_FLASH, serialize_reg_base_addr = get_flash_base(); assert(get_flash_size() >= 1000000U); serialize_buffer_size = get_flash_size(););
     IFNDEF(CONFIG_HAS_FLASH, Log("Please enable the flash device to activate the functionality of saving checkpoints to flash."); assert(0));
   } else {
     serialize_reg_base_addr = get_pmem();
     assert(MEMORY_SIZE >= 1000000U);
+    serialize_buffer_size = MEMORY_SIZE;
   }
   assert(serialize_reg_base_addr);
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+  assert(checkpoint_meta_data.encode(serialize_reg_base_addr, serialize_buffer_size));
 
+  serialize_reg_base_addr = checkpoint_meta_data.get_checkpoint_data_address((uint64_t)serialize_reg_base_addr);
+
+#endif
   serializeRegs(serialize_reg_base_addr);
 #ifdef CONFIG_HAS_FLASH
   serializePMem(inst_count, get_pmem(), get_flash_base());
@@ -387,9 +459,34 @@ void Serializer::serialize(uint64_t inst_count) {
 #endif
 }
 
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
+#else
 void Serializer::init(bool store_cpt_in_flash) {
+#endif
   this->store_cpt_in_flash = store_cpt_in_flash;
 
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+  this->enable_libcheckpoint = enable_libcheckpoint;
+
+  if (this->enable_libcheckpoint) {
+    this->IntRegStartAddr = checkpoint_meta_data.get_default_memlayout().int_reg_cpt_addr;
+    this->IntRegDoneFlag = checkpoint_meta_data.get_default_memlayout().int_reg_done;
+    this->FloatRegStartAddr = checkpoint_meta_data.get_default_memlayout().float_reg_cpt_addr;
+    this->FloatRegDoneFlag = checkpoint_meta_data.get_default_memlayout().float_reg_done;
+    this->CSRStartAddr = checkpoint_meta_data.get_default_memlayout().csr_reg_cpt_addr;
+    this->CSRSDoneFlag = checkpoint_meta_data.get_default_memlayout().csr_reg_done;
+    this->VecRegStartAddr = checkpoint_meta_data.get_default_memlayout().vector_reg_cpt_addr;
+    this->VecRegDoneFlag = checkpoint_meta_data.get_default_memlayout().vector_reg_done;
+  //  this->CptFlagAddr = checkpoint_meta_data.get_default_memlayout().magic_number_cpt_addr;
+    this->PCAddr = checkpoint_meta_data.get_default_memlayout().pc_cpt_addr;
+    this->MODEAddr = checkpoint_meta_data.get_default_memlayout().mode_cpt_addr;
+    this->MTIMEAddr = checkpoint_meta_data.get_default_memlayout().mtime_cpt_addr;
+    this->MTIMECMPAddr = checkpoint_meta_data.get_default_memlayout().mtime_cmp_cpt_addr;
+    this->MISCDoneFlag = checkpoint_meta_data.get_default_memlayout().misc_done_cpt_addr;
+  }
+
+#endif
   if  (checkpoint_state == SimpointCheckpointing) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
@@ -488,10 +585,15 @@ uint64_t Serializer::next_index(){
 
 
 extern "C" {
-
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+void init_serializer(bool store_cpt_in_flash, bool enable_libcheckpoint) {
+  serializer.init(store_cpt_in_flash, enable_libcheckpoint);
+}
+#else
 void init_serializer(bool store_cpt_in_flash) {
   serializer.init(store_cpt_in_flash);
 }
+#endif
 
 bool try_take_cpt(uint64_t icount) {
   if (serializer.instrsCouldTakeCpt(icount)) {
