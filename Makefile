@@ -36,6 +36,9 @@ endif
 ifdef CONFIG_HAS_FLASH
 FLASH_IMG_PATH=$(shell realpath $(CONFIG_FLASH_IMG_PATH) 2>/dev/null)
 ifeq ($(FLASH_IMG_PATH),)
+ifneq ($(CONFIG_FLASH_IMG_PATH),)
+$(warning You have set CONFIG_FLASH_IMG_PATH option, but the specified path '$(CONFIG_FLASH_IMG_PATH)' does not exist!)
+endif
 CFLAGS += -D__FLASH_IMG_PATH__=\"\"
 else
 CFLAGS += -D__FLASH_IMG_PATH__=\"$(FLASH_IMG_PATH)\"
