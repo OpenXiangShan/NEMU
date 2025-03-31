@@ -78,20 +78,20 @@ class Serializer
     uint64_t cptID;
     std::string weightIndicator;
 
-    uint32_t IntRegStartAddr;
-    uint32_t IntRegDoneFlag;
-    uint32_t FloatRegStartAddr;
-    uint32_t FloatRegDoneFlag;
-    uint32_t CSRStartAddr;
-    uint32_t CSRSDoneFlag;
-    uint32_t VecRegStartAddr;
-    uint32_t VecRegDoneFlag;
-    uint32_t CptFlagAddr;
-    uint32_t PCAddr;
-    uint32_t MODEAddr;
-    uint32_t MTIMEAddr;
-    uint32_t MTIMECMPAddr;
-    uint32_t MISCDoneFlag;
+    uint32_t int_reg_cpt_addr;
+    uint32_t int_reg_done;
+    uint32_t float_reg_cpt_addr;
+    uint32_t float_reg_done;
+    uint32_t csr_reg_cpt_addr;
+    uint32_t csr_reg_done;
+    uint32_t vector_reg_cpt_addr;
+    uint32_t vector_reg_done;
+    uint32_t magic_number_cpt_addr;
+    uint32_t pc_cpt_addr;
+    uint32_t mode_cpt_addr;
+    uint32_t mtime_cpt_addr;
+    uint32_t mtime_cmp_cpt_addr;
+    uint32_t misc_done_cpt_addr;
 
     bool regDumped{false};
     bool store_cpt_in_flash{false};

@@ -59,6 +59,8 @@ CheckpointMetaData::CheckpointMetaData():
 {
 }
 
+CheckpointMetaData checkpoint_meta_data;
+
 checkpoint_header CheckpointMetaData::get_default_header(){
   return default_header;
 }
@@ -105,25 +107,24 @@ uint8_t* CheckpointMetaData::get_checkpoint_data_address(uint64_t memory_start_a
   return (uint8_t*)(default_header.cpt_offset + memory_start_address);
 }
 
-CheckpointMetaData checkpoint_meta_data;
 
 #endif
 
 Serializer::Serializer() :
-    IntRegStartAddr(INT_REG_CPT_ADDR-BOOT_CODE),
-    IntRegDoneFlag(INT_REG_DONE-BOOT_CODE),
-    FloatRegStartAddr(FLOAT_REG_CPT_ADDR-BOOT_CODE),
-    FloatRegDoneFlag(FLOAT_REG_DONE-BOOT_CODE),
-    CSRStartAddr(CSR_REG_CPT_ADDR-BOOT_CODE),
-    CSRSDoneFlag(CSR_REG_DONE-BOOT_CODE),
-    VecRegStartAddr(VECTOR_REG_CPT_ADDR-BOOT_CODE),
-    VecRegDoneFlag(VECTOR_REG_DONE-BOOT_CODE),
-    CptFlagAddr(BOOT_FLAG_ADDR-BOOT_CODE),
-    PCAddr(PC_CPT_ADDR-BOOT_CODE),
-    MODEAddr(MODE_CPT_ADDR-BOOT_CODE),
-    MTIMEAddr(MTIME_CPT_ADDR-BOOT_CODE),
-    MTIMECMPAddr(MTIME_CMP_CPT_ADDR-BOOT_CODE),
-    MISCDoneFlag(MISC_DONE_CPT_ADDR-BOOT_CODE)
+    int_reg_cpt_addr(INT_REG_CPT_ADDR-BOOT_CODE),
+    int_reg_done(INT_REG_DONE-BOOT_CODE),
+    float_reg_cpt_addr(FLOAT_REG_CPT_ADDR-BOOT_CODE),
+    float_reg_done(FLOAT_REG_DONE-BOOT_CODE),
+    csr_reg_cpt_addr(CSR_REG_CPT_ADDR-BOOT_CODE),
+    csr_reg_done(CSR_REG_DONE-BOOT_CODE),
+    vector_reg_cpt_addr(VECTOR_REG_CPT_ADDR-BOOT_CODE),
+    vector_reg_done(VECTOR_REG_DONE-BOOT_CODE),
+    magic_number_cpt_addr(BOOT_FLAG_ADDR-BOOT_CODE),
+    pc_cpt_addr(PC_CPT_ADDR-BOOT_CODE),
+    mode_cpt_addr(MODE_CPT_ADDR-BOOT_CODE),
+    mtime_cpt_addr(MTIME_CPT_ADDR-BOOT_CODE),
+    mtime_cmp_cpt_addr(MTIME_CMP_CPT_ADDR-BOOT_CODE),
+    misc_done_cpt_addr(MISC_DONE_CPT_ADDR-BOOT_CODE)
 {
 }
 
@@ -321,24 +322,24 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
 extern void csr_writeback();
 
 void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
-  auto *intRegCpt = (uint64_t *) (serialize_base_addr + IntRegStartAddr);
+  auto *intRegCpt = (uint64_t *) (serialize_base_addr + int_reg_cpt_addr);
   for (unsigned i = 0; i < 32; i++) {
     *(intRegCpt + i) = cpu.gpr[i]._64;
   }
   Log("Writing int registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)", INT_REG_CPT_ADDR,
-      INT_REG_CPT_ADDR + 32 * 8, IntRegStartAddr, IntRegStartAddr + 32 * 8);
+      INT_REG_CPT_ADDR + 32 * 8, int_reg_cpt_addr, int_reg_cpt_addr + 32 * 8);
 
 #ifndef CONFIG_FPU_NONE
-  auto *floatRegCpt = (uint64_t *)(serialize_base_addr + FloatRegStartAddr);
+  auto *floatRegCpt = (uint64_t *)(serialize_base_addr + float_reg_cpt_addr);
   for (unsigned i = 0; i < 32; i++) {
     *(floatRegCpt + i) = cpu.fpr[i]._64;
   }
   Log("Writing float registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)", FLOAT_REG_CPT_ADDR,
-      FLOAT_REG_CPT_ADDR + 32 * 8, FloatRegStartAddr, FloatRegStartAddr + 32 * 8);
+      FLOAT_REG_CPT_ADDR + 32 * 8, float_reg_cpt_addr, float_reg_cpt_addr + 32 * 8);
 #endif  // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RVV
-  auto *vectorRegCpt = (uint64_t *) (serialize_base_addr + VecRegStartAddr);
+  auto *vectorRegCpt = (uint64_t *) (serialize_base_addr + vector_reg_cpt_addr);
   for (unsigned i = 0; i < 32; i++) {
     for (unsigned j = 0; j < VENUM64; j++) {
       *(vectorRegCpt + (i * VENUM64) + j)=cpu.vr[i]._64[j];
@@ -346,18 +347,18 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
   }
   Log("Writing Vector registers to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
       FLOAT_REG_CPT_ADDR, FLOAT_REG_CPT_ADDR + 32 * 8,
-      VecRegStartAddr, VecRegStartAddr + 32 * 8 * VENUM64
+      vector_reg_cpt_addr, vector_reg_cpt_addr + 32 * 8 * VENUM64
       );
 #endif // CONFIG_RVV
 
 
-  auto *pc = (uint64_t *) (serialize_base_addr + PCAddr);
+  auto *pc = (uint64_t *) (serialize_base_addr + pc_cpt_addr);
   *pc = cpu.pc;
   Log("Writing PC: 0x%lx at addr 0x%x", cpu.pc, PC_CPT_ADDR);
 
 
   //  csr_writeback();
-  auto *csrCpt = (uint64_t *)(serialize_base_addr + CSRStartAddr);
+  auto *csrCpt = (uint64_t *)(serialize_base_addr + csr_reg_cpt_addr);
   //  Log("csrCpt: %p\n",csrCpt);
   //  Log("Mstatus: 0x%x", mstatus->val);
   //  Log("CSR array mstatus: 0x%x", csr_array[0x300]);
@@ -397,24 +398,24 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
 
   Log("Writing CSR to checkpoint memory @[0x%x, 0x%x) [0x%x, 0x%x)",
       CSR_REG_CPT_ADDR, CSR_REG_CPT_ADDR + 4096 * 8,
-      CSRStartAddr, CSRStartAddr + 4096 * 8
+      csr_reg_cpt_addr, csr_reg_cpt_addr + 4096 * 8
       );
 
 
-  auto *flag = (uint64_t *)(serialize_base_addr + CptFlagAddr);
+  auto *flag = (uint64_t *)(serialize_base_addr + magic_number_cpt_addr);
   *flag = CPT_MAGIC_BUMBER;
   Log("Touching Flag: 0x%x at addr 0x%x", CPT_MAGIC_BUMBER, BOOT_FLAG_ADDR);
 
-  auto *mode_flag = (uint64_t *) (serialize_base_addr + MODEAddr);
+  auto *mode_flag = (uint64_t *) (serialize_base_addr + mode_cpt_addr);
   *mode_flag = cpu.mode;
   Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, MODE_CPT_ADDR);
 
-  auto *mtime = (uint64_t *) (serialize_base_addr + MTIMEAddr);
+  auto *mtime = (uint64_t *) (serialize_base_addr + mtime_cpt_addr);
   extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
   *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CPT_ADDR);
 
-  auto *mtime_cmp = (uint64_t *) (serialize_base_addr + MTIMECMPAddr);
+  auto *mtime_cmp = (uint64_t *) (serialize_base_addr + mtime_cmp_cpt_addr);
   *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
   Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CMP_CPT_ADDR);
 
@@ -460,6 +461,10 @@ void Serializer::serialize(uint64_t inst_count) {
 }
 
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
+
+#define USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(variable_name) \
+  this->variable_name = checkpoint_meta_data.get_default_memlayout().variable_name;
+
 void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
 #else
 void Serializer::init(bool store_cpt_in_flash) {
@@ -470,20 +475,20 @@ void Serializer::init(bool store_cpt_in_flash) {
   this->enable_libcheckpoint = enable_libcheckpoint;
 
   if (this->enable_libcheckpoint) {
-    this->IntRegStartAddr = checkpoint_meta_data.get_default_memlayout().int_reg_cpt_addr;
-    this->IntRegDoneFlag = checkpoint_meta_data.get_default_memlayout().int_reg_done;
-    this->FloatRegStartAddr = checkpoint_meta_data.get_default_memlayout().float_reg_cpt_addr;
-    this->FloatRegDoneFlag = checkpoint_meta_data.get_default_memlayout().float_reg_done;
-    this->CSRStartAddr = checkpoint_meta_data.get_default_memlayout().csr_reg_cpt_addr;
-    this->CSRSDoneFlag = checkpoint_meta_data.get_default_memlayout().csr_reg_done;
-    this->VecRegStartAddr = checkpoint_meta_data.get_default_memlayout().vector_reg_cpt_addr;
-    this->VecRegDoneFlag = checkpoint_meta_data.get_default_memlayout().vector_reg_done;
-    this->CptFlagAddr = checkpoint_meta_data.get_default_memlayout().magic_number_cpt_addr;
-    this->PCAddr = checkpoint_meta_data.get_default_memlayout().pc_cpt_addr;
-    this->MODEAddr = checkpoint_meta_data.get_default_memlayout().mode_cpt_addr;
-    this->MTIMEAddr = checkpoint_meta_data.get_default_memlayout().mtime_cpt_addr;
-    this->MTIMECMPAddr = checkpoint_meta_data.get_default_memlayout().mtime_cmp_cpt_addr;
-    this->MISCDoneFlag = checkpoint_meta_data.get_default_memlayout().misc_done_cpt_addr;
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(int_reg_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(int_reg_done);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(float_reg_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(float_reg_done);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(csr_reg_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(csr_reg_done);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(vector_reg_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(vector_reg_done);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(magic_number_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(pc_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(mode_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(mtime_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(mtime_cmp_cpt_addr);
+    USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(misc_done_cpt_addr);
   }
 
 #endif
