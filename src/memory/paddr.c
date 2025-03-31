@@ -83,7 +83,7 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   if (need_read_golden_mem) {
     need_read_golden_mem = false;
     vec_read_golden_mem_addr = addr;
-    vec_read_golden_mem_data = golden_pmem_read(addr, len, 0, 0, 0);
+    vec_read_golden_mem_data = golden_pmem_read(addr, len);
   }
 #endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 
@@ -243,6 +243,9 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
     return 0;
   }
+  if (cpu.pbmt != 0) {
+    isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
+  }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   else {
@@ -375,6 +378,9 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   mode = mode & ~CROSS_PAGE_ST_FLAG;
   if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
+  }
+  if (cpu.pbmt != 0) {
+    isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_store);
   }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);

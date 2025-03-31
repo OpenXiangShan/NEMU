@@ -5,8 +5,8 @@ LIBCHECKPOINT_BIN = $(LIBCHECKPOINT_REPO)/build/gcpt.bin
 LIBCHECKPOINT_MEMLAYOUT_HEADER = $(LIBCHECKPOINT_REPO)/src/checkpoint.proto
 
 ifeq ($(wildcard $(LIBCHECKPOINT_MEMLAYOUT_HEADER)),)
-  $(shell git clone --depth=1 https://github.com/OpenXiangShan/LibCheckpoint.git $(LIBCHECKPOINT_REPO))
-  $(shell cd $(LIBCHECKPOINT_REPO) && git submodule update --init && cd - )
+  $(shell git clone --depth=1 https://github.com/OpenXiangShan/LibCheckpoint.git $(LIBCHECKPOINT_REPO) 1>&2)
+  $(shell cd $(LIBCHECKPOINT_REPO) && git submodule update --init 1>&2)
 endif
 
 ifdef CONFIG_LIBCHECKPOINT_RESTORER
