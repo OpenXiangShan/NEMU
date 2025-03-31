@@ -53,6 +53,11 @@ using std::numeric_limits;
 using std::string;
 using std::to_string;
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
+// protocol buffers are Google's language-neural,
+// latform-neutral, extensible mechanism for serializing
+// structured data. Excerpt from https://protobuf.dev/"
+// We use protobuf to encode (NEMU) and decode (LibCheckpoint)
+// our checkpoint layout.
 CheckpointMetaData::CheckpointMetaData():
   default_header(multicore_default_header),
   default_single_core_memlayout(default_qemu_memlayout)
