@@ -478,7 +478,7 @@ void Serializer::init(bool store_cpt_in_flash) {
     this->CSRSDoneFlag = checkpoint_meta_data.get_default_memlayout().csr_reg_done;
     this->VecRegStartAddr = checkpoint_meta_data.get_default_memlayout().vector_reg_cpt_addr;
     this->VecRegDoneFlag = checkpoint_meta_data.get_default_memlayout().vector_reg_done;
-  //  this->CptFlagAddr = checkpoint_meta_data.get_default_memlayout().magic_number_cpt_addr;
+    this->CptFlagAddr = checkpoint_meta_data.get_default_memlayout().magic_number_cpt_addr;
     this->PCAddr = checkpoint_meta_data.get_default_memlayout().pc_cpt_addr;
     this->MODEAddr = checkpoint_meta_data.get_default_memlayout().mode_cpt_addr;
     this->MTIMEAddr = checkpoint_meta_data.get_default_memlayout().mtime_cpt_addr;
