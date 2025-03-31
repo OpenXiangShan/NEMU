@@ -1506,6 +1506,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
 
 void float_reduction_instr(int opcode, int widening, Decode *s) {
   isa_fp_rm_check(isa_fp_get_frm());
+  require_float();
 
   vector_reduction_check(s, widening);
   if (widening)
@@ -1675,6 +1676,7 @@ void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
 
 void float_reduction_computing(Decode *s) {
   isa_fp_rm_check(isa_fp_get_frm());
+  require_float();
   vector_reduction_check(s, false);
   word_t FPCALL_TYPE = FPCALL_W64;
   uint64_t active_num = 0;
