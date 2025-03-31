@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>
+#include <checkpoint/semantic_point.h>
 #include "../local-include/trigger.h"
 #include "../local-include/aia.h"
 #include "macro.h"
@@ -311,10 +312,18 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 
 #ifndef CONFIG_SHARE
 uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
+
+
   // checkpoint_icount_base is set from nemu_trap.
   // Profiling and checkpointing use this as the starting point for instruction counting.
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
   // workload_loaded set from nemu_trap
+  //
+  if (enable_semantic_point_cpt() && (workload_loaded || donot_skip_boot)) {
+    semantic_point_profile(prev_s->pc, true, abs_inst_count);
+    semantic_point_profile(s->pc, false, abs_inst_count);
+  }
+
   if (profiling_state == SimpointProfiling && (workload_loaded||donot_skip_boot)) {
     simpoint_profiling(prev_s->pc, true, abs_inst_count);
     simpoint_profiling(s->pc, false, abs_inst_count);
@@ -351,6 +360,8 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
       break;
   case SimpointCheckpointing:
       break;
+  case SemanticCheckpointing:
+      break;
   }
 
   cpu.pc = s->pc;
@@ -359,7 +370,7 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   bool taken = try_take_cpt(abs_inst_count);
   if (taken) {
     Log("Have taken checkpoint on pc 0x%lx", s->pc);
-    if (recvd_manual_oneshot_cpt) {
+    if (checkpoint_state == SemanticCheckpointing || recvd_manual_oneshot_cpt) {
       Log("Quit after taken manual cpt\n");
       nemu_state.state = NEMU_QUIT;
       manual_cpt_quit = true;
