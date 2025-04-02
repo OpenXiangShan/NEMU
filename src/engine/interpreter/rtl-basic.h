@@ -133,9 +133,31 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 #endif
 }
 
+static inline def_rtl(lmm, rtlreg_t *dest, const rtlreg_t* addr,
+  word_t offset, int len, int mmu_mode) {
+  *dest = vaddr_read_matrix(s, *addr + offset, len, mmu_mode);
+#ifdef CONFIG_QUERY_REF
+  cpu.query_mem_event.pc = cpu.debug.current_pc;
+  cpu.query_mem_event.mem_access = true;
+  cpu.query_mem_event.mem_access_is_load = true;
+  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+#endif
+}
+
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+#ifdef CONFIG_QUERY_REF
+  cpu.query_mem_event.pc = cpu.debug.current_pc;
+  cpu.query_mem_event.mem_access = true;
+  cpu.query_mem_event.mem_access_is_load = false;
+  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+#endif
+}
+
+static inline def_rtl(smm, const rtlreg_t *src1, const rtlreg_t* addr,
+  word_t offset, int len, int mmu_mode) {
+  vaddr_write_matrix(s, *addr + offset, len, *src1, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
