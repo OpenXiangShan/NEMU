@@ -85,13 +85,15 @@ void mld(bool is_trans, char m_name) {
     for (int m = 0; m < lmul; m++) {
       for (int idx = 0; idx < cmax_mem; idx++) {
         addr = base_addr + row * row_byte_stride + m * cmax_mem * (s->m_width) + idx * (s->m_width);
-        rtl_lm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
+        rtl_lmm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
         int row_tr = is_trans ? idx : row;
         int idx_tr = is_trans ? row : idx;
         set_mtreg(td+m, row_tr, idx_tr, tmp_reg[0], s->m_eew);
       }
     }
   }
+  fprintf(stderr, "!!!! mld %c: base_addr=%lx, rmax_mem=%d, lmul=%d, cmax_mem=%d, row_byte_stride=%ld\n",
+    m_name, base_addr, rmax_mem, lmul, cmax_mem, row_byte_stride);
 }
 
 void mst(bool is_trans, char m_name) {
@@ -156,10 +158,12 @@ void mst(bool is_trans, char m_name) {
         int idx_tr = is_trans ? row : idx;
         get_mtreg(ts3+m, row_tr, idx_tr, &tmp_reg[0], s->m_eew, false);
         addr = base_addr + row * row_byte_stride + m * cmax_mem * (s->m_width) + idx * (s->m_width);
-        rtl_sm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
+        rtl_smm(s, &tmp_reg[0], &addr, 0, s->m_width, MMU_TRANSLATE);
       }
     }
   }
+  fprintf(stderr, "!!!! mst: base_addr=%lx, rmax_mem=%d, lmul=%d, cmax_mem=%d, row_byte_stride=%ld\n",
+    base_addr, rmax_mem, lmul, cmax_mem, row_byte_stride);
 }
 
 
