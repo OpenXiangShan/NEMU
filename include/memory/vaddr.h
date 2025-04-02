@@ -21,7 +21,9 @@
 struct Decode;
 word_t vaddr_ifetch(vaddr_t addr, int len);
 word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+word_t vaddr_read_matrix(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
 void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode);
+void vaddr_write_matrix(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode);
 
 word_t vaddr_read_safe(vaddr_t addr, int len);
 
