@@ -1312,8 +1312,10 @@ inline void update_stopi() {
 
 #ifdef CONFIG_RV_IMSIC
 inline void update_vstopi() {
+  printf("begin update vstopi, vstopi=%lx\n", vstopi->val);
   vsip_t read_vsip = (vsip_t)get_vsip();
   vsie_t read_vsie = (vsie_t)get_vsie();
+  printf("seip=%x, seie=%x, hstatus.vgein=%x, vstopei=%lx\n", read_vsip.seip, read_vsie.seie, hstatus->vgein, cpu.fromaia.vstopei);
 
   bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.fromaia.vstopei != 0);
   bool candidate2 = read_vsip.seip && read_vsie.seie && (hstatus->vgein == 0) && (hvictl->iid == 9) && (hvictl->iprio != 0);
@@ -1391,6 +1393,7 @@ inline void update_vstopi() {
       vstopi->iprio = iprio_candidate & 0xff;
     }
   }
+  printf("update vstopi done, vstopi=%lx\n", vstopi->val);
 }
 #endif
 
