@@ -20,8 +20,8 @@
 
 #include "common.h"
 
-#define MLEN 1024
-#define MRLEN 128
+#define MLEN 524288 //tmp: to support 64*256*64, we have to use a 256*256*sew(8) tr register
+#define MRLEN 2048
 #define MELEN 64
 #define MAMUL 8
 #define MLENB (MLEN/8)
@@ -32,9 +32,9 @@
 #define MRENUM16 (MRLEN/16)
 #define MRENUM8  (MRLEN/8)
 
-#define TMMAX      (MLEN/MRLEN)    // 8
-#define TNMAX(sew) (MRLEN/sew)  // 16/8/4/2
-#define TKMAX(sew) (TMMAX < TNMAX(sew) ? TMMAX : TNMAX(sew))   // min{MLEN/RLEN, RLEN/SEW}, SEW=8/16/32/64, init_SEW=MELEN
+#define TMMAX      64    // 8
+#define TNMAX(sew) 512/sew  // 512/8=64, add sew to make compiler happy
+#define TKMAX(sew) 2048/sew   // 2048/8=256, init_SEW=MELEN
 
 
 static inline int check_mtreg_num(int num) {
