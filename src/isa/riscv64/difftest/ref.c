@@ -449,6 +449,7 @@ void isa_update_stopi() {
 }
 
 void isa_update_vstopi() {
+  printf("NEMU: update vstopi\n");
   update_vstopi();
 }
 

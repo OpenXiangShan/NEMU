@@ -111,6 +111,7 @@ void set_viprios_sort(uint64_t topi_gather) {
       cpu.VSIpriosSort->ipriosEnable[i].enable = false;
     }
   }
+  printf("intr enable\n");
 
   Hviprios hviprios;
   for (int i = 0; i < 24; i++) {
@@ -118,9 +119,11 @@ void set_viprios_sort(uint64_t topi_gather) {
   }
   
   set_hviprios(hviprios);
+  printf("set hviprios\n");
   for (int i = 0; i < 24; i++) {
     handle_irq_hviprio(i, topi_gather, hviprios.hviprios[i]);
   }
+  printf("handle\n");
 }
 
 uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei) {

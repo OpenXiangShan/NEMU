@@ -1312,8 +1312,11 @@ inline void update_stopi() {
 
 #ifdef CONFIG_RV_IMSIC
 inline void update_vstopi() {
+  printf("begin update vstopi, vstopi=%lx\n", vstopi->val);
   vsip_t read_vsip = (vsip_t)get_vsip();
   vsie_t read_vsie = (vsie_t)get_vsie();
+  printf("vsip=%lx, vsie=%lx, hvictl=%lx\n", read_vsip.val, read_vsie.val, hvictl->val);
+  printf("seip=%x, seie=%x, hstatus.vgein=%x, vstopei=%lx\n", read_vsip.seip, read_vsie.seie, hstatus->vgein, cpu.fromaia.vstopei);
 
   bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.fromaia.vstopei != 0);
   bool candidate2 = read_vsip.seip && read_vsie.seie && (hstatus->vgein == 0) && (hvictl->iid == 9) && (hvictl->iprio != 0);
@@ -1321,13 +1324,17 @@ inline void update_vstopi() {
   bool candidate4 = !hvictl->vti && (read_vsie.val & read_vsip.val & 0xfffffffffffffdff);
   bool candidate5 = hvictl->vti && (hvictl->iid != 9);
   bool candidate_no_valid = !candidate1 && !candidate2 && !candidate3 && !candidate4 && !candidate5;
+  printf("candidate1=%x, c2=%x, c3=%x, c4=%x, c5=%x\n", candidate1, candidate2, candidate3, candidate4, candidate5);
 
   uint64_t vstopi_gather = get_vsip() & get_vsie();
+  printf("vstopi_gather=%lx\n", vstopi_gather);
   set_viprios_sort(vstopi_gather);
+  printf("set viprios done\n");
 
   uint8_t vs_iid_idx = high_iprio(cpu.VSIpriosSort, IRQ_VSEIP);
   uint8_t vs_iid_num = interrupt_default_prio[vs_iid_idx];
   uint8_t vs_prio_num = cpu.VSIpriosSort->ipriosEnable[vs_iid_idx].priority;
+  printf("high iprio\n");
 
   uint8_t iid_candidate123 = IRQ_SEIP;
   uint8_t iid_candidate45 = 0;
@@ -1367,6 +1374,7 @@ inline void update_vstopi() {
   } else if (!candidate123 && candidate45) {
     candidate123_low_candidate45 = true;
   }
+  printf("candidate123_high_candidate45=%x, candidate123_low_candidate45=%x\n", candidate123_high_candidate45, candidate123_low_candidate45);
 
   uint8_t iid_candidate = 0;
   uint16_t iprio_candidate = 0;
@@ -1378,6 +1386,7 @@ inline void update_vstopi() {
     iid_candidate = iid_candidate45;
     iprio_candidate = iprio_candidate45;
   }
+  printf("iid_candidate=%x, iprio_candidate=%x\n", iid_candidate, iprio_candidate);
 
   if (candidate_no_valid) {
     vstopi->val = 0;
@@ -1391,6 +1400,7 @@ inline void update_vstopi() {
       vstopi->iprio = iprio_candidate & 0xff;
     }
   }
+  printf("update vstopi done, vstopi=%lx\n", vstopi->val);
 }
 #endif
 
@@ -2281,6 +2291,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       is_write(mip) || is_write(mvip) || is_write(hvip) || is_write(hip) || is_write(sip) || is_write(vsip) ||
       is_write(mie) || is_write(mvien) || is_write(hvien) || is_write(hie) || is_write(sie) || is_write(vsie) ||
       is_write(mireg) || is_write(sireg)) {
+    printf("write csr update topi\n");
     update_mtopi();
     update_stopi();
     update_vstopi();
