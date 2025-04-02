@@ -22,7 +22,30 @@
 
 #include <string>
 #include <map>
+#include "generated/autoconf.h"
 
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+extern "C" {
+#include <checkpoint.pb.h>
+}
+
+class CheckpointMetaData
+{
+public:
+  explicit CheckpointMetaData();
+  checkpoint_header get_default_header();
+  single_core_rvgc_rvv_rvh_memlayout get_default_memlayout();
+  bool encode(uint8_t* mem_buffer, uint64_t buffer_size);
+  uint8_t* get_checkpoint_data_address(uint64_t memory_start_address);
+private:
+  checkpoint_header default_header;
+  single_core_rvgc_rvv_rvh_memlayout default_single_core_memlayout;
+
+  bool header_encode(pb_ostream_t *output_stream, checkpoint_header *default_header);
+  bool memlayout_encode(pb_ostream_t *output_stream, single_core_rvgc_rvv_rvh_memlayout *default_memlayout);
+};
+
+#endif
 
 class Serializer
 {
@@ -35,8 +58,11 @@ class Serializer
     void serializeRegs(uint8_t* serialize_base_addr);
 
     explicit Serializer();
-
+#ifdef CONFIG_LIBCHECKPOINT_RESTORER
+    void init(bool store_cpt_in_flash, bool enable_libcheckpoint);
+#else
     void init(bool store_cpt_in_flash);
+#endif
 
     bool shouldTakeCpt(uint64_t num_insts);
     bool instrsCouldTakeCpt(uint64_t num_insts);
@@ -52,23 +78,24 @@ class Serializer
     uint64_t cptID;
     std::string weightIndicator;
 
-    const uint32_t IntRegStartAddr;
-    const uint32_t IntRegDoneFlag;
-    const uint32_t FloatRegStartAddr;
-    const uint32_t FloatRegDoneFlag;
-    const uint32_t CSRStartAddr;
-    const uint32_t CSRSDoneFlag;
-    const uint32_t VecRegStartAddr;
-    const uint32_t VecRegDoneFlag;
-    const uint32_t CptFlagAddr;
-    const uint32_t PCAddr;
-    const uint32_t MODEAddr;
-    const uint32_t MTIMEAddr;
-    const uint32_t MTIMECMPAddr;
-    const uint32_t MISCDoneFlag;
+    uint32_t int_reg_cpt_addr;
+    uint32_t int_reg_done;
+    uint32_t float_reg_cpt_addr;
+    uint32_t float_reg_done;
+    uint32_t csr_reg_cpt_addr;
+    uint32_t csr_reg_done;
+    uint32_t vector_reg_cpt_addr;
+    uint32_t vector_reg_done;
+    uint32_t magic_number_cpt_addr;
+    uint32_t pc_cpt_addr;
+    uint32_t mode_cpt_addr;
+    uint32_t mtime_cpt_addr;
+    uint32_t mtime_cmp_cpt_addr;
+    uint32_t misc_done_cpt_addr;
 
     bool regDumped{false};
     bool store_cpt_in_flash{false};
+    bool enable_libcheckpoint{false};
 
     std::map<uint64_t, double> simpoint2Weights;
 

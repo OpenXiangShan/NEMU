@@ -46,6 +46,7 @@ static int batch_mode = false;
 static int difftest_port = 1234;
 char *max_instr = NULL;
 static bool store_cpt_in_flash = false;
+static bool enable_libcheckpoint = false;
 char compress_file_format = 0; // default is gz
 static char* semantic_cpt_path = NULL;
 
@@ -119,6 +120,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"map-cpt"            , required_argument, NULL, 10},
     {"checkpoint-format"  , required_argument, NULL, 12},
     {"store-cpt-in-flash" , no_argument, NULL, 17},
+    {"enable-libcheckpoint", no_argument, NULL, 19},
     {"semantic-cpt"       , required_argument, NULL,  18},
 
     // profiling
@@ -169,6 +171,10 @@ static inline int parse_args(int argc, char *argv[]) {
 
       case 18:
         semantic_cpt_path = optarg;
+        break;
+        
+      case 19:
+        enable_libcheckpoint = true;
         break;
 
       case 'r':
@@ -289,7 +295,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--manual-uniform-cpt    Manually take uniform cpt by send signal.\n");
         printf("\t--checkpoint-format=FORMAT            Specify the checkpoint format('gz' or 'zstd'), default: 'gz'.\n");
         printf("\t--store-cpt-in-flash    Use this option to save the checkpoint to flash storage.\n");
-
+        printf("\t--enable-libcheckpoint  Use this option to enable Libcheckpoint-supported ckpt.\n");
         printf("\t--semantic-cpt           Use this option to allow NEMU generate checkpoint from semantic-cpt profiling file");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
@@ -337,14 +343,22 @@ void init_monitor(int argc, char *argv[]) {
 
   extern void init_path_manager();
   extern void simpoint_init();
+  #ifdef CONFIG_LIBCHECKPOINT_RESTORER
+  extern void init_serializer(bool store_cpt_in_flash, bool enable_libcheckpoint);
+  #else
   extern void init_serializer(bool store_cpt_in_flash);
+  #endif
 
   //checkpoint and profiling set output
   bool output_features_enabled = checkpoint_state != NoCheckpoint || profiling_state == SimpointProfiling;
   if (output_features_enabled) {
     init_path_manager();
     simpoint_init();
+    #ifdef CONFIG_LIBCHECKPOINT_RESTORER
+    init_serializer(store_cpt_in_flash, enable_libcheckpoint);
+    #else
     init_serializer(store_cpt_in_flash);
+    #endif
   }
 
   /* Initialize memory. */
