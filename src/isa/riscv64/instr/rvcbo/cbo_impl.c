@@ -53,8 +53,15 @@ static void trigger_check(vaddr_t vaddr){
 static paddr_t translate_and_check(vaddr_t vaddr) {
   Logm("Checking mmu when MMU_DYN");
   trigger_check(vaddr);
-  paddr_t mmu_ret = isa_mmu_check(vaddr, 8, MEM_TYPE_WRITE);
-  paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
+  int mmu_ret = isa_mmu_check(vaddr, 8, MEM_TYPE_WRITE);
+  paddr_t paddr = vaddr;
+  if (mmu_ret == MMU_TRANSLATE) {
+    paddr_t pg_base = isa_mmu_translate(vaddr, 8, MEM_TYPE_WRITE);
+    int ret = pg_base & PAGE_MASK;
+    if (ret == MEM_RET_OK) {
+      paddr = pg_base | (vaddr & PAGE_MASK);
+    }
+  }
   paddr_check(paddr, vaddr);
   return paddr;
 }
@@ -117,7 +124,7 @@ void cbo_zero_mmu(Decode *s){
   rtlreg_t  block_addr = base_addr_p & ~CACHE_BLOCK_MASK;
   for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
     // write zero to block_addr
-    rtl_sm(s, rz, &block_addr, 0, CACHE_OP_SPLIT_SIZE, MMU_TRANSLATE);
+    rtl_sm(s, rz, &block_addr, 0, CACHE_OP_SPLIT_SIZE, MMU_DIRECT);
     block_addr += CACHE_OP_SPLIT_SIZE;
   }
 }
