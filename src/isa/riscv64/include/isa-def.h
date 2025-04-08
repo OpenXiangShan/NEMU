@@ -62,6 +62,11 @@ struct FromAIA {
   uint64_t hgeip;
 };
 
+struct IntrDeleg {
+  bool ir_to_hs;
+  bool ir_to_vs;
+};
+
 struct DebugInfo {
   uint64_t current_pc;
 };
@@ -160,6 +165,8 @@ typedef struct {
   struct ExecutionGuide execution_guide;
 
   struct NonRegInterruptPending non_reg_interrupt_pending;
+
+  struct IntrDeleg intr_deleg;
 
   // User defined debug info
   struct DebugInfo debug;
