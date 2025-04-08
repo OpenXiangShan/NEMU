@@ -250,6 +250,10 @@ void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlIn
 #endif
 }
 
+void difftest_interrupt_delegate(void *intrDeleg) {
+  memcpy(&cpu.intr_deleg, intrDeleg, sizeof(struct IntrDeleg));
+}
+
 void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 #ifdef CONFIG_RV_SSCOFPMF
   isa_update_mhpmcounter_overflow(mhpmeventOverflowVec);
