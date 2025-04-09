@@ -51,26 +51,17 @@ jobs:
       - name: Build AM for test baremetal workload checkpoint
         run: |
           cd $AM_HOME
+          cp $NEMU_HOME/scripts/am_patch_for_checkpoint.patch ./
+          git apply am_patch_for_checkpoint.patch
           make -C apps/mem_test/mem_test_latency ARCH=riscv64-xs INST=20
+      - name: Build LibCheckpoint and link AM workload
+        run: |
+          cd $NEMU_HOME/resource/LibCheckpoint
+          ./configure --gcpt_payload=$AM_HOME/apps/mem_test/mem_test_latency/build/build-mem_test_latency-20-riscv64-xs.bin --mode=bare_metal
+          make
       - name: System - mem_test_latency
         run: |
-          ./build/riscv64-nemu-interpreter -b ${AM_HOME}/apps/mem_test/mem_test_latency/build/build-mem_test_latency-20-riscv64-xs.bin
-      - name: Checkpoint
-        run: |
-          make clean-all
-          make riscv64-xs-cpt_defconfig
-          make -j
-          make -C resource/gcpt_restore
-          # take cpt, and put cpt in output_top/test/linux
-          bash ./scripts/take_zstd.sh
-          make clean-all
-
-          # restore cpt
-          git submodule update --init --depth=1 ready-to-run
-          make riscv64-xs-diff-spike_defconfig
-          make -j
-          bash ./scripts/restore_zstd.sh
-          make clean-all
+          ./build/riscv64-nemu-interpreter -b resource/LibCheckpoint/build/gcpt.bin
 
   basic-xiangshan:
     runs-on: nemu
