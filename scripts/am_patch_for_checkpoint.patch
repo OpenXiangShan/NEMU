@@ -13,14 +13,13 @@ index 05cf7af7..020181e8 100644
  
  INCLUDE "section.ld"
 diff --git a/apps/mem_test/mem_test_latency/mem_test_latency.c b/apps/mem_test/mem_test_latency/mem_test_latency.c
-index b9486e5c..04477726 100644
+index a3e8ea0e..d118bfd1 100644
 --- a/apps/mem_test/mem_test_latency/mem_test_latency.c
 +++ b/apps/mem_test/mem_test_latency/mem_test_latency.c
-@@ -4,7 +4,18 @@
+@@ -4,6 +4,17 @@
  #define xstr(s) str(s)
  #define str(s)  #s
  
--int main(){
 +#define DISABLE_TIME_INTR 0x100
 +#define NOTIFY_PROFILER 0x101
 +
@@ -32,22 +31,16 @@ index b9486e5c..04477726 100644
 +                  : "a0");
 +}
 +
-+int main() {
-     unsigned long long busy_cycles;
-     unsigned long long busy_instrs;
-     //control
-@@ -13,9 +24,14 @@ int main(){
-     uint64_t start_addr = _PERF_TEST_ADDR_BASE;
-     //init end address, step = 256k,input step size
-     //_PERF_L1_SIZE_BYTE (64 * KB) _TEST_NUM_SIZE (32 * KB) _STEP_SIZE (256 *KB)
-+
-     uint64_t end_addr = (_PERF_TEST_ADDR_BASE + _PERF_L2_SIZE_BYTE + cache_warmup_size_count *_STEP_SIZE);
-     //make cache warmup  put the test address in l1/l2/l3 _PERF_CACHELINE_SIZE_BYTE (8 * BYTE)
-     full_cache_warmup_i(start_addr,end_addr,_PERF_CACHELINE_SIZE_BYTE,cache_warmup_size_count);
+ void flush_cache_efficient(unsigned size_in_kb, uint64_t start_addr) {
+   unsigned bytes = 1024 * size_in_kb;
+   uint64_t blackhole = 0;
+@@ -29,6 +40,9 @@ int main() {
+           "Then flushing cache of %i KB starting from %#lx\n",
+           block_count, start_addr, flush_start, 0xdeadbeaf, footprint_kb, flush_start);
+     pseudo_random_warmup(start_addr, 0xdeadbeaf /*non-zero*/, block_count, 0x40000000);
 +
 +    nemu_signal(DISABLE_TIME_INTR);
 +    nemu_signal(NOTIFY_PROFILER);
-+
+     //flush cache
+     flush_cache_efficient(footprint_kb, flush_start);
      //cache latency test
-     cache_iloop(&busy_instrs,&busy_cycles);
- 
