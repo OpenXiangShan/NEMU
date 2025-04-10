@@ -40,6 +40,7 @@ jobs:
         with:
           repository: OpenXiangShan/nexus-am
           path: nexus-am
+          ref: memory-test-v3
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -51,7 +52,6 @@ jobs:
       - name: Build AM for test baremetal workload checkpoint
         run: |
           cd $AM_HOME
-          git checkout memory-test-v3
           cp $NEMU_HOME/scripts/am_patch_for_checkpoint.patch ./
           git apply am_patch_for_checkpoint.patch
           make -C apps/mem_test/mem_test_latency ARCH=riscv64-xs INST=20
