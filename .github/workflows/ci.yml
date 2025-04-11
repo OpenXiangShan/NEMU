@@ -58,6 +58,7 @@ jobs:
       - name: Build LibCheckpoint and link AM workload
         run: |
           cd $NEMU_HOME/resource/LibCheckpoint
+          make clean
           ./configure --gcpt-payload=$AM_HOME/apps/mem_test/mem_test_latency/build/build-mem_test_latency-20-riscv64-xs.bin --mode=bare_metal
           make
       - name: System - mem_test_latency
