@@ -15,6 +15,7 @@ enum CheckpointState{
     UniformCheckpointing,
     ManualOneShotCheckpointing,
     ManualUniformCheckpointing,
+    CheckpointOnNEMUTrap,
 };
 
 extern int profiling_state;

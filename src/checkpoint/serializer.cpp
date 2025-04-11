@@ -475,7 +475,7 @@ void Serializer::serialize(uint64_t inst_count) {
 
 void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
 #else
-void Serializer::init(bool store_cpt_in_flash) {
+void Serializer::init(bool store_cpt_in_flash, bool checkpoint_on_nemutrap) {
 #endif
   this->store_cpt_in_flash = store_cpt_in_flash;
 
@@ -559,6 +559,8 @@ bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
       break;
     case SemanticCheckpointing:
       return check_semantic_point();
+    case CheckpointOnNEMUTrap:
+      return true;
     case NoCheckpoint:
       break;
     default:

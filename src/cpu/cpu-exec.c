@@ -362,6 +362,8 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
       break;
   case SemanticCheckpointing:
       break;
+  case CheckpointOnNEMUTrap:
+      break;
   }
 
   cpu.pc = s->pc;
@@ -370,7 +372,7 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   bool taken = try_take_cpt(abs_inst_count);
   if (taken) {
     Log("Have taken checkpoint on pc 0x%lx", s->pc);
-    if (checkpoint_state == SemanticCheckpointing || recvd_manual_oneshot_cpt) {
+    if (checkpoint_state == SemanticCheckpointing || recvd_manual_oneshot_cpt || checkpoint_state == CheckpointOnNEMUTrap) {
       Log("Quit after taken manual cpt\n");
       nemu_state.state = NEMU_QUIT;
       manual_cpt_quit = true;
