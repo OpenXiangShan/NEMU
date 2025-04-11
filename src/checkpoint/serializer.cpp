@@ -475,7 +475,7 @@ void Serializer::serialize(uint64_t inst_count) {
 
 void Serializer::init(bool store_cpt_in_flash, bool enable_libcheckpoint) {
 #else
-void Serializer::init(bool store_cpt_in_flash, bool checkpoint_on_nemutrap) {
+void Serializer::init(bool store_cpt_in_flash) {
 #endif
   this->store_cpt_in_flash = store_cpt_in_flash;
 
