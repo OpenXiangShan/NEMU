@@ -95,6 +95,7 @@ class Serializer
 
     bool regDumped{false};
     bool store_cpt_in_flash{false};
+    bool checkpoint_on_nemutrap{false};
     bool enable_libcheckpoint{false};
 
     std::map<uint64_t, double> simpoint2Weights;

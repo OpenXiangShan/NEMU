@@ -559,6 +559,8 @@ bool Serializer::instrsCouldTakeCpt(uint64_t num_insts) {
       break;
     case SemanticCheckpointing:
       return check_semantic_point();
+    case CheckpointOnNEMUTrap:
+      return true;
     case NoCheckpoint:
       break;
     default:

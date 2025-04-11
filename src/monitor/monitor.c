@@ -122,6 +122,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"store-cpt-in-flash" , no_argument, NULL, 17},
     {"enable-libcheckpoint", no_argument, NULL, 19},
     {"semantic-cpt"       , required_argument, NULL,  18},
+    {"checkpoint-on-nemutrap" , no_argument, NULL,  20},
 
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
@@ -175,6 +176,10 @@ static inline int parse_args(int argc, char *argv[]) {
         
       case 19:
         enable_libcheckpoint = true;
+        break;
+
+      case 20:
+        checkpoint_state = CheckpointOnNEMUTrap;
         break;
 
       case 'r':
@@ -297,6 +302,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--store-cpt-in-flash    Use this option to save the checkpoint to flash storage.\n");
         printf("\t--enable-libcheckpoint  Use this option to enable Libcheckpoint-supported ckpt.\n");
         printf("\t--semantic-cpt           Use this option to allow NEMU generate checkpoint from semantic-cpt profiling file");
+        printf("\t--checkpoint-on-nemutrap Use this option to generate checkpoint after exec nemu_trap immediately");
 //        printf("\t--map-cpt               map to this file as pmem, which can be treated as a checkpoint.\n"); //comming back soon
 
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
