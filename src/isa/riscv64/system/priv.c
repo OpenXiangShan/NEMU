@@ -1318,11 +1318,11 @@ inline void update_vstopi() {
   bool candidate1 = read_vsip.seip && read_vsie.seie && (hstatus->vgein != 0) && (cpu.fromaia.vstopei != 0);
   bool candidate2 = read_vsip.seip && read_vsie.seie && (hstatus->vgein == 0) && (hvictl->iid == 9) && (hvictl->iprio != 0);
   bool candidate3 = read_vsip.seip && read_vsie.seie && !candidate1 && !candidate2;
-  bool candidate4 = !hvictl->vti && (read_vsie.val & read_vsip.val & 0xfffffffffffffdff);
+  bool candidate4 = !hvictl->vti && (read_vsie.val & read_vsip.val & EXCLUDE_SEI_MASK);
   bool candidate5 = hvictl->vti && (hvictl->iid != 9);
   bool candidate_no_valid = !candidate1 && !candidate2 && !candidate3 && !candidate4 && !candidate5;
 
-  uint64_t vstopi_gather = get_vsip() & get_vsie();
+  uint64_t vstopi_gather = get_vsip() & get_vsie() & EXCLUDE_SEI_MASK;
   set_viprios_sort(vstopi_gather);
 
   uint8_t vs_iid_idx = high_iprio(cpu.VSIpriosSort, IRQ_VSEIP);

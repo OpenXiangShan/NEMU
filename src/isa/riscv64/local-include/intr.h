@@ -69,6 +69,7 @@ enum {
 #define HSI_MASK   (VSI_MASK | MIP_SGEIP)
 #define SI_MASK    (MIP_SSIP | MIP_STIP | MIP_SEIP)
 #define LCI_MASK   (~0x1FFFULL)
+#define EXCLUDE_SEI_MASK ~(0x1ULL << IRQ_SEIP)
 
 // now NEMU does not support EX_IAM,
 // so it may ok to use EX_IAM to indicate a successful memory access
