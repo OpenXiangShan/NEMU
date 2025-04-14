@@ -380,7 +380,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     return;
   }
   if (cpu.pbmt != 0) {
-    isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_store);
+    isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
   }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
