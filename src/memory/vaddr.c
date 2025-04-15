@@ -28,12 +28,17 @@
 #include <memory/host-tlb.h>
 #include <cpu/decode.h>
 
+void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page);
+
 static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
   paddr_t mmu_ret = isa_mmu_translate(vaddr, len, type);
   *exp = (mmu_ret & PAGE_MASK) != MEM_RET_OK;
   paddr_t paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
   if (*exp) {
     return 0;
+  }
+  if (cpu.pbmt != 0) {
+    isa_mmio_misalign_data_addr_check(paddr, vaddr, len, MEM_TYPE_READ, true);
   }
   *exp = !check_paddr(paddr, len, type, type, cpu.mode, vaddr);
   return paddr;
