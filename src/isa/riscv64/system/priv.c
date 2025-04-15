@@ -1341,7 +1341,6 @@ static inline void update_siprios() {
 inline void update_mtopi() {
   update_miprios();
 
-  bool miprios_is_zero = iprio_is_zero(cpu.MIprios_rdata);
   uint64_t mtopi_gather = get_mip() & mie->val & (~(mideleg->val));
   bool mtopi_is_not_zero = mtopi_gather != 0;
 
@@ -1358,16 +1357,12 @@ inline void update_mtopi() {
 
   if (mtopi_is_not_zero) {
     mtopi->iid = m_iid_num;
-    if (miprios_is_zero) {
-      mtopi->iprio = 1;
-    } else {
-      if (m_prio_greater_255 || (m_prio_is_zero && m_iid_default_prio_low_MEI)) {
-        mtopi->iprio = 255;
-      } else if (m_prio_is_zero && m_iid_default_prio_high_MEI) {
-        mtopi->iprio = 0;
-      } else if ((m_prio_num >= 1) && (m_prio_num <= 255)) {
-        mtopi->iprio = m_prio_num;
-      }
+    if (m_prio_greater_255 || (m_prio_is_zero && m_iid_default_prio_low_MEI)) {
+      mtopi->iprio = 255;
+    } else if (m_prio_is_zero && m_iid_default_prio_high_MEI) {
+      mtopi->iprio = 0;
+    } else if ((m_prio_num >= 1) && (m_prio_num <= 255)) {
+      mtopi->iprio = m_prio_num;
     }
   } else {
     mtopi->val = 0;
@@ -1379,7 +1374,6 @@ inline void update_mtopi() {
 inline void update_stopi() {
   update_siprios();
 
-  bool siprios_is_zero = iprio_is_zero(cpu.SIprios_rdata);
   hip_t read_hip = (hip_t)get_hip();
   sip_t read_sip = (sip_t)non_vmode_get_sip();
   hie_t read_hie = (hie_t)get_hie();
@@ -1401,16 +1395,12 @@ inline void update_stopi() {
 
   if (stopi_is_not_zero) {
     stopi->iid = s_iid_num;
-    if (siprios_is_zero) {
-      stopi->iprio = 1;
-    } else {
-      if (s_prio_greater_255 || (s_prio_is_zero && s_iid_default_prio_low_SEI)) {
-        stopi->iprio = 255;
-      } else if (s_prio_is_zero && s_iid_default_prio_high_SEI) {
-        stopi->iprio = 0;
-      } else if ((s_prio_num >= 1) && (s_prio_num <= 255)) {
-        stopi->iprio = s_prio_num;
-      }
+    if (s_prio_greater_255 || (s_prio_is_zero && s_iid_default_prio_low_SEI)) {
+      stopi->iprio = 255;
+    } else if (s_prio_is_zero && s_iid_default_prio_high_SEI) {
+      stopi->iprio = 0;
+    } else if ((s_prio_num >= 1) && (s_prio_num <= 255)) {
+      stopi->iprio = s_prio_num;
     }
   } else {
     stopi->val = 0;
