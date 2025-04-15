@@ -146,7 +146,7 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
 }
 
 // MMIO access currently does not support hardware misalignment.
-static inline void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page) {
+void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page) {
   if (unlikely((paddr & (len - 1)) != 0) || is_cross_page) {
     Logm("addr misaligned happened: paddr:" FMT_PADDR " vaddr:" FMT_WORD " len:%d type:%d pc:%lx", paddr, vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_MMIO_AC_SOFT)) {
@@ -249,11 +249,12 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   mode &= ~CROSS_PAGE_LD_FLAG;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
-  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
-    return 0;
-  }
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
+  }
+
+  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
+    return 0;
   }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
@@ -385,11 +386,12 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   int cross_page_store = (mode & CROSS_PAGE_ST_FLAG) != 0;
   // get mode's original value
   mode = mode & ~CROSS_PAGE_ST_FLAG;
-  if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
-    return;
-  }
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
+  }
+
+  if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
+    return;
   }
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
