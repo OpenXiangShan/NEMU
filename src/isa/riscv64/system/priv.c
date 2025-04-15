@@ -661,11 +661,26 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define SCOUNTOVF_WMASK 0xfffffff8ULL
 
-// Smcsrind/Sscsrind is not implemented. bit 60(CSRIND) read-only 1.
-#define STATEEN0_CSRIND  0x1000000000000000ULL
-#define MSTATEEN0_WMASK  0xdc00000000000001ULL
-#define HSTATEEN0_WMASK  0xdc00000000000001ULL
-#define SSTATEEN0_WMASK  0x0000000000000001ULL // 32 bits
+#define MSTATEEN0_IMSIC 0x0400000000000000
+#define MSTATEEN0_WMASK (                           \
+  MSTATEEN_HSTATEEN                               | \
+  MSTATEEN0_HENVCFG                               | \
+  MUXDEF(CONFIG_RV_SMCSRIND, MSTATEEN0_CSRIND, 0) | \
+  MUXDEF(CONFIG_RV_AIA, MSTATEEN0_CSRIND, 0)      | \
+  MUXDEF(CONFIG_RV_AIA, MSTATEEN0_AIA, 0)         | \
+  MUXDEF(CONFIG_RV_IMSIC, MSTATEEN0_IMSIC, 0)     | \
+  MSTATEEN0_CS                                      \
+)
+#define HSTATEEN0_WMASK MSTATEEN0_WMASK
+#define SSTATEEN0_WMASK SSTATEEN0_CS
+
+#ifdef CONFIG_RV_SMSTATEEN
+void init_smstateen() {
+  mstateen0->val = MSTATEEN0_WMASK;
+  IFDEF(CONFIG_RVH, hstateen0->val = HSTATEEN0_WMASK);
+  sstateen0->val = SSTATEEN0_WMASK;
+}
+#endif // CONFIG_RV_SMSTATEEN
 
 #define MHPMEVENT_WMASK_OF      (0x1UL   << 63)
 #define MHPMEVENT_WMASK_MINH    (0x1UL   << 62)
@@ -1870,7 +1885,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
-    case CSR_SSTATEEN0: *dest = (src & SSTATEEN0_WMASK); break;
+    case CSR_SSTATEEN0: *dest = src & SSTATEEN0_WMASK; break;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_SIE:
@@ -2032,10 +2047,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
-    case CSR_HSTATEEN0:
-    {
-      *dest = ((src & HSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
-    }
+    case CSR_HSTATEEN0: *dest = src & HSTATEEN0_WMASK; break;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_HGATP:
@@ -2150,7 +2162,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
-    case CSR_MSTATEEN0: *dest = ((src & MSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
+    case CSR_MSTATEEN0: *dest = src & MSTATEEN0_WMASK; break;
 #endif // CONFIG_RV_SMSTATEEN
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
@@ -2540,6 +2552,22 @@ static inline bool smstateen_extension_permit_check(const uint32_t addr) {
   }
 #endif // CONFIG_RVH
 
+#if defined (CONFIG_RV_SMCSRIND) || defined (CONFIG_RV_AIA)
+  // CSRIND bit 60
+  else if (addr >= CSR_SIREG && addr <= CSR_SIREG6) {
+    // siph is also within this range, but if the accessed CSR is miph,
+    // it will directly raise an illegal instruction exception 
+    // during the earlier check for the existence of the CSR. 
+    if ((cpu.mode < MODE_M) && (!mstateen0->csrind)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->csrind) { has_vi = true; })
+  }
+#ifdef CONFIG_RVH
+  else if (addr >= CSR_VSIREG && addr <= CSR_VSIREG6) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->csrind)) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SMCSRIND || CONFIG_RV_AIA
+
 #ifdef CONFIG_RV_AIA
   // AIA bit 59
   else if (is_access(stopi)) {
@@ -2650,8 +2678,9 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 }
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RV_IMSIC
-static inline bool csrind_permit_check(const word_t *dest_access) {
+#if defined (CONFIG_RV_SMCSRIND) || defined (CONFIG_RV_AIA)
+static inline bool csrind_permit_check(const uint32_t addr) {
+  word_t *dest_access = csr_decode(addr);
   bool has_vi = false;
 
   if (is_access(mireg)) {
@@ -2745,9 +2774,16 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
     else longjmp_exception(EX_II);
   }
 #endif // CONFIG_RVH
+
+#ifdef CONFIG_RV_SMCSRIND
+  if (addr >= CSR_MIREG2 && addr <= CSR_MIREG6) longjmp_exception(EX_II);
+  if (addr >= CSR_SIREG2 && addr <= CSR_SIREG6) longjmp_exception(EX_II);
+  if (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6) longjmp_exception(EX_II);
+#endif // CONFIG_RV_SMCSRIND
+
   return has_vi;
 }
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_SMCSRIND || CONFIG_RV_AIA
 
 static inline void csr_permit_check(uint32_t addr, bool is_write) {
   bool has_vi = false; // virtual instruction
@@ -2780,7 +2816,9 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
 
   // We should first check whether the CSR exists, is read-only, has proper permissions, and is enabled/disabled
   // before proceeding to check indirect CSR accesses.
-  IFDEF(CONFIG_RV_IMSIC, has_vi |= csrind_permit_check(dest_access));
+#if defined (CONFIG_RV_SMCSRIND) || defined (CONFIG_RV_AIA)
+  has_vi |= csrind_permit_check(addr);
+#endif
   if (has_vi) longjmp_exception(EX_VI);
 }
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
