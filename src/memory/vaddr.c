@@ -38,7 +38,7 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
     return 0;
   }
   if (cpu.pbmt != 0) {
-    isa_mmio_misalign_data_addr_check(paddr, vaddr, len, MEM_TYPE_READ, true);
+    isa_mmio_misalign_data_addr_check(paddr, vaddr, len, type, true);
   }
   *exp = !check_paddr(paddr, len, type, type, cpu.mode, vaddr);
   return paddr;
