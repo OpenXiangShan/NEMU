@@ -228,6 +228,19 @@ void isa_reg_display() {
     #endif
   #endif // CONFIG_RV_PMP_CSR
 
+  #ifdef CONFIG_RV_PMA_CSR
+    DISPLAY_HR("PMA CSRs");
+    printf("pma: %d entries active, details:\n", CONFIG_RV_PMA_ACTIVE_NUM);
+    for (int i = 0; i < CONFIG_RV_PMA_NUM; i++) {
+      printf("%2d: cfg:0x%02x addr:0x%016lx", i, pmacfg_from_index(i), pmaaddr_from_index(i));
+      if (i % 2 == 1) printf("\n");
+      else printf("|");
+    }
+    #ifndef CONFIG_RV_PMA_CHECK
+      printf("pma csr rw: enable, pma check: disable\n");
+    #endif
+  #endif // CONFIG_RV_PMA_CSR
+
   #ifdef CONFIG_RVV
     //vector register
     DISPLAY_HR("Vector Registers");

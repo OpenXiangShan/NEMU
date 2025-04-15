@@ -211,7 +211,8 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 /* Memory accessing interfaces */
 
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
-  if (!isa_pmp_check_permission(addr, len, type, mode)) {
+  if (!isa_pmp_check_permission(addr, len, type, mode) || 
+      !isa_pma_check_permission(addr, len, type)) {
     if (trap_type == MEM_TYPE_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
