@@ -34,7 +34,6 @@ typedef struct {
   uint8_t hviprios[24];
 } Hviprios;
 
-bool iprio_is_zero(IpriosModule* iprios);
 void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule* iprios, uint8_t xei, mtopei_t* xtopei);
 void set_viprios_sort(uint64_t topi_gather);
 uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei);

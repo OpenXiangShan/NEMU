@@ -35,14 +35,6 @@ int interrupt_default_prio[IPRIO_ENABLE_NUM] = {
   49, 24, 48
 };
 
-bool iprio_is_zero(IpriosModule* iprios) {
-  bool is_zero = true;
-  for (int i = 0; i < IPRIO_NUM; i++) {
-    is_zero &= iprios->iprios[i].val == 0;
-  }
-  return is_zero;
-}
-
 uint8_t get_prio_idx_in_group(uint8_t irq) {
   uint8_t idx = 0;
   for (int i = 0; i < IPRIO_ENABLE_NUM; i++) {
