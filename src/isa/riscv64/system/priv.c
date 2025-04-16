@@ -1418,66 +1418,146 @@ inline void update_vstopi() {
   uint8_t vs_iid_num = interrupt_default_prio[vs_iid_idx];
   uint8_t vs_prio_num = cpu.VSIpriosSort->ipriosEnable[vs_iid_idx].priority;
 
-  uint8_t iid_candidate123 = IRQ_SEIP;
-  uint8_t iid_candidate45 = 0;
-  uint16_t iprio_candidate123 = 0;
-  uint16_t iprio_candidate45 = 0;
-
-  if (candidate1) {
-    vstopei_t vstopei_tmp = (vstopei_t)cpu.fromaia.vstopei;
-    iprio_candidate123 = vstopei_tmp.iprio;
-  } else if (candidate2) {
-    iprio_candidate123 = hvictl->iprio;
-  } else if (candidate3) {
-    iprio_candidate123 = 256;
-  }
-
-  if (candidate4) {
-    iid_candidate45 = vs_iid_num;
-    iprio_candidate45 = vs_prio_num;
-  } else if (candidate5) {
-    iid_candidate45 = hvictl->iid;
-    iprio_candidate45 = hvictl->iprio;
-  }
-
   bool candidate123 = candidate1 || candidate2 || candidate3;
   bool candidate45 = candidate4 || candidate5;
-  bool candidate123_high_candidate45 = false;
-  bool candidate123_low_candidate45 = false;
 
-  if (candidate123 && candidate4) {
-    candidate123_high_candidate45 = (iprio_candidate123 < iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && (get_prio_idx_in_group(iid_candidate123) <= get_prio_idx_in_group(iid_candidate45)));
-    candidate123_low_candidate45  = (iprio_candidate123 > iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && (get_prio_idx_in_group(iid_candidate123) > get_prio_idx_in_group(iid_candidate45)));
-  } else if (candidate123 && candidate5) {
-    candidate123_high_candidate45 = (iprio_candidate123 < iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && hvictl->dpr);
-    candidate123_low_candidate45  = (iprio_candidate123 > iprio_candidate45) || ((iprio_candidate123 == iprio_candidate45) && !hvictl->dpr);
-  } else if (candidate123 && !candidate45) {
-    candidate123_high_candidate45 = true;
-  } else if (!candidate123 && candidate45) {
-    candidate123_low_candidate45 = true;
+  bool onlyC1Enable = candidate1 & !candidate45;
+  bool onlyC2Enable = candidate2 & !candidate45;
+  bool onlyC3Enable = candidate3 & !candidate45;
+  bool onlyC4Enable = candidate4 & !candidate123;
+  bool onlyC5Enable = candidate5 & !candidate123;
+  bool C1C4Enable = candidate1 & candidate4;
+  bool C1C5Enable = candidate1 & candidate5;
+  bool C2C4Enable = candidate2 & candidate4;
+  bool C3C4Enable = candidate3 & candidate4;
+  bool C3C5Enable = candidate3 & candidate5;
+
+  uint16_t iidOnlyC1 = IRQ_SEIP;
+  uint16_t iidOnlyC4 = vs_iid_num;
+  uint16_t iidOnlyC5 = hvictl->iid;
+
+  uint8_t hvictlDPR = hvictl->dpr ? 0xff : 0;
+
+  vstopei_t vstopei_tmp = (vstopei_t)cpu.fromaia.vstopei;
+  bool C1GreaterThan255 = vstopei_tmp.iprio > 0xff;
+  bool C4IsZero = vs_prio_num == 0;
+  bool C2C5IsZero = hvictl->iprio == 0;
+  bool C4HighVSEI = vs_iid_idx < get_prio_idx_in_group(IRQ_VSEIP);
+  bool SEIHighC4 = get_prio_idx_in_group(IRQ_SEIP) < vs_iid_idx;
+
+  uint16_t iprioC1 = vstopei_tmp.iprio;
+  uint16_t iprioC2C5 = hvictl->iprio;
+  uint16_t iprioC4 = vs_prio_num;
+
+  uint8_t iprioC1Tmp = iprioC1 & 0xff;
+  uint8_t iprioC4Tmp = C4IsZero ? C4HighVSEI ? 0 : 0xff : iprioC4;
+  uint8_t iprioC3C5Tmp = C2C5IsZero ? hvictlDPR : iprioC2C5;
+
+  uint8_t iprioC1GreaterThan255 = C1GreaterThan255 ? 0xff : iprioC1Tmp;
+
+  uint8_t iprioOnlyC1 = iprioC1GreaterThan255;
+  uint8_t iprioOnlyC2 = iprioC2C5;
+  uint8_t iprioOnlyC3 = 0xff;
+  uint8_t iprioOnlyC4 = iprioC4Tmp;
+  uint8_t iprioOnlyC5 = iprioC3C5Tmp;
+
+  uint16_t iidC1C4 = 0;
+  uint8_t iprioC1C4 = 0;
+  if (C4IsZero) {
+    iidC1C4 = C4HighVSEI ? iidOnlyC4 : iidOnlyC1;
+    iprioC1C4 = C4HighVSEI ? 0 : iprioC1GreaterThan255;
+  } else if (iprioC1 < iprioC4) {
+    iidC1C4 = iidOnlyC1;
+    iprioC1C4 = iprioC1Tmp;
+  } else if (iprioC1 == iprioC4) {
+    iidC1C4 = SEIHighC4 ? iidOnlyC1 : iidOnlyC4;
+    iprioC1C4 = SEIHighC4 ? iprioC1Tmp : iprioC4;
+  } else {
+    iidC1C4 = iidOnlyC4;
+    iprioC1C4 = iprioC4;
+  }
+  
+  uint16_t iidC1C5 = 0;
+  uint8_t iprioC1C5 = 0;
+  iidC1C5 = hvictl->dpr ? iidOnlyC1 : iidOnlyC5;
+  if (C2C5IsZero) {
+    iprioC1C5 = hvictl->dpr ? iprioC1GreaterThan255 : 0;
+  } else if (iprioC1 < iprioC2C5) {
+    iidC1C5 = iidOnlyC1;
+    iprioC1C5 = iprioC1Tmp;
+  } else if (iprioC1 == iprioC2C5) {
+    iprioC1C5 = hvictl->dpr ? iprioC1Tmp : iprioC2C5;
+  } else {
+    iidC1C5 = iidOnlyC5;
+    iprioC1C5 = iprioC3C5Tmp;
   }
 
-  uint8_t iid_candidate = 0;
-  uint16_t iprio_candidate = 0;
-
-  if (candidate123_high_candidate45) {
-    iid_candidate = iid_candidate123;
-    iprio_candidate = iprio_candidate123;
-  } else if (candidate123_low_candidate45) {
-    iid_candidate = iid_candidate45;
-    iprio_candidate = iprio_candidate45;
+  uint16_t iidC2C4 = 0;
+  uint8_t iprioC2C4 = 0;
+  if (C4IsZero) {
+    iidC2C4 = C4HighVSEI ? iidOnlyC4 : iidOnlyC1;
+    iprioC2C4 = C4HighVSEI ? 0 : iprioC2C5;
+  } else if (iprioC2C5 < iprioC4) {
+    iidC2C4 = iidOnlyC1;
+    iprioC2C4 = iprioC2C5;
+  } else if (iprioC2C5 == iprioC4) {
+    iidC2C4 = SEIHighC4 ? iidOnlyC1 : iidOnlyC4;
+    iprioC2C4 = SEIHighC4 ? iprioC2C5 : iprioC4;
+  } else {
+    iidC2C4 = iidOnlyC4;
+    iprioC2C4 = iprioC4;
   }
+
+  uint16_t iidC3C4 = C4IsZero ? C4HighVSEI ? iidOnlyC4 : iidOnlyC1 : iidOnlyC4;
+  uint8_t iprioC3C4 = iprioC4Tmp;
+  uint16_t iidC3C5 = C2C5IsZero ? hvictl->dpr ? iidOnlyC5 : iidOnlyC1 : iidOnlyC5;
+  uint8_t iprioC3C5 = iprioC3C5Tmp;
 
   if (candidate_no_valid) {
     vstopi->val = 0;
   } else {
-    vstopi->iid = iid_candidate;
-    if (iprio_candidate > 255) {
-      vstopi->iprio = 255;
-    } else if (candidate123_low_candidate45 && candidate5 && !hvictl->ipriom) {
+    if (candidate123 & !candidate45) {
+      vstopi->iid = iidOnlyC1;
+    } else if (onlyC4Enable) {
+      vstopi->iid = iidOnlyC4;
+    } else if (onlyC5Enable) {
+      vstopi->iid = iidOnlyC5;
+    } else if (C1C4Enable) {
+      vstopi->iid = iidC1C4;
+    } else if (C1C5Enable) {
+      vstopi->iid = iidC1C5;
+    } else if (C2C4Enable) {
+      vstopi->iid = iidC2C4;
+    } else if (C3C4Enable) {
+      vstopi->iid = iidC3C4;
+    } else if (C3C5Enable) {
+      vstopi->iid = iidC3C5;
+    }
+
+    if (hvictl->ipriom == 0) {
       vstopi->iprio = 1;
-    } else if ((candidate123_high_candidate45 && (iprio_candidate <= 255)) || (candidate123_low_candidate45 && candidate4) || (candidate123_low_candidate45 && candidate5 && hvictl->ipriom)) {
-      vstopi->iprio = iprio_candidate & 0xff;
+    } else {
+      if (onlyC1Enable) {
+        vstopi->iprio = iprioOnlyC1;
+      } else if (onlyC2Enable) {
+        vstopi->iprio = iprioOnlyC2;
+      } else if (onlyC3Enable) {
+        vstopi->iprio = iprioOnlyC3;
+      } else if (onlyC4Enable) {
+        vstopi->iprio = iprioOnlyC4;
+      } else if (onlyC5Enable) {
+        vstopi->iprio = iprioOnlyC5;
+      } else if (C1C4Enable) {
+        vstopi->iprio = iprioC1C4;
+      } else if (C1C5Enable) {
+        vstopi->iprio = iprioC1C5;
+      } else if (C2C4Enable) {
+        vstopi->iprio = iprioC2C4;
+      } else if (C3C4Enable) {
+        vstopi->iprio = iprioC3C4;
+      } else if (C3C5Enable) {
+        vstopi->iprio = iprioC3C5;
+      }
     }
   }
 }
