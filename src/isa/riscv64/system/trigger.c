@@ -139,7 +139,7 @@ void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const T
   mcontrol6->type = TRIG_TYPE_MCONTROL6;
   mcontrol6->vs = wdata_mcontrol6->vs;
   mcontrol6->vu = wdata_mcontrol6->vu;
-  mcontrol6->select = wdata_mcontrol6->select;
+  mcontrol6->select = 0;
   mcontrol6->action = (wdata_mcontrol6->action <= TRIG_ACTION_DEBUG_MODE) ? wdata_mcontrol6->action : TRIG_ACTION_BKPT_EXCPT;
   mcontrol6->chain = wdata_mcontrol6->chain; // chain length will be checked later
   mcontrol6->match = (wdata_mcontrol6->match == TRIG_MATCH_EQ || wdata_mcontrol6->match == TRIG_MATCH_GE || wdata_mcontrol6->match == TRIG_MATCH_LT)
