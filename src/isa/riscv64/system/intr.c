@@ -139,8 +139,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   delegS &= !delegVS;
 #ifdef CONFIG_RV_IMSIC
   if (NO & INTR_BIT) {
-    delegS  =  no_mtopi() && !no_stopi() && !isNMI;
-    delegVS =  no_mtopi() &&  no_stopi() && !no_vstopi() && !isNMI;
+    delegS  = cpu.interrupt_delegate.interrupt_to_hs;
+    delegVS = cpu.interrupt_delegate.interrupt_to_vs;
     delegM = !delegS && !delegVS && !isNMI;
   }
 #endif

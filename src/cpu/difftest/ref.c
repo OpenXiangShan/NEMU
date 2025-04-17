@@ -270,6 +270,10 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
 #endif
 }
 
+void difftest_interrupt_delegate(void *interruptDelegate) {
+  memcpy(&cpu.interrupt_delegate, interruptDelegate, sizeof(struct InterruptDelegate));
+}
+
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 void difftest_get_store_event_other_info(void *info) {
   *(uint64_t*)info = get_store_commit_info().pc;
