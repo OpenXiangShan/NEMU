@@ -66,6 +66,11 @@ struct DebugInfo {
   uint64_t current_pc;
 };
 
+struct InterruptDelegate {
+  bool interrupt_to_hs;
+  bool interrupt_to_vs;
+};
+
 #ifdef CONFIG_QUERY_REF
 typedef enum RefQueryType {
   REF_QUERY_MEM_EVENT
@@ -163,6 +168,8 @@ typedef struct {
 
   // User defined debug info
   struct DebugInfo debug;
+
+  struct InterruptDelegate interrupt_delegate;
 #ifdef CONFIG_QUERY_REF
   struct MemEventQueryResult query_mem_event;
 #endif // CONFIG_QUERY_REF

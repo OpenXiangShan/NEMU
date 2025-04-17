@@ -1335,8 +1335,8 @@ inline void update_vstopi() {
   uint16_t iprio_candidate45 = 0;
 
   if (candidate1) {
-    vstopei_t* vstopei_tmp = (vstopei_t*)cpu.fromaia.vstopei;
-    iprio_candidate123 = vstopei_tmp->iprio;
+    vstopei_t vstopei_tmp = (vstopei_t)cpu.fromaia.vstopei;
+    iprio_candidate123 = vstopei_tmp.iprio;
   } else if (candidate2) {
     iprio_candidate123 = hvictl->iprio;
   } else if (candidate3) {
