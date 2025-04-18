@@ -697,6 +697,15 @@ static inline word_t* csr_decode(uint32_t addr) {
   MHPMEVENT_WMASK_EVENT0    \
 )
 
+/*
+** The miselect register implements at least enough bits to support all implemented miselect values.
+** The siselect register will support the value range 0..0xFFF at a minimum.
+** The vsiselect register will support the value range 0..0xFFF at a minimum.
+*/
+#define MISELECT_MAX  0xff
+#define SISELECT_MAX  0xfff
+#define VSISELECT_MAX 0xfff
+
 #define is_read(csr) (src == (void *)(csr))
 #define is_write(csr) (dest == (void *)(csr))
 #define is_access(csr) (dest_access == (void *)(csr))
@@ -1917,8 +1926,15 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_SISELECT:
-      IFDEF(CONFIG_RVH, if (cpu.v) {vsiselect->val = src; break;});
-      siselect->val = src;
+      #ifdef CONFIG_RVH
+      if (cpu.v) {
+        if (src <= VSISELECT_MAX) {
+          vsiselect->val = src;
+        }
+        break;
+      }
+      #endif // CONFIG_RVH
+      if (src <= SISELECT_MAX) siselect->val = src;
       break;
 #endif // CONFIG_RV_IMSIC
 
@@ -1993,6 +2009,13 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_VSTVEC: set_tvec(dest, src); break;
     case CSR_VSEPC: vsepc->val = src & (~0x1UL); break;
     case CSR_VSIP: set_vsip(src); break;
+
+#ifdef CONFIG_RV_IMSIC
+    case CSR_VSISELECT:
+      if (src <= VSISELECT_MAX) *dest = src;
+      break;
+#endif // CONFIG_RV_IMSIC
+
     case CSR_VSATP:
     {
       vsatp_t vsatp_new_val;
@@ -2186,6 +2209,12 @@ static void csr_write(uint32_t csrid, word_t src) {
 
     case CSR_MEPC: *dest = src & (~0x1UL); break;
     case CSR_MIP: set_mip(src); break;
+
+#ifdef CONFIG_RV_IMSIC
+    case CSR_MISELECT:
+      if (src <= MISELECT_MAX) *dest = src;
+      break;
+#endif // CONFIG_RV_IMSIC
 
 #ifdef CONFIG_RV_PMP_CSR
     case CSR_PMPCFG_BASE ... CSR_PMPCFG_BASE+CSR_PMPCFG_MAX_NUM-1:
