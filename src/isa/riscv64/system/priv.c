@@ -1666,8 +1666,8 @@ static word_t csr_read(uint32_t csrid) {
       if (cpu.v) return vstopi->val;
       return stopi->val;
     case CSR_STOPEI:
-      if (cpu.v) return cpu.fromaia.vstopei;
-      return cpu.fromaia.stopei;
+      if (cpu.v) return cpu.old_vstopei;
+      return cpu.old_stopei;
     case CSR_SIREG:
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1710,7 +1710,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HVIP: return hvip->val & HVIP_MASK;
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
-    case CSR_VSTOPEI: return cpu.fromaia.vstopei;
+    case CSR_VSTOPEI: return cpu.old_vstopei;
     case CSR_VSIREG:
     {
       bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1729,7 +1729,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPEI: return cpu.fromaia.mtopei;
+    case CSR_MTOPEI: return cpu.old_mtopei;
     case CSR_MIREG:
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
@@ -2884,6 +2884,15 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   IFDEF(CONFIG_RV_IMSIC, has_vi |= csrind_permit_check(dest_access));
   if (has_vi) longjmp_exception(EX_VI);
 }
+
+#ifdef CONFIG_RV_IMSIC
+static void sync_old_xtopei() {
+  cpu.old_mtopei = cpu.fromaia.mtopei;
+  cpu.old_stopei = cpu.fromaia.stopei;
+  cpu.old_vstopei = cpu.fromaia.vstopei;
+}
+#endif // CONFIG_RV_IMSIC
+
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
   ISADecodeInfo isa;
   isa.instr.val = instr;
@@ -2917,6 +2926,9 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
       break;
     default: panic("funct3 = %d is not supported for csrrw instruction\n", funct3);
   }
+#ifdef CONFIG_RV_IMSIC
+  sync_old_xtopei();
+#endif // CONFIG_RV_IMSIC
 }
 
 static bool execIn (cpu_mode_t mode) {
