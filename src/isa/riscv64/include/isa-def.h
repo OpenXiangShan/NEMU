@@ -66,6 +66,11 @@ struct DebugInfo {
   uint64_t current_pc;
 };
 
+struct InterruptDelegate {
+  bool interrupt_to_hs;
+  bool interrupt_to_vs;
+};
+
 #ifdef CONFIG_QUERY_REF
 typedef enum RefQueryType {
   REF_QUERY_MEM_EVENT
@@ -187,6 +192,7 @@ typedef struct {
   trap_info_t trapInfo;
 
 #ifdef CONFIG_RV_IMSIC
+  struct InterruptDelegate interrupt_delegate;
   struct FromAIA fromaia;
   IpriosModule*  MIprios;
   IpriosModule*  MIprios_rdata;
