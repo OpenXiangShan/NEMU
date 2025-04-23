@@ -197,6 +197,9 @@ typedef struct {
   IpriosSort*    SIpriosSort;
   IpriosSort*   VSIpriosSort;
   bool external_interrupt_select;
+  uint64_t old_mtopei;
+  uint64_t old_stopei;
+  uint64_t old_vstopei;
 #endif
 
 } riscv64_CPU_state;
