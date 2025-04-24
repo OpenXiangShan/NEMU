@@ -1307,7 +1307,8 @@ static inline void update_miprios() {
   // For a given interrupt number, if the corresponding bit in mie is read-only zero,
   // then the interrupt’s priority number in the iprio array must be read-only zero as well.
   // The priority number for a machine-level external interrupt (bits 31:24 of register iprio2) must also be read-only zero.
-  cpu.MIprios->iprios[1].val = cpu.MIprios->iprios[1].val & 0xffffffff00ffffff;
+  cpu.MIprios->iprios[0].val = cpu.MIprios->iprios[0].val & 0xffffff00ffffff00;
+  cpu.MIprios->iprios[1].val = cpu.MIprios->iprios[1].val & 0xffffffff00ffff00;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
@@ -1324,7 +1325,8 @@ static inline void update_siprios() {
   // For a given interrupt number, if the corresponding bit in sie is read-only zero,
   // then the interrupt’s priority number in the supervisor-level iprio array must be read-only zero as well.
   // The priority number for a supervisor-level external interrupt (bits 15:8 of iprio2) must also be read-only zero.
-  cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff00ff;
+  cpu.SIprios->iprios[0].val = cpu.SIprios->iprios[0].val & 0xffffff00ffffff00;
+  cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff0000;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
