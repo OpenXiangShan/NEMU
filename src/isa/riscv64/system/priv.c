@@ -3002,234 +3002,291 @@ static bool __attribute__((unused)) vsretTo (cpu_mode_t mode) {
 }
 #endif
 
+/// @brief Do RISC-V 64 privileged instruction: SRET
+/// @return the next PC after SRET
+word_t riscv64_priv_sret() {
+#ifdef CONFIG_RVH
+  if (cpu.v == 1){
+    if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
+      longjmp_exception(EX_VI);
+    }
+    if (ISDEF(CONFIG_RV_SSDBLTRP)) {
+      vsstatus->sdt = 0;
+    }
+    cpu.mode = vsstatus->spp;
+    vsstatus->spp  = MODE_U;
+    vsstatus->sie  = vsstatus->spie;
+    vsstatus->spie = 1;
+    return vsepc->val;
+  }
+#endif // CONFIG_RVH
+  // cpu.v = 0
+  if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
+    longjmp_exception(EX_II);
+  }
+  if (execIn(CPU_MODE_M) && ISDEF(CONFIG_RV_SMDBLTRP)) {
+    if (ISDEF(CONFIG_RV_SSDBLTRP) && (sretTo(CPU_MODE_VU) || sretTo(CPU_MODE_VS) || sretTo(CPU_MODE_U))) {
+      mstatus->sdt = 0;
+    }
+    if (ISDEF(CONFIG_RV_SSDBLTRP) && sretTo(CPU_MODE_VU)) {
+      IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
+    }
+    mstatus->mdt = 0;
+  } else if (execIn(CPU_MODE_S) && ISDEF(CONFIG_RV_SSDBLTRP) ) {
+    mstatus->sdt = 0;
+    if (sretTo(CPU_MODE_VU)) {
+      IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
+    }
+  }
+#ifdef CONFIG_RVH
+  cpu.v = hstatus->spv;
+  hstatus->spv = 0;
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+#endif //CONFIG_RVH
+  mstatus->sie = mstatus->spie;
+  mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
+      : 1);
+  if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
+  cpu.mode = mstatus->spp;
+  mstatus->spp = MODE_U;
+  update_mmu_state();
+  return sepc->val;
+}
+
+/// @brief Do RISC-V 64 privileged instruction: MRET
+/// @return the next PC after MRET
+word_t riscv64_priv_mret() {
+  if (cpu.mode < MODE_M) {
+    longjmp_exception(EX_II);
+  }
+  mstatus->mie = mstatus->mpie;
+  mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
+      : 1);
+  if (execIn(CPU_MODE_M)) {
+    if (ISDEF(CONFIG_RV_SMDBLTRP) || ISDEF(CONFIG_RV_SSDBLTRP)) {
+      if(mretTo(CPU_MODE_U) || mretTo(CPU_MODE_VU) || mretTo(CPU_MODE_VS)) {
+        mstatus->sdt = 0;
+      }
+      if (mretTo(CPU_MODE_VU)) {
+        IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
+      }
+    }
+    if (ISDEF(CONFIG_RV_SMDBLTRP)) {
+      mstatus->mdt = 0;
+    }
+  }
+#ifdef CONFIG_RVH
+  cpu.v = (mstatus->mpp == MODE_M ? 0 : mstatus->mpv);
+  mstatus->mpv = 0;
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+#endif // CONFIG_RVH
+  if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
+  cpu.mode = mstatus->mpp;
+  mstatus->mpp = MODE_U;
+  update_mmu_state();
+  Loge("Executing mret to 0x%lx", mepc->val);
+  return mepc->val;
+}
+
+#ifdef CONFIG_RV_SMRNMI
+/// @brief Do RISC-V 64 privileged instruction: MNRET
+/// @return the next PC after MNRET
+word_t riscv64_priv_mnret() {
+  if (cpu.mode < MODE_M) {
+    longjmp_exception(EX_II);
+  }
+  if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
+#ifdef CONFIG_RVH
+  cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
+  mnstatus->mnpv = 0;
+  // clear vsstatus.SDT when return to VU
+  vsstatus->sdt = (mnstatus->mnpp == MODE_U && mnstatus->mnpv == 1 ? 0 : vsstatus->sdt);
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+#endif // config_RVH
+  // clear MDT when mnret to below M
+  if (ISDEF(CONFIG_RV_SMDBLTRP)) {
+    if (!mnretTo(CPU_MODE_M)) {
+      mstatus->mdt = 0;
+    }
+    if (ISDEF(CONFIG_RV_SSDBLTRP)) {
+      if (mnretTo(CPU_MODE_U) || mnretTo(CPU_MODE_VU) || mnretTo(CPU_MODE_VS)) {
+        mstatus->sdt = 0;
+      }
+      if (mnretTo(CPU_MODE_VU)) {
+        IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
+      }
+    }
+  }
+  cpu.mode = mnstatus->mnpp;
+  mnstatus->mnpp = MODE_U;
+  mnstatus->nmie = 1;
+  update_mmu_state();
+  Loge("Executing mnret to 0x%lx", mnepc->val);
+  return mnepc->val;
+}
+#endif // CONFIG_RV_SMRNMI
+
+#ifdef CONFIG_RV_SVINVAL
+/// @brief Do RISC-V 64 privileged instruction: SFENCE.W.INVAL & SFENCE.INVAL.IR
+/// Just check mode and do nothing in NEMU
+/// @return no return value
+void riscv64_priv_sfence_w_inval_ir() {
+  // in VU mode
+  if (MUXDEF(CONFIG_RVH, cpu.v, false) && cpu.mode == MODE_U) {
+    longjmp_exception(EX_VI);
+  }
+  // in U mode
+  else if (cpu.mode == MODE_U) {
+    longjmp_exception(EX_II);
+  }
+}
+#endif // CONFIG_RV_SVINVAL
+
+/// @brief Do RISC-V 64 privileged instruction: WFI
+/// @return no return value
+void riscv64_priv_wfi() {
+#ifdef CONFIG_RVH
+  if((cpu.v && cpu.mode == MODE_S && hstatus->vtw == 1 && mstatus->tw == 0)
+      ||(cpu.v && cpu.mode == MODE_U && mstatus->tw == 0)){
+    longjmp_exception(EX_VI);
+  }
+#endif
+  if ((cpu.mode < MODE_M && mstatus->tw == 1) || (cpu.mode == MODE_U)){
+    longjmp_exception(EX_II);
+  } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
+
+#ifdef CONFIG_HAS_CLINT
+  void update_riscv_timer();
+  update_riscv_timer();
+  if (isa_query_intr() == INTR_EMPTY) {
+    void timer_wait_for_interrupt();
+    timer_wait_for_interrupt();
+  }
+#endif // CONFIG_HAS_CLINT
+
+set_sys_state_flag(SYS_STATE_UPDATE);
+}
+
+#ifdef CONFIG_RV_ZAWRS
+/// @brief Do RISC-V 64 privileged instruction: wrs.nto
+/// @return no return value
+void riscv64_priv_wrs_nto() {
+  if (cpu.mode != MODE_M && mstatus->tw) {
+    longjmp_exception(EX_II);
+  }
+#ifdef CONFIG_RVH
+  if (cpu.v && !mstatus->tw && hstatus->vtw) {
+    longjmp_exception(EX_VI);
+  }
+#endif
+}
+#endif // CONFIG_RV_ZAWRS
+
+/// @brief Do RISC-V 64 privileged instruction: sfence.vma
+/// @param vaddr the address to flush
+/// @param asid the address space identifier
+/// @return no return value
+void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
+  // Described in 3.1.6.5 Virtualization Support in mstatus Register
+  // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
+  // while executing in S-mode will raise an illegal instruction exception.
+
+#ifdef CONFIG_RVH
+  if(cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && hstatus->vtvm))) {
+    longjmp_exception(EX_VI);
+  }
+  else if (!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) {
+    longjmp_exception(EX_II);
+  }
+#else // CONFIG_RVH
+  if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
+    longjmp_exception(EX_II);
+#endif // CONFIG_RVH
+  mmu_tlb_flush(vaddr);
+}
+
+#ifdef CONFIG_RVH
+/// @brief Do RISC-V 64 privileged instruction: hfence.vvma
+/// @param vaddr the address to flush
+/// @param asid the address space identifier
+/// @return no return value
+void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
+  if(cpu.v) longjmp_exception(EX_VI);
+  if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
+  mmu_tlb_flush(vaddr);
+}
+
+/// @brief Do RISC-V 64 privileged instruction: hfence.gvma
+/// @param vaddr the address to flush
+/// @param vmid the virtual machine identifier
+/// @return no return value
+void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
+  if(cpu.v) longjmp_exception(EX_VI);
+  if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
+  mmu_tlb_flush(vaddr);
+}
+#endif // CONFIG_RVH
+
 static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
   switch (op) {
 #ifndef CONFIG_MODE_USER
     case 0x102: // sret
-#ifdef CONFIG_RVH
-      if (cpu.v == 1){
-        if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
-          longjmp_exception(EX_VI);
-        }
-        if (ISDEF(CONFIG_RV_SSDBLTRP)) {
-          vsstatus->sdt = 0;
-        }
-        cpu.mode = vsstatus->spp;
-        vsstatus->spp  = MODE_U;
-        vsstatus->sie  = vsstatus->spie;
-        vsstatus->spie = 1;
-        return vsepc->val;
-      }
-#endif // CONFIG_RVH
-      // cpu.v = 0
-      if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
-        longjmp_exception(EX_II);
-      }
-      if (execIn(CPU_MODE_M) && ISDEF(CONFIG_RV_SMDBLTRP)) {
-        if (ISDEF(CONFIG_RV_SSDBLTRP) && (sretTo(CPU_MODE_VU) || sretTo(CPU_MODE_VS) || sretTo(CPU_MODE_U))) {
-          mstatus->sdt = 0;
-        }
-        if (ISDEF(CONFIG_RV_SSDBLTRP) && sretTo(CPU_MODE_VU)) {
-          IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
-        }
-        mstatus->mdt = 0;
-      } else if (execIn(CPU_MODE_S) && ISDEF(CONFIG_RV_SSDBLTRP) ) {
-        mstatus->sdt = 0;
-        if (sretTo(CPU_MODE_VU)) {
-          IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
-        }
-      }
-#ifdef CONFIG_RVH
-      cpu.v = hstatus->spv;
-      hstatus->spv = 0;
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-#endif //CONFIG_RVH
-      mstatus->sie = mstatus->spie;
-      mstatus->spie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
-          : 1);
-      if (mstatus->spp != MODE_M) { mstatus->mprv = 0; }
-      cpu.mode = mstatus->spp;
-      mstatus->spp = MODE_U;
-      update_mmu_state();
-      return sepc->val;
+      return riscv64_priv_sret();
     case 0x302: // mret
-      if (cpu.mode < MODE_M) {
-        longjmp_exception(EX_II);
-      }
-      mstatus->mie = mstatus->mpie;
-      mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
-          : 1);
-      if (execIn(CPU_MODE_M)) {
-        if (ISDEF(CONFIG_RV_SMDBLTRP) || ISDEF(CONFIG_RV_SSDBLTRP)) {
-          if(mretTo(CPU_MODE_U) || mretTo(CPU_MODE_VU) || mretTo(CPU_MODE_VS)) {
-            mstatus->sdt = 0;
-          }
-          if (mretTo(CPU_MODE_VU)) {
-            IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
-          }
-        }
-        if (ISDEF(CONFIG_RV_SMDBLTRP)) {
-          mstatus->mdt = 0;
-        }
-      }
-#ifdef CONFIG_RVH
-      cpu.v = (mstatus->mpp == MODE_M ? 0 : mstatus->mpv);
-      mstatus->mpv = 0;
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-#endif // CONFIG_RVH
-      if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
-      cpu.mode = mstatus->mpp;
-      mstatus->mpp = MODE_U;
-      update_mmu_state();
-      Loge("Executing mret to 0x%lx", mepc->val);
-      return mepc->val;
-      break;
+      return riscv64_priv_mret();
 #ifdef CONFIG_RV_SMRNMI
     case 0x702: // mnret
-      if (cpu.mode < MODE_M) {
-        longjmp_exception(EX_II);
-      }
-      if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
-#ifdef CONFIG_RVH
-      cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
-      mnstatus->mnpv = 0;
-      // clear vsstatus.SDT when return to VU
-      vsstatus->sdt = (mnstatus->mnpp == MODE_U && mnstatus->mnpv == 1 ? 0 : vsstatus->sdt);
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-#endif // config_RVH
-      // clear MDT when mnret to below M
-      if (ISDEF(CONFIG_RV_SMDBLTRP)) {
-        if (!mnretTo(CPU_MODE_M)) {
-          mstatus->mdt = 0;
-        }
-        if (ISDEF(CONFIG_RV_SSDBLTRP)) {
-          if (mnretTo(CPU_MODE_U) || mnretTo(CPU_MODE_VU) || mnretTo(CPU_MODE_VS)) {
-            mstatus->sdt = 0;
-          }
-          if (mnretTo(CPU_MODE_VU)) {
-            IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
-          }
-        }
-      }
-      cpu.mode = mnstatus->mnpp;
-      mnstatus->mnpp = MODE_U;
-      mnstatus->nmie = 1;
-      update_mmu_state();
-      Loge("Executing mnret to 0x%lx", mnepc->val);
-      return mnepc->val;
-      break;
-
-#endif //CONFIG_RV_SMRNMI
+      return riscv64_priv_mnret();
+#endif // CONFIG_RV_SMRNMI
 #ifdef CONFIG_RV_SVINVAL
     case 0x180: // sfence.w.inval
+      riscv64_priv_sfence_w_inval_ir();
+      return 0;
     case 0x181: // sfence.inval.ir
-      // in VU mode
-      if (MUXDEF(CONFIG_RVH, cpu.v, false) && cpu.mode == MODE_U) {
-        longjmp_exception(EX_VI);
-      }
-      // in U mode
-      else if (cpu.mode == MODE_U) {
-        longjmp_exception(EX_II);
-      }
-      break;
+      riscv64_priv_sfence_w_inval_ir();
+      return 0;
 #endif // CONFIG_RV_SVINVAL
     case 0x105: // wfi
-#ifdef CONFIG_RVH
-      if((cpu.v && cpu.mode == MODE_S && hstatus->vtw == 1 && mstatus->tw == 0)
-          ||(cpu.v && cpu.mode == MODE_U && mstatus->tw == 0)){
-        longjmp_exception(EX_VI);
-      }
-#endif
-      if ((cpu.mode < MODE_M && mstatus->tw == 1) || (cpu.mode == MODE_U)){
-        longjmp_exception(EX_II);
-      } // When S-mode is implemented, then executing WFI in U-mode causes an illegal instruction exception
-
-      #ifdef CONFIG_HAS_CLINT
-        void update_riscv_timer();
-        update_riscv_timer();
-        if (isa_query_intr() == INTR_EMPTY) {
-          void timer_wait_for_interrupt();
-          timer_wait_for_interrupt();
-        }
-      #endif // CONFIG_HAS_CLINT
-
-      set_sys_state_flag(SYS_STATE_UPDATE);
-    break;
+      riscv64_priv_wfi();
+      return 0;
 #endif // CONFIG_MODE_USER
     case (uint32_t)-1: // fence.i
       set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
 #ifdef CONFIG_RV_ZAWRS
     case 0x0d: // wrs.nto
-      if (cpu.mode != MODE_M && mstatus->tw) {
-        longjmp_exception(EX_II);
-      }
-#ifdef CONFIG_RVH
-      if (cpu.v && !mstatus->tw && hstatus->vtw) {
-        longjmp_exception(EX_VI);
-      }
-#endif
-      break;
+      riscv64_priv_wrs_nto();
+      return 0;
     case 0x1d: // wrs.sto
-      break;
+      return 0;
 #endif // CONFIG_RV_ZAWRS
     default:
       switch (op >> 5) { // instr[31:25]
         case 0x09: // sfence.vma
-          // Described in 3.1.6.5 Virtualization Support in mstatus Register
-          // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
-          // while executing in S-mode will raise an illegal instruction exception.
-
-#ifdef CONFIG_RVH
-          if(cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && hstatus->vtvm))) {
-            longjmp_exception(EX_VI);
-          }
-          else if (!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) {
-            longjmp_exception(EX_II);
-          }
-#else
-          if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
-            longjmp_exception(EX_II);
-#endif // CONFIG_RVH
-          mmu_tlb_flush(*src);
-          break;
+          riscv64_priv_sfence_vma(*src, 0);
+          return 0;
 #ifdef CONFIG_RV_SVINVAL
         case 0x0b: // sinval.vma
-#ifdef CONFIG_RVH
-          if (!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) {
-            longjmp_exception(EX_II);
-          } else if (cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && hstatus->vtvm))) {
-            longjmp_exception(EX_VI);
-          }
-#else
-          if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
-            longjmp_exception(EX_II);
-#endif // CONFIG_RVH
-          mmu_tlb_flush(*src);
-          break;
+          // same as sfence.vma
+          riscv64_priv_sfence_vma(*src, 0);
+          return 0;
 #endif // CONFIG_RV_SVINVAL
 #ifdef CONFIG_RVH
         case 0x11: // hfence.vvma
-          if(cpu.v) longjmp_exception(EX_VI);
-          if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
-          break;
+          riscv64_priv_hfence_vvma(*src, 0);
+          return 0;
         case 0x31: // hfence.gvma
-          if(cpu.v) longjmp_exception(EX_VI);
-          if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
-          break;
+          riscv64_priv_hfence_gvma(*src, 0);
+          return 0;
 #ifdef CONFIG_RV_SVINVAL
         case 0x13: // hinval.vvma
-          if(cpu.v) longjmp_exception(EX_VI);
-          if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
-          break;
+          // same as hfence.vvma
+          riscv64_priv_hfence_vvma(*src, 0);
+          return 0;
         case 0x33: // hinval.gvma
-          if(cpu.v) longjmp_exception(EX_VI);
-          if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
-          mmu_tlb_flush(*src);
-          break;
+          // same as hfence.gvma
+          riscv64_priv_hfence_gvma(*src, 0);
+          return 0;
 #endif // CONFIG_SVINVAL
 #endif // CONFIG_RVH
         default:
