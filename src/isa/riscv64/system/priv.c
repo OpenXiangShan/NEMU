@@ -3250,9 +3250,6 @@ static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
       riscv64_priv_wfi();
       return 0;
 #endif // CONFIG_MODE_USER
-    case (uint32_t)-1: // fence.i
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-      break;
 #ifdef CONFIG_RV_ZAWRS
     case 0x0d: // wrs.nto
       riscv64_priv_wrs_nto();

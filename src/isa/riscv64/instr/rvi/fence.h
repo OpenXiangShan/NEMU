@@ -15,7 +15,7 @@
 
 def_EHelper(fence_i) {
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  rtl_hostcall(s, HOSTCALL_PRIV, NULL, NULL, NULL, -1);
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
   rtl_priv_next(s);
 }
 
