@@ -143,7 +143,7 @@ def_EHelper(c_subw) {
 
 #ifdef CONFIG_RV_ZCMOP
 def_EHelper(c_mop) {
-  rtl_c_mop(s, ddest);
+  // c.mop.n do nothing without redefinition.
 }
 #endif // CONFIG_RV_ZCMOP
 

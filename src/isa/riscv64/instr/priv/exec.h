@@ -97,48 +97,17 @@ def_SYS_EHelper(system)
 
 // The instructions in ZIMOP extension are very simple, so always use fast path.
 #ifdef CONFIG_RV_ZIMOP
+// EHelpers for Zimop Instructions
 
-def_EHelper(mop_r_0 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_1 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_2 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_3 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_4 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_5 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_6 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_7 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_8 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_9 ) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_10) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_11) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_12) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_13) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_14) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_15) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_16) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_17) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_18) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_19) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_20) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_21) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_22) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_23) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_24) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_25) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_26) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_27) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_28) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_29) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_30) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_r_31) { rtl_i_mop(s, ddest); }
+// mop.r.n and mop.rr.n write 0 to x[rd] without redefinition
+// It's no need to distinguish n.
 
-def_EHelper(mop_rr_0) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_1) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_2) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_3) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_4) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_5) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_6) { rtl_i_mop(s, ddest); }
-def_EHelper(mop_rr_7) { rtl_i_mop(s, ddest); }
+def_EHelper(mop_r_n) {
+  rtl_li(s, ddest, 0);
+}
+
+def_EHelper(mop_rr_n) {
+  rtl_li(s, ddest, 0);
+}
 
 #endif // CONFIG_RV_ZIMOP
-
