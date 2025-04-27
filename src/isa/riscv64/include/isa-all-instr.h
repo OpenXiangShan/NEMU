@@ -281,48 +281,10 @@
 
 #ifdef CONFIG_RV_ZIMOP
 #define ZIMOP_INSTR_BINARY(f) \
-  f(mop_r_0) \
-  f(mop_r_1) \
-  f(mop_r_2) \
-  f(mop_r_3) \
-  f(mop_r_4) \
-  f(mop_r_5) \
-  f(mop_r_6) \
-  f(mop_r_7) \
-  f(mop_r_8) \
-  f(mop_r_9) \
-  f(mop_r_10) \
-  f(mop_r_11) \
-  f(mop_r_12) \
-  f(mop_r_13) \
-  f(mop_r_14) \
-  f(mop_r_15) \
-  f(mop_r_16) \
-  f(mop_r_17) \
-  f(mop_r_18) \
-  f(mop_r_19) \
-  f(mop_r_20) \
-  f(mop_r_21) \
-  f(mop_r_22) \
-  f(mop_r_23) \
-  f(mop_r_24) \
-  f(mop_r_25) \
-  f(mop_r_26) \
-  f(mop_r_27) \
-  f(mop_r_28) \
-  f(mop_r_29) \
-  f(mop_r_30) \
-  f(mop_r_31)
+  f(mop_r_n)
 
 #define ZIMOP_INSTR_TERNARY(f) \
-  f(mop_rr_0) \
-  f(mop_rr_1) \
-  f(mop_rr_2) \
-  f(mop_rr_3) \
-  f(mop_rr_4) \
-  f(mop_rr_5) \
-  f(mop_rr_6) \
-  f(mop_rr_7)
+  f(mop_rr_n)
 
 #else
 #define ZIMOP_INSTR_BINARY(f)
