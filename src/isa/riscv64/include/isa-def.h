@@ -150,6 +150,13 @@ typedef struct {
     uint16_t _16[MRENUM16];
     uint8_t  _8[MRENUM8];
   } mtr[8][MRNUM];
+
+  union {
+    uint64_t _64[MRENUM64 * MAMUL];
+    uint32_t _32[MRENUM32 * MAMUL];
+    uint16_t _16[MRENUM16 * MAMUL];
+    uint8_t  _8[MRENUM8 * MAMUL];
+  } macc[8][MRNUM];
   
   uint64_t mtype, mtilem, mtilen, mtilek, mlenb, mrlenb, mamul;
   uint64_t mstart, mcsr;
@@ -371,21 +378,31 @@ typedef struct {
       uint32_t opcode    : 7;
       uint32_t rd        : 5;
       uint32_t funct3    : 3;
-      uint32_t imm13     :13;
-      uint32_t funct4    : 4;       
+      uint32_t imm10     :10;
+      uint32_t im        : 1;
+      uint32_t funct6    : 6;       
     } mcfgi;
     struct {
       uint32_t opcode    : 7;
       uint32_t rd        : 5;
       uint32_t funct3    : 3;
+      uint32_t field     : 5;
+      uint32_t setval    : 5;
+      uint32_t im        : 1;
+      uint32_t funct6    : 6;       
+    } mcfgfield;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t rd        : 5;
+      uint32_t funct3    : 3;
       uint32_t rs1       : 5;
-      uint32_t pad0      : 8;
-      uint32_t funct4    : 4;       
+      uint32_t pad0      : 6;
+      uint32_t funct6    : 6;       
     } mcfg;
     struct {
       uint32_t opcode    : 7;
-      uint32_t td        : 3;
-      uint32_t lmul      : 2;
+      uint32_t md        : 4;
+      uint32_t tr        : 1;
       uint32_t eew       : 3;
       uint32_t rs1       : 5;
       uint32_t rs2       : 5;
@@ -394,13 +411,13 @@ typedef struct {
     } mldst;
     struct {
       uint32_t opcode    : 7;
-      uint32_t td        : 3;
-      uint32_t lmul      : 2;
-      uint32_t funct3    : 3;
-      uint32_t ts1       : 3;
-      uint32_t sa        : 1;
+      uint32_t md        : 4;
+      uint32_t ma        : 1;
+      uint32_t eew       : 3;
+      uint32_t ms1       : 4;
       uint32_t sn        : 1;
-      uint32_t ts2_rs2   : 5;
+      uint32_t ms2       : 4;
+      uint32_t sa        : 1;
       uint32_t fp        : 1;
       uint32_t funct6    : 6;
     } mcompute;

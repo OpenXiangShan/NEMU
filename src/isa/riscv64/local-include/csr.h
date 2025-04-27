@@ -116,7 +116,7 @@
 #ifdef CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f) \
     f(mtype      , 0xC40) f(mtilem     , 0xC41) f(mtilen     , 0xC42) f(mtilek       , 0xC43) \
-    f(mlenb      , 0xC44) f(mrlenb     , 0xC47) f(mamul      , 0xC46) \
+    f(mlenb      , 0xC44) f(mrlenb     , 0xC45) f(mamul      , 0xC46) \
     f(mstart     , 0x040) f(mcsr       , 0x041) 
 #else // CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f)
@@ -1742,11 +1742,18 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
   uint64_t mill   :  1;
 CSR_STRUCT_END(mtype)*/
 CSR_STRUCT_START(mtype)
-  uint64_t mlmul  :  2;
   uint64_t msew   :  3;
-  uint64_t mba    :  1;
+  uint64_t mint4  :  1;
+  uint64_t mint8  :  1;
+  uint64_t mint16 :  1;
+  uint64_t mint32 :  1;
+  uint64_t mint64 :  1;
+  uint64_t mfp8   :  2;
+  uint64_t mfp16  :  2;
+  uint64_t mfp32  :  2;
   uint64_t mfp64  :  1;
-  uint64_t pad    : 56;
+  uint64_t mba    :  1;
+  uint64_t pad    : 47;
   uint64_t mill   :  1;
 CSR_STRUCT_END(mtype)
 

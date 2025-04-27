@@ -33,91 +33,84 @@ def_EHelper(msettype) {
 }
 
 def_EHelper(msettypei) {
-  mtype->val = s->src2.imm;
+  mtype->val = ((mtype->val >> 10) << 10) | s->src2.imm;
+  reg_l(s->dest.reg) = mtype->val;
+}
+
+def_EHelper(msettypehi) {
+  mtype->val = (mtype->val & 0x3f) | (s->src2.imm << 10);
   reg_l(s->dest.reg) = mtype->val;
 }
 
 def_EHelper(msettilem) {
   s->src1.val = reg_l(s->src1.reg);
-  if (mtype->mlmul == 0) {
-    if(s->src1.val <= TMMAX) {
+  if (s->src1.reg) {
+    if (s->src1.val <= TMMAX) {
       mtilem->val = s->src1.val;
     } else {
       mtilem->val = TMMAX;
     }
-  } else {
-    mtilem->val = s->src1.val;
+  } else if (s->dest.reg) {
+    mtilem->val = TMMAX;
   }
   reg_l(s->dest.reg) = mtilem->val;
 }
 
 def_EHelper(msettilemi) {
-  if (mtype->mlmul == 0) {
-    if(s->src2.imm <= TMMAX) {
-      mtilem->val = s->src2.imm;
-    } else {
-      mtilem->val = TMMAX;
-    }
-  } else {
+  if (s->src2.imm <= TMMAX) {
     mtilem->val = s->src2.imm;
+  } else {
+    mtilem->val = TMMAX;
   }
   reg_l(s->dest.reg) = mtilem->val;
 }
 
 def_EHelper(msettilek) {
   s->src1.val = reg_l(s->src1.reg);
-  if (mtype->mlmul == 0) {
-    int SEW = s->m_width * 8;
-    if(s->src1.val <= TKMAX(SEW)) {
+  int SEW = s->m_width * 8;
+  if (s->src1.reg) {
+    if (s->src1.val <= TKMAX(SEW)) {
       mtilek->val = s->src1.val;
     } else {
       mtilek->val = TKMAX(SEW);
     }
-  } else {
-    mtilek->val = s->src1.val;
+  } else if (s->dest.reg) {
+    mtilek->val = TKMAX(SEW);
   }
   reg_l(s->dest.reg) = mtilek->val;
 }
 
 def_EHelper(msettileki) {
-  if (mtype->mlmul == 0) {
-    int SEW = s->m_width * 8;
-    if(s->src2.imm <= TKMAX(SEW)) {
-      mtilek->val = s->src2.imm;
-    } else {
-      mtilek->val = TKMAX(SEW);
-    }
-  } else {
+  int SEW = s->m_width * 8;
+  if (s->src2.imm <= TKMAX(SEW)) {
     mtilek->val = s->src2.imm;
+  } else {
+    mtilek->val = TKMAX(SEW);
   }
   reg_l(s->dest.reg) = mtilek->val;
 }
 
 def_EHelper(msettilen) {
   s->src1.val = reg_l(s->src1.reg);
-  if (mtype->mlmul == 0) {
-    int SEW = s->m_width * 8;
-    if(s->src1.val <= TNMAX(SEW)) {
+  int SEW = s->m_width * 8;
+  if (s->src1.reg) {
+    if (s->src1.val <= TNMAX(SEW)) {
       mtilen->val = s->src1.val;
     } else {
       mtilen->val = TNMAX(SEW);
     }
-  } else {
-    mtilen->val = s->src1.val;
+  } else if (s->dest.reg) {
+    mtilen->val = TNMAX(SEW);
   }
   reg_l(s->dest.reg) = mtilen->val;
 }
 
 def_EHelper(msettileni) {
-  if (mtype->mlmul == 0) {
-    int SEW = s->m_width * 8;
-    if(s->src2.imm <= TNMAX(SEW)) {
-      mtilen->val = s->src2.imm;
-    } else {
-      mtilen->val = TNMAX(SEW);
-    }
-  } else {
+  int SEW = s->m_width * 8;
+  if (s->src2.imm <= TNMAX(SEW)) {
     mtilen->val = s->src2.imm;
+  } else {
+    mtilen->val = TNMAX(SEW);
   }
   reg_l(s->dest.reg) = mtilen->val;
 }
