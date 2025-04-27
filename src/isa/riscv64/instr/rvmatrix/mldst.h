@@ -25,6 +25,8 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 
+#define PRINT_AMUCTRLIO
+
 // TODO: not consider mstart now
 void mld(bool is_trans, char m_name) {
   uint64_t base_addr = reg_l(s->src1.reg);
@@ -59,7 +61,15 @@ void mld(bool is_trans, char m_name) {
     Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
            "mtile config should not larger than tile_reg size!\n");
   }
-  
+
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+    "[AmuCtrlIO] op=1 \n"
+    "            ms=%ld, ls=0, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
+    "            row=%d, col=%d, width=%#x\n",
+    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew);
+#endif
+
   uint64_t addr = base_addr;
   for (int row = 0; row < rmax_mem; row++) {
     for (int idx = 0; idx < cmax_mem; idx++) {
@@ -71,9 +81,6 @@ void mld(bool is_trans, char m_name) {
     }
     base_addr += row_byte_stride;
   }
-  fprintf(stderr, "!!!! mld matrix %c: base_addr=%lx, rmax_mem=%d, eew=%d, "
-          "cmax_mem=%d, row_byte_stride=%ld\n",
-          m_name, base_addr, rmax_mem, s->m_eew, cmax_mem, row_byte_stride);
 }
 
 void mst(bool is_trans, char m_name) {
@@ -110,6 +117,14 @@ void mst(bool is_trans, char m_name) {
            "mtile config should not larger than tile_reg size!\n");
   }
 
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+    "[AmuCtrlIO] op=1 \n"
+    "            ms=%ld, ls=1, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
+    "            row=%d, col=%d, width=%#x\n",
+    ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew);
+#endif
+
   uint64_t addr = base_addr;
   for (int row = 0; row < rmax_mem; row++) {
     for (int idx = 0; idx < cmax_mem; idx++) {
@@ -121,9 +136,6 @@ void mst(bool is_trans, char m_name) {
     }
     base_addr += row_byte_stride;
   }
-  fprintf(stderr, "!!!! mst matrix %c: base_addr=%lx, rmax_mem=%d, eew=%d, "
-          "cmax_mem=%d, row_byte_stride=%ld\n",
-          m_name, base_addr, rmax_mem, s->m_eew, cmax_mem, row_byte_stride);
 }
 
 
