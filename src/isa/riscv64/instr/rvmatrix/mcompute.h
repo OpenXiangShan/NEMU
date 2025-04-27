@@ -30,6 +30,8 @@
 typedef __uint128_t uint128_t;
 typedef __int128_t int128_t;
 
+#define PRINT_AMUCTRLIO
+
 #define MMA_LOOP_BEGIN \
   int tile_m = mtilem->val; \
   int tile_k = mtilek->val; \
@@ -60,7 +62,15 @@ def_EHelper(mmau) {
             rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);   //(Decode *s, rtlreg_t *dest, rtlreg_t *src1, rtlreg_t *src2)
             rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);  // td = td + ts1 * ts2
             set_mreg(true, td + m, i, j, tmp_reg[0], msew);
-  MMA_LOOP_END      
+  MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
+#endif
 }
 
 def_EHelper(mwmau) {
@@ -78,6 +88,14 @@ def_EHelper(mwmau) {
           rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
           set_mreg(true, td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
+#endif
 }
 
 def_EHelper(mqmau) {
@@ -95,6 +113,14 @@ def_EHelper(mqmau) {
           rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
           set_mreg(true, td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 2);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
+#endif
 }
 
 def_EHelper(msmau) {
@@ -114,6 +140,14 @@ def_EHelper(msmau) {
           }
           set_mreg(true, td + m, i, j, result, msew);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
+#endif
 }
 
 def_EHelper(mswmau) {
@@ -137,6 +171,14 @@ def_EHelper(mswmau) {
           }
           set_mreg(true, td + m + widen_idx, i, j_offset, result, msew + 1);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
+#endif
 }
 
 def_EHelper(msqmau) {
@@ -160,6 +202,14 @@ def_EHelper(msqmau) {
           }
           set_mreg(true, td + m + widen_idx, i, j_offset, result, msew + 2);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
+#endif
 }
 
 def_EHelper(mma) {
@@ -171,6 +221,14 @@ def_EHelper(mma) {
           tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
           set_mreg(true, td + m, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
+#endif
 }
 
 def_EHelper(mwma) {
@@ -187,6 +245,14 @@ def_EHelper(mwma) {
           tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
           set_mreg(true, td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
+#endif
 }
 
 def_EHelper(mqma) {
@@ -203,6 +269,14 @@ def_EHelper(mqma) {
           tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
           set_mreg(true, td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 2);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
+#endif
 }
 
 def_EHelper(msma) {
@@ -226,6 +300,14 @@ def_EHelper(msma) {
           if (overflow) mcsr->msat = 1;
           set_mreg(true, td + m, i, j, result, msew);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
+#endif
 }
 
 def_EHelper(mswma) {
@@ -253,6 +335,14 @@ def_EHelper(mswma) {
           if (overflow) mcsr->msat = 1;
           set_mreg(true, td + m + widen_idx, i, j_offset, result, msew + 1);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
+#endif
 }
 
 def_EHelper(msqma) {
@@ -280,6 +370,14 @@ def_EHelper(msqma) {
           if (overflow) mcsr->msat = 1;
           set_mreg(true, td + m + widen_idx, i, j_offset, result, msew + 2);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
+#endif
 }
 
 def_EHelper(mfma) {
@@ -309,6 +407,14 @@ def_EHelper(mfma) {
           rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
           set_mreg(true, td + m, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
+#endif
 }
 
 def_EHelper(mfwma) {
@@ -338,6 +444,14 @@ def_EHelper(mfwma) {
           rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
           set_mreg(true, td + m + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
+#ifdef PRINT_AMUCTRLIO
+  fprintf(stderr,
+          "[AmuCtrlIO] op=0 \n"
+          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+          td, mcsr->msat, ts1, ts2,
+          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
+#endif
 }
 
 #endif // CONFIG_RVMATRIX
