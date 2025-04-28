@@ -58,10 +58,17 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   extern bool is_in_mmio(paddr_t addr);
 
   // check behavior before actually load or store
-  uint64_t paddr = *dsrc1;
-  if (isa_mmu_check(*dsrc1, width, type) == MMU_TRANSLATE) {
-    paddr = isa_mmu_translate(*dsrc1, width, type);
+  vaddr_t vaddr = *dsrc1;
+  paddr_t paddr = vaddr;
+
+  if (isa_mmu_check(vaddr, width, type) == MMU_TRANSLATE) {
+    paddr_t pg_base = isa_mmu_translate(vaddr, width, type);
+    int ret = pg_base & PAGE_MASK;
+    if (ret == MEM_RET_OK) {
+      paddr = pg_base | (vaddr & PAGE_MASK);
+    }
   }
+
   if (cpu.pbmt != 0 || is_in_mmio(paddr) || !in_pmem(paddr) ||
       !isa_pmp_check_permission(paddr, width, type, cpu.mode) ||
       !isa_pma_check_permission(paddr, width, type)) {
