@@ -123,7 +123,7 @@ uint64_t get_abs_instr_count() {
 uint64_t get_abs_instr_count_csr() {
 #if defined(CONFIG_INSTR_CNT_BY_BB)
   return get_abs_instr_count() + prev_s->idx_in_bb - 1;
-  // s of this instruction is saved into prev_s, before csrrw() in rtl_sys_slow_path().
+  // s of this instruction is saved into prev_s, in EHelper of csrrw/csrrs/csrrc.
 #elif defined(CONFIG_INSTR_CNT_BY_INSTR)
   // INSTR-level
   return g_nr_guest_instr;
@@ -478,7 +478,7 @@ static void execute(int n) {
 end_of_loop:
   // Here is per loop action and some priv instruction action.
   // If end_of_bb and n_remain <= 0, it will goto here.
-  // Most of priv instruction (using rtl_sys_slow_path()) will goto here.
+  // Most of priv instruction (using rtl_priv_jr() or rtl_priv_next()) will goto here.
 
   // Settle instruction counting for the last instruction:
   // - If it is end_of_bb and n_remain < 0, it will goto here without "per inst action".
