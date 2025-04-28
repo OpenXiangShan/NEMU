@@ -40,64 +40,83 @@
 #define AMO_INSTR_TERNARY(f) f(atomic)
 #endif
 
-#ifdef CONFIG_RVH
+#ifdef CONFIG_RV_ZAWRS
+  #define ZAWRS_INSTR_NULLARY(f) \
+    f(wrs_nto) f(wrs_sto)
+#else // CONFIG_RV_ZAWRS
+  #define ZAWRS_INSTR_NULLARY(f)
+#endif // CONFIG_RV_ZAWRS
+
+/********************** SYS INSTR NULLARY **********************/
+
+#ifdef CONFIG_RV_SMRNMI
+  #define SYS_SMRNMI_INSTR_NULLARY(f) \
+    f(mnret)
+#else // CONFIG_RV_SMRNMI
+  #define SYS_SMRNMI_INSTR_NULLARY(f)
+#endif // CONFIG_RV_SMRNMI
+
 #ifdef CONFIG_RV_SVINVAL
-  #define RVH_INST_BINARY(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma) \
-    f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d) \
-    f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
-#else
-  #define RVH_INST_BINARY(f) f(hfence_vvma) f(hfence_gvma) \
-    f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d) \
-    f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
+  #define SYS_SVINVAL_INSTR_NULLARY(f) \
+    f(sfence_w_inval) f(sfence_inval_ir)
+#else // CONFIG_RV_SVINVAL
+  #define SYS_SVINVAL_INSTR_NULLARY(f)
 #endif // CONFIG_RV_SVINVAL
-#else
-  #define RVH_INST_BINARY(f)
+
+#define SYS_INSTR_NULLARY(f) \
+  f(ecall) f(ebreak) f(c_ebreak) f(mret) f(sret) f(wfi) \
+  SYS_SMRNMI_INSTR_NULLARY(f) \
+  SYS_SVINVAL_INSTR_NULLARY(f)
+
+/********************** SYS INSTR BINARY (2 op) **********************/
+
+#ifdef CONFIG_RVH
+  #define SYS_RVH_INSTR_BINARY(f) \
+    f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlv_w) f(hlv_wu) f(hlv_d) \
+    f(hlvx_hu) f(hlvx_wu) \
+    f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
+#else // CONFIG_RVH
+  #define SYS_RVH_INSTR_BINARY(f)
 #endif // CONFIG_RVH
 
-#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
-#ifdef CONFIG_RV_SMRNMI
-#define SYS_NMI_NULLARY(f) \
-  f(mnret)
-#else
-#define SYS_NMI_NULLARY(f)
-#endif
-#ifdef CONFIG_RV_ZAWRS
-#define SYS_ZAWRS_NULLARY(f) \
-  f(wrs_nto) f(wrs_sto)
-#else
-#define SYS_ZAWRS_NULLARY(f)
-#endif
+#define SYS_INSTR_BINARY(f) \
+  SYS_RVH_INSTR_BINARY(f)
+
+/********************** SYS INSTR TERNARY (3 op) **********************/
+
+// Instructions sfence.vma / hfence.vvma / hfence.gvma have 2 operands (rs1, rs2),
+// But NEMU's print_asm_template2 is for (rd, rs1). We have to treat them as 3 operands.
+
 #ifdef CONFIG_RV_SVINVAL
-#define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(c_ebreak) f(mret) f(sret) f(wfi) \
-  SYS_ZAWRS_NULLARY(f) \
-  f(sfence_w_inval) f(sfence_inval_ir)
-#define SYS_INSTR_BINARY(f) \
-  f(sfence_vma) f(sinval_vma) RVH_INST_BINARY(f)
-#else
-#define SYS_INSTR_NULLARY(f) \
-  f(ecall) f(ebreak) f(c_ebreak) f(mret) f(sret) f(wfi) \
-  SYS_ZAWRS_NULLARY(f)
-#define SYS_INSTR_BINARY(f) \
-  f(sfence_vma) RVH_INST_BINARY(f)
-#endif
+  #define SYS_SVINVAL_INSTR_TERNARY(f) \
+    f(sinval_vma)
+  #define SYS_SVINVAL_RVH_INSTR_TERNARY(f) \
+    f(hinval_vvma) f(hinval_gvma)
+#else // CONFIG_RV_SVINVAL
+  #define SYS_SVINVAL_INSTR_TERNARY(f)
+  #define SYS_SVINVAL_RVH_INSTR_TERNARY(f)
+#endif // CONFIG_RV_SVINVAL
+
+#ifdef CONFIG_RVH
+  #define SYS_RVH_INSTR_TERNARY(f) \
+    f(hfence_vvma) f(hfence_gvma) \
+    SYS_SVINVAL_RVH_INSTR_TERNARY(f)
+#else // CONFIG_RVH
+  #define SYS_RVH_INSTR_TERNARY(f)
+#endif // CONFIG_RVH
 
 #define SYS_INSTR_TERNARY(f) \
-  f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
-#else
-#ifdef CONFIG_RVH
-#define SYS_NMI_NULLARY(f)
-#define SYS_INSTR_NULLARY(f) f(c_ebreak)
-#define SYS_INSTR_BINARY(f)
-#define SYS_INSTR_TERNARY(f) f(priv) f(hload) f(hstore)
-#else
-#define SYS_NMI_NULLARY(f)
-#define SYS_INSTR_NULLARY(f) f(c_ebreak)
-#define SYS_INSTR_BINARY(f)
-#define SYS_INSTR_TERNARY(f) f(system)
-#endif // CONFIG_RVH
-#endif
-// TODO: sfence.vma and sinval.vma need two reg operand, only one(addr) now
+  f(sfence_vma) \
+  SYS_SVINVAL_INSTR_TERNARY(f) \
+  SYS_RVH_INSTR_TERNARY(f)
+
+
+/********************** SYS INSTR TERNARY CSR (csr) **********************/
+
+#define SYS_INSTR_TERNARY_CSR(f) \
+  f(csrrw) f(csrrs) f(csrrc) \
+  f(csrrwi) f(csrrsi) f(csrrci)
+
 
 #ifdef CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f) \
@@ -280,15 +299,13 @@
 #endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_RV_ZIMOP
-#define ZIMOP_INSTR_BINARY(f) \
-  f(mop_r_n)
-
-#define ZIMOP_INSTR_TERNARY(f) \
-  f(mop_rr_n)
-
+  #define ZIMOP_INSTR_BINARY(f) \
+    f(mop_r_n)
+  #define ZIMOP_INSTR_TERNARY(f) \
+    f(mop_rr_n)
 #else
-#define ZIMOP_INSTR_BINARY(f)
-#define ZIMOP_INSTR_TERNARY(f)
+  #define ZIMOP_INSTR_BINARY(f)
+  #define ZIMOP_INSTR_TERNARY(f)
 #endif // CONFIG_RV_ZIMOP
 
 #ifdef CONFIG_RV_ZCMOP
@@ -320,8 +337,8 @@
   ZIHINTPAUSE_INSTR_NULLARY(f) \
   f(fence_i) f(fence) \
   SYS_INSTR_NULLARY(f)   \
-  SYS_NMI_NULLARY(f) \
   f(p_ret) \
+  ZAWRS_INSTR_NULLARY(f) \
   ZCMOP_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
@@ -360,6 +377,7 @@
   f(p_inc) f(p_dec) \
   AMO_INSTR_TERNARY(f) \
   AMO_CAS_INSTR(f) \
+  SYS_INSTR_TERNARY(f) \
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
@@ -373,7 +391,7 @@
   ZCB_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \
-  SYS_INSTR_TERNARY(f) 
+  SYS_INSTR_TERNARY_CSR(f) 
 
 def_all_EXEC_ID();
 

@@ -14,88 +14,107 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#define def_SYS_EHelper(name) \
-def_EHelper(name) { \
-  extern int rtl_sys_slow_path(Decode *s, rtlreg_t *dest, const rtlreg_t *src1, uint32_t id, rtlreg_t *jpc); \
-  int jmp = rtl_sys_slow_path(s, ddest, dsrc1, id_src2->imm, s0); \
-  if (jmp) rtl_priv_jr(s, s0); \
-  else rtl_priv_next(s); \
-}
-
-#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
-
+def_EHelper(ecall) {
 #ifdef CONFIG_RVH
-#define def_hld_template(name) \
-  def_EHelper(name){ \
-    extern int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id); \
-    hload(s, ddest, dsrc1, id_src2->imm); \
-  }
-#define def_hst_template(name) \
-def_EHelper(name){ \
-  extern int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2); \
-  hstore(s, ddest, dsrc1, dsrc2); \
-}
-#define RVH_LD_INST_LIST(f) f(hlv_b) f(hlv_bu) f(hlv_h) f(hlv_hu) f(hlvx_hu) f(hlv_w) f(hlvx_wu) f(hlv_wu) f(hlv_d)
-#define RVH_ST_INST_LIST(f)  f(hsv_b) f(hsv_h) f(hsv_w) f(hsv_d)
-#ifdef CONFIG_RV_SVINVAL
-  #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma) f(hinval_vvma) f(hinval_gvma)
+  rtl_trap(s, s->pc, 8 + cpu.mode + (cpu.mode == MODE_S && cpu.v));
 #else
-  #define RVH_SYS_INST_LIST(f) f(hfence_vvma) f(hfence_gvma)
-#endif // CONFIG_RV_SVINVAL
-MAP(RVH_SYS_INST_LIST, def_SYS_EHelper)
-MAP(RVH_LD_INST_LIST, def_hld_template)
-MAP(RVH_ST_INST_LIST, def_hst_template)
-#endif // CONFIG_RVH
+  rtl_trap(s, s->pc, 8 + cpu.mode);
+#endif
+  rtl_mv(s, s0, t0);
+  rtl_priv_jr(s, s0);
+}
+
+def_EHelper(ebreak) {
+#ifdef CONFIG_EBREAK_AS_TRAP
+  // Please keep the following lines same as in src/isa/riscv64/instr/special.h.
+  rtl_hostcall(s, HOSTCALL_EXIT, NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
+  longjmp_context(NEMU_EXEC_END);
+#else // CONFIG_EBREAK_AS_TRAP
+  rtl_trap(s, s->pc, 3);
+  rtl_mv(s, s0, t0);
+  rtl_priv_jr(s, s0);
+#endif // CONFIG_EBREAK_AS_TRAP
+}
+
+def_EHelper(sret) {
+  *s0 = riscv64_priv_sret();
+  rtl_priv_jr(s, s0);
+}
+
+def_EHelper(mret) {
+  *s0 = riscv64_priv_mret();
+  rtl_priv_jr(s, s0);
+}
 
 #ifdef CONFIG_RV_SMRNMI
-#define SYS_MNINSTR_LIST(f) \
-  f(mnret)
-#else
-#define SYS_MNINSTR_LIST(f)
-#endif
+def_EHelper(mnret) {
+  *s0 = riscv64_priv_mnret();
+  rtl_priv_jr(s, s0);
+}
+#endif // CONFIG_RV_SMRNMI
+
+def_EHelper(wfi) {
+  riscv64_priv_wfi();
+  rtl_priv_next(s);
+}
+
 #ifdef CONFIG_RV_ZAWRS
-#define SYS_ZAWRS_LIST(f) \
-  f(wrs_nto) f(wrs_sto)
-#else
-#define SYS_ZAWRS_LIST(f)
-#endif
+def_EHelper(wrs_nto) {
+  riscv64_priv_wrs_nto();
+  rtl_priv_next(s);
+}
+
+def_EHelper(wrs_sto) {
+  rtl_priv_next(s);
+}
+#endif // CONFIG_RV_ZAWRS
+
+def_EHelper(sfence_vma) {
+  riscv64_priv_sfence_vma(*dsrc1, *ddest);
+  rtl_priv_next(s);
+}
+
+#ifdef CONFIG_RVH
+def_EHelper(hfence_vvma) {
+  riscv64_priv_hfence_vvma(*dsrc1, *ddest);
+  rtl_priv_next(s);
+}
+
+def_EHelper(hfence_gvma) {
+  riscv64_priv_hfence_gvma(*dsrc1, *ddest);
+  rtl_priv_next(s);
+}
+#endif // CONFIG_RVH
 
 #ifdef CONFIG_RV_SVINVAL
-#define SYS_INSTR_LIST(f) \
-  f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
-  f(ecall)  f(ebreak) f(mret)  f(sret)  f(sfence_vma) f(wfi) \
-  SYS_MNINSTR_LIST(f)   \
-  SYS_ZAWRS_LIST(f) \
-  f(sfence_w_inval) f(sfence_inval_ir) f(sinval_vma)
-#else
-#define SYS_INSTR_LIST(f) \
-  f(csrrw)  f(csrrs)  f(csrrc) f(csrrwi) f(csrrsi) f(csrrci) \
-  SYS_MNINSTR_LIST(f)       \
-  SYS_ZAWRS_LIST(f) \
-  f(ecall)  f(ebreak) f(mret)  f(sret)  f(sfence_vma) f(wfi)
-#endif
+def_EHelper(sfence_w_inval) {
+  riscv64_priv_sfence_w_inval_ir();
+  rtl_priv_next(s);
+}
 
-MAP(SYS_INSTR_LIST, def_SYS_EHelper)
-#else // !(defined(CONFIG_DEBUG) || defined(CONFIG_SHARE))
+def_EHelper(sfence_inval_ir) {
+  riscv64_priv_sfence_w_inval_ir();
+  rtl_priv_next(s);
+}
+
+def_EHelper(sinval_vma) {
+  riscv64_priv_sfence_vma(*dsrc1, *ddest);
+  rtl_priv_next(s);
+}
+
 #ifdef CONFIG_RVH
-def_EHelper(hload){
-  extern int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id);
-  hload(s, ddest, dsrc1, id_src2->imm);
+def_EHelper(hinval_vvma) {
+  riscv64_priv_hfence_vvma(*dsrc1, *ddest);
+  rtl_priv_next(s);
 }
 
-def_EHelper(hstore){
-  extern int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2);
-  hstore(s, ddest, dsrc1, dsrc2);
+def_EHelper(hinval_gvma) {
+  riscv64_priv_hfence_gvma(*dsrc1, *ddest);
+  rtl_priv_next(s);
 }
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SVINVAL
 
-def_SYS_EHelper(priv)
-#else
-def_SYS_EHelper(system)
-#endif
-
-#endif // defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
-
-// The instructions in ZIMOP extension are very simple, so always use fast path.
 #ifdef CONFIG_RV_ZIMOP
 // EHelpers for Zimop Instructions
 
@@ -111,3 +130,70 @@ def_EHelper(mop_rr_n) {
 }
 
 #endif // CONFIG_RV_ZIMOP
+
+#ifdef CONFIG_RVH
+// EHelpers for Hypervisor Virtual-Machine Load and Store Instructions
+
+#define def_hld_template(name, len, is_signed, is_hlvx) \
+def_EHelper(name) { \
+  riscv64_priv_hload(s, ddest, dsrc1, len, is_signed, is_hlvx); \
+}
+
+def_hld_template(hlv_b,   1, true,  false)
+def_hld_template(hlv_bu,  1, false, false)
+def_hld_template(hlv_h,   2, true,  false)
+def_hld_template(hlv_hu,  2, false, false)
+def_hld_template(hlv_w,   4, true,  false)
+def_hld_template(hlv_wu,  4, false, false)
+def_hld_template(hlv_d,   8, true,  false)
+
+def_hld_template(hlvx_hu, 2, false, true)
+def_hld_template(hlvx_wu, 4, false, true)
+
+#define def_hst_template(name, len) \
+def_EHelper(name) { \
+  riscv64_priv_hstore(s, ddest, dsrc1, len); \
+}
+
+def_hst_template(hsv_b, 1)
+def_hst_template(hsv_h, 2)
+def_hst_template(hsv_w, 4)
+def_hst_template(hsv_d, 8)
+
+#endif // CONFIG_RVH
+
+def_EHelper(csrrw) {
+  save_globals(s);
+  riscv64_priv_csrrw(ddest, *dsrc1, id_src2->imm, s->isa.instr.i.rd);
+  rtl_priv_next(s);
+}
+
+def_EHelper(csrrs) {
+  save_globals(s);
+  riscv64_priv_csrrs(ddest, *dsrc1, id_src2->imm, s->isa.instr.i.rs1);
+  rtl_priv_next(s);
+}
+
+def_EHelper(csrrc) {
+  save_globals(s);
+  riscv64_priv_csrrc(ddest, *dsrc1, id_src2->imm, s->isa.instr.i.rs1);
+  rtl_priv_next(s);
+}
+
+def_EHelper(csrrwi) {
+  save_globals(s);
+  riscv64_priv_csrrw(ddest, id_src1->imm, id_src2->imm, s->isa.instr.i.rd);
+  rtl_priv_next(s);
+}
+
+def_EHelper(csrrsi) {
+  save_globals(s);
+  riscv64_priv_csrrs(ddest, id_src1->imm, id_src2->imm, s->isa.instr.i.rs1);
+  rtl_priv_next(s);
+}
+
+def_EHelper(csrrci) {
+  save_globals(s);
+  riscv64_priv_csrrc(ddest, id_src1->imm, id_src2->imm, s->isa.instr.i.rs1);
+  rtl_priv_next(s);
+}

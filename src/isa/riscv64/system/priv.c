@@ -2876,38 +2876,27 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   if (has_vi) longjmp_exception(EX_VI);
 }
 
-static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
-  ISADecodeInfo isa;
-  isa.instr.val = instr;
-  uint32_t rs1    = isa.instr.i.rs1; // uimm field and rs1 field are the same one
-  uint32_t rd     = isa.instr.i.rd;
-  uint32_t funct3 = isa.instr.i.funct3;
-  bool is_write = !( BITS(funct3, 1, 1) && (rs1 == 0) );
-  csr_permit_check(csrid, is_write);
+void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd) {
+  csr_permit_check(csrid, true);
+  if (rd) {
+    *dest = csr_read(csrid);
+  }
+  csr_write(csrid, val);
+}
 
-  switch (funct3) {
-    case FUNCT3_CSRRW:
-    case FUNCT3_CSRRWI:
-      if (rd) {
-        *dest = csr_read(csrid);
-      }
-      csr_write(csrid, *src);
-      break;
-    case FUNCT3_CSRRS:
-    case FUNCT3_CSRRSI:
-      *dest = csr_read(csrid);
-      if (rs1) {
-        csr_write(csrid, *src | *dest);
-      }
-      break;
-    case FUNCT3_CSRRC:
-    case FUNCT3_CSRRCI:
-      *dest = csr_read(csrid);
-      if (rs1) {
-        csr_write(csrid, (~*src) & *dest);
-      }
-      break;
-    default: panic("funct3 = %d is not supported for csrrw instruction\n", funct3);
+void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
+  csr_permit_check(csrid, rs1 != 0);
+  *dest = csr_read(csrid);
+  if (rs1) {
+    csr_write(csrid, val | *dest);
+  }
+}
+
+void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
+  csr_permit_check(csrid, rs1 != 0);
+  *dest = csr_read(csrid);
+  if (rs1) {
+    csr_write(csrid, (~val) & *dest);
   }
 }
 
@@ -3227,81 +3216,11 @@ void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
 }
 #endif // CONFIG_RVH
 
-static word_t priv_instr(uint32_t op, const rtlreg_t *src) {
-  switch (op) {
-#ifndef CONFIG_MODE_USER
-    case 0x102: // sret
-      return riscv64_priv_sret();
-    case 0x302: // mret
-      return riscv64_priv_mret();
-#ifdef CONFIG_RV_SMRNMI
-    case 0x702: // mnret
-      return riscv64_priv_mnret();
-#endif // CONFIG_RV_SMRNMI
-#ifdef CONFIG_RV_SVINVAL
-    case 0x180: // sfence.w.inval
-      riscv64_priv_sfence_w_inval_ir();
-      return 0;
-    case 0x181: // sfence.inval.ir
-      riscv64_priv_sfence_w_inval_ir();
-      return 0;
-#endif // CONFIG_RV_SVINVAL
-    case 0x105: // wfi
-      riscv64_priv_wfi();
-      return 0;
-#endif // CONFIG_MODE_USER
-#ifdef CONFIG_RV_ZAWRS
-    case 0x0d: // wrs.nto
-      riscv64_priv_wrs_nto();
-      return 0;
-    case 0x1d: // wrs.sto
-      return 0;
-#endif // CONFIG_RV_ZAWRS
-    default:
-      switch (op >> 5) { // instr[31:25]
-        case 0x09: // sfence.vma
-          riscv64_priv_sfence_vma(*src, 0);
-          return 0;
-#ifdef CONFIG_RV_SVINVAL
-        case 0x0b: // sinval.vma
-          // same as sfence.vma
-          riscv64_priv_sfence_vma(*src, 0);
-          return 0;
-#endif // CONFIG_RV_SVINVAL
-#ifdef CONFIG_RVH
-        case 0x11: // hfence.vvma
-          riscv64_priv_hfence_vvma(*src, 0);
-          return 0;
-        case 0x31: // hfence.gvma
-          riscv64_priv_hfence_gvma(*src, 0);
-          return 0;
-#ifdef CONFIG_RV_SVINVAL
-        case 0x13: // hinval.vvma
-          // same as hfence.vvma
-          riscv64_priv_hfence_vvma(*src, 0);
-          return 0;
-        case 0x33: // hinval.gvma
-          // same as hfence.gvma
-          riscv64_priv_hfence_gvma(*src, 0);
-          return 0;
-#endif // CONFIG_SVINVAL
-#endif // CONFIG_RVH
-        default:
-#if defined(CONFIG_SHARE) || !defined(CONFIG_REPORT_ILLEGAL_INSTR)
-          longjmp_exception(EX_II);
-#else
-          panic("Unsupported privilege operation = %d", op);
-#endif // CONFIG_SHARE
-      }
-  }
-  return 0;
-}
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {
   word_t ret = 0;
   switch (id) {
-    case HOSTCALL_CSR: csrrw(dest, src1, *src2, imm); return;
 #ifdef CONFIG_MODE_USER
     case HOSTCALL_TRAP:
       Assert(imm == 0x8, "Unsupported exception = %ld", imm);
@@ -3314,7 +3233,6 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 #else
     case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
 #endif
-    case HOSTCALL_PRIV: ret = priv_instr(imm, src1); break;
     default: panic("Unsupported hostcall ID = %d", id);
   }
   if (dest) *dest = ret;
@@ -3328,82 +3246,39 @@ int rvh_hlvx_check(struct Decode *s, int type){
   return hlvx;
 }
 extern bool hld_st;
-int hload(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, uint32_t id){
-  if(cpu.v) longjmp_exception(EX_VI);
-  if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
+int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len, bool is_signed, bool is_hlvx) {
+  if (cpu.v) {
+    longjmp_exception(EX_VI);
+  }
+  if (cpu.mode == MODE_U && hstatus->hu == 0){
     longjmp_exception(EX_II);
   }
+
   hld_st = true;
   int mmu_mode = get_hyperinst_mmu_state();
-  switch (id) {
-    case 0x600: // hlv.b
-      rtl_lms(s, dest, src1, 0, 1, mmu_mode);
-      break;
-    case 0x601: // hlv.bu
-      rtl_lm(s, dest, src1, 0, 1, mmu_mode);
-      break;
-    case 0x640: // hlv.h
-      rtl_lms(s, dest, src1, 0, 2, mmu_mode);
-      break;
-    case 0x641: // hlv.hu
-      rtl_lm(s, dest, src1, 0, 2, mmu_mode);
-      break;
-    case 0x643: // hlvx.hu
-      rtl_lm(s, dest, src1, 0, 2, mmu_mode);
-      break;
-    case 0x680: // hlv.w
-      rtl_lms(s, dest, src1, 0, 4, mmu_mode);
-      break;
-    case 0x681: // hlv.wu
-      rtl_lm(s, dest, src1, 0, 4, mmu_mode);
-      break;
-    case 0x683: // hlvx.wu
-      rtl_lm(s, dest, src1, 0, 4, mmu_mode);
-      break;
-    case 0x6c0: // hlv.d
-      rtl_lms(s, dest, src1, 0, 8, mmu_mode);
-      break;
-    default:
-#ifdef CONFIG_SHARE
-      longjmp_exception(EX_II);
-#else
-      panic("Unsupported hypervisor vm load store operation = %d", id);
-#endif // CONFIG_SHARE
+  if (is_signed) {
+    rtl_lms(s, dest, addr, 0, len, mmu_mode);
+    IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
+  } else {
+    rtl_lm(s, dest, addr, 0, len, mmu_mode);
+    IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4));
   }
   hld_st = false;
   return 0;
 }
 
-int hstore(Decode *s, rtlreg_t *dest, const rtlreg_t * src1, const rtlreg_t * src2){
-  if(cpu.v) longjmp_exception(EX_VI);
-  if(!(cpu.mode == MODE_M || cpu.mode == MODE_S || (cpu.mode == MODE_U && hstatus->hu))){
+int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len) {
+  if (cpu.v) {
+    longjmp_exception(EX_VI);
+  }
+  if (cpu.mode == MODE_U && hstatus->hu == 0){
     longjmp_exception(EX_II);
   }
+
   hld_st = true;
-  uint32_t op = s->isa.instr.r.funct7;
   int mmu_mode = get_hyperinst_mmu_state();
-  int len;
-  switch (op) {
-  case 0x31: // hsv.b
-    len = 1;
-    break;
-  case 0x33: // hsv.h
-    len = 2;
-    break;
-  case 0x35: // hsv.w
-    len = 4;
-    break;
-  case 0x37: // hsv.d
-    len = 8;
-    break;
-  default:
-    #ifdef CONFIG_SHARE
-      longjmp_exception(EX_II);
-#else
-      panic("Unsupported hypervisor vm load store operation = %d", op);
-#endif // CONFIG_SHARE
-  }
-  rtl_sm(s, src2, src1, 0, len, mmu_mode);
+  rtl_sm(s, src, addr, 0, len, mmu_mode);
+  IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
   hld_st = false;
   return 0;
 }

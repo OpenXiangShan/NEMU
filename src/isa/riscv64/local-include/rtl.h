@@ -64,4 +64,68 @@ static inline def_rtl(sr, int r, const rtlreg_t *src1, int width) {
 
 #endif // CONFIG_RVV
 
-#endif
+#ifdef CONFIG_RVH
+
+int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len, bool is_signed, bool is_hlvx);
+int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len);
+
+#endif // CONFIG_RVH
+
+// Privileged instructions
+
+/// @brief Do RISC-V 64 privileged instruction: SRET
+/// @return the next PC after SRET
+word_t riscv64_priv_sret();
+
+/// @brief Do RISC-V 64 privileged instruction: MRET
+/// @return the next PC after MRET
+word_t riscv64_priv_mret();
+
+#ifdef CONFIG_RV_SMRNMI
+/// @brief Do RISC-V 64 privileged instruction: MNRET
+/// @return the next PC after MNRET
+word_t riscv64_priv_mnret();
+#endif // CONFIG_RV_SMRNMI
+
+#ifdef CONFIG_RV_SVINVAL
+/// @brief Do RISC-V 64 privileged instruction: SFENCE.W.INVAL & SFENCE.INVAL.IR
+/// Just check mode and do nothing in NEMU
+/// @return no return value
+void riscv64_priv_sfence_w_inval_ir();
+#endif // CONFIG_RV_SVINVAL
+
+/// @brief Do RISC-V 64 privileged instruction: WFI
+/// @return no return value
+void riscv64_priv_wfi();
+
+#ifdef CONFIG_RV_ZAWRS
+/// @brief Do RISC-V 64 privileged instruction: wrs.nto
+/// @return no return value
+void riscv64_priv_wrs_nto();
+#endif // CONFIG_RV_ZAWRS
+
+/// @brief Do RISC-V 64 privileged instruction: sfence.vma
+/// @param vaddr the address to flush
+/// @param asid the address space identifier
+/// @return no return value
+void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid);
+
+#ifdef CONFIG_RVH
+/// @brief Do RISC-V 64 privileged instruction: hfence.vvma
+/// @param vaddr the address to flush
+/// @param asid the address space identifier
+/// @return no return value
+void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid);
+
+/// @brief Do RISC-V 64 privileged instruction: hfence.gvma
+/// @param vaddr the address to flush
+/// @param vmid the virtual machine identifier
+/// @return no return value
+void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid);
+#endif // CONFIG_RVH
+
+void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd);
+void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1);
+void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1);
+
+#endif // __RISCV64_RTL_H__

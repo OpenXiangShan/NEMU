@@ -141,30 +141,9 @@ int isa_fetch_decode(Decode *s) {
 
     case EXEC_ID_p_ret: case EXEC_ID_c_jr: case EXEC_ID_c_jalr: case EXEC_ID_jalr:
     case EXEC_ID_c_ebreak:
-#if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
     case EXEC_ID_mret: case EXEC_ID_sret: case EXEC_ID_ecall: case EXEC_ID_ebreak:
     IFDEF(CONFIG_RV_SMRNMI, case EXEC_ID_mnret:)
-#endif
       s->type = INSTR_TYPE_I; break;
-
-#if !defined(CONFIG_DEBUG) && !defined(CONFIG_SHARE)
-#ifdef CONFIG_RVH
-    case EXEC_ID_priv:
-#else // CONFIG_RVH
-    case EXEC_ID_system:
-#endif // CONFIG_RVH
-      if (s->isa.instr.i.funct3 == 0) {
-        switch (s->isa.instr.csr.csr) {
-          case 0x0:   // ecall
-          case 0x1:   // ebreak
-          case 0x102: // sret
-          case 0x302: // mret
-          IFDEF(CONFIG_RV_SMRNMI, case 0x702: )// mnret
-            s->type = INSTR_TYPE_I;
-        }
-      }
-      break;
-#endif // CONFIG_DEBUG
   }
 
   return idx;
