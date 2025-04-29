@@ -553,9 +553,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
 #define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
+#define LCI_NO_LCOFI MUXDEF(CONFIG_RV_AIA, LCI_EXCLUDE_LCOFI_MASK, 0)
 
 #ifdef CONFIG_RVH
-#define HVIP_MASK     (VSI_MASK | LCOFI | LCI)
+#define HVIP_MASK     (VSI_MASK | LCI_NO_LCOFI)
 #define HIP_RMASK     (MIP_VSTIP | MIP_VSEIP | MIP_SGEIP)
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
@@ -647,12 +648,12 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIE_LCOFI_MASK_MIE (mideleg->val & LCOFI)
 
 // mvien
-#define MVIEN_MASK (LCI | LCOFI | (1 << 9) | (1 << 1))
+#define MVIEN_MASK (LCI_NO_LCOFI | (1 << 9) | (1 << 1))
 // hvien
-#define HVIEN_MSAK (LCI | LCOFI)
+#define HVIEN_MSAK LCI_NO_LCOFI
 
 // mvip
-#define MVIP_MASK MUXDEF(CONFIG_RV_AIA, (LCOFI | LCI), 0)
+#define MVIP_MASK MUXDEF(CONFIG_RV_AIA, LCI_NO_LCOFI, 0)
 
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
