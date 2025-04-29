@@ -421,6 +421,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_RVV 0
 #endif
 
+// rvmatrix fields of mstatus
+#if defined(CONFIG_RVMATRIX)
+#define MSTATUS_WMASK_RVMATRIX (3UL << 25)
+#else
+#define MSTATUS_WMASK_RVMATRIX 0
+#endif
+
 #define MSTATUS_WMASK_MDT MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
 #define MSTATUS_WMASK_SDT MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
 
@@ -874,6 +881,21 @@ static inline bool require_vs() {
   return false;
 }
 #endif // CONFIG_RVV
+
+#ifdef CONFIG_RVMATRIX
+static inline bool require_ms() {
+  if ((mstatus->val & MSTATUS_WMASK_RVMATRIX) != 0) {
+    #ifdef CONFIG_RVH
+      if (!cpu.v || (vsstatus->val & MSTATUS_WMASK_RVMATRIX) != 0) {
+        return true;
+      }
+      return false;
+    #endif // CONFIG_RVH
+    return true;
+  }
+  return false;
+}
+#endif // CONFIG_RVMATRIX
 
 inline word_t gen_status_sd(word_t status) {
   mstatus_t xstatus;
@@ -2801,6 +2823,18 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 }
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RVMATRIX
+static inline bool matrix_permit_check(const word_t *dest_access) {
+  if (is_access(mtype) ||
+      is_access(mtilem) || is_access(mtilen) || is_access(mtilek) ||
+      is_access(mlenb) || is_access(mrlenb) || is_access(mamul) ||
+      is_access(mstart) || is_access(mcsr)) {
+    if (!require_ms()) { longjmp_exception(EX_II); }
+  }
+  return false;
+}
+#endif // CONFIG_RVMATRIX
+
 #if defined (CONFIG_RV_SMCSRIND) || defined (CONFIG_RV_AIA)
 static inline bool csrind_permit_check(const uint32_t addr) {
   word_t *dest_access = csr_decode(addr);
@@ -2957,6 +2991,8 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   IFNDEF(CONFIG_FPU_NONE, has_vi |= fp_permit_check(dest_access));
   //check vec
   IFDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access));
+  //check matrix
+  IFDEF(CONFIG_RVMATRIX, has_vi |= matrix_permit_check(dest_access)); 
 
   if (has_vi) longjmp_exception(EX_VI);
 
