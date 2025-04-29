@@ -2779,6 +2779,9 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
       else if (siselect->val <= ISELECT_3F_MASK) {
 #ifdef CONFIG_RV_AIA
         if (siselect->val & 0x1) longjmp_exception(EX_II);
+#ifdef CONFIG_RV_SMSTATEEN
+        if(!(cpu.mode == MODE_M) && !mstateen0->aia) longjmp_exception(EX_II);
+#endif // CONFIG_RV_SMSTATEEN
 #else
         longjmp_exception(EX_II);
 #endif // CONFIG_RV_AIA
@@ -2790,6 +2793,9 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
           ((cpu.mode == MODE_S) && mvien->seie) || 
           (siselect->val > ISELECT_7F_MASK && (siselect->val & 0x1))
         ) longjmp_exception(EX_II);
+#ifdef CONFIG_RV_SMSTATEEN
+        if(!(cpu.mode == MODE_M) && !mstateen0->imsic) longjmp_exception(EX_II);
+#endif // CONFIG_RV_SMSTATEEN
 #else
         longjmp_exception(EX_II);
 #endif // CONFIG_RV_IMSIC
@@ -2814,6 +2820,9 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
           (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
           (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
         ) has_vi = true;
+#ifdef CONFIG_RV_SMSTATEEN
+        if(!hstateen0->imsic) has_vi = true;
+#endif // CONFIG_RV_SMSTATEEN
 #else // !CONFIG_RV_IMSIC
         has_vi = true;
 #endif // CONFIG_RV_IMSIC
@@ -2837,6 +2846,9 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
         (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
         (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
       ) longjmp_exception(EX_II);
+#ifdef CONFIG_RV_SMSTATEEN
+        if(!(cpu.mode == MODE_M) && !mstateen0->imsic) longjmp_exception(EX_II);
+#endif // CONFIG_RV_SMSTATEEN
 #else
       longjmp_exception(EX_II);
 #endif // CONFIG_RV_IMSIC
