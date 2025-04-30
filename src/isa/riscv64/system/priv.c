@@ -661,8 +661,6 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define SCOUNTOVF_WMASK 0xfffffff8ULL
 
-// Smcsrind/Sscsrind is not implemented. bit 60(CSRIND) read-only 1.
-#define STATEEN0_CSRIND  0x1000000000000000ULL
 #define MSTATEEN0_WMASK  0xdc00000000000001ULL
 #define HSTATEEN0_WMASK  0xdc00000000000001ULL
 #define SSTATEEN0_WMASK  0x0000000000000001ULL // 32 bits
@@ -2127,7 +2125,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_HSTATEEN0:
     {
-      *dest = ((src & HSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
+      *dest = (src & HSTATEEN0_WMASK); break;
     }
 #endif // CONFIG_RV_SMSTATEEN
 
@@ -2243,7 +2241,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
-    case CSR_MSTATEEN0: *dest = ((src & MSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
+    case CSR_MSTATEEN0: *dest = (src & MSTATEEN0_WMASK); break;
 #endif // CONFIG_RV_SMSTATEEN
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT

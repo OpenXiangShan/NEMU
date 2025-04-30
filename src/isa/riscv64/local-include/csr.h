@@ -192,11 +192,17 @@
   #define CSRS_S_SSTC(f)
 #endif
 
+/** Supervisor SMCSRIND Registers **/
+#ifdef CONFIG_RV_SMCSRIND
+  #define CSRS_S_SMCSRIND(f) \
+    f(siselect , 0x150) f(sireg   , 0x151) 
+#else
+  #define CSRS_S_SMCSRIND(f)
+#endif // CONFIG_RV_SMCSRIND
 
 /** Supervisor Advanced Interrupt Architecture Registers **/
 #ifdef CONFIG_RV_IMSIC
   #define CSRS_S_AIA(f) \
-    f(siselect , 0x150) f(sireg   , 0x151) \
     f(stopei   , 0x15C) f(stopi   , 0xDB0)
 #else
   #define CSRS_S_AIA(f)
@@ -212,6 +218,7 @@
   CSRS_S_DEBUG_TRACE(f) \
   CSRS_S_STATE_ENABLE(f) \
   CSRS_S_SCOFPMF(f) \
+  CSRS_S_SMCSRIND(f) \
   CSRS_S_AIA(f) \
   CSRS_S_SSTC(f) \
   CSRS_S_CUSTOM_1(f)
@@ -262,11 +269,18 @@
     f(vsstatus   , 0x200) f(vsie       , 0x204) f(vstvec     , 0x205) \
     f(vsscratch  , 0x240) f(vsepc      , 0x241) f(vscause    , 0x242) \
     f(vstval     , 0x243) f(vsip       , 0x244) f(vsatp      , 0x280)
+ 
+  /** Virtual Supervisor SMCSRIND Registers **/
+  #ifdef CONFIG_RV_SMCSRIND
+    #define CSRS_VS_SMCSRIND(f) \
+      f(vsiselect  , 0x250) f(vsireg     , 0x251)
+    #else
+      #define CSRS_VS_SMCSRIND(f)
+  #endif // CONFIG_RV_SMCSRIND
 
   /** Hypervisor and VS AIA Registers **/
   #ifdef CONFIG_RV_IMSIC
     #define CSRS_H_VS_AIA(f) \
-      f(vsiselect  , 0x250) f(vsireg     , 0x251) \
       f(vstopei    , 0x25C) f(hvien      , 0x608) \
       f(hvictl     , 0x609) f(hviprio1   , 0x646) \
       f(hviprio2   , 0x647) f(vstopi     , 0xEB0)
@@ -290,6 +304,7 @@
     CSRS_H_DEBUG_TRACE(f) \
     CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
     CSRS_H_STATE_ENABLE(f) \
+    CSRS_VS_SMCSRIND(f) \
     CSRS_H_VS_AIA(f) \
     CSRS_VS_SSTC(f) \
     CSRS_VS(f)
@@ -459,11 +474,18 @@
   f(mcorepwr   , 0xBC0) f(mflushpwr  , 0xBC1) \
   CSRS_M_MBMC(f)
 
+/** Machine SMCSRIND Registers **/
+#ifdef CONFIG_RV_SMCSRIND
+  #define CSRS_M_SMCSRIND(f) \
+    f(miselect   , 0x350) f(mireg      , 0x351)
+#else
+  #define CSRS_M_SMCSRIND(f)
+#endif // CONFIG_RV_SMCSRIND
+
 /** Machine AIA Registers **/
 #ifdef CONFIG_RV_IMSIC
   #define CSRS_M_AIA(f) \
   f(mvien      , 0x308) f(mvip       , 0x309) \
-  f(miselect   , 0x350) f(mireg      , 0x351) \
   f(mtopei     , 0x35C) f(mtopi      , 0xFB0)
 #else
   #define CSRS_M_AIA(f)
@@ -491,6 +513,7 @@
   CSRS_M_COUNTER_TIMERS(f) \
   CSRS_M_COUNTER_SETUP(f) \
   CSRS_M_DEBUG_TRACE(f) \
+  CSRS_M_SMCSRIND(f) \
   CSRS_M_AIA(f) \
   CSRS_M_SMRNMI(f) \
   CSRS_DEBUG_MODE(f) \

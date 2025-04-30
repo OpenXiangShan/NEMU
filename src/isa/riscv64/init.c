@@ -212,9 +212,9 @@ void init_isa() {
 #define HSTATEEN0_RESET  0xdc00000000000001ULL
 #define SSTATEEN0_RESET  0x0000000000000001ULL
 #ifdef CONFIG_RV_SMSTATEEN
-  mstateen0->val = MSTATEEN0_RESET;
-  hstateen0->val = HSTATEEN0_RESET;
-  sstateen0->val = SSTATEEN0_RESET;
+  mstateen0->val = 0;
+  hstateen0->val = 0;
+  sstateen0->val = 0;
 #endif // CONFIG_RV_SMSTATEEN
 
   init_riscv_timer();

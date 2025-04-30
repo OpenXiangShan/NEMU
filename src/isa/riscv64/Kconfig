@@ -160,9 +160,14 @@ config SDTRIG_EXTRA
     This includes the following optional CSRs in Sdtrig extension:
     tdata3, mcontext, hcontext, scontext.
 
+config RV_SMCSRIND
+  bool "(Beta) RISC-V Indirect CSR Access, include Smcsrind and Sscsrind"
+  depends on RVH
+  default n
+
 config RV_AIA
   bool "(Beta) RISC-V Advanced Interrupt Architecture v1.0"
-  depends on RVH
+  depends on RV_SMCSRIND
   default n
 
 config RV_IMSIC
@@ -526,7 +531,7 @@ config RV_SHLCOFIDELEG
   default n
 
 config RV_SMSTATEEN
-  bool "(Beta)Enable Smstateen extension"
+  bool "(Beta)Enable Smstateen extension, include Smstateen and Ssstateen"
   default n
 
 config MISA_UNCHANGEABLE
