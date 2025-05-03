@@ -166,6 +166,9 @@ void init_isa() {
   cpu.old_mtopei = 0;
   cpu.old_stopei = 0;
   cpu.old_vstopei = 0;
+  cpu.old_mtopi = 0;
+  cpu.old_stopi = 0;
+  cpu.old_vstopi = 0;
 #endif // CONFIG_RV_IMSIC
 
   misa->mxl = 2; // XLEN = 64
