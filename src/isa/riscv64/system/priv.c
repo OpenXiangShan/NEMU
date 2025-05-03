@@ -1663,8 +1663,8 @@ static word_t csr_read(uint32_t csrid) {
       IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
       return siselect->val;
     case CSR_STOPI:
-      if (cpu.v) return vstopi->val;
-      return stopi->val;
+      if (cpu.v) return cpu.old_vstopi;
+      return cpu.old_stopi;
     case CSR_STOPEI:
       if (cpu.v) return cpu.old_vstopei;
       return cpu.old_stopei;
@@ -1710,6 +1710,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HVIP: return hvip->val & HVIP_MASK;
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
+    case CSR_VSTOPI: return cpu.old_vstopi;
     case CSR_VSTOPEI: return cpu.old_vstopei;
     case CSR_VSIREG:
     {
@@ -1729,6 +1730,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
+    case CSR_MTOPI: return cpu.old_mtopi;
     case CSR_MTOPEI: return cpu.old_mtopei;
     case CSR_MIREG:
     {
@@ -2891,6 +2893,12 @@ static void sync_old_xtopei() {
   cpu.old_stopei = cpu.fromaia.stopei;
   cpu.old_vstopei = cpu.fromaia.vstopei;
 }
+
+static void sync_old_xtopi() {
+  cpu.old_mtopi = mtopi->val;
+  cpu.old_stopi = stopi->val;
+  cpu.old_vstopi = vstopi->val;
+}
 #endif // CONFIG_RV_IMSIC
 
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
@@ -2928,6 +2936,7 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
   }
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
+  sync_old_xtopi();
 #endif // CONFIG_RV_IMSIC
 }
 
