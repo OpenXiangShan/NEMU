@@ -75,6 +75,18 @@ void csr_prepare() {
   cpu.vlenb   = vlenb->val;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
+#ifdef CONFIG_RVMATRIX
+  cpu.mtype   = mtype->val;
+  cpu.mtilem  = mtilem->val;
+  cpu.mtilen  = mtilen->val;
+  cpu.mtilek  = mtilek->val;
+  cpu.mlenb   = mlenb->val;
+  cpu.mrlenb  = mrlenb->val;
+  cpu.mamul   = mamul->val;
+  cpu.mstart  = mstart->val;
+  cpu.mcsr    = mcsr->val;
+#endif // CONFIG_RVMATRIX
+
 #ifdef CONFIG_RVH
   cpu.mtval2  = mtval2->val;
   cpu.mtinst  = mtinst->val;
@@ -137,6 +149,18 @@ void csr_writeback() {
   vtype->val   = cpu.vtype;
   vlenb->val   = cpu.vlenb;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
+
+#ifdef CONFIG_RVMATRIX
+  mtype->val   = cpu.mtype;
+  mtilem->val  = cpu.mtilem;
+  mtilen->val  = cpu.mtilen;
+  mtilek->val  = cpu.mtilek;
+  mlenb->val   = cpu.mlenb;
+  mrlenb->val  = cpu.mrlenb;
+  mamul->val   = cpu.mamul;
+  mstart->val  = cpu.mstart;
+  mcsr->val    = cpu.mcsr;
+#endif
 
 #ifdef CONFIG_RVH
   mtval2->val  = cpu.mtval2;

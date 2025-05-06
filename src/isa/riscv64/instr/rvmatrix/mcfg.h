@@ -19,26 +19,29 @@
 
 #include "cpu/exec.h"
 #include "../local-include/csr.h"
-#include <stdio.h>
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
+#include <stdio.h>
 
 def_EHelper(msettype) {
   // read mtype value from rs1
   s->src1.val = reg_l(s->src1.reg);
   // write mtype value to mtype_csr_reg and rd
   mtype->val = s->src1.val;
+  mtype->mill = (mtype->pad != 0); // TODO: add other illegal cases
   reg_l(s->dest.reg) = mtype->val;
 }
 
 def_EHelper(msettypei) {
   mtype->val = ((mtype->val >> 10) << 10) | s->src2.imm;
+  mtype->mill = (mtype->pad != 0); // TODO: add other illegal cases
   reg_l(s->dest.reg) = mtype->val;
 }
 
 def_EHelper(msettypehi) {
-  mtype->val = (mtype->val & 0x3f) | (s->src2.imm << 10);
+  mtype->val = (mtype->val & 0x3ff) | (s->src2.imm << 10);
+  mtype->mill = (mtype->pad != 0); // TODO: add other illegal cases
   reg_l(s->dest.reg) = mtype->val;
 }
 

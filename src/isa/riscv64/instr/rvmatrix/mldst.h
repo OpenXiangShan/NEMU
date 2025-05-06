@@ -25,14 +25,14 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 
-#define PRINT_AMUCTRLIO
+// #define PRINT_AMUCTRLIO
 
 // TODO: not consider mstart now
-void mld(bool is_trans, char m_name) {
+void mld(Decode *s, bool is_trans, char m_name) {
   uint64_t base_addr = reg_l(s->src1.reg);
   int64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t td = s->dest.reg;
-  int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
+  int rmax_mreg = 0, cmax_mreg = 0, rmax_mem = 0, cmax_mem = 0;
   switch (m_name) {
     case 'a':
       rmax_mreg  = mtilem->val;
@@ -83,11 +83,11 @@ void mld(bool is_trans, char m_name) {
   }
 }
 
-void mst(bool is_trans, char m_name) {
+void mst(Decode *s, bool is_trans, char m_name) {
   uint64_t base_addr = reg_l(s->src1.reg);
   int64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t ts3 = s->dest.reg;
-  int rmax_mreg, cmax_mreg, rmax_mem, cmax_mem;
+  int rmax_mreg = 0, cmax_mreg = 0, rmax_mem = 0, cmax_mem = 0;
   switch (m_name) {
     case 'a':
       rmax_mreg  = mtilem->val;
@@ -140,51 +140,51 @@ void mst(bool is_trans, char m_name) {
 
 
 def_EHelper(mla) {
-  mld(false, 'a');
+  mld(s, false, 'a');
 }
 
 def_EHelper(mlb) {
-  mld(false, 'b');
+  mld(s, false, 'b');
 }
 
 def_EHelper(mlc) {
-  mld(false, 'c');
+  mld(s, false, 'c');
 }
 
 def_EHelper(mlat) {
-  mld(true, 'a');
+  mld(s, true, 'a');
 }
 
 def_EHelper(mlbt) {
-  mld(true, 'b');
+  mld(s, true, 'b');
 }
 
 def_EHelper(mlct) {
-  mld(true, 'c');
+  mld(s, true, 'c');
 }
 
 def_EHelper(msa) {
-  mst(false, 'a');
+  mst(s, false, 'a');
 }
 
 def_EHelper(msb) {
-  mst(false, 'b');
+  mst(s, false, 'b');
 }
 
 def_EHelper(msc) {
-  mst(false, 'c');
+  mst(s, false, 'c');
 }
 
 def_EHelper(msat) {
-  mst(true, 'a');
+  mst(s, true, 'a');
 }
 
 def_EHelper(msbt) {
-  mst(true, 'b');
+  mst(s, true, 'b');
 }
 
 def_EHelper(msct) {
-  mst(true, 'c');
+  mst(s, true, 'c');
 }
 
 def_EHelper(mltr) {
