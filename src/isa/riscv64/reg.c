@@ -275,6 +275,17 @@ void isa_reg_display() {
       printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
     }
   #endif // CONFIG_RV_SDTRIG
+
+#ifdef CONFIG_RVMATRIX
+  DISPLAY_HR("Matrix CSRs");
+  DISPLAY_CSR("mtype", mtype->val);
+  DISPLAY_CSR("mtilem", mtilem->val);
+  DISPLAY_CSR("mtilen", mtilen->val);
+  printf("\n");
+  DISPLAY_CSR("mtilek", mtilek->val);
+  DISPLAY_CSR("mstart", mstart->val);
+  DISPLAY_CSR("mcsr", mcsr->val);
+#endif // CONFIG_RVMATRIX
   fflush(stdout);
 }
 

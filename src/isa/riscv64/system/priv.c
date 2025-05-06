@@ -437,6 +437,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MSTATUS_WMASK_FS       | \
   MSTATUS_WMASK_RVH      | \
   MSTATUS_WMASK_RVV      | \
+  MSTATUS_WMASK_RVMATRIX | \
   MSTATUS_WMASK_MDT      | \
   MSTATUS_WMASK_SDT        \
 )
@@ -902,7 +903,8 @@ inline word_t gen_status_sd(word_t status) {
   xstatus.val = status;
   bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
   bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
-  return ((word_t)(fs_dirty || vs_dirty)) << 63;
+  bool ms_dirty = xstatus.ms == EXT_CONTEXT_DIRTY;
+  return ((word_t)(fs_dirty || vs_dirty || ms_dirty)) << 63;
 }
 
 static inline word_t get_mcycle() {

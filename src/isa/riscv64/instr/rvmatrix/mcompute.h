@@ -30,7 +30,7 @@
 typedef __uint128_t uint128_t;
 typedef __int128_t int128_t;
 
-#define PRINT_AMUCTRLIO
+// #define PRINT_AMUCTRLIO
 
 #define MMA_LOOP_BEGIN \
   int tile_m = mtilem->val; \

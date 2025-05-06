@@ -71,6 +71,8 @@ void init_isa() {
   // initialize the value fs and vs to 0
   mstatus->fs = 1;
   mstatus->vs = 0;
+  // initialize the value ms to 0
+  mstatus->ms = 0;
   // initialize SDT, MDT
   mstatus->mdt = ISDEF(CONFIG_MDT_INIT);
 #ifdef CONFIG_RV_SSDBLTRP
@@ -191,7 +193,7 @@ void init_isa() {
   mrlenb->val = MRLEN/8;
   mamul->val = MAMUL;
   
-  mtype->val = 0xC;
+  mtype->val = (uint64_t) 1 << 63; // the same as vtype
   mtilem->val = TMMAX;
   mtilek->val = TKMAX(MELEN);
   mtilen->val = TNMAX(MELEN);

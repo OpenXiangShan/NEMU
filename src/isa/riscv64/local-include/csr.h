@@ -676,7 +676,8 @@ CSR_STRUCT_START(mstatus)
   uint64_t tsr : 1; // [22]
   uint64_t pad3: 1; // [23]
   uint64_t sdt : 1; // [24]
-  uint64_t pad4: 7; // [31:25]
+  uint64_t ms  : 2; // [26:25]
+  uint64_t pad4: 5; // [31:27]
   uint64_t uxl : 2; // [33:32]
   uint64_t sxl : 2; // [35:34]
   uint64_t sbe : 1; // [36]
@@ -1139,7 +1140,8 @@ CSR_STRUCT_START(sstatus)
   uint64_t pad6 : 2;  // [22:21]
   uint64_t spelp: 1;  // [23]
   uint64_t sdt  : 1;  // [24]
-  uint64_t pad7 : 7;  // [31:25]
+  uint64_t ms   : 2;  // [26:25]
+  uint64_t pad7 : 5;  // [31:27]
   uint64_t pad8 :16;  // [47:32]
   uint64_t uxl  : 2;  // [33:32]
   uint64_t pad9 :28;  // [61:34]
@@ -1502,7 +1504,8 @@ CSR_STRUCT_START(vsstatus)
   uint64_t mxr    : 1;  // [19]
   uint64_t pad5   : 4;  // [23:20]
   uint64_t sdt    : 1;  // [24]
-  uint64_t pad6   : 7;  // [31:25]
+  uint64_t ms     : 2;  // [26:25]
+  uint64_t pad6   : 5;  // [31:27]
   uint64_t uxl    : 2;  // [33:32]
   uint64_t pad7   :29;  // [62:34]
   uint64_t sd     : 1;  // [63]
@@ -1725,22 +1728,6 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #ifdef CONFIG_RVMATRIX
 
-/*CSR_STRUCT_START(mtype)
-  uint64_t msew   :  3;
-  uint64_t mint4  :  1;
-  uint64_t mint8  :  1;
-  uint64_t mint16 :  1;
-  uint64_t mint32 :  1;
-  uint64_t mint64 :  1;
-  uint64_t mfp8   :  2;
-  uint64_t mfp16  :  2;
-  uint64_t mfp32  :  2;
-  uint64_t mfp64  :  1;
-  uint64_t mba    :  1;
-  uint64_t mma    :  1;
-  uint64_t pad    : 46;
-  uint64_t mill   :  1;
-CSR_STRUCT_END(mtype)*/
 CSR_STRUCT_START(mtype)
   uint64_t msew   :  3;
   uint64_t mint4  :  1;
@@ -1958,8 +1945,8 @@ MAP(CSRS, CSRS_DECL)
 /** SSTATUS **/
 // All valid fields defined by RISC-V spec and not affected by extensions
 // This mask is used to get the value of sstatus from mstatus
-// SD, SDT, UXL, MXR, SUM, XS, FS, VS, SPP, UBE, SPIE, SIE
-#define SSTATUS_BASE 0x80000003000de762UL
+// SD, SDT, UXL, MXR, SUM, XS, FS, VS, MS, SPP, UBE, SPIE, SIE
+#define SSTATUS_BASE 0x80000003060de762UL
 
 #define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0))
 
