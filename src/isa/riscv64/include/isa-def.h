@@ -142,22 +142,6 @@ typedef struct {
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
 #ifdef CONFIG_RVMATRIX
-  // void *tr_file;
-  // void *acc_file;
-  union {
-    uint64_t _64[MRENUM64];
-    uint32_t _32[MRENUM32];
-    uint16_t _16[MRENUM16];
-    uint8_t  _8[MRENUM8];
-  } mtr[8][MRNUM];
-
-  union {
-    uint64_t _64[MRENUM64 * MAMUL];
-    uint32_t _32[MRENUM32 * MAMUL];
-    uint16_t _16[MRENUM16 * MAMUL];
-    uint8_t  _8[MRENUM8 * MAMUL];
-  } macc[8][MRNUM];
-  
   uint64_t mtype, mtilem, mtilen, mtilek, mlenb, mrlenb, mamul;
   uint64_t mstart, mcsr;
 #endif // CONFIG_RVMATRIX
@@ -221,6 +205,24 @@ typedef struct {
 #endif
 
   trap_info_t trapInfo;
+
+#ifdef CONFIG_RVMATRIX
+  // void *tr_file;
+  // void *acc_file;
+  union {
+    uint64_t _64[MRENUM64];
+    uint32_t _32[MRENUM32];
+    uint16_t _16[MRENUM16];
+    uint8_t  _8[MRENUM8];
+  } mtr[8][MRNUM];
+
+  union {
+    uint64_t _64[MRENUM64 * MAMUL];
+    uint32_t _32[MRENUM32 * MAMUL];
+    uint16_t _16[MRENUM16 * MAMUL];
+    uint8_t  _8[MRENUM8 * MAMUL];
+  } macc[8][MRNUM];
+#endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_RV_IMSIC
   struct InterruptDelegate interrupt_delegate;
