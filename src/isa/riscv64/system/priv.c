@@ -1573,6 +1573,7 @@ bool iselect_is_major_ip(uint64_t iselect) {
 
 static word_t csr_read(uint32_t csrid) {
   word_t *src = csr_decode(csrid);
+  __attribute__((unused)) int old_val = 0; // for sync old xtopei/xtopi
   switch (csrid) {
     /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
@@ -1654,11 +1655,23 @@ static word_t csr_read(uint32_t csrid) {
       IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
       return siselect->val;
     case CSR_STOPI:
-      if (cpu.v) return cpu.old_vstopi;
-      return cpu.old_stopi;
+      if (cpu.v) {
+        old_val = cpu.old_vstopi;
+        cpu.old_vstopi = vstopi->val;
+        return old_val;
+      }
+      old_val = cpu.old_stopi;
+      cpu.old_stopi = stopi->val;
+      return old_val;
     case CSR_STOPEI:
-      if (cpu.v) return cpu.old_vstopei;
-      return cpu.old_stopei;
+      if (cpu.v) {
+        old_val = cpu.old_vstopei;
+        cpu.old_vstopei = cpu.fromaia.vstopei;
+        return old_val;
+      }
+      old_val = cpu.old_stopei;
+      cpu.old_stopei = cpu.fromaia.stopei;
+      return old_val;
     case CSR_SIREG:
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1720,8 +1733,14 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPI: return cpu.old_mtopi;
-    case CSR_MTOPEI: return cpu.old_mtopei;
+    case CSR_MTOPI:
+      old_val = cpu.old_mtopi;
+      cpu.old_mtopi = mtopi->val;  
+      return old_val;
+    case CSR_MTOPEI:
+      old_val = cpu.old_mtopei;
+      cpu.old_mtopei = cpu.fromaia.mtopei;
+      return old_val;
     case CSR_MIREG:
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
