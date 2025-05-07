@@ -767,6 +767,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
   if(cpu.guided_exec && cpu.execution_guide.force_raise_exception){
     if(ifetch && cpu.execution_guide.exception_num == EX_IPF){
       if (force_raise_pf_record(vaddr, type)) {
+        printf("[NEMU]: not force raise IPF\n");
         return MEM_RET_OK;
       }
 #ifdef CONFIG_RVH
@@ -815,6 +816,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LPF){
       if (force_raise_pf_record(vaddr, type)) {
+        printf("[NEMU]: not force raise LPF\n");
         return MEM_RET_OK;
       }
 
@@ -828,6 +830,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
       return MEM_RET_FAIL;
     } else if(type == MEM_TYPE_WRITE && cpu.execution_guide.exception_num == EX_SPF){
       if (force_raise_pf_record(vaddr, type)) {
+        printf("[NEMU]: not force raise SPF\n");
         return MEM_RET_OK;
       }
 
