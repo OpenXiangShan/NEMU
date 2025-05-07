@@ -2876,20 +2876,6 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   if (has_vi) longjmp_exception(EX_VI);
 }
 
-#ifdef CONFIG_RV_IMSIC
-static void sync_old_xtopei() {
-  cpu.old_mtopei = cpu.fromaia.mtopei;
-  cpu.old_stopei = cpu.fromaia.stopei;
-  cpu.old_vstopei = cpu.fromaia.vstopei;
-}
-
-static void sync_old_xtopi() {
-  cpu.old_mtopi = mtopi->val;
-  cpu.old_stopi = stopi->val;
-  cpu.old_vstopi = vstopi->val;
-}
-#endif // CONFIG_RV_IMSIC
-
 static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t instr) {
   ISADecodeInfo isa;
   isa.instr.val = instr;
@@ -2923,10 +2909,6 @@ static void csrrw(rtlreg_t *dest, const rtlreg_t *src, uint32_t csrid, uint32_t 
       break;
     default: panic("funct3 = %d is not supported for csrrw instruction\n", funct3);
   }
-#ifdef CONFIG_RV_IMSIC
-  sync_old_xtopei();
-  sync_old_xtopi();
-#endif // CONFIG_RV_IMSIC
 }
 
 static bool execIn (cpu_mode_t mode) {
