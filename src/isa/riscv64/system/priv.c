@@ -1655,14 +1655,8 @@ static word_t csr_read(uint32_t csrid) {
       IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
       return siselect->val;
     case CSR_STOPI:
-      if (cpu.v) {
-        old_val = cpu.old_vstopi;
-        cpu.old_vstopi = vstopi->val;
-        return old_val;
-      }
-      old_val = cpu.old_stopi;
-      cpu.old_stopi = stopi->val;
-      return old_val;
+      if (cpu.v) return vstopi->val;
+      return stopi->val;
     case CSR_STOPEI:
       if (cpu.v) {
         old_val = cpu.old_vstopei;
@@ -1733,10 +1727,6 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPI:
-      old_val = cpu.old_mtopi;
-      cpu.old_mtopi = mtopi->val;  
-      return old_val;
     case CSR_MTOPEI:
       old_val = cpu.old_mtopei;
       cpu.old_mtopei = cpu.fromaia.mtopei;

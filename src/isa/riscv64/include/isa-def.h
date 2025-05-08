@@ -206,9 +206,6 @@ typedef struct {
   uint64_t old_mtopei;
   uint64_t old_stopei;
   uint64_t old_vstopei;
-  uint64_t old_mtopi;
-  uint64_t old_stopi;
-  uint64_t old_vstopi;
 #endif
 
 } riscv64_CPU_state;
