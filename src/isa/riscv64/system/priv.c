@@ -2808,6 +2808,7 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
       if (vsiselect->val <= ISELECT_2F_MASK) longjmp_exception(EX_II);
       else if (vsiselect->val <= ISELECT_3F_MASK) {
 #ifdef CONFIG_RV_AIA
+        IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->aia) longjmp_exception(EX_II);)
         has_vi = true;
 #else
         longjmp_exception(EX_II);
@@ -2817,6 +2818,7 @@ static inline bool csrind_permit_check(const word_t *dest_access) {
       else if (vsiselect->val <= ISELECT_MAX_MASK) {
 #ifdef CONFIG_RV_AIA
 #ifdef CONFIG_RV_IMSIC
+        IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->imsic) longjmp_exception(EX_II);)
         if (
           (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
           (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
