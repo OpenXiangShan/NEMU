@@ -47,7 +47,7 @@
 
 /**
  * Mapping between CSR name and addr
- * 
+ *
  * This part follows the order of "CSR Listing" section in Privileged ISA Manual.
 */
 
@@ -142,12 +142,12 @@
   f(satp       , 0x180)
 
 /** Debug/Trace Registers (Trigger Module Registers) **/
-#ifdef CONFIG_RV_SDTRIG_EXTRA
+#ifdef CONFIG_RV_SDTRIG
   #define CSRS_S_DEBUG_TRACE(f) \
     f(scontext   , 0x5A8)
-#else // CONFIG_RV_SDTRIG_EXTRA
+#else // CONFIG_RV_SDTRIG
   #define CSRS_S_DEBUG_TRACE(f)
-#endif // CONFIG_RV_SDTRIG_EXTRA
+#endif // CONFIG_RV_SDTRIG
 
 /** Supervisor State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
@@ -262,12 +262,12 @@
     f(hgatp      , 0x680)
 
   /** Debug/Trace Registers (Trigger Module Registers) **/
-  #ifdef CONFIG_RV_SDTRIG_EXTRA
+  #ifdef CONFIG_RV_SDTRIG
     #define CSRS_H_DEBUG_TRACE(f) \
       f(hcontext   , 0x6A8)
-  #else // CONFIG_RV_SDTRIG_EXTRA
+  #else // CONFIG_RV_SDTRIG
     #define CSRS_H_DEBUG_TRACE(f)
-  #endif // CONFIG_RV_SDTRIG_EXTRA
+  #endif // CONFIG_RV_SDTRIG
 
   /** Hypervisor Counter/Timer Virtualization Registers **/
   #define CSRS_H_CONUTER_TIMER_VIRTUALIZATION(f) \
@@ -480,15 +480,14 @@
 #define CSRS_M_COUNTER_SETUP(f) \
   CSRS_M_MCOUNTINHIBIT(f) \
   CSRS_M_HPMEVENT(f)
-  
+
 /** Debug/Trace Registers (Trigger Module Registers) **/
 #ifdef CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f) \
     f(tselect    , 0x7A0) \
     f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) \
-    f(tinfo      , 0x7A4) \
-    IFDEF(CONFIG_SDTRIG_EXTRA, f(tdata3  , 0x7A3)) \
-    IFDEF(CONFIG_SDTRIG_EXTRA, f(mcontext, 0x7A8))
+    f(tinfo      , 0x7A4) f(mcontext   , 0x7A8) \
+    IFDEF(CONFIG_SDTRIG_EXTRA, f(tdata3  , 0x7A3))
 #else // CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f)
 #endif // CONFIG_RV_SDTRIG
@@ -1237,6 +1236,7 @@ CSR_STRUCT_END(stimecmp)
 
 /** Supervisor Advanced Interrupt Architecture CSRs **/
 #ifdef CONFIG_RV_IMSIC
+
 CSR_STRUCT_START(stopei)
   uint64_t iid   : 11; // [10: 0]
   uint64_t pad   :  5; // [15:11]
@@ -1246,7 +1246,7 @@ CSR_STRUCT_END(stopei)
 CSR_STRUCT_START(stopi)
   uint64_t iprio : 8;  // [ 7: 0]
   uint64_t pad   : 8;  // [15: 8]
-  uint64_t iid   : 12; // [27:16] 
+  uint64_t iid   : 12; // [27:16]
 CSR_STRUCT_END(stopi)
 #endif // CONFIG_RV_IMSIC
 
@@ -1510,7 +1510,7 @@ CSR_STRUCT_END(vstopei)
 CSR_STRUCT_START(vstopi)
   uint64_t iprio : 8;  // [ 7: 0]
   uint64_t pad   : 8;  // [15: 8]
-  uint64_t iid   : 12; // [27:16] 
+  uint64_t iid   : 12; // [27:16]
 CSR_STRUCT_END(vstopi)
 #endif // CONFIG_RV_IMSIC
 
