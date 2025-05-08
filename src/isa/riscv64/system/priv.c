@@ -662,6 +662,10 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define SCOUNTOVF_WMASK 0xfffffff8ULL
 
+// context
+#define MCONTEXT_MASK    0x00003fffULL
+#define SCONTEXT_MASK    0xffffffffULL
+
 #define MSTATEEN0_IMSIC 0x0400000000000000
 #define MSTATEEN0_WMASK (                           \
   MSTATEEN_HSTATEEN                               | \
@@ -669,6 +673,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MUXDEF(CONFIG_RV_SMCSRIND, MSTATEEN0_CSRIND, 0) | \
   MUXDEF(CONFIG_RV_AIA, MSTATEEN0_AIA, 0)         | \
   MUXDEF(CONFIG_RV_IMSIC, MSTATEEN0_IMSIC, 0)     | \
+  MSTATEEN0_HCONTEXT                              | \
   MSTATEEN0_CS                                      \
 )
 #define HSTATEEN0_WMASK MSTATEEN0_WMASK
@@ -1710,6 +1715,10 @@ static word_t csr_read(uint32_t csrid) {
       IFDEF(CONFIG_RVH, if (cpu.v) return vsatp->val);
       return satp->val;
 
+#ifdef CONFIG_RV_SDTRIG
+    case CSR_SCONTEXT: return scontext->val & SCONTEXT_MASK;
+#endif // CONFIG_RV_SDTRIG
+
     /************************* Hypervisor and VS CSRs *************************/
 #ifdef CONFIG_RVH
     case CSR_VSSTATUS: return sstatus_read(true, false);
@@ -1742,6 +1751,11 @@ static word_t csr_read(uint32_t csrid) {
 
     case CSR_HIP: return get_hip();
     case CSR_HVIP: return hvip->val & HVIP_MASK;
+
+#ifdef CONFIG_RV_SDTRIG
+    case CSR_HCONTEXT: return mcontext->val & MCONTEXT_MASK;
+#endif // CONFIG_RV_SDTRIG
+
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
     case CSR_VSTOPEI: return cpu.fromaia.vstopei;
@@ -1845,6 +1859,7 @@ static word_t csr_read(uint32_t csrid) {
 #ifdef CONFIG_RV_SDTRIG
     case CSR_TDATA1: return get_tdata1(cpu.TM);
     case CSR_TDATA2: return get_tdata2(cpu.TM);
+    case CSR_MCONTEXT: return mcontext->val & MCONTEXT_MASK;
 #ifdef CONFIG_SDTRIG_EXTRA
     case CSR_TDATA3: return get_tdata3(cpu.TM);
 #endif // CONFIG_SDTRIG_EXTRA
@@ -2094,6 +2109,9 @@ static void csr_write(uint32_t csrid, word_t src) {
     }
 #endif // CONFIG_RV_IMSIC
 
+#ifdef CONFIG_RV_SDTRIG
+    case CSR_SCONTEXT: *dest = src & SCONTEXT_MASK; break;
+#endif // CONFIG_RV_SDTRIG
 
     /************************* Hypervisor and VS CSRs *************************/
 #ifdef CONFIG_RVH
@@ -2189,6 +2207,10 @@ static void csr_write(uint32_t csrid, word_t src) {
 
     case CSR_HIP: hvip->val = mask_bitset(hvip->val, HIP_WMASK & (mideleg->val | MIDELEG_FORCED_MASK), src); break;
     case CSR_HVIP: hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); break;
+
+#ifdef CONFIG_RV_SDTRIG
+    case CSR_HCONTEXT: mcontext->val = src & MCONTEXT_MASK; break;
+#endif // CONFIG_RV_SDTRIG
 
 
 
@@ -2531,6 +2553,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
     }
 #endif // CONFIG_SDTRIG_EXTRA
+    case CSR_MCONTEXT: *dest = src & MCONTEXT_MASK; break;
     case CSR_TINFO: break;
 #endif // CONFIG_RV_SDTRIG
 
@@ -2718,6 +2741,19 @@ static inline bool smstateen_extension_permit_check(const uint32_t addr) {
     if ((cpu.mode < MODE_M) && (!mstateen0->imsic)) { longjmp_exception(EX_II); }
   }
 #endif // CONFIG_RV_IMSIC
+
+#ifdef CONFIG_RV_SDTRIG
+  // Context bit 57
+  else if (is_access(scontext)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->context)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->context) { has_vi = true; })
+  }
+#ifdef CONFIG_RVH
+  else if (is_access(hcontext)) {
+    if ((cpu.mode < MODE_M) && (!mstateen0->context)) { longjmp_exception(EX_II); }
+  }
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SDTRIG
 
   // Custom bit 0
   else if (is_S_custom_csr(addr)) {
