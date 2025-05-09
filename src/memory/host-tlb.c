@@ -113,6 +113,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   }
 }
 
+#ifdef CONFIG_RVMATRIX
 __attribute__((noinline))
 static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                                           int row, int column, int msew, bool transpose, bool isacc, int mreg_id) {
@@ -128,6 +129,7 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
     e->gvpn = hosttlb_vpn(vbase);
   }
 }
+#endif // CONFIG_RVMATRIX
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
@@ -211,6 +213,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #endif // NOT CONFIG_USE_SPARSEMM
 }
 
+#ifdef CONFIG_RVMATRIX
 void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                           int row, int column, int msew, bool transpose,
                           bool isacc, int mreg_id) {
@@ -245,3 +248,4 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, isacc, mreg_id);
 #endif // NOT CONFIG_USE_SPARSEMM
 }
+#endif // CONFIG_RVMATRIX
