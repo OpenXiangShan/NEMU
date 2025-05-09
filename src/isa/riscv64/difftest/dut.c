@@ -122,11 +122,14 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 
     return false;
   }
+  bool result = true;
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-  return difftest_check_store(pc);
-#else
-  return true;
-#endif
+  result &= difftest_check_store(pc);
+#ifdef CONFIG_RVMATRIX
+  result &= difftest_check_matrix_store(pc);
+#endif // CONFIG_RVMATRIX
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
+  return result;
 }
 
 void isa_difftest_attach() {
