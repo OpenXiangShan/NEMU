@@ -202,7 +202,7 @@ void init_pma() {
     {0},
     {0},
   };
-  
+
   PMAConfigModule* pmaconfigs = (PMAConfigModule *)malloc(sizeof (PMAConfigModule));
   for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
     pmaconfigs->pmaconfigs[i].base_addr = pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM - 1 - i][0];
@@ -674,11 +674,16 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HSTATEEN0_WMASK MSTATEEN0_WMASK
 #define SSTATEEN0_WMASK SSTATEEN0_CS
 
+#define MSTATEENX_WMASK MSTATEEN_HSTATEEN
+#define HSTATEENX_WMASK MSTATEENX_WMASK
+#define SSTATEENX_WMASK 0x0
+
 #ifdef CONFIG_RV_SMSTATEEN
 void init_smstateen() {
   mstateen0->val = 0;
-  IFDEF(CONFIG_RVH, hstateen0->val = 0);
-  sstateen0->val = 0;
+  mstateen1->val = 0;
+  mstateen2->val = 0;
+  mstateen3->val = 0;
 #if defined(CONFIG_RV_AIA) && !defined(CONFIG_RV_SMCSRIND)
   mstateen0->val |= MSTATEEN0_CSRIND;
   IFDEF(CONFIG_RVH, hstateen0->val |= MSTATEEN0_CSRIND);
@@ -1504,7 +1509,7 @@ inline void update_vstopi() {
     iidC1C4 = iidOnlyC4;
     iprioC1C4 = iprioC4;
   }
-  
+
   uint16_t iidC1C5 = 0;
   uint8_t iprioC1C5 = 0;
   iidC1C5 = hvictl->dpr ? iidOnlyC1 : iidOnlyC5;
@@ -1637,9 +1642,16 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_SSTATUS: return sstatus_read(false, false);
 
 #ifdef CONFIG_RV_SMSTATEEN
-    case CSR_SSTATEEN0:
-      IFDEF(CONFIG_RVH, if (cpu.v) return sstateen0->val & hstateen0->val & mstateen0->val);
-      return sstateen0->val & mstateen0->val;
+    case CSR_SSTATEEN0 ... CSR_SSTATEEN3:
+    {
+      mstateen1_t *mstateenx = (mstateen1_t *)&csr_array[CSR_MSTATEEN0 + (csrid - CSR_SSTATEEN0)];
+      sstateen1_t *sstateenx = (sstateen1_t *)&csr_array[CSR_SSTATEEN0 + (csrid - CSR_SSTATEEN0)];
+#ifdef CONFIG_RVH
+      hstateen1_t *hstateenx = (hstateen1_t *)&csr_array[CSR_HSTATEEN0 + (csrid - CSR_SSTATEEN0)];
+      if (cpu.v) return sstateenx->val & hstateenx->val & mstateenx->val;
+#endif // CONFIG_RVH
+      return sstateenx->val & mstateenx->val;
+    }
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_SIE:
@@ -1671,7 +1683,7 @@ static word_t csr_read(uint32_t csrid) {
 #endif // CONFIG_RV_SSTC
 #ifdef CONFIG_RV_SSCOFPMF
     case CSR_SCOUNTOVF:
-      if (cpu.mode == MODE_M) return scountovf->val; 
+      if (cpu.mode == MODE_M) return scountovf->val;
       IFDEF(CONFIG_RVH, else if (cpu.v && cpu.mode == MODE_S) return (mcounteren->val & hcounteren->val & scountovf->val));
       else if (cpu.mode == MODE_S) return (mcounteren->val & scountovf->val);
 #endif // CONFIG_RV_SSCOFPMF
@@ -1720,7 +1732,12 @@ static word_t csr_read(uint32_t csrid) {
     }
 
 #ifdef CONFIG_RV_SMSTATEEN
-    case CSR_HSTATEEN0: return hstateen0->val & mstateen0->val;
+    case CSR_HSTATEEN0 ... CSR_HSTATEEN3:
+    {
+      mstateen1_t *mstateenx = (mstateen1_t *)&csr_array[CSR_MSTATEEN0 + (csrid - CSR_HSTATEEN0)];
+      hstateen1_t *hstateenx = (hstateen1_t *)&csr_array[CSR_HSTATEEN0 + (csrid - CSR_HSTATEEN0)];
+      return hstateenx->val & mstateenx->val;
+    }
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_HIP: return get_hip();
@@ -1969,6 +1986,8 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_SSTATEEN0: *dest = src & SSTATEEN0_WMASK; break;
+    case CSR_SSTATEEN1 ... CSR_SSTATEEN3: *dest = src & SSTATEENX_WMASK; break;
+
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_SIE:
@@ -2145,6 +2164,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_HSTATEEN0: *dest = src & HSTATEEN0_WMASK; break;
+    case CSR_HSTATEEN1 ... CSR_HSTATEEN3: *dest = src & HSTATEENX_WMASK; break;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_HGATP:
@@ -2260,6 +2280,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_MSTATEEN0: *dest = src & MSTATEEN0_WMASK; break;
+    case CSR_MSTATEEN1 ... CSR_MSTATEEN3: *dest = src & MSTATEENX_WMASK; break;
 #endif // CONFIG_RV_SMSTATEEN
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
@@ -2289,7 +2310,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       }
 #ifdef CONFIG_RV_SSCOFPMF
       scountovf->ofvec = (scountovf->ofvec & ~(1 << (csrid - CSR_MHPMEVENT_BASE))) | (new_val.of << (csrid - CSR_MHPMEVENT_BASE));
-#endif // CONFIG_RV_SSCOFPMF 
+#endif // CONFIG_RV_SSCOFPMF
       break;
     }
 
@@ -2390,7 +2411,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         if (idx_base + i >= CONFIG_RV_PMA_ACTIVE_NUM) {
           break;
         }
-        word_t oldCfg = pmacfg_from_index(idx_base + i);    
+        word_t oldCfg = pmacfg_from_index(idx_base + i);
         word_t cfg = ((src >> (i*8)) & 0xff);
         if ((oldCfg & PMA_L) == 0) {
           cfg &= ~PMA_W | ((cfg & PMA_R) ? PMA_W : 0);
@@ -2634,13 +2655,18 @@ static inline bool smstateen_extension_permit_check(const uint32_t addr) {
   bool has_vi = false;
 
   // SE0 bit 63
-  if (is_access(sstateen0)) {
-    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
-    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->se0) { has_vi = true; })
+  if (is_access(sstateen0) || is_access(sstateen1) || is_access(sstateen2) || is_access(sstateen3)) {
+    mstateen1_t *mstateenx = (mstateen1_t *)&csr_array[CSR_MSTATEEN0 + (addr - CSR_SSTATEEN0)];
+#ifdef CONFIG_RVH
+    hstateen1_t *hstateenx = (hstateen1_t *)&csr_array[CSR_HSTATEEN0 + (addr - CSR_SSTATEEN0)];
+#endif // CONFIG_RVH
+    if ((cpu.mode < MODE_M) && (!mstateenx->se)) { longjmp_exception(EX_II); }
+    IFDEF(CONFIG_RVH, else if (cpu.v && !hstateenx->se) { has_vi = true; })
   }
 #ifdef CONFIG_RVH
-  else if (is_access(hstateen0)) {
-    if ((cpu.mode < MODE_M) && (!mstateen0->se0)) { longjmp_exception(EX_II); }
+  else if (is_access(hstateen0) || is_access(hstateen1) || is_access(hstateen2) || is_access(hstateen3)) {
+    mstateen1_t *mstateenx = (mstateen1_t *)&csr_array[CSR_MSTATEEN0 + (addr - CSR_HSTATEEN0)];
+    if ((cpu.mode < MODE_M) && (!mstateenx->se)) { longjmp_exception(EX_II); }
   }
 #endif // CONFIG_RVH
 
@@ -2659,8 +2685,8 @@ static inline bool smstateen_extension_permit_check(const uint32_t addr) {
   // CSRIND bit 60
   else if (addr >= CSR_SISELECT && addr <= CSR_SIREG6) {
     // siph is also within this range, but if the accessed CSR is miph,
-    // it will directly raise an illegal instruction exception 
-    // during the earlier check for the existence of the CSR. 
+    // it will directly raise an illegal instruction exception
+    // during the earlier check for the existence of the CSR.
     if ((cpu.mode < MODE_M) && (!mstateen0->csrind)) { longjmp_exception(EX_II); }
     IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->csrind) { has_vi = true; })
   }
@@ -2823,7 +2849,7 @@ static inline bool csrind_permit_check(const uint32_t addr) {
       else if (siselect->val <= ISELECT_MAX_MASK) {
 #ifdef CONFIG_RV_IMSIC
         if (
-          ((cpu.mode == MODE_S) && mvien->seie) || 
+          ((cpu.mode == MODE_S) && mvien->seie) ||
           (siselect->val > ISELECT_7F_MASK && (siselect->val & 0x1))
         ) longjmp_exception(EX_II);
 #ifdef CONFIG_RV_SMSTATEEN
