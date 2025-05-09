@@ -66,8 +66,8 @@ void mld(Decode *s, bool is_trans, char m_name) {
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=0, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
-    "            row=%d, col=%d, width=%#x\n",
-    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew);
+    "            row=%d, col=%d, width=%#x, isacc=%d\n",
+    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name == 'c');
 #endif
 
   uint64_t addr = base_addr;
@@ -119,8 +119,8 @@ void mst(Decode *s, bool is_trans, char m_name) {
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=1, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
-    "            row=%d, col=%d, width=%#x\n",
-    ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew);
+    "            row=%d, col=%d, width=%#x, isacc=%d\n",
+    ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name == 'c');
 #endif
 
   rtl_smm(s, &base_addr, &row_byte_stride,
