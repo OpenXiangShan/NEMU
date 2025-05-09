@@ -35,6 +35,16 @@ bool store_queue_empty();
 bool store_queue_overflow();
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
+#ifdef CONFIG_RVMATRIX
+void matrix_store_queue_reset();
+void matrix_store_queue_push(matrix_store_commit_t matrix_store_commit);
+void matrix_store_queue_pop();
+matrix_store_commit_t matrix_store_queue_front();
+matrix_store_commit_t matrix_store_queue_back();
+size_t matrix_store_size();
+bool matrix_store_queue_empty();
+#endif // CONFIG_RVMATRIX
+
 #ifdef __cplusplus
 }
 #endif
