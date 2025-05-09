@@ -306,6 +306,7 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 }
 
+#ifdef CONFIG_RVMATRIX
 void vaddr_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
                         int row, int column, int msew, bool transpose, int mmu_mode,
                         bool isacc, int mreg_id) {
@@ -319,6 +320,7 @@ void vaddr_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write_matrix, vaddr_mmu_write_matrix) (s, base, stride,
     row, column, msew, transpose, isacc, mreg_id);
 }
+#endif // CONFIG_RVMATRIX
 
 word_t vaddr_read_safe(vaddr_t addr, int len) {
   // FIXME: when reading fails, return an error instead of raising exceptions
