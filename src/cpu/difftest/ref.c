@@ -170,6 +170,17 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
   return 0;
 #endif
 }
+
+int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
+                                 uint32_t *row, uint32_t *column, uint32_t *msew,
+                                 bool *transpose) {
+#if defined(CONFIG_DIFFTEST_STORE_COMMIT) && defined(CONFIG_RVMATRIX)
+  return check_matrix_store_commit(base, stride, row, column, msew, transpose);
+#else
+  return 0;
+#endif
+}
+
 #endif
 #ifdef CONFIG_RV_SMDBLTRP
 bool difftest_raise_critical_error() {

@@ -155,7 +155,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
 }
 
 __attribute__((noinline))
-static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data, int type) {
+static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data) {
   vaddr_t vaddr = addr;
   paddr_t pg_base = isa_mmu_translate(addr, len, MEM_TYPE_WRITE);
   int ret = pg_base & PAGE_MASK;
@@ -164,6 +164,28 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
     ref_log_cpu("mmu_write: vaddr 0x%lx, paddr 0x%lx, len %d, data 0x%lx",
         vaddr, addr, len, data);
     paddr_write(addr, len, data, cpu.mode, vaddr);
+  }
+}
+
+__attribute__((noinline))
+static void vaddr_mmu_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
+                                   int row, int column, int msew, bool transpose,
+                                   bool isacc, int mreg_id) {
+  vaddr_t vbase = base;
+  paddr_t pg_base = isa_mmu_translate(base, 1 << msew, MEM_TYPE_WRITE);
+  int ret = pg_base & PAGE_MASK;
+  if (ret == MEM_RET_OK) {
+    base = pg_base | (base & PAGE_MASK);
+#ifdef CONFIG_SHARE
+    if (unlikely(dynamic_config.debug_difftest)) {
+      fprintf(stderr, "[NEMU] mmu_write matrix: vbase %#lx, pbase %#lx, stride %lu,\n"
+                      "                         row %d, column %d, msew %d, transpose %d,\n"
+                      "                         isacc %d, mreg_id %d\n",
+        vbase, base, stride, row, column, msew, transpose, isacc, mreg_id);
+    }
+#endif
+    paddr_write_matrix(base, stride, row, column, msew, transpose,
+                       cpu.mode, vbase, isacc, mreg_id);
   }
 }
 
@@ -281,20 +303,21 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
     paddr_write(addr, len, data, cpu.mode, addr);
     return;
   }
-  MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data, MEM_TYPE_WRITE);
+  MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 }
 
-void vaddr_write_matrix(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_mode) {
-  void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
-  isa_misalign_data_addr_check(addr, len, MEM_TYPE_WRITE);
+void vaddr_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
+                        int row, int column, int msew, bool transpose, int mmu_mode,
+                        bool isacc, int mreg_id) {
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
-    mmu_mode = isa_mmu_check(addr, len, MEM_TYPE_WRITE);
+    mmu_mode = isa_mmu_check(base, msew, MEM_TYPE_WRITE);
   }
   if (mmu_mode == MMU_DIRECT) {
-    paddr_write(addr, len, data, cpu.mode, addr);
+    paddr_write_matrix(base, stride, row, column, msew, transpose, cpu.mode, base, isacc, mreg_id);
     return;
   }
-  MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data, MEM_TYPE_MATRIX_WRITE);
+  MUXDEF(ENABLE_HOSTTLB, hosttlb_write_matrix, vaddr_mmu_write_matrix) (s, base, stride,
+    row, column, msew, transpose, isacc, mreg_id);
 }
 
 word_t vaddr_read_safe(vaddr_t addr, int len) {

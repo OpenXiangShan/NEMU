@@ -46,6 +46,9 @@ extern void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction);
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 extern int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask);
+#ifdef CONFIG_RVMATRIX
+extern int  (*ref_difftest_matrix_store_commit)(uint64_t *base, uint64_t *stride, uint32_t *row, uint32_t *column, uint32_t *width, bool *transpose);
+#endif // CONFIG_RVMATRIX
 #endif
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
@@ -89,5 +92,33 @@ static inline bool difftest_check_store(vaddr_t pc) {
 #endif
   return true;
 }
+
+#ifdef CONFIG_RVMATRIX
+static inline bool difftest_check_matrix_store(vaddr_t pc) {
+  if (matrix_store_queue_empty()) return true;
+  matrix_store_commit_t dut = matrix_store_queue_front();
+  matrix_store_queue_pop();
+
+  uint64_t dut_base = dut.base;
+  uint64_t dut_stride = dut.stride;
+  uint32_t dut_row = dut.row;
+  uint32_t dut_column = dut.column;
+  uint32_t dut_msew = dut.msew;
+  bool dut_transpose = dut.transpose;
+
+  if (ref_difftest_matrix_store_commit(&dut.base, &dut.stride,
+                                       &dut.row, &dut.column, &dut.msew, &dut.transpose)) {
+    Log("\n\t,is different matrix memory executing instruction at pc = " FMT_WORD,pc);
+    Log(",ref base = " FMT_WORD ", stride = " FMT_WORD ", row = " "0x%08x" ", column = " "0x%08x" ", msew = " "0x%08x" ", transpose = %d\n\t "
+        "dut base = " FMT_WORD ", stride = " FMT_WORD ", row = " "0x%08x" ", column = " "0x%08x" ", msew = " "0x%08x" ", transpose = %d"
+        , dut.base, dut.stride, dut.row, dut.column, dut.msew, dut.transpose,
+        dut_base, dut_stride, dut_row, dut_column, dut_msew, dut_transpose);
+    return false;
+  }
+
+  return true;
+}
+#endif // CONFIG_RVMATRIX
+
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
 #endif

@@ -96,7 +96,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
 }
 
 __attribute__((noinline))
-static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data, int type) {
+static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
   paddr_write(paddr, len, data, cpu.mode, vaddr);
   if (
@@ -111,8 +111,21 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
-  if (type == MEM_TYPE_MATRIX_WRITE) {
-    fprintf(stderr, "?? slow-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n", paddr, len, type);
+}
+
+__attribute__((noinline))
+static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
+                                          int row, int column, int msew, bool transpose, bool isacc, int mreg_id) {
+  paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_WRITE);
+  paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, isacc, mreg_id);
+  if (likely(in_pmem(pbase))) {
+    HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
+    #ifdef CONFIG_USE_SPARSEMM
+    e->offset = (uint8_t *)(pbase - vbase);
+    #else
+    e->offset = guest_to_host(pbase) - vbase;
+    #endif
+    e->gvpn = hosttlb_vpn(vbase);
   }
 }
 
@@ -173,20 +186,17 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
 }
 #endif // CONFIG_RVV
 
-void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data, int type) {
+void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #ifdef CONFIG_RVH
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
-    if (type == MEM_TYPE_MATRIX_WRITE) {
-      fprintf(stderr, "?? 2-stage hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n", paddr, len, type);
-    }
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
   if (unlikely(e->gvpn != gvpn)) {
-    hosttlb_write_slowpath(s, vaddr, len, data, type);
+    hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
 #ifdef CONFIG_USE_SPARSEMM
@@ -197,9 +207,41 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data, int ty
   // Also do store commit check with performance optimization enlabled
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
-  if (type == MEM_TYPE_MATRIX_WRITE) {
-    fprintf(stderr, "?? fast-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n", (paddr_t)host_to_guest(e->offset) + vaddr, len, type);
-  }
   host_write(host_addr, len, data);
+#endif // NOT CONFIG_USE_SPARSEMM
+}
+
+void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
+                          int row, int column, int msew, bool transpose,
+                          bool isacc, int mreg_id) {
+#ifdef CONFIG_RVH
+  if (has_two_stage_translation()){
+    paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_WRITE);
+    // TODO: print AmuCtrlIO info here
+    // fprintf(
+    //   "[AmuCtrlIO] op=1 \n"
+    //   "            ..."
+    //   "\n");
+    return paddr_write_matrix(pbase, stride, row, column, msew, transpose,
+      cpu.mode, vbase, isacc, mreg_id);
+  }
+#endif
+  vaddr_t gvpn = hosttlb_vpn(vbase);
+  HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
+  if (unlikely(e->gvpn != gvpn)) {
+    hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, isacc, mreg_id);
+    return;
+  }
+#ifdef CONFIG_USE_SPARSEMM
+  // TODO: What's this?
+  assert(false);
+  // sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
+#else // NOT CONFIG_USE_SPARSEMM
+  uint8_t *host_base = e->offset + vbase;
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  // Also do store commit check with performance optimization enlabled
+  matrix_store_commit_queue_push(host_to_guest(host_base), stride, row, column, msew, transpose);
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
+  host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, isacc, mreg_id);
 #endif // NOT CONFIG_USE_SPARSEMM
 }

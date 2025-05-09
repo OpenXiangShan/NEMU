@@ -14,6 +14,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <assert.h>
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
@@ -134,6 +135,20 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
   }
   #endif
 }
+
+#ifdef CONFIG_RVMATRIX
+static inline void pmem_matrix_write(paddr_t base, paddr_t stride,
+                                     int row, int column, int msew, bool transpose,
+                                     bool isacc, int mreg_id) {
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  matrix_store_commit_queue_push(base, stride, row, column, msew, transpose);
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+  analysis_memory_commit(base);
+#endif // CONFIG_MEMORY_REGION_ANALYSIS
+  host_write_matrix(base, stride, row, column, msew, transpose, isacc, mreg_id);
+}
+#endif // CONFIG_RVMATRIX
 
 static inline void raise_access_fault(int cause, vaddr_t vaddr) {
   cpu.trapInfo.tval = vaddr;
@@ -486,6 +501,65 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #endif
 }
 
+void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int width, bool transpose,
+                        int mode, vaddr_t vbase, bool isacc, int mreg_id) {
+  // TODO: more check on matrix_paddr
+  if (!check_paddr(base, width, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
+    return;
+  }
+  #ifndef CONFIG_SHARE
+  // Assert the whole matrix is either in pmem or mmio
+  // TODO: Consider the case where the matrix is split between pmem and mmio
+  if (likely(in_pmem(base))) {
+    pmem_matrix_write(base, stride, row, column, width, transpose, isacc, mreg_id);
+  } else {
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_access_fault(EX_SAF, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix write 
+      assert(false);
+      // mmio_write(addr, len, data);
+    } else {
+      raise_access_fault(EX_SAF, vbase);
+    }
+  }
+#else
+  if (likely(in_pmem(base))) {
+#ifdef CONFIG_STORE_LOG
+    pmem_record_store(base);
+#endif // CONFIG_STORE_LOG
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr matrix write base:" FMT_PADDR ", stride:" FMT_PADDR "\n"
+                      "       row:%d, column:%d, width:%d, transpose:%d\n",
+        base, stride, row, column, width, transpose);
+    }
+    return pmem_matrix_write(base, stride, row, column, width, transpose, isacc, mreg_id);
+  } else {
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_access_fault(EX_SAF, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix write 
+      assert(false);
+      // mmio_write(addr, len, data);
+    } else {
+      if(dynamic_config.ignore_illegal_mem_access)
+        return;
+      printf("ERROR: invalid mem matrix write to paddr " FMT_PADDR ", NEMU raise access exception\n", base);
+      raise_access_fault(EX_SAF, vbase);
+      return;
+    }
+  }
+#endif
+}
+
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 bool mem_addr_use[PROGRAM_ANALYSIS_PAGES];
 char *memory_region_record_file = NULL;
@@ -690,7 +764,33 @@ store_commit_t store_commit_queue_pop(int *flag) {
   return result;
 }
 
+void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
+                                    uint32_t row, uint32_t column, uint32_t msew,
+                                    bool transpose) {
+#ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
+  // TODO: What's this?
+  if (cpu.amo) {
+    return;
+  }
+#endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
+  Logm("push matrix store base = " FMT_PADDR ", stride = " FMT_PADDR ",\n"
+       "  row = " "0x%08x" ", column = " "0x%08x" ", msew = " "0x%08x" ", transpose = %d",
+    base, stride, row, column, msew, transpose);
+  matrix_store_commit_t store_commit;
+  store_commit.base = base;
+  store_commit.stride = stride;
+  store_commit.row = row;
+  store_commit.column = column;
+  store_commit.msew = msew;
+  store_commit.transpose = transpose;
+  store_commit.pc = prev_s->pc;
+  matrix_store_queue_push(store_commit);
+}
+
 store_commit_t store_commit_data;
+#ifdef CONFIG_RVMATRIX
+matrix_store_commit_t matrix_store_commit_data;
+#endif // CONFIG_RVMATRIX
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
@@ -714,6 +814,44 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
 store_commit_t get_store_commit_info() {
   return store_commit_data;
 }
+
+#ifdef CONFIG_RVMATRIX
+int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
+                              uint32_t *row, uint32_t *column, uint32_t *msew,
+                              bool *transpose) {
+  int result = 0;
+  if (matrix_store_queue_empty()) {
+    printf("NEMU does not commit any matrix store instruction.\n");
+    result = 1;
+  } else {
+    matrix_store_commit_data = matrix_store_queue_front();
+    matrix_store_queue_pop();
+    if (*base      != matrix_store_commit_data.base ||
+        *stride    != matrix_store_commit_data.stride ||
+        *transpose != matrix_store_commit_data.transpose ||
+        *row       != matrix_store_commit_data.row ||
+        *column    != matrix_store_commit_data.column ||
+        *msew     != matrix_store_commit_data.msew) {
+      // replace them with NEMU's data 
+      *base      = matrix_store_commit_data.base;
+      *stride    = matrix_store_commit_data.stride;
+      *transpose = matrix_store_commit_data.transpose;
+      *row       = matrix_store_commit_data.row;
+      *column    = matrix_store_commit_data.column;
+      *msew     = matrix_store_commit_data.msew;
+      
+      result = 1;
+    }
+  }
+  return result;
+}
+#endif // CONFIG_RVMATRIX
+
+#ifdef CONFIG_RVMATRIX
+matrix_store_commit_t get_matrix_store_commit_info() {
+  return matrix_store_commit_data;
+}
+#endif // CONFIG_RVMATRIX
 
 #endif
 
