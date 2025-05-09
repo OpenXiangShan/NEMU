@@ -454,8 +454,8 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
   isa_fp_csr_check();
   
   if (w == FPCALL_W16) {
-    float16_t fsrc1 = rtlToF16(*src1);
-    float16_t fsrc2 = rtlToF16(*src2);
+    float16_t fsrc1 = rtlToVF16(*src1);
+    float16_t fsrc2 = rtlToVF16(*src2);
     switch(op){
       case FPCALL_ADD: *dest = f16_add(fsrc1, fsrc2).v; break;
       case FPCALL_SUB: *dest = f16_sub(fsrc1, fsrc2).v; break;
@@ -473,7 +473,7 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_FLTQ: *dest = f16_lt_quiet(fsrc1, fsrc2); break; 
 
       case FPCALL_SQRT: *dest = f16_sqrt(fsrc1).v; break;
-      case FPCALL_MADD: *dest = f16_mulAdd(fsrc1, fsrc2, rtlToF16(*dest)).v; break;
+      case FPCALL_MADD: *dest = f16_mulAdd(fsrc1, fsrc2, rtlToVF16(*dest)).v; break;
 
       case FPCALL_LE: *dest = f16_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f16_lt(fsrc1, fsrc2); break;
