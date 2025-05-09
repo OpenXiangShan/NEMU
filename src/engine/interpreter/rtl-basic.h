@@ -133,14 +133,13 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 #endif
 }
 
-static inline def_rtl(lmm, rtlreg_t *dest, const rtlreg_t* addr,
-  word_t offset, int len, int mmu_mode) {
-  *dest = vaddr_read_matrix(s, *addr + offset, len, mmu_mode);
+static inline def_rtl(lmm, rtlreg_t *dest, const rtlreg_t* addr, int len, int mmu_mode) {
+  *dest = vaddr_read_matrix(s, *addr, len, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = true;
-  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+  cpu.query_mem_event.mem_access_vaddr = *addr;
 #endif
 }
 
@@ -155,14 +154,15 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 #endif
 }
 
-static inline def_rtl(smm, const rtlreg_t *src1, const rtlreg_t* addr,
-  word_t offset, int len, int mmu_mode) {
-  vaddr_write_matrix(s, *addr + offset, len, *src1, mmu_mode);
+static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
+                      int row, int column, int msew, bool transpose,
+                      int mmu_mode, bool isacc, int mreg_id) {
+  vaddr_write_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, isacc, mreg_id);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = false;
-  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+  cpu.query_mem_event.mem_access_vaddr = *base;
 #endif
 }
 

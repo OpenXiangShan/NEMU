@@ -68,6 +68,8 @@ static inline bool in_pmem(paddr_t addr) {
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
+void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int width, bool transpose,
+                        int mode, vaddr_t vbase, bool isacc, int mreg_id);
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
 #ifdef CONFIG_RV_MBMC
 word_t bitmap_read(paddr_t addr, int type, int mode);
@@ -107,10 +109,32 @@ typedef struct {
     uint64_t pc;
 } store_commit_t;
 
+#ifdef CONFIG_RVMATRIX
+typedef struct {
+    uint64_t base;
+    uint64_t stride;
+    uint32_t row;
+    uint32_t column;
+    uint32_t msew;
+    bool     transpose;
+    uint64_t pc;
+    // TODO: add data field
+} matrix_store_commit_t;
+#endif // CONFIG_RVMATRIX
+
 /**
  * In the implementation, CPP queue is used for store commit maintenance.
  * */
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store);
+
+#ifdef CONFIG_RVMATRIX
+/**
+ * In the implementation, CPP queue is used for matrix store commit maintenance.
+ * */
+void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
+                                   uint32_t row, uint32_t column, uint32_t msew,
+                                   bool transpose);
+#endif // CONFIG_RVMATRIX
 
 /**
  * Check whether there are valid entries.
@@ -123,7 +147,16 @@ store_commit_t store_commit_queue_pop(int *flag);
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 
 store_commit_t get_store_commit_info();
-#endif
+
+#ifdef CONFIG_RVMATRIX
+int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
+                              uint32_t *row, uint32_t *column, uint32_t *msew,
+                              bool *transpose);
+
+matrix_store_commit_t get_matrix_store_commit_info();
+#endif // CONFIG_RVMATRIX
+
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
 
 //#define CONFIG_MEMORY_REGION_ANALYSIS
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS

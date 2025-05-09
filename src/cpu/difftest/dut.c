@@ -31,6 +31,9 @@ int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask)
 void (*ref_difftest_flash_cpy)(uint8_t* flash_bin, size_t size) = NULL;
 void (*ref_difftest_pmpcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction) = NULL;
+#ifdef CONFIG_RVMATRIX
+int  (*ref_difftest_matrix_store_commit)(uint64_t *base, uint64_t *stride, uint32_t *row, uint32_t *column, uint32_t *width, bool *transpose) = NULL;
+#endif // CONFIG_RVMATRIX
 #ifdef CONFIG_DIFFTEST
 
 IFDEF(CONFIG_DIFFTEST_REF_QEMU_DL, __thread uint8_t resereve_for_qemu_tls[4096]);
