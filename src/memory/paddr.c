@@ -463,13 +463,14 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   }
 }
 
+#ifdef CONFIG_RVMATRIX
 void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int width, bool transpose,
                         int mode, vaddr_t vbase, bool isacc, int mreg_id) {
   // TODO: more check on matrix_paddr
   if (!check_paddr(base, width, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
     return;
   }
-  #ifndef CONFIG_SHARE
+#ifndef CONFIG_SHARE
   // Assert the whole matrix is either in pmem or mmio
   // TODO: Consider the case where the matrix is split between pmem and mmio
   if (likely(in_pmem(base))) {
@@ -489,7 +490,7 @@ void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int w
       raise_access_fault(EX_SAF, vbase);
     }
   }
-#else
+#else // !CONFIG_SHARE
   if (likely(in_pmem(base))) {
 #ifdef CONFIG_STORE_LOG
     pmem_record_store(base);
@@ -519,8 +520,9 @@ void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int w
       return;
     }
   }
-#endif
+#endif // CONFIG_SHARE
 }
+#endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 bool mem_addr_use[PROGRAM_ANALYSIS_PAGES];

@@ -50,6 +50,7 @@ static inline void host_write(void *addr, int len, word_t data) {
   }
 }
 
+#ifdef CONFIG_RVMATRIX
 static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
                               int column, int msew, bool transpose,
                               bool isacc, int mreg_id) {
@@ -72,5 +73,6 @@ static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
     pbase += stride;
   }
 };
+#endif // CONFIG_RVMATRIX
 
 #endif
