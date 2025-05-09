@@ -151,8 +151,15 @@
 
 /** Supervisor State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
+  #define CSRS_S_STATE0_ENABLE(f) \
+  f(sstateen0 , 0x10C) 
+
+  #define CSRS_S_STATEX_ENABLE(f) \
+  f(sstateen1 , 0x10D) f(sstateen2 , 0x10E) f(sstateen3 , 0x10F)
+
   #define CSRS_S_STATE_ENABLE(f) \
-    f(sstateen0 , 0x10C) 
+  CSRS_S_STATE0_ENABLE(f) \
+  CSRS_S_STATEX_ENABLE(f) 
 #else
   #define CSRS_S_STATE_ENABLE(f)
 #endif // CONFIG_RV_SMSTATEEN
@@ -268,8 +275,15 @@
 
   /** Hypervisor State Enable Registers **/
   #ifdef CONFIG_RV_SMSTATEEN
-    #define CSRS_H_STATE_ENABLE(f) \
-      f(hstateen0 , 0x60C) 
+  #define CSRS_H_STATE0_ENABLE(f) \
+  f(hstateen0 , 0x60C) 
+
+  #define CSRS_H_STATEX_ENABLE(f) \
+  f(hstateen1 , 0x60D) f(hstateen2 , 0x60E) f(hstateen3 , 0x60F)
+
+  #define CSRS_H_STATE_ENABLE(f) \
+  CSRS_H_STATE0_ENABLE(f) \
+  CSRS_H_STATEX_ENABLE(f) 
   #else
     #define CSRS_H_STATE_ENABLE(f)
   #endif // CONFIG_RV_SMSTATEEN
@@ -411,8 +425,15 @@
 
 /** Machine State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
+  #define CSRS_M_STATE0_ENABLE(f) \
+  f(mstateen0 , 0x30C) 
+
+  #define CSRS_M_STATEX_ENABLE(f) \
+  f(mstateen1 , 0x30D) f(mstateen2 , 0x30E) f(mstateen3 , 0x30F)
+
   #define CSRS_M_STATE_ENABLE(f) \
-    f(mstateen0, 0x30C)
+  CSRS_M_STATE0_ENABLE(f) \
+  CSRS_M_STATEX_ENABLE(f) 
 #else
   #define CSRS_M_STATE_ENABLE(f)
 #endif // CONFIG_RV_SMSTATEEN
@@ -812,12 +833,26 @@ CSR_STRUCT_END(mseccfg)
   uint64_t se0    : 1; // [63]
   CSR_STRUCT_END(mstateen0)
 
+  #define CSRS_M_STATEENX_STRUCT(name, addr) \
+  CSR_STRUCT_START(name)\
+  uint64_t pad : 63;\
+  uint64_t se  : 1; \
+  CSR_STRUCT_END(name)
+
+  MAP(CSRS_M_STATEX_ENABLE, CSRS_M_STATEENX_STRUCT)
+
   CSR_STRUCT_START(sstateen0)
   uint64_t c      : 1; // [0]
   uint64_t fcsr   : 1; // [1]
   uint64_t jvt    : 1; // [2]
   uint64_t pad0   :29; // [31:3]
   CSR_STRUCT_END(sstateen0)
+
+  #define CSRS_S_STATEENX_STRUCT(name, addr) \
+  CSR_STRUCT_START(name)\
+  CSR_STRUCT_END(name)
+
+  MAP(CSRS_S_STATEX_ENABLE, CSRS_S_STATEENX_STRUCT)
   
 #ifdef CONFIG_RVH
   CSR_STRUCT_START(hstateen0)
@@ -834,6 +869,15 @@ CSR_STRUCT_END(mseccfg)
   uint64_t envcfg : 1; // [62]
   uint64_t se0    : 1; // [63]
   CSR_STRUCT_END(hstateen0)
+
+  #define CSRS_H_STATEENX_STRUCT(name, addr) \
+  CSR_STRUCT_START(name)\
+  uint64_t pad : 63;\
+  uint64_t se  : 1; \
+  CSR_STRUCT_END(name)
+
+  MAP(CSRS_H_STATEX_ENABLE, CSRS_H_STATEENX_STRUCT)  
+
 #endif
 #endif
 
