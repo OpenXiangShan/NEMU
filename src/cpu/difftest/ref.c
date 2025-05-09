@@ -309,6 +309,8 @@ void difftest_update_vec_load_pmem() {
 void difftest_sync_aia(void *src) {
 #ifdef CONFIG_RV_IMSIC
   memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
+  isa_update_mtopi();
+  isa_update_stopi();
   isa_update_vstopi();
   isa_update_hgeip();
 #endif

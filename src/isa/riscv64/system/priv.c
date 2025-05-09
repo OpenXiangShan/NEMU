@@ -1326,7 +1326,8 @@ static inline void update_miprios() {
   // For a given interrupt number, if the corresponding bit in mie is read-only zero,
   // then the interrupt’s priority number in the iprio array must be read-only zero as well.
   // The priority number for a machine-level external interrupt (bits 31:24 of register iprio2) must also be read-only zero.
-  cpu.MIprios->iprios[1].val = cpu.MIprios->iprios[1].val & 0xffffffff00ffffff;
+  cpu.MIprios->iprios[0].val = cpu.MIprios->iprios[0].val & 0xffffff00ffffff00;
+  cpu.MIprios->iprios[1].val = cpu.MIprios->iprios[1].val & 0xffffffff00ffff00;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
@@ -1343,7 +1344,8 @@ static inline void update_siprios() {
   // For a given interrupt number, if the corresponding bit in sie is read-only zero,
   // then the interrupt’s priority number in the supervisor-level iprio array must be read-only zero as well.
   // The priority number for a supervisor-level external interrupt (bits 15:8 of iprio2) must also be read-only zero.
-  cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff00ff;
+  cpu.SIprios->iprios[0].val = cpu.SIprios->iprios[0].val & 0xffffff00ffffff00;
+  cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff0000;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
@@ -1599,6 +1601,7 @@ bool iselect_is_major_ip(uint64_t iselect) {
 
 static word_t csr_read(uint32_t csrid) {
   word_t *src = csr_decode(csrid);
+  __attribute__((unused)) int old_val = 0; // for sync old xtopei
   switch (csrid) {
     /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
@@ -1683,8 +1686,14 @@ static word_t csr_read(uint32_t csrid) {
       if (cpu.v) return vstopi->val;
       return stopi->val;
     case CSR_STOPEI:
-      if (cpu.v) return cpu.fromaia.vstopei;
-      return cpu.fromaia.stopei;
+      if (cpu.v) {
+        old_val = cpu.old_vstopei;
+        cpu.old_vstopei = cpu.fromaia.vstopei;
+        return old_val;
+      }
+      old_val = cpu.old_stopei;
+      cpu.old_stopei = cpu.fromaia.stopei;
+      return old_val;
     case CSR_SIREG:
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1727,7 +1736,12 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HVIP: return hvip->val & HVIP_MASK;
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
-    case CSR_VSTOPEI: return cpu.fromaia.vstopei;
+    case CSR_VSTOPEI: 
+    {
+      old_val = cpu.old_vstopei;
+      cpu.old_vstopei = cpu.fromaia.vstopei;
+      return old_val;
+    }
     case CSR_VSIREG:
     {
       bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1746,8 +1760,13 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPEI: return cpu.fromaia.mtopei;
-    case CSR_MIREG:
+    case CSR_MTOPEI:
+    {
+      old_val = cpu.old_mtopei;
+      cpu.old_mtopei = cpu.fromaia.mtopei;
+      return old_val;
+    }
+      case CSR_MIREG:
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
       if (miselect_is_major_ip) {
