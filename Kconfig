@@ -280,6 +280,10 @@ config SIMPOINT_LOG
   bool "Enable Log for simpoint profiling"
   default n
 
+config TRACE_MATRIX_LOAD_STORE
+  bool "Enable Log for matrix load/store"
+  default n
+
 config BR_LOG
   bool "Enable branch log"
   default n

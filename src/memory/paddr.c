@@ -162,7 +162,7 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   int cause = EX_LAF;
   if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
     cause = EX_IAF;
-  } else if (cpu.amo || type == MEM_TYPE_WRITE || type == MEM_TYPE_WRITE_READ) {
+  } else if (cpu.amo || type == MEM_TYPE_WRITE || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_WRITE) {
     cause = EX_SAF;
   }
   raise_access_fault(cause, vaddr);
@@ -249,7 +249,7 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
-    if (trap_type == MEM_TYPE_WRITE) {
+    if (trap_type == MEM_TYPE_WRITE || trap_type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pmp check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
