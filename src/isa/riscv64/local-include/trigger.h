@@ -192,10 +192,10 @@ void icount_checked_write(trig_icount_t* icount, word_t* wdata);
 bool trigger_reentrancy_check(); 
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
 
-inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
-inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
+static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
+static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
 #ifdef CONFIG_SDTRIG_EXTRA
-inline word_t get_tdata3(TriggerModule* TM) {return TM->triggers[tselect->val].tdata3.val;}
+static inline word_t get_tdata3(TriggerModule* TM) {return TM->triggers[tselect->val].tdata3.val;}
 #endif //CONFIG_SDTRIG_EXTRA
 
 // Used to avoid magic number
