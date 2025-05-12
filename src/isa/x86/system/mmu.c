@@ -61,7 +61,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   int is_user = cpu.sreg[CSR_CS].rpl == MODE_R3;
-  int is_write = (type == MEM_TYPE_WRITE) || (type == MEM_TYPE_READ && cpu.lock);
+  int is_write = (type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) || ((type == MEM_TYPE_READ || type == MEM_TYPE_MATRIX_READ) && cpu.lock);
   ok = ok && pte->p;
   ok = ok && !(is_user && !pte->u);
   ok = ok && !(is_write && !pte->w); // assume that CR0.WP is always enabled
