@@ -678,6 +678,11 @@ static void execute(int n) {
     cpu.amo = false;
     cpu.pbmt = 0;
     fetch_decode(&s, cpu.pc);
+
+    if ((cpu.pc & 0x3ffffffffffff) == 0x10000008) {
+      printf("NEMU find pc = %lx\n", cpu.pc);
+      printf("     inst = %x\n", s.isa.instr.val);
+    }
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
 #ifdef CONFIG_SHARE
