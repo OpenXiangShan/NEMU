@@ -99,7 +99,7 @@ config CUSTOM_TENSOR
   default n
 
 config RVMATRIX
-  bool "RISC-V Matrix Extension v0.3"
+  bool "RISC-V Matrix Extension v0.5"
   default n
 
 config DIFFTEST_DIRTY_FS_VS

@@ -123,7 +123,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       longjmp_exception(EX_IPF);
       return false;
     }
-  } else if (type == MEM_TYPE_READ) {
+  } else if (type == MEM_TYPE_READ || type == MEM_TYPE_MATRIX_READ) {
     Logtr("Translate for memory reading");
 #ifdef CONFIG_RVH
   bool can_load;
@@ -1006,9 +1006,9 @@ bool pmpcfg_check_permission(uint8_t pmpcfg,int type,int out_mode) {
   }
   else {
     if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ
-        || type == MEM_TYPE_WRITE_READ)
+        || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) {
       return pmpcfg & PMP_R;
-    else if (type == MEM_TYPE_WRITE)
+    else if (type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE)
       return pmpcfg & PMP_W;
     else if (type == MEM_TYPE_IFETCH)
       return pmpcfg & PMP_X;
@@ -1175,8 +1175,8 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
         return
           (mode == MODE_M && !(cfg & PMP_L)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
-          (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
+            type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) && (cfg & PMP_R)) ||
+          ((type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMP_W)) ||
           (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
       }
     }
