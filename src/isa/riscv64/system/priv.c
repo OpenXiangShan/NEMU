@@ -2734,9 +2734,8 @@ static inline bool smstateen_extension_permit_check(const uint32_t addr) {
 #ifdef CONFIG_RVH
     else if (cpu.v && (!hstateen0->c)) { has_vi = true; }
     else if (cpu.v && (cpu.mode == MODE_U) && (!sstateen0->c)) { has_vi = true; }
-#else // !CONFIG_RVH
-    else if ((cpu.mode == MODE_U) && (!sstateen0->c)) { longjmp_exception(EX_II); }
 #endif // CONFIG_RVH
+    else if ((cpu.mode == MODE_U) && (!sstateen0->c)) { longjmp_exception(EX_II); }
   }
 
   return has_vi;
