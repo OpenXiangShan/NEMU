@@ -29,6 +29,8 @@ void store_queue_reset() {
 }
 
 void store_queue_push(store_commit_t store_commit) {
+  printf("store_queue_push: addr=0x%lx data=0x%lx mask=%x pc=0x%lx\n",
+    store_commit.addr, store_commit.data, store_commit.mask, store_commit.pc);
   cpp_store_event_queue.push(store_commit);
 }
 
