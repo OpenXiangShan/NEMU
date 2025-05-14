@@ -856,7 +856,7 @@ int force_raise_gpf_record(vaddr_t vaddr, int type) {
     g_force_count[type] = 0;
   }
   g_force_count[type]++;
-  return g_force_count[type] == 5;
+  return g_force_count[type] == 10;
 }
 
 int force_raise_gpf(vaddr_t vaddr, int type){
