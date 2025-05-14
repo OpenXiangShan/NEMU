@@ -1701,6 +1701,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HVIP: return hvip->val & HVIP_MASK;
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
+    case CSR_VSTOPI: return cpu.old_vstopi;
     case CSR_VSTOPEI: return cpu.old_vstopei;
     case CSR_VSIREG:
     {
