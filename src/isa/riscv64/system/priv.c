@@ -1702,8 +1702,8 @@ static word_t csr_read(uint32_t csrid) {
       if (cpu.v) return vstopi->val;
       return stopi->val;
     case CSR_STOPEI:
-      if (cpu.v) return cpu.fromaia.vstopei;
-      return cpu.fromaia.stopei;
+      if (cpu.v) return cpu.old_vstopei;
+      return cpu.old_stopei;
     case CSR_SIREG:
     {
       bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1760,7 +1760,7 @@ static word_t csr_read(uint32_t csrid) {
 
     case CSR_HGEIP: return hgeip->val & HGEIP_MASK;
 #ifdef CONFIG_RV_IMSIC
-    case CSR_VSTOPEI: return cpu.fromaia.vstopei;
+    case CSR_VSTOPEI: return cpu.old_vstopei;
     case CSR_VSIREG:
     {
       bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
@@ -1779,7 +1779,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_MVIEN: return mvien->val & MVIEN_MASK;
     case CSR_MVIP: return get_mvip();
 #ifdef CONFIG_RV_IMSIC
-    case CSR_MTOPEI: return cpu.fromaia.mtopei;
+    case CSR_MTOPEI: return cpu.old_mtopei;
     case CSR_MIREG:
     {
       bool miselect_is_major_ip = iselect_is_major_ip(miselect->val);
@@ -3011,12 +3011,23 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   if (has_vi) longjmp_exception(EX_VI);
 }
 
+#ifdef CONFIG_RV_IMSIC
+static void sync_old_xtopei() {
+  cpu.old_mtopei = cpu.fromaia.mtopei;
+  cpu.old_stopei = cpu.fromaia.stopei;
+  cpu.old_vstopei = cpu.fromaia.vstopei;
+}
+#endif // CONFIG_RV_IMSIC
+
 void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd) {
   csr_permit_check(csrid, true);
   if (rd) {
     *dest = csr_read(csrid);
   }
   csr_write(csrid, val);
+#ifdef CONFIG_RV_IMSIC
+  sync_old_xtopei();
+#endif // CONFIG_RV_IMSIC
 }
 
 void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
@@ -3025,6 +3036,9 @@ void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   if (rs1) {
     csr_write(csrid, val | *dest);
   }
+#ifdef CONFIG_RV_IMSIC
+  sync_old_xtopei();
+#endif // CONFIG_RV_IMSIC
 }
 
 void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
@@ -3033,6 +3047,9 @@ void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   if (rs1) {
     csr_write(csrid, (~val) & *dest);
   }
+#ifdef CONFIG_RV_IMSIC
+  sync_old_xtopei();
+#endif // CONFIG_RV_IMSIC
 }
 
 static bool execIn (cpu_mode_t mode) {
