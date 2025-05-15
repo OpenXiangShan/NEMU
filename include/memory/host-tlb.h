@@ -20,6 +20,9 @@
 
 struct Decode;
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type);
+void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
+                         int row, int column, int msew, bool transpose,
+                         bool isacc, int mreg_id);
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data);
 void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                           int row, int column, int msew, bool transpose,

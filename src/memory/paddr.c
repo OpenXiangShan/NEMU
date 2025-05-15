@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <assert.h>
+#include <ext/amu_ctrl_queue_wrapper.h>
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
@@ -106,6 +107,20 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   #endif
 }
 
+static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
+                                     int row, int column, int msew, bool transpose,
+                                     bool isacc, int mreg_id) {
+#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+  analysis_memory_commit(base);
+#endif // CONFIG_MEMORY_REGION_ANALYSIS
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, isacc, base, stride, row, column, msew);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
+  host_read_matrix(base, stride, row, column, msew, transpose, isacc, mreg_id);
+#endif // CONFIG_RVMATRIX
+}
+
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   store_commit_queue_push(addr, data, len, cross_page_store);
@@ -137,12 +152,15 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
 }
 
 #ifdef CONFIG_RVMATRIX
-static inline void pmem_matrix_write(paddr_t base, paddr_t stride,
+static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
                                      int row, int column, int msew, bool transpose,
                                      bool isacc, int mreg_id) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   matrix_store_commit_queue_push(base, stride, row, column, msew, transpose);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, isacc, base, stride, row, column, msew);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(base);
 #endif // CONFIG_MEMORY_REGION_ANALYSIS
@@ -354,6 +372,72 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #endif // CONFIG_SHARE
 }
 
+#ifdef CONFIG_RVMATRIX
+void paddr_read_matrix(paddr_t base, paddr_t stride,
+                        int row, int column, int msew, bool transpose,
+                        int mode, vaddr_t vbase, bool isacc, int mreg_id) {
+  __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!check_paddr(base, msew, MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_READ, mode, vbase)) {
+    // TODO: do something here?
+    return;
+  }
+#ifndef CONFIG_SHARE
+  if (likely(in_pmem(base))) {
+    pmem_read_matrix(base, stride, row, column, msew, transpose, isacc, mreg_id);
+    return;
+  }
+  else {
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix read 
+      assert(false);
+      // return mmio_read(base, len);
+      return;
+    }
+    else raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+    return;
+  }
+#else
+  if (likely(in_pmem(base))) {
+    pmem_read_matrix(base, stride, row, column, msew, transpose, isacc, mreg_id);
+    if (dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr matrix read base:" FMT_PADDR ", stride:" FMT_PADDR "\n"
+                      "       row:%d, column:%d, msew:%d, transpose:%d\n",
+        base, stride, row, column, msew, transpose);
+    }
+    return;
+  }
+  else {
+#ifdef CONFIG_HAS_FLASH
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix read 
+      assert(false);
+      // return mmio_read(base, len);
+    }
+#endif
+    if (dynamic_config.ignore_illegal_mem_access) {
+      return;
+    }
+    Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", base);
+    raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+  }
+#endif // CONFIG_SHARE
+}
+#endif
+
 #ifdef CONFIG_RV_MBMC
 word_t bitmap_read(paddr_t addr, int type, int mode) {
   return pmem_read(addr, 1);
@@ -502,17 +586,18 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 }
 
 #ifdef CONFIG_RVMATRIX
-void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int width, bool transpose,
+void paddr_write_matrix(paddr_t base, paddr_t stride,
+                        int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, bool isacc, int mreg_id) {
   // TODO: more check on matrix_paddr
-  if (!check_paddr(base, width, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
+  if (!check_paddr(base, msew, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
     return;
   }
 #ifndef CONFIG_SHARE
   // Assert the whole matrix is either in pmem or mmio
   // TODO: Consider the case where the matrix is split between pmem and mmio
   if (likely(in_pmem(base))) {
-    pmem_matrix_write(base, stride, row, column, width, transpose, isacc, mreg_id);
+    pmem_write_matrix(base, stride, row, column, msew, transpose, isacc, mreg_id);
   } else {
     if (likely(is_in_mmio(base))) {
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
@@ -535,10 +620,10 @@ void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int w
 #endif // CONFIG_STORE_LOG
     if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr matrix write base:" FMT_PADDR ", stride:" FMT_PADDR "\n"
-                      "       row:%d, column:%d, width:%d, transpose:%d\n",
-        base, stride, row, column, width, transpose);
+                      "       row:%d, column:%d, msew:%d, transpose:%d\n",
+        base, stride, row, column, msew, transpose);
     }
-    return pmem_matrix_write(base, stride, row, column, width, transpose, isacc, mreg_id);
+    return pmem_write_matrix(base, stride, row, column, msew, transpose, isacc, mreg_id);
   } else {
     if (likely(is_in_mmio(base))) {
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
@@ -769,6 +854,7 @@ store_commit_t store_commit_queue_pop(int *flag) {
 void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
                                     uint32_t row, uint32_t column, uint32_t msew,
                                     bool transpose) {
+#ifdef CONFIG_RVMATRIX
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   // TODO: What's this?
   if (cpu.amo) {
@@ -787,6 +873,7 @@ void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
   store_commit.transpose = transpose;
   store_commit.pc = prev_s->pc;
   matrix_store_queue_push(store_commit);
+#endif // CONFIG_RVMATRIX
 }
 
 store_commit_t store_commit_data;
@@ -818,6 +905,12 @@ store_commit_t get_store_commit_info() {
 }
 
 #ifdef CONFIG_RVMATRIX
+matrix_store_commit_t get_matrix_store_commit_info() {
+  return matrix_store_commit_data;
+}
+#endif // CONFIG_RVMATRIX
+
+#ifdef CONFIG_RVMATRIX
 int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
                               uint32_t *row, uint32_t *column, uint32_t *msew,
                               bool *transpose) {
@@ -846,12 +939,6 @@ int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
     }
   }
   return result;
-}
-#endif // CONFIG_RVMATRIX
-
-#ifdef CONFIG_RVMATRIX
-matrix_store_commit_t get_matrix_store_commit_info() {
-  return matrix_store_commit_data;
 }
 #endif // CONFIG_RVMATRIX
 

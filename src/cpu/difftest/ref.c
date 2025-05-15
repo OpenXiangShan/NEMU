@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <ext/amuctrl.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
@@ -296,6 +297,20 @@ void difftest_get_store_event_other_info(void *info) {
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 
+void difftest_get_amu_ctrl_event_other_info(void *info) {
+#ifdef CONFIG_RVMATRIX
+  *(uint64_t*)info = get_amu_ctrl_info().pc;
+#endif // CONFIG_RVMATRIX
+}
+
+int difftest_amu_ctrl(void *cmp) {
+#ifdef CONFIG_RVMATRIX
+  amu_ctrl_event_t *amu_ctrl = (amu_ctrl_event_t *)cmp;
+  return check_amu_ctrl(amu_ctrl);
+#else
+  return 0;
+#endif // CONFIG_RVMATRIX
+}
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint32_t vec_laod_mul;
