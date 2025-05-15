@@ -70,6 +70,7 @@ SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
 
 DIRS-y += src/profiling
+DIRS-y += src/ext
 DIRS-y += src/checkpoint
 
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
@@ -82,6 +83,7 @@ XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling
 XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
 
 XSRCS-y += src/memory/store_queue_wrapper.cpp
+XSRCS-y += src/ext/amu_ctrl_queue_wrapper.cpp
 
 XSRCS = $(XSRCS-y)
 

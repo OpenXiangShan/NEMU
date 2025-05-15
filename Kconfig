@@ -376,6 +376,11 @@ config DIFFTEST_STORE_COMMIT
   bool "Maintain a committed store queue for processor ref"
   default y
 
+config DIFFTEST_AMU_CTRL
+  depends on SHARE
+  bool "Enable AMU control signal difftest"
+  default n
+
 config DIFFTEST_REF_FOR_GEM5
   depends on SHARE
   bool "Always copy lrsc valid to lr valid for GEM5"

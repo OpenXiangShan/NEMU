@@ -134,13 +134,15 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 }
 
 #ifdef CONFIG_RVMATRIX
-static inline def_rtl(lmm, rtlreg_t *dest, const rtlreg_t* addr, int len, int mmu_mode) {
-  *dest = vaddr_read_matrix(s, *addr, len, mmu_mode);
+static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
+                      int row, int column, int msew, bool transpose,
+                      int mmu_mode, bool isacc, int mreg_id) {
+  vaddr_read_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, isacc, mreg_id);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = true;
-  cpu.query_mem_event.mem_access_vaddr = *addr;
+  cpu.query_mem_event.mem_access_vaddr = *base;
 #endif
 }
 #endif // CONFIG_RVMATRIX

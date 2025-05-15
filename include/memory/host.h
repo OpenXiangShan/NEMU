@@ -39,6 +39,30 @@ static inline word_t host_read(void *addr, int len) {
   }
 }
 
+#ifdef CONFIG_RVMATRIX
+static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
+                              int column, int msew, bool transpose,
+                              bool isacc, int mreg_id) {
+  int width = 1 << msew;
+  Logm("read matrix: base = %#lx, stride = %lu,\n"
+       "             row = %d, column = %d, width = %d, transpose = %d",
+       pbase, stride, row, column, width, transpose);
+  int row_mem    = transpose ? column : row;
+  int column_mem = transpose ? row : column;
+  
+  for (int r = 0; r < row_mem; r++) {
+    for (int c = 0; c < column_mem; c++) {
+      paddr_t addr = pbase + c * width;
+      int r_reg = transpose ? c : r;
+      int c_reg = transpose ? r : c;
+      word_t tmp = host_read(guest_to_host(addr), width);
+      set_mreg(isacc, mreg_id, r_reg, c_reg, tmp, msew);
+    }
+    pbase += stride;
+  }
+};
+#endif // CONFIG_RVMATRIX
+
 static inline void host_write(void *addr, int len, word_t data) {
   Logm("write: addr = %p, len = %d, data = 0x%lx", addr, len, data);
   switch (len) {
