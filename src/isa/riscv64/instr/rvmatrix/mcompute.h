@@ -25,6 +25,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #include <cpu/cpu.h>
+#include <ext/amu_ctrl_queue_wrapper.h>
 #include "rtl/fp.h"
 
 typedef __uint128_t uint128_t;
@@ -404,6 +405,11 @@ def_EHelper(mfma) {
         rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
         set_mreg(true, td, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mma_emplace(td, mcsr->msat, ts1, ts2,
+                            mtilem->val, mtilen->val, mtilek->val,
+                            s->m_eew, s->m_eew);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -441,6 +447,11 @@ def_EHelper(mfwma) {
         rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
         set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mma_emplace(td, mcsr->msat, ts1, ts2,
+                            mtilem->val, mtilen->val, mtilek->val,
+                            s->m_eew, s->m_eew + 1);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
