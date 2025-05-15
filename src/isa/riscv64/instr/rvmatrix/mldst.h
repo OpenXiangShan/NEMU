@@ -30,9 +30,9 @@
 // TODO: not consider mstart now
 void mld(Decode *s, bool is_trans, char m_name) {
   uint64_t base_addr = reg_l(s->src1.reg);
-  int64_t row_byte_stride = reg_l(s->src2.reg);
+  uint64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t td = s->dest.reg;
-  int rmax_mreg = 0, cmax_mreg = 0, rmax_mem = 0, cmax_mem = 0;
+  int rmax_mreg = 0, cmax_mreg = 0;
   switch (m_name) {
     case 'a':
       rmax_mreg  = mtilem->val;
@@ -49,8 +49,6 @@ void mld(Decode *s, bool is_trans, char m_name) {
     default:
       break;
   }
-  rmax_mem = is_trans ? cmax_mreg : rmax_mreg;
-  cmax_mem = is_trans ? rmax_mreg : cmax_mreg;
 
   Assert((rmax_mreg <= MRNUM),
          "mtile config should not larger than tile_reg size!\n");
@@ -70,17 +68,9 @@ void mld(Decode *s, bool is_trans, char m_name) {
     td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name == 'c');
 #endif
 
-  uint64_t addr = base_addr;
-  for (int row = 0; row < rmax_mem; row++) {
-    for (int idx = 0; idx < cmax_mem; idx++) {
-      addr = base_addr + idx * (s->m_width);
-      rtl_lmm(s, &tmp_reg[0], &addr, s->m_width, MMU_TRANSLATE);
-      int row_tr = is_trans ? idx : row;
-      int idx_tr = is_trans ? row : idx;
-      set_mreg(m_name == 'c', td, row_tr, idx_tr, tmp_reg[0], s->m_eew);
-    }
-    base_addr += row_byte_stride;
-  }
+  rtl_lmm(s, &base_addr, &row_byte_stride,
+    rmax_mreg, cmax_mreg, s->m_eew, is_trans,
+    MMU_TRANSLATE, m_name == 'c', td);
 }
 
 void mst(Decode *s, bool is_trans, char m_name) {
