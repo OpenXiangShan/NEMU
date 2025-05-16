@@ -1,11 +1,12 @@
 #include <ext/amuctrl.h>
 #include <ext/amu_ctrl_queue_wrapper.h>
+#include <cpu/decode.h>
 
 #ifdef CONFIG_RVMATRIX
 #include <queue>
 
 std::queue<amu_ctrl_event_t> cpp_amu_ctrl_queue;
-
+extern Decode *prev_s;
 void amu_ctrl_queue_reset() {
   cpp_amu_ctrl_queue = {};
 }
@@ -49,8 +50,9 @@ void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, uint8_t ms1, uint8_t ms2,
   event.mtilem = mtilem;
   event.mtilen = mtilen;
   event.mtilek = mtilek;
-  event.types = types;
-  event.typed = typed;
+  event.types = types + 3;
+  event.typed = typed + 3;
+  event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
 
@@ -68,7 +70,8 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   event.isacc = isacc;
   event.mtilem = row;
   event.mtilen = column;
-  event.types = msew;
+  event.types = msew + 3;
+  event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
 
