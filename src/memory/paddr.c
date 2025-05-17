@@ -261,6 +261,11 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   else {
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
+      if (cpu.isVldst) {
+        raise_read_access_fault(trap_type, vaddr);
+        return 0;
+      }
+
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
       if (!mmio_is_real_device(addr)) {
@@ -286,6 +291,11 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #ifdef CONFIG_HAS_FLASH
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
+      if (cpu.isVldst) {
+        raise_read_access_fault(trap_type, vaddr);
+        return 0;
+      }
+
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
       if (!mmio_is_real_device(addr)) {
@@ -398,6 +408,11 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   else {
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
+      if (cpu.isVldst) {
+        raise_access_fault(EX_SAF, vaddr);
+        return;
+      }
+
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
       if (!mmio_is_real_device(addr)) {
@@ -422,6 +437,11 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   } else {
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
+      if (cpu.isVldst) {
+        raise_access_fault(EX_SAF, vaddr);
+        return;
+      }
+
       isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
 #ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
       if (!mmio_is_real_device(addr)) {
