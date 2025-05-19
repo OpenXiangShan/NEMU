@@ -37,9 +37,7 @@ static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
                  && l->transpose == r->transpose && l->isacc == r->isacc
                  && l->base == r->base && l->stride == r->stride 
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen
-                 && l->types == r->types && l->typed == r->typed;
-  // print_amu_ctrl_event(l);
-  // print_amu_ctrl_event(r);
+                 && l->types == r->types;
   return !(cmp_mma || cmp_mls);
 }
 
