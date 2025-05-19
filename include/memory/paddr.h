@@ -135,18 +135,22 @@ bool analysis_memory_isuse(uint64_t page);
 extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len) {
+
   assert(golden_pmem != NULL);
 #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread((void *)golden_pmem, addr, len)
 #else
+  word_t v = 0;
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
-    case 1: return *(uint8_t  *)p;
-    case 2: return *(uint16_t *)p;
-    case 4: return *(uint32_t *)p;
-    case 8: return *(uint64_t *)p;
+    case 1: v = *(uint8_t  *)p; break;
+    case 2: v = *(uint16_t *)p; break;
+    case 4: v = *(uint32_t *)p; break;
+    case 8: v = *(uint64_t *)p; break;
     default: assert(0);
   }
+  Logm("read golden mem: addr: 0x%lx, data: 0x%lx, len: %d", addr, v, len);
+  return v;
 #endif
 }
 #endif
