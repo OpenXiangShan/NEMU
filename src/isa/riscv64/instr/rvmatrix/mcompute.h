@@ -66,7 +66,7 @@ def_EHelper(mmau) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -91,7 +91,7 @@ def_EHelper(mwmau) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -116,7 +116,7 @@ def_EHelper(mqmau) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -134,7 +134,6 @@ def_EHelper(msmau) {
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
-          mcsr->msat = 1;
         }
         set_mreg(true, td, i, j, result, msew);
   MMA_LOOP_END
@@ -143,7 +142,7 @@ def_EHelper(msmau) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -165,7 +164,6 @@ def_EHelper(mswmau) {
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
-          mcsr->msat = 1;
         }
         set_mreg(true, td + widen_idx, i, j_offset, result, msew + 1);
   MMA_LOOP_END
@@ -174,7 +172,7 @@ def_EHelper(mswmau) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -196,7 +194,6 @@ def_EHelper(msqmau) {
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
-          mcsr->msat = 1;
         }
         set_mreg(true, td + widen_idx, i, j_offset, result, msew + 2);
   MMA_LOOP_END
@@ -205,7 +202,7 @@ def_EHelper(msqmau) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -224,7 +221,7 @@ def_EHelper(mma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -248,7 +245,7 @@ def_EHelper(mwma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -272,7 +269,7 @@ def_EHelper(mqma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -287,15 +284,11 @@ def_EHelper(msma) {
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew, true);
         int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
-        bool overflow = false;
         if (result > int_max){
           result = int_max;
-          overflow = true;
         } else if (result < int_min){
           result = int_min;
-          overflow = true;
         }
-        if (overflow) mcsr->msat = 1;
         set_mreg(true, td, i, j, result, msew);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
@@ -303,7 +296,7 @@ def_EHelper(msma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -322,15 +315,11 @@ def_EHelper(mswma) {
         int j_offset = j - widen_idx*(tile_n/2);
         get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, true);
         int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
-        bool overflow = false;
         if (result > int_max){
           result = int_max;
-          overflow = true;
         } else if (result < int_min){
           result = int_min;
-          overflow = true;
         }
-        if (overflow) mcsr->msat = 1;
         set_mreg(true, td + widen_idx, i, j_offset, result, msew + 1);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
@@ -338,7 +327,7 @@ def_EHelper(mswma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -357,15 +346,11 @@ def_EHelper(msqma) {
         int j_offset = j - widen_idx*(tile_n/4);
         get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, true);
         int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
-        bool overflow = false;
         if (result > int_max){
           result = int_max;
-          overflow = true;
         } else if (result < int_min){
           result = int_min;
-          overflow = true;
         }
-        if (overflow) mcsr->msat = 1;
         set_mreg(true, td + widen_idx, i, j_offset, result, msew + 2);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
@@ -373,7 +358,7 @@ def_EHelper(msqma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -406,7 +391,7 @@ def_EHelper(mfma) {
         set_mreg(true, td, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, mcsr->msat, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -415,7 +400,7 @@ def_EHelper(mfma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -448,7 +433,7 @@ def_EHelper(mfwma) {
         set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, mcsr->msat, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -457,7 +442,7 @@ def_EHelper(mfwma) {
           "[AmuCtrlIO] op=0 \n"
           "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, mcsr->msat, ts1, ts2,
+          td, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
