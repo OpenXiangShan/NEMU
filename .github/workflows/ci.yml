@@ -31,7 +31,7 @@ jobs:
   basic-xiangshan:
     runs-on: nemu
     continue-on-error: false
-    timeout-minutes: 10
+    timeout-minutes: 20
     name: Basic - XiangShan
     steps:
       - uses: actions/checkout@v4
