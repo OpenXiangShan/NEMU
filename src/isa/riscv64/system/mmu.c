@@ -751,14 +751,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 }
 
 int force_raise_pf_record(vaddr_t vaddr, int type) {
-  static vaddr_t last_addr[3] = {0x0};
-  static int force_count[3] = {0};
-  if (vaddr != last_addr[type]) {
-    last_addr[type] = vaddr;
-    force_count[type] = 0;
-  }
-  force_count[type]++;
-  return force_count[type] == 5;
+  return 0;
 }
 
 int force_raise_pf(vaddr_t vaddr, int type){
