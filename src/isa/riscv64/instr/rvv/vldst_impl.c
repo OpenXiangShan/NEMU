@@ -415,6 +415,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   }
 
   vstart->val = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 
@@ -506,6 +507,7 @@ void vldx(Decode *s, int mmu_mode) {
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 
@@ -670,6 +672,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   }
 
   vstart->val = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 
@@ -727,6 +730,7 @@ void vstx(Decode *s, int mmu_mode) {
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 
@@ -814,6 +818,7 @@ void vlr(Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 
@@ -872,6 +877,7 @@ void vsr(Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 
@@ -930,6 +936,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
       #endif // CONFIG_RVH
       stval->val = stvaltmp;
       mtval->val = mtvaltmp;
+      cpu.isVldst = false;
     } else {
       pop_context();
       longjmp_exception(cause);
@@ -1085,6 +1092,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
   vstart->val = 0;
   fofvl = 0;
+  cpu.isVldst = false;
   vp_set_dirty();
 }
 

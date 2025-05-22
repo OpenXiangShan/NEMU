@@ -150,6 +150,7 @@ typedef struct {
   // exec state
   bool amo;
   uint32_t pbmt;
+  bool isVldst;
   int mem_exception;
 
 #ifdef CONFIG_TVAL_EX_II
