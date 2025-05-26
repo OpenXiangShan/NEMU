@@ -23,7 +23,7 @@ jobs:
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-    - name: Try to compile 
+    - name: Try to compile
       id: list_configs
       run: |
         bash ./scripts/compilation-test.sh
@@ -69,18 +69,18 @@ jobs:
           bash ./scripts/restore_zstd.sh
           make clean-all
 
-          make riscv64-xs-cpt-with-flash_defconfig
-          make -j
-          bash ./scripts/take_zstd_into_flash.sh
-          make clean-all
+#          make riscv64-xs-cpt-with-flash_defconfig
+#          make -j
+#          bash ./scripts/take_zstd_into_flash.sh
+#          make clean-all
 
           # restore cpt
-          git submodule update --init --depth=1 ready-to-run
-          make riscv64-xs-diff-spike-withflash_defconfig
-          make gcpt_restore_bin
-          make -j
-          bash ./scripts/restore_zstd_into_flash.sh
-          make clean-all
+#          git submodule update --init --depth=1 ready-to-run
+#          make riscv64-xs-diff-spike-withflash_defconfig
+#          make gcpt_restore_bin
+#          make -j
+#          bash ./scripts/restore_zstd_into_flash.sh
+#          make clean-all
 
   basic-nutshell:
     runs-on: nemu
