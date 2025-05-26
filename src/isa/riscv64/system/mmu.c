@@ -596,10 +596,6 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
 
-  if (!is_ifetch) {
-    isa_misalign_data_addr_check(vaddr, len, type);
-  }
-
   // riscv-privileged 4.4.1: Addressing and Memory Protection:
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
