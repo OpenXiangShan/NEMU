@@ -25,7 +25,7 @@ static int nr_map = 0;
 static const uint64_t mmio_spec_bound[] = {__MMIO_SPECE_RANGE__};
 #define MMIO_SPEC_NUM (sizeof(mmio_spec_bound) / sizeof(uint64_t))
 #define MMIO_SPEC_PAIR_NUM MMIO_SPEC_NUM / 2
-static_assert(MMIO_SPEC_NUM % 2 == 0, "The address space of mmio needs to be specified in pairs.");
+// static_assert(MMIO_SPEC_NUM % 2 == 0, "The address space of mmio needs to be specified in pairs.");
 
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
 

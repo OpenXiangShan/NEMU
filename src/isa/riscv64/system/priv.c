@@ -3027,21 +3027,29 @@ static void sync_old_xtopi() {
 }
 #endif // CONFIG_RV_IMSIC
 
+extern FILE *log_fp;
+extern void dump_regs();
+
 void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd) {
+  fprintf(log_fp, "csrrw: val = 0x%lx, csrid = 0x%lx, rd = 0x%lx\n", val, csrid, rd);
   csr_permit_check(csrid, true);
   if (rd) {
     *dest = csr_read(csrid);
+    fprintf(log_fp, "csrrw: read *dest value = 0x%lx\n", *dest);
   }
   csr_write(csrid, val);
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
   sync_old_xtopi();
 #endif // CONFIG_RV_IMSIC
+  isa_reg_display();
 }
 
 void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
+  fprintf(log_fp, "csrrs: val = 0x%lx, csrid = 0x%lx, rs1 = 0x%lx\n", val, csrid, rs1);
   csr_permit_check(csrid, rs1 != 0);
   *dest = csr_read(csrid);
+  fprintf(log_fp, "csrrs: read *dest value = 0x%lx, write val 0x%lx to csr\n", *dest, val | *dest);
   if (rs1) {
     csr_write(csrid, val | *dest);
   }
@@ -3049,11 +3057,14 @@ void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   sync_old_xtopei();
   sync_old_xtopi();
 #endif // CONFIG_RV_IMSIC
+  isa_reg_display();
 }
 
 void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
+  fprintf(log_fp, "csrrc: val = 0x%lx, csrid = 0x%lx, rs1 = 0x%lx\n", val, csrid, rs1);
   csr_permit_check(csrid, rs1 != 0);
   *dest = csr_read(csrid);
+  fprintf(log_fp, "csrrc: read *dest value = 0x%lx, write val 0x%lx to csr\n", *dest, (~val) & *dest);
   if (rs1) {
     csr_write(csrid, (~val) & *dest);
   }
@@ -3061,6 +3072,7 @@ void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   sync_old_xtopei();
   sync_old_xtopi();
 #endif // CONFIG_RV_IMSIC
+  isa_reg_display();
 }
 
 static bool execIn (cpu_mode_t mode) {

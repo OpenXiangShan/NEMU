@@ -58,219 +58,221 @@ const char * isa_get_privilege_mode_str() {
 
 #define FMT_CSR_NAME "%9s"
 
-#define DISPLAY_CSR(name, val) \
-  printf(" " FMT_CSR_NAME ": " FMT_WORD, name, val)
+extern FILE *log_fp;
+
+#define DISPLAY_CSR(log_fp, name, val) \
+  fprintf(log_fp, " " FMT_CSR_NAME ": " FMT_WORD, name, val)
 
 // HR: Horizontal Rule
-#define DISPLAY_HR(name) \
-  printf("---------------- %s ----------------\n", name)
+#define DISPLAY_HR(log_fp, name) \
+  fprintf(log_fp, "---------------- %s ----------------\n", name)
 
 void isa_reg_display() {
   csr_prepare();
 
-  DISPLAY_HR("Intger Registers");
+  DISPLAY_HR(log_fp, "Intger Registers");
   for (int i = 0; i < 32; i ++) {
-    printf("%4s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
+    fprintf(log_fp, "%4s: " FMT_WORD " ", regsl[i], cpu.gpr[i]._64);
     if (i % 4 == 3) {
-      printf("\n");
+      fprintf(log_fp, "\n");
     }
   }
 
   #ifndef CONFIG_FPU_NONE
-    DISPLAY_HR("Float Registers");
+    DISPLAY_HR(log_fp, "Float Registers");
     for (int i = 0; i < 32; i ++) {
-      printf("%4s: " FMT_WORD " ", fpregsl[i], cpu.fpr[i]._64);
+      fprintf(log_fp, "%4s: " FMT_WORD " ", fpregsl[i], cpu.fpr[i]._64);
       if (i % 4 == 3) {
-        printf("\n");
+        fprintf(log_fp, "\n");
       }
     }
 
     #undef FMT_CSR_NAME
     #define FMT_CSR_NAME "%s"
 
-    DISPLAY_CSR("fcsr", cpu.fcsr);
-    DISPLAY_CSR("fflags", fflags->val);
-    DISPLAY_CSR("frm", frm->val);
-    printf("\n");
+    DISPLAY_CSR(log_fp, "fcsr", cpu.fcsr);
+    DISPLAY_CSR(log_fp, "fflags", fflags->val);
+    DISPLAY_CSR(log_fp, "frm", frm->val);
+    fprintf(log_fp, "\n");
   #endif // CONFIG_FPU_NONE
 
-  DISPLAY_HR("Privileged CSRs");
+  DISPLAY_HR(log_fp, "Privileged CSRs");
 
-  printf("pc: " FMT_WORD "  privilege mode: %s (mode: %ld  v: %ld  debug: %d)\n",
+  fprintf(log_fp, "pc: " FMT_WORD "  privilege mode: %s (mode: %ld  v: %ld  debug: %d)\n",
       cpu.pc, isa_get_privilege_mode_str(),
       cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, (uint64_t)0), MUXDEF(CONFIG_RV_SDEXT, cpu.debug_mode, 0));
 
   #undef FMT_CSR_NAME
   #define FMT_CSR_NAME "%9s"
 
-  DISPLAY_CSR("mstatus", cpu.mstatus);
-  DISPLAY_CSR("sstatus", cpu.sstatus);
-  IFDEF(CONFIG_RVH, DISPLAY_CSR("vsstatus", cpu.vsstatus));
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mstatus", cpu.mstatus);
+  DISPLAY_CSR(log_fp, "sstatus", cpu.sstatus);
+  IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vsstatus", cpu.vsstatus));
+  fprintf(log_fp, "\n");
 
-  IFDEF(CONFIG_RVH, DISPLAY_CSR("hstatus", cpu.hstatus));
-  IFDEF(CONFIG_RV_SMRNMI, DISPLAY_CSR("mnstatus", mnstatus->val));
-  printf("\n");
+  IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "hstatus", cpu.hstatus));
+  IFDEF(CONFIG_RV_SMRNMI, DISPLAY_CSR(log_fp, "mnstatus", mnstatus->val));
+  fprintf(log_fp, "\n");
 
-  DISPLAY_CSR("mcause", mcause->val);
-  DISPLAY_CSR("mepc", mepc->val);
-  DISPLAY_CSR("mtval", mtval->val);
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mcause", mcause->val);
+  DISPLAY_CSR(log_fp, "mepc", mepc->val);
+  DISPLAY_CSR(log_fp, "mtval", mtval->val);
+  fprintf(log_fp, "\n");
 
-  DISPLAY_CSR("scause", scause->val);
-  DISPLAY_CSR("sepc", sepc->val);
-  DISPLAY_CSR("stval", stval->val);
-  printf("\n");
+  DISPLAY_CSR(log_fp, "scause", scause->val);
+  DISPLAY_CSR(log_fp, "sepc", sepc->val);
+  DISPLAY_CSR(log_fp, "stval", stval->val);
+  fprintf(log_fp, "\n");
 
   #ifdef CONFIG_RVH
-    DISPLAY_CSR("vscause", vscause->val);
-    DISPLAY_CSR("vsepc", vsepc->val);
-    DISPLAY_CSR("vstval", vstval->val);
-    printf("\n");
+    DISPLAY_CSR(log_fp, "vscause", vscause->val);
+    DISPLAY_CSR(log_fp, "vsepc", vsepc->val);
+    DISPLAY_CSR(log_fp, "vstval", vstval->val);
+    fprintf(log_fp, "\n");
   #endif // CONFIG_RVH
 
   #ifdef CONFIG_RV_SMRNMI
-    DISPLAY_CSR("mncause", mncause->val);
-    DISPLAY_CSR("mnepc", mnepc->val);
-    DISPLAY_CSR("mnscratch", mnscratch->val);
-    printf("\n");
+    DISPLAY_CSR(log_fp, "mncause", mncause->val);
+    DISPLAY_CSR(log_fp, "mnepc", mnepc->val);
+    DISPLAY_CSR(log_fp, "mnscratch", mnscratch->val);
+    fprintf(log_fp, "\n");
   #endif // CONFIG_RV_SMRNMI
 
   #ifdef CONFIG_RVH
-    DISPLAY_CSR("mtval2", mtval2->val);
-    DISPLAY_CSR("htval", htval->val);
-    printf("\n");
-    DISPLAY_CSR("mtinst", mtinst->val);
-    DISPLAY_CSR("htinst", htinst->val);
-    printf("\n");
+    DISPLAY_CSR(log_fp, "mtval2", mtval2->val);
+    DISPLAY_CSR(log_fp, "htval", htval->val);
+    fprintf(log_fp, "\n");
+    DISPLAY_CSR(log_fp, "mtinst", mtinst->val);
+    DISPLAY_CSR(log_fp, "htinst", htinst->val);
+    fprintf(log_fp, "\n");
   #endif // CONFIG_RVH
 
-  DISPLAY_CSR("mscratch", mscratch->val);
-  DISPLAY_CSR("sscratch", sscratch->val);
-  IFDEF(CONFIG_RVH, DISPLAY_CSR("vsscratch", vsscratch->val));
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mscratch", mscratch->val);
+  DISPLAY_CSR(log_fp, "sscratch", sscratch->val);
+  IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vsscratch", vsscratch->val));
+  fprintf(log_fp, "\n");
 
-  DISPLAY_CSR("mtvec", mtvec->val);
-  DISPLAY_CSR("stvec", stvec->val);
-  IFDEF(CONFIG_RVH, DISPLAY_CSR("vstvec", vstvec->val));
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mtvec", mtvec->val);
+  DISPLAY_CSR(log_fp, "stvec", stvec->val);
+  IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vstvec", vstvec->val));
+  fprintf(log_fp, "\n");
 
-  DISPLAY_CSR("mip", get_mip());
-  DISPLAY_CSR("mie", mie->val);
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mip", get_mip());
+  DISPLAY_CSR(log_fp, "mie", mie->val);
+  fprintf(log_fp, "\n");
 
-  DISPLAY_CSR("mideleg", mideleg->val);
-  DISPLAY_CSR("medeleg", medeleg->val);
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mideleg", mideleg->val);
+  DISPLAY_CSR(log_fp, "medeleg", medeleg->val);
+  fprintf(log_fp, "\n");
 
   #ifdef CONFIG_RVH
-    DISPLAY_CSR("hideleg", get_hideleg());
-    DISPLAY_CSR("hedeleg", hedeleg->val);
-    printf("\n");
+    DISPLAY_CSR(log_fp, "hideleg", get_hideleg());
+    DISPLAY_CSR(log_fp, "hedeleg", hedeleg->val);
+    fprintf(log_fp, "\n");
   #endif // CONFIG_RVH
 
-  DISPLAY_CSR("satp", satp->val);
+  DISPLAY_CSR(log_fp, "satp", satp->val);
   #ifdef CONFIG_RVH
-    DISPLAY_CSR("hgatp", hgatp->val);
-    DISPLAY_CSR("vsatp", vsatp->val);
+    DISPLAY_CSR(log_fp, "hgatp", hgatp->val);
+    DISPLAY_CSR(log_fp, "vsatp", vsatp->val);
   #endif // CONFIG_RVH
-  printf("\n");
+  fprintf(log_fp, "\n");
 
-  DISPLAY_CSR("mcounteren", mcounteren->val);
-  DISPLAY_CSR("scounteren", scounteren->val);
-  IFDEF(CONFIG_RVH, DISPLAY_CSR("hcounteren", hcounteren->val));
-  printf("\n");
+  DISPLAY_CSR(log_fp, "mcounteren", mcounteren->val);
+  DISPLAY_CSR(log_fp, "scounteren", scounteren->val);
+  IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "hcounteren", hcounteren->val));
+  fprintf(log_fp, "\n");
 
   #ifdef CONFIG_RV_IMSIC
-    DISPLAY_CSR("miselect", miselect->val);
-    DISPLAY_CSR("siselect", siselect->val);
-    IFDEF(CONFIG_RVH, DISPLAY_CSR("vsiselect", vsiselect->val));
-    printf("\n");
-    DISPLAY_CSR("mireg", mireg->val);
-    DISPLAY_CSR("sireg", sireg->val);
-    IFDEF(CONFIG_RVH, DISPLAY_CSR("vsireg", vsireg->val));
-    printf("\n");
-    DISPLAY_CSR("mtopi", mtopi->val);
-    DISPLAY_CSR("stopi", stopi->val);
-    IFDEF(CONFIG_RVH, DISPLAY_CSR("vstopi", vstopi->val));
-    printf("\n");
-    DISPLAY_CSR("mvien", mvien->val);
-    IFDEF(CONFIG_RVH, DISPLAY_CSR("hvien", hvien->val));
-    DISPLAY_CSR("mvip", mvip->val);
-    printf("\n");
-    DISPLAY_CSR("mtopei", mtopei->val);
-    DISPLAY_CSR("stopei", stopei->val);
-    IFDEF(CONFIG_RVH, DISPLAY_CSR("vstopei", vstopei->val));
-    printf("\n");
+    DISPLAY_CSR(log_fp, "miselect", miselect->val);
+    DISPLAY_CSR(log_fp, "siselect", siselect->val);
+    IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vsiselect", vsiselect->val));
+    fprintf(log_fp, "\n");
+    DISPLAY_CSR(log_fp, "mireg", mireg->val);
+    DISPLAY_CSR(log_fp, "sireg", sireg->val);
+    IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vsireg", vsireg->val));
+    fprintf(log_fp, "\n");
+    DISPLAY_CSR(log_fp, "mtopi", mtopi->val);
+    DISPLAY_CSR(log_fp, "stopi", stopi->val);
+    IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vstopi", vstopi->val));
+    fprintf(log_fp, "\n");
+    DISPLAY_CSR(log_fp, "mvien", mvien->val);
+    IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "hvien", hvien->val));
+    DISPLAY_CSR(log_fp, "mvip", mvip->val);
+    fprintf(log_fp, "\n");
+    DISPLAY_CSR(log_fp, "mtopei", mtopei->val);
+    DISPLAY_CSR(log_fp, "stopei", stopei->val);
+    IFDEF(CONFIG_RVH, DISPLAY_CSR(log_fp, "vstopei", vstopei->val));
+    fprintf(log_fp, "\n");
     #ifdef CONFIG_RVH
-      DISPLAY_CSR("hvictl", hvictl->val);
-      DISPLAY_CSR("hviprio1", hviprio1->val);
-      DISPLAY_CSR("hviprio2", hviprio2->val);
-      printf("\n");
+      DISPLAY_CSR(log_fp, "hvictl", hvictl->val);
+      DISPLAY_CSR(log_fp, "hviprio1", hviprio1->val);
+      DISPLAY_CSR(log_fp, "hviprio2", hviprio2->val);
+      fprintf(log_fp, "\n");
     #endif // CONFIG_RVH
   #endif // CONFIG_RV_IMSIC
 
    #ifdef CONFIG_RV_MBMC
-     DISPLAY_CSR("mbmc", mbmc->val);
-     printf("\n");
+     DISPLAY_CSR(log_fp, "mbmc", mbmc->val);
+     fprintf(log_fp, "\n");
    #endif
 
   #ifdef CONFIG_RV_PMP_CSR
-    DISPLAY_HR("PMP CSRs");
-    printf("pmp: %d entries active, details:\n", CONFIG_RV_PMP_ACTIVE_NUM);
+    DISPLAY_HR(log_fp, "PMP CSRs");
+    fprintf(log_fp, "pmp: %d entries active, details:\n", CONFIG_RV_PMP_ACTIVE_NUM);
     for (int i = 0; i < CONFIG_RV_PMP_NUM; i++) {
-      printf("%2d: cfg:0x%02x addr:0x%016lx", i, pmpcfg_from_index(i), pmpaddr_from_index(i));
-      if (i % 2 == 1) printf("\n");
-      else printf("|");
+      fprintf(log_fp, "%2d: cfg:0x%02x addr:0x%016lx", i, pmpcfg_from_index(i), pmpaddr_from_index(i));
+      if (i % 2 == 1) fprintf(log_fp, "\n");
+      else fprintf(log_fp, "|");
     }
     #ifndef CONFIG_RV_PMP_CHECK
-      printf("pmp csr rw: enable, pmp check: disable\n");
+      fprintf(log_fp, "pmp csr rw: enable, pmp check: disable\n");
     #endif
   #endif // CONFIG_RV_PMP_CSR
 
   #ifdef CONFIG_RV_PMA_CSR
-    DISPLAY_HR("PMA CSRs");
-    printf("pma: %d entries active, details:\n", CONFIG_RV_PMA_ACTIVE_NUM);
+    DISPLAY_HR(log_fp, "PMA CSRs");
+    fprintf(log_fp, "pma: %d entries active, details:\n", CONFIG_RV_PMA_ACTIVE_NUM);
     for (int i = 0; i < CONFIG_RV_PMA_NUM; i++) {
-      printf("%2d: cfg:0x%02x addr:0x%016lx", i, pmacfg_from_index(i), pmaaddr_from_index(i));
-      if (i % 2 == 1) printf("\n");
-      else printf("|");
+      fprintf(log_fp, "%2d: cfg:0x%02x addr:0x%016lx", i, pmacfg_from_index(i), pmaaddr_from_index(i));
+      if (i % 2 == 1) fprintf(log_fp, "\n");
+      else fprintf(log_fp, "|");
     }
     #ifndef CONFIG_RV_PMA_CHECK
-      printf("pma csr rw: enable, pma check: disable\n");
+      fprintf(log_fp, "pma csr rw: enable, pma check: disable\n");
     #endif
   #endif // CONFIG_RV_PMA_CSR
 
   #ifdef CONFIG_RVV
     //vector register
-    DISPLAY_HR("Vector Registers");
+    DISPLAY_HR(log_fp, "Vector Registers");
     extern const char * vregsl[];
     for(int i = 0; i < 32; i ++) {
-      printf("%s: ", vregsl[i]);
-      printf("0x%016lx_%016lx  ",
+      fprintf(log_fp, "%s: ", vregsl[i]);
+      fprintf(log_fp, "0x%016lx_%016lx  ",
         cpu.vr[i]._64[1], cpu.vr[i]._64[0]);
-      if(i%2) printf("\n");
+      if(i%2) fprintf(log_fp, "\n");
     }
 
     #undef FMT_CSR_NAME
     #define FMT_CSR_NAME "%6s"
 
-    DISPLAY_CSR("vtype", vtype->val);
-    DISPLAY_CSR("vstart", vstart->val);
-    DISPLAY_CSR("vxsat", vxsat->val);
-    printf("\n");
-    DISPLAY_CSR("vxrm", vxrm->val);
-    DISPLAY_CSR("vl", vl->val);
-    DISPLAY_CSR("vcsr", vcsr->val);
-    printf("\n");
+    DISPLAY_CSR(log_fp, "vtype", vtype->val);
+    DISPLAY_CSR(log_fp, "vstart", vstart->val);
+    DISPLAY_CSR(log_fp, "vxsat", vxsat->val);
+    fprintf(log_fp, "\n");
+    DISPLAY_CSR(log_fp, "vxrm", vxrm->val);
+    DISPLAY_CSR(log_fp, "vl", vl->val);
+    DISPLAY_CSR(log_fp, "vcsr", vcsr->val);
+    fprintf(log_fp, "\n");
   #endif // CONFIG_RVV
 
   #ifdef CONFIG_RV_SDTRIG
-    DISPLAY_HR("Triggers");
-    DISPLAY_CSR("tselect", tselect->val);
-    printf("\n");
+    DISPLAY_HR(log_fp, "Triggers");
+    DISPLAY_CSR(log_fp, "tselect", tselect->val);
+    fprintf(log_fp, "\n");
     for(int i = 0; i < CONFIG_TRIGGER_NUM + 1; i++) {
-      printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
+      fprintf(log_fp, "%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
     }
   #endif // CONFIG_RV_SDTRIG
   fflush(stdout);

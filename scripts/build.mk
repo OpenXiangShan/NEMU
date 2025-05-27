@@ -33,11 +33,12 @@ LD := $(CCACHE) $(CXX)
 INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
 CFLAGS  := -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
-CXXFLAGS  := --std=c++17 $(XINCLUDES) $(CFLAGS)
+CXXFLAGS  := --std=c++11 $(XINCLUDES) $(CFLAGS)
+CFLAGS += --std=gnu99
 LDFLAGS := $(LDFLAGS) $(PGO_FLAGS)
 # filesystem
 ifndef SHARE
-LDFLAGS += -lstdc++fs -lstdc++ -lm
+# LDFLAGS += -lstdc++fs -lstdc++ -lm
 endif
 
 COBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)

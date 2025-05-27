@@ -29,6 +29,9 @@ void add_alarm_handle(alarm_handler_t h) {
   handler[idx ++] = h;
 }
 
+void init_alarm() {}
+
+/*
 static void alarm_sig_handler(int signum) {
   int i;
   for (i = 0; i < idx; i ++) {
@@ -50,3 +53,5 @@ void init_alarm() {
   ret = setitimer(ITIMER_VIRTUAL, &it, NULL);
   Assert(ret == 0, "Can not set timer");
 }
+
+*/

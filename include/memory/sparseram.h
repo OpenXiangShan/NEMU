@@ -1,3 +1,4 @@
+#define __SPARSE_RAM__
 #ifndef __SPARSE_RAM__
 
 #include <stdio.h>
