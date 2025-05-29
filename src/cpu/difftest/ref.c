@@ -304,6 +304,12 @@ void difftest_get_amu_ctrl_event_other_info(void *info) {
 }
 
 int difftest_amu_ctrl(void *cmp) {
+  // Check if the queue head matches the given cmp.
+  // If they don't match, save the queue head to cmp.
+  // Return value:
+  //   0:  Queue head matches cmp
+  //   1:  Queue head does not match cmp
+  //   -1: Queue is empty, no cmp to check
 #ifdef CONFIG_RVMATRIX
   amu_ctrl_event_t *amu_ctrl = (amu_ctrl_event_t *)cmp;
   return check_amu_ctrl(amu_ctrl);
