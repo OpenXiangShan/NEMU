@@ -93,7 +93,7 @@ static inline bool difftest_check_store(vaddr_t pc) {
   return true;
 }
 
-#ifdef CONFIG_RVMATRIX
+#if defined(CONFIG_RVMATRIX) && defined(CONFIG_DIFFTEST_STORE_COMMIT)
 static inline bool difftest_check_matrix_store(vaddr_t pc) {
   if (matrix_store_queue_empty()) return true;
   matrix_store_commit_t dut = matrix_store_queue_front();
