@@ -277,7 +277,7 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
     return false;
   }
   if (!isa_pma_check_permission(addr, len, type)) {
-    if (trap_type == MEM_TYPE_WRITE) {
+    if (trap_type == MEM_TYPE_WRITE || trap_type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pma check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
@@ -288,7 +288,7 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
   }
   #ifdef CONFIG_RV_MBMC
   if (!isa_bmc_check_permission(addr, len, type, mode)){
-    if (type == MEM_TYPE_WRITE) {
+    if (type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     } else {
       Log("isa mbmc check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",

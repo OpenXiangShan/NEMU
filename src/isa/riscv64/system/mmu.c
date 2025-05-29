@@ -1284,13 +1284,13 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
         }
         return
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
-          (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
+            type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) && (cfg & PMA_R)) ||
+          ((type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMA_W)) ||
           (type == MEM_TYPE_IFETCH && (cfg & PMA_X)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_T)) ||
+            type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMA_T)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C)) ;
+            type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMA_C)) ;
       }
     }
 
