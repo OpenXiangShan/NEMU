@@ -212,9 +212,9 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   if (hld_st) {
     mode = hstatus->spvp;
     virt = true;
-  } else if (mstatus->mprv) {
+  } else if (mstatus->mprv IFDEF(CONFIG_RV_SMRNMI, && mnstatus->nmie) && mode != MODE_M ) {
     mode = mstatus->mpp;
-    virt = mstatus->mpv && mode != MODE_M;
+    virt = mstatus->mpv;
   }
 
   if (mode == MODE_M) {
@@ -604,6 +604,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
 #ifdef CONFIG_RVH
+  bool virt = mstatus->mprv && mstatus->mpp != MODE_M IFDEF(CONFIG_RV_SMRNMI, && mnstatus->nmie) ? mstatus->mpv : cpu.v;
   bool enable_39 = satp->mode == SATP_MODE_Sv39 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4));
   bool enable_48 = satp->mode == SATP_MODE_Sv48 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv48x4));
   bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
@@ -631,7 +632,7 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
 
 #ifdef CONFIG_RVH
   bool gpf = false;
-  if (unlikely((cpu.v || hld_st) && vsatp->mode == SATP_MODE_BARE)) { // don't need bits 63–39 are equal to bit 38
+  if (unlikely((virt || hld_st) && vsatp->mode == SATP_MODE_BARE)) { // don't need bits 63–39 are equal to bit 38
     if (enable_48) {
       word_t maxgpa = ((((word_t)1) << 50) - 1);
       if((vaddr & ~maxgpa) == 0){
