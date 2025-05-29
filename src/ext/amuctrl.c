@@ -38,43 +38,57 @@ static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
                  && l->base == r->base && l->stride == r->stride 
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen
                  && l->types == r->types;
-  return !(cmp_mma || cmp_mls);
+  bool cmp_pc = l->pc == r->pc;
+  return !((cmp_mma || cmp_mls) && cmp_pc);
 }
 
 int check_amu_ctrl(amu_ctrl_event_t *cmp) {
   int result = 0;
   if (amu_ctrl_queue_empty()) {
-    printf("NEMU does not commit any AMU ctrl signals.\n");
-    result = 1;
+    Log("NEMU does not commit any AMU ctrl signals.");
+    cmp->op = -1;
+    cmp->md = 0;
+    cmp->sat = 0;
+    cmp->ms1 = 0;
+    cmp->ms2 = 0;
+    cmp->mtilem = 0;
+    cmp->mtilen = 0;
+    cmp->mtilek = 0;
+    cmp->types = 0;
+    cmp->typed = 0;
+    cmp->transpose = 0;
+    cmp->isacc = 0;
+    cmp->base = 0;
+    cmp->stride = 0;
+    cmp->pc = 0;
+    result = -1;
   } else {
     amu_ctrl_event_data = amu_ctrl_queue_front();
     amu_ctrl_queue_pop();
-
     if (cmp_amu_ctrl(&amu_ctrl_event_data, cmp)) {
       // There're differences between NEMU and DUT
       // replace them with NEMU's data
+      cmp->op = amu_ctrl_event_data.op;
+      cmp->md = amu_ctrl_event_data.md;
+      cmp->sat = amu_ctrl_event_data.sat;
+      cmp->mtilem = amu_ctrl_event_data.mtilem;
+      cmp->mtilen = amu_ctrl_event_data.mtilen;
+      cmp->types = amu_ctrl_event_data.types;
+      cmp->pc = amu_ctrl_event_data.pc;
       if (amu_ctrl_event_data.op == 0) {
         // case MMA
-        cmp->md = amu_ctrl_event_data.md;
-        cmp->sat = amu_ctrl_event_data.sat;
         cmp->ms1 = amu_ctrl_event_data.ms1;
         cmp->ms2 = amu_ctrl_event_data.ms2;
-        cmp->mtilem = amu_ctrl_event_data.mtilem;
-        cmp->mtilen = amu_ctrl_event_data.mtilen;
         cmp->mtilek = amu_ctrl_event_data.mtilek;
-        cmp->types = amu_ctrl_event_data.types;
         cmp->typed = amu_ctrl_event_data.typed;
-      } else {
+      } else if (amu_ctrl_event_data.op == 1) {
         // case Matrix load/store
-        cmp->md = amu_ctrl_event_data.md;
-        cmp->sat = amu_ctrl_event_data.sat;
         cmp->transpose = amu_ctrl_event_data.transpose;
         cmp->isacc = amu_ctrl_event_data.isacc;
         cmp->base = amu_ctrl_event_data.base;
         cmp->stride = amu_ctrl_event_data.stride;
-        cmp->mtilem = amu_ctrl_event_data.mtilem;
-        cmp->mtilen = amu_ctrl_event_data.mtilen;
-        cmp->types = amu_ctrl_event_data.types;
+      } else {
+        Log("invalid AMU ctrl op");
       }
       result = 1;
     }
