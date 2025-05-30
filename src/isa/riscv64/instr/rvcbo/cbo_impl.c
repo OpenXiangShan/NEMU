@@ -61,6 +61,11 @@ static paddr_t translate_and_check(vaddr_t vaddr, int type) {
     if (ret == MEM_RET_OK) {
       paddr = pg_base | (vaddr & PAGE_MASK);
     }
+    if (cpu.pbmt != 0) {
+      cpu.trapInfo.tval = vaddr;
+      cpu.amo = false;
+      longjmp_exception(EX_SAF);
+    }
   }
   paddr_check(paddr, vaddr, type);
   return paddr;
