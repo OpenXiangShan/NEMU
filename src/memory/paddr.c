@@ -145,6 +145,18 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   raise_access_fault(cause, vaddr);
 }
 
+#ifdef CONFIG_SHARE
+static inline void hardware_error_check(vaddr_t vaddr) {
+  if (cpu.guided_exec && cpu.execution_guide.force_raise_exception && cpu.execution_guide.exception_num == EX_HWE
+      IFDEF(CONFIG_GUIDED_TVAL, && vaddr == SELECT_DUT_INTR_TVAL_REG(EX_HWE))
+  ) {
+    cpu.trapInfo.tval = vaddr;
+    cpu.amo = false;
+    longjmp_exception(EX_HWE);
+  }
+}
+#endif
+
 // MMIO access currently does not support hardware misalignment.
 void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page) {
   if (unlikely((paddr & (len - 1)) != 0) || is_cross_page) {
@@ -244,6 +256,7 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+  IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
 
   __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
@@ -393,6 +406,8 @@ void pmem_record_reset() {
 #endif // CONFIG_STORE_LOG
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
+  IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
+
   int cross_page_store = (mode & CROSS_PAGE_ST_FLAG) != 0;
   // get mode's original value
   mode = mode & ~CROSS_PAGE_ST_FLAG;
