@@ -1074,20 +1074,20 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
       }
     }
+  }
 
-    // Tail agnostic is not handled in fast path
-    if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
-      int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
-      for(int idx = vl_val; idx < vlmax; idx++) {
-        tmp_reg[1] = (uint64_t) -1;
-        for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
-          IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
-        }
+  // Tail agnostic is not handled in fast path
+  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
+    int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
+    for(int idx = vl_val; idx < vlmax; idx++) {
+      tmp_reg[1] = (uint64_t) -1;
+      for (fn = 0; fn < nf; fn++) {
+        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
       }
     }
-
   }
+
   pop_context();
 
   vstart->val = 0;
