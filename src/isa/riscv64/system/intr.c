@@ -175,6 +175,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
+      case EX_HWE:
         break;
       case EX_BP :
 #ifdef CONFIG_RV_SDTRIG
@@ -223,6 +224,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
+      case EX_HWE:
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
@@ -278,6 +280,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_IPF: case EX_LPF: case EX_SPF:
       case EX_LAM: case EX_SAM:
       case EX_IAF: case EX_LAF: case EX_SAF:
+      case EX_HWE:
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
