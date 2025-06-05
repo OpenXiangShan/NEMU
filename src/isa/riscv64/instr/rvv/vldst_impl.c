@@ -1076,6 +1076,29 @@ void vldff(Decode *s, int mode, int mmu_mode) {
     }
   }
 
+  // Mask agnostic, align to dut
+  /**
+  * when exception was raised at no-zero index element, it's not a real exception,
+  * in this situation, only need to modify vl, the vector tail and vector mask
+  * can keep old value or according to agnostic/undisturbed policy to set 1/old value.
+  *
+  * we choice to according to agnostic/undisturbed policy to set 1/old value.
+  */
+  if(fofvl < vl_val){ // set mask of vector element to 1
+    for (uint64_t idx = fofvl; idx < vl_val; idx++) {
+      rtlreg_t mask = get_mask(0, idx);
+      if (s->vm == 0 && mask == 0) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          tmp_reg[1] = (uint64_t) -1;
+          for (fn = 0; fn < nf; fn++) {
+            set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+            IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
+          }
+        }
+      }
+    }
+  }
+
   // Tail agnostic is not handled in fast path
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta)) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
