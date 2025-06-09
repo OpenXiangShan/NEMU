@@ -57,6 +57,21 @@ uint64_t get_time();
 #define SMALL_LOG_ROW_NUM (50 * 1024 * 1024) // row number, 50M instructions
 #define SMALL_LOG_ROW_BYTES 512
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern bool enable_fast_log;
+extern bool enable_small_log;
+extern FILE *log_fp;
+extern char *log_filebuf;
+extern uint64_t record_row_number;
+extern void log_buffer_flush(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 /* #define log_write(...) MUXDEF(CONFIG_DEBUG, \
   do { \
     extern FILE* log_fp; \
@@ -75,12 +90,6 @@ uint64_t get_time();
  )*/
 #define log_write(...) \
   do { \
-    extern bool enable_fast_log; \
-    extern bool enable_small_log; \
-    extern FILE *log_fp; \
-    extern char *log_filebuf; \
-    extern uint64_t record_row_number; \
-    extern void log_buffer_flush(); \
     if (log_fp != NULL) { \
       if (enable_fast_log || enable_small_log) { \
         snprintf(log_filebuf + record_row_number * SMALL_LOG_ROW_BYTES, SMALL_LOG_ROW_BYTES, __VA_ARGS__);\
