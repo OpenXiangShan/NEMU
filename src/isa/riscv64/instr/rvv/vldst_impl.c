@@ -156,6 +156,7 @@ static void index_vload_check(Decode *s) {
 }
 
 #ifndef CONFIG_SHARE
+__attribute__((unused))
 static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vstart, uint64_t vl_val,
     uint8_t * restrict masks) {
   unsigned count = 0;
