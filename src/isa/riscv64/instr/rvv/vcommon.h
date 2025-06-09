@@ -15,5 +15,9 @@ void set_NAN(rtlreg_t* fpreg, uint64_t vsew);
 bool check_isFpCanonicalNAN(rtlreg_t* fpreg, uint64_t vsew);
 void vp_set_dirty();
 
+int get_mode(Decode *s);
+void set_vtype_vl(Decode *s, int mode);
+void predecode_vls(Decode *s);
+
 #endif
 #endif
