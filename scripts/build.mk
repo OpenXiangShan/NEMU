@@ -15,7 +15,7 @@ OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
 CC ?= gcc
-CXX = g++
+CXX ?= g++
 
 ifdef PGO_PROF
 PGO_FLAGS = -fprofile-generate -fprofile-dir=$(NEMU_HOME)/profile

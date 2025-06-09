@@ -122,6 +122,13 @@ config CC
   default "clang" if CC_CLANG
   default "none"
 
+config CXX
+  string
+  default "g++" if CC_GCC
+  default "g++" if CC_GPP
+  default "clang++" if CC_CLANG
+  default "none"
+
 choice
   prompt "Optimization Level"
   default CC_O2
