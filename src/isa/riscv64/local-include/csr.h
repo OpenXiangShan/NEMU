@@ -593,7 +593,9 @@
 
 #define CSR_STRUCT_DUMMY(name, addr) \
   typedef union { \
-    struct {}; \
+    struct { \
+      uint64_t pad0: 64; \
+    }; \
     word_t val; \
   } concat(name, _t);
 
@@ -609,15 +611,19 @@ CSR_STRUCT_START(misa)
 CSR_STRUCT_END(misa)
 
 CSR_STRUCT_START(mvendorid)
+  uint64_t pad0: 64; // [63:0]
 CSR_STRUCT_END(mvendorid)
 
 CSR_STRUCT_START(marchid)
+  uint64_t pad0: 64; // [63:0]
 CSR_STRUCT_END(marchid)
 
 CSR_STRUCT_START(mimpid)
+  uint64_t pad0: 64; // [63:0]
 CSR_STRUCT_END(mimpid)
 
 CSR_STRUCT_START(mhartid)
+  uint64_t pad0: 64; // [63:0]
 CSR_STRUCT_END(mhartid)
 
 CSR_STRUCT_START(mstatus)
@@ -674,6 +680,7 @@ CSR_STRUCT_END(tvec)
 typedef tvec_t mtvec_t;
 
 CSR_STRUCT_START(medeleg)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(medeleg)
 
 CSR_STRUCT_START(mideleg)
@@ -732,9 +739,11 @@ CSR_STRUCT_START(mie)
 CSR_STRUCT_END(mie)
 
 CSR_STRUCT_START(mcycle)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mcycle)
 
 CSR_STRUCT_START(minstret)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(minstret)
 
 CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMCOUNTER)
@@ -763,17 +772,21 @@ CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMCOUNTER)
 MAP(CSRS_M_HPMEVENT, CSRS_M_HPMEVENTS_STRUCT)
 
 CSR_STRUCT_START(mcounteren)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mcounteren)
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
 CSR_STRUCT_START(mcountinhibit)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mcountinhibit)
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
 CSR_STRUCT_START(mscratch)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mscratch)
 
 CSR_STRUCT_START(mepc)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mepc)
 
 CSR_STRUCT_START(mcause)
@@ -782,9 +795,11 @@ CSR_STRUCT_START(mcause)
 CSR_STRUCT_END(mcause)
 
 CSR_STRUCT_START(mtval)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mtval)
 
 CSR_STRUCT_START(mconfigptr)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
@@ -848,7 +863,8 @@ CSR_STRUCT_END(mseccfg)
   CSR_STRUCT_END(sstateen0)
 
   #define CSRS_S_STATEENX_STRUCT(name, addr) \
-  CSR_STRUCT_START(name)\
+  CSR_STRUCT_START(name) \
+    uint64_t pad0 :64; \
   CSR_STRUCT_END(name)
 
   MAP(CSRS_S_STATEX_ENABLE, CSRS_S_STATEENX_STRUCT)
@@ -884,9 +900,11 @@ CSR_STRUCT_END(mseccfg)
 
 #ifdef CONFIG_RVH
 CSR_STRUCT_START(mtval2)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mtval2)
 
 CSR_STRUCT_START(mtinst)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mtinst)
 #endif
 
@@ -922,12 +940,15 @@ CSR_STRUCT_START(dcsr)
 CSR_STRUCT_END(dcsr)
 
 CSR_STRUCT_START(dpc)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(dpc)
 
 CSR_STRUCT_START(dscratch0)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(dscratch0)
 
 CSR_STRUCT_START(dscratch1)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(dscratch1)
 #endif // CONFIG_RV_SDEXT
 
@@ -935,14 +956,17 @@ CSR_STRUCT_END(dscratch1)
 
 #ifdef CONFIG_RV_SDTRIG
 CSR_STRUCT_START(scontext)  // 0x5a8
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(scontext)
 
 #ifdef CONFIG_RVH
   CSR_STRUCT_START(hcontext)  //  0x6a8
+    uint64_t pad0 : 64;
   CSR_STRUCT_END(hcontext)
 #endif // CONFIG_RVH
 
 CSR_STRUCT_START(tselect)   // 0x7a0
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(tselect)
 
 CSR_STRUCT_START(tdata1)    // 0x7a1
@@ -952,6 +976,7 @@ CSR_STRUCT_START(tdata1)    // 0x7a1
 CSR_STRUCT_END(tdata1)
 
 CSR_STRUCT_START(tdata2)    // 0x7a2
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(tdata2)
 
 CSR_STRUCT_START(tdata3)    // 0x7a3
@@ -984,6 +1009,7 @@ CSR_STRUCT_START(tinfo)     // 0x7a4
 CSR_STRUCT_END(tinfo)
 
 CSR_STRUCT_START(mcontext)  // 0x7a8
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mcontext)
 
 #endif // CONFIG_RV_SDTRIG
@@ -1033,27 +1059,34 @@ CSR_STRUCT_END(mvip)
 
 #if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
 CSR_STRUCT_START(miselect)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(miselect)
 
 CSR_STRUCT_START(mireg)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg)
 #endif
 
 /** Machine Indirect Access CSRs **/
 #ifdef CONFIG_RV_SMCSRIND_SUB
 CSR_STRUCT_START(mireg2)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg2)
 
 CSR_STRUCT_START(mireg3)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg3)
 
 CSR_STRUCT_START(mireg4)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg4)
 
 CSR_STRUCT_START(mireg5)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg5)
 
 CSR_STRUCT_START(mireg6)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg6)
 #endif // CONFIG_RV_SMCSRIND_SUB
 
@@ -1115,12 +1148,15 @@ CSR_STRUCT_START(sie)
 CSR_STRUCT_END(sie)
 
 CSR_STRUCT_START(scounteren)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(scounteren)
 
 CSR_STRUCT_START(sscratch)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sscratch)
 
 CSR_STRUCT_START(sepc)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sepc)
 
 CSR_STRUCT_START(scause)
@@ -1129,6 +1165,7 @@ CSR_STRUCT_START(scause)
 CSR_STRUCT_END(scause)
 
 CSR_STRUCT_START(stval)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(senvcfg)
@@ -1231,6 +1268,7 @@ CSR_STRUCT_END(smblockctl)
 /** Supervisor Timer Register**/
 #ifdef CONFIG_RV_SSTC
 CSR_STRUCT_START(stimecmp)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(stimecmp)
 #endif
 
@@ -1252,27 +1290,34 @@ CSR_STRUCT_END(stopi)
 
 #if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
 CSR_STRUCT_START(siselect)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(siselect)
   
 CSR_STRUCT_START(sireg)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg)
 #endif
 
 /** Supervisor Indirect Access CSRs **/
 #ifdef CONFIG_RV_SMCSRIND_SUB
 CSR_STRUCT_START(sireg2)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg2)
 
 CSR_STRUCT_START(sireg3)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg3)
 
 CSR_STRUCT_START(sireg4)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg4)
 
 CSR_STRUCT_START(sireg5)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg5)
 
 CSR_STRUCT_START(sireg6)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg6)
 #endif // CONFIG_RV_SMCSRIND_SUB
 
@@ -1300,6 +1345,7 @@ CSR_STRUCT_START(hstatus)
 CSR_STRUCT_END(hstatus)
 
 CSR_STRUCT_START(hedeleg)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(hedeleg)
 
 CSR_STRUCT_START(hideleg)
@@ -1353,9 +1399,11 @@ CSR_STRUCT_START(hie)
 CSR_STRUCT_END(hie)
 
 CSR_STRUCT_START(hgeip)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(hgeip)
 
 CSR_STRUCT_START(hgeie)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(hgeie)
 
 CSR_STRUCT_START(henvcfg)
@@ -1375,15 +1423,19 @@ CSR_STRUCT_START(henvcfg)
 CSR_STRUCT_END(henvcfg)
 
 CSR_STRUCT_START(hcounteren)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(hcounteren)
 
 CSR_STRUCT_START(htimedelta)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(htimedelta)
 
 CSR_STRUCT_START(htval)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(htval)
 
 CSR_STRUCT_START(htinst)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(htinst)
 
 CSR_STRUCT_START(hgatp)
@@ -1432,9 +1484,11 @@ CSR_STRUCT_END(vsie)
 typedef tvec_t vstvec_t;
 
 CSR_STRUCT_START(vsscratch)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsscratch)
 
 CSR_STRUCT_START(vsepc)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsepc)
 
 CSR_STRUCT_START(vscause)
@@ -1443,6 +1497,7 @@ CSR_STRUCT_START(vscause)
 CSR_STRUCT_END(vscause)
 
 CSR_STRUCT_START(vstval)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vstval)
 
 CSR_STRUCT_START(vsip)
@@ -1457,6 +1512,7 @@ CSR_STRUCT_END(vsip)
 /** Virtual Supervisor Timer Register **/
 #ifdef CONFIG_RV_SSTC
 CSR_STRUCT_START(vstimecmp)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vstimecmp)
 #endif
 
@@ -1516,27 +1572,34 @@ CSR_STRUCT_END(vstopi)
 
 #if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
 CSR_STRUCT_START(vsiselect)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsiselect)
 
 CSR_STRUCT_START(vsireg)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg)
 #endif
 
 /** VS Indirect Access CSRs **/
 #ifdef CONFIG_RV_SMCSRIND_SUB
 CSR_STRUCT_START(vsireg2)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg2)
 
 CSR_STRUCT_START(vsireg3)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg3)
 
 CSR_STRUCT_START(vsireg4)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg4)
 
 CSR_STRUCT_START(vsireg5)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg5)
 
 CSR_STRUCT_START(vsireg6)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg6)
 #endif // CONFIG_RV_SMCSRIND_SUB
 
@@ -1546,9 +1609,11 @@ CSR_STRUCT_END(vsireg6)
 
 #ifndef CONFIG_FPU_NONE
 CSR_STRUCT_START(fflags)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(fflags)
 
 CSR_STRUCT_START(frm)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(frm)
 
 CSR_STRUCT_START(fcsr)
@@ -1574,6 +1639,7 @@ CSR_STRUCT_END(fcsr)
 #ifdef CONFIG_RVV
 
 CSR_STRUCT_START(vstart)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vstart)
 
 CSR_STRUCT_START(vxsat)
@@ -1593,6 +1659,7 @@ CSR_STRUCT_START(vcsr)
 CSR_STRUCT_END(vcsr)
 
 CSR_STRUCT_START(vl)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vl)
 
 CSR_STRUCT_START(vtype)
@@ -1605,6 +1672,7 @@ CSR_STRUCT_START(vtype)
 CSR_STRUCT_END(vtype)
 
 CSR_STRUCT_START(vlenb)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(vlenb)
 
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode);
@@ -1615,14 +1683,17 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #ifdef CONFIG_RV_ZICNTR
 CSR_STRUCT_START(cycle)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(cycle)
 
 #ifdef CONFIG_RV_CSR_TIME
 CSR_STRUCT_START(csr_time)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(csr_time)
 #endif // CONFIG_RV_CSR_TIME
 
 CSR_STRUCT_START(instret)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(instret)
 #endif // CONFIG_RV_ZICNTR
 
@@ -1633,9 +1704,11 @@ CSR_STRUCT_DUMMY_LIST(CSRS_UNPRIV_HPMCOUNTER)
 /**  Machine Non-Maskable Interrupt Handling **/
 #ifdef CONFIG_RV_SMRNMI
 CSR_STRUCT_START(mnepc)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mnepc)
 
 CSR_STRUCT_START(mncause)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mncause)
 
 CSR_STRUCT_START(mnstatus)
@@ -1651,6 +1724,7 @@ CSR_STRUCT_START(mnstatus)
 CSR_STRUCT_END(mnstatus)
 
 CSR_STRUCT_START(mnscratch)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(mnscratch)
 #endif // CONFIG_RV_SMRNMI
 
