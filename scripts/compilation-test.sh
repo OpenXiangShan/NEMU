@@ -21,6 +21,7 @@ for config_path in configs/riscv64-*defconfig; do
         echo "::group::$config"
         echo -e "${INFO}Building configuration: $config${NC}"
         
+        make clean
         make $config
         if [ $? -ne 0 ]; then
             echo -e "${ERROR}Failed to setup configuration $config${NC}"
