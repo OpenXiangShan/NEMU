@@ -14,17 +14,17 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "../local-include/csr.h"
-#include "../local-include/rtl.h"
-#include "../local-include/intr.h"
-#include "../local-include/trigger.h"
-#include "../local-include/aia.h"
 #include "common.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
 #include <stdlib.h>
 #include <math.h>
+#include "../local-include/csr.h"
+#include "../local-include/rtl.h"
+#include "../local-include/intr.h"
+#include "../local-include/trigger.h"
+#include "../local-include/aia.h"
 
 int update_mmu_state();
 uint64_t get_htime();
@@ -315,6 +315,7 @@ static inline bool is_H_custom_csr(uint32_t addr) {
          (addr >= 0xec0 && addr <= 0xeff);
 }
 
+__attribute__((unused))
 static inline bool is_M_custom_csr(uint32_t addr) {
   return (addr >= 0x7c0 && addr <= 0x7ff) ||
          (addr >= 0xbc0 && addr <= 0xbff) ||
@@ -901,6 +902,7 @@ static inline word_t set_minstret(word_t src) {
   return src - get_abs_instr_count_csr();
 }
 
+__attribute__((unused))
 static inline word_t gen_mask(word_t begin, word_t end) {
   word_t tmp_mask = 0;
 
