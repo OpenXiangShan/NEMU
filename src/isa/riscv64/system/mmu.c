@@ -1279,7 +1279,17 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
 
     base = tor;
   }
-  return true;
+
+  // According to the RISC-V specification, for PMP (Physical Memory Protection)
+  // checks, if an address does not match any PMP entry, the processor must then
+  // check the current privilege mode. If the current mode is Machine mode (Mode M),
+  // no exception is raised; otherwise, an access fault must be reported.
+  // In contrast, for PMA (Physical Memory Attributes) checks, they are always
+  // enforced, even in Machine mode. If an address does not match any PMA entry,
+  // an access fault must be reported.
+
+  // So should return false here (indicates that none of PMA entries were matched)
+  return false;
 #endif
 
 #ifndef CONFIG_RV_PMA_CHECK
