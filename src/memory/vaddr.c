@@ -27,7 +27,10 @@
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
 #include <cpu/decode.h>
+#include <device/mmio.h>
+#include "../local-include/intr.h"
 
+void raise_access_fault(int cause, vaddr_t vaddr);
 void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page);
 
 static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type, bool* exp) {
@@ -37,8 +40,12 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
   if (*exp) {
     return 0;
   }
-  if (cpu.pbmt != 0) {
-    isa_mmio_misalign_data_addr_check(paddr, vaddr, len, type, true);
+  if (cpu.pbmt != 0 || is_in_mmio(paddr)) {
+    if (cpu.isVldst) {
+      raise_access_fault(EX_SAF, vaddr);
+    } else {
+      isa_mmio_misalign_data_addr_check(paddr, vaddr, len, type, true);
+    }
   }
   *exp = !check_paddr(paddr, len, type, type, cpu.mode, vaddr);
   return paddr;
