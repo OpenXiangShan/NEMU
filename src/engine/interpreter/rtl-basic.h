@@ -21,6 +21,7 @@
 #include <profiling/profiling_control.h>
 #include <memory/vaddr.h>
 #include <generated/autoconf.h>
+#include <stdlib.h>
 /* RTL basic instructions */
 
 #define def_rtl_compute_reg(name) \
@@ -125,6 +126,9 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
+  if ((*addr + offset) == 0x02739bfe54248ul) {
+    fprintf(stderr, "lm vaddr=0x2739bfe54248 data=0x%lx\n", *dest);
+  }
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -136,6 +140,9 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  if ((*addr + offset) == 0x02739bfe54248ul) {
+    fprintf(stderr, "sm vaddr=0x2739bfe54248 data=0x%lx\n", *src1);
+  }
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -147,6 +154,9 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
+  if ((*addr + offset) == 0x02739bfe54248ul) {
+    fprintf(stderr, "lms vaddr=0x2739bfe54248 data=0x%lx\n", val);
+  }
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
