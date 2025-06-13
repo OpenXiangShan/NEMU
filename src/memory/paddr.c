@@ -127,7 +127,7 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
   #endif
 }
 
-static inline void raise_access_fault(int cause, vaddr_t vaddr) {
+void raise_access_fault(int cause, vaddr_t vaddr) {
   cpu.trapInfo.tval = vaddr;
   // cpu.amo flag must be reset to false before longjmp_exception,
   // including longjmp_exception(access fault), longjmp_exception(page fault)
