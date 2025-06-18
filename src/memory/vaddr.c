@@ -187,6 +187,11 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
+#ifdef CONFIG_MULTICORE_DIFF
+    return (type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len) : paddr_read(addr, len, type, type, cpu.mode, addr));
+#else
+    return paddr_read(addr, len, type, type, cpu.mode, addr);
+#endif // CONFIG_MULTICORE_DIFF
     return paddr_read(addr, len, type, type, cpu.mode, addr);
   }
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
