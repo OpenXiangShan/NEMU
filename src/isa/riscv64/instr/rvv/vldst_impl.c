@@ -313,7 +313,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
-      
+
 #ifdef DEBUG_FAST_VLE
       switch (s->v_width) {
         case 1: for (int i = 0; i < vle_size; i++) {
@@ -1085,7 +1085,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   *
   * we choice to according to agnostic/undisturbed policy to set 1/old value.
   */
-  if(fofvl < vl_val){ // set mask of vector element to 1
+  if(fofvl < (vl_val - 1)){ // set mask of vector element to 1
     for (uint64_t idx = fofvl; idx < vl_val; idx++) {
       rtlreg_t mask = get_mask(0, idx);
       if (s->vm == 0 && mask == 0) {
