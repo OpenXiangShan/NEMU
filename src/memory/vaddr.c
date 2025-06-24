@@ -18,6 +18,7 @@
 #include <isa.h>
 //#include <profiling/betapoint-ext.h>
 #include <profiling/profiling_control.h>
+#include "../local-include/intr.h"
 
 #ifdef CONFIG_PERF_OPT
 #define ENABLE_HOSTTLB 1
@@ -27,6 +28,7 @@
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
 #include <cpu/decode.h>
+#include <cpu/cpu.h>
 
 void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page);
 
@@ -58,6 +60,15 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
     }
 
 #ifdef CONFIG_MULTICORE_DIFF
+    if (type == MEM_TYPE_IFETCH) {
+      if (!isa_pmp_check_permission(paddr, 1, MEM_TYPE_IFETCH, cpu.mode) ||
+          !isa_pma_check_permission(paddr, 1, MEM_TYPE_IFETCH)) {
+        Log("pmp or pma check failed when ifetch");
+
+        cpu.trapInfo.tval = paddr;
+        longjmp_exception(EX_IAF);
+      }
+    }
     word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read(paddr, 1) : paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr));
 #else
     word_t byte = paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
@@ -123,6 +134,15 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
+    if (type == MEM_TYPE_IFETCH) {
+      if (!isa_pmp_check_permission(addr, len, MEM_TYPE_IFETCH, cpu.mode) ||
+          !isa_pma_check_permission(addr, len, MEM_TYPE_IFETCH)) {
+        Log("pmp or pma check failed when ifetch");
+
+        cpu.trapInfo.tval = addr;
+        longjmp_exception(EX_IAF);
+      }
+    }
     word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len) : paddr_read(addr, len, type, type, cpu.mode, vaddr));
 #else
     word_t rdata = paddr_read(addr, len, type, type, cpu.mode, vaddr);

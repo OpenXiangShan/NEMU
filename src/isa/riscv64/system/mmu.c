@@ -22,6 +22,7 @@
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
+#include "isa-def.h"
 
 typedef union PageTableEntry {
   struct {
@@ -279,6 +280,16 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
   for (level = max_level - 1; level >= 0; ) {
     p_pte = pg_base + GVPNi(gpaddr, level, max_level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
+    // PMP check should always be enabled during ptw, so just MODE_S here
+    if (!isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)) {
+      Log("pmp or pma check failed when PTW");
+
+      int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
+                  type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+      cpu.trapInfo.tval = vaddr;
+      longjmp_exception(cause);
+    }
     pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
     pte.val	= paddr_read(p_pte, PTE_SIZE,
@@ -422,6 +433,16 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
       p_pte = gpa_stage(p_pte, vaddr, MEM_TYPE_READ, type, false, true);
     }
 #endif //CONFIG_RVH
+    // PMP check should always be enabled during ptw, so just MODE_S here
+    if (!isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)) {
+      printf("pmp or pma check failed when PTW");
+
+      int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
+                  type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+      cpu.trapInfo.tval = vaddr;
+      longjmp_exception(cause);
+    }
     pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
 #ifdef CONFIG_RVH
