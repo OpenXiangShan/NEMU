@@ -668,6 +668,10 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
 
 #endif // CONFIG_LIGHTQS
 
+Decode* tcache_lookup_instr(vaddr_t pc);
+void tcache_insert_instr(vaddr_t pc, Decode *s);
+void tcache_handle_flush();
+
 static void execute(int n) {
   static Decode s;
   prev_s = &s;
@@ -677,7 +681,22 @@ static void execute(int n) {
 #endif // CONFIG_LIGHTQS_DEBUG
     cpu.amo = false;
     cpu.pbmt = 0;
-    fetch_decode(&s, cpu.pc);
+
+    Decode *cache_s = tcache_lookup_instr(cpu.pc);
+
+    if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
+      tcache_handle_flush();
+    }
+
+    if (cache_s == NULL) {
+      // Missed hit, decode and insert into cache.
+      fetch_decode(&s, cpu.pc);
+      tcache_insert_instr(cpu.pc, &s);
+      cache_s = &s;
+    } else {
+      s = *cache_s;
+    }
+
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
 #ifdef CONFIG_SHARE
@@ -826,7 +845,7 @@ void cpu_exec(uint64_t n) {
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
-      IFDEF(CONFIG_PERF_OPT, tcache_handle_flush(cpu.pc));
+      tcache_handle_flush(cpu.pc);
 
       // Trigger may raise EX_BP and perform longjmp.
       IFDEF(CONFIG_TDATA1_ETRIGGER, trigger_handler(TRIG_TYPE_ETRIG, action, 0));
@@ -855,7 +874,7 @@ void cpu_exec(uint64_t n) {
         // No need to update_instr_count(). This is not the end of BATCH.
 
         // It's necessary to flush tcache for interrupt: addr space may conflict in different priv/mmu mode.
-        IFDEF(CONFIG_PERF_OPT, tcache_handle_flush(cpu.pc));
+        tcache_handle_flush(cpu.pc);
 
         IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));

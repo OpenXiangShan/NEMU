@@ -258,4 +258,39 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
   g_exec_nemu_decode = exec_nemu_decode;
   return tcache_bb_new(reset_vector);
 }
+
+#else // CONFIG_PERF_OPT
+#define SIMPLE_TCACHE_SIZE 8192
+typedef struct {
+  vaddr_t pc;
+  Decode s;
+  int valid;
+} simple_tcache_entry_t;
+
+static simple_tcache_entry_t tcache[SIMPLE_TCACHE_SIZE] = {0};
+
+static inline int tcache_hash(vaddr_t pc) {
+  return (pc >> 2) & (SIMPLE_TCACHE_SIZE - 1);
+}
+
+Decode* tcache_lookup_instr(vaddr_t pc) {
+  int idx = tcache_hash(pc);
+  if (tcache[idx].valid && tcache[idx].pc == pc) {
+    return &tcache[idx].s;
+  }
+  return NULL;
+}
+
+void tcache_insert_instr(vaddr_t pc, Decode *s) {
+  int idx = tcache_hash(pc);
+  tcache[idx].pc = pc;
+  tcache[idx].valid = 1;
+  memcpy(&tcache[idx].s, s, sizeof(Decode));
+}
+
+void tcache_handle_flush() {
+  for (int i = 0; i < SIMPLE_TCACHE_SIZE; i++) {
+    tcache[i].valid = 0;
+  }
+}
 #endif
