@@ -161,7 +161,7 @@ make -j
 
 Specifically, xxx-ref_defconfig varies for different ISA extensions.
 
-Vector and Hypervisor extensions were merged into XiangShan master, riscv64-xs_defconfig (and other riscv64-xs defconfigs) has enabled RVH and RVV. 
+riscv64-xs_defconfig (and other riscv64-xs defconfigs) has already enabled RVH and RVV. 
 
 
 #### Cosimulation
