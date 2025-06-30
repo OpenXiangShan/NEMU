@@ -159,10 +159,7 @@ make -j
 ```
 `./build/riscv64-nemu-interpreter-so` is the reference design.
 
-Specifically, xxx-ref_defconfig varies for different ISA extensions.
-
-riscv64-xs_defconfig (and other riscv64-xs defconfigs) has already enabled RVH and RVV. 
-
+riscv64-xs_defconfig is the base configuration targeting XiangShan processor, which has already enabled RVH and RVV. There are also a series of other configurations based on this base configuration.
 
 #### Cosimulation
 
