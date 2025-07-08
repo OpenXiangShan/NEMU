@@ -35,13 +35,13 @@ extern uint64_t g_nr_guest_instr;
 
 #define Logf(flag, ...) \
   do { \
-    if (flag == dflag_mem && g_nr_guest_instr>701000000) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && g_nr_guest_instr>701000000) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && g_nr_guest_instr>701000000) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst && g_nr_guest_instr>701000000) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst_dasm && ISDEF(CONFIG_TRACE_INST_DASM)) Log(__VA_ARGS__); \
+    if (flag == dflag_mem && g_nr_guest_instr>701880000) Log(__VA_ARGS__); \
+    if (flag == dflag_translate && g_nr_guest_instr>701880000) Log(__VA_ARGS__); \
+    if (flag == dflag_translate && g_nr_guest_instr>701880000) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst && g_nr_guest_instr>701880000) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst_dasm  && g_nr_guest_instr>701880000) Log(__VA_ARGS__); \
     if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
-    if (flag == dflag_exit) Log(__VA_ARGS__); \
+    if (flag == dflag_exit && g_nr_guest_instr>701880000) Log(__VA_ARGS__); \
     if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
   } while (0)
 
