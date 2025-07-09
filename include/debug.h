@@ -33,7 +33,7 @@
 
 extern uint64_t g_nr_guest_instr;
 extern unsigned int PMEM_HARTID;
-#define LOG_CONT PMEM_HARTID == 3 && g_nr_guest_instr > 390016037
+#define LOG_CONT PMEM_HARTID == 3 && g_nr_guest_instr > 3544043
 #define Logf(flag, ...) \
   do { \
     if (flag == dflag_mem && LOG_CONT) Log(__VA_ARGS__); \
