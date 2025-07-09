@@ -33,10 +33,10 @@
 
 #define Logf(flag, ...) \
   do { \
-    if (flag == dflag_mem && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && ISDEF(CONFIG_TRANSLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst && ISDEF(CONFIG_TRACE_INST)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst_dasm && ISDEF(CONFIG_TRACE_INST_DASM)) Log(__VA_ARGS__); \
+    if (flag == dflag_mem) Log(__VA_ARGS__); \
+    if (flag == dflag_translate) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst_dasm) Log(__VA_ARGS__); \
     if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
     if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
     if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
