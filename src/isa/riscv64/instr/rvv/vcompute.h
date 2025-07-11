@@ -123,6 +123,10 @@ def_EHelper(vslide1down) {
 }
 
 def_EHelper(vadc) {
+  if (s->vm == 1) {
+    // vm bit always set to 0 for vadc
+    longjmp_exception(EX_II);
+  }
   ARITH(ADC, SIGNED)
 }
 
@@ -131,6 +135,10 @@ def_EHelper(vmadc) {
 }
 
 def_EHelper(vsbc) {
+  if (s->vm == 1) {
+    // vm bit always set to 0 for vsbc
+    longjmp_exception(EX_II);
+  }
   ARITH(SBC, SIGNED)
 }
 
