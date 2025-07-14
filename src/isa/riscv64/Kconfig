@@ -586,6 +586,11 @@ config RVV_AGNOSTIC
   bool "Enable RVV agnostic policy"
   default y
 
+config RVV_UNORDER
+  depends on RVV
+  bool "Enable RVV unorder compute"
+  default y
+
 config EBREAK_AS_TRAP
   depends on !RV_DEBUG
   bool "Treat ebreak same as nemu_trap"
