@@ -25,7 +25,7 @@ else
 PGO_FLAGS =
 endif
 
-CCACHE := $(if $(shell which ccache),ccache,)
+CCACHE := $(if $(shell which ccache 2>/dev/null),ccache,)
 
 # Compilation flags
 CC := $(CCACHE) $(CC)
