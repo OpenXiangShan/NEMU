@@ -246,7 +246,7 @@ void set_vec_load_difftest_info(int fn, int len) {
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
+  uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
 
@@ -279,6 +279,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   nf = s->v_nf + 1;
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
+  ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
 
@@ -404,7 +405,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   }
 
   // Tail agnostic is not handled in fast path
-  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > vstart->val) {   // set tail of vector register to 1
+  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > ori_vstart) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
     for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
@@ -427,7 +428,7 @@ void vldx(Decode *s, int mmu_mode) {
   //        7  ->  64         3  ->  64
   index_vload_check(s);
   if(check_vstart_ignore(s)) return;
-  uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
+  uint64_t nf = s->v_nf + 1, fn, vl_val, ori_vstart, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
   index_width = 0;
@@ -450,6 +451,7 @@ void vldx(Decode *s, int mmu_mode) {
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
 
   vl_val = vl->val;
+  ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
 
@@ -495,7 +497,7 @@ void vldx(Decode *s, int mmu_mode) {
     }
   }
 
-  if (RVV_AGNOSTIC && vtype->vta && vl_val > vstart->val) {   // set tail of vector register to 1
+  if (RVV_AGNOSTIC && vtype->vta && vl_val > ori_vstart) {   // set tail of vector register to 1
     int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
     for(int idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
@@ -887,7 +889,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   fofvl = 0;
   vload_check(mode, s);
   if(check_vstart_ignore(s)) return;
-  uint64_t nf, fn, vl_val, base_addr, vd, addr, is_unit_stride;
+  uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
 
@@ -920,6 +922,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
   nf = s->v_nf + 1;
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
+  ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
 
@@ -1101,7 +1104,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   }
 
   // Tail agnostic is not handled in fast path
-  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > vstart->val) {   // set tail of vector register to 1
+  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > ori_vstart) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
     for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
