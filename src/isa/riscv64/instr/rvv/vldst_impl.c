@@ -404,7 +404,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   }
 
   // Tail agnostic is not handled in fast path
-  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val < vstart->val) {   // set tail of vector register to 1
+  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > vstart->val) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
     for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
@@ -495,7 +495,7 @@ void vldx(Decode *s, int mmu_mode) {
     }
   }
 
-  if (RVV_AGNOSTIC && vtype->vta && vl_val < vstart->val) {   // set tail of vector register to 1
+  if (RVV_AGNOSTIC && vtype->vta && vl_val > vstart->val) {   // set tail of vector register to 1
     int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
     for(int idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
@@ -1101,7 +1101,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   }
 
   // Tail agnostic is not handled in fast path
-  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val < vstart->val) {   // set tail of vector register to 1
+  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > vstart->val) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
     for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
