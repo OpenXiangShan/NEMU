@@ -211,6 +211,8 @@ void init_isa() {
 
 #ifdef CONFIG_RV_SDTRIG
   init_trigger();
+  mcontext->val = 0;
+  scontext->val = 0;
 #endif // CONFIG_RV_SDTRIG
 
 #ifdef CONFIG_RV_IMSIC
