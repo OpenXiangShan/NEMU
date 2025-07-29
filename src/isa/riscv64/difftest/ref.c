@@ -183,15 +183,24 @@ void isa_difftest_regcpy(void *dut, bool direction, bool restore, uint64_t resto
 void isa_difftest_regcpy(void *dut, bool direction) {
 #endif // CONFIG_LIGHTQS
   //ramcmp();
+  uint64_t beforeV_size = BASE_SIZE - sizeof(uint64_t) + RVH_EXT_REG_SIZE; // reduce FCSR
+  uint64_t afterV_size = sizeof(uint64_t) + TRIGGER_REG_SIZE;
+  void* cpu_fcsr_addr = (void*)&cpu + beforeV_size + RVV_EXT_REG_SIZE;
+  void* dut_fcsr_addr = dut + beforeV_size;
   if (direction == DIFFTEST_TO_REF) {
-    memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
+    // memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
+    memcpy(&cpu, dut, beforeV_size);
+    memcpy(cpu_fcsr_addr, dut_fcsr_addr, afterV_size);
+
     csr_writeback();
     // need to clear the cached mmu states as well
     extern void update_mmu_state();
     update_mmu_state();
   } else {
     csr_prepare();
-    memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
+    // memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
+    memcpy(dut, &cpu, beforeV_size);
+    memcpy(dut_fcsr_addr, cpu_fcsr_addr, afterV_size);
   }
 #ifdef CONFIG_LIGHTQS
   // after processing, take another snapshot
