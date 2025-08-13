@@ -26,7 +26,7 @@ void update_mmu_state();
 #ifdef CONFIG_RVH
 word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual) {
   return ((NO == EX_IAM || NO == EX_IAF || NO == EX_BP || NO == EX_IPF) && cpu.v) ||
-         ((NO == EX_LAM || NO == EX_LAF || NO == EX_SAM || NO == EX_SAF || NO == EX_LPF || NO == EX_SPF) && (is_hls || cpu.v || is_mem_access_virtual)) ||
+         ((NO == EX_LAM || NO == EX_LAF || NO == EX_SAM || NO == EX_SAF || NO == EX_LPF || NO == EX_SPF || NO == EX_HWE) && (is_hls || cpu.v || is_mem_access_virtual)) ||
          (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF);
 }
 
@@ -263,7 +263,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     trap_pc = get_trap_pc(stvec->val, scause->val);
   } else if((delegM || vs_EX_DT || s_EX_DT) && !m_EX_DT){
 #ifdef CONFIG_RVH
-    bool is_mem_access_virtual = mstatus->mprv && mstatus->mpv && (mstatus->mpp != MODE_M);
+    bool is_mem_access_virtual = IFDEF(CONFIG_RV_SMRNMI, mnstatus->nmie &&) mstatus->mprv && mstatus->mpv && (mstatus->mpp != MODE_M);
     mstatus->gva = gen_gva(NO, hld_st_temp, is_mem_access_virtual);
     mstatus->mpv = cpu.v;
     cpu.v = 0;
