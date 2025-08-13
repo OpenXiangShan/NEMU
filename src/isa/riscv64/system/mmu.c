@@ -74,13 +74,25 @@ static inline uintptr_t GVPNi(vaddr_t va, int i, int max_level) {
 bool hlvx = 0;
 bool hld_st = 0;
 #endif
+
+// According to Smrnmi Extension:
+// When NMIE=0, the hart behaves as though mstatus.MPRV were clear, 
+// regardless of the current setting of mstatus.MPRV.
+static inline uint64_t get_mprv() {
+  #ifdef CONFIG_RV_SMRNMI
+    return mstatus->mprv & mnstatus->nmie;
+  #else // CONFIG_RV_SMRNMI
+    return mstatus->mprv;
+  #endif // CONFIG_RV_SMRNMI
+}
+
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
 #else
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
-  uint32_t mode = (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode);
+  uint32_t mode = (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode);
 #endif
   assert(mode == MODE_U || mode == MODE_S);
   ok = ok && pte->v;
@@ -164,7 +176,7 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
 
 #ifdef CONFIG_RVH
 bool has_two_stage_translation(){
-  return hld_st || (mstatus->mprv && mstatus->mpv) || cpu.v;
+  return hld_st || (get_mprv() && mstatus->mpv) || cpu.v;
 }
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
@@ -206,14 +218,14 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   int masked_width = 0;
 
   // Early out fastpath for non-H & non-pmm applications
-  if (likely(!hld_st && !mstatus->mprv && mode == MODE_U && senvcfg->pmm == 0)) {
+  if (likely(!hld_st && !get_mprv() && mode == MODE_U && senvcfg->pmm == 0)) {
     return vaddr;
   }
 
   if (hld_st) {
     mode = hstatus->spvp;
     virt = true;
-  } else if (mstatus->mprv IFDEF(CONFIG_RV_SMRNMI, && mnstatus->nmie) && mode != MODE_M ) {
+  } else if (get_mprv() && mode != MODE_M ) {
     mode = mstatus->mpp;
     virt = mstatus->mpv;
   }
@@ -390,25 +402,25 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #ifdef CONFIG_RVH
   int virt = cpu.v;
   int mode = cpu.mode;
-  if(type != MEM_TYPE_IFETCH){
-    if(mstatus->mprv) {
+  if (type != MEM_TYPE_IFETCH) {
+    if (get_mprv()) {
       mode = mstatus->mpp;
       virt = mstatus->mpv && mode != MODE_M;
     }
-    if(hld_st){
+    if (hld_st) {
       virt = 1;
       mode = hstatus->spvp; // spvp = 0: VU; spvp = 1: VS
     }
   }
-  if(virt){
-    if(vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx, false) & ~PAGE_MASK;
+  if (virt) {
+    if (vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     pg_base = PGBASE(vsatp->ppn);
     max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
   }
 #endif
   bool pbmte = menvcfg->pbmte;
 #ifdef CONFIG_RVH
-  if(virt){
+  if (virt) {
     // henvcfg.pbmte is read_only 0 when menvcfg.pbmte = 0
     pbmte = henvcfg->pbmte & menvcfg->pbmte;
   }
@@ -575,10 +587,10 @@ int get_data_mmu_state() {
 }
 
 static inline int update_mmu_state_internal(bool ifetch) {
-  uint32_t mode = (mstatus->mprv && (!ifetch) && MUXDEF(CONFIG_RV_SMRNMI, mnstatus->nmie, true)
+  uint32_t mode = (get_mprv() && (!ifetch) && MUXDEF(CONFIG_RV_SMRNMI, mnstatus->nmie, true)
     ? mstatus->mpp : cpu.mode);
 #ifdef CONFIG_RVH
-  bool virt = mstatus->mprv && (!ifetch) ? mstatus->mpv && mode != MODE_M : cpu.v;
+  bool virt = get_mprv() && (!ifetch) ? mstatus->mpv && mode != MODE_M : cpu.v;
   if (mode < MODE_M) {
   #ifdef CONFIG_RV_SV48
     if (virt ? vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4
@@ -621,15 +633,15 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   // Instruction fetch addresses and load and store effective addresses,
   // which are 64 bits, must have bits 63–39 all equal to bit 38, or else a page-fault exception will occur.
 #ifdef CONFIG_RVH
-  bool virt = mstatus->mprv && mstatus->mpp != MODE_M IFDEF(CONFIG_RV_SMRNMI, && mnstatus->nmie) ? mstatus->mpv : cpu.v;
+  bool virt = get_mprv() && mstatus->mpp != MODE_M ? mstatus->mpv : cpu.v;
   bool enable_39 = satp->mode == SATP_MODE_Sv39 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv39 || hgatp->mode == HGATP_MODE_Sv39x4));
   bool enable_48 = satp->mode == SATP_MODE_Sv48 || ((cpu.v || hld_st) && (vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv48x4));
-  bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
+  bool vm_enable = (get_mprv() && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
   bool hyperinst_vm_enable = hld_st && (vsatp->mode == SATP_MODE_Sv39 || vsatp->mode == SATP_MODE_Sv48 || hgatp->mode == HGATP_MODE_Sv39x4 || hgatp->mode == HGATP_MODE_Sv48x4);
 #else
   bool enable_39 = satp->mode == SATP_MODE_Sv39;
   bool enable_48 = satp->mode == SATP_MODE_Sv48;
-  bool vm_enable = (mstatus->mprv && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
+  bool vm_enable = (get_mprv() && (!is_ifetch) ? mstatus->mpp : cpu.mode) < MODE_M && (enable_39 || enable_48);
 #endif
 
   bool va_msbs_ok = true;
@@ -1097,12 +1109,13 @@ bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode) {
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   __attribute__((unused)) uint32_t mode;
-  mode = (out_mode == MODE_M) ? (mstatus->mprv && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
+  mode = (out_mode == MODE_M) ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
   // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
+  // TODO: It's not good to determine effective mode here.
 #ifdef CONFIG_SHARE
   // if(dynamic_config.debug_difftest) {
   //   if (mode != out_mode) {
-  //     fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mstatus->mprv, mstatus->mpp, mode);
+  //     fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d nmie:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mnstatus->nmie, mstatus->mprv, mstatus->mpp, mode);
   //       // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
   //   }
   // }
