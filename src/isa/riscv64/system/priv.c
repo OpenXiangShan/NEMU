@@ -1304,7 +1304,28 @@ static inline word_t get_hip() {
   return tmp;
 }
 inline word_t get_hideleg() {
-  return (hideleg->val & HIDELEG_MASK & mideleg->val) | MUXDEF(CONFIG_RV_AIA, (hideleg->val & mvien->val & LCI), 0);
+  return (cpu.hideleg_reg & HIDELEG_MASK & mideleg->val) | MUXDEF(CONFIG_RV_AIA, (cpu.hideleg_reg & mvien->val & LCI), 0);
+}
+static inline void set_hideleg(word_t src) {
+  // hideleg->val is to diff RTL and NEMU and hideleg_reg is register value
+  // The rdata of the hideleg register is
+  //    reg & mideleg & HIDELEG_MASK |
+  //    reg & mvien & LCI
+  // in XiangShan.
+  // 
+  // A situation may arise at this point. First, write 1 to bit 13 of hideleg. 
+  // At this point, hideleg.reg.LCOFIP = 1 in the RTL. 
+  // Since bit 13 of mideleg or mvien is 0, the RTL's hideleg.rdata is 0. 
+  // The NEMU's get_hideleg is also 0, and a diff is performed with the RTL. 
+  // Then, write 1 to bit 13 of mideleg. 
+  // The RTL's hideleg.rdata becomes 1, but the NEMU's hideleg->val is the result of csr_writeback and csr_prepare operations,
+  // which is the value of get_hideleg, which is 0.
+  // This causes an error in the RTL-NEMU diff.
+
+  // Therefore, in order to solve the above problem,
+  // a value of the hideleg register is temporarily stored in NEMU.
+  hideleg->val = mask_bitset(hideleg->val, HIDELEG_MASK, src);
+  cpu.hideleg_reg = mask_bitset(cpu.hideleg_reg, HIDELEG_MASK, src);
 }
 #endif // CONFIG_RVH
 
@@ -2157,7 +2178,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
     }
     case CSR_HEDELEG: hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); break;
-    case CSR_HIDELEG: hideleg->val = mask_bitset(get_hideleg(), HIDELEG_MASK, src); break;
+    case CSR_HIDELEG: set_hideleg(src); break;
     case CSR_HSTATUS:
       hstatus->val = mask_bitset(hstatus->val, HSTATUS_WMASK & (~HSTATUS_WMASK_HUPMM), src);
       if (((hstatus_t*)&src)->hupmm != 0b01) { // 0b01 is reserved
