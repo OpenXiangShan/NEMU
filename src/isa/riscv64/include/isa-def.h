@@ -212,6 +212,10 @@ typedef struct {
   uint64_t old_vstopi;
 #endif
 
+#ifdef CONFIG_RVH
+  uint64_t hideleg_reg;
+#endif
+
 } riscv64_CPU_state;
 
 // decode
