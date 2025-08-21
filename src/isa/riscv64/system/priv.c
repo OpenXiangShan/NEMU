@@ -1034,7 +1034,9 @@ static inline void set_tvec(word_t* dest, word_t src) {
 static inline word_t vmode_get_sie() {
   word_t tmp = 0;
 #ifdef CONFIG_RV_AIA
-  word_t originIE = mie->val;
+  word_t originIE = (get_hideleg() & mideleg->val & mie->val) |
+    (get_hideleg() & ~mideleg->val & mvien->val & sie->val) |
+    (~get_hideleg() & hvien->val & vsie->val);
 
   tmp = (originIE & ~0x1fff) | ((originIE & VSI_MASK) >> 1);
   tmp |= vmode_get_ie(13, 63);
