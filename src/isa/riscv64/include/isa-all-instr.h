@@ -189,7 +189,8 @@
 #ifdef CONFIG_RVMATRIX
 #define MATRIX_INSTR_BINARY(f) \
   f(msettype) f(msettypei) f(msettypehi) \
-  f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni)
+  f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni) \
+  f(msyncreset) f(mrelease) f(macquire)
 #define MATRIX_INSTR_TERNARY(f) \
   f(mla) f(mlb) f(mlc) \
   f(mlat) f(mlbt) f(mlct) \
