@@ -20,7 +20,7 @@
 
 #include "common.h"
 
-#define MLEN 524288 //tmp: to support 64*256*64, we have to use a 256*256*sew(8) tr register
+#define MLEN 131072 // 64*256*8
 #define MRLEN 2048
 #define MELEN 64
 #define MAMUL 4     // It's sufficient to set MAMUL=4 for fp8 -> fp32
@@ -36,6 +36,7 @@
 #define TNMAX(sew) 512/sew  // 512/8=64, add sew to make compiler happy
 #define TKMAX(sew) 2048/sew   // 2048/8=256, init_SEW=MELEN
 
+#define MTOK       8
 
 static inline int check_mtreg_num(int num) {
   assert(num >= 0 && num < 8);

@@ -2829,8 +2829,8 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 static inline bool matrix_permit_check(const word_t *dest_access) {
   if (is_access(mtype) ||
       is_access(mtilem) || is_access(mtilen) || is_access(mtilek) ||
-      is_access(mlenb) || is_access(mrlenb) || is_access(mamul) ||
-      is_access(mstart) || is_access(mcsr)) {
+      is_access(mlenb)  || is_access(mrlenb) || is_access(mamul) ||
+      is_access(mtok)   || is_access(mstart) || is_access(mcsr)) {
     if (!require_ms()) { longjmp_exception(EX_II); }
   }
   return false;

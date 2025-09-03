@@ -142,7 +142,7 @@ typedef struct {
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
 #ifdef CONFIG_RVMATRIX
-  uint64_t mtype, mtilem, mtilen, mtilek, mlenb, mrlenb, mamul;
+  uint64_t mtype, mtilem, mtilen, mtilek, mlenb, mrlenb, mamul, mtok;
   uint64_t mstart, mcsr;
 #endif // CONFIG_RVMATRIX
 
@@ -222,6 +222,8 @@ typedef struct {
     uint16_t _16[MRENUM16 * MAMUL];
     uint8_t  _8[MRENUM8 * MAMUL];
   } macc[8][MRNUM];
+
+  uint64_t mtokr[MTOK];
 #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_RV_IMSIC
@@ -423,6 +425,16 @@ typedef struct {
       uint32_t fp        : 1;
       uint32_t funct6    : 6;
     } mcompute;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 4;
+      uint32_t tr        : 1;
+      uint32_t eew       : 3;
+      uint32_t rs1       : 5;
+      uint32_t rs2       : 5;
+      uint32_t ls        : 1;
+      uint32_t funct6    : 6;
+    } msync;
     #endif // CONFIG_RVMATRIX
 
     #ifdef CONFIG_CUSTOM_TENSOR

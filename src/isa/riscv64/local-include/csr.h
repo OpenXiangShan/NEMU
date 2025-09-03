@@ -116,7 +116,7 @@
 #ifdef CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f) \
     f(mtype      , 0xC40) f(mtilem     , 0xC41) f(mtilen     , 0xC42) f(mtilek       , 0xC43) \
-    f(mlenb      , 0xC44) f(mrlenb     , 0xC45) f(mamul      , 0xC46) \
+    f(mlenb      , 0xC44) f(mrlenb     , 0xC45) f(mamul      , 0xC46) f(mtok         , 0xC47) \
     f(mstart     , 0x040) f(mcsr       , 0x041) 
 #else // CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f)
@@ -1761,6 +1761,9 @@ CSR_STRUCT_END(mrlenb)
 
 CSR_STRUCT_START(mamul)
 CSR_STRUCT_END(mamul)
+
+CSR_STRUCT_START(mtok)
+CSR_STRUCT_END(mtok)
 
 CSR_STRUCT_START(mstart)
 CSR_STRUCT_END(mstart)

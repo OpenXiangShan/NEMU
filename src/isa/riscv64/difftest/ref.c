@@ -83,6 +83,7 @@ void csr_prepare() {
   cpu.mlenb   = mlenb->val;
   cpu.mrlenb  = mrlenb->val;
   cpu.mamul   = mamul->val;
+  cpu.mtok    = mtok->val;
   cpu.mstart  = mstart->val;
   cpu.mcsr    = mcsr->val;
 #endif // CONFIG_RVMATRIX
@@ -158,6 +159,7 @@ void csr_writeback() {
   mlenb->val   = cpu.mlenb;
   mrlenb->val  = cpu.mrlenb;
   mamul->val   = cpu.mamul;
+  mtok->val    = cpu.mtok;
   mstart->val  = cpu.mstart;
   mcsr->val    = cpu.mcsr;
 #endif
@@ -445,6 +447,7 @@ void dump_regs() {
   fprintf(fp, "mlenb %lx\n", mlenb->val);
   fprintf(fp, "mrlenb %lx\n", mrlenb->val);
   fprintf(fp, "mamul %lx\n", mamul->val);
+  fprintf(fp, "mtok %lx\n", mtok->val);
   fprintf(fp, "mstart %lx\n", mstart->val);
   fprintf(fp, "mcsr %lx\n", mcsr->val);
 #endif

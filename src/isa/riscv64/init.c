@@ -192,6 +192,7 @@ void init_isa() {
   mlenb->val = MLEN/8;
   mrlenb->val = MRLEN/8;
   mamul->val = MAMUL;
+  mtok->val = MTOK;
   
   mtype->val = (uint64_t) 1 << 63; // the same as vtype
   mtilem->val = TMMAX;
