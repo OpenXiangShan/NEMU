@@ -39,25 +39,26 @@ void mld(Decode *s, bool is_trans, char m_name) {
       cmax_mreg  = mtilek->val;
       break;
     case 'b':
-      rmax_mreg  = mtilek->val;
-      cmax_mreg  = mtilen->val;
+      rmax_mreg  = mtilen->val;
+      cmax_mreg  = mtilek->val;
       break;
     case 'c':
       rmax_mreg  = mtilem->val;
       cmax_mreg  = mtilen->val;
       break;
     default:
+      Assert(false, "mld %c: invalid reg selection!\n", m_name);
       break;
   }
 
   Assert((rmax_mreg <= MRNUM),
-         "mtile config should not larger than tile_reg size!\n");
+         "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
   if (m_name == 'c') {
     Assert((cmax_mreg <= MRENUM8 * MAMUL / (s->m_width)),
-           "mtile config should not larger than tile_reg size!\n");
+           "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
   } else {
     Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
-           "mtile config should not larger than tile_reg size!\n");
+           "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
   }
 
 #ifdef PRINT_AMUCTRLIO
@@ -69,7 +70,7 @@ void mld(Decode *s, bool is_trans, char m_name) {
 #endif
 
   rtl_lmm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, s->m_eew, is_trans,
+    rmax_mreg, cmax_mreg, s->m_eew, is_trans ^ (m_name == 'b'),
     MMU_TRANSLATE, m_name == 'c', td);
 }
 
@@ -92,17 +93,18 @@ void mst(Decode *s, bool is_trans, char m_name) {
       cmax_mreg  = mtilen->val;
       break;
     default:
+      Assert(false, "mst %c: invalid reg selection!\n", m_name);
       break;
   }
 
   Assert((rmax_mreg <= MRNUM),
-         "mtile config should not larger than tile_reg size!\n");
+         "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
   if (m_name == 'c') {
     Assert((cmax_mreg <= MRENUM8 * MAMUL / (s->m_width)),
-           "mtile config should not larger than tile_reg size!\n");
+         "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
   } else {
     Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
-           "mtile config should not larger than tile_reg size!\n");
+         "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
   }
 
 #ifdef PRINT_AMUCTRLIO
@@ -114,7 +116,7 @@ void mst(Decode *s, bool is_trans, char m_name) {
 #endif
 
   rtl_smm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, s->m_eew, is_trans,
+    rmax_mreg, cmax_mreg, s->m_eew, is_trans ^ (m_name == 'b'),
     MMU_TRANSLATE, m_name == 'c', ts3);
 }
 
