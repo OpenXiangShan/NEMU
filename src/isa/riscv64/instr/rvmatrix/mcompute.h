@@ -54,7 +54,7 @@ typedef __int128_t int128_t;
 def_EHelper(mmau) {
   MMA_LOOP_BEGIN
           get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-          get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+          get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
           get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
           rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);   //(Decode *s, rtlreg_t *dest, rtlreg_t *src1, rtlreg_t *src2)
@@ -76,15 +76,12 @@ def_EHelper(mwmau) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
-        // TODO: temp use 2 output treg for all double widen mma
-        int widen_idx = j / (tile_n/2);
-        int j_offset = j - widen_idx*(tile_n/2);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, false);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
         rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
         rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
-        set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
+        set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -101,15 +98,12 @@ def_EHelper(mqmau) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
-        // TODO: temp use 4 output treg for all quadruple widen mma
-        int widen_idx = j / (tile_n/4);
-        int j_offset = j - widen_idx*(tile_n/4);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, false);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, false);
         rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
         rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
-        set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 2);
+        set_mreg(true, td, i, j, tmp_reg[0], msew + 2);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -126,7 +120,7 @@ def_EHelper(msmau) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
         uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
@@ -153,19 +147,16 @@ def_EHelper(mswmau) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
-        // TODO: temp use 2 output treg for all double widen mma
-        int widen_idx = j / (tile_n/2);
-        int j_offset = j - widen_idx*(tile_n/2);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, false);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
         uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
         bool overflow = false;  
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
         }
-        set_mreg(true, td + widen_idx, i, j_offset, result, msew + 1);
+        set_mreg(true, td, i, j, result, msew + 1);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -183,19 +174,16 @@ def_EHelper(msqmau) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
-        // TODO: temp use 4 output treg for all quadruple widen mma
-        int widen_idx = j / (tile_n/4);
-        int j_offset = j - widen_idx*(tile_n/4);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, false);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, false);
         uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
         bool overflow = false;  
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
         }
-        set_mreg(true, td + widen_idx, i, j_offset, result, msew + 2);
+        set_mreg(true, td, i, j, result, msew + 2);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -210,7 +198,7 @@ def_EHelper(msqmau) {
 def_EHelper(mma) {
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, true);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew, true);
         tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
@@ -231,14 +219,11 @@ def_EHelper(mwma) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, true);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
 
-        // TODO: temp use 2 output treg for all double widen mma
-        int widen_idx = j / (tile_n/2);
-        int j_offset = j - widen_idx*(tile_n/2);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, true);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, true);
         tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-        set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
+        set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -255,14 +240,11 @@ def_EHelper(mqma) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, true);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
 
-        // TODO: temp use 4 output treg for all quadruple widen mma
-        int widen_idx = j / (tile_n/4);
-        int j_offset = j - widen_idx*(tile_n/4);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, true);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, true);
         tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-        set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 2);
+        set_mreg(true, td, i, j, tmp_reg[0], msew + 2);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -280,7 +262,7 @@ def_EHelper(msma) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, true);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew, true);
         int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
@@ -308,19 +290,16 @@ def_EHelper(mswma) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, true);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
 
-        // TODO: temp use 2 output treg for all double widen mma
-        int widen_idx = j / (tile_n/2);
-        int j_offset = j - widen_idx*(tile_n/2);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, true);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, true);
         int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
         if (result > int_max){
           result = int_max;
         } else if (result < int_min){
           result = int_min;
         }
-        set_mreg(true, td + widen_idx, i, j_offset, result, msew + 1);
+        set_mreg(true, td, i, j, result, msew + 1);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -339,19 +318,16 @@ def_EHelper(msqma) {
 
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, true);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
 
-        // TODO: temp use 4 output treg for all quadruple widen mma
-        int widen_idx = j / (tile_n/4);
-        int j_offset = j - widen_idx*(tile_n/4);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 2, true);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, true);
         int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
         if (result > int_max){
           result = int_max;
         } else if (result < int_min){
           result = int_min;
         }
-        set_mreg(true, td + widen_idx, i, j_offset, result, msew + 2);
+        set_mreg(true, td, i, j, result, msew + 2);
   MMA_LOOP_END
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -384,7 +360,7 @@ def_EHelper(mfma) {
   }
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
         rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
@@ -423,14 +399,11 @@ def_EHelper(mfwma) {
   }
   MMA_LOOP_BEGIN
         get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, k, j, &tmp_reg[2], msew, false);
+        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
         
-        // TODO: temp use 2 output treg for all double widen mma
-        int widen_idx = j / (tile_n/2);
-        int j_offset = j - widen_idx*(tile_n/2);
-        get_mreg(true, td + widen_idx, i, j_offset, &tmp_reg[0], msew + 1, false);
+        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
         rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
-        set_mreg(true, td + widen_idx, i, j_offset, tmp_reg[0], msew + 1);
+        set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, false, ts1, ts2,
