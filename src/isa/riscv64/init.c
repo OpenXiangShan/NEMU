@@ -195,9 +195,9 @@ void init_isa() {
   mtok->val = MTOK;
   
   mtype->val = (uint64_t) 1 << 63; // the same as vtype
-  mtilem->val = TMMAX;
-  mtilek->val = TKMAX(MELEN);
-  mtilen->val = TNMAX(MELEN);
+  mtilem->val = 0;
+  mtilek->val = 0;
+  mtilen->val = 0;
 #endif // CONFIG_RVMATRIX
 
   // mcycle and minstret record :

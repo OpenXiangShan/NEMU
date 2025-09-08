@@ -17,7 +17,7 @@ amu_ctrl_event_t amu_ctrl_queue_back();
 size_t amu_ctrl_queue_size();
 bool amu_ctrl_queue_empty();
 
-void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, uint8_t ms1, uint8_t ms2,
+void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, uint8_t ms1, uint8_t ms2,
                                 uint16_t mtilem, uint16_t mtilen, uint16_t mtilek,
                                 uint8_t types, uint8_t typed);
 void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,

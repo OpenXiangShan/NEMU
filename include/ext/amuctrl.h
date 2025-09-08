@@ -6,12 +6,13 @@
 #ifdef CONFIG_RVMATRIX
 
 // Attention: the order of fields in this class must be the same as the order
-//            in the corresponding struct in NEMU.
+//            in the corresponding struct in XiangShan(or XSAI)'s diffstate.h.
 typedef struct  {
   uint8_t  valid;
   uint8_t  op;
   uint8_t  md;     // also used as ms
   uint8_t  sat;    // also used as ls
+  uint8_t  isfp;   // also used as transpose
   uint8_t  ms1;
   uint8_t  ms2;
   uint16_t mtilem; // also used as row
@@ -19,7 +20,6 @@ typedef struct  {
   uint16_t mtilek;
   uint8_t  types;
   uint8_t  typed;
-  uint8_t  transpose;
   uint8_t  isacc;
   uint64_t base;
   uint64_t stride;
