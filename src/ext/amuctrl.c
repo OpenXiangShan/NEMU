@@ -20,7 +20,7 @@ static void print_amu_ctrl_event(amu_ctrl_event_t *event) {
   } else if (event->op == 1) {
     fprintf(stderr, "  ms: %d, ls: %d, transpose: %d, isacc: %d\n"
                     "  base: %016lx, stride: %016lx, row: %d, column: %d, msew: %d\n",
-                    event->md, event->sat, event->transpose, event->isacc,
+                    event->md, event->sat, event->isfp, event->isacc,
                     event->base, event->stride, event->mtilem, event->mtilen, event->types);
   } else {
     fprintf(stderr, "  unknown op!\n");
@@ -30,11 +30,12 @@ static void print_amu_ctrl_event(amu_ctrl_event_t *event) {
 
 static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
   bool cmp_mma = l->op == 0 && r->op == 0 && l->md == r->md && l->sat == r->sat
+                 && l->isfp == r->isfp
                  && l->ms1 == r->ms1 && l->ms2 == r->ms2
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen && l->mtilek == r->mtilek
                  && l->types == r->types && l->typed == r->typed;
   bool cmp_mls = l->op == 1 && r->op == 1 && l->md == r->md && l->sat == r->sat
-                 && l->transpose == r->transpose && l->isacc == r->isacc
+                 && l->isfp == r->isfp && l->isacc == r->isacc
                  && l->base == r->base && l->stride == r->stride 
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen
                  && l->types == r->types;
@@ -49,6 +50,7 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
     cmp->op = -1;
     cmp->md = 0;
     cmp->sat = 0;
+    cmp->isfp = 0;
     cmp->ms1 = 0;
     cmp->ms2 = 0;
     cmp->mtilem = 0;
@@ -56,7 +58,6 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
     cmp->mtilek = 0;
     cmp->types = 0;
     cmp->typed = 0;
-    cmp->transpose = 0;
     cmp->isacc = 0;
     cmp->base = 0;
     cmp->stride = 0;
@@ -71,6 +72,7 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
       cmp->op = amu_ctrl_event_data.op;
       cmp->md = amu_ctrl_event_data.md;
       cmp->sat = amu_ctrl_event_data.sat;
+      cmp->isfp = amu_ctrl_event_data.isfp;
       cmp->mtilem = amu_ctrl_event_data.mtilem;
       cmp->mtilen = amu_ctrl_event_data.mtilen;
       cmp->types = amu_ctrl_event_data.types;
@@ -83,7 +85,6 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
         cmp->typed = amu_ctrl_event_data.typed;
       } else if (amu_ctrl_event_data.op == 1) {
         // case Matrix load/store
-        cmp->transpose = amu_ctrl_event_data.transpose;
         cmp->isacc = amu_ctrl_event_data.isacc;
         cmp->base = amu_ctrl_event_data.base;
         cmp->stride = amu_ctrl_event_data.stride;
