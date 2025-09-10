@@ -55,7 +55,7 @@ void mld(Decode *s, bool is_trans, char m_name) {
          "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
   if (m_name == 'c') {
     Assert((cmax_mreg <= MRENUM8 * MAMUL / (s->m_width)),
-           "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
+           "mld c: mtile config should not larger than tile_reg size!\n");
   } else {
     Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
            "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
@@ -65,13 +65,13 @@ void mld(Decode *s, bool is_trans, char m_name) {
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=0, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
-    "            row=%d, col=%d, width=%#x, isacc=%d\n",
-    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name == 'c');
+    "            row=%d, col=%d, width=%#x, m_name=%c\n",
+    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name);
 #endif
 
   rtl_lmm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, s->m_eew, is_trans ^ (m_name == 'b'),
-    MMU_TRANSLATE, m_name == 'c', td);
+    rmax_mreg, cmax_mreg, s->m_eew, is_trans,
+    MMU_TRANSLATE, m_name, td);
 }
 
 void mst(Decode *s, bool is_trans, char m_name) {
@@ -85,8 +85,8 @@ void mst(Decode *s, bool is_trans, char m_name) {
       cmax_mreg  = mtilek->val;
       break;
     case 'b':
-      rmax_mreg  = mtilek->val;
-      cmax_mreg  = mtilen->val;
+      rmax_mreg  = mtilen->val;
+      cmax_mreg  = mtilek->val;
       break;
     case 'c':
       rmax_mreg  = mtilem->val;
@@ -101,7 +101,7 @@ void mst(Decode *s, bool is_trans, char m_name) {
          "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
   if (m_name == 'c') {
     Assert((cmax_mreg <= MRENUM8 * MAMUL / (s->m_width)),
-         "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
+         "mst c: mtile config should not larger than tile_reg size!\n");
   } else {
     Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
          "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
@@ -111,13 +111,13 @@ void mst(Decode *s, bool is_trans, char m_name) {
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=1, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
-    "            row=%d, col=%d, width=%#x, isacc=%d\n",
-    ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name == 'c');
+    "            row=%d, col=%d, width=%#x, m_name=%c\n",
+    ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name);
 #endif
 
   rtl_smm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, s->m_eew, is_trans ^ (m_name == 'b'),
-    MMU_TRANSLATE, m_name == 'c', ts3);
+    rmax_mreg, cmax_mreg, s->m_eew, is_trans,
+    MMU_TRANSLATE, m_name, ts3);
 }
 
 

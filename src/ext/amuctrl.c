@@ -12,20 +12,26 @@ amu_ctrl_event_t get_amu_ctrl_info() {
 __attribute__((unused))
 static void print_amu_ctrl_event(amu_ctrl_event_t *event) {
   fprintf(stderr, "[NEMU] debug: amu_ctrl_event@pc: %016lx, op = %d\n", event->pc, event->op);
-  if (event->op == 0) {
-    fprintf(stderr, "  md: %d, sat: %d, ms1: %d, ms2: %d\n"
-                    "  mtilem: %d, mtilen: %d, mtilek: %d, types: %d, typed: %d\n",
-                    event->md, event->sat, event->ms1, event->ms2,
-                    event->mtilem, event->mtilen, event->mtilek, event->types, event->typed);
-  } else if (event->op == 1) {
-    fprintf(stderr, "  ms: %d, ls: %d, transpose: %d, isacc: %d\n"
-                    "  base: %016lx, stride: %016lx, row: %d, column: %d, msew: %d\n",
-                    event->md, event->sat, event->isfp, event->isacc,
-                    event->base, event->stride, event->mtilem, event->mtilen, event->types);
-  } else {
-    fprintf(stderr, "  unknown op!\n");
+  switch (event->op) {
+    case 0:
+      fprintf(stderr, "  md: %d, sat: %d, ms1: %d, ms2: %d\n"
+                      "  mtilem: %d, mtilen: %d, mtilek: %d, types: %d, typed: %d\n",
+                      event->md, event->sat, event->ms1, event->ms2,
+                      event->mtilem, event->mtilen, event->mtilek, event->types, event->typed);
+      break;
+    case 1:
+      fprintf(stderr, "  ms: %d, ls: %d, transpose: %d, isacc: %d\n"
+                      "  base: %016lx, stride: %016lx, row: %d, column: %d, msew: %d\n",
+                      event->md, event->sat, event->isfp, event->isacc,
+                      event->base, event->stride, event->mtilem, event->mtilen, event->types);
+      break;
+    case 2:
+      fprintf(stderr, "  tokenRd: %d\n", event->mtilem);
+      break;
+    default:
+      fprintf(stderr, "  unknown op!\n");
+      break;
   }
-  
 }
 
 static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
@@ -39,8 +45,9 @@ static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
                  && l->base == r->base && l->stride == r->stride 
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen
                  && l->types == r->types;
+  bool cmp_mrelease = l->op == 2 && r->op == 2 && l->mtilem == r->mtilem;
   bool cmp_pc = l->pc == r->pc;
-  return !((cmp_mma || cmp_mls) && cmp_pc);
+  return !((cmp_mma || cmp_mls || cmp_mrelease) && cmp_pc);
 }
 
 int check_amu_ctrl(amu_ctrl_event_t *cmp) {
@@ -77,19 +84,27 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
       cmp->mtilen = amu_ctrl_event_data.mtilen;
       cmp->types = amu_ctrl_event_data.types;
       cmp->pc = amu_ctrl_event_data.pc;
-      if (amu_ctrl_event_data.op == 0) {
-        // case MMA
-        cmp->ms1 = amu_ctrl_event_data.ms1;
-        cmp->ms2 = amu_ctrl_event_data.ms2;
-        cmp->mtilek = amu_ctrl_event_data.mtilek;
-        cmp->typed = amu_ctrl_event_data.typed;
-      } else if (amu_ctrl_event_data.op == 1) {
-        // case Matrix load/store
-        cmp->isacc = amu_ctrl_event_data.isacc;
-        cmp->base = amu_ctrl_event_data.base;
-        cmp->stride = amu_ctrl_event_data.stride;
-      } else {
-        Log("invalid AMU ctrl op");
+      switch (amu_ctrl_event_data.op) {
+        case 0:
+          // case MMA
+          cmp->ms1 = amu_ctrl_event_data.ms1;
+          cmp->ms2 = amu_ctrl_event_data.ms2;
+          cmp->mtilek = amu_ctrl_event_data.mtilek;
+          cmp->typed = amu_ctrl_event_data.typed;
+          break;
+        case 1:
+          // case Matrix load/store
+          cmp->isacc = amu_ctrl_event_data.isacc;
+          cmp->base = amu_ctrl_event_data.base;
+          cmp->stride = amu_ctrl_event_data.stride;
+          break;
+        case 2:
+          // case Mrelease
+          cmp->mtilem = amu_ctrl_event_data.mtilem;
+          break;
+        default:
+          Log("invalid AMU ctrl op");
+          break;
       }
       result = 1;
     }

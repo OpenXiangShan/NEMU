@@ -23,7 +23,7 @@ void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, uint8_t ms1, ui
 void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
                                 uint64_t base, uint64_t stride,
                                 uint16_t row, uint16_t column, uint8_t msew);
-
+void amu_ctrl_queue_mrelease_emplace(uint8_t tokenRd);
 #endif // CONFIG_RVMATRIX
 
 #ifdef __cplusplus
