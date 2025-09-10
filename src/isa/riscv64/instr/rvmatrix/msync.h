@@ -15,6 +15,7 @@ def_EHelper(msyncreset) {
 
 def_EHelper(mrelease) {
   cpu.mtokr[s->src2.imm]++;
+  amu_ctrl_queue_mrelease_emplace(s->src2.imm);
 }
 
 def_EHelper(macquire) {
