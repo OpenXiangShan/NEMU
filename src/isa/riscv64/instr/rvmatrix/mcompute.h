@@ -139,7 +139,7 @@ def_EHelper(msmau) {
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
         uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
-        bool overflow = false;  
+        bool overflow = false;
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
@@ -171,7 +171,7 @@ def_EHelper(mswmau) {
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
         uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
-        bool overflow = false;  
+        bool overflow = false;
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;
@@ -203,7 +203,7 @@ def_EHelper(msqmau) {
 
         get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, false);
         uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
-        bool overflow = false;  
+        bool overflow = false;
         if (result > uint_max) overflow = true;
         if (overflow) {
           result = uint_max;

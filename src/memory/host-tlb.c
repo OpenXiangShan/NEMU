@@ -101,9 +101,9 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
 #ifdef CONFIG_RVMATRIX
 __attribute__((noinline))
 static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
-                                          int row, int column, int msew, bool transpose, bool isacc, int mreg_id) {
+                                          int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
   paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_READ);
-  paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, isacc, mreg_id);
+  paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   if (likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
     #ifdef CONFIG_USE_SPARSEMM
@@ -141,9 +141,9 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
 #ifdef CONFIG_RVMATRIX
 __attribute__((noinline))
 static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
-                                          int row, int column, int msew, bool transpose, bool isacc, int mreg_id) {
+                                          int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
   paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
-  paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, isacc, mreg_id);
+  paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   if (likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
     #ifdef CONFIG_USE_SPARSEMM
@@ -188,7 +188,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
 #ifdef CONFIG_RVMATRIX
 void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                            int row, int column, int msew, bool transpose,
-                           bool isacc, int mreg_id) {
+                           char m_name, int mreg_id) {
   Logm("hosttlb_reading_matrix " FMT_WORD, vbase);
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
@@ -197,7 +197,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
     fprintf(stderr, "?? 2-stage hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", paddr, 1 << msew, type);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-    paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, isacc, mreg_id);
+    paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   } else
 #endif
   {
@@ -205,7 +205,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
     if (unlikely(e->gvpn != gvpn)) {
       Logm("Host TLB slow path");
-      hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, isacc, mreg_id);
+      hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     } else {
       Logm("Host TLB fast path");
 #ifdef CONFIG_USE_SPARSEMM
@@ -214,14 +214,19 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #else // NOT CONFIG_USE_SPARSEMM
       uint8_t *host_base = e->offset + vbase;      
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-      amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, isacc, host_to_guest(host_base), stride, row, column, msew);
+      amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', 
+        host_to_guest(host_base), stride,
+        m_name == 'b' ? column : row,
+        m_name == 'b' ? row : column,
+        msew
+      );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
       fprintf(stderr, "?? fast-path hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, type);
       // guest_to_host(e->offset) when save, so in order to get the original paddr, we use host_to_guest here
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
       
-      host_read_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, isacc, mreg_id);
+      host_read_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_USE_SPARSEMM
     }
   }
@@ -282,7 +287,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #ifdef CONFIG_RVMATRIX
 void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                           int row, int column, int msew, bool transpose,
-                          bool isacc, int mreg_id) {
+                          char m_name, int mreg_id) {
 #ifdef CONFIG_RVH
   if (has_two_stage_translation()){
     paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_WRITE);
@@ -296,13 +301,13 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     //   "            ..."
     //   "\n");
     return paddr_write_matrix(pbase, stride, row, column, msew, transpose,
-      cpu.mode, vbase, isacc, mreg_id);
+      cpu.mode, vbase, m_name, mreg_id);
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vbase);
   HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
   if (unlikely(e->gvpn != gvpn)) {
-    hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, isacc, mreg_id);
+    hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     return;
   }
 #ifdef CONFIG_USE_SPARSEMM
@@ -316,13 +321,18 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   matrix_store_commit_queue_push(host_to_guest(host_base), stride, row, column, msew, transpose);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, isacc, host_to_guest(host_base), stride, row, column, msew);
+  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c',
+    host_to_guest(host_base), stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
   fprintf(stderr, "?? fast-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
     (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-  host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, isacc, mreg_id);
+  host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // NOT CONFIG_USE_SPARSEMM
 }
 #endif // CONFIG_RVMATRIX
