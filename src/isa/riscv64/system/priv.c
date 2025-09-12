@@ -1144,7 +1144,7 @@ inline word_t get_mip() {
     tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
   }
 #else
-  tmp |= mip->val & MIP_SEIP;
+  tmp |= mip->val & MIP_SEIP | (cpu.non_reg_interrupt_pending.platform_irp_seip << 9);
 #endif // CONFIG_RV_AIA
 
   IFDEF(CONFIG_RVH, tmp |= (hvip->vseip | cpu.non_reg_interrupt_pending.platform_irp_vseip) << 10);
