@@ -31,14 +31,17 @@
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #endif // CONFIG_SIMPLE_LOG
 
+extern uint64_t g_nr_guest_instr;
+extern unsigned int PMEM_HARTID;
+#define LOG_CONT PMEM_HARTID == 3 && g_nr_guest_instr > 3544043
 #define Logf(flag, ...) \
   do { \
-    if (flag == dflag_mem && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_translate && ISDEF(CONFIG_TRANSLOG)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst && ISDEF(CONFIG_TRACE_INST)) Log(__VA_ARGS__); \
-    if (flag == dflag_trace_inst_dasm && ISDEF(CONFIG_TRACE_INST_DASM)) Log(__VA_ARGS__); \
+    if (flag == dflag_mem && LOG_CONT) Log(__VA_ARGS__); \
+    if (flag == dflag_translate && LOG_CONT) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst && LOG_CONT) Log(__VA_ARGS__); \
+    if (flag == dflag_trace_inst_dasm  && LOG_CONT) Log(__VA_ARGS__); \
     if (flag == dflag_trace_bb && ISDEF(CONFIG_TRACE_BB)) Log(__VA_ARGS__); \
-    if (flag == dflag_exit && ISDEF(CONFIG_EXITLOG)) Log(__VA_ARGS__); \
+    if (flag == dflag_exit && LOG_CONT) Log(__VA_ARGS__); \
     if (flag == dflag_simpoint && ISDEF(CONFIG_SIMPOINT_LOG)) Log(__VA_ARGS__); \
   } while (0)
 
