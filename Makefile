@@ -90,6 +90,8 @@ XSRCS-y += src/memory/store_queue_wrapper.cpp
 
 XSRCS = $(XSRCS-y)
 
+CONFIG_CC ?= gcc
+CONFIG_CXX ?= g++
 CC = $(call remove_quote,$(CONFIG_CC))
 CXX = $(call remove_quote,$(CONFIG_CXX))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
