@@ -1,6 +1,6 @@
 # NEMU
 
-## Abort NEMU
+## About NEMU
 
 NEMU(NJU Emulator) is a simple but complete full-system emulator designed for teaching purpose.
 Originally it supports x86, mips32, riscv64, and riscv32.
