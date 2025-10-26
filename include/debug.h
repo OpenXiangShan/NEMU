@@ -31,6 +31,9 @@
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #endif // CONFIG_SIMPLE_LOG
 
+#define Log_Trace(format, ...) \
+  _Log(format "\n", ## __VA_ARGS__)
+
 #define Logf(flag, ...) \
   do { \
     if (flag == dflag_mem && ISDEF(CONFIG_MEMLOG)) Log(__VA_ARGS__); \

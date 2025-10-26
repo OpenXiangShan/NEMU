@@ -36,4 +36,11 @@ static inline uint32_t instr_fetch(vaddr_t *pc, int len) {
   return instr;
 }
 
+# ifdef CONFIG_SIMFRONTEND_TRACE
+static inline uint32_t trace_instr_fetch(vaddr_t pc, int len) {
+  uint32_t instr = vaddr_ifetch(pc, len);
+  return instr;
+}
+#endif // CONFIG_SIMFRONTEND_TRACE
+
 #endif

@@ -742,6 +742,7 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
+  IFDEF(CONFIG_SIMFRONTEND_TRACE, Log_Trace("%lx:%x", s->pc, s->isa.instr.val));
   Logtid(
     "(%s) " FMT_WORD ":   %s%*.s%s",
     isa_get_privilege_mode_str(),

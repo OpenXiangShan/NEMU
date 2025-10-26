@@ -20,9 +20,11 @@
 #include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
+#include <cpu/ifetch.h>
 #include <difftest.h>
 
 extern void load_flash_contents(const char *flash_img);
+extern void init_log(const char *log_file, const bool fast_log, const bool small_log);
 
 #ifdef CONFIG_LARGE_COPY
 #ifndef CONFIG_USE_SPARSEMM
@@ -131,7 +133,40 @@ void difftest_regcpy(void *dut, bool direction, bool restore, uint64_t restore_c
   isa_difftest_regcpy(dut, direction, restore, restore_count);
 }
 #else
+
+#ifdef CONFIG_SIMFRONTEND_TRACE
+bool skip_flag = false;
+
+void difftest_set_skip_flag()
+{
+  skip_flag = true;
+}
+#endif // CONFIG_SIMFRONTEND_TRACE
+
+#ifdef CONFIG_SET_OUTPUT_LOG_FILE_NAME
+void difftest_set_log_path(const char *filename)
+{
+  printf("[NEMU]: set log out path: %s\n", filename);
+  init_log(filename, false, false);
+}
+#endif // SET_OUTPUT_LOG_FILE_NAME
+
 void difftest_regcpy(void *dut, bool direction) {
+#ifdef CONFIG_SIMFRONTEND_TRACE
+  if(skip_flag)
+  {
+    uint64_t trace_pc = cpu.pc;
+    ISADecodeInfo trace_isa;
+
+    trace_isa.instr.val = trace_instr_fetch(trace_pc, 2);
+    if (trace_isa.instr.r.opcode1_0 == 0x3) {
+      uint32_t hi = trace_instr_fetch(trace_pc+2, 2);
+      trace_isa.instr.val |= (hi << 16);
+    }
+    Log_Trace("%lx:%x", trace_pc, trace_isa.instr.val);
+    skip_flag = false;
+  }
+#endif // CONFIG_SIMFRONTEND_TRACE
   isa_difftest_regcpy(dut, direction);
 }
 #endif // CONFIG_LIGHTQS
@@ -345,7 +380,6 @@ void difftest_init() {
 #ifdef CONFIG_SHARE_OUTPUT_LOG_TO_FILE
   char log_file_name[20];
   sprintf(log_file_name, "nemu-hart-%d.log", PMEM_HARTID);
-  void init_log(const char *log_file, const bool fast_log, const bool small_log);
   init_log(log_file_name, false, false);
 #endif // CONFIG_SHARE_OUTPUT_LOG_TO_FILE
 

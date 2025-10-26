@@ -192,6 +192,14 @@ config SHARE_OUTPUT_LOG_TO_FILE
     Note: This option is only effective in SHARE mode. For standalone mode, 
     use the corresponding command option.
 
+config SET_OUTPUT_LOG_FILE_NAME
+  bool "Set log file name"
+  depends on SHARE_OUTPUT_LOG_TO_FILE
+  default n
+  help
+    If y, the DUT will pass a filename via the API to be used as the log file name.
+    Typically used for generating the instr trace file for SimFrontend.
+
 config DIFFTEST
   depends on !SHARE
   bool "Enable differential testing"
@@ -242,6 +250,11 @@ config DIFFTEST_REF_NAME
   default "kvm" if DIFFTEST_REF_KVM
   default "nemu-interpreter" if DIFFTEST_REF_NEMU
   default "none"
+
+config SIMFRONTEND_TRACE
+  depends on !PERF_OPT
+  bool "Output the 'pc:instr' trace log required by the sim frontend"
+  default n
 
 config IQUEUE
   bool "Record the last instrucitons executed"
