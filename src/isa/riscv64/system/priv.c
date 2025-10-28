@@ -2595,17 +2595,18 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CUSTOM_CSR_MFLUSHPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MFLUSHPWR_WMASK, src); break;
 
 #ifdef CONFIG_RV_MBMC
-    case CUSTOM_CSR_MBMC: {
-        bool BME_dest = mbmc->val & MBMC_BME;
-        uint64_t mbmc_mask;
-        if (BME_dest == 1) {
-          mbmc_mask = 0x1;
-        } else {
-          mbmc_mask = 0xffffffffffffffc5ULL;
-        }
-        mbmc->val = mask_bitset(mbmc->val, mbmc_mask, src);
-        break;
+    case CUSTOM_CSR_MBMC:
+    {
+      bool BME_dest = mbmc->val & MBMC_BME;
+      uint64_t mbmc_mask;
+      if (BME_dest == 1) {
+        mbmc_mask = 0x1;
+      } else {
+        mbmc_mask = 0xffffffffffffffc5ULL;
       }
+      mbmc->val = mask_bitset(mbmc->val, mbmc_mask, src);
+      break;
+    }
 #endif
 
 #ifdef CONFIG_RV_IMSIC
