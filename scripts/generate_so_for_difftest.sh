@@ -3,8 +3,6 @@
 set -x
 set -v
 
-export NEMU_HOME=/root/NEMU
-
 # gcpt_restore is not needed for ref-so. Just skip it in Makefile.
 mkdir -p $(pwd)/resource/gcpt_restore/src
 touch $(pwd)/resource/gcpt_restore/src/restore_rom_addr.h
