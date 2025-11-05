@@ -40,7 +40,7 @@ bool need_read_golden_mem = false;
 #ifdef CONFIG_LIGHTQS
 #define PMEMBASE 0x1100000000ul
 #else
-#define PMEMBASE 0x700000000000UL
+#define PMEMBASE 0x70000000000UL
 #endif // CONFIG_LIGHTQS
 
 #ifdef CONFIG_USE_MMAP
