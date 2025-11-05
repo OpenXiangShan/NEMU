@@ -383,6 +383,13 @@ config RV_PMA_ENTRY_16
     to access pmacfg4 - pmacfg14, pmaaddr16 - pmaaddr63 raises an illegal-
     instruction exception.
 
+  config RV_PMA_ENTRY_32
+  bool "32 PMA entries"
+  help
+    Only pmacfg0, pmacfg2, pmacfg4, pmacfg6, pmaaddr0 - pmaaddr31 are accessible.
+    An attempt to access pmacfg8 - pmacfg14, pmaaddr32 - pmaaddr63 raises an
+    illegal instruction exception.
+
 endchoice
 
 config RV_PMA_CSR
@@ -394,12 +401,15 @@ config RV_PMA_NUM
   int
   default 0 if RV_PMA_ENTRY_0
   default 16 if RV_PMA_ENTRY_16
+  default 32 if RV_PMA_ENTRY_32
 
 config RV_PMA_ACTIVE_NUM
   depends on !RV_PMA_ENTRY_0
   int "Number of active PMA entries"
   range 0 16 if RV_PMA_ENTRY_16
   default 16 if RV_PMA_ENTRY_16
+  range 0 32 if RV_PMA_ENTRY_32
+  default 32 if RV_PMA_ENTRY_32
   help
     This config decided the number of PMA entries are active. Implemented but
     inactive PMA entries are read-only zero.

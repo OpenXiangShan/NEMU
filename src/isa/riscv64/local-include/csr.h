@@ -422,6 +422,18 @@
     f(pmaaddr8  , 0x7D0) f(pmaaddr9   , 0x7D1) f(pmaaddr10  , 0x7D2) f(pmaaddr11  , 0x7D3) \
     f(pmaaddr12 , 0x7D4) f(pmaaddr13  , 0x7D5) f(pmaaddr14  , 0x7D6) f(pmaaddr15  , 0x7D7)
 #endif // CONFIG_RV_PMA_ENTRY_16
+#ifdef CONFIG_RV_PMA_ENTRY_32
+  #define CSRS_M_MEMORY_ATTRIBUTE(f) \
+    f(pmacfg0   , 0x7C0) f(pmacfg2    , 0x7C2) f(pmacfg4    , 0x7C4) f(pmacfg6    , 0x7C6) \
+    f(pmaaddr0  , 0x7C8) f(pmaaddr1   , 0x7C9) f(pmaaddr2   , 0x7CA) f(pmaaddr3   , 0x7CB) \
+    f(pmaaddr4  , 0x7CC) f(pmaaddr5   , 0x7CD) f(pmaaddr6   , 0x7CE) f(pmaaddr7   , 0x7CF) \
+    f(pmaaddr8  , 0x7D0) f(pmaaddr9   , 0x7D1) f(pmaaddr10  , 0x7D2) f(pmaaddr11  , 0x7D3) \
+    f(pmaaddr12 , 0x7D4) f(pmaaddr13  , 0x7D5) f(pmaaddr14  , 0x7D6) f(pmaaddr15  , 0x7D7) \
+    f(pmaaddr16 , 0x7D8) f(pmaaddr17  , 0x7D9) f(pmaaddr18  , 0x7DA) f(pmaaddr19  , 0x7DB) \
+    f(pmaaddr20 , 0x7DC) f(pmaaddr21  , 0x7DD) f(pmaaddr22  , 0x7DE) f(pmaaddr23  , 0x7DF) \
+    f(pmaaddr24 , 0x7E0) f(pmaaddr25  , 0x7E1) f(pmaaddr26  , 0x7E2) f(pmaaddr27  , 0x7E3) \
+    f(pmaaddr28 , 0x7E4) f(pmaaddr29  , 0x7E5) f(pmaaddr30  , 0x7E6) f(pmaaddr31  , 0x7E7)
+#endif // CONFIG_RV_PMA_ENTRY_32
 
 /** Machine State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
