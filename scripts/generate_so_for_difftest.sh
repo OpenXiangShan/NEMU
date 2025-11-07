@@ -19,6 +19,11 @@ make -j
 cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-so
 
 make clean
+make riscv64-xs-ref-fpga_defconfig
+make -j
+cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-fpga-so
+
+make clean
 make riscv64-xs-ref-debug_defconfig
 make -j
 cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-debug-so
