@@ -37,12 +37,6 @@ extern uint64_t vec_read_golden_mem_data;
 bool need_read_golden_mem = false;
 #endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 
-#ifdef CONFIG_LIGHTQS
-#define PMEMBASE 0x1100000000ul
-#else
-#define PMEMBASE 0x70000000000UL
-#endif // CONFIG_LIGHTQS
-
 #ifdef CONFIG_USE_MMAP
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -175,18 +169,17 @@ void allocate_memory_with_mmap()
   #ifdef CONFIG_USE_SPARSEMM
   sparse_mm = sparse_mem_new(4, 1024); //4kB
   #else
-  // Note: we are using MAP_FIXED here, in the SHARED mode, even if
-  // init_mem may be called multiple times, the memory space will be
-  // allocated only once at the first time called.
-  // See https://man7.org/linux/man-pages/man2/mmap.2.html for details.
-  void *pmem_base = (void *)(PMEMBASE + PMEM_HARTID * MEMORY_SIZE);
-  void *ret = mmap(pmem_base, MEMORY_SIZE, PROT_READ | PROT_WRITE,
-      MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED | MAP_NORESERVE, -1, 0);
-  if (ret != pmem_base) {
-    perror("mmap");
+  // When pmem is not NULL, assume it has already been allocated.
+  // This is useful since init_mem may be called multiple times.
+  // The memory space will be allocated only once at the first time called.
+  if (pmem) {}
+
+  pmem = mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE,
+      MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
+  if (!pmem) {
+    perror("mmap allocation failed");
     assert(0);
   }
-  pmem = (uint8_t*)ret;
   #endif
 #endif // CONFIG_USE_MMAP
 }
