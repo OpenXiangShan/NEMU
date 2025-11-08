@@ -2596,6 +2596,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_MBMC
     case CUSTOM_CSR_MBMC:
+    {
       bool BME_dest = mbmc->val & MBMC_BME;
       uint64_t mbmc_mask;
       if (BME_dest == 1) {
@@ -2605,6 +2606,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       }
       mbmc->val = mask_bitset(mbmc->val, mbmc_mask, src);
       break;
+    }
 #endif
 
 #ifdef CONFIG_RV_IMSIC

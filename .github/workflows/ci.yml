@@ -287,19 +287,28 @@ jobs:
           ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
 
   compile-difftest-so:
+    strategy:
+      matrix:
+        container-version: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+      fail-fast: false
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:${{ matrix.container-version }}
     continue-on-error: false
     name: Compile difftest-so
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    - name: compile in CentOS 7 docker
+    - name: Setup env
       run: |
-        bash ./scripts/generate_so_from_docker.sh
+        echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+    - name: compile dynamic libraries
+      run: |
+        bash ./scripts/generate_so_for_difftest.sh
     - name: archive difftest-so artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: difftest-so
+        name: difftest-so-${{ matrix.container-version }}
         path: |
           artifact
