@@ -187,6 +187,8 @@
 #endif // CONFIG_CUSTOM_TENSOR
 
 #ifdef CONFIG_RVMATRIX
+#define MATRIX_INSTR_UNARY(f) \
+  f(mzero_acc_m) f(mzero_tr_m)
 #define MATRIX_INSTR_BINARY(f) \
   f(msettype) f(msettypei) f(msettypehi) \
   f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni) \
@@ -203,6 +205,7 @@
   f(msma) f(mswma) f(msqma) \
   f(mfma) f(mfwma)
 #else
+#define MATRIX_INSTR_UNARY(f)
 #define MATRIX_INSTR_BINARY(f)
 #define MATRIX_INSTR_TERNARY(f)
 #endif // CONFIG_RVMATRIX
@@ -377,7 +380,8 @@
   ZCMOP_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
-  f(p_li_0) f(p_li_1)
+  f(p_li_0) f(p_li_1) \
+  MATRIX_INSTR_UNARY(f)
 
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
