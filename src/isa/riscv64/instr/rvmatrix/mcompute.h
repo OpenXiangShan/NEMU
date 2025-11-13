@@ -480,4 +480,20 @@ def_EHelper(mfwma) {
 #endif
 }
 
+def_EHelper(mzero_acc_m) {
+  for (int i = 0; i < MLEN/MRLEN; i++) {
+    for (int j = 0; j < MRENUM64*MAMUL; j++) {
+      set_mreg(true, s->dest.reg, i, j, 0, 3);
+    }
+  }
+}
+
+def_EHelper(mzero_tr_m) {
+  for (int i = 0; i < MLEN/MRLEN; i++) {
+    for (int j = 0; j < MRENUM64; j++) {
+      set_mreg(false, s->dest.reg, i, j, 0, 3);
+    }
+  }
+}
+
 #endif // CONFIG_RVMATRIX
