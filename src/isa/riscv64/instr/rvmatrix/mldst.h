@@ -51,14 +51,16 @@ void mld(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
-  Assert((rmax_mreg <= MRNUM),
-         "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
   if (m_name == 'c') {
-    Assert((cmax_mreg <= MRENUM8 * MAMUL / (s->m_width)),
-           "mld c: mtile config should not larger than tile_reg size!\n");
+    Assert((rmax_mreg <= ACCMRNUM),
+          "mld c: mtile config should not larger than tile_reg size!\n");
+    Assert((cmax_mreg <= ACCMRENUM8 / (s->m_width)),
+          "mld c: mtile config should not larger than tile_reg size!\n");
   } else {
-    Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
-           "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
+    Assert((rmax_mreg <= TRMRNUM),
+          "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
+    Assert((cmax_mreg <= TRMRENUM8 / (s->m_width)),
+          "mld %c: mtile config should not larger than tile_reg size!\n", m_name);
   }
 
 #ifdef PRINT_AMUCTRLIO
@@ -97,13 +99,16 @@ void mst(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
-  Assert((rmax_mreg <= MRNUM),
-         "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
+  
   if (m_name == 'c') {
-    Assert((cmax_mreg <= MRENUM8 * MAMUL / (s->m_width)),
+    Assert((rmax_mreg <= ACCMRNUM),
+         "mst c: mtile config should not larger than tile_reg size!\n");
+    Assert((cmax_mreg <= ACCMRENUM8 / (s->m_width)),
          "mst c: mtile config should not larger than tile_reg size!\n");
   } else {
-    Assert((cmax_mreg <= MRENUM8 / (s->m_width)),
+    Assert((rmax_mreg <= TRMRNUM),
+         "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
+    Assert((cmax_mreg <= TRMRENUM8 / (s->m_width)),
          "mst %c: mtile config should not larger than tile_reg size!\n", m_name);
   }
 
