@@ -51,8 +51,8 @@ void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, uint8_t ms1, ui
   event.mtilem = mtilem;
   event.mtilen = mtilen;
   event.mtilek = mtilek;
-  event.types = types + 3;
-  event.typed = typed + 3;
+  event.types = types;
+  event.typed = typed;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
@@ -71,7 +71,7 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   event.isacc = isacc;
   event.mtilem = row;
   event.mtilen = column;
-  event.types = msew + 3;
+  event.types = msew;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
@@ -80,6 +80,19 @@ void amu_ctrl_queue_mrelease_emplace(uint8_t tokenRd) {
   amu_ctrl_event_t event;
   event.op = 2;
   event.mtilem = tokenRd;
+  event.pc = prev_s->pc;
+  amu_ctrl_queue_push(event);
+}
+
+void amu_ctrl_queue_mzero_emplace(bool isacc, uint8_t md) {
+  amu_ctrl_event_t event;
+  event.op = 3;
+  event.md = md;
+  if (isacc) {
+    event.base = 0x1bc;
+  } else {
+    event.base = 0x1b8;
+  }
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }

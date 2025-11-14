@@ -28,6 +28,9 @@ static void print_amu_ctrl_event(amu_ctrl_event_t *event) {
     case 2:
       fprintf(stderr, "  tokenRd: %d\n", event->mtilem);
       break;
+    case 3:
+      fprintf(stderr, "  md: %d, opType: %016lx\n", event->md, event->base);
+      break;
     default:
       fprintf(stderr, "  unknown op!\n");
       break;
@@ -46,8 +49,9 @@ static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen
                  && l->types == r->types;
   bool cmp_mrelease = l->op == 2 && r->op == 2 && l->mtilem == r->mtilem;
+  bool cmp_mzero = l->op == 3 && r->op == 3 && l->md == r->md && l->base == r->base;
   bool cmp_pc = l->pc == r->pc;
-  return !((cmp_mma || cmp_mls || cmp_mrelease) && cmp_pc);
+  return !((cmp_mma || cmp_mls || cmp_mrelease || cmp_mzero) && cmp_pc);
 }
 
 int check_amu_ctrl(amu_ctrl_event_t *cmp) {
@@ -101,6 +105,10 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
         case 2:
           // case Mrelease
           cmp->mtilem = amu_ctrl_event_data.mtilem;
+          break;
+        case 3:
+          // case Marith
+          cmp->base = amu_ctrl_event_data.base;
           break;
         default:
           Log("invalid AMU ctrl op");

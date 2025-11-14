@@ -481,19 +481,25 @@ def_EHelper(mfwma) {
 }
 
 def_EHelper(mzero_acc_m) {
-  for (int i = 0; i < MLEN/MRLEN; i++) {
-    for (int j = 0; j < MRENUM64*MAMUL; j++) {
+  for (int i = 0; i < ACCMRNUM; i++) {
+    for (int j = 0; j < ACCMRENUM64; j++) {
       set_mreg(true, s->dest.reg, i, j, 0, 3);
     }
   }
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mzero_emplace(true, s->dest.reg);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
 }
 
 def_EHelper(mzero_tr_m) {
-  for (int i = 0; i < MLEN/MRLEN; i++) {
-    for (int j = 0; j < MRENUM64; j++) {
+  for (int i = 0; i < TRMRNUM; i++) {
+    for (int j = 0; j < TRMRENUM64; j++) {
       set_mreg(false, s->dest.reg, i, j, 0, 3);
     }
   }
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mzero_emplace(false, s->dest.reg);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
 }
 
 #endif // CONFIG_RVMATRIX
