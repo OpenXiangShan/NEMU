@@ -207,21 +207,19 @@ typedef struct {
   trap_info_t trapInfo;
 
 #ifdef CONFIG_RVMATRIX
-  // void *tr_file;
-  // void *acc_file;
   union {
-    uint64_t _64[MRENUM64];
-    uint32_t _32[MRENUM32];
-    uint16_t _16[MRENUM16];
-    uint8_t  _8[MRENUM8];
-  } mtr[8][MRNUM];
+    uint64_t _64[TRMRENUM64];
+    uint32_t _32[TRMRENUM32];
+    uint16_t _16[TRMRENUM16];
+    uint8_t  _8[TRMRENUM8];
+  } mtr[8][TRMRNUM];
 
   union {
-    uint64_t _64[MRENUM64 * MAMUL];
-    uint32_t _32[MRENUM32 * MAMUL];
-    uint16_t _16[MRENUM16 * MAMUL];
-    uint8_t  _8[MRENUM8 * MAMUL];
-  } macc[8][MRNUM];
+    uint64_t _64[ACCMRENUM64];
+    uint32_t _32[ACCMRENUM32];
+    uint16_t _16[ACCMRENUM16];
+    uint8_t  _8[ACCMRENUM8];
+  } macc[8][ACCMRNUM];
 
   uint64_t mtokr[MTOK];
 #endif // CONFIG_RVMATRIX

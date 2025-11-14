@@ -95,25 +95,23 @@ def_EHelper(msettileki) {
 
 def_EHelper(msettilen) {
   s->src1.val = reg_l(s->src1.reg);
-  int SEW = s->m_width * 8;
   if (s->src1.reg) {
-    if (s->src1.val <= TNMAX(SEW)) {
+    if (s->src1.val <= TNMAX) {
       mtilen->val = s->src1.val;
     } else {
-      mtilen->val = TNMAX(SEW);
+      mtilen->val = TNMAX;
     }
   } else if (s->dest.reg) {
-    mtilen->val = TNMAX(SEW);
+    mtilen->val = TNMAX;
   }
   reg_l(s->dest.reg) = mtilen->val;
 }
 
 def_EHelper(msettileni) {
-  int SEW = s->m_width * 8;
-  if (s->src2.imm <= TNMAX(SEW)) {
+  if (s->src2.imm <= TNMAX) {
     mtilen->val = s->src2.imm;
   } else {
-    mtilen->val = TNMAX(SEW);
+    mtilen->val = TNMAX;
   }
   reg_l(s->dest.reg) = mtilen->val;
 }
