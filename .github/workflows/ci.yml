@@ -34,17 +34,19 @@ jobs:
 
   compilation-all:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-22.04
     continue-on-error: false
     name: Compilation - all configs
     timeout-minutes: 60
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libreadline6-dev libsdl2-dev zstd libzstd-dev g++-riscv64-linux-gnu gcc-riscv64-linux-gnu
-        pip install protobuf grpcio-tools
+    # - name: Install dependencies
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y libreadline6-dev libsdl2-dev zstd libzstd-dev g++-riscv64-linux-gnu gcc-riscv64-linux-gnu
+    #     pip install protobuf grpcio-tools
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
