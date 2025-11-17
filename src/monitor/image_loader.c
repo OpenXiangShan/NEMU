@@ -275,7 +275,7 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
 void fill_memory(const char* img_file, const char* flash_image, const char* cpt_image, int64_t* img_size, int64_t* flash_size) {
   assert(img_file);
   uint8_t* bbl_start = (uint8_t*)get_pmem();
-  *img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) form cmdline", bbl_start, 0);
+  *img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) from cmdline", bbl_start, 0);
 
 #ifdef CONFIG_HAS_FLASH
   uint8_t* flash_start = get_flash_base();
@@ -306,9 +306,9 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
     fclose(restore_fp);
 
 #ifdef CONFIG_HAS_FLASH
-    load_img(cpt_image, "Gcpt restorer form cmdline", flash_start, restore_size);
+    load_img(cpt_image, "Gcpt restorer from cmdline", flash_start, restore_size);
 #else
-    load_img(cpt_image, "Gcpt restorer form cmdline", bbl_start, restore_size);
+    load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
 #endif
   }
 }
