@@ -962,7 +962,7 @@ int force_raise_gpf(vaddr_t vaddr, int type){
 #ifdef CONFIG_PMPTABLE_EXTENSION
 static bool napot_decode(paddr_t addr, word_t pmpaddr) {
   word_t pmpaddr_start, pmpaddr_end;
-  /* NAPOT decode method, learn form qemu */
+  /* NAPOT decode method, learn from qemu */
   pmpaddr_start = (pmpaddr & (pmpaddr + 1)) << PMP_SHIFT;
   pmpaddr_end = (pmpaddr | (pmpaddr + 1)) << PMP_SHIFT;
   return ((pmpaddr_start <= addr && addr < pmpaddr_end) ? true : false);
@@ -1247,7 +1247,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
           word_t root_table_base = pmpaddr_from_index(i + 1) << 12;
           return pmptable_check_permission(offset, root_table_base, type, out_mode);
         }
-        /* Table-bit is disable, get permission directly form pmpcfg reg */
+        /* Table-bit is disable, get permission directly from pmpcfg reg */
         else {
           return pmpcfg_check_permission(pmpcfg, type, out_mode);
         }
