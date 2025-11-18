@@ -13,7 +13,9 @@ env:
 
 jobs:
   compilation-all:
-    runs-on: nemu
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-22.04
     continue-on-error: false
     name: Compilation - all configs
     timeout-minutes: 60
@@ -26,6 +28,9 @@ jobs:
     - name: Try to compile
       id: list_configs
       run: |
+        export LIBCHECKPOINT_CROSS_COMPILE=riscv64-linux-gnu-
+        export CPT_CROSS_COMPILE=riscv64-linux-gnu-
+        export NANOPB_CROSS_COMPILE=riscv64-linux-gnu-
         bash ./scripts/compilation-test.sh
 
   basic-xiangshan:
