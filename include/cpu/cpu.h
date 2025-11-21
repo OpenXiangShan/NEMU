@@ -18,6 +18,7 @@
 
 #include <common.h>
 #include <setjmp.h>
+#include <stdarg.h>
 
 #define AHEAD_LENGTH 500
 
@@ -91,4 +92,21 @@ struct lightqs_reg_ss {
   int ifetch_mmu_state;
   int data_mmu_state;
 };
+
+extern unsigned ref_hartid;
+static inline void ref_log_cpu(const char *fmt, ...) {
+#ifdef CONFIG_SHARE
+  if (unlikely(dynamic_config.debug_difftest)) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    fprintf(stderr, "[NEMU][%u] ", ref_hartid);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+
+    va_end(ap);
+  }
+#endif
+}
+
 #endif

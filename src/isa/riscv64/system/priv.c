@@ -1314,12 +1314,12 @@ static inline void set_hideleg(word_t src) {
   //    reg & mideleg & HIDELEG_MASK |
   //    reg & mvien & LCI
   // in XiangShan.
-  // 
-  // A situation may arise at this point. First, write 1 to bit 13 of hideleg. 
-  // At this point, hideleg.reg.LCOFIP = 1 in the RTL. 
-  // Since bit 13 of mideleg or mvien is 0, the RTL's hideleg.rdata is 0. 
-  // The NEMU's get_hideleg is also 0, and a diff is performed with the RTL. 
-  // Then, write 1 to bit 13 of mideleg. 
+  //
+  // A situation may arise at this point. First, write 1 to bit 13 of hideleg.
+  // At this point, hideleg.reg.LCOFIP = 1 in the RTL.
+  // Since bit 13 of mideleg or mvien is 0, the RTL's hideleg.rdata is 0.
+  // The NEMU's get_hideleg is also 0, and a diff is performed with the RTL.
+  // Then, write 1 to bit 13 of mideleg.
   // The RTL's hideleg.rdata becomes 1, but the NEMU's hideleg->val is the result of csr_writeback and csr_prepare operations,
   // which is the value of get_hideleg, which is 0.
   // This causes an error in the RTL-NEMU diff.
@@ -1836,12 +1836,8 @@ static word_t csr_read(uint32_t csrid) {
       }
 
       uint8_t cfg = pmpcfg_from_index(idx);
-#ifdef CONFIG_SHARE
-      if(dynamic_config.debug_difftest) {
-        fprintf(stderr, "[NEMU] pmp addr read %d : 0x%016lx\n", idx,
+        ref_log_cpu("pmp addr read %d : 0x%016lx", idx,
           (cfg & PMP_A) >= PMP_NAPOT ? *src | (~pmp_tor_mask() >> 1) : *src & pmp_tor_mask());
-      }
-#endif // CONFIG_SHARE
       if ((cfg & PMP_A) >= PMP_NAPOT)
         return *src | (~pmp_tor_mask() >> 1);
       else
@@ -1863,12 +1859,8 @@ static word_t csr_read(uint32_t csrid) {
       }
 
       uint8_t cfg = pmacfg_from_index(idx);
-#ifdef CONFIG_SHARE
-      if (dynamic_config.debug_difftest) {
-        fprintf(stderr, "[NEMU] pma addr read %d : 0x%016lx\n", idx,
+      ref_log_cpu("pma addr read %d : 0x%016lx", idx,
           (cfg & PMA_A) >= PMA_NAPOT ? *src | (~pma_tor_mask() >> 1) : *src & pma_tor_mask());
-      }
-#endif // CONFIG_SHARE
       if ((cfg & PMA_A) >= PMA_NAPOT)
         return *src | (~pma_tor_mask() >> 1);
       else
@@ -2408,12 +2400,8 @@ static void csr_write(uint32_t csrid, word_t src) {
           cfg_data |= (oldCfg << (i*8));
         }
       }
-    #ifdef CONFIG_SHARE
-      if(dynamic_config.debug_difftest) {
-        int idx = dest - &csr_array[CSR_PMPCFG_BASE];
-        Logtr("[NEMU] write pmpcfg%d to %016lx\n", idx, cfg_data);
-      }
-    #endif // CONFIG_SHARE
+      int idx = dest - &csr_array[CSR_PMPCFG_BASE];
+      ref_log_cpu("write pmpcfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
 
@@ -2439,11 +2427,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (idx < CONFIG_RV_PMP_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
       }
-#ifdef CONFIG_SHARE
-      if(dynamic_config.debug_difftest) {
-        fprintf(stderr, "[NEMU] write pmp addr%d to %016lx\n",idx, *dest);
-      }
-#endif // CONFIG_SHARE
+      ref_log_cpu("write pmp addr%d to %016lx",idx, *dest);
       mmu_tlb_flush(0);
       break;
     }
@@ -2473,12 +2457,8 @@ static void csr_write(uint32_t csrid, word_t src) {
           cfg_data |= (oldCfg << (i*8));
         }
       }
-#ifdef CONFIG_SHARE
-      if (dynamic_config.debug_difftest) {
-        int idx = dest - &csr_array[CSR_PMACFG_BASE];
-        Logtr("[NEMU] write pmacfg%d to %016lx\n", idx, cfg_data);
-      }
-#endif // CONFIG_SHARE
+      int idx = dest - &csr_array[CSR_PMACFG_BASE];
+      ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
 
@@ -2503,11 +2483,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (idx < CONFIG_RV_PMA_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
       }
-#ifdef CONFIG_SHARE
-      if (dynamic_config.debug_difftest) {
-        fprintf(stderr, "[NEMU] write pma addr%d to %016lx\n", idx, *dest);
-      }
-#endif // CONFIG_SHARE
+      ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
       mmu_tlb_flush(0);
       break;
     }

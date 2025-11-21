@@ -699,12 +699,7 @@ static void execute(int n) {
 
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
-#ifdef CONFIG_SHARE
-    if (unlikely(dynamic_config.debug_difftest)) {
-      fprintf(stderr, "(%d) [NEMU] pc = 0x%lx inst %x\n", getpid(), s.pc,
-              s.isa.instr.val);
-    }
-#endif
+    ref_log_cpu("pc = 0x%lx inst %x", s.pc, s.isa.instr.val);
     s.EHelper(&s);
 
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);

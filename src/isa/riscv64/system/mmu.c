@@ -76,7 +76,7 @@ bool hld_st = 0;
 #endif
 
 // According to Smrnmi Extension:
-// When NMIE=0, the hart behaves as though mstatus.MPRV were clear, 
+// When NMIE=0, the hart behaves as though mstatus.MPRV were clear,
 // regardless of the current setting of mstatus.MPRV.
 static inline uint64_t get_mprv() {
   #ifdef CONFIG_RV_SMRNMI
@@ -309,12 +309,9 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, trap_type, MODE_S, vaddr);
 #endif
 
-    #ifdef CONFIG_SHARE
-        if (unlikely(dynamic_config.debug_difftest)) {
-          fprintf(stderr, "[NEMU] ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
-            level, vaddr, gpaddr, pg_base, p_pte, pte.val);
-        }
-    #endif
+    ref_log_cpu("ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx",
+        level, vaddr, gpaddr, pg_base, p_pte, pte.val);
+
     pg_base = PGBASE(pte.ppn);
     Logtr(
       "g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w:%d, x:%d, u:%d, g:%d, a:%d, d:%d",
@@ -464,12 +461,8 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 #endif //CONFIG_RVH
     pte.val	= pte_read(p_pte, type, MODE_S, vaddr);
 #endif
-#ifdef CONFIG_SHARE
-    if (unlikely(dynamic_config.debug_difftest)) {
-      fprintf(stderr, "[NEMU] ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx\n",
+    ref_log_cpu("ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx",
         level, vaddr, pg_base, p_pte, pte.val);
-    }
-#endif
     pg_base = PGBASE((uint64_t)pte.ppn);
     if (!pte.v || (!pte.r && pte.w) || pte.pad) {
       goto bad;
@@ -840,7 +833,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
           );
         }
       }
-      printf("[NEMU]: force raise IPF\n");
+      ref_log_cpu("force raise IPF");
       longjmp_exception(EX_IPF);
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LPF){
@@ -851,7 +844,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
 #ifdef CONFIG_GUIDED_TVAL
       if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_LPF)) return MEM_RET_OK;
 #endif
-      printf("[NEMU]: force raise LPF\n");
+      ref_log_cpu("force raise LPF");
 
       cpu.trapInfo.tval = vaddr;
       longjmp_exception(EX_LPF);
@@ -864,7 +857,7 @@ int force_raise_pf(vaddr_t vaddr, int type){
 #ifdef CONFIG_GUIDED_TVAL
       if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_SPF)) return MEM_RET_OK;
 #endif
-      printf("[NEMU]: force raise SPF\n");
+      ref_log_cpu("force raise SPF");
 
       cpu.trapInfo.tval = vaddr;
       longjmp_exception(EX_SPF);
@@ -921,7 +914,7 @@ int force_raise_gpf(vaddr_t vaddr, int type){
           );
         }
       }
-      printf("[NEMU]: force raise IGPF\n");
+      ref_log_cpu("force raise IGPF");
       longjmp_exception(EX_IGPF);
       return MEM_RET_FAIL;
     } else if(!ifetch && type == MEM_TYPE_READ && cpu.execution_guide.exception_num == EX_LGPF){
@@ -932,7 +925,7 @@ int force_raise_gpf(vaddr_t vaddr, int type){
 #ifdef CONFIG_GUIDED_TVAL
       if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_LGPF)) return MEM_RET_OK;
 #endif
-      printf("[NEMU]: force raise LGPF\n");
+      ref_log_cpu("force raise LGPF");
 
       cpu.trapInfo.tval = vaddr;
       cpu.trapInfo.tval2 = intr_deleg_S(EX_LGPF) ? cpu.execution_guide.htval: cpu.execution_guide.mtval2;
@@ -946,7 +939,7 @@ int force_raise_gpf(vaddr_t vaddr, int type){
 #ifdef CONFIG_GUIDED_TVAL
       if (vaddr != SELECT_DUT_INTR_TVAL_REG(EX_SGPF)) return MEM_RET_OK;
 #endif
-      printf("[NEMU]: force raise SGPF\n");
+      ref_log_cpu("force raise SGPF");
 
       cpu.trapInfo.tval = vaddr;
       cpu.trapInfo.tval2 = intr_deleg_S(EX_SGPF) ? cpu.execution_guide.htval: cpu.execution_guide.mtval2;
@@ -1115,7 +1108,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #ifdef CONFIG_SHARE
   // if(dynamic_config.debug_difftest) {
   //   if (mode != out_mode) {
-  //     fprintf(stderr, "[NEMU]   PMP out_mode:%d cpu.mode:%ld ifetch:%d nmie:%d mprv:%d mpp:%d actual mode:%d\n", out_mode, cpu.mode, ifetch, mnstatus->nmie, mstatus->mprv, mstatus->mpp, mode);
+  //     ref_log_cpu("PMP out_mode:%d cpu.mode:%ld ifetch:%d nmie:%d mprv:%d mpp:%d actual mode:%d", out_mode, cpu.mode, ifetch, mnstatus->nmie, mstatus->mprv, mstatus->mpp, mode);
   //       // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
   //   }
   // }
@@ -1149,41 +1142,25 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
         bool match = is_tor ? tor_match : napot_match;
         any_match |= match;
         all_match &= match;
-#ifdef CONFIG_SHARE
-        // if(dynamic_config.debug_difftest) {
-        //   fprintf(stderr, "[NEMU]   PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s\n",
-        //   offset, addr, cur_addr, tor, mask, base, match ? "true" : "false");
-        // }
-#endif
+        // ref_log_cpu("PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s",
+        //     offset, addr, cur_addr, tor, mask, base, match ? "true" : "false");
       }
-#ifdef CONFIG_SHARE
-        // if(dynamic_config.debug_difftest) {
-        //   fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d\n",
+        // ref_log_cpu("PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d",
         //     i, cfg, pmpaddr, is_na4, !is_na4 && !is_tor, is_tor, base, addr, any_match);
-        // }
-#endif
       if (any_match) {
         // If the PMP matches only a strict subset of the access, fail it
         if (!all_match) {
-#ifdef CONFIG_SHARE
-          // if(dynamic_config.debug_difftest) {
-          //   fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match\n", addr, len, type, mode);
-          // }
-#endif
+          // ref_log_cpu("PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match", addr, len, type, mode);
           return false;
         }
 
-#ifdef CONFIG_SHARE
-        // if(dynamic_config.debug_difftest) {
         //   bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
         //       ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
         //         type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
         //       (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
         //       (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
-        //   fprintf(stderr, "[NEMU]   PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
+        //   ref_log_cpu("PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
         //       pass ? "true" : "false for permission denied");
-        // }
-#endif
 
         return
           (mode == MODE_M && !(cfg & PMP_L)) ||
@@ -1197,12 +1174,8 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
     base = tor;
   }
 
-#ifdef CONFIG_SHARE
-  // if(dynamic_config.debug_difftest) {
-  //   if (mode != MODE_M) fprintf(stderr, "[NEMU]   PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s\n", addr, len, type, mode,
+  //   if (mode != MODE_M) ref_log_cpu("PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s", addr, len, type, mode,
   //   mode == MODE_M ? "true for mode m but no match" : "false for no match with less than M mode");
-  // }
-#endif
 
   return mode == MODE_M;
 
@@ -1299,7 +1272,7 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
         if (!all_match) {
           return false;
         }
-        return 
+        return
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
           (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
