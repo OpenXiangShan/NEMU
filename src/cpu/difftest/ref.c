@@ -22,6 +22,8 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 
+unsigned ref_hartid = 0;
+
 extern void load_flash_contents(const char *flash_img);
 
 #ifdef CONFIG_LARGE_COPY
@@ -344,7 +346,7 @@ void difftest_runahead_init() {
 void difftest_init() {
 #ifdef CONFIG_SHARE_OUTPUT_LOG_TO_FILE
   char log_file_name[20];
-  sprintf(log_file_name, "nemu-hart-%d.log", PMEM_HARTID);
+  sprintf(log_file_name, "nemu-hart-%d.log", ref_hartid);
   void init_log(const char *log_file, const bool fast_log, const bool small_log);
   init_log(log_file_name, false, false);
 #endif // CONFIG_SHARE_OUTPUT_LOG_TO_FILE
@@ -370,7 +372,7 @@ uint8_t *golden_pmem = NULL;
 
 void difftest_set_mhartid(int n) {
   isa_difftest_set_mhartid(n);
-  PMEM_HARTID = n;
+  ref_hartid = n;
 }
 
 void difftest_put_gmaddr(uint8_t* ptr) {

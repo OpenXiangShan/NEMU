@@ -20,7 +20,6 @@
 #include <common.h>
 
 extern unsigned long MEMORY_SIZE;
-extern unsigned int PMEM_HARTID;
 
 #ifdef CONFIG_MODE_USER
 #define CONFIG_MBASE 0
