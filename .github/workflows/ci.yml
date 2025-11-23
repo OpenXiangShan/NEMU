@@ -12,6 +12,26 @@ env:
   NUTSHELL_SPIKE_SO: ./ready-to-run/riscv64-nutshell-spike-so
 
 jobs:
+  check-configs:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    name: Check All Configs
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Setup env
+      run: |
+        echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+    - name: bump configs
+      run: |
+        bash ./scripts/bump_configs.sh
+    - name: check
+      run: |
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Please run 'bash ./scripts/bump_configs.sh' manually"
+          exit 1
+        fi
+
   compilation-all:
     runs-on: nemu
     continue-on-error: false
@@ -153,7 +173,7 @@ jobs:
           make -j
 
       - name: Basic - cputest
-        env: 
+        env:
           dir_tests: ${{ env.CI_WORKLOADS }}/nexus-am/tests/cputest/build/
         run: |
           find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
@@ -163,8 +183,8 @@ jobs:
           done
 
       - name: Basic - riscv-tests
-        # failed at rv64mi-p-sd-misaligned.bin 
-        env: 
+        # failed at rv64mi-p-sd-misaligned.bin
+        env:
           dir_tests: ${{ env.CI_WORKLOADS }}/riscv-tests/isa/build/
           skip_tests: |
             rv64mi-p-ld-hd-misaligned.bin
@@ -192,7 +212,7 @@ jobs:
           done
 
       - name: Basic - rvv-test
-        env: 
+        env:
           dir_tests: ${{ env.CI_WORKLOADS }}/V-extension-tests/rvv-test/
         run: |
           find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
@@ -249,10 +269,10 @@ jobs:
         run: |
           ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/xvisor-linux-minimal/payload.bin
 
-      # - name: System - KVM 
+      # - name: System - KVM
       #   run: |
       #     ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/kvm
-  
+
   diff-spike-checkpoint:
     runs-on: nemu
     continue-on-error: false
