@@ -91,7 +91,7 @@ typedef struct IpriosModule IpriosModule;
 typedef struct IpriosSort IpriosSort;
 
 typedef struct {
-  // Below will be synced by regcpy when run difftest, DO NOT TOUCH
+  /*** Below will be synced by regcpy when run difftest, DO NOT TOUCH ***/
   union {
     uint64_t _64;
   } gpr[32];
@@ -114,14 +114,13 @@ typedef struct {
   uint64_t mscratch, sscratch;
   uint64_t mideleg, medeleg;
   uint64_t pc;
-  // Above will be synced by regcpy when run difftest, DO NOT TOUCH
 
 #ifdef CONFIG_RVH
   uint64_t v; // virtualization mode
   uint64_t mtval2, mtinst, hstatus, hideleg, hedeleg;
   uint64_t hcounteren, htval, htinst, hgatp, vsstatus;
   uint64_t vstvec, vsepc, vscause, vstval, vsatp, vsscratch;
-#endif
+#endif // CONFIG_RVH
 
 #ifdef CONFIG_RVV
   //vector
@@ -131,20 +130,26 @@ typedef struct {
     uint16_t _16[VENUM16];
     uint8_t  _8[VENUM8];
   } vr[32];
+#endif // CONFIG_RVV
 
+#ifdef CONFIG_DIFFTEST_CHECK_VCSR
   uint64_t vstart;
   uint64_t vxsat, vxrm, vcsr;
   uint64_t vl, vtype, vlenb;
-#endif // CONFIG_RVV
-#ifndef CONFIG_FPU_NONE
-  uint64_t fcsr;
-#endif // CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_VCSR
 
-#ifdef CONFIG_RV_SDTRIG
+#ifdef CONFIG_DIFFTEST_CHECK_FCSR
+  uint64_t fcsr;
+#endif // CONFIG_DIFFTEST_CHECK_FCSR
+
+#ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   uint64_t tselect;
   uint64_t tdata1;
   uint64_t tinfo;
-#endif // CONFIG_RV_SDTRIG
+#endif // CONFIG_DIFFTEST_CHECK_SDTRIG
+
+  uint64_t difftest_state_end;
+  /** Above will be used and synced by regcpy when run difftest, DO NOT TOUCH ***/
 
 
   // exec state
@@ -358,5 +363,5 @@ int get_data_mmu_state();
 int get_hyperinst_mmu_state();
 #endif //CONFIG_RVH
 
-#define isa_mmu_state() get_data_mmu_state() 
+#define isa_mmu_state() get_data_mmu_state()
 #endif

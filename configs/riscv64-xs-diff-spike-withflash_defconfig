@@ -219,6 +219,9 @@ CONFIG_AC_NONE=y
 #
 # Processor difftest reference config
 #
+CONFIG_DIFFTEST_CHECK_VCSR=y
+CONFIG_DIFFTEST_CHECK_FCSR=y
+CONFIG_DIFFTEST_CHECK_SDTRIG=y
 # CONFIG_SHARE is not set
 # end of Processor difftest reference config
 

@@ -20,9 +20,9 @@
 #include "../local-include/reg.h"
 #include <difftest.h>
 
-// csr_prepare() & csr_writeback() are used to maintain 
+// csr_prepare() & csr_writeback() are used to maintain
 // a compact mirror of critical CSRs
-// For processor difftest only 
+// For processor difftest only
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   csr_prepare();
@@ -68,7 +68,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(mtvec     );
     check_reg(stvec     );
 
-    #ifdef CONFIG_RVV
+#ifdef CONFIG_DIFFTEST_CHECK_VCSR
     check_reg(vtype     );
     check_reg(vstart    );
     check_reg(vxsat     );
@@ -76,13 +76,13 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(vl        );
     check_reg(vcsr      );
     check_reg(vlenb     );
-    #endif // CONFIG_RVV
+#endif // CONFIG_DIFFTEST_CHECK_VCSR
 
-    #ifndef CONFIG_FPU_NONE
+#ifdef CONFIG_DIFFTEST_CHECK_FCSR
     check_reg(fcsr      );
-    #endif // CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_FCSR
 
-    #ifdef CONFIG_RVH
+#ifdef CONFIG_RVH
     check_reg(v);//virtualization mode
     check_reg(mtval2    );
     check_reg(mtinst    );
@@ -100,12 +100,14 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(vstval    );
     check_reg(vsatp     );
     check_reg(vsscratch );
-    #endif // CONFIG_RVH
-    #ifdef CONFIG_RV_SDTRIG
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
     check_reg(tselect );
     check_reg(tdata1  );
     check_reg(tinfo   );
-    #endif // CONFIG_RV_SDTRIG
+#endif // CONFIG_DIFFTEST_CHECK_SDTRIG
+
     return false;
   }
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
