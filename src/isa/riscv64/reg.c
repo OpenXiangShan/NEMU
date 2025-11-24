@@ -88,7 +88,7 @@ void isa_reg_display() {
     #undef FMT_CSR_NAME
     #define FMT_CSR_NAME "%s"
 
-    DISPLAY_CSR("fcsr", cpu.fcsr);
+    DISPLAY_CSR("fcsr", fcsr->val);
     DISPLAY_CSR("fflags", fflags->val);
     DISPLAY_CSR("frm", frm->val);
     printf("\n");

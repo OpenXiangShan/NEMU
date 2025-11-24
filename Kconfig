@@ -189,7 +189,7 @@ config SHARE_OUTPUT_LOG_TO_FILE
   help
     If y, NEMU will output log to files named "nemu-hart-*.log".
 
-    Note: This option is only effective in SHARE mode. For standalone mode, 
+    Note: This option is only effective in SHARE mode. For standalone mode,
     use the corresponding command option.
 
 config DIFFTEST
@@ -343,6 +343,22 @@ config AMO_AC_SOFT
   default y
 
 menu "Processor difftest reference config"
+
+config DIFFTEST_CHECK_VCSR
+  depends on RVV
+  bool "Enable vector CSR check"
+  default y
+
+config DIFFTEST_CHECK_FCSR
+  depends on !FPU_NONE
+  bool "Enable floating-point CSR check"
+  default y
+
+config DIFFTEST_CHECK_SDTRIG
+  depends on RV_SDTRIG
+  bool "Enable SDTRIG CSR check"
+  default y
+
 config SHARE
   bool "Build shared library as processor difftest reference"
   default n

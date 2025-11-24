@@ -23,6 +23,10 @@
 #include "../local-include/trigger.h"
 #include <generated/autoconf.h>
 #include <stdlib.h>
+#include <stddef.h>  // for offsetof
+
+const unsigned DIFFTEST_REG_SIZE =
+  offsetof(riscv64_CPU_state, difftest_state_end) - offsetof(riscv64_CPU_state, gpr);
 
 void ramcmp() {
   printf("ram cmp called\n");
@@ -60,7 +64,8 @@ void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
-#ifdef CONFIG_RVV
+
+#ifdef CONFIG_DIFFTEST_CHECK_VCSR
   cpu.vstart  = vstart->val;
   cpu.vxsat   = vxsat->val;
   cpu.vxrm    = vxrm->val;
@@ -68,7 +73,8 @@ void csr_prepare() {
   cpu.vl      = vl->val;
   cpu.vtype   = vtype->val;
   cpu.vlenb   = vlenb->val;
-#endif // CONFIG_RVV
+#endif // CONFIG_DIFFTEST_CHECK_VCSR
+
 #ifdef CONFIG_RVH
   cpu.mtval2  = mtval2->val;
   cpu.mtinst  = mtinst->val;
@@ -86,15 +92,17 @@ void csr_prepare() {
   cpu.vstval  = vstval->val;
   cpu.vsatp   = vsatp->val;
   cpu.vsscratch = vsscratch->val;
-#endif
-#ifdef CONFIG_RV_SDTRIG
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   cpu.tselect  = tselect->val;
   cpu.tdata1   = get_tdata1(cpu.TM);
   cpu.tinfo    = tinfo->val;
-#endif // CONFIG_RV_SDTRIG
-#ifndef CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_SDTRIG
+
+#ifdef CONFIG_DIFFTEST_CHECK_FCSR
   cpu.fcsr     = fcsr->val;
-#endif // CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_FCSR
 }
 
 void csr_writeback() {
@@ -119,7 +127,8 @@ void csr_writeback() {
   stval->val    = cpu.stval;
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
-#ifdef CONFIG_RVV
+
+#ifdef CONFIG_DIFFTEST_CHECK_VCSR
   vstart->val  = cpu.vstart;
   vxsat->val   = cpu.vxsat;
   vxrm->val    = cpu.vxrm;
@@ -127,7 +136,8 @@ void csr_writeback() {
   vl->val      = cpu.vl;
   vtype->val   = cpu.vtype;
   vlenb->val   = cpu.vlenb;
-#endif //CONFIG_RVV
+#endif // CONFIG_DIFFTEST_CHECK_VCSR
+
 #ifdef CONFIG_RVH
   mtval2->val  = cpu.mtval2;
   mtinst->val  = cpu.mtinst;
@@ -148,16 +158,19 @@ void csr_writeback() {
   vstval->val  = cpu.vstval;
   vsatp->val   = cpu.vsatp;
   vsscratch->val = cpu.vsscratch;
-#endif
-#ifdef CONFIG_RV_SDTRIG
+#endif // CONFIG_RVH
+
+#ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   tselect->val  = cpu.tselect;
   cpu.TM->triggers[tselect->val].tdata1.val = cpu.tdata1; // update alias tdata1 to trigger module
   tinfo->val    = cpu.tinfo;
-#endif // CONFIG_RV_SDTRIG
-#ifndef CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_SDTRIG
+
+#ifdef CONFIG_DIFFTEST_CHECK_FCSR
   fcsr->val     = cpu.fcsr;
-#endif // CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_FCSR
 }
+
 #ifdef CONFIG_LIGHTQS
 extern uint64_t stable_log_begin, spec_log_begin;
 
