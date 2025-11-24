@@ -6,7 +6,7 @@ config HAS_CLINT
   help
     NEMU's Core Local Interrupt (CLINT) provides MMIO ports for M-mode timer.
 
-    NEMU's CLINT defines two MMIO register mapping: 
+    NEMU's CLINT defines two MMIO register mapping:
     - mtimecmp at 0x4000
     - mtime at 0xBFF8.
 
@@ -127,6 +127,11 @@ config RV_SDTRIG
   depends on RV_DEBUG
   default n
 
+config TDATA1_MCONTROL
+  bool "TDATA1 Support mcontrol Type of Trigger (only affect tinfo, not implemented)"
+  depends on RV_SDTRIG
+  default n
+
 config TDATA1_MCONTROL6
   bool "TDATA1 Support mcontrol6 Type of Trigger"
   depends on RV_SDTRIG
@@ -240,7 +245,7 @@ config RV_ZIHINTPAUSE
     default y
 
 config RV_ZIHPM
-  bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0" 
+  bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0"
   default y
   help
     The Zihpm extension comprises up to 29 additional unprivileged 64-bit
@@ -271,7 +276,7 @@ config RV_CSR_MCOUNTINHIBIT_HPM
     This enables writing to HPMn bits in the mcountinhibit. Otherwise, these
     bits will be read-only zero.
 
-    Besides, mhpmcountern and mhpmeventn are all read-only zero on NEMU, 
+    Besides, mhpmcountern and mhpmeventn are all read-only zero on NEMU,
     regardless of how HPMn bits are set in mcountinhibit.
 
 endif
@@ -284,10 +289,10 @@ choice
     attempt to access unimplemented PMP CSRs raises illegal-instruction
     exception.
 
-    As RISC-V Privileged ISA says, up to 64 PMP entries are supported. 
+    As RISC-V Privileged ISA says, up to 64 PMP entries are supported.
     Implementations may implement zero, 16, or 64 PMP entries; the lowest-
     numbered PMP entries must be implemented first.
-    
+
     Any number of PMP entries may be read-only zero. The number of active
     PMP entries (not read-only ones) are decided in another config item.
 
@@ -300,7 +305,7 @@ config RV_PMP_ENTRY_0
 config RV_PMP_ENTRY_16
   bool "16 PMP entries"
   help
-    Only pmpcfg0, pmpcfg2, pmpaddr0 - pmpaddr15 are accessible. An attempt 
+    Only pmpcfg0, pmpcfg2, pmpaddr0 - pmpaddr15 are accessible. An attempt
     to access pmpcfg4 - pmpcfg14, pmpaddr16 - pmpaddr63 raises an illegal-
     instruction exception.
 
@@ -447,7 +452,7 @@ choice
   help
     This config decides the capability of Page-Based Virtual-Memory System,
     which affects the MODE field of CSR satp, vsatp and hgatp.
-    
+
     According to RISC-V Privileged ISA, Virtual memory systems for RV64 are
     backward compatible. So this config specifies the highest supported
     virtual-memory system.
@@ -455,16 +460,16 @@ choice
 config RV_SV39
   bool "Sv39"
   help
-    Support Sv39. 
-    
+    Support Sv39.
+
     The MODE field of CSR satp and vsatp could be set to Bare or Sv39, and
     the MODE field of CSR hgatp could be set to Bare or Sv39x4.
-  
+
 config RV_SV48
   bool "Sv48"
   help
     Support Sv39 and Sv48.
-    
+
     The MODE field of CSR satp and vsatp could be set to Bare, Sv39 or Sv48,
     and the MODE field of CSR hgatp could be set to Bare, Sv39x4 or Sv48x4.
 
