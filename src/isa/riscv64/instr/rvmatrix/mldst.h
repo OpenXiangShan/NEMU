@@ -27,7 +27,6 @@
 
 // #define PRINT_AMUCTRLIO
 
-// TODO: not consider mstart now
 void mld(Decode *s, bool is_trans, char m_name) {
   uint64_t base_addr = reg_l(s->src1.reg);
   uint64_t row_byte_stride = reg_l(s->src2.reg);
