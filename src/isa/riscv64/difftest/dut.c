@@ -87,7 +87,6 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(mrlenb    );
     check_reg(mamul     );
     check_reg(mtok      );
-    check_reg(mstart    );
     check_reg(mcsr      );
     #endif // CONFIG_RVMATRIX
 

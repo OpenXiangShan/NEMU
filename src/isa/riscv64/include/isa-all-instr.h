@@ -190,7 +190,7 @@
 #define MATRIX_INSTR_UNARY(f) \
   f(mzero_acc_m) f(mzero_tr_m)
 #define MATRIX_INSTR_BINARY(f) \
-  f(msettype) f(msettypei) f(msettypehi) \
+  f(msettype) f(msettypei) f(msettypehi) f(msettypefield) \
   f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni) \
   f(msyncreset) f(mrelease) f(macquire)
 #define MATRIX_INSTR_TERNARY(f) \
