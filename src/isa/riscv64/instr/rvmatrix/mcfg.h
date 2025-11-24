@@ -45,6 +45,50 @@ def_EHelper(msettypehi) {
   reg_l(s->dest.reg) = mtype->val;
 }
 
+def_EHelper(msettypefield) {
+  int FIELD = s->src2.imm & 0x1f;
+  int SETVAL = s->src2.imm >> 5;
+  switch (FIELD) {
+    case 0:
+      mtype->msew = SETVAL & 0x7;
+      break;
+    case 1:
+      mtype->mint4 = SETVAL & 0x1;
+      break;
+    case 2:
+      mtype->mint8 = SETVAL & 0x1;
+      break;
+    case 3:
+      mtype->mint16 = SETVAL & 0x1;
+      break;
+    case 4:
+      mtype->mint32 = SETVAL & 0x1;
+      break;
+    case 5:
+      mtype->mint64 = SETVAL & 0x1;
+      break;
+    case 6:
+      mtype->mfp8 = SETVAL & 0x3;
+      break;
+    case 7:
+      mtype->mfp16 = SETVAL & 0x3;
+      break;
+    case 8:
+      mtype->mfp32 = SETVAL & 0x3;
+      break;
+    case 9:
+      mtype->mfp64 = SETVAL & 0x1;
+      break;
+    case 10:
+      mtype->mba = SETVAL & 0x1;
+      break;
+    default:
+      panic("msettypefield: illegal field: %d", FIELD);
+      break;
+  }
+  reg_l(s->dest.reg) = mtype->val;
+}
+
 def_EHelper(msettilem) {
   s->src1.val = reg_l(s->src1.reg);
   if (s->src1.reg) {

@@ -283,7 +283,6 @@ void isa_reg_display() {
   DISPLAY_CSR("mtilen", mtilen->val);
   printf("\n");
   DISPLAY_CSR("mtilek", mtilek->val);
-  DISPLAY_CSR("mstart", mstart->val);
   DISPLAY_CSR("mcsr", mcsr->val);
   printf("\n");
 #endif // CONFIG_RVMATRIX
