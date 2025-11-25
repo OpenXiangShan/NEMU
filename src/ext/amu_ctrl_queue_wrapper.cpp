@@ -37,7 +37,8 @@ bool amu_ctrl_queue_empty() {
   return cpp_amu_ctrl_queue.empty();
 }
 
-void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, uint8_t ms1, uint8_t ms2,
+void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, bool issigned,
+                                uint8_t ms1, uint8_t ms2,
                                 uint16_t mtilem, uint16_t mtilen, uint16_t mtilek,
                                 uint8_t types, uint8_t typed) {
   amu_ctrl_event_t event;
@@ -46,6 +47,7 @@ void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, uint8_t ms1, ui
   event.md = md;
   event.sat = sat;
   event.isfp = isfp;
+  event.issigned = issigned;
   event.ms1 = ms1;
   event.ms2 = ms2;
   event.mtilem = mtilem;
@@ -68,7 +70,7 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   event.base = base;
   event.stride = stride;
   event.isfp = transpose;
-  event.isacc = isacc;
+  event.issigned = isacc;
   event.mtilem = row;
   event.mtilen = column;
   event.types = msew;
