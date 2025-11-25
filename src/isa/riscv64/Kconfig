@@ -484,12 +484,23 @@ config RV_SV48
 
 endchoice
 
-config RV_SV39_NO_ASID
-  bool "No ASIDs (always read/write zero)"
-  depends on RV_SV39 && !RVH
+config RV_ASID_LEN
+  int "The number of implemented ASID bits (ASIDLEN)"
+  depends on RV_SV39 || RV_SV48
   help
-    The ASID field of CSR satp is always read/write zero.
-  default n
+    The number of implemented ASID bits in satp / vsatp (ASIDLEN), between 0 and 16.
+    Unimplemented bits will be read-only zero.
+  range 0 16
+  default 16
+
+config RV_VMID_LEN
+  int "The number of implemented VMID bits (VMIDLEN)"
+  depends on RVH
+  help
+    The number of implemented VMID bits in hgatp (VMIDLEN), between 0 and 14.
+    Unimplemented bits will be read-only zero.
+  range 0 14
+  default 14
 
 config RV_SSNPM
   bool "RISC-V Ssnpm extension (part of RISC-V pointer masking extension)"
