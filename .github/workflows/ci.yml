@@ -142,6 +142,7 @@ jobs:
 #          make clean-all
 
   basic-nutshell:
+    needs: fetch-workloads
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
@@ -207,6 +208,7 @@ jobs:
           set +x
 
   diff-spike-basic:
+    needs: fetch-workloads
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
@@ -313,6 +315,7 @@ jobs:
       #     ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/kvm
 
   diff-spike-checkpoint:
+    needs: fetch-workloads
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
