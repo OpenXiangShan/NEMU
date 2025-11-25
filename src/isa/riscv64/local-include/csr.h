@@ -152,14 +152,14 @@
 /** Supervisor State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
   #define CSRS_S_STATE0_ENABLE(f) \
-  f(sstateen0 , 0x10C) 
+  f(sstateen0 , 0x10C)
 
   #define CSRS_S_STATEX_ENABLE(f) \
   f(sstateen1 , 0x10D) f(sstateen2 , 0x10E) f(sstateen3 , 0x10F)
 
   #define CSRS_S_STATE_ENABLE(f) \
   CSRS_S_STATE0_ENABLE(f) \
-  CSRS_S_STATEX_ENABLE(f) 
+  CSRS_S_STATEX_ENABLE(f)
 #else
   #define CSRS_S_STATE_ENABLE(f)
 #endif // CONFIG_RV_SMSTATEEN
@@ -219,7 +219,7 @@
 #ifdef CONFIG_RV_SMCSRIND_SUB
   #define CSRS_S_CSRIND_SUB(f) \
     f(sireg2     , 0x152) f(sireg3     , 0x153) \
-    f(sireg4     , 0x155) f(sireg5     , 0x156) f(sireg6     , 0x157) 
+    f(sireg4     , 0x155) f(sireg5     , 0x156) f(sireg6     , 0x157)
 #else
   #define CSRS_S_CSRIND_SUB(f)
 #endif // CONFIG_RV_SMCSRIND_SUB
@@ -276,14 +276,14 @@
   /** Hypervisor State Enable Registers **/
   #ifdef CONFIG_RV_SMSTATEEN
   #define CSRS_H_STATE0_ENABLE(f) \
-  f(hstateen0 , 0x60C) 
+  f(hstateen0 , 0x60C)
 
   #define CSRS_H_STATEX_ENABLE(f) \
   f(hstateen1 , 0x60D) f(hstateen2 , 0x60E) f(hstateen3 , 0x60F)
 
   #define CSRS_H_STATE_ENABLE(f) \
   CSRS_H_STATE0_ENABLE(f) \
-  CSRS_H_STATEX_ENABLE(f) 
+  CSRS_H_STATEX_ENABLE(f)
   #else
     #define CSRS_H_STATE_ENABLE(f)
   #endif // CONFIG_RV_SMSTATEEN
@@ -306,7 +306,7 @@
 
   #if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
     #define CSRS_VS_CSRIND(f) \
-      f(vsiselect  , 0x250) f(vsireg     , 0x251) 
+      f(vsiselect  , 0x250) f(vsireg     , 0x251)
   #else
     #define CSRS_VS_CSRIND(f)
   #endif
@@ -315,10 +315,10 @@
   #ifdef CONFIG_RV_SMCSRIND_SUB
     #define CSRS_VS_CSRIND_SUB(f) \
       f(vsireg2     , 0x252) f(vsireg3     , 0x253) \
-      f(vsireg4     , 0x255) f(vsireg5     , 0x256) f(vsireg6     , 0x257) 
+      f(vsireg4     , 0x255) f(vsireg5     , 0x256) f(vsireg6     , 0x257)
   #else
     #define CSRS_VS_CSRIND_SUB(f)
-  #endif 
+  #endif
 
   #ifdef CONFIG_RV_SSTC
     #define CSRS_VS_SSTC(f) \
@@ -438,14 +438,14 @@
 /** Machine State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
   #define CSRS_M_STATE0_ENABLE(f) \
-  f(mstateen0 , 0x30C) 
+  f(mstateen0 , 0x30C)
 
   #define CSRS_M_STATEX_ENABLE(f) \
   f(mstateen1 , 0x30D) f(mstateen2 , 0x30E) f(mstateen3 , 0x30F)
 
   #define CSRS_M_STATE_ENABLE(f) \
   CSRS_M_STATE0_ENABLE(f) \
-  CSRS_M_STATEX_ENABLE(f) 
+  CSRS_M_STATEX_ENABLE(f)
 #else
   #define CSRS_M_STATE_ENABLE(f)
 #endif // CONFIG_RV_SMSTATEEN
@@ -545,7 +545,7 @@
 #ifdef CONFIG_RV_SMCSRIND_SUB
   #define CSRS_M_CSRIND_SUB(f) \
     f(mireg2     , 0x352) f(mireg3     , 0x353) \
-    f(mireg4     , 0x355) f(mireg5     , 0x356) f(mireg6     , 0x357) 
+    f(mireg4     , 0x355) f(mireg5     , 0x356) f(mireg6     , 0x357)
 #else
   #define CSRS_M_CSRIND_SUB(f)
 #endif // CONFIG_RV_SMCSRIND_SUB
@@ -880,7 +880,7 @@ CSR_STRUCT_END(mseccfg)
   CSR_STRUCT_END(name)
 
   MAP(CSRS_S_STATEX_ENABLE, CSRS_S_STATEENX_STRUCT)
-  
+
 #ifdef CONFIG_RVH
   CSR_STRUCT_START(hstateen0)
   uint64_t c      : 1; // [0]
@@ -903,7 +903,7 @@ CSR_STRUCT_END(mseccfg)
   uint64_t se  : 1; \
   CSR_STRUCT_END(name)
 
-  MAP(CSRS_H_STATEX_ENABLE, CSRS_H_STATEENX_STRUCT)  
+  MAP(CSRS_H_STATEX_ENABLE, CSRS_H_STATEENX_STRUCT)
 
 #endif
 #endif
@@ -1304,7 +1304,7 @@ CSR_STRUCT_END(stopi)
 CSR_STRUCT_START(siselect)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(siselect)
-  
+
 CSR_STRUCT_START(sireg)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg)
@@ -1826,6 +1826,8 @@ MAP(CSRS, CSRS_DECL)
 
 #ifdef CONFIG_RV_SV48
 #define SATP_MASK (SATP_MODE39_MASK | SATP_MODE48_MASK | SATP_ASID_MASK | SATP_PADDR_MASK)
+#elif defined(CONFIG_RV_SV39_NO_ASID)
+#define SATP_MASK (SATP_MODE39_MASK | SATP_PADDR_MASK)
 #else
 #define SATP_MASK (SATP_MODE39_MASK | SATP_ASID_MASK | SATP_PADDR_MASK)
 #endif // CONFIG_RV_SV48

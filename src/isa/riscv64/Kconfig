@@ -484,6 +484,13 @@ config RV_SV48
 
 endchoice
 
+config RV_SV39_NO_ASID
+  bool "No ASIDs (always read/write zero)"
+  depends on RV_SV39 && !RVH
+  help
+    The ASID field of CSR satp is always read/write zero.
+  default n
+
 config RV_SSNPM
   bool "RISC-V Ssnpm extension (part of RISC-V pointer masking extension)"
   default n
