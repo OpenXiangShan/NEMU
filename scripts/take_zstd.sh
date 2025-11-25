@@ -13,10 +13,15 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
+WORKLOAD="$1"
+OUTPUT_DIR="$2"
+
+mkdir -p "$(dirname "$OUTPUT_DIR")"
+
 ./build/riscv64-nemu-interpreter \
     --cpt-interval 50000000 -u -b \
-    -D output_top \
+    -D "$OUTPUT_DIR" \
     -C test \
     -w linux \
-    -I 350000000 $V_WORKLOAD_HOME/OpenSBI_Linux6.6_h264ref_sss_vectorized \
+    -I 350000000 "$WORKLOAD" \
     --checkpoint-format zstd
