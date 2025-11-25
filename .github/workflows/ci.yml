@@ -62,7 +62,7 @@ jobs:
   compilation-all:
     strategy:
       matrix:
-        container-version: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        container-version: ['ubuntu-22.04', 'ubuntu-24.04']
       fail-fast: false
     runs-on: ubuntu-latest
     container:
