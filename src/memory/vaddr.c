@@ -65,7 +65,7 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
           !isa_pma_check_permission(paddr, 1, MEM_TYPE_IFETCH)) {
         Log("pmp or pma check failed when ifetch");
 
-        cpu.trapInfo.tval = paddr;
+        cpu.trapInfo.tval = vaddr;
         longjmp_exception(EX_IAF);
       }
     }
@@ -139,7 +139,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
           !isa_pma_check_permission(addr, len, MEM_TYPE_IFETCH)) {
         Log("pmp or pma check failed when ifetch");
 
-        cpu.trapInfo.tval = addr;
+        cpu.trapInfo.tval = vaddr;
         longjmp_exception(EX_IAF);
       }
     }
