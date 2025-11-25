@@ -189,7 +189,7 @@ void init_isa() {
 #ifdef CONFIG_RVMATRIX
   // matrix
   // misa->extensions |= ext('m');
-  mlenb->val = MLEN/8;
+  mlenb->val = MLENB;
   mrlenb->val = MRLEN/8;
   mamul->val = MAMUL;
   mtok->val = MTOK;

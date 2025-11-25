@@ -62,16 +62,16 @@ def_EHelper(mmau) {
           set_mreg(true, td, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, false, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, ts1, ts2,
+          td, false, false, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -89,16 +89,16 @@ def_EHelper(mwmau) {
         set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, false, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, ts1, ts2,
+          td, false, false, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -116,16 +116,16 @@ def_EHelper(mqmau) {
         set_mreg(true, td, i, j, tmp_reg[0], msew + 2);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, false, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, ts1, ts2,
+          td, false, false, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -147,16 +147,16 @@ def_EHelper(msmau) {
         set_mreg(true, td, i, j, result, msew);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, true, false, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, ts1, ts2,
+          td, true, false, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -179,16 +179,16 @@ def_EHelper(mswmau) {
         set_mreg(true, td, i, j, result, msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, true, false, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, ts1, ts2,
+          td, true, false, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -211,16 +211,16 @@ def_EHelper(msqmau) {
         set_mreg(true, td, i, j, result, msew + 2);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, true, false, false, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, ts1, ts2,
+          td, true, false, false, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -235,16 +235,16 @@ def_EHelper(mma) {
         set_mreg(true, td, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, false, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, ts1, ts2,
+          td, false, false, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -261,16 +261,16 @@ def_EHelper(mwma) {
         set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, false, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, ts1, ts2,
+          td, false, false, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -287,16 +287,16 @@ def_EHelper(mqma) {
         set_mreg(true, td, i, j, tmp_reg[0], msew + 2);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, false, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, ts1, ts2,
+          td, false, false, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -319,16 +319,16 @@ def_EHelper(msma) {
         set_mreg(true, td, i, j, result, msew);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, true, false, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, ts1, ts2,
+          td, true, false, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -352,16 +352,16 @@ def_EHelper(mswma) {
         set_mreg(true, td, i, j, result, msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, true, false, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, ts1, ts2,
+          td, true, false, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
@@ -385,16 +385,16 @@ def_EHelper(msqma) {
         set_mreg(true, td, i, j, result, msew + 2);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, true, false, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, ts1, ts2,
+          td, true, false, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
 #endif
 }
@@ -427,16 +427,16 @@ def_EHelper(mfma) {
         set_mreg(true, td, i, j, tmp_reg[0], msew);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, true, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, true, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, ts1, ts2,
+          td, false, true, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
 #endif
 }
@@ -466,16 +466,16 @@ def_EHelper(mfwma) {
         set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, true, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, false, true, true, ts1, ts2,
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, ms1=%ld, ms2=%ld\n"
+          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
           "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, ts1, ts2,
+          td, false, true, true, ts1, ts2,
           mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
 #endif
 }
