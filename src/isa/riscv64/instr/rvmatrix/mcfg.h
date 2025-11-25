@@ -86,6 +86,7 @@ def_EHelper(msettypefield) {
       panic("msettypefield: illegal field: %d", FIELD);
       break;
   }
+  mtype->mill = (mtype->pad != 0);
   reg_l(s->dest.reg) = mtype->val;
 }
 
