@@ -485,19 +485,19 @@ config RV_SV48
 endchoice
 
 config RV_ASID_LEN
-  int "The number of implemented ASID bits (ASIDLEN)"
+  int "Number of implemented ASID bits (ASIDLEN)"
   depends on RV_SV39 || RV_SV48
   help
-    The number of implemented ASID bits in satp / vsatp (ASIDLEN), between 0 and 16.
+    Number of implemented ASID bits in satp / vsatp (ASIDLEN), between 0 and 16.
     Unimplemented bits will be read-only zero.
   range 0 16
   default 16
 
 config RV_VMID_LEN
-  int "The number of implemented VMID bits (VMIDLEN)"
+  int "Number of implemented VMID bits (VMIDLEN)"
   depends on RVH
   help
-    The number of implemented VMID bits in hgatp (VMIDLEN), between 0 and 14.
+    Number of implemented VMID bits in hgatp (VMIDLEN), between 0 and 14.
     Unimplemented bits will be read-only zero.
   range 0 14
   default 14
