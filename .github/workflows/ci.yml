@@ -7,7 +7,6 @@ on:
     branches: [ master ]
 
 env:
-  WORKLOADS_URL: https://github.com/scratch-er/nemu-workloads/releases/download/v1.0.0-alpha/nemu-workloads.zip
   CI_WORKLOADS: ./workloads
   SPIKE_SO: ./ready-to-run/riscv64-spike-so
   NUTSHELL_SPIKE_SO: ./ready-to-run/riscv64-nutshell-spike-so
@@ -21,21 +20,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     name: Fetch and decompress all testing workloads
+    outputs:
+      release-url: ${{ steps.get-url.outputs.url }}
     steps:
+      - name: Get workloads URL
+        id: get-url
+        run: |
+          metadata_url=$(curl -s https://api.github.com/repos/OpenXiangShan/workload-builder/releases/latest | jq -r '.assets[0].url')
+          asset_url=$(curl -s "$metadata_url" | jq -r '.browser_download_url')
+          echo "url=$asset_url" >> $GITHUB_OUTPUT
       - name: Cache workloads
         uses: actions/cache@v4
         id: cache-workloads
         with:
           path: ${{ env.CI_WORKLOADS }}
-          key: ${{ env.WORKLOADS_URL }}
+          key: ${{ steps.get-url.outputs.url }}
       - name: Download workloads
         if: steps.cache-workloads.outputs.cache-hit != 'true'
         run:
-          wget ${WORKLOADS_URL} -O nemu-workloads.zip
+          wget ${{ steps.get-url.outputs.url }} -O workloads.zip
       - name: Decompress workloads
         if: steps.cache-workloads.outputs.cache-hit != 'true'
         run: |
-          unzip nemu-workloads.zip
+          unzip workloads.zip
           tar -xf workloads.tar.zstd
           mv images workloads/
 
@@ -98,7 +105,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CI_WORKLOADS }}
-          key: ${{ env.WORKLOADS_URL }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -157,7 +164,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CI_WORKLOADS }}
-          key: ${{ env.WORKLOADS_URL }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -224,7 +231,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CI_WORKLOADS }}
-          key: ${{ env.WORKLOADS_URL }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
 
       - name: Setup env
         run: |
@@ -331,8 +338,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CI_WORKLOADS }}
-          key: ${{ env.WORKLOADS_URL }}
-
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
 
       - name: Setup env
         run: |
