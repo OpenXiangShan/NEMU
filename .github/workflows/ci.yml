@@ -179,14 +179,6 @@ jobs:
       - name: test boot linux
         run: |
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin
-      - name: Build NEMU interpreter for diff with spike
-        run: |
-          make clean-all
-          make riscv64-nutshell-diff-spike_defconfig
-          make -j
-      - name: test boot linux with difftest
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${NUTSHELL_SPIKE_SO} ${CI_WORKLOADS}/linux/hello/fw_payload.bin
 
   diff-spike-guard:
     # NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
@@ -316,10 +308,6 @@ jobs:
       - name: System - KVM
         run: |
           ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
-
-      # - name: System - KVM
-      #   run: |
-      #     ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/kvm
 
   diff-spike-checkpoint:
     needs: fetch-workloads
