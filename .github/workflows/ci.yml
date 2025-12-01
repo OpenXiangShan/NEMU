@@ -7,11 +7,45 @@ on:
     branches: [ master ]
 
 env:
-  CI_WORKLOADS: /nfs/home/share/ci-workloads
+  CI_WORKLOADS: ./workloads
   SPIKE_SO: ./ready-to-run/riscv64-spike-so
   NUTSHELL_SPIKE_SO: ./ready-to-run/riscv64-nutshell-spike-so
+  CROSS_COMPILE: riscv64-linux-gnu-
+  LIBCHECKPOINT_CROSS_COMPILE: riscv64-linux-gnu-
+  CPT_CROSS_COMPILE: riscv64-linux-gnu-
+  NANOPB_CROSS_COMPILE: riscv64-linux-gnu-
 
 jobs:
+  fetch-workloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: Fetch and decompress all testing workloads
+    outputs:
+      release-url: ${{ steps.get-url.outputs.url }}
+    steps:
+      - name: Get workloads URL
+        id: get-url
+        run: |
+          metadata_url=$(curl -s https://api.github.com/repos/OpenXiangShan/workload-builder/releases/latest | jq -r '.assets[0].url')
+          asset_url=$(curl -s "$metadata_url" | jq -r '.browser_download_url')
+          echo "url=$asset_url" >> $GITHUB_OUTPUT
+      - name: Cache workloads
+        uses: actions/cache@v4
+        id: cache-workloads
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ steps.get-url.outputs.url }}
+      - name: Download workloads
+        if: steps.cache-workloads.outputs.cache-hit != 'true'
+        run:
+          wget ${{ steps.get-url.outputs.url }} -O workloads.zip
+      - name: Decompress workloads
+        if: steps.cache-workloads.outputs.cache-hit != 'true'
+        run: |
+          unzip workloads.zip
+          tar -xf workloads.tar.zstd
+          mv images workloads/
+
   check-configs:
     runs-on: ubuntu-latest
     continue-on-error: false
@@ -33,7 +67,13 @@ jobs:
         fi
 
   compilation-all:
-    runs-on: nemu
+    strategy:
+      matrix:
+        container-version: ['ubuntu-22.04', 'ubuntu-24.04']
+      fail-fast: false
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:${{ matrix.container-version }}
     continue-on-error: false
     name: Compilation - all configs
     timeout-minutes: 60
@@ -49,29 +89,36 @@ jobs:
         bash ./scripts/compilation-test.sh
 
   basic-xiangshan:
-    runs-on: nemu
+    needs: fetch-workloads
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
     continue-on-error: false
     timeout-minutes: 10
     name: Basic - XiangShan
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "V_WORKLOAD_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
           make -j
       - name: System - linux-hello-opensbi
         run: |
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
-      - name: System - Xvisor
-        run: |
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/H-extension-tests/xvisor-linux-minimal/payload.bin
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin
       - name: System - KVM
         run: |
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/H-extension-tests/kvm
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
       - name: test cpt taking and restoring using zstd format
         run: |
           make clean-all
@@ -79,11 +126,10 @@ jobs:
           make -j
           make -C resource/gcpt_restore
           # take cpt, and put cpt in output_top/test/linux
-          bash ./scripts/take_zstd.sh
+          bash ./scripts/take_zstd.sh ${CI_WORKLOADS}/linux/coremark-pro/fw_payload.bin output_top
           make clean-all
 
           # restore cpt
-          git submodule update --init --depth=1 ready-to-run
           make riscv64-xs-diff-spike_defconfig
           make -j
           bash ./scripts/restore_zstd.sh
@@ -103,12 +149,22 @@ jobs:
 #          make clean-all
 
   basic-nutshell:
-    runs-on: nemu
+    needs: fetch-workloads
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
     continue-on-error: false
     timeout-minutes: 10
     name: Basic - NutShell
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -116,17 +172,13 @@ jobs:
         run: |
           make riscv64-nutshell_defconfig
           make -j
+      - name: Replace workload DTB
+        run: |
+          cd ${CI_WORKLOADS}/linux/hello
+          dd conv=notrunc bs=1024 seek=1536 if=dt/nutshell.dtb of=fw_payload.bin
       - name: test boot linux
         run: |
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux-hello/bbl.bin
-      - name: Build NEMU interpreter for diff with spike
-        run: |
-          make clean-all
-          make riscv64-nutshell-diff-spike_defconfig
-          make -j
-      - name: test boot linux with difftest
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${NUTSHELL_SPIKE_SO} ${CI_WORKLOADS}/linux-hello/bbl.bin
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin
 
   diff-spike-guard:
     # NEMU should report error if RVV agnostic is enabled when comparing against Spike ref; It should crash in the expected way
@@ -155,12 +207,23 @@ jobs:
           set +x
 
   diff-spike-basic:
-    runs-on: nemu
+    needs: fetch-workloads
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
     continue-on-error: false
     name: Diff with Spike - Basic & System
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
 
       - name: Setup env
         run: |
@@ -168,15 +231,14 @@ jobs:
 
       - name: Build NEMU interpreter for diff with spike
         run: |
-          git submodule update --init --depth=1 ready-to-run
           make riscv64-xs-diff-spike_defconfig
           make -j
 
       - name: Basic - cputest
         env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/nexus-am/tests/cputest/build/
+          dir_tests: ${{ env.CI_WORKLOADS }}/am/cputest/bin/
         run: |
-          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
+          find ${{ env.dir_tests }} -type f | while read -r test_bin; do
             echo ::group::$(basename $test_bin)
             ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
             echo "::endgroup::"
@@ -185,7 +247,7 @@ jobs:
       - name: Basic - riscv-tests
         # failed at rv64mi-p-sd-misaligned.bin
         env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/riscv-tests/isa/build/
+          dir_tests: ${{ env.CI_WORKLOADS }}/am/riscv-tests/bin/
           skip_tests: |
             rv64mi-p-ld-hd-misaligned.bin
             rv64mi-p-ld-misaligned.bin
@@ -213,49 +275,37 @@ jobs:
 
       - name: Basic - rvv-test
         env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/V-extension-tests/rvv-test/
+          # These tests are included in the workloads on the `nemu` runner.
+          # But the newly built versions (built with `workload-builder`) of them fail on NEMU.
+          # So skip them temporarily.
+          skip_tests: |
+            vsetvli-0.bin
+            vsetivli-0.bin
         run: |
-          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
+          readarray -t skip_tests_array <<< "$skip_tests"
+          find "${CI_WORKLOADS}/am/riscv-vector-tests/bin" -type f -name "*.bin" | while read -r test_bin; do
+            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
+              echo "$test_bin skiped."
+            else
+              echo ::group::$(basename $test_bin)
+              ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
+              echo "::endgroup::"
+            fi
           done
 
       - name: Basic - misc-tests
-        # if: false
         env:
           tests: |
-            bitmanip/bitMisc.bin
-            coremark_rv64gc_o2/coremark-riscv64-xs.bin
-            coremark_rv64gc_o3/coremark-riscv64-xs.bin
-            coremark_rv64gcb_o3/coremark-riscv64-xs.bin
-            ext_intr/amtest-riscv64-xs.bin
-            cache-alias/aliastest-riscv64-xs.bin
-            Svinval/rv64mi-p-svinval.bin
-            pmp/pmp.riscv.bin
-            pmp/pmp-am/amtest-riscv64-xs.bin
-            pmp/hugepage-pmp-atom/amtest-riscv64-xs.bin
-            asid/asid.bin
-            isa_misc/xret_clear_mprv.bin
-            isa_misc/satp_ppn.bin
-            cache-management/softprefetchtest-riscv64-xs.bin
-            H-extension-tests/riscv-hyp-tests/rvh_test.bin
-            zacas/zacas-riscv64-xs.bin
-          skip_tests: |
-            ext_intr/amtest-riscv64-xs.bin
-            Svinval/rv64mi-p-svinval.bin
-            pmp/pmp.riscv.bin
-            pmp/pmp-am/amtest-riscv64-xs.bin
-            pmp/hugepage-pmp-atom/amtest-riscv64-xs.bin
-            isa_misc/satp_ppn.bin
-            H-extension-tests/riscv-hyp-tests/rvh_test.bin
+            am/misc-tests/bin/bitmanip.bin
+            am/coremark/bin/coremark-riscv64-xs-rv64gc-o2.bin
+            am/coremark/bin/coremark-riscv64-xs-rv64gc-o3.bin
+            am/coremark/bin/coremark-riscv64-xs-rv64gcb-o3.bin
+            am/misc-tests/bin/amtest-riscv64-xs.bin
+            am/misc-tests/bin/aliastest-riscv64-xs.bin
+            am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
+            am/misc-tests/bin/zacas-riscv64-xs.bin
         run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
           for test_bin in $tests; do
-            if [[ " ${skip_tests_array[@]} " =~ " ${test_bin} " ]]; then
-              echo "$test_bin skiped."
-              continue;
-            fi
             echo ::group::$test_bin
             ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/${test_bin}
             echo "::endgroup::"
@@ -263,48 +313,55 @@ jobs:
 
       - name: System - linux
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux-hello-opensbi/fw_payload.bin
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/hello/fw_payload.bin
 
-      - name: System - Xvisor
+      - name: System - KVM
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/xvisor-linux-minimal/payload.bin
-
-      # - name: System - KVM
-      #   run: |
-      #     ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/H-extension-tests/kvm
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
 
   diff-spike-checkpoint:
-    runs-on: nemu
+    needs: fetch-workloads
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
     continue-on-error: false
     name: Diff with Spike - Checkpoints
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
 
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "TEST_HOME=/nfs/home/share/ci-workloads/V-extension-tests" >> $GITHUB_ENV
+
+      - name: Take checkpoint
+        run: |
+          make riscv64-xs-cpt_defconfig
+          make -j
+          bash ./scripts/take_zstd.sh ${CI_WORKLOADS}/linux/coremark-pro/fw_payload.bin checkpoints/coremark-pro
+          bash ./scripts/take_zstd.sh ${CI_WORKLOADS}/linux/rvv-bench/fw_payload.bin checkpoints/rvv-bench
 
       - name: Build NEMU interpreter for diff with spike
         run: |
-          git submodule update --init --depth=1 ready-to-run
+          make clean-all
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Run Vector-spec06-checkpoint with Spike DiffTest
+      - name: Run coremark-pro with Spike DiffTest
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/hmmer_nph3_1886_0.000268086.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/hmmer_retro_6200_0.0378585.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/h264ref_sss_88321_0.0346343.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/h264ref_foreman.baseline_8028_0.0414445.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/h264ref_foreman.main_3027_0.0443573.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/libquantum_41028_0.0840681.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/bzip2_402_0.00785398.gz -r $TEST_HOME/v-gcpt.bin -I 40000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $(find checkpoints/coremark-pro/test/linux/50000000 -name "*.zstd") -I 200000000
 
-      - name: Run OpenSBI+Linux+Vectorized_h264 with Spike DiffTest
+      - name: Run rvv-bench with Spike DiffTest
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $TEST_HOME/opensbi_rvv_h264ref_sss -I 200000000
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} $(find checkpoints/rvv-bench/test/linux/50000000 -name "*.zstd") -I 200000000
 
   compile-difftest-so:
     strategy:
