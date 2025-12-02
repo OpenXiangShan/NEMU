@@ -90,6 +90,7 @@ endif
 XSRCS-y += src/memory/store_queue_wrapper.cpp
 XSRCS-y += src/ext/amu_ctrl_queue_wrapper.cpp
 XSRCS-y += src/ext/msync_queue_wrapper.cpp
+XSRCS-y += src/ext/mstore_queue_wrapper.cpp
 
 XSRCS = $(XSRCS-y)
 
