@@ -1,5 +1,11 @@
 menu "ISA-dependent Options for riscv64"
 
+config KUNMINGHU_V3
+  bool "Kunminghu Version 3"
+  default n
+  help
+    Enables Kunminghu V3-specific configurations, which differ from V2.
+
 config HAS_CLINT
   bool
   default y
