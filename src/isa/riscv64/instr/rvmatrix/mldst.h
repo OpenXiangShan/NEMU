@@ -24,6 +24,7 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
+#include "ext/mstore_queue_wrapper.h"
 
 // #define PRINT_AMUCTRLIO
 
@@ -65,7 +66,7 @@ void mld(Decode *s, bool is_trans, char m_name) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
-    "            ms=%ld, ls=0, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
+    "            ms=%ld, ls=0, transpose=%d, baseVAddr=%#lx, stride=%#lx\n"
     "            row=%d, col=%d, width=%#x, m_name=%c\n",
     td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name);
 #endif
@@ -114,7 +115,7 @@ void mst(Decode *s, bool is_trans, char m_name) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
-    "            ms=%ld, ls=1, transpose=%d, baseAddr=%#lx, stride=%#lx\n"
+    "            ms=%ld, ls=1, transpose=%d, baseVAddr=%#lx, stride=%#lx\n"
     "            row=%d, col=%d, width=%#x, m_name=%c\n",
     ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, m_name);
 #endif
@@ -122,6 +123,8 @@ void mst(Decode *s, bool is_trans, char m_name) {
   rtl_smm(s, &base_addr, &row_byte_stride,
     rmax_mreg, cmax_mreg, s->m_eew, is_trans,
     MMU_TRANSLATE, m_name, ts3);
+
+  mstore_queue_emplace(base_addr, row_byte_stride, rmax_mreg, cmax_mreg, s->m_eew, is_trans);
 }
 
 
