@@ -169,7 +169,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 }
 
 #ifndef CONFIG_RVH
-vaddr_t get_effective_address(vaddr_t vaddr, int type) {
+inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   return vaddr;
 }
 #endif
@@ -207,7 +207,7 @@ void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_
   longjmp_exception(ex);
 }
 
-vaddr_t get_effective_address(vaddr_t vaddr, int type) {
+inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   if (type == MEM_TYPE_IFETCH || hlvx) {
     return vaddr;
   }
@@ -618,7 +618,7 @@ int update_mmu_state() {
 
 void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 
-int isa_mmu_check(vaddr_t vaddr, int len, int type) {
+inline int isa_mmu_check(vaddr_t vaddr, int len, int type) {
   Logtr("MMU checking addr %lx", vaddr);
   bool is_ifetch = type == MEM_TYPE_IFETCH;
 

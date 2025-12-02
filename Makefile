@@ -96,6 +96,12 @@ CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto=auto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
+
+# Fine-tuned compiler options
+ifeq ($(CC), gcc)
+	CFLAGS_BUILD += --param max-inline-insns-single=256 -falign-labels=32:9:64:15
+endif
+
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 
