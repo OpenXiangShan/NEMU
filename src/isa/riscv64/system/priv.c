@@ -134,6 +134,16 @@ void init_iprio() {
 #endif
 
 void init_custom_csr() {
+
+#ifdef CONFIG_KUNMINGHU_V3
+  sbpctl->ubtb_enable = 1;
+  sbpctl->abtb_enable = 1;
+  sbpctl->mbtb_enable = 1;
+  sbpctl->tage_enable = 1;
+  sbpctl->ittage_enable = 1;
+  sbpctl->ras_enable = 1;
+  sbpctl->utage_enable = 1;
+#else
   sbpctl->ubtb_enable = 1;
   sbpctl->btb_enable = 1;
   sbpctl->bim_enable = 1;
@@ -141,6 +151,7 @@ void init_custom_csr() {
   sbpctl->sc_enable = 1;
   sbpctl->ras_enable = 1;
   sbpctl->loop_enable = 1;
+#endif
 
   spfctl->l1i_pf_enable = 1;
   spfctl->l2_pf_enable = 1;
