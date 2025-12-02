@@ -56,9 +56,9 @@ jobs:
           TZ='Asia/Shanghai' year=$(date +%Y)
           TZ='Asia/Shanghai' month=$(date +%m)
           
-          # Find all version in this year/month
-          prefix="${year}.${month}"
-          existing_tags=$(git tag -l "${prefix}.*" | sort -V)
+          # Find all version in this year/month with 'v' prefix and 'r' suffix
+          prefix="v${year}.${month}.r"
+          existing_tags=$(git tag -l "${prefix}*" | sort -V)
           
           if [ -z "$existing_tags" ]; then
             # No version in this year/month, start from 1
@@ -66,11 +66,11 @@ jobs:
           else
             # Micro + 1
             last_tag=$(echo "$existing_tags" | tail -n 1)
-            last_micro=$(echo "$last_tag" | cut -d'.' -f3)
+            last_micro=$(echo "$last_tag" | sed "s/${prefix}//")
             micro=$((last_micro + 1))
           fi
           
-          new_tag="${year}.${month}.${micro}"
+          new_tag="v${year}.${month}.r${micro}"
           echo "New tag: $new_tag"
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
@@ -116,14 +116,16 @@ jobs:
       - name: Generate release notes
         run: |
           new_tag="${{ needs.check-and-release.outputs.new_tag }}"
-          year=$(echo "$new_tag" | cut -d'.' -f1)
-          month=$(echo "$new_tag" | cut -d'.' -f2)
-          micro=$(echo "$new_tag" | cut -d'.' -f3)
+          # Remove 'v' prefix for parsing
+          version_num="${new_tag#v}"
+          year=$(echo "$version_num" | cut -d'.' -f1)
+          month=$(echo "$version_num" | cut -d'.' -f2)
+          micro=$(echo "$version_num" | sed 's/.*r//')
           month_name=$(date -d "${year}-${month}-01" +"%B")
           release_date=$(TZ='Asia/Shanghai' date +"%B %-d, %Y")
           
           cat > RELEASE_NOTES.md << EOF
-          Release version ${new_tag} is the ${micro}th release in ${month_name} ${year}, released on ${release_date}.
+          Release ${new_tag} is the ${micro}th release in ${month_name} ${year}, released on ${release_date}.
           
           ## Artifacts
           The release includes pre-compiled difftest shared objects for different Ubuntu versions:
