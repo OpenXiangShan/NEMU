@@ -124,6 +124,13 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+#ifdef CONFIG_RVMATRIX
+  uint64_t load_addr = *addr + offset;
+  extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
+  if (mstore_queue_check_addr_conflict(load_addr, len)) {
+    panic("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store\n", load_addr, len);
+  }
+#endif
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
@@ -174,6 +181,13 @@ static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+#ifdef CONFIG_RVMATRIX
+  uint64_t load_addr = *addr + offset;
+  extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
+  if (mstore_queue_check_addr_conflict(load_addr, len)) {
+    panic("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store\n", load_addr, len);
+  }
+#endif
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
