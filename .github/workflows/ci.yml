@@ -371,5 +371,6 @@ jobs:
         run: |
           ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/rvv-bench/fw_payload.bin -I 400000000
 
-  build:
+  build-so:
+    name: Build NEMU Difftest Shared Objects
     uses: ./.github/workflows/build.yml

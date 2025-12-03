@@ -6,13 +6,14 @@ jobs:
   compile-difftest-so:
     strategy:
       matrix:
-        container-version: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        cpu: ['xs', 'xs-dual']
+        type: ['ref', 'ref-debug']
       fail-fast: false
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/openxiangshan/xs-env:${{ matrix.container-version }}
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-20.04
     continue-on-error: false
-    name: Compile difftest-so
+    name: Compile NEMU for (${{ matrix.cpu }}-${{ matrix.type }})
     timeout-minutes: 30
     steps:
     - name: Checkout repository
@@ -22,13 +23,19 @@ jobs:
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
-    - name: compile dynamic libraries
+    - name: Compile dynamic library
       run: |
-        bash ./scripts/generate_so_for_difftest.sh
+        make riscv64-${{ matrix.cpu }}-${{ matrix.type }}_defconfig
+        make -j
 
-    - name: archive difftest-so artifacts
+    - name: Prepare artifact
+      run: |
+        mkdir -p artifact
+        cp build/riscv64-nemu-interpreter-so artifact/nemu-${{ matrix.cpu }}-${{ matrix.type }}.so
+
+    - name: Archive artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: difftest-so-${{ matrix.container-version }}
+        name: nemu-${{ matrix.cpu }}-${{ matrix.type }}.so
         path: |
-          artifact
+          artifact/nemu-${{ matrix.cpu }}-${{ matrix.type }}.so
