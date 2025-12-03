@@ -95,20 +95,22 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: difftest-so-*
+          pattern: nemu-*.so
           path: release-artifacts
 
-      - name: Prepare release assets
+      - name: Rename artifacts with version
         run: |
-          mkdir -p release-files
-          cd release-artifacts
-          ls -l
           new_tag="${{ needs.check-and-release.outputs.new_tag }}"
-          for dir in difftest-so-*; do
+          cd release-artifacts
+          for dir in nemu-*; do
             if [ -d "$dir" ]; then
-              container_version=$(echo "$dir" | sed 's/difftest-so-//')
               cd "$dir"
-              tar -czf "../../release-files/difftest-so-${new_tag}-${container_version}.tar.gz" .
+              for file in nemu-*.so; do
+                # Extract parts: nemu-{os}-{cpu}-{type}.so
+                # Insert version after 'nemu-': nemu-{version}-{os}-{cpu}-{type}.so
+                new_name=$(echo "$file" | sed "s/^nemu-/nemu-${new_tag}-/")
+                mv "$file" "$new_name"
+              done
               cd ..
             fi
           done
@@ -128,10 +130,12 @@ jobs:
           Release ${new_tag} is the ${micro}th release in ${month_name} ${year}, released on ${release_date}.
           
           ## Artifacts
-          The release includes pre-compiled difftest shared objects for different Ubuntu versions:
-          - \`difftest-so-${new_tag}-ubuntu-20.04.tar.gz\`: Compiled on Ubuntu 20.04, good for CentOS 7.
-          - \`difftest-so-${new_tag}-ubuntu-22.04.tar.gz\`: Compiled on Ubuntu 22.04
-          - \`difftest-so-${new_tag}-ubuntu-24.04.tar.gz\`: Compiled on Ubuntu 24.04
+          The release includes pre-compiled NEMU shared objects for different configurations:
+          - Compilation Platform: Ubuntu 20.04 (compatible with CentOS 7)
+          - CPU: xs, xs-dual
+          - Purpose: ref, ref-debug
+          
+          Each artifact is named as: \`nemu-{version}-{cpu}-{type}.so\`
           EOF
 
       - name: Create Release
@@ -144,6 +148,6 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            release-files/*.tar.gz
+            release-artifacts/*/*.so
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
