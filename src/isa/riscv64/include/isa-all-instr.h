@@ -131,8 +131,7 @@
   f(vasubu) f(vsmul) f(vsrl) f(vsra) \
   f(vssra) f(vnsrl) f(vnsra) f(vnclipu) \
   f(vnclip) f(vssrl) f(vwredsumu) f(vwredsum) \
-  f(vdotu) f(vdot) f(vwsmaccu) f(vwsmacc) \
-  f(vwsmaccsu) f(vwsmaccus) f(vredsum) \
+  f(vredsum) \
   f(vredand) f(vredor) f(vredxor) f(vredminu) \
   f(vredmin) f(vredmaxu) f(vredmax) f(vmvsx) \
   f(vmvxs) f(vpopc) f(vfirst) f(vmsbf) f(vmsof) \
