@@ -24,16 +24,10 @@ def_EHelper(vadd) {
 }
 
 def_EHelper(vsub) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(SUB, SIGNED)
 }
 
 def_EHelper(vrsub) {
-  if (s->src_vmode == SRC_VV) {
-    longjmp_exception(EX_II);
-  }
   ARITH(RSUB, SIGNED)
 }
 
@@ -123,10 +117,6 @@ def_EHelper(vslide1down) {
 }
 
 def_EHelper(vadc) {
-  if (s->vm == 1) {
-    // vm bit always set to 0 for vadc
-    longjmp_exception(EX_II);
-  }
   ARITH(ADC, SIGNED)
 }
 
@@ -135,10 +125,6 @@ def_EHelper(vmadc) {
 }
 
 def_EHelper(vsbc) {
-  if (s->vm == 1) {
-    // vm bit always set to 0 for vsbc
-    longjmp_exception(EX_II);
-  }
   ARITH(SBC, SIGNED)
 }
 
@@ -166,16 +152,10 @@ def_EHelper(vmsne) {
 }
 
 def_EHelper(vmsltu) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH_MASK(MSLTU, UNSIGNED)
 }
 
 def_EHelper(vmslt) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH_MASK(MSLT, SIGNED)
 }
 
@@ -188,16 +168,10 @@ def_EHelper(vmsle) {
 }
 
 def_EHelper(vmsgtu) {
-  if (s->src_vmode == SRC_VV) {
-    longjmp_exception(EX_II);
-  }
   ARITH_MASK(MSGTU, UNSIGNED)
 }
 
 def_EHelper(vmsgt) {
-  if (s->src_vmode == SRC_VV) {
-    longjmp_exception(EX_II);
-  }
   ARITH_MASK(MSGT, SIGNED)
 }
 
@@ -279,30 +253,6 @@ def_EHelper(vwredsumu) {
 
 def_EHelper(vwredsum) {
   WREDUCTION(REDSUM, SIGNED);
-}
-
-def_EHelper(vdotu) {
-  longjmp_exception(EX_II);
-}
-
-def_EHelper(vdot) {
-  longjmp_exception(EX_II);
-}
-
-def_EHelper(vwsmaccu) {
-  longjmp_exception(EX_II);
-}
-
-def_EHelper(vwsmacc) {
-  longjmp_exception(EX_II);
-}
-
-def_EHelper(vwsmaccsu) {
-  longjmp_exception(EX_II);
-}
-
-def_EHelper(vwsmaccus) {
-  longjmp_exception(EX_II);
 }
 
 
@@ -871,58 +821,34 @@ def_EHelper(vmxnor) {
 }
 
 def_EHelper(vdivu) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(DIVU, UNSIGNED)
 }
 
 def_EHelper(vdiv) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(DIV, SIGNED)
 }
 
 def_EHelper(vremu) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(REMU, UNSIGNED)
 }
 
 def_EHelper(vrem) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(REM, SIGNED)
 }
 
 def_EHelper(vmulhu) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(MULHU, UNSIGNED)
 }
 
 def_EHelper(vmul) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(MUL, SIGNED)
 }
 
 def_EHelper(vmulhsu) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(MULHSU, UNSIGNED)
 }
 
 def_EHelper(vmulh) {
-  if (s->src_vmode == SRC_VI) {
-    longjmp_exception(EX_II);
-  }
   ARITH(MULH, SIGNED)
 }
 
