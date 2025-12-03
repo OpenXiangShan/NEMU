@@ -37,7 +37,14 @@
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
 #define CUSTOM_CSR_MBMC       0xbC2
 
+#ifdef CONFIG_KUNMINGHU_V3
+// In Kunming Lake V3, sbpctl is currently 8 bits wide, whereas it is 7 bits in Kunming Lake V2;
+// thus, the mask width must be adjusted accordingly.
+#define CUSTOM_CSR_SBPCTL_WMASK     0xff
+#else
 #define CUSTOM_CSR_SBPCTL_WMASK     0x7f
+#endif
+
 #define CUSTOM_CSR_SPFCTL_WMASK     0x3fffff
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
 #define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x3ff
@@ -1232,6 +1239,22 @@ CSR_STRUCT_START(srnctl)
 CSR_STRUCT_END(srnctl)
 #endif
 
+#ifdef CONFIG_KUNMINGHU_V3
+// The branch predictor configuration in V3 differs from that in V2,
+// so the custom CSR register sbpctl is also different between the two versions.
+// Due to the differing bit widths of sbpctl, reads may return inconsistent values,
+// causing difftest mismatches and CI test case "misc" to fail.
+CSR_STRUCT_START(sbpctl)
+  uint64_t ubtb_enable   : 1; // [0]
+  uint64_t abtb_enable   : 1; // [1]
+  uint64_t mbtb_enable   : 1; // [2]
+  uint64_t tage_enable   : 1; // [3]
+  uint64_t sc_enable     : 1; // [4]
+  uint64_t ittage_enable : 1; // [5]
+  uint64_t ras_enable    : 1; // [6]
+  uint64_t utage_enable  : 1; // [7]
+CSR_STRUCT_END(sbpctl)
+#else
 CSR_STRUCT_START(sbpctl)
   uint64_t ubtb_enable : 1; // [0]
   uint64_t btb_enable  : 1; // [1]
@@ -1241,6 +1264,7 @@ CSR_STRUCT_START(sbpctl)
   uint64_t ras_enable  : 1; // [5]
   uint64_t loop_enable : 1; // [6]
 CSR_STRUCT_END(sbpctl)
+#endif
 
 CSR_STRUCT_START(spfctl)
   uint64_t l1i_pf_enable            : 1; // [0] L1I Cache Prefetcher Enable
