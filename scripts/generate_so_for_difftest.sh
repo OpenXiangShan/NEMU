@@ -35,3 +35,8 @@ make clean
 make riscv64-xs-ref_bitmap_defconfig
 make -j
 cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-bitmap-so
+
+make clean
+make riscv64-xs-kunminghu-v3-ref_defconfig
+make -j
+cp build/riscv64-nemu-interpreter-so ${artifact_dir}/riscv64-nemu-interpreter-v3-so
