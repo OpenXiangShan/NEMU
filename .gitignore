@@ -10,7 +10,7 @@
 !Dockerfile
 !README.md
 !Kconfig
-!.github/workflows/ci.yml
+!.github/workflows/*.yml
 !scripts/*.sh
 !scripts/checkpoint_example/*
 include/config
