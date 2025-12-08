@@ -377,7 +377,7 @@ config DIFFTEST_STORE_COMMIT
   default y
 
 config DIFFTEST_AMU_CTRL
-  depends on SHARE
+  depends on SHARE && RVMATRIX
   bool "Enable AMU control signal difftest"
   default n
 
