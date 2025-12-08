@@ -19,7 +19,9 @@ def_EHelper(msyncreset) {
 
 def_EHelper(mrelease) {
   cpu.mtokr[s->src2.imm]++;
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mrelease_emplace(s->src2.imm);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
   mstore_queue_update_mrelease(s->src2.imm, cpu.mtokr[s->src2.imm]);
 }
 
