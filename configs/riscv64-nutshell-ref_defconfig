@@ -102,6 +102,7 @@ CONFIG_CXX="g++"
 CONFIG_CC_O2=y
 # CONFIG_CC_O3 is not set
 CONFIG_CC_OPT="-O2"
+CONFIG_CC_OPT_FLAGS=""
 # CONFIG_CC_NATIVE_ARCH is not set
 # CONFIG_CC_LTO is not set
 # CONFIG_CC_DEBUG is not set

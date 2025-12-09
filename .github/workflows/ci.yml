@@ -112,7 +112,7 @@ jobs:
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
-          make -j
+          make -j `nproc`
       - name: System - linux-hello-opensbi
         run: |
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin
@@ -123,7 +123,7 @@ jobs:
         run: |
           make clean-all
           make riscv64-xs-cpt_defconfig
-          make -j
+          make -j `nproc`
           make -C resource/gcpt_restore
           # take cpt, and put cpt in output_top/test/linux
           bash ./scripts/take_zstd.sh ${CI_WORKLOADS}/linux/coremark-pro/fw_payload.bin output_top
@@ -131,12 +131,12 @@ jobs:
 
           # restore cpt
           make riscv64-xs-diff-spike_defconfig
-          make -j
+          make -j `nproc`
           bash ./scripts/restore_zstd.sh
           make clean-all
 
 #          make riscv64-xs-cpt-with-flash_defconfig
-#          make -j
+#          make -j `nproc`
 #          bash ./scripts/take_zstd_into_flash.sh
 #          make clean-all
 
@@ -144,7 +144,7 @@ jobs:
 #          git submodule update --init --depth=1 ready-to-run
 #          make riscv64-xs-diff-spike-withflash_defconfig
 #          make gcpt_restore_bin
-#          make -j
+#          make -j `nproc`
 #          bash ./scripts/restore_zstd_into_flash.sh
 #          make clean-all
 
@@ -370,6 +370,104 @@ jobs:
       - name: Run rvv-bench with Spike DiffTest
         run: |
           ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/rvv-bench/fw_payload.bin -I 400000000
+
+  performance:
+    needs: fetch-workloads
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
+    continue-on-error: false
+    name: Performance Tests
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Restore Workloads
+        id: cache-workloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
+
+      - name: Restore DynamoRIO
+        id: cache-dynamorio
+        uses: actions/cache@v4
+        with:
+          path: DynamoRIO-Linux-11.3.0-1
+          key: DynamoRIO-Linux-11.3.0-extracted
+
+      - name: Download and extract
+        if: steps.cache-dynamorio.outputs.cache-hit != 'true'
+        run: |
+          wget https://github.com/DynamoRIO/dynamorio/releases/download/release_11.3.0-1/DynamoRIO-Linux-11.3.0.tar.gz -O - | tar -zxf -
+      
+      - name: Setup env
+        run: |
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Build NEMU interpreter for XS in interpreter mode
+        run: |
+          make riscv64-xs_defconfig
+          sed -i 's/CONFIG_CC_NATIVE_ARCH=y/# CONFIG_CC_NATIVE_ARCH is not set/g' .config
+          sed -i 's/CONFIG_CC_OPT_FLAGS=""/CONFIG_CC_OPT_FLAGS="-march=x86-64-v3 -mtune=generic -ftree-vectorize"/g' .config
+          make -j `nproc`
+
+      - name: Basic - misc-tests
+        env:
+          tests: |
+            am/misc-tests/bin/bitmanip.bin
+            am/coremark/bin/coremark-riscv64-xs-rv64gc-o2.bin
+            am/coremark/bin/coremark-riscv64-xs-rv64gc-o3.bin
+            am/coremark/bin/coremark-riscv64-xs-rv64gcb-o3.bin
+            am/misc-tests/bin/amtest-riscv64-xs.bin
+            am/misc-tests/bin/aliastest-riscv64-xs.bin
+            am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
+            am/misc-tests/bin/zacas-riscv64-xs.bin
+        run: |
+          for test_bin in $tests; do
+            echo ::group::$test_bin
+            result=$(./DynamoRIO-Linux-11.3.0-1/bin64/drrun -c ./DynamoRIO-Linux-11.3.0-1/samples/bin64/libinscount.so -- \
+            ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/${test_bin} | strings)
+            result_native=$(./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/${test_bin} | strings)
+            actual_throughput=$(echo "$result_native" | grep "simulation frequency" | tail -n 1 | cut -d '=' -f2 | cut -d ' ' -f2 | tr -d ', ')
+            guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -d ', ')
+            host_instr_count=$(echo "$result" | grep "Instrumentation results:" | tail -n 1 | cut -d ' ' -f3)
+            estimate_host_ipc=2.5
+            # Calculate host throughput per second with 4GHz and IPC=2.5
+            est_throughput=$(python3 -c "print(4e9 * $estimate_host_ipc / $host_instr_count * $guest_instr_count)")
+            python3 -c "print('| {} | {:.3e} | {:.3e} | {:.3e} |'.format('$(basename $test_bin)', $host_instr_count, $est_throughput, $actual_throughput))" >> performance_results.md
+            echo "::endgroup::"
+          done
+
+      - name: System - linux
+        run: |
+          result=$(./DynamoRIO-Linux-11.3.0-1/bin64/drrun -c ./DynamoRIO-Linux-11.3.0-1/samples/bin64/libinscount.so -- \
+          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin | strings)
+          result_native=$(./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin | strings)
+          actual_throughput=$(echo "$result_native" | grep "simulation frequency" | tail -n 1 | cut -d '=' -f2 | cut -d ' ' -f2 | tr -d ', ')
+          guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -d ', ')
+          host_instr_count=$(echo "$result" | grep "Instrumentation results:" | tail -n 1 | cut -d ' ' -f3)
+          estimate_host_ipc=2.5
+          # Calculate host throughput per second with 4GHz and IPC=2.5
+          est_throughput=$(python3 -c "print(4e9 * $estimate_host_ipc / $host_instr_count * $guest_instr_count)")
+          python3 -c "print('| linux-hello | {:.3e} | {:.3e} | {:.3e} |'.format($host_instr_count, $est_throughput, $actual_throughput))" >> performance_results.md
+      
+      - name: Report to PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const performanceResults = fs.readFileSync('performance_results.md', 'utf8');
+            const commentBody = `### NEMU Performance Results\n\n| Test | Instructions Executed | Estimated Host Throughput (instr/s) | Actual NEMU Throughput (instr/s) |\n|------|-----------------------|-------------------------------------|-------------------------------|\n${performanceResults}\n\n* Host throughput is estimated based on 4GHz CPU frequency and IPC=2.5. Actual throughput may vary based on the host CPU performance.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody
+            });
 
   build-so:
     name: Build NEMU Difftest Shared Objects

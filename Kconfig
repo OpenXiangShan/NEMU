@@ -150,8 +150,12 @@ config CC_OPT
   default "-O3" if CC_O3
   default "none"
 
+config CC_OPT_FLAGS
+  string "Additional optimization flags"
+  default ""
+
 config CC_NATIVE_ARCH
-  bool "Enable march=native"
+  bool "Enable march=native and mtune=native and ftree-vectorize"
   default n
 
 config CC_LTO
