@@ -80,7 +80,7 @@ static inline uint8_t serial_rx_ready_flag() {
       }
     }
   }
-  return (f == r ? 0 : LSR_RX_READY);
+  return (f == r ? 0 : UARTLITE_RX_VALID);
 }
 
 #define rt_thread_cmd "memtrace\n"
@@ -131,8 +131,18 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
       }
       else panic("Cannot read UARTLITE_TX_FIFO");
       break;
+#ifdef CONFIG_UARTLITE_INPUT_FIFO
+    case UARTLITE_RX_FIFO:
+      if (!is_write) serial_base[UARTLITE_RX_FIFO] = serial_dequeue();
+      else panic("Cannot write UARTLITE_RX_FIFO");
+      break;
+#endif
     case UARTLITE_STAT_REG:
+#ifdef CONFIG_UARTLITE_INPUT_FIFO
+      if (!is_write) serial_base[UARTLITE_STAT_REG] = serial_rx_ready_flag();
+#else
       if (!is_write) serial_base[UARTLITE_STAT_REG] = 0x0;
+#endif
       break;
   }
 }
