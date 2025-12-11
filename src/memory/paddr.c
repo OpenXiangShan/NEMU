@@ -52,6 +52,13 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 void* sparse_mm = NULL;
 #endif
 
+#ifdef CONFIG_CUSTOM_TENSOR
+#define URAM_SIZE 0x20000000 // 512 M
+static uint8_t *uram = NULL;
+
+#define URAM_OFFSET (uint8_t *)(pmem- CONFIG_MBASE)
+#endif
+
 #define HOST_PMEM_OFFSET (uint8_t *)(pmem - CONFIG_MBASE)
 
 uint8_t *get_pmem()
@@ -66,6 +73,14 @@ bool map_image_as_output_cpt = false;
 void * get_sparsemm(){
   return sparse_mm;
 }
+#endif
+
+#ifdef CONFIG_CUSTOM_TENSOR
+uint8_t *get_uram(){
+  return uram;
+}
+uint8_t* uram_guest_to_host(paddr_t paddr) { return paddr + URAM_OFFSET; }
+paddr_t uram_host_to_guest(uint8_t *haddr) { return haddr - URAM_OFFSET; }
 #endif
 
 uint8_t* guest_to_host(paddr_t paddr) { return paddr + HOST_PMEM_OFFSET; }
@@ -179,6 +194,9 @@ void allocate_memory_with_mmap()
     perror("mmap allocation failed");
     assert(0);
   }
+#ifdef CONFIG_CUSTOM_TENSOR
+  uram = pmem + MEMORY_SIZE - URAM_SIZE;
+#endif
   #endif
 #endif // CONFIG_USE_MMAP
 }

@@ -171,6 +171,21 @@
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_CUSTOM_TENSOR
+#define TENSOR_INSTR_BINARY(f) \
+  f(tx_async_uram_load) f(tx_async_uram_store) f(tx_async_uram_copy) \
+  f(tx_sync_uram_copy) f(tx_sync_uram_load) f(tx_sync_uram_store) f(tx_pooling) \
+  f(tx_tcsr_xchg_nmask) f(tx_tcsr_xchg_mask) f(tx_tcsr_imm_nmask) \
+  f(tx_tcsr_imm_mask)  f(tx_fp_reduce) f(tx_convert) f(tx_sfu)
+
+#define TENSOR_INSTR_TERNARY(f) \
+  f(tx_matmul_subfloat) f(tx_matmul_float) f(tx_matmul_fix) f(tx_conv) f(tx_int) \
+  f(tx_fp) f(tx_lut_int) f(tx_lut_fp) f(tx_int_reduce)
+#else
+#define TENSOR_INSTR_BINARY(f)
+#define TENSOR_INSTR_TERNARY(f)
+#endif // CONFIG_CUSTOM_TENSOR
+
 #ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \
   f(cbo_zero) f(cbo_inval) f(cbo_flush) f(cbo_clean) \
@@ -360,7 +375,8 @@
   ZFH_INSTR_BINARY(f) \
   ZFA_INSTR_BINARY(f) \
   ZFH_ZFA_INSTR_BINARY(f) \
-  ZCB_INSTR_BINARY(f)
+  ZCB_INSTR_BINARY(f) \
+  TENSOR_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -387,7 +403,8 @@
   ZFH_INSTR_TERNARY(f) \
   ZFA_INSTR_TERNARY(f) \
   ZFH_ZFA_INSTR_TERNARY(f) \
-  ZCB_INSTR_TERNARY(f)
+  ZCB_INSTR_TERNARY(f) \
+  TENSOR_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \
   SYS_INSTR_TERNARY_CSR(f) 
