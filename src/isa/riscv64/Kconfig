@@ -656,4 +656,9 @@ config RV_ZAWRS
     This extension adds the WRS instruction which waits until the reservation set is empty.
     In NEMU, WRS instruction currently acts as nop.
 
+config CUSTOM_CSR_KMHV3
+  bool "Custom CSR support for Kunminghu V3 (KMHV3)"
+  default n
+  help
+    Enables Kunminghu V3 custom csr configurations, which differ from V2.
 endmenu
