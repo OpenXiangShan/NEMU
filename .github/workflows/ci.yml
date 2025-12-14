@@ -426,6 +426,7 @@ jobs:
             am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
             am/misc-tests/bin/zacas-riscv64-xs.bin
         run: |
+          echo -e "### NEMU Performance Results\n\n| Test | Instructions Executed | Estimated Host Throughput (instr/s) | Actual NEMU Throughput (instr/s) |\n|------|-----------------------|-------------------------------------|-------------------------------|" > performance_results.md
           for test_bin in $tests; do
             echo ::group::$test_bin
             result=$(./DynamoRIO-Linux-11.3.0-1/bin64/drrun -c ./DynamoRIO-Linux-11.3.0-1/samples/bin64/libinscount.so -- \
@@ -453,21 +454,13 @@ jobs:
           # Calculate host throughput per second with 4GHz and IPC=2.5
           est_throughput=$(python3 -c "print(4e9 * $estimate_host_ipc / $host_instr_count * $guest_instr_count)")
           python3 -c "print('| linux-hello | {:.3e} | {:.3e} | {:.3e} |'.format($host_instr_count, $est_throughput, $actual_throughput))" >> performance_results.md
+          echo -e "\n\n* Host throughput is estimated based on 4GHz CPU frequency and IPC=2.5. \n* Actual throughput may vary based on the host CPU performance." >> performance_results.md
       
-      - name: Report to PR comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Save performance results artifact
+        uses: actions/upload-artifact@v6
         with:
-          script: |
-            const fs = require('fs');
-            const performanceResults = fs.readFileSync('performance_results.md', 'utf8');
-            const commentBody = `### NEMU Performance Results\n\n| Test | Instructions Executed | Estimated Host Throughput (instr/s) | Actual NEMU Throughput (instr/s) |\n|------|-----------------------|-------------------------------------|-------------------------------|\n${performanceResults}\n\n* Host throughput is estimated based on 4GHz CPU frequency and IPC=2.5. Actual throughput may vary based on the host CPU performance.`;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: commentBody
-            });
+          name: performance-results
+          path: performance_results.md
 
   build-so:
     name: Build NEMU Difftest Shared Objects
