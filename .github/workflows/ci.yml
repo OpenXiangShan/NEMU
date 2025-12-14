@@ -456,11 +456,21 @@ jobs:
           python3 -c "print('| linux-hello | {:.3e} | {:.3e} | {:.3e} |'.format($host_instr_count, $est_throughput, $actual_throughput))" >> performance_results.md
           echo -e "\n\n* Host throughput is estimated based on 4GHz CPU frequency and IPC=2.5. \n* Actual throughput may vary based on the host CPU performance." >> performance_results.md
       
+      - name: Record PR number
+        if: github.event_name == 'pull_request'
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo -n $PR_NUMBER > PR_NUMBER.txt
+      
       - name: Save performance results artifact
         uses: actions/upload-artifact@v6
         with:
           name: performance-results
-          path: performance_results.md
+          if-no-files-found: ignore
+          path: |
+            performance_results.md
+            PR_NUMBER.txt
 
   build-so:
     name: Build NEMU Difftest Shared Objects
