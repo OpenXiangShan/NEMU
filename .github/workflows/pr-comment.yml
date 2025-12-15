@@ -15,8 +15,6 @@ jobs:
   comment:
     if: github.event.workflow_run.event == 'pull_request' &&
         github.event.workflow_run.conclusion == 'success'
-    env:
-      PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
     runs-on: ubuntu-latest
     steps:
       - name: Download performance results artifact
@@ -55,11 +53,13 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const filePath = path.join('${{ runner.temp }}/artifacts/', 'performance_results.md');
-            const performanceResults = fs.readFileSync(filePath, 'utf8');
+            const resultPath = path.join('${{ runner.temp }}/artifacts/', 'performance_results.md');
+            const performanceResults = fs.readFileSync(resultPath, 'utf8');
+            const prNumberPath = path.join('${{ runner.temp }}/artifacts/', 'PR_NUMBER.txt');
+            const prNumber = fs.readFileSync(prNumberPath, 'utf8').trim();
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: process.env.PR_NUMBER,
+              issue_number: prNumber,
               body: performanceResults,
             });
