@@ -200,7 +200,10 @@ void init_isa() {
   MAP(CSRS_M_HPMEVENT, CSR_ZERO_INIT);
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
-  mvendorid->val = 0;
+  // JEDEC JEP106 Manufacturer ID: 
+  //   Bank 17 (16 continuations), Offset 0x6F (111)
+  //   mvendorid = ((Bank -1) << 7) | Offset 
+  mvendorid->val = (16 << 7) | 0x6F;
   marchid->val = 25;
   mimpid->val = 0;
 #else
