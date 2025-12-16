@@ -568,7 +568,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MCOUNTINHIBIT_MASK (MCOUNTINHIBIT_CNTR_MASK | MCOUNTINHIBIT_HPM_MASK)
 
-#define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
+#define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << IRQ_LCOF), 0)
 #define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
 #define LCI_NO_LCOFI MUXDEF(CONFIG_RV_AIA, LCI_EXCLUDE_LCOFI_MASK, 0)
 
@@ -637,19 +637,19 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MEDELEG_MASK MUXDEF(CONFIG_RVH,  MEDELEG_RVH, MEDELEG_NONRVH)
 
 
-#define MIDELEG_WMASK_SSI (1 << 1)
-#define MIDELEG_WMASK_STI (1 << 5)
-#define MIDELEG_WMASK_SEI (1 << 9)
-#define MIDELEG_WMASK_LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << 13), 0)
+#define MIDELEG_WMASK_SSI (1 << IRQ_S_SOFT)
+#define MIDELEG_WMASK_STI (1 << IRQ_S_TIMER)
+#define MIDELEG_WMASK_SEI (1 << IRQ_S_EXT)
+#define MIDELEG_WMASK_LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << IRQ_LCOF), 0)
 #define MIDELEG_WMASK ( MIDELEG_WMASK_SSI | \
                         MIDELEG_WMASK_STI | \
                         MIDELEG_WMASK_SEI | \
                         MIDELEG_WMASK_LCOFI)
 
 #define MIE_MASK_BASE 0xaaa
-#define MIP_MASK_BASE (1 << 1)
+#define MIP_MASK_BASE (1 << IRQ_S_SOFT)
 #ifdef CONFIG_RVH
-#define MIE_MASK_H ((1 << 2) | (1 << 6) | (1 << 10) | (1 << 12))
+#define MIE_MASK_H ((1 << IRQ_VS_SOFT) | (1 << IRQ_VS_TIMER) | (1 << IRQ_VS_EXT) | (1 << IRQ_COP))
 #define MIP_MASK_H MIP_VSSIP
 #else
 #define MIE_MASK_H 0
@@ -659,13 +659,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIE_MASK_BASE (0x222 & mideleg->val)
 #define SIP_MASK ((0x222 | LCOFI) & mideleg->val)
 #define SIP_WMASK_S 0x2
-#define MTIE_MASK (1 << 7)
+#define MTIE_MASK (1 << IRQ_M_TIMER)
 
 // sie
 #define SIE_LCOFI_MASK_MIE (mideleg->val & LCOFI)
 
 // mvien
-#define MVIEN_MASK (LCI_NO_LCOFI | (1 << 9) | (1 << 1))
+#define MVIEN_MASK (LCI_NO_LCOFI | (1 << IRQ_S_EXT) | (1 << IRQ_S_SOFT))
 // hvien
 #define HVIEN_MSAK LCI_NO_LCOFI
 
@@ -1096,12 +1096,12 @@ inline word_t get_mip() {
 
   IFDEF(CONFIG_RVH, tmp |= hvip->val & (MIP_VSSIP));
 
-  tmp |= cpu.non_reg_interrupt_pending.platform_irp_msip << 3;
+  tmp |= cpu.non_reg_interrupt_pending.platform_irp_msip << IRQ_M_SOFT;
 
 #ifdef CONFIG_SHARE
 #ifdef CONFIG_RV_SSTC
   if (menvcfg->stce) {
-    tmp |= cpu.non_reg_interrupt_pending.platform_irp_stip << 5;
+    tmp |= cpu.non_reg_interrupt_pending.platform_irp_stip << IRQ_S_TIMER;
   } else {
     tmp |= mip->val & MIP_STIP;
   }
@@ -1112,9 +1112,9 @@ inline word_t get_mip() {
   tmp |= mip->val & (MIP_STIP | MIP_VSTIP | MIP_MTIP);
 #endif
 
-  IFDEF(CONFIG_RVH, tmp |= (hvip->vstip | cpu.non_reg_interrupt_pending.platform_irp_vstip) << 6);
+  IFDEF(CONFIG_RVH, tmp |= (hvip->vstip | cpu.non_reg_interrupt_pending.platform_irp_vstip) << IRQ_VS_TIMER);
 
-  tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << 7;
+  tmp |= cpu.non_reg_interrupt_pending.platform_irp_mtip << IRQ_M_TIMER;
 
   // clint time interrupt
   word_t get_riscv_timer_interrupt();
@@ -1122,19 +1122,19 @@ inline word_t get_mip() {
 
 #ifdef CONFIG_RV_AIA
   if (mvien->seie) {
-    tmp |= (cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
+    tmp |= (cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << IRQ_S_EXT;
   } else {
-    tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << 9;
+    tmp |= (mvip->seip | cpu.non_reg_interrupt_pending.platform_irp_seip | cpu.non_reg_interrupt_pending.from_aia_seip) << IRQ_S_EXT;
   }
 #else
-  tmp |= ((mip->val & MIP_SEIP) | (cpu.non_reg_interrupt_pending.platform_irp_seip << 9));
+  tmp |= ((mip->val & MIP_SEIP) | (cpu.non_reg_interrupt_pending.platform_irp_seip << IRQ_S_EXT));
 #endif // CONFIG_RV_AIA
 
-  IFDEF(CONFIG_RVH, tmp |= (hvip->vseip | cpu.non_reg_interrupt_pending.platform_irp_vseip) << 10);
+  IFDEF(CONFIG_RVH, tmp |= (hvip->vseip | cpu.non_reg_interrupt_pending.platform_irp_vseip) << IRQ_VS_EXT);
 
-  tmp |= (cpu.non_reg_interrupt_pending.platform_irp_meip | cpu.non_reg_interrupt_pending.from_aia_meip) << 11;
+  tmp |= (cpu.non_reg_interrupt_pending.platform_irp_meip | cpu.non_reg_interrupt_pending.from_aia_meip) << IRQ_M_EXT;
 
-  IFDEF(CONFIG_RVH, tmp |= ((hgeip->val & hgeie->val) != 0) << 12);
+  IFDEF(CONFIG_RVH, tmp |= ((hgeip->val & hgeie->val) != 0) << IRQ_S_GEXT);
 
   return tmp;
 }
