@@ -93,6 +93,11 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config CUSTOM_TENSOR
+  depends on !FPU_NONE
+  bool "RISC-V Tensor Extension (Internal Spec)"
+  default n
+
 config DIFFTEST_DIRTY_FS_VS
   depends on RVV
   depends on DIFFTEST_REF_SPIKE

@@ -26,6 +26,7 @@ CONFIG_MULTICORE_DIFF=y
 # CONFIG_RV_ZFH_MIN is not set
 # CONFIG_RV_ZFA is not set
 # CONFIG_RVV is not set
+# CONFIG_CUSTOM_TENSOR is not set
 # CONFIG_RV_DEBUG is not set
 # CONFIG_RVH is not set
 # CONFIG_RV_SSTC is not set

@@ -64,6 +64,10 @@ typedef struct Decode {
   IFDEF (CONFIG_PERF_OPT, const void *EHelper);
   IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
   Operand dest, src1, src2;
+  #ifdef CONFIG_CUSTOM_TENSOR
+  Operand src3;
+  #endif
+
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
   uint8_t type;
@@ -86,6 +90,10 @@ typedef struct Decode {
 #define id_src1 (&s->src1)
 #define id_src2 (&s->src2)
 #define id_dest (&s->dest)
+
+#ifdef CONFIG_CUSTOM_TENSOR
+#define id_src3 (&s->src3)
+#endif
 
 #if defined(CONFIG_ISA_riscv64) || defined(CONFIG_ISA_riscv32)
 #define INSTR_LIST(f) INSTR_NULLARY(f) INSTR_UNARY(f) INSTR_BINARY(f) INSTR_TERNARY(f) INSTR_TERNARY_CSR(f)

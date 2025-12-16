@@ -42,6 +42,13 @@ uint8_t* guest_to_host(paddr_t paddr);
 /* convert the host virtual address in NEMU to guest physical address in the guest program */
 paddr_t host_to_guest(uint8_t *haddr);
 
+#ifdef CONFIG_CUSTOM_TENSOR
+/* convert the uram guest physical address in the guest program to host virtual address in NEMU */
+uint8_t* uram_guest_to_host(paddr_t paddr);
+/* convert the host virtual address in NEMU to uram guest physical address in the guest program */
+paddr_t uram_host_to_guest(uint8_t *haddr);
+#endif
+
 static inline bool in_pmem(paddr_t addr) {
   paddr_t mbase_mask = CONFIG_MBASE - 1;
   paddr_t msize_mask = MEMORY_SIZE - 1;

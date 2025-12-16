@@ -349,7 +349,110 @@ typedef struct {
     } vamo;
     #endif // CONFIG_RVV
 
+    #ifdef CONFIG_CUSTOM_TENSOR
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t reserved_0 : 5;
+      uint32_t reserved_1 : 3;
+      uint32_t rs1        : 5;
+      uint32_t rs2        : 5;
+      uint32_t reserved_2 : 2;
+      uint32_t rs3        : 5;
+      uint32_t tcfgrs1    : 3;
+      uint32_t tcfgrs2    : 3;
+      uint32_t tcfgrs3    : 3;
+      uint32_t reserved_3 : 2;
+      uint32_t rs3type    : 1;
+      uint32_t rs2type    : 6;
+      uint32_t rs1type    : 6;
+      uint32_t funct8     : 8;
+    } tensor_compute_64;
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t rd         : 5;
+      uint32_t reserved0  : 3;
+      uint32_t rs1        : 5;
+      uint32_t reserved1  : 7;
+      uint32_t rs3        : 5;
+      uint32_t tcsr_id    : 10;
+      uint32_t reserved2  : 14;
+      uint32_t funct8     : 8;
+    } tensor_cfg_xchg_64;
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t rd         : 5;
+      uint32_t imm_lo     : 15;
+      uint32_t rs3        : 5;
+      uint32_t tcsr_id    : 10;
+      uint32_t imm_hi     : 14;
+      uint32_t funct8     : 8;
+    } tensor_cfg_imm_64;
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t reserved_0 : 5;
+      uint32_t log2w     : 3;
+      uint32_t rs1        : 5;
+      uint32_t reserved_1 : 5;
+      uint32_t mode       : 2;
+      uint32_t rs3        : 5;
+      uint32_t tcfgrs1    : 3;
+      uint32_t reserved_2 : 3;
+      uint32_t tcfgrs3    : 3;
+      uint32_t reserved_3 : 15;
+    } tensor_load_store_64;
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t reserved_0 : 5;
+      uint32_t type_lo    : 3;
+      uint32_t rs1        : 5;
+      uint32_t rs2        : 5;
+      uint32_t dim : 2;
+      uint32_t rs3        : 5;
+      uint32_t tcfgrs1    : 3;
+      uint32_t tcfgrs2    : 3;
+      uint32_t tcfgrs3    : 3;
+      uint32_t type_hi    : 4;
+      uint32_t broadcast  : 4;
+      uint32_t reserved_2 : 1;
+      uint32_t op         : 6;
+      uint32_t funct8     : 8;
+    } tensor_element_wise_compute_64;
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t reserved0  : 5;
+      uint32_t rs1type_lo : 3;
+      uint32_t rs1        : 5;
+      uint32_t reserved1  : 5;
+      uint32_t mode       : 2;
+      uint32_t rs3        : 5;
+      uint32_t tcfgrs1    : 3;
+      uint32_t reserved2  : 3;
+      uint32_t tcfgrs3    : 3;
+      uint32_t rs1type_hi : 4;
+      uint32_t rs3type    : 7;
+      uint32_t reserve3   : 4;
+      uint32_t funct8     : 8;
+    } tensor_convert_64;
+    struct {
+      uint32_t opcode     : 7;
+      uint32_t reserved0  : 5;
+      uint32_t type_lo    : 3;
+      uint32_t rs1        : 5;
+      uint32_t reserved1  : 5;
+      uint32_t mode       : 2;
+      uint32_t rs3        : 5;
+      uint32_t tcfgrs1    : 3;
+      uint32_t reserved2  : 3;
+      uint32_t tcfgrs3    : 3;
+      uint32_t type_hi    : 4;
+      uint32_t reserved3  : 5;
+      uint32_t op         : 6;
+      uint32_t funct8     : 8;
+    } tensor_sfu_64;
+    uint64_t val;
+    #else
     uint32_t val;
+    #endif
   } instr;
 } riscv64_ISADecodeInfo;
 
