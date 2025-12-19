@@ -26,6 +26,7 @@
 #include "../local-include/reg.h"
 #include <cpu/cpu.h>
 #include <ext/amu_ctrl_queue_wrapper.h>
+#include <ext/cutest.h>
 #include "rtl/fp.h"
 
 typedef __uint128_t uint128_t;
@@ -66,6 +67,11 @@ def_EHelper(mmau) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, false, false, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -93,6 +99,11 @@ def_EHelper(mwmau) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, false, false, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 1);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -120,6 +131,11 @@ def_EHelper(mqmau) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, false, false, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 2);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -151,6 +167,11 @@ def_EHelper(msmau) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, true, false, false, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -183,6 +204,11 @@ def_EHelper(mswmau) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, true, false, false, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 1);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -215,6 +241,11 @@ def_EHelper(msqmau) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, true, false, false, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 2);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -239,6 +270,11 @@ def_EHelper(mma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, false, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -265,6 +301,11 @@ def_EHelper(mwma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, false, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 1);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -291,6 +332,11 @@ def_EHelper(mqma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, false, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 2);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -323,6 +369,11 @@ def_EHelper(msma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, true, false, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -356,6 +407,11 @@ def_EHelper(mswma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, true, false, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 1);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -389,6 +445,11 @@ def_EHelper(msqma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 2);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, true, false, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 2);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -431,6 +492,11 @@ def_EHelper(mfma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, true, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -470,6 +536,11 @@ def_EHelper(mfwma) {
                             mtilem->val, mtilen->val, mtilek->val,
                             s->m_eew, s->m_eew + 1);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mma_emplace(td, false, true, true, ts1, ts2,
+                     mtilem->val, mtilen->val, mtilek->val,
+                     s->m_eew, s->m_eew + 1);
+#endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
           "[AmuCtrlIO] op=0 \n"
@@ -489,6 +560,9 @@ def_EHelper(mzero_acc_m) {
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mzero_emplace(true, s->dest.reg);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mzero_emplace(true, s->dest.reg);
+#endif // CONFIG_SHARE_CTRL
 }
 
 def_EHelper(mzero_tr_m) {
@@ -500,6 +574,9 @@ def_EHelper(mzero_tr_m) {
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mzero_emplace(false, s->dest.reg);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mzero_emplace(false, s->dest.reg);
+#endif // CONFIG_SHARE_CTRL
 }
 
 #endif // CONFIG_RVMATRIX

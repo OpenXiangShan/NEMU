@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <ext/amu_ctrl_queue_wrapper.h>
+#include <ext/cutest.h>
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
@@ -122,6 +123,14 @@ static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
     msew
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c', base,
+    stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_SHARE_CTRL
   host_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_RVMATRIX
 }
@@ -171,6 +180,14 @@ static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
     msew
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c', base,
+    stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_SHARE_CTRL
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(base);
 #endif // CONFIG_MEMORY_REGION_ANALYSIS
@@ -325,14 +342,9 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
     return 0;
   }
-
+#if !defined(CONFIG_SHARE) || defined(CONFIG_SHARE_CTRL)
   if (likely(in_pmem(addr))) {
-    uint64_t rdata = pmem_read(addr, len);
-#ifdef CONFIG_SHARE
-    ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
-        addr, rdata, len, type, mode);
-#endif // CONFIG_SHARE
-    return rdata;
+    return pmem_read(addr, len);
   }
   else {
     if (likely(is_in_mmio(addr))) {
@@ -351,14 +363,43 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
       return mmio_read(addr, len);
     }
-#ifdef CONFIG_SHARE
+    else {
+      raise_read_access_fault(trap_type, vaddr);
+      return 0;
+    }
+  }
+#else
+  if (likely(in_pmem(addr))) {
+    uint64_t rdata = pmem_read(addr, len);
+    ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
+        addr, rdata, len, type, mode);
+    return rdata;
+  }
+  else {
+#ifdef CONFIG_HAS_FLASH
+    if (likely(is_in_mmio(addr))) {
+      // check if the address is misaligned
+      if (cpu.isVldst) {
+        raise_read_access_fault(trap_type, vaddr);
+        return 0;
+      }
+      isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(addr)) {
+        raise_read_access_fault(trap_type, vaddr);
+        return 0;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      return mmio_read(addr, len);
+    }
+#endif
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
-#endif // CONFIG_SHARE
     Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
     raise_read_access_fault(trap_type, vaddr);
   }
   return 0;
+#endif // CONFIG_SHARE
 }
 
 #ifdef CONFIG_RVMATRIX
