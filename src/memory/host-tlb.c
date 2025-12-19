@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <ext/amu_ctrl_queue_wrapper.h>
+#include <ext/cutest.h>
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/vaddr.h>
@@ -221,6 +222,14 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
         msew
       );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+      cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c',
+        host_to_guest(host_base), stride,
+        m_name == 'b' ? column : row,
+        m_name == 'b' ? row : column,
+        msew
+      );
+#endif // CONFIG_SHARE_CTRL
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
       fprintf(stderr, "?? fast-path hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, type);
       // guest_to_host(e->offset) when save, so in order to get the original paddr, we use host_to_guest here
@@ -328,6 +337,14 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     msew
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c',
+    host_to_guest(host_base), stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_SHARE_CTRL
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
   fprintf(stderr, "?? fast-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
     (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);

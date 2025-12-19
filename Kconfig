@@ -368,8 +368,19 @@ config DIFFTEST_CHECK_SDTRIG
   default y
 
 config SHARE
-  bool "Build shared library as processor difftest reference"
+  bool "Build shared library as processor difftest reference or controller"
   default n
+
+choice
+  prompt "The usage of shared library"
+  default SHARE_REF
+  depends on SHARE
+config SHARE_REF
+  bool "Build shared library as processor difftest reference"
+config SHARE_CTRL
+  bool "Build shared library as the controller of CUTE"
+endchoice
+
 
 config DIFFTEST_STORE_COMMIT
   depends on SHARE

@@ -4,6 +4,7 @@
 
 #include "cpu/exec.h"
 #include "ext/amu_ctrl_queue_wrapper.h"
+#include <ext/cutest.h>
 #include "ext/msync_queue_wrapper.h"
 #include "ext/mstore_queue_wrapper.h"
 #include "../local-include/csr.h"
@@ -22,6 +23,9 @@ def_EHelper(mrelease) {
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mrelease_emplace(s->src2.imm);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mrelease_emplace(s->src2.imm);
+#endif // CONFIG_SHARE_CTRL
   mstore_queue_update_mrelease(s->src2.imm, cpu.mtokr[s->src2.imm]);
 }
 
