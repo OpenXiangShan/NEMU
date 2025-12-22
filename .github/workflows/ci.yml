@@ -8,8 +8,8 @@ on:
 
 env:
   CI_WORKLOADS: ./workloads
-  SPIKE_SO: ./ready-to-run/riscv64-spike-so
-  NUTSHELL_SPIKE_SO: ./ready-to-run/riscv64-nutshell-spike-so
+  SPIKE_SO: ./ready-to-run/spike-xiangshan-ref.so
+  NUTSHELL_SPIKE_SO: ./ready-to-run/spike-nutshell-ref.so
   CROSS_COMPILE: riscv64-linux-gnu-
   LIBCHECKPOINT_CROSS_COMPILE: riscv64-linux-gnu-
   CPT_CROSS_COMPILE: riscv64-linux-gnu-
@@ -204,6 +204,10 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
+
       - name: Build NEMU with V extension and agnostic
         run: |
           make riscv64-xs-diff-spike-agnostic_defconfig
@@ -243,6 +247,10 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
 
       - name: Build NEMU interpreter for diff with spike
         run: |
@@ -356,6 +364,10 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
 
       - name: Build NEMU interpreter for diff with spike
         run: |
