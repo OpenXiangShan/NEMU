@@ -109,6 +109,9 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
       - name: Build NEMU interpreter for XS
         run: |
           make riscv64-xs_defconfig
@@ -168,6 +171,9 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
       - name: Build NEMU interpreter
         run: |
           make riscv64-nutshell_defconfig
