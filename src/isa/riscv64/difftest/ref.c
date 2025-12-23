@@ -197,14 +197,29 @@ void isa_difftest_regcpy(void *dut, bool direction) {
 #endif // CONFIG_LIGHTQS
   //ramcmp();
   if (direction == DIFFTEST_TO_REF) {
+#if defined(CONFIG_RVV) && !defined(CONFIG_DIFFTEST_CHECK_VRF)
+    const unsigned before_vrf = offsetof(riscv64_CPU_state, vr) - offsetof(riscv64_CPU_state, gpr);
+    const unsigned after_vcsr = offsetof(riscv64_CPU_state, difftest_state_end) - offsetof(riscv64_CPU_state, fcsr);
+    memcpy(&cpu, dut, before_vrf);
+    memcpy(&cpu.fcsr, dut + before_vrf, after_vcsr);
+#else
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
+#endif
     csr_writeback();
     // need to clear the cached mmu states as well
     extern void update_mmu_state();
     update_mmu_state();
   } else {
     csr_prepare();
+#if defined(CONFIG_RVV) && !defined(CONFIG_DIFFTEST_CHECK_VRF)
+    const unsigned before_vrf = offsetof(riscv64_CPU_state, vr) - offsetof(riscv64_CPU_state, gpr);
+    const unsigned after_vcsr = offsetof(riscv64_CPU_state, difftest_state_end) - offsetof(riscv64_CPU_state, fcsr);
+    memcpy(dut, &cpu, before_vrf);
+    memcpy(dut + before_vrf, &cpu.fcsr, after_vcsr);
+    // memcpy((uint8_t *)dut + before_vrf, (uint8_t *)&cpu + offsetof(riscv64_CPU_state, fcsr), DIFFTEST_REG_SIZE - before_vrf);
+#else
     memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
+#endif
   }
 #ifdef CONFIG_LIGHTQS
   // after processing, take another snapshot
