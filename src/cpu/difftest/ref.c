@@ -365,9 +365,13 @@ void difftest_init() {
 
 void difftest_init_v2(unsigned state_size) {
   difftest_init();
-  if (state_size != DIFFTEST_REG_SIZE) {
+  unsigned real_size = DIFFTEST_REG_SIZE;
+#if defined(CONFIG_RVV) && !defined(CONFIG_DIFFTEST_CHECK_VRF)
+  real_size -= sizeof(cpu.vr);
+#endif
+  if (state_size != real_size) {
     printf("ERROR: NEMU (%uB) is configured with different states than DUT (%uB).\n",
-        DIFFTEST_REG_SIZE, state_size);
+        real_size, state_size);
     assert(false);
   }
 }
