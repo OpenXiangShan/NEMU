@@ -215,7 +215,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #else // NOT CONFIG_USE_SPARSEMM
       uint8_t *host_base = e->offset + vbase;      
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-      amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', 
+      amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
         host_to_guest(host_base), stride,
         m_name == 'b' ? column : row,
         m_name == 'b' ? row : column,
@@ -223,7 +223,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
       );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-      cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c',
+      cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
         host_to_guest(host_base), stride,
         m_name == 'b' ? column : row,
         m_name == 'b' ? row : column,
@@ -330,7 +330,7 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   matrix_store_commit_queue_push(host_to_guest(host_base), stride, row, column, msew, transpose);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c',
+  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
     host_to_guest(host_base), stride,
     m_name == 'b' ? column : row,
     m_name == 'b' ? row : column,
@@ -338,7 +338,7 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c',
+  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
     host_to_guest(host_base), stride,
     m_name == 'b' ? column : row,
     m_name == 'b' ? row : column,
