@@ -12,7 +12,7 @@ void cutest_mma_emplace(uint8_t md, bool sat, bool isfp, bool issigned,
   uint8_t types, uint8_t typed);
 
 void cutest_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
-  uint64_t base, uint64_t stride,
+  bool isA, uint64_t base, uint64_t stride,
   uint16_t row, uint16_t column, uint8_t msew);
 
 void cutest_mrelease_emplace(uint8_t tokenRd);
