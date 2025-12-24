@@ -30,7 +30,7 @@ void cutest_mma_emplace(uint8_t md, bool sat, bool isfp, bool issigned,
 }
 
 void cutest_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
-                                uint64_t base, uint64_t stride, uint16_t row,
+                                bool isA, uint64_t base, uint64_t stride, uint16_t row,
                                 uint16_t column, uint8_t msew) {
   amu_ctrl_event_t event;
   event.valid = true;
