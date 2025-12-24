@@ -116,15 +116,16 @@ static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
   analysis_memory_commit(base);
 #endif // CONFIG_MEMORY_REGION_ANALYSIS
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', base,
-    stride,
+  amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
+    base, stride,
     m_name == 'b' ? column : row,
     m_name == 'b' ? row : column,
     msew
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c', base,
+  cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
+    base,
     stride,
     m_name == 'b' ? column : row,
     m_name == 'b' ? row : column,
@@ -173,16 +174,16 @@ static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
   matrix_store_commit_queue_push(base, stride, row, column, msew, transpose);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c', base,
-    stride,
+  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
+    base, stride,
     m_name == 'b' ? column : row,
     m_name == 'b' ? row : column,
     msew
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c', base,
-    stride,
+  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
+    base, stride,
     m_name == 'b' ? column : row,
     m_name == 'b' ? row : column,
     msew
