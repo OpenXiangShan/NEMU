@@ -21,12 +21,16 @@
 
 // ----------- state -----------
 
-enum { NEMU_RUNNING, NEMU_STOP, NEMU_END, NEMU_ABORT, NEMU_QUIT };
+enum { NEMU_RUNNING, NEMU_STOP, NEMU_END, NEMU_ABORT, NEMU_QUIT, NEMU_WAIT };
 
 typedef struct {
   int state;
   vaddr_t halt_pc;
   uint32_t halt_ret;
+#ifdef CONFIG_SHARE_CTRL
+  uint8_t wait_r;
+  uint32_t wait_val;
+#endif // CONFIG_SHARE_CTRL
 } NEMUState;
 
 extern NEMUState nemu_state;
