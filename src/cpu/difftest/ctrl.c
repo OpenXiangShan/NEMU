@@ -1,6 +1,6 @@
 /***************************************************************************************
 * Copyright (c) 2014-2021 Zihao Yu, Nanjing University
-* Copyright (c) 2020-2022 Institute of Computing Technology, Chinese Academy of Sciences
+* Copyright (c) 2020-2025 Institute of Computing Technology, Chinese Academy of Sciences
 *
 * NEMU is licensed under Mulan PSL v2.
 * You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -14,6 +14,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "utils.h"
 #include <isa.h>
 #include <ext/amuctrl.h>
 #include <ext/msync.h>
@@ -24,6 +25,8 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 #include <string.h>
+
+#ifdef CONFIG_SHARE_CTRL
 
 extern void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction, void* (*cpy_func)(void*, const void*, size_t));
 
@@ -49,13 +52,20 @@ void ctrl_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction
 }
 
 // ctrl_exec
-void ctrl_exec(uint64_t n) {
-  cpu_exec(n);
+void ctrl_exec() {
+  if (nemu_state.state == NEMU_WAIT) {
+    if (cpu.mtokr[nemu_state.wait_r] >= nemu_state.wait_val) {
+      nemu_state.state = NEMU_RUNNING;
+    }
+  }
+  while (nemu_state.state != NEMU_WAIT && nemu_state.state != NEMU_END) {
+    cpu_exec(1);
+  }
 }
 
 int ctrl_status() {
   switch (nemu_state.state) {
-    case NEMU_RUNNING: case NEMU_QUIT:
+    case NEMU_RUNNING: case NEMU_QUIT: case NEMU_WAIT:
       return 0;
     case NEMU_END:
       return (nemu_state.halt_ret == 0) ? 6 : 1;
@@ -75,3 +85,13 @@ void ctrl_info(void *reg_buf) {
 void ctrl_register_amu_callback(void (*callback)(amu_ctrl_event_t)) {
   amu_ctrl_callback_ = callback;
 }
+
+void ctrl_release(int regcnt, bool *release_regs) {
+  for (int i = 0; i < regcnt; i++) {
+    if (release_regs[i]) {
+      cpu.mtokr[i]++;
+    }
+  }
+}
+
+#endif // CONFIG_SHARE_CTRL
