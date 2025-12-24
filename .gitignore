@@ -6,12 +6,14 @@
 !*.[cSh]
 !*.cpp
 !*.lds
+!*.yml
 !.gitignore
 !Dockerfile
 !README.md
 !Kconfig
 !.github/workflows/*.yml
 !scripts/*.sh
+!scripts/*.py
 !scripts/checkpoint_example/*
 include/config
 include/generated

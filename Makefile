@@ -127,6 +127,7 @@ LDFLAGS += -lm
 endif
 
 include $(NEMU_HOME)/scripts/repos.mk
+include $(NEMU_HOME)/scripts/ready-to-run.mk
 include $(NEMU_HOME)/scripts/git.mk
 include $(NEMU_HOME)/scripts/config.mk
 include $(NEMU_HOME)/scripts/isa.mk
