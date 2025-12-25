@@ -20,6 +20,7 @@
 
 #include "vcompute_impl.h"
 #include <cpu/cpu.h>
+#include <rtl/fp.h>
 #include "vcommon.h"
 
 #undef s0
@@ -1599,19 +1600,34 @@ static void init_tmp_vreg(Decode *s, int vsew) {
       case 1 :
         rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W16));
         for (int j = 0; j < VLEN / 16; j++) {
-          tmp_vreg[i]._16[j] = *s0;
+          if (isa_fp_get_frm() == FPCALL_RM_RDN) {
+            tmp_vreg[i]._16[j] = 0;
+          }
+          else {
+            tmp_vreg[i]._16[j] = *s0;
+          }
         }
         break;
       case 2 :
         rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W32));
         for (int j = 0; j < VLEN / 32; j++) {
-          tmp_vreg[i]._32[j] = *s0;
+          if (isa_fp_get_frm() == FPCALL_RM_RDN) {
+            tmp_vreg[i]._32[j] = 0;
+          }
+          else {
+            tmp_vreg[i]._32[j] = *s0;
+          }
         }
         break;
       case 3 :
         rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W64));
         for (int j = 0; j < VLEN / 64; j++) {
-          tmp_vreg[i]._64[j] = *s0;
+          if (isa_fp_get_frm() == FPCALL_RM_RDN) {
+            tmp_vreg[i]._64[j] = 0;
+          }
+          else {
+            tmp_vreg[i]._64[j] = *s0;
+          }
         }
         break;
       default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
