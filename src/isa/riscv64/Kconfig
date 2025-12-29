@@ -566,6 +566,10 @@ config RV_SSCOFPMF
   bool "(Beta)Enable Sscofpmf extension(Supervisor-level Count OverFlow and Privilege Mode Filtering)"
   default n
 
+config RV_SMCNTRPMF
+  bool "(Beta)Enable Smcntrpmf extension(Cycle and Instret Privilege Mode Filtering)"
+  default n
+
 config RV_SHLCOFIDELEG
   depends on RVH
   depends on RV_SSCOFPMF
