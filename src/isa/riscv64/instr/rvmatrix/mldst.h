@@ -26,6 +26,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #include "ext/mstore_queue_wrapper.h"
+#include "mcommon.h"
 
 // #define PRINT_AMUCTRLIO
 
@@ -57,6 +58,7 @@ void check_size(Decode *s, int rmax_mreg, int cmax_mreg, char m_name) {
 }
 
 void mld(Decode *s, bool is_trans, char m_name) {
+  mp_set_dirty();
   uint64_t base_addr = reg_l(s->src1.reg);
   uint64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t td = s->dest.reg;

@@ -187,6 +187,8 @@
 #endif // CONFIG_CUSTOM_TENSOR
 
 #ifdef CONFIG_RVMATRIX
+#define MATRIX_INSTR_NULLARY(f) \
+  f(minit)
 #define MATRIX_INSTR_UNARY(f) \
   f(mzero)
 #define MATRIX_INSTR_BINARY(f) \
@@ -200,6 +202,7 @@
   f(mlm) f(msm) \
   f(mfmacc) f(mmacc) f(mmaccu) f(mmaccus) f(mmaccsu)
 #else
+#define MATRIX_INSTR_NULLARY(f)
 #define MATRIX_INSTR_UNARY(f)
 #define MATRIX_INSTR_BINARY(f)
 #define MATRIX_INSTR_TERNARY(f)
@@ -372,7 +375,8 @@
   SYS_INSTR_NULLARY(f)   \
   f(p_ret) \
   ZAWRS_INSTR_NULLARY(f) \
-  ZCMOP_INSTR_NULLARY(f)
+  ZCMOP_INSTR_NULLARY(f) \
+  MATRIX_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
   f(p_li_0) f(p_li_1) \

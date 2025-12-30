@@ -390,11 +390,11 @@ typedef struct {
       uint32_t nop       : 5;
       uint32_t func3     : 3;
       uint32_t rs1       : 5;
-      uint32_t rs2       : 5;
+      uint32_t tok       : 5;
       uint32_t ctrl      : 1;
       uint32_t uop       : 2;
       uint32_t func      : 4;       
-    } mcfg;
+    } msync;
     struct {
       uint32_t opcode    : 7;
       uint32_t md        : 3;
