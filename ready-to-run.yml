@@ -8,3 +8,22 @@ spike:
     - save_as: spike-nutshell-ref.so
       asset_name: spike-{version}-nutshell-ref.so
 
+# spike:
+#   type: download
+#   files:
+#     - url: https://github.com/OpenXiangShan/riscv-isa-sim/actions/runs/20562699243/artifacts/4980764487/zip
+#       save_as: spike-xiangshan-ref.so
+#       unzip: true
+#     - url: https://github.com/OpenXiangShan/riscv-isa-sim/actions/runs/20562699243/artifacts/4980763276
+#       save_as: spike-nutshell-ref.so
+#       unzip: true
+
+# spike:
+#   type: github-artifacts
+#   repo: OpenXiangShan/riscv-isa-sim
+#   run_id: 20562699243
+#   artifacts:
+#     - artifact_name: spike-xiangshan-ref.so
+#       save_as: spike-xiangshan-ref.so
+#     - artifact_name: spike-nutshell-ref.so
+#       save_as: spike-nutshell-ref.so
