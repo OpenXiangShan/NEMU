@@ -56,7 +56,7 @@ static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
       int r_reg = transpose ? c : r;
       int c_reg = transpose ? r : c;
       word_t tmp = host_read(guest_to_host(addr), width);
-      set_mreg(m_name == 'c', mreg_id, r_reg, c_reg, tmp, msew);
+      set_mreg(mreg_id, r_reg, c_reg, tmp, msew);
     }
     pbase += stride;
   }
@@ -91,7 +91,7 @@ static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
       int r_reg = transpose ? c : r;
       int c_reg = transpose ? r : c;
       word_t tmp;
-      get_mreg(m_name == 'c', mreg_id, r_reg, c_reg, &tmp, msew, false);
+      get_mreg(mreg_id, r_reg, c_reg, &tmp, msew, false);
       host_write(guest_to_host(addr), width, tmp);
     }
     pbase += stride;
