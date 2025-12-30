@@ -41,7 +41,19 @@ typedef __int128_t int128_t;
   uint64_t ts1 = s->src1.reg; \
   uint64_t ts2 = s->src2.reg; \
   uint64_t td = s->dest.reg; \
-  uint64_t msew = mtype->msew; \
+  uint8_t m_d_sz = s->m_d_sz; \
+  uint8_t m_s_sz = s->m_s_sz; \
+  bool tilem_valid = tile_m <= ROWNUM; \
+  bool tilen_valid = tile_n <= ROWNUM && tile_n <= ARLEN / m_d_sz; \
+  bool tilek_valid; \
+  if (m_s_sz == 0 && (s->m_sz_sup & (1 << 2))) { \
+    tilek_valid = tile_k <= TRLEN * 2; \
+  } else { \
+    tilek_valid = tile_k <= TRLEN / m_s_sz; \
+  } \
+  if (!tilem_valid || !tilen_valid || !tilek_valid) { \
+    longjmp_exception(EX_II); \
+  } \
   \
   for (int i = 0; i < tile_m; i++) { \
     for (int j = 0; j < tile_n; j++) { \
@@ -52,509 +64,233 @@ typedef __int128_t int128_t;
     } \
   } \
 
-def_EHelper(mmau) {
+def_EHelper(mmacc) {
+  int64_t int_max = INT64_MAX >> (64 - 8 * s->m_d_sz);
+  int64_t int_min = INT64_MIN >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
-          get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-          get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
-          get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
-          rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);   //(Decode *s, rtlreg_t *dest, rtlreg_t *src1, rtlreg_t *src2)
-          rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);  // td = td + ts1 * ts2
-          set_mreg(true, td, i, j, tmp_reg[0], msew);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    if (xmsaten->val) {
+      int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
+      if (result > int_max){
+        result = int_max;
+      } else if (result < int_min){
+        result = int_min;
+      }
+      set_mreg(td, i, j, result, m_d_sz);
+    } else {
+      tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
+      set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+    }
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, false, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew);
+  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+                      mtilem->val, mtilen->val, mtilek->val,
+                      4 | m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, false, false, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew);
+  cutest_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+              mtilem->val, mtilen->val, mtilek->val,
+              4 | m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, false, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
-#endif
+    "[AmuCtrlIO] op=0 \n"
+    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
+    td, xmsaten->val, false, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+#endif // PRINT_AMUCTRLIO
 }
 
-def_EHelper(mwmau) {
-  Assert(mtype->msew <= 2, "e64 not support double widen compute!\n");
-
+def_EHelper(mmaccu) {
+  uint64_t uint_max = ((uint64_t) UINT64_MAX) >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
-        rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
-        rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
-        set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    if (xmsaten->val) {
+      uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
+      if (result > uint_max) {
+        result = uint_max;
+      }
+      set_mreg(td, i, j, result, m_d_sz);
+    } else {
+      rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
+      rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
+      set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+    }
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, false, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 1);
+  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+                      mtilem->val, mtilen->val, mtilek->val,
+                      m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, false, false, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 1);
+  cutest_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+              mtilem->val, mtilen->val, mtilek->val,
+              m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, false, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
-#endif
+    "[AmuCtrlIO] op=0 \n"
+    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
+    td, xmsaten->val, false, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val, m_s_sz, m_s_sz, m_d_sz);
+#endif // PRINT_AMUCTRLIO
 }
 
-def_EHelper(mqmau) {
-  Assert(mtype->msew <= 1, "e32/e64 not support quadruple widen compute!\n");
-
+def_EHelper(mmaccus) {
   MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, false);
-        rtl_mulu_lo(s, &tmp_reg[1], &tmp_reg[1], &tmp_reg[2]);
-        rtl_add(s, &tmp_reg[0], &tmp_reg[0], &tmp_reg[1]);
-        set_mreg(true, td, i, j, tmp_reg[0], msew + 2);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    // TODO: Implement me!
+    set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, false, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 2);
+  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+                      mtilem->val, mtilen->val, mtilek->val,
+                      m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, false, false, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 2);
+  cutest_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+              mtilem->val, mtilen->val, mtilek->val,
+              m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, false, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
-#endif
+    "[AmuCtrlIO] op=0 \n"
+    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
+    td, xmsaten->val, false, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val, m_s_sz, 4 | m_s_sz, m_d_sz);
+#endif // PRINT_AMUCTRLIO
 }
 
-def_EHelper(msmau) {
-  uint64_t uint_max = ((uint64_t) UINT64_MAX) >> (64 - 8 * s->m_width);
-
+def_EHelper(mmaccsu) {
   MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
-        get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
-        uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
-        bool overflow = false;
-        if (result > uint_max) overflow = true;
-        if (overflow) {
-          result = uint_max;
-        }
-        set_mreg(true, td, i, j, result, msew);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    // TODO: Implement me!
+    set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, false, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew);
+  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+                      mtilem->val, mtilen->val, mtilek->val,
+                      4 | m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, true, false, false, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew);
+  cutest_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+              mtilem->val, mtilen->val, mtilek->val,
+              4 | m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, false, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
-#endif
+    "[AmuCtrlIO] op=0 \n"
+    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
+    td, xmsaten->val, false, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, m_s_sz, m_d_sz);
+#endif // PRINT_AMUCTRLIO
 }
 
-def_EHelper(mswmau) {
-  uint64_t uint_max = ((uint64_t) UINT64_MAX) >> (64 - 2 * 8 * s->m_width);
-  Assert(mtype->msew <= 2, "e64 not support double widen compute!\n");
+#define MFMA_LOOP_BEGIN \
+  int tile_m = mtilem->val; \
+  int tile_k = mtilek->val; \
+  int tile_n = mtilen->val; \
+  uint64_t ts1 = s->src1.reg; \
+  uint64_t ts2 = s->src2.reg; \
+  uint64_t td = s->dest.reg; \
+  uint8_t m_d_sz = s->m_d_sz; \
+  uint8_t m_s_sz = s->m_s_sz; \
+  bool tilem_valid = tile_m <= ROWNUM; \
+  bool tilen_valid = tile_n <= ROWNUM && tile_n <= ARLEN / m_d_sz; \
+  bool tilek_valid = tile_k <= TRLEN / m_s_sz; \
+  if (!tilem_valid || !tilen_valid || !tilek_valid) { \
+    longjmp_exception(EX_II); \
+  } \
+  \
+  word_t FPCALL_TYPE = FPCALL_W64; \
+  switch (m_s_sz) { \
+    case 0: \
+      Loge("fp8 mma not supported"); longjmp_exception(EX_II); \
+      break; \
+    case 1: \
+      FPCALL_TYPE = FPCALL_W16; \
+      break; \
+    case 2: \
+      FPCALL_TYPE = FPCALL_W32; \
+      break; \
+    case 3: \
+      FPCALL_TYPE = FPCALL_W64; \
+      break; \
+    default: \
+      Loge("other fp type not supported"); longjmp_exception(EX_II); \
+      break; \
+  } \
+  for (int i = 0; i < tile_m; i++) { \
+    for (int j = 0; j < tile_n; j++) { \
+      for (int k = 0; k < tile_k; k++) { \
 
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
+#define MFMA_LOOP_END \
+      } \
+    } \
+  } \
 
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
-        uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
-        bool overflow = false;
-        if (result > uint_max) overflow = true;
-        if (overflow) {
-          result = uint_max;
-        }
-        set_mreg(true, td, i, j, result, msew + 1);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, false, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 1);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, true, false, false, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 1);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, false, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
-#endif
-}
+def_EHelper(mfmacc) {
+  MFMA_LOOP_BEGIN
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
-def_EHelper(msqmau) {
-  uint64_t uint_max = ((uint64_t) UINT64_MAX) >> (64 - 4 * 8 * s->m_width);
-  Assert(mtype->msew <= 1, "e32/e64 not support quadruple widen compute!\n");
-
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, false);
-        uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
-        bool overflow = false;
-        if (result > uint_max) overflow = true;
-        if (overflow) {
-          result = uint_max;
-        }
-        set_mreg(true, td, i, j, result, msew + 2);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, false, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 2);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, true, false, false, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 2);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, false, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
-#endif
-}
-
-def_EHelper(mma) {
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew, true);
-        tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-        set_mreg(true, td, i, j, tmp_reg[0], msew);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, false, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
-#endif
-}
-
-def_EHelper(mwma) {
-  Assert(mtype->msew <= 2, "e64 not support double widen compute!\n");
-
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, true);
-        tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-        set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 1);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, false, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 1);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
-#endif
-}
-
-def_EHelper(mqma) {
-  Assert(mtype->msew <= 1, "e32/e64 not support quadruple widen compute!\n");
-
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, true);
-        tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-        set_mreg(true, td, i, j, tmp_reg[0], msew + 2);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 2);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, false, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 2);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, false, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
-#endif
-}
-
-def_EHelper(msma) {
-  int64_t int_max = INT64_MAX >> (64 - 8 * s->m_width);
-  int64_t int_min = INT64_MIN >> (64 - 8 * s->m_width);
-
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew, true);
-        int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
-        if (result > int_max){
-          result = int_max;
-        } else if (result < int_min){
-          result = int_min;
-        }
-        set_mreg(true, td, i, j, result, msew);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, true, false, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
-#endif
-}
-
-def_EHelper(mswma) {
-  int64_t int_max = INT64_MAX >> (64 - 2 * 8 * s->m_width);
-  int64_t int_min = INT64_MIN >> (64 - 2 * 8 * s->m_width);
-  Assert(mtype->msew <= 2, "e64 not support double widen compute!\n");
-
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, true);
-        int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
-        if (result > int_max){
-          result = int_max;
-        } else if (result < int_min){
-          result = int_min;
-        }
-        set_mreg(true, td, i, j, result, msew + 1);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 1);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, true, false, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 1);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
-#endif
-}
-
-def_EHelper(msqma) {
-  int64_t int_max = INT64_MAX >> (64 - 4 * 8 * s->m_width);
-  int64_t int_min = INT64_MIN >> (64 - 4 * 8 * s->m_width);
-  Assert(mtype->msew <= 1, "e32/e64 not support double widen compute!\n");
-
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, true);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, true);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 2, true);
-        int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
-        if (result > int_max){
-          result = int_max;
-        } else if (result < int_min){
-          result = int_min;
-        }
-        set_mreg(true, td, i, j, result, msew + 2);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, true, false, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 2);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, true, false, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 2);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, true, false, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 2);
-#endif
-}
-
-def_EHelper(mfma) {
-  word_t FPCALL_TYPE = FPCALL_W64;
-  switch (mtype->msew) {
-    case 0:
-      Loge("fp8 mma not supported"); longjmp_exception(EX_II);
-      break;
-    case 1:
-      FPCALL_TYPE = FPCALL_W16;
-      break;
-    case 2:
-      FPCALL_TYPE = FPCALL_W32;
-      break;
-    case 3:
-      FPCALL_TYPE = FPCALL_W64;
-      break;
-    default:
-      Loge("other fp type not supported"); longjmp_exception(EX_II);
-      break;
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
+    set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+  MFMA_LOOP_END
+  if (m_s_sz == 1 && s->m_sz_sup & (1 << 2)) {
+    m_s_sz |= 4;
+  } else if (m_s_sz == 0 && s->m_sz_sup & 1) {
+    m_s_sz |= 4;
   }
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
-
-        get_mreg(true, td, i, j, &tmp_reg[0], msew, false);
-        rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
-        set_mreg(true, td, i, j, tmp_reg[0], msew);
-  MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, true, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew);
+  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+                      mtilem->val, mtilen->val, mtilek->val,
+                      m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, true, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew);
+  cutest_mma_emplace(td, false, false, ts1, ts2,
+              mtilem->val, mtilen->val, mtilek->val,
+              m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, true, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew);
-#endif
+    "[AmuCtrlIO] op=0 \n"
+    "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
+    "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
+    td, false, false, false, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val, m_s_sz, m_s_sz, m_d_sz);
+#endif // PRINT_AMUCTRLIO
 }
 
-def_EHelper(mfwma) {
-  word_t FPCALL_TYPE = FPCALL_W64;
-  switch (mtype->msew) {
-    case 0:
-      Loge("fp8 mma not supported"); longjmp_exception(EX_II);
-      break;
-    case 1:
-      FPCALL_TYPE = FPCALL_W16_to_32;
-      break;
-    case 2:
-      FPCALL_TYPE = FPCALL_W32_to_64;
-      break;
-    default:
-      Loge("other fp type not supported"); longjmp_exception(EX_II);
-      break;
-  }
-  MMA_LOOP_BEGIN
-        get_mreg(false, ts1, i, k, &tmp_reg[1], msew, false);
-        get_mreg(false, ts2, j, k, &tmp_reg[2], msew, false);
-        
-        get_mreg(true, td, i, j, &tmp_reg[0], msew + 1, false);
-        rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
-        set_mreg(true, td, i, j, tmp_reg[0], msew + 1);
-  MMA_LOOP_END
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, true, true, ts1, ts2,
-                            mtilem->val, mtilen->val, mtilek->val,
-                            s->m_eew, s->m_eew + 1);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, false, true, true, ts1, ts2,
-                     mtilem->val, mtilen->val, mtilek->val,
-                     s->m_eew, s->m_eew + 1);
-#endif // CONFIG_SHARE_CTRL
-#ifdef PRINT_AMUCTRLIO
-  fprintf(stderr,
-          "[AmuCtrlIO] op=0 \n"
-          "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
-          "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
-          td, false, true, true, ts1, ts2,
-          mtilem->val, mtilen->val, mtilek->val, s->m_eew, s->m_eew + 1);
-#endif
-}
-
-def_EHelper(mzero_acc_m) {
-  for (int i = 0; i < ACCMRNUM; i++) {
-    for (int j = 0; j < ACCMRENUM64; j++) {
-      set_mreg(true, s->dest.reg, i, j, 0, 3);
+def_EHelper(mzero) {
+  if (s->dest.reg >= 4) {
+    for (int i = 0; i < ROWNUM; i++) {
+      for (int j = 0; j < ARENUM64; j++) {
+        set_mreg(s->dest.reg, i, j, 0, 3);
+      }
+    }
+  } else {
+    for (int i = 0; i < ROWNUM; i++) {
+      for (int j = 0; j < TRENUM64; j++) {
+        set_mreg(s->dest.reg, i, j, 0, 3);
+      }
     }
   }
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
@@ -562,20 +298,6 @@ def_EHelper(mzero_acc_m) {
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mzero_emplace(true, s->dest.reg);
-#endif // CONFIG_SHARE_CTRL
-}
-
-def_EHelper(mzero_tr_m) {
-  for (int i = 0; i < TRMRNUM; i++) {
-    for (int j = 0; j < TRMRENUM64; j++) {
-      set_mreg(false, s->dest.reg, i, j, 0, 3);
-    }
-  }
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mzero_emplace(false, s->dest.reg);
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mzero_emplace(false, s->dest.reg);
 #endif // CONFIG_SHARE_CTRL
 }
 

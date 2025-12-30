@@ -32,6 +32,7 @@ uint64_t get_mtime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
+void mp_set_dirty();
 
 inline word_t get_mip();
 inline word_t mstatus_read();
@@ -1949,6 +1950,37 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_VCSR: *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; break;
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RVMATRIX
+    case CSR_XMCSR:
+      *dest = src & 0xfff;
+      xmsaten->val = (src >> 11) & 0b1;
+      xmfrm->val = (src >> 8) & 0b111;
+      xmfflags->val = (src >> 3) & 0b11111;
+      xmsat->val = (src >> 2) & 0b1;
+      xmxrm->val = src & 0b11;
+      break;
+    case CSR_XMXRM:
+      *dest = src & 0b11;
+      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      break;
+    case CSR_XMSAT:
+      *dest = src & 0b1;
+      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      break;
+    case CSR_XMFFLAGS:
+      *dest = src & 0b11111;
+      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      break;
+    case CSR_XMFRM:
+      *dest = src & 0b111;
+      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      break;
+    case CSR_XMSATEN:
+      *dest = src & 0b1;
+      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      break;
+#endif // CONFIG_RVMATRIX
+
     /************************* Supervisor-Level CSRs *************************/
     case CSR_SSTATUS:
     {
@@ -2592,6 +2624,12 @@ static void csr_write(uint32_t csrid, word_t src) {
   }
 #endif //CONFIG_RVV
 
+#ifdef CONFIG_RVMATRIX
+  if (is_write(xmcsr) || is_write(xmxrm) || is_write(xmsat) || is_write(xmfflags) || is_write(xmfrm) || is_write(xmsaten)) {
+    mp_set_dirty();
+  }
+#endif // CONFIG_RVMATRIX
+
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp)
       || is_write(hgatp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
@@ -2827,10 +2865,10 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 
 #ifdef CONFIG_RVMATRIX
 static inline bool matrix_permit_check(const word_t *dest_access) {
-  if (is_access(mtype) ||
-      is_access(mtilem) || is_access(mtilen) || is_access(mtilek) ||
-      is_access(mlenb)  || is_access(mrlenb) || is_access(mamul) ||
-      is_access(mtok)   || is_access(mcsr)) {
+  if (is_access(xmisa)    || is_access(xtlenb) || is_access(xtrlenb) ||
+      is_access(xalenb)   || is_access(mtilem) || is_access(mtilen)  || is_access(mtilek) ||
+      is_access(xmcsr)    || is_access(xmxrm)  || is_access(xmsat)   ||
+      is_access(xmfflags) || is_access(xmfrm)  || is_access(xmsaten)) {
     if (!require_ms()) { longjmp_exception(EX_II); }
   }
   return false;

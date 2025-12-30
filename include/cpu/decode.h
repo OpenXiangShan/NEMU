@@ -85,8 +85,9 @@ typedef struct Decode {
   #endif // CONFIG_RVV
   #ifdef CONFIG_RVMATRIX
   // for matrix
-  int m_eew;
-  int m_width;
+  uint8_t m_d_sz;
+  uint8_t m_s_sz;
+  uint8_t m_sz_sup;
   #endif // CONFIG_RVMATRIX
 
 } Decode;

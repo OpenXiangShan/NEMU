@@ -19,6 +19,7 @@
 
 #include <common.h>
 #include <memory/vaddr.h>
+#include <stdint.h>
 #include "../local-include/encoding.h"
 
 #define FUNCT3_CSRRW  1
@@ -115,9 +116,10 @@
 /** Unprivileged Matrix CSRs **/
 #ifdef CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f) \
-    f(mtype      , 0xC40) f(mtilem     , 0xC41) f(mtilen     , 0xC42) f(mtilek       , 0xC43) \
-    f(mlenb      , 0xC44) f(mrlenb     , 0xC45) f(mamul      , 0xC46) f(mtok         , 0xC47) \
-    f(mcsr       , 0x041) 
+    f(xmcsr      , 0x802) f(xmxrm      , 0x806) f(xmsat      , 0x807) f(xmfflags   , 0x808) \
+    f(xmfrm      , 0x809) f(xmsaten    , 0x80A) \
+    f(xmisa      , 0xCC0) f(xtlenb     , 0xCC1) f(xtrlenb    , 0xCC2) f(xalenb     , 0xCC3) \
+    f(mtok       , 0xCC4) f(mtilem     , 0xCC5) f(mtilen     , 0xCC6) f(mtilek     , 0xCC7)
 #else // CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f)
 #endif // CONFIG_RVMATRIX
@@ -1728,21 +1730,56 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #ifdef CONFIG_RVMATRIX
 
-CSR_STRUCT_START(mtype)
-  uint64_t msew   :  3;
-  uint64_t mint4  :  1;
-  uint64_t mint8  :  1;
-  uint64_t mint16 :  1;
-  uint64_t mint32 :  1;
-  uint64_t mint64 :  1;
-  uint64_t mfp8   :  2;
-  uint64_t mfp16  :  2;
-  uint64_t mfp32  :  2;
-  uint64_t mfp64  :  1;
-  uint64_t mba    :  1;
-  uint64_t pad    : 47;
-  uint64_t mill   :  1;
-CSR_STRUCT_END(mtype)
+CSR_STRUCT_START(xmisa)
+  uint64_t mmi4i32    :  1;
+  uint64_t mmi8i32    :  1;
+  uint64_t mmf16f16   :  1;
+  uint64_t mmf32f32   :  1;
+  uint64_t mmf64f64   :  1;
+  uint64_t mmf8f16    :  1;
+  uint64_t mmf16f32   :  1;
+  uint64_t mmfbf16f32 :  1;
+  uint64_t mmf32f64   :  1;
+  uint64_t mmf8f32    :  1;
+  uint64_t pad        : 51;
+  uint64_t mfic       :  1;
+  uint64_t mfew       :  1;
+  uint64_t miew       :  1;
+CSR_STRUCT_END(xmisa)
+
+CSR_STRUCT_START(xmcsr)
+  uint64_t xmxrm    :  2;
+  uint64_t xmsat    :  1;
+  uint64_t xmfflags :  5;
+  uint64_t xmfrm    :  3;
+  uint64_t xmsaten  :  1;
+  uint64_t pad      : 52;
+CSR_STRUCT_END(xmcsr)
+
+CSR_STRUCT_START(xmxrm)
+  uint64_t rm  :  2;
+  uint64_t pad : 62;
+CSR_STRUCT_END(xmxrm)
+
+CSR_STRUCT_START(xmsat)
+  uint64_t sat :  1;
+  uint64_t pad : 63;
+CSR_STRUCT_END(xmsat)
+
+CSR_STRUCT_START(xmfflags)
+  uint64_t flags :  5;
+  uint64_t pad : 59;
+CSR_STRUCT_END(xmfflags)
+
+CSR_STRUCT_START(xmfrm)
+  uint64_t frm :  3;
+  uint64_t pad : 61;
+CSR_STRUCT_END(xmfrm)
+
+CSR_STRUCT_START(xmsaten)
+  uint64_t sen :  1;
+  uint64_t pad : 63;
+CSR_STRUCT_END(xmsaten)
 
 CSR_STRUCT_START(mtilem)
 CSR_STRUCT_END(mtilem)
@@ -1753,23 +1790,17 @@ CSR_STRUCT_END(mtilen)
 CSR_STRUCT_START(mtilek)
 CSR_STRUCT_END(mtilek)
 
-CSR_STRUCT_START(mlenb)
-CSR_STRUCT_END(mlenb) 
+CSR_STRUCT_START(xtlenb)
+CSR_STRUCT_END(xtlenb) 
 
-CSR_STRUCT_START(mrlenb)
-CSR_STRUCT_END(mrlenb)
+CSR_STRUCT_START(xtrlenb)
+CSR_STRUCT_END(xtrlenb)
 
-CSR_STRUCT_START(mamul)
-CSR_STRUCT_END(mamul)
+CSR_STRUCT_START(xalenb)
+CSR_STRUCT_END(xalenb)
 
 CSR_STRUCT_START(mtok)
 CSR_STRUCT_END(mtok)
-
-CSR_STRUCT_START(mcsr)
-  uint64_t msat  :  1;
-  uint64_t mmode :  2;
-  uint64_t pad   : 61;
-CSR_STRUCT_END(mcsr)
 
 #endif // CONFIG_RVMATRIX
 

@@ -21,77 +21,76 @@
 #include "common.h"
 
 // 128 * 64 * 8
-#define MLEN 65536
+#define TLEN 65536
 
 // 64 * 8
-#define MRLEN 512
+#define TRLEN 512
 
 #define MELEN 32
-#define MAMUL 4     // It's sufficient to set MAMUL=4 for fp8 -> fp32
-#define MLENB (MLEN/8)
 
-#define TRMLEN  MLEN
-#define TRMRLEN MRLEN
+// 128
+#define ROWNUM (TLEN / TRLEN)
 
-#define TRMRNUM   (TRMLEN/TRMRLEN)
-#define TRMRENUM64 (TRMRLEN/64)
-#define TRMRENUM32 (TRMRLEN/32)
-#define TRMRENUM16 (TRMRLEN/16)
-#define TRMRENUM8  (TRMRLEN/8)
+#define TRENUM64 (TRLEN / 64)
+#define TRENUM32 (TRLEN / 32)
+#define TRENUM16 (TRLEN / 16)
+#define TRENUM8  (TRLEN / 8)
 
-#define ACCMLEN ((MLEN/MRLEN)*(MLEN/MRLEN)*MELEN)
-#define ACCMRLEN ((MLEN/MRLEN)*MELEN)
+#define ALEN     (ROWNUM * ROWNUM * MELEN)
+#define ARLEN    (ROWNUM * MELEN)
 
-#define ACCMRNUM (ACCMLEN/ACCMRLEN)
-#define ACCMRENUM64 (ACCMRLEN/64)
-#define ACCMRENUM32 (ACCMRLEN/32)
-#define ACCMRENUM16 (ACCMRLEN/16)
-#define ACCMRENUM8  (ACCMRLEN/8)
+#define ARENUM64 (ARLEN/64)
+#define ARENUM32 (ARLEN/32)
+#define ARENUM16 (ARLEN/16)
+#define ARENUM8  (ARLEN/8)
 
-#define TMMAX      (MLEN/MRLEN)
-#define TNMAX      (MLEN/MRLEN)
-#define TKMAX(sew) (MRLEN/sew)   // 512/8=64, init_SEW=MELEN
+#define TMMAX      ROWNUM
+#define TNMAX      ROWNUM
+#define TKMAX(sew) (TRLEN/sew)
 
 #define MTOK       32
 
-static inline int check_mreg_num(int num) {
-  assert(num >= 0 && num < 8);
+static inline int check_mtreg_num(int num) {
+  assert(num >= 0 && num < 4);
+  return num;
+}
+
+static inline int check_mareg_num(int num) {
+  assert(num >= 4 && num < 8);
   return num;
 }
 
 static inline int check_mtreg_row(int row) {
-  assert(row >= 0 && row < TRMRNUM);
+  assert(row >= 0 && row < ROWNUM);
   return row;
 }
 
 static inline int check_macc_row(int row) {
-  assert(row >= 0 && row < ACCMRNUM);
+  assert(row >= 0 && row < ROWNUM);
   return row;
 }
 
 static inline int check_mtreg_idx(int idx, int elen) {
-  assert(idx >= 0 && idx < TRMRLEN/elen);
+  assert(idx >= 0 && idx < TRLEN/elen);
   return idx;
 }
 
 static inline int check_macc_idx(int idx, int elen) {
-  assert(idx >= 0 && idx < ACCMRLEN/elen);
+  assert(idx >= 0 && idx < ARLEN/elen);
   return idx;
 }
 
-#define mtreg_l64(num, row, idx) (cpu.mtr[check_mreg_num(num)][check_mtreg_row(row)]._64[check_mtreg_idx(idx, 64)])
-#define mtreg_l32(num, row, idx) (cpu.mtr[check_mreg_num(num)][check_mtreg_row(row)]._32[check_mtreg_idx(idx, 32)])
-#define mtreg_l16(num, row, idx) (cpu.mtr[check_mreg_num(num)][check_mtreg_row(row)]._16[check_mtreg_idx(idx, 16)])
-#define mtreg_l8(num, row, idx)  (cpu.mtr[check_mreg_num(num)][check_mtreg_row(row)]._8[check_mtreg_idx(idx, 8)])
-#define macc_l64(num, row, idx)  (cpu.macc[check_mreg_num(num)][check_macc_row(row)]._64[check_macc_idx(idx, 64)])
-#define macc_l32(num, row, idx)  (cpu.macc[check_mreg_num(num)][check_macc_row(row)]._32[check_macc_idx(idx, 32)])
-#define macc_l16(num, row, idx)  (cpu.macc[check_mreg_num(num)][check_macc_row(row)]._16[check_macc_idx(idx, 16)])
-#define macc_l8(num, row, idx)   (cpu.macc[check_mreg_num(num)][check_macc_row(row)]._8[check_macc_idx(idx, 8)])
+#define mtreg_l64(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._64[check_mtreg_idx(idx, 64)])
+#define mtreg_l32(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._32[check_mtreg_idx(idx, 32)])
+#define mtreg_l16(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._16[check_mtreg_idx(idx, 16)])
+#define mtreg_l8(num, row, idx)  (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._8[check_mtreg_idx(idx, 8)])
+#define macc_l64(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._64[check_macc_idx(idx, 64)])
+#define macc_l32(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._32[check_macc_idx(idx, 32)])
+#define macc_l16(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._16[check_macc_idx(idx, 16)])
+#define macc_l8(num, row, idx)   (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._8[check_macc_idx(idx, 8)])
 
-// isacc == false for tile register
-// isacc == true for acc register
-void set_mreg(bool isacc, int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
-void get_mreg(bool isacc, int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
+void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
+void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
 
 #endif //__RISCV64_MREG_H__
 

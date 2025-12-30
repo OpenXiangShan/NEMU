@@ -278,12 +278,24 @@ void isa_reg_display() {
 
 #ifdef CONFIG_RVMATRIX
   DISPLAY_HR("Matrix CSRs");
-  DISPLAY_CSR("mtype", mtype->val);
+  DISPLAY_CSR("xmisa", xmisa->val);
+  DISPLAY_CSR("mtok", mtok->val);
+  printf("\n");
+  DISPLAY_CSR("xtlenb", xtlenb->val);
+  DISPLAY_CSR("xtrlenb", xtrlenb->val);
+  DISPLAY_CSR("xalenb", xalenb->val);
+  printf("\n");
   DISPLAY_CSR("mtilem", mtilem->val);
   DISPLAY_CSR("mtilen", mtilen->val);
-  printf("\n");
   DISPLAY_CSR("mtilek", mtilek->val);
-  DISPLAY_CSR("mcsr", mcsr->val);
+  printf("\n");
+  DISPLAY_CSR("xmcsr", xmcsr->val);
+  DISPLAY_CSR("xmxrm", xmxrm->val);
+  DISPLAY_CSR("xmsat", xmsat->val);
+  printf("\n");
+  DISPLAY_CSR("xmfflags", xmfflags->val);
+  DISPLAY_CSR("xmfrm", xmfrm->val);
+  DISPLAY_CSR("xmsaten", xmsaten->val);
   printf("\n");
 #endif // CONFIG_RVMATRIX
   fflush(stdout);
