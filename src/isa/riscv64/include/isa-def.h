@@ -142,8 +142,8 @@ typedef struct {
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
 #ifdef CONFIG_RVMATRIX
-  uint64_t mtype, mtilem, mtilen, mtilek, mlenb, mrlenb, mamul, mtok;
-  uint64_t mcsr;
+  uint64_t xmisa, xtlenb, xtrlenb, xalenb, mtok, mtilem, mtilen, mtilek;
+  uint64_t xmcsr, xmxrm, xmsat, xmfflags, xmfrm, xmsaten;
 #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR
@@ -208,18 +208,18 @@ typedef struct {
 
 #ifdef CONFIG_RVMATRIX
   union {
-    uint64_t _64[TRMRENUM64];
-    uint32_t _32[TRMRENUM32];
-    uint16_t _16[TRMRENUM16];
-    uint8_t  _8[TRMRENUM8];
-  } mtr[8][TRMRNUM];
+    uint64_t _64[TRENUM64];
+    uint32_t _32[TRENUM32];
+    uint16_t _16[TRENUM16];
+    uint8_t  _8[TRENUM8];
+  } mtr[4][ROWNUM];
 
   union {
-    uint64_t _64[ACCMRENUM64];
-    uint32_t _32[ACCMRENUM32];
-    uint16_t _16[ACCMRENUM16];
-    uint8_t  _8[ACCMRENUM8];
-  } macc[8][ACCMRNUM];
+    uint64_t _64[ARENUM64];
+    uint32_t _32[ARENUM32];
+    uint16_t _16[ARENUM16];
+    uint8_t  _8[ARENUM8];
+  } macc[4][ROWNUM];
 
   uint64_t mtokr[MTOK];
 #endif // CONFIG_RVMATRIX
@@ -378,61 +378,58 @@ typedef struct {
     #ifdef CONFIG_RVMATRIX
     struct {
       uint32_t opcode    : 7;
-      uint32_t rd        : 5;
-      uint32_t funct3    : 3;
-      uint32_t imm10     :10;
-      uint32_t im        : 1;
-      uint32_t funct6    : 6;       
+      uint32_t nop       : 5;
+      uint32_t func3     : 3;
+      uint32_t imm10     : 10;
+      uint32_t ctrl      : 1;
+      uint32_t uop       : 2;
+      uint32_t func      : 4;      
     } mcfgi;
     struct {
       uint32_t opcode    : 7;
-      uint32_t rd        : 5;
-      uint32_t funct3    : 3;
-      uint32_t field     : 5;
-      uint32_t setval    : 5;
-      uint32_t im        : 1;
-      uint32_t funct6    : 6;       
-    } mcfgfield;
-    struct {
-      uint32_t opcode    : 7;
-      uint32_t rd        : 5;
-      uint32_t funct3    : 3;
+      uint32_t nop       : 5;
+      uint32_t func3     : 3;
       uint32_t rs1       : 5;
-      uint32_t pad0      : 6;
-      uint32_t funct6    : 6;       
+      uint32_t rs2       : 5;
+      uint32_t ctrl      : 1;
+      uint32_t uop       : 2;
+      uint32_t func      : 4;       
     } mcfg;
     struct {
       uint32_t opcode    : 7;
-      uint32_t md        : 4;
-      uint32_t tr        : 1;
-      uint32_t eew       : 3;
+      uint32_t md        : 3;
+      uint32_t d_sz      : 2;
+      uint32_t func3     : 3;
       uint32_t rs1       : 5;
       uint32_t rs2       : 5;
       uint32_t ls        : 1;
-      uint32_t funct6    : 6;      
+      uint32_t uop       : 2;
+      uint32_t func      : 4;      
     } mldst;
     struct {
       uint32_t opcode    : 7;
-      uint32_t md        : 4;
-      uint32_t ma        : 1;
-      uint32_t eew       : 3;
-      uint32_t ms1       : 4;
-      uint32_t sn        : 1;
-      uint32_t ms2       : 4;
-      uint32_t sa        : 1;
-      uint32_t fp        : 1;
-      uint32_t funct6    : 6;
-    } mcompute;
+      uint32_t md        : 3;
+      uint32_t d_sz      : 2;
+      uint32_t func3     : 3;
+      uint32_t ms1       : 3;
+      uint32_t s_sz      : 2;
+      uint32_t ms2       : 3;
+      uint32_t size_sup  : 3;
+      uint32_t uop       : 2;
+      uint32_t func      : 4;
+    } mma;
     struct {
       uint32_t opcode    : 7;
-      uint32_t md        : 4;
-      uint32_t tr        : 1;
-      uint32_t eew       : 3;
-      uint32_t rs1       : 5;
-      uint32_t rs2       : 5;
-      uint32_t ls        : 1;
-      uint32_t funct6    : 6;
-    } msync;
+      uint32_t md        : 3;
+      uint32_t d_sz      : 2;
+      uint32_t func3     : 3;
+      uint32_t ms1       : 3;
+      uint32_t s_sz      : 2;
+      uint32_t ms2       : 3;
+      uint32_t ctrl      : 3;
+      uint32_t uop       : 2;
+      uint32_t func      : 4;
+    } misc;
     #endif // CONFIG_RVMATRIX
 
     #ifdef CONFIG_CUSTOM_TENSOR

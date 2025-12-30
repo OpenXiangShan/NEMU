@@ -18,147 +18,69 @@
 #ifdef CONFIG_RVMATRIX
 
 #include "cpu/exec.h"
+#include "ext/amu_ctrl_queue_wrapper.h"
+#include <ext/cutest.h>
+#include "ext/msync_queue_wrapper.h"
+#include "ext/mstore_queue_wrapper.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #include <stdio.h>
 
-def_EHelper(msettype) {
-  // read mtype value from rs1
-  s->src1.val = reg_l(s->src1.reg);
-  // write mtype value to mtype_csr_reg and rd
-  mtype->val = s->src1.val;
-  mtype->mill = (mtype->pad != 0); // TODO: add other illegal cases
-  reg_l(s->dest.reg) = mtype->val;
-}
-
-def_EHelper(msettypei) {
-  mtype->val = ((mtype->val >> 10) << 10) | s->src2.imm;
-  mtype->mill = (mtype->pad != 0); // TODO: add other illegal cases
-  reg_l(s->dest.reg) = mtype->val;
-}
-
-def_EHelper(msettypehi) {
-  mtype->val = (mtype->val & 0x3ff) | (s->src2.imm << 10);
-  mtype->mill = (mtype->pad != 0); // TODO: add other illegal cases
-  reg_l(s->dest.reg) = mtype->val;
-}
-
-def_EHelper(msettypefield) {
-  int FIELD = s->src2.imm & 0x1f;
-  int SETVAL = s->src2.imm >> 5;
-  switch (FIELD) {
-    case 0:
-      mtype->msew = SETVAL & 0x7;
-      break;
-    case 1:
-      mtype->mint4 = SETVAL & 0x1;
-      break;
-    case 2:
-      mtype->mint8 = SETVAL & 0x1;
-      break;
-    case 3:
-      mtype->mint16 = SETVAL & 0x1;
-      break;
-    case 4:
-      mtype->mint32 = SETVAL & 0x1;
-      break;
-    case 5:
-      mtype->mint64 = SETVAL & 0x1;
-      break;
-    case 6:
-      mtype->mfp8 = SETVAL & 0x3;
-      break;
-    case 7:
-      mtype->mfp16 = SETVAL & 0x3;
-      break;
-    case 8:
-      mtype->mfp32 = SETVAL & 0x3;
-      break;
-    case 9:
-      mtype->mfp64 = SETVAL & 0x1;
-      break;
-    case 10:
-      mtype->mba = SETVAL & 0x1;
-      break;
-    default:
-      panic("msettypefield: illegal field: %d", FIELD);
-      break;
-  }
-  mtype->mill = (mtype->pad != 0);
-  reg_l(s->dest.reg) = mtype->val;
-}
-
 def_EHelper(msettilem) {
-  s->src1.val = reg_l(s->src1.reg);
-  if (s->src1.reg) {
-    if (s->src1.val <= TMMAX) {
-      mtilem->val = s->src1.val;
-    } else {
-      mtilem->val = TMMAX;
-    }
-  } else if (s->dest.reg) {
-    mtilem->val = TMMAX;
-  }
-  reg_l(s->dest.reg) = mtilem->val;
+  mtilem->val = reg_l(s->src1.reg);
 }
 
 def_EHelper(msettilemi) {
-  if (s->src2.imm <= TMMAX) {
-    mtilem->val = s->src2.imm;
-  } else {
-    mtilem->val = TMMAX;
-  }
-  reg_l(s->dest.reg) = mtilem->val;
+  mtilem->val = s->src2.imm;
 }
 
 def_EHelper(msettilek) {
-  s->src1.val = reg_l(s->src1.reg);
-  int SEW = s->m_width * 8;
-  if (s->src1.reg) {
-    if (s->src1.val <= TKMAX(SEW)) {
-      mtilek->val = s->src1.val;
-    } else {
-      mtilek->val = TKMAX(SEW);
-    }
-  } else if (s->dest.reg) {
-    mtilek->val = TKMAX(SEW);
-  }
-  reg_l(s->dest.reg) = mtilek->val;
+  mtilek->val = reg_l(s->src1.reg);
 }
 
 def_EHelper(msettileki) {
-  int SEW = s->m_width * 8;
-  if (s->src2.imm <= TKMAX(SEW)) {
-    mtilek->val = s->src2.imm;
-  } else {
-    mtilek->val = TKMAX(SEW);
-  }
-  reg_l(s->dest.reg) = mtilek->val;
+  mtilek->val = s->src2.imm;
 }
 
 def_EHelper(msettilen) {
-  s->src1.val = reg_l(s->src1.reg);
-  if (s->src1.reg) {
-    if (s->src1.val <= TNMAX) {
-      mtilen->val = s->src1.val;
-    } else {
-      mtilen->val = TNMAX;
-    }
-  } else if (s->dest.reg) {
-    mtilen->val = TNMAX;
-  }
-  reg_l(s->dest.reg) = mtilen->val;
+  mtilen->val = reg_l(s->src1.reg);
 }
 
 def_EHelper(msettileni) {
-  if (s->src2.imm <= TNMAX) {
-    mtilen->val = s->src2.imm;
-  } else {
-    mtilen->val = TNMAX;
-  }
-  reg_l(s->dest.reg) = mtilen->val;
+  mtilen->val = s->src2.imm;
+}
+
+def_EHelper(msyncreset) {
+  cpu.mtokr[s->src2.imm] = 0;
+  msync_queue_emplace(0, s->src2.imm);
+}
+
+def_EHelper(mrelease) {
+#ifndef CONFIG_SHARE_CTRL
+  cpu.mtokr[s->src2.imm]++;
+#endif
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mrelease_emplace(s->src2.imm);
+#endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mrelease_emplace(s->src2.imm);
+#endif // CONFIG_SHARE_CTRL
+  mstore_queue_update_mrelease(s->src2.imm, cpu.mtokr[s->src2.imm]);
+}
+
+def_EHelper(macquire) {
+  // Do nothing in NEMU.
+#ifndef CONFIG_SHARE_CTRL
+  Assert(cpu.mtokr[s->src2.imm] >= reg_l(s->src1.reg), "Value in token register is not enough.");
+#else
+  nemu_state.state = NEMU_WAIT;
+  nemu_state.wait_r = s->src2.imm;
+  nemu_state.wait_val = reg_l(s->src1.reg);
+#endif
+  msync_queue_emplace(1, s->src2.imm);
+  mstore_queue_update_acquire(s->src2.imm, reg_l(s->src1.reg));
 }
 
 #endif // CONFIG_RVMATRIX
