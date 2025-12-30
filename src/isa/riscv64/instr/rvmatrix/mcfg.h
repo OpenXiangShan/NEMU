@@ -22,34 +22,45 @@
 #include <ext/cutest.h>
 #include "ext/msync_queue_wrapper.h"
 #include "ext/mstore_queue_wrapper.h"
+#include "mcommon.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #include <stdio.h>
 
+def_EHelper(minit) {
+  mstatus->ms = 1;
+}
+
 def_EHelper(msettilem) {
   mtilem->val = reg_l(s->src1.reg);
+  mp_set_dirty();
 }
 
 def_EHelper(msettilemi) {
   mtilem->val = s->src2.imm;
+  mp_set_dirty();
 }
 
 def_EHelper(msettilek) {
   mtilek->val = reg_l(s->src1.reg);
+  mp_set_dirty();
 }
 
 def_EHelper(msettileki) {
   mtilek->val = s->src2.imm;
+  mp_set_dirty();
 }
 
 def_EHelper(msettilen) {
   mtilen->val = reg_l(s->src1.reg);
+  mp_set_dirty();
 }
 
 def_EHelper(msettileni) {
   mtilen->val = s->src2.imm;
+  mp_set_dirty();
 }
 
 def_EHelper(msyncreset) {
