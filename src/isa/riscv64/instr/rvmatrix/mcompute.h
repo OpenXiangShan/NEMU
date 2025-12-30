@@ -27,6 +27,8 @@
 #include <cpu/cpu.h>
 #include <ext/amu_ctrl_queue_wrapper.h>
 #include <ext/cutest.h>
+#include "mcommon.h"
+#include "mcompute_impl.h"
 #include "rtl/fp.h"
 
 typedef __uint128_t uint128_t;
@@ -35,6 +37,8 @@ typedef __int128_t int128_t;
 // #define PRINT_AMUCTRLIO
 
 #define MMA_LOOP_BEGIN \
+  require_matrix(); \
+  mp_set_dirty(); \
   int tile_m = mtilem->val; \
   int tile_k = mtilek->val; \
   int tile_n = mtilen->val; \
@@ -203,6 +207,8 @@ def_EHelper(mmaccsu) {
 }
 
 #define MFMA_LOOP_BEGIN \
+  require_matrix(); \
+  mp_set_dirty(); \
   int tile_m = mtilem->val; \
   int tile_k = mtilek->val; \
   int tile_n = mtilen->val; \
@@ -280,6 +286,7 @@ def_EHelper(mfmacc) {
 }
 
 def_EHelper(mzero) {
+  mp_set_dirty();
   if (s->dest.reg >= 4) {
     for (int i = 0; i < ROWNUM; i++) {
       for (int j = 0; j < ARENUM64; j++) {
