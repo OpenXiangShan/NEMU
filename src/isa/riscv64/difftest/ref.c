@@ -76,15 +76,20 @@ void csr_prepare() {
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
 #ifdef CONFIG_RVMATRIX
-  cpu.mtype   = mtype->val;
+  cpu.xmisa   = xmisa->val;
+  cpu.xtlenb  = xtlenb->val;
+  cpu.xtrlenb = xtrlenb->val;
+  cpu.xalenb  = xalenb->val;
+  cpu.mtok    = mtok->val;
   cpu.mtilem  = mtilem->val;
   cpu.mtilen  = mtilen->val;
   cpu.mtilek  = mtilek->val;
-  cpu.mlenb   = mlenb->val;
-  cpu.mrlenb  = mrlenb->val;
-  cpu.mamul   = mamul->val;
-  cpu.mtok    = mtok->val;
-  cpu.mcsr    = mcsr->val;
+  cpu.xmcsr   = xmcsr->val;
+  cpu.xmxrm   = xmxrm->val;
+  cpu.xmsat   = xmsat->val;
+  cpu.xmfflags = xmfflags->val;
+  cpu.xmfrm   = xmfrm->val;
+  cpu.xmsaten = xmsaten->val;
 #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_RVH
@@ -151,15 +156,20 @@ void csr_writeback() {
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
 #ifdef CONFIG_RVMATRIX
-  mtype->val   = cpu.mtype;
+  xmisa->val   = cpu.xmisa;
+  xtlenb->val  = cpu.xtlenb;
+  xtrlenb->val = cpu.xtrlenb;
+  xalenb->val  = cpu.xalenb;
+  mtok->val    = cpu.mtok;
   mtilem->val  = cpu.mtilem;
   mtilen->val  = cpu.mtilen;
   mtilek->val  = cpu.mtilek;
-  mlenb->val   = cpu.mlenb;
-  mrlenb->val  = cpu.mrlenb;
-  mamul->val   = cpu.mamul;
-  mtok->val    = cpu.mtok;
-  mcsr->val    = cpu.mcsr;
+  xmcsr->val   = cpu.xmcsr;
+  xmxrm->val   = cpu.xmxrm;
+  xmsat->val   = cpu.xmsat;
+  xmfflags->val = cpu.xmfflags;
+  xmfrm->val   = cpu.xmfrm;
+  xmsaten->val = cpu.xmsaten;
 #endif
 
 #ifdef CONFIG_RVH
@@ -438,15 +448,20 @@ void dump_regs() {
   fprintf(fp, "vl %lx\n", vl->val);
 #endif // CONFIG_RVV
 #ifdef CONFIG_RVMATRIX
-  fprintf(fp, "mtype %lx\n", mtype->val);
+  fprintf(fp, "xmisa %lx\n", xmisa->val);
+  fprintf(fp, "xtlenb %lx\n", xtlenb->val);
+  fprintf(fp, "xtrlenb %lx\n", xtrlenb->val);
+  fprintf(fp, "xalenb %lx\n", xalenb->val);
+  fprintf(fp, "mtok %lx\n", mtok->val);
   fprintf(fp, "mtilem %lx\n", mtilem->val);
   fprintf(fp, "mtilen %lx\n", mtilen->val);
   fprintf(fp, "mtilek %lx\n", mtilek->val);
-  fprintf(fp, "mlenb %lx\n", mlenb->val);
-  fprintf(fp, "mrlenb %lx\n", mrlenb->val);
-  fprintf(fp, "mamul %lx\n", mamul->val);
-  fprintf(fp, "mtok %lx\n", mtok->val);
-  fprintf(fp, "mcsr %lx\n", mcsr->val);
+  fprintf(fp, "xmcsr %lx\n", xmcsr->val);
+  fprintf(fp, "xmxrm %lx\n", xmxrm->val);
+  fprintf(fp, "xmsat %lx\n", xmsat->val);
+  fprintf(fp, "xmfflags %lx\n", xmfflags->val);
+  fprintf(fp, "xmfrm %lx\n", xmfrm->val);
+  fprintf(fp, "xmsaten %lx\n", xmsaten->val);
 #endif
   for (int i = 0; i < 32; i++) {
     fprintf(fp, "gpr %d %lx\n", i, cpu.gpr[i]._64);
