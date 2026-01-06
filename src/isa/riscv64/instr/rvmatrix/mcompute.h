@@ -51,9 +51,9 @@ typedef __int128_t int128_t;
   bool tilen_valid = tile_n <= ROWNUM && tile_n <= ARLEN / m_d_sz; \
   bool tilek_valid; \
   if (m_s_sz == 0 && (s->m_sz_sup & (1 << 2))) { \
-    tilek_valid = tile_k <= TRLEN * 2; \
+    tilek_valid = tile_k <= (TRLEN << 1); \
   } else { \
-    tilek_valid = tile_k <= TRLEN / m_s_sz; \
+    tilek_valid = tile_k <= (TRLEN >> m_s_sz); \
   } \
   if (!tilem_valid || !tilen_valid || !tilek_valid) { \
     longjmp_exception(EX_II); \
@@ -102,7 +102,7 @@ def_EHelper(mmacc) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=0 \n"
-    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, xmsaten->val, false, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, 4 | m_s_sz, m_d_sz);
@@ -141,7 +141,7 @@ def_EHelper(mmaccu) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=0 \n"
-    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, xmsaten->val, false, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val, m_s_sz, m_s_sz, m_d_sz);
@@ -170,7 +170,7 @@ def_EHelper(mmaccus) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=0 \n"
-    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, xmsaten->val, false, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val, m_s_sz, 4 | m_s_sz, m_d_sz);
@@ -199,7 +199,7 @@ def_EHelper(mmaccsu) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=0 \n"
-    "            md=%ld, sat=%d, isfp=%d, ms1=%ld, ms2=%ld\n"
+    "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, xmsaten->val, false, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, m_s_sz, m_d_sz);
@@ -281,7 +281,7 @@ def_EHelper(mfmacc) {
     "            md=%ld, sat=%d, isfp=%d, issigned=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types=%#x, typed=%#x\n",
     td, false, false, false, ts1, ts2,
-    mtilem->val, mtilen->val, mtilek->val, m_s_sz, m_s_sz, m_d_sz);
+    mtilem->val, mtilen->val, mtilek->val, m_s_sz, m_d_sz);
 #endif // PRINT_AMUCTRLIO
 }
 
