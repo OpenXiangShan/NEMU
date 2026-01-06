@@ -57,7 +57,7 @@ static inline int check_mtreg_num(int num) {
 
 static inline int check_mareg_num(int num) {
   assert(num >= 4 && num < 8);
-  return num;
+  return num - 4;
 }
 
 static inline int check_mtreg_row(int row) {
