@@ -393,7 +393,7 @@ typedef struct {
       uint32_t tok       : 5;
       uint32_t ctrl      : 1;
       uint32_t uop       : 2;
-      uint32_t func      : 4;       
+      uint32_t func      : 4;
     } msync;
     struct {
       uint32_t opcode    : 7;
