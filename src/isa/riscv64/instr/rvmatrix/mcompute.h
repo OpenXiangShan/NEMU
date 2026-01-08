@@ -90,7 +90,7 @@ def_EHelper(mmacc) {
     }
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       4 | m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -129,7 +129,7 @@ def_EHelper(mmaccu) {
     }
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -158,7 +158,7 @@ def_EHelper(mmaccus) {
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -187,7 +187,7 @@ def_EHelper(mmaccsu) {
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, xmsaten->val, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       4 | m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -266,7 +266,7 @@ def_EHelper(mfmacc) {
     m_s_sz |= 4;
   }
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, xmfrm->val, false, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL

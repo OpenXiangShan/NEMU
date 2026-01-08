@@ -37,24 +37,25 @@ bool amu_ctrl_queue_empty() {
   return cpp_amu_ctrl_queue.empty();
 }
 
-void amu_ctrl_queue_mma_emplace(uint8_t md, bool sat, bool isfp, bool issigned,
+void amu_ctrl_queue_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2,
                                 uint16_t mtilem, uint16_t mtilen, uint16_t mtilek,
-                                uint8_t types, uint8_t typed) {
+                                uint8_t types1, uint8_t types2, uint8_t typed) {
   amu_ctrl_event_t event;
   event.valid = true;
   event.op = 0;
+  event.rm = rm;
   event.md = md;
   event.sat = sat;
-  event.isfp = isfp;
-  event.issigned = issigned;
   event.ms1 = ms1;
   event.ms2 = ms2;
   event.mtilem = mtilem;
   event.mtilen = mtilen;
   event.mtilek = mtilek;
-  event.types = types;
+  event.types1 = types1;
+  event.types2 = types2;
   event.typed = typed;
+  event.isfp = isfp;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
@@ -67,14 +68,13 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   event.op = 1;
   event.md = ms;
   event.sat = ls;
+  event.isfp = transpose;
+  event.types1 = isacc;
   event.base = base;
   event.stride = stride;
-  event.isfp = transpose;
-  event.issigned = isacc;
-  event.ms1 = isA;
   event.mtilem = row;
   event.mtilen = column;
-  event.types = msew;
+  event.typed = msew;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
