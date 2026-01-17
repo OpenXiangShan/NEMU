@@ -6,7 +6,7 @@ jobs:
   compile-difftest-so:
     strategy:
       matrix:
-        cpu: ['xs', 'xs-dual']
+        cpu: ['xs', 'xs-dual', 'xs-v3']
         type: ['ref', 'ref-debug']
       fail-fast: false
     runs-on: ubuntu-latest
