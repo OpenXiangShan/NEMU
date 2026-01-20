@@ -21,7 +21,6 @@
 #include "cpu/exec.h"
 #include "mreg.h"
 #include "../local-include/csr.h"
-#include <stdio.h>
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
@@ -29,6 +28,10 @@
 #include "mcommon.h"
 
 // #define PRINT_AMUCTRLIO
+
+#ifdef PRINT_AMUCTRLIO
+#include <stdio.h>
+#endif // PRINT_AMUCTRLIO
 
 void check_size(Decode *s, int rmax_mreg, int cmax_mreg, char m_name) {
   bool valid = true;
