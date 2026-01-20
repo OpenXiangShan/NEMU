@@ -234,8 +234,9 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
       fprintf(stderr, "?? fast-path hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, type);
       // guest_to_host(e->offset) when save, so in order to get the original paddr, we use host_to_guest here
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-      
+#ifndef CONFIG_SHARE_REF
       host_read_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
+#endif // CONFIG_SHARE_REF
 #endif // CONFIG_USE_SPARSEMM
     }
   }
@@ -349,7 +350,9 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   fprintf(stderr, "?? fast-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
     (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
+#ifndef CONFIG_SHARE_REF
   host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
+#endif // CONFIG_SHARE_REF
 #endif // NOT CONFIG_USE_SPARSEMM
 }
 #endif // CONFIG_RVMATRIX

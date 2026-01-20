@@ -1,5 +1,8 @@
 #include <ext/amuctrl.h>
 #include <ext/amu_ctrl_queue_wrapper.h>
+#include <ext/mstore_queue_wrapper.h>
+#include <isa.h>
+#include <memory/host.h>
 
 #ifdef CONFIG_RVMATRIX
 
@@ -120,6 +123,105 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
     }
   }
   return result;
+}
+
+static void exec_amu_load_store(void *amu_ctrl, void *res) {
+  uint8_t ms = ((amu_ctrl_event_t *)amu_ctrl)->md;
+  uint8_t ls = ((amu_ctrl_event_t *)amu_ctrl)->sat;
+  uint64_t base = ((amu_ctrl_event_t *)amu_ctrl)->base;
+  uint64_t stride = ((amu_ctrl_event_t *)amu_ctrl)->stride;
+  uint32_t row = ((amu_ctrl_event_t *)amu_ctrl)->mtilem;
+  uint32_t column = ((amu_ctrl_event_t *)amu_ctrl)->mtilen;
+  uint32_t msew = ((amu_ctrl_event_t *)amu_ctrl)->typed;
+  bool transpose = ((amu_ctrl_event_t *)amu_ctrl)->isfp;
+  char m_name = ((amu_ctrl_event_t *)amu_ctrl)->types1 ? 'c' : (((amu_ctrl_event_t *)amu_ctrl)->types2 ? 'a' : 'b');
+  if (m_name == 'b') {
+    uint32_t tmp = row;
+    row = column;
+    column = tmp;
+  }
+  if (ls == 0) { // matrix load
+    host_read_matrix(base, stride, row, column, msew, transpose, m_name, ms);
+  } else { // matrix store
+    Assert(ls == 1, "AmuCtrl.ls should be 0 or 1!");
+    host_write_matrix(base, stride, row, column, msew, transpose, m_name, ms);
+  }
+}
+
+static void exec_amu_release(void *amu_ctrl) {
+  uint8_t tokenRd = ((amu_ctrl_event_t *)amu_ctrl)->mtilem;
+  cpu.mtokr[tokenRd]++;
+  mstore_queue_update_mrelease(tokenRd, cpu.mtokr[tokenRd]);
+}
+
+static void exec_amu_arith(void *amu_ctrl) {
+  uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
+  if (md < 4) {
+    memset(cpu.mtr[md], 0, TRLEN / 8);
+  } else {
+    memset(cpu.macc[md - 4], 0, ALEN / 8);
+  }
+}
+
+int exec_amu(void *amu_ctrl, void *res) {
+  bool ret = 0;
+  uint8_t op = ((amu_ctrl_event_t *)amu_ctrl)->op;
+  uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
+  switch (op) {
+    case 0: // case MMA
+      panic("MMA should be executed by exec_amu_lazy");
+      ret = 1;
+      break;
+    case 1: // case Matrix load/store
+      exec_amu_load_store(amu_ctrl, res);
+      // Compare the result with the expected result
+      // When the result is not equal, set the return value to 1
+      if (((amu_ctrl_event_t *)amu_ctrl)->sat == 0) {
+        // only check matrix load
+        if (md < 4) {
+          ret = memcmp(res, cpu.mtr[md], TLEN / 8) != 0;
+        } else {
+          ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
+        }
+      }
+      break;
+    case 2: // case Mrelease
+      exec_amu_release(amu_ctrl);
+      // nothing to compare here.
+      break;
+    case 3: // case Marith, execute the operation
+      exec_amu_arith(amu_ctrl);
+      // Compare the result with the expected result
+      // When the result is not equal, set the return value to 1
+      if (md < 4) {
+        ret = memcmp(res, cpu.mtr[md], TRLEN / 8) != 0;
+      } else {
+        ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
+      }
+      break;
+    default:
+      panic("invalid AMU ctrl op");
+      ret = 1;
+      break;
+  }
+  return ret;
+}
+
+void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
+  Assert(((amu_ctrl_event_t *)amu_ctrl)->op == 0, "MMA should be executed by exec_amu_lazy");
+  // 0. get md, ms1, and ms2 from amu_ctrl
+  uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
+  // uint8_t ms1 = ((amu_ctrl_event_t *)amu_ctrl)->ms1;
+  // uint8_t ms2 = ((amu_ctrl_event_t *)amu_ctrl)->ms2;
+
+  // 1. cp acc[md] to src3
+  memcpy(src3, cpu.macc[md - 4], ALEN / 8);
+  // 2. cp tr[ms1] to src1
+  // memcpy(src1, cpu.mtr[ms1], TRLEN / 8);
+  // 3. cp tr[ms2] to src2
+  // memcpy(src2, cpu.mtr[ms2], TRLEN / 8);
+  // 4. cp res to acc[md]
+  memcpy(cpu.macc[md - 4], res, ALEN / 8);
 }
 
 #endif // CONFIG_RVMATRIX

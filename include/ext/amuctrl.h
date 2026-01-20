@@ -29,6 +29,8 @@ typedef struct  {
 
 int check_amu_ctrl(amu_ctrl_event_t *cmp);
 amu_ctrl_event_t get_amu_ctrl_info();
+int exec_amu(void *amu_ctrl, void *res);
+void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
 
 #endif // CONFIG_RVMATRIX
 #endif // __EXT_AMUCTRL_H__

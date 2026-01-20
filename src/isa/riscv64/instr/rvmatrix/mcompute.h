@@ -20,7 +20,6 @@
 #include "cpu/exec.h"
 #include "mreg.h"
 #include "../local-include/csr.h"
-#include <stdio.h>
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
@@ -36,7 +35,11 @@ typedef __int128_t int128_t;
 
 // #define PRINT_AMUCTRLIO
 
-#define MMA_LOOP_BEGIN \
+#ifdef PRINT_AMUCTRLIO
+#include <stdio.h>
+#endif // PRINT_AMUCTRLIO
+
+#define MMA_PROLOGUE \
   require_matrix(); \
   mp_set_dirty(); \
   int tile_m = mtilem->val; \
@@ -58,7 +61,8 @@ typedef __int128_t int128_t;
   if (!tilem_valid || !tilen_valid || !tilek_valid) { \
     longjmp_exception(EX_II); \
   } \
-  \
+
+#define MMA_LOOP_BEGIN \
   for (int i = 0; i < tile_m; i++) { \
     for (int j = 0; j < tile_n; j++) { \
       for (int k = 0; k < tile_k; k++) { \
@@ -69,6 +73,8 @@ typedef __int128_t int128_t;
   } \
 
 def_EHelper(mmacc) {
+  MMA_PROLOGUE
+#ifndef CONFIG_SHARE_REF
   int64_t int_max = INT64_MAX >> (64 - 8 * s->m_d_sz);
   int64_t int_min = INT64_MIN >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
@@ -89,6 +95,7 @@ def_EHelper(mmacc) {
       set_mreg(td, i, j, tmp_reg[0], m_d_sz);
     }
   MMA_LOOP_END
+#endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
@@ -110,6 +117,8 @@ def_EHelper(mmacc) {
 }
 
 def_EHelper(mmaccu) {
+  MMA_PROLOGUE
+#ifndef CONFIG_SHARE_REF
   uint64_t uint_max = ((uint64_t) UINT64_MAX) >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
@@ -128,6 +137,7 @@ def_EHelper(mmaccu) {
       set_mreg(td, i, j, tmp_reg[0], m_d_sz);
     }
   MMA_LOOP_END
+#endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
@@ -149,6 +159,8 @@ def_EHelper(mmaccu) {
 }
 
 def_EHelper(mmaccus) {
+  MMA_PROLOGUE
+#ifndef CONFIG_SHARE_REF
   MMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
     get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
@@ -157,6 +169,7 @@ def_EHelper(mmaccus) {
     // TODO: Implement me!
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
+#endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
@@ -178,6 +191,8 @@ def_EHelper(mmaccus) {
 }
 
 def_EHelper(mmaccsu) {
+  MMA_PROLOGUE
+#ifndef CONFIG_SHARE_REF
   MMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
     get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
@@ -186,6 +201,7 @@ def_EHelper(mmaccsu) {
     // TODO: Implement me!
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
+#endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, xmxrm->val, xmsaten->val, false, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
@@ -206,7 +222,7 @@ def_EHelper(mmaccsu) {
 #endif // PRINT_AMUCTRLIO
 }
 
-#define MFMA_LOOP_BEGIN \
+#define MFMA_PROLOGUE \
   require_matrix(); \
   mp_set_dirty(); \
   int tile_m = mtilem->val; \
@@ -223,7 +239,8 @@ def_EHelper(mmaccsu) {
   if (!tilem_valid || !tilen_valid || !tilek_valid) { \
     longjmp_exception(EX_II); \
   } \
-  \
+
+#define MFMA_LOOP_BEGIN \
   word_t FPCALL_TYPE = FPCALL_W64; \
   switch (m_s_sz) { \
     case 0: \
@@ -252,6 +269,8 @@ def_EHelper(mmaccsu) {
   } \
 
 def_EHelper(mfmacc) {
+  MFMA_PROLOGUE
+#ifndef CONFIG_SHARE_REF
   MFMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
     get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
@@ -260,6 +279,7 @@ def_EHelper(mfmacc) {
     rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MFMA_LOOP_END
+#endif // CONFIG_SHARE_REF
   if (m_s_sz == 1 && s->m_sz_sup & (1 << 2)) {
     m_s_sz |= 4;
   } else if (m_s_sz == 0 && s->m_sz_sup & 1) {
@@ -287,6 +307,7 @@ def_EHelper(mfmacc) {
 
 def_EHelper(mzero) {
   mp_set_dirty();
+#ifndef CONFIG_SHARE_REF
   if (s->dest.reg >= 4) {
     for (int i = 0; i < ROWNUM; i++) {
       for (int j = 0; j < ARENUM64; j++) {
@@ -300,6 +321,7 @@ def_EHelper(mzero) {
       }
     }
   }
+#endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mzero_emplace(true, s->dest.reg);
 #endif // CONFIG_DIFFTEST_AMU_CTRL

@@ -69,7 +69,7 @@ def_EHelper(msyncreset) {
 }
 
 def_EHelper(mrelease) {
-#ifndef CONFIG_SHARE_CTRL
+#ifndef CONFIG_SHARE
   cpu.mtokr[s->src2.imm]++;
 #endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
@@ -78,13 +78,16 @@ def_EHelper(mrelease) {
 #ifdef CONFIG_SHARE_CTRL
   cutest_mrelease_emplace(s->src2.imm);
 #endif // CONFIG_SHARE_CTRL
+#ifndef CONFIG_SHARE
   mstore_queue_update_mrelease(s->src2.imm, cpu.mtokr[s->src2.imm]);
+#endif // CONFIG_SHARE
 }
 
 def_EHelper(macquire) {
   // Do nothing in NEMU.
 #ifndef CONFIG_SHARE_CTRL
-  Assert(cpu.mtokr[s->src2.imm] >= reg_l(s->src1.reg), "Value in token register is not enough.");
+  Assert(cpu.mtokr[s->src2.imm] >= reg_l(s->src1.reg),
+    "Value(%ld) in token register %lu is not enough.", reg_l(s->src1.reg), s->src2.imm);
 #else
   nemu_state.state = NEMU_WAIT;
   nemu_state.wait_r = s->src2.imm;
