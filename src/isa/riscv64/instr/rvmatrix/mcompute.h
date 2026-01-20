@@ -78,10 +78,10 @@ def_EHelper(mmacc) {
   int64_t int_max = INT64_MAX >> (64 - 8 * s->m_d_sz);
   int64_t int_min = INT64_MIN >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
-    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
-    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, true);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, true);
 
-    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, true);
     if (xmsaten->val) {
       int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
       if (result > int_max){
@@ -163,9 +163,9 @@ def_EHelper(mmaccus) {
 #ifndef CONFIG_SHARE_REF
   MMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
-    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
+    get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, true);
 
-    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, true);
     // TODO: Implement me!
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
@@ -194,10 +194,10 @@ def_EHelper(mmaccsu) {
   MMA_PROLOGUE
 #ifndef CONFIG_SHARE_REF
   MMA_LOOP_BEGIN
-    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
+    get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, true);
     get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
-    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
+    get_mreg(td, i, j, &tmp_reg[0], m_d_sz, true);
     // TODO: Implement me!
     set_mreg(td, i, j, tmp_reg[0], m_d_sz);
   MMA_LOOP_END
