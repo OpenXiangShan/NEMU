@@ -45,8 +45,8 @@ static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
                               char m_name, int mreg_id) {
   int width = 1 << msew;
   Logm("read matrix: base = %#lx, stride = %lu,\n"
-       "             row = %d, column = %d, width = %d, transpose = %d",
-       pbase, stride, row, column, width, transpose);
+       "             row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
+       pbase, stride, row, column, width, transpose, m_name);
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
   
@@ -80,8 +80,8 @@ static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
                               char m_name, int mreg_id) {
   int width = 1 << msew;
   Logm("write matrix: base = %#lx, stride = %lu,\n"
-       "              row = %d, column = %d, width = %d, transpose = %d",
-       pbase, stride, row, column, width, transpose);
+       "              row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
+       pbase, stride, row, column, width, transpose, m_name);
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
   
