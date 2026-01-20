@@ -132,7 +132,9 @@ static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
     msew
   );
 #endif // CONFIG_SHARE_CTRL
+#ifndef CONFIG_SHARE_REF
   host_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+#endif // CONFIG_SHARE_REF
 #endif // CONFIG_RVMATRIX
 }
 
@@ -192,7 +194,9 @@ static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(base);
 #endif // CONFIG_MEMORY_REGION_ANALYSIS
+#ifndef CONFIG_SHARE_REF
   host_write_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+#endif // CONFIG_SHARE_REF
 }
 #endif // CONFIG_RVMATRIX
 

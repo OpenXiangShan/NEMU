@@ -334,6 +334,20 @@ int difftest_token_event(void *cmp) {
 #endif // CONFIG_RVMATRIX
 }
 
+int difftest_amu_exec(void *amu_ctrl, void *res) {
+#ifdef CONFIG_RVMATRIX
+  return exec_amu(amu_ctrl, res);
+#else
+  return 0;
+#endif // CONFIG_RVMATRIX
+}
+
+void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
+#ifdef CONFIG_RVMATRIX
+  exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
+#endif // CONFIG_RVMATRIX
+}
+
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint32_t vec_laod_mul;
 int difftest_get_vec_load_vdNum() {
