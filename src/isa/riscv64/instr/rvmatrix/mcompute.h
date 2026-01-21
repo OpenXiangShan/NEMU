@@ -30,9 +30,6 @@
 #include "mcompute_impl.h"
 #include "rtl/fp.h"
 
-typedef __uint128_t uint128_t;
-typedef __int128_t int128_t;
-
 // #define PRINT_AMUCTRLIO
 
 #ifdef PRINT_AMUCTRLIO
@@ -83,7 +80,7 @@ def_EHelper(mmacc) {
 
     get_mreg(td, i, j, &tmp_reg[0], m_d_sz, true);
     if (xmsaten->val) {
-      int128_t result = (int128_t)(int64_t)tmp_reg[1] * (int128_t)(int64_t)tmp_reg[2] + (int128_t)(int64_t)tmp_reg[0];
+      int64_t result = (int64_t)tmp_reg[1] * (int64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
       if (result > int_max){
         result = int_max;
       } else if (result < int_min){
@@ -126,7 +123,7 @@ def_EHelper(mmaccu) {
 
     get_mreg(td, i, j, &tmp_reg[0], m_d_sz, false);
     if (xmsaten->val) {
-      uint128_t result = (uint128_t)tmp_reg[1] * (uint128_t)tmp_reg[2] + (uint128_t)tmp_reg[0];
+      uint64_t result = (uint64_t)tmp_reg[1] * (uint64_t)tmp_reg[2] + (uint64_t)tmp_reg[0];
       if (result > uint_max) {
         result = uint_max;
       }
@@ -161,13 +158,25 @@ def_EHelper(mmaccu) {
 def_EHelper(mmaccus) {
   MMA_PROLOGUE
 #ifndef CONFIG_SHARE_REF
+  int64_t int_max = INT64_MAX >> (64 - 8 * s->m_d_sz);
+  int64_t int_min = INT64_MIN >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, false);
     get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, true);
 
     get_mreg(td, i, j, &tmp_reg[0], m_d_sz, true);
-    // TODO: Implement me!
-    set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+    if (xmsaten->val) {
+      int64_t result = (uint64_t)tmp_reg[1] * (int64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
+      if (result > int_max){
+        result = int_max;
+      } else if (result < int_min){
+        result = int_min;
+      }
+      set_mreg(td, i, j, result, m_d_sz);
+    } else {
+      tmp_reg[0] = (uint64_t)tmp_reg[1] * (int64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
+      set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+    }
   MMA_LOOP_END
 #endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
@@ -193,13 +202,25 @@ def_EHelper(mmaccus) {
 def_EHelper(mmaccsu) {
   MMA_PROLOGUE
 #ifndef CONFIG_SHARE_REF
+  int64_t int_max = INT64_MAX >> (64 - 8 * s->m_d_sz);
+  int64_t int_min = INT64_MIN >> (64 - 8 * s->m_d_sz);
   MMA_LOOP_BEGIN
     get_mreg(ts1, i, k, &tmp_reg[1], m_s_sz, true);
     get_mreg(ts2, j, k, &tmp_reg[2], m_s_sz, false);
 
     get_mreg(td, i, j, &tmp_reg[0], m_d_sz, true);
-    // TODO: Implement me!
-    set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+    if (xmsaten->val) {
+      int64_t result = (int64_t)tmp_reg[1] * (uint64_t)tmp_reg[2] + (int64_t)(int64_t)tmp_reg[0];
+      if (result > int_max){
+        result = int_max;
+      } else if (result < int_min){
+        result = int_min;
+      }
+      set_mreg(td, i, j, result, m_d_sz);
+    } else {
+      tmp_reg[0] = (int64_t)tmp_reg[1] * (uint64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
+      set_mreg(td, i, j, tmp_reg[0], m_d_sz);
+    }
   MMA_LOOP_END
 #endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
