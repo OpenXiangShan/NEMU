@@ -546,7 +546,10 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   store_commit_t low_addr_st;
   store_commit_t high_addr_st;
 
+  printf("miss_align_store_commit_queue_push: addr=0x%lx data=0x%lx\n", addr, data);
+
   if (inside_16bytes_bound) {
+    printf("inside_16bytes_bound");
     low_addr_st.addr = addr - (addr % 16ULL);
     if ((addr % 16ULL) > 8) {
       low_addr_st.data = 0;
@@ -560,6 +563,7 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
 
     // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
   } else {
+    printf("outside_16bytes_bound");
     low_addr_st.addr = addr - (addr % 8ULL);
     low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << LIMITING_SHIFT((8 - len + (addr % len)) << 3);
     low_addr_st.mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
@@ -579,6 +583,7 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
 }
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
+  printf("store_commit_queue_push");
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
     return;
@@ -661,6 +666,8 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   else {
     store_commit_data = store_queue_front();
     store_queue_pop();
+    printf("store_queue_pop: addr=0x%lx data=0x%lx mask=%x\n",
+      store_commit_data.addr, store_commit_data.data, store_commit_data.mask);
     if (*addr != store_commit_data.addr || *data != store_commit_data.data || *mask != store_commit_data.mask) {
       *addr = store_commit_data.addr;
       *data = store_commit_data.data;
