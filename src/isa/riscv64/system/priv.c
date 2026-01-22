@@ -178,6 +178,7 @@ void init_custom_csr() {
   slvpredctl->storeset_no_fast_wakeup = 0;
   slvpredctl->lvpred_timeout = 3;
 
+  smblockctl->sbuffer_timeout = 1<<20;
   smblockctl->sbuffer_threshold = 7;
   smblockctl->ldld_vio_check_enable = 1;
   smblockctl->soft_prefetch_enable = 1;
