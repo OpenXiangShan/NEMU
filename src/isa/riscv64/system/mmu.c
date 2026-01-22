@@ -230,13 +230,23 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
     virt = mstatus->mpv;
   }
 
+
+  bool mxr_effective = mstatus->mxr;
+#ifdef CONFIG_RVH
+  if (virt) {
+    mxr_effective = (vsstatus->mxr || mstatus->mxr);
+  }
+#endif
+
   if (mode == MODE_M) {
     pmm = mseccfg->pmm;
+  } else if (mxr_effective) {
+    /* MXR/VMXR handling: if MXR (or VS.MXR in virt) is set, disable PMM */
+    pmm = 0;
   } else if (!virt && mode == MODE_S) {
     pmm = menvcfg->pmm;
   } else if (virt && mode == MODE_S) {
     pmm = henvcfg->pmm;
-    // Is cpu.mode here
   } else if (hld_st && cpu.mode == MODE_U) {
     pmm = hstatus->hupmm;
   } else if (mode == MODE_U) {
