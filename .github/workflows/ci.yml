@@ -15,6 +15,10 @@ env:
   CPT_CROSS_COMPILE: riscv64-linux-gnu-
   NANOPB_CROSS_COMPILE: riscv64-linux-gnu-
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   fetch-workloads:
     runs-on: ubuntu-latest
@@ -110,6 +114,8 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: Initialize ready-to-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           make init-ready-to-run
       - name: Build NEMU interpreter for XS
@@ -172,6 +178,8 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: Initialize ready-to-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           make init-ready-to-run
       - name: Build NEMU interpreter
@@ -211,6 +219,8 @@ jobs:
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Initialize ready-to-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           make init-ready-to-run
 
@@ -255,6 +265,8 @@ jobs:
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Initialize ready-to-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           make init-ready-to-run
 
@@ -372,6 +384,8 @@ jobs:
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Initialize ready-to-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           make init-ready-to-run
 
