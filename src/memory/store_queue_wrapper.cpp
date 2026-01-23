@@ -29,6 +29,7 @@ void store_queue_reset() {
 }
 
 void store_queue_push(store_commit_t store_commit) {
+  Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = 0x%x", store_commit.addr, store_commit.data, store_commit.mask);
   cpp_store_event_queue.push(store_commit);
 }
 
