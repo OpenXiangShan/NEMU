@@ -1,6 +1,13 @@
 name: Build
+
 on:
   workflow_call:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'The git ref (branch, tag, or SHA) to build'
+        required: true
+        type: string
 
 jobs:
   compile-difftest-so:
@@ -18,6 +25,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.event.inputs.ref || github.ref }}
 
     - name: Setup env
       run: |
