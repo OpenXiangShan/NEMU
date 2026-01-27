@@ -1291,7 +1291,7 @@ CSR_STRUCT_START(smblockctl)
   uint64_t uncache_write_outstanding_enable : 1; // [7] Enable uncache write outstanding (0).
   uint64_t hd_misalign_st_enable            : 1; // [8] Enable hardware store misalign.
   uint64_t hd_misalign_ld_enable            : 1; // [9] Enable hardware load misalign.
-    uint64_t sbuffer_timeout                  : 22;// [31:20] Store buffer flush timeout.
+  uint64_t sbuffer_timeout                  : 22;// [31:10] Store buffer flush timeout.
 CSR_STRUCT_END(smblockctl)
 
 /** Supervisor Timer Register**/
