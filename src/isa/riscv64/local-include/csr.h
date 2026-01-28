@@ -494,10 +494,19 @@
   #define CSRS_M_MCOUNTINHIBIT(f)
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
+#ifdef CONFIG_RV_SMCNTRPMF
+  #define CSRS_M_SMCNTRPMF(f) \
+  f(mcyclecfg    , 0x321) \
+  f(minstretcfg  , 0x322)
+#else // CONFIG_RV_SMCNTRPMF
+  #define CSRS_M_SMCNTRPMF(f)
+#endif // CONFIG_RV_SMCNTRPMF
+
 #define CSRS_M_COUNTER_SETUP(f) \
   CSRS_M_MCOUNTINHIBIT(f) \
-  CSRS_M_HPMEVENT(f)
-
+  CSRS_M_HPMEVENT(f) \
+  CSRS_M_SMCNTRPMF(f)
+  
 /** Debug/Trace Registers (Trigger Module Registers) **/
 #ifdef CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f) \
@@ -794,9 +803,29 @@ CSR_STRUCT_END(mcounteren)
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
 CSR_STRUCT_START(mcountinhibit)
-  uint64_t pad0 : 64;
+  uint64_t cy   : 1;   // [0]
+  uint64_t pad0 : 1;   // [1]
+  uint64_t ir   : 1;   // [2]
+  uint64_t hpm  : 29;  // [31:3]
+  uint64_t pad1 : 32;  // [63:32]
 CSR_STRUCT_END(mcountinhibit)
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+
+#ifdef CONFIG_RV_SMCNTRPMF
+#define CSRS_M_SMCNTRPMF_STRUCT(name, addr) \
+  typedef union {                   \
+    struct {                        \
+      uint64_t pad0     :58;        \
+      uint64_t vuinh    : 1;        \
+      uint64_t vsinh    : 1;        \
+      uint64_t uinh     : 1;        \
+      uint64_t sinh     : 1;        \
+      uint64_t minh     : 1;        \
+    };                              \
+    word_t val;                     \
+  } concat(name, _t);
+MAP(CSRS_M_SMCNTRPMF, CSRS_M_SMCNTRPMF_STRUCT)
+#endif // CONFIG_RV_SMCNTRPMF
 
 CSR_STRUCT_START(mscratch)
   uint64_t pad0 : 64;
