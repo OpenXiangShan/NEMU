@@ -578,6 +578,9 @@ void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   }
 }
 
+#define GEN_BYTE_MASK(len)  ((1ULL << (len)) - 1)
+#define GEN_BIT_MASK(len)   ((len) >= 8 ? (~0ULL) : ((1ULL << ((len) * 8)) - 1))
+
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
@@ -587,7 +590,7 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
 #ifdef CONFIG_AC_NONE
   uint8_t store_miss_align = (addr & (len - 1)) != 0;
   if (unlikely(store_miss_align)) {
-    if (!cross_page_store) {
+    if (!cross_page_store && !cpu.isVecUnitStore) {
       miss_align_store_commit_queue_push(addr, data, len);
       return;
     }
@@ -595,6 +598,43 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
 #endif // CONFIG_AC_NONE
   Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", len = %d", addr, data, len);
  store_commit_t store_commit;
+
+  if (cpu.isVecUnitStore)
+  {
+    bool isCross128Bit = (addr & 0xF) + len > 16;
+
+    if (isCross128Bit)
+    {
+      paddr_t offset_in_block = addr & 0xF;
+      paddr_t space_left = 16 - offset_in_block;
+
+      paddr_t low_addr = addr;
+      uint8_t low_len = space_left;
+      uint16_t low_mask = (1U << low_len) - 1;
+      word_t low_data = data & ((1ULL << low_len * 8) - 1);
+
+      paddr_t  high_addr = addr + space_left;
+      uint8_t high_len = len - space_left;
+      uint16_t high_mask = (1U << high_len) - 1;
+      word_t high_data = data >> (low_len * 8);
+
+      store_commit_t low_store_commit = {low_addr, low_data, low_mask, prev_s->pc};
+      store_commit_t high_store_commit = {high_addr, high_data, high_mask, prev_s->pc};
+
+      store_queue_push(low_store_commit);
+      store_queue_push(high_store_commit);
+
+      return;
+    }
+    store_commit.data = data & GEN_BIT_MASK(len);
+    store_commit.mask = GEN_BYTE_MASK(len);
+    assert(len <= 8);
+    store_commit.addr = addr;
+    store_commit.pc = prev_s->pc;
+
+    store_queue_push(store_commit);
+    return;
+  }
   uint64_t offset = addr % 8ULL;
   store_commit.addr = addr - offset;
   switch (len) {

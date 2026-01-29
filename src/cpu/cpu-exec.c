@@ -837,6 +837,7 @@ void cpu_exec(uint64_t n) {
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
       cpu.isVldst = false;
+      cpu.isVecUnitStore = false;
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.

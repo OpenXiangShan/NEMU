@@ -541,10 +541,12 @@ void vst(Decode *s, int mode, int mmu_mode) {
   if (mode == MODE_STRIDED) {
     stride = id_src2->val;
     is_unit_stride = 0;
+    cpu.isVecUnitStore = false;
   } else {
     stride = 0;
     is_unit_stride = 1;
     g_nr_vst_unit += 1;
+    cpu.isVecUnitStore = s->v_nf == 0;
   }
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
@@ -676,6 +678,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
   vstart->val = 0;
   cpu.isVldst = false;
+  cpu.isVecUnitStore = false;
   vp_set_dirty();
 }
 
@@ -842,6 +845,7 @@ void vsr(Decode *s, int mmu_mode) {
 
   isa_whole_reg_check(vd, len);
 
+  cpu.isVecUnitStore = true;
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
     offset = vstart->val % elt_per_reg;
@@ -881,6 +885,7 @@ void vsr(Decode *s, int mmu_mode) {
 
   vstart->val = 0;
   cpu.isVldst = false;
+  cpu.isVecUnitStore = false;
   vp_set_dirty();
 }
 

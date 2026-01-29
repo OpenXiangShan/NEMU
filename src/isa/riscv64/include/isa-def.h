@@ -156,6 +156,7 @@ typedef struct {
   bool amo;
   uint32_t pbmt;
   bool isVldst;
+  bool isVecUnitStore;
   int mem_exception;
 
 #ifdef CONFIG_TVAL_EX_II
