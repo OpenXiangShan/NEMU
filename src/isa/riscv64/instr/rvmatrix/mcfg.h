@@ -28,47 +28,57 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #include <stdio.h>
+#include "mcompute_impl.h"
 
 def_EHelper(minit) {
   mstatus->ms = 1;
 }
 
 def_EHelper(msettilem) {
+  require_matrix();
   mtilem->val = reg_l(s->src1.reg);
   mp_set_dirty();
 }
 
 def_EHelper(msettilemi) {
+  require_matrix();
   mtilem->val = s->src2.imm;
   mp_set_dirty();
 }
 
 def_EHelper(msettilek) {
+  require_matrix();
   mtilek->val = reg_l(s->src1.reg);
   mp_set_dirty();
 }
 
 def_EHelper(msettileki) {
+  require_matrix();
   mtilek->val = s->src2.imm;
   mp_set_dirty();
 }
 
 def_EHelper(msettilen) {
+  require_matrix();
   mtilen->val = reg_l(s->src1.reg);
   mp_set_dirty();
 }
 
 def_EHelper(msettileni) {
+  require_matrix();
   mtilen->val = s->src2.imm;
   mp_set_dirty();
 }
 
 def_EHelper(msyncreset) {
+  require_matrix();
   cpu.mtokr[s->src2.imm] = 0;
   msync_queue_emplace(0, s->src2.imm);
+  mp_set_dirty();
 }
 
 def_EHelper(mrelease) {
+  require_matrix();
 #ifndef CONFIG_SHARE
   cpu.mtokr[s->src2.imm]++;
 #endif
@@ -81,9 +91,11 @@ def_EHelper(mrelease) {
 #ifndef CONFIG_SHARE
   mstore_queue_update_mrelease(s->src2.imm, cpu.mtokr[s->src2.imm]);
 #endif // CONFIG_SHARE
+  mp_set_dirty();
 }
 
 def_EHelper(macquire) {
+  require_matrix();
   // Do nothing in NEMU.
 #ifndef CONFIG_SHARE_CTRL
   Assert(cpu.mtokr[s->src2.imm] >= reg_l(s->src1.reg),
@@ -95,6 +107,7 @@ def_EHelper(macquire) {
 #endif
   msync_queue_emplace(1, s->src2.imm);
   mstore_queue_update_acquire(s->src2.imm, reg_l(s->src1.reg));
+  mp_set_dirty();
 }
 
 #endif // CONFIG_RVMATRIX
