@@ -37,11 +37,11 @@ bool mp_enable() {
 }
 
 void mp_set_dirty() {
-  mstatus->ms = EXT_CONTEXT_DIRTY;
-#ifdef CONFIG_RVH
-  if (cpu.v == 1) {
-    vsstatus->ms = EXT_CONTEXT_DIRTY;
-  }
-#endif //CONFIG_RVH
+//   mstatus->ms = EXT_CONTEXT_DIRTY;
+// #ifdef CONFIG_RVH
+//   if (cpu.v == 1) {
+//     vsstatus->ms = EXT_CONTEXT_DIRTY;
+//   }
+// #endif //CONFIG_RVH
 }
 #endif // CONFIG_RVMATRIX
