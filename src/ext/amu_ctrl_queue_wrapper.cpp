@@ -91,11 +91,7 @@ void amu_ctrl_queue_mzero_emplace(bool isacc, uint8_t md) {
   amu_ctrl_event_t event;
   event.op = 3;
   event.md = md;
-  if (isacc) {
-    event.base = 0x1bc;
-  } else {
-    event.base = 0x1b8;
-  }
+  event.base = 0x1b8;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
