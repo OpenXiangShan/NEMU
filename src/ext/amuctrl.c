@@ -183,6 +183,44 @@ int exec_amu(void *amu_ctrl, void *res) {
         } else {
           ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
         }
+        if (ret) {
+          // print the whole matrix reg
+          // 1. print REF (cpu.mtr/macc)
+          fprintf(stderr, "different @pc: %016lx\n", ((amu_ctrl_event_t *)amu_ctrl)->pc);
+          fprintf(stderr, "====== REF MATRIX ======\n");
+          if (md < 4) {
+            for (int row = 0; row < ROWNUM; row++) {
+              for (int idx = 0; idx < TRLEN / 64; idx++) {
+                fprintf(stderr, "%016lx ", cpu.mtr[md][row]._64[idx]);
+              }
+              fprintf(stderr, "\n");
+            }
+          } else {
+            for (int row = 0; row < ROWNUM; row++) {
+              for (int idx = 0; idx < ARLEN / 64; idx++) {
+                fprintf(stderr, "%016lx ", cpu.macc[md - 4][row]._64[idx]);
+              }
+              fprintf(stderr, "\n");
+            }
+          }
+          // 2. print DUT (res)
+          fprintf(stderr, "====== DUT MATRIX ======\n");
+          if (md < 4) {
+            for (int row = 0; row < ROWNUM; row++) {
+              for (int idx = 0; idx < TRLEN / 64; idx++) {
+                fprintf(stderr, "%016lx ", ((uint64_t *)res)[row * TRLEN / 64 + idx]);
+              }
+              fprintf(stderr, "\n");
+            }
+          } else {
+            for (int row = 0; row < ROWNUM; row++) {
+              for (int idx = 0; idx < ARLEN / 64; idx++) {
+                fprintf(stderr, "%016lx ", ((uint64_t *)res)[row * ARLEN / 64 + idx]);
+              }
+              fprintf(stderr, "\n");
+            }
+          }
+        }
       }
       break;
     case 2: // case Mrelease
