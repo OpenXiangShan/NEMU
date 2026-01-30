@@ -130,7 +130,12 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     #ifdef CONFIG_USE_SPARSEMM
     return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
     #else
-    return host_read(e->offset + vaddr, len);
+    uint8_t* host_addr = (e->offset + vaddr);
+    #ifdef CONFIG_MEMTRACE
+    pkt_data_used_small pkt ={host_to_guest(host_addr), 0};
+    memtrace_dump(pkt);
+    #endif
+    return host_read(host_addr, len); 
     #endif
   }
 }
@@ -181,6 +186,10 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   // Also do store commit check with performance optimization enlabled
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
+  #ifdef CONFIG_MEMTRACE
+  pkt_data_used_small pkt ={host_to_guest(host_addr), 1};
+  memtrace_dump(pkt);
+  #endif
   host_write(host_addr, len, data);
 #endif // NOT CONFIG_USE_SPARSEMM
 }

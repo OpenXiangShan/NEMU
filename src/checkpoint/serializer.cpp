@@ -145,6 +145,13 @@ extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
 }
 
+#ifdef CONFIG_MEMTRACE
+string memtrace_file_path;
+extern "C" const char* get_memtrace_file_path() {
+    return memtrace_file_path.c_str();
+}
+#endif
+
 #ifdef CONFIG_MEM_COMPRESS
 void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr) {
   // We must dump registers before memory to store them in the Generic Arch CPT
@@ -317,6 +324,15 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
 
+
+
+  #ifdef CONFIG_MEMTRACE
+  memtrace_file_path = pathManager.getOutputPath() + "memtrace.gz";
+  memtrace_flush();
+  Log("Memtrace dumped to %s\n", memtrace_file_path.c_str());
+  #endif
+
+
   Log("Checkpoint done!\n");
   regDumped = false;
 }
@@ -479,6 +495,14 @@ void Serializer::init(bool store_cpt_in_flash) {
 #endif
   this->store_cpt_in_flash = store_cpt_in_flash;
 
+
+    #ifdef CONFIG_MEMTRACE
+    if (std::remove(CONFIG_MEMTRACE_PATH) == 0) {
+        fprintf(stderr, "memtrace file error: %s\n", CONFIG_MEMTRACE_PATH);
+    } else {
+      fprintf(stderr, "memtrace file error: %s\n", CONFIG_MEMTRACE_PATH);
+    }
+    #endif
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
   this->enable_libcheckpoint = enable_libcheckpoint;
 
@@ -526,7 +550,7 @@ void Serializer::init(bool store_cpt_in_flash) {
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
     Log("Taking uniform checkpionts with interval %lu", checkpoint_interval);
-    nextUniformPoint = intervalSize;
+    nextUniformPoint = 0;
   }
   pathManager.setCheckpointingOutputDir();
 }

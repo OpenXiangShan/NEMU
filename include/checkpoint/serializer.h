@@ -23,6 +23,7 @@
 #include <string>
 #include <map>
 #include "generated/autoconf.h"
+#include <utils.h>
 
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
 extern "C" {
