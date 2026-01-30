@@ -317,7 +317,7 @@ def_EHelper(mfmacc) {
     m_s_sz |= 4;
   }
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, xmfrm->val, false, false, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, xmfrm->val, false, true, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       m_s_sz, m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
