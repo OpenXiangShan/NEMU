@@ -521,7 +521,7 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
 
       case FPCALL_SQRT: *dest = f32_sqrt(fsrc1).v; break;
 
-      case FPCALL_MADD: *dest = f32_mulAdd(fsrc1, fsrc2, rtlToF32(*dest)).v; break;
+      case FPCALL_MADD: *dest = f32_mulAdd(fsrc1, fsrc2, rtlToVF32(*dest)).v; break;
 
       case FPCALL_LE: *dest = f32_le(fsrc1, fsrc2); break;
       case FPCALL_LT: *dest = f32_lt(fsrc1, fsrc2); break;

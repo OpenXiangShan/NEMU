@@ -268,7 +268,17 @@ def_EHelper(mmaccsu) {
       Loge("fp8 mma not supported"); longjmp_exception(EX_II); \
       break; \
     case 1: \
-      FPCALL_TYPE = FPCALL_W16; \
+      switch (m_d_sz) { \
+        case 1: \
+          FPCALL_TYPE = FPCALL_W16; \
+          break; \
+        case 2: \
+          FPCALL_TYPE = FPCALL_W16_to_32; \
+          break; \
+        default: \
+          Loge("type not supported"); longjmp_exception(EX_II); \
+          break; \
+      } \
       break; \
     case 2: \
       FPCALL_TYPE = FPCALL_W32; \
