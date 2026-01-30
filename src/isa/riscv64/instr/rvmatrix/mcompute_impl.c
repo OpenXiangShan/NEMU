@@ -23,14 +23,14 @@
 #include "mcommon.h"
 
 void require_matrix() {
-  if (mstatus->ms == 0) {
-    longjmp_exception(EX_II);
-  }
-  #ifdef CONFIG_RVH
-  if (cpu.v && vsstatus->ms == 0) {
-    longjmp_exception(EX_II);
-  }
-  #endif
+  // if (mstatus->ms == 0) {
+  //   longjmp_exception(EX_II);
+  // }
+  // #ifdef CONFIG_RVH
+  // if (cpu.v && vsstatus->ms == 0) {
+  //   longjmp_exception(EX_II);
+  // }
+  // #endif
 }
 
 #endif // CONFIG_RVMATRIX
