@@ -249,15 +249,15 @@ void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3
   Assert(((amu_ctrl_event_t *)amu_ctrl)->op == 0, "MMA should be executed by exec_amu_lazy");
   // 0. get md, ms1, and ms2 from amu_ctrl
   uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
-  // uint8_t ms1 = ((amu_ctrl_event_t *)amu_ctrl)->ms1;
-  // uint8_t ms2 = ((amu_ctrl_event_t *)amu_ctrl)->ms2;
+  uint8_t ms1 = ((amu_ctrl_event_t *)amu_ctrl)->ms1;
+  uint8_t ms2 = ((amu_ctrl_event_t *)amu_ctrl)->ms2;
 
   // 1. cp acc[md] to src3
   memcpy(src3, cpu.macc[md - 4], ALEN / 8);
   // 2. cp tr[ms1] to src1
-  // memcpy(src1, cpu.mtr[ms1], TRLEN / 8);
+  memcpy(src1, cpu.mtr[ms1], TLEN / 8);
   // 3. cp tr[ms2] to src2
-  // memcpy(src2, cpu.mtr[ms2], TRLEN / 8);
+  memcpy(src2, cpu.mtr[ms2], TLEN / 8);
   // 4. cp res to acc[md]
   memcpy(cpu.macc[md - 4], res, ALEN / 8);
 }
