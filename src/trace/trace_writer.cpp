@@ -210,9 +210,27 @@ void TraceWriter::traceOver() {
 
   trace_stream->write(compressedBuffer, compressedSize);
   trace_stream->close();
+
   // for (uint64_t i = 0; i < instBufferPtr; i++) {
   //   instBuffer[i].dump();
   // }
+  std::map<uint64_t, uint64_t> pc_num_map;
+  for (uint64_t i = 0; i < instBufferPtr; i++) {
+    uint64_t pc = instBuffer[i].instr_pc_va;
+    if (pc_num_map.find(pc) == pc_num_map.end()) {
+      pc_num_map[pc] = 1;
+    } else {
+      pc_num_map[pc]++;
+    }
+  }
+  printf("Unique PC Num: %ld\n", pc_num_map.size());
+  printf("Total Inst Num: %ld\n", instBufferPtr);
+  for (auto it = pc_num_map.begin(); it != pc_num_map.end(); it++) {
+    // if (it->second > 100000) {
+    printf("  PC: 0x%lx Num: %ld\n", it->first, it->second);
+    // }
+  }
+
 
   printf("Traced Inst Count: 0d%ld\n", instBufferPtr);
 
@@ -295,6 +313,10 @@ void TraceWriter::dfs_dump_entry(uint64_t base_paddr, int level) {
     // fflush(stdout);
     if (!is_leaf) {
       uint64_t next_base_paddr = pte.ppn << TRACE_PAGE_SHIFT;
+      if (pte.ppn == 0) {
+        printf("level:%d pte.val:%lx pte.ppn:%lx\n", level-1, pte.val, pte.ppn);
+        exit(1);
+      }
       dfs_dump_entry(next_base_paddr, level - 1);
     }
   }

@@ -18,7 +18,7 @@
 #define __TRACE_COMMON_H__
 
 // Control
-#define TRACE_DUMP_PAGE_TABLE
+// #define TRACE_DUMP_PAGE_TABLE
 #define TRACE_PAGE_SIZE (4096)
 #define TRACE_PAGE_SHIFT (12)
 #define TRACE_PAGE_ENTRY_SIZE (sizeof(uint64_t))
