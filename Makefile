@@ -34,9 +34,10 @@ CFLAGS += -D__MMIO_SPECE_RANGE__=$(call remove_quote,$(CONFIG_MMIO_SPACE_RANGE))
 endif
 
 ifdef CONFIG_HAS_FLASH
-FLASH_IMG_PATH=$(shell realpath $(CONFIG_FLASH_IMG_PATH) 2>/dev/null)
+FLASH_IMG_PATH_RAW := $(call remove_quote,$(CONFIG_FLASH_IMG_PATH))
+FLASH_IMG_PATH := $(shell realpath $(FLASH_IMG_PATH_RAW) 2>/dev/null)
 ifeq ($(FLASH_IMG_PATH),)
-ifneq ($(CONFIG_FLASH_IMG_PATH),)
+ifneq ($(FLASH_IMG_PATH_RAW),)
 $(warning You have set CONFIG_FLASH_IMG_PATH option, but the specified path '$(CONFIG_FLASH_IMG_PATH)' does not exist!)
 endif
 CFLAGS += -D__FLASH_IMG_PATH__=\"\"
@@ -90,9 +91,9 @@ XSRCS-y += src/memory/store_queue_wrapper.cpp
 
 XSRCS = $(XSRCS-y)
 
+CFLAGS_BUILD += $(if $(CONFIG_CC_OPT),$(call remove_quote,$(CONFIG_CC_OPT)),-O2)
 CC = $(call remove_quote,$(CONFIG_CC))
 CXX = $(call remove_quote,$(CONFIG_CXX))
-CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
 CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto=auto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)

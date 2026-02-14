@@ -601,38 +601,34 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_pa
 
   if (cpu.isVecUnitStore)
   {
-    bool isCross128Bit = (addr & 0xF) + len > 16;
-
-    if (isCross128Bit)
-    {
-      paddr_t offset_in_block = addr & 0xF;
-      paddr_t space_left = 16 - offset_in_block;
-
-      paddr_t low_addr = addr;
-      uint8_t low_len = space_left;
-      uint16_t low_mask = (1U << low_len) - 1;
-      word_t low_data = data & ((1ULL << low_len * 8) - 1);
-
-      paddr_t  high_addr = addr + space_left;
-      uint8_t high_len = len - space_left;
-      uint16_t high_mask = (1U << high_len) - 1;
-      word_t high_data = data >> (low_len * 8);
-
-      store_commit_t low_store_commit = {low_addr, low_data, low_mask, prev_s->pc};
-      store_commit_t high_store_commit = {high_addr, high_data, high_mask, prev_s->pc};
-
-      store_queue_push(low_store_commit);
-      store_queue_push(high_store_commit);
-
+    assert(len <= 8);
+    uint64_t offset = addr & 0x7ULL;
+    if (offset + (uint64_t)len <= 8) {
+      store_commit.addr = addr - offset;
+      store_commit.data = (data & GEN_BIT_MASK(len)) << (offset << 3);
+      store_commit.mask = GEN_BYTE_MASK(len) << offset;
+      store_commit.pc = prev_s->pc;
+      store_queue_push(store_commit);
       return;
     }
-    store_commit.data = data & GEN_BIT_MASK(len);
-    store_commit.mask = GEN_BYTE_MASK(len);
-    assert(len <= 8);
-    store_commit.addr = addr;
-    store_commit.pc = prev_s->pc;
 
-    store_queue_push(store_commit);
+    // Crosses 8-byte boundary: split into two commits aligned to 8 bytes.
+    uint64_t low_len = 8 - offset;
+    uint64_t high_len = (uint64_t)len - low_len;
+
+    store_commit_t low_store_commit;
+    low_store_commit.addr = addr - offset;
+    low_store_commit.data = (data & GEN_BIT_MASK(low_len)) << (offset << 3);
+    low_store_commit.mask = GEN_BYTE_MASK(low_len) << offset;
+    low_store_commit.pc   = prev_s->pc;
+    store_queue_push(low_store_commit);
+
+    store_commit_t high_store_commit;
+    high_store_commit.addr = addr + low_len;
+    high_store_commit.data = (data >> (low_len << 3)) & GEN_BIT_MASK(high_len);
+    high_store_commit.mask = GEN_BYTE_MASK(high_len);
+    high_store_commit.pc   = prev_s->pc;
+    store_queue_push(high_store_commit);
     return;
   }
   uint64_t offset = addr % 8ULL;

@@ -228,8 +228,9 @@ uint32_t vec_load_difftest_info_queue_cnt = 0;
 void init_vec_load_difftest_info(int mul, int vd) {
   vec_laod_mul = mul;
   for (int i = 0; i < mul; i++) {
-    set_vec_dual_difftest_reg(i, 0, cpu.vr[vd+i]._64[0], 3);
-    set_vec_dual_difftest_reg(i, 1, cpu.vr[vd+i]._64[1], 3);
+    for (int j = 0; j < VLEN / 64; j++) {
+      set_vec_dual_difftest_reg(i, j, cpu.vr[vd+i]._64[j], 3);
+    }
   }
   vec_load_difftest_info_queue_cnt = 0;
 }

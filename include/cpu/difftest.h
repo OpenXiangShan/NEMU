@@ -55,11 +55,15 @@ static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref
   }
   return true;
 }
-static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *ref, rtlreg_t *dut,size_t n) {
-  /***************ONLY FOR VLEN=128,ELEN=64**********************/
+static inline bool difftest_check_vreg(const char *name, vaddr_t pc, rtlreg_t *ref, rtlreg_t *dut, size_t n) {
   if (memcmp(ref, dut, n)) {
-    Log("%s is different after executing instruction at pc = " FMT_WORD
-        ", right =  0x%016lx_%016lx , wrong =  %016lx_%016lx", name, pc, ref[1], ref[0], dut[1], dut[0]);
+    // Print the entire vector as 64-bit lanes, high to low.
+    size_t lanes = n / sizeof(rtlreg_t);
+    Log("%s is different after executing instruction at pc = " FMT_WORD, name, pc);
+    for (size_t i = 0; i < lanes; i++) {
+      size_t idx = lanes - 1 - i;
+      Log("  lane[%zu]: right = 0x%016lx , wrong = 0x%016lx", idx, ref[idx], dut[idx]);
+    }
     return false;
   }
   return true;
