@@ -779,15 +779,6 @@ void init_smstateen() {
   MHPMEVENT_WMASK_EVENT0    \
 )
 
-#define SMCNTRPMF_WMASK (   \
-  MHPMEVENT_WMASK_MINH    | \
-  MHPMEVENT_WMASK_SINH    | \
-  MHPMEVENT_WMASK_UINH    | \
-  MHPMEVENT_WMASK_VSINH   | \
-  MHPMEVENT_WMASK_VUINH     \
-)
-
-#define SMCDELEG_CFG_MASK      (SMCNTRPMF_WMASK & ~MHPMEVENT_WMASK_MINH)
 #define SMCDELEG_HPMEVENT_MASK (MHPMEVENT_WMASK & ~MHPMEVENT_WMASK_MINH)
 
 /*
@@ -929,59 +920,39 @@ inline word_t gen_status_sd(word_t status) {
   return ((word_t)(fs_dirty || vs_dirty)) << 63;
 }
 
-#ifdef CONFIG_RV_SMCNTRPMF
-static inline bool inhibit_smcntrpmf(word_t current_cfg) {
-  bool inhibit = false;
-  mcyclecfg_t* cfg = (mcyclecfg_t*)&current_cfg;
-  inhibit =
-#ifdef CONFIG_RVH
-    (cpu.mode == MODE_S && cpu.v && cfg->vsinh) ||
-    (cpu.mode == MODE_U && cpu.v && cfg->vuinh) ||
-#endif // CONFIG_RVH
-    (cpu.mode == MODE_M && cfg->minh) ||
-    (cpu.mode == MODE_S && cfg->sinh) ||
-    (cpu.mode == MODE_U && cfg->uinh);
-  return inhibit;
-}
-#endif // CONFIG_RV_SMCNTRPMF
-
 static inline word_t get_mcycle() {
-  bool inhibit =
-    MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->cy, false) ||
-    MUXDEF(CONFIG_RV_SMCNTRPMF, inhibit_smcntrpmf(mcyclecfg->val), false);
-  if (inhibit) {
-    return mcycle->val;
-  }
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x1) {
+      return mcycle->val;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
   return mcycle->val + get_abs_instr_count_csr();
 }
 
 static inline word_t get_minstret() {
-  bool inhibit =
-    MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->ir, false) ||
-    MUXDEF(CONFIG_RV_SMCNTRPMF, inhibit_smcntrpmf(minstretcfg->val), false);
-  if (inhibit) {
-    return minstret->val;
-  }
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x4) {
+      return minstret->val;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
   return minstret->val + get_abs_instr_count_csr();
 }
 
 static inline word_t set_mcycle(word_t src) {
-  bool inhibit =
-    MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->cy, false) ||
-    MUXDEF(CONFIG_RV_SMCNTRPMF, inhibit_smcntrpmf(mcyclecfg->val), false);
-  if (inhibit) {
-    return src;
-  }
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x1) {
+      return src;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
   return src - get_abs_instr_count_csr();
 }
 
 static inline word_t set_minstret(word_t src) {
-  bool inhibit =
-    MUXDEF(CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR, mcountinhibit->ir, false) ||
-    MUXDEF(CONFIG_RV_SMCNTRPMF, inhibit_smcntrpmf(minstretcfg->val), false);
-  if (inhibit) {
-    return src;
-  }
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    if (mcountinhibit->val & 0x4) {
+      return src;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
   return src - get_abs_instr_count_csr();
 }
 
@@ -1349,70 +1320,30 @@ static inline void set_hideleg(word_t src) {
 }
 #endif // CONFIG_RVH
 
-#if defined (CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR) || defined (CONFIG_RV_SMCNTRPMF)
-static inline void update_counter_inhibit(word_t src, word_t csrid) {
-  // When a CSR is written, only the corresponding parameter in this function is updated;
-  // the remaining parameters retain their previous values.
-  // For example, on a write to mcyclecfg, new_mcyclecfg is updated with the new mcyclecfg value,
-  // whereas new_mcountinhibit and new_minstretcfg keep original mcountinhibit and minstretcfg values.
-  bool old_cy_cinhibit = false;
-  bool old_ir_cinhibit = false;
-  bool new_cy_cinhibit = false;
-  bool new_ir_cinhibit = false;
-  bool old_cy_cfg = false;
-  bool old_ir_cfg = false;
-  bool new_cy_cfg = false;
-  bool new_ir_cfg = false;
+static inline void update_counter_mcountinhibit(word_t old, word_t new) {
+  #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    bool old_cy = old & 0x1;
+    bool old_ir = old & 0x4;
+    bool new_cy = new & 0x1;
+    bool new_ir = new & 0x4;
 
-#ifdef CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
-  mcountinhibit_t* new_mcountinhibit = mcountinhibit;
-  if(csrid == CSR_MCOUNTINHIBIT) {
-    new_mcountinhibit = (mcountinhibit_t*)&src;
-  }
 
-  old_cy_cinhibit = mcountinhibit->cy;
-  old_ir_cinhibit = mcountinhibit->ir;
-  new_cy_cinhibit = new_mcountinhibit->cy;
-  new_ir_cinhibit = new_mcountinhibit->ir;
-#endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
+    uint64_t abs_instr_count = get_abs_instr_count_csr();
 
-#ifdef CONFIG_RV_SMCNTRPMF
-  word_t new_mcyclecfg = mcyclecfg->val;
-  word_t new_minstretcfg = minstretcfg->val;
-  if(csrid == CSR_MCYCLECFG) {
-    new_mcyclecfg = src;
-  }
-  else if (csrid == CSR_MINSTRETCFG) {
-    new_minstretcfg = src;
-  }
-
-  old_cy_cfg = inhibit_smcntrpmf(mcyclecfg->val);
-  old_ir_cfg = inhibit_smcntrpmf(minstretcfg->val);
-  new_cy_cfg = inhibit_smcntrpmf(new_mcyclecfg);
-  new_ir_cfg = inhibit_smcntrpmf(new_minstretcfg);
-#endif // CONFIG_RV_SMCNTRPMF
-
-  bool old_cy = old_cy_cinhibit || old_cy_cfg;
-  bool old_ir = old_ir_cinhibit || old_ir_cfg;
-  bool new_cy = new_cy_cinhibit || new_cy_cfg;
-  bool new_ir = new_ir_cinhibit || new_ir_cfg;
-
-  uint64_t abs_instr_count = get_abs_instr_count_csr();
-
-  if (old_cy && !new_cy) { // CY: 1 -> 0
-    mcycle->val = mcycle->val - abs_instr_count;
-  }
-  if (!old_cy && new_cy) { // CY: 0 -> 1
-    mcycle->val = mcycle->val + abs_instr_count;
-  }
-  if (old_ir && !new_ir) { // IR: 1 -> 0
-    minstret->val = minstret->val - abs_instr_count;
-  }
-  if (!old_ir && new_ir) { // IR: 0 -> 1
-    minstret->val = minstret->val + abs_instr_count;
-  }
+    if (old_cy && !new_cy) { // CY: 1 -> 0
+      mcycle->val = mcycle->val - abs_instr_count;
+    }
+    if (!old_cy && new_cy) { // CY: 0 -> 1
+      mcycle->val = mcycle->val + abs_instr_count;
+    }
+    if (old_ir && !new_ir) { // IR: 1 -> 0
+      minstret->val = minstret->val - abs_instr_count;
+    }
+    if (!old_ir && new_ir) { // IR: 0 -> 1
+      minstret->val = minstret->val + abs_instr_count;
+    }
+  #endif // CONFIG_RV_CSR_MCOUNTINHIBIT_CNTR
 }
-#endif
 
 #ifdef CONFIG_RV_IMSIC
 static inline void update_miprios() {
@@ -1736,10 +1667,10 @@ static inline word_t smcdeleg_read_sireg(uint64_t iselect) {
 
 static inline word_t smcdeleg_read_sireg2(uint64_t iselect) {
   if (iselect == SISELECT_SMCDELEG_START) {
-    return mcyclecfg->val & SMCDELEG_CFG_MASK;
+    return 0;
   }
   else if (iselect == SISELECT_SMCDELEG_INSTRET) {
-    return minstretcfg->val & SMCDELEG_CFG_MASK;
+    return 0;
   }
   else if (iselect >= SISELECT_SMCDELEG_HPMEVENT_3 && iselect <= SISELECT_SMCDELEG_END) {
     return csr_array[CSR_MHPMEVENT_BASE + (iselect - SISELECT_SMCDELEG_HPMEVENT_3)] & SMCDELEG_HPMEVENT_MASK;
@@ -2152,7 +2083,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       word_t scountinhibit_mask = mcounteren->val & MCOUNTINHIBIT_MASK;
       word_t new_mcountinhibit = mask_bitset(mcountinhibit->val, scountinhibit_mask, src);
-      update_counter_inhibit(new_mcountinhibit & MCOUNTINHIBIT_MASK, CSR_MCOUNTINHIBIT);
+      update_counter_mcountinhibit(mcountinhibit->val, new_mcountinhibit & MCOUNTINHIBIT_MASK);
       mcountinhibit->val = new_mcountinhibit;
       break;
     }
@@ -2291,14 +2222,10 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SMCDELEG
       if (iselect_is_smcdeleg(siselect->val)) {
         if (siselect->val == SISELECT_SMCDELEG_START) {
-          word_t new_val = mask_bitset(mcyclecfg->val, SMCDELEG_CFG_MASK, src);
-          update_counter_inhibit(new_val, CSR_MCYCLECFG);
-          mcyclecfg->val = new_val;
+          break;
         }
         else if (siselect->val == SISELECT_SMCDELEG_INSTRET) {
-          word_t new_val = mask_bitset(minstretcfg->val, SMCDELEG_CFG_MASK, src);
-          update_counter_inhibit(new_val, CSR_MINSTRETCFG);
-          minstretcfg->val = new_val;
+          break;
         }
         else if (siselect->val >= SISELECT_SMCDELEG_HPMEVENT_3 && siselect->val <= SISELECT_SMCDELEG_END) {
           word_t *mhpmevent_dest = &csr_array[CSR_MHPMEVENT_BASE + (siselect->val - SISELECT_SMCDELEG_HPMEVENT_3)];
@@ -2538,7 +2465,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
     case CSR_MCOUNTINHIBIT:
-      update_counter_inhibit(src & MCOUNTINHIBIT_MASK, CSR_MCOUNTINHIBIT);
+      update_counter_mcountinhibit(mcountinhibit->val, src & MCOUNTINHIBIT_MASK);
       mcountinhibit->val = mask_bitset(mcountinhibit->val, MCOUNTINHIBIT_MASK, src);
       break;
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
@@ -2566,17 +2493,6 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_SSCOFPMF
       break;
     }
-
-#ifdef CONFIG_RV_SMCNTRPMF
-    case CSR_MCYCLECFG:
-      update_counter_inhibit(src & SMCNTRPMF_WMASK, CSR_MCYCLECFG);
-      *dest = src & SMCNTRPMF_WMASK;
-      break;
-    case CSR_MINSTRETCFG:
-      update_counter_inhibit(src & SMCNTRPMF_WMASK, CSR_MINSTRETCFG);
-      *dest = src & SMCNTRPMF_WMASK;
-      break;
-#endif // CONFIG_RV_SMCNTRPMF
 
     case CSR_MEPC: *dest = src & (~0x1UL); break;
     case CSR_MIP: set_mip(src); break;

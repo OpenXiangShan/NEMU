@@ -218,11 +218,6 @@ void init_isa() {
   scontext->val = 0;
 #endif // CONFIG_RV_SDTRIG
 
-#ifdef CONFIG_RV_SMCNTRPMF
-  mcyclecfg->val = 0;
-  minstretcfg->val = 0;
-#endif // CONFIG_RV_SMCNTRPMF
-
 #ifdef CONFIG_RV_IMSIC
   init_iprio();
 #endif
