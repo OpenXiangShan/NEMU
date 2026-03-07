@@ -141,14 +141,14 @@ typedef struct {
   uint64_t vl, vtype, vlenb;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
+#ifdef CONFIG_DIFFTEST_CHECK_FCSR
+  uint64_t fcsr;
+#endif // CONFIG_DIFFTEST_CHECK_FCSR
+
 #ifdef CONFIG_RVMATRIX
   uint64_t xmcsr, xmxrm, xmsat, xmfflags, xmfrm, xmsaten;
   uint64_t xmisa, xtlenb, xtrlenb, xalenb, mtok, mtilem, mtilen, mtilek;
 #endif // CONFIG_RVMATRIX
-
-#ifdef CONFIG_DIFFTEST_CHECK_FCSR
-  uint64_t fcsr;
-#endif // CONFIG_DIFFTEST_CHECK_FCSR
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   uint64_t tselect;
