@@ -6,6 +6,10 @@
 
 #ifdef CONFIG_RVMATRIX
 
+#ifndef MATRIX_DIFF_PRINT_CNT
+#define MATRIX_DIFF_PRINT_CNT 32
+#endif
+
 amu_ctrl_event_t amu_ctrl_event_data;
 
 amu_ctrl_event_t get_amu_ctrl_info() {
@@ -184,41 +188,47 @@ int exec_amu(void *amu_ctrl, void *res) {
           ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
         }
         if (ret) {
-          // print the whole matrix reg
-          // 1. print REF (cpu.mtr/macc)
-          fprintf(stderr, "different @pc: %016lx\n", ((amu_ctrl_event_t *)amu_ctrl)->pc);
-          fprintf(stderr, "====== REF MATRIX ======\n");
+          uint64_t ref_val, dut_val;
+          int total_diff = 0;
+          int printed = 0;
+          fprintf(stderr, "matrix diff md=%d @pc: %016lx\n", md, ((amu_ctrl_event_t *)amu_ctrl)->pc);
           if (md < 4) {
+            const int cols = TRLEN / 64;
             for (int row = 0; row < ROWNUM; row++) {
-              for (int idx = 0; idx < TRLEN / 64; idx++) {
-                fprintf(stderr, "%016lx ", cpu.mtr[md][row]._64[idx]);
+              for (int idx = 0; idx < cols; idx++) {
+                ref_val = cpu.mtr[md][row]._64[idx];
+                dut_val = ((uint64_t *)res)[row * cols + idx];
+                if (ref_val != dut_val) {
+                  total_diff++;
+                  if (printed < MATRIX_DIFF_PRINT_CNT) {
+                    fprintf(stderr, "  [row=%d, idx=%d] REF=%016lx DUT=%016lx\n",
+                            row, idx, ref_val, dut_val);
+                    printed++;
+                  }
+                }
               }
-              fprintf(stderr, "\n");
             }
           } else {
+            const int cols = ARLEN / 64;
             for (int row = 0; row < ROWNUM; row++) {
-              for (int idx = 0; idx < ARLEN / 64; idx++) {
-                fprintf(stderr, "%016lx ", cpu.macc[md - 4][row]._64[idx]);
+              for (int idx = 0; idx < cols; idx++) {
+                ref_val = cpu.macc[md - 4][row]._64[idx];
+                dut_val = ((uint64_t *)res)[row * cols + idx];
+                if (ref_val != dut_val) {
+                  total_diff++;
+                  if (printed < MATRIX_DIFF_PRINT_CNT) {
+                    fprintf(stderr, "  [row=%d, idx=%d] REF=%016lx DUT=%016lx\n",
+                            row, idx, ref_val, dut_val);
+                    printed++;
+                  }
+                }
               }
-              fprintf(stderr, "\n");
             }
           }
-          // 2. print DUT (res)
-          fprintf(stderr, "====== DUT MATRIX ======\n");
-          if (md < 4) {
-            for (int row = 0; row < ROWNUM; row++) {
-              for (int idx = 0; idx < TRLEN / 64; idx++) {
-                fprintf(stderr, "%016lx ", ((uint64_t *)res)[row * TRLEN / 64 + idx]);
-              }
-              fprintf(stderr, "\n");
-            }
-          } else {
-            for (int row = 0; row < ROWNUM; row++) {
-              for (int idx = 0; idx < ARLEN / 64; idx++) {
-                fprintf(stderr, "%016lx ", ((uint64_t *)res)[row * ARLEN / 64 + idx]);
-              }
-              fprintf(stderr, "\n");
-            }
+          fprintf(stderr, "diff summary: %d element(s) differ\n", total_diff);
+          if (total_diff > MATRIX_DIFF_PRINT_CNT) {
+            fprintf(stderr, "  ... and %d more (change MATRIX_DIFF_PRINT_CNT to show more)\n",
+                    total_diff - MATRIX_DIFF_PRINT_CNT);
           }
         }
       }
