@@ -523,7 +523,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   if(virt){
     pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+  } else {
+    cpu.pbmt = pte.pbmt;
   }
+  #else
+  cpu.pbmt = pte.pbmt;
   #endif //CONFIG_RVH
 #ifndef CONFIG_SHARE
   // update a/d by hardware
@@ -548,8 +552,6 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
 #endif // CONFIG_SHARE
-
-  cpu.pbmt = pte.pbmt;
   return pg_base | MEM_RET_OK;
 
 bad:
