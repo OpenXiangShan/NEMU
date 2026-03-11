@@ -411,7 +411,7 @@ void paddr_read_matrix(paddr_t base, paddr_t stride,
   __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
 
-  if (!check_paddr(base, msew, MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_READ, mode, vbase)) {
+  if (!check_paddr(base, 1 << msew, MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_READ, mode, vbase)) {
     // TODO: do something here?
     return;
   }
@@ -622,7 +622,7 @@ void paddr_write_matrix(paddr_t base, paddr_t stride,
                         int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id) {
   // TODO: more check on matrix_paddr
-  if (!check_paddr(base, msew, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
+  if (!check_paddr(base, 1 << msew, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
     return;
   }
 #ifndef CONFIG_SHARE
