@@ -97,10 +97,14 @@ def_EHelper(mrelease) {
 def_EHelper(macquire) {
   require_matrix();
   // Do nothing in NEMU.
-#ifndef CONFIG_SHARE_CTRL
+#ifndef CONFIG_SHARE
   Assert(cpu.mtokr[s->src2.imm] >= reg_l(s->src1.reg),
     "Value(%ld) in token register %lu is not enough.", reg_l(s->src1.reg), s->src2.imm);
-#else
+#elif defined(CONFIG_SHARE_REF)
+  if (cpu.mtokr[s->src2.imm] < reg_l(s->src1.reg)) {
+    Log("Value(%ld) in token register %lu is not enough.", reg_l(s->src1.reg), s->src2.imm);
+  }
+#else // controller mode
   nemu_state.state = NEMU_WAIT;
   nemu_state.wait_r = s->src2.imm;
   nemu_state.wait_val = reg_l(s->src1.reg);
