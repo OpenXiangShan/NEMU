@@ -49,7 +49,7 @@ The main features of NEMU include
 
 ### Please DO NOT
 
-- Please don't running SimPoint bbv.gz with NEMU, XS-GEM5, or XiangShan processor, because it is not bootable
+- Please don't run SimPoint bbv.gz with NEMU, XS-GEM5, or XiangShan processor, because it is not bootable
 - Please don't make a new issue without reading the doc
 - Please don't make a new issue without searching in issue list
 - Please don't make a new issue about building Linux in NEMU's issue list,
@@ -179,10 +179,10 @@ Details can be found in [the tutorial of XiangShan](https://xiangshan-doc.readth
 As described in [the workflow](#run-in-standalone-mode-without-checkpoint), NEMU either takes a baremetal app or
 an operating system image as input.
 
-For baremetal app, [Abstract Machine](https://github.com/OpenXiangShan/nexus-am) is a light-weight baremetal library.
+For baremetal apps, [Abstract Machine](https://github.com/OpenXiangShan/nexus-am) is a light-weight baremetal library.
 Common simple apps like coremark and dhrystone can be built with Abstract Machine.
 
-For build operating system image,
+For building operating system images,
 Please read [the doc to build Linux](https://xiangshan-doc.readthedocs.io/zh-cn/latest/tools/linux-kernel-for-xs/).
 
 Then modify `NEMU_HOME` and `BBL_PATH` in `$NEMU_HOME/scripts/checkpoint_example/checkpoint_env.sh` and the workload parameter passed to the function in each example script to get started.
@@ -242,7 +242,7 @@ For example, when studying cache's temporal locality, it is better to use a larg
 
 The simulation time depends on IPC of the application and the complexity of the CPU model.
 For Verilator simulation of XiangShan processor, the simulation time varies **from hours to days**.
-For XS-GEM5, the simulation time varies typically ranges **from 6 minutes to 1 hour**.
+For XS-GEM5, the simulation time typically ranges **from 6 minutes to 1 hour**.
 
 ### Error when building Linux, riscv-pk, or OpenSBI
 
