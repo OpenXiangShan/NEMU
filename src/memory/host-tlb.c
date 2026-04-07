@@ -25,6 +25,10 @@
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
 
+#ifdef CONFIG_RVH
+extern bool hosttlb_data_fast_enabled_for_access(void);
+#endif
+
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
@@ -136,8 +140,7 @@ word_t hosttlb_ifetch(vaddr_t vaddr, int len) {
 word_t hosttlb_data_read(struct Decode *s, vaddr_t vaddr, int len) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
 #ifdef CONFIG_RVH
-  extern bool has_two_stage_translation();
-  if(has_two_stage_translation()){
+  if (unlikely(!hosttlb_data_fast_enabled_for_access())) {
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_READ);
     return paddr_read(paddr, len, MEM_TYPE_READ, MEM_TYPE_READ, cpu.mode, vaddr);
   }
@@ -151,12 +154,11 @@ word_t hosttlb_data_read(struct Decode *s, vaddr_t vaddr, int len) {
   Logm("Host TLB fast path");
   return hosttlb_fast_read(e, vaddr, len);
 }
-extern bool has_two_stage_translation();
 
 #ifdef CONFIG_RVV
 void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_write) {
 #ifdef CONFIG_RVH
-  if(has_two_stage_translation()){
+  if (unlikely(!hosttlb_data_fast_enabled_for_access())) {
     // Fast path for guest is not implemented yet
     return;
   }
@@ -179,7 +181,7 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #ifdef CONFIG_RVH
-  if(has_two_stage_translation()){
+  if (unlikely(!hosttlb_data_fast_enabled_for_access())) {
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
   }
