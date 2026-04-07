@@ -168,10 +168,15 @@ void mmu_refresh_pma_cache(void) {
 #endif
 
 static bool data_effective_address_identity_fast = false;
+static bool data_hosttlb_fast_enabled = false;
 
 static inline void update_effective_address_state(void) {
   data_effective_address_identity_fast =
     !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
+}
+
+static inline void update_hosttlb_fast_state(void) {
+  data_hosttlb_fast_enabled = !((get_mprv() && mstatus->mpv) || cpu.v);
 }
 
 #ifdef CONFIG_RVH
@@ -265,6 +270,10 @@ inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
 #ifdef CONFIG_RVH
 bool has_two_stage_translation(){
   return hld_st || (get_mprv() && mstatus->mpv) || cpu.v;
+}
+
+bool hosttlb_data_fast_enabled_for_access(void) {
+  return !hld_st && data_hosttlb_fast_enabled;
 }
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
@@ -712,6 +721,7 @@ int update_mmu_state() {
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
   update_effective_address_state();
+  update_hosttlb_fast_state();
 #ifdef CONFIG_RVH
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
