@@ -311,12 +311,23 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 }
 
 #ifndef CONFIG_SHARE
-uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
+static inline bool per_bb_profile_fast_disabled(void) {
+  return profiling_state == NoProfiling &&
+         checkpoint_state == NoCheckpoint &&
+         !recvd_manual_oneshot_cpt &&
+         !recvd_manual_uniform_cpt &&
+         !force_cpt_mmode &&
+         !donot_skip_boot;
+}
 
+uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
 
   // checkpoint_icount_base is set from nemu_trap.
   // Profiling and checkpointing use this as the starting point for instruction counting.
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
+  if (likely(per_bb_profile_fast_disabled() && !enable_semantic_point_cpt())) {
+    return abs_inst_count;
+  }
   // workload_loaded set from nemu_trap
   //
   if (enable_semantic_point_cpt() && (workload_loaded || donot_skip_boot)) {
