@@ -89,6 +89,77 @@ static inline uint64_t get_mprv() {
 static bool data_effective_address_identity_fast = false;
 static bool data_hosttlb_fast_enabled = false;
 
+typedef struct {
+  word_t lower;
+  word_t tor;
+  word_t mask;
+  uint8_t cfg;
+  bool active;
+  bool is_tor;
+} protection_entry_cache_t;
+
+#ifdef CONFIG_RV_PMP_CHECK
+#if CONFIG_RV_PMP_ACTIVE_NUM > 0
+static protection_entry_cache_t pmp_entry_cache[CONFIG_RV_PMP_ACTIVE_NUM];
+#endif
+
+void mmu_refresh_pmp_cache(void) {
+#if CONFIG_RV_PMP_ACTIVE_NUM > 0
+  word_t base = 0;
+  word_t tor_mask = pmp_tor_mask();
+  for (int i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
+    word_t pmpaddr = pmpaddr_from_index(i);
+    uint8_t cfg = pmpcfg_from_index(i);
+    bool is_tor = (cfg & PMP_A) == PMP_TOR;
+    bool is_na4 = (cfg & PMP_A) == PMP_NA4;
+    word_t tor = (pmpaddr & tor_mask) << PMP_SHIFT;
+    word_t mask = (pmpaddr << 1) | (!is_na4) | ~tor_mask;
+    mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+    pmp_entry_cache[i] = (protection_entry_cache_t) {
+      .lower = base,
+      .tor = tor,
+      .mask = mask,
+      .cfg = cfg,
+      .active = (cfg & PMP_A) != 0,
+      .is_tor = is_tor,
+    };
+    base = tor;
+  }
+#endif
+}
+#endif
+
+#ifdef CONFIG_RV_PMA_CHECK
+#if CONFIG_RV_PMA_ACTIVE_NUM > 0
+static protection_entry_cache_t pma_entry_cache[CONFIG_RV_PMA_ACTIVE_NUM];
+#endif
+
+void mmu_refresh_pma_cache(void) {
+#if CONFIG_RV_PMA_ACTIVE_NUM > 0
+  word_t base = 0;
+  word_t tor_mask = pma_tor_mask();
+  for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    word_t pmaaddr = pmaaddr_from_index(i);
+    uint8_t cfg = pmacfg_from_index(i);
+    bool is_tor = (cfg & PMA_A) == PMA_TOR;
+    bool is_na4 = (cfg & PMA_A) == PMA_NA4;
+    word_t tor = (pmaaddr & tor_mask) << PMA_SHIFT;
+    word_t mask = (pmaaddr << 1) | (!is_na4) | ~tor_mask;
+    mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+    pma_entry_cache[i] = (protection_entry_cache_t) {
+      .lower = base,
+      .tor = tor,
+      .mask = mask,
+      .cfg = cfg,
+      .active = (cfg & PMA_A) != 0,
+      .is_tor = is_tor,
+    };
+    base = tor;
+  }
+#endif
+}
+#endif
+
 static inline void update_effective_address_state(void) {
   data_effective_address_identity_fast =
     !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
@@ -1148,27 +1219,20 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
     return true;
   }
 
-  word_t base = 0;
   for (int i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
-    word_t pmpaddr = pmpaddr_from_index(i);
-    word_t tor = (pmpaddr & pmp_tor_mask()) << PMP_SHIFT;
-    uint8_t cfg = pmpcfg_from_index(i);
+    protection_entry_cache_t *entry = &pmp_entry_cache[i];
+    uint8_t cfg = entry->cfg;
 
-    if (cfg & PMP_A) {
-      bool is_tor = (cfg & PMP_A) == PMP_TOR;
-      bool is_na4 = (cfg & PMP_A) == PMP_NA4;
-
-      word_t mask = (pmpaddr << 1) | (!is_na4) | ~pmp_tor_mask();
-      mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+    if (entry->active) {
 
       // Check each 4-byte sector of the access
       bool any_match = false;
       bool all_match = true;
       for (word_t offset = 0; offset < len; offset += 1 << PMP_SHIFT) {
         word_t cur_addr = addr + offset;
-        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
-        bool tor_match = base <= cur_addr && cur_addr < tor;
-        bool match = is_tor ? tor_match : napot_match;
+        bool napot_match = ((cur_addr ^ entry->tor) & entry->mask) == 0;
+        bool tor_match = entry->lower <= cur_addr && cur_addr < entry->tor;
+        bool match = entry->is_tor ? tor_match : napot_match;
         any_match |= match;
         all_match &= match;
         // ref_log_cpu("PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s",
@@ -1199,8 +1263,6 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
           (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
       }
     }
-
-    base = tor;
   }
 
   //   if (mode != MODE_M) ref_log_cpu("PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s", addr, len, type, mode,
@@ -1273,27 +1335,20 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
     return true;
   }
 
-  word_t base = 0;
   for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
-    word_t pmaaddr = pmaaddr_from_index(i);
-    word_t tor = (pmaaddr & pma_tor_mask()) << PMA_SHIFT;
-    uint8_t cfg = pmacfg_from_index(i);
+    protection_entry_cache_t *entry = &pma_entry_cache[i];
+    uint8_t cfg = entry->cfg;
 
-    if (cfg & PMA_A) {
-      bool is_tor = (cfg & PMA_A) == PMA_TOR;
-      bool is_na4 = (cfg & PMA_A) == PMA_NA4;
-
-      word_t mask = (pmaaddr << 1) | (!is_na4) | ~pma_tor_mask();
-      mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+    if (entry->active) {
 
       // Check each 4-byte sector of the access
       bool any_match = false;
       bool all_match = true;
       for (word_t offset = 0; offset < len; offset += 1 << PMA_SHIFT) {
         word_t cur_addr = addr + offset;
-        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
-        bool tor_match = base <= cur_addr && cur_addr < tor;
-        bool match = is_tor ? tor_match : napot_match;
+        bool napot_match = ((cur_addr ^ entry->tor) & entry->mask) == 0;
+        bool tor_match = entry->lower <= cur_addr && cur_addr < entry->tor;
+        bool match = entry->is_tor ? tor_match : napot_match;
         any_match |= match;
         all_match &= match;
       }
@@ -1312,8 +1367,6 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
             type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C)) ;
       }
     }
-
-    base = tor;
   }
 
   // According to the RISC-V specification, for PMP (Physical Memory Protection)
