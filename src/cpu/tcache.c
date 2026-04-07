@@ -264,10 +264,11 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
 typedef struct {
   vaddr_t pc;
   Decode s;
-  int valid;
+  uint32_t epoch;
 } simple_tcache_entry_t;
 
 static simple_tcache_entry_t tcache[SIMPLE_TCACHE_SIZE] = {0};
+static uint32_t tcache_epoch = 1;
 
 static inline int tcache_hash(vaddr_t pc) {
   return (pc >> 2) & (SIMPLE_TCACHE_SIZE - 1);
@@ -275,7 +276,7 @@ static inline int tcache_hash(vaddr_t pc) {
 
 Decode* tcache_lookup_instr(vaddr_t pc) {
   int idx = tcache_hash(pc);
-  if (tcache[idx].valid && tcache[idx].pc == pc) {
+  if (tcache[idx].epoch == tcache_epoch && tcache[idx].pc == pc) {
     return &tcache[idx].s;
   }
   return NULL;
@@ -284,13 +285,17 @@ Decode* tcache_lookup_instr(vaddr_t pc) {
 void tcache_insert_instr(vaddr_t pc, Decode *s) {
   int idx = tcache_hash(pc);
   tcache[idx].pc = pc;
-  tcache[idx].valid = 1;
+  tcache[idx].epoch = tcache_epoch;
   memcpy(&tcache[idx].s, s, sizeof(Decode));
 }
 
 void tcache_handle_flush() {
-  for (int i = 0; i < SIMPLE_TCACHE_SIZE; i++) {
-    tcache[i].valid = 0;
+  tcache_epoch++;
+  if (unlikely(tcache_epoch == 0)) {
+    for (int i = 0; i < SIMPLE_TCACHE_SIZE; i++) {
+      tcache[i].epoch = 0;
+    }
+    tcache_epoch = 1;
   }
 }
 #endif
