@@ -93,7 +93,12 @@ static inline bb_t* bb_new(Decode *s, vaddr_t pc, bb_t *next) {
 }
 
 static inline bb_t* bb_hash(vaddr_t pc) {
-  int idx = (pc / CONFIG_ILEN_MIN) % CONFIG_BB_LIST_SIZE;
+  int idx;
+#if (CONFIG_ILEN_MIN == 2) && ((CONFIG_BB_LIST_SIZE & (CONFIG_BB_LIST_SIZE - 1)) == 0)
+  idx = (pc >> 1) & (CONFIG_BB_LIST_SIZE - 1);
+#else
+  idx = (pc / CONFIG_ILEN_MIN) % CONFIG_BB_LIST_SIZE;
+#endif
   return &bb_list[idx];
 }
 
