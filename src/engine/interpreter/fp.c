@@ -592,12 +592,6 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       default: panic("op = %d not supported", op);
     }
   }
-
-  uint32_t ex = fp_get_exception();
-  if (ex) {
-    isa_fp_set_ex(ex);
-    fp_clear_exception();
-  }
 #endif // CONFIG_FPU_NONE
 }
 
