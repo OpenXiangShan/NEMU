@@ -1941,6 +1941,7 @@ word_t get_mip();
 word_t get_hideleg();
 word_t mstatus_read();
 word_t sstatus_read(bool vsreg_read, bool bare_read);
+extern rtlreg_t csr_array[4096];
 #ifdef CONFIG_RV_IMSIC
 void update_mtopi();
 void update_stopi();
@@ -1948,13 +1949,31 @@ void update_vstopi();
 #endif
 
 /** PMP **/
-uint8_t pmpcfg_from_index(int idx);
-word_t pmpaddr_from_index(int idx);
-word_t pmp_tor_mask();
+static inline uint8_t pmpcfg_from_index(int idx) {
+  uint8_t *cfg_reg = (uint8_t *)&csr_array[CSR_PMPCFG_BASE + ((idx >> 3) << 1)];
+  return cfg_reg[idx & 0x7];
+}
+
+static inline word_t pmpaddr_from_index(int idx) {
+  return csr_array[CSR_PMPADDR_BASE + idx];
+}
+
+static inline word_t pmp_tor_mask(void) {
+  return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
+}
 
 /** PMA */
-uint8_t pmacfg_from_index(int idx);
-word_t pmaaddr_from_index(int idx);
-word_t pma_tor_mask();
+static inline uint8_t pmacfg_from_index(int idx) {
+  uint8_t *cfg_reg = (uint8_t *)&csr_array[CSR_PMACFG_BASE + ((idx >> 3) << 1)];
+  return cfg_reg[idx & 0x7];
+}
+
+static inline word_t pmaaddr_from_index(int idx) {
+  return csr_array[CSR_PMAADDR_BASE + idx];
+}
+
+static inline word_t pma_tor_mask(void) {
+  return -((word_t)1 << (CONFIG_PMA_GRANULARITY - PMA_SHIFT));
+}
 
 #endif // __CSR_H__

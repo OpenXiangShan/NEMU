@@ -805,52 +805,9 @@ inline word_t sstatus_read(bool vsreg_read, bool bare_read) {
 }
 
 #ifdef CONFIG_RV_PMP_CSR
-// get 8-bit config of one PMP entries by index.
-uint8_t pmpcfg_from_index(int idx) {
-  // Nemu support up to 64 pmp entries in a XLEN=64 machine.
-  int xlen = 64;
-  // Configuration register of one entry is 8-bit.
-  int bits_per_cfg = 8;
-  // For RV64, one pmpcfg CSR contains configuration of 8 entries (64 / 8 = 8).
-  int cfgs_per_csr = xlen / bits_per_cfg;
-  // For RV64, only 8 even-numbered pmpcfg CSRs hold the configuration.
-  int pmpcfg_csr_addr = CSR_PMPCFG_BASE + idx / cfgs_per_csr * 2;
-
-  uint8_t *cfg_reg = (uint8_t *)&csr_array[pmpcfg_csr_addr];
-  return *(cfg_reg + (idx % cfgs_per_csr));
-}
-
-word_t pmpaddr_from_index(int idx) {
-  return csr_array[CSR_PMPADDR_BASE + idx];
-}
-
-word_t inline pmp_tor_mask() {
-  return -((word_t)1 << (CONFIG_PMP_GRANULARITY - PMP_SHIFT));
-}
 #endif // CONFIG_RV_PMP_CSR
 
 #ifdef CONFIG_RV_PMA_CSR
-// get 8-bit config of one PMA entries by index.
-uint8_t pmacfg_from_index(int idx) {
-  int xlen = 64;
-  // Configuration register of one entry is 8-bit.
-  int bits_per_cfg = 8;
-  // For RV64, one pmacfg CSR contains configuration of 8 entries (64 / 8 = 8).
-  int cfgs_per_csr = xlen / bits_per_cfg;
-  // For RV64, only 8 even-numbered pmacfg CSRs hold the configuration.
-  int pmacfg_csr_addr = CSR_PMACFG_BASE + idx / cfgs_per_csr * 2;
-
-  uint8_t *cfg_reg = (uint8_t *)&csr_array[pmacfg_csr_addr];
-  return *(cfg_reg + (idx % cfgs_per_csr));
-}
-
-word_t pmaaddr_from_index(int idx) {
-  return csr_array[CSR_PMAADDR_BASE + idx];
-}
-
-word_t inline pma_tor_mask() {
-  return -((word_t)1 << (CONFIG_PMA_GRANULARITY - PMA_SHIFT));
-}
 #endif // CONFIG_RV_PMA_CSR
 
 #ifndef CONFIG_FPU_NONE
