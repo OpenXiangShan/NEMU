@@ -31,6 +31,7 @@ enum {
 
 uint64_t get_abs_instr_count();
 uint64_t get_abs_instr_count_csr();
+extern uint64_t g_nr_guest_instr;
 
 void cpu_exec(uint64_t n);
 

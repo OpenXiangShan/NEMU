@@ -21,6 +21,7 @@
 // - S-mode Timer: defined in Sstc Extension
 
 #include <utils.h>
+#include <cpu/cpu.h>
 #include <device/alarm.h>
 #include "../local-include/csr.h"
 
@@ -57,8 +58,11 @@ uint64_t get_htime() {
 void update_riscv_timer() {
   #ifndef CONFIG_SHARE
     #ifdef CONFIG_DETERMINISTIC
-      uint64_t get_abs_instr_count();
-      mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
+      #if defined(CONFIG_INSTR_CNT_BY_INSTR)
+        mtime->val = (g_nr_guest_instr / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
+      #else
+        mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
+      #endif
     #else // CONFIG_DETERMINISTIC
       uint64_t uptime = get_time();
       mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;
