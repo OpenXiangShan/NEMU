@@ -32,6 +32,8 @@ uint64_t get_mtime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
+void mmu_refresh_pmp_cache();
+void mmu_refresh_pma_cache();
 
 inline word_t get_mip();
 inline word_t mstatus_read();
@@ -2366,6 +2368,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmpcfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pmp_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2390,6 +2393,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
       }
       ref_log_cpu("write pmp addr%d to %016lx",idx, *dest);
+      mmu_refresh_pmp_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2423,6 +2427,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pma_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2446,6 +2451,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
       }
       ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
+      mmu_refresh_pma_cache();
       mmu_tlb_flush(0);
       break;
     }
