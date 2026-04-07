@@ -166,6 +166,8 @@ typedef struct {
 typedef struct TriggerModule {
   // the last trigger is used to check maximum number of supported triggers
   Trigger triggers[CONFIG_TRIGGER_NUM + 1];
+  uint8_t mcontrol6_active_count;
+  bool mcontrol6_state_dirty;
 } TriggerModule;
 
 extern trig_action_t trigger_action;
@@ -191,6 +193,7 @@ void icount_checked_write(trig_icount_t* icount, word_t* wdata);
 
 bool trigger_reentrancy_check(); 
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
+void trigger_mark_state_dirty(TriggerModule* TM);
 
 static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
 static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}

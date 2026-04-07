@@ -9,49 +9,59 @@
 trig_action_t trigger_action = TRIG_ACTION_NONE;
 word_t triggered_tval;
 
+void trigger_mark_state_dirty(TriggerModule* TM) {
+  TM->mcontrol6_state_dirty = true;
+}
+
+static inline void refresh_mcontrol6_state(TriggerModule* TM) {
+  uint8_t active_count = 0;
+
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
+    active_count += TM->triggers[i].tdata1.common.type == TRIG_TYPE_MCONTROL6;
+  }
+
+  TM->mcontrol6_active_count = active_count;
+  TM->mcontrol6_state_dirty = false;
+}
+
 trig_action_t check_triggers_mcontrol6(
   TriggerModule* TM,
   trig_op_t op,
   vaddr_t addr,
   word_t data
 ) {
+  if (TM->mcontrol6_state_dirty) {
+    refresh_mcontrol6_state(TM);
+  }
+  // Most workloads do not program mcontrol6 triggers at all.
+  if (TM->mcontrol6_active_count == 0) {
+    return TRIG_ACTION_NONE;
+  }
 #ifdef CONFIG_RV_SDEXT
   // do nothing in debug mode
   if (cpu.debug_mode)
     return TRIG_ACTION_NONE;
 #endif
   if (!trigger_reentrancy_check()) return TRIG_ACTION_NONE;
-  // check mcontrol6
   // Action can be taken only when all triggers on the chain are hit.
   /* GDB doesn't support setting triggers in a way that combines a data load trigger
    * with an address trigger to trigger on a load of a value at a given address.
    * The default timing legalization on mcontrol6 assumes no such trigger setting. */
-  const int trigger_num = CONFIG_TRIGGER_NUM;
-  bool chain_ok[trigger_num];
-  bool hit[trigger_num];
-  bool can_fire[trigger_num];
-  memset(chain_ok, true, sizeof(chain_ok));
+  bool chain_ok = true;
 
-  for (int i = 0; i < trigger_num; i++) {
-    bool match = false;
-    if (TM->triggers[i].tdata1.common.type == TRIG_TYPE_MCONTROL6){
-      match = mcontrol6_match(&TM->triggers[i], op, addr, data);
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
+    Trigger* trig = &TM->triggers[i];
+    bool this_hit = false;
+
+    if (trig->tdata1.common.type == TRIG_TYPE_MCONTROL6) {
+      this_hit = mcontrol6_match(trig, op, addr, data);
     }
-    hit[i] = match;
-  }
 
-  for (int i = 1; i < trigger_num; i++) {
-    bool last_hit = hit[i-1];
-    bool last_chain = TM->triggers[i - 1].tdata1.mcontrol6.chain;
-    chain_ok[i] = last_hit || (!last_hit && !last_chain);
-  }
-
-  for (int i = 0; i < trigger_num; i++) {
-    bool this_chain = TM->triggers[i].tdata1.mcontrol6.chain;
-    bool this_hit = hit[i];
-    can_fire[i] = chain_ok[i] && this_hit && !this_chain;
-    if (can_fire[i])
-      return (trig_action_t)TM->triggers[i].tdata1.mcontrol6.action;
+    bool this_chain = trig->tdata1.mcontrol6.chain;
+    if (chain_ok && this_hit && !this_chain) {
+      return (trig_action_t)trig->tdata1.mcontrol6.action;
+    }
+    chain_ok = this_hit || (!this_hit && !this_chain);
   }
 
   return TRIG_ACTION_NONE;

@@ -88,6 +88,8 @@ void init_trigger() {
     cpu.TM->triggers[i].tdata1.val = 0;
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
   }
+  cpu.TM->mcontrol6_active_count = 0;
+  cpu.TM->mcontrol6_state_dirty = false;
   tselect->val = 0;
   tinfo->val = 0
     IFDEF(CONFIG_TDATA1_MCONTROL, | (1 << TRIG_TYPE_MCONTROL))
@@ -2570,6 +2572,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         // do nothing for not supported trigger type
         break;
       }
+      trigger_mark_state_dirty(cpu.TM);
       break;
     }
     case CSR_TDATA2:
