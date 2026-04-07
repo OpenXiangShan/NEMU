@@ -320,17 +320,22 @@ static inline bool per_bb_profile_fast_disabled(void) {
          !donot_skip_boot;
 }
 
+static inline bool per_bb_profile_needed(void) {
+  return !per_bb_profile_fast_disabled() || enable_semantic_point_cpt();
+}
+
 uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
+  bool semantic_point_enabled = enable_semantic_point_cpt();
 
   // checkpoint_icount_base is set from nemu_trap.
   // Profiling and checkpointing use this as the starting point for instruction counting.
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
-  if (likely(per_bb_profile_fast_disabled() && !enable_semantic_point_cpt())) {
+  if (likely(per_bb_profile_fast_disabled() && !semantic_point_enabled)) {
     return abs_inst_count;
   }
   // workload_loaded set from nemu_trap
   //
-  if (enable_semantic_point_cpt() && (workload_loaded || donot_skip_boot)) {
+  if (semantic_point_enabled && (workload_loaded || donot_skip_boot)) {
     semantic_point_profile(prev_s->pc, true, abs_inst_count);
     semantic_point_profile(s->pc, false, abs_inst_count);
   }
@@ -450,7 +455,7 @@ static void execute(int n) {
     // Exit the execute() loop after certain basic blocks, even if instr count is disabled.
     IFDEF(CONFIG_INSTR_CNT_DISABLED, n_remain -= 1);
 
-    if (is_ctrl) {
+    if (is_ctrl && unlikely(per_bb_profile_needed())) {
       uint64_t abs_inst_count = per_bb_profile(prev_s, s, br_taken);
       Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
       Logtb("Executed %ld instructions in total, pc: 0x%lx\n",
@@ -501,7 +506,7 @@ end_of_loop:
   Logti("end_of_loop: prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 
-  if (is_ctrl) {
+  if (is_ctrl && unlikely(per_bb_profile_needed())) {
     per_bb_profile(prev_s, s, br_taken);
   }
 
