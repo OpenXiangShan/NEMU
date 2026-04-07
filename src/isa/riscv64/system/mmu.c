@@ -109,6 +109,22 @@ static uint64_t pma_perm_generation = 1;
 #endif
 
 #if defined(CONFIG_RV_PMP_CHECK) || defined(CONFIG_RV_PMA_CHECK)
+uint64_t isa_pmp_permission_generation(void) {
+#ifdef CONFIG_RV_PMP_CHECK
+  return pmp_perm_generation;
+#else
+  return 0;
+#endif
+}
+
+uint64_t isa_pma_permission_generation(void) {
+#ifdef CONFIG_RV_PMA_CHECK
+  return pma_perm_generation;
+#else
+  return 0;
+#endif
+}
+
 static inline uint8_t permission_type_bit(int type) {
   if (type == MEM_TYPE_WRITE) {
     return 1 << 1;
