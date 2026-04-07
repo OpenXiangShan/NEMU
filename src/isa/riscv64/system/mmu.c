@@ -106,6 +106,14 @@ static permission_cache_entry_t pma_perm_cache[PERM_CACHE_SIZE];
 static uint64_t pmp_perm_generation = 1;
 static uint64_t pma_perm_generation = 1;
 
+uint64_t isa_pmp_permission_generation(void) {
+  return pmp_perm_generation;
+}
+
+uint64_t isa_pma_permission_generation(void) {
+  return pma_perm_generation;
+}
+
 static inline uint8_t permission_type_bit(int type) {
   if (type == MEM_TYPE_WRITE) {
     return 1 << 1;
