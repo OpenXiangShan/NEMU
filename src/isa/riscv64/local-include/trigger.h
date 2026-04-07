@@ -195,6 +195,10 @@ bool trigger_reentrancy_check();
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
 void trigger_mark_state_dirty(TriggerModule* TM);
 
+static inline bool trigger_mcontrol6_check_needed(const TriggerModule* TM) {
+  return TM->mcontrol6_state_dirty || TM->mcontrol6_active_count != 0;
+}
+
 static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
 static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
 #ifdef CONFIG_SDTRIG_EXTRA

@@ -125,8 +125,10 @@ int isa_fetch_decode(Decode *s) {
   trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
 #endif // CONFIG_TDATA1_ICOUNT
 #ifdef CONFIG_TDATA1_MCONTROL6
-  trig_action_t mcontrol6_action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
-  trigger_handler(TRIG_TYPE_MCONTROL6, mcontrol6_action, s->pc);
+  if (trigger_mcontrol6_check_needed(cpu.TM)) {
+    trig_action_t mcontrol6_action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
+    trigger_handler(TRIG_TYPE_MCONTROL6, mcontrol6_action, s->pc);
+  }
 #endif // CONFIG_TDATA1_MCONTROL6
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);
