@@ -36,6 +36,8 @@ void init_pma();
 
 void init_riscv_timer();
 void init_device();
+void mmu_refresh_pmp_cache();
+void mmu_refresh_pma_cache();
 
 #define CSR_ZERO_INIT(name, addr) name->val = 0;
 
@@ -128,9 +130,11 @@ void init_isa() {
   pmpcfg12->val = 0;
   pmpcfg14->val = 0;
 #endif // CONFIG_RV_PMP_ENTRY_64
+  mmu_refresh_pmp_cache();
 
 #ifdef CONFIG_RV_PMA_CSR
   init_pma();
+  mmu_refresh_pma_cache();
 #endif // CONFIG_RV_PMA_CSR
 
 #define ext(e) (1 << ((e) - 'a'))
