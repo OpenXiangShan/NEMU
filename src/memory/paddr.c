@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <macro.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
@@ -537,145 +538,56 @@ bool analysis_memory_isuse(uint64_t page) {
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-#define LIMITING_SHIFT(x) (((uint64_t)(x)) < ((uint64_t)63ULL) ? ((uint64_t)(x)) : ((uint64_t)63ULL))
-void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
-  // align with dut
-  uint8_t inside_16bytes_bound = ((addr >> 4) & 1ULL) == (((addr + len - 1) >> 4) & 1ULL);
-  uint64_t st_mask = (len == 1) ? 0x1ULL : (len == 2) ? 0x3ULL : (len == 4) ? 0xfULL : (len == 8) ? 0xffULL : 0xdeadbeefULL;
-  uint64_t st_data_mask = (len == 1) ? 0xffULL : (len == 2) ? 0xffffULL : (len == 4) ? 0xffffffffULL : (len == 8) ? 0xffffffffffffffffULL : 0xdeadbeefULL;
-  store_commit_t low_addr_st;
-  store_commit_t high_addr_st;
 
-  if (inside_16bytes_bound) {
-    low_addr_st.addr = addr - (addr % 16ULL);
-    if ((addr % 16ULL) > 8) {
-      low_addr_st.data = 0;
-    } else {
-      low_addr_st.data = (data & st_data_mask) << LIMITING_SHIFT((addr % 16ULL) << 3);
-    }
-    low_addr_st.mask = (st_mask << (addr % 16ULL)) & 0xffULL;
-    low_addr_st.pc   = prev_s->pc;
+void store_commit_queue_push(uint64_t addr, uint64_t data, int len,
+                             int cross_page_store) {
 
-    store_queue_push(low_addr_st);
-
-    // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
-  } else {
-    low_addr_st.addr = addr - (addr % 8ULL);
-    low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << LIMITING_SHIFT((8 - len + (addr % len)) << 3);
-    low_addr_st.mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
-    low_addr_st.pc   = prev_s->pc;
-
-    high_addr_st.addr = addr - (addr % 16ULL) + 16ULL;
-    high_addr_st.data = (data >> LIMITING_SHIFT((len - (addr % len)) << 3)) & (st_data_mask >> LIMITING_SHIFT((len - (addr % len)) << 3));
-    high_addr_st.mask = st_mask >> (len - (addr % len));
-    high_addr_st.pc   = prev_s->pc;
-
-    store_queue_push(low_addr_st);
-    store_queue_push(high_addr_st);
-
-    // printf("[DEBUG] split low addr store addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
-    // printf("[DEBUG] split high addr store addr: %lx, data: %lx, mask: %lx\n", high_addr_st->addr, high_addr_st->data, (uint64_t)(high_addr_st->mask));
-  }
-}
-
-#define GEN_BYTE_MASK(len)  ((1ULL << (len)) - 1)
-#define GEN_BIT_MASK(len)   ((len) >= 8 ? (~0ULL) : ((1ULL << ((len) * 8)) - 1))
-
-void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
     return;
   }
 #endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
-#ifdef CONFIG_AC_NONE
-  uint8_t store_miss_align = (addr & (len - 1)) != 0;
-  if (unlikely(store_miss_align)) {
-    if (!cross_page_store && !cpu.isVecUnitStore) {
-      miss_align_store_commit_queue_push(addr, data, len);
-      return;
-    }
-  }
-#endif // CONFIG_AC_NONE
-  Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", len = %d", addr, data, len);
- store_commit_t store_commit;
 
-  if (cpu.isVecUnitStore)
-  {
-    bool isCross128Bit = (addr & 0xF) + len > 16;
+  Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", len = %d", addr,
+       data, len);
 
-    if (isCross128Bit)
-    {
-      paddr_t offset_in_block = addr & 0xF;
-      paddr_t space_left = 16 - offset_in_block;
+  // check if len is 1, 2, 4, 8 or cross page store or isVecUnitStore
+  // maybe isVecUnitStore check is useless there
+  Assert(len > 0 && len <= 8 &&
+             (IS_POW_OF_2(len) || cross_page_store || cpu.isVecUnitStore),
+         "Invalid len %d", len);
 
-      paddr_t low_addr = addr;
-      uint8_t low_len = space_left;
-      uint16_t low_mask = (1U << low_len) - 1;
-      word_t low_data = data & ((1ULL << low_len * 8) - 1);
+  // align to 8B boundary, because max len is 64b
+  uint8_t offset = addr & 0x7ULL;
+  uint8_t low_len = MIN_OF(len, 8 - offset);
+  uint8_t low_mask = BITMASKRANGE(low_len + offset, offset);
+  uint64_t low_addr = addr & ~0x7ULL;
+  uint64_t low_data = (data << (offset << 3)) &
+                      BITMASKRANGE((low_len + offset) * 8, offset * 8);
+  store_commit_t low_store_commit = {
+      .addr = low_addr, .data = low_data, .mask = low_mask, .pc = prev_s->pc};
+  ref_log_cpu(
+      "Queue low store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = %08x",
+      low_store_commit.addr, low_store_commit.data, low_store_commit.mask);
+  store_queue_push(low_store_commit);
 
-      paddr_t  high_addr = addr + space_left;
-      uint8_t high_len = len - space_left;
-      uint16_t high_mask = (1U << high_len) - 1;
-      word_t high_data = data >> (low_len * 8);
-
-      store_commit_t low_store_commit = {low_addr, low_data, low_mask, prev_s->pc};
-      store_commit_t high_store_commit = {high_addr, high_data, high_mask, prev_s->pc};
-
-      store_queue_push(low_store_commit);
-      store_queue_push(high_store_commit);
-
-      return;
-    }
-    store_commit.data = data & GEN_BIT_MASK(len);
-    store_commit.mask = GEN_BYTE_MASK(len);
-    assert(len <= 8);
-    store_commit.addr = addr;
-    store_commit.pc = prev_s->pc;
-
-    store_queue_push(store_commit);
+  if (low_len == len) {
     return;
   }
-  uint64_t offset = addr % 8ULL;
-  store_commit.addr = addr - offset;
-  switch (len) {
-    case 1:
-      store_commit.data = (data & 0xffULL) << (offset << 3);
-      store_commit.mask = 0x1 << offset;
-      break;
-    case 2:
-      store_commit.data = (data & 0xffffULL) << (offset << 3);
-      store_commit.mask = 0x3 << offset;
-      break;
-    case 4:
-      store_commit.data = (data & 0xffffffffULL) << (offset << 3);
-      store_commit.mask = 0xf << offset;
-      break;
-    case 8:
-      store_commit.data = data;
-      store_commit.mask = 0xff;
-      break;
-    default:
-#ifdef CONFIG_AC_NONE
-      // strange length, only valid from cross page write
-      if (cross_page_store) {
-        int i = 0;
-        uint64_t _data_mask = 0;
-        uint64_t _mask = 0;
-        for (; i < len; i++) {
-          _data_mask = (_data_mask << 8) | 0xffUL;
-          _mask = (_mask << 1) | 0x1UL;
-        }
-        store_commit.data = (data & _data_mask) << (offset << 3);
-        store_commit.mask = _mask << offset;
-      } else {
-        assert(0);
-      }
-#else
-      assert(0);
-#endif // CONFIG_AC_NONE
-  }
-  store_commit.pc = prev_s->pc;
-  store_queue_push(store_commit);
+
+  uint8_t high_len = len - low_len;
+  uint8_t high_mask = BITMASKRANGE(high_len, 0);
+  uint64_t high_addr = low_addr + 8;
+  uint64_t high_data =
+      (data >> (low_len << 3)) & BITMASKRANGE(high_len * 8, 0);
+  store_commit_t high_store_commit = {.addr = high_addr,
+                                      .data = high_data,
+                                      .mask = high_mask,
+                                      .pc = prev_s->pc};
+  ref_log_cpu(
+      "Queue high store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = %08x",
+      high_store_commit.addr, high_store_commit.data, high_store_commit.mask);
+  store_queue_push(high_store_commit);
 }
 
 store_commit_t store_commit_queue_pop(int *flag) {
