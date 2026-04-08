@@ -83,12 +83,17 @@
 // NOTE2: each element in the contain can be a tuple
 #define MAP(c, f) c(f)
 
-#define BITMASK(bits) ((1UL << (bits)) - 1UL)
+#define BITMASK(bits) (((bits) >= 64ULL) ? (~0UL) : ((1UL << (bits)) - 1UL))
+// generate a bitmask with 1 in (hi:lo] and 0 in (lo:0] and (63:hi]
+#define BITMASKRANGE(hi, lo) ((BITMASK(hi)) & (~BITMASK(lo)))
+
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = (int64_t)x }; (uint64_t)__x.n; })
 
 #define ROUNDUP(a, sz)   ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))
 #define ROUNDDOWN(a, sz) ((((uintptr_t)a)) & ~((sz) - 1))
+
+#define IS_POW_OF_2(x) ((x) && !((x) & ((x) - 1UL)))
 
 #define MAX_OF(x, y) ((x) > (y) ? (x) : (y))
 #define MIN_OF(x, y) ((x) < (y) ? (x) : (y))
