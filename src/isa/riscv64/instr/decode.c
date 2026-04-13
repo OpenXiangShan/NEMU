@@ -43,6 +43,9 @@ static inline uint64_t get_instr(Decode *s) {
 #ifdef CONFIG_RV_ZFA
 #include "rvzfa/decode.h"
 #endif
+#ifdef CONFIG_RV_ZFBF_MIN
+#include "rvzfbf/decode.h"
+#endif
 #endif // CONFIG_FPU_NONE
 #include "rvm/decode.h"
 #include "rva/decode.h"

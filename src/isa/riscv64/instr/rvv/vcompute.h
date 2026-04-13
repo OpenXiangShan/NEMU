@@ -1092,6 +1092,12 @@ def_EHelper(vfwcvt_ffv) {
   FLOAT_ARITH_DWIDE(FWCVT_FF, UNSIGNED)
 }
 
+#ifdef CONFIG_RV_ZVFBF_MIN
+def_EHelper(vfwcvtbf16_ffv) {
+  FLOAT_ARITH_DWIDE(FWCVT_BF16_FF, UNSIGNED)
+}
+#endif
+
 def_EHelper(vfwcvt_rtz_xufv) {
   FLOAT_ARITH_DWIDE(FWCVT_RTZ_XUF, UNSIGNED)
 }
@@ -1119,6 +1125,12 @@ def_EHelper(vfncvt_fxw) {
 def_EHelper(vfncvt_ffw) {
   FLOAT_ARITH_DNARROW(FNCVT_FF, UNSIGNED)
 }
+
+#ifdef CONFIG_RV_ZVFBF_MIN
+def_EHelper(vfncvtbf16_ffw) {
+  FLOAT_ARITH_DNARROW(FNCVT_BF16_FF, UNSIGNED)
+}
+#endif
 
 def_EHelper(vfncvt_rod_ffw) {
   FLOAT_ARITH_DNARROW(FNCVT_ROD_FF, UNSIGNED)
@@ -1264,6 +1276,12 @@ def_EHelper(vfwmul) {
 def_EHelper(vfwmacc) {
   FLOAT_ARITH_SDWIDE(FMACC)
 }
+
+#ifdef CONFIG_RV_ZVFBF_WMA
+def_EHelper(vfwmaccbf16) {
+  FLOAT_ARITH_SDWIDE(FWMACCBF16)
+}
+#endif
 
 def_EHelper(vfwnmacc) {
   FLOAT_ARITH_SDWIDE(FNMACC)
