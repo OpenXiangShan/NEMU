@@ -53,7 +53,7 @@
 static uint8_t *serial_base = NULL;
 static uint16_t divisor = 0x000c; // default to 9600 baud for 115200 base
 
-#ifdef CONFIG_SERIAL_INPUT_FIFO
+#ifdef CONFIG_UART16550_INPUT_FIFO
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -113,7 +113,7 @@ static void init_fifo() {
 
 static inline void serial_update_lsr() {
 	serial_base[UART_REG_OFFSET(UART_LSR)] |= UART_LSR_THRE | UART_LSR_TEMT;
-#ifdef CONFIG_SERIAL_INPUT_FIFO
+#ifdef CONFIG_UART16550_INPUT_FIFO
 	serial_poll_input();
 	if (f != r) {
 		serial_base[UART_REG_OFFSET(UART_LSR)] |= UART_LSR_DR;
@@ -142,7 +142,7 @@ static void serial_handle_access(uint32_t offset, int len, bool is_write) {
 					#endif // CONFIG_SHARE
 					serial_update_lsr();
 				} else {
-#ifdef CONFIG_SERIAL_INPUT_FIFO
+#ifdef CONFIG_UART16550_INPUT_FIFO
 					serial_poll_input();
 					if (f != r) {
 						serial_base[UART_REG_OFFSET(UART_RBR)] = (uint8_t)serial_dequeue();
@@ -175,7 +175,7 @@ static void serial_handle_access(uint32_t offset, int len, bool is_write) {
 			if (is_write) {
 				uint8_t val = serial_base[UART_REG_OFFSET(UART_FCR)];
 				serial_base[UART_REG_OFFSET(UART_FCR)] = val;
-#ifdef CONFIG_SERIAL_INPUT_FIFO
+#ifdef CONFIG_UART16550_INPUT_FIFO
 				if (val & UART_FCR_RFR) {
 					serial_fifo_reset();
 				}
@@ -229,18 +229,18 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
 	serial_handle_access(offset, len, is_write);
 }
 
-void init_serial() {
+void init_uart16550() {
 	serial_base = new_space(0x20);
 	serial_base[UART_REG_OFFSET(UART_LSR)] = UART_LSR_THRE | UART_LSR_TEMT;
 	serial_base[UART_REG_OFFSET(UART_IIR)] = UART_IIR_NO_INT;
 	serial_base[UART_REG_OFFSET(UART_MSR)] = UART_MSR_DCD | UART_MSR_DSR | UART_MSR_CTS;
 
-#ifdef CONFIG_SERIAL_PORT
-	add_pio_map("serial", CONFIG_SERIAL_PORT, serial_base, 0x20, serial_io_handler);
+#ifdef CONFIG_UART16550_PORT
+	add_pio_map("uart16550", CONFIG_UART16550_PORT, serial_base, 0x20, serial_io_handler);
 #endif
-	add_mmio_map("serial", CONFIG_SERIAL_MMIO, serial_base, 0x20, serial_io_handler);
+	add_mmio_map("uart16550", CONFIG_UART16550_MMIO, serial_base, 0x20, serial_io_handler);
 
-#ifdef CONFIG_SERIAL_INPUT_FIFO
+#ifdef CONFIG_UART16550_INPUT_FIFO
 	init_fifo();
 #endif
 }

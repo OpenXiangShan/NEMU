@@ -11,26 +11,26 @@ config HAS_PORT_IO
   bool
   default y
 
-menuconfig HAS_SERIAL
+menuconfig HAS_UART16550
   depends on !SHARE
-  bool "Enable serial"
+  bool "Enable uart16550"
   default y
 
-if HAS_SERIAL
-config SERIAL_PORT
+if HAS_UART16550
+config UART16550_PORT
   depends on HAS_PORT_IO
   hex "Port address of the serial controller"
   default 0x3f8
 
-config SERIAL_MMIO
+config UART16550_MMIO
   hex "MMIO address of the serial controller"
   default 0x310b0000
 
-config SERIAL_INPUT_FIFO
+config UART16550_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
 
-endif # HAS_SERIAL
+endif # HAS_UART16550
 
 menuconfig HAS_UARTLITE
   bool "Enable uartlite"
