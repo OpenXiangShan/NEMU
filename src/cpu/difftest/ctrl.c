@@ -54,7 +54,8 @@ void ctrl_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction
 // ctrl_exec
 void ctrl_exec() {
   if (nemu_state.state == NEMU_WAIT) {
-    if (cpu.mtokr[nemu_state.wait_r] >= nemu_state.wait_val) {
+    uint8_t tok_i = check_mtok_idx(nemu_state.wait_r);
+    if (cpu.mtokr[tok_i] >= nemu_state.wait_val) {
       nemu_state.state = NEMU_RUNNING;
     }
   }
@@ -84,14 +85,6 @@ void ctrl_info(void *reg_buf) {
 // Register callback function for AmuCtrlIO events
 void ctrl_register_amu_callback(void (*callback)(amu_ctrl_event_t)) {
   amu_ctrl_callback_ = callback;
-}
-
-void ctrl_release(int regcnt, bool *release_regs) {
-  for (int i = 0; i < regcnt; i++) {
-    if (release_regs[i]) {
-      cpu.mtokr[i]++;
-    }
-  }
 }
 
 #endif // CONFIG_SHARE_CTRL
