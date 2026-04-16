@@ -23,7 +23,7 @@
 #endif // defined(CONFIG_HAS_AUDIO) || defined(CONFIG_HAS_VGA) || defined(CONFIG_HAS_KEYBOARD)
 #endif // CONFIG_SHARE
 
-void init_serial();
+void init_uart16550();
 void init_uartlite();
 void init_uart_snps();
 void init_plic();
@@ -88,7 +88,7 @@ void sdl_clear_event_queue() {
 }
 
 void init_device() {
-  IFDEF(CONFIG_HAS_SERIAL, init_serial());
+  IFDEF(CONFIG_HAS_UART16550, init_uart16550());
   IFDEF(CONFIG_HAS_UARTLITE, init_uartlite());
   IFDEF(CONFIG_HAS_UART_SNPS, init_uart_snps());
   IFDEF(CONFIG_HAS_PLIC, init_plic());
