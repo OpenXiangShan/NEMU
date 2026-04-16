@@ -153,7 +153,7 @@ static void exec_amu_load_store(void *amu_ctrl, void *res) {
 }
 
 static void exec_amu_release(void *amu_ctrl) {
-  uint8_t tokenRd = ((amu_ctrl_event_t *)amu_ctrl)->mtilem;
+  uint8_t tokenRd = check_mtok_idx(((amu_ctrl_event_t *)amu_ctrl)->mtilem);
   cpu.mtokr[tokenRd]++;
   mstore_queue_update_mrelease(tokenRd, cpu.mtokr[tokenRd]);
 }

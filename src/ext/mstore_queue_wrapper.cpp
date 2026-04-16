@@ -55,6 +55,7 @@ void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
 }
 
 void mstore_queue_update_mrelease(uint8_t tok_i, uint64_t mtokr_value) {
+  assert(tok_i < MTOK);
   if (cpp_mstore_queue.empty()) {
     return;
   }
@@ -71,6 +72,7 @@ void mstore_queue_update_mrelease(uint8_t tok_i, uint64_t mtokr_value) {
 }
 
 void mstore_queue_update_acquire(uint8_t tok_i, uint64_t threshold) {
+  assert(tok_i < MTOK);
   // Traverse from front to back, pop items that satisfy the condition
   while (!cpp_mstore_queue.empty()) {
     if (cpp_mstore_queue.front().valid[tok_i] && cpp_mstore_queue.front().mrelease[tok_i] <= threshold) {
