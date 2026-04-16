@@ -20,15 +20,10 @@
 
 #include "common.h"
 
-// 128 * 64 * 8
-#define TLEN 65536
+#define TLEN   CONFIG_RVMATRIX_TLEN
+#define TRLEN  CONFIG_RVMATRIX_TRLEN
+#define MELEN  CONFIG_RVMATRIX_MLEN
 
-// 64 * 8
-#define TRLEN 512
-
-#define MELEN 32
-
-// 128
 #define ROWNUM (TLEN / TRLEN)
 
 #define TRENUM64 (TRLEN / 64)
@@ -48,7 +43,7 @@
 #define TNMAX      ROWNUM
 #define TKMAX(sew) (TRLEN/sew)
 
-#define MTOK       32
+#define MTOK       CONFIG_RVMATRIX_MTOK
 
 static inline int check_mtreg_num(int num) {
   assert(num >= 0 && num < 4);
@@ -77,6 +72,11 @@ static inline int check_mtreg_idx(int idx, int elen) {
 
 static inline int check_macc_idx(int idx, int elen) {
   assert(idx >= 0 && idx < ARLEN/elen);
+  return idx;
+}
+
+static inline int check_mtok_idx(int idx) {
+  assert(idx >= 0 && idx < MTOK);
   return idx;
 }
 

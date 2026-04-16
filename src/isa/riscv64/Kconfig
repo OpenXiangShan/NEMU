@@ -102,6 +102,57 @@ config RVMATRIX
   bool "RISC-V Matrix Extension v0.5"
   default n
 
+config RVMATRIX_TLEN
+  int "Matrix TLEN (total tile size in bits)"
+  depends on RVMATRIX
+  default 65536
+  help
+    Total number of bits per matrix tile register (TLEN). Must be evenly divisible
+    by TRLEN so that the row count (TLEN / TRLEN) is an integer.
+
+config RVMATRIX_TRLEN
+  int "Matrix TRLEN (bits per tile row)"
+  depends on RVMATRIX
+  default 512
+  help
+    Number of bits in one row of a matrix tile (TRLEN). Must divide TLEN evenly
+    and be a multiple of 64 (so that elements align with the internal uint64_t
+    layout).
+
+config RVMATRIX_MLEN
+  int "Matrix MELEN (element width for ALEN/ARLEN, bits)"
+  depends on RVMATRIX
+  default 32
+  help
+    Matrix element width in bits used in ALEN / ARLEN (implementation macro MELEN).
+    ARLEN = (TLEN / TRLEN) * MELEN must remain a multiple of 64 for the current
+    accumulator register layout.
+
+choice
+  prompt "Matrix MTOK (token register count)"
+  depends on RVMATRIX
+  default RVMATRIX_MTOK_32
+  help
+    Number of matrix token registers exposed by mtok CSR and backed by NEMU
+    state storage.
+
+config RVMATRIX_MTOK_8
+  bool "8"
+
+config RVMATRIX_MTOK_16
+  bool "16"
+
+config RVMATRIX_MTOK_32
+  bool "32"
+endchoice
+
+config RVMATRIX_MTOK
+  int
+  depends on RVMATRIX
+  default 8 if RVMATRIX_MTOK_8
+  default 16 if RVMATRIX_MTOK_16
+  default 32 if RVMATRIX_MTOK_32
+
 config DIFFTEST_DIRTY_FS_VS
   depends on RVV
   depends on DIFFTEST_REF_SPIKE

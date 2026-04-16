@@ -72,45 +72,48 @@ def_EHelper(msettileni) {
 
 def_EHelper(msyncreset) {
   require_matrix();
-  cpu.mtokr[s->src2.imm] = 0;
-  msync_queue_emplace(0, s->src2.imm);
+  uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
+  cpu.mtokr[tok_i] = 0;
+  msync_queue_emplace(0, tok_i);
   mp_set_dirty();
 }
 
 def_EHelper(mrelease) {
   require_matrix();
+  uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
 #ifndef CONFIG_SHARE
-  cpu.mtokr[s->src2.imm]++;
+  cpu.mtokr[tok_i]++;
 #endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mrelease_emplace(s->src2.imm);
+  amu_ctrl_queue_mrelease_emplace(tok_i);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mrelease_emplace(s->src2.imm);
+  cutest_mrelease_emplace(tok_i);
 #endif // CONFIG_SHARE_CTRL
 #ifndef CONFIG_SHARE
-  mstore_queue_update_mrelease(s->src2.imm, cpu.mtokr[s->src2.imm]);
+  mstore_queue_update_mrelease(tok_i, cpu.mtokr[tok_i]);
 #endif // CONFIG_SHARE
   mp_set_dirty();
 }
 
 def_EHelper(macquire) {
   require_matrix();
+  uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
   // Do nothing in NEMU.
 #ifndef CONFIG_SHARE
-  Assert(cpu.mtokr[s->src2.imm] >= reg_l(s->src1.reg),
-    "Value(%ld) in token register %lu is not enough.", reg_l(s->src1.reg), s->src2.imm);
+  Assert(cpu.mtokr[tok_i] >= reg_l(s->src1.reg),
+    "Value(%ld) in token register %d is not enough.", reg_l(s->src1.reg), tok_i);
 #elif defined(CONFIG_SHARE_REF)
-  if (cpu.mtokr[s->src2.imm] < reg_l(s->src1.reg)) {
-    Log("Value(%ld) in token register %lu is not enough.", reg_l(s->src1.reg), s->src2.imm);
+  if (cpu.mtokr[tok_i] < reg_l(s->src1.reg)) {
+    Log("Value(%ld) in token register %d is not enough.", reg_l(s->src1.reg), tok_i);
   }
 #else // controller mode
   nemu_state.state = NEMU_WAIT;
-  nemu_state.wait_r = s->src2.imm;
+  nemu_state.wait_r = tok_i;
   nemu_state.wait_val = reg_l(s->src1.reg);
 #endif
-  msync_queue_emplace(1, s->src2.imm);
-  mstore_queue_update_acquire(s->src2.imm, reg_l(s->src1.reg));
+  msync_queue_emplace(1, tok_i);
+  mstore_queue_update_acquire(tok_i, reg_l(s->src1.reg));
   mp_set_dirty();
 }
 
