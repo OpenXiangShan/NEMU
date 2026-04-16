@@ -161,7 +161,7 @@ static void exec_amu_release(void *amu_ctrl) {
 static void exec_amu_arith(void *amu_ctrl) {
   uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
   if (md < 4) {
-    memset(cpu.mtr[md], 0, TRLEN / 8);
+    memset(cpu.mtr[md], 0, TLEN / 8);
   } else {
     memset(cpu.macc[md - 4], 0, ALEN / 8);
   }
@@ -242,7 +242,7 @@ int exec_amu(void *amu_ctrl, void *res) {
       // Compare the result with the expected result
       // When the result is not equal, set the return value to 1
       if (md < 4) {
-        ret = memcmp(res, cpu.mtr[md], TRLEN / 8) != 0;
+        ret = memcmp(res, cpu.mtr[md], TLEN / 8) != 0;
       } else {
         ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
       }
