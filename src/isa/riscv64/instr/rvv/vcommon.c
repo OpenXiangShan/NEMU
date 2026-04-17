@@ -38,40 +38,54 @@ bool check_vlmul_sew_illegal(rtlreg_t vtype_req) {
   return vill == 1;
 }
 
-void set_NAN(rtlreg_t* fpreg, uint64_t vsew){
+uint32_t fp_type_from_vsew(uint64_t vsew) {
   switch (vsew) {
-    case 0:
+    case 0: return FPCALL_W8;
+    case 1: return FPCALL_W16;
+    case 2: return FPCALL_W32;
+    case 3: return FPCALL_W64;
+    default: return FPCALL_W64;
+  }
+}
+
+void set_NAN(rtlreg_t* fpreg, uint32_t fp_type){
+  switch (fp_type) {
+    case FPCALL_W8:
       *fpreg = (*fpreg & 0xffffffffffffff00) | 0x78;
       break;
-    case 1:
+    case FPCALL_W16:
       *fpreg = (*fpreg & 0xffffffffffff0000) | 0x7e00;
       break;
-    case 2:
+    case FPCALL_BF16:
+      *fpreg = (*fpreg & 0xffffffffffff0000) | 0x7fc0;
+      break;
+    case FPCALL_W32:
       *fpreg = (*fpreg & 0xffffffff00000000) | 0x7fc00000;
       break;
-    case 3:
+    case FPCALL_W64:
       break;
     default:
       break;
   }
 }
 
-bool check_isFpCanonicalNAN(rtlreg_t* fpreg, uint64_t vsew){
+bool check_isFpCanonicalNAN(rtlreg_t* fpreg, uint32_t fp_type){
   int isFpCanonicalNAN = 0;
-  switch (vsew) {
-    case 0:
+  switch (fp_type) {
+    case FPCALL_W8:
       isFpCanonicalNAN = ~(*fpreg | 0xff) != 0;
-      if(isFpCanonicalNAN) set_NAN(fpreg, vsew);
+      if(isFpCanonicalNAN) set_NAN(fpreg, fp_type);
       break;
-    case 1:
+    case FPCALL_W16:
+    case FPCALL_BF16:
       isFpCanonicalNAN = ~(*fpreg | 0xffff) != 0;
-      if(isFpCanonicalNAN) set_NAN(fpreg, vsew);
+      if(isFpCanonicalNAN) set_NAN(fpreg, fp_type);
       break;
-    case 2:
+    case FPCALL_W32:
       isFpCanonicalNAN = ~(*fpreg | 0xffffffff) != 0;
-      if(isFpCanonicalNAN) set_NAN(fpreg, vsew);
+      if(isFpCanonicalNAN) set_NAN(fpreg, fp_type);
       break;
-    case 3:
+    case FPCALL_W64:
       break;
     default:
       break;

@@ -1034,7 +1034,7 @@ def_EHelper(vfmvsf) {
 #endif
   if (vl->val > 0 && vstart->val < vl->val) {
     rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
-    check_isFpCanonicalNAN(s1, vtype->vsew);
+    check_isFpCanonicalNAN(s1, fp_type_from_vsew(vtype->vsew));
     set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
     if (RVV_AGNOSTIC) {
       if(vtype->vta) {

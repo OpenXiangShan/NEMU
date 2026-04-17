@@ -1231,6 +1231,10 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
+  uint32_t fp_box_type = fp_type_from_vsew(vtype->vsew);
+  if (opcode == FWMACCBF16) {
+    fp_box_type = FPCALL_BF16;
+  }
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) {
     if (opcode != FCLASS && opcode != FMERGE && opcode != FSLIDE1UP && opcode != FSLIDE1DOWN) {
@@ -1283,7 +1287,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
         break;
       case SRC_VF :   
         rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
-        check_isFpCanonicalNAN(s1, vtype->vsew);
+        check_isFpCanonicalNAN(s1, fp_box_type);
         switch (vtype->vsew) {
           case 0 : *s1 = *s1 & 0xff; break;
           case 1 : *s1 = *s1 & 0xffff; break;
