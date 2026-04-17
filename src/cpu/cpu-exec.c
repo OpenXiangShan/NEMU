@@ -686,6 +686,10 @@ static void execute(int n) {
 
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
       tcache_handle_flush();
+      // In the non-PERF_OPT path, a tcache flush request is edge-triggered.
+      // Clear only the flush bit after servicing it so we do not re-flush on
+      // every following instruction.
+      g_sys_state_flag &= ~SYS_STATE_FLUSH_TCACHE;
     }
 
     if (cache_s == NULL) {
