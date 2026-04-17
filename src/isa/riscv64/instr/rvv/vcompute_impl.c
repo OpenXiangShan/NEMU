@@ -219,6 +219,24 @@ static bool is_vf_allowed_e8(uint32_t opcode) {
   return false;
 }
 
+#if defined(CONFIG_RV_ZVFBF_MIN) || defined(CONFIG_RV_ZVFBF_WMA)
+static bool is_bf16_opcode(uint32_t opcode) {
+  switch (opcode) {
+#ifdef CONFIG_RV_ZVFBF_MIN
+    case FWCVT_BF16_FF:
+    case FNCVT_BF16_FF:
+      return true;
+#endif
+#ifdef CONFIG_RV_ZVFBF_WMA
+    case FWMACCBF16:
+      return true;
+#endif
+    default:
+      return false;
+  }
+}
+#endif
+
 static inline void update_vcsr() {
   vcsr->val = (vxrm->val) << 1 | vxsat->val;
 }
@@ -1183,6 +1201,11 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
 #else
   if (vtype->vsew == 1 && !is_vf_allowed_e16(opcode)) {
     Loge("ZVFH extension is not enabled, please make menuconfig!");
+    longjmp_exception(EX_II);
+  }
+#endif
+#if defined(CONFIG_RV_ZVFBF_MIN) || defined(CONFIG_RV_ZVFBF_WMA)
+  if (is_bf16_opcode(opcode) && vtype->vsew != 1) {
     longjmp_exception(EX_II);
   }
 #endif
