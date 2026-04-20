@@ -146,7 +146,6 @@ typedef struct {
   bool is_tor;
 } protection_entry_cache_t;
 
-#ifdef CONFIG_RV_PMP_CHECK
 #if CONFIG_RV_PMP_ACTIVE_NUM > 0
 static protection_entry_cache_t pmp_entry_cache[CONFIG_RV_PMP_ACTIVE_NUM];
 #endif
@@ -176,9 +175,7 @@ void mmu_refresh_pmp_cache(void) {
 #endif
   pmp_perm_generation++;
 }
-#endif
 
-#ifdef CONFIG_RV_PMA_CHECK
 #if CONFIG_RV_PMA_ACTIVE_NUM > 0
 static protection_entry_cache_t pma_entry_cache[CONFIG_RV_PMA_ACTIVE_NUM];
 #endif
@@ -208,7 +205,6 @@ void mmu_refresh_pma_cache(void) {
 #endif
   pma_perm_generation++;
 }
-#endif
 
 static inline void update_effective_address_state(void) {
   data_effective_address_identity_fast =
@@ -216,7 +212,11 @@ static inline void update_effective_address_state(void) {
 }
 
 static inline void update_hosttlb_fast_state(void) {
+#ifdef CONFIG_RVH
   data_hosttlb_fast_enabled = !((get_mprv() && mstatus->mpv) || cpu.v);
+#else
+  data_hosttlb_fast_enabled = !get_mprv();
+#endif
 }
 
 #ifdef CONFIG_RVH
