@@ -31,6 +31,7 @@ unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 extern Decode *prev_s;
 
 #define COMBINED_PERM_CACHE_SIZE 256
+#if defined(CONFIG_PMP_GRANULARITY) && defined(CONFIG_PMA_GRANULARITY)
 #define COMBINED_PMP_PAGE_SHIFT CONFIG_PMP_GRANULARITY
 #define COMBINED_PMA_PAGE_SHIFT CONFIG_PMA_GRANULARITY
 #define COMBINED_PERM_PAGE_SHIFT ((COMBINED_PMP_PAGE_SHIFT) < (COMBINED_PMA_PAGE_SHIFT) ? (COMBINED_PMP_PAGE_SHIFT) : (COMBINED_PMA_PAGE_SHIFT))
@@ -116,6 +117,22 @@ static inline void combined_permission_cache_store_allow(paddr_t addr, int len, 
   cache->pma_generation = isa_pma_permission_generation();
   cache->allow_mask |= access_bit;
 }
+#else
+static inline bool combined_permission_cache_lookup(paddr_t addr, int len, int type, int out_mode) {
+  (void)addr;
+  (void)len;
+  (void)type;
+  (void)out_mode;
+  return false;
+}
+
+static inline void combined_permission_cache_store_allow(paddr_t addr, int len, int type, int out_mode) {
+  (void)addr;
+  (void)len;
+  (void)type;
+  (void)out_mode;
+}
+#endif
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint64_t vec_read_golden_mem_addr;
