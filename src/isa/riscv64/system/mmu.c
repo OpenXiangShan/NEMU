@@ -161,7 +161,6 @@ typedef struct {
   bool is_tor;
 } protection_entry_cache_t;
 
-#ifdef CONFIG_RV_PMP_CHECK
 #if CONFIG_RV_PMP_ACTIVE_NUM > 0
 static protection_entry_cache_t pmp_entry_cache[CONFIG_RV_PMP_ACTIVE_NUM];
 #endif
@@ -191,12 +190,7 @@ void mmu_refresh_pmp_cache(void) {
 #endif
   pmp_perm_generation++;
 }
-#else
-void mmu_refresh_pmp_cache(void) {
-}
-#endif
 
-#ifdef CONFIG_RV_PMA_CHECK
 #if CONFIG_RV_PMA_ACTIVE_NUM > 0
 static protection_entry_cache_t pma_entry_cache[CONFIG_RV_PMA_ACTIVE_NUM];
 #endif
@@ -226,10 +220,6 @@ void mmu_refresh_pma_cache(void) {
 #endif
   pma_perm_generation++;
 }
-#else
-void mmu_refresh_pma_cache(void) {
-}
-#endif
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
