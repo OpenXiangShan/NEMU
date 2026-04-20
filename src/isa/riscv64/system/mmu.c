@@ -90,8 +90,12 @@ static bool data_effective_address_identity_fast = false;
 static bool data_hosttlb_fast_enabled = false;
 
 #define PERM_CACHE_SIZE 256
+#ifdef CONFIG_RV_PMP_CHECK
 #define PMP_CACHE_PAGE_SHIFT CONFIG_PMP_GRANULARITY
+#endif
+#ifdef CONFIG_RV_PMA_CHECK
 #define PMA_CACHE_PAGE_SHIFT CONFIG_PMA_GRANULARITY
+#endif
 
 typedef struct {
   word_t page_tag;
@@ -101,8 +105,12 @@ typedef struct {
   uint8_t mode;
 } permission_cache_entry_t;
 
+#ifdef CONFIG_RV_PMP_CHECK
 static permission_cache_entry_t pmp_perm_cache[PERM_CACHE_SIZE];
+#endif
+#ifdef CONFIG_RV_PMA_CHECK
 static permission_cache_entry_t pma_perm_cache[PERM_CACHE_SIZE];
+#endif
 static uint64_t pmp_perm_generation = 1;
 static uint64_t pma_perm_generation = 1;
 
@@ -114,6 +122,7 @@ uint64_t isa_pma_permission_generation(void) {
   return pma_perm_generation;
 }
 
+#if defined(CONFIG_RV_PMP_CHECK) || defined(CONFIG_RV_PMA_CHECK)
 static inline uint8_t permission_type_bit(int type) {
   if (type == MEM_TYPE_WRITE) {
     return 1 << 1;
@@ -128,14 +137,19 @@ static inline bool access_within_granularity(word_t addr, int len, int shift) {
   word_t mask = ((word_t)1 << shift) - 1;
   return (addr & mask) + (word_t)len <= ((word_t)1 << shift);
 }
+#endif
 
+#ifdef CONFIG_RV_PMP_CHECK
 static inline permission_cache_entry_t *select_pmp_perm_cache(word_t page_tag, uint8_t mode) {
   return &pmp_perm_cache[(page_tag ^ mode) & (PERM_CACHE_SIZE - 1)];
 }
+#endif
 
+#ifdef CONFIG_RV_PMA_CHECK
 static inline permission_cache_entry_t *select_pma_perm_cache(word_t page_tag) {
   return &pma_perm_cache[page_tag & (PERM_CACHE_SIZE - 1)];
 }
+#endif
 
 typedef struct {
   word_t lower;
