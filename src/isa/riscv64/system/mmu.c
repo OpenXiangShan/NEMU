@@ -87,8 +87,12 @@ static inline uint64_t get_mprv() {
 }
 
 #define PERM_CACHE_SIZE 256
+#ifdef CONFIG_RV_PMP_CHECK
 #define PMP_CACHE_PAGE_SHIFT CONFIG_PMP_GRANULARITY
+#endif
+#ifdef CONFIG_RV_PMA_CHECK
 #define PMA_CACHE_PAGE_SHIFT CONFIG_PMA_GRANULARITY
+#endif
 
 typedef struct {
   word_t page_tag;
@@ -108,7 +112,6 @@ static permission_cache_entry_t pma_perm_cache[PERM_CACHE_SIZE];
 static uint64_t pma_perm_generation = 1;
 #endif
 
-#if defined(CONFIG_RV_PMP_CHECK) || defined(CONFIG_RV_PMA_CHECK)
 uint64_t isa_pmp_permission_generation(void) {
 #ifdef CONFIG_RV_PMP_CHECK
   return pmp_perm_generation;
@@ -125,6 +128,7 @@ uint64_t isa_pma_permission_generation(void) {
 #endif
 }
 
+#if defined(CONFIG_RV_PMP_CHECK) || defined(CONFIG_RV_PMA_CHECK)
 static inline uint8_t permission_type_bit(int type) {
   if (type == MEM_TYPE_WRITE) {
     return 1 << 1;
