@@ -257,7 +257,7 @@
 #define SISELECT_SMCDELEG_INSTRET     0x42
 #define SISELECT_SMCDELEG_INSTRETCFG  0x42
 /*
- * ?iselect values for hpmcounters4..31 and hpmevent4..31
+ * ?iselect values for hpmcounters3..31 and hpmevent3..31
  * can easily computed, and were elided for brevity.
  */
 #define SISELECT_SMCDELEG_HPMCOUNTER_3  0x43
