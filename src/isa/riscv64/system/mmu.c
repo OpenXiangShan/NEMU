@@ -233,11 +233,18 @@ static bool data_hosttlb_fast_enabled = false;
 
 static inline void update_effective_address_state(void) {
   data_effective_address_identity_fast =
+#ifdef CONFIG_RVH
+    !hld_st &&
+#endif
     !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
 }
 
 static inline void update_hosttlb_fast_state(void) {
+#ifdef CONFIG_RVH
   data_hosttlb_fast_enabled = !((get_mprv() && mstatus->mpv) || cpu.v);
+#else
+  data_hosttlb_fast_enabled = true;
+#endif
 }
 
 #ifdef CONFIG_RVH
