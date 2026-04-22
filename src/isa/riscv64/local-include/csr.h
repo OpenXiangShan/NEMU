@@ -130,12 +130,12 @@
   f(senvcfg    , 0x10A)
 
 /** Supervisor Counter Setup **/
-#ifdef CONFIG_RV_Smcdeleg
+#ifdef CONFIG_RV_SMCDELEG
   #define CSRS_S_COUNTER_SETUP(f) \
     f(scountinhibit, 0x120)
-#else // CONFIG_RV_Smcdeleg
+#else // CONFIG_RV_SMCDELEG
   #define CSRS_S_COUNTER_SETUP(f)
-#endif // CONFIG_RV_Smcdeleg
+#endif // CONFIG_RV_SMCDELEG
 
 /** Supervisor Trap Handling **/
 #define CSRS_S_TRAP_HANDLING(f) \
@@ -213,21 +213,14 @@
   #define CSRS_S_AIA(f)
 #endif
 
-#if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
+#if defined(CONFIG_RV_SMCSRIND)
   #define CSRS_S_CSRIND(f) \
-    f(siselect , 0x150) f(sireg   , 0x151)
+    f(siselect , 0x150) f(sireg   , 0x151) f(sireg2 , 0x152) \
+    f(sireg3   , 0x153) f(sireg4  , 0x155) f(sireg5 , 0x156) \
+    f(sireg6   , 0x157)
 #else
   #define CSRS_S_CSRIND(f)
 #endif
-
-/** Supervisor Indirect Access CSRs **/
-#ifdef CONFIG_RV_SMCSRIND_SUB
-  #define CSRS_S_CSRIND_SUB(f) \
-    f(sireg2     , 0x152) f(sireg3     , 0x153) \
-    f(sireg4     , 0x155) f(sireg5     , 0x156) f(sireg6     , 0x157)
-#else
-  #define CSRS_S_CSRIND_SUB(f)
-#endif // CONFIG_RV_SMCSRIND_SUB
 
 /** ALL **/
 #define CSRS_S(f) \
@@ -241,7 +234,6 @@
   CSRS_S_SCOFPMF(f) \
   CSRS_S_AIA(f) \
   CSRS_S_CSRIND(f) \
-  CSRS_S_CSRIND_SUB(f) \
   CSRS_S_SSTC(f) \
   CSRS_S_CUSTOM_1(f)
 
@@ -309,20 +301,13 @@
     #define CSRS_H_VS_AIA(f)
   #endif
 
-  #if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
+  #if defined(CONFIG_RV_SMCSRIND)
     #define CSRS_VS_CSRIND(f) \
-      f(vsiselect  , 0x250) f(vsireg     , 0x251)
+      f(vsiselect  , 0x250)  f(vsireg     , 0x251) f(vsireg2     , 0x252) \
+      f(vsireg3    , 0x253)  f(vsireg4    , 0x255) f(vsireg5     , 0x256) \
+      f(vsireg6    , 0x257)
   #else
     #define CSRS_VS_CSRIND(f)
-  #endif
-
-  /** VS Indirect Access CSRs **/
-  #ifdef CONFIG_RV_SMCSRIND_SUB
-    #define CSRS_VS_CSRIND_SUB(f) \
-      f(vsireg2     , 0x252) f(vsireg3     , 0x253) \
-      f(vsireg4     , 0x255) f(vsireg5     , 0x256) f(vsireg6     , 0x257)
-  #else
-    #define CSRS_VS_CSRIND_SUB(f)
   #endif
 
   #ifdef CONFIG_RV_SSTC
@@ -343,7 +328,6 @@
     CSRS_H_STATE_ENABLE(f) \
     CSRS_H_VS_AIA(f) \
     CSRS_VS_CSRIND(f) \
-    CSRS_VS_CSRIND_SUB(f) \
     CSRS_VS_SSTC(f) \
     CSRS_VS(f)
 
@@ -506,7 +490,7 @@
   CSRS_M_MCOUNTINHIBIT(f) \
   CSRS_M_HPMEVENT(f) \
   CSRS_M_SMCNTRPMF(f)
-  
+
 /** Debug/Trace Registers (Trigger Module Registers) **/
 #ifdef CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f) \
@@ -548,21 +532,14 @@
   #define CSRS_M_AIA(f)
 #endif
 
-#if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
+#if defined(CONFIG_RV_SMCSRIND)
   #define CSRS_M_CSRIND(f) \
-    f(miselect   , 0x350) f(mireg      , 0x351)
+    f(miselect   , 0x350) f(mireg      , 0x351) f(mireg2     , 0x352) \
+    f(mireg3     , 0x353) f(mireg4     , 0x355) f(mireg5     , 0x356) \
+    f(mireg6     , 0x357)
 #else
   #define CSRS_M_CSRIND(f)
 #endif
-
-/** Machine Indirect Access CSRs **/
-#ifdef CONFIG_RV_SMCSRIND_SUB
-  #define CSRS_M_CSRIND_SUB(f) \
-    f(mireg2     , 0x352) f(mireg3     , 0x353) \
-    f(mireg4     , 0x355) f(mireg5     , 0x356) f(mireg6     , 0x357)
-#else
-  #define CSRS_M_CSRIND_SUB(f)
-#endif // CONFIG_RV_SMCSRIND_SUB
 
 /**  Machine Non-Maskable Interrupt Handling **/
 #ifdef CONFIG_RV_SMRNMI
@@ -588,7 +565,6 @@
   CSRS_M_DEBUG_TRACE(f) \
   CSRS_M_AIA(f) \
   CSRS_M_CSRIND(f) \
-  CSRS_M_CSRIND_SUB(f) \
   CSRS_M_SMRNMI(f) \
   CSRS_DEBUG_MODE(f) \
   CSRS_M_CUSTOM(f)
@@ -810,6 +786,16 @@ CSR_STRUCT_START(mcountinhibit)
   uint64_t pad1 : 32;  // [63:32]
 CSR_STRUCT_END(mcountinhibit)
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
+
+#ifdef CONFIG_RV_SMCDELEG
+CSR_STRUCT_START(scountinhibit)
+  uint64_t cy   : 1;   // [0]
+  uint64_t pad0 : 1;   // [1]
+  uint64_t ir   : 1;   // [2]
+  uint64_t hpm  : 29;  // [31:3]
+  uint64_t pad1 : 32;  // [63:32]
+CSR_STRUCT_END(scountinhibit)
+#endif // CONFIG_RV_SMCDELEG
 
 #ifdef CONFIG_RV_SMCNTRPMF
 #define CSRS_M_SMCNTRPMF_STRUCT(name, addr) \
@@ -1103,7 +1089,7 @@ CSR_STRUCT_START(mvip)
 CSR_STRUCT_END(mvip)
 #endif // CONFIG_RV_IMSIC
 
-#if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
+#if defined(CONFIG_RV_SMCSRIND)
 CSR_STRUCT_START(miselect)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(miselect)
@@ -1111,10 +1097,7 @@ CSR_STRUCT_END(miselect)
 CSR_STRUCT_START(mireg)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg)
-#endif
 
-/** Machine Indirect Access CSRs **/
-#ifdef CONFIG_RV_SMCSRIND_SUB
 CSR_STRUCT_START(mireg2)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg2)
@@ -1134,7 +1117,7 @@ CSR_STRUCT_END(mireg5)
 CSR_STRUCT_START(mireg6)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(mireg6)
-#endif // CONFIG_RV_SMCSRIND_SUB
+#endif // CONFIG_RV_SMCSRIND
 
 /* Supervisor-level CSR */
 
@@ -1346,7 +1329,7 @@ CSR_STRUCT_START(stopi)
 CSR_STRUCT_END(stopi)
 #endif // CONFIG_RV_IMSIC
 
-#if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
+#if defined(CONFIG_RV_SMCSRIND)
 CSR_STRUCT_START(siselect)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(siselect)
@@ -1354,10 +1337,7 @@ CSR_STRUCT_END(siselect)
 CSR_STRUCT_START(sireg)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg)
-#endif
 
-/** Supervisor Indirect Access CSRs **/
-#ifdef CONFIG_RV_SMCSRIND_SUB
 CSR_STRUCT_START(sireg2)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg2)
@@ -1377,7 +1357,7 @@ CSR_STRUCT_END(sireg5)
 CSR_STRUCT_START(sireg6)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(sireg6)
-#endif // CONFIG_RV_SMCSRIND_SUB
+#endif // CONFIG_RV_SMCSRIND
 
 /* hypervisor and Virtual Supervisor CSR */
 
@@ -1628,7 +1608,7 @@ CSR_STRUCT_START(vstopi)
 CSR_STRUCT_END(vstopi)
 #endif // CONFIG_RV_IMSIC
 
-#if defined(CONFIG_RV_IMSIC) || defined(CONFIG_RV_SMCSRIND)
+#if defined(CONFIG_RV_SMCSRIND)
 CSR_STRUCT_START(vsiselect)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(vsiselect)
@@ -1636,10 +1616,7 @@ CSR_STRUCT_END(vsiselect)
 CSR_STRUCT_START(vsireg)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg)
-#endif
 
-/** VS Indirect Access CSRs **/
-#ifdef CONFIG_RV_SMCSRIND_SUB
 CSR_STRUCT_START(vsireg2)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg2)
@@ -1659,7 +1636,7 @@ CSR_STRUCT_END(vsireg5)
 CSR_STRUCT_START(vsireg6)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(vsireg6)
-#endif // CONFIG_RV_SMCSRIND_SUB
+#endif // CONFIG_RV_SMCSRIND
 
 /* Unprivileged CSR */
 
@@ -1919,6 +1896,7 @@ MAP(CSRS, CSRS_DECL)
 /** AIA **/
 #define ISELECT_2F_MASK 0x2F
 #define ISELECT_3F_MASK 0x3F
+#define ISELECT_5F_MASK 0x5F
 #define ISELECT_6F_MASK 0x6F
 #define ISELECT_7F_MASK 0x7F
 #define ISELECT_MAX_MASK 0xFF

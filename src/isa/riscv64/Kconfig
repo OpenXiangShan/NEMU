@@ -173,6 +173,7 @@ config SDTRIG_EXTRA
 config RV_AIA
   bool "(Beta) RISC-V Advanced Interrupt Architecture v1.0"
   depends on RVH
+  depends on RV_SMCSRIND
   default n
 
 config RV_IMSIC
@@ -532,10 +533,15 @@ config RV_SMCSRIND
   bool "RISC-V Smcsrind/Sscsrind Indirect CSR Access, Version 1.0"
   default n
 
-config RV_SMCSRIND_SUB
-  bool "Control whether to implement xireg2 through xireg6 in Smcsrind/Sscsrind."
+config RV_SMCDELEG
+  bool "RISC-V Smcdeleg/Ssccfg extension"
   depends on RV_SMCSRIND
+  depends on RV_CSR_MCOUNTINHIBIT
+  depends on RV_SMCNTRPMF
   default n
+  help
+    This enables menvcfg.CDE, delegated counter access through siselect/sireg*,
+    and the supervisor counter inhibit CSR scountinhibit.
 
 config RV_SVNAPOT
   bool "RISC-V Svnapot extension for NAPOT Translation Contiguity (beta)"
