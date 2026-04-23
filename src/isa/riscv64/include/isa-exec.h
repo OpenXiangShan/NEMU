@@ -45,6 +45,9 @@
 #ifdef CONFIG_RV_ZFA
 #include "../instr/rvzfa/exec.h"
 #endif
+
+#include "../instr/rvzvk/exec.h"
+
 #ifdef CONFIG_CUSTOM_TENSOR
 #include "../instr/rvt/exec.h"
 #endif
