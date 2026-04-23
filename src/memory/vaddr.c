@@ -170,7 +170,6 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 #endif // ENABLE_HOSTTLB
 
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
-
 #ifdef CONFIG_RVH
   // check whether here is a hlvx instruction
   // when inst fetch or vaddr_read_safe (for examine memory), s is NULL
