@@ -26,6 +26,21 @@ config UART16550_MMIO
   hex "MMIO address of the serial controller"
   default 0x310b0000
 
+choice UART16550_REG_SHIFT_CHOICE
+  prompt "Register shift of the serial controller"
+  default UART16550_REG_SHIFT_2
+  help
+    Register spacing shift for the uart16550 register block.
+    Only 0 and 2 are implemented and validated.
+
+config UART16550_REG_SHIFT_0
+  bool "0"
+
+config UART16550_REG_SHIFT_2
+  bool "2"
+
+endchoice
+
 config UART16550_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
