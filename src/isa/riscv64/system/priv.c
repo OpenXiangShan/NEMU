@@ -2649,12 +2649,14 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp)
-      || is_write(hgatp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
+      || is_write(hgatp) || is_write(senvcfg)
+      || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
   }
 #else
-  if (is_write(mstatus) || is_write(satp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(satp) || is_write(senvcfg)
+      || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
 #endif
   if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||

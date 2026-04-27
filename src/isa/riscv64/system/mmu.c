@@ -86,6 +86,13 @@ static inline uint64_t get_mprv() {
   #endif // CONFIG_RV_SMRNMI
 }
 
+static bool data_effective_address_identity_fast = false;
+
+static inline void update_effective_address_state(void) {
+  data_effective_address_identity_fast =
+    !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
+}
+
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -212,15 +219,14 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
     return vaddr;
   }
 
+  if (likely(!hld_st && data_effective_address_identity_fast)) {
+    return vaddr;
+  }
+
   bool virt = cpu.v;
   int mode = cpu.mode;
   int pmm = 0;
   int masked_width = 0;
-
-  // Early out fastpath for non-H & non-pmm applications
-  if (likely(!hld_st && !get_mprv() && mode == MODE_U && senvcfg->pmm == 0)) {
-    return vaddr;
-  }
 
   if (hld_st) {
     mode = hstatus->spvp;
@@ -622,6 +628,7 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+  update_effective_address_state();
 #ifdef CONFIG_RVH
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
