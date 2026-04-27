@@ -25,6 +25,10 @@
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
 
+#ifdef CONFIG_RVH
+extern bool hosttlb_data_fast_enabled_for_access(void);
+#endif
+
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
@@ -92,6 +96,14 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   return data;
 }
 
+static inline word_t hosttlb_fast_read(HostTLBEntry *e, vaddr_t vaddr, int len) {
+#ifdef CONFIG_USE_SPARSEMM
+  return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
+#else
+  return host_read(e->offset + vaddr, len);
+#endif
+}
+
 __attribute__((noinline))
 static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
@@ -110,36 +122,43 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   }
 }
 
-word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
-  Logm("hosttlb_reading " FMT_WORD, vaddr);
+word_t hosttlb_ifetch(vaddr_t vaddr, int len) {
 #ifdef CONFIG_RVH
-  extern bool has_two_stage_translation();
-  if(has_two_stage_translation()){
-    paddr_t paddr = va2pa(s, vaddr, len, type);
-    return paddr_read(paddr, len, type, type, cpu.mode, vaddr);
+  if (unlikely(cpu.v)) {
+    paddr_t paddr = va2pa(NULL, vaddr, len, MEM_TYPE_IFETCH);
+    return paddr_read(paddr, len, MEM_TYPE_IFETCH, MEM_TYPE_IFETCH, cpu.mode, vaddr);
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
-  HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
-    &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
+  HostTLBEntry *e = &hostxtlb[hosttlb_idx(vaddr)];
+  if (unlikely(e->gvpn != gvpn)) {
+    return hosttlb_read_slowpath(NULL, vaddr, len, MEM_TYPE_IFETCH);
+  }
+  return hosttlb_fast_read(e, vaddr, len);
+}
+
+word_t hosttlb_data_read(struct Decode *s, vaddr_t vaddr, int len) {
+  Logm("hosttlb_reading " FMT_WORD, vaddr);
+#ifdef CONFIG_RVH
+  if (unlikely(!hosttlb_data_fast_enabled_for_access())) {
+    paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_READ);
+    return paddr_read(paddr, len, MEM_TYPE_READ, MEM_TYPE_READ, cpu.mode, vaddr);
+  }
+#endif
+  vaddr_t gvpn = hosttlb_vpn(vaddr);
+  HostTLBEntry *e = &hostrtlb[hosttlb_idx(vaddr)];
   if (unlikely(e->gvpn != gvpn)) {
     Logm("Host TLB slow path");
-    return hosttlb_read_slowpath(s, vaddr, len, type);
-  } else {
-    Logm("Host TLB fast path");
-    #ifdef CONFIG_USE_SPARSEMM
-    return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
-    #else
-    return host_read(e->offset + vaddr, len);
-    #endif
+    return hosttlb_read_slowpath(s, vaddr, len, MEM_TYPE_READ);
   }
+  Logm("Host TLB fast path");
+  return hosttlb_fast_read(e, vaddr, len);
 }
-extern bool has_two_stage_translation();
 
 #ifdef CONFIG_RVV
 void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_write) {
 #ifdef CONFIG_RVH
-  if(has_two_stage_translation()){
+  if (unlikely(!hosttlb_data_fast_enabled_for_access())) {
     // Fast path for guest is not implemented yet
     return;
   }
@@ -162,7 +181,7 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #ifdef CONFIG_RVH
-  if(has_two_stage_translation()){
+  if (unlikely(!hosttlb_data_fast_enabled_for_access())) {
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
   }
