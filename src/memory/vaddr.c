@@ -201,7 +201,10 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
     Logm("Paddr reading directly");
     return paddr_read(addr, len, type, type, cpu.mode, addr);
   }
-  return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
+  IFDEF(ENABLE_HOSTTLB, return type == MEM_TYPE_IFETCH
+      ? hosttlb_ifetch(addr, len)
+      : hosttlb_data_read((struct Decode *)s, addr, len));
+  IFNDEF(ENABLE_HOSTTLB, return vaddr_mmu_read((struct Decode *)s, addr, len, type));
   return 0;
 
 }

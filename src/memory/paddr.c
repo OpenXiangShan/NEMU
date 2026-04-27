@@ -30,6 +30,110 @@ unsigned long MEMORY_SIZE = CONFIG_MSIZE;
 
 extern Decode *prev_s;
 
+#define COMBINED_PERM_CACHE_SIZE 256
+#if defined(CONFIG_PMP_GRANULARITY) && defined(CONFIG_PMA_GRANULARITY)
+#define COMBINED_PMP_PAGE_SHIFT CONFIG_PMP_GRANULARITY
+#define COMBINED_PMA_PAGE_SHIFT CONFIG_PMA_GRANULARITY
+#define COMBINED_PERM_PAGE_SHIFT ((COMBINED_PMP_PAGE_SHIFT) < (COMBINED_PMA_PAGE_SHIFT) ? (COMBINED_PMP_PAGE_SHIFT) : (COMBINED_PMA_PAGE_SHIFT))
+
+typedef struct {
+  word_t page_tag;
+  uint64_t pmp_generation;
+  uint64_t pma_generation;
+  uint8_t allow_mask;
+  uint8_t mode;
+} combined_permission_cache_entry_t;
+
+static combined_permission_cache_entry_t combined_perm_cache[COMBINED_PERM_CACHE_SIZE];
+
+static inline uint8_t combined_permission_type_bit(int type) {
+  if (type == MEM_TYPE_WRITE) {
+    return 1 << 1;
+  }
+  if (type == MEM_TYPE_IFETCH) {
+    return 1 << 2;
+  }
+  return 1 << 0;
+}
+
+static inline bool access_within_permission_granularity(word_t addr, int len, int shift) {
+  word_t mask = ((word_t)1 << shift) - 1;
+  return (addr & mask) + (word_t)len <= ((word_t)1 << shift);
+}
+
+static inline uint64_t combined_permission_get_mprv(void) {
+#ifdef CONFIG_RV_SMRNMI
+  return mstatus->mprv & mnstatus->nmie;
+#else
+  return mstatus->mprv;
+#endif
+}
+
+static inline uint8_t combined_permission_mode(int type, int out_mode) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  return (out_mode == MODE_M) ? (combined_permission_get_mprv() && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
+}
+
+static inline combined_permission_cache_entry_t *select_combined_perm_cache(word_t page_tag, uint8_t mode) {
+  return &combined_perm_cache[(page_tag ^ mode) & (COMBINED_PERM_CACHE_SIZE - 1)];
+}
+
+static inline bool combined_permission_cache_lookup(paddr_t addr, int len, int type, int out_mode) {
+  if (unlikely(!access_within_permission_granularity(addr, len, COMBINED_PMP_PAGE_SHIFT) ||
+      !access_within_permission_granularity(addr, len, COMBINED_PMA_PAGE_SHIFT))) {
+    return false;
+  }
+
+  word_t page_tag = addr >> COMBINED_PERM_PAGE_SHIFT;
+  uint8_t mode = combined_permission_mode(type, out_mode);
+  uint8_t access_bit = combined_permission_type_bit(type);
+  combined_permission_cache_entry_t *cache = select_combined_perm_cache(page_tag, mode);
+  return cache->pmp_generation == isa_pmp_permission_generation() &&
+    cache->pma_generation == isa_pma_permission_generation() &&
+    cache->page_tag == page_tag &&
+    cache->mode == mode &&
+    (cache->allow_mask & access_bit);
+}
+
+static inline void combined_permission_cache_store_allow(paddr_t addr, int len, int type, int out_mode) {
+  if (unlikely(!access_within_permission_granularity(addr, len, COMBINED_PMP_PAGE_SHIFT) ||
+      !access_within_permission_granularity(addr, len, COMBINED_PMA_PAGE_SHIFT))) {
+    return;
+  }
+
+  word_t page_tag = addr >> COMBINED_PERM_PAGE_SHIFT;
+  uint8_t mode = combined_permission_mode(type, out_mode);
+  uint8_t access_bit = combined_permission_type_bit(type);
+  combined_permission_cache_entry_t *cache = select_combined_perm_cache(page_tag, mode);
+  if (cache->page_tag != page_tag ||
+      cache->mode != mode ||
+      cache->pmp_generation != isa_pmp_permission_generation() ||
+      cache->pma_generation != isa_pma_permission_generation()) {
+    cache->allow_mask = 0;
+  }
+  cache->page_tag = page_tag;
+  cache->mode = mode;
+  cache->pmp_generation = isa_pmp_permission_generation();
+  cache->pma_generation = isa_pma_permission_generation();
+  cache->allow_mask |= access_bit;
+}
+#else
+static inline bool combined_permission_cache_lookup(paddr_t addr, int len, int type, int out_mode) {
+  (void)addr;
+  (void)len;
+  (void)type;
+  (void)out_mode;
+  return false;
+}
+
+static inline void combined_permission_cache_store_allow(paddr_t addr, int len, int type, int out_mode) {
+  (void)addr;
+  (void)len;
+  (void)type;
+  (void)out_mode;
+}
+#endif
+
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint64_t vec_read_golden_mem_addr;
 extern uint64_t vec_read_golden_mem_data;
@@ -233,6 +337,9 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 /* Memory accessing interfaces */
 
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+  if (likely(combined_permission_cache_lookup(addr, len, type, mode))) {
+    return true;
+  }
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
     if (trap_type == MEM_TYPE_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
@@ -265,6 +372,7 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
     return false;
   }
   #endif
+  combined_permission_cache_store_allow(addr, len, type, mode);
   return true;
 }
 
