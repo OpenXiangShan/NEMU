@@ -87,6 +87,12 @@ static inline uint64_t get_mprv() {
 }
 
 #ifdef CONFIG_RVH
+static bool data_hosttlb_fast_enabled = false;
+
+static inline void update_hosttlb_fast_state(void) {
+  data_hosttlb_fast_enabled = !((get_mprv() && mstatus->mpv) || cpu.v);
+}
+
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
 #else
@@ -177,6 +183,10 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
 #ifdef CONFIG_RVH
 bool has_two_stage_translation(){
   return hld_st || (get_mprv() && mstatus->mpv) || cpu.v;
+}
+
+bool hosttlb_data_fast_enabled_for_access(void) {
+  return !hld_st && data_hosttlb_fast_enabled;
 }
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
@@ -622,6 +632,9 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+#ifdef CONFIG_RVH
+  update_hosttlb_fast_state();
+#endif
 #ifdef CONFIG_RVH
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
