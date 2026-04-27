@@ -14,7 +14,12 @@
 !.github/workflows/*.yml
 !scripts/*.sh
 !scripts/*.py
+!tools/perf_profile.py
+!tools/perf_profile/**
 !scripts/checkpoint_example/*
+!docs/perf_profile.md
+__pycache__/
+*.pyc
 include/config
 include/generated
 build
