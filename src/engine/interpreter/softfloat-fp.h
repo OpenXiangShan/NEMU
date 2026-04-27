@@ -9,9 +9,10 @@
 #define F32_SIGN ((uint64_t)1ul << 31)
 #define F64_SIGN ((uint64_t)1ul << 63)
 
-#define defaultNaNF16UI 0x7E00
-#define defaultNaNF32UI 0x7FC00000
-#define defaultNaNF64UI UINT64_C( 0x7FF8000000000000 )
+#define defaultNaNF16UI  0x7E00
+#define defaultNaNBF16UI 0x7FC0
+#define defaultNaNF32UI  0x7FC00000
+#define defaultNaNF64UI  UINT64_C( 0x7FF8000000000000 )
 
 #define ui8_fromPosOverflow  0xFF
 #define ui8_fromNegOverflow  0
@@ -321,8 +322,14 @@ static inline int64_t f64_fcvtmod(float64_t a) {
 static inline float16_t  my_f32_to_f16 (float32_t a) {
   return f32_to_f16(a);
 }
+static inline bfloat16_t my_f32_to_bf16(float32_t a) {
+  return f32_to_bf16(a);
+}
 static inline float32_t  my_f16_to_f32 (float16_t a) {
   return f16_to_f32(a);
+}
+static inline float32_t  my_bf16_to_f32(bfloat16_t a) {
+  return bf16_to_f32(a);
 }
 static inline float64_t  my_f16_to_f64 (float16_t a) {
   return f16_to_f64(a);

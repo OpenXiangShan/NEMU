@@ -26,6 +26,11 @@ static inline rtlreg_t unboxf16(rtlreg_t r) {
     ? (r & ~BOX_MASK_FP16) : defaultNaNF16UI;
 }
 
+static inline rtlreg_t unboxbf16(rtlreg_t r) {
+  return MUXDEF(CONFIG_FPU_SOFT, (r & BOX_MASK_FP16) == BOX_MASK_FP16, true)
+    ? (r & ~BOX_MASK_FP16) : defaultNaNBF16UI;
+}
+
 static inline rtlreg_t unboxf32(rtlreg_t r) {
   return MUXDEF(CONFIG_FPU_SOFT, (r & BOX_MASK_FP32) == BOX_MASK_FP32, true)
     ? (r & ~BOX_MASK_FP32) : defaultNaNF32UI;
@@ -38,6 +43,16 @@ static inline float16_t rtlToF16(rtlreg_t r) {
 
 static inline float16_t rtlToVF16(rtlreg_t r) {
   float16_t f = { .v = r };
+  return f;
+}
+
+static inline bfloat16_t rtlToBF16(rtlreg_t r) {
+  bfloat16_t f = { .v = (uint16_t)unboxbf16(r) };
+  return f;
+}
+
+static inline bfloat16_t rtlToVBF16(rtlreg_t r) {
+  bfloat16_t f = { .v = r };
   return f;
 }
 
@@ -117,7 +132,13 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_F16ToF64: *dest = my_f16_to_f64(rtlToF16(*src1)).v; break;
       default: panic("op = %d not supported", op);
     }
-  }else if (w == FPCALL_W32) {
+  } else if (w == FPCALL_BF16) {
+    bfloat16_t fsrc1 = rtlToBF16(*src1);
+    switch(op) {
+      case FPCALL_BF16ToF32: *dest = my_bf16_to_f32(fsrc1).v; break;
+      default: panic("op = %d not supported for BF16 width", op);
+    }
+  } else if (w == FPCALL_W32) {
     float32_t fsrc1 = rtlToF32(*src1);
     float32_t fsrc2 = rtlToF32(*src2);
     switch (op) {
@@ -155,6 +176,7 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
       case FPCALL_FToU64: *dest = my_f32_to_ui64(fsrc1); break;
 
       case FPCALL_F32ToF16: *dest = my_f32_to_f16(rtlToF32(*src1)).v; break;
+      case FPCALL_F32ToBF16: *dest = my_f32_to_bf16(fsrc1).v; break;
       default: panic("op = %d not supported", op);
     }
   } else if (w == FPCALL_W64) {
@@ -284,6 +306,12 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
 
       default: panic("op = %d not supported", op);
     }
+  } else if (w == FPCALL_BF16) {
+    bfloat16_t fsrc1 = rtlToVBF16(*src1);
+    switch (op) {
+      case FPCALL_BF16ToF32: *dest = bf16_to_f32(fsrc1).v; break;
+      default: panic("op = %d not supported", op);
+    }
   } else if (w == FPCALL_W32 || w == FPCALL_W16_to_32 || w == FPCALL_SRC1_W16_to_32 || w == FPCALL_SRC2_W16_to_32) {
     float32_t fsrc1;
     float32_t fsrc2;
@@ -356,6 +384,7 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_DUToF:  *dest = ui32_to_f16(*src1).v; break;
       case FPCALL_DSToF:  *dest = i32_to_f16(*src1).v; break;
       case FPCALL_DFToF:  *dest = f32_to_f16(fsrc1).v; break;
+      case FPCALL_F32ToBF16: *dest = f32_to_bf16(fsrc1).v; break;
       case FPCALL_DFToF_ODD:
         softfloat_roundingMode = softfloat_round_odd;
         *dest = f32_to_f16(fsrc1).v;

@@ -88,6 +88,11 @@ config RV_ZFA
   depends on !FPU_NONE
   default n
 
+config RV_ZFBF_MIN
+  bool "RISC-V Zfbfmin Extension V1.0"
+  depends on !FPU_NONE
+  default n
+
 config RVV
   depends on !FPU_NONE
   bool "RISC-V Vector Extension v1.0"
@@ -113,6 +118,18 @@ config RV_ZVFH
   bool "RISC-V Zvfh Extension V1.0"
   depends on RV_ZVFH_MIN
   default y
+
+config RV_ZVFBF_MIN
+  bool "RISC-V Zvfbfmin Extension V1.0"
+  depends on RVV
+  default n
+
+config RV_ZVFBF_WMA
+  bool "RISC-V Zvfbfwma Extension V1.0"
+  depends on RVV
+  depends on RV_ZFBF_MIN
+  depends on RV_ZVFBF_MIN
+  default n
 
 config RV_DEBUG
   bool "RISC-V Debug Extension"
