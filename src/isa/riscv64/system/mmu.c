@@ -124,6 +124,9 @@ void mmu_refresh_pmp_cache(void) {
   }
 #endif
 }
+#else
+void mmu_refresh_pmp_cache(void) {
+}
 #endif
 
 #ifdef CONFIG_RV_PMA_CHECK
@@ -154,6 +157,9 @@ void mmu_refresh_pma_cache(void) {
     base = tor;
   }
 #endif
+}
+#else
+void mmu_refresh_pma_cache(void) {
 }
 #endif
 #ifdef CONFIG_RVH
