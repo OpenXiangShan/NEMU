@@ -316,6 +316,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
     raise_read_access_fault(trap_type, vaddr);
   }
   return 0;
+}
 
 #ifdef CONFIG_RV_MBMC
 word_t bitmap_read(paddr_t addr, int type, int mode) {
