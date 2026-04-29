@@ -55,15 +55,15 @@ uint64_t get_htime() {
 #endif // CONFIG_RVH
 
 void update_riscv_timer() {
-  #ifndef CONFIG_SHARE
-    #ifdef CONFIG_DETERMINISTIC
-      uint64_t get_abs_instr_count();
-      mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
-    #else // CONFIG_DETERMINISTIC
-      uint64_t uptime = get_time();
-      mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;
-    #endif // CONFIG_DETERMINISTIC
-  #endif // CONFIG_SHARE
+#ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
+#ifdef CONFIG_DETERMINISTIC
+  uint64_t get_abs_instr_count();
+  mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
+#else // CONFIG_DETERMINISTIC
+  uint64_t uptime = get_time();
+  mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;
+#endif // CONFIG_DETERMINISTIC
+#endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
 }
 
 void set_mtime(uint64_t new_value) {
@@ -73,7 +73,7 @@ void set_mtime(uint64_t new_value) {
 }
 
 void timer_wait_for_interrupt() {
-#ifndef CONFIG_SHARE
+#ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
   uint64_t correction = CONFIG_WFI_TIMEOUT_TICKS;
 
   if (get_mtime() <= mtimecmp->val) {
@@ -95,11 +95,11 @@ void timer_wait_for_interrupt() {
   clint_mtime_correction += correction;
 
   update_riscv_timer();
-#endif // CONFIG_SHARE
+#endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
 }
 
 word_t get_riscv_timer_interrupt() {
-#ifndef CONFIG_SHARE
+#ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
   mip_t tmp_mip;
   tmp_mip.val = 0;
 
@@ -114,12 +114,14 @@ word_t get_riscv_timer_interrupt() {
   #endif // defined(CONFIG_RVH) && defined(CONFIG_RV_SSTC)
 
   return tmp_mip.val;
-#endif // CONFIG_SHARE
+#else
   return 0;
+#endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
 }
 
 void init_riscv_timer() {
-  IFDEF(CONFIG_HAS_CLINT, init_clint());
+  IFNDEF(CONFIG_HAS_CLINT, return);
+  init_clint();
   assert(mtime != NULL);
   assert(mtimecmp != NULL);
   add_alarm_handle(update_riscv_timer);
