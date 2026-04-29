@@ -719,7 +719,7 @@ static void execute(int n) {
       #endif // CONFIG_DETERMINISTIC
     #endif // CONFIG_ISA_riscv64
 
-    if (MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr()) != INTR_EMPTY) {
+    if (MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY) != INTR_EMPTY) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
@@ -859,7 +859,7 @@ void cpu_exec(uint64_t n) {
 
     } else {
       // Check interrupt
-      word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
+      word_t intr = MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY);
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
         #ifdef CONFIG_TDATA1_ICOUNT
