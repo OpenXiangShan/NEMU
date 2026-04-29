@@ -23,9 +23,21 @@ config CLINT_MMIO
 
 endif # HAS_CLINT
 
+config CLINT_LOCAL_TIMER_INTERRUPT
+  depends on HAS_CLINT
+  bool "Enable CLINT local timer interrupt model"
+  default y if !SHARE
+  default n
+  help
+    Enable NEMU to update CLINT mtime internally and derive local timer
+    interrupt pending state from the CLINT timer registers. This is required
+    when NEMU runs as a standalone simulator. A shared difftest reference
+    usually keeps this disabled because the DUT side drives reference timer
+    interrupts explicitly.
+
 config CYCLES_PER_MTIME_TICK
   int "The number of cycles per mtime tick"
-  depends on DETERMINISTIC
+  depends on DETERMINISTIC && CLINT_LOCAL_TIMER_INTERRUPT
   default 128
   help
     This option controls the ratio between the the main frequency and RTC
@@ -41,6 +53,7 @@ config CYCLES_PER_MTIME_TICK
 
 config WFI_TIMEOUT_TICKS
   int "The number of ticks for instruction wfi timeout"
+  depends on CLINT_LOCAL_TIMER_INTERRUPT
   default 8192
   help
     This option controls the maximum number of ticks that WFI (Wait for
