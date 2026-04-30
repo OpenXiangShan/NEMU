@@ -125,9 +125,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
     /* We bind the serial port with the host stdout in NEMU. */
     case UARTLITE_TX_FIFO:
       if (is_write) {
-	  #ifndef CONFIG_SHARE
           putc(serial_base[UARTLITE_TX_FIFO], stderr);
-          #endif // CONFIG_SHARE
       }
       else panic("Cannot read UARTLITE_TX_FIFO");
       break;
