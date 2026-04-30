@@ -7,12 +7,10 @@ menuconfig DEVICE
 if DEVICE
 
 config HAS_PORT_IO
-  depends on !SHARE
   bool
   default y
 
 menuconfig HAS_UART16550
-  depends on !SHARE
   bool "Enable uart16550"
   default y
 
@@ -69,7 +67,6 @@ config UARTLITE_ASSERT_FOUR
 endif # HAS_UARTLITE
 
 menuconfig HAS_UART_SNPS
-  depends on !SHARE
   bool "Enable uart_snps"
   default n
 
@@ -89,7 +86,6 @@ config UAR_SNPS_INPUT_FIFO
 endif # HAS_UART_SNPS
 
 menuconfig HAS_PLIC
-  depends on !SHARE
   bool "Enable PLIC"
   default n
 
@@ -100,7 +96,6 @@ config PLIC_ADDRESS
 endif
 
 menuconfig HAS_TIMER
-  depends on !SHARE
   bool "Enable timer"
   default y
 
@@ -116,7 +111,6 @@ config RTC_MMIO
 endif # HAS_TIMER
 
 menuconfig HAS_KEYBOARD
-  depends on !SHARE
   bool "Enable keyboard"
   default y
 
@@ -164,7 +158,6 @@ endchoice
 endif # HAS_VGA
 
 menuconfig HAS_AUDIO
-  depends on !SHARE
   bool "Enable audio"
   default y
 
@@ -188,7 +181,6 @@ config AUDIO_CTL_MMIO
 endif # HAS_AUDIO
 
 menuconfig HAS_DISK
-  depends on !SHARE
   bool "Enable disk"
   default y
 
@@ -208,7 +200,6 @@ config DISK_IMG_PATH
 endif # HAS_DISK
 
 menuconfig HAS_SDCARD
-  depends on !SHARE
   bool "Enable sdcard"
   default y
 
