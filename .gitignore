@@ -16,6 +16,8 @@
 !scripts/*.py
 !tools/perf_profile.py
 !tools/perf_profile/**
+!tools/ref-so-runner/*.sh
+!tools/ref-so-runner/*.patch
 !scripts/checkpoint_example/*
 !docs/perf_profile.md
 __pycache__/
