@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
+#include <vector>
 #include <zstd.h>
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
 #include "pb.h"
@@ -437,6 +438,7 @@ void Serializer::serialize(uint64_t inst_count) {
 
 #ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
+  std::vector<uint8_t> guest_scratch_backup;
 
   __attribute__((unused))
   uint64_t serialize_buffer_size;
@@ -456,12 +458,21 @@ void Serializer::serialize(uint64_t inst_count) {
   serialize_reg_base_addr = checkpoint_meta_data.get_checkpoint_data_address((uint64_t)serialize_reg_base_addr);
 
 #endif
+  // Checkpoint metadata/registers are written into guest memory before PMEM
+  // dump. Preserve the overwritten guest bytes so execution can safely resume.
+  const uint32_t scratch_begin = magic_number_cpt_addr;
+  const uint32_t scratch_end = vector_reg_done;
+  assert(scratch_end > scratch_begin);
+  guest_scratch_backup.assign(serialize_reg_base_addr + scratch_begin,
+                              serialize_reg_base_addr + scratch_end);
   serializeRegs(serialize_reg_base_addr);
 #ifdef CONFIG_HAS_FLASH
   serializePMem(inst_count, get_pmem(), get_flash_base());
 #else
   serializePMem(inst_count, get_pmem(), NULL);
 #endif
+  std::copy(guest_scratch_backup.begin(), guest_scratch_backup.end(),
+            serialize_reg_base_addr + scratch_begin);
 
 #else
   xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");

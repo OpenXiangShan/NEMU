@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <isa.h>
+#include <profiling/profiling_control.h>
 //#include <monitor/difftest.h>
 #include "local-include/reg.h"
 #include "local-include/csr.h"
@@ -311,5 +312,8 @@ rtlreg_t isa_reg_str2val(const char *s, bool *success) {
 }
 
 bool able_to_take_cpt() {
+  if (checkpoint_state == SimpointCheckpointing) {
+    return cpu.mode == MODE_S;
+  }
   return cpu.mode != MODE_M;
 }
