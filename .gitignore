@@ -15,6 +15,13 @@
 !scripts/*.sh
 !scripts/*.py
 !scripts/checkpoint_example/*
+!tools/perf_profile.py
+!tools/perf_profile/**
+!tools/ref-so-runner/*.sh
+!tools/ref-so-runner/*.patch
+!docs/*.md
+__pycache__/
+*.pyc
 include/config
 include/generated
 build
