@@ -61,3 +61,12 @@ void init_clint() {
   init_mtimer_regs(&clint_base[CLINT_MTIME], &clint_base[CLINT_MTIMECMP]);
   add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
 }
+
+// Direct accessors that bypass PMP/PMA checks, for use during checkpoint serialization.
+uint64_t clint_get_mtime() {
+  return clint_base[CLINT_MTIME];
+}
+
+uint64_t clint_get_mtimecmp() {
+  return clint_base[CLINT_MTIMECMP];
+}

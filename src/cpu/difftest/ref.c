@@ -21,6 +21,11 @@
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
+#include <stdlib.h>
+#include <zlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <limits.h>
 
 unsigned ref_hartid = 0;
 
@@ -405,3 +410,192 @@ void difftest_store_log_restore() {
 }
 #endif
 #endif // CONFIG_STORE_LOG
+
+// Difftest-triggered checkpoint: serialize CPU state to pmem, compress to gz.
+#include "../../../resource/gcpt_restore/src/restore_rom_addr.h"
+#include "../../isa/riscv64/local-include/csr.h"
+
+// Direct CLINT accessors bypass the full memory access path (PMP/PMA/longjmp).
+// In difftest context, difftest_trigger_checkpoint() is called from outside NEMU's
+// execution loop, so the longjmp target for paddr_read() exceptions may be invalid.
+extern uint64_t clint_get_mtime();
+extern uint64_t clint_get_mtimecmp();
+
+// MEMORY_SIZE in ref config can be 8TB (sparse mmap). Use mincore() to find
+// the highest resident page, avoiding hours-long gzwrite of mostly-zero data.
+static size_t find_actual_pmem_size(uint8_t *pmem, size_t total_size) {
+  long page_size = sysconf(_SC_PAGESIZE);
+  if (page_size <= 0) page_size = 4096;
+
+  size_t chunk_size = 1UL * 1024 * 1024 * 1024; // 1GB chunks
+  size_t offset = total_size;
+  while (offset > 0) {
+    size_t this_start = (offset > chunk_size) ? (offset - chunk_size) : 0;
+    size_t this_chunk = offset - this_start;
+    size_t num_pages = this_chunk / (size_t)page_size;
+    if (num_pages == 0) break;
+
+    unsigned char *vec = (unsigned char *)malloc(num_pages);
+    if (!vec) break;
+
+    int ret = mincore(pmem + this_start, this_chunk, vec);
+    if (ret == 0) {
+      for (size_t i = num_pages; i > 0; i--) {
+        if (vec[i - 1] & 1) {
+          size_t result = this_start + i * (size_t)page_size;
+          if (result > total_size) result = total_size;
+          free(vec);
+          return result;
+        }
+      }
+    } else {
+      free(vec);
+      return offset;
+    }
+
+    free(vec);
+    offset = this_start;
+  }
+
+  size_t min_size = 0x40000000; // 1GB default
+  return min_size < total_size ? min_size : total_size;
+}
+
+// Serialize CPU state to pmem at standard checkpoint offsets (mirrors Serializer::serializeRegs()).
+static void serialize_regs_to_pmem(uint8_t *base) {
+  uint64_t *intRegCpt = (uint64_t *)(base + INT_REG_CPT_ADDR);
+  for (unsigned i = 0; i < 32; i++) {
+    intRegCpt[i] = cpu.gpr[i]._64;
+  }
+
+#ifndef CONFIG_FPU_NONE
+  uint64_t *floatRegCpt = (uint64_t *)(base + FLOAT_REG_CPT_ADDR);
+  for (unsigned i = 0; i < 32; i++) {
+    floatRegCpt[i] = cpu.fpr[i]._64;
+  }
+#endif
+
+#ifdef CONFIG_RVV
+  uint64_t *vectorRegCpt = (uint64_t *)(base + VECTOR_REG_CPT_ADDR);
+  for (unsigned i = 0; i < 32; i++) {
+    for (unsigned j = 0; j < VENUM64; j++) {
+      vectorRegCpt[i * VENUM64 + j] = cpu.vr[i]._64[j];
+    }
+  }
+#endif
+
+  uint64_t *pc = (uint64_t *)(base + PC_CPT_ADDR);
+  *pc = cpu.pc;
+
+  // Clear mtip in mip before saving (consistent with Serializer::serializeRegs)
+  uint64_t *csrCpt = (uint64_t *)(base + CSR_REG_CPT_ADDR);
+  for (unsigned i = 0; i < 4096; i++) {
+    rtlreg_t val = csr_array[i];
+    if ((void *)mip == (void *)&csr_array[i]) {
+      mip_t mip_tmp = *mip;
+      if (mip_tmp.mtip) {
+        mip_tmp.mtip = 0;
+      }
+      val = mip_tmp.val;
+    }
+    csrCpt[i] = val;
+  }
+
+  // Set mstatus.mpp = current mode, prepare mpie/spie for mret
+  mstatus_t *mstatus_prepare = (mstatus_t *)&csrCpt[0x300];
+  mstatus_prepare->mpie = mstatus_prepare->mie;
+  mstatus_prepare->mie = 0;
+  mstatus_prepare->spie = mstatus_prepare->sie;
+  mstatus_prepare->sie = 0;
+  mstatus_prepare->mpp = cpu.mode;
+#ifdef CONFIG_RVH
+  mstatus_prepare->mpv = cpu.v;
+#endif
+
+  mepc_t *mepc_prepare = (mepc_t *)&csrCpt[0x341];
+  mepc_prepare->val = cpu.pc;
+
+  uint64_t *flag = (uint64_t *)(base + BOOT_FLAG_ADDR);
+  *flag = CPT_MAGIC_BUMBER;
+
+  uint64_t *mode_flag = (uint64_t *)(base + MODE_CPT_ADDR);
+  *mode_flag = cpu.mode;
+
+  uint64_t *mtime = (uint64_t *)(base + MTIME_CPT_ADDR);
+  *mtime = clint_get_mtime();
+
+  uint64_t *mtime_cmp = (uint64_t *)(base + MTIME_CMP_CPT_ADDR);
+  *mtime_cmp = clint_get_mtimecmp();
+}
+
+void difftest_trigger_checkpoint(const char *filepath) {
+  if (cpu.mode == 3) {
+    printf("[difftest_trigger_checkpoint] Skipping: M-mode checkpoint not supported "
+           "(mode=%lu, PC=0x%lx)\n", cpu.mode, cpu.pc);
+    return;
+  }
+
+  if (!filepath) {
+    printf("[difftest_trigger_checkpoint] ERROR: filepath is NULL\n");
+    return;
+  }
+
+  uint8_t *pmem = get_pmem();
+  if (!pmem) {
+    printf("[difftest_trigger_checkpoint] ERROR: pmem is NULL\n");
+    return;
+  }
+
+  printf("[difftest_trigger_checkpoint] Writing checkpoint to %s\n", filepath);
+
+  serialize_regs_to_pmem(pmem);
+
+  // Verbose register/state output (mirrors serializer.cpp logging)
+  printf("[difftest_trigger_checkpoint] Registers written. PC=0x%lx mode=%lu\n", cpu.pc, cpu.mode);
+  printf("[difftest_trigger_checkpoint] Writing int registers @[0x%x, 0x%lx)\n",
+         INT_REG_CPT_ADDR, (unsigned long)(INT_REG_CPT_ADDR + 32 * 8));
+#ifndef CONFIG_FPU_NONE
+  printf("[difftest_trigger_checkpoint] Writing float registers @[0x%x, 0x%lx)\n",
+         FLOAT_REG_CPT_ADDR, (unsigned long)(FLOAT_REG_CPT_ADDR + 32 * 8));
+#endif
+#ifdef CONFIG_RVV
+  printf("[difftest_trigger_checkpoint] Writing vector registers @[0x%x, 0x%lx)\n",
+         VECTOR_REG_CPT_ADDR, (unsigned long)(VECTOR_REG_CPT_ADDR + 32 * VENUM64 * 8));
+#endif
+  printf("[difftest_trigger_checkpoint] Writing CSR @[0x%x, 0x%lx)\n",
+         CSR_REG_CPT_ADDR, (unsigned long)(CSR_REG_CPT_ADDR + 4096 * 8));
+  printf("[difftest_trigger_checkpoint]   mstatus=0x%lx mepc=0x%lx mtvec=0x%lx\n",
+         (unsigned long)csr_array[0x300], (unsigned long)csr_array[0x341], (unsigned long)csr_array[0x305]);
+  printf("[difftest_trigger_checkpoint]   sstatus=0x%lx sepc=0x%lx stvec=0x%lx\n",
+         (unsigned long)csr_array[0x100], (unsigned long)csr_array[0x141], (unsigned long)csr_array[0x105]);
+  printf("[difftest_trigger_checkpoint]   satp=0x%lx mip=0x%lx mie=0x%lx\n",
+         (unsigned long)csr_array[0x180], (unsigned long)csr_array[0x344], (unsigned long)csr_array[0x304]);
+  printf("[difftest_trigger_checkpoint] mtime=0x%lx mtimecmp=0x%lx\n",
+         clint_get_mtime(), clint_get_mtimecmp());
+
+  const size_t pmem_size = find_actual_pmem_size(pmem, MEMORY_SIZE);
+  printf("[difftest_trigger_checkpoint] pmem_size=0x%lx (MEMORY_SIZE=0x%lx)\n",
+         pmem_size, (size_t)MEMORY_SIZE);
+
+  gzFile gz = gzopen(filepath, "wb");
+  if (gz == NULL) {
+    printf("[difftest_trigger_checkpoint] ERROR: cannot open %s\n", filepath);
+    return;
+  }
+
+  uint64_t written_total = 0;
+  while (written_total < pmem_size) {
+    size_t chunk = pmem_size - written_total;
+    if (chunk > (size_t)INT_MAX) chunk = (size_t)INT_MAX;
+    int ret = gzwrite(gz, pmem + written_total, (unsigned int)chunk);
+    if (ret <= 0) {
+      printf("[difftest_trigger_checkpoint] ERROR: gzwrite failed at offset 0x%lx\n", written_total);
+      gzclose(gz);
+      return;
+    }
+    written_total += ret;
+  }
+
+  gzclose(gz);
+  printf("[difftest_trigger_checkpoint] Checkpoint written to %s\n", filepath);
+}
