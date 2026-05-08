@@ -76,6 +76,7 @@ void sig_handler(int signum) {
     Log("received SIGINT, mark manual cpt flag\n");
     if (checkpoint_state==ManualOneShotCheckpointing) {
       recvd_manual_oneshot_cpt = true;
+      start_profiling();
     } else if (checkpoint_state==ManualUniformCheckpointing) {
       recvd_manual_uniform_cpt = true;
       start_profiling();
@@ -173,7 +174,7 @@ static inline int parse_args(int argc, char *argv[]) {
       case 18:
         semantic_cpt_path = optarg;
         break;
-        
+
       case 19:
         enable_libcheckpoint = true;
         break;
@@ -208,7 +209,7 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'M':
           mem_dump_file = optarg;
           break;
-      case 'A': 
+      case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
           memory_region_record_file = optarg;
