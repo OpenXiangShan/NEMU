@@ -335,16 +335,16 @@ config RV_PMP_NUM
 config RV_PMP_ACTIVE_NUM
   depends on !RV_PMP_ENTRY_0
   int "Number of active PMP entries"
-  range 0 64 if RV_PMP_ENTRY_64
+  range 16 64 if RV_PMP_ENTRY_64
   default 64 if RV_PMP_ENTRY_64
-  range 0 16 if RV_PMP_ENTRY_16
+  range 16 16 if RV_PMP_ENTRY_16
   default 16 if RV_PMP_ENTRY_16
   help
-    This config decided the number of PMP entries are active. Implemented but
-    inactive PMP entries are read-only zero.
+    This config decides the number of PMP entries that are active. It must be
+    at least 16.
 
-    Any number of PMP entries may be read-only zero. NEMU assumes that the
-    lowest-numbered PMP entries are active, and the other are read-only zero.
+    NEMU assumes that the lowest-numbered PMP entries are active, and the
+    other implemented entries are read-only zero.
 
     For example, if
       Number of implemented PMP entries = 16,
@@ -416,16 +416,16 @@ config RV_PMA_NUM
 config RV_PMA_ACTIVE_NUM
   depends on !RV_PMA_ENTRY_0
   int "Number of active PMA entries"
-  range 0 16 if RV_PMA_ENTRY_16
+  range 16 16 if RV_PMA_ENTRY_16
   default 16 if RV_PMA_ENTRY_16
-  range 0 32 if RV_PMA_ENTRY_32
+  range 16 32 if RV_PMA_ENTRY_32
   default 32 if RV_PMA_ENTRY_32
   help
-    This config decided the number of PMA entries are active. Implemented but
-    inactive PMA entries are read-only zero.
+    This config decides the number of PMA entries that are active. It must be
+    at least 16.
 
-    Any number of PMA entries may be read-only zero. NEMU assumes that the
-    lowest-numbered PMA entries are active, and the other are read-only zero.
+    NEMU assumes that the lowest-numbered PMA entries are active, and the
+    other implemented entries are read-only zero.
 
     For example, if
       Number of implemented PMA entries = 16,
