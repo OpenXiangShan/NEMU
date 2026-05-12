@@ -92,6 +92,11 @@ updates = [
         "CONFIG_HAS_PLIC=y\n"
         "CONFIG_PLIC_ADDRESS=0x3c000000",
     ),
+    (
+        "CONFIG_QUERY_REF=y",
+        "CONFIG_QUERY_REF=y\n"
+        "CONFIG_REF_HOSTTLB=y",
+    ),
 ]
 
 for old, new in updates:
