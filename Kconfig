@@ -426,6 +426,11 @@ config QUERY_REF
   bool "Enable event query support when used as difftest ref"
   default y
 
+config REF_HOSTTLB
+  depends on SHARE && MODE_SYSTEM
+  bool "Enable host TLB fast path when used as difftest ref"
+  default n
+
 config LARGE_COPY
   depends on SHARE && !MEM_RANDOM
   bool "Enable difftest large memory copy optimization"
