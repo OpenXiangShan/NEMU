@@ -656,6 +656,10 @@ store_commit_t store_commit_data;
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
+  if (store_queue_overflow()) {
+    printf("NEMU store commit queue overflow.\n");
+    return 1;
+  }
   if (store_queue_empty()) {
     printf("NEMU does not commit any store instruction.\n");
     result = 1;
