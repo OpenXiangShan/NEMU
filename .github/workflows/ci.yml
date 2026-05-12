@@ -455,7 +455,7 @@ jobs:
             git config --global --add safe.directory "${GITHUB_WORKSPACE}"
             git config --global --add safe.directory "${GITHUB_WORKSPACE}/perf-baseline"
             echo "Building perf baseline from PR base commit ${PERF_BASE_SHA} (${PERF_BASE_REF})"
-            git fetch --depth=1 origin "${PERF_BASE_REF}"
+            git fetch --depth=1 origin "${PERF_BASE_SHA}"
             git worktree prune
             rm -rf perf-baseline
             git worktree add --detach perf-baseline "${PERF_BASE_SHA}"
