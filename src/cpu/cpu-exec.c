@@ -682,8 +682,6 @@ static void execute(int n) {
     cpu.amo = false;
     cpu.pbmt = 0;
 
-    Decode *cache_s = tcache_lookup_instr(cpu.pc);
-
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
       tcache_handle_flush();
       // In the non-PERF_OPT path, a tcache flush request is edge-triggered.
@@ -691,6 +689,8 @@ static void execute(int n) {
       // every following instruction.
       g_sys_state_flag &= ~SYS_STATE_FLUSH_TCACHE;
     }
+
+    Decode *cache_s = tcache_lookup_instr(cpu.pc);
 
     if (cache_s == NULL) {
       // Missed hit, decode and insert into cache.
