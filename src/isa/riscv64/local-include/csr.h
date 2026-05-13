@@ -116,10 +116,12 @@
 /** Unprivileged Matrix CSRs **/
 #ifdef CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f) \
-    f(xmcsr      , 0x802) f(xmxrm      , 0x806) f(xmsat      , 0x807) f(xmfflags   , 0x808) \
-    f(xmfrm      , 0x809) f(xmsaten    , 0x80A) \
-    f(xmisa      , 0xCC0) f(xtlenb     , 0xCC1) f(xtrlenb    , 0xCC2) f(xalenb     , 0xCC3) \
-    f(mtok       , 0xCC4) f(mtilem     , 0xCC5) f(mtilen     , 0xCC6) f(mtilek     , 0xCC7)
+    f(mcsr      , 0x802) f(mxrm      , 0x806) f(msat      , 0x807) f(mfflags   , 0x808) \
+    f(mfrm      , 0x809) f(msaten    , 0x80A) \
+    f(tlenb     , 0xCC1) f(trlenb    , 0xCC2) f(alenb     , 0xCC3) \
+    f(mtilem    , 0xCC4) f(mtilen    , 0xCC5) f(mtilek    , 0xCC6) \
+    f(mnsync    , 0xCC7)
+    // Use mnsync to indicate msync, which has the same name as a function in GNU C Library.
 #else // CONFIG_RVMATRIX
   #define CSRS_UNPRIV_MATRIX(f)
 #endif // CONFIG_RVMATRIX
@@ -1734,56 +1736,39 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #ifdef CONFIG_RVMATRIX
 
-CSR_STRUCT_START(xmisa)
-  uint64_t mmi4i32    :  1;
-  uint64_t mmi8i32    :  1;
-  uint64_t mmf16f16   :  1;
-  uint64_t mmf32f32   :  1;
-  uint64_t mmf64f64   :  1;
-  uint64_t mmf8f16    :  1;
-  uint64_t mmf16f32   :  1;
-  uint64_t mmfbf16f32 :  1;
-  uint64_t mmf32f64   :  1;
-  uint64_t mmf8f32    :  1;
-  uint64_t pad        : 51;
-  uint64_t mfic       :  1;
-  uint64_t mfew       :  1;
-  uint64_t miew       :  1;
-CSR_STRUCT_END(xmisa)
-
-CSR_STRUCT_START(xmcsr)
-  uint64_t xmxrm    :  2;
-  uint64_t xmsat    :  1;
-  uint64_t xmfflags :  5;
-  uint64_t xmfrm    :  3;
-  uint64_t xmsaten  :  1;
+CSR_STRUCT_START(mcsr)
+  uint64_t mxrm    :  2;
+  uint64_t msat    :  1;
+  uint64_t mfflags :  5;
+  uint64_t mfrm    :  3;
+  uint64_t msaten  :  1;
   uint64_t pad      : 52;
-CSR_STRUCT_END(xmcsr)
+CSR_STRUCT_END(mcsr)
 
-CSR_STRUCT_START(xmxrm)
+CSR_STRUCT_START(mxrm)
   uint64_t rm  :  2;
   uint64_t pad : 62;
-CSR_STRUCT_END(xmxrm)
+CSR_STRUCT_END(mxrm)
 
-CSR_STRUCT_START(xmsat)
+CSR_STRUCT_START(msat)
   uint64_t sat :  1;
   uint64_t pad : 63;
-CSR_STRUCT_END(xmsat)
+CSR_STRUCT_END(msat)
 
-CSR_STRUCT_START(xmfflags)
+CSR_STRUCT_START(mfflags)
   uint64_t flags :  5;
   uint64_t pad : 59;
-CSR_STRUCT_END(xmfflags)
+CSR_STRUCT_END(mfflags)
 
-CSR_STRUCT_START(xmfrm)
+CSR_STRUCT_START(mfrm)
   uint64_t frm :  3;
   uint64_t pad : 61;
-CSR_STRUCT_END(xmfrm)
+CSR_STRUCT_END(mfrm)
 
-CSR_STRUCT_START(xmsaten)
+CSR_STRUCT_START(msaten)
   uint64_t sen :  1;
   uint64_t pad : 63;
-CSR_STRUCT_END(xmsaten)
+CSR_STRUCT_END(msaten)
 
 CSR_STRUCT_START(mtilem)
 CSR_STRUCT_END(mtilem)
@@ -1794,17 +1779,17 @@ CSR_STRUCT_END(mtilen)
 CSR_STRUCT_START(mtilek)
 CSR_STRUCT_END(mtilek)
 
-CSR_STRUCT_START(xtlenb)
-CSR_STRUCT_END(xtlenb) 
+CSR_STRUCT_START(tlenb)
+CSR_STRUCT_END(tlenb) 
 
-CSR_STRUCT_START(xtrlenb)
-CSR_STRUCT_END(xtrlenb)
+CSR_STRUCT_START(trlenb)
+CSR_STRUCT_END(trlenb)
 
-CSR_STRUCT_START(xalenb)
-CSR_STRUCT_END(xalenb)
+CSR_STRUCT_START(alenb)
+CSR_STRUCT_END(alenb)
 
-CSR_STRUCT_START(mtok)
-CSR_STRUCT_END(mtok)
+CSR_STRUCT_START(mnsync)
+CSR_STRUCT_END(mnsync)
 
 #endif // CONFIG_RVMATRIX
 

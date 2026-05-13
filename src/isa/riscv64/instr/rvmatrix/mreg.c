@@ -27,10 +27,10 @@ _Static_assert(CONFIG_RVMATRIX_TRLEN % 64 == 0,
                "TRLEN must be a multiple of 64");
 _Static_assert((CONFIG_RVMATRIX_TLEN / CONFIG_RVMATRIX_TRLEN) * CONFIG_RVMATRIX_MLEN % 64 == 0,
                "ARLEN must be a multiple of 64");
-_Static_assert(CONFIG_RVMATRIX_MTOK == 8 ||
-               CONFIG_RVMATRIX_MTOK == 16 ||
-               CONFIG_RVMATRIX_MTOK == 32,
-               "MTOK must be one of 8/16/32");
+_Static_assert(CONFIG_RVMATRIX_MSYNC == 8 ||
+               CONFIG_RVMATRIX_MSYNC == 16 ||
+               CONFIG_RVMATRIX_MSYNC == 32,
+               "MSYNC must be one of 8/16/32");
 
 void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew) {
   Assert(msew <= 3, "msew >= 4 is reserved\n");

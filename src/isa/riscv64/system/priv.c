@@ -2129,31 +2129,31 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RVMATRIX
     case CSR_XMCSR:
       *dest = src & 0xfff;
-      xmsaten->val = (src >> 11) & 0b1;
-      xmfrm->val = (src >> 8) & 0b111;
-      xmfflags->val = (src >> 3) & 0b11111;
-      xmsat->val = (src >> 2) & 0b1;
-      xmxrm->val = src & 0b11;
+      msaten->val = (src >> 11) & 0b1;
+      mfrm->val = (src >> 8) & 0b111;
+      mfflags->val = (src >> 3) & 0b11111;
+      msat->val = (src >> 2) & 0b1;
+      mxrm->val = src & 0b11;
       break;
     case CSR_XMXRM:
       *dest = src & 0b11;
-      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
       break;
     case CSR_XMSAT:
       *dest = src & 0b1;
-      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
       break;
     case CSR_XMFFLAGS:
       *dest = src & 0b11111;
-      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
       break;
     case CSR_XMFRM:
       *dest = src & 0b111;
-      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
       break;
     case CSR_XMSATEN:
       *dest = src & 0b1;
-      xmcsr->val = (xmsaten->val) << 11 | (xmfrm->val) << 8 | (xmfflags->val) << 3 | (xmsat->val) << 2 | xmxrm->val;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
       break;
 #endif // CONFIG_RVMATRIX
 
@@ -2899,7 +2899,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif //CONFIG_RVV
 
 #ifdef CONFIG_RVMATRIX
-  if (is_write(xmcsr) || is_write(xmxrm) || is_write(xmsat) || is_write(xmfflags) || is_write(xmfrm) || is_write(xmsaten)) {
+  if (is_write(mcsr) || is_write(mxrm) || is_write(msat) || is_write(mfflags) || is_write(mfrm) || is_write(msaten)) {
     mp_set_dirty();
   }
 #endif // CONFIG_RVMATRIX
@@ -3139,10 +3139,10 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 
 #ifdef CONFIG_RVMATRIX
 static inline bool matrix_permit_check(const word_t *dest_access) {
-  if (is_access(xmisa)    || is_access(xtlenb) || is_access(xtrlenb) ||
-      is_access(xalenb)   || is_access(mtilem) || is_access(mtilen)  || is_access(mtilek) ||
-      is_access(xmcsr)    || is_access(xmxrm)  || is_access(xmsat)   ||
-      is_access(xmfflags) || is_access(xmfrm)  || is_access(xmsaten)) {
+  if (is_access(mnsync)    || is_access(tlenb) || is_access(trlenb) ||
+      is_access(alenb)   || is_access(mtilem) || is_access(mtilen)  || is_access(mtilek) ||
+      is_access(mcsr)    || is_access(mxrm)  || is_access(msat)   ||
+      is_access(mfflags) || is_access(mfrm)  || is_access(msaten)) {
     if (!require_ms()) { longjmp_exception(EX_II); }
   }
   return false;
