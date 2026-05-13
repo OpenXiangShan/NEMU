@@ -146,8 +146,8 @@ typedef struct {
 #endif // CONFIG_DIFFTEST_CHECK_FCSR
 
 #ifdef CONFIG_RVMATRIX
-  uint64_t xmcsr, xmxrm, xmsat, xmfflags, xmfrm, xmsaten;
-  uint64_t xmisa, xtlenb, xtrlenb, xalenb, mtok, mtilem, mtilen, mtilek;
+  uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
+  uint64_t tlenb, trlenb, alenb, msync, mtilem, mtilen, mtilek;
 #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
@@ -221,7 +221,8 @@ typedef struct {
     uint8_t  _8[ARENUM8];
   } macc[4][ROWNUM];
 
-  uint64_t mtokr[MTOK];
+  mcfg_t mcfg[8];
+  uint64_t mtokr[MSYNC];
 #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_RV_IMSIC
@@ -378,56 +379,51 @@ typedef struct {
     #ifdef CONFIG_RVMATRIX
     struct {
       uint32_t opcode    : 7;
-      uint32_t nop       : 5;
+      uint32_t rd        : 5;
       uint32_t func3     : 3;
       uint32_t imm10     : 10;
       uint32_t ctrl      : 1;
-      uint32_t uop       : 2;
+      uint32_t res0      : 2;
       uint32_t func      : 4;      
     } mcfgi;
     struct {
       uint32_t opcode    : 7;
-      uint32_t nop       : 5;
+      uint32_t res0      : 5;
       uint32_t func3     : 3;
       uint32_t rs1       : 5;
-      uint32_t tok       : 5;
+      uint32_t sync      : 5;
       uint32_t ctrl      : 1;
-      uint32_t uop       : 2;
+      uint32_t res1      : 2;
       uint32_t func      : 4;
     } msync;
     struct {
       uint32_t opcode    : 7;
       uint32_t md        : 3;
-      uint32_t d_sz      : 2;
+      uint32_t res0      : 2;
       uint32_t func3     : 3;
       uint32_t rs1       : 5;
       uint32_t rs2       : 5;
       uint32_t ls        : 1;
-      uint32_t uop       : 2;
+      uint32_t res1      : 2;
       uint32_t func      : 4;      
     } mldst;
     struct {
       uint32_t opcode    : 7;
       uint32_t md        : 3;
-      uint32_t d_sz      : 2;
+      uint32_t res0      : 2;
       uint32_t func3     : 3;
       uint32_t ms1       : 3;
-      uint32_t s_sz      : 2;
+      uint32_t res1      : 2;
       uint32_t ms2       : 3;
-      uint32_t size_sup  : 3;
-      uint32_t uop       : 2;
+      uint32_t res2      : 5;
       uint32_t func      : 4;
     } mma;
     struct {
       uint32_t opcode    : 7;
       uint32_t md        : 3;
-      uint32_t d_sz      : 2;
+      uint32_t reserved0 : 2;
       uint32_t func3     : 3;
-      uint32_t ms1       : 3;
-      uint32_t s_sz      : 2;
-      uint32_t ms2       : 3;
-      uint32_t ctrl      : 3;
-      uint32_t uop       : 2;
+      uint32_t reserved1 : 13;
       uint32_t func      : 4;
     } misc;
     #endif // CONFIG_RVMATRIX

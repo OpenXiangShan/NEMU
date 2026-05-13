@@ -147,29 +147,29 @@ config RVMATRIX_MLEN
     accumulator register layout.
 
 choice
-  prompt "Matrix MTOK (token register count)"
+  prompt "Matrix MSYNC (sync register count)"
   depends on RVMATRIX
-  default RVMATRIX_MTOK_32
+  default RVMATRIX_MSYNC_32
   help
-    Number of matrix token registers exposed by mtok CSR and backed by NEMU
+    Number of matrix sync registers exposed by msync CSR and backed by NEMU
     state storage.
 
-config RVMATRIX_MTOK_8
+config RVMATRIX_MSYNC_8
   bool "8"
 
-config RVMATRIX_MTOK_16
+config RVMATRIX_MSYNC_16
   bool "16"
 
-config RVMATRIX_MTOK_32
+config RVMATRIX_MSYNC_32
   bool "32"
 endchoice
 
-config RVMATRIX_MTOK
+config RVMATRIX_MSYNC
   int
   depends on RVMATRIX
-  default 8 if RVMATRIX_MTOK_8
-  default 16 if RVMATRIX_MTOK_16
-  default 32 if RVMATRIX_MTOK_32
+  default 8 if RVMATRIX_MSYNC_8
+  default 16 if RVMATRIX_MSYNC_16
+  default 32 if RVMATRIX_MSYNC_32
 
 config DIFFTEST_DIRTY_FS_VS
   depends on RVV

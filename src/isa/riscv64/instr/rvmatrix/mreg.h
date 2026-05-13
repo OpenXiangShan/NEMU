@@ -43,7 +43,34 @@
 #define TNMAX      ROWNUM
 #define TKMAX(sew) (TRLEN/sew)
 
-#define MTOK       CONFIG_RVMATRIX_MTOK
+#define MSYNC       CONFIG_RVMATRIX_MSYNC
+
+enum MTYPECODE_TAB0 {
+  MTYPECODE_INT4 = 0,
+  MTYPECODE_UINT4,
+  MTYPECODE_INT8,
+  MTYPECODE_UINT8,
+  MTYPECODE_INT32,
+  MTYPECODE_NVFP4,
+  MTYPECODE_MXFP4,
+  MTYPECODE_FP8E5M2,
+  MTYPECODE_FP8E4M3,
+  MTYPECODE_FP16,
+  MTYPECODE_BF16,
+  MTYPECODE_TF32,
+  MTYPECODE_FP32,
+  MTYPECODE_FP2PACK4,
+  MTYPECODE_FP2PACK5
+};
+
+typedef union {
+  struct {
+    uint64_t type_code :  4;
+    uint64_t table_set :  4;
+    uint64_t pad       : 24;
+  };
+  uint64_t val;
+} mcfg_t;
 
 static inline int check_mtreg_num(int num) {
   assert(num >= 0 && num < 4);
@@ -76,7 +103,7 @@ static inline int check_macc_idx(int idx, int elen) {
 }
 
 static inline int check_mtok_idx(int idx) {
-  assert(idx >= 0 && idx < MTOK);
+  assert(idx >= 0 && idx < MSYNC);
   return idx;
 }
 

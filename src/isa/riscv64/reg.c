@@ -278,24 +278,23 @@ void isa_reg_display() {
 
 #ifdef CONFIG_RVMATRIX
   DISPLAY_HR("Matrix CSRs");
-  DISPLAY_CSR("xmisa", xmisa->val);
-  DISPLAY_CSR("mtok", mtok->val);
+  DISPLAY_CSR("msync", mnsync->val);
   printf("\n");
-  DISPLAY_CSR("xtlenb", xtlenb->val);
-  DISPLAY_CSR("xtrlenb", xtrlenb->val);
-  DISPLAY_CSR("xalenb", xalenb->val);
+  DISPLAY_CSR("tlenb", tlenb->val);
+  DISPLAY_CSR("trlenb", trlenb->val);
+  DISPLAY_CSR("alenb", alenb->val);
   printf("\n");
   DISPLAY_CSR("mtilem", mtilem->val);
   DISPLAY_CSR("mtilen", mtilen->val);
   DISPLAY_CSR("mtilek", mtilek->val);
   printf("\n");
-  DISPLAY_CSR("xmcsr", xmcsr->val);
-  DISPLAY_CSR("xmxrm", xmxrm->val);
-  DISPLAY_CSR("xmsat", xmsat->val);
+  DISPLAY_CSR("mcsr", mcsr->val);
+  DISPLAY_CSR("mxrm", mxrm->val);
+  DISPLAY_CSR("msat", msat->val);
   printf("\n");
-  DISPLAY_CSR("xmfflags", xmfflags->val);
-  DISPLAY_CSR("xmfrm", xmfrm->val);
-  DISPLAY_CSR("xmsaten", xmsaten->val);
+  DISPLAY_CSR("mfflags", mfflags->val);
+  DISPLAY_CSR("mfrm", mfrm->val);
+  DISPLAY_CSR("msaten", msaten->val);
   printf("\n");
 #endif // CONFIG_RVMATRIX
   fflush(stdout);

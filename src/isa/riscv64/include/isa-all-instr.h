@@ -188,19 +188,18 @@
 
 #ifdef CONFIG_RVMATRIX
 #define MATRIX_INSTR_NULLARY(f) \
-  f(minit)
+  f(minit) f(mfence)
 #define MATRIX_INSTR_UNARY(f) \
   f(mzero)
 #define MATRIX_INSTR_BINARY(f) \
   f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni) \
-  f(msyncreset) f(mrelease) f(macquire)
+  f(msyncreset) f(mrelease) f(macquire) f(msetcfg) f(mgetcfg)
 #define MATRIX_INSTR_TERNARY(f) \
   f(mla) f(mlb) f(mlc) \
   f(mlat) f(mlbt) f(mlct) \
   f(msa) f(msb) f(msc) \
   f(msat) f(msbt) f(msct) \
-  f(mlm) f(msm) \
-  f(mfmacc) f(mmacc) f(mmaccu) f(mmaccus) f(mmaccsu)
+  f(mlm) f(msm) f(mmacc)
 #else
 #define MATRIX_INSTR_NULLARY(f)
 #define MATRIX_INSTR_UNARY(f)

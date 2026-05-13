@@ -16,8 +16,8 @@ typedef struct {
   uint32_t msew;
   bool     transpose;
   
-  bool     valid[MTOK];
-  uint64_t mrelease[MTOK];
+  bool     valid[MSYNC];
+  uint64_t mrelease[MSYNC];
 } mstore_info_t;
 
 #endif // CONFIG_RVMATRIX

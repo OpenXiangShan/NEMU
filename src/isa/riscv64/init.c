@@ -188,21 +188,20 @@ void init_isa() {
 
 #ifdef CONFIG_RVMATRIX
   // matrix
-  xmisa->val = 0x2e6;
-  xtlenb->val = TLEN / 8;
-  xtrlenb->val = TRLEN / 8;
-  xalenb->val = ALEN / 8;
-  mtok->val = MTOK;
+  tlenb->val = TLEN / 8;
+  trlenb->val = TRLEN / 8;
+  alenb->val = ALEN / 8;
+  mnsync->val = MSYNC;
   mtilem->val = 0;
   mtilek->val = 0;
   mtilen->val = 0;
 
-  xmcsr->val = 0;
-  xmxrm->val = 0;
-  xmsat->val = 0;
-  xmfflags->val = 0;
-  xmfrm->val = 0;
-  xmsaten->val = 0;
+  mcsr->val = 0;
+  mxrm->val = 0;
+  msat->val = 0;
+  mfflags->val = 0;
+  mfrm->val = 0;
+  msaten->val = 0;
 #endif // CONFIG_RVMATRIX
 
   // mcycle and minstret record :
