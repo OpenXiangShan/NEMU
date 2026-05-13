@@ -199,7 +199,9 @@
   f(mlat) f(mlbt) f(mlct) \
   f(msa) f(msb) f(msc) \
   f(msat) f(msbt) f(msct) \
-  f(mlm) f(msm) f(mmacc)
+  f(mlawhole) f(mlbwhole) f(mlcwhole) \
+  f(msawhole) f(msbwhole) f(mscwhole) \
+  f(mmacc)
 #else
 #define MATRIX_INSTR_NULLARY(f)
 #define MATRIX_INSTR_UNARY(f)
