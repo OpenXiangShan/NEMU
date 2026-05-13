@@ -93,46 +93,42 @@ void check_size(Decode *s, int rmax_mreg, int cmax_mreg, char m_name, uint8_t ds
   }
 }
 
-void mld(Decode *s, bool is_trans, char m_name) {
+// m_name: 'a'/'b'/'c'
+void mld(Decode *s, bool is_trans, bool is_whole, char m_name) {
   mp_set_dirty();
   uint64_t base_addr = reg_l(s->src1.reg);
   uint64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t td = s->dest.reg;
-  uint8_t dsize = get_size(cpu.mcfg[td]);
+  uint8_t dsize = is_whole ? 0 : get_size(cpu.mcfg[td]);
   int rmax_mreg = 0, cmax_mreg = 0;
+  
   switch (m_name) {
     case 'a':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilek->val;
+      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
+      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
       Assert(s->dest.reg < 4,
         "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
       break;
     case 'b':
-      rmax_mreg  = mtilen->val;
-      cmax_mreg  = mtilek->val;
+      rmax_mreg  = is_whole ? ROWNUM : mtilen->val;
+      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
       Assert(s->dest.reg < 4,
         "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
       break;
     case 'c':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilen->val;
+      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
+      cmax_mreg  = is_whole ? (ARENUM8 / (1 << dsize)) : mtilen->val;
       Assert(s->dest.reg >= 4,
         "%u is not a valid acc matrix reg idx!\n", s->dest.reg);
-      break;
-    case 'm':
-      rmax_mreg  = ROWNUM;
-      if (s->dest.reg < 4) { // tile register
-        cmax_mreg  = TRENUM8 / (1 << dsize);
-      } else { // acc register
-        cmax_mreg  = ARENUM8 / (1 << dsize);
-      }
       break;
     default:
       Assert(false, "mld %c: invalid reg selection!\n", m_name);
       break;
   }
-
-  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  
+  if (!is_whole){
+    check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  }
 
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -147,45 +143,40 @@ void mld(Decode *s, bool is_trans, char m_name) {
     MMU_TRANSLATE, m_name, td);
 }
 
-void mst(Decode *s, bool is_trans, char m_name) {
+void mst(Decode *s, bool is_trans, bool is_whole, char m_name) {
   uint64_t base_addr = reg_l(s->src1.reg);
   uint64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t ts3 = s->dest.reg;
-  uint8_t dsize = get_size(cpu.mcfg[ts3]);
+  uint8_t dsize = is_whole ? 0 : get_size(cpu.mcfg[ts3]);
   int rmax_mreg = 0, cmax_mreg = 0;
+  
   switch (m_name) {
     case 'a':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilek->val;
+      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
+      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
       Assert(s->dest.reg < 4,
         "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
       break;
     case 'b':
-      rmax_mreg  = mtilen->val;
-      cmax_mreg  = mtilek->val;
+      rmax_mreg  = is_whole ? ROWNUM : mtilen->val;
+      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
       Assert(s->dest.reg < 4,
         "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
       break;
     case 'c':
-      rmax_mreg  = mtilem->val;
-      cmax_mreg  = mtilen->val;
+      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
+      cmax_mreg  = is_whole ? (ARENUM8 / (1 << dsize)) : mtilen->val;
       Assert(s->dest.reg >= 4,
         "%u is not a valid acc matrix reg idx!\n", s->dest.reg);
-      break;
-    case 'm':
-      rmax_mreg  = ROWNUM;
-      if (s->dest.reg < 4) { // tile register
-        cmax_mreg  = TRENUM8 / (1 << dsize);
-      } else { // acc register
-        cmax_mreg  = ARENUM8 / (1 << dsize);
-      }
       break;
     default:
       Assert(false, "mst %c: invalid reg selection!\n", m_name);
       break;
   }
-  
-  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+
+  if (!is_whole) {
+    check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  }
 
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -204,59 +195,75 @@ void mst(Decode *s, bool is_trans, char m_name) {
 
 
 def_EHelper(mla) {
-  mld(s, false, 'a');
+  mld(s, false, false, 'a');
 }
 
 def_EHelper(mlb) {
-  mld(s, false, 'b');
+  mld(s, false, false, 'b');
 }
 
 def_EHelper(mlc) {
-  mld(s, false, 'c');
+  mld(s, false, false, 'c');
 }
 
 def_EHelper(mlat) {
-  mld(s, true, 'a');
+  mld(s, true, false, 'a');
 }
 
 def_EHelper(mlbt) {
-  mld(s, true, 'b');
+  mld(s, true, false, 'b');
 }
 
 def_EHelper(mlct) {
-  mld(s, true, 'c');
+  mld(s, true, false, 'c');
 }
 
 def_EHelper(msa) {
-  mst(s, false, 'a');
+  mst(s, false, false, 'a');
 }
 
 def_EHelper(msb) {
-  mst(s, false, 'b');
+  mst(s, false, false, 'b');
 }
 
 def_EHelper(msc) {
-  mst(s, false, 'c');
+  mst(s, false, false, 'c');
 }
 
 def_EHelper(msat) {
-  mst(s, true, 'a');
+  mst(s, true, false, 'a');
 }
 
 def_EHelper(msbt) {
-  mst(s, true, 'b');
+  mst(s, true, false, 'b');
 }
 
 def_EHelper(msct) {
-  mst(s, true, 'c');
+  mst(s, true, false, 'c');
 }
 
-def_EHelper(mlm) {
-  mld(s, false, 'm');
+def_EHelper(mlawhole) {
+  mld(s, false, true, 'a');
 }
 
-def_EHelper(msm) {
-  mst(s, false, 'm');
+def_EHelper(mlbwhole) {
+  mld(s, false, true, 'b');
+}
+
+def_EHelper(mlcwhole) {
+  mld(s, false, true, 'c');
+}
+
+def_EHelper(msawhole) {
+  mst(s, false, true, 'a');
+}
+
+def_EHelper(msbwhole) {
+  mst(s, false, true, 'b');
+}
+
+def_EHelper(mscwhole) {
+  mst(s, false, true, 'c');
 }
 
 #endif // CONFIG_RVMATRIX
