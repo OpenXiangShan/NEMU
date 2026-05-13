@@ -83,12 +83,6 @@ typedef struct Decode {
   rtlreg_t tmp_reg[4];
   void *last_access_host_addr;
   #endif // CONFIG_RVV
-  #ifdef CONFIG_RVMATRIX
-  // for matrix
-  uint8_t m_d_sz;
-  uint8_t m_s_sz;
-  uint8_t m_sz_sup;
-  #endif // CONFIG_RVMATRIX
 
 } Decode;
 

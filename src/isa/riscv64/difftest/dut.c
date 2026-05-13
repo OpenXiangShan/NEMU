@@ -79,20 +79,19 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
     #ifdef CONFIG_RVMATRIX
-    check_reg(xmisa     );
-    check_reg(xtlenb    );
-    check_reg(xtrlenb   );
-    check_reg(xalenb    );
-    check_reg(mtok      );
+    check_reg(tlenb     );
+    check_reg(trlenb    );
+    check_reg(alenb     );
+    check_reg(msync     );
     check_reg(mtilem    );
     check_reg(mtilen    );
     check_reg(mtilek    );
-    check_reg(xmcsr     );
-    check_reg(xmxrm     );
-    check_reg(xmsat     );
-    check_reg(xmfflags  );
-    check_reg(xmfrm     );
-    check_reg(xmsaten   );
+    check_reg(mcsr      );
+    check_reg(mxrm      );
+    check_reg(msat      );
+    check_reg(mfflags   );
+    check_reg(mfrm      );
+    check_reg(msaten    );
     #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR

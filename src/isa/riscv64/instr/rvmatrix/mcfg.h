@@ -70,6 +70,25 @@ def_EHelper(msettileni) {
   mp_set_dirty();
 }
 
+def_EHelper(msetcfg) {
+  require_matrix();
+  int idx = s->dest.reg;
+  if (idx >= 8) {
+    longjmp_exception(EX_II);
+  }
+  cpu.mcfg[idx].val = reg_l(s->src1.reg);
+  mp_set_dirty();
+}
+
+def_EHelper(mgetcfg) {
+  require_matrix();
+  int idx = s->src1.reg;
+  if (idx >= 8) {
+    longjmp_exception(EX_II);
+  }
+  reg_l(s->dest.reg) = cpu.mcfg[idx].val;
+}
+
 def_EHelper(msyncreset) {
   require_matrix();
   uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
@@ -115,6 +134,11 @@ def_EHelper(macquire) {
   msync_queue_emplace(1, tok_i);
   mstore_queue_update_acquire(tok_i, reg_l(s->src1.reg));
   mp_set_dirty();
+}
+
+def_EHelper(mfence)  {
+  require_matrix();
+  // Do nothing in NEMU.
 }
 
 #endif // CONFIG_RVMATRIX
