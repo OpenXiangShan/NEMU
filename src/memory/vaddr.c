@@ -117,8 +117,12 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
       paddr_write(next_pg_st_paddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
     }
   } else {
-    paddr_write(cur_pg_st_vaddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
-    paddr_write(next_pg_st_vaddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
+    bool cur_pg_st_exp = !check_paddr(cur_pg_st_vaddr, cur_pg_st_len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, cpu.mode, cur_pg_st_vaddr);
+    bool next_pg_st_exp = !check_paddr(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, cpu.mode, next_pg_st_vaddr);
+    if (!cur_pg_st_exp && !next_pg_st_exp) {
+      paddr_write(cur_pg_st_vaddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+      paddr_write(next_pg_st_vaddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
+    }
   }
 
 }
