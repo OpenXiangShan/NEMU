@@ -143,6 +143,8 @@ uint8_t *guest_to_host(paddr_t paddr);
 extern void log_buffer_flush();
 extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
+extern uint64_t clint_get_mtime();
+extern uint64_t clint_get_mtimecmp();
 }
 
 #ifdef CONFIG_MEM_COMPRESS
@@ -419,13 +421,12 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
   Log("Record mode flag: 0x%lx at addr 0x%x", cpu.mode, MODE_CPT_ADDR);
 
   auto *mtime = (uint64_t *) (serialize_base_addr + mtime_cpt_addr);
-  extern word_t paddr_read(paddr_t addr, int len, int type, int mode, vaddr_t vaddr);
-  *mtime = ::paddr_read(CLINT_MMIO+0xBFF8, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0xBFF8);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CPT_ADDR);
+  *mtime = clint_get_mtime();
+  Log("Record mtime: 0x%lx at addr 0x%x", *mtime, MTIME_CPT_ADDR);
 
   auto *mtime_cmp = (uint64_t *) (serialize_base_addr + mtime_cmp_cpt_addr);
-  *mtime_cmp = ::paddr_read(CLINT_MMIO+0x4000, 8, MEM_TYPE_READ, MEM_TYPE_READ, MODE_M, CLINT_MMIO+0x4000);
-  Log("Record time: 0x%lx at addr 0x%x", cpu.mode, MTIME_CMP_CPT_ADDR);
+  *mtime_cmp = clint_get_mtimecmp();
+  Log("Record mtimecmp: 0x%lx at addr 0x%x", *mtime_cmp, MTIME_CMP_CPT_ADDR);
 
   regDumped = true;
 }
