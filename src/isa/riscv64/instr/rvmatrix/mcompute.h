@@ -81,6 +81,19 @@ int8_t check_comb(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
   return -1;
 }
 
+bool is_signed_int_mtype(uint64_t type_code) {
+  switch (type_code) {
+    case MTYPECODE_UINT4:
+    case MTYPECODE_UINT8:
+      return false;
+    case MTYPECODE_INT4:
+    case MTYPECODE_INT8:
+    case MTYPECODE_INT32:
+    default:
+      return true;
+  }
+}
+
 def_EHelper(mmacc) {
   // Check MS
   require_matrix();
@@ -111,7 +124,13 @@ def_EHelper(mmacc) {
     // Invalid type combination
     longjmp_exception(EX_II);
   }
+#if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
+  uint8_t m_s_sz = s1size;
+  uint8_t m_d_sz = dsize;
+#endif
 #ifndef CONFIG_SHARE_REF
+  bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
+  bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (comb == 0) /* int mma */ {
     int64_t int_max = INT64_MAX >> (64 - 8 * (1 << dsize));
@@ -119,8 +138,8 @@ def_EHelper(mmacc) {
     for (int i = 0; i < tile_m; i++) {
       for (int j = 0; j < tile_n; j++) {
         for (int k = 0; k < tile_k; k++) {
-          get_mreg(ts1, i, k, &tmp_reg[1], s1size, true);
-          get_mreg(ts2, j, k, &tmp_reg[2], s2size, true);
+          get_mreg(ts1, i, k, &tmp_reg[1], s1size, s1_signed);
+          get_mreg(ts2, j, k, &tmp_reg[2], s2size, s2_signed);
           get_mreg(td, i, j, &tmp_reg[0], dsize, true);
           if (msaten->val) {
             int64_t result = (int64_t)tmp_reg[1] * (int64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
@@ -181,7 +200,7 @@ def_EHelper(mmacc) {
   }
 #endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, xmxrm->val, msaten->val, comb, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, mxrm->val, msaten->val, comb, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
                       4 | m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
