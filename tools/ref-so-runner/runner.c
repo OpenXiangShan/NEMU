@@ -48,6 +48,7 @@ typedef struct {
 
 typedef void (*difftest_init_fn)(void);
 typedef void (*difftest_exec_fn)(uint64_t n);
+typedef void (*difftest_regcpy_fn)(void *dut, bool direction);
 typedef void (*difftest_memcpy_fn)(uint64_t nemu_addr, void *dut_buf, size_t n, bool direction);
 typedef void (*difftest_load_flash_fn)(void *flash_bin, size_t size);
 typedef void (*difftest_set_ramsize_fn)(size_t ram_size);
@@ -66,6 +67,7 @@ typedef struct {
   void *handle;
   difftest_init_fn init;
   difftest_exec_fn exec;
+  difftest_regcpy_fn regcpy;
   difftest_memcpy_fn memcpy;
   difftest_load_flash_fn load_flash;
   difftest_close_fn close;
@@ -73,6 +75,7 @@ typedef struct {
   uint64_t *nr_vst;
   uint64_t *nr_vst_unit;
   uint64_t *nr_vst_unit_optimized;
+  const unsigned *difftest_reg_size;
   NEMUState *state;
 } RefApi;
 
@@ -217,6 +220,7 @@ static RefApi load_ref_api(const RunnerConfig *cfg) {
 
   api.init = (difftest_init_fn)load_required_symbol(api.handle, "difftest_init");
   api.exec = (difftest_exec_fn)load_required_symbol(api.handle, "difftest_exec");
+  api.regcpy = (difftest_regcpy_fn)load_required_symbol(api.handle, "difftest_regcpy");
   api.memcpy = (difftest_memcpy_fn)load_optional_symbol(api.handle, "difftest_memcpy_init");
   if (api.memcpy == NULL) {
     api.memcpy = (difftest_memcpy_fn)load_required_symbol(api.handle, "difftest_memcpy");
@@ -227,6 +231,7 @@ static RefApi load_ref_api(const RunnerConfig *cfg) {
   api.nr_vst = (uint64_t *)load_optional_symbol(api.handle, "g_nr_vst");
   api.nr_vst_unit = (uint64_t *)load_optional_symbol(api.handle, "g_nr_vst_unit");
   api.nr_vst_unit_optimized = (uint64_t *)load_optional_symbol(api.handle, "g_nr_vst_unit_optimized");
+  api.difftest_reg_size = (const unsigned *)load_required_symbol(api.handle, "DIFFTEST_REG_SIZE");
   api.state = (NEMUState *)load_required_symbol(api.handle, "nemu_state");
 
   difftest_set_ramsize_fn set_ramsize =
@@ -320,7 +325,8 @@ static void print_statistics(const RefApi *api, uint64_t guest_instructions, uin
   fflush(stdout);
 }
 
-static void cleanup_ref_api(const RefApi *api, uint8_t *image) {
+static void cleanup_ref_api(const RefApi *api, uint8_t *image, void *regcpy_buf) {
+  free(regcpy_buf);
   free(image);
   if (api->close != NULL) {
     api->close();
@@ -338,6 +344,12 @@ int main(int argc, char **argv) {
   api.init();
   initialize_flash(&api);
   api.memcpy(cfg.load_addr, image, image_size, DIFFTEST_TO_REF);
+  void *regcpy_buf = calloc(1, *api.difftest_reg_size);
+  if (regcpy_buf == NULL) {
+    fprintf(stderr, "Failed to allocate %u bytes for difftest_regcpy\n", *api.difftest_reg_size);
+    cleanup_ref_api(&api, image, NULL);
+    return 1;
+  }
 
   uint64_t guest_instructions = 0;
   uint64_t start_ns = monotonic_ns();
@@ -353,6 +365,7 @@ int main(int argc, char **argv) {
     if (api.get_abs_instr_count == NULL) {
       guest_instructions += 1;
     }
+    api.regcpy(regcpy_buf, DIFFTEST_TO_DUT);
   }
   uint64_t elapsed_ns = monotonic_ns() - start_ns;
 
@@ -368,6 +381,6 @@ int main(int argc, char **argv) {
     exit_code = 0;
   }
 
-  cleanup_ref_api(&api, image);
+  cleanup_ref_api(&api, image, regcpy_buf);
   return exit_code;
 }
