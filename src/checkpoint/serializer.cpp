@@ -21,6 +21,7 @@
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
+#include <cstdlib>
 #include <cstdio>
 #include <profiling/profiling_control.h>
 
@@ -39,6 +40,10 @@
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
 #include <zstd.h>
+#if CONFIG_MSIZE > 0x200000000UL
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
 #include "pb.h"
 #include "pb_encode.h"
@@ -148,12 +153,63 @@ extern uint64_t clint_get_mtimecmp();
 }
 
 #ifdef CONFIG_MEM_COMPRESS
+// Some configurations reserve a huge mmap-backed pmem range, while only the low
+// part is actually touched by the workload/restorer. Dumping the full configured
+// range would make checkpoint generation impractically slow and produce oversized
+// files, so for large pmem we trim the dump to the highest resident page.
+static size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size) {
+#if CONFIG_MSIZE <= 0x200000000UL
+  return total_size;
+#else
+  assert(pmem);
+
+  const size_t min_size = 0x40000000UL; // keep at least 1GB for huge mmap-backed memory
+  const size_t chunk_size = 0x40000000UL;
+  size_t offset = total_size;
+
+  long page_size = sysconf(_SC_PAGESIZE);
+  if (page_size <= 0) page_size = 4096;
+
+  while (offset > 0) {
+    size_t this_start = offset > chunk_size ? offset - chunk_size : 0;
+    size_t this_chunk = offset - this_start;
+    size_t num_pages = this_chunk / (size_t)page_size;
+    if (num_pages == 0) break;
+
+    unsigned char *vec = (unsigned char *)malloc(num_pages);
+    if (!vec) {
+      return offset;
+    }
+
+    if (mincore(pmem + this_start, this_chunk, vec) != 0) {
+      free(vec);
+      return offset;
+    }
+
+    for (size_t i = num_pages; i > 0; i--) {
+      if (vec[i - 1] & 1) {
+        size_t actual_size = this_start + i * (size_t)page_size;
+        if (actual_size < min_size) actual_size = min_size;
+        if (actual_size > total_size) actual_size = total_size;
+        free(vec);
+        return actual_size;
+      }
+    }
+
+    free(vec);
+    offset = this_start;
+  }
+
+  return min_size < total_size ? min_size : total_size;
+#endif
+}
+
 void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
-  const size_t PMEM_SIZE = MEMORY_SIZE;
   assert(pmem_addr);
-  Log("Host physical address: %p size: %lx", pmem_addr, PMEM_SIZE);
+  const size_t PMEM_SIZE = get_effective_pmem_size(pmem_addr, (size_t)MEMORY_SIZE);
+  Log("Host physical address: %p size: %lx (MEMORY_SIZE: %lx)", pmem_addr, PMEM_SIZE, MEMORY_SIZE);
 
 #ifdef CONFIG_HAS_FLASH
   const size_t FLASH_SIZE = get_flash_size();
