@@ -98,6 +98,15 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif
+
+  #ifdef CONFIG_MEMTRACE
+  pkt_data_used_small pkt ={addr, 0};
+  memtrace_dump(pkt);
+  static uint64_t read_count = 0;
+  read_count++;
+
+  #endif
+
   #ifdef CONFIG_USE_SPARSEMM
   return sparse_mem_wread(sparse_mm, addr, len);
   #else
@@ -106,6 +115,11 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 }
 
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
+#ifdef CONFIG_MEMTRACE
+pkt_data_used_small pkt ={addr, 1};
+memtrace_dump(pkt);
+#endif
+
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   store_commit_queue_push(addr, data, len, cross_page_store);
 #endif

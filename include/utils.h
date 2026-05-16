@@ -136,4 +136,29 @@ bool is_zstd_file(const char *filename);
 }
 #endif
 
+
+typedef struct pkt_data_used_small{
+    uint64_t addr;
+    bool cmdstr;
+} pkt_data_used_small;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const char* get_memtrace_file_path();
+void memtrace_flush();
+void memtrace_trapflush();
+void memtrace_dump(pkt_data_used_small temp);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+
+
+
 #endif
