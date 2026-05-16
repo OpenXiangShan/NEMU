@@ -70,10 +70,7 @@ SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
 
 DIRS-y += src/profiling
-
-ifndef CONFIG_SHARE
 DIRS-y += src/checkpoint
-endif
 
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
@@ -81,10 +78,8 @@ SRCS = $(SRCS-y)
 
 XSRCS-$(CONFIG_USE_SPARSEMM) += src/memory/sparseram.cpp
 
-ifndef CONFIG_SHARE
 XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling
 XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
-endif
 
 XSRCS-y += src/memory/store_queue_wrapper.cpp
 

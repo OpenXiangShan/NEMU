@@ -1593,6 +1593,7 @@ CSR_STRUCT_START(hviprio1)
 CSR_STRUCT_END(hviprio1)
 
 CSR_STRUCT_START(hviprio2)
+  uint64_t pad0 : 64;
 CSR_STRUCT_END(hviprio2)
 
 CSR_STRUCT_START(vstopei)
