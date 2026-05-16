@@ -21,8 +21,10 @@
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
+#include <cerrno>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
@@ -39,8 +41,10 @@
 #include <fcntl.h>
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
-#include <zstd.h>
 #ifdef CONFIG_MEM_COMPRESS
+#include <zstd.h>
+#endif
+#if defined(CONFIG_MEM_COMPRESS) || defined(CONFIG_SHARE)
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -140,19 +144,15 @@ Serializer::Serializer() :
 
 extern "C" {
 uint8_t *get_pmem();
-word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
-uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 #include <device/flash.h>
 #include <checkpoint/semantic_point.h>
-extern void log_buffer_flush();
-extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
 extern uint64_t clint_get_mtime();
 extern uint64_t clint_get_mtimecmp();
 }
 
-#ifdef CONFIG_MEM_COMPRESS
+#if defined(CONFIG_MEM_COMPRESS) || defined(CONFIG_SHARE)
 // Some configurations reserve a huge mmap-backed pmem range, while only the low
 // part is actually touched by the workload/restorer. Dumping the full configured
 // range would make checkpoint generation impractically slow and produce oversized
@@ -199,8 +199,8 @@ static size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size) {
   return total_size;
 }
 
-void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr) {
-  // We must dump registers before memory to store them in the Generic Arch CPT
+void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr,
+                               const char *checkpoint_base_path) {
   assert(regDumped);
   assert(pmem_addr);
   const size_t PMEM_SIZE = get_effective_pmem_size(pmem_addr, (size_t)MEMORY_SIZE);
@@ -208,15 +208,21 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
 
 #ifdef CONFIG_HAS_FLASH
   const size_t FLASH_SIZE = get_flash_size();
-  assert(flash_addr);
-  Log("Host flash address: %p size: %lx", flash_addr, FLASH_SIZE);
   string flash_file_path;
 #endif
 
   string base_file_path;
   string memory_file_path;
 
-  if (checkpoint_state == SimpointCheckpointing) {
+#ifdef CONFIG_SHARE
+  if (!checkpoint_base_path) {
+    xpanic("SHARE checkpoint serialization requires checkpoint_base_path.\n");
+  }
+#endif
+
+  if (checkpoint_base_path) {
+    base_file_path = checkpoint_base_path;
+  } else if (checkpoint_state == SimpointCheckpointing) {
     base_file_path = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->first) + "_" +
                to_string(simpoint2Weights.begin()->second);
   } else {
@@ -227,7 +233,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     Log("Using GZ format generate checkpoint");
 #ifdef CONFIG_HAS_FLASH
     flash_file_path = base_file_path + "_flash_.gz";
-    gzFile flash_compressed_mem;
+    gzFile flash_compressed_mem = nullptr;
 #endif
     memory_file_path = base_file_path + "_memory_.gz";
     gzFile memory_compressed_file = gzopen(memory_file_path.c_str(), "wb");
@@ -241,6 +247,8 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     uint64_t pass_size = 0;
     if (store_cpt_in_flash) {
 #ifdef CONFIG_HAS_FLASH
+      assert(flash_addr);
+      Log("Host flash address: %p size: %lx", flash_addr, FLASH_SIZE);
       flash_compressed_mem = gzopen(flash_file_path.c_str(), "wb");
       if (flash_compressed_mem == nullptr) {
         cerr << "Failed to open " << flash_file_path << endl;
@@ -286,6 +294,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     }
 
   } else if (compress_file_format == ZSTD_FORMAT) {
+#ifdef CONFIG_MEM_COMPRESS
     Log("Using ZSTD format generate checkpoint");
 
     memory_file_path += base_file_path + "_memory_.zstd";
@@ -305,15 +314,20 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     size_t flash_fw_size = 0;
 
 #ifdef CONFIG_HAS_FLASH
-    flash_file_path += base_file_path + "_flash_.zstd";
-    Log("Opening %s as checkpoint output file", flash_file_path.c_str());
-
-    size_t const flash_compress_buffer_size = ZSTD_compressBound(FLASH_SIZE);
-    uint8_t *const flash_compress_buffer = (uint8_t*)malloc(flash_compress_buffer_size);
-    assert(flash_compress_buffer);
+    __attribute__((unused))
+    uint8_t *flash_compress_buffer = NULL;
 
     // compress flash device memory
     if (store_cpt_in_flash) {
+      assert(flash_addr);
+      Log("Host flash address: %p size: %lx", flash_addr, FLASH_SIZE);
+      flash_file_path += base_file_path + "_flash_.zstd";
+      Log("Opening %s as checkpoint output file", flash_file_path.c_str());
+
+      size_t const flash_compress_buffer_size = ZSTD_compressBound(FLASH_SIZE);
+      flash_compress_buffer = (uint8_t*)malloc(flash_compress_buffer_size);
+      assert(flash_compress_buffer);
+
       flash_compress_size = ZSTD_compress(flash_compress_buffer, flash_compress_buffer_size, flash_addr, FLASH_SIZE, 1);
       assert(flash_compress_size <= flash_compress_buffer_size && flash_compress_size != 0);
       Log("compress flash success, compress size %ld", flash_compress_size);
@@ -365,7 +379,10 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     free(flash_compress_buffer);
 #endif
     free(memory_compress_buffer);
-
+#else
+    xpanic("ZSTD checkpoint format requires CONFIG_MEM_COMPRESS. "
+           "Please enable CONFIG_MEM_COMPRESS or use GZ format.\n");
+#endif
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
@@ -374,12 +391,11 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
   regDumped = false;
 }
 #else
-void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr) {}
+void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr,
+                               const char *checkpoint_base_path) {}
 #endif
 
-#ifdef CONFIG_MEM_COMPRESS
-extern void csr_writeback();
-
+#if defined(CONFIG_MEM_COMPRESS) || defined(CONFIG_SHARE)
 void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
   auto *intRegCpt = (uint64_t *) (serialize_base_addr + int_reg_cpt_addr);
   for (unsigned i = 0; i < 32; i++) {
@@ -677,5 +693,11 @@ bool try_take_cpt(uint64_t icount) {
 void serialize_reg_to_mem() {
   serializer.serializeRegs(get_pmem());
 }
+
+#ifdef CONFIG_SHARE
+void serialize_pmem_to_file(const char *base_filepath) {
+  serializer.serializePMem(0, get_pmem(), nullptr, base_filepath);
+}
+#endif
 
 }
