@@ -68,6 +68,10 @@ SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
 SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
 SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
 SRCS-$(CONFIG_HAS_FLASH) += src/device/flash.c
+SRCS-$(CONFIG_HAS_IMSIC_M) += src/device/imsic_m.c
+SRCS-$(CONFIG_HAS_IMSIC_S) += src/device/imsic_s.c
+SRCS-$(CONFIG_HAS_APLIC_M) += src/device/aplic_m.c
+SRCS-$(CONFIG_HAS_APLIC_S) += src/device/aplic_s.c
 
 DIRS-y += src/profiling
 
