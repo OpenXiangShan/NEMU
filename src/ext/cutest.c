@@ -48,10 +48,10 @@ void cutest_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   amu_ctrl_callback_(event);
 }
 
-void cutest_mrelease_emplace(uint8_t tokenRd) {
+void cutest_mrelease_emplace(uint8_t msyncRd) {
   amu_ctrl_event_t event;
   event.op = 2;
-  event.mtilem = tokenRd;
+  event.mtilem = msyncRd;
   event.pc = prev_s->pc;
   amu_ctrl_callback_(event);
 }

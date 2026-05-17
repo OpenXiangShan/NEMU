@@ -304,6 +304,12 @@ void difftest_get_amu_ctrl_event_other_info(void *info) {
 #endif // CONFIG_RVMATRIX
 }
 
+void difftest_get_msync_event_other_info(void *info) {
+#ifdef CONFIG_RVMATRIX
+  *(uint64_t*)info = get_msync_info().pc;
+#endif // CONFIG_RVMATRIX
+}
+
 int difftest_amu_ctrl(void *cmp) {
   // Check if the queue head matches the given cmp.
   // If they don't match, save the queue head to cmp.
@@ -319,7 +325,7 @@ int difftest_amu_ctrl(void *cmp) {
 #endif // CONFIG_RVMATRIX
 }
 
-int difftest_token_event(void *cmp) {
+int difftest_msync_event(void *cmp) {
   // Check if the queue head matches the given cmp.
   // If they don't match, save the queue head to cmp.
   // Return value:

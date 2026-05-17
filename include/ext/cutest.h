@@ -15,7 +15,7 @@ void cutest_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   bool isA, uint64_t base, uint64_t stride,
   uint16_t row, uint16_t column, uint8_t msew);
 
-void cutest_mrelease_emplace(uint8_t tokenRd);
+void cutest_mrelease_emplace(uint8_t msyncRd);
 
 void cutest_mzero_emplace(bool isacc, uint8_t md);
 
