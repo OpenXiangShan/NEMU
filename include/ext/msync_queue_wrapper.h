@@ -17,7 +17,7 @@ msync_event_t msync_queue_back();
 size_t msync_queue_size();
 bool msync_queue_empty();
 
-void msync_queue_emplace(uint8_t op, uint8_t token);
+void msync_queue_emplace(uint8_t op, uint8_t msyncRd);
 #endif // CONFIG_RVMATRIX
 
 #ifdef __cplusplus

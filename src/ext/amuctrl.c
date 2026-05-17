@@ -33,7 +33,7 @@ static void print_amu_ctrl_event(amu_ctrl_event_t *event) {
                       event->base, event->stride, event->mtilem, event->mtilen, event->typed);
       break;
     case 2:
-      fprintf(stderr, "  tokenRd: %d\n", event->mtilem);
+      fprintf(stderr, "  msyncRd: %d\n", event->mtilem);
       break;
     case 3:
       fprintf(stderr, "  md: %d, opType: %016lx\n", event->md, event->base);
@@ -153,9 +153,9 @@ static void exec_amu_load_store(void *amu_ctrl, void *res) {
 }
 
 static void exec_amu_release(void *amu_ctrl) {
-  uint8_t tokenRd = check_mtok_idx(((amu_ctrl_event_t *)amu_ctrl)->mtilem);
-  cpu.mtokr[tokenRd]++;
-  mstore_queue_update_mrelease(tokenRd, cpu.mtokr[tokenRd]);
+  uint8_t msyncRd = check_mtok_idx(((amu_ctrl_event_t *)amu_ctrl)->mtilem);
+  cpu.mtokr[msyncRd]++;
+  mstore_queue_update_mrelease(msyncRd, cpu.mtokr[msyncRd]);
 }
 
 static void exec_amu_arith(void *amu_ctrl) {

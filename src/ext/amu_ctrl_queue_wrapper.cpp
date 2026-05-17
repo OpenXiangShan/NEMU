@@ -79,10 +79,10 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   amu_ctrl_queue_push(event);
 }
 
-void amu_ctrl_queue_mrelease_emplace(uint8_t tokenRd) {
+void amu_ctrl_queue_mrelease_emplace(uint8_t msyncRd) {
   amu_ctrl_event_t event;
   event.op = 2;
-  event.mtilem = tokenRd;
+  event.mtilem = msyncRd;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }

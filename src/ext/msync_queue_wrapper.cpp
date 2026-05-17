@@ -38,11 +38,11 @@ bool msync_queue_empty() {
   return cpp_msync_queue.empty();
 }
 
-void msync_queue_emplace(uint8_t op, uint8_t token) {
+void msync_queue_emplace(uint8_t op, uint8_t msyncRd) {
   msync_event_t msync_event;
   msync_event.valid = true;
   msync_event.op = op;
-  msync_event.token = token;
+  msync_event.msyncRd = msyncRd;
   msync_event.pc = prev_s->pc;
   msync_queue_push(msync_event);
 }

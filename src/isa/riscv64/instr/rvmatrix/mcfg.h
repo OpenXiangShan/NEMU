@@ -121,10 +121,10 @@ def_EHelper(macquire) {
   // Do nothing in NEMU.
 #ifndef CONFIG_SHARE
   Assert(cpu.mtokr[tok_i] >= reg_l(s->src1.reg),
-    "Value(%ld) in token register %d is not enough.", reg_l(s->src1.reg), tok_i);
+    "Value(%ld) in msync register %d is not enough.", reg_l(s->src1.reg), tok_i);
 #elif defined(CONFIG_SHARE_REF)
   if (cpu.mtokr[tok_i] < reg_l(s->src1.reg)) {
-    Log("Value(%ld) in token register %d is not enough.", reg_l(s->src1.reg), tok_i);
+    Log("Value(%ld) in msync register %d is not enough.", reg_l(s->src1.reg), tok_i);
   }
 #else // controller mode
   nemu_state.state = NEMU_WAIT;
