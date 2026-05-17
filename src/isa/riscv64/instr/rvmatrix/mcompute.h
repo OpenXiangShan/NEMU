@@ -128,9 +128,9 @@ def_EHelper(mmacc) {
   uint8_t m_s_sz = s1size;
   uint8_t m_d_sz = dsize;
 #endif
-#ifndef CONFIG_SHARE_REF
   bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
   bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
+#ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (comb == 0) /* int mma */ {
     int64_t int_max = INT64_MAX >> (64 - 8 * (1 << dsize));
@@ -202,7 +202,7 @@ def_EHelper(mmacc) {
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, mxrm->val, msaten->val, comb, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
-                      4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+                      (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(td, msaten->val, comb, ts1, ts2,
