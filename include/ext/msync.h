@@ -10,7 +10,7 @@
 typedef struct  {
   uint8_t  valid;
   uint8_t  op;
-  uint8_t  token;
+  uint8_t  msyncRd;
   uint64_t pc;
 } msync_event_t;
 
