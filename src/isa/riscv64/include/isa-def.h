@@ -147,7 +147,7 @@ typedef struct {
 
 #ifdef CONFIG_RVMATRIX
   uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
-  uint64_t tlenb, trlenb, alenb, msync, mtilem, mtilen, mtilek;
+  uint64_t tlenb, trlenb, alenb, mtilem, mtilen, mtilek, msync;
 #endif // CONFIG_RVMATRIX
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
