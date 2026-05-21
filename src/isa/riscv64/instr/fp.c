@@ -49,6 +49,7 @@ bool fp_enable() {
 }
 
 void fp_set_dirty() {
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   mstatus->fs = EXT_CONTEXT_DIRTY;
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {

@@ -2011,6 +2011,7 @@ void vcsr_read(uint32_t addr,  rtlreg_t *dest) {
 
 void disable_time_intr() {
     Log("Disabled machine/supervisor/virtualized-supervisor time interruption\n");
+    IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
     mie->mtie = 0;
     mie->stie = 0;
     mie->vstie = 0;
@@ -3485,6 +3486,7 @@ word_t riscv64_priv_sret() {
     if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
       longjmp_exception(EX_VI);
     }
+    IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
     if (ISDEF(CONFIG_RV_SSDBLTRP)) {
       vsstatus->sdt = 0;
     }
@@ -3499,6 +3501,7 @@ word_t riscv64_priv_sret() {
   if ((cpu.mode == MODE_S && mstatus->tsr) || cpu.mode < MODE_S) {
     longjmp_exception(EX_II);
   }
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   if (execIn(CPU_MODE_M) && ISDEF(CONFIG_RV_SMDBLTRP)) {
     if (ISDEF(CONFIG_RV_SSDBLTRP) && (sretTo(CPU_MODE_VU) || sretTo(CPU_MODE_VS) || sretTo(CPU_MODE_U))) {
       mstatus->sdt = 0;
@@ -3534,6 +3537,7 @@ word_t riscv64_priv_mret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   mstatus->mie = mstatus->mpie;
   mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
       : 1);
@@ -3570,6 +3574,7 @@ word_t riscv64_priv_mnret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
 #ifdef CONFIG_RVH
   cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);

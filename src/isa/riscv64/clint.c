@@ -49,6 +49,9 @@ static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 #ifdef CONFIG_LIGHTQS_DEBUG
   printf("clint op write %d addr %x\n", is_write, offset);
 #endif // CONFIG_LIGHTQS_DEBUG
+  if (is_write) {
+    IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
+  }
   if (is_write && offset == CLINT_MTIME) {
     set_mtime(clint_base[CLINT_MTIME]);
   } else {
