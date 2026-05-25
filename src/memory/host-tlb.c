@@ -72,14 +72,14 @@ static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
 }
 
 __attribute__((noinline))
-static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
-  paddr_t paddr = va2pa(s, vaddr, len, type);
-  word_t data = paddr_read(paddr, len, type, type, cpu.mode, vaddr);
+static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type, int trap_type) {
+  paddr_t paddr = va2pa(s, vaddr, len, trap_type);
+  word_t data = paddr_read(paddr, len, type, trap_type, cpu.mode, vaddr);
   if (
     MUXDEF(CONFIG_RV_MBMC, isa_bmc_check_permission(paddr, len, 0, 0), true) &&
     likely(in_pmem(paddr))
   ) {
-    HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
+    HostTLBEntry *e = trap_type == MEM_TYPE_IFETCH ?
       &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
     #ifdef CONFIG_USE_SPARSEMM
     e->offset = (uint8_t *)(paddr - vaddr);
@@ -110,21 +110,21 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   }
 }
 
-word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
+word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type, int trap_type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
-    paddr_t paddr = va2pa(s, vaddr, len, type);
-    return paddr_read(paddr, len, type, type, cpu.mode, vaddr);
+    paddr_t paddr = va2pa(s, vaddr, len, trap_type);
+    return paddr_read(paddr, len, type, trap_type, cpu.mode, vaddr);
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
-  HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
+  HostTLBEntry *e = trap_type == MEM_TYPE_IFETCH ?
     &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
   if (unlikely(e->gvpn != gvpn)) {
     Logm("Host TLB slow path");
-    return hosttlb_read_slowpath(s, vaddr, len, type);
+    return hosttlb_read_slowpath(s, vaddr, len, type, trap_type);
   } else {
     Logm("Host TLB fast path");
     #ifdef CONFIG_USE_SPARSEMM
