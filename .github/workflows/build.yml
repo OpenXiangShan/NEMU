@@ -36,7 +36,7 @@ jobs:
     - name: Compile dynamic library
       run: |
         make riscv64-${{ matrix.cpu }}-${{ matrix.type }}_defconfig
-        make -j
+        make -j LDFLAGS="-static-libstdc++ -Wl,--exclude-libs,ALL"
 
     - name: Prepare artifact
       run: |
