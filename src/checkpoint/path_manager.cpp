@@ -42,7 +42,7 @@ static bool path_exists(const std::string &path) {
 }
 
 static bool create_directories(const std::string &path) {
-  size_t pos = 0;
+  size_t pos = (path.size() > 0 && path[0] == '/') ? 1 : 0;
   while ((pos = path.find('/', pos + 1)) != std::string::npos) {
     std::string sub = path.substr(0, pos);
     if (mkdir(sub.c_str(), 0755) != 0 && errno != EEXIST)
