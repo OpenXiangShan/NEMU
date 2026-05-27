@@ -21,9 +21,7 @@
 #define NEMU_PATH_MANAGER_H
 
 #include <string>
-#include <filesystem>
-
-namespace fs = std::filesystem;
+#include <cstdint>
 
 class PathManager
 {
@@ -35,8 +33,8 @@ class PathManager
     uint64_t cptID;
 
     std::string workloadPath;
-    fs::path outputPath;
-    fs::path simpointPath;
+    std::string outputPath;
+    std::string simpointPath;
 
   public:
     void init();

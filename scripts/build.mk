@@ -34,6 +34,9 @@ INCLUDES = $(addprefix -I, $(INC_DIR))
 XINCLUDES = $(addprefix -I, $(XINC_DIR))
 CFLAGS  := -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) $(PGO_FLAGS)
 CXXFLAGS  := --std=c++17 $(XINCLUDES) $(CFLAGS)
+ifdef SHARE
+CXXFLAGS += -D_GLIBCXX_USE_CXX11_ABI=0
+endif
 LDFLAGS := $(LDFLAGS) $(PGO_FLAGS)
 # filesystem
 ifndef SHARE

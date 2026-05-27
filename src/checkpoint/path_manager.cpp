@@ -24,7 +24,8 @@
 
 #include <cassert>
 #include <iostream>
-#include <filesystem>
+#include <sys/stat.h>
+#include <errno.h>
 
 using namespace std;
 
@@ -33,6 +34,23 @@ extern "C" {
 extern bool log_enable();
 extern void log_buffer_flush();
 extern void log_file_flush();
+}
+
+static bool path_exists(const std::string &path) {
+  struct stat st;
+  return stat(path.c_str(), &st) == 0;
+}
+
+static bool create_directories(const std::string &path) {
+  size_t pos = 0;
+  while ((pos = path.find('/', pos + 1)) != std::string::npos) {
+    std::string sub = path.substr(0, pos);
+    if (mkdir(sub.c_str(), 0755) != 0 && errno != EEXIST)
+      return false;
+  }
+  if (mkdir(path.c_str(), 0755) != 0 && errno != EEXIST)
+    return false;
+  return true;
 }
 
 void PathManager::init() {
@@ -58,17 +76,17 @@ void PathManager::init() {
 
   if (checkpoint_state == SimpointCheckpointing) {
     assert(simpoints_dir);
-    simpointPath = fs::path(string(simpoints_dir) + "/" + workloadName +"/");
+    simpointPath = string(simpoints_dir) + "/" + workloadName + "/";
   }
 }
 
 void PathManager::setSimpointProfilingOutputDir() {
   if (profiling_state==SimpointProfiling) {
     std::string output_path = workloadPath;
-    outputPath = fs::path(output_path);
+    outputPath = output_path;
 
-    if (!fs::exists(outputPath)) {
-      fs::create_directories(outputPath);
+    if (!path_exists(outputPath)) {
+      create_directories(outputPath);
     }
     Log("Created %s\n", output_path.c_str());
   }else{
@@ -83,9 +101,9 @@ void PathManager::setCheckpointingOutputDir() {
     std::string output_path = workloadPath;
     output_path += to_string(cptID) + "/";
 
-    outputPath = fs::path(output_path);
-    if (!fs::exists(outputPath)) {
-      fs::create_directories(outputPath);
+    outputPath = output_path;
+    if (!path_exists(outputPath)) {
+      create_directories(outputPath);
     }
     Log("Created %s\n", output_path.c_str());
   }else{
@@ -98,15 +116,13 @@ void PathManager::incCptID() {
 }
 
 std::string PathManager::getOutputPath() const {
-  assert(fs::exists(outputPath));
-  return outputPath.string();
+  assert(path_exists(outputPath));
+  return outputPath;
 }
 
 std::string PathManager::getSimpointPath() const {
-  // cerr << simpointPath.string() << endl;
-  // std::fflush(stderr);
-  assert(fs::exists(simpointPath));
-  return simpointPath.string();
+  assert(path_exists(simpointPath));
+  return simpointPath;
 }
 
 PathManager pathManager;
