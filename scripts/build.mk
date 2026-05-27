@@ -3,7 +3,7 @@
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC -D_SHARE=1
-LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined -lz -static-libstdc++
+LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined -lz
 endif
 
 WORK_DIR  = $(shell pwd)
