@@ -308,10 +308,10 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     #ifdef CONFIG_RV_MPT_CHECK
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
-        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1)   
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);   
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
       Log("pmp or pma check failed when PTW"); 
     #endif // CONFIG_RV_MPT_CHECK
 
@@ -468,10 +468,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     #ifdef CONFIG_RV_MPT_CHECK
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
-        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1)   
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);   
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
       Log("pmp or pma check failed when PTW"); 
     #endif // CONFIG_RV_MPT_CHECK
 
