@@ -253,6 +253,20 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
     }
     return false;
   }
+
+  #ifdef CONFIG_RV_MPT_CHECK
+    if (!isa_mpt_check_permission(addr, len, type, mode)) {
+      if (trap_type == MEM_TYPE_WRITE) {
+        raise_access_fault(EX_SAF, vaddr);
+      } else {
+        raise_read_access_fault(trap_type, vaddr);
+        Log("isa mpt check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
+          vaddr, addr, len, type, mode);
+      }
+      return false;
+    }
+  #endif
+
   #ifdef CONFIG_RV_MBMC
   if (!isa_bmc_check_permission(addr, len, type, mode)){
     if (type == MEM_TYPE_WRITE) {

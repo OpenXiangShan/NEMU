@@ -540,6 +540,9 @@ void lightqs_take_reg_snapshot() {
   #ifdef CONFIG_RV_MBMC
   reg_ss.mbmc = cpu.mbmc;
   #endif
+  #ifdef CONFIG_RV_MPT_CHECK
+  reg_ss.mmpt = cpu.mmpt;
+  #endif
   reg_ss.mip = cpu.mip;
   reg_ss.mie = cpu.mie;
   reg_ss.mscratch = cpu.mscratch;
@@ -582,6 +585,9 @@ void lightqs_take_spec_reg_snapshot() {
   spec_reg_ss.satp = cpu.satp;
   #ifdef CONFIG_RV_MBMC
   spec_reg_ss.mbmc = cpu.mbmc;
+  #endif
+  #ifdef CONFIG_RV_MPT_CHECK
+  reg_ss.mmpt = cpu.mmpt;
   #endif
   spec_reg_ss.mip = cpu.mip;
   spec_reg_ss.mie = cpu.mie;
@@ -634,6 +640,9 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
   cpu.satp = reg_ss.satp;
   #ifdef CONFIG_RV_MBMC
   cpu.mbmc = reg_ss.mbmc;
+  #endif
+  #ifdef CONFIG_RV_MPT_CHECK
+  reg_ss.mmpt = cpu.mmpt;
   #endif
   cpu.mip = reg_ss.mip;
   cpu.mie = reg_ss.mie;
