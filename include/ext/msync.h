@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
 
 // Attention: the order of fields in this class must be the same as the order
 //            in the corresponding struct in XiangShan(or XSAI)'s diffstate.h.
@@ -17,5 +17,5 @@ typedef struct  {
 int check_msync(msync_event_t *cmp);
 msync_event_t get_msync_info();
 
-#endif // CONFIG_RVMATRIX
+#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
 #endif // __EXT_MSYNC_H__

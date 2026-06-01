@@ -20,7 +20,9 @@
 #include "cpu/exec.h"
 #include "ext/amu_ctrl_queue_wrapper.h"
 #include <ext/cutest.h>
+#ifdef CONFIG_SHARE_REF
 #include "ext/msync_queue_wrapper.h"
+#endif // CONFIG_SHARE_REF
 #include "ext/mstore_queue_wrapper.h"
 #include "mcommon.h"
 #include "../local-include/csr.h"
@@ -93,7 +95,9 @@ def_EHelper(msyncreset) {
   require_matrix();
   uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
   cpu.mtokr[tok_i] = 0;
+#ifdef CONFIG_SHARE_REF
   msync_queue_emplace(0, tok_i);
+#endif // CONFIG_SHARE_REF
   mp_set_dirty();
 }
 
@@ -131,13 +135,18 @@ def_EHelper(macquire) {
   nemu_state.wait_r = tok_i;
   nemu_state.wait_val = reg_l(s->src1.reg);
 #endif
+#ifdef CONFIG_SHARE_REF
   msync_queue_emplace(1, tok_i);
+#endif // CONFIG_SHARE_REF
   mstore_queue_update_acquire(tok_i, reg_l(s->src1.reg));
   mp_set_dirty();
 }
 
 def_EHelper(mfence)  {
   require_matrix();
+#ifdef CONFIG_SHARE_REF
+  msync_queue_emplace(2, 0);
+#endif // CONFIG_SHARE_REF
   // Do nothing in NEMU.
 }
 
