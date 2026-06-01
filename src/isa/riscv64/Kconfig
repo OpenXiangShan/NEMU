@@ -117,7 +117,7 @@ config CUSTOM_TENSOR
   default n
 
 config RVMATRIX
-  bool "RISC-V Matrix Extension v0.5"
+  bool "RISC-V Matrix Extension (Internal Spec)"
   default n
 
 config RVMATRIX_TLEN
