@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#ifdef CONFIG_RVMATRIX
+#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
 void msync_queue_reset();
 void msync_queue_push(msync_event_t msync_event);
 void msync_queue_pop();
@@ -18,7 +18,7 @@ size_t msync_queue_size();
 bool msync_queue_empty();
 
 void msync_queue_emplace(uint8_t op, uint8_t msyncRd);
-#endif // CONFIG_RVMATRIX
+#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
 
 #ifdef __cplusplus
 }

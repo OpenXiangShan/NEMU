@@ -305,9 +305,9 @@ void difftest_get_amu_ctrl_event_other_info(void *info) {
 }
 
 void difftest_get_msync_event_other_info(void *info) {
-#ifdef CONFIG_RVMATRIX
+#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
   *(uint64_t*)info = get_msync_info().pc;
-#endif // CONFIG_RVMATRIX
+#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
 }
 
 int difftest_amu_ctrl(void *cmp) {
@@ -332,12 +332,12 @@ int difftest_msync_event(void *cmp) {
   //   0:  Queue head matches cmp
   //   1:  Queue head does not match cmp
   //   -1: Queue is empty, no cmp to check
-#ifdef CONFIG_RVMATRIX
+#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
   msync_event_t *msync = (msync_event_t *)cmp;
   return check_msync(msync);
 #else
   return 0;
-#endif // CONFIG_RVMATRIX
+#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
 }
 
 int difftest_amu_exec(void *amu_ctrl, void *res) {
