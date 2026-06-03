@@ -537,6 +537,17 @@ bool analysis_memory_isuse(uint64_t page) {
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
+static bool store_diff_trace_enabled() {
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *env = getenv("STORE_DIFF_TRACE");
+    enabled = env == NULL || env[0] != '0';
+  }
+  return enabled;
+}
+
+static uint64_t nemu_store_check_seq = 0;
+
 #define LIMITING_SHIFT(x) (((uint64_t)(x)) < ((uint64_t)63ULL) ? ((uint64_t)(x)) : ((uint64_t)63ULL))
 void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
   // align with dut
@@ -693,15 +704,56 @@ store_commit_t store_commit_queue_pop(int *flag) {
 store_commit_t store_commit_data;
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
+  uint64_t xs_addr = *addr;
+  uint64_t xs_data = *data;
+  uint8_t xs_mask = *mask;
+  size_t q_size_before = store_queue_size();
+  uint64_t trace_seq = 0;
+  bool trace_enabled = store_diff_trace_enabled();
+  if (trace_enabled) {
+    trace_seq = ++nemu_store_check_seq;
+    printf("STORE_DIFF_TRACE side=NEMU stage=check_begin seq=%llu q_size_before=%zu xs_addr=0x%016llx xs_data=0x%016llx xs_mask=0x%02x\n",
+        (unsigned long long)trace_seq,
+        q_size_before,
+        (unsigned long long)xs_addr,
+        (unsigned long long)xs_data,
+        xs_mask);
+    fflush(stdout);
+  }
   int result = 0;
   if (store_queue_empty()) {
+    if (trace_enabled) {
+      printf("STORE_DIFF_TRACE side=NEMU stage=check_empty seq=%llu result=1 q_size_before=%zu xs_addr=0x%016llx xs_data=0x%016llx xs_mask=0x%02x\n",
+          (unsigned long long)trace_seq,
+          q_size_before,
+          (unsigned long long)xs_addr,
+          (unsigned long long)xs_data,
+          xs_mask);
+      fflush(stdout);
+    }
     printf("NEMU does not commit any store instruction.\n");
     result = 1;
   }
   else {
     store_commit_data = store_queue_front();
     store_queue_pop();
-    if (*addr != store_commit_data.addr || *data != store_commit_data.data || *mask != store_commit_data.mask) {
+    bool mismatch = *addr != store_commit_data.addr || *data != store_commit_data.data || *mask != store_commit_data.mask;
+    if (trace_enabled) {
+      printf("STORE_DIFF_TRACE side=NEMU stage=check_pop seq=%llu result=%d q_size_before=%zu q_size_after=%zu xs_addr=0x%016llx xs_data=0x%016llx xs_mask=0x%02x nemu_pc=0x%016llx nemu_addr=0x%016llx nemu_data=0x%016llx nemu_mask=0x%02x\n",
+          (unsigned long long)trace_seq,
+          mismatch ? 1 : 0,
+          q_size_before,
+          store_queue_size(),
+          (unsigned long long)xs_addr,
+          (unsigned long long)xs_data,
+          xs_mask,
+          (unsigned long long)store_commit_data.pc,
+          (unsigned long long)store_commit_data.addr,
+          (unsigned long long)store_commit_data.data,
+          store_commit_data.mask);
+      fflush(stdout);
+    }
+    if (mismatch) {
       *addr = store_commit_data.addr;
       *data = store_commit_data.data;
       *mask = store_commit_data.mask;

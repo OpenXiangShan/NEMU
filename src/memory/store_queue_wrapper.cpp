@@ -1,4 +1,6 @@
 #include <memory/store_queue_wrapper.h>
+#include <cstdio>
+#include <cstdlib>
 #include <queue>
 #include <stack>
 
@@ -24,13 +26,40 @@ void spec_store_log_stack_copy() { store_log_stack = spec_store_log_stack;}
 
 std::queue<store_commit_t> cpp_store_event_queue;
 
+static bool store_diff_trace_enabled() {
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *env = getenv("STORE_DIFF_TRACE");
+    enabled = env == nullptr || env[0] != '0';
+  }
+  return enabled;
+}
+
+static uint64_t nemu_store_queue_push_seq = 0;
+
 void store_queue_reset() {
+  if (store_diff_trace_enabled()) {
+    printf("STORE_DIFF_TRACE side=NEMU stage=queue_reset q_size_before=%zu\n", cpp_store_event_queue.size());
+    fflush(stdout);
+  }
   cpp_store_event_queue = {};
 }
 
 void store_queue_push(store_commit_t store_commit) {
+  size_t q_size_before = cpp_store_event_queue.size();
   Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = 0x%x", store_commit.addr, store_commit.data, store_commit.mask);
   cpp_store_event_queue.push(store_commit);
+  if (store_diff_trace_enabled()) {
+    printf("STORE_DIFF_TRACE side=NEMU stage=queue_push seq=%llu q_size_before=%zu q_size_after=%zu pc=0x%016llx addr=0x%016llx data=0x%016llx mask=0x%02x\n",
+        (unsigned long long)++nemu_store_queue_push_seq,
+        q_size_before,
+        cpp_store_event_queue.size(),
+        (unsigned long long)store_commit.pc,
+        (unsigned long long)store_commit.addr,
+        (unsigned long long)store_commit.data,
+        store_commit.mask);
+    fflush(stdout);
+  }
 }
 
 void store_queue_pop() {
