@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, v2-store ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, kunminghu-v2 ]
 
 env:
   CI_WORKLOADS: ./workloads
