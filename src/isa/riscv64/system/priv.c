@@ -688,6 +688,37 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MCONTEXT_MASK    0x00003fffULL
 #define SCONTEXT_MASK    0xffffffffULL
 
+#ifdef CONFIG_RV_SDTRIG
+static inline word_t legalize_tdata3(word_t src, word_t old) {
+  tdata3_t in = *(tdata3_t *)&src;
+  tdata3_t out = *(tdata3_t *)&old;
+
+  if (in.sselect <= 2) {
+    out.sselect = in.sselect;
+  }
+  out.svalue = in.svalue;
+  out.sbytemask = in.sbytemask;
+  out.mhvalue = in.mhvalue;
+
+  switch (in.mhselect) {
+    case 0:
+#ifdef CONFIG_RVH
+    case 1:
+    case 2:
+    case 5:
+    case 6:
+#endif
+    case 4:
+      out.mhselect = in.mhselect;
+      break;
+    default:
+      break;
+  }
+
+  return out.val;
+}
+#endif // CONFIG_RV_SDTRIG
+
 #define MSTATEEN0_IMSIC 0x0400000000000000
 #define MSTATEEN0_WMASK (                           \
   MSTATEEN_HSTATEEN                               | \
@@ -1979,9 +2010,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_TDATA1: return get_tdata1(cpu.TM);
     case CSR_TDATA2: return get_tdata2(cpu.TM);
     case CSR_MCONTEXT: return mcontext->val & MCONTEXT_MASK;
-#ifdef CONFIG_SDTRIG_EXTRA
     case CSR_TDATA3: return get_tdata3(cpu.TM);
-#endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 
     case CSR_MCYCLE:
@@ -2300,7 +2329,12 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_SMCSRIND
 
 #ifdef CONFIG_RV_SDTRIG
-    case CSR_SCONTEXT: *dest = src & SCONTEXT_MASK; break;
+    case CSR_SCONTEXT:
+      *dest = src & SCONTEXT_MASK;
+      // Execute triggers are checked during decode, so context updates must
+      // invalidate cached decodes before the next instruction.
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
 #endif // CONFIG_RV_SDTRIG
 
     /************************* Hypervisor and VS CSRs *************************/
@@ -2338,6 +2372,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       vsatp_new_val.val = src;
       // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
       update_vsatp(vsatp_new_val);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
     case CSR_HEDELEG: hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); break;
@@ -2392,6 +2427,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_SV48
         hgatp->mode = hgatp_new_val.mode;
       // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
 
@@ -2399,7 +2435,10 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_HVIP: hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); break;
 
 #ifdef CONFIG_RV_SDTRIG
-    case CSR_HCONTEXT: mcontext->val = src & MCONTEXT_MASK; break;
+    case CSR_HCONTEXT:
+      mcontext->val = src & MCONTEXT_MASK;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
 #endif // CONFIG_RV_SDTRIG
 
 
@@ -2721,6 +2760,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         // do nothing for not supported trigger type
         break;
       }
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
     case CSR_TDATA2:
@@ -2729,18 +2769,21 @@ static void csr_write(uint32_t csrid, word_t src) {
       tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
       tdata2_t tdata2_wdata = *(tdata2_t*)&src;
       tdata2_reg->val = tdata2_wdata.val;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
-#ifdef CONFIG_SDTRIG_EXTRA
     case CSR_TDATA3:
     {
       tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
       tdata3_t tdata3_wdata = *(tdata3_t*)&src;
-      tdata3_reg->val = tdata3_wdata.val;
+      tdata3_reg->val = legalize_tdata3(tdata3_wdata.val, tdata3_reg->val);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
-#endif // CONFIG_SDTRIG_EXTRA
-    case CSR_MCONTEXT: *dest = src & MCONTEXT_MASK; break;
+    case CSR_MCONTEXT:
+      *dest = src & MCONTEXT_MASK;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
     case CSR_TINFO: break;
 #endif // CONFIG_RV_SDTRIG
 

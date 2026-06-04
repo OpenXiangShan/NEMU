@@ -272,7 +272,7 @@ void isa_reg_display() {
     DISPLAY_CSR("tselect", tselect->val);
     printf("\n");
     for(int i = 0; i < CONFIG_TRIGGER_NUM + 1; i++) {
-      printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
+      printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD " tdata3: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val, cpu.TM->triggers[i].tdata3.val);
     }
   #endif // CONFIG_RV_SDTRIG
   fflush(stdout);

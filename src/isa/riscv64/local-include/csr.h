@@ -496,8 +496,8 @@
   #define CSRS_M_DEBUG_TRACE(f) \
     f(tselect    , 0x7A0) \
     f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) \
-    f(tinfo      , 0x7A4) f(mcontext   , 0x7A8) \
-    IFDEF(CONFIG_SDTRIG_EXTRA, f(tdata3  , 0x7A3))
+    f(tdata3     , 0x7A3) f(tinfo      , 0x7A4) \
+    f(mcontext   , 0x7A8)
 #else // CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f)
 #endif // CONFIG_RV_SDTRIG
@@ -1012,16 +1012,13 @@ CSR_STRUCT_START(tdata2)    // 0x7a2
 CSR_STRUCT_END(tdata2)
 
 CSR_STRUCT_START(tdata3)    // 0x7a3
-  union {
-    struct {
-      uint64_t sselect    : 2;  // [1:0]
-      uint64_t svalue     : 34; // [35:2]
-      uint64_t sbytemask  : 5;  // [40:36]
-      uint64_t pad0       : 7;  // [47:41]
-      uint64_t mhselect   : 3;  // [50:48]
-      uint64_t mhvalue    : 13; // [63:51]
-    } textra64;
-  };
+  uint64_t sselect    : 2;  // [1:0]
+  uint64_t svalue     : 32; // [33:2]
+  uint64_t            : 2;  // [35:34]
+  uint64_t sbytemask  : 4;  // [39:36]
+  uint64_t            : 8;  // [47:40]
+  uint64_t mhselect   : 3;  // [50:48]
+  uint64_t mhvalue    : 13; // [63:51]
 CSR_STRUCT_END(tdata3)
 
 CSR_STRUCT_START(tinfo)     // 0x7a4
