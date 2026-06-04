@@ -45,7 +45,8 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 
 // memory
 enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
-enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE, MEM_TYPE_IFETCH_READ, MEM_TYPE_WRITE_READ, IFDEF(CONFIG_RV_MBMC, MEM_TYPE_BM_READ) }; // The second to last and the third to last are prepared for PTW.
+enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE, MEM_TYPE_IFETCH_READ,
+  MEM_TYPE_WRITE_READ, MEM_TYPE_READ_EXEC, IFDEF(CONFIG_RV_MBMC, MEM_TYPE_BM_READ) };
 enum { MEM_RET_OK, MEM_RET_FAIL};
 #ifndef isa_mmu_state
 int isa_mmu_state();
