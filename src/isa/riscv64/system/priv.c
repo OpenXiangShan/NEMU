@@ -186,6 +186,7 @@ void init_custom_csr() {
   smblockctl->uncache_write_outstanding_enable = 0;
   smblockctl->hd_misalign_st_enable = 1;
   smblockctl->hd_misalign_ld_enable = 1;
+  smblockctl->pf_refresh_enable = 1;
 
 #ifdef CONFIG_RV_SVINVAL
   srnctl->fusion_enable = 1;

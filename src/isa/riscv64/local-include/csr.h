@@ -45,7 +45,7 @@
 
 #define CUSTOM_CSR_SPFCTL_WMASK     0x3fffff
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
-#define CUSTOM_CSR_SMBLOCKCTL_WMASK 0xffffffff
+#define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x1ffffffffULL
 #define CUSTOM_CSR_SRNCTL_WMASK     0x5
 #define CUSTOM_CSR_MCOREPWR_WMASK   0x1
 #define CUSTOM_CSR_MFLUSHPWR_WMASK  0x1
@@ -1292,6 +1292,7 @@ CSR_STRUCT_START(smblockctl)
   uint64_t hd_misalign_st_enable            : 1; // [8] Enable hardware store misalign.
   uint64_t hd_misalign_ld_enable            : 1; // [9] Enable hardware load misalign.
   uint64_t sbuffer_timeout                  : 22;// [31:10] Store buffer flush timeout.
+  uint64_t pf_refresh_enable                : 1; // [32] Enable L1 TLB page-fault entry refresh.
 CSR_STRUCT_END(smblockctl)
 
 /** Supervisor Timer Register**/
