@@ -25,7 +25,8 @@ void update_mmu_state();
 
 #ifdef CONFIG_RVH
 word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual) {
-  return ((NO == EX_IAM || NO == EX_IAF || NO == EX_BP || NO == EX_IPF) && cpu.v) ||
+  return ((NO == EX_IAM || NO == EX_IAF || NO == EX_IPF) && cpu.v) ||
+         (NO == EX_BP && (cpu.v || is_hls)) ||
          ((NO == EX_LAM || NO == EX_LAF || NO == EX_SAM || NO == EX_SAF || NO == EX_LPF || NO == EX_SPF || NO == EX_HWE) && (is_hls || cpu.v || is_mem_access_virtual)) ||
          (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF);
 }

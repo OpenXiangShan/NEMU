@@ -3374,6 +3374,10 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
 
   hld_st = true;
   int mmu_mode = get_hyperinst_mmu_state();
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *addr, TRIGGER_NO_VALUE);
+  trigger_handler(TRIG_TYPE_MCONTROL6, action, *addr);
+#endif
   if (is_signed) {
     rtl_lms(s, dest, addr, 0, len, mmu_mode);
     IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
@@ -3395,6 +3399,10 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
 
   hld_st = true;
   int mmu_mode = get_hyperinst_mmu_state();
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *addr, *src);
+  trigger_handler(TRIG_TYPE_MCONTROL6, action, *addr);
+#endif
   rtl_sm(s, src, addr, 0, len, mmu_mode);
   IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
   hld_st = false;
