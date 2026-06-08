@@ -26,7 +26,14 @@ spec_max_instr="${SPEC_MAX_INSTR:-40000000}"
 nemu_bin="${NEMU_BIN:-${repo_dir}/build/riscv64-nemu-interpreter}"
 spike_so="${SPIKE_SO:-${repo_dir}/ready-to-run/spike-xiangshan-ref.so}"
 log_dir="${NEMU_DIFF_LOG_DIR:-${repo_dir}/nemu-diff-spike-logs}"
-diff_jobs="${NEMU_DIFF_JOBS:-1}"
+if [ -n "${NEMU_DIFF_JOBS:-}" ]; then
+  diff_jobs=$NEMU_DIFF_JOBS
+  diff_jobs_configured=true
+else
+  diff_jobs=1
+  diff_jobs_configured=false
+fi
+spec_slice_jobs="${SPEC_SLICE_JOBS:-}"
 suite="all"
 gcpt_restorer="${GCPT_RESTORE_BIN:-${shared_workloads}/fix-gcpt/gcpt.bin}"
 case_extra_args=()
@@ -38,6 +45,7 @@ manifest_lock_file=""
 manifest_sorted_file=""
 active_jobs=0
 run_failures=0
+compact_case_logs=false
 
 usage() {
   cat <<'EOF'
@@ -55,6 +63,8 @@ Options:
   --spec-seed TEXT    Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   --spec-max-instr NUM
                      Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
+  --spec-jobs NUM     Number of SPEC checkpoint slices to run concurrently.
+                     Defaults to SPEC_SLICE_JOBS, NEMU_DIFF_JOBS, or 16.
   --log-dir DIR       Directory for per-workload logs and manifest.
   --jobs NUM          Number of workloads to run concurrently. Defaults to 1.
 
@@ -71,6 +81,8 @@ Environment:
   SPEC_SLICE_LIMIT         Number of SPEC checkpoint slices to sample. Defaults to 1000.
   SPEC_SLICE_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   SPEC_MAX_INSTR           Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
+  SPEC_SLICE_JOBS          Number of SPEC checkpoint slices to run concurrently.
+                           Defaults to NEMU_DIFF_JOBS or 16.
   GCPT_RESTORE_BIN         GCPT restorer used by spec-slices.
   NEMU_BIN                 NEMU executable. Defaults to ./build/riscv64-nemu-interpreter.
   SPIKE_SO                 Spike difftest shared object. Defaults to ready-to-run/spike-xiangshan-ref.so.
@@ -164,10 +176,12 @@ run_case_with_index() {
     case_label="#${index}/${total}"
   fi
 
-  echo "RUN case ${case_label}: ${name}"
-  echo "  workload: ${workload}"
-  echo "  log: ${log_file}"
-  echo "  command: ${command_line}"
+  if [ "$compact_case_logs" != true ]; then
+    echo "RUN case ${case_label}: ${name}"
+    echo "  workload: ${workload}"
+    echo "  log: ${log_file}"
+    echo "  command: ${command_line}"
+  fi
   if "${cmd[@]}" > "$log_file" 2>&1; then
     status=0
   else
@@ -175,7 +189,11 @@ run_case_with_index() {
   fi
   if [ "$status" -eq 0 ]; then
     append_manifest "$index" "PASS" "$name" "$workload" "$log_file" "$command_line"
-    echo "PASS case ${case_label}: ${name}"
+    if [ "$compact_case_logs" = true ]; then
+      printf '%s - pass\n' "$name"
+    else
+      echo "PASS case ${case_label}: ${name}"
+    fi
     return 0
   fi
 
@@ -183,6 +201,7 @@ run_case_with_index() {
   echo "FAIL case ${case_label}: ${name}" >&2
   echo "workload: ${workload}" >&2
   echo "log: ${log_file}" >&2
+  echo "command: ${command_line}" >&2
   echo "::error title=NEMU Spike DiffTest failed::case ${case_label}: ${name}; workload: ${workload}; log: ${log_file}"
   echo "Last 200 lines from ${log_file}:"
   tail -n 200 "$log_file" >&2 || true
@@ -338,9 +357,13 @@ run_advanced() {
 run_spec_slices() {
   local test_bin total_tests
   local -a spec_tests
+  local saved_compact_case_logs saved_diff_jobs
 
   require_positive_integer "SPEC_SLICE_LIMIT" "$spec_slice_limit"
   require_positive_integer "SPEC_MAX_INSTR" "$spec_max_instr"
+  if [ -n "$spec_slice_jobs" ]; then
+    require_positive_integer "SPEC_SLICE_JOBS" "$spec_slice_jobs"
+  fi
 
   if [ ! -d "$spec_checkpoints" ]; then
     echo "SPEC checkpoint directory not found: $spec_checkpoints" >&2
@@ -392,6 +415,15 @@ for path in paths[:limit]:
   fi
 
   echo "Selected ${total_tests} SPEC06 checkpoint slices from ${spec_checkpoints} with seed ${spec_slice_seed}."
+  saved_diff_jobs=$diff_jobs
+  saved_compact_case_logs=$compact_case_logs
+  if [ -n "$spec_slice_jobs" ]; then
+    diff_jobs=$spec_slice_jobs
+  elif [ "$diff_jobs_configured" != true ]; then
+    diff_jobs=16
+  fi
+  compact_case_logs=true
+  echo "NEMU SPEC checkpoint jobs: $diff_jobs"
   case_total=$total_tests
   for test_bin in "${spec_tests[@]}"; do
     local rel_path corpus_dir spec_restorer
@@ -411,6 +443,8 @@ for path in paths[:limit]:
   done
   wait_for_cases
   case_total=""
+  diff_jobs=$saved_diff_jobs
+  compact_case_logs=$saved_compact_case_logs
 }
 
 while [ "$#" -gt 0 ]; do
@@ -471,6 +505,14 @@ while [ "$#" -gt 0 ]; do
       spec_max_instr=$2
       shift 2
       ;;
+    --spec-jobs)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-jobs" >&2
+        exit 2
+      fi
+      spec_slice_jobs=$2
+      shift 2
+      ;;
     --log-dir)
       if [ "$#" -lt 2 ] || [ -z "$2" ]; then
         echo "Missing value for --log-dir" >&2
@@ -485,6 +527,7 @@ while [ "$#" -gt 0 ]; do
         exit 2
       fi
       diff_jobs=$2
+      diff_jobs_configured=true
       shift 2
       ;;
     -h|--help)
