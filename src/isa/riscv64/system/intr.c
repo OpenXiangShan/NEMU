@@ -340,7 +340,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 
 word_t isa_query_intr() {
   word_t intr_vec = mie->val & (get_mip());
-  if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
+#ifdef CONFIG_RV_IMSIC
+  bool pending = (mtopi->val != 0) || (stopi->val != 0) || (vstopi->val != 0);
+#endif
+  if (MUXDEF(CONFIG_RV_IMSIC, !pending, !intr_vec) || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
   int intr_num;
 #ifdef CONFIG_RVH
   const int priority [] = {
