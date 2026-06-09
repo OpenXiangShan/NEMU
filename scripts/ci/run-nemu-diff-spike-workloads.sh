@@ -64,7 +64,7 @@ Options:
   --spec-max-instr NUM
                      Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
   --spec-jobs NUM     Number of SPEC checkpoint slices to run concurrently.
-                     Defaults to SPEC_SLICE_JOBS, NEMU_DIFF_JOBS, or 16.
+                     Defaults to SPEC_SLICE_JOBS, NEMU_DIFF_JOBS, or 64.
   --log-dir DIR       Directory for per-workload logs and manifest.
   --jobs NUM          Number of workloads to run concurrently. Defaults to 1.
 
@@ -82,7 +82,7 @@ Environment:
   SPEC_SLICE_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   SPEC_MAX_INSTR           Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
   SPEC_SLICE_JOBS          Number of SPEC checkpoint slices to run concurrently.
-                           Defaults to NEMU_DIFF_JOBS or 16.
+                           Defaults to NEMU_DIFF_JOBS or 64.
   GCPT_RESTORE_BIN         GCPT restorer used by spec-slices.
   NEMU_BIN                 NEMU executable. Defaults to ./build/riscv64-nemu-interpreter.
   SPIKE_SO                 Spike difftest shared object. Defaults to ready-to-run/spike-xiangshan-ref.so.
@@ -420,7 +420,7 @@ for path in paths[:limit]:
   if [ -n "$spec_slice_jobs" ]; then
     diff_jobs=$spec_slice_jobs
   elif [ "$diff_jobs_configured" != true ]; then
-    diff_jobs=16
+    diff_jobs=64
   fi
   compact_case_logs=true
   echo "NEMU SPEC checkpoint jobs: $diff_jobs"

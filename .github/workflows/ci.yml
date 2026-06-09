@@ -353,7 +353,7 @@ jobs:
 
       - name: Run SPEC checkpoint slices with Spike DiffTest
         env:
-          SPEC_SLICE_JOBS: 16
+          SPEC_SLICE_JOBS: 64
           SPEC_MAX_INSTR: 40000000
           SPEC_SLICE_LIMIT: 1000
           SPEC_SLICE_SEED: ${{ github.sha }}
