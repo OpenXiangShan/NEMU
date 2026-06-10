@@ -12,6 +12,8 @@
 !README.md
 !Kconfig
 !.github/workflows/*.yml
+!agent/
+!agent/**
 !scripts/*.sh
 !scripts/*.py
 !tools/perf_profile.py
