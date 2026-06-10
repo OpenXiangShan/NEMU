@@ -7,6 +7,8 @@ description: Enforce local AI-agent delivery standards for NEMU changes, requiri
 
 Use this skill before handing off NEMU code or harness changes.
 
+Use `agent/architecture.md` as the source of truth for module boundaries and execution-sensitive data flows.
+
 ## Commit Scope
 
 Each AI-authored commit must modify only one NEMU module. If a task needs multiple modules, split it into stacked commits or stacked PRs.

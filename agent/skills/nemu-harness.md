@@ -12,6 +12,8 @@ Use this skill when changing NEMU automation surfaces rather than ISA behavior i
 - DiffTest harness code, ref shared-object runner, checkpoint restore scripts
 - agent-facing maintenance instructions for this repository
 
+Before editing, read `agent/architecture.md` to classify the touched module and understand the relevant data flow.
+
 ## Operating Rules
 
 1. Start from the current checkout, not memory. Inspect branch, dirty files, and relevant scripts before editing.
