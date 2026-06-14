@@ -100,6 +100,7 @@ void init_trigger() {
 
 #ifdef CONFIG_RV_IMSIC
 void init_iprio() {
+  init_aia_prio_idx();
   cpu.external_interrupt_select = false;
   cpu.MIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
   cpu.SIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
