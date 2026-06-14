@@ -405,3 +405,31 @@ void difftest_store_log_restore() {
 }
 #endif
 #endif // CONFIG_STORE_LOG
+
+#ifdef CONFIG_SHARE
+extern void serialize_reg_to_mem();
+extern void serialize_pmem_to_file(const char *base_filepath);
+
+void difftest_trigger_checkpoint(const char *base_filepath) {
+  if (cpu.mode == 3) {
+    printf("[difftest_trigger_checkpoint] Skipping: M-mode checkpoint not supported "
+           "(mode=%lu, PC=0x%lx)\n", cpu.mode, cpu.pc);
+    return;
+  }
+
+  if (!base_filepath) {
+    printf("[difftest_trigger_checkpoint] ERROR: base filepath is NULL\n");
+    return;
+  }
+
+  if (!get_pmem()) {
+    printf("[difftest_trigger_checkpoint] ERROR: pmem is NULL\n");
+    return;
+  }
+
+  printf("[difftest_trigger_checkpoint] Writing checkpoint to %s_memory_.gz\n", base_filepath);
+
+  serialize_reg_to_mem();
+  serialize_pmem_to_file(base_filepath);
+}
+#endif

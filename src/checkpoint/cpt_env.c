@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <generated/autoconf.h>
 #include <stddef.h>
 
 char *output_base_dir = NULL;
@@ -22,3 +23,6 @@ char *simpoints_dir = NULL;
 int cpt_id = -1;
 char *cpt_file = NULL;
 char *restorer = NULL;
+#ifdef CONFIG_SHARE
+char compress_file_format = 0; // default is gz
+#endif

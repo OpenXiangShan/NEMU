@@ -21,8 +21,3 @@ void start_profiling() {
   checkpoint_icount_base = get_abs_instr_count();
   Log("Start profiling. Setting inst count base to Current inst count %lu.", checkpoint_icount_base);
 }
-
-#ifdef CONFIG_SHARE
-// empty definition on share
-void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {}
-#endif 
