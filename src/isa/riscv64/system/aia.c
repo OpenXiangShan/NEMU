@@ -35,14 +35,19 @@ int interrupt_default_prio[IPRIO_ENABLE_NUM] = {
   49, 24, 48
 };
 
-uint8_t get_prio_idx_in_group(uint8_t irq) {
-  uint8_t idx = 0;
+static uint8_t interrupt_prio_idx[64];
+
+void init_aia_prio_idx() {
   for (int i = 0; i < IPRIO_ENABLE_NUM; i++) {
-    if (irq == interrupt_default_prio[i]) {
-      idx = i;
-    }
+    interrupt_prio_idx[interrupt_default_prio[i]] = i;
   }
-  return idx;
+}
+
+uint8_t get_prio_idx_in_group(uint8_t irq) {
+  if (unlikely(irq >= 64)) {
+    return 0;
+  }
+  return interrupt_prio_idx[irq];
 }
 
 bool intr_enable(uint64_t topi_gather, uint64_t idx) {
@@ -117,6 +122,7 @@ void set_viprios_sort(uint64_t topi_gather) {
 
 uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei) {
   uint8_t high_prio_idx = 0;
+  uint8_t xei_prio_idx = get_prio_idx_in_group(xei);
 
   for (int i = 1; i < IPRIO_ENABLE_NUM; i ++) {
     // enable
@@ -133,8 +139,8 @@ uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei) {
     bool right_prio_is_not_zero = !right_prio_is_zero;
 
     // idx
-    bool left_idx_leq_xei = high_prio_idx <= get_prio_idx_in_group(xei);
-    bool right_idx_leq_xei = i <= get_prio_idx_in_group(xei);
+    bool left_idx_leq_xei = high_prio_idx <= xei_prio_idx;
+    bool right_idx_leq_xei = i <= xei_prio_idx;
 
     bool left_idx_greater_xei = !left_idx_leq_xei;
 
