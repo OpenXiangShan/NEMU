@@ -38,6 +38,7 @@ void set_iprios_sort(uint64_t topi_gather, IpriosSort* iprios_sort, IpriosModule
 void set_viprios_sort(uint64_t topi_gather);
 uint8_t high_iprio(IpriosSort* ipriosSort, uint8_t xei);
 uint8_t get_prio_idx_in_group(uint8_t irq);
+void init_aia_prio_idx();
 
 extern int interrupt_default_prio[IPRIO_ENABLE_NUM];
 
