@@ -405,3 +405,16 @@ void difftest_store_log_restore() {
 }
 #endif
 #endif // CONFIG_STORE_LOG
+
+extern void set_store_cpt_in_flash(bool enable);
+extern void serialize_checkpoint(const char *base_filepath);
+
+void difftest_trigger_checkpoint(const char *base_filepath) {
+  if (cpu.mode == 3) {
+    Log("Skipping M-mode checkpoint: mode=%lu, PC=0x%lx", cpu.mode, cpu.pc);
+    return;
+  }
+
+  set_store_cpt_in_flash(true);
+  serialize_checkpoint(base_filepath);
+}
