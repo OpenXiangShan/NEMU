@@ -342,34 +342,20 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 word_t isa_query_intr() {
   word_t intr_vec = mie->val & (get_mip());
   if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
-  int intr_num;
-#ifdef CONFIG_RVH
-  const int priority [] = {
+  static const int priority[] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
     IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
     IRQ_UEIP, IRQ_USIP, IRQ_UTIP,
+#ifdef CONFIG_RVH
     IRQ_SGEI,
-    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP,
+    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP
 #ifdef CONFIG_RV_SSCOFPMF
-    IRQ_LCOFI
-#endif
-  };
-#ifdef CONFIG_RV_SSCOFPMF
-  intr_num = 14;
-#else
-  intr_num = 13;
-#endif
-#else
-  const int priority [] = {
-    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
-    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
-    IRQ_UEIP, IRQ_USIP, IRQ_UTIP
-  };
-  intr_num = 9;
+    , IRQ_LCOFI
+#endif // CONFIG_RV_SSCOFPMF
 #endif // CONFIG_RVH
-  int i;
+  };
 
-  for (i = 0; i < intr_num; i ++) {
+  for (int i = 0; i < ARRLEN(priority); i ++) {
     int irq = priority[i];
     if (intr_vec & (1 << irq)) {
       bool deleg = (mideleg->val & (1 << irq)) != 0;
