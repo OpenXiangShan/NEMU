@@ -31,6 +31,8 @@
 
 #ifndef CONFIG_MODE_USER
 
+void patch_bootloader_rng_seed(uint8_t *pmem_start);
+
 #ifdef CONFIG_MEM_COMPRESS
 long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   gzFile compressed_mem = gzopen(filename, "rb");
@@ -311,6 +313,8 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
     load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
 #endif
   }
+
+  patch_bootloader_rng_seed(bbl_start);
 }
 
 #endif  // CONFIG_MODE_USER
