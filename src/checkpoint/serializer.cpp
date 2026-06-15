@@ -140,13 +140,9 @@ Serializer::Serializer() :
 
 extern "C" {
 uint8_t *get_pmem();
-word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
-uint8_t *guest_to_host(paddr_t paddr);
 #include <debug.h>
 #include <device/flash.h>
 #include <checkpoint/semantic_point.h>
-extern void log_buffer_flush();
-extern void log_file_flush();
 extern unsigned long MEMORY_SIZE;
 extern uint64_t clint_get_mtime();
 extern uint64_t clint_get_mtimecmp();
@@ -378,8 +374,6 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
 #endif
 
 #ifdef CONFIG_MEM_COMPRESS
-extern void csr_writeback();
-
 void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
   auto *intRegCpt = (uint64_t *) (serialize_base_addr + int_reg_cpt_addr);
   for (unsigned i = 0; i < 32; i++) {
