@@ -36,13 +36,15 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = TRIG_ACTION_NONE;
-  if (funct5 == 0b00010) { // lr
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
-  } else if(funct5 == 0b00011) { // sc
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
-  } else { // amo
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+  if (trigger_mcontrol6_check_needed(cpu.TM)) {
+    if (funct5 == 0b00010) { // lr
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+    } else if(funct5 == 0b00011) { // sc
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+    } else { // amo
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+    }
   }
 #endif // CONFIG_TDATA1_MCONTROL6
 

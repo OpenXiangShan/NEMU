@@ -43,9 +43,11 @@ static void paddr_check(paddr_t paddr, vaddr_t vaddr, int type) {
 static void trigger_check(vaddr_t vaddr){
 #ifdef CONFIG_TDATA1_MCONTROL6
   vaddr_t block_addr = vaddr & ~CACHE_BLOCK_MASK;
-  for (uint64_t offset = 0; offset < CACHE_BLOCK_SIZE; offset++) {
-    trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, block_addr + offset, TRIGGER_NO_VALUE);
-    trigger_handler(TRIG_TYPE_MCONTROL6, action, vaddr);
+  if (trigger_mcontrol6_check_needed(cpu.TM)) {
+    for (uint64_t offset = 0; offset < CACHE_BLOCK_SIZE; offset++) {
+      trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, block_addr + offset, TRIGGER_NO_VALUE);
+      trigger_handler(TRIG_TYPE_MCONTROL6, action, vaddr);
+    }
   }
 #endif // CONFIG_TDATA1_MCONTROL6
 }
