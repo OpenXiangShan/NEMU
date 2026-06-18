@@ -202,21 +202,25 @@ void init_custom_csr() {
 void init_pma() {
   unsigned long long pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM][9] = {
     // base_addr,       range,             l, c, t, a, x, w, r
+    // Generated from soc.yaml
     {0,                0x1000000000000ULL, F, F, F, 3, F, F, F},
-    {0x80000000000ULL, 0,                  F, T, T, 1, T, T, T},
+    {0x500000000000ULL,0,                  F, F, F, 1, F, T, T},
+    {0x40001C000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x400003000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x400000000000ULL,0,                  F, F, F, 1, F, T, T},
+    {0x30001C000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x300003000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x300000000000ULL,0,                  F, F, F, 1, F, T, T},
+    {0x20001C000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x200003000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x200000000000ULL,0,                  F, F, F, 1, F, T, T},
+    {0x10001C000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x100003000000ULL,0,                  F, F, F, 1, T, T, T},
+    {0x100000000000ULL,0,                  F, F, F, 1, F, T, T},
+    {0x2080000000ULL,  0,                  F, T, T, 1, T, T, T},
     {0x80000000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x3A000000ULL,    0,                  F, F, F, 1, F, F, F},
-    {0x39002000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x39000000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x38022000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x38021000ULL,    0,                  F, F, F, 1, T, T, T},
-    {0x38020000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x30050000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x30010000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0x20000000ULL,    0,                  F, F, F, 1, T, T, T},
-    {0x10000000ULL,    0,                  F, F, F, 1, F, T, T},
-    {0},
-    {0},
+    {0x1C000000ULL,    0,                  F, F, F, 1, T, T, T},
+    {0x03000000ULL,    0,                  F, F, F, 1, T, T, T},
     {0},
   };
 
