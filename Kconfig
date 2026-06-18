@@ -519,3 +519,18 @@ config ENABLE_INSTR_CNT
   default n
 
 endmenu
+
+
+menu "memtrace"
+config MEMTRACE
+  depends on !USE_SPARSEMM
+  bool "start memtrace"
+  default n
+
+config MEMTRACE_PATH
+  depends on MEMTRACE
+  string "memtrace log output path"
+  default "tmp/memtrace.gz"
+  help
+    Set the output path for memtrace log file.
+endmenu

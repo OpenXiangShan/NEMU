@@ -48,6 +48,9 @@ def_EHelper(nemu_trap) {
     }
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
+      #ifdef CONFIG_MEMTRACE
+      memtrace_trapflush();
+      #endif
       longjmp_context(NEMU_EXEC_END);
   }
 }
