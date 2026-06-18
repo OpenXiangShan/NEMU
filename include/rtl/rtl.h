@@ -70,6 +70,26 @@ enum {
 
 def_rtl(hostcall, uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm);
+def_rtl(f32_add, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_sub, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_mul, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_div, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_sqrt, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_madd, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_min, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_max, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_le, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_lt, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_eq, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2);
+def_rtl(f32_from_i32, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_from_ui32, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_from_i64, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_from_ui64, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_to_i32_r, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_to_ui32_r, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_to_i64_r, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f32_to_ui64_r, rtlreg_t *dest, const rtlreg_t *src1);
+def_rtl(f64_to_f32_r, rtlreg_t *dest, const rtlreg_t *src1);
 
 #include <rtl-basic.h>
 #include <rtl/pseudo.h>
