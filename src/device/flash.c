@@ -16,12 +16,12 @@
 #include <utils.h>
 #include <device/map.h>
 #include <device/flash.h>
+#include <memory/image_loader.h>
 #include <sys/mman.h>
 
 // put flash below the physical memory and allow a max size of 256MB.
 // See the notes at paddr.c:79 for why we fix the address here.
 static uint8_t *flash_base  = (uint8_t *)0xf0000000ul;
-static FILE *fp = NULL;
 
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   Assert(!is_write, "write to flash is illegal");
@@ -38,23 +38,13 @@ void load_flash_contents(const char *flash_img) {
     assert(0);
   }
 
-  if (!flash_img || !(fp = fopen(flash_img, "r"))) {
+  if (!flash_img) {
     // Log("Can not find flash image: %s", flash_img);
     // Log("Use built-in image instead");
     uint32_t *p = (uint32_t *)flash_base;
     sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", p, p + 1, p + 2);
   } else {
-    __attribute__((unused)) int ret;
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    Assert(
-      size <= CONFIG_FLASH_SIZE,
-      "img size %d is larger than flash size %d",
-      size, CONFIG_FLASH_SIZE
-    );
-    ret = fread(flash_base, 1, size, fp);
-    fclose(fp);
+    load_img(flash_img, "flash image", flash_base, CONFIG_FLASH_SIZE);
   }
 }
 
