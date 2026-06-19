@@ -195,7 +195,8 @@ static size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size) {
   return total_size;
 }
 
-void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr) {
+void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr,
+                               const char *checkpoint_base_path) {
   // We must dump registers before memory to store them in the Generic Arch CPT
   assert(regDumped);
   assert(pmem_addr);
@@ -212,7 +213,9 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
   string base_file_path;
   string memory_file_path;
 
-  if (checkpoint_state == SimpointCheckpointing) {
+  if (checkpoint_base_path) {
+    base_file_path = checkpoint_base_path;
+  } else if (checkpoint_state == SimpointCheckpointing) {
     base_file_path = pathManager.getOutputPath() + "_" + to_string(simpoint2Weights.begin()->first) + "_" +
                to_string(simpoint2Weights.begin()->second);
   } else {
@@ -370,7 +373,8 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
   regDumped = false;
 }
 #else
-void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr) {}
+void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr,
+                               const char *checkpoint_base_path) {}
 #endif
 
 #ifdef CONFIG_MEM_COMPRESS
@@ -479,7 +483,7 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
 void Serializer::serializeRegs(uint8_t* serialize_base_addr) { }
 #endif
 
-void Serializer::serialize(uint64_t inst_count) {
+void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path) {
 
 #ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
@@ -504,9 +508,9 @@ void Serializer::serialize(uint64_t inst_count) {
 #endif
   serializeRegs(serialize_reg_base_addr);
 #ifdef CONFIG_HAS_FLASH
-  serializePMem(inst_count, get_pmem(), get_flash_base());
+  serializePMem(inst_count, get_pmem(), get_flash_base(), checkpoint_base_path);
 #else
-  serializePMem(inst_count, get_pmem(), NULL);
+  serializePMem(inst_count, get_pmem(), NULL, checkpoint_base_path);
 #endif
 
 #else
