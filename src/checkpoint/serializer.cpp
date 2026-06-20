@@ -39,11 +39,11 @@
 #include <fcntl.h>
 #include <fstream>
 #include <gcpt_restore/src/restore_rom_addr.h>
+#ifdef CONFIG_ZSTD_COMPRESS
 #include <zstd.h>
-#ifdef CONFIG_MEM_COMPRESS
+#endif
 #include <sys/mman.h>
 #include <unistd.h>
-#endif
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
 #include "pb.h"
 #include "pb_encode.h"
@@ -148,7 +148,6 @@ extern uint64_t clint_get_mtime();
 extern uint64_t clint_get_mtimecmp();
 }
 
-#ifdef CONFIG_MEM_COMPRESS
 // Some configurations reserve a huge mmap-backed pmem range, while only the low
 // part is actually touched by the workload/restorer. Dumping the full configured
 // range would make checkpoint generation impractically slow and produce oversized
@@ -226,7 +225,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     Log("Using GZ format generate checkpoint");
 #ifdef CONFIG_HAS_FLASH
     flash_file_path = base_file_path + "_flash_.gz";
-    gzFile flash_compressed_mem;
+    gzFile flash_compressed_mem = nullptr;
 #endif
     memory_file_path = base_file_path + "_memory_.gz";
     gzFile memory_compressed_file = gzopen(memory_file_path.c_str(), "wb");
@@ -284,6 +283,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
       xpanic("Close failed on physical checkpoint file\n");
     }
 
+#ifdef CONFIG_ZSTD_COMPRESS
   } else if (compress_file_format == ZSTD_FORMAT) {
     Log("Using ZSTD format generate checkpoint");
 
@@ -364,7 +364,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     free(flash_compress_buffer);
 #endif
     free(memory_compress_buffer);
-
+#endif // CONFIG_ZSTD_COMPRESS
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
   }
@@ -372,12 +372,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
   Log("Checkpoint done!\n");
   regDumped = false;
 }
-#else
-void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr,
-                               const char *checkpoint_base_path) {}
-#endif
 
-#ifdef CONFIG_MEM_COMPRESS
 void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
   auto *intRegCpt = (uint64_t *) (serialize_base_addr + int_reg_cpt_addr);
   for (unsigned i = 0; i < 32; i++) {
@@ -479,13 +474,8 @@ void Serializer::serializeRegs(uint8_t* serialize_base_addr) {
 
   regDumped = true;
 }
-#else
-void Serializer::serializeRegs(uint8_t* serialize_base_addr) { }
-#endif
 
 void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path) {
-
-#ifdef CONFIG_MEM_COMPRESS
   uint8_t* serialize_reg_base_addr = NULL;
 
   __attribute__((unused))
@@ -511,10 +501,6 @@ void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path
   serializePMem(inst_count, get_pmem(), get_flash_base(), checkpoint_base_path);
 #else
   serializePMem(inst_count, get_pmem(), NULL, checkpoint_base_path);
-#endif
-
-#else
-  xpanic("You should enable CONFIG_MEM_COMPRESS in menuconfig");
 #endif
 }
 
