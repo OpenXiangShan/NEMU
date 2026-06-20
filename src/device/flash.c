@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <stdio.h>
 #include <utils.h>
 #include <device/map.h>
 #include <device/flash.h>
@@ -70,5 +71,6 @@ void init_flash() {
 #ifndef CONFIG_SHARE
   IFDEF(CONFIG_HAS_FLASH, load_flash_contents(__FLASH_IMG_PATH__));
 #endif // CONFIG_SHARE
+  printf("Init flash\n");
   add_mmio_map_with_diff("flash", CONFIG_FLASH_START_ADDR, flash_base, CONFIG_FLASH_SIZE, SKIP_FREE, flash_io_handler);
 }

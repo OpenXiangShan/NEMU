@@ -58,6 +58,7 @@ void add_mmio_map(const char *name, paddr_t addr, void *space, uint32_t len, io_
 /* device interface */
 void add_mmio_map_with_diff(const char *name, paddr_t addr, void *space, uint32_t len, int mmio_diff_type, io_callback_t callback) {
   assert(nr_map < NR_MAP);
+  printf("[Anzo] add mmio, name: %s, addr: " FMT_PADDR ", len: 0x%x\n", name, addr, len);
   maps[nr_map] = (IOMap){ .name = name, .low = addr, .high = addr + len - 1,
     .space = space, .mmio_diff_type = mmio_diff_type, .callback = callback };
   nr_map ++;
