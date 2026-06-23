@@ -329,17 +329,18 @@ def_EHelper(vmvxs) {
   vstart->val = 0;
 }
 
-def_EHelper(vmvnr) {
+static inline void vmv_nr(Decode *s, int nreg) {
   require_vector(true);
   check_vstart_exception(s);
 
-  rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
-  int NREG = (*s1) + 1;
-  int len = (VLEN >> 6) * NREG;
-  int vlmul = 0;
-  while (NREG > 1) {
-    NREG = NREG >> 1;
-    vlmul++;
+  int len = (VLEN >> 6) * nreg;
+  int vlmul;
+  switch (nreg) {
+    case 1: vlmul = 0; break;
+    case 2: vlmul = 1; break;
+    case 4: vlmul = 2; break;
+    case 8: vlmul = 3; break;
+    default: Assert(0, "invalid nreg %d", nreg);
   }
   for (int i = 0; i < len; i++) {
     get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
@@ -348,6 +349,11 @@ def_EHelper(vmvnr) {
   vstart->val = 0;
   vp_set_dirty();
 }
+
+def_EHelper(vmv1r) { vmv_nr(s, 1); }
+def_EHelper(vmv2r) { vmv_nr(s, 2); }
+def_EHelper(vmv4r) { vmv_nr(s, 4); }
+def_EHelper(vmv8r) { vmv_nr(s, 8); }
 
 def_EHelper(vpopc) {
   require_vector(true);

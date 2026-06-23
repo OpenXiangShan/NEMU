@@ -149,7 +149,8 @@
   f(vsse) f(vsxe) f(vsetvl) f(vsetvli) f(vsetivli) \
   f(vle_mmu) f(vlse_mmu) f(vlxe_mmu) f(vleff_mmu) \
   f(vse_mmu) f(vsse_mmu) f(vsxe_mmu) \
-  f(vslideup) f(vslidedown) f(vslide1up) f(vslide1down) f(vmvnr) \
+  f(vslideup) f(vslidedown) f(vslide1up) f(vslide1down) \
+  f(vmv1r) f(vmv2r) f(vmv4r) f(vmv8r) \
   f(vzextvf8) f(vsextvf8) f(vzextvf4) f(vsextvf4) f(vzextvf2) f(vsextvf2) \
   f(vfadd) f(vfredusum) f(vfsub) f(vfredosum) f(vfmin) f(vfredmin) \
   f(vfmax) f(vfredmax) f(vfsgnj) f(vfsgnjn) f(vfsgnjx) f(vfslide1up) \
