@@ -270,6 +270,10 @@ jobs:
         run: |
           bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite basic
 
+      - name: Basic - ready-to-run AME perf smoke
+        run: |
+          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ready-to-run/ametest-riscv64-xs.bin
+
       - name: Upload Spike DiffTest logs
         if: failure()
         uses: actions/upload-artifact@v7
