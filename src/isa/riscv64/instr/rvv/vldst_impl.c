@@ -397,9 +397,19 @@ void vld(Decode *s, int mode, int mmu_mode) {
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
       }
       // set vreg after all segment done with no exception
-      for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
-        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
+      if (nf == 1 && emul == 1) {
+        switch (eew) {
+          case 0: cpu.vr[vd]._8 [idx] = (uint8_t )vloadBuf[0]; break;
+          case 1: cpu.vr[vd]._16[idx] = (uint16_t)vloadBuf[0]; break;
+          case 2: cpu.vr[vd]._32[idx] = (uint32_t)vloadBuf[0]; break;
+          case 3: cpu.vr[vd]._64[idx] = (uint64_t)vloadBuf[0]; break;
+        }
+        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(0, idx, vec_load_diffteset_buf[0], eew));
+      } else {
+        for (fn = 0; fn < nf; fn++) {
+          set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+          IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
+        }
       }
     }
   }
@@ -407,11 +417,20 @@ void vld(Decode *s, int mode, int mmu_mode) {
   // Tail agnostic is not handled in fast path
   if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > ori_vstart) {   // set tail of vector register to 1
     int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
-    for(int idx = vl_val; idx < vlmax; idx++) {
-      tmp_reg[1] = (uint64_t) -1;
-      for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
-        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
+    if (nf == 1 && eew == 0 && emul == 1) {
+      memset(&cpu.vr[vd]._8[vl_val], 0xff, vlmax - vl_val);
+#ifdef CONFIG_MULTICORE_DIFF
+      for(int idx = vl_val; idx < vlmax; idx++) {
+        set_vec_dual_difftest_reg_idx(0, idx, (uint64_t)-1, eew);
+      }
+#endif
+    } else {
+      for(int idx = vl_val; idx < vlmax; idx++) {
+        tmp_reg[1] = (uint64_t) -1;
+        for (fn = 0; fn < nf; fn++) {
+          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+          IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
+        }
       }
     }
   }
