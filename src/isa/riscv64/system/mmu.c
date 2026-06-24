@@ -1111,6 +1111,31 @@ bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode) {
 }
 #endif
 
+#ifdef CONFIG_RV_PMP_CHECK
+static inline bool pmp_cfg_allow(uint8_t cfg, int type, uint32_t mode) {
+  return
+    (mode == MODE_M && !(cfg & PMP_L)) ||
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
+    (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
+    (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
+}
+#endif
+
+#ifdef CONFIG_RV_PMA_CHECK
+static inline bool pma_cfg_allow(uint8_t cfg, int type) {
+  return
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
+    (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
+    (type == MEM_TYPE_IFETCH && (cfg & PMA_X)) ||
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMA_T)) ||
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C)) ;
+}
+#endif
+
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   __attribute__((unused)) uint32_t mode;
@@ -1131,27 +1156,66 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
     return true;
   }
 
+  const word_t tor_mask = pmp_tor_mask();
+  const word_t napot_mask_prefix = ~tor_mask;
   word_t base = 0;
+  word_t cfg_group = 0;
   for (int i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
+    if ((i % 8) == 0) {
+      cfg_group = csr_array[CSR_PMPCFG_BASE + i / 8 * 2];
+      if (i + 7 < CONFIG_RV_PMP_ACTIVE_NUM &&
+          (cfg_group & 0x1818181818181818ULL) == 0) {
+        base = (pmpaddr_from_index(i + 7) & tor_mask) << PMP_SHIFT;
+        i += 7;
+        continue;
+      }
+    }
     word_t pmpaddr = pmpaddr_from_index(i);
-    word_t tor = (pmpaddr & pmp_tor_mask()) << PMP_SHIFT;
-    uint8_t cfg = pmpcfg_from_index(i);
+    word_t tor = (pmpaddr & tor_mask) << PMP_SHIFT;
+    uint8_t cfg = cfg_group >> ((i % 8) * 8);
 
     if (cfg & PMP_A) {
       bool is_tor = (cfg & PMP_A) == PMP_TOR;
-      bool is_na4 = (cfg & PMP_A) == PMP_NA4;
+      word_t mask = 0;
+      if (!is_tor) {
+        bool is_na4 = (cfg & PMP_A) == PMP_NA4;
+        mask = (pmpaddr << 1) | (!is_na4) | napot_mask_prefix;
+        mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+      }
 
-      word_t mask = (pmpaddr << 1) | (!is_na4) | ~pmp_tor_mask();
-      mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+      if (len <= (1 << PMP_SHIFT)) {
+        bool match = is_tor ? (base <= addr && addr < tor)
+                            : (((addr ^ tor) & mask) == 0);
+        if (match) {
+          return pmp_cfg_allow(cfg, type, mode);
+        }
+        base = tor;
+        continue;
+      }
+
+      if (len <= (2 << PMP_SHIFT)) {
+        word_t next_addr = addr + (1 << PMP_SHIFT);
+        bool match0 = is_tor ? (base <= addr && addr < tor)
+                             : (((addr ^ tor) & mask) == 0);
+        bool match1 = is_tor ? (base <= next_addr && next_addr < tor)
+                             : (((next_addr ^ tor) & mask) == 0);
+        if (match0 || match1) {
+          if (!(match0 && match1)) {
+            return false;
+          }
+          return pmp_cfg_allow(cfg, type, mode);
+        }
+        base = tor;
+        continue;
+      }
 
       // Check each 4-byte sector of the access
       bool any_match = false;
       bool all_match = true;
       for (word_t offset = 0; offset < len; offset += 1 << PMP_SHIFT) {
         word_t cur_addr = addr + offset;
-        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
-        bool tor_match = base <= cur_addr && cur_addr < tor;
-        bool match = is_tor ? tor_match : napot_match;
+        bool match = is_tor ? (base <= cur_addr && cur_addr < tor)
+                            : (((cur_addr ^ tor) & mask) == 0);
         any_match |= match;
         all_match &= match;
         // ref_log_cpu("PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s",
@@ -1174,12 +1238,7 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
         //   ref_log_cpu("PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
         //       pass ? "true" : "false for permission denied");
 
-        return
-          (mode == MODE_M && !(cfg & PMP_L)) ||
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
-          (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
-          (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
+        return pmp_cfg_allow(cfg, type, mode);
       }
     }
 
@@ -1256,27 +1315,66 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
     return true;
   }
 
+  const word_t tor_mask = pma_tor_mask();
+  const word_t napot_mask_prefix = ~tor_mask;
   word_t base = 0;
+  word_t cfg_group = 0;
   for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    if ((i % 8) == 0) {
+      cfg_group = csr_array[CSR_PMACFG_BASE + i / 8 * 2];
+      if (i + 7 < CONFIG_RV_PMA_ACTIVE_NUM &&
+          (cfg_group & 0x1818181818181818ULL) == 0) {
+        base = (pmaaddr_from_index(i + 7) & tor_mask) << PMA_SHIFT;
+        i += 7;
+        continue;
+      }
+    }
     word_t pmaaddr = pmaaddr_from_index(i);
-    word_t tor = (pmaaddr & pma_tor_mask()) << PMA_SHIFT;
-    uint8_t cfg = pmacfg_from_index(i);
+    word_t tor = (pmaaddr & tor_mask) << PMA_SHIFT;
+    uint8_t cfg = cfg_group >> ((i % 8) * 8);
 
     if (cfg & PMA_A) {
       bool is_tor = (cfg & PMA_A) == PMA_TOR;
-      bool is_na4 = (cfg & PMA_A) == PMA_NA4;
+      word_t mask = 0;
+      if (!is_tor) {
+        bool is_na4 = (cfg & PMA_A) == PMA_NA4;
+        mask = (pmaaddr << 1) | (!is_na4) | napot_mask_prefix;
+        mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+      }
 
-      word_t mask = (pmaaddr << 1) | (!is_na4) | ~pma_tor_mask();
-      mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+      if (len <= (1 << PMA_SHIFT)) {
+        bool match = is_tor ? (base <= addr && addr < tor)
+                            : (((addr ^ tor) & mask) == 0);
+        if (match) {
+          return pma_cfg_allow(cfg, type);
+        }
+        base = tor;
+        continue;
+      }
+
+      if (len <= (2 << PMA_SHIFT)) {
+        word_t next_addr = addr + (1 << PMA_SHIFT);
+        bool match0 = is_tor ? (base <= addr && addr < tor)
+                             : (((addr ^ tor) & mask) == 0);
+        bool match1 = is_tor ? (base <= next_addr && next_addr < tor)
+                             : (((next_addr ^ tor) & mask) == 0);
+        if (match0 || match1) {
+          if (!(match0 && match1)) {
+            return false;
+          }
+          return pma_cfg_allow(cfg, type);
+        }
+        base = tor;
+        continue;
+      }
 
       // Check each 4-byte sector of the access
       bool any_match = false;
       bool all_match = true;
       for (word_t offset = 0; offset < len; offset += 1 << PMA_SHIFT) {
         word_t cur_addr = addr + offset;
-        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
-        bool tor_match = base <= cur_addr && cur_addr < tor;
-        bool match = is_tor ? tor_match : napot_match;
+        bool match = is_tor ? (base <= cur_addr && cur_addr < tor)
+                            : (((cur_addr ^ tor) & mask) == 0);
         any_match |= match;
         all_match &= match;
       }
@@ -1284,15 +1382,7 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
         if (!all_match) {
           return false;
         }
-        return
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
-          (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
-          (type == MEM_TYPE_IFETCH && (cfg & PMA_X)) ||
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_T)) ||
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C)) ;
+        return pma_cfg_allow(cfg, type);
       }
     }
 
