@@ -1932,5 +1932,6 @@ word_t pmp_tor_mask();
 uint8_t pmacfg_from_index(int idx);
 word_t pmaaddr_from_index(int idx);
 word_t pma_tor_mask();
+void pma_match_cache_invalidate(void);
 
 #endif // __CSR_H__

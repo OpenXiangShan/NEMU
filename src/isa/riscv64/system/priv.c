@@ -2683,6 +2683,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      pma_match_cache_invalidate();
 
       mmu_tlb_flush(0);
       break;
@@ -2704,6 +2705,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       bool next_tor = idx < (CONFIG_RV_PMA_ACTIVE_NUM - 1) && (pmacfg_from_index(idx+1) & PMA_A) == PMA_TOR;
       if (idx < CONFIG_RV_PMA_ACTIVE_NUM && !locked && !(next_locked && next_tor)) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
+        pma_match_cache_invalidate();
       }
       ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
       mmu_tlb_flush(0);

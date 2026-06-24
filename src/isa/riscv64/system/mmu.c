@@ -1111,6 +1111,50 @@ bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode) {
 }
 #endif
 
+#ifdef CONFIG_RV_PMA_CHECK
+static inline bool pma_cfg_allow(uint8_t cfg, int type) {
+  return
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
+    (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
+    (type == MEM_TYPE_IFETCH && (cfg & PMA_X)) ||
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMA_T)) ||
+    ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
+      type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C));
+}
+
+typedef struct {
+  int idx;
+  word_t base;
+  word_t pmaaddr;
+  uint8_t cfg;
+} pma_match_cache_t;
+
+static pma_match_cache_t pma_match_cache = {
+  .idx = -1,
+};
+
+void pma_match_cache_invalidate(void) {
+  pma_match_cache.idx = -1;
+}
+
+static inline bool pma_entry_match_all(word_t base, word_t tor, word_t mask, bool is_tor, paddr_t addr, int len) {
+  for (word_t offset = 0; offset < len; offset += 1 << PMA_SHIFT) {
+    word_t cur_addr = addr + offset;
+    bool match = is_tor ? (base <= cur_addr && cur_addr < tor)
+                        : (((cur_addr ^ tor) & mask) == 0);
+    if (!match) {
+      return false;
+    }
+  }
+  return true;
+}
+#else
+void pma_match_cache_invalidate(void) {
+}
+#endif
+
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
   bool ifetch = (type == MEM_TYPE_IFETCH);
   __attribute__((unused)) uint32_t mode;
@@ -1256,17 +1300,35 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
     return true;
   }
 
+  const word_t tor_mask = pma_tor_mask();
+  const word_t napot_mask_prefix = ~tor_mask;
+  if (likely(pma_match_cache.idx >= 0)) {
+    int cached_idx = pma_match_cache.idx;
+    word_t pmaaddr = pmaaddr_from_index(cached_idx);
+    uint8_t cfg = pmacfg_from_index(cached_idx);
+    if (likely(pmaaddr == pma_match_cache.pmaaddr && cfg == pma_match_cache.cfg)) {
+      bool is_tor = (cfg & PMA_A) == PMA_TOR;
+      bool is_na4 = (cfg & PMA_A) == PMA_NA4;
+      word_t tor = (pmaaddr & tor_mask) << PMA_SHIFT;
+      word_t mask = (pmaaddr << 1) | (!is_na4) | napot_mask_prefix;
+      mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+      if ((cfg & PMA_A) && pma_entry_match_all(pma_match_cache.base, tor, mask, is_tor, addr, len)) {
+        return pma_cfg_allow(cfg, type);
+      }
+    }
+  }
+
   word_t base = 0;
   for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
     word_t pmaaddr = pmaaddr_from_index(i);
-    word_t tor = (pmaaddr & pma_tor_mask()) << PMA_SHIFT;
+    word_t tor = (pmaaddr & tor_mask) << PMA_SHIFT;
     uint8_t cfg = pmacfg_from_index(i);
 
     if (cfg & PMA_A) {
       bool is_tor = (cfg & PMA_A) == PMA_TOR;
       bool is_na4 = (cfg & PMA_A) == PMA_NA4;
 
-      word_t mask = (pmaaddr << 1) | (!is_na4) | ~pma_tor_mask();
+      word_t mask = (pmaaddr << 1) | (!is_na4) | napot_mask_prefix;
       mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
 
       // Check each 4-byte sector of the access
@@ -1284,15 +1346,8 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
         if (!all_match) {
           return false;
         }
-        return
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
-          (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
-          (type == MEM_TYPE_IFETCH && (cfg & PMA_X)) ||
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_T)) ||
-          ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
-            type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C)) ;
+        pma_match_cache = (pma_match_cache_t){ .idx = i, .base = base, .pmaaddr = pmaaddr, .cfg = cfg };
+        return pma_cfg_allow(cfg, type);
       }
     }
 
