@@ -430,6 +430,19 @@ void vector_wvv_check(Decode *s, bool is_vs1) {
   }
 }
 
+static inline void vector_wvv_check_lmul1_fast(Decode *s, bool is_vs1) {
+  require_vector(true);
+  if (vtype->vsew > 2) {
+    longjmp_exception(EX_II);
+  }
+  require_vm(s);
+  require_aligned(id_dest->reg, 2);
+  require_noover_widen(id_dest->reg, 2, id_src2->reg, 1);
+  if (is_vs1) {
+    require_noover_widen(id_dest->reg, 2, id_src->reg, 1);
+  }
+}
+
 void vector_wwv_check(Decode *s, bool is_vs1) {
   vector_wide_check(s);
   double vflmul = compute_vflmul();
@@ -520,7 +533,11 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   } else if (widening == 1) {
     // e.g. vwadd_vv
     if (s->src_vmode == SRC_VV) {
-      vector_wvv_check(s, true);
+      if (opcode == MACC && s->vm != 0 && vtype->vlmul == 0) {
+        vector_wvv_check_lmul1_fast(s, true);
+      } else {
+        vector_wvv_check(s, true);
+      }
     } else {
       vector_wvv_check(s, false);
     }
@@ -537,6 +554,88 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   }
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+  if (opcode == VEXT && s->vm != 0) {
+    if (vtype->vsew == 1 && vtype->vlmul == 0 && narrow == -1 && is_signed) {
+      for (word_t idx = vstart->val; idx < vl->val; idx++) {
+        cpu.vr[id_dest->reg]._16[idx] = (int16_t)(int8_t)cpu.vr[id_src2->reg]._8[idx];
+      }
+      update_vcsr();
+
+      if (RVV_AGNOSTIC && vtype->vta) {
+        int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, widening);
+        for (int idx = vl->val; idx < vlmax; idx++) {
+          cpu.vr[id_dest->reg]._16[idx] = UINT16_MAX;
+        }
+      }
+
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      vp_set_dirty();
+      return;
+    }
+    const int src_vsew = vtype->vsew + narrow;
+    const int src_vlmul = vtype->vlmul + narrow;
+    for (word_t idx = vstart->val; idx < vl->val; idx++) {
+      get_vreg(id_src2->reg, idx, s0, src_vsew, src_vlmul, is_signed, 1);
+      set_vreg(id_dest->reg, idx, *s0, vtype->vsew, vtype->vlmul, 1);
+    }
+    update_vcsr();
+
+    if (RVV_AGNOSTIC && vtype->vta) {
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, widening);
+      for (int idx = vl->val; idx < vlmax; idx++) {
+        set_vreg(id_dest->reg, idx, (uint64_t)-1, vtype->vsew + widening, vtype->vlmul, 1);
+      }
+    }
+
+    rtl_li(s, s0, 0);
+    vcsr_write(IDXVSTART, s0);
+    vp_set_dirty();
+    return;
+  }
+  if (opcode == MACC && widening == 1 && s->src_vmode == SRC_VV && s->vm != 0) {
+    if (vtype->vsew == 1 && vtype->vlmul == 0 && is_signed) {
+      for (word_t idx = vstart->val; idx < vl->val; idx++) {
+        int32_t src2 = (int16_t)cpu.vr[id_src2->reg]._16[idx];
+        int32_t src1 = (int16_t)cpu.vr[id_src->reg]._16[idx];
+        cpu.vr[id_dest->reg + idx / VENUM32]._32[idx % VENUM32] += src2 * src1;
+      }
+      update_vcsr();
+
+      if (RVV_AGNOSTIC && vtype->vta) {
+        int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, widening);
+        for (int idx = vl->val; idx < vlmax; idx++) {
+          cpu.vr[id_dest->reg + idx / VENUM32]._32[idx % VENUM32] = UINT32_MAX;
+        }
+      }
+
+      rtl_li(s, s0, 0);
+      vcsr_write(IDXVSTART, s0);
+      vp_set_dirty();
+      return;
+    }
+    for (word_t idx = vstart->val; idx < vl->val; idx++) {
+      get_vreg(id_src2->reg, idx, s0, vtype->vsew, vtype->vlmul, is_signed, 1);
+      get_vreg(id_src->reg, idx, s1, vtype->vsew, vtype->vlmul, is_signed, 1);
+      rtl_mulu_lo(s, s1, s0, s1);
+      get_vreg(id_dest->reg, idx, s0, vtype->vsew + widening, vtype->vlmul, is_signed, 1);
+      rtl_add(s, s1, s1, s0);
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew + widening, vtype->vlmul, 1);
+    }
+    update_vcsr();
+
+    if (RVV_AGNOSTIC && vtype->vta) {
+      int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, widening);
+      for (int idx = vl->val; idx < vlmax; idx++) {
+        set_vreg(id_dest->reg, idx, (uint64_t)-1, vtype->vsew + widening, vtype->vlmul, 1);
+      }
+    }
+
+    rtl_li(s, s0, 0);
+    vcsr_write(IDXVSTART, s0);
     vp_set_dirty();
     return;
   }
