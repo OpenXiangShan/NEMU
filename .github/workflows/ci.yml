@@ -264,90 +264,9 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Basic - cputest
-        env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/am/cputest/bin/
+      - name: Run workload-builder basic workloads with Spike DiffTest
         run: |
-          find ${{ env.dir_tests }} -type f | while read -r test_bin; do
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
-          done
-
-      - name: Basic - riscv-tests
-        # failed at rv64mi-p-sd-misaligned.bin
-        env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/am/riscv-tests/bin/
-          skip_tests: |
-            rv64mi-p-ld-hd-misaligned.bin
-            rv64mi-p-ld-misaligned.bin
-            rv64mi-p-lh-hd-misaligned.bin
-            rv64mi-p-lh-misaligned.bin
-            rv64mi-p-lw-hd-misaligned.bin
-            rv64mi-p-lw-misaligned.bin
-            rv64mi-p-sd-hd-misaligned.bin
-            rv64mi-p-sd-misaligned.bin
-            rv64mi-p-sh-hd-misaligned.bin
-            rv64mi-p-sh-misaligned.bin
-            rv64mi-p-sw-hd-misaligned.bin
-            rv64mi-p-sw-misaligned.bin
-        run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
-          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
-            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
-              echo "$test_bin skiped."
-              continue;
-            fi
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
-          done
-
-      - name: Basic - rvv-test
-        env:
-          # These tests are included in the workloads on the `nemu` runner.
-          # But the newly built versions (built with `workload-builder`) of them fail on NEMU.
-          # So skip them temporarily.
-          skip_tests: |
-            vsetvli-0.bin
-            vsetivli-0.bin
-        run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
-          find "${CI_WORKLOADS}/am/riscv-vector-tests/bin" -type f -name "*.bin" | while read -r test_bin; do
-            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
-              echo "$test_bin skiped."
-            else
-              echo ::group::$(basename $test_bin)
-              ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-              echo "::endgroup::"
-            fi
-          done
-
-      - name: Basic - misc-tests
-        env:
-          tests: |
-            am/misc-tests/bin/bitmanip.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o2.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o3.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gcb-o3.bin
-            am/misc-tests/bin/amtest-riscv64-xs.bin
-            am/misc-tests/bin/aliastest-riscv64-xs.bin
-            am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
-            am/misc-tests/bin/zacas-riscv64-xs.bin
-        run: |
-          for test_bin in $tests; do
-            echo ::group::$test_bin
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/${test_bin}
-            echo "::endgroup::"
-          done
-
-      - name: System - linux
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/hello/fw_payload.bin
-
-      - name: System - KVM
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite basic
 
   diff-spike-advanced:
     needs: fetch-workloads
@@ -382,13 +301,9 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Run coremark-pro with Spike DiffTest
+      - name: Run workload-builder advanced workloads with Spike DiffTest
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/coremark-pro/fw_payload.bin -I 400000000
-
-      - name: Run rvv-bench with Spike DiffTest
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/rvv-bench/fw_payload.bin -I 400000000
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite advanced
 
   performance:
     needs: fetch-workloads
