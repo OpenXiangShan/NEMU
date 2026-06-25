@@ -13,6 +13,7 @@
 !Kconfig
 !.github/workflows/*.yml
 !scripts/*.sh
+!scripts/ci/*.sh
 !scripts/*.py
 !tools/perf_profile.py
 !tools/perf_profile/**
