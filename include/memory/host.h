@@ -19,6 +19,10 @@
 #include <common.h>
 #include "paddr.h"
 
+#ifdef CONFIG_RVMATRIX
+#include "../../src/isa/riscv64/instr/rvmatrix/mreg.h"
+#endif
+
 static inline word_t host_read(void *addr, int len) {
   switch (len) {
     case 1:
