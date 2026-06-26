@@ -31,7 +31,7 @@ jobs:
           asset_url=$(curl -s "$metadata_url" | jq -r '.browser_download_url')
           echo "url=$asset_url" >> $GITHUB_OUTPUT
       - name: Cache workloads
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: cache-workloads
         with:
           path: ${{ env.CI_WORKLOADS }}
@@ -103,7 +103,7 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -165,7 +165,7 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -202,7 +202,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -246,7 +246,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -282,7 +282,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -320,14 +320,14 @@ jobs:
 
       - name: Restore Workloads
         id: cache-workloads
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
 
       - name: Restore DynamoRIO
         id: cache-dynamorio
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: DynamoRIO-Linux-11.3.0-1
           key: DynamoRIO-Linux-11.3.0-extracted
