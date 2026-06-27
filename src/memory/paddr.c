@@ -108,10 +108,10 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   #endif
 }
 
+#ifdef CONFIG_RVMATRIX
 static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
                                      int row, int column, int msew, bool transpose,
                                      char m_name, int mreg_id) {
-#ifdef CONFIG_RVMATRIX
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(base);
 #endif // CONFIG_MEMORY_REGION_ANALYSIS
@@ -135,8 +135,8 @@ static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
 #ifndef CONFIG_SHARE_REF
   host_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
-#endif // CONFIG_RVMATRIX
 }
+#endif // CONFIG_RVMATRIX
 
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
