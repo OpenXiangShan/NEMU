@@ -265,8 +265,18 @@ jobs:
           make -j
 
       - name: Run workload-builder basic workloads with Spike DiffTest
+        env:
+          NEMU_DIFF_JOBS: 2
         run: |
           bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite basic
+
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-basic-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
 
   diff-spike-advanced:
     needs: fetch-workloads
@@ -302,9 +312,18 @@ jobs:
           make -j
 
       - name: Run workload-builder advanced workloads with Spike DiffTest
+        env:
+          NEMU_DIFF_JOBS: 2
         run: |
           bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite advanced
 
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-advanced-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
   performance:
     needs: fetch-workloads
     runs-on: ubuntu-latest
