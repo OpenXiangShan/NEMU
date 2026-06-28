@@ -64,7 +64,7 @@ static inline uint64_t get_instr(Decode *s) {
 #include "rvcbo/decode.h"
 #endif// CONFIG_RV_CBO
 #ifdef CONFIG_RV_AME
-#include "rvmatrix/decode.h"
+#include "ame/decode.h"
 #endif // CONFIG_RV_AME
 
 def_THelper(main) {
