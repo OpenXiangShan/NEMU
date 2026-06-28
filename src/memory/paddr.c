@@ -108,7 +108,7 @@ static inline word_t pmem_read(paddr_t addr, int len) {
   #endif
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
                                      int row, int column, int msew, bool transpose,
                                      char m_name, int mreg_id) {
@@ -136,7 +136,7 @@ static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
   host_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -168,7 +168,7 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
   #endif
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
                                      int row, int column, int msew, bool transpose,
                                      char m_name, int mreg_id) {
@@ -198,7 +198,7 @@ static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
   host_write_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 static inline void raise_access_fault(int cause, vaddr_t vaddr) {
   cpu.trapInfo.tval = vaddr;
@@ -383,7 +383,7 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   return 0;
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void paddr_read_matrix(paddr_t base, paddr_t stride,
                         int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id) {
@@ -579,7 +579,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   }
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void paddr_write_matrix(paddr_t base, paddr_t stride,
                         int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id) {
@@ -639,7 +639,7 @@ void paddr_write_matrix(paddr_t base, paddr_t stride,
   }
 #endif // CONFIG_SHARE
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 bool mem_addr_use[PROGRAM_ANALYSIS_PAGES];
@@ -848,7 +848,7 @@ store_commit_t store_commit_queue_pop(int *flag) {
 void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
                                     uint32_t row, uint32_t column, uint32_t msew,
                                     bool transpose) {
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   // TODO: What's this?
   if (cpu.amo) {
@@ -867,13 +867,13 @@ void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
   store_commit.transpose = transpose;
   store_commit.pc = prev_s->pc;
   matrix_store_queue_push(store_commit);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 }
 
 store_commit_t store_commit_data;
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 matrix_store_commit_t matrix_store_commit_data;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
@@ -902,13 +902,13 @@ store_commit_t get_store_commit_info() {
   return store_commit_data;
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 matrix_store_commit_t get_matrix_store_commit_info() {
   return matrix_store_commit_data;
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
                               uint32_t *row, uint32_t *column, uint32_t *msew,
                               bool *transpose) {
@@ -938,7 +938,7 @@ int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
   }
   return result;
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #endif
 

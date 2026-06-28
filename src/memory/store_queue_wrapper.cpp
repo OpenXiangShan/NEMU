@@ -67,7 +67,7 @@ bool store_queue_overflow() {
   return store_queue_has_overflow;
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 std::queue<matrix_store_commit_t> cpp_matrix_store_event_queue;
 
 void matrix_store_queue_reset() {
@@ -99,6 +99,6 @@ size_t matrix_store_queue_size() {
 bool matrix_store_queue_empty() {
   return cpp_matrix_store_event_queue.empty();
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #endif

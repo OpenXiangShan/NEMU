@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void mstore_queue_reset();
 void mstore_queue_push(mstore_info_t mstore_info);
 void mstore_queue_pop();
@@ -25,7 +25,7 @@ void mstore_queue_update_mrelease(uint8_t tok_i, uint64_t mtokr_value);
 void mstore_queue_update_acquire(uint8_t tok_i, uint64_t threshold);
 
 bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef __cplusplus
 }

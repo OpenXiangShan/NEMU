@@ -158,7 +158,7 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   return 0;
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 __attribute__((noinline))
 static void vaddr_mmu_read_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
                                  int row, int column, int msew, bool transpose,
@@ -179,7 +179,7 @@ static void vaddr_mmu_read_matrix(struct Decode *s, vaddr_t base, vaddr_t stride
   }
 #endif // CONFIG_SHARE
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 __attribute__((noinline))
 static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data) {
@@ -194,7 +194,7 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   }
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 __attribute__((noinline))
 static void vaddr_mmu_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
                                    int row, int column, int msew, bool transpose,
@@ -215,7 +215,7 @@ static void vaddr_mmu_write_matrix(struct Decode *s, vaddr_t base, vaddr_t strid
   paddr_write_matrix(base, stride, row, column, msew, transpose,
                       cpu.mode, vbase, m_name, mreg_id);
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #endif // ENABLE_HOSTTLB
 
@@ -256,7 +256,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
 
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 static inline void vaddr_read_matrix_internal(struct Decode *s, vaddr_t base, vaddr_t stride,
                                                int row, int column, int msew, bool transpose,
                                                int mmu_mode, char m_name , int mreg_id) {
@@ -278,7 +278,7 @@ static inline void vaddr_read_matrix_internal(struct Decode *s, vaddr_t base, va
       row, column, msew, transpose, m_name, mreg_id);
   }
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RVV
 extern void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_write);
@@ -314,10 +314,10 @@ word_t vaddr_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode) {
 void vaddr_read_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
                        int row, int column, int msew, bool transpose, int mmu_mode,
                        char m_name, int mreg_id) {
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   Logm("Reading vaddr matrix %lx", base);
   vaddr_read_matrix_internal(s, base, stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 }
 
 #ifdef CONFIG_RVV
@@ -362,7 +362,7 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   MUXDEF(ENABLE_HOSTTLB, hosttlb_write, vaddr_mmu_write) (s, addr, len, data);
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void vaddr_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
                         int row, int column, int msew, bool transpose, int mmu_mode,
                         char m_name, int mreg_id) {
@@ -377,7 +377,7 @@ void vaddr_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
       row, column, msew, transpose, m_name, mreg_id);
   }
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 word_t vaddr_read_safe(vaddr_t addr, int len) {
   // FIXME: when reading fails, return an error instead of raising exceptions

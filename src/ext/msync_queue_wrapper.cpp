@@ -2,7 +2,7 @@
 #include <ext/msync_queue_wrapper.h>
 #include <cpu/decode.h>
 
-#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 #include <queue>
 
 std::queue<msync_event_t> cpp_msync_queue;
@@ -47,4 +47,4 @@ void msync_queue_emplace(uint8_t op, uint8_t msyncRd) {
   msync_queue_push(msync_event);
 }
 
-#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)

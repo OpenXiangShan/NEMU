@@ -16,7 +16,7 @@
 #include "cpu/cpu.h"
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #include "cpu/exec.h"
 #include "mreg.h"
@@ -266,4 +266,4 @@ def_EHelper(mscwhole) {
   mst(s, false, true, 'c');
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

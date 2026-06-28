@@ -78,7 +78,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(vlenb     );
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
-    #ifdef CONFIG_RVMATRIX
+    #ifdef CONFIG_RV_AME
     check_reg(tlenb     );
     check_reg(trlenb    );
     check_reg(alenb     );
@@ -92,7 +92,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     check_reg(mfflags   );
     check_reg(mfrm      );
     check_reg(msaten    );
-    #endif // CONFIG_RVMATRIX
+    #endif // CONFIG_RV_AME
 
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR
     check_reg(fcsr      );
@@ -129,9 +129,9 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   bool result = true;
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   result &= difftest_check_store(pc);
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   result &= difftest_check_matrix_store(pc);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
   return result;
 }

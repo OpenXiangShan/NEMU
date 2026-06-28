@@ -21,9 +21,9 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/vreg.h"
 #endif // CONFIG_RVV
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #include "../instr/rvmatrix/mreg.h"
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 #include "../local-include/trapinfo.h"
 
 #define FORCE_RAISE_PF
@@ -145,10 +145,10 @@ typedef struct {
   uint64_t fcsr;
 #endif // CONFIG_DIFFTEST_CHECK_FCSR
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
   uint64_t tlenb, trlenb, alenb, mtilem, mtilen, mtilek, msync;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   uint64_t tselect;
@@ -206,7 +206,7 @@ typedef struct {
 
   trap_info_t trapInfo;
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   union {
     uint64_t _64[TRENUM64];
     uint32_t _32[TRENUM32];
@@ -223,7 +223,7 @@ typedef struct {
 
   mcfg_t mcfg[8];
   uint64_t mtokr[MSYNC];
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RV_IMSIC
   struct InterruptDelegate interrupt_delegate;
@@ -376,7 +376,7 @@ typedef struct {
       uint32_t v_amoop   : 5;
     } vamo;
     #endif // CONFIG_RVV
-    #ifdef CONFIG_RVMATRIX
+    #ifdef CONFIG_RV_AME
     struct {
       uint32_t opcode    : 7;
       uint32_t rd        : 5;
@@ -426,7 +426,7 @@ typedef struct {
       uint32_t reserved1 : 13;
       uint32_t func      : 4;
     } misc;
-    #endif // CONFIG_RVMATRIX
+    #endif // CONFIG_RV_AME
 
     #ifdef CONFIG_CUSTOM_TENSOR
     struct {

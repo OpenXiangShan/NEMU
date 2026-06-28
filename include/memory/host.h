@@ -19,7 +19,7 @@
 #include <common.h>
 #include "paddr.h"
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #include "../../src/isa/riscv64/instr/rvmatrix/mreg.h"
 #endif
 
@@ -43,7 +43,7 @@ static inline word_t host_read(void *addr, int len) {
   }
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
@@ -65,7 +65,7 @@ static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
     pbase += stride;
   }
 };
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 static inline void host_write(void *addr, int len, word_t data) {
   Logm("write: addr = %p, len = %d, data = 0x%lx", addr, len, data);
@@ -78,7 +78,7 @@ static inline void host_write(void *addr, int len, word_t data) {
   }
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
@@ -101,6 +101,6 @@ static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
     pbase += stride;
   }
 };
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #endif

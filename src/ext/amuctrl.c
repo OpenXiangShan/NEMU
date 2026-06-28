@@ -4,7 +4,7 @@
 #include <isa.h>
 #include <memory/host.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #ifndef MATRIX_DIFF_PRINT_CNT
 #define MATRIX_DIFF_PRINT_CNT 32
@@ -272,4 +272,4 @@ void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3
   memcpy(cpu.macc[md - 4], res, ALEN / 8);
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

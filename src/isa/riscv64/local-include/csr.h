@@ -114,7 +114,7 @@
 #endif // CONFIG_RVV
 
 /** Unprivileged Matrix CSRs **/
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   #define CSRS_UNPRIV_MATRIX(f) \
     f(mcsr      , 0x802) f(mxrm      , 0x806) f(msat      , 0x807) f(mfflags   , 0x808) \
     f(mfrm      , 0x809) f(msaten    , 0x80A) \
@@ -122,9 +122,9 @@
     f(mtilem    , 0xCC4) f(mtilen    , 0xCC5) f(mtilek    , 0xCC6) \
     f(mnsync    , 0xCC7)
     // Use mnsync to indicate msync, which has the same name as a function in GNU C Library.
-#else // CONFIG_RVMATRIX
+#else // CONFIG_RV_AME
   #define CSRS_UNPRIV_MATRIX(f)
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 /** ALL **/
 #define CSRS_UNPRIV(f) \
@@ -1734,7 +1734,7 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 /** Unprivileged Matrix CSRs **/  
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 CSR_STRUCT_START(mcsr)
   uint64_t mxrm    :  2;
@@ -1791,7 +1791,7 @@ CSR_STRUCT_END(alenb)
 CSR_STRUCT_START(mnsync)
 CSR_STRUCT_END(mnsync)
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RV_ZICNTR
 CSR_STRUCT_START(cycle)

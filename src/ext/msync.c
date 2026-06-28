@@ -1,7 +1,7 @@
 #include <ext/msync.h>
 #include <ext/msync_queue_wrapper.h>
 
-#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
 msync_event_t msync_event_data;
 
@@ -39,4 +39,4 @@ int check_msync(msync_event_t *cmp) {
   return result;
 }
 
-#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)

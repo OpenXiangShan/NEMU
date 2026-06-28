@@ -186,7 +186,7 @@
 #define TENSOR_INSTR_TERNARY(f)
 #endif // CONFIG_CUSTOM_TENSOR
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #define MATRIX_INSTR_NULLARY(f) \
   f(minit) f(mfence)
 #define MATRIX_INSTR_UNARY(f) \
@@ -207,7 +207,7 @@
 #define MATRIX_INSTR_UNARY(f)
 #define MATRIX_INSTR_BINARY(f)
 #define MATRIX_INSTR_TERNARY(f)
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \

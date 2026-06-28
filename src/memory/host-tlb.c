@@ -99,7 +99,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   return data;
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 __attribute__((noinline))
 static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                                           int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
@@ -119,7 +119,7 @@ static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_
   fprintf(stderr, "?? slow-path hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", pbase, 1 << msew, MEM_TYPE_MATRIX_READ);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 __attribute__((noinline))
 static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
@@ -139,7 +139,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
   }
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 __attribute__((noinline))
 static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                                           int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
@@ -159,7 +159,7 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
     pbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
@@ -186,7 +186,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   }
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                            int row, int column, int msew, bool transpose,
                            char m_name, int mreg_id) {
@@ -241,7 +241,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     }
   }
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 extern bool has_two_stage_translation();
 
@@ -294,7 +294,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #endif // NOT CONFIG_USE_SPARSEMM
 }
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                           int row, int column, int msew, bool transpose,
                           char m_name, int mreg_id) {
@@ -355,4 +355,4 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #endif // CONFIG_SHARE_REF
 #endif // NOT CONFIG_USE_SPARSEMM
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

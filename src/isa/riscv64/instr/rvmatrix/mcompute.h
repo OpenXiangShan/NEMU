@@ -15,7 +15,7 @@
 
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #include "cpu/exec.h"
 #include "mreg.h"
@@ -244,4 +244,4 @@ def_EHelper(mzero) {
 #endif // CONFIG_SHARE_CTRL
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

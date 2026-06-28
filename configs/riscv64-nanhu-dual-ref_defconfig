@@ -27,7 +27,7 @@ CONFIG_RVK=y
 # CONFIG_RV_ZFBF_MIN is not set
 # CONFIG_RVV is not set
 # CONFIG_CUSTOM_TENSOR is not set
-# CONFIG_RVMATRIX is not set
+# CONFIG_RV_AME is not set
 CONFIG_RV_DEBUG=y
 # CONFIG_RVH is not set
 # CONFIG_RV_SDEXT is not set

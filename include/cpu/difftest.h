@@ -46,9 +46,9 @@ extern void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction);
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 extern int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask);
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 extern int  (*ref_difftest_matrix_store_commit)(uint64_t *base, uint64_t *stride, uint32_t *row, uint32_t *column, uint32_t *width, bool *transpose);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 #endif
 static inline bool difftest_check_reg(const char *name, vaddr_t pc, rtlreg_t ref, rtlreg_t dut) {
   if (ref != dut) {
@@ -93,7 +93,7 @@ static inline bool difftest_check_store(vaddr_t pc) {
   return true;
 }
 
-#if defined(CONFIG_RVMATRIX) && defined(CONFIG_DIFFTEST_STORE_COMMIT)
+#if defined(CONFIG_RV_AME) && defined(CONFIG_DIFFTEST_STORE_COMMIT)
 static inline bool difftest_check_matrix_store(vaddr_t pc) {
   if (matrix_store_queue_empty()) return true;
   matrix_store_commit_t dut = matrix_store_queue_front();
@@ -118,7 +118,7 @@ static inline bool difftest_check_matrix_store(vaddr_t pc) {
 
   return true;
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
 #endif

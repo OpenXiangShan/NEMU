@@ -13,16 +13,16 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #ifndef __RISCV64_MREG_H__
 #define __RISCV64_MREG_H__
 
 #include "common.h"
 
-#define TLEN   CONFIG_RVMATRIX_TLEN
-#define TRLEN  CONFIG_RVMATRIX_TRLEN
-#define MELEN  CONFIG_RVMATRIX_MLEN
+#define TLEN   CONFIG_RV_AME_TLEN
+#define TRLEN  CONFIG_RV_AME_TRLEN
+#define MELEN  CONFIG_RV_AME_MLEN
 
 #define ROWNUM (TLEN / TRLEN)
 
@@ -43,7 +43,7 @@
 #define TNMAX      ROWNUM
 #define TKMAX(sew) (TRLEN/sew)
 
-#define MSYNC       CONFIG_RVMATRIX_MSYNC
+#define MSYNC       CONFIG_RV_AME_MSYNC
 
 enum MTYPECODE_TAB0 {
   MTYPECODE_INT4 = 0,
@@ -121,4 +121,4 @@ void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t mse
 
 #endif //__RISCV64_MREG_H__
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
