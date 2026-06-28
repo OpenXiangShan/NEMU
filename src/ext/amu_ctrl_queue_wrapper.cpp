@@ -2,7 +2,7 @@
 #include <ext/amu_ctrl_queue_wrapper.h>
 #include <cpu/decode.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #include <queue>
 
 std::queue<amu_ctrl_event_t> cpp_amu_ctrl_queue;
@@ -96,4 +96,4 @@ void amu_ctrl_queue_mzero_emplace(bool isacc, uint8_t md) {
   amu_ctrl_queue_push(event);
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

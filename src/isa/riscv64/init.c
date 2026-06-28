@@ -186,7 +186,7 @@ void init_isa() {
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   // matrix
   tlenb->val = TLEN / 8;
   trlenb->val = TRLEN / 8;
@@ -202,7 +202,7 @@ void init_isa() {
   mfflags->val = 0;
   mfrm->val = 0;
   msaten->val = 0;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
   // mcycle and minstret record :
   // - the difference between the absolute number and the write value, when the bit of mcountinhibit is clear;

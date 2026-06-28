@@ -16,7 +16,7 @@
 #include <common.h>
 #include <stdint.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #include "mcompute_impl.h"
 #include <cpu/cpu.h>
@@ -33,4 +33,4 @@ void require_matrix() {
   // #endif
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

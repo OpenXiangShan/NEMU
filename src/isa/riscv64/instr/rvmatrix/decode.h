@@ -14,7 +14,7 @@
 ***************************************************************************************/
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 void mp_set_dirty();
 
@@ -123,4 +123,4 @@ def_THelper(OP_M) { // 01010
   return EXEC_ID_inv;
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

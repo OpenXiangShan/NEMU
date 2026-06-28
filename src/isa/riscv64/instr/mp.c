@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 #include <cpu/cpu.h>
@@ -44,4 +44,4 @@ void mp_set_dirty() {
 //   }
 // #endif //CONFIG_RVH
 }
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

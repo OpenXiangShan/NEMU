@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #include <isa-def.h>
 
@@ -20,6 +20,6 @@ typedef struct {
   uint64_t mrelease[MSYNC];
 } mstore_info_t;
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 #endif // __EXT_MSTORE_H__
 

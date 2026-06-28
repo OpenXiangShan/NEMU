@@ -75,7 +75,7 @@ void csr_prepare() {
   cpu.vlenb   = vlenb->val;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   cpu.tlenb   = tlenb->val;
   cpu.trlenb  = trlenb->val;
   cpu.alenb   = alenb->val;
@@ -89,7 +89,7 @@ void csr_prepare() {
   cpu.mfflags = mfflags->val;
   cpu.mfrm    = mfrm->val;
   cpu.msaten  = msaten->val;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RVH
   cpu.mtval2  = mtval2->val;
@@ -154,7 +154,7 @@ void csr_writeback() {
   vlenb->val   = cpu.vlenb;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   tlenb->val   = cpu.tlenb;
   trlenb->val  = cpu.trlenb;
   alenb->val   = cpu.alenb;
@@ -445,7 +445,7 @@ void dump_regs() {
   fprintf(fp, "vxrm %lx\n", vxrm->val);
   fprintf(fp, "vl %lx\n", vl->val);
 #endif // CONFIG_RVV
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   fprintf(fp, "tlenb %lx\n", tlenb->val);
   fprintf(fp, "trlenb %lx\n", trlenb->val);
   fprintf(fp, "alenb %lx\n", alenb->val);

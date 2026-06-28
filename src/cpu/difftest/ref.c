@@ -176,7 +176,7 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
                                  uint32_t *row, uint32_t *column, uint32_t *msew,
                                  bool *transpose) {
-#if defined(CONFIG_DIFFTEST_STORE_COMMIT) && defined(CONFIG_RVMATRIX)
+#if defined(CONFIG_DIFFTEST_STORE_COMMIT) && defined(CONFIG_RV_AME)
   return check_matrix_store_commit(base, stride, row, column, msew, transpose);
 #else
   return 0;
@@ -299,15 +299,15 @@ void difftest_get_store_event_other_info(void *info) {
 
 
 void difftest_get_amu_ctrl_event_other_info(void *info) {
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   *(uint64_t*)info = get_amu_ctrl_info().pc;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 }
 
 void difftest_get_msync_event_other_info(void *info) {
-#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   *(uint64_t*)info = get_msync_info().pc;
-#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
 int difftest_amu_ctrl(void *cmp) {
@@ -317,12 +317,12 @@ int difftest_amu_ctrl(void *cmp) {
   //   0:  Queue head matches cmp
   //   1:  Queue head does not match cmp
   //   -1: Queue is empty, no cmp to check
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   amu_ctrl_event_t *amu_ctrl = (amu_ctrl_event_t *)cmp;
   return check_amu_ctrl(amu_ctrl);
 #else
   return 0;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 }
 
 int difftest_msync_event(void *cmp) {
@@ -332,26 +332,26 @@ int difftest_msync_event(void *cmp) {
   //   0:  Queue head matches cmp
   //   1:  Queue head does not match cmp
   //   -1: Queue is empty, no cmp to check
-#if defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   msync_event_t *msync = (msync_event_t *)cmp;
   return check_msync(msync);
 #else
   return 0;
-#endif // defined(CONFIG_RVMATRIX) && defined(CONFIG_SHARE_REF)
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
 int difftest_amu_exec(void *amu_ctrl, void *res) {
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   return exec_amu(amu_ctrl, res);
 #else
   return 0;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 }
 
 void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 }
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)

@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #ifndef __RISCV64_MCOMPUTE_IMPL_H__
 #define __RISCV64_MCOMPUTE_IMPL_H__
@@ -26,4 +26,4 @@
 void require_matrix();
 
 #endif // __RISCV64_MCOMPUTE_IMPL_H__
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME

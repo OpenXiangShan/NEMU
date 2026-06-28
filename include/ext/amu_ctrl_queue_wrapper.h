@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 void amu_ctrl_queue_reset();
 void amu_ctrl_queue_push(amu_ctrl_event_t amu_ctrl_event);
 void amu_ctrl_queue_pop();
@@ -26,7 +26,7 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
                                 uint16_t row, uint16_t column, uint8_t msew);
 void amu_ctrl_queue_mrelease_emplace(uint8_t msyncRd);
 void amu_ctrl_queue_mzero_emplace(bool isacc, uint8_t md);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #ifdef __cplusplus
 }

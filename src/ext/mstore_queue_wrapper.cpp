@@ -3,7 +3,7 @@
 #include <ext/mstore_queue_wrapper.h>
 #include <cpu/decode.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 #include <deque>
 #include <cstring>
 
@@ -132,5 +132,5 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
   return false;  // No conflict
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 

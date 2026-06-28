@@ -111,7 +111,7 @@ typedef struct {
     uint64_t pc;
 } store_commit_t;
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 typedef struct {
     uint64_t base;
     uint64_t stride;
@@ -122,21 +122,21 @@ typedef struct {
     uint64_t pc;
     // TODO: add data field
 } matrix_store_commit_t;
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 /**
  * In the implementation, CPP queue is used for store commit maintenance.
  * */
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store);
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 /**
  * In the implementation, CPP queue is used for matrix store commit maintenance.
  * */
 void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
                                    uint32_t row, uint32_t column, uint32_t msew,
                                    bool transpose);
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 /**
  * Check whether there are valid entries.
@@ -150,13 +150,13 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask);
 
 store_commit_t get_store_commit_info();
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
                               uint32_t *row, uint32_t *column, uint32_t *msew,
                               bool *transpose);
 
 matrix_store_commit_t get_matrix_store_commit_info();
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
 

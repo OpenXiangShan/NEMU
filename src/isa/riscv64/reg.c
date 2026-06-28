@@ -276,7 +276,7 @@ void isa_reg_display() {
     }
   #endif // CONFIG_RV_SDTRIG
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
   DISPLAY_HR("Matrix CSRs");
   DISPLAY_CSR("msync", mnsync->val);
   printf("\n");
@@ -296,7 +296,7 @@ void isa_reg_display() {
   DISPLAY_CSR("mfrm", mfrm->val);
   DISPLAY_CSR("msaten", msaten->val);
   printf("\n");
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
   fflush(stdout);
 }
 

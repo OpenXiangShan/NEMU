@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 // Attention: the order of fields in this class must be the same as the order
 //            in the corresponding struct in XiangShan(or XSAI)'s diffstate.h.
@@ -32,5 +32,5 @@ amu_ctrl_event_t get_amu_ctrl_info();
 int exec_amu(void *amu_ctrl, void *res);
 void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
 #endif // __EXT_AMUCTRL_H__

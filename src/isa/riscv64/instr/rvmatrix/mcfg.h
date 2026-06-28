@@ -15,7 +15,7 @@
 
 #include <common.h>
 
-#ifdef CONFIG_RVMATRIX
+#ifdef CONFIG_RV_AME
 
 #include "cpu/exec.h"
 #include "ext/amu_ctrl_queue_wrapper.h"
@@ -150,4 +150,4 @@ def_EHelper(mfence)  {
   // Do nothing in NEMU.
 }
 
-#endif // CONFIG_RVMATRIX
+#endif // CONFIG_RV_AME
