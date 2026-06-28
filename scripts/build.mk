@@ -51,7 +51,7 @@ else
 OBJS = $(COBJS) $(XOBJS)
 endif
 
-ifdef CONFIG_MEM_COMPRESS
+ifdef CONFIG_ZSTD_COMPRESS
 LDFLAGS += -lzstd
 endif
 
