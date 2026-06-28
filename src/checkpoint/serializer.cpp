@@ -148,6 +148,17 @@ extern uint64_t clint_get_mtime();
 extern uint64_t clint_get_mtimecmp();
 }
 
+#ifdef CONFIG_HAS_FLASH
+extern "C" {
+extern const uint8_t gcpt_restorer_bin[];
+extern const size_t gcpt_restorer_size;
+}
+
+static void load_gcpt_restorer_to_flash() {
+  memcpy(get_flash_base(), gcpt_restorer_bin, gcpt_restorer_size);
+}
+#endif
+
 // Some configurations reserve a huge mmap-backed pmem range, while only the low
 // part is actually touched by the workload/restorer. Dumping the full configured
 // range would make checkpoint generation impractically slow and produce oversized
@@ -482,7 +493,7 @@ void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path
   uint64_t serialize_buffer_size;
 
   if (store_cpt_in_flash) {
-    IFDEF(CONFIG_HAS_FLASH, serialize_reg_base_addr = get_flash_base(); assert(get_flash_size() >= 0x100000U); serialize_buffer_size = get_flash_size(););
+    IFDEF(CONFIG_HAS_FLASH, load_gcpt_restorer_to_flash(); serialize_reg_base_addr = get_flash_base(); assert(get_flash_size() >= 0x100000U); serialize_buffer_size = get_flash_size(););
     IFNDEF(CONFIG_HAS_FLASH, Log("Please enable the flash device to activate the functionality of saving checkpoints to flash."); assert(0));
   } else {
     serialize_reg_base_addr = get_pmem();
