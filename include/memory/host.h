@@ -20,7 +20,7 @@
 #include "paddr.h"
 
 #ifdef CONFIG_RV_AME
-#include "../../src/isa/riscv64/instr/rvmatrix/mreg.h"
+#include "../../src/isa/riscv64/instr/ame/mreg.h"
 #endif
 
 static inline word_t host_read(void *addr, int len) {

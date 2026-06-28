@@ -22,7 +22,7 @@
 #include "../instr/rvv/vreg.h"
 #endif // CONFIG_RVV
 #ifdef CONFIG_RV_AME
-#include "../instr/rvmatrix/mreg.h"
+#include "../instr/ame/mreg.h"
 #endif // CONFIG_RV_AME
 #include "../local-include/trapinfo.h"
 

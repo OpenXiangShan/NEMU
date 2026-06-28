@@ -423,7 +423,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_RVV 0
 #endif
 
-// rvmatrix fields of mstatus
+// ame fields of mstatus
 #if defined(CONFIG_RV_AME)
 #define MSTATUS_WMASK_RV_AME (3UL << 25)
 #else
