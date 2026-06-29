@@ -21,6 +21,9 @@
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
+#if defined(CONFIG_REF_HOSTTLB) && defined(CONFIG_ISA_riscv64)
+#include "../local-include/csr.h"
+#endif
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -28,6 +31,9 @@
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
+#ifdef CONFIG_REF_HOSTTLB
+  uint64_t context;
+#endif
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
@@ -43,6 +49,28 @@ static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
 static inline int hosttlb_idx(vaddr_t vaddr) {
   return (hosttlb_vpn(vaddr) % HOSTTLB_SIZE);
 }
+
+#ifdef CONFIG_REF_HOSTTLB
+static inline uint64_t hosttlb_context(void) {
+  uint64_t context = cpu.mode;
+#ifdef CONFIG_ISA_riscv64
+  context = (context << 8) ^ (mstatus->val & ((3ul << 11) | (1ul << 17) | (1ul << 18) | (1ul << 19)));
+#ifdef CONFIG_RVH
+  context = (context << 1) ^ cpu.v;
+  context = (context << 8) ^ (vsstatus->val & ((1ul << 18) | (1ul << 19)));
+#endif
+#endif
+  return context;
+}
+
+static inline bool hosttlb_hit(HostTLBEntry *e, vaddr_t gvpn, uint64_t context) {
+  return e->gvpn == gvpn && e->context == context;
+}
+#else
+static inline bool hosttlb_hit(HostTLBEntry *e, vaddr_t gvpn) {
+  return e->gvpn == gvpn;
+}
+#endif
 
 void hosttlb_flush(vaddr_t vaddr) {
   Logm("hosttlb_flush " FMT_WORD, vaddr);
@@ -87,6 +115,9 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
     e->offset = guest_to_host(paddr) - vaddr;
     #endif
     e->gvpn = hosttlb_vpn(vaddr);
+#ifdef CONFIG_REF_HOSTTLB
+    e->context = hosttlb_context();
+#endif
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
   return data;
@@ -107,6 +138,9 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     e->offset = guest_to_host(paddr) - vaddr;
     #endif
     e->gvpn = hosttlb_vpn(vaddr);
+#ifdef CONFIG_REF_HOSTTLB
+    e->context = hosttlb_context();
+#endif
   }
 }
 
@@ -122,7 +156,12 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
     &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+#ifdef CONFIG_REF_HOSTTLB
+  uint64_t context = hosttlb_context();
+  if (unlikely(!hosttlb_hit(e, gvpn, context))) {
+#else
+  if (unlikely(!hosttlb_hit(e, gvpn))) {
+#endif
     Logm("Host TLB slow path");
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
@@ -149,7 +188,12 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
   // Following loc assumes write tlb is right after read tlb by HOSTTLB_SIZE
   HostTLBEntry *used_tlb = &hosttlb[is_write * HOSTTLB_SIZE];
   HostTLBEntry *e = &used_tlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+#ifdef CONFIG_REF_HOSTTLB
+  uint64_t context = hosttlb_context();
+  if (unlikely(!hosttlb_hit(e, gvpn, context))) {
+#else
+  if (unlikely(!hosttlb_hit(e, gvpn))) {
+#endif
     // TLB miss, fall back to slow path
     return;
   } else {
@@ -169,7 +213,12 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+#ifdef CONFIG_REF_HOSTTLB
+  uint64_t context = hosttlb_context();
+  if (unlikely(!hosttlb_hit(e, gvpn, context))) {
+#else
+  if (unlikely(!hosttlb_hit(e, gvpn))) {
+#endif
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
