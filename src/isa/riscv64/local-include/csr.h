@@ -36,7 +36,6 @@
 #define CUSTOM_CSR_MCOREPWR   0xbc0
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
 #define CUSTOM_CSR_MBMC       0xbC2
-
 #ifdef CONFIG_CUSTOM_CSR_KMHV3
 #define CUSTOM_CSR_SBPCTL_WMASK     0xff
 #else // CONFIG_CUSTOM_CSR_KMHV3
@@ -519,6 +518,13 @@
   #define CSRS_M_MBMC(f)
 #endif // CONFIG_RV_MBMC
 
+#ifdef CONFIG_RV_MPT_CHECK
+  #define CSRS_M_MMPT(f) \
+    f(mmpt       , 0x382)
+#else // CONFIG_RV_MPT_CHECK
+  #define CSRS_M_MMPT(f)
+#endif // CONFIG_RV_MMPT
+
 #define CSRS_M_CUSTOM(f) \
   f(mcorepwr   , 0xBC0) f(mflushpwr  , 0xBC1) \
   CSRS_M_MBMC(f)
@@ -567,6 +573,7 @@
   CSRS_M_CSRIND(f) \
   CSRS_M_SMRNMI(f) \
   CSRS_DEBUG_MODE(f) \
+  CSRS_M_MMPT(f) \
   CSRS_M_CUSTOM(f)
 
 
@@ -1224,6 +1231,16 @@ CSR_STRUCT_START(mbmc)
   uint64_t RSV  :   3;
   uint64_t BMA  :  58;
 CSR_STRUCT_END(mbmc)
+#endif
+
+#ifdef CONFIG_RV_MPT_CHECK
+CSR_STRUCT_START(mmpt)
+  uint64_t PPN: 44; // [43:0]
+  uint64_t WPRI0: 8;//[51:44]
+  uint64_t SDID: 6;//[57:52]
+  uint64_t WPRI1: 2;//[59:58]
+  uint64_t MODE: 4; // [63:60]
+CSR_STRUCT_END(mmpt)
 #endif
 
 #ifdef CONFIG_RV_SSCOFPMF

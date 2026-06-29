@@ -3745,6 +3745,16 @@ void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
 }
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RV_MPT_CHECK
+void riscv64_mfence() {
+  //(paddr_t addr, word_t sdid) { add later
+  if (cpu.mode != MODE_M) {
+    Log("Mfence not in M mode.\n"); 
+    longjmp_exception(EX_II);
+  }//EXII if not in M mode
+  mmu_tlb_flush(0);
+}
+#endif // CONFIG_RVH
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {

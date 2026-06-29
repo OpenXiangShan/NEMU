@@ -80,6 +80,9 @@ struct lightqs_reg_ss {
 #ifdef CONFIG_RV_MBMC
   uint64_t mbmc;
 #endif
+#ifdef CONFIG_RV_MPT_CHECK
+  uint64_t mmpt;
+#endif
 #ifdef CONFIG_RVV
   uint64_t vtype, vstart, vxsat, vxrm, vl;
 #endif // CONFIG_RVV

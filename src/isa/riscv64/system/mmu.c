@@ -303,10 +303,20 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     p_pte = pg_base + GVPNi(gpaddr, level, max_level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
     // PMP check should always be enabled during ptw, so just MODE_S here
-    if (!isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)) {
-      Log("pmp or pma check failed when PTW");
+    bool check_failed;
 
+    #ifdef CONFIG_RV_MPT_CHECK
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);   
+    #else
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
+      Log("pmp or pma check failed when PTW"); 
+    #endif // CONFIG_RV_MPT_CHECK
+
+    if (check_failed) {
+      Log("pmp or pma or mpt check failed when PTW");
       int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                   type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
       cpu.trapInfo.tval = vaddr;
@@ -401,7 +411,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 #endif // CONFIG_MULTICORE_DIFF
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
-  Logtr("Page walking for 0x%lx", vaddr);
+  Logtr("Page walking for 0x%lx, CPU mode: %lx", vaddr, cpu.mode);
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
   max_level = satp->mode == SATP_MODE_Sv39 ? 3 : 4;
@@ -453,9 +463,20 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
 #endif //CONFIG_RVH
     // PMP check should always be enabled during ptw, so just MODE_S here
-    if (!isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)) {
-      printf("pmp or pma check failed when PTW");
+    bool check_failed;
+
+    #ifdef CONFIG_RV_MPT_CHECK
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);   
+    #else
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
+      Log("pmp or pma check failed when PTW"); 
+    #endif // CONFIG_RV_MPT_CHECK
+
+    if (check_failed) {
+      Log("pmp or pma or mpt check failed when PTW");
 
       int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                   type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
@@ -1108,6 +1129,103 @@ bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode) {
   word_t ppn = (addr >> (9 * pt_level + PGSHFT) << (9 * pt_level));
   bool is_bmc = (bitmap_read(bm_base + ppn / 8, MEM_TYPE_BM_READ, out_mode) >> (ppn % 8)) & 1;
   return !is_bmc;
+}
+#endif
+
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
+  uint8_t mpt_perm = 0;
+
+  if (mmpt-> MODE == 0 || out_mode == MODE_M) {
+      Logtr("MPT disabled addr:%lx mptmode %d,outmode %d\n", addr, mmpt-> MODE,out_mode);
+    return true;
+  }
+
+  Logtr("Mpt function called with addr:%lx mptmode %d,outmode %d\n", addr, mmpt-> MODE,out_mode);
+
+  word_t mpt_base = (mmpt->PPN) << 12;
+  uint64_t pn[4] = {
+    (addr >> 16) & 0x1ff,   /* pn0 */
+    (addr >> 25) & 0x1ff,   /* pn1 */
+    (addr >> 34) & 0x1ff,   /* pn2 */
+    (addr >> 43) & 0x1ff    /* pn3 */
+  };
+  uint64_t range_off[4] = {
+    (addr >> 12) & 0xf,     /* range_off0 */
+    (addr >> 21) & 0xf,     /* range_off1 */
+    (addr >> 30) & 0xf,     /* range_off2 */
+    (addr >> 39) & 0xf      /* range_off3 */
+  };
+  int level;
+  if (mmpt->MODE >= 2)        
+    level = 3;
+  else if (mmpt->MODE == 1)   
+    level = 2;
+  else {
+    return true;    
+    Logtr("Mpt mode not supported, skip mpt check");
+  }
+  uint64_t mpte;
+  while(1){
+    uint64_t mpte_addr = mpt_base + (pn[level] << 3);
+    if (!isa_pmp_check_permission(mpte_addr, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+      !isa_pma_check_permission(mpte_addr, PTE_SIZE, MEM_TYPE_READ)) {
+      Log("pmp or pma check failed when mpt walk with addr: %lx", mpte_addr);
+      return false;
+    }
+    mpte = host_read(guest_to_host(mpte_addr), 8);
+    bool v = (mpte & 0x1) != 0;
+    bool l = (mpte & 0x2) != 0;
+    bool res = ((mpte >> 2) & 0xff)==0 && ((mpte >> 62) & 0x1)==0;
+    bool res_l= ((mpte >> 58) & 0x1f)==0;
+    uint64_t data = ((mpte << 1) >> 1) >>10;
+
+    if (!v || !res || (l && !res_l)) {
+       Log("Mpt pagefault!");
+       Logtr("mpte: %04lx, level: %d", (unsigned long)mpte,level);
+       Logtr("mpt_base: %04lx, addr: %04lx, mpte_addr: %04lx", (unsigned long)mpt_base, (unsigned long)addr, (unsigned long)mpte_addr);
+      return false;
+    }
+    if (!l && v) {
+      mpt_base = data << 12;
+      level--;
+      if(level < 0) {
+        Log("mpt l0 non leaf!");
+        return false;
+      }
+      continue;
+    }
+    if (l && v) {
+      mpt_perm = (data>>(range_off[level]*3)) & 0x7;
+      Logtr("mpt walk result: mpt_data: %04lx, level: %04lx, mpt_perm: %d", (unsigned long)data, range_off[level], mpt_perm);
+      break;
+    }
+  }
+  
+
+  #define R_BIT 0x1
+  #define W_BIT 0x2
+  #define X_BIT 0x4
+    /* Check permission */
+  bool return_val;
+  if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_WRITE_READ) {
+    return_val= mpt_perm & R_BIT;
+  }
+  else if (type == MEM_TYPE_WRITE) {
+    return_val= mpt_perm & W_BIT;
+  }
+  else if (type == MEM_TYPE_IFETCH) {
+    return_val= mpt_perm & X_BIT;
+  }
+  else {
+    Log("Mpttable get wrong type of memory access!");
+    return false;
+  }
+  if(!return_val){
+    Log("Permission check fail!");
+    Logtr("mpt_base:%04lx, addr:%04lx, mpte:%04lx, perm:%04x", (unsigned long)mpt_base, (unsigned long)addr, (unsigned long)mpte,mpt_perm);
+  }
+  return return_val;
 }
 #endif
 
