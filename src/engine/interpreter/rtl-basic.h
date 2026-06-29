@@ -124,6 +124,13 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+#ifdef CONFIG_RV_AME
+  uint64_t load_addr = *addr + offset;
+  extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
+  if (mstore_queue_check_addr_conflict(load_addr, len)) {
+    Log("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store", load_addr, len);
+  }
+#endif
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
@@ -132,6 +139,20 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
   cpu.query_mem_event.mem_access_vaddr = *addr + offset;
 #endif
 }
+
+#ifdef CONFIG_RV_AME
+static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
+                      int row, int column, int msew, bool transpose,
+                      int mmu_mode, char m_name, int mreg_id) {
+  vaddr_read_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
+#ifdef CONFIG_QUERY_REF
+  cpu.query_mem_event.pc = cpu.debug.current_pc;
+  cpu.query_mem_event.mem_access = true;
+  cpu.query_mem_event.mem_access_is_load = true;
+  cpu.query_mem_event.mem_access_vaddr = *base;
+#endif
+}
+#endif // CONFIG_RV_AME
 
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
@@ -144,8 +165,29 @@ static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
 #endif
 }
 
+#ifdef CONFIG_RV_AME
+static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
+                      int row, int column, int msew, bool transpose,
+                      int mmu_mode, char m_name, int mreg_id) {
+  vaddr_write_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
+#ifdef CONFIG_QUERY_REF
+  cpu.query_mem_event.pc = cpu.debug.current_pc;
+  cpu.query_mem_event.mem_access = true;
+  cpu.query_mem_event.mem_access_is_load = false;
+  cpu.query_mem_event.mem_access_vaddr = *base;
+#endif
+}
+#endif // CONFIG_RV_AME
+
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+#ifdef CONFIG_RV_AME
+  uint64_t load_addr = *addr + offset;
+  extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
+  if (mstore_queue_check_addr_conflict(load_addr, len)) {
+    Log("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store", load_addr, len);
+  }
+#endif
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;

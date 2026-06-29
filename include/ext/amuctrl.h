@@ -1,0 +1,36 @@
+#ifndef __EXT_AMUCTRL_H__
+#define __EXT_AMUCTRL_H__
+
+#include <common.h>
+
+#ifdef CONFIG_RV_AME
+
+// Attention: the order of fields in this class must be the same as the order
+//            in the corresponding struct in XiangShan(or XSAI)'s diffstate.h.
+typedef struct  {
+  uint8_t  valid;
+  uint8_t  op;
+  uint8_t  rm;
+  uint8_t  md;       // also used as ms
+  uint8_t  sat;      // also used as ls
+  uint8_t  ms1;
+  uint8_t  ms2;
+  uint16_t mtilem;   // also used as row
+  uint16_t mtilen;   // also used as column
+  uint16_t mtilek;
+  uint8_t  types1;   // also used as isacc
+  uint8_t  types2;
+  uint8_t  typed;    // also used as widths
+  uint8_t  isfp;     // also used as transpose
+  uint64_t base;
+  uint64_t stride;
+  uint64_t pc;
+} amu_ctrl_event_t;
+
+int check_amu_ctrl(amu_ctrl_event_t *cmp);
+amu_ctrl_event_t get_amu_ctrl_info();
+int exec_amu(void *amu_ctrl, void *res);
+void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
+
+#endif // CONFIG_RV_AME
+#endif // __EXT_AMUCTRL_H__

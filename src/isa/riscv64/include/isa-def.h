@@ -21,6 +21,9 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/vreg.h"
 #endif // CONFIG_RVV
+#ifdef CONFIG_RV_AME
+#include "../instr/ame/mreg.h"
+#endif // CONFIG_RV_AME
 #include "../local-include/trapinfo.h"
 
 #define FORCE_RAISE_PF
@@ -142,6 +145,11 @@ typedef struct {
   uint64_t fcsr;
 #endif // CONFIG_DIFFTEST_CHECK_FCSR
 
+#ifdef CONFIG_RV_AME
+  uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
+  uint64_t tlenb, trlenb, alenb, mtilem, mtilen, mtilek, msync;
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   uint64_t tselect;
   uint64_t tdata1;
@@ -197,6 +205,25 @@ typedef struct {
 #endif
 
   trap_info_t trapInfo;
+
+#ifdef CONFIG_RV_AME
+  union {
+    uint64_t _64[TRENUM64];
+    uint32_t _32[TRENUM32];
+    uint16_t _16[TRENUM16];
+    uint8_t  _8[TRENUM8];
+  } mtr[4][ROWNUM];
+
+  union {
+    uint64_t _64[ARENUM64];
+    uint32_t _32[ARENUM32];
+    uint16_t _16[ARENUM16];
+    uint8_t  _8[ARENUM8];
+  } macc[4][ROWNUM];
+
+  mcfg_t mcfg[8];
+  uint64_t mtokr[MSYNC];
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RV_IMSIC
   struct InterruptDelegate interrupt_delegate;
@@ -349,6 +376,57 @@ typedef struct {
       uint32_t v_amoop   : 5;
     } vamo;
     #endif // CONFIG_RVV
+    #ifdef CONFIG_RV_AME
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t rd        : 5;
+      uint32_t func3     : 3;
+      uint32_t imm10     : 10;
+      uint32_t ctrl      : 1;
+      uint32_t res0      : 2;
+      uint32_t func      : 4;      
+    } mcfgi;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t res0      : 5;
+      uint32_t func3     : 3;
+      uint32_t rs1       : 5;
+      uint32_t sync      : 5;
+      uint32_t ctrl      : 1;
+      uint32_t res1      : 2;
+      uint32_t func      : 4;
+    } msync;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 3;
+      uint32_t res0      : 2;
+      uint32_t func3     : 3;
+      uint32_t rs1       : 5;
+      uint32_t rs2       : 5;
+      uint32_t ls        : 1;
+      uint32_t res1      : 2;
+      uint32_t func      : 4;      
+    } mldst;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 3;
+      uint32_t res0      : 2;
+      uint32_t func3     : 3;
+      uint32_t ms1       : 3;
+      uint32_t res1      : 2;
+      uint32_t ms2       : 3;
+      uint32_t res2      : 5;
+      uint32_t func      : 4;
+    } mma;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 3;
+      uint32_t reserved0 : 2;
+      uint32_t func3     : 3;
+      uint32_t reserved1 : 13;
+      uint32_t func      : 4;
+    } misc;
+    #endif // CONFIG_RV_AME
 
     #ifdef CONFIG_CUSTOM_TENSOR
     struct {

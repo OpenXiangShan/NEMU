@@ -19,6 +19,7 @@
 
 #include <common.h>
 #include <memory/vaddr.h>
+#include <stdint.h>
 #include "../local-include/encoding.h"
 
 #define FUNCT3_CSRRW  1
@@ -112,11 +113,25 @@
   #define CSRS_UNPRIV_VECTOR(f)
 #endif // CONFIG_RVV
 
+/** Unprivileged Matrix CSRs **/
+#ifdef CONFIG_RV_AME
+  #define CSRS_UNPRIV_MATRIX(f) \
+    f(mcsr      , 0x802) f(mxrm      , 0x806) f(msat      , 0x807) f(mfflags   , 0x808) \
+    f(mfrm      , 0x809) f(msaten    , 0x80A) \
+    f(tlenb     , 0xCC1) f(trlenb    , 0xCC2) f(alenb     , 0xCC3) \
+    f(mtilem    , 0xCC4) f(mtilen    , 0xCC5) f(mtilek    , 0xCC6) \
+    f(mnsync    , 0xCC7)
+    // Use mnsync to indicate msync, which has the same name as a function in GNU C Library.
+#else // CONFIG_RV_AME
+  #define CSRS_UNPRIV_MATRIX(f)
+#endif // CONFIG_RV_AME
+
 /** ALL **/
 #define CSRS_UNPRIV(f) \
   CSRS_UNPRIV_FLOAT(f) \
   CSRS_UNPRIV_COUNTER_TIMERS(f) \
-  CSRS_UNPRIV_VECTOR(f)
+  CSRS_UNPRIV_VECTOR(f) \
+  CSRS_UNPRIV_MATRIX(f)
 
 
 /* Supervisor-level CSR */
@@ -650,7 +665,8 @@ CSR_STRUCT_START(mstatus)
   uint64_t tsr : 1; // [22]
   uint64_t pad3: 1; // [23]
   uint64_t sdt : 1; // [24]
-  uint64_t pad4: 7; // [31:25]
+  uint64_t ms  : 2; // [26:25]
+  uint64_t pad4: 5; // [31:27]
   uint64_t uxl : 2; // [33:32]
   uint64_t sxl : 2; // [35:34]
   uint64_t sbe : 1; // [36]
@@ -1137,7 +1153,8 @@ CSR_STRUCT_START(sstatus)
   uint64_t pad6 : 2;  // [22:21]
   uint64_t spelp: 1;  // [23]
   uint64_t sdt  : 1;  // [24]
-  uint64_t pad7 : 7;  // [31:25]
+  uint64_t ms   : 2;  // [26:25]
+  uint64_t pad7 : 5;  // [31:27]
   uint64_t pad8 :16;  // [47:32]
   uint64_t uxl  : 2;  // [33:32]
   uint64_t pad9 :28;  // [61:34]
@@ -1497,7 +1514,8 @@ CSR_STRUCT_START(vsstatus)
   uint64_t mxr    : 1;  // [19]
   uint64_t pad5   : 4;  // [23:20]
   uint64_t sdt    : 1;  // [24]
-  uint64_t pad6   : 7;  // [31:25]
+  uint64_t ms     : 2;  // [26:25]
+  uint64_t pad6   : 5;  // [31:27]
   uint64_t uxl    : 2;  // [33:32]
   uint64_t pad7   :29;  // [62:34]
   uint64_t sd     : 1;  // [63]
@@ -1714,6 +1732,67 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #endif // CONFIG_RVV
 
+/** Unprivileged Matrix CSRs **/  
+
+#ifdef CONFIG_RV_AME
+
+CSR_STRUCT_START(mcsr)
+  uint64_t mxrm    :  2;
+  uint64_t msat    :  1;
+  uint64_t mfflags :  5;
+  uint64_t mfrm    :  3;
+  uint64_t msaten  :  1;
+  uint64_t pad      : 52;
+CSR_STRUCT_END(mcsr)
+
+CSR_STRUCT_START(mxrm)
+  uint64_t rm  :  2;
+  uint64_t pad : 62;
+CSR_STRUCT_END(mxrm)
+
+CSR_STRUCT_START(msat)
+  uint64_t sat :  1;
+  uint64_t pad : 63;
+CSR_STRUCT_END(msat)
+
+CSR_STRUCT_START(mfflags)
+  uint64_t flags :  5;
+  uint64_t pad : 59;
+CSR_STRUCT_END(mfflags)
+
+CSR_STRUCT_START(mfrm)
+  uint64_t frm :  3;
+  uint64_t pad : 61;
+CSR_STRUCT_END(mfrm)
+
+CSR_STRUCT_START(msaten)
+  uint64_t sen :  1;
+  uint64_t pad : 63;
+CSR_STRUCT_END(msaten)
+
+CSR_STRUCT_START(mtilem)
+CSR_STRUCT_END(mtilem)
+
+CSR_STRUCT_START(mtilen)
+CSR_STRUCT_END(mtilen)
+
+CSR_STRUCT_START(mtilek)
+CSR_STRUCT_END(mtilek)
+
+CSR_STRUCT_START(tlenb)
+CSR_STRUCT_END(tlenb) 
+
+CSR_STRUCT_START(trlenb)
+CSR_STRUCT_END(trlenb)
+
+CSR_STRUCT_START(alenb)
+CSR_STRUCT_END(alenb)
+
+CSR_STRUCT_START(mnsync)
+CSR_STRUCT_END(mnsync)
+
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_RV_ZICNTR
 CSR_STRUCT_START(cycle)
   uint64_t pad0 : 64;
@@ -1886,8 +1965,8 @@ MAP(CSRS, CSRS_DECL)
 /** SSTATUS **/
 // All valid fields defined by RISC-V spec and not affected by extensions
 // This mask is used to get the value of sstatus from mstatus
-// SD, SDT, UXL, MXR, SUM, XS, FS, VS, SPP, UBE, SPIE, SIE
-#define SSTATUS_BASE 0x80000003000de762UL
+// SD, SDT, UXL, MXR, SUM, XS, FS, VS, MS, SPP, UBE, SPIE, SIE
+#define SSTATUS_BASE 0x80000003060de762UL
 
 #define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0))
 
