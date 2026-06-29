@@ -133,7 +133,7 @@ static char *do_lineno(int argc, char *argv[])
 {
 	char buf[16];
 
-	sprintf(buf, "%d", yylineno);
+	snprintf(buf, sizeof(buf), "%d", yylineno);
 
 	return xstrdup(buf);
 }
@@ -311,10 +311,11 @@ void variable_add(const char *name, const char *value,
 		new_value = xstrdup(value);
 
 	if (append) {
-		v->value = xrealloc(v->value,
-				    strlen(v->value) + strlen(new_value) + 2);
-		strcat(v->value, " ");
-		strcat(v->value, new_value);
+		{
+			size_t old_len = strlen(v->value);
+			v->value = xrealloc(v->value, old_len + strlen(new_value) + 2);
+			snprintf(v->value + old_len, strlen(new_value) + 2, " %s", new_value);
+		}
 		free(new_value);
 	} else {
 		v->value = new_value;
@@ -512,8 +513,13 @@ static char *__expand_string(const char **str, bool (*is_end)(char c),
 			expansion = expand_dollar_with_args(&p, argc, argv);
 			out_len += in_len + strlen(expansion);
 			out = xrealloc(out, out_len);
-			strncat(out, in, in_len);
-			strcat(out, expansion);
+			{
+				size_t cur_len = strlen(out);
+				memcpy(out + cur_len, in, in_len);
+				cur_len += in_len;
+				out[cur_len] = '\0';
+				memcpy(out + cur_len, expansion, strlen(expansion) + 1);
+			}
 			free(expansion);
 			in = p;
 			continue;
@@ -528,7 +534,11 @@ static char *__expand_string(const char **str, bool (*is_end)(char c),
 	in_len = p - in;
 	out_len += in_len;
 	out = xrealloc(out, out_len);
-	strncat(out, in, in_len);
+	{
+		size_t cur_len = strlen(out);
+		memcpy(out + cur_len, in, in_len);
+		out[cur_len + in_len] = '\0';
+	}
 
 	/* Advance 'str' to the end character */
 	*str = p;
