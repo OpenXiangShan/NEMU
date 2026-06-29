@@ -86,6 +86,155 @@ static inline uint64_t get_mprv() {
   #endif // CONFIG_RV_SMRNMI
 }
 
+static bool data_effective_address_identity_fast = false;
+static bool data_hosttlb_fast_enabled = false;
+
+#define PERM_CACHE_SIZE 256
+#define PMP_CACHE_PAGE_SHIFT CONFIG_PMP_GRANULARITY
+#define PMA_CACHE_PAGE_SHIFT CONFIG_PMA_GRANULARITY
+
+typedef struct {
+  word_t page_tag;
+  uint64_t generation;
+  uint8_t valid_mask;
+  uint8_t allow_mask;
+  uint8_t mode;
+} permission_cache_entry_t;
+
+#ifdef CONFIG_RV_PMP_CHECK
+static permission_cache_entry_t pmp_perm_cache[PERM_CACHE_SIZE];
+static uint64_t pmp_perm_generation = 1;
+#endif
+
+#ifdef CONFIG_RV_PMA_CHECK
+static permission_cache_entry_t pma_perm_cache[PERM_CACHE_SIZE];
+static uint64_t pma_perm_generation = 1;
+#endif
+
+#if defined(CONFIG_RV_PMP_CHECK) || defined(CONFIG_RV_PMA_CHECK)
+static inline uint8_t permission_type_bit(int type) {
+  if (type == MEM_TYPE_WRITE) {
+    return 1 << 1;
+  }
+  if (type == MEM_TYPE_IFETCH) {
+    return 1 << 2;
+  }
+  return 1 << 0;
+}
+
+static inline bool access_within_granularity(word_t addr, int len, int shift) {
+  word_t mask = ((word_t)1 << shift) - 1;
+  return (addr & mask) + (word_t)len <= ((word_t)1 << shift);
+}
+
+#ifdef CONFIG_RV_PMP_CHECK
+static inline permission_cache_entry_t *select_pmp_perm_cache(word_t page_tag, uint8_t mode) {
+  return &pmp_perm_cache[(page_tag ^ mode) & (PERM_CACHE_SIZE - 1)];
+}
+#endif
+
+#ifdef CONFIG_RV_PMA_CHECK
+static inline permission_cache_entry_t *select_pma_perm_cache(word_t page_tag) {
+  return &pma_perm_cache[page_tag & (PERM_CACHE_SIZE - 1)];
+}
+#endif
+#endif
+
+typedef struct {
+  word_t lower;
+  word_t tor;
+  word_t mask;
+  uint8_t cfg;
+  bool active;
+  bool is_tor;
+} protection_entry_cache_t;
+
+#ifdef CONFIG_RV_PMP_CHECK
+#if CONFIG_RV_PMP_ACTIVE_NUM > 0
+static protection_entry_cache_t pmp_entry_cache[CONFIG_RV_PMP_ACTIVE_NUM];
+#endif
+
+void mmu_refresh_pmp_cache(void) {
+#if CONFIG_RV_PMP_ACTIVE_NUM > 0
+  word_t base = 0;
+  word_t tor_mask = pmp_tor_mask();
+  for (int i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
+    word_t pmpaddr = pmpaddr_from_index(i);
+    uint8_t cfg = pmpcfg_from_index(i);
+    bool is_tor = (cfg & PMP_A) == PMP_TOR;
+    bool is_na4 = (cfg & PMP_A) == PMP_NA4;
+    word_t tor = (pmpaddr & tor_mask) << PMP_SHIFT;
+    word_t mask = (pmpaddr << 1) | (!is_na4) | ~tor_mask;
+    mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+    pmp_entry_cache[i] = (protection_entry_cache_t) {
+      .lower = base,
+      .tor = tor,
+      .mask = mask,
+      .cfg = cfg,
+      .active = (cfg & PMP_A) != 0,
+      .is_tor = is_tor,
+    };
+    base = tor;
+  }
+#endif
+  pmp_perm_generation++;
+}
+#else
+void mmu_refresh_pmp_cache(void) {
+}
+#endif
+
+#ifdef CONFIG_RV_PMA_CHECK
+#if CONFIG_RV_PMA_ACTIVE_NUM > 0
+static protection_entry_cache_t pma_entry_cache[CONFIG_RV_PMA_ACTIVE_NUM];
+#endif
+
+void mmu_refresh_pma_cache(void) {
+#if CONFIG_RV_PMA_ACTIVE_NUM > 0
+  word_t base = 0;
+  word_t tor_mask = pma_tor_mask();
+  for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    word_t pmaaddr = pmaaddr_from_index(i);
+    uint8_t cfg = pmacfg_from_index(i);
+    bool is_tor = (cfg & PMA_A) == PMA_TOR;
+    bool is_na4 = (cfg & PMA_A) == PMA_NA4;
+    word_t tor = (pmaaddr & tor_mask) << PMA_SHIFT;
+    word_t mask = (pmaaddr << 1) | (!is_na4) | ~tor_mask;
+    mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+    pma_entry_cache[i] = (protection_entry_cache_t) {
+      .lower = base,
+      .tor = tor,
+      .mask = mask,
+      .cfg = cfg,
+      .active = (cfg & PMA_A) != 0,
+      .is_tor = is_tor,
+    };
+    base = tor;
+  }
+#endif
+  pma_perm_generation++;
+}
+#else
+void mmu_refresh_pma_cache(void) {
+}
+#endif
+
+static inline void update_effective_address_state(void) {
+  data_effective_address_identity_fast =
+#ifdef CONFIG_RVH
+    !hld_st &&
+#endif
+    !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
+}
+
+static inline void update_hosttlb_fast_state(void) {
+#ifdef CONFIG_RVH
+  data_hosttlb_fast_enabled = !((get_mprv() && mstatus->mpv) || cpu.v);
+#else
+  data_hosttlb_fast_enabled = true;
+#endif
+}
+
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -179,6 +328,10 @@ bool has_two_stage_translation(){
   return hld_st || (get_mprv() && mstatus->mpv) || cpu.v;
 }
 
+bool hosttlb_data_fast_enabled_for_access(void) {
+  return !hld_st && data_hosttlb_fast_enabled;
+}
+
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
   // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
 #ifdef FORCE_RAISE_PF
@@ -212,15 +365,14 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
     return vaddr;
   }
 
+  if (likely(!hld_st && data_effective_address_identity_fast)) {
+    return vaddr;
+  }
+
   bool virt = cpu.v;
   int mode = cpu.mode;
   int pmm = 0;
   int masked_width = 0;
-
-  // Early out fastpath for non-H & non-pmm applications
-  if (likely(!hld_st && !get_mprv() && mode == MODE_U && senvcfg->pmm == 0)) {
-    return vaddr;
-  }
 
   if (hld_st) {
     mode = hstatus->spvp;
@@ -622,6 +774,8 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+  update_effective_address_state();
+  update_hosttlb_fast_state();
 #ifdef CONFIG_RVH
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
@@ -1131,31 +1285,36 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
     return true;
   }
 
-  word_t base = 0;
+  uint8_t access_bit = permission_type_bit(type);
+  if (likely(access_within_granularity(addr, len, PMP_CACHE_PAGE_SHIFT))) {
+    word_t page_tag = addr >> PMP_CACHE_PAGE_SHIFT;
+    permission_cache_entry_t *cache = select_pmp_perm_cache(page_tag, mode);
+    if (cache->generation == pmp_perm_generation &&
+        cache->page_tag == page_tag &&
+        cache->mode == mode &&
+        (cache->valid_mask & access_bit)) {
+      return (cache->allow_mask & access_bit) != 0;
+    }
+  }
+
+  bool allowed = mode == MODE_M;
+
   for (int i = 0; i < CONFIG_RV_PMP_ACTIVE_NUM; i++) {
-    word_t pmpaddr = pmpaddr_from_index(i);
-    word_t tor = (pmpaddr & pmp_tor_mask()) << PMP_SHIFT;
-    uint8_t cfg = pmpcfg_from_index(i);
+    protection_entry_cache_t *entry = &pmp_entry_cache[i];
+    uint8_t cfg = entry->cfg;
 
-    if (cfg & PMP_A) {
-      bool is_tor = (cfg & PMP_A) == PMP_TOR;
-      bool is_na4 = (cfg & PMP_A) == PMP_NA4;
-
-      word_t mask = (pmpaddr << 1) | (!is_na4) | ~pmp_tor_mask();
-      mask = ~(mask & ~(mask + 1)) << PMP_SHIFT;
+    if (entry->active) {
 
       // Check each 4-byte sector of the access
       bool any_match = false;
       bool all_match = true;
       for (word_t offset = 0; offset < len; offset += 1 << PMP_SHIFT) {
         word_t cur_addr = addr + offset;
-        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
-        bool tor_match = base <= cur_addr && cur_addr < tor;
-        bool match = is_tor ? tor_match : napot_match;
+        bool napot_match = ((cur_addr ^ entry->tor) & entry->mask) == 0;
+        bool tor_match = entry->lower <= cur_addr && cur_addr < entry->tor;
+        bool match = entry->is_tor ? tor_match : napot_match;
         any_match |= match;
         all_match &= match;
-        // ref_log_cpu("PMP byte match %ld addr:%016lx cur_addr:%016lx tor:%016lx mask:%016lx base:%016lx match:%s",
-        //     offset, addr, cur_addr, tor, mask, base, match ? "true" : "false");
       }
         // ref_log_cpu("PMP %d cfg:%02x pmpaddr:%016lx isna4:%d isnapot:%d istor:%d base:%016lx addr:%016lx any_match:%d",
         //     i, cfg, pmpaddr, is_na4, !is_na4 && !is_tor, is_tor, base, addr, any_match);
@@ -1163,7 +1322,8 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
         // If the PMP matches only a strict subset of the access, fail it
         if (!all_match) {
           // ref_log_cpu("PMP addr:0x%016lx len:%d type:%d mode:%d pass:false for not all match", addr, len, type, mode);
-          return false;
+          allowed = false;
+          goto out;
         }
 
         //   bool pass = (mode == MODE_M && !(cfg & PMP_L)) ||
@@ -1174,22 +1334,42 @@ bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
         //   ref_log_cpu("PMP %d cfg:%02x pmpaddr:%016lx addr:0x%016lx len:%d type:%d mode:%d pass:%s \n", i, cfg, pmpaddr, addr, len, type, mode,
         //       pass ? "true" : "false for permission denied");
 
-        return
+        allowed =
           (mode == MODE_M && !(cfg & PMP_L)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ) && (cfg & PMP_R)) ||
           (type == MEM_TYPE_WRITE && (cfg & PMP_W)) ||
           (type == MEM_TYPE_IFETCH && (cfg & PMP_X));
+        goto out;
       }
     }
-
-    base = tor;
   }
 
   //   if (mode != MODE_M) ref_log_cpu("PMP addr:0x%016lx len:%d type:%d mode:%d pass:%s", addr, len, type, mode,
   //   mode == MODE_M ? "true for mode m but no match" : "false for no match with less than M mode");
 
-  return mode == MODE_M;
+out:
+  if (likely(access_within_granularity(addr, len, PMP_CACHE_PAGE_SHIFT))) {
+    word_t page_tag = addr >> PMP_CACHE_PAGE_SHIFT;
+    permission_cache_entry_t *cache = select_pmp_perm_cache(page_tag, mode);
+    if (cache->generation != pmp_perm_generation ||
+        cache->page_tag != page_tag ||
+        cache->mode != mode) {
+      cache->generation = pmp_perm_generation;
+      cache->page_tag = page_tag;
+      cache->mode = mode;
+      cache->valid_mask = 0;
+      cache->allow_mask = 0;
+    }
+    cache->valid_mask |= access_bit;
+    if (allowed) {
+      cache->allow_mask |= access_bit;
+    } else {
+      cache->allow_mask &= ~access_bit;
+    }
+  }
+
+  return allowed;
 
 #endif
 
@@ -1256,35 +1436,42 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
     return true;
   }
 
-  word_t base = 0;
+  uint8_t access_bit = permission_type_bit(type);
+  if (likely(access_within_granularity(addr, len, PMA_CACHE_PAGE_SHIFT))) {
+    word_t page_tag = addr >> PMA_CACHE_PAGE_SHIFT;
+    permission_cache_entry_t *cache = select_pma_perm_cache(page_tag);
+    if (cache->generation == pma_perm_generation &&
+        cache->page_tag == page_tag &&
+        (cache->valid_mask & access_bit)) {
+      return (cache->allow_mask & access_bit) != 0;
+    }
+  }
+
+  bool allowed = false;
+
   for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
-    word_t pmaaddr = pmaaddr_from_index(i);
-    word_t tor = (pmaaddr & pma_tor_mask()) << PMA_SHIFT;
-    uint8_t cfg = pmacfg_from_index(i);
+    protection_entry_cache_t *entry = &pma_entry_cache[i];
+    uint8_t cfg = entry->cfg;
 
-    if (cfg & PMA_A) {
-      bool is_tor = (cfg & PMA_A) == PMA_TOR;
-      bool is_na4 = (cfg & PMA_A) == PMA_NA4;
-
-      word_t mask = (pmaaddr << 1) | (!is_na4) | ~pma_tor_mask();
-      mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+    if (entry->active) {
 
       // Check each 4-byte sector of the access
       bool any_match = false;
       bool all_match = true;
       for (word_t offset = 0; offset < len; offset += 1 << PMA_SHIFT) {
         word_t cur_addr = addr + offset;
-        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
-        bool tor_match = base <= cur_addr && cur_addr < tor;
-        bool match = is_tor ? tor_match : napot_match;
+        bool napot_match = ((cur_addr ^ entry->tor) & entry->mask) == 0;
+        bool tor_match = entry->lower <= cur_addr && cur_addr < entry->tor;
+        bool match = entry->is_tor ? tor_match : napot_match;
         any_match |= match;
         all_match &= match;
       }
       if (any_match) {
         if (!all_match) {
-          return false;
+          allowed = false;
+          goto out;
         }
-        return
+        allowed =
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ) && (cfg & PMA_R)) ||
           (type == MEM_TYPE_WRITE && (cfg & PMA_W)) ||
@@ -1293,10 +1480,9 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
             type == MEM_TYPE_WRITE_READ) && (cfg & PMA_T)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_WRITE ||
             type == MEM_TYPE_WRITE_READ) && (cfg & PMA_C)) ;
+        goto out;
       }
     }
-
-    base = tor;
   }
 
   // According to the RISC-V specification, for PMP (Physical Memory Protection)
@@ -1308,7 +1494,25 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
   // an access fault must be reported.
 
   // So should return false here (indicates that none of PMA entries were matched)
-  return false;
+out:
+  if (likely(access_within_granularity(addr, len, PMA_CACHE_PAGE_SHIFT))) {
+    word_t page_tag = addr >> PMA_CACHE_PAGE_SHIFT;
+    permission_cache_entry_t *cache = select_pma_perm_cache(page_tag);
+    if (cache->generation != pma_perm_generation || cache->page_tag != page_tag) {
+      cache->generation = pma_perm_generation;
+      cache->page_tag = page_tag;
+      cache->valid_mask = 0;
+      cache->allow_mask = 0;
+    }
+    cache->valid_mask |= access_bit;
+    if (allowed) {
+      cache->allow_mask |= access_bit;
+    } else {
+      cache->allow_mask &= ~access_bit;
+    }
+  }
+
+  return allowed;
 #endif
 
 #ifndef CONFIG_RV_PMA_CHECK
