@@ -324,6 +324,50 @@ jobs:
           name: nemu-diff-spike-advanced-logs
           if-no-files-found: ignore
           path: nemu-diff-spike-logs/
+
+  diff-spike-spec-slices:
+    needs: fetch-workloads
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: bosc
+    continue-on-error: false
+    name: Diff with Spike - SPEC Slices
+    timeout-minutes: 360
+    steps:
+      - name: Checkout NEMU
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Setup env
+        run: |
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
+
+      - name: Build NEMU interpreter for diff with spike
+        run: |
+          make riscv64-xs-diff-spike_defconfig
+          make -j
+
+      - name: Run SPEC checkpoint slices with Spike DiffTest
+        env:
+          SPEC_SLICE_JOBS: 64
+          SPEC_MAX_INSTR: 40000000
+          SPEC_SLICE_LIMIT: 1000
+          SPEC_SLICE_SEED: ${{ github.sha }}
+        run: |
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-slices
+
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-spec-slices-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
+
   performance:
     needs: fetch-workloads
     runs-on: ubuntu-latest
