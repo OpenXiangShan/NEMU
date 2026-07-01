@@ -82,7 +82,7 @@ void init_isa() {
   henvcfg->dte = 0;
 #endif //CONFIG_RV_SSDBLTRP
 #ifdef CONFIG_RV_SMRNMI
-// as opensbi and linux not support smrnmi, so we default init nmie = 1 to pass ci
+  mnstatus->val = 0;
   mnstatus->nmie = ISDEF(CONFIG_NMIE_INIT);
 #endif //CONFIG_RV_SMRNMI
 
@@ -191,7 +191,7 @@ void init_isa() {
   minstret->val = 0;
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
-  mcountinhibit->val = 0; 
+  mcountinhibit->val = 0;
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
   // All hpm counters are read-only zero in NEMU
@@ -200,9 +200,9 @@ void init_isa() {
   MAP(CSRS_M_HPMEVENT, CSR_ZERO_INIT);
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
-  // JEDEC JEP106 Manufacturer ID: 
+  // JEDEC JEP106 Manufacturer ID:
   //   Bank 17 (16 continuations), Offset 0x6F (111)
-  //   mvendorid = ((Bank -1) << 7) | Offset 
+  //   mvendorid = ((Bank -1) << 7) | Offset
   mvendorid->val = (16 << 7) | 0x6F;
   marchid->val = 25;
   mimpid->val = 0;
