@@ -1319,8 +1319,8 @@ static inline void update_miprios() {
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
-      uint64_t tmp = BITS(mie->val, 8*i+j, 8*i+j);
-      mask |= (tmp * 0xffULL) << (8*j);
+      uint64_t writable = BITS(MIE_MASK_BASE | MIE_MASK_H | LCOFI, 8*i+j, 8*i+j);
+      mask |= (writable * 0xffULL) << (8*j);
     }
     cpu.MIprios_rdata->iprios[i].val = cpu.MIprios->iprios[i].val & mask;
   }
@@ -1329,17 +1329,25 @@ static inline void update_miprios() {
 
 #ifdef CONFIG_RV_IMSIC
 static inline void update_siprios() {
-  // For a given interrupt number, if the corresponding bit in sie is read-only zero,
-  // then the interrupt’s priority number in the supervisor-level iprio array must be read-only zero as well.
+  // Version 1.0, Revised 20250312.
+  // For a given interrupt number, if the corresponding bit is not writable either in sie or, if the H
+  // extension is implemented, in hie, then the interrupt’s priority number in the supervisor-level iprio
+  // array must be read-only zero as well.
   // The priority number for a supervisor-level external interrupt (bits 15:8 of iprio2) must also be read-only zero.
   cpu.SIprios->iprios[0].val = cpu.SIprios->iprios[0].val & 0xffffff00ffffff00;
   cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff0000;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
-      uint64_t read_sie = non_vmode_get_sie();
-      uint64_t tmp = BITS(read_sie, 8*i+j, 8*i+j);
-      mask |= (tmp * 0xff) << (8*j);
+      uint64_t delegated   = BITS(mideleg->val, 8*i+j, 8*i+j);
+      uint64_t virtualized = BITS(mvien->val, 8*i+j, 8*i+j);
+      uint64_t sie_to_mie_writable = BITS(MIP_SSIP | MIP_STIP | MIP_SEIP | LCI, 8*i+j, 8*i+j);
+      uint64_t sie_writable = BITS(MIP_SSIP | MIP_SEIP | LCI, 8*i+j, 8*i+j);
+      uint64_t hie_to_mie_writable = BITS(HIE_RMASK, 8*i+j, 8*i+j);
+      uint64_t writableInSie = (sie_to_mie_writable & delegated) | (sie_writable & !delegated & virtualized);
+      uint64_t writableInHie = hie_to_mie_writable & delegated;
+      uint64_t writable = writableInSie | writableInHie;
+      mask |= (writable * 0xff) << (8*j);
     }
     cpu.SIprios_rdata->iprios[i].val = cpu.SIprios->iprios[i].val & mask;
   }
