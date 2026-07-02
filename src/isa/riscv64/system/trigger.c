@@ -9,6 +9,21 @@
 trig_action_t trigger_action = TRIG_ACTION_NONE;
 word_t triggered_tval;
 
+void trigger_mark_state_dirty(TriggerModule* TM) {
+  TM->mcontrol6_state_dirty = true;
+}
+
+static inline void refresh_mcontrol6_state(TriggerModule* TM) {
+  uint8_t active_count = 0;
+
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
+    active_count += TM->triggers[i].tdata1.common.type == TRIG_TYPE_MCONTROL6;
+  }
+
+  TM->mcontrol6_active_count = active_count;
+  TM->mcontrol6_state_dirty = false;
+}
+
 static bool tdata3_smatch(Trigger* trig) {
   switch (trig->tdata3.sselect) {
     case 0:
@@ -74,6 +89,12 @@ trig_action_t check_triggers_mcontrol6(
   vaddr_t addr,
   word_t data
 ) {
+  if (TM->mcontrol6_state_dirty) {
+    refresh_mcontrol6_state(TM);
+  }
+  if (TM->mcontrol6_active_count == 0) {
+    return TRIG_ACTION_NONE;
+  }
 #ifdef CONFIG_RV_SDEXT
   // do nothing in debug mode
   if (cpu.debug_mode)
