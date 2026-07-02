@@ -504,6 +504,10 @@ void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path
 #endif
 }
 
+void Serializer::setStoreCptInFlash(bool enable) {
+  store_cpt_in_flash = enable;
+}
+
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
 
 #define USING_METADATA_OVERRIDE_DEFAULT_MEMLAYOUT(variable_name) \
@@ -660,6 +664,14 @@ bool try_take_cpt(uint64_t icount) {
 
 void serialize_reg_to_mem() {
   serializer.serializeRegs(get_pmem());
+}
+
+void set_store_cpt_in_flash(bool enable) {
+  serializer.setStoreCptInFlash(enable);
+}
+
+void serialize_checkpoint(const char *base_filepath) {
+  serializer.serialize(0, base_filepath);
 }
 
 }

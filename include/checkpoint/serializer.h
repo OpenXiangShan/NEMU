@@ -57,6 +57,8 @@ class Serializer
 
     void serializeRegs(uint8_t* serialize_base_addr);
 
+    void setStoreCptInFlash(bool enable);
+
     explicit Serializer();
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
     void init(bool store_cpt_in_flash, bool enable_libcheckpoint);
