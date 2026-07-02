@@ -340,50 +340,53 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_query_intr() {
-  word_t intr_vec = mie->val & (get_mip());
-  if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
-  int intr_num;
-#ifdef CONFIG_RVH
-  const int priority [] = {
-    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
-    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
-    IRQ_UEIP, IRQ_USIP, IRQ_UTIP,
-    IRQ_SGEI,
-    IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP,
-#ifdef CONFIG_RV_SSCOFPMF
-    IRQ_LCOFI
-#endif
-  };
-#ifdef CONFIG_RV_SSCOFPMF
-  intr_num = 14;
-#else
-  intr_num = 13;
-#endif
-#else
-  const int priority [] = {
-    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
-    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
-    IRQ_UEIP, IRQ_USIP, IRQ_UTIP
-  };
-  intr_num = 9;
-#endif // CONFIG_RVH
-  int i;
+  word_t enabled_intr = mie->val;
+  if (!enabled_intr) return INTR_EMPTY;
+  if (cpu.mode == MODE_M && !mstatus->mie && MUXDEF(CONFIG_RVH, !cpu.v, true)) return INTR_EMPTY;
 
-  for (i = 0; i < intr_num; i ++) {
-    int irq = priority[i];
-    if (intr_vec & (1 << irq)) {
-      bool deleg = (mideleg->val & (1 << irq)) != 0;
+  word_t intr_vec = enabled_intr & (get_mip());
+  if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
 #ifdef CONFIG_RVH
-      bool hdeleg = (get_hideleg() & (1 << irq)) != 0;
-      bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && vsstatus->sie) || (cpu.v && cpu.mode < MODE_S):
-                           (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v:
-                           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M);
+  #define RETURN_IF_INTR_PENDING(irq) do { \
+    if (intr_vec & (1ULL << (irq))) { \
+      bool deleg = (mideleg->val & (1ULL << (irq))) != 0; \
+      bool hdeleg = (get_hideleg() & (1ULL << (irq))) != 0; \
+      bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && vsstatus->sie) || (cpu.v && cpu.mode < MODE_S): \
+                           (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v: \
+                           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M); \
+      if (global_enable) return (irq) | INTR_BIT; \
+    } \
+  } while (0)
 #else
-      bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
-          ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
-#endif
-      if (global_enable) return irq | INTR_BIT;
-    }
-  }
+  #define RETURN_IF_INTR_PENDING(irq) do { \
+    if (intr_vec & (1ULL << (irq))) { \
+      bool deleg = (mideleg->val & (1ULL << (irq))) != 0; \
+      bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) : \
+          ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M)); \
+      if (global_enable) return (irq) | INTR_BIT; \
+    } \
+  } while (0)
+#endif // CONFIG_RVH
+
+  RETURN_IF_INTR_PENDING(IRQ_MEIP);
+  RETURN_IF_INTR_PENDING(IRQ_MSIP);
+  RETURN_IF_INTR_PENDING(IRQ_MTIP);
+  RETURN_IF_INTR_PENDING(IRQ_SEIP);
+  RETURN_IF_INTR_PENDING(IRQ_SSIP);
+  RETURN_IF_INTR_PENDING(IRQ_STIP);
+  RETURN_IF_INTR_PENDING(IRQ_UEIP);
+  RETURN_IF_INTR_PENDING(IRQ_USIP);
+  RETURN_IF_INTR_PENDING(IRQ_UTIP);
+#ifdef CONFIG_RVH
+  RETURN_IF_INTR_PENDING(IRQ_SGEI);
+  RETURN_IF_INTR_PENDING(IRQ_VSEIP);
+  RETURN_IF_INTR_PENDING(IRQ_VSSIP);
+  RETURN_IF_INTR_PENDING(IRQ_VSTIP);
+#ifdef CONFIG_RV_SSCOFPMF
+  RETURN_IF_INTR_PENDING(IRQ_LCOFI);
+#endif // CONFIG_RV_SSCOFPMF
+#endif // CONFIG_RVH
+
+  #undef RETURN_IF_INTR_PENDING
   return INTR_EMPTY;
 }
