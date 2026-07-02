@@ -19,11 +19,11 @@
 #include <stddef.h>
 
 
-long load_gz_img(const char *filename);
+long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size);
 
-long load_zstd_img(const char *filename);
+long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size);
 
-long load_img(char *img_name, const char *which_img, uint8_t* load_start, size_t img_size);
+long load_img(const char *img_name, const char *which_img, uint8_t* load_start, size_t img_size);
 
 void fill_memory(const char* img_file, const char* flash_image, const char* cpt_image, int64_t* img_size, int64_t* flash_size);
 
