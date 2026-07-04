@@ -52,7 +52,7 @@ uint64_t g_nr_guest_instr = 0;
 // In BY_BB mode, g_nr_guest_instr is updated in update_instr_cnt().
 // In BY_INSTR mode, g_nr_guest_instr is updated in execute().
 
-uint64_t g_nr_vst = 0, g_nr_vst_unit = 0, g_nr_vst_unit_optimized = 0;
+DIFFTEST_EXPORT uint64_t g_nr_vst = 0, g_nr_vst_unit = 0, g_nr_vst_unit_optimized = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 const rtlreg_t rzero = 0;
@@ -105,7 +105,7 @@ void save_globals(Decode *s) { IFDEF(CONFIG_PERF_OPT, prev_s = s); }
 // This function returns the number of executed instructions. The accuracy depens on config.
 // This is widely used for profiling, timer and so on.
 // Refer to the comment above for more technical details.
-uint64_t get_abs_instr_count() {
+DIFFTEST_EXPORT uint64_t get_abs_instr_count() {
 #if defined(CONFIG_INSTR_CNT_BY_BB)
   // BB-level
   uint32_t n_executed = n_batch - n_remain;
@@ -121,7 +121,7 @@ uint64_t get_abs_instr_count() {
 // This function returns the number of executed instructions. The accuracy is always instruction.
 // This is only used in CSR read & write, for basic counters (mcycle, minstret, cycle, instret)
 // Refer to the comment above for more technical details.
-uint64_t get_abs_instr_count_csr() {
+DIFFTEST_EXPORT uint64_t get_abs_instr_count_csr() {
 #if defined(CONFIG_INSTR_CNT_BY_BB)
   return get_abs_instr_count() + prev_s->idx_in_bb - 1;
   // s of this instruction is saved into prev_s, in EHelper of csrrw/csrrs/csrrc.

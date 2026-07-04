@@ -78,7 +78,7 @@ void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool directi
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
 
-void difftest_get_backed_memory(void *backed_pmem, size_t n) {
+DIFFTEST_EXPORT void difftest_get_backed_memory(void *backed_pmem, size_t n) {
 #if CONFIG_ENABLE_MEM_DEDUP
   // set pmem to backed_pmem, then nothing
   assert(n == CONFIG_MSIZE);
@@ -86,7 +86,7 @@ void difftest_get_backed_memory(void *backed_pmem, size_t n) {
 #endif
 }
 
-void difftest_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
+DIFFTEST_EXPORT void difftest_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
   nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
 #else
@@ -98,7 +98,7 @@ void difftest_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direc
 #endif
 }
 
-void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
+DIFFTEST_EXPORT void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
 #ifdef CONFIG_USE_SPARSEMM
   nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
 #else
@@ -106,7 +106,7 @@ void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction)
 #endif
 }
 
-void difftest_load_flash(void *flash_bin, size_t f_size){
+DIFFTEST_EXPORT void difftest_load_flash(void *flash_bin, size_t f_size){
 #ifndef CONFIG_HAS_FLASH
   printf("nemu does not enable flash fetch!\n");
 #else
@@ -114,7 +114,7 @@ void difftest_load_flash(void *flash_bin, size_t f_size){
 #endif
 }
 
-void difftest_set_ramsize(size_t ram_size){
+DIFFTEST_EXPORT void difftest_set_ramsize(size_t ram_size){
   // should be called before difftest_init()
 #ifdef CONFIG_USE_MMAP
   if(ram_size){
@@ -127,7 +127,7 @@ void difftest_set_ramsize(size_t ram_size){
 #endif
 }
 #ifdef CONFIG_LIGHTQS
-void difftest_regcpy(void *dut, bool direction, bool restore, uint64_t restore_count) {
+DIFFTEST_EXPORT void difftest_regcpy(void *dut, bool direction, bool restore, uint64_t restore_count) {
   if (restore)
     #ifdef CONFIG_LIGHTQS_DEBUG
     printf("regcpy with restore called, dut = %lx restore = %d, restore_count = %lu\n", (uint64_t)dut, restore, restore_count);
@@ -135,17 +135,17 @@ void difftest_regcpy(void *dut, bool direction, bool restore, uint64_t restore_c
   isa_difftest_regcpy(dut, direction, restore, restore_count);
 }
 #else
-void difftest_regcpy(void *dut, bool direction) {
+DIFFTEST_EXPORT void difftest_regcpy(void *dut, bool direction) {
   isa_difftest_regcpy(dut, direction);
 }
 #endif // CONFIG_LIGHTQS
 
 #ifdef RV64_FULL_DIFF
-void difftest_csrcpy(void *dut, bool direction) {
+DIFFTEST_EXPORT void difftest_csrcpy(void *dut, bool direction) {
   isa_difftest_csrcpy(dut, direction);
 }
 
-void difftest_uarchstatus_sync(void *dut) {
+DIFFTEST_EXPORT void difftest_uarchstatus_sync(void *dut) {
 #ifdef CONFIG_LIGHTQS
   // This just fixes compilation error for lightqs.
   // No guarantee given for functional correctness.
@@ -156,16 +156,16 @@ void difftest_uarchstatus_sync(void *dut) {
 }
 
 #ifdef CONFIG_LIGHTQS
-void difftest_uarchstatus_cpy(void *dut, bool direction, uint64_t restore_count) {
+DIFFTEST_EXPORT void difftest_uarchstatus_cpy(void *dut, bool direction, uint64_t restore_count) {
   isa_difftest_uarchstatus_cpy(dut, direction, restore_count);
 }
 #else
-void difftest_uarchstatus_cpy(void *dut, bool direction) {
+DIFFTEST_EXPORT void difftest_uarchstatus_cpy(void *dut, bool direction) {
   isa_difftest_uarchstatus_cpy(dut, direction);
 }
 #endif // CONFIG_LIGHTQS
 
-int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
+DIFFTEST_EXPORT int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   return check_store_commit(saddr, sdata, smask);
 #else
@@ -173,7 +173,7 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
 #endif
 }
 
-int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
+DIFFTEST_EXPORT int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
                                  uint32_t *row, uint32_t *column, uint32_t *msew,
                                  bool *transpose) {
 #if defined(CONFIG_DIFFTEST_STORE_COMMIT) && defined(CONFIG_RV_AME)
@@ -185,17 +185,17 @@ int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
 
 #endif
 #ifdef CONFIG_RV_SMDBLTRP
-bool difftest_raise_critical_error() {
+DIFFTEST_EXPORT bool difftest_raise_critical_error() {
   return cpu.critical_error;
 }
 #endif
 
-void difftest_exec(uint64_t n) {
+DIFFTEST_EXPORT void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
 
 #ifdef CONFIG_REF_STATUS
-int difftest_status() {
+DIFFTEST_EXPORT int difftest_status() {
   switch (nemu_state.state) {
     case NEMU_RUNNING: case NEMU_QUIT:
       return 0;
@@ -208,7 +208,7 @@ int difftest_status() {
 #endif
 
 #ifdef CONFIG_LIGHTQS
-void difftest_guided_exec(void * guide, uint64_t restore_count) {
+DIFFTEST_EXPORT void difftest_guided_exec(void * guide, uint64_t restore_count) {
 #ifdef CONFIG_LIGHTQS_DEBUG
   printf("guided exec called\n");
 #endif // LIGHTQS_DEBUG
@@ -219,7 +219,7 @@ void difftest_guided_exec(void * guide, uint64_t restore_count) {
 #endif // CONFIG_GUIDED_EXEC
 }
 #else // CONFIG_LIGHTQS
-void difftest_guided_exec(void * guide) {
+DIFFTEST_EXPORT void difftest_guided_exec(void * guide) {
 #ifdef CONFIG_GUIDED_EXEC
   isa_difftest_guided_exec(guide);
 #else // CONFIG_GUIDED_EXEC
@@ -229,49 +229,49 @@ void difftest_guided_exec(void * guide) {
 #endif // CONFIG_LIGHTQS
 
 #ifdef CONFIG_BR_LOG
-void *difftest_query_br_log() {
+DIFFTEST_EXPORT void *difftest_query_br_log() {
   return br_log_query();
 }
 #endif // CONFIG_BR_LOG
 
 #ifdef CONFIG_QUERY_REF
-void difftest_query_ref(void * result_buffer, uint64_t type) {
+DIFFTEST_EXPORT void difftest_query_ref(void * result_buffer, uint64_t type) {
   isa_difftest_query_ref(result_buffer, type);
 }
 #endif
 
 #ifdef CONFIG_LIGHTQS
-void difftest_raise_intr(word_t NO, uint64_t restore_count) {
+DIFFTEST_EXPORT void difftest_raise_intr(word_t NO, uint64_t restore_count) {
   #ifdef CONFIG_LIGHTQS_DEBUG
   printf("raise intr called\n");
   #endif // CONFIG_LIGHTQS_DEBUG
   isa_difftest_raise_intr(NO, restore_count);
 }
 #else // CONFIG_LIGHTQS
-void difftest_raise_intr(word_t NO) {
+DIFFTEST_EXPORT void difftest_raise_intr(word_t NO) {
   isa_difftest_raise_intr(NO);
 }
 #endif // CONFIG_LIGHTQS
 
-void difftest_raise_nmi_intr(bool hasNMI) {
+DIFFTEST_EXPORT void difftest_raise_nmi_intr(bool hasNMI) {
 #ifdef CONFIG_RV_SMRNMI
   cpu.hasNMI = hasNMI;
 #endif //CONFIG_RV_SMRNMI
 }
 
-void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlInject) {
+DIFFTEST_EXPORT void difftest_virtual_interrupt_is_hvictl_inject(bool virtualInterruptIsHvictlInject) {
 #ifdef CONFIG_RV_IMSIC
   cpu.virtualInterruptIsHvictlInject = virtualInterruptIsHvictlInject;
 #endif
 }
 
-void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
+DIFFTEST_EXPORT void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 #ifdef CONFIG_RV_SSCOFPMF
   isa_update_mhpmcounter_overflow(mhpmeventOverflowVec);
 #endif
 }
 
-void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
+DIFFTEST_EXPORT void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
@@ -285,32 +285,32 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
 #endif
 }
 
-void difftest_interrupt_delegate(void *interruptDelegate) {
+DIFFTEST_EXPORT void difftest_interrupt_delegate(void *interruptDelegate) {
 #ifdef CONFIG_RV_IMSIC
   memcpy(&cpu.interrupt_delegate, interruptDelegate, sizeof(struct InterruptDelegate));
 #endif // CONFIG_RV_IMSIC
 }
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-void difftest_get_store_event_other_info(void *info) {
+DIFFTEST_EXPORT void difftest_get_store_event_other_info(void *info) {
   *(uint64_t*)info = get_store_commit_info().pc;
 }
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 
-void difftest_get_amu_ctrl_event_other_info(void *info) {
+DIFFTEST_EXPORT void difftest_get_amu_ctrl_event_other_info(void *info) {
 #ifdef CONFIG_RV_AME
   *(uint64_t*)info = get_amu_ctrl_info().pc;
 #endif // CONFIG_RV_AME
 }
 
-void difftest_get_msync_event_other_info(void *info) {
+DIFFTEST_EXPORT void difftest_get_msync_event_other_info(void *info) {
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   *(uint64_t*)info = get_msync_info().pc;
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
-int difftest_amu_ctrl(void *cmp) {
+DIFFTEST_EXPORT int difftest_amu_ctrl(void *cmp) {
   // Check if the queue head matches the given cmp.
   // If they don't match, save the queue head to cmp.
   // Return value:
@@ -325,7 +325,7 @@ int difftest_amu_ctrl(void *cmp) {
 #endif // CONFIG_RV_AME
 }
 
-int difftest_msync_event(void *cmp) {
+DIFFTEST_EXPORT int difftest_msync_event(void *cmp) {
   // Check if the queue head matches the given cmp.
   // If they don't match, save the queue head to cmp.
   // Return value:
@@ -340,7 +340,7 @@ int difftest_msync_event(void *cmp) {
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
-int difftest_amu_exec(void *amu_ctrl, void *res) {
+DIFFTEST_EXPORT int difftest_amu_exec(void *amu_ctrl, void *res) {
 #ifdef CONFIG_RV_AME
   return exec_amu(amu_ctrl, res);
 #else
@@ -348,7 +348,7 @@ int difftest_amu_exec(void *amu_ctrl, void *res) {
 #endif // CONFIG_RV_AME
 }
 
-void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
+DIFFTEST_EXPORT void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
 #ifdef CONFIG_RV_AME
   exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
 #endif // CONFIG_RV_AME
@@ -356,11 +356,11 @@ void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint32_t vec_laod_mul;
-int difftest_get_vec_load_vdNum() {
+DIFFTEST_EXPORT int difftest_get_vec_load_vdNum() {
   return vec_laod_mul;
 }
 
-void *difftest_get_vec_load_dual_goldenmem_reg(void *regPtr) {
+DIFFTEST_EXPORT void *difftest_get_vec_load_dual_goldenmem_reg(void *regPtr) {
   return get_vec_dual_reg();
 }
 
@@ -368,7 +368,7 @@ extern uint64_t vec_load_difftest_addr_queue[128];
 extern uint64_t vec_load_difftest_data_queue[128];
 extern uint8_t  vec_load_difftest_len_queue[128];
 extern uint32_t vec_load_difftest_info_queue_cnt;
-void difftest_update_vec_load_pmem() {
+DIFFTEST_EXPORT void difftest_update_vec_load_pmem() {
   for (uint32_t i = 0; i < vec_load_difftest_info_queue_cnt; i++) {
     host_write(guest_to_host(vec_load_difftest_addr_queue[i]), vec_load_difftest_len_queue[i], vec_load_difftest_data_queue[i]);
   }
@@ -376,7 +376,7 @@ void difftest_update_vec_load_pmem() {
 #endif // defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 
 
-void difftest_sync_aia(void *src) {
+DIFFTEST_EXPORT void difftest_sync_aia(void *src) {
 #ifdef CONFIG_RV_IMSIC
   memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
   isa_update_mtopi();
@@ -386,17 +386,17 @@ void difftest_sync_aia(void *src) {
 #endif
 }
 
-void difftest_sync_custom_mflushpwr(bool l2FlushDone) {
+DIFFTEST_EXPORT void difftest_sync_custom_mflushpwr(bool l2FlushDone) {
   isa_sync_custom_mflushpwr(l2FlushDone);
 }
 
-void difftest_enable_debug() {
+DIFFTEST_EXPORT void difftest_enable_debug() {
 #ifdef CONFIG_SHARE
   dynamic_config.debug_difftest = true;
 #endif
 }
 
-void difftest_runahead_init() {
+DIFFTEST_EXPORT void difftest_runahead_init() {
 #ifdef CONFIG_SHARE
 #ifdef CONFIG_LIGHTQS
   extern uint64_t stable_log_begin, spec_log_begin;
@@ -411,7 +411,7 @@ void difftest_runahead_init() {
 #endif // CONFIG_SHARE
 }
 
-void difftest_init() {
+DIFFTEST_EXPORT void difftest_init() {
 #ifdef CONFIG_SHARE_OUTPUT_LOG_TO_FILE
   char log_file_name[20];
   sprintf(log_file_name, "nemu-hart-%d.log", ref_hartid);
@@ -431,7 +431,7 @@ void difftest_init() {
 #endif
 }
 
-void difftest_init_v2(unsigned state_size) {
+DIFFTEST_EXPORT void difftest_init_v2(unsigned state_size) {
   difftest_init();
   if (state_size != DIFFTEST_REG_SIZE) {
     printf("ERROR: NEMU (%uB) is configured with different states than DUT (%uB).\n",
@@ -440,19 +440,19 @@ void difftest_init_v2(unsigned state_size) {
   }
 }
 
-void difftest_display() {
+DIFFTEST_EXPORT void difftest_display() {
   isa_reg_display();
 }
 
 #ifdef CONFIG_MULTICORE_DIFF
 uint8_t *golden_pmem = NULL;
 
-void difftest_set_mhartid(int n) {
+DIFFTEST_EXPORT void difftest_set_mhartid(int n) {
   isa_difftest_set_mhartid(n);
   ref_hartid = n;
 }
 
-void difftest_put_gmaddr(uint8_t* ptr) {
+DIFFTEST_EXPORT void difftest_put_gmaddr(uint8_t* ptr) {
   golden_pmem = ptr;
 }
 
@@ -462,12 +462,12 @@ void difftest_put_gmaddr(uint8_t* ptr) {
 // This just fixes compilation error for lightqs.
 // No guarantee given for functional correctness.
 #ifndef CONFIG_LIGHTQS
-void difftest_store_log_reset() {
+DIFFTEST_EXPORT void difftest_store_log_reset() {
   extern void pmem_record_reset();
   pmem_record_reset();
 }
 
-void difftest_store_log_restore() {
+DIFFTEST_EXPORT void difftest_store_log_restore() {
   extern void pmem_record_restore();
   pmem_record_restore();
 }
@@ -477,7 +477,7 @@ void difftest_store_log_restore() {
 extern void set_store_cpt_in_flash(bool enable);
 extern void serialize_checkpoint(const char *base_filepath);
 
-void difftest_trigger_checkpoint(const char *base_filepath) {
+DIFFTEST_EXPORT void difftest_trigger_checkpoint(const char *base_filepath) {
   if (cpu.mode == 3) {
     Log("Skipping M-mode checkpoint: mode=%lu, PC=0x%lx", cpu.mode, cpu.pc);
     return;

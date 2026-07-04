@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <stddef.h>  // for offsetof
 
-const unsigned DIFFTEST_REG_SIZE =
+DIFFTEST_EXPORT const unsigned DIFFTEST_REG_SIZE =
   offsetof(riscv64_CPU_state, difftest_state_end) - offsetof(riscv64_CPU_state, gpr);
 
 void ramcmp() {

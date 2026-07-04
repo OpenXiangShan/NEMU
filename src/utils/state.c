@@ -16,9 +16,9 @@
 #include <utils.h>
 
 #ifdef CONFIG_SHARE
-NEMUState nemu_state = { .state = NEMU_RUNNING };
+DIFFTEST_EXPORT NEMUState nemu_state = { .state = NEMU_RUNNING };
 #else
-NEMUState nemu_state = { .state = NEMU_STOP };
+DIFFTEST_EXPORT NEMUState nemu_state = { .state = NEMU_STOP };
 #endif // CONFIG_SHARE
 
 int is_exit_status_bad() {

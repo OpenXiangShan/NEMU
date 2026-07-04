@@ -48,6 +48,12 @@ struct DynamicConfig {
 extern struct DynamicConfig dynamic_config;
 void update_dynamic_config(void* config);
 
+#ifdef CONFIG_SHARE
+#define DIFFTEST_EXPORT __attribute__((visibility("default")))
+#else
+#define DIFFTEST_EXPORT
+#endif
+
 #include <debug.h>
 
 #endif
