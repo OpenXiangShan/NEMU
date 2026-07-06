@@ -439,7 +439,6 @@ jobs:
           * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
           * Baseline columns are populated on pull_request runs when the PR base contains the same defconfig.
           * Change vs Baseline (Instructions) is computed from host instruction count; positive means fewer host instructions than baseline.
-          * Change vs Baseline (Throughput) is computed from native throughput; positive means faster than baseline.
           EOF
           cat performance_results.md
           cat performance_results.md >> "$GITHUB_STEP_SUMMARY"
