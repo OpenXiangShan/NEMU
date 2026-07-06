@@ -105,12 +105,6 @@ def sci(value):
     return "N/A" if value is None else f"{value:.3e}"
 
 
-def pct_change(curr, base):
-    if curr is None or base in (None, 0):
-        return "N/A"
-    return f"{(curr - base) * 100.0 / base:+.2f}%"
-
-
 def instr_change(curr, base):
     if curr is None or base in (None, 0):
         return "N/A"
@@ -122,8 +116,8 @@ baseline_rows = read_metrics(baseline_path)
 
 print(f"### {title}")
 print()
-print("| Test | Guest Instructions | Host Instructions | Estimated Host Throughput (instr/s) | Actual NEMU Throughput (instr/s) | Baseline Host Instructions | Baseline Actual NEMU Throughput (instr/s) | Change vs Baseline (Instructions) | Change vs Baseline (Throughput) |")
-print("|------|--------------------|-------------------|-------------------------------------|----------------------------------|----------------------------|-------------------------------------------|-----------------------------------|---------------------------------|")
+print("| Test | Guest Instructions | Host Instructions | Estimated Host Throughput (instr/s) | Actual NEMU Throughput (instr/s) | Baseline Host Instructions | Baseline Actual NEMU Throughput (instr/s) | Change vs Baseline (Instructions) |")
+print("|------|--------------------|-------------------|-------------------------------------|----------------------------------|----------------------------|-------------------------------------------|-----------------------------------|")
 for test, row in current_rows.items():
     base = baseline_rows.get(test, {})
     host = row["host_instructions"]
@@ -138,7 +132,6 @@ for test, row in current_rows.items():
         f"{sci(actual)} | "
         f"{sci(base_host)} | "
         f"{sci(base_actual)} | "
-        f"{instr_change(host, base_host)} | "
-        f"{pct_change(actual, base_actual)} |"
+        f"{instr_change(host, base_host)} |"
     )
 PY
