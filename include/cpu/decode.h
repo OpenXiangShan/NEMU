@@ -70,6 +70,7 @@ typedef struct Decode {
 
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
+  int exec_id;
   uint8_t type;
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80 + sizeof(log_asmbuf) + sizeof(log_bytebuf)]);

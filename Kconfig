@@ -538,4 +538,12 @@ config ENABLE_INSTR_CNT
   default y if INSTR_CNT_BY_INSTR || INSTR_CNT_BY_BB
   default n
 
+config INSTR_CATEGORY_STAT
+  bool "Print instruction category statistics"
+  depends on ENABLE_INSTR_CNT
+  default n
+  help
+    Print instruction counts grouped by instruction category in monitor
+    statistics.
+
 endmenu
