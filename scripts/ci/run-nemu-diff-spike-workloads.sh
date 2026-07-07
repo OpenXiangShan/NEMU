@@ -18,14 +18,22 @@ set -euo pipefail
 
 repo_dir=$(cd "$(dirname "$0")/../.." && pwd)
 workloads="${CI_WORKLOADS:-${repo_dir}/workloads}"
+spec_checkpoints="${SPEC_CHECKPOINTS_HOME:-/nfs/home/share/checkpoints_profiles}"
+spec_ckpt_limit="${SPEC_CKPT_LIMIT:-1000}"
+spec_ckpt_seed="${SPEC_CKPT_SEED:-${GITHUB_SHA:-default}}"
+spec_ckpt_max_memory_gb="${SPEC_CKPT_MAX_MEMORY_GB:-8}"
+spec_max_instr="${SPEC_MAX_INSTR:-40000000}"
 nemu_bin="${NEMU_BIN:-${repo_dir}/build/riscv64-nemu-interpreter}"
 spike_so="${SPIKE_SO:-${repo_dir}/ready-to-run/spike-xiangshan-ref.so}"
 log_dir="${NEMU_DIFF_LOG_DIR:-${repo_dir}/nemu-diff-spike-logs}"
 if [ -n "${NEMU_DIFF_JOBS:-}" ]; then
   diff_jobs=$NEMU_DIFF_JOBS
+  diff_jobs_configured=true
 else
   diff_jobs=1
+  diff_jobs_configured=false
 fi
+spec_ckpt_jobs="${SPEC_CKPT_JOBS:-}"
 suite="all"
 case_extra_args=()
 default_max_instr=""
@@ -36,26 +44,42 @@ manifest_lock_file=""
 manifest_sorted_file=""
 active_jobs=0
 run_failures=0
+compact_case_logs=false
 
 usage() {
   cat <<'EOF'
 Usage: scripts/ci/run-nemu-diff-spike-workloads.sh [options]
 
-Run workload-builder images on NEMU with Spike DiffTest.
+Run workload-builder images and checkpoints on NEMU with Spike DiffTest.
 
 Options:
   --suite SUITE       Test suite to run.
   --max-instr NUM     Bounded instruction count passed to NEMU.
+  --spec-root DIR     Root directory for SPEC checkpoints.
+  --spec-limit NUM    Number of SPEC checkpoints to sample. Defaults to 1000.
+  --spec-seed TEXT    Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
+  --spec-max-instr NUM
+                     Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
+  --spec-jobs NUM     Number of SPEC checkpoints to run concurrently.
+                     Defaults to SPEC_CKPT_JOBS, NEMU_DIFF_JOBS, or 64.
   --log-dir DIR       Directory for per-workload logs and manifest.
   --jobs NUM          Number of workloads to run concurrently. Defaults to 1.
 
 Suites:
   basic       cputest, riscv-tests, rvv-test, misc-tests, linux hello, kvmtool
   advanced    long-running linux coremark-pro and rvv-bench smoke
+  spec-ckpt  SPEC/checkpoint-style checkpoints from the shared checkpoint corpus
   all         basic and advanced
 
 Environment:
   CI_WORKLOADS             Workload directory. Defaults to ./workloads.
+  SPEC_CHECKPOINTS_HOME    SPEC checkpoint root. Defaults to /nfs/home/share/checkpoints_profiles.
+  SPEC_CKPT_LIMIT         Number of SPEC checkpoints to sample. Defaults to 1000.
+  SPEC_CKPT_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
+  SPEC_CKPT_MAX_MEMORY_GB Maximum SPEC checkpoint memory size in GiB. Defaults to 8.
+  SPEC_MAX_INSTR           Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
+  SPEC_CKPT_JOBS          Number of SPEC checkpoints to run concurrently.
+                           Defaults to NEMU_DIFF_JOBS or 64.
   NEMU_BIN                 NEMU executable. Defaults to ./build/riscv64-nemu-interpreter.
   SPIKE_SO                 Spike difftest shared object. Defaults to ready-to-run/spike-xiangshan-ref.so.
   NEMU_DIFF_LOG_DIR        Directory for per-workload logs and manifest.
@@ -148,10 +172,12 @@ run_case_with_index() {
     case_label="#${index}/${total}"
   fi
 
-  echo "RUN case ${case_label}: ${name}"
-  echo "  workload: ${workload}"
-  echo "  log: ${log_file}"
-  echo "  command: ${command_line}"
+  if [ "$compact_case_logs" != true ]; then
+    echo "RUN case ${case_label}: ${name}"
+    echo "  workload: ${workload}"
+    echo "  log: ${log_file}"
+    echo "  command: ${command_line}"
+  fi
   if "${cmd[@]}" > "$log_file" 2>&1; then
     status=0
   else
@@ -159,7 +185,11 @@ run_case_with_index() {
   fi
   if [ "$status" -eq 0 ]; then
     append_manifest "$index" "PASS" "$name" "$workload" "$log_file" "$command_line"
-    echo "PASS case ${case_label}: ${name}"
+    if [ "$compact_case_logs" = true ]; then
+      printf '%s - pass\n' "$name"
+    else
+      echo "PASS case ${case_label}: ${name}"
+    fi
     return 0
   fi
 
@@ -320,6 +350,112 @@ run_advanced() {
   wait_for_cases
 }
 
+run_spec_ckpt() {
+  local test_bin total_tests
+  local -a spec_tests
+  local saved_compact_case_logs saved_diff_jobs
+
+  require_positive_integer "SPEC_CKPT_LIMIT" "$spec_ckpt_limit"
+  require_positive_integer "SPEC_CKPT_MAX_MEMORY_GB" "$spec_ckpt_max_memory_gb"
+  require_positive_integer "SPEC_MAX_INSTR" "$spec_max_instr"
+  if [ -n "$spec_ckpt_jobs" ]; then
+    require_positive_integer "SPEC_CKPT_JOBS" "$spec_ckpt_jobs"
+  fi
+
+  if [ ! -d "$spec_checkpoints" ]; then
+    echo "SPEC checkpoint directory not found: $spec_checkpoints" >&2
+    exit 1
+  fi
+
+  mapfile -t spec_tests < <(
+    find "$spec_checkpoints" -type f \( -name "_*.gz" -o -name "_*.zstd" \) -print |
+      python3 -c '
+import hashlib
+import os
+import re
+import sys
+
+seed = sys.argv[1]
+limit = int(sys.argv[2])
+root = os.path.abspath(sys.argv[3])
+max_memory_gb = int(sys.argv[4])
+
+def checkpoint_memory_gb(parts):
+    corpus = parts[0].lower()
+    match = re.search(r"(?:^|[_-])memory[_-]?([0-9]+)g(?:b)?(?:[_-]|$)", corpus)
+    if match:
+        return int(match.group(1))
+    return None
+
+def spec_restorer(path):
+    rel = os.path.relpath(path, root)
+    parts = rel.split(os.sep)
+    if len(parts) < 2:
+        return None
+    if not parts[0].startswith("spec06_"):
+        return None
+    memory_gb = checkpoint_memory_gb(parts)
+    if memory_gb is not None and memory_gb > max_memory_gb:
+        return None
+    corpus = os.path.join(root, parts[0])
+    for candidate in (
+        os.path.join(corpus, "gcpt", "gcpt.bin"),
+        os.path.join(corpus, "build", "gcpt", "build", "gcpt.bin"),
+    ):
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+paths = []
+for line in sys.stdin:
+    path = line.rstrip("\n")
+    if path and spec_restorer(path):
+        paths.append(path)
+paths.sort(key=lambda path: hashlib.sha256(f"{seed}\0{path}".encode()).hexdigest())
+for path in paths[:limit]:
+    print(path)
+' "$spec_ckpt_seed" "$spec_ckpt_limit" "$spec_checkpoints" "$spec_ckpt_max_memory_gb"
+  )
+  total_tests=${#spec_tests[@]}
+  if [ "$total_tests" -lt "$spec_ckpt_limit" ]; then
+    echo "Need ${spec_ckpt_limit} SPEC checkpoints, found ${total_tests} under ${spec_checkpoints}" >&2
+    exit 1
+  fi
+
+  echo "Selected ${total_tests} SPEC06 checkpoints from ${spec_checkpoints} with seed ${spec_ckpt_seed}."
+  echo "NEMU SPEC checkpoint max memory: ${spec_ckpt_max_memory_gb} GiB"
+  saved_diff_jobs=$diff_jobs
+  saved_compact_case_logs=$compact_case_logs
+  if [ -n "$spec_ckpt_jobs" ]; then
+    diff_jobs=$spec_ckpt_jobs
+  elif [ "$diff_jobs_configured" != true ]; then
+    diff_jobs=64
+  fi
+  compact_case_logs=true
+  echo "NEMU SPEC checkpoint jobs: $diff_jobs"
+  case_total=$total_tests
+  for test_bin in "${spec_tests[@]}"; do
+    local rel_path corpus_dir spec_restorer
+    rel_path=${test_bin#${spec_checkpoints}/}
+    corpus_dir=${spec_checkpoints}/${rel_path%%/*}
+    spec_restorer=""
+    if [ -f "${corpus_dir}/gcpt/gcpt.bin" ]; then
+      spec_restorer=${corpus_dir}/gcpt/gcpt.bin
+    elif [ -f "${corpus_dir}/build/gcpt/build/gcpt.bin" ]; then
+      spec_restorer=${corpus_dir}/build/gcpt/build/gcpt.bin
+    fi
+    if [ -z "$spec_restorer" ]; then
+      echo "No GCPT restorer found for ${test_bin}" >&2
+      exit 1
+    fi
+    start_case "spec-ckpt/${rel_path}" "$test_bin" -r "$spec_restorer" -I "$spec_max_instr"
+  done
+  wait_for_cases
+  case_total=""
+  diff_jobs=$saved_diff_jobs
+  compact_case_logs=$saved_compact_case_logs
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --suite)
@@ -338,6 +474,46 @@ while [ "$#" -gt 0 ]; do
       default_max_instr=$2
       shift 2
       ;;
+    --spec-root)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-root" >&2
+        exit 2
+      fi
+      spec_checkpoints=$2
+      shift 2
+      ;;
+    --spec-limit)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-limit" >&2
+        exit 2
+      fi
+      spec_ckpt_limit=$2
+      shift 2
+      ;;
+    --spec-seed)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-seed" >&2
+        exit 2
+      fi
+      spec_ckpt_seed=$2
+      shift 2
+      ;;
+    --spec-max-instr)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-max-instr" >&2
+        exit 2
+      fi
+      spec_max_instr=$2
+      shift 2
+      ;;
+    --spec-jobs)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-jobs" >&2
+        exit 2
+      fi
+      spec_ckpt_jobs=$2
+      shift 2
+      ;;
     --log-dir)
       if [ "$#" -lt 2 ] || [ -z "$2" ]; then
         echo "Missing value for --log-dir" >&2
@@ -352,6 +528,7 @@ while [ "$#" -gt 0 ]; do
         exit 2
       fi
       diff_jobs=$2
+      diff_jobs_configured=true
       shift 2
       ;;
     -h|--help)
@@ -367,7 +544,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$suite" in
-  basic|advanced|all)
+  basic|advanced|spec-ckpt|all)
     ;;
   *)
     echo "Unknown suite: $suite" >&2
@@ -387,6 +564,9 @@ case "$suite" in
     ;;
   advanced)
     run_advanced
+    ;;
+  spec-ckpt)
+    run_spec_ckpt
     ;;
   all)
     run_basic
