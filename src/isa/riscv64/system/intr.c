@@ -213,10 +213,12 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #endif
     scause->val = NO;
     sepc->val = epc;
-    mstatus->spp = cpu.mode;
-    mstatus->spie = mstatus->sie;
-    mstatus->sie = 0;
-    mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
+    mstatus_t status = riscv64_mstatus_raw_read_t();
+    status.spp = cpu.mode;
+    status.spie = status.sie;
+    status.sie = 0;
+    status.sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
+    riscv64_mstatus_raw_write_t(status);
     IFDEF(CONFIG_RVH, htval->val = cpu.trapInfo.tval2);
     IFDEF(CONFIG_RVH, htinst->val = cpu.trapInfo.tinst);
     stval->val = cpu.trapInfo.tval;
@@ -264,15 +266,20 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   } else if((delegM || vs_EX_DT || s_EX_DT) && !m_EX_DT){
 #ifdef CONFIG_RVH
     bool is_mem_access_virtual = IFDEF(CONFIG_RV_SMRNMI, mnstatus->nmie &&) mstatus->mprv && mstatus->mpv && (mstatus->mpp != MODE_M);
-    mstatus->gva = gen_gva(NO, hld_st_temp, is_mem_access_virtual);
-    mstatus->mpv = cpu.v;
+    mstatus_t status = riscv64_mstatus_raw_read_t();
+    status.gva = gen_gva(NO, hld_st_temp, is_mem_access_virtual);
+    status.mpv = cpu.v;
     cpu.v = 0;
 #endif
     mcause->val = NO;
     mepc->val = epc;
-    mstatus->mpp = cpu.mode;
-    mstatus->mpie = mstatus->mie;
-    mstatus->mie = 0;
+#ifndef CONFIG_RVH
+    mstatus_t status = riscv64_mstatus_raw_read_t();
+#endif
+    status.mpp = cpu.mode;
+    status.mpie = status.mie;
+    status.mie = 0;
+    riscv64_mstatus_raw_write_t(status);
     mtval->val = cpu.trapInfo.tval;
     IFDEF(CONFIG_RVH, mtval2->val = cpu.trapInfo.tval2);
     IFDEF(CONFIG_RVH, mtinst->val = cpu.trapInfo.tinst);
@@ -314,7 +321,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     }
 #ifdef CONFIG_RV_SSDBLTRP
     bool hasEX_DT = vs_EX_DT || s_EX_DT;
-    mstatus->mdt = 1;
+    mstatus_t dt_status = riscv64_mstatus_raw_read_t();
+    dt_status.mdt = 1;
+    riscv64_mstatus_raw_write_t(dt_status);
     mcause->val = (hasEX_DT ? EX_DT : mcause->val);
     mtval2->val = (hasEX_DT ? NO : mtval2->val);
 #endif //CONFIG_RV_SSDBLTRP

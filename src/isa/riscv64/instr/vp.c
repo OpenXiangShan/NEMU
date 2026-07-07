@@ -37,7 +37,9 @@ bool vp_enable() {
 }
 
 void vp_set_dirty() {
-  mstatus->vs = EXT_CONTEXT_DIRTY;
+  mstatus_t status = riscv64_mstatus_raw_read_t();
+  status.vs = EXT_CONTEXT_DIRTY;
+  riscv64_mstatus_raw_write_t(status);
 #ifdef CONFIG_RVH
   if (cpu.v == 1) {
     vsstatus->vs = EXT_CONTEXT_DIRTY;

@@ -106,10 +106,11 @@ void csr_prepare() {
 }
 
 void csr_writeback() {
-  mstatus->val = cpu.mstatus;
+  mstatus_t status = { .val = cpu.mstatus };
   // Keep the value of mstatus->sd always zero
   // The value used to diff with REF/DUT will set mstatus->sd with fs or vs is dirty.
-  mstatus->sd  = 0;
+  status.sd = 0;
+  riscv64_mstatus_raw_write_t(status);
   mcause ->val = cpu.mcause ;
   mepc   ->val = cpu.mepc   ;
   //sstatus->val = cpu.sstatus;  // sstatus is a shadow of mstatus

@@ -67,14 +67,17 @@ void init_isa() {
   // control the value of XLEN for S-mode and U-mode, respectively.
   // For RV64 systems, if S-mode is not supported, then SXL is hardwired to zero.
   // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
-  mstatus->val = 0xaUL << 32;
+  mstatus_t mstatus_init = { .val = 0xaUL << 32 };
   // initialize the value fs and vs to 0
-  mstatus->fs = 0;
-  mstatus->vs = 0;
+  mstatus_init.fs = 0;
+  mstatus_init.vs = 0;
   // initialize SDT, MDT
-  mstatus->mdt = ISDEF(CONFIG_MDT_INIT);
+  mstatus_init.mdt = ISDEF(CONFIG_MDT_INIT);
 #ifdef CONFIG_RV_SSDBLTRP
-  mstatus->sdt = 0;
+  mstatus_init.sdt = 0;
+#endif
+  riscv64_mstatus_raw_write_t(mstatus_init);
+#ifdef CONFIG_RV_SSDBLTRP
   vsstatus->sdt = 0;
   // software write envcfg to open ssdbltrp if need
   // set 0 to pass ci

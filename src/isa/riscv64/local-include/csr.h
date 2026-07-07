@@ -1769,6 +1769,23 @@ CSR_STRUCT_END(mnscratch)
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
 
+static inline word_t riscv64_mstatus_raw_read(void) {
+  return mstatus->val;
+}
+
+static inline void riscv64_mstatus_raw_write(word_t value) {
+  mstatus->val = value;
+}
+
+static inline mstatus_t riscv64_mstatus_raw_read_t(void) {
+  mstatus_t value = { .val = riscv64_mstatus_raw_read() };
+  return value;
+}
+
+static inline void riscv64_mstatus_raw_write_t(mstatus_t value) {
+  riscv64_mstatus_raw_write(value.val);
+}
+
 
 /**
  * Useful Defines
