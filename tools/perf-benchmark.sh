@@ -215,6 +215,17 @@ tests=(
   am/misc-tests/bin/zacas-riscv64-xs.bin
 )
 
+rvv_tests=(
+  am/riscv-vector-tests/bin/vfadd.vf-0.bin
+  am/riscv-vector-tests/bin/vfsub.vf-0.bin
+  am/riscv-vector-tests/bin/vslide1down.vx-0.bin
+  am/riscv-vector-tests/bin/vor.vi-0.bin
+  am/riscv-vector-tests/bin/vlse32.v-0.bin
+  am/riscv-vector-tests/bin/vluxei32.v-0.bin
+  am/riscv-vector-tests/bin/vsuxei32.v-0.bin
+  am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
+)
+
 configure_perf_flags() {
   sed -i 's/CONFIG_CC_NATIVE_ARCH=y/# CONFIG_CC_NATIVE_ARCH is not set/g' .config
   sed -i 's/CONFIG_CC_OPT_FLAGS=""/CONFIG_CC_OPT_FLAGS="-march=x86-64-v3 -mtune=generic -ftree-vectorize"/g' .config
@@ -312,6 +323,13 @@ get_host_instr_count() {
   printf '%s\n' "$line" | tr -cd '0-9'
 }
 
+get_host_time_us() {
+  local line
+
+  line=$(printf '%s\n' "$1" | grep "host time spent" | tail -n 1 || true)
+  printf '%s\n' "${line#*=}" | tr -cd '0-9'
+}
+
 run_native_freq() {
   local image="$1"
   local native_output sim_freq
@@ -369,6 +387,61 @@ append_result_row() {
   echo "::endgroup::"
 }
 
+append_rvv_suite_result_row() {
+  local test_name="rvv-workload-suite"
+  local test_bin image result native_output
+  local guest_instr_count host_instr_count native_guest_instr_count host_time_us
+  local total_guest_instr_count=0
+  local total_host_instr_count=0
+  local total_native_guest_instr_count=0
+  local total_host_time_us=0
+  local actual_throughput estimated_throughput
+
+  echo "::group::${title} - ${test_name}"
+  for test_bin in "${rvv_tests[@]}"; do
+    image="${workloads}/${test_bin}"
+    result=$(run_target "$image" "$drrun" -c "$inscount" -- | strings)
+    guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
+    host_instr_count=$(get_host_instr_count "$result")
+    if [ -z "$guest_instr_count" ] || [ -z "$host_instr_count" ]; then
+      echo "Failed to parse instruction counts for ${test_bin}" >&2
+      exit 1
+    fi
+    total_guest_instr_count=$((total_guest_instr_count + guest_instr_count))
+    total_host_instr_count=$((total_host_instr_count + host_instr_count))
+
+    native_output=$(run_target "$image" | strings)
+    native_guest_instr_count=$(echo "$native_output" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
+    host_time_us=$(get_host_time_us "$native_output")
+    if [ -z "$native_guest_instr_count" ] || [ -z "$host_time_us" ]; then
+      echo "Failed to parse native throughput inputs for ${test_bin}" >&2
+      exit 1
+    fi
+    total_native_guest_instr_count=$((total_native_guest_instr_count + native_guest_instr_count))
+    total_host_time_us=$((total_host_time_us + host_time_us))
+  done
+
+  estimated_throughput=$(python3 -c "print(4e9 * 2.5 / $total_host_instr_count * $total_guest_instr_count)")
+  actual_throughput=$(python3 -c "print($total_native_guest_instr_count * 1000000.0 / $total_host_time_us)")
+  printf '| %s | %s | %s | %s | %s |\n' \
+    "$test_name" \
+    "$(format_sci "$total_guest_instr_count")" \
+    "$(format_sci "$total_host_instr_count")" \
+    "$(format_sci "$estimated_throughput")" \
+    "$(format_sci "$actual_throughput")" \
+    >> "$output"
+  if [ -n "$metrics_output" ]; then
+    printf '%s\t%s\t%s\t%s\t%s\n' \
+      "$test_name" \
+      "$total_guest_instr_count" \
+      "$total_host_instr_count" \
+      "$estimated_throughput" \
+      "$actual_throughput" \
+      >> "$metrics_output"
+  fi
+  echo "::endgroup::"
+}
+
 cd "$repo_dir"
 
 build_perf_binary
@@ -394,6 +467,8 @@ for test_bin in "${tests[@]}"; do
   append_result_row "$(basename "$test_bin")" "${workloads}/${test_bin}"
 done
 
+append_rvv_suite_result_row
+
 if [ "$include_linux" = true ]; then
   append_result_row "linux-hello" "${workloads}/linux/hello/fw_payload.bin"
 fi
@@ -401,6 +476,7 @@ fi
 cat >> "$output" <<'EOF'
 
 * Host Instructions is measured by DynamoRIO's inscount client.
+* rvv-workload-suite aggregates selected AM riscv-vector-tests binaries.
 * Estimated Host Throughput assumes a fixed 4GHz CPU and IPC=2.5.
 * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
 EOF

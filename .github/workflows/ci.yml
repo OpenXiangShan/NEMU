@@ -270,6 +270,24 @@ jobs:
         run: |
           bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite basic
 
+      - name: Basic - rvv perf suite smoke
+        env:
+          tests: |
+            am/riscv-vector-tests/bin/vfadd.vf-0.bin
+            am/riscv-vector-tests/bin/vfsub.vf-0.bin
+            am/riscv-vector-tests/bin/vslide1down.vx-0.bin
+            am/riscv-vector-tests/bin/vor.vi-0.bin
+            am/riscv-vector-tests/bin/vlse32.v-0.bin
+            am/riscv-vector-tests/bin/vluxei32.v-0.bin
+            am/riscv-vector-tests/bin/vsuxei32.v-0.bin
+            am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
+        run: |
+          for test_bin in $tests; do
+            echo ::group::$test_bin
+            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/${test_bin}
+            echo "::endgroup::"
+          done
+
       - name: Upload Spike DiffTest logs
         if: failure()
         uses: actions/upload-artifact@v7
