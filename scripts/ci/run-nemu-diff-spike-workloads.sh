@@ -19,8 +19,8 @@ set -euo pipefail
 repo_dir=$(cd "$(dirname "$0")/../.." && pwd)
 workloads="${CI_WORKLOADS:-${repo_dir}/workloads}"
 spec_checkpoints="${SPEC_CHECKPOINTS_HOME:-/nfs/home/share/checkpoints_profiles}"
-spec_slice_limit="${SPEC_SLICE_LIMIT:-1000}"
-spec_slice_seed="${SPEC_SLICE_SEED:-${GITHUB_SHA:-default}}"
+spec_ckpt_limit="${SPEC_CKPT_LIMIT:-1000}"
+spec_ckpt_seed="${SPEC_CKPT_SEED:-${GITHUB_SHA:-default}}"
 spec_max_instr="${SPEC_MAX_INSTR:-40000000}"
 nemu_bin="${NEMU_BIN:-${repo_dir}/build/riscv64-nemu-interpreter}"
 spike_so="${SPIKE_SO:-${repo_dir}/ready-to-run/spike-xiangshan-ref.so}"
@@ -32,7 +32,7 @@ else
   diff_jobs=1
   diff_jobs_configured=false
 fi
-spec_slice_jobs="${SPEC_SLICE_JOBS:-}"
+spec_ckpt_jobs="${SPEC_CKPT_JOBS:-}"
 suite="all"
 case_extra_args=()
 default_max_instr=""
@@ -49,34 +49,34 @@ usage() {
   cat <<'EOF'
 Usage: scripts/ci/run-nemu-diff-spike-workloads.sh [options]
 
-Run workload-builder images and checkpoint slices on NEMU with Spike DiffTest.
+Run workload-builder images and checkpoints on NEMU with Spike DiffTest.
 
 Options:
   --suite SUITE       Test suite to run.
   --max-instr NUM     Bounded instruction count passed to NEMU.
-  --spec-root DIR     Root directory for SPEC checkpoint slices.
-  --spec-limit NUM    Number of SPEC checkpoint slices to sample. Defaults to 1000.
+  --spec-root DIR     Root directory for SPEC checkpoints.
+  --spec-limit NUM    Number of SPEC checkpoints to sample. Defaults to 1000.
   --spec-seed TEXT    Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   --spec-max-instr NUM
                      Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
-  --spec-jobs NUM     Number of SPEC checkpoint slices to run concurrently.
-                     Defaults to SPEC_SLICE_JOBS, NEMU_DIFF_JOBS, or 64.
+  --spec-jobs NUM     Number of SPEC checkpoints to run concurrently.
+                     Defaults to SPEC_CKPT_JOBS, NEMU_DIFF_JOBS, or 64.
   --log-dir DIR       Directory for per-workload logs and manifest.
   --jobs NUM          Number of workloads to run concurrently. Defaults to 1.
 
 Suites:
   basic       cputest, riscv-tests, rvv-test, misc-tests, linux hello, kvmtool
   advanced    long-running linux coremark-pro and rvv-bench smoke
-  spec-slices  SPEC/checkpoint-style slices from the shared checkpoint corpus
+  spec-ckpt  SPEC/checkpoint-style checkpoints from the shared checkpoint corpus
   all         basic and advanced
 
 Environment:
   CI_WORKLOADS             Workload directory. Defaults to ./workloads.
   SPEC_CHECKPOINTS_HOME    SPEC checkpoint root. Defaults to /nfs/home/share/checkpoints_profiles.
-  SPEC_SLICE_LIMIT         Number of SPEC checkpoint slices to sample. Defaults to 1000.
-  SPEC_SLICE_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
+  SPEC_CKPT_LIMIT         Number of SPEC checkpoints to sample. Defaults to 1000.
+  SPEC_CKPT_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   SPEC_MAX_INSTR           Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
-  SPEC_SLICE_JOBS          Number of SPEC checkpoint slices to run concurrently.
+  SPEC_CKPT_JOBS          Number of SPEC checkpoints to run concurrently.
                            Defaults to NEMU_DIFF_JOBS or 64.
   NEMU_BIN                 NEMU executable. Defaults to ./build/riscv64-nemu-interpreter.
   SPIKE_SO                 Spike difftest shared object. Defaults to ready-to-run/spike-xiangshan-ref.so.
@@ -348,15 +348,15 @@ run_advanced() {
   wait_for_cases
 }
 
-run_spec_slices() {
+run_spec_ckpt() {
   local test_bin total_tests
   local -a spec_tests
   local saved_compact_case_logs saved_diff_jobs
 
-  require_positive_integer "SPEC_SLICE_LIMIT" "$spec_slice_limit"
+  require_positive_integer "SPEC_CKPT_LIMIT" "$spec_ckpt_limit"
   require_positive_integer "SPEC_MAX_INSTR" "$spec_max_instr"
-  if [ -n "$spec_slice_jobs" ]; then
-    require_positive_integer "SPEC_SLICE_JOBS" "$spec_slice_jobs"
+  if [ -n "$spec_ckpt_jobs" ]; then
+    require_positive_integer "SPEC_CKPT_JOBS" "$spec_ckpt_jobs"
   fi
 
   if [ ! -d "$spec_checkpoints" ]; then
@@ -399,19 +399,19 @@ for line in sys.stdin:
 paths.sort(key=lambda path: hashlib.sha256(f"{seed}\0{path}".encode()).hexdigest())
 for path in paths[:limit]:
     print(path)
-' "$spec_slice_seed" "$spec_slice_limit" "$spec_checkpoints"
+' "$spec_ckpt_seed" "$spec_ckpt_limit" "$spec_checkpoints"
   )
   total_tests=${#spec_tests[@]}
-  if [ "$total_tests" -lt "$spec_slice_limit" ]; then
-    echo "Need ${spec_slice_limit} SPEC checkpoint slices, found ${total_tests} under ${spec_checkpoints}" >&2
+  if [ "$total_tests" -lt "$spec_ckpt_limit" ]; then
+    echo "Need ${spec_ckpt_limit} SPEC checkpoints, found ${total_tests} under ${spec_checkpoints}" >&2
     exit 1
   fi
 
-  echo "Selected ${total_tests} SPEC06 checkpoint slices from ${spec_checkpoints} with seed ${spec_slice_seed}."
+  echo "Selected ${total_tests} SPEC06 checkpoints from ${spec_checkpoints} with seed ${spec_ckpt_seed}."
   saved_diff_jobs=$diff_jobs
   saved_compact_case_logs=$compact_case_logs
-  if [ -n "$spec_slice_jobs" ]; then
-    diff_jobs=$spec_slice_jobs
+  if [ -n "$spec_ckpt_jobs" ]; then
+    diff_jobs=$spec_ckpt_jobs
   elif [ "$diff_jobs_configured" != true ]; then
     diff_jobs=64
   fi
@@ -432,7 +432,7 @@ for path in paths[:limit]:
       echo "No GCPT restorer found for ${test_bin}" >&2
       exit 1
     fi
-    start_case "spec-slices/${rel_path}" "$test_bin" -r "$spec_restorer" -I "$spec_max_instr"
+    start_case "spec-ckpt/${rel_path}" "$test_bin" -r "$spec_restorer" -I "$spec_max_instr"
   done
   wait_for_cases
   case_total=""
@@ -471,7 +471,7 @@ while [ "$#" -gt 0 ]; do
         echo "Missing value for --spec-limit" >&2
         exit 2
       fi
-      spec_slice_limit=$2
+      spec_ckpt_limit=$2
       shift 2
       ;;
     --spec-seed)
@@ -479,7 +479,7 @@ while [ "$#" -gt 0 ]; do
         echo "Missing value for --spec-seed" >&2
         exit 2
       fi
-      spec_slice_seed=$2
+      spec_ckpt_seed=$2
       shift 2
       ;;
     --spec-max-instr)
@@ -495,7 +495,7 @@ while [ "$#" -gt 0 ]; do
         echo "Missing value for --spec-jobs" >&2
         exit 2
       fi
-      spec_slice_jobs=$2
+      spec_ckpt_jobs=$2
       shift 2
       ;;
     --log-dir)
@@ -528,7 +528,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$suite" in
-  basic|advanced|spec-slices|all)
+  basic|advanced|spec-ckpt|all)
     ;;
   *)
     echo "Unknown suite: $suite" >&2
@@ -549,8 +549,8 @@ case "$suite" in
   advanced)
     run_advanced
     ;;
-  spec-slices)
-    run_spec_slices
+  spec-ckpt)
+    run_spec_ckpt
     ;;
   all)
     run_basic

@@ -325,12 +325,12 @@ jobs:
           if-no-files-found: ignore
           path: nemu-diff-spike-logs/
 
-  diff-spike-spec-slices:
+  diff-spike-spec-ckpt:
     needs: fetch-workloads
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: bosc
     continue-on-error: false
-    name: Diff with Spike - SPEC Slices
+    name: Diff with Spike - SPEC Checkpoint
     timeout-minutes: 360
     steps:
       - name: Checkout NEMU
@@ -351,20 +351,20 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Run SPEC checkpoint slices with Spike DiffTest
+      - name: Run SPEC checkpoints with Spike DiffTest
         env:
-          SPEC_SLICE_JOBS: 64
+          SPEC_CKPT_JOBS: 64
           SPEC_MAX_INSTR: 40000000
-          SPEC_SLICE_LIMIT: 1000
-          SPEC_SLICE_SEED: ${{ github.sha }}
+          SPEC_CKPT_LIMIT: 1000
+          SPEC_CKPT_SEED: ${{ github.sha }}
         run: |
-          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-slices
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-ckpt
 
       - name: Upload Spike DiffTest logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: nemu-diff-spike-spec-slices-logs
+          name: nemu-diff-spike-spec-ckpt-logs
           if-no-files-found: ignore
           path: nemu-diff-spike-logs/
 
