@@ -374,7 +374,7 @@ jobs:
           SPEC_CKPT_JOBS: 16
           SPEC_MAX_INSTR: 40000000
           SPEC_CKPT_PER_SUBITEM: 5
-          SPEC_CKPT_MEMORY_GB: 8
+          SPEC_CKPT_MAX_MEMORY_GB: 8
           SPEC_CKPT_SEED: ${{ github.sha }}
         run: |
           lock_dir=${SPEC_CKPT_CI_LOCK_DIR:-/tmp/nemu-spec-ckpt-ci-locks}

@@ -22,7 +22,7 @@ spec_checkpoints="${SPEC_CHECKPOINTS_HOME:-/nfs/home/share/checkpoints_profiles}
 spec_ckpt_limit="${SPEC_CKPT_LIMIT:-}"
 spec_ckpt_per_subitem="${SPEC_CKPT_PER_SUBITEM:-5}"
 spec_ckpt_seed="${SPEC_CKPT_SEED:-${GITHUB_SHA:-default}}"
-spec_ckpt_memory_gb="${SPEC_CKPT_MEMORY_GB:-${SPEC_CKPT_MAX_MEMORY_GB:-8}}"
+spec_ckpt_max_memory_gb="${SPEC_CKPT_MAX_MEMORY_GB:-8}"
 spec_max_instr="${SPEC_MAX_INSTR:-40000000}"
 nemu_bin="${NEMU_BIN:-${repo_dir}/build/riscv64-nemu-interpreter}"
 spike_so="${SPIKE_SO:-${repo_dir}/ready-to-run/spike-xiangshan-ref.so}"
@@ -80,7 +80,7 @@ Environment:
   SPEC_CKPT_LIMIT         Optional upper bound on selected SPEC checkpoints.
   SPEC_CKPT_PER_SUBITEM   Number of SPEC checkpoints to sample from each subitem. Defaults to 5.
   SPEC_CKPT_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
-  SPEC_CKPT_MEMORY_GB     SPEC checkpoint memory size in GiB. Defaults to 8.
+  SPEC_CKPT_MAX_MEMORY_GB Maximum SPEC checkpoint memory size in GiB. Defaults to 8.
   SPEC_MAX_INSTR           Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
   SPEC_CKPT_JOBS          Number of SPEC checkpoints to run concurrently.
                            Defaults to NEMU_DIFF_JOBS or 16.
@@ -363,7 +363,7 @@ run_spec_ckpt() {
     require_positive_integer "SPEC_CKPT_LIMIT" "$spec_ckpt_limit"
   fi
   require_positive_integer "SPEC_CKPT_PER_SUBITEM" "$spec_ckpt_per_subitem"
-  require_positive_integer "SPEC_CKPT_MEMORY_GB" "$spec_ckpt_memory_gb"
+  require_positive_integer "SPEC_CKPT_MAX_MEMORY_GB" "$spec_ckpt_max_memory_gb"
   require_positive_integer "SPEC_MAX_INSTR" "$spec_max_instr"
   if [ -n "$spec_ckpt_jobs" ]; then
     require_positive_integer "SPEC_CKPT_JOBS" "$spec_ckpt_jobs"
@@ -375,7 +375,7 @@ run_spec_ckpt() {
   fi
 
   mapfile -t spec_tests < <(
-    find "$spec_checkpoints" -type f \( -name "_*.gz" -o -name "_*.zstd" \) -print |
+    find -L "$spec_checkpoints" -type f \( -name "_*.gz" -o -name "_*.zstd" \) -print |
       python3 -c '
 import hashlib
 import os
@@ -386,7 +386,7 @@ seed = sys.argv[1]
 limit = int(sys.argv[2]) if sys.argv[2] else None
 per_subitem = int(sys.argv[3])
 root = os.path.abspath(sys.argv[4])
-memory_gb_filter = int(sys.argv[5])
+max_memory_gb = int(sys.argv[5])
 
 def checkpoint_memory_gb(parts):
     corpus = parts[0].lower()
@@ -403,7 +403,7 @@ def spec_restorer(path):
     if not parts[0].startswith("spec06_"):
         return None
     memory_gb = checkpoint_memory_gb(parts)
-    if memory_gb != memory_gb_filter:
+    if memory_gb is not None and memory_gb > max_memory_gb:
         return None
     corpus = os.path.join(root, parts[0])
     for candidate in (
@@ -442,7 +442,7 @@ if limit is not None:
 
 for path in paths:
     print(path)
-' "$spec_ckpt_seed" "$spec_ckpt_limit" "$spec_ckpt_per_subitem" "$spec_checkpoints" "$spec_ckpt_memory_gb"
+' "$spec_ckpt_seed" "$spec_ckpt_limit" "$spec_ckpt_per_subitem" "$spec_checkpoints" "$spec_ckpt_max_memory_gb"
   )
   total_tests=${#spec_tests[@]}
   if [ "$total_tests" -le 0 ]; then
@@ -455,7 +455,7 @@ for path in paths:
   if [ -n "$spec_ckpt_limit" ]; then
     echo "NEMU SPEC checkpoint selection limit: ${spec_ckpt_limit}"
   fi
-  echo "NEMU SPEC checkpoint memory: ${spec_ckpt_memory_gb} GiB"
+  echo "NEMU SPEC checkpoint max memory: ${spec_ckpt_max_memory_gb} GiB"
   saved_diff_jobs=$diff_jobs
   saved_compact_case_logs=$compact_case_logs
   if [ -n "$spec_ckpt_jobs" ]; then
