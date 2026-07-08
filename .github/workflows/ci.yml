@@ -371,12 +371,29 @@ jobs:
 
       - name: Run SPEC checkpoints with Spike DiffTest
         env:
-          SPEC_CKPT_JOBS: 64
+          SPEC_CKPT_JOBS: 16
           SPEC_MAX_INSTR: 40000000
-          SPEC_CKPT_LIMIT: 1000
+          SPEC_CKPT_PER_SUBITEM: 5
+          SPEC_CKPT_MAX_MEMORY_GB: 8
           SPEC_CKPT_SEED: ${{ github.sha }}
         run: |
-          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-ckpt
+          lock_dir=${SPEC_CKPT_CI_LOCK_DIR:-/tmp/nemu-spec-ckpt-ci-locks}
+          mkdir -p "$lock_dir"
+
+          while true; do
+            for slot in 0 1; do
+              lock_file="$lock_dir/slot-${slot}.lock"
+              exec {lock_fd}>"$lock_file"
+              if flock -n "$lock_fd"; then
+                echo "Acquired SPEC checkpoint CI slot ${slot}."
+                bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-ckpt
+                exit $?
+              fi
+              eval "exec ${lock_fd}>&-"
+            done
+            echo "All SPEC checkpoint CI slots are busy; waiting..."
+            sleep 30
+          done
 
       - name: Upload Spike DiffTest logs
         if: failure()

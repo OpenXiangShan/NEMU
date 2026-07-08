@@ -19,7 +19,8 @@ set -euo pipefail
 repo_dir=$(cd "$(dirname "$0")/../.." && pwd)
 workloads="${CI_WORKLOADS:-${repo_dir}/workloads}"
 spec_checkpoints="${SPEC_CHECKPOINTS_HOME:-/nfs/home/share/checkpoints_profiles}"
-spec_ckpt_limit="${SPEC_CKPT_LIMIT:-1000}"
+spec_ckpt_limit="${SPEC_CKPT_LIMIT:-}"
+spec_ckpt_per_subitem="${SPEC_CKPT_PER_SUBITEM:-5}"
 spec_ckpt_seed="${SPEC_CKPT_SEED:-${GITHUB_SHA:-default}}"
 spec_ckpt_max_memory_gb="${SPEC_CKPT_MAX_MEMORY_GB:-8}"
 spec_max_instr="${SPEC_MAX_INSTR:-40000000}"
@@ -56,12 +57,14 @@ Options:
   --suite SUITE       Test suite to run.
   --max-instr NUM     Bounded instruction count passed to NEMU.
   --spec-root DIR     Root directory for SPEC checkpoints.
-  --spec-limit NUM    Number of SPEC checkpoints to sample. Defaults to 1000.
+  --spec-limit NUM    Optional upper bound on selected SPEC checkpoints.
+  --spec-per-subitem NUM
+                     Number of SPEC checkpoints to sample from each subitem. Defaults to 5.
   --spec-seed TEXT    Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   --spec-max-instr NUM
                      Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
   --spec-jobs NUM     Number of SPEC checkpoints to run concurrently.
-                     Defaults to SPEC_CKPT_JOBS, NEMU_DIFF_JOBS, or 64.
+                     Defaults to SPEC_CKPT_JOBS, NEMU_DIFF_JOBS, or 16.
   --log-dir DIR       Directory for per-workload logs and manifest.
   --jobs NUM          Number of workloads to run concurrently. Defaults to 1.
 
@@ -74,12 +77,13 @@ Suites:
 Environment:
   CI_WORKLOADS             Workload directory. Defaults to ./workloads.
   SPEC_CHECKPOINTS_HOME    SPEC checkpoint root. Defaults to /nfs/home/share/checkpoints_profiles.
-  SPEC_CKPT_LIMIT         Number of SPEC checkpoints to sample. Defaults to 1000.
+  SPEC_CKPT_LIMIT         Optional upper bound on selected SPEC checkpoints.
+  SPEC_CKPT_PER_SUBITEM   Number of SPEC checkpoints to sample from each subitem. Defaults to 5.
   SPEC_CKPT_SEED          Seed for deterministic pseudo-random sampling. Defaults to $GITHUB_SHA.
   SPEC_CKPT_MAX_MEMORY_GB Maximum SPEC checkpoint memory size in GiB. Defaults to 8.
   SPEC_MAX_INSTR           Bounded instruction count for each SPEC checkpoint. Defaults to 40000000.
   SPEC_CKPT_JOBS          Number of SPEC checkpoints to run concurrently.
-                           Defaults to NEMU_DIFF_JOBS or 64.
+                           Defaults to NEMU_DIFF_JOBS or 16.
   NEMU_BIN                 NEMU executable. Defaults to ./build/riscv64-nemu-interpreter.
   SPIKE_SO                 Spike difftest shared object. Defaults to ready-to-run/spike-xiangshan-ref.so.
   NEMU_DIFF_LOG_DIR        Directory for per-workload logs and manifest.
@@ -355,7 +359,10 @@ run_spec_ckpt() {
   local -a spec_tests
   local saved_compact_case_logs saved_diff_jobs
 
-  require_positive_integer "SPEC_CKPT_LIMIT" "$spec_ckpt_limit"
+  if [ -n "$spec_ckpt_limit" ]; then
+    require_positive_integer "SPEC_CKPT_LIMIT" "$spec_ckpt_limit"
+  fi
+  require_positive_integer "SPEC_CKPT_PER_SUBITEM" "$spec_ckpt_per_subitem"
   require_positive_integer "SPEC_CKPT_MAX_MEMORY_GB" "$spec_ckpt_max_memory_gb"
   require_positive_integer "SPEC_MAX_INSTR" "$spec_max_instr"
   if [ -n "$spec_ckpt_jobs" ]; then
@@ -368,7 +375,7 @@ run_spec_ckpt() {
   fi
 
   mapfile -t spec_tests < <(
-    find "$spec_checkpoints" -type f \( -name "_*.gz" -o -name "_*.zstd" \) -print |
+    find -L "$spec_checkpoints" -type f \( -name "_*.gz" -o -name "_*.zstd" \) -print |
       python3 -c '
 import hashlib
 import os
@@ -376,9 +383,10 @@ import re
 import sys
 
 seed = sys.argv[1]
-limit = int(sys.argv[2])
-root = os.path.abspath(sys.argv[3])
-max_memory_gb = int(sys.argv[4])
+limit = int(sys.argv[2]) if sys.argv[2] else None
+per_subitem = int(sys.argv[3])
+root = os.path.abspath(sys.argv[4])
+max_memory_gb = int(sys.argv[5])
 
 def checkpoint_memory_gb(parts):
     corpus = parts[0].lower()
@@ -406,30 +414,54 @@ def spec_restorer(path):
             return candidate
     return None
 
-paths = []
+def subitem_key(path):
+    rel = os.path.relpath(path, root)
+    parts = rel.split(os.sep)
+    if len(parts) >= 2:
+        return os.path.join(parts[0], parts[1])
+    if parts:
+        return parts[0]
+    return rel
+
+groups = {}
 for line in sys.stdin:
     path = line.rstrip("\n")
     if path and spec_restorer(path):
-        paths.append(path)
-paths.sort(key=lambda path: hashlib.sha256(f"{seed}\0{path}".encode()).hexdigest())
-for path in paths[:limit]:
+        groups.setdefault(subitem_key(path), []).append(path)
+
+paths = []
+for key in sorted(groups):
+    group = groups[key]
+    group.sort(key=lambda path: hashlib.sha256(f"{seed}\0{key}\0{path}".encode()).hexdigest())
+    paths.extend(group[:per_subitem])
+
+paths.sort()
+if limit is not None:
+    paths = sorted(paths, key=lambda path: hashlib.sha256(f"{seed}\0limit\0{path}".encode()).hexdigest())[:limit]
+    paths.sort()
+
+for path in paths:
     print(path)
-' "$spec_ckpt_seed" "$spec_ckpt_limit" "$spec_checkpoints" "$spec_ckpt_max_memory_gb"
+' "$spec_ckpt_seed" "$spec_ckpt_limit" "$spec_ckpt_per_subitem" "$spec_checkpoints" "$spec_ckpt_max_memory_gb"
   )
   total_tests=${#spec_tests[@]}
-  if [ "$total_tests" -lt "$spec_ckpt_limit" ]; then
-    echo "Need ${spec_ckpt_limit} SPEC checkpoints, found ${total_tests} under ${spec_checkpoints}" >&2
+  if [ "$total_tests" -le 0 ]; then
+    echo "No SPEC checkpoints found under ${spec_checkpoints}" >&2
     exit 1
   fi
 
   echo "Selected ${total_tests} SPEC06 checkpoints from ${spec_checkpoints} with seed ${spec_ckpt_seed}."
+  echo "NEMU SPEC checkpoints per subitem: ${spec_ckpt_per_subitem}"
+  if [ -n "$spec_ckpt_limit" ]; then
+    echo "NEMU SPEC checkpoint selection limit: ${spec_ckpt_limit}"
+  fi
   echo "NEMU SPEC checkpoint max memory: ${spec_ckpt_max_memory_gb} GiB"
   saved_diff_jobs=$diff_jobs
   saved_compact_case_logs=$compact_case_logs
   if [ -n "$spec_ckpt_jobs" ]; then
     diff_jobs=$spec_ckpt_jobs
   elif [ "$diff_jobs_configured" != true ]; then
-    diff_jobs=64
+    diff_jobs=16
   fi
   compact_case_logs=true
   echo "NEMU SPEC checkpoint jobs: $diff_jobs"
@@ -488,6 +520,14 @@ while [ "$#" -gt 0 ]; do
         exit 2
       fi
       spec_ckpt_limit=$2
+      shift 2
+      ;;
+    --spec-per-subitem)
+      if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+        echo "Missing value for --spec-per-subitem" >&2
+        exit 2
+      fi
+      spec_ckpt_per_subitem=$2
       shift 2
       ;;
     --spec-seed)
