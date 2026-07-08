@@ -226,6 +226,17 @@ rvv_tests=(
   am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
 )
 
+fp32_tests=(
+  am/riscv-tests/bin/rv64uf-p-fadd.bin
+  am/riscv-tests/bin/rv64uf-p-fmadd.bin
+  am/riscv-tests/bin/rv64uf-p-fdiv.bin
+  am/riscv-tests/bin/rv64uf-p-fmin.bin
+  am/riscv-tests/bin/rv64uf-p-fcmp.bin
+  am/riscv-tests/bin/rv64uf-p-fcvt.bin
+  am/riscv-tests/bin/rv64uf-p-fcvt_w.bin
+  am/riscv-tests/bin/rv64uf-p-recoding.bin
+)
+
 configure_perf_flags() {
   sed -i 's/CONFIG_CC_NATIVE_ARCH=y/# CONFIG_CC_NATIVE_ARCH is not set/g' .config
   sed -i 's/CONFIG_CC_OPT_FLAGS=""/CONFIG_CC_OPT_FLAGS="-march=x86-64-v3 -mtune=generic -ftree-vectorize"/g' .config
@@ -387,8 +398,9 @@ append_result_row() {
   echo "::endgroup::"
 }
 
-append_rvv_suite_result_row() {
-  local test_name="rvv-workload-suite"
+append_suite_result_row() {
+  local test_name="$1"
+  shift
   local test_bin image result native_output
   local guest_instr_count host_instr_count native_guest_instr_count host_time_us
   local total_guest_instr_count=0
@@ -398,7 +410,7 @@ append_rvv_suite_result_row() {
   local actual_throughput estimated_throughput
 
   echo "::group::${title} - ${test_name}"
-  for test_bin in "${rvv_tests[@]}"; do
+  for test_bin in "$@"; do
     image="${workloads}/${test_bin}"
     result=$(run_target "$image" "$drrun" -c "$inscount" -- | strings)
     guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
@@ -467,7 +479,8 @@ for test_bin in "${tests[@]}"; do
   append_result_row "$(basename "$test_bin")" "${workloads}/${test_bin}"
 done
 
-append_rvv_suite_result_row
+append_suite_result_row "rvv-workload-suite" "${rvv_tests[@]}"
+append_suite_result_row "fp32-workload-suite" "${fp32_tests[@]}"
 
 if [ "$include_linux" = true ]; then
   append_result_row "linux-hello" "${workloads}/linux/hello/fw_payload.bin"
@@ -477,6 +490,7 @@ cat >> "$output" <<'EOF'
 
 * Host Instructions is measured by DynamoRIO's inscount client.
 * rvv-workload-suite aggregates selected AM riscv-vector-tests binaries.
+* fp32-workload-suite aggregates selected scalar AM rv64uf riscv-tests binaries.
 * Estimated Host Throughput assumes a fixed 4GHz CPU and IPC=2.5.
 * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
 EOF
