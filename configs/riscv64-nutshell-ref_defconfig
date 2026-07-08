@@ -22,6 +22,7 @@ CONFIG_CLINT_MMIO=0x38000000
 # CONFIG_RV_CBO is not set
 # CONFIG_RVK is not set
 # CONFIG_RV_ZICOND is not set
+# CONFIG_RV_AME is not set
 # CONFIG_RV_DEBUG is not set
 # CONFIG_RVH is not set
 # CONFIG_RV_SSTC is not set
@@ -127,6 +128,7 @@ CONFIG_DIFFTEST_REF_NAME="none"
 # CONFIG_TRACE_INST is not set
 # CONFIG_TRACE_BB is not set
 # CONFIG_SIMPOINT_LOG is not set
+# CONFIG_TRACE_MATRIX_LOAD_STORE is not set
 # CONFIG_BR_LOG is not set
 # CONFIG_BR_LOG_OUTPUT is not set
 # CONFIG_REPORT_ILLEGAL_INSTR is not set
@@ -179,6 +181,8 @@ CONFIG_AMO_AC_SOFT=y
 # Processor difftest reference config
 #
 CONFIG_SHARE=y
+CONFIG_SHARE_REF=y
+# CONFIG_SHARE_CTRL is not set
 # CONFIG_DIFFTEST_REF_FOR_GEM5 is not set
 # CONFIG_GUIDED_EXEC is not set
 CONFIG_QUERY_REF=y

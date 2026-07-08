@@ -69,8 +69,10 @@ void init_isa() {
   // For RV64 systems, if U-mode is not supported, then UXL is hardwired to zero.
   mstatus->val = 0xaUL << 32;
   // initialize the value fs and vs to 0
-  mstatus->fs = 0;
+  mstatus->fs = 1;
   mstatus->vs = 0;
+  // initialize the value ms to 0
+  mstatus->ms = 0;
   // initialize SDT, MDT
   mstatus->mdt = ISDEF(CONFIG_MDT_INIT);
 #ifdef CONFIG_RV_SSDBLTRP
@@ -183,6 +185,24 @@ void init_isa() {
   vtype->val = (uint64_t) 1 << 63; // actually should be 1 << 63 (set vill bit to forbidd)
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
+
+#ifdef CONFIG_RV_AME
+  // matrix
+  tlenb->val = TLEN / 8;
+  trlenb->val = TRLEN / 8;
+  alenb->val = ALEN / 8;
+  mnsync->val = MSYNC;
+  mtilem->val = 0;
+  mtilek->val = 0;
+  mtilen->val = 0;
+
+  mcsr->val = 0;
+  mxrm->val = 0;
+  msat->val = 0;
+  mfflags->val = 0;
+  mfrm->val = 0;
+  msaten->val = 0;
+#endif // CONFIG_RV_AME
 
   // mcycle and minstret record :
   // - the difference between the absolute number and the write value, when the bit of mcountinhibit is clear;

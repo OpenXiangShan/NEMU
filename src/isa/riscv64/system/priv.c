@@ -32,6 +32,7 @@ uint64_t get_mtime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
+void mp_set_dirty();
 
 inline word_t get_mip();
 inline word_t mstatus_read();
@@ -422,6 +423,13 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_RVV 0
 #endif
 
+// ame fields of mstatus
+#if defined(CONFIG_RV_AME)
+#define MSTATUS_WMASK_RV_AME (3UL << 25)
+#else
+#define MSTATUS_WMASK_RV_AME 0
+#endif
+
 #define MSTATUS_WMASK_MDT MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
 #define MSTATUS_WMASK_SDT MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
 
@@ -431,6 +439,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MSTATUS_WMASK_FS       | \
   MSTATUS_WMASK_RVH      | \
   MSTATUS_WMASK_RVV      | \
+  MSTATUS_WMASK_RV_AME | \
   MSTATUS_WMASK_MDT      | \
   MSTATUS_WMASK_SDT        \
 )
@@ -922,12 +931,28 @@ static inline bool require_vs() {
 }
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_AME
+static inline bool require_ms() {
+  if ((mstatus->val & MSTATUS_WMASK_RV_AME) != 0) {
+    #ifdef CONFIG_RVH
+      if (!cpu.v || (vsstatus->val & MSTATUS_WMASK_RV_AME) != 0) {
+        return true;
+      }
+      return false;
+    #endif // CONFIG_RVH
+    return true;
+  }
+  return false;
+}
+#endif // CONFIG_RV_AME
+
 inline word_t gen_status_sd(word_t status) {
   mstatus_t xstatus;
   xstatus.val = status;
   bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
   bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
-  return ((word_t)(fs_dirty || vs_dirty)) << 63;
+  bool ms_dirty = xstatus.ms == EXT_CONTEXT_DIRTY;
+  return ((word_t)(fs_dirty || vs_dirty || ms_dirty)) << 63;
 }
 
 #ifdef CONFIG_RV_SMCNTRPMF
@@ -2101,6 +2126,37 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_VCSR: *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; break;
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_AME
+    case CSR_XMCSR:
+      *dest = src & 0xfff;
+      msaten->val = (src >> 11) & 0b1;
+      mfrm->val = (src >> 8) & 0b111;
+      mfflags->val = (src >> 3) & 0b11111;
+      msat->val = (src >> 2) & 0b1;
+      mxrm->val = src & 0b11;
+      break;
+    case CSR_XMXRM:
+      *dest = src & 0b11;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMSAT:
+      *dest = src & 0b1;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMFFLAGS:
+      *dest = src & 0b11111;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMFRM:
+      *dest = src & 0b111;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMSATEN:
+      *dest = src & 0b1;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+#endif // CONFIG_RV_AME
+
     /************************* Supervisor-Level CSRs *************************/
     case CSR_SSTATUS:
     {
@@ -2842,6 +2898,12 @@ static void csr_write(uint32_t csrid, word_t src) {
   }
 #endif //CONFIG_RVV
 
+#ifdef CONFIG_RV_AME
+  if (is_write(mcsr) || is_write(mxrm) || is_write(msat) || is_write(mfflags) || is_write(mfrm) || is_write(msaten)) {
+    mp_set_dirty();
+  }
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp)
       || is_write(hgatp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
@@ -3074,6 +3136,18 @@ static inline bool vec_permit_check(const word_t *dest_access) {
   return false;
 }
 #endif // CONFIG_RVV
+
+#ifdef CONFIG_RV_AME
+static inline bool matrix_permit_check(const word_t *dest_access) {
+  if (is_access(mnsync)    || is_access(tlenb) || is_access(trlenb) ||
+      is_access(alenb)   || is_access(mtilem) || is_access(mtilen)  || is_access(mtilek) ||
+      is_access(mcsr)    || is_access(mxrm)  || is_access(msat)   ||
+      is_access(mfflags) || is_access(mfrm)  || is_access(msaten)) {
+    if (!require_ms()) { longjmp_exception(EX_II); }
+  }
+  return false;
+}
+#endif // CONFIG_RV_AME
 
 #if defined CONFIG_RV_SMCSRIND
 static inline bool iselect_is_aia_window(uint64_t iselect) {
@@ -3351,6 +3425,8 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   IFNDEF(CONFIG_FPU_NONE, has_vi |= fp_permit_check(dest_access));
   //check vec
   IFDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access));
+  //check matrix
+  IFDEF(CONFIG_RV_AME, has_vi |= matrix_permit_check(dest_access)); 
 
 #ifdef CONFIG_RV_SMCDELEG
   if (addr == CSR_SCOUNTINHIBIT && !menvcfg->cde) {

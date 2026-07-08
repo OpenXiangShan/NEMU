@@ -186,6 +186,29 @@
 #define TENSOR_INSTR_TERNARY(f)
 #endif // CONFIG_CUSTOM_TENSOR
 
+#ifdef CONFIG_RV_AME
+#define MATRIX_INSTR_NULLARY(f) \
+  f(minit) f(mfence)
+#define MATRIX_INSTR_UNARY(f) \
+  f(mzero)
+#define MATRIX_INSTR_BINARY(f) \
+  f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni) \
+  f(msyncreset) f(mrelease) f(macquire) f(msetcfg) f(mgetcfg)
+#define MATRIX_INSTR_TERNARY(f) \
+  f(mla) f(mlb) f(mlc) \
+  f(mlat) f(mlbt) f(mlct) \
+  f(msa) f(msb) f(msc) \
+  f(msat) f(msbt) f(msct) \
+  f(mlawhole) f(mlbwhole) f(mlcwhole) \
+  f(msawhole) f(msbwhole) f(mscwhole) \
+  f(mmacc)
+#else
+#define MATRIX_INSTR_NULLARY(f)
+#define MATRIX_INSTR_UNARY(f)
+#define MATRIX_INSTR_BINARY(f)
+#define MATRIX_INSTR_TERNARY(f)
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \
   f(cbo_zero) f(cbo_inval) f(cbo_flush) f(cbo_clean) \
@@ -374,10 +397,12 @@
   SYS_INSTR_NULLARY(f)   \
   f(p_ret) \
   ZAWRS_INSTR_NULLARY(f) \
-  ZCMOP_INSTR_NULLARY(f)
+  ZCMOP_INSTR_NULLARY(f) \
+  MATRIX_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
-  f(p_li_0) f(p_li_1)
+  f(p_li_0) f(p_li_1) \
+  MATRIX_INSTR_UNARY(f)
 
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
@@ -398,7 +423,8 @@
   ZFBF_MIN_INSTR_BINARY(f) \
   ZFH_ZFA_INSTR_BINARY(f) \
   ZCB_INSTR_BINARY(f) \
-  TENSOR_INSTR_BINARY(f)
+  TENSOR_INSTR_BINARY(f) \
+  MATRIX_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -422,6 +448,7 @@
   VECTOR_INSTR_TERNARY(f) \
   ZVFBF_MIN_INSTR_TERNARY(f) \
   ZVFBF_WMA_INSTR_TERNARY(f) \
+  MATRIX_INSTR_TERNARY(f) \
   CBO_INSTR_TERNARY(f) \
   ZIMOP_INSTR_TERNARY(f) \
   ZFH_INSTR_TERNARY(f) \
