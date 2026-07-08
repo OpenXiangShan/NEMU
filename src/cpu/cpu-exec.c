@@ -410,13 +410,15 @@ static void execute(int n) {
     init_flag = 1;
   }
 
-  Decode *this_s = NULL;
+  __attribute__((unused)) Decode *this_s = NULL;
   __attribute__((unused)) bool br_taken = false;
   __attribute__((unused)) bool is_ctrl = false;
 
   // main loop
   while (true) {
+#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE) || defined(CONFIG_INSTR_CATEGORY_STAT)
     this_s = s;
+#endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
     br_taken = false;
 
