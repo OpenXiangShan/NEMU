@@ -73,32 +73,44 @@ typedef union {
 } mcfg_t;
 
 static inline int check_mtreg_num(int num) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(num >= 0 && num < 4);
+#endif
   return num;
 }
 
 static inline int check_mareg_num(int num) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(num >= 4 && num < 8);
+#endif
   return num - 4;
 }
 
 static inline int check_mtreg_row(int row) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(row >= 0 && row < ROWNUM);
+#endif
   return row;
 }
 
 static inline int check_macc_row(int row) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(row >= 0 && row < ROWNUM);
+#endif
   return row;
 }
 
 static inline int check_mtreg_idx(int idx, int elen) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(idx >= 0 && idx < TRLEN/elen);
+#endif
   return idx;
 }
 
 static inline int check_macc_idx(int idx, int elen) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(idx >= 0 && idx < ARLEN/elen);
+#endif
   return idx;
 }
 

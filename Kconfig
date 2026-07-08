@@ -225,6 +225,13 @@ config DIFFTEST_STORE_COMMIT
   bool "Check the data of the store class instruction"
   default n
 
+config AME_REG_ACCESS_CHECK
+  depends on RV_AME
+  bool "Check AME matrix register accesses"
+  default n
+  help
+    Enable debug checks for AME matrix register numbers, rows, and element
+    indices. Disable this for higher perf.
 
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
