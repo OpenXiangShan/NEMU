@@ -2807,7 +2807,11 @@ static void csr_write(uint32_t csrid, word_t src) {
 #else
   if (is_write(mstatus) || is_write(satp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
 #endif
-  if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
+  if (is_write(satp)
+#ifdef CONFIG_RV_MPT_CHECK
+      || is_write(mmpt)
+#endif
+     ) { mmu_tlb_flush(0); } // when satp/mmpt is changed, flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
