@@ -2773,8 +2773,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       word_t mnstatus_mask = MNSTATUS_MASK;
       unsigned pre_mnpp = mnstatus->mnpp;
-// as opensbi and linux not support smrnmi, so we default init nmie = 1 and allow nmie set to 0 by software for test
-      if ((src & MNSTATUS_NMIE) == 0 && !ISDEF(CONFIG_NMIE_INIT)) {
+      if ((src & MNSTATUS_NMIE) == 0) {
         mnstatus_mask &= ~MNSTATUS_NMIE;
       }
       mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
