@@ -2860,7 +2860,6 @@ static inline bool csrind_permit_check(const uint32_t addr) {
       if (vsiselect->val <= ISELECT_2F_MASK) longjmp_exception(EX_II);
       else if (vsiselect->val <= ISELECT_3F_MASK) {
 #ifdef CONFIG_RV_AIA
-        IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->aia) longjmp_exception(EX_II);)
         has_vi = true;
 #else
         longjmp_exception(EX_II);
