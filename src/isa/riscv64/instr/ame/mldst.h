@@ -93,177 +93,186 @@ void check_size(Decode *s, int rmax_mreg, int cmax_mreg, char m_name, uint8_t ds
   }
 }
 
-// m_name: 'a'/'b'/'c'
-void mld(Decode *s, bool is_trans, bool is_whole, char m_name) {
+void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
+              uint64_t td, int row, int column, uint8_t dsize,
+              bool is_trans, char m_name) {
   mp_set_dirty();
-  uint64_t base_addr = reg_l(s->src1.reg);
-  uint64_t row_byte_stride = reg_l(s->src2.reg);
-  uint64_t td = s->dest.reg;
-  uint8_t dsize = is_whole ? 0 : get_size(cpu.mcfg[td]);
-  int rmax_mreg = 0, cmax_mreg = 0;
-  
-  switch (m_name) {
-    case 'a':
-      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
-      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
-      Assert(s->dest.reg < 4,
-        "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
-      break;
-    case 'b':
-      rmax_mreg  = is_whole ? ROWNUM : mtilen->val;
-      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
-      Assert(s->dest.reg < 4,
-        "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
-      break;
-    case 'c':
-      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
-      cmax_mreg  = is_whole ? (ARENUM8 / (1 << dsize)) : mtilen->val;
-      Assert(s->dest.reg >= 4,
-        "%u is not a valid acc matrix reg idx!\n", s->dest.reg);
-      break;
-    default:
-      Assert(false, "mld %c: invalid reg selection!\n", m_name);
-      break;
-  }
-  
-  if (!is_whole){
-    check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
-  }
 
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=0, transpose=%d, baseVAddr=%#lx, stride=%#lx\n"
     "            row=%d, col=%d, width=%#x, m_name=%c\n",
-    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, dsize, m_name);
+    td, is_trans, base_addr, row_byte_stride, row, column, dsize, m_name);
 #endif
 
   rtl_lmm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, dsize, is_trans,
+    row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, td);
 }
 
-void mst(Decode *s, bool is_trans, bool is_whole, char m_name) {
-  uint64_t base_addr = reg_l(s->src1.reg);
-  uint64_t row_byte_stride = reg_l(s->src2.reg);
-  uint64_t ts3 = s->dest.reg;
-  uint8_t dsize = is_whole ? 0 : get_size(cpu.mcfg[ts3]);
-  int rmax_mreg = 0, cmax_mreg = 0;
-  
-  switch (m_name) {
-    case 'a':
-      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
-      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
-      Assert(s->dest.reg < 4,
-        "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
-      break;
-    case 'b':
-      rmax_mreg  = is_whole ? ROWNUM : mtilen->val;
-      cmax_mreg  = is_whole ? (TRENUM8 / (1 << dsize)) : mtilek->val;
-      Assert(s->dest.reg < 4,
-        "%u is not a valid tile matrix reg idx!\n", s->dest.reg);
-      break;
-    case 'c':
-      rmax_mreg  = is_whole ? ROWNUM : mtilem->val;
-      cmax_mreg  = is_whole ? (ARENUM8 / (1 << dsize)) : mtilen->val;
-      Assert(s->dest.reg >= 4,
-        "%u is not a valid acc matrix reg idx!\n", s->dest.reg);
-      break;
-    default:
-      Assert(false, "mst %c: invalid reg selection!\n", m_name);
-      break;
-  }
-
-  if (!is_whole) {
-    check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
-  }
-
+void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
+              uint64_t ts3, int row, int column, uint8_t dsize,
+              bool is_trans, char m_name) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=1, transpose=%d, baseVAddr=%#lx, stride=%#lx\n"
     "            row=%d, col=%d, width=%#x, m_name=%c\n",
-    ts3, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, dsize, m_name);
+    ts3, is_trans, base_addr, row_byte_stride, row, column, dsize, m_name);
 #endif
 
   rtl_smm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, dsize, is_trans,
+    row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, ts3);
 
-  mstore_queue_emplace(base_addr, row_byte_stride, rmax_mreg, cmax_mreg, dsize, is_trans);
+  mstore_queue_emplace(base_addr, row_byte_stride, row, column, dsize, is_trans);
+}
+
+// m_name: 'a'/'b'/'c'
+void mld(Decode *s, bool is_trans, char m_name) {
+  uint64_t td = s->dest.reg;
+  uint8_t dsize = get_size(cpu.mcfg[td]);
+  int rmax_mreg = 0, cmax_mreg = 0;
+
+  switch (m_name) {
+    case 'a':
+      rmax_mreg = mtilem->val;
+      cmax_mreg = mtilek->val;
+      break;
+    case 'b':
+      rmax_mreg = mtilen->val;
+      cmax_mreg = mtilek->val;
+      break;
+    case 'c':
+      rmax_mreg = mtilem->val;
+      cmax_mreg = mtilen->val;
+      break;
+    default:
+      Assert(false, "mld %c: invalid matrix selection!\n", m_name);
+      break;
+  }
+
+  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
+    rmax_mreg, cmax_mreg, dsize, is_trans, m_name);
+}
+
+void mst(Decode *s, bool is_trans, char m_name) {
+  uint64_t ts3 = s->dest.reg;
+  uint8_t dsize = get_size(cpu.mcfg[ts3]);
+  int rmax_mreg = 0, cmax_mreg = 0;
+
+  switch (m_name) {
+    case 'a':
+      rmax_mreg = mtilem->val;
+      cmax_mreg = mtilek->val;
+      break;
+    case 'b':
+      rmax_mreg = mtilen->val;
+      cmax_mreg = mtilek->val;
+      break;
+    case 'c':
+      rmax_mreg = mtilem->val;
+      cmax_mreg = mtilen->val;
+      break;
+    default:
+      Assert(false, "mst %c: invalid matrix selection!\n", m_name);
+      break;
+  }
+
+  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  exec_mst(s, reg_l(s->src1.reg), reg_l(s->src2.reg), ts3,
+    rmax_mreg, cmax_mreg, dsize, is_trans, m_name);
+}
+
+void mld_whole(Decode *s, char m_name) {
+  uint64_t td = s->dest.reg;
+  uint8_t dsize = m_name == 'c' ? 2 : 0;
+
+  exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
+    ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8, dsize, false, m_name);
+}
+
+void mst_whole(Decode *s, char m_name) {
+  uint64_t ts3 = s->dest.reg;
+  uint8_t dsize = m_name == 'c' ? 2 : 0;
+
+  exec_mst(s, reg_l(s->src1.reg), reg_l(s->src2.reg), ts3,
+    ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8, dsize, false, m_name);
 }
 
 
 def_EHelper(mla) {
-  mld(s, false, false, 'a');
+  mld(s, false, 'a');
 }
 
 def_EHelper(mlb) {
-  mld(s, false, false, 'b');
+  mld(s, false, 'b');
 }
 
 def_EHelper(mlc) {
-  mld(s, false, false, 'c');
+  mld(s, false, 'c');
 }
 
 def_EHelper(mlat) {
-  mld(s, true, false, 'a');
+  mld(s, true, 'a');
 }
 
 def_EHelper(mlbt) {
-  mld(s, true, false, 'b');
+  mld(s, true, 'b');
 }
 
 def_EHelper(mlct) {
-  mld(s, true, false, 'c');
+  mld(s, true, 'c');
 }
 
 def_EHelper(msa) {
-  mst(s, false, false, 'a');
+  mst(s, false, 'a');
 }
 
 def_EHelper(msb) {
-  mst(s, false, false, 'b');
+  mst(s, false, 'b');
 }
 
 def_EHelper(msc) {
-  mst(s, false, false, 'c');
+  mst(s, false, 'c');
 }
 
 def_EHelper(msat) {
-  mst(s, true, false, 'a');
+  mst(s, true, 'a');
 }
 
 def_EHelper(msbt) {
-  mst(s, true, false, 'b');
+  mst(s, true, 'b');
 }
 
 def_EHelper(msct) {
-  mst(s, true, false, 'c');
+  mst(s, true, 'c');
 }
 
 def_EHelper(mlawhole) {
-  mld(s, false, true, 'a');
+  mld_whole(s, 'a');
 }
 
 def_EHelper(mlbwhole) {
-  mld(s, false, true, 'b');
+  mld_whole(s, 'b');
 }
 
 def_EHelper(mlcwhole) {
-  mld(s, false, true, 'c');
+  mld_whole(s, 'c');
 }
 
 def_EHelper(msawhole) {
-  mst(s, false, true, 'a');
+  mst_whole(s, 'a');
 }
 
 def_EHelper(msbwhole) {
-  mst(s, false, true, 'b');
+  mst_whole(s, 'b');
 }
 
 def_EHelper(mscwhole) {
-  mst(s, false, true, 'c');
+  mst_whole(s, 'c');
 }
 
 #endif // CONFIG_RV_AME
