@@ -324,9 +324,9 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
       if (trap_type == MEM_TYPE_WRITE) {
         raise_access_fault(EX_SAF, vaddr);
       } else {
-        raise_read_access_fault(trap_type, vaddr);
         Log("isa mpt check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
           vaddr, addr, len, type, mode);
+        raise_read_access_fault(trap_type, vaddr);
       }
       return false;
     }
