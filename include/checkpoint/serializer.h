@@ -51,11 +51,13 @@ class Serializer
 {
 
   public:
-    void serialize(uint64_t inst_count);
+    void serialize(uint64_t inst_count, const char *checkpoint_base_path = nullptr);
 
-    void serializePMem(uint64_t inst_count, uint8_t* pmem_addr, uint8_t* flash_addr);
+    void serializePMem(uint64_t inst_count, uint8_t* pmem_addr, uint8_t* flash_addr, const char *checkpoint_base_path = nullptr);
 
     void serializeRegs(uint8_t* serialize_base_addr);
+
+    void setStoreCptInFlash(bool enable);
 
     explicit Serializer();
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER

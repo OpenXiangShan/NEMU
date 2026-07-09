@@ -17,6 +17,11 @@
 #define __MEMORY_HOST_H__
 
 #include <common.h>
+#include "paddr.h"
+
+#ifdef CONFIG_RV_AME
+#include "../../src/isa/riscv64/instr/ame/mreg.h"
+#endif
 
 static inline word_t host_read(void *addr, int len) {
   switch (len) {
@@ -38,6 +43,30 @@ static inline word_t host_read(void *addr, int len) {
   }
 }
 
+#ifdef CONFIG_RV_AME
+static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
+                              int column, int msew, bool transpose,
+                              char m_name, int mreg_id) {
+  int width = 1 << msew;
+  Logm("read matrix: base = %#lx, stride = %lu,\n"
+       "             row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
+       pbase, stride, row, column, width, transpose, m_name);
+  int row_mem    = transpose ? column : row;
+  int column_mem = transpose ? row : column;
+  
+  for (int r = 0; r < row_mem; r++) {
+    for (int c = 0; c < column_mem; c++) {
+      paddr_t addr = pbase + c * width;
+      int r_reg = transpose ? c : r;
+      int c_reg = transpose ? r : c;
+      word_t tmp = host_read(guest_to_host(addr), width);
+      set_mreg(mreg_id, r_reg, c_reg, tmp, msew);
+    }
+    pbase += stride;
+  }
+};
+#endif // CONFIG_RV_AME
+
 static inline void host_write(void *addr, int len, word_t data) {
   Logm("write: addr = %p, len = %d, data = 0x%lx", addr, len, data);
   switch (len) {
@@ -48,5 +77,30 @@ static inline void host_write(void *addr, int len, word_t data) {
     IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
 }
+
+#ifdef CONFIG_RV_AME
+static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
+                              int column, int msew, bool transpose,
+                              char m_name, int mreg_id) {
+  int width = 1 << msew;
+  Logm("write matrix: base = %#lx, stride = %lu,\n"
+       "              row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
+       pbase, stride, row, column, width, transpose, m_name);
+  int row_mem    = transpose ? column : row;
+  int column_mem = transpose ? row : column;
+  
+  for (int r = 0; r < row_mem; r++) {
+    for (int c = 0; c < column_mem; c++) {
+      paddr_t addr = pbase + c * width;
+      int r_reg = transpose ? c : r;
+      int c_reg = transpose ? r : c;
+      word_t tmp;
+      get_mreg(mreg_id, r_reg, c_reg, &tmp, msew, false);
+      host_write(guest_to_host(addr), width, tmp);
+    }
+    pbase += stride;
+  }
+};
+#endif // CONFIG_RV_AME
 
 #endif

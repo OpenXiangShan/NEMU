@@ -122,6 +122,61 @@ config CUSTOM_TENSOR
   bool "RISC-V Tensor Extension (Internal Spec)"
   default n
 
+config RV_AME
+  bool "RISC-V Matrix Extension (Internal Spec)"
+  default n
+
+config RV_AME_TLEN
+  int "Matrix TLEN (total tile size in bits)"
+  depends on RV_AME
+  default 65536
+  help
+    Total number of bits per matrix tile register (TLEN). Must be evenly divisible
+    by TRLEN so that the row count (TLEN / TRLEN) is an integer.
+
+config RV_AME_TRLEN
+  int "Matrix TRLEN (bits per tile row)"
+  depends on RV_AME
+  default 512
+  help
+    Number of bits in one row of a matrix tile (TRLEN). Must divide TLEN evenly
+    and be a multiple of 64 (so that elements align with the internal uint64_t
+    layout).
+
+config RV_AME_MLEN
+  int "Matrix MELEN (element width for ALEN/ARLEN, bits)"
+  depends on RV_AME
+  default 32
+  help
+    Matrix element width in bits used in ALEN / ARLEN (implementation macro MELEN).
+    ARLEN = (TLEN / TRLEN) * MELEN must remain a multiple of 64 for the current
+    accumulator register layout.
+
+choice
+  prompt "Matrix MSYNC (sync register count)"
+  depends on RV_AME
+  default RV_AME_MSYNC_32
+  help
+    Number of matrix sync registers exposed by msync CSR and backed by NEMU
+    state storage.
+
+config RV_AME_MSYNC_8
+  bool "8"
+
+config RV_AME_MSYNC_16
+  bool "16"
+
+config RV_AME_MSYNC_32
+  bool "32"
+endchoice
+
+config RV_AME_MSYNC
+  int
+  depends on RV_AME
+  default 8 if RV_AME_MSYNC_8
+  default 16 if RV_AME_MSYNC_16
+  default 32 if RV_AME_MSYNC_32
+
 config DIFFTEST_DIRTY_FS_VS
   depends on RVV
   depends on DIFFTEST_REF_SPIKE
@@ -197,14 +252,6 @@ config TRIGGER_NUM
   int "Number of supported triggers"
   depends on RV_SDTRIG
   default 10
-
-config SDTRIG_EXTRA
-  bool "Trigger extra part"
-  depends on RV_SDTRIG
-  default n
-  help
-    This includes the following optional CSRs in Sdtrig extension:
-    tdata3, mcontext, hcontext, scontext.
 
 config RV_AIA
   bool "(Beta) RISC-V Advanced Interrupt Architecture v1.0"

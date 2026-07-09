@@ -5,6 +5,7 @@ import base64
 import binascii
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
 import urllib.error
@@ -19,6 +20,16 @@ GITHUB_API_ROOT = "https://api.github.com"
 USER_AGENT = "init-ready-to-run/1.0"
 
 
+def github_headers(extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    headers = {"User-Agent": USER_AGENT}
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    if extra:
+        headers.update(extra)
+    return headers
+
+
 def load_config(config_path: Path) -> Dict[str, Any]:
     with config_path.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
@@ -28,7 +39,7 @@ def load_config(config_path: Path) -> Dict[str, Any]:
 
 
 def github_request(url: str) -> Dict[str, Any]:
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": USER_AGENT}
+    headers = github_headers({"Accept": "application/vnd.github+json"})
     request = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(request) as response:
@@ -57,7 +68,7 @@ def find_release_asset(release: Dict[str, Any], asset_name: str) -> Dict[str, An
 
 
 def download_asset(url: str, destination: Path) -> None:
-    headers = {"User-Agent": USER_AGENT}
+    headers = github_headers()
     request = urllib.request.Request(url, headers=headers)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with urllib.request.urlopen(request) as response, destination.open("wb") as output:

@@ -14,6 +14,7 @@ env:
   LIBCHECKPOINT_CROSS_COMPILE: riscv64-linux-gnu-
   CPT_CROSS_COMPILE: riscv64-linux-gnu-
   NANOPB_CROSS_COMPILE: riscv64-linux-gnu-
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   fetch-workloads:
@@ -30,7 +31,7 @@ jobs:
           asset_url=$(curl -s "$metadata_url" | jq -r '.browser_download_url')
           echo "url=$asset_url" >> $GITHUB_OUTPUT
       - name: Cache workloads
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: cache-workloads
         with:
           path: ${{ env.CI_WORKLOADS }}
@@ -52,7 +53,7 @@ jobs:
     name: Check All Configs
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -79,7 +80,7 @@ jobs:
     timeout-minutes: 60
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -98,11 +99,11 @@ jobs:
     name: Basic - XiangShan
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -160,11 +161,11 @@ jobs:
     timeout-minutes: 10
     name: Basic - NutShell
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -196,12 +197,12 @@ jobs:
     name: Diff with Spike - Guard
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -240,12 +241,12 @@ jobs:
     name: Diff with Spike - Basic & System
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -263,76 +264,23 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Basic - cputest
+      - name: Run workload-builder basic workloads with Spike DiffTest
         env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/am/cputest/bin/
+          NEMU_DIFF_JOBS: 2
         run: |
-          find ${{ env.dir_tests }} -type f | while read -r test_bin; do
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
-          done
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite basic
 
-      - name: Basic - riscv-tests
-        # failed at rv64mi-p-sd-misaligned.bin
-        env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/am/riscv-tests/bin/
-          skip_tests: |
-            rv64mi-p-ld-hd-misaligned.bin
-            rv64mi-p-ld-misaligned.bin
-            rv64mi-p-lh-hd-misaligned.bin
-            rv64mi-p-lh-misaligned.bin
-            rv64mi-p-lw-hd-misaligned.bin
-            rv64mi-p-lw-misaligned.bin
-            rv64mi-p-sd-hd-misaligned.bin
-            rv64mi-p-sd-misaligned.bin
-            rv64mi-p-sh-hd-misaligned.bin
-            rv64mi-p-sh-misaligned.bin
-            rv64mi-p-sw-hd-misaligned.bin
-            rv64mi-p-sw-misaligned.bin
-        run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
-          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
-            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
-              echo "$test_bin skiped."
-              continue;
-            fi
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
-          done
-
-      - name: Basic - rvv-test
-        env:
-          # These tests are included in the workloads on the `nemu` runner.
-          # But the newly built versions (built with `workload-builder`) of them fail on NEMU.
-          # So skip them temporarily.
-          skip_tests: |
-            vsetvli-0.bin
-            vsetivli-0.bin
-        run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
-          find "${CI_WORKLOADS}/am/riscv-vector-tests/bin" -type f -name "*.bin" | while read -r test_bin; do
-            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
-              echo "$test_bin skiped."
-            else
-              echo ::group::$(basename $test_bin)
-              ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-              echo "::endgroup::"
-            fi
-          done
-
-      - name: Basic - misc-tests
+      - name: Basic - rvv perf suite smoke
         env:
           tests: |
-            am/misc-tests/bin/bitmanip.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o2.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o3.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gcb-o3.bin
-            am/misc-tests/bin/amtest-riscv64-xs.bin
-            am/misc-tests/bin/aliastest-riscv64-xs.bin
-            am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
-            am/misc-tests/bin/zacas-riscv64-xs.bin
+            am/riscv-vector-tests/bin/vfadd.vf-0.bin
+            am/riscv-vector-tests/bin/vfsub.vf-0.bin
+            am/riscv-vector-tests/bin/vslide1down.vx-0.bin
+            am/riscv-vector-tests/bin/vor.vi-0.bin
+            am/riscv-vector-tests/bin/vlse32.v-0.bin
+            am/riscv-vector-tests/bin/vluxei32.v-0.bin
+            am/riscv-vector-tests/bin/vsuxei32.v-0.bin
+            am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
         run: |
           for test_bin in $tests; do
             echo ::group::$test_bin
@@ -340,13 +288,13 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: System - linux
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/hello/fw_payload.bin
-
-      - name: System - KVM
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-basic-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
 
   diff-spike-advanced:
     needs: fetch-workloads
@@ -357,12 +305,12 @@ jobs:
     name: Diff with Spike - Advanced
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
@@ -381,13 +329,79 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Run coremark-pro with Spike DiffTest
+      - name: Run workload-builder advanced workloads with Spike DiffTest
+        env:
+          NEMU_DIFF_JOBS: 2
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/coremark-pro/fw_payload.bin -I 400000000
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite advanced
 
-      - name: Run rvv-bench with Spike DiffTest
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-advanced-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
+
+  diff-spike-spec-ckpt:
+    needs: fetch-workloads
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: bosc
+    continue-on-error: false
+    name: Diff with Spike - SPEC Checkpoint
+    timeout-minutes: 360
+    steps:
+      - name: Checkout NEMU
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Setup env
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/rvv-bench/fw_payload.bin -I 400000000
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
+
+      - name: Build NEMU interpreter for diff with spike
+        run: |
+          make riscv64-xs-diff-spike_defconfig
+          make -j
+
+      - name: Run SPEC checkpoints with Spike DiffTest
+        env:
+          SPEC_CKPT_JOBS: 16
+          SPEC_MAX_INSTR: 40000000
+          SPEC_CKPT_PER_SUBITEM: 5
+          SPEC_CKPT_MAX_MEMORY_GB: 8
+          SPEC_CKPT_SEED: ${{ github.sha }}
+        run: |
+          lock_dir=${SPEC_CKPT_CI_LOCK_DIR:-/tmp/nemu-spec-ckpt-ci-locks}
+          mkdir -p "$lock_dir"
+
+          while true; do
+            for slot in 0 1; do
+              lock_file="$lock_dir/slot-${slot}.lock"
+              exec {lock_fd}>"$lock_file"
+              if flock -n "$lock_fd"; then
+                echo "Acquired SPEC checkpoint CI slot ${slot}."
+                bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-ckpt
+                exit $?
+              fi
+              eval "exec ${lock_fd}>&-"
+            done
+            echo "All SPEC checkpoint CI slots are busy; waiting..."
+            sleep 30
+          done
+
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-spec-ckpt-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
 
   performance:
     needs: fetch-workloads
@@ -398,20 +412,20 @@ jobs:
     name: Performance Tests
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Restore Workloads
         id: cache-workloads
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.CI_WORKLOADS }}
           key: ${{ needs.fetch-workloads.outputs.release-url }}
 
       - name: Restore DynamoRIO
         id: cache-dynamorio
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: DynamoRIO-Linux-11.3.0-1
           key: DynamoRIO-Linux-11.3.0-extracted
@@ -504,7 +518,6 @@ jobs:
           * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
           * Baseline columns are populated on pull_request runs when the PR base contains the same defconfig.
           * Change vs Baseline (Instructions) is computed from host instruction count; positive means fewer host instructions than baseline.
-          * Change vs Baseline (Throughput) is computed from native throughput; positive means faster than baseline.
           EOF
           cat performance_results.md
           cat performance_results.md >> "$GITHUB_STEP_SUMMARY"

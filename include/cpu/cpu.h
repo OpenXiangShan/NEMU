@@ -97,19 +97,27 @@ struct lightqs_reg_ss {
 };
 
 extern unsigned ref_hartid;
-static inline void ref_log_cpu(const char *fmt, ...) {
 #ifdef CONFIG_SHARE
-  if (unlikely(dynamic_config.debug_difftest)) {
-    va_list ap;
-    va_start(ap, fmt);
+static inline void ref_log_cpu_impl(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
 
-    fprintf(stderr, "[NEMU][%u] ", ref_hartid);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
+  fprintf(stderr, "[NEMU][%u] ", ref_hartid);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
 
-    va_end(ap);
-  }
-#endif
+  va_end(ap);
 }
+#define ref_log_cpu(...) \
+  do { \
+    if (unlikely(dynamic_config.debug_difftest)) { \
+      ref_log_cpu_impl(__VA_ARGS__); \
+    } \
+  } while (0)
+#else
+static inline void ref_log_cpu(const char *fmt, ...) {
+  (void)fmt;
+}
+#endif
 
 #endif

@@ -790,7 +790,9 @@ void cpu_exec(uint64_t n) {
     Loge("Setting NEMU state to RUNNING");
   }
 
+#ifndef CONFIG_SHARE
   uint64_t timer_start = get_time();
+#endif
 
   n_remain_total = n; // + AHEAD_LENGTH; // deal with setjmp()
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
@@ -934,8 +936,10 @@ void cpu_exec(uint64_t n) {
     nemu_state.state = NEMU_QUIT;
   }
 
+#ifndef CONFIG_SHARE
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
+#endif
 
   switch (nemu_state.state) {
   case NEMU_RUNNING:

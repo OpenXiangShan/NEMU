@@ -15,6 +15,8 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <ext/amuctrl.h>
+#include <ext/msync.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
@@ -170,6 +172,17 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
   return 0;
 #endif
 }
+
+int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
+                                 uint32_t *row, uint32_t *column, uint32_t *msew,
+                                 bool *transpose) {
+#if defined(CONFIG_DIFFTEST_STORE_COMMIT) && defined(CONFIG_RV_AME)
+  return check_matrix_store_commit(base, stride, row, column, msew, transpose);
+#else
+  return 0;
+#endif
+}
+
 #endif
 #ifdef CONFIG_RV_SMDBLTRP
 bool difftest_raise_critical_error() {
@@ -285,6 +298,61 @@ void difftest_get_store_event_other_info(void *info) {
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 
+void difftest_get_amu_ctrl_event_other_info(void *info) {
+#ifdef CONFIG_RV_AME
+  *(uint64_t*)info = get_amu_ctrl_info().pc;
+#endif // CONFIG_RV_AME
+}
+
+void difftest_get_msync_event_other_info(void *info) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  *(uint64_t*)info = get_msync_info().pc;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+int difftest_amu_ctrl(void *cmp) {
+  // Check if the queue head matches the given cmp.
+  // If they don't match, save the queue head to cmp.
+  // Return value:
+  //   0:  Queue head matches cmp
+  //   1:  Queue head does not match cmp
+  //   -1: Queue is empty, no cmp to check
+#ifdef CONFIG_RV_AME
+  amu_ctrl_event_t *amu_ctrl = (amu_ctrl_event_t *)cmp;
+  return check_amu_ctrl(amu_ctrl);
+#else
+  return 0;
+#endif // CONFIG_RV_AME
+}
+
+int difftest_msync_event(void *cmp) {
+  // Check if the queue head matches the given cmp.
+  // If they don't match, save the queue head to cmp.
+  // Return value:
+  //   0:  Queue head matches cmp
+  //   1:  Queue head does not match cmp
+  //   -1: Queue is empty, no cmp to check
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  msync_event_t *msync = (msync_event_t *)cmp;
+  return check_msync(msync);
+#else
+  return 0;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+int difftest_amu_exec(void *amu_ctrl, void *res) {
+#ifdef CONFIG_RV_AME
+  return exec_amu(amu_ctrl, res);
+#else
+  return 0;
+#endif // CONFIG_RV_AME
+}
+
+void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
+#ifdef CONFIG_RV_AME
+  exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
+#endif // CONFIG_RV_AME
+}
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint32_t vec_laod_mul;
@@ -405,3 +473,16 @@ void difftest_store_log_restore() {
 }
 #endif
 #endif // CONFIG_STORE_LOG
+
+extern void set_store_cpt_in_flash(bool enable);
+extern void serialize_checkpoint(const char *base_filepath);
+
+void difftest_trigger_checkpoint(const char *base_filepath) {
+  if (cpu.mode == 3) {
+    Log("Skipping M-mode checkpoint: mode=%lu, PC=0x%lx", cpu.mode, cpu.pc);
+    return;
+  }
+
+  set_store_cpt_in_flash(true);
+  serialize_checkpoint(base_filepath);
+}

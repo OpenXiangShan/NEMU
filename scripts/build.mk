@@ -3,7 +3,9 @@
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC -D_SHARE=1
+CXXFLAGS += -ffunction-sections -fdata-sections
 LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined -lz
+LDFLAGS += -static-libstdc++ -Wl,--gc-sections -Wl,--exclude-libs,ALL
 endif
 
 WORK_DIR  = $(shell pwd)
@@ -49,7 +51,7 @@ else
 OBJS = $(COBJS) $(XOBJS)
 endif
 
-ifdef CONFIG_MEM_COMPRESS
+ifdef CONFIG_ZSTD_COMPRESS
 LDFLAGS += -lzstd
 endif
 

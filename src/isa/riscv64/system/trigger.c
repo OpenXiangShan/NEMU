@@ -9,6 +9,65 @@
 trig_action_t trigger_action = TRIG_ACTION_NONE;
 word_t triggered_tval;
 
+static bool tdata3_smatch(Trigger* trig) {
+  switch (trig->tdata3.sselect) {
+    case 0:
+      return true;
+    case 1: {
+      uint32_t scontext_val = (uint32_t)(scontext->val & 0xffffffffULL);
+      uint32_t svalue = trig->tdata3.svalue;
+      uint32_t sbytemask = trig->tdata3.sbytemask;
+      for (int i = 0; i < 4; i++) {
+        if ((sbytemask >> i) & 0x1) {
+          continue;
+        }
+        if (((scontext_val >> (i * 8)) & 0xff) != ((svalue >> (i * 8)) & 0xff)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    case 2: {
+      word_t current_asid =
+#ifdef CONFIG_RVH
+        cpu.v ? vsatp->asid :
+#endif
+        satp->asid;
+      return current_asid == (trig->tdata3.svalue & BITMASK(CONFIG_RV_ASID_LEN));
+    }
+    default:
+      return false;
+  }
+}
+
+static bool tdata3_mhmatch(Trigger* trig) {
+#ifdef CONFIG_RVH
+  uint64_t high_sel_value = ((uint64_t)trig->tdata3.mhvalue << 1) |
+    ((trig->tdata3.mhselect >> 2) & 0x1);
+#endif
+
+  switch (trig->tdata3.mhselect) {
+    case 0:
+      return true;
+    case 4:
+      return (mcontext->val & BITMASK(13)) == trig->tdata3.mhvalue;
+#ifdef CONFIG_RVH
+    case 1:
+    case 5:
+      return (mcontext->val & BITMASK(14)) == high_sel_value;
+    case 2:
+    case 6:
+      return hgatp->vmid == high_sel_value;
+#endif
+    default:
+      return false;
+  }
+}
+
+static bool tdata3_match(Trigger* trig) {
+  return tdata3_smatch(trig) && tdata3_mhmatch(trig);
+}
+
 trig_action_t check_triggers_mcontrol6(
   TriggerModule* TM,
   trig_op_t op,
@@ -75,10 +134,7 @@ bool mcontrol6_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data) {
   }
   word_t value = trig->tdata1.mcontrol6.select ? data : addr;
 
-  if (mcontrol6_value_match(trig, value)) {
-    return true;
-  }
-  return false;
+  return mcontrol6_value_match(trig, value) && tdata3_match(trig);
 }
 
 bool mcontrol6_value_match(Trigger* trig, word_t value) {

@@ -225,6 +225,13 @@ config DIFFTEST_STORE_COMMIT
   bool "Check the data of the store class instruction"
   default n
 
+config AME_REG_ACCESS_CHECK
+  depends on RV_AME
+  bool "Check AME matrix register accesses"
+  default n
+  help
+    Enable debug checks for AME matrix register numbers, rows, and element
+    indices. Disable this for higher perf.
 
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
@@ -278,6 +285,10 @@ config TRACE_BB
 
 config SIMPOINT_LOG
   bool "Enable Log for simpoint profiling"
+  default n
+
+config TRACE_MATRIX_LOAD_STORE
+  bool "Enable Log for matrix load/store"
   default n
 
 config BR_LOG
@@ -364,13 +375,29 @@ config DIFFTEST_CHECK_SDTRIG
   default y
 
 config SHARE
-  bool "Build shared library as processor difftest reference"
+  bool "Build shared library as processor difftest reference or controller"
   default n
+
+choice
+  prompt "The usage of shared library"
+  default SHARE_REF
+  depends on SHARE
+config SHARE_REF
+  bool "Build shared library as processor difftest reference"
+config SHARE_CTRL
+  bool "Build shared library as the controller of CUTE"
+endchoice
+
 
 config DIFFTEST_STORE_COMMIT
   depends on SHARE
   bool "Maintain a committed store queue for processor ref"
   default y
+
+config DIFFTEST_AMU_CTRL
+  depends on SHARE && RV_AME
+  bool "Enable AMU control signal difftest"
+  default n
 
 config DIFFTEST_REF_FOR_GEM5
   depends on SHARE

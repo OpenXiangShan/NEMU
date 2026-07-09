@@ -76,12 +76,12 @@ config MEM_RANDOM
   help
     This may help to find undefined behaviors.
 
-config MEM_COMPRESS
+config ZSTD_COMPRESS
   depends on MODE_SYSTEM && !SHARE
-  bool "Initialize the memory with a compressed gz file"
+  bool "Enable ZSTD checkpoint compression"
   default n
   help
-    Must have zlib installed.
+    Must have zstd installed.
 
 config ENABLE_CONFIG_MMIO_SPACE
   bool "Configure the MMIO space"

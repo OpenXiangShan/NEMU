@@ -23,15 +23,16 @@
 #include <stdlib.h>
 #include <device/flash.h>
 #include <sys/mman.h>
-#ifdef CONFIG_MEM_COMPRESS
 #include <unistd.h>
 #include <zlib.h>
+#ifdef CONFIG_ZSTD_COMPRESS
 #include <zstd.h>
 #endif
 
 #ifndef CONFIG_MODE_USER
 
-#ifdef CONFIG_MEM_COMPRESS
+void patch_bootloader_rng_seed(uint8_t *pmem_start);
+
 long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   gzFile compressed_mem = gzopen(filename, "rb");
   Assert(compressed_mem, "Can not open '%s'", filename);
@@ -68,6 +69,7 @@ long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   return curr_size;
 }
 
+#ifdef CONFIG_ZSTD_COMPRESS
 long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   assert(filename);
 
@@ -195,7 +197,7 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   return total_write_size;
 }
 
-#endif  //  CONFIG_MEM_COMPRESS
+#endif  //  CONFIG_ZSTD_COMPRESS
 
 // Will check the magic number in file, if not gz or zstd archive,
 // will read in as a raw image
@@ -208,20 +210,16 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
   }
 
   if (is_gz_file(loading_img)) {
-#ifdef CONFIG_MEM_COMPRESS
     Log("Loading GZ image %s", loading_img);
     return load_gz_img(loading_img, load_start, img_size);
-#else
-    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
-#endif
   }
 
   if (is_zstd_file(loading_img)) {
-#ifdef CONFIG_MEM_COMPRESS
+#ifdef CONFIG_ZSTD_COMPRESS
     Log("Loading Zstd image %s", loading_img);
     return load_zstd_img(loading_img, load_start, img_size);
 #else
-    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
+    panic("CONFIG_ZSTD_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
   }
 
@@ -311,6 +309,8 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
     load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
 #endif
   }
+
+  patch_bootloader_rng_seed(bbl_start);
 }
 
 #endif  // CONFIG_MODE_USER

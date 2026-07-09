@@ -279,9 +279,31 @@ void isa_reg_display() {
     DISPLAY_CSR("tselect", tselect->val);
     printf("\n");
     for(int i = 0; i < CONFIG_TRIGGER_NUM + 1; i++) {
-      printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val);
+      printf("%2d: tdata1: " FMT_WORD " tdata2: " FMT_WORD " tdata3: " FMT_WORD "\n", i, cpu.TM->triggers[i].tdata1.val, cpu.TM->triggers[i].tdata2.val, cpu.TM->triggers[i].tdata3.val);
     }
   #endif // CONFIG_RV_SDTRIG
+
+#ifdef CONFIG_RV_AME
+  DISPLAY_HR("Matrix CSRs");
+  DISPLAY_CSR("msync", mnsync->val);
+  printf("\n");
+  DISPLAY_CSR("tlenb", tlenb->val);
+  DISPLAY_CSR("trlenb", trlenb->val);
+  DISPLAY_CSR("alenb", alenb->val);
+  printf("\n");
+  DISPLAY_CSR("mtilem", mtilem->val);
+  DISPLAY_CSR("mtilen", mtilen->val);
+  DISPLAY_CSR("mtilek", mtilek->val);
+  printf("\n");
+  DISPLAY_CSR("mcsr", mcsr->val);
+  DISPLAY_CSR("mxrm", mxrm->val);
+  DISPLAY_CSR("msat", msat->val);
+  printf("\n");
+  DISPLAY_CSR("mfflags", mfflags->val);
+  DISPLAY_CSR("mfrm", mfrm->val);
+  DISPLAY_CSR("msaten", msaten->val);
+  printf("\n");
+#endif // CONFIG_RV_AME
   fflush(stdout);
 }
 

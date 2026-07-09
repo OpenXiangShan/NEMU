@@ -160,7 +160,7 @@ typedef struct {
     uint64_t            val;
   } tdata1;
   tdata2_t tdata2;
-  IFDEF(CONFIG_SDTRIG_EXTRA, tdata3_t tdata3;)
+  tdata3_t tdata3;
 } Trigger;
 
 typedef struct TriggerModule {
@@ -194,9 +194,7 @@ void trigger_handler(const trig_type_t type, const trig_action_t action, word_t 
 
 static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
 static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
-#ifdef CONFIG_SDTRIG_EXTRA
 static inline word_t get_tdata3(TriggerModule* TM) {return TM->triggers[tselect->val].tdata3.val;}
-#endif //CONFIG_SDTRIG_EXTRA
 
 // Used to avoid magic number
 #define TRIGGER_NO_VALUE (0)
