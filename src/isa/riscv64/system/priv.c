@@ -279,7 +279,7 @@ void init_pma() {
 static inline bool csr_counter_enable_check(uint32_t addr) {
   bool has_vi = false;
   int count_bit = 1 << (addr - 0xC00);
-  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == 0x14D) || (addr == 0x24D), 0);
+  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == CSR_STIMECMP) || (addr == CSR_VSTIMECMP), 0);
 
   if (is_sstc_csr) {
       count_bit = 1 << 1; // counteren.TM
@@ -288,16 +288,17 @@ static inline bool csr_counter_enable_check(uint32_t addr) {
   // priv-mode & counter-enable -> exception-type
   // | MODE         | VU    | VS    | U     | S/HS  | M     |
   // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    | (counters & s/vstimecmp)
-  // | ~menvccfg    | EX_II | EX_II | EX_II | EX_II | OK    | (s/vstimecmp)
   // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    | (counters & stimecmp)
   // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    | (counters)
-  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (is_sstc_csr && !menvcfg->stce))) {
+  // When menvcfg.STCE is zero, an attempt to access stimecmp when non-Mmode raises II.
+  // When henvcfg.STCE is zero, an attempt to access stimecmp (really vstimecmp) when V=1 raises VI.
+  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (addr == CSR_STIMECMP && !menvcfg->stce))) {
     Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
     longjmp_exception(EX_II);
   }
 
   #ifdef CONFIG_RVH
-    if (cpu.v && (!(count_bit & hcounteren->val) || (is_sstc_csr && !henvcfg->stce))) {
+    if (cpu.v && (!(count_bit & hcounteren->val) || (addr == CSR_STIMECMP && !henvcfg->stce))) {
       Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
       has_vi = true;
     }
