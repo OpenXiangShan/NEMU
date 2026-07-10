@@ -268,13 +268,23 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
   return true;
 }
 
+// "type" selects which permission bits PMP/PMA check (e.g. R, W, X, or R+X).
+// "trap_type" selects which fault class is raised on failure (EX_LAF, EX_SAF,
+// or EX_IAF). For most callers they are the same value. They differ when the
+// access semantics and the fault class don't naturally align:
+//   - MEM_TYPE_IFETCH_READ / MEM_TYPE_WRITE_READ: PTW reads a PTE.
+//     type checks R only; trap_type may be the original access intent
+//     (e.g. IFETCH or WRITE) so the correct fault class is raised.
+//   - MEM_TYPE_READ_EXEC: HLVX load.
+//     type = READ_EXEC (checks R+X), trap_type = READ (raises EX_LAF).
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
 
   __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
 
-  assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
+  assert(type == MEM_TYPE_READ || type == MEM_TYPE_READ_EXEC || type == MEM_TYPE_IFETCH_READ ||
+      type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }

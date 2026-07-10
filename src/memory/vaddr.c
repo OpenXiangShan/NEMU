@@ -46,21 +46,21 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
   return paddr;
 }
 
-static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTranslate) {
+static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, int trap_type, bool needTranslate) {
   vaddr_t vaddr = addr;
   word_t data = 0;
   int i;
   for (i = 0; i < len; i ++, vaddr ++) {
     paddr_t paddr = vaddr;
     if (needTranslate) {
-      paddr_t mmu_ret = isa_mmu_translate(vaddr, 1, type);
+      paddr_t mmu_ret = isa_mmu_translate(vaddr, 1, trap_type);
       int ret = mmu_ret & PAGE_MASK;
       if (ret != MEM_RET_OK) return 0;
       paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
     }
 
 #ifdef CONFIG_MULTICORE_DIFF
-    if (type == MEM_TYPE_IFETCH) {
+    if (trap_type == MEM_TYPE_IFETCH) {
       if (!isa_pmp_check_permission(paddr, 1, MEM_TYPE_IFETCH, cpu.mode) ||
           !isa_pma_check_permission(paddr, 1, MEM_TYPE_IFETCH)) {
         Log("pmp or pma check failed when ifetch");
@@ -69,9 +69,9 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
         longjmp_exception(EX_IAF);
       }
     }
-    word_t byte = (type == MEM_TYPE_IFETCH ? golden_pmem_read(paddr, 1) : paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr));
+    word_t byte = (trap_type == MEM_TYPE_IFETCH ? golden_pmem_read(paddr, 1) : paddr_read(paddr, 1, type, trap_type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr));
 #else
-    word_t byte = paddr_read(paddr, 1, type, type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
+    word_t byte = paddr_read(paddr, 1, type, trap_type, cpu.mode | CROSS_PAGE_LD_FLAG, vaddr);
 #endif
     data |= byte << (i << 3);
   }
@@ -131,14 +131,14 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
 #ifndef ENABLE_HOSTTLB
 
 __attribute__((noinline))
-static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) {
+static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type, int trap_type) {
   vaddr_t vaddr = addr;
-  paddr_t pg_base = isa_mmu_translate(addr, len, type);
+  paddr_t pg_base = isa_mmu_translate(addr, len, trap_type);
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
 #ifdef CONFIG_MULTICORE_DIFF
-    if (type == MEM_TYPE_IFETCH) {
+    if (trap_type == MEM_TYPE_IFETCH) {
       if (!isa_pmp_check_permission(addr, len, MEM_TYPE_IFETCH, cpu.mode) ||
           !isa_pma_check_permission(addr, len, MEM_TYPE_IFETCH)) {
         Log("pmp or pma check failed when ifetch");
@@ -147,9 +147,9 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
         longjmp_exception(EX_IAF);
       }
     }
-    word_t rdata = (type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len) : paddr_read(addr, len, type, type, cpu.mode, vaddr));
+    word_t rdata = (trap_type == MEM_TYPE_IFETCH ? golden_pmem_read(addr, len) : paddr_read(addr, len, type, trap_type, cpu.mode, vaddr));
 #else
-    word_t rdata = paddr_read(addr, len, type, type, cpu.mode, vaddr);
+    word_t rdata = paddr_read(addr, len, type, trap_type, cpu.mode, vaddr);
 #endif // CONFIG_MULTICORE_DIFF
     ref_log_cpu("mmu_read: vaddr 0x%lx, paddr 0x%lx, rdata 0x%lx",
         vaddr, addr, rdata);
@@ -173,39 +173,43 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 
 #endif // ENABLE_HOSTTLB
 
-static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
+static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int trap_type, int mmu_mode) {
 
 #ifdef CONFIG_RVH
+  bool is_hlvx = false;
   // check whether here is a hlvx instruction
   // when inst fetch or vaddr_read_safe (for examine memory), s is NULL
   if (s != NULL) {
     extern int rvh_hlvx_check(struct Decode *s, int type);
-    rvh_hlvx_check((Decode*)s, type);
+    is_hlvx = rvh_hlvx_check((Decode*)s, trap_type);
   }
+  int type = (trap_type == MEM_TYPE_READ && is_hlvx) ? MEM_TYPE_READ_EXEC : trap_type;
+#else
+  int type = trap_type;
 #endif
 
-  addr = get_effective_address(addr, type);
+  addr = get_effective_address(addr, trap_type);
 
   bool is_cross_page = false;
   void isa_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
-  if (type != MEM_TYPE_IFETCH) {
-    isa_misalign_data_addr_check(addr, len, type);
+  if (trap_type != MEM_TYPE_IFETCH) {
+    isa_misalign_data_addr_check(addr, len, trap_type);
     is_cross_page = ((addr & PAGE_MASK) + len) > PAGE_SIZE && len != 1;
   }
 
   if (unlikely(mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE)) {
     Logm("Checking mmu when MMU_DYN");
-    mmu_mode = isa_mmu_check(addr, len, type);
+    mmu_mode = isa_mmu_check(addr, len, trap_type);
   }
 
   if (is_cross_page) {
-    return vaddr_read_cross_page(addr, len, type, mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
+    return vaddr_read_cross_page(addr, len, type, trap_type, mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
-    return paddr_read(addr, len, type, type, cpu.mode, addr);
+    return paddr_read(addr, len, type, trap_type, cpu.mode, addr);
   }
-  return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
+  return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type, trap_type);
   return 0;
 
 }
