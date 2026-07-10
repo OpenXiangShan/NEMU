@@ -18,6 +18,7 @@
 #define __CPU_DECODE_H__
 
 #include <isa.h>
+#include <cpu/instr_stat.h>
 
 #define OP_STR_SIZE 40
 
@@ -70,7 +71,7 @@ typedef struct Decode {
 
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
-  int exec_id;
+  IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, InstrStatCategory instr_stat_category);
   uint8_t type;
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80 + sizeof(log_asmbuf) + sizeof(log_bytebuf)]);

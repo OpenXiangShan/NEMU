@@ -20,7 +20,8 @@ typedef enum {
 } InstrStatCategory;
 
 const char *instr_stat_category_name(InstrStatCategory category);
-void instr_stat_count(int exec_id);
+InstrStatCategory instr_stat_category(int exec_id);
+void instr_stat_count(InstrStatCategory category);
 uint64_t instr_stat_get(InstrStatCategory category);
 void instr_stat_reset(void);
 int instr_stat_format(char *buf, size_t size);

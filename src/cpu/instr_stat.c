@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef CONFIG_INSTR_CATEGORY_STAT
+#ifdef CONFIG_INSTR_CNT_BY_CATEGORY
 #include <isa-all-instr.h>
 #endif
 
@@ -29,10 +29,9 @@ const char *instr_stat_category_name(InstrStatCategory category) {
   return names[category];
 }
 
-#ifdef CONFIG_INSTR_CATEGORY_STAT
+#ifdef CONFIG_INSTR_CNT_BY_CATEGORY
 
-static uint64_t instr_stat_exec_counts[TOTAL_INSTR];
-static uint64_t instr_stat_invalid_count;
+static uint64_t instr_stat_counts[INSTR_STAT_NR];
 
 static const InstrStatCategory instr_stat_print_order[] = {
   INSTR_STAT_ALU,
@@ -47,17 +46,6 @@ static const InstrStatCategory instr_stat_print_order[] = {
   INSTR_STAT_FENCE,
   INSTR_STAT_OTHER,
 };
-
-void instr_stat_count(int exec_id) {
-  if ((unsigned)exec_id >= TOTAL_INSTR) {
-    instr_stat_invalid_count++;
-    return;
-  }
-  instr_stat_exec_counts[exec_id]++;
-}
-
-#define INSTR_STAT_COUNT(name) + instr_stat_exec_counts[EXEC_ID_##name]
-#define INSTR_STAT_SUM(list) (0 list(INSTR_STAT_COUNT))
 
 #if defined(CONFIG_ISA_riscv64)
 
@@ -132,57 +120,62 @@ void instr_stat_count(int exec_id) {
   ZAWRS_INSTR_NULLARY(f) \
   CBO_INSTR_TERNARY(f)
 
-static uint64_t instr_stat_known_count(void);
+#define INSTR_STAT_CASE(name) case EXEC_ID_##name:
 
-uint64_t instr_stat_get(InstrStatCategory category) {
-  switch (category) {
-    case INSTR_STAT_ALU: return INSTR_STAT_SUM(RV64_ALU_INSTR);
-    case INSTR_STAT_LOAD: return INSTR_STAT_SUM(RV64_LOAD_INSTR);
-    case INSTR_STAT_STORE: return INSTR_STAT_SUM(RV64_STORE_INSTR);
-    case INSTR_STAT_BRANCH: return INSTR_STAT_SUM(RV64_BRANCH_INSTR);
-    case INSTR_STAT_JUMP: return INSTR_STAT_SUM(RV64_JUMP_INSTR);
-    case INSTR_STAT_CSR_SYSTEM: return INSTR_STAT_SUM(RV64_CSR_SYSTEM_INSTR);
-    case INSTR_STAT_FP: return INSTR_STAT_SUM(RV64_FP_INSTR);
-    case INSTR_STAT_VECTOR: return INSTR_STAT_SUM(RV64_VECTOR_INSTR);
-    case INSTR_STAT_AMO: return INSTR_STAT_SUM(RV64_AMO_INSTR);
-    case INSTR_STAT_FENCE: return INSTR_STAT_SUM(RV64_FENCE_INSTR);
-    case INSTR_STAT_OTHER: {
-      uint64_t total = instr_stat_invalid_count + INSTR_STAT_SUM(INSTR_LIST);
-      uint64_t known = instr_stat_known_count();
-      return total > known ? total - known : 0;
-    }
-    case INSTR_STAT_NR: break;
+InstrStatCategory instr_stat_category(int exec_id) {
+  switch (exec_id) {
+    RV64_ALU_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_ALU;
+    RV64_LOAD_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_LOAD;
+    RV64_STORE_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_STORE;
+    RV64_BRANCH_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_BRANCH;
+    RV64_JUMP_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_JUMP;
+    RV64_CSR_SYSTEM_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_CSR_SYSTEM;
+    RV64_FP_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_FP;
+    RV64_VECTOR_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_VECTOR;
+    RV64_AMO_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_AMO;
+    RV64_FENCE_INSTR(INSTR_STAT_CASE)
+      return INSTR_STAT_FENCE;
+    default:
+      return INSTR_STAT_OTHER;
   }
-  return 0;
 }
 
-static uint64_t instr_stat_known_count(void) {
-  return instr_stat_get(INSTR_STAT_ALU) +
-         instr_stat_get(INSTR_STAT_LOAD) +
-         instr_stat_get(INSTR_STAT_STORE) +
-         instr_stat_get(INSTR_STAT_BRANCH) +
-         instr_stat_get(INSTR_STAT_JUMP) +
-         instr_stat_get(INSTR_STAT_CSR_SYSTEM) +
-         instr_stat_get(INSTR_STAT_FP) +
-         instr_stat_get(INSTR_STAT_VECTOR) +
-         instr_stat_get(INSTR_STAT_AMO) +
-         instr_stat_get(INSTR_STAT_FENCE);
-}
+#undef INSTR_STAT_CASE
 
 #else
 
-uint64_t instr_stat_get(InstrStatCategory category) {
-  if (category == INSTR_STAT_OTHER) {
-    return instr_stat_invalid_count + INSTR_STAT_SUM(INSTR_LIST);
-  }
-  return 0;
+InstrStatCategory instr_stat_category(int exec_id) {
+  (void)exec_id;
+  return INSTR_STAT_OTHER;
 }
 
 #endif
 
+void instr_stat_count(InstrStatCategory category) {
+  if ((unsigned)category >= INSTR_STAT_NR) {
+    category = INSTR_STAT_OTHER;
+  }
+  instr_stat_counts[category]++;
+}
+
+uint64_t instr_stat_get(InstrStatCategory category) {
+  if ((unsigned)category >= INSTR_STAT_NR) {
+    return 0;
+  }
+  return instr_stat_counts[category];
+}
+
 void instr_stat_reset(void) {
-  memset(instr_stat_exec_counts, 0, sizeof(instr_stat_exec_counts));
-  instr_stat_invalid_count = 0;
+  memset(instr_stat_counts, 0, sizeof(instr_stat_counts));
 }
 
 int instr_stat_format(char *buf, size_t size) {
@@ -209,8 +202,13 @@ int instr_stat_format(char *buf, size_t size) {
 
 #else
 
-void instr_stat_count(int exec_id) {
+InstrStatCategory instr_stat_category(int exec_id) {
   (void)exec_id;
+  return INSTR_STAT_OTHER;
+}
+
+void instr_stat_count(InstrStatCategory category) {
+  (void)category;
 }
 
 uint64_t instr_stat_get(InstrStatCategory category) {
