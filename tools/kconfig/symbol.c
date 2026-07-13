@@ -148,9 +148,9 @@ static void sym_validate_range(struct symbol *sym)
 			return;
 	}
 	if (sym->type == S_INT)
-		sprintf(str, "%lld", val2);
+		snprintf(str, sizeof(str), "%lld", val2);
 	else
-		sprintf(str, "0x%llx", val2);
+		snprintf(str, sizeof(str), "0x%llx", val2);
 	sym->curr.val = xstrdup(str);
 }
 
