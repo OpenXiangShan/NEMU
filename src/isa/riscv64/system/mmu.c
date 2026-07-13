@@ -327,6 +327,8 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       "g p_pte: %lx pg base:0x%lx, v:%d, r:%d, w:%d, x:%d, u:%d, g:%d, a:%d, d:%d",
       p_pte, pg_base, pte.v, pte.r, pte.w, pte.x, pte.u, pte.g, pte.a, pte.d
     );
+    bool implicit_page_table_read = is_support_vs && type == MEM_TYPE_READ;
+    bool mxr_read = !implicit_page_table_read && mstatus->mxr && pte.x;
     if (pte.v && !pte.r && !pte.w && !pte.x) {
       // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
@@ -346,7 +348,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       break;
     } else if (
       type == MEM_TYPE_IFETCH || ishlvx ? !pte.x:
-      type == MEM_TYPE_READ           ? !pte.r && !(mstatus->mxr && pte.x):
+      type == MEM_TYPE_READ           ? !pte.r && !mxr_read:
                                         !(pte.r && pte.w)
     ) {
       break;
