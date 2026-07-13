@@ -1899,8 +1899,8 @@ MAP(CSRS, CSRS_DECL)
 
 #define CSR_PMACFG_BASE     0x7c0
 #define CSR_PMAADDR_BASE    0x7c8
-#define CSR_PMACFG_MAX_NUM  4
-#define CSR_PMAADDR_MAX_NUM 16
+#define CSR_PMACFG_MAX_NUM  8
+#define CSR_PMAADDR_MAX_NUM 32
 
 /** Vector **/
 #define IDXVSTART 0x008
@@ -2006,10 +2006,12 @@ void update_vstopi();
 uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmp_tor_mask();
+void mmu_refresh_pmp_cache(void);
 
 /** PMA */
 uint8_t pmacfg_from_index(int idx);
 word_t pmaaddr_from_index(int idx);
 word_t pma_tor_mask();
+void mmu_refresh_pma_cache(void);
 
 #endif // __CSR_H__
