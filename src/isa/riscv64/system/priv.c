@@ -3199,7 +3199,6 @@ static inline bool csrind_aia_window_permit_check(const uint32_t addr) {
 #ifdef CONFIG_RVH
     if (cpu.v) {
 #ifdef CONFIG_RV_AIA
-      IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->aia) longjmp_exception(EX_II);)
       has_vi = true;
 #else // !CONFIG_RV_AIA
       longjmp_exception(EX_II);
