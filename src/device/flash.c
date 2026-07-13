@@ -16,6 +16,7 @@
 #include <utils.h>
 #include <device/map.h>
 #include <device/flash.h>
+#include <memory/image_loader.h>
 #include <sys/mman.h>
 
 // put flash below the physical memory and allow a max size of 256MB.
@@ -44,17 +45,8 @@ void load_flash_contents(const char *flash_img) {
     uint32_t *p = (uint32_t *)flash_base;
     sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", p, p + 1, p + 2);
   } else {
-    __attribute__((unused)) int ret;
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    Assert(
-      size <= CONFIG_FLASH_SIZE,
-      "img size %d is larger than flash size %d",
-      size, CONFIG_FLASH_SIZE
-    );
-    ret = fread(flash_base, 1, size, fp);
     fclose(fp);
+    load_img(flash_img, "flash image", flash_base, CONFIG_FLASH_SIZE);
   }
 }
 
