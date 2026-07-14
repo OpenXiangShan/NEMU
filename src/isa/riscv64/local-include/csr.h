@@ -1732,7 +1732,7 @@ void set_mask(uint32_t reg, int idx, uint64_t mask, uint64_t vsew, uint64_t vlmu
 
 #endif // CONFIG_RVV
 
-/** Unprivileged Matrix CSRs **/  
+/** Unprivileged Matrix CSRs **/
 
 #ifdef CONFIG_RV_AME
 
@@ -1780,7 +1780,7 @@ CSR_STRUCT_START(mtilek)
 CSR_STRUCT_END(mtilek)
 
 CSR_STRUCT_START(tlenb)
-CSR_STRUCT_END(tlenb) 
+CSR_STRUCT_END(tlenb)
 
 CSR_STRUCT_START(trlenb)
 CSR_STRUCT_END(trlenb)
@@ -1899,8 +1899,8 @@ MAP(CSRS, CSRS_DECL)
 
 #define CSR_PMACFG_BASE     0x7c0
 #define CSR_PMAADDR_BASE    0x7c8
-#define CSR_PMACFG_MAX_NUM  4
-#define CSR_PMAADDR_MAX_NUM 16
+#define CSR_PMACFG_MAX_NUM  CONFIG_RV_PMA_NUM / 4
+#define CSR_PMAADDR_MAX_NUM CONFIG_RV_PMA_NUM
 
 /** Vector **/
 #define IDXVSTART 0x008
