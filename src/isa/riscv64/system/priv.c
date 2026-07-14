@@ -854,7 +854,7 @@ inline word_t sstatus_read(bool vsreg_read, bool bare_read) {
 
 #ifdef CONFIG_RV_PMP_CSR
 // get 8-bit config of one PMP entries by index.
-uint8_t pmpcfg_from_index(int idx) {
+uint8_t inline pmpcfg_from_index(int idx) {
   // Nemu support up to 64 pmp entries in a XLEN=64 machine.
   int xlen = 64;
   // Configuration register of one entry is 8-bit.
@@ -868,7 +868,7 @@ uint8_t pmpcfg_from_index(int idx) {
   return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
-word_t pmpaddr_from_index(int idx) {
+word_t inline pmpaddr_from_index(int idx) {
   return csr_array[CSR_PMPADDR_BASE + idx];
 }
 
@@ -879,7 +879,7 @@ word_t inline pmp_tor_mask() {
 
 #ifdef CONFIG_RV_PMA_CSR
 // get 8-bit config of one PMA entries by index.
-uint8_t pmacfg_from_index(int idx) {
+uint8_t inline pmacfg_from_index(int idx) {
   int xlen = 64;
   // Configuration register of one entry is 8-bit.
   int bits_per_cfg = 8;
@@ -892,7 +892,7 @@ uint8_t pmacfg_from_index(int idx) {
   return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
-word_t pmaaddr_from_index(int idx) {
+word_t inline pmaaddr_from_index(int idx) {
   return csr_array[CSR_PMAADDR_BASE + idx];
 }
 
