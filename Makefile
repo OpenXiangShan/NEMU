@@ -96,6 +96,15 @@ CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto=auto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT_FLAGS))
+# GCC-only interpreter tuning (CC_AGGRESSIVE_INLINE):
+#   --param max-inline-insns-single=256: raise the single-function inlining size
+#     limit so the address-translation helpers inline into their callers.
+#   -falign-labels=n:m:n2:m2 aligns branch targets to an n-byte boundary while
+#     skipping at most m-1 bytes, else to n2 while skipping at most m2-1. Here
+#     32:9:64:15 = align to 32 bytes when it costs <=8 padding bytes, otherwise to
+#     64 bytes when it costs <=14, keeping hot targets in one instruction-fetch
+#     window without over-padding.
+CFLAGS_BUILD += $(if $(CONFIG_CC_AGGRESSIVE_INLINE),--param max-inline-insns-single=256 -falign-labels=32:9:64:15,)
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 
