@@ -162,6 +162,15 @@ config CC_LTO
   bool "Enable link-time optimization"
   default y
 
+config CC_AGGRESSIVE_INLINE
+  depends on CC_GCC
+  bool "Enable GCC aggressive inline and label alignment tuning"
+  default y
+  help
+    Append GCC-specific tuning flags (--param max-inline-insns-single and
+    -falign-labels) that lower interpreter per-instruction overhead on some
+    x86 microarchitectures. Only available when GCC is the selected compiler.
+
 config CC_DEBUG
   bool "Enable debug information"
   default n
