@@ -899,6 +899,16 @@ word_t pmaaddr_from_index(int idx) {
 word_t inline pma_tor_mask() {
   return -((word_t)1 << (CONFIG_PMA_GRANULARITY - PMA_SHIFT));
 }
+
+static inline bool is_configured_pma_csr_outside_handler(uint32_t csrid) {
+  bool is_cfg = csrid >= CSR_PMACFG_BASE + CSR_PMACFG_MAX_NUM &&
+                csrid < CSR_PMAADDR_BASE &&
+                ((csrid - CSR_PMACFG_BASE) & 1) == 0 &&
+                ((csrid - CSR_PMACFG_BASE) / 2 * 8) < CONFIG_RV_PMA_NUM;
+  bool is_addr = csrid >= CSR_PMAADDR_BASE + CSR_PMAADDR_MAX_NUM &&
+                 csrid < CSR_PMAADDR_BASE + CONFIG_RV_PMA_NUM;
+  return is_cfg || is_addr;
+}
 #endif // CONFIG_RV_PMA_CSR
 
 #ifndef CONFIG_FPU_NONE
@@ -2887,6 +2897,17 @@ static void csr_write(uint32_t csrid, word_t src) {
     /************************* All Others Normal CSRs *************************/
     default: *dest = src;
   }
+
+#ifdef CONFIG_RV_PMA_CSR
+  // Keep the cache coherent for PMA CSRs implemented by the selected PMA
+  // configuration but handled by the generic CSR write path. This does not
+  // make any additional CSR accessible; csr_normal_permit_check() has already
+  // checked the configuration-dependent CSR map.
+  if (is_configured_pma_csr_outside_handler(csrid)) {
+    mmu_refresh_pma_cache();
+    mmu_tlb_flush(0);
+  }
+#endif
 
  // Next is the side effect of writing CSRs
 #ifndef CONFIG_FPU_NONE

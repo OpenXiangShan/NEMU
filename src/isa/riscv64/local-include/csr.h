@@ -1899,8 +1899,8 @@ MAP(CSRS, CSRS_DECL)
 
 #define CSR_PMACFG_BASE     0x7c0
 #define CSR_PMAADDR_BASE    0x7c8
-#define CSR_PMACFG_MAX_NUM  8
-#define CSR_PMAADDR_MAX_NUM 32
+#define CSR_PMACFG_MAX_NUM  4
+#define CSR_PMAADDR_MAX_NUM 16
 
 /** Vector **/
 #define IDXVSTART 0x008
