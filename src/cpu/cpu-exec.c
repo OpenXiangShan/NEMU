@@ -19,6 +19,7 @@
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
 #include <cpu/decode.h>
+#include <cpu/instr_stat.h>
 #include <memory/host-tlb.h>
 #include <isa-all-instr.h>
 #include <locale.h>
@@ -155,6 +156,11 @@ void monitor_statistic() {
   Log("host time spent = %'ld us", g_timer);
 #ifdef CONFIG_ENABLE_INSTR_CNT
   Log("total guest instructions = %'ld", g_nr_guest_instr);
+#ifdef CONFIG_INSTR_CNT_BY_CATEGORY
+  char instr_stat_buf[1024];
+  instr_stat_format(instr_stat_buf, sizeof(instr_stat_buf));
+  Log("%s", instr_stat_buf);
+#endif
   Log("vst count = %'ld, vst unit count = %'ld, vst unit optimized count = %'ld",
       g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized);
   if (g_timer > 0)
@@ -410,7 +416,7 @@ static void execute(int n) {
 
   // main loop
   while (true) {
-#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE)
+#if defined(CONFIG_DEBUG) || defined(CONFIG_DIFFTEST) || defined(CONFIG_IQUEUE) || defined(CONFIG_INSTR_CNT_BY_CATEGORY)
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
@@ -468,6 +474,7 @@ static void execute(int n) {
     is_ctrl = false;
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
 
+    IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(this_s->instr_stat_category));
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, n_remain -= 1);
 
@@ -483,6 +490,7 @@ end_of_loop:
   // Settle instruction counting for the last instruction:
   // - If it is end_of_bb and n_remain < 0, it will goto here without "per inst action".
   // - If it is priv instruction, it will goto here without "per inst action".
+  IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(this_s->instr_stat_category));
   IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
   IFDEF(CONFIG_INSTR_CNT_BY_INSTR, n_remain -= 1);
   // g_nr_guest_instr_temp += 1;
@@ -706,6 +714,7 @@ static void execute(int n) {
     ref_log_cpu("pc = 0x%lx inst %x", s.pc, s.isa.instr.val);
     s.EHelper(&s);
 
+    IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
 
     IFDEF(CONFIG_IQUEUE, iqueue_commit(s.pc, (void *)&s.isa.instr.val, s.snpc - s.pc));
@@ -741,6 +750,8 @@ void fetch_decode(Decode *s, vaddr_t pc) {
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
   int idx = isa_fetch_decode(s);
+  IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY,
+        s->instr_stat_category = instr_stat_category(idx));
   Logtid(
     "(%s) " FMT_WORD ":   %s%*.s%s",
     isa_get_privilege_mode_str(),
