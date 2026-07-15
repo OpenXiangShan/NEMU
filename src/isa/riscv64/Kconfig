@@ -741,6 +741,10 @@ config RV_ZACAS
   bool "RISC-V Extension for Atomic Compare-and-Swap(CAS) Instructions, Version 1.0.0"
   default n
 
+config RV_ZABHA
+  bool "RISC-V Extension for Byte and Halfword Atomic Memory Operations, Version 1.0"
+  default n
+
 config RV_ZAWRS
   bool "RISC-V Extension for Wait-on-Reservation-Set instructions, Version 1.01"
   default n
