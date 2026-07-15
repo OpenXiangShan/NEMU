@@ -128,6 +128,8 @@ static inline int parse_args(int argc, char *argv[]) {
     // profiling
     {"simpoint-profile"   , no_argument      , NULL, 3},
     {"dont-skip-boot"     , no_argument      , NULL, 6},
+    {"start-profiling-on-uart-marker", required_argument, NULL, 21},
+    {"stop-profiling-on-uart-marker", required_argument, NULL, 22},
     {"mem_use_record_file", required_argument, NULL, 'A'},
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
@@ -230,6 +232,14 @@ static inline int parse_args(int argc, char *argv[]) {
         donot_skip_boot=true;
         break;
 
+      case 21:
+        roi_uart_marker = optarg;
+        break;
+
+      case 22:
+        roi_uart_stop_marker = optarg;
+        break;
+
       case 7:
         Log("Force to take checkpoint on m mode. You should know what you are doing!");
         force_cpt_mmode = true;
@@ -309,6 +319,8 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
+        printf("\t--start-profiling-on-uart-marker=TEXT start profiling/checkpointing after UART outputs TEXT\n");
+        printf("\t--stop-profiling-on-uart-marker=TEXT stop profiling/checkpointing after UART outputs TEXT\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
 
         printf("\t--log-fast              output log to file by buffer\n");
@@ -339,6 +351,13 @@ void init_monitor(int argc, char *argv[]) {
 
   if (warmup_interval == 0) {
     warmup_interval = checkpoint_interval;
+  }
+
+  if (donot_skip_boot && roi_uart_marker != NULL) {
+    panic("Cannot combine --dont-skip-boot with --start-profiling-on-uart-marker");
+  }
+  if (roi_uart_stop_marker != NULL && roi_uart_marker == NULL) {
+    panic("Cannot use --stop-profiling-on-uart-marker without --start-profiling-on-uart-marker");
   }
 
   if (map_image_as_output_cpt) {

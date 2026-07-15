@@ -31,7 +31,10 @@ extern bool force_cpt_mmode;
 
 extern bool workload_loaded;
 extern bool donot_skip_boot;
+extern const char *roi_uart_marker;
+extern const char *roi_uart_stop_marker;
 
 void start_profiling();
+void roi_uart_marker_feed(char ch);
 
 #endif // __PROFILING_CONTROL_H__

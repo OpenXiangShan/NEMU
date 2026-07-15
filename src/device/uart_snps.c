@@ -1,5 +1,6 @@
 #include <utils.h>
 #include <device/map.h>
+#include <profiling/profiling_control.h>
 
 // #define CH_OFFSET 0
 // #define UARTLITE_RX_FIFO  0x0
@@ -162,6 +163,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
           // assert(len == 1);
           // assert((serial_base[THR] & 0xff) == 0);
           putc(serial_base[THR], stderr);
+          roi_uart_marker_feed(serial_base[THR]);
         }
       else panic("Cannot read UART_SNPS_TX_FIFO");
       break;

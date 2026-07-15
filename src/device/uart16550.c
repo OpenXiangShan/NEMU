@@ -18,6 +18,7 @@
 #include <utils.h>
 #include <device/map.h>
 #include <memory/host.h>
+#include <profiling/profiling_control.h>
 
 #define UART_RBR 0x0
 #define UART_THR 0x0
@@ -204,7 +205,9 @@ static void serial_handle_standard_access(uint32_t reg, bool is_write) {
           serial_write8(UART_REG_OFFSET(UART_DLL), (uint8_t)(divisor & 0xff));
         }
       } else if (is_write) {
-        putc(serial_read8(UART_REG_OFFSET(UART_THR)), stderr);
+        uint8_t ch = serial_read8(UART_REG_OFFSET(UART_THR));
+        putc(ch, stderr);
+        roi_uart_marker_feed(ch);
       } else {
 #ifdef CONFIG_UART16550_INPUT_FIFO
         serial_poll_input();
