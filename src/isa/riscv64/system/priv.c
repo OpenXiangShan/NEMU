@@ -3212,7 +3212,6 @@ word_t riscv64_priv_mnret() {
   if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
 #ifdef CONFIG_RVH
   cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
-  mnstatus->mnpv = 0;
   // clear vsstatus.SDT when return to VU
   vsstatus->sdt = (mnstatus->mnpp == MODE_U && mnstatus->mnpv == 1 ? 0 : vsstatus->sdt);
   set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
@@ -3232,7 +3231,6 @@ word_t riscv64_priv_mnret() {
     }
   }
   cpu.mode = mnstatus->mnpp;
-  mnstatus->mnpp = MODE_U;
   mnstatus->nmie = 1;
   update_mmu_state();
   Loge("Executing mnret to 0x%lx", mnepc->val);
