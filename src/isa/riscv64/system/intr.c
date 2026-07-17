@@ -360,7 +360,7 @@ word_t isa_query_intr() {
     global_enabled_intr = 0;
     if (cpu.v && (((cpu.mode == MODE_S) && vsstatus->sie) || (cpu.mode < MODE_S))) global_enabled_intr |= deleg & hdeleg;
     if (((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v) global_enabled_intr |= deleg & ~hdeleg;
-    if (((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M)) global_enabled_intr |= ~deleg;
+    if (cpu.mode < MODE_M) global_enabled_intr |= ~deleg;
   }
 #else
   word_t deleg = mideleg->val;
