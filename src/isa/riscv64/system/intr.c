@@ -25,7 +25,8 @@ void update_mmu_state();
 
 #ifdef CONFIG_RVH
 word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual) {
-  return ((NO == EX_IAM || NO == EX_IAF || NO == EX_BP || NO == EX_IPF) && cpu.v) ||
+  return ((NO == EX_IAM || NO == EX_IAF || NO == EX_IPF) && cpu.v) ||
+         (NO == EX_BP && (cpu.v || is_hls)) ||
          ((NO == EX_LAM || NO == EX_LAF || NO == EX_SAM || NO == EX_SAF || NO == EX_LPF || NO == EX_SPF || NO == EX_HWE) && (is_hls || cpu.v || is_mem_access_virtual)) ||
          (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF);
 }
@@ -130,7 +131,12 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   word_t trap_pc = 0;
 #ifdef CONFIG_RVH
-  bool virtualInterruptIsHvictlInject = MUXDEF(CONFIG_RV_IMSIC, cpu.virtualInterruptIsHvictlInject, false);
+#ifdef CONFIG_RV_IMSIC
+  bool virtualInterruptIsHvictlInject = (NO & INTR_BIT) && cpu.virtualInterruptIsHvictlInject;
+  cpu.virtualInterruptIsHvictlInject = 0;
+#else
+  bool virtualInterruptIsHvictlInject = false;
+#endif
   extern bool hld_st;
   int hld_st_temp = hld_st;
   hld_st = 0;
@@ -156,14 +162,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       vscause->val = NO;
     }
 #else
-    if (virtualInterruptIsHvictlInject) {
-      vscause->val = NO | INTR_BIT;
-#ifdef CONFIG_RV_IMSIC
-      cpu.virtualInterruptIsHvictlInject = 0;
-#endif
-    } else {
-      vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
-    }
+    vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
 #endif // CONFIG_RV_IMSIC
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
@@ -341,7 +340,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 
 word_t isa_query_intr() {
   word_t intr_vec = mie->val & (get_mip());
-  if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
+#ifdef CONFIG_RV_IMSIC
+  bool pending = (mtopi->val != 0) || (stopi->val != 0) || (vstopi->val != 0);
+#endif
+  if (MUXDEF(CONFIG_RV_IMSIC, !pending, !intr_vec) || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
   int intr_num;
 #ifdef CONFIG_RVH
   const int priority [] = {

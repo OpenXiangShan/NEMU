@@ -281,7 +281,7 @@ void init_pma() {
 static inline bool csr_counter_enable_check(uint32_t addr) {
   bool has_vi = false;
   int count_bit = 1 << (addr - 0xC00);
-  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == 0x14D) || (addr == 0x24D), 0);
+  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == CSR_STIMECMP) || (addr == CSR_VSTIMECMP), 0);
 
   if (is_sstc_csr) {
       count_bit = 1 << 1; // counteren.TM
@@ -290,16 +290,17 @@ static inline bool csr_counter_enable_check(uint32_t addr) {
   // priv-mode & counter-enable -> exception-type
   // | MODE         | VU    | VS    | U     | S/HS  | M     |
   // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    | (counters & s/vstimecmp)
-  // | ~menvccfg    | EX_II | EX_II | EX_II | EX_II | OK    | (s/vstimecmp)
   // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    | (counters & stimecmp)
   // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    | (counters)
-  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (is_sstc_csr && !menvcfg->stce))) {
+  // When menvcfg.STCE is zero, an attempt to access stimecmp when non-Mmode raises II.
+  // When henvcfg.STCE is zero, an attempt to access stimecmp (really vstimecmp) when V=1 raises VI.
+  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (addr == CSR_STIMECMP && !menvcfg->stce))) {
     Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
     longjmp_exception(EX_II);
   }
 
   #ifdef CONFIG_RVH
-    if (cpu.v && (!(count_bit & hcounteren->val) || (is_sstc_csr && !henvcfg->stce))) {
+    if (cpu.v && (!(count_bit & hcounteren->val) || (addr == CSR_STIMECMP && !henvcfg->stce))) {
       Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
       has_vi = true;
     }
@@ -1450,8 +1451,8 @@ static inline void update_miprios() {
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
-      uint64_t tmp = BITS(mie->val, 8*i+j, 8*i+j);
-      mask |= (tmp * 0xffULL) << (8*j);
+      uint64_t writable = BITS(MIE_MASK_BASE | MIE_MASK_H | LCOFI, 8*i+j, 8*i+j);
+      mask |= (writable * 0xffULL) << (8*j);
     }
     cpu.MIprios_rdata->iprios[i].val = cpu.MIprios->iprios[i].val & mask;
   }
@@ -1460,17 +1461,25 @@ static inline void update_miprios() {
 
 #ifdef CONFIG_RV_IMSIC
 static inline void update_siprios() {
-  // For a given interrupt number, if the corresponding bit in sie is read-only zero,
-  // then the interrupt’s priority number in the supervisor-level iprio array must be read-only zero as well.
+  // Version 1.0, Revised 20250312.
+  // For a given interrupt number, if the corresponding bit is not writable either in sie or, if the H
+  // extension is implemented, in hie, then the interrupt’s priority number in the supervisor-level iprio
+  // array must be read-only zero as well.
   // The priority number for a supervisor-level external interrupt (bits 15:8 of iprio2) must also be read-only zero.
   cpu.SIprios->iprios[0].val = cpu.SIprios->iprios[0].val & 0xffffff00ffffff00;
   cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff0000;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
-      uint64_t read_sie = non_vmode_get_sie();
-      uint64_t tmp = BITS(read_sie, 8*i+j, 8*i+j);
-      mask |= (tmp * 0xff) << (8*j);
+      uint64_t delegated   = BITS(mideleg->val, 8*i+j, 8*i+j);
+      uint64_t virtualized = BITS(mvien->val, 8*i+j, 8*i+j);
+      uint64_t sie_to_mie_writable = BITS(MIP_SSIP | MIP_STIP | MIP_SEIP | LCI, 8*i+j, 8*i+j);
+      uint64_t sie_writable = BITS(MIP_SSIP | MIP_SEIP | LCI, 8*i+j, 8*i+j);
+      uint64_t hie_to_mie_writable = BITS(HIE_RMASK, 8*i+j, 8*i+j);
+      uint64_t writableInSie = (sie_to_mie_writable & delegated) | (sie_writable & !delegated & virtualized);
+      uint64_t writableInHie = hie_to_mie_writable & delegated;
+      uint64_t writable = writableInSie | writableInHie;
+      mask |= (writable * 0xff) << (8*j);
     }
     cpu.SIprios_rdata->iprios[i].val = cpu.SIprios->iprios[i].val & mask;
   }
@@ -3199,7 +3208,6 @@ static inline bool csrind_aia_window_permit_check(const uint32_t addr) {
 #ifdef CONFIG_RVH
     if (cpu.v) {
 #ifdef CONFIG_RV_AIA
-      IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->aia) longjmp_exception(EX_II);)
       has_vi = true;
 #else // !CONFIG_RV_AIA
       longjmp_exception(EX_II);
@@ -3860,6 +3868,10 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
 
   hld_st = true;
   int mmu_mode = get_hyperinst_mmu_state();
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *addr, TRIGGER_NO_VALUE);
+  trigger_handler(TRIG_TYPE_MCONTROL6, action, *addr);
+#endif
   if (is_signed) {
     rtl_lms(s, dest, addr, 0, len, mmu_mode);
     IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
@@ -3881,6 +3893,10 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
 
   hld_st = true;
   int mmu_mode = get_hyperinst_mmu_state();
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *addr, *src);
+  trigger_handler(TRIG_TYPE_MCONTROL6, action, *addr);
+#endif
   rtl_sm(s, src, addr, 0, len, mmu_mode);
   IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
   hld_st = false;
