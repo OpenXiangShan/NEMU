@@ -90,6 +90,26 @@ def_EHelper(andi) {
 }
 
 def_EHelper(auipc) {
+#ifdef CONFIG_RV_ZICFILP
+  if (unlikely(cpu.elp == 1)) {
+    uint32_t rd = (s->isa.instr.val >> 7) & 0x1f;
+    if (rd != 0) {
+      longjmp_exception(EX_SWC);
+    }
+    if ((s->pc & 0x3) != 0) {
+      longjmp_exception(EX_SWC);
+    }
+    uint32_t lpl = (s->isa.instr.val >> 12) & 0xFFFFF;
+    uint32_t x7_lpl = (reg_l(7) >> 12) & 0xFFFFF;
+
+    printf("[ZICFILP-DEBUG] Checking lpad at pc=0x%lx: instr=0x%08x, expected_lpl(x7)=0x%x, actual_lpl=0x%x\n", s->pc, s->isa.instr.val, x7_lpl, lpl);
+
+    if (lpl != x7_lpl && lpl != 0) {
+      longjmp_exception(EX_SWC);
+    }
+    cpu.elp = 0;
+  }
+#endif
   rtl_li(s, ddest, id_src1->imm);
 }
 

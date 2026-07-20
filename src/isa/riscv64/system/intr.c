@@ -116,7 +116,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_SHARE
     IFDEF(CONFIG_RV_SMDBLTRP, cpu.critical_error = true);// this will compare in difftest
 #else
-    printf("\33[1;31mHIT CRITICAL ERROR\33[0m: trap when mnstatus.nmie close, please check if software cause a double trap.\n");
+    printf("\33[1;31mHIT CRITICAL ERROR\33[0m: trap when mnstatus.nmie close, please check if software cause a double trap. cause NO: %ld, epc: " FMT_WORD "\n", NO, epc);
     nemu_state.state = NEMU_END;
     nemu_state.halt_pc = epc;
     nemu_state.halt_ret = 0;
@@ -168,6 +168,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
     vsstatus->sie = 0;
+#ifdef CONFIG_RV_ZICFILP
+    vsstatus->spelp = cpu.elp;
+    cpu.elp = 0;
+#endif
     vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, henvcfg->dte && menvcfg->dte, 0);
     vstval->val = cpu.trapInfo.tval;
     switch (NO) {
@@ -193,6 +197,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_II:
         vstval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         break;
+#ifdef CONFIG_RV_ZICFILP
+      case EX_SWC:
+        vstval->val = 0x2;
+        break;
+#endif
       default: vstval->val = 0;
     }
     cpu.v = 1;
@@ -215,6 +224,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
+#ifdef CONFIG_RV_ZICFILP
+    mstatus->spelp = cpu.elp;
+    cpu.elp = 0;
+#endif
     mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
     IFDEF(CONFIG_RVH, htval->val = cpu.trapInfo.tval2);
     IFDEF(CONFIG_RVH, htinst->val = cpu.trapInfo.tinst);
@@ -250,6 +263,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
+#ifdef CONFIG_RV_ZICFILP
+      case EX_SWC:
+        stval->val = 0x2;
+        IFDEF(CONFIG_RVH, htval->val = 0);
+        IFDEF(CONFIG_RVH, htinst->val = 0);
+        break;
+#endif
       default:
         stval->val = 0;
         IFDEF(CONFIG_RVH, htval->val = 0);
@@ -272,6 +292,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
+#ifdef CONFIG_RV_ZICFILP
+    mstatus->mpelp = cpu.elp;
+    cpu.elp = 0;
+#endif
     mtval->val = cpu.trapInfo.tval;
     IFDEF(CONFIG_RVH, mtval2->val = cpu.trapInfo.tval2);
     IFDEF(CONFIG_RVH, mtinst->val = cpu.trapInfo.tinst);
@@ -306,6 +330,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
+#ifdef CONFIG_RV_ZICFILP
+      case EX_SWC:
+        mtval->val = 0x2;
+        IFDEF(CONFIG_RVH, mtval2->val = 0);
+        IFDEF(CONFIG_RVH, mtinst->val = 0);
+        break;
+#endif
       default:
         mtval->val = 0;
         IFDEF(CONFIG_RVH, mtval2->val = 0);
@@ -327,6 +358,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mnstatus->mnpv = cpu.v;
 #endif //CONFIG_RVH
     mnstatus->nmie = 0;
+#ifdef CONFIG_RV_ZICFILP
+    mnstatus->mnpelp = cpu.elp;
+    cpu.elp = 0;
+#endif
     mnepc->val = epc;
     mncause->val = NO;
     cpu.mode = MODE_M;
