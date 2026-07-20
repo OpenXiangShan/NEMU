@@ -435,6 +435,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MSTATUS_WMASK_MDT MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
 #define MSTATUS_WMASK_SDT MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
+#define MSTATUS_WMASK_SPELP MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 23), 0)
+#define MSTATUS_WMASK_MPELP MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 41), 0)
 
 // final mstatus wmask: dependent of the ISA extensions
 #define MSTATUS_WMASK (    \
@@ -444,7 +446,9 @@ static inline word_t* csr_decode(uint32_t addr) {
   MSTATUS_WMASK_RVV      | \
   MSTATUS_WMASK_RV_AME | \
   MSTATUS_WMASK_MDT      | \
-  MSTATUS_WMASK_SDT        \
+  MSTATUS_WMASK_SDT      | \
+  MSTATUS_WMASK_SPELP    | \
+  MSTATUS_WMASK_MPELP      \
 )
 
 #define MSTATUS_RMASK_UBE 0X1UL << 6
@@ -498,6 +502,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MENVCFG_RMASK_CBZE    (0x1UL << 7)
 #define MENVCFG_RMASK_CBCFE   (0x1UL << 6)
 #define MENVCFG_RMASK_CBIE    (0x3UL << 4)
+#define MENVCFG_RMASK_LPE     MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 2), 0)
 #define MENVCFG_RMASK_PMM     MENVCFG_PMM
 #define MENVCFG_RMASK (   \
   MENVCFG_RMASK_STCE    | \
@@ -507,6 +512,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MENVCFG_RMASK_CBZE    | \
   MENVCFG_RMASK_CBCFE   | \
   MENVCFG_RMASK_CBIE    | \
+  MENVCFG_RMASK_LPE     | \
   MENVCFG_RMASK_PMM       \
 )
 
@@ -517,6 +523,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MENVCFG_WMASK_CBZE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBZE, 0)
 #define MENVCFG_WMASK_CBCFE   MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBCFE, 0)
 #define MENVCFG_WMASK_CBIE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBIE, 0)
+#define MENVCFG_WMASK_LPE     MENVCFG_RMASK_LPE
 #define MENVCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SMNPM, MENVCFG_RMASK_PMM, 0)
 #define MENVCFG_WMASK (    \
   MENVCFG_WMASK_STCE     | \
@@ -526,6 +533,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MENVCFG_WMASK_CBZE     | \
   MENVCFG_WMASK_CBCFE    | \
   MENVCFG_WMASK_CBIE     | \
+  MENVCFG_WMASK_LPE      | \
   MENVCFG_WMASK_PMM        \
 )
 
@@ -534,6 +542,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MENVCFG_WMASK_CBZE     | \
   MENVCFG_WMASK_CBCFE    | \
   MENVCFG_WMASK_CBIE     | \
+  MENVCFG_WMASK_LPE      | \
   SENVCFG_WMASK_PMM        \
 )
 
@@ -545,12 +554,15 @@ static inline word_t* csr_decode(uint32_t addr) {
   MENVCFG_WMASK_CBZE     | \
   MENVCFG_WMASK_CBCFE    | \
   MENVCFG_WMASK_CBIE     | \
+  MENVCFG_WMASK_LPE      | \
   HENVCFG_WMASK_PMM        \
 )
 
 #define MSECCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SMMPM, MSECCFG_PMM, 0)
+#define MSECCFG_WMASK_MLPE    MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 10), 0)
 #define MSECCFG_WMASK (    \
-  MSECCFG_WMASK_PMM        \
+  MSECCFG_WMASK_PMM      | \
+  MSECCFG_WMASK_MLPE       \
 )
 
 #ifdef CONFIG_RV_ZICNTR
@@ -2213,6 +2225,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (((senvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
         senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK_PMM, src);
       }
+      riscv64_zicfilp_refresh_elp();
       break;
 
 #ifdef CONFIG_RV_SMCDELEG
@@ -2471,6 +2484,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         vsstatus->sdt = 0;
       }
 #endif // CONFIG_RV_SSDBLTRP
+      riscv64_zicfilp_refresh_elp();
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
@@ -2590,6 +2604,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (((menvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
         menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_PMM, src);
       }
+      riscv64_zicfilp_refresh_elp();
       break;
 
     case CSR_MSECCFG:
@@ -2597,6 +2612,8 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (((mseccfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
         mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK_PMM, src);
       }
+      riscv64_zicfilp_refresh_elp();
+      IFDEF(CONFIG_RV_ZICFILP, set_sys_state_flag(SYS_STATE_UPDATE));
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
@@ -3625,10 +3642,17 @@ word_t riscv64_priv_sret() {
     if (ISDEF(CONFIG_RV_SSDBLTRP)) {
       vsstatus->sdt = 0;
     }
+#ifdef CONFIG_RV_ZICFILP
+    bool target_zicfilp_en = riscv64_zicfilp_enabled(vsstatus->spp, true);
+#endif
     cpu.mode = vsstatus->spp;
     vsstatus->spp  = MODE_U;
     vsstatus->sie  = vsstatus->spie;
     vsstatus->spie = 1;
+#ifdef CONFIG_RV_ZICFILP
+    cpu.elp = target_zicfilp_en ? vsstatus->spelp : ELP_NO_LP_EXPECTED;
+    vsstatus->spelp = ELP_NO_LP_EXPECTED;
+#endif
     return vsepc->val;
   }
 #endif // CONFIG_RVH
@@ -3650,6 +3674,10 @@ word_t riscv64_priv_sret() {
       IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
     }
   }
+#ifdef CONFIG_RV_ZICFILP
+  uint32_t target_mode = mstatus->spp;
+  bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->spp != MODE_M && hstatus->spv), false);
+#endif
 #ifdef CONFIG_RVH
   cpu.v = hstatus->spv;
   hstatus->spv = 0;
@@ -3662,6 +3690,10 @@ word_t riscv64_priv_sret() {
   cpu.mode = mstatus->spp;
   mstatus->spp = MODE_U;
   update_mmu_state();
+#ifdef CONFIG_RV_ZICFILP
+  cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->spelp : ELP_NO_LP_EXPECTED;
+  mstatus->spelp = ELP_NO_LP_EXPECTED;
+#endif
   return sepc->val;
 }
 
@@ -3671,6 +3703,10 @@ word_t riscv64_priv_mret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+#ifdef CONFIG_RV_ZICFILP
+  uint32_t target_mode = mstatus->mpp;
+  bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->mpp != MODE_M && mstatus->mpv), false);
+#endif
   mstatus->mie = mstatus->mpie;
   mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
       : 1);
@@ -3696,6 +3732,10 @@ word_t riscv64_priv_mret() {
   cpu.mode = mstatus->mpp;
   mstatus->mpp = MODE_U;
   update_mmu_state();
+#ifdef CONFIG_RV_ZICFILP
+  cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->mpelp : ELP_NO_LP_EXPECTED;
+  mstatus->mpelp = ELP_NO_LP_EXPECTED;
+#endif
   Loge("Executing mret to 0x%lx", mepc->val);
   return mepc->val;
 }
@@ -3707,6 +3747,10 @@ word_t riscv64_priv_mnret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+#ifdef CONFIG_RV_ZICFILP
+  uint32_t target_mode = mnstatus->mnpp;
+  bool target_virtual = MUXDEF(CONFIG_RVH, (mnstatus->mnpp != MODE_M && mnstatus->mnpv), false);
+#endif
   if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
 #ifdef CONFIG_RVH
   cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
@@ -3732,6 +3776,10 @@ word_t riscv64_priv_mnret() {
   cpu.mode = mnstatus->mnpp;
   mnstatus->mnpp = MODE_U;
   mnstatus->nmie = 1;
+#ifdef CONFIG_RV_ZICFILP
+  cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mnstatus->mnpelp : ELP_NO_LP_EXPECTED;
+  mnstatus->mnpelp = ELP_NO_LP_EXPECTED;
+#endif
   update_mmu_state();
   Loge("Executing mnret to 0x%lx", mnepc->val);
   return mnepc->val;
