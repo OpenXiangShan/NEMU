@@ -387,8 +387,10 @@ void vld(Decode *s, int mode, int mmu_mode) {
       for (fn = 0; fn < nf; fn++) {
         addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -480,8 +482,10 @@ void vldx(Decode *s, int mmu_mode) {
       // read data in memory
       addr = base_addr + index + fn * data_width;
 
-      IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                              trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+      IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                        trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                        trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                      })
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
@@ -654,8 +658,10 @@ void vst(Decode *s, int mode, int mmu_mode) {
         uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
         addr = base_addr + offset;
         if (!fast_vse) {
-          IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                                  trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+          IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                            trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                            trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                          })
 
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
 
@@ -725,8 +731,10 @@ void vstx(Decode *s, int mmu_mode) {
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
       addr = base_addr + index + fn * data_width;
 
-      IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                              trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+      IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                        trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                        trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                      })
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
@@ -788,8 +796,10 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -807,8 +817,10 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -856,8 +868,10 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -872,8 +886,10 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -1058,8 +1074,10 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         for (fn = 0; fn < nf; fn++) {
           addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
 
-          IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                  trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+          IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_check_needed(cpu.TM)) { \
+                                            trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                            trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                          })
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
           IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
