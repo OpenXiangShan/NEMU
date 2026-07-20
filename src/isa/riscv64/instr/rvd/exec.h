@@ -144,7 +144,7 @@ def_EHelper(fcvt_d_s) {
 }
 
 def_EHelper(fcvt_s_d) {
-  rtl_hostcall(s, HOSTCALL_FP, ddest, dsrc1, rz, FPCALL_CMD(FPCALL_F64ToF32, FPCALL_W64));
+  rtl_f64_to_f32_r(s, ddest, dsrc1);
   rtl_fsr(s, ddest, ddest, FPCALL_W32);
 }
 
