@@ -202,7 +202,7 @@ void init_custom_csr() {
 
 #ifdef CONFIG_RV_PMA_CSR
 void init_pma() {
-  unsigned long long pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM][9] = {
+  unsigned long long pmaConfigInit[CONFIG_RV_PMA_NUM][9] = {
     // base_addr,       range,             l, c, t, a, x, w, r
     {0,                0x1000000000000ULL, F, F, F, 3, F, F, F},
     {0x80000000000ULL, 0,                  F, T, T, 1, T, T, T},
@@ -899,6 +899,16 @@ word_t inline pmaaddr_from_index(int idx) {
 
 word_t inline pma_tor_mask() {
   return -((word_t)1 << (CONFIG_PMA_GRANULARITY - PMA_SHIFT));
+}
+
+static inline bool is_configured_pma_csr_outside_handler(uint32_t csrid) {
+  bool is_cfg = csrid >= CSR_PMACFG_BASE + CSR_PMACFG_MAX_NUM &&
+                csrid < CSR_PMAADDR_BASE &&
+                ((csrid - CSR_PMACFG_BASE) & 1) == 0 &&
+                ((csrid - CSR_PMACFG_BASE) / 2 * 8) < CONFIG_RV_PMA_NUM;
+  bool is_addr = csrid >= CSR_PMAADDR_BASE + CSR_PMAADDR_MAX_NUM &&
+                 csrid < CSR_PMAADDR_BASE + CONFIG_RV_PMA_NUM;
+  return is_cfg || is_addr;
 }
 #endif // CONFIG_RV_PMA_CSR
 
@@ -2691,6 +2701,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmpcfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pmp_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2715,6 +2726,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
       }
       ref_log_cpu("write pmp addr%d to %016lx",idx, *dest);
+      mmu_refresh_pmp_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2748,6 +2760,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pma_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2771,6 +2784,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
       }
       ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
+      mmu_refresh_pma_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2891,6 +2905,17 @@ static void csr_write(uint32_t csrid, word_t src) {
     /************************* All Others Normal CSRs *************************/
     default: *dest = src;
   }
+
+#ifdef CONFIG_RV_PMA_CSR
+  // Keep the cache coherent for PMA CSRs implemented by the selected PMA
+  // configuration but handled by the generic CSR write path. This does not
+  // make any additional CSR accessible; csr_normal_permit_check() has already
+  // checked the configuration-dependent CSR map.
+  if (is_configured_pma_csr_outside_handler(csrid)) {
+    mmu_refresh_pma_cache();
+    mmu_tlb_flush(0);
+  }
+#endif
 
  // Next is the side effect of writing CSRs
 #ifndef CONFIG_FPU_NONE
