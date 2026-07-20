@@ -2110,6 +2110,7 @@ void update_vsatp(const vsatp_t new_val) {
 
 static void csr_write(uint32_t csrid, word_t src) {
   word_t *dest = csr_decode(csrid);
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   switch (csrid) {
     /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
