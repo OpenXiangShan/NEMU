@@ -663,7 +663,11 @@ CSR_STRUCT_START(mstatus)
   uint64_t tvm : 1; // [20]
   uint64_t tw  : 1; // [21]
   uint64_t tsr : 1; // [22]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t spelp: 1; // [23]
+#else
   uint64_t pad3: 1; // [23]
+#endif
   uint64_t sdt : 1; // [24]
   uint64_t ms  : 2; // [26:25]
   uint64_t pad4: 5; // [31:27]
@@ -677,7 +681,12 @@ CSR_STRUCT_START(mstatus)
 #else
   uint64_t pad5: 2; // [39:38]
 #endif
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad6: 1; // [40]
+  uint64_t mpelp: 1; // [41]
+#else
   uint64_t pad6: 2; // [41:40]
+#endif
   uint64_t mdt : 1; // [42]
   uint64_t pad7:20; // [62:43]
   uint64_t sd  : 1; // [63]
@@ -852,7 +861,13 @@ CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
   uint64_t fiom   : 1; // [0]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad0   : 1; // [1]
+  uint64_t lpe    : 1; // [2]
+  uint64_t pad0_1 : 1; // [3]
+#else
   uint64_t pad0   : 3; // [3:1]
+#endif
   uint64_t cbie   : 2; // [5:4]
   uint64_t cbcfe  : 1; // [6]
   uint64_t cbze   : 1; // [7]
@@ -873,7 +888,11 @@ CSR_STRUCT_START(mseccfg)
   uint64_t pad0  : 5; // [7:3]
   uint64_t useed : 1; // [8]
   uint64_t sseed : 1; // [9]
+#ifdef CONFIG_RV_ZICFILP
   uint64_t mlpe  : 1; // [10]
+#else
+  uint64_t pad1_0: 1; // [10]
+#endif
   uint64_t pad1  :21; // [31:11]
   uint64_t pmm   : 2; // [33:32]
   uint64_t pad2  :30; // [63:34]
@@ -983,7 +1002,12 @@ CSR_STRUCT_START(dcsr)
   uint64_t ebreakm  : 1 ; // [15]
   uint64_t ebreakvu : 1 ; // [16]
   uint64_t ebreakvs : 1 ; // [17]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pelp     : 1 ; // [18]
+  uint64_t pad1     : 9 ; // [27:19]
+#else
   uint64_t pad1     : 10; // [27:18]
+#endif
   uint64_t debugver : 4 ; // [31:28]
 CSR_STRUCT_END(dcsr)
 
@@ -1150,8 +1174,12 @@ CSR_STRUCT_START(sstatus)
   uint64_t pad5 : 1;  // [18]
   uint64_t sum  : 1;  // [19]
   uint64_t mxr  : 1;  // [20]
+#ifdef CONFIG_RV_ZICFILP
   uint64_t pad6 : 2;  // [22:21]
   uint64_t spelp: 1;  // [23]
+#else
+  uint64_t pad6 : 3;  // [23:21]
+#endif
   uint64_t sdt  : 1;  // [24]
   uint64_t ms   : 2;  // [26:25]
   uint64_t pad7 : 5;  // [31:27]
@@ -1213,7 +1241,13 @@ CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(senvcfg)
   uint64_t fiom   : 1; // [0]
-  uint64_t pad0   : 3; // [3:1]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad0_0 : 1; // [1]
+  uint64_t lpe    : 1; // [2]
+  uint64_t pad0_1 : 1; // [3]
+#else
+  uint64_t pad0_0 : 3; // [3:1]
+#endif
   uint64_t cbie   : 2; // [5:4]
   uint64_t cbcfe  : 1; // [6]
   uint64_t cbze   : 1; // [7]
@@ -1460,7 +1494,13 @@ CSR_STRUCT_END(hgeie)
 
 CSR_STRUCT_START(henvcfg)
   uint64_t fiom   : 1;  // [0]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad0   : 1;  // [1]
+  uint64_t lpe    : 1;  // [2]
+  uint64_t pad0_1 : 1;  // [3]
+#else
   uint64_t pad0   : 3;  // [3:1]
+#endif
   uint64_t cbie   : 2;  // [5:4]
   uint64_t cbcfe  : 1;  // [6]
   uint64_t cbze   : 1;  // [7]
@@ -1512,7 +1552,12 @@ CSR_STRUCT_START(vsstatus)
   uint64_t pad4   : 1;  // [17]
   uint64_t sum    : 1;  // [18]
   uint64_t mxr    : 1;  // [19]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad5   : 3;  // [22:20]
+  uint64_t spelp  : 1;  // [23]
+#else
   uint64_t pad5   : 4;  // [23:20]
+#endif
   uint64_t sdt    : 1;  // [24]
   uint64_t ms     : 2;  // [26:25]
   uint64_t pad6   : 5;  // [31:27]
@@ -1828,8 +1873,12 @@ CSR_STRUCT_START(mnstatus)
   uint64_t nmie   : 1;  // [3]
   uint64_t pad1   : 3;  // [6:4]
   uint64_t mnpv   : 1;  // [7]
+#ifdef CONFIG_RV_ZICFILP
   uint64_t pad2   : 1;  // [8]
   uint64_t mnpelp : 1;  // [9]
+#else
+  uint64_t pad2   : 2;  // [9:8]
+#endif
   uint64_t pad3   : 1;  // [10]
   uint64_t mnpp   : 2;  // [12:11]
   uint64_t pad4   : 51; // [63:13]
@@ -1968,7 +2017,7 @@ MAP(CSRS, CSRS_DECL)
 // SD, SDT, UXL, MXR, SUM, XS, FS, VS, MS, SPP, UBE, SPIE, SIE
 #define SSTATUS_BASE 0x80000003060de762UL
 
-#define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0))
+#define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0) | MUXDEF(CONFIG_RV_ZICFILP, SSTATUS_SPELP, 0))
 
 /** AIA **/
 #define ISELECT_2F_MASK 0x2F
@@ -1981,7 +2030,7 @@ MAP(CSRS, CSRS_DECL)
 
 /** Double Trap**/
 #ifdef CONFIG_RV_SMRNMI
-  #define MNSTATUS_MASK (MNSTATUS_NMIE | MNSTATUS_MNPV | MNSTATUS_MNPP)
+  #define MNSTATUS_MASK (MNSTATUS_NMIE | MNSTATUS_MNPV | MNSTATUS_MNPP | MUXDEF(CONFIG_RV_ZICFILP, MNSTATUS_MNPELP, 0))
 #endif
 
 /**
