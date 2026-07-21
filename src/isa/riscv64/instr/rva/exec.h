@@ -40,8 +40,27 @@ def_EHelper(name) { \
 
 AMO_LIST(def_AMO_EHelper, d)
 AMO_LIST(def_AMO_EHelper, w)
+#ifdef CONFIG_RV_ZABHA
+#define AMO_ZABHA_LIST(f, s) \
+  f(concat3(amoswap, _, s)) \
+  f(concat3(amoadd , _, s)) \
+  f(concat3(amoor  , _, s)) \
+  f(concat3(amoand , _, s)) \
+  f(concat3(amoxor , _, s)) \
+  f(concat3(amomaxu, _, s)) \
+  f(concat3(amomax , _, s)) \
+  f(concat3(amominu, _, s)) \
+  f(concat3(amomin , _, s))
+
+AMO_ZABHA_LIST(def_AMO_EHelper, b)
+AMO_ZABHA_LIST(def_AMO_EHelper, h)
+#endif // CONFIG_RV_ZABHA
 #ifdef CONFIG_RV_ZACAS
 AMO_CAS_LIST(def_AMO_EHelper)
+#ifdef CONFIG_RV_ZABHA
+def_AMO_EHelper(amocas_b)
+def_AMO_EHelper(amocas_h)
+#endif // CONFIG_RV_ZABHA
 #endif // CONFIG_RV_ZACAS
 #else
 def_AMO_EHelper(atomic)
