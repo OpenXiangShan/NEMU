@@ -39,6 +39,18 @@ word_t mtvaltmp  = 0;
 void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 // reference: v_ext_macros.h in riscv-isa-sim
 
+static inline bool skip_empty_vldst(Decode *s) {
+  if (!check_vstart_ignore(s)) {
+    return false;
+  }
+
+  // predecode_vls() marks the CPU before dispatching to a vector memory helper.
+  // An empty vector operation must clear that transient state before returning.
+  cpu.isVldst = false;
+  cpu.isVecUnitStore = false;
+  return true;
+}
+
 static void isa_emul_check(int emul, int nfields) {
   if (emul > 3) {
     Loge("vector EMUL > 8 happen: EMUL:%d\n", (1 << emul));
@@ -245,7 +257,7 @@ void set_vec_load_difftest_info(int fn, int len) {
 
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
@@ -427,7 +439,7 @@ void vldx(Decode *s, int mmu_mode) {
   //        6  ->  32         2  ->  32
   //        7  ->  64         3  ->  64
   index_vload_check(s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t nf = s->v_nf + 1, fn, vl_val, ori_vstart, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
@@ -518,7 +530,7 @@ extern uint64_t g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized;
 
 void vst(Decode *s, int mode, int mmu_mode) {
   vstore_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   g_nr_vst += 1;
   uint64_t idx;
   uint64_t nf, vl_val, base_addr, vd, addr, is_unit_stride;
@@ -684,7 +696,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
 void vstx(Decode *s, int mmu_mode) {
   index_vstore_check(s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
@@ -893,7 +905,7 @@ void vsr(Decode *s, int mmu_mode) {
 void vldff(Decode *s, int mode, int mmu_mode) {
   fofvl = 0;
   vload_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
