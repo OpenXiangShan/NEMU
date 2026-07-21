@@ -127,7 +127,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (NO & INTR_BIT), false);
   bool delegS = intr_deleg_S(NO);
   bool delegM = !delegS && !isNMI;
-  bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegS && mstatus->sdt, false);
+  bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegS && ((sstatus_read(false, true) & SSTATUS_SDT) != 0), false);
   bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   word_t trap_pc = 0;
 #ifdef CONFIG_RVH
