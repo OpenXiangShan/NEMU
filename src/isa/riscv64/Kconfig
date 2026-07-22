@@ -149,7 +149,7 @@ config RV_AME_MLEN
 choice
   prompt "Matrix MSYNC (sync register count)"
   depends on RV_AME
-  default RV_AME_MSYNC_32
+  default RV_AME_MSYNC_16
   help
     Number of matrix sync registers exposed by msync CSR and backed by NEMU
     state storage.

@@ -93,7 +93,10 @@ def_EHelper(mgetcfg) {
 
 def_EHelper(msyncreset) {
   require_matrix();
-  uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
+  int tok_i = (int)s->src2.imm;
+  if (tok_i < 0 || tok_i >= MSYNC) {
+    longjmp_exception(EX_II);
+  }
   cpu.mtokr[tok_i] = 0;
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(0, tok_i);
@@ -103,7 +106,10 @@ def_EHelper(msyncreset) {
 
 def_EHelper(mrelease) {
   require_matrix();
-  uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
+  int tok_i = (int)s->src2.imm;
+  if (tok_i < 0 || tok_i >= MSYNC) {
+    longjmp_exception(EX_II);
+  }
 #ifndef CONFIG_SHARE
   cpu.mtokr[tok_i]++;
 #endif
@@ -121,7 +127,10 @@ def_EHelper(mrelease) {
 
 def_EHelper(macquire) {
   require_matrix();
-  uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
+  int tok_i = (int)s->src2.imm;
+  if (tok_i < 0 || tok_i >= MSYNC) {
+    longjmp_exception(EX_II);
+  }
   // Do nothing in NEMU.
 #ifndef CONFIG_SHARE
   Assert(cpu.mtokr[tok_i] >= reg_l(s->src1.reg),
