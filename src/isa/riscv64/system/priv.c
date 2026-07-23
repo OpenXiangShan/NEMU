@@ -2921,7 +2921,11 @@ static void csr_write(uint32_t csrid, word_t src) {
 #else
   if (is_write(mstatus) || is_write(satp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
 #endif
-  if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
+  if (is_write(satp)
+#ifdef CONFIG_RV_MPT_CHECK
+      || is_write(mmpt)
+#endif
+     ) { mmu_tlb_flush(0); } // when satp/mmpt is changed, flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
@@ -3828,6 +3832,16 @@ void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
 }
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RV_MPT_CHECK
+void riscv64_mfence() {
+  //(paddr_t addr, word_t sdid) { add later
+  if (cpu.mode != MODE_M) {
+    Log("Mfence not in M mode.\n"); 
+    longjmp_exception(EX_II);
+  }//EXII if not in M mode
+  mmu_tlb_flush(0);
+}
+#endif // CONFIG_RVH
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {

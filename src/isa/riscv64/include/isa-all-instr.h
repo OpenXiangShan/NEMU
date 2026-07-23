@@ -105,10 +105,18 @@
   #define SYS_RVH_INSTR_TERNARY(f)
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RV_MPT_CHECK
+  #define SYS_MPT_INSTR_TERNARY(f) \
+    f(mfence)
+#else // CONFIG_RVH
+  #define SYS_MPT_INSTR_TERNARY(f)
+#endif
+
 #define SYS_INSTR_TERNARY(f) \
   f(sfence_vma) \
   SYS_SVINVAL_INSTR_TERNARY(f) \
-  SYS_RVH_INSTR_TERNARY(f)
+  SYS_RVH_INSTR_TERNARY(f) \
+  SYS_MPT_INSTR_TERNARY(f)
 
 
 /********************** SYS INSTR TERNARY CSR (csr) **********************/
