@@ -232,6 +232,13 @@
 #define CRYPTO_INSTR_BINARY(f)
 #endif // CONFIG_RVK
 
+#ifdef CONFIG_RV_ZVBC
+#define ZVBC_INSTR_TERNARY(f) \
+  f(vclmul) f(vclmulh)
+#else
+#define ZVBC_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVBC
+
 #ifdef CONFIG_RV_ZICOND
 #define ZICOND_INSTR_TERNARY(f) \
   f(czero_eqz) f(czero_nez)
@@ -418,6 +425,7 @@
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
+  ZVBC_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
   ZVFBF_MIN_INSTR_TERNARY(f) \
