@@ -1,13 +1,12 @@
-#ifndef __EXT_AMUCTRL_H__
-#define __EXT_AMUCTRL_H__
+#ifndef __AME_EVENT_H__
+#define __AME_EVENT_H__
 
 #include <common.h>
 
 #ifdef CONFIG_RV_AME
 
-// Attention: the order of fields in this class must be the same as the order
-//            in the corresponding struct in XiangShan(or XSAI)'s diffstate.h.
-typedef struct  {
+// The field order is part of the AMU control ABI shared with XSAI.
+typedef struct {
   uint8_t  valid;
   uint8_t  op;
   uint8_t  rm;
@@ -27,10 +26,6 @@ typedef struct  {
   uint64_t pc;
 } amu_ctrl_event_t;
 
-int check_amu_ctrl(amu_ctrl_event_t *cmp);
-amu_ctrl_event_t get_amu_ctrl_info();
-int exec_amu(void *amu_ctrl, void *res);
-void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
-
 #endif // CONFIG_RV_AME
-#endif // __EXT_AMUCTRL_H__
+
+#endif // __AME_EVENT_H__

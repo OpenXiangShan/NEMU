@@ -1,8 +1,8 @@
-#ifndef NEMU_MSYNC_QUEUE_WRAPPER_H
-#define NEMU_MSYNC_QUEUE_WRAPPER_H
+#ifndef __AME_MSYNC_QUEUE_WRAPPER_H__
+#define __AME_MSYNC_QUEUE_WRAPPER_H__
 
 #include <common.h>
-#include <ext/msync.h>
+#include <cpu/difftest/ame/msync.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,4 +24,4 @@ void msync_queue_emplace(uint8_t op, uint8_t msyncRd);
 }
 #endif
 
-#endif // NEMU_MSYNC_QUEUE_WRAPPER_H
+#endif // __AME_MSYNC_QUEUE_WRAPPER_H__

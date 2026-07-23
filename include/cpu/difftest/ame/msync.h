@@ -1,5 +1,5 @@
-#ifndef __EXT_MSYNC_H__
-#define __EXT_MSYNC_H__
+#ifndef __AME_MSYNC_H__
+#define __AME_MSYNC_H__
 
 #include <common.h>
 
@@ -18,4 +18,4 @@ int check_msync(msync_event_t *cmp);
 msync_event_t get_msync_info();
 
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
-#endif // __EXT_MSYNC_H__
+#endif // __AME_MSYNC_H__

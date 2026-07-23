@@ -1,5 +1,5 @@
-#ifndef __EXT_MSTORE_H__
-#define __EXT_MSTORE_H__
+#ifndef __AME_MSTORE_H__
+#define __AME_MSTORE_H__
 
 #include <common.h>
 
@@ -21,5 +21,5 @@ typedef struct {
 } mstore_info_t;
 
 #endif // CONFIG_RV_AME
-#endif // __EXT_MSTORE_H__
+#endif // __AME_MSTORE_H__
 

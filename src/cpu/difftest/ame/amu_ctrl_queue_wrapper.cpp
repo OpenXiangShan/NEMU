@@ -1,8 +1,8 @@
-#include <ext/amuctrl.h>
-#include <ext/amu_ctrl_queue_wrapper.h>
+#include <cpu/difftest/ame/amuctrl.h>
+#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
 #include <cpu/decode.h>
 
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 #include <queue>
 
 std::queue<amu_ctrl_event_t> cpp_amu_ctrl_queue;
@@ -96,4 +96,4 @@ void amu_ctrl_queue_mzero_emplace(bool isacc, uint8_t md) {
   amu_ctrl_queue_push(event);
 }
 
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)

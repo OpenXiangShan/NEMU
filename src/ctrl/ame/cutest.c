@@ -1,10 +1,9 @@
+#include <ctrl/ame/cutest.h>
 #include <cpu/decode.h>
-#include <ext/amu_ctrl_queue_wrapper.h>
-#include <ext/amuctrl.h>
+#include <ctrl/ctrl.h>
 
 #ifdef CONFIG_SHARE_CTRL
 
-extern void (*amu_ctrl_callback_)(amu_ctrl_event_t);
 extern Decode *prev_s;
 
 void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,

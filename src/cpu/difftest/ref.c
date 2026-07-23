@@ -15,8 +15,8 @@
 ***************************************************************************************/
 
 #include <isa.h>
-#include <ext/amuctrl.h>
-#include <ext/msync.h>
+#include <cpu/difftest/ame/amuctrl.h>
+#include <cpu/difftest/ame/msync.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
@@ -299,9 +299,9 @@ void difftest_get_store_event_other_info(void *info) {
 
 
 void difftest_get_amu_ctrl_event_other_info(void *info) {
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   *(uint64_t*)info = get_amu_ctrl_info().pc;
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
 void difftest_get_msync_event_other_info(void *info) {
@@ -317,12 +317,12 @@ int difftest_amu_ctrl(void *cmp) {
   //   0:  Queue head matches cmp
   //   1:  Queue head does not match cmp
   //   -1: Queue is empty, no cmp to check
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   amu_ctrl_event_t *amu_ctrl = (amu_ctrl_event_t *)cmp;
   return check_amu_ctrl(amu_ctrl);
 #else
   return 0;
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
 int difftest_msync_event(void *cmp) {
@@ -341,17 +341,17 @@ int difftest_msync_event(void *cmp) {
 }
 
 int difftest_amu_exec(void *amu_ctrl, void *res) {
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   return exec_amu(amu_ctrl, res);
 #else
   return 0;
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
 void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)

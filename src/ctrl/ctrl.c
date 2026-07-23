@@ -15,9 +15,8 @@
 ***************************************************************************************/
 
 #include "utils.h"
+#include <ctrl/ctrl.h>
 #include <isa.h>
-#include <ext/amuctrl.h>
-#include <ext/msync.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>

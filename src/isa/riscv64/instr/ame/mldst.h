@@ -24,7 +24,7 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
-#include "ext/mstore_queue_wrapper.h"
+#include "ame/mstore_queue_wrapper.h"
 #include "mcommon.h"
 
 // #define PRINT_AMUCTRLIO

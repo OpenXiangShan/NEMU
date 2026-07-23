@@ -18,12 +18,12 @@
 #ifdef CONFIG_RV_AME
 
 #include "cpu/exec.h"
-#include "ext/amu_ctrl_queue_wrapper.h"
-#include <ext/cutest.h>
+#include "cpu/difftest/ame/amu_ctrl_queue_wrapper.h"
+#include <ctrl/ame/cutest.h>
 #ifdef CONFIG_SHARE_REF
-#include "ext/msync_queue_wrapper.h"
+#include "cpu/difftest/ame/msync_queue_wrapper.h"
 #endif // CONFIG_SHARE_REF
-#include "ext/mstore_queue_wrapper.h"
+#include "ame/mstore_queue_wrapper.h"
 #include "mcommon.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"

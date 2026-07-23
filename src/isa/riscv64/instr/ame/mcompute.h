@@ -24,8 +24,8 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #include <cpu/cpu.h>
-#include <ext/amu_ctrl_queue_wrapper.h>
-#include <ext/cutest.h>
+#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
+#include <ctrl/ame/cutest.h>
 #include "mcommon.h"
 #include "mcompute_impl.h"
 #include "rtl/fp.h"

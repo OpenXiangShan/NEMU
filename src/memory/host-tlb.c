@@ -14,8 +14,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <ext/amu_ctrl_queue_wrapper.h>
-#include <ext/cutest.h>
+#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
+#include <ctrl/ame/cutest.h>
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/vaddr.h>
