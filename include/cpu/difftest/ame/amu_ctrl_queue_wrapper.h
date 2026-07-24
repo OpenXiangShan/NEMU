@@ -1,14 +1,14 @@
-#ifndef NEMU_AMU_CTRL_QUEUE_WRAPPER_H
-#define NEMU_AMU_CTRL_QUEUE_WRAPPER_H
+#ifndef __AME_AMU_CTRL_QUEUE_WRAPPER_H__
+#define __AME_AMU_CTRL_QUEUE_WRAPPER_H__
 
 #include <common.h>
-#include <ext/amuctrl.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+#include <ame/event.h>
 void amu_ctrl_queue_reset();
 void amu_ctrl_queue_push(amu_ctrl_event_t amu_ctrl_event);
 void amu_ctrl_queue_pop();
@@ -26,10 +26,10 @@ void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
                                 uint16_t row, uint16_t column, uint8_t msew);
 void amu_ctrl_queue_mrelease_emplace(uint8_t msyncRd);
 void amu_ctrl_queue_mzero_emplace(bool isacc, uint8_t md);
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // NEMU_AMU_CTRL_QUEUE_WRAPPER_H
+#endif // __AME_AMU_CTRL_QUEUE_WRAPPER_H__

@@ -1,8 +1,8 @@
-#ifndef NEMU_MSTORE_QUEUE_WRAPPER_H
-#define NEMU_MSTORE_QUEUE_WRAPPER_H
+#ifndef __AME_MSTORE_QUEUE_WRAPPER_H__
+#define __AME_MSTORE_QUEUE_WRAPPER_H__
 
 #include <common.h>
-#include <ext/mstore.h>
+#include <ame/mstore.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,5 +31,5 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
 }
 #endif
 
-#endif // NEMU_MSTORE_QUEUE_WRAPPER_H
+#endif // __AME_MSTORE_QUEUE_WRAPPER_H__
 

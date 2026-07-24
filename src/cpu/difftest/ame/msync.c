@@ -1,5 +1,5 @@
-#include <ext/msync.h>
-#include <ext/msync_queue_wrapper.h>
+#include <cpu/difftest/ame/msync.h>
+#include <cpu/difftest/ame/msync_queue_wrapper.h>
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 

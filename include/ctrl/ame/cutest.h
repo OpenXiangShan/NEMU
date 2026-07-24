@@ -1,10 +1,10 @@
-#ifndef NEMU_CUTEST_H
-#define NEMU_CUTEST_H
+#ifndef __CTRL_AME_CUTEST_H__
+#define __CTRL_AME_CUTEST_H__
 
 #include <common.h>
-#include <ext/amuctrl.h>
 
 #ifdef CONFIG_SHARE_CTRL
+#include <ame/event.h>
 
 void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,
   uint8_t ms1, uint8_t ms2,
@@ -20,4 +20,4 @@ void cutest_mrelease_emplace(uint8_t msyncRd);
 void cutest_mzero_emplace(bool isacc, uint8_t md);
 
 #endif // CONFIG_SHARE_CTRL
-#endif // NEMU_CUTEST_H
+#endif // __CTRL_AME_CUTEST_H__

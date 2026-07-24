@@ -1,10 +1,10 @@
-#include <ext/amuctrl.h>
-#include <ext/amu_ctrl_queue_wrapper.h>
-#include <ext/mstore_queue_wrapper.h>
+#include <cpu/difftest/ame/amuctrl.h>
+#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
+#include <ame/mstore_queue_wrapper.h>
 #include <isa.h>
 #include <memory/host.h>
 
-#ifdef CONFIG_RV_AME
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
 #ifndef MATRIX_DIFF_PRINT_CNT
 #define MATRIX_DIFF_PRINT_CNT 32
@@ -272,4 +272,4 @@ void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3
   memcpy(cpu.macc[md - 4], res, ALEN / 8);
 }
 
-#endif // CONFIG_RV_AME
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)

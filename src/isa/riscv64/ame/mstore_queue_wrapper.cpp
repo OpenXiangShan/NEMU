@@ -1,6 +1,6 @@
 #include <cstdint>
-#include <ext/mstore.h>
-#include <ext/mstore_queue_wrapper.h>
+#include <ame/mstore.h>
+#include <ame/mstore_queue_wrapper.h>
 #include <cpu/decode.h>
 
 #ifdef CONFIG_RV_AME
