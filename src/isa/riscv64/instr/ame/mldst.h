@@ -189,16 +189,18 @@ void mst(Decode *s, bool is_trans, char m_name) {
 void mld_whole(Decode *s, char m_name) {
   uint64_t td = s->dest.reg;
   uint8_t dsize = m_name == 'c' ? 2 : 0;
+  uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
-  exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
+  exec_mld(s, reg_l(s->src1.reg), row_byte_stride, td,
     ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8, dsize, false, m_name);
 }
 
 void mst_whole(Decode *s, char m_name) {
   uint64_t ts3 = s->dest.reg;
   uint8_t dsize = m_name == 'c' ? 2 : 0;
+  uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
-  exec_mst(s, reg_l(s->src1.reg), reg_l(s->src2.reg), ts3,
+  exec_mst(s, reg_l(s->src1.reg), row_byte_stride, ts3,
     ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8, dsize, false, m_name);
 }
 
