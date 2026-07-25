@@ -19,6 +19,7 @@
 #include <cpu/difftest/ame/msync.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
+#include <memory/host-tlb.h>
 #include <memory/store_queue_wrapper.h>
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
@@ -427,6 +428,7 @@ void difftest_init() {
   //add_mmio_map("difftest.serial", 0xa10003f8, new_space(8), 8, NULL);
 
 #ifdef CONFIG_SHARE
+  IFDEF(CONFIG_REF_HOSTTLB, hosttlb_init());
   dynamic_config.debug_difftest = false;
 #endif
 }
