@@ -852,6 +852,18 @@ def_EHelper(vmulh) {
   ARITH(MULH, SIGNED)
 }
 
+#ifdef CONFIG_RV_ZVBC
+def_EHelper(vclmul) {
+  if (vtype->vsew != 3) longjmp_exception(EX_II);
+  ARITH(VCLMUL, UNSIGNED)
+}
+
+def_EHelper(vclmulh) {
+  if (vtype->vsew != 3) longjmp_exception(EX_II);
+  ARITH(VCLMULH, UNSIGNED)
+}
+#endif // CONFIG_RV_ZVBC
+
 def_EHelper(vmadd) {
   ARITH(MADD, SIGNED)
 }

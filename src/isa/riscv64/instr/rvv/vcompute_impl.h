@@ -64,6 +64,7 @@ enum op_t {
   FWMUL, FWMACC, FWNMACC, FWMSAC, FWNMSAC,
 
   ANDN, BREV_V, BREV8_V, REV8_V, CLZ_V, CTZ_V, CPOP_V, ROL, ROR,
+  VCLMUL, VCLMULH
 };
 
 enum fp_wop_t {
