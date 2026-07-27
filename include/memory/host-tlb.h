@@ -19,7 +19,7 @@
 #include <common.h>
 
 struct Decode;
-word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type);
+word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type, int trap_type);
 void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                          int row, int column, int msew, bool transpose,
                          bool isacc, int mreg_id);
