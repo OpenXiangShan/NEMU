@@ -120,8 +120,8 @@ CONFIG_MODE_SYSTEM=y
 CONFIG_CC_GCC=y
 # CONFIG_CC_GPP is not set
 # CONFIG_CC_CLANG is not set
-CONFIG_CC="gcc"
-CONFIG_CXX="g++"
+CONFIG_CC="gcc-16"
+CONFIG_CXX="g++-16"
 # CONFIG_CC_O0 is not set
 # CONFIG_CC_O1 is not set
 # CONFIG_CC_O2 is not set

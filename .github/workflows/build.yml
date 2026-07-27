@@ -33,6 +33,9 @@ jobs:
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
+    - name: Install GCC 16
+      run: scripts/ci/install-gcc-16.sh
+
     - name: Compile dynamic library
       run: |
         make riscv64-${{ matrix.cpu }}-${{ matrix.type }}_defconfig

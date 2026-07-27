@@ -84,6 +84,8 @@ jobs:
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+    - name: Install GCC 16
+      run: scripts/ci/install-gcc-16.sh
     - name: Try to compile
       id: list_configs
       run: |
@@ -438,6 +440,9 @@ jobs:
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Install GCC 16
+        run: scripts/ci/install-gcc-16.sh
 
       - name: Run performance tests
         env:

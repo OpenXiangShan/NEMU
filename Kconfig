@@ -116,18 +116,24 @@ config CC_CLANG
 endchoice
 
 config CC
-  string
+  string "C compiler command"
   default "gcc" if CC_GCC
   default "g++" if CC_GPP
   default "clang" if CC_CLANG
   default "none"
+  help
+    Command used to compile C sources. This may be a versioned executable,
+    such as gcc-16, or a compiler wrapper.
 
 config CXX
-  string
+  string "C++ compiler command"
   default "g++" if CC_GCC
   default "g++" if CC_GPP
   default "clang++" if CC_CLANG
   default "none"
+  help
+    Command used to compile C++ sources. This may be a versioned executable,
+    such as g++-16, or a compiler wrapper.
 
 choice
   prompt "Optimization Level"
