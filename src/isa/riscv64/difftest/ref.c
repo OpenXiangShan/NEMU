@@ -258,6 +258,8 @@ void isa_difftest_regcpy(void *dut, bool direction) {
 void isa_difftest_csrcpy(void *dut, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
     memcpy(csr_array, dut, 4096 * sizeof(rtlreg_t));
+    mmu_refresh_pmp_cache();
+    mmu_refresh_pma_cache();
   } else {
     memcpy(dut, csr_array, 4096 * sizeof(rtlreg_t));
   }

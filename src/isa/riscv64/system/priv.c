@@ -202,7 +202,7 @@ void init_custom_csr() {
 
 #ifdef CONFIG_RV_PMA_CSR
 void init_pma() {
-  unsigned long long pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM][9] = {
+  unsigned long long pmaConfigInit[CONFIG_RV_PMA_NUM][9] = {
     // base_addr,       range,             l, c, t, a, x, w, r
     {0,                0x1000000000000ULL, F, F, F, 3, F, F, F},
     {0x80000000000ULL, 0,                  F, T, T, 1, T, T, T},
@@ -2691,6 +2691,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmpcfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pmp_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2715,6 +2716,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
       }
       ref_log_cpu("write pmp addr%d to %016lx",idx, *dest);
+      mmu_refresh_pmp_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2748,6 +2750,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pma_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2771,6 +2774,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
       }
       ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
+      mmu_refresh_pma_cache();
       mmu_tlb_flush(0);
       break;
     }
