@@ -163,6 +163,7 @@ void csr_writeback() {
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   tselect->val  = cpu.tselect;
   cpu.TM->triggers[tselect->val].tdata1.val = cpu.tdata1; // update alias tdata1 to trigger module
+  trigger_mark_state_dirty(cpu.TM);
   tinfo->val    = cpu.tinfo;
 #endif // CONFIG_DIFFTEST_CHECK_SDTRIG
 
