@@ -316,8 +316,10 @@ inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
 #endif
 
 #ifdef CONFIG_RVH
-bool has_two_stage_translation(){
-  return hld_st || (get_mprv() && mstatus->mpv) || cpu.v;
+extern bool has_two_stage_translation(void);
+bool inline has_two_stage_translation(){
+  bool mprv = mstatus->mprv && MUXDEF(CONFIG_RV_SMRNMI, mnstatus->nmie, true);
+  return hld_st || (mprv && mstatus->mpv) || cpu.v;
 }
 
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
