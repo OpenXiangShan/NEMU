@@ -177,6 +177,15 @@ bool mcontrol6_value_match(Trigger* trig, word_t value);
 bool mcontrol6_check_chain_legal(const TriggerModule* TM, const int max_chain_len);
 void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const TriggerModule* TM);
 
+static inline bool trigger_mcontrol6_active(const TriggerModule* TM) {
+  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
+    if (TM->triggers[i].tdata1.common.type == TRIG_TYPE_MCONTROL6) {
+      return true;
+    }
+  }
+  return false;
+}
+
 trig_action_t check_triggers_etrigger(TriggerModule* TM, uint64_t cause);
 bool etrigger_match(Trigger* trig, uint64_t cause);
 void etrigger_checked_write(trig_etrigger_t* etrigger, word_t* wdata);
