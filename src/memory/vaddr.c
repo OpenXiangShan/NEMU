@@ -46,6 +46,7 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
   return paddr;
 }
 
+__attribute__((noinline, cold))
 static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTranslate) {
   vaddr_t vaddr = addr;
   word_t data = 0;
@@ -78,6 +79,7 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
   return data;
 }
 
+__attribute__((noinline, cold))
 static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool needTranslate) {
   // (unaligned & cross page) store, align with dut(xs)
   //                  4KB|
