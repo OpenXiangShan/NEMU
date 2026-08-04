@@ -685,7 +685,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 // mvien
 #define MVIEN_MASK (LCI | (1 << IRQ_S_EXT) | (1 << IRQ_S_SOFT))
 // hvien
-#define HVIEN_MSAK LCI
+#define HVIEN_MASK LCI
 
 // mvip
 #define MVIP_MASK LCI
@@ -1931,7 +1931,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HIE: return get_hie();
     case CSR_HGEIE: return hgeie->val & HGEIE_MASK;
 #ifdef CONFIG_RV_AIA
-    case CSR_HVIEN: return hvien->val & HVIEN_MSAK;
+    case CSR_HVIEN: return hvien->val & HVIEN_MASK;
 #endif
     case CSR_HENVCFG:
     {
@@ -2455,7 +2455,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_HCOUNTEREN: hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src); break;
 
 #ifdef CONFIG_RV_AIA
-    case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MSAK, src); break;
+    case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MASK, src); break;
 #endif // CONFIG_RV_AIA
 
     case CSR_HENVCFG:
