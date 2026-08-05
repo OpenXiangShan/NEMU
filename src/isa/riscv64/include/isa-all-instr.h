@@ -22,15 +22,30 @@
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #define AMO_INSTR_BINARY(f) \
   f(lr_w) f(lr_d)
+#ifdef CONFIG_RV_ZABHA
+#define AMO_ZABHA_INSTR(f) \
+  f(amoadd_b) f(amoswap_b) f(amoxor_b) f(amoor_b) f(amoand_b) \
+  f(amomin_b) f(amomax_b) f(amominu_b) f(amomaxu_b) \
+  f(amoadd_h) f(amoswap_h) f(amoxor_h) f(amoor_h) f(amoand_h) \
+  f(amomin_h) f(amomax_h) f(amominu_h) f(amomaxu_h)
+#else // CONFIG_RV_ZABHA
+#define AMO_ZABHA_INSTR(f)
+#endif // CONFIG_RV_ZABHA
 #define AMO_INSTR_TERNARY(f) \
   f(sc_w) f(sc_d) \
   f(amoadd_w) f(amoswap_w) f(amoxor_w) f(amoor_w) f(amoand_w) \
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
-  f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
+  f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d) \
+  AMO_ZABHA_INSTR(f)
 #ifdef CONFIG_RV_ZACAS
+#if defined(CONFIG_RV_ZABHA)
+#define AMO_ZABHA_CAS_INSTR(f) f(amocas_b) f(amocas_h)
+#else // CONFIG_RV_ZABHA
+#define AMO_ZABHA_CAS_INSTR(f)
+#endif // CONFIG_RV_ZABHA
 #define AMO_CAS_INSTR(f) \
-  f(amocas_w) f(amocas_d) f(amocas_q)
+  f(amocas_w) f(amocas_d) f(amocas_q) AMO_ZABHA_CAS_INSTR(f)
 #else // CONFIG_RV_ZACAS
 #define AMO_CAS_INSTR(f)
 #endif // CONFIG_RV_ZACAS
