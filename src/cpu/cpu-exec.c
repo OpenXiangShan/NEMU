@@ -229,8 +229,6 @@ static bool manual_cpt_quit = false;
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     s = s->tnext;                                                              \
-    is_ctrl = true;                                                            \
-    br_taken = true;                                                           \
     goto end_of_bb;                                                            \
   } while (0)
 
@@ -240,8 +238,6 @@ static bool manual_cpt_quit = false;
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     s = jr_fetch(s, *(target));                                                \
-    is_ctrl = true;                                                            \
-    br_taken = true;                                                           \
     goto end_of_bb;                                                            \
   } while (0)
 
@@ -250,10 +246,8 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    is_ctrl = true;                                                            \
     if (interpret_relop(relop, *src1, *src2)) {                                \
       s = s->tnext;                                                            \
-      br_taken = true;                                                         \
     } else                                                                     \
       s = s->ntnext;                                                           \
     goto end_of_bb;                                                            \
@@ -281,7 +275,7 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    is_ctrl = true;                                                            \
+    profile_control_exit = true;                                               \
     s = jr_fetch(s, *(target));                                                \
     if (g_sys_state_flag) {                                                    \
       if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
@@ -317,7 +311,7 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 }
 
 #ifndef CONFIG_SHARE
-uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
+uint64_t per_bb_profile(Decode *prev_s, Decode *s) {
 
 
   // checkpoint_icount_base is set from nemu_trap.
@@ -411,8 +405,11 @@ static void execute(int n) {
   }
 
   __attribute__((unused)) Decode *this_s = NULL;
-  __attribute__((unused)) bool br_taken = false;
-  __attribute__((unused)) bool is_ctrl = false;
+  __attribute__((unused)) bool profile_control_exit = false;
+#ifndef CONFIG_SHARE
+  const bool per_bb_profile_active =
+    profiling_state != NoProfiling || checkpoint_state != NoCheckpoint;
+#endif
 
   // main loop
   while (true) {
@@ -420,8 +417,6 @@ static void execute(int n) {
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
-    br_taken = false;
-
     goto *(s->EHelper);
 
 #undef s0
@@ -445,13 +440,13 @@ static void execute(int n) {
     // Exit the execute() loop after certain basic blocks, even if instr count is disabled.
     IFDEF(CONFIG_INSTR_CNT_DISABLED, n_remain -= 1);
 
-    if (is_ctrl) {
-      uint64_t abs_inst_count = per_bb_profile(prev_s, s, br_taken);
+    if (unlikely(per_bb_profile_active)) {
+      uint64_t abs_inst_count = per_bb_profile(prev_s, s);
       Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
       Logtb("Executed %ld instructions in total, pc: 0x%lx\n",
             (int64_t)abs_inst_count, prev_s->pc);
     }
-    if (manual_cpt_quit) {
+    if (unlikely(per_bb_profile_active && manual_cpt_quit)) {
       Log("unlikely(manual_cpt_quit)=%ld, manual_cpt_quit=%d",
           unlikely(manual_cpt_quit), manual_cpt_quit);
     }
@@ -460,7 +455,7 @@ static void execute(int n) {
       // goto end_of_loop;
       break;
     }
-    if (unlikely(manual_cpt_quit)) {
+    if (unlikely(per_bb_profile_active && manual_cpt_quit)) {
       // goto end_of_loop;
       break;
     }
@@ -470,8 +465,6 @@ static void execute(int n) {
     // Most of executed instruction (except some priv instructions) will goto here.
     // Don't put Log here to improve performance
 
-    // clear for recording next inst
-    is_ctrl = false;
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(this_s->instr_stat_category));
@@ -498,11 +491,11 @@ end_of_loop:
   Logti("end_of_loop: prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 
-  if (is_ctrl) {
-    per_bb_profile(prev_s, s, br_taken);
+  if (profile_control_exit && unlikely(per_bb_profile_active)) {
+    per_bb_profile(prev_s, s);
   }
 
-  if (manual_cpt_quit) {
+  if (unlikely(per_bb_profile_active && manual_cpt_quit)) {
     Log("unlikely(manual_cpt_quit)=%ld, manual_cpt_quit=%d",
         unlikely(manual_cpt_quit), manual_cpt_quit);
   }
