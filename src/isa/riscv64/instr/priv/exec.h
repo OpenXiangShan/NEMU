@@ -74,6 +74,13 @@ def_EHelper(sfence_vma) {
   rtl_priv_next(s);
 }
 
+#ifdef CONFIG_RV_MPT_CHECK
+def_EHelper(mfence) {
+  riscv64_mfence();
+  rtl_priv_next(s);
+}
+#endif 
+
 #ifdef CONFIG_RVH
 def_EHelper(hfence_vvma) {
   riscv64_priv_hfence_vvma(*dsrc1, *ddest);
