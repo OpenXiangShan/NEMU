@@ -270,6 +270,13 @@
 #define ZVKNED_INSTR_BINARY(f)
 #endif // CONFIG_RV_ZVKNED
 
+#ifdef CONFIG_RV_ZVKSED
+#define ZVKSED_INSTR_BINARY(f) \
+  f(vsm4k) f(vsm4r)
+#else
+#define ZVKSED_INSTR_BINARY(f)
+#endif // CONFIG_RV_ZVKSED
+
 #ifdef CONFIG_RV_ZVKG
 #define ZVKG_INSTR_BINARY(f) \
   f(vgmul)
@@ -455,6 +462,7 @@
   TENSOR_INSTR_BINARY(f) \
   MATRIX_INSTR_BINARY(f) \
   ZVKNED_INSTR_BINARY(f) \
+  ZVKSED_INSTR_BINARY(f) \
   ZVKG_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \

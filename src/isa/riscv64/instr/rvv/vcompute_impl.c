@@ -25,6 +25,7 @@
 
 #include "../rvb/rvintrin.h" // For the Zvbc clmul function reutilization
 #include "../rvk/aes_common.h"
+#include "../rvk/sm4_common.h"
 
 #undef s0
 #undef s1
@@ -1248,7 +1249,8 @@ void vaes_exec(vaes_op_t op, Decode *s) {
         state[k] = (uint32_t)*s0;
       }
       for (int k = 0; k < 4; k++) {
-        get_vreg(id_src2->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+
+    get_vreg(id_src2->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
         rk[k] = (uint32_t)*s1;
       }
     } else {
@@ -1399,6 +1401,126 @@ void vaes_exec(vaes_op_t op, Decode *s) {
 }
 
 #endif // CONFIG_RV_ZVKNED
+
+#ifdef CONFIG_RV_ZVKSED
+
+uint32_t sm4_subword(uint32_t B) {
+  return (sm4_sbox[B >> 24] << 24 |
+          sm4_sbox[(B >> 16) & 0xFF] << 16 |
+          sm4_sbox[(B >> 8) & 0xFF] << 8 |
+          sm4_sbox[B & 0xFF]);
+}
+
+uint32_t rol32(uint32_t x, uint32_t n) {
+  return (x << n) | (x >> (32 - n));
+}
+
+uint32_t sm4_round_key(uint32_t x, uint32_t S) {
+  return ((x) ^ (S ^ rol32(S, 13) ^ rol32(S, 23)));
+}
+
+uint32_t sm4_round(uint32_t x, uint32_t S) {
+  return ((x) ^ ((S) ^ rol32(S, 2) ^ rol32(S, 10) ^ rol32(S, 18) ^ rol32(S, 24)));
+}
+
+void vsm_exec(vsm_op_t op, Decode *s) {
+  require_vector(true);
+
+  uint8_t rnum = 0;
+  if (op == VSM_OP_VSM4K) {
+    rnum = s->isa.instr.v_opv.v_vs1 & 0x7;
+  }
+
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 4;
+
+  for (int g = vstart->val / 4; g < egroups; g++) {
+    int base = g * 4;
+
+    bool all_masked = true;
+    if (s->vm == 0) {
+      for (int k = 0; k < 4; k++) {
+        if (get_mask(0, base + k)) { all_masked = false; break; }
+      }
+      if (all_masked) continue;
+    }
+
+    uint32_t state[8] = {0};
+    uint32_t rk[8] = {0};
+
+    if (op == VSM_OP_VSM4R) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        get_vreg(id_dest->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+
+        rk[k] = (uint32_t)*s0;
+        state[k] = (uint32_t)*s1;
+      }
+    } else if (op == VSM_OP_VSM4K) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+
+        rk[k] = (uint32_t)*s0;
+      }
+
+    } else {
+
+    }
+
+    switch (op) {
+      case VSM_OP_VSM4R:
+        for (int i = 0; i < 4; i++) {
+          uint32_t B = state[i + 1] ^ state[i + 2] ^ state[i + 3] ^ rk[i];
+          uint32_t S = sm4_subword(B);
+          state[i + 4] = sm4_round(state[i], S);
+        }
+        break;
+      case VSM_OP_VSM4K:
+        for (int i = 0; i < 4; i++) {
+          uint32_t B = rk[i + 1] ^ rk[i + 2] ^ rk[i + 3] ^ ck[4 * rnum + i];
+          uint32_t S = sm4_subword(B);
+          rk[i+4] = sm4_round_key(rk[i], S);
+        }
+        break;
+    }
+
+
+    for (int k = 0; k < 4; k++) {
+      if (s->vm == 0 && get_mask(0, base + k) == 0) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          *s1 = (uint64_t)-1;
+          set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+        }
+        continue;
+      }
+      *s1 = op == VSM_OP_VSM4R ? state[k + 4] : rk[k + 4];
+      set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax_tail = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 4; idx < vlmax_tail; idx++) {
+      *s1 = (uint64_t)-1;
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+
+#endif // CONFIG_RV_ZVKSED
 
 void permutaion_instr(int opcode, Decode *s) {
   check_vstart_exception(s);

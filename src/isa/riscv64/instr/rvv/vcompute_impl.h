@@ -83,6 +83,15 @@ typedef enum {
 void vaes_exec(vaes_op_t op, Decode *s);
 #endif
 
+#ifdef CONFIG_RV_ZVKSED
+typedef enum {
+  VSM_OP_VSM4R,
+  VSM_OP_VSM4K
+} vsm_op_t;
+
+void vsm_exec(vsm_op_t op, Decode *s);
+#endif
+
 enum fp_wop_t {
   noWidening,
   vsdWidening,

@@ -903,6 +903,17 @@ def_EHelper(vaeskf2) {
 
 #endif
 
+#ifdef CONFIG_RV_ZVKSED
+def_EHelper(vsm4k) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vsm_exec(VSM_OP_VSM4K, s);
+}
+
+def_EHelper(vsm4r) {
+  vsm_exec(VSM_OP_VSM4R, s);
+}
+#endif // CONFIG_RV_ZVKSED
+
 #ifdef CONFIG_RV_ZVKG
 def_EHelper(vghsh) {
   if (vtype->vsew != 2) longjmp_exception(EX_II);
