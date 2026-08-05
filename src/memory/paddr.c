@@ -333,28 +333,53 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
   return true;
 }
 
-word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+static inline bool paddr_read_check(paddr_t addr, int len, int type,
+                                    int trap_type, int mode, vaddr_t vaddr,
+                                    int cross_page_load) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
-
-  __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
-  mode &= ~CROSS_PAGE_LD_FLAG;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
-  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
+  return check_paddr(addr, len, type, trap_type, mode, vaddr);
+}
+
+static inline word_t paddr_read_pmem_after_check(paddr_t addr, int len,
+                                                 int type, int mode) {
+  uint64_t rdata = pmem_read(addr, len);
+#ifdef CONFIG_SHARE
+  ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
+      addr, rdata, len, type, mode);
+#endif // CONFIG_SHARE
+  return rdata;
+}
+
+word_t paddr_read_pmem_checked(paddr_t addr, int len, int type, int trap_type,
+                               int mode, vaddr_t vaddr) {
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!paddr_read_check(addr, len, type, trap_type, mode, vaddr,
+                        cross_page_load)) {
+    return 0;
+  }
+
+  return paddr_read_pmem_after_check(addr, len, type, mode);
+}
+
+word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!paddr_read_check(addr, len, type, trap_type, mode, vaddr,
+                        cross_page_load)) {
     return 0;
   }
 
   if (likely(in_pmem(addr))) {
-    uint64_t rdata = pmem_read(addr, len);
-#ifdef CONFIG_SHARE
-    ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
-        addr, rdata, len, type, mode);
-#endif // CONFIG_SHARE
-    return rdata;
+    return paddr_read_pmem_after_check(addr, len, type, mode);
   }
   else {
     if (likely(is_in_mmio(addr))) {
