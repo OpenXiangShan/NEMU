@@ -260,6 +260,124 @@ static inline void reverse_nbytes(uint64_t *val, int sew) {
   *val = tmp;
 }
 
+#ifdef CONFIG_RV_ZVKG
+
+static inline uint128_t brev8_128(uint128_t value) {
+  uint64_t lo = value;
+  uint64_t hi = value >> 64;
+
+  reverse_byte_bits(&lo);
+  reverse_byte_bits(&hi);
+  return ((uint128_t)hi << 64) | lo;
+}
+
+static inline uint128_t get_velem128(int reg, int group) {
+  uint128_t value = 0;
+  rtlreg_t lane_value;
+  int base = group * 4;
+
+  for (int lane = 0; lane < 4; lane++) {
+    get_vreg(reg, base + lane, &lane_value, 2, vtype->vlmul, 0, 1);
+    value |= (uint128_t)(lane_value & UINT32_MAX) << (lane * 32);
+  }
+  return value;
+}
+
+static inline void set_velem128(int reg, int group, uint128_t value) {
+  int base = group * 4;
+
+  for (int lane = 0; lane < 4; lane++) {
+    set_vreg(reg, base + lane, value >> (lane * 32),
+             vtype->vsew, vtype->vlmul, 1);
+  }
+}
+
+static inline uint128_t ghash_multiply(uint128_t y, uint128_t h) {
+  uint128_t z = 0;
+
+  y = brev8_128(y);
+  h = brev8_128(h);
+  for (int bit = 0; bit < 128; bit++) {
+    uint128_t y_mask = (uint128_t)0 - (y & 1);
+    uint128_t reduce_mask = (uint128_t)0 - (h >> 127);
+
+    z ^= h & y_mask;
+    h <<= 1;
+    h ^= (uint128_t)0x87 & reduce_mask;
+    y >>= 1;
+  }
+
+  return brev8_128(z);
+}
+
+static void vgcm_instr(int opcode, Decode *s) {
+  int width = 8 << vtype->vsew;
+  double vflmul = compute_vflmul();
+  if ((vl->val & 3) != 0 || (vstart->val & 3) != 0 || vflmul * VLEN < 4 * width) {
+    longjmp_exception(EX_II);
+  }
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int eg_len = vl->val / 4;
+  int eg_start = vstart->val / 4;
+  for (int group = eg_start; group < eg_len; group++) {
+    int base = group * 4;
+    bool active = s->vm != 0;
+    if (!active) {
+      for (int lane = 0; lane < 4; lane++) {
+        active |= get_mask(0, base + lane) != 0;
+      }
+      if (!active) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          for (int lane = 0; lane < 4; lane++) {
+            set_vreg(id_dest->reg, base + lane, UINT64_MAX,
+                     vtype->vsew, vtype->vlmul, 1);
+          }
+        }
+        continue;
+      }
+    }
+
+    uint128_t y = get_velem128(id_dest->reg, group);
+    uint128_t h = get_velem128(id_src2->reg, group);
+
+    if (opcode == VGHSH) {
+      y ^= get_velem128(id_src->reg, group);
+    } else {
+      y = get_velem128(id_src2->reg, group);
+      h = get_velem128(id_dest->reg, group);
+    }
+    uint128_t result = ghash_multiply(y, h);
+    for (int lane = 0; lane < 4; lane++) {
+      if (s->vm || get_mask(0, base + lane)) {
+        set_vreg(id_dest->reg, base + lane,
+                 result >> (lane * 32), vtype->vsew, vtype->vlmul, 1);
+      } else if (RVV_AGNOSTIC && vtype->vma) {
+        set_vreg(id_dest->reg, base + lane, UINT64_MAX,
+                 vtype->vsew, vtype->vlmul, 1);
+      }
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = eg_len * 4; idx < vlmax; idx++) {
+      set_vreg(id_dest->reg, idx, UINT64_MAX,
+               vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKG
+
 static inline void require_vector_vs() {
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);
@@ -599,6 +717,12 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       longjmp_exception(EX_II);
     }
   }
+#ifdef CONFIG_RV_ZVKG
+  if (opcode == VGHSH || opcode == VGMUL) {
+    vgcm_instr(opcode, s);
+    return;
+  }
+#endif
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) {
     vp_set_dirty();
@@ -1044,18 +1168,6 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         break;
       case VCLMULH :
         *s1 = _rv_clmulh(*s0, *s1);
-        break;
-#endif
-      case VAESZ:
-        get_vreg(id_dest->reg, idx, s2, vtype->vsew, vtype->vlmul, 0, 1);
-        break;
-      case VAESEF:
-        break;
-      case VAESEM:
-        break;
-      case VAESDF:
-        break;
-      case VAESDM:
         break;
     }
     update_vcsr();

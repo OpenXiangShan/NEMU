@@ -903,6 +903,18 @@ def_EHelper(vaeskf2) {
 
 #endif
 
+#ifdef CONFIG_RV_ZVKG
+def_EHelper(vghsh) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  ARITH(VGHSH, UNSIGNED);
+}
+
+def_EHelper(vgmul) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  ARITH(VGMUL, UNSIGNED);
+}
+#endif // CONFIG_RV_ZVKG
+
 def_EHelper(vmadd) {
   ARITH(MADD, SIGNED)
 }

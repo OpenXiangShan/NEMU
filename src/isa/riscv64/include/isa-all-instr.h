@@ -270,6 +270,20 @@
 #define ZVKNED_INSTR_BINARY(f)
 #endif // CONFIG_RV_ZVKNED
 
+#ifdef CONFIG_RV_ZVKG
+#define ZVKG_INSTR_BINARY(f) \
+  f(vgmul)
+#else
+#define ZVKG_INSTR_BINARY(f)
+#endif // CONFIG_RV_ZVKG
+
+#ifdef CONFIG_RV_ZVKG
+#define ZVKG_INSTR_TERNARY(f) \
+  f(vghsh) 
+#else // CONFIG_RV_ZVKG
+#define ZVKG_INSTR_TERNARY(f) 
+#endif // CONFIG_RV_ZVKG
+
 #ifdef CONFIG_RV_ZICOND
 #define ZICOND_INSTR_TERNARY(f) \
   f(czero_eqz) f(czero_nez)
@@ -440,7 +454,8 @@
   ZCB_INSTR_BINARY(f) \
   TENSOR_INSTR_BINARY(f) \
   MATRIX_INSTR_BINARY(f) \
-  ZVKNED_INSTR_BINARY(f)
+  ZVKNED_INSTR_BINARY(f) \
+  ZVKG_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -461,6 +476,7 @@
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
   ZVBC_INSTR_TERNARY(f) \
+  ZVKG_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
   ZVFBF_MIN_INSTR_TERNARY(f) \

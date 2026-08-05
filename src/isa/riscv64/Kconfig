@@ -94,6 +94,12 @@ config RV_ZVKNED
   depends on RVK
   default y
 
+config RV_ZVKG
+  bool "RISC-V Vector GCM/GMAC Extension v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
 config RV_ZICOND
   bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
   default y
