@@ -539,7 +539,19 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
                         type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
                                                   MEM_TYPE_READ;
+#ifdef CONFIG_SHARE
+  if (unlikely(cpu.guided_exec)) {
+    return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type,
+                      mode, vaddr);
+  }
+  // PTE addresses have already been classified as PMEM above. Keep the
+  // physical-access checks and PMEM backend behavior, but skip generic address
+  // routing that would classify the same address again.
+  return paddr_read_pmem_checked(addr, PTE_SIZE, paddr_read_type,
+                                 paddr_read_type, mode, vaddr);
+#else
   return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type, mode, vaddr);
+#endif
 }
 #endif // CONFIG_MULTICORE_DIFF
 
@@ -917,6 +929,9 @@ void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result = ptw(vaddr, type);
 #ifdef FORCE_RAISE_PF
+  if (likely(!cpu.guided_exec || !cpu.execution_guide.force_raise_exception)) {
+    return ptw_result;
+  }
 #ifdef CONFIG_RVH
   if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
     return MEM_RET_FAIL;
