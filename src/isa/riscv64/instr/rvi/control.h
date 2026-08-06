@@ -22,6 +22,18 @@ def_EHelper(jal) {
 }
 
 def_EHelper(jalr) {
+#ifdef CONFIG_RV_ZICFILP
+  bool zicfilp_en = riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
+  if (zicfilp_en) {
+    uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
+    if (rs1 != 1 && rs1 != 5 && rs1 != 7) {
+      cpu.elp = 1;
+    } else {
+      cpu.elp = 0;
+    }
+  }
+#endif
+
   // Described at 2.5 Control Transter Instructions
   // The target address is obtained by adding the sign-extended 12-bit I-immediate to the register rs1
   rtl_addi(s, s0, dsrc1, id_src2->imm);

@@ -37,6 +37,21 @@ def_EHelper(c_j) {
 }
 
 def_EHelper(c_jr) {
+#ifdef CONFIG_RV_ZICFILP
+  // Zicfilp: check if landing pad is expected after indirect jump
+  {
+    bool zicfilp_en = riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
+    if (zicfilp_en) {
+      uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
+      if (rs1 != 1 && rs1 != 5 && rs1 != 7) {
+        cpu.elp = 1;
+      } else {
+        cpu.elp = 0;
+      }
+    }
+  }
+#endif
+
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, dsrc1, ~1UL);
@@ -50,6 +65,22 @@ def_EHelper(c_jr) {
 
 def_EHelper(c_jalr) {
   rtl_li(s, &cpu.gpr[1]._64, s->snpc);
+
+#ifdef CONFIG_RV_ZICFILP
+  // Zicfilp: check if landing pad is expected after indirect jump
+  {
+    bool zicfilp_en = riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
+    if (zicfilp_en) {
+      uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
+      if (rs1 != 1 && rs1 != 5 && rs1 != 7) {
+        cpu.elp = 1;
+      } else {
+        cpu.elp = 0;
+      }
+    }
+  }
+#endif
+
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, dsrc1, ~1UL);

@@ -26,6 +26,9 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <generated/autoconf.h>
+#ifdef CONFIG_RV_ZICFILP
+#include "../isa/riscv64/local-include/intr.h"
+#endif
 #include <profiling/profiling_control.h>
 #include <checkpoint/semantic_point.h>
 #include "../local-include/trigger.h"
@@ -422,6 +425,16 @@ static void execute(int n) {
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
     br_taken = false;
 
+#ifdef CONFIG_RV_ZICFILP
+    if (unlikely(cpu.elp == 1)) {
+      uint32_t target_instr = vaddr_ifetch(s->pc, 4);
+      s->isa.instr.val = target_instr; // Ensure EHelper has correct instruction bits for fine-grained check
+      if ((target_instr & 0x00000FFF) != 0x00000017) {
+        longjmp_exception(EX_SWC);
+      }
+    }
+#endif
+
     goto *(s->EHelper);
 
 #undef s0
@@ -712,6 +725,17 @@ static void execute(int n) {
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
     ref_log_cpu("pc = 0x%lx inst %x", s.pc, s.isa.instr.val);
+
+#ifdef CONFIG_RV_ZICFILP
+    if (unlikely(cpu.elp == 1)) {
+      uint32_t target_instr = vaddr_ifetch(s.pc, 4);
+      s.isa.instr.val = target_instr; // Ensure EHelper has correct instruction bits for fine-grained check
+      if ((target_instr & 0x00000FFF) != 0x00000017) {
+        longjmp_exception(EX_SWC);
+      }
+    }
+#endif
+
     s.EHelper(&s);
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));

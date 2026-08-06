@@ -86,6 +86,12 @@ config RV_ZICOND
   bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
   default y
 
+config RV_ZICFILP
+  bool "RISC-V Landing Pad (Zicfilp) Extension v1.0"
+  default n
+  help
+    Enable forward-edge control-flow integrity using landing pads.
+
 config RV_ZFH
   bool "RISC-V Zfh Extensions V1.0"
   depends on RV_ZFH_MIN

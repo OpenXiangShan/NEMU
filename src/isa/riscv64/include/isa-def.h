@@ -200,6 +200,11 @@ typedef struct {
 #ifdef CONFIG_RV_IMSIC
   bool virtualInterruptIsHvictlInject;
 #endif
+
+#ifdef CONFIG_RV_ZICFILP
+  uint8_t elp;
+#endif
+
 #ifdef CONFIG_RV_SMDBLTRP
   bool critical_error;
 #endif
@@ -539,6 +544,10 @@ typedef struct {
 enum { MODE_U = 0, MODE_S, MODE_RS, MODE_M };
 
 enum { OP_OR = 0, OP_AND, OP_XOR, OP_ADD = 4 };
+
+#ifdef CONFIG_RV_ZICFILP
+enum { ELP_NO_LP_EXPECTED = 0, ELP_LP_EXPECTED = 1 };
+#endif
 
 int get_data_mmu_state();
 #ifdef CONFIG_RVH
