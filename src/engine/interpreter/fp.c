@@ -78,6 +78,16 @@ void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm();
 #endif // CONFIG_FPU_NONE
 
+#ifndef CONFIG_FPU_NONE
+static inline void fp_finish_exception(void) {
+  uint32_t ex = fp_get_exception();
+  if (ex) {
+    isa_fp_set_ex(ex);
+    fp_clear_exception();
+  }
+}
+#endif // CONFIG_FPU_NONE
+
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
 #ifndef CONFIG_FPU_NONE
   uint32_t w = FPCALL_W(cmd);
@@ -225,11 +235,212 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
     }
   }
 
-  uint32_t ex = fp_get_exception();
-  if (ex) {
-    isa_fp_set_ex(ex);
-    fp_clear_exception();
-  }
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_add, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f32_add(rtlToF32(*src1), rtlToF32(*src2)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_sub, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f32_sub(rtlToF32(*src1), rtlToF32(*src2)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_mul, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f32_mul(rtlToF32(*src1), rtlToF32(*src2)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_div, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f32_div(rtlToF32(*src1), rtlToF32(*src2)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_sqrt, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f32_sqrt(rtlToF32(*src1)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_madd, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f32_mulAdd(rtlToF32(*src1), rtlToF32(*src2), rtlToF32(*dest)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_min, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  *dest = f32_min(rtlToF32(*src1), rtlToF32(*src2)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_max, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  *dest = f32_max(rtlToF32(*src1), rtlToF32(*src2)).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_le, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  *dest = f32_le(rtlToF32(*src1), rtlToF32(*src2));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_lt, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  *dest = f32_lt(rtlToF32(*src1), rtlToF32(*src2));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_eq, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  *dest = f32_eq(rtlToF32(*src1), rtlToF32(*src2));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_from_i32, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = i32_to_f32(*src1).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_from_ui32, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = ui32_to_f32(*src1).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_from_i64, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = i64_to_f32(*src1).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_from_ui64, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = ui64_to_f32(*src1).v;
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_to_i32_r, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = my_f32_to_i32(rtlToF32(*src1));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_to_ui32_r, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = my_f32_to_ui32(rtlToF32(*src1));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_to_i64_r, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = my_f32_to_i64(rtlToF32(*src1));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f32_to_ui64_r, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = my_f32_to_ui64(rtlToF32(*src1));
+  fp_finish_exception();
+#endif // CONFIG_FPU_NONE
+}
+
+def_rtl(f64_to_f32_r, rtlreg_t *dest, const rtlreg_t *src1) {
+#ifndef CONFIG_FPU_NONE
+  isa_fp_csr_check();
+  uint32_t rm = isa_fp_get_rm(s);
+  softfloat_roundingMode = rm;
+  isa_fp_rm_check(rm);
+  *dest = f64_to_f32(rtlToF64(*src1)).v;
+  fp_finish_exception();
 #endif // CONFIG_FPU_NONE
 }
 
