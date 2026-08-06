@@ -933,10 +933,10 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
-#ifdef CONFIG_DIFFTEST
-  FREDUCTION(FREDUSUM)    // use ordered reduction
-#else
+#ifdef CONFIG_RVV_UNORDER
   float_reduction_computing(s);   // when NEMU is ref, use unordered reduction which is same as XiangShan
+#else
+  FREDUCTION(FREDUSUM)    // use ordered reduction
 #endif
 }
 
