@@ -151,6 +151,19 @@ static void update_instr_cnt() {
 #endif // CONFIG_ENABLE_INSTR_CNT
 }
 
+static inline void update_instr_cnt_after_execute() {
+#if defined(CONFIG_SHARE) && !defined(CONFIG_LIGHTQS) && \
+    defined(CONFIG_INSTR_CNT_BY_INSTR)
+  // Non-LightQS shared execution asserts that at most one instruction is
+  // requested, so the completed batch has no generic delta left to compute.
+  n_batch = 0;
+  n_remain = 0;
+  n_remain_total = 0;
+#else
+  update_instr_cnt();
+#endif
+}
+
 void monitor_statistic() {
   setlocale(LC_NUMERIC, "");
   Log("host time spent = %'ld us", g_timer);
@@ -721,14 +734,16 @@ static void execute(int n) {
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
 
-    #ifdef CONFIG_ISA_riscv64
-      #ifdef CONFIG_DETERMINISTIC
-        void update_riscv_timer();
-        update_riscv_timer();
-      #endif // CONFIG_DETERMINISTIC
-    #endif // CONFIG_ISA_riscv64
+#if defined(CONFIG_ISA_riscv64) && defined(CONFIG_DETERMINISTIC) && \
+    defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT)
+    void update_riscv_timer();
+    update_riscv_timer();
+#endif
 
-    if (MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY) != INTR_EMPTY) {
+    // A shared one-instruction batch reaches the outer interrupt poll before
+    // another instruction can execute, so polling here would be redundant.
+    if (MUXDEF(CONFIG_SHARE, n != 1, true) &&
+        MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY) != INTR_EMPTY) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
@@ -830,10 +845,11 @@ void cpu_exec(uint64_t n) {
       device_update();
     #endif
 
-    #ifdef CONFIG_ISA_riscv64
+#if defined(CONFIG_ISA_riscv64) && defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT) && \
+    (!defined(CONFIG_SHARE) || !defined(CONFIG_DETERMINISTIC))
       void update_riscv_timer();
       update_riscv_timer();
-    #endif // CONFIG_ISA_riscv64
+#endif
 
     #ifndef CONFIG_SHARE
       #ifdef LIGHTQS
@@ -906,7 +922,7 @@ void cpu_exec(uint64_t n) {
     execute(n_batch);
 
     // settle instruction counting, as BATCH has ended.
-    update_instr_cnt();
+    update_instr_cnt_after_execute();
 
     IFDEF(CONFIG_PERF_OPT, update_global());
 
