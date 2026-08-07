@@ -24,6 +24,14 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 
+#ifdef CONFIG_ISA_riscv64
+void csr_difftest_mark_dirty(void);
+#endif
+
+static inline void difftest_mark_csr_dirty(void) {
+  IFDEF(CONFIG_ISA_riscv64, csr_difftest_mark_dirty());
+}
+
 unsigned ref_hartid = 0;
 
 extern void load_flash_contents(const char *flash_img);
@@ -272,6 +280,7 @@ void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 }
 
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
+  difftest_mark_csr_dirty();
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
@@ -287,6 +296,7 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
 
 void difftest_interrupt_delegate(void *interruptDelegate) {
 #ifdef CONFIG_RV_IMSIC
+  difftest_mark_csr_dirty();
   memcpy(&cpu.interrupt_delegate, interruptDelegate, sizeof(struct InterruptDelegate));
 #endif // CONFIG_RV_IMSIC
 }
@@ -378,6 +388,7 @@ void difftest_update_vec_load_pmem() {
 
 void difftest_sync_aia(void *src) {
 #ifdef CONFIG_RV_IMSIC
+  difftest_mark_csr_dirty();
   memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
   isa_update_mtopi();
   isa_update_stopi();
