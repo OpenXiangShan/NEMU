@@ -33,7 +33,11 @@ _Static_assert(CONFIG_RVMATRIX_MSYNC == 8 ||
                "MSYNC must be one of 8/16/32");
 
 void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew) {
+#ifdef CONFIG_SHARE_GOLDEN
+  assert(msew <= 3);
+#else
   Assert(msew <= 3, "msew >= 4 is reserved\n");
+#endif
   switch (msew) {
     case 0 : src_data = src_data & 0xff; break;
     case 1 : src_data = src_data & 0xffff; break;
@@ -58,7 +62,11 @@ void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t
 }
 
 void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed) {
+#ifdef CONFIG_SHARE_GOLDEN
+  assert(msew <= 3);
+#else
   Assert(msew <= 3, "msew >= 4 is reserved\n");
+#endif
   if (mtr_num >= 4) {
     switch (msew) {
       case 0 : *dst = is_signed ? (int64_t)(int8_t )macc_l8(mtr_num, mtr_row, mtr_idx)  : macc_l8(mtr_num, mtr_row, mtr_idx) ; break;

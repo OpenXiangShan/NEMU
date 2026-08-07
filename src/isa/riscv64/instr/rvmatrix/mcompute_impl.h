@@ -25,5 +25,12 @@
 
 void require_matrix();
 
+void matrix_compute_integer(uint8_t destination, uint8_t source_a,
+                            uint8_t source_b, uint16_t m, uint16_t n,
+                            uint16_t k, uint8_t destination_size,
+                            uint8_t source_a_size, uint8_t source_b_size,
+                            bool source_a_signed, bool source_b_signed,
+                            bool saturate);
+
 #endif // __RISCV64_MCOMPUTE_IMPL_H__
 #endif // CONFIG_RVMATRIX

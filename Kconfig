@@ -368,7 +368,7 @@ config DIFFTEST_CHECK_SDTRIG
   default y
 
 config SHARE
-  bool "Build shared library as processor difftest reference or controller"
+  bool "Build NEMU as a shared library"
   default n
 
 choice
@@ -379,6 +379,8 @@ config SHARE_REF
   bool "Build shared library as processor difftest reference"
 config SHARE_CTRL
   bool "Build shared library as the controller of CUTE"
+config SHARE_GOLDEN
+  bool "Build shared library as a direct CUTE golden model"
 endchoice
 
 

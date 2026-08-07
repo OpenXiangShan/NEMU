@@ -133,29 +133,9 @@ def_EHelper(mmacc) {
 #ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (comb == 0) /* int mma */ {
-    int64_t int_max = INT64_MAX >> (64 - 8 * (1 << dsize));
-    int64_t int_min = INT64_MIN >> (64 - 8 * (1 << dsize));
-    for (int i = 0; i < tile_m; i++) {
-      for (int j = 0; j < tile_n; j++) {
-        for (int k = 0; k < tile_k; k++) {
-          get_mreg(ts1, i, k, &tmp_reg[1], s1size, s1_signed);
-          get_mreg(ts2, j, k, &tmp_reg[2], s2size, s2_signed);
-          get_mreg(td, i, j, &tmp_reg[0], dsize, true);
-          if (msaten->val) {
-            int64_t result = (int64_t)tmp_reg[1] * (int64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
-            if (result > int_max) {
-              result = int_max;
-            } else if (result < int_min) {
-              result = int_min;
-            }
-            set_mreg(td, i, j, result, dsize);
-          } else {
-            tmp_reg[0] = tmp_reg[1] * tmp_reg[2] + tmp_reg[0];
-            set_mreg(td, i, j, tmp_reg[0], dsize);
-          }
-        }
-      }
-    }
+    matrix_compute_integer(td, ts1, ts2, tile_m, tile_n, tile_k, dsize,
+                           s1size, s2size, s1_signed, s2_signed,
+                           msaten->val);
   } else /* comb == 1, float mma */ {
     word_t FPCALL_TYPE = FPCALL_W64;
     switch (s1size) {

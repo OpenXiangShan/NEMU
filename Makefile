@@ -92,6 +92,13 @@ XSRCS-y += src/ext/amu_ctrl_queue_wrapper.cpp
 XSRCS-y += src/ext/msync_queue_wrapper.cpp
 XSRCS-y += src/ext/mstore_queue_wrapper.cpp
 
+ifdef CONFIG_SHARE_GOLDEN
+SRCS-y := src/ext/cute_golden.c \
+          src/isa/riscv64/instr/rvmatrix/mreg.c \
+          src/isa/riscv64/instr/rvmatrix/mcompute_impl.c
+XSRCS-y :=
+endif
+
 XSRCS = $(XSRCS-y)
 
 CC = $(call remove_quote,$(CONFIG_CC))
@@ -105,6 +112,10 @@ CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 
 NAME  = nemu-$(ENGINE)
+
+ifdef CONFIG_SHARE_GOLDEN
+NAME  = nemu-golden
+endif
 
 ifndef CONFIG_SHARE
 ifdef CONFIG_CC_NATIVE_ARCH
