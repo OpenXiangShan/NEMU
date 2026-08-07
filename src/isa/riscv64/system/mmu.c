@@ -227,6 +227,26 @@ void mmu_refresh_pma_cache(void) {
 void mmu_refresh_pma_cache(void) {
 }
 #endif
+
+static bool data_effective_address_identity_fast = false;
+static bool data_hosttlb_fast_enabled = false;
+
+static inline void update_effective_address_state(void) {
+  data_effective_address_identity_fast =
+#ifdef CONFIG_RVH
+    !hld_st &&
+#endif
+    !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
+}
+
+static inline void update_hosttlb_fast_state(void) {
+#ifdef CONFIG_RVH
+  data_hosttlb_fast_enabled = !((get_mprv() && mstatus->mpv) || cpu.v);
+#else
+  data_hosttlb_fast_enabled = true;
+#endif
+}
+
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -320,6 +340,10 @@ bool has_two_stage_translation(){
   return hld_st || (get_mprv() && mstatus->mpv) || cpu.v;
 }
 
+bool hosttlb_data_fast_enabled_for_access(void) {
+  return !hld_st && data_hosttlb_fast_enabled;
+}
+
 void raise_guest_excep(paddr_t gpaddr, vaddr_t vaddr, int type, bool is_support_vs) {
   // printf("gpaddr: " FMT_PADDR ", vaddr: " FMT_WORD "\n", gpaddr, vaddr);
 #ifdef FORCE_RAISE_PF
@@ -353,15 +377,14 @@ inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
     return vaddr;
   }
 
+  if (likely(!hld_st && data_effective_address_identity_fast)) {
+    return vaddr;
+  }
+
   bool virt = cpu.v;
   int mode = cpu.mode;
   int pmm = 0;
   int masked_width = 0;
-
-  // Early out fastpath for non-H & non-pmm applications
-  if (likely(!hld_st && !get_mprv() && mode == MODE_U && senvcfg->pmm == 0)) {
-    return vaddr;
-  }
 
   if (hld_st) {
     mode = hstatus->spvp;
@@ -765,6 +788,8 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+  update_effective_address_state();
+  update_hosttlb_fast_state();
 #ifdef CONFIG_RVH
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
