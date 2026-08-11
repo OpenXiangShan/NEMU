@@ -60,7 +60,7 @@ $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
-	@$(CC) $(CFLAGS) -E $(SO_CFLAGS) -c -o $@.c $<
+	@$(CC) $(CFLAGS) -E $(SO_CFLAGS) -o $@.c $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
 $(OBJ_DIR)/%.opp: %.cpp
