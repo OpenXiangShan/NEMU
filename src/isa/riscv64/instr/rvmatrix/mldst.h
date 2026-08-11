@@ -100,6 +100,8 @@ void mld(Decode *s, bool is_trans, bool is_whole, char m_name) {
   uint64_t row_byte_stride = reg_l(s->src2.reg);
   uint64_t td = s->dest.reg;
   uint8_t dsize = is_whole ? 0 : get_size(cpu.mcfg[td]);
+  bool is_fp2pack4_load = !is_whole && is_fp2pack4_mcfg(cpu.mcfg[td]);
+  int load_msew = is_fp2pack4_load ? MATRIX_MSEW_FP2PACK4 : dsize;
   int rmax_mreg = 0, cmax_mreg = 0;
   
   switch (m_name) {
@@ -129,17 +131,20 @@ void mld(Decode *s, bool is_trans, bool is_whole, char m_name) {
   if (!is_whole){
     check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
   }
+  if (is_fp2pack4_load && (is_trans || m_name != 'a')) {
+    longjmp_exception(EX_II);
+  }
 
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=0, transpose=%d, baseVAddr=%#lx, stride=%#lx\n"
     "            row=%d, col=%d, width=%#x, m_name=%c\n",
-    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, dsize, m_name);
+    td, is_trans, base_addr, row_byte_stride, rmax_mreg, cmax_mreg, load_msew, m_name);
 #endif
 
   rtl_lmm(s, &base_addr, &row_byte_stride,
-    rmax_mreg, cmax_mreg, dsize, is_trans,
+    rmax_mreg, cmax_mreg, load_msew, is_trans,
     MMU_TRANSLATE, m_name, td);
 }
 

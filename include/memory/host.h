@@ -40,13 +40,66 @@ static inline word_t host_read(void *addr, int len) {
 }
 
 #ifdef CONFIG_RVMATRIX
+#ifndef MATRIX_MSEW_FP2PACK4
+#define MATRIX_MSEW_FP2PACK4 4
+#endif
+
+static inline bool host_matrix_is_fp2pack4(int msew) {
+  return msew == MATRIX_MSEW_FP2PACK4;
+}
+
+static inline int host_matrix_width_bytes(int msew) {
+  return host_matrix_is_fp2pack4(msew) ? 1 : (1 << msew);
+}
+
+static inline void host_read_matrix_fp2pack4(paddr_t pbase, paddr_t stride, int row,
+                                             int column, bool transpose,
+                                             char m_name, int mreg_id) {
+  Assert(!transpose, "fp2pack4 transpose load is not supported");
+  Assert(m_name == 'a', "fp2pack4 load is only valid for matrix A");
+  Assert(mreg_id < 4, "fp2pack4 load destination must be a tile matrix register");
+
+  const int row_reg_bytes = CONFIG_RVMATRIX_TRLEN / 8;
+  const int group_reg_bytes = row_reg_bytes / 2;
+  const int group_packed_bytes = group_reg_bytes / 4;
+  const int group_elements = group_packed_bytes * 4;
+  const int groups = (column + group_elements - 1) / group_elements;
+
+  Assert(group_reg_bytes > 0 && group_packed_bytes > 0, "invalid fp2pack4 matrix packing");
+  Assert(groups * group_reg_bytes <= row_reg_bytes, "fp2pack4 matrix row is too wide");
+
+  for (int r = 0; r < row; r++) {
+    for (int g = 0; g < groups; g++) {
+      const int group_reg_base = g * group_reg_bytes;
+      for (int b = 0; b < group_reg_bytes; b++) {
+        set_mreg(mreg_id, r, group_reg_base + b, 0, 0);
+      }
+
+      int remaining = column - g * group_elements;
+      if (remaining > group_elements) {
+        remaining = group_elements;
+      }
+      const int packed_bytes = (remaining + 3) / 4;
+      for (int b = 0; b < packed_bytes; b++) {
+        word_t tmp = host_read(guest_to_host(pbase + g * group_packed_bytes + b), 1);
+        set_mreg(mreg_id, r, group_reg_base + b, tmp, 0);
+      }
+    }
+    pbase += stride;
+  }
+}
+
 static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
-  int width = 1 << msew;
+  int width = host_matrix_width_bytes(msew);
   Logm("read matrix: base = %#lx, stride = %lu,\n"
        "             row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
        pbase, stride, row, column, width, transpose, m_name);
+  if (host_matrix_is_fp2pack4(msew)) {
+    host_read_matrix_fp2pack4(pbase, stride, row, column, transpose, m_name, mreg_id);
+    return;
+  }
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
   
@@ -78,6 +131,7 @@ static inline void host_write(void *addr, int len, word_t data) {
 static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
+  Assert(!host_matrix_is_fp2pack4(msew), "fp2pack4 matrix store is not supported");
   int width = 1 << msew;
   Logm("write matrix: base = %#lx, stride = %lu,\n"
        "              row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
