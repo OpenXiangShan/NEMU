@@ -63,6 +63,9 @@ int8_t check_comb(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
   uint32_t s1_mask = 1u << s1cfg.type_code;
   uint32_t s2_mask = 1u << s2cfg.type_code;
   uint32_t d_mask = 1u << dcfg.type_code;
+  bool i2_i8_i32 = dcfg.type_code == MTYPECODE_INT32 &&
+                   ((is_fp2pack4_mcfg(s1cfg) && s2cfg.type_code == MTYPECODE_INT8) ||
+                    (s1cfg.type_code == MTYPECODE_INT8 && is_fp2pack4_mcfg(s2cfg)));
   const uint32_t int_mask = (1u << MTYPECODE_INT4) | (1u << MTYPECODE_UINT4) |
                             (1u << MTYPECODE_INT8) | (1u << MTYPECODE_UINT8) |
                             (1u << MTYPECODE_INT32);
@@ -73,6 +76,9 @@ int8_t check_comb(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
                            (1u << MTYPECODE_FP2PACK4) | (1u << MTYPECODE_FP2PACK5);
 
   if ((s1_mask & int_mask) && (s2_mask & int_mask) && (d_mask & int_mask)) {
+    return 0;
+  }
+  if (i2_i8_i32) {
     return 0;
   }
   if ((s1_mask & fp_mask) && (s2_mask & fp_mask) && (d_mask & fp_mask)) {
@@ -89,6 +95,7 @@ bool is_signed_int_mtype(uint64_t type_code) {
     case MTYPECODE_INT4:
     case MTYPECODE_INT8:
     case MTYPECODE_INT32:
+    case MTYPECODE_FP2PACK4:
     default:
       return true;
   }
@@ -124,12 +131,13 @@ def_EHelper(mmacc) {
     // Invalid type combination
     longjmp_exception(EX_II);
   }
-#if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
-  uint8_t m_s_sz = s1size;
-  uint8_t m_d_sz = dsize;
-#endif
   bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
   bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
+#if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
+  uint8_t s1_amu_type = is_fp2pack4_mcfg(s1mcfg) ? 5 : ((s1_signed << 2) | s1size);
+  uint8_t s2_amu_type = is_fp2pack4_mcfg(s2mcfg) ? 5 : ((s2_signed << 2) | s2size);
+  uint8_t d_amu_type = dsize;
+#endif
 #ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (comb == 0) /* int mma */ {
@@ -138,8 +146,16 @@ def_EHelper(mmacc) {
     for (int i = 0; i < tile_m; i++) {
       for (int j = 0; j < tile_n; j++) {
         for (int k = 0; k < tile_k; k++) {
-          get_mreg(ts1, i, k, &tmp_reg[1], s1size, s1_signed);
-          get_mreg(ts2, j, k, &tmp_reg[2], s2size, s2_signed);
+          if (is_fp2pack4_mcfg(s1mcfg)) {
+            tmp_reg[1] = get_mreg_packed_i2(ts1, i, k);
+          } else {
+            get_mreg(ts1, i, k, &tmp_reg[1], s1size, s1_signed);
+          }
+          if (is_fp2pack4_mcfg(s2mcfg)) {
+            tmp_reg[2] = get_mreg_packed_i2(ts2, j, k);
+          } else {
+            get_mreg(ts2, j, k, &tmp_reg[2], s2size, s2_signed);
+          }
           get_mreg(td, i, j, &tmp_reg[0], dsize, true);
           if (msaten->val) {
             int64_t result = (int64_t)tmp_reg[1] * (int64_t)tmp_reg[2] + (int64_t)tmp_reg[0];
@@ -202,12 +218,12 @@ def_EHelper(mmacc) {
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(td, mxrm->val, msaten->val, comb, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
-                      (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
+                      s1_amu_type, s2_amu_type, d_amu_type);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(td, msaten->val, comb, ts1, ts2,
               mtilem->val, mtilen->val, mtilek->val,
-              4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+              s1_amu_type, s2_amu_type, d_amu_type);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -215,7 +231,7 @@ def_EHelper(mmacc) {
     "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, msaten->val, comb, ts1, ts2,
-    mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+    mtilem->val, mtilen->val, mtilek->val, s1_amu_type, s2_amu_type, d_amu_type);
 #endif // PRINT_AMUCTRLIO
 }
 

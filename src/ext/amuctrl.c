@@ -167,6 +167,29 @@ static void exec_amu_arith(void *amu_ctrl) {
   }
 }
 
+static bool is_i2_i8_i32_mma(const amu_ctrl_event_t *event) {
+  return event->op == 0 && event->isfp == 0 &&
+         event->types1 == 5 && event->types2 == 4 && event->typed == 2;
+}
+
+static void copy_packed_i2_src(void *dst, uint8_t ms, uint16_t rows, uint16_t tile_k) {
+  uint8_t *out = (uint8_t *)dst;
+  const size_t packed_row_bytes = (tile_k + 3) / 4;
+  const size_t group_reg_bytes = (CONFIG_RVMATRIX_TRLEN / 8) / 2;
+  const size_t group_packed_bytes = group_reg_bytes / 4;
+  const size_t group_elements = group_packed_bytes * 4;
+
+  for (uint16_t row = 0; row < rows; row++) {
+    for (uint16_t k_base = 0; k_base < tile_k; k_base += group_elements) {
+      const size_t group = k_base / group_elements;
+      const size_t remaining = tile_k - k_base;
+      const size_t copy_bytes = ((remaining < group_elements ? remaining : group_elements) + 3) / 4;
+      const uint8_t *src = &cpu.mtr[ms][row]._8[group * group_reg_bytes];
+      memcpy(out + (size_t)row * packed_row_bytes + group * group_packed_bytes, src, copy_bytes);
+    }
+  }
+}
+
 int exec_amu(void *amu_ctrl, void *res) {
   bool ret = 0;
   uint8_t op = ((amu_ctrl_event_t *)amu_ctrl)->op;
@@ -256,16 +279,21 @@ int exec_amu(void *amu_ctrl, void *res) {
 }
 
 void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
-  Assert(((amu_ctrl_event_t *)amu_ctrl)->op == 0, "MMA should be executed by exec_amu_lazy");
+  amu_ctrl_event_t *event = (amu_ctrl_event_t *)amu_ctrl;
+  Assert(event->op == 0, "MMA should be executed by exec_amu_lazy");
   // 0. get md, ms1, and ms2 from amu_ctrl
-  uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
-  uint8_t ms1 = ((amu_ctrl_event_t *)amu_ctrl)->ms1;
-  uint8_t ms2 = ((amu_ctrl_event_t *)amu_ctrl)->ms2;
+  uint8_t md = event->md;
+  uint8_t ms1 = event->ms1;
+  uint8_t ms2 = event->ms2;
 
   // 1. cp acc[md] to src3
   memcpy(src3, cpu.macc[md - 4], ALEN / 8);
   // 2. cp tr[ms1] to src1
-  memcpy(src1, cpu.mtr[ms1], TLEN / 8);
+  if (is_i2_i8_i32_mma(event)) {
+    copy_packed_i2_src(src1, ms1, event->mtilem, event->mtilek);
+  } else {
+    memcpy(src1, cpu.mtr[ms1], TLEN / 8);
+  }
   // 3. cp tr[ms2] to src2
   memcpy(src2, cpu.mtr[ms2], TLEN / 8);
   // 4. cp res to acc[md]
