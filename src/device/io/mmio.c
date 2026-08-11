@@ -68,6 +68,12 @@ bool mmio_is_real_device(paddr_t addr) {
   return map != NULL && addr <= map->high && addr >= map->low;
 }
 
+bool mmio_is_real_device_range(paddr_t addr, int len) {
+  IOMap *map = fetch_mmio_map(addr);
+  return map != NULL && len > 0 && addr >= map->low &&
+    addr <= map->high && (paddr_t)(len - 1) <= map->high - addr;
+}
+
 
 /* bus interface */
 __attribute__((noinline))

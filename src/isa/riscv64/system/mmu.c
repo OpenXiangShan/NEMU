@@ -449,11 +449,11 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     #ifdef CONFIG_RV_MPT_CHECK
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
-        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);   
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);
+      Log("pmp or pma check failed when PTW");
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
-      Log("pmp or pma check failed when PTW"); 
     #endif // CONFIG_RV_MPT_CHECK
 
     if (check_failed) {
@@ -611,11 +611,11 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     #ifdef CONFIG_RV_MPT_CHECK
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
-        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);   
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
-      Log("pmp or pma check failed when PTW"); 
+      Log("pmp or pma check failed when PTW");
     #endif // CONFIG_RV_MPT_CHECK
 
     if (check_failed) {
@@ -1278,10 +1278,26 @@ bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #ifdef CONFIG_RV_MPT_CHECK
 bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
   uint8_t mpt_perm = 0;
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  int effective_mode = (out_mode == MODE_M)
+    ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode)
+    : out_mode;
 
-  if (mmpt-> MODE == 0 || out_mode == MODE_M) {
+  if (mmpt-> MODE == 0 || effective_mode == MODE_M) {
       Logtr("MPT disabled addr:%lx mptmode %d,outmode %d\n", addr, mmpt-> MODE,out_mode);
     return true;
+  }
+
+  paddr_t end_addr = addr + len - 1;
+  bool address_out_of_range = len <= 0 || end_addr < addr;
+  if (!address_out_of_range) {
+    address_out_of_range = mmpt->MODE == 2
+      ? ((addr >> 52) != 0 || (end_addr >> 52) != 0)
+      : ((addr >> 43) != 0 || (end_addr >> 43) != 0);
+  }
+  if (address_out_of_range) {
+    Log("MPT address out of range: addr:%lx mode:%d", addr, mmpt->MODE);
+    return false;
   }
 
   Logtr("Mpt function called with addr:%lx mptmode %d,outmode %d\n", addr, mmpt-> MODE,out_mode);
@@ -1300,23 +1316,17 @@ bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
     (addr >> 39) & 0xf      /* range_off3 */
   };
   int level;
-  if (mmpt->MODE >= 2)        
+  if (mmpt->MODE == 2)
     level = 3;
-  else if (mmpt->MODE == 1)   
+  else
     level = 2;
-  else {
-    return true;    
-    Logtr("Mpt mode not supported, skip mpt check");
-  }
   uint64_t mpte;
   while(1){
     uint64_t mpte_addr = mpt_base + (pn[level] << 3);
-    if (!isa_pmp_check_permission(mpte_addr, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-      !isa_pma_check_permission(mpte_addr, PTE_SIZE, MEM_TYPE_READ)) {
-      Log("pmp or pma check failed when mpt walk with addr: %lx", mpte_addr);
+    if (!mpt_paddr_read(mpte_addr, PTE_SIZE, &mpte)) {
+      Log("MPT walk read failed with addr: %lx", mpte_addr);
       return false;
     }
-    mpte = host_read(guest_to_host(mpte_addr), 8);
     bool v = (mpte & 0x1) != 0;
     bool l = (mpte & 0x2) != 0;
     bool res = ((mpte >> 2) & 0xff)==0 && ((mpte >> 62) & 0x1)==0;
@@ -1344,7 +1354,7 @@ bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
       break;
     }
   }
-  
+
 
   #define R_BIT 0x1
   #define W_BIT 0x2
@@ -1372,21 +1382,7 @@ bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
 }
 #endif
 
-bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
-  bool ifetch = (type == MEM_TYPE_IFETCH);
-  __attribute__((unused)) uint32_t mode;
-  mode = (out_mode == MODE_M) ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
-  // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
-  // TODO: It's not good to determine effective mode here.
-#ifdef CONFIG_SHARE
-  // if(dynamic_config.debug_difftest) {
-  //   if (mode != out_mode) {
-  //     ref_log_cpu("PMP out_mode:%d cpu.mode:%ld ifetch:%d nmie:%d mprv:%d mpp:%d actual mode:%d", out_mode, cpu.mode, ifetch, mnstatus->nmie, mstatus->mprv, mstatus->mpp, mode);
-  //       // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
-  //   }
-  // }
-#endif
-
+static bool pmp_check_permission_with_mode(paddr_t addr, int len, int type, uint32_t mode) {
 #ifdef CONFIG_RV_PMP_CHECK
   if (CONFIG_RV_PMP_ACTIVE_NUM == 0) {
     return true;
@@ -1517,11 +1513,11 @@ out:
             offset = addr - (pmpaddr << PMP_SHIFT);
           }
           word_t root_table_base = pmpaddr_from_index(i + 1) << 12;
-          return pmptable_check_permission(offset, root_table_base, type, out_mode);
+          return pmptable_check_permission(offset, root_table_base, type, mode);
         }
         /* Table-bit is disable, get permission directly from pmpcfg reg */
         else {
-          return pmpcfg_check_permission(pmpcfg, type, out_mode);
+          return pmpcfg_check_permission(pmpcfg, type, mode);
         }
       }
     }
@@ -1536,6 +1532,20 @@ out:
 #endif
 #endif
 }
+
+bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (out_mode == MODE_M)
+    ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode)
+    : out_mode;
+  return pmp_check_permission_with_mode(addr, len, type, mode);
+}
+
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type) {
+  return pmp_check_permission_with_mode(addr, len, type, MODE_M);
+}
+#endif
 
 bool isa_pma_check_permission(paddr_t addr, int len, int type) {
 #ifdef CONFIG_RV_PMA_CHECK

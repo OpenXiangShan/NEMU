@@ -19,6 +19,7 @@
 #include <common.h>
 
 bool mmio_is_real_device(paddr_t addr);
+bool mmio_is_real_device_range(paddr_t addr, int len);
 word_t mmio_read(paddr_t addr, int len);
 void mmio_write(paddr_t addr, int len, word_t data);
 bool is_in_mmio(paddr_t addr);

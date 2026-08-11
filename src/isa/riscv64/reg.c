@@ -216,12 +216,10 @@ void isa_reg_display() {
      DISPLAY_CSR("mbmc", mbmc->val);
      printf("\n");
    #endif
-   
+
   #ifdef CONFIG_RV_MPT_CHECK
     DISPLAY_CSR("mmpt", mmpt->val);
     printf("\n");
-  #else
-    printf("MPT disabled!\n");
   #endif
 
   #ifdef CONFIG_RV_PMP_CSR
