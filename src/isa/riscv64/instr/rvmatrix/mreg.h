@@ -45,6 +45,10 @@
 
 #define MSYNC       CONFIG_RVMATRIX_MSYNC
 
+#ifndef MATRIX_MSEW_FP2PACK4
+#define MATRIX_MSEW_FP2PACK4 4
+#endif
+
 enum MTYPECODE_TAB0 {
   MTYPECODE_INT4 = 0,
   MTYPECODE_UINT4,
@@ -71,6 +75,10 @@ typedef union {
   };
   uint64_t val;
 } mcfg_t;
+
+static inline bool is_fp2pack4_mcfg(mcfg_t cfg) {
+  return cfg.table_set == 0 && cfg.type_code == MTYPECODE_FP2PACK4;
+}
 
 static inline int check_mtreg_num(int num) {
   assert(num >= 0 && num < 4);
@@ -118,6 +126,19 @@ static inline int check_mtok_idx(int idx) {
 
 void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
 void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
+
+static inline int8_t get_mreg_packed_i2(int mtr_num, int row, int idx) {
+  const int group_reg_bytes = (CONFIG_RVMATRIX_TRLEN / 8) / 2;
+  const int group_packed_bytes = group_reg_bytes / 4;
+  const int group_elements = group_packed_bytes * 4;
+  const int group = idx / group_elements;
+  const int group_offset = idx % group_elements;
+  const int packed_idx = group * group_reg_bytes + group_offset / 4;
+  rtlreg_t packed_byte = 0;
+  get_mreg(mtr_num, row, packed_idx, &packed_byte, 0, false);
+  uint8_t raw = ((uint8_t)packed_byte >> ((group_offset & 3) * 2)) & 0x3;
+  return (raw & 0x2) ? (int8_t)(raw | 0xfc) : (int8_t)raw;
+}
 
 #endif //__RISCV64_MREG_H__
 
