@@ -832,14 +832,13 @@ static inline void fp_set_rm(int rm) {
 }
 
 static inline uint32_t fp_get_exception() {
-  uint32_t ex = 0;
-  uint32_t softfp_ex = softfloat_exceptionFlags;
-  if (softfp_ex & softfloat_flag_inexact  ) ex |= FPCALL_EX_NX;
-  if (softfp_ex & softfloat_flag_underflow) ex |= FPCALL_EX_UF;
-  if (softfp_ex & softfloat_flag_overflow ) ex |= FPCALL_EX_OF;
-  if (softfp_ex & softfloat_flag_infinite ) ex |= FPCALL_EX_DZ;
-  if (softfp_ex & softfloat_flag_invalid  ) ex |= FPCALL_EX_NV;
-  return ex;
+  _Static_assert((uint32_t)softfloat_flag_inexact == (uint32_t)FPCALL_EX_NX &&
+                 (uint32_t)softfloat_flag_underflow == (uint32_t)FPCALL_EX_UF &&
+                 (uint32_t)softfloat_flag_overflow == (uint32_t)FPCALL_EX_OF &&
+                 (uint32_t)softfloat_flag_infinite == (uint32_t)FPCALL_EX_DZ &&
+                 (uint32_t)softfloat_flag_invalid == (uint32_t)FPCALL_EX_NV,
+                 "softfloat exception flags must match FPCALL_EX bits");
+  return softfloat_exceptionFlags;
 }
 
 uint_fast16_t f16_to_ui16( float16_t a, uint_fast8_t roundingMode, bool exact )
