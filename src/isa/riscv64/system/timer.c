@@ -68,7 +68,7 @@ void update_riscv_timer() {
 
 void set_mtime(uint64_t new_value) {
   update_riscv_timer();
-  clint_mtime_correction = new_value - mtime->val;
+  clint_mtime_correction += new_value - mtime->val;
   mtime->val = new_value;
 }
 
