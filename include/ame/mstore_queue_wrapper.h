@@ -17,8 +17,15 @@ mstore_info_t mstore_queue_back();
 size_t mstore_queue_size();
 bool mstore_queue_empty();
 
+#ifdef CONFIG_RV_AME_FP4
 void mstore_queue_emplace(uint64_t base_addr, uint64_t stride,
-                          uint32_t row, uint32_t column, uint32_t msew, bool transpose);
+                          uint32_t row, uint32_t column, uint32_t msew,
+                          bool transpose, bool raw_fp4);
+#else
+void mstore_queue_emplace(uint64_t base_addr, uint64_t stride,
+                          uint32_t row, uint32_t column, uint32_t msew,
+                          bool transpose);
+#endif
 
 void mstore_queue_update_mrelease(uint8_t tok_i, uint64_t mtokr_value);
 

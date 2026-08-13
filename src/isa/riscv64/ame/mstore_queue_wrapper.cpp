@@ -40,8 +40,25 @@ bool mstore_queue_empty() {
   return cpp_mstore_queue.empty();
 }
 
+#ifdef CONFIG_RV_AME_FP4
+static bool ranges_overlap(uint64_t lhs_start, uint64_t lhs_len,
+                           uint64_t rhs_start, uint64_t rhs_len) {
+  if (lhs_start <= rhs_start) {
+    return rhs_start - lhs_start < lhs_len;
+  }
+  return lhs_start - rhs_start < rhs_len;
+}
+#endif
+
+#ifdef CONFIG_RV_AME_FP4
 void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
-                          uint32_t row, uint32_t column, uint32_t msew, bool transpose) {
+                          uint32_t row, uint32_t column, uint32_t msew,
+                          bool transpose, bool raw_fp4) {
+#else
+void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
+                          uint32_t row, uint32_t column, uint32_t msew,
+                          bool transpose) {
+#endif
   mstore_info_t mstore_info;
   mstore_info.base_vaddr = base_vaddr;
   mstore_info.stride = stride;
@@ -50,6 +67,9 @@ void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
   mstore_info.column = column;
   mstore_info.msew = msew;
   mstore_info.transpose = transpose;
+#ifdef CONFIG_RV_AME_FP4
+  mstore_info.raw_fp4 = raw_fp4;
+#endif
   memset(mstore_info.valid, 0, sizeof(mstore_info.valid));
   mstore_queue_push(mstore_info);
 }
@@ -95,6 +115,30 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
     // Calculate memory access range for this matrix store
     uint32_t row_mem = mstore.transpose ? mstore.column : mstore.row;
     uint32_t column_mem = mstore.transpose ? mstore.row : mstore.column;
+
+#ifdef CONFIG_RV_AME_FP4
+    if (mstore.raw_fp4) {
+      if (row_mem == 0 || column_mem == 0) {
+        continue;
+      }
+      uint64_t row_len = ((uint64_t)column_mem + 1) / 2;
+      for (uint32_t row = 0; row < row_mem; row++) {
+        if (row != 0 && mstore.stride > UINT64_MAX / row) {
+          return true;
+        }
+        uint64_t offset = (uint64_t)row * mstore.stride;
+        if (offset > UINT64_MAX - mstore.base_vaddr) {
+          return true;
+        }
+        if (ranges_overlap(addr, (uint64_t)len,
+                           mstore.base_vaddr + offset, row_len)) {
+          return true;
+        }
+      }
+      continue;
+    }
+#endif
+
     uint32_t width = 1 << mstore.msew;
 
     if (load_end < mstore.base_vaddr || load_start >= mstore.base_vaddr + row_mem * mstore.stride) {
@@ -112,7 +156,7 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
       return true;
     } else {
       // The same row, check the range
-      
+
       // 每一行实际有效的数据范围是:
       //   row_base = base_vaddr + r * stride
       //   [row_base, row_base + column_mem * width - 1]

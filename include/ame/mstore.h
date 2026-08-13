@@ -15,7 +15,10 @@ typedef struct {
   uint32_t column;
   uint32_t msew;
   bool     transpose;
-  
+#ifdef CONFIG_RV_AME_FP4
+  bool     raw_fp4;
+#endif
+
   bool     valid[MSYNC];
   uint64_t mrelease[MSYNC];
 } mstore_info_t;
