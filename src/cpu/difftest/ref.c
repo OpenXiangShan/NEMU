@@ -23,6 +23,7 @@
 #include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
+#include <device/flash.h>
 
 unsigned ref_hartid = 0;
 
@@ -111,6 +112,14 @@ void difftest_load_flash(void *flash_bin, size_t f_size){
   printf("nemu does not enable flash fetch!\n");
 #else
   load_flash_contents((const char *)flash_bin);
+#endif
+}
+
+void difftest_load_flash_v2(const uint8_t *flash_bin, size_t size) {
+#ifndef CONFIG_HAS_FLASH
+  printf("nemu does not enable flash fetch!\n");
+#else
+  load_flash_contents_from_buffer(flash_bin, size);
 #endif
 }
 

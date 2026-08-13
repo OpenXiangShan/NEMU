@@ -28,8 +28,7 @@ static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   return;
 }
 
-void load_flash_contents(const char *flash_img) {
-  // create mmap with zero contents
+static void map_flash_memory() {
   assert(CONFIG_FLASH_SIZE <= 0x20000000UL);
   void *ret = mmap((void *)flash_base, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE,
     MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
@@ -37,6 +36,21 @@ void load_flash_contents(const char *flash_img) {
     perror("mmap");
     assert(0);
   }
+}
+
+void load_flash_contents_from_buffer(const uint8_t *flash_bin, size_t size) {
+  Assert(size <= CONFIG_FLASH_SIZE,
+    "img size %zu is larger than flash size %d", size, CONFIG_FLASH_SIZE);
+  Assert(flash_bin != NULL || size == 0, "flash buffer is NULL with non-zero size");
+  map_flash_memory();
+  if (size != 0) {
+    memcpy(flash_base, flash_bin, size);
+  }
+}
+
+void load_flash_contents(const char *flash_img) {
+  // create mmap with zero contents
+  map_flash_memory();
 
   if (!flash_img || !(fp = fopen(flash_img, "r"))) {
     // Log("Can not find flash image: %s", flash_img);

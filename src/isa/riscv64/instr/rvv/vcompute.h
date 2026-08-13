@@ -1132,6 +1132,14 @@ def_EHelper(vfncvt_rtz_xfw) {
   FLOAT_ARITH_DNARROW(FNCVT_RTZ_XF, UNSIGNED)
 }
 
+def_EHelper(vfncvtmxfp4_ffw) {
+  vfncvtmxfp_instr(s, 4);
+}
+
+def_EHelper(vfncvtmxfp8_ffw) {
+  vfncvtmxfp_instr(s, 8);
+}
+
 def_EHelper(vfsqrt_v) {
   FLOAT_ARITH(FSQRT, UNSIGNED)
 }

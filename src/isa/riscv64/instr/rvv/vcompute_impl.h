@@ -85,6 +85,8 @@ void float_reduction_instr(int opcode, int widening, Decode *s);
 void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s);
 void float_reduction_step2(uint64_t src, Decode *s);
 void float_reduction_computing(Decode *s);
+void vfncvtmxfp_instr(Decode *s, int target_width);
+void isa_fp_set_ex(uint32_t ex);
 void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm(void);
 

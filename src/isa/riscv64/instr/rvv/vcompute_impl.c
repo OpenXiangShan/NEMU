@@ -231,6 +231,277 @@ static inline void reverse_nbytes(uint64_t *val, int sew) {
   *val = tmp;
 }
 
+static int mxfp_compare_binary(uint64_t lhs_sig, int lhs_exp,
+                               uint64_t rhs_sig, int rhs_exp) {
+  if (lhs_sig == 0 || rhs_sig == 0) {
+    return (lhs_sig != 0) - (rhs_sig != 0);
+  }
+
+  int lhs_msb = 63 - __builtin_clzll(lhs_sig);
+  int rhs_msb = 63 - __builtin_clzll(rhs_sig);
+  int lhs_top_exp = lhs_exp + lhs_msb;
+  int rhs_top_exp = rhs_exp + rhs_msb;
+  if (lhs_top_exp != rhs_top_exp) {
+    return lhs_top_exp > rhs_top_exp ? 1 : -1;
+  }
+
+  uint64_t lhs_norm = lhs_sig << (63 - lhs_msb);
+  uint64_t rhs_norm = rhs_sig << (63 - rhs_msb);
+  return (lhs_norm > rhs_norm) - (lhs_norm < rhs_norm);
+}
+
+static void mxfp_decode_magnitude(int target_width, uint8_t code,
+                                  uint64_t *sig, int *exp) {
+  if (target_width == 8) {
+    int encoded_exp = code >> 3;
+    int mantissa = code & 7;
+    if (encoded_exp == 0) {
+      *sig = mantissa;
+      *exp = -9;
+    } else {
+      *sig = 8 + mantissa;
+      *exp = encoded_exp - 10;
+    }
+  } else {
+    int encoded_exp = code >> 1;
+    int mantissa = code & 1;
+    if (encoded_exp == 0) {
+      *sig = mantissa;
+      *exp = -1;
+    } else {
+      *sig = 2 + mantissa;
+      *exp = encoded_exp - 2;
+    }
+  }
+}
+
+static uint8_t mxfp_round_finite(uint32_t src, uint8_t scale_code,
+                                 int target_width, uint32_t rm,
+                                 uint32_t *exception_flags) {
+  bool sign = src >> 31;
+  uint32_t encoded_exp = (src >> 23) & 0xff;
+  uint32_t fraction = src & 0x7fffff;
+  uint64_t input_sig;
+  int input_exp;
+
+  if (encoded_exp == 0) {
+    input_sig = fraction;
+    input_exp = -22 - scale_code;
+  } else {
+    input_sig = 0x800000 | fraction;
+    input_exp = encoded_exp - scale_code - 23;
+  }
+
+  uint8_t sign_bit = sign ? 1u << (target_width - 1) : 0;
+  if (input_sig == 0) {
+    return sign_bit;
+  }
+
+  uint8_t max_code = target_width == 8 ? 0x7e : 0x7;
+  uint64_t target_sig;
+  int target_exp;
+  mxfp_decode_magnitude(target_width, max_code, &target_sig, &target_exp);
+  if (mxfp_compare_binary(input_sig, input_exp, target_sig, target_exp) > 0) {
+    *exception_flags |= FPCALL_EX_OF | FPCALL_EX_NX;
+    return sign_bit | max_code;
+  }
+
+  uint8_t lower_code = 0;
+  uint8_t upper_code = 0;
+  bool exact = false;
+  for (uint8_t code = 0; code <= max_code; code++) {
+    mxfp_decode_magnitude(target_width, code, &target_sig, &target_exp);
+    int comparison = mxfp_compare_binary(input_sig, input_exp, target_sig, target_exp);
+    if (comparison == 0) {
+      lower_code = code;
+      exact = true;
+      break;
+    }
+    if (comparison < 0) {
+      upper_code = code;
+      lower_code = code - 1;
+      break;
+    }
+  }
+
+  if (exact) {
+    return sign_bit | lower_code;
+  }
+
+  uint8_t rounded_code;
+  switch (rm) {
+    case FPCALL_RM_RTZ:
+      rounded_code = lower_code;
+      break;
+    case FPCALL_RM_RDN:
+      rounded_code = sign ? upper_code : lower_code;
+      break;
+    case FPCALL_RM_RUP:
+      rounded_code = sign ? lower_code : upper_code;
+      break;
+    case FPCALL_RM_RNE:
+    case FPCALL_RM_RMM: {
+      uint64_t lower_sig;
+      uint64_t upper_sig;
+      int lower_exp;
+      int upper_exp;
+      mxfp_decode_magnitude(target_width, lower_code, &lower_sig, &lower_exp);
+      mxfp_decode_magnitude(target_width, upper_code, &upper_sig, &upper_exp);
+      int common_exp = lower_exp < upper_exp ? lower_exp : upper_exp;
+      uint64_t midpoint_sum = (lower_sig << (lower_exp - common_exp))
+                            + (upper_sig << (upper_exp - common_exp));
+      int midpoint_comparison = mxfp_compare_binary(input_sig, input_exp + 1,
+                                                     midpoint_sum, common_exp);
+      if (midpoint_comparison < 0) {
+        rounded_code = lower_code;
+      } else if (midpoint_comparison > 0) {
+        rounded_code = upper_code;
+      } else if (rm == FPCALL_RM_RMM) {
+        rounded_code = upper_code;
+      } else {
+        rounded_code = (lower_code & 1) ? upper_code : lower_code;
+      }
+      break;
+    }
+    default:
+      rounded_code = lower_code;
+      break;
+  }
+
+  *exception_flags |= FPCALL_EX_NX;
+  uint8_t min_normal_code = target_width == 8 ? 0x8 : 0x2;
+  if (rounded_code < min_normal_code) {
+    *exception_flags |= FPCALL_EX_UF;
+  }
+  return sign_bit | rounded_code;
+}
+
+static uint8_t fp32_to_mxfp(uint32_t src, uint8_t scale_code,
+                            int target_width, uint32_t rm,
+                            uint32_t *exception_flags) {
+  uint32_t encoded_exp = (src >> 23) & 0xff;
+  uint32_t fraction = src & 0x7fffff;
+  bool is_nan = encoded_exp == 0xff && fraction != 0;
+  bool is_signaling_nan = is_nan && (fraction & 0x400000) == 0;
+
+  if (target_width == 8 && (scale_code == 0xff || is_nan)) {
+    if (is_signaling_nan) {
+      *exception_flags |= FPCALL_EX_NV;
+    }
+    return 0x7f;
+  }
+  if (target_width == 4 && (scale_code == 0xff || is_nan)) {
+    *exception_flags |= FPCALL_EX_NV;
+    return 0x7;
+  }
+  if (encoded_exp == 0xff) {
+    *exception_flags |= FPCALL_EX_OF | FPCALL_EX_NX;
+    uint8_t max_code = target_width == 8 ? 0x7e : 0x7;
+    return ((src >> 31) << (target_width - 1)) | max_code;
+  }
+  return mxfp_round_finite(src, scale_code, target_width, rm, exception_flags);
+}
+
+static void set_packed_mxfp(uint32_t reg, uint32_t idx,
+                            int target_width, uint8_t value) {
+  uint32_t bit_index = idx * target_width;
+  uint32_t target_reg = reg + bit_index / VLEN;
+  uint32_t byte_index = (bit_index % VLEN) / 8;
+  uint32_t bit_offset = bit_index & 7;
+  uint8_t element_mask = (1u << target_width) - 1;
+  uint8_t byte_mask = element_mask << bit_offset;
+  uint8_t old_value = vreg_b(target_reg, byte_index);
+  vreg_b(target_reg, byte_index) = (old_value & ~byte_mask)
+                               | ((value & element_mask) << bit_offset);
+}
+
+static int signed_lmul(uint32_t vlmul) {
+  return vlmul < 4 ? (int)vlmul : (int)vlmul - 8;
+}
+
+static bool register_groups_overlap(uint32_t first_reg, uint32_t first_size,
+                                    uint32_t second_reg, uint32_t second_size) {
+  return first_reg < second_reg + second_size && second_reg < first_reg + first_size;
+}
+
+void vfncvtmxfp_instr(Decode *s, int target_width) {
+  require_float();
+  require_vector(true);
+  check_vstart_exception(s);
+  uint32_t rm = isa_fp_get_frm();
+  isa_fp_rm_check(rm);
+
+  if (vtype->vsew != 2) {
+    longjmp_exception(EX_II);
+  }
+
+  int source_lmul = signed_lmul(vtype->vlmul);
+  int target_lmul = source_lmul - (target_width == 8 ? 2 : 3);
+  if (target_lmul < -3) {
+    longjmp_exception(EX_II);
+  }
+
+  uint32_t source_regs = source_lmul > 0 ? 1u << source_lmul : 1;
+  uint32_t target_regs = target_lmul > 0 ? 1u << target_lmul : 1;
+  uint32_t source_alignment = source_lmul > 0 ? source_regs : 1;
+  uint32_t target_alignment = target_lmul > 0 ? target_regs : 1;
+  uint32_t source_reg = id_src->reg;
+  uint32_t scale_reg = id_src2->reg;
+  uint32_t target_reg = id_dest->reg;
+
+  if (source_reg % source_alignment != 0 || target_reg % target_alignment != 0
+      || source_reg + source_regs > 32 || target_reg + target_regs > 32) {
+    longjmp_exception(EX_II);
+  }
+  if (register_groups_overlap(target_reg, target_regs, source_reg, source_regs)
+      && target_reg != source_reg) {
+    longjmp_exception(EX_II);
+  }
+  if (scale_reg >= target_reg && scale_reg < target_reg + target_regs) {
+    longjmp_exception(EX_II);
+  }
+  if (s->vm == 0 && target_reg == 0) {
+    longjmp_exception(EX_II);
+  }
+
+  uint8_t scale_code = vreg_b(scale_reg, 0);
+  uint32_t exception_flags = 0;
+  uint32_t target_storage_elements = target_regs * VLEN / target_width;
+  uint32_t source_values[VLEN / 32 * 8];
+  for (uint32_t idx = 0; idx < vl->val; idx++) {
+    rtlreg_t source_value;
+    get_vreg(source_reg, idx, &source_value, 2, vtype->vlmul, 0, 0);
+    source_values[idx] = source_value;
+  }
+
+  for (uint32_t idx = 0; idx < vl->val; idx++) {
+    if (s->vm == 0 && get_mask(0, idx) == 0) {
+      if (vtype->vma) {
+        set_packed_mxfp(target_reg, idx, target_width, 0xff);
+      }
+      continue;
+    }
+
+    uint8_t result = fp32_to_mxfp(source_values[idx], scale_code, target_width,
+                                  rm, &exception_flags);
+    set_packed_mxfp(target_reg, idx, target_width, result);
+  }
+
+  if (vl->val != 0 && vtype->vta) {
+    for (uint32_t idx = vl->val; idx < target_storage_elements; idx++) {
+      set_packed_mxfp(target_reg, idx, target_width, 0xff);
+    }
+  }
+
+  if (exception_flags != 0) {
+    isa_fp_set_ex(exception_flags);
+  } else {
+    fp_set_dirty();
+  }
+  vp_set_dirty();
+  vstart->val = 0;
+}
+
 static inline void require_vector_vs() {
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);
