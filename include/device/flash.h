@@ -19,6 +19,7 @@
 #ifdef CONFIG_HAS_FLASH
 uint8_t* get_flash_base();
 uint64_t get_flash_size();
+void load_flash_contents_from_buffer(const uint8_t *flash_bin, size_t size);
 #endif
 
 #endif
