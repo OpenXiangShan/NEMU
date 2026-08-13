@@ -1443,6 +1443,10 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_SSTATEEN0:
       IFDEF(CONFIG_RVH, if (cpu.v) return sstateen0->val & hstateen0->val & mstateen0->val);
       return sstateen0->val & mstateen0->val;
+    case CSR_SSTATEEN1:
+    case CSR_SSTATEEN2:
+    case CSR_SSTATEEN3:
+      return 0;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_SIE:
@@ -1524,6 +1528,10 @@ static word_t csr_read(uint32_t csrid) {
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_HSTATEEN0: return hstateen0->val & mstateen0->val;
+    case CSR_HSTATEEN1:
+    case CSR_HSTATEEN2:
+    case CSR_HSTATEEN3:
+      return 0;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_HIP: return get_hip();
@@ -1746,6 +1754,10 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_SSTATEEN0: *dest = (src & SSTATEEN0_WMASK); break;
+    case CSR_SSTATEEN1:
+    case CSR_SSTATEEN2:
+    case CSR_SSTATEEN3:
+      *dest = 0; break;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_SIE:
@@ -1911,6 +1923,10 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       *dest = ((src & HSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
     }
+    case CSR_HSTATEEN1:
+    case CSR_HSTATEEN2:
+    case CSR_HSTATEEN3:
+      *dest = 0; break;
 #endif // CONFIG_RV_SMSTATEEN
 
     case CSR_HGATP:
@@ -2026,6 +2042,10 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_MSTATEEN0: *dest = ((src & MSTATEEN0_WMASK) | STATEEN0_CSRIND); break;
+    case CSR_MSTATEEN1:
+    case CSR_MSTATEEN2:
+    case CSR_MSTATEEN3:
+      *dest = 0; break;
 #endif // CONFIG_RV_SMSTATEEN
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT

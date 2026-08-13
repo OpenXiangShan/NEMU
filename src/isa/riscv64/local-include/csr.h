@@ -152,7 +152,7 @@
 /** Supervisor State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
   #define CSRS_S_STATE_ENABLE(f) \
-    f(sstateen0 , 0x10C) 
+    f(sstateen0 , 0x10C) f(sstateen1 , 0x10D) f(sstateen2 , 0x10E) f(sstateen3 , 0x10F)
 #else
   #define CSRS_S_STATE_ENABLE(f)
 #endif // CONFIG_RV_SMSTATEEN
@@ -252,7 +252,7 @@
   /** Hypervisor State Enable Registers **/
   #ifdef CONFIG_RV_SMSTATEEN
     #define CSRS_H_STATE_ENABLE(f) \
-      f(hstateen0 , 0x60C) 
+      f(hstateen0 , 0x60C) f(hstateen1 , 0x60D) f(hstateen2 , 0x60E) f(hstateen3 , 0x60F)
   #else
     #define CSRS_H_STATE_ENABLE(f)
   #endif // CONFIG_RV_SMSTATEEN
@@ -365,7 +365,7 @@
 /** Machine State Enable Registers **/
 #ifdef CONFIG_RV_SMSTATEEN
   #define CSRS_M_STATE_ENABLE(f) \
-    f(mstateen0, 0x30C)
+    f(mstateen0, 0x30C) f(mstateen1, 0x30D) f(mstateen2, 0x30E) f(mstateen3, 0x30F)
 #else
   #define CSRS_M_STATE_ENABLE(f)
 #endif // CONFIG_RV_SMSTATEEN
@@ -753,6 +753,9 @@ CSR_STRUCT_END(mseccfg)
   uint64_t jvt    : 1; // [2]
   uint64_t pad0   :29; // [31:3]
   CSR_STRUCT_END(sstateen0)
+  CSR_STRUCT_DUMMY(sstateen1, 0x10D)
+  CSR_STRUCT_DUMMY(sstateen2, 0x10E)
+  CSR_STRUCT_DUMMY(sstateen3, 0x10F)
   
 #ifdef CONFIG_RVH
   CSR_STRUCT_START(hstateen0)
@@ -769,7 +772,14 @@ CSR_STRUCT_END(mseccfg)
   uint64_t envcfg : 1; // [62]
   uint64_t se0    : 1; // [63]
   CSR_STRUCT_END(hstateen0)
+  CSR_STRUCT_DUMMY(hstateen1, 0x60D)
+  CSR_STRUCT_DUMMY(hstateen2, 0x60E)
+  CSR_STRUCT_DUMMY(hstateen3, 0x60F)
 #endif
+
+  CSR_STRUCT_DUMMY(mstateen1, 0x30D)
+  CSR_STRUCT_DUMMY(mstateen2, 0x30E)
+  CSR_STRUCT_DUMMY(mstateen3, 0x30F)
 #endif
 
 /** "H" Hypervisor Extension CSRs **/
