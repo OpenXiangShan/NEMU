@@ -162,7 +162,7 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
   if (raw_fp4) {
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
                               is_trans, true, ts3)) {
-      mstore_queue_emplace(base_addr, row_byte_stride, row, column, dsize, is_trans, true);
+      mstore_queue_emplace(base_addr, row_byte_stride, row, column, MSEW_FP4, is_trans);
     }
     return;
   }
@@ -174,11 +174,7 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
     row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, ts3);
 
-#ifdef CONFIG_RV_AME_FP4
-  mstore_queue_emplace(base_addr, row_byte_stride, row, column, dsize, is_trans, false);
-#else
   mstore_queue_emplace(base_addr, row_byte_stride, row, column, dsize, is_trans);
-#endif
 }
 
 // m_name: 'a'/'b'/'c'

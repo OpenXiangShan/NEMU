@@ -50,15 +50,9 @@ static bool ranges_overlap(uint64_t lhs_start, uint64_t lhs_len,
 }
 #endif
 
-#ifdef CONFIG_RV_AME_FP4
-void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
-                          uint32_t row, uint32_t column, uint32_t msew,
-                          bool transpose, bool raw_fp4) {
-#else
 void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
                           uint32_t row, uint32_t column, uint32_t msew,
                           bool transpose) {
-#endif
   mstore_info_t mstore_info;
   mstore_info.base_vaddr = base_vaddr;
   mstore_info.stride = stride;
@@ -67,9 +61,6 @@ void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
   mstore_info.column = column;
   mstore_info.msew = msew;
   mstore_info.transpose = transpose;
-#ifdef CONFIG_RV_AME_FP4
-  mstore_info.raw_fp4 = raw_fp4;
-#endif
   memset(mstore_info.valid, 0, sizeof(mstore_info.valid));
   mstore_queue_push(mstore_info);
 }
@@ -117,7 +108,7 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
     uint32_t column_mem = mstore.transpose ? mstore.row : mstore.column;
 
 #ifdef CONFIG_RV_AME_FP4
-    if (mstore.raw_fp4) {
+    if (mstore.msew == MSEW_FP4) {
       if (row_mem == 0 || column_mem == 0) {
         continue;
       }
