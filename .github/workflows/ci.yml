@@ -514,6 +514,7 @@ jobs:
           cat >> performance_results.md <<'EOF'
 
           * Host Instructions is measured by DynamoRIO's inscount client.
+          * rvh-workload-suite runs the nested Linux/kvmtool guest to exercise the H extension and two-stage translation.
           * Estimated Host Throughput assumes a fixed 4GHz CPU and IPC=2.5.
           * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
           * Baseline columns are populated on pull_request runs when the PR base contains the same defconfig.
