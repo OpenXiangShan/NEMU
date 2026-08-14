@@ -226,6 +226,10 @@ rvv_tests=(
   am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
 )
 
+rvh_tests=(
+  linux/kvmtool/fw_payload.bin
+)
+
 configure_perf_flags() {
   sed -i 's/CONFIG_CC_NATIVE_ARCH=y/# CONFIG_CC_NATIVE_ARCH is not set/g' .config
   sed -i 's/CONFIG_CC_OPT_FLAGS=""/CONFIG_CC_OPT_FLAGS="-march=x86-64-v3 -mtune=generic -ftree-vectorize"/g' .config
@@ -387,8 +391,9 @@ append_result_row() {
   echo "::endgroup::"
 }
 
-append_rvv_suite_result_row() {
-  local test_name="rvv-workload-suite"
+append_suite_result_row() {
+  local test_name="$1"
+  shift
   local test_bin image result native_output
   local guest_instr_count host_instr_count native_guest_instr_count host_time_us
   local total_guest_instr_count=0
@@ -398,8 +403,12 @@ append_rvv_suite_result_row() {
   local actual_throughput estimated_throughput
 
   echo "::group::${title} - ${test_name}"
-  for test_bin in "${rvv_tests[@]}"; do
+  for test_bin in "$@"; do
     image="${workloads}/${test_bin}"
+    if [ ! -f "$image" ]; then
+      echo "Workload not found for ${test_name}: ${image}" >&2
+      exit 1
+    fi
     result=$(run_target "$image" "$drrun" -c "$inscount" -- | strings)
     guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
     host_instr_count=$(get_host_instr_count "$result")
@@ -467,7 +476,8 @@ for test_bin in "${tests[@]}"; do
   append_result_row "$(basename "$test_bin")" "${workloads}/${test_bin}"
 done
 
-append_rvv_suite_result_row
+append_suite_result_row "rvv-workload-suite" "${rvv_tests[@]}"
+append_suite_result_row "rvh-workload-suite" "${rvh_tests[@]}"
 
 if [ "$include_linux" = true ]; then
   append_result_row "linux-hello" "${workloads}/linux/hello/fw_payload.bin"
@@ -477,6 +487,7 @@ cat >> "$output" <<'EOF'
 
 * Host Instructions is measured by DynamoRIO's inscount client.
 * rvv-workload-suite aggregates selected AM riscv-vector-tests binaries.
+* rvh-workload-suite runs the nested Linux/kvmtool guest to exercise the H extension and two-stage translation.
 * Estimated Host Throughput assumes a fixed 4GHz CPU and IPC=2.5.
 * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
 EOF
