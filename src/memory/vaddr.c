@@ -221,15 +221,6 @@ static void vaddr_mmu_write_matrix(struct Decode *s, vaddr_t base, vaddr_t strid
 
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int type, int mmu_mode) {
 
-#ifdef CONFIG_RVH
-  // check whether here is a hlvx instruction
-  // when inst fetch or vaddr_read_safe (for examine memory), s is NULL
-  if (s != NULL) {
-    extern int rvh_hlvx_check(struct Decode *s, int type);
-    rvh_hlvx_check((Decode*)s, type);
-  }
-#endif
-
   addr = get_effective_address(addr, type);
 
   bool is_cross_page = false;
@@ -270,10 +261,6 @@ static inline void vaddr_read_matrix_internal(struct Decode *s, vaddr_t base, va
     paddr_read_matrix(base, stride, row, column, msew, transpose,
                              cpu.mode, base, m_name, mreg_id);
   } else {
-#ifdef CONFIG_RVH
-    extern int rvh_hlvx_check(struct Decode *s, int type);
-    rvh_hlvx_check((Decode*)s, MEM_TYPE_MATRIX_READ);
-#endif
     MUXDEF(ENABLE_HOSTTLB, hosttlb_read_matrix, vaddr_mmu_read_matrix) (s, base, stride,
       row, column, msew, transpose, m_name, mreg_id);
   }

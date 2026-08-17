@@ -855,6 +855,15 @@ void cpu_exec(uint64_t n) {
       cpu.pbmt = 0;
       cpu.isVldst = false;
       cpu.isVecUnitStore = false;
+#ifdef CONFIG_RVH
+      // HLV/HLVX/HSV set these transient translation controls around the
+      // memory operation. A fault leaves through longjmp, bypassing the
+      // normal helper epilogue, so clear them before executing the handler.
+      extern bool hld_st;
+      extern bool hlvx;
+      hld_st = false;
+      hlvx = false;
+#endif
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
