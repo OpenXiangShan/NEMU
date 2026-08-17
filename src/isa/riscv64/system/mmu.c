@@ -364,7 +364,9 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type) {
   if (hld_st) {
     mode = hstatus->spvp;
     virt = true;
-  } else if (get_mprv() && mode != MODE_M ) {
+  } else if (get_mprv()) {
+    // MPRV makes data accesses use MPP; checking the current mode here would
+    // suppress precisely the M-mode accesses for which MPRV is intended.
     mode = mstatus->mpp;
     virt = mstatus->mpv;
   }
