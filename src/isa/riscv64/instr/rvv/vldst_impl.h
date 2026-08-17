@@ -39,6 +39,9 @@
 #define MODE_MASK    3
 
 // vector load
+#if defined(CONFIG_SHARE_REF) && !defined(CONFIG_MULTICORE_DIFF)
+bool vld_unit_mmu_translate_vl8_hot(Decode *s);
+#endif
 void vld(Decode *s, int mode, int mmu_mode);
 void vldx(Decode *s, int mmu_mode);
 void vlr(Decode *s, int mmu_mode);
