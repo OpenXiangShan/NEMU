@@ -20,7 +20,7 @@
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
-#include <ame/raw-fp4.h>
+#include "ame/raw-fp4.h"
 #include "../instr/ame/mreg.h"
 #include "../local-include/intr.h"
 

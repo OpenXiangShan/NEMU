@@ -20,7 +20,7 @@
 
 #include "common.h"
 #ifdef CONFIG_RV_AME_FP4
-#include <ame/raw-fp4.h>
+#include "ame/raw-fp4.h"
 #endif
 
 #define TLEN   CONFIG_RV_AME_TLEN
