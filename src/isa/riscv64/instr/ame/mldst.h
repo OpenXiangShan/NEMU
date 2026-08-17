@@ -25,7 +25,7 @@
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
 #ifdef CONFIG_RV_AME_FP4
-#include <ame/raw-fp4.h>
+#include "ame/raw-fp4.h"
 #endif
 #include "ame/mstore_queue_wrapper.h"
 #include "mcommon.h"

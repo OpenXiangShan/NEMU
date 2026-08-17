@@ -97,9 +97,7 @@ bool is_signed_int_mtype(uint64_t type_code) {
 def_EHelper(mmacc) {
   // Check MS
   require_matrix();
-#ifndef CONFIG_RV_AME_FP4
   mp_set_dirty();
-#endif
   int tile_m = mtilem->val;
   int tile_k = mtilek->val;
   int tile_n = mtilen->val;
@@ -114,7 +112,6 @@ def_EHelper(mmacc) {
       is_raw_fp4_type_code(dmcfg)) {
     longjmp_exception(EX_II);
   }
-  mp_set_dirty();
 #endif
   uint8_t dsize = get_size(dmcfg);
   uint8_t s1size = get_size(s1mcfg);
