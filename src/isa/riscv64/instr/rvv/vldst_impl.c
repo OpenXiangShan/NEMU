@@ -302,39 +302,61 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   bool fast_vle = false;
 
-#if !defined(CONFIG_SHARE) && !defined(CONFIG_TDATA1_MCONTROL6)
+#if !defined(CONFIG_SHARE)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
   uint64_t last_addr = base_addr + (vl_val * nf - 1) * s->v_width;
   uint64_t vle_size = last_addr - start_addr + s->v_width;
   __attribute__((unused)) bool cross_page = last_addr / PAGE_SIZE != start_addr / PAGE_SIZE;
+#ifndef CONFIG_TDATA1_MCONTROL6
   uint8_t masks[VLMAX_8] = {0};
+#endif
 
   Logm("vld start_addr: %#lx, v_width: %u, vl_val: %lu, vle size=%lu, vstart->val: %lu, nf=%lu",
       base_addr, s->v_width, vl_val, vle_size, vstart->val, nf);
 
-  if (is_unit_stride && nf == 1 && vl_val > vstart->val && vtype->vlmul < 4 && !cross_page) {
-    s->last_access_host_addr = NULL;
-    extern void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
-    dummy_vaddr_data_read(s, start_addr, s->v_width, mmu_mode);
-    // Now we have the host address of first element in Decode *s->last_access_host_addr
-    if (s->last_access_host_addr != NULL) {
-
-      // get address of first element in register file
+  if (is_unit_stride && nf == 1 && vl_val > vstart->val &&
+      vtype->vlmul < 4 && !cross_page) {
+#ifndef CONFIG_USE_SPARSEMM
+    if (mode == MODE_UNIT && s->vm == 1 && mmu_mode == MMU_DIRECT &&
+        MUXDEF(CONFIG_TDATA1_MCONTROL6, !trigger_mcontrol6_active(cpu.TM), true) &&
+        likely(in_pmem(start_addr)) && likely(in_pmem(last_addr)) &&
+        isa_pmp_check_permission(start_addr, vle_size, MEM_TYPE_READ, cpu.mode) &&
+        isa_pma_check_permission(start_addr, vle_size, MEM_TYPE_READ) &&
+        MUXDEF(CONFIG_RV_MBMC,
+               isa_bmc_check_permission(start_addr, vle_size, MEM_TYPE_READ, cpu.mode),
+               true)) {
+      isa_vec_misalign_data_addr_check(start_addr, s->v_width, MEM_TYPE_READ);
       void *reg_file_addr = NULL;
       get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
-      uint8_t * restrict reg_file_addr_8 = reg_file_addr;
+      memcpy(reg_file_addr, guest_to_host(start_addr), vle_size);
+      fast_vle = true;
+    }
+#endif
+#ifndef CONFIG_TDATA1_MCONTROL6
+    if (!fast_vle) {
+      s->last_access_host_addr = NULL;
+      extern void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+      dummy_vaddr_data_read(s, start_addr, s->v_width, mmu_mode);
+      // Now we have the host address of first element in Decode *s->last_access_host_addr
+      if (s->last_access_host_addr != NULL) {
 
-      __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+        // get address of first element in register file
+        void *reg_file_addr = NULL;
+        get_vreg_with_addr(vd, vstart->val, &tmp_reg[1], eew, 0, 0, 0, &reg_file_addr);
+        Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
+        uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
 #ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
-      mstore_queue_check_vec_addr_conflict(
-          start_addr, masks + vstart->val * s->v_width,
-          vl_val - vstart->val, s->v_width);
+        mstore_queue_check_vec_addr_conflict(
+            start_addr, masks + vstart->val * s->v_width,
+            vl_val - vstart->val, s->v_width);
 #endif
 
-      uint8_t invert_masks[VLMAX_8] = {0};
-      uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
+        __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+
+        uint8_t invert_masks[VLMAX_8] = {0};
+        uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
 
 #ifdef DEBUG_FAST_VLE
       switch (s->v_width) {
@@ -373,21 +395,23 @@ void vld(Decode *s, int mode, int mmu_mode) {
       }
 # endif // DEBUG_FAST_VLE
 
-      for (int i = 0; i < VLMAX_8; i++) {
-        invert_masks[i] = ~masks[i];
-        masks[i] &= last_access_host_addr_u8[i];
-        if (RVV_AGNOSTIC && vtype->vma) {
-          invert_masks[i] = 0xff;
-        } else {
-          invert_masks[i] &= reg_file_addr_8[i];
+        for (int i = 0; i < VLMAX_8; i++) {
+          invert_masks[i] = ~masks[i];
+          masks[i] &= last_access_host_addr_u8[i];
+          if (RVV_AGNOSTIC && vtype->vma) {
+            invert_masks[i] = 0xff;
+          } else {
+            invert_masks[i] &= reg_file_addr_8[i];
+          }
+          masks[i] |= invert_masks[i];
         }
-        masks[i] |= invert_masks[i];
+        memcpy(reg_file_addr, masks, vle_size);
+        fast_vle = true;
       }
-      memcpy(reg_file_addr, masks, vle_size);
-      fast_vle = true;
     }
+#endif
   }
-#endif // !CONFIG_SHARE && !CONFIG_TDATA1_MCONTROL6
+#endif // !CONFIG_SHARE
 
   // Store all seg8 intermediate data
   uint64_t vloadBuf[8];
