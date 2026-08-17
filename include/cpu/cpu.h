@@ -56,6 +56,10 @@ enum {
 };
 void set_sys_state_flag(int flag);
 void mmu_tlb_flush(vaddr_t vaddr);
+#ifdef CONFIG_RVH
+void mmu_tlb_flush_host(vaddr_t vaddr);
+void mmu_tlb_flush_guest(vaddr_t vaddr);
+#endif
 
 struct Decode;
 void save_globals(struct Decode *s);
