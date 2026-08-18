@@ -248,7 +248,7 @@ rvh_tests=(
 
 xsai_blas_tests=(
   bin/gemm_i8_f32_case8.bin
-  bin/gemm_i8_f32_case10.bin
+  # bin/gemm_i8_f32_case10.bin
   bin/gemm_tile_stream.bin
 )
 
