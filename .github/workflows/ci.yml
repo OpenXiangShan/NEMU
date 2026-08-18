@@ -14,6 +14,8 @@ env:
   LIBCHECKPOINT_CROSS_COMPILE: riscv64-linux-gnu-
   CPT_CROSS_COMPILE: riscv64-linux-gnu-
   NANOPB_CROSS_COMPILE: riscv64-linux-gnu-
+  XSAI_BLAS_RELEASE_URL: https://github.com/OurCompArchGroup/xsai-blas-release/releases/download/v1.0.0/xsai-blas-nemu-workloads-v1.0.0.tar.zst
+  XSAI_BLAS_WORKLOADS: ./xsai-blas-workloads
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
@@ -434,7 +436,25 @@ jobs:
         if: steps.cache-dynamorio.outputs.cache-hit != 'true'
         run: |
           wget https://github.com/DynamoRIO/dynamorio/releases/download/release_11.3.0-1/DynamoRIO-Linux-11.3.0.tar.gz -O - | tar -zxf -
-      
+
+      - name: Restore XSAI BLAS workloads
+        id: cache-xsai-blas
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.XSAI_BLAS_WORKLOADS }}
+          key: xsai-blas-nemu-workloads-v1.0.0
+
+      - name: Download and extract XSAI BLAS workloads
+        if: steps.cache-xsai-blas.outputs.cache-hit != 'true'
+        run: |
+          archive=xsai-blas-nemu-workloads-v1.0.0.tar.zst
+          wget --https-only --retry-connrefused --tries=3 \
+            "${XSAI_BLAS_RELEASE_URL}" -O "${archive}"
+          rm -rf "${XSAI_BLAS_WORKLOADS}"
+          mkdir -p "${XSAI_BLAS_WORKLOADS}"
+          tar --zstd -xf "${archive}" \
+            --strip-components=1 -C "${XSAI_BLAS_WORKLOADS}"
+
       - name: Setup env
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -445,6 +465,7 @@ jobs:
           PERF_BASE_REF: ${{ github.base_ref }}
         run: |
           workloads_dir=$(realpath "${CI_WORKLOADS}")
+          xsai_blas_dir=$(realpath "${XSAI_BLAS_WORKLOADS}")
           dynamorio_dir=$(realpath DynamoRIO-Linux-11.3.0-1)
           ref_config_generator=$(realpath tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh)
 
@@ -464,6 +485,14 @@ jobs:
             --metrics-output performance_ref_so.tsv \
             --defconfig-gen-script "$ref_config_generator" \
             --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
+          tools/perf-benchmark.sh \
+            --defconfig riscv64-matrix-xs_defconfig \
+            --title "NEMU Performance Results - XSAI Interpreter" \
+            --workloads "$xsai_blas_dir" \
+            --dynamorio-dir "$dynamorio_dir" \
+            --suite xsai-blas \
+            --output performance_xsai_blas.md \
+            --metrics-output performance_xsai_blas.tsv
 
           if [ -n "${PERF_BASE_SHA:-}" ] && [ -n "${PERF_BASE_REF:-}" ]; then
             git config --global --add safe.directory "${GITHUB_WORKSPACE}"
@@ -498,6 +527,18 @@ jobs:
                 --defconfig-gen-script "$ref_config_generator" \
                 --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
             fi
+
+            if [ -f perf-baseline/configs/riscv64-matrix-xs_defconfig ]; then
+              tools/perf-benchmark.sh \
+                --repo-dir perf-baseline \
+                --defconfig riscv64-matrix-xs_defconfig \
+                --title "Baseline - XSAI Interpreter" \
+                --workloads "$xsai_blas_dir" \
+                --dynamorio-dir "$dynamorio_dir" \
+                --suite xsai-blas \
+                --output baseline_xsai_blas.md \
+                --metrics-output baseline_xsai_blas.tsv
+            fi
           fi
 
           tools/perf-compare.sh \
@@ -511,6 +552,12 @@ jobs:
             --current performance_ref_so.tsv \
             --baseline baseline_ref_so.tsv \
             >> performance_results.md
+          echo >> performance_results.md
+          tools/perf-compare.sh \
+            --title "NEMU Performance Results - XSAI Interpreter" \
+            --current performance_xsai_blas.tsv \
+            --baseline baseline_xsai_blas.tsv \
+            >> performance_results.md
           cat >> performance_results.md <<'EOF'
 
           * Host Instructions is measured by DynamoRIO's inscount client.
@@ -519,6 +566,7 @@ jobs:
           * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
           * Baseline columns are populated on pull_request runs when the PR base contains the same defconfig.
           * Change vs Baseline (Instructions) is computed from host instruction count; positive means fewer host instructions than baseline.
+          * XSAI results use the pinned XSAI BLAS v1.0.0 workload release.
           EOF
           cat performance_results.md
           cat performance_results.md >> "$GITHUB_STEP_SUMMARY"
