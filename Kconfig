@@ -297,6 +297,7 @@ config SIMPOINT_LOG
   default n
 
 config TRACE_MATRIX_LOAD_STORE
+  depends on RV_AME
   bool "Enable Log for matrix load/store"
   default n
 
