@@ -179,6 +179,22 @@ config CC_ASAN
   depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
+
+config AME_MMACC_VECTORIZE
+  depends on RV_AME && !SHARE
+  bool "Enable AME integer MMACC optimization"
+  default n
+  help
+    Enable an optimized execution path for supported AME integer MMACC
+    operations. Unsupported combinations use the scalar implementation.
+
+config AME_MLDST_VECTORIZE
+  depends on RV_AME && !SHARE && !USE_SPARSEMM
+  bool "Enable AME matrix load/store optimization"
+  default n
+  help
+    Enable optimized row copies and transposed matrix load/store operations.
+    Unsupported cases use the scalar implementation.
 endmenu
 
 menu "Testing and Debugging"
@@ -235,7 +251,7 @@ config DIFFTEST_STORE_COMMIT
   default n
 
 config AME_REG_ACCESS_CHECK
-  depends on RV_AME
+  depends on RV_AME && !AME_MMACC_VECTORIZE && !AME_MLDST_VECTORIZE
   bool "Check AME matrix register accesses"
   default n
   help
