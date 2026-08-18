@@ -425,6 +425,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
   pt_level = 0;
   #endif
   if (hgatp->mode == HGATP_MODE_BARE) {
+    cpu.pbmt = 0;
     return gpaddr;
   } else if (hgatp->mode == HGATP_MODE_Sv48x4){
     if((gpaddr & ~(((int64_t)1 << 50) - 1)) != 0){
@@ -666,8 +667,12 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
+    uint8_t vs_pbmt = pte.pbmt;
     pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+    // G-stage first produces the intermediate attributes. A non-zero
+    // VS-stage PBMT then overrides them to produce the final attributes.
+    if (vs_pbmt != 0) cpu.pbmt = vs_pbmt;
   } else {
     cpu.pbmt = pte.pbmt;
   }
