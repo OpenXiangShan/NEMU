@@ -168,4 +168,3 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
 }
 
 #endif // CONFIG_RV_AME
-

@@ -32,19 +32,28 @@ _Static_assert(CONFIG_RV_AME_MSYNC == 8 ||
                CONFIG_RV_AME_MSYNC == 32,
                "MSYNC must be one of 8/16/32");
 
+uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row) {
+  if (mtr_num >= 4) {
+    return cpu.macc[check_mareg_num(mtr_num)][check_macc_row(mtr_row)]._8;
+  }
+  return cpu.mtr[check_mtreg_num(mtr_num)][check_mtreg_row(mtr_row)]._8;
+}
+
 #ifdef CONFIG_RV_AME_FP4
-uint8_t get_mreg_nibble(int mtr_num, int mtr_row, int mtr_idx) {
+uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx) {
   uint8_t byte = mtreg_l8(mtr_num, mtr_row, mtr_idx >> 1);
   return raw_fp4_get_nibble(byte, mtr_idx);
 }
 
-void set_mreg_nibble(int mtr_num, int mtr_row, int mtr_idx, uint8_t src_data) {
+void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+                     uint8_t src_data) {
   uint8_t *byte = &mtreg_l8(mtr_num, mtr_row, mtr_idx >> 1);
   *byte = raw_fp4_set_nibble(*byte, mtr_idx, src_data);
 }
 #endif
 
-void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew) {
+void set_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t src_data, uint64_t msew) {
   Assert(msew <= 3, "msew >= 4 is reserved\n");
   switch (msew) {
     case 0 : src_data = src_data & 0xff; break;
@@ -69,7 +78,8 @@ void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t
   }
 }
 
-void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed) {
+void get_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t *dst, uint64_t msew, bool is_signed) {
   Assert(msew <= 3, "msew >= 4 is reserved\n");
   if (mtr_num >= 4) {
     switch (msew) {

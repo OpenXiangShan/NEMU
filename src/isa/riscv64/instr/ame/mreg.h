@@ -102,30 +102,30 @@ static inline int check_mareg_num(int num) {
   return num - 4;
 }
 
-static inline int check_mtreg_row(int row) {
+static inline uint64_t check_mtreg_row(uint64_t row) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(row >= 0 && row < ROWNUM);
+  assert(row < ROWNUM);
 #endif
   return row;
 }
 
-static inline int check_macc_row(int row) {
+static inline uint64_t check_macc_row(uint64_t row) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(row >= 0 && row < ROWNUM);
+  assert(row < ROWNUM);
 #endif
   return row;
 }
 
-static inline int check_mtreg_idx(int idx, int elen) {
+static inline uint64_t check_mtreg_idx(uint64_t idx, uint64_t elen) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(idx >= 0 && idx < TRLEN/elen);
+  assert(idx < TRLEN/elen);
 #endif
   return idx;
 }
 
-static inline int check_macc_idx(int idx, int elen) {
+static inline uint64_t check_macc_idx(uint64_t idx, uint64_t elen) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(idx >= 0 && idx < ARLEN/elen);
+  assert(idx < ARLEN/elen);
 #endif
   return idx;
 }
@@ -144,12 +144,16 @@ static inline int check_mtok_idx(int idx) {
 #define macc_l16(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._16[check_macc_idx(idx, 16)])
 #define macc_l8(num, row, idx)   (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._8[check_macc_idx(idx, 8)])
 
+void set_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t src_data, uint64_t msew);
+void get_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t *dst, uint64_t msew, bool is_signed);
+uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row);
 #ifdef CONFIG_RV_AME_FP4
-uint8_t get_mreg_nibble(int mtr_num, int mtr_row, int mtr_idx);
-void set_mreg_nibble(int mtr_num, int mtr_row, int mtr_idx, uint8_t src_data);
+uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx);
+void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+                     uint8_t src_data);
 #endif
-void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
-void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
 
 #endif //__RISCV64_MREG_H__
 

@@ -20,7 +20,14 @@
 #include "paddr.h"
 
 #ifdef CONFIG_RV_AME
+#include "../../src/isa/riscv64/instr/ame/mldst_fast.h"
 #include "../../src/isa/riscv64/instr/ame/mreg.h"
+#endif
+
+#if defined(CONFIG_AME_MLDST_VECTORIZE) && \
+    defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+    (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define AME_MLDST_RAW_ROW_COPY
 #endif
 
 static inline word_t host_read(void *addr, int len) {
@@ -53,7 +60,14 @@ static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
        pbase, stride, row, column, width, transpose, m_name);
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
-  
+
+#ifdef AME_MLDST_RAW_ROW_COPY
+  if (try_fast_matrix_load(guest_to_host(pbase), stride,
+                           row, column, msew, transpose, mreg_id)) {
+    return;
+  }
+#endif
+
   for (int r = 0; r < row_mem; r++) {
     for (int c = 0; c < column_mem; c++) {
       paddr_t addr = pbase + c * width;
@@ -88,7 +102,14 @@ static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
        pbase, stride, row, column, width, transpose, m_name);
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
-  
+
+#ifdef AME_MLDST_RAW_ROW_COPY
+  if (try_fast_matrix_store(guest_to_host(pbase), stride,
+                            row, column, msew, transpose, mreg_id)) {
+    return;
+  }
+#endif
+
   for (int r = 0; r < row_mem; r++) {
     for (int c = 0; c < column_mem; c++) {
       paddr_t addr = pbase + c * width;

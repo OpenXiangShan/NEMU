@@ -20,10 +20,23 @@
 #define __RISCV64_MCOMPUTE_IMPL_H__
 
 #include "mreg.h"
+#include "mldst_impl.h"
 #include "../local-include/intr.h"
 #include "mcommon.h"
 
 void require_matrix();
+uint8_t get_pack(mcfg_t cfg);
+int8_t check_comb(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg);
+bool is_signed_int_mtype(uint64_t type_code);
+
+#ifdef CONFIG_AME_MMACC_VECTORIZE
+bool try_auto_vectorized_int8_mmacc(
+  int td, int ts1, int ts2,
+  uint64_t tile_m, uint64_t tile_n, uint64_t tile_k,
+  uint64_t d_type, uint64_t s1_type, uint64_t s2_type,
+  bool saturation
+);
+#endif
 
 #endif // __RISCV64_MCOMPUTE_IMPL_H__
 #endif // CONFIG_RV_AME
