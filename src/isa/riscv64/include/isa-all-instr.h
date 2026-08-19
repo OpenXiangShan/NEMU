@@ -270,6 +270,13 @@
 #define ZVKNED_INSTR_BINARY(f)
 #endif // CONFIG_RV_ZVKNED
 
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+#define ZVKNH_INSTR_TERNARY(f) \
+  f(vsha2ms) f(vsha2cl) f(vsha2ch)
+#else
+#define ZVKNH_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
+
 #ifdef CONFIG_RV_ZVKSED
 #define ZVKSED_INSTR_BINARY(f) \
   f(vsm4k) f(vsm4r)
@@ -484,6 +491,7 @@
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
   ZVBC_INSTR_TERNARY(f) \
+  ZVKNH_INSTR_TERNARY(f) \
   ZVKG_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \

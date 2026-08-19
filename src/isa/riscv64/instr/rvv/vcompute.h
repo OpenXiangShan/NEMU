@@ -903,6 +903,33 @@ def_EHelper(vaeskf2) {
 
 #endif
 
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+#ifdef CONFIG_RV_ZVKNHB
+#define REQUIRE_VSHA2_SEW() \
+  do { if (vtype->vsew != 2 && vtype->vsew != 3) longjmp_exception(EX_II); } while (0)
+#else
+#define REQUIRE_VSHA2_SEW() \
+  do { if (vtype->vsew != 2) longjmp_exception(EX_II); } while (0)
+#endif
+
+def_EHelper(vsha2ms) {
+  REQUIRE_VSHA2_SEW();
+  vsha2_exec(VSHA2_OP_MS, s);
+}
+
+def_EHelper(vsha2cl) {
+  REQUIRE_VSHA2_SEW();
+  vsha2_exec(VSHA2_OP_CL, s);
+}
+
+def_EHelper(vsha2ch) {
+  REQUIRE_VSHA2_SEW();
+  vsha2_exec(VSHA2_OP_CH, s);
+}
+
+#undef REQUIRE_VSHA2_SEW
+#endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
+
 #ifdef CONFIG_RV_ZVKSED
 def_EHelper(vsm4k) {
   if (vtype->vsew != 2) longjmp_exception(EX_II);

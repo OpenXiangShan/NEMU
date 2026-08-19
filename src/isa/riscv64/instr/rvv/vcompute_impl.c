@@ -379,6 +379,157 @@ static void vgcm_instr(int opcode, Decode *s) {
 
 #endif // CONFIG_RV_ZVKG
 
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+
+static inline uint64_t vsha2_mask(uint64_t value, int width) {
+  return width == 32 ? (uint32_t)value : value;
+}
+
+static inline uint64_t vsha2_rotr(uint64_t value, int amount, int width) {
+  value = vsha2_mask(value, width);
+  return vsha2_mask((value >> amount) | (value << (width - amount)), width);
+}
+
+static inline uint64_t vsha2_sig0(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 7, width) ^ vsha2_rotr(value, 18, width) ^ (value >> 3);
+  }
+  return vsha2_rotr(value, 1, width) ^ vsha2_rotr(value, 8, width) ^ (value >> 7);
+}
+
+static inline uint64_t vsha2_sig1(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 17, width) ^ vsha2_rotr(value, 19, width) ^ (value >> 10);
+  }
+  return vsha2_rotr(value, 19, width) ^ vsha2_rotr(value, 61, width) ^ (value >> 6);
+}
+
+static inline uint64_t vsha2_sum0(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 2, width) ^ vsha2_rotr(value, 13, width) ^ vsha2_rotr(value, 22, width);
+  }
+  return vsha2_rotr(value, 28, width) ^ vsha2_rotr(value, 34, width) ^ vsha2_rotr(value, 39, width);
+}
+
+static inline uint64_t vsha2_sum1(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 6, width) ^ vsha2_rotr(value, 11, width) ^ vsha2_rotr(value, 25, width);
+  }
+  return vsha2_rotr(value, 14, width) ^ vsha2_rotr(value, 18, width) ^ vsha2_rotr(value, 41, width);
+}
+
+static inline uint64_t vsha2_ch(uint64_t x, uint64_t y, uint64_t z) {
+  return (x & y) ^ (~x & z);
+}
+
+static inline uint64_t vsha2_maj(uint64_t x, uint64_t y, uint64_t z) {
+  return (x & y) ^ (x & z) ^ (y & z);
+}
+
+static inline void vsha2_compress(const uint64_t dest[4], const uint64_t src1[4],
+                                  const uint64_t src2[4], int word_base,
+                                  int width, uint64_t result[4]) {
+  uint64_t a = src2[3];
+  uint64_t b = src2[2];
+  uint64_t c = dest[3];
+  uint64_t d = dest[2];
+  uint64_t e = src2[1];
+  uint64_t f = src2[0];
+  uint64_t g = dest[1];
+  uint64_t h = dest[0];
+
+  for (int round = 0; round < 2; round++) {
+    uint64_t t1 = vsha2_mask(h + vsha2_sum1(e, width) + vsha2_ch(e, f, g) +
+                              src1[word_base + round], width);
+    uint64_t t2 = vsha2_mask(vsha2_sum0(a, width) + vsha2_maj(a, b, c), width);
+    h = g;
+    g = f;
+    f = e;
+    e = vsha2_mask(d + t1, width);
+    d = c;
+    c = b;
+    b = a;
+    a = vsha2_mask(t1 + t2, width);
+  }
+
+  result[0] = f;
+  result[1] = e;
+  result[2] = b;
+  result[3] = a;
+}
+
+static inline void vsha2_load_group(int reg, int base, uint64_t group[4]) {
+  rtlreg_t value;
+  for (int lane = 0; lane < 4; lane++) {
+    get_vreg(reg, base + lane, &value, vtype->vsew, vtype->vlmul, 0, 1);
+    group[lane] = value;
+  }
+}
+
+void vsha2_exec(vsha2_op_t op, Decode *s) {
+  require_vector(true);
+
+  int width = 8 << vtype->vsew;
+  double vflmul = compute_vflmul();
+  if ((vl->val & 3) != 0 || (vstart->val & 3) != 0 || vflmul * VLEN < 4 * width) {
+    longjmp_exception(EX_II);
+  }
+
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+
+  int register_group_size = vflmul < 1 ? 1 : vflmul;
+  require_noover(id_dest->reg, register_group_size, id_src->reg, register_group_size);
+  require_noover(id_dest->reg, register_group_size, id_src2->reg, register_group_size);
+
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 4;
+  for (int group = vstart->val / 4; group < egroups; group++) {
+    int base = group * 4;
+    uint64_t dest[4], src1[4], src2[4], result[4];
+    vsha2_load_group(id_dest->reg, base, dest);
+    vsha2_load_group(id_src->reg, base, src1);
+    vsha2_load_group(id_src2->reg, base, src2);
+
+    if (op == VSHA2_OP_MS) {
+      result[0] = vsha2_mask(vsha2_sig1(src1[2], width) + src2[1] +
+                              vsha2_sig0(dest[1], width) + dest[0], width);
+      result[1] = vsha2_mask(vsha2_sig1(src1[3], width) + src2[2] +
+                              vsha2_sig0(dest[2], width) + dest[1], width);
+      result[2] = vsha2_mask(vsha2_sig1(result[0], width) + src2[3] +
+                              vsha2_sig0(dest[3], width) + dest[2], width);
+      result[3] = vsha2_mask(vsha2_sig1(result[1], width) + src1[0] +
+                              vsha2_sig0(src2[0], width) + dest[3], width);
+    } else {
+      int word_base = op == VSHA2_OP_CH ? 2 : 0;
+      vsha2_compress(dest, src1, src2, word_base, width, result);
+    }
+
+    for (int lane = 0; lane < 4; lane++) {
+      set_vreg(id_dest->reg, base + lane, result[lane],
+               vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 4; idx < vlmax; idx++) {
+      set_vreg(id_dest->reg, idx, UINT64_MAX,
+               vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
+
 static inline void require_vector_vs() {
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);
@@ -657,7 +808,6 @@ static inline void aes_mixcolumns(uint32_t state[4], bool inverse) {
 static inline void aes_addroundkey(uint32_t state[4], const uint32_t rk[4]) {
   for (int c = 0; c < 4; c++)
     state[c] ^= rk[c];
-
 }
 
 #endif // CONFIG_RV_ZVKNED

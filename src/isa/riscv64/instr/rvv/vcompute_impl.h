@@ -83,6 +83,16 @@ typedef enum {
 void vaes_exec(vaes_op_t op, Decode *s);
 #endif
 
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+typedef enum {
+  VSHA2_OP_MS,
+  VSHA2_OP_CL,
+  VSHA2_OP_CH,
+} vsha2_op_t;
+
+void vsha2_exec(vsha2_op_t op, Decode *s);
+#endif
+
 #ifdef CONFIG_RV_ZVKSED
 typedef enum {
   VSM_OP_VSM4R,

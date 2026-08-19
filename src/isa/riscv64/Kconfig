@@ -94,6 +94,18 @@ config RV_ZVKNED
   depends on RVK
   default y
 
+config RV_ZVKNHA
+  bool "RISC-V Vector SHA-2 Secure Hash Extension (SHA-256 only) v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
+config RV_ZVKNHB
+  bool "RISC-V Vector SHA-2 Secure Hash Extension (SHA-256 and SHA-512) v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
 config RV_ZVKSED
   bool "RISC-V Vector ShangMi Suite: SM4 Block Cipher Extension v1.0"
   depends on RVK
