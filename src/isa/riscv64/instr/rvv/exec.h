@@ -15,4 +15,5 @@
 
 #include "vcfg.h"
 #include "vcompute.h"
+#include "vfncvtxx8.h"
 #include "vldst.h"
