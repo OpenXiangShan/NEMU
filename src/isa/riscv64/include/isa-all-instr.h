@@ -158,7 +158,8 @@
   f(vfwcvt_xufv) f(vfwcvt_xfv) f(vfwcvt_fxuv) f(vfwcvt_fxv) \
   f(vfwcvt_ffv) f(vfwcvt_rtz_xufv) f(vfwcvt_rtz_xfv) f(vfncvt_xufw) \
   f(vfncvt_xfw) f(vfncvt_fxuw) f(vfncvt_fxw) f(vfncvt_ffw) \
-  f(vfncvt_rod_ffw) f(vfncvt_rtz_xufw) f(vfncvt_rtz_xfw) f(vfsqrt_v) \
+  f(vfncvt_rod_ffw) f(vfncvt_rtz_xufw) f(vfncvt_rtz_xfw) \
+  f(vfncvtxx8_int8) f(vfncvtxx8_e4m3) f(vfncvtxx8_e5m2) f(vfsqrt_v) \
   f(vfrsqrt7_v) f(vfrec7_v) f(vfclass_v) f(vfmerge) \
   f(vmfeq) f(vmfle) f(vmflt) f(vmfne) f(vmfgt) f(vmfge) f(vfdiv) f(vfrdiv) \
   f(vfmul) f(vfrsub) f(vfmadd) f(vfnmadd) f(vfmsub) f(vfnmsub) \
