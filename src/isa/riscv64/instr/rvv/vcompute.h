@@ -334,7 +334,12 @@ def_EHelper(vmvnr) {
   check_vstart_exception(s);
 
   rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
-  int NREG = (*s1) + 1;
+  // Reserved NREG encodings (imm5 not in {0,1,3,7}) must raise illegal (NEMU#1077).
+  word_t imm5 = *s1;
+  if (imm5 != 0 && imm5 != 1 && imm5 != 3 && imm5 != 7) {
+    longjmp_exception(EX_II);
+  }
+  int NREG = (int)imm5 + 1;
   int len = (VLEN >> 6) * NREG;
   int vlmul = 0;
   while (NREG > 1) {
