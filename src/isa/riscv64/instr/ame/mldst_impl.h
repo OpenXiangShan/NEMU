@@ -25,13 +25,13 @@
 
 uint8_t get_size(mcfg_t cfg);
 void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
-                char m_name, uint8_t dsize);
+                char m_name, uint8_t dsize, bool raw_fp4);
 void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
               uint64_t td, int row, int column, uint8_t dsize,
-              bool is_trans, char m_name);
+              bool is_trans, char m_name, bool raw_fp4);
 void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
               uint64_t ts3, int row, int column, uint8_t dsize,
-              bool is_trans, char m_name);
+              bool is_trans, char m_name, bool raw_fp4);
 void mld(Decode *s, bool is_trans, char m_name);
 void mst(Decode *s, bool is_trans, char m_name);
 void mld_whole(Decode *s, char m_name);

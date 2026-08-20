@@ -49,6 +49,12 @@ def_EHelper(mmacc) {
   mcfg_t dmcfg = cpu.mcfg[td];
   mcfg_t s1mcfg = cpu.mcfg[ts1];
   mcfg_t s2mcfg = cpu.mcfg[ts2];
+#ifdef CONFIG_RV_AME_FP4
+  if (is_raw_fp4_type_code(s1mcfg) || is_raw_fp4_type_code(s2mcfg) ||
+      is_raw_fp4_type_code(dmcfg)) {
+    longjmp_exception(EX_II);
+  }
+#endif
   uint8_t dsize = get_size(dmcfg);
   uint8_t s1size = get_size(s1mcfg);
   uint8_t s2size = get_size(s2mcfg);

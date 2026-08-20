@@ -31,6 +31,9 @@
 #include "../local-include/reg.h"
 #include "ame/mstore_queue_wrapper.h"
 #include "mcommon.h"
+#ifdef CONFIG_RV_AME_FP4
+#include "ame/raw-fp4.h"
+#endif
 
 #ifdef PRINT_AMUCTRLIO
 #include <stdio.h>
@@ -68,18 +71,18 @@ uint8_t get_size(mcfg_t cfg) {
 }
 
 void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
-                char m_name, uint8_t dsize) {
+                char m_name, uint8_t dsize, bool raw_fp4) {
   // Validate CSR values before narrowing them for the int-based memory API.
   bool valid = rmax_mreg <= ROWNUM && rmax_mreg <= INT_MAX &&
                cmax_mreg <= INT_MAX;
   switch (m_name) {
     case 'a': case 'b':
-      if (cmax_mreg > TRENUM8 / (1 << dsize)) {
+      if (cmax_mreg > (raw_fp4 ? TRENUM8 * 2 : TRENUM8 / (1 << dsize))) {
         valid = false;
       }
       break;
     case 'c':
-      if (cmax_mreg > ARENUM8 / (1 << dsize)) {
+      if (raw_fp4 || cmax_mreg > ARENUM8 / (1 << dsize)) {
         valid = false;
       }
       break;
@@ -94,10 +97,28 @@ void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
   }
 }
 
+static bool validate_raw_fp4_access(mcfg_t cfg, uint64_t mreg_id,
+                                    char m_name) {
+#ifdef CONFIG_RV_AME_FP4
+  bool raw_fp4 = is_raw_fp4(cfg);
+  if (is_raw_fp4_type_code(cfg) && !raw_fp4) {
+    longjmp_exception(EX_II);
+  }
+  if (raw_fp4 && (mreg_id >= 4 || (m_name != 'a' && m_name != 'b'))) {
+    longjmp_exception(EX_II);
+  }
+  return raw_fp4;
+#else
+  (void)cfg;
+  (void)mreg_id;
+  (void)m_name;
+  return false;
+#endif
+}
+
 void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
               uint64_t td, int row, int column, uint8_t dsize,
-              bool is_trans, char m_name) {
-  mp_set_dirty();
+              bool is_trans, char m_name, bool raw_fp4) {
 
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
@@ -107,6 +128,20 @@ void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
     td, is_trans, base_addr, row_byte_stride, row, column, dsize, m_name);
 #endif
 
+#ifdef CONFIG_RV_AME_FP4
+  if (raw_fp4) {
+    if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
+                              is_trans, false, td)) {
+      mp_set_dirty();
+    }
+    return;
+  }
+#else
+  (void)raw_fp4;
+#endif
+
+  mp_set_dirty();
+
   rtl_lmm(s, &base_addr, &row_byte_stride,
     row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, td);
@@ -114,13 +149,26 @@ void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
 
 void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
               uint64_t ts3, int row, int column, uint8_t dsize,
-              bool is_trans, char m_name) {
+              bool is_trans, char m_name, bool raw_fp4) {
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=1 \n"
     "            ms=%ld, ls=1, transpose=%d, baseVAddr=%#lx, stride=%#lx\n"
     "            row=%d, col=%d, width=%#x, m_name=%c\n",
     ts3, is_trans, base_addr, row_byte_stride, row, column, dsize, m_name);
+#endif
+
+#ifdef CONFIG_RV_AME_FP4
+  if (raw_fp4) {
+    if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
+                              is_trans, true, ts3)) {
+      mstore_queue_emplace(base_addr, row_byte_stride, row, column,
+                           MSEW_FP4, is_trans);
+    }
+    return;
+  }
+#else
+  (void)raw_fp4;
 #endif
 
   rtl_smm(s, &base_addr, &row_byte_stride,
@@ -133,6 +181,7 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
 void mld(Decode *s, bool is_trans, char m_name) {
   uint64_t td = s->dest.reg;
   uint8_t dsize = get_size(cpu.mcfg[td]);
+  bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[td], td, m_name);
   uint64_t rmax_mreg = 0, cmax_mreg = 0;
 
   switch (m_name) {
@@ -153,14 +202,15 @@ void mld(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
-  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4);
   exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
-    (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name);
+    (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name, raw_fp4);
 }
 
 void mst(Decode *s, bool is_trans, char m_name) {
   uint64_t ts3 = s->dest.reg;
   uint8_t dsize = get_size(cpu.mcfg[ts3]);
+  bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);
   uint64_t rmax_mreg = 0, cmax_mreg = 0;
 
   switch (m_name) {
@@ -181,27 +231,31 @@ void mst(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
-  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize);
+  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4);
   exec_mst(s, reg_l(s->src1.reg), reg_l(s->src2.reg), ts3,
-    (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name);
+    (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name, raw_fp4);
 }
 
 void mld_whole(Decode *s, char m_name) {
   uint64_t td = s->dest.reg;
+  bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[td], td, m_name);
   uint8_t dsize = m_name == 'c' ? 2 : 0;
   uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
   exec_mld(s, reg_l(s->src1.reg), row_byte_stride, td,
-    ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8, dsize, false, m_name);
+    ROWNUM, m_name == 'c' ? ARENUM32 : (raw_fp4 ? TRENUM8 * 2 : TRENUM8),
+    dsize, false, m_name, raw_fp4);
 }
 
 void mst_whole(Decode *s, char m_name) {
   uint64_t ts3 = s->dest.reg;
+  bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);
   uint8_t dsize = m_name == 'c' ? 2 : 0;
   uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
   exec_mst(s, reg_l(s->src1.reg), row_byte_stride, ts3,
-    ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8, dsize, false, m_name);
+    ROWNUM, m_name == 'c' ? ARENUM32 : (raw_fp4 ? TRENUM8 * 2 : TRENUM8),
+    dsize, false, m_name, raw_fp4);
 }
 
 #endif // CONFIG_RV_AME

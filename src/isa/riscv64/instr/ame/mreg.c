@@ -39,6 +39,19 @@ uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row) {
   return cpu.mtr[check_mtreg_num(mtr_num)][check_mtreg_row(mtr_row)]._8;
 }
 
+#ifdef CONFIG_RV_AME_FP4
+uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx) {
+  uint8_t byte = mtreg_l8(mtr_num, mtr_row, mtr_idx >> 1);
+  return raw_fp4_get_nibble(byte, mtr_idx);
+}
+
+void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+                     uint8_t src_data) {
+  uint8_t *byte = &mtreg_l8(mtr_num, mtr_row, mtr_idx >> 1);
+  *byte = raw_fp4_set_nibble(*byte, mtr_idx, src_data);
+}
+#endif
+
 void set_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
               rtlreg_t src_data, uint64_t msew) {
   Assert(msew <= 3, "msew >= 4 is reserved\n");

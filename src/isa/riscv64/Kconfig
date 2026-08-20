@@ -121,6 +121,15 @@ config RV_AME
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
 
+config RV_AME_FP4
+  bool "Raw packed FP4 matrix load/store"
+  depends on RV_AME
+  default n
+  help
+    Enable raw packed NVFP4 and MXFP4 load/store for A and B tile
+    registers, including normal, transpose, and whole-register accesses.
+    This option does not enable scaled FP4 matrix computation.
+
 config RV_AME_TLEN
   int "Matrix TLEN (total tile size in bits)"
   depends on RV_AME
