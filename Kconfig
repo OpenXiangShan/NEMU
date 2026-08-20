@@ -258,6 +258,15 @@ config AME_REG_ACCESS_CHECK
     Enable debug checks for AME matrix register numbers, rows, and element
     indices. Disable this for higher perf.
 
+config AME_MSTORE_ACCESS_CHECK
+  depends on RV_AME
+  bool "Check accesses to pending AME matrix stores"
+  default n
+  help
+    Report scalar and vector loads that overlap a matrix store which has not
+    been released and acquired through the AME synchronization protocol.
+    Disable this to remove the pending matrix-store overlap checks.
+
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
   bool

@@ -124,7 +124,7 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-#ifdef CONFIG_RV_AME
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
   uint64_t load_addr = *addr + offset;
   extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
   if (mstore_queue_check_addr_conflict(load_addr, len)) {
@@ -181,7 +181,7 @@ static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-#ifdef CONFIG_RV_AME
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
   uint64_t load_addr = *addr + offset;
   extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
   if (mstore_queue_check_addr_conflict(load_addr, len)) {
