@@ -176,14 +176,8 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int trap_type, int mmu_mode) {
 
 #ifdef CONFIG_RVH
-  bool is_hlvx = false;
-  // check whether here is a hlvx instruction
-  // when inst fetch or vaddr_read_safe (for examine memory), s is NULL
-  if (s != NULL) {
-    extern int rvh_hlvx_check(struct Decode *s, int type);
-    is_hlvx = rvh_hlvx_check((Decode*)s, trap_type);
-  }
-  int type = (trap_type == MEM_TYPE_READ && is_hlvx) ? MEM_TYPE_READ_EXEC : trap_type;
+  extern bool hlvx;
+  int type = (trap_type == MEM_TYPE_READ && hlvx) ? MEM_TYPE_READ_EXEC : trap_type;
 #else
   int type = trap_type;
 #endif
