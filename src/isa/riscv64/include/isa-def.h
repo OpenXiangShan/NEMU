@@ -148,6 +148,7 @@ typedef struct {
 #ifdef CONFIG_RV_AME
   uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
   uint64_t tlenb, trlenb, alenb, mtilem, mtilen, mtilek, msync;
+  mcfg_t mcfg[8];
 #endif // CONFIG_RV_AME
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
@@ -221,7 +222,6 @@ typedef struct {
     uint8_t  _8[ARENUM8];
   } macc[4][ROWNUM];
 
-  mcfg_t mcfg[8];
   uint64_t mtokr[MSYNC];
 #endif // CONFIG_RV_AME
 
