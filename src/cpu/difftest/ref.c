@@ -61,6 +61,7 @@ void nemu_sparse_mem_copy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direc
           dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
   if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
   else sparse_mem_copy(dut_buf, a);
+  if (direction == DIFFTEST_TO_REF) isa_mmu_tlb_flush();
 
   printf("[sp-mem] copy complete, eg data: ");
   for (int j = 0; j < 8; j++) {
@@ -72,7 +73,10 @@ void nemu_sparse_mem_copy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direc
 
 void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction, void* (*cpy_func)(void*, const void*, size_t)) {
   assert(guest_to_host(nemu_addr) != NULL);
-  if (direction == DIFFTEST_TO_REF) cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+  if (direction == DIFFTEST_TO_REF) {
+    cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+    isa_mmu_tlb_flush();
+  }
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
 
@@ -81,6 +85,7 @@ void difftest_get_backed_memory(void *backed_pmem, size_t n) {
   // set pmem to backed_pmem, then nothing
   assert(n == CONFIG_MSIZE);
   set_pmem(true, backed_pmem);
+  isa_mmu_tlb_flush();
 #endif
 }
 
