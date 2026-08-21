@@ -367,6 +367,14 @@ bool mpt_paddr_read(paddr_t addr, int len, word_t *data) {
 }
 #endif
 
+#ifdef CONFIG_RV_ZICFISS
+static inline void zicfiss_check_shadow_stack_paddr(paddr_t addr, vaddr_t vaddr) {
+  if (cpu.shadow_stack_access && (is_in_mmio(addr) || !in_pmem(addr))) {
+    raise_access_fault(EX_SAF, vaddr);
+  }
+}
+#endif
+
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
 
@@ -374,11 +382,19 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
   mode &= ~CROSS_PAGE_LD_FLAG;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
+#ifdef CONFIG_RV_ZICFISS
+  int permission_type = cpu.shadow_stack_access ? MEM_TYPE_WRITE : type;
+  int permission_trap_type = cpu.shadow_stack_access ? MEM_TYPE_WRITE : trap_type;
+#else
+  int permission_type = type;
+  int permission_trap_type = trap_type;
+#endif
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
-  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
+  IFDEF(CONFIG_RV_ZICFISS, zicfiss_check_shadow_stack_paddr(addr, vaddr));
+  if (!check_paddr(addr, len, permission_type, permission_trap_type, mode, vaddr)) {
     return 0;
   }
 
@@ -570,6 +586,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
   }
 
+  IFDEF(CONFIG_RV_ZICFISS, zicfiss_check_shadow_stack_paddr(addr, vaddr));
   if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }
