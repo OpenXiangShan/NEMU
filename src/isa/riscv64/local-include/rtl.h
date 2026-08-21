@@ -53,6 +53,10 @@ static inline void riscv64_zicfilp_refresh_elp(void) {
 static inline void riscv64_zicfilp_refresh_elp(void) {}
 #endif
 
+#ifdef CONFIG_RV_ZICFILP
+void riscv64_raise_software_check(word_t tval);
+#endif
+
 // The bit pattern for a default generated 32-bit floating-point NaN
 #define defaultNaNF32UI 0x7FC00000
 

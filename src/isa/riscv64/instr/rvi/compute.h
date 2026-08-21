@@ -94,10 +94,10 @@ def_EHelper(auipc) {
   if (unlikely(cpu.elp == 1)) {
     uint32_t rd = (s->isa.instr.val >> 7) & 0x1f;
     if (rd != 0) {
-      longjmp_exception(EX_SWC);
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
     }
     if ((s->pc & 0x3) != 0) {
-      longjmp_exception(EX_SWC);
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
     }
     uint32_t lpl = (s->isa.instr.val >> 12) & 0xFFFFF;
     uint32_t x7_lpl = (reg_l(7) >> 12) & 0xFFFFF;
@@ -105,7 +105,7 @@ def_EHelper(auipc) {
     printf("[ZICFILP-DEBUG] Checking lpad at pc=0x%lx: instr=0x%08x, expected_lpl(x7)=0x%x, actual_lpl=0x%x\n", s->pc, s->isa.instr.val, x7_lpl, lpl);
 
     if (lpl != x7_lpl && lpl != 0) {
-      longjmp_exception(EX_SWC);
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
     }
     cpu.elp = 0;
   }

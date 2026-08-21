@@ -445,7 +445,7 @@ static void execute(int n) {
       uint32_t target_instr = vaddr_ifetch(s->pc, 4);
       s->isa.instr.val = target_instr; // Ensure EHelper has correct instruction bits for fine-grained check
       if ((target_instr & 0x00000FFF) != 0x00000017) {
-        longjmp_exception(EX_SWC);
+        riscv64_raise_software_check(LANDING_PAD_FAULT);
       }
     }
 #endif
@@ -755,7 +755,7 @@ static void execute(int n) {
       uint32_t target_instr = vaddr_ifetch(s.pc, 4);
       s.isa.instr.val = target_instr; // Ensure EHelper has correct instruction bits for fine-grained check
       if ((target_instr & 0x00000FFF) != 0x00000017) {
-        longjmp_exception(EX_SWC);
+        riscv64_raise_software_check(LANDING_PAD_FAULT);
       }
     }
 #endif

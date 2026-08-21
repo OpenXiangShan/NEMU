@@ -2972,6 +2972,13 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif
 }
 
+#ifdef CONFIG_RV_ZICFILP
+void riscv64_raise_software_check(word_t tval) {
+  cpu.trapInfo.tval = tval;
+  longjmp_exception(EX_SWC);
+}
+#endif
+
 static inline bool satp_permit_check(const word_t *dest_access){
   bool has_vi = false;
   if (is_access(satp)){
