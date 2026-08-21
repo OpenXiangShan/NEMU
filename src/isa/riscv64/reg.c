@@ -217,6 +217,11 @@ void isa_reg_display() {
      printf("\n");
    #endif
 
+  #ifdef CONFIG_RV_MPT_CHECK
+    DISPLAY_CSR("mmpt", mmpt->val);
+    printf("\n");
+  #endif
+
   #ifdef CONFIG_RV_PMP_CSR
     DISPLAY_HR("PMP CSRs");
     printf("pmp: %d entries active, details:\n", CONFIG_RV_PMP_ACTIVE_NUM);

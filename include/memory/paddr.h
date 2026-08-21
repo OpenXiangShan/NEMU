@@ -73,6 +73,9 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id);
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
+#ifdef CONFIG_RV_MPT_CHECK
+bool mpt_paddr_read(paddr_t addr, int len, word_t *data);
+#endif
 #ifdef CONFIG_RV_MBMC
 word_t bitmap_read(paddr_t addr, int type, int mode);
 #endif

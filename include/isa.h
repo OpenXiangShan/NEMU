@@ -75,6 +75,15 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type);
 bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode);
 #endif
 
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type);
+/**
+ * @brief Check if the address is allowed to access with the current security domain.
+ * return true if the address is allowed, otherwise return false.
+ */
+bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode);
+#endif
+
 // interrupt
 vaddr_t raise_intr(word_t NO, vaddr_t epc);
 #define INTR_EMPTY ((word_t)-1)

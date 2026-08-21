@@ -318,6 +318,20 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
     }
     return false;
   }
+
+  #ifdef CONFIG_RV_MPT_CHECK
+    if (!isa_mpt_check_permission(addr, len, type, mode)) {
+      if (trap_type == MEM_TYPE_WRITE) {
+        raise_access_fault(EX_SAF, vaddr);
+      } else {
+        Log("isa mpt check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
+          vaddr, addr, len, type, mode);
+        raise_read_access_fault(trap_type, vaddr);
+      }
+      return false;
+    }
+  #endif
+
   #ifdef CONFIG_RV_MBMC
   if (!isa_bmc_check_permission(addr, len, type, mode)){
     if (type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) {
@@ -332,6 +346,48 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
   #endif
   return true;
 }
+
+#ifdef CONFIG_RV_MPT_CHECK
+/* MPTE reads must bypass MPT itself, but still use the physical access checks and bus map. */
+bool mpt_paddr_read(paddr_t addr, int len, word_t *data) {
+  if (data == NULL || len <= 0 || len > (int)sizeof(word_t)) {
+    return false;
+  }
+
+  if (!isa_pmp_check_permission_mmode(addr, len, MEM_TYPE_READ) ||
+      !isa_pma_check_permission(addr, len, MEM_TYPE_READ)) {
+    Log("PMP or PMA check failed for MPT walk at paddr " FMT_PADDR, addr);
+    return false;
+  }
+
+  paddr_t last_addr = addr + len - 1;
+  if (last_addr < addr) {
+    Log("MPT walk address overflow at paddr " FMT_PADDR, addr);
+    return false;
+  }
+
+  if (likely(in_pmem(addr))) {
+    if (!in_pmem(last_addr)) {
+      Log("MPT walk crosses the pmem boundary at paddr " FMT_PADDR, addr);
+      return false;
+    }
+    *data = pmem_read(addr, len);
+    return true;
+  }
+
+  if (is_in_mmio(addr)) {
+    if (!mmio_is_real_device_range(addr, len)) {
+      Log("Invalid MMIO read for MPT walk at paddr " FMT_PADDR, addr);
+      return false;
+    }
+    *data = mmio_read(addr, len);
+    return true;
+  }
+
+  Log("Invalid physical read for MPT walk at paddr " FMT_PADDR, addr);
+  return false;
+}
+#endif
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
