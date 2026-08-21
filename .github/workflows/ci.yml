@@ -102,6 +102,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+      - name: Checkout workload-builder
+        uses: actions/checkout@v7
+        with:
+          repository: OpenXiangShan/workload-builder
+          ref: f662b2382ccb18274769d49559926ad656a4d9b2
+          path: workload-builder
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -123,6 +129,19 @@ jobs:
       - name: System - KVM
         run: |
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
+      - name: RVH bare-metal regression tests
+        run: |
+          git -C workload-builder submodule update --init nexus-am
+          AM_HOME=${GITHUB_WORKSPACE}/workload-builder/nexus-am \
+          PKG_DIR=${GITHUB_WORKSPACE}/rvh-workload \
+          CROSS_COMPILE=${CROSS_COMPILE} \
+            bash workload-builder/workloads/am/rvh-tests/build.sh
+          make clean-all
+          make riscv64-xs_bitmap_defconfig
+          make -j `nproc`
+          for test_bin in ${GITHUB_WORKSPACE}/rvh-workload/bin/*.bin; do
+            ./build/riscv64-nemu-interpreter -b "$test_bin"
+          done
       - name: test cpt taking and restoring using zstd format
         run: |
           make clean-all
