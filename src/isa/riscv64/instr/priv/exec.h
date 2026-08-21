@@ -129,11 +129,44 @@ def_EHelper(hinval_gvma) {
 // It's no need to distinguish n.
 
 def_EHelper(mop_r_n) {
-  rtl_li(s, ddest, 0);
+#ifdef CONFIG_RV_ZICFISS
+  bool zicfiss_active = riscv64_zicfiss_enabled(
+      cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
+  uint32_t instr = s->isa.instr.val;
+
+  // Zicfiss redefines selected MOP.R.28 encodings. All other MOP.R
+  // encodings, and all of them while xSSE is clear, retain Zimop behavior.
+  if (zicfiss_active &&
+      (instr == MATCH_SSPOPCHK_X1 || instr == MATCH_SSPOPCHK_X5)) {
+    riscv64_priv_sspopchk(s, *dsrc1);
+  } else if (zicfiss_active && (instr & MASK_SSRDP) == MATCH_SSRDP) {
+    if (s->isa.instr.i.rd == 0) {
+      longjmp_exception(EX_II);
+    }
+    rtl_mv(s, ddest, &ssp->val);
+  } else
+#endif // CONFIG_RV_ZICFISS
+  {
+    rtl_li(s, ddest, 0);
+  }
 }
 
 def_EHelper(mop_rr_n) {
-  rtl_li(s, ddest, 0);
+#ifdef CONFIG_RV_ZICFISS
+  bool zicfiss_active = riscv64_zicfiss_enabled(
+      cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
+  uint32_t instr = s->isa.instr.val;
+
+  // Zicfiss redefines selected MOP.RR.7 encodings. The remaining encodings
+  // retain the ordinary Zimop result.
+  if (zicfiss_active &&
+      (instr == MATCH_SSPUSH_X1 || instr == MATCH_SSPUSH_X5)) {
+    riscv64_priv_sspush(s, *dsrc2);
+  } else
+#endif // CONFIG_RV_ZICFISS
+  {
+    rtl_li(s, ddest, 0);
+  }
 }
 
 #endif // CONFIG_RV_ZIMOP
