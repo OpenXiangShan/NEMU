@@ -17,7 +17,6 @@
 #define __MEMORY_HOST_H__
 
 #include <common.h>
-#include "paddr.h"
 
 #ifdef CONFIG_RV_AME
 #include "../../src/isa/riscv64/instr/ame/mldst_fast.h"
@@ -51,18 +50,19 @@ static inline word_t host_read(void *addr, int len) {
 }
 
 #ifdef CONFIG_RV_AME
-static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
+// Matrix bases are host pointers; stride is measured in bytes.
+static inline void host_read_matrix(uint8_t *host_base, uint64_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
   int width = 1 << msew;
-  Logm("read matrix: base = %#lx, stride = %lu,\n"
+  Logm("read matrix: base = %p, stride = %lu,\n"
        "             row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
-       pbase, stride, row, column, width, transpose, m_name);
+       (void *)host_base, stride, row, column, width, transpose, m_name);
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
 
 #ifdef AME_MLDST_RAW_ROW_COPY
-  if (try_fast_matrix_load(guest_to_host(pbase), stride,
+  if (try_fast_matrix_load(host_base, stride,
                            row, column, msew, transpose, mreg_id)) {
     return;
   }
@@ -70,13 +70,12 @@ static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
 
   for (int r = 0; r < row_mem; r++) {
     for (int c = 0; c < column_mem; c++) {
-      paddr_t addr = pbase + c * width;
+      uint8_t *addr = host_base + (uint64_t)r * stride + c * width;
       int r_reg = transpose ? c : r;
       int c_reg = transpose ? r : c;
-      word_t tmp = host_read(guest_to_host(addr), width);
+      word_t tmp = host_read(addr, width);
       set_mreg(mreg_id, r_reg, c_reg, tmp, msew);
     }
-    pbase += stride;
   }
 };
 #endif // CONFIG_RV_AME
@@ -93,18 +92,18 @@ static inline void host_write(void *addr, int len, word_t data) {
 }
 
 #ifdef CONFIG_RV_AME
-static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
+static inline void host_write_matrix(uint8_t *host_base, uint64_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
   int width = 1 << msew;
-  Logm("write matrix: base = %#lx, stride = %lu,\n"
+  Logm("write matrix: base = %p, stride = %lu,\n"
        "              row = %d, column = %d, width = %d, transpose = %d, m_name = %c",
-       pbase, stride, row, column, width, transpose, m_name);
+       (void *)host_base, stride, row, column, width, transpose, m_name);
   int row_mem    = transpose ? column : row;
   int column_mem = transpose ? row : column;
 
 #ifdef AME_MLDST_RAW_ROW_COPY
-  if (try_fast_matrix_store(guest_to_host(pbase), stride,
+  if (try_fast_matrix_store(host_base, stride,
                             row, column, msew, transpose, mreg_id)) {
     return;
   }
@@ -112,14 +111,13 @@ static inline void host_write_matrix(paddr_t pbase, paddr_t stride, int row,
 
   for (int r = 0; r < row_mem; r++) {
     for (int c = 0; c < column_mem; c++) {
-      paddr_t addr = pbase + c * width;
+      uint8_t *addr = host_base + (uint64_t)r * stride + c * width;
       int r_reg = transpose ? c : r;
       int c_reg = transpose ? r : c;
       word_t tmp;
       get_mreg(mreg_id, r_reg, c_reg, &tmp, msew, false);
-      host_write(guest_to_host(addr), width, tmp);
+      host_write(addr, width, tmp);
     }
-    pbase += stride;
   }
 };
 #endif // CONFIG_RV_AME
