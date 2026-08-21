@@ -732,6 +732,107 @@ int get_hyperinst_mmu_state() {
 
 #endif
 
+#ifdef CONFIG_RVH
+// Cache the final VS-stage + G-stage translation instead of walking both page
+// tables on every guest access. MPRV accesses remain on the slow path;
+// hypervisor loads/stores use a distinct translation context.
+#define RVH_FINAL_TLB_SIZE 4096
+
+typedef struct {
+  vaddr_t vpn;
+  paddr_t ppn;
+  uint64_t generation;
+  uint8_t type;
+  uint8_t pbmt;
+} rvh_final_tlb_entry_t;
+
+static rvh_final_tlb_entry_t rvh_final_tlb[RVH_FINAL_TLB_SIZE];
+static uint64_t rvh_final_tlb_generation = 1;
+static uint64_t rvh_final_tlb_vsatp = UINT64_MAX;
+static uint64_t rvh_final_tlb_hgatp = UINT64_MAX;
+static uint16_t rvh_final_tlb_context = UINT16_MAX;
+
+void isa_mmu_tlb_flush(void) {
+  if (unlikely(++rvh_final_tlb_generation == 0)) {
+    memset(rvh_final_tlb, 0, sizeof(rvh_final_tlb));
+    rvh_final_tlb_generation = 1;
+  }
+}
+
+static inline bool rvh_final_tlb_cacheable(int type) {
+  return (cpu.v || hld_st) && !cpu.amo &&
+      (type == MEM_TYPE_IFETCH || !get_mprv());
+}
+
+static inline uint16_t rvh_final_tlb_current_context(void) {
+  return (uint16_t)(
+      (cpu.mode << 0) |
+      (mstatus->mxr << 2) |
+      (vsstatus->mxr << 3) |
+      (vsstatus->sum << 4) |
+      (menvcfg->pbmte << 5) |
+      (henvcfg->pbmte << 6) |
+      (menvcfg->adue << 7) |
+      (henvcfg->adue << 8) |
+      (hld_st << 9) |
+      (hlvx << 10) |
+      (hstatus->spvp << 11));
+}
+
+static inline void rvh_final_tlb_sync_context(void) {
+  uint16_t context = rvh_final_tlb_current_context();
+  uint64_t current_vsatp = (cpu.v || hld_st) ? vsatp->val : UINT64_MAX;
+  uint64_t current_hgatp = (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
+  if (unlikely(rvh_final_tlb_vsatp != current_vsatp ||
+      rvh_final_tlb_hgatp != current_hgatp ||
+      rvh_final_tlb_context != context)) {
+    isa_mmu_tlb_flush();
+    rvh_final_tlb_vsatp = current_vsatp;
+    rvh_final_tlb_hgatp = current_hgatp;
+    rvh_final_tlb_context = context;
+  }
+}
+
+static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type) {
+  uint64_t vpn = vaddr >> PAGE_SHIFT;
+  uint64_t hash = vpn ^ (uint64_t)type;
+  return &rvh_final_tlb[hash & (RVH_FINAL_TLB_SIZE - 1)];
+}
+
+static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_t *result) {
+  if (!rvh_final_tlb_cacheable(type) ||
+      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE)) {
+    return false;
+  }
+
+  rvh_final_tlb_sync_context();
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  if (likely(entry->generation == rvh_final_tlb_generation &&
+      entry->vpn == (vaddr >> PAGE_SHIFT) &&
+      entry->type == type)) {
+    cpu.pbmt = entry->pbmt;
+    *result = entry->ppn;
+    return true;
+  }
+  return false;
+}
+
+static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_t result) {
+  if (!rvh_final_tlb_cacheable(type) ||
+      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE) ||
+      unlikely((result & PAGE_MASK) != MEM_RET_OK)) {
+    return;
+  }
+
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  entry->vpn = vaddr >> PAGE_SHIFT;
+  entry->ppn = result & ~PAGE_MASK;
+  entry->type = type;
+  entry->pbmt = cpu.pbmt;
+  entry->generation = rvh_final_tlb_generation;
+}
+#endif
+
 int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
 }
@@ -917,7 +1018,15 @@ void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
-  paddr_t ptw_result = ptw(vaddr, type);
+  paddr_t ptw_result;
+#ifdef CONFIG_RVH
+  bool tlb_hit = rvh_final_tlb_lookup(vaddr, len, type, &ptw_result);
+  if (!tlb_hit) {
+    ptw_result = ptw(vaddr, type);
+  }
+#else
+  ptw_result = ptw(vaddr, type);
+#endif
 #ifdef FORCE_RAISE_PF
 #ifdef CONFIG_RVH
   if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
@@ -927,6 +1036,11 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
     return MEM_RET_FAIL;
 #endif // CONFIG_RVH
 #endif // FORCE_RAISE_PF
+#ifdef CONFIG_RVH
+  if (!tlb_hit) {
+    rvh_final_tlb_insert(vaddr, len, type, ptw_result);
+  }
+#endif
   return ptw_result;
 }
 

@@ -3810,7 +3810,16 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
   if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
     longjmp_exception(EX_II);
 #endif // CONFIG_RVH
+#ifdef CONFIG_RVH
+  // SFENCE.VMA orders only the currently active first-stage translation.
+  if (cpu.v) {
+    mmu_tlb_flush_guest(vaddr);
+  } else {
+    mmu_tlb_flush_host(vaddr);
+  }
+#else
   mmu_tlb_flush(vaddr);
+#endif
 }
 
 #ifdef CONFIG_RVH
@@ -3821,7 +3830,7 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
 void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_guest(vaddr);
 }
 
 /// @brief Do RISC-V 64 privileged instruction: hfence.gvma
@@ -3831,7 +3840,7 @@ void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
 void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_guest(vaddr);
 }
 #endif // CONFIG_RVH
 
