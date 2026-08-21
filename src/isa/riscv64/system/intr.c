@@ -199,7 +199,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         break;
 #ifdef CONFIG_RV_ZICFILP
       case EX_SWC:
-        vstval->val = 0x2;
+        vstval->val = cpu.trapInfo.tval;
         break;
 #endif
       default: vstval->val = 0;
@@ -265,7 +265,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         break;
 #ifdef CONFIG_RV_ZICFILP
       case EX_SWC:
-        stval->val = 0x2;
+        stval->val = cpu.trapInfo.tval;
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
@@ -332,7 +332,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         break;
 #ifdef CONFIG_RV_ZICFILP
       case EX_SWC:
-        mtval->val = 0x2;
+        mtval->val = cpu.trapInfo.tval;
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
