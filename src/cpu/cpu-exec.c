@@ -605,6 +605,9 @@ void lightqs_take_reg_snapshot() {
   reg_ss.stval = cpu.stval;
   reg_ss.mtvec = cpu.mtvec;
   reg_ss.stvec = cpu.stvec;
+#ifdef CONFIG_RV_ZICFISS
+  reg_ss.ssp = cpu.ssp;
+#endif
   reg_ss.mode = cpu.mode;
   reg_ss.lr_addr = cpu.lr_addr;
   reg_ss.lr_valid = cpu.lr_valid;
@@ -651,6 +654,9 @@ void lightqs_take_spec_reg_snapshot() {
   spec_reg_ss.stval = cpu.stval;
   spec_reg_ss.mtvec = cpu.mtvec;
   spec_reg_ss.stvec = cpu.stvec;
+#ifdef CONFIG_RV_ZICFISS
+  spec_reg_ss.ssp = cpu.ssp;
+#endif
   spec_reg_ss.mode = cpu.mode;
   spec_reg_ss.lr_addr = cpu.lr_addr;
   spec_reg_ss.lr_valid = cpu.lr_valid;
@@ -704,6 +710,9 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
   cpu.mideleg = reg_ss.mideleg;
   cpu.mtval = reg_ss.mtval;
   cpu.stval = reg_ss.stval;
+#ifdef CONFIG_RV_ZICFISS
+  cpu.ssp = reg_ss.ssp;
+#endif
   cpu.mode = reg_ss.mode;
   cpu.lr_addr = reg_ss.lr_addr;
   cpu.lr_valid = reg_ss.lr_valid;
@@ -741,6 +750,9 @@ static void execute(int n) {
     printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
 #endif // CONFIG_LIGHTQS_DEBUG
     cpu.amo = false;
+#ifdef CONFIG_RV_ZICFISS
+    cpu.shadow_stack_access = false;
+#endif
     cpu.pbmt = 0;
 
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
@@ -919,6 +931,9 @@ void cpu_exec(uint64_t n) {
 
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
+#ifdef CONFIG_RV_ZICFISS
+      cpu.shadow_stack_access = false;
+#endif
       cpu.pbmt = 0;
       cpu.isVldst = false;
       cpu.isVecUnitStore = false;

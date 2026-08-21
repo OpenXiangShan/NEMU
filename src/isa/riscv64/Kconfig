@@ -98,6 +98,14 @@ config RV_ZICFILP
   help
     Enable forward-edge control-flow integrity using landing pads.
 
+config RV_ZICFISS
+  bool "RISC-V Shadow Stack (ZICFISS) Extension v1.0"
+  select RV_ZIMOP
+  select RV_ZCMOP
+  default n
+  help
+    Enable backward-edge control-flow integrity using shadow stack.
+
 config RV_ZFH
   bool "RISC-V Zfh Extensions V1.0"
   depends on RV_ZFH_MIN

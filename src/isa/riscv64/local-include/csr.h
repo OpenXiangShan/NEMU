@@ -57,6 +57,14 @@
 */
 
 /* Unprivileged CSR */
+/** Unprivileged(URW) SSP CSR **/
+#ifdef CONFIG_RV_ZICFISS
+  #define CSRS_SSP(f) \
+    f(ssp       , 0x011)
+#else // CONFIG_RV_ZICFISS
+  #define CSRS_SSP(f)
+#endif // CONFIG_RV_ZICFISS
+
 /** Unprivileged Floating-Point CSRs **/
 #ifndef CONFIG_FPU_NONE
   #define CSRS_UNPRIV_FLOAT(f) \
@@ -127,6 +135,7 @@
 
 /** ALL **/
 #define CSRS_UNPRIV(f) \
+  CSRS_SSP(f) \
   CSRS_UNPRIV_FLOAT(f) \
   CSRS_UNPRIV_COUNTER_TIMERS(f) \
   CSRS_UNPRIV_VECTOR(f) \
@@ -641,6 +650,12 @@
 #define CSR_STRUCT_DUMMY_LIST(list) \
   MAP(list, CSR_STRUCT_DUMMY)
 
+#ifdef CONFIG_RV_ZICFISS
+CSR_STRUCT_START(ssp)
+  uint64_t pad0: 64;
+CSR_STRUCT_END(ssp)
+#endif // CONFIG_RV_ZICFISS
+
 /* Machine-Level CSR */
 
 CSR_STRUCT_START(misa)
@@ -885,13 +900,17 @@ CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
   uint64_t fiom   : 1; // [0]
-#ifdef CONFIG_RV_ZICFILP
-  uint64_t pad0   : 1; // [1]
-  uint64_t lpe    : 1; // [2]
-  uint64_t pad0_1 : 1; // [3]
-#else
-  uint64_t pad0   : 3; // [3:1]
-#endif
+  #ifdef CONFIG_RV_ZICFILP
+    uint64_t pad0   : 1; // [1]
+    uint64_t lpe    : 1; // [2]
+  #else
+    uint64_t pad0   : 2; // [2:1]
+  #endif
+#ifdef CONFIG_RV_ZICFISS
+    uint64_t sse    : 1; // [3]
+  #else
+    uint64_t pad0_1 : 1; // [3]
+  #endif
   uint64_t cbie   : 2; // [5:4]
   uint64_t cbcfe  : 1; // [6]
   uint64_t cbze   : 1; // [7]
@@ -1265,13 +1284,17 @@ CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(senvcfg)
   uint64_t fiom   : 1; // [0]
-#ifdef CONFIG_RV_ZICFILP
-  uint64_t pad0_0 : 1; // [1]
-  uint64_t lpe    : 1; // [2]
-  uint64_t pad0_1 : 1; // [3]
-#else
-  uint64_t pad0_0 : 3; // [3:1]
-#endif
+  #ifdef CONFIG_RV_ZICFILP
+    uint64_t pad0   : 1; // [1]
+    uint64_t lpe    : 1; // [2]
+  #else
+    uint64_t pad0   : 2; // [2:1]
+  #endif
+#ifdef CONFIG_RV_ZICFISS
+    uint64_t sse    : 1; // [3]
+  #else
+    uint64_t pad0_1 : 1; // [3]
+  #endif
   uint64_t cbie   : 2; // [5:4]
   uint64_t cbcfe  : 1; // [6]
   uint64_t cbze   : 1; // [7]
@@ -1528,13 +1551,17 @@ CSR_STRUCT_END(hgeie)
 
 CSR_STRUCT_START(henvcfg)
   uint64_t fiom   : 1;  // [0]
-#ifdef CONFIG_RV_ZICFILP
-  uint64_t pad0   : 1;  // [1]
-  uint64_t lpe    : 1;  // [2]
-  uint64_t pad0_1 : 1;  // [3]
-#else
-  uint64_t pad0   : 3;  // [3:1]
-#endif
+  #ifdef CONFIG_RV_ZICFILP
+    uint64_t pad0   : 1; // [1]
+    uint64_t lpe    : 1; // [2]
+  #else
+    uint64_t pad0   : 2; // [2:1]
+  #endif
+#ifdef CONFIG_RV_ZICFISS
+    uint64_t sse    : 1; // [3]
+  #else
+    uint64_t pad0_1 : 1; // [3]
+  #endif
   uint64_t cbie   : 2;  // [5:4]
   uint64_t cbcfe  : 1;  // [6]
   uint64_t cbze   : 1;  // [7]

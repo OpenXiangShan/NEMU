@@ -43,6 +43,33 @@ typedef union PageTableEntry {
   uint64_t val;
 } PTE;
 
+#ifdef CONFIG_RV_ZICFISS
+static inline bool zicfiss_is_ss_pte(const PTE *pte) {
+  return pte->v && !pte->r && pte->w && !pte->x;
+}
+
+/* The SS PTE encoding is controlled by the stage that owns the page table.
+ * senvcfg.SSE controls the instruction, not whether the encoding is valid. */
+static inline bool zicfiss_ss_pte_enabled(bool virtual_mode) {
+#ifdef CONFIG_RVH
+  return menvcfg->sse && (virtual_mode ? henvcfg->sse : true);
+#else
+  (void)virtual_mode;
+  return menvcfg->sse;
+#endif
+}
+
+static inline bool zicfiss_is_active_ss_pte(const PTE *pte, bool virtual_mode) {
+  return zicfiss_is_ss_pte(pte) && zicfiss_ss_pte_enabled(virtual_mode);
+}
+
+static inline void zicfiss_raise_access_fault(vaddr_t vaddr) {
+  cpu.trapInfo.tval = vaddr;
+  cpu.amo = false;
+  longjmp_exception(EX_SAF);
+}
+#endif
+
 #define PGSHFT 12
 #ifdef CONFIG_RV_MBMC
 #define BMSHFT 32
@@ -252,6 +279,10 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   uint32_t mode = (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode);
 #endif
   assert(mode == MODE_U || mode == MODE_S);
+#ifdef CONFIG_RV_ZICFISS
+  bool ss_page = zicfiss_is_active_ss_pte(pte,
+      MUXDEF(CONFIG_RVH, virt, false));
+#endif
   ok = ok && pte->v;
   ok = ok && !(mode == MODE_U && !pte->u);
   ok = ok && (!pte->n || (pte->ppn & SVNAPOTMASK) == 0b1000);
@@ -266,6 +297,13 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
   if (ifetch) {
     Logtr("Translate for instr reading");
+#ifdef CONFIG_RV_ZICFISS
+    if (ss_page) {
+      cpu.trapInfo.tval = vaddr;
+      longjmp_exception(EX_IAF);
+      return false;
+    }
+#endif
 #ifdef CONFIG_SHARE
 //  update a/d by exception
     bool update_ad = !pte->a;
@@ -282,6 +320,15 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     }
   } else if (type == MEM_TYPE_READ || type == MEM_TYPE_MATRIX_READ) {
     Logtr("Translate for memory reading");
+#ifdef CONFIG_RV_ZICFISS
+    if (cpu.shadow_stack_access && ok && !ss_page) {
+      bool readonly = pte->r && !pte->w && !pte->x;
+      cpu.trapInfo.tval = vaddr;
+      cpu.amo = false;
+      longjmp_exception(readonly ? EX_SPF : EX_SAF);
+      return false;
+    }
+#endif
 #ifdef CONFIG_RVH
   bool can_load;
   if(hlvx)
@@ -290,6 +337,9 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     can_load = pte->r || ((mstatus->mxr || (vsstatus->mxr && virt)) && pte->x);
 #else
   bool can_load = pte->r || (mstatus->mxr && pte->x);
+#endif
+#ifdef CONFIG_RV_ZICFISS
+    can_load = can_load || ss_page;
 #endif
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a;
@@ -308,6 +358,19 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else { // MEM_TYPE_WRITE
+#ifdef CONFIG_RV_ZICFISS
+    if (ok && ss_page && !cpu.shadow_stack_access) {
+      zicfiss_raise_access_fault(vaddr);
+      return false;
+    }
+    if (cpu.shadow_stack_access && ok && !ss_page) {
+      bool readonly = pte->r && !pte->w && !pte->x;
+      cpu.trapInfo.tval = vaddr;
+      cpu.amo = false;
+      longjmp_exception(readonly ? EX_SPF : EX_SAF);
+      return false;
+    }
+#endif
 #ifdef CONFIG_SHARE
     bool update_ad = !pte->a || !pte->d;
    if (update_ad && ok && pte->w) Logtr("raise exception to update ad for store");
@@ -482,9 +545,17 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     }
     pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
-    pte.val	= paddr_read(p_pte, PTE_SIZE,
-    type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
-    type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ, trap_type, MODE_S, vaddr);
+#ifdef CONFIG_RV_ZICFISS
+    bool old_shadow_stack_access = cpu.shadow_stack_access;
+    cpu.shadow_stack_access = false;
+#endif
+    pte.val = paddr_read(p_pte, PTE_SIZE,
+      type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
+      type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ,
+      trap_type, MODE_S, vaddr);
+#ifdef CONFIG_RV_ZICFISS
+    cpu.shadow_stack_access = old_shadow_stack_access;
+#endif
 #endif
 
     ref_log_cpu("ptw g stage: level %d, vaddr 0x%lx, gpaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx",
@@ -516,6 +587,9 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       break;
     } else if (
       type == MEM_TYPE_IFETCH || ishlvx ? !pte.x:
+#ifdef CONFIG_RV_ZICFISS
+      (cpu.shadow_stack_access && !is_support_vs) ? !(pte.r && pte.w):
+#endif
       type == MEM_TYPE_READ           ? !pte.r && !mxr_read:
                                         !(pte.r && pte.w)
     ) {
@@ -566,19 +640,29 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
                         type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
                                                   MEM_TYPE_READ;
-#ifdef CONFIG_SHARE
-  if (unlikely(cpu.guided_exec)) {
-    return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type,
-                      mode, vaddr);
-  }
-  // PTE addresses have already been classified as PMEM above. Keep the
-  // physical-access checks and PMEM backend behavior, but skip generic address
-  // routing that would classify the same address again.
-  return paddr_read_pmem_checked(addr, PTE_SIZE, paddr_read_type,
-                                 paddr_read_type, mode, vaddr);
-#else
-  return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type, mode, vaddr);
+#ifdef CONFIG_RV_ZICFISS
+  bool old_shadow_stack_access = cpu.shadow_stack_access;
+  cpu.shadow_stack_access = false;
 #endif
+#ifdef CONFIG_SHARE
+  word_t pte;
+  if (unlikely(cpu.guided_exec)) {
+    pte = paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type,
+                     mode, vaddr);
+  } else {
+    // PTE addresses have already been classified as PMEM above. Keep the
+    // physical-access checks and PMEM backend behavior, but skip generic address
+    // routing that would classify the same address again.
+    pte = paddr_read_pmem_checked(addr, PTE_SIZE, paddr_read_type,
+                                  paddr_read_type, mode, vaddr);
+  }
+#else
+  word_t pte = paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type, mode, vaddr);
+#endif
+#ifdef CONFIG_RV_ZICFISS
+  cpu.shadow_stack_access = old_shadow_stack_access;
+#endif
+  return pte;
 }
 #endif // CONFIG_MULTICORE_DIFF
 
@@ -602,7 +686,14 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
   if (virt) {
-    if (vsatp->mode == SATP_MODE_BARE) return gpa_stage(vaddr, vaddr, type, type, hlvx, false) & ~PAGE_MASK;
+    if (vsatp->mode == SATP_MODE_BARE) {
+#ifdef CONFIG_RV_ZICFISS
+      if (cpu.shadow_stack_access && mode < MODE_M) {
+        zicfiss_raise_access_fault(vaddr);
+      }
+#endif
+      return gpa_stage(vaddr, vaddr, type, type, hlvx, false) & ~PAGE_MASK;
+    }
     pg_base = PGBASE(vsatp->ppn);
     max_level = vsatp->mode == SATP_MODE_Sv39 ? 3 : 4;
   }
@@ -665,7 +756,12 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     ref_log_cpu("ptw: level %d, vaddr 0x%lx, pg_base 0x%lx, p_pte 0x%lx, pte.val 0x%lx",
         level, vaddr, pg_base, p_pte, pte.val);
     pg_base = PGBASE((uint64_t)pte.ppn);
-    if (!pte.v || (!pte.r && pte.w) || pte.pad) {
+    bool ss_page = false;
+#ifdef CONFIG_RV_ZICFISS
+    ss_page = zicfiss_is_active_ss_pte(&pte,
+        MUXDEF(CONFIG_RVH, virt, false));
+#endif
+    if (!pte.v || ((!pte.r && pte.w) && !ss_page) || pte.pad) {
       goto bad;
     } else if ((ISNDEF(CONFIG_RV_SVPBMT) || !pbmte) && pte.pbmt) {
       goto bad;
@@ -674,7 +770,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
       goto bad;
     }
-    if (pte.r || pte.x) { // is leaf
+    if (pte.r || pte.x || ss_page) { // is leaf
       break;
     } else { // not leaf
       if (pte.a || pte.d || pte.u || pte.pbmt || pte.n) {
@@ -813,6 +909,11 @@ void isa_mmu_tlb_flush(void) {
 }
 
 static inline bool rvh_final_tlb_cacheable(int type) {
+#ifdef CONFIG_RV_ZICFISS
+  // Shadow-stack accesses require different PTE permissions from ordinary
+  // accesses and must not reuse or populate their cached translations.
+  if (cpu.shadow_stack_access) return false;
+#endif
   return (cpu.v || hld_st) && !cpu.amo &&
       (type == MEM_TYPE_IFETCH || !get_mprv());
 }
@@ -829,7 +930,12 @@ static inline uint16_t rvh_final_tlb_current_context(void) {
       (henvcfg->adue << 8) |
       (hld_st << 9) |
       (hlvx << 10) |
-      (hstatus->spvp << 11));
+      (hstatus->spvp << 11)
+#ifdef CONFIG_RV_ZICFISS
+      | (menvcfg->sse << 12)
+      | (henvcfg->sse << 13)
+#endif
+      );
 }
 
 static inline void rvh_final_tlb_sync_context(void) {
@@ -1033,6 +1139,26 @@ inline int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     }
     return MEM_RET_FAIL;
   }
+
+#ifdef CONFIG_RV_ZICFISS
+  if (cpu.shadow_stack_access) {
+    int effective_mode = get_mprv() && !is_ifetch ? mstatus->mpp : cpu.mode;
+    if (effective_mode < MODE_M) {
+#ifdef CONFIG_RVH
+      bool effective_virt = get_mprv() && !is_ifetch && effective_mode != MODE_M
+          ? mstatus->mpv : cpu.v;
+      if ((effective_virt && vsatp->mode == SATP_MODE_BARE) ||
+          (!effective_virt && satp->mode == SATP_MODE_BARE)) {
+        zicfiss_raise_access_fault(vaddr);
+      }
+#else
+      if (satp->mode == SATP_MODE_BARE) {
+        zicfiss_raise_access_fault(vaddr);
+      }
+#endif
+    }
+  }
+#endif
 
   if (is_ifetch) return ifetch_mmu_state ? MMU_TRANSLATE : MMU_DIRECT;
 #ifdef CONFIG_RVH

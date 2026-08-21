@@ -198,7 +198,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_II:
         vstval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         break;
-#ifdef CONFIG_RV_ZICFILP
+#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
       case EX_SWC:
         vstval->val = cpu.trapInfo.tval;
         break;
@@ -264,7 +264,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
-#ifdef CONFIG_RV_ZICFILP
+#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
       case EX_SWC:
         stval->val = cpu.trapInfo.tval;
         IFDEF(CONFIG_RVH, htval->val = 0);
@@ -331,7 +331,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
-#ifdef CONFIG_RV_ZICFILP
+#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
       case EX_SWC:
         mtval->val = cpu.trapInfo.tval;
         IFDEF(CONFIG_RVH, mtval2->val = 0);

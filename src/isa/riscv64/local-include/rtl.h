@@ -63,8 +63,36 @@ static inline void riscv64_zicfilp_update_elp(Decode *s) { (void)s; }
 static inline void riscv64_zicfilp_refresh_elp(void) {}
 #endif
 
-#ifdef CONFIG_RV_ZICFILP
+#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
 void riscv64_raise_software_check(word_t tval);
+#endif
+
+#ifdef CONFIG_RV_ZICFISS
+static inline bool riscv64_zicfiss_enabled(uint32_t mode, bool virtual_mode) {
+  if (mode == MODE_M) {
+    return false;
+  }
+  if (mode == MODE_S) {
+#ifdef CONFIG_RVH
+    return menvcfg->sse && (virtual_mode ? henvcfg->sse : true);
+#else
+    (void)virtual_mode;
+    return menvcfg->sse;
+#endif
+  }
+  if (mode == MODE_U) {
+#ifdef CONFIG_RVH
+    return menvcfg->sse && (virtual_mode ? (henvcfg->sse && senvcfg->sse) : senvcfg->sse);
+#else
+    (void)virtual_mode;
+    return menvcfg->sse && senvcfg->sse;
+#endif
+  }
+  return false;
+}
+
+void riscv64_priv_sspush(Decode *s, rtlreg_t src);
+void riscv64_priv_sspopchk(Decode *s, rtlreg_t src);
 #endif
 
 // The bit pattern for a default generated 32-bit floating-point NaN
