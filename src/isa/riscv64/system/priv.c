@@ -3867,12 +3867,6 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 }
 
 #ifdef CONFIG_RVH
-int rvh_hlvx_check(struct Decode *s, int type){
-  extern bool hlvx;
-  hlvx = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4
-                  && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683));
-  return hlvx;
-}
 extern bool hld_st;
 int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len, bool is_signed, bool is_hlvx) {
   if (cpu.v) {
@@ -3882,7 +3876,9 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
     longjmp_exception(EX_II);
   }
 
+  extern bool hlvx;
   hld_st = true;
+  hlvx = is_hlvx;
   int mmu_mode = get_hyperinst_mmu_state();
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *addr, TRIGGER_NO_VALUE);
@@ -3896,6 +3892,7 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
     IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4));
   }
   hld_st = false;
+  hlvx = false;
   return 0;
 }
 
@@ -3907,7 +3904,9 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
     longjmp_exception(EX_II);
   }
 
+  extern bool hlvx;
   hld_st = true;
+  hlvx = false;
   int mmu_mode = get_hyperinst_mmu_state();
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *addr, *src);
@@ -3916,6 +3915,7 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
   rtl_sm(s, src, addr, 0, len, mmu_mode);
   IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
   hld_st = false;
+  hlvx = false;
   return 0;
 }
 #endif
