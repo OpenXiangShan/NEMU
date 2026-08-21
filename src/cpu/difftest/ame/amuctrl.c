@@ -4,7 +4,7 @@
 #include <ame/mstore_queue_wrapper.h>
 #endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 #include <isa.h>
-#include <memory/host.h>
+#include <memory/paddr.h>
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
@@ -147,10 +147,10 @@ static void exec_amu_load_store(void *amu_ctrl, void *res) {
     column = tmp;
   }
   if (ls == 0) { // matrix load
-    host_read_matrix(base, stride, row, column, msew, transpose, m_name, ms);
+    pmem_read_matrix(base, stride, row, column, msew, transpose, m_name, ms);
   } else { // matrix store
     Assert(ls == 1, "AmuCtrl.ls should be 0 or 1!");
-    host_write_matrix(base, stride, row, column, msew, transpose, m_name, ms);
+    pmem_write_matrix(base, stride, row, column, msew, transpose, m_name, ms);
   }
 }
 

@@ -205,7 +205,8 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
       // guest_to_host(e->offset) when save, so in order to get the original paddr, we use host_to_guest here
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
 #ifndef CONFIG_SHARE_REF
-      host_read_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
+      pmem_read_matrix(host_to_guest(host_base), stride,
+                       row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
     }
   }
@@ -311,7 +312,8 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
 #ifndef CONFIG_SHARE_REF
-  host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
+  pmem_write_matrix(host_to_guest(host_base), stride,
+                    row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
 }
 #endif // CONFIG_RV_AME
