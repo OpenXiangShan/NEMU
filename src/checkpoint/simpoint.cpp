@@ -78,6 +78,7 @@ SimPoint::~SimPoint() {
 void
 SimPoint::init() {
   if (profiling_state == SimpointProfiling) {
+    bbMap.reserve(bbLookupCacheSize);
     pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
@@ -102,6 +103,14 @@ SimPoint::profile_with_abs_icount(Addr pc, bool is_control, bool is_last_uop, ui
 }
 
 void
+SimPoint::profile_basic_block_with_abs_icount(Addr control_pc, Addr next_pc, uint64_t abs_icount) {
+  unsigned exec_count = abs_icount - lastICount;
+  profile(control_pc, true, true, exec_count);
+  currentBBV.first = next_pc;
+  lastICount = abs_icount;
+}
+
+void
 SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_count) {
 
   if (!is_last_uop)
@@ -121,21 +130,26 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
   if (is_control) {
     currentBBV.second = pc;
 
-    auto map_itr = bbMap.find(currentBBV);
-    Logsp("Finding BB 0x%lx -> 0x%lx", currentBBV.first, currentBBV.second);
-    if (map_itr == bbMap.end()) {
-      // If a new (previously unseen) basic block is found,
-      // add a new unique id, record num of insts and insert into bbMap.
-      BBInfo info;
-      info.id = bbMap.size() + 1;
-      info.insts = currentBBVInstCount;
-      info.count = currentBBVInstCount;
-      bbMap.insert(::std::make_pair(currentBBV, info));
+    const size_t cache_idx = std::hash<BasicBlockRange>()(currentBBV) &
+                             (bbLookupCacheSize - 1);
+    BBLookupCacheEntry &cache_entry = bbLookupCache[cache_idx];
+    BBInfo *info = cache_entry.info;
+    if (info != nullptr && cache_entry.range == currentBBV) {
+      info->count += currentBBVInstCount;
     } else {
-      // If basic block is seen before, just increment the count by the
-      // number of insts in basic block.
-      BBInfo &info = map_itr->second;
-      info.count += currentBBVInstCount;
+      auto map_itr = bbMap.find(currentBBV);
+      Logsp("Finding BB 0x%lx -> 0x%lx", currentBBV.first, currentBBV.second);
+      if (map_itr == bbMap.end()) {
+        BBInfo new_info;
+        new_info.id = bbMap.size() + 1;
+        new_info.insts = currentBBVInstCount;
+        new_info.count = currentBBVInstCount;
+        map_itr = bbMap.insert(::std::make_pair(currentBBV, new_info)).first;
+      } else {
+        map_itr->second.count += currentBBVInstCount;
+      }
+      cache_entry.range = currentBBV;
+      cache_entry.info = &map_itr->second;
     }
     currentBBVInstCount = 0;
 
@@ -189,6 +203,10 @@ void simpoint_init() {
 #ifndef CONFIG_SHARE
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {
   simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
+}
+
+void simpoint_profiling_bb(uint64_t control_pc, uint64_t next_pc, uint64_t abs_instr_count) {
+  simpoit_obj.profile_basic_block_with_abs_icount(control_pc, next_pc, abs_instr_count);
 }
 #endif
 }

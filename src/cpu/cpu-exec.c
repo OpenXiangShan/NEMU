@@ -323,27 +323,26 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   // checkpoint_icount_base is set from nemu_trap.
   // Profiling and checkpointing use this as the starting point for instruction counting.
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
+  bool workload_ready = workload_loaded || donot_skip_boot;
   // workload_loaded set from nemu_trap
   //
-  if (enable_semantic_point_cpt() && (workload_loaded || donot_skip_boot)) {
+  if (workload_ready && enable_semantic_point_cpt()) {
     semantic_point_profile(prev_s->pc, true, abs_inst_count);
     semantic_point_profile(s->pc, false, abs_inst_count);
   }
 
-  if (profiling_state == SimpointProfiling && (workload_loaded||donot_skip_boot)) {
-    simpoint_profiling(prev_s->pc, true, abs_inst_count);
-    simpoint_profiling(s->pc, false, abs_inst_count);
+  if (workload_ready && profiling_state == SimpointProfiling) {
+    simpoint_profiling_bb(prev_s->pc, s->pc, abs_inst_count);
+  }
+
+  if (!workload_ready || checkpoint_state == NoCheckpoint) {
+    return abs_inst_count;
   }
 
   //umod or not set force m mod
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
   if (!able_to_take) {
-    return abs_inst_count;
-  }
-
-  //
-  if (!(workload_loaded||donot_skip_boot)) {
     return abs_inst_count;
   }
 

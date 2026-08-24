@@ -227,6 +227,7 @@ static inline def_rtl(host_sm, void *addr, const rtlreg_t *src1, int len) {
 // control
 #ifndef CONFIG_SHARE
 extern void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count);
+extern void simpoint_profiling_bb(uint64_t control_pc, uint64_t next_pc, uint64_t abs_instr_count);
 #endif // CONFIG_SHARE
 extern uint64_t get_abs_instr_count();
 
