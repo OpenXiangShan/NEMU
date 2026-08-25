@@ -1,6 +1,8 @@
 #include <cpu/difftest/ame/amuctrl.h>
 #include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
 #include <ame/mstore_queue_wrapper.h>
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 #include <isa.h>
 #include <memory/host.h>
 
@@ -155,7 +157,9 @@ static void exec_amu_load_store(void *amu_ctrl, void *res) {
 static void exec_amu_release(void *amu_ctrl) {
   uint8_t msyncRd = check_mtok_idx(((amu_ctrl_event_t *)amu_ctrl)->mtilem);
   cpu.mtokr[msyncRd]++;
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
   mstore_queue_update_mrelease(msyncRd, cpu.mtokr[msyncRd]);
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 }
 
 static void exec_amu_arith(void *amu_ctrl) {

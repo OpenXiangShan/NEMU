@@ -4,7 +4,7 @@
 #include <cpu/decode.h>
 #include <debug.h>
 
-#ifdef CONFIG_RV_AME
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
 #include <deque>
 #include <cstring>
 
@@ -168,7 +168,6 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
   return false;  // No conflict
 }
 
-#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
 void mstore_queue_check_vec_addr_conflict(
     uint64_t start_addr, const uint8_t *masks,
     uint64_t element_count, int element_width) {
@@ -188,6 +187,5 @@ void mstore_queue_check_vec_addr_conflict(
     }
   }
 }
-#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 
-#endif // CONFIG_RV_AME
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK

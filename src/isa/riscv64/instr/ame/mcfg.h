@@ -23,7 +23,9 @@
 #ifdef CONFIG_SHARE_REF
 #include "cpu/difftest/ame/msync_queue_wrapper.h"
 #endif // CONFIG_SHARE_REF
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
 #include "ame/mstore_queue_wrapper.h"
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 #include "mcommon.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -119,9 +121,9 @@ def_EHelper(mrelease) {
 #ifdef CONFIG_SHARE_CTRL
   cutest_mrelease_emplace(tok_i);
 #endif // CONFIG_SHARE_CTRL
-#ifndef CONFIG_SHARE
+#if !defined(CONFIG_SHARE) && defined(CONFIG_AME_MSTORE_ACCESS_CHECK)
   mstore_queue_update_mrelease(tok_i, cpu.mtokr[tok_i]);
-#endif // CONFIG_SHARE
+#endif // !CONFIG_SHARE && CONFIG_AME_MSTORE_ACCESS_CHECK
   mp_set_dirty();
 }
 
@@ -147,7 +149,9 @@ def_EHelper(macquire) {
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(1, tok_i);
 #endif // CONFIG_SHARE_REF
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
   mstore_queue_update_acquire(tok_i, reg_l(s->src1.reg));
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
   mp_set_dirty();
 }
 
