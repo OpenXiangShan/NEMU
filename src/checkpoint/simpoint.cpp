@@ -205,6 +205,7 @@ void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) 
   simpoit_obj.profile_with_abs_icount(pc, is_control, true, abs_instr_count);
 }
 
+__attribute__((noinline))
 void simpoint_profiling_bb(uint64_t control_pc, uint64_t next_pc, uint64_t abs_instr_count) {
   simpoit_obj.profile_basic_block_with_abs_icount(control_pc, next_pc, abs_instr_count);
 }
