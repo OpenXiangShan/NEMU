@@ -185,8 +185,12 @@ uint32_t vf_allowed_e16[] = {
 #ifdef CONFIG_RV_ZVFBF_WMA
   FWMACCBF16,     // vfwmaccbf16.vv/.vf
 #endif
+#ifdef CONFIG_CUSTOM_XVEXP2
   FEXP2,
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
   FEXP2BF16,
+#endif
 };
 
 # ifdef CONFIG_RV_ZVFH
@@ -238,10 +242,6 @@ static bool is_bf16_opcode(uint32_t opcode) {
   }
 }
 #endif
-
-static inline bool is_vfexp2_opcode(uint32_t opcode) {
-  return opcode == FEXP2 || opcode == FEXP2BF16;
-}
 
 static inline void update_vcsr() {
   vcsr->val = (vxrm->val) << 1 | vxsat->val;
@@ -1163,13 +1163,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
   require_float();
   require_vector(true);
   uint32_t rm = isa_fp_get_frm();
-  if (is_vfexp2_opcode(opcode)) {
-    if (!vfexp2_rm_valid(rm)) {
-      longjmp_exception(EX_II);
-    }
-  } else {
-    isa_fp_rm_check(rm);
-  }
+  isa_fp_rm_check(rm);
 
   if (dest_mask) {
     if (s->src_vmode == SRC_VV) {
@@ -1221,10 +1215,16 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
     longjmp_exception(EX_II);
   }
 #endif
-  if ((opcode == FEXP2 && vtype->vsew != 1 && vtype->vsew != 2) ||
-      (opcode == FEXP2BF16 && vtype->vsew != 1)) {
+#ifdef CONFIG_CUSTOM_XVEXP2
+  if (opcode == FEXP2 && vtype->vsew != 1 && vtype->vsew != 2) {
     longjmp_exception(EX_II);
   }
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+  if (opcode == FEXP2BF16 && vtype->vsew != 1) {
+    longjmp_exception(EX_II);
+  }
+#endif
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {

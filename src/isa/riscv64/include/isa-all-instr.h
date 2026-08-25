@@ -194,7 +194,6 @@
   f(vfwcvt_ffv) f(vfwcvt_rtz_xufv) f(vfwcvt_rtz_xfv) f(vfncvt_xufw) \
   f(vfncvt_xfw) f(vfncvt_fxuw) f(vfncvt_fxw) f(vfncvt_ffw) \
   f(vfncvt_rod_ffw) f(vfncvt_rtz_xufw) f(vfncvt_rtz_xfw) f(vfsqrt_v) \
-  XVEXP2_INSTR_TERNARY(f) XVEXP2_BF16_INSTR_TERNARY(f) \
   f(vfrsqrt7_v) f(vfrec7_v) f(vfclass_v) f(vfmerge) \
   f(vmfeq) f(vmfle) f(vmflt) f(vmfne) f(vmfgt) f(vmfge) f(vfdiv) f(vfrdiv) \
   f(vfmul) f(vfrsub) f(vfmadd) f(vfnmadd) f(vfmsub) f(vfnmsub) \
@@ -491,7 +490,9 @@
   ZFA_INSTR_TERNARY(f) \
   ZFH_ZFA_INSTR_TERNARY(f) \
   ZCB_INSTR_TERNARY(f) \
-  TENSOR_INSTR_TERNARY(f)
+  TENSOR_INSTR_TERNARY(f) \
+  XVEXP2_INSTR_TERNARY(f) \
+  XVEXP2_BF16_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \
   SYS_INSTR_TERNARY_CSR(f) 

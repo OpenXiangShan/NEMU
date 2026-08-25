@@ -298,18 +298,36 @@ static const vfexp2_coeff_t vfexp2_coeffs_128_fp32[] = {
 };
 
 static const vfexp2_format_t vfexp2_fp16 = {
-  .exp_width = 5, .frac_width = 10, .bias = 15, .t_frac_bits = 17, .coeff_frac_bits = 20, .segment_bits = 7,
-  .coeff_count = 128, .coeffs = vfexp2_coeffs_128,
+  .exp_width = 5,
+  .frac_width = 10,
+  .bias = 15,
+  .t_frac_bits = 17,
+  .coeff_frac_bits = 20,
+  .segment_bits = 7,
+  .coeff_count = 128,
+  .coeffs = vfexp2_coeffs_128,
 };
 
 static const vfexp2_format_t vfexp2_bf16 = {
-  .exp_width = 8, .frac_width = 7, .bias = 127, .t_frac_bits = 12, .coeff_frac_bits = 16, .segment_bits = 4,
-  .coeff_count = 16, .coeffs = vfexp2_coeffs_16,
+  .exp_width = 8,
+  .frac_width = 7,
+  .bias = 127,
+  .t_frac_bits = 12,
+  .coeff_frac_bits = 16,
+  .segment_bits = 4,
+  .coeff_count = 16,
+  .coeffs = vfexp2_coeffs_16,
 };
 
 static const vfexp2_format_t vfexp2_fp32 = {
-  .exp_width = 8, .frac_width = 23, .bias = 127, .t_frac_bits = 24, .coeff_frac_bits = 24, .segment_bits = 7,
-  .coeff_count = 128, .coeffs = vfexp2_coeffs_128_fp32,
+  .exp_width = 8,
+  .frac_width = 23,
+  .bias = 127,
+  .t_frac_bits = 24,
+  .coeff_frac_bits = 24,
+  .segment_bits = 7,
+  .coeff_count = 128,
+  .coeffs = vfexp2_coeffs_128_fp32,
 };
 
 static inline uint64_t mask64(int width) {
