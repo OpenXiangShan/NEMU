@@ -29,7 +29,9 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
 #include "ame/mstore_queue_wrapper.h"
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 #include "mcommon.h"
 #ifdef CONFIG_RV_AME_FP4
 #include "ame/raw-fp4.h"
@@ -162,8 +164,10 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
   if (raw_fp4) {
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
                               is_trans, true, ts3)) {
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
       mstore_queue_emplace(base_addr, row_byte_stride, row, column,
                            MSEW_FP4, is_trans);
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
     }
     return;
   }
@@ -175,7 +179,9 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
     row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, ts3);
 
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
   mstore_queue_emplace(base_addr, row_byte_stride, row, column, dsize, is_trans);
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 }
 
 void mld(Decode *s, bool is_trans, char m_name) {
