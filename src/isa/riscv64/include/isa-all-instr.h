@@ -140,17 +140,17 @@
   f(csrrw) f(csrrs) f(csrrc) \
   f(csrrwi) f(csrrsi) f(csrrci)
 
-#ifdef CONFIG_RV_XVEXP2
+#ifdef CONFIG_CUSTOM_XVEXP2
 #define XVEXP2_INSTR_TERNARY(f) f(vfexp2_v)
 #else
 #define XVEXP2_INSTR_TERNARY(f)
-#endif // CONFIG_RV_XVEXP2
+#endif // CONFIG_CUSTOM_XVEXP2
 
-#ifdef CONFIG_RV_XVEXP2_BF16
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
 #define XVEXP2_BF16_INSTR_TERNARY(f) f(vfexp2bf16_v)
 #else
 #define XVEXP2_BF16_INSTR_TERNARY(f)
-#endif // CONFIG_RV_XVEXP2_BF16
+#endif // CONFIG_CUSTOM_XVEXP2_BF16
 
 
 #ifdef CONFIG_RVV
