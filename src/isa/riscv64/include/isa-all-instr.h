@@ -140,6 +140,18 @@
   f(csrrw) f(csrrs) f(csrrc) \
   f(csrrwi) f(csrrsi) f(csrrci)
 
+#ifdef CONFIG_RV_XVEXP2
+#define XVEXP2_INSTR_TERNARY(f) f(vfexp2_v)
+#else
+#define XVEXP2_INSTR_TERNARY(f)
+#endif // CONFIG_RV_XVEXP2
+
+#ifdef CONFIG_RV_XVEXP2_BF16
+#define XVEXP2_BF16_INSTR_TERNARY(f) f(vfexp2bf16_v)
+#else
+#define XVEXP2_BF16_INSTR_TERNARY(f)
+#endif // CONFIG_RV_XVEXP2_BF16
+
 
 #ifdef CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f) \
@@ -182,7 +194,8 @@
   f(vfwcvt_ffv) f(vfwcvt_rtz_xufv) f(vfwcvt_rtz_xfv) f(vfncvt_xufw) \
   f(vfncvt_xfw) f(vfncvt_fxuw) f(vfncvt_fxw) f(vfncvt_ffw) \
   f(vfncvt_rod_ffw) f(vfncvt_rtz_xufw) f(vfncvt_rtz_xfw) f(vfsqrt_v) \
-  f(vfexp2_v) f(vfexp2bf16_v) f(vfrsqrt7_v) f(vfrec7_v) f(vfclass_v) f(vfmerge) \
+  XVEXP2_INSTR_TERNARY(f) XVEXP2_BF16_INSTR_TERNARY(f) \
+  f(vfrsqrt7_v) f(vfrec7_v) f(vfclass_v) f(vfmerge) \
   f(vmfeq) f(vmfle) f(vmflt) f(vmfne) f(vmfgt) f(vmfge) f(vfdiv) f(vfrdiv) \
   f(vfmul) f(vfrsub) f(vfmadd) f(vfnmadd) f(vfmsub) f(vfnmsub) \
   f(vfmacc) f(vfnmacc) f(vfmsac) f(vfnmsac) f(vfwadd) f(vfwredusum) \
