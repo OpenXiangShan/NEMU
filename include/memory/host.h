@@ -54,6 +54,27 @@ static inline word_t host_read(void *addr, int len) {
 static inline void host_read_matrix(paddr_t pbase, paddr_t stride, int row,
                               int column, int msew, bool transpose,
                               char m_name, int mreg_id) {
+  if (msew == 4) {
+    int packed_columns = (column + 3) / 4;
+    for (int r = 0; r < row; r++) {
+      uint8_t *dst = get_mreg_row_addr(mreg_id, r);
+      for (int packed_column = 0; packed_column < packed_columns;
+           packed_column++) {
+        uint8_t packed = host_read(
+          guest_to_host(pbase + (paddr_t)packed_column), 1);
+        for (unsigned lane = 0; lane < 4; lane++) {
+          int logical_column = packed_column * 4 + lane;
+          if (logical_column < column) {
+            uint8_t raw = (packed >> (lane * 2)) & 0x3;
+            dst[logical_column] = (raw & 0x2) ? (raw | 0xfc) : raw;
+          }
+        }
+      }
+      pbase += stride;
+    }
+    return;
+  }
+
   int width = 1 << msew;
   Logm("read matrix: base = %#lx, stride = %lu,\n"
        "             row = %d, column = %d, width = %d, transpose = %d, m_name = %c",

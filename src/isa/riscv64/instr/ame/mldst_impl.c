@@ -202,6 +202,19 @@ void mld(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
+  if (cpu.mcfg[td].type_code == MTYPECODE_FP2PACK4) {
+    Assert(cpu.mcfg[td].table_set == 0, "fp2pack4 requires table 0");
+    Assert(td < 4 && m_name == 'b' && !is_trans,
+           "fp2pack4 supports only a normal B load into tr0-tr3");
+    Assert(rmax_mreg == 128 && cmax_mreg == 64,
+           "fp2pack4 requires B shape 128x64");
+    Assert(reg_l(s->src2.reg) == 16,
+           "fp2pack4 requires a 16-byte B row stride");
+    Assert((reg_l(s->src1.reg) & 63) == 0,
+           "fp2pack4 B base must be 64-byte aligned");
+    Assert((reg_l(s->src1.reg) & 0xfff) <= 0x800,
+           "fp2pack4 B panel must fit in one 4-KiB page");
+  }
   check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4);
   exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
     (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name, raw_fp4);
@@ -211,6 +224,8 @@ void mst(Decode *s, bool is_trans, char m_name) {
   uint64_t ts3 = s->dest.reg;
   uint8_t dsize = get_size(cpu.mcfg[ts3]);
   bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);
+  Assert(cpu.mcfg[ts3].type_code != MTYPECODE_FP2PACK4,
+         "fp2pack4 store is undefined; use a packed B load only");
   uint64_t rmax_mreg = 0, cmax_mreg = 0;
 
   switch (m_name) {
@@ -239,6 +254,8 @@ void mst(Decode *s, bool is_trans, char m_name) {
 void mld_whole(Decode *s, char m_name) {
   uint64_t td = s->dest.reg;
   bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[td], td, m_name);
+  Assert(cpu.mcfg[td].type_code != MTYPECODE_FP2PACK4,
+         "fp2pack4 whole-register load is undefined");
   uint8_t dsize = m_name == 'c' ? 2 : 0;
   uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
@@ -250,6 +267,8 @@ void mld_whole(Decode *s, char m_name) {
 void mst_whole(Decode *s, char m_name) {
   uint64_t ts3 = s->dest.reg;
   bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);
+  Assert(cpu.mcfg[ts3].type_code != MTYPECODE_FP2PACK4,
+         "fp2pack4 whole-register store is undefined");
   uint8_t dsize = m_name == 'c' ? 2 : 0;
   uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 

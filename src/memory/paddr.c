@@ -112,6 +112,13 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
                                      int row, int column, int msew, bool transpose,
                                      char m_name, int mreg_id) {
+  bool signed_i2x4 = m_name == 'b' && !transpose &&
+                     mreg_id >= 0 && mreg_id < 4 &&
+                     cpu.mcfg[mreg_id].table_set == 0 &&
+                     cpu.mcfg[mreg_id].type_code == MTYPECODE_FP2PACK4;
+  if (signed_i2x4) {
+    msew = 4;
+  }
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(base);
 #endif // CONFIG_MEMORY_REGION_ANALYSIS

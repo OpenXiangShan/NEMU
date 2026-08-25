@@ -56,12 +56,12 @@ int8_t check_comb(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
   uint32_t d_mask = 1u << dcfg.type_code;
   const uint32_t int_mask = (1u << MTYPECODE_INT4) | (1u << MTYPECODE_UINT4) |
                             (1u << MTYPECODE_INT8) | (1u << MTYPECODE_UINT8) |
-                            (1u << MTYPECODE_INT32);
+                            (1u << MTYPECODE_INT32) | (1u << MTYPECODE_FP2PACK4) |
+                            (1u << MTYPECODE_FP2PACK5);
   const uint32_t fp_mask = (1u << MTYPECODE_NVFP4) | (1u << MTYPECODE_MXFP4) |
                            (1u << MTYPECODE_FP8E5M2) | (1u << MTYPECODE_FP8E4M3) |
                            (1u << MTYPECODE_FP16) | (1u << MTYPECODE_BF16) |
-                           (1u << MTYPECODE_TF32) | (1u << MTYPECODE_FP32) |
-                           (1u << MTYPECODE_FP2PACK4) | (1u << MTYPECODE_FP2PACK5);
+                           (1u << MTYPECODE_TF32) | (1u << MTYPECODE_FP32);
 
   if ((s1_mask & int_mask) && (s2_mask & int_mask) && (d_mask & int_mask)) {
     return 0;

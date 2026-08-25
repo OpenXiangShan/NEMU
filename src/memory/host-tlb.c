@@ -204,7 +204,12 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   {
     vaddr_t gvpn = hosttlb_vpn(vbase);
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
-    if (unlikely(e->gvpn != gvpn)) {
+    bool signed_i2x4 = m_name == 'b' && !transpose &&
+                       mreg_id >= 0 && mreg_id < 4 &&
+                       cpu.mcfg[mreg_id].table_set == 0 &&
+                       cpu.mcfg[mreg_id].type_code == MTYPECODE_FP2PACK4;
+    // The packed format must reach paddr_read_matrix() to select msew=4.
+    if (unlikely(signed_i2x4 || e->gvpn != gvpn)) {
       Logm("Host TLB slow path");
       hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     } else {
