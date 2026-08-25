@@ -48,15 +48,10 @@ static inline int hosttlb_idx(vaddr_t vaddr) {
 
 void hosttlb_flush(vaddr_t vaddr) {
   Logm("hosttlb_flush " FMT_WORD, vaddr);
-  if (vaddr == 0) {
-    memset(hosttlb, -1, sizeof(hosttlb));
-  } else {
-    vaddr_t gvpn = hosttlb_vpn(vaddr);
-    int idx = hosttlb_idx(vaddr);
-    if (hostrtlb[idx].gvpn == gvpn) hostrtlb[idx].gvpn = (sword_t)-1;
-    if (hostwtlb[idx].gvpn == gvpn) hostwtlb[idx].gvpn = (sword_t)-1;
-    if (hostxtlb[idx].gvpn == gvpn) hostxtlb[idx].gvpn = (sword_t)-1;
-  }
+  // HostTLB entries are keyed by 4 KiB VPNs but do not retain the page-table
+  // leaf size. An address-specific SFENCE.VMA must also invalidate sibling
+  // entries derived from a superpage translation, so flush conservatively.
+  memset(hosttlb, -1, sizeof(hosttlb));
 }
 
 void hosttlb_init() {
