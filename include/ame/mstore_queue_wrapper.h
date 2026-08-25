@@ -26,6 +26,12 @@ void mstore_queue_update_mrelease(uint8_t tok_i, uint64_t mtokr_value);
 void mstore_queue_update_acquire(uint8_t tok_i, uint64_t threshold);
 
 bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
+
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+void mstore_queue_check_vec_addr_conflict(
+    uint64_t start_addr, const uint8_t *masks,
+    uint64_t element_count, int element_width);
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
 #endif // CONFIG_RV_AME
 
 #ifdef __cplusplus
