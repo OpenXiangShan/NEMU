@@ -68,6 +68,9 @@ jobs:
           echo "Please run 'bash ./scripts/bump_configs.sh' manually"
           exit 1
         fi
+    - name: Check ISA ref/DUT alignment
+      run: |
+        python3 ./scripts/check_isa_config_alignment.py
 
   compilation-all:
     strategy:
