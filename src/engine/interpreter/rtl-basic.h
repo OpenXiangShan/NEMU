@@ -19,6 +19,7 @@
 
 #include "c_op.h"
 #include <profiling/profiling_control.h>
+#include <profiling/mem_trace.h>
 #include <memory/vaddr.h>
 #include <generated/autoconf.h>
 /* RTL basic instructions */
@@ -132,6 +133,9 @@ static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
   }
 #endif
   *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
+  if (!cpu.isVldst) {
+    mem_trace_scalar_load(len);
+  }
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -145,6 +149,7 @@ static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
                       int row, int column, int msew, bool transpose,
                       int mmu_mode, char m_name, int mreg_id) {
   vaddr_read_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
+  mem_trace_matrix_load((uint64_t) row * column * (1u << msew));
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -157,6 +162,9 @@ static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
   vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  if (!cpu.isVldst) {
+    mem_trace_scalar_store(len);
+  }
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -170,6 +178,7 @@ static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
                       int row, int column, int msew, bool transpose,
                       int mmu_mode, char m_name, int mreg_id) {
   vaddr_write_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
+  mem_trace_matrix_store((uint64_t) row * column * (1u << msew));
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -189,6 +198,9 @@ static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
   }
 #endif
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
+  if (!cpu.isVldst) {
+    mem_trace_scalar_load(len);
+  }
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;

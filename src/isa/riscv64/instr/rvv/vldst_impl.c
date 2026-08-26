@@ -26,6 +26,7 @@
 
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
+#include <profiling/mem_trace.h>
 #include "vldst_impl.h"
 #include "vcompute_impl.h"
 #include "../local-include/intr.h"
@@ -282,6 +283,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+  uint64_t trace_bytes = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(emul, vd));
 
@@ -310,7 +312,8 @@ void vld(Decode *s, int mode, int mmu_mode) {
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-      __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+      unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+      trace_bytes += (uint64_t) count * s->v_width;
 
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
@@ -394,6 +397,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
         IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
         rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+        trace_bytes += s->v_width;
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
       }
       // set vreg after all segment done with no exception
@@ -418,6 +422,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   vstart->val = 0;
   cpu.isVldst = false;
+  mem_trace_vector_load(trace_bytes);
   vp_set_dirty();
 }
 
@@ -454,6 +459,7 @@ void vldx(Decode *s, int mmu_mode) {
   ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+  uint64_t trace_bytes = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(lmul, vd));
 
@@ -487,6 +493,7 @@ void vldx(Decode *s, int mmu_mode) {
 
       IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
       rtl_lm(s, &vloadBuf[fn], &addr, 0, data_width, mmu_mode);
+      trace_bytes += data_width;
       IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, data_width));
     }
 
@@ -511,6 +518,7 @@ void vldx(Decode *s, int mmu_mode) {
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   cpu.isVldst = false;
+  mem_trace_vector_load(trace_bytes);
   vp_set_dirty();
 }
 
@@ -556,6 +564,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+  uint64_t trace_bytes = 0;
 
   bool fast_vse = false;
 
@@ -585,6 +594,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
       unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+      trace_bytes += (uint64_t) count * s->v_width;
 
       Logm("vst start_addr: %#lx, last_addr: %#lx, v_width: %u, vl_val: %lu, "
           "vstart->val: %lu, v0: %016lx_%016lx, nf=%lu",
@@ -660,6 +670,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
 
           rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+          trace_bytes += s->v_width;
         }
 #ifdef DEBUG_FAST_VSE
         if (simple_vse) {
@@ -679,6 +690,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   vstart->val = 0;
   cpu.isVldst = false;
   cpu.isVecUnitStore = false;
+  mem_trace_vector_store(trace_bytes);
   vp_set_dirty();
 }
 
@@ -711,6 +723,7 @@ void vstx(Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+  uint64_t trace_bytes = 0;
   for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx);
     if (s->vm == 0 && mask == 0) {
@@ -731,12 +744,14 @@ void vstx(Decode *s, int mmu_mode) {
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
       rtl_sm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
+      trace_bytes += data_width;
     }
   }
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   cpu.isVldst = false;
+  mem_trace_vector_store(trace_bytes);
   vp_set_dirty();
 }
 
@@ -776,6 +791,7 @@ void vlr(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   idx = vstart->val;
+  uint64_t trace_bytes = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(len, vd));
   isa_whole_reg_check(vd, len);
@@ -796,6 +812,7 @@ void vlr(Decode *s, int mmu_mode) {
         IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
 
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        trace_bytes += s->v_width;
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(0, s->v_width));
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(vreg_idx, pos, vec_load_diffteset_buf[0], eew));
@@ -815,6 +832,7 @@ void vlr(Decode *s, int mmu_mode) {
         IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
 
         rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+        trace_bytes += s->v_width;
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(0, s->v_width));
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(vreg_idx, pos, vec_load_diffteset_buf[0], eew));
@@ -825,6 +843,7 @@ void vlr(Decode *s, int mmu_mode) {
 
   vstart->val = 0;
   cpu.isVldst = false;
+  mem_trace_vector_load(trace_bytes);
   vp_set_dirty();
 }
 
@@ -842,6 +861,7 @@ void vsr(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   idx = vstart->val;
+  uint64_t trace_bytes = 0;
 
   isa_whole_reg_check(vd, len);
 
@@ -862,6 +882,7 @@ void vsr(Decode *s, int mmu_mode) {
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
+        trace_bytes += 1;
         idx++;
       }
       vreg_idx++;
@@ -878,6 +899,7 @@ void vsr(Decode *s, int mmu_mode) {
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
         rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
+        trace_bytes += 1;
         idx++;
       }
     }
@@ -886,6 +908,7 @@ void vsr(Decode *s, int mmu_mode) {
   vstart->val = 0;
   cpu.isVldst = false;
   cpu.isVecUnitStore = false;
+  mem_trace_vector_store(trace_bytes);
   vp_set_dirty();
 }
 
@@ -930,6 +953,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
+  uint64_t trace_bytes = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(emul, vd));
 
@@ -974,7 +998,8 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
         uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-        __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+        unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+        trace_bytes += (uint64_t) count * s->v_width;
 
         uint8_t invert_masks[VLMAX_8] = {0};
         uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
@@ -1065,9 +1090,11 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
           if (fofvl == 0) {
             rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
+            trace_bytes += s->v_width;
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
           } else {
             rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
+            trace_bytes += s->v_width;
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
             set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
@@ -1125,6 +1152,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   vstart->val = 0;
   fofvl = 0;
   cpu.isVldst = false;
+  mem_trace_vector_load(trace_bytes);
   vp_set_dirty();
 }
 

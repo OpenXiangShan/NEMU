@@ -10,6 +10,7 @@
 !.gitignore
 !Dockerfile
 !README.md
+!*.md
 !Kconfig
 !.github/workflows/*.yml
 !scripts/*.sh
