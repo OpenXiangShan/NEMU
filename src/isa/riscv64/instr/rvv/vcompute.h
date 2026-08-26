@@ -1153,6 +1153,18 @@ def_EHelper(vfsqrt_v) {
   FLOAT_ARITH(FSQRT, UNSIGNED)
 }
 
+#ifdef CONFIG_CUSTOM_XVEXP2
+def_EHelper(vfexp2_v) {
+  FLOAT_ARITH(FEXP2, UNSIGNED)
+}
+#endif
+
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+def_EHelper(vfexp2bf16_v) {
+  FLOAT_ARITH(FEXP2BF16, UNSIGNED)
+}
+#endif
+
 def_EHelper(vfrsqrt7_v) {
   FLOAT_ARITH(FRSQRT7, UNSIGNED)
 }

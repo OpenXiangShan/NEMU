@@ -185,6 +185,12 @@ uint32_t vf_allowed_e16[] = {
 #ifdef CONFIG_RV_ZVFBF_WMA
   FWMACCBF16,     // vfwmaccbf16.vv/.vf
 #endif
+#ifdef CONFIG_CUSTOM_XVEXP2
+  FEXP2,
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+  FEXP2BF16,
+#endif
 };
 
 # ifdef CONFIG_RV_ZVFH
@@ -1209,6 +1215,16 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
     longjmp_exception(EX_II);
   }
 #endif
+#ifdef CONFIG_CUSTOM_XVEXP2
+  if (opcode == FEXP2 && vtype->vsew != 1 && vtype->vsew != 2) {
+    longjmp_exception(EX_II);
+  }
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+  if (opcode == FEXP2BF16 && vtype->vsew != 1) {
+    longjmp_exception(EX_II);
+  }
+#endif
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
@@ -1255,7 +1271,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
   }
   uint32_t fp_box_type = fp_type_from_vsew(vtype->vsew);
-  if (opcode == FWMACCBF16) {
+  if (opcode == FWMACCBF16 || opcode == FEXP2BF16) {
     fp_box_type = FPCALL_BF16;
   }
   check_vstart_exception(s);
@@ -1356,6 +1372,13 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       case FSQRT : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_SQRT, FPCALL_TYPE)); break;
       case FRSQRT7 : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_RSQRT7, FPCALL_TYPE)); break;
       case FREC7 : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_REC7, FPCALL_TYPE)); break;
+      case FEXP2:
+      case FEXP2BF16: {
+        const vfexp2_result_t exp2 = vfexp2_compute(*s0, vtype->vsew, opcode == FEXP2BF16, rm);
+        *s1 = exp2.result;
+        isa_fp_set_ex(exp2.fflags);
+        break;
+      }
       case FCLASS : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_CLASS, FPCALL_TYPE)); break;
       case FMERGE : isa_fp_rm_check(rm); rtl_mux(s, s1, &mask, s1, s0); break;
       case MFEQ : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_EQ, FPCALL_TYPE)); break;
