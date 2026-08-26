@@ -117,6 +117,9 @@ def_EHelper(mmacc) {
 #endif
   } else /* comb == 1, float mma */ {
     word_t FPCALL_TYPE = FPCALL_W64;
+    bool bf16_bf16_to_fp32 = s1mcfg.type_code == MTYPECODE_BF16 &&
+                             s2mcfg.type_code == MTYPECODE_BF16 &&
+                             dmcfg.type_code == MTYPECODE_FP32;
     switch (s1size) {
       case 0:
         Loge("fp8 and lower precision's mma not supported"); longjmp_exception(EX_II);
@@ -144,6 +147,9 @@ def_EHelper(mmacc) {
         Loge("other fp type not supported"); longjmp_exception(EX_II);
         break;
     }
+    if (bf16_bf16_to_fp32) {
+      FPCALL_TYPE = FPCALL_BF16;
+    }
     for (uint64_t i = 0; i < tile_m; i++) {
       for (uint64_t j = 0; j < tile_n; j++) {
         for (uint64_t k = 0; k < tile_k; k++) {
@@ -151,7 +157,8 @@ def_EHelper(mmacc) {
           get_mreg(ts2, j, k, &tmp_reg[2], s2size, false);
 
           get_mreg(td, i, j, &tmp_reg[0], dsize, false);
-          rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2], FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
+          rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2],
+                       FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
           set_mreg(td, i, j, tmp_reg[0], dsize);
         }
       }

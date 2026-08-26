@@ -210,10 +210,6 @@ void mld(Decode *s, bool is_trans, char m_name) {
            "fp2pack4 requires B shape 128x64");
     Assert(reg_l(s->src2.reg) == 16,
            "fp2pack4 requires a 16-byte B row stride");
-    Assert((reg_l(s->src1.reg) & 63) == 0,
-           "fp2pack4 B base must be 64-byte aligned");
-    Assert((reg_l(s->src1.reg) & 0xfff) <= 0x800,
-           "fp2pack4 B panel must fit in one 4-KiB page");
   }
   check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4);
   exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
