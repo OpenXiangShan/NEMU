@@ -30,6 +30,7 @@
 #include "../isa/riscv64/local-include/intr.h"
 #endif
 #include <profiling/profiling_control.h>
+#include <profiling/mem_trace.h>
 #include <checkpoint/semantic_point.h>
 #include "../local-include/trigger.h"
 #include "../local-include/aia.h"
@@ -890,6 +891,9 @@ void cpu_exec(uint64_t n) {
     IFDEF(CONFIG_PERF_OPT, update_global());
 
     Loge("Longjmp happened. total insts: %'lu, cpu_exec remain: %'li", get_abs_instr_count(), n_remain_total);
+    if (cause == NEMU_EXEC_END) {
+      mem_trace_abort();
+    }
   }
 
   while (nemu_state.state == NEMU_RUNNING &&

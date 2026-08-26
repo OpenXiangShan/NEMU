@@ -16,6 +16,7 @@
 
 #include "../local-include/intr.h"
 #include <profiling/profiling_control.h>
+#include <profiling/mem_trace.h>
 #include "cpu/difftest.h"
 
 def_EHelper(inv) {
@@ -46,6 +47,14 @@ def_EHelper(nemu_trap) {
       start_profiling();
       difftest_skip_ref();
     }
+  } else if (cpu.gpr[10]._64 == 0x102) {
+      difftest_skip_ref();
+  } else if (cpu.gpr[10]._64 == NEMU_MEM_TRACE_BEGIN) {
+      mem_trace_begin();
+      difftest_skip_ref();
+  } else if (cpu.gpr[10]._64 == NEMU_MEM_TRACE_END) {
+      mem_trace_end();
+      difftest_skip_ref();
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
       longjmp_context(NEMU_EXEC_END);
