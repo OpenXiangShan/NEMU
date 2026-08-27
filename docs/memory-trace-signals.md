@@ -26,13 +26,17 @@ nemu_signal(NEMU_MEM_TRACE_END);
 
 ## 输出格式
 
-在追踪窗口期间，NEMU 为每条动态向量或矩阵内存指令打印一行：
+在追踪窗口期间，NEMU 为每条动态向量/矩阵内存指令及矩阵同步指令打印一行：
 
 ```text
 [T] vl <bytes>B pc=0x<pc> addr=0x<addr>
 [T] vs <bytes>B pc=0x<pc> addr=0x<addr>
 [T] ml <bytes>B pc=0x<pc> addr=0x<addr>
 [T] ms <bytes>B pc=0x<pc> addr=0x<addr>
+[T] msyncregreset sync<index>
+[T] mrelease sync<index>
+[T] macquire sync<index>, <threshold>
+[T] mfence
 ```
 
 事件名称的含义：
@@ -41,6 +45,9 @@ nemu_signal(NEMU_MEM_TRACE_END);
 - `vs`：向量存储（vector store）
 - `ml`：矩阵加载（matrix load）
 - `ms`：矩阵存储（matrix store）
+- `msyncregreset`、`mrelease`：打印同步寄存器索引。
+- `macquire`：打印同步寄存器索引和 `rs1` 的实际阈值。
+- `mfence`：矩阵内存屏障，无操作数。
 - `pc`：该动态访存 opcode 的程序计数器。
 - `addr`：该 opcode 在本次执行中访问的首个实际访存地址。对于没有实际 active lane 的事件，该字段可能为 `0x0`。
 
