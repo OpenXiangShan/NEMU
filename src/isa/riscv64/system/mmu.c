@@ -453,7 +453,6 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
         !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);
-      Log("pmp or pma check failed when PTW");
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
@@ -618,12 +617,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
-      Log("pmp or pma check failed when PTW");
     #endif // CONFIG_RV_MPT_CHECK
 
     if (check_failed) {
       Log("pmp or pma or mpt check failed when PTW");
-
       int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                   type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
       cpu.trapInfo.tval = vaddr;
