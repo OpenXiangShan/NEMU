@@ -770,9 +770,6 @@ typedef struct {
   uint64_t generation;
   uint8_t type;
   uint8_t pbmt;
-#ifdef CONFIG_RV_MBMC
-  uint8_t pt_level;
-#endif
 } rvh_final_tlb_entry_t;
 
 static rvh_final_tlb_entry_t rvh_final_tlb[RVH_FINAL_TLB_SIZE];
@@ -840,9 +837,6 @@ static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_
       entry->vpn == (vaddr >> PAGE_SHIFT) &&
       entry->type == type)) {
     cpu.pbmt = entry->pbmt;
-#ifdef CONFIG_RV_MBMC
-    pt_level = entry->pt_level;
-#endif
     *result = entry->ppn;
     return true;
   }
@@ -861,9 +855,6 @@ static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_
   entry->ppn = result & ~PAGE_MASK;
   entry->type = type;
   entry->pbmt = cpu.pbmt;
-#ifdef CONFIG_RV_MBMC
-  entry->pt_level = pt_level;
-#endif
   entry->generation = rvh_final_tlb_generation;
 }
 #endif
