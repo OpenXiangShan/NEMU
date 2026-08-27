@@ -29,10 +29,10 @@ nemu_signal(NEMU_MEM_TRACE_END);
 在追踪窗口期间，NEMU 为每条动态向量或矩阵内存指令打印一行：
 
 ```text
-[T] vl <bytes>B
-[T] vs <bytes>B
-[T] ml <bytes>B
-[T] ms <bytes>B
+[T] vl <bytes>B pc=0x<pc> addr=0x<addr>
+[T] vs <bytes>B pc=0x<pc> addr=0x<addr>
+[T] ml <bytes>B pc=0x<pc> addr=0x<addr>
+[T] ms <bytes>B pc=0x<pc> addr=0x<addr>
 ```
 
 事件名称的含义：
@@ -41,18 +41,22 @@ nemu_signal(NEMU_MEM_TRACE_END);
 - `vs`：向量存储（vector store）
 - `ml`：矩阵加载（matrix load）
 - `ms`：矩阵存储（matrix store）
+- `pc`：该动态访存 opcode 的程序计数器。
+- `addr`：该 opcode 在本次执行中访问的首个实际访存地址。对于没有实际 active lane 的事件，该字段可能为 `0x0`。
 
 窗口结束时，标量访问以聚合字节计数器的形式报告，而非逐条事件：
 
 ```text
-[T] vl_total <bytes>B
-[T] vs_total <bytes>B
-[T] ml_total <bytes>B
-[T] ms_total <bytes>B
-[T] scalar_load <bytes>B
-[T] scalar_store <bytes>B
+[T] vl_total <value><unit>
+[T] vs_total <value><unit>
+[T] ml_total <value><unit>
+[T] ms_total <value><unit>
+[T] scalar_load <value><unit>
+[T] scalar_store <value><unit>
 [T] end
 ```
+
+汇总行会按字节数自动选择单位：小于 1 KiB 使用 `B`，小于 1 MiB 使用 `KB`，否则使用 `MB`。`KB` 和 `MB` 保留两位小数。
 
 开始标记为：
 
@@ -65,7 +69,7 @@ nemu_signal(NEMU_MEM_TRACE_END);
 - 向量加载/存储的计数包含活跃通道（active lanes）实际访问的字节。被掩码屏蔽的通道不计入。
 - 单步长（unit-stride）、跨步（strided）、索引（indexed）、整寄存器（whole-register）以及 fault-only-first 的 RVV 内存操作均报告其动态访问字节数。
 - 矩阵加载/存储的计数根据指令使用的矩阵行数、列数和元素位宽计算。
-- 向量和矩阵加载/存储的字节在窗口期间分别累积，仅在 `NEMU_MEM_TRACE_END` 时打印 `vl_total`、`vs_total`、`ml_total` 和 `ms_total`。
+- 向量和矩阵加载/存储的字节在窗口期间分别累积，仅在 `NEMU_MEM_TRACE_END` 时以自动单位打印 `vl_total`、`vs_total`、`ml_total` 和 `ms_total`。
 - 标量加载/存储的字节在窗口期间累积，仅在 `NEMU_MEM_TRACE_END` 时打印。
 - 当指令未执行任何实际内存访问时，可能发出一个零字节的向量或矩阵事件。
 
@@ -146,16 +150,16 @@ bytes = 128 * 128 * 4 B = 65536 B
 
 ```text
 [T] begin
-[T] vl 128B
-[T] ml 8192B
-[T] ms 65536B
-[T] vs 128B
+[T] vl 128B pc=0x80012340 addr=0xc4800000
+[T] ml 8192B pc=0x80045678 addr=0xc5000000
+[T] ms 65536B pc=0x80045690 addr=0xc5100000
+[T] vs 128B pc=0x80012380 addr=0xc5200000
 [T] vl_total 128B
 [T] vs_total 128B
-[T] ml_total 8192B
-[T] ms_total 65536B
-[T] scalar_load 981937B
-[T] scalar_store 351620B
+[T] ml_total 8.00KB
+[T] ms_total 64.00KB
+[T] scalar_load 958.92KB
+[T] scalar_store 343.38KB
 [T] end
 ```
 
