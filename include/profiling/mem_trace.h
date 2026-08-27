@@ -13,9 +13,9 @@ void mem_trace_abort(void);
 bool mem_trace_enabled(void);
 void mem_trace_scalar_load(uint64_t bytes);
 void mem_trace_scalar_store(uint64_t bytes);
-void mem_trace_vector_load(uint64_t bytes);
-void mem_trace_vector_store(uint64_t bytes);
-void mem_trace_matrix_load(uint64_t bytes);
-void mem_trace_matrix_store(uint64_t bytes);
+void mem_trace_vector_load(uint64_t bytes, uint64_t pc, uint64_t addr);
+void mem_trace_vector_store(uint64_t bytes, uint64_t pc, uint64_t addr);
+void mem_trace_matrix_load(uint64_t bytes, uint64_t pc, uint64_t addr);
+void mem_trace_matrix_store(uint64_t bytes, uint64_t pc, uint64_t addr);
 
 #endif

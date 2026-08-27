@@ -23,9 +23,20 @@ static void mem_trace_reset_counters(void) {
   mem_trace_state.matrix_store_bytes = 0;
 }
 
-static void mem_trace_print_event(const char *kind, uint64_t bytes) {
+static void mem_trace_print_event(const char *kind, uint64_t bytes,
+                                  uint64_t pc, uint64_t addr) {
   if (mem_trace_state.enabled) {
+    printf("[T] %s %luB pc=0x%lx addr=0x%lx\n", kind, bytes, pc, addr);
+  }
+}
+
+static void mem_trace_print_total(const char *kind, uint64_t bytes) {
+  if (bytes < 1024) {
     printf("[T] %s %luB\n", kind, bytes);
+  } else if (bytes < 1024 * 1024) {
+    printf("[T] %s %.2fKB\n", kind, (double) bytes / 1024.0);
+  } else {
+    printf("[T] %s %.2fMB\n", kind, (double) bytes / (1024.0 * 1024.0));
   }
 }
 
@@ -40,12 +51,12 @@ void mem_trace_end(void) {
     return;
   }
 
-  printf("[T] vl_total %luB\n", mem_trace_state.vector_load_bytes);
-  printf("[T] vs_total %luB\n", mem_trace_state.vector_store_bytes);
-  printf("[T] ml_total %luB\n", mem_trace_state.matrix_load_bytes);
-  printf("[T] ms_total %luB\n", mem_trace_state.matrix_store_bytes);
-  printf("[T] scalar_load %luB\n", mem_trace_state.scalar_load_bytes);
-  printf("[T] scalar_store %luB\n", mem_trace_state.scalar_store_bytes);
+  mem_trace_print_total("vl_total", mem_trace_state.vector_load_bytes);
+  mem_trace_print_total("vs_total", mem_trace_state.vector_store_bytes);
+  mem_trace_print_total("ml_total", mem_trace_state.matrix_load_bytes);
+  mem_trace_print_total("ms_total", mem_trace_state.matrix_store_bytes);
+  mem_trace_print_total("scalar_load", mem_trace_state.scalar_load_bytes);
+  mem_trace_print_total("scalar_store", mem_trace_state.scalar_store_bytes);
   printf("[T] end\n");
   mem_trace_state.enabled = false;
   mem_trace_reset_counters();
@@ -72,30 +83,30 @@ void mem_trace_scalar_store(uint64_t bytes) {
   }
 }
 
-void mem_trace_vector_load(uint64_t bytes) {
+void mem_trace_vector_load(uint64_t bytes, uint64_t pc, uint64_t addr) {
   if (mem_trace_state.enabled) {
     mem_trace_state.vector_load_bytes += bytes;
   }
-  mem_trace_print_event("vl", bytes);
+  mem_trace_print_event("vl", bytes, pc, addr);
 }
 
-void mem_trace_vector_store(uint64_t bytes) {
+void mem_trace_vector_store(uint64_t bytes, uint64_t pc, uint64_t addr) {
   if (mem_trace_state.enabled) {
     mem_trace_state.vector_store_bytes += bytes;
   }
-  mem_trace_print_event("vs", bytes);
+  mem_trace_print_event("vs", bytes, pc, addr);
 }
 
-void mem_trace_matrix_load(uint64_t bytes) {
+void mem_trace_matrix_load(uint64_t bytes, uint64_t pc, uint64_t addr) {
   if (mem_trace_state.enabled) {
     mem_trace_state.matrix_load_bytes += bytes;
   }
-  mem_trace_print_event("ml", bytes);
+  mem_trace_print_event("ml", bytes, pc, addr);
 }
 
-void mem_trace_matrix_store(uint64_t bytes) {
+void mem_trace_matrix_store(uint64_t bytes, uint64_t pc, uint64_t addr) {
   if (mem_trace_state.enabled) {
     mem_trace_state.matrix_store_bytes += bytes;
   }
-  mem_trace_print_event("ms", bytes);
+  mem_trace_print_event("ms", bytes, pc, addr);
 }
