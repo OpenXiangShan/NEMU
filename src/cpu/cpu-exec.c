@@ -510,7 +510,7 @@ end_of_loop:
   debug_difftest(this_s, s);
   save_globals(s);
 }
-#else // CONFIG_PERF_OPT
+#else
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = concat(exec_, name),
 
 #define rtl_priv_next(s)
@@ -744,7 +744,7 @@ static void execute(int n) {
   }
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 }
-#endif // CONFIG_PERF_OPT
+#endif
 
 IFDEF(CONFIG_DEBUG, char log_bytebuf[80] = {};)
 // max size is (strlen(str(instr)) + strlen(suffix_char(id_dest->width)) + sizeof(id_dest->str) + sizeof(id_src2->str) + sizeof(id_src1->str))
@@ -872,11 +872,7 @@ void cpu_exec(uint64_t n) {
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
-      #ifdef CONFIG_PERF_OPT
-        tcache_handle_flush(cpu.pc);
-      #else
-        tcache_handle_flush();
-      #endif
+      tcache_handle_flush(cpu.pc);
 
       // Trigger may raise EX_BP and perform longjmp.
       IFDEF(CONFIG_TDATA1_ETRIGGER, trigger_handler(TRIG_TYPE_ETRIG, action, 0));
@@ -905,11 +901,7 @@ void cpu_exec(uint64_t n) {
         // No need to update_instr_count(). This is not the end of BATCH.
 
         // It's necessary to flush tcache for interrupt: addr space may conflict in different priv/mmu mode.
-        #ifdef CONFIG_PERF_OPT
-          tcache_handle_flush(cpu.pc);
-          #else
-          tcache_handle_flush();
-        #endif
+        tcache_handle_flush(cpu.pc);
 
         IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
