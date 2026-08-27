@@ -17,5 +17,9 @@ void mem_trace_vector_load(uint64_t bytes, uint64_t pc, uint64_t addr);
 void mem_trace_vector_store(uint64_t bytes, uint64_t pc, uint64_t addr);
 void mem_trace_matrix_load(uint64_t bytes, uint64_t pc, uint64_t addr);
 void mem_trace_matrix_store(uint64_t bytes, uint64_t pc, uint64_t addr);
+void mem_trace_matrix_sync_reset(uint8_t sync);
+void mem_trace_matrix_release(uint8_t sync);
+void mem_trace_matrix_acquire(uint8_t sync, uint64_t threshold);
+void mem_trace_matrix_fence(void);
 
 #endif

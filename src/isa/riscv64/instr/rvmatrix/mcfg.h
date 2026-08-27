@@ -24,6 +24,7 @@
 #include "ext/msync_queue_wrapper.h"
 #endif // CONFIG_SHARE_REF
 #include "ext/mstore_queue_wrapper.h"
+#include <profiling/mem_trace.h>
 #include "mcommon.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -95,6 +96,7 @@ def_EHelper(msyncreset) {
   require_matrix();
   uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
   cpu.mtokr[tok_i] = 0;
+  mem_trace_matrix_sync_reset(tok_i);
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(0, tok_i);
 #endif // CONFIG_SHARE_REF
@@ -107,6 +109,7 @@ def_EHelper(mrelease) {
 #ifndef CONFIG_SHARE
   cpu.mtokr[tok_i]++;
 #endif
+  mem_trace_matrix_release(tok_i);
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mrelease_emplace(tok_i);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
@@ -122,28 +125,31 @@ def_EHelper(mrelease) {
 def_EHelper(macquire) {
   require_matrix();
   uint8_t tok_i = check_mtok_idx((int)s->src2.imm);
+  uint64_t threshold = reg_l(s->src1.reg);
+  mem_trace_matrix_acquire(tok_i, threshold);
   // Do nothing in NEMU.
 #ifndef CONFIG_SHARE
-  Assert(cpu.mtokr[tok_i] >= reg_l(s->src1.reg),
-    "Value(%ld) in msync register %d is not enough.", reg_l(s->src1.reg), tok_i);
+  Assert(cpu.mtokr[tok_i] >= threshold,
+    "Value(%ld) in msync register %d is not enough.", threshold, tok_i);
 #elif defined(CONFIG_SHARE_REF)
-  if (cpu.mtokr[tok_i] < reg_l(s->src1.reg)) {
-    Log("Value(%ld) in msync register %d is not enough.", reg_l(s->src1.reg), tok_i);
+  if (cpu.mtokr[tok_i] < threshold) {
+    Log("Value(%ld) in msync register %d is not enough.", threshold, tok_i);
   }
 #else // controller mode
   nemu_state.state = NEMU_WAIT;
   nemu_state.wait_r = tok_i;
-  nemu_state.wait_val = reg_l(s->src1.reg);
+  nemu_state.wait_val = threshold;
 #endif
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(1, tok_i);
 #endif // CONFIG_SHARE_REF
-  mstore_queue_update_acquire(tok_i, reg_l(s->src1.reg));
+  mstore_queue_update_acquire(tok_i, threshold);
   mp_set_dirty();
 }
 
 def_EHelper(mfence)  {
   require_matrix();
+  mem_trace_matrix_fence();
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(2, 0);
 #endif // CONFIG_SHARE_REF

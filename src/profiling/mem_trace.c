@@ -110,3 +110,27 @@ void mem_trace_matrix_store(uint64_t bytes, uint64_t pc, uint64_t addr) {
   }
   mem_trace_print_event("ms", bytes, pc, addr);
 }
+
+void mem_trace_matrix_sync_reset(uint8_t sync) {
+  if (mem_trace_state.enabled) {
+    printf("[T] msyncregreset sync%u\n", sync);
+  }
+}
+
+void mem_trace_matrix_release(uint8_t sync) {
+  if (mem_trace_state.enabled) {
+    printf("[T] mrelease sync%u\n", sync);
+  }
+}
+
+void mem_trace_matrix_acquire(uint8_t sync, uint64_t threshold) {
+  if (mem_trace_state.enabled) {
+    printf("[T] macquire sync%u, %lu\n", sync, threshold);
+  }
+}
+
+void mem_trace_matrix_fence(void) {
+  if (mem_trace_state.enabled) {
+    printf("[T] mfence\n");
+  }
+}
