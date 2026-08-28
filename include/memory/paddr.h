@@ -58,11 +58,7 @@ static inline bool in_pmem(paddr_t addr) {
   if (mbase_align && msize_align && msize_inside_mbase) {
     return (addr & ~msize_mask) == CONFIG_MBASE;
   } else {
-    #ifdef CONFIG_USE_SPARSEMM
-    return addr >= CONFIG_MBASE;
-    #else
     return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + MEMORY_SIZE);
-    #endif
   }
 }
 
@@ -89,10 +85,6 @@ uint8_t *get_pmem();
 void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
 #endif
 
-
-#ifdef CONFIG_USE_SPARSEMM
-void * get_sparsemm();
-#endif
 
 #ifdef CONFIG_STORE_LOG
 typedef struct {
@@ -180,9 +172,6 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len) {
   assert(golden_pmem != NULL);
-#ifdef CONFIG_USE_SPARSEMM
-  return sparse_mem_wread((void *)golden_pmem, addr, len)
-#else
   void *p = &golden_pmem[addr - 0x80000000];
   switch (len) {
     case 1: return *(uint8_t  *)p;
@@ -191,7 +180,6 @@ static inline word_t golden_pmem_read(paddr_t addr, int len) {
     case 8: return *(uint64_t *)p;
     default: assert(0);
   }
-#endif
 }
 #endif
 

@@ -16,7 +16,6 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include "local-include/csr.h"
 
 void init_csr();

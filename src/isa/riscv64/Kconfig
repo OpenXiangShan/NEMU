@@ -137,7 +137,6 @@ config CUSTOM_TENSOR
   default n
 
 config RV_AME
-  depends on !USE_SPARSEMM
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
 

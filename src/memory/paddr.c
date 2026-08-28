@@ -22,7 +22,6 @@
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
-#include <memory/sparseram.h>
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -52,10 +51,6 @@ static uint8_t *pmem = NULL;
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
 
-#ifdef CONFIG_USE_SPARSEMM
-void* sparse_mm = NULL;
-#endif
-
 #ifdef CONFIG_CUSTOM_TENSOR
 #define URAM_SIZE 0x20000000 // 512 M
 static uint8_t *uram = NULL;
@@ -72,12 +67,6 @@ uint8_t *get_pmem()
 
 char *mapped_cpt_file = NULL;
 bool map_image_as_output_cpt = false;
-
-#ifdef CONFIG_USE_SPARSEMM
-void * get_sparsemm(){
-  return sparse_mm;
-}
-#endif
 
 #ifdef CONFIG_CUSTOM_TENSOR
 uint8_t *get_uram(){
@@ -102,11 +91,7 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif
-  #ifdef CONFIG_USE_SPARSEMM
-  return sparse_mem_wread(sparse_mm, addr, len);
-  #else
   return host_read(guest_to_host(addr), len);
-  #endif
 }
 
 #ifdef CONFIG_RV_AME
@@ -146,9 +131,6 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif
-  #ifdef CONFIG_USE_SPARSEMM
-  sparse_mem_wwrite(sparse_mm, addr, len, data);
-  #else
   switch (len) {
     case 1: case 2: case 4:
     IFDEF(CONFIG_ISA64, case 8:)
@@ -166,7 +148,6 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
       }
     IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
-  #endif
 }
 
 #ifdef CONFIG_RV_AME
@@ -246,9 +227,6 @@ void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, in
 void allocate_memory_with_mmap()
 {
 #ifdef CONFIG_USE_MMAP
-  #ifdef CONFIG_USE_SPARSEMM
-  sparse_mm = sparse_mem_new(4, 1024); //4kB
-  #else
   // When pmem is not NULL, assume it has already been allocated.
   // This is useful since init_mem may be called multiple times.
   // The memory space will be allocated only once at the first time called.
@@ -263,7 +241,6 @@ void allocate_memory_with_mmap()
 #ifdef CONFIG_CUSTOM_TENSOR
   uram = pmem + MEMORY_SIZE - URAM_SIZE;
 #endif
-  #endif
 #endif // CONFIG_USE_MMAP
 }
 
