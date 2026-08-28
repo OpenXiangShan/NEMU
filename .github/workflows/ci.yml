@@ -19,6 +19,17 @@ env:
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
+  check-isa-config-alignment:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    name: Check XS ref/DUT ISA alignment
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+    - name: Check ISA alignment
+      run: |
+        python3 ./scripts/check_isa_config_alignment.py
+
   fetch-workloads:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -68,10 +79,6 @@ jobs:
           echo "Please run 'bash ./scripts/bump_configs.sh' manually"
           exit 1
         fi
-    - name: Check ISA ref/DUT alignment
-      run: |
-        python3 ./scripts/check_isa_config_alignment.py
-
   compilation-all:
     strategy:
       matrix:
