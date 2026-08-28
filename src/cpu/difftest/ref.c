@@ -18,7 +18,6 @@
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
-#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
 
@@ -27,7 +26,6 @@ unsigned ref_hartid = 0;
 extern void load_flash_contents(const char *flash_img);
 
 #ifdef CONFIG_LARGE_COPY
-#ifndef CONFIG_USE_SPARSEMM
 static void* nemu_large_memcpy(void *dest, const void *src, size_t n) {
   uint64_t *_dest = (uint64_t *)dest;
   uint64_t *_src  = (uint64_t *)src;
@@ -52,23 +50,6 @@ static void* nemu_large_memcpy(void *dest, const void *src, size_t n) {
   return dest;
 }
 #endif
-#endif
-
-#ifdef CONFIG_USE_SPARSEMM
-void nemu_sparse_mem_copy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-  void *a = get_sparsemm();
-  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n",
-          dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
-  if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
-  else sparse_mem_copy(dut_buf, a);
-
-  printf("[sp-mem] copy complete, eg data: ");
-  for (int j = 0; j < 8; j++) {
-    printf("%016lx", sparse_mem_wread(a, nemu_addr + j*sizeof(uint64_t), sizeof(uint64_t)));
-  }
-  printf("\n");
-}
-#endif
 
 void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction, void* (*cpy_func)(void*, const void*, size_t)) {
   assert(guest_to_host(nemu_addr) != NULL);
@@ -85,23 +66,15 @@ void difftest_get_backed_memory(void *backed_pmem, size_t n) {
 }
 
 void difftest_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-#ifdef CONFIG_USE_SPARSEMM
-  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
-#else
 #ifdef CONFIG_LARGE_COPY
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, nemu_large_memcpy);
 #else
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
 #endif
-#endif
 }
 
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-#ifdef CONFIG_USE_SPARSEMM
-  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
-#else
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
-#endif
 }
 
 void difftest_load_flash(void *flash_bin, size_t f_size){
