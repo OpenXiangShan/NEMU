@@ -20,7 +20,6 @@
 #include <memory/host.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
 
@@ -78,11 +77,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
   ) {
     HostTLBEntry *e = type == MEM_TYPE_IFETCH ?
       &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
-    #ifdef CONFIG_USE_SPARSEMM
-    e->offset = (uint8_t *)(paddr - vaddr);
-    #else
     e->offset = guest_to_host(paddr) - vaddr;
-    #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
@@ -102,11 +97,7 @@ static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_
   paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   if (likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
-    #ifdef CONFIG_USE_SPARSEMM
-    e->offset = (uint8_t *)(pbase - vbase);
-    #else
     e->offset = guest_to_host(pbase) - vbase;
-    #endif
     e->gvpn = hosttlb_vpn(vbase);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vbase, pbase);
@@ -125,11 +116,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     likely(in_pmem(paddr))
   ) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
-    #ifdef CONFIG_USE_SPARSEMM
-    e->offset = (uint8_t *)(paddr - vaddr);
-    #else
     e->offset = guest_to_host(paddr) - vaddr;
-    #endif
     e->gvpn = hosttlb_vpn(vaddr);
   }
 }
@@ -142,11 +129,7 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
   paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   if (likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
-    #ifdef CONFIG_USE_SPARSEMM
-    e->offset = (uint8_t *)(pbase - vbase);
-    #else
     e->offset = guest_to_host(pbase) - vbase;
-    #endif
     e->gvpn = hosttlb_vpn(vbase);
   }
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
@@ -173,11 +156,7 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
-    #ifdef CONFIG_USE_SPARSEMM
-    return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
-    #else
     return host_read(e->offset + vaddr, len);
-    #endif
   }
 }
 
@@ -204,10 +183,6 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
       hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     } else {
       Logm("Host TLB fast path");
-#ifdef CONFIG_USE_SPARSEMM
-      assert(false);
-      // sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, 1 << msew);
-#else // NOT CONFIG_USE_SPARSEMM
       uint8_t *host_base = e->offset + vbase;      
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
       amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
@@ -232,7 +207,6 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #ifndef CONFIG_SHARE_REF
       host_read_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
-#endif // CONFIG_USE_SPARSEMM
     }
   }
 }
@@ -277,16 +251,12 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
-#ifdef CONFIG_USE_SPARSEMM
-  sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
-#else // NOT CONFIG_USE_SPARSEMM
   uint8_t *host_addr = e->offset + vaddr;
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
   host_write(host_addr, len, data);
-#endif // NOT CONFIG_USE_SPARSEMM
 }
 
 #ifdef CONFIG_RV_AME
@@ -315,11 +285,6 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     return;
   }
-#ifdef CONFIG_USE_SPARSEMM
-  // TODO: What's this?
-  assert(false);
-  // sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
-#else // NOT CONFIG_USE_SPARSEMM
   uint8_t *host_base = e->offset + vbase;
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
@@ -348,6 +313,5 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #ifndef CONFIG_SHARE_REF
   host_write_matrix(host_to_guest(host_base), stride, row, column, msew, transpose, m_name, mreg_id);
 #endif // CONFIG_SHARE_REF
-#endif // NOT CONFIG_USE_SPARSEMM
 }
 #endif // CONFIG_RV_AME

@@ -189,7 +189,7 @@ config AME_MMACC_VECTORIZE
     operations. Unsupported combinations use the scalar implementation.
 
 config AME_MLDST_VECTORIZE
-  depends on RV_AME && !SHARE && !USE_SPARSEMM
+  depends on RV_AME && !SHARE
   bool "Enable AME matrix load/store optimization"
   default n
   help
