@@ -18,11 +18,9 @@
 #include <isa.h>
 #include <macro.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <device/flash.h>
-#include <sys/mman.h>
 #ifdef CONFIG_MEM_COMPRESS
 #include <unistd.h>
 #include <zlib.h>
@@ -240,23 +238,8 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
   }
 
 
-#ifdef CONFIG_USE_SPARSEMM
-  if (file_is_elf(loading_img)) {
-    sparse_mem_elf(get_sparsemm(), loading_img);
-    Log("load elf %s to sparse mem complete", loading_img);
-    sparse_mem_info(get_sparsemm());
-  } else {
-    int fd = open(loading_img, O_RDONLY);
-    char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-    paddr_t load_start_paddr = host_to_guest(load_start);
-    sparse_mem_write(get_sparsemm(), load_start_paddr, size, buf);
-    close(fd);
-    munmap(buf, size);
-  }
-#else
   int ret = fread((uint8_t*)(load_start), size, 1, fp);
   assert(ret == 1);
-#endif
   Log("Read %lu bytes from file %s to 0x%p", size, img_name, load_start);
 
   fclose(fp);
