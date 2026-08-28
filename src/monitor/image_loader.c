@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <isa.h>
 #include <macro.h>
+#include <memory/elfloader.h>
 #include <memory/paddr.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -219,6 +220,14 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
 #else
     panic("CONFIG_ZSTD_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
+  }
+
+  if (is_elf_file(loading_img)) {
+    long loaded_size = load_elf_image(loading_img, load_start, img_size ? img_size : MEMORY_SIZE,
+                                      CONFIG_MBASE);
+    Assert(loaded_size >= 0, "Failed to load ELF image '%s'", loading_img);
+    Log("Loaded ELF image %s", loading_img);
+    return loaded_size;
   }
 
   // RAW image
