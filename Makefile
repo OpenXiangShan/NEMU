@@ -83,6 +83,7 @@ XDIRS-$(CONFIG_SHARE_REF) += src/cpu/difftest/ame
 XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
 
 XSRCS-y += src/memory/store_queue_wrapper.cpp
+XSRCS-y += src/memory/elfloader.cpp
 
 XSRCS = $(XSRCS-y)
 
