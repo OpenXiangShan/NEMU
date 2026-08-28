@@ -1,37 +1,41 @@
 #!/usr/bin/env python3
-"""Check the ISA contract shared by the XS ref and Spike DiffTest configs."""
+"""Check that the XS Spike DUT follows the XS reference ISA contract."""
 
 from pathlib import Path
 import re
 import sys
 
 
-REF_CONFIG = Path("configs/riscv64-xs-ref_defconfig")
-DUT_CONFIG = Path("configs/riscv64-xs-diff-spike_defconfig")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REF_CONFIG = REPO_ROOT / "configs/riscv64-xs-ref_defconfig"
+DUT_CONFIG = REPO_ROOT / "configs/riscv64-xs-diff-spike_defconfig"
 
-# These differences are intentional and must remain visible in this allowlist.
-# Each entry fixes both expected values so a change on either side still fails.
+# The XS reference config is the source of truth. Only differences required by
+# the DUT's standalone/Spike integration are allowed here. Pin both sides so a
+# change to either config requires an explicit review of the exception.
 MISSING = "<unset>"
-EXPECTED_DIFFERENCES = {
-    "CLINT_LOCAL_TIMER_INTERRUPT": ("n", "y", "different timer integration"),
+EXPECTED_DUT_OVERRIDES = {
+    "CLINT_LOCAL_TIMER_INTERRUPT": ("n", "y", "standalone DUT timer model"),
+    "CYCLES_PER_MTIME_TICK": (MISSING, "128", "standalone DUT timer setting"),
     "CUSTOM_XVEXP2": ("y", "n", "not implemented by the current Spike target"),
-    "CUSTOM_XVEXP2_BF16": ("y", MISSING, "depends on XVEXP2"),
-    "CYCLES_PER_MTIME_TICK": (MISSING, "128", "DUT timer integration setting"),
+    "CUSTOM_XVEXP2_BF16": (
+        "y",
+        MISSING,
+        "depends on the unsupported XVEXP2 extension",
+    ),
     "DIFFTEST_DIRTY_FS_VS": (MISSING, "n", "DiffTest-only control"),
-    "GEILEN": ("5", MISSING, "AIA/IMSIC is not enabled in the DUT config"),
-    "RV_AIA": ("y", MISSING, "AIA requires Smcsrind, which remains disabled"),
-    "RV_IMSIC": ("y", MISSING, "AIA requires Smcsrind, which remains disabled"),
     "RV_PMA_CHECK": ("y", MISSING, "disabled by PERF_OPT in the DUT config"),
     "RV_PMP_CHECK": ("y", MISSING, "disabled by PERF_OPT in the DUT config"),
     "RV_SHLCOFIDELEG": ("y", "n", "not implemented by the current Spike target"),
-    "RV_SMCDELEG": ("y", MISSING, "depends on Smcsrind and is disabled with it"),
-    "RV_SMCSRIND": ("y", "n", "kept disabled by the DUT configuration contract"),
-    "WFI_TIMEOUT_TICKS": (MISSING, "8192", "DUT timer integration setting"),
+    "WFI_TIMEOUT_TICKS": (MISSING, "8192", "standalone DUT timer setting"),
 }
 
 
 def parse_isa_section(path: Path) -> dict[str, str]:
-    lines = path.read_text(encoding="utf-8").splitlines()
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise RuntimeError(f"{path}: cannot read config: {exc}") from exc
     try:
         begin = lines.index("# ISA-dependent Options for riscv64")
         end = lines.index("# end of ISA-dependent Options for riscv64")
@@ -53,32 +57,52 @@ def parse_isa_section(path: Path) -> dict[str, str]:
 
 
 def main() -> int:
-    ref = parse_isa_section(REF_CONFIG)
-    dut = parse_isa_section(DUT_CONFIG)
-    mismatches = []
-    for key in sorted(set(ref) | set(dut)):
+    try:
+        ref = parse_isa_section(REF_CONFIG)
+        dut = parse_isa_section(DUT_CONFIG)
+    except RuntimeError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    mismatches: list[str] = []
+    # Include allowlisted keys even if a future config removes the option from
+    # both files, so an exception cannot silently disappear.
+    for key in sorted(set(ref) | set(dut) | set(EXPECTED_DUT_OVERRIDES)):
         ref_value = ref.get(key, MISSING)
         dut_value = dut.get(key, MISSING)
         if ref_value == dut_value:
+            if key in EXPECTED_DUT_OVERRIDES:
+                expected = EXPECTED_DUT_OVERRIDES[key]
+                mismatches.append(
+                    f"CONFIG_{key}: expected DUT override "
+                    f"ref={expected[0]} dut={expected[1]}, "
+                    f"found ref={ref_value} dut={dut_value}"
+                )
             continue
-        expected = EXPECTED_DIFFERENCES.get(key)
+
+        expected = EXPECTED_DUT_OVERRIDES.get(key)
         if expected and (ref_value, dut_value) == expected[:2]:
             print(
-                f"expected ISA difference: CONFIG_{key}: "
+                f"expected DUT override: CONFIG_{key}: "
                 f"ref={ref_value} dut={dut_value} ({expected[2]})"
             )
-        else:
-            mismatches.append(
-                f"CONFIG_{key}: ref={ref_value} dut={dut_value}"
-            )
+            continue
+        mismatches.append(f"CONFIG_{key}: ref={ref_value} dut={dut_value}")
 
     if mismatches:
-        print("Unexpected ISA configuration differences:", file=sys.stderr)
+        print(
+            "Unexpected ISA differences from reference config "
+            f"{REF_CONFIG.relative_to(REPO_ROOT)}:",
+            file=sys.stderr,
+        )
         for mismatch in mismatches:
             print(f"  {mismatch}", file=sys.stderr)
         return 1
 
-    print("ISA ref/DUT configuration contract check passed")
+    print(
+        "DUT ISA configuration follows reference config "
+        f"{REF_CONFIG.relative_to(REPO_ROOT)}"
+    )
     return 0
 
 
