@@ -28,6 +28,5 @@ __pycache__/
 include/config
 include/generated
 build
-tmp
 .vscode
 .idea
