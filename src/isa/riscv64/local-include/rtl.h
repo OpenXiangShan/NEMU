@@ -44,12 +44,22 @@ static inline bool riscv64_zicfilp_enabled(uint32_t mode, bool virtual_mode) {
   return false;
 }
 
+static inline void riscv64_zicfilp_update_elp(Decode *s) {
+  if (riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false))) {
+    uint32_t rs1 = (s->snpc - s->pc == 2) ?
+      BITS(s->isa.instr.val, 11, 7) : BITS(s->isa.instr.val, 19, 15);
+    cpu.elp = (rs1 != 1 && rs1 != 5 && rs1 != 7) ?
+      ELP_LP_EXPECTED : ELP_NO_LP_EXPECTED;
+  }
+}
+
 static inline void riscv64_zicfilp_refresh_elp(void) {
   if (!riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false))) {
     cpu.elp = ELP_NO_LP_EXPECTED;
   }
 }
 #else
+static inline void riscv64_zicfilp_update_elp(Decode *s) { (void)s; }
 static inline void riscv64_zicfilp_refresh_elp(void) {}
 #endif
 
