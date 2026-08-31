@@ -334,7 +334,12 @@ def_EHelper(vmvnr) {
   check_vstart_exception(s);
 
   rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
-  int NREG = (*s1) + 1;
+  // Reserved NREG encodings (imm5 not in {0,1,3,7}) must raise illegal (NEMU#1077).
+  word_t imm5 = *s1;
+  if (imm5 != 0 && imm5 != 1 && imm5 != 3 && imm5 != 7) {
+    longjmp_exception(EX_II);
+  }
+  int NREG = (int)imm5 + 1;
   int len = (VLEN >> 6) * NREG;
   int vlmul = 0;
   while (NREG > 1) {
@@ -1147,6 +1152,18 @@ def_EHelper(vfncvt_rtz_xfw) {
 def_EHelper(vfsqrt_v) {
   FLOAT_ARITH(FSQRT, UNSIGNED)
 }
+
+#ifdef CONFIG_CUSTOM_XVEXP2
+def_EHelper(vfexp2_v) {
+  FLOAT_ARITH(FEXP2, UNSIGNED)
+}
+#endif
+
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+def_EHelper(vfexp2bf16_v) {
+  FLOAT_ARITH(FEXP2BF16, UNSIGNED)
+}
+#endif
 
 def_EHelper(vfrsqrt7_v) {
   FLOAT_ARITH(FRSQRT7, UNSIGNED)

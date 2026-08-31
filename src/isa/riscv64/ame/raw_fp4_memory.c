@@ -98,7 +98,7 @@ bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride,
                            int row, int column, bool transpose, bool store, int mreg_id) {
 #if defined(CONFIG_SHARE) || defined(CONFIG_SHARE_REF) || \
     defined(CONFIG_SHARE_CTRL) || defined(CONFIG_DIFFTEST_AMU_CTRL) || \
-    defined(CONFIG_USE_SPARSEMM) || defined(CONFIG_DIFFTEST_STORE_COMMIT) || \
+    defined(CONFIG_DIFFTEST_STORE_COMMIT) || \
     defined(CONFIG_STORE_LOG)
   longjmp_exception(EX_II);
 #endif

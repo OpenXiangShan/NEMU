@@ -2,8 +2,9 @@
 #include <ame/mstore.h>
 #include <ame/mstore_queue_wrapper.h>
 #include <cpu/decode.h>
+#include <debug.h>
 
-#ifdef CONFIG_RV_AME
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
 #include <deque>
 #include <cstring>
 
@@ -167,4 +168,24 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
   return false;  // No conflict
 }
 
-#endif // CONFIG_RV_AME
+void mstore_queue_check_vec_addr_conflict(
+    uint64_t start_addr, const uint8_t *masks,
+    uint64_t element_count, int element_width) {
+  if (mstore_queue_empty()) {
+    return;
+  }
+
+  for (uint64_t element = 0; element < element_count; element++) {
+    uint64_t offset = element * element_width;
+    if (masks[offset] == 0) {
+      continue;
+    }
+    uint64_t load_addr = start_addr + offset;
+    if (mstore_queue_check_addr_conflict(load_addr, element_width)) {
+      Log("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store",
+          load_addr, element_width);
+    }
+  }
+}
+
+#endif // CONFIG_AME_MSTORE_ACCESS_CHECK

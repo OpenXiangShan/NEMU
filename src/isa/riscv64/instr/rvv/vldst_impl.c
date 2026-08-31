@@ -24,6 +24,9 @@
 #include <sys/cdefs.h>
 #ifdef CONFIG_RVV
 
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+#include <ame/mstore_queue_wrapper.h>
+#endif
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include "vldst_impl.h"
@@ -323,6 +326,12 @@ void vld(Decode *s, int mode, int mmu_mode) {
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
       __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+      mstore_queue_check_vec_addr_conflict(
+          start_addr, masks + vstart->val * s->v_width,
+          vl_val - vstart->val, s->v_width);
+#endif
 
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
@@ -1003,6 +1012,12 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
         __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
+
+#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+        mstore_queue_check_vec_addr_conflict(
+            start_addr, masks + vstart->val * s->v_width,
+            vl_val - vstart->val, s->v_width);
+#endif
 
         uint8_t invert_masks[VLMAX_8] = {0};
         uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;

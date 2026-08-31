@@ -117,13 +117,26 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config CUSTOM_XVEXP2
+  bool "RISC-V Xvexp2 Custom Vector Extension"
+  depends on RVV
+  default n
+  help
+    Enable the non-standard vfexp2.v instruction for FP16 and FP32.
+
+config CUSTOM_XVEXP2_BF16
+  bool "RISC-V Xvexp2 BF16 Support"
+  depends on CUSTOM_XVEXP2
+  default n
+  help
+    Enable the non-standard vfexp2bf16.v instruction for BF16.
+
 config CUSTOM_TENSOR
   depends on !FPU_NONE
   bool "RISC-V Tensor Extension (Internal Spec)"
   default n
 
 config RV_AME
-  depends on !USE_SPARSEMM
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
 

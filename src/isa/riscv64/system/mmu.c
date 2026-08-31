@@ -453,7 +453,6 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
         !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);
-      Log("pmp or pma check failed when PTW");
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
@@ -618,12 +617,10 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     #else
       check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
         !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
-      Log("pmp or pma check failed when PTW");
     #endif // CONFIG_RV_MPT_CHECK
 
     if (check_failed) {
       Log("pmp or pma or mpt check failed when PTW");
-
       int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                   type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
       cpu.trapInfo.tval = vaddr;
@@ -770,6 +767,9 @@ typedef struct {
   uint64_t generation;
   uint8_t type;
   uint8_t pbmt;
+#ifdef CONFIG_RV_MBMC
+  uint8_t pt_level;
+#endif
 } rvh_final_tlb_entry_t;
 
 static rvh_final_tlb_entry_t rvh_final_tlb[RVH_FINAL_TLB_SIZE];
@@ -837,6 +837,9 @@ static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_
       entry->vpn == (vaddr >> PAGE_SHIFT) &&
       entry->type == type)) {
     cpu.pbmt = entry->pbmt;
+#ifdef CONFIG_RV_MBMC
+    pt_level = entry->pt_level;
+#endif
     *result = entry->ppn;
     return true;
   }
@@ -855,6 +858,9 @@ static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_
   entry->ppn = result & ~PAGE_MASK;
   entry->type = type;
   entry->pbmt = cpu.pbmt;
+#ifdef CONFIG_RV_MBMC
+  entry->pt_level = pt_level;
+#endif
   entry->generation = rvh_final_tlb_generation;
 }
 #endif

@@ -24,7 +24,6 @@
 #include "../local-include/intr.h"
 #include "../local-include/rtl.h"
 #include "../local-include/reg.h"
-#include "ame/mstore_queue_wrapper.h"
 #include "mcommon.h"
 #include "mldst_impl.h"
 

@@ -189,7 +189,7 @@ config AME_MMACC_VECTORIZE
     operations. Unsupported combinations use the scalar implementation.
 
 config AME_MLDST_VECTORIZE
-  depends on RV_AME && !SHARE && !USE_SPARSEMM
+  depends on RV_AME && !SHARE
   bool "Enable AME matrix load/store optimization"
   default n
   help
@@ -265,7 +265,7 @@ config AME_MSTORE_ACCESS_CHECK
   help
     Report scalar and vector loads that overlap a matrix store which has not
     been released and acquired through the AME synchronization protocol.
-    Disable this to remove the pending matrix-store overlap checks.
+    Disable this to remove pending matrix-store tracking and overlap checks.
 
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET

@@ -77,14 +77,13 @@ SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)
 
-XSRCS-$(CONFIG_USE_SPARSEMM) += src/memory/sparseram.cpp
-
 XDIRS-y += src/checkpoint src/base src/iostream3 src/profiling
 XDIRS-$(CONFIG_RV_AME) += src/isa/riscv64/ame
 XDIRS-$(CONFIG_SHARE_REF) += src/cpu/difftest/ame
 XSRCS-y += $(shell find $(XDIRS-y) -name "*.cpp")
 
 XSRCS-y += src/memory/store_queue_wrapper.cpp
+XSRCS-y += src/memory/elfloader.cpp
 
 XSRCS = $(XSRCS-y)
 

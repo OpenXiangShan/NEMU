@@ -140,6 +140,18 @@
   f(csrrw) f(csrrs) f(csrrc) \
   f(csrrwi) f(csrrsi) f(csrrci)
 
+#ifdef CONFIG_CUSTOM_XVEXP2
+#define XVEXP2_INSTR_TERNARY(f) f(vfexp2_v)
+#else
+#define XVEXP2_INSTR_TERNARY(f)
+#endif // CONFIG_CUSTOM_XVEXP2
+
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+#define XVEXP2_BF16_INSTR_TERNARY(f) f(vfexp2bf16_v)
+#else
+#define XVEXP2_BF16_INSTR_TERNARY(f)
+#endif // CONFIG_CUSTOM_XVEXP2_BF16
+
 
 #ifdef CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f) \
@@ -478,7 +490,9 @@
   ZFA_INSTR_TERNARY(f) \
   ZFH_ZFA_INSTR_TERNARY(f) \
   ZCB_INSTR_TERNARY(f) \
-  TENSOR_INSTR_TERNARY(f)
+  TENSOR_INSTR_TERNARY(f) \
+  XVEXP2_INSTR_TERNARY(f) \
+  XVEXP2_BF16_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \
   SYS_INSTR_TERNARY_CSR(f) 
