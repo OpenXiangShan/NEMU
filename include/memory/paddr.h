@@ -134,7 +134,7 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len) {
   assert(golden_pmem != NULL);
-  void *p = &golden_pmem[addr - 0x80000000];
+  void *p = &golden_pmem[addr - CONFIG_MBASE];
   switch (len) {
     case 1: return *(uint8_t  *)p;
     case 2: return *(uint16_t *)p;
