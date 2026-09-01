@@ -41,6 +41,7 @@
 #ifndef __CPU_SIMPLE_PROBES_SIMPOINT_HH__
 #define __CPU_SIMPLE_PROBES_SIMPOINT_HH__
 
+#include <array>
 #include <unordered_map>
 #include <base/output.h>
 
@@ -93,6 +94,8 @@ class SimPoint
 
     void profile_with_abs_icount(Addr pc, bool is_control, bool is_last_uop, uint64_t abs_icount);
 
+    void profile_basic_block_with_abs_icount(Addr control_pc, Addr next_pc, uint64_t abs_icount);
+
   private:
     uint64_t lastICount{0};
     /** SimPoint profiling interval size in instructions */
@@ -116,8 +119,19 @@ class SimPoint
         uint64_t count;
     };
 
+    static constexpr size_t bbLookupCacheSize = 8192;
+    static_assert((bbLookupCacheSize & (bbLookupCacheSize - 1)) == 0,
+                  "bbLookupCacheSize must be a power of two");
+
+    struct BBLookupCacheEntry
+    {
+        BasicBlockRange range;
+        BBInfo *info;
+    };
+
     /** Hash table containing all previously seen basic blocks */
     ::std::unordered_map<BasicBlockRange, BBInfo> bbMap;
+    ::std::array<BBLookupCacheEntry, bbLookupCacheSize> bbLookupCache{};
     /** Currently executing basic block */
     BasicBlockRange currentBBV;
     /** inst count in current basic block */
