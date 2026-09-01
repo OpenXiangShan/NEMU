@@ -105,7 +105,7 @@ def_THelper(main) {
 #ifdef CONFIG_RVV
 #if defined(CONFIG_RV_ZVKNED) || defined(CONFIG_RV_ZVKNHA) || \
     defined(CONFIG_RV_ZVKNHB) || defined(CONFIG_RV_ZVKSED) || \
-    defined(CONFIG_RV_ZVKG)
+    defined(CONFIG_RV_ZVKG) || defined(CONFIG_RV_ZVKSH)
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11101 ??", OP_V  , OP_V);
 #endif // vector cryptography OP-P extensions
 #endif // CONFIG_RVV

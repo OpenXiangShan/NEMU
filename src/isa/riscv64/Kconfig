@@ -106,6 +106,12 @@ config RV_ZVKNHB
   depends on RVV
   default y
 
+config RV_ZVKSH
+  bool "RISC-V Vector ShangMi Suite: SM3 Secure Hash Extension v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
 config RV_ZVKSED
   bool "RISC-V Vector ShangMi Suite: SM4 Block Cipher Extension v1.0"
   depends on RVK

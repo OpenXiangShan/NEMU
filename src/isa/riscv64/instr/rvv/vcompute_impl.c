@@ -530,6 +530,146 @@ void vsha2_exec(vsha2_op_t op, Decode *s) {
 
 #endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
 
+#ifdef CONFIG_RV_ZVKSH
+
+static inline uint32_t vsm3_rol32(uint32_t value, unsigned amount) {
+  amount &= 31;
+  return amount == 0 ? value : (value << amount) | (value >> (32 - amount));
+}
+
+static inline uint32_t vsm3_rev8(uint32_t value) {
+  return __builtin_bswap32(value);
+}
+
+static inline uint32_t vsm3_p0(uint32_t value) {
+  return value ^ vsm3_rol32(value, 9) ^ vsm3_rol32(value, 17);
+}
+
+static inline uint32_t vsm3_p1(uint32_t value) {
+  return value ^ vsm3_rol32(value, 15) ^ vsm3_rol32(value, 23);
+}
+
+static inline void vsm3_load_group(int reg, int base, uint32_t group[8]) {
+  rtlreg_t value;
+  for (int lane = 0; lane < 8; lane++) {
+    get_vreg(reg, base + lane, &value, 2, vtype->vlmul, 0, 1);
+    group[lane] = value;
+  }
+}
+
+static inline void vsm3_message_expand(const uint32_t src1[8],
+                                       const uint32_t src2[8],
+                                       uint32_t result[8]) {
+  uint32_t words[24];
+  for (int lane = 0; lane < 8; lane++) {
+    words[lane] = vsm3_rev8(src1[lane]);
+    words[lane + 8] = vsm3_rev8(src2[lane]);
+  }
+
+  for (int word = 16; word < 24; word++) {
+    words[word] = vsm3_p1(words[word - 16] ^ words[word - 9] ^
+                            vsm3_rol32(words[word - 3], 15)) ^
+                  vsm3_rol32(words[word - 13], 7) ^ words[word - 6];
+    result[word - 16] = vsm3_rev8(words[word]);
+  }
+}
+
+static inline void vsm3_compress(const uint32_t dest[8], const uint32_t src2[8],
+                                 unsigned round_group, uint32_t result[8]) {
+  uint32_t a = vsm3_rev8(dest[0]);
+  uint32_t b = vsm3_rev8(dest[1]);
+  uint32_t c = vsm3_rev8(dest[2]);
+  uint32_t d = vsm3_rev8(dest[3]);
+  uint32_t e = vsm3_rev8(dest[4]);
+  uint32_t f = vsm3_rev8(dest[5]);
+  uint32_t g = vsm3_rev8(dest[6]);
+  uint32_t h = vsm3_rev8(dest[7]);
+  uint32_t message[2] = {vsm3_rev8(src2[0]), vsm3_rev8(src2[1])};
+  uint32_t expanded[2] = {
+    message[0] ^ vsm3_rev8(src2[4]),
+    message[1] ^ vsm3_rev8(src2[5]),
+  };
+
+  for (int step = 0; step < 2; step++) {
+    unsigned round = round_group * 2 + step;
+    uint32_t constant = round <= 15 ? 0x79cc4519u : 0x7a879d8au;
+    uint32_t a12 = vsm3_rol32(a, 12);
+    uint32_t ss1 = vsm3_rol32(a12 + e + vsm3_rol32(constant, round), 7);
+    uint32_t ss2 = ss1 ^ a12;
+    uint32_t ff = round <= 15 ? a ^ b ^ c : (a & b) | (a & c) | (b & c);
+    uint32_t gg = round <= 15 ? e ^ f ^ g : (e & f) | (~e & g);
+    uint32_t tt1 = ff + d + ss2 + expanded[step];
+    uint32_t tt2 = gg + h + ss1 + message[step];
+
+    d = c;
+    c = vsm3_rol32(b, 9);
+    b = a;
+    a = tt1;
+    h = g;
+    g = vsm3_rol32(f, 19);
+    f = e;
+    e = vsm3_p0(tt2);
+
+    result[1 - step] = vsm3_rev8(a);
+    result[3 - step] = vsm3_rev8(c);
+    result[5 - step] = vsm3_rev8(e);
+    result[7 - step] = vsm3_rev8(g);
+  }
+}
+
+void vsm3_exec(vsm3_op_t op, Decode *s) {
+  require_vector(true);
+
+  double vflmul = compute_vflmul();
+  if ((vl->val & 7) != 0 || (vstart->val & 7) != 0 || vflmul * VLEN < 256) {
+    longjmp_exception(EX_II);
+  }
+
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+  int register_group_size = vflmul < 1 ? 1 : vflmul;
+  require_noover(id_dest->reg, register_group_size, id_src2->reg, register_group_size);
+  if (op == VSM3_OP_ME) {
+    require_aligned(id_src->reg, vflmul);
+  }
+
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 8;
+  for (int group = vstart->val / 8; group < egroups; group++) {
+    int base = group * 8;
+    uint32_t dest[8], src1[8], src2[8], result[8];
+    vsm3_load_group(id_dest->reg, base, dest);
+    vsm3_load_group(id_src2->reg, base, src2);
+
+    if (op == VSM3_OP_ME) {
+      vsm3_load_group(id_src->reg, base, src1);
+      vsm3_message_expand(src1, src2, result);
+    } else {
+      vsm3_compress(dest, src2, id_src->reg & 0x1f, result);
+    }
+
+    for (int lane = 0; lane < 8; lane++) {
+      set_vreg(id_dest->reg, base + lane, result[lane], 2, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 8; idx < vlmax; idx++) {
+      set_vreg(id_dest->reg, idx, UINT64_MAX, 2, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKSH
+
 static inline void require_vector_vs() {
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);

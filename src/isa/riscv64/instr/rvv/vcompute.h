@@ -930,6 +930,18 @@ def_EHelper(vsha2ch) {
 #undef REQUIRE_VSHA2_SEW
 #endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
 
+#ifdef CONFIG_RV_ZVKSH
+def_EHelper(vsm3me) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vsm3_exec(VSM3_OP_ME, s);
+}
+
+def_EHelper(vsm3c) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vsm3_exec(VSM3_OP_C, s);
+}
+#endif // CONFIG_RV_ZVKSH
+
 #ifdef CONFIG_RV_ZVKSED
 def_EHelper(vsm4k) {
   if (vtype->vsew != 2) longjmp_exception(EX_II);

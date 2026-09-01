@@ -93,6 +93,15 @@ typedef enum {
 void vsha2_exec(vsha2_op_t op, Decode *s);
 #endif
 
+#ifdef CONFIG_RV_ZVKSH
+typedef enum {
+  VSM3_OP_ME,
+  VSM3_OP_C,
+} vsm3_op_t;
+
+void vsm3_exec(vsm3_op_t op, Decode *s);
+#endif
+
 #ifdef CONFIG_RV_ZVKSED
 typedef enum {
   VSM_OP_VSM4R,
