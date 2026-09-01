@@ -23,6 +23,8 @@
 #include <rtl/fp.h>
 #include "vcommon.h"
 
+#include "../rvb/rvintrin.h" // For the Zvbc clmul function reutilization
+
 #undef s0
 #undef s1
 
@@ -974,6 +976,14 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       case ROR :
         *s1 = (*s0 >> lshift) | (*s0 << rshift);
         break;
+#ifdef CONFIG_RV_ZVBC
+      case VCLMUL :
+        *s1 = _rv_clmul(*s0, *s1);
+        break;
+      case VCLMULH :
+        *s1 = _rv_clmulh(*s0, *s1);
+        break;
+#endif
     }
     update_vcsr();
     // store to vrf
