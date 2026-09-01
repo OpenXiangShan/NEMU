@@ -54,16 +54,22 @@ nemu_signal(NEMU_MEM_TRACE_END);
 窗口结束时，标量访问以聚合字节计数器的形式报告，而非逐条事件：
 
 ```text
-[T] vl_total <value><unit>
-[T] vs_total <value><unit>
-[T] ml_total <value><unit>
-[T] ms_total <value><unit>
-[T] scalar_load <value><unit>
-[T] scalar_store <value><unit>
+[T] vl_total <bytes>B [(<value>KiB|MiB)]
+[T] vs_total <bytes>B [(<value>KiB|MiB)]
+[T] ml_total <bytes>B [(<value>KiB|MiB)]
+[T] ms_total <bytes>B [(<value>KiB|MiB)]
+[T] scalar_load <bytes>B [(<value>KiB|MiB)]
+[T] scalar_store <bytes>B [(<value>KiB|MiB)]
 [T] end
 ```
 
-汇总行会按字节数自动选择单位：小于 1 KiB 使用 `B`，小于 1 MiB 使用 `KB`，否则使用 `MB`。`KB` 和 `MB` 保留两位小数。
+汇总行始终先输出精确字节数。大于等于 1 KiB 时，会在括号内附加保留两位小数的 `KiB` 或 `MiB` 可读值。
+
+若向量访存在完成前触发异常，已经成功完成的访问仍计入汇总，并输出带 `partial=1` 的部分事件：
+
+```text
+[T] vl 16B pc=0x80012340 addr=0xc4800000 partial=1
+```
 
 开始标记为：
 
@@ -76,7 +82,7 @@ nemu_signal(NEMU_MEM_TRACE_END);
 - 向量加载/存储的计数包含活跃通道（active lanes）实际访问的字节。被掩码屏蔽的通道不计入。
 - 单步长（unit-stride）、跨步（strided）、索引（indexed）、整寄存器（whole-register）以及 fault-only-first 的 RVV 内存操作均报告其动态访问字节数。
 - 矩阵加载/存储的计数根据指令使用的矩阵行数、列数和元素位宽计算。
-- 向量和矩阵加载/存储的字节在窗口期间分别累积，仅在 `NEMU_MEM_TRACE_END` 时以自动单位打印 `vl_total`、`vs_total`、`ml_total` 和 `ms_total`。
+- 向量和矩阵加载/存储的字节在窗口期间分别累积，仅在 `NEMU_MEM_TRACE_END` 时以精确字节数及可选的 `KiB`/`MiB` 可读值打印 `vl_total`、`vs_total`、`ml_total` 和 `ms_total`。
 - 标量加载/存储的字节在窗口期间累积，仅在 `NEMU_MEM_TRACE_END` 时打印。
 - 当指令未执行任何实际内存访问时，可能发出一个零字节的向量或矩阵事件。
 
@@ -147,8 +153,8 @@ bytes = 128 * 128 * 4 B = 65536 B
 - `include/profiling/mem_trace.h`：公共接口和信号常量。
 - `src/profiling/mem_trace.c`：追踪状态、计数器和输出。
 - `src/isa/riscv64/instr/special.h`：来自 `nemu_trap` 的信号分发。
-- `src/isa/riscv64/instr/rvv/vldst_impl.c`：RVV 字节统计。
-- `src/engine/interpreter/rtl-basic.h`：标量和矩阵字节统计。
+- `src/isa/riscv64/instr/rvv/vldst_impl.c`：RVV 指令级事件和快速路径字节统计。
+- `src/engine/interpreter/rtl-basic.h`：标量、矩阵以及 RVV 慢路径成功访存的字节统计。
 - `src/cpu/cpu-exec.c`：当执行通过 `NEMU_EXEC_END` 终止时的清理工作。
 
 信号 `0x102` 仍然是现有的 `after_workload` 流程的非终止 trap。
@@ -163,10 +169,10 @@ bytes = 128 * 128 * 4 B = 65536 B
 [T] vs 128B pc=0x80012380 addr=0xc5200000
 [T] vl_total 128B
 [T] vs_total 128B
-[T] ml_total 8.00KB
-[T] ms_total 64.00KB
-[T] scalar_load 958.92KB
-[T] scalar_store 343.38KB
+[T] ml_total 8192B (8.00KiB)
+[T] ms_total 65536B (64.00KiB)
+[T] scalar_load 981934B (958.92KiB)
+[T] scalar_store 351621B (343.38KiB)
 [T] end
 ```
 

@@ -159,15 +159,21 @@ static void index_vload_check(Decode *s) {
 #ifndef CONFIG_SHARE
 __attribute__((unused))
 static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vstart, uint64_t vl_val,
-    uint8_t * restrict masks) {
+    uint8_t * restrict masks, uint64_t *first_active_idx) {
   unsigned count = 0;
+  *first_active_idx = UINT64_MAX;
   switch (eew) {
   case 0: {
     for (word_t i = vstart->val; i < vl_val; i++) {
       masks[i] = get_mask(0, i) ? 0xff : 0;
       Logm("masks[%ld] = %x", i, masks[i]);
       masks[i] |= s->vm != 0 ? 0xff : 0;
-      count += masks[i] != 0;
+      if (masks[i] != 0) {
+        if (*first_active_idx == UINT64_MAX) {
+          *first_active_idx = i;
+        }
+        count++;
+      }
     };
     break;
   }
@@ -178,7 +184,12 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
       x_masks[i] = get_mask(0, i) ? 0xffff : 0;
       Logm("xmasks[%ld] = %x", i, x_masks[i]);
       x_masks[i] |= s->vm != 0 ? 0xffff : 0;
-      count += x_masks[i] != 0;
+      if (x_masks[i] != 0) {
+        if (*first_active_idx == UINT64_MAX) {
+          *first_active_idx = i;
+        }
+        count++;
+      }
     };
     break;
   }
@@ -189,7 +200,12 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
       x_masks[i] = get_mask(0, i) ? ~0U : 0;
       Logm("xmasks[%ld] = %x", i, x_masks[i]);
       x_masks[i] |= s->vm != 0 ? ~0U : 0;
-      count += x_masks[i] != 0;
+      if (x_masks[i] != 0) {
+        if (*first_active_idx == UINT64_MAX) {
+          *first_active_idx = i;
+        }
+        count++;
+      }
     };
     break;
   }
@@ -200,7 +216,12 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
       x_masks[i] = get_mask(0, i) ? ~(0UL) : 0;
       Logm("xmasks[%ld] = %lx", i, x_masks[i]);
       x_masks[i] |= s->vm != 0 ? ~(0UL) : 0;
-      count += x_masks[i] != 0;
+      if (x_masks[i] != 0) {
+        if (*first_active_idx == UINT64_MAX) {
+          *first_active_idx = i;
+        }
+        count++;
+      }
     }
     break;
   }
@@ -283,12 +304,11 @@ void vld(Decode *s, int mode, int mmu_mode) {
   ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(emul, vd));
 
   bool fast_vle = false;
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_LOAD, s->pc);
 
 #if !defined(CONFIG_SHARE) && !defined(CONFIG_TDATA1_MCONTROL6)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
@@ -303,7 +323,9 @@ void vld(Decode *s, int mode, int mmu_mode) {
   if (is_unit_stride && nf == 1 && vl_val > vstart->val && vtype->vlmul < 4 && !cross_page) {
     s->last_access_host_addr = NULL;
     extern void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+    cpu.isVldst = true;
     dummy_vaddr_data_read(s, start_addr, s->v_width, mmu_mode);
+    cpu.isVldst = false;
     // Now we have the host address of first element in Decode *s->last_access_host_addr
     if (s->last_access_host_addr != NULL) {
 
@@ -313,11 +335,9 @@ void vld(Decode *s, int mode, int mmu_mode) {
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-      unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
-      if (count > 0) {
-        trace_addr = start_addr;
-      }
-      trace_bytes += (uint64_t) count * s->v_width;
+      uint64_t first_active_idx;
+      unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val,
+                                                 masks, &first_active_idx);
 
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
@@ -370,6 +390,10 @@ void vld(Decode *s, int mode, int mmu_mode) {
         masks[i] |= invert_masks[i];
       }
       memcpy(reg_file_addr, masks, vle_size);
+      if (count > 0) {
+        mem_trace_vector_access((uint64_t) count * s->v_width,
+                                base_addr + first_active_idx * s->v_width);
+      }
       fast_vle = true;
     }
   }
@@ -400,11 +424,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
         IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
-        rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
-        if (trace_bytes == 0) {
-          trace_addr = addr;
-        }
-        trace_bytes += s->v_width;
+        rtl_vlm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
       }
       // set vreg after all segment done with no exception
@@ -428,8 +448,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
   }
 
   vstart->val = 0;
-  cpu.isVldst = false;
-  mem_trace_vector_load(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
@@ -466,10 +485,9 @@ void vldx(Decode *s, int mmu_mode) {
   ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(lmul, vd));
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_LOAD, s->pc);
 
   // Store all seg8 intermediate data
   uint64_t vloadBuf[8];
@@ -500,11 +518,7 @@ void vldx(Decode *s, int mmu_mode) {
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
       IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
-      rtl_lm(s, &vloadBuf[fn], &addr, 0, data_width, mmu_mode);
-      if (trace_bytes == 0) {
-        trace_addr = addr;
-      }
-      trace_bytes += data_width;
+      rtl_vlm(s, &vloadBuf[fn], &addr, 0, data_width, mmu_mode);
       IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, data_width));
     }
 
@@ -528,8 +542,7 @@ void vldx(Decode *s, int mmu_mode) {
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
-  cpu.isVldst = false;
-  mem_trace_vector_load(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
@@ -575,10 +588,9 @@ void vst(Decode *s, int mode, int mmu_mode) {
   vl_val = mode == MODE_MASK ? (vl->val + 7) / 8 : vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
 
   bool fast_vse = false;
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_STORE, s->pc);
 
 #if !defined(CONFIG_SHARE) && !defined(CONFIG_TDATA1_MCONTROL6)
   uint64_t start_addr = base_addr + (vstart->val * nf) * s->v_width;
@@ -595,7 +607,9 @@ void vst(Decode *s, int mode, int mmu_mode) {
     // if exception happens, it will goto the exception handler.
     s->last_access_host_addr = NULL;
     extern void dummy_vaddr_write(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+    cpu.isVldst = true;
     dummy_vaddr_write(s, start_addr, s->v_width, mmu_mode);
+    cpu.isVldst = false;
     // Now we have the host address of first element in Decode *s->last_access_host_addr
     if (s->last_access_host_addr != NULL) {
 
@@ -605,11 +619,9 @@ void vst(Decode *s, int mode, int mmu_mode) {
       Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
       uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-      unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
-      if (count > 0) {
-        trace_addr = start_addr;
-      }
-      trace_bytes += (uint64_t) count * s->v_width;
+      uint64_t first_active_idx;
+      unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val,
+                                                 masks, &first_active_idx);
 
       Logm("vst start_addr: %#lx, last_addr: %#lx, v_width: %u, vl_val: %lu, "
           "vstart->val: %lu, v0: %016lx_%016lx, nf=%lu",
@@ -648,6 +660,10 @@ void vst(Decode *s, int mode, int mmu_mode) {
       }
 #endif
       memcpy(s->last_access_host_addr, masks, vse_size);
+      if (count > 0) {
+        mem_trace_vector_access((uint64_t) count * s->v_width,
+                                base_addr + first_active_idx * s->v_width);
+      }
       fast_vse = true; // skip all operations
     }
   }
@@ -684,11 +700,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
 
-          rtl_sm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-          if (trace_bytes == 0) {
-            trace_addr = addr;
-          }
-          trace_bytes += s->v_width;
+          rtl_vsm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         }
 #ifdef DEBUG_FAST_VSE
         if (simple_vse) {
@@ -706,9 +718,8 @@ void vst(Decode *s, int mode, int mmu_mode) {
   }
 
   vstart->val = 0;
-  cpu.isVldst = false;
   cpu.isVecUnitStore = false;
-  mem_trace_vector_store(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
@@ -741,8 +752,7 @@ void vstx(Decode *s, int mmu_mode) {
   vl_val = vl->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_STORE, s->pc);
   for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
     rtlreg_t mask = get_mask(0, idx);
     if (s->vm == 0 && mask == 0) {
@@ -762,18 +772,13 @@ void vstx(Decode *s, int mmu_mode) {
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
-      rtl_sm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
-      if (trace_bytes == 0) {
-        trace_addr = addr;
-      }
-      trace_bytes += data_width;
+      rtl_vsm(s, &tmp_reg[1], &addr, 0, data_width, mmu_mode);
     }
   }
 
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
-  cpu.isVldst = false;
-  mem_trace_vector_store(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
@@ -813,11 +818,10 @@ void vlr(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   idx = vstart->val;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(len, vd));
   isa_whole_reg_check(vd, len);
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_LOAD, s->pc);
 
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
@@ -834,11 +838,7 @@ void vlr(Decode *s, int mmu_mode) {
 
         IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
 
-        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-        if (trace_bytes == 0) {
-          trace_addr = addr;
-        }
-        trace_bytes += s->v_width;
+        rtl_vlm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(0, s->v_width));
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(vreg_idx, pos, vec_load_diffteset_buf[0], eew));
@@ -857,11 +857,7 @@ void vlr(Decode *s, int mmu_mode) {
 
         IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
 
-        rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-        if (trace_bytes == 0) {
-          trace_addr = addr;
-        }
-        trace_bytes += s->v_width;
+        rtl_vlm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(0, s->v_width));
         set_vreg(vd + vreg_idx, pos, tmp_reg[1], eew, 0, 1);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(vreg_idx, pos, vec_load_diffteset_buf[0], eew));
@@ -871,8 +867,7 @@ void vlr(Decode *s, int mmu_mode) {
   }
 
   vstart->val = 0;
-  cpu.isVldst = false;
-  mem_trace_vector_load(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
@@ -890,12 +885,11 @@ void vsr(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   idx = vstart->val;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
 
   isa_whole_reg_check(vd, len);
 
   cpu.isVecUnitStore = true;
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_STORE, s->pc);
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
     offset = vstart->val % elt_per_reg;
@@ -911,11 +905,7 @@ void vsr(Decode *s, int mmu_mode) {
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
-        rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
-        if (trace_bytes == 0) {
-          trace_addr = addr;
-        }
-        trace_bytes += 1;
+        rtl_vsm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
         idx++;
       }
       vreg_idx++;
@@ -931,20 +921,15 @@ void vsr(Decode *s, int mmu_mode) {
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
-        rtl_sm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
-        if (trace_bytes == 0) {
-          trace_addr = addr;
-        }
-        trace_bytes += 1;
+        rtl_vsm(s, &tmp_reg[1], &addr, 0, 1, mmu_mode);
         idx++;
       }
     }
   }
 
   vstart->val = 0;
-  cpu.isVldst = false;
   cpu.isVecUnitStore = false;
-  mem_trace_vector_store(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
@@ -989,12 +974,11 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   ori_vstart = vstart->val;
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
-  uint64_t trace_bytes = 0;
-  uint64_t trace_addr = 0;
 
   IFDEF(CONFIG_MULTICORE_DIFF, init_vec_load_difftest_info(emul, vd));
 
   bool fast_vle = false;
+  mem_trace_vector_begin(MEM_TRACE_VECTOR_LOAD, s->pc);
 
   int cause;
   PUSH_CONTEXT(&cause);
@@ -1025,7 +1009,9 @@ void vldff(Decode *s, int mode, int mmu_mode) {
     if (is_unit_stride && nf == 1 && vl_val > vstart->val && vtype->vlmul < 4 && !cross_page) {
       s->last_access_host_addr = NULL;
       extern void dummy_vaddr_data_read(struct Decode *s, vaddr_t addr, int len, int mmu_mode);
+      cpu.isVldst = true;
       dummy_vaddr_data_read(s, start_addr, s->v_width, mmu_mode);
+      cpu.isVldst = false;
       // Now we have the host address of first element in Decode *s->last_access_host_addr
       if (s->last_access_host_addr != NULL) {
 
@@ -1035,11 +1021,9 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         Assert(reg_file_addr != NULL, "reg_file_addr is NULL");
         uint8_t * restrict reg_file_addr_8 = reg_file_addr;
 
-        unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
-        if (count > 0) {
-          trace_addr = start_addr;
-        }
-        trace_bytes += (uint64_t) count * s->v_width;
+        uint64_t first_active_idx;
+        unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val,
+                                                   masks, &first_active_idx);
 
         uint8_t invert_masks[VLMAX_8] = {0};
         uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
@@ -1092,6 +1076,10 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           masks[i] |= invert_masks[i];
         }
         memcpy(reg_file_addr, masks, vle_size);
+        if (count > 0) {
+          mem_trace_vector_access((uint64_t) count * s->v_width,
+                                  base_addr + first_active_idx * s->v_width);
+        }
         fast_vle = true;
       }
     }
@@ -1129,18 +1117,10 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
           IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
           if (fofvl == 0) {
-            rtl_lm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
-            if (trace_bytes == 0) {
-              trace_addr = addr;
-            }
-            trace_bytes += s->v_width;
+            rtl_vlm(s, &vloadBuf[fn], &addr, 0, s->v_width, mmu_mode);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
           } else {
-            rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
-            if (trace_bytes == 0) {
-              trace_addr = addr;
-            }
-            trace_bytes += s->v_width;
+            rtl_vlm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
             set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
@@ -1197,8 +1177,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
   vstart->val = 0;
   fofvl = 0;
-  cpu.isVldst = false;
-  mem_trace_vector_load(trace_bytes, s->pc, trace_addr);
+  mem_trace_vector_end();
   vp_set_dirty();
 }
 
