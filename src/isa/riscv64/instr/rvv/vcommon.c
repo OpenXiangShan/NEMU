@@ -133,7 +133,6 @@ void set_vtype_vl(Decode *s, int mode) {
 // it only runs the exec functions
 void predecode_vls(Decode *s) {
 #ifdef CONFIG_RVV
-  cpu.isVldst = true;
   const int table [8] = {1, 0, 0, 0, 0, 2, 4, 8};
   s->vm = s->isa.instr.v_opv.v_vm; //1 for without mask; 0 for with mask
   s->v_width = table[s->isa.instr.vldfp.v_width];

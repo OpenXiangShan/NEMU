@@ -924,6 +924,7 @@ void cpu_exec(uint64_t n) {
       cause = 0;
       IFDEF(CONFIG_TDATA1_ETRIGGER, trig_action_t action = check_triggers_etrigger(cpu.TM, g_ex_cause));
 
+      mem_trace_vector_fault();
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
