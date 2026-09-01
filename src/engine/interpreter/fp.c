@@ -522,6 +522,18 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_F16ToF64: *dest = my_f16_to_f64(rtlToF16(*src1)).v; break;
       default: panic("op = %d not supported", op);
     }
+  } else if (w == FPCALL_BF16) {
+    bfloat16_t fsrc1 = rtlToVBF16(*src1);
+    bfloat16_t fsrc2 = rtlToVBF16(*src2);
+    switch (op) {
+      /* Matrix registers hold raw BF16 lanes, unlike boxed scalar operands. */
+      case FPCALL_MADD:
+        *dest = f32_mulAdd(my_bf16_to_f32(fsrc1), my_bf16_to_f32(fsrc2),
+                           rtlToVF32(*dest)).v;
+        break;
+      default:
+        panic("op = %d not supported for BF16 matrix operands", op);
+    }
   } else if (w == FPCALL_W32 || w == FPCALL_W16_to_32) {
     float32_t fsrc1;
     float32_t fsrc2;
