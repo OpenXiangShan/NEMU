@@ -24,6 +24,7 @@
 #include "vcommon.h"
 
 #include "../rvb/rvintrin.h" // For the Zvbc clmul function reutilization
+#include "../rvk/aes_common.h"
 
 #undef s0
 #undef s1
@@ -480,6 +481,67 @@ void vector_slide_check(Decode *s, bool is_over) {
     }
   }
 }
+
+#ifdef CONFIG_RV_ZVKNED
+
+static inline void aes_subbytes(uint32_t state[4], bool encrypt) {
+  const uint8_t *sbox = encrypt ? AES_ENC_SBOX : AES_DEC_SBOX;
+  for (int c = 0; c < 4; c++) {
+    uint32_t col = state[c];
+    state[c] = ((uint32_t)sbox[(col >>  0) & 0xFF] <<  0) |
+               ((uint32_t)sbox[(col >>  8) & 0xFF] <<  8) |
+               ((uint32_t)sbox[(col >> 16) & 0xFF] << 16) |
+               ((uint32_t)sbox[(col >> 24) & 0xFF] << 24);
+  }
+}
+
+static inline void aes_shiftrows(uint32_t state[4]) {
+  uint8_t b[4][4];
+  for (int c = 0; c < 4; c++)
+    for (int r = 0; r < 4; r++)
+      b[r][c] = (state[c] >> (8*r)) & 0xFF;
+
+  uint8_t tmp;
+  tmp = b[1][0]; b[1][0] = b[1][1]; b[1][1] = b[1][2]; b[1][2] = b[1][3]; b[1][3] = tmp;
+  tmp = b[2][0]; b[2][0] = b[2][2]; b[2][2] = tmp;
+  tmp = b[2][1]; b[2][1] = b[2][3]; b[2][3] = tmp;
+  tmp = b[3][3]; b[3][3] = b[3][2]; b[3][2] = b[3][1]; b[3][1] = b[3][0]; b[3][0] = tmp;
+
+  for (int c = 0; c < 4; c++)
+    state[c] = ((uint32_t)b[0][c] <<  0) | ((uint32_t)b[1][c] <<  8) |
+               ((uint32_t)b[2][c] << 16) | ((uint32_t)b[3][c] << 24);
+}
+
+static inline void aes_invshiftrows(uint32_t state[4]) {
+  uint8_t b[4][4];
+  for (int c = 0; c < 4; c++)
+    for (int r = 0; r < 4; r++)
+      b[r][c] = (state[c] >> (8*r)) & 0xFF;
+
+  uint8_t tmp;
+  tmp = b[1][3]; b[1][3] = b[1][2]; b[1][2] = b[1][1]; b[1][1] = b[1][0]; b[1][0] = tmp;
+  tmp = b[2][0]; b[2][0] = b[2][2]; b[2][2] = tmp;
+  tmp = b[2][1]; b[2][1] = b[2][3]; b[2][3] = tmp;
+  tmp = b[3][0]; b[3][0] = b[3][1]; b[3][1] = b[3][2]; b[3][2] = b[3][3]; b[3][3] = tmp;
+
+  for (int c = 0; c < 4; c++)
+    state[c] = ((uint32_t)b[0][c] <<  0) | ((uint32_t)b[1][c] <<  8) |
+               ((uint32_t)b[2][c] << 16) | ((uint32_t)b[3][c] << 24);
+}
+
+static inline void aes_mixcolumns(uint32_t state[4], bool inverse) {
+  for (int c = 0; c < 4; c++) {
+    state[c] = inverse ? AES_INVMIXCOLUMN(state[c]) : AES_MIXCOLUMN(state[c]);
+  }
+}
+
+static inline void aes_addroundkey(uint32_t state[4], const uint32_t rk[4]) {
+  for (int c = 0; c < 4; c++)
+    state[c] ^= rk[c];
+
+}
+
+#endif // CONFIG_RV_ZVKNED
 
 void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
   require_vector(true);
@@ -984,6 +1046,17 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         *s1 = _rv_clmulh(*s0, *s1);
         break;
 #endif
+      case VAESZ:
+        get_vreg(id_dest->reg, idx, s2, vtype->vsew, vtype->vlmul, 0, 1);
+        break;
+      case VAESEF:
+        break;
+      case VAESEM:
+        break;
+      case VAESDF:
+        break;
+      case VAESDM:
+        break;
     }
     update_vcsr();
     // store to vrf
@@ -1015,10 +1088,206 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   vp_set_dirty();
 }
 
-/**
- * this function only handle vrgather and vslide instruction, other instructions are handled in arithmetic_instr
- * because the illegal instruction exception is handled in vcompute.h for vrgather and vslide instruction
- */
+#ifdef CONFIG_RV_ZVKNED
+
+void vaes_exec(vaes_op_t op, Decode *s) {
+  require_vector(true);
+  uint8_t rnum = 0;
+  if (op == VAES_OP_VAESKF1 || op == VAES_OP_VAESKF2) {
+    rnum = s->isa.instr.v_opv.v_vs1 & 0xF;
+  }
+
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 4;
+
+  for (int g = vstart->val / 4; g < egroups; g++) {
+    int base = g * 4;
+
+    bool all_masked = true;
+    if (s->vm == 0) {
+      for (int k = 0; k < 4; k++) {
+        if (get_mask(0, base + k)) { all_masked = false; break; }
+      }
+      if (all_masked) continue;
+    }
+
+    bool is_vs = (s->isa.instr.v_opv.v_funct6 & 1)
+                 && (op != VAES_OP_VAESKF1 && op != VAES_OP_VAESKF2);
+
+    uint32_t state[4], rk[4];
+
+    if (op == VAES_OP_VAESKF1) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        state[k] = (uint32_t)*s0;
+      }
+    } else if (op == VAES_OP_VAESKF2) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_dest->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        state[k] = (uint32_t)*s0;
+      }
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        rk[k] = (uint32_t)*s1;
+      }
+    } else {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_dest->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        state[k] = (uint32_t)*s0;
+      }
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, is_vs ? k : base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        rk[k] = (uint32_t)*s1;
+      }
+    }
+
+    switch (op) {
+      case VAES_OP_VAESZ:
+        // just XOR state with round key
+        aes_addroundkey(state, rk);
+        break;
+
+      case VAES_OP_VAESEF:
+        // ShiftRows + SubBytes + AddRoundKey
+        aes_shiftrows(state);
+        aes_subbytes(state, true);
+        aes_addroundkey(state, rk);
+        break;
+
+      case VAES_OP_VAESEM:
+        // ShiftRows + SubBytes + MixColumns + AddRoundKey
+        aes_shiftrows(state);
+        aes_subbytes(state, true);
+        aes_mixcolumns(state, false);
+        aes_addroundkey(state, rk);
+        break;
+
+      case VAES_OP_VAESDF: {
+        // InvShiftRows + InvSubBytes + AddRoundKey
+        aes_invshiftrows(state);
+        aes_subbytes(state, false);
+        aes_addroundkey(state, rk);
+        break;
+      }
+
+      case VAES_OP_VAESDM:
+        // InvShiftRows + InvSubBytes + AddRoundKey + InvMixColumns
+        aes_invshiftrows(state);
+        aes_subbytes(state, false);
+        aes_addroundkey(state, rk);
+        aes_mixcolumns(state, true);
+        break;
+
+      case VAES_OP_VAESKF1: {
+        static const uint8_t rcon[10] = {
+          0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+        };
+        uint8_t rnd = rnum;
+        if (rnd == 0 || rnd > 10) {
+          rnd ^= 0x8;  // invert bit 3 per spec
+        }
+        uint8_t rcon_idx = rnd - 1;
+
+        uint32_t tmp = state[3];
+        tmp = (tmp >> 8) | (tmp << 24);
+        tmp = ((uint32_t)AES_ENC_SBOX[(tmp >>  0) & 0xFF] <<  0) |
+              ((uint32_t)AES_ENC_SBOX[(tmp >>  8) & 0xFF] <<  8) |
+              ((uint32_t)AES_ENC_SBOX[(tmp >> 16) & 0xFF] << 16) |
+              ((uint32_t)AES_ENC_SBOX[(tmp >> 24) & 0xFF] << 24);
+        tmp ^= rcon[rcon_idx];
+
+        uint32_t new_rk[4];
+        new_rk[0] = state[0] ^ tmp;
+        new_rk[1] = state[1] ^ new_rk[0];
+        new_rk[2] = state[2] ^ new_rk[1];
+        new_rk[3] = state[3] ^ new_rk[2];
+        for (int k = 0; k < 4; k++) state[k] = new_rk[k];
+        break;
+      }
+      case VAES_OP_VAESKF2: {
+        static const uint8_t rcon[10] = {
+          0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+        };
+
+        uint8_t rnd = rnum & 0xF;
+
+        if (rnd < 2 || rnd > 14) {
+          rnd ^= 0x8;
+        }
+
+        uint32_t tmp = rk[3];
+
+
+        if ((rnd & 0x1) == 1) {
+          // Even round: SubWord only (NO RotWord, NO Rcon)
+          tmp = ((uint32_t)AES_ENC_SBOX[(tmp >>  0) & 0xFF] <<  0) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >>  8) & 0xFF] <<  8) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 16) & 0xFF] << 16) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 24) & 0xFF] << 24);
+        } else {
+          // Odd round: RotWord + SubWord + Rcon
+          uint8_t rcon_idx = (rnd / 2) - 1;
+
+          tmp = (tmp >> 8) | (tmp << 24);
+
+          // SubWord
+          tmp = ((uint32_t)AES_ENC_SBOX[(tmp >>  0) & 0xFF] <<  0) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >>  8) & 0xFF] <<  8) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 16) & 0xFF] << 16) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 24) & 0xFF] << 24);
+
+          tmp ^= rcon[rcon_idx];
+        }
+
+        uint32_t new_rk[4];
+        new_rk[0] = state[0] ^ tmp;
+        new_rk[1] = state[1] ^ new_rk[0];
+        new_rk[2] = state[2] ^ new_rk[1];
+        new_rk[3] = state[3] ^ new_rk[2];
+
+        for (int k = 0; k < 4; k++) {
+          state[k] = new_rk[k];
+        }
+        break;
+      }
+    }
+
+    for (int k = 0; k < 4; k++) {
+      if (s->vm == 0 && get_mask(0, base + k) == 0) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          *s1 = (uint64_t)-1;
+          set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+        }
+        continue;
+      }
+      *s1 = state[k];
+      set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax_tail = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 4; idx < vlmax_tail; idx++) {
+      *s1 = (uint64_t)-1;
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKNED
+
 void permutaion_instr(int opcode, Decode *s) {
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) return;

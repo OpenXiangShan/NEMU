@@ -65,7 +65,22 @@ enum op_t {
 
   ANDN, BREV_V, BREV8_V, REV8_V, CLZ_V, CTZ_V, CPOP_V, ROL, ROR,
   VCLMUL, VCLMULH,
+  VAESZ, VAESEF, VAESEM, VAESDF, VAESDM,
 };
+
+#ifdef CONFIG_RV_ZVKNED
+typedef enum {
+  VAES_OP_VAESZ,
+  VAES_OP_VAESEF,
+  VAES_OP_VAESEM,
+  VAES_OP_VAESDF,
+  VAES_OP_VAESDM,
+  VAES_OP_VAESKF1,
+  VAES_OP_VAESKF2,
+} vaes_op_t;
+
+void vaes_exec(vaes_op_t op, Decode *s);
+#endif
 
 enum fp_wop_t {
   noWidening,

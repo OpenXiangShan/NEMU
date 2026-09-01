@@ -863,6 +863,46 @@ def_EHelper(vclmulh) {
   ARITH(VCLMULH, UNSIGNED)
 }
 #endif // CONFIG_RV_ZVBC
+
+#ifdef CONFIG_RV_ZVKNED
+
+def_EHelper(vaesz) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESZ, s);
+}
+
+def_EHelper(vaesef) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESEF, s);
+}
+
+def_EHelper(vaesem) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESEM, s);
+}
+
+def_EHelper(vaesdm) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESDM, s);
+}
+
+def_EHelper(vaesdf) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESDF, s);
+}
+
+def_EHelper(vaeskf1) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESKF1, s);
+}
+
+def_EHelper(vaeskf2) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESKF2, s);
+}
+
+#endif
+
 def_EHelper(vmadd) {
   ARITH(MADD, SIGNED)
 }
