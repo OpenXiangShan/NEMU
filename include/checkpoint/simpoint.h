@@ -120,6 +120,8 @@ class SimPoint
     };
 
     static constexpr size_t bbLookupCacheSize = 8192;
+    static_assert((bbLookupCacheSize & (bbLookupCacheSize - 1)) == 0,
+                  "bbLookupCacheSize must be a power of two");
 
     struct BBLookupCacheEntry
     {
