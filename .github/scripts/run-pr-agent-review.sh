@@ -30,11 +30,13 @@ fi
 
 # PR-Agent's CLI reads these standard OpenAI-compatible settings.  Keep all
 # secrets in the runner/Actions secret store; never put them in the repository.
-export CONFIG__GITHUB__USER_TOKEN="$PR_AGENT_GITHUB_TOKEN"
-export CONFIG__GITHUB__DEPLOYMENT_TYPE="user"
-export CONFIG__OPENAI__KEY="$OPENAI_API_KEY"
-export CONFIG__OPENAI__API_BASE="$OPENAI_BASE_URL"
-export CONFIG__CONFIG__GIT_PROVIDER="github"
+# Dynaconf is configured with envvar_prefix=false, so nested settings use
+# SECTION__KEY (not CONFIG__SECTION__KEY).
+export GITHUB__USER_TOKEN="$PR_AGENT_GITHUB_TOKEN"
+export GITHUB__DEPLOYMENT_TYPE="user"
+export OPENAI__KEY="$OPENAI_API_KEY"
+export OPENAI__API_BASE="$OPENAI_BASE_URL"
+export CONFIG__GIT_PROVIDER="github"
 
 exec "$PR_AGENT_BIN" -m pr_agent.cli \
   --pr_url="$PR_URL" \
