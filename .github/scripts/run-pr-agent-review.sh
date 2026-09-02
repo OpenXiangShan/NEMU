@@ -38,5 +38,5 @@ export CONFIG__CONFIG__GIT_PROVIDER="github"
 
 exec "$PR_AGENT_BIN" -m pr_agent.cli \
   --pr_url="$PR_URL" \
-  --config_path="$GITHUB_WORKSPACE/.github/pr-agent/.pr_agent.toml" \
+  --extra_config_url="$GITHUB_WORKSPACE/.github/pr-agent/.pr_agent.toml" \
   review
