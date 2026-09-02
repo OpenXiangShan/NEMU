@@ -1,0 +1,33 @@
+name: Review CI (PR 1192 test)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    # Temporary bootstrap workflow. Remove this file after PR #1192 has been
+    # reviewed; the permanent pull_request_target workflow then takes over.
+    if: github.event.pull_request.number == 1192 && github.event.pull_request.draft == false
+    runs-on: bosc
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PR files
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Run local PR-Agent review
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AGENT_BIN: /nfs/home/fengkehan/.local/pr-agent-venv/bin/python
+          PR_AGENT_GITHUB_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ""
+          OPENAI_BASE_URL: ""
+        run: bash .github/scripts/run-pr-agent-review.sh
