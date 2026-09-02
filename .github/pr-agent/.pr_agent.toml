@@ -1,0 +1,16 @@
+# Repository-specific defaults for the self-hosted PR-Agent review job.
+# Credentials and the model endpoint are supplied by the runner environment.
+
+[config]
+git_provider = "github"
+model = "gpt-5.6"
+response_language = "zh-CN"
+publish_output = true
+publish_output_progress = true
+ai_timeout = 300
+
+[pr_reviewer]
+num_max_findings = 5
+require_tests_review = true
+require_security_review = true
+extra_instructions = "请重点关注 C/C++ 内存安全、未定义行为、并发/锁、RISC-V ISA 语义、错误处理和回归测试。只报告有证据的问题，并给出文件/行号和修复建议。"
