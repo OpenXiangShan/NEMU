@@ -42,6 +42,36 @@ word_t mtvaltmp  = 0;
 void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 // reference: v_ext_macros.h in riscv-isa-sim
 
+static inline void get_vreg_elem(uint64_t reg, uint64_t idx,
+                                 rtlreg_t *dst, uint64_t vsew,
+                                 bool is_signed) {
+  uint64_t shift = __builtin_ctz(VENUM8) - vsew;
+  uint64_t elem_reg = reg + (idx >> shift);
+  uint64_t elem_idx = idx & ((1ul << shift) - 1);
+  switch (vsew) {
+    case 0: *dst = is_signed ? (int64_t)(int8_t)cpu.vr[elem_reg]._8[elem_idx]
+                             : cpu.vr[elem_reg]._8[elem_idx]; break;
+    case 1: *dst = is_signed ? (int64_t)(int16_t)cpu.vr[elem_reg]._16[elem_idx]
+                             : cpu.vr[elem_reg]._16[elem_idx]; break;
+    case 2: *dst = is_signed ? (int64_t)(int32_t)cpu.vr[elem_reg]._32[elem_idx]
+                             : cpu.vr[elem_reg]._32[elem_idx]; break;
+    case 3: *dst = cpu.vr[elem_reg]._64[elem_idx]; break;
+  }
+}
+
+static inline void set_vreg_elem(uint64_t reg, uint64_t idx,
+                                 rtlreg_t src, uint64_t vsew) {
+  uint64_t shift = __builtin_ctz(VENUM8) - vsew;
+  uint64_t elem_reg = reg + (idx >> shift);
+  uint64_t elem_idx = idx & ((1ul << shift) - 1);
+  switch (vsew) {
+    case 0: cpu.vr[elem_reg]._8[elem_idx] = src; break;
+    case 1: cpu.vr[elem_reg]._16[elem_idx] = src; break;
+    case 2: cpu.vr[elem_reg]._32[elem_idx] = src; break;
+    case 3: cpu.vr[elem_reg]._64[elem_idx] = src; break;
+  }
+}
+
 static inline bool skip_empty_vldst(Decode *s) {
   if (!check_vstart_ignore(s)) {
     return false;
@@ -394,7 +424,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
         if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {
-            set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+            set_vreg_elem(vd + fn * emul, idx, tmp_reg[1], eew);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
           }
         }
@@ -416,7 +446,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
       }
       // set vreg after all segment done with no exception
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+        set_vreg_elem(vd + fn * emul, idx, vloadBuf[fn], eew);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
       }
     }
@@ -428,7 +458,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
     for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+        set_vreg_elem(vd + fn * emul, idx, tmp_reg[1], eew);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
       }
     }
@@ -483,7 +513,7 @@ void vldx(Decode *s, int mmu_mode) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
-          set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
+          set_vreg_elem(vd + fn * lmul, idx, tmp_reg[1], eew);
           IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * lmul, idx, tmp_reg[1], eew));
         }
       }
@@ -491,7 +521,7 @@ void vldx(Decode *s, int mmu_mode) {
     }
     for (fn = 0; fn < nf; fn++) {
       // read index
-      get_vreg(id_src2->reg, idx, &tmp_reg[2], index_width, 0, 0, 0);
+      get_vreg_elem(id_src2->reg, idx, &tmp_reg[2], index_width, false);
       index = tmp_reg[2];
 
       // read data in memory
@@ -511,7 +541,7 @@ void vldx(Decode *s, int mmu_mode) {
 
     // set vreg after all segment done with no exception
     for (fn = 0; fn < nf; fn++) {
-      set_vreg(vd + fn * lmul, idx, vloadBuf[fn], eew, 0, 0);
+      set_vreg_elem(vd + fn * lmul, idx, vloadBuf[fn], eew);
       IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * lmul, idx, vec_load_diffteset_buf[fn], eew));
     }
   }
@@ -521,7 +551,7 @@ void vldx(Decode *s, int mmu_mode) {
     for(int idx = vl->val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * lmul, idx, tmp_reg[1], eew, 0, 0);
+        set_vreg_elem(vd + fn * lmul, idx, tmp_reg[1], eew);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * lmul, idx, tmp_reg[1], eew));
       }
     }
@@ -668,7 +698,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
         continue;
       }
       for (unsigned fn = 0; fn < nf; fn++) {
-        get_vreg(vd + fn * emul, idx, &tmp_reg[1], eew, 0, 0, 0);
+        get_vreg_elem(vd + fn * emul, idx, &tmp_reg[1], eew, false);
         uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
         addr = base_addr + offset;
         if (!fast_vse) {
@@ -737,11 +767,11 @@ void vstx(Decode *s, int mmu_mode) {
     }
     for (fn = 0; fn < nf; fn++) {
       // read index
-      get_vreg(id_src2->reg, idx, &tmp_reg[2], index_width, 0, 0, 0);
+      get_vreg_elem(id_src2->reg, idx, &tmp_reg[2], index_width, false);
       index = tmp_reg[2];
 
       // read data in vector register
-      get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
+      get_vreg_elem(vd + fn * lmul, idx, &tmp_reg[1], eew, false);
       addr = base_addr + index + fn * data_width;
 
       IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
@@ -1083,7 +1113,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           if (RVV_AGNOSTIC && vtype->vma) {
             tmp_reg[1] = (uint64_t) -1;
             for (fn = 0; fn < nf; fn++) {
-              set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+              set_vreg_elem(vd + fn * emul, idx, tmp_reg[1], eew);
               IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
             }
           }
@@ -1105,14 +1135,14 @@ void vldff(Decode *s, int mode, int mmu_mode) {
           } else {
             rtl_lm(s, &tmp_reg[1], &addr, 0, s->v_width, mmu_mode);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_load_difftest_info(fn, s->v_width));
-            set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+            set_vreg_elem(vd + fn * emul, idx, tmp_reg[1], eew);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
           }
 
         }
         if (fofvl == 0) {
           for (fn = 0; fn < nf; fn++) {
-            set_vreg(vd + fn * emul, idx, vloadBuf[fn], eew, 0, 0);
+            set_vreg_elem(vd + fn * emul, idx, vloadBuf[fn], eew);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, vec_load_diffteset_buf[fn], eew));
           }
         }
@@ -1135,7 +1165,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {
-            set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+            set_vreg_elem(vd + fn * emul, idx, tmp_reg[1], eew);
             IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
           }
         }
@@ -1149,7 +1179,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
     for(int idx = vl_val; idx < vlmax; idx++) {
       tmp_reg[1] = (uint64_t) -1;
       for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+        set_vreg_elem(vd + fn * emul, idx, tmp_reg[1], eew);
         IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
       }
     }
