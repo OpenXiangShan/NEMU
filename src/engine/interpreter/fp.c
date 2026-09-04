@@ -86,6 +86,7 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
   if (op < FPCALL_NEED_RM) {
     uint32_t rm = isa_fp_get_rm(s);
     softfloat_roundingMode = rm;
+    IFDEF(CONFIG_FPU_HOST, fp_set_rm(rm)); // apply the RISC-V rounding mode to the host fenv
     isa_fp_rm_check(softfloat_roundingMode);
   }
   if (w == FPCALL_W16) {
