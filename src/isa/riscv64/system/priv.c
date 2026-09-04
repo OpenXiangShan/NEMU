@@ -3770,10 +3770,24 @@ void riscv64_priv_wfi() {
 #ifdef CONFIG_HAS_CLINT
   void update_riscv_timer();
   update_riscv_timer();
+  // Spec: WFI must resume when an interrupt is pending at any privilege
+  // level (mtopi/stopi/vstopi != 0), independent of mie/mip enables.
+  // isa_query_intr() means "deliverable now" and misses AIA hvictl.VTI
+  // paths that set vstopi without touching mip (#1056).
+#ifdef CONFIG_RV_IMSIC
+  update_mtopi();
+  update_stopi();
+  update_vstopi();
+  if (mtopi->val == 0 && stopi->val == 0 && vstopi->val == 0) {
+    void timer_wait_for_interrupt();
+    timer_wait_for_interrupt();
+  }
+#else
   if (isa_query_intr() == INTR_EMPTY) {
     void timer_wait_for_interrupt();
     timer_wait_for_interrupt();
   }
+#endif // CONFIG_RV_IMSIC
 #endif // CONFIG_HAS_CLINT
 
 set_sys_state_flag(SYS_STATE_UPDATE);
