@@ -686,6 +686,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MVIEN_MASK (LCI | (1 << IRQ_S_EXT) | (1 << IRQ_S_SOFT))
 // hvien
 #define HVIEN_MASK LCI
+// hvictl
+#define HVICTL_MASK (HVICTL_VTI | HVICTL_IID | HVICTL_DPR | HVICTL_IPRIOM | HVICTL_IPRIO)
 
 // mvip
 #define MVIP_MASK LCI
@@ -1933,6 +1935,9 @@ static word_t csr_read(uint32_t csrid) {
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: return hvien->val & HVIEN_MASK;
 #endif
+#ifdef CONFIG_RV_IMSIC
+    case CSR_HVICTL: return hvictl->val & HVICTL_MASK;
+#endif
     case CSR_HENVCFG:
     {
       uint64_t henvcfg_out = henvcfg->val;
@@ -2457,6 +2462,9 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MASK, src); break;
 #endif // CONFIG_RV_AIA
+#ifdef CONFIG_RV_IMSIC
+    case CSR_HVICTL: hvictl->val = mask_bitset(hvictl->val, HVICTL_MASK, src); break;
+#endif // CONFIG_RV_IMSIC
 
     case CSR_HENVCFG:
       henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~HENVCFG_WMASK_PMM), src);
