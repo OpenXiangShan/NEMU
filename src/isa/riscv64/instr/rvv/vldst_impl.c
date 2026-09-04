@@ -254,6 +254,67 @@ void set_vec_load_difftest_info(int fn, int len) {
 }
 #endif // CONFIG_MULTICORE_DIFF
 
+#if defined(CONFIG_SHARE_REF) && !defined(CONFIG_MULTICORE_DIFF)
+static inline rtlreg_t vld_translate_vl8_load(Decode *s, vaddr_t addr, int width, uint64_t idx) {
+  vstart->val = idx;
+#ifdef CONFIG_TDATA1_MCONTROL6
+  if (trigger_mcontrol6_active(cpu.TM)) {
+    trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE);
+    trigger_handler(TRIG_TYPE_MCONTROL6, action, addr);
+  }
+#endif
+  isa_vec_misalign_data_addr_check(addr, width, MEM_TYPE_READ);
+  rtlreg_t value;
+  rtl_lm(s, &value, &addr, 0, width, MMU_TRANSLATE);
+  return value;
+}
+
+static inline void vld_translate_vl8_fill_tail(uint64_t vd, int first_full_reg) {
+  for (int reg = first_full_reg; reg < 8; reg++) {
+    memset(&cpu.vr[vd + reg], 0xff, sizeof(cpu.vr[vd + reg]));
+  }
+}
+
+bool vld_unit_mmu_translate_vl8_hot(Decode *s) {
+  bool vle8 = s->v_width == 1 && vtype->vsew == 0;
+  bool vle32 = s->v_width == 4 && vtype->vsew == 2;
+  if (!(vle8 || vle32) || s->v_nf != 0 || s->vm == 0 ||
+      vtype->vlmul != 3 || vl->val != 8 || vstart->val != 0) {
+    return false;
+  }
+
+  vload_check(MODE_UNIT, s);
+  if (check_vstart_ignore(s)) return true;
+
+  rtl_lr(s, &s->src1.val, s->src1.reg, 4);
+  vaddr_t base = s->src1.val;
+  uint64_t vd = id_dest->reg;
+
+  if (vle8) {
+    for (uint64_t idx = 0; idx < 8; idx++) {
+      cpu.vr[vd]._8[idx] = vld_translate_vl8_load(s, base + idx, 1, idx);
+    }
+    if (RVV_AGNOSTIC && vtype->vta) {
+      memset(&cpu.vr[vd]._8[8], 0xff, sizeof(cpu.vr[vd]._8) - 8);
+      vld_translate_vl8_fill_tail(vd, 1);
+    }
+  } else {
+    for (uint64_t idx = 0; idx < 8; idx++) {
+      cpu.vr[vd + idx / 4]._32[idx % 4] =
+          vld_translate_vl8_load(s, base + idx * 4, 4, idx);
+    }
+    if (RVV_AGNOSTIC && vtype->vta) {
+      vld_translate_vl8_fill_tail(vd, 2);
+    }
+  }
+
+  vstart->val = 0;
+  cpu.isVldst = false;
+  vp_set_dirty();
+  return true;
+}
+#endif
+
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
   if (skip_empty_vldst(s)) return;
