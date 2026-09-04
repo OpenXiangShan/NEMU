@@ -22,6 +22,8 @@ def_EHelper(jal) {
 }
 
 def_EHelper(jalr) {
+  riscv64_zicfilp_update_elp(s);
+
   // Described at 2.5 Control Transter Instructions
   // The target address is obtained by adding the sign-extended 12-bit I-immediate to the register rs1
   rtl_addi(s, s0, dsrc1, id_src2->imm);

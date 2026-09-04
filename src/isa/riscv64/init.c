@@ -85,6 +85,9 @@ void init_isa() {
 #ifdef CONFIG_RV_SMRNMI
   mnstatus->val = 0;
   mnstatus->nmie = ISDEF(CONFIG_NMIE_INIT);
+#ifdef CONFIG_DEBUG
+  Log("mnstatus->nmie initialized to %d", mnstatus->nmie);
+#endif
 #endif //CONFIG_RV_SMRNMI
 
 #ifdef CONFIG_RV_SSTC
