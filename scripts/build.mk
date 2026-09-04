@@ -16,8 +16,12 @@ XINC_DIR = $(INC_DIR) $(WORK_DIR)/resource
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
-CC ?= gcc
-CXX ?= g++
+ifeq ($(strip $(CC)),)
+CC := gcc
+endif
+ifeq ($(strip $(CXX)),)
+CXX := g++
+endif
 
 ifdef PGO_PROF
 PGO_FLAGS = -fprofile-generate -fprofile-dir=$(NEMU_HOME)/profile
