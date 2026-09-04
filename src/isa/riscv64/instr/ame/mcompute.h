@@ -60,9 +60,10 @@ def_EHelper(mmacc) {
   uint8_t s2size = get_size(s2mcfg);
   // Check validity of tile size
   bool tilem_valid = tile_m <= ROWNUM;
-  bool tilen_valid = tile_n <= ROWNUM && tile_n <= (ARLEN >> dsize);
-  bool tilek_valid = tile_k <= (uint64_t)(TRLEN >> s1size) * get_pack(s1mcfg) &&
-                     tile_k <= (uint64_t)(TRLEN >> s2size) * get_pack(s2mcfg);
+  bool tilen_valid = tile_n <= ROWNUM &&
+                     tile_n <= (ARENUM8 >> dsize);
+  bool tilek_valid = tile_k <= (TRENUM8 >> s1size) * get_pack(s1mcfg) &&
+                     tile_k <= (TRENUM8 >> s2size) * get_pack(s2mcfg);
   if (!tilem_valid || !tilen_valid || !tilek_valid) {
     longjmp_exception(EX_II);
   }
@@ -110,6 +111,8 @@ def_EHelper(mmacc) {
     }
 #endif
   } else /* MMACC_TYPE_FLOAT */ {
+#ifndef CONFIG_FPU_NONE
+    ame_fp_matrix_begin(mfrm->val);
     float_mmacc_type_t float_mmacc_type = get_float_mmacc_type(
       dmcfg.type_code, s1mcfg.type_code, s2mcfg.type_code
     );
@@ -119,7 +122,7 @@ def_EHelper(mmacc) {
       float_mmacc_type, mfrm->val
     );
     if (!auto_vectorized) {
-#endif
+#endif // CONFIG_AME_MMACC_VECTORIZE
     word_t FPCALL_TYPE;
     switch (float_mmacc_type) {
       case FLOAT_MMACC_FP16_FP16_FP16:
@@ -154,7 +157,14 @@ def_EHelper(mmacc) {
     }
 #ifdef CONFIG_AME_MMACC_VECTORIZE
     }
-#endif
+#endif // CONFIG_AME_MMACC_VECTORIZE
+    const uint32_t matrix_fp_mask = FPCALL_EX_NX | FPCALL_EX_UF |
+                                    FPCALL_EX_OF | FPCALL_EX_NV;
+    mfflags->val |= ame_fp_matrix_end() & matrix_fp_mask;
+    mcsr->mfflags = mfflags->val;
+#else // CONFIG_FPU_NONE
+    longjmp_exception(EX_II);
+#endif // CONFIG_FPU_NONE
   }
 #endif // CONFIG_SHARE_REF
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)

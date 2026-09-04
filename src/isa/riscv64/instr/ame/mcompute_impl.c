@@ -23,7 +23,73 @@
 #include <fenv.h>
 #include <float.h>
 #include <rtl/fp.h>
+#ifdef CONFIG_FPU_SOFT
+#include <softfloat.h>
+#endif // CONFIG_FPU_SOFT
 #include "mcommon.h"
+
+#ifndef CONFIG_FPU_NONE
+void isa_fp_rm_check(uint32_t rm);
+
+void ame_fp_matrix_begin(uint32_t rm) {
+  isa_fp_rm_check(rm);
+#ifdef CONFIG_FPU_HOST
+  static const int host_rounding_modes[] = {
+    FE_TONEAREST, FE_TOWARDZERO, FE_DOWNWARD, FE_UPWARD, FE_TONEAREST,
+  };
+  fesetround(host_rounding_modes[rm]);
+  feclearexcept(FE_ALL_EXCEPT);
+#else
+  static const uint_fast8_t softfloat_rounding_modes[] = {
+    softfloat_round_near_even,
+    softfloat_round_minMag,
+    softfloat_round_min,
+    softfloat_round_max,
+    softfloat_round_near_maxMag,
+  };
+  softfloat_roundingMode = softfloat_rounding_modes[rm];
+  softfloat_exceptionFlags = 0;
+#endif // CONFIG_FPU_HOST
+}
+
+uint32_t ame_fp_matrix_end(void) {
+  uint32_t ex = 0;
+#ifdef CONFIG_FPU_HOST
+  // Host-FPU scalar operations intentionally do not update the architectural
+  // fflags CSR. Matrix operations have their own sticky mfflags, so collect
+  // and clear host exceptions only within this matrix-instruction boundary.
+  int host_ex = fetestexcept(FE_ALL_EXCEPT);
+  if (host_ex & FE_INEXACT) {
+    ex |= FPCALL_EX_NX;
+  }
+  if (host_ex & FE_UNDERFLOW) {
+    ex |= FPCALL_EX_UF;
+  }
+  if (host_ex & FE_OVERFLOW) {
+    ex |= FPCALL_EX_OF;
+  }
+  if (host_ex & FE_INVALID) {
+    ex |= FPCALL_EX_NV;
+  }
+  feclearexcept(FE_ALL_EXCEPT);
+#else
+  if (softfloat_exceptionFlags & softfloat_flag_inexact) {
+    ex |= FPCALL_EX_NX;
+  }
+  if (softfloat_exceptionFlags & softfloat_flag_underflow) {
+    ex |= FPCALL_EX_UF;
+  }
+  if (softfloat_exceptionFlags & softfloat_flag_overflow) {
+    ex |= FPCALL_EX_OF;
+  }
+  if (softfloat_exceptionFlags & softfloat_flag_invalid) {
+    ex |= FPCALL_EX_NV;
+  }
+  softfloat_exceptionFlags = 0;
+#endif // CONFIG_FPU_HOST
+  return ex;
+}
+#endif // CONFIG_FPU_NONE
 
 void require_matrix() {
   // if (mstatus->ms == 0) {
@@ -52,36 +118,23 @@ uint8_t get_pack(mcfg_t cfg) {
   }
 }
 
-mmacc_type_t get_mmacc_type(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
-  uint32_t s1_mask = 1u << s1cfg.type_code;
-  uint32_t s2_mask = 1u << s2cfg.type_code;
-  uint32_t d_mask = 1u << dcfg.type_code;
-  const uint32_t int_mask = (1u << MTYPECODE_INT4) | (1u << MTYPECODE_UINT4) |
-                            (1u << MTYPECODE_INT8) | (1u << MTYPECODE_UINT8) |
-                            (1u << MTYPECODE_INT32);
-
-  if ((s1_mask & int_mask) && (s2_mask & int_mask) && (d_mask & int_mask)) {
-    return MMACC_TYPE_INTEGER;
-  } else if (get_float_mmacc_type(
-        dcfg.type_code, s1cfg.type_code, s2cfg.type_code
-      ) != FLOAT_MMACC_UNSUPPORTED) {
-    return MMACC_TYPE_FLOAT;
-  } else {
-    return MMACC_TYPE_INVALID;
+int_mmacc_type_t get_int_mmacc_type(
+  uint64_t d_type, uint64_t s1_type, uint64_t s2_type
+) {
+  if (d_type != MTYPECODE_INT32) {
+    return INT_MMACC_UNSUPPORTED;
   }
-}
-
-bool is_signed_int_mtype(uint64_t type_code) {
-  switch (type_code) {
-    case MTYPECODE_UINT4:
-    case MTYPECODE_UINT8:
-      return false;
-    case MTYPECODE_INT4:
-    case MTYPECODE_INT8:
-    case MTYPECODE_INT32:
-    default:
-      return true;
+  bool s1_int4 = s1_type == MTYPECODE_INT4 || s1_type == MTYPECODE_UINT4;
+  bool s2_int4 = s2_type == MTYPECODE_INT4 || s2_type == MTYPECODE_UINT4;
+  if (s1_int4 && s2_int4) {
+    return INT_MMACC_INT4_INT4_INT32;
   }
+  bool s1_int8 = s1_type == MTYPECODE_INT8 || s1_type == MTYPECODE_UINT8;
+  bool s2_int8 = s2_type == MTYPECODE_INT8 || s2_type == MTYPECODE_UINT8;
+  if (s1_int8 && s2_int8) {
+    return INT_MMACC_INT8_INT8_INT32;
+  }
+  return INT_MMACC_UNSUPPORTED;
 }
 
 float_mmacc_type_t get_float_mmacc_type(
@@ -101,6 +154,37 @@ float_mmacc_type_t get_float_mmacc_type(
     return FLOAT_MMACC_FP32_FP32_FP32;
   } else {
     return FLOAT_MMACC_UNSUPPORTED;
+  }
+}
+
+mmacc_type_t get_mmacc_type(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
+  if (s1cfg.table_set != 0 || s2cfg.table_set != 0 || dcfg.table_set != 0) {
+    return MMACC_TYPE_INVALID;
+  }
+  if (get_int_mmacc_type(
+        dcfg.type_code, s1cfg.type_code, s2cfg.type_code
+      ) != INT_MMACC_UNSUPPORTED) {
+    return MMACC_TYPE_INTEGER;
+  }
+
+  if (get_float_mmacc_type(
+        dcfg.type_code, s1cfg.type_code, s2cfg.type_code
+      ) != FLOAT_MMACC_UNSUPPORTED) {
+    return MMACC_TYPE_FLOAT;
+  }
+  return MMACC_TYPE_INVALID;
+}
+
+bool is_signed_int_mtype(uint64_t type_code) {
+  switch (type_code) {
+    case MTYPECODE_UINT4:
+    case MTYPECODE_UINT8:
+      return false;
+    case MTYPECODE_INT4:
+    case MTYPECODE_INT8:
+    case MTYPECODE_INT32:
+    default:
+      return true;
   }
 }
 
@@ -488,15 +572,11 @@ bool try_auto_vectorized_int8_mmacc(
   uint64_t d_type, uint64_t s1_type, uint64_t s2_type,
   bool saturation
 ) {
-  bool valid_registers = td >= 4 && td < 8 &&
-                         ts1 >= 0 && ts1 < 4 &&
-                         ts2 >= 0 && ts2 < 4;
   bool valid_types = d_type == MTYPECODE_INT32 &&
                      (s1_type == MTYPECODE_INT8 || s1_type == MTYPECODE_UINT8) &&
                      (s2_type == MTYPECODE_INT8 || s2_type == MTYPECODE_UINT8);
   const uint64_t max_safe_tile_k = INT32_MAX / (UINT8_MAX * UINT8_MAX);
-  if (!valid_registers || !valid_types || saturation ||
-      tile_k > max_safe_tile_k) {
+  if (!valid_types || saturation || tile_k > max_safe_tile_k) {
     return false;
   }
 

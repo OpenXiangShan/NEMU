@@ -35,6 +35,12 @@ typedef enum {
 } mmacc_type_t;
 
 typedef enum {
+  INT_MMACC_UNSUPPORTED,
+  INT_MMACC_INT4_INT4_INT32,
+  INT_MMACC_INT8_INT8_INT32,
+} int_mmacc_type_t;
+
+typedef enum {
   FLOAT_MMACC_UNSUPPORTED,
   FLOAT_MMACC_FP16_FP16_FP16,
   FLOAT_MMACC_FP16_FP16_FP32,
@@ -42,11 +48,20 @@ typedef enum {
   FLOAT_MMACC_FP32_FP32_FP32,
 } float_mmacc_type_t;
 
-mmacc_type_t get_mmacc_type(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg);
+int_mmacc_type_t get_int_mmacc_type(
+  uint64_t d_type, uint64_t s1_type, uint64_t s2_type
+);
 
 float_mmacc_type_t get_float_mmacc_type(
   uint64_t d_type, uint64_t s1_type, uint64_t s2_type
 );
+
+mmacc_type_t get_mmacc_type(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg);
+
+#ifndef CONFIG_FPU_NONE
+void ame_fp_matrix_begin(uint32_t rm);
+uint32_t ame_fp_matrix_end(void);
+#endif // CONFIG_FPU_NONE
 
 #ifdef CONFIG_AME_MMACC_VECTORIZE
 bool try_auto_vectorized_int8_mmacc(
