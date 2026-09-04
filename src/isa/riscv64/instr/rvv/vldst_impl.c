@@ -163,9 +163,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
   switch (eew) {
   case 0: {
     for (word_t i = vstart->val; i < vl_val; i++) {
-      masks[i] = get_mask(0, i) ? 0xff : 0;
+      masks[i] = (s->vm != 0 || get_mask(0, i)) ? 0xff : 0;
       Logm("masks[%ld] = %x", i, masks[i]);
-      masks[i] |= s->vm != 0 ? 0xff : 0;
       count += masks[i] != 0;
     };
     break;
@@ -174,9 +173,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
     uint16_t *x_masks = (uint16_t *)masks;
     for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 64, "vl_val > 64");
-      x_masks[i] = get_mask(0, i) ? 0xffff : 0;
+      x_masks[i] = (s->vm != 0 || get_mask(0, i)) ? 0xffff : 0;
       Logm("xmasks[%ld] = %x", i, x_masks[i]);
-      x_masks[i] |= s->vm != 0 ? 0xffff : 0;
       count += x_masks[i] != 0;
     };
     break;
@@ -185,9 +183,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
     uint32_t *x_masks = (uint32_t *)masks;
     for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 32, "vl_val > 32");
-      x_masks[i] = get_mask(0, i) ? ~0U : 0;
+      x_masks[i] = (s->vm != 0 || get_mask(0, i)) ? ~0U : 0;
       Logm("xmasks[%ld] = %x", i, x_masks[i]);
-      x_masks[i] |= s->vm != 0 ? ~0U : 0;
       count += x_masks[i] != 0;
     };
     break;
@@ -196,9 +193,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
     uint64_t *x_masks = (uint64_t *)masks;
     for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 16, "vl_val > 16");
-      x_masks[i] = get_mask(0, i) ? ~(0UL) : 0;
+      x_masks[i] = (s->vm != 0 || get_mask(0, i)) ? ~(0UL) : 0;
       Logm("xmasks[%ld] = %lx", i, x_masks[i]);
-      x_masks[i] |= s->vm != 0 ? ~(0UL) : 0;
       count += x_masks[i] != 0;
     }
     break;
@@ -373,8 +369,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   if (!fast_vle) {  // this block is the original slow path
     for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-      rtlreg_t mask = get_mask(0, idx);
-      if (s->vm == 0 && mask == 0) {
+      if (s->vm == 0 && get_mask(0, idx) == 0) {
         if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {
@@ -463,8 +458,7 @@ void vldx(Decode *s, int mmu_mode) {
   uint64_t vloadBuf[8];
 
   for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx);
-    if (s->vm == 0 && mask == 0) {
+    if (s->vm == 0 && get_mask(0, idx) == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
@@ -637,8 +631,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   // We enter this block if we are not able to optimize the store or we are debugging fast VSE
   if (!fast_vse || ISDEF(DEBUG_FAST_VSE)) {  // this block is the original slow path
     for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-      rtlreg_t mask = get_mask(0, idx);
-      if (s->vm == 0 && mask == 0) {
+      if (s->vm == 0 && get_mask(0, idx) == 0) {
 #ifdef DEBUG_FAST_VSE
         if (ISNDEF(CONFIG_SHARE) && ISDEF(CONFIG_DIFFTEST_STORE_COMMIT) && simple_vse) {
           uint64_t offset = idx * stride + (idx * nf * is_unit_stride + 0) * s->v_width;
@@ -718,8 +711,7 @@ void vstx(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx);
-    if (s->vm == 0 && mask == 0) {
+    if (s->vm == 0 && get_mask(0, idx) == 0) {
       continue;
     }
     for (fn = 0; fn < nf; fn++) {
@@ -1060,8 +1052,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         stvaltmp  = stval->val;
         mtvaltmp  = mtval->val;
 
-        rtlreg_t mask = get_mask(0, idx);
-        if (s->vm == 0 && mask == 0) {
+        if (s->vm == 0 && get_mask(0, idx) == 0) {
           if (RVV_AGNOSTIC && vtype->vma) {
             tmp_reg[1] = (uint64_t) -1;
             for (fn = 0; fn < nf; fn++) {
@@ -1113,8 +1104,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   */
   if(fofvl < (vl_val - 1)){ // set mask of vector element to 1
     for (uint64_t idx = fofvl; idx < vl_val; idx++) {
-      rtlreg_t mask = get_mask(0, idx);
-      if (s->vm == 0 && mask == 0) {
+      if (s->vm == 0 && get_mask(0, idx) == 0) {
         if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {
