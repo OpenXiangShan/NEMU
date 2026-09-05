@@ -60,6 +60,7 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type);
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode);
 bool isa_pma_check_permission(paddr_t addr, int len, int type);
+bool isa_pma_check_atomic_permission(paddr_t addr, int len);
 #ifdef CONFIG_RV_MBMC
 /**
  * @brief Check if the address is in the confidential memory.

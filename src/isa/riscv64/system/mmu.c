@@ -1325,3 +1325,46 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
   return true;
 #endif
 }
+
+bool isa_pma_check_atomic_permission(paddr_t addr, int len) {
+#ifdef CONFIG_RV_PMA_CHECK
+  if (CONFIG_RV_PMA_ACTIVE_NUM == 0) {
+    return true;
+  }
+
+  word_t base = 0;
+  for (int i = 0; i < CONFIG_RV_PMA_ACTIVE_NUM; i++) {
+    word_t pmaaddr = pmaaddr_from_index(i);
+    word_t tor = (pmaaddr & pma_tor_mask()) << PMA_SHIFT;
+    uint8_t cfg = pmacfg_from_index(i);
+
+    if (cfg & PMA_A) {
+      bool is_tor = (cfg & PMA_A) == PMA_TOR;
+      bool is_na4 = (cfg & PMA_A) == PMA_NA4;
+      word_t mask = (pmaaddr << 1) | (!is_na4) | ~pma_tor_mask();
+      mask = ~(mask & ~(mask + 1)) << PMA_SHIFT;
+
+      bool any_match = false;
+      bool all_match = true;
+      for (word_t offset = 0; offset < len; offset += 1 << PMA_SHIFT) {
+        word_t cur_addr = addr + offset;
+        bool napot_match = ((cur_addr ^ tor) & mask) == 0;
+        bool tor_match = base <= cur_addr && cur_addr < tor;
+        bool match = is_tor ? tor_match : napot_match;
+        any_match |= match;
+        all_match &= match;
+      }
+
+      if (any_match) {
+        return all_match && (cfg & PMA_R) && (cfg & PMA_T);
+      }
+    }
+
+    base = tor;
+  }
+
+  return false;
+#else
+  return true;
+#endif
+}
