@@ -182,11 +182,12 @@ config CC_ASAN
 
 config AME_MMACC_VECTORIZE
   depends on RV_AME && !SHARE
-  bool "Enable AME integer MMACC optimization"
+  bool "Enable AME MMACC optimization"
   default n
   help
-    Enable an optimized execution path for supported AME integer MMACC
-    operations. Unsupported combinations use the scalar implementation.
+    Enable optimized execution paths for supported AME integer and
+    floating-point MMACC operations. Unsupported combinations use the scalar
+    implementation.
 
 config AME_MLDST_VECTORIZE
   depends on RV_AME && !SHARE

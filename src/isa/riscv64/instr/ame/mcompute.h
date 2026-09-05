@@ -66,21 +66,15 @@ def_EHelper(mmacc) {
   if (!tilem_valid || !tilen_valid || !tilek_valid) {
     longjmp_exception(EX_II);
   }
-  // Check combination of ms1/ms2 and md type
-  int8_t comb = check_comb(s1mcfg, s2mcfg, dmcfg);
-  if (comb == -1) {
-    // Invalid type combination
+  mmacc_type_t mmacc_type = get_mmacc_type(s1mcfg, s2mcfg, dmcfg);
+  if (mmacc_type == MMACC_TYPE_INVALID) {
     longjmp_exception(EX_II);
   }
-#if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
-  uint8_t m_s_sz = s1size;
-  uint8_t m_d_sz = dsize;
-#endif
   bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
   bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
 #ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
-  if (comb == 0) /* int mma */ {
+  if (mmacc_type == MMACC_TYPE_INTEGER) {
 #ifdef CONFIG_AME_MMACC_VECTORIZE
     bool auto_vectorized = try_auto_vectorized_int8_mmacc(
       td, ts1, ts2, tile_m, tile_n, tile_k,
@@ -115,40 +109,35 @@ def_EHelper(mmacc) {
 #ifdef CONFIG_AME_MMACC_VECTORIZE
     }
 #endif
-  } else /* comb == 1, float mma */ {
-    word_t FPCALL_TYPE = FPCALL_W64;
-    bool bf16_bf16_to_fp32 = s1mcfg.type_code == MTYPECODE_BF16 &&
-                             s2mcfg.type_code == MTYPECODE_BF16 &&
-                             dmcfg.type_code == MTYPECODE_FP32;
-    switch (s1size) {
-      case 0:
-        Loge("fp8 and lower precision's mma not supported"); longjmp_exception(EX_II);
+  } else /* MMACC_TYPE_FLOAT */ {
+    float_mmacc_type_t float_mmacc_type = get_float_mmacc_type(
+      dmcfg.type_code, s1mcfg.type_code, s2mcfg.type_code
+    );
+#ifdef CONFIG_AME_MMACC_VECTORIZE
+    bool auto_vectorized = try_auto_vectorized_float_mmacc(
+      td, ts1, ts2, tile_m, tile_n, tile_k,
+      float_mmacc_type, mfrm->val
+    );
+    if (!auto_vectorized) {
+#endif
+    word_t FPCALL_TYPE;
+    switch (float_mmacc_type) {
+      case FLOAT_MMACC_FP16_FP16_FP16:
+        FPCALL_TYPE = FPCALL_W16;
         break;
-      case 1:
-        switch (dsize) {
-          case 1:
-            FPCALL_TYPE = FPCALL_W16;
-            break;
-          case 2:
-            FPCALL_TYPE = FPCALL_W16_to_32;
-            break;
-          default:
-            Loge("type not supported"); longjmp_exception(EX_II);
-            break;
-        }
+      case FLOAT_MMACC_FP16_FP16_FP32:
+        FPCALL_TYPE = FPCALL_W16_to_32;
         break;
-      case 2:
+      case FLOAT_MMACC_BF16_BF16_FP32:
+        FPCALL_TYPE = FPCALL_BF16;
+        break;
+      case FLOAT_MMACC_FP32_FP32_FP32:
         FPCALL_TYPE = FPCALL_W32;
         break;
-      case 3:
-        FPCALL_TYPE = FPCALL_W64;
-        break;
+      case FLOAT_MMACC_UNSUPPORTED:
       default:
-        Loge("other fp type not supported"); longjmp_exception(EX_II);
-        break;
-    }
-    if (bf16_bf16_to_fp32) {
-      FPCALL_TYPE = FPCALL_BF16;
+        Loge("floating-point mma type not supported");
+        longjmp_exception(EX_II);
     }
     for (uint64_t i = 0; i < tile_m; i++) {
       for (uint64_t j = 0; j < tile_n; j++) {
@@ -163,24 +152,36 @@ def_EHelper(mmacc) {
         }
       }
     }
+#ifdef CONFIG_AME_MMACC_VECTORIZE
+    }
+#endif
   }
 #endif // CONFIG_SHARE_REF
+#if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
+  uint8_t m_s_sz = s1size;
+  uint8_t m_d_sz = dsize;
+  bool is_float_mmacc = mmacc_type == MMACC_TYPE_FLOAT;
+#endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, mxrm->val, msaten->val, comb, ts1, ts2,
-                      mtilem->val, mtilen->val, mtilek->val,
-                      (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
+  amu_ctrl_queue_mma_emplace(
+    td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val,
+    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz
+  );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
-  cutest_mma_emplace(td, msaten->val, comb, ts1, ts2,
-              mtilem->val, mtilen->val, mtilek->val,
-              4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+  cutest_mma_emplace(
+    td, msaten->val, is_float_mmacc, ts1, ts2,
+    mtilem->val, mtilen->val, mtilek->val,
+    4 | m_s_sz, 4 | m_s_sz, m_d_sz
+  );
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,
     "[AmuCtrlIO] op=0 \n"
     "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
-    td, msaten->val, comb, ts1, ts2,
+    td, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, 4 | m_s_sz, m_d_sz);
 #endif // PRINT_AMUCTRLIO
 }
