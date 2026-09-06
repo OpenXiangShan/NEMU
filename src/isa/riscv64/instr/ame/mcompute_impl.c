@@ -120,6 +120,13 @@ float_mmacc_type_t get_float_mmacc_type(
 #define FP32_FRACTION_BITS 23
 #define FP32_EXPONENT_BITS 8
 
+#if defined(__FLT16_MANT_DIG__) && defined(__FLT16_MAX_EXP__) && \
+    __FLT16_MANT_DIG__ == 11 && __FLT16_MAX_EXP__ == 16
+#define HOST_HAS_IEEE_FLOAT16 1
+#else
+#define HOST_HAS_IEEE_FLOAT16 0
+#endif
+
 #define EXPONENT_SHIFT(format) format##_FRACTION_BITS
 #define SIGN_SHIFT(format) \
   (EXPONENT_SHIFT(format) + format##_EXPONENT_BITS)
@@ -254,6 +261,8 @@ static inline float fp16_to_fp32(uint16_t value) {
   return fp32_from_bits(bits);
 }
 
+#if HOST_HAS_IEEE_FLOAT16
+
 static inline uint16_t fp16_from_fp32(float value) {
   _Float16 result = (_Float16)value;
   uint16_t bits;
@@ -322,6 +331,8 @@ static bool mmacc_fp16_fp16_fp16(
   host_fma_env_end(&saved_env);
   return true;
 }
+
+#endif
 
 #define def_auto_vectorized_float16_mmacc( \
   name, to_fp32, format \
@@ -518,8 +529,12 @@ bool try_auto_vectorized_float_mmacc(
   int acc_idx = macc_reg_index(td);
   switch (float_mmacc_type) {
     case FLOAT_MMACC_FP16_FP16_FP16:
+#if HOST_HAS_IEEE_FLOAT16
       return mmacc_fp16_fp16_fp16(
         acc_idx, ts1, ts2, tile_m, tile_n, tile_k, host_rounding_mode);
+#else
+      return false;
+#endif
     case FLOAT_MMACC_FP16_FP16_FP32:
       return mmacc_fp16_fp16_fp32(
         acc_idx, ts1, ts2, tile_m, tile_n, tile_k, host_rounding_mode);
