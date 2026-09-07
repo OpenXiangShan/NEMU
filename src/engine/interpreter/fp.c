@@ -480,7 +480,6 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
 #ifndef CONFIG_FPU_NONE
   uint32_t w = FPCALL_W(cmd);
   uint32_t op = FPCALL_OP(cmd);
-  isa_fp_csr_check();
   
   if (w == FPCALL_W16) {
     float16_t fsrc1 = rtlToVF16(*src1);
