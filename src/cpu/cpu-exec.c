@@ -440,10 +440,13 @@ static void execute(int n) {
     br_taken = false;
 
 #ifdef CONFIG_RV_ZICFILP
-    if (unlikely(cpu.elp == 1)) {
-      uint32_t target_instr = vaddr_ifetch(s->pc, 4);
-      s->isa.instr.val = target_instr; // Ensure EHelper has correct instruction bits for fine-grained check
-      if ((target_instr & 0x00000FFF) != 0x00000017) {
+    // Let an undecoded tcache entry go through isa_fetch_decode() first so
+    // instruction-fetch faults retain priority over the software check.
+    if (unlikely(cpu.elp == 1) && s->EHelper != &&exec_nemu_decode) {
+      // isa_fetch_decode() has already fetched exactly the bytes belonging to
+      // this instruction. Re-fetching four bytes here would incorrectly touch
+      // the next page when the target is a 16-bit instruction at a page end.
+      if ((s->isa.instr.val & 0x00000FFF) != 0x00000017) {
         riscv64_raise_software_check(LANDING_PAD_FAULT);
       }
     }
@@ -751,9 +754,9 @@ static void execute(int n) {
 
 #ifdef CONFIG_RV_ZICFILP
     if (unlikely(cpu.elp == 1)) {
-      uint32_t target_instr = vaddr_ifetch(s.pc, 4);
-      s.isa.instr.val = target_instr; // Ensure EHelper has correct instruction bits for fine-grained check
-      if ((target_instr & 0x00000FFF) != 0x00000017) {
+      // fetch_decode() has already preserved the normal variable-length
+      // instruction-fetch behavior and recorded all of the current instruction.
+      if ((s.isa.instr.val & 0x00000FFF) != 0x00000017) {
         riscv64_raise_software_check(LANDING_PAD_FAULT);
       }
     }
