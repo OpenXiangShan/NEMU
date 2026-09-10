@@ -264,18 +264,41 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
 #define SIMPLE_TCACHE_WAYS 4
 #define SIMPLE_TCACHE_SETS (SIMPLE_TCACHE_SIZE / SIMPLE_TCACHE_WAYS)
 #define SIMPLE_TCACHE_SET_MASK (SIMPLE_TCACHE_SETS - 1)
+#define SIMPLE_TCACHE_INDEX_SHIFT 2
+
+_Static_assert((SIMPLE_TCACHE_SETS & SIMPLE_TCACHE_SET_MASK) == 0,
+               "simple TCache set count must be a power of two");
 
 typedef struct {
-  vaddr_t pc;
+  vaddr_t tag;
   Decode s;
-  int valid;
 } simple_tcache_entry_t;
 
 static simple_tcache_entry_t tcache[SIMPLE_TCACHE_SETS][SIMPLE_TCACHE_WAYS] = {0};
 static uint8_t simple_tcache_next_way[SIMPLE_TCACHE_SETS] = {0};
 
+/* The set lookup already checks the PC bits covered by the set mask, so they
+ * are redundant in the stored tag for every ISA. Reuse those bits as an
+ * invalidation generation: a flush changes the expected tag for every old
+ * entry without walking the Decode array. Generation zero is reserved for
+ * statically zero-initialized entries. PC bits outside the index, including
+ * any unaligned low bits, are preserved. */
+#define SIMPLE_TCACHE_INDEX_TAG_MASK \
+  ((vaddr_t)SIMPLE_TCACHE_SET_MASK << SIMPLE_TCACHE_INDEX_SHIFT)
+static vaddr_t simple_tcache_tag_generation = 1;
+
+static inline vaddr_t simple_tcache_tag(vaddr_t pc) {
+  return ((pc & ~SIMPLE_TCACHE_INDEX_TAG_MASK) |
+          (simple_tcache_tag_generation << SIMPLE_TCACHE_INDEX_SHIFT));
+}
+
+static inline bool simple_tcache_tag_is_current(vaddr_t tag) {
+  return (tag & SIMPLE_TCACHE_INDEX_TAG_MASK) ==
+         (simple_tcache_tag_generation << SIMPLE_TCACHE_INDEX_SHIFT);
+}
+
 static inline int tcache_set_idx(vaddr_t pc) {
-  return (pc >> 2) & SIMPLE_TCACHE_SET_MASK;
+  return (pc >> SIMPLE_TCACHE_INDEX_SHIFT) & SIMPLE_TCACHE_SET_MASK;
 }
 
 static inline simple_tcache_entry_t *tcache_set(vaddr_t pc) {
@@ -283,8 +306,9 @@ static inline simple_tcache_entry_t *tcache_set(vaddr_t pc) {
 }
 
 static inline simple_tcache_entry_t *tcache_find(simple_tcache_entry_t *set, vaddr_t pc) {
+  const vaddr_t tag = simple_tcache_tag(pc);
   for (int way = 0; way < SIMPLE_TCACHE_WAYS; way++) {
-    if (set[way].valid && set[way].pc == pc) {
+    if (set[way].tag == tag) {
       return &set[way];
     }
   }
@@ -293,7 +317,7 @@ static inline simple_tcache_entry_t *tcache_find(simple_tcache_entry_t *set, vad
 
 static inline simple_tcache_entry_t *tcache_victim(simple_tcache_entry_t *set, int set_idx) {
   for (int way = 0; way < SIMPLE_TCACHE_WAYS; way++) {
-    if (!set[way].valid) {
+    if (!simple_tcache_tag_is_current(set[way].tag)) {
       return &set[way];
     }
   }
@@ -318,13 +342,19 @@ void tcache_insert_instr(vaddr_t pc, Decode *s) {
   if (entry == NULL) {
     entry = tcache_victim(set, set_idx);
   }
-  entry->pc = pc;
-  entry->valid = 1;
+  entry->tag = simple_tcache_tag(pc);
   memcpy(&entry->s, s, sizeof(Decode));
 }
 
 void tcache_handle_flush() {
-  memset(tcache, 0, sizeof(tcache));
+  simple_tcache_tag_generation =
+      (simple_tcache_tag_generation + 1) & SIMPLE_TCACHE_SET_MASK;
+  if (unlikely(simple_tcache_tag_generation == 0)) {
+    /* A wrapped generation could otherwise expose entries from the previous
+     * cycle. Clear once per full cycle and resume at the first valid value. */
+    memset(tcache, 0, sizeof(tcache));
+    simple_tcache_tag_generation = 1;
+  }
   memset(simple_tcache_next_way, 0, sizeof(simple_tcache_next_way));
 }
 #endif
