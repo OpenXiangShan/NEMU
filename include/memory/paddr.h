@@ -63,6 +63,10 @@ static inline bool in_pmem(paddr_t addr) {
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
+/* Read an address that the caller has already classified as PMEM. */
+__attribute__((visibility("hidden")))
+word_t paddr_read_pmem_checked(paddr_t addr, int len, int type, int trap_type,
+                               int mode, vaddr_t vaddr);
 void paddr_read_matrix(paddr_t base, paddr_t stride, int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
