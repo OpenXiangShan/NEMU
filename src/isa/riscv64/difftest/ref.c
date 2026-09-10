@@ -255,7 +255,12 @@ void isa_difftest_regcpy(void *dut, bool direction) {
     update_mmu_state();
   } else {
     csr_prepare_if_dirty();
+#if defined(CONFIG_SHARE_REF) && defined(__x86_64__) && \
+    defined(__GNUC__) && !defined(__clang__)
+    memmove(dut, &cpu, DIFFTEST_REG_SIZE);
+#else
     memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
+#endif
   }
 #ifdef CONFIG_LIGHTQS
   // after processing, take another snapshot
