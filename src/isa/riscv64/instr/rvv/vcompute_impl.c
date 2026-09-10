@@ -23,6 +23,10 @@
 #include <rtl/fp.h>
 #include "vcommon.h"
 
+#include "../rvb/rvintrin.h" // For the Zvbc clmul function reutilization
+#include "../rvk/aes_common.h"
+#include "../rvk/sm4_common.h"
+
 #undef s0
 #undef s1
 
@@ -263,6 +267,415 @@ static inline void reverse_nbytes(uint64_t *val, int sew) {
   *val = tmp;
 }
 
+#ifdef CONFIG_RV_ZVKG
+
+static inline uint128_t brev8_128(uint128_t value) {
+  uint64_t lo = value;
+  uint64_t hi = value >> 64;
+
+  reverse_byte_bits(&lo);
+  reverse_byte_bits(&hi);
+  return ((uint128_t)hi << 64) | lo;
+}
+
+static inline uint128_t get_velem128(int reg, int group) {
+  uint128_t value = 0;
+  rtlreg_t lane_value;
+  int base = group * 4;
+
+  for (int lane = 0; lane < 4; lane++) {
+    get_vreg(reg, base + lane, &lane_value, 2, vtype->vlmul, 0, 1);
+    value |= (uint128_t)(lane_value & UINT32_MAX) << (lane * 32);
+  }
+  return value;
+}
+
+static inline void set_velem128(int reg, int group, uint128_t value) {
+  int base = group * 4;
+
+  for (int lane = 0; lane < 4; lane++) {
+    set_vreg(reg, base + lane, value >> (lane * 32),
+             vtype->vsew, vtype->vlmul, 1);
+  }
+}
+
+static inline uint128_t ghash_multiply(uint128_t y, uint128_t h) {
+  uint128_t z = 0;
+
+  y = brev8_128(y);
+  h = brev8_128(h);
+  for (int bit = 0; bit < 128; bit++) {
+    uint128_t y_mask = (uint128_t)0 - (y & 1);
+    uint128_t reduce_mask = (uint128_t)0 - (h >> 127);
+
+    z ^= h & y_mask;
+    h <<= 1;
+    h ^= (uint128_t)0x87 & reduce_mask;
+    y >>= 1;
+  }
+
+  return brev8_128(z);
+}
+
+static void vgcm_instr(int opcode, Decode *s) {
+  int width = 8 << vtype->vsew;
+  double vflmul = compute_vflmul();
+  if ((vl->val & 3) != 0 || (vstart->val & 3) != 0 || vflmul * VLEN < 4 * width) {
+    longjmp_exception(EX_II);
+  }
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int eg_len = vl->val / 4;
+  int eg_start = vstart->val / 4;
+  for (int group = eg_start; group < eg_len; group++) {
+    int base = group * 4;
+    bool active = s->vm != 0;
+    if (!active) {
+      for (int lane = 0; lane < 4; lane++) {
+        active |= get_mask(0, base + lane) != 0;
+      }
+      if (!active) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          for (int lane = 0; lane < 4; lane++) {
+            set_vreg(id_dest->reg, base + lane, UINT64_MAX,
+                     vtype->vsew, vtype->vlmul, 1);
+          }
+        }
+        continue;
+      }
+    }
+
+    uint128_t y = get_velem128(id_dest->reg, group);
+    uint128_t h = get_velem128(id_src2->reg, group);
+
+    if (opcode == VGHSH) {
+      y ^= get_velem128(id_src->reg, group);
+    } else {
+      y = get_velem128(id_src2->reg, group);
+      h = get_velem128(id_dest->reg, group);
+    }
+    uint128_t result = ghash_multiply(y, h);
+    for (int lane = 0; lane < 4; lane++) {
+      if (s->vm || get_mask(0, base + lane)) {
+        set_vreg(id_dest->reg, base + lane,
+                 result >> (lane * 32), vtype->vsew, vtype->vlmul, 1);
+      } else if (RVV_AGNOSTIC && vtype->vma) {
+        set_vreg(id_dest->reg, base + lane, UINT64_MAX,
+                 vtype->vsew, vtype->vlmul, 1);
+      }
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = eg_len * 4; idx < vlmax; idx++) {
+      set_vreg(id_dest->reg, idx, UINT64_MAX,
+               vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKG
+
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+
+static inline uint64_t vsha2_mask(uint64_t value, int width) {
+  return width == 32 ? (uint32_t)value : value;
+}
+
+static inline uint64_t vsha2_rotr(uint64_t value, int amount, int width) {
+  value = vsha2_mask(value, width);
+  return vsha2_mask((value >> amount) | (value << (width - amount)), width);
+}
+
+static inline uint64_t vsha2_sig0(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 7, width) ^ vsha2_rotr(value, 18, width) ^ (value >> 3);
+  }
+  return vsha2_rotr(value, 1, width) ^ vsha2_rotr(value, 8, width) ^ (value >> 7);
+}
+
+static inline uint64_t vsha2_sig1(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 17, width) ^ vsha2_rotr(value, 19, width) ^ (value >> 10);
+  }
+  return vsha2_rotr(value, 19, width) ^ vsha2_rotr(value, 61, width) ^ (value >> 6);
+}
+
+static inline uint64_t vsha2_sum0(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 2, width) ^ vsha2_rotr(value, 13, width) ^ vsha2_rotr(value, 22, width);
+  }
+  return vsha2_rotr(value, 28, width) ^ vsha2_rotr(value, 34, width) ^ vsha2_rotr(value, 39, width);
+}
+
+static inline uint64_t vsha2_sum1(uint64_t value, int width) {
+  if (width == 32) {
+    return vsha2_rotr(value, 6, width) ^ vsha2_rotr(value, 11, width) ^ vsha2_rotr(value, 25, width);
+  }
+  return vsha2_rotr(value, 14, width) ^ vsha2_rotr(value, 18, width) ^ vsha2_rotr(value, 41, width);
+}
+
+static inline uint64_t vsha2_ch(uint64_t x, uint64_t y, uint64_t z) {
+  return (x & y) ^ (~x & z);
+}
+
+static inline uint64_t vsha2_maj(uint64_t x, uint64_t y, uint64_t z) {
+  return (x & y) ^ (x & z) ^ (y & z);
+}
+
+static inline void vsha2_compress(const uint64_t dest[4], const uint64_t src1[4],
+                                  const uint64_t src2[4], int word_base,
+                                  int width, uint64_t result[4]) {
+  uint64_t a = src2[3];
+  uint64_t b = src2[2];
+  uint64_t c = dest[3];
+  uint64_t d = dest[2];
+  uint64_t e = src2[1];
+  uint64_t f = src2[0];
+  uint64_t g = dest[1];
+  uint64_t h = dest[0];
+
+  for (int round = 0; round < 2; round++) {
+    uint64_t t1 = vsha2_mask(h + vsha2_sum1(e, width) + vsha2_ch(e, f, g) +
+                              src1[word_base + round], width);
+    uint64_t t2 = vsha2_mask(vsha2_sum0(a, width) + vsha2_maj(a, b, c), width);
+    h = g;
+    g = f;
+    f = e;
+    e = vsha2_mask(d + t1, width);
+    d = c;
+    c = b;
+    b = a;
+    a = vsha2_mask(t1 + t2, width);
+  }
+
+  result[0] = f;
+  result[1] = e;
+  result[2] = b;
+  result[3] = a;
+}
+
+static inline void vsha2_load_group(int reg, int base, uint64_t group[4]) {
+  rtlreg_t value;
+  for (int lane = 0; lane < 4; lane++) {
+    get_vreg(reg, base + lane, &value, vtype->vsew, vtype->vlmul, 0, 1);
+    group[lane] = value;
+  }
+}
+
+void vsha2_exec(vsha2_op_t op, Decode *s) {
+  require_vector(true);
+
+  int width = 8 << vtype->vsew;
+  double vflmul = compute_vflmul();
+  if ((vl->val & 3) != 0 || (vstart->val & 3) != 0 || vflmul * VLEN < 4 * width) {
+    longjmp_exception(EX_II);
+  }
+
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+
+  int register_group_size = vflmul < 1 ? 1 : vflmul;
+  require_noover(id_dest->reg, register_group_size, id_src->reg, register_group_size);
+  require_noover(id_dest->reg, register_group_size, id_src2->reg, register_group_size);
+
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 4;
+  for (int group = vstart->val / 4; group < egroups; group++) {
+    int base = group * 4;
+    uint64_t dest[4], src1[4], src2[4], result[4];
+    vsha2_load_group(id_dest->reg, base, dest);
+    vsha2_load_group(id_src->reg, base, src1);
+    vsha2_load_group(id_src2->reg, base, src2);
+
+    if (op == VSHA2_OP_MS) {
+      result[0] = vsha2_mask(vsha2_sig1(src1[2], width) + src2[1] +
+                              vsha2_sig0(dest[1], width) + dest[0], width);
+      result[1] = vsha2_mask(vsha2_sig1(src1[3], width) + src2[2] +
+                              vsha2_sig0(dest[2], width) + dest[1], width);
+      result[2] = vsha2_mask(vsha2_sig1(result[0], width) + src2[3] +
+                              vsha2_sig0(dest[3], width) + dest[2], width);
+      result[3] = vsha2_mask(vsha2_sig1(result[1], width) + src1[0] +
+                              vsha2_sig0(src2[0], width) + dest[3], width);
+    } else {
+      int word_base = op == VSHA2_OP_CH ? 2 : 0;
+      vsha2_compress(dest, src1, src2, word_base, width, result);
+    }
+
+    for (int lane = 0; lane < 4; lane++) {
+      set_vreg(id_dest->reg, base + lane, result[lane],
+               vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 4; idx < vlmax; idx++) {
+      set_vreg(id_dest->reg, idx, UINT64_MAX,
+               vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
+
+#ifdef CONFIG_RV_ZVKSH
+
+static inline uint32_t vsm3_rol32(uint32_t value, unsigned amount) {
+  amount &= 31;
+  return amount == 0 ? value : (value << amount) | (value >> (32 - amount));
+}
+
+static inline uint32_t vsm3_rev8(uint32_t value) {
+  return __builtin_bswap32(value);
+}
+
+static inline uint32_t vsm3_p0(uint32_t value) {
+  return value ^ vsm3_rol32(value, 9) ^ vsm3_rol32(value, 17);
+}
+
+static inline uint32_t vsm3_p1(uint32_t value) {
+  return value ^ vsm3_rol32(value, 15) ^ vsm3_rol32(value, 23);
+}
+
+static inline void vsm3_load_group(int reg, int base, uint32_t group[8]) {
+  rtlreg_t value;
+  for (int lane = 0; lane < 8; lane++) {
+    get_vreg(reg, base + lane, &value, 2, vtype->vlmul, 0, 1);
+    group[lane] = value;
+  }
+}
+
+static inline void vsm3_message_expand(const uint32_t src1[8],
+                                       const uint32_t src2[8],
+                                       uint32_t result[8]) {
+  uint32_t words[24];
+  for (int lane = 0; lane < 8; lane++) {
+    words[lane] = vsm3_rev8(src1[lane]);
+    words[lane + 8] = vsm3_rev8(src2[lane]);
+  }
+
+  for (int word = 16; word < 24; word++) {
+    words[word] = vsm3_p1(words[word - 16] ^ words[word - 9] ^
+                            vsm3_rol32(words[word - 3], 15)) ^
+                  vsm3_rol32(words[word - 13], 7) ^ words[word - 6];
+    result[word - 16] = vsm3_rev8(words[word]);
+  }
+}
+
+static inline void vsm3_compress(const uint32_t dest[8], const uint32_t src2[8],
+                                 unsigned round_group, uint32_t result[8]) {
+  uint32_t a = vsm3_rev8(dest[0]);
+  uint32_t b = vsm3_rev8(dest[1]);
+  uint32_t c = vsm3_rev8(dest[2]);
+  uint32_t d = vsm3_rev8(dest[3]);
+  uint32_t e = vsm3_rev8(dest[4]);
+  uint32_t f = vsm3_rev8(dest[5]);
+  uint32_t g = vsm3_rev8(dest[6]);
+  uint32_t h = vsm3_rev8(dest[7]);
+  uint32_t message[2] = {vsm3_rev8(src2[0]), vsm3_rev8(src2[1])};
+  uint32_t expanded[2] = {
+    message[0] ^ vsm3_rev8(src2[4]),
+    message[1] ^ vsm3_rev8(src2[5]),
+  };
+
+  for (int step = 0; step < 2; step++) {
+    unsigned round = round_group * 2 + step;
+    uint32_t constant = round <= 15 ? 0x79cc4519u : 0x7a879d8au;
+    uint32_t a12 = vsm3_rol32(a, 12);
+    uint32_t ss1 = vsm3_rol32(a12 + e + vsm3_rol32(constant, round), 7);
+    uint32_t ss2 = ss1 ^ a12;
+    uint32_t ff = round <= 15 ? a ^ b ^ c : (a & b) | (a & c) | (b & c);
+    uint32_t gg = round <= 15 ? e ^ f ^ g : (e & f) | (~e & g);
+    uint32_t tt1 = ff + d + ss2 + expanded[step];
+    uint32_t tt2 = gg + h + ss1 + message[step];
+
+    d = c;
+    c = vsm3_rol32(b, 9);
+    b = a;
+    a = tt1;
+    h = g;
+    g = vsm3_rol32(f, 19);
+    f = e;
+    e = vsm3_p0(tt2);
+
+    result[1 - step] = vsm3_rev8(a);
+    result[3 - step] = vsm3_rev8(c);
+    result[5 - step] = vsm3_rev8(e);
+    result[7 - step] = vsm3_rev8(g);
+  }
+}
+
+void vsm3_exec(vsm3_op_t op, Decode *s) {
+  require_vector(true);
+
+  double vflmul = compute_vflmul();
+  if ((vl->val & 7) != 0 || (vstart->val & 7) != 0 || vflmul * VLEN < 256) {
+    longjmp_exception(EX_II);
+  }
+
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+  int register_group_size = vflmul < 1 ? 1 : vflmul;
+  require_noover(id_dest->reg, register_group_size, id_src2->reg, register_group_size);
+  if (op == VSM3_OP_ME) {
+    require_aligned(id_src->reg, vflmul);
+  }
+
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 8;
+  for (int group = vstart->val / 8; group < egroups; group++) {
+    int base = group * 8;
+    uint32_t dest[8], src1[8], src2[8], result[8];
+    vsm3_load_group(id_dest->reg, base, dest);
+    vsm3_load_group(id_src2->reg, base, src2);
+
+    if (op == VSM3_OP_ME) {
+      vsm3_load_group(id_src->reg, base, src1);
+      vsm3_message_expand(src1, src2, result);
+    } else {
+      vsm3_compress(dest, src2, id_src->reg & 0x1f, result);
+    }
+
+    for (int lane = 0; lane < 8; lane++) {
+      set_vreg(id_dest->reg, base + lane, result[lane], 2, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 8; idx < vlmax; idx++) {
+      set_vreg(id_dest->reg, idx, UINT64_MAX, 2, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKSH
+
 static inline void require_vector_vs() {
   if (mstatus->vs == 0) {
     longjmp_exception(EX_II);
@@ -485,6 +898,66 @@ void vector_slide_check(Decode *s, bool is_over) {
   }
 }
 
+#ifdef CONFIG_RV_ZVKNED
+
+static inline void aes_subbytes(uint32_t state[4], bool encrypt) {
+  const uint8_t *sbox = encrypt ? AES_ENC_SBOX : AES_DEC_SBOX;
+  for (int c = 0; c < 4; c++) {
+    uint32_t col = state[c];
+    state[c] = ((uint32_t)sbox[(col >>  0) & 0xFF] <<  0) |
+               ((uint32_t)sbox[(col >>  8) & 0xFF] <<  8) |
+               ((uint32_t)sbox[(col >> 16) & 0xFF] << 16) |
+               ((uint32_t)sbox[(col >> 24) & 0xFF] << 24);
+  }
+}
+
+static inline void aes_shiftrows(uint32_t state[4]) {
+  uint8_t b[4][4];
+  for (int c = 0; c < 4; c++)
+    for (int r = 0; r < 4; r++)
+      b[r][c] = (state[c] >> (8*r)) & 0xFF;
+
+  uint8_t tmp;
+  tmp = b[1][0]; b[1][0] = b[1][1]; b[1][1] = b[1][2]; b[1][2] = b[1][3]; b[1][3] = tmp;
+  tmp = b[2][0]; b[2][0] = b[2][2]; b[2][2] = tmp;
+  tmp = b[2][1]; b[2][1] = b[2][3]; b[2][3] = tmp;
+  tmp = b[3][3]; b[3][3] = b[3][2]; b[3][2] = b[3][1]; b[3][1] = b[3][0]; b[3][0] = tmp;
+
+  for (int c = 0; c < 4; c++)
+    state[c] = ((uint32_t)b[0][c] <<  0) | ((uint32_t)b[1][c] <<  8) |
+               ((uint32_t)b[2][c] << 16) | ((uint32_t)b[3][c] << 24);
+}
+
+static inline void aes_invshiftrows(uint32_t state[4]) {
+  uint8_t b[4][4];
+  for (int c = 0; c < 4; c++)
+    for (int r = 0; r < 4; r++)
+      b[r][c] = (state[c] >> (8*r)) & 0xFF;
+
+  uint8_t tmp;
+  tmp = b[1][3]; b[1][3] = b[1][2]; b[1][2] = b[1][1]; b[1][1] = b[1][0]; b[1][0] = tmp;
+  tmp = b[2][0]; b[2][0] = b[2][2]; b[2][2] = tmp;
+  tmp = b[2][1]; b[2][1] = b[2][3]; b[2][3] = tmp;
+  tmp = b[3][0]; b[3][0] = b[3][1]; b[3][1] = b[3][2]; b[3][2] = b[3][3]; b[3][3] = tmp;
+
+  for (int c = 0; c < 4; c++)
+    state[c] = ((uint32_t)b[0][c] <<  0) | ((uint32_t)b[1][c] <<  8) |
+               ((uint32_t)b[2][c] << 16) | ((uint32_t)b[3][c] << 24);
+}
+
+static inline void aes_mixcolumns(uint32_t state[4], bool inverse) {
+  for (int c = 0; c < 4; c++) {
+    state[c] = inverse ? AES_INVMIXCOLUMN(state[c]) : AES_MIXCOLUMN(state[c]);
+  }
+}
+
+static inline void aes_addroundkey(uint32_t state[4], const uint32_t rk[4]) {
+  for (int c = 0; c < 4; c++)
+    state[c] ^= rk[c];
+}
+
+#endif // CONFIG_RV_ZVKNED
+
 void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s) {
   require_vector(true);
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
@@ -541,6 +1014,12 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       longjmp_exception(EX_II);
     }
   }
+#ifdef CONFIG_RV_ZVKG
+  if (opcode == VGHSH || opcode == VGMUL) {
+    vgcm_instr(opcode, s);
+    return;
+  }
+#endif
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) {
     vp_set_dirty();
@@ -980,6 +1459,13 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       case ROR :
         *s1 = (*s0 >> lshift) | (*s0 << rshift);
         break;
+#ifdef CONFIG_RV_ZVBC
+      case VCLMUL :
+        *s1 = _rv_clmul(*s0, *s1);
+        break;
+      case VCLMULH :
+        *s1 = _rv_clmulh(*s0, *s1);
+        break;
     }
     update_vcsr();
     // store to vrf
@@ -1011,10 +1497,327 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
   vp_set_dirty();
 }
 
-/**
- * this function only handle vrgather and vslide instruction, other instructions are handled in arithmetic_instr
- * because the illegal instruction exception is handled in vcompute.h for vrgather and vslide instruction
- */
+#ifdef CONFIG_RV_ZVKNED
+
+void vaes_exec(vaes_op_t op, Decode *s) {
+  require_vector(true);
+  uint8_t rnum = 0;
+  if (op == VAES_OP_VAESKF1 || op == VAES_OP_VAESKF2) {
+    rnum = s->isa.instr.v_opv.v_vs1 & 0xF;
+  }
+
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 4;
+
+  for (int g = vstart->val / 4; g < egroups; g++) {
+    int base = g * 4;
+
+    bool all_masked = true;
+    if (s->vm == 0) {
+      for (int k = 0; k < 4; k++) {
+        if (get_mask(0, base + k)) { all_masked = false; break; }
+      }
+      if (all_masked) continue;
+    }
+
+    bool is_vs = (s->isa.instr.v_opv.v_funct6 & 1)
+                 && (op != VAES_OP_VAESKF1 && op != VAES_OP_VAESKF2);
+
+    uint32_t state[4], rk[4];
+
+    if (op == VAES_OP_VAESKF1) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        state[k] = (uint32_t)*s0;
+      }
+    } else if (op == VAES_OP_VAESKF2) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_dest->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        state[k] = (uint32_t)*s0;
+      }
+      for (int k = 0; k < 4; k++) {
+
+    get_vreg(id_src2->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        rk[k] = (uint32_t)*s1;
+      }
+    } else {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_dest->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        state[k] = (uint32_t)*s0;
+      }
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, is_vs ? k : base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+        rk[k] = (uint32_t)*s1;
+      }
+    }
+
+    switch (op) {
+      case VAES_OP_VAESZ:
+        // just XOR state with round key
+        aes_addroundkey(state, rk);
+        break;
+
+      case VAES_OP_VAESEF:
+        // ShiftRows + SubBytes + AddRoundKey
+        aes_shiftrows(state);
+        aes_subbytes(state, true);
+        aes_addroundkey(state, rk);
+        break;
+
+      case VAES_OP_VAESEM:
+        // ShiftRows + SubBytes + MixColumns + AddRoundKey
+        aes_shiftrows(state);
+        aes_subbytes(state, true);
+        aes_mixcolumns(state, false);
+        aes_addroundkey(state, rk);
+        break;
+
+      case VAES_OP_VAESDF: {
+        // InvShiftRows + InvSubBytes + AddRoundKey
+        aes_invshiftrows(state);
+        aes_subbytes(state, false);
+        aes_addroundkey(state, rk);
+        break;
+      }
+
+      case VAES_OP_VAESDM:
+        // InvShiftRows + InvSubBytes + AddRoundKey + InvMixColumns
+        aes_invshiftrows(state);
+        aes_subbytes(state, false);
+        aes_addroundkey(state, rk);
+        aes_mixcolumns(state, true);
+        break;
+
+      case VAES_OP_VAESKF1: {
+        static const uint8_t rcon[10] = {
+          0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+        };
+        uint8_t rnd = rnum;
+        if (rnd == 0 || rnd > 10) {
+          rnd ^= 0x8;  // invert bit 3 per spec
+        }
+        uint8_t rcon_idx = rnd - 1;
+
+        uint32_t tmp = state[3];
+        tmp = (tmp >> 8) | (tmp << 24);
+        tmp = ((uint32_t)AES_ENC_SBOX[(tmp >>  0) & 0xFF] <<  0) |
+              ((uint32_t)AES_ENC_SBOX[(tmp >>  8) & 0xFF] <<  8) |
+              ((uint32_t)AES_ENC_SBOX[(tmp >> 16) & 0xFF] << 16) |
+              ((uint32_t)AES_ENC_SBOX[(tmp >> 24) & 0xFF] << 24);
+        tmp ^= rcon[rcon_idx];
+
+        uint32_t new_rk[4];
+        new_rk[0] = state[0] ^ tmp;
+        new_rk[1] = state[1] ^ new_rk[0];
+        new_rk[2] = state[2] ^ new_rk[1];
+        new_rk[3] = state[3] ^ new_rk[2];
+        for (int k = 0; k < 4; k++) state[k] = new_rk[k];
+        break;
+      }
+      case VAES_OP_VAESKF2: {
+        static const uint8_t rcon[10] = {
+          0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+        };
+
+        uint8_t rnd = rnum & 0xF;
+
+        if (rnd < 2 || rnd > 14) {
+          rnd ^= 0x8;
+        }
+
+        uint32_t tmp = rk[3];
+
+
+        if ((rnd & 0x1) == 1) {
+          // Even round: SubWord only (NO RotWord, NO Rcon)
+          tmp = ((uint32_t)AES_ENC_SBOX[(tmp >>  0) & 0xFF] <<  0) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >>  8) & 0xFF] <<  8) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 16) & 0xFF] << 16) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 24) & 0xFF] << 24);
+        } else {
+          // Odd round: RotWord + SubWord + Rcon
+          uint8_t rcon_idx = (rnd / 2) - 1;
+
+          tmp = (tmp >> 8) | (tmp << 24);
+
+          // SubWord
+          tmp = ((uint32_t)AES_ENC_SBOX[(tmp >>  0) & 0xFF] <<  0) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >>  8) & 0xFF] <<  8) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 16) & 0xFF] << 16) |
+                ((uint32_t)AES_ENC_SBOX[(tmp >> 24) & 0xFF] << 24);
+
+          tmp ^= rcon[rcon_idx];
+        }
+
+        uint32_t new_rk[4];
+        new_rk[0] = state[0] ^ tmp;
+        new_rk[1] = state[1] ^ new_rk[0];
+        new_rk[2] = state[2] ^ new_rk[1];
+        new_rk[3] = state[3] ^ new_rk[2];
+
+        for (int k = 0; k < 4; k++) {
+          state[k] = new_rk[k];
+        }
+        break;
+      }
+    }
+
+    for (int k = 0; k < 4; k++) {
+      if (s->vm == 0 && get_mask(0, base + k) == 0) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          *s1 = (uint64_t)-1;
+          set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+        }
+        continue;
+      }
+      *s1 = state[k];
+      set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax_tail = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 4; idx < vlmax_tail; idx++) {
+      *s1 = (uint64_t)-1;
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+#endif // CONFIG_RV_ZVKNED
+
+#ifdef CONFIG_RV_ZVKSED
+
+uint32_t sm4_subword(uint32_t B) {
+  return (sm4_sbox[B >> 24] << 24 |
+          sm4_sbox[(B >> 16) & 0xFF] << 16 |
+          sm4_sbox[(B >> 8) & 0xFF] << 8 |
+          sm4_sbox[B & 0xFF]);
+}
+
+uint32_t rol32(uint32_t x, uint32_t n) {
+  return (x << n) | (x >> (32 - n));
+}
+
+uint32_t sm4_round_key(uint32_t x, uint32_t S) {
+  return ((x) ^ (S ^ rol32(S, 13) ^ rol32(S, 23)));
+}
+
+uint32_t sm4_round(uint32_t x, uint32_t S) {
+  return ((x) ^ ((S) ^ rol32(S, 2) ^ rol32(S, 10) ^ rol32(S, 18) ^ rol32(S, 24)));
+}
+
+void vsm_exec(vsm_op_t op, Decode *s) {
+  require_vector(true);
+
+  uint8_t rnum = 0;
+  if (op == VSM_OP_VSM4K) {
+    rnum = s->isa.instr.v_opv.v_vs1 & 0x7;
+  }
+
+  double vflmul = compute_vflmul();
+  require_aligned(id_dest->reg, vflmul);
+  require_aligned(id_src2->reg, vflmul);
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
+
+  int egroups = vl->val / 4;
+
+  for (int g = vstart->val / 4; g < egroups; g++) {
+    int base = g * 4;
+
+    bool all_masked = true;
+    if (s->vm == 0) {
+      for (int k = 0; k < 4; k++) {
+        if (get_mask(0, base + k)) { all_masked = false; break; }
+      }
+      if (all_masked) continue;
+    }
+
+    uint32_t state[8] = {0};
+    uint32_t rk[8] = {0};
+
+    if (op == VSM_OP_VSM4R) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        get_vreg(id_dest->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
+
+        rk[k] = (uint32_t)*s0;
+        state[k] = (uint32_t)*s1;
+      }
+    } else if (op == VSM_OP_VSM4K) {
+      for (int k = 0; k < 4; k++) {
+        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+
+        rk[k] = (uint32_t)*s0;
+      }
+
+    } else {
+
+    }
+
+    switch (op) {
+      case VSM_OP_VSM4R:
+        for (int i = 0; i < 4; i++) {
+          uint32_t B = state[i + 1] ^ state[i + 2] ^ state[i + 3] ^ rk[i];
+          uint32_t S = sm4_subword(B);
+          state[i + 4] = sm4_round(state[i], S);
+        }
+        break;
+      case VSM_OP_VSM4K:
+        for (int i = 0; i < 4; i++) {
+          uint32_t B = rk[i + 1] ^ rk[i + 2] ^ rk[i + 3] ^ ck[4 * rnum + i];
+          uint32_t S = sm4_subword(B);
+          rk[i+4] = sm4_round_key(rk[i], S);
+        }
+        break;
+    }
+
+
+    for (int k = 0; k < 4; k++) {
+      if (s->vm == 0 && get_mask(0, base + k) == 0) {
+        if (RVV_AGNOSTIC && vtype->vma) {
+          *s1 = (uint64_t)-1;
+          set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+        }
+        continue;
+      }
+      *s1 = op == VSM_OP_VSM4R ? state[k + 4] : rk[k + 4];
+      set_vreg(id_dest->reg, base + k, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  if (RVV_AGNOSTIC && vtype->vta) {
+    int vlmax_tail = get_vlen_max(vtype->vsew, vtype->vlmul, 0);
+    for (int idx = egroups * 4; idx < vlmax_tail; idx++) {
+      *s1 = (uint64_t)-1;
+      set_vreg(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul, 1);
+    }
+  }
+
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
+
+#endif // CONFIG_RV_ZVKSED
+
 void permutaion_instr(int opcode, Decode *s) {
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) return;

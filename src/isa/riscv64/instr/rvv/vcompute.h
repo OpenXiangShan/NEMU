@@ -857,6 +857,119 @@ def_EHelper(vmulh) {
   ARITH(MULH, SIGNED)
 }
 
+#ifdef CONFIG_RV_ZVBC
+def_EHelper(vclmul) {
+  if (vtype->vsew != 3) longjmp_exception(EX_II);
+  ARITH(VCLMUL, UNSIGNED)
+}
+
+def_EHelper(vclmulh) {
+  if (vtype->vsew != 3) longjmp_exception(EX_II);
+  ARITH(VCLMULH, UNSIGNED)
+}
+#endif // CONFIG_RV_ZVBC
+
+#ifdef CONFIG_RV_ZVKNED
+
+def_EHelper(vaesz) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESZ, s);
+}
+
+def_EHelper(vaesef) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESEF, s);
+}
+
+def_EHelper(vaesem) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESEM, s);
+}
+
+def_EHelper(vaesdm) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESDM, s);
+}
+
+def_EHelper(vaesdf) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESDF, s);
+}
+
+def_EHelper(vaeskf1) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESKF1, s);
+}
+
+def_EHelper(vaeskf2) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vaes_exec(VAES_OP_VAESKF2, s);
+}
+
+#endif
+
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+#ifdef CONFIG_RV_ZVKNHB
+#define REQUIRE_VSHA2_SEW() \
+  do { if (vtype->vsew != 2 && vtype->vsew != 3) longjmp_exception(EX_II); } while (0)
+#else
+#define REQUIRE_VSHA2_SEW() \
+  do { if (vtype->vsew != 2) longjmp_exception(EX_II); } while (0)
+#endif
+
+def_EHelper(vsha2ms) {
+  REQUIRE_VSHA2_SEW();
+  vsha2_exec(VSHA2_OP_MS, s);
+}
+
+def_EHelper(vsha2cl) {
+  REQUIRE_VSHA2_SEW();
+  vsha2_exec(VSHA2_OP_CL, s);
+}
+
+def_EHelper(vsha2ch) {
+  REQUIRE_VSHA2_SEW();
+  vsha2_exec(VSHA2_OP_CH, s);
+}
+
+#undef REQUIRE_VSHA2_SEW
+#endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
+
+#ifdef CONFIG_RV_ZVKSH
+def_EHelper(vsm3me) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vsm3_exec(VSM3_OP_ME, s);
+}
+
+def_EHelper(vsm3c) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vsm3_exec(VSM3_OP_C, s);
+}
+#endif // CONFIG_RV_ZVKSH
+
+#ifdef CONFIG_RV_ZVKSED
+def_EHelper(vsm4k) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  vsm_exec(VSM_OP_VSM4K, s);
+}
+
+def_EHelper(vsm4r) {
+  vsm_exec(VSM_OP_VSM4R, s);
+}
+#endif // CONFIG_RV_ZVKSED
+
+#ifdef CONFIG_RV_ZVKG
+def_EHelper(vghsh) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  ARITH(VGHSH, UNSIGNED);
+}
+
+def_EHelper(vgmul) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
+  ARITH(VGMUL, UNSIGNED);
+}
+#endif // CONFIG_RV_ZVKG
+
 def_EHelper(vmadd) {
   ARITH(MADD, SIGNED)
 }
