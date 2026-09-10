@@ -112,6 +112,8 @@ static inline uint8_t permission_type_bit(int type) {
       return 1 << 2;
     case MEM_TYPE_IFETCH_READ:
       return 1 << 3;
+    case MEM_TYPE_READ_EXEC:
+      return 1 << 4;
     default:
       return 0;
   }
@@ -1298,9 +1300,13 @@ bool pmpcfg_check_permission(uint8_t pmpcfg,int type,int out_mode) {
     return true;
   }
   else {
-    if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ
+    if (type == MEM_TYPE_READ_EXEC) {
+      return (pmpcfg & PMP_R) && (pmpcfg & PMP_X);
+    }
+    else if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ
         || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) {
       return pmpcfg & PMP_R;
+    }
     else if (type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE)
       return pmpcfg & PMP_W;
     else if (type == MEM_TYPE_IFETCH)
@@ -1365,7 +1371,10 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
 #define W_BIT 0x2
 #define X_BIT 0x4
     /* Check permission */
-    if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ
+    if (type == MEM_TYPE_READ_EXEC) {
+      return (perm & R_BIT) && (perm & X_BIT);
+    }
+    else if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ
         || type == MEM_TYPE_WRITE_READ) {
       return perm & R_BIT;
     }
@@ -1488,7 +1497,10 @@ bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
   #define X_BIT 0x4
     /* Check permission */
   bool return_val;
-  if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_WRITE_READ) {
+  if (type == MEM_TYPE_READ_EXEC) {
+    return_val = (mpt_perm & R_BIT) && (mpt_perm & X_BIT);
+  }
+  else if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_WRITE_READ) {
     return_val= mpt_perm & R_BIT;
   }
   else if (type == MEM_TYPE_WRITE) {
@@ -1566,6 +1578,7 @@ static bool pmp_check_permission_with_mode(paddr_t addr, int len, int type, uint
 
         allowed =
           (mode == MODE_M && !(cfg & PMP_L)) ||
+          (type == MEM_TYPE_READ_EXEC && (cfg & PMP_R) && (cfg & PMP_X)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) && (cfg & PMP_R)) ||
           ((type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMP_W)) ||
@@ -1716,6 +1729,7 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
           goto out;
         }
         allowed =
+          (type == MEM_TYPE_READ_EXEC && (cfg & PMA_R) && (cfg & PMA_X)) ||
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) && (cfg & PMA_R)) ||
           ((type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMA_W)) ||
