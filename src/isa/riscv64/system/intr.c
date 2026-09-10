@@ -71,6 +71,7 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   Logti("raise intr cause NO: %ld, epc: %lx\n", NO, epc);
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   switch (NO) {
