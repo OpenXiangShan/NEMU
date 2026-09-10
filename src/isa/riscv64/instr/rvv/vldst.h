@@ -97,6 +97,9 @@ def_EHelper(vsxe) {
 def_EHelper(vle_mmu) { //unit-strided
   predecode_vls(s);
   require_vector(true);
+#if defined(CONFIG_SHARE_REF) && !defined(CONFIG_MULTICORE_DIFF)
+  if (likely(vld_unit_mmu_translate_vl8_hot(s))) return;
+#endif
   vld(s, MODE_UNIT, MMU_TRANSLATE);
 }
 
