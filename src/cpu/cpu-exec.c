@@ -281,9 +281,11 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     if (g_sys_state_flag) {                                                    \
       if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
+        Decode *executed_s = s; /* save the executed instruction */            \
         /* Settle instruction counting for the unended bb. */                  \
         IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);               \
         s = tcache_handle_flush(s->snpc);                                      \
+        save_globals(executed_s);                                              \
       } else {                                                                 \
         /* BB has not end, but BATCH is about to end. */                       \
         /* Record unsettled instruction number for feature flush. */           \
@@ -297,6 +299,7 @@ static bool manual_cpt_quit = false;
 
 #define rtl_priv_jr(s, target)                                                 \
   do {                                                                         \
+    Decode *executed_s = s;                                                    \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     is_ctrl = true;                                                            \
@@ -304,6 +307,7 @@ static bool manual_cpt_quit = false;
     if (g_sys_state_flag) {                                                    \
       if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
         s = tcache_handle_flush(s->pc);                                        \
+        save_globals(executed_s);                                              \
       }                                                                        \
       g_sys_state_flag = 0;                                                    \
     }                                                                          \
