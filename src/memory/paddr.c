@@ -212,12 +212,13 @@ static inline void hardware_error_check(vaddr_t vaddr) {
 }
 #endif
 
-// MMIO access currently does not support hardware misalignment.
+// MMIO is non-idempotent: misaligned access must raise access-fault (not
+// address-misaligned), so software will not emulate it with smaller accesses.
 void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, int type, int is_cross_page) {
   if (unlikely((paddr & (len - 1)) != 0) || is_cross_page) {
     Logm("addr misaligned happened: paddr:" FMT_PADDR " vaddr:" FMT_WORD " len:%d type:%d pc:%lx", paddr, vaddr, len, type, cpu.pc);
     if (ISDEF(CONFIG_MMIO_AC_SOFT)) {
-      int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAM : EX_LAM;
+      int ex = cpu.amo || type == MEM_TYPE_WRITE ? EX_SAF : EX_LAF;
       cpu.trapInfo.tval = vaddr;
       longjmp_exception(ex);
     }
