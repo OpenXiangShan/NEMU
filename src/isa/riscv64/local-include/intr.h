@@ -19,6 +19,7 @@
 
 #include <cpu/decode.h>
 #include "csr.h"
+
 enum {
   EX_IAM, // instruction address misaligned
   EX_IAF, // instruction address fault

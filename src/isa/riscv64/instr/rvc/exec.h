@@ -37,6 +37,8 @@ def_EHelper(c_j) {
 }
 
 def_EHelper(c_jr) {
+  riscv64_zicfilp_update_elp(s);
+
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, dsrc1, ~1UL);
@@ -50,6 +52,9 @@ def_EHelper(c_jr) {
 
 def_EHelper(c_jalr) {
   rtl_li(s, &cpu.gpr[1]._64, s->snpc);
+
+  riscv64_zicfilp_update_elp(s);
+
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
   rtl_andi(s, s0, dsrc1, ~1UL);
