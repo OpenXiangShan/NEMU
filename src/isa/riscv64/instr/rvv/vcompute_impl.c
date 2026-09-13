@@ -191,7 +191,7 @@ uint32_t vf_allowed_e16[] = {
 #endif
 };
 
-# ifdef CONFIG_RV_ZVFH
+#ifdef CONFIG_RV_ZVFH
 
 uint32_t vf_allowed_e8[] = {
   FWCVT_FXU,
@@ -1460,6 +1460,7 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       case VCLMULH :
         *s1 = _rv_clmulh(*s0, *s1);
         break;
+#endif
     }
     update_vcsr();
     // store to vrf
