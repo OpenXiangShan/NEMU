@@ -949,6 +949,7 @@ def_EHelper(vsm4k) {
 }
 
 def_EHelper(vsm4r) {
+  if (vtype->vsew != 2) longjmp_exception(EX_II);
   vsm_exec(VSM_OP_VSM4R, s);
 }
 #endif // CONFIG_RV_ZVKSED

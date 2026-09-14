@@ -1513,6 +1513,14 @@ void vaes_exec(vaes_op_t op, Decode *s) {
 
   int egroups = vl->val / 4;
 
+  bool is_vs = (s->isa.instr.v_opv.v_funct6 == 0b101001)
+               && (op != VAES_OP_VAESKF1 && op != VAES_OP_VAESKF2);
+
+  int register_group_size = vflmul < 1 ? 1 : vflmul;
+  if (is_vs) {
+    require_noover(id_dest->reg, register_group_size, id_src2->reg, 1);
+  }
+
   for (int g = vstart->val / 4; g < egroups; g++) {
     int base = g * 4;
 
@@ -1523,9 +1531,6 @@ void vaes_exec(vaes_op_t op, Decode *s) {
       }
       if (all_masked) continue;
     }
-
-    bool is_vs = (s->isa.instr.v_opv.v_funct6 & 1)
-                 && (op != VAES_OP_VAESKF1 && op != VAES_OP_VAESKF2);
 
     uint32_t state[4], rk[4];
 
@@ -1734,6 +1739,14 @@ void vsm_exec(vsm_op_t op, Decode *s) {
 
   int egroups = vl->val / 4;
 
+  bool is_vs = (s->isa.instr.v_opv.v_funct6 == 0b101001)
+                && (op == VSM_OP_VSM4R);
+
+  int register_group_size = vflmul < 1 ? 1 : vflmul;
+  if (is_vs) {
+    require_noover(id_dest->reg, register_group_size, id_src2->reg, 1);
+  }
+
   for (int g = vstart->val / 4; g < egroups; g++) {
     int base = g * 4;
 
@@ -1750,7 +1763,7 @@ void vsm_exec(vsm_op_t op, Decode *s) {
 
     if (op == VSM_OP_VSM4R) {
       for (int k = 0; k < 4; k++) {
-        get_vreg(id_src2->reg, base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
+        get_vreg(id_src2->reg, is_vs ? k : base + k, s0, vtype->vsew, vtype->vlmul, 0, 1);
         get_vreg(id_dest->reg, base + k, s1, vtype->vsew, vtype->vlmul, 0, 1);
 
         rk[k] = (uint32_t)*s0;
