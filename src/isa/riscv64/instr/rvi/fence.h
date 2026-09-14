@@ -13,6 +13,10 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
+
 def_EHelper(fence_i) {
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
   set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
@@ -20,6 +24,13 @@ def_EHelper(fence_i) {
 }
 
 def_EHelper(fence) {
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  // Normal FENCE orders W (also O for PBMT=IO RAM stores) before matrix RAM reads.
+  uint32_t inst = s->isa.instr.val;
+  if (BITS(inst, 31, 28) == 0 && (BITS(inst, 23, 20) & 2)) {
+    svstore_queue_update_fence(BITS(inst, 27, 24));
+  }
+#endif
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }
 

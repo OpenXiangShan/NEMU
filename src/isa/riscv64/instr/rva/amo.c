@@ -20,6 +20,9 @@
 #include "../local-include/trigger.h"
 #include "../local-include/intr.h"
 #include "cpu/difftest.h"
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 
 static inline uint64_t amo_unsigned_operand(rtlreg_t value, int width) {
   switch (width) {
@@ -50,6 +53,10 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   int rd = s->isa.instr.r.rd;
   int rs2 = s->isa.instr.r.rs2;
   int width = 0;
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  // Both annotations are needed to order prior stores before subsequent loads.
+  bool aqrl = BITS(s->isa.instr.val, 26, 25) == 3;
+#endif
 
   switch (funct3) {
 #ifdef CONFIG_RV_ZABHA
@@ -148,6 +155,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     cpu.lr_addr = paddr;
     cpu.lr_valid = 1;
     Logti("set lr vaild");
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
     return;
   } else if (funct5 == 0b00011) { // sc
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -169,6 +177,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       IFDEF(CONFIG_DIFFTEST_REF_SPIKE,difftest_skip_ref());
     }
     rtl_li(s, dest, !success);
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl && success) svstore_queue_update_fence(SVSTORE_FENCE_W));
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
     cpu.amo = false;
 #endif
@@ -188,6 +197,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
         if (amo_unsigned_operand(compare_lo, width) == amo_unsigned_operand(*s0, width)) {
           *s1 = *src2;
           rtl_sm(s, s1, src1, 0, width, MMU_DYNAMIC);
+          IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
         }
         rtl_mv(s, dest, s0);
         break;
@@ -200,6 +210,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
           *t0 = rs2 == 0 ? 0 : *(src2 + 1);
           rtl_sm(s, s2, src1, 0, 8, MMU_DYNAMIC);
           rtl_sm(s, t0, src1, 8, 8, MMU_DYNAMIC);
+          IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
         }
         if (rd) {
           rtl_mv(s, dest, s0);
@@ -237,4 +248,5 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
   rtl_sm(s, s1, src1, 0, width, MMU_DYNAMIC);
   rtl_mv(s, dest, s0);
   cpu.amo = false;
+  IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
 }
