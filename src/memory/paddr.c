@@ -370,9 +370,11 @@ bool mpt_paddr_read(paddr_t addr, int len, word_t *data) {
 }
 #endif
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
 static inline void zicfiss_check_shadow_stack_paddr(paddr_t addr, vaddr_t vaddr) {
-  if (cpu.shadow_stack_access && (is_in_mmio(addr) || !in_pmem(addr))) {
+  // PBMT=IO overrides RAM's idempotency; PBMT=NC remains idempotent.
+  if (cpu.shadow_stack_access &&
+      (cpu.pbmt == 2 || is_in_mmio(addr) || !in_pmem(addr))) {
     raise_access_fault(EX_SAF, vaddr);
   }
 }
@@ -384,7 +386,7 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   int permission_type = cpu.shadow_stack_access ? MEM_TYPE_WRITE : type;
   int permission_trap_type = cpu.shadow_stack_access ? MEM_TYPE_WRITE : trap_type;
 #else
@@ -395,7 +397,7 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
-  IFDEF(CONFIG_RV_ZICFISS, zicfiss_check_shadow_stack_paddr(addr, vaddr));
+  IFDEF(CONFIG_RV_CFI, zicfiss_check_shadow_stack_paddr(addr, vaddr));
   return check_paddr(addr, len, permission_type, permission_trap_type, mode, vaddr);
 }
 
@@ -622,7 +624,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
   }
 
-  IFDEF(CONFIG_RV_ZICFISS, zicfiss_check_shadow_stack_paddr(addr, vaddr));
+  IFDEF(CONFIG_RV_CFI, zicfiss_check_shadow_stack_paddr(addr, vaddr));
   if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }

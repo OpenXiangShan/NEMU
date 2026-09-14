@@ -157,7 +157,7 @@ typedef struct {
   uint64_t tinfo;
 #endif // CONFIG_DIFFTEST_CHECK_SDTRIG
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   uint64_t ssp;
 #endif
 
@@ -167,7 +167,7 @@ typedef struct {
 
   // exec state
   bool amo;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   bool shadow_stack_access;
 #endif
   uint32_t pbmt;
@@ -209,7 +209,7 @@ typedef struct {
   bool virtualInterruptIsHvictlInject;
 #endif
 
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   uint8_t elp;
 #endif
 
@@ -552,7 +552,7 @@ enum { MODE_U = 0, MODE_S, MODE_RS, MODE_M };
 
 enum { OP_OR = 0, OP_AND, OP_XOR, OP_ADD = 4 };
 
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
 enum { ELP_NO_LP_EXPECTED = 0, ELP_LP_EXPECTED = 1 };
 #endif
 

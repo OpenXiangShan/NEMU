@@ -55,10 +55,10 @@ AMO_LIST(def_AMO_EHelper, w)
 AMO_ZABHA_LIST(def_AMO_EHelper, b)
 AMO_ZABHA_LIST(def_AMO_EHelper, h)
 #endif // CONFIG_RV_ZABHA
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
 def_AMO_EHelper(ssamoswap_d)
 def_AMO_EHelper(ssamoswap_w)
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
 #ifdef CONFIG_RV_ZACAS
 AMO_CAS_LIST(def_AMO_EHelper)
 #ifdef CONFIG_RV_ZABHA

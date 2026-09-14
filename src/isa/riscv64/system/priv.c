@@ -439,8 +439,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MSTATUS_WMASK_MDT MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
 #define MSTATUS_WMASK_SDT MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
-#define MSTATUS_WMASK_SPELP MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 23), 0)
-#define MSTATUS_WMASK_MPELP MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 41), 0)
+#define MSTATUS_WMASK_SPELP MUXDEF(CONFIG_RV_CFI, (0x1UL << 23), 0)
+#define MSTATUS_WMASK_MPELP MUXDEF(CONFIG_RV_CFI, (0x1UL << 41), 0)
 
 // final mstatus wmask: dependent of the ISA extensions
 #define MSTATUS_WMASK (    \
@@ -506,8 +506,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MENVCFG_RMASK_CBZE    (0x1UL << 7)
 #define MENVCFG_RMASK_CBCFE   (0x1UL << 6)
 #define MENVCFG_RMASK_CBIE    (0x3UL << 4)
-#define MENVCFG_RMASK_LPE     MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 2), 0)
-#define MENVCFG_RMASK_SSE     MUXDEF(CONFIG_RV_ZICFISS, (0x1UL << 3), 0)
+#define MENVCFG_RMASK_LPE     MUXDEF(CONFIG_RV_CFI, (0x1UL << 2), 0)
+#define MENVCFG_RMASK_SSE     MUXDEF(CONFIG_RV_CFI, (0x1UL << 3), 0)
 #define MENVCFG_RMASK_PMM     MENVCFG_PMM
 #define MENVCFG_RMASK (   \
   MENVCFG_RMASK_STCE    | \
@@ -571,7 +571,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 )
 
 #define MSECCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SMMPM, MSECCFG_PMM, 0)
-#define MSECCFG_WMASK_MLPE    MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 10), 0)
+#define MSECCFG_WMASK_MLPE    MUXDEF(CONFIG_RV_CFI, (0x1UL << 10), 0)
 #define MSECCFG_WMASK (    \
   MSECCFG_WMASK_PMM      | \
   MSECCFG_WMASK_MLPE       \
@@ -1817,8 +1817,8 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_FCSR: return fcsr->val & FCSR_MASK;
 #endif // CONFIG_FPU_NONE
 
-#ifdef CONFIG_RV_ZICFISS
-    case CSR_SSP: return ssp->val & ~0x3UL;
+#ifdef CONFIG_RV_CFI
+    case CSR_SSP: return ssp->val & SSP_MASK;
 #endif
 
 #ifdef CONFIG_RVV
@@ -1850,7 +1850,7 @@ static word_t csr_read(uint32_t csrid) {
     /************************* Supervisor-Level CSRs *************************/
     case CSR_SSTATUS: return sstatus_read(false, false);
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     case CSR_SENVCFG:
     {
       word_t senvcfg_out = senvcfg->val;
@@ -1864,7 +1864,7 @@ static word_t csr_read(uint32_t csrid) {
 #endif // CONFIG_RVH
       return senvcfg_out & SENVCFG_WMASK;
     }
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_SSTATEEN0 ... CSR_SSTATEEN3:
@@ -2184,9 +2184,9 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
 #endif // CONFIG_FPU_NONE
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     case CSR_SSP:
-      ssp->val = src & ~0x3UL;
+      ssp->val = src & SSP_MASK;
       break;
 #endif
 
@@ -2269,7 +2269,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       word_t senvcfg_wmask =
         SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~SENVCFG_WMASK_PMM);
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
       if (!menvcfg->sse) {
         senvcfg_wmask &= ~SENVCFG_WMASK_SSE;
       }
@@ -2278,7 +2278,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         senvcfg_wmask &= ~SENVCFG_WMASK_SSE;
       }
 #endif // CONFIG_RVH
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
       senvcfg->val = mask_bitset(senvcfg->val, senvcfg_wmask, src);
       if (((senvcfg_t*)&src)->cbie != 0b10) { // 0b10 is reserved
         senvcfg->val = mask_bitset(senvcfg->val, MENVCFG_WMASK_CBIE, src);
@@ -2537,11 +2537,11 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       word_t henvcfg_wmask =
         HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~HENVCFG_WMASK_PMM);
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
       if (!menvcfg->sse) {
         henvcfg_wmask &= ~HENVCFG_WMASK_SSE;
       }
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
       henvcfg->val = mask_bitset(henvcfg->val, henvcfg_wmask, src);
       if ((src & MENVCFG_WMASK_CBIE) != (0x20 & MENVCFG_WMASK_CBIE)) {
         henvcfg->val = mask_bitset(henvcfg->val, MENVCFG_WMASK_CBIE, src);
@@ -2685,7 +2685,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK_PMM, src);
       }
       riscv64_zicfilp_refresh_elp();
-      IFDEF(CONFIG_RV_ZICFILP, set_sys_state_flag(SYS_STATE_UPDATE));
+      IFDEF(CONFIG_RV_CFI, set_sys_state_flag(SYS_STATE_UPDATE));
       break;
 #endif // CONFIG_RV_CSR_MSECCFG
 
@@ -3052,14 +3052,14 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif
 }
 
-#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
+#ifdef CONFIG_RV_CFI
 void riscv64_raise_software_check(word_t tval) {
   cpu.trapInfo.tval = tval;
   longjmp_exception(EX_SWC);
 }
 #endif
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
 void riscv64_priv_sspush(Decode *s, rtlreg_t src) {
   const int len = sizeof(word_t);
   word_t addr = ssp->val - len;
@@ -3075,6 +3075,7 @@ void riscv64_priv_sspush(Decode *s, rtlreg_t src) {
   rtl_sm(s, &src, &addr, 0, len, MMU_DYNAMIC);
   cpu.shadow_stack_access = old_shadow_stack_access;
   ssp->val = addr;
+  csr_difftest_mark_dirty();
 }
 
 void riscv64_priv_sspopchk(Decode *s, rtlreg_t src) {
@@ -3103,8 +3104,9 @@ void riscv64_priv_sspopchk(Decode *s, rtlreg_t src) {
   }
 
   ssp->val = addr + len;
+  csr_difftest_mark_dirty();
 }
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
 
 static inline bool satp_permit_check(const word_t *dest_access){
   bool has_vi = false;
@@ -3577,7 +3579,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   // check csr_readonly
   has_vi |= csr_readonly_permit_check(addr, is_write);
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   if (addr == CSR_SSP) {
     if (cpu.mode != MODE_M && !menvcfg->sse) {
       longjmp_exception(EX_II);
@@ -3594,7 +3596,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
       longjmp_exception(EX_II);
     }
   }
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
 
   // Attempts to access unprivileged counters without s/h/mcounteren
   if ((addr >= 0xC00 && addr <= 0xC1F) || (addr == 0x14D) || (addr == 0x24D)) {
@@ -3796,14 +3798,14 @@ word_t riscv64_priv_sret() {
     if (ISDEF(CONFIG_RV_SSDBLTRP)) {
       vsstatus->sdt = 0;
     }
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     bool target_zicfilp_en = riscv64_zicfilp_enabled(vsstatus->spp, true);
 #endif
     cpu.mode = vsstatus->spp;
     vsstatus->spp  = MODE_U;
     vsstatus->sie  = vsstatus->spie;
     vsstatus->spie = 1;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     cpu.elp = target_zicfilp_en ? vsstatus->spelp : ELP_NO_LP_EXPECTED;
     vsstatus->spelp = ELP_NO_LP_EXPECTED;
 #endif
@@ -3828,7 +3830,7 @@ word_t riscv64_priv_sret() {
       IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
     }
   }
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   uint32_t target_mode = mstatus->spp;
   bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->spp != MODE_M && hstatus->spv), false);
 #endif
@@ -3844,7 +3846,7 @@ word_t riscv64_priv_sret() {
   cpu.mode = mstatus->spp;
   mstatus->spp = MODE_U;
   update_mmu_state();
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->spelp : ELP_NO_LP_EXPECTED;
   mstatus->spelp = ELP_NO_LP_EXPECTED;
 #endif
@@ -3858,7 +3860,7 @@ word_t riscv64_priv_mret() {
     longjmp_exception(EX_II);
   }
   IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   uint32_t target_mode = mstatus->mpp;
   bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->mpp != MODE_M && mstatus->mpv), false);
 #endif
@@ -3887,7 +3889,7 @@ word_t riscv64_priv_mret() {
   cpu.mode = mstatus->mpp;
   mstatus->mpp = MODE_U;
   update_mmu_state();
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->mpelp : ELP_NO_LP_EXPECTED;
   mstatus->mpelp = ELP_NO_LP_EXPECTED;
 #endif
@@ -3899,10 +3901,11 @@ word_t riscv64_priv_mret() {
 /// @brief Do RISC-V 64 privileged instruction: MNRET
 /// @return the next PC after MNRET
 word_t riscv64_priv_mnret() {
+  csr_difftest_mark_dirty();
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   uint32_t target_mode = mnstatus->mnpp;
   bool target_virtual = MUXDEF(CONFIG_RVH, (mnstatus->mnpp != MODE_M && mnstatus->mnpv), false);
 #endif
@@ -3931,7 +3934,7 @@ word_t riscv64_priv_mnret() {
   cpu.mode = mnstatus->mnpp;
   mnstatus->mnpp = MODE_U;
   mnstatus->nmie = 1;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mnstatus->mnpelp : ELP_NO_LP_EXPECTED;
   mnstatus->mnpelp = ELP_NO_LP_EXPECTED;
 #endif

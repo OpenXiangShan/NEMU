@@ -74,8 +74,8 @@ void csr_prepare() {
   cpu.stval    = stval->val;
   cpu.mtvec    = mtvec->val;
   cpu.stvec    = stvec->val;
-#ifdef CONFIG_RV_ZICFISS
-  cpu.ssp      = ssp->val & ~0x3UL;
+#ifdef CONFIG_RV_CFI
+  cpu.ssp      = ssp->val & SSP_MASK;
 #endif
 
 #ifdef CONFIG_DIFFTEST_CHECK_VCSR
@@ -163,8 +163,8 @@ void csr_writeback() {
   stval->val    = cpu.stval;
   mtvec->val    = cpu.mtvec;
   stvec->val    = cpu.stvec;
-#ifdef CONFIG_RV_ZICFISS
-  ssp->val      = cpu.ssp & ~0x3UL;
+#ifdef CONFIG_RV_CFI
+  ssp->val      = cpu.ssp & SSP_MASK;
 #endif
 
 #ifdef CONFIG_DIFFTEST_CHECK_VCSR

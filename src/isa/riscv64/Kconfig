@@ -92,19 +92,15 @@ config RV_ZICOND
   bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
   default y
 
-config RV_ZICFILP
-  bool "RISC-V Landing Pad (Zicfilp) Extension v1.0"
-  default n
-  help
-    Enable forward-edge control-flow integrity using landing pads.
-
-config RV_ZICFISS
-  bool "RISC-V Shadow Stack (ZICFISS) Extension v1.0"
+config RV_CFI
+  bool "RISC-V Control-Flow Integrity (Zicfilp and Zicfiss) v1.0"
   select RV_ZIMOP
   select RV_ZCMOP
   default n
   help
-    Enable backward-edge control-flow integrity using shadow stack.
+    Enable both forward-edge control-flow integrity using Zicfilp landing
+    pads and backward-edge control-flow integrity using Zicfiss shadow
+    stacks. Disabling this option removes support for both extensions.
 
 config RV_ZFH
   bool "RISC-V Zfh Extensions V1.0"
