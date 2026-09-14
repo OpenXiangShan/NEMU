@@ -5,7 +5,7 @@
 NEMU 提供一个由客户机指令控制的内存追踪窗口（runtime memory-trace window）。
 该窗口用于收集选定程序阶段（例如 `llama.cpp` 中的某个算子）的动态内存特征。
 
-追踪默认关闭。仅在收到开始信号之后、匹配的结束信号之前打印内存事件。
+追踪默认关闭。仅在收到开始信号之后、匹配的结束信号之前打印内存事件。所有事件的 `addr` 字段以及标量 unique 统计均使用客户机物理地址；`pc` 仍是执行访存指令的客户机虚拟程序计数器。页表遍历产生的 PTE 访问不计入算子数据访存。
 
 ## 信号 ID
 
@@ -49,7 +49,7 @@ nemu_signal(NEMU_MEM_TRACE_END);
 - `macquire`：打印同步寄存器索引和 `rs1` 的实际阈值。
 - `mfence`：矩阵内存屏障，无操作数。
 - `pc`：该动态访存 opcode 的程序计数器。
-- `addr`：该 opcode 在本次执行中访问的首个实际访存地址。对于没有实际 active lane 的事件，该字段可能为 `0x0`。
+- `addr`：该 opcode 在本次执行中访问的首个实际客户机物理地址。对于没有实际 active lane 的事件，该字段可能为 `0x0`。
 
 窗口结束时，标量访问以聚合字节计数器的形式报告，而非逐条事件：
 
@@ -60,10 +60,18 @@ nemu_signal(NEMU_MEM_TRACE_END);
 [T] ms_total <bytes>B [(<value>KiB|MiB)]
 [T] scalar_load <bytes>B [(<value>KiB|MiB)]
 [T] scalar_store <bytes>B [(<value>KiB|MiB)]
+[T] vl_unique <bytes>B [(<value>KiB|MiB)]
+[T] vs_unique <bytes>B [(<value>KiB|MiB)]
+[T] ml_unique <bytes>B [(<value>KiB|MiB)]
+[T] ms_unique <bytes>B [(<value>KiB|MiB)]
+[T] scalar_load_unique <bytes>B [(<value>KiB|MiB)]
+[T] scalar_store_unique <bytes>B [(<value>KiB|MiB)]
 [T] end
 ```
 
 汇总行始终先输出精确字节数。大于等于 1 KiB 时，会在括号内附加保留两位小数的 `KiB` 或 `MiB` 可读值。
+
+`vl_unique`、`vs_unique`、`ml_unique`、`ms_unique`、`scalar_load_unique` 和 `scalar_store_unique` 都是物理首地址去重事件字节量。在单个窗口、单个访存类别内，将事件表示为 `(客户机物理首地址, 事件字节数)`；同一物理首地址只累计第一次出现事件的字节数。向量 unique 以每条已聚合 RVV 事件的首地址作为键，矩阵和标量 unique 以对应访存事件的物理基地址作为键；它们不是所有访存 byte-address 区间的严格并集。
 
 若向量访存在完成前触发异常，已经成功完成的访问仍计入汇总，并输出带 `partial=1` 的部分事件：
 
@@ -75,7 +83,10 @@ nemu_signal(NEMU_MEM_TRACE_END);
 
 ```text
 [T] begin
+[T] address_space physical
 ```
+
+`address_space physical` 声明当前窗口的 `addr` 和全部 `*_unique` 字段均采用客户机物理地址。
 
 ## 字节计数语义
 
@@ -163,6 +174,7 @@ bytes = 128 * 128 * 4 B = 65536 B
 
 ```text
 [T] begin
+[T] address_space physical
 [T] vl 128B pc=0x80012340 addr=0xc4800000
 [T] ml 8192B pc=0x80045678 addr=0xc5000000
 [T] ms 65536B pc=0x80045690 addr=0xc5100000
@@ -173,6 +185,12 @@ bytes = 128 * 128 * 4 B = 65536 B
 [T] ms_total 65536B (64.00KiB)
 [T] scalar_load 981934B (958.92KiB)
 [T] scalar_store 351621B (343.38KiB)
+[T] vl_unique 128B
+[T] vs_unique 128B
+[T] ml_unique 8192B (8.00KiB)
+[T] ms_unique 65536B (64.00KiB)
+[T] scalar_load_unique 4096B (4.00KiB)
+[T] scalar_store_unique 2048B (2.00KiB)
 [T] end
 ```
 
