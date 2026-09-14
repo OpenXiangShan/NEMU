@@ -76,6 +76,9 @@ static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type) {
   paddr_t paddr = va2pa(s, vaddr, len, type);
+  if (s != NULL) {
+    s->last_access_paddr = paddr;
+  }
   word_t data = paddr_read(paddr, len, type, type, cpu.mode, vaddr);
   if (
     MUXDEF(CONFIG_RV_MBMC, isa_bmc_check_permission(paddr, len, 0, 0), true) &&
@@ -104,6 +107,7 @@ __attribute__((noinline))
 static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                                           int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
   paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_READ);
+  s->last_access_paddr = pbase;
   paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   if (likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
@@ -124,6 +128,7 @@ static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_
 __attribute__((noinline))
 static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+  s->last_access_paddr = paddr;
   paddr_write(paddr, len, data, cpu.mode, vaddr);
   if (
     MUXDEF(CONFIG_RV_MBMC, isa_bmc_check_permission(paddr, len, 0, 0), true) &&
@@ -144,6 +149,7 @@ __attribute__((noinline))
 static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                                           int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
   paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
+  s->last_access_paddr = pbase;
   paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
   if (likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
@@ -167,6 +173,9 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, type);
+    if (s != NULL) {
+      s->last_access_paddr = paddr;
+    }
     return paddr_read(paddr, len, type, type, cpu.mode, vaddr);
   }
 #endif
@@ -179,8 +188,14 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   } else {
     Logm("Host TLB fast path");
     #ifdef CONFIG_USE_SPARSEMM
+    if (s != NULL) {
+      s->last_access_paddr = (paddr_t) e->offset + vaddr;
+    }
     return sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, len);
     #else
+    if (s != NULL) {
+      s->last_access_paddr = host_to_guest(e->offset + vaddr);
+    }
     return host_read(e->offset + vaddr, len);
     #endif
   }
@@ -195,6 +210,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
     paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_READ);
+    s->last_access_paddr = pbase;
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
     fprintf(stderr, "?? 2-stage hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", paddr, 1 << msew, type);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
@@ -214,6 +230,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
       // sparse_mem_wread(get_sparsemm(), (vaddr_t)e->offset + vaddr, 1 << msew);
 #else // NOT CONFIG_USE_SPARSEMM
       uint8_t *host_base = e->offset + vbase;      
+      s->last_access_paddr = host_to_guest(host_base);
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
       amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
         host_to_guest(host_base), stride,
@@ -264,6 +281,11 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
   } else {
     // last_access_host_addr is used to indicate TLB hit and fast path is possible
     s->last_access_host_addr = e->offset + vaddr;
+#ifdef CONFIG_USE_SPARSEMM
+    s->last_access_paddr = (paddr_t) e->offset + vaddr;
+#else
+    s->last_access_paddr = host_to_guest(s->last_access_host_addr);
+#endif
     return;
   }
 }
@@ -273,6 +295,7 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #ifdef CONFIG_RVH
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    s->last_access_paddr = paddr;
     return paddr_write(paddr, len, data, cpu.mode, vaddr);
   }
 #endif
@@ -283,9 +306,11 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     return;
   }
 #ifdef CONFIG_USE_SPARSEMM
+  s->last_access_paddr = (paddr_t) e->offset + vaddr;
   sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
 #else // NOT CONFIG_USE_SPARSEMM
   uint8_t *host_addr = e->offset + vaddr;
+  s->last_access_paddr = host_to_guest(host_addr);
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
@@ -301,6 +326,7 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #ifdef CONFIG_RVH
   if (has_two_stage_translation()){
     paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_WRITE);
+    s->last_access_paddr = pbase;
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
     fprintf(stderr, "?? 2-stage hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
       pbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
@@ -326,6 +352,7 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   // sparse_mem_wwrite(get_sparsemm(), (vaddr_t)e->offset + vaddr, len, data);
 #else // NOT CONFIG_USE_SPARSEMM
   uint8_t *host_base = e->offset + vbase;
+  s->last_access_paddr = host_to_guest(host_base);
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
   matrix_store_commit_queue_push(host_to_guest(host_base), stride, row, column, msew, transpose);

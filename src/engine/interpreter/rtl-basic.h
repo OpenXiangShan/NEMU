@@ -144,7 +144,7 @@ static inline def_rtl(lm_access, rtlreg_t *dest, const rtlreg_t* addr,
   }
 #endif
   if (vector_access) {
-    mem_trace_vector_access(len, *addr + offset);
+    mem_trace_vector_access(len, s->last_access_paddr);
   } else {
     mem_trace_scalar_load(len);
   }
@@ -172,7 +172,7 @@ static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
                       int mmu_mode, char m_name, int mreg_id) {
   vaddr_read_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
   mem_trace_matrix_load((uint64_t) row * column * (1u << msew),
-                        s->pc, *base);
+                        s->pc, s->last_access_paddr);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -196,7 +196,7 @@ static inline def_rtl(sm_access, const rtlreg_t *src1, const rtlreg_t* addr,
   }
 #endif
   if (vector_access) {
-    mem_trace_vector_access(len, *addr + offset);
+    mem_trace_vector_access(len, s->last_access_paddr);
   } else {
     mem_trace_scalar_store(len);
   }
@@ -224,7 +224,7 @@ static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
                       int mmu_mode, char m_name, int mreg_id) {
   vaddr_write_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
   mem_trace_matrix_store((uint64_t) row * column * (1u << msew),
-                         s->pc, *base);
+                         s->pc, s->last_access_paddr);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
