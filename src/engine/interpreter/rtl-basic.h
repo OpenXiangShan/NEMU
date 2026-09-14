@@ -146,7 +146,7 @@ static inline def_rtl(lm_access, rtlreg_t *dest, const rtlreg_t* addr,
   if (vector_access) {
     mem_trace_vector_access(len, s->last_access_paddr);
   } else {
-    mem_trace_scalar_load(len);
+    mem_trace_scalar_load(len, s->last_access_paddr);
   }
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
@@ -198,7 +198,7 @@ static inline def_rtl(sm_access, const rtlreg_t *src1, const rtlreg_t* addr,
   if (vector_access) {
     mem_trace_vector_access(len, s->last_access_paddr);
   } else {
-    mem_trace_scalar_store(len);
+    mem_trace_scalar_store(len, s->last_access_paddr);
   }
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
@@ -244,7 +244,7 @@ static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
   }
 #endif
   word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
-  mem_trace_scalar_load(len);
+  mem_trace_scalar_load(len, s->last_access_paddr);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
