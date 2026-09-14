@@ -148,7 +148,7 @@ def_EHelper(c_subw) {
 
 #ifdef CONFIG_RV_ZCMOP
 def_EHelper(c_mop) {
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   bool zicfiss_active = riscv64_zicfiss_enabled(
       cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
   uint32_t instr = s->isa.instr.val;
@@ -162,7 +162,7 @@ def_EHelper(c_mop) {
       (instr & MASK_C_SSPOPCHK_X5) == MATCH_C_SSPOPCHK_X5) {
     riscv64_priv_sspopchk(s, reg_l(5));
   }
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
   // c.mop.n do nothing without redefinition.
 }
 #endif // CONFIG_RV_ZCMOP
