@@ -26,7 +26,7 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <generated/autoconf.h>
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
 #include "../isa/riscv64/local-include/intr.h"
 #endif
 #include <profiling/profiling_control.h>
@@ -451,7 +451,7 @@ static void execute(int n) {
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     // Let an undecoded tcache entry go through isa_fetch_decode() first so
     // instruction-fetch faults retain priority over the software check.
     if (unlikely(cpu.elp == 1) && s->EHelper != &&exec_nemu_decode) {
@@ -605,7 +605,7 @@ void lightqs_take_reg_snapshot() {
   reg_ss.stval = cpu.stval;
   reg_ss.mtvec = cpu.mtvec;
   reg_ss.stvec = cpu.stvec;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   reg_ss.ssp = cpu.ssp;
 #endif
   reg_ss.mode = cpu.mode;
@@ -654,7 +654,7 @@ void lightqs_take_spec_reg_snapshot() {
   spec_reg_ss.stval = cpu.stval;
   spec_reg_ss.mtvec = cpu.mtvec;
   spec_reg_ss.stvec = cpu.stvec;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   spec_reg_ss.ssp = cpu.ssp;
 #endif
   spec_reg_ss.mode = cpu.mode;
@@ -710,7 +710,7 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
   cpu.mideleg = reg_ss.mideleg;
   cpu.mtval = reg_ss.mtval;
   cpu.stval = reg_ss.stval;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   cpu.ssp = reg_ss.ssp;
 #endif
   cpu.mode = reg_ss.mode;
@@ -750,7 +750,7 @@ static void execute(int n) {
     printf("ahead pc %lx %lx\n", g_nr_guest_instr, cpu.pc);
 #endif // CONFIG_LIGHTQS_DEBUG
     cpu.amo = false;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     cpu.shadow_stack_access = false;
 #endif
     cpu.pbmt = 0;
@@ -778,7 +778,7 @@ static void execute(int n) {
     cpu.pc = s.snpc;
     ref_log_cpu("pc = 0x%lx inst %x", s.pc, s.isa.instr.val);
 
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     if (unlikely(cpu.elp == 1)) {
       // fetch_decode() has already preserved the normal variable-length
       // instruction-fetch behavior and recorded all of the current instruction.
@@ -931,7 +931,7 @@ void cpu_exec(uint64_t n) {
 
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
       cpu.shadow_stack_access = false;
 #endif
       cpu.pbmt = 0;

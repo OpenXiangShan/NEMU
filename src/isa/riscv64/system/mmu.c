@@ -43,7 +43,15 @@ typedef union PageTableEntry {
   uint64_t val;
 } PTE;
 
-#ifdef CONFIG_RV_ZICFISS
+static inline int ptw_access_fault_cause(int trap_type) {
+  // Page-table reads report the fault class of the original instruction.
+  if (trap_type == MEM_TYPE_IFETCH) return EX_IAF;
+  if (trap_type == MEM_TYPE_WRITE || cpu.amo ||
+      MUXDEF(CONFIG_RV_CFI, cpu.shadow_stack_access, false)) return EX_SAF;
+  return EX_LAF;
+}
+
+#ifdef CONFIG_RV_CFI
 static inline bool zicfiss_is_ss_pte(const PTE *pte) {
   return pte->v && !pte->r && pte->w && !pte->x;
 }
@@ -283,7 +291,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
   uint32_t mode = (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode);
 #endif
   assert(mode == MODE_U || mode == MODE_S);
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   bool ss_page = zicfiss_is_active_ss_pte(pte,
       MUXDEF(CONFIG_RVH, virt, false));
 #endif
@@ -301,7 +309,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #endif
   if (ifetch) {
     Logtr("Translate for instr reading");
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     if (ss_page) {
       cpu.trapInfo.tval = vaddr;
       longjmp_exception(EX_IAF);
@@ -324,7 +332,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
     }
   } else if (type == MEM_TYPE_READ || type == MEM_TYPE_MATRIX_READ) {
     Logtr("Translate for memory reading");
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     if (cpu.shadow_stack_access && ok && !ss_page) {
       bool readonly = pte->r && !pte->w && !pte->x;
       cpu.trapInfo.tval = vaddr;
@@ -342,7 +350,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
 #else
   bool can_load = pte->r || (mstatus->mxr && pte->x);
 #endif
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     can_load = can_load || ss_page;
 #endif
 #ifdef CONFIG_SHARE
@@ -362,7 +370,7 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
       return false;
     }
   } else { // MEM_TYPE_WRITE
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     if (ok && ss_page && !cpu.shadow_stack_access) {
       zicfiss_raise_access_fault(vaddr);
       return false;
@@ -542,14 +550,13 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
 
     if (check_failed) {
       Log("pmp or pma or mpt check failed when PTW");
-      int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
-                  type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+      int cause = ptw_access_fault_cause(trap_type);
       cpu.trapInfo.tval = vaddr;
       longjmp_exception(cause);
     }
     pte.val = golden_pmem_read(p_pte, PTE_SIZE);
 #else
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     bool old_shadow_stack_access = cpu.shadow_stack_access;
     cpu.shadow_stack_access = false;
 #endif
@@ -557,7 +564,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
       type == MEM_TYPE_WRITE ? MEM_TYPE_WRITE_READ : MEM_TYPE_READ,
       trap_type, MODE_S, vaddr);
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     cpu.shadow_stack_access = old_shadow_stack_access;
 #endif
 #endif
@@ -591,7 +598,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
       break;
     } else if (
       type == MEM_TYPE_IFETCH || ishlvx ? !pte.x:
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
       (cpu.shadow_stack_access && !is_support_vs) ? !(pte.r && pte.w):
 #endif
       type == MEM_TYPE_READ           ? !pte.r && !mxr_read:
@@ -635,8 +642,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 #ifdef CONFIG_SHARE
   extern bool is_in_mmio(paddr_t addr);
   if (unlikely(is_in_mmio(addr) || !in_pmem(addr))) {
-    int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
-                type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+    int cause = ptw_access_fault_cause(type);
     cpu.trapInfo.tval = vaddr;
     longjmp_exception(cause);
   }
@@ -644,7 +650,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
                         type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
                                                   MEM_TYPE_READ;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   bool old_shadow_stack_access = cpu.shadow_stack_access;
   cpu.shadow_stack_access = false;
 #endif
@@ -663,7 +669,7 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 #else
   word_t pte = paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type, mode, vaddr);
 #endif
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   cpu.shadow_stack_access = old_shadow_stack_access;
 #endif
   return pte;
@@ -691,7 +697,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   if (virt) {
     if (vsatp->mode == SATP_MODE_BARE) {
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
       if (cpu.shadow_stack_access && mode < MODE_M) {
         zicfiss_raise_access_fault(vaddr);
       }
@@ -743,8 +749,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
 
     if (check_failed) {
       Log("pmp or pma or mpt check failed when PTW");
-      int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
-                  type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
+      int cause = ptw_access_fault_cause(type);
       cpu.trapInfo.tval = vaddr;
       longjmp_exception(cause);
     }
@@ -761,7 +766,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
         level, vaddr, pg_base, p_pte, pte.val);
     pg_base = PGBASE((uint64_t)pte.ppn);
     bool ss_page = false;
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
     ss_page = zicfiss_is_active_ss_pte(&pte,
         MUXDEF(CONFIG_RVH, virt, false));
 #endif
@@ -913,7 +918,7 @@ void isa_mmu_tlb_flush(void) {
 }
 
 static inline bool rvh_final_tlb_cacheable(int type) {
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   // Shadow-stack accesses require different PTE permissions from ordinary
   // accesses and must not reuse or populate their cached translations.
   if (cpu.shadow_stack_access) return false;
@@ -935,7 +940,7 @@ static inline uint16_t rvh_final_tlb_current_context(void) {
       (hld_st << 9) |
       (hlvx << 10) |
       (hstatus->spvp << 11)
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
       | (menvcfg->sse << 12)
       | (henvcfg->sse << 13)
 #endif
@@ -1144,9 +1149,12 @@ inline int isa_mmu_check(vaddr_t vaddr, int len, int type) {
     return MEM_RET_FAIL;
   }
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   if (cpu.shadow_stack_access) {
     int effective_mode = get_mprv() && !is_ifetch ? mstatus->mpp : cpu.mode;
+    if (effective_mode == MODE_M) {
+      zicfiss_raise_access_fault(vaddr);
+    }
     if (effective_mode < MODE_M) {
 #ifdef CONFIG_RVH
       bool effective_virt = get_mprv() && !is_ifetch && effective_mode != MODE_M
