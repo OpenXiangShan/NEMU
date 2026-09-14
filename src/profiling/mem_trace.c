@@ -82,6 +82,7 @@ void mem_trace_begin(void) {
   mem_trace_reset_counters();
   mem_trace_state.enabled = true;
   printf("[T] begin\n");
+  printf("[T] address_space physical\n");
 }
 
 void mem_trace_end(void) {

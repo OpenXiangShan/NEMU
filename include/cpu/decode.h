@@ -62,6 +62,9 @@ typedef struct Decode {
   };
   vaddr_t pc;
   vaddr_t snpc; // sequential next pc
+  // Physical address of the most recent completed data-memory access.
+  // Memory tracing consumes this after the virtual-memory path returns.
+  paddr_t last_access_paddr;
   IFDEF (CONFIG_PERF_OPT, const void *EHelper);
   IFNDEF(CONFIG_PERF_OPT, void (*EHelper)(struct Decode *));
   Operand dest, src1, src2;

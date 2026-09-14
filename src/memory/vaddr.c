@@ -46,7 +46,7 @@ static paddr_t vaddr_trans_and_check_exception(vaddr_t vaddr, int len, int type,
   return paddr;
 }
 
-static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTranslate) {
+static word_t vaddr_read_cross_page(struct Decode *s, vaddr_t addr, int len, int type, bool needTranslate) {
   vaddr_t vaddr = addr;
   word_t data = 0;
   int i;
@@ -57,6 +57,9 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
       int ret = mmu_ret & PAGE_MASK;
       if (ret != MEM_RET_OK) return 0;
       paddr = (mmu_ret & ~PAGE_MASK) | (vaddr & PAGE_MASK);
+    }
+    if (i == 0 && s != NULL) {
+      s->last_access_paddr = paddr;
     }
 
 #ifdef CONFIG_MULTICORE_DIFF
@@ -78,7 +81,7 @@ static word_t vaddr_read_cross_page(vaddr_t addr, int len, int type, bool needTr
   return data;
 }
 
-static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool needTranslate) {
+static void vaddr_write_cross_page(struct Decode *s, vaddr_t addr, int len, word_t data, bool needTranslate) {
   // (unaligned & cross page) store, align with dut(xs)
   //                  4KB|
   // +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -113,6 +116,9 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
     paddr_t next_pg_st_paddr = vaddr_trans_and_check_exception(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, &next_pg_st_exp);
 
     if (!cur_pg_st_exp && !next_pg_st_exp) {
+      if (s != NULL) {
+        s->last_access_paddr = cur_pg_st_paddr;
+      }
       paddr_write(cur_pg_st_paddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
       paddr_write(next_pg_st_paddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
     }
@@ -120,6 +126,9 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
     bool cur_pg_st_exp = !check_paddr(cur_pg_st_vaddr, cur_pg_st_len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, cpu.mode, cur_pg_st_vaddr);
     bool next_pg_st_exp = !check_paddr(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, cpu.mode, next_pg_st_vaddr);
     if (!cur_pg_st_exp && !next_pg_st_exp) {
+      if (s != NULL) {
+        s->last_access_paddr = cur_pg_st_vaddr;
+      }
       paddr_write(cur_pg_st_vaddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
       paddr_write(next_pg_st_vaddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
     }
@@ -137,6 +146,9 @@ static word_t vaddr_mmu_read(struct Decode *s, vaddr_t addr, int len, int type) 
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+    if (s != NULL) {
+      s->last_access_paddr = addr;
+    }
 #ifdef CONFIG_MULTICORE_DIFF
     if (type == MEM_TYPE_IFETCH) {
       if (!isa_pmp_check_permission(addr, len, MEM_TYPE_IFETCH, cpu.mode) ||
@@ -168,6 +180,7 @@ static void vaddr_mmu_read_matrix(struct Decode *s, vaddr_t base, vaddr_t stride
   int ret = pg_base & PAGE_MASK;
   assert(ret == MEM_RET_OK);
   base = pg_base | (base & PAGE_MASK);
+  s->last_access_paddr = base;
   paddr_read_matrix(base, stride, row, column, msew, transpose,
                     cpu.mode, vbase, m_name, mreg_id);
 #ifdef CONFIG_SHARE
@@ -188,6 +201,9 @@ static void vaddr_mmu_write(struct Decode *s, vaddr_t addr, int len, word_t data
   int ret = pg_base & PAGE_MASK;
   if (ret == MEM_RET_OK) {
     addr = pg_base | (addr & PAGE_MASK);
+    if (s != NULL) {
+      s->last_access_paddr = addr;
+    }
     ref_log_cpu("mmu_write: vaddr 0x%lx, paddr 0x%lx, len %d, data 0x%lx",
         vaddr, addr, len, data);
     paddr_write(addr, len, data, cpu.mode, vaddr);
@@ -204,6 +220,7 @@ static void vaddr_mmu_write_matrix(struct Decode *s, vaddr_t base, vaddr_t strid
   int ret = pg_base & PAGE_MASK;
   assert(ret == MEM_RET_OK);
   base = pg_base | (base & PAGE_MASK);
+  s->last_access_paddr = base;
 #ifdef CONFIG_SHARE
   if (unlikely(dynamic_config.debug_difftest)) {
     fprintf(stderr, "[NEMU] mmu_write matrix: vbase %#lx, pbase %#lx, stride %lu,\n"
@@ -236,10 +253,14 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int typ
   }
 
   if (is_cross_page) {
-    return vaddr_read_cross_page(addr, len, type, mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
+    return vaddr_read_cross_page((struct Decode *) s, addr, len, type,
+                                 mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
+    if (s != NULL) {
+      ((struct Decode *) s)->last_access_paddr = addr;
+    }
     return paddr_read(addr, len, type, type, cpu.mode, addr);
   }
   return MUXDEF(ENABLE_HOSTTLB, hosttlb_read, vaddr_mmu_read) ((struct Decode *)s, addr, len, type);
@@ -258,6 +279,7 @@ static inline void vaddr_read_matrix_internal(struct Decode *s, vaddr_t base, va
   }
   if (mmu_mode == MMU_DIRECT) {
     Logm("Paddr reading directly");
+    s->last_access_paddr = base;
     paddr_read_matrix(base, stride, row, column, msew, transpose,
                              cpu.mode, base, m_name, mreg_id);
   } else {
@@ -339,10 +361,14 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   }
 
   if (is_cross_page) {
-    vaddr_write_cross_page(addr, len ,data, mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
+    vaddr_write_cross_page(s, addr, len, data,
+                           mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
     return;
   }
   if (mmu_mode == MMU_DIRECT) {
+    if (s != NULL) {
+      s->last_access_paddr = addr;
+    }
     paddr_write(addr, len, data, cpu.mode, addr);
     return;
   }
@@ -358,6 +384,7 @@ void vaddr_write_matrix(struct Decode *s, vaddr_t base, vaddr_t stride,
     mmu_mode = isa_mmu_check(base, msew, MEM_TYPE_WRITE);
   }
   if (mmu_mode == MMU_DIRECT) {
+    s->last_access_paddr = base;
     paddr_write_matrix(base, stride, row, column, msew, transpose, cpu.mode, base, m_name, mreg_id);
   } else {
     MUXDEF(ENABLE_HOSTTLB, hosttlb_write_matrix, vaddr_mmu_write_matrix) (s, base, stride,

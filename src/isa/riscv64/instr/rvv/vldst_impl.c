@@ -410,7 +410,8 @@ void vld(Decode *s, int mode, int mmu_mode) {
       memcpy(reg_file_addr, masks, vle_size);
       if (count > 0) {
         mem_trace_vector_access((uint64_t) count * s->v_width,
-                                base_addr + first_active_idx * s->v_width);
+                                s->last_access_paddr +
+                                (first_active_idx - vstart->val) * s->v_width);
       }
       fast_vle = true;
     }
@@ -691,7 +692,8 @@ void vst(Decode *s, int mode, int mmu_mode) {
 #endif
       if (count > 0) {
         mem_trace_vector_access((uint64_t) count * s->v_width,
-                                base_addr + first_active_idx * s->v_width);
+                                s->last_access_paddr +
+                                (first_active_idx - vstart->val) * s->v_width);
       }
       fast_vse = true; // skip all operations
     }
@@ -1123,7 +1125,8 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         memcpy(reg_file_addr, masks, vle_size);
         if (count > 0) {
           mem_trace_vector_access((uint64_t) count * s->v_width,
-                                  base_addr + first_active_idx * s->v_width);
+                                  s->last_access_paddr +
+                                  (first_active_idx - vstart->val) * s->v_width);
         }
         fast_vle = true;
       }
