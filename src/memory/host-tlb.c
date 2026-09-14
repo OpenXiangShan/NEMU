@@ -139,7 +139,7 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   if (cpu.shadow_stack_access) {
     paddr_t paddr = va2pa(s, vaddr, len, type);
     return paddr_read(paddr, len, type, type, cpu.mode, vaddr);
@@ -243,7 +243,7 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
 #endif // CONFIG_RVV
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   if (cpu.shadow_stack_access) {
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
     paddr_write(paddr, len, data, cpu.mode, vaddr);

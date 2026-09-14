@@ -129,7 +129,7 @@ def_EHelper(hinval_gvma) {
 // It's no need to distinguish n.
 
 def_EHelper(mop_r_n) {
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   bool zicfiss_active = riscv64_zicfiss_enabled(
       cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
   uint32_t instr = s->isa.instr.val;
@@ -139,20 +139,18 @@ def_EHelper(mop_r_n) {
   if (zicfiss_active &&
       (instr == MATCH_SSPOPCHK_X1 || instr == MATCH_SSPOPCHK_X5)) {
     riscv64_priv_sspopchk(s, *dsrc1);
-  } else if (zicfiss_active && (instr & MASK_SSRDP) == MATCH_SSRDP) {
-    if (s->isa.instr.i.rd == 0) {
-      longjmp_exception(EX_II);
-    }
+  } else if (zicfiss_active && (instr & MASK_SSRDP) == MATCH_SSRDP &&
+             s->isa.instr.i.rd != 0) {
     rtl_mv(s, ddest, &ssp->val);
   } else
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
   {
     rtl_li(s, ddest, 0);
   }
 }
 
 def_EHelper(mop_rr_n) {
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
   bool zicfiss_active = riscv64_zicfiss_enabled(
       cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false));
   uint32_t instr = s->isa.instr.val;
@@ -163,7 +161,7 @@ def_EHelper(mop_rr_n) {
       (instr == MATCH_SSPUSH_X1 || instr == MATCH_SSPUSH_X5)) {
     riscv64_priv_sspush(s, *dsrc2);
   } else
-#endif // CONFIG_RV_ZICFISS
+#endif // CONFIG_RV_CFI
   {
     rtl_li(s, ddest, 0);
   }

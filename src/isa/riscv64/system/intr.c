@@ -71,7 +71,7 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
-  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
+  csr_difftest_mark_dirty();
   Logti("raise intr cause NO: %ld, epc: %lx\n", NO, epc);
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   switch (NO) {
@@ -169,7 +169,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
     vsstatus->sie = 0;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     vsstatus->spelp = cpu.elp;
     cpu.elp = 0;
 #endif
@@ -198,7 +198,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_II:
         vstval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         break;
-#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
+#ifdef CONFIG_RV_CFI
       case EX_SWC:
         vstval->val = cpu.trapInfo.tval;
         break;
@@ -225,7 +225,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     mstatus->spelp = cpu.elp;
     cpu.elp = 0;
 #endif
@@ -264,7 +264,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
-#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
+#ifdef CONFIG_RV_CFI
       case EX_SWC:
         stval->val = cpu.trapInfo.tval;
         IFDEF(CONFIG_RVH, htval->val = 0);
@@ -293,7 +293,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     mstatus->mpelp = cpu.elp;
     cpu.elp = 0;
 #endif
@@ -331,7 +331,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
-#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
+#ifdef CONFIG_RV_CFI
       case EX_SWC:
         mtval->val = cpu.trapInfo.tval;
         IFDEF(CONFIG_RVH, mtval2->val = 0);
@@ -359,7 +359,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mnstatus->mnpv = cpu.v;
 #endif //CONFIG_RVH
     mnstatus->nmie = 0;
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
     mnstatus->mnpelp = cpu.elp;
     cpu.elp = 0;
 #endif
