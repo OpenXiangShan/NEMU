@@ -25,7 +25,7 @@
 #define FBOX_MASK 0xFFFFFFFF00000000ull
 #define HFBOX_MASK 0xFFFFFFFFFFFF0000ull
 
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
 static inline bool riscv64_zicfilp_enabled(uint32_t mode, bool virtual_mode) {
   if (mode == MODE_M) {
     return mseccfg->mlpe;
@@ -63,11 +63,11 @@ static inline void riscv64_zicfilp_update_elp(Decode *s) { (void)s; }
 static inline void riscv64_zicfilp_refresh_elp(void) {}
 #endif
 
-#if defined(CONFIG_RV_ZICFILP) || defined(CONFIG_RV_ZICFISS)
+#ifdef CONFIG_RV_CFI
 void riscv64_raise_software_check(word_t tval);
 #endif
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
 static inline bool riscv64_zicfiss_enabled(uint32_t mode, bool virtual_mode) {
   if (mode == MODE_M) {
     return false;

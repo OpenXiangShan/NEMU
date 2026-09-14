@@ -19,7 +19,7 @@
 #include <cpu/decode.h>
 #include "../local-include/rtl.h"
 
-#ifdef CONFIG_RV_ZICFISS
+#ifdef CONFIG_RV_CFI
 #define ZICFISS_AMO_INSTR(f) f(ssamoswap_w) f(ssamoswap_d)
 #else
 #define ZICFISS_AMO_INSTR(f)
