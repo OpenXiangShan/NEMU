@@ -59,8 +59,6 @@ void hosttlb_init() {
 
 static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
   if (type != MEM_TYPE_IFETCH) save_globals(s);
-  // int ret = isa_mmu_check(vaddr, len, type);
-  // if (ret == MMU_DIRECT) return vaddr;
   paddr_t pg_base = isa_mmu_translate(vaddr, len, type);
   int ret = pg_base & PAGE_MASK;
   assert(ret == MEM_RET_OK);
@@ -141,6 +139,12 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
+#ifdef CONFIG_RV_CFI
+  if (cpu.shadow_stack_access) {
+    paddr_t paddr = va2pa(s, vaddr, len, type);
+    return paddr_read(paddr, len, type, type, cpu.mode, vaddr);
+  }
+#endif
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
@@ -239,6 +243,13 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
 #endif // CONFIG_RVV
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
+#ifdef CONFIG_RV_CFI
+  if (cpu.shadow_stack_access) {
+    paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
+    paddr_write(paddr, len, data, cpu.mode, vaddr);
+    return;
+  }
+#endif
 #ifdef CONFIG_RVH
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);

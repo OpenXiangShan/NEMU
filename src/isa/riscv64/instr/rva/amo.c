@@ -43,12 +43,44 @@ static inline int64_t amo_signed_operand(rtlreg_t value, int width) {
   return 0;
 }
 
+#ifdef CONFIG_RV_CFI
+static inline void ssamoswap_check_enabled(void) {
+  // Instruction enablement uses the current privilege mode. The MMU checks
+  // the effective access mode separately, including MPRV accesses from M.
+  if (cpu.mode == MODE_M) return;
+
+  if (!menvcfg->sse) {
+    longjmp_exception(EX_II);
+  }
+
+#ifdef CONFIG_RVH
+  if (cpu.v) {
+    if ((cpu.mode == MODE_S && !henvcfg->sse) ||
+        (cpu.mode == MODE_U && (!henvcfg->sse || !senvcfg->sse))) {
+      longjmp_exception(EX_VI);
+    }
+    return;
+  }
+#endif // CONFIG_RVH
+
+  if (cpu.mode == MODE_U && !senvcfg->sse) {
+    longjmp_exception(EX_II);
+  }
+}
+#endif // CONFIG_RV_CFI
+
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
   uint32_t funct3 = s->isa.instr.r.funct3;
   int rd = s->isa.instr.r.rd;
   int rs2 = s->isa.instr.r.rs2;
+  bool is_ssamoswap = false;
+#ifdef CONFIG_RV_CFI
+  is_ssamoswap = funct5 == 0b01001;
+  bool old_amo = cpu.amo;
+  bool old_shadow_stack_access = cpu.shadow_stack_access;
+#endif
   int width = 0;
 
   switch (funct3) {
@@ -80,6 +112,11 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     case 0b00011: // sc
       if (width < 4 || width == 16) longjmp_exception(EX_II);
       break;
+#ifdef CONFIG_RV_CFI
+    case 0b01001: // ssamoswap
+      if (width != 4 && width != 8) longjmp_exception(EX_II);
+      break;
+#endif // CONFIG_RV_CFI
     case 0b00101: // amocas
 #ifndef CONFIG_RV_ZACAS
       longjmp_exception(EX_II);
@@ -87,6 +124,17 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       break;
     default: longjmp_exception(EX_II);
   }
+
+#ifdef CONFIG_RV_CFI
+  if (is_ssamoswap) { // ssamoswap
+    if (s->isa.instr.r.funct3 != 2 && s->isa.instr.r.funct3 != 3) {
+      longjmp_exception(EX_II);
+    }
+    ssamoswap_check_enabled();
+    cpu.shadow_stack_access = true;
+    cpu.amo = true;
+  }
+#endif // CONFIG_RV_CFI
 
   if (funct5 == 0b00101) { // amocas
     if (width == 16 && ((rd % 2 == 1) || (rs2 % 2 == 1))) { // amocas.q 128-bit
@@ -110,36 +158,76 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
   int type = (funct5 == 0b00010) ? MEM_TYPE_READ : MEM_TYPE_WRITE;
 
-  // AMO does not support misalign operation
-  // So check misalign before real memory access
   void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
-  isa_amo_misalign_data_addr_check(*src1, width, type);
 
   // AMO/lr/sc do not support access MMIO space
   // So check MMIO before real access
   extern bool is_in_mmio(paddr_t addr);
 
-  // check behavior before actually load or store
-  vaddr_t vaddr = *dsrc1;
-  paddr_t paddr = vaddr;
-
-  if (isa_mmu_check(vaddr, width, type) == MMU_TRANSLATE) {
-    paddr_t pg_base = isa_mmu_translate(vaddr, width, type);
-    int ret = pg_base & PAGE_MASK;
-    if (ret == MEM_RET_OK) {
+  paddr_t paddr = *dsrc1;
+#ifdef CONFIG_RV_CFI
+  if (is_ssamoswap) {
+    // Capture both operands before writing rd: it may alias rs1 or rs2.
+    vaddr_t vaddr = get_effective_address(*src1, MEM_TYPE_WRITE);
+    word_t new_value = *src2;
+    isa_amo_misalign_data_addr_check(vaddr, width, MEM_TYPE_WRITE);
+    paddr = vaddr;
+    // SSAMOSWAP is one virtual-memory operation. Translate its address once,
+    // then perform the read-modify-write using the resulting physical address.
+    int mmu_mode = isa_mmu_check(vaddr, width, MEM_TYPE_WRITE);
+    if (mmu_mode == MMU_TRANSLATE) {
+      paddr_t pg_base = isa_mmu_translate(vaddr, width, MEM_TYPE_WRITE);
+      int ret = pg_base & PAGE_MASK;
+      if (ret != MEM_RET_OK) {
+        cpu.shadow_stack_access = old_shadow_stack_access;
+        cpu.amo = old_amo;
+        return;
+      }
       paddr = pg_base | (vaddr & PAGE_MASK);
     }
-  }
 
-  if (cpu.pbmt != 0 || is_in_mmio(paddr) || !in_pmem(paddr) ||
-      !isa_pmp_check_permission(paddr, width, type, cpu.mode) ||
-      !isa_pma_check_permission(paddr, width, type)) {
-    int ex = (type == MEM_TYPE_WRITE) ? EX_SAF : EX_LAF;
-    cpu.trapInfo.tval = *src1;
-    if (funct5 == 0b00011) {
-      cpu.lr_valid = 0;
+    word_t old_value = paddr_read(paddr, width, MEM_TYPE_READ,
+        MEM_TYPE_WRITE, cpu.mode, vaddr);
+    paddr_write(paddr, width, new_value, cpu.mode, vaddr);
+    // A fault must leave rd unchanged.
+    if (width == 4) {
+      *dest = (sword_t)(int32_t)old_value;
+    } else {
+      *dest = old_value;
     }
-    longjmp_exception(ex);
+
+    cpu.shadow_stack_access = old_shadow_stack_access;
+    cpu.amo = old_amo;
+    return;
+  }
+#endif // CONFIG_RV_CFI
+
+  // AMO does not support misaligned accesses.
+  isa_amo_misalign_data_addr_check(*src1, width, type);
+
+  if (!is_ssamoswap) {
+    // LR/SC uses this precheck to establish its reservation address. The
+    // remaining AMOs perform their memory accesses through RTL below.
+    vaddr_t vaddr = *dsrc1;
+    if (isa_mmu_check(vaddr, width, type) == MMU_TRANSLATE) {
+      paddr_t pg_base = isa_mmu_translate(vaddr, width, type);
+      int ret = pg_base & PAGE_MASK;
+      if (ret == MEM_RET_OK) {
+        paddr = pg_base | (vaddr & PAGE_MASK);
+      }
+    }
+
+    bool memory_ok = cpu.pbmt == 0 && !is_in_mmio(paddr) && in_pmem(paddr) &&
+        isa_pmp_check_permission(paddr, width, type, cpu.mode) &&
+        isa_pma_check_permission(paddr, width, type);
+    if (!memory_ok) {
+      int ex = (type == MEM_TYPE_WRITE) ? EX_SAF : EX_LAF;
+      cpu.trapInfo.tval = *src1;
+      if (funct5 == 0b00011) {
+        cpu.lr_valid = 0;
+      }
+      longjmp_exception(ex);
+    }
   }
 
   if (funct5 == 0b00010) { // lr
