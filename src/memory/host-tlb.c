@@ -22,6 +22,9 @@
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 
 #define HOSTTLB_SIZE_SHIFT 12
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
@@ -184,6 +187,10 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     } else {
       Logm("Host TLB fast path");
       uint8_t *host_base = e->offset + vbase;      
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+      svstore_queue_check_matrix_addr_conflict(host_to_guest(host_base), stride,
+          row, column, msew, transpose, s->pc, vbase);
+#endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
       amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
         host_to_guest(host_base), stride,
@@ -257,6 +264,8 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
 #endif // CONFIG_DIFFTEST_STORE_COMMIT
   host_write(host_addr, len, data);
+  IFDEF(CONFIG_AME_MEM_ACCESS_CHECK,
+      svstore_queue_emplace(host_to_guest(host_addr), len, s->pc, vaddr);)
 }
 
 #ifdef CONFIG_RV_AME

@@ -4,7 +4,7 @@
 #include <cpu/decode.h>
 #include <debug.h>
 
-#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <deque>
 #include <cstring>
 
@@ -188,4 +188,4 @@ void mstore_queue_check_vec_addr_conflict(
   }
 }
 
-#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
+#endif // CONFIG_AME_MEM_ACCESS_CHECK

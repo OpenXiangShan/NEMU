@@ -22,6 +22,9 @@
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -428,6 +431,14 @@ void paddr_read_matrix(paddr_t base, paddr_t stride,
     // TODO: do something here?
     return;
   }
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  if (likely(in_pmem(base))) {
+    // Check in instruction order, before enqueueing a deferred REF AMU load.
+    // Later stores/fences must not affect this load's visibility diagnosis.
+    svstore_queue_check_matrix_addr_conflict(base, stride, row, column, msew,
+                                           transpose, prev_s->pc, vbase);
+  }
+#endif
 #ifndef CONFIG_SHARE
   if (likely(in_pmem(base))) {
     pmem_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
@@ -582,7 +593,11 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
         addr, data, len, mode);
 #endif // CONFIG_SHARE
-    return pmem_write(addr, len, data, cross_page_store);
+    pmem_write(addr, len, data, cross_page_store);
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+    svstore_queue_emplace(addr, len, prev_s->pc, vaddr);
+#endif
+    return;
   }
   else {
     if (likely(is_in_mmio(addr))) {

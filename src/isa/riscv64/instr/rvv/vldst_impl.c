@@ -24,9 +24,10 @@
 #include <sys/cdefs.h>
 #ifdef CONFIG_RVV
 
-#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <ame/mstore_queue_wrapper.h>
-#endif
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include "vldst_impl.h"
@@ -323,7 +324,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
       __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
-#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
       mstore_queue_check_vec_addr_conflict(
           start_addr, masks + vstart->val * s->v_width,
           vl_val - vstart->val, s->v_width);
@@ -642,6 +643,15 @@ void vst(Decode *s, int mode, int mmu_mode) {
       }
 #endif
       memcpy(s->last_access_host_addr, masks, vse_size);
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+      // The memcpy also preserves masked-off bytes; record only active stores.
+      paddr_t pstart = host_to_guest(s->last_access_host_addr);
+      for (uint64_t i = vstart->val; i < vl_val; i++) {
+        if (s->vm == 0 && get_mask(0, i) == 0) continue;
+        uint64_t offset = (i - vstart->val) * s->v_width;
+        svstore_queue_emplace(pstart + offset, s->v_width, s->pc, start_addr + offset);
+      }
+#endif
       fast_vse = true; // skip all operations
     }
   }
@@ -1005,7 +1015,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
         __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
-#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
         mstore_queue_check_vec_addr_conflict(
             start_addr, masks + vstart->val * s->v_width,
             vl_val - vstart->val, s->v_width);

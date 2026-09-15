@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#ifdef CONFIG_AME_MSTORE_ACCESS_CHECK
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
 void mstore_queue_reset();
 void mstore_queue_push(mstore_info_t mstore_info);
 void mstore_queue_pop();
@@ -30,7 +30,7 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
 void mstore_queue_check_vec_addr_conflict(
     uint64_t start_addr, const uint8_t *masks,
     uint64_t element_count, int element_width);
-#endif // CONFIG_AME_MSTORE_ACCESS_CHECK
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 
 #ifdef __cplusplus
 }

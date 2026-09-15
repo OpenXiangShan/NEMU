@@ -21,6 +21,9 @@
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include "ame/raw-fp4.h"
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include "../instr/ame/mreg.h"
 #include "../local-include/intr.h"
 
@@ -121,17 +124,22 @@ bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride,
     longjmp_exception(EX_II);
   }
 
-#ifdef CONFIG_RVH
-  if (!store) {
-    extern int rvh_hlvx_check(struct Decode *s, int type);
-    rvh_hlvx_check(s, MEM_TYPE_READ);
-  }
-#endif
-
   int type = store ? MEM_TYPE_WRITE : MEM_TYPE_READ;
   if (!raw_fp4_preflight(base, stride, memory_rows, row_bytes, type)) {
     return false;
   }
+
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  if (!store) {
+    for (size_t i = 0; i < transfer_bytes; ++i) {
+      vaddr_t vaddr = base + (i / row_bytes) * stride + i % row_bytes;
+      if (svstore_queue_check_matrix_addr_conflict(
+              raw_fp4_paddrs[i], 0, 1, 1, 0, false, s->pc, vaddr)) {
+        break;
+      }
+    }
+  }
+#endif
 
   size_t byte_count = 0;
   for (int memory_row = 0; memory_row < memory_rows; memory_row++) {
