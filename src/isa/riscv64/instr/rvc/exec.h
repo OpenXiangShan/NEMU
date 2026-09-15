@@ -44,10 +44,9 @@ def_EHelper(c_jr) {
       zicfilp_en = mseccfg->mlpe;
     } else if (cpu.mode == MODE_S) {
       zicfilp_en = menvcfg->lpe;
-      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = zicfilp_en && henvcfg->lpe; )
+      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = henvcfg->lpe; )
     } else if (cpu.mode == MODE_U) {
       zicfilp_en = senvcfg->lpe;
-      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = zicfilp_en && henvcfg->lpe; )
     }
     if (zicfilp_en) {
       uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
@@ -80,10 +79,9 @@ def_EHelper(c_jalr) {
       zicfilp_en = mseccfg->mlpe;
     } else if (cpu.mode == MODE_S) {
       zicfilp_en = menvcfg->lpe;
-      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = zicfilp_en && henvcfg->lpe; )
+      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = henvcfg->lpe; )
     } else if (cpu.mode == MODE_U) {
       zicfilp_en = senvcfg->lpe;
-      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = zicfilp_en && henvcfg->lpe; )
     }
     if (zicfilp_en) {
       uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
