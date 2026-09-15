@@ -22,15 +22,30 @@
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #define AMO_INSTR_BINARY(f) \
   f(lr_w) f(lr_d)
+#ifdef CONFIG_RV_ZABHA
+#define AMO_ZABHA_INSTR(f) \
+  f(amoadd_b) f(amoswap_b) f(amoxor_b) f(amoor_b) f(amoand_b) \
+  f(amomin_b) f(amomax_b) f(amominu_b) f(amomaxu_b) \
+  f(amoadd_h) f(amoswap_h) f(amoxor_h) f(amoor_h) f(amoand_h) \
+  f(amomin_h) f(amomax_h) f(amominu_h) f(amomaxu_h)
+#else // CONFIG_RV_ZABHA
+#define AMO_ZABHA_INSTR(f)
+#endif // CONFIG_RV_ZABHA
 #define AMO_INSTR_TERNARY(f) \
   f(sc_w) f(sc_d) \
   f(amoadd_w) f(amoswap_w) f(amoxor_w) f(amoor_w) f(amoand_w) \
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
-  f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d)
+  f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d) \
+  AMO_ZABHA_INSTR(f)
 #ifdef CONFIG_RV_ZACAS
+#if defined(CONFIG_RV_ZABHA)
+#define AMO_ZABHA_CAS_INSTR(f) f(amocas_b) f(amocas_h)
+#else // CONFIG_RV_ZABHA
+#define AMO_ZABHA_CAS_INSTR(f)
+#endif // CONFIG_RV_ZABHA
 #define AMO_CAS_INSTR(f) \
-  f(amocas_w) f(amocas_d) f(amocas_q)
+  f(amocas_w) f(amocas_d) f(amocas_q) AMO_ZABHA_CAS_INSTR(f)
 #else // CONFIG_RV_ZACAS
 #define AMO_CAS_INSTR(f)
 #endif // CONFIG_RV_ZACAS
@@ -105,10 +120,18 @@
   #define SYS_RVH_INSTR_TERNARY(f)
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RV_MPT_CHECK
+  #define SYS_MPT_INSTR_TERNARY(f) \
+    f(mfence)
+#else // CONFIG_RVH
+  #define SYS_MPT_INSTR_TERNARY(f)
+#endif
+
 #define SYS_INSTR_TERNARY(f) \
   f(sfence_vma) \
   SYS_SVINVAL_INSTR_TERNARY(f) \
-  SYS_RVH_INSTR_TERNARY(f)
+  SYS_RVH_INSTR_TERNARY(f) \
+  SYS_MPT_INSTR_TERNARY(f)
 
 
 /********************** SYS INSTR TERNARY CSR (csr) **********************/
@@ -116,6 +139,18 @@
 #define SYS_INSTR_TERNARY_CSR(f) \
   f(csrrw) f(csrrs) f(csrrc) \
   f(csrrwi) f(csrrsi) f(csrrci)
+
+#ifdef CONFIG_CUSTOM_XVEXP2
+#define XVEXP2_INSTR_TERNARY(f) f(vfexp2_v)
+#else
+#define XVEXP2_INSTR_TERNARY(f)
+#endif // CONFIG_CUSTOM_XVEXP2
+
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+#define XVEXP2_BF16_INSTR_TERNARY(f) f(vfexp2bf16_v)
+#else
+#define XVEXP2_BF16_INSTR_TERNARY(f)
+#endif // CONFIG_CUSTOM_XVEXP2_BF16
 
 
 #ifdef CONFIG_RVV
@@ -185,6 +220,29 @@
 #define TENSOR_INSTR_BINARY(f)
 #define TENSOR_INSTR_TERNARY(f)
 #endif // CONFIG_CUSTOM_TENSOR
+
+#ifdef CONFIG_RV_AME
+#define MATRIX_INSTR_NULLARY(f) \
+  f(minit) f(mfence)
+#define MATRIX_INSTR_UNARY(f) \
+  f(mzero)
+#define MATRIX_INSTR_BINARY(f) \
+  f(msettilem) f(msettilemi) f(msettilek) f(msettileki) f(msettilen) f(msettileni) \
+  f(msyncreset) f(mrelease) f(macquire) f(msetcfg) f(mgetcfg)
+#define MATRIX_INSTR_TERNARY(f) \
+  f(mla) f(mlb) f(mlc) \
+  f(mlat) f(mlbt) f(mlct) \
+  f(msa) f(msb) f(msc) \
+  f(msat) f(msbt) f(msct) \
+  f(mlawhole) f(mlbwhole) f(mlcwhole) \
+  f(msawhole) f(msbwhole) f(mscwhole) \
+  f(mmacc)
+#else
+#define MATRIX_INSTR_NULLARY(f)
+#define MATRIX_INSTR_UNARY(f)
+#define MATRIX_INSTR_BINARY(f)
+#define MATRIX_INSTR_TERNARY(f)
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \
@@ -288,6 +346,27 @@
 #define ZFH_ZFA_INSTR_TERNARY(f)
 #endif // CONFIG_RV_ZFA
 
+#ifdef CONFIG_RV_ZFBF_MIN
+#define ZFBF_MIN_INSTR_BINARY(f) \
+  f(fcvt_bf16_s) f(fcvt_s_bf16)
+#else
+#define ZFBF_MIN_INSTR_BINARY(f)
+#endif // CONFIG_RV_ZFBF_MIN
+
+#ifdef CONFIG_RV_ZVFBF_MIN
+#define ZVFBF_MIN_INSTR_TERNARY(f) \
+  f(vfncvtbf16_ffw) f(vfwcvtbf16_ffv)
+#else
+#define ZVFBF_MIN_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVFBF_MIN
+
+#ifdef CONFIG_RV_ZVFBF_WMA
+#define ZVFBF_WMA_INSTR_TERNARY(f) \
+  f(vfwmaccbf16)
+#else
+#define ZVFBF_WMA_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVFBF_WMA
+
 #ifdef CONFIG_FPU_NONE
 #define FLOAT_INSTR_BINARY(f)
 #define FLOAT_INSTR_TERNARY(f)
@@ -353,10 +432,12 @@
   SYS_INSTR_NULLARY(f)   \
   f(p_ret) \
   ZAWRS_INSTR_NULLARY(f) \
-  ZCMOP_INSTR_NULLARY(f)
+  ZCMOP_INSTR_NULLARY(f) \
+  MATRIX_INSTR_NULLARY(f)
 
 #define INSTR_UNARY(f) \
-  f(p_li_0) f(p_li_1)
+  f(p_li_0) f(p_li_1) \
+  MATRIX_INSTR_UNARY(f)
 
 #define INSTR_BINARY(f) \
   f(lui) f(auipc) f(jal) \
@@ -374,9 +455,11 @@
   ZFH_MIN_INSTR_BINARY(f) \
   ZFH_INSTR_BINARY(f) \
   ZFA_INSTR_BINARY(f) \
+  ZFBF_MIN_INSTR_BINARY(f) \
   ZFH_ZFA_INSTR_BINARY(f) \
   ZCB_INSTR_BINARY(f) \
-  TENSOR_INSTR_BINARY(f)
+  TENSOR_INSTR_BINARY(f) \
+  MATRIX_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -398,13 +481,18 @@
   CRYPTO_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
+  ZVFBF_MIN_INSTR_TERNARY(f) \
+  ZVFBF_WMA_INSTR_TERNARY(f) \
+  MATRIX_INSTR_TERNARY(f) \
   CBO_INSTR_TERNARY(f) \
   ZIMOP_INSTR_TERNARY(f) \
   ZFH_INSTR_TERNARY(f) \
   ZFA_INSTR_TERNARY(f) \
   ZFH_ZFA_INSTR_TERNARY(f) \
   ZCB_INSTR_TERNARY(f) \
-  TENSOR_INSTR_TERNARY(f)
+  TENSOR_INSTR_TERNARY(f) \
+  XVEXP2_INSTR_TERNARY(f) \
+  XVEXP2_BF16_INSTR_TERNARY(f)
 
 #define INSTR_TERNARY_CSR(f) \
   SYS_INSTR_TERNARY_CSR(f) 

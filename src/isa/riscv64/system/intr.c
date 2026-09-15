@@ -25,7 +25,8 @@ void update_mmu_state();
 
 #ifdef CONFIG_RVH
 word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual) {
-  return ((NO == EX_IAM || NO == EX_IAF || NO == EX_BP || NO == EX_IPF) && cpu.v) ||
+  return ((NO == EX_IAM || NO == EX_IAF || NO == EX_IPF) && cpu.v) ||
+         (NO == EX_BP && (cpu.v || is_hls)) ||
          ((NO == EX_LAM || NO == EX_LAF || NO == EX_SAM || NO == EX_SAF || NO == EX_LPF || NO == EX_SPF || NO == EX_HWE) && (is_hls || cpu.v || is_mem_access_virtual)) ||
          (NO == EX_IGPF || NO == EX_LGPF || NO == EX_SGPF);
 }
@@ -70,6 +71,7 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 }
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   Logti("raise intr cause NO: %ld, epc: %lx\n", NO, epc);
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   switch (NO) {
@@ -130,7 +132,12 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   word_t trap_pc = 0;
 #ifdef CONFIG_RVH
-  bool virtualInterruptIsHvictlInject = MUXDEF(CONFIG_RV_IMSIC, cpu.virtualInterruptIsHvictlInject, false);
+#ifdef CONFIG_RV_IMSIC
+  bool virtualInterruptIsHvictlInject = (NO & INTR_BIT) && cpu.virtualInterruptIsHvictlInject;
+  cpu.virtualInterruptIsHvictlInject = 0;
+#else
+  bool virtualInterruptIsHvictlInject = false;
+#endif
   extern bool hld_st;
   int hld_st_temp = hld_st;
   hld_st = 0;
@@ -156,21 +163,16 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       vscause->val = NO;
     }
 #else
-    if (virtualInterruptIsHvictlInject) {
-      vscause->val = NO | INTR_BIT;
-#ifdef CONFIG_RV_IMSIC
-      cpu.virtualInterruptIsHvictlInject = 0;
-#endif
-    } else {
-      vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
-    }
+    vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
 #endif // CONFIG_RV_IMSIC
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
     vsstatus->sie = 0;
+#ifdef CONFIG_RV_ZICFILP
     vsstatus->spelp = cpu.elp;
     cpu.elp = 0;
+#endif
     vsstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, henvcfg->dte && menvcfg->dte, 0);
     vstval->val = cpu.trapInfo.tval;
     switch (NO) {
@@ -196,9 +198,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
       case EX_II:
         vstval->val = MUXDEF(CONFIG_TVAL_EX_II, cpu.instr, 0);
         break;
+#ifdef CONFIG_RV_ZICFILP
       case EX_SWC:
         vstval->val = 0x2;
         break;
+#endif
       default: vstval->val = 0;
     }
     cpu.v = 1;
@@ -221,8 +225,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->spp = cpu.mode;
     mstatus->spie = mstatus->sie;
     mstatus->sie = 0;
+#ifdef CONFIG_RV_ZICFILP
     mstatus->spelp = cpu.elp;
     cpu.elp = 0;
+#endif
     mstatus->sdt = MUXDEF(CONFIG_RV_SSDBLTRP, menvcfg->dte, 0);
     IFDEF(CONFIG_RVH, htval->val = cpu.trapInfo.tval2);
     IFDEF(CONFIG_RVH, htinst->val = cpu.trapInfo.tinst);
@@ -258,11 +264,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
+#ifdef CONFIG_RV_ZICFILP
       case EX_SWC:
         stval->val = 0x2;
         IFDEF(CONFIG_RVH, htval->val = 0);
         IFDEF(CONFIG_RVH, htinst->val = 0);
         break;
+#endif
       default:
         stval->val = 0;
         IFDEF(CONFIG_RVH, htval->val = 0);
@@ -285,8 +293,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
     mstatus->mie = 0;
+#ifdef CONFIG_RV_ZICFILP
     mstatus->mpelp = cpu.elp;
     cpu.elp = 0;
+#endif
     mtval->val = cpu.trapInfo.tval;
     IFDEF(CONFIG_RVH, mtval2->val = cpu.trapInfo.tval2);
     IFDEF(CONFIG_RVH, mtinst->val = cpu.trapInfo.tinst);
@@ -321,11 +331,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
+#ifdef CONFIG_RV_ZICFILP
       case EX_SWC:
         mtval->val = 0x2;
         IFDEF(CONFIG_RVH, mtval2->val = 0);
         IFDEF(CONFIG_RVH, mtinst->val = 0);
         break;
+#endif
       default:
         mtval->val = 0;
         IFDEF(CONFIG_RVH, mtval2->val = 0);
@@ -347,8 +359,10 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     mnstatus->mnpv = cpu.v;
 #endif //CONFIG_RVH
     mnstatus->nmie = 0;
+#ifdef CONFIG_RV_ZICFILP
     mnstatus->mnpelp = cpu.elp;
     cpu.elp = 0;
+#endif
     mnepc->val = epc;
     mncause->val = NO;
     cpu.mode = MODE_M;
@@ -361,50 +375,60 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 }
 
 word_t isa_query_intr() {
-  word_t intr_vec = mie->val & (get_mip());
-  if (!intr_vec || MUXDEF(CONFIG_RV_SMRNMI,!mnstatus->nmie, false)) return INTR_EMPTY;
-  int intr_num;
+  word_t enabled_intr = mie->val;
+#ifdef CONFIG_RV_IMSIC
+  bool pending = (mtopi->val != 0) || (stopi->val != 0) || (vstopi->val != 0);
+#endif
+  if (MUXDEF(CONFIG_RV_IMSIC, !pending, !enabled_intr) ||
+      MUXDEF(CONFIG_RV_SMRNMI, !mnstatus->nmie, false)) return INTR_EMPTY;
+  if (cpu.mode == MODE_M && !mstatus->mie && MUXDEF(CONFIG_RVH, !cpu.v, true)) return INTR_EMPTY;
+
+  word_t intr_vec = enabled_intr & get_mip();
+  if (!intr_vec) return INTR_EMPTY;
+
 #ifdef CONFIG_RVH
-  const int priority [] = {
+  word_t deleg = mideleg->val;
+  word_t global_enabled_intr;
+  if (!cpu.v && cpu.mode == MODE_M) {
+    global_enabled_intr = ~deleg;
+  } else {
+    word_t hdeleg = get_hideleg();
+    global_enabled_intr = 0;
+    if (cpu.v && (((cpu.mode == MODE_S) && vsstatus->sie) || (cpu.mode < MODE_S))) global_enabled_intr |= deleg & hdeleg;
+    if (((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v) global_enabled_intr |= deleg & ~hdeleg;
+    if (cpu.mode < MODE_M) global_enabled_intr |= ~deleg;
+  }
+#else
+  word_t deleg = mideleg->val;
+  word_t global_enabled_intr;
+  if (cpu.mode == MODE_M) {
+    global_enabled_intr = ~deleg;
+  } else {
+    global_enabled_intr = 0;
+    if (((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S)) global_enabled_intr |= deleg;
+    if (cpu.mode < MODE_M) global_enabled_intr |= ~deleg;
+  }
+#endif // CONFIG_RVH
+
+  intr_vec &= global_enabled_intr;
+  if (!intr_vec) return INTR_EMPTY;
+
+  static const uint8_t priority[] = {
     IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
     IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
     IRQ_UEIP, IRQ_USIP, IRQ_UTIP,
+#ifdef CONFIG_RVH
     IRQ_SGEI,
     IRQ_VSEIP, IRQ_VSSIP, IRQ_VSTIP,
 #ifdef CONFIG_RV_SSCOFPMF
-    IRQ_LCOFI
-#endif
-  };
-#ifdef CONFIG_RV_SSCOFPMF
-  intr_num = 14;
-#else
-  intr_num = 13;
-#endif
-#else
-  const int priority [] = {
-    IRQ_MEIP, IRQ_MSIP, IRQ_MTIP,
-    IRQ_SEIP, IRQ_SSIP, IRQ_STIP,
-    IRQ_UEIP, IRQ_USIP, IRQ_UTIP
-  };
-  intr_num = 9;
+    IRQ_LCOFI,
+#endif // CONFIG_RV_SSCOFPMF
 #endif // CONFIG_RVH
-  int i;
+  };
 
-  for (i = 0; i < intr_num; i ++) {
+  for (int i = 0; i < ARRLEN(priority); i++) {
     int irq = priority[i];
-    if (intr_vec & (1 << irq)) {
-      bool deleg = (mideleg->val & (1 << irq)) != 0;
-#ifdef CONFIG_RVH
-      bool hdeleg = (get_hideleg() & (1 << irq)) != 0;
-      bool global_enable = (hdeleg & deleg)? (cpu.v && cpu.mode == MODE_S && vsstatus->sie) || (cpu.v && cpu.mode < MODE_S):
-                           (deleg)? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) || cpu.v:
-                           ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M);
-#else
-      bool global_enable = (deleg ? ((cpu.mode == MODE_S) && mstatus->sie) || (cpu.mode < MODE_S) :
-          ((cpu.mode == MODE_M) && mstatus->mie) || (cpu.mode < MODE_M));
-#endif
-      if (global_enable) return irq | INTR_BIT;
-    }
+    if (intr_vec & (1ULL << irq)) return irq | INTR_BIT;
   }
   return INTR_EMPTY;
 }

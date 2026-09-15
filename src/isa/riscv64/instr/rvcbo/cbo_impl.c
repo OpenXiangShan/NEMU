@@ -22,6 +22,9 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <cpu/cpu.h>
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 
 #define CACHE_BLOCK_SHIFT        6
 #define CACHE_BLOCK_SIZE         (1UL << CACHE_BLOCK_SHIFT)
@@ -30,6 +33,16 @@
 #define CACHE_OP_SPLIT_SIZE      8
 #define CACHE_BLOCK_OPS          (CACHE_BLOCK_SIZE / CACHE_OP_SPLIT_SIZE)
 
+
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+// In NEMU's cacheless memory model, invalidate and flush have the same data effect.
+// The AME checker must distinguish them: only a CBIE-forced flush publishes same-block stores.
+static bool inval_as_flush(void) {
+  return (cpu.mode != MODE_M && menvcfg->cbie == 1) ||
+         (cpu.mode == MODE_U && senvcfg->cbie == 1) ||
+         (cpu.v && henvcfg->cbie == 1);
+}
+#endif
 
 static void paddr_check(paddr_t paddr, vaddr_t vaddr, int type) {
   check_paddr(paddr, 8, type, MEM_TYPE_WRITE, cpu.mode, vaddr);
@@ -43,9 +56,11 @@ static void paddr_check(paddr_t paddr, vaddr_t vaddr, int type) {
 static void trigger_check(vaddr_t vaddr){
 #ifdef CONFIG_TDATA1_MCONTROL6
   vaddr_t block_addr = vaddr & ~CACHE_BLOCK_MASK;
-  for (uint64_t offset = 0; offset < CACHE_BLOCK_SIZE; offset++) {
-    trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, block_addr + offset, TRIGGER_NO_VALUE);
-    trigger_handler(TRIG_TYPE_MCONTROL6, action, vaddr);
+  if (trigger_mcontrol6_active(cpu.TM)) {
+    for (uint64_t offset = 0; offset < CACHE_BLOCK_SIZE; offset++) {
+      trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, block_addr + offset, TRIGGER_NO_VALUE);
+      trigger_handler(TRIG_TYPE_MCONTROL6, action, vaddr);
+    }
   }
 #endif // CONFIG_TDATA1_MCONTROL6
 }
@@ -108,6 +123,11 @@ void cbo_inval(Decode *s){
     rtlreg_t* addr_p = dsrc1;
 
     not_translate_check(*addr_p, MEM_TYPE_READ);
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+    if (inval_as_flush()) {
+      svstore_queue_update_cbo(*addr_p & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE);
+    }
+#endif
 
     // do nothing
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
@@ -125,6 +145,7 @@ void cbo_flush(Decode *s){
     rtlreg_t *addr_p = dsrc1;
 
     not_translate_check(*addr_p, MEM_TYPE_READ);
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(*addr_p & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
@@ -142,6 +163,7 @@ void cbo_clean(Decode *s){
     rtlreg_t *addr_p = dsrc1;
 
     not_translate_check(*addr_p, MEM_TYPE_READ);
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(*addr_p & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
@@ -175,9 +197,13 @@ void cbo_inval_mmu(Decode *s){
 
     rtlreg_t *addr_p = dsrc1;
 
-    translate_and_check(*addr_p, MEM_TYPE_READ);
+    __attribute__((unused)) paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+    if (inval_as_flush()) {
+      svstore_queue_update_cbo(paddr & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE);
+    }
+#endif
 
-    // do nothing
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
     pop_context();
   }
@@ -192,7 +218,8 @@ void cbo_flush_mmu(Decode *s){
   } else {
     rtlreg_t *addr_p = dsrc1;
 
-    translate_and_check(*addr_p, MEM_TYPE_READ);
+    __attribute__((unused)) paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(paddr & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
@@ -210,7 +237,8 @@ void cbo_clean_mmu(Decode *s){
 
     rtlreg_t *addr_p = dsrc1;
 
-    translate_and_check(*addr_p, MEM_TYPE_READ);
+    __attribute__((unused)) paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(paddr & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
     IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));

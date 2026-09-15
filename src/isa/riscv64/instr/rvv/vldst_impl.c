@@ -24,6 +24,10 @@
 #include <sys/cdefs.h>
 #ifdef CONFIG_RVV
 
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/mstore_queue_wrapper.h>
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include "vldst_impl.h"
@@ -38,6 +42,18 @@ word_t mtvaltmp  = 0;
 
 void isa_vec_misalign_data_addr_check(vaddr_t vaddr, int len, int type);
 // reference: v_ext_macros.h in riscv-isa-sim
+
+static inline bool skip_empty_vldst(Decode *s) {
+  if (!check_vstart_ignore(s)) {
+    return false;
+  }
+
+  // predecode_vls() marks the CPU before dispatching to a vector memory helper.
+  // An empty vector operation must clear that transient state before returning.
+  cpu.isVldst = false;
+  cpu.isVecUnitStore = false;
+  return true;
+}
 
 static void isa_emul_check(int emul, int nfields) {
   if (emul > 3) {
@@ -163,9 +179,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
   switch (eew) {
   case 0: {
     for (word_t i = vstart->val; i < vl_val; i++) {
-      masks[i] = get_mask(0, i) ? 0xff : 0;
+      masks[i] = (s->vm != 0 || get_mask(0, i)) ? 0xff : 0;
       Logm("masks[%ld] = %x", i, masks[i]);
-      masks[i] |= s->vm != 0 ? 0xff : 0;
       count += masks[i] != 0;
     };
     break;
@@ -174,9 +189,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
     uint16_t *x_masks = (uint16_t *)masks;
     for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 64, "vl_val > 64");
-      x_masks[i] = get_mask(0, i) ? 0xffff : 0;
+      x_masks[i] = (s->vm != 0 || get_mask(0, i)) ? 0xffff : 0;
       Logm("xmasks[%ld] = %x", i, x_masks[i]);
-      x_masks[i] |= s->vm != 0 ? 0xffff : 0;
       count += x_masks[i] != 0;
     };
     break;
@@ -185,9 +199,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
     uint32_t *x_masks = (uint32_t *)masks;
     for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 32, "vl_val > 32");
-      x_masks[i] = get_mask(0, i) ? ~0U : 0;
+      x_masks[i] = (s->vm != 0 || get_mask(0, i)) ? ~0U : 0;
       Logm("xmasks[%ld] = %x", i, x_masks[i]);
-      x_masks[i] |= s->vm != 0 ? ~0U : 0;
       count += x_masks[i] != 0;
     };
     break;
@@ -196,9 +209,8 @@ static inline unsigned gen_mask_for_unit_stride(Decode *s, int eew, vstart_t *vs
     uint64_t *x_masks = (uint64_t *)masks;
     for (uint64_t i = vstart->val; i < vl_val; i++) {
       Assert(vl_val <= 16, "vl_val > 16");
-      x_masks[i] = get_mask(0, i) ? ~(0UL) : 0;
+      x_masks[i] = (s->vm != 0 || get_mask(0, i)) ? ~(0UL) : 0;
       Logm("xmasks[%ld] = %lx", i, x_masks[i]);
-      x_masks[i] |= s->vm != 0 ? ~(0UL) : 0;
       count += x_masks[i] != 0;
     }
     break;
@@ -245,7 +257,7 @@ void set_vec_load_difftest_info(int fn, int len) {
 
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
@@ -312,6 +324,12 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
       __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+      mstore_queue_check_vec_addr_conflict(
+          start_addr, masks + vstart->val * s->v_width,
+          vl_val - vstart->val, s->v_width);
+#endif
+
       uint8_t invert_masks[VLMAX_8] = {0};
       uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
 
@@ -373,8 +391,7 @@ void vld(Decode *s, int mode, int mmu_mode) {
 
   if (!fast_vle) {  // this block is the original slow path
     for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-      rtlreg_t mask = get_mask(0, idx);
-      if (s->vm == 0 && mask == 0) {
+      if (s->vm == 0 && get_mask(0, idx) == 0) {
         if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {
@@ -387,8 +404,10 @@ void vld(Decode *s, int mode, int mmu_mode) {
       for (fn = 0; fn < nf; fn++) {
         addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -427,7 +446,7 @@ void vldx(Decode *s, int mmu_mode) {
   //        6  ->  32         2  ->  32
   //        7  ->  64         3  ->  64
   index_vload_check(s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t nf = s->v_nf + 1, fn, vl_val, ori_vstart, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
 
@@ -461,8 +480,7 @@ void vldx(Decode *s, int mmu_mode) {
   uint64_t vloadBuf[8];
 
   for (uint64_t idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx);
-    if (s->vm == 0 && mask == 0) {
+    if (s->vm == 0 && get_mask(0, idx) == 0) {
       if (RVV_AGNOSTIC && vtype->vma) {
         tmp_reg[1] = (uint64_t) -1;
         for (fn = 0; fn < nf; fn++) {
@@ -480,8 +498,10 @@ void vldx(Decode *s, int mmu_mode) {
       // read data in memory
       addr = base_addr + index + fn * data_width;
 
-      IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                              trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+      IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                        trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                        trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                      })
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_READ);
 
@@ -518,7 +538,7 @@ extern uint64_t g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized;
 
 void vst(Decode *s, int mode, int mmu_mode) {
   vstore_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   g_nr_vst += 1;
   uint64_t idx;
   uint64_t nf, vl_val, base_addr, vd, addr, is_unit_stride;
@@ -623,6 +643,15 @@ void vst(Decode *s, int mode, int mmu_mode) {
       }
 #endif
       memcpy(s->last_access_host_addr, masks, vse_size);
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+      // The memcpy also preserves masked-off bytes; record only active stores.
+      paddr_t pstart = host_to_guest(s->last_access_host_addr);
+      for (uint64_t i = vstart->val; i < vl_val; i++) {
+        if (s->vm == 0 && get_mask(0, i) == 0) continue;
+        uint64_t offset = (i - vstart->val) * s->v_width;
+        svstore_queue_emplace(pstart + offset, s->v_width, s->pc, start_addr + offset);
+      }
+#endif
       fast_vse = true; // skip all operations
     }
   }
@@ -633,8 +662,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
   // We enter this block if we are not able to optimize the store or we are debugging fast VSE
   if (!fast_vse || ISDEF(DEBUG_FAST_VSE)) {  // this block is the original slow path
     for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-      rtlreg_t mask = get_mask(0, idx);
-      if (s->vm == 0 && mask == 0) {
+      if (s->vm == 0 && get_mask(0, idx) == 0) {
 #ifdef DEBUG_FAST_VSE
         if (ISNDEF(CONFIG_SHARE) && ISDEF(CONFIG_DIFFTEST_STORE_COMMIT) && simple_vse) {
           uint64_t offset = idx * stride + (idx * nf * is_unit_stride + 0) * s->v_width;
@@ -654,8 +682,10 @@ void vst(Decode *s, int mode, int mmu_mode) {
         uint64_t offset = idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
         addr = base_addr + offset;
         if (!fast_vse) {
-          IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                                  trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+          IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                            trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                            trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                          })
 
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_WRITE);
 
@@ -684,7 +714,7 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
 void vstx(Decode *s, int mmu_mode) {
   index_vstore_check(s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
@@ -712,8 +742,7 @@ void vstx(Decode *s, int mmu_mode) {
   base_addr = tmp_reg[0];
   vd = id_dest->reg;
   for (idx = vstart->val; idx < vl_val; idx++, vstart->val++) {
-    rtlreg_t mask = get_mask(0, idx);
-    if (s->vm == 0 && mask == 0) {
+    if (s->vm == 0 && get_mask(0, idx) == 0) {
       continue;
     }
     for (fn = 0; fn < nf; fn++) {
@@ -725,8 +754,10 @@ void vstx(Decode *s, int mmu_mode) {
       get_vreg(vd + fn * lmul, idx, &tmp_reg[1], eew, 0, 0, 0);
       addr = base_addr + index + fn * data_width;
 
-      IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                              trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+      IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                        trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                        trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                      })
 
       isa_vec_misalign_data_addr_check(addr, data_width, MEM_TYPE_WRITE);
 
@@ -788,8 +819,10 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = offset; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -807,8 +840,10 @@ void vlr(Decode *s, int mmu_mode) {
       for (pos = 0; pos < elt_per_reg; pos++, vstart->val++) {
         addr = base_addr + idx * s->v_width;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
@@ -856,8 +891,10 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -872,8 +909,10 @@ void vsr(Decode *s, int mmu_mode) {
         get_vreg(vd + vreg_idx, pos, &tmp_reg[1], 0, 0, 0, 1);
         addr = base_addr + idx;
 
-        IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
-                                trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+        IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                          trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, addr, TRIGGER_NO_VALUE); \
+                                          trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                        })
 
         isa_vec_misalign_data_addr_check(addr, 1, MEM_TYPE_WRITE);
 
@@ -893,7 +932,7 @@ void vsr(Decode *s, int mmu_mode) {
 void vldff(Decode *s, int mode, int mmu_mode) {
   fofvl = 0;
   vload_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if (skip_empty_vldst(s)) return;
   uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
   int eew, emul, vemul;
@@ -976,6 +1015,12 @@ void vldff(Decode *s, int mode, int mmu_mode) {
 
         __attribute__((unused)) unsigned count = gen_mask_for_unit_stride(s, eew, vstart, vl_val, masks);
 
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+        mstore_queue_check_vec_addr_conflict(
+            start_addr, masks + vstart->val * s->v_width,
+            vl_val - vstart->val, s->v_width);
+#endif
+
         uint8_t invert_masks[VLMAX_8] = {0};
         uint8_t * restrict last_access_host_addr_u8 = s->last_access_host_addr;
 
@@ -1044,8 +1089,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         stvaltmp  = stval->val;
         mtvaltmp  = mtval->val;
 
-        rtlreg_t mask = get_mask(0, idx);
-        if (s->vm == 0 && mask == 0) {
+        if (s->vm == 0 && get_mask(0, idx) == 0) {
           if (RVV_AGNOSTIC && vtype->vma) {
             tmp_reg[1] = (uint64_t) -1;
             for (fn = 0; fn < nf; fn++) {
@@ -1058,8 +1102,10 @@ void vldff(Decode *s, int mode, int mmu_mode) {
         for (fn = 0; fn < nf; fn++) {
           addr = base_addr + idx * stride + (idx * nf * is_unit_stride + fn) * s->v_width;
 
-          IFDEF(CONFIG_TDATA1_MCONTROL6, trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
-                                  trigger_handler(TRIG_TYPE_MCONTROL6, action, addr));
+          IFDEF(CONFIG_TDATA1_MCONTROL6, if (trigger_mcontrol6_active(cpu.TM)) { \
+                                            trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, addr, TRIGGER_NO_VALUE); \
+                                            trigger_handler(TRIG_TYPE_MCONTROL6, action, addr); \
+                                          })
           isa_vec_misalign_data_addr_check(addr, s->v_width, MEM_TYPE_READ);
 
           IFDEF(CONFIG_MULTICORE_DIFF, need_read_golden_mem = true);
@@ -1095,8 +1141,7 @@ void vldff(Decode *s, int mode, int mmu_mode) {
   */
   if(fofvl < (vl_val - 1)){ // set mask of vector element to 1
     for (uint64_t idx = fofvl; idx < vl_val; idx++) {
-      rtlreg_t mask = get_mask(0, idx);
-      if (s->vm == 0 && mask == 0) {
+      if (s->vm == 0 && get_mask(0, idx) == 0) {
         if (RVV_AGNOSTIC && vtype->vma) {
           tmp_reg[1] = (uint64_t) -1;
           for (fn = 0; fn < nf; fn++) {

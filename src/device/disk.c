@@ -16,7 +16,6 @@
 #include <common.h>
 #include <device/map.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include <isa.h>
 
 enum {
@@ -35,15 +34,8 @@ static void disk_io_handler(uint32_t offset, int len, bool is_write) {
   if (offset == CMD * sizeof(uint32_t) && len == 4 && is_write) {
     assert(disk_base[CMD] == 0);
     fseek(fp, disk_base[START] * 512, SEEK_SET);
-    #ifdef CONFIG_USE_SPARSEMM
-    uint8_t buff[disk_base[COUNT] * 512l];
-    int ret = fread(buff, disk_base[COUNT] * 512l, 1, fp);
-    assert(ret == 1);
-    sparse_mem_write(get_sparsemm(), disk_base[BUF], disk_base[COUNT] * 512l, buff);
-    #else
     int ret = fread(guest_to_host(disk_base[BUF]), disk_base[COUNT] * 512l, 1, fp);
     assert(ret == 1);
-    #endif
   }
 }
 

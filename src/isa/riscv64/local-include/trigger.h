@@ -160,12 +160,14 @@ typedef struct {
     uint64_t            val;
   } tdata1;
   tdata2_t tdata2;
-  IFDEF(CONFIG_SDTRIG_EXTRA, tdata3_t tdata3;)
+  tdata3_t tdata3;
 } Trigger;
 
 typedef struct TriggerModule {
   // the last trigger is used to check maximum number of supported triggers
   Trigger triggers[CONFIG_TRIGGER_NUM + 1];
+  uint8_t mcontrol6_active_count;
+  bool mcontrol6_state_dirty;
 } TriggerModule;
 
 extern trig_action_t trigger_action;
@@ -176,6 +178,10 @@ bool mcontrol6_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data);
 bool mcontrol6_value_match(Trigger* trig, word_t value);
 bool mcontrol6_check_chain_legal(const TriggerModule* TM, const int max_chain_len);
 void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const TriggerModule* TM);
+
+static inline bool trigger_mcontrol6_active(const TriggerModule* TM) {
+  return TM->mcontrol6_state_dirty || TM->mcontrol6_active_count != 0;
+}
 
 trig_action_t check_triggers_etrigger(TriggerModule* TM, uint64_t cause);
 bool etrigger_match(Trigger* trig, uint64_t cause);
@@ -191,12 +197,11 @@ void icount_checked_write(trig_icount_t* icount, word_t* wdata);
 
 bool trigger_reentrancy_check(); 
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
+void trigger_mark_state_dirty(TriggerModule* TM);
 
 static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
 static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
-#ifdef CONFIG_SDTRIG_EXTRA
 static inline word_t get_tdata3(TriggerModule* TM) {return TM->triggers[tselect->val].tdata3.val;}
-#endif //CONFIG_SDTRIG_EXTRA
 
 // Used to avoid magic number
 #define TRIGGER_NO_VALUE (0)

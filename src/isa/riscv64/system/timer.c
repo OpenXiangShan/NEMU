@@ -54,26 +54,55 @@ uint64_t get_htime() {
 }
 #endif // CONFIG_RVH
 
+static word_t riscv_timer_interrupt_pending() {
+#ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
+  mip_t tmp_mip;
+  tmp_mip.val = 0;
+
+  tmp_mip.mtip = (get_mtime() >= mtimecmp->val);
+
+  #ifdef CONFIG_RV_SSTC
+    tmp_mip.stip = (get_mtime() >= stimecmp->val) && menvcfg->stce;
+  #endif // CONFIG_RV_SSTC
+
+  #if defined(CONFIG_RVH) && defined(CONFIG_RV_SSTC)
+    tmp_mip.vstip = (get_htime() >= vstimecmp->val) && henvcfg->stce;
+  #endif // defined(CONFIG_RVH) && defined(CONFIG_RV_SSTC)
+
+  return tmp_mip.val;
+#else
+  return 0;
+#endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
+}
+
 void update_riscv_timer() {
-  #ifndef CONFIG_SHARE
-    #ifdef CONFIG_DETERMINISTIC
-      uint64_t get_abs_instr_count();
-      mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
-    #else // CONFIG_DETERMINISTIC
-      uint64_t uptime = get_time();
-      mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;
-    #endif // CONFIG_DETERMINISTIC
-  #endif // CONFIG_SHARE
+#ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
+#ifdef CONFIG_DIFFTEST
+  word_t old_timer_interrupt = riscv_timer_interrupt_pending();
+#endif // CONFIG_DIFFTEST
+#ifdef CONFIG_DETERMINISTIC
+  uint64_t get_abs_instr_count();
+  mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
+#else // CONFIG_DETERMINISTIC
+  uint64_t uptime = get_time();
+  mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;
+#endif // CONFIG_DETERMINISTIC
+#ifdef CONFIG_DIFFTEST
+  if (old_timer_interrupt != riscv_timer_interrupt_pending()) {
+    csr_difftest_mark_dirty();
+  }
+#endif // CONFIG_DIFFTEST
+#endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
 }
 
 void set_mtime(uint64_t new_value) {
   update_riscv_timer();
-  clint_mtime_correction = new_value - mtime->val;
+  clint_mtime_correction += new_value - mtime->val;
   mtime->val = new_value;
 }
 
 void timer_wait_for_interrupt() {
-#ifndef CONFIG_SHARE
+#ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
   uint64_t correction = CONFIG_WFI_TIMEOUT_TICKS;
 
   if (get_mtime() <= mtimecmp->val) {
@@ -95,31 +124,16 @@ void timer_wait_for_interrupt() {
   clint_mtime_correction += correction;
 
   update_riscv_timer();
-#endif // CONFIG_SHARE
+#endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
 }
 
 word_t get_riscv_timer_interrupt() {
-#ifndef CONFIG_SHARE
-  mip_t tmp_mip;
-  tmp_mip.val = 0;
-
-  tmp_mip.mtip = (get_mtime() >= mtimecmp->val);
-
-  #ifdef CONFIG_RV_SSTC
-    tmp_mip.stip = (get_mtime() >= stimecmp->val) && menvcfg->stce;
-  #endif // CONFIG_RV_SSTC
-
-  #if defined(CONFIG_RVH) && defined(CONFIG_RV_SSTC)
-    tmp_mip.vstip = (get_htime() >= vstimecmp->val) && henvcfg->stce;
-  #endif // defined(CONFIG_RVH) && defined(CONFIG_RV_SSTC)
-
-  return tmp_mip.val;
-#endif // CONFIG_SHARE
-  return 0;
+  return riscv_timer_interrupt_pending();
 }
 
 void init_riscv_timer() {
-  IFDEF(CONFIG_HAS_CLINT, init_clint());
+  IFNDEF(CONFIG_HAS_CLINT, return);
+  init_clint();
   assert(mtime != NULL);
   assert(mtimecmp != NULL);
   add_alarm_handle(update_riscv_timer);

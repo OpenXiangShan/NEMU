@@ -44,6 +44,16 @@ void ramcmp() {
 // a compact mirror of critical CSRs
 // For processor difftest only
 
+static bool csr_difftest_dirty = true;
+
+void csr_difftest_mark_dirty(void) {
+  csr_difftest_dirty = true;
+}
+
+static void csr_difftest_mark_clean(void) {
+  csr_difftest_dirty = false;
+}
+
 void csr_prepare() {
   cpu.mstatus = mstatus_read();
   cpu.mcause  = mcause->val;
@@ -75,6 +85,22 @@ void csr_prepare() {
   cpu.vlenb   = vlenb->val;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
+#ifdef CONFIG_RV_AME
+  cpu.tlenb   = tlenb->val;
+  cpu.trlenb  = trlenb->val;
+  cpu.alenb   = alenb->val;
+  cpu.msync   = mnsync->val;
+  cpu.mtilem  = mtilem->val;
+  cpu.mtilen  = mtilen->val;
+  cpu.mtilek  = mtilek->val;
+  cpu.mcsr    = mcsr->val;
+  cpu.mxrm    = mxrm->val;
+  cpu.msat    = msat->val;
+  cpu.mfflags = mfflags->val;
+  cpu.mfrm    = mfrm->val;
+  cpu.msaten  = msaten->val;
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_RVH
   cpu.mtval2  = mtval2->val;
   cpu.mtinst  = mtinst->val;
@@ -103,6 +129,13 @@ void csr_prepare() {
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR
   cpu.fcsr     = fcsr->val;
 #endif // CONFIG_DIFFTEST_CHECK_FCSR
+  csr_difftest_mark_clean();
+}
+
+static inline void csr_prepare_if_dirty() {
+  if (csr_difftest_dirty) {
+    csr_prepare();
+  }
 }
 
 void csr_writeback() {
@@ -138,6 +171,22 @@ void csr_writeback() {
   vlenb->val   = cpu.vlenb;
 #endif // CONFIG_DIFFTEST_CHECK_VCSR
 
+#ifdef CONFIG_RV_AME
+  tlenb->val   = cpu.tlenb;
+  trlenb->val  = cpu.trlenb;
+  alenb->val   = cpu.alenb;
+  mnsync->val  = cpu.msync;
+  mtilem->val  = cpu.mtilem;
+  mtilen->val  = cpu.mtilen;
+  mtilek->val  = cpu.mtilek;
+  mcsr->val    = cpu.mcsr;
+  mxrm->val    = cpu.mxrm;
+  msat->val    = cpu.msat;
+  mfflags->val = cpu.mfflags;
+  mfrm->val    = cpu.mfrm;
+  msaten->val  = cpu.msaten;
+#endif
+
 #ifdef CONFIG_RVH
   mtval2->val  = cpu.mtval2;
   mtinst->val  = cpu.mtinst;
@@ -163,6 +212,7 @@ void csr_writeback() {
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   tselect->val  = cpu.tselect;
   cpu.TM->triggers[tselect->val].tdata1.val = cpu.tdata1; // update alias tdata1 to trigger module
+  trigger_mark_state_dirty(cpu.TM);
   tinfo->val    = cpu.tinfo;
 #endif // CONFIG_DIFFTEST_CHECK_SDTRIG
 
@@ -199,11 +249,12 @@ void isa_difftest_regcpy(void *dut, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
     memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
     csr_writeback();
+    csr_difftest_mark_clean();
     // need to clear the cached mmu states as well
     extern void update_mmu_state();
     update_mmu_state();
   } else {
-    csr_prepare();
+    csr_prepare_if_dirty();
     memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
   }
 #ifdef CONFIG_LIGHTQS
@@ -226,6 +277,8 @@ void isa_difftest_regcpy(void *dut, bool direction) {
 void isa_difftest_csrcpy(void *dut, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
     memcpy(csr_array, dut, 4096 * sizeof(rtlreg_t));
+    mmu_refresh_pmp_cache();
+    mmu_refresh_pma_cache();
   } else {
     memcpy(dut, csr_array, 4096 * sizeof(rtlreg_t));
   }
@@ -291,6 +344,7 @@ void isa_difftest_raise_intr(word_t NO, uint64_t restore_count) {
 void isa_difftest_raise_intr(word_t NO) {
 #endif // CONFIG_LIGHTQS
   //ramcmp();
+  csr_difftest_mark_dirty();
 #ifdef CONFIG_TDATA1_ICOUNT
   trig_action_t icount_action = check_triggers_icount(cpu.TM);
   trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
@@ -298,6 +352,7 @@ void isa_difftest_raise_intr(word_t NO) {
   IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, NO));
 
   cpu.pc = raise_intr(NO, cpu.pc);
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 
   IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
 
@@ -413,6 +468,21 @@ void dump_regs() {
   fprintf(fp, "vxrm %lx\n", vxrm->val);
   fprintf(fp, "vl %lx\n", vl->val);
 #endif // CONFIG_RVV
+#ifdef CONFIG_RV_AME
+  fprintf(fp, "tlenb %lx\n", tlenb->val);
+  fprintf(fp, "trlenb %lx\n", trlenb->val);
+  fprintf(fp, "alenb %lx\n", alenb->val);
+  fprintf(fp, "msync %lx\n", mnsync->val);
+  fprintf(fp, "mtilem %lx\n", mtilem->val);
+  fprintf(fp, "mtilen %lx\n", mtilen->val);
+  fprintf(fp, "mtilek %lx\n", mtilek->val);
+  fprintf(fp, "mcsr %lx\n", mcsr->val);
+  fprintf(fp, "mxrm %lx\n", mxrm->val);
+  fprintf(fp, "msat %lx\n", msat->val);
+  fprintf(fp, "mfflags %lx\n", mfflags->val);
+  fprintf(fp, "mfrm %lx\n", mfrm->val);
+  fprintf(fp, "msaten %lx\n", msaten->val);
+#endif
   for (int i = 0; i < 32; i++) {
     fprintf(fp, "gpr %d %lx\n", i, cpu.gpr[i]._64);
   }
@@ -431,10 +501,12 @@ void isa_difftest_set_mhartid(int n) {
 
 void isa_update_mip(unsigned lcofip) {
   mip->lcofip = lcofip;
+  csr_difftest_mark_dirty();
 }
 
 void isa_update_mhpmcounter_overflow(uint64_t mhpmeventOverflowVec) {
 #ifdef CONFIG_RV_SSCOFPMF
+  csr_difftest_mark_dirty();
   scountovf_t* scountovf = (scountovf_t*)&csr_array[CSR_SCOUNTOVF];
   scountovf->ofvec = mhpmeventOverflowVec;
   for (int i = 0; i < 29; i++) {

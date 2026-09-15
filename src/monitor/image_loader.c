@@ -17,21 +17,21 @@
 #include <fcntl.h>
 #include <isa.h>
 #include <macro.h>
+#include <memory/elfloader.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <device/flash.h>
-#include <sys/mman.h>
-#ifdef CONFIG_MEM_COMPRESS
 #include <unistd.h>
 #include <zlib.h>
+#ifdef CONFIG_ZSTD_COMPRESS
 #include <zstd.h>
 #endif
 
 #ifndef CONFIG_MODE_USER
 
-#ifdef CONFIG_MEM_COMPRESS
+void patch_bootloader_rng_seed(uint8_t *pmem_start);
+
 long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   gzFile compressed_mem = gzopen(filename, "rb");
   Assert(compressed_mem, "Can not open '%s'", filename);
@@ -68,6 +68,7 @@ long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   return curr_size;
 }
 
+#ifdef CONFIG_ZSTD_COMPRESS
 long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   assert(filename);
 
@@ -195,7 +196,7 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   return total_write_size;
 }
 
-#endif  //  CONFIG_MEM_COMPRESS
+#endif  //  CONFIG_ZSTD_COMPRESS
 
 // Will check the magic number in file, if not gz or zstd archive,
 // will read in as a raw image
@@ -208,21 +209,25 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
   }
 
   if (is_gz_file(loading_img)) {
-#ifdef CONFIG_MEM_COMPRESS
     Log("Loading GZ image %s", loading_img);
     return load_gz_img(loading_img, load_start, img_size);
-#else
-    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
-#endif
   }
 
   if (is_zstd_file(loading_img)) {
-#ifdef CONFIG_MEM_COMPRESS
+#ifdef CONFIG_ZSTD_COMPRESS
     Log("Loading Zstd image %s", loading_img);
     return load_zstd_img(loading_img, load_start, img_size);
 #else
-    panic("CONFIG_MEM_COMPRESS is disabled, turn it on in memuconfig!");
+    panic("CONFIG_ZSTD_COMPRESS is disabled, turn it on in memuconfig!");
 #endif
+  }
+
+  if (is_elf_file(loading_img)) {
+    long loaded_size = load_elf_image(loading_img, load_start, img_size ? img_size : MEMORY_SIZE,
+                                      CONFIG_MBASE);
+    Assert(loaded_size >= 0, "Failed to load ELF image '%s'", loading_img);
+    Log("Loaded ELF image %s", loading_img);
+    return loaded_size;
   }
 
   // RAW image
@@ -240,23 +245,8 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
   }
 
 
-#ifdef CONFIG_USE_SPARSEMM
-  if (file_is_elf(loading_img)) {
-    sparse_mem_elf(get_sparsemm(), loading_img);
-    Log("load elf %s to sparse mem complete", loading_img);
-    sparse_mem_info(get_sparsemm());
-  } else {
-    int fd = open(loading_img, O_RDONLY);
-    char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-    paddr_t load_start_paddr = host_to_guest(load_start);
-    sparse_mem_write(get_sparsemm(), load_start_paddr, size, buf);
-    close(fd);
-    munmap(buf, size);
-  }
-#else
   int ret = fread((uint8_t*)(load_start), size, 1, fp);
   assert(ret == 1);
-#endif
   Log("Read %lu bytes from file %s to 0x%p", size, img_name, load_start);
 
   fclose(fp);
@@ -311,6 +301,8 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
     load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
 #endif
   }
+
+  patch_bootloader_rng_seed(bbl_start);
 }
 
 #endif  // CONFIG_MODE_USER

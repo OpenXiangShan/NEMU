@@ -3,7 +3,9 @@
 ifdef SHARE
 SO = -so
 CFLAGS  += -fPIC -D_SHARE=1
+CXXFLAGS += -ffunction-sections -fdata-sections
 LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined -lz
+LDFLAGS += -static-libstdc++ -Wl,--gc-sections -Wl,--exclude-libs,ALL
 endif
 
 WORK_DIR  = $(shell pwd)
@@ -14,8 +16,12 @@ XINC_DIR = $(INC_DIR) $(WORK_DIR)/resource
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
-CC ?= gcc
-CXX ?= g++
+ifeq ($(strip $(CC)),)
+CC := gcc
+endif
+ifeq ($(strip $(CXX)),)
+CXX := g++
+endif
 
 ifdef PGO_PROF
 PGO_FLAGS = -fprofile-generate -fprofile-dir=$(NEMU_HOME)/profile
@@ -49,7 +55,7 @@ else
 OBJS = $(COBJS) $(XOBJS)
 endif
 
-ifdef CONFIG_MEM_COMPRESS
+ifdef CONFIG_ZSTD_COMPRESS
 LDFLAGS += -lzstd
 endif
 
@@ -58,7 +64,7 @@ $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(SO_CFLAGS) -c -o $@ $<
-	@$(CC) $(CFLAGS) -E $(SO_CFLAGS) -c -o $@.c $<
+	@$(CC) $(CFLAGS) -E $(SO_CFLAGS) -o $@.c $<
 	$(call call_fixdep, $(@:.o=.d), $@)
 
 $(OBJ_DIR)/%.opp: %.cpp

@@ -49,7 +49,7 @@ static void clint_io_handler(uint32_t offset, int len, bool is_write) {
 #ifdef CONFIG_LIGHTQS_DEBUG
   printf("clint op write %d addr %x\n", is_write, offset);
 #endif // CONFIG_LIGHTQS_DEBUG
-  if (is_write && offset == CLINT_MTIME) {
+  if (is_write && offset == CLINT_MTIME * sizeof(clint_base[0])) {
     set_mtime(clint_base[CLINT_MTIME]);
   } else {
     update_riscv_timer();
@@ -60,4 +60,12 @@ void init_clint() {
   clint_base = (uint64_t *)new_space(0x10000);
   init_mtimer_regs(&clint_base[CLINT_MTIME], &clint_base[CLINT_MTIMECMP]);
   add_mmio_map("clint", CONFIG_CLINT_MMIO, (uint8_t *)clint_base, 0x10000, clint_io_handler);
+}
+
+uint64_t clint_get_mtime() {
+  return clint_base[CLINT_MTIME];
+}
+
+uint64_t clint_get_mtimecmp() {
+  return clint_base[CLINT_MTIMECMP];
 }

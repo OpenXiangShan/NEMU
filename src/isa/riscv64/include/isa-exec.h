@@ -33,6 +33,9 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/exec.h"
 #endif
+#ifdef CONFIG_RV_AME
+#include "../instr/ame/exec.h"
+#endif
 #ifdef CONFIG_RV_ZICOND
 #include "../instr/rvzicond/exec.h"
 #endif
@@ -44,6 +47,9 @@
 #endif
 #ifdef CONFIG_RV_ZFA
 #include "../instr/rvzfa/exec.h"
+#endif
+#ifdef CONFIG_RV_ZFBF_MIN
+#include "../instr/rvzfbf/exec.h"
 #endif
 #ifdef CONFIG_CUSTOM_TENSOR
 #include "../instr/rvt/exec.h"

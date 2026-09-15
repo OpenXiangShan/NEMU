@@ -32,6 +32,7 @@ uint64_t get_mtime();
 void fp_set_dirty();
 void fp_update_rm_cache(uint32_t rm);
 void vp_set_dirty();
+void mp_set_dirty();
 
 inline word_t get_mip();
 inline word_t mstatus_read();
@@ -88,6 +89,8 @@ void init_trigger() {
     cpu.TM->triggers[i].tdata1.val = 0;
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
   }
+  cpu.TM->mcontrol6_active_count = 0;
+  cpu.TM->mcontrol6_state_dirty = false;
   tselect->val = 0;
   tinfo->val = 0
     IFDEF(CONFIG_TDATA1_MCONTROL, | (1 << TRIG_TYPE_MCONTROL))
@@ -100,6 +103,7 @@ void init_trigger() {
 
 #ifdef CONFIG_RV_IMSIC
 void init_iprio() {
+  init_aia_prio_idx();
   cpu.external_interrupt_select = false;
   cpu.MIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
   cpu.SIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
@@ -200,7 +204,7 @@ void init_custom_csr() {
 
 #ifdef CONFIG_RV_PMA_CSR
 void init_pma() {
-  unsigned long long pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM][9] = {
+  unsigned long long pmaConfigInit[CONFIG_RV_PMA_NUM][9] = {
     // base_addr,       range,             l, c, t, a, x, w, r
     {0,                0x1000000000000ULL, F, F, F, 3, F, F, F},
     {0x80000000000ULL, 0,                  F, T, T, 1, T, T, T},
@@ -279,7 +283,7 @@ void init_pma() {
 static inline bool csr_counter_enable_check(uint32_t addr) {
   bool has_vi = false;
   int count_bit = 1 << (addr - 0xC00);
-  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == 0x14D) || (addr == 0x24D), 0);
+  bool is_sstc_csr = MUXDEF(CONFIG_RV_SSTC, (addr == CSR_STIMECMP) || (addr == CSR_VSTIMECMP), 0);
 
   if (is_sstc_csr) {
       count_bit = 1 << 1; // counteren.TM
@@ -288,16 +292,17 @@ static inline bool csr_counter_enable_check(uint32_t addr) {
   // priv-mode & counter-enable -> exception-type
   // | MODE         | VU    | VS    | U     | S/HS  | M     |
   // | ~mcounteren  | EX_II | EX_II | EX_II | EX_II | OK    | (counters & s/vstimecmp)
-  // | ~menvccfg    | EX_II | EX_II | EX_II | EX_II | OK    | (s/vstimecmp)
   // | ~hcounteren  | EX_VI | EX_VI | OK    | OK    | OK    | (counters & stimecmp)
   // | ~scounteren  | EX_VI | OK    | EX_II | OK    | OK    | (counters)
-  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (is_sstc_csr && !menvcfg->stce))) {
+  // When menvcfg.STCE is zero, an attempt to access stimecmp when non-Mmode raises II.
+  // When henvcfg.STCE is zero, an attempt to access stimecmp (really vstimecmp) when V=1 raises VI.
+  if (cpu.mode < MODE_M && (!(count_bit & mcounteren->val) || (addr == CSR_STIMECMP && !menvcfg->stce))) {
     Logti("Illegal CSR accessing (0x%X): the bit in mcounteren is not set", addr);
     longjmp_exception(EX_II);
   }
 
   #ifdef CONFIG_RVH
-    if (cpu.v && (!(count_bit & hcounteren->val) || (is_sstc_csr && !henvcfg->stce))) {
+    if (cpu.v && (!(count_bit & hcounteren->val) || (addr == CSR_STIMECMP && !henvcfg->stce))) {
       Logti("Illegal CSR accessing (0x%X): the bit in hcounteren is not set", addr);
       has_vi = true;
     }
@@ -421,10 +426,17 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MSTATUS_WMASK_RVV 0
 #endif
 
+// ame fields of mstatus
+#if defined(CONFIG_RV_AME)
+#define MSTATUS_WMASK_RV_AME (3UL << 25)
+#else
+#define MSTATUS_WMASK_RV_AME 0
+#endif
+
 #define MSTATUS_WMASK_MDT MUXDEF(CONFIG_RV_SMDBLTRP, (0X1UL << 42), 0)
 #define MSTATUS_WMASK_SDT MUXDEF(CONFIG_RV_SSDBLTRP, (0x1UL << 24), 0)
-#define MSTATUS_WMASK_SPELP (0x1UL << 23)
-#define MSTATUS_WMASK_MPELP (0x1UL << 41)
+#define MSTATUS_WMASK_SPELP MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 23), 0)
+#define MSTATUS_WMASK_MPELP MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 41), 0)
 
 // final mstatus wmask: dependent of the ISA extensions
 #define MSTATUS_WMASK (    \
@@ -432,6 +444,7 @@ static inline word_t* csr_decode(uint32_t addr) {
   MSTATUS_WMASK_FS       | \
   MSTATUS_WMASK_RVH      | \
   MSTATUS_WMASK_RVV      | \
+  MSTATUS_WMASK_RV_AME | \
   MSTATUS_WMASK_MDT      | \
   MSTATUS_WMASK_SDT      | \
   MSTATUS_WMASK_SPELP    | \
@@ -484,15 +497,17 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MENVCFG_RMASK_STCE    (0x1UL << 63)
 #define MENVCFG_RMASK_PBMTE   (0x1UL << 62)
+#define MENVCFG_RMASK_CDE     (0x1UL << 60)
 #define MENVCFG_RMASK_DTE     (0x1UL << 59)
 #define MENVCFG_RMASK_CBZE    (0x1UL << 7)
 #define MENVCFG_RMASK_CBCFE   (0x1UL << 6)
 #define MENVCFG_RMASK_CBIE    (0x3UL << 4)
-#define MENVCFG_RMASK_LPE     (0x1UL << 2)
+#define MENVCFG_RMASK_LPE     MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 2), 0)
 #define MENVCFG_RMASK_PMM     MENVCFG_PMM
 #define MENVCFG_RMASK (   \
   MENVCFG_RMASK_STCE    | \
   MENVCFG_RMASK_PBMTE   | \
+  MENVCFG_RMASK_CDE     | \
   MENVCFG_RMASK_DTE     | \
   MENVCFG_RMASK_CBZE    | \
   MENVCFG_RMASK_CBCFE   | \
@@ -503,6 +518,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 
 #define MENVCFG_WMASK_STCE    MUXDEF(CONFIG_RV_SSTC, MENVCFG_RMASK_STCE, 0)
 #define MENVCFG_WMASK_PBMTE   MUXDEF(CONFIG_RV_SVPBMT, MENVCFG_RMASK_PBMTE, 0)
+#define MENVCFG_WMASK_CDE     MUXDEF(CONFIG_RV_SMCDELEG, MENVCFG_RMASK_CDE, 0)
 #define MENVCFG_WMASK_DTE     MUXDEF(CONFIG_RV_SSDBLTRP, MENVCFG_RMASK_DTE, 0)
 #define MENVCFG_WMASK_CBZE    MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBZE, 0)
 #define MENVCFG_WMASK_CBCFE   MUXDEF(CONFIG_RV_CBO, MENVCFG_RMASK_CBCFE, 0)
@@ -512,6 +528,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MENVCFG_WMASK (    \
   MENVCFG_WMASK_STCE     | \
   MENVCFG_WMASK_PBMTE    | \
+  MENVCFG_WMASK_CDE      | \
   MENVCFG_WMASK_DTE      | \
   MENVCFG_WMASK_CBZE     | \
   MENVCFG_WMASK_CBCFE    | \
@@ -542,7 +559,7 @@ static inline word_t* csr_decode(uint32_t addr) {
 )
 
 #define MSECCFG_WMASK_PMM     MUXDEF(CONFIG_RV_SMMPM, MSECCFG_PMM, 0)
-#define MSECCFG_WMASK_MLPE    (0x1UL << 10)
+#define MSECCFG_WMASK_MLPE    MUXDEF(CONFIG_RV_ZICFILP, (0x1UL << 10), 0)
 #define MSECCFG_WMASK (    \
   MSECCFG_WMASK_PMM      | \
   MSECCFG_WMASK_MLPE       \
@@ -582,11 +599,11 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define MCOUNTINHIBIT_MASK (MCOUNTINHIBIT_CNTR_MASK | MCOUNTINHIBIT_HPM_MASK)
 
 #define LCOFI MUXDEF(CONFIG_RV_SSCOFPMF, (1 << IRQ_LCOF), 0)
-#define LCI MUXDEF(CONFIG_RV_AIA, LCI_MASK, 0)
-#define LCI_NO_LCOFI MUXDEF(CONFIG_RV_AIA, LCI_EXCLUDE_LCOFI_MASK, 0)
+#define LCI MUXDEF(CONFIG_RV_AIA, MUXDEF(CONFIG_RV_SMCDELEG, LCI_MASK, LCI_EXCLUDE_LCOFI_MASK), 0)
+#define LCI_BEGIN MUXDEF(CONFIG_RV_SMCDELEG, 13, 14)
 
 #ifdef CONFIG_RVH
-#define HVIP_MASK     (VSI_MASK | LCI_NO_LCOFI)
+#define HVIP_MASK     (VSI_MASK | LCI)
 #define HIP_RMASK     (MIP_VSTIP | MIP_VSEIP | MIP_SGEIP)
 #define HIP_WMASK     MIP_VSSIP
 #define HIE_RMASK     HSI_MASK
@@ -678,12 +695,12 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define SIE_LCOFI_MASK_MIE (mideleg->val & LCOFI)
 
 // mvien
-#define MVIEN_MASK (LCI_NO_LCOFI | (1 << IRQ_S_EXT) | (1 << IRQ_S_SOFT))
+#define MVIEN_MASK (LCI | (1 << IRQ_S_EXT) | (1 << IRQ_S_SOFT))
 // hvien
-#define HVIEN_MSAK LCI_NO_LCOFI
+#define HVIEN_MASK LCI
 
 // mvip
-#define MVIP_MASK MUXDEF(CONFIG_RV_AIA, LCI_NO_LCOFI, 0)
+#define MVIP_MASK LCI
 
 #define FFLAGS_MASK 0x1f
 #define FRM_MASK 0x07
@@ -695,6 +712,37 @@ static inline word_t* csr_decode(uint32_t addr) {
 // context
 #define MCONTEXT_MASK    0x00003fffULL
 #define SCONTEXT_MASK    0xffffffffULL
+
+#ifdef CONFIG_RV_SDTRIG
+static inline word_t legalize_tdata3(word_t src, word_t old) {
+  tdata3_t in = *(tdata3_t *)&src;
+  tdata3_t out = *(tdata3_t *)&old;
+
+  if (in.sselect <= 2) {
+    out.sselect = in.sselect;
+  }
+  out.svalue = in.svalue;
+  out.sbytemask = in.sbytemask;
+  out.mhvalue = in.mhvalue;
+
+  switch (in.mhselect) {
+    case 0:
+#ifdef CONFIG_RVH
+    case 1:
+    case 2:
+    case 5:
+    case 6:
+#endif
+    case 4:
+      out.mhselect = in.mhselect;
+      break;
+    default:
+      break;
+  }
+
+  return out.val;
+}
+#endif // CONFIG_RV_SDTRIG
 
 #define MSTATEEN0_IMSIC 0x0400000000000000
 #define MSTATEEN0_WMASK (                           \
@@ -764,6 +812,9 @@ void init_smstateen() {
   MHPMEVENT_WMASK_VUINH     \
 )
 
+#define SMCDELEG_CFG_MASK      (SMCNTRPMF_WMASK & ~MHPMEVENT_WMASK_MINH)
+#define SMCDELEG_HPMEVENT_MASK (MHPMEVENT_WMASK & ~MHPMEVENT_WMASK_MINH)
+
 /*
 ** The miselect register implements at least enough bits to support all implemented miselect values.
 ** The siselect register will support the value range 0..0xFFF at a minimum.
@@ -818,7 +869,7 @@ inline word_t sstatus_read(bool vsreg_read, bool bare_read) {
 
 #ifdef CONFIG_RV_PMP_CSR
 // get 8-bit config of one PMP entries by index.
-uint8_t pmpcfg_from_index(int idx) {
+uint8_t inline pmpcfg_from_index(int idx) {
   // Nemu support up to 64 pmp entries in a XLEN=64 machine.
   int xlen = 64;
   // Configuration register of one entry is 8-bit.
@@ -832,7 +883,7 @@ uint8_t pmpcfg_from_index(int idx) {
   return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
-word_t pmpaddr_from_index(int idx) {
+word_t inline pmpaddr_from_index(int idx) {
   return csr_array[CSR_PMPADDR_BASE + idx];
 }
 
@@ -843,7 +894,7 @@ word_t inline pmp_tor_mask() {
 
 #ifdef CONFIG_RV_PMA_CSR
 // get 8-bit config of one PMA entries by index.
-uint8_t pmacfg_from_index(int idx) {
+uint8_t inline pmacfg_from_index(int idx) {
   int xlen = 64;
   // Configuration register of one entry is 8-bit.
   int bits_per_cfg = 8;
@@ -856,7 +907,7 @@ uint8_t pmacfg_from_index(int idx) {
   return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
-word_t pmaaddr_from_index(int idx) {
+word_t inline pmaaddr_from_index(int idx) {
   return csr_array[CSR_PMAADDR_BASE + idx];
 }
 
@@ -895,12 +946,28 @@ static inline bool require_vs() {
 }
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_AME
+static inline bool require_ms() {
+  if ((mstatus->val & MSTATUS_WMASK_RV_AME) != 0) {
+    #ifdef CONFIG_RVH
+      if (!cpu.v || (vsstatus->val & MSTATUS_WMASK_RV_AME) != 0) {
+        return true;
+      }
+      return false;
+    #endif // CONFIG_RVH
+    return true;
+  }
+  return false;
+}
+#endif // CONFIG_RV_AME
+
 inline word_t gen_status_sd(word_t status) {
   mstatus_t xstatus;
   xstatus.val = status;
   bool fs_dirty = xstatus.fs == EXT_CONTEXT_DIRTY;
   bool vs_dirty = xstatus.vs == EXT_CONTEXT_DIRTY;
-  return ((word_t)(fs_dirty || vs_dirty)) << 63;
+  bool ms_dirty = xstatus.ms == EXT_CONTEXT_DIRTY;
+  return ((word_t)(fs_dirty || vs_dirty || ms_dirty)) << 63;
 }
 
 #ifdef CONFIG_RV_SMCNTRPMF
@@ -1063,7 +1130,7 @@ static inline void non_vmode_set_sie(word_t src) {
 #ifdef CONFIG_RV_AIA
   mie->val = mask_bitset(mie->val, (MIP_SSIP | MIP_STIP | MIP_SEIP | MIP_LCOFIP) & mideleg->val, src);
   sie->val = mask_bitset(sie->val, (MIP_SSIP | MIP_SEIP | MIP_LCOFIP) & (~mideleg->val & mvien->val), src);
-  non_vmode_set_ie(src, 14, 63);
+  non_vmode_set_ie(src, LCI_BEGIN, 63);
 #else
 #ifdef CONFIG_RV_SSCOFPMF
   mie->val = mask_bitset(mie->val, (SIE_MASK_BASE | SIE_LCOFI_MASK_MIE), src);
@@ -1113,7 +1180,7 @@ static inline void set_vsie(word_t src) {
   mie->val = mask_bitset(mie->val, MIP_LCOFIP & mideleg->val & get_hideleg(), src);
   sie->val = mask_bitset(sie->val, MIP_LCOFIP & (~mideleg->val & get_hideleg() & mvien->val), src);
   vsie->val = mask_bitset(vsie->val, MIP_LCOFIP & (~get_hideleg() & hvien->val), src);
-  vmode_set_ie(src, 14, 63);
+  vmode_set_ie(src, LCI_BEGIN, 63);
 #else
   IFDEF(CONFIG_RV_SSCOFPMF, mie->val = mask_bitset(mie->val, MIP_LCOFIP & mideleg->val & get_hideleg(), src));
 #endif // CONFIG_RV_AIA
@@ -1216,7 +1283,7 @@ static inline void non_vmode_set_sip(word_t src) {
 #ifdef CONFIG_RV_AIA
   mip->val = mask_bitset(get_mip(), (MIP_SSIP | MIP_LCOFIP) & mideleg->val, src);
   mvip->val = mask_bitset(mvip->val, (MIP_SSIP | MIP_LCOFIP) & (~mideleg->val & mvien->val), src);
-  non_vmode_set_ip(src, 14, 63);
+  non_vmode_set_ip(src, LCI_BEGIN, 63);
 #else
   mip->val = mask_bitset(get_mip(), ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src);
 #endif // CONFIG_RV_AIA
@@ -1282,7 +1349,7 @@ static inline void set_vsip(word_t src) {
   mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & get_hideleg(), src);
   mvip->val = mask_bitset(mvip->val, MIP_LCOFIP & (~mideleg->val & get_hideleg() & mvien->val), src);
   hvip->val = mask_bitset(hvip->val, MIP_LCOFIP & (~get_hideleg() & hvien->val), src);
-  vmode_set_ip(src, 14, 63);
+  vmode_set_ip(src, LCI_BEGIN, 63);
 #else
   IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & get_hideleg(), src));
 #endif // CONFIG_RV_AIA
@@ -1398,8 +1465,8 @@ static inline void update_miprios() {
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
-      uint64_t tmp = BITS(mie->val, 8*i+j, 8*i+j);
-      mask |= (tmp * 0xffULL) << (8*j);
+      uint64_t writable = BITS(MIE_MASK_BASE | MIE_MASK_H | LCOFI, 8*i+j, 8*i+j);
+      mask |= (writable * 0xffULL) << (8*j);
     }
     cpu.MIprios_rdata->iprios[i].val = cpu.MIprios->iprios[i].val & mask;
   }
@@ -1408,17 +1475,25 @@ static inline void update_miprios() {
 
 #ifdef CONFIG_RV_IMSIC
 static inline void update_siprios() {
-  // For a given interrupt number, if the corresponding bit in sie is read-only zero,
-  // then the interrupt’s priority number in the supervisor-level iprio array must be read-only zero as well.
+  // Version 1.0, Revised 20250312.
+  // For a given interrupt number, if the corresponding bit is not writable either in sie or, if the H
+  // extension is implemented, in hie, then the interrupt’s priority number in the supervisor-level iprio
+  // array must be read-only zero as well.
   // The priority number for a supervisor-level external interrupt (bits 15:8 of iprio2) must also be read-only zero.
   cpu.SIprios->iprios[0].val = cpu.SIprios->iprios[0].val & 0xffffff00ffffff00;
   cpu.SIprios->iprios[1].val = cpu.SIprios->iprios[1].val & 0xffffffffffff0000;
   for (int i = 0; i < IPRIO_NUM; i++) {
     uint64_t mask = 0;
     for (int j = 0; j < 8; j++) {
-      uint64_t read_sie = non_vmode_get_sie();
-      uint64_t tmp = BITS(read_sie, 8*i+j, 8*i+j);
-      mask |= (tmp * 0xff) << (8*j);
+      uint64_t delegated   = BITS(mideleg->val, 8*i+j, 8*i+j);
+      uint64_t virtualized = BITS(mvien->val, 8*i+j, 8*i+j);
+      uint64_t sie_to_mie_writable = BITS(MIP_SSIP | MIP_STIP | MIP_SEIP | LCI, 8*i+j, 8*i+j);
+      uint64_t sie_writable = BITS(MIP_SSIP | MIP_SEIP | LCI, 8*i+j, 8*i+j);
+      uint64_t hie_to_mie_writable = BITS(HIE_RMASK, 8*i+j, 8*i+j);
+      uint64_t writableInSie = (sie_to_mie_writable & delegated) | (sie_writable & !delegated & virtualized);
+      uint64_t writableInHie = hie_to_mie_writable & delegated;
+      uint64_t writable = writableInSie | writableInHie;
+      mask |= (writable * 0xff) << (8*j);
     }
     cpu.SIprios_rdata->iprios[i].val = cpu.SIprios->iprios[i].val & mask;
   }
@@ -1660,11 +1735,67 @@ inline void update_vstopi() {
 }
 #endif
 
+/**
+ * Read/Write about *iregi in NEMU, when *iselect in
+ * AIA      Window: vsiregi is inaccessable in spec.
+ * IMISC    Window: miregi/vsiregi/siregi is not unimplemented.
+ * SMCDELEG Window: mhpmcounter mapped sireg is not unimplemented(read-only zero in NEMU).
+ * OTHER    Window: rise II exception.
+ * For the above cases, NEMU returns 0 when read and ignore the write or raise exception.
+ * CTR Window(feature) : When vsiselect holds a value in 0x200..0x2FF, the vsireg* registers provide
+ *                       access to the same CTR entry register state as the analogous sireg* registers.
+ *                       There is not a separate set of entry registers for V=1.
+ */
+
 #ifdef CONFIG_RV_IMSIC
 bool iselect_is_major_ip(uint64_t iselect) {
   return (iselect > ISELECT_2F_MASK) && (iselect <= ISELECT_3F_MASK) && !(iselect & 0x1);
 }
 #endif
+
+#ifdef CONFIG_RV_SMCSRIND
+static inline bool iselect_is_smcdeleg(uint64_t iselect) {
+  return iselect >= SISELECT_SMCDELEG_START && iselect <= SISELECT_SMCDELEG_END;
+}
+#endif
+
+#ifdef CONFIG_RV_SMCDELEG
+static inline bool smcdeleg_counter_delegated(uint64_t iselect) {
+  if (!iselect_is_smcdeleg(iselect) || iselect == SISELECT_SMCDELEG_UNUSED) {
+    return false;
+  }
+  return (mcounteren->val >> (iselect - SISELECT_SMCDELEG_START)) & 0x1;
+}
+
+static inline word_t smcdeleg_read_sireg(uint64_t iselect) {
+  if (iselect == SISELECT_SMCDELEG_START) {
+    difftest_skip_ref();
+    return get_mcycle();
+  }
+  else if (iselect == SISELECT_SMCDELEG_INSTRET) {
+    difftest_skip_ref();
+    return get_minstret();
+  }
+  else if (iselect >= SISELECT_SMCDELEG_HPMCOUNTER_3 && iselect <= SISELECT_SMCDELEG_END) {
+    difftest_skip_ref();
+    return csr_array[CSR_MHPMCOUNTER_BASE + (iselect - SISELECT_SMCDELEG_HPMCOUNTER_3)];
+  } // Return 0 for unimplemented mhpmcounteri.
+  return 0;
+}
+
+static inline word_t smcdeleg_read_sireg2(uint64_t iselect) {
+  if (iselect == SISELECT_SMCDELEG_START) {
+    return mcyclecfg->val & SMCDELEG_CFG_MASK;
+  }
+  else if (iselect == SISELECT_SMCDELEG_INSTRET) {
+    return minstretcfg->val & SMCDELEG_CFG_MASK;
+  }
+  else if (iselect >= SISELECT_SMCDELEG_HPMEVENT_3 && iselect <= SISELECT_SMCDELEG_END) {
+    return csr_array[CSR_MHPMEVENT_BASE + (iselect - SISELECT_SMCDELEG_HPMEVENT_3)] & SMCDELEG_HPMEVENT_MASK;
+  }
+  return 0;
+}
+#endif // CONFIG_RV_SMCDELEG
 
 static word_t csr_read(uint32_t csrid) {
   word_t *src = csr_decode(csrid);
@@ -1745,31 +1876,54 @@ static word_t csr_read(uint32_t csrid) {
       IFDEF(CONFIG_RVH, if (cpu.v) return vstimecmp->val);
       return stimecmp->val;
 #endif // CONFIG_RV_SSTC
+#ifdef CONFIG_RV_SMCDELEG
+    case CSR_SCOUNTINHIBIT:
+      return mcountinhibit->val & mcounteren->val & MCOUNTINHIBIT_MASK;
+#endif // CONFIG_RV_SMCDELEG
 #ifdef CONFIG_RV_SSCOFPMF
     case CSR_SCOUNTOVF:
       if (cpu.mode == MODE_M) return scountovf->val;
       IFDEF(CONFIG_RVH, else if (cpu.v && cpu.mode == MODE_S) return (mcounteren->val & hcounteren->val & scountovf->val));
       else if (cpu.mode == MODE_S) return (mcounteren->val & scountovf->val);
 #endif // CONFIG_RV_SSCOFPMF
+
 #ifdef CONFIG_RV_IMSIC
-    case CSR_SISELECT:
-      IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
-      return siselect->val;
     case CSR_STOPI:
       if (cpu.v) return cpu.old_vstopi;
       return cpu.old_stopi;
     case CSR_STOPEI:
       if (cpu.v) return cpu.old_vstopei;
       return cpu.old_stopei;
+#endif // CONFIG_RV_IMSIC
+
+#ifdef CONFIG_RV_SMCSRIND
+    case CSR_SISELECT:
+      IFDEF(CONFIG_RVH, if (cpu.v) return vsiselect->val);
+      return siselect->val;
     case CSR_SIREG:
-    {
-      bool siselect_is_major_ip = iselect_is_major_ip(siselect->val);
-      if (siselect_is_major_ip) {
+    { // Don't care vsireg, and vsireg in all window is inaccessible/unimplemented.
+      if (cpu.v) { return 0; } // Don't care vsireg.
+#ifdef CONFIG_RV_SMCDELEG
+      if (iselect_is_smcdeleg(siselect->val)) {
+        return smcdeleg_read_sireg(siselect->val);
+      }
+#endif // CONFIG_RV_SMCDELEG
+#ifdef CONFIG_RV_IMSIC
+      if (iselect_is_major_ip(siselect->val)) {
         return cpu.SIprios_rdata->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
       }
+#endif // CONFIG_RV_IMSIC
       return 0;
     }
-#endif // CONFIG_RV_IMSIC
+
+#ifdef CONFIG_RV_SMCDELEG
+    case CSR_SIREG2:
+    { // Don't care vsireg2, and vsireg2 in SMCDELEG window is inaccessible.
+      if (cpu.v) { return 0; }
+      return smcdeleg_read_sireg2(siselect->val);
+    }
+#endif // CONFIG_RV_SMCDELEG
+#endif // CONFIG_RV_SMCSRIND
     case CSR_SATP:
       IFDEF(CONFIG_RVH, if (cpu.v) return vsatp->val);
       return satp->val;
@@ -1789,7 +1943,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_HIE: return get_hie();
     case CSR_HGEIE: return hgeie->val & HGEIE_MASK;
 #ifdef CONFIG_RV_AIA
-    case CSR_HVIEN: return hvien->val & HVIEN_MSAK;
+    case CSR_HVIEN: return hvien->val & HVIEN_MASK;
 #endif
     case CSR_HENVCFG:
     {
@@ -1819,14 +1973,6 @@ static word_t csr_read(uint32_t csrid) {
 #ifdef CONFIG_RV_IMSIC
     case CSR_VSTOPI: return cpu.old_vstopi;
     case CSR_VSTOPEI: return cpu.old_vstopei;
-    case CSR_VSIREG:
-    {
-      bool vsiselect_is_major_ip = iselect_is_major_ip(siselect->val);
-      if (vsiselect_is_major_ip) {
-        return cpu.SIprios_rdata->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val;
-      }
-      return 0;
-    }
 #endif
 #endif // CONFIG_RVH
 
@@ -1913,9 +2059,7 @@ static word_t csr_read(uint32_t csrid) {
     case CSR_TDATA1: return get_tdata1(cpu.TM);
     case CSR_TDATA2: return get_tdata2(cpu.TM);
     case CSR_MCONTEXT: return mcontext->val & MCONTEXT_MASK;
-#ifdef CONFIG_SDTRIG_EXTRA
     case CSR_TDATA3: return get_tdata3(cpu.TM);
-#endif // CONFIG_SDTRIG_EXTRA
 #endif // CONFIG_RV_SDTRIG
 
     case CSR_MCYCLE:
@@ -1980,6 +2124,7 @@ void update_vsatp(const vsatp_t new_val) {
 
 static void csr_write(uint32_t csrid, word_t src) {
   word_t *dest = csr_decode(csrid);
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   switch (csrid) {
     /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
@@ -2004,6 +2149,37 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_VXRM: *dest = src & 0b11; vcsr->val = (vxrm->val) << 1 | vxsat->val; break;
     case CSR_VCSR: *dest = src & 0b111; vxrm->val = (src >> 1) & 0b11; vxsat->val = src & 0b1; break;
 #endif // CONFIG_RVV
+
+#ifdef CONFIG_RV_AME
+    case CSR_XMCSR:
+      *dest = src & 0xfff;
+      msaten->val = (src >> 11) & 0b1;
+      mfrm->val = (src >> 8) & 0b111;
+      mfflags->val = (src >> 3) & 0b11111;
+      msat->val = (src >> 2) & 0b1;
+      mxrm->val = src & 0b11;
+      break;
+    case CSR_XMXRM:
+      *dest = src & 0b11;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMSAT:
+      *dest = src & 0b1;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMFFLAGS:
+      *dest = src & 0b11111;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMFRM:
+      *dest = src & 0b111;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+    case CSR_XMSATEN:
+      *dest = src & 0b1;
+      mcsr->val = (msaten->val) << 11 | (mfrm->val) << 8 | (mfflags->val) << 3 | (msat->val) << 2 | mxrm->val;
+      break;
+#endif // CONFIG_RV_AME
 
     /************************* Supervisor-Level CSRs *************************/
     case CSR_SSTATUS:
@@ -2050,10 +2226,19 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (((senvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
         senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK_PMM, src);
       }
-      if (senvcfg->lpe == 0) {
-        cpu.elp = 0;
-      }
+      riscv64_zicfilp_refresh_elp();
       break;
+
+#ifdef CONFIG_RV_SMCDELEG
+    case CSR_SCOUNTINHIBIT:
+    {
+      word_t scountinhibit_mask = mcounteren->val & MCOUNTINHIBIT_MASK;
+      word_t new_mcountinhibit = mask_bitset(mcountinhibit->val, scountinhibit_mask, src);
+      update_counter_inhibit(new_mcountinhibit & MCOUNTINHIBIT_MASK, CSR_MCOUNTINHIBIT);
+      mcountinhibit->val = new_mcountinhibit;
+      break;
+    }
+#endif // CONFIG_RV_SMCDELEG
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_SSTATEEN0: *dest = src & SSTATEEN0_WMASK; break;
@@ -2154,19 +2339,84 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_IMSIC
     case CSR_STOPI: return;
     case CSR_STOPEI: return;
+#endif // CONFIG_RV_IMSIC
+
+#ifdef CONFIG_RV_SMCSRIND
     case CSR_SIREG:
     {
-      if (cpu.v) { break; }
+      if (cpu.v) { break; } // Don't care vsireg.
+#ifdef CONFIG_RV_SMCDELEG
+      if (iselect_is_smcdeleg(siselect->val)) {
+        if (siselect->val == SISELECT_SMCDELEG_START) {
+          mcycle->val = set_mcycle(src);
+        }
+        else if (siselect->val == SISELECT_SMCDELEG_INSTRET) {
+          minstret->val = set_minstret(src);
+        }
+        else if (siselect->val >= SISELECT_SMCDELEG_HPMCOUNTER_3 && siselect->val <= SISELECT_SMCDELEG_END) {
+          csr_array[CSR_MHPMCOUNTER_BASE + (siselect->val - SISELECT_SMCDELEG_HPMCOUNTER_3)] = src;
+        } // only-read 0 for unimplemented mhpmcounters.
+        break;
+      }
+#endif // CONFIG_RV_SMCDELEG
+#ifdef CONFIG_RV_IMSIC
       if (iselect_is_major_ip(siselect->val)) {
         cpu.SIprios->iprios[(siselect->val - ISELECT_2F_MASK - 1) >> 1].val = src;
         update_siprios();
       }
+#endif // CONFIG_RV_IMSIC
       break;
     }
-#endif // CONFIG_RV_IMSIC
+    case CSR_SIREG2:
+    {
+      if (cpu.v) { break; } // Don't care vsireg2.
+#ifdef CONFIG_RV_SMCDELEG
+      if (iselect_is_smcdeleg(siselect->val)) {
+        if (siselect->val == SISELECT_SMCDELEG_START) {
+          word_t new_val = mask_bitset(mcyclecfg->val, SMCDELEG_CFG_MASK, src);
+          update_counter_inhibit(new_val, CSR_MCYCLECFG);
+          mcyclecfg->val = new_val;
+        }
+        else if (siselect->val == SISELECT_SMCDELEG_INSTRET) {
+          word_t new_val = mask_bitset(minstretcfg->val, SMCDELEG_CFG_MASK, src);
+          update_counter_inhibit(new_val, CSR_MINSTRETCFG);
+          minstretcfg->val = new_val;
+        }
+        else if (siselect->val >= SISELECT_SMCDELEG_HPMEVENT_3 && siselect->val <= SISELECT_SMCDELEG_END) {
+          word_t *mhpmevent_dest = &csr_array[CSR_MHPMEVENT_BASE + (siselect->val - SISELECT_SMCDELEG_HPMEVENT_3)];
+          mhpmevent3_t *mhpmevent = (mhpmevent3_t *)mhpmevent_dest;
+          unsigned pre_op0 = mhpmevent->optype0;
+          unsigned pre_op1 = mhpmevent->optype1;
+          unsigned pre_op2 = mhpmevent->optype2;
+          mhpmevent3_t new_val;
+          new_val.val = mask_bitset(*mhpmevent_dest, SMCDELEG_HPMEVENT_MASK, src);
+          *mhpmevent_dest = mask_bitset(*mhpmevent_dest, SMCDELEG_HPMEVENT_MASK, new_val.val);
+          if (!hpmevent_op_islegal(new_val.optype0)) {
+            mhpmevent->optype0 = pre_op0;
+          }
+          if (!hpmevent_op_islegal(new_val.optype1)) {
+            mhpmevent->optype1 = pre_op1;
+          }
+          if (!hpmevent_op_islegal(new_val.optype2)) {
+            mhpmevent->optype2 = pre_op2;
+          }
+#ifdef CONFIG_RV_SSCOFPMF
+          scountovf->ofvec = (scountovf->ofvec & ~(1 << (siselect->val - SISELECT_SMCDELEG_HPMEVENT_3))) | (mhpmevent->of << (siselect->val - SISELECT_SMCDELEG_HPMEVENT_3));
+#endif // CONFIG_RV_SSCOFPMF
+        }
+      }
+#endif // CONFIG_RV_SMCDELEG
+      break;
+    }
+#endif // CONFIG_RV_SMCSRIND
 
 #ifdef CONFIG_RV_SDTRIG
-    case CSR_SCONTEXT: *dest = src & SCONTEXT_MASK; break;
+    case CSR_SCONTEXT:
+      *dest = src & SCONTEXT_MASK;
+      // Execute triggers are checked during decode, so context updates must
+      // invalidate cached decodes before the next instruction.
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
 #endif // CONFIG_RV_SDTRIG
 
     /************************* Hypervisor and VS CSRs *************************/
@@ -2192,11 +2442,11 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_VSEPC: vsepc->val = src & (~0x1UL); break;
     case CSR_VSIP: set_vsip(src); break;
 
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_SMCSRIND
     case CSR_VSISELECT:
       if (src <= VSISELECT_MAX) *dest = src;
       break;
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_SMCSRIND
 
     case CSR_VSATP:
     {
@@ -2204,6 +2454,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       vsatp_new_val.val = src;
       // Update vsatp without checking if vsatp.mode is legal, when hart is not in MODE_VS.
       update_vsatp(vsatp_new_val);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
     case CSR_HEDELEG: hedeleg->val = mask_bitset(hedeleg->val, HEDELEG_MASK, src); break;
@@ -2218,7 +2469,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_HCOUNTEREN: hcounteren->val = mask_bitset(hcounteren->val, COUNTEREN_MASK, src); break;
 
 #ifdef CONFIG_RV_AIA
-    case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MSAK, src); break;
+    case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MASK, src); break;
 #endif // CONFIG_RV_AIA
 
     case CSR_HENVCFG:
@@ -2234,9 +2485,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         vsstatus->sdt = 0;
       }
 #endif // CONFIG_RV_SSDBLTRP
-      if (henvcfg->lpe == 0) {
-        cpu.elp = 0;
-      }
+      riscv64_zicfilp_refresh_elp();
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
@@ -2261,6 +2510,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_SV48
         hgatp->mode = hgatp_new_val.mode;
       // When MODE=Bare, software should set the remaining fields in hgatp to zeros, not hardware.
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
 
@@ -2268,7 +2518,10 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_HVIP: hvip->val = mask_bitset(hvip->val, HVIP_MASK, src); break;
 
 #ifdef CONFIG_RV_SDTRIG
-    case CSR_HCONTEXT: mcontext->val = src & MCONTEXT_MASK; break;
+    case CSR_HCONTEXT:
+      mcontext->val = src & MCONTEXT_MASK;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
 #endif // CONFIG_RV_SDTRIG
 
 
@@ -2276,8 +2529,10 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_IMSIC
     case CSR_VSTOPI: return;
     case CSR_VSTOPEI: return;
-    case CSR_VSIREG: return;
 #endif // CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_SMCSRIND
+    case CSR_VSIREG: return;
+#endif // CONFIG_RV_SMCSRIND
 
 #endif // CONFIG_RVH
 
@@ -2350,17 +2605,13 @@ static void csr_write(uint32_t csrid, word_t src) {
       if (((menvcfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
         menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK_PMM, src);
       }
-      if (menvcfg->lpe == 0) {
-        cpu.elp = 0;
-      }
+      riscv64_zicfilp_refresh_elp();
       break;
 
     case CSR_MSECCFG:
       mseccfg->val = src;
-      if ((mseccfg->val & (1ULL << 10)) == 0) {
-        cpu.elp = 0;
-      }
-      set_sys_state_flag(SYS_STATE_UPDATE);
+      riscv64_zicfilp_refresh_elp();
+      IFDEF(CONFIG_RV_ZICFILP, set_sys_state_flag(SYS_STATE_UPDATE));
       break;
 
 #ifdef CONFIG_RV_SMSTATEEN
@@ -2413,11 +2664,11 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_MEPC: *dest = src & (~0x1UL); break;
     case CSR_MIP: set_mip(src); break;
 
-#ifdef CONFIG_RV_IMSIC
+#ifdef CONFIG_RV_SMCSRIND
     case CSR_MISELECT:
       if (src <= MISELECT_MAX) *dest = src;
       break;
-#endif // CONFIG_RV_IMSIC
+#endif // CONFIG_RV_SMCSRIND
 
 #ifdef CONFIG_RV_PMP_CSR
     case CSR_PMPCFG_BASE ... CSR_PMPCFG_BASE+CSR_PMPCFG_MAX_NUM-1:
@@ -2457,6 +2708,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmpcfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pmp_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2481,6 +2733,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
       }
       ref_log_cpu("write pmp addr%d to %016lx",idx, *dest);
+      mmu_refresh_pmp_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2514,6 +2767,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pma_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2537,6 +2791,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
       }
       ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
+      mmu_refresh_pma_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2548,8 +2803,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       word_t mnstatus_mask = MNSTATUS_MASK;
       unsigned pre_mnpp = mnstatus->mnpp;
-// as opensbi and linux not support smrnmi, so we default init nmie = 1 and allow nmie set to 0 by software for test
-      if ((src & MNSTATUS_NMIE) == 0 && !ISDEF(CONFIG_NMIE_INIT)) {
+      if ((src & MNSTATUS_NMIE) == 0) {
         mnstatus_mask &= ~MNSTATUS_NMIE;
       }
       mnstatus->val = mask_bitset(mnstatus->val, mnstatus_mask, src);
@@ -2592,6 +2846,8 @@ static void csr_write(uint32_t csrid, word_t src) {
         // do nothing for not supported trigger type
         break;
       }
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      trigger_mark_state_dirty(cpu.TM);
       break;
     }
     case CSR_TDATA2:
@@ -2600,22 +2856,25 @@ static void csr_write(uint32_t csrid, word_t src) {
       tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
       tdata2_t tdata2_wdata = *(tdata2_t*)&src;
       tdata2_reg->val = tdata2_wdata.val;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
-#ifdef CONFIG_SDTRIG_EXTRA
     case CSR_TDATA3:
     {
       tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
       tdata3_t tdata3_wdata = *(tdata3_t*)&src;
-      tdata3_reg->val = tdata3_wdata.val;
+      tdata3_reg->val = legalize_tdata3(tdata3_wdata.val, tdata3_reg->val);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       break;
     }
-#endif // CONFIG_SDTRIG_EXTRA
-    case CSR_MCONTEXT: *dest = src & MCONTEXT_MASK; break;
+    case CSR_MCONTEXT:
+      *dest = src & MCONTEXT_MASK;
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
     case CSR_TINFO: break;
 #endif // CONFIG_RV_SDTRIG
 
-    case CSR_MCYCLE:  mcycle->val = set_mcycle(src); break;
+    case CSR_MCYCLE: mcycle->val = set_mcycle(src); break;
     case CSR_MINSTRET: minstret->val = set_minstret(src); break;
 
     case CSR_MHPMCOUNTER_BASE ... CSR_MHPMCOUNTER_BASE+CSR_MHPMCOUNTER_NUM-1: break;
@@ -2669,16 +2928,29 @@ static void csr_write(uint32_t csrid, word_t src) {
   }
 #endif //CONFIG_RVV
 
+#ifdef CONFIG_RV_AME
+  if (is_write(mcsr) || is_write(mxrm) || is_write(msat) || is_write(mfflags) || is_write(mfrm) || is_write(msaten)) {
+    mp_set_dirty();
+  }
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp)
-      || is_write(hgatp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
+      || is_write(hgatp) || is_write(senvcfg) || is_write(menvcfg)
+      || is_write(mseccfg)
+      || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
   }
 #else
-  if (is_write(mstatus) || is_write(satp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(satp) || is_write(senvcfg)
+      || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
 #endif
-  if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
+  if (is_write(satp)
+#ifdef CONFIG_RV_MPT_CHECK
+      || is_write(mmpt)
+#endif
+     ) { mmu_tlb_flush(0); } // when satp/mmpt is changed, flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
@@ -2700,6 +2972,13 @@ static void csr_write(uint32_t csrid, word_t src) {
   }
 #endif
 }
+
+#ifdef CONFIG_RV_ZICFILP
+void riscv64_raise_software_check(word_t tval) {
+  cpu.trapInfo.tval = tval;
+  longjmp_exception(EX_SWC);
+}
+#endif
 
 static inline bool satp_permit_check(const word_t *dest_access){
   bool has_vi = false;
@@ -2902,135 +3181,266 @@ static inline bool vec_permit_check(const word_t *dest_access) {
 }
 #endif // CONFIG_RVV
 
-#if defined (CONFIG_RV_SMCSRIND) || defined (CONFIG_RV_AIA)
-static inline bool csrind_permit_check(const uint32_t addr) {
+#ifdef CONFIG_RV_AME
+static inline bool matrix_permit_check(const word_t *dest_access) {
+  if (is_access(mnsync)    || is_access(tlenb) || is_access(trlenb) ||
+      is_access(alenb)   || is_access(mtilem) || is_access(mtilen)  || is_access(mtilek) ||
+      is_access(mcsr)    || is_access(mxrm)  || is_access(msat)   ||
+      is_access(mfflags) || is_access(mfrm)  || is_access(msaten)) {
+    if (!require_ms()) { longjmp_exception(EX_II); }
+  }
+  return false;
+}
+#endif // CONFIG_RV_AME
+
+#if defined CONFIG_RV_SMCSRIND
+static inline bool iselect_is_aia_window(uint64_t iselect) {
+  return iselect > ISELECT_2F_MASK && iselect <= ISELECT_3F_MASK;
+}
+
+static inline bool iselect_is_imsic_window(uint64_t iselect) {
+  return iselect > ISELECT_6F_MASK && iselect <= ISELECT_MAX_MASK;
+}
+
+static inline uint64_t csrind_effective_sireg_select() {
+#ifdef CONFIG_RVH
+  return cpu.v ? vsiselect->val : siselect->val;
+#else
+  return siselect->val;
+#endif
+}
+
+static inline bool csrind_aia_window_permit_check(const uint32_t addr) {
   word_t *dest_access = csr_decode(addr);
   bool has_vi = false;
 
-  if (is_access(mireg)) {
-    if (miselect->val <= ISELECT_2F_MASK) longjmp_exception(EX_II);
-    else if (miselect->val <= ISELECT_3F_MASK) {
+  if (is_access(mireg) || (addr >= CSR_MIREG2 && addr <= CSR_MIREG6)) {
 #ifdef CONFIG_RV_AIA
-      if (miselect->val & 0x1) longjmp_exception(EX_II);
-#else
+    if (is_access(mireg) && (miselect->val & 0x1)) {
       longjmp_exception(EX_II);
+    }
+    if (addr >= CSR_MIREG2 && addr <= CSR_MIREG6) {
+      longjmp_exception(EX_II);
+    }
+#else // !CONFIG_RV_AIA
+    longjmp_exception(EX_II);
 #endif // CONFIG_RV_AIA
-    }
-    else if (miselect->val <= ISELECT_6F_MASK) longjmp_exception(EX_II);
-    else if (miselect->val <= ISELECT_MAX_MASK) {
-#ifdef CONFIG_RV_IMSIC
-      if (miselect->val > ISELECT_7F_MASK && (miselect->val & 0x1)) longjmp_exception(EX_II);
-#else
-      longjmp_exception(EX_II);
-#endif // CONFIG_RV_IMSIC
-    }
-    else longjmp_exception(EX_II);
   }
-
-  if (is_access(sireg)) {
+  else if (is_access(sireg)) {
     if (MUXDEF(CONFIG_RVH, !cpu.v, 1)) {
-      if (siselect->val <= ISELECT_2F_MASK) longjmp_exception(EX_II);
-      else if (siselect->val <= ISELECT_3F_MASK) {
 #ifdef CONFIG_RV_AIA
-        if (siselect->val & 0x1) longjmp_exception(EX_II);
-#ifdef CONFIG_RV_SMSTATEEN
-        if(!(cpu.mode == MODE_M) && !mstateen0->aia) longjmp_exception(EX_II);
-#endif // CONFIG_RV_SMSTATEEN
-#else
+      if (siselect->val & 0x1) {
         longjmp_exception(EX_II);
+      }
+#ifdef CONFIG_RV_SMSTATEEN
+      if (!(cpu.mode == MODE_M) && !mstateen0->aia) {
+        longjmp_exception(EX_II);
+      }
+#endif // CONFIG_RV_SMSTATEEN
+#else // !CONFIG_RV_AIA
+      longjmp_exception(EX_II);
 #endif // CONFIG_RV_AIA
-      }
-      else if (siselect->val <= ISELECT_6F_MASK) longjmp_exception(EX_II);
-      else if (siselect->val <= ISELECT_MAX_MASK) {
-#ifdef CONFIG_RV_IMSIC
-        if (
-          ((cpu.mode == MODE_S) && mvien->seie) ||
-          (siselect->val > ISELECT_7F_MASK && (siselect->val & 0x1))
-        ) longjmp_exception(EX_II);
-#ifdef CONFIG_RV_SMSTATEEN
-        if(!(cpu.mode == MODE_M) && !mstateen0->imsic) longjmp_exception(EX_II);
-#endif // CONFIG_RV_SMSTATEEN
-#else
-        longjmp_exception(EX_II);
-#endif // CONFIG_RV_IMSIC
-      }
-      else longjmp_exception(EX_II);
     }
 #ifdef CONFIG_RVH
     if (cpu.v) {
-      if (vsiselect->val <= ISELECT_2F_MASK) longjmp_exception(EX_II);
-      else if (vsiselect->val <= ISELECT_3F_MASK) {
 #ifdef CONFIG_RV_AIA
-        IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->aia) longjmp_exception(EX_II);)
-        has_vi = true;
-#else
-        longjmp_exception(EX_II);
-#endif // CONFIG_RV_AIA
-      }
-      else if (vsiselect->val <= ISELECT_6F_MASK) longjmp_exception(EX_II);
-      else if (vsiselect->val <= ISELECT_MAX_MASK) {
-#ifdef CONFIG_RV_AIA
-#ifdef CONFIG_RV_IMSIC
-        IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->imsic) longjmp_exception(EX_II);)
-        if (
-          (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
-          (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
-        ) has_vi = true;
-#ifdef CONFIG_RV_SMSTATEEN
-        if(!hstateen0->imsic) has_vi = true;
-#endif // CONFIG_RV_SMSTATEEN
-#else // !CONFIG_RV_IMSIC
-        has_vi = true;
-#endif // CONFIG_RV_IMSIC
-#else // !CONFIG_RV_AIA
-        longjmp_exception(EX_II);
-#endif // CONFIG_RV_AIA
-      }
-      else longjmp_exception(EX_II);
-    }
-#endif // CONFIG_RVH
-  }
-
-#ifdef CONFIG_RVH
-  if (is_access(vsireg)) {
-    if (vsiselect->val <= ISELECT_2F_MASK) longjmp_exception(EX_II);
-    else if (vsiselect->val <= ISELECT_3F_MASK) longjmp_exception(EX_II);
-    else if (vsiselect->val <= ISELECT_6F_MASK) longjmp_exception(EX_II);
-    else if (vsiselect->val <= ISELECT_MAX_MASK) {
-#ifdef CONFIG_RV_IMSIC
-      if (
-        (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
-        (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
-      ) longjmp_exception(EX_II);
-#ifdef CONFIG_RV_SMSTATEEN
-        if(!(cpu.mode == MODE_M) && !mstateen0->imsic) longjmp_exception(EX_II);
-#endif // CONFIG_RV_SMSTATEEN
-#else
-      longjmp_exception(EX_II);
-#endif // CONFIG_RV_IMSIC
-    }
-    else longjmp_exception(EX_II);
-  }
-#endif // CONFIG_RVH
-
-#ifdef CONFIG_RV_SMCSRIND
-  if (addr >= CSR_MIREG2 && addr <= CSR_MIREG6) longjmp_exception(EX_II);
-  if (addr >= CSR_SIREG2 && addr <= CSR_SIREG6) {
-    // this rules are introduced by AIA spec
-    if (MUXDEF(CONFIG_RVH, cpu.v, 0) && ((vsiselect->val > ISELECT_2F_MASK && vsiselect->val <= ISELECT_3F_MASK) || (vsiselect->val > ISELECT_6F_MASK && vsiselect->val <= ISELECT_MAX_MASK))) {
       has_vi = true;
+#else // !CONFIG_RV_AIA
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_AIA
+    }
+#endif // CONFIG_RVH
+  }
+  else if (addr >= CSR_SIREG2 && addr <= CSR_SIREG6) {
+    if (MUXDEF(CONFIG_RVH, cpu.v, 0)) {
+#ifdef CONFIG_RV_AIA
+      has_vi = true;
+#else // !CONFIG_RV_AIA
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_AIA
     } else {
       longjmp_exception(EX_II);
     }
   }
 #ifdef CONFIG_RVH
-  if (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6) longjmp_exception(EX_II);
+  else if (is_access(vsireg) || (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6)) {
+    longjmp_exception(EX_II);
+  }
 #endif // CONFIG_RVH
-#endif // CONFIG_RV_SMCSRIND
 
   return has_vi;
 }
-#endif // CONFIG_RV_SMCSRIND || CONFIG_RV_AIA
+
+static inline bool csrind_smcdeleg_window_permit_check(const uint32_t addr) {
+  word_t *dest_access = csr_decode(addr);
+  bool has_vi = false;
+
+  if (is_access(mireg) || (addr >= CSR_MIREG2 && addr <= CSR_MIREG6)) {
+    longjmp_exception(EX_II);
+  }
+  else if (is_access(sireg) || is_access(sireg2)) {
+    if (MUXDEF(CONFIG_RVH, !cpu.v, 1)) {
+#ifdef CONFIG_RV_SMCDELEG
+      if (
+        !menvcfg->cde ||
+        !smcdeleg_counter_delegated(siselect->val) ||
+        (siselect->val == SISELECT_SMCDELEG_UNUSED)
+      ) {
+        longjmp_exception(EX_II);
+      }
+#else
+      longjmp_exception(EX_II);
+#endif
+    }
+#ifdef CONFIG_RVH
+    if (cpu.v) {
+#ifdef CONFIG_RV_SMCDELEG
+      if (!menvcfg->cde) {
+        longjmp_exception(EX_II);
+      }
+      has_vi = true;
+#else // !CONFIG_RV_SMCDELEG
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_SMCDELEG
+    }
+#endif // CONFIG_RVH
+  }
+  else if (addr >= CSR_SIREG3 && addr <= CSR_SIREG6) {
+    longjmp_exception(EX_II);
+  }
+#ifdef CONFIG_RVH
+  else if (is_access(vsireg) || (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6)) {
+    longjmp_exception(EX_II);
+  }
+#endif // CONFIG_RVH
+
+  return has_vi;
+}
+
+static inline bool csrind_imsic_window_permit_check(const uint32_t addr) {
+  word_t *dest_access = csr_decode(addr);
+  bool has_vi = false;
+
+  if (is_access(mireg)) {
+#ifdef CONFIG_RV_IMSIC
+    if (miselect->val > ISELECT_7F_MASK && (miselect->val & 0x1)) {
+      longjmp_exception(EX_II);
+    }
+#else // !CONFIG_RV_IMSIC
+    longjmp_exception(EX_II);
+#endif // CONFIG_RV_IMSIC
+  }
+  else if (addr >= CSR_MIREG2 && addr <= CSR_MIREG6) {
+    longjmp_exception(EX_II);
+  }
+  else if (is_access(sireg)) {
+    if (MUXDEF(CONFIG_RVH, !cpu.v, 1)) {
+#ifdef CONFIG_RV_IMSIC
+      if (
+        ((cpu.mode == MODE_S) && mvien->seie) ||
+        (siselect->val > ISELECT_7F_MASK && (siselect->val & 0x1))
+      ) {
+        longjmp_exception(EX_II);
+      }
+#ifdef CONFIG_RV_SMSTATEEN
+      if (!(cpu.mode == MODE_M) && !mstateen0->imsic) {
+        longjmp_exception(EX_II);
+      }
+#endif // CONFIG_RV_SMSTATEEN
+#else // !CONFIG_RV_IMSIC
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_IMSIC
+    }
+#ifdef CONFIG_RVH
+    if (cpu.v) {
+#ifdef CONFIG_RV_IMSIC
+      IFDEF(CONFIG_RV_SMSTATEEN, if (!mstateen0->imsic) longjmp_exception(EX_II);)
+      if (
+        (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
+        (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
+      ) {
+        has_vi = true;
+      }
+#ifdef CONFIG_RV_SMSTATEEN
+      if (!hstateen0->imsic) {
+        has_vi = true;
+      }
+#endif // CONFIG_RV_SMSTATEEN
+#else // !CONFIG_RV_IMSIC
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_IMSIC
+    }
+#endif // CONFIG_RVH
+  }
+  else if (addr >= CSR_SIREG2 && addr <= CSR_SIREG6) {
+    if (MUXDEF(CONFIG_RVH, cpu.v, 0)) {
+#ifdef CONFIG_RV_IMSIC
+      has_vi = true;
+#else // !CONFIG_RV_IMSIC
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_IMSIC
+    } else {
+      longjmp_exception(EX_II);
+    }
+  }
+#ifdef CONFIG_RVH
+  else if (is_access(vsireg)) {
+#ifdef CONFIG_RV_IMSIC
+    if (
+      (hstatus->vgein == 0 || hstatus->vgein > CONFIG_GEILEN) ||
+      (vsiselect->val > ISELECT_7F_MASK && (vsiselect->val & 0x1))
+    ) {
+      longjmp_exception(EX_II);
+    }
+#ifdef CONFIG_RV_SMSTATEEN
+    if (!(cpu.mode == MODE_M) && !mstateen0->imsic) {
+      longjmp_exception(EX_II);
+    }
+#endif // CONFIG_RV_SMSTATEEN
+#else // !CONFIG_RV_IMSIC
+    longjmp_exception(EX_II);
+#endif // CONFIG_RV_IMSIC
+  }
+  else if (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6) {
+    longjmp_exception(EX_II);
+  }
+#endif // CONFIG_RVH
+
+  return has_vi;
+}
+
+static inline bool csrind_permit_check(const uint32_t addr) {
+  word_t *dest_access = csr_decode(addr);
+  uint64_t iselect = 0;
+
+  if (is_access(mireg) || (addr >= CSR_MIREG2 && addr <= CSR_MIREG6)) {
+    iselect = miselect->val;
+  }
+  else if (is_access(sireg) || (addr >= CSR_SIREG2 && addr <= CSR_SIREG6)) {
+    iselect = csrind_effective_sireg_select();
+  }
+#ifdef CONFIG_RVH
+  else if (is_access(vsireg) || (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6)) {
+    iselect = vsiselect->val;
+  }
+#endif // CONFIG_RVH
+  else {
+    return false;
+  }
+
+  if (iselect_is_aia_window(iselect)) {
+    return csrind_aia_window_permit_check(addr);
+  }
+  else if (iselect_is_smcdeleg(iselect)) {
+    return csrind_smcdeleg_window_permit_check(addr);
+  }
+  else if (iselect_is_imsic_window(iselect)) {
+    return csrind_imsic_window_permit_check(addr);
+  }
+  else longjmp_exception(EX_II); // other windows are not defined, directly raise illegal instruction exception.
+  return false;
+}
+#endif // CONFIG_RV_SMCSRIND
 
 static inline void csr_permit_check(uint32_t addr, bool is_write) {
   bool has_vi = false; // virtual instruction
@@ -3058,14 +3468,33 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   IFNDEF(CONFIG_FPU_NONE, has_vi |= fp_permit_check(dest_access));
   //check vec
   IFDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access));
+  //check matrix
+  IFDEF(CONFIG_RV_AME, has_vi |= matrix_permit_check(dest_access)); 
+
+#ifdef CONFIG_RV_SMCDELEG
+  if (addr == CSR_SCOUNTINHIBIT && !menvcfg->cde) {
+    longjmp_exception(EX_II);
+  }
+#ifdef CONFIG_RVH
+  if (cpu.v && menvcfg->cde && addr == CSR_SCOUNTINHIBIT) {
+    has_vi = true;
+  }
+#endif // CONFIG_RVH
+#endif // CONFIG_RV_SMCDELEG
+
+#if defined(CONFIG_RV_SMCDELEG) && defined(CONFIG_RV_SSCOFPMF) && defined(CONFIG_RVH)
+  if (cpu.v && menvcfg->cde && addr == CSR_SCOUNTOVF && !is_write) {
+    has_vi = true;
+  }
+#endif // CONFIG_RV_SMCDELEG && CONFIG_RV_SSCOFPMF && CONFIG_RVH
 
   if (has_vi) longjmp_exception(EX_VI);
 
   // We should first check whether the CSR exists, is read-only, has proper permissions, and is enabled/disabled
   // before proceeding to check indirect CSR accesses.
-#if defined (CONFIG_RV_SMCSRIND) || defined (CONFIG_RV_AIA)
+#if defined (CONFIG_RV_SMCSRIND)
   has_vi |= csrind_permit_check(addr);
-#endif
+#endif // CONFIG_RV_SMCSRIND
   if (has_vi) longjmp_exception(EX_VI);
 }
 
@@ -3221,12 +3650,17 @@ word_t riscv64_priv_sret() {
     if (ISDEF(CONFIG_RV_SSDBLTRP)) {
       vsstatus->sdt = 0;
     }
+#ifdef CONFIG_RV_ZICFILP
+    bool target_zicfilp_en = riscv64_zicfilp_enabled(vsstatus->spp, true);
+#endif
     cpu.mode = vsstatus->spp;
     vsstatus->spp  = MODE_U;
     vsstatus->sie  = vsstatus->spie;
     vsstatus->spie = 1;
-    cpu.elp = vsstatus->spelp;
-    vsstatus->spelp = 0;
+#ifdef CONFIG_RV_ZICFILP
+    cpu.elp = target_zicfilp_en ? vsstatus->spelp : ELP_NO_LP_EXPECTED;
+    vsstatus->spelp = ELP_NO_LP_EXPECTED;
+#endif
     return vsepc->val;
   }
 #endif // CONFIG_RVH
@@ -3248,6 +3682,10 @@ word_t riscv64_priv_sret() {
       IFDEF(CONFIG_RVH,vsstatus->sdt = 0;)
     }
   }
+#ifdef CONFIG_RV_ZICFILP
+  uint32_t target_mode = mstatus->spp;
+  bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->spp != MODE_M && hstatus->spv), false);
+#endif
 #ifdef CONFIG_RVH
   cpu.v = hstatus->spv;
   hstatus->spv = 0;
@@ -3260,8 +3698,10 @@ word_t riscv64_priv_sret() {
   cpu.mode = mstatus->spp;
   mstatus->spp = MODE_U;
   update_mmu_state();
-  cpu.elp = mstatus->spelp;
-  mstatus->spelp = 0;
+#ifdef CONFIG_RV_ZICFILP
+  cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->spelp : ELP_NO_LP_EXPECTED;
+  mstatus->spelp = ELP_NO_LP_EXPECTED;
+#endif
   return sepc->val;
 }
 
@@ -3271,6 +3711,10 @@ word_t riscv64_priv_mret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+#ifdef CONFIG_RV_ZICFILP
+  uint32_t target_mode = mstatus->mpp;
+  bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->mpp != MODE_M && mstatus->mpv), false);
+#endif
   mstatus->mie = mstatus->mpie;
   mstatus->mpie = (ISDEF(CONFIG_DIFFTEST_REF_QEMU) ? 0 // this is bug of QEMU
       : 1);
@@ -3296,8 +3740,10 @@ word_t riscv64_priv_mret() {
   cpu.mode = mstatus->mpp;
   mstatus->mpp = MODE_U;
   update_mmu_state();
-  cpu.elp = mstatus->mpelp;
-  mstatus->mpelp = 0;
+#ifdef CONFIG_RV_ZICFILP
+  cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->mpelp : ELP_NO_LP_EXPECTED;
+  mstatus->mpelp = ELP_NO_LP_EXPECTED;
+#endif
   Loge("Executing mret to 0x%lx", mepc->val);
   return mepc->val;
 }
@@ -3309,6 +3755,10 @@ word_t riscv64_priv_mnret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+#ifdef CONFIG_RV_ZICFILP
+  uint32_t target_mode = mnstatus->mnpp;
+  bool target_virtual = MUXDEF(CONFIG_RVH, (mnstatus->mnpp != MODE_M && mnstatus->mnpv), false);
+#endif
   if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
 #ifdef CONFIG_RVH
   cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
@@ -3334,8 +3784,10 @@ word_t riscv64_priv_mnret() {
   cpu.mode = mnstatus->mnpp;
   mnstatus->mnpp = MODE_U;
   mnstatus->nmie = 1;
-  cpu.elp = mnstatus->mnpelp;
-  mnstatus->mnpelp = 0;
+#ifdef CONFIG_RV_ZICFILP
+  cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mnstatus->mnpelp : ELP_NO_LP_EXPECTED;
+  mnstatus->mnpelp = ELP_NO_LP_EXPECTED;
+#endif
   update_mmu_state();
   Loge("Executing mnret to 0x%lx", mnepc->val);
   return mnepc->val;
@@ -3418,7 +3870,16 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
   if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
     longjmp_exception(EX_II);
 #endif // CONFIG_RVH
+#ifdef CONFIG_RVH
+  // SFENCE.VMA orders only the currently active first-stage translation.
+  if (cpu.v) {
+    mmu_tlb_flush_guest(vaddr);
+  } else {
+    mmu_tlb_flush_host(vaddr);
+  }
+#else
   mmu_tlb_flush(vaddr);
+#endif
 }
 
 #ifdef CONFIG_RVH
@@ -3429,7 +3890,7 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
 void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_guest(vaddr);
 }
 
 /// @brief Do RISC-V 64 privileged instruction: hfence.gvma
@@ -3439,10 +3900,20 @@ void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
 void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_guest(vaddr);
 }
 #endif // CONFIG_RVH
 
+#ifdef CONFIG_RV_MPT_CHECK
+void riscv64_mfence() {
+  //(paddr_t addr, word_t sdid) { add later
+  if (cpu.mode != MODE_M) {
+    Log("Mfence not in M mode.\n"); 
+    longjmp_exception(EX_II);
+  }//EXII if not in M mode
+  mmu_tlb_flush(0);
+}
+#endif // CONFIG_RVH
 
 void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
     const rtlreg_t *src2, word_t imm) {
@@ -3466,12 +3937,6 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 }
 
 #ifdef CONFIG_RVH
-int rvh_hlvx_check(struct Decode *s, int type){
-  extern bool hlvx;
-  hlvx = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4
-                  && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683));
-  return hlvx;
-}
 extern bool hld_st;
 int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len, bool is_signed, bool is_hlvx) {
   if (cpu.v) {
@@ -3481,8 +3946,14 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
     longjmp_exception(EX_II);
   }
 
+  extern bool hlvx;
   hld_st = true;
+  hlvx = is_hlvx;
   int mmu_mode = get_hyperinst_mmu_state();
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *addr, TRIGGER_NO_VALUE);
+  trigger_handler(TRIG_TYPE_MCONTROL6, action, *addr);
+#endif
   if (is_signed) {
     rtl_lms(s, dest, addr, 0, len, mmu_mode);
     IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
@@ -3491,6 +3962,7 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
     IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4));
   }
   hld_st = false;
+  hlvx = false;
   return 0;
 }
 
@@ -3502,11 +3974,18 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
     longjmp_exception(EX_II);
   }
 
+  extern bool hlvx;
   hld_st = true;
+  hlvx = false;
   int mmu_mode = get_hyperinst_mmu_state();
+#ifdef CONFIG_TDATA1_MCONTROL6
+  trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *addr, *src);
+  trigger_handler(TRIG_TYPE_MCONTROL6, action, *addr);
+#endif
   rtl_sm(s, src, addr, 0, len, mmu_mode);
   IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
   hld_st = false;
+  hlvx = false;
   return 0;
 }
 #endif

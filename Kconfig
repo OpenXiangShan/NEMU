@@ -162,6 +162,15 @@ config CC_LTO
   bool "Enable link-time optimization"
   default y
 
+config CC_AGGRESSIVE_INLINE
+  depends on CC_GCC
+  bool "Enable GCC aggressive inline and label alignment tuning"
+  default y
+  help
+    Append GCC-specific tuning flags (--param max-inline-insns-single and
+    -falign-labels) that lower interpreter per-instruction overhead on some
+    x86 microarchitectures. Only available when GCC is the selected compiler.
+
 config CC_DEBUG
   bool "Enable debug information"
   default n
@@ -170,6 +179,23 @@ config CC_ASAN
   depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
+
+config AME_MMACC_VECTORIZE
+  depends on RV_AME && !SHARE
+  bool "Enable AME MMACC optimization"
+  default n
+  help
+    Enable optimized execution paths for supported AME integer and
+    floating-point MMACC operations. Unsupported combinations use the scalar
+    implementation.
+
+config AME_MLDST_VECTORIZE
+  depends on RV_AME && !SHARE
+  bool "Enable AME matrix load/store optimization"
+  default n
+  help
+    Enable optimized row copies and transposed matrix load/store operations.
+    Unsupported cases use the scalar implementation.
 endmenu
 
 menu "Testing and Debugging"
@@ -225,6 +251,28 @@ config DIFFTEST_STORE_COMMIT
   bool "Check the data of the store class instruction"
   default n
 
+config AME_REG_ACCESS_CHECK
+  depends on RV_AME && !AME_MMACC_VECTORIZE && !AME_MLDST_VECTORIZE
+  bool "Check AME matrix register accesses"
+  default n
+  help
+    Enable debug checks for AME matrix register numbers, rows, and element
+    indices. Disable this for higher perf.
+
+config AME_MEM_ACCESS_CHECK
+  depends on RV_AME
+  bool "Check AME memory access synchronization"
+  default n
+  help
+    Report scalar and vector loads that overlap a matrix store which has not
+    been released and acquired through the AME synchronization protocol.
+    Also report AME matrix loads that overlap scalar or vector stores without
+    a preceding visibility barrier, using mfence, W-to-R FENCE ordering,
+    acquire-release atomics and same-block CBO clean/flush ordering.
+    This is a diagnostic, not a cycle-accurate store buffer model. Checking
+    runs in instruction order in the standalone interpreter and REF mode,
+    before deferred AMU execution. Speculative memory rollback is unsupported.
+    Checking also covers HostTLB hits and bulk vector accesses.
 
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
@@ -278,6 +326,11 @@ config TRACE_BB
 
 config SIMPOINT_LOG
   bool "Enable Log for simpoint profiling"
+  default n
+
+config TRACE_MATRIX_LOAD_STORE
+  depends on RV_AME
+  bool "Enable Log for matrix load/store"
   default n
 
 config BR_LOG
@@ -364,13 +417,29 @@ config DIFFTEST_CHECK_SDTRIG
   default y
 
 config SHARE
-  bool "Build shared library as processor difftest reference"
+  bool "Build shared library as processor difftest reference or controller"
   default n
+
+choice
+  prompt "The usage of shared library"
+  default SHARE_REF
+  depends on SHARE
+config SHARE_REF
+  bool "Build shared library as processor difftest reference"
+config SHARE_CTRL
+  bool "Build shared library as the controller of CUTE"
+endchoice
+
 
 config DIFFTEST_STORE_COMMIT
   depends on SHARE
   bool "Maintain a committed store queue for processor ref"
   default y
+
+config DIFFTEST_AMU_CTRL
+  depends on SHARE && RV_AME
+  bool "Enable AMU control signal difftest"
+  default n
 
 config DIFFTEST_REF_FOR_GEM5
   depends on SHARE
@@ -385,7 +454,7 @@ config DIFFTEST_STORE_COMMIT_AMO
 config DIFFTEST_STORE_QUEUE_SIZE
   depends on DIFFTEST_STORE_COMMIT
   int "Size of committed store queue"
-  default 64
+  default 65536
 
 config GUIDED_EXEC
   depends on SHARE
@@ -517,5 +586,13 @@ config ENABLE_INSTR_CNT
   bool
   default y if INSTR_CNT_BY_INSTR || INSTR_CNT_BY_BB
   default n
+
+config INSTR_CNT_BY_CATEGORY
+  bool "Print instruction category statistics"
+  depends on ENABLE_INSTR_CNT
+  default n
+  help
+    Print instruction counts grouped by instruction category in monitor
+    statistics.
 
 endmenu

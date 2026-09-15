@@ -261,36 +261,70 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
 
 #else // CONFIG_PERF_OPT
 #define SIMPLE_TCACHE_SIZE 8192
+#define SIMPLE_TCACHE_WAYS 4
+#define SIMPLE_TCACHE_SETS (SIMPLE_TCACHE_SIZE / SIMPLE_TCACHE_WAYS)
+#define SIMPLE_TCACHE_SET_MASK (SIMPLE_TCACHE_SETS - 1)
+
 typedef struct {
   vaddr_t pc;
   Decode s;
   int valid;
 } simple_tcache_entry_t;
 
-static simple_tcache_entry_t tcache[SIMPLE_TCACHE_SIZE] = {0};
+static simple_tcache_entry_t tcache[SIMPLE_TCACHE_SETS][SIMPLE_TCACHE_WAYS] = {0};
+static uint8_t simple_tcache_next_way[SIMPLE_TCACHE_SETS] = {0};
 
-static inline int tcache_hash(vaddr_t pc) {
-  return (pc >> 2) & (SIMPLE_TCACHE_SIZE - 1);
+static inline int tcache_set_idx(vaddr_t pc) {
+  return (pc >> 2) & SIMPLE_TCACHE_SET_MASK;
+}
+
+static inline simple_tcache_entry_t *tcache_set(vaddr_t pc) {
+  return tcache[tcache_set_idx(pc)];
+}
+
+static inline simple_tcache_entry_t *tcache_find(simple_tcache_entry_t *set, vaddr_t pc) {
+  for (int way = 0; way < SIMPLE_TCACHE_WAYS; way++) {
+    if (set[way].valid && set[way].pc == pc) {
+      return &set[way];
+    }
+  }
+  return NULL;
+}
+
+static inline simple_tcache_entry_t *tcache_victim(simple_tcache_entry_t *set, int set_idx) {
+  for (int way = 0; way < SIMPLE_TCACHE_WAYS; way++) {
+    if (!set[way].valid) {
+      return &set[way];
+    }
+  }
+  int victim = simple_tcache_next_way[set_idx];
+  simple_tcache_next_way[set_idx] = (victim + 1) % SIMPLE_TCACHE_WAYS;
+  return &set[victim];
 }
 
 Decode* tcache_lookup_instr(vaddr_t pc) {
-  int idx = tcache_hash(pc);
-  if (tcache[idx].valid && tcache[idx].pc == pc) {
-    return &tcache[idx].s;
+  simple_tcache_entry_t *set = tcache_set(pc);
+  simple_tcache_entry_t *entry = tcache_find(set, pc);
+  if (entry != NULL) {
+    return &entry->s;
   }
   return NULL;
 }
 
 void tcache_insert_instr(vaddr_t pc, Decode *s) {
-  int idx = tcache_hash(pc);
-  tcache[idx].pc = pc;
-  tcache[idx].valid = 1;
-  memcpy(&tcache[idx].s, s, sizeof(Decode));
+  int set_idx = tcache_set_idx(pc);
+  simple_tcache_entry_t *set = tcache[set_idx];
+  simple_tcache_entry_t *entry = tcache_find(set, pc);
+  if (entry == NULL) {
+    entry = tcache_victim(set, set_idx);
+  }
+  entry->pc = pc;
+  entry->valid = 1;
+  memcpy(&entry->s, s, sizeof(Decode));
 }
 
 void tcache_handle_flush() {
-  for (int i = 0; i < SIMPLE_TCACHE_SIZE; i++) {
-    tcache[i].valid = 0;
-  }
+  memset(tcache, 0, sizeof(tcache));
+  memset(simple_tcache_next_way, 0, sizeof(simple_tcache_next_way));
 }
 #endif

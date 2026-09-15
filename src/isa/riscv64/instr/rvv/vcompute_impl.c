@@ -177,6 +177,20 @@ uint32_t vf_allowed_e16[] = {
   FSLIDE1UP, 
   FSLIDE1DOWN,
 #endif
+
+#ifdef CONFIG_RV_ZVFBF_MIN
+  FWCVT_BF16_FF,  // vfwcvtbf16_ffv
+  FNCVT_BF16_FF,  // vfncvtbf16_ffw
+#endif
+#ifdef CONFIG_RV_ZVFBF_WMA
+  FWMACCBF16,     // vfwmaccbf16.vv/.vf
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2
+  FEXP2,
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+  FEXP2BF16,
+#endif
 };
 
 # ifdef CONFIG_RV_ZVFH
@@ -210,6 +224,24 @@ static bool is_vf_allowed_e8(uint32_t opcode) {
   }
   return false;
 }
+
+#if defined(CONFIG_RV_ZVFBF_MIN) || defined(CONFIG_RV_ZVFBF_WMA)
+static bool is_bf16_opcode(uint32_t opcode) {
+  switch (opcode) {
+#ifdef CONFIG_RV_ZVFBF_MIN
+    case FWCVT_BF16_FF:
+    case FNCVT_BF16_FF:
+      return true;
+#endif
+#ifdef CONFIG_RV_ZVFBF_WMA
+    case FWMACCBF16:
+      return true;
+#endif
+    default:
+      return false;
+  }
+}
+#endif
 
 static inline void update_vcsr() {
   vcsr->val = (vxrm->val) << 1 | vxsat->val;
@@ -1178,6 +1210,21 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
     longjmp_exception(EX_II);
   }
 #endif
+#if defined(CONFIG_RV_ZVFBF_MIN) || defined(CONFIG_RV_ZVFBF_WMA)
+  if (is_bf16_opcode(opcode) && vtype->vsew != 1) {
+    longjmp_exception(EX_II);
+  }
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2
+  if (opcode == FEXP2 && vtype->vsew != 1 && vtype->vsew != 2) {
+    longjmp_exception(EX_II);
+  }
+#endif
+#ifdef CONFIG_CUSTOM_XVEXP2_BF16
+  if (opcode == FEXP2BF16 && vtype->vsew != 1) {
+    longjmp_exception(EX_II);
+  }
+#endif
   word_t FPCALL_TYPE = FPCALL_W64;
   // fpcall type
   switch (vtype->vsew) {
@@ -1222,6 +1269,10 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       break;
     case 3 : FPCALL_TYPE = FPCALL_W64; break;
     default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
+  }
+  uint32_t fp_box_type = fp_type_from_vsew(vtype->vsew);
+  if (opcode == FWMACCBF16 || opcode == FEXP2BF16) {
+    fp_box_type = FPCALL_BF16;
   }
   check_vstart_exception(s);
   if(check_vstart_ignore(s)) {
@@ -1275,7 +1326,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
         break;
       case SRC_VF :   
         rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
-        check_isFpCanonicalNAN(s1, vtype->vsew);
+        check_isFpCanonicalNAN(s1, fp_box_type);
         switch (vtype->vsew) {
           case 0 : *s1 = *s1 & 0xff; break;
           case 1 : *s1 = *s1 & 0xffff; break;
@@ -1294,6 +1345,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       case FNMADD :
       case FMSUB : 
       case FNMSUB :
+      case FWMACCBF16 :
         if (widening == vsdWidening) get_vreg(id_dest->reg, idx, s2, vtype->vsew+1, vtype->vlmul, 0, 1);
         else get_vreg(id_dest->reg, idx, s2, vtype->vsew, vtype->vlmul, 0, 1);
         break;
@@ -1320,6 +1372,13 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       case FSQRT : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_SQRT, FPCALL_TYPE)); break;
       case FRSQRT7 : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_RSQRT7, FPCALL_TYPE)); break;
       case FREC7 : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_REC7, FPCALL_TYPE)); break;
+      case FEXP2:
+      case FEXP2BF16: {
+        const vfexp2_result_t exp2 = vfexp2_compute(*s0, vtype->vsew, opcode == FEXP2BF16, rm);
+        *s1 = exp2.result;
+        isa_fp_set_ex(exp2.fflags);
+        break;
+      }
       case FCLASS : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_CLASS, FPCALL_TYPE)); break;
       case FMERGE : isa_fp_rm_check(rm); rtl_mux(s, s1, &mask, s1, s0); break;
       case MFEQ : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_EQ, FPCALL_TYPE)); break;
@@ -1351,6 +1410,14 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       case FNCVT_FXU : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DUToF, FPCALL_TYPE)); break;
       case FNCVT_FX : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DSToF, FPCALL_TYPE)); break;
       case FNCVT_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF, FPCALL_TYPE)); break;
+      case FWCVT_BF16_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_BF16ToF32, FPCALL_BF16)); break;
+      case FNCVT_BF16_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_F32ToBF16, FPCALL_W32)); break;
+      case FWMACCBF16 :
+        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_BF16ToF32, FPCALL_BF16));
+        rtl_hostcall(s, HOSTCALL_VFP, s1, s1, s1, FPCALL_CMD(FPCALL_BF16ToF32, FPCALL_BF16));
+        rtl_hostcall(s, HOSTCALL_VFP, s2, s1, s0, FPCALL_CMD(FPCALL_MACC, FPCALL_W32));
+        rtl_mv(s, s1, s2);
+        break;
       case FNCVT_ROD_FF : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_DFToF_ODD, FPCALL_TYPE)); break;
       case FSLIDE1UP :
         isa_fp_rm_check(rm);

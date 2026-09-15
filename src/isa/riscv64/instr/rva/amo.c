@@ -20,13 +20,80 @@
 #include "../local-include/trigger.h"
 #include "../local-include/intr.h"
 #include "cpu/difftest.h"
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
+
+static inline uint64_t amo_unsigned_operand(rtlreg_t value, int width) {
+  switch (width) {
+    case 1: return (uint8_t)value;
+    case 2: return (uint16_t)value;
+    case 4: return (uint32_t)value;
+    case 8: return (uint64_t)value;
+    default: assert(0);
+  }
+  return 0;
+}
+
+static inline int64_t amo_signed_operand(rtlreg_t value, int width) {
+  switch (width) {
+    case 1: return (int8_t)value;
+    case 2: return (int16_t)value;
+    case 4: return (int32_t)value;
+    case 8: return (int64_t)value;
+    default: assert(0);
+  }
+  return 0;
+}
+
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
+  uint32_t funct3 = s->isa.instr.r.funct3;
   int rd = s->isa.instr.r.rd;
   int rs2 = s->isa.instr.r.rs2;
-  int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
-  width = BITS(s->isa.instr.r.funct3, 2, 2) == 0 ? width : 16;
+  int width = 0;
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  // Both annotations are needed to order prior stores before subsequent loads.
+  bool aqrl = BITS(s->isa.instr.val, 26, 25) == 3;
+#endif
+
+  switch (funct3) {
+#ifdef CONFIG_RV_ZABHA
+    case 0b000: width = 1; break;
+    case 0b001: width = 2; break;
+#endif // CONFIG_RV_ZABHA
+    case 0b010: width = 4; break;
+    case 0b011: width = 8; break;
+#ifdef CONFIG_RV_ZACAS
+    case 0b100: width = 16; break;
+#endif // CONFIG_RV_ZACAS
+    default: longjmp_exception(EX_II);
+  }
+
+  switch (funct5) {
+    case 0b00000: // amoadd
+    case 0b00001: // amoswap
+    case 0b00100: // amoxor
+    case 0b01000: // amoor
+    case 0b01100: // amoand
+    case 0b10000: // amomin
+    case 0b10100: // amomax
+    case 0b11000: // amominu
+    case 0b11100: // amomaxu
+      if (width == 16) longjmp_exception(EX_II);
+      break;
+    case 0b00010: // lr
+    case 0b00011: // sc
+      if (width < 4 || width == 16) longjmp_exception(EX_II);
+      break;
+    case 0b00101: // amocas
+#ifndef CONFIG_RV_ZACAS
+      longjmp_exception(EX_II);
+#endif // CONFIG_RV_ZACAS
+      break;
+    default: longjmp_exception(EX_II);
+  }
 
   if (funct5 == 0b00101) { // amocas
     if (width == 16 && ((rd % 2 == 1) || (rs2 % 2 == 1))) { // amocas.q 128-bit
@@ -36,13 +103,15 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = TRIG_ACTION_NONE;
-  if (funct5 == 0b00010) { // lr
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
-  } else if(funct5 == 0b00011) { // sc
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
-  } else { // amo
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
-    action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+  if (trigger_mcontrol6_active(cpu.TM)) {
+    if (funct5 == 0b00010) { // lr
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+    } else if(funct5 == 0b00011) { // sc
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+    } else { // amo
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+      action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *src1, TRIGGER_NO_VALUE); trigger_handler(TRIG_TYPE_MCONTROL6, action, *src1);
+    }
   }
 #endif // CONFIG_TDATA1_MCONTROL6
 
@@ -86,6 +155,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     cpu.lr_addr = paddr;
     cpu.lr_valid = 1;
     Logti("set lr vaild");
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
     return;
   } else if (funct5 == 0b00011) { // sc
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -107,6 +177,7 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
       IFDEF(CONFIG_DIFFTEST_REF_SPIKE,difftest_skip_ref());
     }
     rtl_li(s, dest, !success);
+    IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl && success) svstore_queue_update_fence(SVSTORE_FENCE_W));
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
     cpu.amo = false;
 #endif
@@ -115,21 +186,18 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
 #ifdef CONFIG_RV_ZACAS
   if (funct5 == 0b00101) { // amocas
+    uint64_t compare_lo = rd == 0 ? 0 : *dest;
     cpu.amo = true;
     switch (width) {
+      case 1:
+      case 2:
       case 4:
-        rtl_lms(s, s0, src1, 0, 4, MMU_DYNAMIC);
-        if ((int32_t)*dest == (int32_t)*s0) {
-          *s1 = *src2;
-          rtl_sm(s, s1, src1, 0, 4, MMU_DYNAMIC);
-        }
-        rtl_mv(s, dest, s0);
-        break;
       case 8:
-        rtl_lms(s, s0, src1, 0, 8, MMU_DYNAMIC);
-        if ((int64_t)*dest == (int64_t)*s0) {
+        rtl_lms(s, s0, src1, 0, width, MMU_DYNAMIC);
+        if (amo_unsigned_operand(compare_lo, width) == amo_unsigned_operand(*s0, width)) {
           *s1 = *src2;
-          rtl_sm(s, s1, src1, 0, 8, MMU_DYNAMIC);
+          rtl_sm(s, s1, src1, 0, width, MMU_DYNAMIC);
+          IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
         }
         rtl_mv(s, dest, s0);
         break;
@@ -137,11 +205,12 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
         rtl_lms(s, s0, src1, 0, 8, MMU_DYNAMIC);
         rtl_lms(s, s1, src1, 8, 8, MMU_DYNAMIC);
         *t0 = rd == 0 ? 0 : *(dest + 1);
-        if ((int64_t)*dest == (int64_t)*s0 && (int64_t)*t0 == (int64_t)*s1) {
+        if (compare_lo == *s0 && *t0 == *s1) {
           *s2 = *src2;
           *t0 = rs2 == 0 ? 0 : *(src2 + 1);
           rtl_sm(s, s2, src1, 0, 8, MMU_DYNAMIC);
           rtl_sm(s, t0, src1, 8, 8, MMU_DYNAMIC);
+          IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
         }
         if (rd) {
           rtl_mv(s, dest, s0);
@@ -164,24 +233,20 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
     case 0b01100: rtl_and(s, s1, s0, src2); break;
     case 0b00100: rtl_xor(s, s1, s0, src2); break;
     case 0b10000: // amomin
-      if (width == 8) *s1 = ((int64_t)*s0 < (int64_t)*src2 ? *s0 : *src2);
-      else *s1 = ((int32_t)*s0 < (int32_t)*src2 ? *s0 : *src2);
+      *s1 = amo_signed_operand(*s0, width) < amo_signed_operand(*src2, width) ? *s0 : *src2;
       break;
     case 0b10100: // amomax
-      if (width == 8) *s1 = ((int64_t)*s0 > (int64_t)*src2 ? *s0 : *src2);
-      else *s1 = ((int32_t)*s0 > (int32_t)*src2 ? *s0 : *src2);
+      *s1 = amo_signed_operand(*s0, width) > amo_signed_operand(*src2, width) ? *s0 : *src2;
       break;
     case 0b11000: // amominu
-      if (width == 8) *s1 = ((uint64_t)*s0 < (uint64_t)*src2 ? *s0 : *src2);
-      else *s1 = ((uint32_t)*s0 < (uint32_t)*src2 ? *s0 : *src2);
+      *s1 = amo_unsigned_operand(*s0, width) < amo_unsigned_operand(*src2, width) ? *s0 : *src2;
       break;
     case 0b11100: // amomaxu
-      if (width == 8) *s1 = ((uint64_t)*s0 > (uint64_t)*src2 ? *s0 : *src2);
-      else *s1 = ((uint32_t)*s0 > (uint32_t)*src2 ? *s0 : *src2);
+      *s1 = amo_unsigned_operand(*s0, width) > amo_unsigned_operand(*src2, width) ? *s0 : *src2;
       break;
-    default: assert(0);
   }
   rtl_sm(s, s1, src1, 0, width, MMU_DYNAMIC);
   rtl_mv(s, dest, s0);
   cpu.amo = false;
+  IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, if (aqrl) svstore_queue_update_fence(SVSTORE_FENCE_W));
 }

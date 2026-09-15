@@ -7,30 +7,43 @@ menuconfig DEVICE
 if DEVICE
 
 config HAS_PORT_IO
-  depends on !SHARE
   bool
   default y
 
-menuconfig HAS_SERIAL
-  depends on !SHARE
-  bool "Enable serial"
+menuconfig HAS_UART16550
+  bool "Enable uart16550"
   default y
 
-if HAS_SERIAL
-config SERIAL_PORT
+if HAS_UART16550
+config UART16550_PORT
   depends on HAS_PORT_IO
   hex "Port address of the serial controller"
   default 0x3f8
 
-config SERIAL_MMIO
+config UART16550_MMIO
   hex "MMIO address of the serial controller"
-  default 0xa10003f8
+  default 0x310b0000
 
-config SERIAL_INPUT_FIFO
+choice UART16550_REG_SHIFT_CHOICE
+  prompt "Register shift of the serial controller"
+  default UART16550_REG_SHIFT_2
+  help
+    Register spacing shift for the uart16550 register block.
+    Only 0 and 2 are implemented and validated.
+
+config UART16550_REG_SHIFT_0
+  bool "0"
+
+config UART16550_REG_SHIFT_2
+  bool "2"
+
+endchoice
+
+config UART16550_INPUT_FIFO
   bool "Enable input FIFO with /tmp/nemu.serial"
   default n
 
-endif # HAS_SERIAL
+endif # HAS_UART16550
 
 menuconfig HAS_UARTLITE
   bool "Enable uartlite"
@@ -54,7 +67,6 @@ config UARTLITE_ASSERT_FOUR
 endif # HAS_UARTLITE
 
 menuconfig HAS_UART_SNPS
-  depends on !SHARE
   bool "Enable uart_snps"
   default n
 
@@ -74,7 +86,6 @@ config UAR_SNPS_INPUT_FIFO
 endif # HAS_UART_SNPS
 
 menuconfig HAS_PLIC
-  depends on !SHARE
   bool "Enable PLIC"
   default n
 
@@ -85,7 +96,6 @@ config PLIC_ADDRESS
 endif
 
 menuconfig HAS_TIMER
-  depends on !SHARE
   bool "Enable timer"
   default y
 
@@ -101,7 +111,6 @@ config RTC_MMIO
 endif # HAS_TIMER
 
 menuconfig HAS_KEYBOARD
-  depends on !SHARE
   bool "Enable keyboard"
   default y
 
@@ -149,7 +158,6 @@ endchoice
 endif # HAS_VGA
 
 menuconfig HAS_AUDIO
-  depends on !SHARE
   bool "Enable audio"
   default y
 
@@ -173,7 +181,6 @@ config AUDIO_CTL_MMIO
 endif # HAS_AUDIO
 
 menuconfig HAS_DISK
-  depends on !SHARE
   bool "Enable disk"
   default y
 
@@ -193,7 +200,6 @@ config DISK_IMG_PATH
 endif # HAS_DISK
 
 menuconfig HAS_SDCARD
-  depends on !SHARE
   bool "Enable sdcard"
   default y
 
@@ -214,7 +220,7 @@ menuconfig HAS_FLASH
 if HAS_FLASH
 config FLASH_PRESET_CONTENT
   string "The content of flash preset"
-  default "0x0010029b,0x01f29293,0x00028067"
+  default "0x74446073,0x0010029b,0x02a29313,0x30033073,0x01f29293,0x00028067"
 
 config FLASH_START_ADDR
   hex "Flash start addr"

@@ -37,26 +37,7 @@ def_EHelper(c_j) {
 }
 
 def_EHelper(c_jr) {
-  // Zicfilp: check if landing pad is expected after indirect jump
-  {
-    bool zicfilp_en = false;
-    if (cpu.mode == MODE_M) {
-      zicfilp_en = mseccfg->mlpe;
-    } else if (cpu.mode == MODE_S) {
-      zicfilp_en = menvcfg->lpe;
-      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = henvcfg->lpe; )
-    } else if (cpu.mode == MODE_U) {
-      zicfilp_en = senvcfg->lpe;
-    }
-    if (zicfilp_en) {
-      uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
-      if (rs1 != 1 && rs1 != 5 && rs1 != 7) {
-        cpu.elp = 1;
-      } else {
-        cpu.elp = 0;
-      }
-    }
-  }
+  riscv64_zicfilp_update_elp(s);
 
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.
@@ -72,26 +53,7 @@ def_EHelper(c_jr) {
 def_EHelper(c_jalr) {
   rtl_li(s, &cpu.gpr[1]._64, s->snpc);
 
-  // Zicfilp: check if landing pad is expected after indirect jump
-  {
-    bool zicfilp_en = false;
-    if (cpu.mode == MODE_M) {
-      zicfilp_en = mseccfg->mlpe;
-    } else if (cpu.mode == MODE_S) {
-      zicfilp_en = menvcfg->lpe;
-      IFDEF(CONFIG_RVH, if(cpu.v) zicfilp_en = henvcfg->lpe; )
-    } else if (cpu.mode == MODE_U) {
-      zicfilp_en = senvcfg->lpe;
-    }
-    if (zicfilp_en) {
-      uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
-      if (rs1 != 1 && rs1 != 5 && rs1 != 7) {
-        cpu.elp = 1;
-      } else {
-        cpu.elp = 0;
-      }
-    }
-  }
+  riscv64_zicfilp_update_elp(s);
 
 #ifdef CONFIG_SHARE
   // See rvi/control.h:26. JALR should set the LSB to 0.

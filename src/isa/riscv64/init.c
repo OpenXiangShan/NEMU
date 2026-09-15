@@ -16,7 +16,6 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include "local-include/csr.h"
 
 void init_csr();
@@ -36,6 +35,7 @@ void init_pma();
 
 void init_riscv_timer();
 void init_device();
+void update_mmu_state();
 
 #define CSR_ZERO_INIT(name, addr) name->val = 0;
 
@@ -71,6 +71,8 @@ void init_isa() {
   // initialize the value fs and vs to 0
   mstatus->fs = 0;
   mstatus->vs = 0;
+  // initialize the value ms to 0
+  mstatus->ms = 0;
   // initialize SDT, MDT
   mstatus->mdt = ISDEF(CONFIG_MDT_INIT);
 #ifdef CONFIG_RV_SSDBLTRP
@@ -82,9 +84,11 @@ void init_isa() {
   henvcfg->dte = 0;
 #endif //CONFIG_RV_SSDBLTRP
 #ifdef CONFIG_RV_SMRNMI
-// as opensbi and linux not support smrnmi, so we default init nmie = 1 to pass ci
+  mnstatus->val = 0;
   mnstatus->nmie = ISDEF(CONFIG_NMIE_INIT);
+#ifdef CONFIG_DEBUG
   Log("mnstatus->nmie initialized to %d", mnstatus->nmie);
+#endif
 #endif //CONFIG_RV_SMRNMI
 
 #ifdef CONFIG_RV_SSTC
@@ -119,6 +123,8 @@ void init_isa() {
   pmpcfg0->val = 0;
   pmpcfg2->val = 0;
 #endif // CONFIG_RV_PMP_ENTRY_16
+
+  update_mmu_state();
 #ifdef CONFIG_RV_PMP_ENTRY_64
   pmpcfg0->val = 0;
   pmpcfg2->val = 0;
@@ -129,9 +135,11 @@ void init_isa() {
   pmpcfg12->val = 0;
   pmpcfg14->val = 0;
 #endif // CONFIG_RV_PMP_ENTRY_64
+  mmu_refresh_pmp_cache();
 
 #ifdef CONFIG_RV_PMA_CSR
   init_pma();
+  mmu_refresh_pma_cache();
 #endif // CONFIG_RV_PMA_CSR
 
 #define ext(e) (1 << ((e) - 'a'))
@@ -185,6 +193,24 @@ void init_isa() {
   vlenb->val = VLEN/8;
 #endif // CONFIG_RVV
 
+#ifdef CONFIG_RV_AME
+  // matrix
+  tlenb->val = TLEN / 8;
+  trlenb->val = TRLEN / 8;
+  alenb->val = ALEN / 8;
+  mnsync->val = MSYNC;
+  mtilem->val = 0;
+  mtilek->val = 0;
+  mtilen->val = 0;
+
+  mcsr->val = 0;
+  mxrm->val = 0;
+  msat->val = 0;
+  mfflags->val = 0;
+  mfrm->val = 0;
+  msaten->val = 0;
+#endif // CONFIG_RV_AME
+
   // mcycle and minstret record :
   // - the difference between the absolute number and the write value, when the bit of mcountinhibit is clear;
   // - the inhibited number, when the bit of mcountinhibit is set.
@@ -192,7 +218,7 @@ void init_isa() {
   minstret->val = 0;
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
-  mcountinhibit->val = 0; 
+  mcountinhibit->val = 0;
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
   // All hpm counters are read-only zero in NEMU
@@ -201,9 +227,9 @@ void init_isa() {
   MAP(CSRS_M_HPMEVENT, CSR_ZERO_INIT);
 
 #ifdef CONFIG_USE_XS_ARCH_CSRS
-  // JEDEC JEP106 Manufacturer ID: 
+  // JEDEC JEP106 Manufacturer ID:
   //   Bank 17 (16 continuations), Offset 0x6F (111)
-  //   mvendorid = ((Bank -1) << 7) | Offset 
+  //   mvendorid = ((Bank -1) << 7) | Offset
   mvendorid->val = (16 << 7) | 0x6F;
   marchid->val = 25;
   mimpid->val = 0;

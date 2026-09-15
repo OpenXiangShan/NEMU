@@ -27,6 +27,7 @@
 #include "../local-include/rtl.h"
 #include <setjmp.h>
 #include "vcommon.h"
+#include "vfexp2.h"
 
 #define id_src (&s->src1)
 #define id_src2 (&s->src2)
@@ -56,8 +57,9 @@ enum op_t {
   FCVT_XF, FCVT_FXU, FCVT_FX, FCVT_RTZ_XUF, FCVT_RTZ_XF,
   FWCVT_XUF, FWCVT_XF, FWCVT_FXU, FWCVT_FX, FWCVT_FF, FWCVT_RTZ_XUF,
   FWCVT_RTZ_XF, FNCVT_XUF, FNCVT_XF, FNCVT_FXU, FNCVT_FX, FNCVT_FF,
+  FWCVT_BF16_FF, FNCVT_BF16_FF, FWMACCBF16,
   FNCVT_ROD_FF, FNCVT_RTZ_XUF, FNCVT_RTZ_XF, FSQRT, FRSQRT7,
-  FREC7, FCLASS, FMERGE, MFEQ, MFLE, MFLT, MFNE, MFGT, MFGE,
+  FREC7, FEXP2, FEXP2BF16, FCLASS, FMERGE, MFEQ, MFLE, MFLT, MFNE, MFGT, MFGE,
   FDIV, FRDIV, FMUL, FRSUB, FMADD, FNMADD, FMSUB, FNMSUB, FMACC, FNMACC,
   FMSAC, FNMSAC, FWREDUSUM, FWREDOSUM, FWADD_W, FWSUB_W,
   FWMUL, FWMACC, FWNMACC, FWMSAC, FWNMSAC,
@@ -87,6 +89,7 @@ void float_reduction_step2(uint64_t src, Decode *s);
 void float_reduction_computing(Decode *s);
 void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm(void);
+void isa_fp_set_ex(uint32_t ex);
 
 #define ARITH(opcode, is_signed) arithmetic_instr(opcode, is_signed, 0, 0, 0, s);
 #define ARITH_WIDE(opcode, is_signed) arithmetic_instr(opcode, is_signed, 1, 0, 0, s);

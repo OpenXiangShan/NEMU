@@ -34,24 +34,28 @@ const char * vregsl[] = {
 rtlreg_t check_vsetvl(rtlreg_t vtype_req, rtlreg_t vl_req, int mode) {
   rtlreg_t old_vl;
   vcsr_read(IDXVL, &old_vl);
-  vtype_t vt;
-  vt.val = vtype_req;
-  rtlreg_t VLMAX = get_vlmax(vt.vsew, vt.vlmul);
+  vtype_t new_vt, old_vt;
+  new_vt.val = vtype_req;
+  vcsr_read(IDXVTYPE, &old_vt.val);
+  rtlreg_t old_VLMAX = get_vlmax(old_vt.vsew, old_vt.vlmul);
+  rtlreg_t new_VLMAX = get_vlmax(new_vt.vsew, new_vt.vlmul);
 
   if (mode == 1) {
-    return VLMAX;
+    return new_VLMAX;
   } else if (mode == 2) {
-    return old_vl < VLMAX ? old_vl : VLMAX;
+    // RESERVED if vill was set or old VLMAX is not equal to new VLMAX
+    // align with spike behavior
+    return (old_vt.vill || old_VLMAX != new_VLMAX) ? (uint64_t)-1 : old_vl;
   } else {
-    if (vt.vsew > 3) { //check if max-len supported
+    if (new_vt.vsew > 3) { // check if max-len supported
       return (uint64_t)-1; //return 0 means error, including vl_req is 0, for vl_req should not be 0.
     }
-    if (vl_req <= VLMAX) {
-        return vl_req;
-    } else if (vl_req < 2 * VLMAX) {
-        return VLMAX;
+    if (vl_req <= new_VLMAX) {
+      return vl_req;
+    } else if (vl_req < 2 * new_VLMAX) {
+      return new_VLMAX;
     } else {
-        return VLMAX;
+      return new_VLMAX;
     }
   }
 }

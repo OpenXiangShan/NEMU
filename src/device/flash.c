@@ -16,6 +16,7 @@
 #include <utils.h>
 #include <device/map.h>
 #include <device/flash.h>
+#include <memory/image_loader.h>
 #include <sys/mman.h>
 
 // put flash below the physical memory and allow a max size of 256MB.
@@ -26,6 +27,32 @@ static FILE *fp = NULL;
 static void flash_io_handler(uint32_t offset, int len, bool is_write) {
   Assert(!is_write, "write to flash is illegal");
   return;
+}
+
+static void load_flash_preset_content() {
+  const char *content = CONFIG_FLASH_PRESET_CONTENT;
+  uint32_t *p = (uint32_t *)flash_base;
+
+  for (size_t i = 0; *content != '\0'; i++) {
+    uint32_t word = 0;
+    int consumed = 0;
+
+    Assert(sscanf(content, " %x %n", &word, &consumed) == 1,
+        "invalid flash preset content near '%s'", content);
+    Assert(
+      (i + 1) * sizeof(uint32_t) <= CONFIG_FLASH_SIZE,
+      "flash preset content is larger than flash size 0x%lx",
+      (unsigned long)CONFIG_FLASH_SIZE
+    );
+
+    p[i] = word;
+    content += consumed;
+    if (*content == '\0') {
+      break;
+    }
+    Assert(*content == ',', "invalid flash preset content near '%s'", content);
+    content++;
+  }
 }
 
 void load_flash_contents(const char *flash_img) {
@@ -41,20 +68,10 @@ void load_flash_contents(const char *flash_img) {
   if (!flash_img || !(fp = fopen(flash_img, "r"))) {
     // Log("Can not find flash image: %s", flash_img);
     // Log("Use built-in image instead");
-    uint32_t *p = (uint32_t *)flash_base;
-    sscanf(CONFIG_FLASH_PRESET_CONTENT, "%x,%x,%x", p, p + 1, p + 2);
+    load_flash_preset_content();
   } else {
-    __attribute__((unused)) int ret;
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    Assert(
-      size <= CONFIG_FLASH_SIZE,
-      "img size %d is larger than flash size %d",
-      size, CONFIG_FLASH_SIZE
-    );
-    ret = fread(flash_base, 1, size, fp);
     fclose(fp);
+    load_img(flash_img, "flash image", flash_base, CONFIG_FLASH_SIZE);
   }
 }
 

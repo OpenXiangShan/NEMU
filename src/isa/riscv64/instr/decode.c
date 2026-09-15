@@ -43,6 +43,9 @@ static inline uint64_t get_instr(Decode *s) {
 #ifdef CONFIG_RV_ZFA
 #include "rvzfa/decode.h"
 #endif
+#ifdef CONFIG_RV_ZFBF_MIN
+#include "rvzfbf/decode.h"
+#endif
 #endif // CONFIG_FPU_NONE
 #include "rvm/decode.h"
 #include "rva/decode.h"
@@ -60,6 +63,9 @@ static inline uint64_t get_instr(Decode *s) {
 #ifdef CONFIG_RV_CBO
 #include "rvcbo/decode.h"
 #endif// CONFIG_RV_CBO
+#ifdef CONFIG_RV_AME
+#include "ame/decode.h"
+#endif // CONFIG_RV_AME
 
 def_THelper(main) {
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 00000 ??", load  , load);
@@ -93,6 +99,9 @@ def_THelper(main) {
 #ifdef CONFIG_RVV
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 10101 ??", OP_V  , OP_V);
 #endif // CONFIG_RVV
+#ifdef CONFIG_RV_AME
+  def_INSTR_TAB  ("??????? ????? ????? ??? ????? 01010 ??",         OP_M);
+#endif // CONFIG_RV_AME
   def_INSTR_IDTAB("??????? ????? ????? ??? ????? 11000 ??", B     , branch);
   def_INSTR_IDTAB("??????? ????? ????? 000 ????? 11001 ??", I     , jalr_dispatch);
   def_INSTR_TAB  ("0000000 00000 ????? 000 00000 11010 ??",         nemu_trap);
@@ -125,8 +134,10 @@ int isa_fetch_decode(Decode *s) {
   trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
 #endif // CONFIG_TDATA1_ICOUNT
 #ifdef CONFIG_TDATA1_MCONTROL6
-  trig_action_t mcontrol6_action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
-  trigger_handler(TRIG_TYPE_MCONTROL6, mcontrol6_action, s->pc);
+  if (trigger_mcontrol6_active(cpu.TM)) {
+    trig_action_t mcontrol6_action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);
+    trigger_handler(TRIG_TYPE_MCONTROL6, mcontrol6_action, s->pc);
+  }
 #endif // CONFIG_TDATA1_MCONTROL6
 
   s->isa.instr.val = instr_fetch(&s->snpc, 2);

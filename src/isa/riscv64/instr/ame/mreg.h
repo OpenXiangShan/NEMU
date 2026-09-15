@@ -1,0 +1,160 @@
+/***************************************************************************************
+* Copyright (c) 2020-2022 Institute of Computing Technology, Chinese Academy of Sciences
+*
+* NEMU is licensed under Mulan PSL v2.
+* You can use this software according to the terms and conditions of the Mulan PSL v2.
+* You may obtain a copy of Mulan PSL v2 at:
+*          http://license.coscl.org.cn/MulanPSL2
+*
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+*
+* See the Mulan PSL v2 for more details.
+***************************************************************************************/
+
+#ifdef CONFIG_RV_AME
+
+#ifndef __RISCV64_MREG_H__
+#define __RISCV64_MREG_H__
+
+#include "common.h"
+#ifdef CONFIG_RV_AME_FP4
+#include "ame/raw-fp4.h"
+#endif
+
+#define TLEN   CONFIG_RV_AME_TLEN
+#define TRLEN  CONFIG_RV_AME_TRLEN
+#define MELEN  CONFIG_RV_AME_MLEN
+
+#define ROWNUM (TLEN / TRLEN)
+
+#define TRENUM64 (TRLEN / 64)
+#define TRENUM32 (TRLEN / 32)
+#define TRENUM16 (TRLEN / 16)
+#define TRENUM8  (TRLEN / 8)
+#ifdef CONFIG_RV_AME_FP4
+#define RAW_FP4_TILE_BYTES (ROWNUM * TRENUM8)
+#endif
+
+#define ALEN     (ROWNUM * ROWNUM * MELEN)
+#define ARLEN    (ROWNUM * MELEN)
+
+#define ARENUM64 (ARLEN/64)
+#define ARENUM32 (ARLEN/32)
+#define ARENUM16 (ARLEN/16)
+#define ARENUM8  (ARLEN/8)
+
+#define TMMAX      ROWNUM
+#define TNMAX      ROWNUM
+#define TKMAX(sew) (TRLEN/sew)
+
+#define MSYNC       CONFIG_RV_AME_MSYNC
+
+enum MTYPECODE_TAB0 {
+  MTYPECODE_INT4 = 0,
+  MTYPECODE_UINT4,
+  MTYPECODE_INT8,
+  MTYPECODE_UINT8,
+  MTYPECODE_INT32,
+  MTYPECODE_NVFP4,
+  MTYPECODE_MXFP4,
+  MTYPECODE_FP8E5M2,
+  MTYPECODE_FP8E4M3,
+  MTYPECODE_FP16,
+  MTYPECODE_BF16,
+  MTYPECODE_TF32,
+  MTYPECODE_FP32,
+  MTYPECODE_FP2PACK4,
+  MTYPECODE_FP2PACK5
+};
+
+typedef union {
+  struct {
+    uint64_t type_code :  4;
+    uint64_t table_set :  4;
+    uint64_t pad       : 24;
+  };
+  uint64_t val;
+} mcfg_t;
+
+#ifdef CONFIG_RV_AME_FP4
+static inline bool is_raw_fp4_type_code(mcfg_t cfg) {
+  return cfg.type_code == MTYPECODE_NVFP4 || cfg.type_code == MTYPECODE_MXFP4;
+}
+
+static inline bool is_raw_fp4(mcfg_t cfg) {
+  return cfg.table_set == 0 && is_raw_fp4_type_code(cfg);
+}
+#endif
+
+static inline int check_mtreg_num(int num) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
+  assert(num >= 0 && num < 4);
+#endif
+  return num;
+}
+
+static inline int check_mareg_num(int num) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
+  assert(num >= 4 && num < 8);
+#endif
+  return num - 4;
+}
+
+static inline uint64_t check_mtreg_row(uint64_t row) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
+  assert(row < ROWNUM);
+#endif
+  return row;
+}
+
+static inline uint64_t check_macc_row(uint64_t row) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
+  assert(row < ROWNUM);
+#endif
+  return row;
+}
+
+static inline uint64_t check_mtreg_idx(uint64_t idx, uint64_t elen) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
+  assert(idx < TRLEN/elen);
+#endif
+  return idx;
+}
+
+static inline uint64_t check_macc_idx(uint64_t idx, uint64_t elen) {
+#ifdef CONFIG_AME_REG_ACCESS_CHECK
+  assert(idx < ARLEN/elen);
+#endif
+  return idx;
+}
+
+static inline int check_mtok_idx(int idx) {
+  assert(idx >= 0 && idx < MSYNC);
+  return idx;
+}
+
+#define mtreg_l64(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._64[check_mtreg_idx(idx, 64)])
+#define mtreg_l32(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._32[check_mtreg_idx(idx, 32)])
+#define mtreg_l16(num, row, idx) (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._16[check_mtreg_idx(idx, 16)])
+#define mtreg_l8(num, row, idx)  (cpu.mtr[check_mtreg_num(num)][check_mtreg_row(row)]._8[check_mtreg_idx(idx, 8)])
+#define macc_l64(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._64[check_macc_idx(idx, 64)])
+#define macc_l32(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._32[check_macc_idx(idx, 32)])
+#define macc_l16(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._16[check_macc_idx(idx, 16)])
+#define macc_l8(num, row, idx)   (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._8[check_macc_idx(idx, 8)])
+
+void set_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t src_data, uint64_t msew);
+void get_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t *dst, uint64_t msew, bool is_signed);
+uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row);
+#ifdef CONFIG_RV_AME_FP4
+uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx);
+void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+                     uint8_t src_data);
+#endif
+
+#endif //__RISCV64_MREG_H__
+
+#endif // CONFIG_RV_AME

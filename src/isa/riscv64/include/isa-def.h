@@ -21,6 +21,9 @@
 #ifdef CONFIG_RVV
 #include "../instr/rvv/vreg.h"
 #endif // CONFIG_RVV
+#ifdef CONFIG_RV_AME
+#include "../instr/ame/mreg.h"
+#endif // CONFIG_RV_AME
 #include "../local-include/trapinfo.h"
 
 #define FORCE_RAISE_PF
@@ -142,6 +145,12 @@ typedef struct {
   uint64_t fcsr;
 #endif // CONFIG_DIFFTEST_CHECK_FCSR
 
+#ifdef CONFIG_RV_AME
+  uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
+  uint64_t tlenb, trlenb, alenb, mtilem, mtilen, mtilek, msync;
+  mcfg_t mcfg[8];
+#endif // CONFIG_RV_AME
+
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   uint64_t tselect;
   uint64_t tdata1;
@@ -193,13 +202,33 @@ typedef struct {
   bool virtualInterruptIsHvictlInject;
 #endif
 
+#ifdef CONFIG_RV_ZICFILP
   uint8_t elp;
+#endif
 
 #ifdef CONFIG_RV_SMDBLTRP
   bool critical_error;
 #endif
 
   trap_info_t trapInfo;
+
+#ifdef CONFIG_RV_AME
+  union {
+    uint64_t _64[TRENUM64];
+    uint32_t _32[TRENUM32];
+    uint16_t _16[TRENUM16];
+    uint8_t  _8[TRENUM8];
+  } mtr[4][ROWNUM];
+
+  union {
+    uint64_t _64[ARENUM64];
+    uint32_t _32[ARENUM32];
+    uint16_t _16[ARENUM16];
+    uint8_t  _8[ARENUM8];
+  } macc[4][ROWNUM];
+
+  uint64_t mtokr[MSYNC];
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_RV_IMSIC
   struct InterruptDelegate interrupt_delegate;
@@ -352,6 +381,57 @@ typedef struct {
       uint32_t v_amoop   : 5;
     } vamo;
     #endif // CONFIG_RVV
+    #ifdef CONFIG_RV_AME
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t rd        : 5;
+      uint32_t func3     : 3;
+      uint32_t imm10     : 10;
+      uint32_t ctrl      : 1;
+      uint32_t res0      : 2;
+      uint32_t func      : 4;      
+    } mcfgi;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t res0      : 5;
+      uint32_t func3     : 3;
+      uint32_t rs1       : 5;
+      uint32_t sync      : 5;
+      uint32_t ctrl      : 1;
+      uint32_t res1      : 2;
+      uint32_t func      : 4;
+    } msync;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 3;
+      uint32_t res0      : 2;
+      uint32_t func3     : 3;
+      uint32_t rs1       : 5;
+      uint32_t rs2       : 5;
+      uint32_t ls        : 1;
+      uint32_t res1      : 2;
+      uint32_t func      : 4;      
+    } mldst;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 3;
+      uint32_t res0      : 2;
+      uint32_t func3     : 3;
+      uint32_t ms1       : 3;
+      uint32_t res1      : 2;
+      uint32_t ms2       : 3;
+      uint32_t res2      : 5;
+      uint32_t func      : 4;
+    } mma;
+    struct {
+      uint32_t opcode    : 7;
+      uint32_t md        : 3;
+      uint32_t reserved0 : 2;
+      uint32_t func3     : 3;
+      uint32_t reserved1 : 13;
+      uint32_t func      : 4;
+    } misc;
+    #endif // CONFIG_RV_AME
 
     #ifdef CONFIG_CUSTOM_TENSOR
     struct {
@@ -465,37 +545,12 @@ enum { MODE_U = 0, MODE_S, MODE_RS, MODE_M };
 
 enum { OP_OR = 0, OP_AND, OP_XOR, OP_ADD = 4 };
 
+#ifdef CONFIG_RV_ZICFILP
 enum {
   ELP_NO_LP_EXPECTED = 0,
   ELP_LP_EXPECTED = 1
 };
-
-enum {
-  EX_IAM, // instruction address misaligned
-  EX_IAF, // instruction address fault
-  EX_II,  // illegal instruction
-  EX_BP,  // breakpoint
-  EX_LAM, // load address misaligned
-  EX_LAF, // load address fault
-  EX_SAM, // store/amo address misaligned
-  EX_SAF, // store/amo address fault
-  EX_ECU, // ecall from U-mode or VU-mode
-  EX_ECS, // ecall from HS-mode
-  EX_ECVS,// ecall from VS-mode, H-extention
-  EX_ECM, // ecall from M-mode
-  EX_IPF, // instruction page fault
-  EX_LPF, // load page fault
-  EX_RS0, // reserved
-  EX_SPF, // store/amo page fault
-  EX_DT,  // double trap
-  EX_RS1, // reserved
-  EX_SWC, // software check
-  EX_HWE, // hardware error
-  EX_IGPF = 20,// instruction guest-page fault, H-extention
-  EX_LGPF,// load guest-page fault, H-extention
-  EX_VI,  // virtual instruction, H-extention
-  EX_SGPF // store/amo guest-page fault, H-extention
-};
+#endif
 
 int get_data_mmu_state();
 #ifdef CONFIG_RVH

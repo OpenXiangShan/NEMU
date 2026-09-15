@@ -14,11 +14,17 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <assert.h>
+#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
+#include <ctrl/ame/cutest.h>
 #include <isa.h>
+#include <macro.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
-#include <memory/sparseram.h>
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+#include <ame/svstore_queue_wrapper.h>
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -48,10 +54,6 @@ static uint8_t *pmem = NULL;
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
 
-#ifdef CONFIG_USE_SPARSEMM
-void* sparse_mm = NULL;
-#endif
-
 #ifdef CONFIG_CUSTOM_TENSOR
 #define URAM_SIZE 0x20000000 // 512 M
 static uint8_t *uram = NULL;
@@ -68,12 +70,6 @@ uint8_t *get_pmem()
 
 char *mapped_cpt_file = NULL;
 bool map_image_as_output_cpt = false;
-
-#ifdef CONFIG_USE_SPARSEMM
-void * get_sparsemm(){
-  return sparse_mm;
-}
-#endif
 
 #ifdef CONFIG_CUSTOM_TENSOR
 uint8_t *get_uram(){
@@ -98,12 +94,38 @@ static inline word_t pmem_read(paddr_t addr, int len) {
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif
-  #ifdef CONFIG_USE_SPARSEMM
-  return sparse_mem_wread(sparse_mm, addr, len);
-  #else
   return host_read(guest_to_host(addr), len);
-  #endif
 }
+
+#ifdef CONFIG_RV_AME
+static inline void pmem_read_matrix(paddr_t base, paddr_t stride,
+                                     int row, int column, int msew, bool transpose,
+                                     char m_name, int mreg_id) {
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+  analysis_memory_commit(base);
+#endif // CONFIG_MEMORY_REGION_ANALYSIS
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
+    base, stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
+    base,
+    stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_SHARE_CTRL
+#ifndef CONFIG_SHARE_REF
+  host_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+#endif // CONFIG_SHARE_REF
+}
+#endif // CONFIG_RV_AME
 
 static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page_store) {
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -112,9 +134,6 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
   analysis_memory_commit(addr);
 #endif
-  #ifdef CONFIG_USE_SPARSEMM
-  sparse_mem_wwrite(sparse_mm, addr, len, data);
-  #else
   switch (len) {
     case 1: case 2: case 4:
     IFDEF(CONFIG_ISA64, case 8:)
@@ -132,8 +151,39 @@ static inline void pmem_write(paddr_t addr, int len, word_t data, int cross_page
       }
     IFDEF(CONFIG_RT_CHECK, default: assert(0));
   }
-  #endif
 }
+
+#ifdef CONFIG_RV_AME
+static inline void pmem_write_matrix(paddr_t base, paddr_t stride,
+                                     int row, int column, int msew, bool transpose,
+                                     char m_name, int mreg_id) {
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  matrix_store_commit_queue_push(base, stride, row, column, msew, transpose);
+#endif // CONFIG_DIFFTEST_STORE_COMMIT
+#ifdef CONFIG_DIFFTEST_AMU_CTRL
+  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
+    base, stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_DIFFTEST_AMU_CTRL
+#ifdef CONFIG_SHARE_CTRL
+  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
+    base, stride,
+    m_name == 'b' ? column : row,
+    m_name == 'b' ? row : column,
+    msew
+  );
+#endif // CONFIG_SHARE_CTRL
+#ifdef CONFIG_MEMORY_REGION_ANALYSIS
+  analysis_memory_commit(base);
+#endif // CONFIG_MEMORY_REGION_ANALYSIS
+#ifndef CONFIG_SHARE_REF
+  host_write_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+#endif // CONFIG_SHARE_REF
+}
+#endif // CONFIG_RV_AME
 
 static inline void raise_access_fault(int cause, vaddr_t vaddr) {
   cpu.trapInfo.tval = vaddr;
@@ -147,7 +197,7 @@ static inline void raise_read_access_fault(int type, vaddr_t vaddr) {
   int cause = EX_LAF;
   if (type == MEM_TYPE_IFETCH || type == MEM_TYPE_IFETCH_READ) {
     cause = EX_IAF;
-  } else if (cpu.amo || type == MEM_TYPE_WRITE || type == MEM_TYPE_WRITE_READ) {
+  } else if (cpu.amo || type == MEM_TYPE_WRITE || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_WRITE) {
     cause = EX_SAF;
   }
   raise_access_fault(cause, vaddr);
@@ -180,9 +230,6 @@ void isa_mmio_misalign_data_addr_check(paddr_t paddr, vaddr_t vaddr, int len, in
 void allocate_memory_with_mmap()
 {
 #ifdef CONFIG_USE_MMAP
-  #ifdef CONFIG_USE_SPARSEMM
-  sparse_mm = sparse_mem_new(4, 1024); //4kB
-  #else
   // When pmem is not NULL, assume it has already been allocated.
   // This is useful since init_mem may be called multiple times.
   // The memory space will be allocated only once at the first time called.
@@ -197,7 +244,6 @@ void allocate_memory_with_mmap()
 #ifdef CONFIG_CUSTOM_TENSOR
   uram = pmem + MEMORY_SIZE - URAM_SIZE;
 #endif
-  #endif
 #endif // CONFIG_USE_MMAP
 }
 
@@ -234,7 +280,7 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
   if (!isa_pmp_check_permission(addr, len, type, mode)) {
-    if (trap_type == MEM_TYPE_WRITE) {
+    if (trap_type == MEM_TYPE_WRITE || trap_type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pmp check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
@@ -244,7 +290,7 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
     return false;
   }
   if (!isa_pma_check_permission(addr, len, type)) {
-    if (trap_type == MEM_TYPE_WRITE) {
+    if (trap_type == MEM_TYPE_WRITE || trap_type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
       Log("isa pma check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
@@ -253,9 +299,23 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
     }
     return false;
   }
+
+  #ifdef CONFIG_RV_MPT_CHECK
+    if (!isa_mpt_check_permission(addr, len, type, mode)) {
+      if (trap_type == MEM_TYPE_WRITE) {
+        raise_access_fault(EX_SAF, vaddr);
+      } else {
+        Log("isa mpt check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
+          vaddr, addr, len, type, mode);
+        raise_read_access_fault(trap_type, vaddr);
+      }
+      return false;
+    }
+  #endif
+
   #ifdef CONFIG_RV_MBMC
   if (!isa_bmc_check_permission(addr, len, type, mode)){
-    if (type == MEM_TYPE_WRITE) {
+    if (type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     } else {
       Log("isa mbmc check failed, vaddr=" FMT_WORD ", paddr=" FMT_PADDR ", len=0x%x, type=0x%x, mode=0x%x",
@@ -268,51 +328,97 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
   return true;
 }
 
-word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+#ifdef CONFIG_RV_MPT_CHECK
+/* MPTE reads must bypass MPT itself, but still use the physical access checks and bus map. */
+bool mpt_paddr_read(paddr_t addr, int len, word_t *data) {
+  if (data == NULL || len <= 0 || len > (int)sizeof(word_t)) {
+    return false;
+  }
+
+  if (!isa_pmp_check_permission_mmode(addr, len, MEM_TYPE_READ) ||
+      !isa_pma_check_permission(addr, len, MEM_TYPE_READ)) {
+    Log("PMP or PMA check failed for MPT walk at paddr " FMT_PADDR, addr);
+    return false;
+  }
+
+  paddr_t last_addr = addr + len - 1;
+  if (last_addr < addr) {
+    Log("MPT walk address overflow at paddr " FMT_PADDR, addr);
+    return false;
+  }
+
+  if (likely(in_pmem(addr))) {
+    if (!in_pmem(last_addr)) {
+      Log("MPT walk crosses the pmem boundary at paddr " FMT_PADDR, addr);
+      return false;
+    }
+    *data = pmem_read(addr, len);
+    return true;
+  }
+
+  if (is_in_mmio(addr)) {
+    if (!mmio_is_real_device_range(addr, len)) {
+      Log("Invalid MMIO read for MPT walk at paddr " FMT_PADDR, addr);
+      return false;
+    }
+    *data = mmio_read(addr, len);
+    return true;
+  }
+
+  Log("Invalid physical read for MPT walk at paddr " FMT_PADDR, addr);
+  return false;
+}
+#endif
+
+static inline bool paddr_read_check(paddr_t addr, int len, int type,
+                                    int trap_type, int mode, vaddr_t vaddr,
+                                    int cross_page_load) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
 
-  __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
-  mode &= ~CROSS_PAGE_LD_FLAG;
-
-  assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
+  assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
-  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
-    return 0;
-  }
-#ifndef CONFIG_SHARE
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
-  else {
-    if (likely(is_in_mmio(addr))) {
-      // check if the address is misaligned
-      if (cpu.isVldst) {
-        raise_read_access_fault(trap_type, vaddr);
-        return 0;
-      }
+  return check_paddr(addr, len, type, trap_type, mode, vaddr);
+}
 
-      isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
-#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
-        raise_read_access_fault(trap_type, vaddr);
-        return 0;
-      }
-#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      return mmio_read(addr, len);
-    }
-    else raise_read_access_fault(trap_type, vaddr);
+static inline word_t paddr_read_pmem_after_check(paddr_t addr, int len,
+                                                 int type, int mode) {
+  uint64_t rdata = pmem_read(addr, len);
+#ifdef CONFIG_SHARE
+  ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
+      addr, rdata, len, type, mode);
+#endif // CONFIG_SHARE
+  return rdata;
+}
+
+word_t paddr_read_pmem_checked(paddr_t addr, int len, int type, int trap_type,
+                               int mode, vaddr_t vaddr) {
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!paddr_read_check(addr, len, type, trap_type, mode, vaddr,
+                        cross_page_load)) {
     return 0;
   }
-#else
+
+  return paddr_read_pmem_after_check(addr, len, type, mode);
+}
+
+word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!paddr_read_check(addr, len, type, trap_type, mode, vaddr,
+                        cross_page_load)) {
+    return 0;
+  }
+
   if (likely(in_pmem(addr))) {
-    uint64_t rdata = pmem_read(addr, len);
-    ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
-        addr, rdata, len, type, mode);
-    return rdata;
+    return paddr_read_pmem_after_check(addr, len, type, mode);
   }
   else {
-#ifdef CONFIG_HAS_FLASH
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
       if (cpu.isVldst) {
@@ -329,15 +435,89 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
       return mmio_read(addr, len);
     }
-#endif
+#ifdef CONFIG_SHARE
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
+#endif // CONFIG_SHARE
     Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
     raise_read_access_fault(trap_type, vaddr);
   }
   return 0;
+}
+
+#ifdef CONFIG_RV_AME
+void paddr_read_matrix(paddr_t base, paddr_t stride,
+                        int row, int column, int msew, bool transpose,
+                        int mode, vaddr_t vbase, char m_name, int mreg_id) {
+  __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!check_paddr(base, 1 << msew, MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_READ, mode, vbase)) {
+    // TODO: do something here?
+    return;
+  }
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  if (likely(in_pmem(base))) {
+    // Check in instruction order, before enqueueing a deferred REF AMU load.
+    // Later stores/fences must not affect this load's visibility diagnosis.
+    svstore_queue_check_matrix_addr_conflict(base, stride, row, column, msew,
+                                           transpose, prev_s->pc, vbase);
+  }
+#endif
+#ifndef CONFIG_SHARE
+  if (likely(in_pmem(base))) {
+    pmem_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+    return;
+  }
+  else {
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix read
+      assert(false);
+      // return mmio_read(base, len);
+      return;
+    }
+    else raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+    return;
+  }
+#else
+  if (likely(in_pmem(base))) {
+    pmem_read_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+    if (dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr matrix read base:" FMT_PADDR ", stride:" FMT_PADDR "\n"
+                      "       row:%d, column:%d, msew:%d, transpose:%d\n",
+        base, stride, row, column, msew, transpose);
+    }
+    return;
+  }
+  else {
+#ifdef CONFIG_HAS_FLASH
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix read
+      assert(false);
+      // return mmio_read(base, len);
+    }
+#endif
+    if (dynamic_config.ignore_illegal_mem_access) {
+      return;
+    }
+    Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", base);
+    raise_read_access_fault(MEM_TYPE_MATRIX_READ, vbase);
+  }
 #endif // CONFIG_SHARE
 }
+#endif
 
 #ifdef CONFIG_RV_MBMC
 word_t bitmap_read(paddr_t addr, int type, int mode) {
@@ -429,8 +609,21 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }
-#ifndef CONFIG_SHARE
-  if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
+
+  if (likely(in_pmem(addr))) {
+#ifdef CONFIG_SHARE
+#ifdef CONFIG_STORE_LOG
+    pmem_record_store(addr);
+#endif // CONFIG_STORE_LOG
+    ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
+        addr, data, len, mode);
+#endif // CONFIG_SHARE
+    pmem_write(addr, len, data, cross_page_store);
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+    svstore_queue_emplace(addr, len, prev_s->pc, vaddr);
+#endif
+    return;
+  }
   else {
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
@@ -448,43 +641,79 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
       mmio_write(addr, len, data);
     }
-    else raise_access_fault(EX_SAF, vaddr);
-  }
-#else
-  if (likely(in_pmem(addr))) {
-#ifdef CONFIG_STORE_LOG
-    pmem_record_store(addr);
-#endif // CONFIG_STORE_LOG
-    ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
-        addr, data, len, mode);
-    return pmem_write(addr, len, data, cross_page_store);
-  } else {
-    if (likely(is_in_mmio(addr))) {
-      // check if the address is misaligned
-      if (cpu.isVldst) {
-        raise_access_fault(EX_SAF, vaddr);
-        return;
-      }
-
-      isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
-#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
-        raise_access_fault(EX_SAF, vaddr);
-        return;
-      }
-#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      mmio_write(addr, len, data);
-    }
     else {
+#ifdef CONFIG_SHARE
       if(dynamic_config.ignore_illegal_mem_access)
         return;
+#endif // CONFIG_SHARE
       printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
       raise_access_fault(EX_SAF, vaddr);
       return;
     }
   }
-#endif
 }
+
+#ifdef CONFIG_RV_AME
+void paddr_write_matrix(paddr_t base, paddr_t stride,
+                        int row, int column, int msew, bool transpose,
+                        int mode, vaddr_t vbase, char m_name, int mreg_id) {
+  // TODO: more check on matrix_paddr
+  if (!check_paddr(base, 1 << msew, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
+    return;
+  }
+#ifndef CONFIG_SHARE
+  // Assert the whole matrix is either in pmem or mmio
+  // TODO: Consider the case where the matrix is split between pmem and mmio
+  if (likely(in_pmem(base))) {
+    pmem_write_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+  } else {
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_access_fault(EX_SAF, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix write
+      assert(false);
+      // mmio_write(addr, len, data);
+    } else {
+      raise_access_fault(EX_SAF, vbase);
+    }
+  }
+#else // !CONFIG_SHARE
+  if (likely(in_pmem(base))) {
+#ifdef CONFIG_STORE_LOG
+    pmem_record_store(base);
+#endif // CONFIG_STORE_LOG
+    if(dynamic_config.debug_difftest) {
+      fprintf(stderr, "[NEMU] paddr matrix write base:" FMT_PADDR ", stride:" FMT_PADDR "\n"
+                      "       row:%d, column:%d, msew:%d, transpose:%d\n",
+        base, stride, row, column, msew, transpose);
+    }
+    return pmem_write_matrix(base, stride, row, column, msew, transpose, m_name, mreg_id);
+  } else {
+    if (likely(is_in_mmio(base))) {
+#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      if (!mmio_is_real_device(base)) {
+        raise_access_fault(EX_SAF, vbase);
+        return;
+      }
+#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
+      // TODO: MMIO matrix write
+      assert(false);
+      // mmio_write(addr, len, data);
+    } else {
+      if(dynamic_config.ignore_illegal_mem_access)
+        return;
+      printf("ERROR: invalid mem matrix write to paddr " FMT_PADDR ", NEMU raise access exception\n", base);
+      raise_access_fault(EX_SAF, vbase);
+      return;
+    }
+  }
+#endif // CONFIG_SHARE
+}
+#endif // CONFIG_RV_AME
 
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
 bool mem_addr_use[PROGRAM_ANALYSIS_PAGES];
@@ -537,145 +766,56 @@ bool analysis_memory_isuse(uint64_t page) {
 #endif
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
-#define LIMITING_SHIFT(x) (((uint64_t)(x)) < ((uint64_t)63ULL) ? ((uint64_t)(x)) : ((uint64_t)63ULL))
-void miss_align_store_commit_queue_push(uint64_t addr, uint64_t data, int len) {
-  // align with dut
-  uint8_t inside_16bytes_bound = ((addr >> 4) & 1ULL) == (((addr + len - 1) >> 4) & 1ULL);
-  uint64_t st_mask = (len == 1) ? 0x1ULL : (len == 2) ? 0x3ULL : (len == 4) ? 0xfULL : (len == 8) ? 0xffULL : 0xdeadbeefULL;
-  uint64_t st_data_mask = (len == 1) ? 0xffULL : (len == 2) ? 0xffffULL : (len == 4) ? 0xffffffffULL : (len == 8) ? 0xffffffffffffffffULL : 0xdeadbeefULL;
-  store_commit_t low_addr_st;
-  store_commit_t high_addr_st;
 
-  if (inside_16bytes_bound) {
-    low_addr_st.addr = addr - (addr % 16ULL);
-    if ((addr % 16ULL) > 8) {
-      low_addr_st.data = 0;
-    } else {
-      low_addr_st.data = (data & st_data_mask) << LIMITING_SHIFT((addr % 16ULL) << 3);
-    }
-    low_addr_st.mask = (st_mask << (addr % 16ULL)) & 0xffULL;
-    low_addr_st.pc   = prev_s->pc;
+void store_commit_queue_push(uint64_t addr, uint64_t data, int len,
+                             int cross_page_store) {
 
-    store_queue_push(low_addr_st);
-
-    // printf("[DEBUG] inside 16 bytes region addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
-  } else {
-    low_addr_st.addr = addr - (addr % 8ULL);
-    low_addr_st.data = (data & (st_data_mask >> ((addr % len) << 3))) << LIMITING_SHIFT((8 - len + (addr % len)) << 3);
-    low_addr_st.mask = (st_mask >> (addr % len)) << (8 - len + (addr % len));
-    low_addr_st.pc   = prev_s->pc;
-
-    high_addr_st.addr = addr - (addr % 16ULL) + 16ULL;
-    high_addr_st.data = (data >> LIMITING_SHIFT((len - (addr % len)) << 3)) & (st_data_mask >> LIMITING_SHIFT((len - (addr % len)) << 3));
-    high_addr_st.mask = st_mask >> (len - (addr % len));
-    high_addr_st.pc   = prev_s->pc;
-
-    store_queue_push(low_addr_st);
-    store_queue_push(high_addr_st);
-
-    // printf("[DEBUG] split low addr store addr: %lx, data: %lx, mask: %lx\n", low_addr_st->addr, low_addr_st->data, (uint64_t)(low_addr_st->mask));
-    // printf("[DEBUG] split high addr store addr: %lx, data: %lx, mask: %lx\n", high_addr_st->addr, high_addr_st->data, (uint64_t)(high_addr_st->mask));
-  }
-}
-
-#define GEN_BYTE_MASK(len)  ((1ULL << (len)) - 1)
-#define GEN_BIT_MASK(len)   ((len) >= 8 ? (~0ULL) : ((1ULL << ((len) * 8)) - 1))
-
-void store_commit_queue_push(uint64_t addr, uint64_t data, int len, int cross_page_store) {
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
     return;
   }
 #endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
-#ifdef CONFIG_AC_NONE
-  uint8_t store_miss_align = (addr & (len - 1)) != 0;
-  if (unlikely(store_miss_align)) {
-    if (!cross_page_store && !cpu.isVecUnitStore) {
-      miss_align_store_commit_queue_push(addr, data, len);
-      return;
-    }
-  }
-#endif // CONFIG_AC_NONE
-  Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", len = %d", addr, data, len);
- store_commit_t store_commit;
 
-  if (cpu.isVecUnitStore)
-  {
-    bool isCross128Bit = (addr & 0xF) + len > 16;
+  Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", len = %d", addr,
+       data, len);
 
-    if (isCross128Bit)
-    {
-      paddr_t offset_in_block = addr & 0xF;
-      paddr_t space_left = 16 - offset_in_block;
+  // check if len is 1, 2, 4, 8 or cross page store or isVecUnitStore
+  // maybe isVecUnitStore check is useless there
+  Assert(len > 0 && len <= 8 &&
+             (IS_POW_OF_2(len) || cross_page_store || cpu.isVecUnitStore),
+         "Invalid len %d", len);
 
-      paddr_t low_addr = addr;
-      uint8_t low_len = space_left;
-      uint16_t low_mask = (1U << low_len) - 1;
-      word_t low_data = data & ((1ULL << low_len * 8) - 1);
+  // align to 8B boundary, because max len is 64b
+  uint8_t offset = addr & 0x7ULL;
+  uint8_t low_len = MIN_OF(len, 8 - offset);
+  uint8_t low_mask = BITMASKRANGE(low_len + offset, offset);
+  uint64_t low_addr = addr & ~0x7ULL;
+  uint64_t low_data = (data << (offset << 3)) &
+                      BITMASKRANGE((low_len + offset) * 8, offset * 8);
+  store_commit_t low_store_commit = {
+      .addr = low_addr, .data = low_data, .mask = low_mask, .pc = prev_s->pc};
+  ref_log_cpu(
+      "Queue low store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = %02hhx",
+      low_store_commit.addr, low_store_commit.data, low_store_commit.mask);
+  store_queue_push(low_store_commit);
 
-      paddr_t  high_addr = addr + space_left;
-      uint8_t high_len = len - space_left;
-      uint16_t high_mask = (1U << high_len) - 1;
-      word_t high_data = data >> (low_len * 8);
-
-      store_commit_t low_store_commit = {low_addr, low_data, low_mask, prev_s->pc};
-      store_commit_t high_store_commit = {high_addr, high_data, high_mask, prev_s->pc};
-
-      store_queue_push(low_store_commit);
-      store_queue_push(high_store_commit);
-
-      return;
-    }
-    store_commit.data = data & GEN_BIT_MASK(len);
-    store_commit.mask = GEN_BYTE_MASK(len);
-    assert(len <= 8);
-    store_commit.addr = addr;
-    store_commit.pc = prev_s->pc;
-
-    store_queue_push(store_commit);
+  if (low_len == len) {
     return;
   }
-  uint64_t offset = addr % 8ULL;
-  store_commit.addr = addr - offset;
-  switch (len) {
-    case 1:
-      store_commit.data = (data & 0xffULL) << (offset << 3);
-      store_commit.mask = 0x1 << offset;
-      break;
-    case 2:
-      store_commit.data = (data & 0xffffULL) << (offset << 3);
-      store_commit.mask = 0x3 << offset;
-      break;
-    case 4:
-      store_commit.data = (data & 0xffffffffULL) << (offset << 3);
-      store_commit.mask = 0xf << offset;
-      break;
-    case 8:
-      store_commit.data = data;
-      store_commit.mask = 0xff;
-      break;
-    default:
-#ifdef CONFIG_AC_NONE
-      // strange length, only valid from cross page write
-      if (cross_page_store) {
-        int i = 0;
-        uint64_t _data_mask = 0;
-        uint64_t _mask = 0;
-        for (; i < len; i++) {
-          _data_mask = (_data_mask << 8) | 0xffUL;
-          _mask = (_mask << 1) | 0x1UL;
-        }
-        store_commit.data = (data & _data_mask) << (offset << 3);
-        store_commit.mask = _mask << offset;
-      } else {
-        assert(0);
-      }
-#else
-      assert(0);
-#endif // CONFIG_AC_NONE
-  }
-  store_commit.pc = prev_s->pc;
-  store_queue_push(store_commit);
+
+  uint8_t high_len = len - low_len;
+  uint8_t high_mask = BITMASKRANGE(high_len, 0);
+  uint64_t high_addr = low_addr + 8;
+  uint64_t high_data =
+      (data >> (low_len << 3)) & BITMASKRANGE(high_len * 8, 0);
+  store_commit_t high_store_commit = {.addr = high_addr,
+                                      .data = high_data,
+                                      .mask = high_mask,
+                                      .pc = prev_s->pc};
+  ref_log_cpu(
+      "Queue high store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = %02hhx",
+      high_store_commit.addr, high_store_commit.data, high_store_commit.mask);
+  store_queue_push(high_store_commit);
 }
 
 store_commit_t store_commit_queue_pop(int *flag) {
@@ -690,10 +830,42 @@ store_commit_t store_commit_queue_pop(int *flag) {
   return result;
 }
 
+void matrix_store_commit_queue_push(uint64_t base, uint64_t stride,
+                                    uint32_t row, uint32_t column, uint32_t msew,
+                                    bool transpose) {
+#ifdef CONFIG_RV_AME
+#ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
+  // TODO: What's this?
+  if (cpu.amo) {
+    return;
+  }
+#endif // CONFIG_DIFFTEST_STORE_COMMIT_AMO
+  Logm("push matrix store base = " FMT_PADDR ", stride = " FMT_PADDR ",\n"
+       "  row = " "0x%08x" ", column = " "0x%08x" ", msew = " "0x%08x" ", transpose = %d",
+    base, stride, row, column, msew, transpose);
+  matrix_store_commit_t store_commit;
+  store_commit.base = base;
+  store_commit.stride = stride;
+  store_commit.row = row;
+  store_commit.column = column;
+  store_commit.msew = msew;
+  store_commit.transpose = transpose;
+  store_commit.pc = prev_s->pc;
+  matrix_store_queue_push(store_commit);
+#endif // CONFIG_RV_AME
+}
+
 store_commit_t store_commit_data;
+#ifdef CONFIG_RV_AME
+matrix_store_commit_t matrix_store_commit_data;
+#endif // CONFIG_RV_AME
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
+  if (store_queue_overflow()) {
+    printf("NEMU store commit queue overflow.\n");
+    return 1;
+  }
   if (store_queue_empty()) {
     printf("NEMU does not commit any store instruction.\n");
     result = 1;
@@ -714,6 +886,44 @@ int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
 store_commit_t get_store_commit_info() {
   return store_commit_data;
 }
+
+#ifdef CONFIG_RV_AME
+matrix_store_commit_t get_matrix_store_commit_info() {
+  return matrix_store_commit_data;
+}
+#endif // CONFIG_RV_AME
+
+#ifdef CONFIG_RV_AME
+int check_matrix_store_commit(uint64_t *base, uint64_t *stride,
+                              uint32_t *row, uint32_t *column, uint32_t *msew,
+                              bool *transpose) {
+  int result = 0;
+  if (matrix_store_queue_empty()) {
+    printf("NEMU does not commit any matrix store instruction.\n");
+    result = 1;
+  } else {
+    matrix_store_commit_data = matrix_store_queue_front();
+    matrix_store_queue_pop();
+    if (*base      != matrix_store_commit_data.base ||
+        *stride    != matrix_store_commit_data.stride ||
+        *transpose != matrix_store_commit_data.transpose ||
+        *row       != matrix_store_commit_data.row ||
+        *column    != matrix_store_commit_data.column ||
+        *msew     != matrix_store_commit_data.msew) {
+      // replace them with NEMU's data
+      *base      = matrix_store_commit_data.base;
+      *stride    = matrix_store_commit_data.stride;
+      *transpose = matrix_store_commit_data.transpose;
+      *row       = matrix_store_commit_data.row;
+      *column    = matrix_store_commit_data.column;
+      *msew     = matrix_store_commit_data.msew;
+
+      result = 1;
+    }
+  }
+  return result;
+}
+#endif // CONFIG_RV_AME
 
 #endif
 

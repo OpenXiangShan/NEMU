@@ -24,6 +24,49 @@
 
 #define FBOX_MASK 0xFFFFFFFF00000000ull
 #define HFBOX_MASK 0xFFFFFFFFFFFF0000ull
+
+#ifdef CONFIG_RV_ZICFILP
+static inline bool riscv64_zicfilp_enabled(uint32_t mode, bool virtual_mode) {
+  if (mode == MODE_M) {
+    return mseccfg->mlpe;
+  }
+  if (mode == MODE_S) {
+#ifdef CONFIG_RVH
+    return virtual_mode ? henvcfg->lpe : menvcfg->lpe;
+#else
+    (void)virtual_mode;
+    return menvcfg->lpe;
+#endif
+  }
+  if (mode == MODE_U) {
+    return senvcfg->lpe;
+  }
+  return false;
+}
+
+static inline void riscv64_zicfilp_update_elp(Decode *s) {
+  if (riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false))) {
+    uint32_t rs1 = (s->snpc - s->pc == 2) ?
+      BITS(s->isa.instr.val, 11, 7) : BITS(s->isa.instr.val, 19, 15);
+    cpu.elp = (rs1 != 1 && rs1 != 5 && rs1 != 7) ?
+      ELP_LP_EXPECTED : ELP_NO_LP_EXPECTED;
+  }
+}
+
+static inline void riscv64_zicfilp_refresh_elp(void) {
+  if (!riscv64_zicfilp_enabled(cpu.mode, MUXDEF(CONFIG_RVH, cpu.v, false))) {
+    cpu.elp = ELP_NO_LP_EXPECTED;
+  }
+}
+#else
+static inline void riscv64_zicfilp_update_elp(Decode *s) { (void)s; }
+static inline void riscv64_zicfilp_refresh_elp(void) {}
+#endif
+
+#ifdef CONFIG_RV_ZICFILP
+void riscv64_raise_software_check(word_t tval);
+#endif
+
 // The bit pattern for a default generated 32-bit floating-point NaN
 #define defaultNaNF32UI 0x7FC00000
 
@@ -123,6 +166,11 @@ void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid);
 /// @return no return value
 void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid);
 #endif // CONFIG_RVH
+
+#ifdef CONFIG_RV_MPT_CHECK
+  void riscv64_mfence();
+  //(paddr_t addr, word_t sdid); add later
+#endif
 
 void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd);
 void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1);

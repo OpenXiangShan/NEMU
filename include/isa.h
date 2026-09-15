@@ -45,8 +45,10 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 
 // memory
 enum { MMU_DIRECT, MMU_TRANSLATE, MMU_DYNAMIC };
-enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE, MEM_TYPE_IFETCH_READ, MEM_TYPE_WRITE_READ, IFDEF(CONFIG_RV_MBMC, MEM_TYPE_BM_READ) }; // The second to last and the third to last are prepared for PTW.
-enum { MEM_RET_OK, MEM_RET_FAIL};
+enum { MEM_TYPE_IFETCH, MEM_TYPE_READ, MEM_TYPE_WRITE, MEM_TYPE_IFETCH_READ,
+       MEM_TYPE_WRITE_READ, MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_WRITE,
+       IFDEF(CONFIG_RV_MBMC, MEM_TYPE_BM_READ) }; // if_read & w_r is for ptw
+enum { MEM_RET_OK, MEM_RET_FAIL, MEM_RET_CROSS_PAGE };
 #ifndef isa_mmu_state
 int isa_mmu_state();
 #endif
@@ -57,6 +59,12 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type);
 vaddr_t get_effective_address(vaddr_t vaddr, int type);
 #endif
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
+#ifdef CONFIG_RVH
+void isa_mmu_tlb_flush(void);
+#else
+static inline void isa_mmu_tlb_flush(void) {
+}
+#endif
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode);
 bool isa_pma_check_permission(paddr_t addr, int len, int type);
 #ifdef CONFIG_RV_MBMC
@@ -65,6 +73,15 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type);
  * return true if the address is in the Confidential Memory, otherwise return false.
  */
 bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode);
+#endif
+
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type);
+/**
+ * @brief Check if the address is allowed to access with the current security domain.
+ * return true if the address is allowed, otherwise return false.
+ */
+bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode);
 #endif
 
 // interrupt

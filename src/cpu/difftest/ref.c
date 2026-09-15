@@ -15,19 +15,27 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <cpu/difftest/ame/amuctrl.h>
+#include <cpu/difftest/ame/msync.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
-#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
+
+#ifdef CONFIG_ISA_riscv64
+void csr_difftest_mark_dirty(void);
+#endif
+
+static inline void difftest_mark_csr_dirty(void) {
+  IFDEF(CONFIG_ISA_riscv64, csr_difftest_mark_dirty());
+}
 
 unsigned ref_hartid = 0;
 
 extern void load_flash_contents(const char *flash_img);
 
 #ifdef CONFIG_LARGE_COPY
-#ifndef CONFIG_USE_SPARSEMM
 static void* nemu_large_memcpy(void *dest, const void *src, size_t n) {
   uint64_t *_dest = (uint64_t *)dest;
   uint64_t *_src  = (uint64_t *)src;
@@ -52,27 +60,13 @@ static void* nemu_large_memcpy(void *dest, const void *src, size_t n) {
   return dest;
 }
 #endif
-#endif
-
-#ifdef CONFIG_USE_SPARSEMM
-void nemu_sparse_mem_copy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-  void *a = get_sparsemm();
-  printf("[sp-mem] copy sparse mm: %p -> %p with direction %s\n",
-          dut_buf, a, direction == DIFFTEST_TO_REF ? "DIFFTEST_TO_REF": "REF_TO_DIFFTEST");
-  if (direction == DIFFTEST_TO_REF)sparse_mem_copy(a, dut_buf);
-  else sparse_mem_copy(dut_buf, a);
-
-  printf("[sp-mem] copy complete, eg data: ");
-  for (int j = 0; j < 8; j++) {
-    printf("%016lx", sparse_mem_wread(a, nemu_addr + j*sizeof(uint64_t), sizeof(uint64_t)));
-  }
-  printf("\n");
-}
-#endif
 
 void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction, void* (*cpy_func)(void*, const void*, size_t)) {
   assert(guest_to_host(nemu_addr) != NULL);
-  if (direction == DIFFTEST_TO_REF) cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+  if (direction == DIFFTEST_TO_REF) {
+    cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+    isa_mmu_tlb_flush();
+  }
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
 
@@ -81,27 +75,20 @@ void difftest_get_backed_memory(void *backed_pmem, size_t n) {
   // set pmem to backed_pmem, then nothing
   assert(n == CONFIG_MSIZE);
   set_pmem(true, backed_pmem);
+  isa_mmu_tlb_flush();
 #endif
 }
 
 void difftest_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-#ifdef CONFIG_USE_SPARSEMM
-  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
-#else
 #ifdef CONFIG_LARGE_COPY
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, nemu_large_memcpy);
 #else
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
 #endif
-#endif
 }
 
 void difftest_memcpy(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-#ifdef CONFIG_USE_SPARSEMM
-  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
-#else
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
-#endif
 }
 
 void difftest_load_flash(void *flash_bin, size_t f_size){
@@ -170,6 +157,17 @@ int difftest_store_commit(uint64_t *saddr, uint64_t *sdata, uint8_t *smask) {
   return 0;
 #endif
 }
+
+int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
+                                 uint32_t *row, uint32_t *column, uint32_t *msew,
+                                 bool *transpose) {
+#if defined(CONFIG_DIFFTEST_STORE_COMMIT) && defined(CONFIG_RV_AME)
+  return check_matrix_store_commit(base, stride, row, column, msew, transpose);
+#else
+  return 0;
+#endif
+}
+
 #endif
 #ifdef CONFIG_RV_SMDBLTRP
 bool difftest_raise_critical_error() {
@@ -259,6 +257,7 @@ void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 }
 
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
+  difftest_mark_csr_dirty();
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
@@ -274,6 +273,7 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
 
 void difftest_interrupt_delegate(void *interruptDelegate) {
 #ifdef CONFIG_RV_IMSIC
+  difftest_mark_csr_dirty();
   memcpy(&cpu.interrupt_delegate, interruptDelegate, sizeof(struct InterruptDelegate));
 #endif // CONFIG_RV_IMSIC
 }
@@ -285,6 +285,61 @@ void difftest_get_store_event_other_info(void *info) {
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 
+void difftest_get_amu_ctrl_event_other_info(void *info) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  *(uint64_t*)info = get_amu_ctrl_info().pc;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+void difftest_get_msync_event_other_info(void *info) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  *(uint64_t*)info = get_msync_info().pc;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+int difftest_amu_ctrl(void *cmp) {
+  // Check if the queue head matches the given cmp.
+  // If they don't match, save the queue head to cmp.
+  // Return value:
+  //   0:  Queue head matches cmp
+  //   1:  Queue head does not match cmp
+  //   -1: Queue is empty, no cmp to check
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  amu_ctrl_event_t *amu_ctrl = (amu_ctrl_event_t *)cmp;
+  return check_amu_ctrl(amu_ctrl);
+#else
+  return 0;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+int difftest_msync_event(void *cmp) {
+  // Check if the queue head matches the given cmp.
+  // If they don't match, save the queue head to cmp.
+  // Return value:
+  //   0:  Queue head matches cmp
+  //   1:  Queue head does not match cmp
+  //   -1: Queue is empty, no cmp to check
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  msync_event_t *msync = (msync_event_t *)cmp;
+  return check_msync(msync);
+#else
+  return 0;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+int difftest_amu_exec(void *amu_ctrl, void *res) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  return exec_amu(amu_ctrl, res);
+#else
+  return 0;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
 extern uint32_t vec_laod_mul;
@@ -310,6 +365,7 @@ void difftest_update_vec_load_pmem() {
 
 void difftest_sync_aia(void *src) {
 #ifdef CONFIG_RV_IMSIC
+  difftest_mark_csr_dirty();
   memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
   isa_update_mtopi();
   isa_update_stopi();
@@ -405,3 +461,16 @@ void difftest_store_log_restore() {
 }
 #endif
 #endif // CONFIG_STORE_LOG
+
+extern void set_store_cpt_in_flash(bool enable);
+extern void serialize_checkpoint(const char *base_filepath);
+
+void difftest_trigger_checkpoint(const char *base_filepath) {
+  if (cpu.mode == 3) {
+    Log("Skipping M-mode checkpoint: mode=%lu, PC=0x%lx", cpu.mode, cpu.pc);
+    return;
+  }
+
+  set_store_cpt_in_flash(true);
+  serialize_checkpoint(base_filepath);
+}
