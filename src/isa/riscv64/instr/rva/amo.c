@@ -71,7 +71,9 @@ def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src
 
   if (cpu.pbmt != 0 || is_in_mmio(paddr) || !in_pmem(paddr) ||
       !isa_pmp_check_permission(paddr, width, type, cpu.mode) ||
-      !isa_pma_check_permission(paddr, width, type)) {
+      !isa_pma_check_permission(paddr, width, type) ||
+      (funct5 == 0b00010 &&
+       !isa_pma_check_atomic_permission(paddr, width))) {
     int ex = (type == MEM_TYPE_WRITE) ? EX_SAF : EX_LAF;
     cpu.trapInfo.tval = *src1;
     if (funct5 == 0b00011) {
