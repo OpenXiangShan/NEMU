@@ -60,8 +60,15 @@ typedef struct {
   const char *image_path;
   uint64_t load_addr;
   uint64_t max_instructions;
+  uint64_t exec_batch;
+  int regcpy_mode;
   size_t ram_size;
 } RunnerConfig;
+
+enum {
+  REGCPY_PER_BATCH = 0,
+  REGCPY_FINAL = 1,
+};
 
 typedef struct {
   void *handle;
@@ -89,6 +96,8 @@ static void usage(const char *prog) {
       "  --load-addr ADDR          Guest physical load address, default 0x80000000.\n"
       "  --max-instructions NUM    Stop with an error after NUM instructions, default 1000000000.\n"
       "  -I NUM                  Alias of --max-instructions.\n"
+      "  --exec-batch NUM         Execute NUM instructions per REF call, default 1.\n"
+      "  --regcpy MODE            per-batch or final, default per-batch.\n"
       "  --ram-size BYTES          Call difftest_set_ramsize before init.\n"
       "  -h, --help                Show this help.\n",
       prog);
@@ -127,6 +136,8 @@ static RunnerConfig parse_args(int argc, char **argv) {
     .image_path = NULL,
     .load_addr = 0x80000000ull,
     .max_instructions = 1000000000ull,
+    .exec_batch = 1,
+    .regcpy_mode = REGCPY_PER_BATCH,
     .ram_size = 0,
   };
 
@@ -164,6 +175,29 @@ static RunnerConfig parse_args(int argc, char **argv) {
         exit(2);
       }
       cfg.max_instructions = parse_u64(argv[i], "-I");
+    } else if (strcmp(arg, "--exec-batch") == 0) {
+      if (++i >= argc) {
+        fprintf(stderr, "Missing value for --exec-batch\n");
+        exit(2);
+      }
+      cfg.exec_batch = parse_u64(argv[i], "--exec-batch");
+      if (cfg.exec_batch == 0) {
+        fprintf(stderr, "--exec-batch must be greater than zero\n");
+        exit(2);
+      }
+    } else if (strcmp(arg, "--regcpy") == 0) {
+      if (++i >= argc) {
+        fprintf(stderr, "Missing value for --regcpy\n");
+        exit(2);
+      }
+      if (strcmp(argv[i], "per-batch") == 0) {
+        cfg.regcpy_mode = REGCPY_PER_BATCH;
+      } else if (strcmp(argv[i], "final") == 0) {
+        cfg.regcpy_mode = REGCPY_FINAL;
+      } else {
+        fprintf(stderr, "--regcpy must be per-batch or final\n");
+        exit(2);
+      }
     } else if (strcmp(arg, "--ram-size") == 0) {
       if (++i >= argc) {
         fprintf(stderr, "Missing value for --ram-size\n");
@@ -306,6 +340,16 @@ static uint64_t read_optional_counter(const uint64_t *counter) {
   return counter != NULL ? *counter : 0;
 }
 
+static uint64_t hash_bytes(const void *data, size_t size) {
+  const uint8_t *bytes = data;
+  uint64_t hash = 1469598103934665603ull;
+  for (size_t i = 0; i < size; i++) {
+    hash ^= bytes[i];
+    hash *= 1099511628211ull;
+  }
+  return hash;
+}
+
 static void print_statistics(const RefApi *api, uint64_t guest_instructions, uint64_t elapsed_ns) {
   uint64_t elapsed_us = elapsed_ns / 1000ull;
   setlocale(LC_NUMERIC, "");
@@ -361,12 +405,24 @@ int main(int argc, char **argv) {
       hit_max_instructions = true;
       break;
     }
-    api.exec(1);
-    if (api.get_abs_instr_count == NULL) {
-      guest_instructions += 1;
+    uint64_t step = cfg.exec_batch;
+    uint64_t remaining = cfg.max_instructions - guest_instructions;
+    if (step > remaining) {
+      step = remaining;
     }
+    api.exec(step);
+    if (api.get_abs_instr_count == NULL) {
+      guest_instructions += step;
+    }
+    if (cfg.regcpy_mode == REGCPY_PER_BATCH) {
+      api.regcpy(regcpy_buf, DIFFTEST_TO_DUT);
+    }
+  }
+  if (cfg.regcpy_mode == REGCPY_FINAL) {
     api.regcpy(regcpy_buf, DIFFTEST_TO_DUT);
   }
+  printf("final state hash = %016" PRIx64 "\n",
+      hash_bytes(regcpy_buf, *api.difftest_reg_size));
   uint64_t elapsed_ns = monotonic_ns() - start_ns;
 
   guest_instructions = current_guest_instructions(&api, guest_instructions);
