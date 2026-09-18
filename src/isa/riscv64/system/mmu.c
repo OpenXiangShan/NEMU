@@ -1088,16 +1088,15 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   ptw_result = ptw(vaddr, type);
 #endif
 #ifdef FORCE_RAISE_PF
-  if (likely(!cpu.guided_exec || !cpu.execution_guide.force_raise_exception)) {
-    return ptw_result;
-  }
+  if (unlikely(cpu.guided_exec && cpu.execution_guide.force_raise_exception)) {
 #ifdef CONFIG_RVH
-  if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
-    return MEM_RET_FAIL;
+    if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
+      return MEM_RET_FAIL;
 #else
-  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
-    return MEM_RET_FAIL;
+    if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
+      return MEM_RET_FAIL;
 #endif // CONFIG_RVH
+  }
 #endif // FORCE_RAISE_PF
 #ifdef CONFIG_RVH
   if (!tlb_hit) {
