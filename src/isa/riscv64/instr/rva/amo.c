@@ -20,18 +20,63 @@
 #include "../local-include/trigger.h"
 #include "../local-include/intr.h"
 #include "cpu/difftest.h"
+
+static inline bool amo_op_is_supported(uint32_t funct5) {
+  switch (funct5) {
+    case 0b00000: // AMOADD
+    case 0b00001: // AMOSWAP
+    case 0b00010: // LR
+    case 0b00011: // SC
+    case 0b00100: // AMOXOR
+    case 0b01000: // AMOOR
+    case 0b01100: // AMOAND
+    case 0b10000: // AMOMIN
+    case 0b10100: // AMOMAX
+    case 0b11000: // AMOMINU
+    case 0b11100: // AMOMAXU
+      return true;
+#ifdef CONFIG_RV_ZACAS
+    case 0b00101: // AMOCAS
+      return true;
+#endif
+    default:
+      return false;
+  }
+}
+
 __attribute__((cold))
 def_rtl(amo_slow_path, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2) {
   uint32_t funct5 = s->isa.instr.r.funct7 >> 2;
+  uint32_t funct3 = s->isa.instr.r.funct3;
   int rd = s->isa.instr.r.rd;
   int rs2 = s->isa.instr.r.rs2;
-  int width = s->isa.instr.r.funct3 & 1 ? 8 : 4;
-  width = BITS(s->isa.instr.r.funct3, 2, 2) == 0 ? width : 16;
-
-  if (funct5 == 0b00101) { // amocas
-    if (width == 16 && ((rd % 2 == 1) || (rs2 % 2 == 1))) { // amocas.q 128-bit
+  /*
+   * The non-debug decoder routes every AMO opcode here. Validate the
+   * encoding before trigger, address, translation, or memory handling so
+   * reserved encodings have no side effects.
+   */
+  if (unlikely(!amo_op_is_supported(funct5) ||
+      (funct5 == 0b00010 && rs2 != 0))) {
+    longjmp_exception(EX_II);
+  }
+  int width;
+  switch (funct3) {
+    case 0b010:
+      width = 4;
+      break;
+    case 0b011:
+      width = 8;
+      break;
+  #ifdef CONFIG_RV_ZACAS
+    case 0b100:
+      if (unlikely(funct5 != 0b00101 || (rd & 1) || (rs2 & 1))) {
+        longjmp_exception(EX_II);
+      }
+      width = 16;
+      break;
+  #endif
+    default:
       longjmp_exception(EX_II);
-    }
   }
 
 #ifdef CONFIG_TDATA1_MCONTROL6
