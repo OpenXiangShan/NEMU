@@ -32,6 +32,7 @@ store_commit_t store_queue_front();
 store_commit_t store_queue_back();
 size_t store_queue_size();
 bool store_queue_empty();
+bool store_queue_overflow();
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 #ifdef __cplusplus

@@ -57,7 +57,7 @@ DIRS-$(CONFIG_MODE_USER) += src/user
 SRCS-y += src/nemu-main.c
 DIRS-$(CONFIG_DEVICE) += src/device/io
 SRCS-$(CONFIG_DEVICE) += src/device/device.c src/device/alarm.c src/device/intr.c
-SRCS-$(CONFIG_HAS_SERIAL) += src/device/serial.c
+SRCS-$(CONFIG_HAS_UART16550) += src/device/uart16550.c
 SRCS-$(CONFIG_HAS_UARTLITE) += src/device/uartlite.c
 SRCS-$(CONFIG_HAS_UART_SNPS) += src/device/uart_snps.c
 SRCS-$(CONFIG_HAS_PLIC) += src/device/plic.c
@@ -96,6 +96,15 @@ CFLAGS_BUILD += $(if $(CONFIG_CC_LTO),-flto=auto,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-ggdb3,)
 CFLAGS_BUILD += $(if $(CONFIG_CC_ASAN),-fsanitize=address,)
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT_FLAGS))
+# GCC-only interpreter tuning (CC_AGGRESSIVE_INLINE):
+#   --param max-inline-insns-single=256: raise the single-function inlining size
+#     limit so the address-translation helpers inline into their callers.
+#   -falign-labels=n:m:n2:m2 aligns branch targets to an n-byte boundary while
+#     skipping at most m-1 bytes, else to n2 while skipping at most m2-1. Here
+#     32:9:64:15 = align to 32 bytes when it costs <=8 padding bytes, otherwise to
+#     64 bytes when it costs <=14, keeping hot targets in one instruction-fetch
+#     window without over-padding.
+CFLAGS_BUILD += $(if $(CONFIG_CC_AGGRESSIVE_INLINE),--param max-inline-insns-single=256 -falign-labels=32:9:64:15,)
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
 

@@ -88,6 +88,8 @@ void init_trigger() {
     cpu.TM->triggers[i].tdata1.val = 0;
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
   }
+  cpu.TM->mcontrol6_active_count = 0;
+  cpu.TM->mcontrol6_state_dirty = false;
   tselect->val = 0;
   tinfo->val = 0
     IFDEF(CONFIG_TDATA1_MCONTROL, | (1 << TRIG_TYPE_MCONTROL))
@@ -100,6 +102,7 @@ void init_trigger() {
 
 #ifdef CONFIG_RV_IMSIC
 void init_iprio() {
+  init_aia_prio_idx();
   cpu.external_interrupt_select = false;
   cpu.MIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
   cpu.SIprios  = (IpriosModule*) malloc(sizeof (IpriosModule));
@@ -200,7 +203,7 @@ void init_custom_csr() {
 
 #ifdef CONFIG_RV_PMA_CSR
 void init_pma() {
-  unsigned long long pmaConfigInit[CONFIG_RV_PMA_ACTIVE_NUM][9] = {
+  unsigned long long pmaConfigInit[CONFIG_RV_PMA_NUM][9] = {
     // base_addr,       range,             l, c, t, a, x, w, r
     {0,                0x1000000000000ULL, F, F, F, 3, F, F, F},
     {0x80000000000ULL, 0,                  F, T, T, 1, T, T, T},
@@ -799,7 +802,7 @@ inline word_t sstatus_read(bool vsreg_read, bool bare_read) {
 
 #ifdef CONFIG_RV_PMP_CSR
 // get 8-bit config of one PMP entries by index.
-uint8_t pmpcfg_from_index(int idx) {
+uint8_t inline pmpcfg_from_index(int idx) {
   // Nemu support up to 64 pmp entries in a XLEN=64 machine.
   int xlen = 64;
   // Configuration register of one entry is 8-bit.
@@ -813,7 +816,7 @@ uint8_t pmpcfg_from_index(int idx) {
   return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
-word_t pmpaddr_from_index(int idx) {
+word_t inline pmpaddr_from_index(int idx) {
   return csr_array[CSR_PMPADDR_BASE + idx];
 }
 
@@ -824,7 +827,7 @@ word_t inline pmp_tor_mask() {
 
 #ifdef CONFIG_RV_PMA_CSR
 // get 8-bit config of one PMA entries by index.
-uint8_t pmacfg_from_index(int idx) {
+uint8_t inline pmacfg_from_index(int idx) {
   int xlen = 64;
   // Configuration register of one entry is 8-bit.
   int bits_per_cfg = 8;
@@ -837,7 +840,7 @@ uint8_t pmacfg_from_index(int idx) {
   return *(cfg_reg + (idx % cfgs_per_csr));
 }
 
-word_t pmaaddr_from_index(int idx) {
+word_t inline pmaaddr_from_index(int idx) {
   return csr_array[CSR_PMAADDR_BASE + idx];
 }
 
@@ -1909,6 +1912,7 @@ void update_vsatp(const vsatp_t new_val) {
 
 static void csr_write(uint32_t csrid, word_t src) {
   word_t *dest = csr_decode(csrid);
+  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
   switch (csrid) {
     /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
@@ -2365,6 +2369,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmpcfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pmp_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2389,6 +2394,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMP_SHIFT)) - 1);
       }
       ref_log_cpu("write pmp addr%d to %016lx",idx, *dest);
+      mmu_refresh_pmp_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2422,6 +2428,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       ref_log_cpu("write pmacfg%d to %016lx", idx, cfg_data);
 
       *dest = cfg_data;
+      mmu_refresh_pma_cache();
 
       mmu_tlb_flush(0);
       break;
@@ -2445,6 +2452,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         *dest = src & (((word_t)1 << (CONFIG_PADDRBITS - PMA_SHIFT)) - 1);
       }
       ref_log_cpu("write pma addr%d to %016lx", idx, *dest);
+      mmu_refresh_pma_cache();
       mmu_tlb_flush(0);
       break;
     }
@@ -2499,6 +2507,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         // do nothing for not supported trigger type
         break;
       }
+      trigger_mark_state_dirty(cpu.TM);
       break;
     }
     case CSR_TDATA2:
@@ -2578,12 +2587,15 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RVH
   if (is_write(mstatus) || is_write(satp) || is_write(vsatp)
-      || is_write(hgatp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
+      || is_write(hgatp) || is_write(senvcfg) || is_write(menvcfg)
+      || is_write(mseccfg)
+      || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
   if (is_write(hstatus)) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE); // maybe change virtualization mode
   }
 #else
-  if (is_write(mstatus) || is_write(satp) || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
+  if (is_write(mstatus) || is_write(satp) || is_write(senvcfg)
+      || MUXDEF(CONFIG_RV_SMRNMI, is_write(mnstatus), false)) { update_mmu_state(); }
 #endif
   if (is_write(satp)) { mmu_tlb_flush(0); } // when satp is changed(asid | ppn), flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
@@ -3314,7 +3326,16 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
   if ((cpu.mode == MODE_S && mstatus->tvm == 1) || cpu.mode == MODE_U)
     longjmp_exception(EX_II);
 #endif // CONFIG_RVH
+#ifdef CONFIG_RVH
+  // SFENCE.VMA orders only the currently active first-stage translation.
+  if (cpu.v) {
+    mmu_tlb_flush_guest(vaddr);
+  } else {
+    mmu_tlb_flush_host(vaddr);
+  }
+#else
   mmu_tlb_flush(vaddr);
+#endif
 }
 
 #ifdef CONFIG_RVH
@@ -3325,7 +3346,7 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
 void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_guest(vaddr);
 }
 
 /// @brief Do RISC-V 64 privileged instruction: hfence.gvma
@@ -3335,7 +3356,7 @@ void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
 void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_guest(vaddr);
 }
 #endif // CONFIG_RVH
 
@@ -3362,12 +3383,6 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
 }
 
 #ifdef CONFIG_RVH
-int rvh_hlvx_check(struct Decode *s, int type){
-  extern bool hlvx;
-  hlvx = (s->isa.instr.i.opcode6_2 == 0x1c && s->isa.instr.i.funct3 == 0x4
-                  && (s->isa.instr.i.simm11_0 == 0x643 || s->isa.instr.i.simm11_0 == 0x683));
-  return hlvx;
-}
 extern bool hld_st;
 int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len, bool is_signed, bool is_hlvx) {
   if (cpu.v) {
@@ -3377,7 +3392,9 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
     longjmp_exception(EX_II);
   }
 
+  extern bool hlvx;
   hld_st = true;
+  hlvx = is_hlvx;
   int mmu_mode = get_hyperinst_mmu_state();
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_LOAD, *addr, TRIGGER_NO_VALUE);
@@ -3391,6 +3408,7 @@ int riscv64_priv_hload(Decode *s, rtlreg_t *dest, const rtlreg_t * addr, int len
     IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4));
   }
   hld_st = false;
+  hlvx = false;
   return 0;
 }
 
@@ -3402,7 +3420,9 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
     longjmp_exception(EX_II);
   }
 
+  extern bool hlvx;
   hld_st = true;
+  hlvx = false;
   int mmu_mode = get_hyperinst_mmu_state();
 #ifdef CONFIG_TDATA1_MCONTROL6
   trig_action_t action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_STORE, *addr, *src);
@@ -3411,6 +3431,7 @@ int riscv64_priv_hstore(Decode *s, rtlreg_t *src, const rtlreg_t * addr, int len
   rtl_sm(s, src, addr, 0, len, mmu_mode);
   IFDEF(CONFIG_RT_CHECK, assert(len == 1 || len == 2 || len == 4 || len == 8));
   hld_st = false;
+  hlvx = false;
   return 0;
 }
 #endif

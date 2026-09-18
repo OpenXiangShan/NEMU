@@ -56,6 +56,10 @@ enum {
 };
 void set_sys_state_flag(int flag);
 void mmu_tlb_flush(vaddr_t vaddr);
+#ifdef CONFIG_RVH
+void mmu_tlb_flush_host(vaddr_t vaddr);
+void mmu_tlb_flush_guest(vaddr_t vaddr);
+#endif
 
 struct Decode;
 void save_globals(struct Decode *s);
@@ -94,19 +98,27 @@ struct lightqs_reg_ss {
 };
 
 extern unsigned ref_hartid;
-static inline void ref_log_cpu(const char *fmt, ...) {
 #ifdef CONFIG_SHARE
-  if (unlikely(dynamic_config.debug_difftest)) {
-    va_list ap;
-    va_start(ap, fmt);
+static inline void ref_log_cpu_impl(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
 
-    fprintf(stderr, "[NEMU][%u] ", ref_hartid);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
+  fprintf(stderr, "[NEMU][%u] ", ref_hartid);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
 
-    va_end(ap);
-  }
-#endif
+  va_end(ap);
 }
+#define ref_log_cpu(...) \
+  do { \
+    if (unlikely(dynamic_config.debug_difftest)) { \
+      ref_log_cpu_impl(__VA_ARGS__); \
+    } \
+  } while (0)
+#else
+static inline void ref_log_cpu(const char *fmt, ...) {
+  (void)fmt;
+}
+#endif
 
 #endif

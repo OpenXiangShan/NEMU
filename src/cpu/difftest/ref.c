@@ -21,6 +21,14 @@
 #include <cpu/cpu.h>
 #include <difftest.h>
 
+#ifdef CONFIG_ISA_riscv64
+void csr_difftest_mark_dirty(void);
+#endif
+
+static inline void difftest_mark_csr_dirty(void) {
+  IFDEF(CONFIG_ISA_riscv64, csr_difftest_mark_dirty());
+}
+
 unsigned ref_hartid = 0;
 
 extern void load_flash_contents(const char *flash_img);
@@ -53,7 +61,10 @@ static void* nemu_large_memcpy(void *dest, const void *src, size_t n) {
 
 void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction, void* (*cpy_func)(void*, const void*, size_t)) {
   assert(guest_to_host(nemu_addr) != NULL);
-  if (direction == DIFFTEST_TO_REF) cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+  if (direction == DIFFTEST_TO_REF) {
+    cpy_func(guest_to_host(nemu_addr), dut_buf, n);
+    isa_mmu_tlb_flush();
+  }
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
 
@@ -62,6 +73,7 @@ void difftest_get_backed_memory(void *backed_pmem, size_t n) {
   // set pmem to backed_pmem, then nothing
   assert(n == CONFIG_MSIZE);
   set_pmem(true, backed_pmem);
+  isa_mmu_tlb_flush();
 #endif
 }
 
@@ -232,6 +244,7 @@ void difftest_raise_mhpmevent_overflow(uint64_t mhpmeventOverflowVec) {
 }
 
 void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
+  difftest_mark_csr_dirty();
   memcpy(&cpu.non_reg_interrupt_pending, nonRegInterruptPending, sizeof(struct NonRegInterruptPending));
   isa_update_mip(cpu.non_reg_interrupt_pending.lcofi_req);
 #ifdef CONFIG_RV_IMSIC
@@ -247,6 +260,7 @@ void difftest_non_reg_interrupt_pending(void *nonRegInterruptPending) {
 
 void difftest_interrupt_delegate(void *interruptDelegate) {
 #ifdef CONFIG_RV_IMSIC
+  difftest_mark_csr_dirty();
   memcpy(&cpu.interrupt_delegate, interruptDelegate, sizeof(struct InterruptDelegate));
 #endif // CONFIG_RV_IMSIC
 }
@@ -283,6 +297,7 @@ void difftest_update_vec_load_pmem() {
 
 void difftest_sync_aia(void *src) {
 #ifdef CONFIG_RV_IMSIC
+  difftest_mark_csr_dirty();
   memcpy(&cpu.fromaia, src, sizeof(struct FromAIA));
   isa_update_mtopi();
   isa_update_stopi();

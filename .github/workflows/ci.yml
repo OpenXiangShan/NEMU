@@ -14,6 +14,7 @@ env:
   LIBCHECKPOINT_CROSS_COMPILE: riscv64-linux-gnu-
   CPT_CROSS_COMPILE: riscv64-linux-gnu-
   NANOPB_CROSS_COMPILE: riscv64-linux-gnu-
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   fetch-workloads:
@@ -101,6 +102,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+      - name: Checkout workload-builder
+        uses: actions/checkout@v7
+        with:
+          repository: OpenXiangShan/workload-builder
+          ref: f662b2382ccb18274769d49559926ad656a4d9b2
+          path: workload-builder
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -122,6 +129,19 @@ jobs:
       - name: System - KVM
         run: |
           ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
+      - name: RVH bare-metal regression tests
+        run: |
+          git -C workload-builder submodule update --init nexus-am
+          AM_HOME=${GITHUB_WORKSPACE}/workload-builder/nexus-am \
+          PKG_DIR=${GITHUB_WORKSPACE}/rvh-workload \
+          CROSS_COMPILE=${CROSS_COMPILE} \
+            bash workload-builder/workloads/am/rvh-tests/build.sh
+          make clean-all
+          make riscv64-xs_bitmap_defconfig
+          make -j `nproc`
+          for test_bin in ${GITHUB_WORKSPACE}/rvh-workload/bin/*.bin; do
+            ./build/riscv64-nemu-interpreter -b "$test_bin"
+          done
       - name: test cpt taking and restoring using zstd format
         run: |
           make clean-all
@@ -263,76 +283,23 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Basic - cputest
+      - name: Run workload-builder basic workloads with Spike DiffTest
         env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/am/cputest/bin/
+          NEMU_DIFF_JOBS: 2
         run: |
-          find ${{ env.dir_tests }} -type f | while read -r test_bin; do
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
-          done
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite basic
 
-      - name: Basic - riscv-tests
-        # failed at rv64mi-p-sd-misaligned.bin
-        env:
-          dir_tests: ${{ env.CI_WORKLOADS }}/am/riscv-tests/bin/
-          skip_tests: |
-            rv64mi-p-ld-hd-misaligned.bin
-            rv64mi-p-ld-misaligned.bin
-            rv64mi-p-lh-hd-misaligned.bin
-            rv64mi-p-lh-misaligned.bin
-            rv64mi-p-lw-hd-misaligned.bin
-            rv64mi-p-lw-misaligned.bin
-            rv64mi-p-sd-hd-misaligned.bin
-            rv64mi-p-sd-misaligned.bin
-            rv64mi-p-sh-hd-misaligned.bin
-            rv64mi-p-sh-misaligned.bin
-            rv64mi-p-sw-hd-misaligned.bin
-            rv64mi-p-sw-misaligned.bin
-        run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
-          find ${{ env.dir_tests }} -type f -name "*.bin" | while read -r test_bin; do
-            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
-              echo "$test_bin skiped."
-              continue;
-            fi
-            echo ::group::$(basename $test_bin)
-            ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-            echo "::endgroup::"
-          done
-
-      - name: Basic - rvv-test
-        env:
-          # These tests are included in the workloads on the `nemu` runner.
-          # But the newly built versions (built with `workload-builder`) of them fail on NEMU.
-          # So skip them temporarily.
-          skip_tests: |
-            vsetvli-0.bin
-            vsetivli-0.bin
-        run: |
-          readarray -t skip_tests_array <<< "$skip_tests"
-          find "${CI_WORKLOADS}/am/riscv-vector-tests/bin" -type f -name "*.bin" | while read -r test_bin; do
-            if [[ " ${skip_tests_array[@]} " =~ " $(basename $test_bin) " ]]; then
-              echo "$test_bin skiped."
-            else
-              echo ::group::$(basename $test_bin)
-              ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${test_bin}
-              echo "::endgroup::"
-            fi
-          done
-
-      - name: Basic - misc-tests
+      - name: Basic - rvv perf suite smoke
         env:
           tests: |
-            am/misc-tests/bin/bitmanip.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o2.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o3.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gcb-o3.bin
-            am/misc-tests/bin/amtest-riscv64-xs.bin
-            am/misc-tests/bin/aliastest-riscv64-xs.bin
-            am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
-            am/misc-tests/bin/zacas-riscv64-xs.bin
+            am/riscv-vector-tests/bin/vfadd.vf-0.bin
+            am/riscv-vector-tests/bin/vfsub.vf-0.bin
+            am/riscv-vector-tests/bin/vslide1down.vx-0.bin
+            am/riscv-vector-tests/bin/vor.vi-0.bin
+            am/riscv-vector-tests/bin/vlse32.v-0.bin
+            am/riscv-vector-tests/bin/vluxei32.v-0.bin
+            am/riscv-vector-tests/bin/vsuxei32.v-0.bin
+            am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
         run: |
           for test_bin in $tests; do
             echo ::group::$test_bin
@@ -340,13 +307,13 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: System - linux
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/hello/fw_payload.bin
-
-      - name: System - KVM
-        run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/kvmtool/fw_payload.bin
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-basic-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
 
   diff-spike-advanced:
     needs: fetch-workloads
@@ -381,13 +348,79 @@ jobs:
           make riscv64-xs-diff-spike_defconfig
           make -j
 
-      - name: Run coremark-pro with Spike DiffTest
+      - name: Run workload-builder advanced workloads with Spike DiffTest
+        env:
+          NEMU_DIFF_JOBS: 2
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/coremark-pro/fw_payload.bin -I 400000000
+          bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite advanced
 
-      - name: Run rvv-bench with Spike DiffTest
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-advanced-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
+
+  diff-spike-spec-ckpt:
+    needs: fetch-workloads
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: bosc
+    continue-on-error: false
+    name: Diff with Spike - SPEC Checkpoint
+    timeout-minutes: 360
+    steps:
+      - name: Checkout NEMU
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Setup env
         run: |
-          ./build/riscv64-nemu-interpreter -b --diff ${SPIKE_SO} ${CI_WORKLOADS}/linux/rvv-bench/fw_payload.bin -I 400000000
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Initialize ready-to-run
+        run: |
+          make init-ready-to-run
+
+      - name: Build NEMU interpreter for diff with spike
+        run: |
+          make riscv64-xs-diff-spike_defconfig
+          make -j
+
+      - name: Run SPEC checkpoints with Spike DiffTest
+        env:
+          SPEC_CKPT_JOBS: 16
+          SPEC_MAX_INSTR: 40000000
+          SPEC_CKPT_PER_SUBITEM: 5
+          SPEC_CKPT_MAX_MEMORY_GB: 8
+          SPEC_CKPT_SEED: ${{ github.sha }}
+        run: |
+          lock_dir=${SPEC_CKPT_CI_LOCK_DIR:-/tmp/nemu-spec-ckpt-ci-locks}
+          mkdir -p "$lock_dir"
+
+          while true; do
+            for slot in 0 1; do
+              lock_file="$lock_dir/slot-${slot}.lock"
+              exec {lock_fd}>"$lock_file"
+              if flock -n "$lock_fd"; then
+                echo "Acquired SPEC checkpoint CI slot ${slot}."
+                bash scripts/ci/run-nemu-diff-spike-workloads.sh --suite spec-ckpt
+                exit $?
+              fi
+              eval "exec ${lock_fd}>&-"
+            done
+            echo "All SPEC checkpoint CI slots are busy; waiting..."
+            sleep 30
+          done
+
+      - name: Upload Spike DiffTest logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-diff-spike-spec-ckpt-logs
+          if-no-files-found: ignore
+          path: nemu-diff-spike-logs/
 
   performance:
     needs: fetch-workloads
@@ -425,54 +458,89 @@ jobs:
         run: |
           echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
-      - name: Build NEMU interpreter for XS in interpreter mode
-        run: |
-          make riscv64-xs_defconfig
-          sed -i 's/CONFIG_CC_NATIVE_ARCH=y/# CONFIG_CC_NATIVE_ARCH is not set/g' .config
-          sed -i 's/CONFIG_CC_OPT_FLAGS=""/CONFIG_CC_OPT_FLAGS="-march=x86-64-v3 -mtune=generic -ftree-vectorize"/g' .config
-          make -j `nproc`
-
-      - name: Basic - misc-tests
+      - name: Run performance tests
         env:
-          tests: |
-            am/misc-tests/bin/bitmanip.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o2.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gc-o3.bin
-            am/coremark/bin/coremark-riscv64-xs-rv64gcb-o3.bin
-            am/misc-tests/bin/amtest-riscv64-xs.bin
-            am/misc-tests/bin/aliastest-riscv64-xs.bin
-            am/misc-tests/bin/softprefetchtest-riscv64-xs.bin
-            am/misc-tests/bin/zacas-riscv64-xs.bin
+          PERF_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PERF_BASE_REF: ${{ github.base_ref }}
         run: |
-          echo -e "### NEMU Performance Results\n\n| Test | Instructions Executed | Estimated Host Throughput (instr/s) | Actual NEMU Throughput (instr/s) |\n|------|-----------------------|-------------------------------------|-------------------------------|" > performance_results.md
-          for test_bin in $tests; do
-            echo ::group::$test_bin
-            result=$(./DynamoRIO-Linux-11.3.0-1/bin64/drrun -c ./DynamoRIO-Linux-11.3.0-1/samples/bin64/libinscount.so -- \
-            ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/${test_bin} | strings)
-            result_native=$(./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/${test_bin} | strings)
-            actual_throughput=$(echo "$result_native" | grep "simulation frequency" | tail -n 1 | cut -d '=' -f2 | cut -d ' ' -f2 | tr -d ', ')
-            guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -d ', ')
-            host_instr_count=$(echo "$result" | grep "Instrumentation results:" | tail -n 1 | cut -d ' ' -f3)
-            estimate_host_ipc=2.5
-            # Calculate host throughput per second with 4GHz and IPC=2.5
-            est_throughput=$(python3 -c "print(4e9 * $estimate_host_ipc / $host_instr_count * $guest_instr_count)")
-            python3 -c "print('| {} | {:.3e} | {:.3e} | {:.3e} |'.format('$(basename $test_bin)', $host_instr_count, $est_throughput, $actual_throughput))" >> performance_results.md
-            echo "::endgroup::"
-          done
+          workloads_dir=$(realpath "${CI_WORKLOADS}")
+          dynamorio_dir=$(realpath DynamoRIO-Linux-11.3.0-1)
+          ref_config_generator=$(realpath tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh)
 
-      - name: System - linux
-        run: |
-          result=$(./DynamoRIO-Linux-11.3.0-1/bin64/drrun -c ./DynamoRIO-Linux-11.3.0-1/samples/bin64/libinscount.so -- \
-          ./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin | strings)
-          result_native=$(./build/riscv64-nemu-interpreter -b ${CI_WORKLOADS}/linux/hello/fw_payload.bin | strings)
-          actual_throughput=$(echo "$result_native" | grep "simulation frequency" | tail -n 1 | cut -d '=' -f2 | cut -d ' ' -f2 | tr -d ', ')
-          guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -d ', ')
-          host_instr_count=$(echo "$result" | grep "Instrumentation results:" | tail -n 1 | cut -d ' ' -f3)
-          estimate_host_ipc=2.5
-          # Calculate host throughput per second with 4GHz and IPC=2.5
-          est_throughput=$(python3 -c "print(4e9 * $estimate_host_ipc / $host_instr_count * $guest_instr_count)")
-          python3 -c "print('| linux-hello | {:.3e} | {:.3e} | {:.3e} |'.format($host_instr_count, $est_throughput, $actual_throughput))" >> performance_results.md
-          echo -e "\n\n* Host throughput is estimated based on 4GHz CPU frequency and IPC=2.5. \n* Actual throughput may vary based on the host CPU performance." >> performance_results.md
+          tools/perf-benchmark.sh \
+            --defconfig riscv64-xs_defconfig \
+            --title "NEMU Performance Results - XS Interpreter" \
+            --workloads "$workloads_dir" \
+            --dynamorio-dir "$dynamorio_dir" \
+            --output performance_xs.md \
+            --metrics-output performance_xs.tsv
+          tools/perf-benchmark.sh \
+            --defconfig riscv64-xs-ref-perf_defconfig \
+            --title "NEMU Performance Results - XS Ref Shared Object" \
+            --workloads "$workloads_dir" \
+            --dynamorio-dir "$dynamorio_dir" \
+            --output performance_ref_so.md \
+            --metrics-output performance_ref_so.tsv \
+            --defconfig-gen-script "$ref_config_generator" \
+            --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
+
+          if [ -n "${PERF_BASE_SHA:-}" ] && [ -n "${PERF_BASE_REF:-}" ]; then
+            git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+            git config --global --add safe.directory "${GITHUB_WORKSPACE}/perf-baseline"
+            echo "Building perf baseline from PR base commit ${PERF_BASE_SHA} (${PERF_BASE_REF})"
+            git fetch --depth=1 origin "${PERF_BASE_SHA}"
+            git worktree prune
+            rm -rf perf-baseline
+            git worktree add --detach perf-baseline "${PERF_BASE_SHA}"
+            git -C perf-baseline submodule update --init --recursive --depth=1
+
+            if [ -f perf-baseline/configs/riscv64-xs_defconfig ]; then
+              tools/perf-benchmark.sh \
+                --repo-dir perf-baseline \
+                --defconfig riscv64-xs_defconfig \
+                --title "Baseline - XS Interpreter" \
+                --workloads "$workloads_dir" \
+                --dynamorio-dir "$dynamorio_dir" \
+                --output baseline_xs.md \
+                --metrics-output baseline_xs.tsv
+            fi
+
+            if [ -f perf-baseline/configs/riscv64-xs-ref_defconfig ]; then
+              tools/perf-benchmark.sh \
+                --repo-dir perf-baseline \
+                --defconfig riscv64-xs-ref-perf_defconfig \
+                --title "Baseline - XS Ref Shared Object" \
+                --workloads "$workloads_dir" \
+                --dynamorio-dir "$dynamorio_dir" \
+                --output baseline_ref_so.md \
+                --metrics-output baseline_ref_so.tsv \
+                --defconfig-gen-script "$ref_config_generator" \
+                --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
+            fi
+          fi
+
+          tools/perf-compare.sh \
+            --title "NEMU Performance Results - XS Interpreter" \
+            --current performance_xs.tsv \
+            --baseline baseline_xs.tsv \
+            > performance_results.md
+          echo >> performance_results.md
+          tools/perf-compare.sh \
+            --title "NEMU Performance Results - XS Ref Shared Object" \
+            --current performance_ref_so.tsv \
+            --baseline baseline_ref_so.tsv \
+            >> performance_results.md
+          cat >> performance_results.md <<'EOF'
+
+          * Host Instructions is measured by DynamoRIO's inscount client.
+          * rvh-workload-suite runs the nested Linux/kvmtool guest to exercise the H extension and two-stage translation.
+          * Estimated Host Throughput assumes a fixed 4GHz CPU and IPC=2.5.
+          * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
+          * Baseline columns are populated on pull_request runs when the PR base contains the same defconfig.
+          * Change vs Baseline (Instructions) is computed from host instruction count; positive means fewer host instructions than baseline.
+          EOF
+          cat performance_results.md
+          cat performance_results.md >> "$GITHUB_STEP_SUMMARY"
       
       - name: Record PR number
         if: github.event_name == 'pull_request'

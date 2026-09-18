@@ -1906,6 +1906,7 @@ MAP(CSRS, CSRS_DECL)
 
 /** General **/
 void csr_prepare();
+void csr_difftest_mark_dirty(void);
 
 word_t gen_status_sd(word_t status);
 word_t get_mip();
@@ -1922,10 +1923,12 @@ void update_vstopi();
 uint8_t pmpcfg_from_index(int idx);
 word_t pmpaddr_from_index(int idx);
 word_t pmp_tor_mask();
+void mmu_refresh_pmp_cache(void);
 
 /** PMA */
 uint8_t pmacfg_from_index(int idx);
 word_t pmaaddr_from_index(int idx);
 word_t pma_tor_mask();
+void mmu_refresh_pma_cache(void);
 
 #endif // __CSR_H__

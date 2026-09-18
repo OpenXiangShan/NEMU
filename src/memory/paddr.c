@@ -255,11 +255,10 @@ bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr
 //     (e.g. IFETCH or WRITE) so the correct fault class is raised.
 //   - MEM_TYPE_READ_EXEC: HLVX load.
 //     type = READ_EXEC (checks R+X), trap_type = READ (raises EX_LAF).
-word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+static inline bool paddr_read_check(paddr_t addr, int len, int type,
+                                    int trap_type, int mode, vaddr_t vaddr,
+                                    int cross_page_load) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
-
-  __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
-  mode &= ~CROSS_PAGE_LD_FLAG;
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_READ_EXEC || type == MEM_TYPE_IFETCH_READ ||
       type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ);
@@ -267,40 +266,45 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
-  if (!check_paddr(addr, len, type, trap_type, mode, vaddr)) {
-    return 0;
-  }
-#ifndef CONFIG_SHARE
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
-  else {
-    if (likely(is_in_mmio(addr))) {
-      // check if the address is misaligned
-      if (cpu.isVldst) {
-        raise_read_access_fault(trap_type, vaddr);
-        return 0;
-      }
+  return check_paddr(addr, len, type, trap_type, mode, vaddr);
+}
 
-      isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
-#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
-        raise_read_access_fault(trap_type, vaddr);
-        return 0;
-      }
-#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      return mmio_read(addr, len);
-    }
-    else raise_read_access_fault(trap_type, vaddr);
+static inline word_t paddr_read_pmem_after_check(paddr_t addr, int len,
+                                                 int type, int mode) {
+  uint64_t rdata = pmem_read(addr, len);
+#ifdef CONFIG_SHARE
+  ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
+      addr, rdata, len, type, mode);
+#endif // CONFIG_SHARE
+  return rdata;
+}
+
+word_t paddr_read_pmem_checked(paddr_t addr, int len, int type, int trap_type,
+                               int mode, vaddr_t vaddr) {
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!paddr_read_check(addr, len, type, trap_type, mode, vaddr,
+                        cross_page_load)) {
     return 0;
   }
-#else
+
+  return paddr_read_pmem_after_check(addr, len, type, mode);
+}
+
+word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
+  int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
+  mode &= ~CROSS_PAGE_LD_FLAG;
+
+  if (!paddr_read_check(addr, len, type, trap_type, mode, vaddr,
+                        cross_page_load)) {
+    return 0;
+  }
+
   if (likely(in_pmem(addr))) {
-    uint64_t rdata = pmem_read(addr, len);
-    ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
-        addr, rdata, len, type, mode);
-    return rdata;
+    return paddr_read_pmem_after_check(addr, len, type, mode);
   }
   else {
-#ifdef CONFIG_HAS_FLASH
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
       if (cpu.isVldst) {
@@ -317,14 +321,14 @@ word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vadd
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
       return mmio_read(addr, len);
     }
-#endif
+#ifdef CONFIG_SHARE
     if(dynamic_config.ignore_illegal_mem_access)
       return 0;
+#endif // CONFIG_SHARE
     Logm("ERROR: invalid mem read from paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
     raise_read_access_fault(trap_type, vaddr);
   }
   return 0;
-#endif // CONFIG_SHARE
 }
 
 #ifdef CONFIG_RV_MBMC
@@ -417,8 +421,17 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }
-#ifndef CONFIG_SHARE
-  if (likely(in_pmem(addr))) pmem_write(addr, len, data, cross_page_store);
+
+  if (likely(in_pmem(addr))) {
+#ifdef CONFIG_SHARE
+#ifdef CONFIG_STORE_LOG
+    pmem_record_store(addr);
+#endif // CONFIG_STORE_LOG
+    ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
+        addr, data, len, mode);
+#endif // CONFIG_SHARE
+    return pmem_write(addr, len, data, cross_page_store);
+  }
   else {
     if (likely(is_in_mmio(addr))) {
       // check if the address is misaligned
@@ -436,42 +449,16 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 #endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
       mmio_write(addr, len, data);
     }
-    else raise_access_fault(EX_SAF, vaddr);
-  }
-#else
-  if (likely(in_pmem(addr))) {
-#ifdef CONFIG_STORE_LOG
-    pmem_record_store(addr);
-#endif // CONFIG_STORE_LOG
-    ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
-        addr, data, len, mode);
-    return pmem_write(addr, len, data, cross_page_store);
-  } else {
-    if (likely(is_in_mmio(addr))) {
-      // check if the address is misaligned
-      if (cpu.isVldst) {
-        raise_access_fault(EX_SAF, vaddr);
-        return;
-      }
-
-      isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
-#ifdef CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      if (!mmio_is_real_device(addr)) {
-        raise_access_fault(EX_SAF, vaddr);
-        return;
-      }
-#endif // CONFIG_ENABLE_CONFIG_MMIO_SPACE
-      mmio_write(addr, len, data);
-    }
     else {
+#ifdef CONFIG_SHARE
       if(dynamic_config.ignore_illegal_mem_access)
         return;
+#endif // CONFIG_SHARE
       printf("ERROR: invalid mem write to paddr " FMT_PADDR ", NEMU raise access exception\n", addr);
       raise_access_fault(EX_SAF, vaddr);
       return;
     }
   }
-#endif
 }
 
 #ifdef CONFIG_MEMORY_REGION_ANALYSIS
@@ -593,6 +580,10 @@ store_commit_t store_commit_data;
 
 int check_store_commit(uint64_t *addr, uint64_t *data, uint8_t *mask) {
   int result = 0;
+  if (store_queue_overflow()) {
+    printf("NEMU store commit queue overflow.\n");
+    return 1;
+  }
   if (store_queue_empty()) {
     printf("NEMU does not commit any store instruction.\n");
     result = 1;

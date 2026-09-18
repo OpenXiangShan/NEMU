@@ -63,6 +63,10 @@ static inline bool in_pmem(paddr_t addr) {
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
+/* Read an address that the caller has already classified as PMEM. */
+__attribute__((visibility("hidden")))
+word_t paddr_read_pmem_checked(paddr_t addr, int len, int type, int trap_type,
+                               int mode, vaddr_t vaddr);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
 #ifdef CONFIG_RV_MBMC
@@ -134,7 +138,7 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len) {
   assert(golden_pmem != NULL);
-  void *p = &golden_pmem[addr - 0x80000000];
+  void *p = &golden_pmem[addr - CONFIG_MBASE];
   switch (len) {
     case 1: return *(uint8_t  *)p;
     case 2: return *(uint16_t *)p;

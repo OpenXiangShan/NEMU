@@ -150,6 +150,19 @@ static void update_instr_cnt() {
 #endif // CONFIG_ENABLE_INSTR_CNT
 }
 
+static inline void update_instr_cnt_after_execute() {
+#if defined(CONFIG_SHARE) && !defined(CONFIG_LIGHTQS) && \
+    defined(CONFIG_INSTR_CNT_BY_INSTR)
+  // Non-LightQS shared execution asserts that at most one instruction is
+  // requested, so the completed batch has no generic delta left to compute.
+  n_batch = 0;
+  n_remain = 0;
+  n_remain_total = 0;
+#else
+  update_instr_cnt();
+#endif
+}
+
 void monitor_statistic() {
   setlocale(LC_NUMERIC, "");
   Log("host time spent = %'ld us", g_timer);
@@ -176,9 +189,24 @@ void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
 
 void mmu_tlb_flush(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
+  isa_mmu_tlb_flush();
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
+
+#ifdef CONFIG_RVH
+void mmu_tlb_flush_host(vaddr_t vaddr) {
+  hosttlb_flush(vaddr);
+  if (vaddr == 0)
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+
+void mmu_tlb_flush_guest(vaddr_t vaddr) {
+  isa_mmu_tlb_flush();
+  if (vaddr == 0)
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+#endif
 
 jmp_buf context_stack[CONTEXT_STACK_SIZE] = {};
 int context_idx = -1;
@@ -682,11 +710,15 @@ static void execute(int n) {
     cpu.amo = false;
     cpu.pbmt = 0;
 
-    Decode *cache_s = tcache_lookup_instr(cpu.pc);
-
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
       tcache_handle_flush();
+      // In the non-PERF_OPT path, a tcache flush request is edge-triggered.
+      // Clear only the flush bit after servicing it so we do not re-flush on
+      // every following instruction.
+      g_sys_state_flag &= ~SYS_STATE_FLUSH_TCACHE;
     }
+
+    Decode *cache_s = tcache_lookup_instr(cpu.pc);
 
     if (cache_s == NULL) {
       // Missed hit, decode and insert into cache.
@@ -708,14 +740,16 @@ static void execute(int n) {
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
 
-    #ifdef CONFIG_ISA_riscv64
-      #ifdef CONFIG_DETERMINISTIC
-        void update_riscv_timer();
-        update_riscv_timer();
-      #endif // CONFIG_DETERMINISTIC
-    #endif // CONFIG_ISA_riscv64
+#if defined(CONFIG_ISA_riscv64) && defined(CONFIG_DETERMINISTIC) && \
+    defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT)
+    void update_riscv_timer();
+    update_riscv_timer();
+#endif
 
-    if (MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr()) != INTR_EMPTY) {
+    // A shared one-instruction batch reaches the outer interrupt poll before
+    // another instruction can execute, so polling here would be redundant.
+    if (MUXDEF(CONFIG_SHARE, n != 1, true) &&
+        MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY) != INTR_EMPTY) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
@@ -777,7 +811,9 @@ void cpu_exec(uint64_t n) {
     Loge("Setting NEMU state to RUNNING");
   }
 
+#ifndef CONFIG_SHARE
   uint64_t timer_start = get_time();
+#endif
 
   n_remain_total = n; // + AHEAD_LENGTH; // deal with setjmp()
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
@@ -813,10 +849,11 @@ void cpu_exec(uint64_t n) {
       device_update();
     #endif
 
-    #ifdef CONFIG_ISA_riscv64
+#if defined(CONFIG_ISA_riscv64) && defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT) && \
+    (!defined(CONFIG_SHARE) || !defined(CONFIG_DETERMINISTIC))
       void update_riscv_timer();
       update_riscv_timer();
-    #endif // CONFIG_ISA_riscv64
+#endif
 
     #ifndef CONFIG_SHARE
       #ifdef LIGHTQS
@@ -838,6 +875,15 @@ void cpu_exec(uint64_t n) {
       cpu.pbmt = 0;
       cpu.isVldst = false;
       cpu.isVecUnitStore = false;
+#ifdef CONFIG_RVH
+      // HLV/HLVX/HSV set these transient translation controls around the
+      // memory operation. A fault leaves through longjmp, bypassing the
+      // normal helper epilogue, so clear them before executing the handler.
+      extern bool hld_st;
+      extern bool hlvx;
+      hld_st = false;
+      hlvx = false;
+#endif
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
@@ -855,7 +901,7 @@ void cpu_exec(uint64_t n) {
 
     } else {
       // Check interrupt
-      word_t intr = MUXDEF(CONFIG_SHARE, INTR_EMPTY, isa_query_intr());
+      word_t intr = MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY);
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
         #ifdef CONFIG_TDATA1_ICOUNT
@@ -889,7 +935,7 @@ void cpu_exec(uint64_t n) {
     execute(n_batch);
 
     // settle instruction counting, as BATCH has ended.
-    update_instr_cnt();
+    update_instr_cnt_after_execute();
 
     IFDEF(CONFIG_PERF_OPT, update_global());
 
@@ -921,8 +967,10 @@ void cpu_exec(uint64_t n) {
     nemu_state.state = NEMU_QUIT;
   }
 
+#ifndef CONFIG_SHARE
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
+#endif
 
   switch (nemu_state.state) {
   case NEMU_RUNNING:
