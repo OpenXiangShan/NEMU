@@ -782,8 +782,8 @@ static void update_global() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
-  #ifndef CONFIG_LIGHTQS
-    IFDEF(CONFIG_SHARE, assert(n <= 1));
+  #if !defined(CONFIG_LIGHTQS) && defined(CONFIG_SHARE) && !defined(CONFIG_SHARE_BATCH_EXEC)
+    assert(n <= 1);
   #endif
   g_print_step = ISNDEF(CONFIG_SHARE) && (n < MAX_INSTR_TO_PRINT);
   switch (nemu_state.state) {
@@ -915,7 +915,11 @@ void cpu_exec(uint64_t n) {
       }
     }
 
-    n_batch = MIN_OF(n_remain_total, BATCH_SIZE);
+    #ifdef CONFIG_SHARE_DYNAMIC_BATCH
+      n_batch = n_remain_total;
+    #else
+      n_batch = MIN_OF(n_remain_total, BATCH_SIZE);
+    #endif
     execute(n_batch);
 
     // settle instruction counting, as BATCH has ended.

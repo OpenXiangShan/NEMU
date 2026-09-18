@@ -376,6 +376,16 @@ config SHARE
   bool "Build shared library as processor difftest reference"
   default n
 
+config SHARE_BATCH_EXEC
+  depends on SHARE
+  bool "Allow exact multi-instruction cpu_exec calls in shared reference"
+  default n
+
+config SHARE_DYNAMIC_BATCH
+  depends on SHARE_BATCH_EXEC
+  bool "Execute the full shared cpu_exec request as one batch"
+  default n
+
 config DIFFTEST_STORE_COMMIT
   depends on SHARE
   bool "Maintain a committed store queue for processor ref"
