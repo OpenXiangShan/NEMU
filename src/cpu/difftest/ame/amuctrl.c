@@ -171,10 +171,101 @@ static void exec_amu_arith(void *amu_ctrl) {
   }
 }
 
+typedef struct {
+  // Full architectural register layout, independent of this instruction's tile.
+  const uint8_t *reg_data;
+  size_t reg_size_bytes;
+  size_t reg_row_bytes;
+  size_t active_rows;
+  size_t active_columns;
+  size_t element_bytes;
+} amu_write_region_t;
+
+static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region_t *region) {
+  if (event == NULL || region == NULL || event->md >= 8) return false;
+
+  const bool is_acc = event->md >= 4;
+  region->reg_data = is_acc ? (const uint8_t *)cpu.macc[event->md - 4]
+                            : (const uint8_t *)cpu.mtr[event->md];
+  region->reg_size_bytes = is_acc ? ALEN / 8 : TLEN / 8;
+  region->reg_row_bytes = is_acc ? ARLEN / 8 : TRLEN / 8;
+
+  if (event->op == 3) {
+    // mzero writes the whole register; use 64-bit units for diagnostics.
+    region->active_rows = region->reg_size_bytes / region->reg_row_bytes;
+    region->active_columns = region->reg_row_bytes / sizeof(uint64_t);
+    region->element_bytes = sizeof(uint64_t);
+  } else if (event->op == 1 && event->sat == 0 && event->typed <= 3) {
+    const bool is_b = !event->types1 && !event->types2;
+    region->active_rows = is_b ? event->mtilen : event->mtilem;
+    region->active_columns = is_b ? event->mtilem : event->mtilen;
+    region->element_bytes = (size_t)1 << event->typed;
+  } else {
+    return false;
+  }
+
+  return region->active_rows <= region->reg_size_bytes / region->reg_row_bytes &&
+         region->active_columns <= region->reg_row_bytes / region->element_bytes;
+}
+
+static bool compare_amu_register(const amu_ctrl_event_t *event, const void *dut_result) {
+  amu_write_region_t region;
+  Assert(get_amu_write_region(event, &region), "Invalid AMU write region");
+  if (region.active_rows == 0 || region.active_columns == 0) return false;
+  Assert(dut_result != NULL, "Missing DUT result for AMU comparison");
+
+  const uint8_t *dut = dut_result;
+  const size_t active_row_bytes = region.active_columns * region.element_bytes;
+  bool different = false;
+  // Keep the common equal case in memcmp; full-width rows are contiguous.
+  if (active_row_bytes == region.reg_row_bytes) {
+    different = memcmp(region.reg_data, dut, region.active_rows * region.reg_row_bytes) != 0;
+  } else {
+    for (size_t row = 0; row < region.active_rows; ++row) {
+      const size_t offset = row * region.reg_row_bytes;
+      if (memcmp(region.reg_data + offset, dut + offset, active_row_bytes) != 0) {
+        different = true;
+        break;
+      }
+    }
+  }
+  if (!different) return false;
+
+  // Scan individual elements only on mismatch, and only inside the write region.
+  fprintf(stderr, "matrix diff md=%d @pc: %016lx\n", event->md, event->pc);
+  int total_diff = 0;
+  int printed = 0;
+  for (size_t row = 0; row < region.active_rows; ++row) {
+    for (size_t column = 0; column < region.active_columns; ++column) {
+      const size_t offset = row * region.reg_row_bytes + column * region.element_bytes;
+      uint64_t ref_val = 0;
+      uint64_t dut_val = 0;
+      memcpy(&ref_val, region.reg_data + offset, region.element_bytes);
+      memcpy(&dut_val, dut + offset, region.element_bytes);
+      if (ref_val != dut_val) {
+        total_diff++;
+        if (printed < MATRIX_DIFF_PRINT_CNT) {
+          fprintf(stderr, "  [row=%zu, column=%zu] REF=%0*lx DUT=%0*lx\n",
+                  row, column, (int)(region.element_bytes * 2), (unsigned long)ref_val,
+                  (int)(region.element_bytes * 2), (unsigned long)dut_val);
+          printed++;
+        }
+      }
+    }
+  }
+
+  fprintf(stderr, "diff summary: %d element(s) differ\n", total_diff);
+  if (total_diff > MATRIX_DIFF_PRINT_CNT) {
+    fprintf(stderr, "  ... and %d more (change MATRIX_DIFF_PRINT_CNT to show more)\n",
+            total_diff - MATRIX_DIFF_PRINT_CNT);
+  }
+  return true;
+}
+
 int exec_amu(void *amu_ctrl, void *res) {
   bool ret = 0;
-  uint8_t op = ((amu_ctrl_event_t *)amu_ctrl)->op;
-  uint8_t md = ((amu_ctrl_event_t *)amu_ctrl)->md;
+  amu_ctrl_event_t *event = (amu_ctrl_event_t *)amu_ctrl;
+  uint8_t op = event->op;
   switch (op) {
     case 0: // case MMA
       panic("MMA should be executed by exec_amu_lazy");
@@ -184,57 +275,9 @@ int exec_amu(void *amu_ctrl, void *res) {
       exec_amu_load_store(amu_ctrl, res);
       // Compare the result with the expected result
       // When the result is not equal, set the return value to 1
-      if (((amu_ctrl_event_t *)amu_ctrl)->sat == 0) {
+      if (event->sat == 0) {
         // only check matrix load
-        if (md < 4) {
-          ret = memcmp(res, cpu.mtr[md], TLEN / 8) != 0;
-        } else {
-          ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
-        }
-        if (ret) {
-          uint64_t ref_val, dut_val;
-          int total_diff = 0;
-          int printed = 0;
-          fprintf(stderr, "matrix diff md=%d @pc: %016lx\n", md, ((amu_ctrl_event_t *)amu_ctrl)->pc);
-          if (md < 4) {
-            const int cols = TRLEN / 64;
-            for (int row = 0; row < ROWNUM; row++) {
-              for (int idx = 0; idx < cols; idx++) {
-                ref_val = cpu.mtr[md][row]._64[idx];
-                dut_val = ((uint64_t *)res)[row * cols + idx];
-                if (ref_val != dut_val) {
-                  total_diff++;
-                  if (printed < MATRIX_DIFF_PRINT_CNT) {
-                    fprintf(stderr, "  [row=%d, idx=%d] REF=%016lx DUT=%016lx\n",
-                            row, idx, ref_val, dut_val);
-                    printed++;
-                  }
-                }
-              }
-            }
-          } else {
-            const int cols = ARLEN / 64;
-            for (int row = 0; row < ROWNUM; row++) {
-              for (int idx = 0; idx < cols; idx++) {
-                ref_val = cpu.macc[md - 4][row]._64[idx];
-                dut_val = ((uint64_t *)res)[row * cols + idx];
-                if (ref_val != dut_val) {
-                  total_diff++;
-                  if (printed < MATRIX_DIFF_PRINT_CNT) {
-                    fprintf(stderr, "  [row=%d, idx=%d] REF=%016lx DUT=%016lx\n",
-                            row, idx, ref_val, dut_val);
-                    printed++;
-                  }
-                }
-              }
-            }
-          }
-          fprintf(stderr, "diff summary: %d element(s) differ\n", total_diff);
-          if (total_diff > MATRIX_DIFF_PRINT_CNT) {
-            fprintf(stderr, "  ... and %d more (change MATRIX_DIFF_PRINT_CNT to show more)\n",
-                    total_diff - MATRIX_DIFF_PRINT_CNT);
-          }
-        }
+        ret = compare_amu_register(event, res);
       }
       break;
     case 2: // case Mrelease
@@ -245,11 +288,7 @@ int exec_amu(void *amu_ctrl, void *res) {
       exec_amu_arith(amu_ctrl);
       // Compare the result with the expected result
       // When the result is not equal, set the return value to 1
-      if (md < 4) {
-        ret = memcmp(res, cpu.mtr[md], TLEN / 8) != 0;
-      } else {
-        ret = memcmp(res, cpu.macc[md - 4], ALEN / 8) != 0;
-      }
+      ret = compare_amu_register(event, res);
       break;
     default:
       panic("invalid AMU ctrl op");
