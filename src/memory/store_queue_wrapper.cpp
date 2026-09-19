@@ -1,6 +1,8 @@
 #include <memory/store_queue_wrapper.h>
+#include <algorithm>
 #include <queue>
 #include <stack>
+#include <vector>
 
 #ifdef CONFIG_STORE_LOG
 std::stack<store_log_t> store_log_stack;
@@ -9,6 +11,15 @@ void store_log_stack_push(store_log_t log) { store_log_stack.push(log);}
 void store_log_stack_pop() { store_log_stack.pop();}
 store_log_t store_log_stack_top() {return store_log_stack.top();}
 bool store_log_stack_empty() { return store_log_stack.empty();}
+std::vector<difftest_store_log_entry_t> store_effect_log;
+void store_effect_log_reset() { store_effect_log.clear(); }
+void store_effect_log_push(difftest_store_log_entry_t log) { store_effect_log.push_back(log); }
+size_t store_effect_log_size() { return store_effect_log.size(); }
+size_t store_effect_log_copy(difftest_store_log_entry_t *dest, size_t capacity) {
+  size_t count = std::min(capacity, store_effect_log.size());
+  std::copy_n(store_effect_log.begin(), count, dest);
+  return count;
+}
 #ifdef CONFIG_LIGHTQS
 std::stack<store_log_t> spec_store_log_stack;
 void spec_store_log_stack_reset() { spec_store_log_stack = {};}

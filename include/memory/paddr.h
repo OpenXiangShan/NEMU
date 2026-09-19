@@ -88,6 +88,12 @@ typedef struct {
   word_t orig_data;
   // new value and write length makes no sense for restore
 } store_log_t;
+
+typedef struct {
+  uint64_t addr;
+  uint64_t data;
+  uint64_t mask;
+} difftest_store_log_entry_t;
 #endif // CONFIG_STORE_LOG
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT

@@ -319,7 +319,9 @@ extern uint64_t g_nr_guest_instr;
 
 extern uint64_t stable_log_begin, spec_log_begin;
 
-void pmem_record_store(paddr_t addr) {
+void pmem_record_store(paddr_t addr, int len, word_t data) {
+  (void)len;
+  (void)data;
   // align to 8 byte
   addr = (addr >> 3) << 3;
   uint64_t rdata = pmem_read(addr, 8);
@@ -354,16 +356,33 @@ void pmem_record_restore(uint64_t restore_inst_cnt) {
   }
 }
 #else
-void pmem_record_store(paddr_t addr) {
+void pmem_record_store(paddr_t addr, int len, word_t data) {
   if(dynamic_config.enable_store_log) {
-    // align to 8 byte
-    addr = (addr >> 3) << 3;
-    uint64_t rdata = pmem_read(addr, 8);
-    store_log_t log = {
-      .addr = addr,
-      .orig_data = rdata
-    };
-    store_log_stack_push(log);
+    paddr_t aligned_addr[2] = {addr & ~0x7ull, (addr & ~0x7ull) + 8};
+    uint64_t effect_data[2] = {0, 0};
+    uint64_t effect_mask[2] = {0, 0};
+    int touched = 1;
+    for (int i = 0; i < len; ++i) {
+      int byte_offset = (addr & 0x7) + i;
+      int chunk = byte_offset >> 3;
+      int chunk_byte = byte_offset & 0x7;
+      touched = MAX_OF(touched, chunk + 1);
+      effect_data[chunk] |= ((data >> (i * 8)) & 0xffull) << (chunk_byte * 8);
+      effect_mask[chunk] |= 1ull << chunk_byte;
+    }
+    for (int i = 0; i < touched; ++i) {
+      store_log_t rollback = {
+        .addr = aligned_addr[i],
+        .orig_data = pmem_read(aligned_addr[i], 8)
+      };
+      store_log_stack_push(rollback);
+      difftest_store_log_entry_t effect = {
+        .addr = aligned_addr[i],
+        .data = effect_data[i],
+        .mask = effect_mask[i]
+      };
+      store_effect_log_push(effect);
+    }
   }
 }
 
@@ -379,6 +398,7 @@ void pmem_record_restore() {
 
 void pmem_record_reset() {
   store_log_stack_reset();
+  store_effect_log_reset();
 }
 
 #endif // CONFIG_STORE_LOG
@@ -400,7 +420,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   if (likely(in_pmem(addr))) {
 #ifdef CONFIG_SHARE
 #ifdef CONFIG_STORE_LOG
-    pmem_record_store(addr);
+    pmem_record_store(addr, len, data);
 #endif // CONFIG_STORE_LOG
     ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
         addr, data, len, mode);

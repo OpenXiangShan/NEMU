@@ -380,5 +380,13 @@ void difftest_store_log_restore() {
   extern void pmem_record_restore();
   pmem_record_restore();
 }
+
+size_t difftest_store_log_size() {
+  return store_effect_log_size();
+}
+
+size_t difftest_store_log_copy(void *dest, size_t capacity) {
+  return store_effect_log_copy((difftest_store_log_entry_t *)dest, capacity);
+}
 #endif
 #endif // CONFIG_STORE_LOG

@@ -14,6 +14,10 @@ void store_log_stack_push(store_log_t log);
 void store_log_stack_pop();
 store_log_t store_log_stack_top();
 bool store_log_stack_empty();
+void store_effect_log_reset();
+void store_effect_log_push(difftest_store_log_entry_t log);
+size_t store_effect_log_size();
+size_t store_effect_log_copy(difftest_store_log_entry_t *dest, size_t capacity);
 #ifdef CONFIG_LIGHTQS
 void spec_store_log_stack_reset();
 void spec_store_log_stack_push(store_log_t log);
