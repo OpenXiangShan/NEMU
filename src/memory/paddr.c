@@ -379,7 +379,8 @@ void pmem_record_store(paddr_t addr, int len, word_t data) {
       difftest_store_log_entry_t effect = {
         .addr = aligned_addr[i],
         .data = effect_data[i],
-        .mask = effect_mask[i]
+        .mask = effect_mask[i],
+        .orig_data = rollback.orig_data
       };
       store_effect_log_push(effect);
     }

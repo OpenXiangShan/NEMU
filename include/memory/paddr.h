@@ -93,6 +93,7 @@ typedef struct {
   uint64_t addr;
   uint64_t data;
   uint64_t mask;
+  uint64_t orig_data;
 } difftest_store_log_entry_t;
 #endif // CONFIG_STORE_LOG
 
