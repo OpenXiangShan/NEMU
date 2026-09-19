@@ -388,5 +388,170 @@ size_t difftest_store_log_size() {
 size_t difftest_store_log_copy(void *dest, size_t capacity) {
   return store_effect_log_copy((difftest_store_log_entry_t *)dest, capacity);
 }
+
+void difftest_state_migrate() {
+  extern int update_mmu_state();
+  extern void mmu_tlb_flush(vaddr_t vaddr);
+  extern void mmu_refresh_pmp_cache();
+  extern void mmu_refresh_pma_cache();
+  update_mmu_state();
+  mmu_refresh_pmp_cache();
+  mmu_refresh_pma_cache();
+  mmu_tlb_flush(0);
+}
+
+typedef struct {
+  bool amo;
+  uint32_t pbmt;
+  bool is_vldst;
+  bool is_vec_unit_store;
+  int mem_exception;
+#ifdef CONFIG_TVAL_EX_II
+  uint32_t instr;
+#endif
+  uint64_t lr_addr;
+  uint64_t lr_valid;
+  bool intr;
+  bool guided_exec;
+  struct ExecutionGuide execution_guide;
+  struct NonRegInterruptPending non_reg_interrupt_pending;
+  struct DebugInfo debug;
+#ifdef CONFIG_QUERY_REF
+  struct MemEventQueryResult query_mem_event;
+#endif
+#ifdef CONFIG_RV_SDEXT
+  bool debug_mode;
+#endif
+#ifdef CONFIG_RV_SMRNMI
+  bool has_nmi;
+#endif
+#ifdef CONFIG_RV_IMSIC
+  bool virtual_interrupt_is_hvictl_inject;
+#endif
+#ifdef CONFIG_RV_SMDBLTRP
+  bool critical_error;
+#endif
+  trap_info_t trap_info;
+#ifdef CONFIG_RV_IMSIC
+  struct InterruptDelegate interrupt_delegate;
+  struct FromAIA from_aia;
+  bool external_interrupt_select;
+  uint64_t old_mtopei;
+  uint64_t old_stopei;
+  uint64_t old_vstopei;
+  uint64_t old_mtopi;
+  uint64_t old_stopi;
+  uint64_t old_vstopi;
+#endif
+#ifdef CONFIG_RVH
+  uint64_t hideleg_reg;
+#endif
+  word_t ex_cause;
+  int sys_state_flag;
+} difftest_migration_state_t;
+
+size_t difftest_migration_state_size() {
+  return sizeof(difftest_migration_state_t);
+}
+
+void difftest_migration_state_copy(void *buffer, bool direction) {
+  difftest_migration_state_t *state = (difftest_migration_state_t *)buffer;
+  extern void cpu_exec_migration_state(word_t *ex_cause, int *sys_state_flag, bool to_cpu);
+  if (direction == DIFFTEST_TO_REF) {
+    cpu.amo = state->amo;
+    cpu.pbmt = state->pbmt;
+    cpu.isVldst = state->is_vldst;
+    cpu.isVecUnitStore = state->is_vec_unit_store;
+    cpu.mem_exception = state->mem_exception;
+#ifdef CONFIG_TVAL_EX_II
+    cpu.instr = state->instr;
+#endif
+    cpu.lr_addr = state->lr_addr;
+    cpu.lr_valid = state->lr_valid;
+    cpu.INTR = state->intr;
+    cpu.guided_exec = state->guided_exec;
+    cpu.execution_guide = state->execution_guide;
+    cpu.non_reg_interrupt_pending = state->non_reg_interrupt_pending;
+    cpu.debug = state->debug;
+#ifdef CONFIG_QUERY_REF
+    cpu.query_mem_event = state->query_mem_event;
+#endif
+#ifdef CONFIG_RV_SDEXT
+    cpu.debug_mode = state->debug_mode;
+#endif
+#ifdef CONFIG_RV_SMRNMI
+    cpu.hasNMI = state->has_nmi;
+#endif
+#ifdef CONFIG_RV_IMSIC
+    cpu.virtualInterruptIsHvictlInject = state->virtual_interrupt_is_hvictl_inject;
+#endif
+#ifdef CONFIG_RV_SMDBLTRP
+    cpu.critical_error = state->critical_error;
+#endif
+    cpu.trapInfo = state->trap_info;
+#ifdef CONFIG_RV_IMSIC
+    cpu.interrupt_delegate = state->interrupt_delegate;
+    cpu.fromaia = state->from_aia;
+    cpu.external_interrupt_select = state->external_interrupt_select;
+    cpu.old_mtopei = state->old_mtopei;
+    cpu.old_stopei = state->old_stopei;
+    cpu.old_vstopei = state->old_vstopei;
+    cpu.old_mtopi = state->old_mtopi;
+    cpu.old_stopi = state->old_stopi;
+    cpu.old_vstopi = state->old_vstopi;
+#endif
+#ifdef CONFIG_RVH
+    cpu.hideleg_reg = state->hideleg_reg;
+#endif
+    cpu_exec_migration_state(&state->ex_cause, &state->sys_state_flag, true);
+  } else {
+    state->amo = cpu.amo;
+    state->pbmt = cpu.pbmt;
+    state->is_vldst = cpu.isVldst;
+    state->is_vec_unit_store = cpu.isVecUnitStore;
+    state->mem_exception = cpu.mem_exception;
+#ifdef CONFIG_TVAL_EX_II
+    state->instr = cpu.instr;
+#endif
+    state->lr_addr = cpu.lr_addr;
+    state->lr_valid = cpu.lr_valid;
+    state->intr = cpu.INTR;
+    state->guided_exec = cpu.guided_exec;
+    state->execution_guide = cpu.execution_guide;
+    state->non_reg_interrupt_pending = cpu.non_reg_interrupt_pending;
+    state->debug = cpu.debug;
+#ifdef CONFIG_QUERY_REF
+    state->query_mem_event = cpu.query_mem_event;
+#endif
+#ifdef CONFIG_RV_SDEXT
+    state->debug_mode = cpu.debug_mode;
+#endif
+#ifdef CONFIG_RV_SMRNMI
+    state->has_nmi = cpu.hasNMI;
+#endif
+#ifdef CONFIG_RV_IMSIC
+    state->virtual_interrupt_is_hvictl_inject = cpu.virtualInterruptIsHvictlInject;
+#endif
+#ifdef CONFIG_RV_SMDBLTRP
+    state->critical_error = cpu.critical_error;
+#endif
+    state->trap_info = cpu.trapInfo;
+#ifdef CONFIG_RV_IMSIC
+    state->interrupt_delegate = cpu.interrupt_delegate;
+    state->from_aia = cpu.fromaia;
+    state->external_interrupt_select = cpu.external_interrupt_select;
+    state->old_mtopei = cpu.old_mtopei;
+    state->old_stopei = cpu.old_stopei;
+    state->old_vstopei = cpu.old_vstopei;
+    state->old_mtopi = cpu.old_mtopi;
+    state->old_stopi = cpu.old_stopi;
+    state->old_vstopi = cpu.old_vstopi;
+#endif
+#ifdef CONFIG_RVH
+    state->hideleg_reg = cpu.hideleg_reg;
+#endif
+    cpu_exec_migration_state(&state->ex_cause, &state->sys_state_flag, false);
+  }
+}
 #endif
 #endif // CONFIG_STORE_LOG

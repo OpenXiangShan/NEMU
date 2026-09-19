@@ -172,6 +172,16 @@ void monitor_statistic() {
 static word_t g_ex_cause = 0;
 static int g_sys_state_flag = 0;
 
+void cpu_exec_migration_state(word_t *ex_cause, int *sys_state_flag, bool to_cpu) {
+  if (to_cpu) {
+    g_ex_cause = *ex_cause;
+    g_sys_state_flag = *sys_state_flag;
+  } else {
+    *ex_cause = g_ex_cause;
+    *sys_state_flag = g_sys_state_flag;
+  }
+}
+
 void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
 
 void mmu_tlb_flush(vaddr_t vaddr) {
