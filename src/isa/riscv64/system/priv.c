@@ -565,11 +565,9 @@ static inline word_t* csr_decode(uint32_t addr) {
   MSECCFG_WMASK_MLPE       \
 )
 
-#ifdef CONFIG_RV_ZICNTR
-  #define COUNTEREN_ZICNTR_MASK (0x7UL)
-#else // CONFIG_RV_ZICNTR
-  #define COUNTEREN_ZICNTR_MASK (0x0)
-#endif // CONFIG_RV_ZICNTR
+/* CY/TM/IR stay WARL even if the unprivileged CSRs are omitted, so
+ * M-mode firmware can trap-and-emulate them (especially time). */
+#define COUNTEREN_ZICNTR_MASK (0x7UL)
 
 #ifdef CONFIG_RV_ZIHPM
   #define COUNTEREN_ZIHPM_MASK (0xfffffff8UL)
