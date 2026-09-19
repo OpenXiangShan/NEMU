@@ -460,6 +460,7 @@
 #define CSRS_M_CNTR(f) \
   f(mcycle     , 0xB00) f(minstret   , 0xB02)
 
+#ifdef CONFIG_RV_ZIHPM
 #define CSRS_M_HPMCOUNTER(f) \
   f(mhpmcounter3   , 0xB03) \
   f(mhpmcounter4   , 0xB04) f(mhpmcounter5   , 0xB05) f(mhpmcounter6   , 0xB06) f(mhpmcounter7   , 0xB07) \
@@ -469,12 +470,16 @@
   f(mhpmcounter20  , 0xB14) f(mhpmcounter21  , 0xB15) f(mhpmcounter22  , 0xB16) f(mhpmcounter23  , 0xB17) \
   f(mhpmcounter24  , 0xB18) f(mhpmcounter25  , 0xB19) f(mhpmcounter26  , 0xB1A) f(mhpmcounter27  , 0xB1B) \
   f(mhpmcounter28  , 0xB1C) f(mhpmcounter29  , 0xB1D) f(mhpmcounter30  , 0xB1E) f(mhpmcounter31  , 0xB1F)
+#else // CONFIG_RV_ZIHPM
+#define CSRS_M_HPMCOUNTER(f)
+#endif // CONFIG_RV_ZIHPM
 
 #define CSRS_M_COUNTER_TIMERS(f)\
   CSRS_M_CNTR(f) \
   CSRS_M_HPMCOUNTER(f)
 
 /** Machine Counter Setup **/
+#ifdef CONFIG_RV_ZIHPM
 #define CSRS_M_HPMEVENT(f) \
   f(mhpmevent3     , 0x323) \
   f(mhpmevent4     , 0x324) f(mhpmevent5     , 0x325) f(mhpmevent6     , 0x326) f(mhpmevent7     , 0x327) \
@@ -484,6 +489,9 @@
   f(mhpmevent20    , 0x334) f(mhpmevent21    , 0x335) f(mhpmevent22    , 0x336) f(mhpmevent23    , 0x337) \
   f(mhpmevent24    , 0x338) f(mhpmevent25    , 0x339) f(mhpmevent26    , 0x33A) f(mhpmevent27    , 0x33B) \
   f(mhpmevent28    , 0x33C) f(mhpmevent29    , 0x33D) f(mhpmevent30    , 0x33E) f(mhpmevent31    , 0x33F)
+#else // CONFIG_RV_ZIHPM
+#define CSRS_M_HPMEVENT(f)
+#endif // CONFIG_RV_ZIHPM
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
   #define CSRS_M_MCOUNTINHIBIT(f) \
@@ -780,7 +788,9 @@ CSR_STRUCT_START(minstret)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(minstret)
 
+#ifdef CONFIG_RV_ZIHPM
 CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMCOUNTER)
+#endif // CONFIG_RV_ZIHPM
 
 #define CSRS_M_HPMEVENTS_STRUCT(name, addr) \
   typedef union {                   \
@@ -803,7 +813,9 @@ CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMCOUNTER)
     word_t val;                     \
   } concat(name, _t);
 
+#ifdef CONFIG_RV_ZIHPM
 MAP(CSRS_M_HPMEVENT, CSRS_M_HPMEVENTS_STRUCT)
+#endif // CONFIG_RV_ZIHPM
 
 CSR_STRUCT_START(mcounteren)
   uint64_t pad0 : 64;

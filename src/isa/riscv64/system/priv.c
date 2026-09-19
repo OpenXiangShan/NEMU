@@ -2629,6 +2629,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       break;
 #endif // CONFIG_RV_CSR_MCOUNTINHIBIT
 
+#ifdef CONFIG_RV_ZIHPM
     case CSR_MHPMEVENT_BASE ... CSR_MHPMEVENT_BASE+CSR_MHPMEVENT_NUM-1:
     {
       mhpmevent3_t *mhpmevent = (mhpmevent3_t *)dest;
@@ -2652,6 +2653,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 #endif // CONFIG_RV_SSCOFPMF
       break;
     }
+#endif // CONFIG_RV_ZIHPM
 
 #ifdef CONFIG_RV_SMCNTRPMF
     case CSR_MCYCLECFG:
@@ -2880,7 +2882,9 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_MCYCLE: mcycle->val = set_mcycle(src); break;
     case CSR_MINSTRET: minstret->val = set_minstret(src); break;
 
+#ifdef CONFIG_RV_ZIHPM
     case CSR_MHPMCOUNTER_BASE ... CSR_MHPMCOUNTER_BASE+CSR_MHPMCOUNTER_NUM-1: break;
+#endif // CONFIG_RV_ZIHPM
 
     case CUSTOM_CSR_MCOREPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MCOREPWR_WMASK, src); break;
     case CUSTOM_CSR_MFLUSHPWR: *dest = mask_bitset(*dest, CUSTOM_CSR_MFLUSHPWR_WMASK, src); break;
