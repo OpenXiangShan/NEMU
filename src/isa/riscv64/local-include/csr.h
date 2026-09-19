@@ -140,8 +140,12 @@
   f(scounteren , 0x106)
 
 /** Supervisor Configuration **/
-#define CSRS_S_CONFIGURATION(f) \
-  f(senvcfg    , 0x10A)
+#ifdef CONFIG_RV_CSR_SENVCFG
+  #define CSRS_S_CONFIGURATION(f) \
+    f(senvcfg    , 0x10A)
+#else // CONFIG_RV_CSR_SENVCFG
+  #define CSRS_S_CONFIGURATION(f)
+#endif // CONFIG_RV_CSR_SENVCFG
 
 /** Supervisor Counter Setup **/
 #ifdef CONFIG_RV_SMCDELEG
@@ -376,8 +380,22 @@
   CSRS_M_GUEST_TRAP_HANDLING(f)
 
 /** Machine Configuration **/
+#ifdef CONFIG_RV_CSR_MENVCFG
+  #define CSRS_M_MENVCFG(f) \
+    f(menvcfg    , 0x30A)
+#else // CONFIG_RV_CSR_MENVCFG
+  #define CSRS_M_MENVCFG(f)
+#endif // CONFIG_RV_CSR_MENVCFG
+
+#ifdef CONFIG_RV_CSR_MSECCFG
+  #define CSRS_M_MSECCFG(f) \
+    f(mseccfg    , 0x747)
+#else // CONFIG_RV_CSR_MSECCFG
+  #define CSRS_M_MSECCFG(f)
+#endif // CONFIG_RV_CSR_MSECCFG
+
 #define CSRS_M_CONFIGURATION(f) \
-  f(menvcfg    , 0x30A) f(mseccfg    , 0x747)
+  CSRS_M_MENVCFG(f) CSRS_M_MSECCFG(f)
 
 /** Machine Memory Protection (PMP) **/
 #ifdef CONFIG_RV_PMP_ENTRY_0
@@ -1913,6 +1931,17 @@ CSR_STRUCT_END(mnscratch)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
+
+// Aliases for in-core field reads when the CSR itself is omitted.
+#ifndef CONFIG_RV_CSR_MENVCFG
+extern menvcfg_t* const menvcfg;
+#endif
+#ifndef CONFIG_RV_CSR_MSECCFG
+extern mseccfg_t* const mseccfg;
+#endif
+#ifndef CONFIG_RV_CSR_SENVCFG
+extern senvcfg_t* const senvcfg;
+#endif
 
 
 /**

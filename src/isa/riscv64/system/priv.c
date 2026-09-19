@@ -73,6 +73,16 @@ bool access_table[4][4] = {
 
 MAP(CSRS, CSRS_DEF)
 
+#ifndef CONFIG_RV_CSR_MENVCFG
+menvcfg_t* const menvcfg = (menvcfg_t *)&csr_array[0x30A];
+#endif
+#ifndef CONFIG_RV_CSR_MSECCFG
+mseccfg_t* const mseccfg = (mseccfg_t *)&csr_array[0x747];
+#endif
+#ifndef CONFIG_RV_CSR_SENVCFG
+senvcfg_t* const senvcfg = (senvcfg_t *)&csr_array[0x10A];
+#endif
+
 #define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
 static bool csr_exist[4096] = {};
 void init_csr() {
@@ -2218,6 +2228,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 
     case CSR_SCOUNTEREN: scounteren->val = mask_bitset(scounteren->val, COUNTEREN_MASK, src); break;
 
+#ifdef CONFIG_RV_CSR_SENVCFG
     case CSR_SENVCFG:
       senvcfg->val = mask_bitset(senvcfg->val, SENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~SENVCFG_WMASK_PMM), src);
       if (((senvcfg_t*)&src)->cbie != 0b10) { // 0b10 is reserved
@@ -2228,6 +2239,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       }
       riscv64_zicfilp_refresh_elp();
       break;
+#endif // CONFIG_RV_CSR_SENVCFG
 
 #ifdef CONFIG_RV_SMCDELEG
     case CSR_SCOUNTINHIBIT:
@@ -2597,6 +2609,7 @@ static void csr_write(uint32_t csrid, word_t src) {
     case CSR_MVIP: set_mvip(src); break;
 #endif // CONFIG_RV_AIA
 
+#ifdef CONFIG_RV_CSR_MENVCFG
     case CSR_MENVCFG:
       menvcfg->val = mask_bitset(menvcfg->val, MENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~MENVCFG_WMASK_PMM), src);
       if (((menvcfg_t*)&src)->cbie != 0b10) { // 0b10 is reserved
@@ -2607,7 +2620,9 @@ static void csr_write(uint32_t csrid, word_t src) {
       }
       riscv64_zicfilp_refresh_elp();
       break;
+#endif // CONFIG_RV_CSR_MENVCFG
 
+#ifdef CONFIG_RV_CSR_MSECCFG
     case CSR_MSECCFG:
       mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK & (~MSECCFG_WMASK_PMM), src);
       if (((mseccfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
@@ -2616,6 +2631,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       riscv64_zicfilp_refresh_elp();
       IFDEF(CONFIG_RV_ZICFILP, set_sys_state_flag(SYS_STATE_UPDATE));
       break;
+#endif // CONFIG_RV_CSR_MSECCFG
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_MSTATEEN0: *dest = src & MSTATEEN0_WMASK; break;
@@ -3036,10 +3052,12 @@ static inline bool smstateen_extension_permit_check(const uint32_t addr) {
 #endif // CONFIG_RVH
 
   // ENVCFG bit 62
+#ifdef CONFIG_RV_CSR_SENVCFG
   else if (is_access(senvcfg)) {
     if ((cpu.mode < MODE_M) && (!mstateen0->envcfg)) { longjmp_exception(EX_II); }
     IFDEF(CONFIG_RVH, else if (cpu.v && !hstateen0->envcfg) { has_vi = true; })
   }
+#endif // CONFIG_RV_CSR_SENVCFG
 #ifdef CONFIG_RVH
   else if (is_access(henvcfg)) {
     if ((cpu.mode < MODE_M) && (!mstateen0->envcfg)) { longjmp_exception(EX_II); }
