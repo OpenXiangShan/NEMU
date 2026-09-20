@@ -20,6 +20,41 @@ size_t store_effect_log_copy(difftest_store_log_entry_t *dest, size_t capacity) 
   std::copy_n(store_effect_log.begin(), count, dest);
   return count;
 }
+
+static uint64_t store_hash_mix(uint64_t value) {
+  value ^= value >> 30;
+  value *= 0xbf58476d1ce4e5b9ull;
+  value ^= value >> 27;
+  value *= 0x94d049bb133111ebull;
+  return value ^ (value >> 31);
+}
+
+static uint64_t store_hash_rotl(uint64_t value, unsigned int shift) {
+  return (value << shift) | (value >> (64 - shift));
+}
+
+void store_effect_log_hash(uint64_t *lo, uint64_t *hi, uint64_t *count) {
+  const uint64_t entry_count = store_effect_log.size();
+  uint64_t hash_lo = 0x243f6a8885a308d3ull;
+  uint64_t hash_hi = 0x13198a2e03707344ull;
+  for (size_t index = 0; index < store_effect_log.size(); ++index) {
+    const auto &entry = store_effect_log[index];
+    const uint64_t words[] = {entry.addr, entry.data, entry.mask, entry.orig_data};
+    for (size_t field = 0; field < sizeof(words) / sizeof(words[0]); ++field) {
+      const uint64_t tag = 0x9e3779b97f4a7c15ull * (index * 4 + field + 1);
+      const uint64_t value = words[field] ^ tag;
+      hash_lo = store_hash_rotl(hash_lo ^ store_hash_mix(value + 0x6a09e667f3bcc909ull), 29);
+      hash_lo = hash_lo * 0x100000001b3ull + 0x3c6ef372fe94f82bull;
+      hash_hi = store_hash_rotl(hash_hi + store_hash_mix(value ^ 0xbb67ae8584caa73bull), 31);
+      hash_hi = hash_hi * 0x9e3779b185ebca87ull + 0xa54ff53a5f1d36f1ull;
+    }
+  }
+  hash_lo ^= store_hash_mix(entry_count + 0x510e527fade682d1ull);
+  hash_hi ^= store_hash_mix(entry_count ^ 0x1f83d9abfb41bd6bull);
+  *lo = hash_lo;
+  *hi = hash_hi;
+  *count = entry_count;
+}
 #ifdef CONFIG_LIGHTQS
 std::stack<store_log_t> spec_store_log_stack;
 void spec_store_log_stack_reset() { spec_store_log_stack = {};}

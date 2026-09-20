@@ -18,6 +18,7 @@ void store_effect_log_reset();
 void store_effect_log_push(difftest_store_log_entry_t log);
 size_t store_effect_log_size();
 size_t store_effect_log_copy(difftest_store_log_entry_t *dest, size_t capacity);
+void store_effect_log_hash(uint64_t *lo, uint64_t *hi, uint64_t *count);
 #ifdef CONFIG_LIGHTQS
 void spec_store_log_stack_reset();
 void spec_store_log_stack_push(store_log_t log);
