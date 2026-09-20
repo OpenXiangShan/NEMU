@@ -2124,7 +2124,7 @@ void update_vsatp(const vsatp_t new_val) {
 
 static void csr_write(uint32_t csrid, word_t src) {
   word_t *dest = csr_decode(csrid);
-  IFDEF(CONFIG_DIFFTEST, csr_difftest_mark_dirty());
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
   switch (csrid) {
     /************************* Unprivileged and User-Level CSRs *************************/
 #ifndef CONFIG_FPU_NONE
@@ -3645,6 +3645,7 @@ static bool __attribute__((unused)) vsretTo (cpu_mode_t mode) {
 /// @brief Do RISC-V 64 privileged instruction: SRET
 /// @return the next PC after SRET
 word_t riscv64_priv_sret() {
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 #ifdef CONFIG_RVH
   if (cpu.v == 1){
     if((cpu.mode == MODE_S && hstatus->vtsr) || cpu.mode < MODE_S){
@@ -3714,6 +3715,7 @@ word_t riscv64_priv_mret() {
   if (cpu.mode < MODE_M) {
     longjmp_exception(EX_II);
   }
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 #ifdef CONFIG_RV_ZICFILP
   uint32_t target_mode = mstatus->mpp;
   bool target_virtual = MUXDEF(CONFIG_RVH, (mstatus->mpp != MODE_M && mstatus->mpv), false);

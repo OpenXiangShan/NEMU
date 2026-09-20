@@ -77,9 +77,9 @@ static word_t riscv_timer_interrupt_pending() {
 
 void update_riscv_timer() {
 #ifdef CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
-#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_SHARE
   word_t old_timer_interrupt = riscv_timer_interrupt_pending();
-#endif // CONFIG_DIFFTEST
+#endif // CONFIG_SHARE
 #ifdef CONFIG_DETERMINISTIC
   uint64_t get_abs_instr_count();
   mtime->val = (get_abs_instr_count() / CONFIG_CYCLES_PER_MTIME_TICK) + clint_mtime_correction;
@@ -87,11 +87,11 @@ void update_riscv_timer() {
   uint64_t uptime = get_time();
   mtime->val = uptime / US_PERCYCLE + clint_mtime_correction;
 #endif // CONFIG_DETERMINISTIC
-#ifdef CONFIG_DIFFTEST
+#ifdef CONFIG_SHARE
   if (old_timer_interrupt != riscv_timer_interrupt_pending()) {
     csr_difftest_mark_dirty();
   }
-#endif // CONFIG_DIFFTEST
+#endif // CONFIG_SHARE
 #endif // CONFIG_CLINT_LOCAL_TIMER_INTERRUPT
 }
 
