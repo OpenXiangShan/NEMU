@@ -473,6 +473,7 @@ void difftest_migration_state_copy(void *buffer, bool direction) {
     cpu.execution_guide = state->execution_guide;
     cpu.non_reg_interrupt_pending = state->non_reg_interrupt_pending;
     cpu.debug = state->debug;
+    cpu.debug.current_pc = 0;
 #ifdef CONFIG_QUERY_REF
     cpu.query_mem_event = state->query_mem_event;
 #endif
@@ -520,6 +521,7 @@ void difftest_migration_state_copy(void *buffer, bool direction) {
     state->execution_guide = cpu.execution_guide;
     state->non_reg_interrupt_pending = cpu.non_reg_interrupt_pending;
     state->debug = cpu.debug;
+    state->debug.current_pc = 0;
 #ifdef CONFIG_QUERY_REF
     state->query_mem_event = cpu.query_mem_event;
 #endif

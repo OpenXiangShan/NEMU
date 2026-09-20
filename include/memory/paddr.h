@@ -80,6 +80,7 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
 
 
 #ifdef CONFIG_STORE_LOG
+void pmem_record_store(paddr_t addr, int len, word_t data);
 typedef struct {
 #ifdef CONFIG_LIGHTQS
   uint64_t inst_cnt;

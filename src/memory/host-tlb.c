@@ -161,6 +161,9 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
     return;
   }
   uint8_t *host_addr = e->offset + vaddr;
+#ifdef CONFIG_STORE_LOG
+  pmem_record_store(host_to_guest(host_addr), len, data);
+#endif
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
