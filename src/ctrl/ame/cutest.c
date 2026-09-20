@@ -62,11 +62,9 @@ void cutest_mzero_emplace(bool isacc, uint8_t md) {
   event.valid = true;
   event.op = 3;
   event.md = md;
-  if (isacc) {
-    event.base = 0x1bc;
-  } else {
-    event.base = 0x1b8;
-  }
+  // Match cute-test make_mzero wire encoding (funct 0x1b8).
+  (void)isacc;
+  event.base = 0x1b8;
   event.pc = prev_s->pc;
   amu_ctrl_callback_(event);
 }
