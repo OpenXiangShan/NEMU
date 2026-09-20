@@ -18,7 +18,9 @@
 #ifdef CONFIG_RV_AME
 
 #include "mreg.h"
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
 #include <stdio.h>
+#endif
 #include "isa.h"
 
 _Static_assert(CONFIG_RV_AME_TLEN % CONFIG_RV_AME_TRLEN == 0,
@@ -31,6 +33,48 @@ _Static_assert(CONFIG_RV_AME_MSYNC == 8 ||
                CONFIG_RV_AME_MSYNC == 16 ||
                CONFIG_RV_AME_MSYNC == 32,
                "MSYNC must be one of 8/16/32");
+
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+// All current matrix writers produce a rectangle starting at (0, 0). Track
+// the latest write, not the union of historical writes: consumers must not
+// depend on the preserved values outside a partial load or MMA result.
+typedef struct {
+  uint64_t rows;
+  // Column extent in bytes. Keeping byte units makes mcfg changes explicit.
+  uint64_t columns;
+  uint64_t pc;
+} matrix_write_region_t;
+
+static matrix_write_region_t matrix_write_regions[8];
+
+void ame_matrix_region_mark_write(int mreg_num, uint64_t rows, uint64_t columns,
+                                 uint64_t pc) {
+  if (rows == 0 || columns == 0) return;
+  Assert(mreg_num >= 0 && mreg_num < 8, "Invalid matrix register m%d", mreg_num);
+  Assert(rows <= ROWNUM && columns <= (mreg_num < 4 ? TRENUM8 : ARENUM8),
+         "Invalid matrix write region");
+  matrix_write_regions[mreg_num] = (matrix_write_region_t) {rows, columns, pc};
+}
+
+void ame_matrix_region_check_read(int mreg_num, uint64_t rows, uint64_t columns,
+                                 uint64_t pc) {
+  if (rows == 0 || columns == 0) return;
+  Assert(mreg_num >= 0 && mreg_num < 8, "Invalid matrix register m%d", mreg_num);
+  const matrix_write_region_t *last = &matrix_write_regions[mreg_num];
+  if (rows <= last->rows && columns <= last->columns) return;
+
+  fprintf(stderr, "UB: matrix read at pc=0x%016lx reads m%d outside its latest write region; "
+          "read=%lu rows x %lu bytes, valid=%lu rows x %lu bytes",
+          (unsigned long)pc, mreg_num, (unsigned long)rows,
+          (unsigned long)columns, (unsigned long)last->rows, (unsigned long)last->columns);
+  if (last->rows != 0 && last->columns != 0) {
+    fprintf(stderr, "; last write at pc=0x%016lx\n", (unsigned long)last->pc);
+  } else {
+    fprintf(stderr, "; no prior matrix write\n");
+  }
+}
+
+#endif
 
 uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row) {
   if (mtr_num >= 4) {
