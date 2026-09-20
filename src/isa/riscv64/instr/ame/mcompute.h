@@ -73,6 +73,13 @@ def_EHelper(mmacc) {
   }
   bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
   bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  if (tile_m != 0 && tile_n != 0 && tile_k != 0) {
+    ame_matrix_region_check_read(ts1, tile_m, tile_k << s1size, s->pc);
+    ame_matrix_region_check_read(ts2, tile_n, tile_k << s2size, s->pc);
+    ame_matrix_region_check_read(td, tile_m, tile_n << dsize, s->pc);
+  }
+#endif // CONFIG_AME_TILEREG_UB_CHECK
 #ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (mmacc_type == MMACC_TYPE_INTEGER) {
@@ -167,6 +174,11 @@ def_EHelper(mmacc) {
 #endif // CONFIG_FPU_NONE
   }
 #endif // CONFIG_SHARE_REF
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  if (tile_m != 0 && tile_n != 0 && tile_k != 0) {
+    ame_matrix_region_mark_write(td, tile_m, tile_n << dsize, s->pc);
+  }
+#endif // CONFIG_AME_TILEREG_UB_CHECK
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
   uint8_t m_s_sz = s1size;
   uint8_t m_d_sz = dsize;
@@ -213,6 +225,11 @@ def_EHelper(mzero) {
     }
   }
 #endif // CONFIG_SHARE_REF
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  ame_matrix_region_mark_write(s->dest.reg, ROWNUM,
+                              s->dest.reg >= 4 ? ARENUM8 : TRENUM8,
+                              s->pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mzero_emplace(true, s->dest.reg);
 #endif // CONFIG_DIFFTEST_AMU_CTRL

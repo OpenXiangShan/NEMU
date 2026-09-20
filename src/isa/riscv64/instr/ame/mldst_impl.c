@@ -135,6 +135,11 @@ void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
                               is_trans, false, td)) {
       mp_set_dirty();
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+      // An odd FP4 row also zeroes its last byte's high nibble.
+      ame_matrix_region_mark_write(td, row, ((uint64_t)column + 1) / 2,
+                                  s->pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
     }
     return;
   }
@@ -147,6 +152,11 @@ void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
   rtl_lmm(s, &base_addr, &row_byte_stride,
     row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, td);
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  // Track the register rectangle in instruction order, including deferred REF loads.
+  ame_matrix_region_mark_write(td, row, (uint64_t)column << dsize,
+                              s->pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
 }
 
 void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
@@ -162,6 +172,9 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
 
 #ifdef CONFIG_RV_AME_FP4
   if (raw_fp4) {
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+    ame_matrix_region_check_read(ts3, row, ((uint64_t)column + 1) / 2, s->pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
                               is_trans, true, ts3)) {
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
@@ -175,6 +188,9 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
   (void)raw_fp4;
 #endif
 
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  ame_matrix_region_check_read(ts3, row, (uint64_t)column << dsize, s->pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
   rtl_smm(s, &base_addr, &row_byte_stride,
     row, column, dsize, is_trans,
     MMU_TRANSLATE, m_name, ts3);

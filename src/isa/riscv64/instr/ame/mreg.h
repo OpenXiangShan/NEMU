@@ -149,6 +149,19 @@ void set_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
 void get_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
               rtlreg_t *dst, uint64_t msew, bool is_signed);
 uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row);
+
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+// Diagnostic-only latest write rectangles, starting at row 0, byte column 0.
+// Update and check in instruction order, including REF; deferred AMU execution
+// must not change these records or check reads against them.
+// Empty operations preserve the previous range. Widths are bytes so changing
+// mcfg cannot reinterpret an old element count as a larger defined region.
+void ame_matrix_region_mark_write(int mreg_num, uint64_t rows, uint64_t columns,
+                                 uint64_t pc);
+void ame_matrix_region_check_read(int mreg_num, uint64_t rows, uint64_t columns,
+                                 uint64_t pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
+
 #ifdef CONFIG_RV_AME_FP4
 uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx);
 void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,

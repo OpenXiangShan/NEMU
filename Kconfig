@@ -259,6 +259,16 @@ config AME_REG_ACCESS_CHECK
     Enable debug checks for AME matrix register numbers, rows, and element
     indices. Disable this for higher perf.
 
+config AME_TILEREG_UB_CHECK
+  depends on RV_AME
+  bool "Check tile register undefined regions"
+  default n
+  help
+    Report mstore and MMA reads that extend beyond the latest mload, mzero,
+    or MMA write region of a matrix register. The AME specification leaves
+    values outside a partial write unspecified, so consuming them is treated
+    as undefined behavior. This is a diagnostic and is disabled by default.
+
 config AME_MEM_ACCESS_CHECK
   depends on RV_AME
   bool "Check AME memory access synchronization"
