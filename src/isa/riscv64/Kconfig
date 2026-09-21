@@ -372,6 +372,16 @@ config RV_ZIHPM
     Because mhpmcountern and mhpmeventn are all read-only zero on NEMU,
     hpmcountern are also read-only zero.
 
+config RV_CSR_MSECCFG
+  bool "Machine Security Configuration CSR (mseccfg)"
+  default y
+  help
+    This decides whether CSR mseccfg (0x747) is implemented.
+    If n, accessing mseccfg raises an illegal-instruction exception.
+
+    menvcfg/senvcfg stay implemented whenever U/S mode exists; this switch
+    is only for mseccfg.
+
 menuconfig RV_CSR_MCOUNTINHIBIT
   bool "Machine Counter-Inhibit CSR (mcountinhibit)"
   default y

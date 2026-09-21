@@ -376,8 +376,15 @@
   CSRS_M_GUEST_TRAP_HANDLING(f)
 
 /** Machine Configuration **/
+#ifdef CONFIG_RV_CSR_MSECCFG
+  #define CSRS_M_MSECCFG(f) \
+    f(mseccfg    , 0x747)
+#else // CONFIG_RV_CSR_MSECCFG
+  #define CSRS_M_MSECCFG(f)
+#endif // CONFIG_RV_CSR_MSECCFG
+
 #define CSRS_M_CONFIGURATION(f) \
-  f(menvcfg    , 0x30A) f(mseccfg    , 0x747)
+  f(menvcfg    , 0x30A) CSRS_M_MSECCFG(f)
 
 /** Machine Memory Protection (PMP) **/
 #ifdef CONFIG_RV_PMP_ENTRY_0
@@ -1913,6 +1920,10 @@ CSR_STRUCT_END(mnscratch)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
+
+#ifndef CONFIG_RV_CSR_MSECCFG
+extern mseccfg_t* const mseccfg;
+#endif
 
 
 /**

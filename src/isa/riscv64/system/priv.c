@@ -73,6 +73,10 @@ bool access_table[4][4] = {
 
 MAP(CSRS, CSRS_DEF)
 
+#ifndef CONFIG_RV_CSR_MSECCFG
+mseccfg_t* const mseccfg = (mseccfg_t *)&csr_array[0x747];
+#endif
+
 #define CSRS_EXIST(name, addr) csr_exist[addr] = 1;
 static bool csr_exist[4096] = {};
 void init_csr() {
@@ -2615,6 +2619,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       riscv64_zicfilp_refresh_elp();
       break;
 
+#ifdef CONFIG_RV_CSR_MSECCFG
     case CSR_MSECCFG:
       mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK & (~MSECCFG_WMASK_PMM), src);
       if (((mseccfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
@@ -2623,6 +2628,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       riscv64_zicfilp_refresh_elp();
       IFDEF(CONFIG_RV_ZICFILP, set_sys_state_flag(SYS_STATE_UPDATE));
       break;
+#endif // CONFIG_RV_CSR_MSECCFG
 
 #ifdef CONFIG_RV_SMSTATEEN
     case CSR_MSTATEEN0: *dest = src & MSTATEEN0_WMASK; break;
