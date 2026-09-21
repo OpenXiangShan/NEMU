@@ -171,6 +171,20 @@ void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
 
+// Fast execution and the authoritative child share the architectural state at
+// fork time, but not necessarily the cached MMU translation state.  Rebuild
+// the derived MMU/PMP/PMA state before the child starts instruction checking.
+void difftest_flush_state(void) {
+  extern int update_mmu_state();
+  extern void mmu_tlb_flush(vaddr_t vaddr);
+  extern void mmu_refresh_pmp_cache();
+  extern void mmu_refresh_pma_cache();
+  update_mmu_state();
+  mmu_refresh_pmp_cache();
+  mmu_refresh_pma_cache();
+  mmu_tlb_flush(0);
+}
+
 static uint64_t state_hash_mix(uint64_t value) {
   value ^= value >> 30;
   value *= 0xbf58476d1ce4e5b9ull;
