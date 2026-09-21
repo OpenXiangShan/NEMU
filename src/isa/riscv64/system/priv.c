@@ -2074,10 +2074,17 @@ void vcsr_read(uint32_t addr,  rtlreg_t *dest) {
 #endif // CONFIG_RVV
 
 void disable_time_intr() {
-    Log("Disabled machine/supervisor/virtualized-supervisor time interruption\n");
-    mie->mtie = 0;
-    mie->stie = 0;
+#ifdef CONFIG_RVH
+  if (cpu.v) {
+    Log("Disabled virtualized-supervisor time interruption\n");
     mie->vstie = 0;
+    return;
+  }
+#endif
+  Log("Disabled machine/supervisor/virtualized-supervisor time interruption\n");
+  mie->mtie = 0;
+  mie->stie = 0;
+  mie->vstie = 0;
 }
 
 #ifdef CONFIG_RVH
