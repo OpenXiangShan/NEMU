@@ -14,6 +14,11 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
+ifeq ($(strip $(NEMU_HOME)),)
+NEMU_HOME := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+endif
+export NEMU_HOME
+
 ifeq ($(wildcard $(NEMU_HOME)/src/nemu-main.c),)
   $(error NEMU_HOME=$(NEMU_HOME) is not a NEMU repo)
 endif
@@ -105,6 +110,10 @@ CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT_FLAGS))
 CFLAGS_BUILD += $(if $(CONFIG_CC_AGGRESSIVE_INLINE),--param max-inline-insns-single=256 -falign-labels=32:9:64:15,)
 CFLAGS  += $(CFLAGS_BUILD)
 LDFLAGS += $(CFLAGS_BUILD)
+
+ifdef CONFIG_SHARE_REF
+CFLAGS += -DCONFIG_REF_TRACE
+endif
 
 NAME  = nemu-$(ENGINE)
 
