@@ -20,9 +20,11 @@
 #include <cpu/difftest.h>
 #include <cpu/decode.h>
 #include <cpu/instr_stat.h>
+#include <cpu/ref-trace.h>
 #include <memory/host-tlb.h>
 #include <isa-all-instr.h>
 #include <locale.h>
+#include <inttypes.h>
 #include <setjmp.h>
 #include <unistd.h>
 #include <generated/autoconf.h>
@@ -78,6 +80,347 @@ static int n_batch;             // instructions that execute() plans to batch
 // - instr_count_bb_unsettled handles special case where BATCH is end but BB is not end.
 
 Decode *prev_s;
+
+bool ref_trace_enabled = false;
+RefTraceMemEvent ref_trace_mem_events[REF_TRACE_MAX_MEM_EVENTS];
+unsigned ref_trace_mem_event_count = 0;
+RefTraceCsrEvent ref_trace_csr_events[REF_TRACE_MAX_CSR_EVENTS];
+unsigned ref_trace_csr_event_count = 0;
+
+#ifdef CONFIG_REF_TRACE
+typedef struct {
+  word_t gpr[32];
+#ifndef CONFIG_FPU_NONE
+  word_t fpr[32];
+#endif
+#ifdef CONFIG_RVV
+  word_t vr[32][VENUM64];
+#endif
+  char mode[3];
+} RefTraceState;
+
+static RefTraceState ref_trace_state;
+
+static const struct {
+  uint16_t addr;
+  const char *name;
+} ref_trace_csr_names[] = {
+  {0x001, "fflags"}, {0x002, "frm"},        {0x003, "fcsr"},
+  {0x100, "sstatus"}, {0x104, "sie"},       {0x105, "stvec"},
+  {0x106, "scounteren"}, {0x140, "sscratch"}, {0x141, "sepc"},
+  {0x142, "scause"}, {0x143, "stval"},      {0x144, "sip"},
+  {0x180, "satp"},   {0x300, "mstatus"},    {0x301, "misa"},
+  {0x302, "medeleg"}, {0x303, "mideleg"},  {0x304, "mie"},
+  {0x305, "mtvec"},  {0x306, "mcounteren"}, {0x340, "mscratch"},
+  {0x341, "mepc"},   {0x342, "mcause"},     {0x343, "mtval"},
+  {0x344, "mip"},
+};
+
+static const char *ref_trace_csr_name(uint16_t addr) {
+  for (unsigned i = 0;
+       i < sizeof(ref_trace_csr_names) / sizeof(ref_trace_csr_names[0]); i++) {
+    if (ref_trace_csr_names[i].addr == addr) return ref_trace_csr_names[i].name;
+  }
+  return NULL;
+}
+
+static const char *ref_trace_pretty_mnemonic(const char *mnemonic,
+                                              const Decode *s) {
+  bool compressed = s->snpc - s->pc == 2;
+  if (strcmp(mnemonic, "p_ret") == 0) return "ret";
+  if (strcmp(mnemonic, "p_jal") == 0) return "jal";
+  if (strcmp(mnemonic, "p_sext_w") == 0) return "sext.w";
+  if (strcmp(mnemonic, "p_li_0") == 0 || strcmp(mnemonic, "p_li_1") == 0) {
+    return compressed ? "c.li" : "li";
+  }
+
+  static const struct {
+    const char *internal;
+    const char *standard;
+    const char *compressed;
+  } aliases[] = {
+    {"c_add", "add", "c.add"},       {"c_addi", "addi", "c.addi"},
+    {"c_addiw", "addiw", "c.addiw"}, {"c_addw", "addw", "c.addw"},
+    {"c_and", "and", "c.and"},       {"c_andi", "andi", "c.andi"},
+    {"c_beqz", "beqz", "c.beqz"},   {"c_bnez", "bnez", "c.bnez"},
+    {"c_j", "j", "c.j"},            {"c_jalr", "jalr", "c.jalr"},
+    {"c_jr", "jr", "c.jr"},         {"c_li", "li", "c.li"},
+    {"c_mv", "mv", "c.mv"},         {"c_or", "or", "c.or"},
+    {"c_slli", "slli", "c.slli"},   {"c_srai", "srai", "c.srai"},
+    {"c_srli", "srli", "c.srli"},   {"c_sub", "sub", "c.sub"},
+    {"c_subw", "subw", "c.subw"},   {"c_xor", "xor", "c.xor"},
+  };
+  for (unsigned i = 0; i < sizeof(aliases) / sizeof(aliases[0]); i++) {
+    if (strcmp(mnemonic, aliases[i].internal) == 0) {
+      return compressed ? aliases[i].compressed : aliases[i].standard;
+    }
+  }
+
+  static char stripped[32];
+  size_t len = strlen(mnemonic);
+  if (compressed && strcmp(mnemonic, "lui") == 0) return "c.lui";
+  if (compressed && strcmp(mnemonic, "xori") == 0) return "not";
+  if (!compressed && len > 4 && strcmp(mnemonic + len - 4, "_mmu") == 0) {
+    snprintf(stripped, sizeof(stripped), "%.*s", (int)len - 4, mnemonic);
+    return stripped;
+  }
+  if (compressed && len > 4 && strcmp(mnemonic + len - 4, "_mmu") == 0) {
+    uint32_t quadrant = s->isa.instr.val & 0x3;
+    uint32_t funct3 = (s->isa.instr.val >> 13) & 0x7;
+    if (quadrant == 0) {
+      static const char *names[] = {
+        "c.addi4spn", "c.fld", "c.lw", "c.ld", NULL, "c.fsd", "c.sw", "c.sd"
+      };
+      if (names[funct3] != NULL) return names[funct3];
+    } else if (quadrant == 2) {
+      static const char *names[] = {
+        "c.slli", "c.fldsp", "c.lwsp", "c.ldsp", NULL, "c.fsdsp", "c.swsp", "c.sdsp"
+      };
+      if (names[funct3] != NULL) return names[funct3];
+    }
+    snprintf(stripped, sizeof(stripped), "c.%.*s", (int)len - 4, mnemonic);
+    return stripped;
+  }
+  return mnemonic;
+}
+
+static void ref_trace_format_asm(Decode *s) {
+  char mnemonic[32] = {};
+  char operands[sizeof(s->ref_trace_asm)] = {};
+  const char *input = s->ref_trace_asm;
+  while (*input == ' ') input++;
+  size_t mnemonic_len = strcspn(input, " \t");
+  snprintf(mnemonic, sizeof(mnemonic), "%.*s", (int)mnemonic_len, input);
+  input += mnemonic_len;
+  while (*input == ' ' || *input == '\t') input++;
+
+  size_t out = 0;
+  for (size_t i = 0; input[i] != '\0' && out + 1 < sizeof(operands); i++) {
+    if (input[i] == '$' && input[i + 1] == '0') {
+      const char zero[] = "zero";
+      if (out + sizeof(zero) >= sizeof(operands)) break;
+      memcpy(operands + out, zero, sizeof(zero) - 1);
+      out += sizeof(zero) - 1;
+      i++;
+    } else {
+      operands[out++] = input[i];
+      if (input[i] == ',' && input[i + 1] != ' ' && out + 1 < sizeof(operands)) {
+        operands[out++] = ' ';
+      }
+    }
+  }
+  operands[out] = '\0';
+
+  const char *pretty = ref_trace_pretty_mnemonic(mnemonic, s);
+  bool compressed = s->snpc - s->pc == 2;
+  if ((strcmp(mnemonic, "p_li_0") == 0 || strcmp(mnemonic, "p_li_1") == 0)) {
+    snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %c", pretty,
+             id_dest->str, mnemonic[5] == '0' ? '0' : '1');
+  } else if ((compressed && strncmp(mnemonic, "c_", 2) == 0) ||
+             (!compressed && strcmp(mnemonic, "c_li") == 0)) {
+    const char *last = strrchr(operands, ',');
+    const char *first = strchr(operands, ',');
+    if (last != NULL && (first != last || strcmp(mnemonic, "c_li") == 0)) {
+      snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s,%s", pretty,
+               id_dest->str, last + 1);
+    } else {
+      snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s", pretty, operands);
+    }
+  } else {
+    snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s%s%s", pretty,
+             operands[0] == '\0' ? "" : " ", operands);
+  }
+
+  if (!compressed && strcmp(mnemonic, "c_jr") == 0) {
+    const char *last = strrchr(operands, ',');
+    if (last != NULL) {
+      snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s%s", "jr", last + 1);
+    }
+  }
+
+  if (compressed && strcmp(mnemonic, "xori") == 0) {
+    snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %s", "not",
+             id_dest->str, id_dest->str);
+  }
+  if (!compressed && strcmp(mnemonic, "xori") == 0 && id_src2->imm == (word_t)-1) {
+    snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %s", "not",
+             id_dest->str, id_src1->str);
+  }
+
+  if (strcmp(mnemonic, "lui") == 0) {
+    uint32_t imm = compressed
+      ? ((((s->isa.instr.val >> 12) & 1) << 5) | ((s->isa.instr.val >> 2) & 0x1f))
+      : ((s->isa.instr.val >> 12) & 0xfffff);
+    snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, 0x%x", pretty,
+             id_dest->str, imm);
+  }
+
+  if (compressed && strcmp(mnemonic, "c_addi") == 0 && id_dest->ref_trace_reg == 2 &&
+      ((s->isa.instr.val >> 13) & 0x7) == 3) {
+    char *space = strchr(s->ref_trace_asm, ' ');
+    if (space != NULL) {
+      char tail[sizeof(s->ref_trace_asm)] = {};
+      snprintf(tail, sizeof(tail), "%s", space);
+      snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s%s", "c.addi16sp", tail);
+    }
+  }
+
+  uint32_t opcode = s->isa.instr.val & 0x7f;
+  uint32_t funct3 = (s->isa.instr.val >> 12) & 0x7;
+  if (!compressed && opcode == 0x73 && funct3 != 0) {
+    uint32_t rd = (s->isa.instr.val >> 7) & 0x1f;
+    uint32_t rs1 = (s->isa.instr.val >> 15) & 0x1f;
+    uint16_t csr = (s->isa.instr.val >> 20) & 0xfff;
+    char csr_buf[16];
+    const char *csr_name = ref_trace_csr_name(csr);
+    if (csr_name == NULL) {
+      snprintf(csr_buf, sizeof(csr_buf), "0x%03x", csr);
+      csr_name = csr_buf;
+    }
+    bool immediate = funct3 >= 5;
+    uint32_t operation = funct3 & 0x3;
+    if (operation == 2 && rs1 == 0) {
+      snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %s", "csrr",
+               reg_name(rd, 4), csr_name);
+    } else if (rd == 0) {
+      const char *name = operation == 1 ? (immediate ? "csrwi" : "csrw")
+                        : operation == 2 ? (immediate ? "csrsi" : "csrs")
+                                         : (immediate ? "csrci" : "csrc");
+      if (immediate) {
+        snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %u", name,
+                 csr_name, rs1);
+      } else {
+        snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %s", name,
+                 csr_name, reg_name(rs1, 4));
+      }
+    } else {
+      const char *name = operation == 1 ? (immediate ? "csrrwi" : "csrrw")
+                        : operation == 2 ? (immediate ? "csrrsi" : "csrrs")
+                                         : (immediate ? "csrrci" : "csrrc");
+      if (immediate) {
+        snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %s, %u", name,
+                 reg_name(rd, 4), csr_name, rs1);
+      } else {
+        snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%-8s %s, %s, %s", name,
+                 reg_name(rd, 4), csr_name, reg_name(rs1, 4));
+      }
+    }
+  }
+}
+
+static void ref_trace_begin(Decode *s) {
+  if (!ref_trace_enabled) {
+    return;
+  }
+
+  for (int i = 0; i < 32; i++) {
+    ref_trace_state.gpr[i] = cpu.gpr[i]._64;
+#ifndef CONFIG_FPU_NONE
+    ref_trace_state.fpr[i] = cpu.fpr[i]._64;
+#endif
+#ifdef CONFIG_RVV
+    for (int j = 0; j < VENUM64; j++) {
+      ref_trace_state.vr[i][j] = cpu.vr[i]._64[j];
+    }
+#endif
+  }
+  snprintf(ref_trace_state.mode, sizeof(ref_trace_state.mode), "%s",
+           isa_get_privilege_mode_str());
+  ref_trace_mem_event_count = 0;
+  ref_trace_csr_event_count = 0;
+}
+
+static void ref_trace_prefix(const Decode *s) {
+  int instr_len = s->snpc - s->pc;
+  fprintf(stderr, "%u: %-2s 0x%016" PRIx64 " (0x%0*" PRIx64 ")  %-44s [",
+          ref_hartid, ref_trace_state.mode, (uint64_t)s->pc, instr_len * 2,
+          (uint64_t)s->isa.instr.val, s->ref_trace_asm);
+}
+
+static void ref_trace_commit(Decode *s) {
+  if (!ref_trace_enabled) {
+    return;
+  }
+
+  ref_trace_prefix(s);
+  for (int i = 1; i < 32; i++) {
+    if (ref_trace_state.gpr[i] != cpu.gpr[i]._64 ||
+        (s->dest.ref_trace_reg_kind == REF_TRACE_REG_GPR &&
+         s->dest.ref_trace_reg == i)) {
+      fprintf(stderr, " x%-2d 0x%016" PRIx64, i, (uint64_t)cpu.gpr[i]._64);
+    }
+  }
+#ifndef CONFIG_FPU_NONE
+  for (int i = 0; i < 32; i++) {
+    if (ref_trace_state.fpr[i] != cpu.fpr[i]._64 ||
+        (s->dest.ref_trace_reg_kind == REF_TRACE_REG_FPR &&
+         s->dest.ref_trace_reg == i)) {
+      fprintf(stderr, " f%-2d 0x%016" PRIx64, i, (uint64_t)cpu.fpr[i]._64);
+    }
+  }
+#endif
+#ifdef CONFIG_RVV
+  for (int i = 0; i < 32; i++) {
+    bool changed = false;
+    for (int j = 0; j < VENUM64; j++) {
+      changed |= ref_trace_state.vr[i][j] != cpu.vr[i]._64[j];
+    }
+    if (changed) {
+      fprintf(stderr, " v%-2d 0x", i);
+      for (int j = VENUM64 - 1; j >= 0; j--) {
+        fprintf(stderr, "%016" PRIx64, (uint64_t)cpu.vr[i]._64[j]);
+      }
+    }
+  }
+#endif
+
+  unsigned csr_count = MIN_OF(ref_trace_csr_event_count, REF_TRACE_MAX_CSR_EVENTS);
+  for (unsigned i = 0; i < csr_count; i++) {
+    const RefTraceCsrEvent *event = &ref_trace_csr_events[i];
+    const char *name = ref_trace_csr_name(event->addr);
+    if (name != NULL) {
+      fprintf(stderr, " csr %s 0x%016" PRIx64, name, (uint64_t)event->data);
+    } else {
+      fprintf(stderr, " csr 0x%03x 0x%016" PRIx64, event->addr,
+              (uint64_t)event->data);
+    }
+  }
+  if (ref_trace_csr_event_count > REF_TRACE_MAX_CSR_EVENTS) {
+    fprintf(stderr, " csr +%u", ref_trace_csr_event_count - REF_TRACE_MAX_CSR_EVENTS);
+  }
+
+  unsigned count = MIN_OF(ref_trace_mem_event_count, REF_TRACE_MAX_MEM_EVENTS);
+  for (unsigned i = 0; i < count; i++) {
+    RefTraceMemEvent *event = &ref_trace_mem_events[i];
+    fprintf(stderr, " mem %c%d 0x%016" PRIx64 " 0x%0*" PRIx64,
+            event->is_write ? 'w' : 'r', event->len, (uint64_t)event->addr,
+            event->len * 2, (uint64_t)event->data);
+  }
+  if (ref_trace_mem_event_count > REF_TRACE_MAX_MEM_EVENTS) {
+    fprintf(stderr, " mem +%u", ref_trace_mem_event_count - REF_TRACE_MAX_MEM_EVENTS);
+  }
+
+  const char *new_mode = isa_get_privilege_mode_str();
+  if (strcmp(ref_trace_state.mode, new_mode) != 0) {
+    fprintf(stderr, " mode %s", new_mode);
+  }
+  fprintf(stderr, " ]\n");
+  fflush(stderr);
+}
+
+static void ref_trace_exception(Decode *s, word_t cause) {
+  if (!ref_trace_enabled || s == NULL) {
+    return;
+  }
+  ref_trace_prefix(s);
+  fprintf(stderr, " trap 0x%" PRIx64 " ]\n", (uint64_t)cause);
+  fflush(stderr);
+}
+#else
+#define ref_trace_begin(s) ((void)0)
+#define ref_trace_commit(s) ((void)0)
+#define ref_trace_exception(s, cause) ((void)0)
+#endif
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
@@ -765,6 +1108,7 @@ static void execute(int n) {
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
     ref_log_cpu("pc = 0x%lx inst %x", s.pc, s.isa.instr.val);
+    ref_trace_begin(&s);
 
 #ifdef CONFIG_RV_ZICFILP
     if (unlikely(cpu.elp == 1)) {
@@ -777,6 +1121,7 @@ static void execute(int n) {
 #endif
 
     s.EHelper(&s);
+    ref_trace_commit(&s);
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
@@ -809,13 +1154,24 @@ static void execute(int n) {
 
 IFDEF(CONFIG_DEBUG, char log_bytebuf[80] = {};)
 // max size is (strlen(str(instr)) + strlen(suffix_char(id_dest->width)) + sizeof(id_dest->str) + sizeof(id_src2->str) + sizeof(id_src1->str))
-IFDEF(CONFIG_DEBUG, char log_asmbuf[80 + (sizeof(((Operand*)0)->str) * 3)] = {};)
+#if defined(CONFIG_DEBUG) || defined(CONFIG_REF_TRACE)
+char log_asmbuf[80 + (sizeof(((Operand*)0)->str) * 3)] = {};
+#endif
 
 void fetch_decode(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
+#ifdef CONFIG_REF_TRACE
+  log_asmbuf[0] = '\0';
+  s->dest.ref_trace_reg_kind = REF_TRACE_REG_NONE;
+  s->dest.ref_trace_reg = 0;
+#endif
   int idx = isa_fetch_decode(s);
+#ifdef CONFIG_REF_TRACE
+  snprintf(s->ref_trace_asm, sizeof(s->ref_trace_asm), "%s", log_asmbuf);
+  ref_trace_format_asm(s);
+#endif
   IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY,
         s->instr_stat_category = instr_stat_category(idx));
   Logtid(
@@ -885,6 +1241,8 @@ void cpu_exec(uint64_t n) {
     update_instr_cnt();
 
     IFDEF(CONFIG_PERF_OPT, update_global());
+
+    ref_trace_exception(prev_s, g_ex_cause);
 
     Loge("Longjmp happened. total insts: %'lu, cpu_exec remain: %'li", get_abs_instr_count(), n_remain_total);
   }
