@@ -518,7 +518,10 @@ extern uint64_t g_nr_vst, g_nr_vst_unit, g_nr_vst_unit_optimized;
 
 void vst(Decode *s, int mode, int mmu_mode) {
   vstore_check(mode, s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    cpu.isVldst = false;
+    return;
+  }
   g_nr_vst += 1;
   uint64_t idx;
   uint64_t nf, vl_val, base_addr, vd, addr, is_unit_stride;
@@ -537,6 +540,11 @@ void vst(Decode *s, int mode, int mmu_mode) {
   isa_emul_check(mode == MODE_MASK ? 1 : emul, 1);
   emul = emul < 0 ? 0 : emul;
   emul = 1 << emul;
+
+  cpu.isVstoreActive = true;
+  if (vstart->val != 0) {
+    vp_set_dirty();
+  }
 
   if (mode == MODE_STRIDED) {
     stride = id_src2->val;
@@ -678,13 +686,16 @@ void vst(Decode *s, int mode, int mmu_mode) {
 
   vstart->val = 0;
   cpu.isVldst = false;
+  cpu.isVstoreActive = false;
   cpu.isVecUnitStore = false;
-  vp_set_dirty();
 }
 
 void vstx(Decode *s, int mmu_mode) {
   index_vstore_check(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    cpu.isVldst = false;
+    return;
+  }
   uint64_t idx;
   uint64_t nf = s->v_nf + 1, fn, vl_val, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
@@ -703,6 +714,11 @@ void vstx(Decode *s, int mmu_mode) {
   isa_emul_check(lmul, nf);
   lmul = lmul < 0 ? 0 : lmul;
   lmul = 1 << lmul;
+
+  cpu.isVstoreActive = true;
+  if (vstart->val != 0) {
+    vp_set_dirty();
+  }
 
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
@@ -737,7 +753,7 @@ void vstx(Decode *s, int mmu_mode) {
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   cpu.isVldst = false;
-  vp_set_dirty();
+  cpu.isVstoreActive = false;
 }
 
 static void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
@@ -845,6 +861,11 @@ void vsr(Decode *s, int mmu_mode) {
 
   isa_whole_reg_check(vd, len);
 
+  cpu.isVstoreActive = true;
+  if (vstart->val != 0) {
+    vp_set_dirty();
+  }
+
   cpu.isVecUnitStore = true;
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
@@ -885,8 +906,8 @@ void vsr(Decode *s, int mmu_mode) {
 
   vstart->val = 0;
   cpu.isVldst = false;
+  cpu.isVstoreActive = false;
   cpu.isVecUnitStore = false;
-  vp_set_dirty();
 }
 
 
