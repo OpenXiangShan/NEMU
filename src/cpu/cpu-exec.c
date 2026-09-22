@@ -837,6 +837,7 @@ void cpu_exec(uint64_t n) {
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
       cpu.isVldst = false;
+      cpu.isVstoreActive = false;
       cpu.isVecUnitStore = false;
 
       // No need to settle instruction counting here, as it is done in longjmp handler.

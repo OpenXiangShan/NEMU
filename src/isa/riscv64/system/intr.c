@@ -21,6 +21,7 @@
 #include "../local-include/aia.h"
 
 void update_mmu_state();
+IFDEF(CONFIG_RVV, void vp_set_dirty());
 
 
 #ifdef CONFIG_RVH
@@ -72,6 +73,15 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
   Logti("raise intr cause NO: %lx, epc: %lx\n", NO, epc);
+#ifdef CONFIG_RVV
+  // A vector-store fault can leave vstart at the faulting element.
+  if (cpu.isVstoreActive) {
+    if (vstart->val != 0) {
+      vp_set_dirty();
+    }
+    cpu.isVstoreActive = false;
+  }
+#endif
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   switch (NO) {
     // ecall and ebreak are handled normally
