@@ -158,6 +158,22 @@ make xxx-ref_defconfig
 make -j
 ```
 `./build/riscv64-nemu-interpreter-so` is the reference design.
+The top-level Makefile infers `NEMU_HOME` when invoked inside the repository, so
+these commands do not require an environment setup step. The shared library
+exports `difftest_set_ref_trace(bool)` for aligned instruction, register, CSR,
+privilege-mode, trap, and memory-effect tracing. Instructions use standard
+RISC-V mnemonics instead of NEMU's internal execution-helper names. Memory
+addresses and register/CSR values are captured at the architectural effect, so
+the trace remains useful when source and destination registers alias. Tracing
+is disabled by default.
+
+For Rocket Chip DiffTest, use the scalar/FPU reference configuration whose
+register-state ABI matches Rocket:
+
+```bash
+make riscv64-rocket-ref_defconfig
+make -j
+```
 
 riscv64-xs_defconfig is the base configuration targeting XiangShan processor, which has already enabled RVH and RVV. There are also a series of other configurations based on this base configuration.
 
