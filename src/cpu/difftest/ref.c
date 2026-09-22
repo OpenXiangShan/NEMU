@@ -179,6 +179,11 @@ void difftest_exec(uint64_t n) {
   cpu_exec(n);
 }
 
+void difftest_set_ref_trace(bool enabled) {
+  extern bool ref_trace_enabled;
+  ref_trace_enabled = enabled;
+}
+
 #ifdef CONFIG_REF_STATUS
 int difftest_status() {
   switch (nemu_state.state) {

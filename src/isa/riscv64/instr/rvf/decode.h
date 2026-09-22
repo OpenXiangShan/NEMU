@@ -32,20 +32,26 @@ static int table_op_zfbf(Decode *s);
 static inline def_DopHelper(fr){
   op->preg = &fpreg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", fpreg_name(val, 4));
+#ifdef CONFIG_REF_TRACE
+  if (!flag) {
+    op->ref_trace_reg_kind = REF_TRACE_REG_FPR;
+    op->ref_trace_reg = val;
+  }
+#endif
 #ifdef CONFIG_RVV
   op->reg = val;
 #endif // CONFIG_RVV
 }
 
 static inline def_DHelper(fr) {
-  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, false);
-  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, false);
+  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_fr(s, id_dest, s->isa.instr.fp.rd,  false);
 }
 
 static inline def_DHelper(R4) {
-  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, false);
-  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, false);
+  decode_op_fr(s, id_src1, s->isa.instr.fp.rs1, true);
+  decode_op_fr(s, id_src2, s->isa.instr.fp.rs2, true);
   decode_op_fr(s, id_dest, s->isa.instr.fp.rd,  false);
   // rs3 is decoded at exec.h
 }
@@ -61,7 +67,7 @@ static inline def_DHelper(fstore) {
   decode_op_r(s, id_src1, s->isa.instr.s.rs1, true);
   sword_t simm = (s->isa.instr.s.simm11_5 << 5) | s->isa.instr.s.imm4_0;
   decode_op_i(s, id_src2, simm, false);
-  decode_op_fr(s, id_dest, s->isa.instr.s.rs2, false);
+  decode_op_fr(s, id_dest, s->isa.instr.s.rs2, true);
   print_Dop(id_src1->str, OP_STR_SIZE, "%ld(%s)", id_src2->imm, reg_name(s->isa.instr.i.rs1, 4));
 }
 

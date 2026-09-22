@@ -17,6 +17,7 @@
 #include "common.h"
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
+#include <cpu/ref-trace.h>
 #include <memory/paddr.h>
 #include <stdlib.h>
 #include <math.h>
@@ -2076,6 +2077,27 @@ static word_t csr_read(uint32_t csrid) {
   }
 }
 
+static word_t csr_trace_read(uint32_t csrid) {
+  switch (csrid) {
+#ifndef CONFIG_FPU_NONE
+    case CSR_FFLAGS: return fcsr->fflags.val & FFLAGS_MASK;
+    case CSR_FRM: return fcsr->frm & FRM_MASK;
+    case CSR_FCSR: return fcsr->val & FCSR_MASK;
+#endif
+#ifdef CONFIG_RVV
+    case CSR_VCSR: return (vxrm->val & 0x3) << 1 | (vxsat->val & 0x1);
+#endif
+    case CSR_SSTATUS: return sstatus_read(false, false);
+#ifdef CONFIG_RVH
+    case CSR_VSSTATUS: return sstatus_read(true, false);
+#endif
+    case CSR_MSTATUS: return mstatus_read();
+    case CSR_MCOUNTEREN: return mcounteren->val & COUNTEREN_MASK;
+    case CSR_SCOUNTEREN: return scounteren->val & COUNTEREN_MASK;
+    default: return *csr_decode(csrid);
+  }
+}
+
 #ifdef CONFIG_RVV
 void vcsr_write(uint32_t addr,  rtlreg_t *src) {
   word_t *dest = csr_decode(addr);
@@ -3521,6 +3543,7 @@ void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd) {
     *dest = csr_read(csrid);
   }
   csr_write(csrid, val);
+  ref_trace_record_csr(csrid, csr_trace_read(csrid));
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
   sync_old_xtopi();
@@ -3532,6 +3555,7 @@ void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   *dest = csr_read(csrid);
   if (rs1) {
     csr_write(csrid, val | *dest);
+    ref_trace_record_csr(csrid, csr_trace_read(csrid));
   }
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
@@ -3544,6 +3568,7 @@ void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   *dest = csr_read(csrid);
   if (rs1) {
     csr_write(csrid, (~val) & *dest);
+    ref_trace_record_csr(csrid, csr_trace_read(csrid));
   }
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
@@ -3665,6 +3690,7 @@ word_t riscv64_priv_sret() {
     cpu.elp = target_zicfilp_en ? vsstatus->spelp : ELP_NO_LP_EXPECTED;
     vsstatus->spelp = ELP_NO_LP_EXPECTED;
 #endif
+    ref_trace_record_csr(CSR_VSSTATUS, csr_trace_read(CSR_VSSTATUS));
     return vsepc->val;
   }
 #endif // CONFIG_RVH
@@ -3706,6 +3732,7 @@ word_t riscv64_priv_sret() {
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->spelp : ELP_NO_LP_EXPECTED;
   mstatus->spelp = ELP_NO_LP_EXPECTED;
 #endif
+  ref_trace_record_csr(CSR_MSTATUS, csr_trace_read(CSR_MSTATUS));
   return sepc->val;
 }
 
@@ -3749,6 +3776,7 @@ word_t riscv64_priv_mret() {
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mstatus->mpelp : ELP_NO_LP_EXPECTED;
   mstatus->mpelp = ELP_NO_LP_EXPECTED;
 #endif
+  ref_trace_record_csr(CSR_MSTATUS, csr_trace_read(CSR_MSTATUS));
   Loge("Executing mret to 0x%lx", mepc->val);
   return mepc->val;
 }

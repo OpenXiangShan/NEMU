@@ -30,6 +30,12 @@ static inline def_DopHelper(r) {
   zero_null = 0;
   op->preg = (!load_val && val == 0) ? &zero_null : &reg_l(val);
   print_Dop(op->str, OP_STR_SIZE, "%s", reg_name(val, 4));
+#ifdef CONFIG_REF_TRACE
+  if (!load_val && s->isa.instr.r.opcode6_2 != 0x15) {
+    op->ref_trace_reg_kind = REF_TRACE_REG_GPR;
+    op->ref_trace_reg = val;
+  }
+#endif
 #ifdef CONFIG_RVV
   op->reg = val;
 #endif // CONFIG_RVV

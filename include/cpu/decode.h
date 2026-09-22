@@ -35,8 +35,22 @@ typedef struct {
   IFDEF(CONFIG_ISA_x86, uint8_t reg);
   IFDEF(CONFIG_RVV, rtlreg_t val);
   IFDEF(CONFIG_RVV, uint8_t reg);
-  IFDEF(CONFIG_DEBUG, char str[OP_STR_SIZE]);
+#if defined(CONFIG_DEBUG) || defined(CONFIG_REF_TRACE)
+  char str[OP_STR_SIZE];
+#endif
+#ifdef CONFIG_REF_TRACE
+  uint8_t ref_trace_reg_kind;
+  uint8_t ref_trace_reg;
+#endif
 } Operand;
+
+#ifdef CONFIG_REF_TRACE
+enum {
+  REF_TRACE_REG_NONE,
+  REF_TRACE_REG_GPR,
+  REF_TRACE_REG_FPR,
+};
+#endif
 
 enum {
   INSTR_TYPE_N, // normal
@@ -47,7 +61,9 @@ enum {
 
 IFDEF(CONFIG_DEBUG, extern char log_bytebuf[80];)
 // max size is (strlen(str(instr)) + strlen(suffix_char(id_dest->width)) + sizeof(id_dest->str) + sizeof(id_src2->str) + sizeof(id_src1->str))
-IFDEF(CONFIG_DEBUG, extern char log_asmbuf[80 + (sizeof(((Operand*)0)->str) * 3)]);
+#if defined(CONFIG_DEBUG) || defined(CONFIG_REF_TRACE)
+extern char log_asmbuf[80 + (sizeof(((Operand*)0)->str) * 3)];
+#endif
 
 typedef struct Decode {
   union {
@@ -75,6 +91,9 @@ typedef struct Decode {
   uint8_t type;
   ISADecodeInfo isa;
   IFDEF(CONFIG_DEBUG, char logbuf[80 + sizeof(log_asmbuf) + sizeof(log_bytebuf)]);
+#ifdef CONFIG_REF_TRACE
+  char ref_trace_asm[sizeof(log_asmbuf)];
+#endif
   #ifdef CONFIG_RVV
   // for vector
   int v_width;
@@ -199,8 +218,13 @@ finish:
 #define def_INSTR_TABW(pattern, tab, width) def_INSTR_IDTABW(pattern, empty, tab, width)
 #define def_INSTR_TAB(pattern, tab)         def_INSTR_IDTABW(pattern, empty, tab, 0)
 
-#define print_Dop(...) IFDEF(CONFIG_DEBUG, snprintf(__VA_ARGS__))
-#define print_asm(...) IFDEF(CONFIG_DEBUG, snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__))
+#if defined(CONFIG_DEBUG) || defined(CONFIG_REF_TRACE)
+#define print_Dop(...) snprintf(__VA_ARGS__)
+#define print_asm(...) snprintf(log_asmbuf, sizeof(log_asmbuf), __VA_ARGS__)
+#else
+#define print_Dop(...)
+#define print_asm(...)
+#endif
 
 #ifndef suffix_char
 #define suffix_char(width) ' '

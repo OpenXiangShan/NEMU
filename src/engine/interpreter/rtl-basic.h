@@ -20,6 +20,7 @@
 #include "c_op.h"
 #include <profiling/profiling_control.h>
 #include <memory/vaddr.h>
+#include <cpu/ref-trace.h>
 #include <generated/autoconf.h>
 /* RTL basic instructions */
 
@@ -124,19 +125,21 @@ static inline def_rtl(div64s_r, rtlreg_t* dest,
 
 static inline def_rtl(lm, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+  vaddr_t access_addr = *addr + offset;
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
-  uint64_t load_addr = *addr + offset;
+  uint64_t load_addr = access_addr;
   extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
   if (mstore_queue_check_addr_conflict(load_addr, len)) {
     Log("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store", load_addr, len);
   }
 #endif
-  *dest = vaddr_read(s, *addr + offset, len, mmu_mode);
+  *dest = vaddr_read(s, access_addr, len, mmu_mode);
+  ref_trace_record_mem(false, access_addr, len, *dest);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = true;
-  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+  cpu.query_mem_event.mem_access_vaddr = access_addr;
 #endif
 }
 
@@ -145,6 +148,7 @@ static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
                       int row, int column, int msew, bool transpose,
                       int mmu_mode, char m_name, int mreg_id) {
   vaddr_read_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
+  ref_trace_record_mem(false, *base, 1 << msew, 0);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -156,12 +160,15 @@ static inline def_rtl(lmm, const uint64_t *base, const uint64_t* stride,
 
 static inline def_rtl(sm, const rtlreg_t *src1, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
-  vaddr_write(s, *addr + offset, len, *src1, mmu_mode);
+  vaddr_t access_addr = *addr + offset;
+  word_t data = *src1;
+  vaddr_write(s, access_addr, len, data, mmu_mode);
+  ref_trace_record_mem(true, access_addr, len, data);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = false;
-  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+  cpu.query_mem_event.mem_access_vaddr = access_addr;
 #endif
 }
 
@@ -170,6 +177,7 @@ static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
                       int row, int column, int msew, bool transpose,
                       int mmu_mode, char m_name, int mreg_id) {
   vaddr_write_matrix(s, *base, *stride, row, column, msew, transpose, mmu_mode, m_name, mreg_id);
+  ref_trace_record_mem(true, *base, 1 << msew, 0);
 #ifdef CONFIG_QUERY_REF
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
@@ -181,14 +189,16 @@ static inline def_rtl(smm, const uint64_t *base, const uint64_t* stride,
 
 static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
     word_t offset, int len, int mmu_mode) {
+  vaddr_t access_addr = *addr + offset;
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
-  uint64_t load_addr = *addr + offset;
+  uint64_t load_addr = access_addr;
   extern bool mstore_queue_check_addr_conflict(uint64_t addr, int len);
   if (mstore_queue_check_addr_conflict(load_addr, len)) {
     Log("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store", load_addr, len);
   }
 #endif
-  word_t val = vaddr_read(s, *addr + offset, len, mmu_mode);
+  word_t val = vaddr_read(s, access_addr, len, mmu_mode);
+  ref_trace_record_mem(false, access_addr, len, val);
   switch (len) {
     case 4: *dest = (sword_t)(int32_t)val; return;
     case 1: *dest = (sword_t)( int8_t)val; return;
@@ -200,7 +210,7 @@ static inline def_rtl(lms, rtlreg_t *dest, const rtlreg_t* addr,
   cpu.query_mem_event.pc = cpu.debug.current_pc;
   cpu.query_mem_event.mem_access = true;
   cpu.query_mem_event.mem_access_is_load = true;
-  cpu.query_mem_event.mem_access_vaddr = *addr + offset;
+  cpu.query_mem_event.mem_access_vaddr = access_addr;
 #endif
 }
 
