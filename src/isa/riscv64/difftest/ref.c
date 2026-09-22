@@ -117,7 +117,12 @@ void csr_writeback() {
   sepc   ->val = cpu.sepc   ;
 
   satp->val     = cpu.satp;
+#if defined(CONFIG_SHARE) && defined(CONFIG_RV_SSTC)
+  // STCE selects the timer signal; a difftest sync must not overwrite the software STIP bit.
+  mip->val      = menvcfg->stce ? (mip->val & MIP_STIP) | (cpu.mip & ~MIP_STIP) : cpu.mip;
+#else
   mip->val      = cpu.mip;
+#endif
   mie->val      = cpu.mie;
   mscratch->val = cpu.mscratch;
   sscratch->val = cpu.sscratch;
