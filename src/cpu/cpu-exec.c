@@ -788,6 +788,15 @@ static void execute(int n) {
 #if defined(CONFIG_ISA_riscv64) && defined(CONFIG_DETERMINISTIC) && \
     defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT)
     void update_riscv_timer();
+#if defined(CONFIG_SHARE) && defined(CONFIG_INSTR_CNT_BY_INSTR) && \
+    ((CONFIG_CYCLES_PER_MTIME_TICK & (CONFIG_CYCLES_PER_MTIME_TICK - 1)) == 0)
+    // g_nr_guest_instr was just incremented and is what get_abs_instr_count()
+    // returns here. Deterministic mtime stays constant until that count
+    // crosses a power-of-two tick, so the full update (pending bits and the
+    // difftest dirty mark) only runs on the crossing step. MMIO, WFI and
+    // non-SHARE callers still call update_riscv_timer() directly.
+    if ((g_nr_guest_instr & (CONFIG_CYCLES_PER_MTIME_TICK - 1)) == 0)
+#endif
     update_riscv_timer();
 #endif
 
