@@ -22,6 +22,7 @@
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
+#include <cpu/difftest/mem_observation.h>
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <ame/svstore_queue_wrapper.h>
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
@@ -159,7 +160,15 @@ word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
     return hosttlb_read_slowpath(s, vaddr, len, type);
   } else {
     Logm("Host TLB fast path");
-    return host_read(e->offset + vaddr, len);
+    uint8_t *host_addr = e->offset + vaddr;
+#ifdef CONFIG_MULTICORE_DIFF
+    word_t observed_data;
+    if (type == MEM_TYPE_READ && difftest_mem_observation_consume_v1(
+          host_to_guest(host_addr), len, &observed_data)) {
+      return observed_data;
+    }
+#endif
+    return host_read(host_addr, len);
   }
 }
 

@@ -21,6 +21,7 @@
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
 #include <cpu/cpu.h>
+#include <cpu/difftest/mem_observation.h>
 #include <difftest.h>
 
 #ifdef CONFIG_ISA_riscv64
@@ -442,6 +443,50 @@ void difftest_display() {
 
 #ifdef CONFIG_MULTICORE_DIFF
 uint8_t *golden_pmem = NULL;
+
+static struct DifftestMemObservationV1 pending_mem_observation;
+static int mem_observation_state = DIFFTEST_MEM_OBSERVATION_NONE_V1;
+
+int difftest_set_mem_observation_v1(
+    const struct DifftestMemObservationV1 *observation) {
+  if (observation == NULL ||
+      observation->version != DIFFTEST_MEM_OBSERVATION_VERSION_V1 ||
+      observation->struct_size != sizeof(*observation) ||
+      (observation->kind != DIFFTEST_MEM_OBSERVATION_LOAD_V1 &&
+       observation->kind != DIFFTEST_MEM_OBSERVATION_LR_V1) ||
+      observation->reserved != 0 ||
+      observation->size == 0 || observation->size > sizeof(word_t)) {
+    return -1;
+  }
+  if (mem_observation_state == DIFFTEST_MEM_OBSERVATION_PENDING_V1) {
+    return -2;
+  }
+
+  memcpy(&pending_mem_observation, observation, sizeof(*observation));
+  mem_observation_state = DIFFTEST_MEM_OBSERVATION_PENDING_V1;
+  return 0;
+}
+
+int difftest_query_mem_observation_v1(void) {
+  int state = mem_observation_state;
+  mem_observation_state = DIFFTEST_MEM_OBSERVATION_NONE_V1;
+  memset(&pending_mem_observation, 0, sizeof(pending_mem_observation));
+  return state;
+}
+
+bool difftest_mem_observation_consume_v1(
+    paddr_t paddr, int len, word_t *data) {
+  if (mem_observation_state != DIFFTEST_MEM_OBSERVATION_PENDING_V1 ||
+      pending_mem_observation.paddr != paddr ||
+      pending_mem_observation.size != len) {
+    return false;
+  }
+
+  *data = 0;
+  memcpy(data, pending_mem_observation.data, len);
+  mem_observation_state = DIFFTEST_MEM_OBSERVATION_CONSUMED_V1;
+  return true;
+}
 
 void difftest_set_mhartid(int n) {
   isa_difftest_set_mhartid(n);
