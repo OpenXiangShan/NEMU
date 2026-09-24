@@ -43,6 +43,7 @@ typedef union PageTableEntry {
   uint64_t val;
 } PTE;
 
+#if defined(CONFIG_MULTICORE_DIFF) || defined(CONFIG_SHARE)
 static inline int ptw_access_fault_cause(int trap_type) {
   // Page-table reads report the fault class of the original instruction.
   if (trap_type == MEM_TYPE_IFETCH) return EX_IAF;
@@ -50,6 +51,7 @@ static inline int ptw_access_fault_cause(int trap_type) {
       MUXDEF(CONFIG_RV_CFI, cpu.shadow_stack_access, false)) return EX_SAF;
   return EX_LAF;
 }
+#endif
 
 #ifdef CONFIG_RV_CFI
 static inline bool zicfiss_is_ss_pte(const PTE *pte) {
