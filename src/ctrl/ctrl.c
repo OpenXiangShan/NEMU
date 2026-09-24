@@ -81,4 +81,9 @@ void ctrl_register_amu_callback(void (*callback)(amu_ctrl_event_t)) {
   amu_ctrl_callback_ = callback;
 }
 
+void ctrl_mtok_advance(uint8_t tok) {
+  uint8_t tok_i = check_mtok_idx(tok);
+  cpu.mtokr[tok_i]++;
+}
+
 #endif // CONFIG_SHARE_CTRL

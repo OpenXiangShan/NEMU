@@ -6,7 +6,7 @@
 
 extern Decode *prev_s;
 
-void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,
+void cutest_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2, uint16_t mtilem,
                                 uint16_t mtilen, uint16_t mtilek, uint8_t types1,
                                 uint8_t types2, uint8_t typed) {
@@ -14,6 +14,7 @@ void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,
   event.valid = true;
   event.op = 0;
   event.md = md;
+  event.rm = rm;
   event.sat = sat;
   event.isfp = isfp;
   event.ms1 = ms1;
@@ -62,11 +63,9 @@ void cutest_mzero_emplace(bool isacc, uint8_t md) {
   event.valid = true;
   event.op = 3;
   event.md = md;
-  if (isacc) {
-    event.base = 0x1bc;
-  } else {
-    event.base = 0x1b8;
-  }
+  // Match cute-test make_mzero wire encoding (funct 0x1b8).
+  (void)isacc;
+  event.base = 0x1b8;
   event.pc = prev_s->pc;
   amu_ctrl_callback_(event);
 }

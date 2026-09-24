@@ -17,6 +17,7 @@ void ctrl_exec();
 int ctrl_status();
 void ctrl_info(void *reg_buf);
 void ctrl_register_amu_callback(void (*callback)(amu_ctrl_event_t));
+void ctrl_mtok_advance(uint8_t tok);
 #endif // CONFIG_SHARE_CTRL
 
 #ifdef __cplusplus

@@ -193,9 +193,9 @@ def_EHelper(mmacc) {
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(
-    td, msaten->val, is_float_mmacc, ts1, ts2,
+    td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    4 | m_s_sz, 4 | m_s_sz, m_d_sz
+    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz
   );
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
@@ -204,7 +204,8 @@ def_EHelper(mmacc) {
     "            md=%ld, sat=%ld, isfp=%d, ms1=%ld, ms2=%ld\n"
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, msaten->val, is_float_mmacc, ts1, ts2,
-    mtilem->val, mtilen->val, mtilek->val, 4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+    mtilem->val, mtilen->val, mtilek->val,
+    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
 #endif // PRINT_AMUCTRLIO
 }
 
