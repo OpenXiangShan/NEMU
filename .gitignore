@@ -30,3 +30,6 @@ include/generated
 build
 .vscode
 .idea
+implementation_plan.md
+RISC-V+Zicfilp方案.pdf
+walkthrough.md
