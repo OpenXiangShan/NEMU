@@ -150,7 +150,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     delegM = !delegS && !delegVS && !isNMI;
   }
 #endif
-  bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && vsstatus->sdt, false);
+  bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && menvcfg->dte && henvcfg->dte && vsstatus->sdt, false);
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
 #ifdef CONFIG_RV_IMSIC
