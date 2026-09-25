@@ -168,6 +168,20 @@ int difftest_matrix_store_commit(uint64_t *base, uint64_t *stride,
 #endif
 }
 
+int difftest_store_commit_hash(uint64_t count, uint64_t hash_lo, uint64_t hash_hi, uint64_t group_id,
+                               uint64_t instr_begin, uint64_t instr_end) {
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  return store_queue_check_hash(count, hash_lo, hash_hi, group_id, instr_begin, instr_end);
+#else
+  return 0;
+#endif
+}
+
+void difftest_store_commit_ignore(void) {
+#ifdef CONFIG_DIFFTEST_STORE_COMMIT
+  store_queue_discard();
+#endif
+}
 #endif
 #ifdef CONFIG_RV_SMDBLTRP
 bool difftest_raise_critical_error() {
