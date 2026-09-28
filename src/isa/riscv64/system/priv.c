@@ -3487,7 +3487,7 @@ static inline void csr_permit_check(uint32_t addr, bool is_write) {
   //check vec
   IFDEF(CONFIG_RVV, has_vi |= vec_permit_check(dest_access));
   //check matrix
-  IFDEF(CONFIG_RV_AME, has_vi |= matrix_permit_check(dest_access)); 
+  // IFDEF(CONFIG_RV_AME, has_vi |= matrix_permit_check(dest_access)); 
 
 #ifdef CONFIG_RV_SMCDELEG
   if (addr == CSR_SCOUNTINHIBIT && !menvcfg->cde) {
