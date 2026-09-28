@@ -939,11 +939,7 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
-#ifdef CONFIG_DIFFTEST
-  FREDUCTION(FREDUSUM)    // use ordered reduction
-#else
-  float_reduction_computing(s);   // when NEMU is ref, use unordered reduction which is same as XiangShan
-#endif
+  float_reduction_computing(noWidening, s);   // match XiangShan VFRedUSum
 }
 
 def_EHelper(vfsub) {
@@ -1256,7 +1252,7 @@ def_EHelper(vfwadd) {
 }
 
 def_EHelper(vfwredusum) {
-  FWREDUCTION(FREDUSUM)
+  float_reduction_computing(vsWidening, s);
 }
 
 def_EHelper(vfwsub) {

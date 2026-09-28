@@ -83,9 +83,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
 void mask_instr(int opcode, Decode *s);
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s);
 void float_reduction_instr(int opcode, int widening, Decode *s);
-void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s);
-void float_reduction_step2(uint64_t src, Decode *s);
-void float_reduction_computing(Decode *s);
+void float_reduction_computing(int widening, Decode *s);
 void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm(void);
 

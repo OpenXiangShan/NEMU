@@ -1636,189 +1636,129 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
   vstart->val = 0;
 }
 
-static void init_tmp_vreg(Decode *s, int vsew) {
-  *s0 = 0;
-  // init each element with negative zero
-  for (int i = 0; i < 8; i++) {
-    switch (vtype->vsew) {
-      case 1 :
-        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W16));
-        for (int j = 0; j < VLEN / 16; j++) {
-          if (isa_fp_get_frm() == FPCALL_RM_RDN) {
-            tmp_vreg[i]._16[j] = 0;
-          }
-          else {
-            tmp_vreg[i]._16[j] = *s0;
-          }
-        }
-        break;
-      case 2 :
-        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W32));
-        for (int j = 0; j < VLEN / 32; j++) {
-          if (isa_fp_get_frm() == FPCALL_RM_RDN) {
-            tmp_vreg[i]._32[j] = 0;
-          }
-          else {
-            tmp_vreg[i]._32[j] = *s0;
-          }
-        }
-        break;
-      case 3 :
-        rtl_hostcall(s, HOSTCALL_VFP, s0, s0, s0, FPCALL_CMD(FPCALL_GenNegZero, FPCALL_W64));
-        for (int j = 0; j < VLEN / 64; j++) {
-          if (isa_fp_get_frm() == FPCALL_RM_RDN) {
-            tmp_vreg[i]._64[j] = 0;
-          }
-          else {
-            tmp_vreg[i]._64[j] = *s0;
-          }
-        }
-        break;
-      default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
+static void float_reduction_tree(rtlreg_t *values, uint8_t *active,
+    int element_num, word_t fpcall_type, Decode *s) {
+  for (int width = element_num; width > 1; width >>= 1) {
+    for (int i = 0; i < width / 2; i++) {
+      int left = i * 2;
+      int right = left + 1;
+
+      if (active[left] && active[right]) {
+        // VFRedUSum's FAdder_w sees the lower lane as src1 and the upper
+        // lane as src2. Keep that ordering for NaN payloads and fflags.
+        rtl_hostcall(s, HOSTCALL_VFP, s1, &values[left], &values[right],
+            FPCALL_CMD(FPCALL_ADD, fpcall_type));
+        values[i] = *s1;
+        active[i] = 1;
+      } else if (active[left]) {
+        values[i] = values[left];
+        active[i] = 1;
+      } else if (active[right]) {
+        values[i] = values[right];
+        active[i] = 1;
+      } else {
+        active[i] = 0;
+      }
     }
   }
 }
 
-void float_reduction_step2(uint64_t src, Decode *s) {
-  word_t FPCALL_TYPE = FPCALL_W64;
-
-  // fpcall type
-  switch (vtype->vsew) {
-    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-#ifdef CONFIG_RV_ZVFH
-    case 1 : FPCALL_TYPE = FPCALL_W16; break;
-#else
-    case 1 : Loge("ZVFH extension is not enabled, please make menuconfig!"); longjmp_exception(EX_II); break;
-#endif
-    case 2 : FPCALL_TYPE = FPCALL_W32; break;
-    case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
-  }
-
-  int element_num = VLEN >> (3 + vtype->vsew);
-
-  while (element_num != 1) {
-    for (int i = 0; i < element_num / 2; i++) {
-      get_tmp_vreg(src, i, s1, vtype->vsew);
-      get_tmp_vreg(src, i + element_num / 2, s0, vtype->vsew);
-      rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
-      set_tmp_vreg(src, i, *s1, vtype->vsew);
-    }
-    element_num >>= 1;
-  }
-}
-
-void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s) {
-  word_t FPCALL_TYPE = FPCALL_W64;
-
-  // fpcall type
-  switch (vtype->vsew) {
-    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
-#ifdef CONFIG_RV_ZVFH
-    case 1 : FPCALL_TYPE = FPCALL_W16; break;
-#else
-    case 1 : Loge("ZVFH extension is not enabled, please make menuconfig!"); longjmp_exception(EX_II); break;
-#endif
-    case 2 : FPCALL_TYPE = FPCALL_W32; break;
-    case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
-  }
-
-  int element_num = VLEN >> (3 + vtype->vsew);
-
-  for (int i = 0; i < element_num; i++) {
-    get_tmp_vreg(src1, i, s1, vtype->vsew);
-    get_tmp_vreg(src2, i, s0, vtype->vsew);
-    rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
-    set_tmp_vreg(src1, i, *s1, vtype->vsew);
-  }
-}
-
-void float_reduction_computing(Decode *s) {
+void float_reduction_computing(int widening, Decode *s) {
   isa_fp_rm_check(isa_fp_get_frm());
   require_float();
-  vector_reduction_check(s, false);
-  word_t FPCALL_TYPE = FPCALL_W64;
-  uint64_t active_num = 0;
 
-  // fpcall type
-  switch (vtype->vsew) {
-    case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
+  bool is_widening = widening == vsWidening;
+  vector_reduction_check(s, is_widening);
+  word_t source_vsew = vtype->vsew;
+  word_t result_vsew = source_vsew + is_widening;
+  word_t fpcall_type = FPCALL_W64;
+
+  switch (source_vsew) {
+    case 0:
+      Loge("f8 not supported");
+      longjmp_exception(EX_II);
+      break;
 #ifdef CONFIG_RV_ZVFH
-    case 1 : FPCALL_TYPE = FPCALL_W16; break;
+    case 1:
+      fpcall_type = is_widening ? FPCALL_W32 : FPCALL_W16;
+      break;
 #else
-    case 1 : Loge("ZVFH extension is not enabled, please make menuconfig!"); longjmp_exception(EX_II); break;
+    case 1:
+      Loge("ZVFH extension is not enabled, please make menuconfig!");
+      longjmp_exception(EX_II);
+      break;
 #endif
-    case 2 : FPCALL_TYPE = FPCALL_W32; break;
-    case 3 : FPCALL_TYPE = FPCALL_W64; break;
-    default: Loge("other fp type not supported"); longjmp_exception(EX_II); break;
+    case 2:
+      fpcall_type = is_widening ? FPCALL_W64 : FPCALL_W32;
+      break;
+    case 3:
+      fpcall_type = FPCALL_W64;
+      break;
+    default:
+      Loge("other fp type not supported");
+      longjmp_exception(EX_II);
+      break;
+  }
+
+  if (vtype->vlmul == 4) {
+    Loge("lmul = 4 is reserved");
+    longjmp_exception(EX_II);
   }
 
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) {
+  if (check_vstart_ignore(s)) {
     fp_set_dirty();
     vp_set_dirty();
     return;
   }
 
-  // copy the vector register to the temp register
-  init_tmp_vreg(s, vtype->vsew);
-  for(word_t idx = vstart->val; idx < vl->val; idx ++) {
-    rtlreg_t mask = get_mask(0, idx);
-    if(s->vm == 0 && mask==0) {
-      continue;
+  rtlreg_t result;
+  get_vreg(id_src->reg, 0, &result, result_vsew, vtype->vlmul, 0, 0);
+
+  int element_num = VLEN >> (3 + source_vsew);
+  int register_num = vtype->vlmul < 4 ? (1 << vtype->vlmul) : 1;
+
+  for (int reg = 0; reg < register_num; reg++) {
+    rtlreg_t values[8] = {0};
+    uint8_t active[8] = {0};
+
+    for (int i = 0; i < element_num; i++) {
+      word_t idx = reg * element_num + i;
+      active[i] = idx >= vstart->val && idx < vl->val &&
+          (s->vm || get_mask(0, idx));
+      if (active[i]) {
+        get_vreg(id_src2->reg, idx, s0, source_vsew, vtype->vlmul, 0, 1);
+        values[i] = *s0;
+
+        if (is_widening) {
+          if (source_vsew == 1) {
+            rtl_hostcall(s, HOSTCALL_VFP, s0, &values[i], rz,
+                FPCALL_CMD(FPCALL_F16ToF32, FPCALL_W16));
+          } else {
+            rtl_hostcall(s, HOSTCALL_VFP, s0, &values[i], rz,
+                FPCALL_CMD(FPCALL_F32ToF64, FPCALL_W32));
+          }
+          values[i] = *s0;
+        }
+      }
     }
-    active_num++;
-    vreg_to_tmp_vreg(id_src2->reg, idx, vtype->vsew);
-  }
 
-  // computing the reduction result
-  switch (vtype->vlmul) {
-    case 5 :
-    case 6 :
-    case 7 :
-    case 0 : 
-      float_reduction_step2(0, s);
-      break;
-    case 1 : 
-      float_reduction_step1(0, 1, s);
-      float_reduction_step2(0, s);
-      break;
-    case 2 :
-      float_reduction_step1(0, 1, s);
-      float_reduction_step1(2, 3, s);
-      float_reduction_step1(0, 2, s);
-      float_reduction_step2(0, s);
-      break;
-    case 3 :
-      float_reduction_step1(0, 1, s);
-      float_reduction_step1(2, 3, s);
-      float_reduction_step1(4, 5, s);
-      float_reduction_step1(6, 7, s);
-      float_reduction_step1(0, 2, s);
-      float_reduction_step1(4, 6, s);
-      float_reduction_step1(0, 4, s);
-      float_reduction_step2(0, s);
-      break;
-    default: Loge("lmul = 4 is reserved"); longjmp_exception(EX_II); break;
-  }
-
-  get_vreg(id_src->reg, 0, s1, vtype->vsew, vtype->vlmul, 0, 0);
-  get_tmp_vreg(0, 0, s0, vtype->vsew);
-
-  if (active_num != 0) {
-    // If no elements are active, no operations are performed, so the scalar in vs1[0] is simply copied to the destination register, without
-    // canonicalizing NaN values and without setting any exception flags
-    rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE));
+    float_reduction_tree(values, active, element_num, fpcall_type, s);
+    if (active[0]) {
+      // VFRedUSum feeds LastStageRes to fpA and the running seed to fpB.
+      rtl_hostcall(s, HOSTCALL_VFP, s1, &values[0], &result,
+          FPCALL_CMD(FPCALL_ADD, fpcall_type));
+      result = *s1;
+    }
   }
 
   if (RVV_AGNOSTIC) {
-    if(vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
+    if (vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
   }
 
   // No write when vl is 0
   if (vl->val != 0) {
-    set_vreg(id_dest->reg, 0, *s1, vtype->vsew, vtype->vlmul, 0);
+    set_vreg(id_dest->reg, 0, result, result_vsew, vtype->vlmul, 0);
   }
   fp_set_dirty();
   vp_set_dirty();
