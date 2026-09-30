@@ -37,6 +37,7 @@
 
 def_EHelper(minit) {
   mstatus->ms = 1;
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 }
 
 def_EHelper(msettilem) {
