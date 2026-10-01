@@ -290,6 +290,56 @@
 #define CRYPTO_INSTR_BINARY(f)
 #endif // CONFIG_RVK
 
+#ifdef CONFIG_RV_ZVBC
+#define ZVBC_INSTR_TERNARY(f) \
+  f(vclmul) f(vclmulh)
+#else
+#define ZVBC_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVBC
+
+#ifdef CONFIG_RV_ZVKNED
+#define ZVKNED_INSTR_BINARY(f) \
+  f(vaesz) f(vaesef) f(vaesem) f(vaesdf) \
+  f(vaesdm) f(vaeskf1) f(vaeskf2)
+#else
+#define ZVKNED_INSTR_BINARY(f)
+#endif // CONFIG_RV_ZVKNED
+
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+#define ZVKNH_INSTR_TERNARY(f) \
+  f(vsha2ms) f(vsha2cl) f(vsha2ch)
+#else
+#define ZVKNH_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVKNHA || CONFIG_RV_ZVKNHB
+
+#ifdef CONFIG_RV_ZVKSH
+#define ZVKSH_INSTR_TERNARY(f) \
+  f(vsm3me) f(vsm3c)
+#else
+#define ZVKSH_INSTR_TERNARY(f)
+#endif // CONFIG_RV_ZVKSH
+
+#ifdef CONFIG_RV_ZVKSED
+#define ZVKSED_INSTR_BINARY(f) \
+  f(vsm4k) f(vsm4r)
+#else
+#define ZVKSED_INSTR_BINARY(f)
+#endif // CONFIG_RV_ZVKSED
+
+#ifdef CONFIG_RV_ZVKG
+#define ZVKG_INSTR_BINARY(f) \
+  f(vgmul)
+#else
+#define ZVKG_INSTR_BINARY(f)
+#endif // CONFIG_RV_ZVKG
+
+#ifdef CONFIG_RV_ZVKG
+#define ZVKG_INSTR_TERNARY(f) \
+  f(vghsh) 
+#else // CONFIG_RV_ZVKG
+#define ZVKG_INSTR_TERNARY(f) 
+#endif // CONFIG_RV_ZVKG
+
 #ifdef CONFIG_RV_ZICOND
 #define ZICOND_INSTR_TERNARY(f) \
   f(czero_eqz) f(czero_nez)
@@ -459,7 +509,10 @@
   ZFH_ZFA_INSTR_BINARY(f) \
   ZCB_INSTR_BINARY(f) \
   TENSOR_INSTR_BINARY(f) \
-  MATRIX_INSTR_BINARY(f)
+  MATRIX_INSTR_BINARY(f) \
+  ZVKNED_INSTR_BINARY(f) \
+  ZVKSED_INSTR_BINARY(f) \
+  ZVKG_INSTR_BINARY(f)
 
 #define INSTR_TERNARY(f) \
   f(add) f(sll) f(srl) f(slt) f(sltu) f(xor) f(or) f(sub) f(sra) f(and) \
@@ -479,6 +532,10 @@
   FLOAT_INSTR_TERNARY(f) \
   BITMANIP_INSTR_TERNARY(f) \
   CRYPTO_INSTR_TERNARY(f) \
+  ZVBC_INSTR_TERNARY(f) \
+  ZVKNH_INSTR_TERNARY(f) \
+  ZVKSH_INSTR_TERNARY(f) \
+  ZVKG_INSTR_TERNARY(f) \
   ZICOND_INSTR_TERNARY(f) \
   VECTOR_INSTR_TERNARY(f) \
   ZVFBF_MIN_INSTR_TERNARY(f) \
