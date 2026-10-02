@@ -3,6 +3,7 @@
 
 #include <common.h>
 #include <memory/paddr.h>
+#include <memory/store_hash.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +34,6 @@ store_commit_t store_queue_back();
 size_t store_queue_size();
 bool store_queue_empty();
 bool store_queue_overflow();
-
 #ifdef CONFIG_RV_AME
 void matrix_store_queue_reset();
 void matrix_store_queue_push(matrix_store_commit_t matrix_store_commit);
@@ -43,6 +43,9 @@ matrix_store_commit_t matrix_store_queue_back();
 size_t matrix_store_queue_size();
 bool matrix_store_queue_empty();
 #endif // CONFIG_RV_AME
+void store_queue_discard();
+int store_queue_check_hash(uint64_t count, uint64_t hash_lo, uint64_t hash_hi, uint64_t group_id,
+                           uint64_t instr_begin, uint64_t instr_end);
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 #ifdef __cplusplus
