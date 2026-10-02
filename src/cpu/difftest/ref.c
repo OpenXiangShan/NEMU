@@ -335,6 +335,14 @@ int difftest_amu_exec(void *amu_ctrl, void *res) {
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
+int difftest_amu_exec_hash(void *amu_ctrl, void *res) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  return exec_amu_hash(amu_ctrl, (amu_hash_t *)res);
+#else
+  return 0;
+#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
 void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3) {
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
