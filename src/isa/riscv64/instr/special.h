@@ -49,12 +49,24 @@ def_EHelper(nemu_trap) {
     }
   } else if (cpu.gpr[10]._64 == 0x102) {
       difftest_skip_ref();
-  } else if (cpu.gpr[10]._64 == NEMU_MEM_TRACE_BEGIN) {
+  }
+  // NEMU_MEM_TRACE_BEGIN: a10 = 0x103
+  else if (cpu.gpr[10]._64 == NEMU_MEM_TRACE_BEGIN) {
       mem_trace_begin();
       difftest_skip_ref();
-  } else if (cpu.gpr[10]._64 == NEMU_MEM_TRACE_END) {
+  }
+  // NEMU_MEM_TRACE_END: a10 = 0x104
+  else if (cpu.gpr[10]._64 == NEMU_MEM_TRACE_END) {
       mem_trace_end();
       difftest_skip_ref();
+  // CHECKPOINT_HERE: a10 = 0x105
+  } else if (cpu.gpr[10]._64 == 0x105) {
+
+    extern void take_cpt_here(Decode *s);
+    take_cpt_here(s);
+
+    difftest_skip_ref();
+
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
       longjmp_context(NEMU_EXEC_END);
