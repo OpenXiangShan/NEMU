@@ -21,8 +21,10 @@
 #include <checkpoint/cpt_env.h>
 #include <checkpoint/path_manager.h>
 #include <checkpoint/serializer.h>
+#include <cstdint>
 #include <cstdlib>
 #include <cstdio>
+#include <cpu/decode.h>
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
@@ -672,6 +674,104 @@ void set_store_cpt_in_flash(bool enable) {
 
 void serialize_checkpoint(const char *base_filepath) {
   serializer.serialize(0, base_filepath);
+}
+
+}
+
+extern "C" {
+
+/** take_cpt_here() is called directly when a nemu_trap is triggered and the value of register a10 is detected as 0x105(CHECKPOINT_HERE).
+ *
+ * The main purpose of introducing CHECKPOINT_HERE is to enable checkpointing at specific program points.
+ *
+ * Before CHECKPOINT_HERE was introduced, NEMU did not provide a complete checkpoint sampling control flow 
+ * that could be directly triggered by a specific nemu_trap or other form of instrumentation.
+ * The existing checkpoint mechanism can be described as a "potential checkpoint":
+ * such instrumentation does not guarantee that a checkpoint will actually be taken at the corresponding program point. 
+ * Whether checkpoint sampling occurs still depends on runtime conditions that are evaluated independently of the instrumentation itself.
+ * 
+ * For our use case, this weakens the direct correspondence between checkpoint sampling and workload semantics. 
+ * Therefore, we introduce CHECKPOINT_HERE to directly bind actual checkpoint sampling to manually selected, semantically meaningful specific program points.
+ *  
+ */
+void take_cpt_here(Decode *s) {
+
+  // Keep this check separate from able_to_take because CHECKPOINT_HERE may appear in
+  // a workload while this checkpoint mode is disabled. In that case, encountering
+  // CHECKPOINT_HERE is valid and should simply skip checkpoint sampling.
+  if (checkpoint_state != CheckpointOnCptHere) {
+    return;
+  }
+
+  /* Ensure CHECKPOINT_HERE always produces a checkpoint. */
+  // Take a checkpoint when not in M-mode, or when checkpointing in M-mode
+  // is explicitly forced.
+  extern bool able_to_take_cpt(void);
+  bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
+
+  // CHECKPOINT_HERE is currently expected to always succeed.
+  // Therefore, treat a failed checkpoint attempt as an error.
+  // If such failures are allowed in the future, this can be downgraded to a warning.
+  if (!able_to_take) {
+    xpanic(
+      "Failed to take checkpoint at PC 0x%lx: "
+      "NEMU is in M-mode and M-mode checkpointing was not explicitly forced",
+      s->pc);
+  }
+
+  // Q: Why do we temporarily set cpu.pc = s->snpc here?
+  // A:
+  //
+  // The current serialization logic reads the checkpoint entry PC from cpu.pc.
+  // After restoration, NEMU resumes execution from the saved PC value.
+  //
+  // Existing periodic and SimPoint checkpoints are taken at basic-block boundaries
+  // through per_bb_profile(). Before serialization, per_bb_profile() explicitly sets
+  // cpu.pc to s->pc, which is the entry PC of the next basic block after the current
+  // control-flow instruction has completed.
+  //
+  // CHECKPOINT_HERE is triggered directly from the execution helper for nemu_trap,
+  // before the normal basic-block checkpoint handling takes place. Therefore, we
+  // cannot rely on the current value of cpu.pc to already represent the PC from
+  // which execution should resume after the trap.
+  //
+  // If the checkpoint captured the address of the nemu_trap instruction itself,
+  // restoring the checkpoint could execute the same trap again and repeatedly trigger
+  // CHECKPOINT_HERE.
+  //
+  // For the current nemu_trap instruction, the sequential next PC is s->snpc.
+  // Therefore, cpu.pc is temporarily set to s->snpc before serialization so that
+  // the checkpoint records the correct resume address.
+  //
+  // Q: Why do we restore cpu.pc after checkpoint sampling?
+  // A:
+  //
+  // The modification of cpu.pc is only needed while generating the checkpoint.
+  // After serialization completes, we restore its original value so that the sampling
+  // operation does not alter NEMU's current execution context.
+  //
+  // Directly modifying cpu.pc may not necessarily cause an error, but we restore it
+  // afterward as a precaution.
+  //
+  // NOTE: Another option would be to pass s->snpc directly to the serialization logic.
+  // However, that would require broader changes, so we keep the modification local to
+  // take_cpt_here().
+  vaddr_t pc_nxt = s->snpc;
+  vaddr_t pc_r   = cpu.pc;
+
+  cpu.pc = pc_nxt;
+
+  /* Take the Checkpoint */
+  extern uint64_t get_abs_instr_count_csr(void);
+  uint64_t icount = get_abs_instr_count_csr() + 1;
+
+  serializer.serialize(icount);
+  serializer.notify_taken(icount);
+
+  Log("CHECKPOINT_HERE: Have taken checkpoint on pc 0x%lx", pc_nxt);
+
+  /* Restore cpu.pc */
+  cpu.pc = pc_r;
 }
 
 }

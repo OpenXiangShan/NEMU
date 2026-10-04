@@ -385,6 +385,8 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
   switch (checkpoint_state) {
   case NoCheckpoint:
     return abs_inst_count;
+  case CheckpointOnCptHere:
+    return abs_inst_count;
   case ManualOneShotCheckpointing:
     if (recvd_manual_oneshot_cpt && !manual_cpt_quit) {
       break;
