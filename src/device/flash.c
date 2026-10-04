@@ -71,7 +71,8 @@ void load_flash_contents(const char *flash_img) {
     load_flash_preset_content();
   } else {
     fclose(fp);
-    load_img(flash_img, "flash image", flash_base, CONFIG_FLASH_SIZE);
+    Assert(load_img(flash_img, "flash image", flash_base, CONFIG_FLASH_SIZE) >= 0,
+           "Failed to load flash image '%s'", flash_img);
   }
 }
 
