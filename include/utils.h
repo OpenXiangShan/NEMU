@@ -54,11 +54,21 @@ uint64_t get_time();
 
 // ----------- store hash -----------
 
+#define DIFFTEST_STORE_HASH_VERSION 1
+
+typedef struct {
+  uint64_t h0;
+  uint64_t h1;
+  uint64_t count;
+} DifftestStoreHashState;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 uint64_t difftest_store_hash_update(uint64_t crc, uint64_t addr, uint64_t data, uint8_t mask);
+void difftest_store_digest_init(DifftestStoreHashState *state);
+void difftest_store_digest_update(DifftestStoreHashState *state, uint64_t addr, uint64_t data, uint8_t mask);
 
 #ifdef __cplusplus
 }

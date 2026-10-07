@@ -17,6 +17,17 @@ config STORE_LOG
   bool "Enable store log"
   default n
 
+config STORE_LOG_HASH
+  bool "Hash ordered scalar writes for reference boundaries"
+  depends on SHARE_REF && !LIGHTQS && !RV_AME
+  default n
+  help
+    Update a constant-size digest on each scalar RAM write using the shared
+    store-hash protocol. Collection is enabled at initialization and can be
+    paused at runtime. No write records or old values are retained for hashes.
+    STORE_LOG independently controls rollback logging. Hashes do not compare
+    the complete guest memory or cover matrix stores.
+
 config STORE_LOG_SIZE
   int "The size of store log"
   depends on STORE_LOG
