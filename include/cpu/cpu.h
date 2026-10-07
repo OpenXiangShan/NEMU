@@ -17,6 +17,7 @@
 #define __CPU_CPU_H__
 
 #include <common.h>
+#include <cpu/ref.h>
 #include <setjmp.h>
 #include <stdarg.h>
 

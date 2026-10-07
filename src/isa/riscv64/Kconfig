@@ -482,12 +482,12 @@ config PMP_GRANULARITY
   int "PMP granularity"
   default 12
 
-comment "PMP Check Disabled when enabling PERF_OPT"
+comment "PMP Check Disabled for standalone PERF_OPT"
   depends on PERF_OPT
   depends on !RV_PMP_ENTRY_0
 
 config RV_PMP_CHECK
-  # todo: pmp check still not work when enable PERF_OPT
+  # PERF_OPT_SHARE uses paddr checks rather than the direct HostTLB.
   depends on !PERF_OPT
   depends on !RV_PMP_ENTRY_0
   bool "Enable PMP Check"
@@ -560,7 +560,7 @@ config PMA_GRANULARITY
   int "PMA granularity"
   default 12
 
-comment "PMA Check Disabled when enabling PERF_OPT"
+comment "PMA Check Disabled for standalone PERF_OPT"
   depends on PERF_OPT
   depends on !RV_PMA_ENTRY_0
 
@@ -745,7 +745,7 @@ config MIMPID_VALUE
 config PMPTABLE_EXTENSION
   # PMPTable covers PMPChecker function,
   # close PMPChecker when using PMPTable.
-  depends on !PERF_OPT
+  depends on !PERF_OPT && !PERF_OPT_SHARE
   depends on !RV_PMP_CHECK
   depends on RV_PMP_CSR
   bool "Enable PMPTable extension"

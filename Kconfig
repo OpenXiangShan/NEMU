@@ -440,6 +440,16 @@ config SHARE_CTRL
   bool "Build shared library as the controller of CUTE"
 endchoice
 
+config FAST_REF
+  bool "Fast reference execution and boundary APIs"
+  depends on SHARE_REF && ISA_riscv64 && !LIGHTQS && !RV_AME
+  default n
+  help
+    Export FAST/SLOW mode, progress, skip and boundary-hash interfaces for
+    segmented DiffTest checking. Default execution mode remains SLOW.
+    Interpreter optimization is controlled separately by PERF_OPT_SHARE.
+
+
 
 config DIFFTEST_STORE_COMMIT
   depends on SHARE
@@ -548,7 +558,15 @@ config PERF_OPT
   bool "Performance optimization"
   default y
 
-if PERF_OPT
+config PERF_OPT_SHARE
+  depends on SHARE_REF && !LIGHTQS
+  bool "Performance optimization for shared reference"
+  default n
+  help
+    Use the optimized interpreter with precise instruction boundaries and
+    shared-reference state synchronization. Both FAST and SLOW are supported.
+
+if PERF_OPT || PERF_OPT_SHARE
 config TCACHE_SIZE
   int "Number of entries in trace cache"
   default 8192
@@ -565,8 +583,9 @@ endif
 
 choice
   prompt "Instruction counting accuracy"
+  default INSTR_CNT_BY_INSTR_PERF_OPT if PERF_OPT_SHARE
   default INSTR_CNT_BY_BB if PERF_OPT
-  default INSTR_CNT_BY_INSTR_NORMAL if !PERF_OPT
+  default INSTR_CNT_BY_INSTR_NORMAL if !PERF_OPT && !PERF_OPT_SHARE
 
 config INSTR_CNT_DISABLED
   bool "Disabled"
@@ -578,12 +597,12 @@ config INSTR_CNT_BY_BB
 
 config INSTR_CNT_BY_INSTR_PERF_OPT
   bool "By Instruction"
-  depends on PERF_OPT
+  depends on PERF_OPT || PERF_OPT_SHARE
   select INSTR_CNT_BY_INSTR
 
 config INSTR_CNT_BY_INSTR_NORMAL
   bool "By Instruction"
-  depends on !PERF_OPT
+  depends on !PERF_OPT && !PERF_OPT_SHARE
   select INSTR_CNT_BY_INSTR
 
 endchoice

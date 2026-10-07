@@ -1540,6 +1540,7 @@ bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
 
 static bool pmp_check_permission_with_mode(paddr_t addr, int len, int type, uint32_t mode) {
+  if (ref_is_fast()) return true;
 #ifdef CONFIG_RV_PMP_CHECK
   if (CONFIG_RV_PMP_ACTIVE_NUM == 0) {
     return true;
@@ -1705,6 +1706,7 @@ bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type) {
 #endif
 
 bool isa_pma_check_permission(paddr_t addr, int len, int type) {
+  if (ref_is_fast()) return true;
 #ifdef CONFIG_RV_PMA_CHECK
   if (CONFIG_RV_PMA_ACTIVE_NUM == 0) {
     return true;
