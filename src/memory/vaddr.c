@@ -104,23 +104,40 @@ static void vaddr_write_cross_page(vaddr_t addr, int len, word_t data, bool need
   }
   word_t cur_pg_st_data = data & cur_pg_st_mask;
   word_t next_pg_st_data = data >> (cur_pg_st_len << 3);
+  bool partial_vector_store = false;
+#ifdef CONFIG_RVV
+  // Non-segment unit-stride vector stores can write the first page before
+  // the next page faults. Keep both-page checks for other store types.
+  partial_vector_store = cpu.isVecUnitStore;
+#endif
   if (needTranslate) {
     Logm("vaddr_write_cross_page!");
-    // make sure no page fault or access fault before real write
     bool cur_pg_st_exp = false;
     bool next_pg_st_exp = false;
     paddr_t cur_pg_st_paddr = vaddr_trans_and_check_exception(cur_pg_st_vaddr, cur_pg_st_len, MEM_TYPE_WRITE, &cur_pg_st_exp);
+    if (partial_vector_store) {
+      if (cur_pg_st_exp) return;
+      paddr_write(cur_pg_st_paddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+    }
     paddr_t next_pg_st_paddr = vaddr_trans_and_check_exception(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, &next_pg_st_exp);
 
     if (!cur_pg_st_exp && !next_pg_st_exp) {
-      paddr_write(cur_pg_st_paddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+      if (!partial_vector_store) {
+        paddr_write(cur_pg_st_paddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+      }
       paddr_write(next_pg_st_paddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
     }
   } else {
     bool cur_pg_st_exp = !check_paddr(cur_pg_st_vaddr, cur_pg_st_len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, cpu.mode, cur_pg_st_vaddr);
+    if (partial_vector_store) {
+      if (cur_pg_st_exp) return;
+      paddr_write(cur_pg_st_vaddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+    }
     bool next_pg_st_exp = !check_paddr(next_pg_st_vaddr, next_pg_st_len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, cpu.mode, next_pg_st_vaddr);
     if (!cur_pg_st_exp && !next_pg_st_exp) {
-      paddr_write(cur_pg_st_vaddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+      if (!partial_vector_store) {
+        paddr_write(cur_pg_st_vaddr, cur_pg_st_len, cur_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, cur_pg_st_vaddr);
+      }
       paddr_write(next_pg_st_vaddr, next_pg_st_len, next_pg_st_data, cpu.mode | CROSS_PAGE_ST_FLAG, next_pg_st_vaddr);
     }
   }
