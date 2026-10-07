@@ -43,6 +43,8 @@ matrix_store_commit_t matrix_store_queue_back();
 size_t matrix_store_queue_size();
 bool matrix_store_queue_empty();
 #endif // CONFIG_RV_AME
+int store_queue_check_hash(uint64_t count, uint64_t hash_lo, uint64_t hash_hi, uint64_t group_id,
+                           uint64_t instr_begin, uint64_t instr_end);
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 #ifdef __cplusplus
