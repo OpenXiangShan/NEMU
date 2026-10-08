@@ -461,6 +461,27 @@ void vector_vwv_check(Decode *s, bool is_vs1) {
   }
 }
 
+void vmv_nr(Decode *s, int nreg) {
+  require_vector(true);
+  check_vstart_exception(s);
+
+  int len = (VLEN >> 6) * nreg;
+  int vlmul;
+  switch (nreg) {
+    case 1: vlmul = 0; break;
+    case 2: vlmul = 1; break;
+    case 4: vlmul = 2; break;
+    case 8: vlmul = 3; break;
+    default: Assert(0, "invalid nreg %d", nreg);
+  }
+  for (int i = 0; i < len; i++) {
+    get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
+    set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
+  }
+  vstart->val = 0;
+  vp_set_dirty();
+}
+
 void vector_reduction_check(Decode *s, bool is_wide) {
   require_vector(true);
   if (is_wide) {
@@ -1847,6 +1868,145 @@ void float_reduction_computing(Decode *s) {
   vp_set_dirty();
   vstart->val = 0;
 }
+
+/*
+ * Kunminghu V3 unordered FP reduction.  VFRedUSum first reduces the active
+ * elements inside each 128-bit register with a balanced tree, then folds the
+ * per-register results into the running seed in register order.  This is
+ * intentionally separate from the legacy implementation above: V2 keeps its
+ * historical reduction tree and ordered difftest behavior.
+ */
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+static void float_reduction_tree_kmhv3(rtlreg_t *values, uint8_t *active,
+    int element_num, word_t fpcall_type, Decode *s) {
+  for (int width = element_num; width > 1; width >>= 1) {
+    for (int i = 0; i < width / 2; i++) {
+      int left = i * 2;
+      int right = left + 1;
+
+      if (active[left] && active[right]) {
+        // VFRedUSum adds the lower lane as src1 and the upper lane as src2.
+        // Preserve this ordering for NaN payloads and exception flags.
+        rtl_hostcall(s, HOSTCALL_VFP, s1, &values[left], &values[right],
+            FPCALL_CMD(FPCALL_ADD, fpcall_type));
+        values[i] = *s1;
+        active[i] = 1;
+      } else if (active[left]) {
+        values[i] = values[left];
+        active[i] = 1;
+      } else if (active[right]) {
+        values[i] = values[right];
+        active[i] = 1;
+      } else {
+        active[i] = 0;
+      }
+    }
+  }
+}
+
+void float_reduction_computing_kmhv3(int widening, Decode *s) {
+  isa_fp_rm_check(isa_fp_get_frm());
+  require_float();
+
+  bool is_widening = widening == vsWidening;
+  vector_reduction_check(s, is_widening);
+  word_t source_vsew = vtype->vsew;
+  word_t result_vsew = source_vsew + is_widening;
+  word_t fpcall_type = FPCALL_W64;
+
+  switch (source_vsew) {
+    case 0:
+      Loge("f8 not supported");
+      longjmp_exception(EX_II);
+      break;
+#ifdef CONFIG_RV_ZVFH
+    case 1:
+      fpcall_type = is_widening ? FPCALL_W32 : FPCALL_W16;
+      break;
+#else
+    case 1:
+      Loge("ZVFH extension is not enabled, please make menuconfig!");
+      longjmp_exception(EX_II);
+      break;
+#endif
+    case 2:
+      fpcall_type = is_widening ? FPCALL_W64 : FPCALL_W32;
+      break;
+    case 3:
+      fpcall_type = FPCALL_W64;
+      break;
+    default:
+      Loge("other fp type not supported");
+      longjmp_exception(EX_II);
+      break;
+  }
+
+  if (vtype->vlmul == 4) {
+    Loge("lmul = 4 is reserved");
+    longjmp_exception(EX_II);
+  }
+
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    fp_set_dirty();
+    vp_set_dirty();
+    return;
+  }
+
+  rtlreg_t result;
+  get_vreg(id_src->reg, 0, &result, result_vsew, vtype->vlmul, 0, 0);
+
+  int element_num = VLEN >> (3 + source_vsew);
+  int register_num = vtype->vlmul < 4 ? (1 << vtype->vlmul) : 1;
+
+  for (int reg = 0; reg < register_num; reg++) {
+    rtlreg_t values[8] = {0};
+    uint8_t active[8] = {0};
+
+    for (int i = 0; i < element_num; i++) {
+      word_t idx = reg * element_num + i;
+      active[i] = idx >= vstart->val && idx < vl->val &&
+          (s->vm || get_mask(0, idx));
+      if (active[i]) {
+        get_vreg(id_src2->reg, idx, s0, source_vsew, vtype->vlmul, 0, 1);
+        values[i] = *s0;
+
+        // VFRedUSum widens each source before entering the same-SEW tree;
+        // widening itself does not generate fflags.
+        if (is_widening) {
+          if (source_vsew == 1) {
+            rtl_hostcall(s, HOSTCALL_VFP, s0, &values[i], rz,
+                FPCALL_CMD(FPCALL_F16ToF32, FPCALL_W16));
+          } else {
+            rtl_hostcall(s, HOSTCALL_VFP, s0, &values[i], rz,
+                FPCALL_CMD(FPCALL_F32ToF64, FPCALL_W32));
+          }
+          values[i] = *s0;
+        }
+      }
+    }
+
+    float_reduction_tree_kmhv3(values, active, element_num, fpcall_type, s);
+    if (active[0]) {
+      // VFRedUSum feeds the tree result as src1 and the running seed as src2.
+      rtl_hostcall(s, HOSTCALL_VFP, s1, &values[0], &result,
+          FPCALL_CMD(FPCALL_ADD, fpcall_type));
+      result = *s1;
+    }
+  }
+
+  if (RVV_AGNOSTIC) {
+    if (vtype->vta && vl->val != 0) set_vreg_tail(id_dest->reg);
+  }
+
+  if (vl->val != 0) {
+    set_vreg(id_dest->reg, 0, result, result_vsew, vtype->vlmul, 0);
+  }
+  fp_set_dirty();
+  vp_set_dirty();
+  vstart->val = 0;
+}
+#endif // CONFIG_RVV_KMHV3_REDUCTION
 
 // dirty job here
 #undef s0

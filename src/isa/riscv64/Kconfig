@@ -131,6 +131,14 @@ config CUSTOM_XVEXP2_BF16
   help
     Enable the non-standard vfexp2bf16.v instruction for BF16.
 
+config RVV_KMHV3_REDUCTION
+  depends on RVV
+  bool "Use Kunminghu V3 floating-point unordered reduction"
+  default n
+  help
+    Use the Kunminghu V3 XiangShan floating-point unordered reduction tree.
+    Leave disabled for Kunminghu V2 compatibility.
+
 config CUSTOM_TENSOR
   depends on !FPU_NONE
   bool "RISC-V Tensor Extension (Internal Spec)"

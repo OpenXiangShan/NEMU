@@ -303,6 +303,9 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_DFToST: *dest = f16_to_i8(fsrc1, softfloat_round_minMag, true); break;
 
       case FPCALL_GenNegZero: *dest = f16_neg_zero().v; break;
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+      case FPCALL_F16ToF32: *dest = f16_to_f32(fsrc1).v; break;
+#endif
 
       default: panic("op = %d not supported", op);
     }
@@ -390,6 +393,9 @@ def_rtl(vfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
         *dest = f32_to_f16(fsrc1).v;
         break;
       case FPCALL_GenNegZero: *dest = f32_neg_zero().v; break;
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+      case FPCALL_F32ToF64: *dest = f32_to_f64(fsrc1).v; break;
+#endif
 
       default: panic("op = %d not supported", op);
     }
