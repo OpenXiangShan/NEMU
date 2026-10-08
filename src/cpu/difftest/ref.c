@@ -554,10 +554,6 @@ void difftest_state_hash(void *dest) {
 #endif
 }
 
-uint32_t difftest_store_hash_version(void) {
-  return MUXDEF(CONFIG_STORE_LOG_HASH, DIFFTEST_STORE_HASH_VERSION, 0);
-}
-
 bool difftest_store_hash_enabled(void) {
   return MUXDEF(CONFIG_STORE_LOG_HASH, store_log_hash_enabled(), false);
 }

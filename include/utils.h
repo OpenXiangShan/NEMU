@@ -54,7 +54,6 @@ uint64_t get_time();
 
 // ----------- store hash -----------
 
-#define DIFFTEST_STORE_HASH_VERSION 1
 
 typedef struct {
   uint64_t h0;
