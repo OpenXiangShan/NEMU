@@ -77,6 +77,7 @@ enum fp_wop_t {
 
 void fp_set_dirty();
 void vp_set_dirty();
+void vmv_nr(Decode *s, int nreg);
 void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
 void permutaion_instr(int opcode, Decode *s);
 void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s);
@@ -86,6 +87,9 @@ void float_reduction_instr(int opcode, int widening, Decode *s);
 void float_reduction_step1(uint64_t src1, uint64_t src2, Decode *s);
 void float_reduction_step2(uint64_t src, Decode *s);
 void float_reduction_computing(Decode *s);
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+void float_reduction_computing_kmhv3(int widening, Decode *s);
+#endif
 void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm(void);
 

@@ -329,27 +329,6 @@ def_EHelper(vmvxs) {
   vstart->val = 0;
 }
 
-static inline void vmv_nr(Decode *s, int nreg) {
-  require_vector(true);
-  check_vstart_exception(s);
-
-  int len = (VLEN >> 6) * nreg;
-  int vlmul;
-  switch (nreg) {
-    case 1: vlmul = 0; break;
-    case 2: vlmul = 1; break;
-    case 4: vlmul = 2; break;
-    case 8: vlmul = 3; break;
-    default: Assert(0, "invalid nreg %d", nreg);
-  }
-  for (int i = 0; i < len; i++) {
-    get_vreg(id_src2->reg, i, s0, 3, vlmul, 1, 1);
-    set_vreg(id_dest->reg, i, *s0, 3, vlmul, 1);
-  }
-  vstart->val = 0;
-  vp_set_dirty();
-}
-
 def_EHelper(vmv1r) { vmv_nr(s, 1); }
 def_EHelper(vmv2r) { vmv_nr(s, 2); }
 def_EHelper(vmv4r) { vmv_nr(s, 4); }
@@ -939,10 +918,14 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+  float_reduction_computing_kmhv3(noWidening, s);
+#else
 #ifdef CONFIG_DIFFTEST
   FREDUCTION(FREDUSUM)    // use ordered reduction
 #else
   float_reduction_computing(s);   // when NEMU is ref, use unordered reduction which is same as XiangShan
+#endif
 #endif
 }
 
@@ -1256,7 +1239,11 @@ def_EHelper(vfwadd) {
 }
 
 def_EHelper(vfwredusum) {
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+  float_reduction_computing_kmhv3(vsWidening, s);
+#else
   FWREDUCTION(FREDUSUM)
+#endif
 }
 
 def_EHelper(vfwsub) {
