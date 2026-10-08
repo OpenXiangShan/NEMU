@@ -285,8 +285,8 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
       xpanic("Close failed on physical checkpoint file\n");
     }
 
-#ifdef CONFIG_ZSTD_COMPRESS
   } else if (compress_file_format == ZSTD_FORMAT) {
+#ifdef CONFIG_ZSTD_COMPRESS
     Log("Using ZSTD format generate checkpoint");
 
     memory_file_path += base_file_path + "_memory_.zstd";
@@ -366,6 +366,11 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     free(flash_compress_buffer);
 #endif
     free(memory_compress_buffer);
+#else // CONFIG_ZSTD_COMPRESS is not defined
+    xpanic(
+      "ZSTD checkpoint format was selected at runtime (--checkpoint-format=zstd), but CONFIG_ZSTD_COMPRESS=y was not enabled at compile time.\n"
+      "ZSTD checkpoint sampling requires CONFIG_ZSTD_COMPRESS=y. Please enable it in the config and rebuild NEMU.\n"
+    );
 #endif // CONFIG_ZSTD_COMPRESS
   } else {
     xpanic("You need to specify the compress file format using: --checkpoint-format\n");
