@@ -353,6 +353,10 @@ def_EHelper(vmvnr) {
   vstart->val = 0;
   vp_set_dirty();
 }
+def_EHelper(vmv1r) { vmv_nr(s, 1); }
+def_EHelper(vmv2r) { vmv_nr(s, 2); }
+def_EHelper(vmv4r) { vmv_nr(s, 4); }
+def_EHelper(vmv8r) { vmv_nr(s, 8); }
 
 def_EHelper(vpopc) {
   require_vector(true);
@@ -938,10 +942,14 @@ def_EHelper(vfadd) {
 }
 
 def_EHelper(vfredusum) {
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+  float_reduction_computing_kmhv3(noWidening, s);
+#else
 #ifdef CONFIG_DIFFTEST
   FREDUCTION(FREDUSUM)    // use ordered reduction
 #else
   float_reduction_computing(s);   // when NEMU is ref, use unordered reduction which is same as XiangShan
+#endif
 #endif
 }
 
@@ -1267,7 +1275,11 @@ def_EHelper(vfwadd) {
 }
 
 def_EHelper(vfwredusum) {
+#ifdef CONFIG_RVV_KMHV3_REDUCTION
+  float_reduction_computing_kmhv3(vsWidening, s);
+#else
   FWREDUCTION(FREDUSUM)
+#endif
 }
 
 def_EHelper(vfwsub) {
