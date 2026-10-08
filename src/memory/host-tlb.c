@@ -18,6 +18,7 @@
 #include <ctrl/ame/cutest.h>
 #include <isa.h>
 #include <memory/host.h>
+#include <memory/host-tlb.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
