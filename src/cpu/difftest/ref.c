@@ -542,7 +542,11 @@ void difftest_flush_state(void) {
   mmu_tlb_flush(0);
 }
 
-void difftest_state_hash(void *dest) {
+// A complete checkpoint requires enabled store hashing as well as CPU state.
+// Return -1 when unavailable; callers must not compare an incomplete digest.
+int difftest_state_hash(void *dest) {
+  if (!dest || !MUXDEF(CONFIG_STORE_LOG_HASH, store_log_hash_enabled(), false))
+    return -1;
   difftest_state_hash_t *hash = (difftest_state_hash_t *)dest;
   difftest_hash_bytes(&hash->state_lo, &hash->state_hi, &cpu, DIFFTEST_REG_SIZE);
 #ifdef CONFIG_STORE_LOG_HASH
@@ -552,10 +556,7 @@ void difftest_state_hash(void *dest) {
   hash->store_hi = 0;
   hash->store_count = 0;
 #endif
-}
-
-bool difftest_store_hash_enabled(void) {
-  return MUXDEF(CONFIG_STORE_LOG_HASH, store_log_hash_enabled(), false);
+  return 0;
 }
 
 void difftest_set_store_hash(bool enabled) {
