@@ -919,7 +919,11 @@ def_EHelper(vfadd) {
 
 def_EHelper(vfredusum) {
 #ifdef CONFIG_RVV_KMHV3_REDUCTION
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  FREDUCTION(FREDUSUM)
+#else
   float_reduction_computing_kmhv3(noWidening, s);
+#endif
 #else
 #ifdef CONFIG_DIFFTEST
   FREDUCTION(FREDUSUM)    // use ordered reduction
@@ -1240,7 +1244,11 @@ def_EHelper(vfwadd) {
 
 def_EHelper(vfwredusum) {
 #ifdef CONFIG_RVV_KMHV3_REDUCTION
+#ifdef CONFIG_DIFFTEST_REF_SPIKE
+  FWREDUCTION(FREDUSUM)
+#else
   float_reduction_computing_kmhv3(vsWidening, s);
+#endif
 #else
   FWREDUCTION(FREDUSUM)
 #endif
