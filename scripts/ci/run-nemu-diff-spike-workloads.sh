@@ -25,7 +25,7 @@ spec_ckpt_seed="${SPEC_CKPT_SEED:-${GITHUB_SHA:-default}}"
 spec_ckpt_max_memory_gb="${SPEC_CKPT_MAX_MEMORY_GB:-8}"
 spec_max_instr="${SPEC_MAX_INSTR:-40000000}"
 nemu_bin="${NEMU_BIN:-${repo_dir}/build/riscv64-nemu-interpreter}"
-spike_so="${SPIKE_SO:-${repo_dir}/ready-to-run/spike-xiangshan-ref.so}"
+ref_so="${REF_SO:-${SPIKE_SO:-${repo_dir}/ready-to-run/spike-xiangshan-ref.so}}"
 log_dir="${NEMU_DIFF_LOG_DIR:-${repo_dir}/nemu-diff-spike-logs}"
 if [ -n "${NEMU_DIFF_JOBS:-}" ]; then
   diff_jobs=$NEMU_DIFF_JOBS
@@ -51,7 +51,8 @@ usage() {
   cat <<'EOF'
 Usage: scripts/ci/run-nemu-diff-spike-workloads.sh [options]
 
-Run workload-builder images and checkpoints on NEMU with Spike DiffTest.
+Run workload-builder images and checkpoints on NEMU with DiffTest against a
+reference shared object: Spike by default, or NEMU built as a reference.
 
 Options:
   --suite SUITE       Test suite to run.
@@ -85,6 +86,7 @@ Environment:
   SPEC_CKPT_JOBS          Number of SPEC checkpoints to run concurrently.
                            Defaults to NEMU_DIFF_JOBS or 16.
   NEMU_BIN                 NEMU executable. Defaults to ./build/riscv64-nemu-interpreter.
+  REF_SO                   Reference shared object. Defaults to SPIKE_SO.
   SPIKE_SO                 Spike difftest shared object. Defaults to ready-to-run/spike-xiangshan-ref.so.
   NEMU_DIFF_LOG_DIR        Directory for per-workload logs and manifest.
   NEMU_DIFF_JOBS           Number of workloads to run concurrently. Defaults to 1.
@@ -120,9 +122,9 @@ init_logs() {
   manifest_lock_file="${log_dir}/manifest.lock"
   manifest_sorted_file="${log_dir}/manifest.sorted.tsv"
   printf 'index\tstatus\tname\tworkload\tlog\tcommand\n' > "$manifest_file"
-  echo "NEMU Spike DiffTest logs: $log_dir"
-  echo "NEMU Spike DiffTest manifest: $manifest_file"
-  echo "NEMU Spike DiffTest jobs: $diff_jobs"
+  echo "NEMU DiffTest logs: $log_dir"
+  echo "NEMU DiffTest manifest: $manifest_file"
+  echo "NEMU DiffTest jobs: $diff_jobs"
 }
 
 append_manifest() {
@@ -148,7 +150,7 @@ sort_manifest() {
     head -n 1 "$manifest_file"
     tail -n +2 "$manifest_file" | sort -n -k1,1
   } > "$manifest_sorted_file"
-  echo "NEMU Spike DiffTest sorted manifest: $manifest_sorted_file"
+  echo "NEMU DiffTest sorted manifest: $manifest_sorted_file"
 }
 
 run_case_with_index() {
@@ -158,7 +160,7 @@ run_case_with_index() {
   shift
   shift
   shift
-  local -a nemu_args=(-b --diff "$spike_so")
+  local -a nemu_args=(-b --diff "$ref_so")
   local -a cmd
   local case_hash case_label command_line log_file safe_name status workload
 
@@ -187,6 +189,10 @@ run_case_with_index() {
   else
     status=$?
   fi
+  if [ "$status" -eq 0 ] && grep -q "CRITICAL" "$log_file"; then
+    echo "case ${case_label}: ${name} printed a CRITICAL marker" >&2
+    status=1
+  fi
   if [ "$status" -eq 0 ]; then
     append_manifest "$index" "PASS" "$name" "$workload" "$log_file" "$command_line"
     if [ "$compact_case_logs" = true ]; then
@@ -202,7 +208,7 @@ run_case_with_index() {
   echo "workload: ${workload}" >&2
   echo "log: ${log_file}" >&2
   echo "command: ${command_line}" >&2
-  echo "::error title=NEMU Spike DiffTest failed::case ${case_label}: ${name}; workload: ${workload}; log: ${log_file}"
+  echo "::error title=NEMU DiffTest failed::case ${case_label}: ${name}; workload: ${workload}; log: ${log_file}"
   echo "Last 200 lines from ${log_file}:"
   tail -n 200 "$log_file" >&2 || true
   echo "FAIL case ${case_label}: ${name}" >&2
@@ -593,7 +599,7 @@ case "$suite" in
     ;;
 esac
 
-require_file "$spike_so"
+require_file "$ref_so"
 require_file "$nemu_bin"
 require_positive_integer "NEMU_DIFF_JOBS" "$diff_jobs"
 init_logs

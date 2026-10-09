@@ -31,6 +31,7 @@ int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask)
 void (*ref_difftest_flash_cpy)(uint8_t* flash_bin, size_t size) = NULL;
 void (*ref_difftest_pmpcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction) = NULL;
+void (*ref_difftest_csrcpy)(void *dut, bool direction) = NULL;
 #ifdef CONFIG_RV_AME
 int  (*ref_difftest_matrix_store_commit)(uint64_t *base, uint64_t *stride, uint32_t *row, uint32_t *column, uint32_t *width, bool *transpose) = NULL;
 #endif // CONFIG_RV_AME
@@ -115,10 +116,14 @@ void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) 
   assert(ref_difftest_flash_cpy);
 #endif
 
+  // Only attaching copies PMP state, so a reference may omit these.
   ref_difftest_pmpcpy = dlsym(handle, "difftest_pmpcpy");
-  assert(ref_difftest_pmpcpy);
   ref_difftest_pmp_cfg_cpy = dlsym(handle, "difftest_pmp_cfg_cpy");
-  assert(ref_difftest_pmp_cfg_cpy);
+
+#ifdef CONFIG_DIFFTEST_REF_NEMU
+  ref_difftest_csrcpy = dlsym(handle, "difftest_csrcpy");
+  assert(ref_difftest_csrcpy);
+#endif
 
   Log("Differential testing: \33[1;32m%s\33[0m", "ON");
   Log("The result of every instruction will be compared with %s. "
@@ -131,6 +136,9 @@ void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) 
   ref_difftest_flash_cpy(get_flash_base(), flash_size ? flash_size : CONFIG_FLASH_SIZE);
 #endif
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
+#if defined(CONFIG_DIFFTEST_REF_NEMU) && defined(CONFIG_ISA_riscv64)
+  isa_difftest_init_csrs();
+#endif
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {

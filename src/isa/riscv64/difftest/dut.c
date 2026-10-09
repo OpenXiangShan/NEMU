@@ -136,9 +136,19 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   return result;
 }
 
+#ifdef CONFIG_DIFFTEST_REF_NEMU
+// A NEMU reference shares the CSR layout and takes the complete CSR state,
+// including the CSRs outside the register copy, whose reset values are build
+// options that may differ between the two builds.
+void isa_difftest_init_csrs() {
+  ref_difftest_csrcpy(csr_array, DIFFTEST_TO_REF);
+}
+#endif // CONFIG_DIFFTEST_REF_NEMU
+
 void isa_difftest_attach() {
   csr_prepare();
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), MEMORY_SIZE, DIFFTEST_TO_REF);
+  assert(ref_difftest_pmpcpy && ref_difftest_pmp_cfg_cpy);
   ref_difftest_pmpcpy(&csr_array[CSR_PMPADDR_BASE], DIFFTEST_TO_REF);
   ref_difftest_pmp_cfg_cpy(csr_array, DIFFTEST_TO_REF);
   assert(0); //FIXME

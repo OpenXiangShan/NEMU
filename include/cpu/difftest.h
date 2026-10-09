@@ -43,6 +43,7 @@ extern void (*ref_difftest_raise_intr)(uint64_t NO);
 extern void (*ref_difftest_dirty_fsvs)(const uint64_t dirties);
 extern void (*ref_difftest_pmpcpy)(void *dut, bool direction);
 extern void (*ref_difftest_pmp_cfg_cpy)(void *dut, bool direction);
+extern void (*ref_difftest_csrcpy)(void *dut, bool direction);
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 extern int  (*ref_difftest_store_commit)(uint64_t *addr, uint64_t *data, uint8_t *mask);

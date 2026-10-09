@@ -73,7 +73,9 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 word_t raise_intr(word_t NO, vaddr_t epc) {
   IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
   Logti("raise intr cause NO: %lx, epc: %lx\n", NO, epc);
-#ifdef CONFIG_DIFFTEST_REF_SPIKE
+// A faulting instruction does not reach difftest_step(), while Spike and
+// NEMU take the same fault in one step of their own: step them here.
+#if defined(CONFIG_DIFFTEST_REF_SPIKE) || defined(CONFIG_DIFFTEST_REF_NEMU)
   switch (NO) {
     // ecall and ebreak are handled normally
 #ifdef CONFIG_RVH

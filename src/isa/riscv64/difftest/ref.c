@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <stddef.h>  // for offsetof
 
+int update_mmu_state();
+
 const unsigned DIFFTEST_REG_SIZE =
   offsetof(riscv64_CPU_state, difftest_state_end) - offsetof(riscv64_CPU_state, gpr);
 
@@ -251,7 +253,6 @@ void isa_difftest_regcpy(void *dut, bool direction) {
     csr_writeback();
     csr_difftest_mark_clean();
     // need to clear the cached mmu states as well
-    extern void update_mmu_state();
     update_mmu_state();
   } else {
     csr_prepare_if_dirty();
@@ -284,6 +285,8 @@ void isa_difftest_csrcpy(void *dut, bool direction) {
     memcpy(csr_array, dut, 4096 * sizeof(rtlreg_t));
     mmu_refresh_pmp_cache();
     mmu_refresh_pma_cache();
+    csr_difftest_mark_dirty();
+    update_mmu_state();
   } else {
     memcpy(dut, csr_array, 4096 * sizeof(rtlreg_t));
   }
