@@ -1,4 +1,5 @@
 #include <memory/store_queue_wrapper.h>
+#include <utils.h>
 #include <queue>
 #include <stack>
 
@@ -100,5 +101,45 @@ bool matrix_store_queue_empty() {
   return cpp_matrix_store_event_queue.empty();
 }
 #endif // CONFIG_RV_AME
+
+int store_queue_check_hash(uint64_t count, uint64_t hash_lo, uint64_t hash_hi, uint64_t group_id,
+                           uint64_t instr_begin, uint64_t instr_end) {
+  if (store_queue_has_overflow) {
+    printf("[StoreHash] NEMU store commit queue overflow in group %lu.\n", group_id);
+    return 1;
+  }
+  if (cpp_store_event_queue.size() < count) {
+    printf("[StoreHash] NEMU queue underflow in group %lu: need %lu records, have %zu.\n", group_id, count,
+           cpp_store_event_queue.size());
+    return 1;
+  }
+
+  uint64_t crc = 0;
+  auto pending = cpp_store_event_queue;
+  for (uint64_t i = 0; i < count; i++) {
+    const store_commit_t store_commit = pending.front();
+    pending.pop();
+    crc = difftest_store_hash_update(crc, store_commit.addr, store_commit.data, store_commit.mask);
+  }
+
+  if (crc == hash_lo && hash_hi == 0) {
+    for (uint64_t i = 0; i < count; i++) {
+      cpp_store_event_queue.pop();
+    }
+    return 0;
+  }
+
+  printf("[StoreHash] mismatch group=%lu instr=[%lu,%lu] records=%lu\n", group_id, instr_begin, instr_end, count);
+  printf("[StoreHash] expected DUT hash=(0x%016lx,0x%016lx), NEMU hash=(0x%016lx,0x%016lx)\n", hash_lo, hash_hi,
+         crc, uint64_t(0));
+  auto to_print = cpp_store_event_queue;
+  for (uint64_t i = 0; i < count; i++) {
+    const store_commit_t store_commit = to_print.front();
+    to_print.pop();
+    printf("[StoreHash] NEMU store[%lu] pc=0x%016lx addr=0x%016lx data=0x%016lx mask=0x%02x\n", i,
+           store_commit.pc, store_commit.addr, store_commit.data, store_commit.mask);
+  }
+  return 1;
+}
 
 #endif
