@@ -36,8 +36,6 @@ typedef struct {
 extern "C" {
 #endif
 
-uint32_t difftest_store_hash_version(void);
-bool difftest_store_hash_enabled(void);
 void difftest_set_store_hash(bool enabled);
 void difftest_store_hash_reset(void);
 
