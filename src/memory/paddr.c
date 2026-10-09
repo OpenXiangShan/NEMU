@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <cpu/cpu.h>
+#include <cpu/difftest/mem_observation.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
 
@@ -385,7 +386,15 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
 
 static inline word_t paddr_read_pmem_after_check(paddr_t addr, int len,
                                                  int type, int mode) {
-  uint64_t rdata = pmem_read(addr, len);
+  word_t rdata;
+#ifdef CONFIG_MULTICORE_DIFF
+  bool observed = type == MEM_TYPE_READ &&
+      difftest_mem_observation_consume_v1(addr, len, &rdata);
+  if (!observed)
+#endif
+  {
+    rdata = pmem_read(addr, len);
+  }
 #ifdef CONFIG_SHARE
   ref_log_cpu("paddr read addr:" FMT_PADDR ", data: %016lx, len:%d, type:%d, mode:%d",
       addr, rdata, len, type, mode);
