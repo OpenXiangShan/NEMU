@@ -380,6 +380,12 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
+#if defined(CONFIG_XS_KMHV2) && defined(CONFIG_RVH)
+  extern bool hlvx;
+  if (hlvx && type == MEM_TYPE_READ && trap_type == MEM_TYPE_READ) {
+    type = MEM_TYPE_READ_EXEC;
+  }
+#endif
   return check_paddr(addr, len, type, trap_type, mode, vaddr);
 }
 

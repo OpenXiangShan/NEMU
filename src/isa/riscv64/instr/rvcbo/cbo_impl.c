@@ -76,7 +76,7 @@ static paddr_t translate_and_check(vaddr_t vaddr, int type) {
     if (ret == MEM_RET_OK) {
       paddr = pg_base | (vaddr & PAGE_MASK);
     }
-    if (cpu.pbmt != 0) {
+    if (cpu.pbmt != 0 && !ISDEF(CONFIG_XS_KMHV2)) {
       cpu.trapInfo.tval = vaddr;
       cpu.amo = false;
       longjmp_exception(EX_SAF);

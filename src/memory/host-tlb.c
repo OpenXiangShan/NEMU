@@ -144,6 +144,12 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
 
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
+#if defined(CONFIG_XS_KMHV2) && defined(CONFIG_RVH)
+  extern bool hlvx;
+  if (hlvx && type == MEM_TYPE_READ) {
+    return hosttlb_read_slowpath(s, vaddr, len, type);
+  }
+#endif
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){

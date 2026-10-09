@@ -15,6 +15,9 @@ jobs:
       matrix:
         cpu: ['xs', 'xs-dual']
         type: ['ref', 'ref-debug']
+        include:
+          - cpu: xs-kmhv2
+            type: ref
       fail-fast: false
     runs-on: ubuntu-latest
     container:

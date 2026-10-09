@@ -521,7 +521,7 @@
   #define CSRS_M_DEBUG_TRACE(f) \
     f(tselect    , 0x7A0) \
     f(tdata1     , 0x7A1) f(tdata2     , 0x7A2) \
-    f(tdata3     , 0x7A3) f(tinfo      , 0x7A4) \
+    IFNDEF(CONFIG_XS_KMHV2, f(tdata3, 0x7A3)) f(tinfo, 0x7A4) \
     f(mcontext   , 0x7A8)
 #else // CONFIG_RV_SDTRIG
   #define CSRS_M_DEBUG_TRACE(f)
@@ -2038,7 +2038,7 @@ extern mseccfg_t* const mseccfg;
 // All valid fields defined by RISC-V spec and not affected by extensions
 // This mask is used to get the value of sstatus from mstatus
 // SD, SDT, UXL, MXR, SUM, XS, FS, VS, MS, SPP, UBE, SPIE, SIE
-#define SSTATUS_BASE 0x80000003060de762UL
+#define SSTATUS_BASE MUXDEF(CONFIG_XS_KMHV2, 0x80000003000de762UL, 0x80000003060de762UL)
 
 #define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0) | MUXDEF(CONFIG_RV_ZICFILP, SSTATUS_SPELP, 0))
 
