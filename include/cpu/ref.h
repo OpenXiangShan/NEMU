@@ -19,10 +19,6 @@
 #include <common.h>
 #include <difftest.h>
 
-static inline bool ref_fast_supported(void) {
-  return ISDEF(CONFIG_FAST_REF);
-}
-
 #ifdef CONFIG_FAST_REF
 extern int difftest_exec_mode;
 #endif
