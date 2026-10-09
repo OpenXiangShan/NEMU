@@ -31,7 +31,6 @@ Additional APIs are exported only with `FAST_REF`:
 | --- | --- |
 | `set_exec_mode`, `get_instr_count`, `get_pc` | Select mode and query progress |
 | `skip_one` | Advance PC and optionally supply integer register writeback |
-| `exec_skip` | Execute one instruction, then supply integer writeback |
 | `flush_state` | Refresh derived state before a forked worker resumes |
 | `state_hash` | Return CPU-state and ordered store digests; 0 on success, -1 if store hashing is unavailable or paused |
 | `set_store_hash`, `store_hash_reset` | Pause/resume collection or clear its digest |

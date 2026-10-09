@@ -525,12 +525,6 @@ uint64_t difftest_get_pc(void) {
   return cpu.pc;
 }
 
-void difftest_exec_skip(bool isRVC, bool wen, uint32_t wdest, uint64_t wdata) {
-  (void)isRVC;
-  cpu_exec(1);
-  if (wen && wdest != 0) cpu.gpr[wdest]._64 = wdata;
-}
-
 void difftest_flush_state(void) {
   extern int update_mmu_state();
   extern void mmu_tlb_flush(vaddr_t vaddr);
