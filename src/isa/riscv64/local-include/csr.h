@@ -37,11 +37,7 @@
 #define CUSTOM_CSR_MCOREPWR   0xbc0
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
 #define CUSTOM_CSR_MBMC       0xbC2
-#ifdef CONFIG_CUSTOM_CSR_KMHV3
-#define CUSTOM_CSR_SBPCTL_WMASK     0xff
-#else // CONFIG_CUSTOM_CSR_KMHV3
 #define CUSTOM_CSR_SBPCTL_WMASK     0x7f
-#endif // CONFIG_CUSTOM_CSR_KMHV3
 
 #define CUSTOM_CSR_SPFCTL_WMASK     0x3fffff
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
@@ -1332,16 +1328,6 @@ CSR_STRUCT_END(srnctl)
 #endif
 
 CSR_STRUCT_START(sbpctl)
-#ifdef CONFIG_CUSTOM_CSR_KMHV3
-  uint64_t ubtb_enable   : 1; // [0]
-  uint64_t abtb_enable   : 1; // [1]
-  uint64_t mbtb_enable   : 1; // [2]
-  uint64_t tage_enable   : 1; // [3]
-  uint64_t sc_enable     : 1; // [4]
-  uint64_t ittage_enable : 1; // [5]
-  uint64_t ras_enable    : 1; // [6]
-  uint64_t utage_enable  : 1; // [7]
-#else // CONFIG_CUSTOM_CSR_KMHV3
   uint64_t ubtb_enable : 1; // [0]
   uint64_t btb_enable  : 1; // [1]
   uint64_t bim_enable  : 1; // [2]
@@ -1349,7 +1335,6 @@ CSR_STRUCT_START(sbpctl)
   uint64_t sc_enable   : 1; // [4]
   uint64_t ras_enable  : 1; // [5]
   uint64_t loop_enable : 1; // [6]
-#endif // CONFIG_CUSTOM_CSR_KMHV3
 CSR_STRUCT_END(sbpctl)
 
 CSR_STRUCT_START(spfctl)
