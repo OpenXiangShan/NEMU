@@ -2619,10 +2619,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 
 #ifdef CONFIG_RV_CSR_MSECCFG
     case CSR_MSECCFG:
-      mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK & (~MSECCFG_WMASK_PMM), src);
-      if (((mseccfg_t*)&src)->pmm != 0b01) { // 0b01 is reserved
-        mseccfg->val = mask_bitset(mseccfg->val, MSECCFG_WMASK_PMM, src);
-      }
+      mseccfg->val = src;
       riscv64_zicfilp_refresh_elp();
       IFDEF(CONFIG_RV_ZICFILP, set_sys_state_flag(SYS_STATE_UPDATE));
       break;
