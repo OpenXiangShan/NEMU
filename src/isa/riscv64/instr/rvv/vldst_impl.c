@@ -568,6 +568,11 @@ void vst(Decode *s, int mode, int mmu_mode) {
     g_nr_vst_unit += 1;
     cpu.isVecUnitStore = s->v_nf == 0;
   }
+#ifdef CONFIG_XS_KMHV2
+  cpu.isVstoreActive = true;
+  if (vstart->val != 0) vp_set_dirty();
+#endif
+
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
   rtl_mv(s, &(tmp_reg[0]), &(s->src1.val));
@@ -709,7 +714,11 @@ void vst(Decode *s, int mode, int mmu_mode) {
   vstart->val = 0;
   cpu.isVldst = false;
   cpu.isVecUnitStore = false;
+#ifdef CONFIG_XS_KMHV2
+  cpu.isVstoreActive = false;
+#else
   vp_set_dirty();
+#endif
 }
 
 void vstx(Decode *s, int mmu_mode) {
@@ -733,6 +742,11 @@ void vstx(Decode *s, int mmu_mode) {
   isa_emul_check(lmul, nf);
   lmul = lmul < 0 ? 0 : lmul;
   lmul = 1 << lmul;
+
+#ifdef CONFIG_XS_KMHV2
+  cpu.isVstoreActive = true;
+  if (vstart->val != 0) vp_set_dirty();
+#endif
 
   // previous decode does not load vals for us
   rtl_lr(s, &(s->src1.val), s->src1.reg, 4);
@@ -768,7 +782,11 @@ void vstx(Decode *s, int mmu_mode) {
   // TODO: the idx larger than vl need reset to zero.
   vstart->val = 0;
   cpu.isVldst = false;
+#ifdef CONFIG_XS_KMHV2
+  cpu.isVstoreActive = false;
+#else
   vp_set_dirty();
+#endif
 }
 
 static void isa_whole_reg_check(uint64_t vd, uint64_t nfields) {
@@ -880,6 +898,11 @@ void vsr(Decode *s, int mmu_mode) {
 
   isa_whole_reg_check(vd, len);
 
+#ifdef CONFIG_XS_KMHV2
+  cpu.isVstoreActive = true;
+  if (vstart->val != 0) vp_set_dirty();
+#endif
+
   cpu.isVecUnitStore = true;
   if (vstart->val < size) {
     vreg_idx = vstart->val / elt_per_reg;
@@ -925,7 +948,11 @@ void vsr(Decode *s, int mmu_mode) {
   vstart->val = 0;
   cpu.isVldst = false;
   cpu.isVecUnitStore = false;
+#ifdef CONFIG_XS_KMHV2
+  cpu.isVstoreActive = false;
+#else
   vp_set_dirty();
+#endif
 }
 
 

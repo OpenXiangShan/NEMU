@@ -142,20 +142,6 @@ void init_iprio() {
 #endif
 
 void init_custom_csr() {
-// The branch predictor configuration in V3 differs from that in V2,
-// so the custom CSR register sbpctl is also different between the two versions.
-// Due to the differing bit widths of sbpctl, reads may return inconsistent values,
-// causing difftest mismatches and CI test case "misc" to fail.
-#ifdef CONFIG_CUSTOM_CSR_KMHV3
-  sbpctl->ubtb_enable = 1;
-  sbpctl->abtb_enable = 1;
-  sbpctl->mbtb_enable = 1;
-  sbpctl->tage_enable = 1;
-  sbpctl->sc_enable = 1;
-  sbpctl->ittage_enable = 1;
-  sbpctl->ras_enable = 1;
-  sbpctl->utage_enable = 1;
-#else // CONFIG_CUSTOM_CSR_KMHV3
   sbpctl->ubtb_enable = 1;
   sbpctl->btb_enable = 1;
   sbpctl->bim_enable = 1;
@@ -163,7 +149,6 @@ void init_custom_csr() {
   sbpctl->sc_enable = 1;
   sbpctl->ras_enable = 1;
   sbpctl->loop_enable = 1;
-#endif // CONFIG_CUSTOM_CSR_KMHV3
 
   spfctl->l1i_pf_enable = 1;
   spfctl->l2_pf_enable = 1;
@@ -2201,6 +2186,11 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SSDBLTRP
         // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
         write_sdt = new_val.sdt && menvcfg->dte && henvcfg->dte;
+#ifdef CONFIG_XS_KMHV2
+        if (!(menvcfg->dte && henvcfg->dte)) {
+          sstatus_wmask &= ~SSTATUS_SDT;
+        }
+#endif
 #endif //CONFIG_RV_SSDBLTRP
         vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, new_val.val);
 #ifdef CONFIG_RV_SSDBLTRP
@@ -2438,6 +2428,11 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
       bool write_sdt = new_val.sdt && menvcfg->dte && henvcfg->dte;
+#ifdef CONFIG_XS_KMHV2
+      if (!(menvcfg->dte && henvcfg->dte)) {
+        vsstatus_wmask &= ~SSTATUS_SDT;
+      }
+#endif
 #endif //CONFIG_RV_SSDBLTRP
       vsstatus->val = mask_bitset(vsstatus->val, vsstatus_wmask, new_val.val);
 #ifdef CONFIG_RV_SSDBLTRP
@@ -3428,6 +3423,21 @@ static inline bool csrind_imsic_window_permit_check(const uint32_t addr) {
 }
 
 static inline bool csrind_permit_check(const uint32_t addr) {
+#ifdef CONFIG_XS_KMHV2
+  // V2 implements the extra indirect registers but does not expose counters.
+  if ((addr >= CSR_MIREG2 && addr <= CSR_MIREG6) ||
+      (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6)) {
+    longjmp_exception(EX_II);
+  }
+  if (addr >= CSR_SIREG2 && addr <= CSR_SIREG6) {
+    uint64_t iselect = csrind_effective_sireg_select();
+    if (MUXDEF(CONFIG_RVH, cpu.v, false) &&
+        (iselect_is_aia_window(iselect) || iselect_is_imsic_window(iselect))) {
+      return true;
+    }
+    longjmp_exception(EX_II);
+  }
+#endif
   word_t *dest_access = csr_decode(addr);
   uint64_t iselect = 0;
 
@@ -3782,7 +3792,9 @@ word_t riscv64_priv_mnret() {
   if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
 #ifdef CONFIG_RVH
   cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
+#ifndef CONFIG_XS_KMHV2
   mnstatus->mnpv = 0;
+#endif
   // clear vsstatus.SDT when return to VU
   vsstatus->sdt = (mnstatus->mnpp == MODE_U && mnstatus->mnpv == 1 ? 0 : vsstatus->sdt);
   set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
@@ -3802,7 +3814,9 @@ word_t riscv64_priv_mnret() {
     }
   }
   cpu.mode = mnstatus->mnpp;
+#ifndef CONFIG_XS_KMHV2
   mnstatus->mnpp = MODE_U;
+#endif
   mnstatus->nmie = 1;
 #ifdef CONFIG_RV_ZICFILP
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mnstatus->mnpelp : ELP_NO_LP_EXPECTED;

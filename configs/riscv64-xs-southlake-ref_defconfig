@@ -13,6 +13,7 @@ CONFIG_ISA64=y
 #
 # ISA-dependent Options for riscv64
 #
+# CONFIG_XS_KMHV2 is not set
 CONFIG_HAS_CLINT=y
 CONFIG_CLINT_MMIO=0x38000000
 # CONFIG_CLINT_LOCAL_TIMER_INTERRUPT is not set
@@ -93,7 +94,6 @@ CONFIG_RESERVATION_SET_WIDTH=0
 # CONFIG_RV_ZACAS is not set
 # CONFIG_RV_ZABHA is not set
 # CONFIG_RV_ZAWRS is not set
-# CONFIG_CUSTOM_CSR_KMHV3 is not set
 # end of ISA-dependent Options for riscv64
 
 CONFIG_ENGINE_INTERPRETER=y

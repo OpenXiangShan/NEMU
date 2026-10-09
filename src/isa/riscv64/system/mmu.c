@@ -112,6 +112,12 @@ static inline uint8_t permission_type_bit(int type) {
       return 1 << 2;
     case MEM_TYPE_IFETCH_READ:
       return 1 << 3;
+#ifdef CONFIG_XS_KMHV2
+    case MEM_TYPE_READ_EXEC:
+      return 1 << 4;
+    case MEM_TYPE_READ_ATOMIC:
+      return 1 << 5;
+#endif
     default:
       return 0;
   }
@@ -1324,6 +1330,11 @@ static uint8_t pmp_address_match(paddr_t base, paddr_t addr, int len, word_t pmp
 }
 
 bool pmpcfg_check_permission(uint8_t pmpcfg,int type,int out_mode) {
+#ifdef CONFIG_XS_KMHV2
+  if (type == MEM_TYPE_READ_EXEC) {
+    return out_mode == MODE_M || ((pmpcfg & PMP_R) && (pmpcfg & PMP_X));
+  }
+#endif
   if (out_mode == MODE_M) {
     return true;
   }
@@ -1395,6 +1406,11 @@ bool pmptable_check_permission(word_t offset, word_t root_table_base, int type, 
 #define W_BIT 0x2
 #define X_BIT 0x4
     /* Check permission */
+#ifdef CONFIG_XS_KMHV2
+    if (type == MEM_TYPE_READ_EXEC) {
+      return (perm & R_BIT) && (perm & X_BIT);
+    }
+#endif
     if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ
         || type == MEM_TYPE_WRITE_READ) {
       return perm & R_BIT;
@@ -1596,6 +1612,9 @@ static bool pmp_check_permission_with_mode(paddr_t addr, int len, int type, uint
 
         allowed =
           (mode == MODE_M && !(cfg & PMP_L)) ||
+#ifdef CONFIG_XS_KMHV2
+          (type == MEM_TYPE_READ_EXEC && (cfg & PMP_R) && (cfg & PMP_X)) ||
+#endif
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) && (cfg & PMP_R)) ||
           ((type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMP_W)) ||
@@ -1746,6 +1765,10 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type) {
           goto out;
         }
         allowed =
+#ifdef CONFIG_XS_KMHV2
+          (type == MEM_TYPE_READ_EXEC && (cfg & PMA_R) && (cfg & PMA_X)) ||
+          (type == MEM_TYPE_READ_ATOMIC && (cfg & PMA_R) && (cfg & PMA_T)) ||
+#endif
           ((type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ ||
             type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ) && (cfg & PMA_R)) ||
           ((type == MEM_TYPE_WRITE || type == MEM_TYPE_MATRIX_WRITE) && (cfg & PMA_W)) ||

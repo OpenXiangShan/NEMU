@@ -24,6 +24,7 @@ static inline void refresh_mcontrol6_state(TriggerModule* TM) {
   TM->mcontrol6_state_dirty = false;
 }
 
+#ifndef CONFIG_XS_KMHV2
 static bool tdata3_smatch(Trigger* trig) {
   switch (trig->tdata3.sselect) {
     case 0:
@@ -82,6 +83,7 @@ static bool tdata3_mhmatch(Trigger* trig) {
 static bool tdata3_match(Trigger* trig) {
   return tdata3_smatch(trig) && tdata3_mhmatch(trig);
 }
+#endif // CONFIG_XS_KMHV2
 
 trig_action_t check_triggers_mcontrol6(
   TriggerModule* TM,
@@ -155,7 +157,8 @@ bool mcontrol6_match(Trigger* trig, trig_op_t op, vaddr_t addr, word_t data) {
   }
   word_t value = trig->tdata1.mcontrol6.select ? data : addr;
 
-  return mcontrol6_value_match(trig, value) && tdata3_match(trig);
+  return mcontrol6_value_match(trig, value) &&
+         MUXNDEF(CONFIG_XS_KMHV2, tdata3_match(trig), true);
 }
 
 bool mcontrol6_value_match(Trigger* trig, word_t value) {
