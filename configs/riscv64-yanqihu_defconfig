@@ -53,7 +53,7 @@ CONFIG_RV_PMP_ACTIVE_NUM=16
 CONFIG_PMP_GRANULARITY=12
 
 #
-# PMP Check Disabled when enabling PERF_OPT
+# PMP Check Disabled for standalone PERF_OPT
 #
 CONFIG_RV_PMA_ENTRY_0=y
 # CONFIG_RV_PMA_ENTRY_16 is not set

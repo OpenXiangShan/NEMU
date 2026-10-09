@@ -90,6 +90,10 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
 #endif
 
 
+#if defined(CONFIG_STORE_LOG) || defined(CONFIG_STORE_LOG_HASH)
+void pmem_record_store_effect(paddr_t addr, int len, word_t data);
+#endif
+
 #ifdef CONFIG_STORE_LOG
 typedef struct {
 #ifdef CONFIG_LIGHTQS

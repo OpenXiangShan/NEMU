@@ -22,6 +22,7 @@
 #include <memory/host.h>
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
+#include <memory/store_log_hash.h>
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <ame/svstore_queue_wrapper.h>
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
@@ -568,33 +569,55 @@ void pmem_record_restore(uint64_t restore_inst_cnt) {
 }
 #else
 void pmem_record_store(paddr_t addr) {
-  if(dynamic_config.enable_store_log) {
-    // align to 8 byte
-    addr = (addr >> 3) << 3;
-    uint64_t rdata = pmem_read(addr, 8);
-    store_log_t log = {
+  if (dynamic_config.enable_store_log) {
+    addr &= ~0x7ull;
+    // The first logged write marks the digest origin of this replay interval.
+    IFDEF(CONFIG_STORE_LOG_HASH, if (store_log_stack_empty()) store_log_hash_checkpoint());
+    store_log_t rollback = {
       .addr = addr,
-      .orig_data = rdata
+      .orig_data = pmem_read(addr, 8)
     };
-    store_log_stack_push(log);
+    store_log_stack_push(rollback);
   }
 }
 
 void pmem_record_restore() {
+  if (store_log_stack_empty()) return;
   while(!store_log_stack_empty()) {
     store_log_t log = store_log_stack_top();
     pmem_write(log.addr, 8, log.orig_data, 0);
     store_log_stack_pop();
   }
+  IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_restore());
 }
 #endif // CONFIG_LIGHTQS
 
 
 void pmem_record_reset() {
   store_log_stack_reset();
+  IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_reset());
 }
 
 #endif // CONFIG_STORE_LOG
+
+#if defined(CONFIG_STORE_LOG) || defined(CONFIG_STORE_LOG_HASH)
+void pmem_record_store_effect(paddr_t addr, int len, word_t data) {
+#ifdef CONFIG_LIGHTQS
+  pmem_record_store(addr);
+#else
+  bool rollback_enabled = MUXDEF(CONFIG_STORE_LOG, dynamic_config.enable_store_log, false);
+  bool hash_enabled = MUXDEF(CONFIG_STORE_LOG_HASH, store_log_hash_enabled(), false);
+  if (!rollback_enabled && !hash_enabled) return;
+
+  store_record_t records[2];
+  unsigned count = store_record_split(addr, data, len, records);
+  for (unsigned i = 0; i < count; ++i) {
+    IFDEF(CONFIG_STORE_LOG, if (rollback_enabled) pmem_record_store(records[i].addr));
+    IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_update(records[i].addr, records[i].data, records[i].mask));
+  }
+#endif
+}
+#endif
 
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
@@ -612,9 +635,9 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
 
   if (likely(in_pmem(addr))) {
 #ifdef CONFIG_SHARE
-#ifdef CONFIG_STORE_LOG
-    pmem_record_store(addr);
-#endif // CONFIG_STORE_LOG
+#if defined(CONFIG_STORE_LOG) || defined(CONFIG_STORE_LOG_HASH)
+    pmem_record_store_effect(addr, len, data);
+#endif
     ref_log_cpu("paddr write addr:" FMT_PADDR ", data:%016lx, len:%d, mode:%d",
         addr, data, len, mode);
 #endif // CONFIG_SHARE
@@ -769,6 +792,7 @@ bool analysis_memory_isuse(uint64_t page) {
 
 void store_commit_queue_push(uint64_t addr, uint64_t data, int len,
                              int cross_page_store) {
+  if (ref_is_fast()) return;
 
 #ifndef CONFIG_DIFFTEST_STORE_COMMIT_AMO
   if (cpu.amo) {
@@ -785,37 +809,17 @@ void store_commit_queue_push(uint64_t addr, uint64_t data, int len,
              (IS_POW_OF_2(len) || cross_page_store || cpu.isVecUnitStore),
          "Invalid len %d", len);
 
-  // align to 8B boundary, because max len is 64b
-  uint8_t offset = addr & 0x7ULL;
-  uint8_t low_len = MIN_OF(len, 8 - offset);
-  uint8_t low_mask = BITMASKRANGE(low_len + offset, offset);
-  uint64_t low_addr = addr & ~0x7ULL;
-  uint64_t low_data = (data << (offset << 3)) &
-                      BITMASKRANGE((low_len + offset) * 8, offset * 8);
-  store_commit_t low_store_commit = {
-      .addr = low_addr, .data = low_data, .mask = low_mask, .pc = prev_s->pc};
-  ref_log_cpu(
-      "Queue low store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = %02hhx",
-      low_store_commit.addr, low_store_commit.data, low_store_commit.mask);
-  store_queue_push(low_store_commit);
-
-  if (low_len == len) {
-    return;
+  store_record_t records[2];
+  unsigned count = store_record_split(addr, data, len, records);
+  for (unsigned i = 0; i < count; ++i) {
+    store_commit_t commit = {
+      .addr = records[i].addr,
+      .data = records[i].data,
+      .mask = records[i].mask,
+      .pc = prev_s->pc
+    };
+    store_queue_push(commit);
   }
-
-  uint8_t high_len = len - low_len;
-  uint8_t high_mask = BITMASKRANGE(high_len, 0);
-  uint64_t high_addr = low_addr + 8;
-  uint64_t high_data =
-      (data >> (low_len << 3)) & BITMASKRANGE(high_len * 8, 0);
-  store_commit_t high_store_commit = {.addr = high_addr,
-                                      .data = high_data,
-                                      .mask = high_mask,
-                                      .pc = prev_s->pc};
-  ref_log_cpu(
-      "Queue high store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = %02hhx",
-      high_store_commit.addr, high_store_commit.data, high_store_commit.mask);
-  store_queue_push(high_store_commit);
 }
 
 store_commit_t store_commit_queue_pop(int *flag) {

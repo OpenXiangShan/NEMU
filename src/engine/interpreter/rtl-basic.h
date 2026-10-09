@@ -234,7 +234,7 @@ extern uint64_t get_abs_instr_count();
 // This rtl_j is only used in normal mode.
 // rtl_j for PERF_OPT is defined as a marco in cpu-exec.c
 // Note: rtl_j can ONLY be called directly in EHelper.
-#ifndef CONFIG_PERF_OPT
+#if !defined(CONFIG_PERF_OPT) && !defined(CONFIG_PERF_OPT_SHARE)
 static inline def_rtl(j, vaddr_t target) {
   // uint64_t orig_pc = cpu.pc, real_target;
 #ifdef CONFIG_GUIDED_EXEC
@@ -265,12 +265,12 @@ end_of_rtl_j:
 ; // make compiler happy
 #endif
 }
-#endif // ndef CONFIG_PERF_OPT
+#endif // !CONFIG_PERF_OPT && !CONFIG_PERF_OPT_SHARE
 
 // This rtl_jr is only used in normal mode.
 // rtl_jr for PERF_OPT is defined as a marco in cpu-exec.c
 // Note: rtl_jr can ONLY be called directly in EHelper.
-#ifndef CONFIG_PERF_OPT
+#if !defined(CONFIG_PERF_OPT) && !defined(CONFIG_PERF_OPT_SHARE)
 static inline def_rtl(jr, rtlreg_t *target) {
 #ifdef CONFIG_BR_LOG
   uint64_t real_target;
@@ -308,19 +308,19 @@ end_of_rtl_jr:
 
   IFDEF(CONFIG_BR_LOG, br_log_commit(s->pc, real_target, 1, BR_JUMP));
 }
-#endif // ndef CONFIG_PERF_OPT
+#endif // !CONFIG_PERF_OPT && !CONFIG_PERF_OPT_SHARE
 
 // This rtl_jrelop is only used in normal mode.
 // rtl_jrelop for PERF_OPT is defined as a marco in cpu-exec.c
 // Note: rtl_jrelop can ONLY be called directly in EHelper.
-#ifndef CONFIG_PERF_OPT
+#if !defined(CONFIG_PERF_OPT) && !defined(CONFIG_PERF_OPT_SHARE)
 static inline def_rtl(jrelop, uint32_t relop,
     const rtlreg_t *src1, const rtlreg_t *src2, vaddr_t target) {
   bool is_jmp = interpret_relop(relop, *src1, *src2);
   IFDEF(CONFIG_BR_LOG, br_log_commit(s->pc, target, is_jmp, BR_BRANCH));
   rtl_j(s, (is_jmp ? target : s->snpc));
 }
-#endif // ndef CONFIG_PERF_OPT
+#endif // !CONFIG_PERF_OPT && !CONFIG_PERF_OPT_SHARE
 
 //#include "rtl-fp.h"
 #endif

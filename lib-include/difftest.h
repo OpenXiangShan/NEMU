@@ -18,8 +18,30 @@
 #define __DIFFTEST_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
+
+enum {
+  DIFFTEST_EXEC_FAST = 0,
+  DIFFTEST_EXEC_SLOW = 1,
+};
+
+typedef struct {
+  uint64_t state_lo, state_hi;
+  uint64_t store_lo, store_hi, store_count;
+} difftest_state_hash_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void difftest_set_store_hash(bool enabled);
+void difftest_store_hash_reset(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #define RV64_FULL_DIFF
 #define RV64_UARCH_SYNC

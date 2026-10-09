@@ -20,6 +20,8 @@
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
+#include <memory/store_log_hash.h>
+#include <utils/hash.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
 
@@ -32,6 +34,20 @@ static inline void difftest_mark_csr_dirty(void) {
 }
 
 unsigned ref_hartid = 0;
+
+#ifdef CONFIG_FAST_REF
+int difftest_exec_mode = DIFFTEST_EXEC_SLOW;
+
+void difftest_set_exec_mode(int mode) {
+  assert(mode == DIFFTEST_EXEC_FAST || mode == DIFFTEST_EXEC_SLOW);
+  if (difftest_exec_mode == mode) return;
+  IFDEF(CONFIG_DIFFTEST_STORE_COMMIT, store_queue_reset());
+  difftest_exec_mode = mode;
+  // Mode changes also change permission checks; discard derived cache state.
+  difftest_flush_state();
+}
+
+#endif // CONFIG_FAST_REF
 
 extern void load_flash_contents(const char *flash_img);
 
@@ -176,7 +192,14 @@ bool difftest_raise_critical_error() {
 #endif
 
 void difftest_exec(uint64_t n) {
-  cpu_exec(n);
+  // FAST advances continuously; state copies remain explicit caller requests.
+  if (ISNDEF(CONFIG_FAST_REF) || ref_is_fast() || n <= 1) {
+    cpu_exec(n);
+    return;
+  }
+
+  // Supported SLOW references retain their existing single-step path.
+  while (n-- != 0) cpu_exec(1);
 }
 
 #ifdef CONFIG_REF_STATUS
@@ -408,6 +431,8 @@ void difftest_runahead_init() {
 }
 
 void difftest_init() {
+  IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_reset());
+  IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_set_enabled(true));
 #ifdef CONFIG_SHARE_OUTPUT_LOG_TO_FILE
   char log_file_name[20];
   sprintf(log_file_name, "nemu-hart-%d.log", ref_hartid);
@@ -482,3 +507,57 @@ void difftest_trigger_checkpoint(const char *base_filepath) {
   set_store_cpt_in_flash(true);
   serialize_checkpoint(base_filepath);
 }
+
+#ifdef CONFIG_FAST_REF
+uint64_t difftest_get_instr_count(void) {
+  return get_abs_instr_count();
+}
+
+void difftest_skip_one(bool isRVC, bool wen, uint32_t wdest, uint64_t wdata) {
+  cpu.pc += isRVC ? 2 : 4;
+  if (wen && wdest != 0) {
+    cpu.gpr[wdest]._64 = wdata;
+  }
+}
+
+uint64_t difftest_get_pc(void) {
+  return cpu.pc;
+}
+
+void difftest_flush_state(void) {
+  extern int update_mmu_state();
+  extern void mmu_tlb_flush(vaddr_t vaddr);
+  extern void mmu_refresh_pmp_cache();
+  extern void mmu_refresh_pma_cache();
+  update_mmu_state();
+  mmu_refresh_pmp_cache();
+  mmu_refresh_pma_cache();
+  mmu_tlb_flush(0);
+}
+
+// A complete checkpoint requires enabled store hashing as well as CPU state.
+// Return -1 when unavailable; callers must not compare an incomplete digest.
+int difftest_state_hash(void *dest) {
+  if (!dest || !MUXDEF(CONFIG_STORE_LOG_HASH, store_log_hash_enabled(), false))
+    return -1;
+  difftest_state_hash_t *hash = (difftest_state_hash_t *)dest;
+  difftest_hash_bytes(&hash->state_lo, &hash->state_hi, &cpu, DIFFTEST_REG_SIZE);
+#ifdef CONFIG_STORE_LOG_HASH
+  store_log_hash(&hash->store_lo, &hash->store_hi, &hash->store_count);
+#endif
+  return 0;
+}
+
+void difftest_set_store_hash(bool enabled) {
+#ifdef CONFIG_STORE_LOG_HASH
+  store_log_hash_set_enabled(enabled);
+#else
+  assert(!enabled);
+#endif
+}
+
+void difftest_store_hash_reset(void) {
+  IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_reset());
+}
+
+#endif // CONFIG_FAST_REF

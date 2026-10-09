@@ -52,6 +52,26 @@ enum {
 void init_time();
 uint64_t get_time();
 
+// ----------- store hash -----------
+
+
+typedef struct {
+  uint64_t h0;
+  uint64_t h1;
+  uint64_t count;
+} DifftestStoreHashState;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void difftest_store_hash_init(DifftestStoreHashState *state);
+void difftest_store_hash_update(DifftestStoreHashState *state, uint64_t addr, uint64_t data, uint8_t mask);
+
+#ifdef __cplusplus
+}
+#endif
+
 // ----------- log -----------
 
 // control when the log is printed, unit: number of instructions
