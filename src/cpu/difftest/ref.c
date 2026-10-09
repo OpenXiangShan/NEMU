@@ -40,7 +40,6 @@ int difftest_exec_mode = DIFFTEST_EXEC_SLOW;
 
 void difftest_set_exec_mode(int mode) {
   assert(mode == DIFFTEST_EXEC_FAST || mode == DIFFTEST_EXEC_SLOW);
-  assert(mode == DIFFTEST_EXEC_SLOW || ref_fast_supported());
   if (difftest_exec_mode == mode) return;
   IFDEF(CONFIG_DIFFTEST_STORE_COMMIT, store_queue_reset());
   difftest_exec_mode = mode;
@@ -194,7 +193,7 @@ bool difftest_raise_critical_error() {
 
 void difftest_exec(uint64_t n) {
   // FAST advances continuously; state copies remain explicit caller requests.
-  if (!ref_fast_supported() || ref_is_fast() || n <= 1) {
+  if (ISNDEF(CONFIG_FAST_REF) || ref_is_fast() || n <= 1) {
     cpu_exec(n);
     return;
   }
@@ -545,10 +544,6 @@ int difftest_state_hash(void *dest) {
   difftest_hash_bytes(&hash->state_lo, &hash->state_hi, &cpu, DIFFTEST_REG_SIZE);
 #ifdef CONFIG_STORE_LOG_HASH
   store_log_hash(&hash->store_lo, &hash->store_hi, &hash->store_count);
-#else
-  hash->store_lo = 0;
-  hash->store_hi = 0;
-  hash->store_count = 0;
 #endif
   return 0;
 }
