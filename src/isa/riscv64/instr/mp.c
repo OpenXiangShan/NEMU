@@ -43,5 +43,6 @@ void mp_set_dirty() {
 //     vsstatus->ms = EXT_CONTEXT_DIRTY;
 //   }
 // #endif //CONFIG_RVH
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 }
 #endif // CONFIG_RV_AME

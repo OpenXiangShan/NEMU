@@ -43,6 +43,7 @@ void vp_set_dirty() {
     vsstatus->vs = EXT_CONTEXT_DIRTY;
   }
 #endif //CONFIG_RVH
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
   IFDEF(CONFIG_DIFFTEST_DIRTY_FS_VS, ref_difftest_dirty_fsvs(SSTATUS_VS));
 }
 #endif // CONFIG_RVV

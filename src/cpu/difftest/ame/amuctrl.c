@@ -131,7 +131,7 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
   return result;
 }
 
-static void exec_amu_load_store(void *amu_ctrl, void *res) {
+static void exec_amu_load_store(void *amu_ctrl) {
   uint8_t ms = ((amu_ctrl_event_t *)amu_ctrl)->md;
   uint8_t ls = ((amu_ctrl_event_t *)amu_ctrl)->sat;
   uint64_t base = ((amu_ctrl_event_t *)amu_ctrl)->base;
@@ -208,6 +208,38 @@ static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region
          region->active_columns <= region->reg_row_bytes / region->element_bytes;
 }
 
+// Polynomial remainder modulo x^128+x^7+x^2+x+1, matching the RTL hash.
+// Each logical register byte occupies nine bits: data plus a coverage bit.
+static amu_hash_t hash_amu_region(const amu_write_region_t *region) {
+  amu_hash_t hash = {0};
+  const size_t active_row_bytes = region->active_columns * region->element_bytes;
+  // Unwritten rows above the active region contribute only leading zeros.
+  for (size_t row = region->active_rows; row-- > 0;) {
+    for (size_t byte = region->reg_row_bytes; byte-- > 0;) {
+      const uint64_t high = hash.hi >> 55;
+      hash.hi = (hash.hi << 9) | (hash.lo >> 55);
+      hash.lo = (hash.lo << 9) ^ high ^ (high << 1) ^ (high << 2) ^ (high << 7);
+      if (byte < active_row_bytes) {
+        hash.lo ^= 0x100U | region->reg_data[row * region->reg_row_bytes + byte];
+      }
+    }
+  }
+  hash.bytes = region->active_rows * active_row_bytes;
+  return hash;
+}
+
+static bool compare_amu_hash(const amu_ctrl_event_t *event, const amu_hash_t *dut) {
+  amu_write_region_t region;
+  Assert(get_amu_write_region(event, &region), "Invalid AMU write region");
+  const amu_hash_t ref = hash_amu_region(&region);
+  if (ref.lo == dut->lo && ref.hi == dut->hi && ref.bytes == dut->bytes) return false;
+
+  fprintf(stderr, "Matrix hash mismatch: md=%d @pc: %016lx REF=%016lx:%016lx DUT=%016lx:%016lx "
+                  "REF_bytes=%u DUT_bytes=%u\n",
+          event->md, event->pc, ref.hi, ref.lo, dut->hi, dut->lo, ref.bytes, dut->bytes);
+  return true;
+}
+
 static bool compare_amu_register(const amu_ctrl_event_t *event, const void *dut_result) {
   amu_write_region_t region;
   Assert(get_amu_write_region(event, &region), "Invalid AMU write region");
@@ -272,7 +304,7 @@ int exec_amu(void *amu_ctrl, void *res) {
       ret = 1;
       break;
     case 1: // case Matrix load/store
-      exec_amu_load_store(amu_ctrl, res);
+      exec_amu_load_store(amu_ctrl);
       // Compare the result with the expected result
       // When the result is not equal, set the return value to 1
       if (event->sat == 0) {
@@ -289,6 +321,36 @@ int exec_amu(void *amu_ctrl, void *res) {
       // Compare the result with the expected result
       // When the result is not equal, set the return value to 1
       ret = compare_amu_register(event, res);
+      break;
+    default:
+      panic("invalid AMU ctrl op");
+      ret = 1;
+      break;
+  }
+  return ret;
+}
+
+int exec_amu_hash(void *amu_ctrl, amu_hash_t *res) {
+  bool ret = 0;
+  amu_ctrl_event_t *event = (amu_ctrl_event_t *)amu_ctrl;
+  uint8_t op = event->op;
+  switch (op) {
+    case 0: // case MMA
+      panic("MMA should be executed by exec_amu_lazy");
+      ret = 1;
+      break;
+    case 1: // case Matrix load/store
+      exec_amu_load_store(amu_ctrl);
+      if (event->sat == 0) {
+        ret = compare_amu_hash(event, res);
+      }
+      break;
+    case 2: // case Mrelease
+      exec_amu_release(amu_ctrl);
+      break;
+    case 3: // case Marith, execute the operation
+      exec_amu_arith(amu_ctrl);
+      ret = compare_amu_hash(event, res);
       break;
     default:
       panic("invalid AMU ctrl op");

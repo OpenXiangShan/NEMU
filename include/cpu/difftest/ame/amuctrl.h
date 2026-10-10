@@ -7,6 +7,7 @@
 int check_amu_ctrl(amu_ctrl_event_t *cmp);
 amu_ctrl_event_t get_amu_ctrl_info();
 int exec_amu(void *amu_ctrl, void *res);
+int exec_amu_hash(void *amu_ctrl, amu_hash_t *res);
 void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 

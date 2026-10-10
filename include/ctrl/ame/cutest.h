@@ -6,7 +6,7 @@
 #ifdef CONFIG_SHARE_CTRL
 #include <ame/event.h>
 
-void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,
+void cutest_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
   uint8_t ms1, uint8_t ms2,
   uint16_t mtilem, uint16_t mtilen, uint16_t mtilek,
   uint8_t types1, uint8_t types2, uint8_t typed);
