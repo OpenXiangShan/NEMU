@@ -90,7 +90,7 @@ def_EHelper(andi) {
 }
 
 def_EHelper(auipc) {
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   if (unlikely(cpu.elp == 1)) {
     uint32_t rd = (s->isa.instr.val >> 7) & 0x1f;
     if (rd != 0) {
