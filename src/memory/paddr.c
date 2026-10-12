@@ -557,7 +557,6 @@ void pmem_record_restore(uint64_t restore_inst_cnt) {
   }
   while(!store_log_stack_empty()) {
     store_log_t log = store_log_stack_top();
-    pmem_write(log.addr, 8, log.orig_data, 0);
     if (log.inst_cnt > restore_inst_cnt) {
       pmem_write(log.addr, 8, log.orig_data, 0);
       store_log_stack_pop();
