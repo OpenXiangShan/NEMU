@@ -40,4 +40,6 @@ two hash words and a record count, using aligned address/data/mask records.
 It retains no additional store-record queue or old memory values. Forked REFs
 inherit the same digest prefix and can compare at an agreed endpoint;
 queries do not reset the digest. Rollback restores its matching digest state.
+The checkpoint digest remains independent of the CRC used by
+`difftest_store_commit_hash` to check a DUT store-queue prefix.
 The hashes do not establish full-memory equality.

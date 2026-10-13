@@ -61,7 +61,7 @@ extern "C" {
 #endif
 
 // Initialize and hash a byte sequence with the existing boundary-state
-// composition. Store records use their separate versioned update function.
+// composition. Streaming store records reuse the primitives above.
 void difftest_hash_bytes(uint64_t *lo, uint64_t *hi, const void *data, size_t size);
 
 #ifdef __cplusplus
