@@ -171,16 +171,6 @@ static void exec_amu_arith(void *amu_ctrl) {
   }
 }
 
-typedef struct {
-  // Full architectural register layout, independent of this instruction's tile.
-  const uint8_t *reg_data;
-  size_t reg_size_bytes;
-  size_t reg_row_bytes;
-  size_t active_rows;
-  size_t active_columns;
-  size_t element_bytes;
-} amu_write_region_t;
-
 static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region_t *region) {
   if (event == NULL || region == NULL || event->md >= 8) return false;
 
@@ -206,26 +196,6 @@ static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region
 
   return region->active_rows <= region->reg_size_bytes / region->reg_row_bytes &&
          region->active_columns <= region->reg_row_bytes / region->element_bytes;
-}
-
-// Polynomial remainder modulo x^128+x^7+x^2+x+1, matching the RTL hash.
-// Each logical register byte occupies nine bits: data plus a coverage bit.
-static amu_hash_t hash_amu_region(const amu_write_region_t *region) {
-  amu_hash_t hash = {0};
-  const size_t active_row_bytes = region->active_columns * region->element_bytes;
-  // Unwritten rows above the active region contribute only leading zeros.
-  for (size_t row = region->active_rows; row-- > 0;) {
-    for (size_t byte = region->reg_row_bytes; byte-- > 0;) {
-      const uint64_t high = hash.hi >> 55;
-      hash.hi = (hash.hi << 9) | (hash.lo >> 55);
-      hash.lo = (hash.lo << 9) ^ high ^ (high << 1) ^ (high << 2) ^ (high << 7);
-      if (byte < active_row_bytes) {
-        hash.lo ^= 0x100U | region->reg_data[row * region->reg_row_bytes + byte];
-      }
-    }
-  }
-  hash.bytes = region->active_rows * active_row_bytes;
-  return hash;
 }
 
 static bool compare_amu_hash(const amu_ctrl_event_t *event, const amu_hash_t *dut) {
