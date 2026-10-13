@@ -212,6 +212,7 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 #ifdef CONFIG_RVH
 void mmu_tlb_flush_host(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
+  isa_mmu_tlb_flush();
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }

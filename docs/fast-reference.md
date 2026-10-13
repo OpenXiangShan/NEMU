@@ -15,8 +15,10 @@ controlled by `STORE_LOG` and its existing runtime flag.
 The default mode is SLOW. Select FAST with
 `difftest_set_exec_mode(DIFFTEST_EXEC_FAST)`. FAST executes `difftest_exec(n)`
 continuously, suppresses committed-store queue entries and bypasses PMP/PMA.
-SLOW restores configured checks and executes requests one instruction at a
-time. FAST results require independent SLOW validation; scheduling and packet
+FAST also caches nonvirtual S/U translations under RVH; satp, permissions,
+SFENCE.VMA and mode changes invalidate them. SLOW restores configured checks
+and executes requests one instruction at a time. FAST results require
+independent SLOW validation; scheduling and packet
 transport belong to DiffTest.
 
 Apply skips and events at their instruction boundaries. Compare
