@@ -1,4 +1,6 @@
 #include <memory/store_queue_wrapper.h>
+#include <utils.h>
+#include <deque>
 #include <queue>
 #include <stack>
 
@@ -22,7 +24,7 @@ void spec_store_log_stack_copy() { store_log_stack = spec_store_log_stack;}
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
 
-std::queue<store_commit_t> cpp_store_event_queue;
+std::deque<store_commit_t> cpp_store_event_queue;
 bool store_queue_has_overflow = false;
 
 void store_queue_reset() {
@@ -35,14 +37,14 @@ void store_queue_push(store_commit_t store_commit) {
     return;
   }
   Logm("push store addr = " FMT_PADDR ", data = " FMT_WORD ", mask = 0x%x", store_commit.addr, store_commit.data, store_commit.mask);
-  cpp_store_event_queue.push(store_commit);
+  cpp_store_event_queue.push_back(store_commit);
   if (cpp_store_event_queue.size() >= CONFIG_DIFFTEST_STORE_QUEUE_SIZE) {
     store_queue_has_overflow = true;
   }
 }
 
 void store_queue_pop() {
-  cpp_store_event_queue.pop();
+  cpp_store_event_queue.pop_front();
 }
 
 store_commit_t store_queue_front() {
@@ -100,5 +102,41 @@ bool matrix_store_queue_empty() {
   return cpp_matrix_store_event_queue.empty();
 }
 #endif // CONFIG_RV_AME
+
+int store_queue_check_hash(uint64_t count, uint64_t hash_lo, uint64_t hash_hi,
+                           uint64_t instr_begin, uint64_t instr_end) {
+  if (store_queue_has_overflow) {
+    printf("[StoreHash] NEMU store commit queue overflow.\n");
+    return 1;
+  }
+  if (cpp_store_event_queue.size() < count) {
+    printf("[StoreHash] NEMU queue underflow: need %lu records, have %zu.\n", count,
+           cpp_store_event_queue.size());
+    return 1;
+  }
+
+  uint64_t crc = 0;
+  for (uint64_t i = 0; i < count; i++) {
+    const store_commit_t &store_commit = cpp_store_event_queue[i];
+    crc = difftest_store_hash_update(crc, store_commit.addr, store_commit.data, store_commit.mask);
+  }
+
+  if (crc == hash_lo && hash_hi == 0) {
+    for (uint64_t i = 0; i < count; i++) {
+      cpp_store_event_queue.pop_front();
+    }
+    return 0;
+  }
+
+  printf("[StoreHash] mismatch instr=[%lu,%lu] records=%lu\n", instr_begin, instr_end, count);
+  printf("[StoreHash] expected DUT hash=(0x%016lx,0x%016lx), NEMU hash=(0x%016lx,0x%016lx)\n", hash_lo, hash_hi,
+         crc, uint64_t(0));
+  for (uint64_t i = 0; i < count; i++) {
+    const store_commit_t &store_commit = cpp_store_event_queue[i];
+    printf("[StoreHash] NEMU store[%lu] pc=0x%016lx addr=0x%016lx data=0x%016lx mask=0x%02x\n", i,
+           store_commit.pc, store_commit.addr, store_commit.data, store_commit.mask);
+  }
+  return 1;
+}
 
 #endif
