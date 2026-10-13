@@ -1283,11 +1283,11 @@ static inline word_t non_vmode_get_sip() {
 
 static inline void non_vmode_set_sip(word_t src) {
 #ifdef CONFIG_RV_AIA
-  mip->val = mask_bitset(get_mip(), (MIP_SSIP | MIP_LCOFIP) & mideleg->val, src);
+  mip->val = mask_bitset(mip->val, (MIP_SSIP | MIP_LCOFIP) & mideleg->val, src);
   mvip->val = mask_bitset(mvip->val, (MIP_SSIP | MIP_LCOFIP) & (~mideleg->val & mvien->val), src);
   non_vmode_set_ip(src, LCI_BEGIN, 63);
 #else
-  mip->val = mask_bitset(get_mip(), ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src);
+  mip->val = mask_bitset(mip->val, ((cpu.mode == MODE_S) ? SIP_WMASK_S : SIP_MASK), src);
 #endif // CONFIG_RV_AIA
 }
 
