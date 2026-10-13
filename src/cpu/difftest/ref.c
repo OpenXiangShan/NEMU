@@ -515,7 +515,7 @@ void difftest_trigger_checkpoint(const char *base_filepath) {
     return;
   }
 
-  set_store_cpt_in_flash(true);
+  set_store_cpt_in_flash(ISDEF(CONFIG_HAS_FLASH));
   serialize_checkpoint(base_filepath);
 }
 

@@ -23,6 +23,7 @@
 #include <checkpoint/serializer.h>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <profiling/profiling_control.h>
 
 #include "../isa/riscv64/local-include/csr.h"
@@ -33,6 +34,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <vector>
 #include <sys/cdefs.h>
 #include <zlib.h>
 
@@ -495,6 +497,12 @@ void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path
     serialize_buffer_size = MEMORY_SIZE;
   }
   assert(serialize_reg_base_addr);
+  // The PMEM checkpoint header occupies the reserved low 1 MiB. Preserve it
+  // so a REF checkpoint does not change the memory of the continuing run.
+  std::vector<uint8_t> pmem_backup;
+  if (!store_cpt_in_flash) {
+    pmem_backup.assign(serialize_reg_base_addr, serialize_reg_base_addr + 0x100000U);
+  }
 #ifdef CONFIG_LIBCHECKPOINT_RESTORER
   assert(checkpoint_meta_data.encode(serialize_reg_base_addr, serialize_buffer_size));
 
@@ -507,6 +515,9 @@ void Serializer::serialize(uint64_t inst_count, const char *checkpoint_base_path
 #else
   serializePMem(inst_count, get_pmem(), NULL, checkpoint_base_path);
 #endif
+  if (!store_cpt_in_flash) {
+    memcpy(get_pmem(), pmem_backup.data(), pmem_backup.size());
+  }
 }
 
 void Serializer::setStoreCptInFlash(bool enable) {
