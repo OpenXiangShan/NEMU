@@ -88,6 +88,48 @@ config RVK
   bool "RISC-V Cryptography Extension v1.0"
   default y
 
+config RV_ZVBC
+  bool "RISC-V Vector Carry-less Multiplication v1.0"
+  depends on RVV
+  depends on RVB || RVK
+  default y
+
+config RV_ZVKNED
+  bool "RISC-V Vector AES Block Cipher Vector Extension v1.0"
+  depends on RVV
+  depends on RVK
+  default y
+
+config RV_ZVKNHA
+  bool "RISC-V Vector SHA-2 Secure Hash Extension (SHA-256 only) v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
+config RV_ZVKNHB
+  bool "RISC-V Vector SHA-2 Secure Hash Extension (SHA-256 and SHA-512) v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
+config RV_ZVKSH
+  bool "RISC-V Vector ShangMi Suite: SM3 Secure Hash Extension v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
+config RV_ZVKSED
+  bool "RISC-V Vector ShangMi Suite: SM4 Block Cipher Extension v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
+config RV_ZVKG
+  bool "RISC-V Vector GCM/GMAC Extension v1.0"
+  depends on RVK
+  depends on RVV
+  default y
+
 config RV_ZICOND
   bool "RISC-V Integer Conditional (Zicond) Operations Extension v1.0"
   default y
