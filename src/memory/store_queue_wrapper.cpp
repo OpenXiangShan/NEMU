@@ -1,24 +1,72 @@
 #include <memory/store_queue_wrapper.h>
 #include <utils.h>
 #include <deque>
+#include <cstdlib>
 #include <queue>
 #include <stack>
 
 #ifdef CONFIG_STORE_LOG
+#ifdef CONFIG_RV_AME
+static void store_log_ref(store_log_t log) {
+  if (log.is_matrix) {
+    ++log.matrix->ref_count;
+  }
+}
+
+static void store_log_unref(store_log_t log) {
+  if (log.is_matrix) {
+    assert(log.matrix->ref_count > 0);
+    if (--log.matrix->ref_count == 0) {
+      std::free(log.matrix);
+    }
+  }
+}
+#endif // CONFIG_RV_AME
+
+// top() returns a borrowed view; only push/pop/reset/copy change ownership.
 std::stack<store_log_t> store_log_stack;
-void store_log_stack_reset() { store_log_stack = {};}
-void store_log_stack_push(store_log_t log) { store_log_stack.push(log);}
-void store_log_stack_pop() { store_log_stack.pop();}
+void store_log_stack_reset() {
+  while (!store_log_stack.empty()) { store_log_stack_pop(); }
+}
+void store_log_stack_push(store_log_t log) {
+  store_log_stack.push(log);
+  IFDEF(CONFIG_RV_AME, store_log_ref(log);)
+}
+void store_log_stack_pop() {
+  IFDEF(CONFIG_RV_AME, store_log_unref(store_log_stack.top());)
+  store_log_stack.pop();
+}
 store_log_t store_log_stack_top() {return store_log_stack.top();}
 bool store_log_stack_empty() { return store_log_stack.empty();}
 #ifdef CONFIG_LIGHTQS
 std::stack<store_log_t> spec_store_log_stack;
-void spec_store_log_stack_reset() { spec_store_log_stack = {};}
-void spec_store_log_stack_push(store_log_t log) { spec_store_log_stack.push(log);}
-void spec_store_log_stack_pop() { spec_store_log_stack.pop();}
+void spec_store_log_stack_reset() {
+  while (!spec_store_log_stack.empty()) { spec_store_log_stack_pop(); }
+}
+void spec_store_log_stack_push(store_log_t log) {
+  spec_store_log_stack.push(log);
+  IFDEF(CONFIG_RV_AME, store_log_ref(log);)
+}
+void spec_store_log_stack_pop() {
+  IFDEF(CONFIG_RV_AME, store_log_unref(spec_store_log_stack.top());)
+  spec_store_log_stack.pop();
+}
 store_log_t spec_store_log_stack_top() { return spec_store_log_stack.top();}
 bool spec_store_log_stack_empty() { return spec_store_log_stack.empty();}
-void spec_store_log_stack_copy() { store_log_stack = spec_store_log_stack;}
+void spec_store_log_stack_copy() {
+#ifdef CONFIG_RV_AME
+  store_log_stack_reset();
+#endif // CONFIG_RV_AME
+  store_log_stack = spec_store_log_stack;
+#ifdef CONFIG_RV_AME
+  // This temporary copy is only a view used to visit the new owning entries.
+  auto logs = store_log_stack;
+  while (!logs.empty()) {
+    store_log_ref(logs.top());
+    logs.pop();
+  }
+#endif // CONFIG_RV_AME
+}
 #endif // CONFIG_LIGHTQS
 #endif // CONFIG_STORE_LOG
 
