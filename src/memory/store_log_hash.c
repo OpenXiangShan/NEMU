@@ -7,18 +7,19 @@
 ***************************************************************************************/
 
 #include <memory/store_log_hash.h>
-#include <utils/hash.h>
 
 #ifdef CONFIG_STORE_LOG_HASH
-// Keep the cheap checkpoint digest independent of the DUT CRC queue protocol.
-// Custom ordered composition; primitive origins are documented in utils/hash.h.
-#define DIFFTEST_STORE_HASH_ROT_DATA 23
-#define DIFFTEST_STORE_HASH_ROT_LO 17
-#define DIFFTEST_STORE_HASH_ROT_HI 29
-#define DIFFTEST_STORE_HASH_MASK_SHIFT 56
+#define XXH_STATIC_LINKING_ONLY
+#include <xxhash.h>
+
+// Fixed-width records avoid struct padding; batch updates amortize XXH3 calls.
+#define STORE_HASH_RECORD_BYTES 17
+#define STORE_HASH_BATCH_RECORDS 256
 
 typedef struct {
-  uint64_t h0, h1, count;
+  XXH3_state_t state;
+  uint64_t count;
+  uint8_t pending[STORE_HASH_BATCH_RECORDS * STORE_HASH_RECORD_BYTES];
 } StoreLogHash;
 
 static StoreLogHash boundary_hash;
@@ -28,7 +29,7 @@ static StoreLogHash rollback_hash;
 #endif
 
 void store_log_hash_reset(void) {
-  difftest_hash_init(&boundary_hash.h0, &boundary_hash.h1);
+  XXH3_128bits_reset(&boundary_hash.state);
   boundary_hash.count = 0;
   IFDEF(CONFIG_STORE_LOG, rollback_hash = boundary_hash);
 }
@@ -43,19 +44,28 @@ bool store_log_hash_enabled(void) {
 
 void store_log_hash_update(uint64_t addr, uint64_t data, uint8_t mask) {
   if (!hash_enabled) return;
-  uint64_t value = addr ^ difftest_hash_rotl(data, DIFFTEST_STORE_HASH_ROT_DATA) ^
-                   ((uint64_t)mask << DIFFTEST_STORE_HASH_MASK_SHIFT);
-  value = difftest_hash_mix(value + boundary_hash.count * DIFFTEST_HASH_COUNT_STEP);
-  boundary_hash.h0 = difftest_hash_rotl(boundary_hash.h0 ^ (value + DIFFTEST_STORE_HASH_ADD_LO),
-                                      DIFFTEST_STORE_HASH_ROT_LO) * DIFFTEST_HASH_XXH_PRIME1;
-  boundary_hash.h1 = difftest_hash_rotl(boundary_hash.h1 + (value ^ DIFFTEST_STORE_HASH_ADD_HI),
-                                      DIFFTEST_STORE_HASH_ROT_HI) * DIFFTEST_HASH_XXH_PRIME2;
+  uint8_t *record = boundary_hash.pending +
+                    (boundary_hash.count % STORE_HASH_BATCH_RECORDS) * STORE_HASH_RECORD_BYTES;
+  // addr || data || mask, with both 64-bit fields serialized little-endian.
+  for (unsigned i = 0; i < 8; ++i) {
+    record[i] = addr >> (8 * i);
+    record[8 + i] = data >> (8 * i);
+  }
+  record[16] = mask;
   boundary_hash.count++;
+  if (boundary_hash.count % STORE_HASH_BATCH_RECORDS == 0)
+    XXH3_128bits_update(&boundary_hash.state, boundary_hash.pending, sizeof(boundary_hash.pending));
 }
 
 void store_log_hash(uint64_t *lo, uint64_t *hi, uint64_t *count) {
-  *lo = boundary_hash.h0;
-  *hi = boundary_hash.h1;
+  // Query a copy so the pending tail remains valid for later writes or forks.
+  XXH3_state_t state;
+  XXH3_copyState(&state, &boundary_hash.state);
+  XXH3_128bits_update(&state, boundary_hash.pending,
+                      (boundary_hash.count % STORE_HASH_BATCH_RECORDS) * STORE_HASH_RECORD_BYTES);
+  XXH128_hash_t hash = XXH3_128bits_digest(&state);
+  *lo = hash.low64;
+  *hi = hash.high64;
   *count = boundary_hash.count;
 }
 

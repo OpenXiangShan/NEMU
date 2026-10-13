@@ -37,9 +37,12 @@ Additional APIs are exported only with `FAST_REF`:
 | `state_hash` | Return CPU-state and ordered store digests; 0 on success, -1 if store hashing is unavailable or paused |
 | `set_store_hash`, `store_hash_reset` | Pause/resume collection or clear its digest |
 
-Store hashing starts enabled when configured. Each scalar RAM write updates
-two hash words and a record count, using aligned address/data/mask records.
-It retains no additional store-record queue or old memory values. Forked REFs
+Store hashing starts enabled when configured. CPU-state and store digests use
+XXH3-128 from the pinned BSD-licensed library in `resource/xxhash`.
+Each scalar RAM write appends a 17-byte record: little-endian aligned address,
+little-endian data, then mask. A fixed buffer batches 256 records; queries hash
+the pending tail on a copy, so every write is included without resetting the
+stream. It retains no unbounded store queue or old memory values. Forked REFs
 inherit the same digest prefix and can compare at an agreed endpoint;
 queries do not reset the digest. Rollback restores its matching digest state.
 The checkpoint digest remains independent of the CRC used by

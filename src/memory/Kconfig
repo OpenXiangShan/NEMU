@@ -22,9 +22,9 @@ config STORE_LOG_HASH
   depends on SHARE_REF && !LIGHTQS && !RV_AME
   default n
   help
-    Update a constant-size digest on each scalar RAM write using the shared
-    store-hash protocol. Collection is enabled at initialization and can be
-    paused at runtime. No write records or old values are retained for hashes.
+    Collect an ordered XXH3-128 digest of scalar RAM writes, independent of
+    the DUT store CRC. A bounded buffer batches updates; queries include all
+    pending writes. Collection starts enabled and can be paused at runtime.
     STORE_LOG independently controls rollback logging. Hashes do not compare
     the complete guest memory or cover matrix stores.
 

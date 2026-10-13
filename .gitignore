@@ -10,6 +10,7 @@
 !.gitignore
 !Dockerfile
 !README.md
+!resource/xxhash/LICENSE
 !Kconfig
 !.github/workflows/*.yml
 !.github/scripts/*.sh
