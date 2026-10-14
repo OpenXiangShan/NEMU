@@ -3419,6 +3419,21 @@ static inline bool csrind_imsic_window_permit_check(const uint32_t addr) {
 }
 
 static inline bool csrind_permit_check(const uint32_t addr) {
+#ifndef CONFIG_RV_SMCSRIND_EXTRA_REGS
+  // Preserve virtual-instruction traps for unimplemented VS interrupt windows.
+  if ((addr >= CSR_MIREG2 && addr <= CSR_MIREG6) ||
+      (addr >= CSR_VSIREG2 && addr <= CSR_VSIREG6)) {
+    longjmp_exception(EX_II);
+  }
+  if (addr >= CSR_SIREG2 && addr <= CSR_SIREG6) {
+    uint64_t iselect = csrind_effective_sireg_select();
+    if (MUXDEF(CONFIG_RVH, cpu.v, false) &&
+        (iselect_is_aia_window(iselect) || iselect_is_imsic_window(iselect))) {
+      return true;
+    }
+    longjmp_exception(EX_II);
+  }
+#endif
   word_t *dest_access = csr_decode(addr);
   uint64_t iselect = 0;
 
@@ -3773,7 +3788,9 @@ word_t riscv64_priv_mnret() {
   if (mnstatus->mnpp != MODE_M) { mstatus->mprv = 0; }
 #ifdef CONFIG_RVH
   cpu.v    = (mnstatus->mnpp == MODE_M ? 0 : mnstatus->mnpv);
+#ifndef CONFIG_RV_MNRET_PRESERVE_MNPV_MNPP
   mnstatus->mnpv = 0;
+#endif
   // clear vsstatus.SDT when return to VU
   vsstatus->sdt = (mnstatus->mnpp == MODE_U && mnstatus->mnpv == 1 ? 0 : vsstatus->sdt);
   set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
@@ -3793,7 +3810,9 @@ word_t riscv64_priv_mnret() {
     }
   }
   cpu.mode = mnstatus->mnpp;
+#ifndef CONFIG_RV_MNRET_PRESERVE_MNPV_MNPP
   mnstatus->mnpp = MODE_U;
+#endif
   mnstatus->nmie = 1;
 #ifdef CONFIG_RV_ZICFILP
   cpu.elp = riscv64_zicfilp_enabled(target_mode, target_virtual) ? mnstatus->mnpelp : ELP_NO_LP_EXPECTED;

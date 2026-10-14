@@ -84,6 +84,13 @@ config RV_CBO
   bool "RISC-V Zicbom & Zicboz Extension"
   default n
 
+config RV_CBO_PBMT_CHECK
+  bool "Check PBMT permissions for CBO accesses"
+  depends on RV_CBO
+  default y
+  help
+    Raise an access fault for CBO accesses to pages with nonzero PBMT.
+
 config RVK
   bool "RISC-V Cryptography Extension v1.0"
   default y
@@ -145,6 +152,13 @@ config CUSTOM_TENSOR
 config RV_AME
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
+
+config RV_SSTATUS_MS
+  bool "Include matrix state in SSTATUS"
+  default y
+  help
+    Include the matrix-state bits in the SSTATUS read/write masks.
+    This CSR layout choice is independent of enabling matrix instructions.
 
 config RV_AME_FP4
   bool "Raw packed FP4 matrix load/store"
@@ -252,6 +266,13 @@ config RV_SDTRIG
   depends on RV_DEBUG
   default n
 
+config RV_SDTRIG_TDATA3
+  bool "Support tdata3 trigger contexts"
+  depends on RV_SDTRIG
+  default y
+  help
+    Expose tdata3 and use its context fields for trigger matching.
+
 config TDATA1_MCONTROL
   bool "TDATA1 Support mcontrol Type of Trigger (only affect tinfo, not implemented)"
   depends on RV_SDTRIG
@@ -305,6 +326,13 @@ config RV_SSTC
 config RV_SMRNMI
   bool "RISC-V Resumable NonMaskable Interrupts Extension"
   default n
+
+config RV_MNRET_PRESERVE_MNPV_MNPP
+  bool "Preserve MNPV/MNPP on MNRET"
+  depends on RV_SMRNMI
+  default n
+  help
+    Preserve the saved privilege and virtualization fields on MNRET.
 
 config RV_SMDBLTRP
   bool "RISC-V M-mode Double Trap Extension"
@@ -654,6 +682,14 @@ config RV_SMMPM
 config RV_SMCSRIND
   bool "RISC-V Smcsrind/Sscsrind Indirect CSR Access, Version 1.0"
   default n
+
+config RV_SMCSRIND_EXTRA_REGS
+  bool "Support extra indirect registers (xireg2..xireg6)"
+  depends on RV_SMCSRIND
+  default y
+  help
+    Enable the additional M/S/VS indirect registers. When disabled, retain
+    virtual-instruction traps for VS accesses to the interrupt windows.
 
 config RV_SMCDELEG
   bool "RISC-V Smcdeleg/Ssccfg extension"

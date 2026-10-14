@@ -25,6 +25,7 @@ CONFIG_CLINT_MMIO=0x38000000
 # CONFIG_RV_ZICOND is not set
 # CONFIG_RV_ZICFILP is not set
 # CONFIG_RV_AME is not set
+CONFIG_RV_SSTATUS_MS=y
 # CONFIG_RV_DEBUG is not set
 # CONFIG_RVH is not set
 # CONFIG_RV_SSTC is not set
