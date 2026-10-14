@@ -19,7 +19,7 @@
 
 def_EHelper(fence_i) {
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
-  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  tcache_flush_code_changed();
   rtl_priv_next(s);
 }
 

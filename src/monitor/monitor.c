@@ -20,6 +20,7 @@
 #include <checkpoint/semantic_point.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
+#include <cpu/cpu.h>
 #include <getopt.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,6 +38,7 @@ void init_difftest(char *ref_so_file, long img_size, long flash_size, int port);
 void init_device();
 
 static char *log_file = NULL;
+static bool exact_mode = false;
 bool small_log = false;
 bool fast_log = false;
 static char *diff_so_file = NULL;
@@ -137,6 +139,8 @@ static inline int parse_args(int argc, char *argv[]) {
     {"dump-reg"           , required_argument, NULL, 'R'},
     {"state-digest"       , no_argument      , NULL, 21},
     {"fdt-rng-seed"       , required_argument, NULL, 22},
+    {"exact"              , no_argument      , NULL, 23},
+    {"batch-trace"        , required_argument, NULL, 24},
 
     {0          , 0                , NULL,  0 },
   };
@@ -225,6 +229,8 @@ static inline int parse_args(int argc, char *argv[]) {
           fdt_rng_seed_set(strtoull(optarg, NULL, 0));
           break;
       }
+      case 23: exact_mode = true; break;
+      case 24: cpu_set_batch_trace(optarg); break;
       case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
@@ -327,6 +333,8 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
         printf("\t--state-digest          print a digest of the whole machine state at exit\n");
         printf("\t--fdt-rng-seed=N        derive the bootloader rng-seed from N instead of host randomness\n");
+        printf("\t--exact                 run the reference block cache and host TLB only\n");
+        printf("\t--batch-trace=FILE      write the instruction count, pc and cause of every execution batch to FILE\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
 
         printf("\t--log-fast              output log to file by buffer\n");
@@ -401,6 +409,16 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   init_device();
+
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+  // Profiling records block pcs through the entries of the reference block
+  // cache, so its output is the reference's only in exact mode.
+  if (!exact_mode && (profiling_state != NoProfiling || checkpoint_state != NoCheckpoint)) {
+    Log("Profiling or checkpointing: decoded blocks are not kept across traps (exact mode)");
+    exact_mode = true;
+  }
+#endif
+  if (exact_mode) cpu_enter_exact_mode();
 
   int64_t img_size = 0;
   int64_t flash_size = 0;

@@ -759,6 +759,26 @@ bad:
   return MEM_RET_FAIL;
 }
 
+// Nothing of the walk is kept; a clear accessed bit counts as a fault.
+bool isa_ifetch_probe(vaddr_t vaddr, paddr_t *page) {
+  extern int ifetch_mmu_state;
+  if (ifetch_mmu_state == MMU_DIRECT) { *page = vaddr & ~(vaddr_t)PAGE_MASK; return true; }
+#ifdef CONFIG_RVH
+  if (cpu.v) return false;
+#endif
+  typeof(cpu.trapInfo) trap = cpu.trapInfo;
+  uint32_t pbmt = cpu.pbmt;
+  int cause;
+  PUSH_CONTEXT(&cause);
+  paddr_t r = cause ? MEM_RET_FAIL : ptw(vaddr, MEM_TYPE_IFETCH);
+  pop_context();
+  cpu.trapInfo = trap;
+  cpu.pbmt = pbmt;
+  if ((r & PAGE_MASK) != MEM_RET_OK) return false;
+  *page = r & ~(paddr_t)PAGE_MASK;
+  return true;
+}
+
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
 #ifdef CONFIG_RVH
@@ -922,6 +942,27 @@ static inline int update_mmu_state_internal(bool ifetch) {
   }
   return MMU_DIRECT;
 }
+
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+// Blocks are tagged with everything that decides how their instructions
+// were fetched and decoded: privilege and virtualization mode, MMU state,
+// FP and vector enables, and the address space. satp changes therefore
+// select other blocks instead of discarding them; when an address space's
+// mappings change, SFENCE.VMA makes kept blocks check their code pages.
+uint64_t isa_tcache_context(void) {
+  bool fp_enable();
+  bool vp_enable();
+  uint64_t mode = cpu.mode | (MUXDEF(CONFIG_RVH, cpu.v, 0) << 2) |
+                  (data_mmu_state << 3) | (ifetch_mmu_state << 5) |
+                  ((uint64_t)fp_enable() << 7) |
+                  ((uint64_t)MUXDEF(CONFIG_RVV, vp_enable(), 0) << 8);
+  uint64_t space = satp->val;
+#ifdef CONFIG_RVH
+  if (cpu.v) space ^= (vsatp->val * 0x9e3779b97f4a7c15ull) ^ (hgatp->val << 1);
+#endif
+  return (space << 9) ^ mode;
+}
+#endif
 
 int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);

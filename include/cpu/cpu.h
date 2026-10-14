@@ -55,9 +55,29 @@ enum {
   SYS_STATE_FLUSH_TCACHE = 2,
 };
 void set_sys_state_flag(int flag);
+// The block cache is flushed at the end of the current instruction because
+// decoded code or address mappings may have changed; blocks kept across
+// context switches (CONFIG_TCACHE_KEEP_ON_TRAP) are discarded as well.
+void tcache_flush_code_changed(void);
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+void tcache_invalidate(void);
+// Address mappings may have changed, not code: kept blocks are checked
+// before they run again, and discarded where their code moved.
+void tcache_mappings_changed(void);
+// Flushes the TLBs for a new address space: kept blocks, tagged with it, stay.
+void mmu_tlb_flush_new_space(void);
+#endif
+// Exact mode: the reference code paths only (its block cache and host TLB).
+void cpu_enter_exact_mode(void);
+// Writes the instruction count, pc and cause of every execution batch to path.
+void cpu_set_batch_trace(const char *path);
 void mmu_tlb_flush(vaddr_t vaddr);
+// SFENCE.VMA: as mmu_tlb_flush(), but a global fence lets kept blocks stay,
+// checked again before they run (tcache_mappings_changed()).
+void mmu_tlb_flush_fence(vaddr_t vaddr);
 #ifdef CONFIG_RVH
 void mmu_tlb_flush_host(vaddr_t vaddr);
+void mmu_tlb_flush_host_fence(vaddr_t vaddr);
 void mmu_tlb_flush_guest(vaddr_t vaddr);
 #endif
 

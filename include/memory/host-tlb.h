@@ -28,6 +28,10 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                           int row, int column, int msew, bool transpose,
                           bool isacc, int mreg_id);
 void hosttlb_init();
+// The reference number of entries from now on (exact mode).
+void hosttlb_enter_exact(void);
+// The physical page the host TLB holds for an instruction fetch at vaddr.
+bool hosttlb_ifetch_page(vaddr_t vaddr, paddr_t *page);
 void hosttlb_flush(vaddr_t vaddr);
 
 #endif

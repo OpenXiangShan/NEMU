@@ -2424,7 +2424,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       *dest = src & SCONTEXT_MASK;
       // Execute triggers are checked during decode, so context updates must
       // invalidate cached decodes before the next instruction.
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      tcache_flush_code_changed();
       break;
 #endif // CONFIG_RV_SDTRIG
 
@@ -2529,7 +2529,7 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SDTRIG
     case CSR_HCONTEXT:
       mcontext->val = src & MCONTEXT_MASK;
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      tcache_flush_code_changed();
       break;
 #endif // CONFIG_RV_SDTRIG
 
@@ -2862,7 +2862,7 @@ static void csr_write(uint32_t csrid, word_t src) {
         // do nothing for not supported trigger type
         break;
       }
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      tcache_flush_code_changed();
       trigger_mark_state_dirty(cpu.TM);
       break;
     }
@@ -2872,7 +2872,7 @@ static void csr_write(uint32_t csrid, word_t src) {
       tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
       tdata2_t tdata2_wdata = *(tdata2_t*)&src;
       tdata2_reg->val = tdata2_wdata.val;
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      tcache_flush_code_changed();
       break;
     }
     case CSR_TDATA3:
@@ -2880,12 +2880,12 @@ static void csr_write(uint32_t csrid, word_t src) {
       tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
       tdata3_t tdata3_wdata = *(tdata3_t*)&src;
       tdata3_reg->val = legalize_tdata3(tdata3_wdata.val, tdata3_reg->val);
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      tcache_flush_code_changed();
       break;
     }
     case CSR_MCONTEXT:
       *dest = src & MCONTEXT_MASK;
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      tcache_flush_code_changed();
       break;
     case CSR_TINFO: break;
 #endif // CONFIG_RV_SDTRIG
@@ -2968,7 +2968,13 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_MPT_CHECK
       || is_write(mmpt)
 #endif
-     ) { mmu_tlb_flush(0); } // when satp/mmpt is changed, flush tlb.
+     ) {
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+    // Kept blocks are tagged with satp, so a satp write leaves them valid.
+    if (is_write(satp)) mmu_tlb_flush_new_space(); else
+#endif
+    mmu_tlb_flush(0);
+  } // when satp/mmpt is changed, flush tlb.
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);
@@ -3895,10 +3901,10 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
   if (cpu.v) {
     mmu_tlb_flush_guest(vaddr);
   } else {
-    mmu_tlb_flush_host(vaddr);
+    mmu_tlb_flush_host_fence(vaddr);
   }
 #else
-  mmu_tlb_flush(vaddr);
+  mmu_tlb_flush_fence(vaddr);
 #endif
 }
 

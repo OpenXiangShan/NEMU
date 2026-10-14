@@ -71,6 +71,12 @@ typedef struct Decode {
 
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+  uint16_t bb_len;               // instructions from this block head to its terminator
+  uint32_t uts_epoch;            // shadow epoch in which this block head was accounted
+  uint64_t code_sig;             // the physical pages of the block's code
+  uint32_t vgen;                 // mapping generation in which this block head was checked
+#endif
   IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, uint8_t instr_stat_category);
   uint8_t type;
   ISADecodeInfo isa;

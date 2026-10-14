@@ -61,6 +61,11 @@ vaddr_t get_effective_address(vaddr_t vaddr, int type);
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
 #ifdef CONFIG_RVH
 void isa_mmu_tlb_flush(void);
+// The context decoded blocks are tagged with (CONFIG_TCACHE_KEEP_ON_TRAP).
+uint64_t isa_tcache_context(void);
+// The physical page an instruction fetch at vaddr would use now, if it would
+// neither fault nor update a page-table entry.
+bool isa_ifetch_probe(vaddr_t vaddr, paddr_t *page);
 #else
 static inline void isa_mmu_tlb_flush(void) {
 }

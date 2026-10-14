@@ -19,6 +19,7 @@
 #include <cpu/exec.h>
 #include <cpu/difftest.h>
 #include <cpu/decode.h>
+#include <cpu/tcache.h>
 #include <cpu/instr_stat.h>
 #include <memory/host-tlb.h>
 #include <isa-all-instr.h>
@@ -126,7 +127,7 @@ uint64_t get_abs_instr_count() {
 // Refer to the comment above for more technical details.
 uint64_t get_abs_instr_count_csr() {
 #if defined(CONFIG_INSTR_CNT_BY_BB)
-  return get_abs_instr_count() + prev_s->idx_in_bb - 1;
+  return get_abs_instr_count() + tcache_idx(prev_s) - 1;
   // s of this instruction is saved into prev_s, in EHelper of csrrw/csrrs/csrrc.
 #elif defined(CONFIG_INSTR_CNT_BY_INSTR)
   // INSTR-level
@@ -204,24 +205,58 @@ static int g_sys_state_flag = 0;
 
 void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
 
+void tcache_flush_code_changed(void) {
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, tcache_invalidate());
+}
+
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+void mmu_tlb_flush_new_space(void) {
+  hosttlb_flush(0);
+  isa_mmu_tlb_flush();
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+#endif
+
 void mmu_tlb_flush(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
   isa_mmu_tlb_flush();
-  if (vaddr == 0)
+  if (vaddr == 0) tcache_flush_code_changed();
+}
+
+void mmu_tlb_flush_fence(vaddr_t vaddr) {
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+  hosttlb_flush(vaddr);
+  isa_mmu_tlb_flush();
+  if (vaddr == 0) {
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+    tcache_mappings_changed();
+  }
+#else
+  mmu_tlb_flush(vaddr);
+#endif
 }
 
 #ifdef CONFIG_RVH
 void mmu_tlb_flush_host(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
-  if (vaddr == 0)
-    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  if (vaddr == 0) tcache_flush_code_changed();
+}
+
+void mmu_tlb_flush_host_fence(vaddr_t vaddr) {
+  hosttlb_flush(vaddr);
+  if (vaddr != 0) return;
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  tcache_mappings_changed();
+#else
+  tcache_flush_code_changed();
+#endif
 }
 
 void mmu_tlb_flush_guest(vaddr_t vaddr) {
   isa_mmu_tlb_flush();
-  if (vaddr == 0)
-    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  if (vaddr == 0) tcache_flush_code_changed();
 }
 #endif
 
@@ -258,6 +293,21 @@ _Noreturn void longjmp_exception(int ex_cause) {
   }
 }
 
+void cpu_enter_exact_mode(void) {
+  IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, tcache_enter_exact());
+  IFDEF(CONFIG_MODE_SYSTEM, hosttlb_enter_exact());
+}
+
+// The instruction count, pc and cause at every iteration of the outer
+// execution loop, where interrupts are sampled: two runs with equal traces
+// follow the same execution schedule.
+static FILE *batch_trace = NULL;
+
+void cpu_set_batch_trace(const char *path) {
+  batch_trace = fopen(path, "w");
+  Assert(batch_trace, "cannot open batch trace file %s", path);
+}
+
 #ifdef CONFIG_PERF_OPT
 static bool manual_cpt_quit = false;
 #define FILL_EXEC_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(exec_, name),
@@ -266,7 +316,7 @@ static bool manual_cpt_quit = false;
 #define rtl_j(s, target)                                                       \
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
-    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
+    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= tcache_idx(s));                   \
     s = s->tnext;                                                              \
     goto end_of_bb;                                                            \
   } while (0)
@@ -275,7 +325,7 @@ static bool manual_cpt_quit = false;
 #define rtl_jr(s, target)                                                      \
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
-    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
+    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= tcache_idx(s));                   \
     s = jr_fetch(s, *(target));                                                \
     goto end_of_bb;                                                            \
   } while (0)
@@ -284,7 +334,7 @@ static bool manual_cpt_quit = false;
 #define rtl_jrelop(s, relop, src1, src2, target)                               \
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
-    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
+    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= tcache_idx(s));                   \
     if (interpret_relop(relop, *src1, *src2)) {                                \
       s = s->tnext;                                                            \
     } else                                                                     \
@@ -298,13 +348,13 @@ static bool manual_cpt_quit = false;
       if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
         Decode *executed_s = s; /* save the executed instruction */            \
         /* Settle instruction counting for the unended bb. */                  \
-        IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);               \
+        IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= tcache_idx(s));               \
         s = tcache_handle_flush(s->snpc);                                      \
         save_globals(executed_s);                                              \
       } else {                                                                 \
         /* BB has not end, but BATCH is about to end. */                       \
         /* Record unsettled instruction number for feature flush. */           \
-        IFDEF(CONFIG_INSTR_CNT_BY_BB, instr_count_bb_unsettled = s->idx_in_bb);\
+        IFDEF(CONFIG_INSTR_CNT_BY_BB, instr_count_bb_unsettled = tcache_idx(s));\
         s = s + 1;                                                             \
       }                                                                        \
       g_sys_state_flag = 0;                                                    \
@@ -316,7 +366,7 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     Decode *executed_s = s;                                                    \
     /* Settle instruction counting for the last bb. */                         \
-    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
+    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= tcache_idx(s));                   \
     profile_control_exit = true;                                               \
     s = jr_fetch(s, *(target));                                                \
     if (g_sys_state_flag) {                                                    \
@@ -330,6 +380,22 @@ static bool manual_cpt_quit = false;
   } while (0)
 
 static const void **g_exec_table;
+
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+#define uts_leave(next)                                                        \
+  do {                                                                         \
+    if (unlikely(tcache_uts_rem_active)) tcache_uts_leave(next);               \
+  } while (0)
+// A block head entered for the first time in an epoch of the reference block
+// cache is charged to its shadow.
+#define uts_check(s)                                                           \
+  do {                                                                         \
+    if (unlikely((s)->uts_epoch != tcache_uts_epoch)) s = tcache_uts_check(s); \
+  } while (0)
+#else
+#define uts_check(s)
+#define uts_leave(next)
+#endif
 
 Decode *tcache_jr_fetch(Decode *s, vaddr_t jpc);
 Decode *tcache_decode(Decode *s);
@@ -440,11 +506,13 @@ static void execute(int n) {
 
   if (likely(init_flag == 0)) {
     g_exec_table = local_exec_table;
+    IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, tcache_set_uts_labels(&&exec_uts_stop, &&exec_uts_resume));
     extern Decode *tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
     IFDEF(CONFIG_MODE_SYSTEM, hosttlb_init());
     init_flag = 1;
   }
+  uts_check(s);
 
   __attribute__((unused)) Decode *this_s = NULL;
   __attribute__((unused)) bool profile_control_exit = false;
@@ -488,12 +556,28 @@ static void execute(int n) {
       continue;
     }
 
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+    def_EHelper(uts_stop) {
+      // The reference runs out of block-cache capacity before s.
+      save_globals(tcache_uts_stop(s));
+      longjmp_context(NEMU_EXEC_AGAIN);
+    }
+
+    def_EHelper(uts_resume) {
+      s = tcache_uts_resume();
+      goto *(s->EHelper);
+    }
+#endif
+
   end_of_bb:
     // Here is per bb action.
     // When jump or branch happens, it will goto here.
 
     // Exit the execute() loop after certain basic blocks, even if instr count is disabled.
     IFDEF(CONFIG_INSTR_CNT_DISABLED, n_remain -= 1);
+
+    uts_leave(s);
+    uts_check(s);
 
     if (unlikely(per_bb_profile_active)) {
       uint64_t abs_inst_count = per_bb_profile(prev_s, s);
@@ -535,6 +619,7 @@ static void execute(int n) {
   }
 
 end_of_loop:
+  uts_leave(s);
   // Here is per loop action and some priv instruction action.
   // If end_of_bb and n_remain <= 0, it will goto here.
   // Most of priv instruction (using rtl_priv_jr() or rtl_priv_next()) will goto here.
@@ -882,7 +967,7 @@ void cpu_exec(uint64_t n) {
 
     // Settle instruction counting for the last BB.
     // When longjmp happened, there is no chance to do instruction counting for bb.
-    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= prev_s->idx_in_bb - 1);
+    IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= tcache_idx(prev_s) - 1);
     // No need to update n_remain or g_nr_guest_instr for INSTR_CNT_BY_INSTR:
     // This instruction has not finished executing, while the last instruction has been counted.
 
@@ -899,6 +984,7 @@ void cpu_exec(uint64_t n) {
 
   while (nemu_state.state == NEMU_RUNNING &&
          MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
+    if (unlikely(batch_trace != NULL)) fprintf(batch_trace, "%lu " FMT_WORD " %d\n", g_nr_guest_instr, cpu.pc, cause);
     #ifdef CONFIG_DEVICE
       extern void device_update();
       device_update();

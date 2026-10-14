@@ -561,6 +561,43 @@ config BB_POOL_SIZE
   int "Number of entries in basic block metadata pool"
   default 1024
 
+config TCACHE_KEEP_ON_TRAP
+  bool "Keep decoded blocks across traps and privilege changes"
+  depends on ISA_riscv64
+  default n
+  help
+    Tag decoded basic blocks with the context they were decoded under
+    (privilege and virtualization mode, MMU state, address space) and look
+    them up by that tag. Traps, interrupts, xRET and satp writes then switch
+    to the blocks of the new context instead of discarding the block cache.
+    After an SFENCE.VMA without an address, blocks are checked against the
+    physical pages of their code before they run again. FENCE.I and PMP,
+    PMA or trigger changes still discard all blocks. The execution schedule
+    (where batches end and interrupts are sampled) stays that of the
+    reference block cache sized below, which exact mode (--exact) runs as
+    is. The sizes above become the capacities of the kept block cache.
+    SimPoint profiling and checkpointing record block pcs through the
+    entries of the reference block cache, so they run in exact mode.
+
+config TCACHE_EXACT_SIZE
+  int "Reference block cache: decoded instructions"
+  depends on TCACHE_KEEP_ON_TRAP
+  default 8192
+  help
+    Capacities of the block cache of the reference configuration
+    (riscv64-xs-cpt_defconfig). They decide when the reference runs out of
+    capacity, which ends an execution batch.
+
+config TCACHE_EXACT_BB_LIST_SIZE
+  int "Reference block cache: list heads"
+  depends on TCACHE_KEEP_ON_TRAP
+  default 1024
+
+config TCACHE_EXACT_BB_POOL_SIZE
+  int "Reference block cache: chained entries"
+  depends on TCACHE_KEEP_ON_TRAP
+  default 1024
+
 endif
 
 choice

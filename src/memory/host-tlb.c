@@ -44,8 +44,18 @@ static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
   return (vaddr >> PAGE_SHIFT);
 }
 
+// Exact mode uses the reference number of entries.
+#define HOSTTLB_EXACT_SIZE_SHIFT 12
+#if HOSTTLB_SIZE_SHIFT != HOSTTLB_EXACT_SIZE_SHIFT
+_Static_assert(HOSTTLB_SIZE_SHIFT > HOSTTLB_EXACT_SIZE_SHIFT, "the host TLB is smaller than the reference's");
+static uint64_t hosttlb_mask = HOSTTLB_SIZE - 1;
+#define hosttlb_entries (hosttlb_mask + 1)
+#else
+#define hosttlb_entries HOSTTLB_SIZE
+#endif
+
 static inline int hosttlb_idx(vaddr_t vaddr) {
-  return (hosttlb_vpn(vaddr) % HOSTTLB_SIZE);
+  return (hosttlb_vpn(vaddr) % hosttlb_entries);
 }
 
 // Entries filled since the last flush, so a flush touches only those unless
@@ -77,6 +87,26 @@ void hosttlb_flush(vaddr_t vaddr) {
   } else {
     hosttlb_clear_all();
   }
+}
+
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+bool hosttlb_ifetch_page(vaddr_t vaddr, paddr_t *page) {
+#ifdef CONFIG_RVH
+  extern bool has_two_stage_translation();
+  if (has_two_stage_translation()) return false;
+#endif
+  HostTLBEntry *e = &hostxtlb[hosttlb_idx(vaddr)];
+  if (e->gvpn != hosttlb_vpn(vaddr)) return false;
+  *page = host_to_guest(e->offset + (vaddr & ~(vaddr_t)PAGE_MASK));
+  return true;
+}
+#endif
+
+void hosttlb_enter_exact(void) {
+#if HOSTTLB_SIZE_SHIFT != HOSTTLB_EXACT_SIZE_SHIFT
+  hosttlb_mask = (1 << HOSTTLB_EXACT_SIZE_SHIFT) - 1;
+  hosttlb_clear_all();
+#endif
 }
 
 void hosttlb_init() {
