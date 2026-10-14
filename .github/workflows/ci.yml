@@ -473,6 +473,58 @@ jobs:
           if-no-files-found: ignore
           path: nemu-lf-difftest-logs/
 
+  lf-jit-parity:
+    needs: fetch-workloads
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/openxiangshan/xs-env:ubuntu-24.04
+    continue-on-error: false
+    name: Exact-cache leader-follower guard
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Restore cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CI_WORKLOADS }}
+          key: ${{ needs.fetch-workloads.outputs.release-url }}
+
+      - name: Setup env
+        run: |
+          echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Build leader-follower JIT NEMU
+        run: |
+          cp configs/riscv64-xs-cpt-lf_defconfig configs/ci-lf-jit_defconfig
+          printf 'CONFIG_TCACHE_KEEP_ON_TRAP=y\nCONFIG_JIT_SLJIT=y\n' >> configs/ci-lf-jit_defconfig
+          make ci-lf-jit_defconfig
+          make -j
+
+      - name: Exact-cache leader-follower guard
+        env:
+          LF_EXACT_OUT_DIR: nemu-lf-exact-logs
+        run: |
+          bash scripts/ci/test-lf-exact-parity.sh
+
+      - name: --jit help names every accepted option
+        run: |
+          bash scripts/ci/test-jit-help.sh
+
+      - name: Reject empty BBVs, CRITICAL logs and empty slices in the guard
+        run: |
+          bash scripts/ci/test-lf-exact-bbv.sh
+
+      - name: Upload leader-follower JIT logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nemu-lf-exact-logs
+          if-no-files-found: ignore
+          path: nemu-lf-exact-logs/
+
   diff-spike-advanced:
     needs: fetch-workloads
     runs-on: ubuntu-latest
@@ -745,14 +797,14 @@ jobs:
           EOF
           cat performance_results.md
           cat performance_results.md >> "$GITHUB_STEP_SUMMARY"
-      
+
       - name: Record PR number
         if: github.event_name == 'pull_request'
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo -n $PR_NUMBER > PR_NUMBER.txt
-      
+
       - name: Save performance results artifact
         uses: actions/upload-artifact@v7
         with:
