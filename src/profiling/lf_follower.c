@@ -179,6 +179,13 @@ void lf_follower_start(uint32_t gen, uint32_t slice, uint64_t icount) {
     fflush(stdout);
     abort();
   }
+  if (lf_inject.kind == LF_INJ_DESYNC && lf_inject.where == slice) {
+    // Deliberately desynchronize this follower from the reference. The next
+    // difftest step must abort the follower instead of letting it publish a
+    // fragment or be promoted as if the leader had diverged.
+    Log("injected difftest desync in follower %u", slice);
+    cpu.gpr[1]._64 ^= 0x5a5a5a5a;
+  }
   // Profiling becomes active at the next execute() call.
   fl.start_profiled = profiling_workload_ready() ? icount - checkpoint_icount_base : 0;
   profiling_state = SimpointProfiling;
@@ -202,6 +209,13 @@ static lf_msg_t lf_follower_wait(void) {
 }
 
 void lf_follower_finish(uint64_t icount, bool run_ended) {
+  if (unlikely(nemu_state.state == NEMU_ABORT)) {
+    // A difftest mismatch is a follower failure, not a leader divergence.
+    // Publishing the record or classifying it as DIVERGED would let the
+    // coordinator commit the slice and promote a follower that already
+    // differs from the reference.
+    lf_follower_fail("difftest mismatch aborted the follower");
+  }
   uint64_t exec_us = lf_elapsed(fl.t_start);
   uint64_t t0 = get_time();
   Log("follower %u stops at icount %lu%s", fl.index, icount, run_ended ? " (end of run)" : "");

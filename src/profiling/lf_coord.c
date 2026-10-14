@@ -135,6 +135,7 @@ static void lf_parse_inject(const char *spec) {
     {"crash", LF_INJ_CRASH},
     {"rec-gpr", LF_INJ_REC_GPR}, {"rec-csr", LF_INJ_REC_CSR}, {"rec-mtime", LF_INJ_REC_MTIME},
     {"rec-icount", LF_INJ_REC_ICOUNT}, {"rec-dev", LF_INJ_REC_DEV}, {"slow-hello", LF_INJ_SLOW_HELLO},
+    {"desync", LF_INJ_DESYNC},
   };
   const char *at = strchr(spec, '@');
   if (at == NULL) lf_config_error("--lf-inject expects KIND@ICOUNT or KIND@sSLICE, not '%s'", spec);
@@ -172,7 +173,11 @@ static void lf_validate(bool difftest_enabled) {
   if (checkpoint_state != NoCheckpoint)
     lf_config_error("--lf-profile cannot be combined with checkpointing");
   if (checkpoint_interval == 0) lf_config_error("--lf-profile requires --cpt-interval > 0");
-  if (difftest_enabled) lf_config_error("--lf-profile cannot be combined with difftest");
+  // Difftest is allowed. Leader and followers run the same exact engine, so
+  // both compare against the reference. A follower that aborts on a difftest
+  // mismatch reports LF_RESULT_ERROR and ends the run: it is never promoted
+  // as if the leader had diverged.
+  if (difftest_enabled) Log("leader-follower: difftest is on for leader and followers");
   if (mapped_cpt_file != NULL) lf_config_error("--lf-profile cannot be combined with --map-cpt");
   if (lf_config.slice_len == 0) lf_config_error("--lf-slice must be greater than 0");
   if (lf_config.slice_max == 0) lf_config.slice_max = lf_config.slice_len;

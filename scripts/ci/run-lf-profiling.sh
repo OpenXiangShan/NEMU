@@ -16,8 +16,8 @@
 
 # Leader-follower SimPoint profiling must produce the serial profile: runs a
 # workload serially and in leader-follower mode, with and without an injected
-# leader fault (which must be rolled back), and compares the BBVs and the
-# guest console.
+# leader fault (which must be rolled back), and compares the BBVs, the guest
+# console and the instruction count.
 
 set -euo pipefail
 
@@ -63,6 +63,7 @@ run() {
   shift
   local status=0
   "$nemu_bin" -b --fdt-rng-seed=1 --simpoint-profile --cpt-interval "$interval" \
+    --state-digest \
     -D "$out_dir/$name" -w ci -C lf --dont-skip-boot "$@" "$workload" \
     > "$out_dir/$name.log" 2> "$out_dir/$name.console" || status=$?
   if [ "$status" -ne 0 ]; then
@@ -70,7 +71,33 @@ run() {
     tail -n 50 "$out_dir/$name.log" >&2
     exit 1
   fi
-  zcat "$(find "$out_dir/$name" -name simpoint_bbv.gz)" > "$out_dir/$name.bbv"
+  if grep -aq "CRITICAL" "$out_dir/$name.log"; then
+    echo "FAIL $name: CRITICAL marker in the log" >&2
+    grep -an "CRITICAL" "$out_dir/$name.log" | head -n 10 >&2
+    exit 1
+  fi
+  local bbv
+  bbv=$(find "$out_dir/$name" -name simpoint_bbv.gz | head -1)
+  [ -n "$bbv" ] || { echo "FAIL $name: no BBV" >&2; exit 1; }
+  zcat "$bbv" > "$out_dir/$name.bbv"
+  if [ ! -s "$out_dir/$name.bbv" ]; then
+    echo "FAIL $name: empty decompressed BBV" >&2
+    exit 1
+  fi
+  case "$name" in
+    serial) ;;
+    *)
+      # A label alone is not enough: parse a positive slice count and a
+      # positive merged-fragment count.
+      local sl fr
+      sl=$(sed -nE 's/.*leader-follower run ended at icount [0-9]+ after ([0-9]+) slices.*/\1/p' "$out_dir/$name.log" | tail -1)
+      fr=$(sed -nE 's/.*leader-follower merged ([0-9]+) fragments.*/\1/p' "$out_dir/$name.log" | tail -1)
+      if [ -z "$sl" ] || [ "$sl" -le 0 ] || [ -z "$fr" ] || [ "$fr" -le 0 ]; then
+        echo "FAIL $name: no positive slice/fragment count (slices='$sl', fragments='$fr')" >&2
+        exit 1
+      fi
+      ;;
+  esac
 }
 
 check_same() {
@@ -84,6 +111,14 @@ check_same() {
     echo "FAIL $name: guest console differs from the serial run" >&2
     exit 1
   fi
+  # The handover also requires instruction-count parity.
+  local ic_s ic_n
+  ic_s=$(grep -aoE 'state digest: icount=[0-9]+' "$out_dir/serial.log" | tail -1 || true)
+  ic_n=$(grep -aoE 'state digest: icount=[0-9]+' "$out_dir/$name.log" | tail -1 || true)
+  if [ -z "$ic_s" ] || [ -z "$ic_n" ] || [ "$ic_s" != "$ic_n" ]; then
+    echo "FAIL $name: instruction count differs from the serial run ($ic_s vs $ic_n)" >&2
+    exit 1
+  fi
 }
 
 lf_args=(--lf-profile --lf-slice="$slice" --lf-followers=2 --lf-mem-track="$mem_track")
@@ -92,7 +127,7 @@ run serial
 echo "serial: $(wc -l < "$out_dir/serial.bbv") intervals"
 run lf "${lf_args[@]}"
 check_same lf
-echo "PASS leader-follower BBV identical to the serial run"
+echo "PASS leader-follower BBV, console and instruction count identical to the serial run"
 
 run lf-inject "${lf_args[@]}" --lf-inject=gpr@"$inject_at"
 check_same lf-inject

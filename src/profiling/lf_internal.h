@@ -113,7 +113,7 @@ typedef enum {
   LF_INJ_CSR, LF_INJ_TIMER, LF_INJ_GPR, LF_INJ_MEM_HASH, LF_INJ_MEM_SET, LF_INJ_LEADER_CRASH,
   // Follower side, applied by the follower of one slice.
   LF_INJ_CRASH, LF_INJ_REC_GPR, LF_INJ_REC_CSR, LF_INJ_REC_MTIME, LF_INJ_REC_ICOUNT,
-  LF_INJ_REC_DEV, LF_INJ_SLOW_HELLO,
+  LF_INJ_REC_DEV, LF_INJ_SLOW_HELLO, LF_INJ_DESYNC,
 } lf_inject_kind_t;
 
 typedef struct {
