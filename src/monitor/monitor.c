@@ -22,6 +22,7 @@
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
+#include <cpu/jit.h>
 #include <getopt.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -155,6 +156,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"exact"              , no_argument      , NULL, 23},
     {"batch-trace"        , required_argument, NULL, 24},
     {"fp-fastpath-selftest", required_argument, NULL, 25},
+    {"jit"                , required_argument, NULL, 26},
 
     {0          , 0                , NULL,  0 },
   };
@@ -253,6 +255,10 @@ static inline int parse_args(int argc, char *argv[]) {
           panic("--fp-fastpath-selftest requires CONFIG_FPU_SOFT_HOST_FASTPATH");
 #endif
       }
+      case 26:
+          IFDEF(CONFIG_JIT_SLJIT, jit_parse_options(optarg));
+          IFNDEF(CONFIG_JIT_SLJIT, panic("--jit requires CONFIG_JIT_SLJIT"));
+          break;
       case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
@@ -366,6 +372,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--fdt-rng-seed=N        derive the bootloader rng-seed from N instead of host randomness\n");
         printf("\t--exact                 run the reference block cache and host TLB only\n");
         printf("\t--batch-trace=FILE      write the instruction count, pc and cause of every execution batch to FILE\n");
+        printf("\t--jit=K=V[,K=V...]      JIT options: enable, threshold, lifetime, chain, ib-bits, ibcache, pin, mem, helpers, inline-fp, spec-fp, tier2\n");
         printf("\t--fp-fastpath-selftest=N  check the host FPU fast path against softfloat and exit\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
 
@@ -454,6 +461,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   init_device();
+
+  IFDEF(CONFIG_JIT_SLJIT, jit_init());
 
 #ifdef CONFIG_TCACHE_KEEP_ON_TRAP
   // Profiling records block pcs through the entries of the reference block

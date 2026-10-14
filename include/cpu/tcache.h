@@ -24,12 +24,25 @@
 
 // The reference block cache from its next flush on (exact mode).
 void tcache_enter_exact(void);
+bool tcache_is_exact(void);
 
 // An epoch lasts from one flush of the reference to the next.
 extern uint32_t tcache_uts_epoch;
+extern int tcache_uts_tc, tcache_uts_pool;
+extern uint32_t tcache_uts_pc_epoch[];
+uint32_t tcache_uts_pc_id(vaddr_t pc);
+uint32_t *tcache_uts_head_epoch_of(vaddr_t pc);
+
+// Charges the block of head s at its first entry in an epoch; returns true
+// when a stop was placed in it.
+bool tcache_uts_enter(Decode *s);
 // The block start s of a new epoch: charged, after its code is checked; a
 // placeholder to decode again is returned when the block's code moved.
 Decode *tcache_uts_check(Decode *s);
+bool tcache_block_valid(Decode *head);
+Decode *tcache_block_invalid(Decode *head);
+const uint32_t *tcache_vgen_slot(void);
+bool tcache_uts_stop_pending(void);
 Decode *tcache_uts_stop(Decode *s);
 Decode *tcache_uts_resume(void);
 void tcache_set_uts_labels(const void *stop, const void *resume);
@@ -46,8 +59,17 @@ static inline int tcache_idx(const Decode *s) {
     return s->idx_in_bb - tcache_uts_rem_bias;
   return s->idx_in_bb;
 }
+// Sets the helper of a decoded entry, keeping a stop placed before it.
+void tcache_set_helper(Decode *d, const void *helper);
+// The helper of a decoded entry, below a stop placed before it.
+const void *tcache_get_helper(Decode *d);
+// The instruction before which the reference runs out of capacity, or NULL.
+extern Decode *tcache_uts_stop_at;
 #else
 #define tcache_idx(s) ((s)->idx_in_bb)
 #endif
+
+// Settles n instructions of the current block, which is restarted.
+void cpu_settle_instrs(int n);
 
 #endif

@@ -230,6 +230,10 @@ void mmu_refresh_pma_cache(void) {
 
 static bool data_effective_address_identity_fast = false;
 
+#ifdef CONFIG_JIT_SLJIT
+const bool *jit_mmu_identity_fast_slot(void) { return &data_effective_address_identity_fast; }
+#endif
+
 static inline void update_effective_address_state(void) {
 #ifdef CONFIG_RVH
   data_effective_address_identity_fast =
@@ -781,6 +785,9 @@ bool isa_ifetch_probe(vaddr_t vaddr, paddr_t *page) {
 
 int ifetch_mmu_state = MMU_DIRECT;
 int data_mmu_state = MMU_DIRECT;
+#ifdef CONFIG_JIT_SLJIT
+const int *jit_data_mmu_state_slot(void) { return &data_mmu_state; }
+#endif
 #ifdef CONFIG_RVH
 static int hyperinst_mmu_state = MMU_DIRECT; // for virtual-machine load/store instructions, HLV, HLVX, and HSV
 static inline int update_hyperinst_mmu_state_internal() {

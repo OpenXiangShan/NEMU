@@ -71,9 +71,17 @@ typedef struct Decode {
 
   vaddr_t jnpc;
   uint16_t idx_in_bb; // the number of instruction in the basic block, start from 1
+#ifdef CONFIG_JIT_SLJIT
+  uint16_t exec_id;              // index into the exec table
+  uint8_t  jit_state;            // JIT_NONE, JIT_ACTIVE or JIT_REFUSED (block heads only)
+  uint16_t jit_heat;             // number of entries into this block head
+  void *jit_code;                // translated entry of this block head
+  const void *jit_saved_helper;  // EHelper of this block head before translation
+#endif
 #ifdef CONFIG_TCACHE_KEEP_ON_TRAP
   uint16_t bb_len;               // instructions from this block head to its terminator
   uint32_t uts_epoch;            // shadow epoch in which this block head was accounted
+  uint32_t uts_pc_id;            // shadow id of this entry's pc, 0 until looked up
   uint64_t code_sig;             // the physical pages of the block's code
   uint32_t vgen;                 // mapping generation in which this block head was checked
 #endif

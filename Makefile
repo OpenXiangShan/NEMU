@@ -73,6 +73,19 @@ DIRS-y += src/profiling
 DIRS-y += src/checkpoint
 DIRS-$(CONFIG_SHARE_CTRL) += src/ctrl
 
+ifdef CONFIG_JIT_SLJIT
+DIRS-y  += src/jit
+INC_DIR += $(NEMU_HOME)/resource/sljit/sljit_src
+CFLAGS  += -DSLJIT_CONFIG_AUTO=1
+endif
+
+ifdef CONFIG_JIT_TIER2
+LLVM_CONFIG ?= llvm-config-19
+LLVM_LIBDIR := $(shell $(LLVM_CONFIG) --libdir)
+INC_DIR += $(shell $(LLVM_CONFIG) --includedir)
+LDFLAGS += -L$(LLVM_LIBDIR) -lLLVM-19 -Wl,-rpath,$(LLVM_LIBDIR)
+endif
+
 SRCS-y += $(shell find $(DIRS-y) -name "*.c")
 
 SRCS = $(SRCS-y)

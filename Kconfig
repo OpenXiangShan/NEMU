@@ -653,6 +653,27 @@ config INSTR_CNT_BY_CATEGORY
     Print instruction counts grouped by instruction category in monitor
     statistics.
 
+config JIT_SLJIT
+  bool "Tier-1 JIT based on SLJIT (experimental)"
+  depends on ISA_riscv64 && PERF_OPT && INSTR_CNT_BY_BB
+  depends on TCACHE_KEEP_ON_TRAP
+  depends on !DEBUG && !DIFFTEST && !IQUEUE && !INSTR_CNT_BY_CATEGORY
+  depends on !RV_ZICFILP
+  default n
+  help
+    Translate hot basic blocks of S/U-mode integer code to host code with
+    SLJIT. Other instructions, and M-mode or bare-mode code, run in the
+    interpreter.
+
+config JIT_TIER2
+  bool "Optimizing second JIT tier for hot loops (LLVM, experimental)"
+  depends on JIT_SLJIT && TCACHE_KEEP_ON_TRAP
+  default n
+  help
+    Compile hot loops of translated code as regions with LLVM (system
+    LLVM 19 library), keeping guest registers in host registers across the
+    loop. Requires speculative floating point (the leader's fast path).
+
 config LF_PROFILING
   bool "Leader-follower parallel SimPoint profiling"
   depends on !SHARE && MODE_SYSTEM && ISA_riscv64 && PERF_OPT && INSTR_CNT_BY_BB

@@ -31,7 +31,7 @@
 
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
-  vaddr_t gvpn; // guest virtual page number
+  vaddr_t gvpn; // page-aligned guest virtual address
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
@@ -40,22 +40,31 @@ static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
 static HostTLBEntry* const hostxtlb = &hosttlb[HOSTTLB_SIZE * 2];
 
+#ifdef CONFIG_JIT_SLJIT
+// Layout of the host TLB for the inline lookup in translated code.
+_Static_assert(sizeof(HostTLBEntry) == 16, "translated code indexes entries with a shift by 4");
+void *jit_hosttlb_base(void) { return hostrtlb; }
+long jit_hosttlb_size(void) { return HOSTTLB_SIZE; }
+long jit_hosttlb_write_delta(void) { return (char *)hostwtlb - (char *)hostrtlb; }
+long jit_hosttlb_gvpn_offset(void) { return offsetof(HostTLBEntry, gvpn); }
+long jit_hosttlb_offset_offset(void) { return offsetof(HostTLBEntry, offset); }
+#endif
+
+// Entries are tagged with the page-aligned guest virtual address, so an
+// access can be checked for both page and alignment with a single compare.
 static inline vaddr_t hosttlb_vpn(vaddr_t vaddr) {
-  return (vaddr >> PAGE_SHIFT);
+  return vaddr & ~(vaddr_t)PAGE_MASK;
 }
 
 // Exact mode uses the reference number of entries.
 #define HOSTTLB_EXACT_SIZE_SHIFT 12
 #if HOSTTLB_SIZE_SHIFT != HOSTTLB_EXACT_SIZE_SHIFT
 _Static_assert(HOSTTLB_SIZE_SHIFT > HOSTTLB_EXACT_SIZE_SHIFT, "the host TLB is smaller than the reference's");
-static uint64_t hosttlb_mask = HOSTTLB_SIZE - 1;
-#define hosttlb_entries (hosttlb_mask + 1)
-#else
-#define hosttlb_entries HOSTTLB_SIZE
 #endif
+static uint64_t hosttlb_mask = HOSTTLB_SIZE - 1;
 
 static inline int hosttlb_idx(vaddr_t vaddr) {
-  return (hosttlb_vpn(vaddr) % hosttlb_entries);
+  return ((vaddr >> PAGE_SHIFT) & hosttlb_mask);
 }
 
 // Entries filled since the last flush, so a flush touches only those unless

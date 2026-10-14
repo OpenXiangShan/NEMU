@@ -20,6 +20,7 @@
 #include <cpu/difftest.h>
 #include <cpu/decode.h>
 #include <cpu/tcache.h>
+#include <cpu/jit.h>
 #include <cpu/instr_stat.h>
 #include <memory/host-tlb.h>
 #include <isa-all-instr.h>
@@ -207,6 +208,7 @@ void monitor_statistic() {
 }
 
 static void report_state_digest() {
+  IFDEF(CONFIG_JIT_SLJIT, jit_report());
 #ifdef CONFIG_ISA_riscv64
   extern bool state_digest_enabled;
   void isa_state_digest_report(void);
@@ -309,10 +311,14 @@ _Noreturn void longjmp_exception(int ex_cause) {
 
 // The kept block cache's schedule follows the reference in both modes.
 void cpu_enter_follower_mode(void) {
+  IFDEF(CONFIG_JIT_SLJIT, jit_set_leader_mode(false));
+  IFDEF(CONFIG_JIT_SLJIT, jit_stop());
   IFDEF(CONFIG_FPU_SOFT_HOST_FASTPATH, fp_host_fastpath_enabled = false);
 }
 
 void cpu_enter_leader_mode(void) {
+  IFDEF(CONFIG_JIT_SLJIT, jit_set_leader_mode(true));
+  IFDEF(CONFIG_JIT_SLJIT, jit_resume());
   IFDEF(CONFIG_FPU_SOFT_HOST_FASTPATH, fp_host_fastpath_enabled = true);
 }
 
@@ -321,6 +327,8 @@ void cpu_enter_exact_mode(void) {
   IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, tcache_enter_exact());
   IFDEF(CONFIG_MODE_SYSTEM, hosttlb_enter_exact());
 }
+
+void cpu_settle_instrs(int n) { IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= n); }
 
 // The instruction count, pc and cause at every iteration of the outer
 // execution loop, where interrupts are sampled: two runs with equal traces
@@ -435,6 +443,12 @@ static inline Decode *jr_fetch(Decode *s, vaddr_t target) {
   return tcache_jr_fetch(s, target);
 }
 
+#ifdef CONFIG_JIT_SLJIT
+Decode *jit_jr_fetch(Decode *s, vaddr_t target) { return jr_fetch(s, target); }
+int *jit_budget_slot(void) { return &n_remain; }
+Decode **jit_prev_s_slot(void) { return &prev_s; }
+#endif
+
 static inline void debug_difftest(Decode *_this, Decode *next) {
   IFDEF(CONFIG_IQUEUE, iqueue_commit(_this->pc, (void *)&_this->isa.instr.val,
                                      _this->snpc - _this->pc));
@@ -532,6 +546,7 @@ static void execute(int n) {
 
   if (likely(init_flag == 0)) {
     g_exec_table = local_exec_table;
+    IFDEF(CONFIG_JIT_SLJIT, jit_set_labels(&&exec_jit_enter, &&exec_nemu_decode));
     IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, tcache_set_uts_labels(&&exec_uts_stop, &&exec_uts_resume));
     extern Decode *tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
@@ -546,6 +561,11 @@ static void execute(int n) {
   const bool per_bb_profile_active =
     profiling_state != NoProfiling || checkpoint_state != NoCheckpoint;
 #endif
+  // Translated code does not publish block transitions.
+  IFDEF(CONFIG_JIT_SLJIT, if (unlikely(per_bb_profile_active)) jit_stop());
+
+  // The helper s runs when interpreted (its block may be translated).
+#define real_helper(s) ((s)->EHelper == &&exec_jit_enter ? (s)->jit_saved_helper : (s)->EHelper)
 
   // main loop
   while (true) {
@@ -591,7 +611,58 @@ static void execute(int n) {
 
     def_EHelper(uts_resume) {
       s = tcache_uts_resume();
-      goto *(s->EHelper);
+      goto *MUXDEF(CONFIG_JIT_SLJIT, real_helper(s), (s->EHelper));
+    }
+#endif
+
+#ifdef CONFIG_JIT_SLJIT
+    def_EHelper(jit_enter) {
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+      if (unlikely(tcache_uts_stop_pending())) {
+        // A long block runs translated up to the chunk of a stop, and from a
+        // chunk entry inside a remainder (counted from the block head, the
+        // remainder's instructions before s credited).
+        if (!jit_may_enter_shadowed(s)) goto *real_helper(s);
+        if (tcache_uts_rem_active) {
+          // The block end subtracts the whole block, so credit the
+          // instructions before the entry. The remainder bias is the stop's
+          // prefix, which is not the entry's prefix when a later chunk is
+          // entered, and is negative after a kept-cache restart.
+          IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain += s->idx_in_bb - 1);
+          tcache_uts_rem_active = false;
+        }
+      }
+#endif
+      // s is a translated block head. Run host code until it exits.
+      JitExit e = jit_run(s);
+      switch (e.kind) {
+        case JIT_EXIT_FALLBACK:
+          // Nothing of block e.next was executed: interpret it (or stop
+          // before it, when the reference runs out of capacity there).
+          s = e.next;
+#ifdef CONFIG_TCACHE_KEEP_ON_TRAP
+          if (unlikely(jit_block_moved)) {
+            jit_block_moved = false;
+            s = tcache_block_invalid(s);
+            save_globals(s);
+            goto *(s->EHelper);
+          }
+#endif
+          goto *real_helper(s);
+        case JIT_EXIT_MIDBLOCK:
+          // A prefix of the block was executed: resume at e.next (which may
+          // be a chunk entry, interpreted from here).
+          s = e.next;
+          save_globals(s);
+          goto *real_helper(s);
+        default:
+          // One or more whole blocks were executed; e.next is the successor
+          // chosen the same way the interpreter's jump helpers choose it,
+          // and e.last is the block terminator that was executed last.
+          save_globals(e.last);
+          s = e.next;
+          goto end_of_bb;
+      }
     }
 #endif
 
@@ -603,6 +674,9 @@ static void execute(int n) {
     IFDEF(CONFIG_INSTR_CNT_DISABLED, n_remain -= 1);
 
     uts_leave(s);
+#ifdef CONFIG_JIT_SLJIT
+    jit_observe_block_head(s);
+#endif
     uts_check(s);
 
     if (unlikely(per_bb_profile_active)) {
@@ -954,6 +1028,7 @@ void fetch_decode(Decode *s, vaddr_t pc) {
     log_asmbuf
   ));
   s->EHelper = g_exec_table[idx];
+  IFDEF(CONFIG_JIT_SLJIT, s->exec_id = idx);
 }
 
 #ifdef CONFIG_PERF_OPT

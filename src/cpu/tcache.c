@@ -19,6 +19,7 @@
 #include <memory/vaddr.h>
 #include <memory/host-tlb.h>
 #include <cpu/cpu.h>
+#include <cpu/jit.h>
 
 #ifdef CONFIG_PERF_OPT
 
@@ -39,6 +40,7 @@ typedef struct bb_t {
 // the reference capacities. Otherwise blocks are tagged with the context
 // they were decoded under and kept across context switches.
 static bool tcache_exact = false;
+bool tcache_is_exact(void) { return tcache_exact; }
 static bool tcache_invalid = false;   // decoded code or mappings may have changed
 static int tc_cap = CONFIG_TCACHE_SIZE;
 static int bb_pool_cap = CONFIG_BB_POOL_SIZE;
@@ -87,6 +89,8 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   s->type = 0;
   s->pc = pc;
   s->EHelper = g_exec_nemu_decode;
+  IFDEF(CONFIG_JIT_SLJIT, jit_decode_reset(s));
+  IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, s->uts_pc_id = 0);
   return s;
 }
 
@@ -208,10 +212,10 @@ static bb_t* bb_find(vaddr_t pc) {
 #define UTS_POOL    CONFIG_TCACHE_EXACT_BB_POOL_SIZE
 uint32_t tcache_uts_epoch = 1;
 static void block_record(Decode *head, Decode *last);
-static bool tcache_block_valid(Decode *head);
-static Decode *tcache_block_invalid(Decode *head);
-static int tcache_uts_tc, tcache_uts_pool;          // decoded instructions, chained entries
-static uint32_t tcache_uts_head_epoch[UTS_LIST];    // epoch in which a list head is taken
+bool tcache_block_valid(Decode *head);
+Decode *tcache_block_invalid(Decode *head);
+int tcache_uts_tc, tcache_uts_pool;                 // decoded instructions, chained entries
+uint32_t tcache_uts_head_epoch[UTS_LIST];           // epoch in which a list head is taken
 
 // The block start pcs at which the reference decoded a block in the current
 // epoch (it matches blocks by pc only). Its block list holds at most
@@ -221,10 +225,14 @@ typedef struct { vaddr_t pc; uint32_t epoch; } UtsPc;
 #define UTS_PCS_BITS 13
 static UtsPc uts_pcs[1 << UTS_PCS_BITS];
 _Static_assert((1 << UTS_PCS_BITS) >= 2 * (UTS_LIST + UTS_POOL), "the shadow pc table is too small");
+// The epoch of the record of each pc, indexed by the id returned below, so
+// translated code can read it without probing the table.
+uint32_t tcache_uts_pc_epoch[(1 << UTS_PCS_BITS) + 1];
 
 static bool uts_charging;      // the block being decoded is decoded by the reference too
 static vaddr_t uts_block_pc;   // its start pc
-static Decode *uts_stop_at;    // the reference runs out of capacity before this instruction
+Decode *tcache_uts_stop_at;    // the reference runs out of capacity before this instruction
+#define uts_stop_at tcache_uts_stop_at
 static const void *uts_stop_saved;
 static const void *g_exec_uts_stop, *g_exec_uts_resume;
 
@@ -306,13 +314,16 @@ void tcache_uts_leave(Decode *next) {
 static void uts_epoch_wrap(void) {
   memset(tcache_uts_head_epoch, 0, sizeof(tcache_uts_head_epoch));
   memset(uts_pcs, 0, sizeof(uts_pcs));
+  memset(tcache_uts_pc_epoch, 0, sizeof(tcache_uts_pc_epoch));
   for (int i = 0; i < tc_idx; i++) tcache_pool[i].uts_epoch = 0;
+  IFDEF(CONFIG_JIT_SLJIT, jit_uts_clear_stamps());
   tcache_uts_epoch = 1;
 }
 
 static void uts_flush(void) {
   uts_cancel_stop();
   uts_rem_restore();
+  IFDEF(CONFIG_JIT_SLJIT, jit_uts_new_epoch());
   tcache_uts_tc = tcache_uts_pool = 0;
   if (++tcache_uts_epoch == 0) uts_epoch_wrap();
 }
@@ -328,7 +339,17 @@ static UtsPc *uts_pc(vaddr_t pc) {
 }
 
 // Whether the reference decoded a block at pc in this epoch.
-static inline bool uts_decoded(vaddr_t pc) { return uts_pc(pc)->epoch == tcache_uts_epoch; }
+static inline bool uts_decoded(vaddr_t pc) { return tcache_uts_pc_epoch[tcache_uts_pc_id(pc)] == tcache_uts_epoch; }
+
+// Dense id of the record of a block start pc, 1-based so that 0 is invalid.
+uint32_t tcache_uts_pc_id(vaddr_t pc) {
+  return (uint32_t)(uts_pc(pc) - uts_pcs) + 1;
+}
+
+// The reference's block list slot of a block start pc.
+uint32_t *tcache_uts_head_epoch_of(vaddr_t pc) {
+  return &tcache_uts_head_epoch[(pc / CONFIG_ILEN_MIN) % UTS_LIST];
+}
 
 // One decoded instruction (tcache_new() in the reference).
 static bool uts_alloc(void) {
@@ -339,11 +360,13 @@ static bool uts_alloc(void) {
 
 // Block list insertion at the terminator (bb_insert() in the reference).
 static bool uts_insert(vaddr_t pc) {
-  uint32_t *head = &tcache_uts_head_epoch[(pc / CONFIG_ILEN_MIN) % UTS_LIST];
+  uint32_t *head = tcache_uts_head_epoch_of(pc);
   if (*head != tcache_uts_epoch) *head = tcache_uts_epoch;
   else if (tcache_uts_pool == UTS_POOL) return false;
   else tcache_uts_pool++;
-  *uts_pc(pc) = (UtsPc){ .pc = pc, .epoch = tcache_uts_epoch };
+  UtsPc *r = uts_pc(pc);
+  *r = (UtsPc){ .pc = pc, .epoch = tcache_uts_epoch };
+  tcache_uts_pc_epoch[(uint32_t)(r - uts_pcs) + 1] = tcache_uts_epoch;
   return true;
 }
 
@@ -367,14 +390,26 @@ static inline bool uts_is_head(const Decode *s) {
 // s is about to execute. When it is the head of a decoded block entered for
 // the first time in the epoch, the block is charged; if the reference runs
 // out of capacity inside it, a stop is placed before that instruction.
-static void tcache_uts_enter(Decode *s) {
-  if (tcache_exact) { s->uts_epoch = tcache_uts_epoch; return; }
-  if (uts_stop_at != NULL || !uts_is_head(s)) return;
+bool tcache_uts_enter(Decode *s) {
+  if (tcache_exact) { s->uts_epoch = tcache_uts_epoch; return false; }
+  if (uts_stop_at != NULL || !uts_is_head(s)) return false;
   if (!uts_decoded(s->pc)) {
     int k = uts_charge(s->pc, s->bb_len);
-    if (k >= 0) { uts_place_stop(s + k); return; }
+    if (k >= 0) { uts_place_stop(s + k); return true; }
   }
   s->uts_epoch = tcache_uts_epoch;
+  return false;
+}
+
+// Whether a stop or a remainder is pending.
+bool tcache_uts_stop_pending(void) { return uts_stop_at != NULL || tcache_uts_rem_active; }
+
+// Sets the helper of a decoded entry, keeping a stop placed before it.
+const void *tcache_get_helper(Decode *d) { return d == uts_stop_at ? uts_stop_saved : d->EHelper; }
+
+void tcache_set_helper(Decode *d, const void *helper) {
+  if (d == uts_stop_at) uts_stop_saved = helper;
+  else d->EHelper = helper;
 }
 
 // The reference runs out of capacity before executing s: it flushes its
@@ -426,6 +461,7 @@ static void tcache_bb_fetch(Decode *_this, int is_taken, vaddr_t jpc) {
 
 // Discards the blocks of this cache.
 static void tcache_flush_blocks(void) {
+  IFDEF(CONFIG_JIT_SLJIT, jit_on_tcache_flush());
 #ifdef CONFIG_TCACHE_KEEP_ON_TRAP
   uts_split_first = NULL;
   uts_cancel_stop();   // the entries of a stop and a remainder are gone
@@ -577,6 +613,7 @@ decode: __attribute__((unused));
   return s;
 
 full:
+  IFDEF(CONFIG_JIT_SLJIT, jit_note_flush_reason(JIT_FLUSH_FULL));
 #ifdef CONFIG_TCACHE_KEEP_ON_TRAP
   if (!tcache_exact) {
     // Running out of this (larger) cache is not an event of the reference:
@@ -676,8 +713,9 @@ void tcache_invalidate(void) { tcache_invalid = true; }
 // without that only where those fetches would find the same physical pages
 // and change nothing (tcache_block_valid()); otherwise all blocks are
 // discarded, as before.
-static uint32_t tcache_vgen = 1;
+uint32_t tcache_vgen = 1;
 void tcache_mappings_changed(void) { tcache_vgen++; }
+const uint32_t *tcache_vgen_slot(void) { return &tcache_vgen; }
 
 // Results of fetch probes in the current mapping generation, as a TLB holds
 // them: many blocks share a page.
@@ -721,7 +759,7 @@ static void block_record(Decode *head, Decode *last) {
   head->vgen = code_signature(head->pc, last->snpc, true, &head->code_sig) ? tcache_vgen : 0;
 }
 
-static bool tcache_block_valid(Decode *head) {
+bool tcache_block_valid(Decode *head) {
   if (head->vgen == tcache_vgen) return true;
   uint64_t sig;
   if (head->vgen == 0 || !code_signature(head->pc, (head + head->bb_len - 1)->snpc, false, &sig) ||
@@ -732,7 +770,7 @@ static bool tcache_block_valid(Decode *head) {
 
 // The block at head runs no more: all blocks are discarded, and the
 // returned placeholder decodes a block at its pc again.
-static Decode *tcache_block_invalid(Decode *head) {
+Decode *tcache_block_invalid(Decode *head) {
   return tcache_discard_for(head->pc);
 }
 
