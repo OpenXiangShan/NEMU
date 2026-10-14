@@ -135,6 +135,7 @@ static inline int parse_args(int argc, char *argv[]) {
     // dump state
     {"dump-mem"           , required_argument, NULL, 'M'},
     {"dump-reg"           , required_argument, NULL, 'R'},
+    {"state-digest"       , no_argument      , NULL, 21},
     {"fdt-rng-seed"       , required_argument, NULL, 22},
 
     {0          , 0                , NULL,  0 },
@@ -210,6 +211,15 @@ static inline int parse_args(int argc, char *argv[]) {
       case 'M':
           mem_dump_file = optarg;
           break;
+      case 21: {
+#ifdef CONFIG_ISA_riscv64
+          extern bool state_digest_enabled;
+          state_digest_enabled = true;
+#else
+          panic("--state-digest is only supported on riscv64");
+#endif
+          break;
+      }
       case 22: {
           void fdt_rng_seed_set(uint64_t seed);
           fdt_rng_seed_set(strtoull(optarg, NULL, 0));
@@ -315,6 +325,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--flash-image=FLASH_IMAGE             image path of flash\n");
         printf("\t--simpoint-profile      simpoint profiling\n");
         printf("\t--dont-skip-boot        profiling/checkpoint immediately after boot\n");
+        printf("\t--state-digest          print a digest of the whole machine state at exit\n");
         printf("\t--fdt-rng-seed=N        derive the bootloader rng-seed from N instead of host randomness\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
 

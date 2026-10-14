@@ -140,58 +140,13 @@ Serializer::Serializer() :
 
 extern "C" {
 uint8_t *get_pmem();
+size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size);
 #include <debug.h>
 #include <device/flash.h>
 #include <checkpoint/semantic_point.h>
 extern unsigned long MEMORY_SIZE;
 extern uint64_t clint_get_mtime();
 extern uint64_t clint_get_mtimecmp();
-}
-
-// Some configurations reserve a huge mmap-backed pmem range, while only the low
-// part is actually touched by the workload/restorer. Dumping the full configured
-// range would make checkpoint generation impractically slow and produce oversized
-// files, so we trim the dump to the highest resident page.
-static size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size) {
-  assert(pmem);
-
-  const size_t chunk_size = 0x40000000UL;
-  size_t offset = total_size;
-
-  long page_size = sysconf(_SC_PAGESIZE);
-  if (page_size <= 0) page_size = 4096;
-
-  while (offset > 0) {
-    size_t this_start = offset > chunk_size ? offset - chunk_size : 0;
-    size_t this_chunk = offset - this_start;
-    // mincore requires a page-aligned address and one vec byte per covered page.
-    // get_pmem(), MEMORY_SIZE, and chunk_size are page-aligned/page multiples here.
-    size_t num_pages = this_chunk / (size_t)page_size;
-    if (num_pages == 0) break;
-
-    unsigned char *vec = (unsigned char *)malloc(num_pages);
-    if (!vec) {
-      return offset;
-    }
-
-    if (mincore(pmem + this_start, this_chunk, vec) != 0) {
-      free(vec);
-      return offset;
-    }
-
-    for (size_t i = num_pages; i > 0; i--) {
-      if (vec[i - 1] & 1) {
-        size_t actual_size = this_start + i * (size_t)page_size;
-        free(vec);
-        return actual_size;
-      }
-    }
-
-    free(vec);
-    offset = this_start;
-  }
-
-  return total_size;
 }
 
 void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t *flash_addr,

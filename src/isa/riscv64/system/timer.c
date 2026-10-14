@@ -48,6 +48,10 @@ uint64_t get_mtime() {
   return mtime->val;
 }
 
+uint64_t get_mtime_correction() {
+  return clint_mtime_correction;
+}
+
 #ifdef CONFIG_RVH
 uint64_t get_htime() {
   return mtime->val + htimedelta->val;

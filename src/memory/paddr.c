@@ -21,6 +21,7 @@
 #include <macro.h>
 #include <memory/host.h>
 #include <memory/paddr.h>
+#include <memory/vaddr.h>
 #include <memory/store_queue_wrapper.h>
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <ame/svstore_queue_wrapper.h>
@@ -28,6 +29,8 @@
 #include <device/mmio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -66,6 +69,59 @@ static uint8_t *uram = NULL;
 uint8_t *get_pmem()
 {
   return pmem;
+}
+
+// Some configurations reserve a huge mmap-backed pmem range, while only the low
+// part is actually touched by the workload/restorer. Returns the end of the
+// highest resident page, so that walks over guest memory can stop there.
+size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size) {
+  assert(pmem);
+
+  const size_t chunk_size = 0x40000000UL;
+  size_t offset = total_size;
+
+  long page_size = sysconf(_SC_PAGESIZE);
+  if (page_size <= 0) page_size = 4096;
+
+  while (offset > 0) {
+    size_t this_start = offset > chunk_size ? offset - chunk_size : 0;
+    size_t this_chunk = offset - this_start;
+    // mincore requires a page-aligned address and one vec byte per covered page.
+    // get_pmem(), MEMORY_SIZE, and chunk_size are page-aligned/page multiples here.
+    size_t num_pages = this_chunk / (size_t)page_size;
+    if (num_pages == 0) break;
+
+    unsigned char *vec = malloc(num_pages);
+    if (!vec) {
+      return offset;
+    }
+
+    if (mincore(pmem + this_start, this_chunk, vec) != 0) {
+      free(vec);
+      return offset;
+    }
+
+    for (size_t i = num_pages; i > 0; i--) {
+      if (vec[i - 1] & 1) {
+        size_t actual_size = this_start + i * (size_t)page_size;
+        free(vec);
+        return actual_size;
+      }
+    }
+
+    free(vec);
+    offset = this_start;
+  }
+
+  return total_size;
+}
+
+bool pmem_page_is_zero(const void *page) {
+  const uint64_t *p = page;
+  for (size_t i = 0; i < PAGE_SIZE / sizeof(uint64_t); i++) {
+    if (p[i] != 0) return false;
+  }
+  return true;
 }
 
 char *mapped_cpt_file = NULL;

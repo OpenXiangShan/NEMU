@@ -191,6 +191,14 @@ void monitor_statistic() {
   fflush(stdout);
 }
 
+static void report_state_digest() {
+#ifdef CONFIG_ISA_riscv64
+  extern bool state_digest_enabled;
+  void isa_state_digest_report(void);
+  if (state_digest_enabled) isa_state_digest_report();
+#endif
+}
+
 static word_t g_ex_cause = 0;
 static int g_sys_state_flag = 0;
 
@@ -1039,11 +1047,13 @@ void cpu_exec(uint64_t n) {
         nemu_state.halt_pc);
     Log("trap code:%d", nemu_state.halt_ret);
     monitor_statistic();
+    report_state_digest();
     break;
 
   case NEMU_QUIT:
     #ifndef CONFIG_SHARE
       monitor_statistic();
+      report_state_digest();
       extern char *mapped_cpt_file; // defined in paddr.c
       if (mapped_cpt_file != NULL) {
         extern void serialize_reg_to_mem();

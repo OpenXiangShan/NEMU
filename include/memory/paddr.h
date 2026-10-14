@@ -88,6 +88,8 @@ bool mpt_paddr_read(paddr_t addr, int len, word_t *data);
 word_t bitmap_read(paddr_t addr, int type, int mode);
 #endif
 uint8_t *get_pmem();
+size_t get_effective_pmem_size(uint8_t *pmem, size_t total_size);
+bool pmem_page_is_zero(const void *page);
 
 #if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
 /** Currently, when enable mmap, memory allocation is done by NEMU itself.
