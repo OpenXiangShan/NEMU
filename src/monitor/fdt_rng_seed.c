@@ -240,7 +240,35 @@ static bool fdt_patch_bootargs(uint8_t *fdt, size_t capacity) {
   return true;
 }
 
+// When set, the bootloader rng-seed is derived from this value instead of
+// host randomness, so repeated runs of the same image are bit-identical.
+static bool fdt_rng_seed_fixed = false;
+static uint64_t fdt_rng_seed_value = 0;
+
+void fdt_rng_seed_set(uint64_t seed) {
+  fdt_rng_seed_fixed = true;
+  fdt_rng_seed_value = seed;
+}
+
+static void fill_fixed_random(uint8_t *buf, size_t len) {
+  // splitmix64
+  uint64_t x = fdt_rng_seed_value;
+  for (size_t pos = 0; pos < len; pos += sizeof(uint64_t)) {
+    x += 0x9e3779b97f4a7c15ull;
+    uint64_t z = x;
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ull;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111ebull;
+    z ^= z >> 31;
+    memcpy(buf + pos, &z, MIN_OF(sizeof(z), len - pos));
+  }
+}
+
 static bool read_host_random(uint8_t *buf, size_t len) {
+  if (fdt_rng_seed_fixed) {
+    fill_fixed_random(buf, len);
+    return true;
+  }
+
   int fd = open("/dev/urandom", O_RDONLY);
   if (fd < 0) {
     return false;
