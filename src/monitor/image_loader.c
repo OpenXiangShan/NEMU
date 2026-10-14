@@ -20,11 +20,13 @@
 #include <macro.h>
 #include <memory/elfloader.h>
 #include <memory/paddr.h>
+#include <memory/vaddr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <device/flash.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <sys/mman.h>
 #ifdef CONFIG_ZSTD_COMPRESS
 #include <zstd.h>
 #endif
@@ -33,6 +35,28 @@
 
 void patch_bootloader_rng_seed(uint8_t *pmem_start);
 
+// Copies a chunk of a memory image to guest memory. Guest pages that are all
+// zero in the image and were never touched are left untouched: reading them
+// would map the zero page and make every such page cost a page-table entry
+// for the rest of the run.
+static void store_image_chunk(uint8_t *dst, const uint8_t *src, size_t len) {
+  size_t pages = ((uintptr_t)dst % PAGE_SIZE == 0) ? len / PAGE_SIZE : 0;
+  unsigned char resident[pages + 1];
+  if (pages > 0 && mincore(dst, pages * PAGE_SIZE, resident) != 0) pages = 0;
+  for (size_t p = 0; p < pages; p++) {
+    uint8_t *dst_page = dst + p * PAGE_SIZE;
+    const uint8_t *src_page = src + p * PAGE_SIZE;
+    if (!pmem_page_is_zero(src_page)) {
+      memcpy(dst_page, src_page, PAGE_SIZE);
+    } else if ((resident[p] & 1) && !pmem_page_is_zero(dst_page)) {
+      memset(dst_page, 0, PAGE_SIZE);
+    }
+  }
+  for (size_t x = pages * PAGE_SIZE; x < len; x++) {
+    if (src[x] != 0 || dst[x] != 0) dst[x] = src[x];
+  }
+}
+
 long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   gzFile compressed_mem = gzopen(filename, "rb");
   Assert(compressed_mem, "Can not open '%s'", filename);
@@ -40,9 +64,7 @@ long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   const uint32_t chunk_size = 16384;
   uint8_t *temp_page = (uint8_t *)calloc(chunk_size, sizeof(long));
   uint8_t *pmem_start = (uint8_t *)load_start;
-  uint8_t *pmem_current;
 
-  // load file byte by byte to pmem
   size_t load_size = img_size == 0 ? MEMORY_SIZE : img_size;
   uint64_t curr_size = 0;
   while (curr_size < load_size) {
@@ -50,13 +72,7 @@ long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
     if (bytes_read == 0) {
       break;
     }
-    for (uint32_t x = 0; x < bytes_read; x++) {
-      pmem_current = pmem_start + curr_size + x;
-      uint8_t read_data = *(temp_page + x);
-      if (read_data != 0 || *pmem_current != 0) {
-        *pmem_current = read_data;
-      }
-    }
+    store_image_chunk(pmem_start + curr_size, temp_page, bytes_read);
     curr_size += bytes_read;
   }
 
@@ -156,7 +172,6 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
 
   // def phymem
   uint8_t *pmem_start = (uint8_t *)(load_start);
-  uint64_t *pmem_current;
 
   // decompress and write in memory
   uint64_t total_write_size = 0;
@@ -182,13 +197,7 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
 
     assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
 
-    for (uint64_t x = 0; x < decompress_file_buffer_size; x++) {
-      pmem_current = (uint64_t *)(pmem_start + total_write_size) + x;
-      uint64_t read_data = *(decompress_file_buffer + x);
-      if (read_data != 0 || *pmem_current != 0) {
-        *pmem_current = read_data;
-      }
-    }
+    store_image_chunk(pmem_start + total_write_size, (uint8_t *)decompress_file_buffer, output.pos);
     total_write_size += output.pos;
   }
 
