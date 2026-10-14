@@ -526,6 +526,25 @@ word_t bitmap_read(paddr_t addr, int type, int mode) {
 #endif
 
 #ifdef CONFIG_STORE_LOG
+static void pmem_restore_store_log_entry(store_log_t log) {
+#ifdef CONFIG_RV_AME
+  if (log.is_matrix) {
+    const matrix_store_log_t *matrix = log.matrix;
+    const size_t bytes = matrix->rows * matrix->row_bytes;
+    if (matrix->rows == 1 || matrix->stride == matrix->row_bytes) {
+      memcpy(guest_to_host(log.addr), matrix->data, bytes);
+    } else {
+      for (size_t r = 0; r < matrix->rows; ++r) {
+        memcpy(guest_to_host(log.addr + (paddr_t)r * matrix->stride),
+               matrix->data + r * matrix->row_bytes, matrix->row_bytes);
+      }
+    }
+    return;
+  }
+#endif // CONFIG_RV_AME
+  pmem_write(log.addr, 8, log.orig_data, 0);
+}
+
 #ifdef CONFIG_LIGHTQS
 
 extern uint64_t g_nr_guest_instr;
@@ -558,7 +577,7 @@ void pmem_record_restore(uint64_t restore_inst_cnt) {
   while(!store_log_stack_empty()) {
     store_log_t log = store_log_stack_top();
     if (log.inst_cnt > restore_inst_cnt) {
-      pmem_write(log.addr, 8, log.orig_data, 0);
+      pmem_restore_store_log_entry(log);
       store_log_stack_pop();
     } else {
       break;
@@ -582,7 +601,7 @@ void pmem_record_store(paddr_t addr) {
 void pmem_record_restore() {
   while(!store_log_stack_empty()) {
     store_log_t log = store_log_stack_top();
-    pmem_write(log.addr, 8, log.orig_data, 0);
+    pmem_restore_store_log_entry(log);
     store_log_stack_pop();
   }
 }
@@ -602,9 +621,61 @@ void pmem_read_matrix(paddr_t base, paddr_t stride,
   host_read_matrix(guest_to_host(base), stride, row, column, msew, transpose, m_name, mreg_id);
 }
 
+#ifdef CONFIG_STORE_LOG
+static void pmem_record_matrix_store(paddr_t base, paddr_t stride,
+                                     int row, int column, int msew, bool transpose) {
+#ifndef CONFIG_LIGHTQS
+  if (!dynamic_config.enable_store_log) {
+    return;
+  }
+#endif // CONFIG_LIGHTQS
+  if (row <= 0 || column <= 0) {
+    return;
+  }
+
+  const size_t rows = transpose ? column : row;
+  const size_t columns = transpose ? row : column;
+  const size_t row_bytes = columns * ((size_t)1 << msew);
+  const size_t bytes = rows * row_bytes;
+  matrix_store_log_t *matrix = malloc(sizeof(*matrix) + bytes);
+  assert(matrix != NULL);
+  matrix->ref_count = 0;
+  matrix->stride = stride;
+  matrix->rows = rows;
+  matrix->row_bytes = row_bytes;
+
+  if (rows == 1 || stride == row_bytes) {
+    memcpy(matrix->data, guest_to_host(base), bytes);
+  } else {
+    for (size_t r = 0; r < rows; ++r) {
+      memcpy(matrix->data + r * row_bytes,
+             guest_to_host(base + (paddr_t)r * stride), row_bytes);
+    }
+  }
+
+  store_log_t log = {
+#ifdef CONFIG_LIGHTQS
+    .inst_cnt = g_nr_guest_instr,
+#endif // CONFIG_LIGHTQS
+    .addr = base,
+    .is_matrix = true,
+    .matrix = matrix
+  };
+  store_log_stack_push(log);
+#ifdef CONFIG_LIGHTQS
+  if (g_nr_guest_instr >= spec_log_begin) {
+    spec_store_log_stack_push(log);
+  }
+#endif // CONFIG_LIGHTQS
+}
+#endif // CONFIG_STORE_LOG
+
 void pmem_write_matrix(paddr_t base, paddr_t stride,
                        int row, int column, int msew, bool transpose,
                        char m_name, int mreg_id) {
+#ifdef CONFIG_STORE_LOG
+  pmem_record_matrix_store(base, stride, row, column, msew, transpose);
+#endif // CONFIG_STORE_LOG
   host_write_matrix(guest_to_host(base), stride, row, column, msew, transpose, m_name, mreg_id);
 }
 #endif // CONFIG_RV_AME
@@ -696,9 +767,6 @@ void paddr_write_matrix(paddr_t base, paddr_t stride,
   }
 #else // !CONFIG_SHARE
   if (likely(in_pmem(base))) {
-#ifdef CONFIG_STORE_LOG
-    pmem_record_store(base);
-#endif // CONFIG_STORE_LOG
     if(dynamic_config.debug_difftest) {
       fprintf(stderr, "[NEMU] paddr matrix write base:" FMT_PADDR ", stride:" FMT_PADDR "\n"
                       "       row:%d, column:%d, msew:%d, transpose:%d\n",

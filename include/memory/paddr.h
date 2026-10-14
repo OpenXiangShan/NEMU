@@ -104,9 +104,27 @@ typedef struct {
   uint64_t inst_cnt;
 #endif // CONFIG_LIGHTQS
   paddr_t addr;
+#ifndef CONFIG_RV_AME
   word_t orig_data;
+#else
+  bool is_matrix;
+  union {
+    word_t orig_data;
+    struct matrix_store_log *matrix;
+  };
+#endif // CONFIG_RV_AME
   // new value and write length makes no sense for restore
 } store_log_t;
+
+#ifdef CONFIG_RV_AME
+typedef struct matrix_store_log {
+  size_t ref_count; // Number of owning entries across the store-log stacks.
+  paddr_t stride;
+  size_t rows;
+  size_t row_bytes;
+  uint8_t data[]; // Packed old memory bytes, without stride padding.
+} matrix_store_log_t;
+#endif // CONFIG_RV_AME
 #endif // CONFIG_STORE_LOG
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
