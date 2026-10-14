@@ -921,6 +921,9 @@ void cpu_exec(uint64_t n) {
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
       cpu.isVldst = false;
+#ifdef CONFIG_RVV
+      cpu.isVstoreActive = false;
+#endif
       cpu.isVecUnitStore = false;
 #ifdef CONFIG_RVH
       // HLV/HLVX/HSV set these transient translation controls around the

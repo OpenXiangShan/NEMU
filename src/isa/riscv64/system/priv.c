@@ -2186,6 +2186,9 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SSDBLTRP
         // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
         write_sdt = new_val.sdt && menvcfg->dte && henvcfg->dte;
+        if (!(menvcfg->dte && henvcfg->dte)) {
+          sstatus_wmask &= ~SSTATUS_SDT;
+        }
 #endif //CONFIG_RV_SSDBLTRP
         vsstatus->val = mask_bitset(vsstatus->val, sstatus_wmask, new_val.val);
 #ifdef CONFIG_RV_SSDBLTRP
@@ -2423,6 +2426,9 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_SSDBLTRP
       // when menvcfg or henvcfg.DTE close,  vsstatus.SDT is read-only
       bool write_sdt = new_val.sdt && menvcfg->dte && henvcfg->dte;
+      if (!(menvcfg->dte && henvcfg->dte)) {
+        vsstatus_wmask &= ~SSTATUS_SDT;
+      }
 #endif //CONFIG_RV_SSDBLTRP
       vsstatus->val = mask_bitset(vsstatus->val, vsstatus_wmask, new_val.val);
 #ifdef CONFIG_RV_SSDBLTRP
