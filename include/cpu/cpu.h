@@ -67,8 +67,12 @@ void tcache_mappings_changed(void);
 // Flushes the TLBs for a new address space: kept blocks, tagged with it, stay.
 void mmu_tlb_flush_new_space(void);
 #endif
-// Exact mode: the reference code paths only (its block cache and host TLB).
+// Execution modes. Exact: the reference code paths only (its block cache and
+// host TLB). Follower: the interpreter and softfloat on the kept block cache.
 void cpu_enter_exact_mode(void);
+void cpu_enter_follower_mode(void);
+// Leader: the fast path (host floating point).
+void cpu_enter_leader_mode(void);
 // Writes the instruction count, pc and cause of every execution batch to path.
 void cpu_set_batch_trace(const char *path);
 void mmu_tlb_flush(vaddr_t vaddr);

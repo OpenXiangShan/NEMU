@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <rtl/rtl.h>
+#include <string.h>
 #ifndef CONFIG_FPU_NONE
 #include MUXDEF(CONFIG_FPU_SOFT, "softfloat-fp.h", "host-fp.h")
 
@@ -78,6 +79,273 @@ void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm();
 #endif // CONFIG_FPU_NONE
 
+#ifdef CONFIG_FPU_SOFT_HOST_FASTPATH
+bool isa_fp_inexact_set(void);
+bool isa_fp_underflow_set(void);
+bool fpcall_host_relaxed(uint32_t op, uint32_t w, rtlreg_t *dest,
+                         const rtlreg_t *src1, const rtlreg_t *src2);
+
+// Operands and results whose magnitude lies in [2^-lo, 2^hi) cannot raise
+// underflow or overflow in the operations below, and their exact rounding
+// errors are representable, so host IEEE arithmetic rounds exactly like
+// softfloat. Zero is allowed as an operand but not as a result.
+bool fp_host_fastpath_enabled = true;
+
+static inline bool f64_ok(uint64_t v) {
+  uint32_t e = (v >> 52) & 0x7ff;
+  return e >= 1023 - 900 && e <= 1023 + 900;
+}
+static inline bool f64_ok_or_zero(uint64_t v) {
+  return (v << 1) == 0 || f64_ok(v);
+}
+static inline bool f32_ok(uint32_t v) {
+  uint32_t e = (v >> 23) & 0xff;
+  return e >= 127 - 100 && e <= 127 + 100;
+}
+static inline bool f32_ok_or_zero(uint32_t v) {
+  return (v << 1) == 0 || f32_ok(v);
+}
+
+static inline double as_f64(uint64_t v) { double d; memcpy(&d, &v, 8); return d; }
+static inline uint64_t f64_bits(double d) { uint64_t v; memcpy(&v, &d, 8); return v; }
+static inline float as_f32(uint32_t v) { float f; memcpy(&f, &v, 4); return f; }
+static inline uint32_t f32_bits(float f) { uint32_t v; memcpy(&v, &f, 4); return v; }
+
+// Returns true when the result was produced here. Only reached with round to
+// nearest even and with the inexact flag already set, so the only flag the
+// operation could raise is already present.
+static bool fpcall_host_fastpath(uint32_t op, uint32_t w, rtlreg_t *dest,
+                                 const rtlreg_t *src1, const rtlreg_t *src2) {
+  if (w == FPCALL_W64) {
+    uint64_t a = *src1, b = *src2, c = *dest, r;
+    switch (op) {
+      case FPCALL_ADD:
+        if (!f64_ok_or_zero(a) || !f64_ok_or_zero(b)) return false;
+        r = f64_bits(as_f64(a) + as_f64(b)); break;
+      case FPCALL_SUB:
+        if (!f64_ok_or_zero(a) || !f64_ok_or_zero(b)) return false;
+        r = f64_bits(as_f64(a) - as_f64(b)); break;
+      case FPCALL_MUL:
+        if (!f64_ok(a) || !f64_ok(b)) return false;
+        r = f64_bits(as_f64(a) * as_f64(b)); break;
+      case FPCALL_DIV:
+        if (!f64_ok(a) || !f64_ok(b)) return false;
+        r = f64_bits(as_f64(a) / as_f64(b)); break;
+      case FPCALL_SQRT:
+        if (!f64_ok(a) || (a >> 63)) return false;
+        r = f64_bits(__builtin_sqrt(as_f64(a))); break;
+      case FPCALL_MADD:
+        if (!f64_ok(a) || !f64_ok(b) || !f64_ok_or_zero(c)) return false;
+        r = f64_bits(__builtin_fma(as_f64(a), as_f64(b), as_f64(c))); break;
+      default: return false;
+    }
+    // Sums of window operands (or zeros) are exact or normal and cannot
+    // overflow; other results must stay inside the window.
+    if (op != FPCALL_ADD && op != FPCALL_SUB && !f64_ok(r)) return false;
+    *dest = r;
+    return true;
+  }
+  if (w == FPCALL_W32) {
+    // Operands must be properly NaN-boxed; anything else takes softfloat.
+    if ((*src1 >> 32) != 0xffffffffu) return false;
+    uint32_t a = *src1, b = *src2, c = *dest, r;
+    switch (op) {
+      case FPCALL_ADD: case FPCALL_SUB: case FPCALL_MUL: case FPCALL_DIV: case FPCALL_MADD:
+        if ((*src2 >> 32) != 0xffffffffu) return false;
+        break;
+    }
+    switch (op) {
+      case FPCALL_ADD:
+        if (!f32_ok_or_zero(a) || !f32_ok_or_zero(b)) return false;
+        r = f32_bits(as_f32(a) + as_f32(b)); break;
+      case FPCALL_SUB:
+        if (!f32_ok_or_zero(a) || !f32_ok_or_zero(b)) return false;
+        r = f32_bits(as_f32(a) - as_f32(b)); break;
+      case FPCALL_MUL:
+        if (!f32_ok(a) || !f32_ok(b)) return false;
+        r = f32_bits(as_f32(a) * as_f32(b)); break;
+      case FPCALL_DIV:
+        if (!f32_ok(a) || !f32_ok(b)) return false;
+        r = f32_bits(as_f32(a) / as_f32(b)); break;
+      case FPCALL_SQRT:
+        if (!f32_ok(a) || (a >> 31)) return false;
+        r = f32_bits(__builtin_sqrtf(as_f32(a))); break;
+      case FPCALL_MADD:
+        if ((*dest >> 32) != 0xffffffffu) return false;
+        if (!f32_ok(a) || !f32_ok(b) || !f32_ok_or_zero(c)) return false;
+        r = f32_bits(__builtin_fmaf(as_f32(a), as_f32(b), as_f32(c))); break;
+      default: return false;
+    }
+    if (op != FPCALL_ADD && op != FPCALL_SUB && !f32_ok(r)) return false;
+    *dest = r;
+    return true;
+  }
+  return false;
+}
+
+// When inexact and underflow are both already set, host arithmetic on finite
+// operands matches softfloat for every finite result: subnormal results are
+// rounded correctly by the host, and the tininess rule only decides the
+// underflow flag. Overflow, invalid operations and division by zero are
+// excluded by requiring finite operands and results and a non-zero divisor.
+static inline bool fin64(uint64_t v) { return ((v >> 52) & 0x7ff) != 0x7ff; }
+static inline bool fin32(uint32_t v) { return ((v >> 23) & 0xff) != 0xff; }
+
+bool fpcall_host_relaxed(uint32_t op, uint32_t w, rtlreg_t *dest,
+                         const rtlreg_t *src1, const rtlreg_t *src2) {
+  if (w == FPCALL_W64) {
+    uint64_t a = *src1, b = *src2, c = *dest, r;
+    switch (op) {
+      case FPCALL_ADD: if (!fin64(a) || !fin64(b)) return false; r = f64_bits(as_f64(a) + as_f64(b)); break;
+      case FPCALL_SUB: if (!fin64(a) || !fin64(b)) return false; r = f64_bits(as_f64(a) - as_f64(b)); break;
+      case FPCALL_MUL: if (!fin64(a) || !fin64(b)) return false; r = f64_bits(as_f64(a) * as_f64(b)); break;
+      case FPCALL_DIV:
+        if (!fin64(a) || !fin64(b) || (b << 1) == 0) return false;
+        r = f64_bits(as_f64(a) / as_f64(b)); break;
+      case FPCALL_SQRT:
+        if (!fin64(a) || ((a >> 63) && (a << 1) != 0)) return false;
+        r = f64_bits(__builtin_sqrt(as_f64(a))); break;
+      case FPCALL_MADD:
+        if (!fin64(a) || !fin64(b) || !fin64(c)) return false;
+        r = f64_bits(__builtin_fma(as_f64(a), as_f64(b), as_f64(c))); break;
+      default: return false;
+    }
+    if (!fin64(r)) return false;
+    *dest = r;
+    return true;
+  }
+  if (w == FPCALL_W32) {
+    if ((*src1 >> 32) != 0xffffffffu) return false;
+    if (op != FPCALL_SQRT && (*src2 >> 32) != 0xffffffffu) return false;
+    if (op == FPCALL_MADD && (*dest >> 32) != 0xffffffffu) return false;
+    uint32_t a = *src1, b = *src2, c = *dest, r;
+    switch (op) {
+      case FPCALL_ADD: if (!fin32(a) || !fin32(b)) return false; r = f32_bits(as_f32(a) + as_f32(b)); break;
+      case FPCALL_SUB: if (!fin32(a) || !fin32(b)) return false; r = f32_bits(as_f32(a) - as_f32(b)); break;
+      case FPCALL_MUL: if (!fin32(a) || !fin32(b)) return false; r = f32_bits(as_f32(a) * as_f32(b)); break;
+      case FPCALL_DIV:
+        if (!fin32(a) || !fin32(b) || (b << 1) == 0) return false;
+        r = f32_bits(as_f32(a) / as_f32(b)); break;
+      case FPCALL_SQRT:
+        if (!fin32(a) || ((a >> 31) && (a << 1) != 0)) return false;
+        r = f32_bits(__builtin_sqrtf(as_f32(a))); break;
+      case FPCALL_MADD:
+        if (!fin32(a) || !fin32(b) || !fin32(c)) return false;
+        r = f32_bits(__builtin_fmaf(as_f32(a), as_f32(b), as_f32(c))); break;
+      default: return false;
+    }
+    if (!fin32(r)) return false;
+    *dest = 0xffffffff00000000ull | r;
+    return true;
+  }
+  return false;
+}
+
+// Compare the fast path with softfloat on random operands biased toward the
+// boundaries of the fast-path window. Returns the number of mismatches.
+static uint64_t rng_state = 0x243f6a8885a308d3ull;
+static uint64_t rng_next(void) {
+  rng_state ^= rng_state << 13; rng_state ^= rng_state >> 7; rng_state ^= rng_state << 17;
+  return rng_state;
+}
+
+static uint64_t random_f64(void) {
+  uint64_t r = rng_next();
+  uint64_t sign = r & (1ull << 63);
+  uint64_t frac = rng_next() & ((1ull << 52) - 1);
+  uint64_t e;
+  switch (r & 7) {
+    case 0: e = 0; break;                                    // zero or subnormal
+    case 1: e = 1023 - 900 + (int64_t)(r >> 8) % 3 - 1; break; // lower window edge
+    case 2: e = 1023 + 900 + (int64_t)(r >> 8) % 3 - 1; break; // upper window edge
+    case 3: e = 0x7ff; break;                                // inf or NaN
+    case 4: frac &= ~((1ull << 30) - 1); /* short mantissa */ /* fall through */
+    default: e = 1023 + (int64_t)((r >> 8) % 120) - 60; break;
+  }
+  return sign | (e << 52) | frac;
+}
+
+static uint32_t random_f32(void) {
+  uint64_t r = rng_next();
+  uint32_t sign = r & (1u << 31);
+  uint32_t frac = rng_next() & ((1u << 23) - 1);
+  uint32_t e;
+  switch (r & 7) {
+    case 0: e = 0; break;
+    case 1: e = 127 - 100 + (int)((r >> 8) % 3) - 1; break;
+    case 2: e = 127 + 100 + (int)((r >> 8) % 3) - 1; break;
+    case 3: e = 0xff; break;
+    case 4: frac &= ~((1u << 12) - 1); /* fall through */
+    default: e = 127 + (int)((r >> 8) % 60) - 30; break;
+  }
+  return sign | (e << 23) | frac;
+}
+
+uint64_t fp_fastpath_selftest(uint64_t n) {
+  static const uint32_t ops[] = { FPCALL_ADD, FPCALL_SUB, FPCALL_MUL, FPCALL_DIV, FPCALL_SQRT, FPCALL_MADD };
+  uint64_t bad = 0, fast = 0;
+  softfloat_roundingMode = softfloat_round_near_even;
+  for (uint64_t i = 0; i < n; i++) {
+    bool w64 = rng_next() & 1;
+    uint32_t op = ops[rng_next() % ARRLEN(ops)];
+    uint32_t w = w64 ? FPCALL_W64 : FPCALL_W32;
+    rtlreg_t a, b, c;
+    if (w64) { a = random_f64(); b = random_f64(); c = random_f64(); }
+    else {
+      a = 0xffffffff00000000ull | random_f32();
+      b = 0xffffffff00000000ull | random_f32();
+      c = 0xffffffff00000000ull | random_f32();
+    }
+    rtlreg_t fast_r = c;
+    bool relaxed = false;
+    if (!fpcall_host_fastpath(op, w, &fast_r, &a, &b)) {
+      fast_r = c;
+      if (!fpcall_host_relaxed(op, w, &fast_r, &a, &b)) continue;
+      relaxed = true;
+      if (!w64) fast_r = (uint32_t)fast_r;
+    }
+    fast++;
+    softfloat_exceptionFlags = 0;
+    rtlreg_t ref;
+    if (w64) {
+      float64_t fa = { a }, fb = { b }, fc = { c };
+      switch (op) {
+        case FPCALL_ADD: ref = f64_add(fa, fb).v; break;
+        case FPCALL_SUB: ref = f64_sub(fa, fb).v; break;
+        case FPCALL_MUL: ref = f64_mul(fa, fb).v; break;
+        case FPCALL_DIV: ref = f64_div(fa, fb).v; break;
+        case FPCALL_SQRT: ref = f64_sqrt(fa).v; break;
+        default: ref = f64_mulAdd(fa, fb, fc).v; break;
+      }
+    } else {
+      float32_t fa = { (uint32_t)a }, fb = { (uint32_t)b }, fc = { (uint32_t)c };
+      switch (op) {
+        case FPCALL_ADD: ref = f32_add(fa, fb).v; break;
+        case FPCALL_SUB: ref = f32_sub(fa, fb).v; break;
+        case FPCALL_MUL: ref = f32_mul(fa, fb).v; break;
+        case FPCALL_DIV: ref = f32_div(fa, fb).v; break;
+        case FPCALL_SQRT: ref = f32_sqrt(fa).v; break;
+        default: ref = f32_mulAdd(fa, fb, fc).v; break;
+      }
+    }
+    // The fast path may only omit flags that are already set: inexact, and
+    // underflow for the relaxed path.
+    uint32_t allowed = softfloat_flag_inexact | (relaxed ? softfloat_flag_underflow : 0);
+    bool flags_ok = (softfloat_exceptionFlags & ~allowed) == 0;
+    if (ref != fast_r || !flags_ok) {
+      if (bad < 10) {
+        printf("fp fast path mismatch: op %u w %u a %016lx b %016lx c %016lx fast %016lx ref %016lx flags %x\n",
+               op, w, a, b, c, fast_r, ref, softfloat_exceptionFlags);
+      }
+      bad++;
+    }
+  }
+  softfloat_exceptionFlags = 0;
+  printf("fp fast path self-test: %lu cases, %lu on the fast path, %lu mismatches\n", n, fast, bad);
+  return bad;
+}
+#endif // CONFIG_FPU_SOFT_HOST_FASTPATH
+
 def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint32_t cmd) {
 #ifndef CONFIG_FPU_NONE
   uint32_t w = FPCALL_W(cmd);
@@ -87,6 +355,12 @@ def_rtl(fpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uint
     uint32_t rm = isa_fp_get_rm(s);
     softfloat_roundingMode = rm;
     isa_fp_rm_check(softfloat_roundingMode);
+#ifdef CONFIG_FPU_SOFT_HOST_FASTPATH
+    if (fp_host_fastpath_enabled && rm == FPCALL_RM_RNE && isa_fp_inexact_set()) {
+      if (fpcall_host_fastpath(op, w, dest, src1, src2)) return;
+      if (isa_fp_underflow_set() && fpcall_host_relaxed(op, w, dest, src1, src2)) return;
+    }
+#endif
   }
   if (w == FPCALL_W16) {
     float16_t fsrc1 = rtlToF16(*src1);

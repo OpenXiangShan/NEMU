@@ -154,6 +154,7 @@ static inline int parse_args(int argc, char *argv[]) {
     {"fdt-rng-seed"       , required_argument, NULL, 22},
     {"exact"              , no_argument      , NULL, 23},
     {"batch-trace"        , required_argument, NULL, 24},
+    {"fp-fastpath-selftest", required_argument, NULL, 25},
 
     {0          , 0                , NULL,  0 },
   };
@@ -244,6 +245,14 @@ static inline int parse_args(int argc, char *argv[]) {
       }
       case 23: exact_mode = true; break;
       case 24: cpu_set_batch_trace(optarg); break;
+      case 25: {
+#ifdef CONFIG_FPU_SOFT_HOST_FASTPATH
+          uint64_t fp_fastpath_selftest(uint64_t n);
+          exit(fp_fastpath_selftest(strtoull(optarg, NULL, 0)) == 0 ? 0 : 1);
+#else
+          panic("--fp-fastpath-selftest requires CONFIG_FPU_SOFT_HOST_FASTPATH");
+#endif
+      }
       case 'A':
           #ifdef CONFIG_MEMORY_REGION_ANALYSIS
           Log("Set mem analysis log path %s", optarg);
@@ -357,6 +366,7 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--fdt-rng-seed=N        derive the bootloader rng-seed from N instead of host randomness\n");
         printf("\t--exact                 run the reference block cache and host TLB only\n");
         printf("\t--batch-trace=FILE      write the instruction count, pc and cause of every execution batch to FILE\n");
+        printf("\t--fp-fastpath-selftest=N  check the host FPU fast path against softfloat and exit\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
 
 #ifdef CONFIG_LF_PROFILING

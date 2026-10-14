@@ -307,7 +307,17 @@ _Noreturn void longjmp_exception(int ex_cause) {
   }
 }
 
+// The kept block cache's schedule follows the reference in both modes.
+void cpu_enter_follower_mode(void) {
+  IFDEF(CONFIG_FPU_SOFT_HOST_FASTPATH, fp_host_fastpath_enabled = false);
+}
+
+void cpu_enter_leader_mode(void) {
+  IFDEF(CONFIG_FPU_SOFT_HOST_FASTPATH, fp_host_fastpath_enabled = true);
+}
+
 void cpu_enter_exact_mode(void) {
+  cpu_enter_follower_mode();
   IFDEF(CONFIG_TCACHE_KEEP_ON_TRAP, tcache_enter_exact());
   IFDEF(CONFIG_MODE_SYSTEM, hosttlb_enter_exact());
 }

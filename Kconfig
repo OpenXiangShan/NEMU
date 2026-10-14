@@ -386,6 +386,17 @@ config FPU_NONE
   bool "Disable FPU Emulation"
 endchoice
 
+config FPU_SOFT_HOST_FASTPATH
+  bool "Compute common softfloat cases with the host FPU"
+  depends on FPU_SOFT && ISA_riscv64
+  default n
+  help
+    Compute scalar add, sub, mul, div, sqrt and fused multiply-add with the
+    host FPU when the result is provably identical to softfloat's: round to
+    nearest even, finite operands and results far from the overflow and
+    underflow thresholds, and the inexact flag already set in fflags so no
+    new exception flag can arise. All other cases use softfloat.
+
 choice
   prompt "Detecting misaligned memory accessing"
   default AC_SOFT

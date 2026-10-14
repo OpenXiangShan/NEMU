@@ -176,6 +176,9 @@ static void lf_inject_leader(uint64_t icount) {
 
 void lf_leader_start(uint32_t gen, uint32_t next_slice, uint64_t icount, bool run_ended) {
   lf_role = LF_ROLE_LEADER;
+  // The leader runs the fast path: the reference block cache with host
+  // floating point. Followers disable host floating point for themselves.
+  cpu_enter_leader_mode();
   ld = (typeof(ld)){ .gen = gen, .next_slice = next_slice, .t_start = get_time() };
   if (gen > 0) {
     // Promoted: the run's stdout, the leader's own error log, and write

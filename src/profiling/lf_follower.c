@@ -186,6 +186,8 @@ void lf_follower_start(uint32_t gen, uint32_t slice, uint64_t icount) {
     Log("injected difftest desync in follower %u", slice);
     cpu.gpr[1]._64 ^= 0x5a5a5a5a;
   }
+  // Followers profile on the slow path: softfloat.
+  cpu_enter_follower_mode();
   // Profiling becomes active at the next execute() call.
   fl.start_profiled = profiling_workload_ready() ? icount - checkpoint_icount_base : 0;
   profiling_state = SimpointProfiling;

@@ -229,6 +229,7 @@ CONFIG_FLASH_IMG_PATH="$(NEMU_HOME)/resource/gcpt_restore/build/gcpt.bin"
 # CONFIG_FPU_HOST is not set
 CONFIG_FPU_SOFT=y
 # CONFIG_FPU_NONE is not set
+# CONFIG_FPU_SOFT_HOST_FASTPATH is not set
 # CONFIG_AC_HOST is not set
 # CONFIG_AC_SOFT is not set
 CONFIG_AC_NONE=y

@@ -32,6 +32,11 @@ enum {
   FPCALL_SRC2_W32_to_64,
 };
 
+#ifdef CONFIG_FPU_SOFT_HOST_FASTPATH
+// Host arithmetic where it rounds like softfloat; cleared for softfloat only.
+extern bool fp_host_fastpath_enabled;
+#endif
+
 enum {
   FPCALL_RM_RNE,  // round to nearest, ties to even
   FPCALL_RM_RTZ,  // round towards zero

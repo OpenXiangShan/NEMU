@@ -72,6 +72,22 @@ uint32_t isa_fp_get_rm(Decode *s) {
   }
 }
 
+#ifdef CONFIG_FPU_SOFT_HOST_FASTPATH
+bool isa_fp_inexact_set(void) {
+  return fcsr->fflags.val & 0x01;
+}
+
+bool isa_fp_underflow_set(void) {
+  return fcsr->fflags.val & 0x02;
+}
+
+// The instruction rounds to nearest even and the inexact flag is already
+// set, so host arithmetic within the fast-path window matches softfloat.
+bool isa_fp_host_ok(Decode *s) {
+  return (fcsr->fflags.val & 0x01) && isa_fp_get_rm(s) == FPCALL_RM_RNE;
+}
+#endif
+
 void isa_fp_set_ex(uint32_t ex) {
 #ifndef CONFIG_FPU_NONE
   uint32_t f = 0;
