@@ -26,7 +26,7 @@
 #include <ame/svstore_queue_wrapper.h>
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
 
-#define HOSTTLB_SIZE_SHIFT 12
+#define HOSTTLB_SIZE_SHIFT CONFIG_HOSTTLB_SIZE_SHIFT
 #define HOSTTLB_SIZE (1 << HOSTTLB_SIZE_SHIFT)
 
 typedef struct {
@@ -48,16 +48,39 @@ static inline int hosttlb_idx(vaddr_t vaddr) {
   return (hosttlb_vpn(vaddr) % HOSTTLB_SIZE);
 }
 
+// Entries filled since the last flush, so a flush touches only those unless
+// too many were filled to be worth tracking.
+#define HOSTTLB_FILL_LOG 4096
+static HostTLBEntry *fill_log[HOSTTLB_FILL_LOG];
+static int fill_count;
+
+// Past the log, the count stays at one more than it holds: the next flush
+// clears every entry.
+static inline void hosttlb_note_fill(HostTLBEntry *e) {
+  if (fill_count < HOSTTLB_FILL_LOG) fill_log[fill_count++] = e;
+  else fill_count = HOSTTLB_FILL_LOG + 1;
+}
+
+static void hosttlb_clear_all(void) {
+  memset(hosttlb, -1, sizeof(hosttlb));
+  fill_count = 0;
+}
+
 void hosttlb_flush(vaddr_t vaddr) {
   Logm("hosttlb_flush " FMT_WORD, vaddr);
   // HostTLB entries are keyed by 4 KiB VPNs but do not retain the page-table
   // leaf size. An address-specific SFENCE.VMA must also invalidate sibling
   // entries derived from a superpage translation, so flush conservatively.
-  memset(hosttlb, -1, sizeof(hosttlb));
+  if (fill_count <= HOSTTLB_FILL_LOG) {
+    for (int i = 0; i < fill_count; i++) memset(fill_log[i], -1, sizeof(HostTLBEntry));
+    fill_count = 0;
+  } else {
+    hosttlb_clear_all();
+  }
 }
 
 void hosttlb_init() {
-  hosttlb_flush(0);
+  hosttlb_clear_all();
 }
 
 static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
@@ -82,6 +105,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
       &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    hosttlb_note_fill(e);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
@@ -102,6 +126,7 @@ static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
     e->offset = guest_to_host(pbase) - vbase;
     e->gvpn = hosttlb_vpn(vbase);
+    hosttlb_note_fill(e);
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vbase, pbase);
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
@@ -121,6 +146,7 @@ static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, wor
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    hosttlb_note_fill(e);
   }
 }
 
@@ -134,6 +160,7 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
     e->offset = guest_to_host(pbase) - vbase;
     e->gvpn = hosttlb_vpn(vbase);
+    hosttlb_note_fill(e);
   }
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
   fprintf(stderr, "?? slow-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
