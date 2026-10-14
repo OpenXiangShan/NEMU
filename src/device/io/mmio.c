@@ -85,3 +85,15 @@ __attribute__((noinline))
 void mmio_write(paddr_t addr, int len, word_t data) {
   map_write(addr, len, data, fetch_mmio_map(addr));
 }
+
+#ifdef CONFIG_LF_PROFILING
+// Name of the MMIO map whose register space contains the host pointer p.
+const char *mmio_map_name_of_space(const void *p) {
+  for (int i = 0; i < nr_map; i++) {
+    const uint8_t *s = maps[i].space;
+    if ((const uint8_t *)p >= s && (const uint8_t *)p <= s + (maps[i].high - maps[i].low))
+      return maps[i].name;
+  }
+  return "unknown";
+}
+#endif

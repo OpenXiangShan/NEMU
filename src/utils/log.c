@@ -82,3 +82,17 @@ void log_close() {
     fclose(log_fp);
   }
 }
+
+#ifdef CONFIG_LF_PROFILING
+// Stops writing to the log file and in-memory log buffer inherited from the
+// leader in a forked follower. The leader flushed both before fork(); the FILE
+// object and the buffer are abandoned, not closed or freed. Log() then writes
+// to stdout, which the follower redirects to its slice log.
+void log_detach_for_child() {
+  log_fp = NULL;
+  log_filebuf = NULL;
+  enable_fast_log = false;
+  enable_small_log = false;
+  record_row_number = 0;
+}
+#endif

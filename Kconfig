@@ -642,4 +642,17 @@ config INSTR_CNT_BY_CATEGORY
     Print instruction counts grouped by instruction category in monitor
     statistics.
 
+config LF_PROFILING
+  bool "Leader-follower parallel SimPoint profiling"
+  depends on !SHARE && MODE_SYSTEM && ISA_riscv64 && PERF_OPT && INSTR_CNT_BY_BB
+  depends on DETERMINISTIC && USE_MMAP && PROFILING_SIMPLIFIED_MODEL && !HAS_DISK
+  depends on !UART16550_INPUT_FIFO && !UARTLITE_INPUT_FIFO && !UAR_SNPS_INPUT_FIFO
+  default n
+  help
+    Execute the guest once in a leader process with profiling inactive and
+    fork follower processes that profile fixed instruction-count slices,
+    validate their end state against the leader, and emit BBV fragments that
+    are merged into the serial simpoint_bbv.gz. Enabled at run time by
+    --lf-profile.
+
 endmenu

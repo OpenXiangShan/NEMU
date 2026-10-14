@@ -36,6 +36,17 @@
 #include "../local-include/aia.h"
 #include "macro.h"
 
+#ifdef CONFIG_LF_PROFILING
+#include <profiling/lf.h>
+// Whether the latest execute() call returned to the outer loop by batch
+// exhaustion or a privileged jump: only these leave both the instruction
+// count settled and the last BBV publication at cpu.pc.
+static bool lf_exit_settled = false;
+#define LF_SET_EXIT_SETTLED(v) (lf_exit_settled = (v))
+#else
+#define LF_SET_EXIT_SETTLED(v)
+#endif
+
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -63,6 +74,9 @@ const rtlreg_t rzero = 0;
 rtlreg_t tmp_reg[4];
 
 static uint64_t n_remain_total; // instructions remaining in cpu_exec()
+#ifdef CONFIG_LF_PROFILING
+uint64_t cpu_exec_lf_n_remain_total() { return n_remain_total; }
+#endif
 static int n_remain;            // instructions remaining in execute()
 static int n_batch;             // instructions that execute() plans to batch
 // Note: In BY_BB mode, n_remain and n_batch are used in instuction counting calculating.
@@ -376,6 +390,7 @@ static bool manual_cpt_quit = false;
       }                                                                        \
       g_sys_state_flag = 0;                                                    \
     }                                                                          \
+    LF_SET_EXIT_SETTLED(true);                                                 \
     goto end_of_loop;                                                          \
   } while (0)
 
@@ -426,7 +441,7 @@ uint64_t per_bb_profile(Decode *prev_s, Decode *s) {
   // checkpoint_icount_base is set from nemu_trap.
   // Profiling and checkpointing use this as the starting point for instruction counting.
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
-  bool workload_ready = workload_loaded || donot_skip_boot;
+  bool workload_ready = profiling_workload_ready();
   // workload_loaded set from nemu_trap
   //
   if (workload_ready && enable_semantic_point_cpt()) {
@@ -497,6 +512,7 @@ static void execute(int n) {
   // Note: n is no longer used below, use n_remain instead.
   // NEMU could longjmp out of execute(), so return value makes no sense.
   IFDEF(CONFIG_INSTR_CNT_BY_BB, instr_count_bb_unsettled = 0);
+  LF_SET_EXIT_SETTLED(false);
 
   static const void *local_exec_table[TOTAL_INSTR] = {
       MAP(INSTR_LIST, FILL_EXEC_TABLE)
@@ -594,6 +610,7 @@ static void execute(int n) {
       /* The old is_ctrl flag remained set until end_of_loop, publishing this
        * boundary twice when a control-flow BB exhausted the execute batch. */
       profile_control_exit = per_bb_profile_active;
+      LF_SET_EXIT_SETTLED(true);
       // goto end_of_loop;
       break;
     }
@@ -955,6 +972,12 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 #endif
 
+#ifdef CONFIG_LF_PROFILING
+  // Follower 0 is forked here, before the context below is pushed, so that it
+  // starts from exactly the state a serial run starts from.
+  if (unlikely(lf_role != LF_ROLE_NONE)) lf_on_run_entry(g_nr_guest_instr);
+#endif
+
   n_remain_total = n; // + AHEAD_LENGTH; // deal with setjmp()
   Loge("cpu_exec will exec %lu instrunctions", n_remain_total);
 
@@ -985,6 +1008,15 @@ void cpu_exec(uint64_t n) {
   while (nemu_state.state == NEMU_RUNNING &&
          MUXDEF(CONFIG_ENABLE_INSTR_CNT, n_remain_total > 0, true)) {
     if (unlikely(batch_trace != NULL)) fprintf(batch_trace, "%lu " FMT_WORD " %d\n", g_nr_guest_instr, cpu.pc, cause);
+#ifdef CONFIG_LF_PROFILING
+    // Fork points must precede device and timer updates and interrupt checks,
+    // so that leader and follower continue the same loop iteration.
+    if (unlikely(lf_role != LF_ROLE_NONE)) {
+      bool canonical = lf_exit_settled && cause != NEMU_EXEC_EXCEPTION && instr_count_bb_unsettled == 0;
+      lf_exit_settled = false;
+      lf_on_loop_top(canonical, g_nr_guest_instr);
+    }
+#endif
     #ifdef CONFIG_DEVICE
       extern void device_update();
       device_update();
@@ -1085,6 +1117,10 @@ void cpu_exec(uint64_t n) {
 
   // At this point, instruction counting has been settled.
   // g_nr_guest_instr is the exact number of instructions.
+
+#ifdef CONFIG_LF_PROFILING
+  if (unlikely(lf_role != LF_ROLE_NONE)) lf_on_run_end(g_nr_guest_instr);
+#endif
 
   #ifndef CONFIG_SHARE
     #ifdef CONFIG_LIGHTQS

@@ -64,3 +64,11 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   host_write((void*)((uint64_t)map->space + offset), len, data);
   invoke_callback(map->callback, offset, len, true);
 }
+
+#ifdef CONFIG_LF_PROFILING
+// The part of the device register space handed out so far.
+void io_space_used(const uint8_t **base, size_t *len) {
+  *base = io_space;
+  *len = p_space - io_space;
+}
+#endif

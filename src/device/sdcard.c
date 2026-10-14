@@ -139,3 +139,17 @@ void init_sdcard() {
       Log("Using sdcard image: %s", img);
   }
 }
+
+#ifdef CONFIG_LF_PROFILING
+// Leader-follower mode cannot share an open image between processes: file
+// offsets are shared across fork() and writes would leak between them.
+bool sdcard_has_image() { return fp != NULL; }
+
+void sdcard_lf_state(uint64_t out[5]) {
+  out[0] = blkcnt;
+  out[1] = (uint64_t)blk_addr;
+  out[2] = addr;
+  out[3] = write_cmd;
+  out[4] = read_ext_csd;
+}
+#endif

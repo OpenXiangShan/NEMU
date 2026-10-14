@@ -42,11 +42,16 @@
 #include <cassert>
 // #include <debug.h>
 #include <algorithm>
+#include <charconv>
+#include <cerrno>
+#include <cstring>
 #include <iostream>
+#include <unistd.h>
 #include <vector>
 
 #include <checkpoint/simpoint.h>
 #include <profiling/profiling_control.h>
+#include <profiling/lf.h>
 
 namespace SimPointNS
 {
@@ -82,6 +87,14 @@ SimPoint::init() {
     pathManager.setSimpointProfilingOutputDir();
     assert(checkpoint_interval);
     intervalSize = checkpoint_interval;
+#ifdef CONFIG_LF_PROFILING
+    if (lf_config.requested) {
+      // The leader never owns the BBV stream: its destructor would truncate
+      // the merged file. Followers write fragments that the leader merges.
+      Log("Leader-follower simpoint profiling with interval %lu", intervalSize);
+      return;
+    }
+#endif
     Log("Doing simpoint profiling with interval %lu", intervalSize);
     auto path = pathManager.getOutputPath() + "/simpoint_bbv.gz";
 
@@ -109,6 +122,121 @@ SimPoint::profile_basic_block_with_abs_icount(Addr control_pc, Addr next_pc, uin
   currentBBV.first = next_pc;
   lastICount = abs_icount;
 }
+
+void
+formatInterval(std::string &line, const std::vector<std::pair<uint64_t, uint64_t> > &counts) {
+  char num[24];
+  line.push_back('T');
+  for (const auto &c : counts) {
+    line.push_back(':');
+    line.append(num, std::to_chars(num, num + sizeof(num), c.first).ptr);
+    line.push_back(':');
+    line.append(num, std::to_chars(num, num + sizeof(num), c.second).ptr);
+    line.push_back(' ');
+  }
+  line.push_back('\n');
+}
+
+void
+SimPoint::collectCounts(std::vector<std::pair<uint64_t, uint64_t> > &counts) {
+  for (auto map_itr = bbMap.begin(); map_itr != bbMap.end(); ++map_itr) {
+    BBInfo &info = map_itr->second;
+    if (info.count != 0) {
+      counts.push_back(std::make_pair(info.id, info.count));
+      info.count = 0;
+    }
+  }
+  std::sort(counts.begin(), counts.end());
+}
+
+#ifdef CONFIG_LF_PROFILING
+void
+SimPoint::beginSlice(bool pristine, uint64_t profiledICount, Addr nextPC) {
+  bbMap.clear();
+  bbLookupCache.fill(BBLookupCacheEntry{});
+  segments.clear();
+  sliceMode = true;
+  sliceIntervalEnds = 0;
+  driftViolated = false;
+  currentBBVInstCount = 0;
+  intervalDrift = 0;
+  if (pristine) {
+    lastICount = 0;
+    currentBBV = BasicBlockRange(0, 0);
+    intervalCount = 0;
+  } else {
+    lastICount = profiledICount;
+    currentBBV.first = nextPC;
+    // Only intervalCount + intervalDrift affects the output.
+    intervalCount = profiledICount % intervalSize;
+  }
+}
+
+bool
+SimPoint::endSlice(const char *path, lf_fragment_header_t *hdr, std::string &err) {
+  std::vector<std::pair<uint64_t, uint64_t> > tail;
+  collectCounts(tail);
+  segments.push_back(Segment{false, std::move(tail)});
+
+  // Ids are assigned in first-publication order, starting from 1 in a slice.
+  std::vector<BasicBlockRange> firstSeen(bbMap.size());
+  for (const auto &e : bbMap) firstSeen[e.second.id - 1] = e.first;
+
+  const uint64_t start = hdr->start_profiled, end = hdr->end_profiled;
+  hdr->interval_size = intervalSize;
+  hdr->first_interval = start / intervalSize;
+  hdr->nr_blocks = firstSeen.size();
+  hdr->nr_segments = segments.size();
+  if (driftViolated) {
+    err = "a publication spanned more than one interval";
+    return false;
+  }
+  if (!hdr->run_ended) {
+    if (lastICount != end) {
+      err = "last publication at " + std::to_string(lastICount) + ", expected " + std::to_string(end);
+      return false;
+    }
+    if ((intervalCount + intervalDrift) % intervalSize != end % intervalSize ||
+        intervalCount + intervalDrift >= intervalSize) {
+      err = "interval residual " + std::to_string(intervalCount + intervalDrift) + ", expected " +
+            std::to_string(end % intervalSize);
+      return false;
+    }
+    if (sliceIntervalEnds != end / intervalSize - start / intervalSize) {
+      err = std::to_string(sliceIntervalEnds) + " interval ends, expected " +
+            std::to_string(end / intervalSize - start / intervalSize);
+      return false;
+    }
+  }
+
+  std::string tmp = std::string(path) + ".tmp";
+  FILE *fp = fopen(tmp.c_str(), "wb");
+  if (fp == NULL) {
+    err = "cannot create " + tmp + ": " + strerror(errno);
+    return false;
+  }
+  bool ok = fwrite(hdr, sizeof(*hdr), 1, fp) == 1;
+  for (const auto &bb : firstSeen) {
+    uint64_t v[2] = {bb.first, bb.second};
+    ok = ok && fwrite(v, sizeof(v), 1, fp) == 1;
+  }
+  for (const auto &seg : segments) {
+    uint64_t v[2] = {seg.closed, seg.counts.size()};
+    ok = ok && fwrite(v, sizeof(v), 1, fp) == 1;
+    for (const auto &c : seg.counts) {
+      uint64_t e[2] = {c.first, c.second};
+      ok = ok && fwrite(e, sizeof(e), 1, fp) == 1;
+    }
+  }
+  ok = (fclose(fp) == 0) && ok;
+  if (!ok || rename(tmp.c_str(), path) != 0) {
+    err = "cannot write " + std::string(path) + ": " + strerror(errno);
+    unlink(tmp.c_str());
+    return false;
+  }
+  return true;
+}
+#endif
 
 void
 SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_count) {
@@ -163,29 +291,34 @@ SimPoint::profile(Addr pc, bool is_control, bool is_last_uop, unsigned instr_cou
         *simpointStream->stream() << ":" << map_itr->first.first << ":" << map_itr->first.second << ":"
           << map_itr->second.id << ":" << map_itr->second.count << " ";
       }
+      *simpointStream->stream() << "\n";
 #else
       // summarize interval and display BBV info
       std::vector<std::pair<uint64_t, uint64_t> > counts;
-      for (auto map_itr = bbMap.begin(); map_itr != bbMap.end(); ++map_itr) {
-        BBInfo &info = map_itr->second;
-        if (info.count != 0) {
-          counts.push_back(std::make_pair(info.id, info.count));
-          info.count = 0;
-        }
-      }
-      std::sort(counts.begin(), counts.end());
+      collectCounts(counts);
 
-      // Print output BBV info
-      *simpointStream->stream() << "T";
-      for (auto cnt_itr = counts.begin(); cnt_itr != counts.end(); ++cnt_itr) {
-        *simpointStream->stream() << ":" << cnt_itr->first << ":" << cnt_itr->second << " ";
+#ifdef CONFIG_LF_PROFILING
+      if (sliceMode) {
+        segments.push_back(Segment{true, std::move(counts)});
+        sliceIntervalEnds++;
+      } else
+#endif
+      {
+        // Print output BBV info
+        std::string line;
+        formatInterval(line, counts);
+        simpointStream->stream()->write(line.data(), line.size());
       }
 #endif
-      *simpointStream->stream() << "\n";
       Logsp("Simpoint profilied %lu instrs", intervalCount);
 
       intervalDrift = (intervalCount + intervalDrift) - intervalSize;
       intervalCount = 0;
+#ifdef CONFIG_LF_PROFILING
+      // Slice state is derived assuming at most one interval ends per
+      // publication, which keeps the drift below one interval.
+      if (sliceMode && intervalDrift >= intervalSize) driftViolated = true;
+#endif
     }
   }
 }
@@ -208,6 +341,28 @@ void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) 
 __attribute__((noinline))
 void simpoint_profiling_bb(uint64_t control_pc, uint64_t next_pc, uint64_t abs_instr_count) {
   simpoit_obj.profile_basic_block_with_abs_icount(control_pc, next_pc, abs_instr_count);
+}
+#endif
+
+#ifdef CONFIG_LF_PROFILING
+void simpoint_lf_begin_slice(bool pristine, uint64_t profiled_icount, uint64_t next_pc) {
+  simpoit_obj.beginSlice(pristine, profiled_icount, next_pc);
+}
+
+// Returns 0 on success; otherwise writes the reason into err.
+int simpoint_lf_end_slice(const char *path, lf_fragment_header_t *hdr, char *err, size_t err_len) {
+  std::string reason;
+  if (simpoit_obj.endSlice(path, hdr, reason)) return 0;
+  snprintf(err, err_len, "%s", reason.c_str());
+  return -1;
+}
+
+int simpoint_lf_output_dir(char *buf, size_t len) {
+  std::string dir = pathManager.getOutputPath();
+  while (dir.size() > 1 && dir.back() == '/') dir.pop_back();
+  if (dir.size() + 1 > len) return -1;
+  memcpy(buf, dir.c_str(), dir.size() + 1);
+  return 0;
 }
 #endif
 }

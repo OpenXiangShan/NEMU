@@ -32,6 +32,9 @@ extern bool force_cpt_mmode;
 extern bool workload_loaded;
 extern bool donot_skip_boot;
 
+// Profiling and checkpointing count from the workload start (or from boot).
+static inline bool profiling_workload_ready(void) { return workload_loaded || donot_skip_boot; }
+
 void start_profiling();
 
 #endif // __PROFILING_CONTROL_H__

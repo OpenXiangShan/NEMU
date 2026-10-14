@@ -17,6 +17,7 @@
 #include <isa.h>
 #include <checkpoint/cpt_env.h>
 #include <profiling/profiling_control.h>
+#include <profiling/lf.h>
 #include <checkpoint/semantic_point.h>
 #include <memory/image_loader.h>
 #include <memory/paddr.h>
@@ -133,6 +134,18 @@ static inline int parse_args(int argc, char *argv[]) {
     {"mem_use_record_file", required_argument, NULL, 'A'},
     // restore cpt
     {"cpt-id"             , required_argument, NULL, 4},
+
+    // leader-follower parallel profiling
+    {"lf-profile"         , no_argument      , NULL, LF_OPT_PROFILE},
+    {"lf-slice"           , required_argument, NULL, LF_OPT_SLICE},
+    {"lf-slice-max"       , required_argument, NULL, LF_OPT_SLICE_MAX},
+    {"lf-followers"       , required_argument, NULL, LF_OPT_FOLLOWERS},
+    {"lf-dir"             , required_argument, NULL, LF_OPT_DIR},
+    {"lf-keep"            , no_argument      , NULL, LF_OPT_KEEP},
+    {"lf-mem-track"       , required_argument, NULL, LF_OPT_MEM_TRACK},
+    {"lf-inject"          , required_argument, NULL, LF_OPT_INJECT},
+    {"lf-selftest"        , required_argument, NULL, LF_OPT_SELFTEST},
+    {"lf-follower-cpus"   , required_argument, NULL, LF_OPT_FOLLOWER_CPUS},
 
     // dump state
     {"dump-mem"           , required_argument, NULL, 'M'},
@@ -298,6 +311,15 @@ static inline int parse_args(int argc, char *argv[]) {
         break;
       case 14: sscanf(optarg, "%lu", &warmup_interval); break;
 
+      case LF_OPT_PROFILE ... LF_OPT_END - 1:
+#ifdef CONFIG_LF_PROFILING
+        lf_set_option(o, optarg);
+#else
+        fprintf(stderr, "--lf-* options require a build with CONFIG_LF_PROFILING\n");
+        exit(1);
+#endif
+        break;
+
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
@@ -336,6 +358,19 @@ static inline int parse_args(int argc, char *argv[]) {
         printf("\t--exact                 run the reference block cache and host TLB only\n");
         printf("\t--batch-trace=FILE      write the instruction count, pc and cause of every execution batch to FILE\n");
         printf("\t--mem_use_record_file   result output file for analyzing the memory use segment\n");
+
+#ifdef CONFIG_LF_PROFILING
+        printf("\t--lf-profile            leader-follower parallel SimPoint profiling (needs -b and --simpoint-profile)\n");
+        printf("\t--lf-slice=N            instructions per follower slice (default 1e9)\n");
+        printf("\t--lf-slice-max=N        longer slices for leaders that write many pages (default: --lf-slice)\n");
+        printf("\t--lf-followers=N        maximum number of executing followers (default 4)\n");
+        printf("\t--lf-dir=DIR            work directory for slice files (default <output dir>/lf)\n");
+        printf("\t--lf-keep               keep slice records, fragments and logs after success\n");
+        printf("\t--lf-mem-track=MODE     guest memory digest: 'uffd' (default) or 'off'\n");
+        printf("\t--lf-inject=KIND@WHERE  fault injection for testing the validation\n");
+        printf("\t--lf-selftest=NAME      run a leader-follower self-test and exit\n");
+        printf("\t--lf-follower-cpus=LIST host CPUs for followers and the merger, such as 8-31\n");
+#endif
 
         printf("\t--log-fast              output log to file by buffer\n");
         printf("\t--log-small             keep the last 50M instruction log\n");
@@ -437,6 +472,10 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Enable alignment checking for in a x86 host */
   init_aligncheck();
+
+#ifdef CONFIG_LF_PROFILING
+  lf_init(diff_so_file != NULL);
+#endif
 
   /* Display welcome message. */
   welcome();

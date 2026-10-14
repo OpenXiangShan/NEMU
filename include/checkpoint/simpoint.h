@@ -42,11 +42,20 @@
 #define __CPU_SIMPLE_PROBES_SIMPOINT_HH__
 
 #include <array>
+#include <string>
 #include <unordered_map>
+#include <vector>
 #include <base/output.h>
+#include <generated/autoconf.h>
+#ifdef CONFIG_LF_PROFILING
+#include <profiling/lf_fragment.h>
+#endif
 
 namespace SimPointNS {
 using Addr = uint64_t;
+
+/** Appends the BBV line of one interval: counts sorted by block id. */
+void formatInterval(std::string &line, const std::vector<std::pair<uint64_t, uint64_t> > &counts);
 /**
  * Probe for SimPoints BBV generation
  */
@@ -96,6 +105,20 @@ class SimPoint
 
     void profile_basic_block_with_abs_icount(Addr control_pc, Addr next_pc, uint64_t abs_icount);
 
+#ifdef CONFIG_LF_PROFILING
+    /**
+     * Leader-follower slices. beginSlice() puts the profiler into the state
+     * the serial profiler has at the start of the slice: the constructor
+     * state for a slice forked at run entry, otherwise the state at an
+     * eligible outer-loop top, where the last publication happened at
+     * profiledICount and named nextPC as the next block. Intervals are
+     * recorded as fragment segments instead of being printed.
+     */
+    void beginSlice(bool pristine, uint64_t profiledICount, Addr nextPC);
+    /** Checks the slice invariants and writes the fragment to path. */
+    bool endSlice(const char *path, lf_fragment_header_t *hdr, std::string &err);
+#endif
+
   private:
     uint64_t lastICount{0};
     /** SimPoint profiling interval size in instructions */
@@ -136,6 +159,20 @@ class SimPoint
     BasicBlockRange currentBBV;
     /** inst count in current basic block */
     uint64_t currentBBVInstCount;
+
+    /** Collects and clears the non-zero counts of the open interval, sorted by id. */
+    void collectCounts(std::vector<std::pair<uint64_t, uint64_t> > &counts);
+
+#ifdef CONFIG_LF_PROFILING
+    bool sliceMode = false;
+    struct Segment {
+      bool closed;
+      std::vector<std::pair<uint64_t, uint64_t> > counts;
+    };
+    std::vector<Segment> segments;
+    uint64_t sliceIntervalEnds = 0;
+    bool driftViolated = false;
+#endif
 };
 
 }

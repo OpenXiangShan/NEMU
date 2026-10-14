@@ -353,3 +353,11 @@ void init_uart16550() {
   init_fifo();
 #endif
 }
+
+#ifdef CONFIG_LF_PROFILING
+// Device state kept outside the register space.
+void uart16550_lf_state(uint64_t out[2]) {
+  out[0] = divisor;
+  out[1] = fcr;
+}
+#endif
